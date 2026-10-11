@@ -51,7 +51,7 @@ export default {
     SERA_HOSHIZUKIYO: { name: "星月夜", mp: 30, kind: "phys", power: 5.8, element: "light", acc: 1, flinchChance: 0.3, target: "enemy", desc: "星と月の光を束ねた必中の一撃。怯ませる" },
     SERA_KIENUHI: { name: "消えぬ灯", mp: 30, kind: "buff", shield: true, taunt: true, grantEndure: true, regen: { pct: 0.05, turns: 3 }, buff: { vit: 1.4 }, dur: 3, tech: true, target: "self", desc: "敵を集めて庇い、致死を耐え、傷を癒し続ける" },
     SERA_DAIKAISHOU: { name: "大海嘯", mp: 32, kind: "phys", power: 2.2, vitScale: 0.5, element: "water", acc: 0.8, debuff: { agi: 0.85 }, target: "all-enemy", desc: "大海嘯で敵陣を呑み込む" },
-    // Lv200: 師の灯 — 隊全体を癒し、障壁と守りで包む (標準の物差し: 全体回復ヒールの1.6倍 + 障壁・強化)
+    // Lv200: 師の灯 — 隊の全員を癒し、障壁と守りで包む (標準の物差し: 全体回復ヒールの1.6倍 + 障壁・強化)
     SERA_SHINOTOMOSHIBI: { name: "師の灯", mp: 26, kind: "heal", healMul: 1.6, grantBarrier: 1, buff: { vit: 1.3 }, regen: { pct: 0.05, turns: 4 }, target: "all-ally", desc: "師の灯を掲げ、隊を癒して障壁と守りで包む" },
   },
   perks: {

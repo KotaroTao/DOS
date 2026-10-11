@@ -26,7 +26,7 @@ export default {
       fx: [{ t: "start", party: true, regen: [0.02, 0.035], dur: 3 }] },
     priestTeate: { label: "手当ての心得", lv: ["回復の技・呪文の回復量+10%", "回復の技・呪文の回復量+20%"],
       fx: [{ t: "heal", v: [0.1, 0.2] }] },
-    priestMitori: { label: "看取りの祈り", lv: ["倒れた味方がいる間、毎ラウンドMP3%回復", "倒れた味方がいる間、毎ラウンドMP5%回復"],
+    priestMitori: { label: "看取りの祈り", lv: ["倒れた味方がいる間、毎ターンMP3%回復", "倒れた味方がいる間、毎ターンMP5%回復"],
       fx: [{ t: "round", when: { allyDown: true }, mp: [0.03, 0.05] }] },
   },
 };

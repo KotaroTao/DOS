@@ -62,7 +62,7 @@ export const LAYER3_ITEMS = [
 
   // ===== レジェンドレア (全職共通・固有効果) =====
   lr(R("lr_l3_soulore", "魂鉱の首飾り", "amulet", 41, { pow: 1.6, hp: 30, luk: 6, eff: { soulUp: 0.3 }, tint: "#7fd0c0",
-    desc: "坑の最奥でまれに掘り出される、魂を吸って育った鉱石の首飾り。持つ者が浄めた魂の欠片を拾い集め、より多くの Soul を手元へ引き寄せる。" })),
+    desc: "坑の最奥でまれに掘り出される、魂を吸って育った鉱石の首飾り。持つ者が浄めた魂の欠片を拾い集め、より多くの ✦Soul を手元へ引き寄せる。" })),
   lr(R("lr_l3_silentcanary", "鳴かぬカナリアの指輪", "ring", 42, { pow: 1.6, hp: 24, pie: 6, eff: { ailmentImmune: true }, tint: "#f0e070",
     desc: "毒気の満ちた坑で最後まで鳴かずに生き延びたカナリアを、そのまま金に封じた指輪。はめた者は毒にも痺れにも石の呪いにも冒されない。" })),
   lr(W("lr_l3_firstpick", "掘り当てし者のつるはし", "ax", 43, { pow: 1.4, two: true, eAtk: ["wind", 2], hp: 20, eff: { multistrike: 2 }, tint: "#a08860",

@@ -9,7 +9,7 @@ export const monsters = defMonsters([
   { id: "d03_ghost", name: "さまよう亡霊", race: "specter", element: "dark", artKey: "hd_wanderghost", rank: 3,
     ability: "soulSteal", // 冷たい指で熱とともにSoulを奪う
     hp: 38, atk: 15, def: 6, spd: 10, soul: 30, gold: 22,
-    desc: "回廊で力尽き、骸さえ見つけてもらえなかった者の魂。生者の体温に飢え、音もなく背後へ回り込んでは冷たい指を肋の隙間へ差し入れる。触れられた箇所から熱とともにSoulが吸い出され、心の臓が凍てついていく。" },
+    desc: "回廊で力尽き、骸さえ見つけてもらえなかった者の魂。生者の体温に飢え、音もなく背後へ回り込んでは冷たい指を肋の隙間へ差し入れる。触れられた箇所から熱とともに✦Soulが吸い出され、心の臓が凍てついていく。" },
   { id: "d03_sahagin", name: "深淵のサハギン", race: "aquatic", element: "water", artKey: "hd_sahagin", rank: 3,
     pack: true, ability: "sunder", // 骨のもりを手に群れで岸辺を囲い、寄ってたかって鎧の継ぎ目を穿つ (守り崩し)
     hp: 42, atk: 16, def: 8, spd: 8, soul: 33, gold: 24,

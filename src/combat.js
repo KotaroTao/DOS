@@ -1,5 +1,5 @@
 import { monsterResists } from "./resistance.js";
-// パーティ・呪文・ターン制戦闘ロジック
+// 隊・呪文・ターン制戦闘ロジック
 import { MONSTERS } from "./sprites.js";
 import { ITEMS, hasQuality, rollQuality, applyQuality, weaponRange, scaleBonus, useTarget, useHelps, useCureKinds, useWhere, offhandOf, DUAL_SKILL_SHARE } from "./items.js";
 import { ELEMENTS, elemDmgMult, elemBeats, monStats, rankStats, resistRate, resistHpMul, METAL_TIERS } from "./dungeons/schema.js";
@@ -109,7 +109,7 @@ export function spawnMimic(floorRank, scale = 1, master = false) {
   e.hp = e.maxhp;
   e.atk = Math.max(1, Math.round(st.atk * scale * (master ? 1.1 : 1.0)));
   e.vit = Math.round(st.def * scale * (master ? 1.6 : 1.3));
-  e.agi = st.spd + (master ? 8 : 4);             // 不意打ちで先手を取りやすい
+  e.agi = st.spd + (master ? 8 : 4);             // ミミック: 不意を突いて先に動きやすい
   e.multistrike = master ? 3 : 2;                // 牙で噛みつき連撃 (一手で複数回)
   e.resists = monsterResists({ ...e.mon, rank, elite: true, resists: e.mon.resistOverrides || {} });
   e.physResist = master ? 50 : 0;
@@ -183,7 +183,7 @@ function makeEnemy(key, scale = 1, boss = false, bossRank = 0) {
     // モンスター定義の atk/def/spd を六大ステへ写像 (def→VIT, spd→AGI)
     atk: Math.max(1, Math.round(baseAtk * scale)),
     vit: Math.round(baseDef * scale),
-    // 俊敏: AGI を底上げして先手を取りやすくする / 神速: さらに大きく底上げし、1ラウンドに2度動く (_startRound)
+    // 俊敏: AGI を底上げして先に動きやすくする / 神速: さらに大きく底上げし、1ターンに2度動く (_startRound)
     agi: baseSpd + (m.swift ? 4 : 0) + (m.haste ? 8 : 0),
     haste: !!m.haste,
     abRate: m.abRate || 0, // 特殊能力を使う確率 (0 = 既定の 25%・ブレス 30%)。第5層からの魔物は特色を強く押し出すため高い
@@ -294,7 +294,7 @@ function perkNote(c, lv, defDur = 3) {
   const dur = lvv(c.dur, lv) || defDur;
   const parts = [];
   if (c.buff) parts.push(`${all}${buffText(c.buff, lv)}、${dur}ターン`);
-  if (c.foe) parts.push(`敵全員の${buffText(c.foe, lv, true)}、${dur}ターン`);
+  if (c.foe) parts.push(`敵全体の${buffText(c.foe, lv, true)}、${dur}ターン`);
   if (c.barrier) parts.push(`${to}魔障壁${lvv(c.barrier, lv)}回（ブレス・呪文の被ダメージ半減）`);
   if (c.wall) parts.push(`${to}魔法壁${lvv(c.wall, lv)}回（受けるダメージ半減）`);
   if (c.regen) parts.push(`${to}リジェネ（毎ターン最大HPの${Math.round((lvv(c.regen, lv) || 0) * 100)}%回復）、${c.dur || 3}ターン`);
@@ -305,7 +305,7 @@ function perkNote(c, lv, defDur = 3) {
 }
 // 回復した量を「HP+12 MP+3」の形で
 const gainText = (h, m) => [h ? `HP+${h}` : "", m ? `MP+${m}` : ""].filter(Boolean).join(" ");
-// 魂の共鳴 (src/resonance.js、第七章の結びで開く): 隊の編成 (メイン魂の職の組み合わせ) で決まる隊全体の効果。
+// 魂の共鳴 (src/resonance.js、第七章の結びで開く): 隊の編成 (メイン魂の職の組み合わせ) で決まる隊の全員の効果。
 // 敵を引き付けている間に軽くなる被ダメの割合 (盾役の固有パッシブ take + when.taunting)。オートが挑発の値打ちを見込むのに使う
 export function tauntGuard(a) {
   let g = 0;
@@ -421,7 +421,7 @@ export function chishioState(a) {
   return { stacks: n, bonus: chishioBonus(n, step), max: n >= chishioMax(step), target: a._bloodTgt };
 }
 const MIND_CHARM_BREAK = 0.5, CONFUSE_FREE = 0.25, CONFUSE_DAZE = 0.3, CONFUSE_SELF_MUL = 0.5;
-// 自然回復 (魅了・混乱・眠り・麻痺は手番ごと、毒はラウンドごと) の救済: 治らなかった判定ごとに回復率が
+// 自然回復 (魅了・混乱・眠り・麻痺は手番ごと、毒はターンごと) の救済: 治らなかった判定ごとに回復率が
 // AIL_RAMP ずつ上がり、AIL_SURE 回目の判定で必ず治る (= かかったままの手番は最長 AIL_SURE-1 回)。
 // かかった直後の最初の判定は必ず外れる (_holdAil: 殴られて覚める・術や道具で治る以外は、最低1手番は続く)
 const AIL_RAMP = 0.15, AIL_SURE = 4;
@@ -621,7 +621,7 @@ export function spellCost(actor, sp) {
 
 // 戦闘の状態機械: AGI順に1人ずつ手番が回る。
 // 1手ずつ進め、各行動は結果オブジェクトを返す (演出は game.js 側で行う)。
-// opts.opening: "preempt" (先制) | "ambush" (奇襲) | null — 最初のラウンドで片側のみ行動
+// opts.opening: "preempt" (先制) | "ambush" (奇襲) | null — 最初のターンで片側のみ行動
 // 敵を倒したその瞬間に呼ぶ合図 (game.js が図鑑の討伐数を記録する)。
 // Battle はセーブから復元されるため、関数はインスタンスでなくモジュールに持たせる
 let _onEnemyKilled = null;
@@ -632,14 +632,14 @@ export class Battle {
     this.party = party;
     this.enemies = enemies;
     this.log = log;
-    this.queue = [];          // このラウンドの行動順 (AGI順)
+    this.queue = [];          // このターンの行動順 (AGI順)
     this.current = null;      // 手番のキャラ
     this.phase = "input";     // input | target | resolve | enemy | done
     this.pending = null;      // 対象選択待ちの行動
     this.result = null;       // "win" | "lose" | "flee"
     this.opening = opts.opening || null;
     this.noFlee = !!opts.noFlee; // 迷宮の異変「閉ざされた退路」: 逃走不可
-    this.orderFleet = opts.orderFleet || 0; // 隊の誰かが持つ逃げ足のLv (0-3): 隊全体の逃走率に上乗せ
+    this.orderFleet = opts.orderFleet || 0; // 隊の誰かが持つ逃げ足のLv (0-3): 隊の全員の逃走率に上乗せ
     // 追跡の物差し: 敵の AGI をこの倍率で味方の AGI と同じ規模に直してから逃走率を出す
     // (game.js の fleeScale = その迷宮・階の基準AGI ÷ その迷宮の雑魚の標準AGI)
     this.fleeK = opts.fleeK || 1;
@@ -709,7 +709,7 @@ export class Battle {
     if (hs) {
       this._quietMod = true;
       try { for (const e of this.livingEnemies()) this._applyMod(e, "agi", hs, 3, "狩りの采配"); } finally { this._quietMod = false; }
-      this.log(`狩りの采配！ 敵の足並みが乱れた ― 敵全員の${modText("agi", hs, true)}、3ターン`, "hit");
+      this.log(`狩りの采配！ 敵の足並みが乱れた ― 敵全体の${modText("agi", hs, true)}、3ターン`, "hit");
       this._proc(this._bestHolder("hunterSaihai"), "狩りの采配");
     }
     // 死の宣告 (ランク): 主・金属の魔物以外の敵が、それぞれ 3/5/8/15% で即死
@@ -738,7 +738,7 @@ export class Battle {
     }
   }
 
-  // ラウンドの終わり: 浄化の光 (ランク) = 20/40/60/80% で味方1人の状態異常と弱体を治す
+  // ターンの終わり: 浄化の光 (ランク) = 20/40/60/80% で味方1人の状態異常と弱体を治す
   _roundEndRank() {
     const p = this._rkParty("exorcistJouka", [0.2, 0.4, 0.6, 0.8]);
     if (!p || Math.random() >= p) return;
@@ -749,7 +749,7 @@ export class Battle {
     this.log(`浄化の光が${m.name}を包み、穢れと弱りを祓った`, "heal");
     this._proc(m, "浄化の光");
   }
-  // ラウンドの初め: 竜の息吹 (ランク) = 15/20/25/40% で、竜騎士が敵全体へ火のブレス (STR×0.5/0.6/0.8/1.2)
+  // ターンの初め: 竜の息吹 (ランク) = 15/20/25/40% で、竜騎士が敵全体へ火のブレス (STR×0.5/0.6/0.8/1.2)
   _roundStartRank() {
     for (const p of this.livingParty()) {
       const lv = pv(p, "dragonknightIbuki");
@@ -858,7 +858,7 @@ export class Battle {
   _recalcBuffs(t) {
     const b = { atk: 1, vit: 1, agi: 1 };
     for (const ef of (t.effects || [])) b[ef.stat] = (b[ef.stat] || 1) * ef.mult;
-    // 固有パッシブの能力倍率 (stat)。条件付きのものはラウンドの初めに判定し直す
+    // 固有パッシブの能力倍率 (stat)。条件付きのものはターンの初めに判定し直す
     if (t.side === "party") {
       for (const { c, lv } of perksOf(t)) {
         if (c.t !== "stat" || (c.when && !this._perkWhen(t, c.when, {}))) continue;
@@ -943,7 +943,7 @@ export class Battle {
     for (const e of (t && t.effects) || []) { const s = effectStage(e); w += STAGED.has(e.stat) ? Math.max(0, -s) : e.mult < 1 ? 1 : 0; }
     return w;
   }
-  // ラウンド開始時に全員の効果ターンを1減らし、切れたものを除く。
+  // ターン開始時に全員の効果ターンを1減らし、切れたものを除く。
   _tickEffects() {
     for (const a of [...this.party, ...this.enemies]) {
       if (!a.effects || !a.effects.length) continue;
@@ -1067,7 +1067,7 @@ export class Battle {
           if (c.charge) this._applyMod(t, "charge", lvv(c.charge, lv), c.dur || 3, label);
         }
         if (c.taunt) this._applyMod(p, "taunt", 3, c.dur || 2, label);
-        // 敵全員への弱体は1行にまとめる (敵ごとの「〜が下がった」は出さない)
+        // 敵全体への弱体は1行にまとめる (敵ごとの「〜が下がった」は出さない)
         this._quietMod = true;
         try { if (c.foe) for (const e of this.livingEnemies()) this._perkBuff(e, c.foe, lv, c.dur, label); }
         finally { this._quietMod = false; }
@@ -1077,7 +1077,7 @@ export class Battle {
       }
     }
   }
-  // 2ラウンド目以降の毎ラウンド初め (round)
+  // 2ターン目以降の毎ターン初め (round)
   _perkRound() {
     for (const p of this.party) {
       if (!p.alive) continue;
@@ -1316,16 +1316,16 @@ export class Battle {
     return false;
   }
 
-  // AGI(+乱数)で行動順を組み直す。ラウンド開始時に毒のダメージが入る。
-  // 第1ラウンドは先制/奇襲なら片側のみが行動する
+  // AGI(+乱数)で行動順を組み直す。ターン開始時に毒のダメージが入る。
+  // 第1ターンは先制/奇襲なら片側のみが行動する
   _startRound() {
-    if (this._roundNo >= 1) this._roundEndRank(); // 前のラウンドの終わり (浄化の光)
+    if (this._roundNo >= 1) this._roundEndRank(); // 前のターンの終わり (浄化の光)
     this._roundNo++;
-    if (this._roundNo > 1) this._tickEffects(); // 2ラウンド目以降、強化/弱体の持続を消化
+    if (this._roundNo > 1) this._tickEffects(); // 2ターン目以降、強化/弱体の持続を消化
     for (const p of this.party) this._recalcBuffs(p); // 固有パッシブの条件付きの能力倍率を判定し直す
     for (const a of [...this.party, ...this.enemies]) {
       if (!a.alive || a.ailment !== "poison") continue;
-      // 毒も長引くほど治りやすくなる。治ったラウンドは毒のダメージを受けない
+      // 毒も長引くほど治りやすくなる。治ったターンは毒のダメージを受けない
       if (this._naturalRecover(a, "poison", 0.20)) {
         a.ailment = null; a._poisonPct = null;
         this.log(`${a.name}の毒が抜けた！`, "heal");
@@ -1338,7 +1338,7 @@ export class Battle {
       this.log(`${a.name}は毒に蝕まれた (${d})`, "dmg");
       this._die(a);
     }
-    // 再生: 2ラウンド目以降、傷ついた再生持ちの敵が少しずつ回復する
+    // 再生: 2ターン目以降、傷ついた再生持ちの敵が少しずつ回復する
     if (this._roundNo > 1) {
       for (const e of this.livingEnemies()) {
         if (!e.regen || e.hp >= e.maxhp) continue;
@@ -1347,7 +1347,7 @@ export class Battle {
         this.log(`${e.name}の傷がふさがっていく (${h})`, "sys");
       }
     }
-    // 再生の宝珠 (party regen): 2ラウンド目以降、傷ついた味方が最大HPの割合だけ回復する (LR装飾品)
+    // 再生の宝珠 (party regen): 2ターン目以降、傷ついた味方が最大HPの割合だけ回復する (LR装飾品)
     if (this._roundNo > 1) {
       for (const p of this.livingParty()) {
         if (!p.regen || p.hp >= p.maxhp) continue;
@@ -1356,7 +1356,7 @@ export class Battle {
         this.log(`${p.name}の傷が再生していく (${h})`, "heal");
       }
     }
-    // リジェネ (技の効果): 2ラウンド目以降、最大HPの割合だけ回復する
+    // リジェネ (技の効果): 2ターン目以降、最大HPの割合だけ回復する
     if (this._roundNo > 1) {
       for (const p of this.livingParty()) {
         const rg = this._bm(p, "regen");
@@ -1367,7 +1367,7 @@ export class Battle {
       }
     }
     if (this._roundNo > 1) this._perkRound(); // 固有パッシブ (round)
-    if (!(this._roundNo === 1 && this.opening === "ambush")) this._roundStartRank(); // 竜の息吹 (奇襲された初めのラウンドは出せない)
+    if (!(this._roundNo === 1 && this.opening === "ambush")) this._roundStartRank(); // 竜の息吹 (奇襲された初めのターンは出せない)
     // 激昂: HPが3割を切った敵が一度だけ荒れ狂い、STR/AGI が跳ね上がる
     for (const e of this.livingEnemies()) {
       if (!e.enrage || e._enraged || !e.maxhp || e.hp > e.maxhp * 0.3) continue;
@@ -1389,12 +1389,12 @@ export class Battle {
       .filter((a) => a.alive)
       // 加速装置 (actFirst) は必ず手番の最初に行動する。同士の中では AGI 順
       .sort((a, b) => ((b.actFirst ? 1 : 0) - (a.actFirst ? 1 : 0)) || ((b.haste ? 1 : 0) - (a.haste ? 1 : 0)) || (speed.get(b) - speed.get(a)));
-    // 神速 (haste): 目にも止まらぬ速さの敵は、ラウンドの頭 (加速装置の次) に動き、後半にもう一度動く
+    // 神速 (haste): 目にも止まらぬ速さの敵は、ターンの頭 (加速装置の次) に動き、後半にもう一度動く
     for (const e of this.queue.filter((a) => a.haste && a.side === "enemy")) {
       const from = Math.max(this.queue.indexOf(e) + 1, Math.ceil(this.queue.length / 2));
       this.queue.splice(from + rand(this.queue.length - from + 1), 0, e);
     }
-    // テスト記録: 味方と敵の組のうち、味方が先に動く組の数 (先制・奇襲の1ラウンド目は片側だけなので数えない)
+    // テスト記録: 味方と敵の組のうち、味方が先に動く組の数 (先制・奇襲の1ターン目は片側だけなので数えない)
     const T = this._tally();
     let seenP = 0;
     for (const a of this.queue) {
@@ -1689,7 +1689,7 @@ export class Battle {
     this.pending = null;
     this._checkEnd();
     if (!this.result && res && res.actor && res.actor.side === "party") this._necroLegion(res.actor, res);
-    // 時間跳躍 (賢者のランク): 手番の後 10/15/20/30% でもう一度行動 (1ラウンド1回)
+    // 時間跳躍 (賢者のランク): 手番の後 10/15/20/30% でもう一度行動 (1ターン1回)
     const a = res && res.actor;
     if (!this.result && a && a.side === "party" && a.alive && a._againRound !== this._roundNo
       && Math.random() < this._rk(a, "sageJikan", [0.10, 0.15, 0.20, 0.30])) {
@@ -1766,7 +1766,7 @@ export class Battle {
     } else {
       const omen = this._omenOf(actor);
       if (omen) {
-        // 溜めた力を放つ。溜めたのと同じラウンド (神速の2手目) はまだ放たず、溜めたまま普通に殴る
+        // 溜めた力を放つ。溜めたのと同じターン (神速の2手目) はまだ放たず、溜めたまま普通に殴る
         cmd = omen.round < this._roundNo ? { actor, action: "charged", omen } : { actor, action: "attack", target: this._pickPartyTarget() };
       } else if (this._strongFoe(actor) && this._downWeight(actor) >= SHAKE_AT && Math.random() < SHAKE_RATE) {
         // 払いのけ: 主・精鋭は弱体が深くなると身を震わせて振り払う (特技封じ中は使えない)
@@ -1787,7 +1787,7 @@ export class Battle {
       if (!cmd && !(actor._chargeCd > 0) && Math.random() < this._chargeRate(actor)) cmd = { actor, action: "windup" };
       if (!cmd) {
         const ab = actor.ability;
-        // ブレス・全体呪文はどちらも隊全体への攻撃 (action "breath"。kind で吐息か呪文かを分ける)
+        // ブレス・全体呪文はどちらも隊の全員への攻撃 (action "breath"。kind で吐息か呪文かを分ける)
         const wide = ab === "breath" || ab === "spell";
         const ikou = 1 - this._rkParty("templarIkou", [0.10, 0.15, 0.20, 0.30]); // 封魔の威光 (神殿騎士のランク)
         let rate = (actor.abRate || (wide ? 0.30 : 0.25)) * ikou;
@@ -1851,7 +1851,7 @@ export class Battle {
 
   // ---- 大技の予兆 (溜め) ----
   // 主・精鋭 (手番ごとに CHARGE_RATE の確率) と特技 "charge" の魔物は、力を溜めて予兆を見せ (効果 omen・札「溜」)、
-  // 次のラウンド以降の手番で大技を放つ。隊は 防御・仁王立ち・挑発・守りの陣で受けるか、
+  // 次のターン以降の手番で大技を放つ。隊は 防御・仁王立ち・挑発・守りの陣で受けるか、
   // 打ち消し (strip)・特技封じ・眠り・麻痺・魅了・混乱・怯みで溜めを潰すかを選ぶ
   _omenOf(e) { return e && e.effects ? e.effects.find((x) => x.stat === "omen") : null; }
   _omenBroken(e) {
@@ -2083,27 +2083,27 @@ export class Battle {
       return res;
     }
     if (action === "breath") {
-      // ブレス / 全体呪文 (kind "spell"): 味方全体への属性ダメージ (回避不可)。
+      // ブレス / 全体呪文 (kind "spell"): 味方全員への属性ダメージ (回避不可)。
       //  ブレスは VIT で微減し、装備のブレス耐性 (breathRes) と守りの技 (wardB) で軽減する。
       //  全体呪文は INT・PIE (精神) で微減し、呪文避けの技 (wardS) で軽減する。どちらも大結界・魔障壁で半減できる
       const spell = cmd.kind === "spell";
       const what = spell ? "呪文" : "ブレス";
-      if (cmd.mul > 1) this.log(spell ? `${actor.name}は練り上げた大呪文を解き放った！ 隊全体を${ELEM_SPELL[actor.element] || "魔力"}が呑み込む！`
+      if (cmd.mul > 1) this.log(spell ? `${actor.name}は練り上げた大呪文を解き放った！ 隊の全員を${ELEM_SPELL[actor.element] || "魔力"}が呑み込む！`
         : `${actor.name}は溜めに溜めた息を一気に吐き出した！`, "dmg");
-      else this.log(spell ? `${actor.name}は${actor.boss ? "大いなる" : ""}呪文を唱えた！ 隊全体を${ELEM_SPELL[actor.element] || "魔力"}が襲う！`
+      else this.log(spell ? `${actor.name}は${actor.boss ? "大いなる" : ""}呪文を唱えた！ 隊の全員を${ELEM_SPELL[actor.element] || "魔力"}が襲う！`
         : `${actor.name}は${actor.boss ? "業炎の" : ""}ブレスを吐いた！`, "dmg");
       res.breath = true;
       res.espell = spell;
       // ブレスは吐き手の残りHPの割合で弱まる (HP100% = そのまま / 30% = 30%。ユーザーの指示、2026-10: 弱っても全力のままだと強すぎた)。
       // 全体呪文は対象外
       const hpK = spell ? 1 : breathHpK(actor);
-      // 大結界: 自動で隊全体の被ダメージを半減する (Lv1=1戦闘1回 / Lv2=2回)
+      // 大結界: 自動で隊の全員の被ダメージを半減する (Lv1=1戦闘1回 / Lv2=2回)
       let bigB = false;
       const bigBMax = Math.max(0, ...this.party.filter((p) => p.alive).map((p) => pv(p, "bigBarrier")));
       if ((this._bigBarrierUsed || 0) < bigBMax) {
         this._bigBarrierUsed = (this._bigBarrierUsed || 0) + 1;
         bigB = true;
-        this.log("大結界がパーティを包んだ！", "heal");
+        this.log("大結界が隊を包んだ！", "heal");
         this._proc(this._bestHolder("bigBarrier"), "大結界");
       }
       for (const t of this.livingParty()) {
@@ -2148,7 +2148,7 @@ export class Battle {
           this._die(actor);
           continue;
         }
-        // 護法の結界 (護法師のランク): 隊全員が受ける呪文・ブレスのダメージ -5/8/12/20% (一番高いLv)
+        // 護法の結界 (護法師のランク): 隊の全員が受ける呪文・ブレスのダメージ -5/8/12/20% (一番高いLv)
         { const wk = this._rkParty("wardenKekkai", [0.05, 0.08, 0.12, 0.20]); if (wk) dmg = Math.max(1, Math.floor(dmg * (1 - wk))); }
         dmg = Math.max(1, Math.floor(dmg * (1 - this._shintou(t)))); // 心頭滅却: ブレス・呪文
         if (spell) dmg = this._resistCut(t, dmg, "magResist").dmg;
@@ -2182,7 +2182,7 @@ export class Battle {
         if (t.ailment || Math.random() >= this._rate(actor, t, 0.32) * (1 - this._hardRes(t, "stone"))) { this.log(`${t.name}は目を逸らした`, "sys"); res.hits.push({ target: t, miss: true }); }
         else { t.ailment = "stone"; this.log(`${t.name}は石になった！`, "dmg"); res.hits.push({ target: t, stoned: true }); }
       } else if (k === "sleep") {
-        // 眠りの息 (鱗粉・子守唄など): 隊全体を眠りに誘う。眠った者は手番を失い、傷を受けるまで覚めにくい
+        // 眠りの息 (鱗粉・子守唄など): 隊の全員を眠りに誘う。眠った者は手番を失い、傷を受けるまで覚めにくい
         this.log(`${actor.name}は眠りを誘う息を吐いた！`, "dmg");
         for (const p of this.livingParty()) {
           if (p.asleep || p.ailment === "stone") continue;
@@ -2412,7 +2412,7 @@ export class Battle {
       this.log(`${actor.name}の魔力循環 (MP+${gain})`, "heal");
       this._proc(actor, "魔力循環");
     }
-    // 残心: 敵を倒した時25%で追加攻撃 (1ラウンド1回)
+    // 残心: 敵を倒した時25%で追加攻撃 (1ターン1回)
     if (h.died && pv(actor, "zanshin") && this._zanshinRound !== this._roundNo && Math.random() < 0.25) {
       const t2 = this._randAlive(this.attackableEnemies(actor)); // 残心の追撃も射程内のみ
       if (t2) {
@@ -2541,7 +2541,7 @@ export class Battle {
     // ダメージ = STR×倍率×低HP補正 − VIT/2 (VITが被ダメージ軽減を担う)
     let dmg = Math.round((variance(Math.round(this._physAtk(actor, opt) * power * this._lowHpMul(actor))) + sbAdd + ibAdd + stAdd + mjAdd) * despMul * (opt.chargeMul || 1)) - defCut;
     if (tgt._defending) dmg = Math.floor(dmg * 0.5);
-    // 城壁の構え: 防御中の持ち主がいれば隊全体の被ダメ-10%
+    // 城壁の構え: 防御中の持ち主がいれば隊の全員の被ダメ-10%
     if (tgt.side === "party") {
       const bastLv = Math.max(0, ...this.party.filter((p) => p.alive && p._defending).map((p) => pv(p, "bastion")));
       if (bastLv >= 2) dmg = Math.floor(dmg * 0.82); else if (bastLv >= 1) dmg = Math.floor(dmg * 0.9);
@@ -2599,7 +2599,7 @@ export class Battle {
     if (fs >= 2 && actor.maxhp && actor.hp <= actor.maxhp * 0.3) critChance += [0, 0, 0.15, 0.20, 0.25][Math.min(fs, 4)];
     let sureCrit = false;
     if (opt.basic && actor._kenma) { actor._kenma = false; sureCrit = true; }       // 剣魔合一
-    if (opt.basic && actor._ambushCritLeft > 0) { actor._ambushCritLeft--; sureCrit = true; } // 不意打ち
+    if (opt.basic && actor._ambushCritLeft > 0) { actor._ambushCritLeft--; sureCrit = true; } // 先制の一撃
     if (tgt.asleep && actor.side === "party") sureCrit = true; // 眠っている敵への物理は必ず会心 (眠った味方を敵が殴っても会心は確定しない)
     if (pv(actor, "sleepKill") && tgt.side === "enemy" && (tgt.ailment === "paralyze" || tgt.mind)) sureCrit = true; // 寝込み襲い: 麻痺・魅了・混乱にも確定会心
     // 確定会心の技・条件は保ち、通常の会心率は85%を上限にする。
@@ -3079,8 +3079,8 @@ export class Battle {
         }
         if (revivedAny) this.log("福音が倒れた者を呼び戻した！", "heal");
         else if (heals) this.log("味方全員のHPが回復した", "heal");
-        if (cured) this.log("パーティの穢れが祓われた", "heal");
-        if (sp.buff) this.log("パーティの守りも固められた", "heal");
+        if (cured) this.log("隊の穢れが祓われた", "heal");
+        if (sp.buff) this.log("隊の守りも固められた", "heal");
       } else {
         // 蘇生呪文は戦闘不能の味方も対象にできる
         let t = sp.target === "self" ? actor : (cmd.target || actor);
@@ -3249,7 +3249,7 @@ export class Battle {
     else if (!any) this.log("…効果がなかった", "sys");
   }
 
-  // 攻撃呪文の後に味方全体を癒す (聖剣奮迅・護摩焚き)。PIEで伸びる (物理技は与ダメ基準の _bladeHeal)
+  // 攻撃呪文の後に味方全員を癒す (聖剣奮迅・護摩焚き)。PIEで伸びる (物理技は与ダメ基準の _bladeHeal)
   _bladeHeal(actor, amount, cap, res) {
     const a = amount * (1 + this._perkSum(actor, "heal"));
     for (const t of this.livingParty()) {
@@ -3257,7 +3257,7 @@ export class Battle {
       t.hp = Math.min(t.maxhp, t.hp + heal);
       res.hits.push({ target: t, heal });
     }
-    this.log("刃の光がパーティを癒した", "heal");
+    this.log("刃の光が隊を癒した", "heal");
   }
   _partyHeal(actor, base, res) {
     const hPow = (base + (actor.pie || 0) * this._bm(actor, "pie") * 0.3) * (1 + this._perkSum(actor, "heal"));
@@ -3266,7 +3266,7 @@ export class Battle {
       t.hp = Math.min(t.maxhp, t.hp + heal);
       res.hits.push({ target: t, heal });
     }
-    this.log("聖なる残光がパーティを癒した", "heal");
+    this.log("聖なる残光が隊を癒した", "heal");
   }
 
   // 物理が敵に当たった後のランクのパッシブ: 癒しの剣 / 聖光の追撃 / 必殺
@@ -3347,7 +3347,7 @@ export class Battle {
         this._proc(t, "勇者の意地");
         return false;
       }
-      // 名を刻まれぬ墓碑 (迷宮のイベント): この潜入で一度だけ、致死を HP1 で免れる
+      // 名を刻まれぬ墓碑 (迷宮のイベント): この出撃で一度だけ、致死を HP1 で免れる
       if (t.side === "party" && t._evSave) {
         t._evSave = false; t.hp = 1;
         this.log(`墓碑に刻んだ名が、${t.name}を死の淵から引き戻した！ (HP1)`, "heal");
@@ -3406,7 +3406,7 @@ export class Battle {
       this.log(`${t.name}を倒した！`, t.side === "enemy" ? "win" : "dmg");
       if (t.side === "enemy") this._perkKill(this._actor); // 固有パッシブ (kill)
       else this._perkFall(t); // 固有パッシブ (fall)
-      // 殉教の祈り: 自分が倒れた時、味方全体を PIE で癒す (1戦闘1回)
+      // 殉教の祈り: 自分が倒れた時、味方全員を PIE で癒す (1戦闘1回)
       if (t.side === "party" && pv(t, "martyr") && !t._martyrUsed) {
         t._martyrUsed = true;
         const heal = Math.max(1, Math.round((t.pie || 1) * 1.0));

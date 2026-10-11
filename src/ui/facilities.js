@@ -188,7 +188,7 @@ export function currencySheet(kind) {
   } else if (inTown && kind === "gold" && facilityOpen("shop")) {
     footer.push({ label: "商会へ", kind: "secondary", onTap: (h) => { h.close(); if (UI.openShop) UI.openShop(); } });
   } else if (inTown && kind === "soul" && facilityOpen("mansion") && (g.party || []).length) {
-    footer.push({ label: "パーティで魂を強化", kind: "secondary", onTap: (h) => { h.close(); if (UI.openTab) UI.openTab("party"); } });
+    footer.push({ label: "隊で魂を強化", kind: "secondary", onTap: (h) => { h.close(); if (UI.openTab) UI.openTab("party"); } });
   }
   footer.push({ label: "閉じる", kind: "ghost", onTap: (h) => h.close() });
   return sheet.open({ kind: "info", banner: info.name, body, footer, className: "cur-sheet-card" });
@@ -264,7 +264,7 @@ export function openInn() {
       r.appendChild(t);
       list.appendChild(r);
     }
-    if (!(g.party || []).length) list.appendChild(el("div", "wa-empty", "パーティに人業がいない。"));
+    if (!(g.party || []).length) list.appendChild(el("div", "wa-empty", "隊に人業がいない。"));
     root.appendChild(list);
     const note = !st.need.length ? "皆、すこぶる元気だ。" : !st.afford ? `金貨が足りない (宿賃 ${st.cost})。` : `${st.need.length}体が休息を必要としている。`;
     root.appendChild(setText(el("div", "inn-note" + (st.need.length && st.afford ? " ok" : "")), note));

@@ -64,7 +64,7 @@ export const LAYER4_ITEMS = [
   lr(W("lr_l4_stormcleaver", "雷呑みの大太刀", "kt", 55, { pow: 1.45, two: true, eAtk: ["fire", 2], agi: 6, eff: { multistrike: 2 }, tint: "#ff8a40",
     desc: "百年止まぬ雷雨の只中で、雷そのものを鍛え込んだと伝わる大太刀。振れば刃が二度閃き、雷の魔物すら焼き払う。" })),
   lr(H("lr_l4_watchcrown", "不寝番の兜", 56, { weight: "heavy", pow: 1.6, hp: 28, eff: { actFirst: true }, tint: "#7a7a8a",
-    desc: "百年眠らずに城壁に立ち続けた見張り頭の兜。被る者は敵の気配を誰よりも早く察し、戦いの初めに必ず先手を取る。" })),
+    desc: "百年眠らずに城壁に立ち続けた見張り頭の兜。被る者は敵の気配を誰よりも早く察し、戦いの初めに必ず先に動く。" })),
   lr(R("lr_l4_garrisonseal", "守備隊の印章指輪", "ring", 57, { pow: 1.6, hp: 30, vitB: 6, eff: { regen: 0.05 }, tint: "#c8a050",
     desc: "守備隊長が書状に押した印章の指輪。持ち場を守れという最後の命令に応え続けた兵たちの意志が宿り、はめた者の傷を静かに塞いでゆく。" })),
   lr(R("lr_l4_headsmanhood", "処刑人の黒頭巾", "amulet", 58, { pow: 1.6, hp: 26, luk: 8, eff: { lifesteal: 0.12 }, tint: "#2a1a22",

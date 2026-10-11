@@ -213,7 +213,7 @@ export function makeBoard(floor, cfg = null) {
   }
 
   // 蝕む床 (cell.type "poison"): 行き止まり以外の「通路」にも危険を敷く。迷宮の台帳 floorHaz.harm で置く迷宮だけ (dn.poisonRate)。
-  // 見た目と名前はその土地のもの (毒の沼・灼けた床・凍てつく床… — floorhaz.js)。踏むたびに隊全体を蝕む。隠修士の悪路渡りで軽減/無効化できる
+  // 見た目と名前はその土地のもの (毒の沼・灼けた床・凍てつく床… — floorhaz.js)。踏むたびに隊の全員を蝕む。隠修士の悪路渡りで軽減/無効化できる
   const poisonRate = dn.poisonRate || 0;
   if (poisonRate > 0) {
     for (let y = 0; y < ROWS; y++) {
