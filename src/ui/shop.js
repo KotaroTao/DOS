@@ -26,7 +26,7 @@ const isReserve = (d) => (G().reserve || []).includes(d);
 
 // 画面の状態 (区分・分類は prefs に覚える。鑑定の結果はこの街滞在のあいだだけ)
 const view = { sellPage: 0, buyPage: 0 };
-// 鍛え直し (奈落と同時に開く) の区分は、開くまで出さない
+// 鍛え直し (第五章の結びで開く) の区分は、開くまで出さない
 const forgeOpen = () => !!(game.featureUnlocked && game.featureUnlocked("forge"));
 const segOf = () => { const s = getPref("shopSeg"); return s === "buy" ? "buy" : s === "forge" && forgeOpen() ? "forge" : "sell"; };
 const catOf = () => getPref("shopBuyCat", "rec") || "rec";

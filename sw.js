@@ -484,6 +484,7 @@ const ASSETS = [
   "./src/ui/tutorial.js",
   "./src/ui/expedition.js",
   "./src/ui/reforge.js",
+  "./src/ui/infinite.js",
   "./src/ui/jobgallery.js",
   "./src/dungeons/schema.js",
   "./src/dungeons/common.js",

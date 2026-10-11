@@ -2213,7 +2213,7 @@ function curItemCard(d, k, cur, h) {
     if (cur.locked) lk.classList.add("on");
     foot.appendChild(lk);
   }
-  // 鍛え直し (奈落と同時に開く。街で商会が開いている時。品質を金貨で引き直す)
+  // 鍛え直し (第五章の結びで開く。街で商会が開いている時。品質を金貨で引き直す)
   if (inTown() && !cur.unidentified && hasQuality(cur) && qualityMatters(cur) && UI.openReforge && game.featureUnlocked && game.featureUnlocked("forge")
     && (!game.opsFacilityOpen || game.opsFacilityOpen("shop"))) {
     foot.appendChild(button({ label: "鍛え直し", kind: "ghost", size: "sm", title: "商会で金貨を払い、品質を引き直す",

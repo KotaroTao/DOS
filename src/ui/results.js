@@ -28,7 +28,7 @@ const AUTO_CLOSE_MS = 1600;
 const KIND = {
   win: { banner: "⚔ 勝利 ⚔", title: "戦いに勝利した", accent: "#c9a24a" },
   elite: { banner: "☠ 強敵討伐 ☠", title: "強敵を討ち倒した", accent: "#d4504e" },
-  guard: { banner: "⚔ 門番撃破 ⚔", title: "奈落の門番を打ち倒した", accent: "#b08ac0" },
+  guard: { banner: "⚔ 主を撃破 ⚔", title: "無限迷宮の主を打ち倒した", accent: "#b08ac0" },
   boss: { banner: "★ 主を討つ ★", title: "迷宮の主を討ち取った", accent: "#ffd84a" },
   corpse: { banner: "⚔ 鎮魂 ⚔", title: "起き上がった骸を鎮めた", accent: "#9be8c8" },
   chest: { banner: "✦ 宝箱 ✦", title: "宝箱", accent: "#c9a24a" },

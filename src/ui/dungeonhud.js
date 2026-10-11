@@ -4,7 +4,7 @@
 //
 //   行動ドック   … #hint を置き換える画面下の 52px。いま取れる行動だけを大きく (▼ 降りる / ⌂ 帰還)
 //   手帳         … 階の情報・迷宮の異変・隊を見る・記録を読む・図鑑・ヘルプ・酒場の噂話・ストーリー・今回の収穫・帰還・探索の手間・設定
-//   階の情報     … 見出しの迷宮名を押すと開く。特別な階・強敵・異変・奈落の変異の説明を読み返せる
+//   階の情報     … 見出しの迷宮名を押すと開く。特別な階・強敵・異変・無限迷宮の風の掟の説明を読み返せる
 //   今回の収穫   … 収穫の帯を押すと開く。得た品 (鑑定済みは押せば図鑑・未鑑定は品の詳細)・魂 (押せば職業の図鑑)・成長・倒した数
 //   覗き見       … 隊の札を長押し (戦闘中。迷宮では長押しで持ち上げて隊列を並べ替え、動かさず離せば覗く) / 敵を長押し (特徴・スキル)
 //   墨の帳       … 階を降りる暗転 (約1.3秒・400ms 後はタップで飛ばせる)。特別な階の知らせを2〜3行添える
@@ -142,7 +142,7 @@ function section(title, sub) {
 }
 function pips(floor, floors, boss) {
   const w = el("span", "dg-pips");
-  if (!floors || floors > 12) { w.appendChild(el("span", "dg-pips-of", floors ? `/ ${floors}` : "奈落")); return w; }
+  if (!floors || floors > 12) { w.appendChild(el("span", "dg-pips-of", floors ? `/ ${floors}` : "無限")); return w; }
   for (let i = 1; i <= floors; i++) w.appendChild(el("i", (i < floor ? "done" : i === floor ? "now" : "") + (i === floors && boss ? " boss" : "")));
   return w;
 }
@@ -151,7 +151,7 @@ function iconRow(icon, title, sub, o = {}) {
 }
 
 // ================= 階の情報 =================
-// いまの階の性質をまとめる (迷宮・深さ・目的・強敵/特別な階・異変・奈落の誓約と変異・帰還の可否)
+// いまの階の性質をまとめる (迷宮・深さ・目的・強敵/特別な階・異変・無限迷宮の風の掟・帰還の可否)
 function floorFacts() {
   const g = G();
   const cfg = game.activeCfg ? game.activeCfg() : null;
@@ -172,11 +172,13 @@ function floorFacts() {
   }
   if (sp) facts.push({ tone: "gold", icon: ICONS[sp.icon] || ICONS.stairs, title: `特別な階「${sp.name}」`, accent: sp.accent, lines: sp.lines });
   if (mu) facts.push({ tone: "gold", icon: ICONS.stairs, title: `迷宮の異変「${mu.name}」`, accent: mu.accent, lines: [`危険 ― ${mu.risk}`, `見返り ― ${mu.gain}`] });
-  if (g.abyss && game.ABYSS_MUT_MAP) {
-    for (const id of (g.abyss.mutations || [])) {
-      const m = game.ABYSS_MUT_MAP[id];
-      if (m) facts.push({ tone: m.kind === "boon" ? "gold" : "bad", icon: ICONS.portal, title: `${m.kind === "boon" ? "奈落の恵み" : "奈落の変異"}「${m.name}」`, accent: m.accent, lines: [m.desc] });
-    }
+  // 無限迷宮: 5階ごとの区切りの風の掟 (深いほど強い)・その階の推奨Lv と育つ速さ
+  if (abyss) {
+    const r = game.infRule ? game.infRule() : null;
+    if (r) facts.push({ tone: r.boon ? "gold" : "bad", icon: ICONS.portal, title: `風の掟「${r.name}」`, accent: r.accent, lines: [...r.lines, "5階ごとの区切り (風だまりの主の先) で、風が変わる。"] });
+    const lv = game.infLevel ? Math.round(game.infLevel(g.floor)) : null;
+    const gm = game.infGrowthMul ? game.infGrowthMul(g.floor) : 1;
+    if (lv) facts.push({ tone: "", icon: ICONS.stairs, title: `推奨Lv ${lv}`, lines: [`この深さでは、✦Soul と戦闘の経験値が本編のおよそ ${gm.toFixed(1)}倍 入る。`, "5の倍数の階の階段は風だまり。回収人と灯番が待ち、その奥に主が立つ。主を討てば帰れる。"] });
   }
   // 迷宮のイベント (出来事) の効果: この階 / この出撃
   if (game.eventFacts) { try { facts.push(...game.eventFacts()); } catch (e) { /* 表示のみ */ } }
@@ -186,7 +188,7 @@ export function openFloorInfo() {
   const g = G();
   if (!g) return null;
   const f = floorFacts();
-  const name = f.abyss ? "奈落" : (f.dn ? f.dn.name : "");
+  const name = f.abyss ? "無限迷宮" : (f.dn ? f.dn.name : "");
   const floors = f.abyss ? 0 : (f.dn && f.dn.floors) || 1;
   return sheet.open({
     kind: "info", banner: "階の情報", className: "dg-sheet",
@@ -405,7 +407,7 @@ export function openDungeonMenu() {
   const combat = g.state === "combat";
   if (combat) g._cmdStale = true;
   const f = floorFacts();
-  const name = f.abyss ? "奈落" : (f.dn ? f.dn.name : "");
+  const name = f.abyss ? "無限迷宮" : (f.dn ? f.dn.name : "");
   const floors = f.abyss ? 0 : (f.dn && f.dn.floors) || 1;
   const r = g.run || {};
   let h = null;

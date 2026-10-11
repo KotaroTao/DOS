@@ -758,7 +758,7 @@ function defaultActions(st) {
       label: it.unidentified ? "鑑定せず売る" : "売る", cost: price,
       onTap: async (close) => { if (await sellOne(owner, it)) close(); } });
   }
-  // 鍛え直し (奈落と同時に開く。街の商会で、装備中・袋の中の装備品の品質を金貨で引き直す。商会の「売る」から開いた時は区分「鍛え直し」に任せる)
+  // 鍛え直し (第五章の結びで開く。街の商会で、装備中・袋の中の装備品の品質を金貨で引き直す。商会の「売る」から開いた時は区分「鍛え直し」に任せる)
   if ((inBag || eqKey) && town && shopOpen() && context !== "sell" && !it.unidentified && hasQuality(it) && UI.openReforge
     && game.featureUnlocked && game.featureUnlocked("forge") && qualityMatters(it)) {
     acts.push({ key: "reforge", label: "鍛え直し", sub: `品質 ${qualityOf(it)}`, onTap: () => UI.openReforge(it, owner, { onClose: () => st.rerender && st.rerender({}) }) });
