@@ -559,11 +559,13 @@ export function equipChooserEl(item, { owner = null, onPick = null, onDone = nul
 // 1枚に並べる。行を押せばその人業に装備する
 function openDeltaSheet(item, infos, best, act) {
   const list = el("div", "pt-chl");
-  const newFx = specialShort(item);
+  // 特殊効果は短い印 (◇猫…) ではなく、数字で言い切った行で見せる (2026-10-11 ユーザーの指示: 付け替えの時に中身を確かめたい)
+  const newFx = specialLines(item);
   const nb = el("div", "pt-chl-new");
   nb.appendChild(el("span", "pt-chl-new-lab", "この品"));
   nb.appendChild(curNameEl("pt-chl-new-n", item));
-  nb.appendChild(el("span", "pt-chl-new-fx", newFx ? `特殊効果: ${newFx}` : "特殊効果なし"));
+  if (!newFx.length) nb.appendChild(el("span", "pt-chl-new-fx", "特殊効果なし"));
+  for (const ln of newFx) nb.appendChild(el("span", "pt-chl-new-fx", ln));
   list.appendChild(nb);
   list.appendChild(el("div", "pt-chl-s", "▲▼ = いまの装備と比べて ・ 押すとその人業に装備する"));
   let h = null;
@@ -589,9 +591,10 @@ function openDeltaSheet(item, infos, best, act) {
     if (!x.sw.cur.length) cb.appendChild(wornLine("pt-chl-cur-l", x.sw));
     for (const it of x.sw.cur) {
       const one = wornLine("pt-chl-cur-l", { cur: [it] });
-      const fx = specialShort(it);
-      one.appendChild(el("span", "pt-chl-cur-fx" + (fx ? "" : " none"), fx ? fx : "特殊効果なし"));
+      const fx = specialLines(it);
       cb.appendChild(one);
+      if (!fx.length) one.appendChild(el("span", "pt-chl-cur-fx none", "特殊効果なし"));
+      for (const ln of fx) cb.appendChild(el("span", "pt-chl-cur-fx line", ln));
     }
     tx.appendChild(cb);
     const ds = el("span", "pt-chl-d");
@@ -628,6 +631,15 @@ export function openEquipChooser(item, { owner = null, actions = null } = {}) {
   body.appendChild(itemSummary(item, accent, { compact: true }));
   const performance = weaponPerformanceEl(item, owner);
   if (performance) body.appendChild(performance);
+  // 特殊効果 (追加の能力・連撃・属性・状態異常…) を数字で言い切った行で (2026-10-11 ユーザーの指示: 付け替えの時に確かめたい)。
+  // いまの装備の特殊効果は「いまの装備と比べる」に人業ごとに並ぶ
+  const fx = item.unidentified ? [] : specialLines(item);
+  if (fx.length) {
+    const fb = el("div", "pt-cur-fx pt-ch-fx");
+    fb.appendChild(el("div", "pt-cur-fxh", "特殊効果"));
+    for (const ln of fx) fb.appendChild(el("div", "pt-cur-fxl", ln));
+    body.appendChild(fb);
+  }
   body.appendChild(equipChooserEl(item, { owner, onDone: () => { if (h) h.close("ok"); } }));
   if (item.desc) body.appendChild(el("div", "pt-item-desc", item.desc));
   const acts = actions || (owner ? itemActions(item, owner, "bag", { equip: false }) : []);

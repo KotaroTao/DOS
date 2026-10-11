@@ -619,9 +619,9 @@ function runGainGold(g, src, pre, modifier = null) {
 }
 // 魂導の護符 (LR装飾品) の soulUp があれば ✦Soul の獲得量を割合で増やす。
 // 極の出来事で授かった恒久の恵み (G.events.flags) の効き目。授かっていなければ dflt
-setPermanentStatSource(() => (abyssActive() ? {} : permanentEventStats(G.events?.once))); // 極の永続強化は無限迷宮の仮の器に乗せない
+setPermanentStatSource(() => permanentEventStats(G.events?.once)); // 極の永続強化は無限迷宮の仮の器にも乗せる (2026-10-11 ユーザーの指示)
 
-function evBoon(k, field, dflt) { return !abyssActive() && G.events && G.events.flags && G.events.flags[k] ? EV_BOONS[k][field] : dflt; } // 無限迷宮には乗せない
+function evBoon(k, field, dflt) { return G.events && G.events.flags && G.events.flags[k] ? EV_BOONS[k][field] : dflt; } // 旧仕様の極の恵み。無限迷宮でも効く (2026-10-11 ユーザーの指示)
 // out を渡すと out.raw に「Lv差で減らす前の額」を入れる (戦闘の魂の経験値は魂ごとの Lv差で減らすため)
 function runGainSoulPts(s, src, pre, modifier = null, out = null) {
   const base = s, sf = sfNum("soulMul", 1), mu = modifier ?? mutNum("soulMul", 1), eq = 1 + partyEffMax("soulUp") + evBoon("will", "soulMul", 0);
