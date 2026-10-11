@@ -1,13 +1,13 @@
 # 第5章「灼熱の洞」 の絵
 
 書き出し: `node tools/storyart/review.mjs` (手で直さない)。絵は出荷する WebP、まだ無ければ原画。
-
+ゲームで小さく出た時の見え方 (384×256): [chapter5-small.jpg](chapter5-small.jpg)
 
 <a name="w18_blade"></a>
 
-## w18_blade「手放された刃」 ── 未着手 (指示あり)
+## w18_blade「手放された刃」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter5/w18_blade.webp" width="576" alt="w18_blade">
 
 **ストーリー一覧の本文**
 
@@ -40,9 +40,9 @@ _(絵はまだ無い)_
 
 <a name="report_w18"></a>
 
-## report_w18「床の下の熱」 ── 未着手 (指示あり)
+## report_w18「床の下の熱」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter5/report_w18.webp" width="576" alt="report_w18">
 
 **ストーリー一覧の本文**
 
@@ -104,9 +104,9 @@ _(絵はまだ無い)_
 
 <a name="irene_husks"></a>
 
-## irene_husks「締め直された継ぎ目」 ── 未着手 (指示あり)
+## irene_husks「締め直された継ぎ目」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter5/irene_husks.webp" width="576" alt="irene_husks">
 
 **ストーリー一覧の本文**
 
