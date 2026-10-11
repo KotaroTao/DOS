@@ -119,6 +119,9 @@ function fillSound(box) {
     P.classicBattle = k === "classic"; if (game.savePrefs) game.savePrefs(); sfx("select");
   }));
   box.appendChild(bgRow);
+  box.appendChild(toggleRow({ name: "強化・弱体の演出", desc: "技・パッシブ・迷宮の掟で強化・弱体が掛かった時に光と文字を出し、その時に札を出す (切ると戦闘のテンポが上がる)", on: P.buffFx !== false, onChange: (v) => {
+    P.buffFx = v; if (game.savePrefs) game.savePrefs(); sfx("select");
+  } }));
   const wkRow = el("div", "stg-row stg-segrow stg-stack");
   const wkt = el("span", "stg-row-t");
   wkt.appendChild(setText(el("span", "stg-row-n"), "移動の速さ"));

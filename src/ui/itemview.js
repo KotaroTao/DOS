@@ -8,7 +8,7 @@ import { game } from "./ctx.js";
 import { el, sheet } from "./kit.js";
 import { ELEMENTS, elemBeats, RACE_LABEL, unknownLabel, UNK_OPEN, UNK_CLOSE } from "../dungeons/index.js";
 import { SPELLS, spellMpLabel, spellCureKinds, soulTierRate, healsHp, MP_DRAIN_CAP } from "../combat.js";
-import { STAGED, stageOf, stageMul, stageLabel, ENEMY_STAT_LABEL } from "../buffstage.js";
+import { STAGED, stageOf, stageMul, stageLabel, ENEMY_STAT_LABEL, effectStage, isBattleLong } from "../buffstage.js";
 import { ATTR_LABEL, SOUL_CLASSES, dollBust, PASSIVES, passiveName, passiveByName } from "../souls.js";
 import { WEAPON_CAT_LABEL, SHIELD_KIND_LABEL, HAND_LABEL, handOf, shieldKind, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip, AIL_LABEL, attackPower, fightPower, useLines } from "../items.js";
 import { HERO, spriteCanvas, crispCanvas } from "../sprites.js";
@@ -68,6 +68,16 @@ export const SPELL_KIND_LABEL = { atk: "攻撃呪文", heal: "回復呪文", phy
 // 能力の倍率キーの呼び名 (STR/VIT… 以外の効果)
 export const BUFF_NAME = { hit: "命中率", int: "INT", pie: "PIE", omen: "大技の予兆", taunt: "挑発", shield: "仁王立ち", ctr: "反撃の構え", charge: "溜め", regen: "リジェネ", seal: "特技封じ", wardB: "ブレス避け", wardS: "呪文避け",
   r_fire: "火耐性", r_water: "水耐性", r_wind: "風耐性", r_earth: "土耐性", r_light: "光耐性", r_dark: "闇耐性", r_all: "全属性耐性" };
+// 掛かっている強化・弱体の1つを札に (長押しの「人業の様子」・戦闘中の「敵の姿」)。
+// 戦闘の札には残りターンを出さないので、ここで段・倍率・残りターンを確かめる (2026-10 ユーザーの指示)
+export function effectChip(ef, { enemy = false } = {}) {
+  if (ef.stat === "omen") return el("span", "dg-chip bad", "大技の予兆");
+  const st = effectStage(ef);
+  const name = (enemy && ENEMY_STAT_LABEL[ef.stat]) || ATTR_LABEL[ef.stat] || BUFF_NAME[ef.stat] || (ef.stat || "").toUpperCase();
+  const mul = st && ef.mult ? ` ×${Math.round(ef.mult * 100) / 100}` : "";
+  const turns = isBattleLong(ef.turns) ? "戦闘の終わりまで" : `残り${ef.turns}ターン`;
+  return el("span", "dg-chip " + (ef.mult > 1 ? "up" : "bad"), `${name}${st ? stageLabel(st) : ef.mult > 1 ? "▲" : "▼"}${mul}・${turns}`);
+}
 export const SPELL_TARGET_LABEL = { enemy: "敵単体", "all-enemy": "敵全体", ally: "味方単体", "all-ally": "味方全員", self: "自分" };
 export const SPELL_KIND_COLOR = { atk: "#e0743f", heal: "#46c08f", phys: "#d8b04a", buff: "#5fa8e0", debuff: "#a06fd6", sleep: "#a06fd6", cure: "#46c08f", mana: "#5fa8e0", escape: "#8f96a3", field: "#8fd0c8" };
 

@@ -611,6 +611,12 @@ export function spellCost(actor, sp) {
 let _onEnemyKilled = null;
 export function setOnEnemyKilled(fn) { _onEnemyKilled = typeof fn === "function" ? fn : null; }
 
+// 強化・弱体が掛かった記録の受け口 (game.js の演出用 — 掛かった瞬間にその効果と札を見せる)。
+// 判定・乱数・状態には触れない。ev = { t, stat, d (段なら動いた段数・それ以外は ±1), src, before, after }
+let _modSink = null;
+export function setModSink(fn) { _modSink = typeof fn === "function" ? fn : null; }
+const snapEffects = (t) => (t.effects || []).map((e) => ({ ...e }));
+
 export class Battle {
   constructor(party, enemies, log, opts = {}) {
     this.party = party;
@@ -873,6 +879,7 @@ export class Battle {
     t.effects = t.effects || [];
     if (STAGED.has(stat)) return this._applyStage(t, stat, stageOf(mult), dur, srcName);
     const up = mult > 1;
+    const before = _modSink ? snapEffects(t) : null;
     const same = t.effects.filter((e) => e.stat === stat && (e.mult > 1) === up);
     if (same.length >= 2) {
       // 同方向2段階が上限: 最古を取り除いてから新規を積む
@@ -881,6 +888,7 @@ export class Battle {
     }
     t.effects.push({ stat, mult, turns: Math.max(1, dur || 3), src: srcName || "" });
     this._recalcBuffs(t);
+    if (_modSink) _modSink({ t, stat, d: up ? 1 : -1, src: srcName || "", before, after: snapEffects(t) });
     return up ? 1 : -1;
   }
   // 段の加算 (d = 符号つきの段数)
@@ -894,6 +902,7 @@ export class Battle {
     const s0 = Math.max(-STAGE_MAX, Math.min(STAGE_MAX, olds.reduce((a, e) => a + effectStage(e), 0)));
     const t0 = olds.reduce((a, e) => Math.max(a, e.turns || 0), 0);
     const lo = strong ? STRONG_MIN : -STAGE_MAX;
+    const before = _modSink ? snapEffects(t) : null;
     // 底・天井を越えて入れない (すでに越えている分は削らない)
     const s1 = d > 0 ? Math.min(s0 + d, Math.max(STAGE_MAX, s0)) : Math.max(s0 + d, Math.min(lo, s0));
     t.effects = t.effects.filter((e) => e.stat !== stat);
@@ -903,6 +912,7 @@ export class Battle {
       t.effects.push({ stat, stage: s1, mult: stageMul(s1), turns: Math.max(1, nt), src: srcName || "" });
     }
     this._recalcBuffs(t);
+    if (_modSink && s1 !== s0) _modSink({ t, stat, d: s1 - s0, src: srcName || "", before, after: snapEffects(t) });
     if (s1 !== s0 && t.side === "enemy" && ENEMY_STAT_LABEL[stat] && !this._quietMod) {
       this.log(`${t.name}の${ENEMY_STAT_LABEL[stat]}が${s1 > s0 ? "上がった" : "下がった"} (${stageLabel(s1 - s0)})`, s1 > s0 ? "dmg" : "hit");
     }
