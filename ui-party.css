@@ -1178,3 +1178,6 @@ button.sp-lu-next { cursor: pointer; }
 .pt-sw-after { font-size: 12px; color: #cfe3b0; }
 .pt-sw-after.ng { color: #e8a59a; }
 .pt-sw-go { flex: 0 0 auto; font-size: 20px; color: #f3d58b; }
+/* 品の画面 (誰に装備させる？) と「いまの装備と比べる」の特殊効果の行 */
+.pt-ch-fx { margin: 0 0 10px; }
+.pt-chl-cur-fx.line { padding-left: 1em; line-height: 1.5; }
