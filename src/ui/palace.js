@@ -558,7 +558,7 @@ function pairRow(name, desc, { dim = false, onTap = null, tags = null } = {}) {
 }
 
 // 図鑑の「出現した迷宮」に添える出現階 (ユーザーの指示、2026-10)。台帳の出現表 (poolAt) から求め、
-// 主は最下階、強敵は強敵の階 (3F以降)。出現表に載らない魔物 (呼び出された手下など) は討伐した階の記録 (rec) で示す
+// 主は最下階、強敵は強敵の階 (B3F以降)。出現表に載らない魔物 (呼び出された手下など) は討伐した階の記録 (rec) で示す
 const floorSpan = (a, b) => (a === b ? `B${a}F` : `B${a}F〜B${b}F`);
 function appearFloorsText(cfg, key, rec) {
   const n = cfg.floors || 1;
@@ -660,8 +660,8 @@ export function codexMonSheet(key, o = {}) {
     }
     body.appendChild(grid);
     fact("HP", mt ? (mt.hpRank ? "多め" : mt.hp) : Math.max(1, Math.round(st.hp)));
-    fact("属性攻", elemStatShort({ el: elKey || "none", lv: 1 }));
-    fact("属性防", elemStatShort(m.elemDef));
+    fact("属攻", elemStatShort({ el: elKey || "none", lv: 1 }));
+    fact("属防", elemStatShort(m.elemDef));
   } else body.appendChild(revealLock(R.stats, "能力・属性・HP"));
   // 抵抗値: 体質で効きやすい異常は緑、効きにくい異常は橙、効かない異常は暗く (戦闘中はその敵の実際の値)
   const resV = (foe && foe.resists) || m.resists || {};
@@ -684,8 +684,8 @@ export function codexMonSheet(key, o = {}) {
     : [pairRow("✦Soul", String(m.soul)), pairRow("金貨", String(m.gold))]));
   if (loreOpen) {
     const traits = monsterTraits(m);
-    body.appendChild(infoBlock("特徴・スキル", traits.length ? traits.map((t) => pairRow(t.label, t.desc, { tags: traitTagKinds(t.key, elKey) })) : [pairRow("特筆すべき特徴はない", null, { dim: true })]));
-  } else body.appendChild(revealLock(R.lore, MONSTER_LORE[key] ? "特徴・スキル・説明文・伝承" : "特徴・スキル・説明文"));
+    body.appendChild(infoBlock("特徴・技", traits.length ? traits.map((t) => pairRow(t.label, t.desc, { tags: traitTagKinds(t.key, elKey) })) : [pairRow("特筆すべき特徴はない", null, { dim: true })]));
+  } else body.appendChild(revealLock(R.lore, MONSTER_LORE[key] ? "特徴・技・説明文・伝承" : "特徴・技・説明文"));
   if (!loreOpen) body.appendChild(revealLock(R.lore, "抵抗値"));
   // 名のある強敵: 縄張り・目撃・首級・懸賞
   const ni = m.named && game.namedInfo ? game.namedInfo(key) : null;
@@ -810,7 +810,7 @@ function jobSheetView(key, rank, top, heading, onRank) {
   const traitRows = [];
   if (traits.crit) traitRows.push(pairRow("会心率", `+${Math.round(traits.crit * 100)}%`));
   for (const [k, v] of Object.entries(traits.resists)) if (v) traitRows.push(pairRow(`${RESIST_LABEL[k]}抵抗値`, `+${v}`));
-  traitRows.push(pairRow("主魂の基礎値。レベル・集魂倍率では増えない", null, { dim: true }));
+  traitRows.push(pairRow("メイン魂の基礎値。レベル・集魂倍率では増えない", null, { dim: true }));
   body.appendChild(infoBlock("職業の基礎特性", traitRows));
   // 発現の条件
   const upPct = Math.round((SOUL_STAT_UP[SOUL_CLASSES[key].rarity] || 0.01) * 100);

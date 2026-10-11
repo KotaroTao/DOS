@@ -29,12 +29,12 @@ export default {
     PALADIN_SABAKINOSEIKEN: { name: "審きの聖剣", mp: 18, kind: "phys", power: 3.0, pieScale: 1.2, pierce: 0.4, acc: 1, drain: 0.15, target: "enemy", desc: "PIEを乗せた必中の聖剣。鎧を穿ち命を吸う" },
     PALADIN_GOKOUNOJIN: { name: "後光の陣", mp: 15, kind: "heal", healMul: 1, healCap: 0.5, regen: { pct: 0.04, turns: 3 }, target: "all-ally", desc: "後光で味方全員を癒し、しばらく癒し続ける" },
     PALADIN_SHOKUZAI: { name: "贖罪の光", mp: 22, kind: "atk", power: 60, element: "light", debuff: { atk: 0.8 }, target: "enemy", desc: "罪を灼く聖光。敵の力を挫く" },
-    PALADIN_SEIGONOTOBARI: { name: "聖護の帳", mp: 20, kind: "buff", buff: { vit: 1.5 }, regen: { pct: 0.03, turns: 3 }, target: "all-ally", desc: "聖なる帳で味方全体を厚く守り、癒しを宿す" },
+    PALADIN_SEIGONOTOBARI: { name: "聖護の帳", mp: 20, kind: "buff", buff: { vit: 1.5 }, regen: { pct: 0.03, turns: 3 }, target: "all-ally", desc: "聖なる帳で味方全員を厚く守り、癒しを宿す" },
     PALADIN_SEIHAI: { name: "聖杯の恵み", mp: 32, kind: "heal", healMul: 2.1, buff: { atk: 1.15 }, cure: true, target: "all-ally", desc: "味方全員を大きく癒し、異常を祓い力を与える" },
     PALADIN_GAIKA: { name: "凱歌の聖剣", mp: 30, kind: "phys", power: 1.8, pieScale: 0.5, element: "light", acc: 0.7, bladeHeal: 0.05, healCap: 0.15, target: "all-enemy", desc: "凱歌と共に敵陣を斬り、隊を大きく癒す" },
     PALADIN_TENJOUSOU: { name: "天上の聖槍", mp: 28, kind: "atk", power: 80, element: "light", vuln: { light: 0.8 }, target: "enemy", desc: "聖槍が貫き、光への守りを崩す" },
     PALADIN_JUNKYOUNOTATE: { name: "殉教の盾", mp: 26, kind: "buff", shield: true, buff: { vit: 1.4 }, regen: { pct: 0.06, turns: 3 }, tech: true, target: "self", desc: "身を盾に仲間を庇い、聖なる癒しを身に宿す" },
-    PALADIN_SEIKISHIDAN: { name: "聖騎士団の誓い", mp: 32, kind: "buff", buff: { atk: 1.25, vit: 1.35 }, grantBarrier: 1, target: "all-ally", desc: "味方全体の攻守を高め、魔障壁を張る" },
+    PALADIN_SEIKISHIDAN: { name: "聖騎士団の誓い", mp: 32, kind: "buff", buff: { atk: 1.25, vit: 1.35 }, grantBarrier: 1, target: "all-ally", desc: "味方全員の攻守を高め、魔障壁を張る" },
     PALADIN_REIMEI: { name: "黎明の聖光", mp: 32, kind: "atk", power: 66, element: "light", prey: { races: UNHOLY, mul: 1.4 }, strip: true, target: "all-enemy", desc: "夜明けの光が不浄を灼き、強化を消し去る" },
     PALADIN_SEIKIGAN: { name: "聖騎士の祈願", mp: 90, kind: "heal", healMul: 2.5, revive: true, revivePct: 0.6, cure: true, purge: true, buff: { atk: 1.2 }, target: "all-ally", desc: "倒れた者を呼び戻し、全員を癒し奮い立たせる" },
     PALADIN_SEIKENKOURIN: { name: "聖剣降臨", mp: 40, kind: "phys", power: 6.0, pieScale: 1.5, element: "light", acc: 1, bladeHeal: 0.02, healCap: 0.25, target: "enemy", desc: "天を裂く必中の聖剣。光が隊を大きく癒す" },
@@ -47,7 +47,7 @@ export default {
     },
     paladinKoukan: {
       label: "慈しみの光環",
-      lv: ["2ラウンド目から毎ラウンド、味方全員のHPを最大の1.5%回復", "2ラウンド目から毎ラウンド、味方全員のHPを最大の2.5%回復", "2ラウンド目から毎ラウンド、味方全員のHPを最大の3.5%回復"],
+      lv: ["2ターン目から毎ターン、味方全員のHPを最大の1.5%回復", "2ターン目から毎ターン、味方全員のHPを最大の2.5%回復", "2ターン目から毎ターン、味方全員のHPを最大の3.5%回復"],
       fx: [{ t: "round", party: true, hp: [0.015, 0.025, 0.035] }],
     },
     paladinNanori: {
@@ -61,7 +61,7 @@ export default {
     },
     paladinFukutsu: {
       label: "不屈の聖光",
-      lv: ["自分のHPが35%以下なら、毎ラウンド最大HPの8%回復", "自分のHPが35%以下なら、毎ラウンド最大HPの12%回復"],
+      lv: ["自分のHPが35%以下なら、毎ターン最大HPの8%回復", "自分のHPが35%以下なら、毎ターン最大HPの12%回復"],
       fx: [{ t: "round", when: { selfLow: 0.35 }, hp: [0.08, 0.12] }],
     },
     paladinSeikenkago: {

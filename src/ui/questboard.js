@@ -45,17 +45,17 @@ export function dungeonGroups(quests, dungeons = game.DUNGEONS || []) {
     groups.get(key).push(q);
   }
   return [
-    ...(groups.has(null) ? [{ id: null, name: "ダンジョン指定なし・納品", quests: groups.get(null) }] : []),
+    ...(groups.has(null) ? [{ id: null, name: "迷宮指定なし・納品", quests: groups.get(null) }] : []),
     ...byLevelDesc(dungeons.filter((d) => groups.has(d.id))).map((d) => ({ id: d.id, name: d.name, quests: groups.get(d.id) })),
   ];
 }
 const cap = () => (game.FREE_CAP || 6);
 const full = () => lists().freeCount >= cap();
 const deliverSt = (q) => (q.type === "deliver" && game.deliveryStatus ? game.deliveryStatus(q) : null);
-// 納品の品の在りか: 手持ち / 商店の棚 / どちらにも無い (掲示板の依頼も受注中の依頼も同じ言い方)
-const haveLabel = (st) => (st.holder ? "（持っている）" : st.inShop ? "（商店に売っている）" : "（持っていない）");
+// 納品の品の在りか: 手持ち / 商会の棚 / どちらにも無い (掲示板の依頼も受注中の依頼も同じ言い方)
+const haveLabel = (st) => (st.holder ? "（持っている）" : st.inShop ? "（商会に売っている）" : "（持っていない）");
 const buyLabel = (st) => `購入（金貨${st.price}）して納品`;
-// 納品の依頼で、いま納められるか (手持ちがある / 商店で買える)
+// 納品の依頼で、いま納められるか (手持ちがある / 商会で買える)
 const canDeliver = (q) => { const st = deliverSt(q); return !!st && (!!st.holder || !!st.canBuy); };
 const isOpenDeliver = (q) => q.type === "deliver" && (q.state === "active" || q.state === "offer");
 
@@ -80,7 +80,7 @@ function progressText(q) {
     return haveLabel(st) + (st.holder ? (st.holder.name ? ` ${st.holder.name}` : "") : st.inShop && !st.canBuy ? " 金貨が足りない" : "");
   }
   if (q.type === "clear") return "未踏破";
-  if (q.type === "floor") return `地下${q.goal}階 ・ いま ${q.progress ? `地下${q.progress}階` : "未到達"}`;
+  if (q.type === "floor") return `B${q.goal}F ・ いま ${q.progress ? `B${q.progress}F` : "未到達"}`;
   return `${q.progress || 0} / ${q.goal}`;
 }
 // 札の左の印: 納品 = 品の絵 / 討伐 = 魔物の絵 / ほか = 記号
@@ -229,7 +229,7 @@ export function dungeonQuestSheet(dn, { onChange = null } = {}) {
     root.appendChild(box);
   };
   sfx("select");
-  h = sheet.open({ kind: "info", banner: "固有クエスト", title: dn.name, body, className: "qb-dq-sheet",
+  h = sheet.open({ kind: "info", banner: "固有の依頼", title: dn.name, body, className: "qb-dq-sheet",
     footer: [{ label: "閉じる", kind: "ghost", onTap: (s) => s.close() }] });
   return h;
 }
@@ -371,13 +371,13 @@ export function questChip(q) {
     const st = deliverSt(q) || {};
     if (st.holder) { bot.appendChild(el("span", "hb-dlv-s", "持っている")); bot.appendChild(el("span", "hb-dlv-go", "納品する")); }
     else if (st.inShop) {
-      bot.appendChild(el("span", "hb-dlv-s", st.canBuy ? "商店に売っている" : "金不足"));
+      bot.appendChild(el("span", "hb-dlv-s", st.canBuy ? "商会に売っている" : "金不足"));
       const c = el("span", "hb-dlv-go" + (st.canBuy ? "" : " off"));
       c.appendChild(glyphText(`💰${st.price}`));
       bot.appendChild(c);
     } else bot.appendChild(el("span", "hb-dlv-s", "納品 ・ 持っていない"));
   } else {
-    bot.appendChild(setText(el("span", "hb-dlv-s"), q.type === "floor" ? `地下${q.goal}階へ` : q.type === "clear" ? "踏破する" : `${q.progress || 0}/${q.goal}`));
+    bot.appendChild(setText(el("span", "hb-dlv-s"), q.type === "floor" ? `B${q.goal}Fへ` : q.type === "clear" ? "踏破する" : `${q.progress || 0}/${q.goal}`));
   }
   b.appendChild(bot);
   b.setAttribute("aria-label", `酒場の依頼 ${q.name}`);

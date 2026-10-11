@@ -29,7 +29,7 @@ export const SLOT_LABEL = {
 };
 export const MAX_ITEMS = 8;
 
-// ===== アイテム分類 (商店・図鑑のタブ) =====
+// ===== アイテム分類 (商会・図鑑のタブ) =====
 export const ITEM_CATS = [
   { key: "use", label: "道具", slots: ["use"] },
   { key: "weapon", label: "武器", slots: ["weapon"] },
@@ -151,7 +151,7 @@ export function scaleText(scale) {
 
 // ===== 鑑定システム (ウィザードリィ風) =====
 // ダンジョンで拾った装備は「未鑑定 (unidentified)」状態で手に入り、伏せ名で表示され
-// 鑑定するまで装備できない。鑑定は商店 (有料・確実) か一部職業のスキルで行う。
+// 鑑定するまで装備できない。鑑定は商会 (有料・確実) か一部職業の技で行う。
 // 消耗品・収集品 (use/misc) は鑑定済みで出るため対象外。
 export const UNIDENT_SLOTS = new Set(["weapon", "shield", "body", "head", "hands", "feet", "acc"]);
 // 武器はサブカテゴリごとに伏せ名を変える (剣・斧・杖… の見当はつく、というていの表記)
@@ -1334,7 +1334,7 @@ export const BREATH_RES_MAX = 0.5;
 // item.use の語彙 (catalog/defs.js の U ビルダーが検証する):
 //   heal: N / full: true      HP を N 回復 / 全快
 //   mp: N / mpFull: true      MP を N 回復 / 全快
-//   all: true                 heal・mp・cure・buff を生きている隊全員に
+//   all: true                 heal・mp・cure・buff を生きている隊の全員に
 //   cure: "poison" | [...] | "all"  状態異常を治す (USE_AIL のキー。眠り・魅了・混乱は戦闘の中だけの状態)
 //   revive: 0.25              倒れた仲間を最大HPのこの割合で起こす
 //   buff: { atk: 1.3 }, dur   戦闘中: 能力を高める (ターン数 dur)

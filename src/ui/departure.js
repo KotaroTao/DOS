@@ -46,10 +46,10 @@ function dangerOf(dn) {
   const band = game.levelBand ? game.levelBand(dn) : [1, 1];
   const pl = game.partyLevel ? game.partyLevel() : 1;
   const gap = band[0] - pl;
-  if (gap >= 8) return { cls: "reckless", text: "無謀", note: `推奨Lv${band[0]}〜 ・ パーティLv${pl}。格上の敵には状態異常も即死も、ほとんど効かない。` };
-  if (gap >= 4) return { cls: "danger", text: "危険", note: `推奨Lv${band[0]}〜 ・ パーティLv${pl}。敵の状態異常が効きやすく、こちらの術は効きにくい。` };
+  if (gap >= 8) return { cls: "reckless", text: "無謀", note: `推奨Lv${band[0]}〜 ・ 隊のLv${pl}。格上の敵には状態異常も即死も、ほとんど効かない。` };
+  if (gap >= 4) return { cls: "danger", text: "危険", note: `推奨Lv${band[0]}〜 ・ 隊のLv${pl}。敵の状態異常が効きやすく、こちらの術は効きにくい。` };
   // 隊のLvが推奨Lv (いちばん深い階) + 2 を超えると、迷宮で得る ✦Soul が減る (game.js soulLvMul)
-  if (pl - band[1] > 2) return { cls: "easy", text: pl - band[1] >= 8 ? "易しい" : "格下", note: `推奨Lv〜${band[1]} ・ パーティLv${pl}。隊のLvが推奨Lvを3以上上回ると、得る✦Soulが減る (1Lvごとに10%、最大80%)。` };
+  if (pl - band[1] > 2) return { cls: "easy", text: pl - band[1] >= 8 ? "易しい" : "格下", note: `推奨Lv〜${band[1]} ・ 隊のLv${pl}。隊のLvが推奨Lvを3以上上回ると、得る✦Soulが減る (1Lvごとに10%、最大80%)。` };
   return null;
 }
 
@@ -321,7 +321,7 @@ function renderHero(b) {
     try { qs = game.questsTargeting ? game.questsTargeting(dn) : []; } catch (e) { qs = []; }
     facts.appendChild(fact("受注中の依頼", qs.length ? `${qs.length}件` : "なし", qs.length ? "" : "none",
       qs.length ? () => dungeonActiveQuestSheet(dn, { onChange: () => refresh() }) : null, "依頼"));
-    facts.appendChild(fact("固有クエスト", f.fqTotal ? `${f.fqDone}/${f.fqTotal}` : "なし", f.fqTotal && f.fqDone >= f.fqTotal ? "full" : !f.fqTotal ? "none" : "",
+    facts.appendChild(fact("固有の依頼", f.fqTotal ? `${f.fqDone}/${f.fqTotal}` : "なし", f.fqTotal && f.fqDone >= f.fqTotal ? "full" : !f.fqTotal ? "none" : "",
       f.fqTotal ? () => dungeonQuestSheet(dn, { onChange: () => refresh() }) : null, "固有"));
   }
   cap.appendChild(facts);
@@ -450,7 +450,7 @@ function renderGates(b) {
     r.type = "button";
     r.appendChild(gateIcon("abyss"));
     const info = el("span", "dp-gate-i");
-    info.appendChild(el("span", "dp-gate-n", "無限迷宮「奈落」"));
+    info.appendChild(el("span", "dp-gate-n", "奈落"));
     info.appendChild(el("span", "dp-gate-c", rec.bestDepth ? `最深 B${rec.bestDepth}F ・ 最高 ${rec.bestScore.toLocaleString()}点` : "どこまでも潜れる。深さに果てはない。"));
     r.appendChild(info);
     r.appendChild(el("span", "dp-gate-st", "支度 ›"));
@@ -528,7 +528,7 @@ function renderReady(b) {
   // 1行: 「隊の備え」+ 肖像 (HP の細線つき) + 入替 ›
   const strip = el("div", "dp-party");
   const lab = el("div", "dp-party-l");
-  lab.appendChild(el("span", "dp-party-t", "パーティの備え"));
+  lab.appendChild(el("span", "dp-party-t", "隊の備え"));
   lab.appendChild(el("span", "dp-party-n", `${g.party.length}/6`));
   strip.appendChild(lab);
   g.party.forEach((d, i) => {
@@ -543,7 +543,7 @@ function renderReady(b) {
   strip.appendChild(swap);
   b.appendChild(strip);
 }
-// 備えの注意は本文でスクロールさせ、階選択・パーティ欄の高さを保つ。
+// 備えの注意は本文でスクロールさせ、階選択・隊欄の高さを保つ。
 function renderReadyIssues(b) {
   let res = null;
   try { res = game.preDiveIssues ? game.preDiveIssues() : null; } catch (e) { res = null; }

@@ -4,14 +4,14 @@
 // ・3 階ごとに「変異」が積み重なり (主に呪い・稀に恵み)、ランごとに盤面が変わる
 // ・10 階ごと (層の最後の階) に、その層の主が「門番」として立ちはだかる (撃破で先へ)
 // ・5 階ごとの帰還魔法陣で「いつでも撤退 = 記録確定」できる (ローグライト的なラン)
-// ・潜入前に「誓約」(縛り) を選ぶとスコア倍率が上がる
+// ・出撃前に「誓約」(縛り) を選ぶとスコア倍率が上がる
 //
 // このモジュールは純粋なデータ/ロジックのみ。演出・状態管理・描画は game.js が担う。
 
 export const ABYSS_BOSS_EVERY = 10;  // 門番が出る周期 (階)
 export const ABYSS_MUT_EVERY = 3;    // 変異が積み重なる周期 (階)
 
-// ===== 誓約 (縛り) — 潜入前に任意で受け入れる。スコア倍率が上がる代わりにラン全体が過酷になる =====
+// ===== 誓約 (縛り) — 出撃前に任意で受け入れる。スコア倍率が上がる代わりにラン全体が過酷になる =====
 // 効果フィールド (enemyMul/noFlee/packMin/ambushMul…) は game.js の mutNum 集約に流し込まれ、
 // 既存の戦闘フックでそのまま効く。special は game.js が個別に解釈する印。
 export const ABYSS_MODS = [
@@ -26,7 +26,7 @@ export const ABYSS_MODS = [
   { id: "ambush",  name: "闇行の誓", sym: "🌘", scoreMul: 1.25, ambushMul: 5,
     desc: "奇襲を受ける危険が跳ね上がる" },
   { id: "cursed",  name: "呪縛の誓", sym: "☠", scoreMul: 1.6, special: "doubleMut",
-    desc: "潜入時から変異が2つ宿り、変異の進行も速まる" },
+    desc: "出撃時から変異が2つ宿り、変異の進行も速まる" },
 ];
 export const ABYSS_MOD_MAP = Object.fromEntries(ABYSS_MODS.map((m) => [m.id, m]));
 
@@ -60,9 +60,9 @@ export const ABYSS_MUTATIONS = [
     desc: "足元を蝕む床 (その層の毒の沼・灼けた床など) が広がり、魔物の力が +10% される" },
   // --- 恵み (稀) ---
   { id: "soulfont", name: "魂の湧泉",   sym: "✧", kind: "boon", accent: "#7fd0ff", soulMul: 1.5,
-    desc: "得られる Soul が 1.5倍 になる" },
+    desc: "得られる ✦Soul が 1.5倍 になる" },
   { id: "goldvein", name: "黄金の鉱脈", sym: "💰", kind: "boon", accent: "#ffd84a", goldMul: 1.5,
-    desc: "得られるゴールドが 1.5倍 になる" },
+    desc: "得られる金貨が 1.5倍 になる" },
   { id: "hoard",    name: "秘蔵の気配", sym: "▣", kind: "boon", accent: "#e8c47a", chestRankUp: 1, lootBonusLv: 12,
     desc: "宝箱が 1ランク上等になり、落ちている装備の質が上がる" },
 ];

@@ -202,7 +202,7 @@ export function refresh() {
   content.classList.remove("hidden");
   parkKept();
   content.innerHTML = "";
-  content.classList.remove("shop-mode"); // 商店専用レイアウトを解除 (商店なら再付与)
+  content.classList.remove("shop-mode"); // 商会専用レイアウトを解除 (商会なら再付与)
   const t = G.town;
   const page = t.page && pageDefs[t.page];
   const def = tabDefs[tab] || tabDefs.hub;

@@ -2184,7 +2184,7 @@ export function R(id, name, shape, lv, opt = {}) {
   return it;
 }
 
-// 収集品 (戦利品): M(id, 名, 形, lv, opt) — 装備も使用もできず、商店で売るか宝物庫に奉納する
+// 収集品 (戦利品): M(id, 名, 形, lv, opt) — 装備も使用もできず、商会で売るか宝物庫に奉納する
 // 絵は miscart.js の固有の絵 (id ごとに一枚)。shape は品の種類 (牙・骨・貨幣…) の目印として残す
 export function M(id, name, shape, lv, opt = {}) {
   const own = MISC_ART[id];

@@ -62,8 +62,8 @@ export function openResults(spec = {}) {
     return num;
   };
   if (spec.gold != null || spec.soul != null) {
-    gainCell("gold", spec.gold || 0, "ゴールド");
-    gainCell("soul", spec.soul || 0, "Soul");
+    gainCell("gold", spec.gold || 0, "金貨");
+    gainCell("soul", spec.soul || 0, "✦Soul");
     box.appendChild(gain);
     // 逃げ去った敵 (金属の魔物) は戦果に入らない。倒した分だけだとわかるように添える
     if (spec.fled) box.appendChild(el("div", "rs-fled", `${spec.fled}体には逃げられた（逃げた分の戦果は無い）`));
@@ -176,7 +176,7 @@ export function openResults(spec = {}) {
       r.appendChild(glyph("gold"));
       const num = el("span", "rs-num", "0");
       r.appendChild(num);
-      r.appendChild(document.createTextNode(` ゴールドを手に入れた`));
+      r.appendChild(document.createTextNode(` 枚の金貨を手に入れた`));
       addOut(r);
       countUp(num, 0, n, 400, (x) => "+" + x);
     },
@@ -323,7 +323,7 @@ export function openWipe(spec = {}) {
       c.appendChild(el("div", "rs-loss-l", label));
       return c;
     };
-    loss.appendChild(cell("gold", spec.gold || 0, "ゴールド"));
+    loss.appendChild(cell("gold", spec.gold || 0, "金貨"));
     loss.appendChild(cell(null, spec.items || 0, "装備・品"));
     loss.appendChild(cell(null, spec.souls || 0, "魂"));
     body.appendChild(loss);
@@ -352,7 +352,7 @@ export function celebrateClear(spec = {}) {
   if (g) g.prompt = true;
   let gone = false;
   const lines = [`「${spec.name}」を踏破した！`];
-  if (spec.missingClue) lines.push(`「${spec.missingClue.name}」がまだ見つかっていない。${spec.missingClue.floor}階で見つけてから、王に報告せよ。`);
+  if (spec.missingClue) lines.push(`「${spec.missingClue.name}」がまだ見つかっていない。B${spec.missingClue.floor}Fで見つけてから、王に報告せよ。`);
   else if (spec.isStoryTarget) lines.push("勅命を果たした。王宮へ戻り、王に報告せよ。");
   else if (spec.last) lines.push("すべての迷宮を制覇した。あなたは伝説となった。");
   else lines.push("さらなる深淵が、まだそなたを待っている。");
@@ -537,14 +537,14 @@ export function openRunReportDetail() {
       const sec = (t, s) => { const h = el("div", "dg-sec"); h.appendChild(el("i", "dg-sec-mark")); h.appendChild(setText(el("span", "dg-sec-t"), t)); if (s) h.appendChild(setText(el("span", "dg-sec-s"), s)); return h; };
       const t = el("div", "dg-tally");
       const cell = (kind, v, label) => { const cc = el("div", "dg-tally-c"); const n = el("div", "dg-tally-n"); if (kind) n.appendChild(glyph(kind)); n.appendChild(document.createTextNode(String(v))); cc.appendChild(n); cc.appendChild(el("div", "dg-tally-l", label)); return cc; };
-      t.appendChild(cell("gold", lr.gold || 0, "ゴールド"));
-      t.appendChild(cell("soul", lr.soulPts || 0, "Soul"));
+      t.appendChild(cell("gold", lr.gold || 0, "金貨"));
+      t.appendChild(cell("soul", lr.soulPts || 0, "✦Soul"));
       t.appendChild(cell(null, lr.kills || 0, "討伐"));
       t.appendChild(cell(null, (lr.items || []).length, "品"));
       b.appendChild(t);
       if (lr.forfeited) {
         b.appendChild(sec("全滅で失ったもの"));
-        b.appendChild(el("div", "dg-line bad", `ゴールド ${lr.forfeited.gold || 0}`));
+        b.appendChild(el("div", "dg-line bad", `金貨 💰${lr.forfeited.gold || 0}`));
         for (const n of (lr.forfeited.items || []).slice(0, 12)) b.appendChild(el("div", "dg-line bad", n));
         for (const n of (lr.forfeited.souls || [])) b.appendChild(el("div", "dg-line bad", `${n}の魂`));
       }

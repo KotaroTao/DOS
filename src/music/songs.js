@@ -352,7 +352,7 @@ function tavern() {
   return s;
 }
 
-// ===== 商店: 値踏みする目。チェンバロと低弦のピッツィカートが忍び歩く =====
+// ===== 商会: 値踏みする目。チェンバロと低弦のピッツィカートが忍び歩く =====
 // ト短調 96BPM。8小節の固執低音の上で変奏
 function shop() {
   const s = new Score({ name: "shop", bpm: 96, loop: [0, 32], gain: 2.07, fadeIn: 0.8, delay: { l: 0.75, r: 1.5, fb: 0.25, lp: 2600 } });

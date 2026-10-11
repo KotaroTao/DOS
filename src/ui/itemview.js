@@ -68,12 +68,12 @@ export const SPELL_KIND_LABEL = { atk: "攻撃呪文", heal: "回復呪文", phy
 // 能力の倍率キーの呼び名 (STR/VIT… 以外の効果)
 export const BUFF_NAME = { hit: "命中率", int: "INT", pie: "PIE", omen: "大技の予兆", taunt: "挑発", shield: "仁王立ち", ctr: "反撃の構え", charge: "溜め", regen: "リジェネ", seal: "特技封じ", wardB: "ブレス避け", wardS: "呪文避け",
   r_fire: "火耐性", r_water: "水耐性", r_wind: "風耐性", r_earth: "土耐性", r_light: "光耐性", r_dark: "闇耐性", r_all: "全属性耐性" };
-export const SPELL_TARGET_LABEL = { enemy: "敵単体", "all-enemy": "敵全体", ally: "味方単体", "all-ally": "味方全体", self: "自分" };
+export const SPELL_TARGET_LABEL = { enemy: "敵単体", "all-enemy": "敵全体", ally: "味方単体", "all-ally": "味方全員", self: "自分" };
 export const SPELL_KIND_COLOR = { atk: "#e0743f", heal: "#46c08f", phys: "#d8b04a", buff: "#5fa8e0", debuff: "#a06fd6", sleep: "#a06fd6", cure: "#46c08f", mana: "#5fa8e0", escape: "#8f96a3", field: "#8fd0c8" };
 
 // ===== 種別・属性アイコン (敵の特徴・味方のスキルに添える小さな札) =====
 // 物 = 物理 / 魔 = 魔法 (ブレス含む) / 回復 / その他 (強化・弱体・招来など)。属性は「火」「水」…の札を並べる
-// 全体 = 敵全体・味方全体を対象にする技
+// 全体 = 敵全体・味方全員を対象にする技
 const TAG_KIND = {
   phys:  { t: "物", c: "#d8b04a" },
   mag:   { t: "魔", c: "#b48ae8" },
@@ -118,7 +118,7 @@ export function spellTagKinds(sp, actor) {
   let elk = sp.element;
   if (!hasElem(elk) && sp.kind === "phys" && actor && actor.elemAtk) elk = actor.elemAtk.el;
   if (hasElem(elk)) out.push("el:" + elk);
-  // 全体を対象にする技 (敵全体・味方全体) には「全体」の札 (ユーザーの指示、2026-10)
+  // 全体を対象にする技 (敵全体・味方全員) には「全体」の札 (ユーザーの指示、2026-10)
   if (sp.target === "all-enemy" || sp.target === "all-ally") out.push("all");
   return out;
 }
@@ -304,8 +304,8 @@ export function skillDetailLines(sp) {
   if (sp.confuse) lines.push(`${pct(sp.confuse)}で混乱させる（敵味方を問わず殴る・ふらつく・抵抗値で成功率が下がる）`);
   if (sp.flinchChance) lines.push(`${pct(sp.flinchChance)}で怯ませる（主には効かない）`);
   if (sp.poison || sp.para || sp.seal || sp.instakill || sp.sleepChance || sp.charm || sp.confuse || sp.kind === "sleep") lines.push("※ 表示は抵抗値0・同じLvでの基本確率。魂のLvと迷宮の推奨Lvの差で5〜95%に調整した後、成功率×（1−抵抗値/100）で判定。抵抗値100は無効");
-  if (sp.plunder) lines.push("この技で倒した敵は、落とすゴールドが2倍になる");
-  if (sp.partyHeal) lines.push(`攻撃の後、味方全体のHPを ${sp.partyHeal} 回復（術者のPIEで伸びる）`);
+  if (sp.plunder) lines.push("この技で倒した敵は、落とす金貨が2倍になる");
+  if (sp.partyHeal) lines.push(`攻撃の後、味方全員のHPを ${sp.partyHeal} 回復（術者のPIEで伸びる）`);
   if (sp.bladeHeal) lines.push(`与えたダメージの${pct(sp.bladeHeal)}だけ味方全員のHPを回復（1人あたり最大HPの${pct(sp.healCap || 0.25)}まで）`);
   if (sp.cure || sp.kind === "cure") lines.push(`状態異常（${spellCureKinds(sp).map(k => k === "poison" ? "毒・猛毒" : AIL_LABEL[k]).join("・")}）を治す`);
   if (sp.purge) lines.push("かかっている弱体を解く");
@@ -314,7 +314,7 @@ export function skillDetailLines(sp) {
   if (sp.debuffAll) lines.push(`さらに敵全体を弱体: ${fx(sp.debuffAll)}`);
   // 効果の持続ターン数。STR〜PIE の段は強化と弱体で打ち消し合い、±3段で止まる (主・精鋭への弱体は −2段まで・持続 −1)
   if (sp.dur && (sp.buff || sp.debuff || sp.debuffAll || sp.vuln || sp.taunt || sp.shield || sp.stance || sp.charge)) lines.push(`効果は ${sp.dur} ターン持続`);
-  if ([sp.buff, sp.debuff, sp.debuffAll].some((o) => o && Object.keys(o).some((k) => STAGED.has(k)))) lines.push("能力の段は強化と弱体で打ち消し合い、±3段で止まる（主・精鋭への弱体は −2段まで・持続 −1）");
+  if ([sp.buff, sp.debuff, sp.debuffAll].some((o) => o && Object.keys(o).some((k) => STAGED.has(k)))) lines.push("能力の段は強化と弱体で打ち消し合い、±3段で止まる（主・強敵への弱体は −2段まで・持続 −1）");
   if (sp.strip) lines.push("敵の大技の予兆（溜め）も打ち消せる");
   const tier = soulTierRate(sp);
   // 割合で回復・蘇生する技 (フルヒール・リバイブ…) は量が変わらない (消費だけ増える)
@@ -340,7 +340,7 @@ export function showSkillPopup(key) {
   for (const ln of skillDetailLines(sp)) box.appendChild(el("div", "sk-line", ln));
   body.appendChild(box);
   return sheet.open({
-    kind: "info", banner: "スキル", accent, title: sp.name, titleColor: accent, body,
+    kind: "info", banner: "技", accent, title: sp.name, titleColor: accent, body,
     className: "ui-skill-sheet",
     footer: [{ label: "閉じる", kind: "primary", onTap: (h) => h.close() }],
   });
@@ -358,7 +358,7 @@ export function showPassivePopup(keyOrName, lv) {
   const cur = Math.max(1, Math.min(lv || 1, def.lv.length));
   const accent = "#c9a227";
   const body = el("div", "ui-skill");
-  body.appendChild(el("div", "sk-mp", def.scope === "party" ? "常に働く力 ― パーティ全体に効く" : "常に働く力 ― 自分にだけ効く"));
+  body.appendChild(el("div", "sk-mp", def.scope === "party" ? "常に働く力 ― 味方全員に効く" : "常に働く力 ― 自分にだけ効く"));
   body.appendChild(el("div", "ig-desc", def.lv[cur - 1] || ""));
   if (def.lv.length > 1) {
     const box = el("div", "sk-lines");
@@ -422,12 +422,12 @@ const MULT_LABEL = { hp: "最大HP", mp: "最大MP", atk: "STR", vit: "VIT", agi
 const MULT_ORDER = ["hp", "mp", "atk", "vit", "agi", "int", "pie", "luk"];
 // 効果の名 (短い表記) と くわしい説明
 const EFF_INFO = {
-  actFirst: { short: () => "先手", line: () => "先手: どのラウンドも、敵味方の誰よりも先に行動する" },
+  actFirst: { short: () => "一番手", line: () => "一番手: どのターンも、敵味方の誰よりも先に行動する" },
   multistrike: { short: (v) => `${Math.min(4, v)}連撃`, line: (v) => `連撃: 通常攻撃が一手で${Math.min(4, v)}回の攻撃になる（標的が倒れたら次の敵へ。技は1回のまま。連撃の装備は回数を足し合い、最大4回）` },
   lifesteal: { short: (v) => `吸血${pct(v)}`, line: (v) => `吸血: 物理攻撃（通常攻撃・物理技）で与えたダメージの${pct(v)}だけ、自分のHPを回復する` },
   guard: { short: (v) => `被ダメ−${pct(v)}`, line: (v) => `守り: 受けるダメージを常に${pct(v)}減らす（物理・呪文・ブレスのすべて）` },
   autoRevive: { short: (v) => `自動蘇生${pct(v)}`, line: (v) => `蘇生: 戦闘不能になった時、1戦闘に1回だけ最大HPの${pct(v)}で立ち上がる` },
-  regen: { short: (v) => `再生${pct(v)}`, line: (v) => `再生: 2ラウンド目から毎ラウンド、最大HPの${pct(v)}だけHPを回復する` },
+  regen: { short: (v) => `再生${pct(v)}`, line: (v) => `再生: 2ターン目から毎ターン、最大HPの${pct(v)}だけHPを回復する` },
   counter: { short: (v) => `報復${pct(v)}`, line: (v) => `報復: 敵の物理攻撃を受けると、攻撃力の${pct(v)}のダメージですぐにやり返す` },
   spellCostMul: { short: (v) => `消費MP−${pct(1 - v)}`, line: (v) => `節約: 技・呪文の消費MPが${pct(1 - v)}減る` },
   ailmentImmune: { short: () => "状態異常無効", line: () => "状態異常無効: 毒・麻痺・眠り・魅了・混乱・石化・即死を受けつけない（罠の状態異常も）" },
@@ -665,7 +665,7 @@ export function equipCompareEl(p, cand) {
       row.appendChild(el("span", "eq-cd-seg " + (d.crit > 0 ? "up" : "down"), `会心 ${d.crit > 0 ? "▲+" + d.crit : "▼" + d.crit}%`));
     }
     // 属性攻撃/防御の変化 (—→火◯ のように現状→装備後で表示)
-    for (const [label, ch] of [["属性攻", d.elemAtk], ["属性防", d.elemDef]]) {
+    for (const [label, ch] of [["属攻", d.elemAtk], ["属防", d.elemDef]]) {
       if (elemStatEq(ch.from, ch.to)) continue;
       any = true;
       row.appendChild(el("span", "eq-cd-seg elem", `${label} ${elemStatShort(ch.from)}→${elemStatShort(ch.to)}`));
@@ -745,7 +745,7 @@ const EFF_K = {
   first: 0.08,   // 先手: 攻撃力 ×0.08
   steal: 1.5,    // 吸血: 攻撃力 × 率 × 1.5 HP (1戦で吸える量の目安)
   guard: 2,      // 守り: 最大HP × g/(1−g) × 2 HP (物理・呪文・ブレスのすべて)
-  regen: 3,      // 再生: 最大HP × 率 × 3 HP (2ラウンド目から毎ラウンド)
+  regen: 3,      // 再生: 最大HP × 率 × 3 HP (2ターン目から毎ターン)
   revive: 0.2,   // 蘇生: 最大HP × (0.2 + 率) HP (倒れても1度立つ)
   barrier: 0.2,  // 障壁: 1回ごとに最大HP × 0.2 HP
   immune: 50,    // 状態異常無効: 50点 (状態異常耐性 全6種100% = 60点に即死も加わる物差し)
@@ -828,16 +828,16 @@ export function itemCatText(it) {
 export function detailLines(it) {
   if (it && it.unidentified) {
     if (it.idHardFail) {
-      return ["？ 未鑑定の品 (鑑定失敗済み)", "鑑定するまで正体も性能もわからない。", "スキル鑑定に失敗したため、もう商店 (有料) でしか鑑定できない。"];
+      return ["？ 未鑑定の品 (鑑定失敗済み)", "鑑定するまで正体も性能もわからない。", "技での鑑定に失敗したため、もう商会 (有料) でしか鑑定できない。"];
     }
-    return ["？ 未鑑定の品", "鑑定するまで正体も性能もわからない。", "商店 (有料) か、鑑定の心得がある仲間が必要だ。"];
+    return ["？ 未鑑定の品", "鑑定するまで正体も性能もわからない。", "商会 (有料) か、鑑定の心得がある仲間が必要だ。"];
   }
   const L = [];
   L.push(itemCatText(it));
   if (it.slot === "use") {
     if (it.use) for (const x of useLines(it)) L.push(x);
   } else if (it.slot === "misc") {
-    L.push("商店で売って金にする戦利品");
+    L.push("商会で売って金にする戦利品");
   } else if (it.slot === "mat") {
     L.push("用途は街で見つかるかもしれない");
   } else {
@@ -899,7 +899,7 @@ export function equipClassText(it) {
   return "装備可: 全職";
 }
 
-// パーティメンバーの装備可否チップ (○/×)。party を省くと現在の編成 (G.party)
+// 隊メンバーの装備可否チップ (○/×)。party を省くと現在の編成 (G.party)
 // 頭文字だけだと同名頭文字を判別できないため、キャラアイコン + フルネーム + ○/× で示す。
 export function equipPartyChips(it, party = (game.G && game.G.party) || []) {
   const row = el("div", "eq-pchips");

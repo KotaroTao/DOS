@@ -17,7 +17,7 @@ export default {
     185 heroYuushaSenaka/3 190 RAIJINKEN 195 HERO_YOAKE 200 TENMEINOKEN`,
   skills: {
     // Lv15 の固有技: 誓いを掲げて隊を奮い立たせる
-    HERO_CHIKAINOHATA: { name: "誓いの旗", mp: 7, kind: "buff", buff: { atk: 1.15, vit: 1.1 }, target: "all-ally", desc: "誓いを掲げて隊を奮い立たせ、味方全体のSTRと防御を上げる" },
+    HERO_CHIKAINOHATA: { name: "誓いの旗", mp: 7, kind: "buff", buff: { atk: 1.15, vit: 1.1 }, target: "all-ally", desc: "誓いを掲げて隊を奮い立たせ、味方全員のSTRと防御を上げる" },
     HERO_JINRAI: { name: "迅雷", mp: 9, kind: "atk", power: 26, element: "wind", para: 0.25, flinchChance: 0.15, target: "enemy", desc: "迅き雷で撃ち、痺れさせ怯ませる" },
     HERO_YUUKITOMOSHIBI: { name: "勇気の灯", mp: 10, kind: "buff", buff: { atk: 1.1 }, cure: ["sleep", "charm", "confuse"], target: "all-ally", desc: "味方全員の眠り・魅了・混乱を治し、勇気の加護を授ける" },
     HERO_SAIKI: { name: "再起の呼び声", mp: 40, kind: "heal", revive: true, revivePct: 0.4, grantEndure: true, target: "ally", desc: "倒れた仲間を呼び起こし (HP40%)、致死を一度耐えさせる" },
@@ -40,7 +40,7 @@ export default {
       fx: [{ t: "deal", v: [0.05, 0.08, 0.11, 0.14], when: { boss: true } }, { t: "crit", v: [0.06, 0.09, 0.12, 0.15], when: { boss: true } }] },
     heroKaisenGourei: { label: "開戦の号令", lv: ["戦闘開始時、味方全員のVIT×1.1 (3ターン)", "戦闘開始時、味方全員のVIT×1.15", "戦闘開始時、味方全員のVIT×1.2"],
       fx: [{ t: "start", party: true, buff: { vit: [1.1, 1.15, 1.2] }, dur: 3 }] },
-    heroKibouHidamari: { label: "希望の陽だまり", lv: ["2ラウンド目から毎ラウンド味方全員のHP2%回復", "毎ラウンド味方全員のHP3%回復", "毎ラウンド味方全員のHP4%回復"],
+    heroKibouHidamari: { label: "希望の陽だまり", lv: ["2ターン目から毎ターン味方全員のHP2%回復", "毎ターン味方全員のHP3%回復", "毎ターン味方全員のHP4%回復"],
       fx: [{ t: "round", party: true, hp: [0.02, 0.03, 0.04] }] },
     heroYuushaSenaka: { label: "勇者の背中", lv: ["生きている間、味方全員の与ダメ+3%", "味方全員の与ダメ+5%", "味方全員の与ダメ+7%"],
       fx: [{ t: "deal", v: [0.03, 0.05, 0.07], aura: true }] },

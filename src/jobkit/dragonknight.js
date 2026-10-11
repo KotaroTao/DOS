@@ -20,7 +20,7 @@ export default {
     // Lv15 の固有技: 竜をも貫く槍の一突き
     DRAGONKNIGHT_RYUUSOUTSUKI: { name: "竜槍突き", mp: 5, kind: "phys", power: 1.4, acc: 0.6, pierce: 0.3, prey: { races: DRAGONS, mul: 1.3 }, target: "enemy", desc: "竜をも貫く槍の一突き。防御を一部抜き、竜に強い" },
     DRAGONKNIGHT_RYUUSOU: { name: "竜爪裂き", mp: 16, kind: "phys", power: 2.0, hits: 2, pierce: 0.4, acc: 0.7, target: "enemy", desc: "竜の爪のごとく二度裂く（防御を一部無視）" },
-    DRAGONKNIGHT_RYUUYOKU: { name: "竜翼の庇い", mp: 10, kind: "buff", buff: { vit: 1.3, agi: 1.1 }, tech: true, target: "all-ally", desc: "竜の翼を広げ、味方全体の守りと身のこなしを上げる" },
+    DRAGONKNIGHT_RYUUYOKU: { name: "竜翼の庇い", mp: 10, kind: "buff", buff: { vit: 1.3, agi: 1.1 }, tech: true, target: "all-ally", desc: "竜の翼を広げ、味方全員の守りと身のこなしを上げる" },
     DRAGONKNIGHT_RYUUGA: { name: "竜牙穿ち", mp: 14, kind: "phys", power: 2.3, acc: 0.7, debuff: { vit: 0.8 }, flinchChance: 0.25, target: "enemy", desc: "竜の牙で鎧を穿ち、怯ませる" },
     DRAGONKNIGHT_KOURYUUGEKI: { name: "降竜撃", mp: 18, kind: "phys", power: 5.2, agiScale: 0.6, acc: 1, flinchChance: 0.3, target: "enemy", desc: "跳躍から降る必中の一撃。怯ませる（AGIで伸びる）" },
     DRAGONKNIGHT_FUURYUU: { name: "風竜の吐息", mp: 21, kind: "phys", power: 1.6, agiScale: 0.3, critBonus: 0.1, element: "wind", flinchChance: 0.15, target: "all-enemy", desc: "風竜の息吹が敵陣を切り裂く" },
@@ -33,7 +33,7 @@ export default {
     DRAGONKNIGHT_RYUUOUDAN: { name: "竜王断", mp: 32, kind: "phys", power: 8.0, acc: 1, execute: 1.6, prey: { races: DRAGONS, mul: 1.3 }, target: "enemy", desc: "必中の大斬撃。弱った敵と竜に重い" },
     DRAGONKNIGHT_RYUUSEIRAKU: { name: "竜星落とし", mp: 63, kind: "phys", power: 1.8, scatter: 5, acc: 0.8, critBonus: 0.1, target: "all-enemy", desc: "跳躍から敵陣へ5度降り注ぐ" },
     DRAGONKNIGHT_GOUKA: { name: "劫火の竜息", mp: 28, kind: "phys", power: 2.4, element: "fire", acc: 0.7, vuln: { fire: 0.85 }, target: "all-enemy", desc: "劫火の息で敵陣を焼き、炎への守りを崩す" },
-    DRAGONKNIGHT_RYUURINJIN: { name: "竜鱗の陣", mp: 20, kind: "buff", buff: { vit: 1.4 }, grantBarrier: 1, tech: true, target: "all-ally", desc: "竜鱗の加護を味方全体に分け与える" },
+    DRAGONKNIGHT_RYUURINJIN: { name: "竜鱗の陣", mp: 20, kind: "buff", buff: { vit: 1.4 }, grantBarrier: 1, tech: true, target: "all-ally", desc: "竜鱗の加護を味方全員に分け与える" },
   },
   perks: {
     // Lv15 の目玉パッシブ: 逆鱗に触れられた竜は止まらない
@@ -44,7 +44,7 @@ export default {
     },
     dragonknightHishou: {
       label: "飛竜の跳躍",
-      lv: ["敵の物理を4%でかわす。1ラウンド目の与ダメージ+10%", "敵の物理を7%でかわす。1ラウンド目の与ダメージ+15%", "敵の物理を10%でかわす。1ラウンド目の与ダメージ+20%"],
+      lv: ["敵の物理を4%でかわす。1ターン目の与ダメージ+10%", "敵の物理を7%でかわす。1ターン目の与ダメージ+15%", "敵の物理を10%でかわす。1ターン目の与ダメージ+20%"],
       fx: [{ t: "evade", v: [0.04, 0.07, 0.10] }, { t: "deal", when: { round1: true }, v: [0.10, 0.15, 0.20] }],
     },
     dragonknightRyuurin: {

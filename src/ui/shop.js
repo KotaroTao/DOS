@@ -1,4 +1,4 @@
-// ===== 商会 — 売る・鑑定 (隊全体・控え込み) / 買う (最良の装備者へ・買って装備) =====
+// ===== 商会 — 売る・鑑定 (隊の全員・控え込み) / 買う (最良の装備者へ・買って装備) =====
 // 担当: WP-C。街シェルの「商会」タブを描く。
 //   売る・鑑定: まとめて鑑定 / まとめて売る (ops の一括操作。除外の内訳つき) + 全員の持ち物 (控え込み)
 //   買う      : 分類のチップ1列 (武器だけ下に種別の列) + 棚の行 (最良の装備者との増減・買って装備・▾ 渡す先)
@@ -93,7 +93,7 @@ function sellSubset(list) {
   if (n) {
     sfx("select");
     try { if (game.buzz) game.buzz(10); } catch (e) { /* noop */ }
-    if (game.log) game.log(`まとめて売却: ${n}点を売った (+💰${gold})。商店に並んだ。`, "win");
+    if (game.log) game.log(`まとめて売却: ${n}点を売った (+💰${gold})。商会に並んだ。`, "win");
     toast(`${n}点を売却 (+💰${gold})`);
   }
   if (game.renderTown) game.renderTown();
@@ -701,7 +701,7 @@ function renderBuy(wrap) {
   wrap.appendChild(box);
   return () => {
     if (!ids.length) {
-      box.appendChild(el("div", "wpc-empty big", cat === "rec" ? "いまのパーティの装備に勝る品は、棚に並んでいない。" : "この種類の品は売り切れだ。"));
+      box.appendChild(el("div", "wpc-empty big", cat === "rec" ? "いまの隊の装備に勝る品は、棚に並んでいない。" : "この種類の品は売り切れだ。"));
       return;
     }
     fillList(box, ids, stockRow, "buyPage");

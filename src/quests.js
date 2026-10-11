@@ -438,7 +438,7 @@ export const FIXED_QUESTS = [
   {
     id: "fq_seres", name: "夫の最期の場所", giver: { name: "黒衣のセレス", title: "喪服の婦人" },
     appear: { reported: "w02" },
-    goal: { type: "floor", dungeon: "w03", n: 8 }, desc: "「朽ちた骸の修道院」の地下8階へ降りる",
+    goal: { type: "floor", dungeon: "w03", n: 8 }, desc: "「朽ちた骸の修道院」のB8Fへ降りる",
     ref: "w03", reward: { gold: 12, soul: 12, embers: 1, souls: [["rare", 1]] },
     lines: [
       "喪服の婦人が、色あせた手紙を握りしめていた。",
@@ -563,7 +563,7 @@ export const FIXED_QUESTS = [
   {
     id: "fq_kai2", name: "逃げた場所へ", giver: { name: "脱走兵カイ", title: "戻ってきた逃亡兵" },
     appear: { open: "w06", claimed: "fq_kai" },
-    goal: { type: "floor", dungeon: "w06", n: 10 }, desc: "「亡兵の守る外郭」の地下10階へ降りる",
+    goal: { type: "floor", dungeon: "w06", n: 10 }, desc: "「亡兵の守る外郭」のB10Fへ降りる",
     ref: "w06", reward: { gold: 14, soul: 18, souls: [["rare", 1], ["common", 2]] },
     lines: [
       "見覚えのあるフードの若者が、今度は出口から遠い席に座っていた。",
@@ -598,7 +598,7 @@ export const FIXED_QUESTS = [
   {
     id: "fq_adel", name: "雷の落ちる先", giver: { name: "星読みアデル", title: "王宮を追われた天文博士" },
     appear: { open: "w08" },
-    goal: { type: "floor", dungeon: "w08", n: 8 }, desc: "「雷雨の大手門」の地下8階へ降りる",
+    goal: { type: "floor", dungeon: "w08", n: 8 }, desc: "「雷雨の大手門」のB8Fへ降りる",
     ref: "w08", reward: { gold: 18, soul: 20, embers: 1, souls: [["rare", 1]] },
     lines: [
       "星図を広げた痩せた男が、雷の絵を描いては消していた。",
@@ -635,7 +635,7 @@ export const FIXED_QUESTS = [
   {
     id: "fq_adel2", name: "地の底の星", giver: { name: "星読みアデル", title: "地の底を読む天文博士" },
     appear: { open: "w10", claimed: "fq_adel" },
-    goal: { type: "floor", dungeon: "w10", n: 10 }, desc: "「根の這う縦穴」の地下10階 (底) へ降りる",
+    goal: { type: "floor", dungeon: "w10", n: 10 }, desc: "「根の這う縦穴」のB10F (底) へ降りる",
     ref: "w10", reward: { gold: 20, soul: 22, embers: 1, souls: [["rare", 1]] },
     lines: [
       "星図を裏返したアデルが、今度は縦穴の断面図を描いていた。",
@@ -652,7 +652,7 @@ export const FIXED_QUESTS = [
   {
     id: "fq_wren2", name: "灯の木", giver: { name: "猟師レン", title: "娘を見送った猟師" },
     appear: { open: "w11", claimed: "fq_wren" },
-    goal: { type: "floor", dungeon: "w11", n: 10 }, desc: "「地の底の霧森」の地下10階へ降りる",
+    goal: { type: "floor", dungeon: "w11", n: 10 }, desc: "「地の底の霧森」のB10Fへ降りる",
     ref: "w11", reward: { gold: 22, soul: 22, embers: 2, souls: [["rare", 2]] },
     lines: [
       "レンは小さな木靴を、今日は卓の上にそっと置いていた。",
@@ -776,7 +776,7 @@ export const FIXED_QUESTS = [
   {
     id: "fq_adel3", name: "水底の星図", giver: { name: "星読みアデル", title: "地の底を読む天文博士" },
     appear: { open: "w14", claimed: "fq_adel2" },
-    goal: { type: "floor", dungeon: "w14", n: 10 }, desc: "「水底の参道」の地下10階 (底) へ降りる",
+    goal: { type: "floor", dungeon: "w14", n: 10 }, desc: "「水底の参道」のB10F (底) へ降りる",
     ref: "w14", reward: { gold: 24, soul: 24, embers: 2, souls: [["rare", 2]] },
     lines: [
       "アデルの地の底の星図は、王都の真下でぷつりと途切れていた。",
@@ -828,7 +828,7 @@ export const FIXED_QUESTS = [
   {
     id: "fq_adel4", name: "奈落の星", giver: { name: "星読みアデル", title: "地の底を読む天文博士" },
     appear: { open: "w22", claimed: "fq_adel3" },
-    goal: { type: "floor", dungeon: "w22", n: 10 }, desc: "「奈落の氷棚」の地下10階 (底) へ降りる",
+    goal: { type: "floor", dungeon: "w22", n: 10 }, desc: "「奈落の氷棚」のB10F (底) へ降りる",
     ref: "w22", reward: { gold: 26, soul: 26, embers: 2, souls: [["rare", 2]] },
     lines: [
       "アデルは、星図の上に黒い丸をひとつ描いていた。",
@@ -1010,7 +1010,7 @@ export const FIXED_QUESTS = [
   {
     id: "fq_adel5", name: "沼の星", giver: { name: "星読みアデル", title: "地の底を読む天文博士" },
     appear: { open: "w26", claimed: "fq_adel4" },
-    goal: { type: "floor", dungeon: "w26", n: 10 }, desc: "「腐れ水の岸」の地下10階 (底) へ降りる",
+    goal: { type: "floor", dungeon: "w26", n: 10 }, desc: "「腐れ水の岸」のB10F (底) へ降りる",
     ref: "w26", reward: { gold: 28, soul: 28, embers: 2, souls: [["rare", 2]] },
     lines: [
       "アデルは、星図の黒い丸の下に、もうひとつ丸を描き足していた。",
@@ -1065,7 +1065,7 @@ export const FIXED_QUESTS = [
   {
     id: "fq_adel6", name: "嵐の上の星", giver: { name: "星読みアデル", title: "地の底を読む天文博士" },
     appear: { open: "w30", claimed: "fq_adel5" },
-    goal: { type: "floor", dungeon: "w30", n: 10 }, desc: "「風鳴りの螺旋」の地下10階 (最上の踊り場) へ着く",
+    goal: { type: "floor", dungeon: "w30", n: 10 }, desc: "「風鳴りの螺旋」のB10F (最上の踊り場) へ着く",
     ref: "w30", reward: { gold: 30, soul: 30, embers: 2, souls: [["rare", 2]] },
     lines: [
       "アデルは、星図のいちばん下の黒い丸から、上へ一本の線を引いていた。",
@@ -1256,10 +1256,10 @@ function genKill(ctx, cfg = null) {
     ctx.avoid.add("k:" + key);
     if (common) {
       return offerOf("kill", pickText(ctx, "kill"), { mon: m.name, goal }, { keys: [key], goal, floor: f1,
-        desc: `${m.name}を ${goal}体 倒す`, note: `どの迷宮で倒しても数える。「${c.name}」の地下${f1}階から出る${elsewhere(key) ? " (ほかの迷宮にも出る)" : ""}`, reward });
+        desc: `${m.name}を ${goal}体 倒す`, note: `どの迷宮で倒しても数える。「${c.name}」のB${f1}Fから出る${elsewhere(key) ? " (ほかの迷宮にも出る)" : ""}`, reward });
     }
     return offerOf("kill", pickText(ctx, "kill"), { mon: m.name, goal }, { keys: [key], goal, dungeon: c.id, floor: f1,
-      desc: `${m.name}を ${goal}体 倒す`, note: `「${c.name}」の地下${f1}階から出る`, reward });
+      desc: `${m.name}を ${goal}体 倒す`, note: `「${c.name}」のB${f1}Fから出る`, reward });
   }
   return null;
 }
@@ -1297,7 +1297,7 @@ function genReach(ctx, cfg) {
   if (ctx.rand(100) < 25) reward.souls = [["common", 1]];
   ctx.avoid.add("f:" + cfg.id);
   return offerOf("floor", pickText(ctx, "floor"), { dun: cfg.name, f }, { goal: f, dungeon: cfg.id,
-    desc: `「${cfg.name}」の地下${f}階へ降りる`, note: "帰還魔法陣から潜り始めても数える", reward });
+    desc: `「${cfg.name}」のB${f}Fへ降りる`, note: "帰還魔法陣から潜り始めても数える", reward });
 }
 function genDeliver(ctx) {
   const ids = ctx.deliverIds.filter((id) => !ctx.avoid.has("i:" + id));

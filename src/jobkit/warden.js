@@ -21,12 +21,12 @@ export default {
     WARDEN_SEKIRUI:     { name: "石塁の礫", mp: 8, kind: "atk", power: 24, element: "earth", debuffAll: { atk: 0.9 }, target: "enemy", desc: "石塁の礫を撃ち、敵全体の勢いを削ぐ" },
     WARDEN_FUUMAKEKKAI: { name: "封魔結界", mp: 10, kind: "debuff", seal: { chance: 0.55, turns: 3 }, debuff: { agi: 0.9 }, target: "all-enemy", desc: "結界で敵全体の特技を封じ、足を鈍らせる" },
     WARDEN_CHINJUU:     { name: "鎮めの重石", mp: 7, kind: "atk", gravity: 0.2, seal: { chance: 0.5, turns: 2 }, target: "enemy", desc: "今のHPの20%を圧し、特技を鎮める" },
-    WARDEN_MIZUKAGAMI:  { name: "水鏡の陣", mp: 11, kind: "buff", buff: { vit: 1.25 }, regen: { pct: 0.03, turns: 3 }, target: "all-ally", desc: "味方全体の守りを固め、傷を癒し続ける" },
+    WARDEN_MIZUKAGAMI:  { name: "水鏡の陣", mp: 11, kind: "buff", buff: { vit: 1.25 }, regen: { pct: 0.03, turns: 3 }, target: "all-ally", desc: "味方全員の守りを固め、傷を癒し続ける" },
     WARDEN_HAJA:        { name: "破邪の封鎖", mp: 6, kind: "debuff", strip: true, vuln: { earth: 0.85, water: 0.85 }, target: "all-enemy", desc: "強化を剥ぎ、土と水への守りを崩す" },
     WARDEN_SHIHOU:      { name: "四方結界", mp: 20, kind: "buff", buff: { vit: 1.2 }, grantBarrier: 1, cure: true, target: "all-ally", desc: "魔障壁を張り、守りを上げ穢れを祓う" },
     WARDEN_JIBAKU:      { name: "地縛の陣", mp: 16, kind: "atk", power: 44, element: "earth", para: 0.25, target: "enemy", desc: "地に縛り付けて撃ち、痺れさせる" },
     WARDEN_SUIROU:      { name: "水牢", mp: 14, kind: "atk", power: 34, element: "water", debuff: { atk: 0.85 }, target: "enemy", desc: "水の牢で締め上げ、力を奪う" },
-    WARDEN_FUDOU:       { name: "不動の陣", mp: 16, kind: "buff", buff: { vit: 1.4 }, dur: 5, target: "all-ally", tech: true, desc: "味方全体の守りを長く固める (5ターン)" },
+    WARDEN_FUDOU:       { name: "不動の陣", mp: 16, kind: "buff", buff: { vit: 1.4 }, dur: 5, target: "all-ally", tech: true, desc: "味方全員の守りを長く固める (5ターン)" },
     WARDEN_TAIZAN:      { name: "泰山の重圧", mp: 18, kind: "atk", gravity: 0.25, debuff: { atk: 0.85 }, target: "all-enemy", desc: "敵全体の今のHPの25%を圧し、力を奪う" },
     WARDEN_GANKAI:      { name: "岩戒の陣", mp: 27, kind: "atk", power: 70, element: "earth", flinchChance: 0.3, target: "all-enemy", desc: "岩の戒めが敵全体を打ち、怯ませる" },
     WARDEN_KONGOU:      { name: "金剛の陣", mp: 20, kind: "buff", buff: { vit: 1.5 }, debuffAll: { agi: 0.85 }, target: "all-ally", tech: true, desc: "味方の守りを固め、敵全体の足を縛る" },
@@ -45,7 +45,7 @@ export default {
     },
     wardenSeihitsu: {
       label: "静謐の循環",
-      lv: ["2ラウンド目から毎ラウンド、MPを最大の2%回復", "2ラウンド目から毎ラウンド、MPを最大の3%回復", "2ラウンド目から毎ラウンド、MPを最大の4%回復"],
+      lv: ["2ターン目から毎ターン、MPを最大の2%回復", "2ターン目から毎ターン、MPを最大の3%回復", "2ターン目から毎ターン、MPを最大の4%回復"],
       fx: [{ t: "round", mp: [0.02, 0.03, 0.04] }],
     },
     wardenGohoujin: {
