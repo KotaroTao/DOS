@@ -148,8 +148,8 @@ export function enemyDisplayLevel(e) {
   e._dlv = Math.max(1, 1 + Math.round((r - 1) / DISPLAY_LV_STEP));
   return e._dlv;
 }
-// 記録欄に添える「（Lv29）」。基準の分からない魔物は空
+// 記録欄に添える「（Lv29）」。敵の名前には必ず添える (2026-10 ユーザーの指示) — 基準の分からない魔物は Lv1
 export function enemyLvTag(e) {
-  const lv = enemyDisplayLevel(e);
-  return lv ? `（Lv${lv}）` : "";
+  if (!e) return "";
+  return `（Lv${enemyDisplayLevel(e) || 1}）`;
 }

@@ -817,7 +817,7 @@ const _logHistory = [];
 function logHistory() { return _logHistory.map((x) => ({ text: x.msg, cls: "l-" + x.cls })); }
 // 戦闘中の記録は、まだ名前を知らない敵 (討伐数0) の名を不確定名 (「蠢く粘塊？」など、dungeons/unknown.js) に伏せる。
 // 不確定名は unknownTag の印で囲み、記録欄では .unk-name の色で正式な名と見分ける (setLogText)
-// 個体名 (スライムA) を先に、種の名 (スライム) を後に置き換える。明かされた別の敵の名に含まれる種名は触らない
+// 個体名 (スライムA) を先に、種の名 (スライム) を後に置き換える (長い名から順なので、明かされた別の敵の名に含まれる種名は触らない)
 // (置き換えた不確定名が別の敵の名を含んでも二重に化けないよう、いったん印に置き換えてから戻す)
 // (戦闘の組み立て中 = Battle を作る前の名乗りや開幕の一撃は _maskEnemies を見る)
 let _maskEnemies = null;
@@ -825,19 +825,20 @@ function maskUnknownEnemies(msg) {
   if (G.state !== "combat" || typeof msg !== "string") return msg;
   const list = _maskEnemies || (G.battle && G.battle.enemies);
   if (!list || !list.length) return msg;
-  const known = [], pairs = [];
+  // 敵の名前には必ず表示Lv を添える (2026-10 ユーザーの指示: 主・強敵の Lv1 も。enemylevel.js)。
+  // 討伐前の魔物は不確定名に置き換える。すでに「（LvN）」が付いた名前 (名乗り・呼び寄せ) はその Lv のまま重ねない
+  const map = new Map();
   for (const e of list) {
-    if (enemyReveal(e).name) { known.push(e.name); continue; }
-    pairs.push([e.name, unknownTag(enemyLabel(e))]);
-    if (e.mon && e.mon.name) pairs.push([e.mon.name, unknownTag(unknownLabel(e.mon))]);
+    const tag = enemyLvTag(e), known = enemyReveal(e).name;
+    if (e.name && !map.has(e.name)) map.set(e.name, [known ? e.name : unknownTag(enemyLabel(e)), tag]);
+    const mn = e.mon && e.mon.name;
+    if (mn && !map.has(mn)) map.set(mn, [known ? mn : unknownTag(unknownLabel(e.mon)), tag]);
   }
-  if (!pairs.length) return msg;
-  pairs.sort((x, y) => y[0].length - x[0].length);
+  const pairs = [...map].sort((x, y) => y[0].length - x[0].length);
   const outs = [];
-  for (const [from, to] of pairs) {
-    if (!from || from === to || known.some((n) => n.includes(from))) continue;
-    msg = msg.split(from).join(`\u0001${outs.length}\u0002`);
-    outs.push(to);
+  for (const [from, [to, tag]] of pairs) {
+    const re = new RegExp(from.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(（Lv\\d+）)?", "g");
+    msg = msg.replace(re, (_, had) => { outs.push(to + (had || tag)); return `\u0001${outs.length - 1}\u0002`; });
   }
   return msg.replace(/\u0001(\d+)\u0002/g, (_, i) => outs[i]);
 }
