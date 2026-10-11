@@ -227,6 +227,12 @@ function renderHero(b) {
   }
   b.appendChild(hero);
   // ここから下は本文と一緒に巻く
+  // 入場の回数に限りのある迷宮 (掟の dailyEntry — 器の山)
+  const daily = game.dailyEntryInfo ? game.dailyEntryInfo(dn) : null;
+  if (daily) b.appendChild(setText(el("div", "pt-note dp-after"), daily.before
+    ? `踏破した後は、この迷宮に入れるのは1日${daily.max}回まで。踏破するまでは何度でも入れる。`
+    : daily.left > 0 ? `この迷宮に入れるのは1日${daily.max}回まで ― 今日はあと${daily.left}回。`
+    : `この迷宮に入れるのは1日${daily.max}回まで ― 今日はもう入った。日付が変わると、また入れる (${game.dailyEntryWait(daily)})。`));
   // 第二部の壁 (world.js wallOf): 推奨Lv に届くだけでは勝てないことを、門をくぐる前に知らせる
   if (wall > 1) {
     const step = game.wallStepOf ? game.wallStepOf(dn) : 1;
@@ -283,6 +289,8 @@ function renderGates(b) {
     info.appendChild(nm);
     const band = game.levelBand ? game.levelBand(dn) : [1, 1];
     const meta = [`推奨Lv${band[0]}${band[1] > band[0] ? `〜${band[1]}` : ""}`, `全${dn.floors}階`];
+    // 入場の回数に限りのある迷宮 (器の山): 今日はもう入れない
+    { const de = game.dailyEntryInfo ? game.dailyEntryInfo(dn) : null; if (de && !de.before && de.left <= 0) meta.splice(1, 0, "今日は入場済み"); }
     if (dn.boss) meta.push("主が待つ");
     else if (dn.element && ELEMENTS[dn.element] && dn.element !== "none") meta.push(`${ELEMENTS[dn.element].label}の気配`);
     if (game.storyCellPending && game.storyCellPending(dn)) meta.push("師の手がかり");
@@ -653,6 +661,10 @@ function footerSpec() {
   // 潜り始める階を選べる時は札の上に階の札が並ぶので、名の横の階は省き、下の行に書く
   const pick = startFloors().length > 1;
   const go = m ? "異変ごと門をくぐる" : again ? "ふたたび門をくぐる" : "門をくぐる";
+  const daily = dn && game.dailyEntryInfo ? game.dailyEntryInfo(dn) : null;
+  if (daily && daily.left <= 0) {
+    return [{ label: "今日はもう入れない", sub: `「${dn.name}」は1日${daily.max}回まで ・ ${game.dailyEntryWait(daily)}`, kind: "primary", size: "lg", disabled: true, onTap: () => {} }];
+  }
   return [{
     label: alive ? (pick ? go : `${go} ― ${fl}`) : "動ける人業がいない",
     sub: dn ? (pick ? `${fl}から「${dn.name}」へ ・ 安定度 −10／人` : `「${dn.name}」 ・ 安定度 −10／人`) : "",
