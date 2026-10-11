@@ -3,13 +3,16 @@
 // UI.openDiscard({ incoming, title, lines, members, skipLabel, onPick(owner, item), onSkip })
 //   incoming = 入れたい品 (名前と絵を見せるだけ) / members = 捨てる品を探す人業 (省略時は隊)
 //   onPick = 選んだ品を捨てた後に呼ぶ (捨てる処理は game.dropFromBag) / onSkip = 捨てずに閉じた
+// 品の行を押すと品の詳細 (UI.itemSheet、見るだけ)。捨てるのは行の右の「捨てる」ボタン (2026-10 ユーザーの指示)
 // game.js を import しない (ctx.js の窓口だけ)
 import { UI, game, registerUI } from "./ctx.js";
-import { el, sheet, row, itemTile, confirm } from "./kit.js";
+import { el, sheet, row, itemTile, confirm, button } from "./kit.js";
 import { itemName } from "../items.js";
 import { RARITIES, rarityKey } from "../rarity.js";
 
 const RAR_ORDER = { c: 0, uc: 1, r: 2, sr: 3, lr: 4 };
+// 品の詳細 (見るだけ。捨てる・装備などの操作は出さない)
+const showDetail = (it, owner = null) => { if (UI.itemSheet) UI.itemSheet(it, { owner, context: "view" }); };
 const rarRank = (it) => (it && it.slot === "use" ? -1 : it && it.slot === "misc" ? -0.5 : RAR_ORDER[rarityKey(it)] ?? 0);
 
 export function openDiscard(o = {}) {
@@ -21,7 +24,10 @@ export function openDiscard(o = {}) {
     title: o.title || (o.incoming ? `${itemName(o.incoming)} を持つには、どれかを捨てる` : "捨てる品を選ぶ"),
     body: (b) => {
       if (o.incoming) {
-        const head = el("div", "dc-in");
+        const head = el("button", "dc-in tap");
+        head.type = "button";
+        head.setAttribute("aria-label", `${itemName(o.incoming)} の詳細`);
+        head.addEventListener("click", () => showDetail(o.incoming));
         head.appendChild(itemTile(o.incoming, { size: 44 }));
         const t = el("div", "dc-in-t");
         const nm = el("div", "dc-in-n " + "rar-" + (rarityKey(o.incoming) || "c"), itemName(o.incoming));
@@ -30,7 +36,7 @@ export function openDiscard(o = {}) {
         head.appendChild(t);
         b.appendChild(head);
       }
-      for (const l of o.lines || ["袋の品を1つ捨てると、その空きに入る。捨てた品は二度と戻らない。ロックした品は出ない。"]) b.appendChild(el("div", "dc-note", l));
+      for (const l of o.lines || ["袋の品を1つ捨てると、その空きに入る。品を押すと詳しく見られる。捨てた品は二度と戻らない。ロックした品は出ない。"]) b.appendChild(el("div", "dc-note", l));
       const list = [];
       for (const m of members) for (const it of m.items || []) if (it && !it.locked) list.push({ m, it });
       list.sort((a, b2) => rarRank(a.it) - rarRank(b2.it) || (a.it.price || 0) - (b2.it.price || 0));
@@ -40,6 +46,13 @@ export function openDiscard(o = {}) {
         const r = row({
           icon: itemTile(it, { size: 36 }), title: itemName(it),
           sub: `${m.name}の袋${it.unidentified ? " ・ 未鑑定" : ""}${rk && RARITIES[rk] ? " ・ " + RARITIES[rk].label : ""}`,
+          onTap: () => showDetail(it, m),
+        });
+        r.classList.add("dc-row");
+        if (rk) r.classList.add("rar-" + rk);
+        r.setAttribute("aria-label", `${itemName(it)} の詳細`);
+        const drop = button({
+          label: "捨てる", kind: "danger", size: "sm",
           onTap: async () => {
             const ok = await confirm({ banner: "捨てる", title: `${itemName(it)} を捨てる？`, lines: ["捨てた品は二度と戻らない。"], okLabel: "捨てる", danger: true });
             if (!ok || done) return;
@@ -48,9 +61,11 @@ export function openDiscard(o = {}) {
             finish(() => o.onPick && o.onPick(m, it));
           },
         });
-        r.classList.add("dc-row");
-        if (rk) r.classList.add("rar-" + rk);
-        b.appendChild(r);
+        drop.classList.add("dc-drop");
+        const line = el("div", "dc-line");
+        line.appendChild(r);
+        line.appendChild(drop);
+        b.appendChild(line);
       }
     },
     footer: [{ label: o.skipLabel || (o.incoming ? "捨てずに置いていく" : "やめる"), kind: "ghost", onTap: (hh) => { hh.close("cancel", { silent: true }); finish(o.onSkip); } }],
