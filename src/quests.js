@@ -16,7 +16,12 @@ import { BESTIARY } from "./dungeons/bestiary.js";
 import { MONSTERS } from "./sprites.js";
 
 export const FREE_CAP = 6;     // 同時に受けられるフリークエストの数
-export const BOARD_SIZE = 4;   // 帰還のたびに掲示板に貼られる依頼の数 (うち1件は納品)
+// 掲示板の依頼の数 (2026-10 ユーザーの指示: 過去の迷宮へ依頼なしで潜ることが多かった)。帰還のたびに貼り直す:
+//   納品 1件 + 共通の依頼 (迷宮を指さない討伐・魂・宝箱) 1〜3件 + 推奨Lv が隊から QUEST_LV_NEAR 以内の迷宮ごとに 1〜3件。
+//   件数は boardCount = 1件 100% / 2件 50% / 3件 20%。受注中の同じ枠の依頼 (共通 / その迷宮を指す依頼) も数に含める。
+//   推奨Lv が QUEST_LV_NEAR を超えて離れた迷宮・完全踏破した迷宮には新しい依頼を貼らない (固定クエストは別)
+export const QUEST_LV_NEAR = 10;
+export const boardCount = (rand) => { const r = rand(100); return r < 20 ? 3 : r < 50 ? 2 : 1; };
 
 // ===== 酒場の依頼人たち =====
 // 掲示板の依頼は、この顔ぶれの誰かが貼っていく。並び (番号) は依頼に保存されるので、足すときは末尾へ (並べ替え・削除はしない)。
@@ -1165,24 +1170,19 @@ export const FIXED_BY_ID = Object.fromEntries(FIXED_QUESTS.map((q) => [q.id, q])
 
 // ===== 掲示板 (フリークエスト) の生成 =====
 // ctx = {
-//   dungeons: [cfg]          依頼に選んでよい迷宮 (地図に現れた順。推奨Lvが隊を大きく超える迷宮は除いてある)
+//   dungeons: [cfg]          依頼を貼る迷宮 (地図にある迷宮のうち、推奨Lv が隊から QUEST_LV_NEAR 以内で、完全踏破していないもの)
 //   unit(cfg, floor)         その迷宮・階の戦果 { gold, soul }
+//   common: { unit, minLv }  共通の依頼の物差し: 隊のLv の戦果と、数える迷宮の推奨Lv の下限 (隊のLv − QUEST_LV_NEAR)
+//   activeCommon             受注中の共通の依頼 (迷宮を指さない討伐・魂・宝箱) の数
+//   activeBy: {迷宮id: n}    受注中の、その迷宮を指す依頼の数
 //   deliverIds: [itemId]     納品に求めてよい品
 //   itemName(id)             品の名         isMisc(id)  収集品か (装備でない品)
 //   rand(n)                  0..n-1 の乱数
-//   avoid: Set               重ねたくない対象 (受注中の魔物・品の鍵 "k:id" / "i:id")
+//   avoid: Set               重ねたくない対象 (受注中の魔物・品の鍵 "k:id" / "i:id"、迷宮ごとの到達・魂・宝箱 "f:id" / "s:id" / "c:id")
 //   uid()                    依頼の通し番号
 // }
 // 返すのは掲示板の依頼 [{ uid, type, …, state:"offer" }]
 const fill = (s, v) => s.replace(/\{(\w+)\}/g, (_, k) => (v[k] != null ? String(v[k]) : ""));
-function pickWeighted(list, w, rand) {
-  const tot = list.reduce((s, x, i) => s + w(x, i), 0);
-  let r = rand(1000) / 1000 * tot;
-  for (let i = 0; i < list.length; i++) { if ((r -= w(list[i], i)) < 0) return list[i]; }
-  return list[list.length - 1];
-}
-// 新しく地図に現れた迷宮ほど選ばれやすい (1つ新しいごとに重み ×2 — いちばん新しい迷宮がおよそ半分)
-const pickDungeon = (ctx, list = ctx.dungeons) => pickWeighted(list, (d, i) => 2 ** i, ctx.rand);
 const round = (v) => Math.max(1, Math.round(v));
 // その魔物が初めて現れる階
 function firstFloorOf(cfg, key) {
@@ -1227,50 +1227,69 @@ const offerOf = (type, pk, vars, rest) => ({
   type, npc: pk.npc, vars, rk: QUEST_RK, name: fill(pk.tpl.name, vars), text: fill(pk.tpl.text, vars), done: fill(pk.tpl.done, vars), ...rest,
 });
 
-function genKill(ctx) {
+// その迷宮の雑魚の顔ぶれ (全階の帯)
+const rosterOf = (d) => (d.bands ? d.bands.flat() : [...(d.pool || []), ...(d.deepPool || [])]);
+// 討伐: cfg を渡すとその迷宮を指す依頼、渡さなければ共通の依頼 (迷宮を指さない。依頼を貼る迷宮のどれかに出る魔物で、
+// できれば二つ以上の迷宮に出る魔物を選ぶ — どこで倒しても数える)
+function genKill(ctx, cfg = null) {
+  const common = !cfg;
   for (let t = 0; t < 8; t++) {
-    const cfg = pickDungeon(ctx);
-    const floor = 1 + ctx.rand(cfg.floors || 1);
-    const pool = poolAt(cfg, floor).filter((k) => MONSTERS[k] && !MONSTERS[k].boss && !MONSTERS[k].elite && !ctx.avoid.has("k:" + k));
+    const c = cfg || ctx.dungeons[ctx.rand(ctx.dungeons.length)];
+    if (!c) return null;
+    const floor = 1 + ctx.rand(c.floors || 1);
+    let pool = poolAt(c, floor).filter((k) => MONSTERS[k] && !MONSTERS[k].boss && !MONSTERS[k].elite && !ctx.avoid.has("k:" + k));
+    const elsewhere = (k) => ctx.dungeons.some((d) => d.id !== c.id && rosterOf(d).includes(k));
+    if (common) {
+      const wide = pool.filter(elsewhere);
+      if (wide.length) pool = wide;
+    }
     if (!pool.length) continue;
     const key = pool[ctx.rand(pool.length)];
     const m = MONSTERS[key];
     const goal = m.pack ? 6 + ctx.rand(4) : 3 + ctx.rand(4);
-    const f1 = firstFloorOf(cfg, key);
-    const u = ctx.unit(cfg, f1 + 1);
+    const f1 = firstFloorOf(c, key);
+    const u = ctx.unit(c, f1 + 1);
     const mult = (m.pack ? goal * 0.35 : goal * 0.7) + 2;
     // ✦ は金貨の半分の倍率 (2026-10 テスト記録: 依頼の ✦ が迷宮の戦果を大きく上回っていた)
     const reward = { gold: round(u.gold * mult), soulPts: round(u.soul * mult * SOUL_K) };
     if (ctx.rand(100) < 18) reward.souls = [["common", 1]];
     ctx.avoid.add("k:" + key);
-    return offerOf("kill", pickText(ctx, "kill"), { mon: m.name, goal }, { keys: [key], goal, dungeon: cfg.id, floor: f1,
-      desc: `${m.name}を ${goal}体 倒す`, note: `「${cfg.name}」の地下${f1}階から出る`, reward });
+    if (common) {
+      return offerOf("kill", pickText(ctx, "kill"), { mon: m.name, goal }, { keys: [key], goal, floor: f1,
+        desc: `${m.name}を ${goal}体 倒す`, note: `どの迷宮で倒しても数える。「${c.name}」の地下${f1}階から出る${elsewhere(key) ? " (ほかの迷宮にも出る)" : ""}`, reward });
+    }
+    return offerOf("kill", pickText(ctx, "kill"), { mon: m.name, goal }, { keys: [key], goal, dungeon: c.id, floor: f1,
+      desc: `${m.name}を ${goal}体 倒す`, note: `「${c.name}」の地下${f1}階から出る`, reward });
   }
   return null;
 }
-// 魂・宝箱の依頼は迷宮を1つ指す (討伐と同じく新しい迷宮ほど選ばれやすい)。その迷宮の中で拾った魂・開けた宝箱だけを数え、
-// 報酬もその迷宮の戦果で払う。(2026-10 まではどの迷宮でもよく、報酬はいちばん深い迷宮の戦果だったので、
-//  浅く安全な迷宮で回って深い迷宮の値で受け取れた)
-function genSoul(ctx) {
-  const cfg = pickDungeon(ctx);
+// 魂・宝箱の依頼: 迷宮を指す依頼は、その迷宮の中で拾った魂・開けた宝箱だけを数え、報酬もその迷宮の戦果で払う。
+// (2026-10 まではどの迷宮でもよく、報酬はいちばん深い迷宮の戦果だったので、浅く安全な迷宮で回って深い迷宮の値で受け取れた)
+// 共通の依頼 (cfg なし) は隊のLv の戦果で払い、推奨Lv が common.minLv (隊のLv − QUEST_LV_NEAR) 以上の迷宮で数える
+function genSoul(ctx, cfg = null) {
+  if (cfg && ctx.avoid.has("s:" + cfg.id)) return null;
   const goal = 1 + ctx.rand(2);
-  const u = deepUnit(ctx, cfg);
+  const u = cfg ? deepUnit(ctx, cfg) : ctx.common.unit;
   const reward = { soulPts: round(u.soul * (goal * 2 + 2) * SOUL_K), souls: [[ctx.rand(100) < 25 ? "rare" : "common", 1]] };
+  if (!cfg) return offerOf("soul", pickText(ctx, "soul"), { goal }, { goal, minLv: ctx.common.minLv,
+    desc: `死体から魂を ${goal}つ 拾う`, note: `推奨Lv${ctx.common.minLv}以上の迷宮で拾った魂を数える`, reward });
+  ctx.avoid.add("s:" + cfg.id);
   return offerOf("soul", pickText(ctx, "soul"), { goal }, { goal, dungeon: cfg.id,
     desc: `「${cfg.name}」で死体から魂を ${goal}つ 拾う`, note: "その迷宮の中で拾った魂だけを数える", reward });
 }
-function genChest(ctx) {
-  const cfg = pickDungeon(ctx);
+function genChest(ctx, cfg = null) {
+  if (cfg && ctx.avoid.has("c:" + cfg.id)) return null;
   const goal = 2 + ctx.rand(3);
-  const u = deepUnit(ctx, cfg);
+  const u = cfg ? deepUnit(ctx, cfg) : ctx.common.unit;
   const reward = { gold: round(u.gold * (goal * 1.3 + 1.5)), soulPts: round(u.soul * 2 * SOUL_K) };
+  if (!cfg) return offerOf("chest", pickText(ctx, "chest"), { goal }, { goal, minLv: ctx.common.minLv,
+    desc: `宝箱を ${goal}つ 開ける`, note: `推奨Lv${ctx.common.minLv}以上の迷宮で開けた宝箱を数える`, reward });
+  ctx.avoid.add("c:" + cfg.id);
   return offerOf("chest", pickText(ctx, "chest"), { goal }, { goal, dungeon: cfg.id,
     desc: `「${cfg.name}」で宝箱を ${goal}つ 開ける`, note: "その迷宮の中で開けた宝箱だけを数える", reward });
 }
-function genReach(ctx) {
-  const deep = ctx.dungeons.filter((d) => (d.floors || 1) >= 5 && !ctx.avoid.has("f:" + d.id));
-  if (!deep.length) return null;
-  const cfg = pickDungeon(ctx, deep);
+function genReach(ctx, cfg) {
+  if (!cfg || (cfg.floors || 1) < 5 || ctx.avoid.has("f:" + cfg.id)) return null;
   const lo = Math.max(3, Math.ceil(cfg.floors * 0.4)), hi = cfg.floors - 1;
   const f = lo + ctx.rand(Math.max(1, hi - lo + 1));
   const u = ctx.unit(cfg, f);
@@ -1296,18 +1315,25 @@ function genDeliver(ctx) {
 export const RECALL_ITEM = "u_recall_bell";
 export const BELL_EVERY_MS = 3600 * 1000;
 export const hasBell = (q) => !!(q && q.reward && (q.reward.items || []).some(([id]) => id === RECALL_ITEM));
-// 掲示板を貼り直す: 1件目は納品、残りは討伐多めに。鈴の頃合いなら、納品以外の1件の礼に帰還の鈴を1つ添える
-export function rollBoard(ctx, size = BOARD_SIZE) {
-  if (!ctx.dungeons.length) return [];
+// 掲示板を貼り直す: 納品1件 → 共通の依頼 → 迷宮ごとの依頼 (件数は boardCount から受注中の分を引いた数)。
+// 鈴の頃合いなら、納品以外の1件の礼に帰還の鈴を1つ添える
+export function rollBoard(ctx) {
   const out = [];
   ctx.usedNpc = new Set();
-  const push = (q) => { if (q) out.push({ ...q, uid: ctx.uid(), progress: 0, state: "offer" }); };
+  const push = (q) => { if (q) { out.push({ ...q, uid: ctx.uid(), progress: 0, state: "offer" }); return true; } return false; };
+  // n 件を、種類の袋 gens から引いて貼る (同じ枠で魂・宝箱は1件まで。作れない種類は引き直す)
+  const fillN = (n, gens, cfg) => {
+    const got = new Set();
+    for (let t = 0; n > 0 && t < 20; t++) {
+      const g = gens[ctx.rand(gens.length)];
+      if ((g === genSoul || g === genChest) && got.has(g)) continue;
+      if (push(g(ctx, cfg))) { got.add(g); n--; }
+    }
+  };
   push(genDeliver(ctx));
-  const gens = [genKill, genKill, genKill, genSoul, genChest, genReach, genReach];
-  for (let t = 0; out.length < size && t < 20; t++) {
-    const g = gens[ctx.rand(gens.length)];
-    if ((g === genSoul || g === genChest) && out.some((q) => q.type === (g === genSoul ? "soul" : "chest"))) continue;
-    push(g(ctx));
+  fillN(boardCount(ctx.rand) - (ctx.activeCommon || 0), ctx.dungeons.length ? [genKill, genKill, genSoul, genChest] : [genSoul, genChest], null);
+  for (const cfg of ctx.dungeons) {
+    fillN(boardCount(ctx.rand) - ((ctx.activeBy || {})[cfg.id] || 0), [genKill, genKill, genKill, genSoul, genChest, genReach, genReach], cfg);
   }
   const cands = out.filter((q) => q.type !== "deliver");
   if (ctx.bell && cands.length) {
