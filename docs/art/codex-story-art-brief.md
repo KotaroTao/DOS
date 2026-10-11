@@ -476,7 +476,7 @@ Inside the bottomless shaft of the Abyss: spiral ice ledges jut from the dark ro
 ```
 
 **report_w22「寒い玉座の間」** (報告)
-- 要点: 釜の火が消えてから玉座の間がひどく寒い。王は膝掛けを引き寄せながら聞く。師が脚を折っても先へ進んだことを「あの男らしい」と言う。
+- 要点: 釜の火が消えてから玉座の間がひどく寒い。王は膝掛けを引き寄せながら聞く。師が脚を折っても先へ進んだと聞いて、かすかに笑う。
 ```text
 The same throne room, now bitterly cold: frost on the window panes, visible breath, candles burning low. The very old king pulls a thick fur lap blanket over his knees as he listens, a faint fond smile at the corner of his mouth. The chancellor's chair stands empty. The apprentice reports, in rear three-quarter view. Heavy grey clouds outside.
 ```
@@ -515,7 +515,7 @@ A memory scene with frosted, softly blurred edges. At the end of a great ice cor
 ```
 
 **report_w25「回廊の肖像」** (報告)
-- 要点: イザークの名を聞いて、王は王宮の回廊に一枚だけ残る肖像のことを話す (病で死んだと伝わる、最初の王家の操霊師)。十一人の魂も還った。王は冷えた手を組む。
+- 要点: イザークの名を聞いて、王はこの離宮の回廊に一枚だけ掛かる肖像のことを話す (病で死んだと伝わる、最初の王家の操霊師)。十一人の魂も還った。王は冷えた手を組む。
 ```text
 The same cold throne room. The very old king, lap blanket over his knees, clasps his cold hands and looks toward a single old portrait hanging in the dim corridor beyond an archway: a young royal soul-mage in dark robes (Isaak, before he froze). The chancellor's chair stands empty. The apprentice stands beside, listening. Frost, heavy clouds.
 ```
@@ -554,7 +554,7 @@ A deep valley by the poison swamp, piled high with ancient unfinished wooden dol
 ```
 
 **report_w27「笑わない宰相」** (報告)
-- 要点: 王は目を閉じる。宰相は山ほどの捨てられた兄弟の上に立っていた。百年そばに置きながら、王は宰相が笑うのを見たことがなかった。
+- 要点: 王は目を閉じる。宰相は山ほどの捨てられた兄弟の上に立っていた。百年そばに置きながら、王はあの薄い笑みがほどけるところを一度も見たことがなかった (宰相はいつも微笑んでいた。心から笑うのを見たことがない、の意)。
 - 描くもの: 目を閉じる王 / 主題は空いた宰相の席 (本文に無い物を置いて意味を足さない) / 弟子。
 ```text
 The same cold throne room. The very old king sits with his eyes closed, lap blanket over his knees. The focus is the empty chancellor's chair beside the throne, cold and unused, lit by a single candle. The apprentice stands in rear view. Heavy clouds.
@@ -587,7 +587,7 @@ A memory scene with green-hazed edges. Inside an old stone workshop on an island
 ```
 
 **report_w29「死なない命令」** (報告)
-- 要点: 王は「魂を、腐らせるな」を何度も口の中でくり返す。大樹も霊薬も釜も、そのためだった。命じた者が死んでも命令は死なない。王は顔を上げ、弟子に塔を登れと告げる。
+- 要点: 王は「魂を、腐らせるな」を何度も口の中でくり返す。大樹も霊薬も釜も、そのためだった。火の洞でモルデンが言った「魂を集めよ」は、言いつけを自分にできる形に言い換えたものだったと王は気づく。命じた者が死んでも命令は死なない。王は顔を上げ、弟子に塔を登れと告げる。
 ```text
 The same cold throne room. The very old king, lap blanket over his knees, raises his head with a new resolve and points upward, telling the apprentice to climb. On his lap rests an old parchment. The chancellor's chair stands empty. Heavy clouds; a faint rumble of distant thunder.
 ```
@@ -613,7 +613,7 @@ Inside a colossal stone tower: a spiral staircase winds up around a hollow centr
 ```
 
 **report_w30「鳴りやまぬ雷」** (報告)
-- 要点: この百年、王都の空はいつも重く、雷の鳴らない夏は一度もなかった。その雷を鳴らしていたのが地の底の塔。
+- 要点: 王の知るこの百年、この国の空はいつも重く、雷の鳴らない夏は一度もなかった。その雷を鳴らしていたのが地の底の塔。
 ```text
 The same throne room. Through the tall windows, heavy storm clouds and a flash of lightning over the city. The very old king, lap blanket over his knees, turns toward the window as thunder rolls. The chancellor's chair stands empty. The apprentice reports. Cold blue lightning light against candlelight.
 ```
@@ -657,7 +657,7 @@ A memory scene with storm-grey hazed edges. The summit of the storm tower: a hug
 ```
 
 **report_w33「百年目の青空」** (報告)
-- 要点: 嵐の主が鎮まった朝、王都の空が晴れる。王が生きた百年で初めての青空。捨て砦の大手門の雷雨も止んだ。王は窓の外の青い空を長いあいだ見ている。「橋の向こうへ行け」。
+- 要点: 嵐の主が鎮まった朝、この空が晴れる (王都からも同じ報せ)。王の知るこの百年で初めての青空。捨て砦の大手門の雷雨も止んだ。王は窓の外の青い空から目を離さない。解かれた魂もいずれ雨となって沼へ落ちる、と王はモルデンのおそれを口にする。「橋の向こうへ行け」。
 - 描くもの: **朝の澄んだ青空** と差しこむ陽の光 / 窓辺に立って空を見上げる、やつれた王 / 空いた宰相の席 / 弟子。
 ```text
 The same throne room on a bright morning: for the first time, the tall windows show a clear BLUE sky with soft white clouds, and warm sunlight streams across the floor, dust motes glittering. The very old, frail king has risen and stands at the window with a lap blanket over his shoulders, gazing up at the sky in quiet wonder, one hand on the window frame. The chancellor's chair stands empty in the sunlight. The apprentice stands behind.
@@ -707,7 +707,7 @@ The same throne room in daylight. The very old king sits slumped, staring down a
 ```
 
 **w36_nook「灯番の子」** (手がかり / 迷宮「亡き観客の階段席」)
-- 要点: 観客席のいちばん下、石段の裏の狭いすき間に小さな寝床。すり切れた毛布、木の椀、壁に日を数えた刻み目が何列も。毛布の上に、胸のくぼみに灯籠のガラスのかけらをはめこんだ手のひらほどの木の人形。壁の端に子どもが彫った「灯を掌に載せた手」の絵と、削り取られた名前。
+- 要点: 観客席のいちばん下、石段の裏の狭いすき間に小さな寝床。すり切れた毛布、木の椀、壁に日を数えた刻み目が何列も。毛布の上に、胸のくぼみに灯籠のガラスのかけらをはめこんだ手のひらほどの木の人形。壁の端に子どもが彫った「灯を掌に載せた手」の絵と、削り取られた名前。毛布の端に、人形を写した絵と師の字の書きつけ (イレーヌの語り irene_firstdoll の写し絵)。
 - 描くもの: 狭い寝床 / 刻み目の壁 / 小さな木の人形 / 子どもの彫った印 / かがみこむ弟子。描かないもの: 子ども本人。
 ```text
 A cramped hollow beneath the stone tiers of an ancient amphitheatre, lit by a small lamp held by the apprentice crouching at its entrance. Inside: a tiny child's bed of a threadbare blanket, a wooden bowl, and rows of tally scratches counting days on the wall. On the blanket sits a palm-sized carved wooden doll with a small hollow in its chest holding a shard of lantern glass that faintly glows. At the end of the tallies, a child's crude carving of a palm-up hand holding a flame; beneath it a name has been scraped away. Grey ash drifts in from above. Quiet, tender, sad.
@@ -733,13 +733,13 @@ A memory scene with ash-grey hazed edges, centuries ago: an ancient amphitheatre
 ```
 
 **report_w37「休みのない百年」** (報告)
-- 要点: 三百年より昔から続いた試合が終わった。王は自分の手を見ながら聞く。「余の百年も、休みのない百年であった。霊薬で、魂を休ませずに使い続けてきた」。「人業には、ちゃんと休みを取らせよ」。
+- 要点: 三百年より昔から続いた試合が終わった。王は自分の手を見ながら聞く。「余の百年も、休みのない百年であった。霊薬で、魂を休ませずに使い続けてきた」。祖は魂を救おうとして町を焼いた、と王は言う。「そなたの人業は、よく休ませよ」。
 ```text
 The same throne room at dusk, a calm orange sky outside the tall windows. The very old king, gaunt, sets aside an empty elixir cup on the armrest and looks at the apprentice with tired, gentle eyes, raising one hand as if giving a final piece of advice. The chancellor's chair stands empty. The apprentice and one doll stand below.
 ```
 
 **irene_rest「休む灯」** (館の語り)
-- 要点: 「魂は、休ませないと腐る」。イレーヌが並んで眠る人業たちの胸の灯をひとつずつ見て回る。セラ「わたしたちは、ちゃんと休みます」。イレーヌ「あなたも、ですよ」。
+- 要点: 「魂は、休ませないと腐る」。イレーヌが並んで眠る人業たちの胸の灯をひとつずつ見て回る。イレーヌも師がいなくなってから一晩も休んでいなかった。セラ「今夜はわたしが灯の番をします」。イレーヌ「あなたも、ですよ」。
 ```text
 The same mansion at night. A row of wooden dolls rests seated against the wall, eyes closed, small soft lights glowing in their chest doors. Irene walks along the row holding a small lamp, checking each light with tender care. Sera (as in the Sera reference) sits among them, sleepily smiling up at her. The single white candle on its brass candlestick burns quietly in the background.
 ```
@@ -776,22 +776,22 @@ The shore of a pitch-black, perfectly still underground lake in a vast cavern. H
 ```
 
 **report_w39「呼ばれなかった名」** (報告)
-- 要点: 札の字がモルデンのものだと聞いて、王は驚かない。百年、同じ字の布告に印を押してきた。捨てられた魂に名をつけてやっていた男の名を、王は百年一度も呼んだことがなかった。空いた宰相の席を長く見る。
+- 要点: 札の字がモルデンのものだと聞いて、王は驚かない。百年、同じ字の布告に印を押してきた。捨てられた魂に名をつけてやっていた男に、王は百年そばに置いて礼のひとつも言ったことがなかった。空いた宰相の席を長く見る。
 ```text
 The same throne room in late-afternoon light. The very old king holds a small wooden tag with elegant handwriting next to an old royal decree bearing the same handwriting and a red seal, comparing them, then looks long at the chancellor's empty chair beside the throne. Clear sky outside. The apprentice stands quietly below.
 ```
 
 **irene_names「名を呼ぶ人」** (館の語り)
-- 要点: イレーヌの名は師がつけた。目を開けて最初に聞いたのが自分の名。名を呼ばれると灯が落ち着く。三百年ひとりで札に名を書いてきた宰相を責めきれない。「あの人は悪い人なのでしょうか」。セラがいれば「モルデンさん、って呼んであげればいい」。
+- 要点: イレーヌの名は師がつけた。目を開けて最初に聞いたのが自分の名。名を呼ばれると灯が落ち着く。三百年ひとりで札に名を書いてきた宰相を責めきれない。「旧都を沈めた人です。魂を煮た人です。……それなのに、札の字が、あんなにていねいなのです」。セラがいれば「モルデンさん、って呼んであげればいい」。
 ```text
 The same mansion workshop at night. Irene sits before the single white candle on its brass candlestick, holding a small wooden name tag in both hands and gazing at it, troubled and gentle. Sera (as in the Sera reference) leans beside her, looking at the tag too. Warm candlelight, quiet.
 ```
 
 **w40_eyes「それでも、底へ」** (手がかり / 迷宮「名を刻む石窟」)
-- 要点: 岩壁一面に小さな壁龕が彫られ、どの壁龕にも濁った灯籠が一つずつ眠り、下の石に名が刻まれている (墓)。いちばん奥の空の壁龕に、師の外套から裂いた布切れと書きつけ。最後の一行だけ紙が破れかけるほど強く書かれている。
-- 描くもの: 壁龕の並ぶ岩壁 (上へ何段も) / 刻まれた名 / 空の壁龕の布切れと書きつけ / 書きつけを読む弟子。描かないもの: 師・モルデン本人。
+- 要点: 岩壁一面に小さなくぼみ (壁龕) が彫られ、どのくぼみにも濁った灯籠が一つずつ眠り、下の石に名が刻まれている (墓)。いちばん奥の空のくぼみに、師のシャツの袖から裂いた布切れと書きつけ (外套は第六章で氷棚に置いてきたので、外套の布ではない)。最後の一行だけ紙が破れかけるほど強く書かれている。
+- 描くもの: くぼみの並ぶ岩壁 (上へ何段も) / 刻まれた名 / 空のくぼみの布切れと書きつけ / 書きつけを読む弟子。描かないもの: 師・モルデン本人。
 ```text
-A towering cavern wall carved with hundreds of small niches rising tier upon tier into darkness, each niche holding one small clouded-black antique lantern, a name carved into the stone beneath each. It feels like a vast, tender grave. At the very back, one niche is empty except for a strip of torn black coat-cloth (with a tiny gold lamp-on-palm embroidery) and a handwritten note whose last line is pressed so hard the paper is nearly torn. The apprentice reads it by the faint pale glow of the lanterns. Silence, dust, reverence.
+A towering cavern wall carved with hundreds of small niches rising tier upon tier into darkness, each niche holding one small clouded-black antique lantern, a name carved into the stone beneath each. It feels like a vast, tender grave. At the very back, one niche is empty except for a strip of torn dark grey shirt-sleeve cloth and a handwritten note whose last line is pressed so hard the paper is nearly torn. The apprentice reads it by the faint pale glow of the lanterns. Silence, dust, reverence.
 ```
 
 **report_w40「三百年の墓守」** (報告)
@@ -801,14 +801,14 @@ The same throne room at dusk, orange sky outside. The very old king leans back o
 ```
 
 **mem_w41「階段の前のふたり」** (主の記憶 / 宰相モルデン)
-- 要点: 一年前。大伽藍のいちばん奥、さらに下へ続く階段の前で、宰相モルデンと師オルドが向かい合う。モルデンは三百年この階段の前にいた。底に眠るものを手にした者は「魂の王」になる。祖は触れるなと言い残した。師は「それを取りに来た」と言い、命令では誰も救えなかったから巡りを書き換えると言う。モルデンは「命を思うままにする者は、いつか必ず命を使い潰す」と答える。師は階段を降り、モルデンは追えない。**どちらも悪人にも聖人にも見せない** — 二人とも正しく、二人とも迷っている。
+- 要点: 一年前。大伽藍のいちばん奥、さらに下へ続く階段の前で、宰相モルデンと師オルドが向かい合う。モルデンは三百年、地上の務めの合間にこの階段を守ってきた。底に眠るものを手にした者は「魂の王」になる。祖は触れるなと言い残した。師は「それを取りに来た」と言い、命令では誰も救えなかったから巡りを書き換えると言う。モルデンは「命を思うままにする者は、いつか必ず命を使い潰す」と答える。師は階段を降り、モルデンは追えない。**どちらも悪人にも聖人にも見せない** — 二人とも正しく、二人とも迷っている。
 - 描くもの: 天井の見えない巨大な伽藍 / 下の闇へ続く石段 (底にかすかな光) / 胸の小さな扉を開けて古い灯を見せるモルデン (正典の顔・老いない) / 手袋なし・指先の焼けた手で片脚を引きずる師オルド (第十章の姿) / 二人のまわりに並ぶ名札つきの灯籠。描かないもの: 弟子。底のものの正体 (光だけ)。
 ```text
-A memory scene with faint amber-hazed edges: the innermost depth of a gigantic cavern-cathedral whose ceiling is lost in darkness. At its heart, a broad ancient stone stairway descends into an abyss, a faint unearthly light glowing far below. Before the top step stand two men facing each other in tense, sorrowful silence. On the stair side, the chancellor Morden (exact canon face: gaunt, pale, ageless, thin sad smile, tall black-purple hat with gold band, red inner robe, gold chain with a red jewel) has a small door open in his chest revealing an ancient flickering soul-light; he stands between the stair and the other man, not attacking, pleading. Facing him, Ordo (as in the Ordo reference: tall lean man about 55, short grey hair, grey beard, worn black long coat with one small gold lamp-on-palm crest on the hem) — gloveless, fingertips burnt, leaning on one leg, calm and resolute. Around them, rows of small clouded lanterns with wooden name tags. Neither looks villainous: both look tired, certain, and grieving.
+A memory scene with faint amber-hazed edges: the innermost depth of a gigantic cavern-cathedral whose ceiling is lost in darkness. At its heart, a broad ancient stone stairway descends into an abyss, a faint unearthly light glowing far below. Before the top step stand two men facing each other in tense, sorrowful silence. On the stair side, the chancellor Morden (exact canon face: gaunt, pale, ageless, thin sad smile, tall black-purple hat with gold band, red inner robe, gold chain with a red jewel) has a small door open in his chest revealing an ancient flickering soul-light; he stands between the stair and the other man, not attacking, pleading. Facing him, Ordo (as in the Ordo reference: tall lean man about 55, short grey hair, grey beard) wearing no coat — a torn, worn dark grey shirt (his coat was left frozen on the ice ledges long before) — gloveless, fingertips burnt, leaning on one leg, calm and resolute. Around them, rows of small clouded lanterns with wooden name tags. Neither looks villainous: both look tired, certain, and grieving.
 ```
 
 **report_w41「王の資格」** (報告)
-- 要点: オルドが魂の王になるために底へ降りたと聞き、王は玉座の肘掛けを強く握る。民の命を霊薬に変えて飲んできた自分に、それを咎める資格はない。「追って、確かめて、そなたの目で決めよ。余の命令ではない」。
+- 要点: オルドが魂の王になるために底へ降りたと聞き、王は玉座の肘掛けを強く握る。民の命を霊薬に変えて飲んできた自分に、それを責める資格はない。モルデンの言葉もオルドの言葉も、王はこの百年のうちに一度は口にしてきた。「追って、確かめて、そなたの目で決めよ。余の命令ではない」。
 ```text
 The same throne room in daylight, clear sky outside. The very old king grips the armrests of his throne hard, knuckles white, his gaze lowered to his own crown resting on his lap as if questioning what it means to be a king. The chancellor's chair stands empty. The apprentice stands below, with Sera (as in the Sera reference) and a doll beside them. Solemn.
 ```
@@ -820,7 +820,7 @@ The same mansion at dawn: grey-blue light creeping in through the window. Irene 
 ```
 
 **ch10_end「第一部の終わり」** (章の結び)
-- 要点: 宰相モルデンは大伽藍の階段の前で、三百年ぶりの眠りにつく。胸の灯は消えず、小さく静かに揺れる。師は魂の王になるために、さらに下へ降りていった。正しいのは誰なのか、まだ誰にも分からない。
+- 要点: 宰相モルデンは大伽藍の階段の前で、三百年ぶりの眠りにつく。胸の灯は消えず、小さく静かに揺れる。師は魂の王になるために、さらに下へ降りていった。町を焼いた祖、言いつけを守ったモルデン、王になろうとする師、縛りを解いてきた隊 — 語り手は誰が正しいとも言わない。
 - 描くもの: 階段の脇に座って眠るように目を閉じたモルデン (胸の扉の中に小さな灯、まわりに名札つきの灯籠) / 下の闇へ続く階段 / 階段の上に立って下をのぞく弟子と隊。
 ```text
 The same gigantic cavern-cathedral after the battle, quiet. Beside the top of the descending stairway, the chancellor Morden (exact canon face, ageless) sits against a pillar with his eyes closed as if peacefully asleep, his chest door ajar with a small, steady soul-light inside, surrounded by rows of small lanterns with wooden name tags. The apprentice and the party (wooden dolls, Sera) stand at the top step, looking down the endless stairs into the abyss, where a faint unearthly light glows far below. Melancholy, resolve, the end of a long first journey.

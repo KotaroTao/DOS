@@ -1,9 +1,12 @@
 // 魔物の伝承 (src/dungeons/monlore.js) の検査: node tools/lore/check.mjs
 // ・第1〜12層の魔物 (層の出現表・強敵・主、本筋と寄り道の迷宮の出現表) に漏れなく伝承がある
-// ・出典と本文の長さ、難しい漢字、層ごとの出典の偏り (似た内容にしない)、章ごとのネタばれの語
+// ・出典と本文の長さ、難しい漢字、層ごとの出典の偏り (似た内容にしない)、章ごとのネタばれの語、伝承の形 (地の文で語るもの)
+// ・説明文・懸賞文の属性の向き (魔物の属性に有利でない属性を「効く・弱い」と書かない)
 import { MONSTER_LORE } from "../../src/dungeons/monlore.js";
 import { BESTIARY, LAYER_POOLS, LAYER_ELITES, LAYER_BOSS } from "../../src/dungeons/bestiary.js";
 import { WORLD } from "../../src/dungeons/world.js";
+import { NAMED_FOES } from "../../src/dungeons/named.js";
+import { elemBeats } from "../../src/dungeons/schema.js";
 
 const LAYERS = 12;
 const errs = [];
@@ -90,6 +93,34 @@ for (const [L, rows] of Object.entries(byLayer)) {
   for (const [k, n] of Object.entries(count)) if (n > 3) errs.push(`第${L}層: 出典「${k}」が${n}回 (3回まで)`);
   console.log(`第${L}層 ${rows.length}体 / 出典${kinds}種`);
 }
+
+// 伝承の形: 引用 (「」『』) で始まり地の文を一言添える形ばかりにしない — どの層にも地の文で語る伝承を2件以上
+for (const [L, rows] of Object.entries(byLayer)) {
+  const plain = rows.filter((r) => !/^[「『]/.test(MONSTER_LORE[r.id].text)).length;
+  if (plain < 2) errs.push(`第${L}層: 地の文で始まる伝承が${plain}件 (2件以上)`);
+}
+
+// 属性の向き: 説明文・懸賞文で、魔物の属性に有利でない属性 (不利・無関係) を「効く・弱い・焼ける」と名指ししない
+// (水の敵に「火の魔法でよく焼ける」は、実際には火が水に負けて威力が半分になる。魔法弱点 magWeak はどの属性の呪文にも効く)
+const EL_WORDS = [["fire", "業火|火|炎|熱"], ["wind", "雷|稲妻|風"], ["light", "聖なる光|光"], ["dark", "闇"], ["earth", "土|岩"], ["water", "水|冷気"]];
+const EL_ANY = EL_WORDS.map((e) => e[1]).join("|");
+const EL_ATK = new RegExp(`(?:呪文の|魔の|魔法の)(${EL_ANY})|(${EL_ANY})(?:の(?:魔法|呪文|気|刃|得物)|を浴び(?!せ)|が(?:よく)?(?:通る|効く))`, "g");
+const EL_WEAK = /弱|効く|効き|よく焼け|焼かれ|焼き払|焼き落と|焼け|燃え上が|燃え盛|ひとたまり|一たまり|もろ(?!とも)|脆|崩れ|かき消|掻き消|弾け|散ら|通る|割れ|割る|削れ|しおれ|ちぎれ|泡を吹|砕け/;
+const EL_NEG = /効か[んな]|通ら[んな]|通さ|弾き返/;
+const elOfWord = (w) => EL_WORDS.find(([, re]) => new RegExp(`^(?:${re})$`).test(w))?.[0];
+function elemMisuse(text, monEl) {
+  const out = [];
+  for (const s of text.split(/[。\n]/)) {
+    if (!EL_WEAK.test(s) || EL_NEG.test(s)) continue;
+    for (const m of s.matchAll(EL_ATK)) {
+      const el = elOfWord(m[1] || m[2]);
+      if (el && !elemBeats(el, monEl || "none")) out.push(`「${m[0]}」が${monEl || "none"}の敵に効くと書いている: ${s}`);
+    }
+  }
+  return out;
+}
+for (const id of Object.keys(layerOf)) for (const e of elemMisuse(BESTIARY[id]?.desc || "", BESTIARY[id]?.element)) errs.push(`説明文 ${id} ${BESTIARY[id].name}: ${e}`);
+for (const [id, v] of Object.entries(NAMED_FOES)) for (const l of [...v.bounty.lines, ...v.bounty.done]) for (const e of elemMisuse(l, BESTIARY[id]?.element)) errs.push(`懸賞文 ${id}: ${e}`);
 
 console.log(`伝承 ${Object.keys(MONSTER_LORE).length}体`);
 if (errs.length) { console.log(errs.map((e) => "✗ " + e).join("\n")); process.exit(1); }

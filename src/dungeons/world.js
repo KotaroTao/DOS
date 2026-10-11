@@ -110,14 +110,14 @@ const WORLD_DEF = [
       ["bs_bonebat", "bs_carrioncrow", "bs_corpsemaggot", "bs_grasphand", "bs_gravewisp", "bs_bonepile"],
     ],
     unlock: { start: true },
-    hint: "第0章「人業の生成」を果たすと、王が在処を明かす",
+    hint: "序章で三体の人業を仕立てると、王が在処を明かす",
   },
   {
     id: "w02", lv: 5, lvTo: 10, layer: 1, floors: 10,
     floorHaz: { fall: null, harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.598, 3: 0.5934, 5: 0.5292, 7: 0.5063, 8: 0.4751, 10: 0.4773 },
     name: "亡骸の囁く回廊", short: "囁く回廊",
-    about: "墓地の奥へ続く長い回廊。壁の向こうから死者の囁きが漏れる",
+    about: "墓地の奥へ続く長い回廊。壁の向こうから、死者のささやきが漏れてくる",
     bands: [
       ["bs_mournshade", "bs_ghoul", "bs_pettyrevenant", "bs_sarcoguard", "bs_skullswarm", "bs_spiritbat"],
       ["bs_shroudstrangler", "bs_tombwarden", "bs_weepangel"],
@@ -132,7 +132,7 @@ const WORLD_DEF = [
     floorHaz: { fall: null, harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.41, 4: 0.4165, 5: 0.4011, 6: 0.3663, 7: 0.356, 10: 0.3619, 12: 0.3522, 15: 0.3685 },
     name: "朽ちた骸の修道院", short: "骸の修道院",
-    about: "死者を弔い続けた修道士たちの成れの果て。最下階に骸の修道院長が待つ",
+    about: "死者を弔い続けた修道士たちが、骸になってなお祈る修道院。最下階に骸の修道院長が待つ",
     bands: [
       ["bs_zombie", "d01_skeleton", "bs_weepangel", "bs_tombwarden", "bs_shroudstrangler", "bs_pettyrevenant"],
       ["bs_sarcoguard", "bs_ghoul", "bs_skullswarm"],
@@ -149,7 +149,7 @@ const WORLD_DEF = [
     floorHaz: { fall: "grate", harm: "sewage" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.3004, 5: 0.3235, 10: 0.3647 },
     name: "黒水の取水口", short: "取水口",
-    about: "王都へ流れる黒い水の入口。水に触れた者は影が薄くなるという",
+    about: "ロアダルの水を取り入れる古い取水口。その底を、黒い水が遠く王都の方角へ流れている。水に触れた者は影が薄くなるという",
     bands: [
       ["bs_bloatfly", "bs_fogspecter", "bs_giantleech", "bs_ratking", "bs_razorshrimp", "bs_sewercrab"],
       ["bs_mucusworm", "bs_toxictoad", "bs_drownedcorpse"],
@@ -164,7 +164,7 @@ const WORLD_DEF = [
     floorHaz: { fall: "mineshaft", harm: "minegas" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.2799, 5: 0.2868, 10: 0.3072, 15: 0.3208 },
     name: "鎖の垂れる坑口", short: "坑口",
-    about: "王家が封じた古の坑道。罪人たちの鎖が、今も闇に垂れている",
+    about: "王家が封じた古い坑道。罪人をつないだ鎖が、いまも闇に垂れている",
     element: "earth", // 素体の n10 は第2層 (水) なので、坑道の土を明示する
     bands: [
       ["bs_blastsprite", "bs_chainedconvict", "bs_dustwraith", "bs_koboldsapper", "bs_minebat", "bs_timbermite"],
@@ -192,7 +192,7 @@ const WORLD_DEF = [
     elites: ["el_warbanner"], // 名のある強敵の縄張り (named.js)
     trait: {
       id: "ranks", name: "隊列を組む亡兵", sym: "⚔", accent: "#c9a26a",
-      lines: ["亡兵は持ち場を離れず、つねに三体以上の隊列で現れる (旗手・鼓手・槍ぶすまが組む)。", "数は多いが、討てば得られる ✦Soul が 1.25倍。"],
+      lines: ["亡兵は持ち場を離れず、つねに三体以上の隊列で現れる (旗手・鼓手・槍ぶすまが組む)。", "数は多いが、得る ✦Soul は 1.25倍。"],
       mods: { packMin: 3, soulMul: 1.25 },
     },
     tune: { enemyMul: 0.62, deepMul: 0.88, soloMul: 0.95 }, // 隊列 (つねに3体以上) の分だけ1体ずつは軽く
@@ -213,7 +213,7 @@ const WORLD_DEF = [
     elites: ["el_headsman"],
     trait: {
       id: "prison", name: "閉ざされた獄", sym: "⛓", accent: "#8a8fa8",
-      lines: ["獄の扉は内から開かない。この迷宮の戦闘からは逃げられない。", "獄死した囚人の骸が多く (各階に骸が2つ増える)、押収品の宝箱は1ランク上等。", "骸に残る魂は、強すぎる者の前には姿を見せない。隊のLvが推奨Lv+2 を超えると、1Lv ごとに増える死体が15%ずつ減る (推奨Lv+9 で増えなくなる)。"],
+      lines: ["獄の扉は内から開かない。この迷宮の戦闘からは逃げられない。", "獄死した囚人の骸が各階に2つ増える (半分はまだあたたかい)。押収品の宝箱は1ランク上等。", "骸に残る魂は、強すぎる者の前には姿を見せない。隊のLvが推奨Lv+2 を超えると、1Lv ごとに増える死体が15%ずつ減る (推奨Lv+9 で増えなくなる)。"],
       mods: { noFlee: true, chestRankUp: 1 },
       board: "prison",
       corpseFade: true, // 増える死体は隊のLv が推奨Lv を超えるほど減る (2026-10-11 ユーザーの指示)
@@ -227,7 +227,7 @@ const WORLD_DEF = [
     floorHaz: { fall: "collapse", harm: "caltrop" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.2321, 5: 0.2483, 10: 0.2667 },
     name: "雷雨の大手門", short: "大手門",
-    about: "寄せ手が最後に破った砦の正門。あの日の雷雨はいまも止まず、討ち死にした両軍の亡者が門を奪い合う",
+    about: "寄せ手を最後まで拒んだ砦の正門。あの日の雷雨はいまも止まず、討ち死にした両軍の亡者が門を奪い合う",
     element: "wind",
     bands: [
       ["bs_bloodorc", "bs_darksamurai", "bs_thunderknight", "bs_bannerwraith", "bs_siegeballista", "bs_cultist"],
@@ -236,7 +236,7 @@ const WORLD_DEF = [
     elites: ["el_warbanner"], // 名のある強敵の縄張り (named.js)
     trait: {
       id: "storm", name: "止まぬ雷雨", sym: "⚡", accent: "#9ab8ff",
-      lines: ["雷雨が門を叩き続け、魔物はみな風 (雷) の気を帯びる。火の刃が通り、火の護りが雷を逸らす。", "雷鳴に足音が紛れ、奇襲を受けやすい (×2)。戦場に散った遺品で、得る金貨は 1.3倍。"],
+      lines: ["雷雨が門を叩き続け、魔物はみな風 (雷) の気を帯びる。火の刃が通り、火の守りが雷を和らげる。", "雷鳴に足音が紛れ、奇襲を受けやすい (×2)。戦場に散った遺品で、得る金貨は 1.3倍。"],
       mods: { elemAll: true, ambushMul: 2, goldMul: 1.3 },
     },
     tune: { enemyMul: 1.02, deepMul: 0.85, soloMul: 1.00 }, // 奇襲 ×2 の分だけ控えめ
@@ -257,7 +257,7 @@ const WORLD_DEF = [
     ],
     trait: {
       id: "council", name: "軍議の間", sym: "♜", accent: "#e0a050",
-      lines: ["将の亡霊が階ごとに陣を敷く。強敵の気配する階が多い (B3F以降 30%)。", "将の遺品で、落ちている装備の質が少し上がる。"],
+      lines: ["将の亡霊が階ごとに陣を敷く。強敵の気配のする階が多い (B3F以降 30%)。", "将の遺品で、落ちている装備の質が少し上がる。"],
       mods: { lootBonusLv: 4 },
       eliteRate: 0.30,
     },
@@ -281,7 +281,7 @@ const WORLD_DEF = [
     elites: ["el_eldertreant"],
     trait: {
       id: "shaft", name: "根の縦穴", sym: "⇣", accent: "#b08a5a",
-      lines: ["縦穴の足場は脆い。根の穴が多い (各階に2つ増える)。落ちても傷は負わないが、その階は探れない。", "壁の根に、落ちた者たちの遺品が絡まっている (各階に宝箱が1つ増える)。"],
+      lines: ["縦穴の足場は脆い。各階に根の穴が2つ増える (最下階を除く)。落ちても傷は負わないが、その階の残りは探れない。", "壁の根に、落ちた者たちの遺品が絡まっている (各階に宝箱が1つ増える)。"],
       board: "shaft",
     },
     tune: { enemyMul: 1.20, deepMul: 0.76, soloMul: 1.05 }, // 根の穴で階を飛ばされる分、深階はやや重い。2026-10 実測で 0.72 → 1.20 (上の注記)
@@ -302,7 +302,7 @@ const WORLD_DEF = [
     elites: ["el_mistmother"], // 名のある強敵の縄張り (named.js)
     trait: {
       id: "shifting", name: "移ろう霧", sym: "≋", accent: "#9ab8c8",
-      lines: ["霧が森の姿を変え続ける。特別な階がとても出やすい (ふだんの2倍・およそ3階に2階)。", "豊穣の間も、瘴気の階も、ミミックの巣も。何が出るかは霧しだい。"],
+      lines: ["霧が森の姿を変え続ける。特別な階がとても出やすい (ふだんの2倍・およそ3階に2階)。", "豊穣の間か、瘴気の階か、ミミックの巣か。何が出るかは霧しだい。"],
       specialRate: 2,
     },
     tune: { enemyMul: 1.03, deepMul: 0.82, soloMul: 1.05 }, // 特別な階 (瘴気・群れ) が2倍出る分だけ軽め
@@ -323,7 +323,7 @@ const WORLD_DEF = [
     elites: ["el_mistmother"],
     trait: {
       id: "sap", name: "癒しの樹液", sym: "✚", accent: "#a8d070",
-      lines: ["樹液の香りが満ちている。戦闘に勝つたび、隊のHP・MPが8%回復する。", "魔物もまた樹液を吸う。敵はすべて、ターンごとに最大HPの3%ずつ再生する。"],
+      lines: ["樹液の香りが満ちている。戦闘に勝つたび、隊のHP・MPが最大の8%回復する。", "魔物もまた樹液を吸う。敵はすべて、毎ターン最大HPの3%ずつ再生する。"],
       victoryHeal: 0.08, foeRegen: 0.03,
     },
     tune: { enemyMul: 1.27, deepMul: 0.82, soloMul: 1.05 }, // 敵の再生と勝利ごとの回復でおおむね相殺
@@ -335,7 +335,7 @@ const WORLD_DEF = [
     floorHaz: { fall: "roothole", harm: "rootsuck" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.2006, 5: 0.2098, 10: 0.2206, 15: 0.2306 },
     name: "魂喰らいの大樹", short: "大樹",
-    about: "百の迷宮から魂を吸い上げる大樹の根元。幹は王都へ向かって、地の底を這い上がっている",
+    about: "百の迷宮から魂を吸い上げる大樹の根元。幹は地の底を、さらに上へと這い上がっている",
     element: null,
     bands: [
       ["bs_thornhound", "bs_stranglevine", "bs_chimera", "bs_giantowl", "bs_thunderbird", "bs_direboar"],
@@ -344,7 +344,7 @@ const WORLD_DEF = [
     ],
     trait: {
       id: "roots", name: "魂を吸う根", sym: "ψ", accent: "#c070a0",
-      lines: ["根が足元で脈打つ。戦闘が始まるたび、隊のMPが5%吸われる。", "吸われた魂の名残が漂い、得られる ✦Soul は 1.4倍。"],
+      lines: ["根が足元で脈打つ。戦闘が始まるたび、隊のMPが最大の5%吸われる。", "吸われた魂の名残が漂い、得る ✦Soul は 1.4倍。"],
       mods: { soulMul: 1.4 },
       mpDrain: 0.05, say: "足元の根が脈打ち、隊の魔力を吸い上げた", // 1割は吸われすぎ (2026-10 ユーザーの指示)
     },
@@ -359,7 +359,7 @@ const WORLD_DEF = [
     floorHaz: { fall: "sunken", harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.192, 5: 0.2067, 10: 0.2235 },
     name: "水底の参道", short: "参道",
-    about: "王都の地下水路のさらに下。三百年前に沈んだ旧都の参道が、灯籠を連ねて水の底へ続いている",
+    about: "大樹の幹をたどって着いた、王都のはるか地下。三百年前に沈んだ旧都の参道が、灯籠を連ねて水の底へ続いている",
     element: "water",
     bands: [
       ["bs_kelpdrowned", "bs_abyssjelly", "bs_fonthorror", "bs_drownedpriest", "bs_naga", "bs_choirwraith"],
@@ -368,13 +368,13 @@ const WORLD_DEF = [
     elites: ["el_heresiarch"], // 名のある強敵の縄張り (named.js)
     trait: {
       id: "offering", name: "沈んだ供物", sym: "⚱", accent: "#5aa0c8",
-      lines: ["参道には、沈む前に捧げられた供物が残っている (各階に宝箱が2つ増える)。", "供物のふりをした魔物も多い。宝箱がミミックである見込みが高い (30%)。"],
+      lines: ["参道には、沈む前に捧げられた供物が残っている (各階に宝箱が2つ増える)。", "供物のふりをした魔物も多い。宝箱の3割は、供物にすり替わったミミックだ。"],
       mods: { mimicRate: 0.30 },
       board: "offering",
     },
     tune: { enemyMul: 1.20, deepMul: 0.76, soloMul: 1.05 },
     unlock: { reported: "w13" },
-    hint: "「魂喰らいの大樹」の踏破を王に報告すると、王都の地下への道が示される",
+    hint: "「魂喰らいの大樹」の踏破を王に報告すると、幹の行き着く先への道が示される",
   },
   {
     id: "w15", lv: 54, lvTo: 56, layer: 6, floors: 10,
@@ -390,7 +390,7 @@ const WORLD_DEF = [
     elites: ["el_fallenidol"],
     trait: {
       id: "hymn", name: "響く聖歌", sym: "♪", accent: "#e8d890",
-      lines: ["溺れた聖歌隊の歌が響き続け、魔物はみな光の気を帯びる。闇の刃が通り、闇の護りが光を逸らす。", "歌に引かれて集まった魂は多く、得る ✦Soul は 1.3倍。"],
+      lines: ["溺れた聖歌隊の歌が響き続け、魔物はみな光の気を帯びる。闇の刃が通り、闇の守りが光を和らげる。", "歌に引かれて集まった魂は多く、得る ✦Soul は 1.3倍。"],
       mods: { elemAll: true, soulMul: 1.3 },
     },
     tune: { enemyMul: 1.12, deepMul: 0.82, soloMul: 1.05 }, // 属性が揃う分 (闇の刃で通る) だけ重め
@@ -402,7 +402,7 @@ const WORLD_DEF = [
     floorHaz: { fall: "sunken", harm: "holywater" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.185, 5: 0.1997, 10: 0.2166 },
     name: "洗礼の大水槽", short: "大水槽",
-    about: "王が冠を受ける前に身を清めた、旧都の洗礼の水槽。いまは大樹の根が水を吸い、底は昏い",
+    about: "王が冠を受ける前に身を清めた、旧都の洗礼の水槽。いまは大樹の根が水を吸い、底は暗い",
     element: "water",
     bands: [
       ["bs_abyssjelly", "bs_naga", "bs_fonthorror", "bs_kelpdrowned", "bs_tidecaller", "bs_irongolem"],
@@ -411,7 +411,7 @@ const WORLD_DEF = [
     elites: ["el_heresiarch"],
     trait: {
       id: "font", name: "洗礼の水", sym: "✧", accent: "#8ad0e8",
-      lines: ["水槽のあちこちに、まだ澄んだ洗礼の水が湧いている (各階に癒しの泉が2つ)。", "濁った水の底から襲われやすい (奇襲 ×1.5)。"],
+      lines: ["水槽のあちこちに、まだ澄んだ洗礼の水が湧いている (各階に癒しの泉が2つ)。", "濁った水の底から、何かが足をつかむ。奇襲を受けやすい (×1.5)。"],
       mods: { ambushMul: 1.5 },
       board: "font",
     },
@@ -456,10 +456,10 @@ const WORLD_DEF = [
     elites: ["el_cinderking"],
     trait: {
       id: "vent", name: "噴き出す火", sym: "♨", accent: "#e07040",
-      lines: ["地割れから火が噴き出し、通路の一割ほどが灼けた床になる (浮遊で避けられる)。", "火の洞の熱気が肌を焼く。戦闘が始まるたび、隊のHPが最大の6%減る (HP1 より下にはならない)。", "火に追われた魂が多く、得る ✦Soul は 1.25倍。"],
+      lines: ["地割れから火が噴き出し、通路の一割ほどが灼けた床になる (浮遊で避けられる)。", "割れ目から吹き上げる熱風が肌を焼く。戦闘が始まるたび、隊のHPが最大の6%減る (HP1 より下にはならない)。", "火に追われた魂が多く、得る ✦Soul は 1.25倍。"],
       mods: { soulMul: 1.25 },
       board: "vent",
-      hpDrain: 0.06, say: "灼熱の熱気が肌を焼いた",
+      hpDrain: 0.06, say: "吹き上げる熱風が肌を焼いた",
     },
     tune: { enemyMul: 1.08, deepMul: 0.76, soloMul: 1.05 },
     unlock: { reported: "w17" },
@@ -479,9 +479,9 @@ const WORLD_DEF = [
     elites: ["el_cinderking"],
     trait: {
       id: "ash", name: "灰の雨", sym: "∴", accent: "#a09088",
-      lines: ["降りしきる灰が視界を覆い、奇襲を受けやすい (×2)。", "火の洞の熱気が肌を焼く。戦闘が始まるたび、隊のHPが最大の6%減る (HP1 より下にはならない)。", "灰には焼かれた魂の名残が混じり、得る ✦Soul は 1.3倍。"],
+      lines: ["降りしきる灰が視界を覆い、奇襲を受けやすい (×2)。", "灰まじりの熱気が喉を焼く。戦闘が始まるたび、隊のHPが最大の6%減る (HP1 より下にはならない)。", "灰には焼かれた魂の名残が混じり、得る ✦Soul は 1.3倍。"],
       mods: { ambushMul: 2, soulMul: 1.3 },
-      hpDrain: 0.06, say: "灼熱の熱気が肌を焼いた",
+      hpDrain: 0.06, say: "灰まじりの熱気が喉を焼いた",
     },
     tune: { enemyMul: 1.02, deepMul: 0.85, soloMul: 1.05 }, // 奇襲 ×2 の分だけ控えめ
     unlock: { story: "w18_blade" },
@@ -492,7 +492,7 @@ const WORLD_DEF = [
     floorHaz: { fall: "fissure", harm: "broth" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.1667, 5: 0.1799, 10: 0.1951 },
     name: "魂を煮る釜場", short: "釜場",
-    about: "大樹の樹液を煮詰めて霊薬に変える釜が、いくつも並ぶ。釜の火は、迷宮に呑まれた魂でできている",
+    about: "大樹の樹液を煮詰めて霊薬に変える釜が、いくつも並ぶ。釜の火は、迷宮にのまれた魂でできている",
     element: "fire",
     bands: [
       ["bs_lavagolem", "bs_magmaslime", "bs_brimstonegolem", "bs_furnacefiend", "bs_obsidianguard", "bs_magmaray"],
@@ -501,10 +501,10 @@ const WORLD_DEF = [
     elites: ["el_magmawyrm"],
     trait: {
       id: "cauldron", name: "煮えたぎる釜", sym: "♆", accent: "#f0a040",
-      lines: ["釜の霊薬を浴びた魔物は、毎ターン最大HPの3%ずつ再生する。", "火の洞の熱気が肌を焼く。戦闘が始まるたび、隊のHPが最大の6%減る (HP1 より下にはならない)。", "釜の縁に霊薬の滓が固まっていて、得られる金貨は 1.4倍。"],
+      lines: ["釜の霊薬を浴びた魔物は、毎ターン最大HPの3%ずつ再生する。", "煮えたぎる釜の湯気が肌を焼く。戦闘が始まるたび、隊のHPが最大の6%減る (HP1 より下にはならない)。", "釜の縁に霊薬のかすが固まっていて、得る金貨は 1.4倍。"],
       mods: { goldMul: 1.4 },
       foeRegen: 0.03,
-      hpDrain: 0.06, say: "灼熱の熱気が肌を焼いた",
+      hpDrain: 0.06, say: "煮えたぎる釜の湯気が肌を焼いた",
     },
     tune: { enemyMul: 0.90, deepMul: 0.82, soloMul: 1.05 }, // 開幕の熱気の分だけ控えめ
     unlock: { reported: "w18" },
@@ -515,7 +515,7 @@ const WORLD_DEF = [
     floorHaz: { fall: "fissure", harm: "scorch" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.163, 5: 0.1705, 10: 0.1793, 15: 0.1874 },
     name: "業火の大釜", short: "大釜",
-    about: "火の洞の底の大釜。三百年、魂の樹液を煮詰め続けてきた。釜の底には、底の無い穴が口を開けている",
+    about: "火の洞の底の大釜。三百年、魂の樹液を煮詰め続けてきた。釜の下には、底の見えない穴が口を開けている",
     element: "fire",
     bands: [
       ["bs_obsidianguard", "bs_furnacefiend", "bs_pyrelich", "bs_demon", "bs_flamedrake", "bs_lavagolem"],
@@ -524,9 +524,9 @@ const WORLD_DEF = [
     ],
     trait: {
       id: "inferno", name: "業火の大釜", sym: "♨", accent: "#ff6030",
-      lines: ["大釜の業火は退路を焼く。この迷宮の戦闘からは逃げられない。魔物はみな火の気を帯びる。", "火の洞の熱気が肌を焼く。戦闘が始まるたび、隊のHPが最大の6%減る (HP1 より下にはならない)。", "煮詰められた魂の名残で、得る ✦Soul は 1.4倍。"],
+      lines: ["大釜の業火は退路を焼く。この迷宮の戦闘からは逃げられない。魔物はみな火の気を帯びる (水の刃が通り、水の守りが火を和らげる)。", "大釜の業火の照り返しが肌を焼く。戦闘が始まるたび、隊のHPが最大の6%減る (HP1 より下にはならない)。", "煮詰められた魂の名残で、得る ✦Soul は 1.4倍。"],
       mods: { noFlee: true, elemAll: true, soulMul: 1.4 },
-      hpDrain: 0.06, say: "灼熱の熱気が肌を焼いた",
+      hpDrain: 0.06, say: "大釜の業火の照り返しが肌を焼いた",
     },
     boss: LAYER_BOSS[6], bossRank: 9,
     tune: { enemyMul: 0.95, deepMul: 0.88, soloMul: 1.10, bossMul: 0.85 }, // 第7層の壁。逃げられない分だけ控えめ
@@ -549,14 +549,14 @@ const WORLD_DEF = [
     elites: ["el_glacialmaw"],
     trait: {
       id: "ledge", name: "吹き上げる風", sym: "⇡", accent: "#9ad0f0",
-      lines: ["奈落から吹き上げる風が氷棚を削り、各階に氷の割れ目が3つ増える (最下階を除く。浮遊で避けられる)。", "凍てつく寒さに身がすくむ。戦闘が始まるたび、隊の全員の AGI が1段下がる (3ターン)。", "落ちてきた魂が棚に吹き寄せられ、得る ✦Soul は 1.25倍。"],
+      lines: ["奈落から吹き上げる風が氷棚を削り、各階に氷の割れ目が3つ増える (最下階を除く。浮遊で避けられる)。", "吹き上げる風が体の芯まで冷やす。戦闘が始まるたび、隊の全員の AGI が1段下がる (3ターン)。", "落ちてきた魂が棚に吹き寄せられ、得る ✦Soul は 1.25倍。"],
       mods: { soulMul: 1.25 },
       board: "ledge",
-      chill: 1, say: "凍てつく寒さに身がすくむ",
+      chill: 1, say: "吹き上げる風に、体の芯まで冷えた",
     },
     tune: { enemyMul: 1.08, deepMul: 0.76, soloMul: 1.05 },
     unlock: { reported: "w21" },
-    hint: "「業火の大釜」の踏破を王に報告すると、奈落の壁の氷の棚へ降りる許しが出る",
+    hint: "「業火の大釜」の踏破を王に報告すると、大釜の下の穴へ降りる許しが出る",
   },
   {
     id: "w23", lv: 72, lvTo: 74, layer: 8, floors: 10,
@@ -572,10 +572,10 @@ const WORLD_DEF = [
     elites: ["el_frostsovereign"],
     trait: {
       id: "icetomb", name: "氷漬けの先人", sym: "❄", accent: "#b8d8f0",
-      lines: ["氷の柱の根元に、凍った骸が眠っている (各階に死体が2つ増える。3割はまだあたたかい)。", "凍てつく寒さに身がすくむ。戦闘が始まるたび、隊の全員の AGI が1段下がる (3ターン)。", "凍りついた魂は傷みが少なく、得る ✦Soul は 1.3倍。"],
+      lines: ["氷の柱の根元に、凍った骸が眠っている (各階に死体が2つ増える。3割はまだあたたかい)。", "氷の柱が放つ冷気に身がすくむ。戦闘が始まるたび、隊の全員の AGI が1段下がる (3ターン)。", "凍りついた魂は傷みが少なく、得る ✦Soul は 1.3倍。"],
       mods: { soulMul: 1.3 },
       board: "icetomb",
-      chill: 1, say: "凍てつく寒さに身がすくむ",
+      chill: 1, say: "氷の柱が放つ冷気に身がすくむ",
     },
     tune: { enemyMul: 1.02, deepMul: 0.84, soloMul: 1.05 },
     unlock: { story: "w22_coat" },
@@ -595,9 +595,9 @@ const WORLD_DEF = [
     elites: ["el_glacialmaw"],
     trait: {
       id: "aurora", name: "揺らめく極光", sym: "≈", accent: "#a0f0c8",
-      lines: ["天井の極光が魔物の気を揺らし、魔物の属性がでたらめに定まる。", "凍てつく寒さに身がすくむ。戦闘が始まるたび、隊の全員の AGI が1段下がる (3ターン)。", "極光に照らされた氷の中に古い金貨が光り、得られる金貨は 1.35倍。"],
+      lines: ["天井の極光が魔物の気を揺らし、魔物の属性がでたらめに定まる。", "氷窟の底冷えに身がすくむ。戦闘が始まるたび、隊の全員の AGI が1段下がる (3ターン)。", "極光に照らされた氷の中に古い金貨が光り、得る金貨は 1.35倍。"],
       mods: { elemRandom: true, goldMul: 1.35 },
-      chill: 1, say: "凍てつく寒さに身がすくむ",
+      chill: 1, say: "氷窟の底冷えに身がすくむ",
     },
     tune: { enemyMul: 0.96, deepMul: 0.84, soloMul: 1.05 }, // 属性が読めない分だけ控えめ
     unlock: { reported: "w22" },
@@ -647,7 +647,7 @@ const WORLD_DEF = [
     },
     tune: { enemyMul: 1.06, deepMul: 0.76, soloMul: 1.05 },
     unlock: { reported: "w25" },
-    hint: "「凍てつく大回廊」の踏破を王に報告すると、解けた氷の水が落ちていく先へ降りる許しが出る",
+    hint: "「凍てつく大回廊」の踏破を王に報告すると、回廊のさらに下へ降りる許しが出る",
   },
   {
     id: "w27", lv: 81, lvTo: 83, layer: 9, floors: 10,
@@ -662,7 +662,7 @@ const WORLD_DEF = [
     elites: ["el_offeringslime"],
     trait: {
       id: "husks", name: "器の山", sym: "⚱", accent: "#a08870",
-      lines: ["積み上げられた器のあいだに、骸が横たわる (各階に死体が2つ増える)。", "器に宿りかけた魂が多く、得る ✦Soul は 1.3倍。", "器に残る魂は、強すぎる者の前には姿を見せない。隊のLvが推奨Lv+2 を超えると、1Lv ごとに増える死体が15%ずつ減る (推奨Lv+9 で増えなくなる)。"],
+      lines: ["積み上げられた器のあいだに、骸が横たわる (各階に死体が2つ増える。半分はまだあたたかい)。", "器に宿りかけた魂が多く、得る ✦Soul は 1.3倍。", "器に残る魂は、強すぎる者の前には姿を見せない。隊のLvが推奨Lv+2 を超えると、1Lv ごとに増える死体が15%ずつ減る (推奨Lv+9 で増えなくなる)。"],
       mods: { soulMul: 1.3 },
       board: "prison",
       corpseFade: true, // 魂と残火が集まりすぎるので、隊のLv が推奨Lv を超えるほど増える死体を減らす (2026-10-11 ユーザーの指示)
@@ -684,7 +684,7 @@ const WORLD_DEF = [
     elites: ["el_bogfrogking"],
     trait: {
       id: "miasma", name: "毒霧", sym: "☁", accent: "#90b070",
-      lines: ["葦の陰の毒霧にまぎれて、奇襲を受けやすい (×1.6)。", "葦の根元に、沼へ落ちた古い金貨が絡みついている。得られる金貨は 1.35倍。"],
+      lines: ["葦の陰の毒霧にまぎれて、奇襲を受けやすい (×1.6)。", "葦の根元に、沼へ落ちた古い金貨が絡みついている。得る金貨は 1.35倍。"],
       mods: { ambushMul: 1.6, goldMul: 1.35 },
     },
     tune: { enemyMul: 0.97, deepMul: 0.84, soloMul: 1.05 }, // 奇襲の分だけ控えめ
@@ -704,7 +704,7 @@ const WORLD_DEF = [
     ],
     trait: {
       id: "rot", name: "腐れの瘴気", sym: "☣", accent: "#a0c060",
-      lines: ["よどんだ瘴気が肺を焼く。戦闘が始まるたび、隊の一人ひとりが 35% で毒に冒される (毒の耐性で防げる)。", "腐りかけの魂が濃くよどみ、得る ✦Soul は 1.4倍。"],
+      lines: ["よどんだ瘴気が肺を焼く。戦闘が始まるたび、隊の一人ひとりが 35% で毒に冒される (毒の抵抗で防げる)。", "腐りかけの魂が濃くよどみ、得る ✦Soul は 1.4倍。"],
       mods: { soulMul: 1.4 },
       poisonStart: 0.35, say: "よどんだ瘴気が肺を焼く",
     },
@@ -728,20 +728,20 @@ const WORLD_DEF = [
     elites: ["el_blizzardwitch"],
     trait: {
       id: "spiral", name: "螺旋の吹き抜け", sym: "↟", accent: "#9aa8d8",
-      lines: ["階段の真ん中は底まで吹き抜けで、各階に足を踏み外す吹き抜けが2つ増える (浮遊で避けられる)。踊り場には宝箱が1つ増える。", "吹き上げる風が魂を運び上げ、得る ✦Soul は 1.25倍。"],
+      lines: ["階段の真ん中は底まで吹き抜けで、各階に足を踏み外す吹き抜けが2つ増える (最下階を除く。浮遊で避けられる)。踊り場には宝箱が1つ増える。", "吹き上げる風が魂を運び上げ、得る ✦Soul は 1.25倍。"],
       mods: { soulMul: 1.25 },
       board: "shaft",
     },
     tune: { enemyMul: 1.06, deepMul: 0.76, soloMul: 1.05 },
     unlock: { reported: "w29" },
-    hint: "「よどみの底」の踏破を王に報告すると、沼の島の工房の奥の塔へ登る許しが出る",
+    hint: "「よどみの底」の踏破を王に報告すると、沼の島の奥へ進む許しが出る",
   },
   {
     id: "w31", lv: 90, lvTo: 92, layer: 10, floors: 10,
     floorHaz: { fall: "stairwell", harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.1231, 5: 0.1327, 10: 0.1437 },
     name: "嵐を鳴らす鐘楼", short: "鐘楼",
-    about: "塔の中ほどに吊られた、いくつもの大鐘。嵐が吹き抜けるたび、誰も撞かない鐘が鳴りわたる",
+    about: "塔の中ほどに吊られた、いくつもの大鐘。嵐が吹き抜けるたび、誰も鳴らさない鐘が鳴りわたる",
     bands: [
       ["bs_boltarcher", "bs_galewisp", "bs_soulanchor", "bs_stormelemental", "bs_ravenswarm", "bs_windwraith"],
       ["bs_stormcaller", "bs_harpyqueen", "bs_cloudgiant"],
@@ -749,7 +749,7 @@ const WORLD_DEF = [
     elites: ["el_stareater"],
     trait: {
       id: "bells", name: "鳴りやまぬ鐘", sym: "♫", accent: "#d8c088",
-      lines: ["鐘の音が忍び寄る魔物を知らせ、奇襲を受けにくい (×0.5)。だが鐘に呼ばれて、強敵の階が出やすい (30%)。", "鐘の響きが魂を呼び集め、得る ✦Soul は 1.3倍。"],
+      lines: ["鐘の音が忍び寄る魔物を知らせ、奇襲を受けにくい (×0.5)。だが鐘に呼ばれて、強敵のいる階が出やすい (30%)。", "鐘の響きが魂を呼び集め、得る ✦Soul は 1.3倍。"],
       mods: { ambushMul: 0.5, soulMul: 1.3 },
       eliteRate: 0.30,
     },
@@ -771,7 +771,7 @@ const WORLD_DEF = [
     elites: ["el_blizzardwitch"],
     trait: {
       id: "railbolt", name: "帯電した手すり", sym: "ϟ", accent: "#b8c8f8",
-      lines: ["回廊の魔物は、どれも雷 (風) を帯びている。火の刃と火の守りが通る。", "落雷に焼かれた旅人の金貨が、手すりの根元に散らばっている。得られる金貨は 1.35倍。"],
+      lines: ["回廊の魔物は、どれも雷 (風) を帯びている。火の刃が通り、火の守りが雷を和らげる。", "落雷に焼かれた旅人の金貨が、手すりの根元に散らばっている。得る金貨は 1.35倍。"],
       mods: { elemAll: true, goldMul: 1.35 },
     },
     tune: { enemyMul: 0.99, deepMul: 0.84, soloMul: 1.05 },
@@ -807,7 +807,7 @@ const WORLD_DEF = [
     floorHaz: { fall: "bridgegap", harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.1135, 5: 0.1221, 10: 0.1322 },
     name: "雲を渡る石橋", short: "石橋",
-    about: "尖塔の頂から、雷雲の上へ長い石の橋が伸びている。欄干には、枷をつないだ鉄の輪がどこまでも並ぶ",
+    about: "尖塔の頂から、雷雲の上へ長い石の橋が伸びている。欄干には、古い鉄の輪がどこまでも並んでいる",
     bands: [
       ["bs_chaingang", "bs_warbeasthound", "bs_netfighter", "bs_hookmaster", "bs_ghostgladiator", "bs_spectreaudience"],
       ["bs_impaler", "bs_crowdroar", "bs_championwraith"],
@@ -815,13 +815,13 @@ const WORLD_DEF = [
     elites: ["el_ashshogun"],
     trait: {
       id: "nobackway", name: "退けぬ橋", sym: "⇉", accent: "#c8b898",
-      lines: ["狭い石橋に退き場はない。戦闘から逃げられない。", "亡き観客が見ている。戦闘が始まるたび観客の注文がひとつ出て (3ターン以内に勝て・誰も倒れずに勝て…)、応えて勝てばその戦闘の ✦Soul と金貨が 1.5倍。", "橋を渡った者たちの魂が欄干に残り、得る ✦Soul は 1.25倍。"],
+      lines: ["狭い石橋に退き場はない。この迷宮の戦闘からは逃げられない。", "雲の向こうの観客席から、亡き観客が見ている。戦闘が始まるたび観客の注文がひとつ出て (3ターン以内に勝て・誰も倒れずに勝て……)、応えて勝てばその戦闘で得る ✦Soul と金貨は 1.5倍。", "橋を渡った者たちの魂が欄干に残り、得る ✦Soul は 1.25倍。"],
       mods: { noFlee: true, soulMul: 1.25 },
       audience: true,
     },
     tune: { enemyMul: 1.04, deepMul: 0.78, soloMul: 1.05 }, // 逃げられない分だけ並みより少し控えめ
     unlock: { reported: "w33" },
-    hint: "「嵐の尖塔の頂」の踏破を王に報告すると、雲の上の石橋を渡る許しが出る",
+    hint: "「嵐の尖塔の頂」の踏破を王に報告すると、塔の頂のさらに先へ進む許しが出る",
   },
   {
     id: "w35", lv: 100, lvTo: 103, layer: 11, floors: 10,
@@ -836,7 +836,7 @@ const WORLD_DEF = [
     elites: ["el_dragonslayer"],
     trait: {
       id: "hungry", name: "飢えた獣", sym: "ψ", accent: "#c87850",
-      lines: ["檻の魔物はみな飢えている。戦闘が始まるたび、敵全体の攻撃が1段上がる (3ターン。主は除く)。", "亡き観客が見ている。戦闘が始まるたび観客の注文がひとつ出て (3ターン以内に勝て・誰も倒れずに勝て…)、応えて勝てばその戦闘の ✦Soul と金貨が 1.5倍。", "檻にこびりついた古い魂が、得る ✦Soul を 1.3倍にする。"],
+      lines: ["檻の魔物はみな飢えている。戦闘が始まるたび、敵全体の攻撃が1段上がる (3ターン。主・金属の魔物は除く)。", "檻の格子ごしに、亡き観客がのぞきこむ。戦闘が始まるたび観客の注文がひとつ出て (3ターン以内に勝て・誰も倒れずに勝て……)、応えて勝てばその戦闘で得る ✦Soul と金貨は 1.5倍。", "檻にこびりついた古い魂の名残で、得る ✦Soul は 1.3倍。"],
       mods: { soulMul: 1.3 },
       foeRally: 1,
       audience: true,
@@ -858,7 +858,7 @@ const WORLD_DEF = [
     elites: ["el_ashshogun"],
     trait: {
       id: "fullhouse", name: "満員の観客席", sym: "♟", accent: "#b0a0c8",
-      lines: ["観客席はいつも満員で、敵は必ず4体以上の群れで現れる。", "亡き観客が見ている。戦闘が始まるたび観客の注文がひとつ出て (3ターン以内に勝て・誰も倒れずに勝て…)、応えて勝てばその戦闘の ✦Soul と金貨が 1.5倍。", "観客の投げ銭が石段に散らばり、得られる金貨は 1.35倍。"],
+      lines: ["観客席はいつも満員で、敵は必ず4体以上の群れで現れる。", "満員の亡き観客が身を乗り出す。戦闘が始まるたび観客の注文がひとつ出て (3ターン以内に勝て・誰も倒れずに勝て……)、応えて勝てばその戦闘で得る ✦Soul と金貨は 1.5倍。", "観客の投げ銭が石段に散らばり、得る金貨は 1.35倍。"],
       mods: { packMin: 4, goldMul: 1.35 },
       audience: true,
     },
@@ -879,7 +879,7 @@ const WORLD_DEF = [
     ],
     trait: {
       id: "fervor", name: "高まる戦意", sym: "⚔", accent: "#e07060",
-      lines: ["観客の歓声が戦う者を煽る。2ターン目から毎ターン、敵も味方も攻撃が1段ずつ上がっていく (+3段まで)。", "亡き観客が見ている。戦闘が始まるたび観客の注文がひとつ出て (3ターン以内に勝て・誰も倒れずに勝て…)、応えて勝てばその戦闘の ✦Soul と金貨が 1.5倍。", "砂に染みた魂が濃く渦を巻き、得る ✦Soul は 1.4倍。"],
+      lines: ["観客の歓声が戦う者をあおる。2ターン目から毎ターン、敵も味方も攻撃が1段ずつ上がっていく (+3段まで)。", "観客席の亡き観客が、砂の上を見下ろしている。戦闘が始まるたび観客の注文がひとつ出て (3ターン以内に勝て・誰も倒れずに勝て……)、応えて勝てばその戦闘で得る ✦Soul と金貨は 1.5倍。", "砂に染みた魂が濃く渦を巻き、得る ✦Soul は 1.4倍。"],
       mods: { soulMul: 1.4 },
       fervor: true,
       audience: true,
@@ -905,14 +905,14 @@ const WORLD_DEF = [
     elites: ["el_tunnelking"],
     trait: {
       id: "risingsoul", name: "起き上がる濁り魂", sym: "↺", accent: "#b8a070",
-      lines: ["休むことを忘れた濁った魂は、倒れても起き上がる。倒した敵は戦闘ごとに一度だけ、最大HPの3割で起き上がる (主は除く)。", "光の届かない地の底では、目が闇に慣れるまで刃が泳ぐ。戦闘が始まるたび、隊の全員の命中が下がる (3ターン)。", "灯籠からこぼれた魂が濃く漂い、得る ✦Soul は 1.25倍。"],
+      lines: ["休むことを忘れた濁った魂は、倒れても起き上がる。倒した敵は戦闘ごとに一度だけ、最大HPの3割で起き上がる (主・金属の魔物は除く)。", "灯籠の山のあいだには光が届かず、目が闇に慣れるまで刃が泳ぐ。戦闘が始まるたび、隊の全員の物理の命中が下がる (外れる率 +15%、3ターン)。", "灯籠からこぼれた魂が濃く漂い、得る ✦Soul は 1.25倍。"],
       mods: { soulMul: 1.25 },
       foeRise: 0.3,
-      gloom: 0.15, say: "底なしの闇に目がくらむ",
+      gloom: 0.15, say: "灯籠の山の闇に目がくらむ",
     },
     tune: { enemyMul: 0.96, deepMul: 0.80, soloMul: 1.00 }, // 起き上がる分だけ並みより控えめ
     unlock: { reported: "w37" },
-    hint: "「血の砂の闘技場」の踏破を王に報告すると、闘技場の真ん中の穴へ降りる許しが出る",
+    hint: "「血の砂の闘技場」の踏破を王に報告すると、闘技場のさらに下へ降りる許しが出る",
   },
   {
     id: "w39", lv: 113, lvTo: 116, layer: 12, floors: 10,
@@ -927,11 +927,11 @@ const WORLD_DEF = [
     elites: ["el_oremaw"],
     trait: {
       id: "whisper", name: "ささやく湖面", sym: "≋", accent: "#8a8ab0",
-      lines: ["湖面から、名を忘れた魂のささやきが聞こえる。戦闘が始まるたび、隊の一人が惑わされて混乱することがある (混乱の抵抗で防げる)。", "光の届かない地の底では、目が闇に慣れるまで刃が泳ぐ。戦闘が始まるたび、隊の全員の命中が下がる (3ターン)。", "湖の底に沈んだ灯が魂を引き寄せ、得る ✦Soul は 1.3倍。"],
+      lines: ["湖面から、名を忘れた魂のささやきが聞こえる。戦闘が始まるたび、隊の一人が 60% で惑わされて混乱する (混乱の抵抗で防げる)。", "湖面の明かりは何も照らさず、目が闇に慣れるまで刃が泳ぐ。戦闘が始まるたび、隊の全員の物理の命中が下がる (外れる率 +15%、3ターン)。", "湖の底に沈んだ灯が魂を引き寄せ、得る ✦Soul は 1.3倍。"],
       mods: { soulMul: 1.3 },
       whisper: 0.6,
       gloom: 0.15,
-      say: { whisper: "湖面のささやきが耳の奥に入りこむ", gloom: "底なしの闇に目がくらむ" },
+      say: { whisper: "湖面のささやきが耳の奥に入りこむ", gloom: "湖の闇に目がくらむ" },
     },
     tune: { enemyMul: 0.98, deepMul: 0.82, soloMul: 1.00 },
     unlock: { story: "w38_lamp" },
@@ -942,7 +942,7 @@ const WORLD_DEF = [
     floorHaz: { fall: "nichegap", harm: "soulsoot" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.0985, 5: 0.1062, 10: 0.1152 },
     name: "名を刻む石窟", short: "石窟",
-    about: "岩壁一面に小さな壁龕が彫られた石窟。どの壁龕にも濁った灯籠が一つずつ納められ、名が刻まれている",
+    about: "岩壁一面に小さなくぼみが彫られた石窟。どのくぼみにも濁った灯籠が一つずつ納められ、名が刻まれている",
     bands: [
       ["bs_caveguardian", "bs_stalactiteghost", "bs_crystalspider", "bs_gloomstalker", "bs_obsidianbeast", "bs_echowraith"],
       ["bs_rocktitan", "bs_fossildragon", "bs_earthshaker"],
@@ -950,10 +950,10 @@ const WORLD_DEF = [
     elites: ["el_tunnelking"],
     trait: {
       id: "shell", name: "封じの殻", sym: "◎", accent: "#a0b0a0",
-      lines: ["眠りを守る封じが、魔物の身にもかかっている。戦闘が始まるたび、敵の全員 (主は除く) が打撃を1回だけ防ぐ障壁をまとう。", "光の届かない地の底では、目が闇に慣れるまで刃が泳ぐ。戦闘が始まるたび、隊の全員の命中が下がる (3ターン)。", "壁龕に供えられた古い銭が、得られる金貨を 1.35倍にする。"],
+      lines: ["眠りを守る封じが、魔物の身にもかかっている。戦闘が始まるたび、敵全体 (主・金属の魔物は除く) が打撃を1回だけ防ぐ障壁をまとう。", "石窟の奥には光が届かず、目が闇に慣れるまで刃が泳ぐ。戦闘が始まるたび、隊の全員の物理の命中が下がる (外れる率 +15%、3ターン)。", "壁のくぼみに供えられた古い銭で、得る金貨は 1.35倍。"],
       mods: { goldMul: 1.35 },
       shell: 1,
-      gloom: 0.15, say: "底なしの闇に目がくらむ",
+      gloom: 0.15, say: "石窟の闇に目がくらむ",
     },
     tune: { enemyMul: 0.95, deepMul: 0.84, soloMul: 1.05 }, // 障壁の分だけ1体ずつを控えめに
     unlock: { reported: "w38" },
@@ -973,7 +973,7 @@ const WORLD_DEF = [
     elites: ["el_tunnelking", "el_oremaw"],
     trait: {
       id: "soulfeast", name: "魂喰らいの闇", sym: "☾", accent: "#9070a0",
-      lines: ["伽藍の闇は倒れた魂を喰らう。人業を倒した敵は、攻撃が2段上がる (3ターン)。", "光の届かない地の底では、目が闇に慣れるまで刃が泳ぐ。戦闘が始まるたび、隊の全員の命中が下がる (3ターン)。", "伽藍に溜まった魂が渦を巻き、得る ✦Soul は 1.4倍。"],
+      lines: ["伽藍の闇は倒れた魂を食らう。人業を倒した敵は、攻撃が2段上がる (3ターン)。", "伽藍の闇は天井よりも深く、目が闇に慣れるまで刃が泳ぐ。戦闘が始まるたび、隊の全員の物理の命中が下がる (外れる率 +15%、3ターン)。", "伽藍に溜まった魂が渦を巻き、得る ✦Soul は 1.4倍。"],
       mods: { soulMul: 1.4 },
       soulFeast: 2,
       gloom: 0.15, say: "底なしの闇に目がくらむ",
@@ -998,7 +998,7 @@ const WORLD_DEF = [
     boss: LAYER_BOSS[1], bossRank: 4,
     tune: { enemyMul: 1.28, deepMul: 0.75, soloMul: 0.85, bossMul: 0.85 }, // DUNGEON_TUNE の D9 の雑魚 + D10 の主
     unlock: { quest: "fq_oswald" },
-    hint: "酒場の破戒僧の依頼「沈んだ鐘」を受けると、道が示される",
+    hint: "酒場の破門された司祭の依頼「沈んだ鐘」を受けると、道が示される",
   },
   {
     id: "ws2", lv: 24, lvTo: 28, layer: 3, floors: 10, side: true,
@@ -1035,7 +1035,7 @@ const WORLD_DEF = [
     },
     tune: { enemyMul: 1.33, deepMul: 0.76, soloMul: 1.00 }, // 第5層の顔ぶれ (ランク6-7) を本丸並みに
     unlock: { quest: "fq_wren" },
-    hint: "酒場の猟師の依頼「霧に呑まれた娘」を受けると、道が示される",
+    hint: "酒場の猟師の依頼「霧にのまれた娘」を受けると、道が示される",
   },
   {
     id: "ws4", lv: 41, lvTo: 45, layer: 5, floors: 10, side: true,
@@ -1050,7 +1050,7 @@ const WORLD_DEF = [
     ],
     trait: {
       id: "silver", name: "銀の里", sym: "◇", accent: "#d0d8e8",
-      lines: ["銀業の隠れ里。金属の魔物がとても出やすい (各階45%・2体の札まで)。会心の一撃で仕留めよ。", "里の番人は空の鎧と石の人形。物理に固い者が多い。"],
+      lines: ["銀の小人たちの隠れ里。金属の魔物がとても出やすい (各階45%・札は2枚まで)。会心の一撃で仕留めよ。", "里の番人は空の鎧と石の人形。物理に固い者が多い。"],
       metalRate: 0.45, metalMax: 2,
     },
     tune: { enemyMul: 1.53, deepMul: 0.76, soloMul: 1.05 },
@@ -1095,7 +1095,7 @@ const WORLD_DEF = [
     elites: ["el_warbanner"],
     trait: {
       id: "beacon", name: "消えない狼煙", sym: "♨", accent: "#e09050",
-      lines: ["狼煙の火を浴び、魔物はみな火の属性を帯びる。", "火に呼ばれて集まった魂は多く、得る ✦Soul は 1.25倍。"],
+      lines: ["狼煙の火を浴び、魔物はみな火の気を帯びる。水の刃が通り、水の守りが火を和らげる。", "火に呼ばれて集まった魂は多く、得る ✦Soul は 1.25倍。"],
       mods: { elemAll: true, soulMul: 1.25 },
     },
     tune: { enemyMul: 1.15, deepMul: 0.80, soloMul: 0.95 }, // 属性が揃う分 (水の刃で通る) だけ重め
@@ -1159,9 +1159,9 @@ const WORLD_DEF = [
     elites: ["el_magmawyrm"],
     trait: {
       id: "obsidian", name: "黒い刃の崖", sym: "◆", accent: "#9070a0",
-      lines: ["崖の割れ口に、黒曜で鍛えた古い刃物が眠る。落ちている装備の質が上がる。", "火の洞の熱気が肌を焼く。戦闘が始まるたび、隊のHPが最大の6%減る (HP1 より下にはならない)。"],
+      lines: ["崖の割れ口に、黒曜で鍛えた古い刃物が眠る。落ちている装備の質が上がる。", "黒いガラスの崖が熱を照り返す。戦闘が始まるたび、隊のHPが最大の6%減る (HP1 より下にはならない)。"],
       mods: { lootBonusLv: 4 },
-      hpDrain: 0.06, say: "灼熱の熱気が肌を焼いた",
+      hpDrain: 0.06, say: "崖の照り返す熱が肌を焼いた",
     },
     tune: { enemyMul: 1.00, deepMul: 0.80, soloMul: 1.05 }, // 開幕の熱気の分だけ控えめ
     unlock: { quest: "fq_dorn3" },
@@ -1180,10 +1180,10 @@ const WORLD_DEF = [
     elites: ["el_cinderking"],
     trait: {
       id: "pyre", name: "炎の幻", sym: "♆", accent: "#f08050",
-      lines: ["祈りの炎が見せる幻で、特別な階がよく現れる (×1.8)。", "火の洞の熱気が肌を焼く。戦闘が始まるたび、隊のHPが最大の6%減る (HP1 より下にはならない)。", "燃え残った魂は多く、得る ✦Soul は 1.2倍。"],
+      lines: ["祈りの炎が見せる幻で、特別な階がよく現れる (×1.8)。", "祈りの炎の熱が回廊にこもる。戦闘が始まるたび、隊のHPが最大の6%減る (HP1 より下にはならない)。", "燃え残った魂は多く、得る ✦Soul は 1.2倍。"],
       mods: { soulMul: 1.2 },
       specialRate: 1.8,
-      hpDrain: 0.06, say: "灼熱の熱気が肌を焼いた",
+      hpDrain: 0.06, say: "回廊にこもる炎の熱が肌を焼いた",
     },
     tune: { enemyMul: 0.98, deepMul: 0.84, soloMul: 1.05 },
     unlock: { quest: "fq_irma" },
@@ -1203,10 +1203,10 @@ const WORLD_DEF = [
     elites: ["el_glacialmaw"],
     trait: {
       id: "drift", name: "雪煙の狩り", sym: "≋", accent: "#c8e0f0",
-      lines: ["群れは雪煙にまぎれて忍び寄る。どの戦闘も必ず奇襲で始まり、敵が先に動く (周囲警戒・夜営の番・先制の心得も効かない)。", "凍てつく寒さに身がすくむ。戦闘が始まるたび、隊の全員の AGI が1段下がる (3ターン)。", "雪の下に落ちてきた品が埋もれ、得られる金貨は 1.3倍。"],
+      lines: ["群れは雪煙にまぎれて忍び寄る。主の戦いのほかは、どの戦闘も必ず奇襲で始まり、敵が先に動く (周囲警戒・夜営の番・先制の心得も効かない)。", "雪煙の冷たさに身がすくむ。戦闘が始まるたび、隊の全員の AGI が1段下がる (3ターン)。", "雪の下に落ちてきた品が埋もれ、得る金貨は 1.3倍。"],
       mods: { goldMul: 1.3 },
       alwaysAmbush: true,
-      chill: 1, say: "凍てつく寒さに身がすくむ",
+      chill: 1, say: "雪煙の冷たさに身がすくむ",
     },
     tune: { enemyMul: 0.90, deepMul: 0.82, soloMul: 1.00 }, // 毎回先手を取られる分だけ軽め
     unlock: { quest: "fq_august" },
@@ -1226,12 +1226,12 @@ const WORLD_DEF = [
     elites: ["el_frostsovereign"],
     trait: {
       id: "melt", name: "雪解けの水", sym: "✧", accent: "#9ad8f0",
-      lines: ["澄んだ雪解けの泉が湧く (各階に癒しの泉が2つ)。だが冷たい水が魔力を奪い、戦闘の開幕に隊のMPが最大の8%減る。", "凍てつく寒さに身がすくむ。戦闘が始まるたび、隊の全員の AGI が1段下がる (3ターン)。", "氷から抜け落ちた魂は傷みが少なく、得る ✦Soul は 1.3倍。"],
+      lines: ["澄んだ雪解けの泉が湧く (各階に癒しの泉が2つ)。だが冷たい水が魔力を奪い、戦闘が始まるたび、隊のMPが最大の8%減る。", "裂け目を吹き抜ける冷気に身がすくむ。戦闘が始まるたび、隊の全員の AGI が1段下がる (3ターン)。", "氷から抜け落ちた魂は傷みが少なく、得る ✦Soul は 1.3倍。"],
       mods: { soulMul: 1.3 },
       board: "font",
       mpDrain: 0.08,
       chill: 1,
-      say: { mpDrain: "冷たい雪解けの水が魔力を奪った", chill: "凍てつく寒さに身がすくむ" },
+      say: { mpDrain: "冷たい雪解けの水が魔力を奪った", chill: "裂け目を吹き抜ける冷気に身がすくむ" },
     },
     tune: { enemyMul: 1.00, deepMul: 0.84, soloMul: 1.05 },
     unlock: { quest: "fq_thaw2" },
@@ -1252,7 +1252,7 @@ const WORLD_DEF = [
     elites: ["el_offeringslime"],
     trait: {
       id: "plague", name: "疫病の塚", sym: "✝", accent: "#b0a070",
-      lines: ["投げこまれた死者が、通路に折り重なっている (各階に死体が2つ増える)。宝箱は1ランク上等。", "塚に眠る魂は数知れず、得る ✦Soul は 1.2倍。", "塚の魂は、強すぎる者の前には姿を見せない。隊のLvが推奨Lv+2 を超えると、1Lv ごとに増える死体が15%ずつ減る (推奨Lv+9 で増えなくなる)。"],
+      lines: ["投げこまれた死者が、通路に折り重なっている (各階に死体が2つ増える。半分はまだあたたかい)。宝箱は1ランク上等。", "塚に眠る魂は数知れず、得る ✦Soul は 1.2倍。", "塚の魂は、強すぎる者の前には姿を見せない。隊のLvが推奨Lv+2 を超えると、1Lv ごとに増える死体が15%ずつ減る (推奨Lv+9 で増えなくなる)。"],
       mods: { chestRankUp: 1, soulMul: 1.2 },
       board: "prison",
       corpseFade: true, // 増える死体は隊のLv が推奨Lv を超えるほど減る (2026-10-11 ユーザーの指示)
@@ -1274,7 +1274,7 @@ const WORLD_DEF = [
     elites: ["el_offeringslime"],
     trait: {
       id: "ferry", name: "渡し賃", sym: "⚓", accent: "#80a0a0",
-      lines: ["魔物は群れをなして沼を渡る。どの戦闘も3体以上の群れになる。", "沈んだ舟には渡し賃の金貨が残り、得られる金貨は 1.3倍。"],
+      lines: ["魔物は群れをなして沼を渡る。どの戦闘も3体以上の群れになる。", "沈んだ舟には渡し賃の金貨が残り、得る金貨は 1.3倍。"],
       mods: { packMin: 3, goldMul: 1.3 },
     },
     tune: { enemyMul: 0.95, deepMul: 0.82, soloMul: 1.05 }, // 群れの分だけ軽め
@@ -1302,14 +1302,14 @@ const WORLD_DEF = [
     },
     tune: { enemyMul: 0.90, deepMul: 0.82, soloMul: 0.95 }, // 二度動く分だけ軽め
     unlock: { quest: "fq_plume" },
-    hint: "酒場の羽細工師の依頼「雷鳥の羽」を受けると、道が示される",
+    hint: "酒場の羽飾り職人の依頼「雷鳥の羽」を受けると、道が示される",
   },
   {
     id: "ws16", lv: 91, lvTo: 95, layer: 10, floors: 10, side: true,
     floorHaz: { fall: null, harm: "charged" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.122, 5: 0.131, 10: 0.141 },
     name: "錆びた避雷針の林", short: "針の林",
-    about: "塔の張り出しに、錆びた鉄の針が林のように立ち並ぶ。針から針へ、青白い火花が渡っていく",
+    about: "塔の張り出しに、さびた鉄の針が林のように立ち並ぶ。針から針へ、青白い火花が渡っていく",
     bands: [
       ["bs_lightninggolem", "bs_windwraith", "bs_boltarcher", "bs_cyclonecore", "bs_stormelemental", "bs_galewisp"],
       ["bs_galeknight", "bs_cloudgiant", "bs_stormcaller"],
@@ -1317,13 +1317,13 @@ const WORLD_DEF = [
     elites: ["el_blizzardwitch"],
     trait: {
       id: "rods", name: "帯電した林", sym: "†", accent: "#a0b0c8",
-      lines: ["林の空気は帯電していて、戦闘が始まるたび隊の HP が最大の 5%ずつ焼ける (HP1 は残る)。", "針の根元に埋められた古い箱は、どれも1ランク上等。"],
+      lines: ["林の空気は帯電していて、戦闘が始まるたび、隊のHPが最大の5%焼ける (HP1 より下にはならない)。", "針の根元に埋められた古い箱は、どれも1ランク上等。"],
       mods: { chestRankUp: 1 },
       hpDrain: 0.05, say: "帯電した空気が肌を焼いた",
     },
     tune: { enemyMul: 0.97, deepMul: 0.82, soloMul: 1.05 },
     unlock: { quest: "fq_rodsmith" },
-    hint: "酒場の避雷針職人の依頼「錆びた針」を受けると、道が示される",
+    hint: "酒場の屋根職人の依頼「さびた針」を受けると、道が示される",
   },
   {
     id: "ws17", lv: 93, lvTo: 97, layer: 10, floors: 10, side: true,
@@ -1338,7 +1338,7 @@ const WORLD_DEF = [
     elites: ["el_stareater"],
     trait: {
       id: "cloudspring", name: "雲間の泉", sym: "❀", accent: "#c8e8d0",
-      lines: ["庭のあちこちに、雲から落ちる澄んだ泉が湧く (各階に泉が2つ増える)。", "花のあいだに魂が憩い、得る ✦Soul は 1.25倍。"],
+      lines: ["庭のあちこちに、夜ごと雲の露が溜まる澄んだ泉が湧く (各階に癒しの泉が2つ)。", "花のあいだに魂が憩い、得る ✦Soul は 1.25倍。"],
       mods: { soulMul: 1.25 },
       board: "font",
     },
@@ -1359,7 +1359,7 @@ const WORLD_DEF = [
     ],
     trait: {
       id: "victors", name: "勝ち残りの間", sym: "✪", accent: "#d8b070",
-      lines: ["控えの間には勝ち残った強者が待つ。どの階にも強敵がいる (1体ずつは並みより控えめ)。", "亡き観客が見ている。戦闘が始まるたび観客の注文がひとつ出て (3ターン以内に勝て・誰も倒れずに勝て…)、応えて勝てばその戦闘の ✦Soul と金貨が 1.5倍。", "勝者の褒美の箱は、どれも1ランク上等。"],
+      lines: ["控えの間には勝ち残った強者が待つ。どの階にも強敵がいる (1体ずつは並みの強敵より控えめ)。", "控えの間の戸口に、亡き観客が詰めかける。戦闘が始まるたび観客の注文がひとつ出て (3ターン以内に勝て・誰も倒れずに勝て……)、応えて勝てばその戦闘で得る ✦Soul と金貨は 1.5倍。", "勝者の褒美の箱は、どれも1ランク上等。"],
       mods: { chestRankUp: 1 },
       eliteRate: 1,
       audience: true,
@@ -1382,14 +1382,14 @@ const WORLD_DEF = [
     elites: ["el_dragonslayer"],
     trait: {
       id: "duel", name: "一騎打ち", sym: "⋈", accent: "#d0a0a0",
-      lines: ["決闘場の試合は一対一。魔物の札の戦闘には必ず1体だけが現れ、その1体は強敵並みに強い (戦果も群れの分だけ持つ)。", "亡き観客が見ている。戦闘が始まるたび観客の注文がひとつ出て (3ターン以内に勝て・誰も倒れずに勝て…)、応えて勝てばその戦闘の ✦Soul と金貨が 1.5倍。", "決闘の賭け金が砂に残り、得られる金貨は 1.3倍。"],
+      lines: ["決闘場の試合は一対一。魔物の札の戦闘には必ず1体だけが現れ、その1体は強敵並みに強い (戦果も群れの分だけ持つ)。", "決闘場を囲む石段から、亡き観客が見ている。戦闘が始まるたび観客の注文がひとつ出て (3ターン以内に勝て・誰も倒れずに勝て……)、応えて勝てばその戦闘で得る ✦Soul と金貨は 1.5倍。", "決闘の賭け金が砂に残り、得る金貨は 1.3倍。"],
       mods: { goldMul: 1.3 },
       duel: true,
       audience: true,
     },
     tune: { enemyMul: 1.00, deepMul: 0.86, soloMul: 1.00 },
     unlock: { quest: "fq_fencer" },
-    hint: "酒場の剣術指南の依頼「一騎打ちの作法」を受けると、道が示される",
+    hint: "酒場の道場の女師範の依頼「一騎打ちの作法」を受けると、道が示される",
   },
   {
     // 層の主 (大空洞の主) の寝床。主のいる寄り道 (沈んだ礼拝堂 ws1 と同じ形)。宝箱は1階に1つ、その代わり上等
@@ -1397,17 +1397,17 @@ const WORLD_DEF = [
     floorHaz: { fall: null, harm: "bonegrit" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.099, 5: 0.106, 10: 0.114 },
     name: "大空洞の主の寝床", short: "主の寝床",
-    about: "大空洞の脇の、天井の高い岩屋。喰い散らかされた巨獣の骨が、床一面に積もっている",
+    about: "大空洞の脇の、天井の高い岩屋。食い散らかされた巨獣の骨が、床一面に積もっている",
     bands: [
       ["bs_cavebehemoth", "bs_primalbeast", "bs_deepworm", "bs_cavetroll", "bs_blindhorror", "bs_earthshaker"],
       ["bs_rocktitan", "bs_mawofthedeep", "bs_fossildragon"],
     ],
     trait: {
       id: "beasthoard", name: "巨獣の宝", sym: "◆", accent: "#c8a060",
-      lines: ["巨獣は光るものを一つだけ寝床に抱えこむ。宝箱は1階に1つしかないが、中身は2ランク上等。", "光の届かない地の底では、目が闇に慣れるまで刃が泳ぐ。戦闘が始まるたび、隊の全員の命中が下がる (3ターン)。"],
+      lines: ["巨獣は光るものを一つだけ寝床に抱えこむ。宝箱は1階に1つしかないが、中身は2ランク上等。", "岩屋の暗がりで、目が闇に慣れるまで刃が泳ぐ。戦闘が始まるたび、隊の全員の物理の命中が下がる (外れる率 +15%、3ターン)。"],
       mods: { chestRankUp: 2 },
       oneChest: true,
-      gloom: 0.15, say: "底なしの闇に目がくらむ",
+      gloom: 0.15, say: "岩屋の暗がりに目がくらむ",
     },
     boss: LAYER_BOSS[11], bossRank: 10,
     tune: { enemyMul: 1.00, deepMul: 0.84, soloMul: 1.00, bossMul: 0.85 },
@@ -1421,7 +1421,7 @@ const WORLD_DEF = [
     floorHaz: { fall: "fossilcrack", harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.136, 5: 0.142, 10: 0.149 },
     name: "化石竜の墓所", short: "化石竜の墓所",
-    about: "岩盤の中に、山のように大きな竜の骨が埋まっている。骨のすき間をたどる道は、入った者を二度と外へ返さない",
+    about: "岩盤の中に、山のように大きな竜の骨が埋まっている。骨のすき間をたどる道は、行き着くところまで行かなければ、入った者を外へ返さない",
     bands: [
       ["bs_fossildragon", "bs_primalbeast", "bs_obsidianbeast", "bs_rocktitan", "bs_primalserpent", "bs_crystaldrake"],
       ["bs_cavebehemoth", "bs_earthshaker", "bs_abysshorror"],
@@ -1429,10 +1429,10 @@ const WORLD_DEF = [
     elites: ["el_oremaw"],
     trait: {
       id: "sealedgate", name: "閉ざされた門", sym: "⊘", accent: "#c09060",
-      lines: ["骨の道に帰還魔法陣は無く、帰還の鈴も鳴らない。最下階に着くか全滅するまで、外へは出られない。", "光の届かない地の底では、目が闇に慣れるまで刃が泳ぐ。戦闘が始まるたび、隊の全員の命中が下がる (3ターン)。", "太古の魂が骨に眠り、得る ✦Soul は 1.3倍・宝箱は1ランク上等。"],
+      lines: ["骨の道に帰還魔法陣は無く、帰還の鈴も鳴らない。最下階に着くか全滅するまで、外へは出られない。", "骨のすき間の闇で、目が闇に慣れるまで刃が泳ぐ。戦闘が始まるたび、隊の全員の物理の命中が下がる (外れる率 +15%、3ターン)。", "太古の魂が骨に眠り、得る ✦Soul は 1.3倍。宝箱は1ランク上等。"],
       mods: { soulMul: 1.3, chestRankUp: 1 },
       sealedGate: true,
-      gloom: 0.15, say: "底なしの闇に目がくらむ",
+      gloom: 0.15, say: "骨の道の闇に目がくらむ",
     },
     tune: { enemyMul: 1.00, deepMul: 0.84, soloMul: 1.05 },
     unlock: { quest: "fq_fossil" },
@@ -1451,14 +1451,14 @@ const WORLD_DEF = [
     elites: ["el_oremaw"],
     trait: {
       id: "clearcrystal", name: "澄んだ水晶の光", sym: "◇", accent: "#a0c8f0",
-      lines: ["水晶の光が品の正体を照らし出す。この迷宮で拾う品は、はじめから鑑定済み。", "光の届かない地の底では、目が闇に慣れるまで刃が泳ぐ。戦闘が始まるたび、隊の全員の命中が下がる (3ターン)。", "光に群がる魔物は、必ず3体以上の群れで現れる。"],
+      lines: ["水晶の光が品の正体を照らし出す。この迷宮で拾う品は、はじめから鑑定済み。", "水晶の光の外は真っ暗で、目が闇に慣れるまで刃が泳ぐ。戦闘が始まるたび、隊の全員の物理の命中が下がる (外れる率 +15%、3ターン)。", "光に群がる魔物は、必ず3体以上の群れで現れる。"],
       mods: { packMin: 3 },
       appraised: true,
-      gloom: 0.15, say: "底なしの闇に目がくらむ",
+      gloom: 0.15, say: "水晶の光の外の闇に目がくらむ",
     },
     tune: { enemyMul: 0.96, deepMul: 0.84, soloMul: 1.00 }, // 群れの分だけ1体ずつを控えめに
     unlock: { quest: "fq_gemcutter" },
-    hint: "酒場の宝石職人の依頼「くもらない石」を受けると、道が示される",
+    hint: "酒場の石細工の店主の依頼「くもらない石」を受けると、道が示される",
   },
 ];
 

@@ -40,7 +40,7 @@ function charTimes(lines) {
       t += 62;
       if (ch === "、") t += 160;
       else if (ch === "。" || ch === "」") t += 380;
-      else if (ch === "—") t += 70;
+      else if (ch === "—" || ch === "─") t += 70;
     }
     if (em) { t += 380; row.push(t); t += 700; } // 末尾 = 読み (ruby) の現れる時刻
     out.push(row);
