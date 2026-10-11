@@ -1,8 +1,8 @@
 // ===== 街 (広場) — 夜景・帰還の報告・いまの目標・次にすべきこと・酒場/宿屋/祠の札・隊の札 =====
 // 担当: WP-A。街タブの描画 (UI.shell.registerTab("hub", …))。見出しは夜景に重ねる (シェルの見出しは出さない)。
 // 画面は1枚に収める (縦にスクロールさせない)。背の低い端末では「次にすべきこと・街の札」の段だけが内側で流れる。
-//   夜景       … 生かしたまま使い回す (api.keep)。名所の札は 44px 以上の押せる場所。帰還の報告がある時は細い帯に畳む
-//   帰還の報告 … UI.renderRunReport(host) (WP-D)。無ければ出さない
+//   夜景       … 生かしたまま使い回す (api.keep)。名所の札は 44px 以上の押せる場所
+//   帰還の報告 … 夜景の右下 (いまの目標の札の右上) に小さな札 (UI.runReportBadge)。押すと UI.openRunReport のシート (WP-D)。無ければ出さない
 //   いまの目標 … その場で果たせる操作つき (謁見する / 仕立てる / 王に報告する / 拝命する / 出撃)
 //   次にすべきこと … 優先順に最大3つ (3列の札)。1タップで実行 (売る・赤い魂を使うものは確認のシートを1枚)。
 //                   UI.registerSuggestion(fn) で他のパッケージも足せる
@@ -30,9 +30,6 @@ const G = () => game.G;
 // 札は3列に並ぶので label は短く (5字ほど。長い時は3枚並びで使う short を添える)、詳しくは sub に
 const extra = []; // 他のパッケージが登録した提案の源 (fn(counts) → 提案 | 提案[] | null)
 export function registerSuggestion(fn) { if (typeof fn === "function" && !extra.includes(fn)) extra.push(fn); }
-// 帰還の報告の札が受け持つ操作 (報告がある間は「次にすべきこと」に重ねて出さない)
-// 砕けた人業の修復・連れ帰りは最優先なので、報告があっても「次にすべきこと」の先頭に出す
-const REPORT_KEYS = new Set(["rest", "identify", "sell", "autoEquip"]);
 
 function confirmThen({ banner, title, lines, okLabel, run }) {
   if (!UI.confirm) return run();
@@ -216,7 +213,22 @@ function spotOpen(k) {
 }
 
 // 夜景の箱は低く切り詰める。絵 (240x170) は下端に揃えた「舞台」に敷き、名所の札は舞台の座標で置く (切れても位置がずれない)
-function hero(api, { collapsed = false, width = 390 } = {}) {
+// 帰還の報告の札 (夜景の右下)。押すと報告をシートで開く (収穫・成長・宿・鑑定・売却などの用事はそこで)
+function reportBadge(r) {
+  const b = el("button", "hb-rr t-" + (r.tone || "gold"));
+  b.type = "button";
+  b.appendChild(el("i", "hb-rr-dot"));
+  const tx = el("span", "hb-rr-tx");
+  tx.appendChild(el("span", "hb-rr-t", r.banner));
+  if (r.where) tx.appendChild(el("span", "hb-rr-w", r.where));
+  b.appendChild(tx);
+  b.appendChild(el("span", "hb-rr-c", "›"));
+  b.setAttribute("aria-label", `${r.banner}${r.where ? " " + r.where : ""} を開く`);
+  b.addEventListener("click", () => { sfx("select"); if (UI.openRunReport) UI.openRunReport(); });
+  return b;
+}
+
+function hero(api, { collapsed = false, width = 390, report = null } = {}) {
   const g = G();
   const h = el("div", "tw-hero hb-hero" + (collapsed ? " collapsed" : ""));
   const stage = el("div", "hb-stage");
@@ -224,6 +236,7 @@ function hero(api, { collapsed = false, width = 390 } = {}) {
   // 見出し (⚙・通貨) の下から、いまの目標の札 (背の高い端末では 16px 重なる) の上までに収まるようにする
   let spots = {};
   try { spots = townSpots(); } catch (e) { spots = {}; }
+  const rr = report && !collapsed ? reportBadge(report) : null;
   const layout = () => {
     const ys = SPOTS.map((s) => spots[s.k]?.y).filter((y) => typeof y === "number");
     const yTop = ys.length ? Math.min(...ys) : 0.39, yBot = ys.length ? Math.max(...ys) : 0.72;
@@ -240,6 +253,8 @@ function hero(api, { collapsed = false, width = 390 } = {}) {
     const top = collapsed ? -stageH * 0.5 : Math.max(heroH - stageH, topBand);
     h.style.height = heroH + "px";
     stage.style.top = Math.round(Math.min(0, top)) + "px";
+    // 帰還の報告の札は、いまの目標の札と重なる帯 (overlap) のすぐ上に
+    if (rr) rr.style.bottom = (overlap + 6) + "px";
     for (const s of SPOTS) {
       const b = stage.querySelector(".hb-spot-" + s.k), p = spots[s.k];
       if (!b || !p) continue;
@@ -263,6 +278,7 @@ function hero(api, { collapsed = false, width = 390 } = {}) {
     }
   } catch (e) { /* 演出のみ: 失敗しても街は使える */ }
   h.appendChild(stage);
+  if (rr) h.appendChild(rr);
   // 見出し (夜景に重ねる): ⚙ ・ 題 ・ 通貨
   const bar = el("div", "hb-bar");
   const gear = el("button", "hb-gear");
@@ -492,27 +508,16 @@ export function renderHub(root, api) {
   dismissGreet();
   const a = api || { keep: (k, f) => (UI.shell && UI.shell.keep ? UI.shell.keep(k, f) : f()) };
   const wrap = el("div", "hb wa-fit");
-  // 帰還の報告 (WP-D)。ある時は夜景を細い帯に畳んで場所を譲る
-  const host = el("div", "hb-report");
-  let node = null;
-  try { node = UI.renderRunReport ? UI.renderRunReport(host) : null; } catch (e) { node = null; setTimeout(() => { throw e; }); }
-  if (node && node.nodeType && node.parentNode !== host) host.appendChild(node);
-  const hasReport = host.childElementCount > 0;
-  wrap.appendChild(hero(a, { collapsed: hasReport, width: root.clientWidth || 390 }));
-  if (hasReport) {
-    wrap.appendChild(host);
-    // 報告を閉じたら (×) 夜景を広げて描き直す
-    host.addEventListener("click", (e) => {
-      if (!e.target.closest || !e.target.closest(".rr-x")) return;
-      queueMicrotask(() => { if (!host.querySelector(".rr-card") && game.renderTown) game.renderTown(); });
-    });
-  }
+  // 帰還の報告 (WP-D)。夜景の右下 (いまの目標の札の右上) に小さな札を置き、押すとシートで開く
+  let badge = null;
+  try { badge = UI.runReportBadge ? UI.runReportBadge() : null; } catch (e) { badge = null; setTimeout(() => { throw e; }); }
+  wrap.appendChild(hero(a, { width: root.clientWidth || 390, report: badge }));
   // いまの目標
   const o = game.objectiveInfo ? game.objectiveInfo() : null;
   if (o) wrap.appendChild(objectiveCard(o));
   // 次にすべきこと + 街の札 (背の低い端末ではこの段だけが内側で流れる)
   const mid = el("div", "hb-mid");
-  const sg = suggestions(3, { exclude: hasReport ? REPORT_KEYS : null });
+  const sg = suggestions(3);
   if (sg.length) {
     const box = el("div", "hb-sugs");
     box.appendChild(sectionHead("次にすべきこと"));

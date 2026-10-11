@@ -591,17 +591,36 @@ export function openRunReportDetail() {
   });
 }
 
-// 帰還の報告をシートで開く (広場に札を置けない時・検証用)
+// 広場の夜景に置く小さな札の中身 (報告の種類・迷宮名・色)。報告が無い/閉じた時は null
+export function runReportBadge() {
+  const g = G();
+  const lr = g && g.lastRun;
+  if (!lr || lr.dismissed) return null;
+  const o = OUTCOME[lr.outcome] || OUTCOME.return;
+  return { banner: o.banner, tone: o.tone, where: lr.dungeon ? lr.dungeon.name : "" };
+}
+
+// 帰還の報告をシートで開く (広場の札を押した時。札の × で報告を閉じたらシートも閉じる)
 export function openRunReport() {
   const g = G();
   if (!g || !g.lastRun) return null;
+  const o = OUTCOME[g.lastRun.outcome] || OUTCOME.return;
   return sheet.open({
-    kind: "info", banner: "帰還の報告", className: "dg-sheet rr-sheet",
-    body: (b) => { const c = renderRunReport(); if (c) b.appendChild(c); },
+    kind: "info", banner: o.banner, className: "dg-sheet rr-sheet",
+    body: (b, h) => {
+      const c = renderRunReport();
+      if (c) b.appendChild(c);
+      b.addEventListener("click", (e) => {
+        if (!e.target.closest || !e.target.closest(".rr-x")) return;
+        queueMicrotask(() => { if (!b.querySelector(".rr-card") && h) h.close(); });
+      });
+    },
+    // 閉じたら広場を描き直す (報告を閉じていれば夜景の札も消える)
+    onClose: () => { if (game.renderTown && G()?.state === "town") game.renderTown(); },
     footer: [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }],
   });
 }
 
 export function install() {
-  registerUI({ renderRunReport, openRunReport, openRunReportDetail, openResults, openWipe, celebrateClear });
+  registerUI({ renderRunReport, runReportBadge, openRunReport, openRunReportDetail, openResults, openWipe, celebrateClear });
 }

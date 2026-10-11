@@ -14626,9 +14626,9 @@ function returnToTown(opts = {}) {
   autosave(true);
   const repairTutorial = UI.tutorialAfterReturn?.() || false;
   if (abyssSummary && !repairTutorial) showAbyssSummary(abyssSummary);
-  // 帰還の報告は街の広場 (WP-A) が UI.renderRunReport で札として置く。まだ置かれていなければ、シートで見せる
+  // 帰還の報告は街の広場 (WP-A) が夜景の右下に札 (.hb-rr、押すとシート) として置く。まだ置かれていなければ、シートで見せる
   else if (!repairTutorial) setTimeout(() => {
-    if (G.state === "town" && G.lastRun && !G.lastRun.dismissed && !document.querySelector(".rr-card") && !uiBlocked() && UI.openRunReport) UI.openRunReport();
+    if (G.state === "town" && G.lastRun && !G.lastRun.dismissed && !document.querySelector(".rr-card, .hb-rr") && !uiBlocked() && UI.openRunReport) UI.openRunReport();
   }, 450);
   // §7 M9 帰還時に宿で休む (設定で選んだ時だけ。宿賃は宿屋と同じ)
   if (!repairTutorial && outcome !== "wipe" && uiDungeonHud.getPref("autoRest")) {
