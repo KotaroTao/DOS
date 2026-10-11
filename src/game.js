@@ -699,7 +699,8 @@ function runSummary(r, outcome, extra = {}) {
     abyss: G.abyss ? G.abyss.depth : null,
     floor: G.floor, floors: Math.max(r.floors || 1, G.floor || 1),
     gold: r.gold || 0, soulPts: r.soulPts || 0, kills: r.kills || 0, embers: r.embers || 0,
-    items: (r.items || []).map(({ owner, item }) => ({ id: item && item.id, name: itemName(item), rar: rarityKey(item), unid: !!(item && item.unidentified), owner: owner ? owner.name : "" })),
+    // ref = 品の実体 (報告から図鑑を開く時、帰ってから鑑定した品はその正体を見せる)
+    items: (r.items || []).map(({ owner, item }) => ({ id: item && item.id, name: itemName(item), rar: rarityKey(item), unid: !!(item && item.unidentified), owner: owner ? owner.name : "", ref: item || null })),
     souls: (r.souls || []).map((s) => { const c = SOUL_CLASSES[s.clsKey]; return { clsKey: s.clsKey, label: c ? c.label : s.clsKey, rarity: c ? c.rarity : "common" }; }),
     levels: (r.levels || []).map((x) => ({ name: x.name, from: x.from, to: x.to })),
     lost: [...(r.lost || [])],
