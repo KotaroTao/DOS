@@ -509,7 +509,7 @@ export const EVENTS = [
   },
   {
     id: "c25", name: "鏡の間", layer: 0, tier: "rare", icon: "event", deep: true,
-    intro: () => ["四方を鏡に囲まれた部屋。鏡の中の自分たちが、こちらを見てあざ笑った。", "鏡の影は、自分たちの七割の力を持つ。"],
+    intro: () => ["四方を鏡に囲まれた部屋。鏡の中の自分たちが、こちらを見てあざ笑った。", "鏡の影は、自分たちと同じ力と技を持つ。体の丈夫さだけが七割。"],
     choices: (A, cell) => [
       { label: "鏡に挑む ― 自分たちの影と戦い、✦Soul (大) と上等な品", danger: true, fn: () => {
         A.fight(cell, [{ shadows: 0.7 }], "mirror", { noChest: true });
@@ -1714,12 +1714,12 @@ export const EVENTS = [
           A.toast(n ? `氷の奥に、この階の宝箱${n}つが映った` : "氷の奥には、もう何も映らなかった", n ? "good" : "info", "chest");
           A.done(cell);
         } },
-        { label: "影と斬り結ぶ ― 隊の影 (五割の力) と戦い、勝てば ✦Soul と上等な品", danger: true, fn: () => {
+        { label: "影と斬り結ぶ ― 隊の写し身 (力も技も隊と同じ・体力は五割) と戦い、勝てば ✦Soul と上等な品", danger: true, fn: () => {
           A.fight(cell, [{ shadows: 0.5 }], "icemirror", { noChest: true });
         } },
       ];
     },
-    onWin: (A, cell, f, next) => { A.soul(2, "氷の鏡の影"); A.item({ rare: true }, "氷の鏡の奥", () => A.done(cell, next)); },
+    onWin: (A, cell, f, next) => { A.soul(4, "氷の鏡の影"); A.item({ rare: true }, "氷の鏡の奥", () => A.done(cell, next)); },
   },
   {
     id: "l8_06", name: "氷に閉じこめられた宝箱", layer: 8, tier: "uncommon", icon: "chest",

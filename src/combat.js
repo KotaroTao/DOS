@@ -207,6 +207,8 @@ function makeEnemy(key, scale = 1, boss = false, bossRank = 0) {
 const rand = (n) => Math.floor(Math.random() * n);
 // 奇襲の1ターン目に各敵が動く確率 (最低1体は動く — Battle._ambushers)
 const AMBUSH_ACT_RATE = 0.5;
+// 写し身 (鏡の影) が攻撃の技を使う手番の割合 (MPが足りる時。回復は仲間が深手の時に別枠)
+const MIMIC_SKILL_RATE = 0.6;
 // 揺らぎ。基準値は先に四捨五入する (34.5 → 35)。回復量・ダメージに小数を出さない
 const variance = (base) => { const b = Math.round(base); return Math.max(1, b + rand(Math.ceil(b * 0.4)) - rand(Math.ceil(b * 0.2))); };
 // 揺らぎは上側が広く、平均は基準値より約10%高い。オートも同じ平均を読む。
@@ -1417,6 +1419,7 @@ export class Battle {
 
   // 敵の実効AGI を、回避・逃走の物差し (基準の隊の規模) に戻す: 直した敵は ÷TURN_K、金属の魔物は従来どおり × fleeK
   _foeAgiBase(e, agi) {
+    if (e._partyScale) return agi; // 写し身 (鏡の影): 写した人業の AGI そのまま
     if (isMetal(e)) return agi * (this.fleeK || 1);
     return e._agiScaled ? agi / TURN_K : agi * (this.fleeK || 1);
   }
@@ -1793,6 +1796,8 @@ export class Battle {
       } else if (!cmd && actor.role === "summoner") {
         if (this.livingEnemies().length < MAX_ENEMIES && Math.random() < 0.50) cmd = { actor, action: "summon" };
       }
+      // 写し身 (鏡の影): 写した人業の技を、残りMPの許す限り使う
+      if (!cmd && actor.mimic) cmd = this._mimicPick(actor);
       // 主・精鋭の溜め (特技とは別枠)
       if (!cmd && !(actor._chargeCd > 0) && Math.random() < this._chargeRate(actor)) cmd = { actor, action: "windup" };
       if (!cmd) {
@@ -1835,6 +1840,105 @@ export class Battle {
   }
 
   // 回復役の標的: 最もHP割合の低い負傷した仲間 (HP65%未満)
+  // 写し身の技選び: 仲間の影が深手 (HP5割未満) なら回復を、それ以外は MIMIC_SKILL_RATE で一番重い攻撃の技を (届かなければ通常攻撃)
+  _mimicPick(actor) {
+    const usable = actor.mimic.map((k) => [k, SPELLS[k]]).filter(([, sp]) => sp && spellCost(actor, sp) <= (actor.mp || 0));
+    if (!usable.length) return null;
+    const hurt = this.livingEnemies().filter((e) => e.hp < e.maxhp * 0.5);
+    const heals = usable.filter(([, sp]) => healsHp(sp));
+    if (hurt.length && heals.length && Math.random() < 0.7) {
+      const pie = (actor.pie || 0) * this._bm(actor, "pie");
+      const score = ([, sp]) => (sp.healPct ? 999 : spellHealRaw(actor, sp, pie)) * (sp.target === "all-ally" ? Math.min(2, hurt.length) : 1);
+      const [k] = heals.reduce((a, b) => (score(b) > score(a) ? b : a));
+      return { actor, action: "mimic", spellKey: k };
+    }
+    if (Math.random() >= MIMIC_SKILL_RATE) return null;
+    const n = this.livingParty().length;
+    const score = ([, sp]) => (sp.kind === "phys" ? (sp.power || 1) * (sp.scatter || sp.hits || 1) * this._eatk(actor)
+      : attackSpellPower(sp, Math.max(actor.int || 0, isFaithSpell(sp) ? actor.pie || 0 : 0))) * (sp.target === "all-enemy" ? n * 0.7 : 1);
+    const atks = usable.filter(([, sp]) => (sp.kind === "phys" && (sp.power || 0) > 0) || (sp.kind === "atk" && !sp.gravity && (sp.power || 0) > 0));
+    if (!atks.length) return null;
+    const [k] = atks.reduce((a, b) => (score(b) > score(a) ? b : a));
+    return { actor, action: "mimic", spellKey: k, target: this._pickPartyTarget() };
+  }
+  // 写し身が技を使う: 物理技は隊への物理 (通常攻撃と同じ計算・技の倍率と段数)、攻撃呪文は隊への呪文、回復は仲間の影へ。
+  //  技に付く状態異常・弱体などの効果は写さない (威力だけを写す)
+  _mimicCast(actor, cmd, res) {
+    const sp = SPELLS[cmd.spellKey];
+    actor.mp = Math.max(0, (actor.mp || 0) - spellCost(actor, sp));
+    const isPhys = sp.kind === "phys";
+    this.log(isPhys || sp.tech ? `${actor.name}の ${sp.name}！` : `${actor.name}は ${sp.name} を唱えた！`, "dmg");
+    res.spellName = sp.name;
+    const all = sp.target === "all-enemy";
+    if (healsHp(sp)) {
+      res.action = "spell"; res.spellKind = "heal";
+      const pie = (actor.pie || 0) * this._bm(actor, "pie");
+      const raw = spellHealRaw(actor, sp, pie);
+      const tgts = sp.target === "all-ally" ? this.livingEnemies() : [this._woundedAlly(actor) || actor].filter((t) => t.alive);
+      for (const t of tgts) {
+        const heal = Math.min(t.maxhp - t.hp, healOnTarget(sp, t, sp.healPct ? 0 : variance(raw)));
+        t.hp += Math.max(0, heal);
+        this.log(`${t.name}のHPが ${Math.max(0, heal)} 回復した`, "dmg");
+        res.hits.push({ target: t, heal: Math.max(0, heal) });
+      }
+      return;
+    }
+    if (isPhys) {
+      res.action = "attack";
+      const popt = {
+        power: (sp.power || 1) * soulPowerMul(actor, sp), critBonus: sp.critBonus, element: sp.element,
+        intScale: sp.intScale, agiScale: sp.agiScale, vitScale: sp.vitScale, pieScale: sp.pieScale,
+        acc: sp.acc, pierce: sp.pierce, name: sp.name, skill: true, area: all,
+      };
+      const plan = [];
+      if (sp.scatter) for (let i = 0; i < sp.scatter; i++) plan.push(null);
+      else for (const t of (all ? this.livingParty() : [(cmd.target && cmd.target.alive) ? cmd.target : this._pickPartyTarget()].filter(Boolean))) plan.push(t);
+      for (const t0 of plan) {
+        const t = t0 || this._randAlive(this.party);
+        if (!t) break;
+        for (let h = 0; h < (sp.scatter ? 1 : (sp.hits || 1)); h++) {
+          if (!t.alive) break;
+          res.hits.push(this._physical(actor, t, popt));
+        }
+      }
+      return;
+    }
+    // 攻撃呪文: 味方の呪文と同じ威力 (INT、光・祈りの呪文は INT と PIE の高い方)。守りは隊が受ける呪文と同じ (魔法抵抗値・呪文避け・魔障壁・封の結界)
+    res.action = "breath"; res.breath = true; res.espell = true; res.fxEl = sp.element || "none";
+    const intv = Math.max((actor.int || 0) * this._bm(actor, "int"), isFaithSpell(sp) ? (actor.pie || 0) * this._bm(actor, "pie") : 0);
+    const power = attackSpellPower(sp, intv) * soulPowerMul(actor, sp);
+    const tgts = all ? this.livingParty() : [(cmd.target && cmd.target.alive) ? cmd.target : this._pickPartyTarget()].filter(Boolean);
+    for (const t of tgts) {
+      if ((t.magResist || 0) >= 100) {
+        this.log(`${t.name}は呪文を無効化した！`, "sys");
+        res.hits.push({ target: t, dmg: 0, immune: true, died: false });
+        continue;
+      }
+      if (this._onceGuard(t, "spellGuard", "_sgUsed", "封の結界")) { res.hits.push({ target: t, dmg: 0, immune: true, died: false }); continue; }
+      const em = elemDmgMult(sp.element || "none", 1, t.element || "none", edefOf(t));
+      let dmg = Math.max(1, Math.round(variance(power)) - Math.floor(this._evit(t) * 0.2));
+      if (em !== 1) dmg = Math.max(1, Math.round(dmg * em));
+      if (t._defending) dmg = Math.ceil(dmg * 0.5);
+      { const pt = this._perkSum(t, "take", { tgt: actor, el: sp.element || "none", on: ["spell"] }); if (pt) dmg = Math.max(1, Math.floor(dmg * Math.max(0.2, 1 - pt))); }
+      const ward = this._bm(t, "wardS");
+      if (ward > 1) dmg = Math.max(1, Math.round(dmg / ward));
+      if (t._barrierLeft > 0) {
+        t._barrierLeft--;
+        dmg = Math.ceil(dmg * 0.5);
+        this.log(`${t.name}の魔障壁が呪文を弱めた！`, "heal");
+        this._proc(t, "魔障壁");
+      }
+      dmg = Math.max(1, Math.floor(dmg * (1 - this._shintou(t))));
+      dmg = this._resistCut(t, dmg, "magResist").dmg;
+      dmg = this._wallCut(t, dmg);
+      t.hp -= dmg;
+      this.log(`${t.name}に ${dmg} ダメージ${elemNote(em) ? " " + elemNote(em) : ""}`, "dmg");
+      this._wake(t);
+      const died = this._die(t);
+      if (!died) { this._postDamage(t); this._perkHurt(t, actor, dmg, "spell"); }
+      res.hits.push({ target: t, dmg, died });
+    }
+  }
   _woundedAlly(actor) {
     let best = null;
     for (const e of this.livingEnemies()) {
@@ -1996,6 +2100,10 @@ export class Battle {
     }
     if (action === "item") {
       this._useItem(actor, cmd, res);
+      return res;
+    }
+    if (action === "mimic") {
+      this._mimicCast(actor, cmd, res);
       return res;
     }
     if (action === "windup") {
