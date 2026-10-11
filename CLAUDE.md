@@ -252,6 +252,9 @@ The UI was rebuilt into packages under `src/ui/` (plain ES modules; **they never
 - Legacy popups `showChoice`/`showEvent`/`showItemGet` in game.js still exist as thin entry points (`showItemGet` routes to `UI.loot`); prefer `sheet`/`toast` for new UI. Styles: `ui.css` (kit), `ui-hub.css`, `ui-party.css`, `ui-shop.css`, `ui-dungeon.css`.
 - Dev harnesses (not shipped) live in the session scratchpad (`ux/harness*.mjs`).
 
+## 無限迷宮の計画 (未着手) — `docs/infinite-labyrinth.md`
+今の「奈落」を、入るたびに Lv1 から始まるローグライク「無限迷宮」に置き換える仕様 (2026-10 ユーザーと決定、リリース直前に実装予定)。仮の器6体・コモン/レアの魂の3択・5階ごとの風だまり (回収人・灯番) と無限迷宮だけの主・持ち帰りは魂 (＋1 の素材)・品 (商会の棚へ)・残火だけ・図鑑の伝承は本編の討伐が必要・装備可能レベル (本編も共通)・ゲーム全体の種つき乱数。奈落・装備・乱数・図鑑に触れる作業の前に読む。末尾に未決事項。
+
 ## 整理の計画 (未着手) — `docs/refactor-plan.md`
 巨大ファイル (`game.js` / `schema.js` の `ARTS` / `jobart.js`) の分割と、旧仕様の二重構造 (難しさの尺度6種・旧100迷宮の生成器・旧魔物定義・`x_` 層・旧ポップアップ) の一本化の計画。リリース前なので仕様は変えてよい (ユーザーの方針)。分割・統合・CI・セーブ形式に触れる作業の前に読み、段ごとにユーザーの了解を取って進める。末尾の「追補」に #487・#488 のレビューで出た改善提案 (親しさの段のずれ・`n` の畳み込み・調整の自動検証・`ASSETS` の自動生成ほか、選択肢 A〜D) がある。
 
