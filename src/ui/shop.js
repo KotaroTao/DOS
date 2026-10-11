@@ -11,6 +11,7 @@ import { UI, game, ops, registerUI } from "./ctx.js";
 import { el, button, segmented, chips, whisper, sheet, toast, setText, glyph, longPress } from "./kit.js";
 import { getPref, setPref, remember } from "./prefs.js";
 import { statLines, isEquippable } from "./itemview.js";
+import { equipLevelOf } from "../items.js";
 import {
   itemSheet, wearPlan, deltaFor, deltaEl, nameSpan, goldEl, caretIcon, equipTo, floatGold, ownerOf, equipCandidates, shopOpen, isUpgrade,
   openDollChooser, equipPick, dollIcon, revealSellBtn, revealSellAction, firstBadge, isFirstGet,
@@ -450,11 +451,17 @@ function stockRow(id) {
   const l3 = el("span", "wpc-srow-l3");
   const kind = it.slot === "weapon" ? (WEAPON_CAT_LABEL[it.cat] || "武器") : ((ITEM_CATS.find((c) => c.slots.includes(it.slot)) || {}).label || "");
   l3.appendChild(el("span", "wpc-srow-kind", kind));
+  // 装備できるLv (隊・控えの誰も届いていなければ赤く)
+  const needLv = isEquippable(it) ? equipLevelOf(it) : 1;
+  if (needLv > 1) {
+    const reach = ((g.party || []).concat(g.reserve || [])).some((d) => d && d.primary != null && (d.jobLv || 1) >= needLv);
+    l3.appendChild(el("span", "wpc-srow-lv" + (reach ? "" : " ng"), `Lv${needLv}〜`));
+  }
   if (upgrade) {
     l3.appendChild(deltaEl(plan.delta));
     l3.appendChild(el("span", "wpc-srow-who", plan.target.name));
   } else if (plan) {
-    l3.appendChild(el("span", "wpc-dim", plan.scores.some((s) => s.can) ? "今の装備が勝る" : "装備できる者がいない"));
+    l3.appendChild(el("span", "wpc-dim", plan.scores.some((s) => s.can) ? "今の装備が勝る" : needLv > 1 && !((g.party || []).concat(g.reserve || [])).some((d) => d && d.primary != null && (d.jobLv || 1) >= needLv) ? `メイン魂Lv${needLv}から装備できる` : "装備できる者がいない"));
   } else {
     const s = statLines(it);
     l3.appendChild(setText(el("span", "wpc-dim"), s || (it.slot === "misc" ? "宝物庫に奉納できる" : "")));

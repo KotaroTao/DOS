@@ -1544,7 +1544,38 @@ export function recalc(member) {
   delete member.def; delete member.spd; delete member.ac;
 }
 
-export function canEquip(member, item) {
+// ===== 装備できるLv (src/equiplevel.js が台帳から決め、game.js が registerEquipLevel で渡す) =====
+// 人業のメイン魂の Lv (member.jobLv) が品の装備できるLv に届かなければ付けられない。
+// 渡されていない (道具の単体テストなど) 間はどの品も Lv1
+let _equipLv = () => 1;
+export function registerEquipLevel(fn) { if (typeof fn === "function") _equipLv = fn; }
+export function equipLevelOf(item) {
+  if (!item || !item.slot || item.slot === "use" || item.slot === "misc" || item.slot === "mat") return 1;
+  return Math.max(1, _equipLv(item) || 1);
+}
+// メイン魂の Lv が足りなければ必要な Lv、足りていれば 0。jobLv を持たない物 (見立て用の仮の人業) は Lv を問わない
+export function equipLvShort(member, item) {
+  if (!member || typeof member.jobLv !== "number") return 0;
+  const need = equipLevelOf(item);
+  return member.jobLv < need ? need : 0;
+}
+// 付けられない時の知らせの文 (Lv が足りない時は必要な Lv を言う)
+export function equipFailMsg(member, item) {
+  if (item.unidentified) return "未鑑定の品は装備できない";
+  if (canEquip(member, item, { anyLv: true })) {
+    const need = equipLvShort(member, item);
+    if (need) return `${item.name}はメイン魂がLv${need}になると装備できる（${member.name || member.cls}はLv${member.jobLv}）`;
+  }
+  return `${member.cls}は${item.name}を装備できない`;
+}
+
+// opts.anyLv = 装備できるLv を問わない (職・重量・盾のジャンルだけを見る。落とし物の重み付けなど)
+export function canEquip(member, item, opts = null) {
+  if (!canEquipKind(member, item)) return false;
+  if (!(opts && opts.anyLv) && equipLvShort(member, item)) return false;
+  return true;
+}
+function canEquipKind(member, item) {
   // 未鑑定の品は正体が分からないため装備できない (鑑定が必要)
   if (item.unidentified) return false;
   // 属性制限: 悪の装備は善のキャラに装備できない (逆も同様)
@@ -1566,7 +1597,7 @@ export function canEquip(member, item) {
 // slotKey = "shield" と片手武器を渡すと左手に持つ (二刀流)
 export function equip(member, item, slotKey = null) {
   if (item.slot === "use") return { ok: false, msg: "それは装備できない" };
-  if (!canEquip(member, item)) return { ok: false, msg: `${member.cls}は${item.name}を装備できない` };
+  if (!canEquip(member, item)) return { ok: false, msg: equipFailMsg(member, item) };
   const offhand = slotKey === "shield" && item.slot === "weapon";
   if (offhand && !canOffhand(member, item)) return { ok: false, msg: "二刀流でなければ左手に武器は持てない" };
   const key = offhand ? "shield" : slotKeyFor(item, member);

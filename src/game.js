@@ -10,8 +10,10 @@ import { spriteCanvas, crispCanvas, drawPhoto, photoReady, whenPhoto, setSpriteR
 import { makeItemSpriteResolver } from "./itemart/index.js";
 import {
   ITEMS, SLOTS, SLOT_LABEL, MAX_ITEMS, equip as equipItem, unequip as unequipItem, canEquip, canOffhand, slotKeyFor, lvToRank, RANGE_LABEL,
+  registerEquipLevel, equipLevelOf, equipLvShort, equipFailMsg,
   UNIDENT_SLOTS, itemName, applyForge, hasQuality, applyQuality, rollQuality, qualityMatters, itemAtQuality, QUALITY_MID, useWhere, useTarget, useHelps, useLines, useCureKinds, compareUse,
 } from "./items.js";
+import { equipLevelFor, LR_UNLOCK, LOOT_R_HEADROOM } from "./equiplevel.js";
 import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, permanentEventStats, eligibleEvents, pickEvent, onceKey, runEvent, eventFightWon } from "./events.js";
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { pickTavernCrowd, TALK_MAP } from "./tavern.js";
@@ -121,6 +123,8 @@ for (const id in ITEMS) {
   // 別途用意するランク表 (各アイテムの r20) が来たら差し替える。
   if (it.r20 == null) it.r20 = Math.max(1, Math.min(20, Math.ceil(it.lv / 10)));
 }
+// 装備できるLv (メイン魂の Lv がこれに届かない装備は付けられない。src/equiplevel.js が迷宮の台帳から決める)
+registerEquipLevel(equipLevelFor);
 
 // アイテムの格の表示名/色。装備はレア度 (コモン〜レジェンドレア) を、収集品などは従来のランクを使う
 // 収集品 (slot:"misc") にはランクが無い (格も色も付けない)
@@ -190,7 +194,6 @@ function lootBaseR() {
 // 出現上限: どんな補正を重ねても、装備は「基準R + LOOT_R_HEADROOM」を超えない。
 // 補正 (強敵・宝箱ランク・ミミック・特別階…) は上限の内側で上位の品を出やすくするだけで、
 // 層の敵を一足飛びに追い越す装備は出さない (第1層なら最大 R3 = 隠しLv30)
-const LOOT_R_HEADROOM = 2;
 function lootCapR() { return Math.min(20, lootBaseR() + LOOT_R_HEADROOM); }
 
 let _itemsByR = null;
@@ -294,7 +297,7 @@ function pickOfRarity(rar, centerR, capR = 20) {
         if ((ITEMS[id].layer || 0) > L) continue;
         const fj = ITEMS[id].forJob; // 職業専用装備は編成にいる職を強く優先
         // 編成の誰かが装備できる品を出やすくする (使えない新品ばかり拾わないように)
-        const usable = G.party.some((m) => m.alive !== undefined && canEquip(m, ITEMS[id]));
+        const usable = G.party.some((m) => m.alive !== undefined && canEquip(m, ITEMS[id], { anyLv: true }));
         const ww = w * (fj ? (G.party.some((m) => m.clsKey === fj) ? 6 : 1) : 1) * (usable ? 3 : 1);
         total += ww; acc.push([id, total]);
       }
@@ -394,7 +397,7 @@ function pickLR() {
 // ===== 職業専用LR の解禁深度 =====
 // LR (tier5以上 = 職業専用・全職共通の防具) は lootLv がティアの解禁値を超えてから LR の候補に入る。
 // 層の逸品 (tier1-4) は lrPool の層・出現上限の条件で候補
-const LR_UNLOCK = { 5: 40, 10: 90, 15: 140, 20: 190 }; // LR ティア → 解禁 lootLv
+// LR ティア → 解禁 lootLv は src/equiplevel.js の LR_UNLOCK (装備できるLv の表も同じ値で作る)
 let _exclIds = null;
 function exclIds() {
   if (!_exclIds) _exclIds = Object.keys(ITEMS).filter((id) => ITEMS[id].exclusive);
@@ -11242,6 +11245,7 @@ function renderTown() {
   renderRunbar(); // 街では隠す
   refreshOrderBonus(); // 編成・魂の付け替えで結社の席が変わっていれば、全員の能力を付け直す
   for (const d of fixHandsAndShields()) recalcDoll(d); // 二刀流を失った (サブ魂を外した・融合した) 人業の左手の武器は袋へ
+  refreshEquipLevels(); // メイン魂の Lv が装備できるLv に届かない装備は袋へ
   autosave(); // 街での操作のたびに保存 (描画はアクション後に呼ばれる)
   updateTopbar();
   playBgm(sceneBgm()); // 施設ごとのBGM (同じ曲なら継続)
@@ -11709,11 +11713,12 @@ function announceJobChange(d, before) {
   uiSoulPanel.celebrateJob(d);
 }
 
-// メイン魂を newCls に付け替えると装備できなくなる装備を列挙する ({key, item} の配列)
-function unequippableUnder(d, newCls) {
+// メイン魂を soul (魂の実体) に付け替えると装備できなくなる装備を列挙する ({key, item} の配列)。
+// 職で扱えない品と、新しいメイン魂の Lv では装備できるLv に届かない品
+function unequippableUnder(d, soul) {
   const bad = [];
-  if (!newCls || !d.equip) return bad;
-  const probe = { clsKey: newCls }; // canEquip は clsKey/align のみ参照 (人業に align は無い)
+  if (!soul || !soul.clsKey || !d.equip) return bad;
+  const probe = { clsKey: soul.clsKey, jobLv: soul.level || 1 }; // canEquip は clsKey/align/jobLv のみ参照 (人業に align は無い)
   for (const slot of SLOTS) {
     const it = d.equip[slot];
     if (it && !canEquip(probe, it)) bad.push({ key: slot, item: it });
@@ -11779,10 +11784,13 @@ function equipSoulToSlot(d, uid, slotId = "primary", done = null) {
   // (メイン魂をサブ魂の枠と入れ替える時は、その枠の魂が新しいメイン魂)
   const newMain = slotId === "primary" ? s : ownSoulSlot(d, uid) === "primary" ? slotSoul(d, slotId) : null;
   if (isNewEquip && newMain && d.primary !== newMain.uid) {
-    const bad = unequippableUnder(d, newMain.clsKey);
+    const bad = unequippableUnder(d, newMain);
     if (bad.length) {
       const free = MAX_ITEMS - d.items.length;
-      const names = bad.map((b) => `・${b.item.name}（${SLOT_LABEL[b.key] || b.key}）`);
+      const names = bad.map((b) => {
+        const need = equipLevelOf(b.item);
+        return `・${b.item.name}（${SLOT_LABEL[b.key] || b.key}${(newMain.level || 1) < need ? `・Lv${need}から` : ""}）`;
+      });
       if (bad.length > free) {
         // 外した装備を持ち物に入れる空きが足りない → 付け替えを中止
         SFX.ng();
@@ -11797,7 +11805,7 @@ function equipSoulToSlot(d, uid, slotId = "primary", done = null) {
       }
       kitConfirm({
         banner: "付け替え", title: `${soulLabel(newMain)} に付け替える？`,
-        lines: ["新しい職では次の装備を扱えないため、外して持ち物に戻す。", ...names],
+        lines: ["新しい職・メイン魂の Lv では次の装備を扱えないため、外して持ち物に戻す。", ...names],
         okLabel: "付け替える", danger: false,
       }).then((ok) => {
         if (!ok) return fin(false);
@@ -11833,7 +11841,7 @@ function soulTakePlan(d, uid, slotId = "primary") {
       else { const subs = [...(d.subs || [])]; subs[+slotId.slice(3)] = { uid, picks: [] }; d.subs = subs; }
       const c = soulByUid(curUid);
       const ok = c && !soulSlotConflict(holder, curUid, from) && !soulWornByOther(curUid, holder)
-        && (from !== "primary" || (soulRepresentatives().some((x) => x.uid === curUid) && !unequippableUnder(holder, c.clsKey).length));
+        && (from !== "primary" || (soulRepresentatives().some((x) => x.uid === curUid) && !unequippableUnder(holder, c).length));
       if (ok) give = c;
     } finally {
       [d.primary, d.subs, holder.primary, holder.subs] = keep;
@@ -13926,7 +13934,7 @@ function pickWeighted(list) {
   for (const [id, w] of list) { x -= w; if (x <= 0) return id; }
   return list[list.length - 1][0];
 }
-const usableByParty = (it) => G.party.some((m) => !m.isEmpty && canEquip(m, it));
+const usableByParty = (it) => G.party.some((m) => !m.isEmpty && canEquip(m, it, { anyLv: true }));
 // 褒賞のスーパーレア装備を選ぶ: 踏破した最深の迷宮の出現上限 (基準R + LOOT_R_HEADROOM) から下へ、6点以上の候補がそろうまで広げる。
 // 隊の誰かが装備できる品だけ (ほかの職の専用品は出さない)。上限に近いランクほど・隊の職の専用品ほど出やすい
 function pickTreasurySR() {
@@ -15792,7 +15800,7 @@ function itemFitsSlot(it, slotKey, p = null) {
 function equipAt(p, it, slotKey, owner = p, stashTo = null) {
   if (expeditionOf(p) || expeditionOf(owner) || expeditionOf(stashTo)) return { ok: false, msg: "遠征に出ている人業の装備・持ち物は動かせない" };
   if (!it || !itemFitsSlot(it, slotKey, p)) return { ok: false, msg: "その部位には装備できない" };
-  if (!canEquip(p, it)) return { ok: false, msg: it.unidentified ? "未鑑定の品は装備できない" : `${p.cls}は${it.name}を装備できない` };
+  if (!canEquip(p, it)) return { ok: false, msg: equipFailMsg(p, it) };
   const tr = autoEquip.trialEquip(p.equip, it, slotKey);
   if (!tr) {
     const pin = [p.equip[slotKey], it.slot === "weapon" && it.twoHanded ? p.equip.shield : null, slotKey === "shield" && p.equip.weapon && p.equip.weapon.twoHanded ? p.equip.weapon : null]
@@ -15823,7 +15831,7 @@ function equipFromWearer(p, it, slotKey, wearer) {
   if (it.cursed) return { ok: false, msg: `${it.name}は呪われていて外せない` };
   if (it.locked) return { ok: false, msg: `${it.name}はロック中 ― ロックを外すと付け替えられる` };
   if (!itemFitsSlot(it, slotKey, p)) return { ok: false, msg: "その部位には装備できない" };
-  if (!canEquip(p, it)) return { ok: false, msg: `${p.cls}は${it.name}を装備できない` };
+  if (!canEquip(p, it)) return { ok: false, msg: equipFailMsg(p, it) };
   const tr = autoEquip.trialEquip(p.equip, it, slotKey);
   if (!tr) {
     const pin = [p.equip[slotKey], it.slot === "weapon" && it.twoHanded ? p.equip.shield : null, slotKey === "shield" && p.equip.weapon && p.equip.weapon.twoHanded ? p.equip.weapon : null]
@@ -16592,7 +16600,7 @@ function fixHandsAndShields(offhand = true) {
     if (!sh || sh.cursed || (sh.slot === "weapon" && !offhand)) continue;
     const w = d.equip.weapon;
     const clash = w && w.twoHanded;
-    const bad = sh.slot === "weapon" ? !canOffhand(d, sh) : (d.clsKey && !canEquip(d, sh));
+    const bad = sh.slot === "weapon" ? !canOffhand(d, sh) : (d.clsKey && !canEquip(d, sh, { anyLv: true }));
     if (!clash && !bad) continue;
     d.equip.shield = null;
     if (!Array.isArray(d.items)) d.items = [];
@@ -16601,6 +16609,35 @@ function fixHandsAndShields(offhand = true) {
     moved.push(d);
   }
   return moved; // 左手・盾を外した人業 (能力の再計算は呼び出し側)
+}
+// 装備できるLv (src/equiplevel.js) に届かない装備を袋へ戻す: メイン魂を Lv の低い魂へ替えた・装備できるLv を入れる前の旧セーブ。
+// 呪いの品は外れない。魂の宿らない人業 (メイン魂を外しただけ) と遠征中の人業はそのまま (宿す時・帰った後に見る)。
+// 自分の袋が満杯なら隊・控えの空きのある袋へ (誰も空いていなければ自分の袋)。返り値 = [{ d, it }] (能力の再計算は呼び出し側)
+function fixEquipLevels() {
+  const all = [...(G.party || []), ...(G.reserve || [])].filter((d) => d && d.equip);
+  const moved = [];
+  for (const d of all) {
+    if (d.primary == null || expeditionOf(d)) continue;
+    for (const k of SLOTS) {
+      const it = d.equip[k];
+      if (!it || it.cursed || !equipLvShort(d, it)) continue;
+      d.equip[k] = null;
+      if (!Array.isArray(d.items)) d.items = [];
+      const room = d.items.length < MAX_ITEMS ? d : all.find((x) => Array.isArray(x.items) && x.items.length < MAX_ITEMS);
+      (room || d).items.push(it);
+      moved.push({ d, it });
+    }
+  }
+  return moved;
+}
+let _equipLvMoved = []; // 読み込みで外した装備 (街の描画で知らせる)
+function refreshEquipLevels() {
+  const moved = [..._equipLvMoved, ...fixEquipLevels()];
+  _equipLvMoved = [];
+  if (!moved.length) return;
+  for (const d of new Set(moved.map((m) => m.d))) { try { recalcDoll(d); } catch {} }
+  const names = moved.map((m) => `${m.d.name}の${m.it.name}（Lv${equipLevelOf(m.it)}から）`).join("・");
+  showToast(`メイン魂の Lv が装備できるLv に届かない装備を袋へ戻した ― ${names}`, { tone: "info", ms: 4200 });
 }
 
 // 旧ステータス体系 (こうげき/ぼうぎょ/すばやさ/AC) のセーブを六大ステへ移行する。
@@ -16745,6 +16782,8 @@ function loadGame() {
   }
   for (const d of fixHandsAndShields()) { try { recalcDoll(d); } catch {} } // 二刀流を失った人業の左手の武器 (魂の能力が出そろってから)
   normalizeExpeditions(); // 遠征 (後付け: 旧セーブは無し。人業の参照を控えにつなぎ直す)
+  _equipLvMoved = fixEquipLevels(); // 装備できるLv に届かない装備 (旧セーブ)。知らせは街の描画で
+  for (const d of new Set(_equipLvMoved.map((m) => m.d))) { try { recalcDoll(d); } catch {} }
   delete G.resonance; // 魂の共鳴は 2026-10 に取りやめ (旧セーブの記録は捨てる)
   if (!G.stats) G.stats = {};
   // 後付けの戦績フィールドを既存セーブにも補完する (勲章 cond が参照する)
@@ -17508,6 +17547,8 @@ function init() {
     UI, ops, nav, townshell,
     // 罠の解除の検証用
     trap: { disarmChance, disarmNeed, bestDisarmer, sfNum },
+    // 装備できるLv の検証用
+    equipLv: { equipLevelOf, fixEquipLevels, unequippableUnder, equipAt, ITEMS, cloneItem },
     // 出来事・記録の検証用
     evApi, runEvent, logHistory,
     // オート移動の検証用
