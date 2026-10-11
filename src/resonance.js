@@ -1,10 +1,10 @@
 // ===== 魂の共鳴 (第七章「毒沼」の結びで開く。FEATURES.resonance) =====
-// 隊に特定の職の組み合わせがそろうと、隊全体に小さな効果が付く。発見式: 初めてそろえた時に名前が明かされ、
+// 隊に特定の職の組み合わせがそろうと、隊の全員に小さな効果が付く。発見式: 初めてそろえた時に名前が明かされ、
 // 図鑑の「共鳴」に記される (まだの組は「？？？」と職の数だけ)。
 // 判定は隊に出ている (生死を問わず編成中の) 人業のメイン魂の職だけ。サブ魂は数えない (隊を組み替える動機にするため)。
 // このファイルはデータと判定だけ (game.js も ui も import しない)。効果の入口:
 //   戦闘の中 (combat.js setResonance → _perkSum / perkCostCut / fleeChance / _ailRes):
-//     deal / take / crit / evade / heal / cost  … jobkit の固有パッシブの fx と同じ語彙 (on / when も同じ。aura は要らない — 隊全体に効く)
+//     deal / take / crit / evade / heal / cost  … jobkit の固有パッシブの fx と同じ語彙 (on / when も同じ。aura は要らない — 隊の全員に効く)
 //     flee    … 逃走の成功率 +v
 //     ailRes  … 状態異常 (毒・麻痺・眠り・魅了・混乱) の付与率を −v (石化・即死は含めない)
 //   戦闘の外 (game.js resonanceSum):
@@ -160,7 +160,7 @@ function whenText(w) {
   if (w.tgtWeakened) return "状態異常・弱体の敵に";
   if (w.boss) return "迷宮の主に";
   if (w.allyDown) return "倒れた仲間がいる時、";
-  if (w.round1) return "1ラウンド目、";
+  if (w.round1) return "1ターン目、";
   if (w.front) return "前衛の";
   if (w.back) return "後衛の";
   if (w.selfLow != null) return `HP${Math.round(w.selfLow * 100)}%以下の者の`;

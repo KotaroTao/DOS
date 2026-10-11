@@ -178,10 +178,10 @@ const TUTS = [
     outro: ["四体目の魔導士が目覚めた。王に報告しよう。"],
   },
   {
-    key: "buyEquipment", name: "商店で装備を整える", who: "shop", silent: true,
+    key: "buyEquipment", name: "商会で装備を整える", who: "shop", silent: true,
     open: () => G_().msq?.n >= 1 && !(G_().stats?.runs > 0),
     used: () => false,
-    intro: () => ["王から授かった金貨500で、人業の装備を整えよう。", "商店の『買う』で武器や防具を選ぶ。『買って装備』なら、そのまま人業に持たせられる。", "購入は任意。必要な分だけ自由に買い、支度ができたら画面下の『迷宮』を選ぼう。"],
+    intro: () => ["王から授かった金貨500で、人業の装備を整えよう。", "商会の『買う』で武器や防具を選ぶ。『買って装備』なら、そのまま人業に持たせられる。", "購入は任意。必要な分だけ自由に買い、支度ができたら画面下の『迷宮』を選ぼう。"],
     steps: [{ text: "必要な装備を自由に購入する", hint: "購入は任意。支度ができたら画面下の『迷宮』を選ぶ", go: () => UI.openShop && UI.openShop("buy", { cat: "weapon" }), done: () => G_().town?.tab === "shop" }],
     outro: ["支度ができたら、画面下の『迷宮』を選ぼう。"],
   },
@@ -205,8 +205,8 @@ const TUTS = [
       ["新しい職業の魂を持ち帰られたのですね。", "新しい人業の器を購入し、その魂を宿して仲間を増やしましょう。"],
       ["初めての職業の魂を持ち帰ったお祝いに、赤い魂50個をお渡しします。", "この赤い魂で、新しい仲間を迎えてください。"],
       ["器は、この館で赤い魂と引き換えにお仕立てします。", `今のお代は、赤い魂${game.emptyDollCost?.() || 0}です。足りない時は、街の『赤い魂の祠』で入手できます。`],
-      ["『人業を仕立てる』を開いたら、宿す魂は自由にお選びください。今は宿さずに閉じてもかまいません。", "パーティには六体まで連れてゆけます。満員なら、新しい仲間は控えで待ちます。"],
-      ["同じ職業のメイン魂を宿す仲間は、一つのパーティに一体だけ。", "新しい職業の仲間を加え、迷宮に備えましょう。"],
+      ["『人業を仕立てる』を開いたら、宿す魂は自由にお選びください。今は宿さずに閉じてもかまいません。", "隊には六体まで連れてゆけます。満員なら、新しい仲間は控えで待ちます。"],
+      ["同じ職業のメイン魂を宿す仲間は、一つの隊に一体だけ。", "新しい職業の仲間を加え、迷宮に備えましょう。"],
     ],
     steps: [{
       text: "『人業を仕立てる』で魂の一覧を開く", hint: "人業の館 → 人業・＋ → 人業を仕立てる。その後は自由に選ぶか、閉じてよい",
@@ -222,7 +222,7 @@ const TUTS = [
     prepare: () => null,
     intro: () => [
       ["宿す魂を変えれば、今いる人業も別の職業として戦えます。魂の育ちは残り、外した魂も失われません。", "まずは『メイン魂』の枠から魂の一覧を開いて、閉じてください。実際の付け替えは、その後に自由に行えます。"],
-      ["新しい職業で使えない装備は外れます。同じ職業のメイン魂は、パーティに一つだけです。"],
+      ["新しい職業で使えない装備は外れます。同じ職業のメイン魂は、隊に一つだけです。"],
     ],
     steps: [{ text: "魂の一覧を開いて確認し、閉じる", hint: "人業の館 → 魂 → メイン魂 → 閉じる", go: () => goSoulSeg(), target: [".sp-change"], on: "soulChangeViewed" }],
     outro: ["魂の付け替えが解放された。魂の区分の『メイン魂』の枠から、いつでも変更できる。"],
@@ -443,7 +443,7 @@ function introSheet(d, done) {
   const go = () => { if (fired) return; fired = true; done(); };
   const h = sheet.open({
     kind: "choice", banner: "手ほどき", title: d.name, art, lines: d.intro(),
-    footer: [{ label: d.who === "shop" ? "商店へ" : d.who === "gate" ? "出撃へ" : "酒場へ", kind: "primary", size: "lg", onTap: (s) => s.close("ok") }],
+    footer: [{ label: d.who === "shop" ? "商会へ" : d.who === "gate" ? "出撃へ" : "酒場へ", kind: "primary", size: "lg", onTap: (s) => s.close("ok") }],
     onClose: go,
   });
   if (!h || !h.el) go();
@@ -641,7 +641,7 @@ function tutorialControls() {
   if (!hasDOM() || !inTown() || game.isTitleActive?.() || game.isOpeningActive?.()) return null;
   const p = pending(), d = curDef();
   if (!p && !d && !busy) return null;
-  // 商店での支度は自由。迷宮を自分で選ぶまで、次の手ほどきで操作を制限しない。
+  // 商会での支度は自由。迷宮を自分で選ぶまで、次の手ほどきで操作を制限しない。
   if (!d && !busy && TUT_MAP[p?.key]?.manual) return null;
   const choose = (nodes, allow = []) => {
     const target = nodes.find((n) => n && !n.disabled && n.isConnected && n.getClientRects().length);

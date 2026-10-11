@@ -7,7 +7,7 @@ import { WORLD } from "./dungeons/world.js";
 // 出現の格 (tier) — share は格ごとの出現の割合 (その場に出せる格だけで按分):
 //   common   (常) … どこでも。小さな賭け         (見返り ≒ 戦果1〜2)
 //   uncommon (稀) … やや稀。中くらいの賭け         (≒ 戦果3〜5)
-//   rare     (秘) … 1回の潜入で1度まで             (≒ 戦果8〜12)
+//   rare     (秘) … 1回の出撃で1度まで             (≒ 戦果8〜12)
 //   mythic   (極) … セーブで一度きり。選択肢は無く、踏めばその場で恒久の恵みを授かる (gift)
 // 「戦果1」= その迷宮の通常戦闘1回ぶんの gold / ✦Soul (game.js の evApi が迷宮の魔物から見積もる)。
 // 報酬は既存の経路 (pickLoot / acquireSoul / 宝箱) を通るので、層ごとの出現上限 (lootCapR) は越えない。
@@ -35,7 +35,7 @@ export const EV_BOONS = {
   blackCat: { crit: 0.03,    text: "黒猫の加護 ― 全員の会心率 +3%" },
   sewerMap: {                text: "王都の下水図 ― 第2層ではどの階も階段が最初から見える" },
   temper:   { dmgMul: 1.05,  text: "地の底の焼き入れ ― 全員の与えるダメージ +5%" },
-  salute:   { preempt: 0.08, text: "守備隊の敬礼 ― 戦闘で先手を取る確率 +8%" },
+  salute:   { preempt: 0.08, text: "守備隊の敬礼 ― 戦闘で先制する確率 +8%" },
   mistEye:  { ambush: 0.5,   text: "霧渡りの目 ― 奇襲を受ける確率が半分になる" },
 };
 
@@ -299,7 +299,7 @@ export const EVENTS = [
       return [
         A.canPayGold(cost) && { label: `火を灯す (💰${cost}) ― 次の戦闘は必ず先制`, primary: true, fn: () => {
           A.payGold(cost); A.runEv().preempt = (A.runEv().preempt || 0) + 1;
-          A.sfx("spell"); A.toast("蝋燭が灯った ― 次の戦闘は必ず先手を取れる", "good"); A.done(cell);
+          A.sfx("spell"); A.toast("蝋燭が灯った ― 次の戦闘は必ず先制できる", "good"); A.done(cell);
         } },
         { label: "蝋を持ち帰る ― 収集品", fn: () => A.collectible("祈りの燭台", () => A.done(cell)) },
       ];
@@ -310,7 +310,7 @@ export const EVENTS = [
     intro: () => ["崩れた瓦礫の隙間から、金属の光が覗いている。天井はまだ不穏にきしんでいる。"],
     choices: (A, cell) => [
       { label: "掘り出す ― 宝箱 / 30%で落盤", primary: true, fn: () => {
-        if (chance(0.3)) { A.sfx("trap"); A.flash("#8a7a5a"); A.hurtAll(0.15); A.toast("天井が崩れた ― 隊全体が傷を負った", "bad", "trap"); }
+        if (chance(0.3)) { A.sfx("trap"); A.flash("#8a7a5a"); A.hurtAll(0.15); A.toast("天井が崩れた ― 隊の全員が傷を負った", "bad", "trap"); }
         A.chestHere(cell, { rankUp: 0 });
       } },
     ],
@@ -541,10 +541,10 @@ export const EVENTS = [
     id: "c27", name: "呪われた金貨の山", layer: 0, tier: "rare", icon: "gold", deep: true,
     intro: () => ["金貨が山と積まれている。手に取った者を呪うという古い警告文が、山の麓に刺さっている。"],
     choices: (A, cell) => [
-      { label: "全部持ち出す ― 金貨 (特大) / この潜入の間 敵の力1.2倍", danger: true, fn: () => {
+      { label: "全部持ち出す ― 金貨 (特大) / この出撃の間 敵の力1.2倍", danger: true, fn: () => {
         A.gold(12, "呪われた金貨");
-        A.runEv().mods.push({ src: "c27", name: "金貨の呪い", desc: "敵の力 1.2倍 (この潜入)", enemyMul: 1.2 });
-        A.flash("#a08020"); A.toast("呪いがまとわりついた ― この潜入の間、敵の力1.2倍", "bad"); A.done(cell);
+        A.runEv().mods.push({ src: "c27", name: "金貨の呪い", desc: "敵の力 1.2倍 (この出撃)", enemyMul: 1.2 });
+        A.flash("#a08020"); A.toast("呪いがまとわりついた ― この出撃の間、敵の力1.2倍", "bad"); A.done(cell);
       } },
       { label: "一掴みだけ ― 金貨", fn: () => { A.gold(2, "金貨の山"); A.done(cell); } },
     ],
@@ -699,7 +699,7 @@ export const EVENTS = [
       label: `${m.name}の名を刻む ― 一度だけ死を免れる (HPを3割失う)`, fn: () => {
         A.hurtOne(m, 0.30);
         A.runEv().saves = { ...(A.runEv().saves || {}), [m.uid]: true };
-        A.sfx("spell"); A.toast(`${m.name}の名を刻んだ ― この潜入で一度だけ死を免れる`, "gold"); A.done(cell);
+        A.sfx("spell"); A.toast(`${m.name}の名を刻んだ ― この出撃で一度だけ死を免れる`, "gold"); A.done(cell);
       },
     })),
   },
@@ -897,7 +897,7 @@ export const EVENTS = [
     choices: (A, cell) => {
       const cost = A.goldCost(2);
       return [
-        A.canPayGold(cost) && { label: `餌を与える (💰${cost}) ― この潜入の間 獣が現れず、宝箱の在処を1つ`, primary: true, fn: () => {
+        A.canPayGold(cost) && { label: `餌を与える (💰${cost}) ― この出撃の間 獣が現れず、宝箱の在処を1つ`, primary: true, fn: () => {
           A.payGold(cost);
           A.runEv().noBeast = true;
           const n = A.purgeBeasts();
@@ -916,11 +916,11 @@ export const EVENTS = [
     id: "l2_09", name: "沈んだ礼拝堂", layer: 2, tier: "rare", icon: "fountain", deep: true,
     intro: () => ["水没した礼拝堂。水底の祭壇に、土の色をした聖印が沈んでいる。", "潜って取れば、水の魔物に抗う土の護りが宿る。息が続かぬ者は溺れるだろう。"],
     choices: (A, cell) => [
-      { label: "潜る (各自VIT判定・失敗で最大HPの3割) ― この潜入の間 全員に土の護り", danger: true, fn: () => {
+      { label: "潜る (各自VIT判定・失敗で最大HPの3割) ― この出撃の間 全員に土の護り", danger: true, fn: () => {
         const hurt = [];
         for (const m of A.aliveList()) if (!A.check("vit", m).ok) { A.hurtOne(m, 0.30, true); hurt.push(m.name); }
         A.runEv().edef = { el: "earth", lv: 1 };
-        A.sfx("spell"); A.toast(`土の護りを得た (この潜入)${hurt.length ? ` ― 溺れかけた: ${hurt.join("・")}` : ""}`, "gold"); A.done(cell);
+        A.sfx("spell"); A.toast(`土の護りを得た (この出撃)${hurt.length ? ` ― 溺れかけた: ${hurt.join("・")}` : ""}`, "gold"); A.done(cell);
       } },
       needsCare(A) && { label: "水面で祈る ― 全員が全快", primary: true, fn: () => { A.healAll(1, 1, true); A.sfx("heal"); A.toast("水面の祈りが届いた ― 全快", "good", "fountain"); A.done(cell); } },
     ],
@@ -1264,8 +1264,8 @@ export const EVENTS = [
     id: "l5_05", name: "狩人の罠小屋", layer: 5, tier: "uncommon", icon: "event",
     intro: () => ["朽ちかけた狩人の小屋。壁には獣用の罠と、毒を塗った矢が掛けてある。"],
     choices: (A, cell) => [
-      { label: "罠と毒矢を借りる ― この潜入の間、獣への与ダメ+30%", primary: true, fn: () => {
-        A.runEv().mods = [...(A.runEv().mods || []), { src: "l5_05", name: "狩人の罠", desc: "獣への与ダメージ +30% (この潜入)", prey: { races: ["beast"], mul: 1.3 } }];
+      { label: "罠と毒矢を借りる ― この出撃の間、獣への与ダメ+30%", primary: true, fn: () => {
+        A.runEv().mods = [...(A.runEv().mods || []), { src: "l5_05", name: "狩人の罠", desc: "獣への与ダメージ +30% (この出撃)", prey: { races: ["beast"], mul: 1.3 } }];
         A.sfx("itemget"); A.toast("狩人の道具を借りた ― 獣への与ダメ+30%", "good"); A.done(cell);
       } },
       anyHurt(A) && { label: "小屋で一息つく ― 全員のHP2割回復", fn: () => { A.healAll(0.2, 0, false); A.sfx("heal"); A.toast("小屋で傷の手当てをした", "good", "fountain"); A.done(cell); } },
@@ -1579,10 +1579,10 @@ export const EVENTS = [
     id: "l7_06", name: "焼き印の炉", layer: 7, tier: "uncommon", icon: "trap", minFloor: 2,
     intro: () => ["火を拝む者たちが使った炉。焼き印の鉄が、まだ赤く焼けている。", "炉の脇には、焼き印を押された人業の殻が、いくつも打ち捨てられている。"],
     choices: (A, cell) => [
-      { label: "焼き印を武具に押す ― この潜入の間、与ダメ+10% (全員に火傷)", primary: true, fn: () => {
+      { label: "焼き印を武具に押す ― この出撃の間、与ダメ+10% (全員に火傷)", primary: true, fn: () => {
         A.hurtAll(0.12); A.flash("#e07040");
-        A.runEv().mods = [...(A.runEv().mods || []), { src: "l7_06", name: "焼き印の武具", desc: "与えるダメージ +10% (この潜入)", dmgMul: 1.1 }];
-        A.sfx("hit"); A.toast("武具に焼き印を押した ― この潜入の間、与ダメ+10%", "gold"); A.done(cell);
+        A.runEv().mods = [...(A.runEv().mods || []), { src: "l7_06", name: "焼き印の武具", desc: "与えるダメージ +10% (この出撃)", dmgMul: 1.1 }];
+        A.sfx("hit"); A.toast("武具に焼き印を押した ― この出撃の間、与ダメ+10%", "gold"); A.done(cell);
       } },
       { label: "炉の灰から地金を掘る ― 金貨", fn: () => { A.gold(3.5, "炉の地金"); A.done(cell); } },
     ],
@@ -1786,10 +1786,10 @@ export const EVENTS = [
       { label: "氷柱を割って灯を解き放つ ― 氷柱の番人と戦い、勝てば希少な魂と魂の残火", danger: true, fn: () => {
         A.fight(cell, [{ key: "bs_icegolem", strong: 1.8, name: "氷柱の番人" }], "icicle", { noChest: true });
       } },
-      { label: "根元の黒い岩を砕いて分け合う ― この潜入の間、全員に土の護り (水の攻撃を和らげる) と ✦Soul / 冷気で全員のHP2割を失う", primary: true, fn: () => {
+      { label: "根元の黒い岩を砕いて分け合う ― この出撃の間、全員に土の護り (水の攻撃を和らげる) と ✦Soul / 冷気で全員のHP2割を失う", primary: true, fn: () => {
         A.hurtAll(0.2); A.flash("#a0d0f0");
         A.runEv().edef = { el: "earth", lv: 1 };
-        A.sfx("spell"); A.soul(4, "氷柱の根の岩"); A.toast("岩のかけらが、冷気から身を守る ― この潜入の間、土の護り", "gold"); A.done(cell);
+        A.sfx("spell"); A.soul(4, "氷柱の根の岩"); A.toast("岩のかけらが、冷気から身を守る ― この出撃の間、土の護り", "gold"); A.done(cell);
       } },
     ],
     onWin: (A, cell, f, next) => A.soulDrop("rarePlus", "氷柱に閉じこめられていた魂だ。", () => { A.ember(2, "氷柱の中の残火"); A.done(cell, next); }),
@@ -1892,10 +1892,10 @@ export const EVENTS = [
     choices: (A, cell) => {
       const cost = A.goldCost(3);
       return [
-        A.canPayGold(cost) && { label: `刃に毒を塗ってもらう (💰${cost}) ― この潜入の間、与ダメ+10%`, primary: true, fn: () => {
+        A.canPayGold(cost) && { label: `刃に毒を塗ってもらう (💰${cost}) ― この出撃の間、与ダメ+10%`, primary: true, fn: () => {
           A.payGold(cost);
-          A.runEv().mods = [...(A.runEv().mods || []), { src: "l9_07", name: "魔女の毒の刃", desc: "与えるダメージ +10% (この潜入)", dmgMul: 1.1 }];
-          A.sfx("spell"); A.toast("刃が緑にぬめった ― この潜入の間、与ダメ+10%", "gold"); A.done(cell);
+          A.runEv().mods = [...(A.runEv().mods || []), { src: "l9_07", name: "魔女の毒の刃", desc: "与えるダメージ +10% (この出撃)", dmgMul: 1.1 }];
+          A.sfx("spell"); A.toast("刃が緑にぬめった ― この出撃の間、与ダメ+10%", "gold"); A.done(cell);
         } },
         { label: "鍋をひっくり返す ― 沼の魔女と一騎打ち、勝てば上等な品 (レア以上)", danger: true, fn: () => {
           A.fight(cell, [{ key: "bs_swamphag", strong: 1.5, name: "小屋の魔女" }], "hagpot", { noChest: true });
@@ -1935,10 +1935,10 @@ export const EVENTS = [
       { label: "泡を割って灯を救う ― 泡の番人と戦い、勝てば希少な魂と上等な宝箱", danger: true, fn: () => {
         A.fight(cell, [{ key: "bs_toxicgolem", strong: 1.8, name: "泡の番人" }], "soulbubble", { noChest: true });
       } },
-      { label: "泡の膜を切り取って身にまとう ― この潜入の間、全員に風の護り (土の攻撃を和らげる) と ✦Soul / 毒気で全員が毒にかかる", primary: true, fn: () => {
+      { label: "泡の膜を切り取って身にまとう ― この出撃の間、全員に風の護り (土の攻撃を和らげる) と ✦Soul / 毒気で全員が毒にかかる", primary: true, fn: () => {
         A.ailAll("poison", 1); A.flash("#7a9a3a");
         A.runEv().edef = { el: "wind", lv: 1 };
-        A.sfx("spell"); A.soul(4, "泡の膜"); A.toast("泡の膜が、泥の重さをはじく ― この潜入の間、風の護り", "gold"); A.done(cell);
+        A.sfx("spell"); A.soul(4, "泡の膜"); A.toast("泡の膜が、泥の重さをはじく ― この出撃の間、風の護り", "gold"); A.done(cell);
       } },
     ],
     onWin: (A, cell, f, next) => A.soulDrop("rarePlus", "泡の中に閉じこめられていた魂だ。", () => A.chestHere(cell, { rankUp: 2 }, next)),
@@ -2017,9 +2017,9 @@ export const EVENTS = [
     id: "l10_06", name: "雷を溜めた甕", layer: 10, tier: "uncommon", icon: "wisp", minFloor: 2,
     intro: () => ["銅の線を巻いた黒い甕が、塔の壁にいくつも並んでいる。", "ふたの隙間から、青白い光がもれている。中に、雷が溜めてあるのだ。"],
     choices: (A, cell) => [
-      A.aliveList().some((m) => m.mp > 0) && { label: "甕の雷を武器に移す ― 全員のMPを2割使い、この潜入の間、会心率 +5%", primary: true, fn: () => {
+      A.aliveList().some((m) => m.mp > 0) && { label: "甕の雷を武器に移す ― 全員のMPを2割使い、この出撃の間、会心率 +5%", primary: true, fn: () => {
         A.mpAll(0.2); A.runEv().crit = (A.runEv().crit || 0) + 0.05;
-        A.sfx("spell"); A.toast("刃に雷が宿った ― この潜入の間、会心率 +5%", "gold"); A.done(cell);
+        A.sfx("spell"); A.toast("刃に雷が宿った ― この出撃の間、会心率 +5%", "gold"); A.done(cell);
       } },
       { label: "甕を割る ― 宝箱 (ランク+1) / 雷が弾けて全員のHP2割を失う", danger: true, fn: () => {
         A.hurtAll(0.2); A.flash("#d8e0ff"); A.sfx("trap"); A.chestHere(cell, { rankUp: 1 });
@@ -2032,10 +2032,10 @@ export const EVENTS = [
     choices: (A, cell) => {
       const cost = A.goldCost(3);
       return [
-        A.canPayGold(cost) && { label: `風の読み方を教わる (💰${cost}) ― この潜入の間、奇襲を受けにくい (半分)`, primary: true, fn: () => {
+        A.canPayGold(cost) && { label: `風の読み方を教わる (💰${cost}) ― この出撃の間、奇襲を受けにくい (半分)`, primary: true, fn: () => {
           A.payGold(cost);
-          A.runEv().mods = [...(A.runEv().mods || []), { src: "l10_07", name: "嵐の読み方", desc: "奇襲を受ける確率が半分 (この潜入)", ambushMul: 0.5 }];
-          A.sfx("spell"); A.toast("風の匂いで、魔物の気配がわかるようになった ― この潜入の間、奇襲を受けにくい", "gold"); A.done(cell);
+          A.runEv().mods = [...(A.runEv().mods || []), { src: "l10_07", name: "嵐の読み方", desc: "奇襲を受ける確率が半分 (この出撃)", ambushMul: 0.5 }];
+          A.sfx("spell"); A.toast("風の匂いで、魔物の気配がわかるようになった ― この出撃の間、奇襲を受けにくい", "gold"); A.done(cell);
         } },
         { label: "揺り椅子の杖を奪う ― 嵐を読む老婆と一騎打ち、勝てば上等な品 (レア以上)", danger: true, fn: () => {
           A.fight(cell, [{ key: "bs_stormhag", strong: 1.5, name: "嵐を読む老婆" }], "stormhag", { noChest: true });
@@ -2076,10 +2076,10 @@ export const EVENTS = [
       { label: "像を砕いて魂を解き放つ ― 像の番人と戦い、勝てば希少な魂と魂の残火2", danger: true, fn: () => {
         A.fight(cell, [{ key: "bs_soulanchor", strong: 1.8, name: "像の番人" }], "anchorstatue", { noChest: true });
       } },
-      { label: "像の鎖を一本外して身に巻く ― この潜入の間、全員に火の護り (風の攻撃を和らげる) と ✦Soul / 鎖の雷で全員のHP2割を失う", primary: true, fn: () => {
+      { label: "像の鎖を一本外して身に巻く ― この出撃の間、全員に火の護り (風の攻撃を和らげる) と ✦Soul / 鎖の雷で全員のHP2割を失う", primary: true, fn: () => {
         A.hurtAll(0.2); A.flash("#d8e0ff");
         A.runEv().edef = { el: "fire", lv: 1 };
-        A.sfx("spell"); A.soul(4, "鎖に残った魂の熱"); A.toast("焼けた鎖が、風の刃をはじく ― この潜入の間、火の護り", "gold"); A.done(cell);
+        A.sfx("spell"); A.soul(4, "鎖に残った魂の熱"); A.toast("焼けた鎖が、風の刃をはじく ― この出撃の間、火の護り", "gold"); A.done(cell);
       } },
     ],
     onWin: (A, cell, f, next) => A.soulDrop("rarePlus", "像に縛られていた魂だ。", () => { A.ember(2, "像の胸の残火"); A.done(cell, next); }),
@@ -2210,7 +2210,7 @@ export function eventWhereText(e) {
   if (e.minLv) parts.push(`推奨Lv${e.minLv}以降`);
   if (e.deep) parts.push("迷宮の後半の階");
   else if (e.minFloor && e.minFloor > 1) parts.push(`B${e.minFloor}F以降`);
-  if (e.tier === "rare") parts.push("1回の潜入で1度まで");
+  if (e.tier === "rare") parts.push("1回の出撃で1度まで");
   if (e.once === "layer") parts.push("各層で一度きり");
   else if (e.once) parts.push("一度きり");
   return parts.join(" ・ ");

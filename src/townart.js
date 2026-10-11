@@ -792,7 +792,7 @@ function paintTavern(R, f) {
   R.glow(lx, ly, 10, "#ffcf7a", 0.35 * fk, 10, 4);
 }
 
-// 商店「黒鉄商会」: 鉄の帯で締めた勘定台、天秤と金貨、壁一面の武器と枷
+// 黒鉄商会: 鉄の帯で締めた勘定台、天秤と金貨、壁一面の武器と枷
 function paintShop(R, f) {
   const W = VW, H = VH;
   R.amb(LC.cold, 0.07);
@@ -997,7 +997,7 @@ function paintAltar(R, f) {
   }
 }
 
-// パーティ編成: 隊列を組んで立つ器たち。松明に照らされ、背後に軍旗
+// 隊編成: 隊列を組んで立つ器たち。松明に照らされ、背後に軍旗
 function paintParty(R, f) {
   const W = VW, H = VH;
   R.amb(LC.cold, 0.05);

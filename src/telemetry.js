@@ -1,7 +1,7 @@
 // ===== テスト記録 (戦闘バランス調整用) =====
 // 設定「自動化・データ」→「テスト記録」で ON にすると、プレイ中に次を迷宮ごとに集計する。
 //   隊の様子 … 各迷宮の1階に着いた時・最後に着いた階・踏破した時の、出撃中の人業の職・Lv・能力値
-//   戦闘     … 戦闘数・勝ち/逃げ/全滅・ラウンド数・先制/奇襲・物理の命中/回避 (味方→敵 / 敵→味方)・
+//   戦闘     … 戦闘数・勝ち/逃げ/全滅・ターン数・先制/奇襲・物理の命中/回避 (味方→敵 / 敵→味方)・
 //              手番の先後・逃走の試行/成功・与ダメ/被ダメ・戦闘前後の隊HP割合・隊と敵の AGI
 //   戦利品   … 迷宮で手に入れた品のレア度別の数・図鑑の新種・持ちきれず置いてきた数・得たゴールド/✦Soul
 //   ✦・金貨  … 迷宮で得た分の出どころ (戦闘の種類・出来事・死体…) と倍率の上乗せ (異変・掟・特別な階…) の内訳、
@@ -405,12 +405,12 @@ function fleeExpect(a) {
   const n = a.fpn != null ? a.fpn : (a.fp ? a.ft : 0);
   return n > 0 ? `(予想${pct((a.fp || 0) / 1000, n)})` : "";
 }
-const KIND_LABEL = { n: "通常", e: "精鋭等", m: "金属", b: "主" };
+const KIND_LABEL = { n: "通常", e: "強敵等", m: "金属", b: "主" };
 const KINDS = ["n", "e", "m", "b"];
 const mins = (ms) => `${Math.round((ms || 0) / 60000)}分`;
 // 出どころの略称 (迷宮の中 / 町 / 上乗せ)
 const SRC_LABEL = {
-  bn: "通常戦", be: "精鋭等", bb: "主", mt: "金属", ev: "出来事", cp: "死体", ch: "宝箱", hd: "殲滅", x: "他",
+  bn: "通常戦", be: "強敵等", bb: "主", mt: "金属", ev: "出来事", cp: "死体", ch: "宝箱", hd: "殲滅", x: "他",
   q: "依頼", qk: "依頼(討伐)", qs: "依頼(魂)", qc: "依頼(宝箱)", qf: "依頼(到達)", qd: "依頼(納品)", tip: "心付け", bond: "なじみ", fq: "頼み", r: "王の報告", a: "勲章", t: "宝物庫", sell: "売却", exp: "遠征",
   psv: "パッシブ", sf: "特別階", mut: "異変", trait: "掟", oth: "出来事等", eq: "装備", lvd: "Lv差",
 };
@@ -463,7 +463,7 @@ function battleLine(kind, a) {
     `被ダメ/戦${avg(a.hp0 - a.hp1, a.c, 10)}% (HP${avg(a.hp0, a.c, 10)}→${avg(a.hp1, a.c, 10)}%)`];
   if (a.resourceBattles) bits.push(`MP${avg(a.mp0, a.resourceBattles, 10)}→${avg(a.mp1, a.resourceBattles, 10)}%`);
   bits.push(`与/被ダメ${avg(a.dd, a.c)}/${avg(a.dt, a.c)}`, `敵の命中${hit(a.ea, a.ee, a.ep, a.ei)}`, `味方の命中${hit(a.pa, a.pe, a.pp, a.pi)}`,
-    `味方先手${pct(a.of, a.op)}`);
+    `味方が先${pct(a.of, a.op)}`);
   const amb = ambushNote(a).trim();
   if (amb) bits.push(amb);
   if (a.pre) bits.push(`先制${a.pre}`);

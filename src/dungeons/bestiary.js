@@ -91,7 +91,7 @@ const NEW_DEFS = [
   { id: "bs_direwolf", name: "灰色の大狼", rank: 2, race: "beast", element: "none", artKey: "beast",
     palette: tint(ARTS.beast.palette, "#9aa3ab", 0.35),
     swift: true, // 出口を断つ速さで間合いを詰める
-    desc: "群れを失い、迷宮を新たな狩場に選んだ大狼。遠吠えは出口の方角から聞こえる。帰り道を断つためだ。風のように間合いを詰め、たいてい先手を奪う。" },
+    desc: "群れを失い、迷宮を新たな狩場に選んだ大狼。遠吠えは出口の方角から聞こえる。帰り道を断つためだ。風のように間合いを詰め、たいてい先に動く。" },
   { id: "bs_goblinchief", name: "ゴブリンの族長", rank: 2, boss: true, race: "humanoid", element: "fire", artKey: "gobchief", soulClass: "fighter",
     palette: tint(ARTS.gobchief.palette, "#c04a3a", 0.22),
     role: "summoner", summonKey: "bs_goblin", ability: "goldSteal", // 配下を盾に呼び、混乱に乗じて奪う
@@ -207,7 +207,7 @@ const NEW_DEFS = [
     role: "summoner", summonKey: "d03_sentinel", ability: "critical", enrage: true, physResist: 50, // 亡兵を呼び、急所を貫き、追い詰められて荒れ狂う
     desc: "砦を枕に討ち死にし、なお退却の許しを待ち続ける将の亡霊。錆びた大剣を提げ、無人の鎧を次々と起こして陣を布く。分厚い鎧は刃を阻み、城が落ちる時の絶望が、その剣に宿っている。" },
   // -- 第5層「霧の森」 (rank 6-7・植物/獣/妖。第4層より格上の壁) --
-  // 第5層からは魔物の特色を極端に押し出す: 神速 (1ターンに2度動く) / 特技の多用 (abRate) / ブレス・全体呪文で隊全体を撃つ。
+  // 第5層からは魔物の特色を極端に押し出す: 神速 (1ターンに2度動く) / 特技の多用 (abRate) / ブレス・全体呪文で隊の全員を撃つ。
   // 絵は hd_* の固有原型 (tools/hdart/layer5/)。どの個体も ability を明示する (種族の既定の特技は付けない)
   { id: "bs_misttreant", name: "霧の古木", rank: 7, race: "plant", element: "wind", artKey: "hd_misttreant",
     role: "guard", physResist: 75, magWeak: 1.5, ability: null, // 枝を広げて眷属をかばい、刃を呑む。ただし乾いた芯は炎の魔法に脆い
@@ -228,7 +228,7 @@ const NEW_DEFS = [
     physResist: 75, regen: 0.1, magWeak: 1.5, ability: null, // 菌糸の体は刃をほとんど通さず、胞子から蘇る。炎の魔法でしか焼き払えない
     desc: "朽ち木に根を張った菌糸が、人を超える巨体に育ったもの。弾力のある繊維の体は刃をほとんど受け付けず、叩き崩しても残った胞子からみるみる再生する。倒しきるには、魔の炎で胞子ごと焼き払うしかない。" },
   { id: "bs_forestlord", name: "霧の森の主", rank: 7, boss: true, race: "plant", element: "wind", artKey: "hd_forestlord", soulClass: "priest",
-    ability: "spell", abRate: 0.4, role: "summoner", summonKey: "bs_stranglevine", regen: 0.05, magWeak: 1.3, // 霧の大呪で隊全体を撃ち、蔦を呼ぶ。炎には脆い
+    ability: "spell", abRate: 0.4, role: "summoner", summonKey: "bs_stranglevine", regen: 0.05, magWeak: 1.3, // 霧の大呪で隊の全員を撃ち、蔦を呼ぶ。炎には脆い
     desc: "霧そのものが森の意思を得て、古木の体に宿った主。燐光の呪文の輪をめぐらせ、霧の大呪で森に踏み入った者をまとめてなぎ払い、無数の絞め蔦を従える。森を統べる古き妖だが、その身もまた木――業火の前には、ただ燃える薪にすぎない。" },
   // -- 第5層「霧の森」 batch2 (rank 6-7) --
   { id: "bs_giantowl", name: "霧渡りの梟", rank: 6, race: "avian", element: "wind", artKey: "hd_giantowl",
@@ -281,7 +281,7 @@ const NEW_DEFS = [
     ability: "confuse", abRate: 0.5, magWeak: 1.5, // 明滅する光の輪で絶えず惑わせる。薄い体は魔の力に脆い
     desc: "沈んだ神殿の暗がりを漂う、鐘の形の大きなくらげ。半ば透けた傘の内で灯りの臓が明滅し、その光の輪を見つめた者は敵と味方の見分けを失う。淡く美しい体は、魔の力を浴びれば容易く弾ける。" },
   { id: "bs_tidecaller", name: "潮を呼ぶ司祭", rank: 8, race: "specter", element: "water", artKey: "hd_tidecaller", soulClass: "priest",
-    ability: "spell", abRate: 0.5, // 三叉の杖で渦潮を呼び、潮の呪文で隊全体を撃ち続ける
+    ability: "spell", abRate: 0.5, // 三叉の杖で渦潮を呼び、潮の呪文で隊の全員を撃ち続ける
     desc: "神殿が沈んだ夜、潮を呼んだと伝わる背教の大司祭の霊。三叉の杖を掲げるたびに渦潮が立ちのぼり、押し寄せる潮の呪文が隊をまとめて呑む。骨の顔は海藻の髭に埋もれ、もう祈りの言葉も覚えていない。" },
   { id: "bs_kelpdrowned", name: "藻に巻かれし者", rank: 7, race: "undead", element: "water", artKey: "hd_kelpdrowned",
     pack: true, lifesteal: 0.4, ability: null, // 群れですがりつき、水の底へ引き込むように息を奪う
@@ -290,7 +290,7 @@ const NEW_DEFS = [
     ability: "paralyze", abRate: 0.45, magResist: 75, // 鳴り続けて魂を痺れさせる。古い文字が呪文をはね返す
     desc: "水没した鐘楼から落ち、苦悶の顔を胴に浮かべた神殿の大鐘。ひとりでに鳴り続け、その響きは骨の髄まで染み入って魂を痺れさせる。表に刻まれた古い文字は、呪文の力を鈍くはね返す。" },
   { id: "bs_templelord", name: "沈める神官王", rank: 8, boss: true, race: "specter", element: "water", artKey: "hd_templelord", soulClass: "priest",
-    role: "summoner", summonKey: "bs_choirwraith", ability: "spell", abRate: 0.4, regen: 0.05, physResist: 50, magWeak: 1.3, // 聖歌隊を呼び、潮の大呪で隊全体を撃つ。光に脆い
+    role: "summoner", summonKey: "bs_choirwraith", ability: "spell", abRate: 0.4, regen: 0.05, physResist: 50, magWeak: 1.3, // 聖歌隊を呼び、潮の大呪で隊の全員を撃つ。光に脆い
     desc: "三百年前、大神殿の「魂の泉」の上で冠を受けた旧都の王。神殿ごと水に沈められてなお玉座を離れず、王冠と司教冠の溶け合った冠を戴いて腰まで水に浸かる。聖歌隊の霊を呼び集め、渦潮の大呪で生者をまとめて呑む。湖底の闇に慣れた身は、聖なる光に焼かれて崩れる。" },
   // -- 第7層「灼熱の洞」 (rank 8-9・火/溶岩。第6層より格上の壁。深部に rank10) --
   { id: "bs_lavagolem", name: "溶岩のゴーレム", rank: 9, race: "construct", element: "fire", artKey: "hd_lavagolem",
@@ -430,7 +430,7 @@ const NEW_DEFS = [
     ability: "poison", abRate: 0.5, multistrike: 2, // 毒の滴る牙で続けざまに噛み、何度も毒を流し込む
     desc: "枯れた葦のあいだに巣を張る、人を捕らえるほどの大蜘蛛。腹には毒を蓄えた黄緑の縞が走る。前脚を高く振り上げて飛びかかり、毒の滴る大きな牙で続けざまに噛みつく。巣には、糸で巻かれた獲物がいくつも吊るされている。" },
   { id: "bs_miasmawraith", name: "瘴気の霊", rank: 10, race: "specter", element: "earth", artKey: "hd_miasmawraith",
-    ability: "spell", abRate: 0.5, evasive: true, // 毒の呪いを隊全体へ降らせ続け、霧の体は刃をすり抜ける
+    ability: "spell", abRate: 0.5, evasive: true, // 毒の呪いを隊の全員へ降らせ続け、霧の体は刃をすり抜ける
     desc: "沼から立ちのぼる瘴気が、腐った魂を核にして人の上半身の形をとったもの。両腕を広げて頭上に崩れかけた呪の輪を回し、毒の呪いを雨のように降らせる。ゆらぐ霧の体を、刃はたいていすり抜けてしまう。" },
   { id: "bs_corpseflower", name: "屍肉花", rank: 10, race: "plant", element: "earth", artKey: "hd_corpseflower",
     ability: "charm", abRate: 0.45, regen: 0.08, // 甘い光と花粉で心を奪い続け、刈られたつるはすぐ伸び直す
@@ -474,7 +474,7 @@ const NEW_DEFS = [
   // 雷の層だが麻痺は2体 (多用は嵐の蛇竜) に抑え、混乱・魅了・眠り・弱体・魂奪い・吸命・金貨奪い・鼓舞・打ち消しなどへ散らした。
   // 絵は hd_* の固有原型 (tools/hdart/layer10/)。どの個体も ability を明示する (種族の既定の特技は付けない)
   { id: "bs_stormelemental", name: "嵐の精", rank: 10, race: "elemental", element: "wind", artKey: "hd_stormelemental",
-    ability: "spell", abRate: 0.5, evasive: true, // 頭上に回す稲妻の輪から雷を隊全体へ降らせ続け、雲の体は刃をすり抜ける
+    ability: "spell", abRate: 0.5, evasive: true, // 頭上に回す稲妻の輪から雷を隊の全員へ降らせ続け、雲の体は刃をすり抜ける
     desc: "塔に渦巻く雷雲がひとかたまりになり、人の上半身の形をとったもの。紫灰の雲の体は下へ行くほど渦にほどけ、胸の奥で稲光が明滅する。両腕を掲げて頭上に稲妻の輪を回し、雷を雨のように隊へ降らせる。ゆらぐ雲の体を、刃はたいていすり抜けてしまう。" },
   { id: "bs_thunderroc", name: "雷鳴の大鵬", rank: 10, race: "avian", element: "wind", artKey: "hd_thunderroc",
     ability: "breath", abRate: 0.5, swift: true, // 鉤くちばしから雷の息を何度も吐いて隊をまとめて撃ち、風を切って先に動く
@@ -531,8 +531,8 @@ const NEW_DEFS = [
     multistrike: 3, evasive: true, ability: null, // 三日月に反って跳びかかり一度に三度斬りつけ、風の速さで刃をかわす
     desc: "つむじ風に乗って宙を跳ぶ、イタチに似た細長い魔。両の前足は鎌のような長い刃になっている。体を三日月に反らせて跳びかかり、一度に三度、真空の刃で斬りつける。斬られた傷口は、少し遅れて開く。風そのものの速さで身をかわし、刃がなかなか届かない。" },
   { id: "bs_stormcaller", name: "雷を呼ぶ司祭", rank: 10, race: "specter", element: "wind", artKey: "hd_stormcaller", soulClass: "mage",
-    role: "summoner", summonKey: "bs_stormelemental", ability: "spell", // 香炉を振って唱え、雷雲から隊全体へ雷を落とし、嵐の精を呼び降ろす
-    desc: "塔の鐘楼で祈りを続けてきた司祭の霊。高い僧帽に長い法衣、骨ばった手。片手で鎖の香炉を振りながら、もう片手を雷雲へ差し上げて唱える。祈りが届くと頭上の雲が渦を巻き、隊全体へ雷が落ちる。嵐の精が雲から降りてくることもある。何に祈っているのかは、司祭自身ももう覚えていないらしい。" },
+    role: "summoner", summonKey: "bs_stormelemental", ability: "spell", // 香炉を振って唱え、雷雲から隊の全員へ雷を落とし、嵐の精を呼び降ろす
+    desc: "塔の鐘楼で祈りを続けてきた司祭の霊。高い僧帽に長い法衣、骨ばった手。片手で鎖の香炉を振りながら、もう片手を雷雲へ差し上げて唱える。祈りが届くと頭上の雲が渦を巻き、隊の全員へ雷が落ちる。嵐の精が雲から降りてくることもある。何に祈っているのかは、司祭自身ももう覚えていないらしい。" },
   { id: "bs_stormlord", name: "嵐の尖塔の主", rank: 10, boss: true, race: "elemental", element: "wind", artKey: "hd_stormlord", soulClass: "mage",
     role: "summoner", summonKey: "bs_windwraith", ability: "breath", abRate: 0.35, physResist: 50, endure: true, // 渦からちぎれた魂を疾風の霊にして放ち、叫ぶ口から雷の息を吐き、渦の体は刃を半ば逸らして一度は崩れない
     desc: "塔の頂で渦を巻く、数えきれない魂の光が寄り集まってできた嵐。紫灰の雷雲の巨体のあちこちに、渦に引き延ばされた青白い顔が浮かぶ。渦の芯から突き出た顔が縦に裂けた口で叫ぶと、雷の息が隊をまとめて撃つ。渦からちぎれた魂は疾風の霊になって降りかかる。渦の体は刃を半ば逸らし、致命の一撃を受けても一度は崩れない。巨体の下からは床へ何本もの鎖が張りつめ、背後には火のともらない大きな灯台が、割れた大レンズを闇に向けて立っている。" },
@@ -1021,8 +1021,8 @@ const NEW_DEFS = [
     desc: "世界の終わりを告げるために遣わされたという白い影。誰より先んじて終焉を告げ、その報せを聞いた者の魂を音もなく抜き取る。ラッパは携えていない。もう吹き終えたのかもしれない。" },
   { id: "bs_chaosknight", name: "混沌の騎士", rank: 10, race: "armored", element: "dark", artKey: "knightmare", soulClass: "knight",
     palette: tint(ARTS.knightmare.palette, "#7a2a8a", 0.4),
-    swift: true, ability: "critical", // 裏切りの剣技で先手を取り、急所だけをえぐる
-    desc: "百の戦場で百の主君に仕え、そのすべてを裏切った剣鬼。読めぬ剣筋で先手を奪い、急所だけを的確にえぐる。鎧の下にあるのが人なのか、誰も確かめていない。" },
+    swift: true, ability: "critical", // 裏切りの剣技で先に動き、急所だけをえぐる
+    desc: "百の戦場で百の主君に仕え、そのすべてを裏切った剣鬼。読めぬ剣筋で先に動き、急所だけを的確にえぐる。鎧の下にあるのが人なのか、誰も確かめていない。" },
   { id: "bs_reddragon", name: "レッドドラゴン", rank: 10, boss: true, race: "dragon", element: "fire", artKey: "dragon",
     ability: "breath", physResist: 75, // 城壁を溶かす業火を吐き、灼熱の鱗は刃を弾く
     desc: "灼熱の血を巡らせる竜の中の竜。城壁を飴のように溶かす業火を前衛後衛もろとも吐きかけ、赤熱した鱗は並の刃を弾く。財宝の山をしとねに千年を眠る。竜殺しを名乗りたくば、まずこの焔の前に立て。" },
@@ -1101,7 +1101,7 @@ const NEW_DEFS = [
     physResist: 75, ability: "sunder", // 無骨な鉄塊の体は刃を通さず、鉄の拳で鎧ごと守りを打ち砕く (守り崩し)
     desc: "古代の砦を守るために鋳造された鉄の自動人形。命令のみで動き、千年の時を経た今もその命令を忠実に実行し続ける。分厚い鉄塊の体は並の武器をほとんど通さず、振り下ろす鉄の拳は鎧ごと守りを打ち砕く。" },
   { id: "bs_thunderbird", name: "雷鳥", rank: 6, race: "avian", element: "wind", artKey: "hd_thunderbird",
-    ability: "spell", abRate: 0.4, swift: true, // 翼から落雷を降らせて隊全体を撃つ (第5層)
+    ability: "spell", abRate: 0.4, swift: true, // 翼から落雷を降らせて隊の全員を撃つ (第5層)
     desc: "嵐の中でのみ現れる雷光の鳥。黒雲を背負って翼を広げれば、羽の縁から幾筋もの稲妻が地上へ降り注ぎ、隊をまとめて撃ち据える。稲光とともに素早く宙を舞う。" },
   { id: "bs_deepgolem", name: "大地のゴーレム", rank: 5, race: "construct", element: "earth", artKey: "hd_deepgolem",
     physResist: 75, // 神殿の基礎石そのものの巨体
@@ -1730,7 +1730,7 @@ const ELITE_DEFS = [
     physResist: 75, ability: "charm", abRate: 0.5, role: "summoner", summonKey: "bs_kelpdrowned", // 微笑みで心を奪い続け、ひざまずく参拝者の骸を呼ぶ。聖石の体が刃を弾く
     desc: "信仰を失った神殿で、祈られることに飢えた女神の石像。欠けた顔で微笑んで両腕を広げ、その光の輪を浴びた者は心を奪われて仲間に刃を向ける。台座の下には藻に巻かれた参拝者たちがひざまずき、呼べば這い寄ってくる。聖石の体は刃をほとんど寄せつけない。" }, // 第6層
   { id: "el_heresiarch", name: "異端大司教", elite: true, rank: 8, race: "undead", element: "dark", artKey: "hd_heresiarch", soulClass: "bishop",
-    ability: "spell", abRate: 0.5, regen: 0.06, // 禁書を開いて闇の呪文で隊全体を撃ち続け、喰らった魂で己を繕う
+    ability: "spell", abRate: 0.5, regen: 0.06, // 禁書を開いて闇の呪文で隊の全員を撃ち続け、喰らった魂で己を繕う
     desc: "禁じられた教義を説き、生きながら神殿の地下へ葬られた大司教。宙に開いた禁書から闇の文字を立ちのぼらせ、逆さの印の輪の上で闇の呪文を唱え続けて隊をまとめて撃つ。死を福音と説くその身は、喰らった魂の分だけ傷を繕う。" }, // 第6層
   { id: "el_offeringslime", name: "供物のるつぼ", elite: true, rank: 10, race: "amorph", element: "dark", artKey: "hd_offeringslime", // 第9層の強敵。絵は hd_* の固有原型
     physResist: 75, ability: "goldSteal", abRate: 0.45, // 金貨を何度も呑み込んで奪い、突き立った刃も供物もろとも呑む

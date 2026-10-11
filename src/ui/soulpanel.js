@@ -151,7 +151,7 @@ function mainCard(d, pe, town) {
   if (!pe) {
     card.classList.add("empty");
     card.appendChild(el("div", "sp-empty-t", "メイン魂が宿っていない"));
-    card.appendChild(el("div", "sp-empty-s", "魂を宿せば、職業・能力・技が定まり、パーティに加えられる。"));
+    card.appendChild(el("div", "sp-empty-s", "魂を宿せば、職業・能力・技が定まり、隊に加えられる。"));
     if (town) card.appendChild(button({ label: "魂を宿す", kind: "primary", onTap: () => openSoulPicker(d, "primary") }));
     return card;
   }
@@ -387,7 +387,7 @@ export function openOrderSheet(town = true) {
   let h = null;
   h = sheet.open({
     kind: "info", banner: "控えの結社", className: "sp-pick-sheet",
-    lines: [`席に着けた魂の能力の一部 (${ORDER_RATE_TEXT}) が、人業の全員に加わる。パーティに出している魂は席に着けない。`],
+    lines: [`席に着けた魂の能力の一部 (${ORDER_RATE_TEXT}) が、人業の全員に加わる。隊に出している魂は席に着けない。`],
     body: (scroll) => orderBody(scroll, town, () => h && h.update({})),
   });
   return h;
@@ -408,7 +408,7 @@ function orderBody(root, town, again) {
   root.appendChild(info);
   if (seated.length) root.appendChild(el("div", "sp-order-on", `全員に: ${bonusText(orderStatBonus(seated)) || "なし"}`));
   if (!benched.length) {
-    root.appendChild(el("div", "pt-note", "パーティに出していない魂がいない。控えの魂を席に着けると、その能力の一部が全員に加わる。"));
+    root.appendChild(el("div", "pt-note", "隊に出していない魂がいない。控えの魂を席に着けると、その能力の一部が全員に加わる。"));
     return;
   }
   // 席に着いている魂 → 全員に足す能力の大きい順
@@ -446,7 +446,7 @@ export function openSoulPicker(d, slotId = "primary") {
     banner: isSub ? `サブ魂${si + 1} ― ${d.name}` : `メイン魂 ― ${d.name}`,
     onClose: () => { if (!isSub) UI.tutorialEvent?.("soulChangeViewed"); },
     lines: [isSub ? "サブ魂は、覚えた技かパッシブを貸し、能力の一部を足す (R1 10% 〜 R5 30%)。貸す数も魂のランクで増える (R1-2:1 / R3-4:2 / R5:3)。" : "メイン魂が、職業・能力・技を決める。"],
-    body: (scroll, h) => { scroll.appendChild(el("div", "pt-note", game.featureUnlocked?.("sub1") ? "メイン魂の同じ職業はパーティに1つだけ。サブ魂は同じ職業の別の魂なら仲間と重複できる。他の人業が宿している魂を選ぶと、その人業から移す。同じ人業のメイン・サブには同じ職業を重ねられない (この人業のメイン魂・サブ魂どうしは入れ替えられる)。余った魂は人業の館で魂融合できる。" : "同じ職業の魂は、パーティに1つだけ。仲間が宿している魂を選ぶと、その仲間から移す。")); pickerBody(scroll, d, slotId, h); },
+    body: (scroll, h) => { scroll.appendChild(el("div", "pt-note", game.featureUnlocked?.("sub1") ? "メイン魂の同じ職業は隊に1つだけ。サブ魂は同じ職業の別の魂なら仲間と重複できる。他の人業が宿している魂を選ぶと、その人業から移す。同じ人業のメイン・サブには同じ職業を重ねられない (この人業のメイン魂・サブ魂どうしは入れ替えられる)。余った魂は人業の館で魂融合できる。" : "同じ職業の魂は、隊に1つだけ。仲間が宿している魂を選ぶと、その仲間から移す。")); pickerBody(scroll, d, slotId, h); },
   });
 }
 function wearerOf(uid, self) {
@@ -510,7 +510,7 @@ function confirmSoulEquip(d, slotId, s, cur) {
     al.appendChild(el("div", "sp-take-h", `⚠ ${take.holder.name} が宿している魂`));
     al.appendChild(el("div", "sp-take-t", `「${soulLabel(s)}」は ${take.holder.name} の${hw}に宿っている。宿すと ${take.holder.name} から外れる。`));
     al.appendChild(el("div", "sp-take-t", take.give ? `${take.holder.name} の${hw}には、代わりに「${soulLabel(take.give)}」を宿す。`
-      : take.from === "primary" ? `${take.holder.name} はメイン魂が空になり、パーティで戦えなくなる。` : `${take.holder.name} の${hw}は空になる。`));
+      : take.from === "primary" ? `${take.holder.name} はメイン魂が空になり、隊で戦えなくなる。` : `${take.holder.name} の${hw}は空になる。`));
     body.appendChild(al);
   }
   const mine = previewDoll(d, (f) => placeSoul(f, slotId, s.uid));
@@ -618,7 +618,7 @@ function pickerBody(root, d, slotId, h) {
     tx.appendChild(el("span", "sp-srow-m", `Lv${s.level}/${cap} ・ ランク${rank} ・ ${RARITY_NAME[cl.rarity] || ""}`));
     if (isCur) tx.appendChild(el("span", "sp-srow-tag cur", isSub ? "このサブ魂に宿している" : "宿している"));
     else if (conflict) tx.appendChild(el("span", "sp-srow-tag", inOther && d.primary === s.uid && curUid == null ? "メイン魂は空にできない ― 魂の宿ったサブ魂の枠となら入れ替えられる"
-      : inOther ? "入れ替えると、メイン魂の職業がパーティで重なるため選択不可" : "この人業は同じ職業の魂をすでに宿しているため選択不可"));
+      : inOther ? "入れ替えると、メイン魂の職業が隊で重なるため選択不可" : "この人業は同じ職業の魂をすでに宿しているため選択不可"));
     else {
       // 他の人業が宿している魂も選べる (選ぶとその人業から移す。確認の画面で知らせる)
       if (other) tx.appendChild(el("span", "sp-srow-tag warn", `${other.name} が宿している ・ 選ぶと移す`));
@@ -650,7 +650,7 @@ function pickerBody(root, d, slotId, h) {
     if (isCur) {
       side.appendChild(button({ label: "外す", kind: "ghost", size: "sm", onTap: () => {
         const go = () => game.equipSoulToSlot(d, s.uid, slotId, (applied) => { if (applied) h.close(); });
-        if (!isSub) confirm({ title: `${d.name} からメイン魂を外す？`, lines: ["魂の宿らない器は、パーティで戦えない。"], okLabel: "外す" }).then((y) => { if (y) go(); });
+        if (!isSub) confirm({ title: `${d.name} からメイン魂を外す？`, lines: ["魂の宿らない器は、隊で戦えない。"], okLabel: "外す" }).then((y) => { if (y) go(); });
         else go();
       } }));
     }
@@ -691,7 +691,7 @@ function pickerBody(root, d, slotId, h) {
 }
 
 // ================= 魂一覧 (隊列の「控え」の右から) =================
-// 持っている魂をすべて並べ、魂ごとに 詳細 (能力・覚えた技) / 魂を強化 / 魂融合 / ロック / パーティの人業のメイン・サブに宿す を行う
+// 持っている魂をすべて並べ、魂ごとに 詳細 (能力・覚えた技) / 魂を強化 / 魂融合 / ロック / 隊の人業のメイン・サブに宿す を行う
 const SLOT_NAME = (slotId) => (slotId === "primary" ? "メイン魂" : `サブ魂${+slotId.slice(3) + 1}`);
 // 魂を宿している人業と差し口 (無ければ null)
 function soulHome(uid) {
@@ -831,7 +831,7 @@ export function openSoulDetail(uid, onChange = null) {
     const s = soulByUid(uid);
     if (!s) return [{ label: "閉じる", kind: "ghost", onTap: (x) => x.close() }];
     const items = [];
-    items.push({ label: "宿す", sub: "パーティのメイン・サブに", kind: "primary", onTap: () => openHostSheet(uid, again) });
+    items.push({ label: "宿す", sub: "隊のメイン・サブに", kind: "primary", onTap: () => openHostSheet(uid, again) });
     if (s.level < soulLevelCapOf(s)) items.push({ label: "魂を強化", sub: `Lv${s.level} → ${s.level + 1}`, kind: "secondary", onTap: () => openTrainSheet(uid, again) });
     else if ((G.embers || 0) > 0) items.push({ label: "魂を強化", sub: "残火でLv上限を上げる", kind: "secondary", onTap: () => openTrainSheet(uid, again) });
     if (game.featureUnlocked?.("fusion")) {
@@ -848,7 +848,7 @@ export function openSoulDetail(uid, onChange = null) {
     onClose: () => { if (onChange) onChange(); } });
   return h;
 }
-// 魂を宿す先を選ぶ: パーティの人業 × メイン魂 / サブ魂N。選べない差し口は理由を添えて灰色に
+// 魂を宿す先を選ぶ: 隊の人業 × メイン魂 / サブ魂N。選べない差し口は理由を添えて灰色に
 function openHostSheet(uid, onDone = null) {
   const G = G_();
   const s = soulByUid(uid);

@@ -179,7 +179,7 @@ function floorFacts() {
       if (m) facts.push({ tone: m.kind === "boon" ? "gold" : "bad", icon: ICONS.portal, title: `${m.kind === "boon" ? "奈落の恵み" : "奈落の変異"}「${m.name}」`, accent: m.accent, lines: [m.desc] });
     }
   }
-  // 迷宮のイベント (出来事) の効果: この階 / この潜入
+  // 迷宮のイベント (出来事) の効果: この階 / この出撃
   if (game.eventFacts) { try { facts.push(...game.eventFacts()); } catch (e) { /* 表示のみ */ } }
   return { g, cfg, dn, abyss, theme, sp, mu, obj, facts };
 }
@@ -187,7 +187,7 @@ export function openFloorInfo() {
   const g = G();
   if (!g) return null;
   const f = floorFacts();
-  const name = f.abyss ? "無限迷宮「奈落」" : (f.dn ? f.dn.name : "");
+  const name = f.abyss ? "奈落" : (f.dn ? f.dn.name : "");
   const floors = f.abyss ? 0 : (f.dn && f.dn.floors) || 1;
   return sheet.open({
     kind: "info", banner: "階の情報", className: "dg-sheet",
@@ -215,7 +215,7 @@ export function openFloorInfo() {
         b.appendChild(section("ここで果たせる依頼", todo ? `${todo}件` : "すべて達成"));
         for (const q of qs) {
           const done = q.state === "done";
-          const prog = q.type === "clear" ? null : q.type === "floor" ? (q.progress ? `いま地下${q.progress}階まで` : "未到達") : `${q.progress || 0} / ${q.goal}`;
+          const prog = q.type === "clear" ? null : q.type === "floor" ? (q.progress ? `いまB${q.progress}Fまで` : "未到達") : `${q.progress || 0} / ${q.goal}`;
           const sub = done ? "達成 ― 街へ戻ったら酒場で報告" : [q.desc, prog].filter(Boolean).join(" ・ ");
           b.appendChild(row({ icon: markOf(q, 30), title: q.name, sub, tone: done ? "gold" : null }));
         }
@@ -261,8 +261,8 @@ export function openRunLoot() {
         c.appendChild(el("div", "dg-tally-l", label));
         return c;
       };
-      tot.appendChild(cell("gold", r.gold || 0, "ゴールド"));
-      tot.appendChild(cell("soul", r.soulPts || 0, "Soul"));
+      tot.appendChild(cell("gold", r.gold || 0, "金貨"));
+      tot.appendChild(cell("soul", r.soulPts || 0, "✦Soul"));
       tot.appendChild(cell(null, r.kills || 0, "倒した敵"));
       tot.appendChild(cell(null, `B${Math.max(r.floors || 1, g.floor || 1)}F`, "到達"));
       b.appendChild(tot);
@@ -403,7 +403,7 @@ export function openDungeonMenu() {
   const combat = g.state === "combat";
   if (combat) g._cmdStale = true;
   const f = floorFacts();
-  const name = f.abyss ? "無限迷宮「奈落」" : (f.dn ? f.dn.name : "");
+  const name = f.abyss ? "奈落" : (f.dn ? f.dn.name : "");
   const floors = f.abyss ? 0 : (f.dn && f.dn.floors) || 1;
   const r = g.run || {};
   let h = null;
@@ -426,8 +426,8 @@ export function openDungeonMenu() {
       head.addEventListener("click", go(openFloorInfo));
       b.appendChild(head);
       const grid = el("div", "dg-mgrid");
-      grid.appendChild(combat ? menuTile("party", "パーティを見る", "戦闘中は開けない", null)
-        : menuTile("party", "パーティを見る", "装備・能力・道具", go(() => UI.openParty(0, { context: "dungeon" }))));
+      grid.appendChild(combat ? menuTile("party", "隊を見る", "戦闘中は開けない", null)
+        : menuTile("party", "隊を見る", "装備・能力・道具", go(() => UI.openParty(0, { context: "dungeon" }))));
       grid.appendChild(menuTile("loot", "今回の収穫", `💰${r.gold || 0} ✦${r.soulPts || 0} 品${(r.items || []).length}`, go(openRunLoot)));
       grid.appendChild(menuTile("scroll", "記録を読む", "出来事の全文", go(openLog)));
       grid.appendChild(menuTile("book", "図鑑", "敵・品・見聞", go(() => UI.openCodexSheet && UI.openCodexSheet({ dungeonIdx: g.dungeonIdx }))));
@@ -573,7 +573,7 @@ export function peekDoll(d, { idx = 0, combat = false } = {}) {
 
       // 守り: 属性防御・ブレス耐性・状態異常への抵抗 (値のあるものだけ)
       const guard = [];
-      if (d.elemDef && d.elemDef.el) guard.push(`属性防 ${elemStatShort(d.elemDef)}`);
+      if (d.elemDef && d.elemDef.el) guard.push(`属防 ${elemStatShort(d.elemDef)}`);
       const br = partyBreathRes(d);
       if (br) guard.push(`ブレス耐性 ${Math.round(br * 100)}%`);
       for (const [k, label] of Object.entries(RESIST_LABEL)) {
@@ -588,7 +588,7 @@ export function peekDoll(d, { idx = 0, combat = false } = {}) {
       }
     },
     footer: combat ? [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }] : [
-      { label: "パーティを見る", kind: "primary", onTap: (h) => { h.close("go"); setTimeout(() => UI.openParty(idx, { context: "dungeon" }), 0); } },
+      { label: "隊を見る", kind: "primary", onTap: (h) => { h.close("go"); setTimeout(() => UI.openParty(idx, { context: "dungeon" }), 0); } },
       { label: "閉じる", kind: "ghost", onTap: (h) => h.close() },
     ],
   });

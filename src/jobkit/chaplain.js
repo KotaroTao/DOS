@@ -34,7 +34,7 @@ export default {
     CHAPLAIN_MAMORINOKOUKEN: { name: "護りの光剣", mp: 21, kind: "phys", power: 4.0, pieScale: 1.0, element: "light", acc: 1, debuff: { atk: 0.8 }, target: "enemy", desc: "必中の光剣で断ち、仲間を襲う力を挫く" },
     CHAPLAIN_MIZUGAKI: { name: "慈悲の水垣", mp: 18, kind: "heal", healMul: 1, healCap: 0.5, buff: { vit: 1.2 }, cure: true, target: "all-ally", desc: "水垣で味方全員を癒し守り、状態異常を治す" },
     CHAPLAIN_INORINOSABAKI: { name: "祈りの裁き", mp: 22, kind: "atk", power: 58, element: "light", debuff: { hit: 0.8 }, target: "enemy", desc: "裁きの光で撃ち、目を眩ませる" },
-    CHAPLAIN_RENTOU: { name: "盾の連祷", mp: 21, kind: "buff", buff: { vit: 1.45 }, regen: { pct: 0.04, turns: 3 }, target: "all-ally", desc: "連祷が味方全体を守り、癒しを宿す" },
+    CHAPLAIN_RENTOU: { name: "盾の連祷", mp: 21, kind: "buff", buff: { vit: 1.45 }, regen: { pct: 0.04, turns: 3 }, target: "all-ally", desc: "連祷が味方全員を守り、癒しを宿す" },
     CHAPLAIN_INOCHIZUNA: { name: "命綱の祈り", mp: 9, kind: "heal", healMul: 2.5, grantEndure: true, cure: true, regen: { pct: 0.06, turns: 3 }, target: "ally", desc: "一人を大きく癒し、致死を一度だけ耐えさせる" },
     CHAPLAIN_SEISUIKEKKAI: { name: "聖水の結界", mp: 22, kind: "buff", grantBarrier: 1, regen: { pct: 0.03, turns: 3 }, cure: true, target: "all-ally", desc: "聖水の結界で魔障壁を張り、癒しを宿す" },
     CHAPLAIN_DAIKITOU: { name: "護教の大祈祷", mp: 21, kind: "heal", healMul: 1.2, buff: { vit: 1.35 }, regen: { pct: 0.04, turns: 3 }, target: "all-ally", desc: "味方全員を癒し、守りと癒しの加護を授ける" },
@@ -42,7 +42,7 @@ export default {
     CHAPLAIN_SEIDAN: { name: "聖壇の守り", mp: 30, kind: "buff", buff: { vit: 1.5 }, debuffAll: { atk: 0.85 }, target: "all-ally", desc: "聖壇の加護で味方を守り、敵の力を挫く" },
     CHAPLAIN_SEIRYUUKOU: { name: "聖流光", mp: 30, kind: "atk", power: 66, element: "light", prey: { races: UNHOLY, mul: 1.3 }, debuff: { hit: 0.85 }, target: "all-enemy", desc: "光の奔流が敵全体を呑み、狙いを乱す" },
     CHAPLAIN_YOMIGAERI: { name: "蘇りの連祷", mp: 75, kind: "heal", healMul: 2.1, revive: true, revivePct: 0.5, cure: true, purge: true, regen: { pct: 0.05, turns: 3 }, target: "all-ally", desc: "倒れた者を呼び戻し、全員を癒し続ける" },
-    CHAPLAIN_SEIGOJOU: { name: "聖護城", mp: 23, kind: "heal", healMul: 1.4, buff: { vit: 1.6 }, grantBarrier: 1, regen: { pct: 0.04, turns: 3 }, target: "all-ally", desc: "味方全体を癒し、守りと障壁と癒しで包む" },
+    CHAPLAIN_SEIGOJOU: { name: "聖護城", mp: 23, kind: "heal", healMul: 1.4, buff: { vit: 1.6 }, grantBarrier: 1, regen: { pct: 0.04, turns: 3 }, target: "all-ally", desc: "味方全員を癒し、守りと障壁と癒しで包む" },
   },
   perks: {
     // ランクのパッシブ: 祈りの盾が、隊のすべてを覆う

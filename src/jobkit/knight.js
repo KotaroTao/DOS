@@ -61,7 +61,7 @@ export default {
     },
     knightOath: {
       label: "騎士王の誓約",
-      lv: ["戦闘開始時、味方全体のVIT×1.15 (3ターン)・敵を自分に引き付ける"],
+      lv: ["戦闘開始時、味方全員のVIT×1.15 (3ターン)・敵を自分に引き付ける"],
       fx: [{ t: "start", party: true, taunt: true, buff: { vit: [1.15] }, dur: 3 }],
     },
   },

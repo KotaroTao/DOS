@@ -685,7 +685,7 @@ function autoEquip(target = "all") {
   const plan = planBestEquip(targets, { pool, canEquip, score: gearScore, recalc, allow: autoAllow });
   if (!plan.moves.length) {
     sfx("select");
-    toast(targets.length > 1 ? "パーティの装備は、いまが最良だ" : `${targets[0].name}の装備は、いまが最良だ`, { tone: "info" });
+    toast(targets.length > 1 ? "隊の装備は、いまが最良だ" : `${targets[0].name}の装備は、いまが最良だ`, { tone: "info" });
     return { ok: false, moves: 0 };
   }
   const involved = plan.undoSnapshot.map((s) => s.doll);
@@ -1184,7 +1184,7 @@ export function openResonance() {
   const near = game.partyNearResonances ? game.partyNearResonances() : [];
   const town = G.state === "town";
   const body = (b) => {
-    b.appendChild(el("p", "rs-note", "隊に出ている人業のメイン魂の職がそろうと、隊全体に効く。サブ魂と控えは数えない。倒れていても隊にいれば効く。"));
+    b.appendChild(el("p", "rs-note", "隊に出ている人業のメイン魂の職がそろうと、隊の全員に効く。サブ魂と控えは数えない。倒れていても隊にいれば効く。"));
     if (list.length) {
       const tot = el("div", "rs-tot");
       tot.appendChild(el("div", "rs-h", "いまの効果 (合計)"));
@@ -1236,7 +1236,7 @@ function showResonanceNotice() {
     kind: "celebrate", sparkle: true, banner: "魂の共鳴", className: "rs-sheet rs-cel", accent: "#b99cf0",
     title: list.length > 1 ? `${list.length}つの共鳴が目覚めた` : `「${list[0].name}」が目覚めた`,
     body: (b) => {
-      b.appendChild(el("p", "rs-note", "隊の魂どうしが響き合い、隊全体に力が宿った。"));
+      b.appendChild(el("p", "rs-note", "隊の魂どうしが響き合い、隊の全員に力が宿った。"));
       for (const x of list) b.appendChild(resonanceRow(x, { found: true, active: true }));
       b.appendChild(el("p", "rs-note", "見つけた組は図鑑の「共鳴」に記される。隊の「共鳴」の札から、いまの組を見られる。"));
     },
@@ -1308,7 +1308,7 @@ function benchButton() {
 // 持ち上げ中の案内 (人業の見出しの場所に出す。高さは同じ)
 function pickHint() {
   const h = el("section", "pt-pickhint");
-  setText(h.appendChild(el("span", "pt-pickhint-t")), `${picked.name} を移す先をえらぶ ― パーティの誰かと入れ替え・「控え」へ下げる`);
+  setText(h.appendChild(el("span", "pt-pickhint-t")), `${picked.name} を移す先をえらぶ ― 隊の誰かと入れ替え・「控え」へ下げる`);
   const x = el("button", "pt-pickhint-x", "やめる");
   x.type = "button";
   x.addEventListener("click", () => { picked = null; rerender(); });
@@ -1505,7 +1505,7 @@ function reserveRow(d) {
       a.type = "button";
       a.appendChild(el("span", null, "＋"));
       a.appendChild(el("span", "pt-res-join-l", `${slotName(G.party.length)}へ加える`));
-      a.setAttribute("aria-label", `${d.name} をパーティに加える`);
+      a.setAttribute("aria-label", `${d.name} を隊に加える`);
       a.disabled = !!game.partySoulConflict([...G.party, d]);
       if (a.disabled) a.title = "同じ職業の魂が重複するため選択不可";
       a.addEventListener("click", () => joinParty(d));
@@ -1533,7 +1533,7 @@ function swapWithReserve(d, j) {
   if (game.blockSoulResonance(G.party.map((x, i) => i === j ? d : x))) return;
   G.party[j] = d; G.reserve[k] = m;
   sfx("select"); buzz(10);
-  game.log(`${d.name} をパーティ (${slotName(j)}) に入れ、${m.name} を控えに下げた。`, "sys");
+  game.log(`${d.name} を隊 (${slotName(j)}) に入れ、${m.name} を控えに下げた。`, "sys");
   toast(`${d.name} が${slotName(j)}に入り、${m.name} は控えへ`, { tone: "info", noLog: true });
   if (reserveH) reserveH.close();
   if (swapH) swapH.close();
@@ -1543,15 +1543,15 @@ function swapWithReserve(d, j) {
 }
 function joinParty(d) {
   const G = G_();
-  if (d.primary == null) { sfx("ng"); toast("魂の宿らない人業はパーティに入れられない", { tone: "bad" }); return; }
-  if (G.party.length >= 6) { sfx("ng"); toast("パーティは満員だ (6体まで)", { tone: "bad" }); return; }
+  if (d.primary == null) { sfx("ng"); toast("魂の宿らない人業は隊に入れられない", { tone: "bad" }); return; }
+  if (G.party.length >= 6) { sfx("ng"); toast("隊は満員だ (6体まで)", { tone: "bad" }); return; }
   const k = G.reserve.indexOf(d);
   if (k < 0) return;
   if (game.expeditionOf && game.expeditionOf(d)) { sfx("ng"); toast(`${d.name}は遠征に出ている。呼び戻すか、帰りを待とう`, { tone: "bad" }); return; }
   if (game.blockSoulResonance([...G.party, d])) return;
   G.reserve.splice(k, 1); G.party.push(d);
   sfx("select");
-  toast(`${d.name} をパーティ (${slotName(G.party.length - 1)}) に加えた`, { tone: "good" });
+  toast(`${d.name} を隊 (${slotName(G.party.length - 1)}) に加えた`, { tone: "good" });
   if (reserveH) reserveH.close();
   if (swapH) swapH.close();
   select(d);
@@ -1853,7 +1853,7 @@ function dollHeader(d, mode) {
   stability.classList.add("pt-stability"); tx.appendChild(stability);
   head.appendChild(tx);
   if (town && pi < 0 && d.primary != null && !away) {
-    const join = button({ label: G.party.length < 6 ? "パーティへ" : "入れ替え", kind: "secondary", size: "sm", onTap: () => (G.party.length < 6 ? joinParty(d) : openSwapSheet(d)) });
+    const join = button({ label: G.party.length < 6 ? "隊へ" : "入れ替え", kind: "secondary", size: "sm", onTap: () => (G.party.length < 6 ? joinParty(d) : openSwapSheet(d)) });
     join.classList.add("pt-head-join");
     head.appendChild(join);
   } else if (town && pi >= 0) {
@@ -2065,7 +2065,7 @@ function equipSeg(root, d) {
     tx.appendChild(el("span", "nb", "全員を"));
     tx.appendChild(el("span", "nb", "回復"));
     b.appendChild(tx);
-    b.setAttribute("aria-label", "回復魔法でパーティの全員を全回復する");
+    b.setAttribute("aria-label", "回復魔法で隊の全員を全回復する");
     b.addEventListener("click", () => game.healAll());
     acts.appendChild(b);
   }
@@ -2073,9 +2073,9 @@ function equipSeg(root, d) {
     const n = betterGearCount();
     const b = el("button", "pt-allauto" + (n ? " hot" : ""));
     b.type = "button";
-    b.appendChild(el("span", null, "パーティの全員を最適装備"));
+    b.appendChild(el("span", null, "隊の全員を最適装備"));
     if (n) b.appendChild(badge(n));
-    b.setAttribute("aria-label", `パーティの全員を最適装備${n ? ` (${n}体にもっと良い装備)` : ""}`);
+    b.setAttribute("aria-label", `隊の全員を最適装備${n ? ` (${n}体にもっと良い装備)` : ""}`);
     b.addEventListener("click", () => autoEquip("all"));
     acts.appendChild(b);
   }
@@ -2353,8 +2353,8 @@ function statsSeg(root, d) {
     fact("参照", d.wScale ? Object.keys(d.wScale).map(k => ATTR_LABEL[k]).join("＋") : "STR（素手）");
     fact("状態", ail, ail === "正常" ? "" : "bad");
     fact("会心", `+${Math.round((d.critBonus || 0) * 100)}%`);
-    fact("属性攻", elemStatShort(d.elemAtk));
-    fact("属性防", elemStatShort(d.elemDef));
+    fact("属攻", elemStatShort(d.elemAtk));
+    fact("属防", elemStatShort(d.elemDef));
     // 装備の状態異常耐性 / 武器の追加効果 (持っている時だけ)
     const AIL_SHORT = { poison: "毒", paralyze: "痺", sleep: "眠", charm: "魅", confuse: "乱", stone: "石" };
     for (const [k, label] of Object.entries(RESIST_LABEL)) fact(`${label}抵抗値`, String((d.resists && d.resists[k]) || 0));
@@ -2502,7 +2502,7 @@ function openSkillManager(d) {
   const redraw = () => { if (!box) return; const nb = build(); box.replaceWith(nb); box = nb; };
   return sheet.open({
     kind: "info", className: "pt-skm-sheet", banner: "技の整理", title: `${d.name}の技`,
-    lines: ["「表示」を切った技は戦闘のスキル一覧に出ない。「オート」を「手動」にした技はオート戦闘で使わない。▲▼ で戦闘での並び順を変える。"],
+    lines: ["「表示」を切った技は戦闘の技の一覧に出ない。「オート」を「手動」にした技はオート戦闘で使わない。▲▼ で戦闘での並び順を変える。"],
     body: (scroll) => { box = build(); scroll.appendChild(box); },
     footer: [
       { label: "初期に戻す", kind: "ghost", onTap: () => { resetSkillPrefs(d); sfx("select"); save(); redraw(); } },
@@ -2735,7 +2735,7 @@ export function openSheet(d, seg = null, { town = false } = {}) {
   dunSeg = SEGS.some((x) => x.key === seg) ? seg : "equip"; // 開くたび「装備」から (指定があればその区分)
   const mode = sheetTown ? "town" : "dungeon";
   sheetH = sheet.open({
-    kind: "info", className: "pt-sheet", banner: sheetTown ? "人業" : "パーティの様子",
+    kind: "info", className: "pt-sheet", banner: sheetTown ? "人業" : "隊の様子",
     body: (scroll) => { const w = el("div", "pt-root m-" + (sheetTown ? "sheet" : "dungeon")); renderView(w, mode); scroll.appendChild(w); },
     footer: [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }],
     onClose: () => {

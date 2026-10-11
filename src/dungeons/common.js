@@ -10,7 +10,7 @@ export const COMMON_MONSTERS = defMonsters([
     desc: "迷宮の湿気と腐肉が溶け合って生まれた、意思なき粘塊。刃を通しても潰れて再び寄り集まり、物理ではなかなか倒せない。だが炎や雷の魔法には脆く、ひとたび熱を通せばたちまち煮崩れる。" },
   { id: "cm_bat", name: "黒翼蝙蝠", race: "wing", element: "dark", artKey: "bat", rank: 1,
     hp: 11, atk: 6, def: 2, spd: 9, soul: 7, gold: 3,
-    swift: true, evasive: true, // 闇を翔ける俊敏な飛行 — 先手を取り、よくかわす
+    swift: true, evasive: true, // 闇を翔ける俊敏な飛行 — 先に動き、よくかわす
     desc: "光をいとい、闇そのものを糧とするように増えた吸血蝙蝠。素早く宙を舞い、こちらの一撃をひらりとかわす。闇の中で羽音が二重三重に重なり始めたら、もう手遅れだ。" },
   { id: "cm_spider", name: "洞窟蜘蛛", race: "insect", element: "earth", artKey: "spider", rank: 1,
     hp: 13, atk: 7, def: 2, spd: 8, soul: 8, gold: 5,
