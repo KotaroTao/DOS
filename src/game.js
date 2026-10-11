@@ -13296,7 +13296,6 @@ const FEATURES = {
   resonance: { chapter: 7, report: "finale" },  // 魂の共鳴 (職の組み合わせの効果)
   order4: { chapter: 8, report: "finale" },     // 結社の席4
   rematch: { chapter: 9, report: "finale" },    // 宿敵の再戦 (名のある強敵・主の強化版)
-  subPick: { chapter: 10, report: "finale" },   // サブ魂で借りられる技 +1
   enchant: { chapter: 11, report: "finale" },   // 付呪
   order5: { chapter: 12, report: "finale" },    // 結社の席5
   rebirth: { chapter: 14, report: "finale" },   // 魂の転生
