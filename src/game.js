@@ -29,7 +29,7 @@ import {
   SOUL_CLASSES, SOUL_KEYS, makeDoll, jobSprite, dollSprite, jobBust, dollBust, dollLookKey, soulIcon,
   recalcDoll, setPermanentStatSource, isUniqueJob, soulLevelCap, soulLevelCapOf, emberCostOf, setSharedSouls, syncDollUids, MAX_SUBS, subPicks,
   soulByUid, makeSoulInstance, soulRankOf, soulLearnedSkills, soulLearnedPassives, soulLabel, subPickCap, jobStatsOf,
-  awakenPerkOf, subPickCapOfRank, subStatRateOfRank, setOrderSource, orderStatRateOfRank, setAppraiseSource, setSkillGate, skillUsable,
+  awakenPerkOf, subPickCapOfRank, subStatRateOfRank, setOrderSource, orderStatRateOfRank, setSkillGate, skillUsable,
   PASSIVES,
   SOUL_RANKS, rollJobClass, rollGreatJobClass, SOUL_STAT_UP,
   soulRankFromCount, capForRarityRank, jobRankName, soulSeriesName, pLv,
@@ -13725,7 +13725,7 @@ function recordMonsterKill(key, dungeonIdx, floor) {
 // 勝利時の汎用戦利品抽選 (固有ドロップ廃止に伴う置換)。通常30% / レア4%。
 // 中身は迷宮の lootLv 帯から引く (レアは一段深い帯)。実物は勝利後の宝箱から取り出す。
 function rollGenericDrop() {
-  const apLv = partyPassiveLv("appraise"); // 目利き: ドロップ率 +15/25/40%
+  const apLv = partyPassiveLv("appraise"); // 掘り出しの勘: ドロップ率 +15/25/40%
   const ap = apLv >= 3 ? 1.40 : apLv >= 2 ? 1.25 : apLv >= 1 ? 1.15 : 1;
   // 特別階 (盗賊の洞察): レアドロップ率が上がる
   if (Math.random() < Math.max(sfNum("rareDropRate", 0.04 * ap), mutNum("rareDropRate", 0))) {
@@ -15188,6 +15188,34 @@ function equipAt(p, it, slotKey, owner = p, stashTo = null) {
   return { ok: true, msg: `${p.name}は ${it.name} を装備した`, displaced: tr.displaced };
 }
 
+// 仲間 (wearer) が装備している品 it を外して、p の部位 slotKey に装備する (装備候補の「仲間が装備している品」から)。
+// 外れた p の装備は p の袋へ。仲間の部位は空く。呪われた品・ロック中の品は動かさない (ロックは呼ぶ側で外してから)
+function equipFromWearer(p, it, slotKey, wearer) {
+  if (!p || !it || !wearer || p === wearer) return { ok: false, msg: "" };
+  if (expeditionOf(p) || expeditionOf(wearer)) return { ok: false, msg: "遠征に出ている人業の装備・持ち物は動かせない" };
+  const wk = SLOTS.find((k) => wearer.equip && wearer.equip[k] === it);
+  if (!wk) return { ok: false, msg: `${wearer.name}は ${it.name} を装備していない` };
+  if (it.cursed) return { ok: false, msg: `${it.name}は呪われていて外せない` };
+  if (it.locked) return { ok: false, msg: `${it.name}はロック中 ― ロックを外すと付け替えられる` };
+  if (!itemFitsSlot(it, slotKey, p)) return { ok: false, msg: "その部位には装備できない" };
+  if (!canEquip(p, it)) return { ok: false, msg: `${p.cls}は${it.name}を装備できない` };
+  const tr = autoEquip.trialEquip(p.equip, it, slotKey);
+  if (!tr) {
+    const pin = [p.equip[slotKey], it.slot === "weapon" && it.twoHanded ? p.equip.shield : null, slotKey === "shield" && p.equip.weapon && p.equip.weapon.twoHanded ? p.equip.weapon : null]
+      .find((x) => autoEquip.isPinned(x));
+    return { ok: false, msg: pin && !pin.cursed ? `${pin.name}はロック中 ― ロックを外すと付け替えられる` : "呪われた装備が外れない" };
+  }
+  if (p.items.length + tr.displaced.length > MAX_ITEMS) return { ok: false, full: true, msg: `${p.name}の持ち物がいっぱいで、外した装備を入れられない` };
+  wearer.equip[wk] = null;
+  recalcDoll(wearer);
+  wearer.hp = Math.min(wearer.hp, wearer.maxhp); wearer.mp = Math.min(wearer.mp, wearer.maxmp);
+  for (const k of SLOTS) p.equip[k] = tr.equip[k] || null;
+  for (const x of tr.displaced) p.items.push(x);
+  recalcDoll(p);
+  p.hp = Math.min(p.hp, p.maxhp); p.mp = Math.min(p.mp, p.maxmp);
+  return { ok: true, msg: `${p.name}は ${wearer.name} の ${it.name} を譲り受けて装備した`, displaced: tr.displaced };
+}
+
 // 装備候補 (窓口)。隊の「装備候補」シート (すべての袋から・伸びの順) を開く
 function openEquipChooser(p, slotKey) { return uiParty.openCandidates(p, slotKey); }
 
@@ -16056,7 +16084,6 @@ function loadGame() {
   for (const s of G.souls) settleSoulExp(s);
   orderSig = null;
   setOrderSource(() => { try { return orderSeatedUids(); } catch (e) { return []; } }); // 結社の席の魂の能力を全員に分ける
-  setAppraiseSource(() => allDolls()); // 目利き (鑑定の成功率) は隊と控えで一番高いLvを見る
   syncDollUids([...(G.party || []), ...(G.reserve || [])]); // 人業の通し番号を続きから (重なりも直す)
   for (const d of [...(G.party || []), ...(G.reserve || [])]) {
     if (!Array.isArray(d.subs)) d.subs = [];
@@ -16777,7 +16804,7 @@ bindGame({
 // 隊 (src/ui/party.js)・魂 (src/ui/soulpanel.js) が使う game.js の内部を結ぶ (モジュールの読み込み時 = init より前)。
 // 契約 (UI.openParty / autoEquip / betterGearCount / trainableList / equipItemTo / bestWearer) は各モジュールの install() が登録する
 bindGame({
-  equipAt, moveItem, campCast, campSpellsOf, healAll, healAllNeed, repairCostOf, repairCostAll, repairDoll, setReviveTimers, hastenCostOf, tryHastenRescue, awaitingRescue, RESCUE_SHORTEN_MS,
+  equipAt, equipFromWearer, moveItem, campCast, campSpellsOf, healAll, healAllNeed, repairCostOf, repairCostAll, repairDoll, setReviveTimers, hastenCostOf, tryHastenRescue, awaitingRescue, RESCUE_SHORTEN_MS,
   emptyDollCost, grantRedSoul, randomDollName, finalizeBuyDoll, soulRepresentatives, partySoulConflict, soulSlotConflict, soulTakePlan, placeSoulInDoll, ownSoulSlot, blockSoulResonance, soulSortCmp, soulRankOf, soulWorn, soulWornByOther,
   equipSoulToSlot, fuseCandidates, fuseSubWorn, fuseSoul, fuseSouls, toggleSoulLock, openFusePicker, openSubSkillPicker, slotSoul,
   unlockedSubSlots, orderSeats, orderSeatedUids, toggleOrderSeat, showCodexJobDetail, addSoulInstance, codexSweepJobs,

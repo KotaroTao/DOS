@@ -31,7 +31,7 @@ export const RESONANCES = [
     text: "最初の操霊師たちが組んだという、いちばん古い組。刃が前に立ち、祈りが背を支える。" },
   { id: "r02", name: "双つの盾", jobs: ["knight", "guardian"], fx: [{ t: "take", v: 0.06, on: "phys" }],
     text: "二つの盾が縁を重ねると、すき間がなくなる。打ちこまれる刃がそれだけ浅くなる。" },
-  { id: "r03", name: "鍵と目利き", jobs: ["thief", "bishop"], fx: [{ t: "gold", v: 0.10 }],
+  { id: "r03", name: "鍵と鑑定", jobs: ["thief", "bishop"], fx: [{ t: "gold", v: 0.10 }],
     text: "開ける者と見る者。値打ちのある物を取りこぼさない。" },
   { id: "r04", name: "影と刃", jobs: ["samurai", "shadow"], fx: [{ t: "preempt", v: 0.10 }],
     text: "影が足音を消し、刃は抜く前から間合いにいる。敵が気づいた時には、もう遅い。" },

@@ -1,17 +1,18 @@
 // 司教 (bishop) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
-// 持ち味: 鑑定と聖水の祈祷師。水と光の祈りで不浄を祓い、聖水で隊を清め、倒れた者を呼び戻す (鑑定Lv2)。
+// 持ち味: 鑑定と聖水の祈祷師。水と光の祈りで不浄を祓い、聖水で隊を清め、倒れた者を呼び戻す (鑑定Lv2 → Lv50 で Lv3 → Lv100 で Lv4。
+// 2026-10 ユーザーの指示で「目利き」を鑑定に統一し、Lv15 の目玉は品の真贋を見抜く眼で敵の守りの綻びを見破る「見破りの眼」にした)。
 import { UNHOLY } from "./common.js";
 
 export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
   awaken: "bishopSeibetsu",
   table: `
-    1 kantei/2 3 DIOS 4 HOLYRAY 5 bishopSeisui/1 7 ICENEEDLE 10 CURE 15 BISHOP_SEISUIMAKI 15 appraiseEye/1
+    1 kantei/2 3 DIOS 4 HOLYRAY 5 bishopSeisui/1 7 ICENEEDLE 10 CURE 15 BISHOP_SEISUIMAKI 15 bishopMiyaburi/1
     20 SEAL 20 RECOVER 22 BISHOP_MICHISHIRUBE 25 bishopJouka/1 30 DIOSALL 30 AWAKE 35 bishopTobari/1 40 DIAL
-    45 bishopYoin/1 47 ICELANCE 50 STONECURE 50 appraiseEye/2 55 BISHOP_SENREI 60 bishopSeisui/2 60 REVIVE
+    45 bishopYoin/1 47 ICELANCE 50 STONECURE 50 kantei/3 50 bishopMiyaburi/2 55 BISHOP_SENREI 60 bishopSeisui/2 60 REVIVE
     60 DIALALL 65 BISHOP_SEIHYOU 70 bishopTobari/2 75 afterBoth/1 80 MANAGIFT 80 MADIOS 85 SAINTRAY
-    90 bishopJouka/2 95 BISHOP_SEIHAI 100 BISHOP_SEISEN 100 appraiseEye/3 100 PURIFY 105 bishopYoin/2
+    90 bishopJouka/2 95 BISHOP_SEIHAI 100 BISHOP_SEISEN 100 kantei/4 100 bishopMiyaburi/3 100 PURIFY 105 bishopYoin/2
     110 BISHOP_JIU 115 bishopSeisui/3 120 SEALALL 125 bishopTobari/3 130 BISHOP_SHUKUFUKU 132 BISHOP_SEIRYUU
     135 bishopJouka/3 140 BISHOP_HOSHI 145 resistAilment/1 150 BISHOP_KANCHOU 155 elemFloor/1
     160 BISHOP_SEIGAI 165 resistAilment/2 170 BISHOP_DANZAI 172 BISHOP_SEIHYOUKAN 175 bishopYoin/3
@@ -38,6 +39,12 @@ export default {
     BISHOP_SHINPAN:    { name: "審判の日", mp: 59, kind: "atk", power: 126, prey: { races: UNHOLY, mul: 1.3 }, target: "all-enemy", desc: "審判の光が万象を討つ。不浄の者に強い" },
   },
   perks: {
+    // Lv15 の目玉 (Lv50・Lv100 で伸びる): 品の真贋を見抜く眼が、魔物の守りの綻びも見破る。段は1段のまま、続くターンが伸びる
+    bishopMiyaburi: {
+      label: "見破りの眼",
+      lv: ["戦闘開始時、敵全体のVIT −1段 (2ターン)", "戦闘開始時、敵全体のVIT −1段 (3ターン)", "戦闘開始時、敵全体のVIT −1段 (4ターン)"],
+      fx: [{ t: "start", foe: { vit: 0.8 }, dur: [2, 3, 4] }],
+    },
     bishopSeisui: {
       label: "聖水の加護",
       lv: ["戦闘開始時、味方全員にリジェネ (毎ラウンド最大HPの2%・3ターン)", "戦闘開始時、味方全員にリジェネ (毎ラウンド最大HPの3%・3ターン)",

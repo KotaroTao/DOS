@@ -163,6 +163,73 @@ function slotCandidatesRaw(d, key, includeUnid) {
   out.sort((a, b) => (b.gain - a.gain) || ((b.it.lv || 0) - (a.it.lv || 0)));
   return out;
 }
+// 仲間 (隊と控え。遠征中は除く) が装備している品のうち、d の部位 key に付けられるもの。{ it, owner (= 装備している仲間), worn, gain, delta, room, locked }
+// 呪われた品は外せないので出さない。ロック中の品は出す (選ぶとロックを外して装備するか確かめる)。
+// ▲の印・最適装備には数えない (仲間の装備を勝手に剥がさない)
+function wornCandidates(d, key) {
+  return memoGet(`w${oidOf(d)}:${key}`, () => {
+    const out = [];
+    const base = previewStats(d, d.equip, recalc);
+    for (const wearer of itemsPool()) {
+      if (wearer === d || !wearer.equip) continue;
+      for (const wk of SLOTS) {
+        const it = wearer.equip[wk];
+        if (!it || it.cursed || it.unidentified || !slotKeysFor(it, d).includes(key) || !canEquip(d, it)) continue;
+        const sd = slotDelta(d, it, key, base);
+        if (!sd) continue;
+        const room = d.items.length + sd.tr.displaced.length <= MAX_ITEMS;
+        out.push({ it, owner: wearer, worn: wk, gain: gearScore(d, sd.delta), delta: sd.delta, room, locked: !!it.locked });
+      }
+    }
+    out.sort((a, b) => (b.gain - a.gain) || ((b.it.lv || 0) - (a.it.lv || 0)));
+    return out;
+  });
+}
+// 仲間の装備を譲り受けて付ける (元に戻すつき)。ロック中なら、ロックを外して装備するか確かめる
+function takeFromWearer(d, c, key, h) {
+  const it = c.it, wearer = c.owner;
+  if (!c.room) { sfx("ng"); toast(`${d.name}の持ち物がいっぱいで、外した装備を入れられない`, { tone: "bad", noLog: true }); return; }
+  const go = () => {
+    const involved = [d, wearer];
+    const snap = snapshotEquip(involved);
+    const wasLocked = !!it.locked;
+    if (wasLocked) delete it.locked;
+    const before = previewStats(d, d.equip, recalc);
+    const r = game.equipFromWearer ? game.equipFromWearer(d, it, key, wearer) : { ok: false };
+    if (!r || !r.ok) {
+      if (wasLocked) it.locked = true;
+      sfx("ng");
+      if (r && r.msg) toast(r.msg, { tone: "bad", noLog: true });
+      return;
+    }
+    game.log(r.msg, "win");
+    if (wasLocked) game.log(`${it.name}のロックを外した。`, "sys");
+    sfx("select"); buzz(10);
+    const delta = statsDelta(before, previewStats(d, d.equip, recalc));
+    const sig = equipSignature(involved);
+    if (game.autosave) game.autosave(true);
+    if (h && !h.closed) h.close();
+    rerender();
+    if (d === selDoll) floatDelta(`[data-slot="${key}"]`, delta);
+    toast(`${d.name} ← ${it.name}（${wearer.name}から）　${deltaText(delta)}`, {
+      tone: "good", icon: it,
+      action: { label: "元に戻す", fn: () => {
+        if (equipSignature(involved) !== sig) { sfx("ng"); toast("装備が変わったため、元に戻せない", { tone: "bad" }); return; }
+        restoreEquip(snap, recalc);
+        if (wasLocked) it.locked = true;
+        game.log(`${it.name} の付け替えを元に戻した。`, "sys");
+        sfx("select");
+        if (game.autosave) game.autosave(true);
+        rerender();
+      } },
+    });
+  };
+  if (c.locked) {
+    confirm({ banner: "ロック中の装備", title: "ロックを外して装備しますか？",
+      lines: [`${it.name} は ${wearer.name} が装備している。`, `ロックを外して ${d.name} に装備し、${wearer.name} の${slotLabelOf(wearer, c.worn)}は空く。`],
+      okLabel: "ロックを外して装備" }).then((y) => { if (y) go(); });
+  } else go();
+}
 // 部位ごとの「もっと良い品がある」(▲) と候補の数
 function slotInfo(d, key) {
   const cands = slotCandidates(d, key);
@@ -2109,6 +2176,14 @@ function candBody(root, d, k, h, town) {
   const list = el("div", "pt-list");
   for (const c of ok) list.appendChild(candRow(d, k, c, h));
   root.appendChild(list);
+  // 仲間が装備している品 (外して譲り受ける。ロック中の品は「（ロック中）」と添え、選ぶとロックを外すか確かめる)
+  const worn = wornCandidates(d, k);
+  if (worn.length) {
+    root.appendChild(el("div", "pt-h sm", `仲間が装備している品 ${worn.length}点 ― 選ぶと仲間から外して付ける`));
+    const wl = el("div", "pt-list");
+    for (const c of worn) wl.appendChild(candRow(d, k, c, h));
+    root.appendChild(wl);
+  }
   let mism = 0;
   for (const owner of itemsPool()) for (const it of owner.items) if (it && !it.unidentified && slotKeysFor(it).includes(k) && !canEquip(d, it)) mism++;
   if (unid.length) {
@@ -2188,22 +2263,27 @@ function curEmpty() {
 }
 // 候補の行: 札 (絵) をタップ = 品の画面 (誰に装備させるか) / 行をタップ = この人業にすぐ装備
 function candRow(d, k, c, h) {
-  const wrap = el("div", "pt-cand" + (c.room ? "" : " full") + (c.gain > 0.05 ? " up" : c.gain < -0.05 ? " down" : ""));
+  const wrap = el("div", "pt-cand" + (c.room ? "" : " full") + (c.worn ? " worn" : "") + (c.gain > 0.05 ? " up" : c.gain < -0.05 ? " down" : ""));
   const ic = el("button", "pt-cand-ic");
   ic.type = "button";
   const rk = rarityKey(c.it);
   if (rk) ic.style.setProperty("--edge", RARITIES[rk].color);
   ic.appendChild(spriteCanvas(c.it, 2));
-  ic.setAttribute("aria-label", `${itemName(c.it)} ― 誰に装備させるか`);
-  ic.addEventListener("click", () => { h.close("replace", { silent: true }); openItem(c.it, c.owner, { from: "bag" }); });
+  ic.setAttribute("aria-label", c.worn ? `${itemName(c.it)} をくわしく` : `${itemName(c.it)} ― 誰に装備させるか`);
+  ic.addEventListener("click", () => {
+    if (c.worn) { openItemDetail(c.it); return; } // 仲間の装備は詳しく見るだけ (渡す・売るは持ち主の画面で)
+    h.close("replace", { silent: true }); openItem(c.it, c.owner, { from: "bag" });
+  });
   longPress(ic, () => openItemDetail(c.it));
   wrap.appendChild(ic);
   const main = el("button", "pt-cand-main");
   main.type = "button";
   const tx = el("span", "pt-cand-t");
   const top = el("span", "pt-cand-top");
-  top.appendChild(game.itemNameEl ? game.itemNameEl("span", "pt-cand-n", c.it, c.it.cursed ? " (呪)" : "") : el("span", "pt-cand-n", itemName(c.it)));
-  top.appendChild(el("span", "pt-own" + (c.owner === d ? " me" : isReserve(c.owner) ? " res" : ""), c.owner === d ? "自分" : `${c.owner.name}${isReserve(c.owner) ? "・控え" : ""}`));
+  const nmSuffix = c.it.cursed ? " (呪)" : c.worn && c.locked ? "（ロック中）" : "";
+  top.appendChild(game.itemNameEl ? game.itemNameEl("span", "pt-cand-n", c.it, nmSuffix) : el("span", "pt-cand-n", itemName(c.it) + nmSuffix));
+  top.appendChild(el("span", "pt-own" + (c.owner === d ? " me" : isReserve(c.owner) ? " res" : "") + (c.worn ? " worn" : ""),
+    c.owner === d ? "自分" : `${c.owner.name}${isReserve(c.owner) ? "・控え" : ""}${c.worn ? "が装備中" : ""}`));
   tx.appendChild(top);
   if (c.it.slot === "weapon" && k === "shield") {
     // 左手 (二刀流): 左手の攻撃力の変化
@@ -2218,12 +2298,15 @@ function candRow(d, k, c, h) {
   // 能力の伸びには出ない特殊効果 (吸血・連撃・属性・状態異常…) は短い札で添える
   const fxs = specialShort(c.it);
   if (fxs) tx.appendChild(el("span", "pt-cand-fx", fxs));
-  if (!c.room) tx.appendChild(el("span", "pt-cand-w", "持ち物がいっぱい ― 札から「取り替え」で付けられる"));
+  if (c.worn && !c.room) tx.appendChild(el("span", "pt-cand-w", "持ち物がいっぱい ― 外した装備を入れる空きがない"));
+  else if (c.worn) tx.appendChild(el("span", "pt-cand-w", `付けると ${c.owner.name} の${slotLabelOf(c.owner, c.worn)}は空く` + (c.locked ? " ・ ロックを外して付ける" : "")));
+  else if (!c.room) tx.appendChild(el("span", "pt-cand-w", "持ち物がいっぱい ― 札から「取り替え」で付けられる"));
   else if (c.it.cursed) tx.appendChild(el("span", "pt-cand-w", "呪われている ― 一度付けると外せない"));
   main.appendChild(tx);
   main.appendChild(el("span", "pt-cand-g " + (c.gain > 0.05 ? "up" : c.gain < -0.05 ? "dn" : "eq"), c.gain > 0.05 ? "▲" : c.gain < -0.05 ? "▼" : "＝"));
   main.setAttribute("aria-label", `${d.name}に ${itemName(c.it)} を装備`);
   main.addEventListener("click", () => {
+    if (c.worn) { takeFromWearer(d, c, k, h); return; }
     const go = () => { const r = pickWearer(d, c.it, { onDone: () => h.close(), key: k }); if (r && r.full) h.close("replace", { silent: true }); };
     if (c.it.cursed) confirm({ title: `${c.it.name} は呪われている`, lines: ["一度装備すると外せない。それでも付ける？"], okLabel: "付ける" }).then((y) => { if (y) go(); });
     else go();
