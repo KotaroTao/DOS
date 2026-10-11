@@ -28,7 +28,7 @@ import { IRENE_WHO, IRENE_ART, ireneState, isGreeted, nextLine, lineOpen, noteVi
 import {
   planBestEquip, applyPlan, applyPlanSubset, planDeps, restoreEquip, equipSignature, trialEquip, slotKeysFor, previewStats, statsDelta, snapshotEquip, isMeleeWeapon, swapBackFor,
 } from "../autoequip.js";
-import { SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, canEquip, recalc, weaponRange, RANGE_LABEL, itemName, attackPower, useWhere, compareUse, AIL_LABEL, hasQuality, qualityOf, qualityMatters } from "../items.js";
+import { SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, canEquip, equipLevelOf, equipLvShort, recalc, weaponRange, RANGE_LABEL, itemName, attackPower, useWhere, compareUse, AIL_LABEL, hasQuality, qualityOf, qualityMatters } from "../items.js";
 import {
   SOUL_CLASSES, SOUL_KEYS, JOB_GEAR, dollSprite, dollBust, dollFace, jobBust, jobSprite, jobRankName, ATTR_KEYS, ATTR_LABEL, ATTR_NAME, soulLabel, soulRankLeft, soulByUid,
   orderedSkills, isSkillOff, setSkillOff, moveSkill, resetSkillPrefs, isAutoOff, setAutoOff, skillUsable,
@@ -272,13 +272,20 @@ export const REASON_TEXT = {
   "両手ロック": "ロック中の装備があり、両手武器と盾を持ち替えられない",
   "遠征中": "遠征に出ていて、帰るまで装備を替えられない",
 };
+// 理由の文 (短い理由 why から)。装備できるLv が足りない時の why は「要Lv30」の形
+export function reasonText(why, d = null) {
+  if (REASON_TEXT[why]) return REASON_TEXT[why];
+  const m = /^要Lv(\d+)$/.exec(why || "");
+  if (m) return `メイン魂がLv${m[1]}になると装備できる${d && d.jobLv ? `（いまLv${d.jobLv}）` : ""}`;
+  return why;
+}
 export function canEquipReason(d, it) {
   if (!d || !it) return "装備品でない";
   if (!isEquippable(it)) return "装備品でない";
   if (d.primary == null) return "魂なし";
   if (game.expeditionOf && game.expeditionOf(d)) return "遠征中";
   if (it.unidentified) return "未鑑定";
-  if (!canEquip(d, it)) {
+  if (!canEquip(d, it, { anyLv: true })) {
     if (it.align && d.align && it.align !== "中立" && d.align !== "中立" && it.align !== d.align) return "属性";
     if (it.classes || it.forJob) return "職業";
     const gear = JOB_GEAR[d.clsKey];
@@ -289,6 +296,8 @@ export function canEquipReason(d, it) {
     }
     return "職業";
   }
+  const need = equipLvShort(d, it);
+  if (need) return `要Lv${need}`;
   let why = null;
   for (const k of slotKeysFor(it, d)) {
     const cur = d.equip && d.equip[k];
@@ -379,7 +388,7 @@ function equipItemTo(doll, item, opts = {}) {
 // key = 部位を決めて付ける (装備候補のシートから。二刀流の左手など)。省略時は一番伸びる部位
 function pickWearer(doll, item, { onDone = null, chip = null, key = null } = {}) {
   const why = canEquipReason(doll, item);
-  if (why) { sfx("ng"); if (chip) shake(chip); toast(`${doll.name}: ${REASON_TEXT[why] || why}`, { tone: "bad" }); return { ok: false, reason: why }; }
+  if (why) { sfx("ng"); if (chip) shake(chip); toast(`${doll.name}: ${reasonText(why, doll)}`, { tone: "bad" }); return { ok: false, reason: why }; }
   const b = key ? (() => { const sd = slotDelta(doll, item, key); return sd ? { key, displaced: sd.tr.displaced } : null; })() : bestSlotFor(doll, item);
   if (!b) { sfx("ng"); return { ok: false }; }
   const r = equipWithUndo(doll, item, b.key);
@@ -515,7 +524,7 @@ export function equipChooserEl(item, { owner = null, onPick = null, onDone = nul
     c.appendChild(tx);
     if (x === best) c.appendChild(el("span", "pt-chc-best", "最良"));
     else if (x.d === owner) c.appendChild(el("span", "pt-chc-own", "所持"));
-    c.setAttribute("aria-label", `${x.d.name}${x.why ? `: ${REASON_TEXT[x.why] || x.why}` : ` に装備 ${deltaText(x.b.delta, Infinity)} ${[...x.sw.lost.map((p) => `${p}を失う`), ...x.sw.got.map((p) => `${p}を得る`)].join(" ")}`}`);
+    c.setAttribute("aria-label", `${x.d.name}${x.why ? `: ${reasonText(x.why, x.d)}` : ` に装備 ${deltaText(x.b.delta, Infinity)} ${[...x.sw.lost.map((p) => `${p}を失う`), ...x.sw.got.map((p) => `${p}を得る`)].join(" ")}`}`);
     c.addEventListener("click", () => act(x));
     grid.appendChild(c);
   }
@@ -2157,7 +2166,25 @@ function candBody(root, d, k, h, town) {
     root.appendChild(wl);
   }
   let mism = 0;
-  for (const owner of itemsPool()) for (const it of owner.items) if (it && !it.unidentified && slotKeysFor(it).includes(k) && !canEquip(d, it)) mism++;
+  const lvShort = []; // 職では扱えるが、メイン魂の Lv が装備できるLv に届かない品
+  for (const owner of itemsPool()) {
+    for (const it of owner.items) {
+      if (!it || it.unidentified || !slotKeysFor(it).includes(k)) continue;
+      if (!canEquip(d, it, { anyLv: true })) mism++;
+      else if (equipLvShort(d, it)) lvShort.push({ it, owner });
+    }
+  }
+  if (lvShort.length) {
+    lvShort.sort((a, b) => equipLevelOf(a.it) - equipLevelOf(b.it));
+    root.appendChild(el("div", "pt-h sm", `Lv が足りない品 ${lvShort.length}点 ― メイン魂がその Lv になると付けられる`));
+    const ll = el("div", "pt-list");
+    for (const c of lvShort) {
+      const ic = el("span", "pt-cand-ic"); ic.appendChild(spriteCanvas(c.it, 2));
+      ll.appendChild(row({ icon: ic, title: itemName(c.it), sub: `Lv${equipLevelOf(c.it)}から（いまLv${d.jobLv || 1}） ・ ${c.owner === d ? "自分" : c.owner.name}の袋`, chevron: true, tone: "dim",
+        onTap: () => { h.close(); openItem(c.it, c.owner, { from: "bag" }); } }));
+    }
+    root.appendChild(ll);
+  }
   if (unid.length) {
     root.appendChild(el("div", "pt-h sm", `未鑑定 ${unid.length}点 ― 鑑定すれば付けられるかもしれない`));
     const ul = el("div", "pt-list");

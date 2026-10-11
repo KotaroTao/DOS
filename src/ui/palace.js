@@ -17,7 +17,7 @@ import { UI, game, ops, registerUI } from "./ctx.js";
 import { el, setText, glyph, svgIcon, sheet, button, segmented, chips, itemTile, scrollBox, badge, bar } from "./kit.js";
 import { remember } from "./prefs.js";
 import { softFade } from "./motion.js";
-import { statLines, itemCatText, specialLines, weaponPerformanceEl, showSkillPopup, showPassivePopup, tagRow, traitTagKinds, affinityRow, spellTagKinds, revealSteps, monKills, revealLock, elemStatShort, enemyReveal, enemyLabel, unknownArt, UNKNOWN_COLOR, effectChip } from "./itemview.js";
+import { statLines, itemCatText, isEquippable, equipLvText, specialLines, weaponPerformanceEl, showSkillPopup, showPassivePopup, tagRow, traitTagKinds, affinityRow, spellTagKinds, revealSteps, monKills, revealLock, elemStatShort, enemyReveal, enemyLabel, unknownArt, UNKNOWN_COLOR, effectChip } from "./itemview.js";
 import { MONSTERS, ICONS, spriteCanvas } from "../sprites.js";
 import { EVENTS, EVENT_MAP, EVENT_GROUPS, EV_TIERS, eventWhereText, onceKey, LORE_PAGES } from "../events.js";
 import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, SHIELD_KINDS, SHIELD_KIND_LABEL, shieldKind, itemName, hasQuality, qualityOf, QUALITY_SPREAD } from "../items.js";
@@ -713,7 +713,7 @@ function codexItemView(it, o) {
     body.appendChild(setText(el("div", "pl-detail-cat"), "未鑑定 ― 正体はまだわからない"));
     body.appendChild(setText(el("div", "pl-detail-desc"), it.idHardFail ? "鑑定の心得では見抜けなかった。商会 (有料) でなら鑑定できる。" : "商会 (有料) か、鑑定の心得がある仲間に見てもらおう。"));
   } else {
-    body.appendChild(setText(el("div", "pl-detail-cat"), itemCatText(it)));
+    body.appendChild(setText(el("div", "pl-detail-cat"), itemCatText(it) + (isEquippable(it) ? ` ・ ${equipLvText(it)}` : "")));
     const st = statLines(it);
     if (st) body.appendChild(setText(el("div", "pl-detail-stats"), st));
     // 品質: 所持品の実体ならその品質、図鑑 (目録の品) なら幅の説明 (図鑑の数値は並品 = 品質50)
