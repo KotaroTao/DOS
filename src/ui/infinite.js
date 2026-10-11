@@ -161,8 +161,19 @@ function openTrader(onChange) {
         if (!it) continue;
         any = true;
         const price = game.sellPrice ? game.sellPrice(it) : 1;
-        b.appendChild(row({ icon: itemTile(it, { size: 44 }), title: itemName(it), sub: `${d.name}の持ち物${it.locked ? " ・ ロック中" : ""}`, right: `💰${price}`,
-          onTap: () => { if (game.infSell && game.infSell(d, it)) { h.update({ body: fill }); if (onChange) onChange(); } } }));
+        // 行を押すと品の詳細、右の「売る」で売る (2026-10-11 ユーザーの指示: 押しただけで売れていた)
+        const right = el("span", "inf-sell-r");
+        right.appendChild(el("span", "inf-sell-p", `💰${price}`));
+        right.appendChild(button({ label: "売る", kind: "primary", size: "sm", disabled: !!it.locked,
+          onTap: (e) => { if (e) e.stopPropagation(); if (game.infSell && game.infSell(d, it)) { h.update({ body: fill }); if (onChange) onChange(); } } }));
+        const r = row({ icon: itemTile(it, { size: 44 }), title: itemName(it), sub: `${d.name}の持ち物${it.locked ? " ・ ロック中" : ""}`, right });
+        r.classList.add("tap", "inf-sell-row");
+        r.setAttribute("role", "button");
+        r.tabIndex = 0;
+        const peek = () => { sfx("select"); if (UI.itemSheet) UI.itemSheet(it, { owner: d, context: "dungeon", onClose: () => { if (h && !h.closed) h.update({ body: fill }); if (onChange) onChange(); } }); };
+        r.addEventListener("click", (e) => { if (e.target.closest(".ui-btn")) return; peek(); });
+        r.addEventListener("keydown", (e) => { if ((e.key === "Enter" || e.key === " ") && e.target === r) { e.preventDefault(); peek(); } });
+        b.appendChild(r);
       }
       if (!any) b.appendChild(el("div", "inf-note", "持ち物に売れる品が無い。"));
     } else {

@@ -720,3 +720,7 @@ button.dp-rule:active, .dp-rule-b:active { filter: brightness(1.25); }
 .dc-note { font-size: 12px; line-height: 1.6; margin: 4px 0 8px; opacity: .85; }
 .dc-note.dim { opacity: .6; }
 .dc-row { width: 100%; text-align: left; }
+/* 回収人の「売る」: 行を押すと品の詳細、右の札で売る */
+.inf-sell-r { display: inline-flex; align-items: center; gap: 10px; }
+.inf-sell-p { white-space: nowrap; }
+.inf-sell-r .ui-btn { width: auto; min-width: 64px; }
