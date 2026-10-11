@@ -15,7 +15,7 @@ import {
 import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, permanentEventStats, eligibleEvents, pickEvent, onceKey, runEvent, eventFightWon } from "./events.js";
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { pickTavernCrowd, TALK_MAP } from "./tavern.js";
-import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, rollBoard, deliveryRewardRows, NPCS, npcOf, composeReport, bondGiftAt, npcBondLabel, TIP_RATE, hasBell, BELL_EVERY_MS, QUEST_REWARD_K, QUEST_RK, questRewardK } from "./quests.js";
+import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, QUEST_LV_NEAR, rollBoard, deliveryRewardRows, NPCS, npcOf, composeReport, bondGiftAt, npcBondLabel, TIP_RATE, hasBell, BELL_EVERY_MS, QUEST_REWARD_K, QUEST_RK, questRewardK } from "./quests.js";
 import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_THREE_REPORT, TUT_FINALE, STORY_CELLS, storyCellAt, BOSS_MEMORIES, REPORTS, LATE_CLUES, IRENE_BEATS, MINE_PASS, msqReward, EPILOGUE, UNLOCKS, unlockSceneFor } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { poolAt } from "./dungeons/world.js";
@@ -11825,25 +11825,45 @@ function questUnit(cfg, floor = 1) {
   return { gold: Math.max(6, refGold(lv)), soul: Math.max(3, refSoul(lv)) };
 }
 // 掲示板の生成に渡す窓 (src/quests.js)
-// 掲示板の依頼に選ぶ迷宮: 地図にある迷宮を地図に現れた順 (古い→新しい。G.world.open の鍵の並び) に並べる。
-// 新しい迷宮ほど選ばれやすい (quests.js pickDungeon)。隊のLvが推奨Lvに届かない迷宮も除かない
-// (2026-10 ユーザーの指示: 迷宮ごとの依頼は推奨Lv 以下の隊にも出す。旧来は推奨Lv − 隊のLv ≥ 8 の迷宮を除いていた)
+// 掲示板の依頼を貼る迷宮 (2026-10 ユーザーの指示): 地図にある迷宮のうち、推奨Lv の帯 (1階〜最下階) が隊のLv から
+// QUEST_LV_NEAR (10) 以内で、完全踏破していないもの (地図に現れた順)。それより離れた迷宮には固定クエストのほかは貼らない
+function questLvGap(cfg, pl = partyLevel()) {
+  const [lo, hi] = levelBand(cfg);
+  return pl < lo ? lo - pl : pl > hi ? pl - hi : 0;
+}
 function questDungeons() {
   const order = Object.keys(worldState().open);
-  const open = DUNGEONS.filter((d) => worldOpenId(d.id)).sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
-  return open.length ? open : [DUNGEONS[0]];
+  const pl = partyLevel();
+  return DUNGEONS.filter((d) => worldOpenId(d.id) && questLvGap(d, pl) <= QUEST_LV_NEAR && !dungeonFullyCleared(d))
+    .sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+}
+// 完全踏破 = 踏破した上で、その迷宮の魔物をすべて発見し、固有クエスト (極めて稀なる出来事を含む) をすべて果たした
+// (出撃シートの「★ 完全踏破」と同じ数え方 — ui/departure.js fullyCleared)
+function dungeonFullyCleared(cfg) {
+  if (!cfg || !worldState().cleared[cfg.id]) return false;
+  const f = dungeonFacts(cfg);
+  return !!f && f.monSeen >= f.monTotal && f.fqDone >= f.fqTotal;
 }
 function questCtx() {
   const s = questState();
   const dungeons = questDungeons();
   const avoid = new Set();
+  const activeBy = {};
+  let activeCommon = 0;
   for (const q of s.active) {
     for (const k of (q.keys || [])) avoid.add("k:" + k);
     if (q.itemId) avoid.add("i:" + q.itemId);
     if (q.type === "floor" && q.dungeon) avoid.add("f:" + q.dungeon);
+    if (q.type === "soul" && q.dungeon) avoid.add("s:" + q.dungeon);
+    if (q.type === "chest" && q.dungeon) avoid.add("c:" + q.dungeon);
+    if (q.state === "claimed" || q.type === "deliver") continue;
+    if (q.dungeon) activeBy[q.dungeon] = (activeBy[q.dungeon] || 0) + 1;
+    else activeCommon++;
   }
+  const pl = partyLevel();
   return {
-    dungeons,
+    dungeons, activeBy, activeCommon,
+    common: { unit: { gold: Math.max(6, refGold(pl)), soul: Math.max(3, refSoul(pl)) }, minLv: Math.max(1, pl - QUEST_LV_NEAR) },
     unit: questUnit, deliverIds: eligibleDeliveryItemIds(), itemName: (id) => (ITEMS[id] || {}).name || id,
     isMisc: (id) => (ITEMS[id] || {}).slot === "misc",
     rand, avoid, uid: () => "q" + (s.seq++), bell: bellDue(),
@@ -11950,7 +11970,8 @@ function questsTargeting(cfg) {
   const s = questState();
   return [
     ...FIXED_QUESTS.filter((d) => s.fixed[d.id] && s.fixed[d.id].state === "active" && fixedQuestTargets(d, cfg)).map(fixedQuestView),
-    ...s.active.filter((q) => q.state === "active" && q.dungeon === cfg.id),
+    // 共通の討伐 (迷宮を指さない) は、狙う魔物が出る迷宮すべてに数える
+    ...s.active.filter((q) => q.state === "active" && (q.dungeon === cfg.id || (!q.dungeon && q.type === "kill" && questKillHere(q.keys, cfg)))),
   ];
 }
 // 依頼人の頼みがこの迷宮を指しているか: 到達/踏破はその迷宮、討伐は狙う魔物が出る迷宮 (出現表の帯・主。金属の魔物は第3層から)
@@ -11972,7 +11993,7 @@ function questsHere() {
   if (!cfg) return [];
   const here = G.abyss ? null : cfg.id;
   const fits = (q) => {
-    if (q.type === "soul" || q.type === "chest") return !q.dungeon || (!!here && q.dungeon === here);
+    if (q.type === "soul" || q.type === "chest") return q.dungeon ? !!here && q.dungeon === here : !q.minLv || foeLevelHere() >= q.minLv;
     if (q.type === "kill") return questKillHere(q.keys, cfg);
     if (q.type === "floor" || q.type === "clear") return !!here && q.dungeon === here;
     return false;
@@ -12167,11 +12188,13 @@ function questProgress(type, key, n = 1) {
     if (type === "clear") return goal.dungeon === key ? 1 : null;
     // 魂・宝箱: 迷宮を指す依頼 (フリークエスト) はその迷宮の中でだけ進む。指さない依頼 (固定・古いセーブの依頼) はどこでも
     if ((type === "soul" || type === "chest") && goal.dungeon && !(inDungeon() && goal.dungeon === here)) return null;
+    // 共通の魂・宝箱の依頼 (minLv あり) は、推奨Lv がその下限以上の迷宮・奈落の中でだけ進む
+    if ((type === "soul" || type === "chest") && goal.minLv && !(inDungeon() && foeLevelHere() >= goal.minLv)) return null;
     return prog + n;
   };
   for (const q of s.active) {
     if (q.state !== "active") continue;
-    const v = step({ type: q.type, keys: q.keys, dungeon: q.dungeon }, q.progress || 0);
+    const v = step({ type: q.type, keys: q.keys, dungeon: q.dungeon, minLv: q.minLv }, q.progress || 0);
     if (v == null) continue;
     q.progress = Math.min(q.goal, v);
     if (q.progress >= q.goal) { q.state = "done"; questDone(q); }
@@ -16958,7 +16981,7 @@ function init() {
     // 宝物庫の褒賞の検証用
     treasury: { TREASURY_MILESTONES, treasuryState, totalDonatedKinds, treasuryDepth, milestoneWait, milestoneReady, pickTreasurySR, pickTreasuryLR, claimTreasury, claimNextTreasury, treasuryRewardReady },
     // 酒場の依頼の検証用
-    quest: { questState, questLists, rollQuestBoard, acceptQuest, claimQuest, deliverQuest, questProgress },
+    quest: { questState, questLists, rollQuestBoard, acceptQuest, claimQuest, deliverQuest, questProgress, questDungeons, dungeonFullyCleared, partyLevel },
     // 迷宮のイベント (出来事) の検証用
     ev: { evApi, runEvent, eventFightWon, EVENT_MAP, enterDungeon, newFloor, descend, resolveCell, renderBoard, endBattle, evNewFloor, evProgress, eventFacts, makeDoll, addSoulInstance, recalcDoll, evUnit },
     // 迷宮の台帳・物語の進みの検証用
