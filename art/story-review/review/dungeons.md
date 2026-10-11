@@ -601,9 +601,9 @@ _(絵はまだ無い)_
 
 <a name="lore_ws5"></a>
 
-## lore_ws5「王都の古井戸」 ── 未着手
+## lore_ws5「王都の古井戸」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_ws5.webp" width="576" alt="lore_ws5">
 
 **ストーリー一覧の本文**
 
@@ -761,9 +761,9 @@ _(絵はまだ無い)_
 
 <a name="lore_ws15"></a>
 
-## lore_ws15「雷鳥の巣」 ── 未着手
+## lore_ws15「雷鳥の巣」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_ws15.webp" width="576" alt="lore_ws15">
 
 **ストーリー一覧の本文**
 
@@ -793,9 +793,9 @@ _(絵はまだ無い)_
 
 <a name="lore_ws17"></a>
 
-## lore_ws17「雲上の庭」 ── 未着手
+## lore_ws17「雲上の庭」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_ws17.webp" width="576" alt="lore_ws17">
 
 **ストーリー一覧の本文**
 

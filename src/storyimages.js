@@ -81,4 +81,7 @@ export const LORE_IMAGES = {
   w17: "art/story/dungeons/lore_w17.webp",
   ws1: "art/story/dungeons/lore_ws1.webp",
   ws2: "art/story/dungeons/lore_ws2.webp",
+  ws5: "art/story/dungeons/lore_ws5.webp",
+  ws15: "art/story/dungeons/lore_ws15.webp",
+  ws17: "art/story/dungeons/lore_ws17.webp",
 };
