@@ -248,6 +248,8 @@ export const SFX = {
   appraise(step = 1) { sfx("appraise" + Math.max(1, Math.min(3, step | 0)), { jit: 0 }); },
   appraiseOk() { sfx("appraiseOk", { jit: 0 }); },
   appraiseNg() { sfx("appraiseNg", { jit: 0 }); },
+  // 鍛え直し: 鎚が金床を打つ。段 (1-3) が進むほど少し強く
+  forge(step = 1) { sfx("forge", { jit: 0.05, vol: 0.8 + Math.max(1, Math.min(3, step | 0)) * 0.1 }); },
   levelup() { jingle("j_levelup", "_levelup", 2.2, 0.4); },
   itemget() { jingle("j_item", "_itemget", 1.4, 0.55); },
   victory() { jingle("j_victory", "_victory", 3.6, 0.25); },

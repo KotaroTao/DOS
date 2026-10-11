@@ -17,10 +17,14 @@ import { RARITIES, rarityKey } from "../rarity.js";
 import { spriteCanvas } from "../sprites.js";
 
 const G = () => game.G || {};
-const sfx = (k) => { try { if (game.SFX && game.SFX[k]) game.SFX[k](); } catch (e) { /* 音は演出のみ */ } };
+const sfx = (k, ...a) => { try { if (game.SFX && game.SFX[k]) game.SFX[k](...a); } catch (e) { /* 音は演出のみ */ } };
 const allDolls = () => (game.allDolls ? game.allDolls() : [...(G().party || []), ...(G().reserve || [])]);
 const isReserve = (d) => (G().reserve || []).includes(d);
 const shortN = (n) => (n >= 100000 ? `${Math.round(n / 1000)}k` : String(n));
+// 「鍛え直し中…」の演出: 鎚を打つ回数と間 (ms)。押せば飛ばして結果へ
+const FORGE_STRIKES = 3;
+const FORGE_BEAT = 520;
+const DOT = "．";
 const SPREAD_PCT = Math.round(QUALITY_SPREAD * 100);
 export const REFORGE_NOTE = `品質は0〜100。品質50が並品で、0なら性能が${SPREAD_PCT}%下がり、100なら${SPREAD_PCT}%上がる。`;
 
@@ -96,10 +100,13 @@ function dollDelta(hold, next) {
   } catch (e) { return null; }
 }
 
-// 鍛え直しのシート。結果が出たら「新しい品質にする / 元のまま」を選ぶ (閉じれば元のまま)
+// 鍛え直しのシート。「鍛え直し中…」(鎚の音、押せば飛ばす) の後に結果を出し、
+// 「新しい品質にする / もう一度鍛える / 元のまま」を選ぶ (閉じれば元のまま)
 export function openReforge(item, owner = null, o = {}) {
   if (!item || !hasQuality(item)) return null;
-  const st = { pending: null, last: null }; // pending = { q, cost } (引いた結果。まだ品に入れていない)
+  // pending = { q, cost } (引いた結果。まだ品に入れていない) / forging = 結果を見せる前の演出の間
+  const st = { pending: null, last: null, forging: false };
+  let timer = null, strikes = 0, msgEl = null, stageEl = null;
   const rk = rarityKey(item);
   const accent = rk ? RARITIES[rk].color : "#8a6d2e";
   let h = null;
@@ -112,6 +119,20 @@ export function openReforge(item, owner = null, o = {}) {
     head.appendChild(nameSpan(item, "rf-name"));
     if (where && where.doll) head.appendChild(el("span", "rf-where", where.key ? `${where.doll.name} が装備中（${SLOT_LABEL[where.key] || ""}）` : `${where.doll.name} の持ち物`));
     b.appendChild(head);
+    if (st.forging) {
+      const stage = el("button", "rf-forge");
+      stage.type = "button";
+      const art = el("span", "rf-forge-art");
+      try { art.appendChild(spriteCanvas(item, 5)); } catch (e) { /* 絵は飾り */ }
+      stage.appendChild(art);
+      msgEl = el("span", "rf-forge-msg", "鍛え直し中" + DOT.repeat(strikes));
+      stage.appendChild(msgEl);
+      stage.appendChild(el("span", "rf-forge-skip", "押すと結果へ"));
+      stage.addEventListener("click", () => reveal());
+      stageEl = stage;
+      b.appendChild(stage);
+      return;
+    }
     if (!st.pending) {
       const box = el("section", "rf-now");
       box.appendChild(el("div", "rf-k", "いまの品質"));
@@ -149,16 +170,18 @@ export function openReforge(item, owner = null, o = {}) {
   };
 
   const footer = () => {
+    if (st.forging) return [{ label: "結果を見る", sub: "鍛え直し中…を飛ばす", kind: "ghost", onTap: () => reveal() }];
+    const where = hold();
+    const cost = game.reforgeCost ? game.reforgeCost(item) : 0;
+    const why = game.reforgeBlock ? game.reforgeBlock(where && where.doll, item) : "鍛え直せない";
     if (st.pending) {
       const nq = st.pending.q;
       return [
         { label: "新しい品質にする", sub: `品質 ${nq}`, kind: nq >= qualityOf(item) ? "primary" : "secondary", onTap: () => choose(true) },
+        { label: "もう一度鍛える", sub: why || `元の品質 ${qualityOf(item)} から ・ 所持 💰${shortN(G().gold || 0)}`, cost: { kind: "gold", n: cost }, kind: "secondary", disabled: !!why, onTap: () => again() },
         { label: "元のまま", sub: `品質 ${qualityOf(item)}`, kind: nq >= qualityOf(item) ? "secondary" : "primary", onTap: () => choose(false) },
       ];
     }
-    const where = hold();
-    const cost = game.reforgeCost ? game.reforgeCost(item) : 0;
-    const why = game.reforgeBlock ? game.reforgeBlock(where && where.doll, item) : "鍛え直せない";
     return [
       { label: "鍛え直す", sub: why || `所持 💰${shortN(G().gold || 0)}`, cost: { kind: "gold", n: cost }, kind: "primary", disabled: !!why, onTap: () => roll() },
       { label: "閉じる", kind: "ghost", onTap: (x) => x.close() },
@@ -167,14 +190,46 @@ export function openReforge(item, owner = null, o = {}) {
   const view = () => ({ body: build, footer: footer() });
   const refresh = () => { if (h && !h.closed) h.update(view()); };
 
+  // 金貨を払って引く (結果はこの時に決まる) → 「鍛え直し中…」で鎚を打ってから見せる
   function roll() {
+    if (st.forging) return;
     const where = hold();
     const res = game.rollReforge ? game.rollReforge(where && where.doll, item) : null;
     if (!res || !res.ok) { refresh(); return; }
-    sfx(res.q > qualityOf(item) ? "appraiseOk" : res.q < qualityOf(item) ? "appraiseNg" : "select");
-    try { if (game.buzz) game.buzz(12); } catch (e) { /* noop */ }
     st.pending = { q: res.q, cost: res.cost };
+    st.forging = true;
+    strikes = 0;
     refresh();
+    clearTimeout(timer);
+    timer = setTimeout(strike, 160);
+  }
+  function strike() {
+    if (!st.forging || !h || h.closed) return;
+    if (strikes >= FORGE_STRIKES) { reveal(); return; }
+    strikes++;
+    sfx("forge", strikes);
+    try { if (game.buzz) game.buzz(10); } catch (e) { /* noop */ }
+    if (msgEl) msgEl.textContent = "鍛え直し中" + DOT.repeat(strikes);
+    if (stageEl) { stageEl.classList.remove("hit"); void stageEl.offsetWidth; stageEl.classList.add("hit"); }
+    timer = setTimeout(strike, FORGE_BEAT);
+  }
+  // 演出を終えて (または飛ばして) 結果を見せる
+  function reveal() {
+    if (!st.forging || !st.pending) return;
+    clearTimeout(timer);
+    timer = null;
+    st.forging = false;
+    msgEl = null; stageEl = null;
+    const q = st.pending.q, cur = qualityOf(item);
+    sfx(q > cur ? "appraiseOk" : q < cur ? "appraiseNg" : "select");
+    try { if (game.buzz) game.buzz(12); } catch (e) { /* noop */ }
+    refresh();
+  }
+  // 引いた結果を捨て (品は元の品質のまま)、もう一度引く
+  function again() {
+    if (!st.pending || st.forging) return;
+    st.pending = null;
+    roll();
   }
   function choose(take) {
     if (!st.pending) return;
@@ -195,6 +250,8 @@ export function openReforge(item, owner = null, o = {}) {
   h = sheet.open({
     kind: "info", banner: "鍛え直し", accent, art: item, artScale: 6, ...view(), className: "rf-sheet" + (rk ? " rar-" + rk : ""),
     onClose: () => {
+      clearTimeout(timer);
+      st.forging = false;
       if (st.pending) { st.pending = null; if (game.log) game.log(`${itemName(item)} は元の品質のままにした。`, "sys"); }
       if (o.onClose) o.onClose();
       if (game.renderTown && G().state === "town") game.renderTown();

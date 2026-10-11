@@ -291,6 +291,21 @@ export const SFX_DEFS = {
     softClip(x, 1.2);
     return mono(x);
   } },
+  // 鍛え直し: 鎚が金床を打つ一撃 (鋼の棒の不協和な倍音 + 打ち当たる破裂音 + 鎚の重み + 散る火花)
+  forge: { vars: 3, vol: 0.55, rev: 0.32, gen(r) {
+    const n = len(1.1), x = new Float32Array(n);
+    const f = 760 + r() * 120;
+    mixInto(x, modal(SR, 1.0, [[f, 1, 0.55, 0.001], [f * 2.76, 0.7, 0.32], [f * 5.4, 0.42, 0.16], [f * 8.93, 0.2, 0.08], [f * 1.003, 0.5, 0.6]]), 0, 0.42);
+    const clank = burst(r, 0.025, 0.01); applyBq(clank, "bp", 3600 + r() * 600, 1.8, SR); mixInto(x, clank, 0, 0.8);
+    mixInto(x, sweep(0.22, (t) => 95 + 70 * Math.exp(-t / 0.012), 0.09), 0, 0.75);
+    const thud = burst(r, 0.12, 0.05); lp1(thud, 700, SR); mixInto(x, thud, 0, 0.5);
+    for (let k = 0; k < 7; k++) {
+      const fs = 4200 + r() * 4500, t = 0.01 + Math.pow(r(), 1.6) * 0.35;
+      mixInto(x, modal(SR, 0.12, [[fs, 1, 0.03 + r() * 0.04]]), len(t), 0.05 + r() * 0.05);
+    }
+    softClip(x, 1.25);
+    return haas(x, 7);
+  } },
   // ---- 楽器が未生成の間だけ使う簡易ジングル ----
   _victory: { vars: 1, vol: 0.5, rev: 0.4, gen() {
     const x = new Float32Array(len(2.4));

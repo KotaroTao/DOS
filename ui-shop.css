@@ -487,6 +487,17 @@
 .rf-last.took { color: #bfe9b0; border-color: #4f8a3c; }
 .rf-last.kept { color: #c9c2b0; border-color: #6b6250; }
 .rf-last.took.dn { color: #e8b0a4; border-color: #8a4a3c; }
+/* 鍛え直し中… (鎚を打つたびに揺れて火花が光る。押すと結果へ) */
+.rf-forge { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; padding: 22px 12px 14px; border: 1px solid rgba(201,162,92,0.35); border-radius: 4px; background: radial-gradient(ellipse at 50% 40%, rgba(255,140,40,0.12), rgba(0,0,0,0.35) 70%); color: inherit; font: inherit; cursor: pointer; }
+.rf-forge-art { position: relative; display: block; line-height: 0; }
+.rf-forge-art::after { content: ""; position: absolute; inset: -14px; border-radius: 50%; background: radial-gradient(circle, rgba(255,210,120,0.75), rgba(255,140,40,0) 65%); opacity: 0; pointer-events: none; }
+.rf-forge-msg { font-size: 17px; font-weight: 800; letter-spacing: 0.18em; color: #f2c879; min-width: 9em; text-align: left; }
+.rf-forge-skip { font-size: 11px; color: var(--ink-dim); letter-spacing: 0.1em; }
+.rf-forge.hit .rf-forge-art { animation: rf-strike 0.32s ease-out; }
+.rf-forge.hit .rf-forge-art::after { animation: rf-spark 0.4s ease-out; }
+@keyframes rf-strike { 0% { transform: translateY(3px) scale(0.97); } 35% { transform: translateY(-2px) scale(1.02); } 100% { transform: none; } }
+@keyframes rf-spark { 0% { opacity: 0.9; transform: scale(0.6); } 100% { opacity: 0; transform: scale(1.2); } }
+@media (prefers-reduced-motion: reduce) { .rf-forge.hit .rf-forge-art, .rf-forge.hit .rf-forge-art::after { animation: none; } }
 .rf-big { display: flex; align-items: center; justify-content: center; gap: 12px; }
 .rf-big-arrow { font-size: 18px; color: var(--ink-dim); }
 .rf-verdict { margin: 6px 0 8px; text-align: center; font-size: 13px; font-weight: 800; letter-spacing: 0.1em; }
