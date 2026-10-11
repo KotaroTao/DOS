@@ -315,7 +315,7 @@ const LINES = [
   { id: "m_key", kind: "chat", fresh: true, when: (c) => c.found("w02_sigil"), say: {
     0: ["取水口の鍵を見つけられたのですね。", "……あの方は昔から、黙って一人で行ってしまいます。"],
     2: ["『イレーヌには言うな』というのですか。", "……あの方らしいですね。言われなくても、わかっているのですが。"] } },
-  { id: "m_sera", kind: "chat", bond: 1, when: (c) => c.revealed,
+  { id: "m_sera", kind: "chat", bond: 1, when: (c) => c.revealed && !c.beat("irene_sera_wake"), // 目覚めて隊に加わった後は過去形で語らない
     say: ["セラは、わたしより背の高い子でした。", "オルド様の後ろを、いつも黙ってついていく子でした。……あの腕は、館に置いておきます。"] },
   { id: "m_joint", kind: "chat", bond: 1, when: (c) => c.revealed,
     say: ["この手首を見ても、もう驚かないのですね。", "……ありがとうございます。あなたの人業たちと、わたしは同じです。"] },
