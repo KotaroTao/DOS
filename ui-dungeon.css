@@ -540,6 +540,8 @@ button.rs-line { cursor: pointer; touch-action: manipulation; }
 .dg-sheet .ui-row .qb-mark-c { font-size: 16px; }
 
 /* ===== 出撃シート (2026-10 改): 上半分 = 迷宮の顔 / 門の一覧は本文と一緒に巻く / 異変は門をくぐる欄へ ===== */
+/* 顔を縮めた時にブラウザが巻き位置を戻して (スクロールアンカー) 伸び縮みを繰り返さないよう、アンカーは切る */
+.dp-sheet .ui-sheet-body { overflow-anchor: none; }
 .ui-sheet.dp-sheet.dp-full { height: calc(100vh - 28px); height: calc(100dvh - 28px); }
 /* イラストから迷宮の掟までは本文を巻いても動かない (ユーザーの指示、2026-10)。本文の上の余白 (2px) ぶん上へずらして貼り付け、
    左右も本文の余白まで広げて下を巻く門の一覧が透けないようにする */
@@ -601,10 +603,41 @@ button.rs-line { cursor: pointer; touch-action: manipulation; }
 .dp-mut-foot.on .dp-mut-sw { color: var(--mut, #d7b8ff); border-color: color-mix(in srgb, var(--mut, #8e6fd0) 60%, #000); }
 .dp-mut-sw[aria-checked="true"] .dg-switch { background: linear-gradient(180deg, #3a2c14, #1f170b); border-color: #8a6d2e; }
 .dp-mut-sw[aria-checked="true"] .dg-switch i { transform: translateX(20px); background: radial-gradient(circle at 40% 35%, #fff1c4, #c9a24a); box-shadow: 0 0 8px rgba(243,213,139,0.7), 0 1px 2px #000; }
-/* 札の短い名 (狭い画面だけ) と、掟・異変の畳み (狭い・低い画面だけ) */
+/* 札の短い名 (狭い画面だけ) */
 .dp-fact-ls { display: none; }
-.dp-fold-c { display: none; }
+/* 掟・異変の畳み (どの画面でも — ユーザーの指示、2026-10): 見出しと説明を1行に並べ、収まらない分は「…」。押すと全文 (▾) */
+.dp-fold { display: grid; grid-template-columns: minmax(0, max-content) minmax(0, 1fr) auto; grid-template-areas: "h b c"; align-items: baseline; column-gap: 8px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.dp-fold > .dp-mut-h { grid-area: h; min-width: 0; }
+.dp-fold > .dp-fold-b { grid-area: b; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dp-fold > .dp-fold-c { grid-area: c; padding-left: 2px; font-size: 11px; color: #9a8e78; transition: transform 0.15s; }
+.dp-fold:not(.open) .dp-mut-n { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.dp-fold:not(.open) .dp-mut-l { display: inline; margin: 0; white-space: nowrap; }
+.dp-fold:not(.open) .dp-mut-l + .dp-mut-l { margin-left: 0.9em; }
+.dp-fold.open { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "h c" "b b"; }
+.dp-fold.open > .dp-fold-b { white-space: normal; overflow: visible; }
 .dp-fold.open .dp-mut-l { white-space: normal; overflow: visible; }
+.dp-fold.open > .dp-fold-c { transform: rotate(180deg); }
+.dp-fold.nofold { cursor: default; }
+.dp-fold.nofold > .dp-fold-c { visibility: hidden; }
+/* 異変の切り替えは横並びの小さな札にして、1行の異変の枠を高くしない */
+.dp-hero .dp-mut-foot { padding: 4px 5px 4px 10px; }
+.dp-hero .dp-mut-sw { flex-direction: row; gap: 6px; min-width: 0; min-height: 34px; padding: 3px 8px; }
+/* 一覧を巻いた時の縮めた顔 (departure.js setMini): 名前の帯と、掟・異変の名札を横に並べるだけ。押すと元に戻る */
+.dp-hero.dp-mini { display: flex; flex-wrap: wrap; column-gap: 6px; padding-bottom: 6px; margin-bottom: 6px; cursor: pointer; }
+.dp-hero.dp-mini > .dp-vista { flex: 0 0 calc(100% + 2 * var(--sp-4)); min-height: 0; }
+.dp-hero.dp-mini .dp-vista-cap { padding: 7px var(--sp-4) 6px; background: linear-gradient(90deg, rgba(8,6,9,0.9), rgba(8,6,9,0.55)); }
+.dp-hero.dp-mini .dp-hero-about, .dp-hero.dp-mini .dp-facts { display: none; }
+.dp-hero.dp-mini .dp-hero-n { font-size: 16px; line-height: 1.25; }
+.dp-hero.dp-mini .dp-vista-cap .dp-gate-st { margin-bottom: 1px; }
+.dp-hero.dp-mini > .dp-mut { flex: 1 1 0; min-width: 0; margin-top: 6px; padding: 3px 6px 3px 8px; }
+.dp-hero.dp-mini .dp-fold { grid-template-columns: minmax(0, 1fr); grid-template-areas: "h"; cursor: pointer; }
+.dp-hero.dp-mini .dp-fold-b, .dp-hero.dp-mini .dp-fold-c { display: none; }
+.dp-hero.dp-mini .dp-mut-h { flex-wrap: nowrap; }
+.dp-mut-ks { display: none; }
+.dp-hero.dp-mini .dp-mut-k, .dp-hero.dp-mini .dp-mut-sw-l { display: none; }
+.dp-hero.dp-mini .dp-mut-ks { display: inline; flex: 0 0 auto; font-size: 10.5px; font-weight: 800; letter-spacing: 0.08em; color: #b2a68f; }
+.dp-hero.dp-mini .dp-mut-n { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.dp-hero.dp-mini .dp-mut-sw { min-height: 28px; padding: 2px 5px; }
 /* スマホ (幅560px以下) と低い画面: 固定した上部を詰めて、下の迷宮の一覧に高さを残す (ユーザーの指示、2026-10)
    - イラストを低く、説明は2行まで、記録の札は短い名で1行に
    - 掟は1行目だけ・異変は危険/見返りを1行ずつにし、押すと全文 (▾) */
@@ -622,16 +655,11 @@ button.rs-line { cursor: pointer; touch-action: manipulation; }
   .dp-hero .dp-mut-k { font-size: 10.5px; letter-spacing: 0.12em; }
   .dp-hero .dp-mut-n { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
   .dp-hero .dp-mut-l, .dp-hero .dp-trait .dp-mut-l { font-size: 11px; line-height: 1.4; margin: 0; }
-  .dp-fold { cursor: pointer; -webkit-tap-highlight-color: transparent; }
-  .dp-fold .dp-mut-h { min-width: 0; }
-  .dp-fold-c { display: inline-block; flex: 0 0 auto; margin-left: auto; padding-left: 6px; font-size: 11px; color: #9a8e78; transition: transform 0.15s; }
-  .dp-fold.open .dp-fold-c { transform: rotate(180deg); }
-  .dp-fold.nofold { cursor: default; }
-  .dp-fold.nofold .dp-fold-c { display: none; }
-  .dp-fold:not(.open) .dp-mut-l { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .dp-trait.dp-fold:not(.open) .dp-mut-l ~ .dp-mut-l { display: none; }
-  .dp-hero .dp-mut-foot { gap: 6px; padding: 4px 5px 5px 8px; }
-  .dp-hero .dp-mut-sw { min-width: 66px; min-height: 40px; padding: 3px 4px; font-size: 9.5px; gap: 3px; }
+  .dp-fold { column-gap: 6px; }
+  /* 狭い画面では見出しの横に説明の入る幅が残らないので、畳んでも説明は見出しの下の1行に */
+  @media (max-width: 560px) { .dp-fold:not(.open) { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "h c" "b b"; } }
+  .dp-hero .dp-mut-foot { gap: 6px; padding: 4px 5px 4px 8px; }
+  .dp-hero .dp-mut-sw { min-height: 32px; padding: 3px 5px; font-size: 9.5px; gap: 4px; }
 }
 /* とても低い画面 (iPhone SE など): 説明の文は畳み、イラストをさらに低く */
 @media (max-height: 700px) {
