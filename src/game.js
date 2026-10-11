@@ -15303,7 +15303,8 @@ function equipAt(p, it, slotKey, owner = p, stashTo = null) {
 }
 
 // 仲間 (wearer) が装備している品 it を外して、p の部位 slotKey に装備する (装備候補の「仲間が装備している品」から)。
-// 外れた p の装備は p の袋へ。仲間の部位は空く。呪われた品・ロック中の品は動かさない (ロックは呼ぶ側で外してから)
+// 外れた p の装備を仲間がその部位に付けられるなら付ける (装備の交換。autoequip.js swapBackFor)。付けられなければ
+// p の袋へ入り、仲間の部位は空く。呪われた品・ロック中の品は動かさない (ロックは呼ぶ側で外してから)
 function equipFromWearer(p, it, slotKey, wearer) {
   if (!p || !it || !wearer || p === wearer) return { ok: false, msg: "" };
   if (expeditionOf(p) || expeditionOf(wearer)) return { ok: false, msg: "遠征に出ている人業の装備・持ち物は動かせない" };
@@ -15319,15 +15320,21 @@ function equipFromWearer(p, it, slotKey, wearer) {
       .find((x) => autoEquip.isPinned(x));
     return { ok: false, msg: pin && !pin.cursed ? `${pin.name}はロック中 ― ロックを外すと付け替えられる` : "呪われた装備が外れない" };
   }
-  if (p.items.length + tr.displaced.length > MAX_ITEMS) return { ok: false, full: true, msg: `${p.name}の持ち物がいっぱいで、外した装備を入れられない` };
-  wearer.equip[wk] = null;
+  // 外れるこちらの装備を仲間が付けられるなら、空いた部位へ付けて交換にする (付けられなければ仲間の部位は空き、こちらの袋へ)
+  const back = autoEquip.swapBackFor(wearer, wk, tr.displaced, canEquip);
+  const toBag = tr.displaced.filter((x) => x !== back);
+  if (p.items.length + toBag.length > MAX_ITEMS) return { ok: false, full: true, msg: `${p.name}の持ち物がいっぱいで、外した装備を入れられない` };
+  wearer.equip[wk] = back || null;
   recalcDoll(wearer);
   wearer.hp = Math.min(wearer.hp, wearer.maxhp); wearer.mp = Math.min(wearer.mp, wearer.maxmp);
   for (const k of SLOTS) p.equip[k] = tr.equip[k] || null;
-  for (const x of tr.displaced) p.items.push(x);
+  for (const x of toBag) p.items.push(x);
   recalcDoll(p);
   p.hp = Math.min(p.hp, p.maxhp); p.mp = Math.min(p.mp, p.maxmp);
-  return { ok: true, msg: `${p.name}は ${wearer.name} の ${it.name} を譲り受けて装備した`, displaced: tr.displaced };
+  const msg = back
+    ? `${p.name}と${wearer.name}が装備を交換した (${p.name} ← ${it.name} / ${wearer.name} ← ${back.name})`
+    : `${p.name}は ${wearer.name} の ${it.name} を譲り受けて装備した`;
+  return { ok: true, msg, displaced: toBag, swapped: back || null };
 }
 
 // 装備候補 (窓口)。隊の「装備候補」シート (すべての袋から・伸びの順) を開く
