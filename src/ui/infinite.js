@@ -112,7 +112,7 @@ export function openInfRest(spec = {}) {
       ? "吹き上げる風が止んだ踊り場。主は討った。ここから地上へ帰るか、さらに深くへ降りるかを選ぶ。"
       : "吹き上げる風が止む踊り場。古い灯籠のそばに、商会の回収人と、名もない人業の灯番がいる。その奥で、主が待っている。"));
     b.appendChild(el("div", "inf-cur", `所持 💰${g.gold || 0} ・ ✦${g.soulPts || 0} ・ 残火 ${g.embers || 0} ・ 推奨Lv ${lv}`));
-    b.appendChild(row({ icon: ICONS.chest, title: "回収人 (商会の者)", sub: "品の買い取り (商会の棚へ回る)・回復の道具・風切りの羽・鍛え直し", chevron: true, onTap: () => { sfx("select"); openTrader(() => h && !h.closed && h.update({ body: fill })); } }));
+    b.appendChild(row({ icon: ICONS.chest, title: "回収人 (商会の者)", sub: "品の買い取り (商会の棚へ回る)・回復の道具・反魂香・風切りの羽・鍛え直し", chevron: true, onTap: () => { sfx("select"); openTrader(() => h && !h.closed && h.update({ body: fill })); } }));
     b.appendChild(row({ icon: ICONS.portal, title: "灯番 (名もない人業)", sub: "メイン魂の付け替え・✦Soul で魂の強化・残火で Lv上限 +1", chevron: true, onTap: () => { sfx("select"); openKeeper(() => h && !h.closed && h.update({ body: fill })); } }));
     if (spec.guardDown) {
       b.appendChild(el("div", "inf-note dim", "帰れば: 拾った魂は ＋1 の素材として本編の魂に加わる (Lv は残らない)。品は商会の棚に並ぶ。残火は拾った数だけ本編へ。金貨と ✦Soul、最初に宿した欠片は残らない。"));
