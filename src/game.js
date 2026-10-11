@@ -2879,7 +2879,8 @@ function drawBoardIcons(lt, now, hx, hy) {
     }
     if (cell.type === "monster") {
       // 魔物: 足元に血の気配。強敵は紅い瘴気をまとい「強敵」の札を掲げる
-      const b = monsterBitmap(icon);
+      // 名前のまだわからない魔物は影の姿 (戦闘と同じ)
+      const b = enemyUnknown({ key: cell.monsterKey, mon: icon }) ? monsterUnknownBitmap(icon) : monsterBitmap(icon);
       const bottom = r.y + r.h * 0.9;
       vctx.save();
       vctx.globalCompositeOperation = "lighter";
@@ -8099,7 +8100,7 @@ function renderCombatCanvas() {
           vctx.restore();
           const sil = Math.min(1, p / 0.4), col = Math.max(0, Math.min(1, (p - 0.38) / 0.62));
           if (col < 1) drawMonsterBmp(vctx, monsterSilhouette(e.mon), baseX, baseY + rise, sz, alpha * sil);
-          if (col > 0) drawMonster(vctx, e.mon, baseX, baseY + rise, sz, alpha * col * col);
+          if (col > 0 && (e.mon.art || e.mon.photo)) drawMonsterBmp(vctx, enemyBitmap(e), baseX, baseY + rise, sz, alpha * col * col);
           return;
         }
       }
@@ -8125,7 +8126,7 @@ function renderCombatCanvas() {
       vctx.ellipse(baseX + ox, feetY - 1 + oy * 0.3, size * 3.3, size * 0.95, 0, 0, Math.PI * 2);
       vctx.fill();
       vctx.restore();
-      drawMonster(vctx, e.mon, baseX + ox, baseY + oy, size, alpha);
+      if (e.mon && (e.mon.art || e.mon.photo)) drawMonsterBmp(vctx, enemyBitmap(e), baseX + ox, baseY + oy, size, alpha);
       // 被弾時の白い閃き (魔物の形に沿って)
       if (hf && now - hf.t0 >= 0 && now - hf.t0 < 170) {
         vctx.save();
@@ -8172,7 +8173,7 @@ function turnIconCanvas(a) {
   }
   const mon = a.mon;
   if (!mon || !(mon.art || mon.photo)) return null;
-  const b = monsterBitmap(mon);
+  const b = enemyBitmap(a); // 名前のわからない敵は影の姿
   let ent = _turnIcons.get(mon);
   // 原画版の魔物は絵が読めた時にビットマップが差し替わるので、その時に描き直す
   if (!ent || ent.b !== b) {
@@ -8704,6 +8705,49 @@ function monsterSilhouette(mon) {
   if (_monBmp.get(mon) === b) _monSil.set(mon, s); // 原画版の読み込み待ち (空の写し) は覚えない
   return s;
 }
+// 名前のまだわからない魔物の姿 (ユーザーの指示、2026-10): 絵の形だけを闇色で塗り (上ほどわずかに明るい)、
+// 外側の1ドットに不確定名の色の淡い縁を巡らせる。大きさ・余白は monsterBitmap と同じなので、
+// 名が明かされて色の絵に替わっても位置はずれない
+const _monUnk = new WeakMap();
+function monsterUnknownBitmap(mon) {
+  let s = _monUnk.get(mon);
+  if (s) return s;
+  const b = monsterBitmap(mon);
+  const c = document.createElement("canvas");
+  c.width = b.c.width; c.height = b.c.height;
+  const g = c.getContext("2d");
+  if (mon.photo) {
+    // 原画版: 縁 (黒いハロー) ごと闇色で塗る
+    g.drawImage(b.c, 0, 0);
+    g.globalCompositeOperation = "source-in";
+    g.fillStyle = "#0d0a14";
+    g.fillRect(0, 0, c.width, c.height);
+    s = { c, w: b.w, h: b.h, pad: b.pad };
+    if (_monBmp.get(mon) === b) _monUnk.set(mon, s); // 読み込み待ちの空の写しは覚えない
+    return s;
+  }
+  const rows = mon.art || [];
+  const { w, h, pad } = b;
+  const on = (x, y) => { const ch = rows[y] && rows[y][x]; return !!ch && ch !== "." && ch !== " " && !!mon.palette[ch]; };
+  g.fillStyle = "rgba(185,172,217,0.55)"; // UNKNOWN_COLOR の淡い縁
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (!on(x, y)) continue;
+    g.fillRect(x + pad - 1, y + pad, 3, 1);
+    g.fillRect(x + pad, y + pad - 1, 1, 3);
+  }
+  for (let y = 0; y < h; y++) {
+    const t = h > 1 ? y / (h - 1) : 0;
+    g.fillStyle = `rgb(${Math.round(30 - 22 * t)},${Math.round(23 - 17 * t)},${Math.round(42 - 30 * t)})`;
+    for (let x = 0; x < w; x++) if (on(x, y)) g.fillRect(x + pad, y + pad, 1, 1);
+  }
+  s = { c, w, h, pad };
+  _monUnk.set(mon, s);
+  return s;
+}
+// 戦闘の敵1体の姿: 名前が明かされるまでは影 (monsterUnknownBitmap)
+function enemyBitmap(e) {
+  return enemyUnknown(e) ? monsterUnknownBitmap(e.mon) : monsterBitmap(e.mon);
+}
 // drawSpriteFit と同じ見かけの大きさ (12グリッド換算の size) で魔物を描く
 function drawMonster(ctx, mon, cx, cy, size, alpha = 1) {
   if (!mon || !(mon.art || mon.photo)) return;
@@ -8845,7 +8889,8 @@ function drawEffects(fx, now) {
     vctx.save();
     const lift = t * 10;
     if (t < 0.35) {
-      drawMonster(vctx, d.mon, d.x, d.y - lift, d.size, 1 - t * 0.5);
+      if (d.unk && d.mon && (d.mon.art || d.mon.photo)) drawMonsterBmp(vctx, monsterUnknownBitmap(d.mon), d.x, d.y - lift, d.size, 1 - t * 0.5);
+      else drawMonster(vctx, d.mon, d.x, d.y - lift, d.size, 1 - t * 0.5);
       vctx.globalCompositeOperation = "lighter";
       drawMonsterBmp(vctx, monsterFlashBitmap(d.mon), d.x, d.y - lift, d.size, 0.9 * (1 - t / 0.35));
     } else {
@@ -9785,7 +9830,7 @@ function applyImpact(res) {
         spawnFx(fx.skill, "reap", pos.cx, pos.cy, rt0, spd, { seed, s: Math.max(0.8, Math.min(1.3, (pos.size || 9) / 9)) });
         fx.floats.push({ x: pos.cx, y: pos.cy - 58, text: "死の宣告", color: "#c9a0ff", t0: rt0, small: true, kind: "label" });
         fx.floats.push({ x: pos.cx, y: pos.cy - 10, text: "即死!", color: "#ff2a2a", t0: rt0 + 260 * spd, big: true, kind: "crit" });
-        if (!fx.deaths.some((d) => d.uid === h.target.uid)) fx.deaths.push({ uid: h.target.uid, mon: h.target.mon, x: pos.cx, y: pos.cy, size: pos.size || 9, t0: rt0 + 300 * spd });
+        if (!fx.deaths.some((d) => d.uid === h.target.uid)) fx.deaths.push({ uid: h.target.uid, mon: h.target.mon, unk: enemyUnknown(h.target), x: pos.cx, y: pos.cy, size: pos.size || 9, t0: rt0 + 300 * spd });
         anyDeath = true;
         continue;
       } else if (res.action === "spell" && res.spellKind !== "heal" && res.spellKind !== "phys") {
@@ -9853,7 +9898,7 @@ function applyImpact(res) {
       if (h.died) {
         anyDeath = true;
         // 撃破: 魔物が白く焼けて灰に崩れる (描画は drawEffects)
-        if (!fx.deaths.some((d) => d.uid === h.target.uid)) fx.deaths.push({ uid: h.target.uid, mon: h.target.mon, x: pos.cx, y: pos.cy, size: pos.size || 9, t0: ht0 });
+        if (!fx.deaths.some((d) => d.uid === h.target.uid)) fx.deaths.push({ uid: h.target.uid, mon: h.target.mon, unk: enemyUnknown(h.target), x: pos.cx, y: pos.cy, size: pos.size || 9, t0: ht0 });
       }
     } else {
       // 味方が対象

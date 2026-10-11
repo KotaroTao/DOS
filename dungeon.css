@@ -404,6 +404,8 @@
 #combat-menu .who.who-foe .who-n { color: #ff9a86; text-shadow: 0 0 10px rgba(255,60,40,0.45), 0 1px 0 #000; }
 /* 不確定名 (まだ名を知らない敵「羽ばたく小さなもの？」): 正式な名と見分けるため淡い藤色 (itemview.js UNKNOWN_COLOR と揃える) */
 .unk-name { color: #b9acd9; font-weight: 700; }
+/* 名前のまだわからない魔物の絵: 闇色の影に不確定名の色の淡い縁 (戦闘の monsterUnknownBitmap と揃える) */
+canvas.unk-sil { filter: brightness(0) drop-shadow(0 0 1px rgba(185,172,217,0.85)) drop-shadow(0 0 4px rgba(150,130,210,0.35)); }
 #combat-menu .who.who-unk .who-n, #combat-menu .tgt-n.unk { color: #b9acd9; text-shadow: 0 0 10px rgba(150,130,210,0.4), 0 1px 0 #000; }
 #combat-menu { display: flex; flex-direction: column; gap: 6px; min-height: 0; }
 #combat-menu .who {
