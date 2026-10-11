@@ -10,7 +10,7 @@ export const monsters = defMonsters([
   { id: "d02_soldier", name: "朽ちた兵士", race: "undead", element: "dark", artKey: "hd_soldier", rank: 2,
     physResist: 50, // 錆びてなお具足が刃を弾く
     hp: 30, atk: 13, def: 6, spd: 6, soul: 22, gold: 16, soulClass: "thief",
-    desc: "城を守れずに散った衛兵の成れの果て。誰を守るのかも、誰と戦うのかも忘れ、ただ「持ち場を離れるな」という最後の号令だけが骨の髄に焼き付いている。錆びついた具足は刃をよく弾き、崩れた城壁の前で永遠に剣を構え続ける。" },
+    desc: "国境の守りに就いて散り、修道院の裏手に葬られた兵の成れの果て。誰を守るのかも、誰と戦うのかも忘れ、ただ「持ち場を離れるな」という最後の号令だけが骨の髄に焼き付いている。さびついた具足は刃をよく弾き、墓所の通路に立ちふさがって、いつまでも剣を構え続ける。" },
   { id: "d02_harpy", name: "城砦のハーピー", race: "avian", element: "wind", artKey: "harpy", rank: 2,
     swift: true, ability: "goldSteal", // 突風で舞い降り、指輪や髪飾りをかすめ取る
     hp: 24, atk: 13, def: 4, spd: 11, soul: 20, gold: 15,

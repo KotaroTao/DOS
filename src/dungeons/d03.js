@@ -2,14 +2,14 @@
 import { defMonsters, tint, ARTS } from "./schema.js";
 
 export const monsters = defMonsters([
-  { id: "d03_orc", name: "奈落のオーク", race: "humanoid", element: "earth", artKey: "hd_orc3", rank: 3,
+  { id: "d03_orc", name: "坑底のオーク", race: "humanoid", element: "earth", artKey: "hd_orc3", rank: 3,
     ability: "critical", enrage: true, // 鎧ごと胸郭を陥没させる急所狙いの一打。痛覚が焼き切れ、手負いほど荒れ狂う
     hp: 44, atk: 16, def: 8, spd: 5, soul: 34, gold: 26, soulClass: "knight",
-    desc: "深淵から立ち昇る瘴気を浴び、肉も殺意も常軌を逸して膨れ上がった大型のオーク。岩塊のような拳が急所を捉えれば、鎧ごと胸郭を陥没させる。痛覚はとうに焼き切れ、四肢を失ってなお這い寄って噛みつく。" },
+    desc: "坑の底から湧く瘴気を浴び、肉も殺意も並外れて膨れ上がった大型のオーク。岩のような拳が急所をとらえれば、鎧ごと胸をへこませる。痛みはとうに感じず、手足を失ってもなお、はい寄ってかみついてくる。" },
   { id: "d03_ghost", name: "さまよう亡霊", race: "specter", element: "dark", artKey: "hd_wanderghost", rank: 3,
     ability: "soulSteal", // 冷たい指で熱とともにSoulを奪う
     hp: 38, atk: 15, def: 6, spd: 10, soul: 30, gold: 22,
-    desc: "回廊で力尽き、骸さえ見つけてもらえなかった者の魂。生者の体温に飢え、音もなく背後へ回り込んでは冷たい指を肋の隙間へ差し入れる。触れられた箇所から熱とともに✦Soulが吸い出され、心の臓が凍てついていく。" },
+    desc: "捨て砦の回廊で力尽き、骸さえ見つけてもらえなかった者の魂。生者の体温に飢え、音もなく背後へ回り込んでは冷たい指をあばらのすき間へ差し入れる。触れられた箇所から熱とともに✦Soulが吸い出され、心の臓が凍てついていく。" },
   { id: "d03_sahagin", name: "深淵のサハギン", race: "aquatic", element: "water", artKey: "hd_sahagin", rank: 3,
     pack: true, ability: "sunder", // 骨のもりを手に群れで岸辺を囲い、寄ってたかって鎧の継ぎ目を穿つ (守り崩し)
     hp: 42, atk: 16, def: 8, spd: 8, soul: 33, gold: 24,

@@ -2,7 +2,7 @@ import { tube, sphere, ellipsoid, cone, slab, cyl, box, torus, U, Sub, Disp, Pai
 import { humanoid, fingers } from "../human.mjs";
 import { GRAVEL, ROCK, RIM, rubble, pebbles, tri } from "../mine.mjs";
 export const meta = { id: "d03_orc", key: "hd_orc3", w: 96, h: 96,
-  note: "奈落のオーク: 瘴気で膨れ上がった大型のオーク。盛り上がった肩と猫背、下顎から突き出す牙、岩塊のような拳。肌に紫の瘴気の筋、千切れた鎖を腰に巻く" };
+  note: "坑底のオーク: 瘴気で膨れ上がった大型のオーク。盛り上がった肩と猫背、下顎から突き出す牙、岩塊のような拳。肌に紫の瘴気の筋、千切れた鎖を腰に巻く" };
 export function build() {
   const mats = {
     skin: { ramp: ramp(["#030302", "#090a07", "#11140d", "#1a1f13", "#242b19", "#2f3820", "#3c4628", "#4c5832", "#626e40"], 9), spec: 0.7, pow: 25, specCol: "#90a070", dither: 0.55,
