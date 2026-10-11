@@ -4,7 +4,7 @@
 //
 //   1Lv の目標時間 lvMinutes(L) : Lv1〜49 は 4.3分 → 12.9分へ伸び (計7時間)、Lv50〜99 は 15.6分 (計13時間)、Lv100〜 は 12分
 //   1戦の✦Soul  refSoul(L)     : 敵Lv L の迷宮で、出現表の雑魚と戦う普通の1戦に得る ✦Soul の基準 (精鋭・主はこの何倍か)
-//   強化費用     trainCost(L)   : refSoul(L) × lvMinutes(L) × EXP_PER_MIN — Lv に合った迷宮で戦えば、狙いの分数で1Lv上がる
+//   強化費用     trainCost(L)   : refSoul(L) × lvMinutes(L) × EXP_PER_MIN × EXP_COST_K — Lv に合った迷宮で戦えば、狙いの分数で1Lv上がる
 //
 // EXP_PER_MIN = 魂1つに1分あたり入る ✦Soul を「1戦の✦」で数えたもの:
 //   1時間に 57戦 (テスト記録: 1階 約3.1分・1階 約3戦、町の時間込み) × 死体・出来事・精鋭の上乗せ 1.3 ×
@@ -21,6 +21,11 @@ export const EXTRA = 1.3;
 export const SHARE = 0.5;
 export const EXP_PER_MIN = BATTLES_PER_HOUR * EXTRA * SHARE / 60;
 export const MIN_PER_FLOOR = 3.1;
+// 強化費用の上乗せ (2026-10 ユーザーの指示「経験値が多く入りすぎる。今の半分くらいで」)。
+// 第五章の結び (業火の大釜 w21、推奨Lv67-70) のテスト記録: 隊は Lv70-75 で入り、10分・15階で 3〜5Lv 上がった
+// (157戦/時・迷宮の ✦ は戦闘の3.4倍 — 金属の魔物・特別な階・掟・装備の上乗せ。設計は 57戦/時・1.3倍)。
+// 入る ✦ (戦闘・依頼・報告…) はそのままに、1Lv に要る ✦ (戦闘で魂に直接入る経験値も同じ物差し) を2倍にして、育ちを半分にする
+export const EXP_COST_K = 2;
 
 // 1Lv の目標時間 (分)。Lv1〜49 の合計がちょうど 420分 (7時間) になるよう、4.25分から 0.18分ずつ伸ばす
 export function lvMinutes(L) {
@@ -60,7 +65,7 @@ export function refGold(L) { return 0.7 * refSoul(L); }
 
 // 魂の強化費用 (Lv L → L+1)
 export function trainCost(L) {
-  return Math.max(1, Math.round(refSoul(L) * lvMinutes(L) * EXP_PER_MIN));
+  return Math.max(1, Math.round(refSoul(L) * lvMinutes(L) * EXP_PER_MIN * EXP_COST_K));
 }
 
 // 人業の能力値の Lv による伸び (souls.js の lvlFactor と同じ式)。敵の強さを推奨Lvに合わせる物差し
