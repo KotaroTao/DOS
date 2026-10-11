@@ -695,15 +695,12 @@ function autoEquip(target = "all") {
   const involved = plan.undoSnapshot.map((s) => s.doll);
   const before = new Map(plan.undoSnapshot.map((s) => [s.doll, previewStats(s.doll, s.equip, recalc)]));
   if (!applyPlan(plan, { recalc })) { sfx("ng"); toast("付け替えられなかった", { tone: "bad" }); return { ok: false, moves: 0 }; }
-  for (const m of plan.moves) game.log(`最適装備: ${m.doll.name} ← ${m.item.name}${m.from !== m.doll ? `（${m.from.name}から）` : ""}`, "win");
-  sfx("itemget"); buzz([0, 20, 30, 20]);
-  bgcMemo.key = "";
-  if (game.autosave) game.autosave(true);
-  rerender();
-  const sel = targets.includes(selDoll) ? selDoll : targets[0];
-  const d0 = before.get(sel);
-  if (d0) floatDelta(".pt-head .pt-port", statsDelta(d0, previewStats(sel, sel.equip, recalc)));
-  // 結果のシート: 誰が何を装備し、能力がどう変わったか。人業ごとに付け替えるかを選べる (+ 元に戻す)
+  // 2体以上なら、結果のシートは「付け替えの案」: いったん元へ戻し、人業ごとの「付け替える」を押した時に付け替える (ユーザーの指示)
+  const pick = plan.undoSnapshot.filter((s) => SLOTS.some((k) => (s.equip[k] || null) !== (s.doll.equip[k] || null))).length > 1;
+  const logMoves = (dolls) => {
+    for (const m of plan.moves) if (!dolls || dolls.has(m.doll)) game.log(`最適装備: ${m.doll.name} ← ${m.item.name}${m.from !== m.doll ? `（${m.from.name}から）` : ""}`, "win");
+  };
+  // 結果のシート: 誰が何を装備し、能力がどう変わったか (+ 元に戻す)
   let sig = equipSignature(involved);
   const stale = () => { if (equipSignature(involved) === sig) return false; sfx("ng"); toast("装備が変わったため、選び直せない", { tone: "bad" }); return true; };
   const settle = () => { sig = equipSignature(involved); bgcMemo.key = ""; if (game.autosave) game.autosave(true); rerender(); };
@@ -727,12 +724,28 @@ function autoEquip(target = "all") {
     toast("元に戻した", { tone: "info" });
     return true;
   };
-  openAutoEquipResult(plan, before, { apply, undo });
+  if (pick) {
+    // 能力の前後は付け替えた形で測ってから、元の装備へ戻す
+    openAutoEquipResult(plan, before, { apply, undo, pick, logMoves });
+    restoreEquip(plan.undoSnapshot, recalc);
+    settle();
+    return { ok: true, moves: plan.moves.length, plan };
+  }
+  logMoves();
+  sfx("itemget"); buzz([0, 20, 30, 20]);
+  bgcMemo.key = "";
+  if (game.autosave) game.autosave(true);
+  rerender();
+  const sel = targets.includes(selDoll) ? selDoll : targets[0];
+  const d0 = before.get(sel);
+  if (d0) floatDelta(".pt-head .pt-port", statsDelta(d0, previewStats(sel, sel.equip, recalc)));
+  sig = equipSignature(involved);
+  openAutoEquipResult(plan, before, { apply, undo, pick, logMoves });
   return { ok: true, moves: plan.moves.length, plan };
 }
 
 // 最適装備の結果: 人業ごとに [部位: 前の品 → 新しい品 (誰から)]、特殊効果と能力の 前→後
-function openAutoEquipResult(plan, before, { apply, undo }) {
+function openAutoEquipResult(plan, before, { apply, undo, pick = false, logMoves = () => {} }) {
   const rows = [];
   for (const s of plan.undoSnapshot) {
     const d = s.doll;
@@ -747,18 +760,20 @@ function openAutoEquipResult(plan, before, { apply, undo }) {
   }
   if (!rows.length) return null;
   const nameEl = (cls, it) => (game.itemNameEl ? game.itemNameEl("span", cls, it) : el("span", cls, itemName(it)));
-  // 人業ごとの「付け替える / 付け替えない」(2体以上の時)。ほかの人業が外した品を使う人業は、その人業と一緒に入れ切りする
-  const many = rows.length > 1;
-  const keep = new Set(rows.map((r) => r.d));
+  // 2体以上の時は人業ごとの「付け替える」: 押した時点でその人業を付け替え、もう一度押すと元に戻す。
+  // ほかの人業が外した品を使う人業は、その人業と一緒に入れ切りする
+  const many = pick && rows.length > 1;
+  const keep = new Set(many ? [] : rows.map((r) => r.d));
   const deps = planDeps(plan);
   const cards = new Map();
   const paint = () => {
     for (const [d, c] of cards) {
       const on = keep.has(d);
-      c.card.classList.toggle("off", !on);
+      c.card.classList.toggle("applied", on);
       c.tg.classList.toggle("on", on);
       c.tg.setAttribute("aria-pressed", on ? "true" : "false");
-      c.tg.textContent = on ? "付け替える" : "付け替えない";
+      c.tg.textContent = on ? "元に戻す" : "付け替える";
+      c.done.hidden = !on;
     }
   };
   // d を入れる時は頼る人業も、外す時は頼ってくる人業も (つながりをたどって) 一緒に
@@ -778,10 +793,11 @@ function openAutoEquipResult(plan, before, { apply, undo }) {
     const group = linked(d, on);
     for (const x of group) { if (on) keep.add(x); else keep.delete(x); }
     if (!apply(keep, prev)) { keep.clear(); for (const x of prev) keep.add(x); paint(); return; }
-    sfx("select");
-    const others = [...group].filter((x) => x !== d && cards.has(x));
-    if (others.length) toast(`${others.map((x) => x.name).join("・")}は${d.name}${on ? "の外す品を使うので、一緒に付け替える" : "の外す品を使うので、一緒に戻した"}`, { tone: "info" });
-    game.log(`最適装備: ${[...group].filter((x) => cards.has(x)).map((x) => x.name).join("・")}の付け替えを${on ? "選んだ" : "やめた"}。`, "sys");
+    const changed = new Set([...group].filter((x) => cards.has(x) && prev.has(x) !== on));
+    if (on) { logMoves(changed); sfx("itemget"); buzz([0, 20, 30, 20]); }
+    else { game.log(`最適装備: ${[...changed].map((x) => x.name).join("・")}の装備を元に戻した。`, "sys"); sfx("select"); }
+    const others = [...changed].filter((x) => x !== d);
+    if (others.length) toast(`${others.map((x) => x.name).join("・")}は${d.name}${on ? "の外す品を使うので、一緒に付け替えた" : "の外す品を使うので、一緒に元に戻した"}`, { tone: "info" });
     paint();
   };
   const body = el("div", "pt-ae");
@@ -791,11 +807,13 @@ function openAutoEquipResult(plan, before, { apply, undo }) {
     top.appendChild(portraitEl(r.d, { size: 36, tag: "span" }));
     top.appendChild(el("span", "pt-ae-n", r.d.name));
     if (many) {
-      const tg = el("button", "pt-ae-tg on");
+      const done = el("span", "pt-ae-done", "付け替えた");
+      const tg = el("button", "pt-ae-tg");
       tg.type = "button";
       tg.addEventListener("click", () => toggle(r.d));
+      top.appendChild(done);
       top.appendChild(tg);
-      cards.set(r.d, { card, tg });
+      cards.set(r.d, { card, tg, done });
     }
     card.appendChild(top);
     const list = el("div", "pt-ae-list");
@@ -855,22 +873,25 @@ function openAutoEquipResult(plan, before, { apply, undo }) {
   }
   paint();
   const n = plan.moves.length;
-  // 全員最適装備 = 外した人業も含めて全員を付け替えて閉じる。選んだ人業だけ = いまの選びのまま閉じる
+  // 全員最適装備 = まだ付け替えていない人業も含めて全員を付け替えて閉じる
   const all = () => {
     if (keep.size === rows.length) return true;
     const prev = new Set(keep);
     for (const r of rows) keep.add(r.d);
     if (!apply(keep, prev)) { keep.clear(); for (const x of prev) keep.add(x); paint(); return false; }
+    logMoves(new Set(rows.map((r) => r.d).filter((d) => !prev.has(d))));
+    sfx("itemget"); buzz([0, 20, 30, 20]);
     return true;
   };
   return sheet.open({
     kind: "info", banner: "最適装備", className: "pt-ae-sheet",
-    lines: [`${rows.length}体の装備を ${n}点 付け替えた。`, ...(many ? ["人業ごとに「付け替えない」を選べば、その人業は元の装備に戻る。"] : [])],
+    lines: many
+      ? [`${rows.length}体の装備を ${n}点 付け替えられる。`, "人業ごとの「付け替える」を押すと、その場で付け替える。"]
+      : [`${rows.length}体の装備を ${n}点 付け替えた。`],
     body,
     footer: [
       { label: "全員最適装備", kind: "primary", onTap: (h) => { if (all()) h.close(); } },
-      ...(many ? [{ label: "選んだ人業だけ付け替える", kind: "secondary", onTap: (h) => h.close() }] : []),
-      { label: "元に戻す", kind: "ghost", onTap: (h) => { if (undo()) h.close(); } },
+      { label: "元に戻す", kind: "ghost", onTap: (h) => { if (!keep.size || undo()) h.close(); } },
     ],
   });
 }
