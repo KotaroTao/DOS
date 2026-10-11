@@ -38,6 +38,13 @@ const KIND = {
 // spec: { kind, gold, soul, kills, levels[{name,from,to,deltas[],sub?,soulLabel?}], skills[{name,key,skill,desc}],
 //         levelUps[{name,uid,main,subs,statsFrom,statsTo,skills}] (UI.celebrateLevelUp へ),
 //         souls[{clsKey,label,rarity,rare,glow,line,embers}], chest:{name,cRank,openers[{uid,name,pct}],open(uid,sink,done)}|null, onDone }
+// 品がいま誰かの装備欄にあるか (隊・控え)
+function isWorn(item) {
+  const g = G();
+  const all = game.allDolls ? game.allDolls() : (g ? [...(g.party || []), ...(g.reserve || [])] : []);
+  return all.some((d) => d && d.equip && Object.values(d.equip).includes(item));
+}
+
 export function openResults(spec = {}) {
   const g = G();
   const k = KIND[spec.kind] || KIND.win;
@@ -195,9 +202,22 @@ export function openResults(spec = {}) {
       // 押すと品の詳細 (鑑定は街でのみ)。鑑定済みで装備できる品は「装備」で人業を選んですぐ装備
       r.classList.add("tap");
       r.setAttribute("role", "button");
-      r.addEventListener("click", (e) => { if (e.target.closest(".rs-equip")) return; try { UI.itemSheet(item, { owner: who, context: "dungeon" }); } catch (er) { /* noop */ } });
+      // 装備した品はこの戦果の一覧から外す (装備したのに「装備」の行が残り続けないように — ユーザーの指示、2026-10)
+      const dropIfWorn = () => {
+        if (!r.isConnected || !isWorn(item)) return;
+        const rm = () => { if (r.isConnected) r.remove(); };
+        if (reduced()) return rm();
+        r.style.pointerEvents = "none";
+        animate(r, [{ opacity: 1 }, { opacity: 0, transform: "translateX(8px)" }], { duration: 160, easing: "ease-in" }).then(() => { r.style.opacity = "0"; rm(); });
+        setTimeout(rm, 400);
+      };
+      r.addEventListener("click", (e) => { if (e.target.closest(".rs-equip")) return; try { UI.itemSheet(item, { owner: who, context: "dungeon", onClose: dropIfWorn }); } catch (er) { /* noop */ } });
       if (!item.unidentified && typeof UI.equipChooser === "function" && ["weapon", "shield", "body", "head", "hands", "feet", "acc"].includes(item.slot)) {
-        r.appendChild(button({ label: "装備", kind: "secondary", size: "sm", onTap: () => { if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; refreshFooter(false); } UI.equipChooser(item, { owner: who }); } }));
+        r.appendChild(button({ label: "装備", kind: "secondary", size: "sm", onTap: () => {
+          if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; refreshFooter(false); }
+          const ch = UI.equipChooser(item, { owner: who });
+          if (ch && ch.opts) { const prev = ch.opts.onClose; ch.opts.onClose = (why) => { if (prev) prev(why); dropIfWorn(); }; }
+        } }));
         r.lastChild.classList.add("rs-equip");
       }
       addOut(r);
