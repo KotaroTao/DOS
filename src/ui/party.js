@@ -1425,9 +1425,11 @@ function createButton() {
 function reserveBody(root) {
   const G = G_();
   const list = el("div", "pt-res");
-  // 留守居の修練 (第六章の結び): 控えのメイン魂にも、隊が戦って得る経験値の一部が入る
-  if (G.reserve.length && game.featureUnlocked && game.featureUnlocked("rusui")) {
-    list.appendChild(el("div", "pt-res-rusui", `留守居の修練 ― 控えのメイン魂にも、隊のメイン魂が戦闘で得る経験値の${Math.round((game.RUSUI_EXP_RATE || 0.1) * 100)}%が入る。`));
+  // 留守居の修練 (第六章の結び): 席に就けた控えのメイン魂にも、隊が戦って得る経験値の一部が入る
+  const seats = game.rusuiSeats ? game.rusuiSeats() : 0;
+  if (G.reserve.length && seats > 0) {
+    const n = game.rusuiSeated ? game.rusuiSeated().length : 0;
+    list.appendChild(el("div", "pt-res-rusui", `留守居の修練 ${n}/${seats}席 ― 席に就けた控えのメイン魂に、隊のメイン魂が戦闘で得る経験値の${Math.round((game.RUSUI_EXP_RATE || 0.1) * 100)}%が入る。`));
   }
   if (!G.reserve.length) list.appendChild(el("div", "pt-res-none", "控えはいない。隊列の人業を「控え」へ引けば下げられる。"));
   for (const d of G.reserve) list.appendChild(reserveRow(d));
@@ -1444,7 +1446,12 @@ function reserveRow(d) {
   longPress(p, () => openRename(d));
   top.appendChild(p);
   const tx = el("div", "pt-res-tx");
-  tx.appendChild(el("div", "pt-res-n", d.name));
+  const seats = game.rusuiSeats ? game.rusuiSeats() : 0;
+  const onSeat = seats > 0 && game.rusuiSeated && game.rusuiSeated().includes(d);
+  if (onSeat) r.classList.add("rusui");
+  const nm = el("div", "pt-res-n", d.name);
+  if (onSeat) nm.appendChild(el("span", "pt-res-rtag", "留守居"));
+  tx.appendChild(nm);
   const st = el("div", "pt-res-c");
   st.appendChild(document.createTextNode(d.primary == null ? "空の人業 ― 魂が宿っていない" : `${d.cls} ・ Lv${d.jobLv || 1}`));
   if (!d.alive && inTown()) {
@@ -1485,6 +1492,12 @@ function reserveRow(d) {
       tg.appendChild(a);
     }
     sw.appendChild(tg);
+    if (seats > 0) { // 留守居の席に就ける/外す
+      const rb = button({ label: onSeat ? "留守居から外す" : "留守居に就ける", kind: onSeat ? "ghost" : "secondary", size: "sm",
+        onTap: () => { if (game.toggleRusuiSeat && game.toggleRusuiSeat(d) && reserveH && !reserveH.closed) reserveH.update({}); } });
+      rb.classList.add("pt-res-rbtn");
+      sw.appendChild(rb);
+    }
   }
   r.appendChild(sw);
   return r;
