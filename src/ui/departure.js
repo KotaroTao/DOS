@@ -137,9 +137,10 @@ function chapterNo(n) {
 function gateStatus(dn, i) {
   const w = wst();
   const isDone = !!(w.cleared && w.cleared[dn.id]);
+  // 踏破した迷宮は、推奨Lvが隊より高くても踏破の札を出す (危険・無謀の札は未踏破の迷宮だけ。2026-10 ユーザーの指摘)
+  if (isDone) return fullyCleared(dn) ? { text: "★ 完全踏破", cls: "done perfect" } : { text: "★ 踏破", cls: "done" };
   const dg = dangerOf(dn);
   if (dg && dg.cls !== "easy") return { text: dg.text, cls: dg.cls };
-  if (isDone) return fullyCleared(dn) ? { text: "★ 完全踏破", cls: "done perfect" } : { text: "★ 踏破", cls: "done" };
   if (i === questIdx()) return { text: "目標", cls: "quest" };
   return { text: "未踏破", cls: "" };
 }
