@@ -11,9 +11,10 @@
 //    関係する心得の数字・説明を直し、新しい機能には心得を1つ以上足す。新しい章・場所には言い伝えも (CLAUDE.md の Conventions)。
 // 心得と言い伝えは、聞いた分が「書き留めた話」に残る (G.tavernHeard、id で保存 — id は変えない・使い回さない)。
 // who = その話が似合う肩書き (無ければ誰でも)。
+// retired = 取りやめた仕組みの話 (id は保存されるので消さずに残し、顔ぶれにも「書き留めた話」にも出さない)。
 //
 // req を持つ話は、その機能・場所・物語が開くまで出ない (未解放の仕組みや先の章を匂わせない):
-//   機能: "fusion" 魂融合 / "sub" サブ魂 / "rumor" 噂 / "order" 控えの結社 / "order4" 結社の四の席 / "expedition" 遠征 / "resonance" 魂の共鳴 (game.js FEATURES)
+//   機能: "fusion" 魂融合 / "sub" サブ魂 / "rumor" 噂 / "order" 控えの結社 / "order4" 結社の四の席 / "expedition" 遠征 (game.js FEATURES)
 //   場所: "metal" 金属の魔物 (第3層の景色の迷宮が地図に現れた後) / "metal2" その上位種 (第4層から) / "fort" 捨て砦 (第4層) /
 //         "roots" 魂脈の根 (第三章) / "undercity" 王都の地下 (第四章) / "furnace" 灼熱の洞 (第五章) / "frost" 氷結回廊 (第六章) / "swamp" 毒沼 (第七章) / "storm" 嵐の尖塔 (第八章)
 //   物語: "rep:<迷宮id>" その迷宮を王に報告した後 / "found:<手がかり>" その手がかりを見つけた後 / "ch:<n>" 第n章を結んだ後
@@ -202,9 +203,9 @@ export const TAVERN_TALKS = [
   { id: "t_victorymp", k: "tip", cat: "魂", t: "「戦いに勝った後に魔力が戻る力は、魂一つにつき最大の五分どまりだ。別々の魂なら重なる。主の魂とサブ魂二つで五分ずつなら、合わせて一割五分。同じ魂から二つ借りても、五分のままさ。」", req: "sub" },
   { id: "t_holylamp", k: "tip", cat: "魂", t: "「司教の魂を深く育てると、法力の灯ってのが灯る。戦いに勝つたび、隊みんなの毒も麻痺も石化も消してくれるのさ。サブ魂で借りても、ちゃんと隊みんなに効く。」", req: "sub", who: ["破戒僧"] },
   { id: "t_expedition", k: "tip", cat: "魂", t: "「控えの人業を遠征に出せば、ひとりで迷宮を回って✦や金貨を持ち帰る。ただし格上の迷宮へやると、途中で引き返してくるぞ。」", req: "expedition" },
-  { id: "t_reso1", k: "tip", cat: "魂", t: "「魂にも相性があるそうだ。隊に並べた人業のメイン魂の職が、ある組み合わせでそろうと、隊みんなに効き目が出る。サブ魂や控えじゃ数えん。倒れても隊にいりゃ効くとさ。」", req: "resonance" },
-  { id: "t_reso2", k: "tip", cat: "魂", t: "「共鳴の効き目は小さい。被ダメや与ダメが数%、回復が一、二割、先制や奇襲が少し変わる程度だ。重ねても、同じ種類は頭打ちがある。だが三つの職でそろう組は、ちと強いぞ。」", req: "resonance" },
-  { id: "t_reso3", k: "tip", cat: "魂", t: "「共鳴は、初めてそろえるまで名前もわからん。館の隊の『共鳴』の札を見てみな。あと一つの職でそろう組を教えてくれる。剣と祈り……戦士と僧侶は、組んでおいて損はないそうだ。」", req: "resonance" },
+  { id: "t_reso1", retired: true, k: "tip", cat: "魂", t: "「魂にも相性があるそうだ。隊に並べた人業のメイン魂の職が、ある組み合わせでそろうと、隊みんなに効き目が出る。サブ魂や控えじゃ数えん。倒れても隊にいりゃ効くとさ。」", req: "resonance" },
+  { id: "t_reso2", retired: true, k: "tip", cat: "魂", t: "「共鳴の効き目は小さい。被ダメや与ダメが数%、回復が一、二割、先制や奇襲が少し変わる程度だ。重ねても、同じ種類は頭打ちがある。だが三つの職でそろう組は、ちと強いぞ。」", req: "resonance" },
+  { id: "t_reso3", retired: true, k: "tip", cat: "魂", t: "「共鳴は、初めてそろえるまで名前もわからん。館の隊の『共鳴』の札を見てみな。あと一つの職でそろう組を教えてくれる。剣と祈り……戦士と僧侶は、組んでおいて損はないそうだ。」", req: "resonance" },
 
   // ── 心得: 装備 ──
   { id: "t_twohand", k: "tip", cat: "装備", t: "「両手の得物は、同じ格の片手物より三割ほど強い。だが盾は持てん。攻めと守り、どっちを取るかだ。」", who: FIGHT },
@@ -383,7 +384,7 @@ const KIND_W = [["chat", 4], ["tip", 4], ["lore", 2]];
 export function pickTavernCrowd({ allowed = () => true, heard = {}, rand = Math.random } = {}) {
   const count = 3 + Math.floor(rand() * 3); // 3〜5名
   const speakers = [...TAVERN_SPEAKERS].sort(() => rand() - 0.5).slice(0, count);
-  const pool = TAVERN_TALKS.filter((t) => allowed(t.req));
+  const pool = TAVERN_TALKS.filter((t) => !t.retired && allowed(t.req));
   const used = new Set();
   const fits = (t, sp) => !used.has(t.id) && (!t.who || t.who.includes(sp.type));
   const weight = (t) => (t.k !== "chat" && !heard[t.id] ? 3 : 1);

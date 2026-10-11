@@ -11,7 +11,6 @@ import { ENEMY_STAT_LABEL } from "../buffstage.js";
 //       UI.openCodexSheet({ dungeonIdx }) (迷宮の中の図鑑。手帳から)
 //       UI.dungeonMonSheet(dungeonIdx) (出撃シートの「発見した魔物」から。その迷宮の魔物の札)
 //       UI.codexMonSheet(key) / UI.codexItemSheet(id) / UI.codexJobSheet(key, rank, heading)
-//       図鑑の「共鳴」区分 (codex:reso) は魂の共鳴が開いてから。札は UI.resonanceRow (party.js)
 // game.js は import しない (ctx.js の UI / game / ops を通す)。
 
 import { UI, game, ops, registerUI } from "./ctx.js";
@@ -45,10 +44,9 @@ function curSeg() { const s = remember("seg", "palace"); return SEGS.includes(s)
 // 図鑑は前回の位置を覚えない: 入るたび・区分を替えるたびに既定 (敵=最初の迷宮 / アイテム=武器・すべて / 見聞=共通、どれも1ページ目) へ戻す
 // 迷宮の手帳から開いた図鑑だけは、敵の既定がいま潜っている迷宮になる (codexHome)
 const codexHome = { dungeon: 0 };
-const CODEX_PAGES = ["mon:", "item:", "job", "ev:", "reso"];
-// 図鑑の区分。「共鳴」は魂の共鳴が開いてから (または見つけた組がある時) だけ出す
-const resoShown = () => !!((game.featureUnlocked && game.featureUnlocked("resonance")) || Object.keys((G() && G().resonance && G().resonance.found) || {}).length);
-const codexSubs = () => (resoShown() ? ["mon", "item", "job", "ev", "reso"] : ["mon", "item", "job", "ev"]);
+const CODEX_PAGES = ["mon:", "item:", "job", "ev:"];
+// 図鑑の区分
+const codexSubs = () => ["mon", "item", "job", "ev"];
 function resetCodexView(sub = "mon") {
   remember("seg", "codex", sub);
   remember("codex", "dungeon", codexHome.dungeon);
@@ -480,19 +478,6 @@ function codexTotals() {
     ev: Object.keys((g.events && g.events.seen) || {}).filter((k) => EVENT_MAP[k]).length,
   };
 }
-// 魂の共鳴: 組の表の順に並べる。見つけた組は名前・職・効果、まだの組は「？？？」と職の数だけ
-function renderCodexReso(box) {
-  const g = G();
-  const all = game.RESONANCES || [];
-  const found = (g.resonance && g.resonance.found) || {};
-  const active = new Set((game.partyResonances ? game.partyResonances() : []).map((x) => x.id));
-  const n = all.filter((r) => found[r.id]).length;
-  box.appendChild(el("div", "pl-codex-cap", `隊のメイン魂の職がそろうと響き合う組。見つけた組 ${n}/${all.length}`));
-  const area = fillArea(box);
-  refresh.list = null;
-  scrollGrid(area, all, (r) => (UI.resonanceRow ? UI.resonanceRow(r, { found: !!found[r.id], active: active.has(r.id) }) : el("div", "rs-row", found[r.id] ? r.name : "？？？")),
-    { cols: 1, cellH: null, gap: 6, key: "reso" });
-}
 function renderCodex(body) {
   const subs = codexSubs();
   const sub = subs.includes(remember("seg", "codex")) ? remember("seg", "codex") : "mon";
@@ -504,16 +489,13 @@ function renderCodex(body) {
     if (k === "mon") renderCodexMon(box);
     else if (k === "item") renderCodexItem(box);
     else if (k === "ev") renderCodexEvents(box);
-    else if (k === "reso") renderCodexReso(box);
     else renderCodexJob(box);
   };
   const segEl = segmented([
     { key: "mon", label: `敵 ${mons}`, badge: fc.mon || null }, { key: "item", label: `アイテム ${items}`, badge: fc.item || null }, { key: "job", label: `職業 ${jobs}`, badge: fc.job || null },
     { key: "ev", label: `見聞 ${evs}`, badge: fc.ev || null },
-    ...(subs.includes("reso") ? [{ key: "reso", label: `共鳴 ${Object.keys((G().resonance && G().resonance.found) || {}).length}` }] : []),
   ], sub, (k) => { sfx("select"); resetCodexView(k); draw(k); softFade(box); }, { prefKey: "codex" });
   segEl.classList.add("pl-codex-seg"); // 4区分 (見聞録つき) を1行に収める
-  if (subs.length > 4) segEl.classList.add("five"); // 共鳴つきの5区分
   refresh.sub = () => { const c = freshCounts(); ["mon", "item", "job", "ev"].forEach((k, i) => setBadge(segBtn(segEl, i), c[k] || null)); };
   body.appendChild(segEl);
   body.appendChild(box);
