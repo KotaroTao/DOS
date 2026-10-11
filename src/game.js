@@ -535,6 +535,7 @@ const G = {
   enemyPos: {},       // 敵の画面座標 (エフェクト配置用)
   partyFx: null,      // 味方カードの被弾/回復フラッシュ (Map)
   partyFxV: null,     // 味方カードに重ねる戦闘の演出 (爪痕・属性・回復の光…。renderParty の .pc-fx)
+  partyShow: null,    // 迷宮の掟の開幕の演出を待つ間、隊の札に見せる効く前の HP/MP/状態 (playTraitOpening)
   partyCall: null,    // 味方カードの肖像に出す使った技・発動した効果の名 (Map。renderParty の .pc-call)
   wallFlash: null,    // ブロックされた壁の赤フラッシュ { x, y, dir, t0 }
   statusOpen: false,  // ステータス画面表示中
@@ -7728,17 +7729,22 @@ function startBattleMeasured(enemies, cell) {
   G.battleCell = cell;
   // 迷宮の掟: 敵は樹液を吸って再生する (trait.foeRegen) / 根が開幕に隊の MP を吸う (trait.mpDrain)
   const trB = dungeonTrait();
+  // 掟が開幕に隊へ及ぼしたもの: ログだけでは分かりにくいので、開幕の演出の後に隊の札の上で見せる (playTraitOpening)
+  G.partyShow = null;
+  const trOpen = trB ? traitOpenBegin(trB) : null;
   if (trB && trB.foeRegen) for (const e of enemies) if (!e.metal) e.regen = Math.max(e.regen || 0, trB.foeRegen);
   if (trB && trB.mpDrain) {
     let drained = 0;
-    for (const p of G.party) if (p.alive && p.mp > 0) { const d = Math.ceil(p.maxmp * trB.mpDrain); drained += Math.min(p.mp, d); p.mp = Math.max(0, p.mp - d); }
-    if (drained) log(`足元の根が脈打ち、隊の魔力を吸い上げた (MP -${drained})。`, "dmg");
+    const hits = [];
+    for (const p of G.party) if (p.alive && p.mp > 0) { const d = Math.min(p.mp, Math.ceil(p.maxmp * trB.mpDrain)); traitOpenHold(p); drained += d; p.mp -= d; hits.push({ p, text: "MP-" + d, color: "#7fb8ff" }); }
+    if (drained) { log(`足元の根が脈打ち、隊の魔力を吸い上げた (MP -${drained})。`, "dmg"); trOpen.steps.push({ kind: "mp", label: "根が魔力を吸う", hits }); }
   }
   // 釜の熱気が開幕に隊の HP を焼く (trait.hpDrain)。HP1 より下にはならない
   if (trB && trB.hpDrain) {
     let burnt = 0;
-    for (const p of G.party) if (p.alive && p.hp > 1) { const d = Math.min(p.hp - 1, Math.ceil(p.maxhp * trB.hpDrain)); burnt += d; p.hp -= d; }
-    if (burnt) log(`釜の熱気が肌を焼いた (HP -${burnt})。`, "dmg");
+    const hits = [];
+    for (const p of G.party) if (p.alive && p.hp > 1) { const d = Math.min(p.hp - 1, Math.ceil(p.maxhp * trB.hpDrain)); traitOpenHold(p); burnt += d; p.hp -= d; hits.push({ p, text: String(d), dmg: true }); }
+    if (burnt) { log(`釜の熱気が肌を焼いた (HP -${burnt})。`, "dmg"); trOpen.steps.push({ kind: "heat", label: "釜の熱気", hits }); }
   }
   // 迷宮の掟: 疾風の巣 (trait.allHaste) — 敵はみな神速 (ラウンドの頭に動き、後半にもう一度動く)。主と金属の魔物は除く
   if (trB && trB.allHaste) for (const e of enemies) if (!e.boss && !e.metal && !e.haste) { e.haste = true; e.agi += 8; }
@@ -7815,8 +7821,10 @@ function startBattleMeasured(enemies, cell) {
   // 迷宮の掟: 凍てつく冷気に身がすくむ (trait.chill) — 隊の全員の AGI を段数ぶん下げる (3ターン)
   const trC = dungeonTrait();
   if (trC && trC.chill) {
-    for (const p of G.battle.party) if (p.alive) G.battle._applyMod(p, "agi", Math.pow(0.8, trC.chill), 3, "絶対零度");
+    const hits = [];
+    for (const p of G.battle.party) if (p.alive) { G.battle._applyMod(p, "agi", Math.pow(0.8, trC.chill), 3, "絶対零度"); hits.push({ p, text: `AGI${"▼".repeat(trC.chill)}`, color: "#ff8a8a", buff: true }); }
     log(`凍てつく冷気に身がすくむ (隊の AGI ▼${trC.chill})。`, "dmg");
+    if (trOpen && hits.length) trOpen.steps.push({ kind: "chill", label: "絶対零度", hits });
   }
   // 迷宮の掟: よどんだ瘴気 (trait.poisonStart) — 戦闘の開幕に、隊の一人ひとりがこの確率で毒に冒される (毒の耐性で防げる)
   if (trC && trC.poisonStart > 0) {
@@ -7824,10 +7832,14 @@ function startBattleMeasured(enemies, cell) {
     for (const p of G.battle.party) {
       if (!p.alive || p.ailment) continue;
       if (Math.random() < trC.poisonStart * (1 - G.battle._ailRes(p, "poison"))) {
-        p.ailment = "poison"; p._poisonPct = 0.05; G.battle._holdAil(p, "poison"); sick.push(p.name);
+        traitOpenHold(p);
+        p.ailment = "poison"; p._poisonPct = 0.05; G.battle._holdAil(p, "poison"); sick.push(p);
       }
     }
-    if (sick.length) log(`よどんだ瘴気が肺を焼く ― ${sick.join("・")}は毒に冒された。`, "dmg");
+    if (sick.length) {
+      log(`よどんだ瘴気が肺を焼く ― ${sick.map((p) => p.name).join("・")}は毒に冒された。`, "dmg");
+      if (trOpen) trOpen.steps.push({ kind: "poison", label: "腐れの瘴気", hits: sick.map((p) => ({ p, text: "毒", color: "#b4f06a" })) });
+    }
   }
   // 迷宮の掟: 落雷 (trait.boltStart) — 戦闘の開幕に、隊の一人へ雷が落ちて最大HPのこの割合を焼く (ブレス耐性で和らぐ。HP1 は残る)
   if (trC && trC.boltStart > 0) {
@@ -7835,9 +7847,11 @@ function startBattleMeasured(enemies, cell) {
     if (live.length) {
       const p = live[rand(live.length)];
       const d = Math.min(p.hp - 1, Math.max(1, Math.ceil(p.maxhp * trC.boltStart * (1 - partyBreathRes(p)))));
+      traitOpenHold(p);
       p.hp -= d;
       log(`渦巻く雷雲から雷が落ちた ― ${p.name}が焼かれた (HP -${d})。`, "dmg");
-      flashScreen("#d8e0ff");
+      if (trOpen) trOpen.steps.push({ kind: "bolt", label: "落雷", hits: [{ p, text: String(d), dmg: true }] });
+      else flashScreen("#d8e0ff");
     }
   }
   if (physOnlyHere()) log("呪文を封じる霧が立ちこめている ― 物理技と道具のほかは使えない。", "sys");
@@ -7858,10 +7872,98 @@ function startBattleMeasured(enemies, cell) {
   autosave(true); // 戦闘開始を保存
   // 居合・開幕呪撃の演出を先に流してから手番処理へ (発動を視覚的に伝える)
   const opens = G.battle.openingResults || [];
-  playBattleIntro(() => {
+  playBattleIntro(() => playTraitOpening(trOpen, () => {
     if (opens.length) { renderCombat(); playOpeningStrikes(opens, 0, combatStep); }
     else combatStep(); // 素早い敵が先手なら自動で動く
-  });
+  }));
+}
+
+// ===== 迷宮の掟の開幕の演出 (ユーザーの指示、2026-10: 戦闘開始時の傷・吸われた魔力・毒・冷気がログだけでは分からない) =====
+// 掟の効果は startBattle の中で今までどおり同期で効かせ (テスト記録の出どころの分類もそのまま)、
+// 隊の札にだけ効く前の HP/MP を見せておく (G.partyShow)。開幕の演出の後、効果ごとに隊の札の上で属性の演出・数字・
+// 掟の名を出し、その瞬間に札の値を本当の値へ戻す。戦闘の進行・乱数には触れない
+function traitOpenBegin(tr) {
+  G.partyShow = new Map();
+  return { name: tr.name, accent: tr.accent || "#ffd27a", steps: [] };
+}
+function traitOpenHold(p) {
+  if (G.partyShow && !G.partyShow.has(p)) G.partyShow.set(p, { hp: p.hp, mp: p.mp, ailment: p.ailment || null });
+}
+// 効果ごとの見せ方: 戦場の演出 (battlefx) ・札の膜 (.pc-fx) ・効果音
+const TRAIT_OPEN_FX = {
+  heat:   { fx: "fire",   card: "el-fire",  sfx: () => SFX.fire() },
+  bolt:   { fx: "light",  card: "el-light", sfx: () => SFX.thunder(), flash: "#d8e0ff" },
+  mp:     { fx: "earth",  card: "el-earth", sfx: () => SFX.spell() },
+  chill:  { fx: "water",  card: "debuff",   sfx: () => SFX.spell() },
+  poison: { fx: "poison", card: "status",   sfx: () => SFX.spell() },
+};
+function playTraitOpening(info, done) {
+  const finish = () => { G.partyShow = null; renderParty(); done(); };
+  if (!info || !info.steps.length || !G.battle) { finish(); return; }
+  const b = G.battle;
+  let i = 0;
+  const next = () => {
+    if (G.battle !== b) { G.partyShow = null; return; }
+    if (i >= info.steps.length) { G.animating = false; finish(); return; }
+    const step = info.steps[i++];
+    if (REDUCED_MOTION) {
+      for (const h of step.hits) { if (G.partyShow) G.partyShow.delete(h.p); setPartyCall(h.p, step.label, "proc", false); }
+      next();
+      return;
+    }
+    playTraitStep(info, step, i === 1, next);
+  };
+  next();
+}
+function playTraitStep(info, step, first, done) {
+  const spd = spdMul();
+  const look = TRAIT_OPEN_FX[step.kind] || TRAIT_OPEN_FX.heat;
+  const t0 = performance.now();
+  const WIND = 160 * spd;
+  const TOTAL = WIND + (520 + Math.max(0, step.hits.length - 1) * 40) * spd;
+  G.animating = true;
+  G.fx = { lunge: null, slashes: [], skill: [], floats: [], screen: null, flash: {}, deaths: [] };
+  G.partyFx = G.partyFx || new Map();
+  G.partyFxV = new Map();
+  partyEl.style.setProperty("--fxd", Math.max(0.2, Math.min(0.6, 0.4 * spd)).toFixed(2) + "s");
+  // 掟の名を隊の札の上に掲げる (同じ戦闘で2つ目からは効果の名だけ)
+  G.fx.floats.push({ x: VW / 2, y: VH - 92, text: first ? `迷宮の掟「${info.name}」` : step.label, color: info.accent, t0, kind: "trait" });
+  let impacted = false;
+  const tick = () => {
+    if (!G.fx || G.state !== "combat") { done(); return; }
+    const now = performance.now(), t = now - t0;
+    if (!impacted && t >= WIND) {
+      impacted = true;
+      look.sfx();
+      let hurt = false;
+      step.hits.forEach((h, k) => {
+        // 隊の札は3枚ずつ2段: 後衛の数字は前衛の下に少しずらして重ならないようにする
+        const p = h.p, back = G.party.length >= 4 && G.party.indexOf(p) >= 3;
+        const x = partyFxX(p) + (back ? 22 : 0), at = now + k * 40 * spd, y = back ? VH - 18 : VH - 50;
+        if (G.partyShow) G.partyShow.delete(p); // 札の値をここで本当の値へ
+        spawnFx(G.fx.skill, look.fx, x, VH - 22, at, spd, { seed: k + 7, s: step.kind === "bolt" ? 1 : 0.75 }); // 落雷は天から降る光の柱
+        G.partyFx.set(p, "hit");
+        setPartyFxV(p, look.card);
+        setPartyCall(p, step.label, "proc", false);
+        if (h.dmg) { hurt = true; G.fx.floats.push({ x, y, text: h.text, color: "#ff6b6b", t0: at, kind: "pdmg" }); }
+        else G.fx.floats.push({ x, y, text: h.text, color: h.color || "#fff", t0: at, kind: h.buff ? "buff" : "info" });
+      });
+      if (look.flash) flashScreen(look.flash);
+      if (hurt) { G.fx.screen = { color: "#d4504e", t0: now }; buzz([0, 50, 50, 50]); shakeScreen(true); }
+      else buzz(20);
+      renderParty();
+    }
+    renderCombatCanvas();
+    if (t >= TOTAL) {
+      G.fx = null;
+      G.partyFx.clear();
+      if (G.partyFxV) G.partyFxV.clear();
+      renderParty();
+      done();
+    } else requestAnimationFrame(tick);
+  };
+  renderParty();
+  requestAnimationFrame(tick);
 }
 
 // 戦闘開始時の自動攻撃 (死の宣告/居合/開幕呪撃) を1つずつ演出で見せる
@@ -8832,11 +8934,12 @@ function hexA(hex, a) {
   const n = parseInt(hex.slice(1, 7), 16);
   return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
 }
-// 浮かぶ文字: 種類ごとの書体と配色 (kind: dmg/crit/label/pdmg/heal/buff/info)
+// 浮かぶ文字: 種類ごとの書体と配色 (kind: dmg/crit/label/trait/pdmg/heal/buff/info)
 const FLOAT_STYLE = {
   dmg:   { px: 32, top: "#ffffff", bot: "#d9c8ac", glow: null },
   crit:  { px: 42, top: "#fff6c8", bot: "#ff9a1c", glow: "rgba(255,150,40,0.85)" },
   label: { px: 14, top: "#ffd27a", bot: "#ff8a2a", glow: "rgba(255,120,30,0.6)", spacing: 2 },
+  trait: { px: 19, top: "#fff1c8", bot: "#e8a040", glow: "rgba(255,170,60,0.7)", spacing: 2 }, // 迷宮の掟の名 (playTraitStep)
   pdmg:  { px: 32, top: "#ffb4a4", bot: "#d0281a", glow: "rgba(200,20,10,0.7)" },
   heal:  { px: 28, top: "#e4ffe0", bot: "#3cc060", glow: "rgba(80,220,120,0.6)" },
   buff:  { px: 16, top: null, bot: null, glow: null },
@@ -10418,9 +10521,11 @@ function partyCallKey(p, st) {
 function renderParty() {
   const fx = G.partyFx;
   const st = G.state;
+  // 迷宮の掟の開幕の演出を待つ間は、効く前の HP/MP/状態を札に見せる (playTraitOpening)
+  const shown = (p) => (st === "combat" && G.partyShow && G.partyShow.get(p)) || p;
   const key = st + "|" + G.party.map((p) => [
-    p.uid, p.name, p.cls, p.isDoll ? (p.jobLv || 1) : p.level, p.hp, p.maxhp, p.mp, p.maxmp, p.alive ? 1 : 0,
-    p.ailment || "", p.asleep && st === "combat" ? 1 : 0, st === "combat" ? (p.mind || "") : "", fx && fx.has(p) ? fx.get(p) : "", (G.partyFxV && G.partyFxV.get(p)) || "", buffBadges(p),
+    p.uid, p.name, p.cls, p.isDoll ? (p.jobLv || 1) : p.level, shown(p).hp, p.maxhp, shown(p).mp, p.maxmp, p.alive ? 1 : 0,
+    shown(p).ailment || "", p.asleep && st === "combat" ? 1 : 0, st === "combat" ? (p.mind || "") : "", fx && fx.has(p) ? fx.get(p) : "", (G.partyFxV && G.partyFxV.get(p)) || "", buffBadges(p),
     partyCallKey(p, st),
     `${p.jobKey || ""}:${p.jobRank || 1}:${p.clsKey || ""}`,
   ].join(",")).join(";");
@@ -10430,8 +10535,9 @@ function renderParty() {
   partyEl.classList.toggle("n4", G.party.length >= 4);
   G.party.forEach((p, idx) => {
     const card = document.createElement("div");
+    const sv = shown(p);
     let cls = "pc" + (p.alive ? "" : " dead");
-    if (p.alive && p.hp / p.maxhp <= 0.25) cls += " low"; // 瀕死警告
+    if (p.alive && sv.hp / p.maxhp <= 0.25) cls += " low"; // 瀕死警告
     if (fx && fx.has(p)) cls += " fx-" + fx.get(p); // fx-hit / fx-heal
     if (_pdrag && _pdrag.p === p) cls += " lifting";
     if (_pdrag && _pdrag.over === idx) cls += " drop-over";
@@ -10467,7 +10573,7 @@ function renderParty() {
     if (pic) por.appendChild(pic);
     por.appendChild(el("span", "pc-row " + (idx < 3 ? "front" : "back"), idx < 3 ? "前" : "後"));
     if (!p.alive) por.appendChild(el("span", "pc-seal dead", "死"));
-    else if (p.ailment) { const a = AIL_SEAL[p.ailment] || ["呪", "poison"]; const s2 = el("span", "pc-seal " + a[1], a[0]); s2.title = AIL_NAME[p.ailment] || ""; por.appendChild(s2); }
+    else if (sv.ailment) { const a = AIL_SEAL[sv.ailment] || ["呪", "poison"]; const s2 = el("span", "pc-seal " + a[1], a[0]); s2.title = AIL_NAME[sv.ailment] || ""; por.appendChild(s2); }
     else if (p.asleep && G.state === "combat") por.appendChild(el("span", "pc-seal sleep", "眠"));
     else if (p.mind && G.state === "combat" && PARTY_MIND_SEAL[p.mind]) { const m = PARTY_MIND_SEAL[p.mind]; const s3 = el("span", "pc-seal " + m[1], m[0]); s3.title = AIL_NAME[p.mind] || ""; por.appendChild(s3); }
     card.appendChild(por);
@@ -10486,8 +10592,8 @@ function renderParty() {
       d.appendChild(n);
       return d;
     };
-    card.appendChild(vial("hp", p.hp, p.maxhp));
-    card.appendChild(vial("mp", p.mp, p.maxmp));
+    card.appendChild(vial("hp", sv.hp, p.maxhp));
+    card.appendChild(vial("mp", sv.mp, p.maxmp));
     const bb = buffBadges(p);
     if (bb) card.insertAdjacentHTML("beforeend", bb);
     // 戦闘の演出 (爪痕・属性の奔流・回復の光…): 札の上に一度だけ走る薄い膜
@@ -15909,7 +16015,7 @@ function loadGame() {
   fixHandsAndShields(false); // 左手の武器 (二刀流) は魂の能力が出そろってから下で見る
   // 一時状態はリセット
   G.anim = null; G.flipAnim = null; G.heroAnim = null; G.walking = false; G.prompt = false;
-  G.fx = null; G.animating = false; G.enemyPos = {}; G.partyFx = new Map(); G.partyFxV = null; G.wallFlash = null; G.partyCall = null;
+  G.fx = null; G.animating = false; G.enemyPos = {}; G.partyFx = new Map(); G.partyFxV = null; G.partyShow = null; G.wallFlash = null; G.partyCall = null;
   G.statusOpen = false; G.settingsOpen = false;
   // クラス/参照の再リンク (Battleのメソッド・敵のmon・派生値)
   if (G.battle) {
@@ -16077,7 +16183,7 @@ function resumeFromState() {
 function resumeCombat() {
   const b = G.battle;
   if (!b) { finishToBoard(); return; }
-  G.animating = false; G.fx = null; G.partyFx = new Map(); G.partyFxV = null; G.enemyPos = {};
+  G.animating = false; G.fx = null; G.partyFx = new Map(); G.partyFxV = null; G.partyShow = null; G.enemyPos = {};
   clearPartyCalls();
   if (b.procs) b.procs.length = 0; // 中断前の発動の印は出し直さない
   renderRunbar();
