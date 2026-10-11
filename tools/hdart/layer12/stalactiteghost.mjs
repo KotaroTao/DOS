@@ -12,13 +12,13 @@ export function build() {
   };
   // 天井の岩盤と主のつらら石 (中ほどがふくらみ、そこに顔)
   const roof = Disp(ellipsoid([48, -4, -6], [56, 12, 18], "stone"), (x, y, z) => 1.4 * fbm(x * 0.15, y * 0.2, z * 0.2));
-  const main = Disp(U(4, cone([48, 4, 0], [46, 72, 2], 15, 0.6, "stone"), ellipsoid([47, 34, 2], [14, 16, 11], "stone")), (x, y, z) => 0.6 * Math.sin(y * 0.9 + 1.5 * fbm(x * 0.2, y * 0.2)) + 0.4 * fbm(x * 0.4, y * 0.4, z * 0.4));
+  const main = Disp(U(4, cone([48, 4, 0], [46, 72, 2], 15, 0.6, "stone"), ellipsoid([47, 34, 2], [14, 16, 11], "stone")), (x, y, z) => 0.3 * Math.sin(y * 0.9 + 1.5 * fbm(x * 0.2, y * 0.2)) + 0.6 * fbm(x * 0.3, y * 0.3, z * 0.3));
   const side = [stalactite(18, 6, -4, 26, 4.4, "stone", 1), stalactite(78, 6, -6, 32, 4.8, "stone", -1), stalactite(88, 4, -10, 16, 3, "stone"), stalactite(8, 4, -10, 14, 2.6, "stone")];
   // 半ば溶けた顔: 額は石に呑まれ、伏せた目と開いた口が下の灯籠の山を見下ろす
-  const face = Disp(U(1.6, ellipsoid([47, 38, 8], [8, 10.4, 5.6], "face", 4), cone([47, 38, 12], [47.4, 44, 14.4], 2, 0.8, "face"), ellipsoid([47, 50, 9], [5.4, 3.6, 4.4], "face")),
+  const face = Disp(U(1.6, ellipsoid([47, 39, 8], [9.6, 12, 6], "face", 4), cone([47, 38, 12], [47.4, 44, 14.4], 2, 0.8, "face"), ellipsoid([47, 50, 9], [5.4, 3.6, 4.4], "face")),
     (x, y, z) => 0.45 * fbm(x * 0.4, y * 0.3, z * 0.4) - 0.8 * Math.exp(-((y - 33) ** 2) / 4) * (1 - Math.abs(x - 47) / 9));
   const holes = U(0, ellipsoid([43, 37, 12.6], [2.6, 1.2, 2], "hole", -18), ellipsoid([51, 37.6, 12.6], [2.6, 1.2, 2], "hole", 18), ellipsoid([47, 49, 13], [2.6, 2.4, 2.4], "hole"));
-  const heap = lampHeap(48, 96, -2, 30, 12, { seed: 12101, s: 1.4, lit: 0.35 });
+  const heap = lampHeap(48, 96, -2, 28, 10, { seed: 12101, s: 1.9, lit: 0.35 });
   const scene = U(0, roof, Sub(U(2, main, face), holes, 0.3), ...side, heap);
   const r = render(scene, mats, { w: 96, h: 96, rim: RIM, lights: [{ p: [48, 84, 10], r: 30, k: 0.25 }] });
   const C = new Canvas(r);

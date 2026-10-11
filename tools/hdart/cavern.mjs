@@ -17,7 +17,7 @@ export const BED = { ramp: ramp(["#030202", "#0a0706", "#130e0b", "#1d1611", "#2
 export const ROCK = { ramp: ramp(["#030302", "#0b0908", "#161210", "#221d19", "#2f2823", "#3e352e", "#50463d"], 7), spec: 0.3, pow: 20, dither: 0.6,
   shade: p => 0.1 * fbm(p.x * 0.5, p.y * 0.5, p.z * 0.5) };
 // 煤けた灯籠のガラス: ほぼ黒。角だけ鈍く光る
-export const GLASS = { ramp: ["#020203", "#08080a", "#121216", "#1e1e24"], spec: 1.2, pow: 50, specCol: "#6a6a72", dither: 0.4, amb: 0.2 };
+export const GLASS = { ramp: ["#020203", "#08080a", "#121216", "#1e1e24", "#2c2c34"], spec: 1.4, pow: 40, specCol: "#7a7a84", dither: 0.4, amb: 0.2 };
 // 灯籠のゆがんだ鉄枠と取っ手: 煤で黒い錆
 export const FRAME = { ramp: ["#030202", "#0c0907", "#18120d", "#251c14", "#352819"], spec: 0.7, pow: 30, specCol: "#6a5a48", dither: 0.45 };
 // 灯籠から漏れる濁った魂の光 (暗→明): くすんだ琥珀〜濁った黄
@@ -46,7 +46,8 @@ export function lantern([x, y, z], s = 1, { rot = 0, lit = false, broken = false
   const parts = [body,
     cyl(P(0), P(0.9), 2.3 * s, "frame", 0.3),
     cone(P(5.2), P(6.6), 2.1 * s, 0.6 * s, "frame"),
-    cyl(P(1), P(5.2), 0.45 * s, "frame"), // 前の柱
+    cyl([P(1)[0] - 1.9 * s * -uy, P(1)[1] - 1.9 * s * ux, z + 1.2 * s], [P(5.2)[0] - 1.9 * s * -uy, P(5.2)[1] - 1.9 * s * ux, z + 1.2 * s], 0.42 * s, "frame"), // 左右の柱
+    cyl([P(1)[0] + 1.9 * s * -uy, P(1)[1] + 1.9 * s * ux, z + 1.2 * s], [P(5.2)[0] + 1.9 * s * -uy, P(5.2)[1] + 1.9 * s * ux, z + 1.2 * s], 0.42 * s, "frame"),
   ];
   if (handle && s >= 0.8) parts.push(torus(P(7.4), 1.1 * s, 0.35 * s, "frame", rot, 90));
   return U(0.1, ...parts);
@@ -59,7 +60,7 @@ export function lampHeap(cx, y, z, r, n = 10, { seed = 1, s = 0.9, lit = 0.25, m
     const t = Math.sqrt(R()), a = R() * Math.PI * 2;
     const px = cx + Math.cos(a) * r * 0.85 * t, pz = z + Math.sin(a) * r * 0.5 * t;
     const h = r * 0.34 * (1 - t * t);
-    parts.push(lantern([px, y - h + 1, pz], s * (0.75 + R() * 0.45), { rot: (R() - 0.5) * 140, lit: R() < lit, broken: R() < 0.4, handle: R() < 0.5 }));
+    parts.push(lantern([px, y - h - 0.5, pz], s * (0.8 + R() * 0.4), { rot: (R() - 0.5) * 100, lit: R() < lit, broken: R() < 0.4, handle: R() < 0.6 }));
   }
   return U(0.3, ...parts);
 }

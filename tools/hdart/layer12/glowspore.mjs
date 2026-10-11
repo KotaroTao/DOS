@@ -10,11 +10,10 @@ export function build() {
     stem: { ramp: ["#0a1412", "#1a2a28", "#2c4440", "#46645e", "#6a8c84"], dither: 0.5, amb: 0.3 },
     bed: BED, rock: ROCK, glass: GLASS, frame: FRAME, murk: MURKGLASS,
   };
-  // 横倒しの大きな割れた灯籠 (ガラスの穴の中にも茸)
-  const big = Sub(U(0.4, ellipsoid([50, 76, -6], [17, 12, 12], "glass", 8), cyl([30, 78, -6], [34, 77, -6], 12, "frame", 1), cone([66, 73, -6], [76, 71, -6], 10, 3, "frame"), torus([80, 70, -6], 3, 0.8, "frame", 80, 90),
-    cyl([34, 66, 4], [66, 64, 4], 0.9, "frame"), cyl([34, 88, 4], [66, 86, 4], 0.9, "frame")), ellipsoid([48, 72, 8], [12, 9, 10], "glass"), 0.6);
+  // 立ったまま割れた大きな灯籠 (割れ目の中にも茸)
+  const big = Sub(lantern([46, 92, -4], 3.4, { glass: "glass", handle: true }), ellipsoid([48, 74, 8], [9, 10, 8], "glass"), 0.6);
   // 茸 [x, y(かさの中心), z, かさ半径, 柄の長さ, 傾き]
-  const shrooms = [[46, 58, 2, 8, 10, -8], [30, 56, 6, 6, 14, 12], [62, 54, 0, 7, 12, -16], [38, 70, 8, 5, 6, 4], [58, 70, 6, 4.4, 5, -6], [18, 74, 4, 4.2, 10, 18], [76, 66, 2, 4.6, 9, -22]];
+  const shrooms = [[47, 70, 2, 6, 8, -4], [26, 64, 6, 6.4, 22, 14], [68, 60, 4, 7, 24, -14], [42, 80, 6, 4, 6, 10], [55, 80, 4, 3.6, 5, -10], [14, 80, 6, 4.2, 9, 18], [80, 80, 4, 4.6, 9, -20]];
   const parts = [];
   for (const [x, y, z, r, h, lean] of shrooms) {
     const a = lean * Math.PI / 180, bx = x - Math.sin(a) * h, by = y + Math.cos(a) * h;
@@ -22,7 +21,7 @@ export function build() {
     parts.push(Sub(ellipsoid([x, y, z], [r, r * 0.72, r], "cap", lean), ellipsoid([x - Math.sin(a) * r * 0.1, y + r * 0.62, z], [r * 0.96, r * 0.5, r * 0.96], "gill", lean), 0.3));
   }
   const scene = U(0, cavernFloor(48, 95, 46, 13, { seed: 12001, rocks: 2, lamps: 1 }), big, ...parts);
-  const r = render(scene, mats, { w: 96, h: 96, rim: RIM, lights: [{ p: [46, 66, 14], r: 22, k: 0.35 }] });
+  const r = render(scene, mats, { w: 96, h: 96, rim: RIM, lights: [{ p: [47, 76, 14], r: 24, k: 0.4 }, { p: [47, 74, 2], r: 14, k: 0.7 }] });
   const C = new Canvas(r);
   // かさの表の斑点
   for (const [x, y, z, r] of shrooms) for (let k = 0; k < 4; k++) { const X = Math.round(x + (k - 1.5) * r * 0.4), Y = Math.round(y - r * 0.3 - (k % 2)); const p = C.pix[Y * 96 + X]; if (p && p.m === "cap") C.set(X, Y, "#4f3f30"); }
@@ -35,7 +34,7 @@ export function build() {
     const e = Math.abs(X - x) / r;
     C.set(X, yb + 1, SPORE[e > 0.8 ? 3 : 5]); if (e < 0.75) C.set(X, yb + 2, SPORE[X % 2 ? 3 : 4]); if (e < 0.5 && X % 2) C.set(X, yb + 3, SPORE[2]);
   }
-  murkHalo(C, 48, 62, 26, SPORE.slice(0, 2), 0.5);
+  murkHalo(C, 47, 72, 30, SPORE.slice(0, 2), 0.5);
   sporeMotes(C, 12003, 70, [4, 4, 88, 80]);
   shards(C, 12005, ["bed"], 14);
   soot(C, 12007, 30);
