@@ -640,6 +640,8 @@ export class Battle {
     this._bigBarrierUsed = 0;
     this.bonusGold = 0; // 「盗む」で手に入れた金 (勝っても逃げても持ち帰る)
     this.tally = newTally(); // テスト記録用の集計 (命中・手番・逃走)。判定には使わない
+    this.fervor = !!opts.fervor; // 迷宮の掟「高まる戦意」: 2ターン目から毎ターン、敵味方とも攻撃 +1段 (+3段まで)
+    this.show = { sp: 0, cr: 0, dd: 0 }; // 観客の注文 (土地の掟「見世物の闘技場」) の判定: 隊が使った技・会心・倒れた数。乱数には触れない
     for (const a of [...party, ...enemies]) { a.buffs = { atk: 1, vit: 1, agi: 1 }; a.effects = []; a._endureUsed = 0; a._grantEndure = false; a._fgUsed = 0; a._sgUsed = 0; a._ijiUsed = 0; a._kgUsed = 0; a._hpPre = a.hp; a._nailed = false; a._bloodTgt = null; a._bloodStack = 0; a._kyouhon = 0; a._giDone = false; a._againRound = 0; }
     for (const p of party) {
       p._coverLeft = pv(p, "cover");
@@ -1349,6 +1351,14 @@ export class Battle {
       }
     }
     if (this._roundNo > 1) this._perkRound(); // 固有パッシブ (round)
+    // 高まる戦意 (迷宮の掟): 2ターン目から毎ターンの頭に、生きている者すべての攻撃が1段上がる (+3段まで。金属の魔物は除く)
+    if (this.fervor && this._roundNo > 1) {
+      let up = 0;
+      this._quietMod = true;
+      for (const a of [...this.party, ...this.enemies]) if (a.alive && !isMetal(a) && this.stageOf(a, "atk") < STAGE_MAX) up += this._applyStage(a, "atk", 1, 2, "高まる戦意") > 0 ? 1 : 0;
+      this._quietMod = false;
+      if (up) this.log("観客の歓声が高まる ― 敵も味方も、攻撃が1段上がった。", "sys");
+    }
     if (!(this._roundNo === 1 && this.opening === "ambush")) this._roundStartRank(); // 竜の息吹 (奇襲された初めのターンは出せない)
     // 激昂: HPが3割を切った敵が一度だけ荒れ狂い、STR/AGI が跳ね上がる
     for (const e of this.livingEnemies()) {
@@ -2017,6 +2027,7 @@ export class Battle {
   _execInner(cmd) {
     const { actor, action } = cmd;
     const res = { actor, action, side: actor.side, hits: [] };
+    if (action === "spell" && actor.side === "party" && this.show) this.show.sp++; // 観客の注文 (技を使わずに勝て)
     if (action === "sleep") {
       // 回復判定は enemyAct の初めで済んでいる (目を覚ましたらここへは来ない)
       this.log(`${actor.name}は眠っている…`, "sys"); res.asleep = true;
@@ -2701,6 +2712,7 @@ export class Battle {
     // 確定会心の技・条件は保ち、通常の会心率は85%を上限にする。
     critChance = (opt.critBonus || 0) >= 1 ? 1 : Math.min(0.85, Math.max(0, critChance));
     const crit = sureCrit || Math.random() < critChance;
+    if (crit && actor.side === "party" && tgt.side === "enemy" && this.show) this.show.cr++; // 観客の注文 (会心を見せろ)
     if (crit) dmg = Math.floor(dmg * 1.85 * [1, 1.25, 1.45][Math.min(pv(actor, "vitalEye"), 2)]); // 急所読み: 会心強化
     // 隊列補正: 後衛は物理の与ダメ・被ダメが半減
     const rm = this._rowMul(actor, tgt);
@@ -3057,6 +3069,7 @@ export class Battle {
         const crit = !sp.gravity && Math.random() < (([0, 0.10, 0.18, 0.26][Math.min(scLv, 3)] || 0) + (sp.critBonus || 0)
           + this._rk(actor, "arcanistShinen", [0.05, 0.08, 0.12, 0.20])); // 深淵の知 (秘術師のランク)
         if (crit) dmg = Math.floor(dmg * 1.5);
+        if (crit && actor.side === "party" && this.show) this.show.cr++; // 観客の注文 (会心を見せろ)
         if (t.guard) dmg = Math.max(1, Math.ceil(dmg * (1 - t.guard))); // 金剛の護符: 呪文・ブレスの被ダメもカット
         t.hp -= dmg;
         dealt += dmg;
@@ -3495,6 +3508,7 @@ export class Battle {
         }
       }
       t.hp = 0; t.alive = false; t.asleep = false; t.mind = null; t._ailN = null;
+      if (t.side === "party" && this.show) this.show.dd++; // 観客の注文 (誰も倒れずに勝て)
       // 狂奔 (狂戦士のランク): 敵か仲間が倒れるたび STR +5% (段数の上限は _recalcBuffs)
       for (const p of this.party) if (p.alive && pv(p, "berserkerKyouhon")) { p._kyouhon = (p._kyouhon || 0) + 1; this._recalcBuffs(p); }
       // 討伐数はこの瞬間に数える (名前・HP の開示が戦闘中でもすぐ反映されるように。「〜を倒した！」より先)

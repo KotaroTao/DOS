@@ -674,6 +674,81 @@ The same mansion at night with a gentle, quiet rain — not a storm. Irene has o
 The summit of the storm tower after the storm: the statues' chains hang loose and broken, and countless freed soul-lights rise up through parting clouds into an opening BLUE sky. From the summit, a long ancient stone bridge stretches across a sea of clouds toward a sunken bowl-shaped ruined amphitheatre in the far distance. The apprentice and the party (wooden dolls, optionally Sera) stand at the summit's edge looking toward the bridge. Hopeful light, wind, scale.
 ```
 
+### 第九章「闘技場跡」 ― 便5
+
+第九章の景色: 嵐の尖塔の頂から雲海の上へ架かる長い石の橋の先に、灰に埋もれた古い闘技場の町がある。すり鉢形の石の観客席、血の染みた砂の床、床下の獣の檻と通路。町はずっと昔に焼け、灰が雪のように積もり、ところどころで熾火が赤く点る。雲の上なので空は夕暮れ〜夜の冷たい雲海。王都の空は第八章の結びで晴れたので、報告の場面の窓の外は **晴れた空** (昼は青空、夕方は茜)。
+
+**w34_glove「置いていった手袋」** (手がかり / 迷宮「雲を渡る石橋」)
+- 要点: 雷雲の上に伸びる長い石橋。欄干に枷をつなぐ鉄の輪がどこまでも並ぶ。橋のなかほどの輪に、焦げた革の手袋が片方だけ結ばれている (甲に灯の印の刺しゅう、指先は焼けて縮れる)。手袋の中に丸めた書きつけ。橋の先、雲の切れ間に、すり鉢の形の観客席が黒くそびえる。
+- 描くもの: 欄干の輪に結ばれた焦げた手袋 / 枷の輪の列 / 手袋を手に取る弟子 / 遠くの観客席。描かないもの: 師本人。
+```text
+A long ancient stone bridge stretching across a sea of storm clouds at dusk. Along its parapet runs an endless row of iron rings once used to chain prisoners. On one ring halfway across, a single scorched leather glove is tied, its fingertips burnt and shrivelled, a small embroidered crest on the back of the hand (a palm-up hand holding a flame); a rolled note is tucked inside it. The apprentice reaches for the glove; party dolls wait behind. Far ahead, through a break in the clouds, a huge bowl-shaped stone amphitheatre looms dark against the sky, buried in grey ash.
+```
+
+**report_w34「空の上の町」** (報告)
+- 要点: 百年晴れぬ空を見上げてきた王は、その上に橋があったと知らなかった。年代記の最初の頁「空の上に、歓声の絶えぬ町があった」。
+```text
+The same throne room, now with a clear sky outside the tall windows. The very old king, lap blanket over his knees, holds open a huge ancient chronicle on his lap, pointing to its first page, and looks up at the high sky through the window as if searching for something above the clouds. The chancellor's chair stands empty. The apprentice reports.
+```
+
+**w35_lamps「番号の灯籠」** (手がかり / 迷宮「闘獣の檻」)
+- 要点: 闘技場の床下の檻の奥。天井まで届く棚に、番号の札のついた手のひらほどの古い灯籠が何百と吊るされる。棚の端に闘士の名と勝ち負けの数の板。負けが十を越えた名には赤い線、その灯籠だけガラスが黒く濁る。棚の柱に師の書き足し。
+- 描くもの: 灯籠の棚 (火は消えている) / 黒く濁った灯籠 / 名と勝ち負けの板 / 棚を見上げる弟子。
+```text
+Beneath an ancient arena: a dark stone passage lined with broken, burst-open beast cages leads to towering wooden racks reaching the ceiling, hung with hundreds of small old glass lanterns, each with a numbered tag. All lanterns are unlit; a few have glass clouded pitch-black. At the rack's end, a board lists gladiator names with tallies of wins and losses, some names struck through in red. A handwritten note is chalked on a pillar. The apprentice holds up a lamp and looks up at the racks, awed. Dust, ash, faint cold light.
+```
+
+**report_w35「使い回された魂」** (報告)
+- 要点: 灯籠の棚の話を聞いた王は、人業の作り方と同じではないかと言い、自分の手を見つめる。「余も、同じことをしてきたのかもしれぬ」。
+```text
+The same throne room in daylight. The very old king sits slumped, staring down at his own thin, trembling hands in his lap, troubled. Clear sky outside the windows. The chancellor's chair stands empty. The apprentice stands quietly.
+```
+
+**w36_nook「灯番の子」** (手がかり / 迷宮「亡き観客の階段席」)
+- 要点: 観客席のいちばん下、石段の裏の狭いすき間に小さな寝床。すり切れた毛布、木の椀、壁に日を数えた刻み目が何列も。毛布の上に、胸のくぼみに灯籠のガラスのかけらをはめこんだ手のひらほどの木の人形。壁の端に子どもが彫った「灯を掌に載せた手」の絵と、削り取られた名前。
+- 描くもの: 狭い寝床 / 刻み目の壁 / 小さな木の人形 / 子どもの彫った印 / かがみこむ弟子。描かないもの: 子ども本人。
+```text
+A cramped hollow beneath the stone tiers of an ancient amphitheatre, lit by a small lamp held by the apprentice crouching at its entrance. Inside: a tiny child's bed of a threadbare blanket, a wooden bowl, and rows of tally scratches counting days on the wall. On the blanket sits a palm-sized carved wooden doll with a small hollow in its chest holding a shard of lantern glass that faintly glows. At the end of the tallies, a child's crude carving of a palm-up hand holding a flame; beneath it a name has been scraped away. Grey ash drifts in from above. Quiet, tender, sad.
+```
+
+**report_w36「玉座と観客席」** (報告)
+- 要点: 試合が終わっても席を立たない観客の話を、王は黙って聞く。「余は百年、玉座から民を眺めてきた。あの観客たちと、何が違ったであろうな」。王は空いた宰相の席を見る。
+```text
+The same throne room in late-afternoon light. The very old king, lap blanket over his knees, gazes from his throne down the long empty hall as if at an invisible crowd, then glances at the chancellor's empty chair beside him. The apprentice stands below the dais.
+```
+
+**irene_firstdoll「最初の人形」** (館の語り)
+- 要点: 師が書き写してきた人形の絵を、イレーヌが長いあいだ見る (胸のくぼみに灯籠のガラス)。セラが自分の胸の扉に手を当てる。その夜、イレーヌは人形の絵を手本にセラの胸の継ぎ目を締め直す。「あったかい」。
+```text
+The same mansion workshop at night. Irene holds a sketch of a small wooden doll with a lantern-glass shard in its chest, comparing it as she gently tightens the joint of Sera's chest door with a fine tool. Sera (as in the Sera reference) sits on the workbench with a hand over her chest, smiling softly, her chest glowing warm. Single white candle on a brass candlestick.
+```
+
+**mem_w37「十三度目の灯」** (主の記憶 / 闘技場の支配者)
+- 要点: 三百年よりずっと前の雲の上の町。倒れた闘士の魂は灯籠に入れられ、新しい体で翌日また砂の上に立つ。灯籠の世話は親のいない子どもの仕事 (灯番の子)。いちばん仲のよかった闘士の灯籠が十三度目に黒く濁り、闘技場の真ん中の穴へ捨てられる。その夜、子は棚を倒して帳面を抱いて逃げ、こぼれた魂の火が町を焼く。焼け落ちる貴賓席で、金の仮面の興行主が自分の魂を灯籠に移す。
+- 描くもの: 燃え上がる闘技場の町 / 倒れた灯籠の棚とこぼれる魂の火 / 帳面を抱いて橋へ逃げる小さな子どもの後ろ姿 / 貴賓席の金の仮面の興行主。描かないもの: 弟子・師。子どもの顔 (後ろ姿で)。
+```text
+A memory scene with ash-grey hazed edges, centuries ago: an ancient amphitheatre town above the clouds is catching fire at night. In the foreground, a toppled rack of small lanterns spills dozens of soul-flames that leap up and spread across the stands and rooftops. A small barefoot child, seen from behind, clutches a worn notebook to their chest and runs toward a long stone bridge leading away over the sea of clouds. High above, in the burning royal box, a towering showman in a golden mask raises a lantern, as if pouring his own soul into it. In the arena's centre, a dark round pit. Embers, smoke, terrible beauty. No apprentice, no Ordo.
+```
+
+**report_w37「休みのない百年」** (報告)
+- 要点: 三百年より昔から続いた試合が終わった。王は自分の手を見ながら聞く。「余の百年も、休みのない百年であった。霊薬で、魂を休ませずに使い続けてきた」。「人業には、ちゃんと休みを取らせよ」。
+```text
+The same throne room at dusk, a calm orange sky outside the tall windows. The very old king, gaunt, sets aside an empty elixir cup on the armrest and looks at the apprentice with tired, gentle eyes, raising one hand as if giving a final piece of advice. The chancellor's chair stands empty. The apprentice and one doll stand below.
+```
+
+**irene_rest「休む灯」** (館の語り)
+- 要点: 「魂は、休ませないと腐る」。イレーヌが並んで眠る人業たちの胸の灯をひとつずつ見て回る。セラ「わたしたちは、ちゃんと休みます」。イレーヌ「あなたも、ですよ」。
+```text
+The same mansion at night. A row of wooden dolls rests seated against the wall, eyes closed, small soft lights glowing in their chest doors. Irene walks along the row holding a small lamp, checking each light with tender care. Sera (as in the Sera reference) sits among them, sleepily smiling up at her. The single white candle on its brass candlestick burns quietly in the background.
+```
+
+**ch9_end「捨てられた魂の行き先」** (章の結び)
+- 要点: 闘技場の歓声はやみ、支配者の背の輪の灯はひとつ残らず静かに消える。闘技場の砂の真ん中に、濁った灯籠を捨てた底の見えない穴が口を開けている。師はその底へ降りていった。
+- 描くもの: 静まり返った灰の観客席 / 砂の真ん中の深い穴 / 穴の縁に立って底をのぞく弟子と隊。
+```text
+A vast ruined amphitheatre after the battle, silent under a cold twilight sky, its stone tiers buried in grey ash and empty of spectators. In the centre of the bloodstained sand, a huge round pit opens into absolute darkness; faint, distant murmurs of countless voices seem to rise from deep below (suggested by a few dim soul-motes far down). The apprentice and the party stand at the pit's edge, looking down. A frayed rope ladder hangs over the rim, left by someone who climbed down before.
+```
+
 ### 第五章の任意の1枚
 
 - **irene_abyss「落ち続ける灯」** (館の語り。ゲーム内だけで、ストーリー一覧に無い。絵を付けるなら、先に Claude に一覧の場面を足してもらう — 1-3): 燭台の前で両手を固く組むイレーヌ、胸の扉に手を当てて灯を強く燃やすセラ。
@@ -716,6 +791,8 @@ The summit of the storm tower after the storm: the statues' chains hang loose an
 | 2 | ws12 氷河の裂け目 | 解けはじめた氷の裂け目、底へ落ちる細い水、壁の奥で光る凍った魂 |
 | 2 | ws14 沈んだ渡し場 | 沼の島へ渡る舟の渡し場、灯をともして客を待ち続けて沈んだ渡し守、沈んだ舟の金貨 |
 | 2 | ws16 錆びた避雷針の林 | 塔の張り出しに林のように打たれた錆びた鉄の針 (根元の一門の印)、焼けた旅人の荷 |
+| 2 | ws18 勝者の控え所 | 闘技場の外壁の内側の控えの間、壁一面の勝ち星の札 (最後に「休めず」)、勝ち残った闘士の霊 |
+| 2 | ws19 決闘の小円形場 | 闘技場の裏手の小さな円い決闘場、入口の石に彫られた一対一の礼の絵 |
 | 3 | w18〜w33 本筋の16迷宮 | 各迷宮の情景 (`about` と本文)。手がかりの場面と構図を変える |
 
 ---

@@ -2084,6 +2084,155 @@ export const EVENTS = [
     ],
     onWin: (A, cell, f, next) => A.soulDrop("rarePlus", "像に縛られていた魂だ。", () => { A.ember(2, "像の胸の残火"); A.done(cell, next); }),
   },
+
+  // ================= 第11層「闘技場跡」 (10) ── 第九章。尖塔の頂から雲の上へ架かる石橋の先、灰に埋もれた古い闘技場の町 =================
+  //   町の真相 (灯籠の使われ方・町を焼いた火・祖の生い立ち) は物語マスと主の記憶が明かす。ここでは灯籠・灰・枷・勝ち星でほのめかすだけ
+  {
+    id: "l11_01", name: "欄干の枷の輪", layer: 11, tier: "common", icon: "chest",
+    intro: () => ["石橋の欄干に、鉄の輪がどこまでも並んでいる。輪のひとつに、切れた枷がまだぶら下がっている。", "枷の内側には、小さな札が針金でくくりつけてある。札の字は、すり切れて読めない。"],
+    choices: (A, cell) => [
+      { label: "枷をこじ開ける ― 品 / 25%で鎖を引きずる囚徒たちが寄ってくる", danger: true, fn: () => {
+        if (chance(0.25)) { A.alarm("鎖の鳴る音が近づいてくる！", ["橋の向こうから、枷をつけたままの囚徒たちが歩いてきた。"], "trap", () => A.fight(cell, [{ key: "bs_chaingang", min: 2 }], "shackle", { noChest: true })); return; }
+        A.item({}, "欄干の枷", () => A.done(cell));
+      } },
+      { label: "すり切れた札を持ち帰る ― 収集品", primary: true, fn: () => { A.collectible("欄干の枷の輪", () => A.done(cell)); } },
+    ],
+    onWin: (A, cell, f, next) => A.item({}, "欄干の枷", () => A.done(cell, next)),
+  },
+  {
+    id: "l11_02", name: "灰に埋もれた辻", layer: 11, tier: "common", icon: "stairs",
+    intro: () => ["灰に埋もれた町の辻に、焼け焦げた道しるべが傾いて立っている。", "辻のまわりには、焼け落ちた店の跡が並ぶ。灰の下で、まだ残り火が赤く点っている。"],
+    choices: (A, cell) => {
+      const c = A.check("luk");
+      return [
+        { label: "道しるべの灰を払う ― この階の階段の在処が見え、✦Soul を少し", primary: true, fn: () => {
+          A.revealStairs(); A.sfx("step"); A.soul(1, "道しるべの刻み"); A.toast("灰の下の矢印が、階段の在処を指していた", "good", "stairs"); A.done(cell);
+        } },
+        { label: `焼け跡の店をあさる ― ${c.who ? c.who.name : "誰か"} (成功 ${pctTxt(c.p)}) ― 金貨 / 失敗で残り火に手を焼く`, fn: () => {
+          if (c.ok) { A.gold(2, "焼け跡の店の銭箱"); A.done(cell); return; }
+          if (c.who) { A.hurtOne(c.who, 0.15); A.sfx("trap"); A.toast(`${c.who.name}は灰の下の残り火に手を焼いた`, "bad", "trap"); }
+          A.done(cell);
+        } },
+      ];
+    },
+  },
+  {
+    id: "l11_03", name: "闘士の水場", layer: 11, tier: "common", icon: "fountain",
+    intro: () => ["控えの間の手前に、石をくりぬいた水場がある。試合の前に、闘士たちがのどを潤した場所だ。", "水の底に、刻み目のついた木の札が何枚も沈んでいる。"],
+    choices: (A, cell) => [
+      (anyHurt(A) || anyDrained(A)) && { label: "水を飲む ― 全員のHP・MP3割回復", primary: true, fn: () => {
+        A.healAll(0.3, 0.3, false); A.sfx("heal"); A.toast("灰の味のしない水が、のどを潤した", "good", "fountain"); A.done(cell);
+      } },
+      { label: "水底の札を拾い上げる ― ✦Soul / 20%で古い水に当たり、一人が毒", fn: () => {
+        A.sfx("heal"); A.soul(1.5, "札に残った闘士の灯");
+        if (chance(0.2)) { const m = A.randomAlive(); if (m) { A.ail(m, "poison"); A.toast(`${m.name}はよどんだ水に当たった`, "bad", "poison"); } }
+        A.done(cell);
+      } },
+    ],
+  },
+  {
+    id: "l11_04", name: "檻番の骸", layer: 11, tier: "common", icon: "corpse",
+    intro: () => ["床下の通路に、檻番らしい男の骸が倒れている。そばの檻の扉は、内側から破られている。", "骸の腰には、鍵束と革の財布がぶら下がったままだ。通路の奥から、低いうなり声がする。"],
+    choices: (A, cell) => [
+      { label: "鍵束と財布を取る ― 金貨 / 30%で檻を破った闘犬が戻ってくる", danger: true, fn: () => {
+        if (chance(0.3)) { A.alarm("うなり声が駆け寄ってくる！", ["檻を破った闘犬たちが、通路の奥から飛び出してきた。"], "trap", () => A.fight(cell, [{ key: "bs_warbeasthound", min: 2 }], "cagehound", { noChest: true })); return; }
+        A.gold(2, "檻番の財布"); A.done(cell);
+      } },
+      { label: "骸を灰に埋めて弔う ― ✦Soul を少し", primary: true, fn: () => { A.sfx("heal"); A.soul(1, "灰の中の弔い"); A.done(cell); } },
+    ],
+    onWin: (A, cell, f, next) => { A.gold(2, "檻番の財布"); A.done(cell, next); },
+  },
+  {
+    id: "l11_05", name: "試合を待つ観客", layer: 11, tier: "uncommon", icon: "mon:bs_spectreaudience", minFloor: 2,
+    intro: () => ["崩れた観客席の一角に、半ば透けた観客たちが肩を寄せて座っている。", "観客は、みな砂の上を見下ろして、試合が始まるのを待っている。こちらに気づくと、ざわめきが大きくなった。"],
+    choices: (A, cell) => [
+      { label: "観客の前で一戦を見せる ― 魔物の群れと戦い、勝てば観客の投げ銭 (金貨) と ✦Soul", danger: true, fn: () => {
+        A.fight(cell, [{ pool: true, min: 3 }], "show", { noChest: true });
+      } },
+      A.aliveList().some((m) => m.mp > 0) && { label: "観客席の下の通路をくぐる ― ざわめきに全員のMPを2割吸われるが、この階の魔物と宝箱の在処が見え、✦Soul", primary: true, fn: () => {
+        A.mpAll(0.2);
+        const n = A.revealWhere((x) => (x.type === "monster" || x.type === "chest") && !x.cleared);
+        A.sfx("step"); A.soul(2, "観客席の下の暗がり");
+        A.toast(n ? `観客席のすき間から、${n}か所の在処が見えた` : "観客席の下を抜けた", "good", "stairs"); A.done(cell);
+      } },
+    ],
+    onWin: (A, cell, f, next) => { A.gold(3, "観客の投げ銭"); A.soul(2, "わき上がる歓声"); A.done(cell, next); },
+  },
+  {
+    id: "l11_06", name: "勝ち星を刻む柱", layer: 11, tier: "uncommon", icon: "event", minFloor: 2,
+    intro: () => ["控えの間の真ん中に、太い石の柱が立っている。柱には、勝ち星を数える刻み目と、闘士の名がびっしりと彫られている。", "いちばん刻み目の多い名の下に、小さな箱が埋めこまれている。勝ち残った者への褒美らしい。"],
+    choices: (A, cell) => [
+      A.aliveList().some((m) => m.mp > 0) && { label: "柱の刻み目に手を当てる ― 全員のMPを2割使い、この出撃の間、与ダメ+8%", primary: true, fn: () => {
+        A.mpAll(0.2);
+        A.runEv().mods = [...(A.runEv().mods || []), { src: "l11_06", name: "勝ち星の気迫", desc: "与えるダメージ +8% (この出撃)", dmgMul: 1.08 }];
+        A.sfx("spell"); A.toast("勝ち残った者たちの気迫が、腕に宿った ― この出撃の間、与ダメ+8%", "gold"); A.done(cell);
+      } },
+      { label: "褒美の箱を掘り出す ― 宝箱 (ランク+1) / 40%で柱に名を刻んだ闘士が立ちはだかる", danger: true, fn: () => {
+        if (chance(0.4)) { A.alarm("背後で鎧の鳴る音がした！", ["柱にいちばん多く名を刻んだ闘士が、褒美を取り返しに来た。"], "trap", () => A.fight(cell, [{ key: "bs_championwraith", strong: 1.3, name: "柱の名の闘士" }], "pillar", { noChest: true })); return; }
+        A.sfx("hit"); A.chestHere(cell, { rankUp: 1 });
+      } },
+    ],
+    onWin: (A, cell, f, next) => A.chestHere(cell, { rankUp: 1 }, next),
+  },
+  {
+    id: "l11_07", name: "賭け屋の亡霊", layer: 11, tier: "uncommon", icon: "mon:bs_spectreaudience", deep: true,
+    intro: () => ["観客席の通路に、帳面を抱えた亡霊が立っている。帳面には、闘士の名と賭け金がびっしり書きこまれている。", "「次の試合に賭けんかね。当たれば倍、外れればそれまで。……試合は、いまも毎日あるのさ」"],
+    choices: (A, cell) => {
+      const cost = A.goldCost(3);
+      return [
+        A.canPayGold(cost) && { label: `賭けに乗る (💰${cost}) ― 50%で賭け金の倍を超える払い戻しと ✦Soul / 外れれば賭け金を失う`, primary: true, fn: () => {
+          A.payGold(cost);
+          if (chance(0.5)) { A.gold(4, "賭けの払い戻し"); A.soul(2, "沸きたつ観客"); }
+          else { A.sfx("trap"); A.toast("賭けた闘士は砂に沈んだ ― 賭け金は戻らない", "bad"); }
+          A.done(cell);
+        } },
+        { label: "帳面を奪う ― 賭け屋の亡霊と一騎打ち、勝てば上等な品 (レア以上)", danger: true, fn: () => {
+          A.fight(cell, [{ key: "bs_spectreaudience", strong: 1.5, name: "賭け屋の亡霊" }], "bookie", { noChest: true });
+        } },
+      ];
+    },
+    onWin: (A, cell, f, next) => A.itemMinRar("r", "賭け屋の帳場の品", () => A.done(cell, next)),
+  },
+  {
+    id: "l11_08", name: "使われない寝台", layer: 11, tier: "uncommon", icon: "fountain",
+    intro: () => ["勝ち残った闘士の控えの間。壁ぎわに、木の寝台がずらりと並んでいる。", "寝台の毛布は、どれもたたまれたまま。一度も使われた跡がない。"],
+    choices: (A, cell) => [
+      needsCare(A) && { label: "寝台で体を休める ― 全員のHP・MP4割回復・状態異常が治る", primary: true, fn: () => {
+        A.healAll(0.4, 0.4, true); A.sfx("heal"); A.toast("誰も使わなかった寝台で、隊はしばし眠った", "good", "fountain"); A.done(cell);
+      } },
+      { label: "寝台の下の行李を開ける ― 宝箱 (ランク+1) / 古い薬の毒気で一人が毒", fn: () => {
+        const m = A.randomAlive(); if (m) { A.ail(m, "poison"); A.toast(`${m.name}は行李の中の古い薬の毒気を吸った`, "bad", "poison"); }
+        A.sfx("trap"); A.chestHere(cell, { rankUp: 1 });
+      } },
+    ],
+  },
+  {
+    id: "l11_09", name: "砂へ降りる木戸の番", layer: 11, tier: "rare", icon: "mon:bs_ghostgladiator", deep: true, minLv: 103,
+    intro: () => ["闘技場の砂へ降りる木戸の前に、年老いた闘士の亡霊が座っている。足首には、切れた枷が残っている。", "「……砂の上には、主がおる。何百の試合を勝ち残って、ついに砂から降りることを許されなんだ主だ」", "「主の癖を教えてやろう。それとも、わしが勝ち取った褒美を持ってゆくか」"],
+    choices: (A, cell) => [
+      { label: "主の癖を聞く ― 第11層の主の力を削ぐ (最大HP-10%)", primary: true, fn: () => {
+        A.flags().bossWeak = { ...(A.flags().bossWeak || {}), 11: true };
+        A.sfx("spell");
+        A.story("砂へ降りる木戸の番", ["「主は、歓声がいちばん高まった時、ほんのひと息だけ盾を下ろす。勝ちを見せつける癖が抜けんのだ。そこを突け」", "「……一年前にも、指の焼けた男が橋を渡ってきた。わしに主の癖を聞いて、砂の上を、まっすぐ奥へ歩いていった」", "第11層の主の最大HPが1割削られる (討つまで有効)。"], () => A.done(cell));
+      } },
+      { label: "勝ち取った褒美を受け取る ― 上等な品 (レア以上)", fn: () => { A.sfx("itemget"); A.itemMinRar("r", "老いた闘士の褒美", () => A.done(cell)); } },
+    ],
+  },
+  {
+    id: "l11_10", name: "濁った灯籠の列", layer: 11, tier: "rare", icon: "wisp", deep: true,
+    intro: () => ["通路の壁に、古い灯籠がずらりと掛けられている。いくつかの灯籠の中で、かすかな灯がまだ揺れている。", "灯の弱い灯籠ほど、ガラスが黒く濁っている。列の前には、鉄のとげをまとった像が、番をするように立っている。"],
+    choices: (A, cell) => [
+      { label: "灯籠を下ろして灯を解き放つ ― 灯籠の番人と戦い、勝てば希少な魂と魂の残火2", danger: true, fn: () => {
+        A.fight(cell, [{ key: "bs_spikedgolem", strong: 1.8, name: "灯籠の番人" }], "lampwarden", { noChest: true });
+      } },
+      { label: "澄んだ灯籠の光に身をかざす ― この出撃の間、全員に光の護り (闇の攻撃を和らげる) と ✦Soul / 濁った灯籠の熱に焼かれ、全員のHP2割を失う", primary: true, fn: () => {
+        A.hurtAll(0.2); A.flash("#f0d8a0");
+        A.runEv().edef = { el: "light", lv: 1 };
+        A.sfx("spell"); A.soul(4, "澄んだ灯籠の光"); A.toast("澄んだ光が、闇の爪をはじく ― この出撃の間、光の護り", "gold"); A.done(cell);
+      } },
+    ],
+    onWin: (A, cell, f, next) => A.soulDrop("rarePlus", "灯籠に閉じこめられていた魂だ。", () => { A.ember(2, "灯籠の底の残火"); A.done(cell, next); }),
+  },
 ];
 
 // 各迷宮に固有の極を1件。既存IDは見聞録・取得済みセーブのため維持する。
@@ -2142,6 +2291,13 @@ const DUNGEON_GIFTS = [
   ["ws15", "agi", 2, "雷鳥の風切り羽"],
   ["ws16", "vit", 2, "避雷針の鉄の芯"],
   ["ws17", "pie", 2, "雲上の庭の祈りの花"],
+  // 第九章 (第11層)。5件の ATK・会心・INT・LUK・MP を6件に、残る1件は AGI (どの効果も6件か7件)
+  ["w34", "mp", 5, "雲間に光る星のかけら"],
+  ["w35", "atk", 2, "檻を破った獣の牙"],
+  ["w36", "luk", 2, "観客の投げた幸運の銅貨"],
+  ["w37", "crit", 0.01, "血の砂に残る勝者の太刀筋"],
+  ["ws18", "int", 2, "控えの間に刻まれた勝ち方の覚え書き"],
+  ["ws19", "agi", 2, "決闘者の踏みこみ"],
 ];
 for (const [dungeonId, stat, amount, name, legacyId] of DUNGEON_GIFTS) {
   const dungeon = WORLD.find((d) => d.id === dungeonId);
@@ -2202,6 +2358,7 @@ export const EVENT_GROUPS = [
   { key: "8", label: "氷回廊", name: "第8層 氷結回廊", layer: 8 },
   { key: "9", label: "毒沼", name: "第9層 毒沼", layer: 9 },
   { key: "10", label: "尖塔", name: "第10層 嵐の尖塔", layer: 10 },
+  { key: "11", label: "闘技場", name: "第11層 闘技場跡", layer: 11 },
 ];
 
 // 出現条件の説明 (見聞録用)

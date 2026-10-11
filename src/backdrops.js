@@ -1003,7 +1003,7 @@ function lightning(t) {
   return p < 90 ? 1 - p / 90 : p > 160 && p < 300 ? (1 - (p - 160) / 140) * 0.7 : 0;
 }
 
-// 層 11 闘技場跡: 弧を描く観客席とアーケード、崩れた区画、折れた柱、破れた天幕、砂地
+// 層 11 闘技場跡: 弧を描く観客席とアーケード、崩れた区画、折れた柱、破れた天幕、砂地。段に灰が積もり、灰が雪のように降り、熾火が点る
 function sArena(R, A) {
   const { w: W, h: H } = R, gy = Math.round(H * 0.58), cx = W / 2;
   R.amb = [0.62, 0.55, 0.5];
@@ -1019,7 +1019,7 @@ function sArena(R, A) {
   const tiers = 7;
   for (let k = 0; k < tiers; k++) {
     const base = H * (0.3 + k * 0.034), d = 18 * (1 - k / tiers);
-    for (let x = 0; x < W; x++) { const y = Math.round(yAt(base, d, x)); R.m = SURF; R.rect(x, y, 1, 1, "#7a6448"); R.rect(x, y + 1, 1, 3, "#2a2018"); }
+    for (let x = 0; x < W; x++) { const y = Math.round(yAt(base, d, x)); R.m = SURF; R.rect(x, y, 1, 1, hash(x, k, 77) < 0.3 ? "#9a928a" : "#7a6448"); R.rect(x, y + 1, 1, 3, "#2a2018"); } // 段に積もった灰
   }
   for (let i = -8; i <= 8; i++) { const x0 = cx + i * W * 0.07; R.m = SURF; R.line(x0, yAt(H * 0.3, 18, x0), x0 * 0.92 + cx * 0.08, H * 0.52, "#1a140e", 0.7, 2); } // 通路
   // 崩れた区画 (右奥)
@@ -1046,6 +1046,8 @@ function sArena(R, A) {
   R.m = SURF; R.line(W * 0.14, H * 0.96, W * 0.17, H * 0.74, "#7a7a80", 1, 2); R.rect(W * 0.15 - 3, H * 0.78, 8, 2, "#5a4a30");
   R.light(W * 0.5, H * 0.1, 160, "#c08050", 0.25, 90);
   A.part({ n: 30, col: "#d0b080", x0: -0.05, x1: 1.05, y0: 0.4, y1: 1, vx: 0.04, sway: 4, swf: 0.6, a: 0.3, tw: 1 });
+  A.part({ n: 26, col: "#d8d0c8", x0: 0, x1: 1, y0: 0, y1: 1, vy: 0.03, vx: 0.01, sway: 6, swf: 0.5, a: 0.32, tw: 1, seed: 11 });   // 雪のように降る灰
+  A.part({ n: 6, col: "#ff9a50", x0: 0.1, x1: 0.9, y0: 0.25, y1: 0.5, vy: -0.02, sway: 3, swf: 1, a: 0.55, blink: 1.5, seed: 12 });   // 観客席の熾火
   A.fog("#c0a070", 0.82, 3, 0.07, 9, 120, 8);
 }
 
@@ -2703,6 +2705,190 @@ function vCloudGarden(R, A) {
   A.fog("#c8c4d8", 0.62, 4, 0.18, 3, 120, 10);
   A.pulse((P) => { P.m = ADD; P.rect(0, gy - 8, W, 18, "#6a6ac0", 0.3); P.glow(W * 0.3, gy, 50, 10, "#8a90e0", 0.5, 4); }, lightning);
 }
+// ---- 第九章「闘技場跡」の迷宮 (嵐の尖塔の頂から雲の上へ架かる石橋の先、灰に埋もれた古い闘技場の町) ----
+// 雲の上の夕暮れの空 (藍 → すみれ → 地平の薔薇色)。glowX = 夕映えの中心
+function duskSkyV(R, y0, y1, seed, glowX = R.w * 0.7) {
+  R.m = SKY;
+  R.rect(0, y0, R.w, y1 - y0, (x, y) => {
+    const t = clamp01((y - y0) / Math.max(1, y1 - y0)), g = clamp01(1 - Math.abs(x - glowX) / (R.w * 0.8));
+    return mix(mix(C("#0c0c1e"), C("#3a2e5a"), t * t), C("#e09a80"), sstep(0.55, 1, t) * (0.3 + 0.7 * g));
+  });
+  clouds(R, seed, y0 + (y1 - y0) * 0.15, y0 + (y1 - y0) * 0.75, "#2a2444", 0.5, "#a8687a", 0.02, 0.16);
+}
+// 雲海 (地平 hz から y1 まで。雲の頭が夕映えの側だけ桃色に照る)
+function cloudSeaV(R, hz, y1, seed, glowX = R.w * 0.7) {
+  R.m = SKY;
+  R.rect(0, hz, R.w, y1 - hz, (x, y) => {
+    const d = clamp01((y - hz) / Math.max(1, y1 - hz)), sc = 0.35 + d * 1.6, f = fbm(x * 0.05 / sc, (y - hz) * 0.24 / sc, seed);
+    const up = fbm(x * 0.05 / sc, (y - hz - 1.4) * 0.24 / sc, seed), g = clamp01(1 - Math.abs(x - glowX) / (R.w * 0.6));
+    let c = mix(C("#1a1830"), C("#5a4870"), clamp01(f * 1.3 - 0.2));
+    if (up < f - 0.02) c = mix(c, C("#f0b090"), (0.2 + 0.6 * g) * (1 - d * 0.5));
+    return mix(c, C("#c08080"), g * 0.3 * (1 - d));
+  });
+}
+// 灰の観客席の段 (左右に弧を描く石段。上の段ほど奥で小さい)。cx = すり鉢の中心、y0..y1 = 段の範囲
+function arenaTiers(R, cx, y0, y1, n, seed, { bend = 16, col = "#5a4a3c", ash = "#a8a098" } = {}) {
+  for (let k = 0; k < n; k++) {
+    const t = k / n, base = y0 + (y1 - y0) * t, d = bend * (1 - t * 0.6), th = Math.max(2, Math.round(((y1 - y0) / n) * 0.9));
+    R.m = SURF;
+    for (let x = 0; x < R.w; x++) {
+      const y = Math.round(base - d * Math.pow((x - cx) / (R.w / 2), 2));
+      R.rect(x, y, 1, 1, mul(C(ash), 0.8 + 0.3 * vnoise(x * 0.3, k, seed)));
+      R.rect(x, y + 1, 1, th - 1, mul(C(col), (0.65 + 0.35 * t) * (0.85 + 0.25 * vnoise(x * 0.2, y * 0.3, seed))));
+      if (hash(x, k, seed) < 0.18) R.px(x, y, ash, 0.9);
+    }
+  }
+}
+// w34 雲を渡る石橋: 雲海の上へ、欄干に枷の輪を並べた長い石の橋が伸び、その先の雲の切れ間にすり鉢の観客席の影
+function vCloudBridge(R, A) {
+  const { w: W, h: H } = R, vx = W * 0.6, vy = Math.round(H * 0.44);
+  R.amb = [0.5, 0.46, 0.56];
+  duskSkyV(R, 0, vy, 401, W * 0.66);
+  cloudSeaV(R, vy, H, 403, W * 0.66);
+  // 遠くの闘技場の島 (すり鉢の影・崩れた縁・熾火)
+  R.m = SURF; R.poly([[vx - 30, vy + 4], [vx - 18, vy - 2], [vx + 22, vy - 3], [vx + 34, vy + 4], [vx + 14, vy + 8], [vx - 16, vy + 8]], "#2a2430");
+  R.ellipse(vx, vy - 9, 20, 4.4, "#3a3240"); R.poly([[vx - 20, vy - 9], [vx + 20, vy - 9], [vx + 18, vy], [vx - 18, vy]], "#3a3240");
+  R.ellipse(vx, vy - 9.6, 15, 2.6, "#1e1a22"); for (let x = vx - 16; x < vx + 17; x += 4) R.rect(x, vy - 6, 1.4, 3, "#141016");
+  for (const [x, y] of [[vx - 9, vy - 4], [vx + 6, vy - 2], [vx + 12, vy - 6]]) { R.m = SKY; R.px(x, y, "#ff9a50"); R.glow(x, y, 4, 4, "#c04010", 0.5, 3); }
+  // 橋 (手前から消失点へ。灰の吹き寄る石畳と、左右の欄干の枷の輪)
+  const lx = (y) => vx - 4 + (W * 0.02 - vx + 4) * (y - vy) / (H - vy), rx = (y) => vx + 4 + (W * 1.05 - vx - 4) * (y - vy) / (H - vy);
+  R.m = SURF; for (let y = vy; y < H; y++) R.span(y, lx(y), rx(y), (x) => { const u = (x - lx(y)) / Math.max(1, rx(y) - lx(y)), z = (H - vy) / Math.max(1, y - vy); const j = ((z * 1.6) % 1) < 0.06 * z || ((u * 5) % 1) < 0.04; return j && z < 8 ? C("#18151a") : mul(mix(C("#3e3a44"), C("#7a746e"), u < 0.1 || u > 0.9 ? 0.75 : fbm(u * 3, z, 405) * 0.45), 0.6 + 0.3 * (y - vy) / (H - vy)); });
+  for (const side of [-1, 1]) {
+    const ex = side < 0 ? lx : rx, top = (y) => y - (y - vy) * 0.28;
+    R.m = SURF; for (let y = vy; y < H; y++) { const x = ex(y), t = Math.max(1, (y - vy) * 0.28); R.rect(x - (side < 0 ? 0 : 2), top(y) - 0, 2, t, "#6a6070"); R.px(x, top(y) - 1, "#a8a0a0"); }
+    for (let k = 1; k < 14; k++) { const t = 1 - 1 / (1 + k * 0.42), y = vy + (H - vy) * (1 - t) * 0.98, x = ex(y), r = Math.max(1, (y - vy) * 0.05); R.m = SURF; R.ellipse(x, top(y) + r * 2, r, r * 1.2, "#8a8c98"); if (r > 1.5) R.ellipse(x, top(y) + r * 2, r * 0.5, r * 0.6, "#2a2630"); }
+  }
+  // 欄干の輪に結ばれた焦げた手袋 (左の手前)
+  { const y = H * 0.86, x = lx(y) + 3, ty = y - (y - vy) * 0.28; R.m = SURF; R.ellipse(x + 1, ty + 4, 2.4, 3, "#8a8c98"); R.rect(x - 1, ty + 7, 5, 4, "#6a4428"); R.rect(x - 1, ty + 11, 5, 3, "#5a3820"); for (let i = 0; i < 4; i++) R.rect(x - 1 + i * 1.3, ty + 14, 1, 3, i % 2 ? "#1a1210" : "#2a1a14"); }
+  R.light(vx, vy, 120, "#e8a080", 0.7, 50); R.light(W * 0.1, H, 70, "#ffc080", 0.4, 40);
+  A.fog("#c89aa8", 0.47, 4, 0.22, 4, 110, 8);
+  A.part({ n: 40, col: "#d8d0c8", x0: 0, x1: 1, y0: 0, y1: 1, vy: 0.04, vx: -0.02, sway: 6, swf: 0.5, a: 0.45, tw: 1, seed: 371 });
+  A.part({ n: 6, col: "#ffa060", x0: (vx - 20) / W, x1: (vx + 20) / W, y0: (vy - 14) / H, y1: vy / H, vy: -0.03, sway: 3, swf: 1, a: 0.7, blink: 2, seed: 372 });
+}
+// w35 闘獣の檻: 闘技場の床の下、獣の檻が両側に並ぶ通路。檻の扉はどれも内側から破られ、腐った藁が散る。天井の格子から灰
+function vBeastCages(R, A) {
+  const { w: W, h: H } = R, vx = W * 0.5, vy = H * 0.46;
+  R.amb = [0.4, 0.36, 0.38];
+  // 奥の闇と天井
+  R.m = SURF; R.rect(0, 0, W, H, (x, y) => mul(C("#2a2226"), 0.4 + 0.6 * clamp01(Math.hypot((x - vx) / W, (y - vy) / H) * 1.6)));
+  bricks(R, vx - 14, vy - 18, vx + 14, vy + 10, "#3a3034", "#141012", 7, 4, 411);
+  R.m = SURF; R.rect(vx - 6, vy - 8, 12, 18, "#0c0a0a");
+  // 床 (腐った藁と灰)
+  R.m = SURF; for (let y = Math.ceil(vy + 10); y < H; y++) R.span(y, 0, W, (x) => mul(mix(C("#3a2e22"), C("#5a4a30"), fbm(x * 0.1, y * 0.4, 413)), 0.5 + 0.6 * (y - vy) / (H - vy)));
+  const rs = rnd(415); for (let i = 0; i < 140; i++) { const y = vy + 12 + rs() * (H - vy - 12), x = rs() * W, l = 2 + rs() * 6 * (y / H); R.line(x, y, x + l, y + (rs() - 0.5) * 2, rs() < 0.5 ? "#a08040" : "#6a5230", 0.8); }
+  // 両側の檻 (遠近で奥へ。鉄格子、破られて外へ曲がった扉)
+  for (const side of [-1, 1]) for (let k = 0; k < 6; k++) {
+    const z0 = 1 + k * 0.9, z1 = z0 + 0.9, X = (z) => vx + side * (W * 0.62) / z, T = (z) => vy - (H * 0.6) / z, B = (z) => vy + (H * 0.62) / z;
+    const xa = X(z0), xb = X(z1);
+    R.m = SURF; R.poly([[xa, T(z0)], [xb, T(z1)], [xb, B(z1)], [xa, B(z0)]], mul(C("#1a1416"), 1));
+    for (let i = 0; i <= 6; i++) { const z = z0 + (z1 - z0) * i / 6, x = X(z), broken = k === 1 && i > 1 && i < 5;
+      if (broken) { const bend = side * (8 - Math.abs(i - 3) * 2) / z0; R.m = SURF; R.line(x, T(z), x + bend * 0.4, (T(z) + B(z)) / 2 - 4 / z0, "#7a7480", 1, Math.max(1, 2 / z0)); R.line(x + bend * 0.4, (T(z) + B(z)) / 2 + 4 / z0, x + bend, B(z), "#7a7480", 1, Math.max(1, 2 / z0)); continue; }
+      R.m = SURF; R.line(x, T(z), x, B(z), "#6a6470", 1, Math.max(1, Math.round(2.4 / z))); }
+    R.m = SURF; R.line(xa, T(z0), xb, T(z1), "#5a5460", 1, Math.max(1, Math.round(3 / z0))); R.line(xa, B(z0), xb, B(z1), "#4a4450", 1, Math.max(1, Math.round(3 / z0)));
+    if (k === 3 && side > 0) { R.m = SURF; R.poly([[xa, T(z0) + 2], [xa + 14 / z0, T(z0) + 8 / z0], [xa + 14 / z0, B(z0) + 4 / z0], [xa, B(z0)]], "#3a3438"); for (let i = 1; i < 4; i++) R.line(xa + i * 3.5 / z0, T(z0) + 2 + i * 1.5 / z0, xa + i * 3.5 / z0, B(z0) + i / z0, "#7a7480", 1, 1); }   // 外れて開いた扉
+  }
+  // 爪の跡と、引きちぎられた鎖
+  R.m = SURF; for (let i = 0; i < 4; i++) R.line(W * 0.2 + i * 3, H * 0.3, W * 0.22 + i * 3, H * 0.44, "#0a0808", 0.8);
+  chainSag(R, W * 0.78, H * 0.2, W * 0.86, H * 0.5, 4, "#7a7480");
+  // 天井の格子 (外の冷たい光と、舞い落ちる灰) と、手前の松明
+  R.m = SKY; R.rect(vx - 10, 0, 20, 4, "#9a9ac0"); for (let i = 0; i < 5; i++) R.rect(vx - 10 + i * 5, 0, 1, 4, "#1a1820");
+  R.glow(vx, H * 0.3, 24, H * 0.36, "#5a5a80", 0.35, 4);
+  flame(R, A, W * 0.08, H * 0.42, 3, "#fff0c0", "#ff9040", true, 70, 0.9);
+  R.m = SURF; R.rect(W * 0.08 - 1, H * 0.42, 2, 10, "#3a2a1a");
+  A.part({ n: 30, col: "#d0d0dc", x0: 0.4, x1: 0.6, y0: 0, y1: 0.9, vy: 0.03, sway: 6, swf: 0.5, a: 0.5, seed: 381 });
+  A.part({ n: 12, col: "#c8b080", x0: 0, x1: 1, y0: 0.6, y1: 1, vx: 0.01, sway: 3, swf: 0.6, a: 0.25, tw: 1, seed: 382 });
+}
+// w36 亡き観客の階段席: すり鉢にせり上がる石の観客席。灰の積もった石段に、半ば透けた観客たちが肩を寄せて座る
+function vSpectreStands(R, A) {
+  const { w: W, h: H } = R, cx = W * 0.5;
+  R.amb = [0.46, 0.42, 0.5];
+  duskSkyV(R, 0, H * 0.3, 421, W * 0.3);
+  // 上の外壁 (拱の列。上ほど奥)
+  R.m = SURF; for (let x = 0; x < W; x++) { const t = Math.round(H * 0.18 - 10 * Math.pow((x - cx) / (W / 2), 2)); R.rect(x, t, 1, H * 0.3 - t + 2, mul(C("#4a3e40"), 0.85 + 0.25 * vnoise(x * 0.3, 1, 423))); }
+  for (let i = -8; i <= 8; i++) { const x = cx + i * W * 0.06, t = Math.round(H * 0.18 - 10 * Math.pow((x - cx) / (W / 2), 2)); R.m = SURF; R.poly(archPts(x, t + 3, 3, t + 11), "#120e10"); }
+  // 段 (灰が積もる) と、座る観客の亡霊
+  arenaTiers(R, cx, H * 0.3, H * 1.02, 9, 425, { bend: 14, col: "#4a3c36", ash: "#b0a8a0" });
+  const rg = rnd(427);
+  for (let k = 0; k < 8; k++) {
+    const t = k / 8, base = H * 0.3 + (H * 0.72) * t, d = 14 * (1 - t * 0.6), hh = 6 + t * 16, step = 5 + t * 9;
+    for (let x = rg() * step; x < W; x += step * (0.8 + rg() * 0.5)) {
+      if (rg() < 0.12) continue;
+      const y = base - d * Math.pow((x - cx) / (W / 2), 2) - 1;
+      ghost(R, x, y, hh * (0.85 + rg() * 0.3), rg() < 0.25 ? "#9ab8c8" : "#6a80a0", 0.18 + t * 0.16 + rg() * 0.08);
+    }
+  }
+  R.light(cx, H * 0.6, W * 0.6, "#8aa0c0", 0.35, H * 0.5);
+  A.part({ n: 36, col: "#d8d0c8", x0: 0, x1: 1, y0: 0, y1: 1, vy: 0.035, vx: 0.01, sway: 6, swf: 0.5, a: 0.45, tw: 1, seed: 391 });
+  A.part({ n: 14, col: "#a8c8e0", x0: 0.05, x1: 0.95, y0: 0.35, y1: 0.95, vy: -0.01, sway: 4, swf: 0.3, a: 0.35, tw: 1.4, seed: 392 });
+}
+// w37 血の砂の闘技場: 観客席に囲まれた砂の床。乾かない血の染み、砂に突き立つ剣と槍、真ん中に濁った灯籠を捨てた黒い穴
+function vBloodSand(R, A) {
+  const { w: W, h: H } = R, cx = W / 2, gy = Math.round(H * 0.58);
+  // 血の染み (黒ずんだ赤。いまも乾かない)
+  R.m = SURF; for (const [x, y, rx, ry] of [[W * 0.3, H * 0.72, 18, 4], [W * 0.66, H * 0.8, 24, 5], [W * 0.46, H * 0.9, 14, 3], [W * 0.78, H * 0.66, 10, 2.4]]) R.ellipse(x, y, rx, ry, (px, py) => mul(C("#5a1414"), 0.75 + 0.35 * vnoise(px * 0.3, py * 0.5, 431)), 0.9);
+  // 真ん中の黒い穴 (縁は崩れ、底からかすかな灯)
+  R.m = SURF; R.ellipse(cx, H * 0.7, 26, 6.4, "#6a5440"); R.m = SKY; R.ellipse(cx, H * 0.705, 22, 5, (x, y) => mix(C("#020203"), C("#16141c"), clamp01(Math.hypot((x - cx) / 22, (y - H * 0.705) / 5) * 1.4 - 0.4)));
+  R.glow(cx, H * 0.71, 10, 2.4, "#2a2a3a", 0.3, 3);
+  // 砂に突き立つ武器と、引きずられた鎖
+  for (const [x, y, a, c] of [[W * 0.2, H * 0.92, -0.25, "#8a8a92"], [W * 0.26, H * 0.86, 0.15, "#7a7a84"], [W * 0.74, H * 0.9, 0.3, "#8a8a92"], [W * 0.84, H * 0.84, -0.1, "#6a5a40"]]) {
+    R.m = SURF; R.line(x, y, x + Math.sin(a) * 26, y - 26, c, 1, 2); R.rect(x + Math.sin(a) * 20 - 3, y - 21, 7, 2, "#5a4a30");
+  }
+  R.m = SURF; R.ellipse(W * 0.82, H * 0.94, 10, 3, "#2a2220"); R.rect(W * 0.82 - 6, H * 0.92, 12, 3, "#7a6a50");   // 割れた盾
+  chainSag(R, W * 0.1, H * 0.98, W * 0.4, H * 0.8, -3, "#6a6470");
+  R.light(cx, H * 0.7, 50, "#6a5a6a", 0.25, 16); R.light(cx, gy, W * 0.5, "#e08a60", 0.35, H * 0.2);
+  A.part({ n: 24, col: "#d0b080", x0: 0, x1: 1, y0: 0.55, y1: 1, vx: 0.05, sway: 4, swf: 0.6, a: 0.3, tw: 1, seed: 401 });
+  A.part({ n: 30, col: "#d8d0c8", x0: 0, x1: 1, y0: 0, y1: 0.6, vy: 0.035, sway: 6, swf: 0.5, a: 0.4, tw: 1, seed: 402 });
+  A.pulse((P) => { P.m = ADD; for (let i = 0; i < 5; i++) P.px(cx - 12 + i * 6 + Math.sin(i * 3) * 3, H * 0.71 + Math.cos(i * 2) * 1.6, "#5a6a8a", 0.7); }, (t) => 0.3 + 0.3 * Math.sin(t * 0.0012));   // 穴の底のかすかな声 (濁った灯)
+}
+// ws18 勝者の控え所: 外壁の内側の控えの間。壁には勝ち星を刻んだ札がびっしりと掛かり、長椅子と武具の台、拱の窓の外に観客席
+function vVictorsRoom(R, A) {
+  const { w: W, h: H } = R, gy = Math.round(H * 0.74);
+  R.amb = [0.44, 0.4, 0.42];
+  bricks(R, 0, 0, W, gy, "#4a3e3a", "#1a1414", 12, 6, 441);
+  // 拱の窓 (外は灰の観客席と夕暮れ)
+  const ax = W * 0.5, top = H * 0.08, hw = W * 0.12, bot = H * 0.5;
+  archFrame(R, ax, top, hw, bot, 4, "#5a4c46", null, 0, 6, "#2a201c");
+  R.m = SKY; R.poly(archPts(ax, top, hw, bot), (x, y) => (y > H * 0.3 ? mix(C("#5a4a40"), C("#3a2e2a"), ((y * 0.6) % 3) / 3) : mix(C("#1a1630"), C("#c88070"), clamp01((y - top) / (H * 0.22)))));
+  R.light(ax, H * 0.3, 70, "#e09070", 0.6, 60);
+  // 勝ち星の札 (壁一面。金の星を刻んだ木の札。古いものほど黒ずむ)
+  const r = rnd(443);
+  for (let row = 0; row < 6; row++) for (let x = 4 + (row % 2) * 5; x < W - 6; x += 10) {
+    if (Math.abs(x - ax) < hw + 7 && row < 5) continue;
+    const y = 6 + row * 11, old = r();
+    R.m = SURF; R.rect(x, y, 8, 9, mul(C("#8a6440"), 0.5 + 0.6 * (1 - old)));
+    R.rect(x, y, 8, 1, mul(C("#b88a58"), 0.6 + 0.5 * (1 - old)));
+    const n = 1 + Math.floor(r() * 5); for (let k = 0; k < n; k++) R.px(x + 1.5 + (k % 3) * 2, y + 3 + Math.floor(k / 3) * 3, old > 0.7 ? "#7a6a40" : "#e8c060", 0.95);
+    R.px(x + 4, y - 1, "#3a3a40");
+  }
+  // 床・長椅子・武具の台
+  ground(R, gy, "#3a302a", "#1e1814", 445, 0.1, 0.3);
+  R.m = SURF; R.rect(W * 0.06, gy - 8, W * 0.3, 3, "#6a4a30"); R.rect(W * 0.08, gy - 5, 2, 9, "#4a3220"); R.rect(W * 0.32, gy - 5, 2, 9, "#4a3220");
+  R.rect(W * 0.68, gy - 30, W * 0.24, 2, "#5a4028"); R.rect(W * 0.7, gy - 30, 2, 32, "#4a3220"); R.rect(W * 0.9, gy - 30, 2, 32, "#4a3220");
+  for (let i = 0; i < 5; i++) { const x = W * 0.73 + i * 7; R.line(x, gy - 32, x + (i % 2 ? 2 : -1), gy + 1, i === 2 ? "#6a5a40" : "#8a8a94", 1, 1); }
+  R.rect(W * 0.2, gy - 14, 10, 6, "#6a6a74"); R.ellipse(W * 0.2 + 5, gy - 14, 5, 2, "#8a8a94");   // 長椅子に置かれた兜
+  flame(R, A, W * 0.04, H * 0.34, 2.4, "#fff0c0", "#ff9040", true, 60, 0.8);
+  A.part({ n: 20, col: "#d8d0c8", x0: 0.35, x1: 0.65, y0: 0.1, y1: 0.8, vy: 0.03, sway: 5, swf: 0.5, a: 0.4, tw: 1, seed: 411 });
+}
+// ws19 決闘の小円形場: 闘技場の裏手の小さな円い決闘場。低い石の囲い、向かい合う二本の杭、二つの篝火。一対一の試合しか許されなかった
+function vDuelRing(R, A) {
+  const { w: W, h: H } = R, cx = W / 2, cy = H * 0.66, rx = W * 0.36, ry = H * 0.16;
+  R.amb = [0.46, 0.42, 0.48];
+  duskSkyV(R, 0, H * 0.42, 451, W * 0.5);
+  // 奥の闘技場の外壁 (大きな影) と、崩れた家並み
+  R.m = SURF; for (let x = 0; x < W; x++) { const t = Math.round(H * 0.16 + 12 * Math.pow((x - W * 0.3) / W, 2)); R.rect(x, t, 1, H * 0.46 - t, mul(C("#2e2830"), 0.85 + 0.25 * vnoise(x * 0.2, 1, 453))); }
+  for (let i = 0; i < 12; i++) { const x = W * 0.04 + i * W * 0.085, t = Math.round(H * 0.16 + 12 * Math.pow((x - W * 0.3) / W, 2)); R.m = SURF; R.poly(archPts(x, t + 6, 3, t + 18), "#14101a"); }
+  ground(R, Math.round(H * 0.46), "#3a3230", "#1e1a18", 455, 0.08, 0.3);
+  // 円い決闘場 (低い石の囲い・砂の床・中央の一本の線)
+  R.m = SURF; R.ellipse(cx, cy, rx + 5, ry + 3, "#5a4e48"); R.ellipse(cx, cy, rx, ry, (x, y) => mul(C("#9a7e58"), 0.8 + 0.3 * fbm(x * 0.1, y * 0.3, 457)));
+  R.ellipse(cx, cy - 1, rx + 5, ry + 3, "#000000", 0); for (let i = 0; i <= 120; i++) { const a = (i / 120) * TAU, x = cx + Math.cos(a) * (rx + 3), y = cy + Math.sin(a) * (ry + 1.6); R.rect(x - 1, y - 2, 3, 3, Math.sin(a) > 0 ? "#8a7c70" : "#4a4040"); }
+  R.line(cx, cy - ry + 2, cx, cy + ry - 2, "#3a2a1e", 0.7);
+  R.ellipse(cx - 4, cy + 3, 8, 2, "#5a1414", 0.7);
+  // 向かい合う二本の杭 (縄の切れ端) と、二つの篝火
+  for (const s of [-1, 1]) { const x = cx + s * rx * 0.55; R.m = SURF; R.rect(x - 1, cy - 14, 3, 15, "#5a4028"); R.rect(x - 1, cy - 14, 1, 15, "#8a6440"); R.line(x + 2, cy - 10, x + 5, cy - 4, "#b8a070", 0.9); }
+  for (const s of [-1, 1]) { const x = cx + s * (rx + 14); R.m = SURF; R.rect(x - 2, cy - 4, 5, 10, "#4a4040"); R.rect(x - 3, cy - 6, 7, 2, "#6a5a50"); flame(R, A, x + 0.5, cy - 6, 3, "#fff0c0", "#ff8a30", true, 70, 0.8); }
+  A.part({ n: 30, col: "#d8d0c8", x0: 0, x1: 1, y0: 0, y1: 1, vy: 0.035, vx: 0.015, sway: 6, swf: 0.5, a: 0.4, tw: 1, seed: 421 });
+  A.part({ n: 10, col: "#ffa060", x0: 0.05, x1: 0.95, y0: 0.4, y1: 0.7, vy: -0.05, sway: 4, swf: 1.2, a: 0.6, blink: 2, seed: 422 });
+}
 const VISTAS = {
   w01: [1, vCrypt], w02: [14, vWhispers], w03: [16, vAbbey], w04: [2, vIntake], w05: [3, vChains],
   w06: [4, vRanks], w07: [0, vPrison], w08: [4, vStorm], w09: [17, vCouncil],
@@ -2714,6 +2900,7 @@ const VISTAS = {
   ws8: [13, vDrownedLib], ws9: [7, vObsidian], ws10: [16, vPyreAbbey], ws11: [8, vWolfDrift], ws12: [0, vCrevasse],
   w26: [9, vBogShore], w27: [0, vDollDump], w28: [0, vMiasmaReeds], w29: [0, vStagnant], ws13: [0, vPlagueMound], ws14: [9, vFerry],
   w30: [0, vSpiral], w31: [0, vBelfry], w32: [0, vGallery], w33: [0, vSummit], ws15: [0, vNest], ws16: [0, vRodForest], ws17: [0, vCloudGarden],
+  w34: [0, vCloudBridge], w35: [0, vBeastCages], w36: [0, vSpectreStands], w37: [11, vBloodSand], ws18: [0, vVictorsRoom], ws19: [0, vDuelRing],
 };
 function finishVista(out, w, h) { // 周辺減光だけ (名札帯・中央減光はしない)
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {

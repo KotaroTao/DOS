@@ -70,6 +70,15 @@ export const FLOOR_HAZ = {
   cloudgap: { kind: "fall", name: "雲の切れ間", desc: "庭の崩れたところに、雲の切れ間がのぞく。下には塔の壁",
     look: { shape: "hole", rim: "#c8ccd4", chip: "#eceff4", core: ["#1a2232", "#2a3448", "#5a6478"], mote: "#ffffff", glow: null },
     line: "雲を踏み抜いた！ 隊は雲の切れ間を、下の階まで落ちていく…" },
+  bridgegap: { kind: "fall", name: "橋の崩れ目", desc: "石橋の敷石が抜け落ちた割れ目。下には雷雲が渦を巻いている",
+    look: { shape: "crack", rim: "#5a5650", chip: "#8a847a", core: ["#141824", "#222a3a", "#4a5264"], mote: "#e8ecf4", glow: null },
+    line: "敷石が抜けた！ 隊は雲の中を、ひとつ下の橋桁まで落ちていく…" },
+  standgap: { kind: "fall", name: "崩れた石段", desc: "観客席の石段が崩れ落ちたところ。下の段の闇がのぞく",
+    look: { shape: "square", deco: "rubble", rim: "#4a4440", chip: "#6e6660", core: ["#000000", "#050406", "#161214"], mote: "#b8b0a8", glow: null },
+    line: "石段が崩れた！ 隊は灰煙といっしょに、ひとつ下の段まで落ちていく…" },
+  arenatrap: { kind: "fall", name: "砂の下の落とし戸", desc: "闘技場の砂に隠された、獣を出し入れする落とし戸。留め金が錆びている",
+    look: { shape: "trapdoor", rim: "#6a5a40", chip: "#9a8460", core: ["#000000", "#060403", "#18120c"], mote: "#d8c8a0", glow: null },
+    line: "砂の下で落とし戸が開いた！ 隊は砂といっしょに、下の階へ落ちていく…" },
 
   // ===== 蝕む床 =====
   sewage: { kind: "harm", name: "汚水のよどみ", desc: "黒い水がよどんだ溜まり。触れた肌がただれる",
@@ -120,6 +129,15 @@ export const FLOOR_HAZ = {
   charged: { kind: "harm", name: "帯電した床", desc: "雷を吸った鉄の床。踏めば体を雷が走る",
     look: { stain: [[18, 20, 34], [80, 100, 170], [34, 40, 66], [46, 56, 96], [210, 225, 255]], glow: "140,170,255", fx: "spark", fxCol: "#e0e8ff", mist: null },
     verb: "雷に打たれてしびれた", die: "雷に倒れた…", flash: "#3a4aa0", accent: "#8aa0e8" },
+  rotstraw: { kind: "harm", name: "腐った寝藁", desc: "獣の檻に敷かれたまま腐った藁。吸いこめば胸を病む",
+    look: { stain: [[30, 26, 14], [120, 100, 50], [60, 50, 26], [84, 70, 34], [190, 170, 100]], glow: "170,150,80", fx: "spore", fxCol: "#d8c890", mist: "130,120,70" },
+    verb: "腐った藁の気に胸を病んだ", die: "藁の中に倒れた…", flash: "#5a4a20", accent: "#a8904c", toxic: true },
+  ashdrift: { kind: "harm", name: "燃え残りの灰", desc: "町を焼いた火の名残の灰。灰の下で、まだ熾火がくすぶっている",
+    look: { stain: [[28, 26, 26], [96, 90, 88], [50, 48, 48], [70, 64, 62], [240, 130, 70]], glow: "220,110,60", fx: "ember", fxCol: "#e89868", mist: "110,106,104" },
+    verb: "熾火に足を焼かれた", die: "灰に埋もれた熾火に倒れた…", flash: "#4a3028", accent: "#a08074" },
+  bladesand: { kind: "harm", name: "刃の埋もれた砂", desc: "闘技場の砂に埋もれた、折れた剣や槍の穂先。踏めば足を裂く",
+    look: { stain: [[44, 30, 22], [150, 110, 80], [80, 56, 40], [110, 76, 54], [220, 210, 196]], glow: "220,200,170", fx: "glint", fxCol: "#e8e0d0", mist: null },
+    verb: "砂の中の刃に足を裂かれた", die: "砂の上に倒れた…", flash: "#6a3a28", accent: "#b88c6c" },
 };
 
 // 置き場所の既定 (台帳に floorHaz が無い時・奈落の層)。null = その仕掛けを置かない
@@ -134,8 +152,9 @@ export const LAYER_FLOOR_HAZ = {
   8: { fall: "icecrack", harm: "frost" },        // 氷結回廊
   9: { fall: "mudhole", harm: "swamp" },         // 毒沼
   10: { fall: "stairwell", harm: "charged" },    // 嵐の尖塔
+  11: { fall: "arenatrap", harm: "bladesand" },  // 闘技場跡
 };
-// まだ迷宮の無い層 (第11層から) の奈落は、どの層の既定にも当てはまらないので毒の沼のまま
+// まだ迷宮の無い層 (第12層から) の奈落は、どの層の既定にも当てはまらないので毒の沼のまま
 const FALLBACK = { fall: "collapse", harm: "swamp" };
 
 export function layerFloorHaz(L) {

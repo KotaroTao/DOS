@@ -536,70 +536,75 @@ const NEW_DEFS = [
   { id: "bs_stormlord", name: "嵐の尖塔の主", rank: 10, boss: true, race: "elemental", element: "wind", artKey: "hd_stormlord", soulClass: "mage",
     role: "summoner", summonKey: "bs_windwraith", ability: "breath", abRate: 0.35, physResist: 50, endure: true, // 渦からちぎれた魂を疾風の霊にして放ち、叫ぶ口から雷の息を吐き、渦の体は刃を半ば逸らして一度は崩れない
     desc: "塔の頂で渦を巻く、数えきれない魂の光が寄り集まってできた嵐。紫灰の雷雲の巨体のあちこちに、渦に引き延ばされた青白い顔が浮かぶ。渦の芯から突き出た顔が縦に裂けた口で叫ぶと、雷の息が隊をまとめて撃つ。渦からちぎれた魂は疾風の霊になって降りかかる。渦の体は刃を半ば逸らし、致命の一撃を受けても一度は崩れない。巨体の下からは床へ何本もの鎖が張りつめ、背後には火のともらない大きな灯台が、割れた大レンズを闇に向けて立っている。" },
-  // -- 第11層「闘技場跡」 (rank 10・剣闘/無。enemyScaleで上昇) --
-  { id: "bs_championwraith", name: "不滅の闘士", rank: 10, race: "armored", element: "none", artKey: "championwraith",
-    ability: "critical", multistrike: 2, enrage: true,
-    desc: "幾百の試合を勝ち抜き、死してなお闘いを求める不滅の闘士の霊。鎧ごと急所を貫く剣を続けざまに振るい、追い詰められるほど観客の幻聴に煽られて猛る。" },
-  { id: "bs_netfighter", name: "網ともりの闘士", rank: 10, race: "humanoid", element: "none", artKey: "netfighter",
-    ability: "paralyze", critical: undefined, multistrike: 2, swift: true,
-    desc: "投網で獲物の動きを封じ、三叉のもりで仕留める剣闘士。絡め取られれば身動きが取れず、容赦なくもりが突き込まれる。素早い間合いのさばきで、決して網の外には出さない。" },
-  { id: "bs_arenabeast", name: "闘獣", rank: 10, race: "beast", element: "none", artKey: "arenabeast",
-    enrage: true, multistrike: 2, ability: "critical",
-    desc: "見世物のために飢えと痛みで狂わされた、巨大な闘獣。鞭の傷だらけの体で見境なく暴れ、かぎ爪で続けざまに急所をえぐる。檻は、とうに壊れている。" },
-  { id: "bs_spectreaudience", name: "亡き観客", rank: 10, race: "specter", element: "none", artKey: "spectreaudience",
-    pack: true, ability: "drain", weaken: undefined,
-    desc: "闘技場の観客席を埋め尽くす、興奮したまま死んだ亡霊の群れ。血を求める歓声で闘士の力を萎えさせ、流れる命の精気を遠くから吸い上げる。満員の歓声は、もう誰にも止められない。" },
-  { id: "bs_chainedogre", name: "鎖の巨闘士", rank: 10, race: "giant", element: "none", artKey: "chainedogre",
-    enrage: true, multistrike: 2, physResist: 50,
-    desc: "鎖に繋がれ、闘技場の主役を張らされた巨大なオーガの闘士。引きちぎれぬ鎖に苛立ち、繋がれたまま拳を叩きつける。傷を負うほど鎖を鳴らして暴れ、分厚い筋肉が刃を阻む。" },
-  { id: "bs_bladedancer", name: "双刃の舞い手", rank: 10, race: "humanoid", element: "none", artKey: "bladedancer",
-    multistrike: 3, swift: true, ability: "critical",
-    desc: "二刀を舞うように振るう、観客を魅了した花形の剣闘士。優雅な舞の合間に幾度も斬撃を織り込み、気づけば急所を断たれている。その美しさが、最後に見る景色だ。" },
-  { id: "bs_executioner", name: "処刑人", rank: 10, race: "armored", element: "none", artKey: "executioner",
-    ability: "critical", enrage: true, physResist: 50,
-    desc: "敗者の首をはねる役を担い続けた、覆面の処刑人。巨大な斧の一振りは鎧ごと急所を断ち、返り血を浴びるほど振りが速くなる。慈悲という言葉を、こいつは知らない。" },
-  { id: "bs_beastmaster", name: "猛獣使いの亡霊", rank: 10, race: "specter", element: "none", artKey: "beastmaster",
-    role: "summoner", summonKey: "bs_arenabeast", ability: "weaken",
-    desc: "闘獣を煽って観客を沸かせ続けた猛獣使いの霊。鞭の音で飢えた闘獣を次々と放ち、その威嚇で挑む者の戦意を削ぐ。自分は決して檻の中へは入らない。" },
-  { id: "bs_mirrorduelist", name: "鏡写しの決闘者", rank: 10, race: "construct", element: "none", artKey: "mirrorduelist",
-    multistrike: 2, barrier: 2, ability: "critical",
-    desc: "挑戦者の動きを鏡のように写して戦う、磨かれた鋼の決闘人形。こちらの剣筋をそっくり返し、急所を同じだけ突いてくる。己の太刀筋こそが、最大の弱点となる。" },
-  { id: "bs_crowdroar", name: "歓声の渦", rank: 10, race: "specter", element: "none", artKey: "crowdroar",
-    pack: true, ability: "warcry", evasive: true,
-    desc: "闘技場に渦巻く、無数の歓声が形をなした霊体。その大歓声は味方の闘士を奮い立たせ、押し寄せる声の波は掴みどころがない。耳を塞いでも、声は骨の中で響く。" },
-  { id: "bs_sandlurker", name: "砂中の顎", rank: 10, race: "beast", element: "none", artKey: "sandlurker",
-    ability: "critical", lifesteal: 0.3, physResist: 50,
-    desc: "闘技場の砂の下に潜み、闘士の足を狙う大顎の魔。砂煙とともに飛び出して急所を一噛みし、喰らった命で身を肥やす。砂に守られた体は、刃をろくに通さない。" },
-  { id: "bs_gladiatorlich", name: "闘技場の死霊術師", rank: 10, race: "undead", element: "none", artKey: "gladiatorlich", soulClass: "necromancer",
-    role: "summoner", summonKey: "bs_ghostgladiator", ability: "drain", magWeak: 1.3,
-    desc: "敗者の魂を収集し、闘技場の地下で操る死霊術師の骸。倒れた剣闘士を亡霊として次々と立たせ、生者の命を吸って術を保つ。観客のいない試合を、永遠に興行し続ける。" },
-  { id: "bs_spikedgolem", name: "鉄刺の像", rank: 10, race: "construct", element: "none", artKey: "spikedgolem",
-    physResist: 100, barrier: 2, multistrike: 2,
-    desc: "全身に刃を生やした、闘技場の仕掛けが意思を得た鉄の像。触れるだけで裂かれ、突進すれば幾本もの刺が獲物を貫く。分厚い鉄の体は、並の刃を寄せつけない。" },
-  { id: "bs_hookmaster", name: "かぎ縄の使い手", rank: 10, race: "humanoid", element: "none", artKey: "hookmaster",
-    ability: "paralyze", multistrike: 2, swift: true,
-    desc: "かぎのついた縄を操り、間合いの外から獲物を絡め取る剣闘士。引き寄せて動きを止め、素早く幾度も斬りつける。逃げようにも、かぎが肉に食い込んで離さない。" },
-  { id: "bs_bloodpriest", name: "血の司祭", rank: 10, race: "specter", element: "none", artKey: "bloodpriest", soulClass: "hexer",
-    ability: "drain", lifesteal: 0.3, magWeak: 1.3,
-    desc: "闘技場に捧げられた血を糧に、邪神を崇めた司祭の霊。流れる命を吸って力とし、生者の精気をすするほど赤く輝く。試合の血は、すべてこの霊への供物だった。" },
-  { id: "bs_warbeasthound", name: "闘犬", rank: 10, race: "beast", element: "none", artKey: "warbeasthound",
-    swift: true, pack: true, ability: "critical",
-    desc: "闘技の余興のために飼われ、互いに殺し合わされた闘犬の群れ。素早く取り囲んで急所に喰らいつき、群れで一斉に襲いかかる。鎖を解かれた今、止める者はいない。" },
-  { id: "bs_championofash", name: "灰の覇者", rank: 10, race: "armored", element: "none", artKey: "championofash",
-    ability: "critical", enrage: true, physResist: 50,
-    desc: "幾度も頂点に立ち、灰になってなお王座を譲らぬ伝説の覇者。風格ある一撃は鎧ごと急所を断ち、傷つくほど往年の闘志を燃え上がらせる。挑む者すべてを、灰の山に加えてきた。" },
-  { id: "bs_impaler", name: "串刺しの槍士", rank: 10, race: "humanoid", element: "none", artKey: "impaler",
-    ability: "critical", multistrike: 2,
-    desc: "長槍で間合いの外から獲物を貫く、冷酷な剣闘士。後衛に隠れた者まで槍の間合いに捉え、急所を続けざまに突き刺す。近づく前に、もう貫かれている。" },
-  { id: "bs_ghostgladiator", name: "亡霊剣闘士", rank: 10, race: "specter", element: "none", artKey: "ghostgladiator",
-    multistrike: 2, ability: "critical", evasive: true,
-    desc: "砂の下に幾重にも埋もれた、名もなき剣闘士たちの霊。生前の太刀筋のまま幾度も斬りかかり、刃を向ければ陽炎のように揺らいでかわす。誰に勝てば解放されるのかも、もう分からない。" },
-  { id: "bs_chaingang", name: "鎖の囚徒", rank: 10, race: "undead", element: "none", artKey: "chaingang",
-    pack: true, enrage: true, multistrike: 2,
-    desc: "鎖で数珠つなぎにされ、闘技場へ送られて朽ちた囚人たちの群れ。互いを引きずりながら殺到し、千切れた鎖を振り回して打ち据える。一人倒れても、鎖が次の者を立たせる。" },
-  { id: "bs_arenalord", name: "闘技場の支配者", rank: 10, boss: true, race: "armored", element: "none", artKey: "arenalord", soulClass: "fighter",
-    role: "summoner", summonKey: "bs_arenabeast", ability: "critical", enrage: true, physResist: 75,
-    desc: "操霊師同士を戦わせ、敗者の魂を観客に振る舞った闘技場の興行主。今も砂の中心に立ち、闘獣を放っては挑む者を見世物にする。王家の余興に選ばれただけの剣闘士たちの、恨みの中心に座す者だ。" },
+  // -- 第11層「闘技場跡」 (rank 10・剣闘。嵐の尖塔の頂から雲の上へ架かる石橋の先、灰に埋もれた古い闘技場の町。第10層より格上の壁) --
+  // 雑魚・主・強敵ともに rank10 (上限)。灰に埋もれた闘技場で終わらない試合を続ける闘士の霊、見世物の獣、観客の霊、闘技場の仕掛けと裏方たち。
+  // 第5層からの流儀で特色を極端に押し出す (神速・特技の多用・ブレス・全体呪文・3連撃・守り崩し・打ち消し・魔法抵抗100・護衛)。
+  // 剣闘の層だが痛撃は3体 (多用は処刑人) に抑え、魅了・混乱・弱体・麻痺・吸命・魂奪い・金貨奪い・鼓舞・吸血・不屈などへ散らした。
+  // 属性は無が中心で、霊は闇、砂の獣と巨人は土、灰の覇者・灰燼の将と主 (町を焼いた魂の火の灯を負う) は火、網の闘士は水、舞い手は風、鏡の人形は光。
+  // 絵は hd_* の固有原型 (tools/hdart/layer11/)。どの個体も ability を明示する (種族の既定の特技は付けない)
+  { id: "bs_championwraith", name: "不滅の闘士", rank: 10, race: "armored", element: "none", artKey: "hd_championwraith", soulClass: "fighter",
+    endure: true, enrage: true, multistrike: 2, ability: null, // 続けざまに二度斬り、手負いで猛り、致命の一撃を一度は耐える
+    desc: "灰に埋もれた闘技場で、いまも試合を続けている闘士の霊。へこんだ兜とひびの入った丸盾、鎧の胸の小さな覗き窓の奥で青白い灯がひとつ揺れている。片手剣で続けざまに二度斬りつけ、手負いになるほど観客の歓声にあおられて猛る。致命の一撃を受けても、一度は膝をつかずに立ち上がる。何度倒れても試合に戻ってきたので、町の人々は彼を「不滅」と呼んだ。" },
+  { id: "bs_netfighter", name: "網ともりの闘士", rank: 10, race: "humanoid", element: "water", artKey: "hd_netfighter", soulClass: "hunter",
+    ability: "paralyze", abRate: 0.45, swift: true, // 素早く間合いを取って網を投げ続け、絡め取られた者は動けなくなる
+    desc: "左手に投網、右手に三叉のもりを持った軽装の闘士。網には細い鉤がいくつも結ばれ、湿った海草の匂いがする。素早く間合いを取って網を投げ続け、絡め取られた者は身動きが取れなくなる。雲の上の町なのに、この闘士はいつも海の水をしたたらせている。" },
+  { id: "bs_arenabeast", name: "闘獣", rank: 10, race: "beast", element: "earth", artKey: "hd_arenabeast",
+    multistrike: 3, enrage: true, ability: null, // 立ち上がって前足と牙で一度に三度襲い、手負いで荒れ狂う
+    desc: "見世物のために飢えさせられた、牛ほどもある大きな獣。灰色の毛皮は鞭の傷で縞になり、首には引きちぎった鎖の輪が残る。後ろ脚で立ち上がり、左右の前足と牙で一度に三度襲いかかる。手負いになると、檻にいた頃のように荒れ狂う。檻は、とうに壊れている。" },
+  { id: "bs_spectreaudience", name: "亡き観客", rank: 10, race: "specter", element: "dark", artKey: "hd_spectreaudience",
+    pack: true, ability: "weaken", abRate: 0.45, magWeak: 1.4, // 群れでやじを浴びせ続けて腕の力を奪う。薄い体は呪文に散らされやすい
+    desc: "観客席の石段に肩を寄せ合って座る、半ば透けた人々の霊。どの顔も身を乗り出し、口を大きく開けて叫んでいる。群れでやじを浴びせ続け、浴びた者は腕の力が抜けていく。薄い体は呪文に散らされやすい。試合が終わっても、誰も席を立とうとしない。" },
+  { id: "bs_chainedogre", name: "鎖の巨闘士", rank: 10, race: "giant", element: "earth", artKey: "hd_chainedogre",
+    ability: "sunder", abRate: 0.45, physResist: 50, // 鎖を巻いた拳で鎧ごと守りを叩き割り続け、分厚い筋肉が刃を半ば阻む
+    desc: "首と両手首を太い鎖で闘技場の杭につながれた、灰色の肌の巨人の闘士。鎖を巻きつけた拳を振り上げ、鎧ごと守りを叩き割り続ける。分厚い筋肉は刃を半ば阻む。杭はとうに引き抜かれていて、巨人はそれを鎖ごと引きずって歩く。" },
+  { id: "bs_bladedancer", name: "双刃の舞い手", rank: 10, race: "humanoid", element: "wind", artKey: "hd_bladedancer", soulClass: "thief",
+    haste: true, ability: "charm", abRate: 0.35, // 目にも止まらぬ速さで二度動き、舞に見とれた者の心を奪う
+    desc: "薄布の衣をひるがえし、二振りの曲刀を手に舞う花形の闘士。足首の鈴が鳴るたびに姿がぶれ、目にも止まらぬ速さで一度に二度動く。舞に見とれた者は心を奪われ、仲間へ刃を向けてしまう。観客がいちばん好んだのは、この舞い手の試合だったという。" },
+  { id: "bs_executioner", name: "処刑人", rank: 10, race: "armored", element: "none", artKey: "hd_executioner", soulClass: "berserker",
+    ability: "critical", abRate: 0.5, physResist: 50, // 大斧で鎧の継ぎ目の急所を何度も断ち、革の前掛けと鉄の肩当てが刃を半ば阻む
+    desc: "敗れた闘士の首をはねる役を務めてきた、黒い覆面の大男。両手で担いだ大斧の刃には、こすっても落ちない錆が浮いている。大斧を振り下ろしては鎧の継ぎ目の急所を何度も断ち、厚い革の前掛けと鉄の肩当てが刃を半ば阻む。" },
+  { id: "bs_beastmaster", name: "猛獣使いの亡霊", rank: 10, race: "specter", element: "dark", artKey: "hd_beastmaster",
+    role: "summoner", summonKey: "bs_warbeasthound", ability: "warcry", abRate: 0.45, // 鞭を鳴らして闘犬を呼び、口笛で魔物たちをあおり続ける
+    desc: "長い鞭と鍵束を腰に下げた、猛獣使いの霊。腰から下は砂煙にほどけている。鞭を鳴らして檻の闘犬を呼び出し、鋭い口笛で闘技場の魔物たちをあおり続ける。自分は決して砂の上へは降りてこない。" },
+  { id: "bs_mirrorduelist", name: "鏡写しの決闘者", rank: 10, race: "construct", element: "light", artKey: "hd_mirrorduelist",
+    magResist: 100, multistrike: 2, ability: "dispel", // 鏡の体が呪文を弾き、細剣で二度突き、重ねた加護を鏡に映して消す
+    desc: "全身を磨き上げた鋼の板で覆った、顔のない決闘人形。鏡のような体は撃ちこまれた呪文をそのまま弾き返し、まったく通さない。細い剣で続けざまに二度突き、隊が守りの加護を重ねると、鏡の面に映して消し去ってしまう。刃で磨きを削るしかない。" },
+  { id: "bs_crowdroar", name: "歓声の渦", rank: 10, race: "specter", element: "dark", artKey: "hd_crowdroar",
+    pack: true, ability: "confuse", abRate: 0.45, evasive: true, // 群れで耳もとで叫び続けて惑わせ、声の渦は刃をすり抜ける
+    desc: "闘技場の上に渦を巻く、数えきれない口だけの霊。歓声も、悲鳴も、笑い声も、みな同じ渦の中で響いている。群れで押し寄せて耳もとで叫び続け、聞いた者は敵と味方の見分けがつかなくなる。声の渦は刃をすり抜け、つかみどころがない。" },
+  { id: "bs_sandlurker", name: "砂中の顎", rank: 10, race: "beast", element: "earth", artKey: "hd_sandlurker",
+    physResist: 75, lifesteal: 0.4, ability: null, // 噛みつくたびに流れた血で傷をふさぎ、砂をまとった甲羅は刃をほとんど通さない
+    desc: "闘技場の砂の下に潜み、足音を待つ大顎の魔物。砂色の硬い甲羅に覆われ、砂の上には顎と小さな眼だけが出ている。飛び出して噛みつくたびに、流れた血の分だけ傷がふさがる。砂をまとった甲羅は、刃をほとんど通さない。" },
+  { id: "bs_gladiatorlich", name: "闘技場の死霊術師", rank: 10, race: "undead", element: "dark", artKey: "hd_gladiatorlich", soulClass: "necromancer",
+    role: "summoner", summonKey: "bs_ghostgladiator", ability: "spell", abRate: 0.4, magWeak: 1.3, // 灯の欠片をかざして闇の雨を降らせ、亡霊剣闘士を起こす。骨だけの体は呪文にもろい
+    desc: "闘技場の地下で、倒れた闘士たちを立たせてきた死霊術師の骸。黒い法衣のすそを砂に引きずり、骨の指で古い灯の欠片を握っている。欠片をかざして唱えると闇の雨が隊の全員を撃ち、砂の下から亡霊剣闘士が起き上がる。骨だけの体は、呪文にはもろい。" },
+  { id: "bs_spikedgolem", name: "鉄刺の像", rank: 10, race: "construct", element: "none", artKey: "hd_spikedgolem",
+    role: "guard", physResist: 75, ability: null, // 重い足で仲間の前に立ちはだかって刃を受け止め、分厚い鉄の体は刃をほとんど通さない
+    desc: "闘技場の仕掛けとして造られた、全身に鉄の刺を生やした大きな像。重い足で仲間の前に立ちはだかり、振るわれた刃をその身で受け止める。分厚い鉄の体は、刃をほとんど通さない。刺の先には、昔の挑戦者の布の切れ端が引っかかったままだ。" },
+  { id: "bs_hookmaster", name: "かぎ縄の使い手", rank: 10, race: "humanoid", element: "none", artKey: "hd_hookmaster", soulClass: "thief",
+    ability: "goldSteal", abRate: 0.45, swift: true, // 間合いの外から縄を投げ、懐の金貨の袋を鉤でかすめ取り続ける
+    desc: "鉤のついた縄を腰に何本も巻いた、すばしこい小男の闘士。間合いの外から縄を投げては、懐の金貨の袋を鉤に引っかけてかすめ取っていく。観客の財布まで狙っていたので、試合のたびに縄で吊るされていたという。" },
+  { id: "bs_bloodpriest", name: "血の司祭", rank: 10, race: "specter", element: "dark", artKey: "hd_bloodpriest", soulClass: "hexer",
+    role: "healer", ability: "drain", abRate: 0.45, // 杯をかざして宿した魂の力を吸い続け、杯の中身で闘士の傷をふさぐ
+    desc: "闘技場の砂に流れた血を、杯に受けて捧げ続けた司祭の霊。赤黒い法衣と、縁の欠けた銀の杯。杯をかざして祈ると、宿した魂の力が吸われていく。傷ついた闘士には、杯の中身を振りかけて傷をふさぐ。何に捧げていたのかは、本人も覚えていない。" },
+  { id: "bs_warbeasthound", name: "闘犬", rank: 10, race: "beast", element: "none", artKey: "hd_warbeasthound",
+    pack: true, enrage: true, ability: "critical", abRate: 0.4, // 群れで取り囲んで急所に喰らいつき、手負いで狂ったように吠えたてる
+    desc: "試合の合間の余興に、互いに殺し合わされてきた闘犬の群れ。棘のついた首輪をはめ、耳も尾も噛みちぎられている。群れで取り囲んでは急所に喰らいつき、手負いになるほど狂ったように吠えたてる。" },
+  { id: "bs_championofash", name: "灰の覇者", rank: 10, race: "armored", element: "fire", artKey: "hd_championofash", soulClass: "knight",
+    ability: "breath", abRate: 0.45, physResist: 50, // 兜の口から灰まじりの熱い息を吐き続け、焼けて固まった鎧が刃を半ば阻む
+    desc: "幾度も闘技場の頂点に立ち、町が焼けた夜も最後まで砂の上に立っていた覇者。全身が灰をかぶった鎧で、継ぎ目の奥ではまだ熾火が赤く光る。兜の口から灰まじりの熱い息を吐いて隊をまとめて焼き、焼けて固まった鎧が刃を半ば阻む。" },
+  { id: "bs_impaler", name: "串刺しの槍士", rank: 10, race: "humanoid", element: "none", artKey: "hd_impaler", soulClass: "knight",
+    multistrike: 3, ability: null, // 腰を落として槍を引いては突き、一度に三度貫く
+    desc: "身の丈の倍もある長槍を構えた、無口な闘士。腰を落として構え、槍を引いては突き、引いては突き、一度に三度貫く。槍の柄には、勝った試合の数だけ刻み目が入っている。刻み目は柄の端まで続いて、もう刻む場所がない。" },
+  { id: "bs_ghostgladiator", name: "亡霊剣闘士", rank: 10, race: "specter", element: "dark", artKey: "hd_ghostgladiator",
+    evasive: true, ability: "soulSteal", abRate: 0.45, magWeak: 1.3, // 陽炎のように刃をかわし、斬りつけるたびに魂の光をかすめ取る
+    desc: "砂の下に幾重にも埋もれた、名もない闘士たちの霊。古い剣と盾を持ち、輪郭は陽炎のように揺らぐ。刃を向ければふっとかわし、斬りつけるたびに生者の魂の光をかすめ取る。誰に勝てば試合が終わるのか、もう誰も覚えていない。" },
+  { id: "bs_chaingang", name: "鎖の囚徒", rank: 10, race: "undead", element: "none", artKey: "hd_chaingang",
+    pack: true, endure: true, ability: null, // 鎖でつながれたまま押し寄せ、隣の者に引き起こされて致命の一撃を一度は耐える
+    desc: "足首を一本の鎖で数珠つなぎにされたまま、橋を渡って闘技場へ送られてきた囚人たちの骸。互いを引きずりながら押し寄せ、千切れた鎖を振り回す。倒れかけても隣の者に鎖で引き起こされ、致命の一撃を一度は耐える。" },
+  { id: "bs_arenalord", name: "闘技場の支配者", rank: 10, boss: true, race: "armored", element: "fire", artKey: "hd_arenalord", soulClass: "fighter",
+    role: "summoner", summonKey: "bs_ghostgladiator", ability: "charm", abRate: 0.4, physResist: 50, endure: true, // 仮面の眼で心を奪って仲間どうしで斬り合わせ、手を打って亡霊剣闘士を起こす。空の鎧は刃を半ば逸らし、一度は倒れない
+    desc: "闘技場の貴賓席から降りてきた、金の仮面をつけた巨大な興行主。豪奢な外套の下は空っぽの鎧で、背には数えきれない小さな灯を吊るした輪を負っている。仮面の眼が光るたびに見た者は心を奪われ、仲間どうしで斬り合わされる。手を打ち鳴らせば、砂の下から亡霊剣闘士が起き上がる。鎧は刃を半ば逸らし、致命の一撃を受けても一度は倒れない。" },
   // -- 第12層「地底大空洞」 (rank 10・土/洞窟。世界の根) --
   { id: "bs_cavebehemoth", name: "大空洞の巨獣", rank: 10, race: "beast", element: "earth", artKey: "cavebehemoth",
     enrage: true, multistrike: 2, physResist: 75, desc: "灯りも届かぬ大空洞を徘徊する、山のような巨獣。岩を砕く前肢で続けざまになぎ払い、傷を負えば洞窟を揺らして暴れる。分厚い岩のような皮は刃を通さない。" },
@@ -1742,10 +1747,9 @@ const ELITE_DEFS = [
   { id: "el_magmawyrm", name: "溶鉄の蛇竜", elite: true, rank: 9, race: "reptile", element: "fire", artKey: "hd_magmawyrm", // 第7層の強敵。絵は hd_* の固有原型
     ability: "breath", abRate: 0.5, physResist: 75, // 熱の息を吐き続け、溶鉄の鱗が刃をほとんど通さない
     desc: "溶岩の底を泳ぎ続け、鱗が溶けた鉄と一体化した長大な蛇竜。溶鉄の鱗は刃をほとんど通さず、鎌首をもたげては城門すら溶かす熱の息を何度も吐きかける。通った跡の岩は飴のように溶け落ちる。" }, // 第7層
-  { id: "el_ashshogun", name: "灰燼の将", elite: true, rank: 10, race: "armored", element: "dark", artKey: "samurai", soulClass: "knight",
-    palette: tint(ARTS.samurai.palette, "#8a8a88", 0.5),
-    regen: 0.1, ability: "critical", // 斬られても灰となって積もり直し、将の太刀が急所を断つ
-    desc: "灼洞に攻め入り、軍ごと灰になった将の亡霊。斬られるたび灰煙となって解け、再び将の形に積もり直して立ち上がる。崩れぬ灰の太刀は、急所だけを正確に断つ。" }, // 第11層
+  { id: "el_ashshogun", name: "灰燼の将", elite: true, rank: 10, race: "armored", element: "fire", artKey: "hd_ashshogun", soulClass: "knight", // 第11層の強敵。絵は hd_* の固有原型
+    regen: 0.08, ability: "critical", abRate: 0.5, // 斬られても灰となって積もり直し、灰の大太刀が急所を何度も断つ
+    desc: "町を守る兵を率い、町が焼けた夜に兵ごと灰になった将の霊。灰を固めたような大鎧に、焦げた陣羽織。斬られるたびに体が灰煙となって崩れ、すぐにまた将の形に積もり直す。灰の大太刀は、鎧の継ぎ目の急所だけを正確に、何度も断つ。足元にはいつも、灰の小山がひとつできている。" }, // 第11層
   // -- 迷宮 61-70 (氷廊帯) / 強敵ランク9 --
   { id: "el_frostsovereign", name: "凍王の影", elite: true, rank: 10, race: "armored", element: "water", artKey: "hd_frostsovereign", soulClass: "knight", // 第8層の強敵。絵は hd_* の固有原型
     haste: true, ability: "paralyze", abRate: 0.45, // 目にも止まらぬ速さで二度斬りつけ、斬られた者は芯から凍えて動けなくなる
@@ -1782,10 +1786,9 @@ const ELITE_DEFS = [
     swift: true, ability: "critical", // 蹄鉄の音とともに先んじ、額へ一撃を打ち込む
     desc: "冥門の前を往復し続ける青ざめた騎手。その馬蹄の音を三度聞いた者の枕元に誰より先んじて現れ、四度目の蹄鉄を額の急所へ打ち込むという。" }, // 第17層
   // -- 迷宮 91-100 (玄室帯) / 強敵ランク10 --
-  { id: "el_dragonslayer", name: "竜殺しの亡霊", elite: true, rank: 10, race: "specter", element: "none", artKey: "gravecaptain", soulClass: "fighter",
-    palette: tint(ARTS.gravecaptain.palette, "#c0c8d8", 0.4),
-    physResist: 75, ability: "critical", // 英雄の鎧が刃を弾き、竜殺しの一撃が急所を貫く
-    desc: "百の竜を討ち、最後は竜の財宝の上で息絶えた英雄の亡霊。英雄の鎧は刃を弾き、竜殺しの本能が振るう一撃は急所だけを貫く。玄室を訪れる「竜より強き者」を新たな獲物と定めた。" }, // 第11層
+  { id: "el_dragonslayer", name: "竜殺しの亡霊", elite: true, rank: 10, race: "specter", element: "none", artKey: "hd_dragonslayer", soulClass: "fighter", // 第11層の強敵。絵は hd_* の固有原型
+    ability: "sunder", abRate: 0.45, physResist: 75, // 竜の骨の大剣で鎧ごと守りを叩き割り続け、竜の鱗を打ち直した鎧は刃をほとんど通さない
+    desc: "竜を討った手柄で闘技場の英雄に祭り上げられ、最後は観客の前で二頭目の竜と相打ちになった闘士の霊。竜の鱗を打ち直した鎧は刃をほとんど通さず、竜の骨の大剣を振り下ろしては鎧ごと守りを叩き割り続ける。兜の上には、いまも最初の竜の頭骨をかぶっている。" }, // 第11層
   { id: "el_goldtyrant", name: "黄金の暴君竜", elite: true, rank: 10, race: "dragon", element: "light", artKey: "dragon",
     palette: tint(ARTS.dragon.palette, "#e8c84a", 0.55),
     physResist: 75, ability: "breath", // 黄金の鱗は刃をほぼ通さず、灼熱の吐息で全体を焼く

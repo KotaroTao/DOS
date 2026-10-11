@@ -16,12 +16,12 @@ import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, permanentEventSta
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { pickTavernCrowd, TALK_MAP } from "./tavern.js";
 import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, QUEST_LV_NEAR, rollBoard, deliveryRewardRows, NPCS, npcOf, composeReport, bondGiftAt, npcBondLabel, TIP_RATE, hasBell, BELL_EVERY_MS, QUEST_REWARD_K, QUEST_RK, questRewardK, COMMON_KEY as QUEST_COMMON_KEY } from "./quests.js";
-import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_THREE_REPORT, TUT_FINALE, STORY_CELLS, storyCellAt, BOSS_MEMORIES, REPORTS, LATE_CLUES, IRENE_BEATS, MINE_PASS, msqReward, EPILOGUE, UNLOCKS, unlockSceneFor } from "./story.js";
+import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_THREE_REPORT, TUT_FINALE, STORY_CELLS, storyCellAt, BOSS_MEMORIES, REPORTS, LATE_CLUES, IRENE_BEATS, MINE_PASS, msqReward, EPILOGUE, UNLOCKS, unlockSceneFor, REMATCH_MEMORIES } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { poolAt } from "./dungeons/world.js";
 import { NAMED_FOES, NAMED_IDS, TROPHY_OF, HUNT_ELITE_RATE, bountyId } from "./dungeons/named.js";
 import { FLOOR_HAZ, hazSkin, hazPlaced, layerFloorHaz } from "./dungeons/floorhaz.js";
-import { DUNGEONS, WORLD_IDS, worldIndexOf, worldById, gateFloors, isGateFloor, dungeonLevel, dungeonLevelRaw, strengthAt, wallOf, wallStepOf, lootBand, abyssLayer, ABYSS_LAYER_FLOORS, hazardsAt, levelBand, DUNGEON_MONSTERS, ELEMENTS, elemDmgMult, ELITE_ORDER, LAYER_ELITES, LAYER_BOSS, LAYER_POOLS, monsterTraits, isFloating, METAL_TIERS, unknownLabel, unknownTag } from "./dungeons/index.js";
+import { DUNGEONS, WORLD_IDS, worldIndexOf, worldById, gateFloors, isGateFloor, dungeonLevel, dungeonLevelRaw, strengthAt, wallOf, wallStepOf, lootBand, abyssLayer, ABYSS_LAYER_FLOORS, hazardsAt, levelBand, DUNGEON_MONSTERS, ELEMENTS, elemDmgMult, ELITE_ORDER, LAYER_ELITES, LAYER_BOSS, LAYER_POOLS, monsterTraits, resistHpMul, isFloating, METAL_TIERS, unknownLabel, unknownTag } from "./dungeons/index.js";
 import {
   ABYSS_MODS, ABYSS_MOD_MAP, ABYSS_MUT_MAP, ABYSS_BOSS_EVERY, ABYSS_MUT_EVERY, abyssScore, abyssScoreMul, rollAbyssMutation, weekSeedId, mulberry32,
 } from "./abyss.js";
@@ -1279,12 +1279,12 @@ const MUTATORS = [
 // 迷宮ごとの決まりごと。効果は異変と同じキー (mods) で activeModifierDefs に加わり、盤面の加工 (board) は
 // 階を作るたびに TRAIT_BOARD で行う。奈落・町では効かない
 function dungeonTrait(cfg = null) {
-  if (!cfg) { if (!inDungeon() || abyssActive()) return null; cfg = curDungeon(); }
+  if (!cfg) { if (!inDungeon() || abyssActive() || G.rematch) return null; cfg = curDungeon(); }
   return (cfg && cfg.trait) || null;
 }
 // 土地の掟 (world.js REALM_RULES): 同じ土地の迷宮すべてに共通する掟 (灼熱・酷寒…)。迷宮の掟と重ねて効く
 function dungeonRealm(cfg = null) {
-  if (!cfg) { if (!inDungeon() || abyssActive()) return null; cfg = curDungeon(); }
+  if (!cfg) { if (!inDungeon() || abyssActive() || G.rematch) return null; cfg = curDungeon(); }
   return (cfg && cfg.realmRule) || null;
 }
 // 戦闘の開幕に効く掟 (土地の掟 → 迷宮の掟の順)。head = 開幕の演出で掲げる見出し
@@ -1450,7 +1450,7 @@ function baseEnemyScale(special = false) {
 // その階の敵の強さ (手直し・特別な階・異変を除く) = 強さの素 power × 推奨Lv の伸び (world.js strengthAt)。奈落も同じ (abyssCfg)
 function strengthHere() { return strengthAt(activeCfg(), G.floor || 1); }
 // いまの階の推奨Lv (= 敵のLv。小数。world.js dungeonLevelRaw。奈落は abyssCfg の lv)
-function levelHere() { return { lv: dungeonLevelRaw(activeCfg(), G.floor || 1) }; }
+function levelHere() { return { lv: G.rematch ? G.rematch.lv : dungeonLevelRaw(activeCfg(), G.floor || 1) }; } // 宿敵の再戦は挑む Lv
 // 「普通の1戦」の素の ✦Soul / 金貨 (出現表の平均 × その階の強さ × その階の群れの数の見込み。異変・手直しは含めない)。
 // startBattle はこれと推奨Lv の基準 (levelcurve.js refSoul / refGold) の比で、どの敵の戦果も写す → どの階でも普通の1戦の平均が基準の値になる
 function rawBattleUnit() {
@@ -1505,6 +1505,49 @@ function soloFoes(list) {
   const k = soloTune();
   for (const e of list) e._tuneK = k;
   return list;
+}
+// ===== 迷宮の掟「一騎打ち」(決闘の小円形場) =====
+// 魔物の札の戦闘は1体だけ。その1体は強敵並み (最大HP ×DUEL_HP・攻撃 ×DUEL_ATK) で、戦果はその階の群れの数の見込みぶん持つ
+// (rawBattleUnit と同じ見込み。startBattle の戦果の写しの前に掛けるので、1戦の戦果は普通の1戦と同じ)
+const DUEL_HP = 2.6, DUEL_ATK = 1.25;
+function duelFoes(key) {
+  const e = spawnCardEnemies(key, G.floor, enemyScale(), {})[0];
+  e.name = e.mon ? e.mon.name : e.name.replace(/[A-F]$/, "");
+  e.maxhp = Math.round(e.maxhp * DUEL_HP); e.hp = e.maxhp;
+  e.atk = Math.round(e.atk * DUEL_ATK);
+  const p = Math.min(0.62, 0.18 + (G.floor || 1) * 0.08);
+  let cnt = 0;
+  for (let i = 0; i < 6; i++) cnt += Math.pow(p, i);
+  if (e.mon && e.mon.pack) cnt = Math.max(3, cnt);
+  e.soul = Math.round((e.soul || 0) * cnt); e.gold = Math.round((e.gold || 0) * cnt);
+  e._duel = true;
+  return [e];
+}
+// ===== 土地の掟「見世物の闘技場」の観客の注文 (第九章) =====
+// 戦闘の開幕にひとつ選び、応えて勝てばその戦闘の ✦Soul・金貨を AUDIENCE_MUL 倍にする (endBattle)。
+// 判定は Battle.show (隊が使った技・会心・倒れた数) と、終わりのターン数・隊の HP。金属の魔物だけの戦いには出さない
+const AUDIENCE_MUL = 1.5;
+const AUDIENCE_ORDERS = {
+  swift:  { label: "3ターン以内に勝て",        ok: (b) => b._roundNo <= 3 },
+  nofall: { label: "誰も倒れずに勝て",          ok: (b) => !(b.show && b.show.dd) },
+  blade:  { label: "技を使わずに勝て",          ok: (b) => !(b.show && b.show.sp), noBoss: true },
+  crit:   { label: "会心の一撃を2度見せろ",     ok: (b) => !!(b.show && b.show.cr >= 2) },
+  hale:   { label: "隊のHPを半分以上残して勝て", ok: (b) => { const ps = b.party.filter((p) => p.maxhp); return ps.reduce((a, p) => a + Math.max(0, p.alive ? p.hp : 0), 0) >= ps.reduce((a, p) => a + p.maxhp, 0) * 0.5; } },
+};
+function audienceOrderFor(enemies) {
+  const rl = dungeonRealm();
+  if (!rl || !rl.audience || !enemies.length || enemies.every((e) => e.metal)) return null;
+  const boss = enemies.some((e) => e.boss);
+  const keys = Object.keys(AUDIENCE_ORDERS).filter((k) => !(boss && AUDIENCE_ORDERS[k].noBoss));
+  return keys[rand(keys.length)];
+}
+// 勝った時: 注文に応えたか (応えていれば ✦Soul・金貨の倍率、応えていなければ 1)。記録にも残す
+function audienceJudge(b) {
+  const k = b && b.audience, o = k && AUDIENCE_ORDERS[k];
+  if (!o) return 1;
+  if (o.ok(b)) { log(`観客が沸いた！ 注文「${o.label}」に応えた ― ✦Soul・金貨 ${AUDIENCE_MUL}倍。`, "win"); G.stats.audience = (G.stats.audience || 0) + 1; return AUDIENCE_MUL; }
+  log(`注文「${o.label}」には応えられなかった。観客席から、ため息が漏れた。`, "sys");
+  return 1;
 }
 
 // ===== 金属の魔物 (メタル系) =====
@@ -5652,9 +5695,16 @@ function resolveCellMeasured(cell) {
           log(`☠ 強敵 ${name} が立ちはだかる！`, "dmg");
           startBattle(soloFoes(spawnEliteEnemies(cell.monsterKey, soloScale())), cell);
         } else {
-          log("⚔ 石札の下から、魔物が這い出してきた！", "dmg");
-          // 迷宮の異変 (飢えた狩場): 敵が常に群れで現れる
-          startBattle(spawnCardEnemies(cell.monsterKey, G.floor, enemyScale(), { min: mutNum("packMin", 0) }), cell);
+          const tr = dungeonTrait();
+          if (tr && tr.duel) {
+            // 迷宮の掟「一騎打ち」: 群れずに1体だけ。強敵並みに強く、戦果は群れの分だけ持つ
+            log(`⚔ ${name}が、一騎打ちを挑んできた！`, "dmg");
+            startBattle(duelFoes(cell.monsterKey), cell);
+          } else {
+            log("⚔ 石札の下から、魔物が這い出してきた！", "dmg");
+            // 迷宮の異変 (飢えた狩場): 敵が常に群れで現れる
+            startBattle(spawnCardEnemies(cell.monsterKey, G.floor, enemyScale(), { min: mutNum("packMin", 0) }), cell);
+          }
         }
       }
       break;
@@ -7857,7 +7907,7 @@ function startBattleMeasured(enemies, cell) {
   for (const e of enemies) e.lv = foeLv;
   // 開幕のパッシブ・迷宮の掟の冷気で掛かる強化・弱体は、開幕の演出の後に1拍ずつ見せる (演出の設定が出す時だけ)
   const modW = beginModWatch(true);
-  G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot"), fleeK: fleeScale(), baseAgi: partyAgi(levelHere().lv), foeLv });
+  G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot"), fleeK: fleeScale(), baseAgi: partyAgi(levelHere().lv), foeLv, fervor: !!(trB && trB.fervor) });
   tlWatchBattle(G.battle, tlWhere());
   // 掟 (土地の掟 → 迷宮の掟) の開幕の効果: 寒さに身がすくむ (chill) — 隊の全員の AGI を段数ぶん下げる (3ターン)。
   // 段は足し合う (酷寒 −1段 + 絶対零度 −1段 = −2段)
@@ -7866,6 +7916,14 @@ function startBattleMeasured(enemies, cell) {
     for (const p of G.battle.party) if (p.alive) { G.battle._applyMod(p, "agi", Math.pow(0.8, r.chill), 3, r.name); hits.push({ p, text: `AGI${"▼".repeat(r.chill)}`, color: "#ff8a8a", buff: true }); }
     log(`${r.say || `${r.head}が隊の足を鈍らせる`} (隊の AGI ▼${r.chill})。`, "dmg");
     if (trOpen && hits.length && !modW) trOpen.steps.push({ kind: "chill", head: r.head, accent: r.accent, label: r.name, hits });
+  }
+  // 飢えた獣 (foeRally) — 戦闘の開幕に、敵全体の攻撃を段数だけ上げる (3ターン。主・金属の魔物は除く)
+  for (const r of ruleOpens) if (r.foeRally > 0) {
+    let n = 0;
+    G.battle._quietMod = true;
+    for (const e of G.battle.enemies) if (e.alive && !e.boss && !e.metal) n += G.battle._applyStage(e, "atk", r.foeRally, 3, r.name) > 0 ? 1 : 0;
+    G.battle._quietMod = false;
+    if (n) log(`${r.head} ― 飢えた魔物たちが牙をむく (敵の攻撃 ▲${r.foeRally})。`, "dmg");
   }
   const modReveal = modW ? endModWatch() : null;
   // よどんだ瘴気 (poisonStart) — 戦闘の開幕に、隊の一人ひとりがこの確率で毒に冒される (毒の耐性で防げる)
@@ -7896,11 +7954,19 @@ function startBattleMeasured(enemies, cell) {
       else flashScreen("#d8e0ff");
     }
   }
+  if (trB && trB.fervor) log("観客の歓声が戦う者を煽る ― 2ターン目から、敵も味方も攻撃が上がっていく。", "sys");
+  // 土地の掟「見世物の闘技場」: 観客の注文をひとつ出す (応えて勝てば、この戦闘の ✦Soul・金貨 1.5倍 — endBattle)
+  G.battle.audience = audienceOrderFor(enemies);
+  if (G.battle.audience) {
+    const o = AUDIENCE_ORDERS[G.battle.audience];
+    log(`観客の注文 ―「${o.label}」(応えて勝てば ✦Soul・金貨 ${AUDIENCE_MUL}倍)`, "sys");
+    setTimeout(() => showToast(`♛ 観客の注文:「${o.label}」`, { tone: "info", noLog: true }), 500);
+  }
   if (physOnlyHere()) log("呪文を封じる霧が立ちこめている ― 物理技と道具のほかは使えない。", "sys");
   if (foeLv - partyLevel() >= 4) log(`格上の迷宮だ (推奨Lv${foeLv})。眠りや毒、即死の術はほとんど効かず、敵の術はよく効く。`, "sys");
   // テスト記録: 戦闘の種類 (主 / 金属の魔物 / 精鋭・ミミック・出来事の戦い / 通常) と開始時の様子。
   // 金属の魔物は素早さに依らない回避を持つので、精鋭等の命中に混ぜない
-  if (tlOn() && inDungeon()) {
+  if (tlOn() && inDungeon() && !G.rematch) {
     const kind = isBoss ? "b" : enemies.some((e) => e.metal) ? "m" : (isElite || enemies.some((e) => e.isMimic) || (cell && cell.evFight)) ? "e" : "n";
     G.battle.tl = tlBattleBegin({ where: tlWhere(), kind, opening, openSrc, ambRate, party: G.party, enemies });
   }
@@ -10383,6 +10449,7 @@ function endBattleMeasured() {
   const b = G.battle;
   G.effShow = null; G.modFeed = null; flushModLines(null, Infinity);
   if (b.tl) tlBattleEnd(b.tl, { result: b.result, rounds: b._roundNo, tally: b.tally, party: G.party });
+  if (G.rematch) return endRematch(b); // 宿敵の再戦: 終われば隊を戻して街へ (迷宮の戦果・踏破・全滅の扱いには入らない)
   // オートは戦闘ごとに解除。ただし設定「オートを次の戦闘も続ける」(§7 M2) なら勝利の後も持ち越す
   if (!(b.result === "win" && G.autoCombat && uiDungeonHud.getPref("autoKeep"))) G.autoCombat = false;
   if (G._autoTimer) { clearTimeout(G._autoTimer); G._autoTimer = null; }
@@ -10394,7 +10461,9 @@ function endBattleMeasured() {
       : null;
     // 倒した敵から Soul(魂) を回収する。Soul が経験値の役割を兼ね、館での魂の強化に使う
     // 金運 (goldLuck) / 魂寄せ (soulLure) は戦闘報酬を底上げする (隊内最高Lvのみ)
-    const { soul, gold } = b.rewards();
+    let { soul, gold } = b.rewards();
+    // 観客の注文 (土地の掟「見世物の闘技場」): 応えて勝てば、この戦闘の ✦Soul・金貨が増える
+    { const am = audienceJudge(b); if (am !== 1) { soul = Math.round(soul * am); gold = Math.round(gold * am); } }
     const gl = partyPassiveLv("goldLuck"), sl = partyPassiveLv("soulLure");
     // テスト記録の出どころ: 金属の魔物 / 主 / 精鋭等 / 通常の戦闘 (戦闘の記録の種類と同じ分け方)
     const bsrc = b.enemies.some((e) => e.metal) ? "mt" : "b" + ((b.tl && b.tl.kind) || "n");
@@ -12558,6 +12627,7 @@ function tavernHintAllowed(req) {
   if (req === "frost") return worldOpenId("w22");                                   // 氷結回廊 (奈落の氷棚が地図に現れた後)
   if (req === "swamp") return worldOpenId("w26");                                   // 毒沼 (腐れ水の岸が地図に現れた後)
   if (req === "storm") return worldOpenId("w30");                                   // 嵐の尖塔 (風鳴りの螺旋が地図に現れた後)
+  if (req === "arena") return worldOpenId("w34");                                   // 闘技場跡 (雲を渡る石橋が地図に現れた後)
   return featureUnlocked(req);                           // fusion / rumor / order / expedition
 }
 // 酒場の顔ぶれを選び直す (ダンジョン帰還時・初回入店時に呼ぶ)
@@ -13014,6 +13084,14 @@ function achNext(s) {
   series("named", [
     [1, "賞金首を討つ者", 150, 1], [3, "名を刈る者", 400, 2], [6, "賞金稼ぎの鑑", 900, 4], [10, "名のある者の墓標", 2000, 8],
   ], (v) => `名のある強敵を ${v}種 討つ`, () => NAMED_IDS.filter((id) => codexKills(id) > 0).length, { more: step(5) });
+
+  // 宿敵の再戦 (第九章の結びで開く) — 記憶に勝った回数 / 観客の注文 (第九章の土地の掟) に応えた回数
+  series("rematch", [
+    [1, "記憶の挑戦者", 200, 1], [5, "砂上の常連", 500, 2], [15, "闘技場の花形", 1200, 4], [30, "不敗の記憶", 2400, 8],
+  ], (v) => `宿敵の再戦で ${v}回 勝つ`, () => G.stats.rematchWins || 0, { more: step(25) });
+  series("audience", [
+    [1, "観客の喝采", 100], [10, "見世物の名手", 400, 2], [30, "満場の喝采", 1000, 4],
+  ], (v) => `観客の注文に ${v}回 応える`, () => G.stats.audience || 0, { more: step(30) });
 
   // ミミック撃破
   series("mimic", [
@@ -14753,6 +14831,229 @@ function departAbyss(mods, weekly) {
   uiDungeonHud.sceneTransition(() => { G.prompt = false; enterAbyss(mods, weekly); });
 }
 
+// ===== 宿敵の再戦 (第九章の結び = FEATURES.rematch、docs/unlocks.md) =====
+// 一度倒した名のある強敵と迷宮の主の「記憶」に、闘技場跡の砂の上で挑み直す。出撃画面の「闘技場跡 ― 宿敵の再戦」から。
+//  ・相手の Lv = max(その強敵・主の縄張りの最下階の推奨Lv, 隊のLv)。強さは縄張りの最下階の出方 (強敵の soloScale / 主の bossMul) を
+//    その Lv の伸び (lvPow) に写して REMATCH_MUL 倍し、生前に無かった特色を1つ足す (REMATCH_TRAITS から、魔物ごとに決まる)
+//  ・記憶との手合わせなので、終われば隊の HP・MP・状態は挑む前に戻る (倒れても砕けない。負け・逃走でも失うものは無い)。
+//    入る時に迷宮と同じだけ魂の安定度を使う
+//  ・勝てば ✦Soul・金貨 (その Lv の普通の1戦 × REMATCH_SPOILS)。名のある強敵は首級を ＋1 (最大 ＋REMATCH_FORGE_MAX) に鍛え、
+//    主は初めて勝った時に記憶のかけら (story.js REMATCH_MEMORIES) を語る。土地・迷宮の掟と異変は効かない
+//  ・戦いの間だけ G.dungeonIdx / G.floor を縄張りの迷宮の最下階に付け替え (背景・属性・状態異常の Lv がそれを読む)、終われば戻す
+const REMATCH_MUL = 1.15;
+const REMATCH_SPOILS = { named: 4, boss: 6 };
+const REMATCH_FORGE_MAX = 5;
+const REMATCH_TRAITS = [
+  { key: "haste", label: "神速", has: (m) => !!m.haste, apply: (e) => { e.haste = true; e.agi += 8; } },
+  { key: "regen", label: "再生", has: (m) => (m.regen || 0) >= 0.05, apply: (e) => { e.regen = Math.max(e.regen || 0, 0.05); } },
+  { key: "endure", label: "不屈", has: (m) => !!m.endure, apply: (e) => { e.endure = true; } },
+  { key: "barrier", label: "障壁", has: (m) => (m.barrier || 0) >= 2, apply: (e) => { e._barrierLeft = Math.max(e._barrierLeft || 0, 2); } },
+  { key: "multi", label: "連撃", has: (m) => (m.multistrike || 0) >= 2, apply: (e) => { e.multistrike = 2; } },
+  { key: "lifesteal", label: "吸血", has: (m) => (m.lifesteal || 0) >= 0.3, apply: (e) => { e.lifesteal = Math.max(e.lifesteal || 0, 0.3); } },
+];
+// 魔物ごとに決まった1つ (id の hash で選び、もう持っている特色は飛ばす)
+function rematchTrait(key) {
+  const m = MONSTERS[key] || {};
+  let h = 2166136261;
+  for (const c of String(key)) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0; // FNV-1a (毎回同じ1つに決まる)
+  const cand = REMATCH_TRAITS.filter((t) => !t.has(m));
+  return cand.length ? cand[h % cand.length] : null;
+}
+// 挑める相手: 倒したことのある名のある強敵 (縄張りが地図にあるもの) と、討った迷宮の主
+function rematchList() {
+  if (!featureUnlocked("rematch")) return [];
+  const out = [];
+  const bossIds = G.stats.bossIds || {};
+  const wins = G.stats.rematch || {};
+  for (const id of NAMED_IDS) {
+    if (!MONSTERS[id] || codexKills(id) <= 0) continue;
+    const homeIdx = DUNGEONS.findIndex((d, i) => worldOpenIdx(i) && (d.elites || []).includes(id));
+    if (homeIdx < 0) continue;
+    const nf = NAMED_FOES[id], tr = nf && ITEMS[nf.trophy];
+    const held = tr ? heldTrophy(nf.trophy) : null;
+    out.push({ key: id, kind: "named", name: MONSTERS[id].name, homeIdx, home: DUNGEONS[homeIdx].name, layer: DUNGEONS[homeIdx].layer || 1, lv: rematchLevel(DUNGEONS[homeIdx]),
+      trait: (rematchTrait(id) || {}).label || null, wins: wins[id] || 0, trophy: tr ? { name: tr.name, held: !!held, forge: held ? held.forge || 0 : 0 } : null });
+  }
+  const seen = new Set();
+  DUNGEONS.forEach((d, i) => {
+    if (!d.boss || seen.has(d.boss) || !bossIds[d.boss] || !worldOpenIdx(i)) return;
+    seen.add(d.boss);
+    out.push({ key: d.boss, kind: "boss", name: MONSTERS[d.boss].name, homeIdx: i, home: d.name, layer: d.layer || 1, lv: rematchLevel(d),
+      trait: (rematchTrait(d.boss) || {}).label || null, wins: wins[d.boss] || 0, memory: !!REMATCH_MEMORIES[d.boss], heard: !!worldState().beats["rm_" + d.boss] });
+  });
+  return out.sort((a, b) => (b.lv - a.lv) || (a.kind === b.kind ? 0 : a.kind === "boss" ? -1 : 1));
+}
+// 手本の迷宮: 挑む Lv を最下階で越える最初の本筋の迷宮 (主なら主のいる迷宮)。どれも越えなければ最後の本筋の迷宮
+function rematchRef(kind, lv) {
+  const main = DUNGEONS.filter((d) => !d.side && !d.challenge && (kind !== "boss" || d.boss) && (kind === "boss" || (d.elites || []).length));
+  return main.find((d) => dungeonLevel(d, d.floors || 1) >= lv) || main[main.length - 1];
+}
+function rematchLevel(home) { return Math.max(dungeonLevel(home, home.floors || 1), partyLevel()); }
+// 手元 (隊・控えの装備と袋) にある首級 (同じ品が複数あれば ＋N の高い方)
+function heldTrophy(id) {
+  let best = null;
+  for (const d of allDolls()) for (const it of [...Object.values(d.equip || {}), ...(d.items || [])]) {
+    if (it && it.id === id && (!best || (it.forge || 0) > (best.forge || 0))) best = it;
+  }
+  return best;
+}
+// 出撃画面から: 確かめて、闇に溶けて闘技場跡へ
+function departRematch(key) {
+  if (G.state !== "town" || G.prompt) return;
+  if (!featureUnlocked("rematch")) { SFX.ng(); return; }
+  if (blockForReport() || blockForTutorial()) return;
+  const t = rematchList().find((x) => x.key === key);
+  if (!t) { SFX.ng(); return; }
+  if (!G.party.some((p) => p.alive)) { log("動ける人業がいない。", "sys"); SFX.ng(); return; }
+  if (!stabilityReady()) return;
+  G.prompt = true;
+  uiDungeonHud.sceneTransition(() => { G.prompt = false; beginRematch(t); });
+}
+function beginRematch(t) {
+  if (G.state !== "town" || !consumeEntryStability("rematch")) return false;
+  G.stabilityBriefed = true;
+  const home = DUNGEONS[t.homeIdx];
+  const snap = G.party.map((p) => ({ p, hp: p.hp, mp: p.mp, alive: p.alive, ailment: p.ailment || null, pct: p._poisonPct || null }));
+  G.rematch = { key: t.key, kind: t.kind, lv: t.lv, homeIdx: t.homeIdx, savedIdx: G.dungeonIdx, savedFloor: G.floor, snap };
+  sheet.closeAll();
+  townEl.classList.add("hidden");
+  G.town.facility = null; G.town.sub = null;
+  G.dungeonIdx = t.homeIdx;
+  G.floor = home.floors || 1;
+  G.eliteFloor = false; G.specialFloor = null; G.mutator = null;
+  G.run = newRun(); G.run.rematch = true;
+  G.state = "board"; // startBattle が戦闘へ切り替える (inDungeon で迷宮の中として戦果・Lv を読む)
+  if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; }
+  // 強さ: 挑む Lv に近い本筋の迷宮 (手本の迷宮) の最下階の主・強敵の出方を、挑む Lv の伸びに写す。
+  // (縄張りの迷宮の出方のままだと、序盤の主・強敵はランクが低く、Lv を上げても体が小さすぎる)
+  const ref = rematchRef(t.kind, t.lv);
+  const refLv = dungeonLevelRaw(ref, ref.floors || 1);
+  const atRef = strengthAt(ref, ref.floors || 1);
+  const k = lvPow(t.lv) / lvPow(refLv) * REMATCH_MUL;
+  const tn = ref.tune || {};
+  let foes;
+  if (t.kind === "boss") {
+    foes = spawnBossEnemies(t.key, (ref.bossScale || 1) * (tn.bossMul || 1) * atRef * k, ref.bossRank);
+    if ((tn.bossHpMul || 1) !== 1) for (const e of foes) e.maxhp = e.hp = Math.max(1, Math.round(e.maxhp * tn.bossHpMul));
+  } else {
+    // 名のある強敵: 体 (HP・攻撃・防御・素早さ) と抵抗の格は手本の迷宮の強敵から。特色と見た目はその強敵のまま
+    const tpl = spawnEliteEnemies((ref.elites || [])[0] || t.key, atRef * (tn.soloMul || 1) * k)[0];
+    foes = spawnEliteEnemies(t.key, 1);
+    for (const e of foes) {
+      e.maxhp = e.hp = Math.max(1, Math.round(tpl.maxhp * resistHpMul(e.mon, true) / Math.max(0.01, resistHpMul(tpl.mon, true))));
+      e.atk = tpl.atk; e.vit = tpl.vit; e.agi = Math.max(e.agi, tpl.agi);
+      e.resists = monsterResists({ ...e.mon, rank: Math.max(e.mon.rank || 1, tpl.mon.rank || 1), elite: true, resists: e.mon.resistOverrides || {} });
+      e._tuneK = tn.soloMul || 1;
+    }
+  }
+  const tr = rematchTrait(t.key);
+  for (const e of foes) { e._rematch = true; if (tr) tr.apply(e); }
+  log(`闘技場跡の砂の上に、${foes[0].name}の記憶が立ち上がる (Lv${t.lv}${tr ? `・${tr.label}` : ""})。`, "dmg");
+  if (tr) setTimeout(() => showToast(`記憶の${foes[0].name}は「${tr.label}」を身につけている`, { tone: "bad", noLog: true }), 400);
+  startBattle(foes, null);
+  return true;
+}
+// 戦いの終わり (勝ち・負け・逃走のどれでも): 隊を挑む前に戻し、勝っていれば戦果を渡して街へ
+function endRematch(b) {
+  const rm = G.rematch;
+  G.autoCombat = false;
+  if (G._autoTimer) { clearTimeout(G._autoTimer); G._autoTimer = null; }
+  renderCombat();
+  const win = b.result === "win";
+  const restore = () => {
+    for (const s of rm.snap || []) {
+      const p = s.p;
+      p.hp = Math.min(s.hp, p.maxhp); p.mp = Math.min(s.mp, p.maxmp); p.alive = s.alive; p.ailment = s.ailment; p._poisonPct = s.pct;
+      p._dead = !s.alive; p.asleep = false; p.mind = null; p._defending = false;
+    }
+  };
+  const finish = () => {
+    G.prompt = true;
+    uiDungeonHud.sceneTransition(() => { G.prompt = false; finishRematch(); });
+  };
+  if (!win) {
+    restore();
+    SFX.flee();
+    const msg = b.result === "lose" ? `${rm ? MONSTERS[rm.key].name : "記憶"}に敗れた。記憶との手合わせなので、隊は何も失わない。` : "砂の上から退いた。記憶は、また呼べば立ち上がる。";
+    log(msg, "sys");
+    G.battle = null; G.state = "board";
+    combatMenu.classList.add("hidden");
+    showEvent({ banner: "⚔ 宿敵の再戦 ⚔", title: b.result === "lose" ? "記憶に敗れた" : "試合を降りた", accent: "#c9a24a", lines: [msg], btnLabel: "街へ戻る", noLog: true, onClose: finish });
+    return;
+  }
+  const lv = rm.lv;
+  const mult = REMATCH_SPOILS[rm.kind] || 4;
+  const soulOut = {};
+  const goldGot = runGainGold(Math.round(refGold(lv) * mult) * 2, "rm");
+  const soulGot = runGainSoulPts(Math.round(refSoul(lv) * mult), "rm", null, 1, soulOut);
+  applyVictoryPassives();
+  const progress = distributeBattleSoulExp(soulOut.raw ?? soulGot);
+  restore();
+  G.stats.rematch = G.stats.rematch || {};
+  G.stats.rematch[rm.key] = (G.stats.rematch[rm.key] || 0) + 1;
+  G.stats.rematchWins = (G.stats.rematchWins || 0) + 1;
+  const name = MONSTERS[rm.key].name;
+  log(`${name}の記憶を打ち破った！ 💰${goldGot} と ✦${soulGot} Soul を得た。`, "win");
+  SFX.victory(); flashScreen("#ffd84a");
+  // 名のある強敵: 首級を ＋1 に鍛える
+  const notes = [];
+  if (rm.kind === "named") {
+    const nf = NAMED_FOES[rm.key], it = nf ? heldTrophy(nf.trophy) : null;
+    if (!it) notes.push(`首級「${nf && ITEMS[nf.trophy] ? ITEMS[nf.trophy].name : "首級"}」が手元に無いので、鍛えられなかった。`);
+    else if ((it.forge || 0) >= REMATCH_FORGE_MAX) notes.push(`首級「${ITEMS[it.id].name}」は、もう ＋${REMATCH_FORGE_MAX} まで鍛え上がっている。`);
+    else {
+      it.forge = (it.forge || 0) + 1;
+      resyncItem(it);
+      const d = allDolls().find((x) => (x.items || []).includes(it) || Object.values(x.equip || {}).includes(it));
+      if (d) { recalcDoll(d); d.hp = Math.min(d.hp, d.maxhp); d.mp = Math.min(d.mp, d.maxmp); }
+      notes.push(`記憶の打ち合いで、首級「${itemName(it)}」が鍛え上がった (＋${it.forge})。`);
+      G.stats.trophyForged = (G.stats.trophyForged || 0) + 1;
+    }
+    for (const n of notes) log(n, "win");
+  }
+  const levels = progress.filter((q) => q.kind === "level").map((q) => ({ name: q.member.name, uid: q.member.uid, from: q.fromLv, to: q.toLv, deltas: q.deltas || [], sub: !!q.sub, soulLabel: q.soulLabel || "" }));
+  const skills = progress.filter((q) => q.kind === "skill").map((q) => ({ name: q.member.name, key: q.skill, skill: SPELLS[q.skill] ? SPELLS[q.skill].name : q.skill, desc: SPELLS[q.skill] ? SPELLS[q.skill].desc : "" }));
+  for (const l of levels) log(`${l.name}${l.sub && l.soulLabel ? `のサブ魂「${l.soulLabel}の魂」` : ""}が Lv${l.from} → Lv${l.to} に上がった！`, "win");
+  for (const k of skills) log(`${k.name}は「${k.skill}」を覚えた！`, "win");
+  G.battle = null; G.state = "board";
+  combatMenu.classList.add("hidden");
+  const mem = rm.kind === "boss" && REMATCH_MEMORIES[rm.key] && !worldState().beats["rm_" + rm.key] ? REMATCH_MEMORIES[rm.key] : null;
+  uiResults.openResults({
+    kind: "rematch", gold: goldGot, soul: soulGot, kills: 1, fled: 0,
+    levels, skills, souls: [], levelUps: levelUpEntries(progress), chest: null,
+    onDone: () => {
+      const after = () => finish();
+      if (notes.length) showToast(notes[notes.length - 1], { tone: "good", noLog: true });
+      if (mem) {
+        worldState().beats["rm_" + rm.key] = 1;
+        UI.playStoryChain([{ title: mem.title, lines: storyLines(mem.lines), art: mem.art, who: "none", kicker: "記憶のかけら", btnLabel: "胸に刻む" }], after);
+      } else after();
+    },
+  });
+}
+function finishRematch() {
+  const rm = G.rematch;
+  G.rematch = null;
+  G.state = "town";
+  G.battle = null; G.battleCell = null;
+  if (rm) { G.dungeonIdx = rm.savedIdx; G.floor = rm.savedFloor || 1; }
+  G.run = null;
+  G.autoCombat = false;
+  sheet.closeAll();
+  combatMenu.classList.add("hidden");
+  if (townBtn) townBtn.classList.add("hidden");
+  if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; }
+  updateTopbar();
+  renderDock();
+  renderTown();
+  autosave(true);
+}
+// 読み込んだセーブが再戦の途中だった: 試合は無かったことにして、隊を挑む前に戻して街へ
+function abortRematch() {
+  const rm = G.rematch;
+  if (rm) for (const s of rm.snap || []) { const p = s.p; if (!p) continue; p.hp = Math.min(s.hp, p.maxhp || s.hp); p.mp = Math.min(s.mp, p.maxmp || s.mp); p.alive = s.alive; p.ailment = s.ailment; p._poisonPct = s.pct; p._dead = !s.alive; }
+  finishRematch();
+}
 // 奈落の支度は出撃シートの1ページ (誓約・モード・記録)。旧来の入口 (広場の「奈落」) もそこを開く
 function openAbyssSetup() {
   if (!featureUnlocked("infinite")) { log("奈落はまだ解放されていない。", "sys"); SFX.ng(); return; }
@@ -16118,7 +16419,7 @@ const SAVE_FIELDS = [
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "stabilityBriefed", "pendingDoll",
   "party", "reserve", "expedition", "souls", "shopStock", "run", "town",
   "quest", "msq", "ach", "fastAnim", "animTempo", "tavernCrowd", "tavernHeard", "rumor", "rumorCooldown", "activeRumor", "codex", "treasury", "lrOwned", "named", "order", "irene", "journal", "tut", "events", "story", "world", "dragonSlain", "stats",
-  "battle", "battleCell", "prevPos", "statusIdx", "statusTab",
+  "battle", "battleCell", "prevPos", "statusIdx", "statusTab", "rematch",
   "lastRun",
 ];
 
@@ -16470,6 +16771,7 @@ function loadGame() {
 // 復元した状態に応じて画面を再構築 (やり直し不可の再開)
 function resumeFromState() {
   refreshStability();
+  if (G.rematch) { abortRematch(); return; } // 宿敵の再戦の途中で閉じた: 試合は無かったことにする
   if (!G.state || G.state === "town") {
     G.state = "town";
     if (townBtn) townBtn.classList.add("hidden");
@@ -17121,7 +17423,7 @@ bindGame({
 // モジュールの評価時 (init より前) に結ぶ。init の wireUI が同じ game へ残りを足す
 bindGame({
   // 出撃
-  departNow, departAbyss, townMutatorFor, preDiveIssues, departWoes, DUNGEON_BRIEFING, STORY_CELLS, startFloorsOf, worldOpenIdx, worldOpenId, worldUnlockMet, levelBand, wallOf, wallStepOf, partyLevel, storyCellPending, dungeonFacts, dungeonQuests, namedHere, namedList, namedInfo,
+  departNow, departAbyss, rematchList, departRematch, REMATCH_FORGE_MAX, townMutatorFor, preDiveIssues, departWoes, DUNGEON_BRIEFING, STORY_CELLS, startFloorsOf, worldOpenIdx, worldOpenId, worldUnlockMet, levelBand, wallOf, wallStepOf, partyLevel, storyCellPending, dungeonFacts, dungeonQuests, namedHere, namedList, namedInfo,
   abyssRecords, abyssMaxDepth, ABYSS_MODS, abyssScoreMul, weekSeedId, emptyDollCost,
   // 迷宮の HUD
   specialDef, mutDef, eliteKey, dungeonObjective, abyssActive, abyssBossPending, findRevealedStairs, canReturnNow, confirmAbandonDungeon,
@@ -17167,6 +17469,10 @@ function init() {
     evApi, runEvent, logHistory,
     // オート移動の検証用
     autoMove: { setAutoMove, toggleAutoMove, autoMovePlan, cellRect, viewSize: () => ({ VW, VH }) },
+    // 宿敵の再戦の検証用
+    rematch: { rematchList, departRematch, endBattle },
+    // 第九章の掟 (一騎打ち・観客の注文) の検証用
+    arenaRules: { duelFoes, audienceOrderFor, AUDIENCE_ORDERS },
     // 宝物庫の褒賞の検証用
     treasury: { TREASURY_MILESTONES, treasuryState, totalDonatedKinds, treasuryDepth, milestoneWait, milestoneReady, pickTreasurySR, pickTreasuryLR, claimTreasury, claimNextTreasury, treasuryRewardReady },
     // 酒場の依頼の検証用

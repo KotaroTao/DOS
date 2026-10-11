@@ -1,6 +1,6 @@
 // ===== 出撃シート — 門の選択・隊の備え (その場で直す)・迷宮の異変・初回の注意・奈落の支度 =====
 // 担当: WP-D。game.js は import しない (ctx.js の UI / game / ops を通す)。
-// 提供する契約: UI.openDeparture({ page }) … 中央の門 (どのタブからでも)。page:"abyss" で奈落の支度を開く
+// 提供する契約: UI.openDeparture({ page }) … 中央の門 (どのタブからでも)。page:"abyss" で奈落の支度、page:"rematch" で宿敵の再戦を開く
 //
 //   ┌ ━━ 出 撃 ━━ ─────────────────────────┐
 //   │ ┌ 迷宮の顔 (由来の原画・無ければ情景) ┐ │ 上半分 = 選んでいる迷宮: 情景・名・説明
@@ -180,7 +180,7 @@ function wireMini(h) {
   b._dpMini = true;
   let last = 0;
   b.addEventListener("scroll", () => {
-    if (!cur || cur.h !== h || cur.page === "abyss") return;
+    if (!cur || cur.h !== h || cur.page !== "gates") return;
     const t = b.scrollTop, up = t < last;
     last = t;
     if (cur.miniLock && Date.now() < cur.miniLock) return;
@@ -397,6 +397,20 @@ function renderGates(b) {
     r.addEventListener("click", () => { sfx("select"); cur.page = "abyss"; cur.mini = false; refresh(); });
     list.appendChild(r);
   }
+  // 宿敵の再戦 (第九章の結びで開く): 倒した名のある強敵・迷宮の主の記憶に、闘技場跡で挑み直す
+  if (game.featureUnlocked && game.featureUnlocked("rematch")) {
+    const rv = game.rematchList ? game.rematchList() : [];
+    const r = el("button", "dp-gate dp-abyss dp-rematch");
+    r.type = "button";
+    r.appendChild(gateIcon("gateDone"));
+    const info = el("span", "dp-gate-i");
+    info.appendChild(el("span", "dp-gate-n", "闘技場跡 ― 宿敵の再戦"));
+    info.appendChild(el("span", "dp-gate-c", rv.length ? `挑める相手 ${rv.length} ・ 倒した強敵と主の記憶に、強くなった姿で挑む` : "名のある強敵か迷宮の主を倒すと、その記憶に挑める"));
+    r.appendChild(info);
+    r.appendChild(el("span", "dp-gate-st", "支度 ›"));
+    r.addEventListener("click", () => { sfx("select"); cur.page = "rematch"; cur.mini = false; refresh(); });
+    list.appendChild(r);
+  }
   // 一覧は本文 (シートの縦スクロール) と一緒に巻く。選び直しの巻き位置は refresh が本文ごと保つ
   b.appendChild(list);
 }
@@ -406,7 +420,7 @@ function renderGates(b) {
 function startFloors() {
   const g = G();
   const dn = (game.DUNGEONS || [])[g.dungeonIdx];
-  if (!dn || cur.page === "abyss") return [1];
+  if (!dn || cur.page !== "gates") return [1];
   const floors = game.startFloorsOf ? game.startFloorsOf(dn) : [1];
   if (!floors.includes(cur.from)) cur.from = 1;
   return floors;
@@ -622,9 +636,57 @@ function renderAbyssPage(b) {
   }
 }
 
+// ---- 宿敵の再戦の支度 ----
+function renderRematchPage(b) {
+  const back = el("button", "dp-back");
+  back.type = "button";
+  back.appendChild(el("span", "dp-back-c", "‹"));
+  back.appendChild(el("span", null, "門の選択へ"));
+  back.addEventListener("click", () => { sfx("select"); cur.page = "gates"; refresh(); });
+  b.appendChild(back);
+  b.appendChild(el("div", "dg-note", "闘技場跡の砂の上で、倒した名のある強敵と迷宮の主の記憶に挑み直す。相手は隊の今の強さに合わせて手強くなり、生前に無かった特色をひとつ身につけている。"));
+  b.appendChild(el("div", "dg-note", `記憶との手合わせなので、終われば隊の HP・MP・状態は挑む前に戻る (負けても砕けない)。勝てば ✦Soul と金貨。名のある強敵は首級を ＋1 に鍛え (＋${game.REMATCH_FORGE_MAX || 5} まで)、主は初めて勝った時に記憶のかけらを語る。`));
+  const rv = game.rematchList ? game.rematchList() : [];
+  if (!rv.length) { b.appendChild(el("div", "dg-line", "まだ挑める相手がいない。名のある強敵か迷宮の主を倒すと、ここに並ぶ。")); return; }
+  if (!rv.some((x) => x.key === cur.rival)) cur.rival = rv[0].key;
+  const groups = [["boss", "迷宮の主"], ["named", "名のある強敵"]];
+  for (const [kind, label] of groups) {
+    const xs = rv.filter((x) => x.kind === kind);
+    if (!xs.length) continue;
+    b.appendChild(sec(label, `${xs.length}`));
+    for (const x of xs) {
+      const on = x.key === cur.rival;
+      const r = el("button", "dp-gate" + (on ? " sel" : ""));
+      r.type = "button";
+      r.setAttribute("aria-pressed", on ? "true" : "false");
+      const info = el("span", "dp-gate-i");
+      info.appendChild(el("span", "dp-gate-n", x.name));
+      const bits = [`Lv${x.lv}`, `「${x.home}」`];
+      if (x.trait) bits.push(`＋${x.trait}`);
+      info.appendChild(el("span", "dp-gate-c", bits.join(" ・ ")));
+      const more = [];
+      if (x.trophy) more.push(x.trophy.held ? `首級「${x.trophy.name}」＋${x.trophy.forge}` : `首級「${x.trophy.name}」は手元に無い`);
+      if (x.kind === "boss" && x.memory) more.push(x.heard ? "記憶のかけら ― 聞いた" : "記憶のかけら ― まだ聞いていない");
+      if (more.length) info.appendChild(el("span", "dp-gate-c dp-hint", more.join(" ・ ")));
+      r.appendChild(info);
+      r.appendChild(el("span", "dp-gate-st" + (x.wins ? " done" : ""), x.wins ? `勝ち ${x.wins}` : "未勝利"));
+      r.addEventListener("click", () => { sfx("select"); cur.rival = x.key; refresh(); });
+      b.appendChild(r);
+    }
+  }
+}
+
 // ---- 足元 (決め手) ----
 function footerSpec() {
   const g = G();
+  if (cur && cur.page === "rematch") {
+    const rv = game.rematchList ? game.rematchList() : [];
+    const x = rv.find((t) => t.key === cur.rival) || null;
+    const alive = g.party.some((p) => p.alive);
+    return [{ label: !alive ? "動ける人業がいない" : x ? `挑む ― ${x.name}` : "相手を選ぶ", sub: x ? `Lv${x.lv}${x.trait ? ` ・ ＋${x.trait}` : ""} ・ 安定度 −10／人` : "",
+      disabled: !x || !alive || game.stabilityStatus().some(d=>d.value<10), kind: "danger", size: "lg",
+      onTap: () => { if (!x) return; const go=()=>{close();game.departRematch?.(x.key);}; if(!G().stabilityBriefed)openBriefing(go);else go(); } }];
+  }
   if (cur && cur.page === "abyss") {
     const mul = game.abyssScoreMul ? game.abyssScoreMul(abyssMods) : 1;
     return [{ label: "奈落へ降りる", sub: `スコア ×${mul.toFixed(2)} ・ 安定度 −10／人`, disabled:!g.party.some(d=>d.alive)||game.stabilityStatus().some(d=>d.value<10), kind: "primary", size: "lg", onTap: () => checkWoes(() => { const go=()=>{close();game.departAbyss?.(abyssMods,abyssWeekly);};if(!G().stabilityBriefed)openBriefing(go);else go(); }) }];
@@ -650,7 +712,7 @@ function refreshFooter() {
   if (!cur || !cur.h || cur.h.closed) return;
   const foot = cur.h.foot;
   foot.textContent = "";
-  if (cur.page !== "abyss") {
+  if (cur.page === "gates") {
     const ready = el("div", "dp-ready");
     renderReady(ready);
     foot.appendChild(ready);
@@ -739,6 +801,7 @@ function departGo() {
 
 function body(b) {
   if (cur.page === "abyss") { renderAbyssPage(b); renderStability(b); return; }
+  if (cur.page === "rematch") { renderRematchPage(b); renderStability(b); return; }
   renderGates(b); // 迷宮の異変は門の一覧の上 (迷宮の顔の中) に出す
   renderStability(b);
   renderReadyIssues(b);
@@ -747,11 +810,12 @@ function refresh() {
   if (!cur || !cur.h || cur.h.closed) return;
   const scroll = cur.h.body ? cur.h.body.scrollTop : 0;
   cur.miniLock = Math.max(cur.miniLock || 0, Date.now() + 150); // 作り直しの間の巻き位置のゆれで伸び縮みしない
-  cur.h.update({ banner: cur.page === "abyss" ? "奈落の支度" : "出 撃", body });
-  if (cur.h.el) cur.h.el.classList.toggle("dp-full", cur.page !== "abyss");
+  cur.h.update({ banner: pageBanner(cur.page), body });
+  if (cur.h.el) cur.h.el.classList.toggle("dp-full", cur.page === "gates");
   refreshFooter();
   if (cur.h.body) cur.h.body.scrollTop = scroll;
 }
+const pageBanner = (page) => page === "abyss" ? "奈落の支度" : page === "rematch" ? "宿敵の再戦" : "出 撃";
 function close() {
   vistaLoop++;
   if (cur && cur.h && !cur.h.closed) cur.h.close("close");
@@ -766,7 +830,8 @@ export function openDeparture(opts = {}) {
   if (game.blockForReport && game.blockForReport()) return null;
   if (game.blockForTutorial && game.blockForTutorial()) return null;
   if (cur && cur.h && !cur.h.closed) { if (opts.page) { cur.page = opts.page; cur.mini = false; refresh(); } return cur.h; }
-  const page = opts.page === "abyss" && game.featureUnlocked && game.featureUnlocked("infinite") ? "abyss" : "gates";
+  const page = opts.page === "abyss" && game.featureUnlocked && game.featureUnlocked("infinite") ? "abyss"
+    : opts.page === "rematch" && game.featureUnlocked && game.featureUnlocked("rematch") ? "rematch" : "gates";
   if (page === "abyss") { abyssMods = []; abyssWeekly = false; }
   // 勅命の迷宮を最初から選んでおく (攻略中の章のみ)
   // (街に戻って最初に開いた時だけ。広場などで選び直した迷宮はそのまま尊重する)
@@ -778,15 +843,15 @@ export function openDeparture(opts = {}) {
   const fl0 = dn0 && game.startFloorsOf ? game.startFloorsOf(dn0) : [1];
   cur = { page, accept: true, hasMut: false, h: null, from: fl0[fl0.length - 1] || 1 };
   cur.h = sheet.open({
-    kind: "info", banner: page === "abyss" ? "奈落の支度" : "出 撃", className: "dp-sheet",
+    kind: "info", banner: pageBanner(page), className: "dp-sheet",
     accent: "#8e6fd0",
     body,
     footer: [],
     onClose: () => { if(cur?.timer)clearInterval(cur.timer);cur = null; vistaLoop++; },
     // 戻る: 奈落のページなら門の選択へ、門の選択なら閉じる
-    onBack: (h) => { if (cur && cur.page === "abyss" && !opts.page) { cur.page = "gates"; cur.mini = false; refresh(); } else h.close("back"); },
+    onBack: (h) => { if (cur && cur.page !== "gates" && !opts.page) { cur.page = "gates"; cur.mini = false; refresh(); } else h.close("back"); },
   });
-  if (cur.h.el) cur.h.el.classList.toggle("dp-full", page !== "abyss");
+  if (cur.h.el) cur.h.el.classList.toggle("dp-full", page === "gates");
   refreshFooter();
   wireMini(cur.h);
   const live=cur;
