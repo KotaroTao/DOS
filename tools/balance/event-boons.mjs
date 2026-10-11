@@ -12,7 +12,9 @@ for (const d of WORLD) {
     const st = { dungeonId: d.id, layer: d.layer, lv: d.lv, first: d.id === 'w01', floor, floors: d.floors, runEv: {}, onceDone: () => false };
     const candidates = eligibleEvents(st).filter(e => e.tier === 'mythic');
     assert.equal(candidates.length, expected, `${d.id} B${floor}`);
-    assert.equal(eligibleEvents({ ...st, abyss: true }).length, 0);
+    // 無限迷宮には無限迷宮だけの出来事 (infevents.js) が出て、極・本編の出来事は出ない
+    { const inf = eligibleEvents({ ...st, abyss: true, floors: 9999 }); assert(inf.length > 0 && inf.every(e => e.inf && e.tier !== 'mythic'), `${d.id} 無限迷宮`); }
+    assert.equal(eligibleEvents(st).filter(e => e.inf).length, 0);
     assert.equal(eligibleEvents({ ...st, onceDone: () => true }).filter(e => e.tier === 'mythic').length, 0);
   }
 }

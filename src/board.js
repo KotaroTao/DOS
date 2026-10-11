@@ -168,7 +168,7 @@ export function makeBoard(floor, cfg = null) {
   // 踏むと「街へ帰る / 先へ進む」を選び、到達した陣の次の階から次回は潜れる (game.js)。ほかの階に陣は無い
   if (dn.gates) {
     if (!bottom && floor % 5 === 0) cells[st.y][st.x].gate = true;
-  } else if (!noBossBottom && (bottom || floor % 5 === 0 || Math.random() < 0.20)) {
+  } else if (!dn.noPortal && !noBossBottom && (bottom || floor % 5 === 0 || Math.random() < 0.20)) { // 無限迷宮 (noPortal) には帰還魔法陣が無い
     const cand = [];
     for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
       const c = cells[y][x];

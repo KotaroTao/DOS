@@ -661,3 +661,62 @@ button.dp-rule:active, .dp-rule-b:active { filter: brightness(1.25); }
 }
 .dp-stability-row { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:5px 0; font-size:12px; color:#b6d8df; }
 .dp-stability-low { color:#f0aa90; }
+
+/* ===== 無限迷宮 (src/ui/infinite.js): 入口の魂の3択・風だまり・回収人・灯番・結果 ===== */
+.inf-sheet .ui-sheet-body { text-align: left; }
+.inf-note { margin: 6px 0; font-size: 13px; line-height: 1.75; color: var(--ink); }
+.inf-note.dim { color: var(--ink-dim); font-size: 12px; }
+.inf-note.gold { color: var(--accent-hi); font-weight: 700; }
+.inf-note.warn { color: #e8a080; font-size: 12px; }
+.inf-h { margin: 12px 0 6px; font-size: 12px; font-weight: 800; letter-spacing: 0.2em; color: var(--accent); }
+.inf-cur { margin: 4px 0 8px; font-size: 12px; color: var(--accent-hi); }
+.inf-picked { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin: 8px 0; }
+.inf-pk { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 2px; min-height: 52px;
+  border: 1px solid var(--border); border-radius: 3px; background: rgba(20,16,24,0.6); }
+.inf-pk.now { border-color: var(--accent); box-shadow: 0 0 6px rgba(201,162,74,0.35); }
+.inf-pk.done { border-color: #54463d; }
+.inf-pk-q { font-size: 18px; line-height: 30px; color: var(--accent-hi); }
+.inf-pk-n { font-size: 10px; color: var(--ink-dim); white-space: nowrap; }
+.inf-bust { display: inline-flex; flex: 0 0 auto; }
+.inf-bust canvas { image-rendering: pixelated; }
+.inf-choice { display: flex; align-items: center; gap: 10px; width: 100%; margin: 6px 0; padding: 8px 10px; min-height: 64px;
+  text-align: left; color: var(--ink); background: linear-gradient(180deg, #221b25, #17121b); border: 1px solid var(--border);
+  border-left: 3px solid var(--glow, var(--accent)); border-radius: 3px; cursor: pointer; font: inherit; }
+.inf-choice:active { transform: scale(0.985); filter: brightness(0.92); }
+.inf-choice-t { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.inf-choice-n { font-size: 15px; font-weight: 800; }
+.inf-choice-r { font-size: 11px; color: var(--ink-dim); letter-spacing: 0.1em; }
+.inf-choice-s { font-size: 11.5px; color: var(--ink-dim); line-height: 1.5; }
+.inf-codex { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.inf-vessel { display: flex; gap: 10px; align-items: flex-start; margin: 6px 0; padding: 8px; border: 1px solid var(--border); border-radius: 3px; background: rgba(20,16,24,0.6); }
+.inf-vessel.dead { opacity: 0.6; }
+.inf-vessel-t { flex: 1 1 auto; min-width: 0; }
+.inf-vessel-n { font-size: 14px; font-weight: 800; }
+.inf-vessel-s { font-size: 12px; color: var(--ink-dim); line-height: 1.6; }
+.inf-vessel-a { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.inf-items { display: flex; flex-wrap: wrap; gap: 4px 10px; margin: 4px 0; font-size: 12.5px; }
+.inf-item.rar-c { color: #e6e0d0; } .inf-item.rar-uc { color: #7fd06a; } .inf-item.rar-r { color: #6fa8ff; }
+.inf-item.rar-sr { color: #f0a040; } .inf-item.rar-lr { color: #ff6060; }
+.inf-afx-c { margin: 8px 0 12px; }
+.inf-afx-opt { display: flex; flex-direction: column; gap: 2px; width: 100%; margin: 4px 0; padding: 8px 10px; text-align: left; font: inherit; color: var(--ink);
+  background: rgba(20,16,24,0.6); border: 1px solid var(--border); border-radius: 3px; cursor: pointer; }
+.inf-afx-opt.on { border-color: var(--accent); box-shadow: 0 0 6px rgba(201,162,74,0.35); background: rgba(60,46,20,0.45); }
+.inf-afx-tag { font-size: 11px; color: var(--accent-hi); letter-spacing: 0.05em; }
+.inf-afx-ln { font-size: 12.5px; line-height: 1.6; }
+.wpc-srow.afx { box-shadow: inset 3px 0 0 #c9a227; }
+
+/* 無限迷宮の称号 (見た目だけ) */
+.dp-title { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; margin-top: 8px; }
+.dp-title .dp-gate-s { font-size: 11px; opacity: .75; }
+.inf-title { cursor: pointer; }
+.inf-title.on { outline: 1px solid #c9a227; background: rgba(201, 162, 39, .08); }
+.inf-title.dim { opacity: .5; cursor: default; }
+
+/* 持ち物がいっぱいの時に捨てる品を選ぶ (ui/discard.js) */
+.dc-in { display: flex; align-items: center; gap: 10px; padding: 8px; margin-bottom: 6px; border: 1px solid rgba(201, 162, 39, .35); border-radius: 4px; background: rgba(201, 162, 39, .06); }
+.dc-in-t { min-width: 0; }
+.dc-in-n { font-weight: bold; }
+.dc-in-s { font-size: 11px; opacity: .7; }
+.dc-note { font-size: 12px; line-height: 1.6; margin: 4px 0 8px; opacity: .85; }
+.dc-note.dim { opacity: .6; }
+.dc-row { width: 100%; text-align: left; }

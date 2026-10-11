@@ -494,6 +494,8 @@ export function specialShort(it) {
 export function specialParts(it, { res = true } = {}) {
   if (!it || it.unidentified) return [];
   const parts = [...effStatParts(it)];
+  // 無限迷宮の追加の能力・特性 (src/infaffix.js): 格の印と名で (くわしくは specialLines)
+  for (const a of it.afxText || []) parts.push(`${a.tier === "x" ? "★" : a.tier === "r" ? "◆" : a.tier === "u" ? "◇" : "＋"}${a.name.replace(/の$/, "")}`);
   if (it.magic) parts.push("魔法属性");
   const ea = elemStatText("攻撃", it.eAtk), ed = elemStatText("防御", it.eDef);
   if (ea) parts.push(ea);
@@ -530,7 +532,8 @@ export function resistDeltaParts(before, after) {
 // 特殊効果のくわしい行をまとめて (戦闘効果・武器の補正/魔法属性・属性・状態異常)。説明の文とは別に、数字で効果を言い切る
 export function specialLines(it) {
   if (!it || it.unidentified) return [];
-  return [...effDetailLines(it), ...weaponTraitLines(it), ...elemDetailLines("攻撃", it.eAtk), ...elemDetailLines("防御", it.eDef), ...ailDetailLines(it)];
+  const afx = (it.afxText || []).map((a) => `追加${a.tier === "x" ? "★" : a.tier === "r" ? "◆" : a.tier === "u" ? "◇" : ""}「${a.name.replace(/の$/, "")}」 ― ${a.text}`);
+  return [...afx, ...effDetailLines(it), ...weaponTraitLines(it), ...elemDetailLines("攻撃", it.eAtk), ...elemDetailLines("防御", it.eDef), ...ailDetailLines(it)];
 }
 
 // 武器の能力補正 (scale) と魔法属性 (magic) のくわしい表記

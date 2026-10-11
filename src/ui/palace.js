@@ -400,6 +400,7 @@ function renderCodexJob(box) {
 function evGroupsOpen(rec) {
   // 層の欄は、その層の景色の迷宮が地図に現れてから出す
   const layers = new Set(DUNGEONS.filter((d, i) => dunOpen(i)).map((d) => d.layer));
+  if (game.featureUnlocked && game.featureUnlocked("infinite")) layers.add(99); // 無限迷宮の欄は奈落が開いてから
   return EVENT_GROUPS.filter((x) => !x.layer || layers.has(x.layer)
     || EVENTS.some((e) => (e.layer || 0) === x.layer && rec.seen[e.id]));
 }
@@ -612,7 +613,10 @@ export function codexMonSheet(key, o = {}) {
   }
   if (loreOpen && m.desc) body.appendChild(setText(el("div", "pl-detail-desc"), m.desc));
   // 伝承: 説明文と同じ段 (10体・主と強敵は1体) で開く、世界の側から見たその魔物。出典を添える
-  const lore = loreOpen ? MONSTER_LORE[key] : null;
+  // 無限迷宮で倒しただけでは開かない: 本編の迷宮で1体以上倒した魔物だけ (docs/infinite-labyrinth.md 7章)
+  const mainKills = rec === true ? 1 : Math.max(0, Number(e.main ?? e.kills) || 0);
+  const lore = loreOpen && mainKills > 0 ? MONSTER_LORE[key] : null;
+  if (loreOpen && !lore && MONSTER_LORE[key]) body.appendChild(el("div", "pl-lore pl-lore-lock", "伝承 ― 本編の迷宮でこの魔物を1体倒すと開く"));
   if (lore) {
     const box = el("div", "pl-lore");
     box.appendChild(el("div", "pl-lore-h", "伝承"));

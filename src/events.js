@@ -1,4 +1,5 @@
 import { WORLD } from "./dungeons/world.js";
+import { INF_EVENTS, INF_EV_LAYER } from "./infevents.js";
 
 // ===== 迷宮のイベント (出来事マス) =====
 // 盤面に置かれる「出来事」(type:"event") の定義と進行。基本は選択式で、
@@ -2484,6 +2485,8 @@ export function permanentEventStats(once = {}) {
   return stats;
 }
 
+// 無限迷宮だけの出来事 (src/infevents.js、layer 99)。本編の迷宮には出ず、無限迷宮には本編の出来事が出ない
+EVENTS.push(...INF_EVENTS);
 export const EVENT_MAP = Object.fromEntries(EVENTS.map((e) => [e.id, e]));
 // 定義の検査 (読み込み時): 重複id・格・層の誤りは即座に知らせる
 (() => {
@@ -2511,11 +2514,12 @@ export const EVENT_GROUPS = [
   { key: "10", label: "尖塔", name: "第10層 嵐の尖塔", layer: 10 },
   { key: "11", label: "闘技場", name: "第11層 闘技場跡", layer: 11 },
   { key: "12", label: "大空洞", name: "第12層 地底大空洞", layer: 12 },
+  { key: "99", label: "無限迷宮", name: "無限迷宮", layer: INF_EV_LAYER },
 ];
 
 // 出現条件の説明 (見聞録用)
 export function eventWhereText(e) {
-  const parts = [e.dungeonId ? WORLD.find((d) => d.id === e.dungeonId).name + "のみ" : e.layer ? `第${e.layer}層のみ` : "どの層でも"];
+  const parts = [e.inf ? "無限迷宮のみ" : e.dungeonId ? WORLD.find((d) => d.id === e.dungeonId).name + "のみ" : e.layer ? `第${e.layer}層のみ` : "どの層でも"];
   if (e.minLv) parts.push(`推奨Lv${e.minLv}以降`);
   if (e.deep) parts.push("迷宮の後半の階");
   else if (e.minFloor && e.minFloor > 1) parts.push(`B${e.minFloor}F以降`);
@@ -2530,9 +2534,9 @@ export function eventWhereText(e) {
 export function eligibleEvents(st, A) {
   const deepNow = st.floor > st.floors / 2;
   return EVENTS.filter((e) => {
-    if (st.abyss) return false;
-    if (e.dungeonId && e.dungeonId !== st.dungeonId) return false;
-    if (e.layer && e.layer !== st.layer) return false;
+    if (!!st.abyss !== !!e.inf) return false; // 無限迷宮には無限迷宮の出来事だけ
+    if (!st.abyss && e.dungeonId && e.dungeonId !== st.dungeonId) return false;
+    if (!st.abyss && e.layer && e.layer !== st.layer) return false;
     if (st.first && e.tier !== "common") return false;              // 最初の迷宮は常のみ
     if (e.minFloor && st.floor < e.minFloor) return false;
     if (e.deep && !deepNow) return false;
