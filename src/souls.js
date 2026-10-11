@@ -299,6 +299,8 @@ export const PASSIVES = {
   cartography:   { label: "踏破の地図",   scope: "party", lv: ["階の開始時、周囲2マスを明らかにする", "階の開始時、周囲3マスを明らかにする", "階の開始時、周囲4マスを明らかにする"] },
   fieldRegen:    { label: "束の間の休息", scope: "party", lv: ["階を移動すると、全員のHPを10%回復", "階を移動すると、全員のHPを20%回復", "階を移動すると、全員のHPを30%回復"] },
   soulTutor:     { label: "魂の薫陶",     scope: "self",  lv: ["自分の宿す魂が得るEXP+10%", "自分の宿す魂が得るEXP+20%", "自分の宿す魂が得るEXP+30%"] },
+  // 義賊 Lv100/160: 極めて稀なる出来事が出る確率 ×2/×3 (game.js evNewFloor → events.js pickEvent の mythicMul)
+  brigandMeguri: { label: "義の巡り合わせ", scope: "party", lv: ["極めて稀なる出来事の出る確率が2倍", "極めて稀なる出来事の出る確率が3倍"] },
   trapEye:       { label: "盗賊の眼",     scope: "party", lv: ["宝箱・床の罠の解除率+10% (最大95%)", "宝箱・床の罠の解除率+20% (最大95%)", "宝箱・床の罠の解除率+30% (最大95%)"] },
   // ===== 職ごとのランクのパッシブ (ランク2で目覚め、3・4・5で Lv2・3・4 に強まる。jobkit の awaken) =====
   priestInochi:   { label: "生命の灯", scope: "self", lv: ["蘇生した味方のHPが、さらに最大HPの10%増える", "蘇生した味方のHPが、さらに最大HPの20%増える", "蘇生した味方のHPが、さらに最大HPの30%増える", "蘇生した味方のHPが、さらに最大HPの50%増える"] },
