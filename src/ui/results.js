@@ -32,6 +32,7 @@ const KIND = {
   boss: { banner: "★ 主を討つ ★", title: "迷宮の主を討ち取った", accent: "#ffd84a" },
   corpse: { banner: "⚔ 鎮魂 ⚔", title: "起き上がった骸を鎮めた", accent: "#9be8c8" },
   chest: { banner: "✦ 宝箱 ✦", title: "宝箱", accent: "#c9a24a" },
+  rematch: { banner: "⚔ 宿敵の再戦 ⚔", title: "記憶を打ち破った", accent: "#e0b060" },
 };
 
 // spec: { kind, gold, soul, kills, levels[{name,from,to,deltas[],sub?,soulLabel?}], skills[{name,key,skill,desc}],

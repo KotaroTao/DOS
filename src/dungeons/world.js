@@ -48,6 +48,9 @@
 //             poisonStart 戦闘の開幕に、隊の一人ひとりがこの確率で毒に冒される (毒の耐性で防げる。よどみの底)
 //             boltStart 戦闘の開幕に隊の一人へ雷が落ち、最大HPのこの割合を焼く (ブレス耐性で和らぐ。HP1 は残る。嵐の尖塔の頂)
 //             allHaste 敵はみな神速 (ターンの頭に動き、後半にもう一度動く。主は除く。雷鳥の巣)
+//             foeRally 戦闘の開幕に、敵全体の攻撃をこの段数だけ上げる (3ターン。主・金属の魔物は除く。闘獣の檻)
+//             fervor   高まる戦意: 2ターン目から毎ターンの頭に、敵味方とも生きている者すべての攻撃が1段上がる (+3段まで。血の砂の闘技場)
+//             duel     一騎打ち: 魔物の札の戦闘は必ず1体だけ。その1体は強敵並みに強く、戦果も群れの分だけ持つ (決闘の小円形場)
 //             say      開幕の効果 (mpDrain / hpDrain / chill / poisonStart / boltStart) を戦闘の記録に書く時の一文
 //           掟の分け方 (ユーザーの指示、2026-10): 土地 (章) の気候・性質は下の「土地の掟」(realm) に1つにまとめ、迷宮の掟は
 //           その迷宮だけの違いにする (同じ効果を迷宮ごとに作らない)。「技が一切使えない」「物理が効かない」「魔法が効かない」の
@@ -79,6 +82,7 @@
 //           顔ぶれのランクが 9〜10 に上がった分は monStats が持つので、これもテスト記録で測り直す
 //           第9層 (第七章) も同じく第六章の 0.9倍。顔ぶれはランク10 (上限) にそろえた。テスト記録で測り直す
 //           第10層 (第八章) も第七章の 0.9倍。寄り道の雷鳥の巣 (敵はみな神速) は二度動く分だけ強さの素を約2割下げた。テスト記録で測り直す
+//           第11層 (第九章) も第八章の 0.9倍。第一部の最後から2つ目の層なので壁 (第二部) はまだ掛からない。テスト記録で測り直す
 import { LAYER_ELEMENT } from "./generator.js";
 import { LAYER_BOSS, LAYER_ELITES, LAYER_POOLS, BESTIARY } from "./bestiary.js";
 import { baselineLv } from "../baseline.js";
@@ -101,8 +105,15 @@ export const REALM_RULES = {
     lines: ["凍てつく寒さに身がすくむ。戦闘が始まるたび、隊の全員の AGI が1段下がる (3ターン)。", "氷結回廊のどの迷宮でも同じ。迷宮の掟はこれに重なる。"],
     chill: 1, say: "凍てつく寒さに身がすくむ",
   },
+  // 第九章「闘技場跡」と第11層の寄り道 (勝者の控え所・決闘の小円形場)
+  arena: {
+    id: "arena", name: "見世物の闘技場", sym: "♛", accent: "#e0b060",
+    lines: ["亡き観客が見ている。戦闘が始まるたび観客の注文がひとつ出て (3ターン以内に勝て・誰も倒れずに勝て…)、応えて勝てばその戦闘の ✦Soul と金貨が 1.5倍。", "闘技場跡のどの迷宮でも同じ。迷宮の掟はこれに重なる。"],
+    audience: true,
+  },
 };
-const REALM_FIELDS = ["id", "name", "sym", "accent", "lines", "hpDrain", "mpDrain", "chill", "poisonStart", "boltStart", "say"];
+// audience = 観客の注文 (game.js AUDIENCE_ORDERS。開幕の効果ではないので、開幕の演出には出さない)
+const REALM_FIELDS = ["id", "name", "sym", "accent", "lines", "hpDrain", "mpDrain", "chill", "poisonStart", "boltStart", "say", "audience"];
 
 const WORLD_DEF = [
   {
@@ -796,6 +807,91 @@ const WORLD_DEF = [
     unlock: { all: ["w31", "w32"] },
     hint: "「嵐を鳴らす鐘楼」と「雷の落ちる回廊」の両方を踏破して王に報告すると、塔の頂への道が開く",
   },
+  // ---- 第九章「闘技場跡」(第11層の顔ぶれ) ── 嵐の尖塔の頂から雲の上へ架かる石橋の先、灰に埋もれた古い闘技場の町 ----
+  //   強さの素は第八章の各迷宮の 0.9倍 (層の入口の1割の段差)。手直しは第八章に倣う。顔ぶれはランク10 (上限)。土地の掟は「見世物の闘技場」
+  {
+    id: "w34", realm: "arena", lv: 97, lvTo: 100, layer: 11, floors: 10,
+    floorHaz: { fall: "bridgegap", harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
+    power: { 1: 0.1135, 5: 0.1221, 10: 0.1322 },
+    name: "雲を渡る石橋", short: "石橋",
+    about: "尖塔の頂から、雷雲の上へ長い石の橋が伸びている。欄干には、枷をつないだ鉄の輪がどこまでも並ぶ",
+    bands: [
+      ["bs_chaingang", "bs_warbeasthound", "bs_netfighter", "bs_hookmaster", "bs_ghostgladiator", "bs_spectreaudience"],
+      ["bs_impaler", "bs_crowdroar", "bs_championwraith"],
+    ],
+    elites: ["el_ashshogun"],
+    trait: {
+      id: "nobackway", name: "退けぬ橋", sym: "⇉", accent: "#c8b898",
+      lines: ["狭い石橋に退き場はない。戦闘から逃げられない。", "橋を渡った者たちの魂が欄干に残り、得る ✦Soul は 1.25倍。"],
+      mods: { noFlee: true, soulMul: 1.25 },
+    },
+    tune: { enemyMul: 1.04, deepMul: 0.78, soloMul: 1.05 }, // 逃げられない分だけ並みより少し控えめ
+    unlock: { reported: "w33" },
+    hint: "「嵐の尖塔の頂」の踏破を王に報告すると、雲の上の石橋を渡る許しが出る",
+  },
+  {
+    id: "w35", realm: "arena", lv: 100, lvTo: 103, layer: 11, floors: 10,
+    floorHaz: { fall: null, harm: "rotstraw" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
+    power: { 1: 0.1108, 5: 0.1194, 10: 0.1293 },
+    name: "闘獣の檻", short: "檻",
+    about: "闘技場の床の下に、獣の檻と通路が迷路のように続いている。檻の扉は、どれも内側から破られていた",
+    bands: [
+      ["bs_arenabeast", "bs_warbeasthound", "bs_sandlurker", "bs_beastmaster", "bs_chaingang", "bs_hookmaster"],
+      ["bs_chainedogre", "bs_executioner", "bs_gladiatorlich"],
+    ],
+    elites: ["el_dragonslayer"],
+    trait: {
+      id: "hungry", name: "飢えた獣", sym: "ψ", accent: "#c87850",
+      lines: ["檻の魔物はみな飢えている。戦闘が始まるたび、敵全体の攻撃が1段上がる (3ターン。主は除く)。", "檻にこびりついた古い魂が、得る ✦Soul を 1.3倍にする。"],
+      mods: { soulMul: 1.3 },
+      foeRally: 1,
+    },
+    tune: { enemyMul: 0.97, deepMul: 0.82, soloMul: 1.00 }, // 開幕に攻撃が上がる分だけ控えめ
+    unlock: { story: "w34_glove" },
+    hint: "「雲を渡る石橋」のどこかに、師が橋を渡った跡が残されているという",
+  },
+  {
+    id: "w36", realm: "arena", lv: 103, lvTo: 106, layer: 11, floors: 10,
+    floorHaz: { fall: "standgap", harm: "ashdrift" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
+    power: { 1: 0.1094, 5: 0.1180, 10: 0.1280 },
+    name: "亡き観客の階段席", short: "観客席",
+    about: "すり鉢の形にせり上がる、石の観客席。灰の積もった石段に、半ば透けた観客たちが肩を寄せて座っている",
+    bands: [
+      ["bs_spectreaudience", "bs_crowdroar", "bs_bloodpriest", "bs_ghostgladiator", "bs_bladedancer", "bs_netfighter"],
+      ["bs_mirrorduelist", "bs_championofash", "bs_gladiatorlich"],
+    ],
+    elites: ["el_ashshogun"],
+    trait: {
+      id: "fullhouse", name: "満員の観客席", sym: "♟", accent: "#b0a0c8",
+      lines: ["観客席はいつも満員で、敵は必ず4体以上の群れで現れる。", "観客の投げ銭が石段に散らばり、得られる金貨は 1.35倍。"],
+      mods: { packMin: 4, goldMul: 1.35 },
+    },
+    tune: { enemyMul: 0.95, deepMul: 0.84, soloMul: 1.05 }, // 群れが大きい分だけ1体ずつを控えめに
+    unlock: { reported: "w34" },
+    hint: "「雲を渡る石橋」の踏破を王に報告すると、闘技場の観客席への道が示される",
+  },
+  {
+    id: "w37", realm: "arena", lv: 106, lvTo: 110, layer: 11, floors: 15,
+    floorHaz: { fall: "arenatrap", harm: "bladesand" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
+    power: { 1: 0.1069, 5: 0.1120, 10: 0.1177, 15: 0.1229 },
+    name: "血の砂の闘技場", short: "闘技場",
+    about: "観客席に囲まれた、闘技場の砂の床。乾かない血の染みの上で、終わらない試合がいまも続いている",
+    bands: [
+      ["bs_championwraith", "bs_impaler", "bs_bladedancer", "bs_sandlurker", "bs_executioner", "bs_spikedgolem"],
+      ["bs_arenabeast", "bs_chainedogre", "bs_mirrorduelist"],
+      ["bs_championofash", "bs_bloodpriest", "bs_gladiatorlich"],
+    ],
+    trait: {
+      id: "fervor", name: "高まる戦意", sym: "⚔", accent: "#e07060",
+      lines: ["観客の歓声が戦う者を煽る。2ターン目から毎ターン、敵も味方も攻撃が1段ずつ上がっていく (+3段まで)。", "砂に染みた魂が濃く渦を巻き、得る ✦Soul は 1.4倍。"],
+      mods: { soulMul: 1.4 },
+      fervor: true,
+    },
+    boss: LAYER_BOSS[10], bossRank: 10,
+    tune: { enemyMul: 0.96, deepMul: 0.88, soloMul: 1.10, bossMul: 0.85 }, // 第11層の壁。長引くほど敵も強まる分だけ控えめ
+    unlock: { all: ["w35", "w36"] },
+    hint: "「闘獣の檻」と「亡き観客の階段席」の両方を踏破して王に報告すると、闘技場の砂の上へ降りる道が開く",
+  },
   // ---- 依頼の迷宮 (酒場の固定クエストを受けると地図に現れる) ----
   {
     id: "ws1", lv: 20, lvTo: 23, layer: 2, floors: 10, side: true,
@@ -1153,6 +1249,49 @@ const WORLD_DEF = [
     unlock: { quest: "fq_garden" },
     hint: "酒場の老いた庭師の依頼「雲の上の花」を受けると、道が示される",
   },
+  {
+    // 毎階の強敵: どの階にも強敵がいる (強敵階の出やすさ 100%)。強敵は控えめにしてある
+    id: "ws18", realm: "arena", lv: 98, lvTo: 102, layer: 11, floors: 10, side: true,
+    floorHaz: { fall: null, harm: "ashdrift" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
+    power: { 1: 0.110, 5: 0.118, 10: 0.127 },
+    name: "勝者の控え所", short: "控え所",
+    about: "闘技場の外壁の内側に並ぶ、勝ち残った闘士たちの控えの間。壁には、勝ち星を刻んだ札がびっしりと掛かっている",
+    bands: [
+      ["bs_championwraith", "bs_impaler", "bs_netfighter", "bs_hookmaster", "bs_bladedancer", "bs_spikedgolem"],
+      ["bs_executioner", "bs_championofash", "bs_chainedogre"],
+    ],
+    trait: {
+      id: "victors", name: "勝ち残りの間", sym: "✪", accent: "#d8b070",
+      lines: ["控えの間には勝ち残った強者が待つ。どの階にも強敵がいる (1体ずつは並みより控えめ)。", "勝者の褒美の箱は、どれも1ランク上等。"],
+      mods: { chestRankUp: 1 },
+      eliteRate: 1,
+    },
+    tune: { enemyMul: 1.00, deepMul: 0.84, soloMul: 0.90 }, // どの階にも強敵が出る分だけ強敵を軽く
+    unlock: { quest: "fq_minstrel" },
+    hint: "酒場の吟遊詩人の依頼「勝者の歌」を受けると、道が示される",
+  },
+  {
+    // 一騎打ち: 魔物の札の戦闘は必ず1体だけ (強敵並みに強く、戦果も群れの分だけ持つ)
+    id: "ws19", realm: "arena", lv: 101, lvTo: 105, layer: 11, floors: 10, side: true,
+    floorHaz: { fall: "arenatrap", harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
+    power: { 1: 0.108, 5: 0.116, 10: 0.125 },
+    name: "決闘の小円形場", short: "決闘場",
+    about: "闘技場の裏手にある、小さな円い決闘場。ここでは、昔から一対一の試合しか許されなかった",
+    bands: [
+      ["bs_bladedancer", "bs_mirrorduelist", "bs_impaler", "bs_championwraith", "bs_netfighter", "bs_executioner"],
+      ["bs_ghostgladiator", "bs_sandlurker", "bs_championofash"],
+    ],
+    elites: ["el_dragonslayer"],
+    trait: {
+      id: "duel", name: "一騎打ち", sym: "⋈", accent: "#d0a0a0",
+      lines: ["決闘場の試合は一対一。魔物の札の戦闘には必ず1体だけが現れ、その1体は強敵並みに強い (戦果も群れの分だけ持つ)。", "決闘の賭け金が砂に残り、得られる金貨は 1.3倍。"],
+      mods: { goldMul: 1.3 },
+      duel: true,
+    },
+    tune: { enemyMul: 1.00, deepMul: 0.86, soloMul: 1.00 },
+    unlock: { quest: "fq_fencer" },
+    hint: "酒場の剣術指南の依頼「一騎打ちの作法」を受けると、道が示される",
+  },
 ];
 
 // 敵の種類: 3種 + 5階ごとに3種 (全5階 = 6種 / 全10階 = 9種 / 全15階 = 12種)。ミミック・銀業などの共通の敵と
@@ -1399,7 +1538,7 @@ export function strengthAt(cfg, floor = 1) { return powerAt(cfg, floor) * lvPow(
     if (d.trait) {
       const t = d.trait;
       if (!t.id || !t.name || !Array.isArray(t.lines)) throw new Error(`world: ${d.id} trait needs id/name/lines`);
-      for (const k of Object.keys(t)) if (!["id", "name", "sym", "accent", "lines", "mods", "eliteRate", "board", "specialRate", "victoryHeal", "foeRegen", "mpDrain", "hpDrain", "metalRate", "metalMax", "chill", "physOnly", "alwaysAmbush", "poisonStart", "boltStart", "allHaste", "say"].includes(k)) throw new Error(`world: ${d.id} trait has unknown field ${k}`);
+      for (const k of Object.keys(t)) if (!["id", "name", "sym", "accent", "lines", "mods", "eliteRate", "board", "specialRate", "victoryHeal", "foeRegen", "mpDrain", "hpDrain", "metalRate", "metalMax", "chill", "physOnly", "alwaysAmbush", "poisonStart", "boltStart", "allHaste", "say", "foeRally", "fervor", "duel"].includes(k)) throw new Error(`world: ${d.id} trait has unknown field ${k}`);
     }
     if (d.realm != null && !REALM_RULES[d.realm]) throw new Error(`world: ${d.id} の土地の掟 (realm) が不明 (${d.realm})`);
     for (const k of d.elites || []) if (!BESTIARY[k]) throw new Error(`world: ${d.id} unknown elite ${k}`);

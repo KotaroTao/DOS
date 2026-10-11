@@ -202,6 +202,19 @@ const UNKNOWN_NAME = {
   el_blizzardwitch: "雲に乗る女の影",
   bs_galewisp: "青白い光の群れ",
   el_stareater: "星の透ける大きな影",
+  // 第11層「闘技場跡」: 鎧の人影・武器を持つ人影が重なるので、見た目の違いで呼び分ける
+  bs_championwraith: "丸盾の闘士の影",
+  bs_netfighter: "網を持つ人影",
+  bs_bladedancer: "舞う人影",
+  bs_hookmaster: "縄を回す小柄な影",
+  bs_impaler: "長い槍を構える人影",
+  bs_beastmaster: "鞭を鳴らす影",
+  bs_ghostgladiator: "揺らぐ剣士の影",
+  bs_mirrorduelist: "光る鋼の人形",
+  bs_championofash: "灰をかぶった鎧",
+  bs_arenalord: "仮面の巨大な影",
+  el_ashshogun: "灰の大鎧",
+  el_dragonslayer: "頭骨をかぶった影",
 };
 
 // 画面に出すときの不確定名: 正式な名と見分けがつくよう末尾に「？」を添える (「羽ばたく小さなもの？」)。
