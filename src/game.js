@@ -29,7 +29,7 @@ import {
   SOUL_CLASSES, SOUL_KEYS, makeDoll, jobSprite, dollSprite, jobBust, dollBust, dollLookKey, soulIcon,
   recalcDoll, setPermanentStatSource, isUniqueJob, soulLevelCap, soulLevelCapOf, emberCostOf, setSharedSouls, syncDollUids, MAX_SUBS, subPicks,
   soulByUid, makeSoulInstance, soulRankOf, soulLearnedSkills, soulLearnedPassives, soulLabel, subPickCap, jobStatsOf,
-  awakenPerkOf, subPickCapOfRank, subStatRateOfRank, setOrderSource, orderStatRateOfRank, setAppraiseSource, setSkillGate, skillUsable,
+  awakenPerkOf, subPickCapOfRank, subStatRateOfRank, setOrderSource, orderStatRateOfRank, setSkillGate, skillUsable,
   PASSIVES,
   SOUL_RANKS, rollJobClass, rollGreatJobClass, SOUL_STAT_UP,
   soulRankFromCount, capForRarityRank, jobRankName, soulSeriesName, pLv,
@@ -13725,7 +13725,7 @@ function recordMonsterKill(key, dungeonIdx, floor) {
 // 勝利時の汎用戦利品抽選 (固有ドロップ廃止に伴う置換)。通常30% / レア4%。
 // 中身は迷宮の lootLv 帯から引く (レアは一段深い帯)。実物は勝利後の宝箱から取り出す。
 function rollGenericDrop() {
-  const apLv = partyPassiveLv("appraise"); // 目利き: ドロップ率 +15/25/40%
+  const apLv = partyPassiveLv("appraise"); // 掘り出しの勘: ドロップ率 +15/25/40%
   const ap = apLv >= 3 ? 1.40 : apLv >= 2 ? 1.25 : apLv >= 1 ? 1.15 : 1;
   // 特別階 (盗賊の洞察): レアドロップ率が上がる
   if (Math.random() < Math.max(sfNum("rareDropRate", 0.04 * ap), mutNum("rareDropRate", 0))) {
@@ -16084,7 +16084,6 @@ function loadGame() {
   for (const s of G.souls) settleSoulExp(s);
   orderSig = null;
   setOrderSource(() => { try { return orderSeatedUids(); } catch (e) { return []; } }); // 結社の席の魂の能力を全員に分ける
-  setAppraiseSource(() => allDolls()); // 目利き (鑑定の成功率) は隊と控えで一番高いLvを見る
   syncDollUids([...(G.party || []), ...(G.reserve || [])]); // 人業の通し番号を続きから (重なりも直す)
   for (const d of [...(G.party || []), ...(G.reserve || [])]) {
     if (!Array.isArray(d.subs)) d.subs = [];
