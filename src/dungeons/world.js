@@ -48,6 +48,12 @@
 //             poisonStart 戦闘の開幕に、隊の一人ひとりがこの確率で毒に冒される (毒の耐性で防げる。よどみの底)
 //             boltStart 戦闘の開幕に隊の一人へ雷が落ち、最大HPのこの割合を焼く (ブレス耐性で和らぐ。HP1 は残る。嵐の尖塔の頂)
 //             allHaste 敵はみな神速 (ラウンドの頭に動き、後半にもう一度動く。主は除く。雷鳥の巣)
+//             say      開幕の効果 (mpDrain / hpDrain / chill / poisonStart / boltStart) を戦闘の記録に書く時の一文
+//           掟の分け方 (ユーザーの指示、2026-10): 土地 (章) の気候・性質は下の「土地の掟」(realm) に1つにまとめ、迷宮の掟は
+//           その迷宮だけの違いにする (同じ効果を迷宮ごとに作らない)。「技が一切使えない」「物理が効かない」「魔法が効かない」の
+//           ような強い掟は土地の掟にせず、格上 (challenge) の迷宮だけの掟にする
+//   realm   土地の掟 (同じ土地の迷宮に共通する決まりごと) の名 — 下の REALM_RULES のキー。迷宮の掟と重ねて効き、
+//           出撃シートと「階の情報」では迷宮の掟の上に出る。章を作る時は、その土地に合う土地の掟を考えて足す
 //   challenge 格上の迷宮: 開く章の適正Lv よりはるかに高い推奨Lv を持つ寄り道。奈落の層 (abyssLayer) の推奨Lv・強さの平均には数えない
 //   tune    強さの手直し (generator.js DUNGEON_TUNE と同じ欄)。第4層からはテスト記録がまだ無いので、模擬戦で既存の迷宮に
 //           つないだ: 装備なしの6人 (戦士2・侍・僧侶・魔導士・盗賊、魂の Lv = その階の n の物差しの Lv — 当時の推奨Lv。
@@ -78,6 +84,25 @@ import { LAYER_BOSS, LAYER_ELITES, LAYER_POOLS, BESTIARY } from "./bestiary.js";
 import { baselineLv } from "../baseline.js";
 import { lvPow } from "../levelcurve.js";
 import { FLOOR_HAZ } from "./floorhaz.js";
+
+// ===== 土地の掟 (realm) — 同じ土地の迷宮すべてに共通する決まりごと (ユーザーの指示、2026-10) =====
+// 迷宮の掟 (trait) と重ねて効く。開幕の効果 (hpDrain / mpDrain / chill / poisonStart / boltStart) だけを持つ。
+// 同じ効果を迷宮の掟にも書けば足し合う (例: 酷寒 AGI −1段 + 絶対零度 −1段 = −2段)。キーは台帳の realm から引く
+export const REALM_RULES = {
+  // 第五章「灼熱の洞」と第7層の寄り道 (黒曜の切り場・火守りの僧院)
+  heat: {
+    id: "heat", name: "灼熱", sym: "♨", accent: "#ff8a4a",
+    lines: ["火の洞の熱気が肌を焼く。戦闘が始まるたび、隊のHPが最大の6%減る (HP1 より下にはならない)。", "火の洞のどの迷宮でも同じ。迷宮の掟はこれに重なる。"],
+    hpDrain: 0.06, say: "灼熱の熱気が肌を焼いた",
+  },
+  // 第六章「氷結回廊」と第8層の寄り道 (白狼の吹き溜まり・氷河の裂け目)
+  cold: {
+    id: "cold", name: "酷寒", sym: "❄", accent: "#bfe0ff",
+    lines: ["凍てつく寒さに身がすくむ。戦闘が始まるたび、隊の全員の AGI が1段下がる (3ターン)。", "氷結回廊のどの迷宮でも同じ。迷宮の掟はこれに重なる。"],
+    chill: 1, say: "凍てつく寒さに身がすくむ",
+  },
+};
+const REALM_FIELDS = ["id", "name", "sym", "accent", "lines", "hpDrain", "mpDrain", "chill", "poisonStart", "boltStart", "say"];
 
 const WORLD_DEF = [
   {
@@ -325,7 +350,7 @@ const WORLD_DEF = [
       id: "roots", name: "魂を吸う根", sym: "ψ", accent: "#c070a0",
       lines: ["根が足元で脈打つ。戦闘が始まるたび、隊のMPが5%吸われる。", "吸われた魂の名残が漂い、得られる ✦Soul は 1.4倍。"],
       mods: { soulMul: 1.4 },
-      mpDrain: 0.05, // 1割は吸われすぎ (2026-10 ユーザーの指示)
+      mpDrain: 0.05, say: "足元の根が脈打ち、隊の魔力を吸い上げた", // 1割は吸われすぎ (2026-10 ユーザーの指示)
     },
     boss: LAYER_BOSS[4], bossRank: 7,
     tune: { enemyMul: 1.13, deepMul: 0.80, soloMul: 1.10, bossMul: 0.87 }, // 第5層の壁。開幕にMPを吸われる。主 (ランク7・全体呪文と招来) は雑魚比を本丸の主並み (2.4) に
@@ -422,7 +447,7 @@ const WORLD_DEF = [
   },
   // ---- 第五章「灼熱の洞」(第7層の顔ぶれ) ── 大神殿の底のさらに下。大樹の樹液を煮詰める、火の洞 ----
   {
-    id: "w18", lv: 61, lvTo: 63, layer: 7, floors: 10,
+    id: "w18", realm: "heat", lv: 61, lvTo: 63, layer: 7, floors: 10,
     floorHaz: { fall: "fissure", harm: "scorch" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.173, 5: 0.1862, 10: 0.2014 },
     name: "火を噴く地割れ", short: "地割れ",
@@ -444,7 +469,7 @@ const WORLD_DEF = [
     hint: "「沈める大神殿」の踏破を王に報告すると、神殿の底へ降りる許しが出る",
   },
   {
-    id: "w19", lv: 63, lvTo: 65, layer: 7, floors: 10,
+    id: "w19", realm: "heat", lv: 63, lvTo: 65, layer: 7, floors: 10,
     floorHaz: { fall: "fissure", harm: "hotash" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.1689, 5: 0.182, 10: 0.1971 },
     name: "灰の降る祭場", short: "祭場",
@@ -465,7 +490,7 @@ const WORLD_DEF = [
     hint: "「火を噴く地割れ」のどこかに、師の刃が残されているという",
   },
   {
-    id: "w20", lv: 65, lvTo: 67, layer: 7, floors: 10,
+    id: "w20", realm: "heat", lv: 65, lvTo: 67, layer: 7, floors: 10,
     floorHaz: { fall: "fissure", harm: "broth" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.1667, 5: 0.1799, 10: 0.1951 },
     name: "魂を煮る釜場", short: "釜場",
@@ -478,16 +503,16 @@ const WORLD_DEF = [
     elites: ["el_magmawyrm"],
     trait: {
       id: "cauldron", name: "煮えたぎる釜", sym: "♆", accent: "#f0a040",
-      lines: ["釜の熱気が肌を焼く。戦闘が始まるたび、隊のHPが6%減る (HP1 より下にはならない)。", "釜の縁に霊薬の滓が固まっていて、得られる金貨は 1.4倍。"],
+      lines: ["釜の霊薬を浴びた魔物は、ラウンドごとに最大HPの3%ずつ再生する。", "釜の縁に霊薬の滓が固まっていて、得られる金貨は 1.4倍。"],
       mods: { goldMul: 1.4 },
-      hpDrain: 0.06,
+      foeRegen: 0.03, // 開幕の熱気は土地の掟「灼熱」が持つ (2026-10 まではこの掟の hpDrain 0.06)
     },
     tune: { enemyMul: 0.90, deepMul: 0.82, soloMul: 1.05 }, // 開幕の熱気の分だけ控えめ
     unlock: { reported: "w18" },
     hint: "「火を噴く地割れ」の踏破を王に報告すると、火の洞の奥が示される",
   },
   {
-    id: "w21", lv: 67, lvTo: 70, layer: 7, floors: 15,
+    id: "w21", realm: "heat", lv: 67, lvTo: 70, layer: 7, floors: 15,
     floorHaz: { fall: "fissure", harm: "scorch" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.163, 5: 0.1705, 10: 0.1793, 15: 0.1874 },
     name: "業火の大釜", short: "大釜",
@@ -511,7 +536,7 @@ const WORLD_DEF = [
   // ---- 第六章「氷結回廊」(第8層の顔ぶれ) ── 大釜の底の奈落。吹き上げる風が、落ちてくる魂を氷に閉じこめる ----
   //   強さの素は第五章の各迷宮の 0.9倍 (層の入口の1割の段差。第四章 → 第五章と同じ比)。手直しは第五章に倣う
   {
-    id: "w22", lv: 70, lvTo: 72, layer: 8, floors: 10,
+    id: "w22", realm: "cold", lv: 70, lvTo: 72, layer: 8, floors: 10,
     floorHaz: { fall: "icecrack", harm: "frost" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.1557, 5: 0.1676, 10: 0.1813 },
     name: "奈落の氷棚", short: "氷棚",
@@ -533,7 +558,7 @@ const WORLD_DEF = [
     hint: "「業火の大釜」の踏破を王に報告すると、奈落の壁の氷の棚へ降りる許しが出る",
   },
   {
-    id: "w23", lv: 72, lvTo: 74, layer: 8, floors: 10,
+    id: "w23", realm: "cold", lv: 72, lvTo: 74, layer: 8, floors: 10,
     floorHaz: { fall: "icecrack", harm: "frost" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.152, 5: 0.1638, 10: 0.1774 },
     name: "凍れる操霊師の間", short: "凍れる間",
@@ -555,7 +580,7 @@ const WORLD_DEF = [
     hint: "「奈落の氷棚」のどこかに、師の残したものが凍りついているという",
   },
   {
-    id: "w24", lv: 74, lvTo: 76, layer: 8, floors: 10,
+    id: "w24", realm: "cold", lv: 74, lvTo: 76, layer: 8, floors: 10,
     floorHaz: { fall: "icecrack", harm: "frost" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.15, 5: 0.1619, 10: 0.1756 },
     name: "極光の氷窟", short: "氷窟",
@@ -576,7 +601,7 @@ const WORLD_DEF = [
     hint: "「奈落の氷棚」の踏破を王に報告すると、氷棚の奥の洞窟が示される",
   },
   {
-    id: "w25", lv: 76, lvTo: 79, layer: 8, floors: 15,
+    id: "w25", realm: "cold", lv: 76, lvTo: 79, layer: 8, floors: 15,
     floorHaz: { fall: "icecrack", harm: "frost" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.1467, 5: 0.1535, 10: 0.1614, 15: 0.1687 },
     name: "凍てつく大回廊", short: "大回廊",
@@ -589,9 +614,9 @@ const WORLD_DEF = [
     ],
     trait: {
       id: "frost", name: "絶対零度", sym: "✱", accent: "#d0e8ff",
-      lines: ["凍てつく冷気に身がすくむ。戦闘が始まるたび、隊の全員の AGI が1段下がる (3ターン)。", "凍りついた古い魂の名残で、得る ✦Soul は 1.4倍。"],
+      lines: ["絶対零度の冷気が酷寒に重なる。戦闘が始まるたび、隊の全員の AGI がさらに1段下がる (酷寒と合わせて2段・3ターン)。", "凍りついた古い魂の名残で、得る ✦Soul は 1.4倍。"],
       mods: { soulMul: 1.4 },
-      chill: 1,
+      chill: 1, say: "絶対零度の冷気が骨までしみる",
     },
     boss: LAYER_BOSS[7], bossRank: 10,
     tune: { enemyMul: 0.95, deepMul: 0.88, soloMul: 1.10, bossMul: 0.85 }, // 第8層の壁。開幕に足が鈍る分だけ控えめ
@@ -677,7 +702,7 @@ const WORLD_DEF = [
       id: "rot", name: "腐れの瘴気", sym: "☣", accent: "#a0c060",
       lines: ["よどんだ瘴気が肺を焼く。戦闘が始まるたび、隊の一人ひとりが 35% で毒に冒される (毒の耐性で防げる)。", "腐りかけの魂が濃くよどみ、得る ✦Soul は 1.4倍。"],
       mods: { soulMul: 1.4 },
-      poisonStart: 0.35,
+      poisonStart: 0.35, say: "よどんだ瘴気が肺を焼く",
     },
     boss: LAYER_BOSS[8], bossRank: 10,
     tune: { enemyMul: 0.95, deepMul: 0.88, soloMul: 1.10, bossMul: 0.85 }, // 第9層の壁。開幕の毒の分だけ控えめ
@@ -764,7 +789,7 @@ const WORLD_DEF = [
       id: "bolt", name: "落雷", sym: "⚡", accent: "#f0e080",
       lines: ["渦巻く雷雲から雷が落ちる。戦闘が始まるたび、隊の一人に雷が落ちて最大HPの25%を焼く (ブレス耐性で和らぐ。HP1 は残る)。", "嵐に巻かれた魂が濃く渦を巻き、得る ✦Soul は 1.4倍。"],
       mods: { soulMul: 1.4 },
-      boltStart: 0.25,
+      boltStart: 0.25, say: "渦巻く雷雲から雷が落ちた",
     },
     boss: LAYER_BOSS[9], bossRank: 10,
     tune: { enemyMul: 0.97, deepMul: 0.88, soloMul: 1.10, bossMul: 0.85 }, // 第10層の壁。開幕の落雷の分だけ控えめ
@@ -935,7 +960,7 @@ const WORLD_DEF = [
     hint: "酒場の司書の依頼「沈んだ書庫」を受けると、道が示される",
   },
   {
-    id: "ws9", lv: 62, lvTo: 66, layer: 7, floors: 10, side: true,
+    id: "ws9", realm: "heat", lv: 62, lvTo: 66, layer: 7, floors: 10, side: true,
     floorHaz: { fall: "fissure", harm: "obsidian" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.171, 5: 0.184, 10: 0.199 },
     name: "黒曜の切り場", short: "黒曜の切り場",
@@ -947,16 +972,15 @@ const WORLD_DEF = [
     elites: ["el_magmawyrm"],
     trait: {
       id: "obsidian", name: "黒い刃の崖", sym: "◆", accent: "#9070a0",
-      lines: ["足元の黒曜が肌を裂く。戦闘の開幕に、隊のHPが最大の4%減る。", "黒曜で鍛えた古い品が眠り、落ちている装備の質が上がる。"],
-      mods: { lootBonusLv: 4 },
-      hpDrain: 0.04,
+      lines: ["崖の割れ口に、黒曜で鍛えた古い刃物が眠る。落ちている装備の質が上がる。"],
+      mods: { lootBonusLv: 4 }, // 開幕の傷は土地の掟「灼熱」に一本化した (2026-10 まではこの掟の hpDrain 0.04)
     },
-    tune: { enemyMul: 1.00, deepMul: 0.80, soloMul: 1.05 }, // 開幕の傷の分だけ控えめ
+    tune: { enemyMul: 1.00, deepMul: 0.80, soloMul: 1.05 }, // 開幕の熱気の分だけ控えめ
     unlock: { quest: "fq_dorn3" },
     hint: "酒場の鍛冶師の依頼「黒い刃の材」を受けると、道が示される",
   },
   {
-    id: "ws10", lv: 66, lvTo: 70, layer: 7, floors: 10, side: true,
+    id: "ws10", realm: "heat", lv: 66, lvTo: 70, layer: 7, floors: 10, side: true,
     floorHaz: { fall: null, harm: "scorch" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.165, 5: 0.177, 10: 0.19 },
     name: "火守りの僧院", short: "僧院",
@@ -977,7 +1001,7 @@ const WORLD_DEF = [
     hint: "酒場の尼僧の依頼「祈りの火を消して」を受けると、道が示される",
   },
   {
-    id: "ws11", lv: 71, lvTo: 75, layer: 8, floors: 10, side: true,
+    id: "ws11", realm: "cold", lv: 71, lvTo: 75, layer: 8, floors: 10, side: true,
     floorHaz: { fall: "cornice", harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.154, 5: 0.166, 10: 0.179 },
     name: "白狼の吹き溜まり", short: "吹き溜まり",
@@ -999,7 +1023,7 @@ const WORLD_DEF = [
     hint: "酒場の毛皮売りの依頼「白い毛皮」を受けると、道が示される",
   },
   {
-    id: "ws12", lv: 75, lvTo: 79, layer: 8, floors: 10, side: true,
+    id: "ws12", realm: "cold", lv: 75, lvTo: 79, layer: 8, floors: 10, side: true,
     floorHaz: { fall: "icecrack", harm: "meltwater" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.148, 5: 0.159, 10: 0.171 },
     name: "氷河の裂け目", short: "裂け目",
@@ -1015,7 +1039,7 @@ const WORLD_DEF = [
       lines: ["澄んだ雪解けの泉が湧く (各階に癒しの泉が2つ)。だが冷たい水が魔力を奪い、戦闘の開幕に隊のMPが最大の8%減る。", "氷から抜け落ちた魂は傷みが少なく、得る ✦Soul は 1.3倍。"],
       mods: { soulMul: 1.3 },
       board: "font",
-      mpDrain: 0.08,
+      mpDrain: 0.08, say: "冷たい雪解けの水が魔力を奪った",
     },
     tune: { enemyMul: 1.00, deepMul: 0.84, soloMul: 1.05 },
     unlock: { quest: "fq_thaw2" },
@@ -1102,7 +1126,7 @@ const WORLD_DEF = [
       id: "rods", name: "帯電した林", sym: "†", accent: "#a0b0c8",
       lines: ["林の空気は帯電していて、戦闘が始まるたび隊の HP が最大の 5%ずつ焼ける (HP1 は残る)。", "針の根元に埋められた古い箱は、どれも1ランク上等。"],
       mods: { chestRankUp: 1 },
-      hpDrain: 0.05,
+      hpDrain: 0.05, say: "帯電した空気が肌を焼いた",
     },
     tune: { enemyMul: 0.97, deepMul: 0.82, soloMul: 1.05 },
     unlock: { quest: "fq_rodsmith" },
@@ -1220,6 +1244,7 @@ function build(def) {
   cfg.pool = [...def.bands[0]];
   cfg.deepPool = def.bands.length > 1 ? def.bands.slice(1).flat() : [...def.bands[0]];
   cfg.tune = def.tune ? { ...def.tune } : null;
+  cfg.realmRule = def.realm ? REALM_RULES[def.realm] : null; // 土地の掟 (game.js dungeonRealm)
   cfg.power = { ...def.power };
   // 落とし物の帯は推奨Lv の1階 (lv) から最下階 (lvTo) まで広がる (game.js が階の深さで帯の中を補間する)
   cfg.lootLv = lootBand(def.lv, def.lvTo);
@@ -1320,6 +1345,11 @@ export function strengthAt(cfg, floor = 1) { return powerAt(cfg, floor) * lvPow(
 
 // 検証: id の重複・素体の欠け・出現表の空
 {
+  // 土地の掟: 名・説明と、開幕の効果だけを持つ (強い掟は土地の掟にしない — 格上の迷宮の掟にする)
+  for (const [k, r] of Object.entries(REALM_RULES)) {
+    if (r.id !== k || !r.name || !Array.isArray(r.lines)) throw new Error(`world: 土地の掟 ${k} は id/name/lines が要る`);
+    for (const f of Object.keys(r)) if (!REALM_FIELDS.includes(f)) throw new Error(`world: 土地の掟 ${k} に使えない欄 ${f}`);
+  }
   const seen = new Set();
   for (const d of WORLD) {
     if (seen.has(d.id)) throw new Error(`world: duplicate id ${d.id}`);
@@ -1339,8 +1369,9 @@ export function strengthAt(cfg, floor = 1) { return powerAt(cfg, floor) * lvPow(
     if (d.trait) {
       const t = d.trait;
       if (!t.id || !t.name || !Array.isArray(t.lines)) throw new Error(`world: ${d.id} trait needs id/name/lines`);
-      for (const k of Object.keys(t)) if (!["id", "name", "sym", "accent", "lines", "mods", "eliteRate", "board", "specialRate", "victoryHeal", "foeRegen", "mpDrain", "hpDrain", "metalRate", "metalMax", "chill", "physOnly", "alwaysAmbush", "poisonStart", "boltStart", "allHaste"].includes(k)) throw new Error(`world: ${d.id} trait has unknown field ${k}`);
+      for (const k of Object.keys(t)) if (!["id", "name", "sym", "accent", "lines", "mods", "eliteRate", "board", "specialRate", "victoryHeal", "foeRegen", "mpDrain", "hpDrain", "metalRate", "metalMax", "chill", "physOnly", "alwaysAmbush", "poisonStart", "boltStart", "allHaste", "say"].includes(k)) throw new Error(`world: ${d.id} trait has unknown field ${k}`);
     }
+    if (d.realm != null && !REALM_RULES[d.realm]) throw new Error(`world: ${d.id} の土地の掟 (realm) が不明 (${d.realm})`);
     for (const k of d.elites || []) if (!BESTIARY[k]) throw new Error(`world: ${d.id} unknown elite ${k}`);
     // 足元の仕掛け: 迷宮ごとに必ず決める (置かないなら null)。掟の盤面加工が敷く仕掛けは、その迷宮で置いている種類に限る
     const fh = d.floorHaz;
