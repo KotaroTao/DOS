@@ -162,6 +162,7 @@ const ASSETS = [
   "./src/resistance.js",
   "./src/autotactics.js",
   "./src/buffstage.js",
+  "./src/enemylevel.js",
   "./src/skilldefs.js",
   "./src/jobkit/index.js",
   "./src/jobkit/common.js",

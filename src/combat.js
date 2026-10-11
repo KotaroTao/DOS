@@ -38,6 +38,9 @@ export function cloneItem(id, q) {
 }
 
 let _uid = 0;
+// 敵の表示Lv の札「（Lv29）」(enemylevel.js — combat.js の組み立てを借りるので、game.js が渡す)
+let _enemyLvTag = () => "";
+export function setEnemyLvTag(fn) { _enemyLvTag = typeof fn === "function" ? fn : () => ""; }
 // 敵の群れは最大6体 (前衛3+後衛3)
 export const MAX_ENEMIES = 6;
 
@@ -274,6 +277,34 @@ function perksOf(a) {
 }
 // Lv ごとの値 (配列なら Lv 番目。足りなければ最後) / 単なる数ならそのまま
 const lvv = (v, lv) => (Array.isArray(v) ? v[Math.min(Math.max(1, lv), v.length) - 1] : v);
+// 固有パッシブ・目玉パッシブの発動を記録欄に書く時に添える「何が起きたか」(2026-10 ユーザーの指示:
+// 「開戦の号令！」「闇の障壁！」だけでは何の効果か分からない)。定義の値から作る (段は buffstage.js の表で、実際に掛かる倍率)
+const MOD_NAME = { atk: "STR", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", hit: "命中" };
+function modText(stat, mult, enemy) {
+  const nm = (enemy && ENEMY_STAT_LABEL[stat]) || MOD_NAME[stat] || stat.toUpperCase();
+  if (STAGED.has(stat)) { const st = stageOf(mult); return `${nm}${stageLabel(st)}（×${stageMul(st)}）`; }
+  return `${nm}×${Math.round(mult * 100) / 100}`;
+}
+function buffText(buff, lv, enemy) {
+  return Object.keys(buff).map((k) => modText(k, lvv(buff[k], lv), enemy)).filter(Boolean).join("・");
+}
+// 成分 c (jobkit の fx) の説明。defDur = その発動の既定の持続 (start/kill/fall 3・round/hurt 2)
+function perkNote(c, lv, defDur = 3) {
+  const all = c.party ? "味方全員の" : "", to = c.party ? "味方全員に" : "";
+  const dur = lvv(c.dur, lv) || defDur;
+  const parts = [];
+  if (c.buff) parts.push(`${all}${buffText(c.buff, lv)}、${dur}ターン`);
+  if (c.foe) parts.push(`敵全員の${buffText(c.foe, lv, true)}、${dur}ターン`);
+  if (c.barrier) parts.push(`${to}魔障壁${lvv(c.barrier, lv)}回（ブレス・呪文の被ダメージ半減）`);
+  if (c.wall) parts.push(`${to}魔法壁${lvv(c.wall, lv)}回（受けるダメージ半減）`);
+  if (c.regen) parts.push(`${to}リジェネ（毎ターン最大HPの${Math.round((lvv(c.regen, lv) || 0) * 100)}%回復）、${c.dur || 3}ターン`);
+  if (c.endure) parts.push(`${to}不屈（致死をHP1で一度耐える）`);
+  if (c.charge) parts.push(`${to}溜め×${lvv(c.charge, lv)}（次の物理が強まる）`);
+  if (c.taunt) parts.push(`敵を引き付ける、${c.dur || 2}ターン`);
+  return parts.join("・");
+}
+// 回復した量を「HP+12 MP+3」の形で
+const gainText = (h, m) => [h ? `HP+${h}` : "", m ? `MP+${m}` : ""].filter(Boolean).join(" ");
 // 魂の共鳴 (src/resonance.js、第七章の結びで開く): 隊の編成 (メイン魂の職の組み合わせ) で決まる隊全体の効果。
 // 敵を引き付けている間に軽くなる被ダメの割合 (盾役の固有パッシブ take + when.taunting)。オートが挑発の値打ちを見込むのに使う
 export function tauntGuard(a) {
@@ -357,7 +388,17 @@ const STRONG_EVADE_CAP = 1.2;
 // 味方が先の組は約64% (0.85 だと39%): 速い者 (盗賊・暗殺者) はいつも敵より先、重装の騎士はいつも後、中ほどは入れ替わる。2026-10: 旧式は素の AGI + 0〜3 を
 // 比べていたため、Lv10 を越えると敵 (AGI 9 前後) が味方 (20〜70) より先に動くことがなくなっていた (テスト記録の味方先手100%)。
 // 金属の魔物はもともと味方の規模の AGI (基準 × agiMul) なので直さない
-const TURN_K = 0.65, TURN_JITTER = 0.20;
+export const TURN_K = 0.65;
+const TURN_JITTER = 0.20;
+// 敵の AGI は Battle を作る時に一度だけ「定義の素の値 × fleeK × TURN_K」へ直す (2026-10 ユーザーの指示: 図鑑・敵の姿の素早さを
+// 味方の AGI と見比べられるように)。直した値がそのまま手番の速さで、回避・逃走ではこれを ÷TURN_K して基準の隊の規模に戻す
+// (= 以前の「素の値 × fleeK」。戦闘の釣り合いは変えない)。金属の魔物はもともと味方の規模なので直さない (_agiScaled の印で二重に直さない)
+export function scaleFoeAgi(e, fleeK) {
+  if (!e || e._agiScaled || isMetal(e)) return e;
+  e.agi = Math.max(1, (e.agi || 1) * (fleeK || 1) * TURN_K); // 丸めない (回避・逃走が以前と同じ値になるように。表示で丸める)
+  e._agiScaled = true;
+  return e;
+}
 // 心の状態異常 (actor.mind = "charm" 魅了 | "confuse" 混乱)。戦闘の中だけの状態で、戦いが終われば解ける。
 //  魅了: 手番ごとに味方へ襲いかかる (仲間がいなければ立ち尽くす)。傷を受けると MIND_CHARM_BREAK で正気に戻る
 //  混乱: 手番ごとに敵味方を問わず誰かを殴る / ふらついて何もできない / たまに正気で動ける
@@ -593,6 +634,7 @@ export class Battle {
     // 追跡の物差し: 敵の AGI をこの倍率で味方の AGI と同じ規模に直してから逃走率を出す
     // (game.js の fleeScale = その迷宮・階の基準AGI ÷ その迷宮の雑魚の標準AGI)
     this.fleeK = opts.fleeK || 1;
+    for (const e of enemies) scaleFoeAgi(e, this.fleeK); // 敵の AGI を味方の規模 (手番の速さ) に直す
     this.baseAgi = opts.baseAgi || 0; // この階の基準の素早さ (強敵の回避の上限。0 = 上限なし)
     this.foeLv = opts.foeLv || 1; // 敵のLv の既定 (個体の e.lv が無い時。戦闘中に呼ばれた手下など)
     this._roundNo = 0;
@@ -641,7 +683,7 @@ export class Battle {
     if (ct) {
       const m = [1, 1.2, 1.5, 1.8][Math.min(3, ct)];
       for (const p of this.livingParty()) this._applyMod(p, "atk", m, 3, "聖戦の鬨");
-      this.log(`聖戦の鬨！ 隊の士気が燃え上がる (STR×${m})`, "heal");
+      this.log(`聖戦の鬨！ 隊の士気が燃え上がる ― 味方全員の${modText("atk", m)}、3ターン`, "heal");
       this._proc(this._bestHolder("crusaderToki"), "聖戦の鬨");
     }
     const ib = best("inqBrand"); // 罪の刻印: 敵全体に弱点の属性を 1/2/3 つ刻む (その属性の被ダメ ×1.5、3ターン)
@@ -650,14 +692,15 @@ export class Battle {
       for (let i = els.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [els[i], els[j]] = [els[j], els[i]]; }
       const pick = els.slice(0, Math.min(3, ib));
       for (const e of this.livingEnemies()) for (const el of pick) this._applyMod(e, "r_" + el, 1 / 1.5, 3, "罪の刻印");
-      this.log(`罪の刻印！ 敵の身に ${pick.map((k) => (ELEMENTS[k] && ELEMENTS[k].label) || k).join("・")} の弱みが刻まれた`, "hit");
+      this.log(`罪の刻印！ 敵の身に ${pick.map((k) => (ELEMENTS[k] && ELEMENTS[k].label) || k).join("・")} の弱みが刻まれた（その属性の被ダメージ×1.5）、3ターン`, "hit");
       this._proc(this._bestHolder("inqBrand"), "罪の刻印");
     }
     // 狩りの采配 (ランク): 敵全体の AGI ×0.9/0.8/0.7/0.6 (3ターン)
     const hs = this._rkParty("hunterSaihai", [0.9, 0.8, 0.7, 0.6]);
     if (hs) {
-      for (const e of this.livingEnemies()) this._applyMod(e, "agi", hs, 3, "狩りの采配");
-      this.log(`狩りの采配！ 敵の足並みが乱れた (素早さ×${hs})`, "hit");
+      this._quietMod = true;
+      try { for (const e of this.livingEnemies()) this._applyMod(e, "agi", hs, 3, "狩りの采配"); } finally { this._quietMod = false; }
+      this.log(`狩りの采配！ 敵の足並みが乱れた ― 敵全員の${modText("agi", hs, true)}、3ターン`, "hit");
       this._proc(this._bestHolder("hunterSaihai"), "狩りの采配");
     }
     // 死の宣告 (ランク): 主・金属の魔物以外の敵が、それぞれ 3/5/8/15% で即死
@@ -682,7 +725,7 @@ export class Battle {
       for (let i = foes.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [foes[i], foes[j]] = [foes[j], foes[i]]; }
       const nailed = foes.slice(0, Math.min(3, gs));
       for (const e of nailed) e._nailed = true;
-      if (nailed.length) { this.log(`五寸釘！ ${nailed.map((e) => e.name).join("・")}の影が縫い止められた`, "hit"); this._proc(this._bestHolder("hexerGosun"), "五寸釘"); }
+      if (nailed.length) { this.log(`五寸釘！ ${nailed.map((e) => e.name).join("・")}の影が縫い止められた（最初の手番を失う）`, "hit"); this._proc(this._bestHolder("hexerGosun"), "五寸釘"); }
     }
   }
 
@@ -865,7 +908,7 @@ export class Battle {
       t.effects.push({ stat, stage: s1, mult: stageMul(s1), turns: Math.max(1, nt), src: srcName || "" });
     }
     this._recalcBuffs(t);
-    if (s1 !== s0 && t.side === "enemy" && ENEMY_STAT_LABEL[stat]) {
+    if (s1 !== s0 && t.side === "enemy" && ENEMY_STAT_LABEL[stat] && !this._quietMod) {
       this.log(`${t.name}の${ENEMY_STAT_LABEL[stat]}が${s1 > s0 ? "上がった" : "下がった"} (${stageLabel(s1 - s0)})`, s1 > s0 ? "dmg" : "hit");
     }
     return s1 - s0;
@@ -1004,18 +1047,23 @@ export class Battle {
       for (const { c, lv, label } of perksOf(p)) {
         if (c.t !== "start" || !this._perkRoll(c, lv) || (c.when && !this._perkWhen(p, c.when, {}))) continue;
         const tg = c.party ? this.livingParty() : [p];
+        let mp = 0;
         for (const t of tg) {
           if (c.buff) this._perkBuff(t, c.buff, lv, c.dur, label);
           if (c.barrier) t._barrierLeft = (t._barrierLeft || 0) + (lvv(c.barrier, lv) || 0);
           if (c.wall) t._wallLeft = (t._wallLeft || 0) + (lvv(c.wall, lv) || 0);
           if (c.regen) this._applyMod(t, "regen", 1 + (lvv(c.regen, lv) || 0), c.dur || 3, label);
-          if (c.mp) this._perkMp(t, lvv(c.mp, lv));
+          if (c.mp) mp += this._perkMp(t, lvv(c.mp, lv));
           if (c.endure) t._grantEndure = true;
           if (c.charge) this._applyMod(t, "charge", lvv(c.charge, lv), c.dur || 3, label);
         }
         if (c.taunt) this._applyMod(p, "taunt", 3, c.dur || 2, label);
-        if (c.foe) for (const e of this.livingEnemies()) this._perkBuff(e, c.foe, lv, c.dur, label);
-        this.log(`${p.name}の${label}！`, "heal");
+        // 敵全員への弱体は1行にまとめる (敵ごとの「〜が下がった」は出さない)
+        this._quietMod = true;
+        try { if (c.foe) for (const e of this.livingEnemies()) this._perkBuff(e, c.foe, lv, c.dur, label); }
+        finally { this._quietMod = false; }
+        const note = [perkNote(c, lv), mp ? `MP+${mp}` : ""].filter(Boolean).join("・");
+        this.log(`${p.name}の${label}！${note ? ` ${note}` : ""}`, "heal");
         this._proc(p, label);
       }
     }
@@ -1026,12 +1074,15 @@ export class Battle {
       if (!p.alive) continue;
       for (const { c, lv, label } of perksOf(p)) {
         if (c.t !== "round" || (c.when && !this._perkWhen(p, c.when, {})) || !this._perkRoll(c, lv)) continue;
-        let healed = 0;
+        let hp = 0, mp = 0;
         for (const t of (c.party ? this.livingParty() : [p])) {
-          healed += this._perkHeal(t, lvv(c.hp, lv)) + this._perkMp(t, lvv(c.mp, lv));
+          hp += this._perkHeal(t, lvv(c.hp, lv)); mp += this._perkMp(t, lvv(c.mp, lv));
           if (c.buff) this._perkBuff(t, c.buff, lv, c.dur || 2, label);
         }
-        if (healed || c.buff) { this.log(`${p.name}の${label}`, "heal"); this._proc(p, label); }
+        if (hp || mp || c.buff) {
+          const note = [c.buff ? perkNote({ buff: c.buff, dur: c.dur, party: c.party }, lv, 2) : "", gainText(hp, mp) && `${c.party ? "味方全員で " : ""}${gainText(hp, mp)}`].filter(Boolean).join("・");
+          this.log(`${p.name}の${label}！ ${note}`, "heal"); this._proc(p, label);
+        }
       }
     }
   }
@@ -1042,7 +1093,10 @@ export class Battle {
       if (c.t !== "kill" || !this._perkRoll(c, lv)) continue;
       const h = this._perkHeal(killer, lvv(c.hp, lv)), m = this._perkMp(killer, lvv(c.mp, lv));
       if (c.buff) this._perkBuff(killer, c.buff, lv, c.dur, label);
-      if (h || m || c.buff) { this.log(`${label}！ ${killer.name}${h ? ` HP+${h}` : ""}${m ? ` MP+${m}` : ""}`, "heal"); this._proc(killer, label); }
+      if (h || m || c.buff) {
+        const note = [c.buff ? perkNote({ buff: c.buff, dur: c.dur }, lv, 3) : "", gainText(h, m)].filter(Boolean).join("・");
+        this.log(`${killer.name}の${label}！ ${note}`, "heal"); this._proc(killer, label);
+      }
     }
   }
   // 敵の攻撃を受けた時 (hurt)。kind = "phys" | "breath"
@@ -1052,11 +1106,14 @@ export class Battle {
       if (c.t !== "hurt" || (c.on || "phys") !== kind || (c.when && !this._perkWhen(t, c.when, { tgt: attacker })) || !this._perkRoll(c, lv)) continue;
       if (c.buff) this._perkBuff(t, c.buff, lv, c.dur || 2, label);
       const h = this._perkHeal(t, lvv(c.hp, lv)), m = this._perkMp(t, lvv(c.mp, lv));
-      if (c.buff || h || m) { this.log(`${t.name}の${label}${h ? ` HP+${h}` : ""}${m ? ` MP+${m}` : ""}`, "heal"); this._proc(t, label); }
+      if (c.buff || h || m) {
+        const note = [c.buff ? perkNote({ buff: c.buff, dur: c.dur }, lv, 2) : "", gainText(h, m)].filter(Boolean).join("・");
+        this.log(`${t.name}の${label}！ ${note}`, "heal"); this._proc(t, label);
+      }
       if (c.thorns && attacker && attacker.alive && attacker.side === "enemy") {
         const back = isMetal(attacker) ? 1 : Math.max(1, Math.round(dmg * (lvv(c.thorns, lv) || 0)));
         attacker.hp -= back;
-        this.log(`${label}！ ${attacker.name}に ${back} ダメージ`, "hit");
+        this.log(`${t.name}の${label}！ 受けた痛みを返し ${attacker.name}に ${back} ダメージ`, "hit");
         this._proc(t, label);
         this._die(attacker);
       }
@@ -1068,7 +1125,13 @@ export class Battle {
     for (const { c, lv, label } of perksOf(actor)) {
       if (c.t !== "hit" || (c.on && !on.includes(c.on)) || !this._perkRoll(c, lv)) continue;
       const a = c.ail;
-      if (a === "atk" || a === "vit" || a === "agi") { this._applyMod(tgt, a, lvv(c.mul, lv) || 0.85, 3, label); this.log(`${label}！ ${tgt.name}の力が削がれた`, "hit"); this._proc(actor, label); continue; }
+      if (a === "atk" || a === "vit" || a === "agi") {
+        this._quietMod = true;
+        let d = 0;
+        try { d = this._applyMod(tgt, a, lvv(c.mul, lv) || 0.85, 3, label); } finally { this._quietMod = false; }
+        this.log(`${actor.name}の${label}！ ${tgt.name}の${ENEMY_STAT_LABEL[a]}${d ? `が下がった（${stageLabel(d)}）、3ターン` : "はもう下がらない"}`, "hit");
+        this._proc(actor, label); continue;
+      }
       const sp = { name: label, dur: 3, quiet: true };
       if (a === "poison") sp.poison = { chance: 1, pct: lvv(c.pct, lv) || 0.05 };
       else if (a === "para") sp.para = 1;
@@ -1079,9 +1142,18 @@ export class Battle {
       else if (a === "flinch") sp.flinchChance = 1;
       else if (a === "strip") sp.strip = true;
       else if (a === "vuln") sp.vuln = { [c.el || "all"]: lvv(c.mul, lv) || 0.85 };
-      const n0 = tags.length;
-      this._inflict(actor, tgt, sp, tags);
-      if (tags.length > n0) this._proc(actor, label);
+      // 付いた時だけ「〜の毒の牙！」を先に書き、その後に「〜は毒に侵された！」を続ける
+      const n0 = tags.length, buf = [], log0 = this.log;
+      this.log = (m, k) => buf.push([m, k]);
+      try { this._inflict(actor, tgt, sp, tags); } finally { this.log = log0; }
+      // 付いたかどうか: 札が増えた、または「〜は怯んだ！」のような命中の行が出た (外れの行は sys)
+      if (tags.length > n0 || buf.some(([, k]) => k === "hit")) { this.log(`${actor.name}の${label}！`, "hit"); this._proc(actor, label); }
+      for (const [m, k] of buf) this.log(m, k);
+      // 属性耐性ダウンは _inflict が記録しないので、ここで何が起きたかを書く
+      if (sp.vuln && tags.slice(n0).includes("vuln")) {
+        const el = c.el || "all", mul = lvv(c.mul, lv) || 0.85;
+        this.log(`${tgt.name}の${el === "all" ? "全属性" : `${(ELEMENTS[el] && ELEMENTS[el].label) || el}属性`}への守りが崩れた（被ダメージ×${Math.round(100 / mul) / 100}）、3ターン`, "hit");
+      }
     }
   }
   // 技・呪文を使った後 (cast)
@@ -1091,9 +1163,10 @@ export class Battle {
       if (c.t !== "cast" || (c.on && c.on !== sp.kind) || !this._perkRoll(c, lv)) continue;
       let note = "";
       if (c.refund && cost > 0) { actor.mp = Math.min(actor.maxmp || 0, actor.mp + cost); note += ` MP${cost}が戻った`; }
-      let healed = 0;
-      for (const t of (c.party ? this.livingParty() : [actor])) healed += this._perkHeal(t, lvv(c.hp, lv)) + this._perkMp(t, lvv(c.mp, lv));
-      if (note || healed) { this.log(`${label}！${note}`, "heal"); this._proc(actor, label); }
+      let hp = 0, mp = 0;
+      for (const t of (c.party ? this.livingParty() : [actor])) { hp += this._perkHeal(t, lvv(c.hp, lv)); mp += this._perkMp(t, lvv(c.mp, lv)); }
+      if (hp || mp) note += ` ${c.party ? "味方全員で " : ""}${gainText(hp, mp)}`;
+      if (note) { this.log(`${actor.name}の${label}！${note}`, "heal"); this._proc(actor, label); }
     }
   }
   // 味方が倒れた時 (fall): 生きている持ち主に
@@ -1104,7 +1177,8 @@ export class Battle {
         if (c.t !== "fall" || !this._perkRoll(c, lv)) continue;
         if (c.buff) this._perkBuff(p, c.buff, lv, c.dur, label);
         const h = this._perkHeal(p, lvv(c.hp, lv));
-        this.log(`${p.name}の${label}！${h ? ` HP+${h}` : ""}`, "heal");
+        const note = [c.buff ? perkNote({ buff: c.buff, dur: c.dur }, lv, 3) : "", gainText(h, 0)].filter(Boolean).join("・");
+        this.log(`${p.name}の${label}！${note ? ` ${note}` : ""}`, "heal");
         this._proc(p, label);
       }
     }
@@ -1298,8 +1372,8 @@ export class Battle {
     if (this._roundNo === 1 && this.opening === "preempt") pool = [...this.party];
     else if (this._roundNo === 1 && this.opening === "ambush") pool = [...this.enemies];
     const eagi = (a) => (a.agi || 1) * ((a.buffs && a.buffs.agi) || 1);
-    // 手番の速さ: 敵は味方の規模に直す (TURN_K)。揺らぎは割合で、並べる前に1回だけ振る
-    const turnAgi = (a) => eagi(a) * (a.side === "enemy" && !isMetal(a) ? (this.fleeK || 1) * TURN_K : 1);
+    // 手番の速さ: 敵の AGI は Battle を作った時に味方の規模 (TURN_K 込み) へ直してある (scaleFoeAgi)。揺らぎは割合で、並べる前に1回だけ振る
+    const turnAgi = (a) => eagi(a);
     const speed = new Map();
     for (const a of pool) if (a.alive) speed.set(a, turnAgi(a) * (1 - TURN_JITTER + Math.random() * 2 * TURN_JITTER));
     this.queue = pool
@@ -1322,16 +1396,22 @@ export class Battle {
     T.op += np * (this.queue.length - np);
   }
 
+  // 敵の実効AGI を、回避・逃走の物差し (基準の隊の規模) に戻す: 直した敵は ÷TURN_K、金属の魔物は従来どおり × fleeK
+  _foeAgiBase(e, agi) {
+    if (isMetal(e)) return agi * (this.fleeK || 1);
+    return e._agiScaled ? agi / TURN_K : agi * (this.fleeK || 1);
+  }
+
   // 逃走率 (5%〜95%)。逃走を選んだ者の実効AGI と、生存する敵の「追跡AGI」の平均の比で決まる:
   //   55% + 35% × log2(本人のAGI ÷ 追跡AGI) + 逃げ足 → 5%〜95% に収める
-  //   追跡AGI = 敵の実効AGI の平均 × fleeK (主がいれば ×FLEE_BOSS_MUL)。互角で55%、本人が2倍速ければ90%、半分なら20%
+  //   追跡AGI = 敵の実効AGI (基準の隊の規模 — _foeAgiBase) の平均 (主がいれば ×FLEE_BOSS_MUL)。互角で55%、本人が2倍速ければ90%、半分なら20%
   //   実効AGI はバフ/デバフ込み (水技の鈍足・影縫い・激昂・先駆けの号令が効く)
   fleeChance(actor) {
     if (this.noFlee) return 0;
     const foes = this.livingEnemies();
     if (!foes.length) return FLEE_MAX;
     const agiOf = (a) => Math.max(1, (a.agi || 1) * ((a.buffs && a.buffs.agi) || 1));
-    let chase = (foes.reduce((s, e) => s + agiOf(e), 0) / foes.length) * (this.fleeK || 1);
+    let chase = foes.reduce((s, e) => s + this._foeAgiBase(e, agiOf(e)), 0) / foes.length;
     if (foes.some((e) => e.boss)) chase *= FLEE_BOSS_MUL;
     // 逃げ足 (fleetFoot): 個人の習得は+30%、隊の誰かの Lv に応じ +30/45/60%。高い方を採用
     const fleetSelf = this.party.some((p) => p.alive && pv(p, "fleetFoot")) ? 0.30 : 0;
@@ -1346,7 +1426,7 @@ export class Battle {
     const agiOf = (a) => Math.max(1, (a.agi || 1) * ((a.buffs && a.buffs.agi) || 1));
     if (!actor) return 0;
     // 敵のAGIは味方と規模が違うので、双方向とも逃走の物差しでそろえる。
-    const scaledAgi = (a) => agiOf(a) * (a.side === "enemy" ? (this.fleeK || 1) : 1);
+    const scaledAgi = (a) => (a.side === "enemy" ? this._foeAgiBase(a, agiOf(a)) : agiOf(a));
     let tAgi = scaledAgi(tgt);
     // 主・強敵・ミミック・出来事の強敵は、味方の物理をかわす時だけ基準の素早さ × STRONG_EVADE_CAP まで
     if (this.baseAgi > 0 && actor.side === "party" && this._soloFoe(tgt)) tAgi = Math.min(tAgi, this.baseAgi * STRONG_EVADE_CAP);
@@ -1976,6 +2056,7 @@ export class Battle {
         // 戦果の写し (game.js startBattle が推奨Lv の基準に合わせた比) を引き継ぐ
         if (actor._rk) { e._rk = actor._rk; e.soul = Math.max(1, Math.round(e.soul * actor._rk[0])); e.gold = Math.max(1, Math.round(e.gold * actor._rk[1])); }
         if (actor._agiMul) { e._agiMul = actor._agiMul; e.agi = Math.max(1, Math.round(e.agi * actor._agiMul)); }
+        scaleFoeAgi(e, this.fleeK); // 呼ばれた手下の AGI も味方の規模へ
         // 属性の暴走 (異変): 呼ばれた仲間の属性もでたらめに
         if (actor._elemRandom) { const els = Object.keys(ELEMENTS).filter((k) => k !== "none"); e._elemRandom = true; e.element = els[Math.floor(Math.random() * els.length)]; }
         // ロード復元後の uid 重複を防ぐ (uid カウンタはリロードでリセットされる)
@@ -1985,7 +2066,7 @@ export class Battle {
         const same = this.enemies.filter((x) => x.key === key).length;
         if (same) e.name += String.fromCharCode(65 + same);
         this.enemies.push(e);
-        this.log(`${actor.name}は ${e.mon.name} を呼び寄せた！`, "dmg");
+        this.log(`${actor.name}は ${e.mon.name}${_enemyLvTag(e)} を呼び寄せた！`, "dmg");
         res.summoned = e;
       } else {
         this.log(`${actor.name}は何かを呼ぼうとしたが、応えはなかった。`, "sys");

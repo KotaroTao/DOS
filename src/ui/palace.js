@@ -18,7 +18,7 @@ import { UI, game, ops, registerUI } from "./ctx.js";
 import { el, setText, glyph, svgIcon, sheet, button, segmented, chips, itemTile, scrollBox, badge, bar } from "./kit.js";
 import { remember } from "./prefs.js";
 import { softFade } from "./motion.js";
-import { statLines, itemCatText, specialLines, weaponPerformanceEl, showSkillPopup, showPassivePopup, tagRow, traitTagKinds, affinityRow, spellTagKinds, revealSteps, monKills, revealLock, elemStatShort, enemyReveal, enemyLabel, UNKNOWN_COLOR } from "./itemview.js";
+import { statLines, itemCatText, specialLines, weaponPerformanceEl, showSkillPopup, showPassivePopup, tagRow, traitTagKinds, affinityRow, spellTagKinds, revealSteps, monKills, revealLock, elemStatShort, enemyReveal, enemyLabel, unknownArt, UNKNOWN_COLOR } from "./itemview.js";
 import { MONSTERS, ICONS, spriteCanvas } from "../sprites.js";
 import { EVENTS, EVENT_MAP, EVENT_GROUPS, EV_TIERS, eventWhereText, onceKey, LORE_PAGES } from "../events.js";
 import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, SHIELD_KINDS, SHIELD_KIND_LABEL, shieldKind, itemName, hasQuality, qualityOf, QUALITY_SPREAD } from "../items.js";
@@ -27,6 +27,7 @@ import { poolAt } from "../dungeons/world.js";
 import { MONSTER_LORE } from "../dungeons/monlore.js";
 import { DUNGEONS, ELEMENTS, RACE_LABEL, monsterTraits, isFloating, resistHpMul, METAL_TIERS } from "../dungeons/index.js";
 import { SPELLS, spellMpLabel } from "../combat.js";
+import { enemyBaseSample, enemyDisplayLevel } from "../enemylevel.js";
 import {
   SOUL_CLASSES, jobSprite, jobRankName, jobLoreFor, jobRankCondText, SOUL_STAT_UP, EMBER_STAT_UP, emberCostOf, JOB_GEAR,
   awakenPerkOf, rankThresholds, soulLevelCap, jobSkillTable, passiveName, passiveDesc, JOB_AFFINITY,
@@ -641,17 +642,24 @@ export function codexMonSheet(key, o = {}) {
     info.appendChild(row);
   };
   if (statsOpen) {
+    // 能力は実際の値で、味方の能力と同じ物差し (攻撃 − 防御÷2 のダメージ式・素早さは手番の速さ)。
+    // 戦闘中 = その個体の値 (強化・弱体は札で別に示す)。図鑑 = その魔物が一番弱く出る所の個体 = Lv1 の値 (enemylevel.js)
+    const base = foe || mt ? null : enemyBaseSample(key);
+    const st = foe ? { hp: foe.maxhp, atk: foe.atk, vit: foe.vit, agi: foe.agi }
+      : base || { hp: Math.max(1, Math.round(m.maxhp * resistHpMul(m))), atk: m.atk, vit: m.def, agi: m.spd };
+    const dlv = foe && !mt ? enemyDisplayLevel(foe) : null;
+    if (dlv) body.appendChild(el("div", "pl-stat-cap", `いまの能力 ― Lv${dlv}`));
+    else if (base) body.appendChild(el("div", "pl-stat-cap", "Lv1 (一番弱く出る所) の能力 ― 深い所ほど強く、Lv10 でおよそ2倍"));
     const grid = el("div", "pt-stats");
-    const stats = { atk: m.atk, vit: m.def, agi: m.spd };
     for (const [k, label] of Object.entries(ENEMY_STAT_LABEL)) {
       const cell = el("div", "pt-stat");
       cell.style.cursor = "default";
       cell.appendChild(el("span", "pt-stat-k", label));
-      cell.appendChild(el("span", "pt-stat-v", mt || stats[k] == null ? "—" : String(Math.round(stats[k]))));
+      cell.appendChild(el("span", "pt-stat-v", mt || st[k] == null ? "—" : String(Math.round(st[k]))));
       grid.appendChild(cell);
     }
     body.appendChild(grid);
-    fact("HP", mt ? (mt.hpRank ? "多め" : mt.hp) : Math.max(1, Math.round(m.maxhp * resistHpMul(m))));
+    fact("HP", mt ? (mt.hpRank ? "多め" : mt.hp) : Math.max(1, Math.round(st.hp)));
     fact("属性攻", elemStatShort({ el: elKey || "none", lv: 1 }));
     fact("属性防", elemStatShort(m.elemDef));
   } else body.appendChild(revealLock(R.stats, "能力・属性・HP"));
@@ -695,7 +703,7 @@ export function codexMonSheet(key, o = {}) {
   if (!special) body.appendChild(infoBlock("出現した迷宮", idxs.length ? idxs.map((i) => pairRow(DUNGEONS[i].name, appearFloorsText(DUNGEONS[i], key, e.floors && e.floors[i]))) : [pairRow("記録なし", null, { dim: true })]));
   return sheet.open({
     kind: "info", banner: isOther ? "その他" : `${RACE_LABEL[m.race] || "敵"}${m.rank ? "・" + RANK_NAME[m.rank] + "級" : ""}`,
-    accent: rc, art: (foe ? !!m.art : kills > 0 || !(m.boss || m.named)) ? m : null, artScale: 8, float: isFloating(m, key),
+    accent: rc, art: (foe ? !!m.art : kills > 0 || !(m.boss || m.named)) ? (rv && !rv.name ? unknownArt(m, 8) : m) : null, artScale: 8, float: isFloating(m, key),
     title: foe ? enemyLabel(foe) : m.name, titleColor: rv && !rv.name ? UNKNOWN_COLOR : null, body, className: "pl-detail-sheet",
     footer: [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }],
   });

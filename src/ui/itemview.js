@@ -200,6 +200,12 @@ export function enemyLabel(e) {
 }
 // 名前がまだ明かされていない敵か (名札・ボタンの色分け用)
 export function enemyUnknown(e) { return !!e && !enemyReveal(e).name; }
+// 名前のまだわからない魔物の絵: 闇色の影に不確定名の色の淡い縁 (CSS の .unk-sil。戦闘の game.js monsterUnknownBitmap と揃える)
+export function unknownArt(m, scale = 2) {
+  const c = spriteCanvas(m, scale);
+  c.classList.add("unk-sil");
+  return c;
+}
 // 不確定名の色 (戦闘の名札・敵の姿シートの題。CSS の .unk-name と揃える)
 export const UNKNOWN_COLOR = "#b9acd9";
 // 記録の1行を書く: UNK_OPEN…UNK_CLOSE で囲んだ不確定名だけ .unk-name の色で (dungeons/unknown.js の unknownTag)
@@ -297,7 +303,7 @@ export function skillDetailLines(sp) {
   if (sp.charm) lines.push(`${pct(sp.charm)}で魅了する（その敵が仲間に襲いかかる・傷を受けると解けやすい・主には効きにくい）`);
   if (sp.confuse) lines.push(`${pct(sp.confuse)}で混乱させる（敵味方を問わず殴る・ふらつく・抵抗値で成功率が下がる）`);
   if (sp.flinchChance) lines.push(`${pct(sp.flinchChance)}で怯ませる（主には効かない）`);
-  if (sp.poison || sp.para || sp.seal || sp.instakill || sp.sleepChance || sp.charm || sp.confuse || sp.kind === "sleep") lines.push("※ 表示は抵抗値0・同じLvでの基本確率。Lv差で5〜95%に調整した後、成功率×（1−抵抗値/100）で判定。抵抗値100は無効");
+  if (sp.poison || sp.para || sp.seal || sp.instakill || sp.sleepChance || sp.charm || sp.confuse || sp.kind === "sleep") lines.push("※ 表示は抵抗値0・同じLvでの基本確率。魂のLvと迷宮の推奨Lvの差で5〜95%に調整した後、成功率×（1−抵抗値/100）で判定。抵抗値100は無効");
   if (sp.plunder) lines.push("この技で倒した敵は、落とすゴールドが2倍になる");
   if (sp.partyHeal) lines.push(`攻撃の後、味方全体のHPを ${sp.partyHeal} 回復（術者のPIEで伸びる）`);
   if (sp.bladeHeal) lines.push(`与えたダメージの${pct(sp.bladeHeal)}だけ味方全員のHPを回復（1人あたり最大HPの${pct(sp.healCap || 0.25)}まで）`);

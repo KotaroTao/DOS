@@ -2,7 +2,7 @@ import { monsterResists } from "./resistance.js";
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
-import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setElemKnown, setPartyEvadeBonus, setPartyBreathBonus, partyBreathRes, setResonance, perkVictory, cureAil, canSpellCure, cureBySpell, spellCureKinds, chishioState } from "./combat.js";
+import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, setEnemyLvTag, scaleFoeAgi, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setElemKnown, setPartyEvadeBonus, setPartyBreathBonus, partyBreathRes, setResonance, perkVictory, cureAil, canSpellCure, cureBySpell, spellCureKinds, chishioState } from "./combat.js";
 import { decideAuto, tacticOf, setResistKnown } from "./autotactics.js";
 import { STAGED, effectStage, stageOf, stageLabel, isBattleLong, turnsLeftLabel, ENEMY_STAT_LABEL } from "./buffstage.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
@@ -15,7 +15,7 @@ import {
 import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, permanentEventStats, eligibleEvents, pickEvent, onceKey, runEvent, eventFightWon } from "./events.js";
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { pickTavernCrowd, TALK_MAP } from "./tavern.js";
-import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, rollBoard, deliveryRewardRows, NPCS, npcOf, composeReport, bondGiftAt, npcBondLabel, TIP_RATE, hasBell, BELL_EVERY_MS, QUEST_REWARD_K } from "./quests.js";
+import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, rollBoard, deliveryRewardRows, NPCS, npcOf, composeReport, bondGiftAt, npcBondLabel, TIP_RATE, hasBell, BELL_EVERY_MS, QUEST_REWARD_K, QUEST_RK, questRewardK } from "./quests.js";
 import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_THREE_REPORT, TUT_FINALE, STORY_CELLS, storyCellAt, BOSS_MEMORIES, REPORTS, LATE_CLUES, IRENE_BEATS, MINE_PASS, msqReward, EPILOGUE, UNLOCKS, unlockSceneFor } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { poolAt } from "./dungeons/world.js";
@@ -88,6 +88,7 @@ import { tlStability, tlStabilityTick, tlRedGain, tlOn, tlMeasure, tlWatchBattle
 import { repriceEquipment } from "./pricing.js";
 import { spawnFx, drawBattleFx, weaponFxStyle, statusFxKind, skillProfile, ELEM_FX_COL, SIG_FX } from "./battlefx.js";
 import "./battlefx-sig.js"; // 各職の看板技の専用演出を SIG_FX に登録する
+import { enemyLvTag, fleeScaleOf } from "./enemylevel.js";
 
 // ===== コンテンツの取り込み =====
 // アイテム: 一点物の手作りカタログ (src/catalog/)。二つ名つきの量産品は廃止。
@@ -109,6 +110,7 @@ setSpriteResolver(makeItemSpriteResolver(ITEMS));
 // 性能が同じ品は同じ値段、どこも同等以上の品は必ず高くなる
 repriceEquipment(ITEMS);
 Object.assign(MONSTERS, DUNGEON_MONSTERS);
+setEnemyLvTag(enemyLvTag); // 戦闘中に呼ばれた手下の名乗りにも表示Lv を添える (combat.js)
 // 名のある強敵 (dungeons/named.js): 名は噂で知れ渡っている → 最初から本当の名で呼ぶ (itemview.js revealSteps)
 for (const id of NAMED_IDS) if (MONSTERS[id]) MONSTERS[id].named = true;
 // 隠しレベル lv (1-50) と表示ランクの補完 (カタログ品は定義済み)
@@ -815,7 +817,7 @@ const _logHistory = [];
 function logHistory() { return _logHistory.map((x) => ({ text: x.msg, cls: "l-" + x.cls })); }
 // 戦闘中の記録は、まだ名前を知らない敵 (討伐数0) の名を不確定名 (「蠢く粘塊？」など、dungeons/unknown.js) に伏せる。
 // 不確定名は unknownTag の印で囲み、記録欄では .unk-name の色で正式な名と見分ける (setLogText)
-// 個体名 (スライムA) を先に、種の名 (スライム) を後に置き換える。明かされた別の敵の名に含まれる種名は触らない
+// 個体名 (スライムA) を先に、種の名 (スライム) を後に置き換える (長い名から順なので、明かされた別の敵の名に含まれる種名は触らない)
 // (置き換えた不確定名が別の敵の名を含んでも二重に化けないよう、いったん印に置き換えてから戻す)
 // (戦闘の組み立て中 = Battle を作る前の名乗りや開幕の一撃は _maskEnemies を見る)
 let _maskEnemies = null;
@@ -823,19 +825,20 @@ function maskUnknownEnemies(msg) {
   if (G.state !== "combat" || typeof msg !== "string") return msg;
   const list = _maskEnemies || (G.battle && G.battle.enemies);
   if (!list || !list.length) return msg;
-  const known = [], pairs = [];
+  // 敵の名前には必ず表示Lv を添える (2026-10 ユーザーの指示: 主・強敵の Lv1 も。enemylevel.js)。
+  // 討伐前の魔物は不確定名に置き換える。すでに「（LvN）」が付いた名前 (名乗り・呼び寄せ) はその Lv のまま重ねない
+  const map = new Map();
   for (const e of list) {
-    if (enemyReveal(e).name) { known.push(e.name); continue; }
-    pairs.push([e.name, unknownTag(enemyLabel(e))]);
-    if (e.mon && e.mon.name) pairs.push([e.mon.name, unknownTag(unknownLabel(e.mon))]);
+    const tag = enemyLvTag(e), known = enemyReveal(e).name;
+    if (e.name && !map.has(e.name)) map.set(e.name, [known ? e.name : unknownTag(enemyLabel(e)), tag]);
+    const mn = e.mon && e.mon.name;
+    if (mn && !map.has(mn)) map.set(mn, [known ? mn : unknownTag(unknownLabel(e.mon)), tag]);
   }
-  if (!pairs.length) return msg;
-  pairs.sort((x, y) => y[0].length - x[0].length);
+  const pairs = [...map].sort((x, y) => y[0].length - x[0].length);
   const outs = [];
-  for (const [from, to] of pairs) {
-    if (!from || from === to || known.some((n) => n.includes(from))) continue;
-    msg = msg.split(from).join(`\u0001${outs.length}\u0002`);
-    outs.push(to);
+  for (const [from, [to, tag]] of pairs) {
+    const re = new RegExp(from.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(（Lv\\d+）)?", "g");
+    msg = msg.replace(re, (_, had) => { outs.push(to + (had || tag)); return `\u0001${outs.length - 1}\u0002`; });
   }
   return msg.replace(/\u0001(\d+)\u0002/g, (_, i) => outs[i]);
 }
@@ -1711,12 +1714,8 @@ function tlGameMeasure(source, fn) {
 // 「この迷宮・階の基準AGI (baseline.js) ÷ この迷宮の雑魚の標準AGI (出現表の素のAGIの中央値)」を掛けて揃える。
 // 俊敏な敵・主・ミミック・鈍足/激昂は、標準からのずれとしてそのまま逃げにくさ/逃げやすさに効く
 function fleeScale() {
-  const cfg = activeCfg();
-  const spds = [...new Set([...(cfg.pool || []), ...(cfg.deepPool || [])])]
-    .map((k) => MONSTERS[k] && MONSTERS[k].spd).filter((v) => v > 0).sort((a, b) => a - b);
-  const typical = spds.length ? spds[Math.floor(spds.length / 2)] : 4 + Math.round((cfg.rank || 1) * 0.9);
-  // 基準の隊の AGI は推奨Lv で引く (levelcurve.js partyAgi)
-  return partyAgi(levelHere().lv) / Math.max(1, typical);
+  // 基準の隊の AGI (推奨Lv で引く) ÷ その迷宮の雑魚の素の AGI の中央値 (enemylevel.js — 図鑑の素早さも同じ式)
+  return fleeScaleOf(activeCfg(), levelHere().lv);
 }
 
 // この迷宮・階の敵のLv (台帳の迷宮は world.js dungeonLevel。奈落は素体の難度 n の1階相当)
@@ -2879,7 +2878,8 @@ function drawBoardIcons(lt, now, hx, hy) {
     }
     if (cell.type === "monster") {
       // 魔物: 足元に血の気配。強敵は紅い瘴気をまとい「強敵」の札を掲げる
-      const b = monsterBitmap(icon);
+      // 名前のまだわからない魔物は影の姿 (戦闘と同じ)
+      const b = enemyUnknown({ key: cell.monsterKey, mon: icon }) ? monsterUnknownBitmap(icon) : monsterBitmap(icon);
       const bottom = r.y + r.h * 0.9;
       vctx.save();
       vctx.globalCompositeOperation = "lighter";
@@ -7757,7 +7757,8 @@ function startBattleMeasured(enemies, cell) {
   // 同種の群れは「ゴブリン ×4」とまとめて告げる (個体名は A/B/C… 付き)
   const sameKind = enemies.length > 1 && enemies.every((e) => e.key === enemies[0].key);
   // 名前は討伐数1で明かす (それまでは不確定名「小さく蠢くもの？」など。迷宮の主は最初から名乗る — 伏せるのは log の maskUnknownEnemies)
-  log(`${sameKind ? `${enemies[0].mon.name} ×${enemies.length}` : enemies.map((e) => e.name).join("・")} が現れた！`, "dmg");
+  // 名前の後に表示Lv (その魔物が一番弱く出る所と比べた実際の強さ — enemylevel.js。状態異常に使う e.lv とは別)
+  log(`${sameKind ? `${enemies[0].mon.name}${enemyLvTag(enemies[0])} ×${enemies.length}` : enemies.map((e) => e.name + enemyLvTag(e)).join("・")} が現れた！`, "dmg");
   // 先制・奇襲の判定 (ボス戦・強敵戦では発生しない)。
   // 周囲警戒 (vigilance) が奇襲を抑え、先制の心得 (initiative) が先制を伸ばす
   const isBoss = enemies.some((e) => e.boss);
@@ -7855,7 +7856,7 @@ function startBattleMeasured(enemies, cell) {
     }
   }
   if (physOnlyHere()) log("呪文を封じる霧が立ちこめている ― 物理技と道具のほかは使えない。", "sys");
-  if (foeLv - partyLevel() >= 4) log(`格上の敵だ (Lv${foeLv})。眠りや毒、即死の術はほとんど効かず、敵の術はよく効く。`, "sys");
+  if (foeLv - partyLevel() >= 4) log(`格上の迷宮だ (推奨Lv${foeLv})。眠りや毒、即死の術はほとんど効かず、敵の術はよく効く。`, "sys");
   // テスト記録: 戦闘の種類 (主 / 金属の魔物 / 精鋭・ミミック・出来事の戦い / 通常) と開始時の様子。
   // 金属の魔物は素早さに依らない回避を持つので、精鋭等の命中に混ぜない
   if (tlOn() && inDungeon()) {
@@ -8099,7 +8100,7 @@ function renderCombatCanvas() {
           vctx.restore();
           const sil = Math.min(1, p / 0.4), col = Math.max(0, Math.min(1, (p - 0.38) / 0.62));
           if (col < 1) drawMonsterBmp(vctx, monsterSilhouette(e.mon), baseX, baseY + rise, sz, alpha * sil);
-          if (col > 0) drawMonster(vctx, e.mon, baseX, baseY + rise, sz, alpha * col * col);
+          if (col > 0 && (e.mon.art || e.mon.photo)) drawMonsterBmp(vctx, enemyBitmap(e), baseX, baseY + rise, sz, alpha * col * col);
           return;
         }
       }
@@ -8125,7 +8126,7 @@ function renderCombatCanvas() {
       vctx.ellipse(baseX + ox, feetY - 1 + oy * 0.3, size * 3.3, size * 0.95, 0, 0, Math.PI * 2);
       vctx.fill();
       vctx.restore();
-      drawMonster(vctx, e.mon, baseX + ox, baseY + oy, size, alpha);
+      if (e.mon && (e.mon.art || e.mon.photo)) drawMonsterBmp(vctx, enemyBitmap(e), baseX + ox, baseY + oy, size, alpha);
       // 被弾時の白い閃き (魔物の形に沿って)
       if (hf && now - hf.t0 >= 0 && now - hf.t0 < 170) {
         vctx.save();
@@ -8172,7 +8173,7 @@ function turnIconCanvas(a) {
   }
   const mon = a.mon;
   if (!mon || !(mon.art || mon.photo)) return null;
-  const b = monsterBitmap(mon);
+  const b = enemyBitmap(a); // 名前のわからない敵は影の姿
   let ent = _turnIcons.get(mon);
   // 原画版の魔物は絵が読めた時にビットマップが差し替わるので、その時に描き直す
   if (!ent || ent.b !== b) {
@@ -8704,6 +8705,49 @@ function monsterSilhouette(mon) {
   if (_monBmp.get(mon) === b) _monSil.set(mon, s); // 原画版の読み込み待ち (空の写し) は覚えない
   return s;
 }
+// 名前のまだわからない魔物の姿 (ユーザーの指示、2026-10): 絵の形だけを闇色で塗り (上ほどわずかに明るい)、
+// 外側の1ドットに不確定名の色の淡い縁を巡らせる。大きさ・余白は monsterBitmap と同じなので、
+// 名が明かされて色の絵に替わっても位置はずれない
+const _monUnk = new WeakMap();
+function monsterUnknownBitmap(mon) {
+  let s = _monUnk.get(mon);
+  if (s) return s;
+  const b = monsterBitmap(mon);
+  const c = document.createElement("canvas");
+  c.width = b.c.width; c.height = b.c.height;
+  const g = c.getContext("2d");
+  if (mon.photo) {
+    // 原画版: 縁 (黒いハロー) ごと闇色で塗る
+    g.drawImage(b.c, 0, 0);
+    g.globalCompositeOperation = "source-in";
+    g.fillStyle = "#0d0a14";
+    g.fillRect(0, 0, c.width, c.height);
+    s = { c, w: b.w, h: b.h, pad: b.pad };
+    if (_monBmp.get(mon) === b) _monUnk.set(mon, s); // 読み込み待ちの空の写しは覚えない
+    return s;
+  }
+  const rows = mon.art || [];
+  const { w, h, pad } = b;
+  const on = (x, y) => { const ch = rows[y] && rows[y][x]; return !!ch && ch !== "." && ch !== " " && !!mon.palette[ch]; };
+  g.fillStyle = "rgba(185,172,217,0.55)"; // UNKNOWN_COLOR の淡い縁
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (!on(x, y)) continue;
+    g.fillRect(x + pad - 1, y + pad, 3, 1);
+    g.fillRect(x + pad, y + pad - 1, 1, 3);
+  }
+  for (let y = 0; y < h; y++) {
+    const t = h > 1 ? y / (h - 1) : 0;
+    g.fillStyle = `rgb(${Math.round(30 - 22 * t)},${Math.round(23 - 17 * t)},${Math.round(42 - 30 * t)})`;
+    for (let x = 0; x < w; x++) if (on(x, y)) g.fillRect(x + pad, y + pad, 1, 1);
+  }
+  s = { c, w, h, pad };
+  _monUnk.set(mon, s);
+  return s;
+}
+// 戦闘の敵1体の姿: 名前が明かされるまでは影 (monsterUnknownBitmap)
+function enemyBitmap(e) {
+  return enemyUnknown(e) ? monsterUnknownBitmap(e.mon) : monsterBitmap(e.mon);
+}
 // drawSpriteFit と同じ見かけの大きさ (12グリッド換算の size) で魔物を描く
 function drawMonster(ctx, mon, cx, cy, size, alpha = 1) {
   if (!mon || !(mon.art || mon.photo)) return;
@@ -8845,7 +8889,8 @@ function drawEffects(fx, now) {
     vctx.save();
     const lift = t * 10;
     if (t < 0.35) {
-      drawMonster(vctx, d.mon, d.x, d.y - lift, d.size, 1 - t * 0.5);
+      if (d.unk && d.mon && (d.mon.art || d.mon.photo)) drawMonsterBmp(vctx, monsterUnknownBitmap(d.mon), d.x, d.y - lift, d.size, 1 - t * 0.5);
+      else drawMonster(vctx, d.mon, d.x, d.y - lift, d.size, 1 - t * 0.5);
       vctx.globalCompositeOperation = "lighter";
       drawMonsterBmp(vctx, monsterFlashBitmap(d.mon), d.x, d.y - lift, d.size, 0.9 * (1 - t / 0.35));
     } else {
@@ -9785,7 +9830,7 @@ function applyImpact(res) {
         spawnFx(fx.skill, "reap", pos.cx, pos.cy, rt0, spd, { seed, s: Math.max(0.8, Math.min(1.3, (pos.size || 9) / 9)) });
         fx.floats.push({ x: pos.cx, y: pos.cy - 58, text: "死の宣告", color: "#c9a0ff", t0: rt0, small: true, kind: "label" });
         fx.floats.push({ x: pos.cx, y: pos.cy - 10, text: "即死!", color: "#ff2a2a", t0: rt0 + 260 * spd, big: true, kind: "crit" });
-        if (!fx.deaths.some((d) => d.uid === h.target.uid)) fx.deaths.push({ uid: h.target.uid, mon: h.target.mon, x: pos.cx, y: pos.cy, size: pos.size || 9, t0: rt0 + 300 * spd });
+        if (!fx.deaths.some((d) => d.uid === h.target.uid)) fx.deaths.push({ uid: h.target.uid, mon: h.target.mon, unk: enemyUnknown(h.target), x: pos.cx, y: pos.cy, size: pos.size || 9, t0: rt0 + 300 * spd });
         anyDeath = true;
         continue;
       } else if (res.action === "spell" && res.spellKind !== "heal" && res.spellKind !== "phys") {
@@ -9853,7 +9898,7 @@ function applyImpact(res) {
       if (h.died) {
         anyDeath = true;
         // 撃破: 魔物が白く焼けて灰に崩れる (描画は drawEffects)
-        if (!fx.deaths.some((d) => d.uid === h.target.uid)) fx.deaths.push({ uid: h.target.uid, mon: h.target.mon, x: pos.cx, y: pos.cy, size: pos.size || 9, t0: ht0 });
+        if (!fx.deaths.some((d) => d.uid === h.target.uid)) fx.deaths.push({ uid: h.target.uid, mon: h.target.mon, unk: enemyUnknown(h.target), x: pos.cx, y: pos.cy, size: pos.size || 9, t0: ht0 });
       }
     } else {
       // 味方が対象
@@ -11749,14 +11794,20 @@ function questState() {
   for (const q of [...(s.board || []), ...s.active]) { fixQuestDungeonName(q); scaleOldQuestReward(q); }
   return s;
 }
-// 報酬の倍率 (quests.js QUEST_REWARD_K、2026-10 に 1/5) を入れる前に貼られた・受けた依頼の金貨・✦Soul を直す (一度だけ。印 rk)
+// 依頼の報酬の倍率 (quests.js QUEST_REWARD_K / questRewardK) を、前の決まりで貼られた・受けた依頼の金貨・✦Soul に合わせ直す (一度だけ)。
+//   印なし = 倍率を入れる前 → 品・職業の魂を添える依頼だけ 1/5 に
+//   rk 1 = どの依頼も 1/5 にしていた版 → 金貨・✦Soul だけの依頼は元に戻す
 function scaleOldQuestReward(q) {
-  if (!q || q.rk) return;
-  q.rk = 1;
+  if (!q || q.rk === QUEST_RK) return;
+  const was = q.rk;
+  q.rk = QUEST_RK;
   const r = q.reward;
   if (!r || typeof r !== "object") return;
-  if (r.gold) r.gold = Math.max(1, Math.round(r.gold * QUEST_REWARD_K));
-  if (r.soulPts) r.soulPts = Math.max(1, Math.round(r.soulPts * QUEST_REWARD_K));
+  const k = questRewardK(r);
+  const f = !was ? k : was === 1 && k === 1 ? 1 / QUEST_REWARD_K : 1;
+  if (f === 1) return;
+  if (r.gold) r.gold = Math.max(1, Math.round(r.gold * f));
+  if (r.soulPts) r.soulPts = Math.max(1, Math.round(r.soulPts * f));
 }
 // 古いセーブの依頼は説明・手がかりに迷宮の略称 (「囁く回廊」) が残っている → 正式名 (「亡骸の囁く回廊」) に直す
 function fixQuestDungeonName(q) {
@@ -11852,8 +11903,9 @@ function fixedQuestReward(def) {
   const front = questFrontUnit();
   const u = { gold: Math.max(u0.gold, front.gold * 0.7), soul: Math.max(u0.soul, front.soul * 0.7) };
   const out = {};
-  // 金貨・✦Soul・赤い魂は QUEST_REWARD_K (2026-10 ユーザーの指示で 1/5) を掛ける。残火・魂はそのまま
-  const k = QUEST_REWARD_K;
+  // 職業の魂・品を添える依頼は、金貨・✦Soul・赤い魂に QUEST_REWARD_K (2026-10 ユーザーの指示で 1/5) を掛ける。
+  // 添えない依頼 (金貨・✦Soul だけ。懸賞など) は減らさない。残火・魂の数はそのまま
+  const k = questRewardK(r);
   // 端数は 10 (✦ は 5) に丸める。小さな額は丸めると 0 や倍近くになるので、刻みの5倍に満たなければ1の位まで
   const nice = (v, step) => (v >= step * 5 ? Math.round(v / step) * step : Math.max(1, Math.round(v)));
   if (r.gold) out.gold = nice(u.gold * r.gold * k, 10);
@@ -14574,9 +14626,9 @@ function returnToTown(opts = {}) {
   autosave(true);
   const repairTutorial = UI.tutorialAfterReturn?.() || false;
   if (abyssSummary && !repairTutorial) showAbyssSummary(abyssSummary);
-  // 帰還の報告は街の広場 (WP-A) が UI.renderRunReport で札として置く。まだ置かれていなければ、シートで見せる
+  // 帰還の報告は街の広場 (WP-A) が夜景の右下に札 (.hb-rr、押すとシート) として置く。まだ置かれていなければ、シートで見せる
   else if (!repairTutorial) setTimeout(() => {
-    if (G.state === "town" && G.lastRun && !G.lastRun.dismissed && !document.querySelector(".rr-card") && !uiBlocked() && UI.openRunReport) UI.openRunReport();
+    if (G.state === "town" && G.lastRun && !G.lastRun.dismissed && !document.querySelector(".rr-card, .hb-rr") && !uiBlocked() && UI.openRunReport) UI.openRunReport();
   }, 450);
   // §7 M9 帰還時に宿で休む (設定で選んだ時だけ。宿賃は宿屋と同じ)
   if (!repairTutorial && outcome !== "wipe" && uiDungeonHud.getPref("autoRest")) {
@@ -16072,6 +16124,7 @@ function loadGame() {
     tlWatchBattle(G.battle, tlWhere());
     G.battle.log = log;
     if (G.battle.fleeK == null) G.battle.fleeK = fleeScale(); // 逃走の物差しを持たない古い戦闘
+    for (const e of (G.battle.enemies || [])) scaleFoeAgi(e, G.battle.fleeK); // 敵の AGI を素の値のまま保存した古い戦闘
     if (G.battle.baseAgi == null) G.battle.baseAgi = partyAgi(levelHere().lv); // 強敵の回避の上限を持たない古い戦闘
     for (const e of (G.battle.enemies || [])) if (e.key && MONSTERS[e.key]) {
       e.mon = MONSTERS[e.key];

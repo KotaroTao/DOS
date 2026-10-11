@@ -167,8 +167,9 @@ function floorFacts() {
     const ekey = game.eliteKey ? game.eliteKey() : null;
     const ek = ekey ? MONSTERS[ekey] : null;
     // 名前は一度倒すまで不確定名 (敵の情報の段階開示と同じ)
-    const ekName = ek ? (monKills(ekey) >= revealSteps(ek).name ? ek.name : unknownLabel(ek)) : "";
-    facts.push({ tone: "bad", icon: ek || ICONS.trap, title: "強敵の気配", lines: ["この階には通常では遭遇しない強大な存在が潜む。", ek ? `強敵「${ekName}」― 討てば希少な戦利品と魂を残しやすい。` : "討てば希少な戦利品を得られる。"] });
+    const ekKnown = ek && monKills(ekey) >= revealSteps(ek).name;
+    const ekName = ek ? (ekKnown ? ek.name : unknownLabel(ek)) : "";
+    facts.push({ tone: "bad", icon: ek || ICONS.trap, unk: !!ek && !ekKnown, title: "強敵の気配", lines: ["この階には通常では遭遇しない強大な存在が潜む。", ek ? `強敵「${ekName}」― 討てば希少な戦利品と魂を残しやすい。` : "討てば希少な戦利品を得られる。"] });
   }
   if (sp) facts.push({ tone: "gold", icon: ICONS[sp.icon] || ICONS.stairs, title: `特別な階「${sp.name}」`, accent: sp.accent, lines: sp.lines });
   if (mu) facts.push({ tone: "gold", icon: ICONS.stairs, title: `迷宮の異変「${mu.name}」`, accent: mu.accent, lines: [`危険 ― ${mu.risk}`, `見返り ― ${mu.gain}`] });
@@ -225,7 +226,11 @@ export function openFloorInfo() {
         const card = el("div", "dg-fact t-" + (x.tone || "gold"));
         if (x.accent) card.style.setProperty("--fact", x.accent);
         const ic = el("span", "dg-fact-ic");
-        try { ic.appendChild(spriteCanvas(x.icon, 2)); } catch (e) { /* 絵が無くても動く */ }
+        try {
+          const sc = spriteCanvas(x.icon, 2);
+          if (x.unk) sc.classList.add("unk-sil"); // 名前のまだわからない強敵は影の姿
+          ic.appendChild(sc);
+        } catch (e) { /* 絵が無くても動く */ }
         card.appendChild(ic);
         const tx = el("div", "dg-fact-t");
         tx.appendChild(setText(el("div", "dg-fact-h"), x.title));
