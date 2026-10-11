@@ -13403,7 +13403,7 @@ function achNext(s) {
     [1, "観客の喝采", 100], [10, "見世物の名手", 400, 2], [30, "満場の喝采", 1000, 4],
   ], (v) => `観客の注文に ${v}回 応える`, () => G.stats.audience || 0, { more: step(30) });
 
-  // 無限迷宮 (第十章の結びで開く。開くまでは伏せる) — docs/infinite-affixes.md 5章。数えは G.stats.inf (infStats)
+  // 無限迷宮 (第八章の結びで開く。開くまでは伏せる) — docs/infinite-affixes.md 5章。数えは G.stats.inf (infStats)
   {
     const iv = (k) => () => infStats()[k] || 0;
     const io = { secret: () => !featureUnlocked("infinite"), dynamic: true }; // 開いた後に伏せを外すため段を覚えない
@@ -13872,8 +13872,10 @@ const FEATURES = {
   // ── 第六章から (docs/unlocks.md の年表。ユーザーの了解済み)。章がまだ無いので開かない。仕組みはその章を作る時に足す ──
   rusui: { chapter: 6, report: "finale" },      // 留守居の修練 (控えのメイン魂にも、戦闘で魂に入る経験値の一部が入る — 遠征の差し替え)
   order4: { chapter: 8, report: "finale" },     // 結社の席4
+  // 無限迷宮 (入るたびに Lv1 の仮の器で潜るローグライク — docs/infinite-labyrinth.md)。第八章の結び (2026-10-11 ユーザーの指示:
+  //   第八章のあたりで Lv100・ランク3〜4 に届き、本編の育ちが単調になってくるので、第十章から前倒し)
+  infinite: { chapter: 8, report: "finale" },
   rematch: { chapter: 9, report: "finale" },    // 宿敵の再戦 (名のある強敵・主の強化版)
-  infinite: { chapter: 10, report: "finale" },  // 無限迷宮 (入るたびに Lv1 の仮の器で潜るローグライク。第一部の結び — docs/infinite-labyrinth.md)
   enchant: { chapter: 11, report: "finale" },   // 付呪
   order5: { chapter: 12, report: "finale" },    // 結社の席5
   rebirth: { chapter: 14, report: "finale" },   // 魂の転生

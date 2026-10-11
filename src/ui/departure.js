@@ -330,7 +330,7 @@ function renderGates(b) {
   for (const dn of locked) sealedRow(null, dn.hint || "まだ地図にない迷宮。手がかりを探せ", "未発見");
   // 章の結びまで語り終えた: 次章を「準備中」として見せる (鎖で封じられた大門)
   if (game.contentSealed && game.contentSealed() && ch) sealedRow(ch.next || "次の章", ch.nextNote || "その先へ続く道は、まだ封じられている", "準備中");
-  // 無限迷宮 (第十章の結びで開く)
+  // 無限迷宮 (第八章の結びで開く)
   if (game.featureUnlocked && game.featureUnlocked("infinite")) {
     const rec = game.abyssRecords ? game.abyssRecords() : { bestDepth: 0 };
     const r = el("button", "dp-gate dp-abyss");
