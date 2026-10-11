@@ -403,6 +403,12 @@ function pickWearer(doll, item, { onDone = null, chip = null, key = null } = {})
         lines: [`外した ${names} を ${owner.name} の袋へ移して (取り替えて) 装備する？`],
         okLabel: "取り替えて装備", cancelLabel: "やめる", danger: false,
       }).then((y) => { if (!y) return; const r2 = equipWithUndo(doll, item, b.key, { stashTo: owner }); if (r2.ok && onDone) onDone(r2); });
+    } else if (UI.openDiscard && (b.displaced || []).length === 1) {
+      // 袋の品を1つ捨てて空け、外した装備をそこへ入れて装備する (docs/infinite-labyrinth.md 18章)
+      UI.openDiscard({ incoming: b.displaced[0], incomingSub: "外れる装備", members: [doll], skipLabel: "やめる",
+        title: `${doll.name}の袋の品を1つ捨てて装備する`,
+        lines: [`${doll.name}の持ち物がいっぱいで、外した ${names} を入れられない。袋の品を1つ捨てると、その空きに入る。ロックした品は出ない。`],
+        onPick: () => { const r2 = equipWithUndo(doll, item, b.key); if (r2.ok && onDone) onDone(r2); } });
     } else {
       sfx("ng");
       toast(`${doll.name}の持ち物がいっぱいで、外した ${names || "装備"} を入れられない ― 袋を1つ空けてから`, { tone: "bad", ms: 3200 });
@@ -2246,7 +2252,7 @@ function curItemCard(d, k, cur, h) {
     foot.appendChild(button({ label: "鍛え直し", kind: "ghost", size: "sm", title: "商会で金貨を払い、品質を引き直す",
       onTap: () => UI.openReforge(cur, d, { onClose: () => { memoClear(); if (h && !h.closed && h.update) h.update({}); } }) }));
   }
-  foot.appendChild(button({ label: cur.cursed ? "呪いで外せない" : cur.locked ? "ロック中は外せない" : "外す", kind: "ghost", size: "sm", disabled: !!cur.cursed || !!cur.locked || d.items.length >= MAX_ITEMS,
+  foot.appendChild(button({ label: cur.cursed ? "呪いで外せない" : cur.locked ? "ロック中は外せない" : "外す", kind: "ghost", size: "sm", disabled: !!cur.cursed || !!cur.locked, // 袋がいっぱいなら、捨てる品を選ぶ画面を挟む (game.doUnequip)
     onTap: () => { h.close(); if (game.doUnequip) game.doUnequip(d, k); } }));
   box.appendChild(foot);
   return box;
@@ -2604,7 +2610,7 @@ function itemActions(it, owner, ctx, { equip = true } = {}) {
   if (ctx === "equip") {
     const key = SLOTS.find((k) => owner.equip[k] === it);
     if (!it.cursed && !it.unidentified && game.toggleItemLock) acts.push({ label: it.locked ? "ロックを外す" : "ロック", kind: "ghost", onTap: (h) => { close(h); game.toggleItemLock(it); } });
-    acts.push({ label: it.cursed ? "呪いで外せない" : it.locked ? "ロック中は外せない" : "外す", kind: "secondary", disabled: !!it.cursed || !!it.locked || owner.items.length >= MAX_ITEMS,
+    acts.push({ label: it.cursed ? "呪いで外せない" : it.locked ? "ロック中は外せない" : "外す", kind: "secondary", disabled: !!it.cursed || !!it.locked,
       onTap: (h) => { close(h); if (key && game.doUnequip) game.doUnequip(owner, key); } });
     return acts;
   }

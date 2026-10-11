@@ -142,7 +142,7 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
     return row;
   };
   const mode = document.createElement("select");
-  for (const [value, label] of [["dungeon", "迷宮・街"], ["tutorial", "チュートリアル"], ["story", "ストーリー"], ["art", "キャラ画像（全職業・全ランク）"]]) {
+  for (const [value, label] of [["dungeon", "迷宮・街"], ["inf", "無限迷宮"], ["tutorial", "チュートリアル"], ["story", "ストーリー"], ["art", "キャラ画像（全職業・全ランク）"]]) {
     const o = document.createElement("option"); o.value = value; o.textContent = label; mode.appendChild(o);
   }
   field("テストする内容", mode);
@@ -169,17 +169,24 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
     const o = document.createElement("option"); o.value = value; o.textContent = label; place.appendChild(o);
   }
   const dungeonRows = [field("進行度（迷宮）", dungeon), field("開始する階", floor), field("開始場所", place)];
+  // 無限迷宮: ○階から、隊Lv○で始める (docs/infinite-labyrinth.md 16-4。Lv を空けると、その階の推奨Lv)
+  const infFloor = document.createElement("input");
+  infFloor.type = "number"; infFloor.min = "1"; infFloor.max = "999"; infFloor.value = "1";
+  const infLv = document.createElement("input");
+  infLv.type = "number"; infLv.min = "1"; infLv.max = "300"; infLv.placeholder = "その階の推奨Lv";
+  const infRows = [field("開始する階", infFloor), field("隊のLv", infLv)];
   const updateMode = () => {
-    const isDungeon = mode.value === "dungeon", isArt = mode.value === "art";
+    const isDungeon = mode.value === "dungeon", isArt = mode.value === "art", isInf = mode.value === "inf";
     for (const row of dungeonRows) row.hidden = !isDungeon;
-    sceneSelectRow.hidden = isDungeon || isArt;
+    for (const row of infRows) row.hidden = !isInf;
+    sceneSelectRow.hidden = isDungeon || isArt || isInf;
     artNote.hidden = !isArt;
     testStart.querySelector(".ttl-btn-t").textContent = isArt ? "一覧を開く" : "テスト開始";
     sceneSelect.replaceChildren();
     for (const d of testScenes.filter((d) => d.kind === mode.value)) {
       const o = document.createElement("option"); o.value = d.id; o.textContent = d.name; sceneSelect.appendChild(o);
     }
-    testStart.disabled = !isDungeon && !isArt && !sceneSelect.options.length;
+    testStart.disabled = !isDungeon && !isArt && !isInf && !sceneSelect.options.length;
   };
   // キャラ画像はゲームを始めずに、タイトルの上へ一覧を重ねる
   const artNote = div("ttl-note ttl-test-art", "全職業のキャラの絵 (R1〜R5) と顔アイコンを並べて表示します。");
@@ -201,6 +208,12 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
     if (mode.value === "art") {
       sfx("select");
       gallery = showJobGallery({ onClose: () => { gallery = null; try { testStart.focus({ preventScroll: true }); } catch {} } });
+      return;
+    }
+    if (mode.value === "inf") {
+      const f = Math.max(1, Math.min(999, Math.floor(Number(infFloor.value)) || 1));
+      const lv = Math.floor(Number(infLv.value)) || 0;
+      close(() => onTestPlay({ inf: f, infLv: lv > 0 ? Math.min(300, lv) : 0 }));
       return;
     }
     clampFloor();

@@ -87,7 +87,7 @@ function sellSubset(list) {
     doll.items.splice(idx, 1);
     g.gold += price; gold += price;
     if (game.tlTown) game.tlTown("gold", price, "sell");
-    if (item.id) game.shopStockAdd(item.id);
+    if (item.id) (game.shopReceive || game.shopStockAdd)(game.shopReceive ? item : item.id);
     if (game.codexSeeItem) game.codexSeeItem(item.id);
     n++;
   }
@@ -446,7 +446,7 @@ function stockRow(id) {
   const tx = el("span", "wpc-srow-t");
   const l1 = el("span", "wpc-srow-l1");
   l1.appendChild(nameSpan(it, "wpc-srow-nm"));
-  l1.appendChild(el("span", "wpc-srow-n", `在庫${n}`));
+  l1.appendChild(el("span", "wpc-srow-n", game.shopAfxItem && game.shopAfxItem(id) ? `通常品${game.shopPlainStock(id)}` : `在庫${n}`));
   tx.appendChild(l1);
   const l3 = el("span", "wpc-srow-l3");
   const kind = it.slot === "weapon" ? (WEAPON_CAT_LABEL[it.cat] || "武器") : ((ITEM_CATS.find((c) => c.slots.includes(it.slot)) || {}).label || "");
@@ -711,8 +711,56 @@ function renderBuy(wrap) {
       box.appendChild(el("div", "wpc-empty big", cat === "rec" ? "いまの隊の装備に勝る品は、棚に並んでいない。" : "この種類の品は売り切れだ。"));
       return;
     }
-    fillList(box, ids, stockRow, "buyPage");
+    fillList(box, ids, stockRowsFor, "buyPage");
   };
+}
+// 棚の1品ぶんの行: 追加つきの1点があれば先に (docs/infinite-labyrinth.md 17-1)、通常品が残っていれば通常の行
+function stockRowsFor(id) {
+  const ax = game.shopAfxItem ? game.shopAfxItem(id) : null;
+  if (!ax) return stockRow(id);
+  const frag = document.createDocumentFragment();
+  frag.appendChild(afxStockRow(id, ax));
+  if ((game.shopPlainStock ? game.shopPlainStock(id) : 0) > 0) frag.appendChild(stockRow(id));
+  return frag;
+}
+// 追加つきの品の行: 名・追加の印と短い説明・値段 (追加の分だけ高い)。買うと、その品の組は消える
+function afxStockRow(id, it) {
+  const g = G();
+  const price = game.buyPrice(it);
+  const rk = rarityKey(it);
+  const row = el("div", "wpc-srow afx" + (rk ? " rar-" + rk : ""));
+  if (rk) row.style.setProperty("--edge", RARITIES[rk].color);
+  const info = el("button", "wpc-srow-info");
+  info.type = "button";
+  const ic = el("span", "wpc-srow-ic");
+  ic.appendChild(spriteCanvas(it, 3));
+  info.appendChild(ic);
+  const tx = el("span", "wpc-srow-t");
+  const l1 = el("span", "wpc-srow-l1");
+  l1.appendChild(nameSpan(it, "wpc-srow-nm"));
+  l1.appendChild(el("span", "wpc-srow-n", "追加つき1点"));
+  tx.appendChild(l1);
+  const l3 = el("span", "wpc-srow-l3");
+  l3.appendChild(setText(el("span", "wpc-dim"), (it.afxText || []).map((a) => a.text).join("・")));
+  tx.appendChild(l3);
+  info.appendChild(tx);
+  info.addEventListener("click", () => { sfx("select"); itemSheet(it, {}); });
+  row.appendChild(info);
+  const act = el("div", "wpc-buy");
+  const buyer = defaultBuyer();
+  const main = el("button", "wpc-buy-main" + ((g.gold || 0) < price ? " short" : ""));
+  main.type = "button";
+  main.appendChild(goldEl(shortN(price), "wpc-buy-p"));
+  main.appendChild(el("span", "wpc-buy-l", "買う"));
+  main.disabled = (g.gold || 0) < price || !buyer;
+  main.addEventListener("click", () => {
+    if (!shopOpen()) { toast("商会は閉ざされている", { tone: "info" }); return; }
+    const got = game.buyAffixed ? game.buyAffixed(id, buyer) : null;
+    if (got) { floatGold(price, "dn"); toast(`${got.afxPre || ""}${got.name}${got.afxMark || ""} を買った → ${buyer.name} の袋`, { tone: "gold", icon: got }); }
+  });
+  act.appendChild(main);
+  row.appendChild(act);
+  return row;
 }
 
 // 武器の種別を選ぶ (小さなシート)

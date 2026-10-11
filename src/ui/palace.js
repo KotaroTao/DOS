@@ -400,6 +400,7 @@ function renderCodexJob(box) {
 function evGroupsOpen(rec) {
   // 層の欄は、その層の景色の迷宮が地図に現れてから出す
   const layers = new Set(DUNGEONS.filter((d, i) => dunOpen(i)).map((d) => d.layer));
+  if (game.featureUnlocked && game.featureUnlocked("infinite")) layers.add(99); // 無限迷宮の欄は奈落が開いてから
   return EVENT_GROUPS.filter((x) => !x.layer || layers.has(x.layer)
     || EVENTS.some((e) => (e.layer || 0) === x.layer && rec.seen[e.id]));
 }

@@ -164,7 +164,11 @@ export function unidentName(it) {
   return UNIDENT_SLOT[it.slot] || "なぞのしなもの？";
 }
 // 表示名: 未鑑定なら伏せ名、鑑定済みなら本来の名前
-export function itemName(it) { return it && it.unidentified ? unidentName(it) : (it ? it.name + (it.forge ? "＋" + it.forge : "") : ""); }
+// 無限迷宮の追加の能力・特性を持つ品は、一番格の高い追加の名を前に、格の印 (◇◆★) を後ろに付ける (src/infaffix.js)
+export function itemName(it) { return it && it.unidentified ? unidentName(it) : (it ? (it.afxPre || "") + it.name + (it.forge ? "＋" + it.forge : "") + (it.afxMark || "") : ""); }
+// 無限迷宮の追加の能力・特性 (src/infaffix.js)。items.js は infaffix.js を import しないので game.js が渡す
+let _afxApply = (it) => it, _gearPerks = () => [];
+export function registerAffixes(apply, perks) { if (typeof apply === "function") _afxApply = apply; if (typeof perks === "function") _gearPerks = perks; }
 // ＋N の段 (it.forge。元は迷宮の出来事「地の底の鍛冶場」。第九章「宿敵の再戦」で首級を鍛える予定): 品の正の能力値を 1段につき1割 (最低+1) 底上げする。
 // 品の能力はロード時に目録から引き直される (reflattenItemStats) ので、その後にもう一度これを掛ける (品質 applyQuality の後)
 export const FORGE_KEYS = ["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp"];
@@ -237,6 +241,7 @@ export function itemAtQuality(it, q = it && it.q) {
   }
   out.q = q;
   applyQuality(out);
+  if (out.afx) _afxApply(out); // 追加の能力・特性は品質の後
   if (out.forge) applyForge(out);
   return out;
 }
@@ -1463,6 +1468,7 @@ export function recalc(member) {
   for (const k in resist) resist[k] = (base.resists && base.resists[k]) || 0;
   const ar = {}, oh = {}; // 状態異常耐性 (種類→合計) / 追加効果 (種類→最も強いもの)
   let br = 0; // ブレス耐性 (合計)
+  const gfx = [], gmisc = {}; // 無限迷宮の追加の特性: 戦闘の条件つきの効果 (combat.js perksOf が読む) と、迷宮での効果 (game.js が読む)
   const counted = new Set();
   for (const slot of SLOTS) {
     const it = member.equip[slot];
@@ -1489,6 +1495,8 @@ export function recalc(member) {
     if (it.aRes) for (const k in it.aRes) ar[k] = (ar[k] || 0) + (it.aRes[k] || 0);
     if (it.resists) for (const k in resist) resist[k] += it.resists[k] || 0;
     br += it.bRes || 0;
+    if (it.afxFx) gfx.push(...it.afxFx);
+    if (it.afxMisc) for (const k in it.afxMisc) { const v = it.afxMisc[k]; gmisc[k] = typeof v === "boolean" ? (gmisc[k] || v) : (gmisc[k] || 0) + v; }
     if (it.onHit && it.onHit.k) {
       const cur = oh[it.onHit.k];
       if (!cur || (it.onHit.chance || 0) > cur.chance) oh[it.onHit.k] = { k: it.onHit.k, chance: it.onHit.chance || 0, ...(it.onHit.pct ? { pct: it.onHit.pct } : {}) };
@@ -1529,6 +1537,8 @@ export function recalc(member) {
   member.breathRes = br > 0 ? Math.min(BREATH_RES_MAX, Math.round(br * 100) / 100) : 0;
   const ohOut = Object.values(oh).filter((o) => o.chance > 0);
   member.onHit = ohOut.length ? ohOut : null;
+  member.gearPerks = gfx.length ? _gearPerks(gfx) : null; // 上限で切った [{c, lv, label, key}]
+  member.gearMisc = Object.keys(gmisc).length ? gmisc : null;
   // 武器の能力参照 (scale) と魔法属性 (magic)。攻撃力 power = 参照能力 × 係数の合計 (combat.js の _eatk も同じ式をバフ込みで使う)
   const wpn = member.equip.weapon;
   member.wScale = wpn && wpn.scale ? { ...wpn.scale } : null;

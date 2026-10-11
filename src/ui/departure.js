@@ -570,6 +570,16 @@ function renderAbyssPage(b) {
   t.appendChild(cell(`B${rec.bestDepth || 0}F`, "最深"));
   t.appendChild(cell(rec.runs || 0, "挑戦"));
   b.appendChild(t);
+  // 称号 (見た目だけ): 付けている称号と、選び直す入口
+  if (game.infTitleList) {
+    const list = game.infTitleList(), name = game.infTitleName ? game.infTitleName() : "";
+    const tb = el("button", "dp-gate dp-title");
+    tb.type = "button";
+    tb.appendChild(el("span", "dp-gate-n", name ? `称号「${name}」の隊` : "称号なし"));
+    tb.appendChild(el("span", "dp-gate-s", `得た称号 ${list.filter((x) => x.got).length}/${list.length} ・ 選び直す ›`));
+    tb.addEventListener("click", () => { sfx("select"); if (UI.openInfTitles) UI.openInfTitles(() => refresh()); });
+    b.appendChild(tb);
+  }
   if ((rec.recent || []).length) {
     b.appendChild(sec("直近の挑戦"));
     const OUT = { return: "帰還", saved: "全滅 (赤い魂で持ち帰り)", wipe: "全滅" };

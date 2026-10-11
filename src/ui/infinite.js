@@ -7,7 +7,7 @@
 //   UI.openInfSummary(r)     … 帰ってきた (game.js infCloseRun の結果)。持ち帰った魂 (＋1 の素材)・品 (商会の棚へ)・残火
 
 import { UI, game, registerUI } from "./ctx.js";
-import { el, sheet, button, row, toast, itemTile, portrait, confirm as kitConfirm } from "./kit.js";
+import { el, sheet, button, row, toast, itemTile, portrait, confirm as kitConfirm, uiBlocked } from "./kit.js";
 import { SOUL_CLASSES, jobBust, soulByUid, soulLabel, soulLevelCapOf, soulRankOf, jobStatsOf } from "../souls.js";
 import { crispCanvas } from "../sprites.js";
 import { ICONS } from "../sprites.js";
@@ -283,6 +283,7 @@ export function openInfSummary(r = {}) {
     title: r.outcome === "wipe" ? `B${r.depth}F で全滅した` : r.outcome === "saved" ? `B${r.depth}F で全滅し、赤い魂で持ち帰った` : `B${r.depth}F から帰ってきた`,
     sparkle: !!r.newDepth,
     body: (b) => {
+      if (r.title) b.appendChild(el("div", "inf-note", `称号「${r.title}」の隊`));
       if (r.newDepth) b.appendChild(el("div", "inf-note gold", "★ 最深到達を更新した！"));
       if (!r.keep) {
         const l = r.lost || {};
@@ -313,6 +314,72 @@ export function openInfSummary(r = {}) {
   });
 }
 
+// ================= 称号 (docs/infinite-affixes.md 4章) =================
+// 見た目だけ。得た称号から1つを選んで付けると、無限迷宮の入口・帰還の記録で隊の名の横に出る。まだ得ていない称号は条件だけ見せる
+export function openInfTitles(onDone) {
+  const draw = (b) => {
+    b.innerHTML = "";
+    const list = game.infTitleList ? game.infTitleList() : [];
+    const got = list.filter((t) => t.got).length;
+    b.appendChild(el("div", "inf-note dim", `得た称号 ${got}/${list.length} ・ 見た目だけで、能力は上がらない。`));
+    const none = button({ label: "称号を付けない", kind: list.some((t) => t.on) ? "ghost" : "primary", size: "sm", onTap: () => { game.setInfTitle(null); draw(b); } });
+    b.appendChild(none);
+    for (const t of list) {
+      const r = row({ title: t.got ? `「${t.name}」${t.on ? " ― 付けている" : ""}` : "？？？", sub: t.cond });
+      r.classList.add("inf-title");
+      if (t.on) r.classList.add("on");
+      if (!t.got) r.classList.add("dim");
+      else r.addEventListener("click", () => { game.setInfTitle(t.key); draw(b); });
+      b.appendChild(r);
+    }
+  };
+  return sheet.open({
+    kind: "sheet", banner: "称号", title: `${INF_NAME}の称号`, className: "inf-sheet",
+    body: (b) => draw(b),
+    footer: [{ label: "閉じる", kind: "primary", onTap: (h) => { h.close("ok"); if (onDone) onDone(); } }],
+  });
+}
+
+// ================= 商会の棚: 追加の組がぶつかった品 (docs/infinite-labyrinth.md 17-1) =================
+// 商会は1つの品につき追加の組を1つだけ覚えておける。ぶつかった品を一覧で並べ、残す組を選ぶ (強い方を最初から選んでおく)。
+// 残さなかった組の品は通常品として在庫に入る
+let afxOpen = null;
+export function queueAfxConflicts() {
+  const g = G();
+  if (!g || g.state !== "town" || afxOpen || uiBlocked() || g.prompt) return;
+  if (!(g.shopAfxPending || []).length) return;
+  setTimeout(() => { if (!afxOpen && !uiBlocked() && G().state === "town") openAfxConflicts(); }, 500);
+}
+export function openAfxConflicts() {
+  const list = game.afxConflicts ? game.afxConflicts() : [];
+  if (!list.length) return null;
+  const choice = Object.fromEntries(list.map((c) => [c.id, c.best]));
+  const fill = (b) => {
+    b.appendChild(el("div", "inf-note", "商会は、1つの品につき追加の能力・特性の組を1つだけ覚えておける。同じ品に別の組が来たので、どちらを棚に残すか選んでほしい。残さなかった組の品は、通常品として棚に並ぶ。"));
+    for (const c of list) {
+      const box = el("div", "inf-afx-c");
+      box.appendChild(el("div", "inf-h", c.name));
+      c.sets.forEach((set, i) => {
+        const on = choice[c.id] === i;
+        const r = el("button", "inf-afx-opt" + (on ? " on" : ""));
+        r.type = "button";
+        r.setAttribute("aria-pressed", on ? "true" : "false");
+        r.appendChild(el("span", "inf-afx-tag", `${set.current ? "いま棚にある組" : "新しい組"} ・ 強さ ${set.power}${i === c.best ? " ・ 強い方" : ""}`));
+        for (const ln of set.lines) r.appendChild(el("span", "inf-afx-ln", ln));
+        r.addEventListener("click", () => { choice[c.id] = i; sfx("select"); h.update({ body: fill }); });
+        box.appendChild(r);
+      });
+      b.appendChild(box);
+    }
+  };
+  let h = null;
+  afxOpen = true;
+  h = sheet.open({ kind: "info", banner: "商会の棚", title: "追加の組がぶつかった品", accent: "#c9a227", className: "inf-sheet", body: fill, dismissible: false,
+    footer: [{ label: "この組を棚に残す", kind: "primary", size: "lg", onTap: (x) => { x.close("ok", { silent: true }); afxOpen = null; if (game.resolveAfxConflicts) game.resolveAfxConflicts(choice); } }],
+    onClose: () => { afxOpen = null; } });
+  return h;
+}
+
 export function install() {
-  registerUI({ openInfSetup, openInfRest, openInfWipe, openInfSummary });
+  registerUI({ openInfTitles, openInfSetup, openInfRest, openInfWipe, openInfSummary, queueAfxConflicts, openAfxConflicts });
 }
