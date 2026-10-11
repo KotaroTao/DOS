@@ -274,12 +274,18 @@ function openSwap(d, onChange) {
         const why = game.infSoulChangeBlock ? game.infSoulChangeBlock(d, s.uid) : null;
         const pv = game.infSoulChangePreview ? game.infSoulChangePreview(d, s.uid) : null;
         const sub = why ? why : pv ? `付け替え後 HP ${pv.hp}/${pv.maxhp} ・ MP ${pv.mp}/${pv.maxmp}${pv.hp < d.hp || pv.mp < d.mp ? " (減る)" : ""}` : "";
-        b.appendChild(row({ icon: bust(s.clsKey, 32), title: `${soulLabel(s)} ・ Lv${s.level}`, sub, tone: why ? "dim" : null,
-          onTap: why ? null : async () => {
-            const ok = await kitConfirm({ title: `${d.name}に${soulLabel(s)}を宿す？`, lines: [sub, "元の魂は「宿していない魂」に戻る。"], okLabel: "宿す", danger: false });
-            if (!ok) return;
-            if (game.infSwapSoul && game.infSwapSoul(d, s.uid)) { toast(`${d.name} ― ${soulLabel(s)}`, { tone: "good" }); if (hh) hh.close(); if (onChange) onChange(); }
-          } }));
+        // 行を押すとその職業の図鑑 (詳細) を開き、右の「付け替える」で宿す (2026-10 ユーザーの指示)
+        const line = el("div", "inf-swap-row");
+        line.appendChild(row({ icon: bust(s.clsKey, 32), title: `${soulLabel(s)} ・ Lv${s.level}`, sub, tone: why ? "dim" : null,
+          onTap: game.showCodexJobDetail ? () => { sfx("select"); game.showCodexJobDetail(s.clsKey, soulRankOf(s)); } : null }));
+        const swap = button({ label: "付け替える", kind: "secondary", size: "sm", disabled: !!why, onTap: async () => {
+          const ok = await kitConfirm({ title: `${d.name}に${soulLabel(s)}を宿す？`, lines: [sub, "元の魂は「宿していない魂」に戻る。"], okLabel: "宿す", danger: false });
+          if (!ok) return;
+          if (game.infSwapSoul && game.infSwapSoul(d, s.uid)) { toast(`${d.name} ― ${soulLabel(s)}`, { tone: "good" }); if (hh) hh.close(); if (onChange) onChange(); }
+        } });
+        swap.classList.add("inf-swap-b");
+        line.appendChild(swap);
+        b.appendChild(line);
       }
     },
     footer: [{ label: "戻る", kind: "ghost", onTap: (x) => x.close() }],

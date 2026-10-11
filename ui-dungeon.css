@@ -678,6 +678,10 @@ button.dp-rule:active, .dp-rule-b:active { filter: brightness(1.25); }
 .inf-pk-q { font-size: 18px; line-height: 30px; color: var(--accent-hi); }
 .inf-pk-n { font-size: 10px; color: var(--ink-dim); white-space: nowrap; }
 .inf-bust { display: inline-flex; flex: 0 0 auto; }
+.inf-swap-row { display: flex; align-items: stretch; gap: 6px; margin: 6px 0; }
+.inf-swap-row .ui-row { flex: 1 1 auto; min-width: 0; margin: 0; }
+.inf-swap-row .ui-row-sub { white-space: normal; line-height: 1.45; }
+.inf-swap-b { flex: 0 0 auto; align-self: center; white-space: nowrap; }
 .inf-bust canvas { image-rendering: pixelated; }
 .inf-choice { display: flex; align-items: center; gap: 10px; width: 100%; margin: 6px 0; padding: 8px 10px; min-height: 64px;
   text-align: left; color: var(--ink); background: linear-gradient(180deg, #221b25, #17121b); border: 1px solid var(--border);
