@@ -17,12 +17,11 @@ import { getPref, setPref, remember, autoMoveAvoid } from "./prefs.js";
 import { sceneTransition } from "./motion.js";
 import { MONSTERS, ICONS, spriteCanvas, crispCanvas } from "../sprites.js";
 import { ELEMENTS, unknownLabel } from "../dungeons/index.js";
-import { revealSteps, monKills, BUFF_NAME, setLogText, showSkillPopup, elemStatShort } from "./itemview.js";
+import { revealSteps, monKills, BUFF_NAME, setLogText, showSkillPopup, elemStatShort, effectChip } from "./itemview.js";
 import { SPELLS, spellCost, partyBreathRes } from "../combat.js";
 import { tacticOf } from "../autotactics.js";
 import { RESIST_LABEL } from "../resistance.js";
 import { RARITIES } from "../rarity.js";
-import { effectStage, stageLabel, isBattleLong } from "../buffstage.js";
 import { SOUL_CLASSES, soulIcon, ATTR_LABEL, battleSkills, isAutoOff } from "../souls.js";
 import { WALKER as WALKER_ART } from "../walkerart.js";
 import { markOf } from "./questboard.js";
@@ -473,14 +472,6 @@ function peekTile(label, value, sub, cls) {
   c.appendChild(l);
   if (sub) c.appendChild(el("span", "dg-num-s", sub));
   return c;
-}
-function effectChip(ef) {
-  if (ef.stat === "omen") return el("span", "dg-chip bad", "大技の予兆");
-  const st = effectStage(ef);
-  const name = ATTR_LABEL[ef.stat] || BUFF_NAME[ef.stat] || (ef.stat || "").toUpperCase();
-  const mul = st && ef.mult ? ` ×${Math.round(ef.mult * 100) / 100}` : "";
-  const turns = isBattleLong(ef.turns) ? "戦闘中" : `残${ef.turns}`;
-  return el("span", "dg-chip " + (ef.mult > 1 ? "up" : "bad"), `${name}${st ? stageLabel(st) : ef.mult > 1 ? "▲" : "▼"}${mul} ${turns}`);
 }
 export function peekDoll(d, { idx = 0, combat = false } = {}) {
   if (!d) return null;

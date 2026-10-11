@@ -2,9 +2,9 @@ import { monsterResists } from "./resistance.js";
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
-import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, setEnemyLvTag, scaleFoeAgi, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setElemKnown, setPartyEvadeBonus, setPartyBreathBonus, partyBreathRes, perkVictory, cureAil, canSpellCure, cureBySpell, spellCureKinds, chishioState } from "./combat.js";
+import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, setEnemyLvTag, scaleFoeAgi, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setModSink, setElemKnown, setPartyEvadeBonus, setPartyBreathBonus, partyBreathRes, perkVictory, cureAil, canSpellCure, cureBySpell, spellCureKinds, chishioState } from "./combat.js";
 import { decideAuto, tacticOf, setResistKnown } from "./autotactics.js";
-import { STAGED, effectStage, stageOf, stageLabel, isBattleLong, turnsLeftLabel, ENEMY_STAT_LABEL } from "./buffstage.js";
+import { STAGED, effectStage, stageOf, stageMul, stageLabel, isBattleLong, ENEMY_STAT_LABEL } from "./buffstage.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
 import { spriteCanvas, crispCanvas, drawPhoto, photoReady, whenPhoto, setSpriteResolver } from "./sprites.js";
 import { makeItemSpriteResolver } from "./itemart/index.js";
@@ -15,7 +15,7 @@ import {
 import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, permanentEventStats, eligibleEvents, pickEvent, onceKey, runEvent, eventFightWon } from "./events.js";
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { pickTavernCrowd, TALK_MAP } from "./tavern.js";
-import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, QUEST_LV_NEAR, rollBoard, deliveryRewardRows, NPCS, npcOf, composeReport, bondGiftAt, npcBondLabel, TIP_RATE, hasBell, BELL_EVERY_MS, QUEST_REWARD_K, QUEST_RK, questRewardK } from "./quests.js";
+import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, QUEST_LV_NEAR, rollBoard, deliveryRewardRows, NPCS, npcOf, composeReport, bondGiftAt, npcBondLabel, TIP_RATE, hasBell, BELL_EVERY_MS, QUEST_REWARD_K, QUEST_RK, questRewardK, COMMON_KEY as QUEST_COMMON_KEY } from "./quests.js";
 import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_THREE_REPORT, TUT_FINALE, STORY_CELLS, storyCellAt, BOSS_MEMORIES, REPORTS, LATE_CLUES, IRENE_BEATS, MINE_PASS, msqReward, EPILOGUE, UNLOCKS, unlockSceneFor } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { poolAt } from "./dungeons/world.js";
@@ -536,6 +536,9 @@ const G = {
   partyFx: null,      // 味方カードの被弾/回復フラッシュ (Map)
   partyFxV: null,     // 味方カードに重ねる戦闘の演出 (爪痕・属性・回復の光…。renderParty の .pc-fx)
   partyShow: null,    // 迷宮の掟の開幕の演出を待つ間、隊の札に見せる効く前の HP/MP/状態 (playTraitOpening)
+  effShow: null,      // 強化・弱体の演出を待つ間、札に見せる掛かる前の効果 (Map 人業・敵 → effects の写し。shownEffects)
+  modFeed: null,      // 強化・弱体が掛かった記録を集めている間の入れ物 (combat.js setModSink → beginModWatch)
+  logHold: null,      // 強化・弱体の演出まで記録欄に出すのを待たせている行 (log → flushModLines)
   partyCall: null,    // 味方カードの肖像に出す使った技・発動した効果の名 (Map。renderParty の .pc-call)
   wallFlash: null,    // ブロックされた壁の赤フラッシュ { x, y, dir, t0 }
   statusOpen: false,  // ステータス画面表示中
@@ -562,7 +565,7 @@ function buzz(p) {
 // 端末ごとの好み (音量・振動)。セーブデータとは別に保存し、「はじめから」でも消えない
 const PREFS_KEY = "dos-prefs";
 const PREFS = (() => {
-  const d = { bgm: 0.8, sfx: 1, vibrate: true, classicBattle: false, walkSpeed: 2, walkerLook: { ...WALKER_LOOK_DEFAULT } };
+  const d = { bgm: 0.8, sfx: 1, vibrate: true, classicBattle: false, buffFx: true, walkSpeed: 2, walkerLook: { ...WALKER_LOOK_DEFAULT } };
   let p;
   try { p = { ...d, ...(JSON.parse(localStorage.getItem(PREFS_KEY)) || {}) }; } catch { p = { ...d }; }
   // 旧来の「移動 倍速」(fastWalk: ON = 2倍 / OFF = 1倍) を移動の速さ (1〜4倍) へ引き継ぐ
@@ -843,6 +846,11 @@ function maskUnknownEnemies(msg) {
 }
 function log(msg, cls = "sys") {
   msg = maskUnknownEnemies(msg);
+  // 強化・弱体の演出を待つ間は、その演出と同じ時に出す (playModReveal)
+  if (G.logHold) { G.logHold.push({ msg, cls, seq: G.modFeed ? G.modFeed.length : 0 }); return; }
+  writeLog(msg, cls);
+}
+function writeLog(msg, cls) {
   // 直前と同じ文が続いても「×N」にまとめず、そのまま1行ずつ出す
   _logHistory.push({ msg, cls });
   if (_logHistory.length > LOG_HISTORY_MAX) _logHistory.splice(0, _logHistory.length - LOG_HISTORY_MAX);
@@ -7847,6 +7855,8 @@ function startBattleMeasured(enemies, cell) {
   // 敵のLv = その迷宮・階の基準Lv (状態異常・即死の成功率はLv差で決まる — combat.js lvRate)
   const foeLv = foeLevelHere();
   for (const e of enemies) e.lv = foeLv;
+  // 開幕のパッシブ・迷宮の掟の冷気で掛かる強化・弱体は、開幕の演出の後に1拍ずつ見せる (演出の設定が出す時だけ)
+  const modW = beginModWatch(true);
   G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot"), fleeK: fleeScale(), baseAgi: partyAgi(levelHere().lv), foeLv });
   tlWatchBattle(G.battle, tlWhere());
   // 掟 (土地の掟 → 迷宮の掟) の開幕の効果: 寒さに身がすくむ (chill) — 隊の全員の AGI を段数ぶん下げる (3ターン)。
@@ -7855,8 +7865,9 @@ function startBattleMeasured(enemies, cell) {
     const hits = [];
     for (const p of G.battle.party) if (p.alive) { G.battle._applyMod(p, "agi", Math.pow(0.8, r.chill), 3, r.name); hits.push({ p, text: `AGI${"▼".repeat(r.chill)}`, color: "#ff8a8a", buff: true }); }
     log(`${r.say || `${r.head}が隊の足を鈍らせる`} (隊の AGI ▼${r.chill})。`, "dmg");
-    if (trOpen && hits.length) trOpen.steps.push({ kind: "chill", head: r.head, accent: r.accent, label: r.name, hits });
+    if (trOpen && hits.length && !modW) trOpen.steps.push({ kind: "chill", head: r.head, accent: r.accent, label: r.name, hits });
   }
+  const modReveal = modW ? endModWatch() : null;
   // よどんだ瘴気 (poisonStart) — 戦闘の開幕に、隊の一人ひとりがこの確率で毒に冒される (毒の耐性で防げる)
   for (const r of ruleOpens) if (r.poisonStart > 0) {
     const sick = [];
@@ -7903,10 +7914,10 @@ function startBattleMeasured(enemies, cell) {
   autosave(true); // 戦闘開始を保存
   // 居合・開幕呪撃の演出を先に流してから手番処理へ (発動を視覚的に伝える)
   const opens = G.battle.openingResults || [];
-  playBattleIntro(() => playTraitOpening(trOpen, () => {
+  playBattleIntro(() => playTraitOpening(trOpen, () => playModReveal(modReveal, () => {
     if (opens.length) { renderCombat(); playOpeningStrikes(opens, 0, combatStep); }
     else combatStep(); // 素早い敵が先手なら自動で動く
-  }));
+  })));
 }
 
 // ===== 迷宮の掟の開幕の演出 (ユーザーの指示、2026-10: 戦闘開始時の傷・吸われた魔力・毒・冷気がログだけでは分からない) =====
@@ -7995,6 +8006,183 @@ function playTraitStep(info, step, first, done) {
   };
   renderParty();
   requestAnimationFrame(tick);
+}
+
+// ===== 強化・弱体の演出 (ユーザーの指示、2026-10: 技・パッシブ・迷宮の掟で掛かった強化・弱体を、記録・演出と同じ時に札へ出す) =====
+// combat.js が掛かった強化・弱体を1つずつ知らせ (setModSink → G.modFeed)、game.js はその間の札を掛かる前の効果のまま見せる (G.effShow)。
+//  ・戦闘の始まり (開幕のパッシブ・迷宮の掟の冷気) とターンの初め (毎ターンのパッシブ・激昂) = 掛けた技・パッシブ・掟ごとに1拍の演出
+//    (playModReveal)。記録の行もその拍まで待たせる (G.logHold)
+//  ・手番の行動 (技・道具・敵の特技・その中で発動したパッシブ) = 着弾の瞬間に札を出す。技に付かない発動 (倒した時・当てた時の
+//    パッシブなど) には着弾の時に札の上へ文字と光を足す
+// 演出を出すかは設定「強化・弱体の演出」(PREFS.buffFx)。出さない時は札も記録もすぐ出す (以前のまま)。判定・乱数には触れない
+setModSink((ev) => { if (G.modFeed) G.modFeed.push(ev); });
+function modFxOn() { return PREFS.buffFx !== false && !REDUCED_MOTION; }
+// 札に見せる効果 (演出を待つ間は掛かる前の写し)
+function shownEffects(a) { return (G.effShow && G.effShow.has(a)) ? G.effShow.get(a) : a.effects; }
+// 記録を集め始める。lines = 記録欄の行も演出まで待たせる
+function beginModWatch(lines) {
+  if (!modFxOn()) return false;
+  G.modFeed = [];
+  if (lines && !G.logHold) G.logHold = [];
+  return true;
+}
+// 集めた記録を拍 (掛けた技・パッシブ・掟ごと) に分け、札を掛かる前の効果に留める。何も無ければ待たせた行をそのまま出す
+function endModWatch() {
+  const feed = G.modFeed;
+  G.modFeed = null;
+  const lines = G.logHold || [];
+  G.logHold = null;
+  if (!feed) { for (const l of lines) writeLog(l.msg, l.cls); return null; }
+  const steps = [];
+  feed.forEach((ev, i) => {
+    let st = steps[steps.length - 1];
+    if (!st || st.src !== ev.src) steps.push(st = { src: ev.src, evs: [], end: 0 });
+    st.evs.push(ev);
+    st.end = i + 1;
+  });
+  if (!steps.length) { for (const l of lines) writeLog(l.msg, l.cls); return null; }
+  // 発動の名 (combat.js _proc) も、その拍まで札に出さない
+  const q = G.battle && G.battle.procs;
+  if (q && q.length) {
+    const keep = [];
+    for (const pr of q) { const st = steps.find((x) => x.src === pr.label); if (st) (st.procs || (st.procs = [])).push(pr); else keep.push(pr); }
+    q.splice(0, q.length, ...keep);
+  }
+  G.effShow = G.effShow || new Map();
+  for (const ev of feed) if (!G.effShow.has(ev.t)) G.effShow.set(ev.t, ev.before);
+  return { steps, lines };
+}
+// 待たせた行のうち、seq がこの拍の終わりまでのものを記録欄へ (mw なし = 待たせた行すべて)
+function flushModLines(mw, end) {
+  const held = mw ? mw.lines : G.logHold;
+  if (!held || !held.length) return;
+  const out = held.filter((l) => l.seq <= end);
+  if (mw) mw.lines = held.filter((l) => l.seq > end);
+  else G.logHold = null;
+  for (const l of out) writeLog(l.msg, l.cls);
+}
+// 拍の中の対象ごとの動き: { t, mods: {能力: 倍率}, up, after }
+function modTargets(evs) {
+  const by = new Map();
+  for (const ev of evs) {
+    const o = by.get(ev.t) || { t: ev.t, d: {}, after: null };
+    o.d[ev.stat] = (o.d[ev.stat] || 0) + ev.d;
+    o.after = ev.after;
+    by.set(ev.t, o);
+  }
+  return [...by.values()].map((o) => {
+    const mods = {};
+    let sum = 0;
+    for (const k in o.d) {
+      if (!o.d[k]) continue;
+      mods[k] = STAGED.has(k) ? stageMul(Math.max(-3, Math.min(3, o.d[k]))) : o.d[k] > 0 ? 1.25 : 0.8;
+      sum += Math.sign(o.d[k]);
+    }
+    return { t: o.t, mods, up: sum >= 0, after: o.after };
+  }).filter((o) => Object.keys(o.mods).length);
+}
+// 対象の上に強化・弱体の光と文字を出す (now = 出す時刻。label = 掛けた技・パッシブ・掟の名、出す時だけ)
+function spawnModFx(tg, now, spd, i, label) {
+  const t = tg.t, mt = buffFloatText({ buff: tg.up, mods: tg.mods, target: t });
+  if (t.side === "enemy") {
+    const pos = G.enemyPos[t.uid];
+    if (!pos || !t.alive) return;
+    spawnFx(G.fx.skill, tg.up ? "rise" : "hex", pos.cx, pos.cy, now, spd, { seed: (t.uid || 1) * 17 + i, col: tg.up ? "#ffd84a" : null });
+    G.fx.floats.push({ x: pos.cx, y: pos.cy - 34, text: mt.text, color: mt.color, t0: now, kind: "buff" });
+    if (label) G.fx.floats.push({ x: pos.cx, y: pos.cy - 52, text: label, color: "#e7d3ff", t0: now + 40 * spd, small: true, kind: "label" });
+  } else {
+    if (!t.alive || !G.party.includes(t)) return;
+    const back = G.party.length >= 4 && G.party.indexOf(t) >= 3;
+    const x = partyFxX(t) + (back ? 22 : 0), y = back ? VH - 18 : VH - 50;
+    spawnFx(G.fx.skill, tg.up ? "rise" : "hex", x, VH - 22, now, spd, { seed: i + 11, s: 0.7, col: tg.up ? "#ffd84a" : null });
+    setPartyFxV(t, tg.up ? "buff" : "debuff");
+    if (label) setPartyCall(t, label, "proc", false);
+    G.fx.floats.push({ x, y, text: mt.text, color: mt.color, t0: now, kind: "buff" });
+  }
+}
+// 戦闘の始まり・ターンの初めの強化・弱体を、掛けた技・パッシブ・掟ごとに1拍ずつ見せる
+function playModReveal(mw, done) {
+  if (!mw) { done(); return; }
+  const b = G.battle;
+  let i = 0;
+  const finish = () => { flushModLines(mw, Infinity); G.effShow = null; renderParty(); };
+  const next = () => {
+    if (G.battle !== b || G.state !== "combat") { finish(); return; }
+    if (i >= mw.steps.length) { finish(); done(); return; }
+    playModStep(mw, mw.steps[i++], next);
+  };
+  next();
+}
+function playModStep(mw, step, done) {
+  const spd = spdMul();
+  const t0 = performance.now();
+  const WIND = 90 * spd;
+  const tgs = modTargets(step.evs);
+  const TOTAL = WIND + (400 + Math.max(0, tgs.length - 1) * 30) * spd;
+  G.animating = true;
+  G.fx = { lunge: null, slashes: [], skill: [], floats: [], screen: null, flash: {}, deaths: [] };
+  G.partyFx = G.partyFx || new Map();
+  G.partyFxV = new Map();
+  partyEl.style.setProperty("--fxd", Math.max(0.2, Math.min(0.5, 0.36 * spd)).toFixed(2) + "s");
+  let impacted = false;
+  const tick = () => {
+    if (!G.fx || G.state !== "combat") { done(); return; }
+    const now = performance.now(), t = now - t0;
+    if (!impacted && t >= WIND) {
+      impacted = true;
+      flushModLines(mw, step.end);
+      // 掛けた技・パッシブ・掟の名: 味方に掛かったものは隊の札の上、敵だけなら敵の列の上
+      const foes = tgs.filter((g) => g.t.side === "enemy" && G.enemyPos[g.t.uid]);
+      if (step.src) {
+        if (foes.length === tgs.length) {
+          const ys = foes.map((g) => G.enemyPos[g.t.uid].cy), xs = foes.map((g) => G.enemyPos[g.t.uid].cx);
+          G.fx.floats.push({ x: (Math.min(...xs) + Math.max(...xs)) / 2, y: Math.max(28, Math.min(...ys) - 70), text: step.src, color: "#ffd27a", t0: now, kind: "trait" });
+        } else G.fx.floats.push({ x: VW / 2, y: VH - 92, text: step.src, color: "#ffd27a", t0: now, kind: "trait" });
+      }
+      for (const pr of step.procs || []) if (G.party.includes(pr.who)) setPartyCall(pr.who, pr.label, "proc", false);
+      tgs.forEach((g, k) => {
+        G.effShow.set(g.t, g.after); // 札をこの拍の後の効果へ
+        spawnModFx(g, now + k * 30 * spd, spd, k, g.t.side === "enemy" ? null : step.src);
+      });
+      if (tgs.some((g) => !g.up)) SFX.spell(); else SFX.heal();
+      buzz(15);
+      renderParty();
+    }
+    renderCombatCanvas();
+    if (t >= TOTAL) {
+      G.fx = null;
+      G.partyFx.clear();
+      if (G.partyFxV) G.partyFxV.clear();
+      renderParty();
+      done();
+    } else requestAnimationFrame(tick);
+  };
+  renderParty();
+  requestAnimationFrame(tick);
+}
+// 手番の行動: 行動の前の全員の効果を写しておき、着弾まで札をそのままにする (演出の設定に依らない — 一手の時間は変わらない)
+function holdActionEffects() {
+  G.effShow = new Map();
+  for (const a of [...G.battle.party, ...G.battle.enemies]) G.effShow.set(a, (a.effects || []).map((e) => ({ ...e })));
+  G.modFeed = modFxOn() ? [] : null;
+}
+function takeModFeed() { const f = G.modFeed; G.modFeed = null; return f; }
+// 着弾の瞬間: 札を本当の効果へ。技の当たりに付かない強化・弱体 (倒した時・当てた時のパッシブなど) には光と文字を足す
+function releaseActionEffects(res, feed) {
+  G.effShow = null;
+  if (!feed || !feed.length || !G.fx) return;
+  const shown = new Set((res.hits || []).filter((h) => h && h.target && (h.buff || h.debuff || (h.mods && Object.keys(h.mods).length))).map((h) => h.target));
+  const own = res.spellName || "";
+  const spd = spdMul(), now = performance.now();
+  const steps = [];
+  for (const ev of feed) {
+    if (shown.has(ev.t) || (own && ev.src === own)) continue;
+    let st = steps[steps.length - 1];
+    if (!st || st.src !== ev.src) steps.push(st = { src: ev.src, evs: [] });
+    st.evs.push(ev);
+  }
+  let k = 0;
+  for (const st of steps) for (const g of modTargets(st.evs)) spawnModFx(g, now + 60 * spd + k * 30 * spd, spd, k++, st.src);
 }
 
 // 戦闘開始時の自動攻撃 (死の宣告/居合/開幕呪撃) を1つずつ演出で見せる
@@ -8873,11 +9061,12 @@ function drawEnemyBadges(e, baseX, yTop, opt = {}) {
   if (!e.alive) return;
   const segs = [];
   if (opt.ails !== false) for (const [t, c] of enemyAilSeals(e)) segs.push({ text: t, ail: c });
-  if (opt.buffs !== false) for (const g of buffGroups(e.effects)) {
+  if (opt.buffs !== false) for (const g of buffGroups(shownEffects(e))) {
     // 予兆は「溜!」の琥珀色の札 (残りターンは出さない)
     if (g.omen) { segs.push({ text: "溜!", up: true, omen: true }); continue; }
     const arrow = (g.up ? "▲" : "▼").repeat(Math.min(3, g.stages));
-    segs.push({ text: `${ENEMY_STAT_LABEL[g.stat] || BUFF_KANJI[g.stat] || "◆"}${arrow}${turnsLeftLabel(g.turns)}`, up: g.up });
+    // 残りターンは出さない (敵を押した「敵の姿」で確かめる — 2026-10 ユーザーの指示)
+    segs.push({ text: `${ENEMY_STAT_LABEL[g.stat] || BUFF_KANJI[g.stat] || "◆"}${arrow}`, up: g.up });
   }
   if (!segs.length) return;
   vctx.save();
@@ -9558,7 +9747,9 @@ function combatStep() {
     renderCombatCanvas();
     autosave(true);
     setTimeout(() => {
+      holdActionEffects();
       const res = b.stunnedAct();
+      res._modFeed = takeModFeed();
       b._acted = true; // 実行済み (演出中に閉じられても、再開時にやり直さず次の手番へ)
       animateResult(res, postResolve);
     }, 200 * spdMul());
@@ -9571,7 +9762,9 @@ function combatStep() {
     autosave(true); // 敵の手番を確定 (やり直し不可)
     // 一瞬の間を置いてから敵が動く (ドラクエ風)
     setTimeout(() => {
+      holdActionEffects();
       const res = b.enemyAct();
+      res._modFeed = takeModFeed();
       b._acted = true;
       animateResult(res, postResolve);
     }, 260 * spdMul());
@@ -9605,7 +9798,9 @@ function runCommitted() {
   autosave(true); // 行動確定の瞬間に保存。以降この選択はやり直せない
   G.animating = true;
   if (G.autoCombat) renderAutoBanner(); else renderActingPlate((G.battle.pending && G.battle.pending.actor) || G.battle.current);
+  holdActionEffects();
   const res = G.battle.commit();
+  res._modFeed = takeModFeed();
   G.battle._acted = true;
   animateResult(res, postResolve);
 }
@@ -9621,9 +9816,14 @@ function postResolve() {
   }
   if (b.result) { G.animating = false; setTimeout(() => whenCombatFree(endBattle), 300); return; }
   b._acted = false;
+  // ターンの初めのパッシブ・激昂などで掛かった強化・弱体は、1拍ずつ見せてから次の手番へ
+  const watch = beginModWatch(true);
   b.advance();
-  autosave(true);
-  setTimeout(combatStep, 150 * spdMul());
+  const mw = watch ? endModWatch() : null;
+  playModReveal(mw, () => {
+    autosave(true);
+    setTimeout(combatStep, 150 * spdMul());
+  });
 }
 
 // 多段ヒットの時間差 (ms。spdMul で速度モードに追従)。applyImpact と共有
@@ -9636,6 +9836,7 @@ function animateResult(res, done) {
   if (setPlateCall(res)) { if (G.autoCombat) renderAutoBanner(); else renderActingPlate(res.actor); } // 命令板にも「誰の何の技か」
   // 眠り・行動不能で何もしなかった手番には、踏み込みや空振り音を出さない
   if ((res.action === "sleep" || res.action === "stunned") && !(res.hits || []).length) {
+    G.effShow = null;
     renderParty();
     renderCombat();
     setTimeout(done, 200 * spdMul());
@@ -9677,6 +9878,7 @@ function animateResult(res, done) {
     if (!impacted && t >= WIND) {
       impacted = true;
       applyImpact(res);
+      if (res._modFeed !== undefined) releaseActionEffects(res, res._modFeed); // 強化・弱体の札は着弾と同時に
       drainPartyProcs(); // 発動した効果の名は着弾と同時に
       renderParty(); // HP反映 + 被弾フラッシュ
     }
@@ -10179,6 +10381,7 @@ function levelUpEntries(progress) {
 function endBattle(...args) { return tlGameMeasure("battle", () => endBattleMeasured(...args)); }
 function endBattleMeasured() {
   const b = G.battle;
+  G.effShow = null; G.modFeed = null; flushModLines(null, Infinity);
   if (b.tl) tlBattleEnd(b.tl, { result: b.result, rounds: b._roundNo, tally: b.tally, party: G.party });
   // オートは戦闘ごとに解除。ただし設定「オートを次の戦闘も続ける」(§7 M2) なら勝利の後も持ち越す
   if (!(b.result === "win" && G.autoCombat && uiDungeonHud.getPref("autoKeep"))) G.autoCombat = false;
@@ -10812,18 +11015,19 @@ const BUFF_STAT_LABEL = { atk: "STR", vit: "VIT", agi: "AGI", pie: "PIE", ...BUF
 function buffBadges(p) {
   if (G.state !== "combat" || !p.alive) return "";
   const blood = chishioState(p);
-  if (!blood && (!p.effects || !p.effects.length)) return "";
+  const effs = shownEffects(p);
+  if (!blood && (!effs || !effs.length)) return "";
   // (能力, 方向) ごとに集約: 段数 (STR〜PIE は −3〜+3 の段) と最短残ターンを出す
   let html = "";
   // たぎる血潮 (修羅): いまの段を「血▲▲3」で。数字は段数 (残りターンではない)
   if (blood) html += `<span class="bf up blood" title="たぎる血潮 ${blood.stacks}段・同じ敵への物理+${Math.round(blood.bonus * 100)}%${blood.max ? " (最大)" : ""}・別の敵に当てると0段">血${"▲".repeat(Math.min(3, blood.stacks))}<b>${blood.stacks}</b></span>`;
-  for (const g of buffGroups(p.effects)) {
+  for (const g of buffGroups(effs)) {
     const arrow = (g.up ? "▲" : "▼").repeat(Math.min(3, g.stages));
     const left = isBattleLong(g.turns) ? "戦闘の終わりまで" : `残り${g.turns}T`;
     const title = STAGED.has(g.stat) ? `${BUFF_STAT_LABEL[g.stat] || g.stat} ${stageLabel(g.up ? g.stages : -g.stages)}・${left}`
       : `${BUFF_STAT_LABEL[g.stat] || g.stat} ${g.up ? "強化" : "弱体"}・${left}`;
-    const n = turnsLeftLabel(g.turns);
-    html += `<span class="bf ${g.up ? "up" : "dn"}" title="${title}">${BUFF_STAT_ICON[g.stat] || "◆"}${arrow}${n ? `<b>${n}</b>` : ""}</span>`;
+    // 残りターンは札に出さない (札を長押しした「人業の様子」で確かめる — 2026-10 ユーザーの指示)
+    html += `<span class="bf ${g.up ? "up" : "dn"}" title="${title}">${BUFF_STAT_ICON[g.stat] || "◆"}${arrow}</span>`;
   }
   return `<div class="buffs">${html}</div>`;
 }
@@ -11832,12 +12036,15 @@ function questCtx() {
   const activeBy = {};
   let activeCommon = 0;
   for (const q of s.active) {
-    for (const k of (q.keys || [])) avoid.add("k:" + k);
-    if (q.itemId) avoid.add("i:" + q.itemId);
-    if (q.type === "floor" && q.dungeon) avoid.add("f:" + q.dungeon);
-    if (q.type === "soul" && q.dungeon) avoid.add("s:" + q.dungeon);
-    if (q.type === "chest" && q.dungeon) avoid.add("c:" + q.dungeon);
-    if (q.state === "claimed" || q.type === "deliver") continue;
+    // 似た内容の依頼は、受注中の依頼が達成するまで貼らない (達成して報告を待つ間は、また貼ってよい — 2026-10 ユーザーの指示)
+    if (q.state === "active") {
+      for (const k of (q.keys || [])) avoid.add("k:" + k);
+      if (q.itemId) avoid.add("i:" + q.itemId);
+      if (q.type === "floor" && q.dungeon) avoid.add("f:" + q.dungeon);
+      if (q.type === "soul") avoid.add("s:" + (q.dungeon || QUEST_COMMON_KEY));
+      if (q.type === "chest") avoid.add("c:" + (q.dungeon || QUEST_COMMON_KEY));
+    }
+    if (q.state !== "active" || q.type === "deliver") continue; // 達成した依頼は枠の数に入れない (同じ内容をまた貼れる)
     if (q.dungeon) activeBy[q.dungeon] = (activeBy[q.dungeon] || 0) + 1;
     else activeCommon++;
   }
@@ -16128,6 +16335,7 @@ function loadGame() {
   // 一時状態はリセット
   G.anim = null; G.flipAnim = null; G.heroAnim = null; G.walking = false; G.prompt = false;
   G.fx = null; G.animating = false; G.enemyPos = {}; G.partyFx = new Map(); G.partyFxV = null; G.partyShow = null; G.wallFlash = null; G.partyCall = null;
+  G.effShow = null; G.modFeed = null; G.logHold = null;
   G.statusOpen = false; G.settingsOpen = false;
   // クラス/参照の再リンク (Battleのメソッド・敵のmon・派生値)
   if (G.battle) {
@@ -16296,6 +16504,7 @@ function resumeCombat() {
   const b = G.battle;
   if (!b) { finishToBoard(); return; }
   G.animating = false; G.fx = null; G.partyFx = new Map(); G.partyFxV = null; G.partyShow = null; G.enemyPos = {};
+  G.effShow = null; G.modFeed = null; flushModLines(null, Infinity);
   clearPartyCalls();
   if (b.procs) b.procs.length = 0; // 中断前の発動の印は出し直さない
   renderRunbar();

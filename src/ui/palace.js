@@ -17,7 +17,7 @@ import { UI, game, ops, registerUI } from "./ctx.js";
 import { el, setText, glyph, svgIcon, sheet, button, segmented, chips, itemTile, scrollBox, badge, bar } from "./kit.js";
 import { remember } from "./prefs.js";
 import { softFade } from "./motion.js";
-import { statLines, itemCatText, specialLines, weaponPerformanceEl, showSkillPopup, showPassivePopup, tagRow, traitTagKinds, affinityRow, spellTagKinds, revealSteps, monKills, revealLock, elemStatShort, enemyReveal, enemyLabel, unknownArt, UNKNOWN_COLOR } from "./itemview.js";
+import { statLines, itemCatText, specialLines, weaponPerformanceEl, showSkillPopup, showPassivePopup, tagRow, traitTagKinds, affinityRow, spellTagKinds, revealSteps, monKills, revealLock, elemStatShort, enemyReveal, enemyLabel, unknownArt, UNKNOWN_COLOR, effectChip } from "./itemview.js";
 import { MONSTERS, ICONS, spriteCanvas } from "../sprites.js";
 import { EVENTS, EVENT_MAP, EVENT_GROUPS, EV_TIERS, eventWhereText, onceKey, LORE_PAGES } from "../events.js";
 import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, SHIELD_KINDS, SHIELD_KIND_LABEL, shieldKind, itemName, hasQuality, qualityOf, QUALITY_SPREAD } from "../items.js";
@@ -599,6 +599,12 @@ export function codexMonSheet(key, o = {}) {
     hp.appendChild(bar(foe.hp, foe.maxhp, { tone: "hp" }));
     hp.appendChild(el("span", "dg-peek-bv", `${Math.max(0, foe.hp)}/${foe.maxhp}`));
     body.appendChild(hp);
+  }
+  // 戦闘中: 掛かっている強化・弱体 (戦闘の札には残りターンを出さないので、ここで確かめる)
+  if (foe && (foe.effects || []).length) {
+    const fx = el("div", "dg-peek-chips");
+    for (const ef of foe.effects) fx.appendChild(effectChip(ef, { enemy: true }));
+    body.appendChild(fx);
   }
   if (statsOpen) {
     const aff = affinityRow(elKey, "pl-aff");
