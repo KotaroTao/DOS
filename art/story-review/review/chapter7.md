@@ -5,9 +5,9 @@
 
 <a name="w26_splint"></a>
 
-## w26_splint「腕の木の添え木」 ── 未着手 (指示あり)
+## w26_splint「腕の木の添え木」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter7/w26_splint.webp" width="576" alt="w26_splint">
 
 **ストーリー一覧の本文**
 
@@ -41,9 +41,9 @@ _(絵はまだ無い)_
 
 <a name="report_w26"></a>
 
-## report_w26「杯を満たしたもの」 ── 未着手 (指示あり)
+## report_w26「杯を満たしたもの」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter7/report_w26.webp" width="576" alt="report_w26">
 
 **ストーリー一覧の本文**
 
@@ -132,9 +132,9 @@ _(絵はまだ無い)_
 
 <a name="irene_crest"></a>
 
-## irene_crest「捨てられなかった器」 ── 未着手 (指示あり)
+## irene_crest「捨てられなかった器」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter7/irene_crest.webp" width="576" alt="irene_crest">
 
 **ストーリー一覧の本文**
 
