@@ -314,7 +314,11 @@ function subTiles(more, d, town) {
     const tile = el("div", "sp-tile sp-sub" + (se ? "" : " empty"));
     const main = el(town ? "button" : "div", "sp-tile-main");
     if (town) main.type = "button";
-    main.appendChild(el("span", "sp-tile-k", `サブ魂${i + 1}`));
+    const bw = se ? borrowList(sub, se) : null;
+    const hd = el("span", "sp-tile-hd");
+    hd.appendChild(el("span", "sp-tile-k", `サブ魂${i + 1}`));
+    if (bw && bw.picks.length) hd.appendChild(el("span", "sp-tile-cnt", `借 ${bw.picks.length}/${bw.cap}`));
+    main.appendChild(hd);
     if (se) {
       const rank = soulRankOf(se);
       tile.style.setProperty("--glow", (SOUL_CLASSES[se.clsKey] || {}).glow || "#c9a24a");
@@ -322,9 +326,16 @@ function subTiles(more, d, town) {
       r.appendChild(orb(se.clsKey, rank, 28));
       const tx = el("span", "sp-tile-tx");
       tx.appendChild(el("span", "sp-tile-n", `${jobRankName(se.clsKey, rank)} Lv${se.level}`));
-      tx.appendChild(el("span", "sp-tile-s", borrowLabel(sub, se)));
       r.appendChild(tx);
       main.appendChild(r);
+      // 借りている技・パッシブは魂の行の下に1つ1行で並べる (途中で切らない。ユーザーの指示、2026-10)
+      if (bw.picks.length) {
+        const ls = el("span", "sp-borrow");
+        for (const p of bw.picks) ls.appendChild(el("span", "sp-bw" + (p.passive ? " pas" : ""), p.name));
+        main.appendChild(ls);
+      } else {
+        main.appendChild(el("span", "sp-tile-s", `技を選ぶ (${bw.cap}つまで)`));
+      }
     } else {
       main.appendChild(el("span", "sp-tile-s", town ? "＋ 魂を宿す" : "空き"));
     }
@@ -340,15 +351,14 @@ function subTiles(more, d, town) {
     more.appendChild(tile);
   }
 }
-// サブ魂タイルの借用表示 (「借 2/3 名A・名B」)。効いている分 (覚えていて上限内) だけ数える
-function borrowLabel(sub, se) {
+// サブ魂タイルの借用一覧 ({picks: [{name, passive}], cap})。効いている分 (覚えていて上限内) だけ数える
+function borrowList(sub, se) {
   const cap = subPickCap(se);
   const lp = soulLearnedPassives(se);
   const learned = soulLearnedSkills(se);
-  const names = subPicks(sub).filter((p) => (p.passive ? lp[p.passive] : learned.includes(p.skill))).slice(0, cap)
-    .map((p) => (p.passive ? passiveName(p.passive, lp[p.passive] || 1) : SPELLS[p.skill] ? SPELLS[p.skill].name : p.skill));
-  if (!names.length) return `技を選ぶ (${cap}つまで)`;
-  return `借 ${names.length}/${cap} ${names.join("・")}`;
+  const picks = subPicks(sub).filter((p) => (p.passive ? lp[p.passive] : learned.includes(p.skill))).slice(0, cap)
+    .map((p) => ({ passive: !!p.passive, name: p.passive ? passiveName(p.passive, lp[p.passive] || 1) : SPELLS[p.skill] ? SPELLS[p.skill].name : p.skill }));
+  return { picks, cap };
 }
 function lockedTile(k, text) {
   const t = el("div", "sp-tile locked");

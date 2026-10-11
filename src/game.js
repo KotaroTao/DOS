@@ -2045,6 +2045,7 @@ function castFieldMeasured(key, confirmed = false) {
   if (G.state !== "board" || !inDungeon()) return;
   const sp = SPELLS[key];
   if (!sp) return;
+  if (!skillUsable(key)) { SFX.ng(); showToast("呪文を封じる霧が言葉を吸いこむ ― ここでは唱えられない", { tone: "bad" }); return; }
   if (fieldActive(sp)) {
     SFX.select();
     showToast(sp.float ? `浮遊中 ― 残り${floatLeft()}階 (${floatGuardText()})` : `${sp.name}の効果はこの階のあいだ続いている`, { tone: "info" });
@@ -14907,6 +14908,7 @@ function healAllMeasured() {
 // 結果はトーストで知らせ、隊の画面に留まる。効果のある対象がいなければ MP は減らない
 function campCast(caster, spellKey) {
   const sp = SPELLS[spellKey];
+  if (!sp || !skillUsable(spellKey)) { showToast("呪文を封じる霧が言葉を吸いこむ ― ここでは唱えられない", { tone: "bad" }); SFX.miss(); return; }
   const cost = spellCost(caster, sp);
   if (caster.mp < cost) { log("MPが足りない。", "sys"); showToast(`MPが足りない (MP ${caster.mp}/${cost})`, { noLog: true, tone: "bad" }); SFX.miss(); return; }
   const cures = spellCures(sp);     // 毒・麻痺・石化を治す
