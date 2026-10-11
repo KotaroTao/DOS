@@ -611,72 +611,71 @@ const NEW_DEFS = [
   // 第5層からの流儀で特色を極端に押し出す (神速・特技の多用・ブレス・全体呪文・3連撃・守り崩し・物理無効・魔法抵抗100・護衛)。
   // 隊に掛かる状態異常は 麻痺・毒・石化・混乱 (+眠り少し)。ブレスは水晶竜・化石竜・大空洞の主だけ。
   // 属性は土が大半、濁った魂の霊と闇に棲む者 (闇這いの蟲・反響の霊・つらら石の霊・深淵の異形・原初の大蛇) は闇、主の宰相モルデンは無。
-  // 絵は hd_* の固有原型 (tools/hdart/layer12/) へ差し替える予定。どの個体も ability を明示する (種族の既定の特技は付けない)
-  { id: "bs_cavebehemoth", name: "大空洞の巨獣", rank: 10, race: "beast", element: "earth", artKey: "cavebehemoth",
+  // 絵は hd_* の固有原型 (tools/hdart/layer12/、共通部品 cavern.mjs)。どの個体も ability を明示する (種族の既定の特技は付けない)
+  { id: "bs_cavebehemoth", name: "大空洞の巨獣", rank: 10, race: "beast", element: "earth", artKey: "hd_cavebehemoth",
     physResist: 75, ability: "weaken", abRate: 0.45, // 大空洞を揺るがす吠え声を浴びせ続けて腕の力を奪い、岩のような皮は刃をほとんど通さない
     desc: "山のように大きな、灰色の巨獣。岩のような皮は刃をほとんど通さない。大空洞を揺るがす吠え声を何度も浴びせ、聞いた者の腕から力が抜けていく。背中には長い年月のあいだに灯籠が降り積もって小山になり、歩くたびに黒いガラスがこぼれ落ちる。" },
-  { id: "bs_crystaldrake", name: "水晶竜", rank: 10, race: "dragon", element: "earth", artKey: "crystaldrake",
+  { id: "bs_crystaldrake", name: "水晶竜", rank: 10, race: "dragon", element: "earth", artKey: "hd_crystaldrake",
     ability: "breath", abRate: 0.35, magResist: 75, // 砕けた水晶のつぶてを息にして吐き、水晶の鱗は呪文をほとんど通さない
     desc: "鉱脈の水晶を食べて育った、透きとおる鱗の竜。鱗の奥では、呑みこんだ濁った魂が黒い粒になってきらめいている。砕けた水晶のつぶてを息にして隊をまとめて撃ち、水晶の鱗は呪文をほとんど通さない。動くたびに、体の中で宝石が涼やかに鳴る。" },
-  { id: "bs_blindhorror", name: "盲いた深淵獣", rank: 10, race: "beast", element: "earth", artKey: "blindhorror",
+  { id: "bs_blindhorror", name: "盲いた深淵獣", rank: 10, race: "beast", element: "earth", artKey: "hd_blindhorror",
     ability: "critical", abRate: 0.45, swift: true, // 足音と息の音だけで素早く跳びかかり、急所に何度も牙を立てる
     desc: "光の届かない底で目を失った、やせた大きな獣。目のあった所はなめらかな皮でふさがり、かわりに大きな耳が四つ生えている。足音と息の音だけで獲物を追い、素早く跳びかかっては急所に何度も牙を立てる。灯籠の割れる音を聞くと、どこからでも駆けてくる。" },
-  { id: "bs_rocktitan", name: "岩の巨人", rank: 10, race: "giant", element: "earth", artKey: "rocktitan",
+  { id: "bs_rocktitan", name: "岩の巨人", rank: 10, race: "giant", element: "earth", artKey: "hd_rocktitan",
     physResist: 100, enrage: true, ability: null, // 岩の体は刃を一つも通さず (呪文で崩す)、手負いで地団駄を踏んで猛る
     desc: "大空洞の岩盤に濁った魂がしみこみ、そのまま立ち上がった巨人。岩の体は刃を一つも通さず、呪文で崩すしかない。手負いになると、天井の石が降るほど地団駄を踏んで猛り立つ。胸の割れ目の奥で、しみこんだ魂がいくつも鈍く光っている。" },
-  { id: "bs_deepworm", name: "地底の大蟲", rank: 10, race: "insect", element: "earth", artKey: "deepworm",
+  { id: "bs_deepworm", name: "地底の大蟲", rank: 10, race: "insect", element: "earth", artKey: "hd_deepworm",
     multistrike: 3, ability: "poison", // 三重の石の歯で一度に三度削り取り、歯にこびりついた煤の毒が傷から回る
     desc: "灯籠の山の下を掘り進む、果てしなく長い大蟲。円い口のまわりに石の歯が三重に並び、かみつくたびに一度に三度削り取る。歯のすき間には濁った煤がこびりつき、噛まれた傷から毒が回る。腹の中から、呑みこんだ灯籠がからからと鳴る音がする。" },
-  { id: "bs_glowspore", name: "光胞子の群れ", rank: 10, race: "plant", element: "earth", artKey: "glowspore",
+  { id: "bs_glowspore", name: "光胞子の群れ", rank: 10, race: "plant", element: "earth", artKey: "hd_glowspore",
     pack: true, ability: "poison", abRate: 0.45, magWeak: 1.4, // 群れで胞子を吹きかけ続けて毒を回し、薄いかさは呪文の熱ですぐにしおれる
     desc: "割れた灯籠のガラスの内側に生える、青白く光る小さな茸の群れ。灯籠から漏れた濁った魂を吸って育ち、かさの裏が灯と同じ色に光る。光に寄ってきた者へ群れで何度も胞子を吹きかけ、吸った者の体には毒が回る。かさは薄く、呪文の熱ですぐにしおれる。暗い大空洞では、この光が道しるべに見えてしまう。" },
-  { id: "bs_stalactiteghost", name: "つらら石の霊", rank: 10, race: "specter", element: "dark", artKey: "stalactiteghost",
+  { id: "bs_stalactiteghost", name: "つらら石の霊", rank: 10, race: "specter", element: "dark", artKey: "hd_stalactiteghost",
     ability: "stone", abRate: 0.4, magWeak: 1.3, // 黒いしずくを落とし続けて手足を石に変える。石にしみた霊は呪文に散らされやすい
     desc: "天井から垂れるつらら石に、濁った魂がしみこんでできた霊。石の先から黒いしずくを落とし、しずくを浴びた手足はじわじわと石に変わっていく。石の中に半ば溶けた顔は、いつも下の灯籠の山を見下ろしている。石にしみた霊は、呪文の光で散らされやすい。" },
-  { id: "bs_obsidianbeast", name: "黒曜の獣", rank: 10, race: "beast", element: "earth", artKey: "obsidianbeast",
+  { id: "bs_obsidianbeast", name: "黒曜の獣", rank: 10, race: "beast", element: "earth", artKey: "hd_obsidianbeast",
     ability: "sunder", abRate: 0.45, physResist: 50, // 割れた黒曜石の爪で鎧ごと守りを何度も切り裂き、石の毛皮は刃を半ば弾く
     desc: "黒曜石のかけらを体じゅうに生やした、狼に似た大空洞の獣。鋭く割れた石の爪を振り下ろしては、鎧ごと守りを何度も切り裂く。石の毛皮は刃を半ば弾く。灯籠のガラスを好んでかじるので、口の中はいつも黒く光っている。" },
-  { id: "bs_cavetroll", name: "洞窟のトロール", rank: 10, race: "giant", element: "earth", artKey: "cavetroll",
+  { id: "bs_cavetroll", name: "洞窟のトロール", rank: 10, race: "giant", element: "earth", artKey: "hd_cavetroll",
     regen: 0.08, ability: "charge", abRate: 0.4, // 傷がみるみるふさがり、両腕を振りかぶって力を溜めては岩も砕く一撃を叩きつける
     desc: "大空洞の苔と、灯籠にしみた濁りをなめて生きる大きなトロール。斬られた傷はみるみるふさがる。両腕を振りかぶって力を溜めては、岩をも砕く一撃を叩きつける。溜めている間にひるませるか眠らせれば、その一撃は空を切る。背中の苔には、拾った灯籠がいくつもぶら下がっている。" },
-  { id: "bs_echowraith", name: "反響の霊", rank: 10, race: "specter", element: "dark", artKey: "echowraith",
+  { id: "bs_echowraith", name: "反響の霊", rank: 10, race: "specter", element: "dark", artKey: "hd_echowraith",
     ability: "confuse", abRate: 0.45, evasive: true, // 耳もとでつぶやき続けて敵と味方の見分けを奪い、声の体は刃をすり抜ける
     desc: "大空洞の壁に何度もはね返るうちに、形をなしてしまった声の霊。濁った灯籠から漏れた魂のつぶやきが寄り集まったもので、どの声も自分の名を探している。耳もとでつぶやき続け、聞いた者は敵と味方の見分けがつかなくなる。声の体は刃をすり抜け、どこを斬ればいいのか分からない。" },
-  { id: "bs_crystalspider", name: "晶蟲の大蜘蛛", rank: 10, race: "insect", element: "earth", artKey: "crystalspider",
+  { id: "bs_crystalspider", name: "晶蟲の大蜘蛛", rank: 10, race: "insect", element: "earth", artKey: "hd_crystalspider",
     magResist: 100, multistrike: 2, ability: null, // 水晶の甲殻が呪文をまったく通さず (刃で割る)、とがった脚で続けざまに二度突く
     desc: "水晶の脚と甲殻を持つ、鉱脈に巣くう大蜘蛛。透きとおった体の奥で、呑んだ濁った魂が黒い粒になって漂っている。水晶の甲殻は撃ちこまれた呪文をまったく通さず、とがった脚で続けざまに二度突き刺す。刃で脚の継ぎ目を割るしかない。" },
-  { id: "bs_caveguardian", name: "大空洞の守護像", rank: 10, race: "construct", element: "earth", artKey: "caveguardian",
+  { id: "bs_caveguardian", name: "大空洞の守護像", rank: 10, race: "construct", element: "earth", artKey: "hd_caveguardian",
     role: "guard", barrier: 3, ability: null, // 仲間の前に立ちはだかって刃を受け止め、何度も打撃を半分に受け流す
     desc: "大空洞の奥へ続く道に並ぶ、水晶の目をはめこんだ大きな石像。仲間の前に立ちはだかって振るわれた刃を受け止め、分厚い石の体は何度も打撃を半分に受け流す。台座には古い文字で、何かを「眠らせておけ」と刻まれている。誰が据えたのかは分からない。" },
-  { id: "bs_fossildragon", name: "化石竜", rank: 10, race: "dragon", element: "earth", artKey: "fossildragon",
+  { id: "bs_fossildragon", name: "化石竜", rank: 10, race: "dragon", element: "earth", artKey: "hd_fossildragon",
     ability: "breath", abRate: 0.45, endure: true, // 砕けた岩と煤の息を何度も吐き、崩れかけた骨は致命の一撃を一度は耐える
     desc: "岩に呑まれて化石になった、太古の竜の骨。骨のすき間に濁った魂がしみこみ、石のまま動き出した。石の顎を開いては、砕けた岩と煤の息を何度も吐きかけて隊をまとめて打つ。崩れかけた骨は、致命の一撃を受けても一度はつなぎ止められる。どれほど昔の竜なのか、誰にも分からない。" },
-  { id: "bs_cavefisher", name: "洞天井の漁り手", rank: 10, race: "aquatic", element: "earth", artKey: "cavefisher",
+  { id: "bs_cavefisher", name: "洞天井の漁り手", rank: 10, race: "aquatic", element: "earth", artKey: "hd_cavefisher",
     ability: "paralyze", abRate: 0.45, lifesteal: 0.3, // 光る糸を垂らし続けてしびれさせ、宙づりにした獲物の血を吸う
     desc: "地底湖の上の天井に張りつき、光る糸を垂らして獲物を釣る、蟹とも虫ともつかない魔物。糸の先には、拾った灯籠のかけらが餌のように結んである。糸に触れた者は何度もしびれさせられ、宙づりのまま血を吸われる。見上げた時には、もう糸が首にかかっている。" },
-  { id: "bs_abysshorror", name: "深淵の異形", rank: 10, race: "specter", element: "dark", artKey: "abysshorror",
+  { id: "bs_abysshorror", name: "深淵の異形", rank: 10, race: "specter", element: "dark", artKey: "hd_abysshorror",
     ability: "drain", abRate: 0.45, physResist: 50, // 触れて命を吸い続け、溶け合った体は刃を半ば呑みこむ
     desc: "大空洞のさらに下、底の暗がりからにじみ出てきた異形の霊。濁った魂がいくつも溶け合い、顔とも手ともつかないものが体の表に浮かんでは沈む。生きた者に触れて命を吸い続け、溶け合った体は刃を半ば呑みこむ。底から何かの寝息が聞こえる夜ほど、数が増えるという。" },
-  { id: "bs_earthshaker", name: "地揺らす巨体", rank: 10, race: "giant", element: "earth", artKey: "earthshaker",
+  { id: "bs_earthshaker", name: "地揺らす巨体", rank: 10, race: "giant", element: "earth", artKey: "hd_earthshaker",
     ability: "spell", abRate: 0.4, physResist: 50, // 床を踏み鳴らし続けて地割れと落石で隊の全員を打ち、岩山の甲羅は刃を半ば阻む
     desc: "背に岩山を負った、亀のように身をかがめた巨人。四つの手足で床を踏み鳴らすたびに大空洞が揺れ、地割れと落ちてくる石が隊の全員を打つ。岩山の甲羅は刃を半ば阻む。歩いた跡には、踏みつぶされた灯籠のガラスが細かい砂になって残る。" },
-  { id: "bs_mawofthedeep", name: "深淵の顎", rank: 10, race: "amorph", element: "earth", artKey: "mawofthedeep",
+  { id: "bs_mawofthedeep", name: "深淵の顎", rank: 10, race: "amorph", element: "earth", artKey: "hd_mawofthedeep",
     ability: "soulSteal", abRate: 0.45, physResist: 75, // かみつくたびに宿した魂の光をかすめ取り、煤と泥で固めた体は刃をほとんど通さない
     desc: "灯籠の山の中に口を開けて待つ、底なしの顎だけの魔物。山と同じ黒い煤をまとい、踏むまで地面と見分けがつかない。かみつくたびに、宿した魂の光をかすめ取って呑みこむ。煤と泥で固めた体は、刃をほとんど通さない。腹の底で、呑まれた灯がいくつも小さく光っている。" },
-  { id: "bs_primalbeast", name: "原初の獣", rank: 10, race: "beast", element: "earth", artKey: "primalbeast",
+  { id: "bs_primalbeast", name: "原初の獣", rank: 10, race: "beast", element: "earth", artKey: "hd_primalbeast",
     haste: true, multistrike: 2, ability: null, // 目にも止まらぬ速さで二度動き、角と牙で続けざまに襲う
     desc: "大空洞がまだ若かった頃から底に棲む、角と牙の大きな獣。灯籠が降りはじめるよりずっと前から、ここにいたという。目にも止まらぬ速さで一度に二度動き、角と牙で続けざまに襲いかかる。濁った魂を吸わずに生きのびてきた、ただ一つの種なのかもしれない。" },
-  { id: "bs_gloomstalker", name: "闇這いの蟲", rank: 10, race: "insect", element: "dark", artKey: "gloomstalker",
+  { id: "bs_gloomstalker", name: "闇這いの蟲", rank: 10, race: "insect", element: "dark", artKey: "hd_gloomstalker",
     haste: true, ability: "paralyze", // 目にも止まらぬ速さで二度這い寄り、尾の針で刺してしびれさせる
     desc: "灯籠の山のすき間を這い回る、黒い甲殻の大きな百足。体の節ごとに、濁った灯のかけらが鈍く光っている。目にも止まらぬ速さで一度に二度這い寄り、尾の針で刺された者はしびれて動けなくなる。明かりを向けると、すぐに灯籠の山の奥へ潜りこむ。" },
-  { id: "bs_cavernlord", name: "大空洞の主", rank: 10, boss: true, race: "beast", element: "earth", artKey: "cavernlord", soulClass: "berserker",
+  { id: "bs_cavernlord", name: "大空洞の主", rank: 10, boss: true, race: "beast", element: "earth", artKey: "hd_cavernlord", soulClass: "berserker",
     role: "summoner", summonKey: "bs_blindhorror", ability: "breath", abRate: 0.35, physResist: 50, enrage: true, // 煤と灯籠の粉の息を吐き、吠え声で目の無い獣を呼ぶ。分厚い皮は刃を半ば阻み、手負いで寝床ごと暴れる
     desc: "大空洞の奥に寝床を作り、降ってくる灯籠を寝藁のかわりに積み上げてきた、山のような獣。背の毛には黒いガラスのかけらが無数に刺さり、身じろぎするたびに鈍く光る。煤と灯籠の粉を息にして隊へ吐きかけ、吠え声で目の無い獣たちを呼び寄せる。分厚い皮は刃を半ば阻み、手負いになると寝床ごと大空洞を揺るがして暴れる。この獣が眠っている間だけ、底は静かだという。" },
   // 第十章の結びの主 (w41 底なしの大伽藍の最下階)。三百年前、最初の操霊師に作られた最初の人業。
-  // 絵は hd_moldern (tools/hdart/layer12/) を描くまで、廟の記録官の原型を仮に借りる
-  { id: "bs_moldern", name: "宰相モルデン", rank: 10, boss: true, race: "construct", element: "none", artKey: "mournfulchancellor", soulClass: "sage",
+  { id: "bs_moldern", name: "宰相モルデン", rank: 10, boss: true, race: "construct", element: "none", artKey: "hd_moldern", soulClass: "sage",
     role: "summoner", summonKey: "bs_echowraith", ability: "dispel", abRate: 0.45, physResist: 50, endure: true, // 隊の加護を払い落とし続け、名を呼んで反響の霊を呼ぶ。木の体は刃を半ば逸らし、一度は倒れない
-    desc: "痩せた長身に、宰相の黒い長衣をまとった人業。三百年前、最初の操霊師に作られた最初の人業だ。木の顔に彫られた細い目は、どこまでも静かで、胸の扉の奥には古い灯がひとつ、小さく揺れている。隊が加護を重ねるたびに手の一振りで払い落とし、低い声で名を呼べば、反響の霊が寄ってくる。長衣の下の木の体は刃を半ば逸らし、致命の一撃を受けても一度は倒れない。" },
+    desc: "痩せた長身に、宰相の黒い長衣をまとった人業。三百年前、最初の操霊師に作られた最初の人業だ。青白い顔は三百年たっても老いず、細い目と薄い笑みはどこまでも静かで、胸の扉の奥には古い灯がひとつ、小さく揺れている。隊が加護を重ねるたびに手の一振りで払い落とし、低い声で名を呼べば、反響の霊が寄ってくる。長衣の下の木の体は刃を半ば逸らし、致命の一撃を受けても一度は倒れない。" },
   // -- 第13層「魔導書庫」 (rank 10・闇/魔導。操霊師の術の源) --
   { id: "bs_grimoirebeast", name: "うごめく魔導書", rank: 10, race: "construct", element: "dark", artKey: "grimoirebeast",
     multistrike: 2, magResist: 75, barrier: 2, desc: "自らページをめくり、書かれた術を放つ巨大な魔導書。紙の刃を続けざまに飛ばし、魔力は表紙に弾かれる。読み解こうとした者を、片端から己のページにとじ込んでいく。" },
@@ -1252,7 +1251,7 @@ const NEW_DEFS = [
     palette: tint(ARTS.ogre.palette, "#0a0a1a", 0.65),
     physResist: 100, ability: "critical", // 無の巨体は刃を呑み、触れた物を消滅させる一撃を放つ
     desc: "宇宙の虚無が巨人の形を借りて顕現した存在。その体積は全て無であり、突き立てた刃を呑み込み、振り下ろす拳は触れた物を物理的に消滅させる。存在への反論だ。" },
-  { id: "bs_primalserpent", name: "原初の大蛇", rank: 10, race: "reptile", element: "dark", artKey: "fireserpent", // 第12層 (絵は hd_* の固有原型へ差し替える予定)
+  { id: "bs_primalserpent", name: "原初の大蛇", rank: 10, race: "reptile", element: "dark", artKey: "hd_primalserpent", // 第12層 (絵は hd_* の固有原型)
     ability: "sleep", abRate: 0.4, regen: 0.05, // 濁った灯の色の目で見つめ続けて眠らせ、鱗から濁りを吸って傷をふさぐ
     desc: "灯籠の山にとぐろを巻いて眠る、黒い鱗の大蛇。両の目は濁った灯籠と同じ色で鈍く光り、見つめられた者は逆らえない眠気に落ちる。灯籠から漏れる濁った魂を鱗から吸って、傷をゆっくりとふさぐ。目を覚ましている時のほうが、ずっと少ないという。" },
   { id: "bs_doombringer", name: "釜底の古竜", rank: 9, race: "dragon", element: "fire", artKey: "hd_doombringer", // 第7層 (絵は hd_* の固有原型)
@@ -1728,13 +1727,13 @@ const ELITE_DEFS = [
     ability: "paralyze", regen: 0.06, // 死を運ぶ祝福ですくませ、祈りで己を癒す
     desc: "疫病の死者を弔い続け、最後は自らも墓地に倒れた聖女の亡霊。生前のままの祈りは聞いた者を金縛りにし、唱えるたびに己の傷を癒す。その祝福だけが、死を運ぶものへ変わり果てた。" }, // 第16層
   // -- 迷宮 11-20 (坑道帯) / 強敵ランク4 --
-  { id: "el_oremaw", name: "鉱脈喰らい", elite: true, rank: 10, race: "construct", element: "earth", artKey: "orehulk", // 第12層の強敵 (絵は hd_* の固有原型へ差し替える予定)
+  { id: "el_oremaw", name: "鉱脈喰らい", elite: true, rank: 10, race: "construct", element: "earth", artKey: "hd_oremaw", // 第12層の強敵 (絵は hd_* の固有原型)
     ability: "stone", abRate: 0.45, physResist: 75, // 鉱石の粉を吹きつけ続けて手足を石に変え、原石を固めた体は刃をほとんど通さない
     desc: "水晶の鉱脈ごと岩盤を喰らって肥え太った、岩塊の大きな獣。喰いこんだ原石が体じゅうから突き出し、腹の奥では呑んだ濁った魂がいくつも光っている。口から細かい鉱石の粉を何度も吹きつけ、浴びた者は手足から石に変わっていく。原石を固めた体は、刃をほとんど通さない。" }, // 第12層
   { id: "el_lanternreaper", name: "灯火狩り", elite: true, rank: 10, race: "specter", element: "dark", artKey: "mournshade", soulClass: "thief",
     swift: true, ability: "soulSteal", // 闇を駆け、灯火もろとも魂を狩り取る
     desc: "坑道で果てた者たちの「消えた灯」が寄り集まった漆黒の影。闇を音もなく駆けて先んじ、生者の掲げる灯りを憎んで、灯火を狩るついでにその魂を吸い取る。" }, // 第14層
-  { id: "el_tunnelking", name: "穴蔵の王", elite: true, rank: 10, race: "humanoid", element: "earth", artKey: "tunneler", soulClass: "thief", // 第12層の強敵 (絵は hd_* の固有原型へ差し替える予定)
+  { id: "el_tunnelking", name: "穴蔵の王", elite: true, rank: 10, race: "humanoid", element: "earth", artKey: "hd_tunnelking", soulClass: "thief", // 第12層の強敵 (絵は hd_* の固有原型)
     role: "summoner", summonKey: "bs_gloomstalker", ability: "goldSteal", abRate: 0.45, // 闇這いの蟲を呼んで灯籠を運ばせ、隊の懐から金貨をかすめ取り続ける
     desc: "灯籠の山の奥に穴蔵を掘り、黒く濁った灯籠を宝として溜めこんできた、背の曲がった大男。頭には灯籠を編んだ冠を、背には灯籠をつないだ長いマントを引きずっている。闇這いの蟲を呼んで灯籠を運ばせ、隊の懐からも金貨をかすめ取り続ける。灯籠の中の魂が誰のものかには、少しも興味がない。光っていれば、それで宝だという。" }, // 第12層
   // -- 迷宮 21-30 (砦帯) / 強敵ランク5 --
