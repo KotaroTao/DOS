@@ -1319,10 +1319,23 @@ function infRestoreHome(home) {
   syncClueBoons();
   recalcAllDolls();
 }
-// 仮の器を1体つくる (メイン魂 = 入口で選んだ魂の欠片。Lv1)
-function makeVessel(i, clsKey) {
-  const d = makeDoll(VESSEL_NAMES[i] || `器${i + 1}`);
+// 仮の器の名 = いまの隊の人業の名 (並びの順。隊が6人に満たなければ控えの順、それでも足りなければ「〜の器」)。
+// 人業は魂のほんの一部を仮の器に移して降りる — 育った力は風に吹き返されるが、記憶は器に残る (2026-10-11 ユーザーの指示)。
+// 本編の人業は街で待つので、同じ名が二つあっても矛盾しない
+function infVesselNames() {
+  const src = [...(G.party || []), ...(G.reserve || [])].filter((d) => d && d.name);
+  const out = [];
+  for (let i = 0; i < INF_PARTY; i++) {
+    const d = src[i];
+    out.push(d ? { name: d.name, from: d.uid } : { name: VESSEL_NAMES[i] || `器${i + 1}`, from: null });
+  }
+  return out;
+}
+// 仮の器を1体つくる (メイン魂 = 入口で選んだ魂の欠片。Lv1)。who = infVesselNames の1つ (名と元の人業)
+function makeVessel(i, clsKey, who) {
+  const d = makeDoll((who && who.name) || VESSEL_NAMES[i] || `器${i + 1}`);
   d.vessel = "inf";
+  if (who && who.from != null) d.homeUid = who.from; // 記憶を移した元の人業
   const s = addSoulInstance(clsKey);
   s.first = true; // 最初に宿した欠片は持ち帰れない
   d.primary = s.uid;
@@ -15283,6 +15296,7 @@ function enterAbyss(picks) {
   const ok = Array.isArray(picks) && picks.length === INF_PARTY && picks.every((k) => SOUL_CLASSES[k] && !isUniqueJob(k)) && new Set(picks).size === picks.length;
   if (!ok) { SFX.ng(); return false; }
   const seed = ((random() * 0x7fffffff) >>> 0) || 1;
+  const names = infVesselNames(); // 本編の隊を退ける前に読む
   G.abyss = { v: 2, started: true, depth: 1, seed, rule: null, guardFloor: 0, picks: [...picks], home: infStashHome(), savedIdx: G.dungeonIdx,
     allCommon: picks.every((k) => SOUL_CLASSES[k].rarity === "common"), trk: { sp: 0, at: 0, broke: false, rareAfx: 0, bossMax: 0 } };
   { const st = infStats(); st.runs++; for (const k of picks) st.jobs[k] = 1; }
@@ -15290,7 +15304,7 @@ function enterAbyss(picks) {
   G.reserve = [];
   G.souls = []; setSharedSouls(G.souls);
   G.gold = 0; G.soulPts = 0; G.embers = 0;
-  G.party = picks.map((k, i) => makeVessel(i, k));
+  G.party = picks.map((k, i) => makeVessel(i, k, names[i]));
   syncClueBoons(); // 手がかりの恵みは乗せない (clueBoon が無限迷宮では効かない)
   G.mutator = null;
   G.bossDown = false;
@@ -15313,7 +15327,7 @@ function enterAbyss(picks) {
   if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; }
   newFloor();
   infTlArrive();
-  log(`✺ 名もなき魂の欠片を仮の器に宿し、「${INF_NAME}」へ降りていく。`, "win");
+  log(`✺ 隊は魂のひとかけを仮の器に移し、名もなき魂の欠片を宿して「${INF_NAME}」へ降りていく。力は風に吹き返されても、記憶は器に残る。`, "win");
   renderBoard();
   autosave(true);
   return true;
@@ -18004,7 +18018,7 @@ bindGame({
 // モジュールの評価時 (init より前) に結ぶ。init の wireUI が同じ game へ残りを足す
 bindGame({
   // 出撃
-  departNow, corpseFadeShare, departAbyss, rematchList, departRematch, REMATCH_FORGE_MAX, townMutatorFor, preDiveIssues, departWoes, DUNGEON_BRIEFING, STORY_CELLS, startFloorsOf, worldOpenIdx, worldOpenId, worldUnlockMet, levelBand, wallOf, wallStepOf, partyLevel, storyCellPending, dungeonFacts, dungeonQuests, namedHere, namedList, namedInfo,
+  departNow, corpseFadeShare, departAbyss, infVesselNames, rematchList, departRematch, REMATCH_FORGE_MAX, townMutatorFor, preDiveIssues, departWoes, DUNGEON_BRIEFING, STORY_CELLS, startFloorsOf, worldOpenIdx, worldOpenId, worldUnlockMet, levelBand, wallOf, wallStepOf, partyLevel, storyCellPending, dungeonFacts, dungeonQuests, namedHere, namedList, namedInfo,
   abyssRecords, infStats, infTitleList, infTitleName, setInfTitle, emptyDollCost, infRule, infAtRest, soulWorkOk, infTraderWares, infBuy, infSell, infSwapSoul, infSoulChangeBlock, infSoulChangePreview, infLevel, infGrowthMul,
   // 迷宮の HUD
   specialDef, mutDef, eliteKey, dungeonObjective, abyssActive, abyssBossPending, findRevealedStairs, canReturnNow, confirmAbandonDungeon,

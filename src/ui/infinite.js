@@ -39,16 +39,19 @@ export function openInfSetup() {
   const picks = [];
   let offer = rollStartSouls([]);
   let h = null;
+  // 器の名 = いまの隊の人業の名 (game.js infVesselNames。足りなければ「〜の器」)
+  const names = (game.infVesselNames ? game.infVesselNames() : []).map((x) => x && x.name);
+  const nameOf = (i) => names[i] || VESSEL_NAMES[i];
   const step = () => picks.length;
   const fill = (b) => {
-    b.appendChild(el("div", "inf-note", "入口の風が、育って重くなった魂を吹き返す。本編の人業は降りられない。漂う「名もなき魂の欠片」を、土くれの仮の器に宿して降りる。"));
+    b.appendChild(el("div", "inf-note", "入口の風が、育って重くなった魂を吹き返す。人業はそのままでは降りられない。隊の者は魂のほんのひとかけを土くれの仮の器に移し、そこへ漂う「名もなき魂の欠片」を宿して戦う力にする。育った力は風に置いてゆくが、記憶だけは器に残る。"));
     // 選び終えた器
     const done = el("div", "inf-picked");
     for (let i = 0; i < INF_PARTY; i++) {
       const c = el("div", "inf-pk" + (i === step() ? " now" : i < step() ? " done" : ""));
       if (picks[i]) c.appendChild(bust(picks[i], 30));
       else c.appendChild(el("span", "inf-pk-q", i === step() ? "？" : ""));
-      c.appendChild(el("span", "inf-pk-n", VESSEL_NAMES[i]));
+      c.appendChild(el("span", "inf-pk-n", nameOf(i)));
       done.appendChild(c);
     }
     b.appendChild(done);
@@ -56,12 +59,12 @@ export function openInfSetup() {
       b.appendChild(el("div", "inf-h", "隊がそろった"));
       for (let i = 0; i < INF_PARTY; i++) {
         const k = picks[i], cl = SOUL_CLASSES[k] || {};
-        b.appendChild(row({ icon: bust(k, 32), title: `${VESSEL_NAMES[i]} ― ${cl.label}の魂`, sub: `${RAR[cl.rarity] || ""} ・ Lv1 ・ ${statLine(k)}` }));
+        b.appendChild(row({ icon: bust(k, 32), title: `${nameOf(i)} ― ${cl.label}の魂`, sub: `${RAR[cl.rarity] || ""} ・ Lv1 ・ ${statLine(k)}` }));
       }
-      b.appendChild(el("div", "inf-note dim", "全員 Lv1・装備なし・持ち物なし。魂の安定度は使わない。最初に宿した欠片は、帰る時に迷宮へ還る (持ち帰れない)。"));
+      b.appendChild(el("div", "inf-note dim", "全員 Lv1・装備なし・持ち物なし。魂の安定度は使わない (本編の人業は街で待っている)。最初に宿した欠片は、帰る時に迷宮へ還る (持ち帰れない)。器が崩れても、記憶は人業のもとへ帰る。"));
       return;
     }
-    b.appendChild(el("div", "inf-h", `${VESSEL_NAMES[step()]}に宿す魂を選ぶ`));
+    b.appendChild(el("div", "inf-h", `${names[step()] ? `${names[step()]}の器` : VESSEL_NAMES[step()]}に宿す魂を選ぶ`));
     for (const k of offer) {
       const cl = SOUL_CLASSES[k] || {};
       const r = el("button", "inf-choice");
