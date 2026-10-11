@@ -6234,6 +6234,10 @@ function evUnit() {
   return { gold: Math.max(6, refGold(lv) * 2), soul: Math.max(3, refSoul(lv)) };
 }
 const evJit = () => 0.85 + random() * 0.3;
+// 出来事で得る ✦Soul の倍率 (2026-10-11 ユーザーの指示「イベントで入手できる soul が多すぎる」: 常の謎かけ1つで戦闘1回より多く入った)。
+// 選択肢の ✦ (A.soul)・見聞録の初見・誓い/坑夫の頼みに掛ける。払う ✦ (soulCost)・金貨はそのまま。無限迷宮の出来事は無限迷宮の育ちの表で決めたので掛けない
+const EV_SOUL_K = 0.5;
+const evSoulK = () => (abyssActive() ? 1 : EV_SOUL_K);
 function evAlive() { return G.party.filter((p) => p.alive); }
 function evPoolKey() {
   const rv = evRun();
@@ -6702,7 +6706,7 @@ function evProgress() {
     fe.oath.done = true;
     const stone = evCells((c) => c.type === "event" && c.evOath)[0];
     const u = evUnit();
-    const s = runGainSoulPts(Math.round(u.soul * 4 * evJit()), "ev");
+    const s = runGainSoulPts(Math.round(u.soul * 4 * evSoulK() * evJit()), "ev");
     if (stone) { stone.type = "chest"; stone.cleared = false; stone.revealed = true; stone.cRank = Math.min(5, chestRankOf(null) + 2); delete stone.evOath; }
     SFX.victory(); flashScreen("#ffd84a"); updateTopbar();
     log(`誓いを果たした！ ✦${s} Soul を授かり、石碑は祝福の宝箱に変わった。`, "win");
@@ -6713,7 +6717,7 @@ function evProgress() {
     fe.minerDone = true;
     for (const c of evCells((c) => c.type === "event" && c.evQuest)) { c.cleared = true; delete c.evQuest; }
     const u = evUnit();
-    const s = runGainSoulPts(Math.round(u.soul * 4 * evJit()), "ev");
+    const s = runGainSoulPts(Math.round(u.soul * 4 * evSoulK() * evJit()), "ev");
     G.embers = (G.embers || 0) + 1; runCount("embers", 1);
     SFX.victory(); updateTopbar();
     log(`坑夫の亡霊は仲間と共に眠りについた。✦${s} Soul と魂の残火を遺していった。`, "win");
@@ -6826,7 +6830,7 @@ const evApi = {
     G.events.seen[e.id] = (G.events.seen[e.id] || 0) + 1;
     if (first) {
       G.events.fresh[e.id] = true;
-      const s = runGainSoulPts(Math.max(1, Math.round(evUnit().soul * 0.5)), "ev");
+      const s = runGainSoulPts(Math.max(1, Math.round(evUnit().soul * 0.5 * evSoulK())), "ev");
       updateTopbar();
       log(`見聞録に新たな出来事「${e.name}」を記した。(✦${s})`, "win");
       setTimeout(() => showToast(`見聞録に記した「${e.name}」 ✦${s}`, { noLog: true, tone: "gold", icon: ICONS.event }), 250);
@@ -6901,8 +6905,9 @@ const evApi = {
     showToast(`${from}から 💰${g}`, { noLog: true, tone: "gold", icon: ICONS.gold });
     return g;
   },
-  soul(u, from) {
-    const s = runGainSoulPts(Math.round(evUnit().soul * u * evJit()), "ev");
+  // opt.trade: 金貨・残火と量り替える取り引き (天秤など、選択肢に何倍と書いたもの) — EV_SOUL_K を掛けない
+  soul(u, from, opt = {}) {
+    const s = runGainSoulPts(Math.max(1, Math.round(evUnit().soul * u * (opt.trade ? 1 : evSoulK()) * evJit())), "ev");
     updateTopbar();
     log(`${from}から ✦${s} Soul を得た。`, "win");
     showToast(`${from}から ✦${s} Soul`, { noLog: true, tone: "gold", icon: ICONS.wisp });
