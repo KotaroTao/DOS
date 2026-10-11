@@ -268,7 +268,7 @@ function forgeEntries(d) {
   for (const it of (d.items || [])) if (it && hasQuality(it) && !it.unidentified) out.push({ it, key: null });
   return out;
 }
-function forgeRow(x, d, away) {
+function forgeRow(x, d) {
   const it = x.it;
   const rk = rarityKey(it);
   const row = el("div", "wpc-srow rf-row" + (rk ? " rar-" + rk : ""));
@@ -298,7 +298,7 @@ function forgeRow(x, d, away) {
   main.type = "button";
   main.appendChild(goldEl(shortN(cost), "wpc-buy-p"));
   main.appendChild(el("span", "wpc-buy-l", "鍛え直す"));
-  main.disabled = !matters || away;
+  main.disabled = !matters;
   main.addEventListener("click", open);
   act.appendChild(main);
   row.appendChild(act);
@@ -326,15 +326,13 @@ export function renderForgeList(wrap) {
     box.textContent = "";
     if (!n) { box.appendChild(el("div", "wpc-empty big", "鍛え直せる装備品が無い。未鑑定の品は、先に鑑定する。")); return; }
     for (const g of groups) {
-      const away = !!(game.expeditionOf && game.expeditionOf(g.d));
       const sec = el("section", "rf-grp" + (isReserve(g.d) ? " reserve" : ""));
       const hd = el("div", "wpc-drow-h");
       hd.appendChild(dollIcon(g.d));
       hd.appendChild(el("span", "wpc-doll-nm", g.d.name));
       if (isReserve(g.d)) hd.appendChild(el("span", "wpc-tag", "控え"));
-      if (away) hd.appendChild(el("span", "wpc-tag", "遠征中"));
       sec.appendChild(hd);
-      for (const x of g.list) sec.appendChild(forgeRow(x, g.d, away));
+      for (const x of g.list) sec.appendChild(forgeRow(x, g.d));
       box.appendChild(sec);
     }
   };
