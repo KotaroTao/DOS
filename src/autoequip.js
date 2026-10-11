@@ -102,6 +102,24 @@ export function trialEquip(equip, item, key) {
   return { equip: eq, displaced };
 }
 
+// 仲間 (wearer) の部位 wk から品を譲り受ける時の「装備の交換」: こちらから外れる品 (displaced) のうち、
+// 空いた wk へ仲間がそのまま付けられる品を1つ返す (無ければ null = 仲間の部位は空き、外れた品はこちらの袋へ)。
+// 仲間のほかの部位を押し出す品 (両手武器で盾が外れる等) は選ばない
+export function swapBackFor(wearer, wk, displaced, canEquipFn = canEquipDefault) {
+  if (!wearer || !wearer.equip || !wk) return null;
+  const eq = { ...wearer.equip, [wk]: null };
+  for (const x of (displaced || [])) {
+    if (!x || x.unidentified || !EQUIP_SLOTS.has(x.slot)) continue;
+    const fits = x.slot === "acc" ? wk.startsWith("acc")
+      : (wk === "shield" && x.slot === "weapon") ? (!x.twoHanded && canOffhand(wearer, x))
+      : x.slot === wk;
+    if (!fits || !canEquipFn(wearer, x)) continue;
+    const tr = trialEquip(eq, x, wk);
+    if (tr && !tr.displaced.length) return x;
+  }
+  return null;
+}
+
 // ---- 元に戻すための写し ----
 export function snapshotEquip(dolls) {
   const seen = new Set();
