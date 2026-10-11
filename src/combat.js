@@ -205,6 +205,8 @@ function makeEnemy(key, scale = 1, boss = false, bossRank = 0) {
 }
 
 const rand = (n) => Math.floor(Math.random() * n);
+// 奇襲の1ターン目に各敵が動く確率 (最低1体は動く — Battle._ambushers)
+const AMBUSH_ACT_RATE = 0.5;
 // 揺らぎ。基準値は先に四捨五入する (34.5 → 35)。回復量・ダメージに小数を出さない
 const variance = (base) => { const b = Math.round(base); return Math.max(1, b + rand(Math.ceil(b * 0.4)) - rand(Math.ceil(b * 0.2))); };
 // 揺らぎは上側が広く、平均は基準値より約10%高い。オートも同じ平均を読む。
@@ -1379,7 +1381,7 @@ export class Battle {
     this._checkEnd();
     let pool = [...this.party, ...this.enemies];
     if (this._roundNo === 1 && this.opening === "preempt") pool = [...this.party];
-    else if (this._roundNo === 1 && this.opening === "ambush") pool = [...this.enemies];
+    else if (this._roundNo === 1 && this.opening === "ambush") pool = this._ambushers();
     const eagi = (a) => (a.agi || 1) * ((a.buffs && a.buffs.agi) || 1);
     // 手番の速さ: 敵の AGI は Battle を作った時に味方の規模 (TURN_K 込み) へ直してある (scaleFoeAgi)。揺らぎは割合で、並べる前に1回だけ振る
     const turnAgi = (a) => eagi(a);
@@ -1403,6 +1405,14 @@ export class Battle {
     }
     const np = this.queue.filter((a) => a.side === "party").length;
     T.op += np * (this.queue.length - np);
+  }
+
+  // 奇襲の1ターン目に動く敵: 生きている敵それぞれが AMBUSH_ACT_RATE (50%) で動く。誰も当たらなければ1体を選んで動かす
+  _ambushers() {
+    const foes = this.enemies.filter((e) => e.alive);
+    const acts = foes.filter(() => Math.random() < AMBUSH_ACT_RATE);
+    if (!acts.length && foes.length) acts.push(foes[rand(foes.length)]);
+    return acts;
   }
 
   // 敵の実効AGI を、回避・逃走の物差し (基準の隊の規模) に戻す: 直した敵は ÷TURN_K、金属の魔物は従来どおり × fleeK
