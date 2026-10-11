@@ -19,6 +19,7 @@
 //   floor: この階だけの強化・呪い (修飾子) / stairs: true (階段の在処) / chests: 数 (宝箱の在処を見せる)
 //   chest: { rankUp } (その場に宝箱) / fight: [出来事の戦闘の spec], win: 勝った後の効果
 //   say: 結果の一文 (トーストと記録)
+import { random } from "./rng.js";
 
 export const INF_EV_LAYER = 99;
 // 修飾子の説明 (階の情報の「出来事」の行)
@@ -66,7 +67,7 @@ function pay(A, c) {
 // 効果を順に掛け、最後に finish (= A.done)。戦闘・宝箱はその先を自分で片付けるので finish を呼ばない (next = 勝った後の続き)
 function apply(A, cell, e, from, finish, next = null) {
   if (!e) { finish(); return; }
-  if (e.p != null) { apply(A, cell, Math.random() < e.p ? e.ok : e.ng, from, finish, next); return; }
+  if (e.p != null) { apply(A, cell, random() < e.p ? e.ok : e.ng, from, finish, next); return; }
   if (e.check) { const r = A.check(e.check); if (r.who) A.log(`${r.who.name}が試みた…${r.ok ? "うまくいった。" : "しくじった。"}`, r.ok ? "win" : "dmg"); apply(A, cell, r.ok ? e.ok : e.ng, from, finish, next); return; }
   if (e.heal) A.healAll(e.heal[0] || 0, e.heal[1] || 0, !!e.heal[2]);
   if (e.revive) { const d = A.deadList()[0]; if (d) A.revive(d, true); }

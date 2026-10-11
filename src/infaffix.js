@@ -8,6 +8,7 @@
 //  ・値段は性能点に追加の点を足して付け直す (pricing.js の物差し)。名前の前に一番格の高い追加の名、後ろに格の印 (◇◆★)
 // このモジュールは純粋なデータ/ロジックのみ (game.js・ui を import しない)。
 
+import { random } from "./rng.js";
 import { equipScore, priceForScore } from "./pricing.js";
 import { MON_RACES } from "./dungeons/schema.js";
 
@@ -195,7 +196,7 @@ const depthRow = (f) => DEPTH_ROWS.find((r) => (f || 1) <= r.to);
 const AFX_SLOTS = new Set(["weapon", "shield", "body", "head", "hands", "feet", "acc"]);
 
 // 品 it (目録から作った直後) に、深さ floor の追加を振る。it.afx = [{k, v}] を返す (付けなければ null)
-export function rollAffixes(it, floor, rng = Math.random) {
+export function rollAffixes(it, floor, rng = random) {
   if (!it || !AFX_SLOTS.has(it.slot) || it.cursed || it.price === 0) return null;
   const row = depthRow(floor);
   const n = row.n + (rng() < row.extra ? 1 : 0);

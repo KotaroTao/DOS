@@ -10,6 +10,7 @@
 // 報酬の量は「戦果」(その迷宮・階の普通の戦闘1回分の金貨/✦Soul — game.js questUnit) の倍数で決める。
 // このファイルは game.js を import しない: 掲示板の生成は ctx (game.js が渡す窓) を通す。
 // 依頼の id (固定クエストの id・依頼人の並び) は保存されるので変えない・使い回さない。
+import { random } from "./rng.js";
 import { poolAt, WORLD } from "./dungeons/world.js";
 import { NAMED_FOES, NAMED_IDS, bountyId, BOUNTY_GIVER } from "./dungeons/named.js";
 import { BESTIARY } from "./dungeons/bestiary.js";
@@ -361,7 +362,7 @@ export const npcBondLabel = (n) => (n >= 10 ? "古なじみ" : n >= 6 ? "なじ�
 // opt = { rand(n), tip: 心付けがあるか, bond: bondGiftAt の結果 }
 // 返り値: 語りの行の配列 (「…」= 依頼人の言葉 / ── = 受け取りの要旨 / それ以外 = 地の文)
 export function composeReport(q, count, opt = {}) {
-  const rand = opt.rand || ((n) => Math.floor(Math.random() * n));
+  const rand = opt.rand || ((n) => Math.floor(random() * n));
   const pick = (list) => list[rand(list.length)];
   const npc = npcOf(q.npc);
   const v = { name: npcCall(npc), ...(q.vars || {}) };

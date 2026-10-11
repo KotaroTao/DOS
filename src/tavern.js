@@ -18,6 +18,7 @@
 //   場所: "metal" 金属の魔物 (第3層の景色の迷宮が地図に現れた後) / "metal2" その上位種 (第4層から) / "fort" 捨て砦 (第4層) /
 //         "roots" 魂脈の根 (第三章) / "undercity" 王都の地下 (第四章) / "furnace" 灼熱の洞 (第五章) / "frost" 氷結回廊 (第六章) / "swamp" 毒沼 (第七章) / "storm" 嵐の尖塔 (第八章) / "arena" 闘技場跡 (第九章) / "cavern" 地底大空洞 (第十章)
 //   物語: "rep:<迷宮id>" その迷宮を王に報告した後 / "found:<手がかり>" その手がかりを見つけた後 / "ch:<n>" 第n章を結んだ後
+import { random } from "./rng.js";
 
 // ===== 酒場に居合わせる者たち =====
 // type=肩書き / icon=絵文字 / names=その肩書きの名前候補 (帰還ごとにランダムで一人選ばれる)
@@ -412,6 +413,7 @@ export const TAVERN_TALKS = [
   { id: "t_inf11", k: "tip", cat: "探索", t: "「無限迷宮の出来事は、本編の迷宮とはまるで別物だ。拾える物は、品・魂・回復・その出撃だけの強化・金貨・✦・それと呪い。うまい話には、たいてい敵の力が上がる呪いがついてくる。秘の出来事は、一回の出撃で一度きりだ。」", req: "infinite" },
   { id: "t_inf12", k: "tip", cat: "探索", t: "「無限迷宮には称号ってのがある。十階に着く、主を初めて倒す、技を使わずに主を倒す……決まったことをやり遂げると手に入る。強くはならねえ、見た目だけだ。入口の「称号」で付け替えられる。勲章の方は、王宮で金貨と赤い魂に換えてもらえるぞ。」", req: "infinite" },
   { id: "t_bagfull", k: "tip", cat: "装備", t: "「持ち物がいっぱいの時に宝箱を開けたら、袋の品をひとつ捨てて入れるか、置いていくかを選べる。装備を外す時も同じだ。ロックした品は捨てる候補に出ないから、大事な物はロックしときな。」" },
+  { id: "t_fate", k: "tip", cat: "街", t: "「途中で閉じて開き直せば、宝箱の中身や罠の当たり外れを引き直せる……なんて考えるなよ。運の巡りまで書き留めてあるから、同じことをすれば同じ結果になる。変えたけりゃ、やることを変えるんだな。」" },
   { id: "l_inf1", k: "lore", t: "「王家が古くから封じてきた口があるって話だ。下から吹く風が、育った魂を押し返すんだと。だから誰も、底を見たことがない。……底が無いのかもしれんがね。」", req: "infinite", who: TALE },
 ];
 
@@ -433,7 +435,7 @@ export const TALK_MAP = Object.fromEntries(TAVERN_TALKS.map((t) => [t.id, t]));
 // 一人ずつ話の種類を引く: 雑談 4 : 心得 4 : 言い伝え 2。同じ種類の中では、まだ聞いていない心得・言い伝えを3倍選びやすくする。
 // 心得が一つも出ない顔ぶれにはしない (心得が残っていれば、最後の一人を心得にする)
 const KIND_W = [["chat", 4], ["tip", 4], ["lore", 2]];
-export function pickTavernCrowd({ allowed = () => true, heard = {}, rand = Math.random } = {}) {
+export function pickTavernCrowd({ allowed = () => true, heard = {}, rand = random } = {}) {
   const count = 3 + Math.floor(rand() * 3); // 3〜5名
   const speakers = [...TAVERN_SPEAKERS].sort(() => rand() - 0.5).slice(0, count);
   const pool = TAVERN_TALKS.filter((t) => !t.retired && allowed(t.req));

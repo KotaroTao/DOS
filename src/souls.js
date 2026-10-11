@@ -1,3 +1,4 @@
+import { random } from "./rng.js";
 import { zeroResists } from "./resistance.js";
 // 魂(Soul)と人業(Doll)のデータモデル — 新仕様 (36職業・ランク1-5・レア度・融合)
 //
@@ -248,7 +249,7 @@ export function rollSoulRank(bonus = 0) {
   const m = 1 + Math.max(0, bonus);
   const p3 = Math.min(0.12, 0.04 * m);
   const p2 = Math.min(0.45, 0.22 * m);
-  const r = Math.random();
+  const r = random();
   if (r < p3) return 3;
   if (r < p3 + p2) return 2;
   return 1;
@@ -262,19 +263,19 @@ function rarityPool(r) {
 }
 export function rollJobClass() {
   // 風化した死体・まだあたたかい死体: コモン70% / レア20% / エピック9% / レジェンド1%
-  const r = Math.random();
+  const r = random();
   let pool;
   if (r < 0.01)        pool = rarityPool("legend");
   else if (r < 0.10)   pool = rarityPool("epic");
   else if (r < 0.30)   pool = rarityPool("rare");
   else                  pool = rarityPool("common");
-  return pool[Math.floor(Math.random() * pool.length)];
+  return pool[Math.floor(random() * pool.length)];
 }
 // 偉大なる死体: レア30% / エピック50% / レジェンド20% (コモンは出ない)
 export function rollGreatJobClass() {
-  const r = Math.random();
+  const r = random();
   const pool = r < 0.20 ? rarityPool("legend") : r < 0.70 ? rarityPool("epic") : rarityPool("rare");
-  return pool[Math.floor(Math.random() * pool.length)];
+  return pool[Math.floor(random() * pool.length)];
 }
 
 // ===== パッシブ カタログ =====
@@ -669,7 +670,7 @@ let _soulUid = 0;
 
 export function makeSoul(clsKey, level = 1, part = null, rank = 1) {
   if (!SOUL_CLASSES[clsKey]) return null;
-  if (!part) part = PARTS[Math.floor(Math.random() * PARTS.length)];
+  if (!part) part = PARTS[Math.floor(random() * PARTS.length)];
   rank = Math.max(1, Math.min(5, parseInt(rank) || 1));
   const cap = capForRarityRank(SOUL_CLASSES[clsKey].rarity, rank);
   return { uid: ++_soulUid, clsKey, part, rank, level: Math.min(Math.max(1, level), cap), cap };

@@ -1,3 +1,4 @@
+import { random } from "./rng.js";
 import { WORLD } from "./dungeons/world.js";
 import { INF_EVENTS, INF_EV_LAYER } from "./infevents.js";
 
@@ -40,8 +41,8 @@ export const EV_BOONS = {
   mistEye:  { ambush: 0.5,   text: "霧渡りの目 ― 奇襲を受ける確率が半分になる" },
 };
 
-const pick = (a) => a[Math.floor(Math.random() * a.length)];
-const chance = (p) => Math.random() < p;
+const pick = (a) => a[Math.floor(random() * a.length)];
+const chance = (p) => random() < p;
 const pctTxt = (p) => `${Math.round(p * 100)}%`;
 // 隊の手当ての要不要 (何も起きない選択肢は出さない)
 const anyHurt = (A) => A.aliveList().some((m) => m.hp < m.maxhp);
@@ -273,11 +274,11 @@ export const EVENTS = [
   },
   {
     id: "c11", name: "怨霊の謎かけ", layer: 0, tier: "common", icon: "mon:bs_pettyrevenant", minFloor: 2,
-    setup: (A, cell) => { cell.evRiddle = Math.floor(Math.random() * RIDDLES.length); },
+    setup: (A, cell) => { cell.evRiddle = Math.floor(random() * RIDDLES.length); },
     intro: (A, cell) => ["青白い怨霊が道を塞いだ。", `「答えよ。${RIDDLES[cell.evRiddle || 0].q}」`],
     choices: (A, cell) => {
       const r = RIDDLES[cell.evRiddle || 0];
-      const answers = [r.a, ...r.w].sort(() => Math.random() - 0.5);
+      const answers = [r.a, ...r.w].sort(() => random() - 0.5);
       return answers.map((ans) => ({ label: `「${ans}」`, fn: () => {
         if (ans === r.a) {
           A.sfx("victory");
@@ -2564,12 +2565,12 @@ export function pickEvent(list, { mythicMul = 1 } = {}) {
     const pm = Math.min(1, (w.mythic / tt) * mythicMul), k0 = (1 - pm) / (1 - w.mythic / tt);
     for (const k of tiers) w[k] = k === "mythic" ? pm * tt : w[k] * k0;
   }
-  let x = Math.random() * tt, tier = tiers[tiers.length - 1];
+  let x = random() * tt, tier = tiers[tiers.length - 1];
   for (const k of tiers) { x -= w[k]; if (x <= 0) { tier = k; break; } }
   const pool = byTier[tier];
   let total = 0;
   const acc = pool.map((e) => { total += e.layer ? LAYER_W : 1; return [e, total]; });
-  const y = Math.random() * total;
+  const y = random() * total;
   return (acc.find(([, t]) => y <= t) || acc[acc.length - 1])[0];
 }
 // 一度きりの判定に使う鍵 (層ごと一度なら層つき)

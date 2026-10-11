@@ -8,6 +8,7 @@
 // このモジュールは純粋なデータ/ロジックのみ。演出・状態管理・描画は game.js と ui/infinite.js が担う。
 // 内部の名前 (abyss・G.abyss) は旧仕様の奈落から引き継いでいる。画面の呼び名はすべて「無限迷宮」。
 
+import { random } from "./rng.js";
 import { lvMinutes } from "./levelcurve.js";
 import { SOUL_CLASSES, SOUL_KEYS } from "./souls.js";
 
@@ -93,7 +94,7 @@ export function rollInfRule(rng, f, prevId = null) {
   // 深い階ほど、その深さで解禁された掟が出やすい (浅い掟ばかりにならない)
   const w = (r) => (r.boon ? 1 : 3) * (1 + (r.from >= 51 ? 0.6 : r.from >= 31 ? 0.3 : 0) * (f >= r.from ? 1 : 0));
   let total = 0; for (const r of pool) total += w(r);
-  let x = (rng ? rng() : Math.random()) * total;
+  let x = (rng ? rng() : random()) * total;
   for (const r of pool) { x -= w(r); if (x < 0) return r.id; }
   return pool[pool.length - 1].id;
 }
@@ -106,7 +107,7 @@ const START_POOL = {
   rare: SOUL_KEYS.filter((k) => SOUL_CLASSES[k].rarity === "rare"),
 };
 export const START_RARE_SHARE = 2 / 9;
-export function rollStartSouls(taken = [], rng = Math.random) {
+export function rollStartSouls(taken = [], rng = random) {
   const out = [];
   const used = new Set(taken);
   for (let i = 0; i < 3; i++) {
