@@ -11942,8 +11942,8 @@ function fixedQuestReward(def) {
   const u = { gold: Math.max(u0.gold, front.gold * 0.7), soul: Math.max(u0.soul, front.soul * 0.7) };
   const out = {};
   // 職業の魂・品を添える依頼は、金貨・✦Soul・赤い魂に QUEST_REWARD_K (2026-10 ユーザーの指示で 1/5) を掛ける。
-  // 添えない依頼 (金貨・✦Soul だけ。懸賞など) は減らさない。残火・魂の数はそのまま
-  const k = questRewardK(r);
+  // 添えない依頼 (金貨・✦Soul だけ) は減らさない — ただし名のある強敵の懸賞は減らす。残火・魂の数はそのまま
+  const k = questRewardK(r, def);
   // 端数は 10 (✦ は 5) に丸める。小さな額は丸めると 0 や倍近くになるので、刻みの5倍に満たなければ1の位まで
   const nice = (v, step) => (v >= step * 5 ? Math.round(v / step) * step : Math.max(1, Math.round(v)));
   if (r.gold) out.gold = nice(u.gold * r.gold * k, 10);
