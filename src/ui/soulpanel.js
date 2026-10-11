@@ -266,21 +266,48 @@ function emberCapLines(pe) {
 }
 
 // 残火でLv上限を上げる前の確認 (残火は貴重なので、押し間違いで捧げないように)
-// onDone = 上げた後 (魂を強化のシートを描き直す)
+// 捧げた後は同じシートのまま「続けて捧げる」に変わり、閉じずに何度でも捧げられる (2026-10 ユーザーの指示)
+// onDone = 1回捧げるたびに呼ぶ (魂を強化のシートを描き直す)
 function confirmRaiseCap(pe, onDone = null) {
   const G = G_();
-  const have = G.embers || 0;
   const need = emberCostOf(pe.clsKey);
   if (!game.raiseSoulCap) return;
-  if (have < need) { game.raiseSoulCap(pe.uid); return; }
-  const cap = soulLevelCapOf(pe);
+  if ((G.embers || 0) < need) { game.raiseSoulCap(pe.uid); return; }
+  const uid = pe.uid;
+  let times = 0, busy = false;
+  const view = () => {
+    const e = soulByUid(uid) || pe;
+    const have = G.embers || 0;
+    const cap = soulLevelCapOf(e);
+    const can = have >= need;
+    const lines = [];
+    if (times) lines.push(`Lv上限が ${cap} になった（いま捧げた分 +${times}）`);
+    lines.push(can ? `Lv上限 ${cap} → ${cap + 1}` : `Lv上限 ${cap}`);
+    lines.push(can ? `残火 ${have} → ${have - need}` : `残火 ${have}（あと${need - have}つ足りない）`);
+    lines.push(...emberCapLines(e), "捧げた残火は戻らない。");
+    return {
+      title: times
+        ? (can ? `続けて残火を${need}つ捧げますか？` : "残火が足りない")
+        : `残火を${need}つ捧げ、${soulLabel(e)}のLv上限を上げますか？`,
+      lines,
+      footer: [
+        { label: times ? "続けて捧げる" : "捧げる", kind: "primary", size: "lg", disabled: !can, cost: { kind: "ember", n: need }, onTap: offer },
+        { label: times ? "閉じる" : "やめる", kind: "ghost", onTap: (h) => h.close() },
+      ],
+    };
+  };
+  function offer(h) {
+    if (busy || h.closed) return;
+    busy = true;
+    const ok = game.raiseSoulCap(uid);
+    busy = false;
+    if (!ok) return;
+    times++;
+    if (onDone) onDone();
+    if (!h.closed) h.update(view());
+  }
   sfx("select");
-  confirm({
-    banner: "魂の残火", danger: false,
-    title: `残火を${need}つ捧げ、${soulLabel(pe)}のLv上限を上げますか？`,
-    lines: [`Lv上限 ${cap} → ${cap + 1}`, `残火 ${have} → ${have - need}`, ...emberCapLines(pe), "捧げた残火は戻らない。"],
-    okLabel: "捧げる",
-  }).then((y) => { if (y && game.raiseSoulCap(pe.uid) && onDone) onDone(); });
+  sheet.open({ kind: "choice", banner: "魂の残火", className: "ui-confirm", ...view() });
 }
 
 // 同じ魂が余っている → 魂融合 (付け替えの隣のボタン)
