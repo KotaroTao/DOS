@@ -210,13 +210,13 @@ export const EVENTS = [
       const g = A.goldCost(2), s = A.soulCost(2);
       return [
         A.canPayGold(g) && { label: `金貨を載せる (💰${g}) → ✦Soul (1.5倍相当)`, fn: () => {
-          A.payGold(g); A.sfx("spell"); A.soul(3, "天秤"); A.done(cell);
+          A.payGold(g); A.sfx("spell"); A.soul(3, "天秤", { trade: true }); A.done(cell);
         } },
         A.canPaySoul(s) && { label: `✦Soul を載せる (✦${s}) → 金貨 (1.5倍相当)`, fn: () => {
           A.paySoul(s); A.sfx("spell"); A.gold(3, "天秤"); A.done(cell);
         } },
         A.embers() >= 1 && { label: "魂の残火を1つ載せる → ✦Soul (大)", fn: () => {
-          A.payEmber(1); A.sfx("spell"); A.soul(6, "天秤"); A.done(cell);
+          A.payEmber(1); A.sfx("spell"); A.soul(6, "天秤", { trade: true }); A.done(cell);
         } },
       ];
     },
@@ -283,7 +283,7 @@ export const EVENTS = [
         if (ans === r.a) {
           A.sfx("victory");
           A.toast("「……正しい」怨霊は満足げに霧散した", "good");
-          A.soul(3, "怨霊の謎かけ"); A.gold(1, "怨霊の謎かけ");
+          A.soul(2, "怨霊の謎かけ"); A.gold(1, "怨霊の謎かけ");
         } else {
           A.sfx("trap"); A.flash("#5a3a8a");
           A.hurtAll(0.10);
