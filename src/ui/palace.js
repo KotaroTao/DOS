@@ -381,6 +381,7 @@ function renderCodexItem(box) {
 
 function renderCodexJob(box) {
   const g = G();
+  if (game.codexSweepJobs) game.codexSweepJobs(); // いまの魂の Lv・ランクを記録してから並べる
   const known = Object.keys(SOUL_CLASSES).filter((k) => g.codex.job[k]);
   // 同じ系統 (見習い戦士 → 戦士 → 剣士 …) は1枚の札にまとめ、到達した最も高い位階の称号と姿で出す。
   // 札を開くと詳細のシートでランクを切り替えて見られる。並びは位階の高い順
@@ -759,6 +760,7 @@ export function codexItemSheet(id, o = {}) {
 // (o.card = 図鑑の札。見たランクの新着の印を消す時に札の印も整える)
 export function codexJobSheet(key, rank, heading, o = {}) {
   if (!SOUL_CLASSES[key]) return null;
+  if (game.codexSweepJobs) game.codexSweepJobs(); // 覚えたばかりの技も出るよう、開く前に記録を最新に
   const g = G();
   const rec = g.codex.job[key];
   rank = Math.max(1, Math.min(5, rank || (rec && rec.rank) || 1));

@@ -758,6 +758,9 @@ function recalcAllDolls({ levelUp = false } = {}) {
     }
     d.hp = Math.min(d.hp, d.maxhp); d.mp = Math.min(d.mp, d.maxmp);
   }
+  // 魂の Lv・ランクが変わった時はここを通るので、職業図鑑の記録も合わせる
+  // (保存の間引き・試遊でオートセーブが走らないと、覚えた技が図鑑に出なかった)
+  codexSweepJobs();
 }
 // その魂 (uid) を誰かが宿しているか
 function soulWorn(uid) {
