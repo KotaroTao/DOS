@@ -34,7 +34,7 @@ import {
   SOUL_RANKS, rollJobClass, rollGreatJobClass, SOUL_STAT_UP,
   soulRankFromCount, capForRarityRank, jobRankName, soulSeriesName, pLv,
   identifyChance, canIdentify,
-  battleSkills,
+  battleSkills, autoSkills,
 } from "./souls.js";
 import { showOpening } from "./opening.js";
 import { kingCanvas, prewarmTown } from "./townart.js";
@@ -5891,19 +5891,34 @@ function evShadeSprite(p) {
   _shadeSpr.set(key, out);
   return out;
 }
+// 写し身 (鏡の影): 人業の能力 (STR〜LUK)・武器の攻撃性能・会心・連撃・吸血・属性の攻防・抵抗値・MP・技までそのまま写す。
+//  ratio は体 (最大HP) の割合だけ (2026-10 ユーザーの指示: 能力まで割っていたので、守りを差し引くと打撃がほとんど通らず弱すぎた)
 function evShadow(p, ratio) {
   const e = spawnEliteEnemies(evPoolKey(), enemyScale())[0];
   const spr = evShadeSprite(p);
   e.key = "ev_shade";
-  e.mon = { name: `${p.name}の影`, race: "specter", rank: 1, palette: spr.palette, art: spr.art, desc: "鏡に映った己の影。" };
+  e.mon = { name: `${p.name}の影`, race: "specter", rank: 1, palette: spr.palette, art: spr.art, desc: "鏡に映った己の影。力も技も、写した者と変わらない。" };
   if (spr.photo) Object.assign(e.mon, { photo: spr.photo, w: spr.w, h: spr.h, shade: true });
   e.name = `${p.name}の影`;
   e.maxhp = e.hp = Math.max(1, Math.round((p.maxhp || 10) * ratio));
-  e.atk = Math.max(1, Math.round(Math.max(p.atk || 1, p.int || 0) * ratio));
-  e.vit = Math.round((p.vit || 0) * ratio);
-  e.agi = Math.max(1, Math.round((p.agi || 1) * ratio));
+  e.maxmp = e.mp = Math.max(0, p.maxmp || 0);
+  for (const k of ["atk", "vit", "agi", "int", "pie", "luk"]) e[k] = Math.max(k === "vit" ? 0 : 1, p[k] || 0);
+  e.wScale = p.wScale ? { ...p.wScale } : null; // 武器の参照式 (攻撃力 = 写した能力 × 係数)
+  e._partyScale = true; e._agiScaled = true; // AGI は味方の規模のまま (手番・回避・逃走とも写した者と同じ)
+  const ef = p.eff || {};
+  e.critBonus = p.critBonus || 0;
+  e.multistrike = ef.multistrike || 0;
+  e.lifesteal = ef.lifesteal || 0;
+  e.guard = ef.guard || 0;
+  e.elemAtk = p.elemAtk ? { ...p.elemAtk } : null;
+  e.elemDef = p.elemDef ? { ...p.elemDef } : null;
+  e.resists = { ...(p.resists || {}) };
+  e.physResist = p.physResist || 0; e.magResist = p.magResist || 0;
+  if (e.physResist >= 100 && e.magResist >= 100) e.magResist = e.resists.magResist = 75; // 両方の無効は倒せなくなるので魔法を通す
+  e.soulMp = p.soulMp || 0; // 魂の格 (技の消費MPと威力)
+  e.mimic = autoSkills(p).filter((k) => { const sp = SPELLS[k]; return sp && ((sp.kind === "phys" || sp.kind === "atk") && (sp.power || 0) > 0 && !sp.gravity || healsHp(sp)); });
   e.soul = Math.round((e.soul || 1) * 1.5);
-  e.ability = null; e.physResist = 0; e.magResist = 0; e.magWeak = 1; e.regen = 0; e.evasive = false;
+  e.ability = null; e.magWeak = 1; e.regen = 0; e.evasive = false;
   e.role = null; e.summonKey = null; e.element = "dark";
   return e;
 }
@@ -10032,7 +10047,8 @@ function applyImpact(res) {
   }
   // ブレス: 敵から隊へ属性の奔流が押し寄せる / 全体呪文: 隊の札の上で属性の呪文が弾ける
   if (res.action === "breath") {
-    const el = ELEM_FX_COL[res.actor.element] ? res.actor.element : "none";
+    const el0 = res.fxEl || res.actor.element; // 写し身の呪文は呪文の属性で
+    const el = ELEM_FX_COL[el0] ? el0 : "none";
     const sp0 = G.enemyPos[res.actor.uid];
     if (!res.espell && sp0) spawnFx(fx.skill, "breath", sp0.cx, sp0.cy, now, spd, { el, seed: res.actor.uid || 1 });
     else if (res.espell) {
