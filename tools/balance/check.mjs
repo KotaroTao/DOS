@@ -5,6 +5,8 @@ import { makeDoll } from '../../src/souls.js';
 import { MONSTERS } from '../../src/sprites.js';
 import { DUNGEON_MONSTERS } from '../../src/dungeons/index.js';
 import { EVENTS } from '../../src/events.js';
+import { useMathRandom } from '../../src/rng.js';
+useMathRandom(); // ゲームの乱数 (src/rng.js) を Math.random に従わせる — 下で Math.random を差し替えて結果を固定する
 Object.assign(MONSTERS,DUNGEON_MONSTERS);
 let rng=54321;
 Math.random=()=>{rng=(Math.imul(rng,1664525)+1013904223)>>>0;return rng/4294967296;};

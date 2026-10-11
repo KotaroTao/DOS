@@ -1,3 +1,4 @@
+import { random } from "./rng.js";
 import { prepareWeapon } from "./weaponpower.js";
 import { zeroResists, clampResist } from "./resistance.js";
 // 武器・防具・アクセサリ・消耗品のカタログ (基本品)
@@ -198,7 +199,7 @@ const QUALITY_KEYS = ["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp", "cri
 // 品質を持つ品か (装備品)
 export function hasQuality(it) { return !!it && QUALITY_SLOTS.has(it.slot); }
 // 品質を引く (0〜100 の整数、どれも同じ確率)
-export function rollQuality() { return Math.floor(Math.random() * (QUALITY_MAX + 1)); }
+export function rollQuality() { return Math.floor(random() * (QUALITY_MAX + 1)); }
 // 品質 → 性能の倍率 (0 = ×0.8 / 50 = ×1 / 100 = ×1.2)
 export function qualityMul(q) {
   const v = Math.max(0, Math.min(QUALITY_MAX, q == null ? QUALITY_MID : q));

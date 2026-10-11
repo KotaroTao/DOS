@@ -21,6 +21,8 @@ import { CATALOG_ITEMS } from "../../src/catalog/index.js";
 import { planBestEquip, applyPlan } from "../../src/autoequip.js";
 import { gearScore } from "../../src/ui/itemview.js";
 import { lootBand, WORLD, strengthAt, poolAt } from "../../src/dungeons/world.js";
+import { useMathRandom } from "../../src/rng.js";
+useMathRandom(); // ゲームの乱数 (src/rng.js) を Math.random に従わせる — 下で Math.random を差し替えて結果を固定する
 Object.assign(MONSTERS, DUNGEON_MONSTERS);
 // game.js の読み込み時と同じ下ごしらえ: 種族の特殊能力 (RACE_ABILITY) と抵抗値
 {

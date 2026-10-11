@@ -13,6 +13,7 @@
 //   推奨Lv −5 より下 = 「途中で引き返した」: 時間の半分で戻り、戦果は全うした時の3割
 // メイン魂には持ち帰った ✦ の 1/3 を経験値として入れる (隊の戦闘で魂に入る割合と同じ。控えの魂が少しだけ追いつく)
 
+import { random } from "./rng.js";
 import { refSoul, refGold, BATTLES_PER_HOUR } from "./levelcurve.js";
 
 export const EXP_MAX = 3;                     // 同時に出せる遠征の数 (1遠征 = 1人)
@@ -61,7 +62,7 @@ export function expYield(cfg, plan, ms, fullMs = ms) {
 }
 
 // 時間に比例した回数の抽選 (1時間ごとに p。端数の時間は端数の確率で1回)
-export function expRolls(hours, p, rnd = Math.random) {
+export function expRolls(hours, p, rnd = random) {
   let n = 0;
   const whole = Math.floor(hours), frac = hours - whole;
   for (let i = 0; i < whole; i++) if (rnd() < p) n++;

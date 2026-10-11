@@ -6,6 +6,7 @@
 // type: start | empty | monster | chest | trap | poison | fountain | stairs
 // walls: その辺に壁があれば true (隣接セルと共有)
 
+import { random } from "./rng.js";
 import { rollJobClass } from "./souls.js";
 import { poolAt } from "./dungeons/world.js";
 
@@ -20,7 +21,7 @@ export const ROWS = 6;
 
 const DIRS = { n: [0, -1], e: [1, 0], s: [0, 1], w: [-1, 0] };
 const OPP = { n: "s", s: "n", e: "w", w: "e" };
-const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const pick = (arr) => arr[Math.floor(random() * arr.length)];
 
 // 成長木法 (ランダム選択 = Prim風) で完全迷路を掘る。
 // 常に最新を選ぶと長い廊下、ランダムに選ぶと分岐が多い迷路になる。
@@ -33,8 +34,8 @@ function carve(sx, sy) {
   visited[sy][sx] = true;
   while (active.length) {
     // 70%ランダム・30%最新 で分岐多めにしつつ廊下も残す
-    const idx = Math.random() < 0.7
-      ? Math.floor(Math.random() * active.length)
+    const idx = random() < 0.7
+      ? Math.floor(random() * active.length)
       : active.length - 1;
     const [x, y] = active[idx];
     const opts = [];
@@ -168,7 +169,7 @@ export function makeBoard(floor, cfg = null) {
   // 踏むと「街へ帰る / 先へ進む」を選び、到達した陣の次の階から次回は潜れる (game.js)。ほかの階に陣は無い
   if (dn.gates) {
     if (!bottom && floor % 5 === 0) cells[st.y][st.x].gate = true;
-  } else if (!dn.noPortal && !noBossBottom && (bottom || floor % 5 === 0 || Math.random() < 0.20)) { // 無限迷宮 (noPortal) には帰還魔法陣が無い
+  } else if (!dn.noPortal && !noBossBottom && (bottom || floor % 5 === 0 || random() < 0.20)) { // 無限迷宮 (noPortal) には帰還魔法陣が無い
     const cand = [];
     for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
       const c = cells[y][x];
@@ -194,18 +195,18 @@ export function makeBoard(floor, cfg = null) {
       const c = cells[y][x];
       if (c.type !== "empty") continue;
       if (openCount(c) !== 1) continue;
-      if (Math.random() >= 0.5) continue;
-      const r = Math.random();
+      if (random() >= 0.5) continue;
+      const r = random();
       if (r < trapRate) { c.type = "trap"; c.cleared = false; continue; } // 罠 (迷宮ごとに頻度可変)
       // 残りは モンスター/宝箱/死体/泉 に配分
-      const r2 = Math.random();
+      const r2 = random();
       if (r2 < 0.46) { c.type = "monster"; c.monsterKey = pick(pool); c.cleared = false; }
       else if (r2 < 0.66) { c.type = "chest"; c.cleared = false; }
       else if (r2 < 0.92) {
         // 死体: 職業つき。一部は「まだあたたかい死体」で魂が手に入る (青い人魂)
         c.type = "corpse"; c.cleared = false;
         c.corpseClass = rollJobClass();
-        c.corpseWarm = Math.random() < warmChance;
+        c.corpseWarm = random() < warmChance;
       }
       else if (fountainCount < 1) { c.type = "fountain"; c.cleared = false; fountainCount++; }
       else { c.type = "monster"; c.monsterKey = pick(pool); c.cleared = false; }
@@ -220,7 +221,7 @@ export function makeBoard(floor, cfg = null) {
       for (let x = 0; x < COLS; x++) {
         const c = cells[y][x];
         if (c.type !== "empty" || openCount(c) < 2) continue;
-        if (Math.random() < poisonRate) { c.type = "poison"; c.cleared = false; }
+        if (random() < poisonRate) { c.type = "poison"; c.cleared = false; }
       }
     }
   }
@@ -233,7 +234,7 @@ export function makeBoard(floor, cfg = null) {
       for (let x = 0; x < COLS; x++) {
         const c = cells[y][x];
         if (c.type !== "empty" || openCount(c) < 2) continue;
-        if (Math.random() < pitRate) { c.type = "pit"; c.cleared = false; }
+        if (random() < pitRate) { c.type = "pit"; c.cleared = false; }
       }
     }
   }

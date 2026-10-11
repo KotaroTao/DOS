@@ -1,3 +1,4 @@
+import { random, fxRandom, bindRngState, rngState } from "./rng.js";
 import { monsterResists } from "./resistance.js";
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
@@ -181,7 +182,7 @@ function pickItemByLv(center) {
     acc.push([id, total]);
   }
   if (!total) return "herb";
-  const r = Math.random() * total;
+  const r = random() * total;
   for (const [id, t] of acc) if (r <= t) return id;
   return acc[acc.length - 1][0];
 }
@@ -240,7 +241,7 @@ function pickItemByR(centerR, capR = 20) {
     total += MISC_LOOT_WEIGHT; acc.push([id, total]);
   }
   if (!total) return "herb";
-  const rr = Math.random() * total;
+  const rr = random() * total;
   for (const [id, t] of acc) if (rr <= t) return id;
   return acc[acc.length - 1][0];
 }
@@ -309,7 +310,7 @@ function pickOfRarity(rar, centerR, capR = 20) {
       }
     }
     if (total) {
-      const x = Math.random() * total;
+      const x = random() * total;
       for (const [id, t] of acc) if (x <= t) return id;
       return acc[acc.length - 1][0];
     }
@@ -335,25 +336,25 @@ function pickUseItem(centerR, capR = lootCapR()) {
     total += w; acc.push([id, total]);
   }
   if (!total) return null;
-  const x = Math.random() * total;
+  const x = random() * total;
   for (const [id, t] of acc) if (x <= t) return id;
   return acc[acc.length - 1][0];
 }
 // 戦利品を1つ選ぶ (opts は dropCenterR と同じ補正)。返り値は item id
 function pickLoot(opts = {}) {
   const centerR = dropCenterR(opts);
-  if (Math.random() < MISC_DROP_RATE) {
+  if (random() < MISC_DROP_RATE) {
     const miscCap = Math.min(20, centerR + 2);
     const pool = miscLootIds().filter((id) => Math.max(1, Math.min(20, ITEMS[id].r20 || 1)) <= miscCap);
     if (pool.length) return pool[rand(pool.length)];
   }
   const plain = !opts.rare && !opts.elite && !opts.master && !opts.mimic && !opts.lvBonus;
-  if (plain && !opts.noUse && Math.random() < USE_DROP_RATE) {
+  if (plain && !opts.noUse && random() < USE_DROP_RATE) {
     const uid = pickUseItem(centerR);
     if (uid) return uid;
   }
   // noLR: 迷宮のイベントが直接渡す品 (LR は宝箱・戦利品にだけ出す)
-  const rar = rollRarity(rarityUp(opts), Math.random, !!opts.noLR);
+  const rar = rollRarity(rarityUp(opts), random, !!opts.noLR);
   if (rar === "lr") { const id = pickLR(); if (id) return id; } // 今の深さで出せるLRが無ければスーパーレアへ
   const order = ["c", "uc", "r", "sr"];
   const capR = lootCapR();
@@ -417,7 +418,7 @@ function lootLvAt() {
   const floors = Math.max(1, cfg.floors || 3);
   const t = floors > 1 ? Math.min(1, (G.floor - 1) / (floors - 1)) : 0;
   let c = band[0] + (band[1] - band[0]) * t;
-  if (Math.random() < 0.05) c += 12; // まれな大当たり: ワンランク上の帯から出る
+  if (random() < 0.05) c += 12; // まれな大当たり: ワンランク上の帯から出る
   c += mutNum("lootBonusLv", 0); // 迷宮の異変 (深淵の脈動): 装備の質が上がる
   return Math.min(200, c);
 }
@@ -480,6 +481,7 @@ const floorInfo = document.getElementById("floor-info");
 const topbarCur = document.getElementById("topbar-cur");
 
 const G = {
+  rng: rngState(), // 種つき乱数の状態 (src/rng.js。random() が書き換え続ける配列。セーブに入るので読み込み直しても同じ結果になる)
   state: "town",      // town | board | combat | over
   floor: 1,
   maxFloorReached: 1, // 到達した最深階 (表示用)
@@ -563,7 +565,7 @@ const G = {
   abyssRec: null,     // 記録: { v:2, bestDepth, runs, recent:[{depth, outcome, at}] }
 };
 
-const rand = (n) => Math.floor(Math.random() * n);
+const rand = (n) => Math.floor(random() * n);
 
 // ハプティクス (対応端末のみ)。パターン: 数値 or [待ち,振動,待ち,振動...]
 function buzz(p) {
@@ -1514,12 +1516,12 @@ const SPECIAL_FLOORS = [
     } },
   { id: "necropolis", name: "屍人の巣", icon: "corpse", accent: "#8c866f", sym: "✝", minFloor: 3, rate: 0.015,
     lines: ["おびただしい数の死体が横たわっている。", "魂を回収する好機だが、起き上がる者もいるだろう。"],
-    board: (b) => sfPlace(b, 4, (c) => { c.type = "corpse"; c.cleared = false; c.corpseClass = rollJobClass(); c.corpseWarm = Math.random() < 0.5; }) },
+    board: (b) => sfPlace(b, 4, (c) => { c.type = "corpse"; c.cleared = false; c.corpseClass = rollJobClass(); c.corpseWarm = random() < 0.5; }) },
   // 毒の沼の階は、沼の土地 (蝕む床が沼の迷宮・奈落の層) にだけ出る (floorhaz.js の bog)
   { id: "marsh", name: "毒の沼", icon: "poison", accent: "#5a8a2a", sym: "≈", minFloor: 2, rate: 0.02, goldMul: 1.5,
     cond: (cfg) => !!(hazPlaced(cfg, "harm") && hazPlaced(cfg, "harm").bog),
     lines: ["床のいたるところから毒がにじみ出している。", "足場は危険だが、沼には金品が沈んでいる。金貨 1.5倍。"],
-    board: (b) => sfEachCell(b, (c) => { if (c.type === "empty" && sfOpenCount(c) >= 2 && Math.random() < 0.30) { c.type = "poison"; c.cleared = false; } }) },
+    board: (b) => sfEachCell(b, (c) => { if (c.type === "empty" && sfOpenCount(c) >= 2 && random() < 0.30) { c.type = "poison"; c.cleared = false; } }) },
   { id: "tailwind", name: "追い風の階", icon: "stairs", accent: "#7fe0a8", sym: "≫", minFloor: 2, rate: 0.02, preempt100: true, noAmbush: true,
     lines: ["不思議と体が軽く、敵の動きがよく見える。", "常に先制し、奇襲を受けない。"] },
   { id: "elemSurge", name: "属性の奔流", icon: "wisp", accent: "#ff9a4a", sym: "✺", minFloor: 2, rate: 0.02, elemRandom: true,
@@ -1633,7 +1635,7 @@ const TRAIT_BOARD = {
     sfPlace(b, 1, (c) => { c.type = "chest"; c.cleared = false; });
   },
   // 閉ざされた獄: 獄死した囚人の骸を2つ (半分はまだ温かい)
-  prison: (b) => sfPlace(b, 2, (c) => { c.type = "corpse"; c.cleared = false; c.corpseClass = rollJobClass(); c.corpseWarm = Math.random() < 0.5; }),
+  prison: (b) => sfPlace(b, 2, (c) => { c.type = "corpse"; c.cleared = false; c.corpseClass = rollJobClass(); c.corpseWarm = random() < 0.5; }),
   // 沈んだ供物: 参道に捧げられた供物の宝箱を2つ (掟の mimicRate で3割はミミック)
   offering: (b) => sfPlace(b, 2, (c) => { c.type = "chest"; c.cleared = false; }),
   // 洗礼の水: まだ澄んだ洗礼の水 (癒しの泉) を2つ
@@ -1641,7 +1643,7 @@ const TRAIT_BOARD = {
   // 噴き出す火: 通路の1割強が蝕む床 (この迷宮では灼けた床。浮遊で避けられる)
   vent: (b) => {
     const st = b.start ? b.cells[b.start.y][b.start.x] : null;
-    sfEachCell(b, (c) => { if (c !== st && c.type === "empty" && sfOpenCount(c) >= 2 && Math.random() < 0.12) { c.type = "poison"; c.cleared = false; } });
+    sfEachCell(b, (c) => { if (c !== st && c.type === "empty" && sfOpenCount(c) >= 2 && random() < 0.12) { c.type = "poison"; c.cleared = false; } });
   },
   // 吹き上げる風 (奈落の氷棚): 通路に落ちる床 (氷の割れ目) を3つ (最下階には無い)
   ledge: (b) => {
@@ -1654,14 +1656,14 @@ const TRAIT_BOARD = {
   // ぬかるむ岸 (腐れ水の岸): 通路の1割半が蝕む床 (毒の沼。浮遊で避けられる)
   bog: (b) => {
     const st = b.start ? b.cells[b.start.y][b.start.x] : null;
-    sfEachCell(b, (c) => { if (c !== st && c.type === "empty" && sfOpenCount(c) >= 2 && Math.random() < 0.15) { c.type = "poison"; c.cleared = false; } });
+    sfEachCell(b, (c) => { if (c !== st && c.type === "empty" && sfOpenCount(c) >= 2 && random() < 0.15) { c.type = "poison"; c.cleared = false; } });
   },
   // 氷漬けの先人 (凍れる操霊師の間): 氷の柱の根元の骸を2つ (3割はまだあたたかい)
-  icetomb: (b) => sfPlace(b, 2, (c) => { c.type = "corpse"; c.cleared = false; c.corpseClass = rollJobClass(); c.corpseWarm = Math.random() < 0.3; }),
+  icetomb: (b) => sfPlace(b, 2, (c) => { c.type = "corpse"; c.cleared = false; c.corpseClass = rollJobClass(); c.corpseWarm = random() < 0.3; }),
   // 迷い霧: 通路の1割強が蝕む床 (胞子の床) に。霧の奥 (行き止まり優先) に癒しの泉をひとつ
   mist: (b) => {
     const st = b.start ? b.cells[b.start.y][b.start.x] : null;
-    sfEachCell(b, (c) => { if (c !== st && c.type === "empty" && sfOpenCount(c) >= 2 && Math.random() < 0.12) { c.type = "poison"; c.cleared = false; } });
+    sfEachCell(b, (c) => { if (c !== st && c.type === "empty" && sfOpenCount(c) >= 2 && random() < 0.12) { c.type = "poison"; c.cleared = false; } });
     const dead = [];
     sfEachCell(b, (c) => { if (c !== st && c.type === "empty" && sfOpenCount(c) === 1) dead.push(c); });
     const put = (c) => { c.type = "fountain"; c.cleared = false; c.fountainKind = "pure"; };
@@ -1885,7 +1887,7 @@ function pickMetalKey(layer) {
   const band = layer >= 9 ? 2 : layer >= 6 ? 1 : 0;
   const pool = metalKeys().map((k) => ({ k, T: METAL_TIERS[MONSTERS[k].metal] })).filter((o) => o.T && layer >= o.T.layer);
   const tot = pool.reduce((s, o) => s + o.T.w[band], 0);
-  let r = Math.random() * tot;
+  let r = random() * tot;
   for (const o of pool) { r -= o.T.w[band]; if (r < 0) return o.k; }
   return pool.length ? pool[0].k : null;
 }
@@ -1896,7 +1898,7 @@ function placeMetal() {
   // 「銀の小人」を受けてから最初の1体を倒すまでは、金属の魔物が10倍出やすい。
   const boost = quest && quest.state === "active" && !(quest.progress > 0) ? 10 : 1;
   const rate = Math.min(1, ((tr && tr.metalRate) || METAL_FLOOR_RATE) * boost);
-  if (battleLayer() < 3 || Math.random() >= rate) return;
+  if (battleLayer() < 3 || random() >= rate) return;
   const cells = [];
   for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
     const c = G.board.cells[y][x];
@@ -1904,7 +1906,7 @@ function placeMetal() {
   }
   const max = (tr && tr.metalMax) || 1;
   for (let i = 0; i < max && cells.length; i++) {
-    if (i > 0 && Math.random() >= 0.5) break; // 2枚目からは半々
+    if (i > 0 && random() >= 0.5) break; // 2枚目からは半々
     const key = pickMetalKey(battleLayer());
     if (!key) return;
     const c = cells.splice(rand(cells.length), 1)[0];
@@ -1929,7 +1931,7 @@ function metalRef(key) {
   const T = METAL_TIERS[MONSTERS[key].metal];
   const sp = typicalBattleSpoils(true);
   let count = 1;
-  while (count < T.max && Math.random() < 0.35) count++;
+  while (count < T.max && random() < 0.35) count++;
   return {
     rank: mimicRef().rank, scale: baseEnemyScale(true), count,
     agi: partyAgi(levelHere().lv) * T.agiMul, // 基準の隊の AGI (推奨Lv で引く。levelcurve.js)
@@ -2091,6 +2093,7 @@ function newFloor() {
   evNewFloor(); // 迷宮のイベント: 必須の手がかりの場所を確保してから配置する
   G.portalFound = false; // この階の帰還魔法陣はまだ発見していない
   revealByCartography();
+  passiveSensePlan(); // 敵感知・財宝感知の札は階の始めに決める (描画の時に乱数を引かない — src/rng.js)
   if (G.run) G.run.floors = Math.max(G.run.floors || 1, G.floor);
   updateTopbar();
   log(`B${G.floor}F。伏せられた石札をめくり、下り階段を探せ。`, "sys");
@@ -3359,12 +3362,12 @@ function drawFlipSlab(now) {
   if (BV.flipSeen !== f) {
     BV.flipSeen = f;
     for (let i = 0; i < 22; i++) {
-      const side = i % 4, u = Math.random();
+      const side = i % 4, u = fxRandom();
       const px = side === 0 ? r.x + u * r.w : side === 1 ? r.x + r.w : side === 2 ? r.x + u * r.w : r.x;
       const py = side === 0 ? r.y : side === 1 ? r.y + u * r.h : side === 2 ? r.y + r.h : r.y + u * r.h;
       const a = Math.atan2(py - (r.y + r.h / 2), px - (r.x + r.w / 2));
-      const sp = 0.012 + Math.random() * 0.03;
-      BV.parts.push({ x: px, y: py, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 0.006, t0: now, life: 500 + Math.random() * 500, s: 0.8 + Math.random() * 1.6 });
+      const sp = 0.012 + fxRandom() * 0.03;
+      BV.parts.push({ x: px, y: py, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 0.006, t0: now, life: 500 + fxRandom() * 500, s: 0.8 + fxRandom() * 1.6 });
     }
   }
   const t = Math.min(1, (now - f.t0) / f.dur);
@@ -6056,7 +6059,7 @@ function resolveCellMeasured(cell) {
       // 迷宮ランクに応じた罠を抽選し、隊で最も解除値 (AGI+LUK・盗賊系1.5倍) が高い者が解除を試みる
       const trap = pickTrap(activeCfg().rank || 1);
       const best = bestDisarmer();
-      if (best && Math.random() < disarmChance(best)) {
+      if (best && random() < disarmChance(best)) {
         SFX.chest();
         G.stats.trapsDisarmed++; // 戦績: 解除した罠 (勲章用)
         log(`床の罠「${trap.name}」を ${best.name}が見抜き、解除した！`, "sys");
@@ -6150,7 +6153,7 @@ function resolveCellMeasured(cell) {
     case "fountain": {
       if (cell.cleared) break;
       // 泉の正体は最初に踏んだ時に決まる: 25% で「黒い泉」(賭け) になる
-      if (!cell.fountainKind) cell.fountainKind = Math.random() < 0.25 ? "dark" : "pure";
+      if (!cell.fountainKind) cell.fountainKind = random() < 0.25 ? "dark" : "pure";
       if (cell.fountainKind === "dark") {
         showChoice("黒い泉が湧いている。底が見えない…", [
           { label: "飲む ― 大いなる恵み / 呪いの危険", danger: true, fn: () => useDarkFountain(cell) },
@@ -6214,7 +6217,7 @@ function evUnit() {
   const lv = levelHere().lv;
   return { gold: Math.max(6, refGold(lv) * 2), soul: Math.max(3, refSoul(lv)) };
 }
-const evJit = () => 0.85 + Math.random() * 0.3;
+const evJit = () => 0.85 + random() * 0.3;
 function evAlive() { return G.party.filter((p) => p.alive); }
 function evPoolKey() {
   const rv = evRun();
@@ -6454,7 +6457,7 @@ function evNewFloor() {
   const cfg = activeCfg();
   const lv = levelHere().lv, layer = battleLayer();
   const first = !inf && cfg.id === WORLD_IDS[0]; // 最初の迷宮 (入門)
-  if (Math.random() >= (first ? EV_FLOOR_RATE_D1 : inf ? INF_EV_FLOOR_RATE : EV_FLOOR_RATE)) return;
+  if (random() >= (first ? EV_FLOOR_RATE_D1 : inf ? INF_EV_FLOOR_RATE : EV_FLOOR_RATE)) return;
   const sx = G.board.start.x, sy = G.board.start.y;
   const ok = (c, x, y) => c.type === "empty" && !(x === sx && y === sy);
   let cand = [];
@@ -6720,7 +6723,7 @@ function evSoulClass(mode) {
   const keys = Object.keys(SOUL_CLASSES);
   const of = (rar, f) => keys.filter((k) => SOUL_CLASSES[k].rarity === rar && (!f || f(SOUL_CLASSES[k])));
   if (mode === "rarePlus") {
-    const r = Math.random();
+    const r = random();
     const pool = of(r < 0.02 ? "legend" : r < 0.20 ? "epic" : "rare");
     return pool[rand(pool.length)];
   }
@@ -6745,7 +6748,7 @@ function evGive(id, next) {
 function evPickMinRar(rar) {
   const order = ["c", "uc", "r", "sr"];
   const lo = Math.max(0, order.indexOf(rar));
-  let k = Math.max(lo, order.indexOf(rollRarity(rarityUp({ rare: true }), Math.random, true)));
+  let k = Math.max(lo, order.indexOf(rollRarity(rarityUp({ rare: true }), random, true)));
   const centerR = dropCenterR({}), capR = lootCapR();
   for (; k >= lo; k--) { const id = pickOfRarity(order[k], centerR, capR); if (id) return id; }
   return pickLoot({ rare: true, noLR: true });
@@ -6840,13 +6843,13 @@ const evApi = {
     if (!m) return { ok: false, who: null, p: 0 };
     const need = disarmNeed(1) * 0.5;
     const p = Math.max(0.15, Math.min(0.92, 0.55 * (m[stat] || 0) / need));
-    return { ok: Math.random() < p, who: m, p };
+    return { ok: random() < p, who: m, p };
   },
   checkDisarm() {
     const m = bestDisarmer();
     if (!m) return { ok: false, who: null, p: 0 };
     const p = disarmChance(m, 1);
-    return { ok: Math.random() < p, who: m, p };
+    return { ok: random() < p, who: m, p };
   },
   sense: () => partyPassiveLv("senseEnemy") > 0,
   appraiser: () => G.party.find((m) => m.alive && canIdentify(m)) || null,
@@ -6863,8 +6866,8 @@ const evApi = {
   hurtAllCur(pct) { const l = evAlive(); for (const p of l) p.hp = Math.max(1, p.hp - Math.ceil(p.hp * pct)); flashPartyCards(l, "hit"); },
   hurtOne(m, pct) { if (!m || !m.alive) return; m.hp = Math.max(1, m.hp - Math.ceil(m.maxhp * pct)); flashPartyCards([m], "hit"); },
   mpAll(pct) { for (const p of evAlive()) p.mp = Math.max(0, p.mp - Math.ceil(p.maxmp * pct)); renderParty(); },
-  ail(m, kind) { if (!m || !m.alive || m.ailment || (m.eff && m.eff.ailmentImmune) || Math.random() < ((m.resists && m.resists[kind]) || 0) / 100) return; m.ailment = kind; renderParty(); },
-  ailAll(kind, ch) { for (const p of evAlive()) if (Math.random() < ch) evApi.ail(p, kind); flashPartyCards(evAlive(), "hit"); },
+  ail(m, kind) { if (!m || !m.alive || m.ailment || (m.eff && m.eff.ailmentImmune) || random() < ((m.resists && m.resists[kind]) || 0) / 100) return; m.ailment = kind; renderParty(); },
+  ailAll(kind, ch) { for (const p of evAlive()) if (random() < ch) evApi.ail(p, kind); flashPartyCards(evAlive(), "hit"); },
   cureAll() { for (const p of evAlive()) p.ailment = null; renderParty(); },
   // ---- 通貨 ----
   goldCost: (u) => Math.max(1, Math.round(evUnit().gold * u * 0.5)),
@@ -7064,7 +7067,7 @@ function useFountainMeasured(cell) {
 function useDarkFountain(...args) { return tlGameMeasure("darkFountain", () => useDarkFountainMeasured(...args)); }
 function useDarkFountainMeasured(cell) {
   cell.cleared = true;
-  if (Math.random() < 0.5) {
+  if (random() < 0.5) {
     SFX.heal(); buzz([0, 30, 40, 30]); flashScreen("#5fb8d6");
     for (const p of G.party) if (p.alive) { p.hp = p.maxhp; p.mp = p.maxmp; p.ailment = null; }
     const bonus = runGainSoulPts(20 * (activeCfg().rank || 1), "ev");
@@ -7080,7 +7083,7 @@ function useDarkFountainMeasured(cell) {
   for (const p of G.party) {
     if (!p.alive) continue;
     p.hp = Math.max(1, Math.ceil(p.hp * 0.5));
-    if (!p.ailment && Math.random() < 0.5) { p.ailment = "poison"; cursed = true; }
+    if (!p.ailment && random() < 0.5) { p.ailment = "poison"; cursed = true; }
   }
   log("黒い泉は呪いだった…！ 全員の生気が吸われた。", "dmg");
   flashPartyCards(G.party.filter((p) => p.alive), "hit");
@@ -7122,7 +7125,7 @@ function resolveCorpse(cell) {
 // 一度起き上がった死体は cell._corpseRise を残すので、戦闘から逃げて再度調べても
 // 必ずまた起き上がる (逃走→再調査で無償の魂入手を防ぐ)。
 function collectWarmCorpse(cell, clsKey, clsLabel) {
-  if (cell._corpseRise || Math.random() < 0.20) {
+  if (cell._corpseRise || random() < 0.20) {
     const great = !!cell.corpseGreat;
     const riseLine = great
       ? `偉大なる死体は目覚めて襲ってきた！`
@@ -7175,7 +7178,7 @@ function investigateCorpse(cell, clsKey, clsLabel) {
   cell.cleared = true;
   const back = () => { if (G.state === "board") renderBoard(); };
   // 半分の確率で魂の残火も残っている (下の4つのどれとも別に)。魂なら同じ知らせにまとめ、ほかは知らせの末尾に添える
-  const ember = Math.random() < EMBER_COLD_RATE ? emberEcho(EMBER_COLD * emberMul(levelHere().lv)) : 0;
+  const ember = random() < EMBER_COLD_RATE ? emberEcho(EMBER_COLD * emberMul(levelHere().lv)) : 0;
   let emberDone = false;
   const emberTail = () => {
     if (!ember || emberDone) return "";
@@ -7188,7 +7191,7 @@ function investigateCorpse(cell, clsKey, clsLabel) {
   // 懐に残された金品 (Gold) を渡す処理 (装備を渡せない時のフォールバックにも使う)
   const giveGold = () => {
     // 普通の1戦の金貨の半分ほど (evUnit の金貨は runGainGold で半分になる前の値)
-    const g = runGainGold(Math.round(evUnit().gold * 0.5 * (0.7 + Math.random() * 0.6)), "cp");
+    const g = runGainGold(Math.round(evUnit().gold * 0.5 * (0.7 + random() * 0.6)), "cp");
     SFX.itemget(); buzz([0, 30, 60, 30]);
     log(`風化した死体の懐から 💰${g} を見つけた。`, "win");
     const tail = emberTail();
@@ -7197,7 +7200,7 @@ function investigateCorpse(cell, clsKey, clsLabel) {
     back();
   };
 
-  const roll = Math.random();
+  const roll = random();
 
   // 20%: 職能の記憶を宿した「魂」
   if (roll < 0.20) {
@@ -7208,7 +7211,7 @@ function investigateCorpse(cell, clsKey, clsLabel) {
   // 30%: 亡骸に残る ✦ Soul (ソウルポイント) を集める
   if (roll < 0.50) {
     // 普通の1戦の ✦Soul の半分ほど
-    const got = runGainSoulPts(Math.round(evUnit().soul * 0.5 * (0.7 + Math.random() * 0.6)), "cp");
+    const got = runGainSoulPts(Math.round(evUnit().soul * 0.5 * (0.7 + random() * 0.6)), "cp");
     SFX.itemget(); buzz([0, 30, 60, 30]);
     log(`風化した死体から ✦${got} Soul を集めた。`, "win");
     const tail = emberTail();
@@ -7247,7 +7250,7 @@ function emberReward(great) {
 // 極光の書きつけ (手がかりの恵み emberEcho): 死体から魂の残火を拾った時、この確率で数が倍になる
 const EMBER_ECHO_RATE = 0.10;
 function emberEcho(n) {
-  return n > 0 && inDungeon() && clueBoon("emberEcho") && Math.random() < EMBER_ECHO_RATE ? n * 2 : n;
+  return n > 0 && inDungeon() && clueBoon("emberEcho") && random() < EMBER_ECHO_RATE ? n * 2 : n;
 }
 function collectSoul(cell, clsKey, clsLabel) {
   cell.cleared = true;
@@ -7285,7 +7288,7 @@ function grantSoulQuiet(clsKey, sourceLine = "", emberCount = 0) {
   codexJobSee(clsKey, 1, 1);
   if (emberCount > 0) { G.embers = (G.embers || 0) + emberCount; runCount("embers", emberCount); }
   // セラの囁き (手がかりの恵み soulEcho): 迷宮で拾った時、まれにもう一つ
-  const echo = inDungeon() && clueBoon("soulEcho") && Math.random() < SOUL_ECHO_RATE;
+  const echo = inDungeon() && clueBoon("soulEcho") && random() < SOUL_ECHO_RATE;
   if (echo) {
     G.stats.soulsFound++;
     questProgress("soul", null, 1);
@@ -7513,7 +7516,7 @@ function chestRankOf(cell) {
   const depth = floors > 1 ? Math.min(1, (G.floor - 1) / (floors - 1)) : 0;
   // 特別階 (商隊の遺品) / 迷宮の異変 (閉ざされた退路など): 宝箱ランクが上がる。
   // 抜け目なさ (盗賊のランク): 宝箱のランクが一段上がる確率 10/15/20/30%
-  const nk = Math.random() < rankParty("thiefNukeme", [0.10, 0.15, 0.20, 0.30]) ? 1 : 0;
+  const nk = random() < rankParty("thiefNukeme", [0.10, 0.15, 0.20, 0.30]) ? 1 : 0;
   const r = Math.min(5, rollChestRank(depth, cfg.rank || 1) + sfNum("chestRankUp", 0) + mutNum("chestRankUp", 0) + nk);
   if (cell) cell.cRank = r;
   return r;
@@ -7589,10 +7592,10 @@ function rollChest(cell, allowDanger, done, opener, cRankIn, lvBonus, noGold = f
     // 伝説の宝箱 (cell.lootBonus) はミミック/黒い宝箱に化けない
     const legendary = !!(cell && cell.lootBonus);
     // ミミック率: 一律3% (特別階「ミミックの巣」/異変「ミミックの行進」では高い方を採用)
-    if (!legendary && Math.random() < Math.max(sfNum("mimicRate", 0.03), mutNum("mimicRate", 0))) {
+    if (!legendary && random() < Math.max(sfNum("mimicRate", 0.03), mutNum("mimicRate", 0))) {
       // ミミック出現時、10%でマスターミミック (上位種なので第4層から。第1〜3層は通常のミミックだけ)。
       //  強さはこの階の敵が基準 (通常=+1ランク / マスター=+2ランク)。固有ドロップは無く、上質な宝箱を残す。
-      const master = battleLayer() >= MASTER_MIMIC_LAYER && Math.random() < 0.10;
+      const master = battleLayer() >= MASTER_MIMIC_LAYER && random() < 0.10;
       const ref = mimicRef();
       SFX.trap(); buzz([0, 60, 40, 60]);
       log(master ? "宝箱はマスターミミックだった！" : "宝箱はミミックだった！", "dmg");
@@ -7608,7 +7611,7 @@ function rollChest(cell, allowDanger, done, opener, cRankIn, lvBonus, noGold = f
       return;
     }
     // 黒い宝箱: 一段上のレベル帯の品が眠るが、開けると呪いの危険を伴う (任意の賭け)
-    if (!legendary && Math.random() < 0.10) {
+    if (!legendary && random() < 0.10) {
       sink.interrupt();
       askCursedChest(done);
       return;
@@ -7632,11 +7635,11 @@ function chestTrapPhase(opener, contents, cRank = 1, abort, excludeKinds, sink =
   // 床の罠だけでなく宝箱の罠も出さない。
   // 特別階 (からくり錠の宝物庫) は宝箱に必ず罠がある (chestTrapRate)
   const trapProb = (cfg.trapRate === 0 || sfNum("noTrap", false)) ? 0 : sfNum("chestTrapRate", 0.70);
-  if (Math.random() < trapProb) {
-    const trap = pickTrap(cfg.rank || 1, Math.random, excludeKinds);
+  if (random() < trapProb) {
+    const trap = pickTrap(cfg.rank || 1, random, excludeKinds);
     const who = opener || bestDisarmer();
     const chance = disarmChance(who, cRank);
-    if (who && Math.random() < chance) {
+    if (who && random() < chance) {
       SFX.chest();
       G.stats.trapsDisarmed++; // 戦績: 解除した罠 (勲章用)
       log(`宝箱の罠「${trap.name}」を ${who.name}が解除した！`, "sys");
@@ -7664,7 +7667,7 @@ function trapBaseDmg() {
 
 // 黄金喰い・魂喰らいで失う量: その階の推奨Lv の普通の1戦 (levelcurve.js refGold / refSoul) × 戦果の数 n、±15%
 function trapLoss(ref, n) {
-  return Math.max(1, Math.round(ref(levelHere().lv) * n * (0.85 + Math.random() * 0.3)));
+  return Math.max(1, Math.round(ref(levelHere().lv) * n * (0.85 + random() * 0.3)));
 }
 
 // 罠の効果を適用し、何が起きたかを返す (知らせ方は presentTrap が決める)。
@@ -7711,7 +7714,7 @@ function applyTrapMeasured(trap, opener) {
     // 装備の状態異常耐性 (ailRes) と解呪の宝珠 (ailmentImmune) も罠に効く
     if (!ail || !p.alive || p.ailment || (p.eff && p.eff.ailmentImmune)) return;
     const eqRes = p.resists ? (p.resists[ail] || 0) / 100 : (p.ailRes && p.ailRes[ail]) || 0;
-    if (Math.random() >= chance * (1 - eqRes)) return;
+    if (random() >= chance * (1 - eqRes)) return;
     p.ailment = ail;
     lines.push(`${p.name}は${AIL_NAME[ail]}に侵された！`);
     brief.push(`${p.name} ${AIL_NAME[ail]}`);
@@ -7722,7 +7725,7 @@ function applyTrapMeasured(trap, opener) {
       const pool = alive();
       if (!pool.length) break;
       const t = (trap.kind === "opener" && opener && opener.alive) ? opener : pool[rand(pool.length)];
-      if (trap.dieChance && Math.random() < trap.dieChance) {
+      if (trap.dieChance && random() < trap.dieChance) {
         t.hp = 0; t.alive = false; fallen.push(t); hurtList.push(t);
         lines.push(`${t.name}は罠の直撃を受け、倒れた…`);
         log(`${t.name}は倒れた…`, "dmg");
@@ -7861,7 +7864,7 @@ function presentTrap(res, fin, sink = boardSink()) {
 const CHEST_GOLD_BATTLES = 1.2;
 function chestGoldRaw(rankMul) {
   const old = (10 + (G.floor || 1) * 12 + rand(30)) * (1 + ((activeCfg().rank || 1) - 1) * 0.5);
-  const byLv = refGold(levelHere().lv) * CHEST_GOLD_BATTLES * (0.8 + Math.random() * 0.4);
+  const byLv = refGold(levelHere().lv) * CHEST_GOLD_BATTLES * (0.8 + random() * 0.4);
   return Math.round(Math.max(old, byLv) * rankMul * 2);
 }
 function chestContents(cell, done, cRank = 1, lvBonus = 0, noGold = false, sink = boardSink()) {
@@ -7873,7 +7876,7 @@ function chestContents(cell, done, cRank = 1, lvBonus = 0, noGold = false, sink 
   const fin = done || (() => renderBoard());
   // 中身の抽選 (ダンジョンレベルに応じる): ゴールド50% / ゴールド以外のアイテム50%
   // 伝説の宝箱・ミミック宝箱はゴールドにならず、必ず装備品が出る
-  if (!legendary && !noGold && Math.random() < 0.5) {
+  if (!legendary && !noGold && random() < 0.5) {
     SFX.chest();
     const g = runGainGold(chestGoldRaw(rankMul), "ch");
     updateTopbar();
@@ -7919,14 +7922,14 @@ function askCursedChest(done) {
         done();
       });
     };
-    if (Math.random() < 0.5) {
+    if (random() < 0.5) {
       // 呪い: 全員ダメージ (死にはしない) + 毒か麻痺。その上で中身は手に入る
       SFX.trap(); buzz([0, 80, 60, 80]); flashScreen("#a01030");
       let cursed = false;
       for (const p of G.party) {
         if (!p.alive) continue;
         p.hp = Math.max(1, p.hp - Math.ceil(p.maxhp * 0.25));
-        if (!p.ailment && Math.random() < 0.4) { p.ailment = Math.random() < 0.5 ? "poison" : "paralyze"; cursed = true; }
+        if (!p.ailment && random() < 0.4) { p.ailment = random() < 0.5 ? "poison" : "paralyze"; cursed = true; }
       }
       log("黒い宝箱から呪いがふきだした！", "dmg");
       flashPartyCards(G.party.filter((p) => p.alive), "hit");
@@ -8052,14 +8055,14 @@ function descendMeasured({ fall = false } = {}) {
   let eliteRate = (dungeonTrait() && dungeonTrait().eliteRate) || 0.10;
   // 名のある強敵の懸賞を受けていて、ここがその縄張りなら強敵階が出やすい (named.js HUNT_ELITE_RATE)
   if (!abyssActive() && (activeCfg().elites || []).some((id) => namedHunted(id))) eliteRate = Math.max(eliteRate, HUNT_ELITE_RATE);
-  G.eliteFloor = (activeCfg().floors || 3) >= 5 && G.floor >= 3 && Math.random() < eliteRate;
+  G.eliteFloor = (activeCfg().floors || 3) >= 5 && G.floor >= 3 && random() < eliteRate;
   // 特別階判定: 強敵階でなければ、各候補の出現条件 (階数) と出現率で抽選。
   // 第1の迷宮と1Fには特別な階は出現しない (ほかの迷宮の2F以降のみ)。
   G.specialFloor = null;
   // 迷宮の掟 (移ろう霧) は特別な階が出やすい (trait.specialRate 倍)
   const specialMul = (dungeonTrait() && dungeonTrait().specialRate) || 1;
   if (activeCfg().id !== "w01" && !G.eliteFloor && G.floor >= 2) {
-    const r = Math.random();
+    const r = random();
     let acc = 0;
     for (const c of SPECIAL_FLOORS) {
       if (G.floor < c.minFloor) continue;
@@ -8141,7 +8144,7 @@ function battleModifierReward(b, key) {
 // 6属性 (無属性を除く) から1つを無作為に
 function randomElement() {
   const els = Object.keys(ELEMENTS).filter((k) => k !== "none");
-  return els[Math.floor(Math.random() * els.length)];
+  return els[Math.floor(random() * els.length)];
 }
 function startBattle(...args) { return tlGameMeasure("battle", () => startBattleMeasured(...args)); }
 function startBattleMeasured(enemies, cell) {
@@ -8151,7 +8154,7 @@ function startBattleMeasured(enemies, cell) {
   const isElite = enemies.some((e) => e.mon && e.mon.elite);
   if (cfg.element) {
     const ch = (spFloor && spFloor.elemAll) || mutNum("elemAll", false) ? 1 : 0.5;
-    for (const e of enemies) if (!e.boss && !(e.mon && e.mon.elite) && !e.metal && Math.random() < ch) e.element = cfg.element;
+    for (const e of enemies) if (!e.boss && !(e.mon && e.mon.elite) && !e.metal && random() < ch) e.element = cfg.element;
   }
   // 属性の暴走 (異変) / 属性の奔流 (特別な階): 主・強敵も含め、すべての敵の属性を6属性からでたらめに選び直す (召喚された仲間も同じ)
   if (elemRandomHere()) for (const e of enemies) if (!e.metal) { e._elemRandom = true; e.element = randomElement(); }
@@ -8238,7 +8241,7 @@ function startBattleMeasured(enemies, cell) {
       + ([0, 0.10, 0.15, 0.20][Math.min(3, partyPassiveLv("stealthStep"))] || 0);
     // 極の恵み「守備隊の敬礼」は先手 +8%
     const pre = (spFloor && spFloor.preempt100) ? 1 : 0.08 + iniBonus + (vig >= 3 ? 0.10 : 0) + evBoon("salute", "preempt", 0);
-    const r = Math.random();
+    const r = random();
     if (r < amb) opening = "ambush";
     else if (r < amb + pre) opening = "preempt";
     ambRate = amb;
@@ -8302,7 +8305,7 @@ function startBattleMeasured(enemies, cell) {
     const sick = [];
     for (const p of G.battle.party) {
       if (!p.alive || p.ailment) continue;
-      if (Math.random() < r.poisonStart * (1 - G.battle._ailRes(p, "poison"))) {
+      if (random() < r.poisonStart * (1 - G.battle._ailRes(p, "poison"))) {
         traitOpenHold(p);
         p.ailment = "poison"; p._poisonPct = 0.05; G.battle._holdAil(p, "poison"); sick.push(p);
       }
@@ -8330,7 +8333,7 @@ function startBattleMeasured(enemies, cell) {
     const live = G.battle.party.filter((p) => p.alive && !p.mind && !p.asleep);
     if (!live.length) continue;
     const p = live[rand(live.length)];
-    if (Math.random() < r.whisper * (1 - G.battle._ailRes(p, "confuse"))) {
+    if (random() < r.whisper * (1 - G.battle._ailRes(p, "confuse"))) {
       traitOpenHold(p);
       p.mind = "confuse"; G.battle._holdAil(p, "mind");
       log(`${ruleSay(r, "whisper") || r.head} ― ${p.name}は惑わされ、混乱した。`, "dmg");
@@ -10919,7 +10922,7 @@ function endBattleMeasured() {
       const sc = e.alive || e._fled ? null : (e.mon && e.mon.soulClass) || (MONSTERS[e.key] && MONSTERS[e.key].soulClass);
       if (!sc) continue;
       const soulChance = wasElite ? 0.40 : 0.08; // 強敵は魂ドロップ率が大幅上昇
-      if (Math.random() < soulChance) {
+      if (random() < soulChance) {
         const clsKey = rollJobClass();
         log(`${e.name}が ${SOUL_CLASSES[clsKey].label}の魂 を落とした！`, "win");
         souls.push(grantSoulQuiet(clsKey, `${e.name}が落とした魂だ。`));
@@ -10959,7 +10962,7 @@ function endBattleMeasured() {
       ? () => showDungeonClearedPopup(clearInfo)
       : wasGuard ? () => openInfRest()
       : (hordeRewardPending() ? () => grantHordeReward() : null);
-    const hasChest = !corpse && (trophies.length || !(evCell && evCell.evFight && evCell.evFight.noChest)) && (drop || trophies.length || wasElite || wasGuard || wasMimic || (specialDef() || {}).sureChest || Math.random() < 0.5);
+    const hasChest = !corpse && (trophies.length || !(evCell && evCell.evFight && evCell.evFight.noChest)) && (drop || trophies.length || wasElite || wasGuard || wasMimic || (specialDef() || {}).sureChest || random() < 0.5);
     const chest = hasChest
       ? battleChestSpec([...trophies, ...(drop ? [drop] : [])], wasMasterMimic ? 30 : wasMimic ? 15 : 0, wasMimic || wasMasterMimic, after ? ["alarm"] : null)
       : null;
@@ -11870,7 +11873,7 @@ function claimExpedition(e) {
     const cap = Math.min(20, Math.ceil(((cfg.lootLv || [1, 10])[1]) / 10) + 2);
     const pool = miscLootIds().filter((id) => Math.max(1, Math.min(20, ITEMS[id].r20 || 1)) <= cap);
     for (let i = 0; i < nMisc && pool.length; i++) {
-      const it = cloneItem(pool[Math.floor(Math.random() * pool.length)]);
+      const it = cloneItem(pool[Math.floor(random() * pool.length)]);
       if (!it) continue;
       const who = [d, ...allDolls()].find((x) => x && (x.items || []).length < MAX_ITEMS);
       if (who) { it.isNew = true; who.items.push(it); codexSeeItem(it.id, it); out.items.push({ item: it, who }); }
@@ -12034,7 +12037,7 @@ const DOLL_NAMES = (() => {
   for (const a of NAME_STEM) for (const b of NAME_SUFFIX) set.add(a + b);
   return [...set];
 })();
-function randomDollName() { return DOLL_NAMES[Math.floor(Math.random() * DOLL_NAMES.length)]; }
+function randomDollName() { return DOLL_NAMES[Math.floor(random() * DOLL_NAMES.length)]; }
 
 // 魂と名前が決まったら、赤い魂を支払って人業を生成し、編成に加える。生まれた人業を返す
 function finalizeBuyDoll(uid, name) {
@@ -13112,7 +13115,7 @@ function rumorDungeon() {
     const gap = pl < lo ? lo - pl : pl > hi ? pl - hi : 0;
     return Math.pow(0.5, gap / RUMOR_LV_HALF);
   });
-  let r = Math.random() * ws.reduce((a, w) => a + w, 0);
+  let r = random() * ws.reduce((a, w) => a + w, 0);
   for (let i = 0; i < open.length; i++) { if ((r -= ws[i]) < 0) return open[i]; }
   return open[open.length - 1];
 }
@@ -13164,7 +13167,7 @@ function rollRumor() {
   }
 
   const total = cands.reduce((s, c) => s + c[0], 0);
-  let r = Math.random() * total;
+  let r = random() * total;
   let pick = cands[0];
   for (const c of cands) { if ((r -= c[0]) < 0) { pick = c; break; } }
   return { ...pick[1](), dungeon: cfg.id, dungeonName: dn };
@@ -13221,7 +13224,7 @@ const deliveryRewardRowsOf = (it) => deliveryRewardRows(rarityKey(it));
 // 報酬を1つ抽選: [rarity, 体数]
 function rollDeliveryReward(it) {
   const rows = deliveryRewardRowsOf(it);
-  let r = Math.random();
+  let r = random();
   for (const [rarity, count, p] of rows) { if ((r -= p) < 0) return [rarity, count]; }
   const last = rows[rows.length - 1];
   return [last[0], last[1]];
@@ -14347,7 +14350,7 @@ function treasuryReceiver(forJob) {
 function pickWeighted(list) {
   const total = list.reduce((a, [, w]) => a + w, 0);
   if (!total) return null;
-  let x = Math.random() * total;
+  let x = random() * total;
   for (const [id, w] of list) { x -= w; if (x <= 0) return id; }
   return list[list.length - 1][0];
 }
@@ -14548,11 +14551,11 @@ function rollGenericDrop() {
   const apLv = partyPassiveLv("appraise"); // 掘り出しの勘: ドロップ率 +15/25/40%
   const ap = apLv >= 3 ? 1.40 : apLv >= 2 ? 1.25 : apLv >= 1 ? 1.15 : 1;
   // 特別階 (盗賊の洞察): レアドロップ率が上がる
-  if (Math.random() < Math.max(sfNum("rareDropRate", 0.04 * ap), mutNum("rareDropRate", 0))) {
+  if (random() < Math.max(sfNum("rareDropRate", 0.04 * ap), mutNum("rareDropRate", 0))) {
     const id = pickLoot({ rare: true });
     if (ITEMS[id]) { const it = cloneItem(id); if (it) return { key: "loot", name: "戦利品", id, item: it, rare: true }; }
   }
-  if (Math.random() < 0.30 * ap) {
+  if (random() < 0.30 * ap) {
     const id = pickLoot();
     if (ITEMS[id]) { const it = cloneItem(id); if (it) return { key: "loot", name: "戦利品", id, item: it, rare: false }; }
   }
@@ -15203,7 +15206,7 @@ function townMutatorFor(idx) {
   if (!G._townMutator) G._townMutator = {};
   if (!(idx in G._townMutator)) {
     let id = null;
-    if (idx >= 2 && Math.random() < 0.45) {
+    if (idx >= 2 && random() < 0.45) {
       const cfg = DUNGEONS[idx];
       const pool = MUTATORS.filter((m) => !m.cond || m.cond(cfg));
       const cand = pool[rand(pool.length)];
@@ -15331,7 +15334,7 @@ function enterAbyss(picks) {
   if (G.state !== "town" || G.abyss) return false;
   const ok = Array.isArray(picks) && picks.length === INF_PARTY && picks.every((k) => SOUL_CLASSES[k] && !isUniqueJob(k)) && new Set(picks).size === picks.length;
   if (!ok) { SFX.ng(); return false; }
-  const seed = ((Math.random() * 0x7fffffff) >>> 0) || 1;
+  const seed = ((random() * 0x7fffffff) >>> 0) || 1;
   G.abyss = { v: 2, started: true, depth: 1, seed, rule: null, guardFloor: 0, picks: [...picks], home: infStashHome(), savedIdx: G.dungeonIdx,
     allCommon: picks.every((k) => SOUL_CLASSES[k].rarity === "common"), trk: { sp: 0, at: 0, broke: false, rareAfx: 0, bossMax: 0 } };
   { const st = infStats(); st.runs++; for (const k of picks) st.jobs[k] = 1; }
@@ -16247,7 +16250,7 @@ function doIdentifySkill(m, it, { quiet = false } = {}) {
   if (!it || !it.unidentified || it.idHardFail) return false;
   if (G.state !== "town") return false;
   const ch = identifyChance(m, it);
-  const ok = Math.random() < ch;
+  const ok = random() < ch;
   if (ok) {
     const first = revealIdentity(it);
     log(`${m.name}は ${it.name} を鑑定した！${first ? " (初ゲット！)" : ""}`, "win");
@@ -17000,6 +17003,7 @@ if (settingsBtn) settingsBtn.addEventListener("click", () => {
 const SAVE_KEY = "dos-save-v7"; // v7 = 迷宮の台帳 (選んで潜る迷宮・師を捜す物語)。v6 以前のセーブは孤立させる (消さずに残す)
 // 保存する G のフィールド (アニメーション等の一時状態は除外)
 const SAVE_FIELDS = [
+  "rng",
   "shopAfx", "shopAfxPending",
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound", "abyss", "abyssRec",
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "stabilityBriefed", "pendingDoll",
@@ -17221,6 +17225,7 @@ function loadGame() {
   try { snap = refDeserialize(JSON.parse(raw)); } catch (e) { return false; }
   if (!snap || !snap.party || !snap.party.length) return false;
   for (const k of SAVE_FIELDS) if (k in snap) G[k] = snap[k];
+  G.rng = bindRngState(snap.rng); // 乱数の位置を続きから (旧セーブには無い → 新しい種から)
   endLegacyAbyss(); // 旧仕様の奈落の途中のセーブは、読み込みで終わらせる (記録も消す)
   if (G.abyssRec && G.abyssRec.v !== 2) G.abyssRec = null;
   // 無限迷宮の途中: 下の読み込みの手当ては本編の隊・魂に掛ける。済んだら仮の器へ戻す (infSwapBackAfterLoad)
