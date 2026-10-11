@@ -1,6 +1,6 @@
 // ===== 無限迷宮 (ローグライク) — docs/infinite-labyrinth.md =====
 // 第八章の結びで開く (game.js FEATURES.infinite)。本編の「奈落」(第五章〜の物語の舞台) とは別のもの。
-// ・入口に漂う「名もなき魂の欠片」を、土くれの仮の器6体に宿して Lv1 から降りる (本編の人業・魂は街に残る)
+// ・隊の人業は魂のひとかけを土くれの仮の器6体に移し (記憶だけが残る — 器の名は隊の名のまま)、入口に漂う「名もなき魂の欠片」を宿して Lv1 から降りる (本編の人業・魂は街に残る)
 // ・5の倍数の階 = 風だまり (回収人・灯番) → 主 → 「帰る / 続ける」。帰還魔法陣は無い
 // ・深さごとの推奨Lv は INF_LV の表だけで決まる (第二部の壁は乗せない)。育つ速さも表の傾きから自動で決まる
 // ・帰れば、拾った魂 (＋1 の素材)・品 (商会の棚へ)・魂の残火を本編へ持ち帰る。最初に宿した魂・金貨・✦Soul は残らない
@@ -9,7 +9,7 @@
 // 内部の名前 (abyss・G.abyss) は旧仕様の奈落から引き継いでいる。画面の呼び名はすべて「無限迷宮」。
 
 import { random } from "./rng.js";
-import { lvMinutes } from "./levelcurve.js";
+import { lvMinutes, EXP_COST_K } from "./levelcurve.js";
 import { SOUL_CLASSES, SOUL_KEYS } from "./souls.js";
 
 export const INF_NAME = "無限迷宮";
@@ -41,11 +41,14 @@ export function infLvSlope(f) {
   return Math.max(0.05, infLevel(f + 1) - infLevel(f));
 }
 // 育つ速さの倍率 = 本編でその Lv を1つ上げる分数 ÷ 無限迷宮でその Lv を1つ上げる分数 (1階の分数 ÷ 1階の伸び)。
-// 戦闘の経験値と ✦Soul の入り方に掛ける。表を直せば、育ちの速さも一緒に合う (16-2章)
+// 戦闘の経験値と ✦Soul の入り方に掛ける。表を直せば、育ちの速さも一緒に合う (16-2章)。
+// EXP_COST_K (本編の1Lv の費用を2倍にした上乗せ) も打ち消す: あれは本編の戦闘が設計の約2.75倍の速さ (157戦/時) だった分の
+// 手直しで、無限迷宮の実測は設計どおり (2026-10-12 のテスト記録: 1〜5階で75戦/時・1階2.8戦)。打ち消さないと育ちが半分になり、
+// 全部の敵を倒しても 5階で Lv2 (推奨Lv6) だった — 主に全滅した。打ち消すと、灯番で ✦ を注げば推奨Lv どおりに育つ
 export function infGrowthMul(f) {
   const lv = infLevel(f);
   const perLv = INF_MIN_PER_FLOOR / infLvSlope(f);
-  return Math.max(1, lvMinutes(lv) / perLv);
+  return Math.max(1, lvMinutes(lv) * EXP_COST_K / perLv);
 }
 // 全滅した階の赤い魂の費用 (1階ごとに1、上限100)
 export function infRedCost(f) { return Math.max(1, Math.min(INF_RED_MAX, Math.floor(f || 1))); }
@@ -120,7 +123,7 @@ export function rollStartSouls(taken = [], rng = random) {
   return out;
 }
 
-// 仮の器の名 (隊の並びの順)
+// 仮の器の名の控え (隊と控えが6人に満たない時だけ。ふだんは隊の人業の名 — game.js infVesselNames)
 export const VESSEL_NAMES = ["一の器", "二の器", "三の器", "四の器", "五の器", "六の器"];
 
 // 決定的乱数 (mulberry32)。掟の抽選などに使う

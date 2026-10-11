@@ -555,7 +555,7 @@ function renderAbyssPage(b) {
   back.appendChild(el("span", null, "門の選択へ"));
   back.addEventListener("click", () => { sfx("select"); cur.page = "gates"; refresh(); });
   b.appendChild(back);
-  b.appendChild(el("div", "dg-note", "口から吹き上げる風が、育って重くなった魂を吹き返す。本編の人業は降りられない。入口に漂う「名もなき魂の欠片」を、土くれの仮の器6体に宿して Lv1 から降りる。"));
+  b.appendChild(el("div", "dg-note", "口から吹き上げる風が、育って重くなった魂を吹き返す。人業はそのままでは降りられない。隊の者は魂のひとかけを土くれの仮の器6体に移し、入口に漂う「名もなき魂の欠片」を宿して Lv1 から降りる。力は置いてゆくが、記憶だけは器に残る。"));
   b.appendChild(sec("潜り方"));
   for (const t of [
     "器ひとつごとに、3つの魂の欠片 (コモン・レア) から1つを選ぶ。全員 Lv1・装備なし・持ち物なし。魂の安定度は使わない。",

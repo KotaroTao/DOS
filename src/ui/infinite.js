@@ -39,16 +39,19 @@ export function openInfSetup() {
   const picks = [];
   let offer = rollStartSouls([]);
   let h = null;
+  // 器の名 = いまの隊の人業の名 (game.js infVesselNames。足りなければ「〜の器」)
+  const names = (game.infVesselNames ? game.infVesselNames() : []).map((x) => x && x.name);
+  const nameOf = (i) => names[i] || VESSEL_NAMES[i];
   const step = () => picks.length;
   const fill = (b) => {
-    b.appendChild(el("div", "inf-note", "入口の風が、育って重くなった魂を吹き返す。本編の人業は降りられない。漂う「名もなき魂の欠片」を、土くれの仮の器に宿して降りる。"));
+    b.appendChild(el("div", "inf-note", "入口の風が、育って重くなった魂を吹き返す。人業はそのままでは降りられない。隊の者は魂のほんのひとかけを土くれの仮の器に移し、そこへ漂う「名もなき魂の欠片」を宿して戦う力にする。育った力は風に置いてゆくが、記憶だけは器に残る。"));
     // 選び終えた器
     const done = el("div", "inf-picked");
     for (let i = 0; i < INF_PARTY; i++) {
       const c = el("div", "inf-pk" + (i === step() ? " now" : i < step() ? " done" : ""));
       if (picks[i]) c.appendChild(bust(picks[i], 30));
       else c.appendChild(el("span", "inf-pk-q", i === step() ? "？" : ""));
-      c.appendChild(el("span", "inf-pk-n", VESSEL_NAMES[i]));
+      c.appendChild(el("span", "inf-pk-n", nameOf(i)));
       done.appendChild(c);
     }
     b.appendChild(done);
@@ -56,12 +59,12 @@ export function openInfSetup() {
       b.appendChild(el("div", "inf-h", "隊がそろった"));
       for (let i = 0; i < INF_PARTY; i++) {
         const k = picks[i], cl = SOUL_CLASSES[k] || {};
-        b.appendChild(row({ icon: bust(k, 32), title: `${VESSEL_NAMES[i]} ― ${cl.label}の魂`, sub: `${RAR[cl.rarity] || ""} ・ Lv1 ・ ${statLine(k)}` }));
+        b.appendChild(row({ icon: bust(k, 32), title: `${nameOf(i)} ― ${cl.label}の魂`, sub: `${RAR[cl.rarity] || ""} ・ Lv1 ・ ${statLine(k)}` }));
       }
-      b.appendChild(el("div", "inf-note dim", "全員 Lv1・装備なし・持ち物なし。魂の安定度は使わない。最初に宿した欠片は、帰る時に迷宮へ還る (持ち帰れない)。"));
+      b.appendChild(el("div", "inf-note dim", "全員 Lv1・装備なし・持ち物なし。魂の安定度は使わない (本編の人業は街で待っている)。最初に宿した欠片は、帰る時に迷宮へ還る (持ち帰れない)。器が崩れても、記憶は人業のもとへ帰る。"));
       return;
     }
-    b.appendChild(el("div", "inf-h", `${VESSEL_NAMES[step()]}に宿す魂を選ぶ`));
+    b.appendChild(el("div", "inf-h", `${names[step()] ? `${names[step()]}の器` : VESSEL_NAMES[step()]}に宿す魂を選ぶ`));
     for (const k of offer) {
       const cl = SOUL_CLASSES[k] || {};
       const r = el("button", "inf-choice");
@@ -340,9 +343,9 @@ export function openInfTitles(onDone) {
   });
 }
 
-// ================= 商会の棚: 追加の組がぶつかった品 (docs/infinite-labyrinth.md 17-1) =================
-// 商会は1つの品につき追加の組を1つだけ覚えておける。ぶつかった品を一覧で並べ、残す組を選ぶ (強い方を最初から選んでおく)。
-// 残さなかった組の品は通常品として在庫に入る
+// ================= 商会の棚: 追加の能力つきの品が重なった (docs/infinite-labyrinth.md 17-1) =================
+// 商会の棚には、追加の能力つきの品を1つの品につき1点だけ置いておける。重なった品を一覧で並べ、棚に置く方を選ぶ
+// (強い方を最初から選んでおく)。選ばなかった方は追加の能力が消え、通常品として在庫に入る
 let afxOpen = null;
 export function queueAfxConflicts() {
   const g = G();
@@ -355,7 +358,7 @@ export function openAfxConflicts() {
   if (!list.length) return null;
   const choice = Object.fromEntries(list.map((c) => [c.id, c.best]));
   const fill = (b) => {
-    b.appendChild(el("div", "inf-note", "商会は、1つの品につき追加の能力・特性の組を1つだけ覚えておける。同じ品に別の組が来たので、どちらを棚に残すか選んでほしい。残さなかった組の品は、通常品として棚に並ぶ。"));
+    b.appendChild(el("div", "inf-note", "商会の棚には、追加の能力・特性が付いた品を、1つの品につき1点だけ置いておける。同じ品が、別の追加の能力つきでもう1点届いた。どちらを棚に置いておくか選んでほしい。選ばなかった方は追加の能力が消え、通常品として棚に並ぶ。"));
     for (const c of list) {
       const box = el("div", "inf-afx-c");
       box.appendChild(el("div", "inf-h", c.name));
@@ -364,7 +367,7 @@ export function openAfxConflicts() {
         const r = el("button", "inf-afx-opt" + (on ? " on" : ""));
         r.type = "button";
         r.setAttribute("aria-pressed", on ? "true" : "false");
-        r.appendChild(el("span", "inf-afx-tag", `${set.current ? "いま棚にある組" : "新しい組"} ・ 強さ ${set.power}${i === c.best ? " ・ 強い方" : ""}`));
+        r.appendChild(el("span", "inf-afx-tag", `${set.current ? "いま棚にある品" : "新しく届いた品"} ・ 強さ ${set.power}${i === c.best ? " ・ 強い方" : ""}`));
         for (const ln of set.lines) r.appendChild(el("span", "inf-afx-ln", ln));
         r.addEventListener("click", () => { choice[c.id] = i; sfx("select"); h.update({ body: fill }); });
         box.appendChild(r);
@@ -374,8 +377,8 @@ export function openAfxConflicts() {
   };
   let h = null;
   afxOpen = true;
-  h = sheet.open({ kind: "info", banner: "商会の棚", title: "追加の組がぶつかった品", accent: "#c9a227", className: "inf-sheet", body: fill, dismissible: false,
-    footer: [{ label: "この組を棚に残す", kind: "primary", size: "lg", onTap: (x) => { x.close("ok", { silent: true }); afxOpen = null; if (game.resolveAfxConflicts) game.resolveAfxConflicts(choice); } }],
+  h = sheet.open({ kind: "info", banner: "商会の棚", title: "追加の能力つきの品が重なった", accent: "#c9a227", className: "inf-sheet", body: fill, dismissible: false,
+    footer: [{ label: "選んだ方を棚に置いておく", kind: "primary", size: "lg", onTap: (x) => { x.close("ok", { silent: true }); afxOpen = null; if (game.resolveAfxConflicts) game.resolveAfxConflicts(choice); } }],
     onClose: () => { afxOpen = null; } });
   return h;
 }
