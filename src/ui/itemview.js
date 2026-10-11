@@ -10,7 +10,7 @@ import { ELEMENTS, elemBeats, RACE_LABEL, unknownLabel, UNK_OPEN, UNK_CLOSE } fr
 import { SPELLS, spellMpLabel, spellCureKinds, soulTierRate, healsHp, MP_DRAIN_CAP } from "../combat.js";
 import { STAGED, stageOf, stageMul, stageLabel, ENEMY_STAT_LABEL, effectStage, isBattleLong } from "../buffstage.js";
 import { ATTR_LABEL, SOUL_CLASSES, dollBust, PASSIVES, passiveName, passiveByName } from "../souls.js";
-import { WEAPON_CAT_LABEL, SHIELD_KIND_LABEL, HAND_LABEL, handOf, shieldKind, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip, AIL_LABEL, attackPower, fightPower, useLines } from "../items.js";
+import { WEAPON_CAT_LABEL, SHIELD_KIND_LABEL, HAND_LABEL, handOf, shieldKind, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip, equipLevelOf, AIL_LABEL, attackPower, fightPower, useLines } from "../items.js";
 import { HERO, spriteCanvas, crispCanvas } from "../sprites.js";
 
 // 魂のステータス寄与を「HP+7 STR+2.4 …」形式で列挙 (0は省略)
@@ -261,7 +261,7 @@ export function skillDetailLines(sp) {
     else if (sp.power) lines.push(`回復量 ${sp.power}（術者のPIEで伸びる）${cap}`);
   }
   if (sp.kind === "mana") lines.push(`味方のMPを ${sp.power} 回復（術者のINTで少し伸びる。渡せるのは自分が使ったMPの8割まで）`);
-  if (sp.kind === "escape") lines.push("必ず戦闘から逃げられる（迷宮の異変で退路が閉ざされている時を除く）");
+  if (sp.kind === "escape") lines.push("必ず戦闘から逃げられる（退路が閉ざされている時を除く）");
   if (sp.kind === "sleep") lines.push("敵全体を基本60%で眠らせる（抵抗値で成功率が下がる）");
   if (sp.revive) lines.push(sp.revivePct ? `戦闘不能をHP${pct(sp.revivePct)}で蘇生する` : "戦闘不能も蘇生できる");
   if (sp.kind === "phys") {
@@ -545,7 +545,7 @@ export function weaponTraitLines(it) {
 export function weaponPowerPreview(it, doll) {
   if (!it || it.slot !== "weapon" || it.unidentified || !doll || !doll.base || !doll.equip) return null;
   const equipped = doll.equip.weapon === it;
-  if (!equipped && !canEquip(doll, it)) return null;
+  if (!equipped && !canEquip(doll, it, { anyLv: true })) return null; // Lv が足りなくても、届いた時の攻撃力は見せる
   const trial = equipped ? { equip: doll.equip } : trialEquip(doll.equip, it, "weapon");
   if (!trial) return null;
   const stats = previewStats(doll, trial.equip);
@@ -870,7 +870,7 @@ export function detailLines(it) {
   for (const ln of elemDetailLines("攻撃", it.eAtk)) L.push(ln);
   for (const ln of elemDetailLines("防御", it.eDef)) L.push(ln);
   for (const ln of ailDetailLines(it)) L.push(ln);
-  if (isEquippable(it)) L.push(equipClassText(it));
+  if (isEquippable(it)) { L.push(equipClassText(it)); L.push(equipLvText(it)); }
   if (it.align) L.push(`${it.align}属性。`);
   return L;
 }
@@ -907,6 +907,11 @@ export function equipClassText(it) {
   if (w === "cloth") return "装備: 布装職";
   if (w === "light") return "装備: 軽装以上";
   return "装備可: 全職";
+}
+
+// 装備できるLv (メイン魂の Lv がこれに届けば付けられる。src/equiplevel.js)
+export function equipLvText(it) {
+  return `装備できるLv: メイン魂Lv${equipLevelOf(it)}から`;
 }
 
 // 隊メンバーの装備可否チップ (○/×)。party を省くと現在の編成 (G.party)

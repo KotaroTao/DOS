@@ -59,11 +59,12 @@
 //             sealedGate ★閉ざされた門: 帰還魔法陣が無く、帰還の鈴も使えない。最下階に着くか全滅するまで出られない (化石竜の墓所)
 //             appraised 澄んだ水晶の光: この迷宮で拾う品は、はじめから鑑定済み (水晶の鉱脈)
 //             say      開幕の効果 (mpDrain / hpDrain / chill / poisonStart / boltStart) を戦闘の記録に書く時の一文
-//           掟の分け方 (ユーザーの指示、2026-10): 土地 (章) の気候・性質は下の「土地の掟」(realm) に1つにまとめ、迷宮の掟は
-//           その迷宮だけの違いにする (同じ効果を迷宮ごとに作らない)。「技が一切使えない」「物理が効かない」「魔法が効かない」の
-//           ような強い掟は土地の掟にせず、格上 (challenge) の迷宮だけの掟にする
-//   realm   土地の掟 (同じ土地の迷宮に共通する決まりごと) の名 — 下の REALM_RULES のキー。迷宮の掟と重ねて効き、
-//           出撃シートと「階の情報」では迷宮の掟の上に出る。章を作る時は、その土地に合う土地の掟を考えて足す
+//             audience 見世物の闘技場: 戦闘の開幕に観客の注文がひとつ出て、応えて勝てば ✦Soul・金貨が増える (game.js AUDIENCE_ORDERS。闘技場跡)
+//             gloom    底なしの闇: 戦闘の開幕に隊の全員の命中が下がる (物理が外れる率をこの分だけ足す。3ターン。地底大空洞)
+//           say は文字列か、開幕の効果を2つ持つ時は効果ごとの文 ({ mpDrain: "…", chill: "…" })
+//           掟は1つの迷宮に1つだけ (ユーザーの指示、2026-10-11: 土地の掟は迷宮の掟に統合した)。同じ土地の迷宮は気候の効果
+//           (灼熱 = hpDrain 0.06 / 酷寒 = chill 1 / 闘技場 = audience / 地の底 = gloom 0.15) を、その迷宮の掟の1行として持つ。
+//           「技が一切使えない」「物理が効かない」「魔法が効かない」のような強い掟は、格上 (challenge) の迷宮だけに付ける
 //   challenge 格上の迷宮: 開く章の適正Lv よりはるかに高い推奨Lv を持つ寄り道。奈落の層 (abyssLayer) の推奨Lv・強さの平均には数えない
 //   tune    強さの手直し (generator.js DUNGEON_TUNE と同じ欄)。第4層からはテスト記録がまだ無いので、模擬戦で既存の迷宮に
 //           つないだ: 装備なしの6人 (戦士2・侍・僧侶・魔導士・盗賊、魂の Lv = その階の n の物差しの Lv — 当時の推奨Lv。
@@ -96,39 +97,6 @@ import { LAYER_BOSS, LAYER_ELITES, LAYER_POOLS, BESTIARY } from "./bestiary.js";
 import { baselineLv } from "../baseline.js";
 import { lvPow } from "../levelcurve.js";
 import { FLOOR_HAZ } from "./floorhaz.js";
-
-// ===== 土地の掟 (realm) — 同じ土地の迷宮すべてに共通する決まりごと (ユーザーの指示、2026-10) =====
-// 迷宮の掟 (trait) と重ねて効く。開幕の効果 (hpDrain / mpDrain / chill / poisonStart / boltStart) だけを持つ。
-// 同じ効果を迷宮の掟にも書けば足し合う (例: 酷寒 AGI −1段 + 絶対零度 −1段 = −2段)。キーは台帳の realm から引く
-export const REALM_RULES = {
-  // 第五章「灼熱の洞」と第7層の寄り道 (黒曜の切り場・火守りの僧院)
-  heat: {
-    id: "heat", name: "灼熱", sym: "♨", accent: "#ff8a4a",
-    lines: ["火の洞の熱気が肌を焼く。戦闘が始まるたび、隊のHPが最大の6%減る (HP1 より下にはならない)。", "火の洞のどの迷宮でも同じ。迷宮の掟はこれに重なる。"],
-    hpDrain: 0.06, say: "灼熱の熱気が肌を焼いた",
-  },
-  // 第六章「氷結回廊」と第8層の寄り道 (白狼の吹き溜まり・氷河の裂け目)
-  cold: {
-    id: "cold", name: "酷寒", sym: "❄", accent: "#bfe0ff",
-    lines: ["凍てつく寒さに身がすくむ。戦闘が始まるたび、隊の全員の AGI が1段下がる (3ターン)。", "氷結回廊のどの迷宮でも同じ。迷宮の掟はこれに重なる。"],
-    chill: 1, say: "凍てつく寒さに身がすくむ",
-  },
-  // 第九章「闘技場跡」と第11層の寄り道 (勝者の控え所・決闘の小円形場)
-  arena: {
-    id: "arena", name: "見世物の闘技場", sym: "♛", accent: "#e0b060",
-    lines: ["亡き観客が見ている。戦闘が始まるたび観客の注文がひとつ出て (3ターン以内に勝て・誰も倒れずに勝て…)、応えて勝てばその戦闘の ✦Soul と金貨が 1.5倍。", "闘技場跡のどの迷宮でも同じ。迷宮の掟はこれに重なる。"],
-    audience: true,
-  },
-  // 第十章「地底大空洞」と第12層の寄り道 (大空洞の主の寝床・化石竜の墓所・水晶の鉱脈)
-  gloom: {
-    id: "gloom", name: "底なしの闇", sym: "◐", accent: "#a89878",
-    lines: ["光の届かない地の底では、目が闇に慣れるまで刃が泳ぐ。戦闘が始まるたび、隊の全員の命中が下がる (3ターン)。", "地底大空洞のどの迷宮でも同じ。迷宮の掟はこれに重なる。"],
-    gloom: 0.15, say: "底なしの闇に目がくらむ",
-  },
-};
-// audience = 観客の注文 (game.js AUDIENCE_ORDERS。開幕の効果ではないので、開幕の演出には出さない)
-// gloom = 開幕に隊の全員の命中を下げる (物理が外れる率をこの分だけ足す。3ターン — game.js startBattle)
-const REALM_FIELDS = ["id", "name", "sym", "accent", "lines", "hpDrain", "mpDrain", "chill", "poisonStart", "boltStart", "say", "audience", "gloom"];
 
 const WORLD_DEF = [
   {
@@ -473,7 +441,7 @@ const WORLD_DEF = [
   },
   // ---- 第五章「灼熱の洞」(第7層の顔ぶれ) ── 大神殿の底のさらに下。大樹の樹液を煮詰める、火の洞 ----
   {
-    id: "w18", realm: "heat", lv: 61, lvTo: 63, layer: 7, floors: 10,
+    id: "w18", lv: 61, lvTo: 63, layer: 7, floors: 10,
     floorHaz: { fall: "fissure", harm: "scorch" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.173, 5: 0.1862, 10: 0.2014 },
     name: "火を噴く地割れ", short: "地割れ",
@@ -486,16 +454,17 @@ const WORLD_DEF = [
     elites: ["el_cinderking"],
     trait: {
       id: "vent", name: "噴き出す火", sym: "♨", accent: "#e07040",
-      lines: ["地割れから火が噴き出し、通路の一割ほどが灼けた床になる (浮遊で避けられる)。", "火に追われた魂が多く、得る ✦Soul は 1.25倍。"],
+      lines: ["地割れから火が噴き出し、通路の一割ほどが灼けた床になる (浮遊で避けられる)。", "火の洞の熱気が肌を焼く。戦闘が始まるたび、隊のHPが最大の6%減る (HP1 より下にはならない)。", "火に追われた魂が多く、得る ✦Soul は 1.25倍。"],
       mods: { soulMul: 1.25 },
       board: "vent",
+      hpDrain: 0.06, say: "灼熱の熱気が肌を焼いた",
     },
     tune: { enemyMul: 1.08, deepMul: 0.76, soloMul: 1.05 },
     unlock: { reported: "w17" },
     hint: "「沈める大神殿」の踏破を王に報告すると、神殿の底へ降りる許しが出る",
   },
   {
-    id: "w19", realm: "heat", lv: 63, lvTo: 65, layer: 7, floors: 10,
+    id: "w19", lv: 63, lvTo: 65, layer: 7, floors: 10,
     floorHaz: { fall: "fissure", harm: "hotash" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.1689, 5: 0.182, 10: 0.1971 },
     name: "灰の降る祭場", short: "祭場",
@@ -508,15 +477,16 @@ const WORLD_DEF = [
     elites: ["el_cinderking"],
     trait: {
       id: "ash", name: "灰の雨", sym: "∴", accent: "#a09088",
-      lines: ["降りしきる灰が視界を覆い、奇襲を受けやすい (×2)。", "灰には焼かれた魂の名残が混じり、得る ✦Soul は 1.3倍。"],
+      lines: ["降りしきる灰が視界を覆い、奇襲を受けやすい (×2)。", "火の洞の熱気が肌を焼く。戦闘が始まるたび、隊のHPが最大の6%減る (HP1 より下にはならない)。", "灰には焼かれた魂の名残が混じり、得る ✦Soul は 1.3倍。"],
       mods: { ambushMul: 2, soulMul: 1.3 },
+      hpDrain: 0.06, say: "灼熱の熱気が肌を焼いた",
     },
     tune: { enemyMul: 1.02, deepMul: 0.85, soloMul: 1.05 }, // 奇襲 ×2 の分だけ控えめ
     unlock: { story: "w18_blade" },
     hint: "「火を噴く地割れ」のどこかに、師の刃が残されているという",
   },
   {
-    id: "w20", realm: "heat", lv: 65, lvTo: 67, layer: 7, floors: 10,
+    id: "w20", lv: 65, lvTo: 67, layer: 7, floors: 10,
     floorHaz: { fall: "fissure", harm: "broth" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.1667, 5: 0.1799, 10: 0.1951 },
     name: "魂を煮る釜場", short: "釜場",
@@ -529,16 +499,17 @@ const WORLD_DEF = [
     elites: ["el_magmawyrm"],
     trait: {
       id: "cauldron", name: "煮えたぎる釜", sym: "♆", accent: "#f0a040",
-      lines: ["釜の霊薬を浴びた魔物は、毎ターン最大HPの3%ずつ再生する。", "釜の縁に霊薬の滓が固まっていて、得られる金貨は 1.4倍。"],
+      lines: ["釜の霊薬を浴びた魔物は、毎ターン最大HPの3%ずつ再生する。", "火の洞の熱気が肌を焼く。戦闘が始まるたび、隊のHPが最大の6%減る (HP1 より下にはならない)。", "釜の縁に霊薬の滓が固まっていて、得られる金貨は 1.4倍。"],
       mods: { goldMul: 1.4 },
-      foeRegen: 0.03, // 開幕の熱気は土地の掟「灼熱」が持つ (2026-10 まではこの掟の hpDrain 0.06)
+      foeRegen: 0.03,
+      hpDrain: 0.06, say: "灼熱の熱気が肌を焼いた",
     },
     tune: { enemyMul: 0.90, deepMul: 0.82, soloMul: 1.05 }, // 開幕の熱気の分だけ控えめ
     unlock: { reported: "w18" },
     hint: "「火を噴く地割れ」の踏破を王に報告すると、火の洞の奥が示される",
   },
   {
-    id: "w21", realm: "heat", lv: 67, lvTo: 70, layer: 7, floors: 15,
+    id: "w21", lv: 67, lvTo: 70, layer: 7, floors: 15,
     floorHaz: { fall: "fissure", harm: "scorch" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.163, 5: 0.1705, 10: 0.1793, 15: 0.1874 },
     name: "業火の大釜", short: "大釜",
@@ -551,8 +522,9 @@ const WORLD_DEF = [
     ],
     trait: {
       id: "inferno", name: "業火の大釜", sym: "♨", accent: "#ff6030",
-      lines: ["大釜の業火は退路を焼く。この迷宮の戦闘からは逃げられない。魔物はみな火の気を帯びる。", "煮詰められた魂の名残で、得る ✦Soul は 1.4倍。"],
+      lines: ["大釜の業火は退路を焼く。この迷宮の戦闘からは逃げられない。魔物はみな火の気を帯びる。", "火の洞の熱気が肌を焼く。戦闘が始まるたび、隊のHPが最大の6%減る (HP1 より下にはならない)。", "煮詰められた魂の名残で、得る ✦Soul は 1.4倍。"],
       mods: { noFlee: true, elemAll: true, soulMul: 1.4 },
+      hpDrain: 0.06, say: "灼熱の熱気が肌を焼いた",
     },
     boss: LAYER_BOSS[6], bossRank: 9,
     tune: { enemyMul: 0.95, deepMul: 0.88, soloMul: 1.10, bossMul: 0.85 }, // 第7層の壁。逃げられない分だけ控えめ
@@ -562,7 +534,7 @@ const WORLD_DEF = [
   // ---- 第六章「氷結回廊」(第8層の顔ぶれ) ── 大釜の底の奈落。吹き上げる風が、落ちてくる魂を氷に閉じこめる ----
   //   強さの素は第五章の各迷宮の 0.9倍 (層の入口の1割の段差。第四章 → 第五章と同じ比)。手直しは第五章に倣う
   {
-    id: "w22", realm: "cold", lv: 70, lvTo: 72, layer: 8, floors: 10,
+    id: "w22", lv: 70, lvTo: 72, layer: 8, floors: 10,
     floorHaz: { fall: "icecrack", harm: "frost" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.1557, 5: 0.1676, 10: 0.1813 },
     name: "奈落の氷棚", short: "氷棚",
@@ -575,16 +547,17 @@ const WORLD_DEF = [
     elites: ["el_glacialmaw"],
     trait: {
       id: "ledge", name: "吹き上げる風", sym: "⇡", accent: "#9ad0f0",
-      lines: ["奈落から吹き上げる風が氷棚を削り、各階に氷の割れ目が3つ増える (最下階を除く。浮遊で避けられる)。", "落ちてきた魂が棚に吹き寄せられ、得る ✦Soul は 1.25倍。"],
+      lines: ["奈落から吹き上げる風が氷棚を削り、各階に氷の割れ目が3つ増える (最下階を除く。浮遊で避けられる)。", "凍てつく寒さに身がすくむ。戦闘が始まるたび、隊の全員の AGI が1段下がる (3ターン)。", "落ちてきた魂が棚に吹き寄せられ、得る ✦Soul は 1.25倍。"],
       mods: { soulMul: 1.25 },
       board: "ledge",
+      chill: 1, say: "凍てつく寒さに身がすくむ",
     },
     tune: { enemyMul: 1.08, deepMul: 0.76, soloMul: 1.05 },
     unlock: { reported: "w21" },
     hint: "「業火の大釜」の踏破を王に報告すると、奈落の壁の氷の棚へ降りる許しが出る",
   },
   {
-    id: "w23", realm: "cold", lv: 72, lvTo: 74, layer: 8, floors: 10,
+    id: "w23", lv: 72, lvTo: 74, layer: 8, floors: 10,
     floorHaz: { fall: "icecrack", harm: "frost" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.152, 5: 0.1638, 10: 0.1774 },
     name: "凍れる操霊師の間", short: "凍れる間",
@@ -597,16 +570,17 @@ const WORLD_DEF = [
     elites: ["el_frostsovereign"],
     trait: {
       id: "icetomb", name: "氷漬けの先人", sym: "❄", accent: "#b8d8f0",
-      lines: ["氷の柱の根元に、凍った骸が眠っている (各階に死体が2つ増える。3割はまだあたたかい)。", "凍りついた魂は傷みが少なく、得る ✦Soul は 1.3倍。"],
+      lines: ["氷の柱の根元に、凍った骸が眠っている (各階に死体が2つ増える。3割はまだあたたかい)。", "凍てつく寒さに身がすくむ。戦闘が始まるたび、隊の全員の AGI が1段下がる (3ターン)。", "凍りついた魂は傷みが少なく、得る ✦Soul は 1.3倍。"],
       mods: { soulMul: 1.3 },
       board: "icetomb",
+      chill: 1, say: "凍てつく寒さに身がすくむ",
     },
     tune: { enemyMul: 1.02, deepMul: 0.84, soloMul: 1.05 },
     unlock: { story: "w22_coat" },
     hint: "「奈落の氷棚」のどこかに、師の残したものが凍りついているという",
   },
   {
-    id: "w24", realm: "cold", lv: 74, lvTo: 76, layer: 8, floors: 10,
+    id: "w24", lv: 74, lvTo: 76, layer: 8, floors: 10,
     floorHaz: { fall: "icecrack", harm: "frost" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.15, 5: 0.1619, 10: 0.1756 },
     name: "極光の氷窟", short: "氷窟",
@@ -619,15 +593,16 @@ const WORLD_DEF = [
     elites: ["el_glacialmaw"],
     trait: {
       id: "aurora", name: "揺らめく極光", sym: "≈", accent: "#a0f0c8",
-      lines: ["天井の極光が魔物の気を揺らし、魔物の属性がでたらめに定まる。", "極光に照らされた氷の中に古い金貨が光り、得られる金貨は 1.35倍。"],
+      lines: ["天井の極光が魔物の気を揺らし、魔物の属性がでたらめに定まる。", "凍てつく寒さに身がすくむ。戦闘が始まるたび、隊の全員の AGI が1段下がる (3ターン)。", "極光に照らされた氷の中に古い金貨が光り、得られる金貨は 1.35倍。"],
       mods: { elemRandom: true, goldMul: 1.35 },
+      chill: 1, say: "凍てつく寒さに身がすくむ",
     },
     tune: { enemyMul: 0.96, deepMul: 0.84, soloMul: 1.05 }, // 属性が読めない分だけ控えめ
     unlock: { reported: "w22" },
     hint: "「奈落の氷棚」の踏破を王に報告すると、氷棚の奥の洞窟が示される",
   },
   {
-    id: "w25", realm: "cold", lv: 76, lvTo: 79, layer: 8, floors: 15,
+    id: "w25", lv: 76, lvTo: 79, layer: 8, floors: 15,
     floorHaz: { fall: "icecrack", harm: "frost" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.1467, 5: 0.1535, 10: 0.1614, 15: 0.1687 },
     name: "凍てつく大回廊", short: "大回廊",
@@ -640,9 +615,9 @@ const WORLD_DEF = [
     ],
     trait: {
       id: "frost", name: "絶対零度", sym: "✱", accent: "#d0e8ff",
-      lines: ["絶対零度の冷気が酷寒に重なる。戦闘が始まるたび、隊の全員の AGI がさらに1段下がる (酷寒と合わせて2段・3ターン)。", "凍りついた古い魂の名残で、得る ✦Soul は 1.4倍。"],
+      lines: ["絶対零度の冷気が骨までしみる。戦闘が始まるたび、隊の全員の AGI が2段下がる (3ターン)。", "凍りついた古い魂の名残で、得る ✦Soul は 1.4倍。"],
       mods: { soulMul: 1.4 },
-      chill: 1, say: "絶対零度の冷気が骨までしみる",
+      chill: 2, say: "絶対零度の冷気が骨までしみる",
     },
     boss: LAYER_BOSS[7], bossRank: 10,
     tune: { enemyMul: 0.95, deepMul: 0.88, soloMul: 1.10, bossMul: 0.85 }, // 第8層の壁。開幕に足が鈍る分だけ控えめ
@@ -823,9 +798,9 @@ const WORLD_DEF = [
     hint: "「嵐を鳴らす鐘楼」と「雷の落ちる回廊」の両方を踏破して王に報告すると、塔の頂への道が開く",
   },
   // ---- 第九章「闘技場跡」(第11層の顔ぶれ) ── 嵐の尖塔の頂から雲の上へ架かる石橋の先、灰に埋もれた古い闘技場の町 ----
-  //   強さの素は第八章の各迷宮の 0.9倍 (層の入口の1割の段差)。手直しは第八章に倣う。顔ぶれはランク10 (上限)。土地の掟は「見世物の闘技場」
+  //   強さの素は第八章の各迷宮の 0.9倍 (層の入口の1割の段差)。手直しは第八章に倣う。顔ぶれはランク10 (上限)。どの迷宮の掟にも観客の注文 (audience) が入る
   {
-    id: "w34", realm: "arena", lv: 97, lvTo: 100, layer: 11, floors: 10,
+    id: "w34", lv: 97, lvTo: 100, layer: 11, floors: 10,
     floorHaz: { fall: "bridgegap", harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.1135, 5: 0.1221, 10: 0.1322 },
     name: "雲を渡る石橋", short: "石橋",
@@ -837,15 +812,16 @@ const WORLD_DEF = [
     elites: ["el_ashshogun"],
     trait: {
       id: "nobackway", name: "退けぬ橋", sym: "⇉", accent: "#c8b898",
-      lines: ["狭い石橋に退き場はない。戦闘から逃げられない。", "橋を渡った者たちの魂が欄干に残り、得る ✦Soul は 1.25倍。"],
+      lines: ["狭い石橋に退き場はない。戦闘から逃げられない。", "亡き観客が見ている。戦闘が始まるたび観客の注文がひとつ出て (3ターン以内に勝て・誰も倒れずに勝て…)、応えて勝てばその戦闘の ✦Soul と金貨が 1.5倍。", "橋を渡った者たちの魂が欄干に残り、得る ✦Soul は 1.25倍。"],
       mods: { noFlee: true, soulMul: 1.25 },
+      audience: true,
     },
     tune: { enemyMul: 1.04, deepMul: 0.78, soloMul: 1.05 }, // 逃げられない分だけ並みより少し控えめ
     unlock: { reported: "w33" },
     hint: "「嵐の尖塔の頂」の踏破を王に報告すると、雲の上の石橋を渡る許しが出る",
   },
   {
-    id: "w35", realm: "arena", lv: 100, lvTo: 103, layer: 11, floors: 10,
+    id: "w35", lv: 100, lvTo: 103, layer: 11, floors: 10,
     floorHaz: { fall: null, harm: "rotstraw" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.1108, 5: 0.1194, 10: 0.1293 },
     name: "闘獣の檻", short: "檻",
@@ -857,16 +833,17 @@ const WORLD_DEF = [
     elites: ["el_dragonslayer"],
     trait: {
       id: "hungry", name: "飢えた獣", sym: "ψ", accent: "#c87850",
-      lines: ["檻の魔物はみな飢えている。戦闘が始まるたび、敵全体の攻撃が1段上がる (3ターン。主は除く)。", "檻にこびりついた古い魂が、得る ✦Soul を 1.3倍にする。"],
+      lines: ["檻の魔物はみな飢えている。戦闘が始まるたび、敵全体の攻撃が1段上がる (3ターン。主は除く)。", "亡き観客が見ている。戦闘が始まるたび観客の注文がひとつ出て (3ターン以内に勝て・誰も倒れずに勝て…)、応えて勝てばその戦闘の ✦Soul と金貨が 1.5倍。", "檻にこびりついた古い魂が、得る ✦Soul を 1.3倍にする。"],
       mods: { soulMul: 1.3 },
       foeRally: 1,
+      audience: true,
     },
     tune: { enemyMul: 0.97, deepMul: 0.82, soloMul: 1.00 }, // 開幕に攻撃が上がる分だけ控えめ
     unlock: { story: "w34_glove" },
     hint: "「雲を渡る石橋」のどこかに、師が橋を渡った跡が残されているという",
   },
   {
-    id: "w36", realm: "arena", lv: 103, lvTo: 106, layer: 11, floors: 10,
+    id: "w36", lv: 103, lvTo: 106, layer: 11, floors: 10,
     floorHaz: { fall: "standgap", harm: "ashdrift" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.1094, 5: 0.1180, 10: 0.1280 },
     name: "亡き観客の階段席", short: "観客席",
@@ -878,15 +855,16 @@ const WORLD_DEF = [
     elites: ["el_ashshogun"],
     trait: {
       id: "fullhouse", name: "満員の観客席", sym: "♟", accent: "#b0a0c8",
-      lines: ["観客席はいつも満員で、敵は必ず4体以上の群れで現れる。", "観客の投げ銭が石段に散らばり、得られる金貨は 1.35倍。"],
+      lines: ["観客席はいつも満員で、敵は必ず4体以上の群れで現れる。", "亡き観客が見ている。戦闘が始まるたび観客の注文がひとつ出て (3ターン以内に勝て・誰も倒れずに勝て…)、応えて勝てばその戦闘の ✦Soul と金貨が 1.5倍。", "観客の投げ銭が石段に散らばり、得られる金貨は 1.35倍。"],
       mods: { packMin: 4, goldMul: 1.35 },
+      audience: true,
     },
     tune: { enemyMul: 0.95, deepMul: 0.84, soloMul: 1.05 }, // 群れが大きい分だけ1体ずつを控えめに
     unlock: { reported: "w34" },
     hint: "「雲を渡る石橋」の踏破を王に報告すると、闘技場の観客席への道が示される",
   },
   {
-    id: "w37", realm: "arena", lv: 106, lvTo: 110, layer: 11, floors: 15,
+    id: "w37", lv: 106, lvTo: 110, layer: 11, floors: 15,
     floorHaz: { fall: "arenatrap", harm: "bladesand" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.1069, 5: 0.1120, 10: 0.1177, 15: 0.1229 },
     name: "血の砂の闘技場", short: "闘技場",
@@ -898,9 +876,10 @@ const WORLD_DEF = [
     ],
     trait: {
       id: "fervor", name: "高まる戦意", sym: "⚔", accent: "#e07060",
-      lines: ["観客の歓声が戦う者を煽る。2ターン目から毎ターン、敵も味方も攻撃が1段ずつ上がっていく (+3段まで)。", "砂に染みた魂が濃く渦を巻き、得る ✦Soul は 1.4倍。"],
+      lines: ["観客の歓声が戦う者を煽る。2ターン目から毎ターン、敵も味方も攻撃が1段ずつ上がっていく (+3段まで)。", "亡き観客が見ている。戦闘が始まるたび観客の注文がひとつ出て (3ターン以内に勝て・誰も倒れずに勝て…)、応えて勝てばその戦闘の ✦Soul と金貨が 1.5倍。", "砂に染みた魂が濃く渦を巻き、得る ✦Soul は 1.4倍。"],
       mods: { soulMul: 1.4 },
       fervor: true,
+      audience: true,
     },
     boss: LAYER_BOSS[10], bossRank: 10,
     tune: { enemyMul: 0.96, deepMul: 0.88, soloMul: 1.10, bossMul: 0.85 }, // 第11層の壁。長引くほど敵も強まる分だけ控えめ
@@ -908,10 +887,10 @@ const WORLD_DEF = [
     hint: "「闘獣の檻」と「亡き観客の階段席」の両方を踏破して王に報告すると、闘技場の砂の上へ降りる道が開く",
   },
   // ---- 第十章「地底大空洞」(第12層の顔ぶれ) ── 闘技場の穴の底に広がる大空洞。濁った灯籠が三百年よりも昔から降り積もっている ----
-  //   強さの素は第九章の各迷宮の 0.9倍 (層の入口の1割の段差)。手直しは第九章に倣う。顔ぶれはランク10 (上限)。土地の掟は「底なしの闇」
+  //   強さの素は第九章の各迷宮の 0.9倍 (層の入口の1割の段差)。手直しは第九章に倣う。顔ぶれはランク10 (上限)。どの迷宮の掟にも闇の命中低下 (gloom) が入る
   //   最後の迷宮の主は宰相モルデン (bs_moldern)。層の主 (大空洞の主 bs_cavernlord) は寄り道「大空洞の主の寝床」に眠る
   {
-    id: "w38", realm: "gloom", lv: 110, lvTo: 113, layer: 12, floors: 10,
+    id: "w38", lv: 110, lvTo: 113, layer: 12, floors: 10,
     floorHaz: { fall: "lampheap", harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.1022, 5: 0.1099, 10: 0.1190 },
     name: "灯籠の吹き溜まり", short: "吹き溜まり",
@@ -923,16 +902,17 @@ const WORLD_DEF = [
     elites: ["el_tunnelking"],
     trait: {
       id: "risingsoul", name: "起き上がる濁り魂", sym: "↺", accent: "#b8a070",
-      lines: ["休むことを忘れた濁った魂は、倒れても起き上がる。倒した敵は戦闘ごとに一度だけ、最大HPの3割で起き上がる (主は除く)。", "灯籠からこぼれた魂が濃く漂い、得る ✦Soul は 1.25倍。"],
+      lines: ["休むことを忘れた濁った魂は、倒れても起き上がる。倒した敵は戦闘ごとに一度だけ、最大HPの3割で起き上がる (主は除く)。", "光の届かない地の底では、目が闇に慣れるまで刃が泳ぐ。戦闘が始まるたび、隊の全員の命中が下がる (3ターン)。", "灯籠からこぼれた魂が濃く漂い、得る ✦Soul は 1.25倍。"],
       mods: { soulMul: 1.25 },
       foeRise: 0.3,
+      gloom: 0.15, say: "底なしの闇に目がくらむ",
     },
     tune: { enemyMul: 0.96, deepMul: 0.80, soloMul: 1.00 }, // 起き上がる分だけ並みより控えめ
     unlock: { reported: "w37" },
     hint: "「血の砂の闘技場」の踏破を王に報告すると、闘技場の真ん中の穴へ降りる許しが出る",
   },
   {
-    id: "w39", realm: "gloom", lv: 113, lvTo: 116, layer: 12, floors: 10,
+    id: "w39", lv: 113, lvTo: 116, layer: 12, floors: 10,
     floorHaz: { fall: null, harm: "blackwater" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.0997, 5: 0.1075, 10: 0.1164 },
     name: "黒い灯の地底湖", short: "地底湖",
@@ -944,16 +924,18 @@ const WORLD_DEF = [
     elites: ["el_oremaw"],
     trait: {
       id: "whisper", name: "ささやく湖面", sym: "≋", accent: "#8a8ab0",
-      lines: ["湖面から、名を忘れた魂のささやきが聞こえる。戦闘が始まるたび、隊の一人が惑わされて混乱することがある (混乱の抵抗で防げる)。", "湖の底に沈んだ灯が魂を引き寄せ、得る ✦Soul は 1.3倍。"],
+      lines: ["湖面から、名を忘れた魂のささやきが聞こえる。戦闘が始まるたび、隊の一人が惑わされて混乱することがある (混乱の抵抗で防げる)。", "光の届かない地の底では、目が闇に慣れるまで刃が泳ぐ。戦闘が始まるたび、隊の全員の命中が下がる (3ターン)。", "湖の底に沈んだ灯が魂を引き寄せ、得る ✦Soul は 1.3倍。"],
       mods: { soulMul: 1.3 },
-      whisper: 0.6, say: "湖面のささやきが耳の奥に入りこむ",
+      whisper: 0.6,
+      gloom: 0.15,
+      say: { whisper: "湖面のささやきが耳の奥に入りこむ", gloom: "底なしの闇に目がくらむ" },
     },
     tune: { enemyMul: 0.98, deepMul: 0.82, soloMul: 1.00 },
     unlock: { story: "w38_lamp" },
     hint: "「灯籠の吹き溜まり」のどこかに、師が通った跡が残されているという",
   },
   {
-    id: "w40", realm: "gloom", lv: 116, lvTo: 119, layer: 12, floors: 10,
+    id: "w40", lv: 116, lvTo: 119, layer: 12, floors: 10,
     floorHaz: { fall: "nichegap", harm: "soulsoot" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.0985, 5: 0.1062, 10: 0.1152 },
     name: "名を刻む石窟", short: "石窟",
@@ -965,16 +947,17 @@ const WORLD_DEF = [
     elites: ["el_tunnelking"],
     trait: {
       id: "shell", name: "封じの殻", sym: "◎", accent: "#a0b0a0",
-      lines: ["眠りを守る封じが、魔物の身にもかかっている。戦闘が始まるたび、敵の全員 (主は除く) が打撃を1回だけ防ぐ障壁をまとう。", "壁龕に供えられた古い銭が、得られる金貨を 1.35倍にする。"],
+      lines: ["眠りを守る封じが、魔物の身にもかかっている。戦闘が始まるたび、敵の全員 (主は除く) が打撃を1回だけ防ぐ障壁をまとう。", "光の届かない地の底では、目が闇に慣れるまで刃が泳ぐ。戦闘が始まるたび、隊の全員の命中が下がる (3ターン)。", "壁龕に供えられた古い銭が、得られる金貨を 1.35倍にする。"],
       mods: { goldMul: 1.35 },
       shell: 1,
+      gloom: 0.15, say: "底なしの闇に目がくらむ",
     },
     tune: { enemyMul: 0.95, deepMul: 0.84, soloMul: 1.05 }, // 障壁の分だけ1体ずつを控えめに
     unlock: { reported: "w38" },
     hint: "「灯籠の吹き溜まり」の踏破を王に報告すると、大空洞の奥の石窟への道が示される",
   },
   {
-    id: "w41", realm: "gloom", lv: 119, lvTo: 123, layer: 12, floors: 15,
+    id: "w41", lv: 119, lvTo: 123, layer: 12, floors: 15,
     floorHaz: { fall: "abysscleft", harm: "rotglow" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.0962, 5: 0.1008, 10: 0.1059, 15: 0.1106 },
     name: "底なしの大伽藍", short: "大伽藍",
@@ -987,9 +970,10 @@ const WORLD_DEF = [
     elites: ["el_tunnelking", "el_oremaw"],
     trait: {
       id: "soulfeast", name: "魂喰らいの闇", sym: "☾", accent: "#9070a0",
-      lines: ["伽藍の闇は倒れた魂を喰らう。人業を倒した敵は、攻撃が2段上がる (3ターン)。", "伽藍に溜まった魂が渦を巻き、得る ✦Soul は 1.4倍。"],
+      lines: ["伽藍の闇は倒れた魂を喰らう。人業を倒した敵は、攻撃が2段上がる (3ターン)。", "光の届かない地の底では、目が闇に慣れるまで刃が泳ぐ。戦闘が始まるたび、隊の全員の命中が下がる (3ターン)。", "伽藍に溜まった魂が渦を巻き、得る ✦Soul は 1.4倍。"],
       mods: { soulMul: 1.4 },
       soulFeast: 2,
+      gloom: 0.15, say: "底なしの闇に目がくらむ",
     },
     boss: "bs_moldern", bossRank: 10,
     tune: { enemyMul: 0.96, deepMul: 0.88, soloMul: 1.10, bossMul: 0.85 }, // 第一部の最後の壁
@@ -1160,7 +1144,7 @@ const WORLD_DEF = [
     hint: "酒場の司書の依頼「沈んだ書庫」を受けると、道が示される",
   },
   {
-    id: "ws9", realm: "heat", lv: 62, lvTo: 66, layer: 7, floors: 10, side: true,
+    id: "ws9", lv: 62, lvTo: 66, layer: 7, floors: 10, side: true,
     floorHaz: { fall: "fissure", harm: "obsidian" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.171, 5: 0.184, 10: 0.199 },
     name: "黒曜の切り場", short: "黒曜の切り場",
@@ -1172,15 +1156,16 @@ const WORLD_DEF = [
     elites: ["el_magmawyrm"],
     trait: {
       id: "obsidian", name: "黒い刃の崖", sym: "◆", accent: "#9070a0",
-      lines: ["崖の割れ口に、黒曜で鍛えた古い刃物が眠る。落ちている装備の質が上がる。"],
-      mods: { lootBonusLv: 4 }, // 開幕の傷は土地の掟「灼熱」に一本化した (2026-10 まではこの掟の hpDrain 0.04)
+      lines: ["崖の割れ口に、黒曜で鍛えた古い刃物が眠る。落ちている装備の質が上がる。", "火の洞の熱気が肌を焼く。戦闘が始まるたび、隊のHPが最大の6%減る (HP1 より下にはならない)。"],
+      mods: { lootBonusLv: 4 },
+      hpDrain: 0.06, say: "灼熱の熱気が肌を焼いた",
     },
     tune: { enemyMul: 1.00, deepMul: 0.80, soloMul: 1.05 }, // 開幕の熱気の分だけ控えめ
     unlock: { quest: "fq_dorn3" },
     hint: "酒場の鍛冶師の依頼「黒い刃の材」を受けると、道が示される",
   },
   {
-    id: "ws10", realm: "heat", lv: 66, lvTo: 70, layer: 7, floors: 10, side: true,
+    id: "ws10", lv: 66, lvTo: 70, layer: 7, floors: 10, side: true,
     floorHaz: { fall: null, harm: "scorch" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.165, 5: 0.177, 10: 0.19 },
     name: "火守りの僧院", short: "僧院",
@@ -1192,16 +1177,17 @@ const WORLD_DEF = [
     elites: ["el_cinderking"],
     trait: {
       id: "pyre", name: "炎の幻", sym: "♆", accent: "#f08050",
-      lines: ["祈りの炎が見せる幻で、特別な階がよく現れる (×1.8)。", "燃え残った魂は多く、得る ✦Soul は 1.2倍。"],
+      lines: ["祈りの炎が見せる幻で、特別な階がよく現れる (×1.8)。", "火の洞の熱気が肌を焼く。戦闘が始まるたび、隊のHPが最大の6%減る (HP1 より下にはならない)。", "燃え残った魂は多く、得る ✦Soul は 1.2倍。"],
       mods: { soulMul: 1.2 },
       specialRate: 1.8,
+      hpDrain: 0.06, say: "灼熱の熱気が肌を焼いた",
     },
     tune: { enemyMul: 0.98, deepMul: 0.84, soloMul: 1.05 },
     unlock: { quest: "fq_irma" },
     hint: "酒場の尼僧の依頼「祈りの火を消して」を受けると、道が示される",
   },
   {
-    id: "ws11", realm: "cold", lv: 71, lvTo: 75, layer: 8, floors: 10, side: true,
+    id: "ws11", lv: 71, lvTo: 75, layer: 8, floors: 10, side: true,
     floorHaz: { fall: "cornice", harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.154, 5: 0.166, 10: 0.179 },
     name: "白狼の吹き溜まり", short: "吹き溜まり",
@@ -1214,16 +1200,17 @@ const WORLD_DEF = [
     elites: ["el_glacialmaw"],
     trait: {
       id: "drift", name: "雪煙の狩り", sym: "≋", accent: "#c8e0f0",
-      lines: ["群れは雪煙にまぎれて忍び寄る。どの戦闘も必ず奇襲で始まり、敵が先に動く (周囲警戒・夜営の番・先制の心得も効かない)。", "雪の下に落ちてきた品が埋もれ、得られる金貨は 1.3倍。"],
+      lines: ["群れは雪煙にまぎれて忍び寄る。どの戦闘も必ず奇襲で始まり、敵が先に動く (周囲警戒・夜営の番・先制の心得も効かない)。", "凍てつく寒さに身がすくむ。戦闘が始まるたび、隊の全員の AGI が1段下がる (3ターン)。", "雪の下に落ちてきた品が埋もれ、得られる金貨は 1.3倍。"],
       mods: { goldMul: 1.3 },
       alwaysAmbush: true,
+      chill: 1, say: "凍てつく寒さに身がすくむ",
     },
     tune: { enemyMul: 0.90, deepMul: 0.82, soloMul: 1.00 }, // 毎回先手を取られる分だけ軽め
     unlock: { quest: "fq_august" },
     hint: "酒場の毛皮売りの依頼「白い毛皮」を受けると、道が示される",
   },
   {
-    id: "ws12", realm: "cold", lv: 75, lvTo: 79, layer: 8, floors: 10, side: true,
+    id: "ws12", lv: 75, lvTo: 79, layer: 8, floors: 10, side: true,
     floorHaz: { fall: "icecrack", harm: "meltwater" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.148, 5: 0.159, 10: 0.171 },
     name: "氷河の裂け目", short: "裂け目",
@@ -1236,10 +1223,12 @@ const WORLD_DEF = [
     elites: ["el_frostsovereign"],
     trait: {
       id: "melt", name: "雪解けの水", sym: "✧", accent: "#9ad8f0",
-      lines: ["澄んだ雪解けの泉が湧く (各階に癒しの泉が2つ)。だが冷たい水が魔力を奪い、戦闘の開幕に隊のMPが最大の8%減る。", "氷から抜け落ちた魂は傷みが少なく、得る ✦Soul は 1.3倍。"],
+      lines: ["澄んだ雪解けの泉が湧く (各階に癒しの泉が2つ)。だが冷たい水が魔力を奪い、戦闘の開幕に隊のMPが最大の8%減る。", "凍てつく寒さに身がすくむ。戦闘が始まるたび、隊の全員の AGI が1段下がる (3ターン)。", "氷から抜け落ちた魂は傷みが少なく、得る ✦Soul は 1.3倍。"],
       mods: { soulMul: 1.3 },
       board: "font",
-      mpDrain: 0.08, say: "冷たい雪解けの水が魔力を奪った",
+      mpDrain: 0.08,
+      chill: 1,
+      say: { mpDrain: "冷たい雪解けの水が魔力を奪った", chill: "凍てつく寒さに身がすくむ" },
     },
     tune: { enemyMul: 1.00, deepMul: 0.84, soloMul: 1.05 },
     unlock: { quest: "fq_thaw2" },
@@ -1355,7 +1344,7 @@ const WORLD_DEF = [
   },
   {
     // 毎階の強敵: どの階にも強敵がいる (強敵階の出やすさ 100%)。強敵は控えめにしてある
-    id: "ws18", realm: "arena", lv: 98, lvTo: 102, layer: 11, floors: 10, side: true,
+    id: "ws18", lv: 98, lvTo: 102, layer: 11, floors: 10, side: true,
     floorHaz: { fall: null, harm: "ashdrift" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.110, 5: 0.118, 10: 0.127 },
     name: "勝者の控え所", short: "控え所",
@@ -1366,9 +1355,10 @@ const WORLD_DEF = [
     ],
     trait: {
       id: "victors", name: "勝ち残りの間", sym: "✪", accent: "#d8b070",
-      lines: ["控えの間には勝ち残った強者が待つ。どの階にも強敵がいる (1体ずつは並みより控えめ)。", "勝者の褒美の箱は、どれも1ランク上等。"],
+      lines: ["控えの間には勝ち残った強者が待つ。どの階にも強敵がいる (1体ずつは並みより控えめ)。", "亡き観客が見ている。戦闘が始まるたび観客の注文がひとつ出て (3ターン以内に勝て・誰も倒れずに勝て…)、応えて勝てばその戦闘の ✦Soul と金貨が 1.5倍。", "勝者の褒美の箱は、どれも1ランク上等。"],
       mods: { chestRankUp: 1 },
       eliteRate: 1,
+      audience: true,
     },
     tune: { enemyMul: 1.00, deepMul: 0.84, soloMul: 0.90 }, // どの階にも強敵が出る分だけ強敵を軽く
     unlock: { quest: "fq_minstrel" },
@@ -1376,7 +1366,7 @@ const WORLD_DEF = [
   },
   {
     // 一騎打ち: 魔物の札の戦闘は必ず1体だけ (強敵並みに強く、戦果も群れの分だけ持つ)
-    id: "ws19", realm: "arena", lv: 101, lvTo: 105, layer: 11, floors: 10, side: true,
+    id: "ws19", lv: 101, lvTo: 105, layer: 11, floors: 10, side: true,
     floorHaz: { fall: "arenatrap", harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.108, 5: 0.116, 10: 0.125 },
     name: "決闘の小円形場", short: "決闘場",
@@ -1388,9 +1378,10 @@ const WORLD_DEF = [
     elites: ["el_dragonslayer"],
     trait: {
       id: "duel", name: "一騎打ち", sym: "⋈", accent: "#d0a0a0",
-      lines: ["決闘場の試合は一対一。魔物の札の戦闘には必ず1体だけが現れ、その1体は強敵並みに強い (戦果も群れの分だけ持つ)。", "決闘の賭け金が砂に残り、得られる金貨は 1.3倍。"],
+      lines: ["決闘場の試合は一対一。魔物の札の戦闘には必ず1体だけが現れ、その1体は強敵並みに強い (戦果も群れの分だけ持つ)。", "亡き観客が見ている。戦闘が始まるたび観客の注文がひとつ出て (3ターン以内に勝て・誰も倒れずに勝て…)、応えて勝てばその戦闘の ✦Soul と金貨が 1.5倍。", "決闘の賭け金が砂に残り、得られる金貨は 1.3倍。"],
       mods: { goldMul: 1.3 },
       duel: true,
+      audience: true,
     },
     tune: { enemyMul: 1.00, deepMul: 0.86, soloMul: 1.00 },
     unlock: { quest: "fq_fencer" },
@@ -1398,7 +1389,7 @@ const WORLD_DEF = [
   },
   {
     // 層の主 (大空洞の主) の寝床。主のいる寄り道 (沈んだ礼拝堂 ws1 と同じ形)。宝箱は1階に1つ、その代わり上等
-    id: "ws20", realm: "gloom", lv: 111, lvTo: 115, layer: 12, floors: 10, side: true,
+    id: "ws20", lv: 111, lvTo: 115, layer: 12, floors: 10, side: true,
     floorHaz: { fall: null, harm: "bonegrit" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.099, 5: 0.106, 10: 0.114 },
     name: "大空洞の主の寝床", short: "主の寝床",
@@ -1409,9 +1400,10 @@ const WORLD_DEF = [
     ],
     trait: {
       id: "beasthoard", name: "巨獣の宝", sym: "◆", accent: "#c8a060",
-      lines: ["巨獣は光るものを一つだけ寝床に抱えこむ。宝箱は1階に1つしかないが、中身は2ランク上等。"],
+      lines: ["巨獣は光るものを一つだけ寝床に抱えこむ。宝箱は1階に1つしかないが、中身は2ランク上等。", "光の届かない地の底では、目が闇に慣れるまで刃が泳ぐ。戦闘が始まるたび、隊の全員の命中が下がる (3ターン)。"],
       mods: { chestRankUp: 2 },
       oneChest: true,
+      gloom: 0.15, say: "底なしの闇に目がくらむ",
     },
     boss: LAYER_BOSS[11], bossRank: 10,
     tune: { enemyMul: 1.00, deepMul: 0.84, soloMul: 1.00, bossMul: 0.85 },
@@ -1421,7 +1413,7 @@ const WORLD_DEF = [
   {
     // 格上の迷宮: 第十章 (隊は Lv110〜120) で開くが、推奨Lv は 135〜139。第12層の魔物を、層の約1.5倍の強さに引き上げた。
     // 強い掟「閉ざされた門」(帰還魔法陣も帰還の鈴も無い — 最下階に着くか全滅するまで出られない) は格上の迷宮だけの掟
-    id: "ws21", realm: "gloom", lv: 135, lvTo: 139, layer: 12, floors: 10, side: true, challenge: true,
+    id: "ws21", lv: 135, lvTo: 139, layer: 12, floors: 10, side: true, challenge: true,
     floorHaz: { fall: "fossilcrack", harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.136, 5: 0.142, 10: 0.149 },
     name: "化石竜の墓所", short: "化石竜の墓所",
@@ -1433,16 +1425,17 @@ const WORLD_DEF = [
     elites: ["el_oremaw"],
     trait: {
       id: "sealedgate", name: "閉ざされた門", sym: "⊘", accent: "#c09060",
-      lines: ["骨の道に帰還魔法陣は無く、帰還の鈴も鳴らない。最下階に着くか全滅するまで、外へは出られない。", "太古の魂が骨に眠り、得る ✦Soul は 1.3倍・宝箱は1ランク上等。"],
+      lines: ["骨の道に帰還魔法陣は無く、帰還の鈴も鳴らない。最下階に着くか全滅するまで、外へは出られない。", "光の届かない地の底では、目が闇に慣れるまで刃が泳ぐ。戦闘が始まるたび、隊の全員の命中が下がる (3ターン)。", "太古の魂が骨に眠り、得る ✦Soul は 1.3倍・宝箱は1ランク上等。"],
       mods: { soulMul: 1.3, chestRankUp: 1 },
       sealedGate: true,
+      gloom: 0.15, say: "底なしの闇に目がくらむ",
     },
     tune: { enemyMul: 1.00, deepMul: 0.84, soloMul: 1.05 },
     unlock: { quest: "fq_fossil" },
     hint: "酒場の骨を調べる学者の依頼「竜の骨の歌」を受けると、道が示される",
   },
   {
-    id: "ws22", realm: "gloom", lv: 114, lvTo: 118, layer: 12, floors: 10, side: true,
+    id: "ws22", lv: 114, lvTo: 118, layer: 12, floors: 10, side: true,
     floorHaz: { fall: null, harm: "crystalthorn" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.097, 5: 0.104, 10: 0.1125 },
     name: "水晶の鉱脈", short: "鉱脈",
@@ -1454,9 +1447,10 @@ const WORLD_DEF = [
     elites: ["el_oremaw"],
     trait: {
       id: "clearcrystal", name: "澄んだ水晶の光", sym: "◇", accent: "#a0c8f0",
-      lines: ["水晶の光が品の正体を照らし出す。この迷宮で拾う品は、はじめから鑑定済み。", "光に群がる魔物は、必ず3体以上の群れで現れる。"],
+      lines: ["水晶の光が品の正体を照らし出す。この迷宮で拾う品は、はじめから鑑定済み。", "光の届かない地の底では、目が闇に慣れるまで刃が泳ぐ。戦闘が始まるたび、隊の全員の命中が下がる (3ターン)。", "光に群がる魔物は、必ず3体以上の群れで現れる。"],
       mods: { packMin: 3 },
       appraised: true,
+      gloom: 0.15, say: "底なしの闇に目がくらむ",
     },
     tune: { enemyMul: 0.96, deepMul: 0.84, soloMul: 1.00 }, // 群れの分だけ1体ずつを控えめに
     unlock: { quest: "fq_gemcutter" },
@@ -1553,7 +1547,6 @@ function build(def) {
   cfg.pool = [...def.bands[0]];
   cfg.deepPool = def.bands.length > 1 ? def.bands.slice(1).flat() : [...def.bands[0]];
   cfg.tune = def.tune ? { ...def.tune } : null;
-  cfg.realmRule = def.realm ? REALM_RULES[def.realm] : null; // 土地の掟 (game.js dungeonRealm)
   cfg.power = { ...def.power };
   // 落とし物の帯は推奨Lv の1階 (lv) から最下階 (lvTo) まで広がる (game.js が階の深さで帯の中を補間する)
   cfg.lootLv = lootBand(def.lv, def.lvTo);
@@ -1682,11 +1675,6 @@ export function strengthAt(cfg, floor = 1) { return powerAt(cfg, floor) * lvPow(
 
 // 検証: id の重複・素体の欠け・出現表の空
 {
-  // 土地の掟: 名・説明と、開幕の効果だけを持つ (強い掟は土地の掟にしない — 格上の迷宮の掟にする)
-  for (const [k, r] of Object.entries(REALM_RULES)) {
-    if (r.id !== k || !r.name || !Array.isArray(r.lines)) throw new Error(`world: 土地の掟 ${k} は id/name/lines が要る`);
-    for (const f of Object.keys(r)) if (!REALM_FIELDS.includes(f)) throw new Error(`world: 土地の掟 ${k} に使えない欄 ${f}`);
-  }
   for (const [L, k] of Object.entries(LAYER_WALL)) {
     if (!(Number(L) >= PART2_LAYER && Number(L) <= 20) || !(k >= 1)) throw new Error(`world: 第二部の壁 ${L} は第13〜20層・1以上`);
   }
@@ -1709,9 +1697,12 @@ export function strengthAt(cfg, floor = 1) { return powerAt(cfg, floor) * lvPow(
     if (d.trait) {
       const t = d.trait;
       if (!t.id || !t.name || !Array.isArray(t.lines)) throw new Error(`world: ${d.id} trait needs id/name/lines`);
-      for (const k of Object.keys(t)) if (!["id", "name", "sym", "accent", "lines", "mods", "eliteRate", "board", "specialRate", "victoryHeal", "foeRegen", "mpDrain", "hpDrain", "metalRate", "metalMax", "chill", "physOnly", "alwaysAmbush", "poisonStart", "boltStart", "allHaste", "say", "foeRally", "fervor", "duel", "foeRise", "whisper", "shell", "soulFeast", "oneChest", "sealedGate", "appraised"].includes(k)) throw new Error(`world: ${d.id} trait has unknown field ${k}`);
+      for (const k of Object.keys(t)) if (!["id", "name", "sym", "accent", "lines", "mods", "eliteRate", "board", "specialRate", "victoryHeal", "foeRegen", "mpDrain", "hpDrain", "metalRate", "metalMax", "chill", "physOnly", "alwaysAmbush", "poisonStart", "boltStart", "allHaste", "say", "audience", "gloom", "foeRally", "fervor", "duel", "foeRise", "whisper", "shell", "soulFeast", "oneChest", "sealedGate", "appraised"].includes(k)) throw new Error(`world: ${d.id} trait has unknown field ${k}`);
     }
-    if (d.realm != null && !REALM_RULES[d.realm]) throw new Error(`world: ${d.id} の土地の掟 (realm) が不明 (${d.realm})`);
+    if (d.realm != null) throw new Error(`world: ${d.id} の realm は廃止 (土地の掟は迷宮の掟に統合した)`);
+    if (d.trait && d.trait.say && typeof d.trait.say === "object") {
+      for (const k of Object.keys(d.trait.say)) if (!(d.trait[k] > 0)) throw new Error(`world: ${d.id} trait.say.${k} に対応する開幕の効果が無い`);
+    }
     for (const k of d.elites || []) if (!BESTIARY[k]) throw new Error(`world: ${d.id} unknown elite ${k}`);
     // 足元の仕掛け: 迷宮ごとに必ず決める (置かないなら null)。掟の盤面加工が敷く仕掛けは、その迷宮で置いている種類に限る
     const fh = d.floorHaz;

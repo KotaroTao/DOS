@@ -284,6 +284,8 @@
 .pc-vial.mp .pc-num { font-size: 8.5px; color: #e6f6ff; }
 .pc-num small { font-size: 0.82em; opacity: 0.72; margin-left: 1px; }
 .pc .buffs { grid-area: bf; display: flex; flex-wrap: wrap; gap: 2px; margin-top: 0; }
+/* 戦闘中は札が無くても1行ぶんの高さを取っておく (札が付くたびに隊の札が伸びて記録欄を潰さないように) */
+#app.in-combat .pc .buffs { min-height: 15px; }
 .pc .buffs .bf { display: inline-flex; align-items: center; gap: 1px; font-size: 8.5px; font-weight: 800; line-height: 1; padding: 2px 3px; border-radius: 2px; border: 1px solid; }
 .pc .buffs .bf b { font-size: 7.5px; margin-left: 1px; opacity: 0.85; }
 .pc .buffs .bf.up { color: #8ff0b0; border-color: #2e6b48; background: rgba(30,80,50,0.4); }

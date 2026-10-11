@@ -10,8 +10,10 @@ import { spriteCanvas, crispCanvas, drawPhoto, photoReady, whenPhoto, setSpriteR
 import { makeItemSpriteResolver } from "./itemart/index.js";
 import {
   ITEMS, SLOTS, SLOT_LABEL, MAX_ITEMS, equip as equipItem, unequip as unequipItem, canEquip, canOffhand, slotKeyFor, lvToRank, RANGE_LABEL,
+  registerEquipLevel, equipLevelOf, equipLvShort, equipFailMsg,
   UNIDENT_SLOTS, itemName, applyForge, hasQuality, applyQuality, rollQuality, qualityMatters, itemAtQuality, QUALITY_MID, useWhere, useTarget, useHelps, useLines, useCureKinds, compareUse,
 } from "./items.js";
+import { equipLevelFor, LR_UNLOCK, LOOT_R_HEADROOM } from "./equiplevel.js";
 import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, permanentEventStats, eligibleEvents, pickEvent, onceKey, runEvent, eventFightWon } from "./events.js";
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { pickTavernCrowd, TALK_MAP } from "./tavern.js";
@@ -123,6 +125,8 @@ for (const id in ITEMS) {
   // 別途用意するランク表 (各アイテムの r20) が来たら差し替える。
   if (it.r20 == null) it.r20 = Math.max(1, Math.min(20, Math.ceil(it.lv / 10)));
 }
+// 装備できるLv (メイン魂の Lv がこれに届かない装備は付けられない。src/equiplevel.js が迷宮の台帳から決める)
+registerEquipLevel(equipLevelFor);
 
 // アイテムの格の表示名/色。装備はレア度 (コモン〜レジェンドレア) を、収集品などは従来のランクを使う
 // 収集品 (slot:"misc") にはランクが無い (格も色も付けない)
@@ -192,7 +196,6 @@ function lootBaseR() {
 // 出現上限: どんな補正を重ねても、装備は「基準R + LOOT_R_HEADROOM」を超えない。
 // 補正 (強敵・宝箱ランク・ミミック・特別階…) は上限の内側で上位の品を出やすくするだけで、
 // 層の敵を一足飛びに追い越す装備は出さない (第1層なら最大 R3 = 隠しLv30)
-const LOOT_R_HEADROOM = 2;
 function lootCapR() { return Math.min(20, lootBaseR() + LOOT_R_HEADROOM); }
 
 let _itemsByR = null;
@@ -296,7 +299,7 @@ function pickOfRarity(rar, centerR, capR = 20) {
         if ((ITEMS[id].layer || 0) > L) continue;
         const fj = ITEMS[id].forJob; // 職業専用装備は編成にいる職を強く優先
         // 編成の誰かが装備できる品を出やすくする (使えない新品ばかり拾わないように)
-        const usable = G.party.some((m) => m.alive !== undefined && canEquip(m, ITEMS[id]));
+        const usable = G.party.some((m) => m.alive !== undefined && canEquip(m, ITEMS[id], { anyLv: true }));
         const ww = w * (fj ? (G.party.some((m) => m.clsKey === fj) ? 6 : 1) : 1) * (usable ? 3 : 1);
         total += ww; acc.push([id, total]);
       }
@@ -396,7 +399,7 @@ function pickLR() {
 // ===== 職業専用LR の解禁深度 =====
 // LR (tier5以上 = 職業専用・全職共通の防具) は lootLv がティアの解禁値を超えてから LR の候補に入る。
 // 層の逸品 (tier1-4) は lrPool の層・出現上限の条件で候補
-const LR_UNLOCK = { 5: 40, 10: 90, 15: 140, 20: 190 }; // LR ティア → 解禁 lootLv
+// LR ティア → 解禁 lootLv は src/equiplevel.js の LR_UNLOCK (装備できるLv の表も同じ値で作る)
 let _exclIds = null;
 function exclIds() {
   if (!_exclIds) _exclIds = Object.keys(ITEMS).filter((id) => ITEMS[id].exclusive);
@@ -1172,6 +1175,8 @@ function infSwapSoul(d, uid) {
   d.primary = uid;
   recalcDoll(d);
   d.hp = Math.max(1, Math.min(hp, d.maxhp)); d.mp = Math.max(0, Math.min(mp, d.maxmp));
+  refreshEquipLevels(); // Lv の低い魂へ替えた: 装備できるLv に届かない装備は袋へ
+  d.hp = Math.max(1, Math.min(hp, d.maxhp)); d.mp = Math.max(0, Math.min(mp, d.maxmp));
   const s = soulByUid(uid);
   SFX.levelup(); buzz([0, 20, 40, 20]);
   log(`灯番が${d.name}の魂をつなぎ直した: ${before ? soulLabel(before) : "空"} → ${soulLabel(s)}。`, "win");
@@ -1492,18 +1497,13 @@ function dungeonTrait(cfg = null) {
   if (!cfg) { if (!inDungeon() || abyssActive() || G.rematch) return null; cfg = curDungeon(); }
   return (cfg && cfg.trait) || null;
 }
-// 土地の掟 (world.js REALM_RULES): 同じ土地の迷宮すべてに共通する掟 (灼熱・酷寒…)。迷宮の掟と重ねて効く
-function dungeonRealm(cfg = null) {
-  if (!cfg) { if (!inDungeon() || abyssActive() || G.rematch) return null; cfg = curDungeon(); }
-  return (cfg && cfg.realmRule) || null;
-}
-// 戦闘の開幕に効く掟 (土地の掟 → 迷宮の掟の順)。head = 開幕の演出で掲げる見出し
+// 戦闘の開幕に効く掟 (迷宮の掟 — 1つの迷宮に1つだけ)。head = 開幕の演出で掲げる見出し
 function openingRules() {
-  const out = [];
-  const rl = dungeonRealm(); if (rl) out.push({ ...rl, head: `土地の掟「${rl.name}」` });
-  const tr = dungeonTrait(); if (tr) out.push({ ...tr, head: `${abyssActive() ? "風の掟" : "迷宮の掟"}「${tr.name}」` });
-  return out;
+  const tr = dungeonTrait();
+  return tr ? [{ ...tr, head: `${abyssActive() ? "風の掟" : "迷宮の掟"}「${tr.name}」` }] : [];
 }
+// 掟の開幕の効果を記録に書く一文 (say は文字列か、効果を2つ持つ掟では効果ごとの文)
+function ruleSay(r, k) { return r.say && typeof r.say === "object" ? r.say[k] : r.say; }
 // 魔封じ (掟の physOnly): この迷宮では物理技のほかの技 (呪文・回復・強化・弱体・迷宮の術) を使えない。道具は使える
 function physOnlyHere() { const tr = dungeonTrait(); return !!(tr && tr.physOnly); }
 setSkillGate((k) => !physOnlyHere() || !!(SPELLS[k] && SPELLS[k].kind === "phys"));
@@ -1729,7 +1729,7 @@ function duelFoes(key) {
   e._duel = true;
   return [e];
 }
-// ===== 土地の掟「見世物の闘技場」の観客の注文 (第九章) =====
+// ===== 闘技場跡の迷宮の掟 (audience) — 観客の注文 (第九章) =====
 // 戦闘の開幕にひとつ選び、応えて勝てばその戦闘の ✦Soul・金貨を AUDIENCE_MUL 倍にする (endBattle)。
 // 判定は Battle.show (隊が使った技・会心・倒れた数) と、終わりのターン数・隊の HP。金属の魔物だけの戦いには出さない
 const AUDIENCE_MUL = 1.5;
@@ -1741,8 +1741,8 @@ const AUDIENCE_ORDERS = {
   hale:   { label: "隊のHPを半分以上残して勝て", ok: (b) => { const ps = b.party.filter((p) => p.maxhp); return ps.reduce((a, p) => a + Math.max(0, p.alive ? p.hp : 0), 0) >= ps.reduce((a, p) => a + p.maxhp, 0) * 0.5; } },
 };
 function audienceOrderFor(enemies) {
-  const rl = dungeonRealm();
-  if (!rl || !rl.audience || !enemies.length || enemies.every((e) => e.metal)) return null;
+  const tr = dungeonTrait();
+  if (!tr || !tr.audience || !enemies.length || enemies.every((e) => e.metal)) return null;
   const boss = enemies.some((e) => e.boss);
   const keys = Object.keys(AUDIENCE_ORDERS).filter((k) => !(boss && AUDIENCE_ORDERS[k].noBoss));
   return keys[rand(keys.length)];
@@ -2048,7 +2048,8 @@ const h01 = (a, b = 0) => { let h = Math.imul(a | 0, 374761393) ^ Math.imul(b | 
 const appEl = document.getElementById("app");
 const screenEl = document.getElementById("screen");
 const topbarEl = document.getElementById("topbar");
-const LOG_MIN_BOARD = 84, LOG_MIN_COMBAT = 46, MENU_RESERVE = 166;
+// 戦闘の記録欄は最低でも4行ほど読めるように (46 = 1〜2行では、何が起きたか読めなかった — 2026-10 ユーザーの指示)
+const LOG_MIN_BOARD = 84, LOG_MIN_COMBAT = 94, MENU_RESERVE = 166;
 const TURN_ORDER_H = 31; // 戦闘の行動順の帯 (#turn-order) の高さ + 下の余白。記録欄を削らず戦場の側で詰める
 let _fitKey = "";
 function outerH(e) {
@@ -2072,7 +2073,8 @@ function fitView(force = false) {
     + (csH ? (parseFloat(csH.paddingTop) || 0) + (parseFloat(csH.paddingBottom) || 0) : 0);
   if (combat) used += MENU_RESERVE + LOG_MIN_COMBAT + TURN_ORDER_H;
   else used += outerH(runbarEl) + outerH(ctrlEl) + LOG_MIN_BOARD;
-  const h = Math.max(cssW * 0.56, Math.min(cssW * (combat ? 0.98 : 1.32), appH - used));
+  // 戦場は小さい画面では横幅の0.5倍 (論理の高さ 240) まで詰めて、記録欄に場所を残す
+  const h = Math.max(cssW * (combat ? 0.5 : 0.56), Math.min(cssW * (combat ? 0.98 : 1.32), appH - used));
   const vh = Math.max(240, Math.round((VW * h) / cssW));
   const cssH = (vh * cssW) / VW;
   const dpr = Math.max(1, window.devicePixelRatio || 1);
@@ -6284,9 +6286,7 @@ function eventFacts() {
   const ic = ICONS.event;
   const fe = (G.board && G.board.ev) || {};
   const fl = (G.events && G.events.flags) || {};
-  // 土地の掟・迷宮の掟 (この迷宮のあいだずっと)
-  const rl = dungeonRealm();
-  if (rl) out.push({ tone: "gold", icon: ICONS.portal, title: `土地の掟「${rl.name}」`, accent: rl.accent || "#c9a26a", lines: rl.lines });
+  // 迷宮の掟 (この迷宮のあいだずっと)
   const tr = dungeonTrait();
   if (tr) out.push({ tone: "gold", icon: ICONS.portal, title: `迷宮の掟「${tr.name}」`, accent: tr.accent || "#c9a26a", lines: tr.lines });
   // 浮遊の術 (出来事ではないが、いまの階の性質として並べる)
@@ -7734,6 +7734,14 @@ function presentTrap(res, fin, sink = boardSink()) {
 // 宝箱の中身 (ゴールド/装備品/収集品)。cRank: 宝箱ランク (1-5、高いほど豪華)
 // lvBonus: ミミック撃破後の宝箱などのアイテムレベル底上げ。
 // cell.lootBonus: 特別階 (伝説の眠る階) の「伝説の宝箱」— 中身は必ず装備品で +40レベル
+// 宝箱の金貨 (runGainGold へ渡す半減前の値): 推奨Lv の普通の1戦の金貨 (refGold) × CHEST_GOLD_BATTLES × 宝箱ランク × 揺らぎ。
+// 以前の式 (階 × 迷宮の格) は推奨Lv に付いていかず、第6層では1戦の2割ほどしかなかった。第一章 (第1層) は旧式の方が多いので下限に残す
+const CHEST_GOLD_BATTLES = 1.2;
+function chestGoldRaw(rankMul) {
+  const old = (10 + (G.floor || 1) * 12 + rand(30)) * (1 + ((activeCfg().rank || 1) - 1) * 0.5);
+  const byLv = refGold(levelHere().lv) * CHEST_GOLD_BATTLES * (0.8 + Math.random() * 0.4);
+  return Math.round(Math.max(old, byLv) * rankMul * 2);
+}
 function chestContents(cell, done, cRank = 1, lvBonus = 0, noGold = false, sink = boardSink()) {
   // 特別階 (からくり錠の宝物庫): 中身の装備の質が上がる (chestLootLv)・金貨にならない (chestNoGold)
   const lootUp = (lvBonus || 0) + ((cell && cell.lootBonus) || 0) + sfNum("chestLootLv", 0);
@@ -7745,8 +7753,7 @@ function chestContents(cell, done, cRank = 1, lvBonus = 0, noGold = false, sink 
   // 伝説の宝箱・ミミック宝箱はゴールドにならず、必ず装備品が出る
   if (!legendary && !noGold && Math.random() < 0.5) {
     SFX.chest();
-    const dRank = activeCfg().rank || 1;
-    const g = runGainGold(Math.round((10 + G.floor * 12 + rand(30)) * (1 + (dRank - 1) * 0.5) * rankMul * 2), "ch");
+    const g = runGainGold(chestGoldRaw(rankMul), "ch");
     updateTopbar();
     log(`宝箱から 💰${g} を手に入れた！`, "win");
     sink.gold(g, "宝箱");
@@ -8032,8 +8039,7 @@ function startBattleMeasured(enemies, cell) {
   const mutEm = (mutDef() && mutDef().enemyMul) || 1;
   if (mutEm !== 1) for (const e of enemies) if (!specialModifierEnemy(e)) { e._agiMul = mutEm; e.agi = Math.max(1, Math.round(e.agi * mutEm)); }
   G.battleCell = cell;
-  // 掟 (土地の掟 → 迷宮の掟) の開幕の効果: 敵の再生 (foeRegen) / 隊の MP を奪う (mpDrain) / 隊の HP を焼く (hpDrain)。
-  // 同じ効果を両方が持てば、掟ごとに順に効く (足し合う)
+  // 迷宮の掟の開幕の効果: 敵の再生 (foeRegen) / 隊の MP を奪う (mpDrain) / 隊の HP を焼く (hpDrain)
   const trB = dungeonTrait();
   const ruleOpens = openingRules();
   // 掟が開幕に隊へ及ぼしたもの: ログだけでは分かりにくいので、開幕の演出の後に隊の札の上で見せる (playTraitOpening)
@@ -8044,14 +8050,14 @@ function startBattleMeasured(enemies, cell) {
     let drained = 0;
     const hits = [];
     for (const p of G.party) if (p.alive && p.mp > 0) { const d = Math.min(p.mp, Math.ceil(p.maxmp * r.mpDrain)); traitOpenHold(p); drained += d; p.mp -= d; hits.push({ p, text: "MP-" + d, color: "#7fb8ff" }); }
-    if (drained) { log(`${r.say || `${r.head}が隊の魔力を奪った`} (MP -${drained})。`, "dmg"); trOpen.steps.push({ kind: "mp", head: r.head, accent: r.accent, label: r.name, hits }); }
+    if (drained) { log(`${ruleSay(r, "mpDrain") || `${r.head}が隊の魔力を奪った`} (MP -${drained})。`, "dmg"); trOpen.steps.push({ kind: "mp", head: r.head, accent: r.accent, label: r.name, hits }); }
   }
   // HP1 より下にはならない
   for (const r of ruleOpens) if (r.hpDrain) {
     let burnt = 0;
     const hits = [];
     for (const p of G.party) if (p.alive && p.hp > 1) { const d = Math.min(p.hp - 1, Math.ceil(p.maxhp * r.hpDrain)); traitOpenHold(p); burnt += d; p.hp -= d; hits.push({ p, text: String(d), dmg: true }); }
-    if (burnt) { log(`${r.say || `${r.head}が隊を焼いた`} (HP -${burnt})。`, "dmg"); trOpen.steps.push({ kind: "heat", head: r.head, accent: r.accent, label: r.name, hits }); }
+    if (burnt) { log(`${ruleSay(r, "hpDrain") || `${r.head}が隊を焼いた`} (HP -${burnt})。`, "dmg"); trOpen.steps.push({ kind: "heat", head: r.head, accent: r.accent, label: r.name, hits }); }
   }
   // 迷宮の掟: 疾風の巣 (trait.allHaste) — 敵はみな神速 (ターンの頭に動き、後半にもう一度動く)。主と金属の魔物は除く
   if (trB && trB.allHaste) for (const e of enemies) if (!e.boss && !e.metal && !e.haste) { e.haste = true; e.agi += 8; }
@@ -8126,19 +8132,18 @@ function startBattleMeasured(enemies, cell) {
   const modW = beginModWatch(true);
   G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot"), fleeK: fleeScale(), baseAgi: partyAgi(levelHere().lv), foeLv, fervor: !!(trB && trB.fervor), foeRise: (trB && trB.foeRise) || 0, soulFeast: (trB && trB.soulFeast) || 0 });
   tlWatchBattle(G.battle, tlWhere());
-  // 掟 (土地の掟 → 迷宮の掟) の開幕の効果: 寒さに身がすくむ (chill) — 隊の全員の AGI を段数ぶん下げる (3ターン)。
-  // 段は足し合う (酷寒 −1段 + 絶対零度 −1段 = −2段)
+  // 迷宮の掟の開幕の効果: 寒さに身がすくむ (chill) — 隊の全員の AGI を段数ぶん下げる (3ターン)
   for (const r of ruleOpens) if (r.chill) {
     const hits = [];
     for (const p of G.battle.party) if (p.alive) { G.battle._applyMod(p, "agi", Math.pow(0.8, r.chill), 3, r.name); hits.push({ p, text: `AGI${"▼".repeat(r.chill)}`, color: "#ff8a8a", buff: true }); }
-    log(`${r.say || `${r.head}が隊の足を鈍らせる`} (隊の AGI ▼${r.chill})。`, "dmg");
+    log(`${ruleSay(r, "chill") || `${r.head}が隊の足を鈍らせる`} (隊の AGI ▼${r.chill})。`, "dmg");
     if (trOpen && hits.length && !modW) trOpen.steps.push({ kind: "chill", head: r.head, accent: r.accent, label: r.name, hits });
   }
   // 底なしの闇 (gloom) — 戦闘の開幕に、隊の全員の命中が下がる (物理が外れる率をこの分だけ足す。3ターン)
   for (const r of ruleOpens) if (r.gloom > 0) {
     const hits = [];
     for (const p of G.battle.party) if (p.alive) { G.battle._applyMod(p, "hit", 1 - r.gloom, 3, r.name); hits.push({ p, text: "命中▼", color: "#c8b898", buff: true }); }
-    log(`${r.say || `${r.head}が隊の目をくらませる`} (隊の命中 ▼)。`, "dmg");
+    log(`${ruleSay(r, "gloom") || `${r.head}が隊の目をくらませる`} (隊の命中 ▼)。`, "dmg");
     if (trOpen && hits.length && !modW) trOpen.steps.push({ kind: "gloom", head: r.head, accent: r.accent, label: r.name, hits });
   }
   // 飢えた獣 (foeRally) — 戦闘の開幕に、敵全体の攻撃を段数だけ上げる (3ターン。主・金属の魔物は除く)
@@ -8161,7 +8166,7 @@ function startBattleMeasured(enemies, cell) {
       }
     }
     if (sick.length) {
-      log(`${r.say || r.head} ― ${sick.map((p) => p.name).join("・")}は毒に冒された。`, "dmg");
+      log(`${ruleSay(r, "poisonStart") || r.head} ― ${sick.map((p) => p.name).join("・")}は毒に冒された。`, "dmg");
       if (trOpen) trOpen.steps.push({ kind: "poison", head: r.head, accent: r.accent, label: r.name, hits: sick.map((p) => ({ p, text: "毒", color: "#b4f06a" })) });
     }
   }
@@ -8173,7 +8178,7 @@ function startBattleMeasured(enemies, cell) {
       const d = Math.min(p.hp - 1, Math.max(1, Math.ceil(p.maxhp * r.boltStart * (1 - partyBreathRes(p)))));
       traitOpenHold(p);
       p.hp -= d;
-      log(`${r.say || r.head} ― ${p.name}が焼かれた (HP -${d})。`, "dmg");
+      log(`${ruleSay(r, "boltStart") || r.head} ― ${p.name}が焼かれた (HP -${d})。`, "dmg");
       if (trOpen) trOpen.steps.push({ kind: "bolt", head: r.head, accent: r.accent, label: r.name, hits: [{ p, text: String(d), dmg: true }] });
       else flashScreen("#d8e0ff");
     }
@@ -8186,9 +8191,9 @@ function startBattleMeasured(enemies, cell) {
     if (Math.random() < r.whisper * (1 - G.battle._ailRes(p, "confuse"))) {
       traitOpenHold(p);
       p.mind = "confuse"; G.battle._holdAil(p, "mind");
-      log(`${r.say || r.head} ― ${p.name}は惑わされ、混乱した。`, "dmg");
+      log(`${ruleSay(r, "whisper") || r.head} ― ${p.name}は惑わされ、混乱した。`, "dmg");
       if (trOpen) trOpen.steps.push({ kind: "whisper", head: r.head, accent: r.accent, label: r.name, hits: [{ p, text: "混乱", color: "#c8a0ff" }] });
-    } else log(`${r.say || r.head} ― ${p.name}は耳をふさいで、惑わされなかった。`, "sys");
+    } else log(`${ruleSay(r, "whisper") || r.head} ― ${p.name}は耳をふさいで、惑わされなかった。`, "sys");
   }
   // 封じの殻 (shell) — 戦闘の開幕に、主・金属の魔物を除く敵の全員に障壁 (打撃を1回だけ半ば防ぐ) を張る
   for (const r of ruleOpens) if (r.shell > 0) {
@@ -8198,7 +8203,7 @@ function startBattleMeasured(enemies, cell) {
   }
   if (trB && trB.foeRise) log(`${trB.name} ― 倒れた魔物は、一度だけ起き上がってくる。`, "sys");
   if (trB && trB.fervor) log("観客の歓声が戦う者を煽る ― 2ターン目から、敵も味方も攻撃が上がっていく。", "sys");
-  // 土地の掟「見世物の闘技場」: 観客の注文をひとつ出す (応えて勝てば、この戦闘の ✦Soul・金貨 1.5倍 — endBattle)
+  // 闘技場跡の迷宮の掟 (audience): 観客の注文をひとつ出す (応えて勝てば、この戦闘の ✦Soul・金貨 1.5倍 — endBattle)
   G.battle.audience = audienceOrderFor(enemies);
   if (G.battle.audience) {
     const o = AUDIENCE_ORDERS[G.battle.audience];
@@ -10706,7 +10711,7 @@ function endBattleMeasured() {
     // 倒した敵から Soul(魂) を回収する。Soul が経験値の役割を兼ね、館での魂の強化に使う
     // 金運 (goldLuck) / 魂寄せ (soulLure) は戦闘報酬を底上げする (隊内最高Lvのみ)
     let { soul, gold } = b.rewards();
-    // 観客の注文 (土地の掟「見世物の闘技場」): 応えて勝てば、この戦闘の ✦Soul・金貨が増える
+    // 観客の注文 (闘技場跡の迷宮の掟): 応えて勝てば、この戦闘の ✦Soul・金貨が増える
     { const am = audienceJudge(b); if (am !== 1) { soul = Math.round(soul * am); gold = Math.round(gold * am); } }
     const gl = partyPassiveLv("goldLuck"), sl = partyPassiveLv("soulLure");
     // テスト記録の出どころ: 金属の魔物 / 主 / 精鋭等 / 通常の戦闘 (戦闘の記録の種類と同じ分け方)
@@ -11350,10 +11355,12 @@ function partyPortrait(p) {
 const BUFF_STAT_ICON = BUFF_KANJI; // 絵文字は使わず、敵のピルと同じ漢字の印
 const BUFF_STAT_LABEL = { atk: "STR", vit: "VIT", agi: "AGI", pie: "PIE", ...BUFF_NAME };
 function buffBadges(p) {
-  if (G.state !== "combat" || !p.alive) return "";
+  if (G.state !== "combat") return "";
+  // 戦闘中は札が無くても空の行を置く (戦場の高さは戦闘の始めに決まるので、強化・弱体が付いて札が伸びると記録欄が潰れる)
+  if (!p.alive) return `<div class="buffs"></div>`;
   const blood = chishioState(p);
   const effs = shownEffects(p);
-  if (!blood && (!effs || !effs.length)) return "";
+  if (!blood && (!effs || !effs.length)) return `<div class="buffs"></div>`;
   // (能力, 方向) ごとに集約: 段数 (STR〜PIE は −3〜+3 の段) と最短残ターンを出す
   let html = "";
   // たぎる血潮 (修羅): いまの段を「血▲▲3」で。数字は段数 (残りターンではない)
@@ -11474,6 +11481,7 @@ function renderTown() {
   renderRunbar(); // 街では隠す
   refreshOrderBonus(); // 編成・魂の付け替えで結社の席が変わっていれば、全員の能力を付け直す
   for (const d of fixHandsAndShields()) recalcDoll(d); // 二刀流を失った (サブ魂を外した・融合した) 人業の左手の武器は袋へ
+  refreshEquipLevels(); // メイン魂の Lv が装備できるLv に届かない装備は袋へ
   autosave(); // 街での操作のたびに保存 (描画はアクション後に呼ばれる)
   updateTopbar();
   playBgm(sceneBgm()); // 施設ごとのBGM (同じ曲なら継続)
@@ -11941,11 +11949,12 @@ function announceJobChange(d, before) {
   uiSoulPanel.celebrateJob(d);
 }
 
-// メイン魂を newCls に付け替えると装備できなくなる装備を列挙する ({key, item} の配列)
-function unequippableUnder(d, newCls) {
+// メイン魂を soul (魂の実体) に付け替えると装備できなくなる装備を列挙する ({key, item} の配列)。
+// 職で扱えない品と、新しいメイン魂の Lv では装備できるLv に届かない品
+function unequippableUnder(d, soul) {
   const bad = [];
-  if (!newCls || !d.equip) return bad;
-  const probe = { clsKey: newCls }; // canEquip は clsKey/align のみ参照 (人業に align は無い)
+  if (!soul || !soul.clsKey || !d.equip) return bad;
+  const probe = { clsKey: soul.clsKey, jobLv: soul.level || 1 }; // canEquip は clsKey/align/jobLv のみ参照 (人業に align は無い)
   for (const slot of SLOTS) {
     const it = d.equip[slot];
     if (it && !canEquip(probe, it)) bad.push({ key: slot, item: it });
@@ -12011,10 +12020,13 @@ function equipSoulToSlot(d, uid, slotId = "primary", done = null) {
   // (メイン魂をサブ魂の枠と入れ替える時は、その枠の魂が新しいメイン魂)
   const newMain = slotId === "primary" ? s : ownSoulSlot(d, uid) === "primary" ? slotSoul(d, slotId) : null;
   if (isNewEquip && newMain && d.primary !== newMain.uid) {
-    const bad = unequippableUnder(d, newMain.clsKey);
+    const bad = unequippableUnder(d, newMain);
     if (bad.length) {
       const free = MAX_ITEMS - d.items.length;
-      const names = bad.map((b) => `・${b.item.name}（${SLOT_LABEL[b.key] || b.key}）`);
+      const names = bad.map((b) => {
+        const need = equipLevelOf(b.item);
+        return `・${b.item.name}（${SLOT_LABEL[b.key] || b.key}${(newMain.level || 1) < need ? `・Lv${need}から` : ""}）`;
+      });
       if (bad.length > free) {
         // 外した装備を持ち物に入れる空きが足りない → 付け替えを中止
         SFX.ng();
@@ -12029,7 +12041,7 @@ function equipSoulToSlot(d, uid, slotId = "primary", done = null) {
       }
       kitConfirm({
         banner: "付け替え", title: `${soulLabel(newMain)} に付け替える？`,
-        lines: ["新しい職では次の装備を扱えないため、外して持ち物に戻す。", ...names],
+        lines: ["新しい職・メイン魂の Lv では次の装備を扱えないため、外して持ち物に戻す。", ...names],
         okLabel: "付け替える", danger: false,
       }).then((ok) => {
         if (!ok) return fin(false);
@@ -12065,7 +12077,7 @@ function soulTakePlan(d, uid, slotId = "primary") {
       else { const subs = [...(d.subs || [])]; subs[+slotId.slice(3)] = { uid, picks: [] }; d.subs = subs; }
       const c = soulByUid(curUid);
       const ok = c && !soulSlotConflict(holder, curUid, from) && !soulWornByOther(curUid, holder)
-        && (from !== "primary" || (soulRepresentatives().some((x) => x.uid === curUid) && !unequippableUnder(holder, c.clsKey).length));
+        && (from !== "primary" || (soulRepresentatives().some((x) => x.uid === curUid) && !unequippableUnder(holder, c).length));
       if (ok) give = c;
     } finally {
       [d.primary, d.subs, holder.primary, holder.subs] = keep;
@@ -13357,7 +13369,7 @@ function achNext(s) {
     [1, "賞金首を討つ者", 150, 1], [3, "名を刈る者", 400, 2], [6, "賞金稼ぎの鑑", 900, 4], [10, "名のある者の墓標", 2000, 8],
   ], (v) => `名のある強敵を ${v}種 討つ`, () => NAMED_IDS.filter((id) => codexKills(id) > 0).length, { more: step(5) });
 
-  // 宿敵の再戦 (第九章の結びで開く) — 記憶に勝った回数 / 観客の注文 (第九章の土地の掟) に応えた回数
+  // 宿敵の再戦 (第九章の結びで開く) — 記憶に勝った回数 / 観客の注文 (第九章の迷宮の掟) に応えた回数
   series("rematch", [
     [1, "記憶の挑戦者", 200, 1], [5, "砂上の常連", 500, 2], [15, "闘技場の花形", 1200, 4], [30, "不敗の記憶", 2400, 8],
   ], (v) => `宿敵の再戦で ${v}回 勝つ`, () => G.stats.rematchWins || 0, { more: step(25) });
@@ -14158,7 +14170,7 @@ function pickWeighted(list) {
   for (const [id, w] of list) { x -= w; if (x <= 0) return id; }
   return list[list.length - 1][0];
 }
-const usableByParty = (it) => G.party.some((m) => !m.isEmpty && canEquip(m, it));
+const usableByParty = (it) => G.party.some((m) => !m.isEmpty && canEquip(m, it, { anyLv: true }));
 // 褒賞のスーパーレア装備を選ぶ: 踏破した最深の迷宮の出現上限 (基準R + LOOT_R_HEADROOM) から下へ、6点以上の候補がそろうまで広げる。
 // 隊の誰かが装備できる品だけ (ほかの職の専用品は出さない)。上限に近いランクほど・隊の職の専用品ほど出やすい
 function pickTreasurySR() {
@@ -15999,7 +16011,7 @@ function itemFitsSlot(it, slotKey, p = null) {
 function equipAt(p, it, slotKey, owner = p, stashTo = null) {
   if (expeditionOf(p) || expeditionOf(owner) || expeditionOf(stashTo)) return { ok: false, msg: "遠征に出ている人業の装備・持ち物は動かせない" };
   if (!it || !itemFitsSlot(it, slotKey, p)) return { ok: false, msg: "その部位には装備できない" };
-  if (!canEquip(p, it)) return { ok: false, msg: it.unidentified ? "未鑑定の品は装備できない" : `${p.cls}は${it.name}を装備できない` };
+  if (!canEquip(p, it)) return { ok: false, msg: equipFailMsg(p, it) };
   const tr = autoEquip.trialEquip(p.equip, it, slotKey);
   if (!tr) {
     const pin = [p.equip[slotKey], it.slot === "weapon" && it.twoHanded ? p.equip.shield : null, slotKey === "shield" && p.equip.weapon && p.equip.weapon.twoHanded ? p.equip.weapon : null]
@@ -16030,7 +16042,7 @@ function equipFromWearer(p, it, slotKey, wearer) {
   if (it.cursed) return { ok: false, msg: `${it.name}は呪われていて外せない` };
   if (it.locked) return { ok: false, msg: `${it.name}はロック中 ― ロックを外すと付け替えられる` };
   if (!itemFitsSlot(it, slotKey, p)) return { ok: false, msg: "その部位には装備できない" };
-  if (!canEquip(p, it)) return { ok: false, msg: `${p.cls}は${it.name}を装備できない` };
+  if (!canEquip(p, it)) return { ok: false, msg: equipFailMsg(p, it) };
   const tr = autoEquip.trialEquip(p.equip, it, slotKey);
   if (!tr) {
     const pin = [p.equip[slotKey], it.slot === "weapon" && it.twoHanded ? p.equip.shield : null, slotKey === "shield" && p.equip.weapon && p.equip.weapon.twoHanded ? p.equip.weapon : null]
@@ -16800,7 +16812,7 @@ function fixHandsAndShields(offhand = true) {
     if (!sh || sh.cursed || (sh.slot === "weapon" && !offhand)) continue;
     const w = d.equip.weapon;
     const clash = w && w.twoHanded;
-    const bad = sh.slot === "weapon" ? !canOffhand(d, sh) : (d.clsKey && !canEquip(d, sh));
+    const bad = sh.slot === "weapon" ? !canOffhand(d, sh) : (d.clsKey && !canEquip(d, sh, { anyLv: true }));
     if (!clash && !bad) continue;
     d.equip.shield = null;
     if (!Array.isArray(d.items)) d.items = [];
@@ -16809,6 +16821,35 @@ function fixHandsAndShields(offhand = true) {
     moved.push(d);
   }
   return moved; // 左手・盾を外した人業 (能力の再計算は呼び出し側)
+}
+// 装備できるLv (src/equiplevel.js) に届かない装備を袋へ戻す: メイン魂を Lv の低い魂へ替えた・装備できるLv を入れる前の旧セーブ。
+// 呪いの品は外れない。魂の宿らない人業 (メイン魂を外しただけ) と遠征中の人業はそのまま (宿す時・帰った後に見る)。
+// 自分の袋が満杯なら隊・控えの空きのある袋へ (誰も空いていなければ自分の袋)。返り値 = [{ d, it }] (能力の再計算は呼び出し側)
+function fixEquipLevels() {
+  const all = [...(G.party || []), ...(G.reserve || [])].filter((d) => d && d.equip);
+  const moved = [];
+  for (const d of all) {
+    if (d.primary == null || expeditionOf(d)) continue;
+    for (const k of SLOTS) {
+      const it = d.equip[k];
+      if (!it || it.cursed || !equipLvShort(d, it)) continue;
+      d.equip[k] = null;
+      if (!Array.isArray(d.items)) d.items = [];
+      const room = d.items.length < MAX_ITEMS ? d : all.find((x) => Array.isArray(x.items) && x.items.length < MAX_ITEMS);
+      (room || d).items.push(it);
+      moved.push({ d, it });
+    }
+  }
+  return moved;
+}
+let _equipLvMoved = []; // 読み込みで外した装備 (街の描画で知らせる)
+function refreshEquipLevels() {
+  const moved = [..._equipLvMoved, ...fixEquipLevels()];
+  _equipLvMoved = [];
+  if (!moved.length) return;
+  for (const d of new Set(moved.map((m) => m.d))) { try { recalcDoll(d); } catch {} }
+  const names = moved.map((m) => `${m.d.name}の${m.it.name}（Lv${equipLevelOf(m.it)}から）`).join("・");
+  showToast(`メイン魂の Lv が装備できるLv に届かない装備を袋へ戻した ― ${names}`, { tone: "info", ms: 4200 });
 }
 
 // 旧ステータス体系 (こうげき/ぼうぎょ/すばやさ/AC) のセーブを六大ステへ移行する。
@@ -16957,6 +16998,8 @@ function loadGame() {
   }
   for (const d of fixHandsAndShields()) { try { recalcDoll(d); } catch {} } // 二刀流を失った人業の左手の武器 (魂の能力が出そろってから)
   normalizeExpeditions(); // 遠征 (後付け: 旧セーブは無し。人業の参照を控えにつなぎ直す)
+  _equipLvMoved = fixEquipLevels(); // 装備できるLv に届かない装備 (旧セーブ)。知らせは街の描画で
+  for (const d of new Set(_equipLvMoved.map((m) => m.d))) { try { recalcDoll(d); } catch {} }
   delete G.resonance; // 魂の共鳴は 2026-10 に取りやめ (旧セーブの記録は捨てる)
   if (!G.stats) G.stats = {};
   // 後付けの戦績フィールドを既存セーブにも補完する (勲章 cond が参照する)
@@ -17601,7 +17644,7 @@ function wireUI() {
     showChoice, closePrompt, showEvent, showConfirm, showToast, showItemGet, closeItemGet, showItemDetailPopup, showStoryScene,
     openStatus, closeStatus, openSettings, closeSettings, tryEnterDungeon, enterDungeon, returnToTown, confirmReturnToTown,
     tutorialAllowed, palaceCallReady, currentObjective, featureUnlocked, contentSealed, reportMainQuest, acceptMainQuest, reportPending, blockForReport, tutorialPending, blockForTutorial,
-    worldState, worldOpenIdx, pendingIreneBeat, playIreneBeat, dungeonLevel, FEATURES, featureNote, chaptersDone, storyGoal, currentChapter, dungeonTrait, dungeonRealm, dungeonFloorHaz,
+    worldState, worldOpenIdx, pendingIreneBeat, playIreneBeat, dungeonLevel, FEATURES, featureNote, chaptersDone, storyGoal, currentChapter, dungeonTrait, dungeonFloorHaz,
     trainSoul, raiseSoulCap, soulTrainCost, soulByUid, codexSeeItem, treasuryState, heldCollectibles, donateCollectible,
     claimAchievement, claimTreasury, treasuryRewardReady, deliveryHolder, deliveryStatus, deliverQuest,
     repairDoll, repairAllDolls, repairCostOf, tryHastenRescue, reviveTimerEl, fmtRemain, awaitingRescue, hastenCostOf,
@@ -17724,6 +17767,8 @@ function init() {
     UI, ops, nav, townshell,
     // 罠の解除の検証用
     trap: { disarmChance, disarmNeed, bestDisarmer, sfNum },
+    // 装備できるLv の検証用
+    equipLv: { equipLevelOf, fixEquipLevels, unequippableUnder, equipAt, ITEMS, cloneItem },
     // 出来事・記録の検証用
     evApi, runEvent, logHistory,
     // オート移動の検証用

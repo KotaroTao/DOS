@@ -18,11 +18,11 @@ import { el, sheet, toast, button, confirm, setText, glyph, plainText } from "./
 import { deltaFloat } from "./motion.js";
 import {
   statLines, isEquippable, equipPreviewDelta, gearScore as baseGearScore, itemCatText,
-  elemDetailLines, equipClassText, elemStatEq, elemStatShort, ailDetailLines, handLine, specialLines, weaponPerformanceEl, qualityTone,
+  elemDetailLines, equipClassText, equipLvText, elemStatEq, elemStatShort, ailDetailLines, handLine, specialLines, weaponPerformanceEl, qualityTone,
 } from "./itemview.js";
 import { spriteCanvas } from "../sprites.js";
 import { dollSprite, SOUL_CLASSES, canIdentify, identifyChance, identifyLabel, JOB_GEAR } from "../souls.js";
-import { ITEMS, itemName, canEquip, slotKeyFor, MAX_ITEMS, SLOTS, SLOT_LABEL, weaponRange, RANGE_LABEL, WEAPON_CAT_LABEL, useLines, hasQuality, qualityOf, qualityMatters, QUALITY_MID } from "../items.js";
+import { ITEMS, itemName, canEquip, equipLvShort, equipFailMsg, equipLevelOf, slotKeyFor, MAX_ITEMS, SLOTS, SLOT_LABEL, weaponRange, RANGE_LABEL, WEAPON_CAT_LABEL, useLines, hasQuality, qualityOf, qualityMatters, QUALITY_MID } from "../items.js";
 import { RARITIES, rarityKey } from "../rarity.js";
 
 // レア度ごとの入手演出: 見出し・振動・画面の閃光 (game.js の showItemGet から移設)
@@ -242,7 +242,7 @@ export function equipTo(d, it, { quiet = false } = {}) {
   return !!ok;
 }
 function equipFailReason(d, it) {
-  if (!canEquip(d, it)) return `${d.name} は ${it.name} を装備できない`;
+  if (!canEquip(d, it)) return equipLvShort(d, it) && canEquip(d, it, { anyLv: true }) ? equipFailMsg(d, it) : `${d.name} は ${it.name} を装備できない`;
   return `${d.name} の持ち物がいっぱいで入れ替えられない`;
 }
 
@@ -394,13 +394,15 @@ function localReason(d, it, { buy = false } = {}) {
   if (!isEquippable(it)) return "装備品でない";
   if (!inTown() && isReserve(d)) return "街にいる";
   if (equippedBy(d, it)) return "装備中";
-  if (!canEquip(d, it)) {
+  if (!canEquip(d, it, { anyLv: true })) {
     if (it.align && d.align && it.align !== "中立" && d.align !== "中立" && it.align !== d.align) return "属性";
     if (it.classes || it.forJob) return "職業";
     const gear = JOB_GEAR[d.clsKey];
     if (gear && it.weight && (ARMOR_RANK[it.weight] || 0) > (ARMOR_RANK[gear.armor] || 0)) return "重量";
     return "職業";
   }
+  const need = equipLvShort(d, it);
+  if (need) return `要Lv${need}`;
   if (it.slot === "shield" && d.equip.weapon && d.equip.weapon.twoHanded && d.equip.weapon.cursed) return "両手";
   if (it.slot === "weapon" && it.twoHanded && d.equip.shield && d.equip.shield.cursed) return "両手";
   const key = slotKeyFor(it, d);
@@ -875,7 +877,7 @@ export function itemSheet(item, o = {}) {
     // 並び (ユーザーの指示、2026-10): 細目 (装備の条件・片手/両手…) と説明文 → 攻撃性能 → 特殊効果 → 誰に装備させる？
     if (!it.unidentified) {
       const det = [];
-      if (isEquippable(it)) det.push(equipClassText(it));
+      if (isEquippable(it)) { det.push(equipClassText(it)); det.push(equipLvText(it)); }
       if (it.slot === "weapon") det.push(handLine(it));
       if (it.align) det.push(`${it.align}属性`);
       if (it.slot === "misc") det.push("王宮の宝物庫に奉納できる。商会では売れる。");

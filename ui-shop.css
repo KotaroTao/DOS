@@ -158,6 +158,8 @@
 .wpc-srow-meta { font-size: 11px; color: var(--ink-faint); letter-spacing: 0.06em; }
 .wpc-srow-l3 { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; font-size: 12px; min-height: 18px; }
 .wpc-srow-who { font-size: 11.5px; color: var(--ink-dim); white-space: nowrap; }
+.wpc-srow-lv { font-size: 11px; color: var(--ink-dim); white-space: nowrap; border: 1px solid currentColor; border-radius: 3px; padding: 0 4px; line-height: 1.45; }
+.wpc-srow-lv.ng { color: #e08a7a; }
 .wpc-buy { display: flex; align-items: center; padding: 8px 8px 8px 0; }
 .wpc-buy-main, .wpc-buy-more {
   display: inline-flex; align-items: center; justify-content: center; min-height: 54px;
