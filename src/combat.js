@@ -484,6 +484,9 @@ let _partyEvadeBonus = 0;
 export function setPartyEvadeBonus(v) { _partyEvadeBonus = Math.max(0, +v || 0); }
 // 手がかりの恵み (雷よけの書きつけ): 隊の全員のブレス耐性に足す割合。装備のブレス耐性と合わせて BREATH_RES_CAP まで
 let _partyBreathBonus = 0;
+// 手がかりの恵み (暗がりの目): 隊の全員の物理が外れる率から引く割合 (game.js syncClueBoons が渡す)
+let _partyHitBonus = 0;
+export function setPartyHitBonus(v) { _partyHitBonus = Math.max(0, +v || 0); }
 export function setPartyBreathBonus(v) { _partyBreathBonus = Math.max(0, +v || 0); }
 export function partyBreathRes(t) { return Math.min(BREATH_RES_CAP, (t.breathRes || 0) + (t.side === "party" ? _partyBreathBonus : 0)); }
 const elemSeen = (t) => !(t && t.side === "enemy" && _elemKnown && !_elemKnown(t));
@@ -641,6 +644,8 @@ export class Battle {
     this.bonusGold = 0; // 「盗む」で手に入れた金 (勝っても逃げても持ち帰る)
     this.tally = newTally(); // テスト記録用の集計 (命中・手番・逃走)。判定には使わない
     this.fervor = !!opts.fervor; // 迷宮の掟「高まる戦意」: 2ターン目から毎ターン、敵味方とも攻撃 +1段 (+3段まで)
+    this.foeRise = +opts.foeRise || 0;     // 迷宮の掟「起き上がる濁り魂」: 倒れた敵 (主・金属を除く) は一度だけ最大HPのこの割合で起き上がる
+    this.soulFeast = +opts.soulFeast || 0; // 迷宮の掟「魂喰らいの闇」: 人業を倒した敵は攻撃がこの段数だけ上がる (3ターン)
     this.show = { sp: 0, cr: 0, dd: 0 }; // 観客の注文 (土地の掟「見世物の闘技場」) の判定: 隊が使った技・会心・倒れた数。乱数には触れない
     for (const a of [...party, ...enemies]) { a.buffs = { atk: 1, vit: 1, agi: 1 }; a.effects = []; a._endureUsed = 0; a._grantEndure = false; a._fgUsed = 0; a._sgUsed = 0; a._ijiUsed = 0; a._kgUsed = 0; a._hpPre = a.hp; a._nailed = false; a._bloodTgt = null; a._bloodStack = 0; a._kyouhon = 0; a._giDone = false; a._againRound = 0; }
     for (const p of party) {
@@ -1452,6 +1457,7 @@ export class Battle {
     let missP = (0.06 + evade) * (1 - Math.min(1, Math.max(0, opt.acc || 0)));
     const blind = this._bm(actor, "hit");
     if (blind < 1) missP += Math.min(0.4, 1 - blind);
+    if (actor.side === "party" && _partyHitBonus) missP = Math.max(0, missP - _partyHitBonus); // 手がかりの恵み (暗がりの目)
     return missP;
   }
   // 見切り (parry) で物理を丸ごとかわす確率
@@ -3507,6 +3513,13 @@ export class Battle {
           return false;
         }
       }
+      // 起き上がる濁り魂 (迷宮の掟 foeRise): 倒れた敵は戦闘ごとに一度だけ起き上がる (主と金属の魔物は除く)
+      if (t.side === "enemy" && this.foeRise > 0 && !t.boss && !t.metal && !t._risen) {
+        t._risen = true; t.hp = Math.max(1, Math.round(t.maxhp * this.foeRise));
+        t.ailment = null; t.asleep = false; t.mind = null; t._ailN = null;
+        this.log(`${t.name}は濁った魂に引き起こされ、また立ち上がった！ (HP${t.hp})`, "dmg");
+        return false;
+      }
       t.hp = 0; t.alive = false; t.asleep = false; t.mind = null; t._ailN = null;
       if (t.side === "party" && this.show) this.show.dd++; // 観客の注文 (誰も倒れずに勝て)
       // 狂奔 (狂戦士のランク): 敵か仲間が倒れるたび STR +5% (段数の上限は _recalcBuffs)
@@ -3514,6 +3527,16 @@ export class Battle {
       // 討伐数はこの瞬間に数える (名前・HP の開示が戦闘中でもすぐ反映されるように。「〜を倒した！」より先)
       if (t.side === "enemy" && _onEnemyKilled) { try { _onEnemyKilled(t); } catch (er) { /* 記録の失敗で戦闘を止めない */ } }
       this.log(`${t.name}を倒した！`, t.side === "enemy" ? "win" : "dmg");
+      // 魂喰らいの闇 (迷宮の掟 soulFeast): 人業を倒した敵は、倒れた魂を喰らって攻撃が上がる
+      if (t.side === "party" && this.soulFeast > 0) {
+        const k = this._actor || this.current;
+        if (k && k.side === "enemy" && k.alive && !k.metal) {
+          this._quietMod = true;
+          const d = this._applyStage(k, "atk", this.soulFeast, 3, "魂喰らいの闇");
+          this._quietMod = false;
+          if (d > 0) this.log(`${k.name}は${t.name}の魂を喰らった！ (攻撃 ▲${d})`, "dmg");
+        }
+      }
       if (t.side === "enemy") this._perkKill(this._actor); // 固有パッシブ (kill)
       else this._perkFall(t); // 固有パッシブ (fall)
       // 殉教の祈り: 自分が倒れた時、味方全員を PIE で癒す (1戦闘1回)

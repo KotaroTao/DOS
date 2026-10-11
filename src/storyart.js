@@ -10,6 +10,7 @@
 //   第七章: splint = 師の添え木 (沼の岸) / crest = 一門の印の器 (器の捨て場) / reeds = 毒消しの書きつけ (葦原) / swamplord = よどみの主の記憶
 //   第八章: stick = 焼け焦げた杖 (螺旋階段の踊り場) / bell = 一門の鐘 (鐘楼) / rod = 雷よけの書きつけ (回廊の手すり) / stormlord = 嵐の主の記憶
 //   第九章: glove = 焦げた手袋 (雲を渡る石橋の欄干) / lamps = 灯籠の棚 (闘獣の檻) / nook = 灯番の子の寝床 (観客席の下) / arenalord = 闘技場の支配者の記憶
+//   第十章: polished = 磨かれた灯籠 (灯籠の吹き溜まり) / tags = 名を書いた札 (黒い灯の地底湖) / eyes = 暗がりの目 (名を刻む石窟) / moldern = 宰相モルデンの記憶
 // 画像ファイルは使わない。描き直すときは ux の確かめ用ページ (scratchpad) で拡大して目で見ること。
 import { Mask, Layer, PAL, Palette, ramp, R_NIGHT, R_BONE, R_SOUL, R_EMBER, R_BLOOD, R_FOG, R_WOOD, R_STEEL, R_SOULSTONE, R_DUSK,
   rc, mix, mulc, clamp, smooth, fbm, vnoise, h2, worley, rng } from "./pxpaint.js";
@@ -3889,6 +3890,457 @@ function sceneArenaLord() {
   return L.canvas(10, ARENA_PAL);
 }
 
+// ======================= 第十章「地底大空洞」 =======================
+// 闘技場の真ん中の穴の底に広がる、果ての見えない地底の大空洞。使い潰されて黒く濁った灯籠が、何百年も穴から落ち続けて山になる。
+// 共通のパレットには土の茶・灯の琥珀・濁った灯の鈍い青灰が乏しいので、岩と土 (R_EARTH)・琥珀 (R_AMBER)・濁った灯 (R_MURKLAMP) を
+// 足したパレット (CAVERN_PAL) で量子化する
+const R_EARTH = ramp(["#0a0807", "#120e0b", "#1a1510", "#241c15", "#30251b", "#3d3022", "#4b3b2a", "#5a4733", "#6b553e",
+  "#7e654b", "#93785a", "#aa8d6c", "#c2a582", "#dabd9c"]);
+const R_AMBER = ramp(["#1e1104", "#33200a", "#4c3010", "#684418", "#885a20", "#a8722a", "#c68c36", "#dea64a", "#f0c066",
+  "#fad890", "#fff0c4"]);
+const R_MURKLAMP = ramp(["#080a0c", "#0e1216", "#151b20", "#1d262c", "#27323a", "#334048", "#415058", "#526068", "#667478",
+  "#7e8a8a", "#9aa49e"]);
+export const CAVERN_PAL = new Palette([...PAL.cols, ...R_EARTH, ...R_AMBER, ...R_MURKLAMP]);
+const C_MURK = [0.42, 0.52, 0.56];                         // 濁った灯の鈍い光
+const C_SHAFT = [0.74, 0.7, 0.66];                         // 闘技場の穴から細く差す光
+const C_DEEP = [0.78, 0.8, 0.66];                          // 底のさらに下の、かすかな光
+const ALB_ROCK = [96, 80, 64], ALB_ROCK_D = [58, 48, 40], ALB_BRASS_D = [92, 74, 46], ALB_LINEN = [196, 182, 154];
+// 洞の岩肌 (横にのびる地層と、ところどころの割れ目)。領域いっぱい
+function caveRock(L, lights, x0, y0, x1, y1, seed, { sx = 0.06, sy = 0.16, amb = [0.06, 0.05, 0.05], dark = 0, ny = 0.2 } = {}) {
+  L.shade(x0, y0, x1, y1, (x, y) => {
+    const f = fbm(x * sx, y * sy, seed), st = Math.sin(y * 0.55 + fbm(x * 0.03, y * 0.05, seed + 1) * 9);
+    let alb = mix(ALB_ROCK_D, ALB_ROCK, clamp(f * 1.3 - 0.2 + st * 0.12));
+    if (vnoise(x * 0.25, y * 0.6, seed + 2) > 0.8 && f < 0.5) alb = mulc(alb, 0.45);            // 割れ目
+    if (dark) alb = mulc(alb, 1 - dark);
+    return lit(alb, lightAt(x, y, lights, 0, ny + (st > 0.6 ? -0.5 : 0)), amb);
+  });
+}
+// 下がるつらら石 (根もとが太く、先が細い)。上の縁 y0 から長さ len
+function stalactite(m, x, y0, len, w) { m.poly([x - w / 2, y0, x + w / 2, y0, x + w * 0.12, y0 + len * 0.8, x, y0 + len, x - w * 0.1, y0 + len * 0.75]); }
+// 手のひらほどの魂の灯籠 (取っ手の輪・笠・ガラスの火袋・台)。(cx, by) = 台の下端の中央、s = 大きさ、tilt = 傾き。
+// state: "dead" = 黒く濁りきったガラス / "murk" = 中で濁った魂がにぶく渦を巻く / "clear" = 磨かれて澄んだガラス (中の小さな魂の火が見える)
+function soulLamp(L, lights, cx, by, s, tilt, seed, { state = "dead", amb = [0.08, 0.07, 0.07], rim = null, emitK = 1 } = {}) {
+  const ca = Math.cos(tilt), sa = Math.sin(tilt);
+  const T = (u, v) => [cx + (u * ca - v * sa) * s, by + (u * sa + v * ca) * s];
+  const P = (pts) => { const o = []; for (let i = 0; i < pts.length; i += 2) o.push(...T(pts[i], pts[i + 1])); return o; };
+  const base = new Mask(L.w, L.h); base.poly(P([-2.7, 0, 2.7, 0, 2.4, -1.3, -2.4, -1.3]));
+  const glass = new Mask(L.w, L.h); glass.poly(P([-2, -1.3, 2, -1.3, 2, -6.5, -2, -6.5]));
+  const cap = new Mask(L.w, L.h); cap.poly(P([-2.9, -6.5, 2.9, -6.5, 1.2, -8, -1.2, -8]));
+  const hd = new Mask(L.w, L.h);
+  if (s >= 1.2) { hd.line(...T(-1, -8), ...T(-0.7, -9.8), Math.max(1, 0.5 * s)); hd.line(...T(-0.7, -9.8), ...T(0.7, -9.8), Math.max(1, 0.5 * s)); hd.line(...T(0.7, -9.8), ...T(1, -8), Math.max(1, 0.5 * s)); }
+  else hd.line(...T(0, -8), ...T(0, -9.4), 1);
+  const clean = state === "clear";
+  const brass = (x, y) => (clean ? mix([222, 176, 92], [150, 108, 52], vnoise(x * 0.9, y * 0.9, seed) * 0.6) : mix(ALB_BRASS_D, [50, 42, 34], vnoise(x * 0.7, y * 0.7, seed) * 0.8));
+  paintLit(L, hd, brass, lights, { nxMax: 1, amb });
+  paintLit(L, base, brass, lights, { nxMax: 3, amb });
+  paintLit(L, cap, brass, lights, { nxMax: 3, amb });
+  const gx0 = glass.x0, gx1 = glass.x1, gy0 = glass.y0, gy1 = glass.y1;
+  L.paint(glass, (x, y) => {
+    const u = (x - gx0 + 0.5) / Math.max(1, gx1 - gx0 + 1), v = (y - gy0 + 0.5) / Math.max(1, gy1 - gy0 + 1);
+    const l = lightAt(x, y, lights), edge = !glass.at(x - 1, y) || !glass.at(x + 1, y);
+    if (edge && s >= 1.4) return lit(brass(x, y), l, amb);                                     // 火袋の枠
+    if (state === "dead") {
+      const hi = u < 0.4 && v > 0.15 && v < 0.6 && s >= 0.9;
+      return hi ? lit([46, 44, 50], l, amb) : [6, 5, 7];
+    }
+    if (state === "murk") {
+      const n = vnoise(x * 0.9 + seed, y * 0.7, seed + 3);
+      const c = mix([16, 20, 24], [92, 108, 112], clamp(n * 1.3 - 0.2) * (0.45 + 0.55 * (1 - Math.abs(v - 0.55) * 1.6)));
+      return [c[0] * emitK + 6 * l[0], c[1] * emitK + 6 * l[1], c[2] * emitK + 6 * l[2]];
+    }
+    // 澄んだガラス: 奥の暗がりが透け、まんなかに小さな魂の火、灯の側に照り
+    const d = Math.hypot((u - 0.5) * 1.4, (v - 0.62) * 1.1);
+    let c = lit(mix([70, 66, 62], [30, 30, 34], v * 0.6), l, [0.16, 0.16, 0.18]);
+    if (d < 0.22) c = mix(c, [200, 255, 236], clamp(1 - d / 0.22) * 0.95);
+    else if (d < 0.38) c = mix(c, [90, 200, 176], (1 - (d - 0.22) / 0.16) * 0.6);
+    if (u > 0.12 && u < 0.3 && v > 0.12 && v < 0.85) c = mix(c, [236, 236, 228], 0.55);        // ガラスの照り
+    return c;
+  });
+  if (rim) { for (const m of [cap, base]) rimLight(L, m, lights, rim, 0.6); }
+  return { glass, T };
+}
+// 灯籠の山 (マスク heap の内側に、奥から手前へ灯籠を積む)。n = 数、sMin..sMax = 大きさ (下ほど大きい)
+function lampHeap(L, lights, heap, n, seed, { sMin = 0.5, sMax = 1.4, murk = 0.4, amb = [0.07, 0.06, 0.06], skip = null, ash = 0 } = {}) {
+  // 山の地肌 (割れたガラスと、ひしゃげた枠の暗い堆積)
+  L.paint(heap, (x, y) => {
+    const g = h2(x, y, seed);
+    const l = lightAt(x, y, lights, 0, -0.6);
+    if (g > 0.975) return lit([130, 130, 136], l, amb);                                         // ガラスのかけら
+    if (g > 0.94) return lit([86, 70, 46], l, amb);                                             // ひしゃげた真鍮
+    return lit(mix([30, 26, 26], [18, 16, 17], vnoise(x * 0.4, y * 0.4, seed)), l, amb);
+  });
+  const R = rng(seed + 1), pts = [];
+  for (let i = 0; i < n * 6 && pts.length < n; i++) {
+    const x = heap.x0 + R() * (heap.x1 - heap.x0), y = heap.y0 + R() * (heap.y1 - heap.y0 + 3);
+    if (!heap.at(x, y - 1) || (skip && skip(x, y))) continue;
+    pts.push([x, y, R(), R(), R()]);
+  }
+  pts.sort((a, b) => a[1] - b[1]);
+  for (const [x, y, r1, r2, r3] of pts) {
+    const t = clamp((y - heap.y0) / Math.max(1, heap.y1 - heap.y0)), s = sMin + (sMax - sMin) * t * (0.7 + r3 * 0.5);
+    const tilt = (r1 - 0.5) * 2.6 + (r1 > 0.9 ? 1.4 : 0);
+    soulLamp(L, lights, x, y, s, tilt, (seed + x * 7 + y * 13) | 0, { state: r2 < murk ? "murk" : "dead", amb, emitK: 0.8 });
+    if (r2 < murk * 0.5) glow(L, x - Math.sin(tilt) * 4 * s, y - Math.cos(tilt) * 4 * s, 3 + 3 * s, C_MURK, 0.14, 2);   // 濁った灯のにぶいにじみ
+    if (ash && R() < ash) for (let k = 0; k < 2; k++) L.px(x + (R() - 0.5) * 3 * s, y - 7 * s - R() * 2, lit([170, 162, 150], lightAt(x, y - 8 * s, lights), amb), 0.8);
+  }
+}
+// 師の書きつけ (石で押さえた紙)。(x, y) = 左上、w×h、ang = わずかな傾き。ink = 字の濃さ
+function oldNote(L, lights, x, y, w, h, seed, { ang = 0.04, amb = [0.3, 0.28, 0.26], stone = true } = {}) {
+  const note = new Mask(L.w, L.h);
+  note.poly([x, y + w * ang, x + w, y, x + w + 1, y + h, x + 1, y + h + w * ang]);
+  L.paint(note, (px, py) => {
+    const u = (px - x) / w, v = (py - y - (1 - u) * w * ang) / h;
+    const ink = v > 0.16 && v < 0.86 && u > 0.1 && u < 0.88 && Math.round(py - u * w * ang) % 3 === 0 && h2(px >> 1, py, seed) > 0.28;
+    const fold = Math.abs(u - 0.5) < 0.03;
+    return lit(ink ? [50, 42, 38] : fold ? mulc(ALB_PAPER, 0.82) : mix(ALB_PAPER, [176, 160, 122], vnoise(px * 0.5, py * 0.5, seed) * 0.5), lightAt(px, py, lights, 0, -0.9), amb);
+  });
+  for (let px = x + 1; px <= x + w + 1; px++) L.add(px, Math.round(y + h + 1 + (1 - (px - x) / w) * w * ang), [-24, -24, -22], 1);   // 紙の下の影
+  if (stone) { const st = new Mask(L.w, L.h); st.ellipse(x + w * 0.78, y + h * 0.3, 3.2, 2.2); paintLit(L, st, (px, py) => mix([110, 100, 92], [70, 62, 56], vnoise(px, py, seed + 5)), lights, { ny: (px, py) => vNormal(st, px, py, 2), amb }); }
+  return note;
+}
+
+// 41. 磨かれた灯籠 (果ての見えない大空洞の底。黒く濁った灯籠が山と積もり、天井の小さな穴 (闘技場の真ん中の穴) から細い光が
+//     山の頂へ差す。山の中腹に、一つだけ布で磨かれて澄んだガラスの灯籠。そばに石で押さえた師の書きつけ。灰の積もった地面に、
+//     灯を拾って歩いた者の足跡が山のふもとを回って奥へ続く)
+function scenePolished() {
+  const W = ART_W, H = ART_H, L = new Layer(W, H);
+  const HX = 66, PX = 122, PY = 74;                                  // 穴の真下 (山の頂)・磨かれた灯籠
+  const lights = [
+    { x: 176, y: 76, r: 150, c: C_CANDLE, k: 1.6, p: 1.3 },         // 手元のランタン (右手前)
+    { x: HX, y: 4, r: 110, c: C_SHAFT, k: 1.0, p: 1.2 },             // 穴から差す光
+    { x: 10, y: 100, r: 70, c: C_MURK, k: 0.35, p: 1.4 },            // 山の濁った灯のにぶい光
+    { x: PX, y: PY - 6, r: 34, c: C_SOUL, k: 0.32, p: 1.6 },         // 磨かれた灯籠の小さな火
+  ];
+  // 洞の奥の壁 (上ほど闇に沈む)。天井の穴のまわりだけ岩がわずかに照る
+  caveRock(L, lights, 0, 0, W - 1, H - 1, 1201, { amb: [0.07, 0.06, 0.06] });
+  L.shade(0, 0, W - 1, 60, (x, y) => [6, 5, 6, clamp(1 - y / 60) * 0.55 * clamp(Math.abs(x - HX) / 40)]);
+  // 天井のつらら石
+  { const m = new Mask(W, H), R = rng(1203); for (let i = 0; i < 16; i++) { const x = R() * W; if (Math.abs(x - HX) < 12) continue; stalactite(m, x, -1, 6 + R() * 22, 3 + R() * 7); }
+    paintLit(L, m, (x, y) => mix([70, 58, 48], [40, 34, 30], vnoise(x * 0.5, y * 0.2, 1205)), lights, { nxMax: 4, amb: [0.04, 0.035, 0.035] }); }
+  // 天井の穴 (闘技場の砂の真ん中の穴を、下から見上げる。ぎざぎざの縁と、外の淡い光)
+  { const m = new Mask(W, H); m.ellipse(HX, 1, 7, 3.4);
+    L.paint(m, (x, y) => (vnoise(x * 0.8, y, 1207) > 0.72 ? [70, 62, 56] : mix([226, 216, 200], [170, 160, 150], (y + 2) / 5)));
+    glow(L, HX, 2, 14, [0.8, 0.76, 0.7], 0.5, 2); }
+  // 穴から差す細い光の帯 (下へひろがりながら薄れる)
+  L.shade(HX - 40, 3, HX + 40, 66, (x, y) => {
+    const hw = 5 + (y - 3) * 0.24, d = Math.abs(x - HX - (y - 3) * 0.06) / hw;
+    if (d >= 1) return null;
+    L.add(x, y, [190, 182, 168], (1 - d) ** 1.3 * 0.32 * (1 - (y - 3) / 80));
+    return null;
+  });
+  // 遠くの灯籠の山 (左右の奥。闇に沈んだ影と、濁った灯の点)
+  for (const [cx, cy, rw, rh, sd] of [[18, 70, 34, 16, 1209], [176, 66, 40, 18, 1211], [146, 60, 22, 8, 1213]]) {
+    const m = new Mask(W, H); m.poly([cx - rw, cy + 4, cx - rw * 0.5, cy - rh * 0.6, cx, cy - rh, cx + rw * 0.6, cy - rh * 0.5, cx + rw, cy + 4]);
+    L.paint(m, (x, y) => mix([22, 19, 18], [12, 11, 11], vnoise(x * 0.3, y * 0.5, sd)));
+    const R = rng(sd); for (let i = 0; i < 26; i++) { const x = cx + (R() - 0.5) * rw * 1.8, y = cy - R() * rh; if (!m.at(x, y)) continue; const mk = R() < 0.35; L.px(x, y, mk ? [70, 84, 90] : [34, 32, 32]); if (mk && R() < 0.4) glow(L, x, y, 3, C_MURK, 0.15, 2); }
+  }
+  // 地面 (灰と、割れたガラス。手前ほどランタンに照る)
+  L.shade(0, 78, W - 1, H - 1, (x, y) => {
+    const n = fbm(x * 0.08, y * 0.3, 1215);
+    let alb = mix([86, 80, 74], [126, 120, 112], n);
+    if (h2(x, y, 1217) > 0.96) alb = [150, 150, 156];
+    return lit(alb, lightAt(x, y, lights, 0, -0.9), [0.05, 0.045, 0.045]);
+  });
+  // 足跡 (山のふもとを回って奥へ。灰に残る小さな楕円が二列に)
+  for (let k = 0; k < 16; k++) {
+    const t = k / 15, x = t < 0.45 ? 190 - t / 0.45 * 40 : 150 - (t - 0.45) / 0.55 * 52, y = t < 0.45 ? 80 + t / 0.45 * 8 : 88 + (t - 0.45) / 0.55 * 18, sd = k % 2 ? 1.2 : -1.2;
+    const fp = new Mask(W, H); fp.ellipse(x, y + sd, 1.8, 0.8);
+    L.paint(fp, (px, py) => lit([30, 27, 26], lightAt(px, py, lights), [0.05, 0.045, 0.045]));
+    L.px(x - 2, y + sd - 1, lit([150, 142, 132], lightAt(x, y, lights), [0.05, 0.045, 0.045]));   // 踏まれて盛り上がった灰の縁
+  }
+  // 灯籠の山 (穴の真下に頂。上ほど小さく、光の帯の中は灰をかぶる)
+  const heap = new Mask(W, H);
+  heap.poly([-6, 96, 10, 84, 30, 70, 46, 54, 58, 42, HX, 36, 76, 40, 92, 52, 110, 62, 132, 70, 146, 78, 152, 86, 146, 92, 124, 95, 100, 96, 60, 97, 20, 99, -6, 100]);
+  const inPolish = (x, y) => Math.hypot(x - PX, (y - PY) * 1.2) < 11;
+  lampHeap(L, lights, heap, 150, 1219, { sMin: 0.8, sMax: 2.3, murk: 0.4, skip: inPolish, ash: 0.35, amb: [0.1, 0.09, 0.09] });
+  // 光の帯の中の山の頂に積もる灰
+  { const R = rng(1221); for (let i = 0; i < 90; i++) { const x = HX + (R() - 0.5) * 34, y = 36 + R() * 30; if (!heap.at(x, y) || Math.abs(x - HX) > 6 + (y - 3) * 0.24) continue; L.px(x, y, [196, 190, 180], 0.7); } }
+  // 磨いた布 (灯籠の下に敷き、片端を山へ垂らす)
+  { const cl = new Mask(W, H); cl.poly([PX - 16, PY + 2, PX - 8, PY - 1, PX + 2, PY - 2, PX + 9, PY - 1, PX + 15, PY + 3, PX + 12, PY + 7, PX + 14, PY + 13, PX + 9, PY + 12, PX + 6, PY + 6, PX - 4, PY + 5, PX - 12, PY + 8]);
+    paintLit(L, cl, (x, y) => mix(ALB_LINEN, [130, 118, 100], (Math.sin(x * 0.9 + y * 0.6) * 0.5 + 0.5) * 0.5 + (h2(x, y, 1223) > 0.85 ? 0.3 : 0)), lights, { nxMax: 4, ny: (x, y) => vNormal(cl, x, y, 2) * 0.6, amb: [0.1, 0.1, 0.1] }); }
+  // 磨かれた灯籠 (澄んだガラスに小さな魂の火。真鍮の枠も磨かれて光る)
+  soulLamp(L, lights, PX, PY + 1, 2.4, -0.08, 1225, { state: "clear", amb: [0.12, 0.11, 0.11], rim: [255, 220, 160] });
+  glow(L, PX - 0.2, PY - 7, 12, C_SOUL, 0.32, 2);
+  // 石で押さえた師の書きつけ (山のふもと、平たい石の上)
+  { const rock = new Mask(W, H); rock.poly([150, 98, 158, 93, 178, 92, 188, 97, 184, 104, 154, 104]);
+    paintLit(L, rock, (x, y) => (y < 96 ? [118, 110, 100] : mix([70, 64, 58], [50, 46, 42], vnoise(x * 0.4, y * 0.5, 1227))), lights, { ny: (x, y) => (y < 96 ? -0.9 : 0.3), amb: [0.06, 0.055, 0.05] });
+    oldNote(L, lights, 157, 90, 18, 7, 1229, { ang: 0.05, amb: [0.32, 0.3, 0.28] }); }
+  // 穴から落ちてくる灯籠 (光の帯の中を、ひとつ)
+  soulLamp(L, lights, HX + 3, 22, 0.8, 0.7, 1231, { state: "dead", amb: [0.2, 0.2, 0.2] });
+  for (let k = 1; k < 5; k++) L.px(HX + 1, 14 - k * 2, [150, 146, 140], 0.4 - k * 0.07);
+  ashFall(L, 50, 1233, { x0: HX - 22, x1: HX + 26, y0: 4, y1: 70, a: 0.4, col: [200, 196, 188], inside: (x, y) => Math.abs(x - HX) < 5 + (y - 3) * 0.24 });
+  motes(L, lights, 30, 1235, [1.0, 0.86, 0.6]);
+  vignette(L, 0.84);
+  return L.canvas(11, CAVERN_PAL);
+}
+
+// 名を書いた木札 (灯籠の取っ手から紐で下げる)。(x, y) = 札の上端の中央、w×h。glyph = 字の大きさ (0 で字を書かない)。
+// 字はきれいにそろった細い筆 (宰相府の布告と同じ手)。一文字ずつ 3×4 の升に、縦一列に
+function woodTag(L, lights, x, y, w, h, seed, { amb = [0.14, 0.12, 0.1], ang = 0, glyph = 1, from = null } = {}) {
+  if (from) { const st = new Mask(L.w, L.h); dotLine(st, from[0], from[1], x, y); L.paint(st, (px, py) => lit([170, 150, 110], lightAt(px, py, lights), amb)); }
+  const m = new Mask(L.w, L.h), sa = Math.sin(ang);
+  m.poly([x - w / 2, y, x + w / 2, y + w * sa, x + w / 2 + h * sa * 0.2, y + h + w * sa, x - w / 2 + h * sa * 0.2, y + h]);
+  L.paint(m, (px, py) => {
+    const top = !m.at(px, py - 1), side = !m.at(px - 1, py);
+    const alb = mix([200, 172, 122], [150, 120, 80], vnoise(px * 0.4, py * 1.2, seed) * 0.6);
+    return lit(top || side ? mix(alb, [236, 214, 170], 0.4) : alb, lightAt(px, py, lights, -0.4, 0), amb);
+  });
+  if (glyph && w >= 5) {
+    const gx = Math.round(x - 1), n = Math.floor((h - 3) / 4.5);
+    for (let k = 0; k < n; k++) {
+      const gy = Math.round(y + 2 + k * 4.5 + (gx - x) * sa);
+      for (let j = 0; j < 4; j++) for (let i = 0; i < 3; i++) {
+        const on = j === 0 ? h2(k, i, seed) > 0.25 : i === 1 ? h2(k, j + 7, seed) > 0.2 : h2(k * 5 + j, i, seed + 3) > 0.62;
+        if (on) L.px(gx + i, gy + j, lit([34, 26, 24], lightAt(gx, gy, lights), [0.5, 0.45, 0.4]));
+      }
+    }
+  } else if (glyph && h >= 3) for (let j = 1; j < h - 1; j++) if (h2(j, 0, seed) > 0.35) L.px(x, y + j, [60, 46, 36], 0.8);
+  for (let py = Math.ceil(y + 1); py < y + h; py++) L.add(Math.round(x + w / 2 + 1), py, [-20, -20, -18], 1);   // 札の影
+  return m;
+}
+
+// 42. 名を書いた札 (黒い地底湖の岸。向こう岸にも手前の岸にも、濁った灯籠が何百と並び、一つずつに木札が結ばれている。
+//     札にはどれもきれいにそろった字で名が書いてある。黒い湖面には向こう岸の灯がにぶく映り、水の底にも沈んだ灯がかすかに光る)
+function sceneTags() {
+  const W = ART_W, H = ART_H, L = new Layer(W, H);
+  const FS = 44, NX = 60, NY = 101;                                   // 向こう岸の水際・手前のいちばん大きな灯籠
+  const edge = (x) => 80 + x * 0.05 + Math.sin(x * 0.07) * 1.5;      // 手前の岸の水際
+  const lights = [
+    { x: 18, y: 74, r: 150, c: C_CANDLE, k: 1.5, p: 1.35 },          // 手元のランタン (左手前)
+    { x: 120, y: 30, r: 110, c: C_MURK, k: 0.45, p: 1.3 },           // 向こう岸の灯の列のにぶい光
+    { x: 160, y: 84, r: 80, c: C_MURK, k: 0.5, p: 1.3 },             // 手前の列の濁った灯
+  ];
+  // 天井と向こうの壁 (闇へ沈む)
+  caveRock(L, lights, 0, 0, W - 1, FS, 1301, { amb: [0.05, 0.05, 0.05], sx: 0.05, sy: 0.12 });
+  L.shade(0, 0, W - 1, FS, (x, y) => [6, 6, 8, clamp(1 - y / 30) * 0.7]);
+  { const m = new Mask(W, H), R = rng(1303); for (let i = 0; i < 18; i++) stalactite(m, R() * W, -1, 5 + R() * 16, 2 + R() * 5);
+    paintLit(L, m, (x, y) => mix([60, 52, 46], [34, 30, 28], vnoise(x * 0.5, y * 0.2, 1305)), lights, { nxMax: 3, amb: [0.05, 0.05, 0.05] }); }
+  // 向こう岸の土手 (水際に灯籠が三列。奥の列ほど小さく、闇に溶ける)
+  const bank = new Mask(W, H); for (let x = 0; x < W; x++) { const t = FS - 7 - fbm(x * 0.05, 1, 1307) * 4; bank.rect(x, t, 1, FS + 1 - t); }
+  paintLit(L, bank, (x, y) => mix([60, 54, 48], [36, 32, 30], vnoise(x * 0.3, y * 0.6, 1309)), lights, { ny: () => -0.7, amb: [0.06, 0.06, 0.06] });
+  const R = rng(1311);
+  for (const [row, yo, s, step] of [[0, -5, 0.45, 3.2], [1, -2.5, 0.55, 3.6], [2, 0.6, 0.7, 4.4]]) {
+    for (let x = R() * step; x < W; x += step * (0.8 + R() * 0.4)) {
+      const mk = R() < 0.45, y = FS + yo - fbm(x * 0.05, 1, 1307) * 1.5 * (2 - row) * 0.5;
+      soulLamp(L, lights, x, y, s, (R() - 0.5) * 0.3, 1313 + row * 97 + x | 0, { state: mk ? "murk" : "dead", amb: [0.1, 0.1, 0.1], emitK: 1.4 });
+      L.px(x + 1.4 * s + 1, y - 2, [180, 160, 116], 0.35 + row * 0.25);   // 小さな札
+      if (mk) glow(L, x, y - 3 * s, 3 + s * 2, C_MURK, 0.16, 2);
+    }
+  }
+  // 黒い湖 (鏡のような水面。向こう岸の灯がにぶく映り、ゆるい波の筋が光る)
+  L.shade(0, FS + 1, W - 1, H - 1, (x, y) => {
+    const t = (y - FS) / (H - FS);
+    let c = mix([10, 12, 15], [4, 5, 7], t);
+    if (Math.sin(y * 1.3 + vnoise(x * 0.04, y * 0.2, 1315) * 14) > 0.93 && vnoise(x * 0.08, y, 1316) > 0.45) c = mix(c, [40, 46, 52], 0.5 * (1 - t));
+    return c;
+  });
+  reflect(L, bank, FS + 0.5, { k: 0.32, tint: [4, 6, 8], wob: 1.6, y1: 76 });
+  { const RR = rng(1317); for (let i = 0; i < 14; i++) { const x = RR() * W, y = FS + 12 + RR() * 22; L.px(x, y, [56, 70, 76], 0.7); L.px(x + 1, y, [40, 50, 56], 0.5); glow(L, x, y, 6, C_MURK, 0.1, 2); } }   // 水の底に沈んだ灯
+  // 手前の岸 (濡れた黒い岩と、水際の灰)
+  const shore = new Mask(W, H); for (let x = 0; x < W; x++) shore.rect(x, edge(x), 1, H - edge(x) + 1);
+  paintLit(L, shore, (x, y) => {
+    const d = y - edge(x);
+    if (d < 1.2) return [96, 104, 108];                                                       // 濡れた縁の照り
+    return mix([70, 62, 56], [44, 40, 38], vnoise(x * 0.2, y * 0.4, 1319) * 0.8);
+  }, lights, { ny: () => -0.8, amb: [0.06, 0.055, 0.05] });
+  // 手前の岸の灯籠の列 (水際に沿って奥へ。一つずつ札が結ばれる)
+  const near = [];
+  for (let x = 96; x < W + 6; x += 10 + h2(x, 1, 1321) * 4) near.push([x, edge(x) + 4 + h2(x, 2, 1321) * 3, 1.3 + h2(x, 3, 1321) * 0.4]);
+  for (let x = 102; x < W; x += 13 + h2(x, 4, 1321) * 4) near.push([x, edge(x) + 14 + h2(x, 5, 1321) * 4, 1.8 + h2(x, 6, 1321) * 0.4]);
+  near.push([22, edge(22) + 6, 1.6], [34, edge(34) + 13, 1.9], [84, edge(84) + 16, 2.2]);
+  near.sort((a, b) => a[1] - b[1]);
+  for (const [x, y, s] of near) {
+    const mk = h2(x, y, 1323) < 0.5;
+    const { T } = soulLamp(L, lights, x, y, s, (h2(x, 7, 1323) - 0.5) * 0.2, 1325 + x | 0, { state: mk ? "murk" : "dead", amb: [0.1, 0.09, 0.09], emitK: 1.3 });
+    const [hx, hy] = T(0.6, -9.6);
+    woodTag(L, lights, x + 4.2 * s, y - 6 * s, 2.4 * s, 4 * s, 1327 + x | 0, { from: [hx, hy], glyph: s > 1.7 ? 1 : 1, amb: [0.12, 0.11, 0.1] });
+    if (mk) glow(L, x, y - 4 * s, 4 * s, C_MURK, 0.14, 2);
+  }
+  // 手前のいちばん大きな灯籠と、きれいな字で名を書いた札
+  { const { T } = soulLamp(L, lights, NX, NY, 3.2, 0.04, 1329, { state: "murk", amb: [0.12, 0.11, 0.1], emitK: 1.0, rim: [255, 210, 150] });
+    glow(L, NX, NY - 12, 12, C_MURK, 0.2, 2);
+    const [hx, hy] = T(1, -9.8);
+    woodTag(L, lights, NX + 18, NY - 26, 9, 21, 1331, { from: [hx, hy], ang: 0.06, amb: [0.18, 0.16, 0.14] });
+    for (let k = 0; k < 4; k++) L.px(hx + 2 + k * 3, hy - 0.6 + k * 0.6 + (k > 1 ? 0.6 : 0), lit([190, 170, 126], lightAt(hx, hy, lights), [0.2, 0.18, 0.16]));   // 結び目からの紐
+  }
+  motes(L, lights, 24, 1333, [1.0, 0.86, 0.6]);
+  vignette(L, 0.82);
+  return L.canvas(11, CAVERN_PAL);
+}
+
+// 43. 暗がりの目 (名を刻む石窟。奥へ続く岩の壁一面に壁龕が並び、一つずつに濁った灯籠と、名を刻んだ石。灯は持ちこまず、
+//     濁った魂のにぶい光だけが壁を照らす。手前の床に、布をかぶせて火を落としたランタンと、石で押さえた師の書きつけ)
+function sceneEyes() {
+  const W = ART_W, H = ART_H, L = new Layer(W, H);
+  const VX = 176, VY = 40, WT = -4, WB = 84;                           // 消失点・手前の壁の上端と下端
+  const X = (z) => VX - VX / z, TOP = (z) => VY - (VY - WT) / z, BOT = (z) => VY + (WB - VY) / z;
+  const COLS = [1.08, 1.4, 1.78, 2.24, 2.8, 3.5, 4.4, 5.5, 7], ROWS = 3, NW = 0.24;
+  const C_NICHE = [0.46, 0.62, 0.6];
+  const yA = (z, v) => TOP(z) + (BOT(z) - TOP(z)) * v;
+  const vOf = (r) => [0.1 + r * 0.29, 0.1 + r * 0.29 + 0.21];
+  const empty = (ci, r) => h2(ci, r, 1401) < 0.16;
+  const lights = [];
+  for (let ci = 0; ci < COLS.length; ci++) for (let r = 0; r < ROWS; r++) {
+    if (empty(ci, r) || ci > 5) continue;
+    const z = COLS[ci] + NW / 2, [v0, v1] = vOf(r);
+    lights.push({ x: X(z) + 2, y: yA(z, (v0 + v1) / 2 + 0.03), r: 64 / Math.sqrt(z), c: C_NICHE, k: 0.8 / Math.sqrt(z), p: 1.5 });
+  }
+  lights.push({ x: 150, y: 46, r: 80, c: C_NICHE, k: 0.22, p: 1.3 });  // 奥の壁龕の群れのにじみ
+  lights.push({ x: 40, y: 80, r: 70, c: C_NICHE, k: 1.3, p: 1.3 });   // 手前の下の龕から床へこぼれる光
+  // 奥の闇 (消失点のあたり。石窟はさらに奥へ続く)
+  L.shade(0, 0, W - 1, H - 1, (x, y) => mix([10, 11, 12], [3, 3, 4], clamp(Math.hypot(x - VX, y - VY) / 90)));
+  // 天井と右の暗い壁
+  { const m = new Mask(W, H); m.poly([-1, -1, W, -1, W, VY - 20, VX, VY - 2, -1, WT]);
+    paintLit(L, m, (x, y) => mix([44, 40, 38], [20, 18, 18], vnoise(x * 0.2, y * 0.3, 1405)), lights, { ny: () => 0.8, amb: [0.03, 0.03, 0.03] });
+    const rw = new Mask(W, H); rw.poly([VX, VY - 2, W, VY - 20, W, VY + 30, VX, VY + 3]);
+    paintLit(L, rw, (x, y) => mix([40, 36, 34], [20, 18, 18], vnoise(x * 0.3, y * 0.3, 1406)), lights, { amb: [0.02, 0.02, 0.02] }); }
+  // 床 (平らに削られた岩。奥へ)
+  { const m = new Mask(W, H); m.poly([-1, WB, VX, VY + 3, W, VY + 30, W, H, -1, H]);
+    paintLit(L, m, (x, y) => mix([96, 90, 84], [60, 56, 52], vnoise(x * 0.15, y * 0.4, 1407)), lights, { ny: () => -0.9, amb: [0.03, 0.03, 0.03] }); }
+  // 壁 (手前から奥へ。岩を平らに削った面)
+  const wall = new Mask(W, H); for (let x = 0; x < VX - 1; x++) { const z = VX / (VX - x); wall.rect(x, TOP(z), 1, BOT(z) - TOP(z) + 1); }
+  paintLit(L, wall, (x, y) => {
+    const z = VX / (VX - x), v = (y - TOP(z)) / (BOT(z) - TOP(z));
+    let alb = mix([104, 96, 88], [70, 64, 58], fbm(z * 2, v * 6, 1409) * 0.8);
+    if (Math.abs(((v * 18) % 1) - 0.5) > 0.44 && z < 3) alb = mulc(alb, 0.75);                  // 削り跡の筋
+    return alb;
+  }, lights, { nxMax: 1, amb: [0.03, 0.03, 0.03] });
+  // 壁龕 (アーチ形のくぼみ。縁を石で囲み、中に濁った灯籠、下に名を刻んだ石)
+  for (let ci = COLS.length - 1; ci >= 0; ci--) for (let r = 0; r < ROWS; r++) {
+    const z0 = COLS[ci], z1 = z0 + NW, x0 = X(z0), x1 = X(z1), zc = (z0 + z1) / 2, [v0, v1] = vOf(r);
+    const arch = (inset) => {
+      const m = new Mask(W, H), a = inset / z0, top = v0 + inset * 0.012;
+      const pts = [x0 + a, yA(z0, v1)];
+      for (let k = 0; k <= 8; k++) { const t = k / 8, zz = z0 + (z1 - z0) * (a / (x1 - x0) + t * (1 - 2 * a / (x1 - x0))), vv = top + 0.06 * (1 - Math.sin(t * Math.PI)); pts.push(X(zz), yA(zz, vv)); }
+      pts.push(x1 - a, yA(z1, v1)); m.poly(pts); return m;
+    };
+    const frame = arch(0), hole = arch(1.6);
+    paintLit(L, frame, (x, y) => mix([128, 120, 112], [96, 90, 84], h2(x >> 1, y >> 1, 1412) * 0.6), lights, { nxMax: 2, amb: [0.04, 0.04, 0.04] });
+    const lit0 = !empty(ci, r), cx = (x0 + x1) / 2 + 0.4, by = yA(zc, v1) - 0.6 / z0, s = 1.7 / z0;
+    L.paint(hole, (x, y) => { const d = Math.hypot(x - cx, (y - (by - 4 * s)) * 0.8) / (10 / z0 + 1); return lit0 ? mix([62, 78, 76], [8, 9, 10], clamp(d)) : [8, 8, 9]; });
+    if (lit0) {
+      soulLamp(L, lights, cx, by, s, 0, 1411 + ci * 7 + r, { state: "murk", amb: [0.06, 0.07, 0.07], emitK: 1.6 });
+      glow(L, cx, by - 4 * s, 7 * s + 2, C_NICHE, 0.2, 2);
+    }
+    // 名を刻んだ石 (龕の下の小さな板。刻んだ溝が灯を受けて白く浮く)
+    const pw = (x1 - x0) * 0.6, ph = Math.max(1, 4.6 / z0), py = yA(zc, v1) + 1.6 / z0;
+    const ps = new Mask(W, H); ps.rect(cx - pw / 2, py, pw, ph);
+    paintLit(L, ps, (x, y) => mix([132, 124, 114], [96, 90, 82], vnoise(x, y, 1413)), lights, { nxMax: 1, amb: [0.05, 0.05, 0.05] });
+    if (z0 < 2.5) for (let k = 0; k < pw - 2; k++) if (h2(k, ci * 9 + r, 1415) > 0.35) L.px(cx - pw / 2 + 1 + k, py + ph / 2 - 0.5 + (h2(k, r, 1417) > 0.72 ? -1 : 0), [28, 30, 30]);
+  }
+  // 手前の床に、黒い布をかぶせて火を落としたランタン (すそから真鍮の台がのぞく)
+  { const LX = 30, LY = 100;
+    const base = new Mask(W, H); base.rect(LX - 5, LY - 2, 10, 2.4);
+    paintLit(L, base, () => [150, 120, 70], lights, { nxMax: 3, amb: [0.06, 0.06, 0.06] });
+    const cloth = new Mask(W, H); cloth.poly([LX - 7, LY - 1.6, LX - 5, LY - 10, LX - 2, LY - 16, LX + 1, LY - 17, LX + 4, LY - 14, LX + 6, LY - 8, LX + 8, LY - 1.4, LX + 4, LY - 3, LX, LY - 1.8, LX - 3, LY - 3]);
+    paintLit(L, cloth, (x, y) => mix([64, 58, 66], [36, 32, 40], (Math.sin(x * 1.3 - y * 0.4) * 0.5 + 0.5) * 0.6), lights, { nxMax: 5, amb: [0.05, 0.05, 0.06] });
+    rimLight(L, cloth, lights, [140, 200, 190], 0.7);
+    const ring = new Mask(W, H); ring.ellipse(LX + 1, LY - 18.4, 1.8, 1.6); ring.ellipse(LX + 1, LY - 18.4, 0.8, 0.7, 0);
+    paintLit(L, ring, () => [150, 120, 70], lights, { amb: [0.06, 0.06, 0.06] }); }
+  // 石で押さえた師の書きつけ (一行目の脇に、まぶたを細めた目の図)
+  oldNote(L, lights, 46, 94, 24, 9, 1421, { ang: 0.04, amb: [0.22, 0.24, 0.24] });
+  { const ex = 56, ey = 97; for (const [dx, dy] of [[0, 1], [1, 0], [2, 0], [3, 0], [4, 0], [5, 1], [1, 2], [2, 2], [3, 2], [4, 2], [2.5, 1]]) L.px(ex + dx, ey + dy, [34, 30, 30]); }
+  motes(L, lights, 40, 1423, [0.6, 0.85, 0.8]);
+  vignette(L, 0.8);
+  return L.canvas(11, CAVERN_PAL);
+}
+
+// 44. 宰相モルデンの記憶 (一年前、底なしの大伽藍の最奥。自然の巨柱が並ぶ闇の広間の床に、さらに下へ降りる石の階段が口を開け、
+//     その底からかすかな光が昇る。階段の口をはさんで、痩せた長身・黒い長衣の宰相モルデン (胸の扉が開き、中に古い灯) と、
+//     旅装で片脚を引きずり、杖にすがる師オルドが向かい合う)
+function sceneMoldern() {
+  const W = ART_W, H = ART_H, L = new Layer(W, H);
+  const MX = 138, MB = 95, OX = 56, OB = 97, SX = 97;                  // モルデン・オルドの足もと・階段の中心
+  const lights = [
+    { x: MX - 3, y: MB - 33, r: 80, c: C_SOUL, k: 0.9, p: 1.5 },      // 胸の古い灯
+    { x: SX, y: 70, r: 120, c: C_DEEP, k: 0.85, p: 1.3 },             // 階段の底から昇る光
+    { x: SX, y: 20, r: 120, c: C_MURK, k: 0.18, p: 1.2 },
+  ];
+  // 闇の広間 (果ての見えない天井。奥の壁に壁龕の灯が点々と)
+  caveRock(L, lights, 0, 0, W - 1, 80, 1501, { amb: [0.03, 0.03, 0.035], sx: 0.04, sy: 0.08 });
+  L.shade(0, 0, W - 1, 80, (x, y) => [5, 5, 6, clamp(0.85 - y / 120)]);
+  { const R = rng(1503); for (let i = 0; i < 70; i++) { const x = 30 + R() * 132, y = 30 + R() * 34; L.px(x, y, R() < 0.5 ? [64, 80, 84] : [40, 46, 50], 0.8); } }
+  // 床 (広間の床。階段の口のまわりは削った石畳)
+  L.shade(0, 70, W - 1, H - 1, (x, y) => {
+    const w = worley(x * 0.08 * (1.6 - (y - 70) / 40), y * 0.2, 1505), ed = w[1] - w[0] < 0.07 && Math.abs(x - SX) < 70;
+    return lit(ed ? [30, 28, 28] : mix([84, 78, 70], [62, 56, 52], w[2] * 0.6), lightAt(x, y, lights, 0, -0.9), [0.03, 0.03, 0.035]);
+  });
+  // 巨柱 (つらら石と石筍がつながった柱。左右に奥へ並ぶ)
+  for (const [cx, w, top, by, sd] of [[46, 9, 0, 72, 1507], [150, 9, 0, 71, 1509], [24, 16, 0, 80, 1511], [172, 16, 0, 79, 1513], [4, 22, 0, 98, 1515], [190, 22, 0, 96, 1517]]) {
+    const m = new Mask(W, H);
+    for (let y = top; y <= by; y++) { const t = (y - top) / (by - top), pinch = 1 - 0.38 * Math.sin(t * Math.PI) ** 0.6, hw = w / 2 * pinch * (1 + 0.15 * Math.sin(y * 0.3 + sd)); m.rect(cx - hw, y, hw * 2, 1); }
+    paintLit(L, m, (x, y) => { const fl = Math.sin((x - cx) * 1.4 + vnoise(x * 0.2, y * 0.05, sd) * 4) > 0.6; return mulc(mix([96, 86, 74], [66, 58, 50], vnoise(x * 0.3, y * 0.1, sd)), fl ? 0.7 : 1); }, lights, { nxMax: 12, amb: [0.03, 0.03, 0.035] });
+  }
+  // 階段の口 (床に開いた四角い穴。段が奥へ下り、その果ての闇からかすかな光が昇る)
+  const hole = new Mask(W, H); hole.poly([SX - 26, 100, SX + 26, 100, SX + 11, 74, SX - 11, 74]);
+  L.paint(hole, (x, y) => {
+    const t = (y - 74) / 26, k = Math.pow(t, 1.4);                                   // 手前ほど段が高く、明るい
+    const st = (Math.pow(t, 0.7) * 9) % 1, tread = st < 0.45;
+    const c = mix([12, 12, 12], tread ? [96, 90, 80] : [44, 40, 38], k);
+    return lit(c, lightAt(x, y, lights, 0, tread ? -0.9 : 0.6), [0.12, 0.12, 0.12]);
+  });
+  { const g = new Mask(W, H); g.poly([SX - 11, 74, SX + 11, 74, SX + 9, 78, SX - 9, 78]); L.paint(g, (x, y) => mix([210, 214, 180], [60, 64, 56], (y - 74) / 4)); }   // 段の果ての光
+  glow(L, SX, 74, 30, [0.8, 0.82, 0.66], 0.45, 2);
+  L.shade(SX - 30, 30, SX + 30, 74, (x, y) => { const d = Math.abs(x - SX) / (8 + (74 - y) * 0.3); if (d < 1) L.add(x, y, [140, 146, 120], (1 - d) * 0.12 * (1 - (74 - y) / 44)); return null; });   // 昇る光のもや
+  for (const [x0, y0, x1, y1] of [[SX - 26, 100, SX - 11, 74], [SX + 26, 100, SX + 11, 74]]) { const e = new Mask(W, H); e.line(x0, y0, x1, y1, 1.6); paintLit(L, e, () => [130, 122, 110], lights, { amb: [0.05, 0.05, 0.05] }); }
+  // 師オルド (左。右を向き、杖にすがる。左脚を後ろへ引きずる。暗い外套のすそに金の刺しゅう、背に荷)
+  { const sh = new Mask(W, H); sh.ellipse(OX, OB, 15, 2.2); L.paint(sh, () => [8, 8, 9, 0.6]);
+    const legs = new Mask(W, H);
+    legs.line(OX + 2, OB - 14, OX + 4, OB - 1, 3.4, 1, 3); legs.rect(OX + 3, OB - 2, 5, 2);                 // 踏ん張る右脚
+    legs.line(OX - 3, OB - 14, OX - 8, OB - 4, 3.2, 1, 2.8); legs.line(OX - 8, OB - 4, OX - 13, OB - 1, 2.6, 1, 2.2);   // 引きずる左脚
+    paintLit(L, legs, () => [44, 38, 40], lights, { nxMax: 2, amb: [0.06, 0.06, 0.07] });
+    const pack = new Mask(W, H); pack.ellipse(OX - 7, OB - 35, 4.6, 6);
+    paintLit(L, pack, (x, y) => mix([100, 76, 52], [70, 52, 36], vnoise(x * 0.5, y * 0.5, 1519)), lights, { nxMax: 4, amb: [0.06, 0.06, 0.07] });
+    const coat = new Mask(W, H);
+    coat.poly([OX - 8, OB - 13, OX - 7, OB - 30, OX - 4, OB - 42, OX + 1, OB - 45, OX + 7, OB - 43, OX + 9, OB - 34, OX + 9, OB - 22, OX + 9, OB - 13, OX + 3, OB - 11, OX - 3, OB - 12]);
+    paintLit(L, coat, (x, y) => {
+      if (!coat.at(x, y + 1) || !coat.at(x, y + 2)) return h2(x, y, 1521) > 0.3 ? ALB_EMBROID : ALB_COAT_D;   // すその金の刺しゅう
+      return mix(ALB_COAT, ALB_COAT_D, (Math.sin(x * 0.8 + y * 0.15) * 0.5 + 0.5) * 0.6);
+    }, lights, { nxMax: 6, ny: (x, y) => vNormal(coat, x, y, 3) * 0.3, amb: [0.16, 0.15, 0.17] });
+    const arm = new Mask(W, H); arm.line(OX + 6, OB - 40, OX + 12, OB - 32, 3.2, 1, 2.8);
+    paintLit(L, arm, () => ALB_COAT, lights, { nxMax: 2, amb: [0.07, 0.07, 0.08] });
+    const staff = new Mask(W, H); staff.line(OX + 13, OB - 42, OX + 16, OB, 1.4);
+    paintLit(L, staff, (x, y) => mix([150, 118, 84], [104, 78, 54], vnoise(x, y * 0.3, 1523)), lights, { nxMax: 1, amb: [0.08, 0.08, 0.08] });
+    const hand = new Mask(W, H); hand.ellipse(OX + 13.6, OB - 32, 1.8, 2);
+    paintLit(L, hand, () => [206, 176, 156], lights, { amb: [0.12, 0.11, 0.11] });
+    const head = new Mask(W, H); head.ellipse(OX + 3, OB - 49, 3.8, 4.4);
+    paintLit(L, head, (x, y) => {
+      if (x >= OX + 3 && y >= OB - 50) return y > OB - 46.5 ? [120, 116, 116] : x === OX + 6 && y === OB - 49 ? [40, 34, 34] : [212, 182, 162];   // 横顔・灰色のひげ
+      return mix([120, 116, 118], [80, 76, 80], vnoise(x, y, 1525));                                 // 白髪まじりの髪
+    }, lights, { nxMax: 3, amb: [0.3, 0.28, 0.28] });
+    for (const m of [coat, pack, legs]) rimLight(L, m, lights, [150, 190, 170], 0.25); }
+  // 宰相モルデン (右。左を向き、階段の前に立ちはだかる。痩せた長身・黒い長衣・高い襟。開いた胸の扉の中に古い灯)
+  { const sh = new Mask(W, H); sh.ellipse(MX, MB, 14, 2.2); L.paint(sh, () => [8, 8, 9, 0.6]);
+    const robe = new Mask(W, H);
+    robe.poly([MX - 11, MB, MX - 7, MB - 22, MX - 6, MB - 36, MX - 5, MB - 44, MX + 4, MB - 44, MX + 5, MB - 36, MX + 6, MB - 22, MX + 10, MB, MX + 2, MB + 1, MX - 4, MB + 1]);
+    robe.poly([MX - 5, MB - 44, MX - 5.5, MB - 50, MX - 2, MB - 47, MX + 3, MB - 47, MX + 5, MB - 50, MX + 4, MB - 44]);   // 高い襟
+    paintLit(L, robe, (x, y) => mix([44, 40, 50], [20, 18, 24], (Math.sin(x * 1.2 + y * 0.05) * 0.5 + 0.5) * 0.7), lights, { nxMax: 6, ny: (x, y) => vNormal(robe, x, y, 3) * 0.3, amb: [0.12, 0.12, 0.14] });
+    const arm = new Mask(W, H); arm.line(MX - 4, MB - 40, MX - 11, MB - 31, 2.8, 1, 2.4); arm.line(MX - 11, MB - 31, MX - 18, MB - 30, 2.4, 1, 2);   // 止めるように差しのべた腕
+    paintLit(L, arm, () => [30, 26, 34], lights, { nxMax: 2, amb: [0.05, 0.05, 0.06] });
+    const hand = new Mask(W, H); hand.poly([MX - 18, MB - 31.6, MX - 21, MB - 33.6, MX - 21.6, MB - 31, MX - 19, MB - 29]);
+    paintLit(L, hand, () => [214, 204, 196], lights, { amb: [0.14, 0.14, 0.15] });
+    const head = new Mask(W, H); head.ellipse(MX - 0.6, MB - 53, 3.2, 4.6);
+    paintLit(L, head, (x, y) => {
+      if (x <= MX - 1 && y >= MB - 55) return x === MX - 3 && y === MB - 54 ? [40, 34, 38] : y === MB - 50 && x <= MX - 2 ? [170, 130, 126] : [226, 216, 206];   // 青白い横顔
+      return [20, 18, 22];                                                                   // 後ろへなでつけた黒髪
+    }, lights, { nxMax: 3, amb: [0.34, 0.33, 0.33] });
+    // 胸の扉 (左へ開いた小さな扉。中に古い灯籠の火)
+    const cav = new Mask(W, H); cav.rect(MX - 4, MB - 37, 6, 8);
+    L.paint(cav, (x, y) => mix([40, 70, 64], [8, 10, 12], clamp(Math.hypot(x - MX + 1, y - MB + 32) / 4)));
+    const door = new Mask(W, H); door.poly([MX - 4, MB - 37, MX - 7.6, MB - 36, MX - 7.6, MB - 29.6, MX - 4, MB - 29]);
+    paintLit(L, door, (x, y) => (x <= MX - 7 ? [176, 140, 70] : [96, 74, 44]), lights, { nxMax: 1, amb: [0.1, 0.1, 0.1] });
+    const fr = new Mask(W, H); fr.rect(MX - 2.6, MB - 35, 3.2, 1); fr.rect(MX - 2.6, MB - 31, 3.2, 1);
+    paintLit(L, fr, () => [196, 156, 80], lights, { amb: [0.3, 0.3, 0.3] });
+    for (const [x, y, c] of [[MX - 1, MB - 33, [230, 255, 240]], [MX - 2, MB - 33, [120, 230, 200]], [MX - 1, MB - 34, [150, 240, 214]], [MX, MB - 33, [90, 200, 176]], [MX - 1, MB - 32, [110, 220, 190]]]) L.px(x, y, c);
+    glow(L, MX - 1, MB - 33, 14, C_SOUL, 0.5, 2);
+    for (const m of [robe, arm]) rimLight(L, m, lights, [150, 200, 180], 0.3); }
+  // 昇る光の粒と、広間の闇に漂う濁った魂のかけら
+  { const R = rng(1527); for (let i = 0; i < 30; i++) { const x = SX + (R() - 0.5) * 30, y = 30 + R() * 44; L.px(x, y, [220, 226, 190], 0.4 + R() * 0.4); } }
+  motes(L, lights, 30, 1529, [0.7, 0.95, 0.85]);
+  memoryTint(L, [38, 36, 36], [25, 79]);
+  return L.canvas(10, CAVERN_PAL);
+}
+
 const SCENES = { lantern: sceneLantern, sigil: sceneSigil, arm: sceneArm, abbot: sceneAbbot, camp: sceneCamp, candle: sceneCandle,
   roll: sceneRoll, cell: sceneCell, head: sceneHead, banner: sceneBanner, hole: sceneHole,
   rope: sceneRope, hut: sceneHut, torso: sceneTorso, tree: sceneTree,
@@ -3897,7 +4349,8 @@ const SCENES = { lantern: sceneLantern, sigil: sceneSigil, arm: sceneArm, abbot:
   coat: sceneCoat, frozen: sceneFrozen, aurora: sceneAurora, frostking: sceneFrostKing,
   splint: sceneSplint, crest: sceneCrest, reeds: sceneReeds, swamplord: sceneSwampLord,
   stick: sceneStick, bell: sceneBell, rod: sceneRod, stormlord: sceneStormLord,
-  glove: sceneGlove, lamps: sceneLamps, nook: sceneNook, arenalord: sceneArenaLord };
+  glove: sceneGlove, lamps: sceneLamps, nook: sceneNook, arenalord: sceneArenaLord,
+  polished: scenePolished, tags: sceneTags, eyes: sceneEyes, moldern: sceneMoldern };
 const cache = {};
 // 物語の一枚絵 (192×108 の canvas)。無ければ null
 export function storyArt(key) {

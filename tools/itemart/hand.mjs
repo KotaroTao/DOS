@@ -3,7 +3,7 @@
 //   node tools/itemart/hand.mjs check <file.js>        → 形式を調べる (24×24・色の文字・id・組の網羅)
 //   node tools/itemart/hand.mjs sheet <file.js> <out.png> [自動生成と並べる: --vs]  → 見本 PNG (6倍、燐光つき)
 //   node tools/itemart/hand.mjs ref <out.png>          → 既存の手描きの原型 (catalog/defs.js ARTS) の見本 = 画風の基準
-// 組: sr1 (伝説 + 職業専用) / l12 (第1・2層の逸品) / l34 / l5 (第5層 + 第1〜5層の LR) / l67 (第6・7層の逸品・LR・首級) / l8 (第8層の逸品・LR・首級) / l9 (第9層の逸品・LR・首級) / l10 (第10層の逸品・LR・首級) / l11 (第11層の逸品・LR・首級) / acc (LR 装飾) / arm1-arm3 (LR 防具) / job1-job4 (LR 武器)
+// 組: sr1 (伝説 + 職業専用) / l12 (第1・2層の逸品) / l34 / l5 (第5層 + 第1〜5層の LR) / l67 (第6・7層の逸品・LR・首級) / l8 (第8層の逸品・LR・首級) / l9 (第9層の逸品・LR・首級) / l10 (第10層の逸品・LR・首級) / l11 (第11層の逸品・LR・首級) / cavern (第12層「地底大空洞」の逸品・LR・首級) / acc (LR 装飾) / arm1-arm3 (LR 防具) / job1-job4 (LR 武器)
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { CATALOG_ITEMS } from "../../src/catalog/index.js";
@@ -27,6 +27,7 @@ const GROUPS = {
   l9: HANDS.filter((i) => i.layer === 9),
   l10: HANDS.filter((i) => i.layer === 10),
   l11: HANDS.filter((i) => i.layer === 11),
+  cavern: HANDS.filter((i) => i.layer === 12),
   acc: HANDS.filter((i) => i.id.startsWith("lr_") && !i.forJob && !i.layer && i.slot === "acc"),
   arm1: armor.slice(0, third), arm2: armor.slice(third, third * 2), arm3: armor.slice(third * 2),
 };
