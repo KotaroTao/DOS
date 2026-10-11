@@ -154,11 +154,28 @@
 .hb-spot-dia { display: inline-block; width: 6px; height: 6px; transform: rotate(45deg); background: #6a1410; box-shadow: 0 0 0 1px rgba(255,240,200,0.6); }
 @keyframes hb-call { 0%, 100% { box-shadow: 0 0 6px rgba(243,213,139,0.5); } 50% { box-shadow: 0 0 18px rgba(243,213,139,0.95); } }
 
-/* 帰還の報告 (WP-D の札の受け皿) */
-.hb-report { position: relative; z-index: 3; margin: 6px 0 0; }
-.hb-report + .hb-goal { margin-top: 8px; }
-/* 帰還の報告の札 (WP-D) は広場の幅いっぱいに (目標の札と縁を揃える) */
-.hb-report > .rr-card { margin: 0; }
+/* 帰還の報告: 夜景の右下 (いまの目標の札の右上) の小さな札。bottom は JS (目標の札と重なる帯の上)。押すと報告のシート */
+.hb-rr {
+  position: absolute; z-index: 4; right: 8px; bottom: 22px;
+  display: inline-flex; align-items: center; gap: 8px; min-height: 44px; max-width: calc(100% - 16px); padding: 4px 10px 4px 10px;
+  font-family: var(--font); text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+  color: #f1e3bd; background: var(--grain), linear-gradient(180deg, rgba(40,30,20,0.94), rgba(17,12,11,0.94));
+  border: 1px solid #b08a3e; border-radius: 2px;
+  box-shadow: 0 0 0 1px #000, 0 4px 14px rgba(0,0,0,0.85), 0 0 14px rgba(243,213,139,0.25), inset 0 1px 0 rgba(255,226,160,0.16);
+  animation: hb-rr-in 0.42s ease-out both;
+}
+.hb-rr:active { transform: translateY(1px); background: linear-gradient(180deg, rgba(70,52,28,0.96), rgba(30,22,16,0.96)); }
+@media (hover: hover) { .hb-rr:hover { border-color: var(--accent-hi); box-shadow: 0 0 0 1px #000, 0 4px 14px rgba(0,0,0,0.85), 0 0 18px rgba(243,213,139,0.5); } }
+.hb-rr-dot { flex: 0 0 auto; width: 8px; height: 8px; transform: rotate(45deg); background: #f3d58b; box-shadow: 0 0 8px rgba(243,213,139,0.9); animation: hb-rr-pulse 1.8s ease-in-out infinite; }
+.hb-rr-tx { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.hb-rr-t { font-size: 13px; font-weight: 800; letter-spacing: 0.2em; color: var(--accent-hi); text-shadow: 0 1px 0 #000; white-space: nowrap; }
+.hb-rr-w { font-size: 10.5px; color: var(--ink-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hb-rr-c { flex: 0 0 auto; font-size: 18px; color: #c9a24a; }
+.hb-rr.t-bad { border-color: #8a2e26; box-shadow: 0 0 0 1px #000, 0 4px 14px rgba(0,0,0,0.85), 0 0 14px rgba(200,40,20,0.35); }
+.hb-rr.t-bad .hb-rr-t { color: #ffb0a4; }
+.hb-rr.t-bad .hb-rr-dot { background: #e4443e; box-shadow: 0 0 8px rgba(228,68,62,0.9); }
+@keyframes hb-rr-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes hb-rr-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
 
 /* いまの目標: 封蝋の勅書 + その場の操作 */
 .hb-goal {
@@ -774,7 +791,7 @@
    視差を減らす設定 / 端末の大きさ
    ===================================================================== */
 @media (prefers-reduced-motion: reduce) {
-  .hb-spot.call .hb-spot-l, .hb-pc-hp.low i { animation: none !important; }
+  .hb-spot.call .hb-spot-l, .hb-pc-hp.low i, .hb-rr, .hb-rr-dot { animation: none !important; }
   .kp-full { animation: none !important; }
   .sc-scene, .sc-line, .sc-reward, .sc-okb { animation: none !important; opacity: 1 !important; filter: none !important; transform: none !important; }
 }
@@ -792,9 +809,6 @@
   .hb-sug { min-height: 58px; }
   .hb-pc { min-height: 62px; padding-top: 3px; padding-bottom: 3px; }
   .hb-pc .ui-port, .hb-pc-fr { width: 40px; height: 40px; }
-  .hb-report .rr-line { margin: 2px 0; }
-  .hb-report .rr-acts { margin-top: 6px; }
-  .hb-report .rr-acts .ui-btn { min-height: 44px; }
   .pl-decree-t { font-size: 15px; }
   .fc-red { height: 84px; }
   .stg-row { min-height: 48px; }
