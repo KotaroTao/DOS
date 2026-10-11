@@ -5,7 +5,7 @@
 //   行動ドック   … #hint を置き換える画面下の 52px。いま取れる行動だけを大きく (▼ 降りる / ⌂ 帰還)
 //   手帳         … 階の情報・迷宮の異変・隊を見る・記録を読む・図鑑・ヘルプ・酒場の噂話・ストーリー・今回の収穫・帰還・探索の手間・設定
 //   階の情報     … 見出しの迷宮名を押すと開く。特別な階・強敵・異変・奈落の変異の説明を読み返せる
-//   今回の収穫   … 収穫の帯を押すと開く。得た品 (押せば品の詳細)・魂・成長・倒した数
+//   今回の収穫   … 収穫の帯を押すと開く。得た品 (鑑定済みは押せば図鑑・未鑑定は品の詳細)・魂 (押せば職業の図鑑)・成長・倒した数
 //   覗き見       … 隊の札を長押し (戦闘中。迷宮では長押しで持ち上げて隊列を並べ替え、動かさず離せば覗く) / 敵を長押し (特徴・スキル)
 //   墨の帳       … 階を降りる暗転 (約1.3秒・400ms 後はタップで飛ばせる)。特別な階の知らせを2〜3行添える
 //
@@ -274,8 +274,11 @@ export function openRunLoot() {
         const sorted = items.slice().sort((a, c) => ((RARITIES[c.item.rar] || {}).order || 0) - ((RARITIES[a.item.rar] || {}).order || 0));
         for (const { owner, item } of sorted) {
           const cellEl = el("div", "dg-tilecell");
-          cellEl.appendChild(itemTile(item, { size: 56, onTap: () => { try { UI.itemSheet(item, { owner, context: "dungeon" }); } catch (e) { /* 品の詳細が無くても動く */ } },
-            onHold: UI.codexItemSheet ? () => UI.codexItemSheet(item.id, { item }) : null }));
+          // 鑑定済みの品 (道具・収集品も) は図鑑の詳細、未鑑定の品は品の画面 (捨てるなどの操作) を開く
+          const unid = !!item.unidentified;
+          cellEl.appendChild(itemTile(item, { size: 56, onTap: () => {
+            try { if (!unid && UI.codexItemSheet) UI.codexItemSheet(item.id, { item }); else UI.itemSheet(item, { owner, context: "dungeon" }); } catch (e) { /* 品の詳細が無くても動く */ }
+          }, onHold: !unid ? () => { try { UI.itemSheet(item, { owner, context: "dungeon" }); } catch (e) { /* noop */ } } : null }));
           cellEl.appendChild(el("span", "dg-tile-who", owner ? owner.name : ""));
           grid.appendChild(cellEl);
         }
@@ -288,7 +291,7 @@ export function openRunLoot() {
         const list = el("div", "dg-souls");
         for (const s of souls) {
           const c = SOUL_CLASSES[s.clsKey];
-          const chip = el("span", "dg-soul r-" + ((c && c.rarity) || "common"));
+          const chip = UI.soulChip ? UI.soulChip(s.clsKey, c && c.rarity) : el("span", "dg-soul r-" + ((c && c.rarity) || "common"));
           try { chip.appendChild(crispCanvas(soulIcon(s.clsKey), 24)); } catch (e) { /* noop */ }
           chip.appendChild(el("span", null, c ? c.label : s.clsKey));
           if (c && c.glow) chip.style.setProperty("--glow", c.glow);

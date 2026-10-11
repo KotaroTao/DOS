@@ -163,6 +163,8 @@
 .dg-tile-who { max-width: 100%; font-size: 10.5px; color: var(--ink-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dg-souls { display: flex; flex-wrap: wrap; gap: 6px; }
 .dg-soul { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 2px 10px 2px 4px; font-size: 12.5px; font-weight: 700; color: #e6dbc2; border: 1px solid #3a3029; border-radius: 3px; background: rgba(8,6,9,0.6); box-shadow: 0 0 8px color-mix(in srgb, var(--glow, #000) 25%, transparent); }
+button.dg-soul { font-family: inherit; cursor: pointer; }
+button.dg-soul:active { transform: translateY(1px); }
 .dg-soul canvas { width: 28px; height: 28px; image-rendering: pixelated; }
 .dg-soul.r-rare, .dg-soul.r-epic, .dg-soul.r-legend { border-color: var(--glow, #8a6d2e); }
 .dg-chip { display: inline-flex; align-items: center; min-height: 26px; padding: 2px 8px; font-size: 11.5px; font-weight: 700; color: #cbb991; border: 1px solid #4d3f37; border-radius: 2px; background: rgba(0,0,0,0.35); }

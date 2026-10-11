@@ -699,7 +699,8 @@ function runSummary(r, outcome, extra = {}) {
     abyss: G.abyss ? G.abyss.depth : null,
     floor: G.floor, floors: Math.max(r.floors || 1, G.floor || 1),
     gold: r.gold || 0, soulPts: r.soulPts || 0, kills: r.kills || 0, embers: r.embers || 0,
-    items: (r.items || []).map(({ owner, item }) => ({ id: item && item.id, name: itemName(item), rar: rarityKey(item), unid: !!(item && item.unidentified), owner: owner ? owner.name : "" })),
+    // ref = 品の実体 (報告から図鑑を開く時、帰ってから鑑定した品はその正体を見せる)
+    items: (r.items || []).map(({ owner, item }) => ({ id: item && item.id, name: itemName(item), rar: rarityKey(item), unid: !!(item && item.unidentified), owner: owner ? owner.name : "", ref: item || null })),
     souls: (r.souls || []).map((s) => { const c = SOUL_CLASSES[s.clsKey]; return { clsKey: s.clsKey, label: c ? c.label : s.clsKey, rarity: c ? c.rarity : "common" }; }),
     levels: (r.levels || []).map((x) => ({ name: x.name, from: x.from, to: x.to })),
     lost: [...(r.lost || [])],
@@ -10924,6 +10925,7 @@ function renderTown() {
   playBgm(sceneBgm()); // 施設ごとのBGM (同じ曲なら継続)
   townshell.refresh();
   if (UI.refreshPartySheet) UI.refreshPartySheet(); // 街の上に開いた人業のシート (顔アイコンから) も描き直す
+  if (UI.refreshRunReport) UI.refreshRunReport(); // 開いている帰還の報告のシートも (鑑定・売却の後に用事のボタンが古いまま残らないよう)
   if (UI.queueStoryNotice) UI.queueStoryNotice(); // 新しく記された物語を、手の空いた時に知らせる
   syncStoryMedia(); // 進んだ章の物語の絵を、端末へ裏で集めてもらう
   if (UI.queueExpeditionReport && expeditionDone().length) UI.queueExpeditionReport(); // 遠征から帰ってきた人業を、手の空いた時に知らせる
@@ -11942,8 +11944,8 @@ function fixedQuestReward(def) {
   const u = { gold: Math.max(u0.gold, front.gold * 0.7), soul: Math.max(u0.soul, front.soul * 0.7) };
   const out = {};
   // 職業の魂・品を添える依頼は、金貨・✦Soul・赤い魂に QUEST_REWARD_K (2026-10 ユーザーの指示で 1/5) を掛ける。
-  // 添えない依頼 (金貨・✦Soul だけ。懸賞など) は減らさない。残火・魂の数はそのまま
-  const k = questRewardK(r);
+  // 添えない依頼 (金貨・✦Soul だけ) は減らさない — ただし名のある強敵の懸賞は減らす。残火・魂の数はそのまま
+  const k = questRewardK(r, def);
   // 端数は 10 (✦ は 5) に丸める。小さな額は丸めると 0 や倍近くになるので、刻みの5倍に満たなければ1の位まで
   const nice = (v, step) => (v >= step * 5 ? Math.round(v / step) * step : Math.max(1, Math.round(v)));
   if (r.gold) out.gold = nice(u.gold * r.gold * k, 10);

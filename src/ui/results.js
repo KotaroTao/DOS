@@ -524,6 +524,23 @@ export function renderRunReport(root) {
   return card;
 }
 
+// 得た品・魂を押した時の図鑑 (報告の詳細・迷宮の「今回の収穫」で共通)。
+// 未鑑定の品は正体を伏せたまま知らせるだけ (図鑑で名を見せない)
+export function openLootCodex(id, item, unid) {
+  sfx("select");
+  if (unid) { toast("未鑑定の品は、鑑定すると図鑑で詳しく見られる", { tone: "info" }); return null; }
+  if (!id || !ITEMS[id] || !UI.codexItemSheet) return null;
+  return UI.codexItemSheet(id, item ? { item } : {});
+}
+// 魂の札 (押すとその職業の図鑑)
+export function soulChip(clsKey, rarity) {
+  const chip = el("button", "dg-soul r-" + (rarity || "common"));
+  chip.type = "button";
+  chip.setAttribute("aria-label", `${(SOUL_CLASSES[clsKey] || {}).label || clsKey}の図鑑を見る`);
+  chip.addEventListener("click", () => { sfx("select"); if (UI.codexJobSheet) UI.codexJobSheet(clsKey); });
+  return chip;
+}
+
 // 報告の詳細 (得た品・魂・成長・失ったもの)
 export function openRunReportDetail() {
   const g = G();
@@ -554,10 +571,13 @@ export function openRunReportDetail() {
         b.appendChild(sec("得た品", ["lr", "sr", "r", "uc", "c"].filter((k) => cnt[k]).map((k) => `${RARITIES[k].short}${cnt[k]}`).join(" ")));
         const grid = el("div", "dg-tiles");
         for (const it of items) {
-          const tpl = it.id && ITEMS[it.id] ? { ...ITEMS[it.id], unidentified: it.unid } : null;
+          // 帰ってから鑑定した品は、いまの正体で見せる (ref = 品の実体。古い報告には無い)
+          const live = it.ref && it.ref.id === it.id ? it.ref : null;
+          const unid = live ? !!live.unidentified : it.unid;
+          const tpl = live || (it.id && ITEMS[it.id] ? { ...ITEMS[it.id], unidentified: unid } : null);
           const cellEl = el("div", "dg-tilecell");
-          cellEl.appendChild(tpl ? itemTile(tpl, { size: 56 }) : el("div", "ui-tile s56 empty"));
-          const nm = el("span", "dg-tile-who", it.name);
+          cellEl.appendChild(tpl ? itemTile(tpl, { size: 56, onTap: () => openLootCodex(it.id, live, unid) }) : el("div", "ui-tile s56 empty"));
+          const nm = el("span", "dg-tile-who", live ? itemName(live) : it.name);
           if (it.rar && RARITIES[it.rar]) nm.style.color = RARITIES[it.rar].color;
           cellEl.appendChild(nm);
           grid.appendChild(cellEl);
@@ -568,7 +588,7 @@ export function openRunReportDetail() {
         b.appendChild(sec("魂"));
         const list = el("div", "dg-souls");
         for (const s of lr.souls) {
-          const chip = el("span", "dg-soul r-" + (s.rarity || "common"));
+          const chip = soulChip(s.clsKey, s.rarity);
           try { chip.appendChild(crispCanvas(soulIcon(s.clsKey), 24)); } catch (e) { /* noop */ }
           chip.appendChild(el("span", null, s.label));
           const cls = SOUL_CLASSES[s.clsKey];
@@ -600,6 +620,19 @@ export function runReportBadge() {
   return { banner: o.banner, tone: o.tone, where: lr.dungeon ? lr.dungeon.name : "" };
 }
 
+// 開いている報告のシート ({h, body})。街を描き直すたびに中の札も作り直す (refreshRunReport)
+let rrOpen = null;
+// 報告のシートの札を、いまの持ち物・金貨で作り直す (game.js renderTown から)。
+// まとめて鑑定・まとめて売るは確認や結果のシートを挟んで後から済むので、札の用事 (ボタン) が古いまま残っていた
+export function refreshRunReport() {
+  if (!rrOpen || !rrOpen.h || rrOpen.h.closed) { rrOpen = null; return; }
+  const old = rrOpen.body.querySelector(".rr-card");
+  if (!old) return;
+  const n = renderRunReport();
+  if (n) old.replaceWith(n);
+  else old.remove();
+}
+
 // 帰還の報告をシートで開く (広場の札を押した時。札の × で報告を閉じたらシートも閉じる)
 export function openRunReport() {
   const g = G();
@@ -608,6 +641,7 @@ export function openRunReport() {
   return sheet.open({
     kind: "info", banner: o.banner, className: "dg-sheet rr-sheet",
     body: (b, h) => {
+      rrOpen = { h, body: b };
       const c = renderRunReport();
       if (c) b.appendChild(c);
       b.addEventListener("click", (e) => {
@@ -616,11 +650,11 @@ export function openRunReport() {
       });
     },
     // 閉じたら広場を描き直す (報告を閉じていれば夜景の札も消える)
-    onClose: () => { if (game.renderTown && G()?.state === "town") game.renderTown(); },
+    onClose: () => { rrOpen = null; if (game.renderTown && G()?.state === "town") game.renderTown(); },
     footer: [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }],
   });
 }
 
 export function install() {
-  registerUI({ renderRunReport, runReportBadge, openRunReport, openRunReportDetail, openResults, openWipe, celebrateClear });
+  registerUI({ renderRunReport, refreshRunReport, openLootCodex, soulChip, runReportBadge, openRunReport, openRunReportDetail, openResults, openWipe, celebrateClear });
 }

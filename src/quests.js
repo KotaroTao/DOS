@@ -1196,13 +1196,15 @@ const deepUnit = (ctx, cfg) => ctx.unit(cfg, Math.max(1, Math.ceil((cfg.floors |
 const SOUL_K = 0.5;
 // 依頼の報酬 (金貨・✦Soul・赤い魂) の倍率。2026-10 ユーザーの指示: 依頼の報酬が多すぎたので 1/5 にした。
 // ただし品 (items) も職業の魂 (souls) も添えない依頼 = 金貨・✦Soul だけの依頼は減らさない (同じくユーザーの指示)。
+// 名のある強敵の懸賞は金貨・✦Soul だけでも 1/5 にする (2026-10 ユーザーの指示: 報酬が多すぎた。討てば首級 (SR) も手に入る)。
 // 掛けるかどうかは questRewardK(reward) で決める: フリークエストは rollBoard の最後 (帰還の鈴を添えた後)、
 // 固定クエストは game.js fixedQuestReward、心付けは減らした後の報酬から割合で決まる。
 // 掲示板の依頼は報酬を貼った時に保存するので、前の決まりで貼られた依頼は読み込みで直す (game.js scaleOldQuestReward。印 rk = 2)
 export const QUEST_REWARD_K = 0.2;
 export const QUEST_RK = 2;
 const hasExtras = (r) => !!(r && ((r.items || []).length || (r.souls || []).length));
-export const questRewardK = (r) => (hasExtras(r) ? QUEST_REWARD_K : 1);
+// q = 依頼 (固定クエストの定義)。懸賞 (q.bounty) は品を添えなくても減らす
+export const questRewardK = (r, q = null) => (hasExtras(r) || (q && q.bounty) ? QUEST_REWARD_K : 1);
 
 // 依頼文と依頼人を選ぶ: 依頼文を1つ引き、その who (無ければ この種類を貼る依頼人) から1人。
 // 同じ掲示板に同じ顔が並ばないよう、もう選ばれた依頼人は (ほかに候補がいる限り) 避ける
