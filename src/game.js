@@ -1653,6 +1653,8 @@ const TRAIT_BOARD = {
   offering: (b) => sfPlace(b, 2, (c) => { c.type = "chest"; c.cleared = false; }),
   // 洗礼の水: まだ澄んだ洗礼の水 (癒しの泉) を2つ
   font: (b) => sfPlace(b, 2, (c) => { c.type = "fountain"; c.cleared = false; c.fountainKind = "pure"; }),
+  // 雲間の泉 (雲上の庭): 泉を2つ。見た目は癒しの泉だが、3つに1つは雷雲の澱みで呪われている (飲むまでわからない — useVeiledFountain)
+  cloudspring: (b) => sfPlace(b, 2, (c) => { c.type = "fountain"; c.cleared = false; c.fountainKind = "veiled"; }),
   // 噴き出す火: 通路の1割強が蝕む床 (この迷宮では灼けた床。浮遊で避けられる)
   vent: (b) => {
     const st = b.start ? b.cells[b.start.y][b.start.x] : null;
@@ -1690,7 +1692,7 @@ function mutDef() { return G.mutator ? MUTATORS.find((m) => m.id === G.mutator) 
 // これにより「迷宮の異変」「迷宮の掟」「無限迷宮の風の掟」が同一フックでそのまま効く。
 const MUT_AGG = {
   enemyMul: "mul", soulMul: "mul", goldMul: "mul",
-  ambushMul: "max", mimicRate: "max",
+  ambushMul: "max", mimicRate: "max", chestTrapRate: "max", lockMul: "mul",
   lootBonusLv: "add", packMin: "max", chestRankUp: "add",
   noFlee: "or", elemAll: "or", elemRandom: "or", noTrap: "or", poisonUp: "or",
 };
@@ -6174,6 +6176,7 @@ function resolveCellMeasured(cell) {
         ], ICONS.fountain, { banner: "⚠ 黒い泉 ⚠", accent: "#8a2be2", logAs: true, lines: ["五分の賭けだ。恵みなら全快して ✦Soul を得る。呪いなら生気を吸われる。"] });
         break;
       }
+      const veiled = cell.fountainKind === "veiled"; // 雲間の泉: 3つに1つは呪い (飲むまでわからない)
       // §7 M4: 皆が満ちている (HP/MP満タン・状態異常なし) なら問わない。泉はそのまま残り、後で使える
       const needs = G.party.some((p) => p.alive && (p.hp < p.maxhp || p.mp < p.maxmp || p.ailment));
       if (!needs) {
@@ -6183,9 +6186,11 @@ function resolveCellMeasured(cell) {
       }
       // 利用するか選べる。今使わなくても泉は残り、後から再訪して使える。
       showChoice("癒しの泉が湧いている。", [
-        { label: "泉を利用する", primary: true, fn: () => useFountain(cell) },
+        { label: veiled ? "泉を利用する ― 呪いの危険" : "泉を利用する", primary: !veiled, danger: veiled, fn: () => (veiled ? useVeiledFountain(cell) : useFountain(cell)) },
         { label: "今はやめておく", fn: () => { log("泉はそのままにした。後で使える。", "sys"); renderBoard(); } },
-      ], ICONS.fountain, { banner: "✦ 癒しの泉 ✦", accent: "#5fb8d6", logAs: true, lines: ["HPとMPが回復し、毒も癒える。一度きり。"] });
+      ], ICONS.fountain, { banner: "✦ 癒しの泉 ✦", accent: "#5fb8d6", logAs: true, lines: veiled
+        ? ["HPとMPが回復し、毒も癒える。一度きり。", `だがこの庭の泉は、${Math.round(1 / VEILED_CURSE)}つに1つが雷雲の澱みで呪われている。飲むまでわからない。`]
+        : ["HPとMPが回復し、毒も癒える。一度きり。"] });
       break;
     }
     case "corpse": {
@@ -7096,6 +7101,10 @@ function useDarkFountainMeasured(cell) {
     renderBoard();
     return;
   }
+  fountainCurse("黒い泉は呪いだった…！ 全員の生気が吸われた。", "深淵の呪い");
+}
+// 泉の呪い: 隊の全員の HP が半分 (HP1 は残る)・それぞれ 50% で毒 (黒い泉 / 雲間の泉)
+function fountainCurse(line, title) {
   SFX.trap(); buzz([0, 80, 60, 80]); flashScreen("#a01030");
   let cursed = false;
   for (const p of G.party) {
@@ -7103,10 +7112,17 @@ function useDarkFountainMeasured(cell) {
     p.hp = Math.max(1, Math.ceil(p.hp * 0.5));
     if (!p.ailment && random() < 0.5) { p.ailment = "poison"; cursed = true; }
   }
-  log("黒い泉は呪いだった…！ 全員の生気が吸われた。", "dmg");
+  log(line, "dmg");
   flashPartyCards(G.party.filter((p) => p.alive), "hit");
-  showToast(`深淵の呪い ― 全員のHPが半減${cursed ? "・毒に侵された者も" : ""}`, { noLog: true, tone: "bad", icon: ICONS.fountain });
+  showToast(`${title} ― 全員のHPが半減${cursed ? "・毒に侵された者も" : ""}`, { noLog: true, tone: "bad", icon: ICONS.fountain });
   renderBoard();
+}
+// 雲間の泉 (雲上の庭の掟): 見た目は癒しの泉。VEILED_CURSE (3つに1つ) で呪い、それ以外は癒しの泉と同じ
+const VEILED_CURSE = 1 / 3;
+function useVeiledFountain(...args) { return tlGameMeasure("fountain", () => useVeiledFountainMeasured(...args)); }
+function useVeiledFountainMeasured(cell) {
+  if (random() < VEILED_CURSE) { cell.cleared = true; fountainCurse("泉の水は雷雲の澱みで濁っていた…！ 全員の生気が吸われた。", "澱んだ泉"); return; }
+  useFountainMeasured(cell);
 }
 
 // 死体: 「まだあたたかい死体」からのみ魂を回収できる (死体の職業に応じた魂)
@@ -7511,7 +7527,8 @@ function disarmNeed(cRank = 1) {
   const c = 1 + ((cRank || 1) - 1) * 0.16;               // 宝箱ランク: 上等な箱ほどずる賢い錠前
   // 基準値: 得意職以外が推奨Lv の隊で約50%に収まる難度 (得意職は ×1.5 ボーナスで上回る)。推奨Lv の伸びで重くなる (levelcurve.js)
   // 特別階 (からくり錠の宝物庫): 解除がはるかに難しい (sfNum lockMul)
-  return LOCK_K * lockPow(levelHere().lv) * c * sfNum("lockMul", 1);
+  // 迷宮の掟 (鍵束の間) も解除を難しくする (mutNum lockMul)
+  return LOCK_K * lockPow(levelHere().lv) * c * sfNum("lockMul", 1) * mutNum("lockMul", 1);
 }
 
 function disarmChance(m, cRank = 1) {
@@ -7652,7 +7669,8 @@ function chestTrapPhase(opener, contents, cRank = 1, abort, excludeKinds, sink =
   // cfg.trapRate === 0 は「罠なし」修飾 (静寂の刻など)。特別階「静寂の階」(noTrap) も同様に、
   // 床の罠だけでなく宝箱の罠も出さない。
   // 特別階 (からくり錠の宝物庫) は宝箱に必ず罠がある (chestTrapRate)
-  const trapProb = (cfg.trapRate === 0 || sfNum("noTrap", false)) ? 0 : sfNum("chestTrapRate", 0.70);
+  // 迷宮の掟 (鍵束の間) も宝箱に必ず罠を仕掛ける (mutNum chestTrapRate)
+  const trapProb = (cfg.trapRate === 0 || sfNum("noTrap", false)) ? 0 : Math.max(sfNum("chestTrapRate", 0.70), mutNum("chestTrapRate", 0));
   if (random() < trapProb) {
     const trap = pickTrap(cfg.rank || 1, random, excludeKinds);
     const who = opener || bestDisarmer();
@@ -8346,17 +8364,17 @@ function startBattleMeasured(enemies, cell) {
       else flashScreen("#d8e0ff");
     }
   }
-  // ささやく湖面 (whisper) — 戦闘の開幕に、隊の一人がささやきに惑わされ、この確率で混乱する (混乱の抵抗で防げる)
-  for (const r of ruleOpens) if (r.whisper > 0) {
-    const live = G.battle.party.filter((p) => p.alive && !p.mind && !p.asleep);
+  // ささやく湖面 (whisper 混乱) / 響く聖歌 (lull 眠り) / 帯電した手すり (jolt 麻痺) — 戦闘の開幕に、隊の一人がこの確率で掛かる (その抵抗で防げる)
+  for (const r of ruleOpens) for (const o of RULE_ONE_AIL) if (r[o.key] > 0) {
+    const live = G.battle.party.filter((p) => p.alive && o.free(p));
     if (!live.length) continue;
     const p = live[rand(live.length)];
-    if (random() < r.whisper * (1 - G.battle._ailRes(p, "confuse"))) {
+    if (random() < r[o.key] * (1 - G.battle._ailRes(p, o.res))) {
       traitOpenHold(p);
-      p.mind = "confuse"; G.battle._holdAil(p, "mind");
-      log(`${ruleSay(r, "whisper") || r.head} ― ${p.name}は惑わされ、混乱した。`, "dmg");
-      if (trOpen) trOpen.steps.push({ kind: "whisper", head: r.head, accent: r.accent, label: r.name, hits: [{ p, text: "混乱", color: "#c8a0ff" }] });
-    } else log(`${ruleSay(r, "whisper") || r.head} ― ${p.name}は耳をふさいで、惑わされなかった。`, "sys");
+      o.put(G.battle, p);
+      log(`${ruleSay(r, o.key) || r.head} ― ${p.name}${o.hit}。`, "dmg");
+      if (trOpen) trOpen.steps.push({ kind: o.key, head: r.head, accent: r.accent, label: r.name, hits: [{ p, text: o.text, color: o.color }] });
+    } else log(`${ruleSay(r, o.key) || r.head} ― ${p.name}${o.miss}。`, "sys");
   }
   // 封じの殻 (shell) — 戦闘の開幕に、主・金属の魔物を除く敵の全員に障壁 (打撃を1回だけ半ば防ぐ) を張る
   for (const r of ruleOpens) if (r.shell > 0) {
@@ -8397,6 +8415,16 @@ function startBattleMeasured(enemies, cell) {
   })));
 }
 
+// 迷宮の掟の開幕に隊の一人へ掛かる異常 (startBattleMeasured)。free = まだ掛かっていない者 / put = 掛ける
+const RULE_ONE_AIL = [
+  { key: "whisper", res: "confuse", text: "混乱", color: "#c8a0ff", hit: "は惑わされ、混乱した", miss: "は耳をふさいで、惑わされなかった",
+    free: (p) => !p.mind && !p.asleep, put: (b, p) => { p.mind = "confuse"; b._holdAil(p, "mind"); } },
+  { key: "lull", res: "sleep", text: "眠り", color: "#a0c0ff", hit: "は歌に聞き入り、眠りに落ちた", miss: "は歌に引きこまれず、眠らなかった",
+    free: (p) => !p.mind && !p.asleep, put: (b, p) => { p.asleep = true; b._holdAil(p, "sleep"); } },
+  { key: "jolt", res: "paralyze", text: "麻痺", color: "#f0e080", hit: "はしびれて、動けなくなった", miss: "はしびれをこらえた",
+    free: (p) => !p.ailment, put: (b, p) => { p.ailment = "paralyze"; b._holdAil(p, "para"); } },
+];
+
 // ===== 迷宮の掟の開幕の演出 (ユーザーの指示、2026-10: 戦闘開始時の傷・吸われた魔力・毒・冷気がログだけでは分からない) =====
 // 掟の効果は startBattle の中で今までどおり同期で効かせ (テスト記録の出どころの分類もそのまま)、
 // 隊の札にだけ効く前の HP/MP を見せておく (G.partyShow)。開幕の演出の後、効果ごとに隊の札の上で属性の演出・数字・
@@ -8417,6 +8445,8 @@ const TRAIT_OPEN_FX = {
   poison: { fx: "poison", card: "status",   sfx: () => SFX.spell() },
   gloom:  { fx: "dark",   card: "debuff",   sfx: () => SFX.spell() },
   whisper: { fx: "dark",  card: "status",   sfx: () => SFX.spell() },
+  lull:   { fx: "light",  card: "status",   sfx: () => SFX.spell() },
+  jolt:   { fx: "light",  card: "status",   sfx: () => SFX.thunder(), flash: "#f0f0b0" },
 };
 function playTraitOpening(info, done) {
   const finish = () => { G.partyShow = null; renderParty(); done(); };
@@ -18022,6 +18052,8 @@ function init() {
     rematch: { rematchList, departRematch, endBattle },
     // 無限迷宮の検証用
     inf: { infStats, infTitleList, infTitleGrant, infCheckRun, doUnequip, giveItemAsk, giveItem, pickLoot, cloneItem, markDungeonLoot, shopAfxItem, buyAffixed, afxConflicts, resolveAfxConflicts, shopReceive, saveJSON: () => { const snap = {}; for (const k of SAVE_FIELDS) snap[k] = G[k]; return JSON.stringify(refSerialize(snap)); }, DUNGEONS, spawnBossEnemies, baseEnemyScale, soloScale, infBossFoes, infEliteFoes, infFoeKey, infSpotInfo, spawnCardEnemies, enemyScale, mimicRef, addSoulInstance, recalcAllDolls, enterAbyss, departAbyss, descend, openInfRest, fightAbyssGuard, abyssCfg, grantSoulQuiet, infSwapSoul, infBuy, infSell, infTraderWares, returnToTown, gameOver, leaveDungeon, abyssRecords, newFloor, renderBoard, finishToBoard },
+    // 迷宮の掟の代償 (雲間の泉・開幕の眠り/麻痺・宝箱の罠) の検証用
+    ruleCost: { TRAIT_BOARD, mutNum, useVeiledFountain, VEILED_CURSE, RULE_ONE_AIL, disarmNeed, dungeonTrait },
     // 第九章の掟 (一騎打ち・観客の注文) の検証用
     arenaRules: { duelFoes, audienceOrderFor, AUDIENCE_ORDERS },
     // 宝物庫の褒賞の検証用
