@@ -15,7 +15,7 @@ import {
 import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, permanentEventStats, eligibleEvents, pickEvent, onceKey, runEvent, eventFightWon } from "./events.js";
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { pickTavernCrowd, TALK_MAP } from "./tavern.js";
-import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, rollBoard, deliveryRewardRows, NPCS, npcOf, composeReport, bondGiftAt, npcBondLabel, TIP_RATE, hasBell, BELL_EVERY_MS } from "./quests.js";
+import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, rollBoard, deliveryRewardRows, NPCS, npcOf, composeReport, bondGiftAt, npcBondLabel, TIP_RATE, hasBell, BELL_EVERY_MS, QUEST_REWARD_K, QUEST_RK, questRewardK } from "./quests.js";
 import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_THREE_REPORT, TUT_FINALE, STORY_CELLS, storyCellAt, BOSS_MEMORIES, REPORTS, LATE_CLUES, IRENE_BEATS, MINE_PASS, msqReward, EPILOGUE, UNLOCKS, unlockSceneFor } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { poolAt } from "./dungeons/world.js";
@@ -2881,7 +2881,8 @@ function drawBoardIcons(lt, now, hx, hy) {
     }
     if (cell.type === "monster") {
       // 魔物: 足元に血の気配。強敵は紅い瘴気をまとい「強敵」の札を掲げる
-      const b = monsterBitmap(icon);
+      // 名前のまだわからない魔物は影の姿 (戦闘と同じ)
+      const b = enemyUnknown({ key: cell.monsterKey, mon: icon }) ? monsterUnknownBitmap(icon) : monsterBitmap(icon);
       const bottom = r.y + r.h * 0.9;
       vctx.save();
       vctx.globalCompositeOperation = "lighter";
@@ -8102,7 +8103,7 @@ function renderCombatCanvas() {
           vctx.restore();
           const sil = Math.min(1, p / 0.4), col = Math.max(0, Math.min(1, (p - 0.38) / 0.62));
           if (col < 1) drawMonsterBmp(vctx, monsterSilhouette(e.mon), baseX, baseY + rise, sz, alpha * sil);
-          if (col > 0) drawMonster(vctx, e.mon, baseX, baseY + rise, sz, alpha * col * col);
+          if (col > 0 && (e.mon.art || e.mon.photo)) drawMonsterBmp(vctx, enemyBitmap(e), baseX, baseY + rise, sz, alpha * col * col);
           return;
         }
       }
@@ -8128,7 +8129,7 @@ function renderCombatCanvas() {
       vctx.ellipse(baseX + ox, feetY - 1 + oy * 0.3, size * 3.3, size * 0.95, 0, 0, Math.PI * 2);
       vctx.fill();
       vctx.restore();
-      drawMonster(vctx, e.mon, baseX + ox, baseY + oy, size, alpha);
+      if (e.mon && (e.mon.art || e.mon.photo)) drawMonsterBmp(vctx, enemyBitmap(e), baseX + ox, baseY + oy, size, alpha);
       // 被弾時の白い閃き (魔物の形に沿って)
       if (hf && now - hf.t0 >= 0 && now - hf.t0 < 170) {
         vctx.save();
@@ -8175,7 +8176,7 @@ function turnIconCanvas(a) {
   }
   const mon = a.mon;
   if (!mon || !(mon.art || mon.photo)) return null;
-  const b = monsterBitmap(mon);
+  const b = enemyBitmap(a); // 名前のわからない敵は影の姿
   let ent = _turnIcons.get(mon);
   // 原画版の魔物は絵が読めた時にビットマップが差し替わるので、その時に描き直す
   if (!ent || ent.b !== b) {
@@ -8707,6 +8708,49 @@ function monsterSilhouette(mon) {
   if (_monBmp.get(mon) === b) _monSil.set(mon, s); // 原画版の読み込み待ち (空の写し) は覚えない
   return s;
 }
+// 名前のまだわからない魔物の姿 (ユーザーの指示、2026-10): 絵の形だけを闇色で塗り (上ほどわずかに明るい)、
+// 外側の1ドットに不確定名の色の淡い縁を巡らせる。大きさ・余白は monsterBitmap と同じなので、
+// 名が明かされて色の絵に替わっても位置はずれない
+const _monUnk = new WeakMap();
+function monsterUnknownBitmap(mon) {
+  let s = _monUnk.get(mon);
+  if (s) return s;
+  const b = monsterBitmap(mon);
+  const c = document.createElement("canvas");
+  c.width = b.c.width; c.height = b.c.height;
+  const g = c.getContext("2d");
+  if (mon.photo) {
+    // 原画版: 縁 (黒いハロー) ごと闇色で塗る
+    g.drawImage(b.c, 0, 0);
+    g.globalCompositeOperation = "source-in";
+    g.fillStyle = "#0d0a14";
+    g.fillRect(0, 0, c.width, c.height);
+    s = { c, w: b.w, h: b.h, pad: b.pad };
+    if (_monBmp.get(mon) === b) _monUnk.set(mon, s); // 読み込み待ちの空の写しは覚えない
+    return s;
+  }
+  const rows = mon.art || [];
+  const { w, h, pad } = b;
+  const on = (x, y) => { const ch = rows[y] && rows[y][x]; return !!ch && ch !== "." && ch !== " " && !!mon.palette[ch]; };
+  g.fillStyle = "rgba(185,172,217,0.55)"; // UNKNOWN_COLOR の淡い縁
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (!on(x, y)) continue;
+    g.fillRect(x + pad - 1, y + pad, 3, 1);
+    g.fillRect(x + pad, y + pad - 1, 1, 3);
+  }
+  for (let y = 0; y < h; y++) {
+    const t = h > 1 ? y / (h - 1) : 0;
+    g.fillStyle = `rgb(${Math.round(30 - 22 * t)},${Math.round(23 - 17 * t)},${Math.round(42 - 30 * t)})`;
+    for (let x = 0; x < w; x++) if (on(x, y)) g.fillRect(x + pad, y + pad, 1, 1);
+  }
+  s = { c, w, h, pad };
+  _monUnk.set(mon, s);
+  return s;
+}
+// 戦闘の敵1体の姿: 名前が明かされるまでは影 (monsterUnknownBitmap)
+function enemyBitmap(e) {
+  return enemyUnknown(e) ? monsterUnknownBitmap(e.mon) : monsterBitmap(e.mon);
+}
 // drawSpriteFit と同じ見かけの大きさ (12グリッド換算の size) で魔物を描く
 function drawMonster(ctx, mon, cx, cy, size, alpha = 1) {
   if (!mon || !(mon.art || mon.photo)) return;
@@ -8848,7 +8892,8 @@ function drawEffects(fx, now) {
     vctx.save();
     const lift = t * 10;
     if (t < 0.35) {
-      drawMonster(vctx, d.mon, d.x, d.y - lift, d.size, 1 - t * 0.5);
+      if (d.unk && d.mon && (d.mon.art || d.mon.photo)) drawMonsterBmp(vctx, monsterUnknownBitmap(d.mon), d.x, d.y - lift, d.size, 1 - t * 0.5);
+      else drawMonster(vctx, d.mon, d.x, d.y - lift, d.size, 1 - t * 0.5);
       vctx.globalCompositeOperation = "lighter";
       drawMonsterBmp(vctx, monsterFlashBitmap(d.mon), d.x, d.y - lift, d.size, 0.9 * (1 - t / 0.35));
     } else {
@@ -9788,7 +9833,7 @@ function applyImpact(res) {
         spawnFx(fx.skill, "reap", pos.cx, pos.cy, rt0, spd, { seed, s: Math.max(0.8, Math.min(1.3, (pos.size || 9) / 9)) });
         fx.floats.push({ x: pos.cx, y: pos.cy - 58, text: "死の宣告", color: "#c9a0ff", t0: rt0, small: true, kind: "label" });
         fx.floats.push({ x: pos.cx, y: pos.cy - 10, text: "即死!", color: "#ff2a2a", t0: rt0 + 260 * spd, big: true, kind: "crit" });
-        if (!fx.deaths.some((d) => d.uid === h.target.uid)) fx.deaths.push({ uid: h.target.uid, mon: h.target.mon, x: pos.cx, y: pos.cy, size: pos.size || 9, t0: rt0 + 300 * spd });
+        if (!fx.deaths.some((d) => d.uid === h.target.uid)) fx.deaths.push({ uid: h.target.uid, mon: h.target.mon, unk: enemyUnknown(h.target), x: pos.cx, y: pos.cy, size: pos.size || 9, t0: rt0 + 300 * spd });
         anyDeath = true;
         continue;
       } else if (res.action === "spell" && res.spellKind !== "heal" && res.spellKind !== "phys") {
@@ -9856,7 +9901,7 @@ function applyImpact(res) {
       if (h.died) {
         anyDeath = true;
         // 撃破: 魔物が白く焼けて灰に崩れる (描画は drawEffects)
-        if (!fx.deaths.some((d) => d.uid === h.target.uid)) fx.deaths.push({ uid: h.target.uid, mon: h.target.mon, x: pos.cx, y: pos.cy, size: pos.size || 9, t0: ht0 });
+        if (!fx.deaths.some((d) => d.uid === h.target.uid)) fx.deaths.push({ uid: h.target.uid, mon: h.target.mon, unk: enemyUnknown(h.target), x: pos.cx, y: pos.cy, size: pos.size || 9, t0: ht0 });
       }
     } else {
       // 味方が対象
@@ -11749,8 +11794,23 @@ function questState() {
   if (!s.seen || typeof s.seen !== "object") s.seen = {};
   if (!s.npcs || typeof s.npcs !== "object") s.npcs = {}; // 掲示板の依頼人ごとの報告の回数 (なじみ)
   if (!(s.seq > 0)) s.seq = 1;
-  for (const q of [...(s.board || []), ...s.active]) fixQuestDungeonName(q);
+  for (const q of [...(s.board || []), ...s.active]) { fixQuestDungeonName(q); scaleOldQuestReward(q); }
   return s;
+}
+// 依頼の報酬の倍率 (quests.js QUEST_REWARD_K / questRewardK) を、前の決まりで貼られた・受けた依頼の金貨・✦Soul に合わせ直す (一度だけ)。
+//   印なし = 倍率を入れる前 → 品・職業の魂を添える依頼だけ 1/5 に
+//   rk 1 = どの依頼も 1/5 にしていた版 → 金貨・✦Soul だけの依頼は元に戻す
+function scaleOldQuestReward(q) {
+  if (!q || q.rk === QUEST_RK) return;
+  const was = q.rk;
+  q.rk = QUEST_RK;
+  const r = q.reward;
+  if (!r || typeof r !== "object") return;
+  const k = questRewardK(r);
+  const f = !was ? k : was === 1 && k === 1 ? 1 / QUEST_REWARD_K : 1;
+  if (f === 1) return;
+  if (r.gold) r.gold = Math.max(1, Math.round(r.gold * f));
+  if (r.soulPts) r.soulPts = Math.max(1, Math.round(r.soulPts * f));
 }
 // 古いセーブの依頼は説明・手がかりに迷宮の略称 (「囁く回廊」) が残っている → 正式名 (「亡骸の囁く回廊」) に直す
 function fixQuestDungeonName(q) {
@@ -11846,9 +11906,14 @@ function fixedQuestReward(def) {
   const front = questFrontUnit();
   const u = { gold: Math.max(u0.gold, front.gold * 0.7), soul: Math.max(u0.soul, front.soul * 0.7) };
   const out = {};
-  if (r.gold) out.gold = Math.max(1, Math.round(u.gold * r.gold / 10) * 10);
-  if (r.soul) out.soulPts = Math.max(1, Math.round(u.soul * r.soul / 5) * 5);
-  if (r.red) out.red = r.red;
+  // 職業の魂・品を添える依頼は、金貨・✦Soul・赤い魂に QUEST_REWARD_K (2026-10 ユーザーの指示で 1/5) を掛ける。
+  // 添えない依頼 (金貨・✦Soul だけ。懸賞など) は減らさない。残火・魂の数はそのまま
+  const k = questRewardK(r);
+  // 端数は 10 (✦ は 5) に丸める。小さな額は丸めると 0 や倍近くになるので、刻みの5倍に満たなければ1の位まで
+  const nice = (v, step) => (v >= step * 5 ? Math.round(v / step) * step : Math.max(1, Math.round(v)));
+  if (r.gold) out.gold = nice(u.gold * r.gold * k, 10);
+  if (r.soul) out.soulPts = nice(u.soul * r.soul * k, 5);
+  if (r.red) out.red = Math.max(1, Math.round(r.red * k));
   if (r.embers) out.embers = r.embers;
   if (r.souls) out.souls = r.souls.map((x) => [...x]);
   return out;
@@ -12249,12 +12314,12 @@ function finishFreeQuest(q, r, extraJobs = [], title = null) {
     showToast(`📜 依頼「${q.name}」を果たした` + (bond ? ` ― ${npc.name}と${bl}に` : ""), { tone: "gold" });
   });
 }
-// 心付け: 報酬の金貨 (無ければ ✦Soul) の 3〜5割。納品 (魂だけの報酬) は地図の最深部の戦果 2〜4回分の金貨
+// 心付け: 報酬の金貨 (無ければ ✦Soul) の 3〜5割。納品 (魂だけの報酬) は地図の最深部の戦果 2〜4回分の金貨 × QUEST_REWARD_K
 function questTip(r) {
   const k = 0.3 + rand(3) * 0.1;
   if (r.gold) return { gold: Math.max(1, Math.round(r.gold * k)) };
   if (r.soulPts) return { soulPts: Math.max(1, Math.round(r.soulPts * k)) };
-  return { gold: Math.max(10, Math.round(questFrontUnit().gold * (2 + rand(3)))) };
+  return { gold: Math.max(2, Math.round(questFrontUnit().gold * (2 + rand(3)) * QUEST_REWARD_K)) };
 }
 // 報告の一幕の肖像の枠に掲げる絵: 討伐 = 倒した魔物 / 納品 = 納めた品 / 魂 = 授かった魂 / 宝箱 / 到達 = 階段
 function questMarkCanvas(q, jobs = []) {

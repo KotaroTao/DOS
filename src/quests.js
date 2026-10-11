@@ -1194,6 +1194,15 @@ const deepUnit = (ctx, cfg) => ctx.unit(cfg, Math.max(1, Math.ceil((cfg.floors |
 // フリークエストの ✦ の倍率 (金貨の倍率に対して)。2026-10 のテスト記録で、依頼の ✦ が迷宮で得る ✦ を大きく上回り、
 // 隊が推奨Lv を大きく超えていたので半分にした (金貨はそのまま)。次のテスト記録 (町の ✦ の出どころ tsoul) で見直す
 const SOUL_K = 0.5;
+// 依頼の報酬 (金貨・✦Soul・赤い魂) の倍率。2026-10 ユーザーの指示: 依頼の報酬が多すぎたので 1/5 にした。
+// ただし品 (items) も職業の魂 (souls) も添えない依頼 = 金貨・✦Soul だけの依頼は減らさない (同じくユーザーの指示)。
+// 掛けるかどうかは questRewardK(reward) で決める: フリークエストは rollBoard の最後 (帰還の鈴を添えた後)、
+// 固定クエストは game.js fixedQuestReward、心付けは減らした後の報酬から割合で決まる。
+// 掲示板の依頼は報酬を貼った時に保存するので、前の決まりで貼られた依頼は読み込みで直す (game.js scaleOldQuestReward。印 rk = 2)
+export const QUEST_REWARD_K = 0.2;
+export const QUEST_RK = 2;
+const hasExtras = (r) => !!(r && ((r.items || []).length || (r.souls || []).length));
+export const questRewardK = (r) => (hasExtras(r) ? QUEST_REWARD_K : 1);
 
 // 依頼文と依頼人を選ぶ: 依頼文を1つ引き、その who (無ければ この種類を貼る依頼人) から1人。
 // 同じ掲示板に同じ顔が並ばないよう、もう選ばれた依頼人は (ほかに候補がいる限り) 避ける
@@ -1215,7 +1224,7 @@ function pickText(ctx, type, fit = null) {
 }
 // 依頼の形にまとめる (題・依頼文・報告の言葉は、選んだ時点の名で埋めて保存する)
 const offerOf = (type, pk, vars, rest) => ({
-  type, npc: pk.npc, vars, name: fill(pk.tpl.name, vars), text: fill(pk.tpl.text, vars), done: fill(pk.tpl.done, vars), ...rest,
+  type, npc: pk.npc, vars, rk: QUEST_RK, name: fill(pk.tpl.name, vars), text: fill(pk.tpl.text, vars), done: fill(pk.tpl.done, vars), ...rest,
 });
 
 function genKill(ctx) {
@@ -1304,6 +1313,14 @@ export function rollBoard(ctx, size = BOARD_SIZE) {
   if (ctx.bell && cands.length) {
     const q = cands[ctx.rand(cands.length)];
     q.reward = { ...q.reward, items: [[RECALL_ITEM, 1]] };
+  }
+  // 品・職業の魂を添える依頼だけ、金貨・✦Soul を QUEST_REWARD_K 倍に
+  for (const q of out) {
+    const k = questRewardK(q.reward);
+    if (k === 1) continue;
+    q.reward = { ...q.reward };
+    if (q.reward.gold) q.reward.gold = round(q.reward.gold * k);
+    if (q.reward.soulPts) q.reward.soulPts = round(q.reward.soulPts * k);
   }
   return out;
 }
