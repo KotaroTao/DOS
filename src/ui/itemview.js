@@ -200,6 +200,12 @@ export function enemyLabel(e) {
 }
 // 名前がまだ明かされていない敵か (名札・ボタンの色分け用)
 export function enemyUnknown(e) { return !!e && !enemyReveal(e).name; }
+// 名前のまだわからない魔物の絵: 闇色の影に不確定名の色の淡い縁 (CSS の .unk-sil。戦闘の game.js monsterUnknownBitmap と揃える)
+export function unknownArt(m, scale = 2) {
+  const c = spriteCanvas(m, scale);
+  c.classList.add("unk-sil");
+  return c;
+}
 // 不確定名の色 (戦闘の名札・敵の姿シートの題。CSS の .unk-name と揃える)
 export const UNKNOWN_COLOR = "#b9acd9";
 // 記録の1行を書く: UNK_OPEN…UNK_CLOSE で囲んだ不確定名だけ .unk-name の色で (dungeons/unknown.js の unknownTag)

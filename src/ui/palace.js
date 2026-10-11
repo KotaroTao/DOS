@@ -18,7 +18,7 @@ import { UI, game, ops, registerUI } from "./ctx.js";
 import { el, setText, glyph, svgIcon, sheet, button, segmented, chips, itemTile, scrollBox, badge, bar } from "./kit.js";
 import { remember } from "./prefs.js";
 import { softFade } from "./motion.js";
-import { statLines, itemCatText, specialLines, weaponPerformanceEl, showSkillPopup, showPassivePopup, tagRow, traitTagKinds, affinityRow, spellTagKinds, revealSteps, monKills, revealLock, elemStatShort, enemyReveal, enemyLabel, UNKNOWN_COLOR } from "./itemview.js";
+import { statLines, itemCatText, specialLines, weaponPerformanceEl, showSkillPopup, showPassivePopup, tagRow, traitTagKinds, affinityRow, spellTagKinds, revealSteps, monKills, revealLock, elemStatShort, enemyReveal, enemyLabel, unknownArt, UNKNOWN_COLOR } from "./itemview.js";
 import { MONSTERS, ICONS, spriteCanvas } from "../sprites.js";
 import { EVENTS, EVENT_MAP, EVENT_GROUPS, EV_TIERS, eventWhereText, onceKey, LORE_PAGES } from "../events.js";
 import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, SHIELD_KINDS, SHIELD_KIND_LABEL, shieldKind, itemName, hasQuality, qualityOf, QUALITY_SPREAD } from "../items.js";
@@ -695,7 +695,7 @@ export function codexMonSheet(key, o = {}) {
   if (!special) body.appendChild(infoBlock("出現した迷宮", idxs.length ? idxs.map((i) => pairRow(DUNGEONS[i].name, appearFloorsText(DUNGEONS[i], key, e.floors && e.floors[i]))) : [pairRow("記録なし", null, { dim: true })]));
   return sheet.open({
     kind: "info", banner: isOther ? "その他" : `${RACE_LABEL[m.race] || "敵"}${m.rank ? "・" + RANK_NAME[m.rank] + "級" : ""}`,
-    accent: rc, art: (foe ? !!m.art : kills > 0 || !(m.boss || m.named)) ? m : null, artScale: 8, float: isFloating(m, key),
+    accent: rc, art: (foe ? !!m.art : kills > 0 || !(m.boss || m.named)) ? (rv && !rv.name ? unknownArt(m, 8) : m) : null, artScale: 8, float: isFloating(m, key),
     title: foe ? enemyLabel(foe) : m.name, titleColor: rv && !rv.name ? UNKNOWN_COLOR : null, body, className: "pl-detail-sheet",
     footer: [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }],
   });
