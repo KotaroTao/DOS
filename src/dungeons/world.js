@@ -57,7 +57,7 @@
 //             soulFeast 魂喰らいの闇: 人業を倒した敵は攻撃がこの段数だけ上がる (3ターン。底なしの大伽藍)
 //             oneChest 巨獣の宝: 宝箱は1階に1つだけ (足りなければ置く)。中身のランクは mods.chestRankUp で上げる (大空洞の主の寝床)
 //             sealedGate ★閉ざされた門: 帰還魔法陣が無く、帰還の鈴も使えない。最下階に着くか全滅するまで出られない (化石竜の墓所)
-//             dailyEntry 入場の回数: 1日 (端末の日付) に入れる回数。踏破するまでは数えない — 本筋を止めない (器の山)
+//             corpseFade 痩せる恵み: 盤面の加工 prison で増える死体が、隊のLv が推奨Lv+2 を超えた1Lvごとに15%ずつ減る (器の山)
 //             appraised 澄んだ水晶の光: この迷宮で拾う品は、はじめから鑑定済み (水晶の鉱脈)
 //             say      開幕の効果 (mpDrain / hpDrain / chill / poisonStart / boltStart) を戦闘の記録に書く時の一文
 //             audience 見世物の闘技場: 戦闘の開幕に観客の注文がひとつ出て、応えて勝てば ✦Soul・金貨が増える (game.js AUDIENCE_ORDERS。闘技場跡)
@@ -661,10 +661,10 @@ const WORLD_DEF = [
     elites: ["el_offeringslime"],
     trait: {
       id: "husks", name: "器の山", sym: "⚱", accent: "#a08870",
-      lines: ["積み上げられた器のあいだに、骸が横たわる (各階に死体が2つ増える)。", "器に宿りかけた魂が多く、得る ✦Soul は 1.3倍。", "器の山は一度あさると崩れ、積み直るまで一日かかる。踏破した後は、入れるのは1日1回 (日付が変わると、また入れる)。"],
+      lines: ["積み上げられた器のあいだに、骸が横たわる (各階に死体が2つ増える)。", "器に宿りかけた魂が多く、得る ✦Soul は 1.3倍。", "器に残る魂は、強すぎる者の前には姿を見せない。隊のLvが推奨Lv+2 を超えると、1Lv ごとに増える死体が15%ずつ減る (推奨Lv+9 で増えなくなる)。"],
       mods: { soulMul: 1.3 },
       board: "prison",
-      dailyEntry: 1, // 魂と残火が集まりすぎるので1日1回まで (2026-10-11 ユーザーの指示)
+      corpseFade: true, // 魂と残火が集まりすぎるので、隊のLv が推奨Lv を超えるほど増える死体を減らす (2026-10-11 ユーザーの指示)
     },
     tune: { enemyMul: 1.02, deepMul: 0.84, soloMul: 1.05 },
     unlock: { story: "w26_splint" },
@@ -1699,7 +1699,7 @@ export function strengthAt(cfg, floor = 1) { return powerAt(cfg, floor) * lvPow(
     if (d.trait) {
       const t = d.trait;
       if (!t.id || !t.name || !Array.isArray(t.lines)) throw new Error(`world: ${d.id} trait needs id/name/lines`);
-      for (const k of Object.keys(t)) if (!["id", "name", "sym", "accent", "lines", "mods", "eliteRate", "board", "specialRate", "victoryHeal", "foeRegen", "mpDrain", "hpDrain", "metalRate", "metalMax", "chill", "physOnly", "alwaysAmbush", "poisonStart", "boltStart", "allHaste", "say", "audience", "gloom", "foeRally", "fervor", "duel", "foeRise", "whisper", "shell", "soulFeast", "oneChest", "sealedGate", "appraised", "dailyEntry"].includes(k)) throw new Error(`world: ${d.id} trait has unknown field ${k}`);
+      for (const k of Object.keys(t)) if (!["id", "name", "sym", "accent", "lines", "mods", "eliteRate", "board", "specialRate", "victoryHeal", "foeRegen", "mpDrain", "hpDrain", "metalRate", "metalMax", "chill", "physOnly", "alwaysAmbush", "poisonStart", "boltStart", "allHaste", "say", "audience", "gloom", "foeRally", "fervor", "duel", "foeRise", "whisper", "shell", "soulFeast", "oneChest", "sealedGate", "appraised", "corpseFade"].includes(k)) throw new Error(`world: ${d.id} trait has unknown field ${k}`);
     }
     if (d.realm != null) throw new Error(`world: ${d.id} の realm は廃止 (土地の掟は迷宮の掟に統合した)`);
     if (d.trait && d.trait.say && typeof d.trait.say === "object") {

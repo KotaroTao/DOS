@@ -648,6 +648,19 @@ function soulLvMul(lv, foeLv = foeLevelHere()) {
   const over = (lv || 1) - foeLv - SOUL_LV_GRACE;
   return over <= 0 ? 1 : Math.max(SOUL_LV_MIN, 1 - SOUL_LV_STEP * over);
 }
+// 掟「器の山」(trait.corpseFade、2026-10-11 ユーザーの指示: 魂と残火が集まりすぎる — 弱い敵の迷宮を楽に周回できた):
+// 盤面の加工 prison で増える死体は、隊のLv (メイン魂の平均) が推奨Lv + CORPSE_FADE_GRACE を超えた1Lvごとに CORPSE_FADE_STEP ずつ出にくくなる (推奨Lv+9 で出ない)。
+// cfg を渡すと出撃画面の見込み (その迷宮の1階の推奨Lv)、渡さなければいまの階。掟の無い迷宮は 1
+const CORPSE_FADE_GRACE = 2, CORPSE_FADE_STEP = 0.15;
+function corpseFadeShare(cfg = null) {
+  const tr = cfg ? cfg.trait : dungeonTrait();
+  if (!tr || !tr.corpseFade) return 1;
+  const ds = (G.party || []).filter((d) => d && d.primary != null);
+  if (!ds.length) return 1;
+  const lv = ds.reduce((a, d) => a + (d.jobLv || 1), 0) / ds.length;
+  const over = lv - (cfg ? cfg.lv : foeLevelHere()) - CORPSE_FADE_GRACE;
+  return over <= 0 ? 1 : Math.max(0, 1 - CORPSE_FADE_STEP * over);
+}
 function partySoulLvMul() {
   const ds = (G.party || []).filter((d) => d && d.primary != null);
   if (!ds.length) return 1;
@@ -926,7 +939,7 @@ const CONTENT_LIMIT = DUNGEONS.length;
 function worldState() {
   if (!G.world || typeof G.world !== "object") G.world = {};
   const w = G.world;
-  for (const k of ["open", "cleared", "reported", "found", "beats", "gates", "fresh", "daily"]) if (!w[k] || typeof w[k] !== "object") w[k] = {};
+  for (const k of ["open", "cleared", "reported", "found", "beats", "gates", "fresh"]) if (!w[k] || typeof w[k] !== "object") w[k] = {};
   if (w.report === undefined) w.report = null;
   // told = 報告の後に見つけた手がかり (LATE_CLUES) を王に伝えたか。この記録の無い旧セーブは、報告済みの迷宮の手がかりを
   // 伝えたことにする (報告の文で語られた分と見分けられない)。直前に拾った手がかり (w.last) だけは伝えられるよう残す
@@ -1633,7 +1646,10 @@ const TRAIT_BOARD = {
     sfPlace(b, 1, (c) => { c.type = "chest"; c.cleared = false; });
   },
   // 閉ざされた獄: 獄死した囚人の骸を2つ (半分はまだ温かい)
-  prison: (b) => sfPlace(b, 2, (c) => { c.type = "corpse"; c.cleared = false; c.corpseClass = rollJobClass(); c.corpseWarm = Math.random() < 0.5; }),
+  prison: (b) => {
+    const share = corpseFadeShare(); // 掟「器の山」では隊のLv が推奨Lv を超えるほど増える死体が減る
+    sfPlace(b, 2, (c) => { if (Math.random() >= share) return; c.type = "corpse"; c.cleared = false; c.corpseClass = rollJobClass(); c.corpseWarm = Math.random() < 0.5; });
+  },
   // 沈んだ供物: 参道に捧げられた供物の宝箱を2つ (掟の mimicRate で3割はミミック)
   offering: (b) => sfPlace(b, 2, (c) => { c.type = "chest"; c.cleared = false; }),
   // 洗礼の水: まだ澄んだ洗礼の水 (癒しの泉) を2つ
@@ -15175,41 +15191,6 @@ function blockForTutorial() {
   return true;
 }
 
-// 迷宮の掟の入場の回数 (trait.dailyEntry — 器の山。2026-10-11 ユーザーの指示: 魂と残火が集まりすぎる)。
-// 端末の日付で1日に入れる回数。踏破するまでは数えない (本筋の迷宮なので、全滅しても翌日まで止めない)。
-// 記録は G.world.daily[id] = { day: "YYYY-MM-DD", n }。制限の無い迷宮は null
-function localDayKey(t = Date.now()) {
-  const d = new Date(t);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-function dailyEntryInfo(cfg) {
-  const max = cfg && cfg.trait && cfg.trait.dailyEntry;
-  if (!max) return null;
-  const w = worldState();
-  if (!w.cleared[cfg.id]) return { max, used: 0, left: max, before: true };
-  const rec = w.daily[cfg.id];
-  const used = rec && rec.day === localDayKey() ? rec.n | 0 : 0;
-  const next = new Date(); next.setHours(24, 0, 0, 0); // 次の日付の変わり目
-  return { max, used, left: Math.max(0, max - used), resetMs: Math.max(0, next.getTime() - Date.now()) };
-}
-function dailyEntryWait(info) {
-  const m = Math.ceil((info.resetMs || 0) / 60000), h = Math.floor(m / 60);
-  return h ? `あと${h}時間${m % 60 ? `${m % 60}分` : ""}` : `あと${Math.max(1, m)}分`;
-}
-// 今日はもう入れないなら知らせて true
-function blockForDailyEntry(cfg) {
-  const info = dailyEntryInfo(cfg);
-  if (!info || info.left > 0) return false;
-  SFX.ng();
-  showToast(`「${cfg.name}」に入れるのは1日${info.max}回まで。日付が変わると、また入れる (${dailyEntryWait(info)})`, { tone: "info" });
-  return true;
-}
-function countDailyEntry(cfg) {
-  const info = dailyEntryInfo(cfg);
-  if (!info || info.before) return;
-  worldState().daily[cfg.id] = { day: localDayKey(), n: info.used + 1 };
-}
-
 // 門をくぐる (出撃シートの決め手)。idx = 迷宮の番号 (0始まり) / accept = 迷宮の異変ごと潜るか。
 // 闇に溶けて (sceneTransition) その底で出撃する。潜れない時は理由を返す
 // from = 潜り始める階 (1 か、到達した帰還魔法陣の次の階)
@@ -15220,7 +15201,6 @@ function departNow({ idx = G.dungeonIdx, accept = false, from = 1 } = {}) {
   if (blockForTutorial()) return { ok: false, reason: "tutorial" };
   if (!worldOpenIdx(idx)) { showToast("その迷宮は、まだ地図に記されていない", { tone: "info" }); return { ok: false, reason: "sealed" }; }
   if (!G.party.some((p) => p.alive)) { log("動ける人業がいない。", "sys"); SFX.ng(); return { ok: false, reason: "party" }; }
-  if (blockForDailyEntry(DUNGEONS[idx])) return { ok: false, reason: "daily" };
   if (!stabilityReady()) return { ok:false, reason:"stability" };
   G.dungeonIdx = idx;
   const mut = townMutatorFor(idx);
@@ -15321,8 +15301,7 @@ const DUNGEON_BRIEFING = [
 ];
 // 出撃の実体。mutatorId を渡すと「迷宮の異変」を受け入れた状態で潜る
 function enterDungeon(mutatorId, startFloor = 1) {
-  if (G.state !== "town" || blockForDailyEntry(curDungeon()) || !consumeEntryStability(curDungeon().id)) return false;
-  countDailyEntry(curDungeon());
+  if (G.state !== "town" || !consumeEntryStability(curDungeon().id)) return false;
   G.stabilityBriefed = true;
   G.mutator = curDungeon().id === "w01" ? null : mutatorId || null;
   G.bossDown = false; // 帰還制限: 魔法陣を見つけるか主を討つまで帰れない
@@ -18089,7 +18068,7 @@ bindGame({
 // モジュールの評価時 (init より前) に結ぶ。init の wireUI が同じ game へ残りを足す
 bindGame({
   // 出撃
-  departNow, dailyEntryInfo, dailyEntryWait, departAbyss, rematchList, departRematch, REMATCH_FORGE_MAX, townMutatorFor, preDiveIssues, departWoes, DUNGEON_BRIEFING, STORY_CELLS, startFloorsOf, worldOpenIdx, worldOpenId, worldUnlockMet, levelBand, wallOf, wallStepOf, partyLevel, storyCellPending, dungeonFacts, dungeonQuests, namedHere, namedList, namedInfo,
+  departNow, corpseFadeShare, departAbyss, rematchList, departRematch, REMATCH_FORGE_MAX, townMutatorFor, preDiveIssues, departWoes, DUNGEON_BRIEFING, STORY_CELLS, startFloorsOf, worldOpenIdx, worldOpenId, worldUnlockMet, levelBand, wallOf, wallStepOf, partyLevel, storyCellPending, dungeonFacts, dungeonQuests, namedHere, namedList, namedInfo,
   abyssRecords, infStats, infTitleList, infTitleName, setInfTitle, emptyDollCost, infRule, infAtRest, soulWorkOk, infTraderWares, infBuy, infSell, infSwapSoul, infSoulChangeBlock, infSoulChangePreview, infLevel, infGrowthMul,
   // 迷宮の HUD
   specialDef, mutDef, eliteKey, dungeonObjective, abyssActive, abyssBossPending, findRevealedStairs, canReturnNow, confirmAbandonDungeon,
