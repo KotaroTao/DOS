@@ -15,7 +15,7 @@ import {
 import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, permanentEventStats, eligibleEvents, pickEvent, onceKey, runEvent, eventFightWon } from "./events.js";
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { pickTavernCrowd, TALK_MAP } from "./tavern.js";
-import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, rollBoard, deliveryRewardRows, NPCS, npcOf, composeReport, bondGiftAt, npcBondLabel, TIP_RATE, hasBell, BELL_EVERY_MS, QUEST_REWARD_K } from "./quests.js";
+import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, rollBoard, deliveryRewardRows, NPCS, npcOf, composeReport, bondGiftAt, npcBondLabel, TIP_RATE, hasBell, BELL_EVERY_MS, QUEST_REWARD_K, QUEST_RK, questRewardK } from "./quests.js";
 import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_THREE_REPORT, TUT_FINALE, STORY_CELLS, storyCellAt, BOSS_MEMORIES, REPORTS, LATE_CLUES, IRENE_BEATS, MINE_PASS, msqReward, EPILOGUE, UNLOCKS, unlockSceneFor } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { poolAt } from "./dungeons/world.js";
@@ -11749,14 +11749,20 @@ function questState() {
   for (const q of [...(s.board || []), ...s.active]) { fixQuestDungeonName(q); scaleOldQuestReward(q); }
   return s;
 }
-// 報酬の倍率 (quests.js QUEST_REWARD_K、2026-10 に 1/5) を入れる前に貼られた・受けた依頼の金貨・✦Soul を直す (一度だけ。印 rk)
+// 依頼の報酬の倍率 (quests.js QUEST_REWARD_K / questRewardK) を、前の決まりで貼られた・受けた依頼の金貨・✦Soul に合わせ直す (一度だけ)。
+//   印なし = 倍率を入れる前 → 品・職業の魂を添える依頼だけ 1/5 に
+//   rk 1 = どの依頼も 1/5 にしていた版 → 金貨・✦Soul だけの依頼は元に戻す
 function scaleOldQuestReward(q) {
-  if (!q || q.rk) return;
-  q.rk = 1;
+  if (!q || q.rk === QUEST_RK) return;
+  const was = q.rk;
+  q.rk = QUEST_RK;
   const r = q.reward;
   if (!r || typeof r !== "object") return;
-  if (r.gold) r.gold = Math.max(1, Math.round(r.gold * QUEST_REWARD_K));
-  if (r.soulPts) r.soulPts = Math.max(1, Math.round(r.soulPts * QUEST_REWARD_K));
+  const k = questRewardK(r);
+  const f = !was ? k : was === 1 && k === 1 ? 1 / QUEST_REWARD_K : 1;
+  if (f === 1) return;
+  if (r.gold) r.gold = Math.max(1, Math.round(r.gold * f));
+  if (r.soulPts) r.soulPts = Math.max(1, Math.round(r.soulPts * f));
 }
 // 古いセーブの依頼は説明・手がかりに迷宮の略称 (「囁く回廊」) が残っている → 正式名 (「亡骸の囁く回廊」) に直す
 function fixQuestDungeonName(q) {
@@ -11852,8 +11858,9 @@ function fixedQuestReward(def) {
   const front = questFrontUnit();
   const u = { gold: Math.max(u0.gold, front.gold * 0.7), soul: Math.max(u0.soul, front.soul * 0.7) };
   const out = {};
-  // 金貨・✦Soul・赤い魂は QUEST_REWARD_K (2026-10 ユーザーの指示で 1/5) を掛ける。残火・魂はそのまま
-  const k = QUEST_REWARD_K;
+  // 職業の魂・品を添える依頼は、金貨・✦Soul・赤い魂に QUEST_REWARD_K (2026-10 ユーザーの指示で 1/5) を掛ける。
+  // 添えない依頼 (金貨・✦Soul だけ。懸賞など) は減らさない。残火・魂の数はそのまま
+  const k = questRewardK(r);
   // 端数は 10 (✦ は 5) に丸める。小さな額は丸めると 0 や倍近くになるので、刻みの5倍に満たなければ1の位まで
   const nice = (v, step) => (v >= step * 5 ? Math.round(v / step) * step : Math.max(1, Math.round(v)));
   if (r.gold) out.gold = nice(u.gold * r.gold * k, 10);
