@@ -53,18 +53,22 @@
 //             duel     一騎打ち: 魔物の札の戦闘は必ず1体だけ。その1体は強敵並みに強く、戦果も群れの分だけ持つ (決闘の小円形場)
 //             foeRise  起き上がる濁り魂: 倒れた敵 (主・金属の魔物を除く) は戦闘ごとに一度だけ、最大HPのこの割合で起き上がる (灯籠の吹き溜まり)
 //             whisper  ささやく湖面: 戦闘の開幕に隊の一人がささやきに惑わされ、この確率で混乱する (混乱の抵抗で防げる。黒い灯の地底湖)
+//             lull     眠りの歌: 戦闘の開幕に隊の一人がこの確率で眠る (眠りの抵抗で防げる。溺れた聖歌の回廊)
+//             jolt     しびれる雷: 戦闘の開幕に隊の一人がこの確率で麻痺する (麻痺の抵抗で防げる。雷の落ちる回廊)
 //             shell    封じの殻: 戦闘の開幕に、主・金属の魔物を除く敵の全員に障壁 (打撃を1回だけ防ぐ) をこの回数だけ張る (名を刻む石窟)
 //             soulFeast 魂喰らいの闇: 人業を倒した敵は攻撃がこの段数だけ上がる (3ターン。底なしの大伽藍)
 //             oneChest 巨獣の宝: 宝箱は1階に1つだけ (足りなければ置く)。中身のランクは mods.chestRankUp で上げる (大空洞の主の寝床)
 //             sealedGate ★閉ざされた門: 帰還魔法陣が無く、帰還の鈴も使えない。最下階に着くか全滅するまで出られない (化石竜の墓所)
 //             corpseFade 痩せる恵み: 盤面の加工 prison で増える死体が、隊のLv が推奨Lv+2 を超えた1Lvごとに15%ずつ減る (閉ざされた獄・器の山・疫病の塚)
 //             appraised 澄んだ水晶の光: この迷宮で拾う品は、はじめから鑑定済み (水晶の鉱脈)
-//             say      開幕の効果 (mpDrain / hpDrain / chill / poisonStart / boltStart) を戦闘の記録に書く時の一文
+//             say      開幕の効果 (mpDrain / hpDrain / chill / poisonStart / boltStart / gloom / whisper / lull / jolt) を戦闘の記録に書く時の一文
 //             audience 見世物の闘技場: 戦闘の開幕に観客の注文がひとつ出て、応えて勝てば ✦Soul・金貨が増える (game.js AUDIENCE_ORDERS。闘技場跡)
 //             gloom    底なしの闇: 戦闘の開幕に隊の全員の命中が下がる (物理が外れる率をこの分だけ足す。3ターン。地底大空洞)
 //           say は文字列か、開幕の効果を2つ持つ時は効果ごとの文 ({ mpDrain: "…", chill: "…" })
 //           掟は1つの迷宮に1つだけ (ユーザーの指示、2026-10-11: 土地の掟は迷宮の掟に統合した)。同じ土地の迷宮は気候の効果
 //           (灼熱 = hpDrain 0.06 / 酷寒 = chill 1 / 闘技場 = audience / 地の底 = gloom 0.15) を、その迷宮の掟の1行として持つ。
+//           掟は「代償と見返り」の組 (ハイリスク・ハイリターン か ローリスク・ローリターン)。見返りだけの掟は作らない。
+//           代償に金貨・✦Soul を基準 (1.0) より減らすことは使わない (2026-10-11 ユーザーの指示)
 //           「技が一切使えない」「物理が効かない」「魔法が効かない」のような強い掟は、格上 (challenge) の迷宮だけに付ける
 //   challenge 格上の迷宮: 開く章の適正Lv よりはるかに高い推奨Lv を持つ寄り道。奈落の層 (abyssLayer) の推奨Lv・強さの平均には数えない
 //   tune    強さの手直し (generator.js DUNGEON_TUNE と同じ欄)。第4層からはテスト記録がまだ無いので、模擬戦で既存の迷宮に
@@ -390,8 +394,9 @@ const WORLD_DEF = [
     elites: ["el_fallenidol"],
     trait: {
       id: "hymn", name: "響く聖歌", sym: "♪", accent: "#e8d890",
-      lines: ["溺れた聖歌隊の歌が響き続け、魔物はみな光の気を帯びる。闇の刃が通り、闇の守りが光を和らげる。", "歌に引かれて集まった魂は多く、得る ✦Soul は 1.3倍。"],
+      lines: ["溺れた聖歌隊の歌が響き続け、魔物はみな光の気を帯びる。闇の刃が通り、闇の守りが光を和らげる。", "聖歌は聞く者の心をとろかす。戦闘が始まるたび、隊の一人が 50% で歌に聞き入って眠りに落ちる (眠りの抵抗で防げる)。", "歌に引かれて集まった魂は多く、得る ✦Soul は 1.3倍。"],
       mods: { elemAll: true, soulMul: 1.3 },
+      lull: 0.5, say: "溺れた聖歌隊の歌が耳にしみこむ", // メリットしかない掟だったので代償を足した (2026-10-11 ユーザーの指示)
     },
     tune: { enemyMul: 1.12, deepMul: 0.82, soloMul: 1.05 }, // 属性が揃う分 (闇の刃で通る) だけ重め
     unlock: { story: "w14_lamp" },
@@ -662,8 +667,8 @@ const WORLD_DEF = [
     elites: ["el_offeringslime"],
     trait: {
       id: "husks", name: "器の山", sym: "⚱", accent: "#a08870",
-      lines: ["積み上げられた器のあいだに、骸が横たわる (各階に死体が2つ増える。半分はまだあたたかい)。", "器に宿りかけた魂が多く、得る ✦Soul は 1.3倍。", "器に残る魂は、強すぎる者の前には姿を見せない。隊のLvが推奨Lv+2 を超えると、1Lv ごとに増える死体が15%ずつ減る (推奨Lv+9 で増えなくなる)。"],
-      mods: { soulMul: 1.3 },
+      lines: ["積み上げられた器のあいだに、骸が横たわる (各階に死体が2つ増える。半分はまだあたたかい)。", "崩れた器の山が退路をふさぐ。この迷宮の戦闘からは逃げられない。", "器に宿りかけた魂が多く、得る ✦Soul は 1.3倍。", "器に残る魂は、強すぎる者の前には姿を見せない。隊のLvが推奨Lv+2 を超えると、1Lv ごとに増える死体が15%ずつ減る (推奨Lv+9 で増えなくなる)。"],
+      mods: { noFlee: true, soulMul: 1.3 }, // noFlee = メリットしかない掟だったので足した代償 (2026-10-11 ユーザーの指示)
       board: "prison",
       corpseFade: true, // 魂と残火が集まりすぎるので、隊のLv が推奨Lv を超えるほど増える死体を減らす (2026-10-11 ユーザーの指示)
     },
@@ -771,8 +776,9 @@ const WORLD_DEF = [
     elites: ["el_blizzardwitch"],
     trait: {
       id: "railbolt", name: "帯電した手すり", sym: "ϟ", accent: "#b8c8f8",
-      lines: ["回廊の魔物は、どれも雷 (風) を帯びている。火の刃が通り、火の守りが雷を和らげる。", "落雷に焼かれた旅人の金貨が、手すりの根元に散らばっている。得る金貨は 1.35倍。"],
+      lines: ["回廊の魔物は、どれも雷 (風) を帯びている。火の刃が通り、火の守りが雷を和らげる。", "手すりに走る雷が体をしびれさせる。戦闘が始まるたび、隊の一人が 40% で麻痺する (麻痺の抵抗で防げる)。", "落雷に焼かれた旅人の金貨が、手すりの根元に散らばっている。得る金貨は 1.35倍。"],
       mods: { elemAll: true, goldMul: 1.35 },
+      jolt: 0.4, say: "帯電した手すりの雷が走った", // メリットしかない掟だったので代償を足した (2026-10-11 ユーザーの指示)
     },
     tune: { enemyMul: 0.99, deepMul: 0.84, soloMul: 1.05 },
     unlock: { reported: "w30" },
@@ -1050,7 +1056,8 @@ const WORLD_DEF = [
     ],
     trait: {
       id: "silver", name: "銀の里", sym: "◇", accent: "#d0d8e8",
-      lines: ["銀の小人たちの隠れ里。金属の魔物がとても出やすい (各階45%・札は2枚まで)。会心の一撃で仕留めよ。", "里の番人は空の鎧と石の人形。物理に固い者が多い。"],
+      lines: ["銀の小人たちの隠れ里。金属の魔物がとても出やすい (各階45%・札は2枚まで)。会心の一撃で仕留めよ。", "里の番人 (空の鎧と石の人形) は群れで里を守り、魔物はつねに三体以上で現れる。物理に固い者が多い。"],
+      mods: { packMin: 3 }, // メリットしかない掟だったので代償を足した (2026-10-11 ユーザーの指示)
       metalRate: 0.45, metalMax: 2,
     },
     tune: { enemyMul: 1.53, deepMul: 0.76, soloMul: 1.05 },
@@ -1071,8 +1078,8 @@ const WORLD_DEF = [
     elites: ["el_fallenidol"],
     trait: {
       id: "wishes", name: "願いの底", sym: "◎", accent: "#9080c0",
-      lines: ["井戸の底には、三百年分の願いの品が沈んでいる。宝箱は1ランク上等で、落ちている装備の質も少し上がる。", "願いを喰らって育った魔物が、その品を守っている。"],
-      mods: { chestRankUp: 1, lootBonusLv: 4 },
+      lines: ["井戸の底には、三百年分の願いの品が沈んでいる。宝箱は1ランク上等で、落ちている装備の質も少し上がる。", "願いを喰らって育った魔物が、その品を守っている。魔物の力は 1.15倍。"],
+      mods: { chestRankUp: 1, lootBonusLv: 4, enemyMul: 1.15 }, // enemyMul = メリットしかない掟だったので足した代償 (2026-10-11 ユーザーの指示)
     },
     tune: { enemyMul: 1.07, deepMul: 0.78, soloMul: 1.05 },
     unlock: { story: "w09_map" },
@@ -1095,8 +1102,9 @@ const WORLD_DEF = [
     elites: ["el_warbanner"],
     trait: {
       id: "beacon", name: "消えない狼煙", sym: "♨", accent: "#e09050",
-      lines: ["狼煙の火を浴び、魔物はみな火の気を帯びる。水の刃が通り、水の守りが火を和らげる。", "火に呼ばれて集まった魂は多く、得る ✦Soul は 1.25倍。"],
+      lines: ["狼煙の火を浴び、魔物はみな火の気を帯びる。水の刃が通り、水の守りが火を和らげる。", "狼煙の煙が目にしみる。戦闘が始まるたび、隊の全員の物理の命中が下がる (外れる率 +15%、3ターン)。", "火に呼ばれて集まった魂は多く、得る ✦Soul は 1.25倍。"],
       mods: { elemAll: true, soulMul: 1.25 },
+      gloom: 0.15, say: "狼煙の煙が目にしみる", // メリットしかない掟だったので代償を足した (2026-10-11 ユーザーの指示)
     },
     tune: { enemyMul: 1.15, deepMul: 0.80, soloMul: 0.95 }, // 属性が揃う分 (水の刃で通る) だけ重め
     unlock: { quest: "fq_bram2" },
@@ -1117,8 +1125,8 @@ const WORLD_DEF = [
     elites: ["el_headsman"],
     trait: {
       id: "keyring", name: "鍵束の間", sym: "⚿", accent: "#c0a060",
-      lines: ["押収品を納めた宝箱が並ぶ (各階に宝箱が2つ増える)。", "獄吏の錠は固いが、中身は上等 (宝箱が1ランク上がる)。"],
-      mods: { chestRankUp: 1 },
+      lines: ["押収品を納めた宝箱が並ぶ (各階に宝箱が2つ増える)。", "獄吏の錠は固く、宝箱には必ず罠が仕掛けてあり、罠の解除は2倍難しい。だが中身は上等 (宝箱が1ランク上がる)。"],
+      mods: { chestRankUp: 1, chestTrapRate: 1, lockMul: 2 }, // 罠・錠 = メリットしかない掟だったので足した代償 (2026-10-11 ユーザーの指示)
       board: "offering",
     },
     tune: { enemyMul: 1.10, deepMul: 0.80, soloMul: 1.05 },
@@ -1252,8 +1260,9 @@ const WORLD_DEF = [
     elites: ["el_offeringslime"],
     trait: {
       id: "plague", name: "疫病の塚", sym: "✝", accent: "#b0a070",
-      lines: ["投げこまれた死者が、通路に折り重なっている (各階に死体が2つ増える。半分はまだあたたかい)。宝箱は1ランク上等。", "塚に眠る魂は数知れず、得る ✦Soul は 1.2倍。", "塚の魂は、強すぎる者の前には姿を見せない。隊のLvが推奨Lv+2 を超えると、1Lv ごとに増える死体が15%ずつ減る (推奨Lv+9 で増えなくなる)。"],
+      lines: ["投げこまれた死者が、通路に折り重なっている (各階に死体が2つ増える。半分はまだあたたかい)。宝箱は1ランク上等。", "塚にこもる疫病の気が体をむしばむ。戦闘が始まるたび、隊の一人ひとりが 25% で毒に冒される (毒の抵抗で防げる)。", "塚に眠る魂は数知れず、得る ✦Soul は 1.2倍。", "塚の魂は、強すぎる者の前には姿を見せない。隊のLvが推奨Lv+2 を超えると、1Lv ごとに増える死体が15%ずつ減る (推奨Lv+9 で増えなくなる)。"],
       mods: { chestRankUp: 1, soulMul: 1.2 },
+      poisonStart: 0.25, say: "塚にこもる疫病の気が体をむしばむ", // メリットしかない掟だったので代償を足した (2026-10-11 ユーザーの指示)
       board: "prison",
       corpseFade: true, // 増える死体は隊のLv が推奨Lv を超えるほど減る (2026-10-11 ユーザーの指示)
     },
@@ -1338,11 +1347,10 @@ const WORLD_DEF = [
     elites: ["el_stareater"],
     trait: {
       id: "cloudspring", name: "雲間の泉", sym: "❀", accent: "#c8e8d0",
-      lines: ["庭のあちこちに、夜ごと雲の露が溜まる澄んだ泉が湧く (各階に癒しの泉が2つ)。", "花のあいだに魂が憩い、得る ✦Soul は 1.25倍。"],
-      mods: { soulMul: 1.25 },
-      board: "font",
+      lines: ["庭のあちこちに、夜ごと雲の露が溜まる泉が湧く (各階に泉が2つ増える)。", "だが雷雲の澱みが混じった泉もある。どれが呪われているかは飲むまでわからない (3つに1つ。呪いなら隊の全員の HP が半分になり、毒に冒される者も出る)。"],
+      board: "cloudspring", // メリットしかない掟だった (✦1.25 + 泉) のを、呪いの見分けられない泉に (2026-10-11 ユーザーの指示)
     },
-    tune: { enemyMul: 1.00, deepMul: 0.84, soloMul: 1.05 }, // 泉で立て直せる分だけ並みの強さ
+    tune: { enemyMul: 1.00, deepMul: 0.84, soloMul: 1.05 }, // 泉で立て直せる分だけ並みの強さ (泉の3つに1つは呪い)
     unlock: { quest: "fq_garden" },
     hint: "酒場の老いた庭師の依頼「雲の上の花」を受けると、道が示される",
   },
@@ -1701,7 +1709,7 @@ export function strengthAt(cfg, floor = 1) { return powerAt(cfg, floor) * lvPow(
     if (d.trait) {
       const t = d.trait;
       if (!t.id || !t.name || !Array.isArray(t.lines)) throw new Error(`world: ${d.id} trait needs id/name/lines`);
-      for (const k of Object.keys(t)) if (!["id", "name", "sym", "accent", "lines", "mods", "eliteRate", "board", "specialRate", "victoryHeal", "foeRegen", "mpDrain", "hpDrain", "metalRate", "metalMax", "chill", "physOnly", "alwaysAmbush", "poisonStart", "boltStart", "allHaste", "say", "audience", "gloom", "foeRally", "fervor", "duel", "foeRise", "whisper", "shell", "soulFeast", "oneChest", "sealedGate", "appraised", "corpseFade"].includes(k)) throw new Error(`world: ${d.id} trait has unknown field ${k}`);
+      for (const k of Object.keys(t)) if (!["id", "name", "sym", "accent", "lines", "mods", "eliteRate", "board", "specialRate", "victoryHeal", "foeRegen", "mpDrain", "hpDrain", "metalRate", "metalMax", "chill", "physOnly", "alwaysAmbush", "poisonStart", "boltStart", "allHaste", "say", "audience", "gloom", "foeRally", "fervor", "duel", "foeRise", "whisper", "lull", "jolt", "shell", "soulFeast", "oneChest", "sealedGate", "appraised", "corpseFade"].includes(k)) throw new Error(`world: ${d.id} trait has unknown field ${k}`);
     }
     if (d.realm != null) throw new Error(`world: ${d.id} の realm は廃止 (土地の掟は迷宮の掟に統合した)`);
     if (d.trait && d.trait.say && typeof d.trait.say === "object") {
