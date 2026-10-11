@@ -34,8 +34,8 @@ function load() {
 }
 let S = load();
 if (S.build !== TEST_BUILD) {
-  if (Object.keys(S.d).length) (S.history || (S.history = [])).push({ build: S.build || "旧版(不明)", since: S.since, until: new Date().toISOString(), d: S.d, townMs:S.townMs || 0, townSl:S.townSl || null, townG:S.townG || null, stability:S.stability || null });
-  S.stability = null; S.d = {}; S.townMs = 0; S.townSl = null; S.townG = null; S.build = TEST_BUILD; S.since = S.on ? new Date().toISOString() : null;
+  if (Object.keys(S.d).length || S.inf) (S.history || (S.history = [])).push({ build: S.build || "旧版(不明)", since: S.since, until: new Date().toISOString(), d: S.d, townMs:S.townMs || 0, townSl:S.townSl || null, townG:S.townG || null, stability:S.stability || null, inf: S.inf || null });
+  S.inf = null; S.stability = null; S.d = {}; S.townMs = 0; S.townSl = null; S.townG = null; S.build = TEST_BUILD; S.since = S.on ? new Date().toISOString() : null;
 }
 // 旧い出撃記録の装備 (品のデータ丸ごと) を品IDだけに縮める。端末の保存容量を超えて記録が書けなくなるのを防ぐ
 function slimRuns(d) {
@@ -117,7 +117,7 @@ export function tlClear() {
   if (on) S.since = stamp();
   persist();
 }
-export function tlHasData() { return Object.keys(S.d).length > 0 || !!S.stability; }
+export function tlHasData() { return Object.keys(S.d).length > 0 || !!S.stability || !!S.inf; }
 
 // 安定度の記録は迷宮別記録と独立。控え・オフラインの回復も含めて残す。
 function stabilityData() {
@@ -305,6 +305,54 @@ export function tlSnapshot(kind, where, party) {
   }
   else d.s.last = snap;
   persist();
+}
+
+// ===== 無限迷宮の欄 (docs/infinite-labyrinth.md 16-4) =====
+// 1階ごとに: 着いた時の隊の平均Lv と推奨Lv の差・その前の階の分数と戦闘数・HP/MP の割合・砕けた器の数・
+// 上限で止まっている魂の数・持っている残火の数。ほかに拾った魂のレア度・残火の数・全滅した階と隊の Lv。
+// 直近 INF_ROWS 階ぶんだけ持つ (古い行から捨てる)
+const INF_ROWS = 400;
+function infData() { return S.inf || (S.inf = { rows: [], wipes: [], sl: {}, em: 0 }); }
+export function tlInfFloor(r) {
+  if (!S.on || !r) return;
+  const d = infData();
+  d.rows.push({ t: stamp(), f: r.f, lv: r1(r.lv), rec: r1(r.rec), ms: Math.round(r.ms || 0), n: r.n || 0,
+    hp: Math.round((r.hp || 0) * 1000), mp: Math.round((r.mp || 0) * 1000), br: r.broke || 0, cap: r.capped || 0, em: r.embers || 0 });
+  if (d.rows.length > INF_ROWS) d.rows.splice(0, d.rows.length - INF_ROWS);
+  persist();
+}
+export function tlInfSoul(rarity) {
+  if (!S.on) return;
+  const d = infData(), k = SOUL_RAR[rarity] || "c";
+  d.sl[k] = (d.sl[k] || 0) + 1;
+  persist();
+}
+export function tlInfEmbers(n) {
+  if (!S.on || !(n > 0)) return;
+  infData().em += n;
+  persist();
+}
+export function tlInfWipe(r) {
+  if (!S.on || !r) return;
+  const d = infData();
+  d.wipes.push({ t: stamp(), f: r.f, lv: r1(r.lv), rec: r1(r.rec), outcome: r.outcome || "wipe" });
+  if (d.wipes.length > 50) d.wipes.shift();
+  persist();
+}
+// 書き出し: 5階ずつの区切りにまとめた行と、魂・残火・全滅
+function infLines(d) {
+  if (!d || !(d.rows || []).length && !(d.wipes || []).length) return [];
+  const out = ["【無限迷宮 (5階ずつ)】"];
+  const sec = {};
+  for (const r of d.rows || []) { const k = Math.ceil((r.f || 1) / 5); (sec[k] || (sec[k] = [])).push(r); }
+  for (const k of Object.keys(sec).map(Number).sort((a, b) => a - b)) {
+    const xs = sec[k], n = xs.length, sum = (f) => xs.reduce((a, r) => a + (f(r) || 0), 0);
+    out.push(`  B${(k - 1) * 5 + 1}〜${k * 5}F (${n}階): Lv差 ${avg(sum((r) => r.lv - r.rec), n)} ・ 分/階 ${avg(sum((r) => r.ms), n, 60000)} ・ 戦/階 ${avg(sum((r) => r.n), n)} ・ 着いた時 HP/MP% ${avg(sum((r) => r.hp), n, 10)}/${avg(sum((r) => r.mp), n, 10)} ・ 砕けた器 ${avg(sum((r) => r.br), n)} ・ 上限で止まる魂 ${avg(sum((r) => r.cap), n)} ・ 残火 ${avg(sum((r) => r.em), n)}`);
+  }
+  const sl = d.sl || {};
+  out.push(`  拾った魂 コモン${sl.c || 0} レア${sl.r || 0} エピック${sl.e || 0} レジェンド${sl.l || 0} ・ 拾った残火 ${d.em || 0}`);
+  if ((d.wipes || []).length) out.push("  全滅 " + d.wipes.slice(-12).map((w) => `B${w.f}(隊Lv${w.lv}/推奨${w.rec}${w.outcome === "saved" ? "・赤い魂" : ""})`).join(" "));
+  return out;
 }
 
 // 戦闘ごとの集計の器 (kind: n=通常 / e=精鋭・ミミック・出来事 / m=金属の魔物 / b=主)
@@ -553,12 +601,14 @@ export function tlExportText({ past = false } = {}) {
   const now = tlSummary();
   if (!now.length) lines.push("(この版の迷宮の記録はまだない)");
   for (const s of now) { lines.push(s.head); for (const l of s.lines) lines.push("  " + l); }
+  lines.push(...infLines(S.inf));
   const history = S.history || [];
   if (past) {
     for (const h of [...history].reverse()) {
       lines.push("", `【過去版 ${h.build || "旧版(不明)"}】 ${dateText(h.since)} ～ ${dateText(h.until)}`);
       lines.push(...tlStabilitySummary(h.stability));
       for (const s of tlSummary(h.d || {})) { lines.push(s.head); for (const l of s.lines) lines.push("  " + l); }
+      lines.push(...infLines(h.inf));
     }
   } else if (history.length) lines.push(`(過去版の記録 ${history.length}件は「過去版も書き出す」で出せる)`);
   lines.push("注: 被ダメ/戦 = 戦闘前後の隊HP割合の差の平均。命中 = 物理の試行から回避・見切りを除いた割合 (括弧は試行数・そのうち当たったが無効にされた数 = 抵抗値100・加護の祈り・金剛の守り)。金属 = 金属の魔物の戦い (回避は素早さに依らず決まっている)。奇襲の予想 = 開幕の抽選の奇襲率の合計。✦の「戦闘の倍」= 迷宮で得た✦ ÷ 戦闘の✦。魂 = 職Lv+融合数。");
@@ -583,5 +633,5 @@ function dateText(v) {
 }
 // 記録そのもの (検証用。書き出しには出さない)
 export function tlRawData() {
-  return JSON.parse(JSON.stringify({ v: S.v, build:S.build, since: S.since, townMs: S.townMs || 0, townSl: S.townSl || null, townG: S.townG || null, d: S.d, history:S.history || [], stability:S.stability || null }));
+  return JSON.parse(JSON.stringify({ v: S.v, build:S.build, since: S.since, townMs: S.townMs || 0, townSl: S.townSl || null, townG: S.townG || null, d: S.d, inf: S.inf || null, history:S.history || [], stability:S.stability || null }));
 }

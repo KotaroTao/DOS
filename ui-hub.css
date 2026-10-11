@@ -597,6 +597,7 @@
 .pl-lore-h { margin-bottom: 4px; font-size: 11px; font-weight: 800; letter-spacing: 0.3em; color: var(--accent); }
 .pl-lore-t { font-size: 13px; line-height: 1.85; color: #e2d6bb; white-space: pre-line; }
 .pl-lore-by { margin-top: 5px; text-align: right; font-size: 11.5px; color: #a8987a; }
+.pl-lore-lock { font-size: 12px; color: #a8987a; border-left-color: #4a3e2c; }
 .pl-detail-stats { text-align: center; font-size: 12.5px; font-weight: 700; color: var(--accent-hi); font-variant-numeric: tabular-nums; line-height: 1.6; }
 .pl-info { padding: 8px 10px; background: rgba(8,6,9,0.6); border: 1px solid #2a2226; border-radius: 3px; }
 .pl-info-h { margin-bottom: 4px; font-size: 11.5px; font-weight: 800; letter-spacing: 0.2em; color: var(--accent); }

@@ -1,6 +1,6 @@
-// ===== 出撃シート — 門の選択・隊の備え (その場で直す)・異変・初回の注意・奈落の支度 =====
+// ===== 出撃シート — 門の選択・隊の備え (その場で直す)・異変・初回の注意・無限迷宮の入口 =====
 // 担当: WP-D。game.js は import しない (ctx.js の UI / game / ops を通す)。
-// 提供する契約: UI.openDeparture({ page }) … 中央の門 (どのタブからでも)。page:"abyss" で奈落の支度、page:"rematch" で宿敵の再戦を開く
+// 提供する契約: UI.openDeparture({ page }) … 中央の門 (どのタブからでも)。page:"abyss" で無限迷宮の入口、page:"rematch" で宿敵の再戦を開く
 //
 //   ┌ ━━ 出 撃 ━━ ─────────────────────────┐
 //   │ ┌ 迷宮の顔 (由来の原画・無ければ情景) ┐ │ 上半分 = 選んでいる迷宮: 情景・名・説明
@@ -325,15 +325,15 @@ function renderGates(b) {
   for (const dn of locked) sealedRow(null, dn.hint || "まだ地図にない迷宮。手がかりを探せ", "未発見");
   // 章の結びまで語り終えた: 次章を「準備中」として見せる (鎖で封じられた大門)
   if (game.contentSealed && game.contentSealed() && ch) sealedRow(ch.next || "次の章", ch.nextNote || "その先へ続く道は、まだ封じられている", "準備中");
-  // 無限迷宮「奈落」(解放後のみ)
+  // 無限迷宮 (第十章の結びで開く)
   if (game.featureUnlocked && game.featureUnlocked("infinite")) {
-    const rec = game.abyssRecords ? game.abyssRecords() : { bestDepth: 0, bestScore: 0 };
+    const rec = game.abyssRecords ? game.abyssRecords() : { bestDepth: 0 };
     const r = el("button", "dp-gate dp-abyss");
     r.type = "button";
     r.appendChild(gateIcon("abyss"));
     const info = el("span", "dp-gate-i");
-    info.appendChild(el("span", "dp-gate-n", "奈落"));
-    info.appendChild(el("span", "dp-gate-c", rec.bestDepth ? `最深 B${rec.bestDepth}F ・ 最高 ${rec.bestScore.toLocaleString()}点` : "どこまでも潜れる。深さに果てはない。"));
+    info.appendChild(el("span", "dp-gate-n", "無限迷宮"));
+    info.appendChild(el("span", "dp-gate-c", rec.bestDepth ? `最深 B${rec.bestDepth}F ・ 入るたびに Lv1 の仮の器で潜る` : "入るたびに Lv1 の仮の器で潜る。深さに果てはない。"));
     r.appendChild(info);
     r.appendChild(el("span", "dp-gate-st", "支度 ›"));
     r.addEventListener("click", () => { sfx("select"); cur.page = "abyss"; refresh(); });
@@ -540,51 +540,50 @@ function openBriefing(go) {
   });
 }
 
-// ---- 奈落の支度 ----
-let abyssMods = [], abyssWeekly = false;
+// ---- 無限迷宮の入口 ----
 function renderAbyssPage(b) {
-  const rec = game.abyssRecords ? game.abyssRecords() : { bestDepth: 0, bestScore: 0, runs: 0, weekly: {}, recent: [] };
+  const rec = game.abyssRecords ? game.abyssRecords() : { bestDepth: 0, runs: 0, recent: [] };
   const back = el("button", "dp-back");
   back.type = "button";
   back.appendChild(el("span", "dp-back-c", "‹"));
   back.appendChild(el("span", null, "門の選択へ"));
   back.addEventListener("click", () => { sfx("select"); cur.page = "gates"; refresh(); });
   b.appendChild(back);
-  b.appendChild(sec("そなたの記録", "この端末に残る"));
+  b.appendChild(el("div", "dg-note", "口から吹き上げる風が、育って重くなった魂を吹き返す。本編の人業は降りられない。入口に漂う「名もなき魂の欠片」を、土くれの仮の器6体に宿して Lv1 から降りる。"));
+  b.appendChild(sec("潜り方"));
+  for (const t of [
+    "器ひとつごとに、3つの魂の欠片 (コモン・レア) から1つを選ぶ。全員 Lv1・装備なし・持ち物なし。魂の安定度は使わない。",
+    "5の倍数の階は風だまり。回収人 (品の買い取り・回復の道具・鍛え直し) と灯番 (魂の付け替え・強化・残火) がいて、その奥に主が立つ。",
+    "帰れるのは、主を討った後の「帰る」だけ (帰還魔法陣は無い)。深くなるほど敵も風の掟も強くなるが、育つ速さも本編より速い。",
+    "迷宮で拾った品は鑑定済み。同じ職の魂を拾うと自動で融合する。サブ魂・結社・極の永続強化・手がかりの恵みは乗らない。",
+  ]) b.appendChild(el("div", "dg-line", t));
+  b.appendChild(sec("持ち帰れるもの"));
+  for (const t of [
+    "拾った魂 ― ＋1 の素材として本編の魂に加わる (Lv は残らない)。",
+    "拾った品 ― 手元には届かず、商会の棚に並ぶ。",
+    "拾った魂の残火 ― 拾った数だけ本編へ。",
+    "最初に宿した欠片・金貨・✦Soul は持ち帰れない。全滅したら、赤い魂 (全滅した階の数・上限100) を払った時だけ持ち帰れる。",
+  ]) b.appendChild(el("div", "dg-line", t));
+  b.appendChild(sec("そなたの記録"));
   const t = el("div", "dg-tally");
   const cell = (v, l) => { const c = el("div", "dg-tally-c"); c.appendChild(el("div", "dg-tally-n", String(v))); c.appendChild(el("div", "dg-tally-l", l)); return c; };
   t.appendChild(cell(`B${rec.bestDepth || 0}F`, "最深"));
-  t.appendChild(cell((rec.bestScore || 0).toLocaleString(), "最高スコア"));
   t.appendChild(cell(rec.runs || 0, "挑戦"));
   b.appendChild(t);
-  // 潜れる深さ (主を倒した層の底まで。層ごとに10階、層の最後の階に主が門番として立つ)
-  const cap = game.abyssMaxDepth ? game.abyssMaxDepth() : Infinity;
-  b.appendChild(el("div", "dg-note", Number.isFinite(cap)
-    ? `奈落は10階で一つの層。層の最後の階には、その層の主が門番として立つ。いま潜れるのは B${cap}F まで — 迷宮で次の層の主を討つと、その先が開く。`
-    : "奈落は10階で一つの層。層の最後の階には、その層の主が門番として立つ。底は、もう無い。"));
-  b.appendChild(sec("挑戦の型"));
-  b.appendChild(segmented([{ key: "normal", label: "通常 (毎回変わる)" }, { key: "weekly", label: "今週の挑戦" }], abyssWeekly ? "weekly" : "normal", (k) => { abyssWeekly = k === "weekly"; sfx("select"); refresh(); }));
-  const wk = game.weekSeedId ? game.weekSeedId() : 0;
-  b.appendChild(el("div", "dg-note", abyssWeekly ? `今週は全員が同じ変異列に挑む (シード #${wk} ・ 自己最深 ${rec.weekly && rec.weekly[wk] ? "B" + rec.weekly[wk] + "F" : "未挑戦"})。` : "潜るたびに変異が変わる。気軽に最深を更新しにいける。"));
-  const mul = game.abyssScoreMul ? game.abyssScoreMul(abyssMods) : 1;
-  b.appendChild(sec("誓約 (任意)", `スコア ×${mul.toFixed(2)}`));
-  for (const m of (game.ABYSS_MODS || [])) {
-    const on = abyssMods.includes(m.id);
-    const r = el("button", "dg-toggle" + (on ? " on" : ""));
-    r.type = "button";
-    r.setAttribute("role", "switch");
-    r.setAttribute("aria-checked", on ? "true" : "false");
-    const tx = el("span", "dg-toggle-t");
-    tx.appendChild(el("span", "dg-toggle-l", `${m.name} ×${m.scoreMul}`));
-    tx.appendChild(el("span", "dg-toggle-s", m.desc));
-    r.appendChild(tx);
-    const sw = el("span", "dg-switch"); sw.appendChild(el("i")); r.appendChild(sw);
-    r.addEventListener("click", () => { abyssMods = on ? abyssMods.filter((x) => x !== m.id) : [...abyssMods, m.id]; sfx("select"); refresh(); });
-    b.appendChild(r);
+  // 称号 (見た目だけ): 付けている称号と、選び直す入口
+  if (game.infTitleList) {
+    const list = game.infTitleList(), name = game.infTitleName ? game.infTitleName() : "";
+    const tb = el("button", "dp-gate dp-title");
+    tb.type = "button";
+    tb.appendChild(el("span", "dp-gate-n", name ? `称号「${name}」の隊` : "称号なし"));
+    tb.appendChild(el("span", "dp-gate-s", `得た称号 ${list.filter((x) => x.got).length}/${list.length} ・ 選び直す ›`));
+    tb.addEventListener("click", () => { sfx("select"); if (UI.openInfTitles) UI.openInfTitles(() => refresh()); });
+    b.appendChild(tb);
   }
   if ((rec.recent || []).length) {
     b.appendChild(sec("直近の挑戦"));
-    for (const r of rec.recent.slice(0, 5)) b.appendChild(el("div", "dg-line", `${r.weekly ? "今週" : "通常"} ・ B${r.depth}F ・ ${r.score.toLocaleString()}点${r.mods.length ? ` ・ 誓約${r.mods.length}` : ""} ・ ${r.reason === "wipe" ? "全滅" : "撤退"}`));
+    const OUT = { return: "帰還", saved: "全滅 (赤い魂で持ち帰り)", wipe: "全滅" };
+    for (const r of rec.recent.slice(0, 5)) b.appendChild(el("div", "dg-line", `B${r.depth}F ・ ${OUT[r.outcome] || r.outcome}`));
   }
 }
 
@@ -640,8 +639,7 @@ function footerSpec() {
       onTap: () => { if (!x) return; const go=()=>{close();game.departRematch?.(x.key);}; if(!G().stabilityBriefed)openBriefing(go);else go(); } }];
   }
   if (cur && cur.page === "abyss") {
-    const mul = game.abyssScoreMul ? game.abyssScoreMul(abyssMods) : 1;
-    return [{ label: "奈落へ降りる", sub: `スコア ×${mul.toFixed(2)} ・ 安定度 −10／人`, disabled:!g.party.some(d=>d.alive)||game.stabilityStatus().some(d=>d.value<10), kind: "primary", size: "lg", onTap: () => checkWoes(() => { const go=()=>{close();game.departAbyss?.(abyssMods,abyssWeekly);};if(!G().stabilityBriefed)openBriefing(go);else go(); }) }];
+    return [{ label: "入口へ ― 魂の欠片を選ぶ", sub: "仮の器6体 ・ Lv1 から", kind: "primary", size: "lg", onTap: () => { close(); if (UI.openInfSetup) UI.openInfSetup(); } }];
   }
   const D = game.DUNGEONS || [];
   const dn = D[g.dungeonIdx];
@@ -752,7 +750,7 @@ function departGo() {
 }
 
 function body(b) {
-  if (cur.page === "abyss") { renderAbyssPage(b); renderStability(b); return; }
+  if (cur.page === "abyss") { renderAbyssPage(b); return; }
   if (cur.page === "rematch") { renderRematchPage(b); renderStability(b); return; }
   renderGates(b); // 異変は迷宮の掟の隣 (迷宮の顔の中) に出す
   renderStability(b);
@@ -766,7 +764,7 @@ function refresh() {
   refreshFooter();
   if (cur.h.body) cur.h.body.scrollTop = scroll;
 }
-const pageBanner = (page) => page === "abyss" ? "奈落の支度" : page === "rematch" ? "宿敵の再戦" : "出 撃";
+const pageBanner = (page) => page === "abyss" ? "無限迷宮" : page === "rematch" ? "宿敵の再戦" : "出 撃";
 function close() {
   vistaLoop++;
   if (cur && cur.h && !cur.h.closed) cur.h.close("close");
@@ -783,7 +781,6 @@ export function openDeparture(opts = {}) {
   if (cur && cur.h && !cur.h.closed) { if (opts.page) { cur.page = opts.page; refresh(); } return cur.h; }
   const page = opts.page === "abyss" && game.featureUnlocked && game.featureUnlocked("infinite") ? "abyss"
     : opts.page === "rematch" && game.featureUnlocked && game.featureUnlocked("rematch") ? "rematch" : "gates";
-  if (page === "abyss") { abyssMods = []; abyssWeekly = false; }
   // 勅命の迷宮を最初から選んでおく (攻略中の章のみ)
   // (街に戻って最初に開いた時だけ。広場などで選び直した迷宮はそのまま尊重する)
   const qi = questIdx();
@@ -799,7 +796,7 @@ export function openDeparture(opts = {}) {
     body,
     footer: [],
     onClose: () => { if(cur?.timer)clearInterval(cur.timer);cur = null; vistaLoop++; },
-    // 戻る: 奈落のページなら門の選択へ、門の選択なら閉じる
+    // 戻る: 無限迷宮・再戦のページなら門の選択へ、門の選択なら閉じる
     onBack: (h) => { if (cur && cur.page !== "gates" && !opts.page) { cur.page = "gates"; refresh(); } else h.close("back"); },
   });
   if (cur.h.el) cur.h.el.classList.toggle("dp-full", page === "gates");

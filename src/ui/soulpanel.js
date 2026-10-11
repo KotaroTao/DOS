@@ -949,7 +949,7 @@ function openHostSheet(uid, onDone = null) {
 // onChange = 強化した後・閉じた後 (選択シートの Lv・能力の差分を描き直す)
 export function openTrainSheet(uid, onChange = null) {
   const G = G_();
-  if (!G || G.state !== "town") return null;
+  if (!G || !(G.state === "town" || (game.soulWorkOk && game.soulWorkOk()))) return null;
   sfx("select");
   const fill = (scroll) => {
     const e = soulByUid(uid);
