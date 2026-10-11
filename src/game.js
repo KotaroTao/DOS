@@ -10924,6 +10924,7 @@ function renderTown() {
   playBgm(sceneBgm()); // 施設ごとのBGM (同じ曲なら継続)
   townshell.refresh();
   if (UI.refreshPartySheet) UI.refreshPartySheet(); // 街の上に開いた人業のシート (顔アイコンから) も描き直す
+  if (UI.refreshRunReport) UI.refreshRunReport(); // 開いている帰還の報告のシートも (鑑定・売却の後に用事のボタンが古いまま残らないよう)
   if (UI.queueStoryNotice) UI.queueStoryNotice(); // 新しく記された物語を、手の空いた時に知らせる
   syncStoryMedia(); // 進んだ章の物語の絵を、端末へ裏で集めてもらう
   if (UI.queueExpeditionReport && expeditionDone().length) UI.queueExpeditionReport(); // 遠征から帰ってきた人業を、手の空いた時に知らせる

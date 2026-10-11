@@ -600,6 +600,19 @@ export function runReportBadge() {
   return { banner: o.banner, tone: o.tone, where: lr.dungeon ? lr.dungeon.name : "" };
 }
 
+// 開いている報告のシート ({h, body})。街を描き直すたびに中の札も作り直す (refreshRunReport)
+let rrOpen = null;
+// 報告のシートの札を、いまの持ち物・金貨で作り直す (game.js renderTown から)。
+// まとめて鑑定・まとめて売るは確認や結果のシートを挟んで後から済むので、札の用事 (ボタン) が古いまま残っていた
+export function refreshRunReport() {
+  if (!rrOpen || !rrOpen.h || rrOpen.h.closed) { rrOpen = null; return; }
+  const old = rrOpen.body.querySelector(".rr-card");
+  if (!old) return;
+  const n = renderRunReport();
+  if (n) old.replaceWith(n);
+  else old.remove();
+}
+
 // 帰還の報告をシートで開く (広場の札を押した時。札の × で報告を閉じたらシートも閉じる)
 export function openRunReport() {
   const g = G();
@@ -608,6 +621,7 @@ export function openRunReport() {
   return sheet.open({
     kind: "info", banner: o.banner, className: "dg-sheet rr-sheet",
     body: (b, h) => {
+      rrOpen = { h, body: b };
       const c = renderRunReport();
       if (c) b.appendChild(c);
       b.addEventListener("click", (e) => {
@@ -616,11 +630,11 @@ export function openRunReport() {
       });
     },
     // 閉じたら広場を描き直す (報告を閉じていれば夜景の札も消える)
-    onClose: () => { if (game.renderTown && G()?.state === "town") game.renderTown(); },
+    onClose: () => { rrOpen = null; if (game.renderTown && G()?.state === "town") game.renderTown(); },
     footer: [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }],
   });
 }
 
 export function install() {
-  registerUI({ renderRunReport, runReportBadge, openRunReport, openRunReportDetail, openResults, openWipe, celebrateClear });
+  registerUI({ renderRunReport, refreshRunReport, runReportBadge, openRunReport, openRunReportDetail, openResults, openWipe, celebrateClear });
 }
