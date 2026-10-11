@@ -330,21 +330,25 @@ function renderHero(b) {
   // 迷宮の掟 (その迷宮だけの決まりごと。world.js の trait)
   // イラストから掟までは本文を巻いても動かない (.dp-hero は sticky — ユーザーの指示、2026-10)。
   // 足元 (落ちる床・蝕む床) と格上・格下の注意の枠は出さない (同じ指示。危険・無謀は門の一覧の札に残る)
-  const tr = game.dungeonTrait ? game.dungeonTrait(dn) : null;
-  if (tr) {
+  // 土地の掟 (同じ土地の迷宮に共通 — world.js REALM_RULES) は迷宮の掟の上に置く
+  const ruleBox = (tr, kind, short, key) => {
     const box = el("div", "dp-mut dp-trait");
     if (tr.accent) box.style.setProperty("--mut", tr.accent);
     const h = el("div", "dp-mut-h");
-    h.appendChild(el("span", "dp-mut-k", "迷宮の掟"));
-    h.appendChild(el("span", "dp-mut-ks", "掟")); // 縮めた顔で出す短い名
+    h.appendChild(el("span", "dp-mut-k", kind));
+    h.appendChild(el("span", "dp-mut-ks", short)); // 縮めた顔で出す短い名
     h.appendChild(el("span", "dp-mut-n", `${tr.sym ? tr.sym + " " : ""}「${tr.name}」`));
     box.appendChild(h);
     const body = el("div", "dp-fold-b");
     for (const ln of tr.lines || []) body.appendChild(setText(el("div", "dp-mut-l"), ln));
     box.appendChild(body);
-    foldable(box, "trait");
+    foldable(box, key);
     hero.appendChild(box);
-  }
+  };
+  const rl = game.dungeonRealm ? game.dungeonRealm(dn) : null;
+  if (rl) ruleBox(rl, "土地の掟", "土地", "realm");
+  const tr = game.dungeonTrait ? game.dungeonTrait(dn) : null;
+  if (tr) ruleBox(tr, "迷宮の掟", "掟", "trait");
   // 迷宮の異変も掟の下に固定する (ユーザーの指示、2026-10)。名のある強敵の札はここに置かない
   const mut = mutatorStrip();
   if (mut) hero.appendChild(mut);

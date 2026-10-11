@@ -1275,6 +1275,18 @@ function dungeonTrait(cfg = null) {
   if (!cfg) { if (!inDungeon() || abyssActive()) return null; cfg = curDungeon(); }
   return (cfg && cfg.trait) || null;
 }
+// 土地の掟 (world.js REALM_RULES): 同じ土地の迷宮すべてに共通する掟 (灼熱・酷寒…)。迷宮の掟と重ねて効く
+function dungeonRealm(cfg = null) {
+  if (!cfg) { if (!inDungeon() || abyssActive()) return null; cfg = curDungeon(); }
+  return (cfg && cfg.realmRule) || null;
+}
+// 戦闘の開幕に効く掟 (土地の掟 → 迷宮の掟の順)。head = 開幕の演出で掲げる見出し
+function openingRules() {
+  const out = [];
+  const rl = dungeonRealm(); if (rl) out.push({ ...rl, head: `土地の掟「${rl.name}」` });
+  const tr = dungeonTrait(); if (tr) out.push({ ...tr, head: `迷宮の掟「${tr.name}」` });
+  return out;
+}
 // 魔封じ (掟の physOnly): この迷宮では物理技のほかの技 (呪文・回復・強化・弱体・迷宮の術) を使えない。道具は使える
 function physOnlyHere() { const tr = dungeonTrait(); return !!(tr && tr.physOnly); }
 setSkillGate((k) => !physOnlyHere() || !!(SPELLS[k] && SPELLS[k].kind === "phys"));
@@ -5979,7 +5991,9 @@ function eventFacts() {
   const ic = ICONS.event;
   const fe = (G.board && G.board.ev) || {};
   const fl = (G.events && G.events.flags) || {};
-  // 迷宮の掟 (この迷宮のあいだずっと)
+  // 土地の掟・迷宮の掟 (この迷宮のあいだずっと)
+  const rl = dungeonRealm();
+  if (rl) out.push({ tone: "gold", icon: ICONS.portal, title: `土地の掟「${rl.name}」`, accent: rl.accent || "#c9a26a", lines: rl.lines });
   const tr = dungeonTrait();
   if (tr) out.push({ tone: "gold", icon: ICONS.portal, title: `迷宮の掟「${tr.name}」`, accent: tr.accent || "#c9a26a", lines: tr.lines });
   // 浮遊の術 (出来事ではないが、いまの階の性質として並べる)
@@ -7729,24 +7743,26 @@ function startBattleMeasured(enemies, cell) {
   const mutEm = (mutDef() && mutDef().enemyMul) || 1;
   if (mutEm !== 1) for (const e of enemies) if (!specialModifierEnemy(e)) { e._agiMul = mutEm; e.agi = Math.max(1, Math.round(e.agi * mutEm)); }
   G.battleCell = cell;
-  // 迷宮の掟: 敵は樹液を吸って再生する (trait.foeRegen) / 根が開幕に隊の MP を吸う (trait.mpDrain)
+  // 掟 (土地の掟 → 迷宮の掟) の開幕の効果: 敵の再生 (foeRegen) / 隊の MP を奪う (mpDrain) / 隊の HP を焼く (hpDrain)。
+  // 同じ効果を両方が持てば、掟ごとに順に効く (足し合う)
   const trB = dungeonTrait();
+  const ruleOpens = openingRules();
   // 掟が開幕に隊へ及ぼしたもの: ログだけでは分かりにくいので、開幕の演出の後に隊の札の上で見せる (playTraitOpening)
   G.partyShow = null;
-  const trOpen = trB ? traitOpenBegin(trB) : null;
-  if (trB && trB.foeRegen) for (const e of enemies) if (!e.metal) e.regen = Math.max(e.regen || 0, trB.foeRegen);
-  if (trB && trB.mpDrain) {
+  const trOpen = ruleOpens.length ? traitOpenBegin() : null;
+  for (const r of ruleOpens) if (r.foeRegen) for (const e of enemies) if (!e.metal) e.regen = Math.max(e.regen || 0, r.foeRegen);
+  for (const r of ruleOpens) if (r.mpDrain) {
     let drained = 0;
     const hits = [];
-    for (const p of G.party) if (p.alive && p.mp > 0) { const d = Math.min(p.mp, Math.ceil(p.maxmp * trB.mpDrain)); traitOpenHold(p); drained += d; p.mp -= d; hits.push({ p, text: "MP-" + d, color: "#7fb8ff" }); }
-    if (drained) { log(`足元の根が脈打ち、隊の魔力を吸い上げた (MP -${drained})。`, "dmg"); trOpen.steps.push({ kind: "mp", label: "根が魔力を吸う", hits }); }
+    for (const p of G.party) if (p.alive && p.mp > 0) { const d = Math.min(p.mp, Math.ceil(p.maxmp * r.mpDrain)); traitOpenHold(p); drained += d; p.mp -= d; hits.push({ p, text: "MP-" + d, color: "#7fb8ff" }); }
+    if (drained) { log(`${r.say || `${r.head}が隊の魔力を奪った`} (MP -${drained})。`, "dmg"); trOpen.steps.push({ kind: "mp", head: r.head, accent: r.accent, label: r.name, hits }); }
   }
-  // 釜の熱気が開幕に隊の HP を焼く (trait.hpDrain)。HP1 より下にはならない
-  if (trB && trB.hpDrain) {
+  // HP1 より下にはならない
+  for (const r of ruleOpens) if (r.hpDrain) {
     let burnt = 0;
     const hits = [];
-    for (const p of G.party) if (p.alive && p.hp > 1) { const d = Math.min(p.hp - 1, Math.ceil(p.maxhp * trB.hpDrain)); traitOpenHold(p); burnt += d; p.hp -= d; hits.push({ p, text: String(d), dmg: true }); }
-    if (burnt) { log(`釜の熱気が肌を焼いた (HP -${burnt})。`, "dmg"); trOpen.steps.push({ kind: "heat", label: "釜の熱気", hits }); }
+    for (const p of G.party) if (p.alive && p.hp > 1) { const d = Math.min(p.hp - 1, Math.ceil(p.maxhp * r.hpDrain)); traitOpenHold(p); burnt += d; p.hp -= d; hits.push({ p, text: String(d), dmg: true }); }
+    if (burnt) { log(`${r.say || `${r.head}が隊を焼いた`} (HP -${burnt})。`, "dmg"); trOpen.steps.push({ kind: "heat", head: r.head, accent: r.accent, label: r.name, hits }); }
   }
   // 迷宮の掟: 疾風の巣 (trait.allHaste) — 敵はみな神速 (ターンの頭に動き、後半にもう一度動く)。主と金属の魔物は除く
   if (trB && trB.allHaste) for (const e of enemies) if (!e.boss && !e.metal && !e.haste) { e.haste = true; e.agi += 8; }
@@ -7821,39 +7837,39 @@ function startBattleMeasured(enemies, cell) {
   G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot"), fleeK: fleeScale(), baseAgi: partyAgi(levelHere().lv), foeLv });
   tlWatchBattle(G.battle, tlWhere());
   if (resoNow.length) log(`魂の共鳴 ― ${resoNow.map((x) => x.name).join("・")}`, "sys");
-  // 迷宮の掟: 凍てつく冷気に身がすくむ (trait.chill) — 隊の全員の AGI を段数ぶん下げる (3ターン)
-  const trC = dungeonTrait();
-  if (trC && trC.chill) {
+  // 掟 (土地の掟 → 迷宮の掟) の開幕の効果: 寒さに身がすくむ (chill) — 隊の全員の AGI を段数ぶん下げる (3ターン)。
+  // 段は足し合う (酷寒 −1段 + 絶対零度 −1段 = −2段)
+  for (const r of ruleOpens) if (r.chill) {
     const hits = [];
-    for (const p of G.battle.party) if (p.alive) { G.battle._applyMod(p, "agi", Math.pow(0.8, trC.chill), 3, "絶対零度"); hits.push({ p, text: `AGI${"▼".repeat(trC.chill)}`, color: "#ff8a8a", buff: true }); }
-    log(`凍てつく冷気に身がすくむ (隊の AGI ▼${trC.chill})。`, "dmg");
-    if (trOpen && hits.length) trOpen.steps.push({ kind: "chill", label: "絶対零度", hits });
+    for (const p of G.battle.party) if (p.alive) { G.battle._applyMod(p, "agi", Math.pow(0.8, r.chill), 3, r.name); hits.push({ p, text: `AGI${"▼".repeat(r.chill)}`, color: "#ff8a8a", buff: true }); }
+    log(`${r.say || `${r.head}が隊の足を鈍らせる`} (隊の AGI ▼${r.chill})。`, "dmg");
+    if (trOpen && hits.length) trOpen.steps.push({ kind: "chill", head: r.head, accent: r.accent, label: r.name, hits });
   }
-  // 迷宮の掟: よどんだ瘴気 (trait.poisonStart) — 戦闘の開幕に、隊の一人ひとりがこの確率で毒に冒される (毒の耐性で防げる)
-  if (trC && trC.poisonStart > 0) {
+  // よどんだ瘴気 (poisonStart) — 戦闘の開幕に、隊の一人ひとりがこの確率で毒に冒される (毒の耐性で防げる)
+  for (const r of ruleOpens) if (r.poisonStart > 0) {
     const sick = [];
     for (const p of G.battle.party) {
       if (!p.alive || p.ailment) continue;
-      if (Math.random() < trC.poisonStart * (1 - G.battle._ailRes(p, "poison"))) {
+      if (Math.random() < r.poisonStart * (1 - G.battle._ailRes(p, "poison"))) {
         traitOpenHold(p);
         p.ailment = "poison"; p._poisonPct = 0.05; G.battle._holdAil(p, "poison"); sick.push(p);
       }
     }
     if (sick.length) {
-      log(`よどんだ瘴気が肺を焼く ― ${sick.map((p) => p.name).join("・")}は毒に冒された。`, "dmg");
-      if (trOpen) trOpen.steps.push({ kind: "poison", label: "腐れの瘴気", hits: sick.map((p) => ({ p, text: "毒", color: "#b4f06a" })) });
+      log(`${r.say || r.head} ― ${sick.map((p) => p.name).join("・")}は毒に冒された。`, "dmg");
+      if (trOpen) trOpen.steps.push({ kind: "poison", head: r.head, accent: r.accent, label: r.name, hits: sick.map((p) => ({ p, text: "毒", color: "#b4f06a" })) });
     }
   }
-  // 迷宮の掟: 落雷 (trait.boltStart) — 戦闘の開幕に、隊の一人へ雷が落ちて最大HPのこの割合を焼く (ブレス耐性で和らぐ。HP1 は残る)
-  if (trC && trC.boltStart > 0) {
+  // 落雷 (boltStart) — 戦闘の開幕に、隊の一人へ雷が落ちて最大HPのこの割合を焼く (ブレス耐性で和らぐ。HP1 は残る)
+  for (const r of ruleOpens) if (r.boltStart > 0) {
     const live = G.battle.party.filter((p) => p.alive && p.hp > 1);
     if (live.length) {
       const p = live[rand(live.length)];
-      const d = Math.min(p.hp - 1, Math.max(1, Math.ceil(p.maxhp * trC.boltStart * (1 - partyBreathRes(p)))));
+      const d = Math.min(p.hp - 1, Math.max(1, Math.ceil(p.maxhp * r.boltStart * (1 - partyBreathRes(p)))));
       traitOpenHold(p);
       p.hp -= d;
-      log(`渦巻く雷雲から雷が落ちた ― ${p.name}が焼かれた (HP -${d})。`, "dmg");
-      if (trOpen) trOpen.steps.push({ kind: "bolt", label: "落雷", hits: [{ p, text: String(d), dmg: true }] });
+      log(`${r.say || r.head} ― ${p.name}が焼かれた (HP -${d})。`, "dmg");
+      if (trOpen) trOpen.steps.push({ kind: "bolt", head: r.head, accent: r.accent, label: r.name, hits: [{ p, text: String(d), dmg: true }] });
       else flashScreen("#d8e0ff");
     }
   }
@@ -7885,9 +7901,9 @@ function startBattleMeasured(enemies, cell) {
 // 掟の効果は startBattle の中で今までどおり同期で効かせ (テスト記録の出どころの分類もそのまま)、
 // 隊の札にだけ効く前の HP/MP を見せておく (G.partyShow)。開幕の演出の後、効果ごとに隊の札の上で属性の演出・数字・
 // 掟の名を出し、その瞬間に札の値を本当の値へ戻す。戦闘の進行・乱数には触れない
-function traitOpenBegin(tr) {
+function traitOpenBegin() {
   G.partyShow = new Map();
-  return { name: tr.name, accent: tr.accent || "#ffd27a", steps: [] };
+  return { steps: [] };
 }
 function traitOpenHold(p) {
   if (G.partyShow && !G.partyShow.has(p)) G.partyShow.set(p, { hp: p.hp, mp: p.mp, ailment: p.ailment || null });
@@ -7914,7 +7930,7 @@ function playTraitOpening(info, done) {
       next();
       return;
     }
-    playTraitStep(info, step, i === 1, next);
+    playTraitStep(info, step, i === 1 || info.steps[i - 2].head !== step.head, next);
   };
   next();
 }
@@ -7929,8 +7945,8 @@ function playTraitStep(info, step, first, done) {
   G.partyFx = G.partyFx || new Map();
   G.partyFxV = new Map();
   partyEl.style.setProperty("--fxd", Math.max(0.2, Math.min(0.6, 0.4 * spd)).toFixed(2) + "s");
-  // 掟の名を隊の札の上に掲げる (同じ戦闘で2つ目からは効果の名だけ)
-  G.fx.floats.push({ x: VW / 2, y: VH - 92, text: first ? `迷宮の掟「${info.name}」` : step.label, color: info.accent, t0, kind: "trait" });
+  // 掟の名を隊の札の上に掲げる (同じ掟の2つ目からは効果の名だけ)
+  G.fx.floats.push({ x: VW / 2, y: VH - 92, text: first ? step.head : step.label, color: step.accent || "#ffd27a", t0, kind: "trait" });
   let impacted = false;
   const tick = () => {
     if (!G.fx || G.state !== "combat") { done(); return; }
@@ -16846,7 +16862,7 @@ function wireUI() {
     showChoice, closePrompt, showEvent, showConfirm, showToast, showItemGet, closeItemGet, showItemDetailPopup, showStoryScene,
     openStatus, closeStatus, openSettings, closeSettings, tryEnterDungeon, enterDungeon, returnToTown, confirmReturnToTown,
     tutorialAllowed, palaceCallReady, currentObjective, featureUnlocked, contentSealed, reportMainQuest, acceptMainQuest, reportPending, blockForReport, tutorialPending, blockForTutorial,
-    worldState, worldOpenIdx, pendingIreneBeat, playIreneBeat, dungeonLevel, FEATURES, featureNote, chaptersDone, storyGoal, currentChapter, dungeonTrait, dungeonFloorHaz,
+    worldState, worldOpenIdx, pendingIreneBeat, playIreneBeat, dungeonLevel, FEATURES, featureNote, chaptersDone, storyGoal, currentChapter, dungeonTrait, dungeonRealm, dungeonFloorHaz,
     trainSoul, raiseSoulCap, soulTrainCost, soulByUid, codexSeeItem, treasuryState, heldCollectibles, donateCollectible,
     claimAchievement, claimTreasury, treasuryRewardReady, deliveryHolder, deliveryStatus, deliverQuest,
     repairDoll, repairAllDolls, repairCostOf, tryHastenRescue, reviveTimerEl, fmtRemain, awaitingRescue, hastenCostOf,
