@@ -21,7 +21,6 @@ import { el, sheet, button, setText, portrait, segmented, toast, confirm as kitC
 import { ELEMENTS } from "../dungeons/index.js";
 import { iconCanvas } from "../townart.js";
 import { drawDungeonVista } from "../backdrops.js";
-import { LORE_IMAGES } from "../storyimages.js";
 import { CHAPTERS } from "../story.js";
 import { dungeonQuestSheet, dungeonActiveQuestSheet, byLevelDesc } from "./questboard.js";
 
@@ -80,78 +79,6 @@ function vistaCanvas(dn) {
   };
   if (typeof requestAnimationFrame === "function") requestAnimationFrame(tick);
   return cv;
-}
-// 由来の原画 (ストーリーの「踏破した迷宮」と同じ絵) がある迷宮は、踏破の前からそれを掲げる (ドットの情景の代わり)。
-// 秘密を描いた絵も出す (ユーザーの判断: ネタばれでよい)。原画の無い迷宮・読めない時はドットの情景。
-// 出撃画面は5秒ごと・迷宮を選び直すたびに組み直すので、<img> は絵ごとに使い回す (作り直すと読み込みと
-// 展開をやり直し、その間は絵が消えてちらつく)。新しい絵は読めるまで前の絵を下に残し、読めたら重ねて淡く出す。
-const PIC_KEEP = 6; // 手元に残す絵の数 (1枚 1536×1024 を展開すると約6MB)
-const picCache = new Map(); // src → { img, ready }
-let lastPic = null; // いま掲げている絵 (読み込み中の次の絵の下に敷く)
-function picEntry(src) {
-  let e = picCache.get(src);
-  if (e) { picCache.delete(src); picCache.set(src, e); return e; } // 使った順に並べ直す
-  const img = document.createElement("img");
-  img.className = "dp-vista-img";
-  img.decoding = "async";
-  e = { img, ready: false, failed: false, waits: [] };
-  const done = (ok) => {
-    if (e.ready || e.failed) return;
-    if (ok) e.ready = true; else e.failed = true;
-    const ws = e.waits; e.waits = [];
-    for (const f of ws) f(ok);
-  };
-  img.addEventListener("load", () => {
-    // 展開を済ませてから見せる (読めた直後に挿すと1コマ空になる)
-    if (typeof img.decode === "function") img.decode().then(() => done(true), () => done(true));
-    else done(true);
-  }, { once: true });
-  img.addEventListener("error", () => { picCache.delete(src); done(false); }, { once: true });
-  img.src = "./" + src;
-  picCache.set(src, e);
-  while (picCache.size > PIC_KEEP) {
-    const [k, old] = picCache.entries().next().value;
-    if (lastPic && lastPic.e === old) { picCache.delete(k); picCache.set(k, old); break; }
-    picCache.delete(k);
-  }
-  return e;
-}
-// 門の一覧を押した (指が触れた) 時点で次の絵を読み始める
-function prefetchPic(dn) {
-  const src = dn && LORE_IMAGES[dn.id];
-  if (src) picEntry(src);
-}
-function vistaPic(dn) {
-  const src = LORE_IMAGES[dn.id];
-  if (!src) { lastPic = null; return vistaCanvas(dn); }
-  vistaLoop++; // ドットの情景のゆらぎを止める
-  const e = picEntry(src);
-  e.img.alt = `${dn.name}の情景`;
-  e.img.classList.remove("dp-vista-in", "dp-vista-under");
-  // 敷く絵: 選び直す前に掲げていた絵 (読み込み中に組み直しても、同じ絵を敷き続ける)
-  const prev = !lastPic ? null : lastPic.e !== e ? (lastPic.e.ready ? lastPic.e : lastPic.under) : lastPic.under;
-  lastPic = { src, e, under: e.ready ? null : prev };
-  if (e.ready) return e.img; // 読めている絵はそのまま (ちらつかない)
-  // まだ読めていない: 前の絵 (あれば) を敷き、読めたら新しい絵を淡く重ねる
-  const wrap = el("div", "dp-vista-stack");
-  if (prev) {
-    // 複製すると読み直しになるので、前の絵の <img> そのものを敷く (前の画面はもう外れている)
-    prev.img.classList.remove("dp-vista-in", "dp-vista-wait");
-    prev.img.classList.add("dp-vista-under");
-    wrap.appendChild(prev.img);
-  }
-  wrap.appendChild(e.img);
-  e.img.classList.add("dp-vista-wait");
-  e.waits.push((ok) => {
-    if (!wrap.isConnected) return;
-    if (!ok) { if (lastPic && lastPic.e === e) lastPic = null; wrap.replaceWith(vistaCanvas(dn)); return; }
-    e.img.classList.remove("dp-vista-wait");
-    e.img.classList.add("dp-vista-in");
-    setTimeout(() => {
-      if (prev && prev.img.parentNode === wrap) { prev.img.remove(); prev.img.classList.remove("dp-vista-under"); }
-    }, 400);
-  });
-  return wrap;
 }
 // 迷宮の章: 本筋は story.js CHAPTERS のとおり。寄り道 (CHAPTERS に無い) は同じ層の本筋の迷宮の章
 // (格上の寄り道も、魔物の層で決まる = 開く章。獄吏の詰所 → 第二章、疫病塚の底 → 第七章)
@@ -290,7 +217,7 @@ function renderHero(b) {
     setMini(false);
   }, true);
   const pic = el("div", "dp-vista");
-  pic.appendChild(vistaPic(dn));
+  pic.appendChild(vistaCanvas(dn));
   const cap = el("div", "dp-vista-cap");
   const band = game.levelBand ? game.levelBand(dn) : [1, 1];
   const ttl = el("div", "dp-hero-t");
@@ -412,7 +339,6 @@ function renderGates(b) {
     r.appendChild(info);
     const st = gateStatus(dn, i);
     r.appendChild(el("span", "dp-gate-st" + (st.cls ? " " + st.cls : ""), st.text));
-    r.addEventListener("pointerdown", () => prefetchPic(dn));
     r.addEventListener("click", () => {
       if (g.dungeonIdx === i) return;
       g.dungeonIdx = i;

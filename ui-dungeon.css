@@ -551,12 +551,6 @@ button.rs-line { cursor: pointer; touch-action: manipulation; }
 .dp-after { margin: 0 0 8px; }
 .dp-vista { position: relative; display: flex; flex-direction: column; justify-content: flex-end; min-height: clamp(150px, 30vh, 270px); min-height: clamp(150px, 30dvh, 270px); margin: 0 calc(-1 * var(--sp-4)); overflow: hidden; background: #050407; border-top: 1px solid #241d22; border-bottom: 1px solid #2c2427; }
 .dp-vista-cv { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 62%; image-rendering: pixelated; }
-.dp-vista-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; }
-.dp-vista-stack { position: absolute; inset: 0; }
-.dp-vista-img.dp-vista-wait { opacity: 0; }
-.dp-vista-img.dp-vista-in { animation: dp-vista-in 0.35s ease-out; }
-@keyframes dp-vista-in { from { opacity: 0; } to { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .dp-vista-img.dp-vista-in { animation: none; } }
 /* 名前・説明・記録の札はイラストの下側に重ねる (札は押せる) */
 .dp-vista-cap { position: relative; z-index: 1; text-align: left; padding: 40px var(--sp-4) 8px; background: linear-gradient(180deg, rgba(8,6,9,0), rgba(8,6,9,0.62) 34%, rgba(8,6,9,0.88) 70%); }
 .dp-vista-top { display: flex; align-items: flex-end; gap: 8px; }
