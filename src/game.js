@@ -7533,6 +7533,14 @@ function presentTrap(res, fin, sink = boardSink()) {
 // 宝箱の中身 (ゴールド/装備品/収集品)。cRank: 宝箱ランク (1-5、高いほど豪華)
 // lvBonus: ミミック撃破後の宝箱などのアイテムレベル底上げ。
 // cell.lootBonus: 特別階 (伝説の眠る階) の「伝説の宝箱」— 中身は必ず装備品で +40レベル
+// 宝箱の金貨 (runGainGold へ渡す半減前の値): 推奨Lv の普通の1戦の金貨 (refGold) × CHEST_GOLD_BATTLES × 宝箱ランク × 揺らぎ。
+// 以前の式 (階 × 迷宮の格) は推奨Lv に付いていかず、第6層では1戦の2割ほどしかなかった。第一章 (第1層) は旧式の方が多いので下限に残す
+const CHEST_GOLD_BATTLES = 1.2;
+function chestGoldRaw(rankMul) {
+  const old = (10 + (G.floor || 1) * 12 + rand(30)) * (1 + ((activeCfg().rank || 1) - 1) * 0.5);
+  const byLv = refGold(levelHere().lv) * CHEST_GOLD_BATTLES * (0.8 + Math.random() * 0.4);
+  return Math.round(Math.max(old, byLv) * rankMul * 2);
+}
 function chestContents(cell, done, cRank = 1, lvBonus = 0, noGold = false, sink = boardSink()) {
   // 特別階 (からくり錠の宝物庫): 中身の装備の質が上がる (chestLootLv)・金貨にならない (chestNoGold)
   const lootUp = (lvBonus || 0) + ((cell && cell.lootBonus) || 0) + sfNum("chestLootLv", 0);
@@ -7544,8 +7552,7 @@ function chestContents(cell, done, cRank = 1, lvBonus = 0, noGold = false, sink 
   // 伝説の宝箱・ミミック宝箱はゴールドにならず、必ず装備品が出る
   if (!legendary && !noGold && Math.random() < 0.5) {
     SFX.chest();
-    const dRank = activeCfg().rank || 1;
-    const g = runGainGold(Math.round((10 + G.floor * 12 + rand(30)) * (1 + (dRank - 1) * 0.5) * rankMul * 2), "ch");
+    const g = runGainGold(chestGoldRaw(rankMul), "ch");
     updateTopbar();
     log(`宝箱から 💰${g} を手に入れた！`, "win");
     sink.gold(g, "宝箱");
