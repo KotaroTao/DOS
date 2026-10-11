@@ -1339,8 +1339,35 @@ export function powerAt(cfg, floor = 1) {
   }
   return pw[ks[ks.length - 1]];
 }
-// その階の敵の強さ (手直し・特別な階・異変を除く): 強さの素 × 推奨Lv の伸び
-export function strengthAt(cfg, floor = 1) { return powerAt(cfg, floor) * lvPow(dungeonLevelRaw(cfg, floor)); }
+// ===== 第二部の壁 (2026-10 ユーザーの指示「10章までがチュートリアル、11章からが本番」) =====
+// 第一部 (第一〜十章 = 第1〜12層) は推奨Lv に届けば進める。第二部 (第十一章 = 第13層から) は土地 (層) が変わるたびに
+// 敵の強さが段で跳ね上がり、推奨Lv に届くだけでは勝てない — 魂融合・トレハン (奈落・無限迷宮の品)・鍛え直しで
+// 隊を鍛えてから挑む。段は「その層の入口で、前の層の強さに何倍を掛けるか」で、層をまたいで積み重なる。
+// 強さ (HP・攻撃・防御) が k 倍になると、推奨Lv だけの隊の1戦の被ダメはおよそ k² 倍 (一撃が k 倍 × 倒すまでの手数が k 倍)。
+// ×2.0 = 被ダメ約4倍 (第二部の始まり) / ×1.4 = 約2倍 (各層の壁)。戦果 (✦Soul・金貨) は推奨Lv の基準のまま (startBattle の battleRewardK)。
+// 値はその章を作る時に模擬戦とテスト記録で合わせる (docs/difficulty-walls.md)。無限迷宮は独自の推奨Lv の表で強さを決めるので cfg.wall = 1 で外す
+export const PART2_LAYER = 13; // 第十一章
+export const LAYER_WALL = { 13: 2.0, 14: 1.4, 15: 1.4, 16: 1.4, 17: 1.4, 18: 1.4, 19: 1.4, 20: 1.4 };
+// 第L層の壁 = 第13層から第L層までの段の積 (第21層より先は第20層のまま)
+export function wallAt(layer) {
+  let k = 1;
+  for (let L = PART2_LAYER; L <= Math.min(20, layer || 1); L++) k *= LAYER_WALL[L] || 1;
+  return k;
+}
+// 迷宮の壁 (cfg.wall があればそれ、無ければ層から)
+export function wallOf(cfg) {
+  if (!cfg) return 1;
+  if (cfg.wall != null) return cfg.wall;
+  return wallAt(cfg.layer || 1);
+}
+// その層の入口の段 (前の層の何倍か。第二部の層でなければ 1)
+export function wallStepOf(cfg) {
+  if (!cfg || cfg.wall != null) return 1;
+  return (cfg.layer >= PART2_LAYER && cfg.layer <= 20) ? (LAYER_WALL[cfg.layer] || 1) : 1;
+}
+
+// その階の敵の強さ (手直し・特別な階・異変を除く): 強さの素 × 推奨Lv の伸び × 第二部の壁
+export function strengthAt(cfg, floor = 1) { return powerAt(cfg, floor) * lvPow(dungeonLevelRaw(cfg, floor)) * wallOf(cfg); }
 
 
 // 検証: id の重複・素体の欠け・出現表の空
@@ -1349,6 +1376,9 @@ export function strengthAt(cfg, floor = 1) { return powerAt(cfg, floor) * lvPow(
   for (const [k, r] of Object.entries(REALM_RULES)) {
     if (r.id !== k || !r.name || !Array.isArray(r.lines)) throw new Error(`world: 土地の掟 ${k} は id/name/lines が要る`);
     for (const f of Object.keys(r)) if (!REALM_FIELDS.includes(f)) throw new Error(`world: 土地の掟 ${k} に使えない欄 ${f}`);
+  }
+  for (const [L, k] of Object.entries(LAYER_WALL)) {
+    if (!(Number(L) >= PART2_LAYER && Number(L) <= 20) || !(k >= 1)) throw new Error(`world: 第二部の壁 ${L} は第13〜20層・1以上`);
   }
   const seen = new Set();
   for (const d of WORLD) {
