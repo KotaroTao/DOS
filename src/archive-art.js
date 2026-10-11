@@ -1,7 +1,7 @@
 // 読み物専用の一枚絵。場面ごとに背景・主題・人物の位置と手の動きを描き分ける。
 // 既存の storyArt や館の肖像は使わない。192×108の素材色を点光源で照らし、共通パレットへ量子化する。
 import { Layer, Mask, h2 } from "./pxpaint.js";
-import { ICE_PAL, SWAMP_PAL, STORM_PAL } from "./storyart.js"; // 第六章の氷の青と極光の紫 / 第七章の沼の緑と枯れ葦 / 第八章の雷雲と稲妻を足したパレット
+import { ICE_PAL, SWAMP_PAL, STORM_PAL, ARENA_PAL } from "./storyart.js"; // 第六章の氷の青と極光の紫 / 第七章の沼の緑と枯れ葦 / 第八章の雷雲と稲妻 / 第九章の灰と雲海の夕映えを足したパレット
 
 export const ARCHIVE_ART_W = 192, ARCHIVE_ART_H = 108;
 export const ARCHIVE_FOCUS = ["city", "threeSouls", "door", "lamp", "vessel", "partyThree", "partyFour", "guard",
@@ -12,7 +12,8 @@ export const ARCHIVE_FOCUS = ["city", "threeSouls", "door", "lamp", "vessel", "p
   "votive", "mural", "legs", "seraWake", "priestKing", "blade", "husks", "cauldron", "abyss",
   "coat", "frozenMasters", "auroraMap", "frostKing", "thaw",
   "splint", "dollPile", "miasmaNote", "workshopIsle", "tower",
-  "stick", "bell", "rodNote", "beacon", "bridge"];
+  "stick", "bell", "rodNote", "beacon", "bridge",
+  "glove", "lampRack", "dollNook", "lampRing"];
 // 氷の場面は氷の青を足したパレットで量子化する (共通のパレットだと青が灰色に沈む)
 const ICE_FOCUS = ["coat", "frozenMasters", "auroraMap", "frostKing", "thaw"];
 // 沼の場面は沼の緑と枯れ葦の黄土を足したパレットで量子化する
@@ -20,21 +21,27 @@ const SWAMP_FOCUS = ["splint", "dollPile", "miasmaNote", "workshopIsle", "tower"
 // 嵐の尖塔の場面は雷雲の紫灰と稲妻の青白を足したパレットで量子化する。背景 "storm" はこれらの主題と組むと尖塔の嵐になる
 // (第二章の大手門の "storm" はこれまでどおり砦の雷雨)。"spire" はどの主題とでも尖塔の嵐
 const STORM_FOCUS = ["stick", "bell", "rodNote", "beacon", "bridge"];
+// 闘技場跡の場面は灰の温かい灰色と雲海の夕映えを足したパレットで量子化する。背景 "arena" は主題で三つに描き分ける
+// (石橋 = 雲海の上の橋 / 床下 = 檻と観客席の裏 / すり鉢 = 灰の積もった観客席と血の砂)。"pit" は背景 "arena" と組むと闘技場の真ん中の穴
+const ARENA_FOCUS = ["glove", "lampRack", "dollNook", "lampRing"];
 const cache = new Map();
 const C = { stone:[71,67,85], dark:[25,22,37], edge:[114,104,118], wood:[104,64,47], gold:[199,150,70], paper:[201,183,139],
   iron:[81,94,115], bone:[185,165,137], soul:[73,214,190], blue:[91,131,190], purple:[107,65,143], skin:[188,151,147], black:[31,25,38],
   ice:[150,198,228], iceD:[62,102,146], snow:[226,238,248], coat:[48,42,58],
   mud:[54,48,32], bog:[30,44,24], reed:[150,128,80], sick:[150,196,70],
-  cloud:[70,62,98], bolt:[214,222,255], copper:[204,116,64], char:[34,28,30], wet:[86,86,106] };
+  cloud:[70,62,98], bolt:[214,222,255], copper:[204,116,64], char:[34,28,30], wet:[86,86,106],
+  ash:[150,144,136], sand:[150,120,84], leather:[112,72,44], blood:[110,34,30], dusk:[220,140,124], ember:[255,140,60] };
 
 function paintScene(scene) {
   const W = ARCHIVE_ART_W, H = ARCHIVE_ART_H, L = new Layer(W, H);
   const seed = [...scene.id].reduce((n, c) => (n * 31 + c.charCodeAt(0)) >>> 0, 17);
   const spire = scene.setting === "spire" || (scene.setting === "storm" && STORM_FOCUS.includes(scene.focus));
+  const arena = scene.setting === "arena" || ARENA_FOCUS.includes(scene.focus);
+  const arenaMode = scene.focus === "glove" ? "bridge" : ["lampRack", "dollNook"].includes(scene.focus) ? "under" : "bowl";
   const indoor = ["mansion", "workshop", "throne", "treasury", "warroom", "prison", "crypt", "passage", "abbey", "mine"].includes(scene.setting);
   const roomLight = ["mansion", "workshop", "throne", "treasury"].includes(scene.setting);
   const focalX = scene.people === "king" ? 139 : scene.people === "irene" ? 121 : 105;
-  const light = { x:focalX, y:56, color:roomLight ? [1,0.69,0.38] : scene.setting==="ice" ? [0.55,0.8,1] : scene.setting==="swamp" ? [0.72,0.9,0.46] : spire ? [0.66,0.72,1] : [0.33,0.86,0.82] };
+  const light = { x:focalX, y:56, color:roomLight ? [1,0.69,0.38] : scene.setting==="ice" ? [0.55,0.8,1] : scene.setting==="swamp" ? [0.72,0.9,0.46] : spire ? [0.66,0.72,1] : arena ? [1,0.64,0.46] : [0.33,0.86,0.82] };
   function rgb(base, x, y, edge = false) {
     const d = Math.hypot((x - light.x) * 0.8, y - light.y) / 100;
     const k = Math.max(0, 1 - d) ** 2;
@@ -167,6 +174,31 @@ function paintScene(scene) {
     {let bx=170,by=0;for(let i=0;i<8;i++){const nx=bx+(h2(i,7,seed)-0.55)*10,ny=by+7;line(bx,by,nx,ny,C.bolt,1,false);bx=nx;by=ny;}glow(168,24,34,[120,130,230],0.35);}
     for(let i=0;i<70;i++){const xx=h2(i,11,seed)*W,yy=h2(i,13,seed)*H;line(xx,yy,xx-2,yy+4,[120,124,170],1,false);}
   }
+  // 第九章: 闘技場跡 (雲の上の夕暮れ・灰の積もった観客席・血の染みた砂・舞う灰と熾火)
+  if(arena){
+    if(arenaMode==="under"){                                   // 闘技場の床の下 (檻の通路・観客席の裏)。天井の格子から冷たい光と灰
+      rect(0,0,W,H,[30,26,30]);for(let yy=6;yy<86;yy+=10)for(let xx=(yy/10%2)*10;xx<W;xx+=20){line(xx,yy,xx+19,yy,C.black);line(xx,yy,xx,yy+10,C.black);}
+      rect(0,86,W,22,[44,36,32]);for(let i=0;i<50;i++){const xx=h2(i,3,seed)*W,yy=88+h2(i,4,seed)*19;line(xx,yy,xx+3+h2(i,5,seed)*4,yy+(h2(i,6,seed)-0.5)*2,h2(i,7,seed)>0.5?[150,120,60]:C.ash);}
+      rect(118,0,24,4,[150,150,186],false);for(let i=0;i<5;i++)rect(118+i*5,0,1,4,C.black,false);
+      for(let yy=4;yy<86;yy++){const cx=130-(yy-4)*0.3;for(let d=-10;d<=10;d++)L.add(Math.round(cx+d),yy,[120,124,160],(1-Math.abs(d)/11)*0.12*(1-yy/110));}
+      for(let i=0;i<30;i++)rect(110+h2(i,9,seed)*50,6+h2(i,10,seed)*80,1,1,[200,200,214],false);
+    } else {
+      for(let yy=0;yy<48;yy++){const t=yy/48;rect(0,yy,W,1,[12+t*150,12+t*86,32+t*80],false);}
+      for(let i=0;i<5;i++){const yy=6+i*7;for(let xx=0;xx<W;xx+=2)if(h2(xx>>3,i,seed)>0.55)rect(xx,yy+Math.round(Math.sin(xx*0.05+i)*2),2,1,[60+i*24,44+i*14,80+i*6],false);}
+      if(arenaMode==="bridge"){                              // 雲海と、遠くの闘技場の影
+        rect(0,48,W,60,[40,34,66]);for(let i=0;i<70;i++){const xx=h2(i,1,seed)*W,yy=50+h2(i,2,seed)*56,r=3+h2(i,3,seed)*(yy-44)*0.25;ellipse(xx,yy,r*1.6,r*0.5,yy<70?[150,104,128]:[96,76,112]);}
+        ellipse(166,40,18,4.6,[46,40,52]);poly([[148,40],[184,40],[182,52],[150,52]],[46,40,52]);for(let q=152;q<182;q+=4)rect(q,45,1,4,C.black);ellipse(166,40,13,2.6,[30,26,34]);poly([[140,54],[150,48],[184,48],[194,54]],[34,30,40]);
+        for(const [q,yy] of [[156,46],[172,44],[178,48]]){rect(q,yy,1,1,C.ember,false);glow(q,yy,4,[255,110,40],0.4);}
+      } else {                                                 // 灰の積もったすり鉢の観客席と、血の染みた砂
+        for(let k=0;k<8;k++)ellipse(96,74,124-k*11,40-k*4.4,k%2?[60,50,46]:[112,100,90]);
+        for(let k=0;k<8;k+=2)for(let i=0;i<40;i++){const a=Math.PI+h2(i,k,seed)*Math.PI,rx=124-k*11,ry=40-k*4.4;rect(96+Math.cos(a)*rx,74+Math.sin(a)*ry,2,1,C.ash,false);}
+        ellipse(96,80,40,13,C.sand);for(let i=0;i<9;i++)ellipse(70+h2(i,2,seed)*52,76+h2(i,3,seed)*8,3+h2(i,4,seed)*4,1.4,C.blood);
+        rect(0,96,W,12,[54,46,42]);for(let q=4;q<W;q+=9)rect(q,98,6,1,C.ash);
+      }
+      for(let i=0;i<55;i++)rect(h2(i,11,seed)*W,h2(i,13,seed)*H,1,1,[206,200,192],false);
+      for(let i=0;i<10;i++){const xx=h2(i,15,seed)*W,yy=h2(i,17,seed)*90;rect(xx,yy,1,1,C.ember,false);glow(xx,yy,3,[255,110,40],0.35);}
+    }
+  }
   if(scene.setting==="water"){rect(0,73,W,35,[20,49,61]);for(let i=0;i<40;i++){const x=h2(i,1,seed)*W,y=76+h2(i,3,seed)*30;line(x,y,x+9,y,C.blue);}for(let x=143;x<183;x+=9)rect(x,18,3,71,C.iron);}
 
   // 一枚ごとの主題。小道具だけの色違いではなく、物語で向き合う相手と場所を変える。
@@ -203,7 +235,11 @@ function paintScene(scene) {
     case "sealedOrder": paper(75,41,57,25);for(const q of [111,123])ellipse(q,61,4,4,[170,50,50]);line(85,57,131,58,C.wood);break;
     case "crown": paper(124,60,33,19);rect(128,53,25,7,C.gold);for(let i=0;i<4;i++)poly([[128+i*7,53],[131+i*7,45],[135+i*7,53]],C.gold);break;
     case "fadingLamp": candle(115,58,1,true);glow(115,54,13,[91,86,142],0.25);break;
-    case "pit": ellipse(99,83,41,18,C.iron);ellipse(99,83,37,15,C.black);line(126,67,145,102,C.gold);traveller(37,69,0.7);break;
+    case "pit": if(arena){                                     // 闘技場の真ん中の穴 (濁った灯籠を捨てた穴。縁から縄が垂れ、底からかすかな声)
+        ellipse(98,84,46,15,[96,78,58]);ellipse(98,84,38,11.4,[6,4,8]);for(let i=0;i<14;i++){const a=h2(i,2,seed)*6.28,r=0.3+h2(i,3,seed)*0.6;rect(98+Math.cos(a)*38*r,84+Math.sin(a)*11*r,1,1,[70,80,110],false);}
+        for(let x0=60;x0<=136;x0+=1)rect(x0,84-11.4*Math.sqrt(Math.max(0,1-((x0-98)/38)**2)),1,1,[160,130,96],false);
+        line(118,76,124,108,C.paper);rect(116,74,6,3,C.iron);for(const [q,yy,d] of [[52,92,0],[150,90,1],[40,100,1],[160,102,0]]){rect(q-2,yy-3,4,5,d?[8,6,10]:[70,64,60]);rect(q-2,yy-4,4,1,C.gold);}traveller(30,70,0.5);break;}
+      ellipse(99,83,41,18,C.iron);ellipse(99,83,37,15,C.black);line(126,67,145,102,C.gold);traveller(37,69,0.7);break;
     case "rope": line(111,0,109,103,C.paper,2);for(let i=0;i<7;i++)line(108,38+i*2,117,43+i*2,C.paper);paper(122,41,35,18);break;
     case "gardenWindow": window(124,6,43,51);poly([[139,55],[143,30],[136,20],[145,24],[152,15],[150,32],[154,55]],C.wood);break;
     case "hutDiary": rect(50,33,99,58,C.wood);poly([[40,34],[96,7],[158,34]],C.dark);rect(62,45,26,45,C.black);table(103,77,45);paper(108,56,29,22);ellipse(125,52,6,7,C.bone);break;
@@ -281,6 +317,27 @@ function paintScene(scene) {
       for(let i=0;i<60;i++){const t=h2(i,2,seed),a=h2(i,3,seed)*6.28+t*5,rr=6+t*60;rect(99+Math.cos(a)*rr,14+Math.sin(a)*rr*0.35,1,1,C.soul,false);}glow(99,14,40,[60,200,170],0.5);break;
     case "bridge": poly([[124,42],[136,32],[156,28],[178,26],[196,30],[196,52],[176,56],[146,54],[130,50]],[120,98,112]);poly([[140,40],[160,33],[184,32],[196,36],[196,46],[170,48],[148,46]],[150,122,128]);glow(172,40,36,[150,120,120],0.3);ellipse(60,100,70,14,[44,42,58]);poly([[96,92],[180,46],[184,48],[104,96]],C.edge);for(let i=0;i<5;i++){const t=i/5,q=104+t*72,yy=94-t*42;rect(q,yy,2-t,10-t*6,C.edge);}
       ellipse(178,40,16,5,[46,42,62]);poly([[162,40],[194,40],[190,50],[166,50]],[46,42,62]);poly([[154,54],[166,48],[192,48],[200,54]],[40,36,54]);for(let k=0;k<3;k++)line(166+k*2,39-k,190-k*2,39-k,[90,84,116]);for(let q=166;q<190;q+=3)rect(q,44,1,2,[24,22,34]);traveller(120,80,0.3);line(124,74,126,90,C.wood,1);break;
+    // ---- 第九章「闘技場跡」 ----
+    case "glove": poly([[0,58],[150,50],[150,55],[0,92]],[92,86,96]);poly([[0,55],[150,49],[150,50],[0,58]],[160,152,150]);for(let i=0;i<9;i++){const t=i/9,q=10+t*136,yy=60-t*9;if(i===2)continue;ring(q,yy+3*(1-t*0.6),Math.max(1.5,4*(1-t*0.7)),C.iron);}
+      ring(43,60,4,C.iron);line(43,63,42,67,C.paper);poly([[36,66],[50,66],[48,74],[38,74]],C.leather);poly([[38,74],[48,74],[49,81],[37,81]],C.leather);
+      for(const [q,l,b] of [[38.6,8,-1.4],[41.6,10,-0.4],[44.6,9.4,0.6],[47.6,7.4,1.6]]){line(q,81,q+b*0.6,81+l*0.6,C.leather,2);line(q+b*0.6,81+l*0.6,q+b,81+l,C.char,2);}line(37,76,32,82,C.leather,2);line(32,82,31,85,C.char,2);
+      ellipse(43,77,1.6,1.2,C.gold,false);rect(46,61,2,7,C.paper);
+      poly([[30,108],[148,55],[156,55],[192,92],[192,108]],[84,80,88]);for(let i=1;i<7;i++){const z=1/(i*0.55),y0=55+53*z,xl=148-118*z,xr=156+60*z;line(xl,y0,xr,y0,[58,54,62]);}line(30,108,148,55,[150,144,140]);break;
+    case "lampRack": for(const q of [40,80,120,154])rect(q-2,0,4,90,C.wood);for(let k=0;k<6;k++){const yy=8+k*13;rect(38,yy,120,2,C.wood);for(let q=46;q<152;q+=7){if(q%40<4)continue;const dark=h2(q,k,seed)>0.88;rect(q,yy+2,1,2,C.iron);rect(q-1,yy+4,3,1,C.gold);rect(q-1,yy+5,3,4,dark?[10,8,12]:[150,140,120]);rect(q-1,yy+9,3,1,C.gold);rect(q+2,yy+10,2,2,dark?[190,70,56]:C.paper,false);}}
+      for(let yy=0;yy<24;yy++)for(let xx=0;xx<W;xx++){const i=(yy*W+xx)*3,k=0.35+0.65*yy/24;for(let j=0;j<3;j++)L.c[i+j]*=k;}
+      rect(158,30,30,44,C.wood);for(let k=0;k<6;k++){line(160,34+k*7,170,34+k*7,C.black);for(let q=174;q<174+(3+(h2(k,1,seed)*9|0))*2&&q<186;q+=2)rect(q,33+k*7,1,2,C.paper,false);if(k===1||k===4)line(159,34+k*7,187,34+k*7,[200,40,34],1,false);}
+      for(const q of [6,14,30])rect(q,10,2,88,C.iron);for(let yy=10;yy<98;yy++){const t=Math.max(0,1-Math.abs(yy-56)/30);rect(22-7*t*t,yy,2,1,C.iron);}rect(0,9,36,2,C.iron);rect(0,96,36,2,C.iron);break;
+    case "dollNook": rect(0,0,W,88,[96,86,90]);for(let yy=4;yy<88;yy+=9)for(let xx=(yy/9%2)*9;xx<W;xx+=18){line(xx,yy,xx+17,yy,[60,52,58]);line(xx,yy,xx,yy+9,[60,52,58]);}for(let i=0;i<8;i++)rect(i*22-6,0,22,5+i*7,[44,40,52]);for(let i=0;i<8;i++)line(i*22-6,4+i*7,i*22+16,4+i*7,[140,128,128]);
+      for(let r=0;r<5;r++)for(let k=0;k<40;k++){const q=22+Math.floor(k/5)*9+(k%5)*1.6;if(q>104)break;if(k%5<4)line(q,40+r*7,q,44+r*7,C.black);else line(q-6.6,43.6+r*7,q,40.6+r*7,C.black);}
+      ring(124,52,4,C.black);line(121,56,127,56,C.black);line(124,49,124,45,C.black);rect(114,64,22,4,[110,100,100]);
+      poly([[158,62],[192,56],[192,92],[158,88]],[120,84,54]);glow(196,82,30,[255,170,80],0.55);rect(156,60,4,30,[70,64,70]);
+      poly([[20,90],[100,86],[104,96],[22,98]],[100,102,124]);ellipse(122,95,6,2.4,C.wood);ellipse(122,94,4,1.4,C.black);
+      ellipse(76,71,3.4,3.6,C.wood);poly([[72.6,75],[79.6,75],[79,82],[73.2,82]],C.wood);line(72.8,76,70.4,81,C.wood,2);line(79.4,76,81.4,81,C.wood,2);line(74.4,82,69.6,85,C.wood,2);line(77.6,82,82,85,C.wood,2);
+      rect(75.4,77,2,2,[200,255,230],false);glow(76,78,12,[60,210,180],0.7);break;
+    case "lampRing": for(let i=0;i<220;i++){const a=i/220*Math.PI*2;rect(98+Math.cos(a)*32,44+Math.sin(a)*32,2,2,C.iron);}
+      for(let i=0;i<13;i++){const a=-Math.PI/2+i/13*Math.PI*2,q=98+Math.cos(a)*32,yy=44+Math.sin(a)*32,on=i<8;line(q,yy+1,q,yy+4,C.iron);rect(q-2,yy+4,4,1,C.gold);rect(q-2,yy+5,4,5,i===12?[6,4,8]:on?[140,240,210]:[60,56,58],!on);if(on)glow(q,yy+7,8,[60,210,180],0.45);}
+      for(let i=0;i<24;i++){const t=h2(i,2,seed),a=h2(i,3,seed)*6.28;rect(98+Math.cos(a)*(16+t*44),44+Math.sin(a)*(16+t*44)-t*20,1,1,C.soul,false);}
+      ellipse(96,82,14,3.6,C.black);for(let i=0;i<6;i++)rect(88+h2(i,5,seed)*16,81+h2(i,6,seed)*3,1,1,[80,90,110],false);break;
     default: throw new Error(`読み物の図版に未定義の主題: ${scene.focus}`);
   }
   if(scene.people==="irene")irene(scene.pose==="shelter"?80:62,scene.pose==="seated"?66:63,scene.pose);
@@ -291,7 +348,7 @@ function paintScene(scene) {
     for(let j=0;j<3;j++)L.c[i+j]*=1-d;
   }
   const swamp = scene.setting === "swamp" || SWAMP_FOCUS.includes(scene.focus);
-  return L.canvas(8, spire || STORM_FOCUS.includes(scene.focus) ? STORM_PAL : swamp ? SWAMP_PAL : scene.setting === "ice" || ICE_FOCUS.includes(scene.focus) ? ICE_PAL : undefined);
+  return L.canvas(8, arena ? ARENA_PAL : spire || STORM_FOCUS.includes(scene.focus) ? STORM_PAL : swamp ? SWAMP_PAL : scene.setting === "ice" || ICE_FOCUS.includes(scene.focus) ? ICE_PAL : undefined);
 }
 
 export function archiveArt(scene) {
