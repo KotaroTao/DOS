@@ -465,8 +465,8 @@ function renderReadyIssues(b) {
 // 入場の消費予告。人業ごとの残量を表示し、不足分を街で補える。
 function renderStability(b, explain = true) {
   const status = game.stabilityStatus();
-  b.appendChild(sec("魂の安定度", "入場時 −10／人"));
-  if (explain) b.appendChild(el("div","dp-brief-l",`上限100。入場時に10消費し、${game.stabilityMinutes ? game.stabilityMinutes() : 4}分ごとに1回復。控えやゲームを閉じている間も回復します。探索中の追加消費はありません。`));
+  b.appendChild(sec("魂の安定度", `入場時 −${game.STABILITY_ENTRY_COST}／人`));
+  if (explain) b.appendChild(el("div","dp-brief-l",`上限100。入場時に${game.STABILITY_ENTRY_COST}消費し、${game.stabilityMinutes ? game.stabilityMinutes() : 4}分ごとに1回復。控えやゲームを閉じている間も回復します。探索中の追加消費はありません。`));
   for (const d of status) {
     const line=el("div","dp-stability-row");
     const wait=d.value<10 ? ` ・ 入場まで約${Math.ceil(d.waitMs/60000)}分` : "";
@@ -534,9 +534,9 @@ function openBriefing(go) {
       picture.appendChild(illustration);b.appendChild(picture);
       b.appendChild(el("div","dp-brief-h","門衛 ― 迷宮の入口を守る者"));
       for(const text of ["人業が迷宮に入ると、魂と器の結びつきが揺らぎます。その状態を示すのが『魂の安定度』です。",
-        "安定度の上限は100です。入場時に人業ごとに10消費します。階を降りても、長く探索しても、追加では消費しません。",
+        `安定度の上限は100です。入場時に人業ごとに${game.STABILITY_ENTRY_COST}消費します。階を降りても、長く探索しても、追加では消費しません。`,
         "安定度は4分ごとに1回復します。控えの人業も、ゲームを閉じている間も同じです。魂が不安定になった人業を休ませ、別の人業を出立させましょう。",
-        "街では赤い魂1を捧げると、安定度が1回復します。安定度が10未満の人業がいる場合は、入場前に回復するか、人業を入れ替えてください。",
+        `街では赤い魂1を捧げると、安定度が1回復します。安定度が${game.STABILITY_ENTRY_COST}未満の人業がいる場合は、入場前に回復するか、人業を入れ替えてください。`,
         ...(!G().dungeonBriefed ? game.DUNGEON_BRIEFING || [] : [])])b.appendChild(setText(el("div","dp-brief-l"),text));
       renderStability(b, false);
     },
@@ -639,7 +639,7 @@ function footerSpec() {
     const rv = game.rematchList ? game.rematchList() : [];
     const x = rv.find((t) => t.key === cur.rival) || null;
     const alive = g.party.some((p) => p.alive);
-    return [{ label: !alive ? "動ける人業がいない" : x ? `挑む ― ${x.name}` : "相手を選ぶ", sub: x ? `Lv${x.lv}${x.trait ? ` ・ ＋${x.trait}` : ""} ・ 安定度 −10／人` : "",
+    return [{ label: !alive ? "動ける人業がいない" : x ? `挑む ― ${x.name}` : "相手を選ぶ", sub: x ? `Lv${x.lv}${x.trait ? ` ・ ＋${x.trait}` : ""} ・ 安定度 −${game.STABILITY_ENTRY_COST}／人` : "",
       disabled: !x || !alive || game.stabilityStatus().some(d=>d.value<10), kind: "danger", size: "lg",
       onTap: () => { if (!x) return; const go=()=>{close();game.departRematch?.(x.key);}; if(!G().stabilityBriefed)openBriefing(go);else go(); } }];
   }
@@ -658,7 +658,7 @@ function footerSpec() {
   const go = m ? "異変ごと門をくぐる" : again ? "ふたたび門をくぐる" : "門をくぐる";
   return [{
     label: alive ? (pick ? go : `${go} ― ${fl}`) : "動ける人業がいない",
-    sub: dn ? (pick ? `${fl}から「${dn.name}」へ ・ 安定度 −10／人` : `「${dn.name}」 ・ 安定度 −10／人`) : "",
+    sub: dn ? (pick ? `${fl}から「${dn.name}」へ ・ 安定度 −${game.STABILITY_ENTRY_COST}／人` : `「${dn.name}」 ・ 安定度 −${game.STABILITY_ENTRY_COST}／人`) : "",
     kind: m ? "danger" : "primary", size: "lg", disabled: !alive || game.stabilityStatus().some(d=>d.value<10),
     onTap: () => depart(),
   }];
