@@ -5,10 +5,12 @@
 //          台帳の全迷宮・全階で同じ組み立て (combat.js の spawn*) を試した最小の強さ。特別な階・異変は含めない
 //   Lv = 1 + (強さ ÷ 基準 − 1) ÷ DISPLAY_LV_STEP (整数・最低 1) → Lv10 ≈ 1.95倍 / Lv20 ≈ 3.0倍
 // 台帳の迷宮に出ない魔物 (奈落の第11層から先の顔ぶれ) は、奈落の層の浅い階を基準にする。
+// 図鑑の能力 (攻撃・防御・素早さ・HP) は、この基準の個体 (= Lv1) の実際の値を出す (enemyBaseSample)。
+// 素早さはその場所の fleeK で味方の規模 (手番の速さ — combat.js scaleFoeAgi) に直した値。
 // game.js も ui も import しない (combat.js の組み立てを借りるだけ)
-import { WORLD, poolAt, strengthAt, abyssLayer } from "./dungeons/world.js";
-import { lvPow } from "./levelcurve.js";
-import { spawnEliteEnemies, spawnBossEnemies, spawnMimic, spawnRanked, spawnMetal } from "./combat.js";
+import { WORLD, poolAt, strengthAt, abyssLayer, dungeonLevelRaw } from "./dungeons/world.js";
+import { lvPow, partyAgi } from "./levelcurve.js";
+import { spawnEliteEnemies, spawnBossEnemies, spawnMimic, spawnRanked, spawnMetal, scaleFoeAgi } from "./combat.js";
 import { MONSTERS } from "./sprites.js";
 import { METAL_TIERS } from "./dungeons/index.js";
 
@@ -20,6 +22,15 @@ const ELITE_FROM_FLOOR = 3;
 const MASTER_MIMIC_LAYER = 4;
 // 奈落だけに出る魔物の基準を探す層の上限 (第20層の先は第20層の顔ぶれのまま)
 const ABYSS_LAYERS = 20;
+
+// 敵の AGI を味方の規模へ直す倍率 (Battle.fleeK): 推奨Lv の基準の隊の AGI ÷ その迷宮の雑魚の素の AGI の中央値
+// (game.js fleeScale もこれを呼ぶ)。俊敏な敵・主・ミミックは、中央値からのずれがそのまま速さに出る
+export function fleeScaleOf(cfg, lv) {
+  const spds = [...new Set([...((cfg && cfg.pool) || []), ...((cfg && cfg.deepPool) || [])])]
+    .map((k) => MONSTERS[k] && MONSTERS[k].spd).filter((v) => v > 0).sort((a, b) => a - b);
+  const typical = spds.length ? spds[Math.floor(spds.length / 2)] : 4 + Math.round(((cfg && cfg.rank) || 1) * 0.9);
+  return partyAgi(lv) / Math.max(1, typical);
+}
 
 export function strengthIndex(e) {
   return Math.sqrt(Math.max(1, (e && e.maxhp) || 1) * Math.max(1, (e && e.atk) || 1));
@@ -38,7 +49,7 @@ function collectAt(key, at, list) {
   const t = at.tune || {};
   const solo = at.base * (t.soloMul || 1);
   const reg = at.base * (t.enemyMul || 1) * (at.deep ? (t.deepMul || 1) : 1);
-  const one = (arr) => { if (arr && arr[0]) list.push(strengthIndex(arr[0])); };
+  const one = (arr) => { if (arr && arr[0]) list.push({ s: strengthIndex(arr[0]), e: arr[0], at }); };
   // 雑魚 (出現表)・取り巻き (escort)・呼ばれる手下 (summonKey) は雑魚の倍率で組まれる
   if (at.pool.includes(key)) one(spawnEliteEnemies(key, reg));
   for (const k of at.pool) {
@@ -55,8 +66,8 @@ function collectAt(key, at, list) {
     const bs = at.bossScale * at.base;
     if (at.boss === key) {
       const e = spawnBossEnemies(key, bs, at.bossRank)[0];
-      if ((t.bossHpMul || 1) !== 1) e.maxhp = Math.max(1, Math.round(e.maxhp * t.bossHpMul));
-      list.push(strengthIndex(e));
+      if ((t.bossHpMul || 1) !== 1) e.maxhp = e.hp = Math.max(1, Math.round(e.maxhp * t.bossHpMul));
+      one([e]);
     } else if (MONSTERS[at.boss] && MONSTERS[at.boss].summonKey === key) one(spawnEliteEnemies(key, bs));
   }
   // ミミック・出来事の魔物・金属は「その階の雑魚の最上位ランク」の体で組まれる
@@ -73,7 +84,7 @@ function worldSpots() {
   const out = [];
   for (const cfg of WORLD) for (let f = 1; f <= (cfg.floors || 1); f++) {
     out.push({
-      cfg, floor: f, base: strengthAt(cfg, f), pool: poolAt(cfg, f), tune: cfg.tune, deep: f > (cfg.floors || 3) / 2,
+      cfg, floor: f, base: strengthAt(cfg, f), fleeK: fleeScaleOf(cfg, dungeonLevelRaw(cfg, f)), pool: poolAt(cfg, f), tune: cfg.tune, deep: f > (cfg.floors || 3) / 2,
       bottom: f === cfg.floors, elites: cfg.elites, boss: cfg.boss, bossRank: cfg.bossRank, bossScale: (cfg.bossScale || 1) * ((cfg.tune && cfg.tune.bossMul) || 1),
       layer: cfg.layer || 1,
     });
@@ -85,14 +96,14 @@ function abyssSpots() {
   const out = [];
   for (let L = 1; L <= ABYSS_LAYERS; L++) {
     const info = abyssLayer(L);
-    const cfg = { rank: info.rank, layer: Math.min(20, L) };
+    const cfg = { rank: info.rank, layer: Math.min(20, L), pool: info.pool, deepPool: info.pool };
     out.push({
-      cfg, floor: ELITE_FROM_FLOOR, base: info.coef * lvPow(info.lvFrom), pool: info.pool, tune: null, deep: false, bottom: false,
+      cfg, floor: ELITE_FROM_FLOOR, base: info.coef * lvPow(info.lvFrom), fleeK: fleeScaleOf(cfg, info.lvFrom), pool: info.pool, tune: null, deep: false, bottom: false,
       elites: info.elites, boss: null, layer: cfg.layer,
     });
     // 門番 (層の最後の階): 奈落の強さ × bossRel × 1.05 (game.js fightAbyssGuard と同じ)
     out.push({
-      cfg, floor: 10, base: info.coef * lvPow(info.lvTo), pool: [], tune: null, deep: true, bottom: true,
+      cfg, floor: 10, base: info.coef * lvPow(info.lvTo), fleeK: fleeScaleOf(cfg, info.lvTo), pool: [], tune: null, deep: true, bottom: true,
       elites: [], boss: info.boss, bossRank: info.bossRank, bossScale: info.bossRel * 1.05, layer: cfg.layer,
     });
   }
@@ -101,15 +112,30 @@ function abyssSpots() {
 
 let _world = null, _abyss = null;
 const _ref = new Map();
-// その魔物の基準の強さ (一番弱く出る所)。どこにも出ない魔物は 0
-export function enemyBaseStrength(key) {
+// その魔物の基準 (一番弱く出る所の個体)。{ s: 強さ, e: 組み立てた個体 (AGI は味方の規模) }。どこにも出ない魔物は null
+function baseOf(key) {
   if (_ref.has(key)) return _ref.get(key);
   const list = [];
   for (const at of (_world ||= worldSpots())) collectAt(key, at, list);
   if (!list.length) for (const at of (_abyss ||= abyssSpots())) collectAt(key, at, list);
-  const v = list.length ? Math.min(...list) : 0;
+  let best = null;
+  for (const c of list) if (!best || c.s < best.s) best = c;
+  if (best) scaleFoeAgi(best.e, best.at.fleeK);
+  const v = best ? { s: best.s, e: best.e } : null;
   _ref.set(key, v);
   return v;
+}
+// その魔物の基準の強さ (一番弱く出る所)。どこにも出ない魔物は 0
+export function enemyBaseStrength(key) {
+  const b = baseOf(key);
+  return b ? b.s : 0;
+}
+// 図鑑に出す Lv1 (一番弱く出る所) の実際の能力 { hp, atk, vit, agi }。どこにも出ない魔物は null
+export function enemyBaseSample(key) {
+  const b = baseOf(key);
+  if (!b) return null;
+  const e = b.e;
+  return { hp: e.maxhp, atk: e.atk, vit: e.vit, agi: e.agi };
 }
 
 // 出現した個体の表示Lv (整数・最低1)。基準の分からない魔物は null

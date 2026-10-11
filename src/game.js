@@ -2,7 +2,7 @@ import { monsterResists } from "./resistance.js";
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
-import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, setEnemyLvTag, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setElemKnown, setPartyEvadeBonus, setPartyBreathBonus, partyBreathRes, setResonance, perkVictory, cureAil, canSpellCure, cureBySpell, spellCureKinds, chishioState } from "./combat.js";
+import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, setEnemyLvTag, scaleFoeAgi, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setElemKnown, setPartyEvadeBonus, setPartyBreathBonus, partyBreathRes, setResonance, perkVictory, cureAil, canSpellCure, cureBySpell, spellCureKinds, chishioState } from "./combat.js";
 import { decideAuto, tacticOf, setResistKnown } from "./autotactics.js";
 import { STAGED, effectStage, stageOf, stageLabel, isBattleLong, turnsLeftLabel, ENEMY_STAT_LABEL } from "./buffstage.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
@@ -88,7 +88,7 @@ import { tlStability, tlStabilityTick, tlRedGain, tlOn, tlMeasure, tlWatchBattle
 import { repriceEquipment } from "./pricing.js";
 import { spawnFx, drawBattleFx, weaponFxStyle, statusFxKind, skillProfile, ELEM_FX_COL, SIG_FX } from "./battlefx.js";
 import "./battlefx-sig.js"; // 各職の看板技の専用演出を SIG_FX に登録する
-import { enemyLvTag } from "./enemylevel.js";
+import { enemyLvTag, fleeScaleOf } from "./enemylevel.js";
 
 // ===== コンテンツの取り込み =====
 // アイテム: 一点物の手作りカタログ (src/catalog/)。二つ名つきの量産品は廃止。
@@ -1713,12 +1713,8 @@ function tlGameMeasure(source, fn) {
 // 「この迷宮・階の基準AGI (baseline.js) ÷ この迷宮の雑魚の標準AGI (出現表の素のAGIの中央値)」を掛けて揃える。
 // 俊敏な敵・主・ミミック・鈍足/激昂は、標準からのずれとしてそのまま逃げにくさ/逃げやすさに効く
 function fleeScale() {
-  const cfg = activeCfg();
-  const spds = [...new Set([...(cfg.pool || []), ...(cfg.deepPool || [])])]
-    .map((k) => MONSTERS[k] && MONSTERS[k].spd).filter((v) => v > 0).sort((a, b) => a - b);
-  const typical = spds.length ? spds[Math.floor(spds.length / 2)] : 4 + Math.round((cfg.rank || 1) * 0.9);
-  // 基準の隊の AGI は推奨Lv で引く (levelcurve.js partyAgi)
-  return partyAgi(levelHere().lv) / Math.max(1, typical);
+  // 基準の隊の AGI (推奨Lv で引く) ÷ その迷宮の雑魚の素の AGI の中央値 (enemylevel.js — 図鑑の素早さも同じ式)
+  return fleeScaleOf(activeCfg(), levelHere().lv);
 }
 
 // この迷宮・階の敵のLv (台帳の迷宮は world.js dungeonLevel。奈落は素体の難度 n の1階相当)
@@ -16127,6 +16123,7 @@ function loadGame() {
     tlWatchBattle(G.battle, tlWhere());
     G.battle.log = log;
     if (G.battle.fleeK == null) G.battle.fleeK = fleeScale(); // 逃走の物差しを持たない古い戦闘
+    for (const e of (G.battle.enemies || [])) scaleFoeAgi(e, G.battle.fleeK); // 敵の AGI を素の値のまま保存した古い戦闘
     if (G.battle.baseAgi == null) G.battle.baseAgi = partyAgi(levelHere().lv); // 強敵の回避の上限を持たない古い戦闘
     for (const e of (G.battle.enemies || [])) if (e.key && MONSTERS[e.key]) {
       e.mon = MONSTERS[e.key];
