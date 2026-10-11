@@ -15,7 +15,7 @@ import {
 import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, permanentEventStats, eligibleEvents, pickEvent, onceKey, runEvent, eventFightWon } from "./events.js";
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { pickTavernCrowd, TALK_MAP } from "./tavern.js";
-import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, rollBoard, deliveryRewardRows, NPCS, npcOf, composeReport, bondGiftAt, npcBondLabel, TIP_RATE, hasBell, BELL_EVERY_MS } from "./quests.js";
+import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, rollBoard, deliveryRewardRows, NPCS, npcOf, composeReport, bondGiftAt, npcBondLabel, TIP_RATE, hasBell, BELL_EVERY_MS, QUEST_REWARD_K } from "./quests.js";
 import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_THREE_REPORT, TUT_FINALE, STORY_CELLS, storyCellAt, BOSS_MEMORIES, REPORTS, LATE_CLUES, IRENE_BEATS, MINE_PASS, msqReward, EPILOGUE, UNLOCKS, unlockSceneFor } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { poolAt } from "./dungeons/world.js";
@@ -11746,8 +11746,17 @@ function questState() {
   if (!s.seen || typeof s.seen !== "object") s.seen = {};
   if (!s.npcs || typeof s.npcs !== "object") s.npcs = {}; // 掲示板の依頼人ごとの報告の回数 (なじみ)
   if (!(s.seq > 0)) s.seq = 1;
-  for (const q of [...(s.board || []), ...s.active]) fixQuestDungeonName(q);
+  for (const q of [...(s.board || []), ...s.active]) { fixQuestDungeonName(q); scaleOldQuestReward(q); }
   return s;
+}
+// 報酬の倍率 (quests.js QUEST_REWARD_K、2026-10 に 1/5) を入れる前に貼られた・受けた依頼の金貨・✦Soul を直す (一度だけ。印 rk)
+function scaleOldQuestReward(q) {
+  if (!q || q.rk) return;
+  q.rk = 1;
+  const r = q.reward;
+  if (!r || typeof r !== "object") return;
+  if (r.gold) r.gold = Math.max(1, Math.round(r.gold * QUEST_REWARD_K));
+  if (r.soulPts) r.soulPts = Math.max(1, Math.round(r.soulPts * QUEST_REWARD_K));
 }
 // 古いセーブの依頼は説明・手がかりに迷宮の略称 (「囁く回廊」) が残っている → 正式名 (「亡骸の囁く回廊」) に直す
 function fixQuestDungeonName(q) {
@@ -11843,9 +11852,13 @@ function fixedQuestReward(def) {
   const front = questFrontUnit();
   const u = { gold: Math.max(u0.gold, front.gold * 0.7), soul: Math.max(u0.soul, front.soul * 0.7) };
   const out = {};
-  if (r.gold) out.gold = Math.max(1, Math.round(u.gold * r.gold / 10) * 10);
-  if (r.soul) out.soulPts = Math.max(1, Math.round(u.soul * r.soul / 5) * 5);
-  if (r.red) out.red = r.red;
+  // 金貨・✦Soul・赤い魂は QUEST_REWARD_K (2026-10 ユーザーの指示で 1/5) を掛ける。残火・魂はそのまま
+  const k = QUEST_REWARD_K;
+  // 端数は 10 (✦ は 5) に丸める。小さな額は丸めると 0 や倍近くになるので、刻みの5倍に満たなければ1の位まで
+  const nice = (v, step) => (v >= step * 5 ? Math.round(v / step) * step : Math.max(1, Math.round(v)));
+  if (r.gold) out.gold = nice(u.gold * r.gold * k, 10);
+  if (r.soul) out.soulPts = nice(u.soul * r.soul * k, 5);
+  if (r.red) out.red = Math.max(1, Math.round(r.red * k));
   if (r.embers) out.embers = r.embers;
   if (r.souls) out.souls = r.souls.map((x) => [...x]);
   return out;
@@ -12246,12 +12259,12 @@ function finishFreeQuest(q, r, extraJobs = [], title = null) {
     showToast(`📜 依頼「${q.name}」を果たした` + (bond ? ` ― ${npc.name}と${bl}に` : ""), { tone: "gold" });
   });
 }
-// 心付け: 報酬の金貨 (無ければ ✦Soul) の 3〜5割。納品 (魂だけの報酬) は地図の最深部の戦果 2〜4回分の金貨
+// 心付け: 報酬の金貨 (無ければ ✦Soul) の 3〜5割。納品 (魂だけの報酬) は地図の最深部の戦果 2〜4回分の金貨 × QUEST_REWARD_K
 function questTip(r) {
   const k = 0.3 + rand(3) * 0.1;
   if (r.gold) return { gold: Math.max(1, Math.round(r.gold * k)) };
   if (r.soulPts) return { soulPts: Math.max(1, Math.round(r.soulPts * k)) };
-  return { gold: Math.max(10, Math.round(questFrontUnit().gold * (2 + rand(3)))) };
+  return { gold: Math.max(2, Math.round(questFrontUnit().gold * (2 + rand(3)) * QUEST_REWARD_K)) };
 }
 // 報告の一幕の肖像の枠に掲げる絵: 討伐 = 倒した魔物 / 納品 = 納めた品 / 魂 = 授かった魂 / 宝箱 / 到達 = 階段
 function questMarkCanvas(q, jobs = []) {
