@@ -57,7 +57,7 @@
 //             soulFeast 魂喰らいの闇: 人業を倒した敵は攻撃がこの段数だけ上がる (3ターン。底なしの大伽藍)
 //             oneChest 巨獣の宝: 宝箱は1階に1つだけ (足りなければ置く)。中身のランクは mods.chestRankUp で上げる (大空洞の主の寝床)
 //             sealedGate ★閉ざされた門: 帰還魔法陣が無く、帰還の鈴も使えない。最下階に着くか全滅するまで出られない (化石竜の墓所)
-//             corpseFade 痩せる恵み: 盤面の加工 prison で増える死体が、隊のLv が推奨Lv+2 を超えた1Lvごとに15%ずつ減る (器の山)
+//             corpseFade 痩せる恵み: 盤面の加工 prison で増える死体が、隊のLv が推奨Lv+2 を超えた1Lvごとに15%ずつ減る (閉ざされた獄・器の山・疫病の塚)
 //             appraised 澄んだ水晶の光: この迷宮で拾う品は、はじめから鑑定済み (水晶の鉱脈)
 //             say      開幕の効果 (mpDrain / hpDrain / chill / poisonStart / boltStart) を戦闘の記録に書く時の一文
 //             audience 見世物の闘技場: 戦闘の開幕に観客の注文がひとつ出て、応えて勝てば ✦Soul・金貨が増える (game.js AUDIENCE_ORDERS。闘技場跡)
@@ -213,9 +213,10 @@ const WORLD_DEF = [
     elites: ["el_headsman"],
     trait: {
       id: "prison", name: "閉ざされた獄", sym: "⛓", accent: "#8a8fa8",
-      lines: ["獄の扉は内から開かない。この迷宮の戦闘からは逃げられない。", "獄死した囚人の骸が多く (各階に骸が2つ増える)、押収品の宝箱は1ランク上等。"],
+      lines: ["獄の扉は内から開かない。この迷宮の戦闘からは逃げられない。", "獄死した囚人の骸が多く (各階に骸が2つ増える)、押収品の宝箱は1ランク上等。", "骸に残る魂は、強すぎる者の前には姿を見せない。隊のLvが推奨Lv+2 を超えると、1Lv ごとに増える死体が15%ずつ減る (推奨Lv+9 で増えなくなる)。"],
       mods: { noFlee: true, chestRankUp: 1 },
       board: "prison",
+      corpseFade: true, // 増える死体は隊のLv が推奨Lv を超えるほど減る (2026-10-11 ユーザーの指示)
     },
     tune: { enemyMul: 1.25, deepMul: 0.78, soloMul: 0.95 },
     unlock: { story: "w06_roll" },
@@ -1251,9 +1252,10 @@ const WORLD_DEF = [
     elites: ["el_offeringslime"],
     trait: {
       id: "plague", name: "疫病の塚", sym: "✝", accent: "#b0a070",
-      lines: ["投げこまれた死者が、通路に折り重なっている (各階に死体が2つ増える)。宝箱は1ランク上等。", "塚に眠る魂は数知れず、得る ✦Soul は 1.2倍。"],
+      lines: ["投げこまれた死者が、通路に折り重なっている (各階に死体が2つ増える)。宝箱は1ランク上等。", "塚に眠る魂は数知れず、得る ✦Soul は 1.2倍。", "塚の魂は、強すぎる者の前には姿を見せない。隊のLvが推奨Lv+2 を超えると、1Lv ごとに増える死体が15%ずつ減る (推奨Lv+9 で増えなくなる)。"],
       mods: { chestRankUp: 1, soulMul: 1.2 },
       board: "prison",
+      corpseFade: true, // 増える死体は隊のLv が推奨Lv を超えるほど減る (2026-10-11 ユーザーの指示)
     },
     tune: { enemyMul: 1.00, deepMul: 0.82, soloMul: 1.05 },
     unlock: { quest: "fq_rochus" },

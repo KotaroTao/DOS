@@ -8,6 +8,8 @@ import { planBestEquip, previewStats, slotKeysFor, trialEquip } from "../../src/
 import { makeDoll, makeSoulInstance, setSharedSouls, recalcDoll, soulRankFromCount, PASSIVES, JOB_PASSIVES } from "../../src/souls.js";
 import { decideAuto } from "../../src/autotactics.js";
 
+import { useMathRandom } from "../../src/rng.js";
+useMathRandom(); // ゲームの乱数 (src/rng.js) を Math.random に従わせる — 下で Math.random を差し替えて結果を固定する
 Object.assign(ITEMS, CATALOG_ITEMS);
 const weapons = Object.values(ITEMS).filter((it) => it.slot === "weapon" && !it.unidentified && !it.classes && !it.forJob);
 const one = (cat, skip = 0) => weapons.filter((w) => w.cat === cat && !w.twoHanded).sort((a, b) => a.lv - b.lv)[20 + skip];

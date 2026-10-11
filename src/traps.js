@@ -19,6 +19,7 @@
 //   alarm  … 怪物を呼び寄せ戦闘になる (horde: 群れを呼ぶ)
 // ail/ailChance: 生き残った命中者への状態異常 (poison/paralyze/stone)
 // dieChance: 即死の危険 (断頭刃・奈落など最深部の罠のみ)
+import { random } from "./rng.js";
 export const TRAPS = [
   // ---- ランク1 (迷宮1〜): 古典的な小物 ----
   { id: "needle",     name: "毒針",         rank: 1, kind: "opener", mult: 0.8, ail: "poison",   ailChance: 0.6,  flavor: "錠前に仕込まれた針が深々と刺さった。" },
@@ -64,7 +65,7 @@ for (const t of TRAPS) {
 // 罠ランク <= min(3, 迷宮ランク) が出現対象 (= 迷宮21以降は全種)。
 // 重み: 深い迷宮ほど高ランクの罠へ指数的に寄る (最深部では大半が致命的な罠)。
 // excludeKinds: 出現させない型 (例: 続きの処理が戦闘で途切れる場面では "alarm" を除く)
-export function pickTrap(dungeonRank, rng = Math.random, excludeKinds = null) {
+export function pickTrap(dungeonRank, rng = random, excludeKinds = null) {
   const cap = Math.min(3, Math.max(1, dungeonRank || 1));
   const pool = TRAPS.filter((t) => t.rank <= cap && (!excludeKinds || !excludeKinds.includes(t.kind)));
   const w = pool.map((t) => Math.pow(1 + 0.35 * ((dungeonRank || 1) - 1), t.rank - 1));
@@ -84,7 +85,7 @@ export const CHEST_RANKS = [null, "朽ちた", "頑丈な", "銀細工の", "黄
 
 // depth01: 階の深さ 0-1 / dungeonRank: 迷宮ランク 1-10。
 // 深い階・深い迷宮ほど高ランクの宝箱が出やすい
-export function rollChestRank(depth01, dungeonRank, rng = Math.random) {
+export function rollChestRank(depth01, dungeonRank, rng = random) {
   const push = Math.max(0, depth01 || 0) + Math.min(1, ((dungeonRank || 1) - 1) / 9);
   const base = [50, 26, 13, 7, 4];
   const w = base.map((b, i) => b * Math.pow(1 + push, i * 0.7));

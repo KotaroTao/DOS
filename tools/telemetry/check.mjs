@@ -4,6 +4,8 @@ import { Battle, SPELLS } from '../../src/combat.js';
 import { makeDoll } from '../../src/souls.js';
 import { MONSTERS } from '../../src/sprites.js';
 import { DUNGEON_MONSTERS } from '../../src/dungeons/index.js';
+import { useMathRandom } from '../../src/rng.js';
+useMathRandom(); // ゲームの乱数 (src/rng.js) を Math.random に従わせる — 下で Math.random を差し替えて結果を固定する
 Object.assign(MONSTERS,DUNGEON_MONSTERS);
 const store=new Map([['dos-testlog',JSON.stringify({v:1,on:true,since:'旧開始',d:{w01:{name:'旧迷宮',s:{},b:{n:{c:3,w:3}}}}})]]);
 globalThis.localStorage={getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v)};

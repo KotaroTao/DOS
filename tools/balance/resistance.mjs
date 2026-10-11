@@ -7,6 +7,8 @@ import { MONSTERS } from '../../src/sprites.js';
 import { DUNGEON_MONSTERS } from '../../src/dungeons/index.js';
 import { RESIST_LABEL, zeroResists, monsterResists, resistTiers, resistLean, RACE_RESIST, MON_RESIST_WEAKABLE } from '../../src/resistance.js';
 import { revealSteps } from '../../src/ui/itemview.js';
+import { useMathRandom } from '../../src/rng.js';
+useMathRandom(); // ゲームの乱数 (src/rng.js) を Math.random に従わせる — 下で Math.random を差し替えて結果を固定する
 Object.assign(MONSTERS, DUNGEON_MONSTERS);
 const a = Object.assign(makeDoll('抵抗検証'), { jobLv: 40, level: 40 });
 const t = { name:'検証の敵', side:'enemy', lv:40, alive:true, hp:100, maxhp:100, resists:zeroResists(), effects:[] };

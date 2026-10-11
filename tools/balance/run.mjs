@@ -8,6 +8,8 @@ import { decideAuto, TACTICS, setResistKnown } from '../../src/autotactics.js';
 import { SOUL_CLASSES, SOUL_KEYS, makeDoll, makeSoulInstance, setSharedSouls, recalcDoll, rankThresholds, soulLevelCap, JOB_GEAR } from '../../src/souls.js';
 import { MONSTERS } from '../../src/sprites.js';
 import { DUNGEON_MONSTERS } from '../../src/dungeons/index.js';
+import { useMathRandom } from '../../src/rng.js';
+useMathRandom(); // ゲームの乱数 (src/rng.js) を Math.random に従わせる — 下で Math.random を差し替えて結果を固定する
 Object.assign(MONSTERS, DUNGEON_MONSTERS);
 setElemKnown(null);
 setResistKnown(() => true);
