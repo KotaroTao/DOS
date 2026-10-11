@@ -5986,7 +5986,7 @@ function eventFacts() {
   if (floatLeft() > 0) out.push({ tone: "gold", icon: ICONS.portal, title: "浮遊", accent: "#8fd0c8", lines: [`隊は宙に浮いている (この階を含めて残り${floatLeft()}階)。${floatGuardText()}。`] });
   // 足元の仕掛け (その土地の名で): 見えている落ちる床・蝕む床
   const pits = evCells((c) => c.type === "pit" && c.revealed).length;
-  if (pits) { const hz = fallHaz(); out.push({ tone: "bad", icon: ICONS.trap, title: hz.name, accent: "#8a8070", lines: [`見えている${hz.name} ${pits}か所。踏むと1階下へ落ちる (傷は負わない。自動の歩みは避けて通る)。`] }); }
+  if (pits) { const hz = fallHaz(); out.push({ tone: "bad", icon: ICONS.trap, title: hz.name, accent: "#8a8070", lines: [`見えている${hz.name} ${pits}か所。踏むと1階下へ落ちる (傷は負わない。オート移動は避けて通る)。`] }); }
   const harms = evCells((c) => c.type === "poison" && c.revealed).length;
   if (harms) { const hz = harmHaz(); out.push({ tone: "bad", icon: ICONS.poison, title: hz.name, accent: hz.accent, lines: [`見えている${hz.name} ${harms}か所。踏むと隊全体が${hz.verb.replace(/た$/, "る")} (浮遊・悪路渡りで避けられる)。`] }); }
   const perm = Object.keys(EV_BOONS).filter((k) => fl[k] && (k !== "sewerMap" || battleLayer() === 2)).map((k) => EV_BOONS[k].text);
