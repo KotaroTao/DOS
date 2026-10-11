@@ -12,6 +12,7 @@
 //   返り値: { moves: [{ doll, item, from, slotKey, displaced, gain }], undoSnapshot, gain }
 //
 // 実際の付け替えは applyPlan(plan) で、元に戻すのは restoreEquip(plan.undoSnapshot)。
+// 人業ごとに選んで適用するのは applyPlanSubset(plan, keep) (頼り合い = planDeps(plan) は一緒に入れ切りする)。
 // どちらも実体 (人業の equip / items) を書き換え、recalc で能力を再計算する。
 
 import { SLOTS, MAX_ITEMS, canEquip as canEquipDefault, recalc as recalcDefault, attackPower, weaponRange, canOffhand, fightPower, offhandPower } from "./items.js";
@@ -272,6 +273,45 @@ export function applyPlan(plan, { recalc: recalcFn = recalcDefault } = {}) {
     for (const x of tr.displaced) d.items.push(x);
     touched.add(d); touched.add(m.from);
   }
+  for (const d of touched) recalcFn(d);
+  return true;
+}
+
+// 計画のうち、どの人業の付け替えがどの人業に頼っているか (人業 → 頼る人業の Set)。
+// 人業 B が、A の付け替えで A の袋へ外れた品を拾って付けていれば、B は A に頼る (A を戻すと B の品が無くなる)
+export function planDeps(plan) {
+  const deps = new Map();
+  const moves = (plan && plan.moves) || [];
+  moves.forEach((m, i) => {
+    if (!deps.has(m.doll)) deps.set(m.doll, new Set());
+    for (let j = i - 1; j >= 0; j--) {
+      const p = moves[j];
+      if (p.doll === m.from && (p.displaced || []).includes(m.item)) {
+        if (p.doll !== m.doll) deps.get(m.doll).add(p.doll);
+        break;
+      }
+    }
+  });
+  return deps;
+}
+// 計画のうち、keep (人業の Set) の付け替えだけを実体に適用する (ほかの人業は計画の前のまま)。
+// まず写しへ戻してから順に付け替える。品が見つからない・持ち物が上限を超えるなら、写しへ戻して false
+export function applyPlanSubset(plan, keep, { recalc: recalcFn = recalcDefault, maxItems = MAX_ITEMS } = {}) {
+  if (!plan || !plan.undoSnapshot) return false;
+  restoreEquip(plan.undoSnapshot, recalcFn);
+  const touched = new Set();
+  for (const m of plan.moves || []) {
+    if (!keep.has(m.doll)) continue;
+    const d = m.doll;
+    const i = m.from.items.indexOf(m.item);
+    const tr = i >= 0 ? trialEquip(d.equip, m.item, m.slotKey) : null;
+    if (!tr) { restoreEquip(plan.undoSnapshot, recalcFn); return false; }
+    m.from.items.splice(i, 1);
+    for (const k of SLOTS) d.equip[k] = tr.equip[k] || null;
+    for (const x of tr.displaced) d.items.push(x);
+    touched.add(d); touched.add(m.from);
+  }
+  if (plan.undoSnapshot.some((x) => (x.doll.items || []).length > maxItems)) { restoreEquip(plan.undoSnapshot, recalcFn); return false; }
   for (const d of touched) recalcFn(d);
   return true;
 }
