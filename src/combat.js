@@ -646,7 +646,7 @@ export class Battle {
     this.fervor = !!opts.fervor; // 迷宮の掟「高まる戦意」: 2ターン目から毎ターン、敵味方とも攻撃 +1段 (+3段まで)
     this.foeRise = +opts.foeRise || 0;     // 迷宮の掟「起き上がる濁り魂」: 倒れた敵 (主・金属を除く) は一度だけ最大HPのこの割合で起き上がる
     this.soulFeast = +opts.soulFeast || 0; // 迷宮の掟「魂喰らいの闇」: 人業を倒した敵は攻撃がこの段数だけ上がる (3ターン)
-    this.show = { sp: 0, cr: 0, dd: 0 }; // 観客の注文 (土地の掟「見世物の闘技場」) の判定: 隊が使った技・会心・倒れた数。乱数には触れない
+    this.show = { sp: 0, cr: 0, dd: 0 }; // 観客の注文 (闘技場跡の迷宮の掟) の判定: 隊が使った技・会心・倒れた数。乱数には触れない
     for (const a of [...party, ...enemies]) { a.buffs = { atk: 1, vit: 1, agi: 1 }; a.effects = []; a._endureUsed = 0; a._grantEndure = false; a._fgUsed = 0; a._sgUsed = 0; a._ijiUsed = 0; a._kgUsed = 0; a._hpPre = a.hp; a._nailed = false; a._bloodTgt = null; a._bloodStack = 0; a._kyouhon = 0; a._giDone = false; a._againRound = 0; }
     for (const p of party) {
       p._coverLeft = pv(p, "cover");
@@ -2050,7 +2050,7 @@ export class Battle {
       T.ft++;
       if (this.noFlee) {
         T.fs++;
-        this.log("迷宮の異変が退路を閉ざしている！ 逃げられない！", "dmg");
+        this.log("退路が閉ざされている！ 逃げられない！", "dmg");
         res.fledFail = true;
         return res;
       }
@@ -2973,7 +2973,7 @@ export class Battle {
       T.ft++;
       if (this.noFlee) {
         T.fs++;
-        this.log("迷宮の異変が退路を閉ざしている！ 逃げられない！", "dmg");
+        this.log("退路が閉ざされている！ 逃げられない！", "dmg");
         res.fledFail = true;
       } else {
         T.fo++;
@@ -3274,7 +3274,7 @@ export class Battle {
       res.spellKind = "escape";
       const T = this._tally();
       T.ft++;
-      if (this.noFlee) { T.fs++; this.log("迷宮の異変が退路を閉ざしている！ 逃げられない！", "dmg"); res.fledFail = true; }
+      if (this.noFlee) { T.fs++; this.log("退路が閉ざされている！ 逃げられない！", "dmg"); res.fledFail = true; }
       else { T.fo++; this.result = "flee"; this.log("煙に紛れて、戦いから逃れた！", "sys"); res.fled = true; }
       return;
     }

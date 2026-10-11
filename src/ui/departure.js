@@ -1,11 +1,12 @@
-// ===== 出撃シート — 門の選択・隊の備え (その場で直す)・迷宮の異変・初回の注意・奈落の支度 =====
+// ===== 出撃シート — 門の選択・隊の備え (その場で直す)・異変・初回の注意・奈落の支度 =====
 // 担当: WP-D。game.js は import しない (ctx.js の UI / game / ops を通す)。
 // 提供する契約: UI.openDeparture({ page }) … 中央の門 (どのタブからでも)。page:"abyss" で奈落の支度、page:"rematch" で宿敵の再戦を開く
 //
 //   ┌ ━━ 出 撃 ━━ ─────────────────────────┐
 //   │ ┌ 迷宮の顔 (由来の原画・無ければ情景) ┐ │ 上半分 = 選んでいる迷宮: 情景・名・説明
 //   │ │ 朽ちた骸の修道院            目標  │ │ 推奨Lv・全階数・発見した魔物 n/m・受注中の依頼 n件・固有クエスト n/m (押すと詳細のポップアップ)
-//   │ └───────────────────────┘ │ 迷宮の掟・格上の注意
+//   │ └───────────────────────┘ │
+//   │ [迷宮の掟「名」›] [異変「名」› ○]       │ 1列に並べ、押すと全文のポップアップ。イラストからこの列までは固定
 //   │ (●) 忘れられた地下墓地 推奨Lv1・全5階 踏破 │ 門は 5 行ぶん見せ、6 つ目からは一覧を縦に巻く
 //   │ ▒▒ まだ地図にない迷宮 ― 解放の手がかり  │ 台帳 (world.js) の unlock を満たすと現れる
 //   │ 潜り始める階 [B1F|B6F]                  │ 到達した帰還魔法陣の次の階から潜れる
@@ -13,7 +14,7 @@
 //   │ ⚠ フィモンが深手     [宿で休む ●48]      │ 直し方はその場に (別の札は出さない)
 //   ├──────────────────────────────────────┤
 //   │ [ ◆ 門をくぐる ― B1F ◆ ]                │ 階選択・隊の備えと共に下部へ固定
-//   │ 迷宮の掟・異変・備えの注意は本文で巻く   │ 説明が増えても操作欄を隠さない
+//   │ 備えの注意は本文で巻く                   │ 説明が増えても操作欄を隠さない
 //   └──────────────────────────────────────┘
 
 import { UI, game, ops, registerUI } from "./ctx.js";
@@ -50,6 +51,33 @@ function dangerOf(dn) {
   // 隊のLvが推奨Lv (いちばん深い階) + 2 を超えると、迷宮で得る ✦Soul が減る (game.js soulLvMul)
   if (pl - band[1] > 2) return { cls: "easy", text: pl - band[1] >= 8 ? "易しい" : "格下", note: `推奨Lv〜${band[1]} ・ 隊のLv${pl}。隊のLvが推奨Lvを3以上上回ると、得る✦Soulが減る (1Lvごとに10%、最大80%)。` };
   return null;
+}
+
+// ---- 迷宮の掟の札 (名だけ。押すと全文) ----
+function ruleHead(btn, kind, short, name) {
+  const k = el("span", "dp-rule-k");
+  k.appendChild(el("span", "dp-rule-kf", kind));
+  k.appendChild(el("span", "dp-rule-ks", short)); // 狭い画面で出す短い名
+  btn.appendChild(k);
+  btn.appendChild(el("span", "dp-rule-n", name));
+  btn.appendChild(el("span", "dp-rule-c", "›"));
+}
+function traitChip(tr) {
+  const btn = el("button", "dp-rule dp-trait");
+  btn.type = "button";
+  if (tr.accent) btn.style.setProperty("--mut", tr.accent);
+  ruleHead(btn, "迷宮の掟", "掟", `${tr.sym ? tr.sym + " " : ""}「${tr.name}」`);
+  btn.setAttribute("aria-label", `迷宮の掟「${tr.name}」 ― 詳しく見る`);
+  btn.addEventListener("click", () => {
+    sfx("select");
+    sheet.open({
+      kind: "info", banner: "迷宮の掟", accent: tr.accent || null,
+      title: `${tr.sym ? tr.sym + " " : ""}「${tr.name}」`, titleColor: tr.accent || null,
+      body: (b) => { for (const ln of tr.lines || []) b.appendChild(setText(el("div", "ui-sheet-line dp-rule-l"), ln)); },
+      footer: [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }],
+    });
+  });
+  return btn;
 }
 
 // ---- 門の一覧 (迷宮の地図: 推奨Lvの高い順。地図にない迷宮は、解放の手がかりだけを見せる) ----
@@ -141,83 +169,11 @@ function fact(label, value, cls, onTap = null, short = null) {
   }
   return f;
 }
-// 固定した掟・異変の説明は、どの画面でも見出しと同じ1行に畳み、押すと全文を開く (ui-dungeon.css の .dp-fold。
-// ユーザーの指示、2026-10: 迷宮の一覧の見える行を増やす)。開いた向きはシートを閉じるまで保つ (迷宮を選び直しても同じ)
-function foldable(row, key) {
-  row.classList.add("dp-fold");
-  if (cur.open && cur.open[key]) row.classList.add("open");
-  row.appendChild(el("span", "dp-fold-c", "▾"));
-  // 畳んでも何も隠れない (1行に収まる) 時は ▾ を出さない
-  const check = () => {
-    if (!row.isConnected || row.classList.contains("open")) return;
-    const b = row.querySelector(".dp-fold-b");
-    if (!b || b.offsetParent === null) return; // 縮めた顔では説明を隠しているので測らない
-    row.classList.toggle("nofold", b.scrollWidth <= b.clientWidth + 1);
-  };
-  if (typeof requestAnimationFrame === "function") requestAnimationFrame(() => requestAnimationFrame(check));
-  row.addEventListener("click", () => {
-    if (row.classList.contains("nofold")) return;
-    cur.open = cur.open || {};
-    cur.open[key] = !cur.open[key];
-    row.classList.toggle("open", !!cur.open[key]);
-  });
-}
-// 一覧を下へ巻くと、迷宮の顔を「名前の帯 + 掟・異変の名札」まで縮める (B 案、ユーザーの指示、2026-10)。
-// 一番上まで巻き戻すか、帯を押すと元の大きさに戻る。縮めると巻ける量が足りない (一覧が短い) 時は縮めない
-const MINI_AT = 24;
-function setMini(on) {
-  if (!cur || !!cur.mini === !!on) return;
-  cur.mini = !!on;
-  cur.miniLock = Date.now() + 250;
-  if (!on) refresh(); else {
-    const hero = cur.h && cur.h.body && cur.h.body.querySelector(".dp-hero");
-    if (hero) hero.classList.add("dp-mini");
-  }
-}
-function wireMini(h) {
-  const b = h && h.body;
-  if (!b || b._dpMini) return;
-  b._dpMini = true;
-  let last = 0;
-  b.addEventListener("scroll", () => {
-    if (!cur || cur.h !== h || cur.page !== "gates") return;
-    const t = b.scrollTop, up = t < last;
-    last = t;
-    if (cur.miniLock && Date.now() < cur.miniLock) return;
-    const hero = b.querySelector(".dp-hero");
-    if (!hero) return;
-    if (!cur.mini && t > MINI_AT) {
-      hero.classList.add("dp-mini");
-      if (b.scrollHeight - b.clientHeight < t) { hero.classList.remove("dp-mini"); return; }
-      setMini(true);
-      last = b.scrollTop;
-    } else if (cur.mini && up && t <= 0) {
-      setMini(false);
-    }
-  }, { passive: true });
-  // 一番上でさらに上へ巻こうとした時も戻す (巻き位置が既に 0 だと scroll が起きないため)
-  const atTopPull = () => cur && cur.h === h && cur.mini && b.scrollTop <= 0 && !(cur.miniLock && Date.now() < cur.miniLock);
-  b.addEventListener("wheel", (e) => { if (e.deltaY < 0 && atTopPull()) setMini(false); }, { passive: true });
-  let y0 = null;
-  b.addEventListener("touchstart", (e) => { y0 = e.touches && e.touches[0] ? e.touches[0].clientY : null; }, { passive: true });
-  b.addEventListener("touchmove", (e) => {
-    if (y0 == null || !e.touches || !e.touches[0]) return;
-    if (e.touches[0].clientY - y0 > 30 && atTopPull()) { y0 = null; setMini(false); }
-  }, { passive: true });
-}
 function renderHero(b) {
   const g = G();
   const dn = (game.DUNGEONS || [])[g.dungeonIdx];
   if (!dn) return;
-  const hero = el("div", "dp-hero" + (cur.mini ? " dp-mini" : ""));
-  // 縮めた顔は押すと元に戻る (異変の切り替えはそのまま押せる)
-  hero.addEventListener("click", (e) => {
-    if (!cur || !cur.mini || (e.target.closest && e.target.closest(".dp-mut-sw"))) return;
-    e.preventDefault(); e.stopPropagation();
-    sfx("select");
-    if (cur.h && cur.h.body) cur.h.body.scrollTop = 0;
-    setMini(false);
-  }, true);
+  const hero = el("div", "dp-hero");
   const pic = el("div", "dp-vista");
   pic.appendChild(vistaCanvas(dn));
   const cap = el("div", "dp-vista-cap");
@@ -258,31 +214,17 @@ function renderHero(b) {
   cap.appendChild(facts);
   pic.appendChild(cap);
   hero.appendChild(pic);
-  // 迷宮の掟 (その迷宮だけの決まりごと。world.js の trait)
-  // イラストから掟までは本文を巻いても動かない (.dp-hero は sticky — ユーザーの指示、2026-10)。
-  // 足元 (落ちる床・蝕む床) と格上・格下の注意の枠は出さない (同じ指示。危険・無謀は門の一覧の札に残る)
-  // 土地の掟 (同じ土地の迷宮に共通 — world.js REALM_RULES) は迷宮の掟の上に置く
-  const ruleBox = (tr, kind, short, key) => {
-    const box = el("div", "dp-mut dp-trait");
-    if (tr.accent) box.style.setProperty("--mut", tr.accent);
-    const h = el("div", "dp-mut-h");
-    h.appendChild(el("span", "dp-mut-k", kind));
-    h.appendChild(el("span", "dp-mut-ks", short)); // 縮めた顔で出す短い名
-    h.appendChild(el("span", "dp-mut-n", `${tr.sym ? tr.sym + " " : ""}「${tr.name}」`));
-    box.appendChild(h);
-    const body = el("div", "dp-fold-b");
-    for (const ln of tr.lines || []) body.appendChild(setText(el("div", "dp-mut-l"), ln));
-    box.appendChild(body);
-    foldable(box, key);
-    hero.appendChild(box);
-  };
-  const rl = game.dungeonRealm ? game.dungeonRealm(dn) : null;
-  if (rl) ruleBox(rl, "土地の掟", "土地", "realm");
+  // 迷宮の掟 (1つの迷宮に1つだけ — world.js の trait) と異変を1列に並べる。札には名だけを出し、押すと詳細のポップアップ
+  // (ユーザーの指示、2026-10-11)。イラストからこの列までは本文を巻いても動かない (.dp-hero は sticky)。
+  // 足元 (落ちる床・蝕む床) と格上・格下の注意の枠は出さない (危険・無謀は門の一覧の札に残る)
   const tr = game.dungeonTrait ? game.dungeonTrait(dn) : null;
-  if (tr) ruleBox(tr, "迷宮の掟", "掟", "trait");
-  // 迷宮の異変も掟の下に固定する (ユーザーの指示、2026-10)。名のある強敵の札はここに置かない
-  const mut = mutatorStrip();
-  if (mut) hero.appendChild(mut);
+  const mut = mutatorChip();
+  if (tr || mut) {
+    const row = el("div", "dp-rules" + (tr && mut ? " two" : ""));
+    if (tr) row.appendChild(traitChip(tr));
+    if (mut) row.appendChild(mut);
+    hero.appendChild(row);
+  }
   b.appendChild(hero);
   // ここから下は本文と一緒に巻く
   // 第二部の壁 (world.js wallOf): 推奨Lv に届くだけでは勝てないことを、門をくぐる前に知らせる
@@ -394,7 +336,7 @@ function renderGates(b) {
     info.appendChild(el("span", "dp-gate-c", rec.bestDepth ? `最深 B${rec.bestDepth}F ・ 最高 ${rec.bestScore.toLocaleString()}点` : "どこまでも潜れる。深さに果てはない。"));
     r.appendChild(info);
     r.appendChild(el("span", "dp-gate-st", "支度 ›"));
-    r.addEventListener("click", () => { sfx("select"); cur.page = "abyss"; cur.mini = false; refresh(); });
+    r.addEventListener("click", () => { sfx("select"); cur.page = "abyss"; refresh(); });
     list.appendChild(r);
   }
   // 宿敵の再戦 (第九章の結びで開く): 倒した名のある強敵・迷宮の主の記憶に、闘技場跡で挑み直す
@@ -408,7 +350,7 @@ function renderGates(b) {
     info.appendChild(el("span", "dp-gate-c", rv.length ? `挑める相手 ${rv.length} ・ 倒した強敵と主の記憶に、強くなった姿で挑む` : "名のある強敵か迷宮の主を倒すと、その記憶に挑める"));
     r.appendChild(info);
     r.appendChild(el("span", "dp-gate-st", "支度 ›"));
-    r.addEventListener("click", () => { sfx("select"); cur.page = "rematch"; cur.mini = false; refresh(); });
+    r.addEventListener("click", () => { sfx("select"); cur.page = "rematch"; refresh(); });
     list.appendChild(r);
   }
   // 一覧は本文 (シートの縦スクロール) と一緒に巻く。選び直しの巻き位置は refresh が本文ごと保つ
@@ -531,36 +473,46 @@ function renderStability(b, explain = true) {
   for (const d of G().party.filter((p) => p.alive && game.vesselStable && game.vesselStable(p))) b.appendChild(el("div", "dp-stability-row", `${d.name} 師の器 ・ 消費しない`));
 }
 
-// ---- 迷宮の異変 (§7 M1) — 本文で説明と切り替えを表示 ----
-function mutatorStrip() {
+// ---- 異変 (§7 M1) — 掟の隣の札: 名と切り替え。押すと危険・見返りの全文と切り替えのポップアップ ----
+function mutatorChip() {
   const g = G();
   const m = game.townMutatorFor ? game.townMutatorFor(g.dungeonIdx) : null;
   cur.hasMut = !!m;
   if (!m) return null;
-  const box = el("div", "dp-mut dp-mut-foot" + (cur.accept ? " on" : ""));
+  const box = el("div", "dp-rule dp-mutr" + (cur.accept ? " on" : ""));
   if (m.accent) box.style.setProperty("--mut", m.accent);
-  const tx = el("div", "dp-mut-tx");
-  const h = el("div", "dp-mut-h");
-  h.appendChild(el("span", "dp-mut-k", "迷宮の異変"));
-  h.appendChild(el("span", "dp-mut-ks", "異変"));
-  h.appendChild(el("span", "dp-mut-n", `「${m.name}」`));
-  tx.appendChild(h);
-  const body = el("div", "dp-fold-b");
-  body.appendChild(setText(el("div", "dp-mut-l bad"), `危険 ― ${m.risk}`));
-  body.appendChild(setText(el("div", "dp-mut-l good"), `見返り ― ${m.gain}`));
-  tx.appendChild(body);
-  box.appendChild(tx);
-  foldable(tx, "mut");
+  const btn = el("button", "dp-rule-b");
+  btn.type = "button";
+  ruleHead(btn, "異変", "異変", `「${m.name}」`);
+  btn.setAttribute("aria-label", `異変「${m.name}」 ― 詳しく見る`);
+  btn.addEventListener("click", () => { sfx("select"); openMutSheet(m); });
+  box.appendChild(btn);
   // 既定は「異変ごと潜る」。選んだ向きは迷宮を切り替えてもシートを閉じるまで保つ
   const sw = el("button", "dp-mut-sw");
   sw.type = "button";
   sw.setAttribute("role", "switch");
   sw.setAttribute("aria-checked", cur.accept ? "true" : "false");
+  sw.setAttribute("aria-label", cur.accept ? "異変ごと潜る" : "鎮まるのを待つ");
   sw.appendChild(el("span", "dp-mut-sw-l", cur.accept ? "異変ごと潜る" : "鎮まるのを待つ"));
   const knob = el("span", "dg-switch"); knob.appendChild(el("i")); sw.appendChild(knob);
   sw.addEventListener("click", () => { cur.accept = !cur.accept; sfx("select"); refresh(); });
   box.appendChild(sw);
   return box;
+}
+function openMutSheet(m) {
+  const pick = (h, on) => { h.close(); if (cur && cur.accept !== on) { cur.accept = on; sfx("select"); refresh(); } };
+  sheet.open({
+    kind: "info", banner: "異変", accent: m.accent || null,
+    title: `${m.sym ? m.sym + " " : ""}「${m.name}」`, titleColor: m.accent || null,
+    body: (b) => {
+      b.appendChild(setText(el("div", "ui-sheet-line dp-rule-l bad"), `危険 ― ${m.risk}`));
+      b.appendChild(setText(el("div", "ui-sheet-line dp-rule-l good"), `見返り ― ${m.gain}`));
+    },
+    footer: [
+      { label: "異変ごと潜る", kind: cur && cur.accept ? "primary" : "ghost", sub: cur && cur.accept ? "いまの選択" : "", onTap: (h) => pick(h, true) },
+      { label: "鎮まるのを待つ", kind: cur && !cur.accept ? "primary" : "ghost", sub: cur && !cur.accept ? "いまの選択" : "", onTap: (h) => pick(h, false) },
+    ],
+  });
 }
 
 // ---- 初めての注意 (出撃画面と分け、全文を読めるポップアップで表示) ----
@@ -802,14 +754,13 @@ function departGo() {
 function body(b) {
   if (cur.page === "abyss") { renderAbyssPage(b); renderStability(b); return; }
   if (cur.page === "rematch") { renderRematchPage(b); renderStability(b); return; }
-  renderGates(b); // 迷宮の異変は門の一覧の上 (迷宮の顔の中) に出す
+  renderGates(b); // 異変は迷宮の掟の隣 (迷宮の顔の中) に出す
   renderStability(b);
   renderReadyIssues(b);
 }
 function refresh() {
   if (!cur || !cur.h || cur.h.closed) return;
   const scroll = cur.h.body ? cur.h.body.scrollTop : 0;
-  cur.miniLock = Math.max(cur.miniLock || 0, Date.now() + 150); // 作り直しの間の巻き位置のゆれで伸び縮みしない
   cur.h.update({ banner: pageBanner(cur.page), body });
   if (cur.h.el) cur.h.el.classList.toggle("dp-full", cur.page === "gates");
   refreshFooter();
@@ -829,7 +780,7 @@ export function openDeparture(opts = {}) {
   // 踏破の報告が済むまで門は開かない (王宮へ案内するシートを出す)
   if (game.blockForReport && game.blockForReport()) return null;
   if (game.blockForTutorial && game.blockForTutorial()) return null;
-  if (cur && cur.h && !cur.h.closed) { if (opts.page) { cur.page = opts.page; cur.mini = false; refresh(); } return cur.h; }
+  if (cur && cur.h && !cur.h.closed) { if (opts.page) { cur.page = opts.page; refresh(); } return cur.h; }
   const page = opts.page === "abyss" && game.featureUnlocked && game.featureUnlocked("infinite") ? "abyss"
     : opts.page === "rematch" && game.featureUnlocked && game.featureUnlocked("rematch") ? "rematch" : "gates";
   if (page === "abyss") { abyssMods = []; abyssWeekly = false; }
@@ -849,11 +800,10 @@ export function openDeparture(opts = {}) {
     footer: [],
     onClose: () => { if(cur?.timer)clearInterval(cur.timer);cur = null; vistaLoop++; },
     // 戻る: 奈落のページなら門の選択へ、門の選択なら閉じる
-    onBack: (h) => { if (cur && cur.page !== "gates" && !opts.page) { cur.page = "gates"; cur.mini = false; refresh(); } else h.close("back"); },
+    onBack: (h) => { if (cur && cur.page !== "gates" && !opts.page) { cur.page = "gates"; refresh(); } else h.close("back"); },
   });
   if (cur.h.el) cur.h.el.classList.toggle("dp-full", page === "gates");
   refreshFooter();
-  wireMini(cur.h);
   const live=cur;
   live.timer=setInterval(()=>{if(cur!==live||live.h.closed){clearInterval(live.timer);return;}if(sheet.top()===live.h)refresh();},5000);
   return cur.h;
