@@ -1839,7 +1839,8 @@ const h01 = (a, b = 0) => { let h = Math.imul(a | 0, 374761393) ^ Math.imul(b | 
 const appEl = document.getElementById("app");
 const screenEl = document.getElementById("screen");
 const topbarEl = document.getElementById("topbar");
-const LOG_MIN_BOARD = 84, LOG_MIN_COMBAT = 46, MENU_RESERVE = 166;
+// 戦闘の記録欄は最低でも4行ほど読めるように (46 = 1〜2行では、何が起きたか読めなかった — 2026-10 ユーザーの指示)
+const LOG_MIN_BOARD = 84, LOG_MIN_COMBAT = 94, MENU_RESERVE = 166;
 const TURN_ORDER_H = 31; // 戦闘の行動順の帯 (#turn-order) の高さ + 下の余白。記録欄を削らず戦場の側で詰める
 let _fitKey = "";
 function outerH(e) {
@@ -1863,7 +1864,8 @@ function fitView(force = false) {
     + (csH ? (parseFloat(csH.paddingTop) || 0) + (parseFloat(csH.paddingBottom) || 0) : 0);
   if (combat) used += MENU_RESERVE + LOG_MIN_COMBAT + TURN_ORDER_H;
   else used += outerH(runbarEl) + outerH(ctrlEl) + LOG_MIN_BOARD;
-  const h = Math.max(cssW * 0.56, Math.min(cssW * (combat ? 0.98 : 1.32), appH - used));
+  // 戦場は小さい画面では横幅の0.5倍 (論理の高さ 240) まで詰めて、記録欄に場所を残す
+  const h = Math.max(cssW * (combat ? 0.5 : 0.56), Math.min(cssW * (combat ? 0.98 : 1.32), appH - used));
   const vh = Math.max(240, Math.round((VW * h) / cssW));
   const cssH = (vh * cssW) / VW;
   const dpr = Math.max(1, window.devicePixelRatio || 1);
@@ -11123,10 +11125,12 @@ function partyPortrait(p) {
 const BUFF_STAT_ICON = BUFF_KANJI; // 絵文字は使わず、敵のピルと同じ漢字の印
 const BUFF_STAT_LABEL = { atk: "STR", vit: "VIT", agi: "AGI", pie: "PIE", ...BUFF_NAME };
 function buffBadges(p) {
-  if (G.state !== "combat" || !p.alive) return "";
+  if (G.state !== "combat") return "";
+  // 戦闘中は札が無くても空の行を置く (戦場の高さは戦闘の始めに決まるので、強化・弱体が付いて札が伸びると記録欄が潰れる)
+  if (!p.alive) return `<div class="buffs"></div>`;
   const blood = chishioState(p);
   const effs = shownEffects(p);
-  if (!blood && (!effs || !effs.length)) return "";
+  if (!blood && (!effs || !effs.length)) return `<div class="buffs"></div>`;
   // (能力, 方向) ごとに集約: 段数 (STR〜PIE は −3〜+3 の段) と最短残ターンを出す
   let html = "";
   // たぎる血潮 (修羅): いまの段を「血▲▲3」で。数字は段数 (残りターンではない)
