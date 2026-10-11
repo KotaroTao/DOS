@@ -132,9 +132,27 @@ export function openInfRest(spec = {}) {
 }
 
 // ---- 回収人 ----
+// 売り買いの行: 行を押すと品の詳細 (onPeek)、右の金額の隣のボタンで売り買い (onAct)
+function tradeRow(o) {
+  const right = el("span", "inf-sell-r");
+  right.appendChild(el("span", "inf-sell-p", `💰${o.price}`));
+  right.appendChild(button({ label: o.label, kind: "primary", size: "sm", disabled: !!o.disabled,
+    onTap: (e) => { if (e) e.stopPropagation(); o.onAct(); } }));
+  const r = row({ icon: o.icon, title: o.title, sub: o.sub, right });
+  r.classList.add("tap", "inf-sell-row");
+  r.setAttribute("role", "button");
+  r.tabIndex = 0;
+  const peek = () => { sfx("select"); o.onPeek(); };
+  r.addEventListener("click", (e) => { if (e.target.closest(".ui-btn")) return; peek(); });
+  r.addEventListener("keydown", (e) => { if ((e.key === "Enter" || e.key === " ") && e.target === r) { e.preventDefault(); peek(); } });
+  return r;
+}
 function openTrader(onChange) {
   const g = G();
   let seg = "buy", h = null;
+  const refresh = () => { if (h && !h.closed) h.update({ body: fill }); if (onChange) onChange(); };
+  // 隊の持ち物にその品がいくつあるか (装備中は数えない)
+  const held = (id) => (g.party || []).reduce((n, d) => n + (d.items || []).filter((x) => x && x.id === id).length, 0);
   const fill = (b) => {
     b.appendChild(el("div", "inf-cur", `所持 💰${g.gold || 0}`));
     const segs = el("div", "ui-seg");
@@ -151,8 +169,16 @@ function openTrader(onChange) {
         const it = ITEMS[id];
         if (!it) continue;
         const price = game.buyPrice ? game.buyPrice(it) : 30;
-        b.appendChild(row({ icon: itemTile(it, { size: 44 }), title: it.name, sub: useLines(it).join(" ・ ") || it.desc || "", right: `💰${price}`,
-          onTap: () => { if (game.infBuy && game.infBuy(id)) { h.update({ body: fill }); if (onChange) onChange(); } } }));
+        const buy = () => { if (game.infBuy && game.infBuy(id)) { refresh(); return true; } return false; };
+        const sub = el("span", "ui-row-sub");
+        sub.appendChild(el("span", "inf-held" + (held(id) ? "" : " none"), `手持ち ${held(id)}個`));
+        const eff = useLines(it).join(" ・ ") || it.desc || "";
+        if (eff) sub.appendChild(document.createTextNode(` ・ ${eff}`));
+        // 行を押すと品の詳細、右の「買う」で買う (2026-10-11 ユーザーの指示)
+        b.appendChild(tradeRow({ icon: itemTile(it, { size: 44 }), title: it.name, sub, price, label: "買う", onAct: buy,
+          onPeek: () => { if (UI.codexItemSheet) UI.codexItemSheet(id, { footer: [
+            { label: `買う 💰${price}`, kind: "primary", onTap: () => { buy(); } },
+            { label: "閉じる", kind: "ghost", onTap: (x) => x.close() }] }); } }));
       }
     } else if (seg === "sell") {
       b.appendChild(el("div", "inf-note dim", "売った品は商会の棚に並ぶ (本編の商会で売ったのと同じ)。装備している品は、外してから売れる。"));
@@ -162,18 +188,10 @@ function openTrader(onChange) {
         any = true;
         const price = game.sellPrice ? game.sellPrice(it) : 1;
         // 行を押すと品の詳細、右の「売る」で売る (2026-10-11 ユーザーの指示: 押しただけで売れていた)
-        const right = el("span", "inf-sell-r");
-        right.appendChild(el("span", "inf-sell-p", `💰${price}`));
-        right.appendChild(button({ label: "売る", kind: "primary", size: "sm", disabled: !!it.locked,
-          onTap: (e) => { if (e) e.stopPropagation(); if (game.infSell && game.infSell(d, it)) { h.update({ body: fill }); if (onChange) onChange(); } } }));
-        const r = row({ icon: itemTile(it, { size: 44 }), title: itemName(it), sub: `${d.name}の持ち物${it.locked ? " ・ ロック中" : ""}`, right });
-        r.classList.add("tap", "inf-sell-row");
-        r.setAttribute("role", "button");
-        r.tabIndex = 0;
-        const peek = () => { sfx("select"); if (UI.itemSheet) UI.itemSheet(it, { owner: d, context: "dungeon", onClose: () => { if (h && !h.closed) h.update({ body: fill }); if (onChange) onChange(); } }); };
-        r.addEventListener("click", (e) => { if (e.target.closest(".ui-btn")) return; peek(); });
-        r.addEventListener("keydown", (e) => { if ((e.key === "Enter" || e.key === " ") && e.target === r) { e.preventDefault(); peek(); } });
-        b.appendChild(r);
+        b.appendChild(tradeRow({ icon: itemTile(it, { size: 44 }), title: itemName(it), sub: `${d.name}の持ち物${it.locked ? " ・ ロック中" : ""}`,
+          price, label: "売る", disabled: !!it.locked,
+          onAct: () => { if (game.infSell && game.infSell(d, it)) refresh(); },
+          onPeek: () => { if (UI.itemSheet) UI.itemSheet(it, { owner: d, context: "dungeon", onClose: refresh }); } }));
       }
       if (!any) b.appendChild(el("div", "inf-note", "持ち物に売れる品が無い。"));
     } else {
