@@ -171,7 +171,7 @@ function floorFacts() {
     facts.push({ tone: "bad", icon: ek || ICONS.trap, unk: !!ek && !ekKnown, title: "強敵の気配", lines: ["この階には通常では遭遇しない強大な存在が潜む。", ek ? `強敵「${ekName}」― 討てば希少な戦利品と魂を残しやすい。` : "討てば希少な戦利品を得られる。"] });
   }
   if (sp) facts.push({ tone: "gold", icon: ICONS[sp.icon] || ICONS.stairs, title: `特別な階「${sp.name}」`, accent: sp.accent, lines: sp.lines });
-  if (mu) facts.push({ tone: "gold", icon: ICONS.stairs, title: `迷宮の異変「${mu.name}」`, accent: mu.accent, lines: [`危険 ― ${mu.risk}`, `見返り ― ${mu.gain}`] });
+  if (mu) facts.push({ tone: "gold", icon: ICONS.stairs, title: `異変「${mu.name}」`, accent: mu.accent, lines: [`危険 ― ${mu.risk}`, `見返り ― ${mu.gain}`] });
   if (g.abyss && game.ABYSS_MUT_MAP) {
     for (const id of (g.abyss.mutations || [])) {
       const m = game.ABYSS_MUT_MAP[id];
