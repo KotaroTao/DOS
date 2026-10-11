@@ -1112,7 +1112,7 @@ export function openFusePicker(targetUid, onDone) {
   const sameJob = () => (G_().souls || []).filter((s) => s.uid !== t.uid && s.clsKey === t.clsKey);
   const lockedNow = () => sameJob().filter((s) => s.locked && !wearerOf(s.uid, null)).sort(game.soulSortCmp || (() => 0));
   const wornNow = () => sameJob().filter((s) => wearerOf(s.uid, null));
-  // サブ魂として宿している魂 (ロックなし・遠征中でない) は、外して素材にできる
+  // サブ魂として宿している魂 (ロックなし) は、外して素材にできる
   const takeNow = () => (game.fuseSubWorn ? game.fuseSubWorn(targetUid) : []);
   if (!candsNow().length && !lockedNow().length && !takeNow().length) { sfx("ng"); toast(wornNow().length ? "同じ職の魂は、どれも人業が宿している" : "魂融合できる同じ職の魂がない", { tone: "info" }); return null; }
   const cl = SOUL_CLASSES[t.clsKey] || SOUL_CLASSES.fighter;
@@ -1144,7 +1144,7 @@ export function openFusePicker(targetUid, onDone) {
         for (const c of worn) {
           const who = wearerOf(c.uid, null);
           if (takeable.has(c.uid)) { list.appendChild(takeRow(c, who)); continue; }
-          const why = who && who.primary === c.uid ? "メイン魂" : c.locked ? "ロック中" : "遠征中";
+          const why = who && who.primary === c.uid ? "メイン魂" : c.locked ? "ロック中" : "宿している";
           const r = row({ icon: orb(c.clsKey, soulRankOf(c), 32), title: `${soulLabel(c)} Lv${c.level}`, sub: `${who ? who.name : "人業"} の${why === "メイン魂" ? "メイン魂" : `サブ魂 (${why})`} ・ ランク${soulRankOf(c)}` });
           r.classList.add("sp-fz-off");
           list.appendChild(r);
