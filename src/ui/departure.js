@@ -227,6 +227,11 @@ function renderHero(b) {
   }
   b.appendChild(hero);
   // ここから下は本文と一緒に巻く
+  // 掟「器の山」: 隊のLv が推奨Lv を超えるほど、掟で増える死体が減る (game.js corpseFadeShare)
+  { const share = game.corpseFadeShare ? game.corpseFadeShare(dn) : 1;
+    if (share < 1) b.appendChild(setText(el("div", "pt-note dp-after"), share <= 0
+      ? "隊のLvが推奨Lvを大きく上回っている。器に残る魂は姿を見せず、掟で増える死体はもう出ない。"
+      : `隊のLvが推奨Lvを上回っているので、掟で増える死体はいま約${Math.round(share * 100)}%しか出ない。`)); }
   // 第二部の壁 (world.js wallOf): 推奨Lv に届くだけでは勝てないことを、門をくぐる前に知らせる
   if (wall > 1) {
     const step = game.wallStepOf ? game.wallStepOf(dn) : 1;

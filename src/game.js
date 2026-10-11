@@ -650,6 +650,19 @@ function soulLvMul(lv, foeLv = foeLevelHere()) {
   const over = (lv || 1) - foeLv - SOUL_LV_GRACE;
   return over <= 0 ? 1 : Math.max(SOUL_LV_MIN, 1 - SOUL_LV_STEP * over);
 }
+// 掟の corpseFade (閉ざされた獄 w07・器の山 w27・疫病の塚 ws13。2026-10-11 ユーザーの指示: 魂と残火が集まりすぎる — 弱い敵の迷宮を楽に周回できた):
+// 盤面の加工 prison で増える死体は、隊のLv (メイン魂の平均) が推奨Lv + CORPSE_FADE_GRACE を超えた1Lvごとに CORPSE_FADE_STEP ずつ出にくくなる (推奨Lv+9 で出ない)。
+// cfg を渡すと出撃画面の見込み (その迷宮の1階の推奨Lv)、渡さなければいまの階。掟の無い迷宮は 1
+const CORPSE_FADE_GRACE = 2, CORPSE_FADE_STEP = 0.15;
+function corpseFadeShare(cfg = null) {
+  const tr = cfg ? cfg.trait : dungeonTrait();
+  if (!tr || !tr.corpseFade) return 1;
+  const ds = (G.party || []).filter((d) => d && d.primary != null);
+  if (!ds.length) return 1;
+  const lv = ds.reduce((a, d) => a + (d.jobLv || 1), 0) / ds.length;
+  const over = lv - (cfg ? cfg.lv : foeLevelHere()) - CORPSE_FADE_GRACE;
+  return over <= 0 ? 1 : Math.max(0, 1 - CORPSE_FADE_STEP * over);
+}
 function partySoulLvMul() {
   const ds = (G.party || []).filter((d) => d && d.primary != null);
   if (!ds.length) return 1;
@@ -1635,7 +1648,10 @@ const TRAIT_BOARD = {
     sfPlace(b, 1, (c) => { c.type = "chest"; c.cleared = false; });
   },
   // 閉ざされた獄: 獄死した囚人の骸を2つ (半分はまだ温かい)
-  prison: (b) => sfPlace(b, 2, (c) => { c.type = "corpse"; c.cleared = false; c.corpseClass = rollJobClass(); c.corpseWarm = random() < 0.5; }),
+  prison: (b) => {
+    const share = corpseFadeShare(); // 掟の corpseFade: 隊のLv が推奨Lv を超えるほど増える死体が減る
+    sfPlace(b, 2, (c) => { if (random() >= share) return; c.type = "corpse"; c.cleared = false; c.corpseClass = rollJobClass(); c.corpseWarm = random() < 0.5; });
+  },
   // 沈んだ供物: 参道に捧げられた供物の宝箱を2つ (掟の mimicRate で3割はミミック)
   offering: (b) => sfPlace(b, 2, (c) => { c.type = "chest"; c.cleared = false; }),
   // 洗礼の水: まだ澄んだ洗礼の水 (癒しの泉) を2つ
@@ -18057,7 +18073,7 @@ bindGame({
 // モジュールの評価時 (init より前) に結ぶ。init の wireUI が同じ game へ残りを足す
 bindGame({
   // 出撃
-  departNow, departAbyss, rematchList, departRematch, REMATCH_FORGE_MAX, townMutatorFor, preDiveIssues, departWoes, DUNGEON_BRIEFING, STORY_CELLS, startFloorsOf, worldOpenIdx, worldOpenId, worldUnlockMet, levelBand, wallOf, wallStepOf, partyLevel, storyCellPending, dungeonFacts, dungeonQuests, namedHere, namedList, namedInfo,
+  departNow, corpseFadeShare, departAbyss, rematchList, departRematch, REMATCH_FORGE_MAX, townMutatorFor, preDiveIssues, departWoes, DUNGEON_BRIEFING, STORY_CELLS, startFloorsOf, worldOpenIdx, worldOpenId, worldUnlockMet, levelBand, wallOf, wallStepOf, partyLevel, storyCellPending, dungeonFacts, dungeonQuests, namedHere, namedList, namedInfo,
   abyssRecords, infStats, infTitleList, infTitleName, setInfTitle, emptyDollCost, infRule, infAtRest, soulWorkOk, infTraderWares, infBuy, infSell, infSwapSoul, infSoulChangeBlock, infSoulChangePreview, infLevel, infGrowthMul,
   // 迷宮の HUD
   specialDef, mutDef, eliteKey, dungeonObjective, abyssActive, abyssBossPending, findRevealedStairs, canReturnNow, confirmAbandonDungeon,
