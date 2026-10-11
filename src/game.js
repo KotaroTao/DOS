@@ -6035,7 +6035,9 @@ function evNewFloor() {
   if (!cand.length) for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) { const c = G.board.cells[y][x]; if (ok(c, x, y) && Math.abs(x - sx) + Math.abs(y - sy) >= 3) cand.push(c); }
   if (!cand.length) return;
   const st = { dungeonId: cfg.id, layer, lv, first, floor: G.floor, floors: cfg.floors || 3, runEv: rv, onceDone: (e) => !!G.events.once[onceKey(e, layer)] };
-  const e = pickEvent(eligibleEvents(st, evApi));
+  // 義賊のパッシブ 義の巡り合わせ (brigandMeguri): 極めて稀なる出来事の出る確率 Lv1 = 2倍 / Lv2 = 3倍 (隊で一番高い Lv)
+  const meguri = partyPassiveLv("brigandMeguri");
+  const e = pickEvent(eligibleEvents(st, evApi), { mythicMul: meguri ? Math.min(2, meguri) + 1 : 1 });
   if (!e) return;
   const cell = cand[rand(cand.length)];
   cell.type = "event"; cell.evId = e.id; cell.cleared = false;

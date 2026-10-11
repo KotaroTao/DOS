@@ -35,7 +35,7 @@ const stats = d => ({hp:d.maxhp, mp:d.maxmp, atk:d.atk, vit:d.vit, agi:d.agi, in
 for (const {doll} of dolls) recalcDoll(doll);
 const before = dolls.map(({doll}) => stats(doll));
 const api = {
-  layer: 1, flags: () => flags, sfx: () => {}, seen: () => {},
+  layer: 1, flags: () => flags, sfx: () => {}, seen: () => {}, log: () => {},
   picked: e => { once[e.id] = true; },
   recalcPermanent: () => dolls.forEach(({doll}) => recalcDoll(doll)),
   icon: () => null, gift: (_name, _lines, _icon, _options, done) => done(),

@@ -2237,15 +2237,22 @@ export function eligibleEvents(st, A) {
 }
 // 2段階の抽選: まず格 (常/稀/秘/極) を EV_TIERS.share の割合で選び (その場に出せる格だけで按分)、
 // 次にその格の中から1つ選ぶ (その層の専用イベントは ×LAYER_W)。出来事の数が増えても格の出やすさは変わらない
-export function pickEvent(list) {
+// mythicMul = 極の出る確率の倍率 (義賊のパッシブ 義の巡り合わせ 2/3倍)。極の割合だけを掛け、ほかの段は残りを元の比で分ける
+export function pickEvent(list, { mythicMul = 1 } = {}) {
   if (!list.length) return null;
   const byTier = {};
   for (const e of list) (byTier[e.tier] = byTier[e.tier] || []).push(e);
   const tiers = Object.keys(byTier);
   let tt = 0;
   for (const k of tiers) tt += EV_TIERS[k].share;
+  const w = {};
+  for (const k of tiers) w[k] = EV_TIERS[k].share;
+  if (mythicMul !== 1 && w.mythic && tt > w.mythic) {
+    const pm = Math.min(1, (w.mythic / tt) * mythicMul), k0 = (1 - pm) / (1 - w.mythic / tt);
+    for (const k of tiers) w[k] = k === "mythic" ? pm * tt : w[k] * k0;
+  }
   let x = Math.random() * tt, tier = tiers[tiers.length - 1];
-  for (const k of tiers) { x -= EV_TIERS[k].share; if (x <= 0) { tier = k; break; } }
+  for (const k of tiers) { x -= w[k]; if (x <= 0) { tier = k; break; } }
   const pool = byTier[tier];
   let total = 0;
   const acc = pool.map((e) => { total += e.layer ? LAYER_W : 1; return [e, total]; });
