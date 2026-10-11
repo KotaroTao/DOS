@@ -461,6 +461,7 @@ const ASSETS = [
   "./src/battlefx-sig.js",
   "./src/crypt.js",
   "./src/rarity.js",
+  "./src/rng.js",
   "./src/autoequip.js",
   "./src/ui/ctx.js",
   "./src/ui/prefs.js",

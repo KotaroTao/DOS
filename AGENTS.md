@@ -26,6 +26,7 @@ for f in $(git ls-files 'src/*.js'); do node --check "$f"; done   # 構文チェ
 - GitHub Pages の公開サイトは **1GB まで**。デプロイは `docs/`・`tools/`・`art/story-review/`・ルートの `*.md` と確認用 PNG を外して公開し、800MB を超えるか `ASSETS` の品が欠けると止まる。原画・制作記録は `docs/` か `art/story-review/` に置き、ゲームが読むフォルダ (`art/story/`・`art/jobs/` など) には置かない。
 - **ID は足すだけ** (セーブ・図鑑が参照する): 魔物 (`bs_*` など)・品 (`w_`/`lr_`…)・技の鍵・出来事 (`c01`…)・依頼・勲章の段・イレーヌの台詞・迷宮 (`w01`…) の id を改名・再利用・削除しない。
 - セーブのキーは `dos-save-v7`。保存するのは game.js の `SAVE_FIELDS` だけ。共有参照は `refSerialize` が保つので、状態を複製し直さない。
+- **結果を決める乱数は `src/rng.js` の `random()` / `randInt(n)`** (種つき・位置は `G.rng` でセーブに入る)。`Math.random` は演出 (粒子・揺れ・台詞の選び方) だけに使い、描画の中で `random()` を引かない。詳細は `CLAUDE.md` の `### State & persistence`。
 - 依存の向き: `src/ui/*` と `src/events.js` は **game.js を import しない** (ui は `ctx.js` の `UI`/`game`/`ops`、出来事は `evApi` 経由)。`combat.js` は純粋なロジックで、演出・効果音は game.js 側。
 - 画面: ページ送り (‹ 1/2 ›) は作らない。入りきらない中身は内側の箱を縦にスクロールさせる。説明文の改行は `src/ui/phrase.js` が自動で行うので、手で `\n` を入れて折らない。
 - **迷宮の数は第4層から1層 = 本筋4 + 寄り道・依頼の迷宮2** (ユーザーの指示: 20層で百の迷宮以上。第1〜3層には寄り道を増やさず、その分は第10層以降へ)。新しい層を作る時は寄り道も同時に足し、ときどき「格上の迷宮」(`challenge`) と「極端な掟の迷宮」(魔封じ `physOnly`・必ず奇襲 `alwaysAmbush` など) を混ぜる。「技が一切使えない」「物理が効かない」「魔法が効かない」ほどの強い掟は格上の迷宮だけに付ける。掟は1つの迷宮に1つだけ (土地の掟は廃止し、灼熱・酷寒などの土地の気候はその土地の迷宮の掟それぞれに1行として入れる — `CLAUDE.md` の「掟は1つの迷宮に1つだけ」)。寄り道1つに要るもの (台帳・依頼・極・由来・景色・心得) は `CLAUDE.md` の迷宮の台帳の節「迷宮の数の目安」。
@@ -69,9 +70,9 @@ for f in $(git ls-files 'src/*.js'); do node --check "$f"; done   # 構文チェ
 | 装備・収集品の絵 | `### 装備の絵 (src/itemart/)`、`### Item catalog` の 収集品の絵 |
 | 魔物の追加・絵・特徴 | `### Dungeon registry`、`### Monster individuation`、`### 名のある強敵` |
 | 属性 | `### Element / affinity system` |
-| セーブ | `### State & persistence` |
+| セーブ・種つき乱数 | `### State & persistence` |
 | 画面・UI の部品 | `### UI 構造 (src/ui/)`、`### 画面テーマ — theme.css` |
 | 大きな分割・整理 | `## 整理の計画` → `docs/refactor-plan.md` (着手前にユーザーの了解を取る) |
-| 無限迷宮 (奈落の置き換え)・種つき乱数 | `## 無限迷宮の計画` → `docs/infinite-labyrinth.md` (土台は実装済み。仕組みは `### 🗺 迷宮の台帳` の「無限迷宮」の段) |
+| 無限迷宮 (奈落の置き換え) | `## 無限迷宮の計画` → `docs/infinite-labyrinth.md` (土台は実装済み。仕組みは `### 🗺 迷宮の台帳` の「無限迷宮」の段) |
 | 装備できるLv (装備可能レベル・実装済み) | `### UI 構造 (src/ui/)` の「装備できるLv」、`src/equiplevel.js` |
 | 第一部・第二部と第十一章からの壁 (敵の強さの段) | `## 第一部・第二部と壁` → `docs/difficulty-walls.md` |

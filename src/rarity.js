@@ -10,6 +10,7 @@
 // 出現率: 装備ドロップのたびにレア度を先に抽選し (rollRarity)、その格の品を
 // ランク窓から選ぶ。深い層ほど上位の格が出やすい。レジェンドレアも同じ抽選で出て、
 // 重みはいつもスーパーレアの1/3 (2026-10 ユーザーの指示: 時間の天井は廃止・同じ品を何度でも拾える)。
+import { random } from "./rng.js";
 
 export const RARITIES = {
   c: { key: "c", label: "コモン", short: "C", color: "#ece6d8", order: 0 },
@@ -58,7 +59,7 @@ export function rarityWeights(up = 0, noLR = false) {
     lr: noLR ? 0 : sr * LR_PER_SR,
   };
 }
-export function rollRarity(up = 0, rnd = Math.random, noLR = false) {
+export function rollRarity(up = 0, rnd = random, noLR = false) {
   const w = rarityWeights(up, noLR);
   const total = w.c + w.uc + w.r + w.sr + w.lr;
   let x = rnd() * total;
