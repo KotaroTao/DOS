@@ -184,9 +184,16 @@ function gateStatus(dn, i) {
   const isDone = !!(w.cleared && w.cleared[dn.id]);
   const dg = dangerOf(dn);
   if (dg && dg.cls !== "easy") return { text: dg.text, cls: dg.cls };
-  if (isDone) return { text: "★ 踏破", cls: "done" };
+  if (isDone) return fullyCleared(dn) ? { text: "★ 完全踏破", cls: "done perfect" } : { text: "★ 踏破", cls: "done" };
   if (i === questIdx()) return { text: "目標", cls: "quest" };
   return { text: "未踏破", cls: "" };
+}
+// 完全踏破 = 踏破した上で、その迷宮の魔物をすべて発見し、固有クエスト (極めて稀なる出来事を含む) をすべて果たした
+// (出撃シートの「発見した魔物」「固有クエスト」の札と同じ数え方。ユーザーの指示、2026-10)
+function fullyCleared(dn) {
+  let f = null;
+  try { f = game.dungeonFacts ? game.dungeonFacts(dn) : null; } catch (e) { f = null; }
+  return !!f && f.monSeen >= f.monTotal && f.fqDone >= f.fqTotal;
 }
 // onTap を渡すと押せる札になる (詳細のポップアップを開く。右に › の印)
 // short = 狭い画面で出す短い名 (札を1行に収める)
