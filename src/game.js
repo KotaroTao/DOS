@@ -78,7 +78,6 @@ import { walkerLook, normalizeLook, WALKER_LOOK_DEFAULT } from "./walkerart.js";
 import * as uiResults from "./ui/results.js";
 import * as uiAppraise from "./ui/appraise.js";
 import * as uiTutorial from "./ui/tutorial.js";
-import * as uiExpedition from "./ui/expedition.js";
 import * as uiReforge from "./ui/reforge.js";
 import * as uiInfinite from "./ui/infinite.js";
 import * as uiDiscard from "./ui/discard.js";
@@ -90,7 +89,6 @@ const REDUCED_MOTION = (() => { try { return matchMedia("(prefers-reduced-motion
 import { pickTrap, CHEST_RANKS, rollChestRank } from "./traps.js";
 import { refSoul, refGold, trainCost, lvPow, emberMul, partyAgi, LOCK_K, TRAP_K, lockPow } from "./levelcurve.js";
 import { STABILITY_MAX, STABILITY_ENTRY_COST, STABILITY_RECOVERY_MS, recoverStability, stabilityWaitMs, stabilityRecoveryMs } from "./stability.js";
-import { EXP_MAX, EXP_HOURS, EXP_HOUR_MS, EXP_MISC_PER_HOUR, EXP_SOUL_PER_HOUR, EXP_SOUL_EXP_RATE, expPlan, expActualMs, expYield, expRolls, expLeftMin, battlesPerHour as expBattlesPerHour } from "./expedition.js";
 import { tlStability, tlStabilityTick, tlRedGain, tlOn, tlMeasure, tlWatchBattle, tlRunBegin, tlRunEnd, tlSnapshot, tlBattleBegin, tlHits, tlBattleEnd, tlLoot, tlLost, tlGain, tlTownGain, tlPlayTick, tlSoul, tlInfFloor, tlInfSoul, tlInfEmbers, tlInfWipe } from "./telemetry.js";
 import { repriceEquipment } from "./pricing.js";
 import { spawnFx, drawBattleFx, weaponFxStyle, statusFxKind, skillProfile, ELEM_FX_COL, SIG_FX } from "./battlefx.js";
@@ -376,7 +374,6 @@ setInterval(() => {
   if (titleActive || openingActive || document.visibilityState !== "visible" || (Date.now() - _lastInputAt > 120000 && !activeAuto)) return;
   tlStabilityTick(G.party, 5000);
   G.stats.playMs = (G.stats.playMs || 0) + 5000; // 戦績: 総プレイ時間
-  expeditionTick(); // 遠征は実プレイ時間で進む
   if (tlOn()) tlPlayTick(inDungeon() ? tlWhere() : null, 5000); // テスト記録: 迷宮/町の実プレイ時間
 }, 5000);
 
@@ -499,7 +496,6 @@ const G = {
   pendingDoll: null,  // (旧形式) 未生成の人業。現在は「空の人業」(isEmpty) として reserve に残る (ロード時に移行)
   party: [],          // 迷宮に連れて行く人業 (最大6体)
   reserve: [],        // 酒場で待機中の人業
-  expedition: [],     // 遠征に出ている控えの人業 (src/expedition.js)
   // 魂は1体ごとに固有のインスタンス (本体は魂、人業は器)。同職でも個別に Lv/ランクを持つ。
   souls: [],          // 所持魂 一覧: [{ uid, clsKey, count(吸収数→ランク), level, exp }]
   shopStock: null,    // 商会の在庫 { itemId: 個数 } (初回 setupNewGame で初期化)
@@ -1306,9 +1302,9 @@ function infAfxTrack(it) {
 }
 
 // ===== 本編を退ける / 戻す =====
-// 潜っている間は、本編の隊・控え・遠征・魂・通貨を G.abyss.home に退ける (控え・遠征も退けるのは、
+// 潜っている間は、本編の隊・控え・魂・通貨を G.abyss.home に退ける (控えも退けるのは、
 // 魂の付け替え・再計算で本編の人業が仮の器の魂を読まないため)。赤い魂・図鑑・在庫は本編のまま
-const INF_HOME_KEYS = ["party", "reserve", "expedition", "souls", "gold", "soulPts", "embers"];
+const INF_HOME_KEYS = ["party", "reserve", "souls", "gold", "soulPts", "embers"];
 function infStashHome() {
   const h = {};
   for (const k of INF_HOME_KEYS) h[k] = G[k];
@@ -10748,6 +10744,10 @@ function applyImpact(res) {
 // キャラLv上昇/スキル習得を検出してポップアップ用のキューを返す。
 // 戦闘でサブ魂に入る経験値の割合 (メイン魂の分に対して)
 const SUB_EXP_RATE = 1 / 3;
+// 留守居の修練 (第六章の結び = FEATURES.rusui。遠征の差し替え、2026-10 ユーザーの指示):
+// 控えの人業のメイン魂にも、隊のメイン魂が得る分の 10% が入る。操作は要らない。
+// 控えの魂それぞれの Lv で減らす (soulLvMul)。砕けた人業・魂の宿らない器は除く。レベルアップの画面は出さず、帰還の報告に載せる
+const RUSUI_EXP_RATE = 0.10;
 function distributeBattleSoulExp(...args) { return tlGameMeasure("growth", () => distributeBattleSoulExpMeasured(...args)); }
 function distributeBattleSoulExpMeasured(soulGot) {
   const queue = [];
@@ -10794,7 +10794,27 @@ function distributeBattleSoulExpMeasured(soulGot) {
     e.exp = (e.exp || 0) + gain;
     settleSoulExp(e); // Lv上限の魂は exp に蓄積し、上限が伸びた時に Lv へ注ぐ
   }
+  // 留守居の修練: 控えの人業のメイン魂 (隊で宿している魂は上で数えたので除く)
+  const rusui = [];
+  if (featureUnlocked("rusui") && !abyssActive()) {
+    for (const d of G.reserve) {
+      if (!d || d.alive === false || d.primary == null || seen.has(d.primary)) continue;
+      const e = soulByUid(d.primary);
+      if (!e) continue;
+      seen.add(d.primary);
+      const gain = Math.floor(share * RUSUI_EXP_RATE * soulLvMul(e.level));
+      if (gain <= 0) continue;
+      const from = e.level;
+      e.exp = (e.exp || 0) + gain;
+      settleSoulExp(e);
+      if (e.level > from) rusui.push({ d, e, from });
+    }
+  }
   recalcAllDolls({ levelUp: true });
+  for (const r of rusui) { // 控えのレベルアップは帰還の報告にだけ載せる (戦闘の後の画面は隊の者だけ)
+    codexJobSee(r.e.clsKey, r.e.count, r.e.level, r.e.capBonus);
+    runLevel({ uid: r.d.uid, name: `${r.d.name} (留守居)` }, r.from, r.e.level);
+  }
   // メンバーごとに「レベルアップ(上昇ステータス付き)→新規スキル」をポップアップ用キューへ
   const STAT_LABEL = { maxhp: "HP", maxmp: "MP", atk: "STR", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
   for (const m of G.party) {
@@ -11657,7 +11677,6 @@ function renderTown() {
   if (UI.refreshRunReport) UI.refreshRunReport(); // 開いている帰還の報告のシートも (鑑定・売却の後に用事のボタンが古いまま残らないよう)
   if (UI.queueStoryNotice) UI.queueStoryNotice(); // 新しく記された物語を、手の空いた時に知らせる
   syncStoryMedia(); // 進んだ章の物語の絵を、端末へ裏で集めてもらう
-  if (UI.queueExpeditionReport && expeditionDone().length) UI.queueExpeditionReport(); // 遠征から帰ってきた人業を、手の空いた時に知らせる
   if (UI.queueAfxConflicts && G.shopAfxPending && G.shopAfxPending.length) UI.queueAfxConflicts(); // 商会の棚で追加の組がぶつかった品を、手の空いた時にまとめて選ぶ
   if (then) queueMicrotask(() => { if (G.state === "town") then(); });
 }
@@ -11772,165 +11791,6 @@ function stabilityCost(n) { return Math.ceil(Math.max(0, n) / stabilityPerRed())
 function grantRedSoul(n, source) {
   G.redSoul += n || 0; tlRedGain(n || 0, source);
 }
-
-// ===== 遠征 (第六章「氷結回廊」の結びで開く。数の決まりは src/expedition.js、画面は src/ui/expedition.js) =====
-// 控えの人業を踏破済みの迷宮へひとりで送り出す。G.expedition = [{ doll (人業の参照), uid, dungeon, since, dur, ends, lv, rec, back, done, recalled }]
-//   since / ends = 出た時・戻る時の実プレイ時間 (G.stats.playMs)。dur = 選んだ長さ (ms)。back = 推奨Lv に遠く届かず途中で引き返す
-//   done = 戻ってきて報告を待つ (町で手が空いた時に「遠征から帰ってきた」のシートで受け取る → 一覧から消える)
-// 遠征中の人業は控えに残るが、隊に入れられない・魂の付け替え・装備の付け替えができない
-function expeditions() { if (!Array.isArray(G.expedition)) G.expedition = []; return G.expedition; }
-function expeditionOf(d) { return d ? expeditions().find((e) => e.doll === d) || null : null; }
-function expeditionDone() { return expeditions().filter((e) => e.done); }
-// 遠征に送れない理由 (送れるなら null)
-function expeditionBlock(d) {
-  if (!featureUnlocked("expedition")) return "遠征はまだ開いていない";
-  if (G.state !== "town") return "遠征は街から送り出す";
-  if (!d || !G.reserve.includes(d)) return "遠征に出せるのは控えの人業だけ";
-  if (expeditionOf(d)) return "すでに遠征に出ている";
-  if (!d.alive) return "魂の砕けた人業は送れない";
-  if (d.primary == null) return "魂の宿らない器は送れない";
-  if (expeditions().length >= EXP_MAX) return `遠征に出せるのは同時に${EXP_MAX}人まで`;
-  if (!vesselStable(d)) {
-    refreshStability();
-    if (d.stability < STABILITY_ENTRY_COST) return `魂の安定度が足りない (${d.stability}/${STABILITY_ENTRY_COST})`;
-  }
-  return null;
-}
-// 行き先の候補: 踏破済みの台帳の迷宮 (依頼の迷宮も可・奈落は不可)。推奨Lv の高い順
-function expeditionTargets(d) {
-  const w = worldState(), lv = (d && d.jobLv) || 1;
-  return DUNGEONS.filter((c) => w.cleared[c.id])
-    .map((c) => ({ id: c.id, name: c.name, side: !!c.side, lv: c.lv, lvTo: c.lvTo || c.lv, ...expPlan(c, lv, soulLvMul) }))
-    .sort((a, b) => b.rec - a.rec || (a.side ? 1 : 0) - (b.side ? 1 : 0));
-}
-// 送る前の見込み (乱数なし): 引き返すか・戻るまでの長さ・持ち帰る ✦/金貨・メイン魂に入る経験値
-function expeditionPreview(d, id, hours) {
-  const cfg = worldById(id);
-  if (!cfg || !d) return null;
-  const plan = expPlan(cfg, d.jobLv || 1, soulLvMul);
-  const full = hours * EXP_HOUR_MS, ms = expActualMs(full, plan.back);
-  const y = expYield(cfg, plan, ms, full);
-  return { ...plan, ms, full, soul: y.soul, gold: y.gold, exp: Math.floor(y.soul * EXP_SOUL_EXP_RATE),
-    miscP: EXP_MISC_PER_HOUR, soulP: plan.back ? 0 : EXP_SOUL_PER_HOUR };
-}
-function sendExpedition(d, id, hours) {
-  const why = expeditionBlock(d);
-  if (why) { SFX.ng(); showToast(why, { tone: "bad" }); return false; }
-  const cfg = worldById(id);
-  if (!cfg || !worldState().cleared[id] || !EXP_HOURS.includes(hours)) return false;
-  const plan = expPlan(cfg, d.jobLv || 1, soulLvMul);
-  const now = G.stats.playMs || 0, full = hours * EXP_HOUR_MS;
-  if (!vesselStable(d)) { // 迷宮の入場と同じだけ魂の安定度を消費する (セラは消費しない)
-    d.stability -= STABILITY_ENTRY_COST;
-    tlStability("entry", [{ doll: d, amount: STABILITY_ENTRY_COST }], { dungeon: "exp:" + id });
-  }
-  expeditions().push({ doll: d, uid: d.uid, dungeon: id, since: now, dur: full, ends: now + expActualMs(full, plan.back),
-    lv: d.jobLv || 1, rec: plan.rec, back: plan.back, done: false });
-  log(`${d.name} は遠征に出た。行き先は「${cfg.name}」、${hours}時間。`, "sys");
-  SFX.select(); buzz(15);
-  autosave(true);
-  renderTown();
-  return true;
-}
-// 呼び戻す: 経った時間の分だけの戦果で、すぐに戻る (引き返した扱いにはしない)
-function recallExpedition(d) {
-  const e = expeditionOf(d);
-  if (!e || e.done || G.state !== "town") return false;
-  const now = G.stats.playMs || 0;
-  e.ends = Math.max(e.since, Math.min(e.ends, now));
-  e.recalled = true; e.done = true;
-  log(`${d.name} を遠征から呼び戻した。`, "sys");
-  autosave(true);
-  return true;
-}
-// 5秒ごとの時計から: 戻る時の来た遠征に印を付け、街にいれば報告を待たせる
-function expeditionTick() {
-  if (!Array.isArray(G.expedition) || !G.expedition.length) return;
-  const now = G.stats.playMs || 0;
-  let fresh = false;
-  for (const e of G.expedition) if (!e.done && now >= e.ends) { e.done = true; fresh = true; }
-  if (!fresh) return;
-  autosave();
-  if (G.state === "town" && UI.queueExpeditionReport) UI.queueExpeditionReport();
-}
-// 戻った遠征の戦果を決めて渡す (1件)。返り値は報告の1行ぶん
-function claimExpedition(e) {
-  const cfg = worldById(e.dungeon), d = e.doll;
-  const plan = { ...expPlan(cfg, e.lv || 1, soulLvMul), back: !!e.back };
-  const planned = expActualMs(e.dur, plan.back), actual = Math.max(0, e.ends - e.since);
-  const f = planned > 0 ? Math.min(1, actual / planned) : 0;
-  const y = expYield(cfg, plan, planned, e.dur);
-  const hours = actual / EXP_HOUR_MS;
-  const out = { name: d.name, doll: d, dungeon: cfg.name, dur: e.dur, actual, back: plan.back && !e.recalled, recalled: !!e.recalled,
-    soul: Math.round(y.soul * f), gold: Math.round(y.gold * f), items: [], sold: 0, souls: [], lvFrom: 0, lvTo: 0 };
-  G.soulPts += out.soul; G.gold += out.gold;
-  tlTown("soul", out.soul, "exp"); tlTown("gold", out.gold, "exp");
-  // メイン魂の経験値 (持ち帰った ✦ の 1/3。迷宮の戦闘で魂に入る割合と同じ)
-  const s = d.primary != null ? soulByUid(d.primary) : null;
-  if (s) {
-    out.lvFrom = out.lvTo = s.level;
-    const gain = Math.floor(out.soul * EXP_SOUL_EXP_RATE);
-    if (gain > 0) {
-      const cap = soulLevelCapOf(s);
-      // レベルアップの画面 (戦闘後・強化と同じ UI.celebrateLevelUp) 用に、上がる前の能力と技を控える
-      const KEYS = ["maxhp", "maxmp", "atk", "vit", "agi", "int", "pie", "luk"];
-      const sk = (k) => (k === "maxhp" ? "hp" : k === "maxmp" ? "mp" : k);
-      const statsFrom = Object.fromEntries(KEYS.map((k) => [sk(k), d[k] || 0]));
-      const spells0 = new Set(d.spells || []);
-      s.exp = (s.exp || 0) + gain;
-      while (s.level < cap && s.exp >= soulTrainCost(s.level)) { s.exp -= soulTrainCost(s.level); s.level++; }
-      out.lvTo = s.level;
-      if (out.lvTo > out.lvFrom) {
-        const vit = hpMpRatio(d); recalcAllDolls(); keepHpMpRatio(d, vit);
-        codexJobSee(s.clsKey, s.count, s.level, s.capBonus);
-        out.levelUp = { name: d.name, doll: d, uid: s.uid, main: { from: out.lvFrom, to: out.lvTo }, subs: [],
-          statsFrom, statsTo: Object.fromEntries(KEYS.map((k) => [sk(k), d[k] || 0])), skills: (d.spells || []).filter((k) => !spells0.has(k)) };
-      }
-    }
-  }
-  // 収集品 (1時間ごとに見込み。引き返した時は半分)。袋に空きが無ければ売値の金貨にする
-  const nMisc = expRolls(hours, EXP_MISC_PER_HOUR * (out.back ? 0.5 : 1));
-  if (nMisc) {
-    const cap = Math.min(20, Math.ceil(((cfg.lootLv || [1, 10])[1]) / 10) + 2);
-    const pool = miscLootIds().filter((id) => Math.max(1, Math.min(20, ITEMS[id].r20 || 1)) <= cap);
-    for (let i = 0; i < nMisc && pool.length; i++) {
-      const it = cloneItem(pool[Math.floor(random() * pool.length)]);
-      if (!it) continue;
-      const who = [d, ...allDolls()].find((x) => x && (x.items || []).length < MAX_ITEMS);
-      if (who) { it.isNew = true; who.items.push(it); codexSeeItem(it.id, it); out.items.push({ item: it, who }); }
-      else { const g = sellPrice(it); G.gold += g; out.sold += g; tlTown("gold", g, "exp"); }
-    }
-  }
-  // 職業の魂 (まれに。引き返した時は無し)
-  const nSoul = out.back ? 0 : expRolls(hours, EXP_SOUL_PER_HOUR);
-  for (let i = 0; i < nSoul; i++) out.souls.push(grantSoulQuiet(rollJobClass(), `遠征で「${cfg.name}」から持ち帰った`));
-  const i = expeditions().indexOf(e);
-  if (i >= 0) expeditions().splice(i, 1);
-  return out;
-}
-// 戻った遠征をすべて受け取る (報告のシートが呼ぶ)
-function claimExpeditions() {
-  const rows = expeditionDone().map(claimExpedition);
-  if (rows.length) { updateTopbar(); autosave(true); }
-  return rows;
-}
-// 読み込み: 人業の参照を控えにつなぎ直す (参照が切れていれば uid で探す。隊にいる・見つからない遠征は取り消す)
-function normalizeExpeditions() {
-  if (!Array.isArray(G.expedition)) { G.expedition = []; return; }
-  const seen = new Set();
-  G.expedition = G.expedition.filter((e) => {
-    if (!e || typeof e !== "object" || !worldById(e.dungeon)) return false;
-    const d = (e.doll && G.reserve.includes(e.doll)) ? e.doll : G.reserve.find((x) => x && x.uid === e.uid) || null;
-    if (!d || seen.has(d)) return false;
-    seen.add(d);
-    e.doll = d; e.uid = d.uid;
-    for (const k of ["since", "dur", "ends", "lv", "rec"]) if (!Number.isFinite(e[k])) e[k] = 0;
-    e.back = !!e.back; e.done = !!e.done;
-    return true;
-  });
-}
-// 遠征の残り (分)。画面の札が読む
-function expeditionLeftMin(e) { return expLeftMin(e, G.stats.playMs || 0); }
 
 // 人業を仕立てる費用 (最初の3体は無料、4体目以降に段階上昇)
 function emptyDollCost() {
@@ -12169,7 +12029,6 @@ function equipSoulToSlot(d, uid, slotId = "primary", done = null) {
   const fin = (v) => { if (typeof done === "function") done(v); return v; };
   const s = soulByUid(uid);
   if (!s || G.state !== "town") return fin(false);
-  if (expeditionOf(d)) { SFX.ng(); showToast(`${d.name}は遠征に出ている。魂の付け替えは、帰ってきてから`, { tone: "bad" }); return fin(false); }
   const si = slotId === "primary" ? -1 : +slotId.slice(3);
   if (si < 0 && !featureUnlocked("soulChange")) return fin(false);
   if (si >= 0 && (!Number.isInteger(si) || si < 0 || si >= unlockedSubSlots())) return fin(false);
@@ -12182,7 +12041,6 @@ function equipSoulToSlot(d, uid, slotId = "primary", done = null) {
   // 同じuidの魂は、メイン・サブを問わず他の人業と共有しない。他の人業が宿している魂を選んだら、その人業から移す
   //   (ユーザーの指示、2026-10。画面側で「〜が宿している」と確認してから呼ぶ)。入れ替えられれば、こちらが外した魂をその人業へ渡す
   const take = isNewEquip ? soulTakePlan(d, uid, slotId) : null;
-  if (take && expeditionOf(take.holder)) { SFX.ng(); showToast(`その魂は遠征中の${take.holder.name}が宿している。呼び戻してから移せる`, { tone: "bad" }); return fin(false); }
 
   // メイン魂の付け替えで、新しい職では装備できなくなる装備があれば事前に確認する
   // (メイン魂をサブ魂の枠と入れ替える時は、その枠の魂が新しいメイン魂)
@@ -12288,12 +12146,12 @@ function fuseCandidates(targetUid) {
   return G.souls.filter((s) => s.uid !== t.uid && s.clsKey === t.clsKey && !soulWorn(s.uid) && !s.locked);
 }
 // サブ魂として宿している魂は、その人業から外して素材にできる (個別の融合だけ。まとめて融合には入れない)。
-// メイン魂として宿している魂・遠征中の人業の魂は外せない
+// メイン魂として宿している魂は外せない
 function fuseSubTakeable(uid) {
   let sub = false;
   for (const d of allDolls()) {
     if (d.primary === uid) return false;
-    if ((d.subs || []).some((x) => x && x.uid === uid)) { if (expeditionOf(d)) return false; sub = true; }
+    if ((d.subs || []).some((x) => x && x.uid === uid)) sub = true;
   }
   return sub;
 }
@@ -13080,7 +12938,7 @@ function tavernHintAllowed(req) {
   if (req === "storm") return worldOpenId("w30");                                   // 嵐の尖塔 (風鳴りの螺旋が地図に現れた後)
   if (req === "arena") return worldOpenId("w34");                                   // 闘技場跡 (雲を渡る石橋が地図に現れた後)
   if (req === "cavern") return worldOpenId("w38");                                  // 地底大空洞 (灯籠の吹き溜まりが地図に現れた後)
-  return featureUnlocked(req);                           // fusion / rumor / order / expedition
+  return featureUnlocked(req);                           // fusion / rumor / order / rusui
 }
 // 酒場の顔ぶれを選び直す (ダンジョン帰還時・初回入店時に呼ぶ)
 function rollTavernCrowd() {
@@ -14012,7 +13870,7 @@ const FEATURES = {
   sub2: { chapter: 4, report: "finale" },     // サブ魂 2枠
   forge: { chapter: 5, report: "finale" },    // 鍛え直し (商会で金貨を払い、装備の品質を引き直す — 2026-10 ユーザーの指示)
   // ── 第六章から (docs/unlocks.md の年表。ユーザーの了解済み)。章がまだ無いので開かない。仕組みはその章を作る時に足す ──
-  expedition: { chapter: 6, report: "finale" }, // 遠征 (控えの人業が踏破済みの迷宮を回る)
+  rusui: { chapter: 6, report: "finale" },      // 留守居の修練 (控えのメイン魂にも、戦闘で魂に入る経験値の一部が入る — 遠征の差し替え)
   order4: { chapter: 8, report: "finale" },     // 結社の席4
   // 無限迷宮 (入るたびに Lv1 の仮の器で潜るローグライク — docs/infinite-labyrinth.md)。第八章の結び (2026-10-11 ユーザーの指示:
   //   第八章のあたりで Lv100・ランク3〜4 に届き、本編の育ちが単調になってくるので、第十章から前倒し)
@@ -14040,7 +13898,7 @@ function featureMet(key, w = worldState()) {
   return f.report === "finale" ? !!w.reported[ch.finale] : chapterReports(ch, w) >= f.report;
 }
 function featureUnlocked(key) {
-  if (G.testPlay && Array.isArray(G.testUnlock) && G.testUnlock.includes(key)) return true; // 試遊の開発用 (URL の testUnlock=expedition など)
+  if (G.testPlay && Array.isArray(G.testUnlock) && G.testUnlock.includes(key)) return true; // 試遊の開発用 (URL の testUnlock=rusui など)
   if (key === "soulChange") return featureMet(key) && !!G.tut?.done?.soulChange;
   return featureMet(key);
 }
@@ -15108,7 +14966,6 @@ function reforgeBlock(owner, it, { gold = true } = {}) {
   if (!qualityMatters(it)) return "品質で変わる性能が無い品";
   if (G.state !== "town" && !infAtRest()) return "鍛え直しは街の商会か、無限迷宮の風だまりの回収人でだけ";
   if (G.state === "town" && !opsFacilityOpen("shop")) return "商会が開いていない";
-  if (owner && expeditionOf(owner)) return "遠征中の人業の品は鍛え直せない";
   if (gold && G.gold < reforgeCost(it)) return "金貨が足りない";
   return null;
 }
@@ -15362,7 +15219,7 @@ function enterAbyss(picks) {
     allCommon: picks.every((k) => SOUL_CLASSES[k].rarity === "common"), trk: { sp: 0, at: 0, broke: false, rareAfx: 0, bossMax: 0 } };
   { const st = infStats(); st.runs++; for (const k of picks) st.jobs[k] = 1; }
   // 本編を退け、仮の器と無限迷宮の魂・通貨に差し替える
-  G.reserve = []; G.expedition = [];
+  G.reserve = [];
   G.souls = []; setSharedSouls(G.souls);
   G.gold = 0; G.soulPts = 0; G.embers = 0;
   G.party = picks.map((k, i) => makeVessel(i, k));
@@ -16315,7 +16172,6 @@ function itemFitsSlot(it, slotKey, p = null) {
 // 装飾品は「指定した枠」に付ける。stashTo を渡すと、外れた装備は p ではなくその人業の袋へ入る
 // (p の袋が満杯の時の「持ち主と取り替える」)。成否 { ok, msg, displaced, full }
 function equipAt(p, it, slotKey, owner = p, stashTo = null) {
-  if (expeditionOf(p) || expeditionOf(owner) || expeditionOf(stashTo)) return { ok: false, msg: "遠征に出ている人業の装備・持ち物は動かせない" };
   if (!it || !itemFitsSlot(it, slotKey, p)) return { ok: false, msg: "その部位には装備できない" };
   if (!canEquip(p, it)) return { ok: false, msg: equipFailMsg(p, it) };
   const tr = autoEquip.trialEquip(p.equip, it, slotKey);
@@ -16342,7 +16198,6 @@ function equipAt(p, it, slotKey, owner = p, stashTo = null) {
 // p の袋へ入り、仲間の部位は空く。呪われた品・ロック中の品は動かさない (ロックは呼ぶ側で外してから)
 function equipFromWearer(p, it, slotKey, wearer) {
   if (!p || !it || !wearer || p === wearer) return { ok: false, msg: "" };
-  if (expeditionOf(p) || expeditionOf(wearer)) return { ok: false, msg: "遠征に出ている人業の装備・持ち物は動かせない" };
   const wk = SLOTS.find((k) => wearer.equip && wearer.equip[k] === it);
   if (!wk) return { ok: false, msg: `${wearer.name}は ${it.name} を装備していない` };
   if (it.cursed) return { ok: false, msg: `${it.name}は呪われていて外せない` };
@@ -17030,7 +16885,7 @@ const SAVE_FIELDS = [
   "shopAfx", "shopAfxPending",
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound", "abyss", "abyssRec",
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "stabilityBriefed", "pendingDoll",
-  "party", "reserve", "expedition", "souls", "shopStock", "run", "town",
+  "party", "reserve", "souls", "shopStock", "run", "town",
   "quest", "msq", "ach", "fastAnim", "animTempo", "tavernCrowd", "tavernHeard", "rumor", "rumorCooldown", "activeRumor", "codex", "treasury", "lrOwned", "named", "order", "irene", "journal", "tut", "events", "story", "world", "dragonSlain", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab", "rematch",
   "lastRun",
@@ -17176,13 +17031,13 @@ function fixHandsAndShields(offhand = true) {
   return moved; // 左手・盾を外した人業 (能力の再計算は呼び出し側)
 }
 // 装備できるLv (src/equiplevel.js) に届かない装備を袋へ戻す: メイン魂を Lv の低い魂へ替えた・装備できるLv を入れる前の旧セーブ。
-// 呪いの品は外れない。魂の宿らない人業 (メイン魂を外しただけ) と遠征中の人業はそのまま (宿す時・帰った後に見る)。
+// 呪いの品は外れない。魂の宿らない人業 (メイン魂を外しただけ) はそのまま (宿す時に見る)。
 // 自分の袋が満杯なら隊・控えの空きのある袋へ (誰も空いていなければ自分の袋)。返り値 = [{ d, it }] (能力の再計算は呼び出し側)
 function fixEquipLevels() {
   const all = [...(G.party || []), ...(G.reserve || [])].filter((d) => d && d.equip);
   const moved = [];
   for (const d of all) {
-    if (d.primary == null || expeditionOf(d)) continue;
+    if (d.primary == null) continue;
     for (const k of SLOTS) {
       const it = d.equip[k];
       if (!it || it.cursed || !equipLvShort(d, it)) continue;
@@ -17351,7 +17206,7 @@ function loadGame() {
     if (typeof d.mp === "number") d.mp = Math.round(d.mp);
   }
   for (const d of fixHandsAndShields()) { try { recalcDoll(d); } catch {} } // 二刀流を失った人業の左手の武器 (魂の能力が出そろってから)
-  normalizeExpeditions(); // 遠征 (後付け: 旧セーブは無し。人業の参照を控えにつなぎ直す)
+  delete G.expedition; // 遠征 (取りやめ。2026-10) の旧セーブ: 出ていた人業は控えに残っている
   _equipLvMoved = fixEquipLevels(); // 装備できるLv に届かない装備 (旧セーブ)。知らせは街の描画で
   for (const d of new Set(_equipLvMoved.map((m) => m.d))) { try { recalcDoll(d); } catch {} }
   delete G.resonance; // 魂の共鳴は 2026-10 に取りやめ (旧セーブの記録は捨てる)
@@ -17495,7 +17350,6 @@ function setupNewGame() {
   // 金貨も赤い魂も持たずに着任する。まず王宮で三職の魂を拝受する。
   G.party = [];
   G.reserve = [];
-  G.expedition = [];
   G.souls = [];       // 所持魂 一覧 (魂インスタンスの配列)
   setSharedSouls(G.souls);
   G.stabilityBriefed = false;
@@ -17548,12 +17402,12 @@ function setupTestPlay() {
     G.party.push(doll);
   }
   G.dollsPurchased = G.party.length;
-  // 開発用: まだ章の無い機能を試す (URL の testUnlock=expedition,… / 機能の解放の場面「unlock:キー」)
+  // 開発用: まだ章の無い機能を試す (URL の testUnlock=rusui,… / 機能の解放の場面「unlock:キー」)
   G.testUnlock = (testParams.get("testUnlock") || "").split(",").filter((k) => FEATURES[k]);
   if (testScene && testScene.id.startsWith("unlock:") && FEATURES[testScene.id.slice(7)]) G.testUnlock.push(testScene.id.slice(7));
   if (testInfFloor) G.testUnlock.push("infinite");
-  // 遠征を試せるよう、控えに3体 (隊と同じ Lv)
-  if (featureUnlocked("expedition")) {
+  // 留守居の修練を試せるよう、控えに3体 (隊と同じ Lv)
+  if (featureUnlocked("rusui")) {
     for (const [i, cls] of ["samurai", "monk", "bishop"].entries()) {
       const soul = addSoulInstance(cls, 1, level);
       soul.capBonus = Math.max(0, level - soulLevelCap(cls, soul.count));
@@ -17998,7 +17852,7 @@ function wireUI() {
     itemRankName, itemRankColor, itemGradeText, itemNameEl, logClassForItem,
     showChoice, closePrompt, showEvent, showConfirm, showToast, showItemGet, closeItemGet, showItemDetailPopup, showStoryScene,
     openStatus, closeStatus, openSettings, closeSettings, tryEnterDungeon, enterDungeon, returnToTown, confirmReturnToTown,
-    tutorialAllowed, palaceCallReady, currentObjective, featureUnlocked, contentSealed, reportMainQuest, acceptMainQuest, reportPending, blockForReport, tutorialPending, blockForTutorial,
+    tutorialAllowed, palaceCallReady, currentObjective, featureUnlocked, RUSUI_EXP_RATE, contentSealed, reportMainQuest, acceptMainQuest, reportPending, blockForReport, tutorialPending, blockForTutorial,
     worldState, worldOpenIdx, pendingIreneBeat, playIreneBeat, dungeonLevel, FEATURES, featureNote, chaptersDone, storyGoal, currentChapter, dungeonTrait, dungeonFloorHaz,
     trainSoul, raiseSoulCap, soulTrainCost, soulByUid, codexSeeItem, treasuryState, heldCollectibles, donateCollectible,
     claimAchievement, claimTreasury, treasuryRewardReady, deliveryHolder, deliveryStatus, deliverQuest,
@@ -18023,7 +17877,7 @@ function wireUI() {
     }).observe(itemGetEl, { attributes: true, attributeFilter: ["class"] });
   }
   // 各パッケージの UI を登録 (スタブを差し替える)。A→B→C→D の順
-  for (const m of [uiHub, uiPalace, uiFacilities, uiSettings, uiJournal, uiStory, uiParty, uiSoulPanel, autoEquip, uiShop, uiLoot, uiAppraise, uiDeparture, uiDungeonHud, uiResults, uiTutorial, uiExpedition, uiReforge, uiInfinite, uiDiscard]) {
+  for (const m of [uiHub, uiPalace, uiFacilities, uiSettings, uiJournal, uiStory, uiParty, uiSoulPanel, autoEquip, uiShop, uiLoot, uiAppraise, uiDeparture, uiDungeonHud, uiResults, uiTutorial, uiReforge, uiInfinite, uiDiscard]) {
     try { m.install(); } catch (e) { console.error(e); }
   }
 }
@@ -18092,12 +17946,6 @@ bindGame({
   logHistory,
 });
 // ==== /WP-D ====
-// ==== 遠征 (src/ui/expedition.js・隊の控えの一覧が使う) ====
-bindGame({
-  expeditions, expeditionOf, expeditionDone, expeditionBlock, expeditionTargets, expeditionPreview, sendExpedition,
-  recallExpedition, claimExpeditions, expeditionLeftMin, EXP_MAX, EXP_HOURS, expBattlesPerHour, worldById,
-});
-// ==== /遠征 ====
 
 // ---- 起動 ----
 // タイトル画面のセーブ概要 (つづきから): 進行中の章・踏破数・編成の顔ぶれ
@@ -18126,6 +17974,8 @@ function init() {
     equipLv: { equipLevelOf, fixEquipLevels, unequippableUnder, equipAt, ITEMS, cloneItem },
     // 出来事・記録の検証用
     evApi, runEvent, logHistory,
+    // 留守居の修練の検証用
+    rusui: { distributeBattleSoulExp, RUSUI_EXP_RATE, soulByUid },
     // オート移動の検証用
     autoMove: { setAutoMove, toggleAutoMove, autoMovePlan, cellRect, viewSize: () => ({ VW, VH }) },
     // 宿敵の再戦の検証用
