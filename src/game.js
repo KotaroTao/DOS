@@ -13009,13 +13009,10 @@ function rollRumor() {
 
   // 出撃先に応じて成立する噂だけを [重み, 生成関数] で候補に積む
   const cands = [];
-  // 豊穣の予兆: B1F に温かい死体。深層ほど数も魂の格も上がる
-  cands.push([30, () => {
-    const great = layer >= 8;
-    const clsKey = great ? rollGreatCorpseClass() : rollJobClass();
-    return { type: "harvest", clsKey, great, floor: 1, speaker,
-      text: `「${dn}の入口あたりで、まだあたたかい死体を見た。${great ? "並の魂ではないぞ。" : "魂が宿っているはずだ。"}」` };
-  }]);
+  // 豊穣の予兆: B1F にまだあたたかい死体。深層ほど数が増える
+  // (いつも普通のあたたかい死体。偉大なる死体は特別な階「強大な気配」にだけ出る — 2026-10 ユーザーの指示)
+  cands.push([30, () => ({ type: "harvest", clsKey: rollJobClass(), floor: 1, speaker,
+    text: `「${dn}の入口あたりで、まだあたたかい死体を見た。魂が宿っているはずだ。」` })]);
   // 財宝の予兆: B1F に格の高い宝箱 (中身は装備品確定・層相応のレベル底上げ)
   cands.push([25, () => ({ type: "treasure", floor: 1, speaker,
     text: `「${dn}の奥で金属の輝きを見たという。${layer >= 10 ? "相当な業物が眠っているかもしれん。" : "上物の宝箱がひとつ余分にあるかもな。"}」` })]);
@@ -13073,15 +13070,13 @@ function applyRumorToBoard(board) {
     if (open === 1) deadends.push(c);
   }
   const pickCell = () => deadends.length ? deadends.splice(rand(deadends.length), 1)[0] : null;
-  const setCorpse = (cls, great) => { const c = pickCell(); if (c) { c.type = "corpse"; c.cleared = false; c.corpseWarm = true; c.corpseClass = cls; if (great) c.corpseGreat = true; } };
+  const setCorpse = (cls) => { const c = pickCell(); if (c) { c.type = "corpse"; c.cleared = false; c.corpseWarm = true; c.corpseClass = cls; } };
   if (r.type === "harvest") {
-    // 名指しの1体 + 層に応じた追加 (深層ほど多く、上位レアの魂が宿る)
+    // 名指しの1体 + 層に応じた追加 (深層ほど多い)。どれも普通のあたたかい死体
+    // (旧版で偉大なる死体として聞いた噂 (r.great) は、魂を普通の死体の抽選で引き直す)
     const extra = layer >= 14 ? 2 : layer >= 7 ? 1 : 0;
-    setCorpse(r.clsKey, r.great);
-    for (let i = 0; i < extra; i++) {
-      const great = layer >= 8;
-      setCorpse(great ? rollGreatCorpseClass() : rollJobClass(), great);
-    }
+    setCorpse(r.great ? rollJobClass() : r.clsKey);
+    for (let i = 0; i < extra; i++) setCorpse(rollJobClass());
   } else if (r.type === "treasure") {
     // 中身が必ず装備品の「特別な宝箱」。層に比例した装備レベル底上げ (上限+40)
     const c = pickCell();
