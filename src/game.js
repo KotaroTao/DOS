@@ -15,7 +15,7 @@ import {
 import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, permanentEventStats, eligibleEvents, pickEvent, onceKey, runEvent, eventFightWon } from "./events.js";
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { pickTavernCrowd, TALK_MAP } from "./tavern.js";
-import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, QUEST_LV_NEAR, rollBoard, deliveryRewardRows, NPCS, npcOf, composeReport, bondGiftAt, npcBondLabel, TIP_RATE, hasBell, BELL_EVERY_MS, QUEST_REWARD_K, QUEST_RK, questRewardK } from "./quests.js";
+import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, QUEST_LV_NEAR, rollBoard, deliveryRewardRows, NPCS, npcOf, composeReport, bondGiftAt, npcBondLabel, TIP_RATE, hasBell, BELL_EVERY_MS, QUEST_REWARD_K, QUEST_RK, questRewardK, COMMON_KEY as QUEST_COMMON_KEY } from "./quests.js";
 import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_THREE_REPORT, TUT_FINALE, STORY_CELLS, storyCellAt, BOSS_MEMORIES, REPORTS, LATE_CLUES, IRENE_BEATS, MINE_PASS, msqReward, EPILOGUE, UNLOCKS, unlockSceneFor } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { poolAt } from "./dungeons/world.js";
@@ -11832,12 +11832,15 @@ function questCtx() {
   const activeBy = {};
   let activeCommon = 0;
   for (const q of s.active) {
-    for (const k of (q.keys || [])) avoid.add("k:" + k);
-    if (q.itemId) avoid.add("i:" + q.itemId);
-    if (q.type === "floor" && q.dungeon) avoid.add("f:" + q.dungeon);
-    if (q.type === "soul" && q.dungeon) avoid.add("s:" + q.dungeon);
-    if (q.type === "chest" && q.dungeon) avoid.add("c:" + q.dungeon);
-    if (q.state === "claimed" || q.type === "deliver") continue;
+    // 似た内容の依頼は、受注中の依頼が達成するまで貼らない (達成して報告を待つ間は、また貼ってよい — 2026-10 ユーザーの指示)
+    if (q.state === "active") {
+      for (const k of (q.keys || [])) avoid.add("k:" + k);
+      if (q.itemId) avoid.add("i:" + q.itemId);
+      if (q.type === "floor" && q.dungeon) avoid.add("f:" + q.dungeon);
+      if (q.type === "soul") avoid.add("s:" + (q.dungeon || QUEST_COMMON_KEY));
+      if (q.type === "chest") avoid.add("c:" + (q.dungeon || QUEST_COMMON_KEY));
+    }
+    if (q.state !== "active" || q.type === "deliver") continue; // 達成した依頼は枠の数に入れない (同じ内容をまた貼れる)
     if (q.dungeon) activeBy[q.dungeon] = (activeBy[q.dungeon] || 0) + 1;
     else activeCommon++;
   }
