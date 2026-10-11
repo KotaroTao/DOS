@@ -32,7 +32,7 @@ const LAYER_W = 3;
 
 // 旧仕様で取得済みの恵み (G.events.flags のキー → 効き目)。新しい極は下の DUNGEON_GIFTS のステータスを授ける
 export const EV_BOONS = {
-  will:     { soulMul: 0.10, text: "先代の遺志 ― ✦Soul の獲得量 +10%" },
+  will:     { soulMul: 0.10, text: "操霊師の遺志 ― ✦Soul の獲得量 +10%" },
   blackCat: { crit: 0.03,    text: "黒猫の加護 ― 全員の会心率 +3%" },
   sewerMap: {                text: "王都の下水図 ― 第2層ではどの階も階段が最初から見える" },
   temper:   { dmgMul: 1.05,  text: "地の底の焼き入れ ― 全員の与えるダメージ +5%" },
@@ -53,14 +53,14 @@ const needsCare = (A) => anyHurt(A) || anyDrained(A) || anyAiling(A);
 const RIDDLES = [
   { q: "朝は四つ、昼は二つ、夜は三つの足で歩くものは？", a: "人", w: ["獣", "影"] },
   { q: "生まれた時から棺を背負い、死ぬまで脱がぬものは？", a: "カタツムリ", w: ["亀", "骸骨"] },
-  { q: "使えば使うほど小さくなり、灯れば灯るほど影を消すものは？", a: "蝋燭", w: ["剣", "魂"] },
+  { q: "使えば使うほど小さくなり、灯るほど闇を退けるものは？", a: "ろうそく", w: ["剣", "魂"] },
   { q: "名を呼べば消え、黙れば満ちるものは？", a: "静寂", w: ["闇", "霧"] },
-  { q: "持ち主には見えず、他人ばかりが口にするものは？", a: "名前", w: ["顔", "罪"] },
+  { q: "持ち主のものなのに、他人ばかりが使うものは？", a: "名前", w: ["顔", "罪"] },
   { q: "鍵を持たぬのに、すべての扉を開けて回るものは？", a: "風", w: ["盗賊", "死"] },
   { q: "眠る者にだけ見え、目覚めた者の手には残らぬものは？", a: "夢", w: ["宝", "月"] },
-  { q: "王も乞食も等しく抱き、決して返さぬものは？", a: "墓", w: ["神", "夜"] },
-  { q: "歯は無いのに噛みつき、口は無いのにすべてを喰らうものは？", a: "時", w: ["炎", "飢え"] },
-  { q: "首は無いのに頭を下げ、足は無いのに立って待つものは？", a: "瓶", w: ["案山子", "墓標"] },
+  { q: "王も物乞いも等しく抱き、決して返さぬものは？", a: "墓", w: ["神", "夜"] },
+  { q: "歯は無いのに噛みつき、口は無いのにすべてを食らうものは？", a: "時", w: ["炎", "飢え"] },
+  { q: "実るほどに頭を垂れ、足は無いのに立って待つものは？", a: "稲穂", w: ["かかし", "墓標"] },
 ];
 
 // ---- 操霊師の遺書 (層ごとのページ) ----
@@ -68,17 +68,17 @@ export const LORE_PAGES = {
   1: ["……墓所の土は温かい。死者は眠ってなどいない、ただ待っているのだ。",
       "私は人業に魂を移す術を、王家の命で磨いた。だが誰の魂を、何のために？",
       "答えを知る前に、私の器は朽ちるだろう。次に灯を継ぐ者よ、墓の声に耳を貸すな。"],
-  2: ["……王都の下には、もう一つの王都がある。水は全てを運び、全てを沈める。",
+  2: ["……水路の水は、街の下を通り、さらに深くへ流れていく。水はすべてを運び、すべてを沈める。",
       "流れてきた魂は数え切れない。誰かが上から捨てているのだ、器ごと。",
       "私はそれをすくい上げた。救ったのか、盗んだのか、もう分からない。"],
-  3: ["……坑夫たちは銀を掘っていたのではない。眠る『何か』の殻を削っていた。",
-      "最初の操霊師は、その殻から最初の魂を抜き取ったという。",
-      "ならば我らの術は、盗掘の延長に過ぎぬ。深く掘るほど、底は近づく。"],
+  3: ["……坑夫たちは銀を掘っていたのではない。岩にしみこんだ古い灯を、銀と呼んで掘り出していた。",
+      "地の底へと流れていく魂の筋がある。誰が、いつ、そう流れるように決めたのかは知らない。",
+      "それでも我らは掘る。深く掘るほど、底は近づく。"],
   4: ["……砦は捨てられたのではない。差し出されたのだ。",
       "守備隊は最後まで援軍を待った。届いたのは、魂脈の汲み口だけだった。",
       "私の師は、それを王に問うた。そして牢に入った。次は私の番だろう。"],
-  5: ["……霧は森の吐息だ。迷い込んだ魂を、森は魂脈より先に呑み込む。",
-      "森に呑まれた魂は、木になり、灯になり、やがて霧になる。",
+  5: ["……霧は森の吐息だ。迷い込んだ魂を、森は魂脈より先にのみこむ。",
+      "森にのまれた魂は、木になり、灯になり、やがて霧になる。",
       "魂脈に吸われるよりは、ましな終わりかもしれない。私は、そう思いたい。"],
   0: ["……灯を継ぐ者よ。深く潜るほど、魂は重くなる。",
       "人業の器がきしむのは、魂がまだ自分の体を覚えているからだ。",
@@ -116,11 +116,11 @@ export const EVENTS = [
   },
   {
     id: "c02", name: "行き倒れの冒険者", layer: 0, tier: "common", icon: "corpse",
-    intro: () => ["壁にもたれて息絶えた冒険者。腰の袋はまだ膨らんでいる。", "…だが、指先がかすかに動いた気がした。"],
+    intro: () => ["壁にもたれて息絶えた冒険者。腰の袋はまだ膨らんでいる。", "……だが、指先がかすかに動いた気がした。"],
     choices: (A, cell) => [
-      { label: "持ち物を漁る ― 金貨 / 25%で起き上がる", danger: true, fn: () => {
+      { label: "持ち物をあさる ― 金貨 / 25%で起き上がる", danger: true, fn: () => {
         if (chance(0.25)) {
-          A.alarm("死体が起き上がった！", ["漁る手を掴まれた。応戦するしかない。"], "corpse",
+          A.alarm("死体が起き上がった！", ["あさる手をつかまれた。応戦するしかない。"], "corpse",
             () => A.fight(cell, [{ undead: true }], "rise", { noChest: true }));
           return;
         }
@@ -131,13 +131,13 @@ export const EVENTS = [
     onWin: (A, cell, f, next) => { A.gold(2, "冒険者の袋"); A.done(cell, next); },
   },
   {
-    id: "c03", name: "囁く壁", layer: 0, tier: "common", icon: "event",
-    intro: () => ["石壁の向こうから、誰かの囁きが漏れてくる。", "「……下へ……下へ……」"],
+    id: "c03", name: "ささやく壁", layer: 0, tier: "common", icon: "event",
+    intro: () => ["石壁の向こうから、誰かのささやきが漏れてくる。", "「……下へ……下へ……」"],
     choices: (A, cell) => [
       { label: "耳を当てる ― 階段のありか / 20%で麻痺", primary: true, fn: () => {
         A.revealStairs();
-        A.toast("囁きが道を教えた ― 階段のありかが見えた", "good", "stairs");
-        if (chance(0.2)) { const m = A.randomAlive(); if (m) { A.ail(m, "paralyze"); A.toast(`${m.name}は囁きに当てられ、体が痺れた`, "bad", "trap"); } }
+        A.toast("ささやきが道を教えた ― 階段のありかが見えた", "good", "stairs");
+        if (chance(0.2)) { const m = A.randomAlive(); if (m) { A.ail(m, "paralyze"); A.toast(`${m.name}はささやきに当てられ、体がしびれた`, "bad", "trap"); } }
         A.done(cell);
       } },
     ],
@@ -185,7 +185,7 @@ export const EVENTS = [
     setup: (A, cell) => { cell.evGood = chance(0.5) ? "L" : "R"; },
     intro: (A, cell) => {
       const lines = ["瓜二つの扉が並んでいる。片方からは金の匂い、もう片方からは血の匂い。"];
-      if (A.sense()) lines.push(`気配を読む者が囁く。「${cell.evGood === "L" ? "左" : "右"}の扉の奥が、ほのかに光っている」`);
+      if (A.sense()) lines.push(`気配を読む者がささやく。「${cell.evGood === "L" ? "左" : "右"}の扉の奥が、ほのかに光っている」`);
       return lines;
     },
     choices: (A, cell) => {
@@ -209,7 +209,7 @@ export const EVENTS = [
       const g = A.goldCost(2), s = A.soulCost(2);
       return [
         A.canPayGold(g) && { label: `金貨を載せる (💰${g}) → ✦Soul (1.5倍相当)`, fn: () => {
-          A.payGold(g); A.sfx("spell"); A.soul(3, "天秤"); A.done(cell);
+          A.payGold(g); A.sfx("spell"); A.soul(1.5, "天秤"); A.done(cell);
         } },
         A.canPaySoul(s) && { label: `✦Soul を載せる (✦${s}) → 金貨 (1.5倍相当)`, fn: () => {
           A.paySoul(s); A.sfx("spell"); A.gold(3, "天秤"); A.done(cell);
@@ -248,7 +248,7 @@ export const EVENTS = [
           else { A.sfx("ng"); A.toast("骸骨はカタカタと笑った ― 負けだ", "bad"); }
           A.done(cell);
         } },
-        A.canPaySoul(s) && { label: `魂を賭ける (✦${s}) ― 1/3で3倍`, fn: () => {
+        A.canPaySoul(s) && { label: `✦Soul を賭ける (✦${s}) ― 1/3で3倍`, fn: () => {
           A.paySoul(s);
           if (chance(1 / 3)) { A.sfx("victory"); A.giveSoulRaw(s * 3, "骸骨との賭け"); }
           else { A.sfx("ng"); A.toast("骸骨は魂をすすり、満足げにサイコロを振った ― 負けだ", "bad"); }
@@ -265,7 +265,7 @@ export const EVENTS = [
       return [
         { label: `解読する ― ${c.who ? c.who.name : "誰か"} (成功 ${pctTxt(c.p)}) / 失敗でMP半減`, primary: true, fn: () => {
           if (c.ok) { A.sfx("spell"); A.soul(2, `${c.who.name}の解読`); }
-          else if (c.who) { c.who.mp = Math.floor(c.who.mp / 2); A.sfx("ng"); A.toast(`${c.who.name}は文字に呑まれかけた ― MPが半減`, "bad"); A.refresh(); }
+          else if (c.who) { c.who.mp = Math.floor(c.who.mp / 2); A.sfx("ng"); A.toast(`${c.who.name}は文字にのまれかけた ― MPが半減`, "bad"); A.refresh(); }
           A.done(cell);
         } },
       ];
@@ -293,22 +293,22 @@ export const EVENTS = [
     },
   },
   {
-    id: "c12", name: "祈りの蝋燭", layer: 0, tier: "common", icon: "event",
-    intro: () => ["燭台に、火の消えた蝋燭が一本。灯せば、次の戦いで闇が味方するという。"],
+    id: "c12", name: "祈りのろうそく", layer: 0, tier: "common", icon: "event",
+    intro: () => ["燭台に、火の消えたろうそくが一本。灯せば、次の戦いで闇が味方するという。"],
     choices: (A, cell) => {
       const cost = A.goldCost(0.5);
       return [
         A.canPayGold(cost) && { label: `火を灯す (💰${cost}) ― 次の戦闘は必ず先制`, primary: true, fn: () => {
           A.payGold(cost); A.runEv().preempt = (A.runEv().preempt || 0) + 1;
-          A.sfx("spell"); A.toast("蝋燭が灯った ― 次の戦闘は必ず先制できる", "good"); A.done(cell);
+          A.sfx("spell"); A.toast("ろうそくが灯った ― 次の戦闘は必ず先制できる", "good"); A.done(cell);
         } },
-        { label: "蝋を持ち帰る ― 収集品", fn: () => A.collectible("祈りの燭台", () => A.done(cell)) },
+        { label: "ろうを持ち帰る ― 収集品", fn: () => A.collectible("祈りの燭台", () => A.done(cell)) },
       ];
     },
   },
   {
     id: "c13", name: "瓦礫の下の光", layer: 0, tier: "common", icon: "chest", deep: true,
-    intro: () => ["崩れた瓦礫の隙間から、金属の光が覗いている。天井はまだ不穏にきしんでいる。"],
+    intro: () => ["崩れた瓦礫の隙間から、金属の光がのぞいている。天井はまだ不穏にきしんでいる。"],
     choices: (A, cell) => [
       { label: "掘り出す ― 宝箱 / 30%で落盤", primary: true, fn: () => {
         if (chance(0.3)) { A.sfx("trap"); A.flash("#8a7a5a"); A.hurtAll(0.15); A.toast("天井が崩れた ― 隊の全員が傷を負った", "bad", "trap"); }
@@ -318,7 +318,7 @@ export const EVENTS = [
   },
   {
     id: "c14", name: "魔物の巣穴", layer: 0, tier: "uncommon", icon: "event", deep: true,
-    intro: () => ["獣臭い横穴。奥で幾つもの息遣いがする。巣の主は宝を溜め込む性らしい。", "踏み込めば、休む間もなく3度の戦いになる。"],
+    intro: () => ["獣臭い横穴。奥でいくつもの息遣いがする。入口のくぼみには、産みつけられたばかりの卵が並んでいる。", "巣の親玉は宝をため込む性らしい。踏み込めば、休む間もなく3度の戦いになる。"],
     choices: (A, cell) => [
       { label: "踏み込む ― 3連戦 / 制せば上等な宝箱と ✦Soul", danger: true, fn: () => {
         cell.evStage = 1;
@@ -337,7 +337,7 @@ export const EVENTS = [
         A.fight(cell, [{ pool: true, min: 2 + st }], "nest", { noChest: true });
         return;
       }
-      A.soul(3, "巣の主");
+      A.soul(3, "巣の親玉");
       A.chestHere(cell, { rankUp: 2 }, next);
     },
   },
@@ -361,19 +361,19 @@ export const EVENTS = [
     id: "c16", name: "封印の小箱", layer: 0, tier: "uncommon", icon: "chest", minFloor: 2,
     setup: (A, cell) => { cell.evGood = chance(0.5); },
     intro: (A, cell) => {
-      const lines = ["幾重にも封蝋が施された小箱。良い品か、禍々しい何かか。"];
+      const lines = ["いくえにも封がされた小箱。良い品か、まがまがしい何かか。"];
       if (cell.evPeek) lines.push(cell.evGood ? "鑑定の眼が見た ― 中には確かな品が眠っている。" : "鑑定の眼が見た ― 中から邪な気配が漏れている。");
       return lines;
     },
     choices: (A, cell) => {
       const ap = A.appraiser();
       return [
-        { label: cell.evPeek ? (cell.evGood ? "開ける ― 良い品だ" : "それでも開ける ― 呪いか強敵") : "開ける ― 半々で上等な品 / 呪いか強敵", danger: !(cell.evPeek && cell.evGood), primary: !!(cell.evPeek && cell.evGood), fn: () => {
+        { label: cell.evPeek ? (cell.evGood ? "開ける ― 良い品だ" : "それでも開ける ― 呪いか、封じられた魔物") : "開ける ― 半々で上等な品 / 呪いか、封じられた魔物", danger: !(cell.evPeek && cell.evGood), primary: !!(cell.evPeek && cell.evGood), fn: () => {
           if (cell.evGood) { A.item({ rare: true }, "封印の小箱", () => A.done(cell)); return; }
           if (chance(0.5)) {
             A.sfx("trap"); A.flash("#a01030");
             A.hurtAll(0.20); A.ailAll("poison", 0.4);
-            A.toast("封印から呪いがふきだした ― 全員が生気を吸われた", "bad", "trap"); A.done(cell);
+            A.toast("封印から呪いがふきだした ― 全員が傷を負い、毒に侵された者もいる", "bad", "trap"); A.done(cell);
             return;
           }
           A.alarm("封印されていた魔物が解き放たれた！", ["打ち倒せば、魔物が守っていた品が残る。"], "trap",
@@ -410,8 +410,8 @@ export const EVENTS = [
     choices: (A, cell) => {
       const healer = A.best("pie");
       return [
-        { label: "介錯する ― 騎士の魂 (前衛の職)", fn: () => {
-          A.sfx("hit"); A.soulDrop("front", "介錯した騎士の魂だ。", () => A.done(cell));
+        { label: "楽にしてやる ― 騎士の魂 (前衛の職)", fn: () => {
+          A.sfx("hit"); A.soulDrop("front", "楽にしてやった騎士の魂だ。", () => A.done(cell));
         } },
         healer && healer.mp >= 1 && { label: `手当てする (${healer.name}のMPを半分使う) ― 礼の品 (R以上)`, primary: true, fn: () => {
           healer.mp = Math.floor(healer.mp / 2); A.refresh(); A.sfx("heal");
@@ -425,7 +425,7 @@ export const EVENTS = [
     id: "c19", name: "檻の中の人業", layer: 0, tier: "uncommon", icon: "mon:bs_cagewarden",
     intro: () => ["鉄の檻に、見知らぬ人業が囚われている。器の奥で魂が助けを求めて瞬いている。", "檻の傍らには、鍵束を提げた看守 ― 檻番の獄卒が控えている。この階の魔物より一段手強い。"],
     choices: (A, cell) => [
-      { label: "檻を開ける ― 檻番の獄卒 (この階より1ランク上) と戦い、勝てば希少な魂 (レア以上)", danger: true, fn: () => {
+      { label: "檻を開ける ― 檻番の獄卒と戦い、勝てば希少な魂 (レア以上)", danger: true, fn: () => {
         // 専用の看守。強さは「その階の雑魚の最上位ランク + 1」(どの層でも一段上)
         A.fight(cell, [{ key: "bs_cagewarden", ranked: 1 }], "cage", { noChest: true });
       } },
@@ -510,7 +510,7 @@ export const EVENTS = [
   },
   {
     id: "c25", name: "鏡の間", layer: 0, tier: "rare", icon: "event", deep: true,
-    intro: () => ["四方を鏡に囲まれた部屋。鏡の中の自分たちが、こちらを見てあざ笑った。", "鏡の影は、自分たちと同じ力と技を持つ。体の丈夫さだけが七割。"],
+    intro: () => ["四方を鏡に囲まれた部屋。鏡の中の自分たちが、こちらを見てあざ笑った。", "鏡の影は、自分たちと同じ力と技を持つ。ただ、最大HPだけは七割しかない。"],
     choices: (A, cell) => [
       { label: "鏡に挑む ― 自分たちの影と戦い、✦Soul (大) と上等な品", danger: true, fn: () => {
         A.fight(cell, [{ shadows: 0.7 }], "mirror", { noChest: true });
@@ -542,16 +542,16 @@ export const EVENTS = [
     id: "c27", name: "呪われた金貨の山", layer: 0, tier: "rare", icon: "gold", deep: true,
     intro: () => ["金貨が山と積まれている。手に取った者を呪うという古い警告文が、山の麓に刺さっている。"],
     choices: (A, cell) => [
-      { label: "全部持ち出す ― 金貨 (特大) / この出撃の間 敵の力1.2倍", danger: true, fn: () => {
+      { label: "全部持ち出す ― 金貨 (特大) / この出撃の間 敵の強さ1.2倍", danger: true, fn: () => {
         A.gold(12, "呪われた金貨");
-        A.runEv().mods.push({ src: "c27", name: "金貨の呪い", desc: "敵の力 1.2倍 (この出撃)", enemyMul: 1.2 });
-        A.flash("#a08020"); A.toast("呪いがまとわりついた ― この出撃の間、敵の力1.2倍", "bad"); A.done(cell);
+        A.runEv().mods.push({ src: "c27", name: "金貨の呪い", desc: "敵の強さ 1.2倍 (この出撃)", enemyMul: 1.2 });
+        A.flash("#a08020"); A.toast("呪いがまとわりついた ― この出撃の間、敵の強さ1.2倍", "bad"); A.done(cell);
       } },
       { label: "一掴みだけ ― 金貨", fn: () => { A.gold(2, "金貨の山"); A.done(cell); } },
     ],
   },
   {
-    id: "c28", name: "奈落の縦穴", layer: 0, tier: "rare", icon: "stairs", deep: true, maxSkip: 2,
+    id: "c28", name: "底なしの縦穴", layer: 0, tier: "rare", icon: "stairs", deep: true, maxSkip: 2,
     intro: () => ["底の見えない縦穴。風が下から吹き上げてくる。", "飛び降りれば2階下へ。だが着地は手荒く、降りた先は強敵の巣だ。"],
     choices: (A, cell) => [
       { label: "飛び降りる ― 2階下へ (最大HPの2割を失う) / 強敵階・宝箱が上等", danger: true, fn: () => {
@@ -579,7 +579,7 @@ export const EVENTS = [
   {
     id: "c30", name: "操霊師の遺書", layer: 0, tier: "mythic", icon: "event", once: true,
     boon: EV_BOONS.will.text,
-    intro: () => ["朽ちた机に、革表紙の手記。先代の操霊師が遺したものだ。", "頁をめくると、紙に染みた魂が指先から流れ込んできた。"],
+    intro: () => ["朽ちた机に、革表紙の手記。かつて王家に仕えた操霊師が遺したものだ。", "頁をめくると、紙に染みた魂が指先から流れ込んできた。"],
     gift: (A) => {
       const L = A.layer;
       A.flags().lore = { ...(A.flags().lore || {}), [L]: true };
@@ -603,7 +603,7 @@ export const EVENTS = [
   {
     id: "c32", name: "闇医者", layer: 0, tier: "uncommon", icon: "event",
     cond: (A) => A.deadList().length > 0 || needsCare(A),
-    intro: () => ["血の染みた前掛けの男が、灯りの下で器具を研いでいる。", "「迷宮の中じゃ、街の三倍だ。砕けた器でも繋いでやるよ」"],
+    intro: () => ["血の染みた前掛けの男が、灯りの下で器具を研いでいる。", "「迷宮の中じゃ、街の三倍だ。砕けた器でもつないでやるよ」"],
     choices: (A, cell) => {
       const heal = A.innCost() * 3;
       return [
@@ -644,7 +644,7 @@ export const EVENTS = [
     choices: (A, cell) => [
       { label: "掘る ― 副葬品 / 25%で屍が起き上がる", danger: true, fn: () => {
         if (chance(0.25)) {
-          A.alarm("墓の主が起き上がった！", ["眠りを妨げた報いだ。"], "corpse", () => A.fight(cell, [{ undead: true }], "grave", { noChest: true }));
+          A.alarm("墓に眠る者が起き上がった！", ["眠りを妨げた報いだ。"], "corpse", () => A.fight(cell, [{ undead: true }], "grave", { noChest: true }));
           return;
         }
         if (chance(0.5)) A.item({}, "副葬品", () => A.done(cell)); else { A.gold(2, "副葬品"); A.done(cell); }
@@ -660,22 +660,25 @@ export const EVENTS = [
       const cost = A.goldCost(0.5);
       return [
         A.canPayGold(cost) && { label: `灯油を分ける (💰${cost}) ― この階をすべて見通す`, primary: true, fn: () => {
-          A.payGold(cost); A.revealWhere(() => true); A.sfx("spell"); A.toast("墓守の灯が階を照らした ― すべてのカードが見える", "good"); A.done(cell);
+          A.payGold(cost); A.revealWhere(() => true); A.sfx("spell"); A.toast("墓守の灯が階を照らした ― この階のすべてが見えた", "good"); A.done(cell);
         } },
         { label: "墓の場所を尋ねる ― 近くの死体に魂が宿る", fn: () => {
           const ok = A.warmCorpse();
-          A.sfx("spell"); A.toast(ok ? "「あそこの骸は、まだ温かいよ」― あたたかい死体が見つかった" : "墓守は首を振った", ok ? "good" : "info", "corpseWarm"); A.done(cell);
+          A.sfx("spell");
+          if (ok) A.toast("「あそこの骸は、まだ温かいよ」― あたたかい死体が見つかった", "good", "corpseWarm");
+          else A.soul(0.5, "墓守の昔話"); // 骸を置ける場所が無い時も、手ぶらでは帰さない
+          A.done(cell);
         } },
       ];
     },
   },
   {
     id: "l1_03", name: "開かれた棺", layer: 1, tier: "common", icon: "corpse",
-    intro: () => ["蓋のずれた石棺。隙間から、金糸で織った死に装束が覗いている。"],
+    intro: () => ["蓋のずれた石棺。隙間から、金糸で織った死に装束がのぞいている。"],
     choices: (A, cell) => [
-      { label: "中を覗く ― 半々で副葬品 / 棺の主が目覚める", danger: true, fn: () => {
+      { label: "中をのぞく ― 半々で副葬品 / 棺に眠る者が目覚める", danger: true, fn: () => {
         if (chance(0.5)) { A.item({}, "棺の副葬品", () => A.done(cell)); return; }
-        A.alarm("棺の主が目覚めた！", ["打ち倒せば、棺の中身は手に入る。"], "corpse", () => A.fight(cell, [{ undead: true, strong: 1.4 }], "coffin", { noChest: true }));
+        A.alarm("棺に眠る者が目覚めた！", ["打ち倒せば、棺の中身は手に入る。"], "corpse", () => A.fight(cell, [{ undead: true, strong: 1.4 }], "coffin", { noChest: true }));
       } },
     ],
     onWin: (A, cell, f, next) => A.chestHere(cell, { rankUp: 0 }, next),
@@ -706,7 +709,7 @@ export const EVENTS = [
   },
   {
     id: "l1_06", name: "死者の葬列", layer: 1, tier: "uncommon", icon: "mon:bs_mournshade", minFloor: 2,
-    intro: () => ["蝋燭を掲げた亡者の列が、音もなく通り過ぎていく。行き先は、この階の階段のようだ。"],
+    intro: () => ["ろうそくを掲げた亡者の列が、音もなく通り過ぎていく。行き先は、この階の階段のようだ。"],
     choices: (A, cell) => [
       { label: "列に紛れる ― 戦わずに階段の傍まで運ばれる", primary: true, fn: () => {
         cell.cleared = true; A.sfx("step"); A.toast("葬列に紛れて進んだ ― 階段の傍に着いた", "good", "stairs"); A.warpToStairs();
@@ -754,7 +757,7 @@ export const EVENTS = [
     ],
     onWin: (A, cell, f, next) => {
       const n = A.clearMonsters();
-      A.toast(`鐘に呼ばれた魔物を一掃した (${n}枚)`, "good");
+      A.toast(`鐘に呼ばれた魔物を一掃した (${n}体)`, "good");
       A.chestHere(cell, { rankUp: 1 }, next);
     },
   },
@@ -777,13 +780,7 @@ export const EVENTS = [
   },
   {
     id: "l1_10", name: "墓地の黒猫", layer: 1, tier: "mythic", icon: "event", once: true,
-    boon: EV_BOONS.blackCat.text,
-    intro: () => ["金色の目をした黒猫が、墓石の上からこちらを見ている。", "猫は音もなく降りてくると、一人ひとりの足元に身をすり寄せ、喉を鳴らした。"],
-    gift: (A) => {
-      A.flags().blackCat = true;
-      A.sfx("heal");
-      return ["顔を上げた時には、もう猫の姿はなかった。", `✺ ${EV_BOONS.blackCat.text} (以後ずっと)`];
-    },
+    // 旧来の極 (取得済みのセーブのため id を残す)。いまは w03 固有の極 ― 本文・恵みは下の DUNGEON_GIFTS と MYTHIC_TEXT.w03 が入れる
   },
 
   // ================= 第2層「地下水路」 (10) =================
@@ -791,7 +788,7 @@ export const EVENTS = [
     id: "l2_01", name: "漂着物の山", layer: 2, tier: "common", icon: "chest",
     intro: () => ["流れに運ばれてきた漂着物が、せきに引っかかって山になっている。何かが中でうごめいた。"],
     choices: (A, cell) => [
-      { label: "漁る ― 金貨と時に収集品 / 30%で群れに襲われる", danger: true, fn: () => {
+      { label: "あさる ― 金貨と時に収集品 / 30%で群れに襲われる", danger: true, fn: () => {
         if (chance(0.3)) { A.alarm("群れが飛び出してきた！", ["漂着物の山は巣だった。"], "trap", () => A.fight(cell, [{ pool: true, min: 3 }], "drift", { noChest: true })); return; }
         A.gold(2, "漂着物");
         if (chance(0.3)) A.collectible("漂着物", () => A.done(cell)); else A.done(cell);
@@ -817,7 +814,7 @@ export const EVENTS = [
     id: "l2_03", name: "汚水の浴場", layer: 2, tier: "common", icon: "fountain",
     intro: () => ["古い公衆浴場の跡。湯気の立つ水は、濁っているが温かい。"],
     choices: (A, cell) => [
-      { label: "浸かる ― 半々で全快 / 全員が毒", fn: () => {
+      (anyHurt(A) || anyDrained(A)) && { label: "浸かる ― 半々で全快 / 全員が毒", fn: () => {
         if (chance(0.5)) { A.healAll(1, 1, false); A.sfx("heal"); A.toast("湯が骨身に染みた ― 全快", "good", "fountain"); }
         else { A.ailAll("poison", 1); A.sfx("trap"); A.toast("湯は汚れていた ― 全員が毒に侵された", "bad", "poison"); }
         A.done(cell);
@@ -845,18 +842,21 @@ export const EVENTS = [
   {
     id: "l2_05", name: "水門のレバー", layer: 2, tier: "uncommon", icon: "event",
     intro: () => ["錆びた水門のレバー。上げれば水が引き、下げれば階の半分が沈む。"],
-    choices: (A, cell) => [
-      { label: "上げる ― 汚水のよどみが消え、隠し宝箱が現れる / 30%で鉄砲水", primary: true, fn: () => {
-        if (chance(0.3)) { A.sfx("trap"); A.flash("#3a6a9a"); A.hurtAll(0.20); A.toast("鉄砲水だ！ ― 全員が流されかけた", "bad", "fountain"); }
-        const n = A.clearPoison();
-        A.placeChest({ rankUp: 1, reveal: true });
-        A.toast(`水が引いた ― 汚水のよどみ ${n}か所が消え、隠し宝箱が現れた`, "good", "chest"); A.done(cell);
-      } },
-      { label: "下げる ― 遠い半分が水没し、魔物も宝も消える", fn: () => {
-        const n = A.floodHalf();
-        A.sfx("trap"); A.toast(`階の半分が沈んだ (${n}か所が水に消えた)`, "info", "fountain"); A.done(cell);
-      } },
-    ],
+    choices: (A, cell) => {
+      const pz = A.countCells((c) => c.type === "poison");
+      return [
+        { label: `上げる ― ${pz ? "床のよどみが引き、" : ""}隠し宝箱が現れる / 30%で鉄砲水`, primary: true, fn: () => {
+          if (chance(0.3)) { A.sfx("trap"); A.flash("#3a6a9a"); A.hurtAll(0.20); A.toast("鉄砲水だ！ ― 全員が流されかけた", "bad", "fountain"); }
+          const n = A.clearPoison();
+          A.placeChest({ rankUp: 1, reveal: true });
+          A.toast(n ? `水が引いた ― よどみ ${n}か所が消え、隠し宝箱が現れた` : "水が引いた ― 隠し宝箱が現れた", "good", "chest"); A.done(cell);
+        } },
+        { label: "下げる ― 遠い半分が水没し、魔物も宝も消える", fn: () => {
+          const n = A.floodHalf();
+          A.sfx("trap"); A.toast(`階の半分が沈んだ (${n}か所が水に消えた)`, "info", "fountain"); A.done(cell);
+        } },
+      ];
+    },
     leaveLabel: "触らない",
   },
   {
@@ -878,11 +878,11 @@ export const EVENTS = [
   },
   {
     id: "l2_07", name: "大ワニの骸", layer: 2, tier: "uncommon", icon: "event", deep: true,
-    intro: () => ["水路を塞ぐほどの大ワニの骸。膨れた腹の中に、呑まれた冒険者の装備が透けて見える。"],
+    intro: () => ["水路を塞ぐほどの大ワニの骸。膨れた腹の中に、のまれた冒険者の装備が透けて見える。"],
     choices: (A, cell) => [
       { label: "腹を裂く ― 上等な品 / 25%で中の魔物が飛び出す", danger: true, fn: () => {
         if (chance(0.25)) {
-          A.alarm("腹の中から魔物が飛び出した！", ["呑まれてなお生きていた。打ち倒せば品は残る。"], "trap",
+          A.alarm("腹の中から魔物が飛び出した！", ["のまれてなお生きていた。打ち倒せば品は残る。"], "trap",
             () => A.fight(cell, [{ pool: true, strong: 2.0 }], "gator", { noChest: true }));
           return;
         }
@@ -914,7 +914,7 @@ export const EVENTS = [
     onWin: (A, cell, f, next) => { A.soul(8, "鼠の王"); A.done(cell, next); },
   },
   {
-    id: "l2_09", name: "沈んだ礼拝堂", layer: 2, tier: "rare", icon: "fountain", deep: true,
+    id: "l2_09", name: "水底の聖印", layer: 2, tier: "rare", icon: "fountain", deep: true,
     intro: () => ["水没した礼拝堂。水底の祭壇に、土の色をした聖印が沈んでいる。", "潜って取れば、水の魔物に抗う土の護りが宿る。息が続かぬ者は溺れるだろう。"],
     choices: (A, cell) => [
       { label: "潜る (各自VIT判定・失敗で最大HPの3割) ― この出撃の間 全員に土の護り", danger: true, fn: () => {
@@ -928,13 +928,7 @@ export const EVENTS = [
   },
   {
     id: "l2_10", name: "王都の下水図", layer: 2, tier: "mythic", icon: "event", once: true,
-    boon: EV_BOONS.sewerMap.text,
-    intro: () => ["防水筒に収められた古い設計図。王都の下水路の全図だ。", "隅々まで目を通すうち、入り組んだ水路の形がすっかり頭に入った。"],
-    gift: (A) => {
-      A.flags().sewerMap = true; A.revealStairs();
-      A.sfx("victory");
-      return [`✺ ${EV_BOONS.sewerMap.text} (以後ずっと)`];
-    },
+    // 旧来の極 (取得済みのセーブのため id を残す)。いまは w04 固有の極 ― 本文・恵みは下の DUNGEON_GIFTS と MYTHIC_TEXT.w04 が入れる
   },
 
   // ================= 第3層「廃坑」 (10) =================
@@ -966,7 +960,7 @@ export const EVENTS = [
   {
     id: "l3_03", name: "坑夫の亡霊", layer: 3, tier: "common", icon: "mon:bs_dustwraith",
     cond: (A) => A.countCells((c) => c.type === "corpse" && !c.cleared) >= 1,
-    intro: (A) => ["煤けた坑夫の亡霊が、つるはしにすがって立っている。", `「仲間の亡骸を……この階の亡骸を、すべて弔ってくれ」 (残り ${A.countCells((c) => c.type === "corpse" && !c.cleared)}体)`],
+    intro: (A) => ["すすけた坑夫の亡霊が、つるはしにすがって立っている。", `「仲間の亡骸を……この階の亡骸を、すべて弔ってくれ」 (残り ${A.countCells((c) => c.type === "corpse" && !c.cleared)}体)`],
     choices: (A, cell) => [
       { label: "引き受ける ― この階の死体をすべて調べると ✦Soul と魂の残火", primary: true, fn: () => {
         A.floorEv().miner = true; cell.evQuest = true;
@@ -999,7 +993,7 @@ export const EVENTS = [
         if (chance(0.25)) { A.hurtAll(0.20); A.toast("トロッコが転覆した ― 全員が投げ出された", "bad", "trap"); }
         cell.cleared = true; A.sfx("stairs"); A.skipFloors(0);
       } },
-      { label: "荷台を漁る ― 鉱石 (金貨)", primary: true, fn: () => { A.gold(3, "トロッコの鉱石"); A.done(cell); } },
+      { label: "荷台をあさる ― 鉱石 (金貨)", primary: true, fn: () => { A.gold(3, "トロッコの鉱石"); A.done(cell); } },
     ],
   },
   {
@@ -1040,7 +1034,7 @@ export const EVENTS = [
         A.canPayGold(g) && { label: `金貨で渡る (💰${g}) ― 階段の手前の岸へ`, fn: () => {
           A.payGold(g); cell.cleared = true; A.toast("小舟は静かに岸へ着いた", "good", "stairs"); A.warpToStairs();
         } },
-        A.canPaySoul(s) && { label: `魂で渡る (✦${s}) ― 秘宝の岸 (上等な品)`, primary: true, fn: () => {
+        A.canPaySoul(s) && { label: `✦Soul で渡る (✦${s}) ― 秘宝の岸 (上等な品)`, primary: true, fn: () => {
           A.paySoul(s); A.item({ rare: true }, "秘宝の岸", () => A.done(cell));
         } },
       ];
@@ -1063,14 +1057,8 @@ export const EVENTS = [
     onWin: (A, cell, f, next) => { next && next(); setTimeout(() => A.reopen(cell), 30); },
   },
   {
-    id: "l3_10", name: "地の底の鍛冶場", layer: 3, tier: "mythic", icon: "event", once: true, minLv: 25, deep: true,
-    boon: EV_BOONS.temper.text,
-    intro: () => ["地熱で赤く光る火床。ドワーフの霊が、黙々と槌を振るっている。", "霊は無言で隊の得物を取り上げると、火床にくべ、焼き入れを施して返した。"],
-    gift: (A) => {
-      A.flags().temper = true;
-      A.sfx("victory"); A.flash("#ff9a4a");
-      return ["「……これで、少しはましに斬れる」", `✺ ${EV_BOONS.temper.text} (以後ずっと)`];
-    },
+    id: "l3_10", name: "地の底の鍛冶場", layer: 3, tier: "mythic", icon: "event", once: true,
+    // 旧来の極 (取得済みのセーブのため id を残す)。いまは w05 固有の極 ― 本文・恵みは下の DUNGEON_GIFTS と MYTHIC_TEXT.w05 が入れる
   },
   // ================= 第4層「捨て砦」 (10) =================
   {
@@ -1144,7 +1132,7 @@ export const EVENTS = [
   },
   {
     id: "l4_06", name: "脱走兵の亡霊", layer: 4, tier: "uncommon", icon: "mon:d03_ghost", minFloor: 2,
-    intro: () => ["城壁の隙間に身を潜めた亡霊が、震える声で囁く。", "「頼む……見逃してくれ。抜け道なら教える。下へ降りる、近道だ」"],
+    intro: () => ["城壁の隙間に身を潜めた亡霊が、震える声でささやく。", "「頼む……見逃してくれ。抜け道なら教える。下へ降りる、近道だ」"],
     choices: (A, cell) => [
       { label: "見逃す ― 抜け道を通って階段の傍へ", primary: true, fn: () => {
         cell.cleared = true; A.sfx("step"); A.toast("亡霊の抜け道を抜けた ― 階段の傍に出た", "good", "stairs"); A.warpToStairs();
@@ -1171,7 +1159,7 @@ export const EVENTS = [
   },
   {
     id: "l4_08", name: "伝令の亡霊", layer: 4, tier: "uncommon", icon: "mon:bs_bannerwraith", minFloor: 2,
-    intro: () => ["封書を握りしめた伝令の亡霊が、同じ廊下を行きつ戻りつしている。", "「援軍の報せだ……王都へ……届けねば……」"],
+    intro: () => ["封書を握りしめた伝令の亡霊が、同じ廊下を行きつ戻りつしている。", "「援軍を乞う書状だ……王都へ……届けねば……」"],
     choices: (A, cell) => [
       { label: "封書を預かる ― 伝令は安らぎ、階段と宝箱の在処を教える", primary: true, fn: () => {
         A.revealStairs();
@@ -1186,7 +1174,7 @@ export const EVENTS = [
   },
   {
     id: "l4_09", name: "処刑台", layer: 4, tier: "rare", icon: "mon:el_headsman", deep: true,
-    intro: () => ["中庭の処刑台。吊るされた縄の下で、首の無い亡霊が膝をついている。", "「……わしは、砦の主に門を開けよと進言して、首をはねられた」", "「主の鎧の継ぎ目を、わしは知っておる。縄を断ってくれれば、教えよう」"],
+    intro: () => ["中庭の処刑台。柱に縄で縛りつけられたまま、首の無い亡霊が膝をついている。", "「……わしは、砦の主に門を開けよと進言して、首をはねられた」", "「主の鎧の継ぎ目を、わしは知っておる。縄を断ってくれれば、教えよう」"],
     choices: (A, cell) => [
       { label: "縄を断つ ― 第4層の主の力を削ぐ (最大HP-10%)", primary: true, fn: () => {
         A.flags().bossWeak = { ...(A.flags().bossWeak || {}), 4: true };
@@ -1200,14 +1188,8 @@ export const EVENTS = [
     onWin: (A, cell, f, next) => A.soulDrop("rarePlus", "処刑台に縛られていた魂だ。", () => A.chestHere(cell, { rankUp: 2 }, next)),
   },
   {
-    id: "l4_10", name: "最後の点呼", layer: 4, tier: "mythic", icon: "event", once: true, minLv: 34, deep: true,
-    boon: EV_BOONS.salute.text,
-    intro: () => ["崩れた練兵場に、百年前の守備隊が整列していた。", "隊長の亡霊が一歩進み出て、こちらの隊に向かって剣を掲げた。", "「──援軍、着到。持ち場を、引き継ぐ」"],
-    gift: (A) => {
-      A.flags().salute = true;
-      A.sfx("victory"); A.flash("#c9a26a");
-      return ["亡兵たちは一斉に敬礼すると、霧のように消えていった。", `✺ ${EV_BOONS.salute.text} (以後ずっと)`];
-    },
+    id: "l4_10", name: "最後の点呼", layer: 4, tier: "mythic", icon: "event", once: true,
+    // 旧来の極 (取得済みのセーブのため id を残す)。いまは w09 固有の極 ― 本文・恵みは下の DUNGEON_GIFTS と MYTHIC_TEXT.w09 が入れる
   },
 
   // ================= 第5層「霧の森」 (12) =================
@@ -1227,12 +1209,12 @@ export const EVENTS = [
     id: "l5_02", name: "迷い子の足跡", layer: 5, tier: "common", icon: "event",
     intro: () => ["湿った土に、小さな足跡が続いている。霧の奥へ、まっすぐに。"],
     choices: (A, cell) => [
-      { label: "足跡を辿る ― 半々で置き去りの荷 (宝箱) / 霧に潜む群れ", danger: true, fn: () => {
+      { label: "足跡をたどる ― 半々で置き去りの荷 (宝箱) / 霧に潜む群れ", danger: true, fn: () => {
         if (chance(0.5)) { A.chestHere(cell, { rankUp: 0 }); return; }
         A.alarm("足跡の先にいたのは、子どもではなかった！", ["霧に潜む魔物が、獲物を誘っていた。"], "trap", () => A.fight(cell, [{ pool: true, min: 2 }], "lure", { noChest: true }));
       } },
     ],
-    leaveLabel: "辿らない",
+    leaveLabel: "たどらない",
     onWin: (A, cell, f, next) => A.chestHere(cell, { rankUp: 0 }, next),
   },
   {
@@ -1241,7 +1223,7 @@ export const EVENTS = [
     choices: (A, cell) => [
       { label: "灯について行く ― 70%で階段の傍へ / 30%で惑わしの群火の罠", danger: true, fn: () => {
         if (chance(0.7)) { cell.cleared = true; A.sfx("step"); A.toast("灯は、階段の傍で消えた", "good", "stairs"); A.warpToStairs(); return; }
-        A.alarm("灯が、牙を剥いた！", ["それは迷い人を喰らう群火だった。"], "trap", () => A.fight(cell, [{ key: "bs_wisplure", strong: 1.6, name: "誘い火" }], "wisp", { noChest: true }));
+        A.alarm("灯が、牙を剥いた！", ["それは迷い人を食らう群火だった。"], "trap", () => A.fight(cell, [{ key: "bs_wisplure", strong: 1.6, name: "誘い火" }], "wisp", { noChest: true }));
       } },
       { label: "灯を払い散らす ― ✦Soul", primary: true, fn: () => { A.sfx("spell"); A.soul(2, "散った灯"); A.done(cell); } },
     ],
@@ -1274,7 +1256,7 @@ export const EVENTS = [
   },
   {
     id: "l5_06", name: "霧の湖の乙女", layer: 5, tier: "rare", icon: "fountain", deep: true,
-    intro: () => ["霧の晴れた湖のほとりに、白い衣の乙女が座っている。足は、水に溶けている。", "「霧の森で迷った者は、みなわたしの湖に来るの。あなたは、何を落としたの?」"],
+    intro: () => ["霧の晴れた湖のほとりに、白い衣の乙女が座っている。足は、水に溶けている。", "「霧の森で迷った者は、みなわたしの湖に来るの。あなたは、何を落としたの？」"],
     choices: (A, cell) => {
       const s = A.soulCost(4);
       return [
@@ -1287,18 +1269,12 @@ export const EVENTS = [
     },
   },
   {
-    id: "l5_07", name: "森の古老", layer: 5, tier: "mythic", icon: "event", once: true, deep: true,
-    boon: EV_BOONS.mistEye.text,
-    intro: () => ["霧の中から、苔に覆われた鹿の古老が現れた。角には、無数の小さな灯がともっている。", "古老は隊の一人ひとりの額に、そっと鼻先を寄せた。"],
-    gift: (A) => {
-      A.flags().mistEye = true;
-      A.sfx("heal");
-      return ["霧が、ほんの少しだけ薄く見える。", `✺ ${EV_BOONS.mistEye.text} (以後ずっと)`];
-    },
+    id: "l5_07", name: "森の古老", layer: 5, tier: "mythic", icon: "event", once: true,
+    // 旧来の極 (取得済みのセーブのため id を残す)。いまは ws3 固有の極 ― 本文・恵みは下の DUNGEON_GIFTS と MYTHIC_TEXT.ws3 が入れる
   },  // ---- 第三章「魂脈の根」で増やした第5層の出来事 ----
   {
-    id: "l5_08", name: "魂の実る木", layer: 5, tier: "common", icon: "fountain",
-    intro: () => ["枝という枝に、淡く光る実をつけた木。実のひとつひとつに、小さな顔が浮かんでいる。", "根に呑まれた魂が、ここで実になるのだ。"],
+    id: "l5_08", name: "魂の実る木", layer: 5, tier: "common", icon: "fountain", notIn: ["ws3"], // 第三章の真相 (根が魂を呑む) を、第二章で開く ws3 で先に言わない
+    intro: () => ["枝という枝に、淡く光る実をつけた木。実のひとつひとつに、小さな顔が浮かんでいる。", "根にのまれた魂が、ここで実になるのだ。"],
     choices: (A, cell) => [
       { label: "実をもぐ ― ✦Soul / 30%で木の番人が目を覚ます", danger: true, fn: () => {
         if (chance(0.3)) { A.alarm("木が身じろぎした！", ["実を守る番人が、根の中から這い出してきた。"], "trap", () => A.fight(cell, [{ pool: true, min: 2 }], "soulfruit", { noChest: true })); return; }
@@ -1306,19 +1282,22 @@ export const EVENTS = [
       } },
       { label: "実を土に還す ― 近くの骸に魂が宿る", primary: true, fn: () => {
         const ok = A.warmCorpse();
-        A.sfx("spell"); A.toast(ok ? "落ちた実が土に溶け、近くの骸が温もりを取り戻した" : "実は土に溶けて消えた", ok ? "good" : "info", "corpseWarm"); A.done(cell);
+        A.sfx("spell");
+        if (ok) A.toast("落ちた実が土に溶け、近くの骸が温もりを取り戻した", "good", "corpseWarm");
+        else A.soul(0.5, "土に還った実"); // 骸を置ける場所が無い時も、何も起きないままにしない
+        A.done(cell);
       } },
     ],
     onWin: (A, cell, f, next) => { A.soul(3, "魂の実"); A.done(cell, next); },
   },
   {
-    id: "l5_09", name: "樹液のこぶ", layer: 5, tier: "common", icon: "fountain",
+    id: "l5_09", name: "樹液のこぶ", layer: 5, tier: "common", icon: "fountain", notIn: ["ws3"], // 樹液 = 溶けた魂 (第三章) を ws3 で先に言わない
     cond: (A) => A.aliveList().some((m) => m.mp < m.maxmp || m.hp < m.maxhp),
     intro: () => ["根のこぶから、琥珀色の樹液がとろりと滴っている。甘い香り。", "魂が溶けたものだと知っていても、喉が鳴る。"],
     choices: (A, cell) => [
-      anyDrained(A) && { label: "樹液をなめる ― 全員のMP5割回復 / 25%で一人が痺れる", primary: true, fn: () => {
+      anyDrained(A) && { label: "樹液をなめる ― 全員のMP5割回復 / 25%で一人がしびれる", primary: true, fn: () => {
         A.healAll(0, 0.5, false); A.sfx("heal");
-        if (chance(0.25)) { const m = A.randomAlive(); if (m) { A.ail(m, "paralyze"); A.toast(`${m.name}は樹液に痺れた ― MPは満ちたが…`, "bad", "trap"); } }
+        if (chance(0.25)) { const m = A.randomAlive(); if (m) { A.ail(m, "paralyze"); A.toast(`${m.name}は樹液にしびれた ― 魔力は戻ったが……`, "bad", "trap"); } }
         else A.toast("樹液が魔力を満たした", "good", "fountain");
         A.done(cell);
       } },
@@ -1334,13 +1313,13 @@ export const EVENTS = [
       } },
       { label: "声に道を尋ねる ― この階の魔物の居場所がすべて見える", primary: true, fn: () => {
         const n = A.revealWhere((c) => c.type === "monster" && !c.cleared);
-        A.sfx("spell"); A.toast(n ? `声が根の震えを教えた ― 魔物 ${n}体の居場所が見えた` : "声は、もう誰もいないと囁いた", n ? "good" : "info"); A.done(cell);
+        A.sfx("spell"); A.toast(n ? `声が根の震えを教えた ― 魔物 ${n}体の居場所が見えた` : "声は、もう誰もいないとささやいた", n ? "good" : "info"); A.done(cell);
       } },
     ],
     onWin: (A, cell, f, next) => A.soulDrop("rarePlus", "根の中に閉じ込められていた魂だ。", () => A.done(cell, next)),
   },
   {
-    id: "l5_11", name: "庭師の鋏", layer: 5, tier: "uncommon", icon: "trap", deep: true,
+    id: "l5_11", name: "庭師の鋏", layer: 5, tier: "uncommon", icon: "trap", deep: true, notIn: ["ws3"], // 宰相府と大樹のつながり (第三章) を ws3 で先に言わない
     intro: () => ["根の分かれ目に、金の装飾の大鋏が突き立っている。柄に彫られた紋は──宰相府の印。", "庭師は、ここで根の手入れをしていたのだ。"],
     choices: (A, cell) => [
       { label: "鋏で根を断つ ― この階の植物の魔物への与ダメ+30% (大樹が叫び、全員に小さな傷)", primary: true, fn: () => {
@@ -1353,7 +1332,7 @@ export const EVENTS = [
   },
   {
     id: "l5_12", name: "くさびを打った操霊師", layer: 5, tier: "rare", icon: "event", deep: true, minLv: 46,
-    intro: () => ["幹に半ば呑まれた人影。古い操霊師の法衣を着て、手には鉄のくさびと槌を握ったまま、木になりかけている。", "「……わしは、ヴェルナーより前の操霊師。大樹の主にくさびを一本、打ち込んでやった」", "「そのくさびの場所を教えよう。……それとも、わしの杖を持ってゆくか」"],
+    intro: () => ["幹に半ばのまれた人影。古い操霊師の法衣を着て、手には鉄のくさびと槌を握ったまま、木になりかけている。", "「……わしは、ヴェルナーより前の操霊師。大樹の主にくさびを一本、打ち込んでやった」", "「そのくさびの場所を教えよう。……それとも、わしの杖を持ってゆくか」"],
     choices: (A, cell) => [
       { label: "くさびの場所を聞く ― 第5層の主の力を削ぐ (最大HP-10%)", primary: true, fn: () => {
         A.flags().bossWeak = { ...(A.flags().bossWeak || {}), 5: true };
@@ -1410,9 +1389,9 @@ export const EVENTS = [
     intro: () => ["水底で膝をつき、祈り続ける信徒の亡霊がいる。", "「……神官王さま、冠を……どうか、泉をお守りください……」"],
     choices: (A, cell) => [
       { label: "共に祈る ― ✦Soul", primary: true, fn: () => { A.sfx("heal"); A.soul(1.5, "信徒の祈り"); A.done(cell); } },
-      { label: "肩を叩いて起こす ― 半々で抜け道を教わる (階段の傍へ) / 祈りを乱されて襲いかかる", danger: true, fn: () => {
+      { label: "肩を叩いて呼びかける ― 半々で抜け道を教わる (階段の傍へ) / 祈りを乱されて襲いかかる", danger: true, fn: () => {
         if (chance(0.5)) { cell.cleared = true; A.sfx("step"); A.toast("信徒は黙って、水の抜け道を指さした ― 階段の傍に出た", "good", "stairs"); A.warpToStairs(); return; }
-        A.alarm("信徒が振り向いた！", ["祈りを乱された信徒の目が、昏く濁った。"], "trap", () => A.fight(cell, [{ key: "bs_drownedpriest", strong: 1.4, name: "怒れる信徒" }], "devotee", { noChest: true }));
+        A.alarm("信徒が振り向いた！", ["祈りを乱された信徒の目が、暗く濁った。"], "trap", () => A.fight(cell, [{ key: "bs_drownedpriest", strong: 1.4, name: "怒れる信徒" }], "devotee", { noChest: true }));
       } },
     ],
     onWin: (A, cell, f, next) => { A.soul(2, "信徒の魂"); A.done(cell, next); },
@@ -1448,7 +1427,7 @@ export const EVENTS = [
     onWin: (A, cell, f, next) => { A.gold(4, "大鐘の中の奉納金"); A.done(cell, next); },
   },
   {
-    id: "l6_07", name: "水に溶けた写字室", layer: 6, tier: "uncommon", icon: "event", deep: true,
+    id: "l6_07", name: "水に溶けた写字室", layer: 6, tier: "uncommon", icon: "event", deep: true, notIn: ["ws5"], // 苗木を植えた神官 (第四章) を ws5 で先に言わない
     intro: () => ["神官たちの写字室。棚の巻物は水を吸い、文字がにじんで流れ出している。", "一巻だけ、ろうで封じられた巻物が、乾いたまま残っていた。"],
     choices: (A, cell) => {
       const c = A.check("int");
@@ -1478,7 +1457,7 @@ export const EVENTS = [
     onWin: (A, cell, f, next) => A.chestHere(cell, { rankUp: 1 }, next),
   },
   {
-    id: "l6_09", name: "冠を捧げる侍従", layer: 6, tier: "rare", icon: "event", deep: true, minLv: 56,
+    id: "l6_09", name: "冠を捧げる侍従", layer: 6, tier: "rare", icon: "event", deep: true, minLv: 56, notIn: ["ws5"], // 幹を登った師 (第三章の結び) を ws5 で先に言わない
     intro: () => ["水底の廊下で、冠を捧げ持つ侍従の亡霊が待っていた。", "「……あなた方は、王に会いに来たのですね。あの方はもう、王ではありません。冠が、王を離さないのです」", "「冠のほころびを、わたしは知っています。それとも、わたしが守ってきた宝物をお持ちになりますか」"],
     choices: (A, cell) => [
       { label: "ほころびを聞く ― 第6層の主の力を削ぐ (最大HP-10%)", primary: true, fn: () => {
@@ -1539,7 +1518,7 @@ export const EVENTS = [
           if (c.who) { A.hurtOne(c.who, 0.25); A.sfx("trap"); A.toast(`${c.who.name}は足を踏み外し、溶岩に焼かれた`, "bad", "trap"); }
           A.done(cell);
         } },
-        { label: "溶岩の熱で刃を焼く ― この階の与ダメ+15% (全員に小さな火傷)", fn: () => {
+        { label: "溶岩の熱で刃を焼く ― この階の与ダメ+15% (熱で全員のHPが少し減る)", fn: () => {
           A.hurtAll(0.06); A.flash("#e07040");
           A.floorEv().mods.push({ src: "l7_03", name: "焼き直した刃", desc: "与えるダメージ +15% (この階)", dmgMul: 1.15 });
           A.sfx("hit"); A.toast("刃が赤く焼けた ― この階の与ダメ+15%", "gold"); A.done(cell);
@@ -1565,7 +1544,7 @@ export const EVENTS = [
   },
   {
     id: "l7_05", name: "霊薬の釜", layer: 7, tier: "uncommon", icon: "fountain",
-    intro: () => ["小さな釜で、こはく色の液が煮えている。大樹の樹液を煮詰めた霊薬だ。", "釜の縁には、王家の封印の跡がこびりついている。"],
+    intro: () => ["小さな釜で、こはく色の液が煮えている。大樹の樹液を煮詰めた霊薬だ。湯気の中に、ときおり人の顔のような影が浮かんでは消える。", "釜の縁には、王家の封印の跡がこびりついている。"],
     choices: (A, cell) => [
       needsCare(A) && { label: "霊薬をすする ― 全員が全快 / 30%で強すぎて全員が毒", fn: () => {
         A.healAll(1, 1, true); A.sfx("heal");
@@ -1573,14 +1552,14 @@ export const EVENTS = [
         else A.toast("霊薬が、体の芯まで満たした", "good", "fountain");
         A.done(cell);
       } },
-      { label: "霊薬を煮詰める ― ✦Soul (霊薬は魂から煮出されたもの)", primary: true, fn: () => { A.sfx("spell"); A.soul(4, "煮詰めた霊薬"); A.done(cell); } },
+      { label: "霊薬を煮詰めて、溶けこんだ魂を取り出す ― ✦Soul", primary: true, fn: () => { A.sfx("spell"); A.soul(4, "煮詰めた霊薬"); A.done(cell); } },
     ],
   },
   {
     id: "l7_06", name: "焼き印の炉", layer: 7, tier: "uncommon", icon: "trap", minFloor: 2,
     intro: () => ["火を拝む者たちが使った炉。焼き印の鉄が、まだ赤く焼けている。", "炉の脇には、焼き印を押された人業の殻が、いくつも打ち捨てられている。"],
     choices: (A, cell) => [
-      { label: "焼き印を武具に押す ― この出撃の間、与ダメ+10% (全員に火傷)", primary: true, fn: () => {
+      { label: "焼き印を武具に押す ― この出撃の間、与ダメ+10% (焼けた鉄の熱で、全員のHPが1割ほど減る)", primary: true, fn: () => {
         A.hurtAll(0.12); A.flash("#e07040");
         A.runEv().mods = [...(A.runEv().mods || []), { src: "l7_06", name: "焼き印の武具", desc: "与えるダメージ +10% (この出撃)", dmgMul: 1.1 }];
         A.sfx("hit"); A.toast("武具に焼き印を押した ― この出撃の間、与ダメ+10%", "gold"); A.done(cell);
@@ -1605,9 +1584,9 @@ export const EVENTS = [
       { label: "巣を焼き払う ― 虫の群れと戦い、勝てば巣の中の上等な品", danger: true, fn: () => {
         A.fight(cell, [{ key: "bs_emberswarm", min: 3 }], "nest", { noChest: true });
       } },
-      { label: "巣の外の光り物だけ拾う ― 金貨 / 30%で虫に群がられ全員に火傷", primary: true, fn: () => {
+      { label: "巣の外の光り物だけ拾う ― 金貨 / 30%で虫に群がられ、全員のHPが1割減る", primary: true, fn: () => {
         A.gold(2.5, "虫の光り物");
-        if (chance(0.3)) { A.hurtAll(0.1); A.sfx("trap"); A.toast("虫が群がってきた ― 全員が火傷を負った", "bad", "trap"); }
+        if (chance(0.3)) { A.hurtAll(0.1); A.sfx("trap"); A.toast("虫が群がってきた ― 全員が火の粉に焼かれた", "bad", "trap"); }
         A.done(cell);
       } },
     ],
@@ -1643,7 +1622,7 @@ export const EVENTS = [
   // ================= 第8層「氷結回廊」 (10) ── 第六章。奈落の壁にらせん状に張り出した氷の棚と、落ちてくる魂を閉じこめる氷 =================
   {
     id: "l8_01", name: "氷棚の落とし物", layer: 8, tier: "common", icon: "gold",
-    intro: () => ["壁から張り出した氷の棚に、上から落ちてきた品がいくつも引っかかっている。", "棚の先は、底の見えない闇だ。下から凍える風が吹き上げてくる。"],
+    intro: () => ["壁から張り出した氷の棚に、上から落ちてきた品がいくつも引っかかっている。", "棚の先は、底の見えない闇だ。下から吹き上げる風が、ときおり品をふわりと浮かせては、また棚に落とす。"],
     choices: (A, cell) => {
       const c = A.check("agi");
       return [
@@ -1652,13 +1631,13 @@ export const EVENTS = [
           if (c.who) { A.hurtOne(c.who, 0.2); A.sfx("trap"); A.toast(`${c.who.name}は氷に足を取られ、棚の縁に体を打ちつけた`, "bad", "trap"); }
           A.done(cell);
         } },
-        { label: "氷ごと割り取る ― 金貨 / 25%で割れる音に魔物が寄ってくる", danger: true, fn: () => {
-          if (chance(0.25)) { A.alarm("氷の割れる音が響いた！", ["音を聞きつけた魔物が、棚づたいに寄ってきた。"], "trap", () => A.fight(cell, [{ pool: true, min: 2 }], "ledge", { noChest: true })); return; }
-          A.gold(1.5, "氷の中の落とし物"); A.done(cell);
+        { label: "風が品を吹き上げるのを待つ ― 品 / 待つあいだに体が冷えきり、全員のHPが1割減る", fn: () => {
+          A.hurtAll(0.1); A.sfx("step");
+          A.toast("長く待ったすえに、風が品を足もとへ運んできた", "good");
+          A.item({}, "風に運ばれた落とし物", () => A.done(cell));
         } },
       ];
     },
-    onWin: (A, cell, f, next) => { A.gold(2, "氷の中の落とし物"); A.done(cell, next); },
   },
   {
     id: "l8_02", name: "落ちてくる魂", layer: 8, tier: "common", icon: "wisp",
@@ -1676,31 +1655,35 @@ export const EVENTS = [
   },
   {
     id: "l8_03", name: "凍った泉", layer: 8, tier: "common", icon: "fountain",
-    intro: () => ["厚い氷に閉じた泉。氷の下で、水はまだ静かに動いている。", "氷の奥で、誰かが投げ入れた品がにぶく光っている。"],
-    choices: (A, cell) => [
-      (anyHurt(A) || anyDrained(A)) && { label: "氷を割って水を飲む ― 全員のHP・MP3割回復 / 20%で冷たさに一人の体がしびれる", primary: true, fn: () => {
-        A.healAll(0.3, 0.3, false); A.sfx("heal"); A.toast("身を切るように冷たい水が、体の芯を目覚めさせた", "good", "fountain");
-        if (chance(0.2)) { const m = A.randomAlive(); if (m) { A.ail(m, "paralyze"); A.toast(`${m.name}は冷たさに手足がしびれた`, "bad", "trap"); } }
-        A.done(cell);
-      } },
-      { label: "氷の下をさらう ― 収集品 / 指がかじかみ、全員のHPが少し減る", fn: () => {
-        A.hurtAll(0.05); A.collectible("凍った泉", () => A.done(cell));
-      } },
-    ],
+    intro: () => ["厚い氷に閉じた泉。氷に耳を当てると、下で水がまだ静かに流れている音がする。", "氷の奥では、誰かが投げ入れた品がにぶく光っている。"],
+    choices: (A, cell) => {
+      const m = A.best("int");
+      return [
+        (anyHurt(A) || anyDrained(A)) && { label: "氷を割って水を飲む ― 全員のHP・MP3割回復 / 体が冷えて、この階の間は奇襲を受けやすい", primary: true, fn: () => {
+          A.healAll(0.3, 0.3, false);
+          A.floorEv().mods.push({ src: "l8_03", name: "冷えきった体", desc: "奇襲を受ける確率 1.5倍 (この階)", ambushMul: 1.5 });
+          A.sfx("heal"); A.toast("身を切るように冷たい水が、体の芯を目覚めさせた ― ただ、手足の動きがにぶい", "good", "fountain"); A.done(cell);
+        } },
+        m && m.mp > 0 && { label: `${m.name}の魔力の熱で氷を溶かす (${m.name}のMPが半分になる) ― 収集品`, fn: () => {
+          m.mp = Math.floor(m.mp / 2); A.refresh(); A.sfx("spell");
+          A.collectible("凍った泉", () => A.done(cell));
+        } },
+      ];
+    },
   },
   {
     id: "l8_04", name: "雪に埋もれた野営地", layer: 8, tier: "common", icon: "corpse",
-    intro: () => ["吹きだまった雪の下から、天幕の骨組みがのぞいている。", "誰かがここで夜を明かし、そのまま戻らなかったらしい。"],
+    intro: () => ["吹きだまった雪の下から、天幕の骨組みがのぞいている。", "誰かがここで夜を明かし、そのまま戻らなかったらしい。柱には、凍りついた手帳がひもでくくりつけてある。"],
     choices: (A, cell) => [
-      { label: "雪を掘り返す ― 品 / 25%で雪の下に眠る魔物", danger: true, fn: () => {
-        if (chance(0.25)) { A.alarm("雪が盛り上がった！", ["雪の下で眠っていた魔物が、目を覚ました。"], "trap", () => A.fight(cell, [{ pool: true, min: 2 }], "snowcamp", { noChest: true })); return; }
+      { label: "雪の下の荷を掘り出す ― 品 / 素手で雪を掘るうちに、全員のMPが1割減る", primary: true, fn: () => {
+        A.mpAll(0.1); A.sfx("step");
         A.item({}, "雪の下の荷", () => A.done(cell));
       } },
-      { label: "天幕の柱に名を刻んで弔う ― ✦Soul を少し", primary: true, fn: () => {
-        A.sfx("heal"); A.soul(1, "雪の下の弔い"); A.done(cell);
+      { label: "凍った手帳を胸で温めて読む ― この階の階段の在処と、わずかな ✦Soul", fn: () => {
+        A.revealStairs(); A.sfx("heal"); A.soul(1, "野営した者の書き残し");
+        A.toast("手帳の最後の頁に、下へ降りる道が描かれていた", "good", "stairs"); A.done(cell);
       } },
     ],
-    onWin: (A, cell, f, next) => A.item({}, "雪の下の荷", () => A.done(cell, next)),
   },
   {
     id: "l8_05", name: "氷の鏡", layer: 8, tier: "uncommon", icon: "event", minFloor: 2,
@@ -1715,7 +1698,7 @@ export const EVENTS = [
           A.toast(n ? `氷の奥に、この階の宝箱${n}つが映った` : "氷の奥には、もう何も映らなかった", n ? "good" : "info", "chest");
           A.done(cell);
         } },
-        { label: "影と斬り結ぶ ― 隊の写し身 (力も技も隊と同じ・体力は五割) と戦い、勝てば ✦Soul と上等な品", danger: true, fn: () => {
+        { label: "影と斬り結ぶ ― 隊の写し身 (力も技も隊と同じ・最大HPは五割) と戦い、勝てば ✦Soul と上等な品", danger: true, fn: () => {
           A.fight(cell, [{ shadows: 0.5 }], "icemirror", { noChest: true });
         } },
       ];
@@ -1770,7 +1753,7 @@ export const EVENTS = [
   },
   {
     id: "l8_09", name: "氷の冠を見た者", layer: 8, tier: "rare", icon: "mon:bs_frozenexplorer", deep: true, minLv: 75,
-    intro: () => ["半ば氷に埋もれた老人が、震える指で回廊の奥を指さしている。凍りきれずに残った、昔の誰かだ。", "「……奥の玉座に、氷の冠をかぶった王がおる。わしらを、ずっと見張っておるのだ」", "「冠のひびを教えてやろう。それとも、わしの持ち物を持ってゆくか」"],
+    intro: () => ["半ば氷に埋もれた老人が、震える指で回廊の奥を指さしている。凍りきらずに残った、昔の誰かだ。", "「……奥の玉座に、氷の冠をかぶった王がおる。わしらを、ずっと見張っておるのだ」", "「冠のひびを教えてやろう。……いらんのなら、わしの荷を持っていってもかまわん」"],
     choices: (A, cell) => [
       { label: "冠のひびを聞く ― 第8層の主の力を削ぐ (最大HP-10%)", primary: true, fn: () => {
         A.flags().bossWeak = { ...(A.flags().bossWeak || {}), 8: true };
@@ -1782,7 +1765,7 @@ export const EVENTS = [
   },
   {
     id: "l8_10", name: "魂をとじこめた氷柱", layer: 8, tier: "rare", icon: "wisp", deep: true,
-    intro: () => ["天井から垂れた大きな氷柱の中に、小さな灯がいくつも閉じこめられている。", "灯は外へ出たがるように、氷の内側をたたいている。氷柱の根元には、氷でできた巨体がうずくまっている。"],
+    intro: () => ["天井から垂れた大きな氷柱の中に、小さな灯がいくつも閉じこめられている。", "灯は外へ出たがるように、氷の内側をたたいている。氷柱の根元には氷でできた巨体がうずくまり、そのそばの床には、霜ひとつ寄せつけない黒い岩が顔を出している。"],
     choices: (A, cell) => [
       { label: "氷柱を割って灯を解き放つ ― 氷柱の番人と戦い、勝てば希少な魂と魂の残火", danger: true, fn: () => {
         A.fight(cell, [{ key: "bs_icegolem", strong: 1.8, name: "氷柱の番人" }], "icicle", { noChest: true });
@@ -1842,17 +1825,19 @@ export const EVENTS = [
   },
   {
     id: "l9_04", name: "ヒルのたかる骸", layer: 9, tier: "common", icon: "corpse",
-    intro: () => ["沼のふちに、旅人の骸が倒れている。体じゅうに、黒いヒルがびっしりとたかっている。", "腰の袋は、まだ重そうだ。"],
+    intro: () => ["沼のふちに、旅人の骸が倒れている。体じゅうに、黒いヒルがびっしりとたかっている。", "腰の袋は、まだ重そうだ。ヒルは熱を嫌うと、どこかで聞いた。"],
     choices: (A, cell) => [
-      { label: "ヒルを払って袋を取る ― 金貨 / 30%でヒルの群れが襲う", danger: true, fn: () => {
-        if (chance(0.3)) { A.alarm("ヒルが一斉に跳ねた！", ["骸にたかっていたヒルが、隊へ群がってきた。"], "trap", () => A.fight(cell, [{ key: "bs_leechswarm", min: 2 }], "leech", { noChest: true })); return; }
+      A.aliveList().some((m) => m.mp > 0) && { label: "魔力の火でヒルをあぶり落とす ― 全員のMPを1割使い、旅人の袋の金貨", primary: true, fn: () => {
+        A.mpAll(0.1); A.sfx("spell");
+        A.toast("ヒルは煙を上げて、ぼとぼとと泥へ落ちた", "good");
         A.gold(2, "旅人の袋"); A.done(cell);
       } },
-      { label: "骸を沼に沈めて弔う ― ✦Soul を少し", primary: true, fn: () => {
-        A.sfx("heal"); A.soul(1, "沼の弔い"); A.done(cell);
+      { label: "骸ごとヒルを沼へ沈めて弔う ― ✦Soul と、ヒルを追ってこの階の魔物が1体去る", fn: () => {
+        A.sfx("heal"); A.soul(1, "沼の弔い");
+        if (A.removeMonsters(1)) A.toast("沈んでいく骸に引かれて、近くの魔物が沼の奥へ消えた", "good");
+        A.done(cell);
       } },
     ],
-    onWin: (A, cell, f, next) => { A.gold(2, "旅人の袋"); A.done(cell, next); },
   },
   {
     id: "l9_05", name: "作りかけの人業", layer: 9, tier: "uncommon", icon: "mon:bs_discardeddoll", minFloor: 2,
@@ -1882,23 +1867,25 @@ export const EVENTS = [
       { label: "枝の上から沼を見渡す ― この階の魔物と階段の在処が見え、✦Soul", primary: true, fn: () => {
         const n = A.revealWhere((x) => x.type === "monster" && !x.cleared);
         A.revealStairs(); A.sfx("step"); A.soul(2, "霧の上の眺め");
-        A.toast(n ? `霧の切れ間に、魔物${n}つと階段が見えた` : "霧の切れ間に、階段が見えた", "good", "stairs");
+        A.toast(n ? `霧の切れ間に、魔物${n}体と階段が見えた` : "霧の切れ間に、階段が見えた", "good", "stairs");
         A.done(cell);
       } },
     ],
   },
   {
     id: "l9_07", name: "杭の上の小屋", layer: 9, tier: "uncommon", icon: "mon:bs_swamphag", deep: true,
-    intro: () => ["沼に打ちこんだ杭の上に、傾いた小屋が建っている。中では、魔女が大きな鍋をかき混ぜている。", "「毒には毒、さ。おまえさんたちの刃に、とびきりのを塗ってやろうか。……ただじゃないがね」"],
+    intro: () => ["沼に打ちこんだ杭の上に、傾いた小屋が建っている。中では、魔女が大きな鍋をかき混ぜている。", "「沼の毒は、沼の草で抜くのさ。顔色が悪いね、おまえさんたち。煎じ薬なら売ってやるよ。鍋の火の番をしてくれるなら、礼もしよう」"],
     choices: (A, cell) => {
       const cost = A.goldCost(3);
       return [
-        A.canPayGold(cost) && { label: `刃に毒を塗ってもらう (💰${cost}) ― この出撃の間、与ダメ+10%`, primary: true, fn: () => {
-          A.payGold(cost);
-          A.runEv().mods = [...(A.runEv().mods || []), { src: "l9_07", name: "魔女の毒の刃", desc: "与えるダメージ +10% (この出撃)", dmgMul: 1.1 }];
-          A.sfx("spell"); A.toast("刃が緑にぬめった ― この出撃の間、与ダメ+10%", "gold"); A.done(cell);
+        A.canPayGold(cost) && needsCare(A) && { label: `煎じ薬を買う (💰${cost}) ― 全員の状態異常が治り、HP・MP4割回復`, primary: true, fn: () => {
+          A.payGold(cost); A.healAll(0.4, 0.4, true);
+          A.sfx("heal"); A.toast("苦い煎じ薬が、腹の底の毒まで抜いていった", "good", "fountain"); A.done(cell);
         } },
-        { label: "鍋をひっくり返す ― 沼の魔女と一騎打ち、勝てば上等な品 (レア以上)", danger: true, fn: () => {
+        A.aliveList().some((m) => m.mp > 0) && { label: "鍋の火に魔力をくべる ― 全員のMPを3割使い、礼の ✦Soul", fn: () => {
+          A.mpAll(0.3); A.sfx("spell"); A.soul(3, "魔女の礼"); A.done(cell);
+        } },
+        { label: "鍋をひっくり返す ― 小屋の魔女と戦い、勝てば魔女のため込んだ品 (レア以上)", danger: true, fn: () => {
           A.fight(cell, [{ key: "bs_swamphag", strong: 1.5, name: "小屋の魔女" }], "hagpot", { noChest: true });
         } },
       ];
@@ -1907,39 +1894,47 @@ export const EVENTS = [
   },
   {
     id: "l9_08", name: "上から落ちる滝", layer: 9, tier: "uncommon", icon: "fountain",
-    intro: () => ["はるか上の闇から、細い滝が沼へ落ちてくる。上で解けた氷の水だ。", "落ちてくる水は、まだにごっていない。滝の裏には、小さな洞があるようだ。"],
-    choices: (A, cell) => [
-      needsCare(A) && { label: "澄んだ滝の水を浴びる ― 全員のHP・MP4割回復・状態異常が治る", primary: true, fn: () => {
-        A.healAll(0.4, 0.4, true); A.sfx("heal"); A.toast("冷たく澄んだ水が、沼の毒を洗い流した", "good", "fountain"); A.done(cell);
-      } },
-      { label: "滝の裏の洞をのぞく ― 宝箱 (ランク+1) / 滝に打たれ、全員のHP1割を失う", fn: () => {
-        A.hurtAll(0.1); A.sfx("trap"); A.chestHere(cell, { rankUp: 1 });
-      } },
-    ],
+    intro: () => ["はるか上の闇から、細い滝が沼へ落ちてくる。上で解けた氷の水だ。", "水はまだにごっていない。ときおり、上の氷棚から流された品が、水といっしょに落ちてくる。"],
+    choices: (A, cell) => {
+      const c = A.check("agi");
+      return [
+        (anyHurt(A) || anyAiling(A)) && { label: "滝に打たれて身を清める ― 全員の状態異常が治り、HP4割回復", primary: true, fn: () => {
+          A.healAll(0.4, 0, true); A.sfx("heal"); A.toast("冷たく澄んだ水が、沼の毒を洗い流した", "good", "fountain"); A.done(cell);
+        } },
+        { label: `落ちてくる品を受け止める ― ${c.who ? c.who.name : "誰か"} (成功 ${pctTxt(c.p)}) ― 上等な品 / 失敗で氷のかたまりに打たれる`, fn: () => {
+          if (c.ok) { A.sfx("step"); A.item({ rare: true }, "滝の落とし物", () => A.done(cell)); return; }
+          if (c.who) { A.hurtOne(c.who, 0.25); A.sfx("trap"); A.toast(`${c.who.name}は、品といっしょに落ちてきた氷のかたまりに打たれた`, "bad", "trap"); }
+          A.done(cell);
+        } },
+      ];
+    },
   },
   {
     id: "l9_09", name: "舟を待つ渡し守", layer: 9, tier: "rare", icon: "mon:bs_bogdrowned", deep: true, minLv: 83,
-    intro: () => ["沼の岸の杭に、ずぶぬれの亡霊が腰かけている。手には、消えかけた渡し守の灯。", "「……よどみの底には、主がおる。沼に沈んだものを呑みこんで、ふくれあがった主だ」", "「主の古い傷を教えてやろう。それとも、わしの舟に残った荷を持ってゆくか」"],
+    intro: () => ["沼の岸の杭に、ずぶぬれの亡霊が腰かけている。手には、消えかけた渡し守の灯。", "「……よどみの底には、主がおる。沼に沈んだものを何もかものみこんで、肥え太った主だ」", "「あれの古い傷なら知っておる。……それとも、わしの灯を持っていくか。舟を待つのにも、もう疲れた」"],
     choices: (A, cell) => [
       { label: "古い傷を聞く ― 第9層の主の力を削ぐ (最大HP-10%)", primary: true, fn: () => {
         A.flags().bossWeak = { ...(A.flags().bossWeak || {}), 9: true };
         A.sfx("spell");
-        A.story("舟を待つ渡し守", ["「主の背の、泥のいちばん薄いところ。あそこだけは、昔の傷がふさがっておらん」", "「……一年前にも、脚を引きずった男が上から降りてきた。わしの舟を借りて、霧の向こうへ渡っていった。舟は、まだ返ってこん」", "第9層の主の最大HPが1割削られる (討つまで有効)。"], () => A.done(cell));
+        A.story("舟を待つ渡し守", ["「主の背の、泥のいちばん薄いところ。あそこだけは、昔の傷がふさがっておらん」", "「去年の今ごろだったか。脚を引きずった男が上から降りてきて、わしの舟を借りて霧の向こうへ渡っていった。舟は、まだ返ってこん」", "第9層の主の最大HPが1割削られる (討つまで有効)。"], () => A.done(cell));
       } },
-      { label: "舟に残った荷を受け取る ― 上等な品 (レア以上)", fn: () => { A.sfx("itemget"); A.itemMinRar("r", "渡し守の舟の荷", () => A.done(cell)); } },
+      { label: "渡し守の灯を受け継ぐ ― 魂の残火 ×2", fn: () => {
+        A.sfx("heal"); A.ember(2, "渡し守の灯");
+        A.toast("亡霊は灯を手渡すと、ようやく杭から腰を上げた", "good"); A.done(cell);
+      } },
     ],
   },
   {
     id: "l9_10", name: "腐りきらぬ魂の泡", layer: 9, tier: "rare", icon: "wisp", deep: true,
-    intro: () => ["沼の底から、大きな泡がゆっくりとふくらんでいる。泡の中には、にごりきらずに残った灯がいくつも閉じこめられている。", "泡の上には、汚泥の巨塊が重たくのしかかっている。"],
+    intro: () => ["沼の底から、大きな泡がゆっくりとふくらんでいる。泡の中には、にごりきらずに残った灯がいくつも閉じこめられている。", "泡の上には、汚泥の巨塊が重たくのしかかっている。泡が弾ければ、灯は沼の毒にさらされるだろう。"],
     choices: (A, cell) => [
       { label: "泡を割って灯を救う ― 泡の番人と戦い、勝てば希少な魂と上等な宝箱", danger: true, fn: () => {
         A.fight(cell, [{ key: "bs_toxicgolem", strong: 1.8, name: "泡の番人" }], "soulbubble", { noChest: true });
       } },
-      { label: "泡の膜を切り取って身にまとう ― この出撃の間、全員に風の護り (土の攻撃を和らげる) と ✦Soul / 毒気で全員が毒にかかる", primary: true, fn: () => {
+      { label: "泡を沼の底へ押し戻し、灯が腐らぬよう祈る ― 魂の残火 ×2 / 泡からもれた毒気で全員が毒にかかる", primary: true, fn: () => {
         A.ailAll("poison", 1); A.flash("#7a9a3a");
-        A.runEv().edef = { el: "wind", lv: 1 };
-        A.sfx("spell"); A.soul(4, "泡の膜"); A.toast("泡の膜が、泥の重さをはじく ― この出撃の間、風の護り", "gold"); A.done(cell);
+        A.sfx("heal"); A.ember(2, "沈めた泡の灯");
+        A.toast("泡は灯を抱いたまま、静かに沼の底へ戻っていった", "good"); A.done(cell);
       } },
     ],
     onWin: (A, cell, f, next) => A.soulDrop("rarePlus", "泡の中に閉じこめられていた魂だ。", () => A.chestHere(cell, { rankUp: 2 }, next)),
@@ -1948,15 +1943,14 @@ export const EVENTS = [
   // ================= 第10層「嵐の尖塔」 (10) ── 第八章。沼の島の工房の奥から、奈落を上へ伸びる塔。嵐と雷が絶えず渦を巻く =================
   {
     id: "l10_01", name: "落雷の跡", layer: 10, tier: "common", icon: "chest",
-    intro: () => ["床の石が、黒く焦げて割れている。雷の落ちた跡だ。", "割れ目の中で、雷に溶かされて固まった、ガラスのようなものが光っている。"],
+    intro: () => ["床の石が、黒く焦げて割れている。雷の落ちた跡だ。", "割れ目の中で、雷に溶かされて固まった、ガラスのようなものが光っている。頭の上の雷雲は、まだ低くうなっている。"],
     choices: (A, cell) => [
-      { label: "割れ目を掘る ― 品 / 25%で雷に呼ばれた魔物", danger: true, fn: () => {
-        if (chance(0.25)) { A.alarm("また雷が落ちた！", ["青白い光の中から、魔物が飛び出してきた。"], "trap", () => A.fight(cell, [{ pool: true, min: 2 }], "boltmark", { noChest: true })); return; }
-        A.item({}, "落雷の跡", () => A.done(cell));
+      { label: "割れ目のガラスを掘り出す ― 収集品", primary: true, fn: () => { A.collectible("落雷の跡", () => A.done(cell)); } },
+      { label: "次の雷を待って、焼けた石にふれる ― ✦Soul / 30%で雷がすぐそばに落ち、全員のHP2割を失う", danger: true, fn: () => {
+        if (chance(0.3)) { A.hurtAll(0.2); A.flash("#d8e0ff"); A.sfx("trap"); A.toast("雷が目の前に落ちた ― 全員が打たれた", "bad", "trap"); }
+        A.sfx("spell"); A.soul(2, "雷の落ちた石"); A.done(cell);
       } },
-      { label: "溶けたガラスを拾う ― 収集品", primary: true, fn: () => { A.collectible("落雷の跡", () => A.done(cell)); } },
     ],
-    onWin: (A, cell, f, next) => A.item({}, "落雷の跡", () => A.done(cell, next)),
   },
   {
     id: "l10_02", name: "回る風見", layer: 10, tier: "common", icon: "stairs",
@@ -1972,30 +1966,41 @@ export const EVENTS = [
     ],
   },
   {
-    id: "l10_03", name: "雨受けの甕", layer: 10, tier: "common", icon: "fountain",
-    intro: () => ["窓の下に、雨水を受ける大きな甕が置かれている。", "水は澄んでいるが、ときどき水面に小さな火花が走る。"],
+    id: "l10_03", name: "雨受けの水がめ", layer: 10, tier: "common", icon: "fountain",
+    intro: () => ["窓の下に、雨水を受ける大きな水がめが置かれている。", "水は澄んでいるが、ときどき水面に小さな火花が走る。床のあちこちでも、同じ火花がぱちぱちとはぜている。"],
     choices: (A, cell) => [
       needsCare(A) && { label: "雨水を飲む ― 全員のHP・MP3割回復", primary: true, fn: () => {
-        A.healAll(0.3, 0.3); A.sfx("heal"); A.toast("冷たい雨水が、のどを潤した", "good", "fountain"); A.done(cell);
+        A.healAll(0.3, 0.3); A.sfx("heal"); A.toast("冷たい雨水が、のどをうるおした", "good", "fountain"); A.done(cell);
       } },
-      { label: "甕の底をさらう ― ✦Soul / 20%で帯電した水に触れ、一人が麻痺", fn: () => {
-        A.sfx("heal"); A.soul(1.5, "甕の底の灯");
-        if (chance(0.2)) { const m = A.randomAlive(); if (m) { A.ail(m, "paralyze"); A.toast(`${m.name}は水の中の雷に痺れた`, "bad", "paralyze"); } }
+      A.countCells((c) => c.type === "poison") > 0 && { label: "水がめを傾けて床に流す ― 水が火花をさらい、この階の帯電した床がすべて消える", fn: () => {
+        const n = A.clearPoison(); A.sfx("step"); A.refresh();
+        A.toast(`流れた水が火花をさらっていった ― 足もとの仕掛け ${n}か所が消えた`, "good"); A.done(cell);
+      } },
+      { label: "水がめの底をさらう ― ✦Soul / 20%で帯電した水に触れ、一人が麻痺", fn: () => {
+        A.sfx("heal"); A.soul(1.5, "水がめの底の灯");
+        if (chance(0.2)) { const m = A.randomAlive(); if (m) { A.ail(m, "paralyze"); A.toast(`${m.name}は水の中の雷にしびれた`, "bad", "paralyze"); } }
         A.done(cell);
       } },
     ],
   },
   {
     id: "l10_04", name: "手すりに掛かった荷", layer: 10, tier: "common", icon: "corpse",
-    intro: () => ["吹きさらしの手すりに、旅人の背負い袋が引っかかって揺れている。", "袋のまわりを、黒い鴉が何羽も旋回している。"],
-    choices: (A, cell) => [
-      { label: "鴉を追い払って袋を取る ― 金貨 / 30%で鴉の群れが襲う", danger: true, fn: () => {
-        if (chance(0.3)) { A.alarm("鴉が一斉に舞い降りた！", ["空が黒く染まるほどの群れが、隊へ殺到してきた。"], "trap", () => A.fight(cell, [{ key: "bs_ravenswarm", min: 2 }], "ravenpack", { noChest: true })); return; }
-        A.gold(2, "旅人の背負い袋"); A.done(cell);
-      } },
-      { label: "袋の持ち主を弔う ― ✦Soul を少し", primary: true, fn: () => { A.sfx("heal"); A.soul(1, "風の中の弔い"); A.done(cell); } },
-    ],
-    onWin: (A, cell, f, next) => { A.gold(2, "旅人の背負い袋"); A.done(cell, next); },
+    intro: () => ["吹きさらしの手すりに、旅人の背負い袋が引っかかって揺れている。持ち主の姿はどこにもない。", "袋のまわりを、黒いカラスが何羽も旋回している。光り物の在処なら、カラスがいちばんよく知っている。"],
+    choices: (A, cell) => {
+      const c = A.check("agi");
+      return [
+        { label: `手すりから身を乗り出して袋を取る ― ${c.who ? c.who.name : "誰か"} (成功 ${pctTxt(c.p)}) ― 金貨 / 失敗で突風にあおられる`, primary: true, fn: () => {
+          if (c.ok) { A.sfx("step"); A.gold(2, "旅人の背負い袋"); A.done(cell); return; }
+          if (c.who) { A.hurtOne(c.who, 0.2); A.sfx("trap"); A.toast(`${c.who.name}は突風にあおられ、手すりに打ちつけられた ― 袋は風にさらわれた`, "bad", "trap"); }
+          A.done(cell);
+        } },
+        { label: "袋をカラスにくれてやる ― カラスが、この階の宝箱の在処を1つ教える", fn: () => {
+          const n = A.revealWhere((x) => x.type === "chest" && !x.cleared, 1);
+          if (!n) A.placeChest({ rankUp: 0, reveal: true });
+          A.sfx("itemget"); A.toast("袋をついばんだカラスが、宝箱の上で鳴いた", "good", "chest"); A.done(cell);
+        } },
+      ];
+    },
   },
   {
     id: "l10_05", name: "止まった風車", layer: 10, tier: "uncommon", icon: "event", minFloor: 2,
@@ -2015,72 +2020,74 @@ export const EVENTS = [
     onWin: (A, cell, f, next) => A.item({ rare: true }, "風車の歯車", () => A.done(cell, next)),
   },
   {
-    id: "l10_06", name: "雷を溜めた甕", layer: 10, tier: "uncommon", icon: "wisp", minFloor: 2,
-    intro: () => ["銅の線を巻いた黒い甕が、塔の壁にいくつも並んでいる。", "ふたの隙間から、青白い光がもれている。中に、雷が溜めてあるのだ。"],
+    id: "l10_06", name: "雷をためたかめ", layer: 10, tier: "uncommon", icon: "wisp", minFloor: 2,
+    intro: () => ["銅の線を巻いた黒いかめが、塔の壁にいくつも並んでいる。", "ふたの隙間から、青白い光がもれている。中に、雷がためてあるのだ。"],
     choices: (A, cell) => [
-      A.aliveList().some((m) => m.mp > 0) && { label: "甕の雷を武器に移す ― 全員のMPを2割使い、この出撃の間、会心率 +5%", primary: true, fn: () => {
+      A.aliveList().some((m) => m.mp > 0) && { label: "かめの雷を武器に移す ― 全員のMPを2割使い、この出撃の間、会心率 +5%", primary: true, fn: () => {
         A.mpAll(0.2); A.runEv().crit = (A.runEv().crit || 0) + 0.05;
         A.sfx("spell"); A.toast("刃に雷が宿った ― この出撃の間、会心率 +5%", "gold"); A.done(cell);
       } },
-      { label: "甕を割る ― 宝箱 (ランク+1) / 雷が弾けて全員のHP2割を失う", danger: true, fn: () => {
+      { label: "かめを割る ― 宝箱 (ランク+1) / 雷が弾けて全員のHP2割を失う", danger: true, fn: () => {
         A.hurtAll(0.2); A.flash("#d8e0ff"); A.sfx("trap"); A.chestHere(cell, { rankUp: 1 });
       } },
     ],
   },
   {
     id: "l10_07", name: "嵐を読む老婆", layer: 10, tier: "uncommon", icon: "mon:bs_stormhag", deep: true,
-    intro: () => ["窓辺の揺り椅子に、雷雲をまとった老婆が座っている。", "「嵐の中で迷う者は、風の読み方を知らんのさ。……教えてやろうか。ただじゃないがね」"],
+    intro: () => ["窓辺の揺り椅子に、雷雲をまとった老婆が座っている。膝の上で、風の音を糸に紡いでいる。", "「この塔の風は、下から上へ吹く。下から来るものは、風が先に教えてくれるのさ。……聞き方を知りたいかい。魂の灯を少し分けてくれりゃ、教えてやるよ」"],
     choices: (A, cell) => {
-      const cost = A.goldCost(3);
+      const cost = A.soulCost(1.5);
       return [
-        A.canPayGold(cost) && { label: `風の読み方を教わる (💰${cost}) ― この出撃の間、奇襲を受けにくい (半分)`, primary: true, fn: () => {
-          A.payGold(cost);
+        A.canPaySoul(cost) && { label: `風の聞き方を教わる (✦${cost}) ― この出撃の間、奇襲を受ける確率が半分`, primary: true, fn: () => {
+          A.paySoul(cost);
           A.runEv().mods = [...(A.runEv().mods || []), { src: "l10_07", name: "嵐の読み方", desc: "奇襲を受ける確率が半分 (この出撃)", ambushMul: 0.5 }];
-          A.sfx("spell"); A.toast("風の匂いで、魔物の気配がわかるようになった ― この出撃の間、奇襲を受けにくい", "gold"); A.done(cell);
+          A.sfx("spell"); A.toast("風の音に、魔物の足音がまじって聞こえるようになった ― この出撃の間、奇襲を受けにくい", "gold"); A.done(cell);
         } },
-        { label: "揺り椅子の杖を奪う ― 嵐を読む老婆と一騎打ち、勝てば上等な品 (レア以上)", danger: true, fn: () => {
+        { label: "紡いだ糸を断ち切る ― 怒った老婆と戦い、勝てば糸巻きに巻かれた品 (レア以上)", danger: true, fn: () => {
           A.fight(cell, [{ key: "bs_stormhag", strong: 1.5, name: "嵐を読む老婆" }], "stormhag", { noChest: true });
         } },
       ];
     },
-    onWin: (A, cell, f, next) => A.itemMinRar("r", "老婆の杖に吊るされた品", () => A.done(cell, next)),
+    onWin: (A, cell, f, next) => A.itemMinRar("r", "老婆の糸巻きに巻かれた品", () => A.done(cell, next)),
   },
   {
     id: "l10_08", name: "雲海の見える窓", layer: 10, tier: "uncommon", icon: "fountain",
-    intro: () => ["塔の壁に、大きな窓が開いている。窓の外は、一面の雲の海だ。", "雲の下で、雷が音もなく光っている。窓の外の張り出しには、何かが引っかかっている。"],
+    intro: () => ["塔の壁に、大きな窓が開いている。窓の外は、一面の雲の海だ。", "雲の下で、雷が音もなく光っている。風がやむ一瞬だけ、雲が割れて塔のまわりまで見通せる。窓の外の張り出しには、何かの荷が引っかかっている。"],
     choices: (A, cell) => [
-      needsCare(A) && { label: "窓辺で雲海を眺めて休む ― 全員のHP・MP4割回復・状態異常が治る", primary: true, fn: () => {
-        A.healAll(0.4, 0.4, true); A.sfx("heal"); A.toast("雲の海を眺めるうちに、息が整った", "good", "fountain"); A.done(cell);
+      { label: "雲が割れるのを待って見下ろす ― この階の宝箱すべての在処と ✦Soul", primary: true, fn: () => {
+        const n = A.revealWhere((x) => x.type === "chest" && !x.cleared);
+        A.sfx("spell"); A.soul(3, "雲間の眺め");
+        A.toast(n ? `雲の切れ間に、宝箱${n}つが見えた` : "雲の切れ間に、塔の影だけが見えた", n ? "good" : "info", "chest"); A.done(cell);
       } },
-      { label: "窓の外の張り出しへ出る ― 宝箱 (ランク+1) / 突風に吹かれ、一人が麻痺", fn: () => {
-        const m = A.randomAlive(); if (m) { A.ail(m, "paralyze"); A.toast(`${m.name}は突風に打たれて痺れた`, "bad", "paralyze"); }
+      { label: "張り出しへ出て荷を取る ― 宝箱 (ランク+1) / 突風にあおられ、一人が最大HPの2割を失う", fn: () => {
+        const m = A.randomAlive(); if (m) { A.hurtOne(m, 0.2); A.toast(`${m.name}は突風にあおられ、張り出しの縁にしがみついた`, "bad", "trap"); }
         A.sfx("trap"); A.chestHere(cell, { rankUp: 1 });
       } },
     ],
   },
   {
     id: "l10_09", name: "頂を見上げる鐘番", layer: 10, tier: "rare", icon: "mon:bs_boltarcher", deep: true, minLv: 92,
-    intro: () => ["階段の途中に、鐘の綱を握ったままの亡霊が座りこんでいる。", "「……頂には、主がおる。雷雲が寄り集まって、ふくれあがった主だ」", "「主の渦の弱いところを教えてやろう。それとも、わしの鐘番小屋に残った品を持ってゆくか」"],
+    intro: () => ["階段の途中に、鐘の綱を握ったままの亡霊が座りこんでいる。", "「……頂には、主がおる。鎖でつながれた嵐が、そのまま形をとったような主だ」", "「主の渦の弱いところなら、鐘の音で知っておる。……聞いていくか。それとも、この綱を貸してやろうか。張り出しの下に、昔の鐘番がしまいこんだ箱がある」"],
     choices: (A, cell) => [
       { label: "渦の弱いところを聞く ― 第10層の主の力を削ぐ (最大HP-10%)", primary: true, fn: () => {
         A.flags().bossWeak = { ...(A.flags().bossWeak || {}), 10: true };
         A.sfx("spell");
-        A.story("頂を見上げる鐘番", ["「主の渦は、鐘が鳴る一瞬だけ、芯がゆるむ。そこを突け」", "「……一年前にも、杖をなくした男が、鎖を伝って登っていった。わしの鐘の綱を、少しだけ貸してやった」", "第10層の主の最大HPが1割削られる (討つまで有効)。"], () => A.done(cell));
+        A.story("頂を見上げる鐘番", ["「主の渦は、鐘が鳴る一瞬だけ、芯がゆるむ。そこを突け」", "「去年、杖をなくした男が、鎖をつたって頂へ登っていった。わしの綱を、少しだけ貸してやったよ」", "第10層の主の最大HPが1割削られる (討つまで有効)。"], () => A.done(cell));
       } },
-      { label: "鐘番小屋の品を受け取る ― 上等な品 (レア以上)", fn: () => { A.sfx("itemget"); A.itemMinRar("r", "鐘番小屋の品", () => A.done(cell)); } },
+      { label: "鐘の綱をつたって張り出しの下へ降りる ― 上等な宝箱 (ランク+2)", fn: () => { A.sfx("step"); A.chestHere(cell, { rankUp: 2 }); } },
     ],
   },
   {
     id: "l10_10", name: "魂を抱えた像", layer: 10, tier: "rare", icon: "wisp", deep: true,
-    intro: () => ["鎖の腕をもつ石の像が、通路をふさいで立っている。", "像の胸の中で、いくつもの魂の光が、出口を探すように渦を巻いている。"],
+    intro: () => ["鎖の腕をもつ石の像が、通路をふさいで立っている。", "像の胸の中で、いくつもの魂の光が、出口を探すように渦を巻いている。鎖には、絶えず青白い雷が走っている。"],
     choices: (A, cell) => [
       { label: "像を砕いて魂を解き放つ ― 像の番人と戦い、勝てば希少な魂と魂の残火2", danger: true, fn: () => {
         A.fight(cell, [{ key: "bs_soulanchor", strong: 1.8, name: "像の番人" }], "anchorstatue", { noChest: true });
       } },
-      { label: "像の鎖を一本外して身に巻く ― この出撃の間、全員に火の護り (風の攻撃を和らげる) と ✦Soul / 鎖の雷で全員のHP2割を失う", primary: true, fn: () => {
+      { label: "像の鎖を一本だけ断つ ― 縛られた光のいくつかが昇っていき、この出撃の間 得る ✦Soul 1.15倍 / 鎖の雷で全員のHP2割を失う", primary: true, fn: () => {
         A.hurtAll(0.2); A.flash("#d8e0ff");
-        A.runEv().edef = { el: "fire", lv: 1 };
-        A.sfx("spell"); A.soul(4, "鎖に残った魂の熱"); A.toast("焼けた鎖が、風の刃をはじく ― この出撃の間、火の護り", "gold"); A.done(cell);
+        A.runEv().mods = [...(A.runEv().mods || []), { src: "l10_10", name: "ほどけた鎖", desc: "得る ✦Soul 1.15倍 (この出撃)", soulMul: 1.15 }];
+        A.sfx("spell"); A.toast("鎖がはじけ、いくつかの光が塔の上へ昇っていった ― この出撃の間、得る ✦Soul が増える", "gold"); A.done(cell);
       } },
     ],
     onWin: (A, cell, f, next) => A.soulDrop("rarePlus", "像に縛られていた魂だ。", () => { A.ember(2, "像の胸の残火"); A.done(cell, next); }),
@@ -2101,13 +2108,15 @@ export const EVENTS = [
     onWin: (A, cell, f, next) => A.item({}, "欄干の枷", () => A.done(cell, next)),
   },
   {
-    id: "l11_02", name: "灰に埋もれた辻", layer: 11, tier: "common", icon: "stairs",
-    intro: () => ["灰に埋もれた町の辻に、焼け焦げた道しるべが傾いて立っている。", "辻のまわりには、焼け落ちた店の跡が並ぶ。灰の下で、まだ残り火が赤く点っている。"],
+    id: "l11_02", name: "灰に埋もれた辻", layer: 11, tier: "common", icon: "chest",
+    intro: () => ["灰に埋もれた町の辻に、焼け焦げた道しるべが傾いて立っている。", "辻のまわりには、焼け落ちた店の跡が並ぶ。灰の下では、まだ残り火が赤くくすぶっている。"],
     choices: (A, cell) => {
       const c = A.check("luk");
       return [
-        { label: "道しるべの灰を払う ― この階の階段の在処が見え、✦Soul を少し", primary: true, fn: () => {
-          A.revealStairs(); A.sfx("step"); A.soul(1, "道しるべの刻み"); A.toast("灰の下の矢印が、階段の在処を指していた", "good", "stairs"); A.done(cell);
+        { label: "道しるべの灰を払う ― 市場の跡を指す矢印: この階の宝箱1つの在処と、わずかな ✦Soul", primary: true, fn: () => {
+          const n = A.revealWhere((x) => x.type === "chest" && !x.cleared, 1);
+          A.sfx("step"); A.soul(1, "道しるべの刻み");
+          A.toast(n ? "灰の下の矢印は、市場の跡を指していた ― 宝箱がひとつ見えた" : "灰の下の矢印は、焼け落ちた市場を指していた", n ? "good" : "info", "chest"); A.done(cell);
         } },
         { label: `焼け跡の店をあさる ― ${c.who ? c.who.name : "誰か"} (成功 ${pctTxt(c.p)}) ― 金貨 / 失敗で残り火に手を焼く`, fn: () => {
           if (c.ok) { A.gold(2, "焼け跡の店の銭箱"); A.done(cell); return; }
@@ -2119,27 +2128,28 @@ export const EVENTS = [
   },
   {
     id: "l11_03", name: "闘士の水場", layer: 11, tier: "common", icon: "fountain",
-    intro: () => ["控えの間の手前に、石をくりぬいた水場がある。試合の前に、闘士たちがのどを潤した場所だ。", "水の底に、刻み目のついた木の札が何枚も沈んでいる。"],
+    intro: () => ["控えの間の手前に、石をくりぬいた水場がある。試合の前に、闘士たちがのどを潤した場所だ。", "水の底に、闘士の名を刻んだ木の札が何枚も沈んでいる。"],
     choices: (A, cell) => [
       (anyHurt(A) || anyDrained(A)) && { label: "水を飲む ― 全員のHP・MP3割回復", primary: true, fn: () => {
         A.healAll(0.3, 0.3, false); A.sfx("heal"); A.toast("灰の味のしない水が、のどを潤した", "good", "fountain"); A.done(cell);
       } },
-      { label: "水底の札を拾い上げる ― ✦Soul / 20%で古い水に当たり、一人が毒", fn: () => {
-        A.sfx("heal"); A.soul(1.5, "札に残った闘士の灯");
-        if (chance(0.2)) { const m = A.randomAlive(); if (m) { A.ail(m, "poison"); A.toast(`${m.name}はよどんだ水に当たった`, "bad", "poison"); } }
-        A.done(cell);
+      { label: "水底の札の名を読み上げる ― 名を呼ばれた闘士の亡霊と腕試し、勝てば賞金 (金貨) と ✦Soul", danger: true, fn: () => {
+        A.alarm("水面が波立った！", ["札の名を呼ぶと、水場の向こうに闘士の亡霊が立っていた。「……試合か」"], "trap",
+          () => A.fight(cell, [{ key: "bs_ghostgladiator" }], "waterwager", { noChest: true }));
       } },
     ],
+    onWin: (A, cell, f, next) => { A.gold(1.5, "闘士の賞金"); A.soul(1, "札に残った闘士の灯"); A.done(cell, next); },
   },
   {
     id: "l11_04", name: "檻番の骸", layer: 11, tier: "common", icon: "corpse",
-    intro: () => ["床下の通路に、檻番らしい男の骸が倒れている。そばの檻の扉は、内側から破られている。", "骸の腰には、鍵束と革の財布がぶら下がったままだ。通路の奥から、低いうなり声がする。"],
+    intro: () => ["床下の通路に、檻番らしい男の骸が倒れている。腰には、鍵束と革の財布がぶら下がったままだ。", "奥の檻の中で、やせた闘犬たちが低くうなっている。檻の外の通路には、魔物の足跡が入り乱れている。"],
     choices: (A, cell) => [
-      { label: "鍵束と財布を取る ― 金貨 / 30%で檻を破った闘犬が戻ってくる", danger: true, fn: () => {
-        if (chance(0.3)) { A.alarm("うなり声が駆け寄ってくる！", ["檻を破った闘犬たちが、通路の奥から飛び出してきた。"], "trap", () => A.fight(cell, [{ key: "bs_warbeasthound", min: 2 }], "cagehound", { noChest: true })); return; }
-        A.gold(2, "檻番の財布"); A.done(cell);
+      { label: "財布だけ取っていく ― 金貨", primary: true, fn: () => { A.gold(1.5, "檻番の財布"); A.done(cell); } },
+      A.countCells((c) => c.type === "monster" && !c.cleared && !c.elite) > 0 && { label: "鍵束で檻を開け放つ ― 闘犬がこの階の魔物2体を追い散らす / 30%で闘犬がこちらへ牙を向ける", danger: true, fn: () => {
+        if (chance(0.3)) { A.alarm("闘犬が飛びかかってきた！", ["檻から出た闘犬たちは、まずいちばん近くの者に牙を向けた。"], "trap", () => A.fight(cell, [{ key: "bs_warbeasthound", min: 2 }], "cagehound", { noChest: true })); return; }
+        const n = A.removeMonsters(2);
+        A.sfx("hit"); A.toast(n ? `闘犬たちは通路の奥へ駆けていった ― 魔物が${n}体、追い散らされた` : "闘犬たちは通路の奥へ駆けていった", "good"); A.done(cell);
       } },
-      { label: "骸を灰に埋めて弔う ― ✦Soul を少し", primary: true, fn: () => { A.sfx("heal"); A.soul(1, "灰の中の弔い"); A.done(cell); } },
     ],
     onWin: (A, cell, f, next) => { A.gold(2, "檻番の財布"); A.done(cell, next); },
   },
@@ -2163,10 +2173,10 @@ export const EVENTS = [
     id: "l11_06", name: "勝ち星を刻む柱", layer: 11, tier: "uncommon", icon: "event", minFloor: 2,
     intro: () => ["控えの間の真ん中に、太い石の柱が立っている。柱には、勝ち星を数える刻み目と、闘士の名がびっしりと彫られている。", "いちばん刻み目の多い名の下に、小さな箱が埋めこまれている。勝ち残った者への褒美らしい。"],
     choices: (A, cell) => [
-      A.aliveList().some((m) => m.mp > 0) && { label: "柱の刻み目に手を当てる ― 全員のMPを2割使い、この出撃の間、与ダメ+8%", primary: true, fn: () => {
-        A.mpAll(0.2);
+      { label: "柱に隊の名を刻む (刻む指から血がにじみ、全員が最大HPの1割を失う) ― この出撃の間、与ダメ+8%", primary: true, fn: () => {
+        A.hurtAll(0.1);
         A.runEv().mods = [...(A.runEv().mods || []), { src: "l11_06", name: "勝ち星の気迫", desc: "与えるダメージ +8% (この出撃)", dmgMul: 1.08 }];
-        A.sfx("spell"); A.toast("勝ち残った者たちの気迫が、腕に宿った ― この出撃の間、与ダメ+8%", "gold"); A.done(cell);
+        A.sfx("hit"); A.toast("刻んだ名が、勝ち残った者たちの名と並んだ ― この出撃の間、与ダメ+8%", "gold"); A.done(cell);
       } },
       { label: "褒美の箱を掘り出す ― 宝箱 (ランク+1) / 40%で柱に名を刻んだ闘士が立ちはだかる", danger: true, fn: () => {
         if (chance(0.4)) { A.alarm("背後で鎧の鳴る音がした！", ["柱にいちばん多く名を刻んだ闘士が、褒美を取り返しに来た。"], "trap", () => A.fight(cell, [{ key: "bs_championwraith", strong: 1.3, name: "柱の名の闘士" }], "pillar", { noChest: true })); return; }
@@ -2179,7 +2189,7 @@ export const EVENTS = [
     id: "l11_07", name: "賭け屋の亡霊", layer: 11, tier: "uncommon", icon: "mon:bs_spectreaudience", deep: true,
     intro: () => ["観客席の通路に、帳面を抱えた亡霊が立っている。帳面には、闘士の名と賭け金がびっしり書きこまれている。", "「次の試合に賭けんかね。当たれば倍、外れればそれまで。……試合は、いまも毎日あるのさ」"],
     choices: (A, cell) => {
-      const cost = A.goldCost(3);
+      const cost = A.goldCost(3), c = A.check("int");
       return [
         A.canPayGold(cost) && { label: `賭けに乗る (💰${cost}) ― 50%で賭け金の倍を超える払い戻しと ✦Soul / 外れれば賭け金を失う`, primary: true, fn: () => {
           A.payGold(cost);
@@ -2187,8 +2197,9 @@ export const EVENTS = [
           else { A.sfx("trap"); A.toast("賭けた闘士は砂に沈んだ ― 賭け金は戻らない", "bad"); }
           A.done(cell);
         } },
-        { label: "帳面を奪う ― 賭け屋の亡霊と一騎打ち、勝てば上等な品 (レア以上)", danger: true, fn: () => {
-          A.fight(cell, [{ key: "bs_spectreaudience", strong: 1.5, name: "賭け屋の亡霊" }], "bookie", { noChest: true });
+        { label: `帳面をのぞいて、仕組まれた試合を見抜く ― ${c.who ? c.who.name : "誰か"} (成功 ${pctTxt(c.p)}) ― 金貨 (大) / 失敗で賭け屋に見とがめられ、戦闘`, danger: true, fn: () => {
+          if (c.ok) { A.sfx("victory"); A.toast("帳面の数字は、勝つ闘士をはじめから決めていた", "good"); A.gold(5, "見抜いた賭け"); A.done(cell); return; }
+          A.alarm("賭け屋が帳面を閉じた！", ["「……帳面をのぞく客は、砂の上へご案内だ」"], "trap", () => A.fight(cell, [{ key: "bs_spectreaudience", strong: 1.5, name: "賭け屋の亡霊" }], "bookie", { noChest: true }));
         } },
       ];
     },
@@ -2201,37 +2212,43 @@ export const EVENTS = [
       needsCare(A) && { label: "寝台で体を休める ― 全員のHP・MP4割回復・状態異常が治る", primary: true, fn: () => {
         A.healAll(0.4, 0.4, true); A.sfx("heal"); A.toast("誰も使わなかった寝台で、隊はしばし眠った", "good", "fountain"); A.done(cell);
       } },
-      { label: "寝台の下の行李を開ける ― 宝箱 (ランク+1) / 古い薬の毒気で一人が毒", fn: () => {
-        const m = A.randomAlive(); if (m) { A.ail(m, "poison"); A.toast(`${m.name}は行李の中の古い薬の毒気を吸った`, "bad", "poison"); }
+      { label: "寝台の下の荷箱を開ける ― 宝箱 (ランク+1) / 古い薬の毒気で一人が毒", fn: () => {
+        const m = A.randomAlive(); if (m) { A.ail(m, "poison"); A.toast(`${m.name}は荷箱の中の古い薬の毒気を吸った`, "bad", "poison"); }
         A.sfx("trap"); A.chestHere(cell, { rankUp: 1 });
       } },
     ],
   },
   {
     id: "l11_09", name: "砂へ降りる木戸の番", layer: 11, tier: "rare", icon: "mon:bs_ghostgladiator", deep: true, minLv: 103,
-    intro: () => ["闘技場の砂へ降りる木戸の前に、年老いた闘士の亡霊が座っている。足首には、切れた枷が残っている。", "「……砂の上には、主がおる。何百の試合を勝ち残って、ついに砂から降りることを許されなんだ主だ」", "「主の癖を教えてやろう。それとも、わしが勝ち取った褒美を持ってゆくか」"],
+    intro: () => ["闘技場の砂へ降りる木戸の前に、年老いた闘士の亡霊が座っている。足首には、切れた枷が残っている。", "「……砂の上には、主がおる。貴賓席から降りてきた、金の仮面の興行主だ。試合を終わらせんために、いまも砂の上に立っておる」", "「あれとは、何百べんも砂の上で向き合った。癖なら教えてやれる。……あるいは、この枷を外して、わしを砂の外へ出してくれんか」"],
     choices: (A, cell) => [
       { label: "主の癖を聞く ― 第11層の主の力を削ぐ (最大HP-10%)", primary: true, fn: () => {
         A.flags().bossWeak = { ...(A.flags().bossWeak || {}), 11: true };
         A.sfx("spell");
-        A.story("砂へ降りる木戸の番", ["「主は、歓声がいちばん高まった時、ほんのひと息だけ盾を下ろす。勝ちを見せつける癖が抜けんのだ。そこを突け」", "「……一年前にも、指の焼けた男が橋を渡ってきた。わしに主の癖を聞いて、砂の上を、まっすぐ奥へ歩いていった」", "第11層の主の最大HPが1割削られる (討つまで有効)。"], () => A.done(cell));
+        A.story("砂へ降りる木戸の番", ["「主は、亡霊を起こす時、かならず両手を高く打ち鳴らす。その一拍だけ、外套の胸が開く。そこを突け」", "「……去年、片手の焼けた男が橋を渡ってきた。わしに主の癖を聞いて、砂の上を、まっすぐ奥へ歩いていった」", "第11層の主の最大HPが1割削られる (討つまで有効)。"], () => A.done(cell));
       } },
-      { label: "勝ち取った褒美を受け取る ― 上等な品 (レア以上)", fn: () => { A.sfx("itemget"); A.itemMinRar("r", "老いた闘士の褒美", () => A.done(cell)); } },
+      { label: "枷を外して送り出す ― 老いた闘士の魂 (レア以上)", fn: () => {
+        A.sfx("heal"); A.soulDrop("rarePlus", "砂の外へ送り出した、老いた闘士の魂だ。", () => A.done(cell));
+      } },
     ],
   },
   {
     id: "l11_10", name: "濁った灯籠の列", layer: 11, tier: "rare", icon: "wisp", deep: true,
     intro: () => ["通路の壁に、古い灯籠がずらりと掛けられている。いくつかの灯籠の中で、かすかな灯がまだ揺れている。", "灯の弱い灯籠ほど、ガラスが黒く濁っている。列の前には、鉄のとげをまとった像が、番をするように立っている。"],
-    choices: (A, cell) => [
-      { label: "灯籠を下ろして灯を解き放つ ― 灯籠の番人と戦い、勝てば希少な魂と魂の残火2", danger: true, fn: () => {
-        A.fight(cell, [{ key: "bs_spikedgolem", strong: 1.8, name: "灯籠の番人" }], "lampwarden", { noChest: true });
-      } },
-      { label: "澄んだ灯籠の光に身をかざす ― この出撃の間、全員に光の護り (闇の攻撃を和らげる) と ✦Soul / 濁った灯籠の熱に焼かれ、全員のHP2割を失う", primary: true, fn: () => {
-        A.hurtAll(0.2); A.flash("#f0d8a0");
-        A.runEv().edef = { el: "light", lv: 1 };
-        A.sfx("spell"); A.soul(4, "澄んだ灯籠の光"); A.toast("澄んだ光が、闇の爪をはじく ― この出撃の間、光の護り", "gold"); A.done(cell);
-      } },
-    ],
+    choices: (A, cell) => {
+      const c = A.check("pie");
+      return [
+        { label: "灯籠を下ろして灯を解き放つ ― 灯籠の番人と戦い、勝てば希少な魂と魂の残火2", danger: true, fn: () => {
+          A.fight(cell, [{ key: "bs_spikedgolem", strong: 1.8, name: "灯籠の番人" }], "lampwarden", { noChest: true });
+        } },
+        { label: `番人の目を盗み、澄んだ灯籠だけを選んで下ろす ― ${c.who ? c.who.name : "誰か"} (成功 ${pctTxt(c.p)}) ― 希少な魂 (レア以上) / 失敗で濁った灯籠が割れ、全員のHP2割と一人が毒`, primary: true, fn: () => {
+          if (c.ok) { A.sfx("heal"); A.soulDrop("rarePlus", "澄んだ灯籠から解き放った魂だ。", () => A.done(cell)); return; }
+          A.hurtAll(0.2); A.flash("#5a4a3a"); A.sfx("trap");
+          const m = A.randomAlive(); if (m) A.ail(m, "poison");
+          A.toast("手の中で、濁った灯籠が割れた ― 黒い煙を吸いこんだ", "bad", "poison"); A.done(cell);
+        } },
+      ];
+    },
     onWin: (A, cell, f, next) => A.soulDrop("rarePlus", "灯籠に閉じこめられていた魂だ。", () => { A.ember(2, "灯籠の底の残火"); A.done(cell, next); }),
   },
   // ================= 第12層「地底大空洞」 (10) ── 第十章。闘技場の真ん中の穴の底に広がる、果ての見えない大空洞 =================
@@ -2240,23 +2257,26 @@ export const EVENTS = [
   {
     id: "l12_01", name: "降り積もった灯籠の山", layer: 12, tier: "common", icon: "chest",
     intro: () => ["見上げても天井の見えない暗がりから、ときおり何かが落ちてきて、乾いた音を立てて砕ける。", "足もとには、黒く濁った灯籠が小山のように積もっている。どれも、上の闘技場の穴から落ちてきたものらしい。"],
-    choices: (A, cell) => [
-      { label: "灯籠の山をかき分ける ― 品 / 25%で山にすむ蟲の群れが這い出る", danger: true, fn: () => {
-        if (chance(0.25)) { A.alarm("灯籠の山がざわりと動いた！", ["ガラスのすき間から、黒い蟲の群れが這い出してきた。"], "trap", () => A.fight(cell, [{ key: "bs_gloomstalker", min: 2 }], "lamppile", { noChest: true })); return; }
-        A.item({}, "灯籠の山の底", () => A.done(cell));
-      } },
-      { label: "割れた灯籠のガラスを拾う ― 収集品", primary: true, fn: () => { A.collectible("割れた灯籠のガラス", () => A.done(cell)); } },
-    ],
-    onWin: (A, cell, f, next) => A.item({}, "灯籠の山の底", () => A.done(cell, next)),
+    choices: (A, cell) => {
+      const c = A.check("luk");
+      return [
+        { label: `まだ灯の残る灯籠を探す ― ${c.who ? c.who.name : "誰か"} (成功 ${pctTxt(c.p)}) ― ✦Soul / 失敗で山が崩れ、全員のHPが1割減る`, primary: true, fn: () => {
+          if (c.ok) { A.sfx("heal"); A.soul(2, "灯籠に残っていた灯"); A.done(cell); return; }
+          A.hurtAll(0.1); A.sfx("trap"); A.toast("足もとの灯籠の山が崩れた ― 全員がガラスの雪崩に巻きこまれた", "bad", "trap"); A.done(cell);
+        } },
+        { label: "割れた灯籠のガラスを拾う ― 収集品", fn: () => { A.collectible("割れた灯籠のガラス", () => A.done(cell)); } },
+      ];
+    },
   },
   {
-    id: "l12_02", name: "岩壁に眠る大きな骨", layer: 12, tier: "common", icon: "stairs",
-    intro: () => ["岩壁の中に、とてつもなく大きな背骨が埋まっている。石になった骨は、壁に沿って奥へ奥へと続いている。", "骨のすき間には、落ちてきた灯籠がいくつも挟まっている。"],
+    id: "l12_02", name: "岩壁に眠る大きな骨", layer: 12, tier: "common", icon: "event",
+    intro: () => ["岩壁の中に、とてつもなく大きな背骨が埋まっている。石になった骨は、壁に沿って奥へ奥へと続いている。", "頭のほうには、人の背丈ほどもある石の牙が並ぶ。骨のすき間には、落ちてきた灯籠がいくつも挟まっている。"],
     choices: (A, cell) => {
       const c = A.check("atk");
       return [
-        { label: "背骨をたどって歩く ― この階の階段の在処が見え、✦Soul を少し", primary: true, fn: () => {
-          A.revealStairs(); A.sfx("step"); A.soul(1, "石の骨に残る古い気配"); A.toast("背骨の先が、階段のある方へ伸びていた", "good", "stairs"); A.done(cell);
+        { label: "骨のすき間の灯籠を外していく ― ✦Soul / 30%で骨がきしみ、落ちてきた石に一人が打たれる", primary: true, fn: () => {
+          if (chance(0.3)) { const m = A.randomAlive(); if (m) { A.hurtOne(m, 0.2); A.sfx("trap"); A.toast(`骨がきしんだ ― ${m.name}は落ちてきた石に打たれた`, "bad", "trap"); } }
+          A.sfx("heal"); A.soul(1.5, "骨に挟まっていた灯"); A.done(cell);
         } },
         { label: `石の牙を掘り出す ― ${c.who ? c.who.name : "誰か"} (成功 ${pctTxt(c.p)}) ― 金貨 / 失敗で崩れた岩に打たれる`, fn: () => {
           if (c.ok) { A.gold(2, "掘り出した石の牙"); A.done(cell); return; }
@@ -2270,38 +2290,49 @@ export const EVENTS = [
     id: "l12_03", name: "黒い水の水際", layer: 12, tier: "common", icon: "fountain",
     intro: () => ["岩のくぼみに、黒い水がたまっている。水面の下で、小さな灯がいくつもまたたいている。", "水は氷のように冷たい。耳をすますと、水の底からかすかなささやきが聞こえる。"],
     choices: (A, cell) => [
-      (anyHurt(A) || anyDrained(A)) && { label: "水をすくって飲む ― 全員のHP・MP3割回復 / 20%で冷たさに一人の体がしびれる (麻痺)", primary: true, fn: () => {
-        A.healAll(0.3, 0.3, false); A.sfx("heal");
-        if (chance(0.2)) { const m = A.randomAlive(); if (m) { A.ail(m, "paralyze"); A.toast(`${m.name}は水の冷たさに体がしびれた`, "bad", "fountain"); } }
-        else A.toast("冷たい水が、のどの奥まで澄ませた", "good", "fountain");
+      anyDrained(A) && { label: "黒い水で顔を洗う ― 全員のMP4割回復 / 冷たさで全員のHPが1割減る", primary: true, fn: () => {
+        A.healAll(0, 0.4, false); A.hurtAll(0.1); A.sfx("heal");
+        A.toast("凍るような水が、ぼやけた頭を澄ませた", "good", "fountain"); A.done(cell);
+      } },
+      { label: "水面の灯をすくい上げる ― ✦Soul / 20%でささやきに当てられ、一人が麻痺", fn: () => {
+        A.sfx("heal"); A.soul(1.5, "水底の小さな灯");
+        if (chance(0.2)) { const m = A.randomAlive(); if (m) { A.ail(m, "paralyze"); A.toast(`${m.name}は水底のささやきに当てられ、体がしびれた`, "bad", "paralyze"); } }
         A.done(cell);
       } },
-      { label: "水面の灯をすくい上げる ― ✦Soul", fn: () => { A.sfx("heal"); A.soul(1.5, "水底の小さな灯"); A.done(cell); } },
     ],
   },
   {
     id: "l12_04", name: "石になりかけた探り手", layer: 12, tier: "common", icon: "corpse",
-    intro: () => ["岩の割れ目に、背負い袋を負ったままの骸がもたれている。体の半分が、まわりの岩と同じ色に変わっている。", "袋の口からは、ろうそくの燃えさしと、小さな革の財布がのぞいている。足もとの土が、かすかに盛り上がって動いた。"],
-    choices: (A, cell) => [
-      { label: "背負い袋をあさる ― 金貨 / 30%で土の下の大蟲が這い出る", danger: true, fn: () => {
-        if (chance(0.3)) { A.alarm("足もとの土が割れた！", ["骸を苗床にしていた大蟲が、土の下から頭をもたげた。"], "trap", () => A.fight(cell, [{ key: "bs_deepworm", min: 1 }], "delver", { noChest: true })); return; }
-        A.gold(2, "探り手の財布"); A.done(cell);
-      } },
-      { label: "骸に土をかけて弔う ― ✦Soul を少し", primary: true, fn: () => { A.sfx("heal"); A.soul(1, "暗がりの弔い"); A.done(cell); } },
-    ],
-    onWin: (A, cell, f, next) => { A.gold(2, "探り手の財布"); A.done(cell, next); },
+    intro: () => ["岩の割れ目に、背負い袋を負ったままの骸がもたれている。体の半分が、まわりの岩と同じ色に変わっている。", "膝の上には、書きかけの帳面と、ろうそくの燃えさしが残っている。"],
+    choices: (A, cell) => {
+      const c = A.check("int");
+      return [
+        { label: `帳面を読み解く ― ${c.who ? c.who.name : "誰か"} (成功 ${pctTxt(c.p)}) ― この階の魔物と階段の在処 / 失敗で帳面が崩れ、全員のMPが1割減る`, primary: true, fn: () => {
+          if (c.ok) {
+            const n = A.revealWhere((x) => x.type === "monster" && !x.cleared); A.revealStairs(); A.sfx("spell");
+            A.toast(n ? `帳面の地図に、魔物${n}体と階段の在処が書かれていた` : "帳面の地図に、階段の在処が書かれていた", "good", "stairs"); A.done(cell); return;
+          }
+          A.mpAll(0.1); A.sfx("ng"); A.toast("石の粉になりかけた帳面は、ページをめくるそばから崩れていった ― 読み解こうとした頭が重い", "bad"); A.done(cell);
+        } },
+        { label: "燃えさしに火をともして骸を弔う ― わずかな ✦Soul と、灯りに照らされた宝箱1つの在処", fn: () => {
+          A.sfx("heal"); A.soul(1, "暗がりの弔い");
+          if (A.revealWhere((x) => x.type === "chest" && !x.cleared, 1)) A.toast("小さな灯りが、暗がりの奥の宝箱を照らした", "good", "chest");
+          A.done(cell);
+        } },
+      ];
+    },
   },
   {
     id: "l12_05", name: "名を呼ぶ反響", layer: 12, tier: "uncommon", icon: "mon:bs_echowraith", minFloor: 2,
     intro: () => ["洞の奥から、誰かの名を呼ぶ声が、何重にも重なって響いてくる。", "声は名を呼ぶたびに、少しずつ違う名になる。自分の名を、もう思い出せないのかもしれない。"],
     choices: (A, cell) => [
-      { label: "声のする方へ歩く ― 反響の主たちと戦い、勝てば ✦Soul と金貨", danger: true, fn: () => {
-        A.fight(cell, [{ key: "bs_echowraith", min: 3 }], "echoname", { noChest: true });
+      { label: "名乗り返す ― この階の間、霊の魔物への与ダメ+30%と ✦Soul / 40%で声がこちらの名を欲しがり、反響の霊たちが襲う", danger: true, fn: () => {
+        A.floorEv().mods.push({ src: "l12_05", name: "名乗り返した声", desc: "霊の魔物への与ダメージ +30% (この階)", prey: { races: ["specter"], mul: 1.3 } });
+        if (chance(0.4)) { A.alarm("声が、こちらへ押し寄せてきた！", ["「その名を……わたしに……」 名を欲しがる反響が、形をとった。"], "trap", () => A.fight(cell, [{ key: "bs_echowraith", min: 3 }], "echoname", { noChest: true })); return; }
+        A.sfx("spell"); A.soul(3, "名を返された反響"); A.toast("名を返された声は、満ち足りたように静まった ― この階、霊の魔物への与ダメ+30%", "gold"); A.done(cell);
       } },
-      A.aliveList().some((m) => m.mp > 0) && { label: "灯をかかげて声を鎮める ― 全員のMPを2割使い、この階の霊の魔物への与ダメ+30%と ✦Soul", primary: true, fn: () => {
-        A.mpAll(0.2);
-        A.floorEv().mods.push({ src: "l12_05", name: "鎮めた声", desc: "霊の魔物への与ダメージ +30% (この階)", prey: { races: ["specter"], mul: 1.3 } });
-        A.sfx("spell"); A.soul(2, "静まった反響"); A.toast("声が静まった ― この階、霊の魔物への与ダメ+30%", "gold"); A.done(cell);
+      { label: "耳をふさいで、声のしない方へ進む ― 階段の傍へ", primary: true, fn: () => {
+        cell.cleared = true; A.sfx("step"); A.toast("声に背を向けて歩くうち、階段の傍に出た", "good", "stairs"); A.warpToStairs();
       } },
     ],
     onWin: (A, cell, f, next) => { A.soul(3, "ほどけた反響"); A.gold(2, "霊の足もとの銭"); A.done(cell, next); },
@@ -2309,32 +2340,40 @@ export const EVENTS = [
   {
     id: "l12_06", name: "水晶の鉱脈の露頭", layer: 12, tier: "uncommon", icon: "chest", minFloor: 2,
     intro: () => ["岩壁が裂けて、人の背丈ほどもある水晶の柱が何本も突き出している。", "水晶の奥には、濁った灯の光が閉じこめられたように揺れている。根もとには、白い糸がびっしりと張られている。"],
-    choices: (A, cell) => [
-      { label: "水晶の根もとを割る ― 宝箱 (ランク+1) / 40%で糸の主の大蜘蛛が下りてくる", danger: true, fn: () => {
-        if (chance(0.4)) { A.alarm("頭の上で、糸がぴんと張った！", ["鉱脈に巣を張っていた大蜘蛛が、水晶の上から下りてきた。"], "trap", () => A.fight(cell, [{ key: "bs_crystalspider", strong: 1.3, name: "鉱脈に巣食う大蜘蛛" }], "vein", { noChest: true })); return; }
-        A.sfx("hit"); A.chestHere(cell, { rankUp: 1 });
-      } },
-      A.aliveList().some((m) => m.mp > 0) && { label: "水晶に灯を映す ― 全員のMPを2割使い、この階の宝箱の在処が見え、✦Soul", primary: true, fn: () => {
-        A.mpAll(0.2);
-        const n = A.revealWhere((x) => x.type === "chest" && !x.cleared);
-        A.sfx("spell"); A.soul(2, "水晶に映った灯");
-        A.toast(n ? `水晶の光が、${n}か所の宝箱を照らし出した` : "水晶の光が、暗がりを照らした", "good", "chest"); A.done(cell);
-      } },
-    ],
+    choices: (A, cell) => {
+      const c = A.check("int");
+      return [
+        { label: "水晶の根もとを割る ― 宝箱 (ランク+1) / 40%で糸を張った大蜘蛛が下りてくる", danger: true, fn: () => {
+          if (chance(0.4)) { A.alarm("頭の上で、糸がぴんと張った！", ["鉱脈に巣を張っていた大蜘蛛が、水晶の上から下りてきた。"], "trap", () => A.fight(cell, [{ key: "bs_crystalspider", strong: 1.3, name: "鉱脈に巣食う大蜘蛛" }], "vein", { noChest: true })); return; }
+          A.sfx("hit"); A.chestHere(cell, { rankUp: 1 });
+        } },
+        { label: `水晶の奥の光を目で追う ― ${c.who ? c.who.name : "誰か"} (成功 ${pctTxt(c.p)}) ― この階の宝箱の在処と ✦Soul / 失敗で目がくらみ、全員のMPが1割減る`, primary: true, fn: () => {
+          if (!c.ok) { A.mpAll(0.1); A.sfx("ng"); A.toast("揺れる光を追ううち、目がくらんだ", "bad"); A.done(cell); return; }
+          const n = A.revealWhere((x) => x.type === "chest" && !x.cleared);
+          A.sfx("spell"); A.soul(2, "水晶に映った灯");
+          A.toast(n ? `水晶の光が、${n}か所の宝箱を照らし出した` : "水晶の光が、暗がりを照らした", "good", "chest"); A.done(cell);
+        } },
+      ];
+    },
     onWin: (A, cell, f, next) => A.chestHere(cell, { rankUp: 1 }, next),
   },
   {
     id: "l12_07", name: "濁った獣の寝床", layer: 12, tier: "uncommon", icon: "mon:bs_blindhorror", deep: true,
     intro: () => ["岩のくぼみに、骨とガラスのかけらを敷きつめた寝床がある。寝床の真ん中で、目のない獣が丸くなって眠っている。", "獣の毛には、灯籠のガラスがいくつも刺さったまま。寝床の奥に、獣の集めたらしい品がちらりと光る。"],
-    choices: (A, cell) => [
-      { label: "寝床の骨をすりつぶして刃に塗る ― この出撃の間、獣・巨人の魔物への与ダメ+15%", primary: true, fn: () => {
-        A.runEv().mods = [...(A.runEv().mods || []), { src: "l12_07", name: "獣の骨の粉", desc: "獣・巨人の魔物への与ダメージ +15% (この出撃)", prey: { races: ["beast", "giant"], mul: 1.15 } }];
-        A.sfx("spell"); A.toast("刃に獣の匂いがしみた ― この出撃の間、獣・巨人への与ダメ+15%", "gold"); A.done(cell);
-      } },
-      { label: "眠る獣を討つ ― 寝床の主と一騎打ち、勝てば上等な品 (レア以上)", danger: true, fn: () => {
-        A.fight(cell, [{ key: "bs_blindhorror", strong: 1.5, name: "寝床の主" }], "beastbed", { noChest: true });
-      } },
-    ],
+    choices: (A, cell) => {
+      const c = A.check("agi");
+      return [
+        { label: `眠る獣の脇を抜けて、奥の品を取る ― ${c.who ? c.who.name : "誰か"} (成功 ${pctTxt(c.p)}) ― 上等な品 / 失敗で獣が目を覚まし、奇襲を受ける`, primary: true, fn: () => {
+          if (c.ok) { A.sfx("step"); A.toast("獣は鼻を鳴らしただけで、目を覚まさなかった", "good"); A.item({ rare: true }, "獣の寝床の奥", () => A.done(cell)); return; }
+          A.alarm("獣が跳ね起きた！", ["目のない顔が、まっすぐこちらを向いた。奇襲を受ける！"], "trap",
+            () => A.fight(cell, [{ key: "bs_blindhorror", strong: 1.5, name: "目のない獣" }], "beastbed", { opening: "ambush", noChest: true }));
+        } },
+        { label: "寝床の骨をすりつぶして刃に塗る ― この出撃の間、獣・巨人の魔物への与ダメ+15%", fn: () => {
+          A.runEv().mods = [...(A.runEv().mods || []), { src: "l12_07", name: "獣の骨の粉", desc: "獣・巨人の魔物への与ダメージ +15% (この出撃)", prey: { races: ["beast", "giant"], mul: 1.15 } }];
+          A.sfx("spell"); A.toast("刃に獣の匂いがしみた ― この出撃の間、獣・巨人への与ダメ+15%", "gold"); A.done(cell);
+        } },
+      ];
+    },
     onWin: (A, cell, f, next) => A.itemMinRar("r", "獣の寝床の奥", () => A.done(cell, next)),
   },
   {
@@ -2344,20 +2383,21 @@ export const EVENTS = [
       needsCare(A) && { label: "こけの上で体を休める ― 全員のHP・MP4割回復・状態異常が治る", primary: true, fn: () => {
         A.healAll(0.4, 0.4, true); A.sfx("heal"); A.toast("光るきのこの下で、隊はしばし眠った", "good", "fountain"); A.done(cell);
       } },
-      { label: "きのこの根もとを掘る ― 宝箱 (ランク+1) / 舞い上がった胞子で一人が毒", fn: () => {
+      { label: "光るきのこを摘んでいく ― 収集品と ✦Soul / 舞い上がった胞子で一人が毒", fn: () => {
         const m = A.randomAlive(); if (m) { A.ail(m, "poison"); A.toast(`${m.name}は舞い上がった胞子を吸いこんだ`, "bad", "poison"); }
-        A.sfx("trap"); A.chestHere(cell, { rankUp: 1 });
+        A.soul(2, "きのこの光にまじる灯");
+        A.collectible("光るきのこの洞", () => A.done(cell));
       } },
     ],
   },
   {
     id: "l12_09", name: "穴から落ちてきた灯番", layer: 12, tier: "rare", icon: "wisp", deep: true, minLv: 113,
-    intro: () => ["灯籠の山の陰に、年老いた男の亡霊がひざを抱えて座っている。手には、火の消えた灯籠を抱いたままだ。", "「わしは上の町の灯番だった。灯籠といっしょに、この穴へ落ちてきた。……それから、どれほど経ったのか」", "「この大空洞の奥には、ぬしがおる。ぬしの癖を教えてやろう。それとも、わしの灯籠に残った油を持ってゆくか」"],
+    intro: () => ["灯籠の山の陰に、年老いた男の亡霊がひざを抱えて座っている。手には、火の消えた灯籠を抱いたままだ。", "「わしは上の町の灯番だった。灯籠といっしょに、この穴へ落ちてきた。……それから、どれほど経ったのか」", "「この大空洞の奥には、主がおる。主の癖なら教えてやれる。いらんのなら、わしの灯籠に残った油を持っていくがいい。何かの役に立つかもしれん」"],
     choices: (A, cell) => [
-      { label: "ぬしの癖を聞く ― 第12層の主の力を削ぐ (最大HP-10%)", primary: true, fn: () => {
+      { label: "主の癖を聞く ― 第12層の主の力を削ぐ (最大HP-10%)", primary: true, fn: () => {
         A.flags().bossWeak = { ...(A.flags().bossWeak || {}), 12: true };
         A.sfx("spell");
-        A.story("穴から落ちてきた灯番", ["「ぬしは、灯の明かりの届かぬ側に、守りの薄いところをかかえておる。明かりの裏へ回れ」", "「……一年前にも、片手に手袋のない男が降りてきた。灯籠の山の前で長いこと立ち止まって、それから奥へ歩いていった」", "「底には、まだ何かが眠っておる。わしは、そこまでは行けなんだ」", "第12層の主の最大HPが1割削られる (討つまで有効)。"], () => A.done(cell));
+        A.story("穴から落ちてきた灯番", ["「主は、灯の明かりの届かぬ側に、守りの薄いところをかかえておる。明かりの裏へ回れ」", "「ちょうど一年ほど前か。片手に手袋のない男が降りてきた。灯籠の山の前で長いこと立ち止まって、それから奥へ歩いていった」", "「底には、まだ何かが眠っておる。わしは、そこまでは行けなんだ」", "第12層の主の最大HPが1割削られる (討つまで有効)。"], () => A.done(cell));
       } },
       { label: "灯籠に残った油を受け取る ― 上等な品 (レア以上)", fn: () => { A.sfx("itemget"); A.itemMinRar("r", "灯番の灯籠の底", () => A.done(cell)); } },
     ],
@@ -2369,10 +2409,10 @@ export const EVENTS = [
       { label: "水晶を割って灯を解き放つ ― 水晶の番人と戦い、勝てば希少な魂と魂の残火2", danger: true, fn: () => {
         A.fight(cell, [{ key: "bs_caveguardian", strong: 1.8, name: "水晶の番人" }], "crystalward", { noChest: true });
       } },
-      { label: "水晶のかけらを身につける ― この出撃の間、全員に風の護り (土の攻撃を和らげる) と ✦Soul / 鋭いかけらで全員のHP2割を失う", primary: true, fn: () => {
+      { label: "水晶のかけらを削り出して持ち歩く ― この出撃の間、見つける宝箱が1ランク上等になり、✦Soul / 鋭いかけらで全員のHP2割を失う", primary: true, fn: () => {
         A.hurtAll(0.2); A.flash("#c8f0ff");
-        A.runEv().edef = { el: "wind", lv: 1 };
-        A.sfx("spell"); A.soul(4, "水晶の中の澄んだ灯"); A.toast("澄んだかけらが、岩の一撃をそらす ― この出撃の間、風の護り", "gold"); A.done(cell);
+        A.runEv().mods = [...(A.runEv().mods || []), { src: "l12_10", name: "水晶のかけら", desc: "宝箱が1ランク上等 (この出撃)", chestRankUp: 1 }];
+        A.sfx("spell"); A.soul(4, "水晶の中の澄んだ灯"); A.toast("かけらの光が、暗がりに眠る宝の質を映す ― この出撃の間、宝箱が1ランク上等", "gold"); A.done(cell);
       } },
     ],
     onWin: (A, cell, f, next) => A.soulDrop("rarePlus", "水晶に閉じこめられていた魂だ。", () => { A.ember(2, "水晶の芯の残火"); A.done(cell, next); }),
@@ -2451,29 +2491,412 @@ const DUNGEON_GIFTS = [
   ["ws21", "atk", 2, "化石竜の石の牙"],
   ["ws22", "crit", 0.01, "水晶に映る急所の光"],
 ];
+// 迷宮ごとの極の本文 (2〜4行) と、恵みを受け取った時の結びの一文。無い迷宮は汎用の2行に戻る。
+// その迷宮が開く章までに明かされたことだけを書く (寄り道は開く時期の章まで)。ws1 (c30 操霊師の遺書) は c30 の定義の本文を使う
+const MYTHIC_TEXT = {
+  // ---- 第一章 (第1〜3層) ----
+  w02: {
+    lines: ["回廊の壁のくぼみに、小さな油皿がひとつ置かれていた。油はとうに尽きているのに、芯の先で火が揺れている。",
+      "壁の向こうのささやきが、その火のまわりでだけ静まった。誰かが、死者のために火を絶やさずにいたのだ。",
+      "隊の一人ひとりが手をかざすと、火のぬくもりが指先から胸の奥まで染みわたった。"],
+    close: "体の芯に、消えない小さな火がともった。少々の傷では、もう倒れはしない。",
+  },
+  w03: {
+    lines: ["修道院の裏の墓地で、金色の目をした黒猫が、墓石の上からこちらを見ている。",
+      "猫は音もなく降りてくると、崩れた骨の山へすたすたと歩き、その一点を前足でたたいた。そこだけ、骨の継ぎ目がほつれていた。",
+      "振り返った金色の目が、「見えたか」と言っているようだった。"],
+    close: "顔を上げた時には、もう猫の姿はなかった。急所を見抜く目だけが、隊の一人ひとりに残った。",
+  },
+  w04: {
+    lines: ["水の届かない棚の上に、防水筒がひとつ置かれていた。中身は、王都の下水路を描いた古い全図だ。",
+      "細い線は枝分かれし、合わさり、また枝分かれして、生き物の体をめぐる筋のように街の下を走っていた。",
+      "線を指でたどるうち、自分の内をめぐる魔力の道筋まで、同じように見えてきた。"],
+    close: "図を筒に戻しても、めぐりの形は頭に残った。魔力が、前より深くまでたまる。",
+  },
+  w05: {
+    lines: ["坑道の奥に、地熱で赤く光る火床があった。ドワーフの霊が、黙々と槌を振るっている。",
+      "霊は手を止めると、隊の一人ひとりに槌を握らせ、火床の鉄を指さした。",
+      "振り下ろすたび、霊は首を横に振る。何十度めかで、ようやく鉄が澄んだ音を立てた。「……肩で打つな。腹で打て」"],
+    close: "霊も火床も消えたが、槌の重みは腕に残っている。刃を振る力が、ひと回り強くなった。",
+  },
+  ws2: {
+    lines: ["石になった鉱夫たちの輪の真ん中に、石の盾が一枚立てかけてある。表には、つるはしで彫った不器用な花の絵。",
+      "盾は、落盤のあった坑道の口を向いていた。仲間をかばって、最後まで構えていたのだろう。",
+      "隊の一人ひとりが盾に手を当てると、石の冷たさが皮膚の下まで沈み、そこで固く根を張った。"],
+    close: "盾はただの石に戻った。体が、切り出した岩のように少し固くなった。",
+  },
+  // ---- 第二章 (第4層と、その頃に開く寄り道) ----
+  w06: {
+    lines: ["城壁の上の見張り台に、かがり火が燃えていた。百年、誰も薪をくべていないはずの火だ。",
+      "火のそばには、すり切れた外套が一枚たたまれていた。持ち場を離れる時、次の番の兵のために置いていったのだろう。",
+      "外套に触れると、夜通し立ち続けた兵たちの足のしびれと、それでも膝を折らなかった重さが伝わってきた。"],
+    close: "火は静かに小さくなって消えた。寒さにも打撃にも、体が前より持ちこたえる。",
+  },
+  w07: {
+    lines: ["いちばん奥の牢の壁に、爪で刻んだ短い祈りがびっしりと並んでいる。字は奥へ行くほど細く、浅くなっていた。",
+      "最後の一行だけ、まだ書きかけだった。誰のための祈りなのかは、もう読み取れない。",
+      "隊の一人が、その続きを声に出して唱えた。冷たい石の奥から、かすかなため息が返ってきた。"],
+    close: "牢の空気が、少しだけやわらいだ。祈りの言葉が、隊の胸の内に根を下ろした。",
+  },
+  w08: {
+    lines: ["稲光が門を照らすたび、門の上を一つの影が走り抜けていく。雷が落ちる、その一瞬前に。",
+      "影は伝令の兵だった。百年前のあの夜、援軍を呼ぶ知らせを抱えて、門を抜けようとしたのだ。",
+      "影は隊のそばで足を止め、雨の中で手招きした。続いて走ると、落ちる雷のあいだを縫う道が、足の裏で分かった。"],
+    close: "次の稲光の時には、影はもういなかった。足取りが、雨粒より軽くなっている。",
+  },
+  w09: {
+    lines: ["崩れた練兵場に、百年前の守備隊が整列していた。隊長の亡霊が帳面を開き、かすれた声で名を呼んでいく。",
+      "答えた兵は、ひとりずつ霧になって消えていった。帳面の最後に、まだ誰も答えていない空の行が残る。",
+      "隊長は顔を上げ、こちらの一人ひとりを呼んだ。名を知らぬはずなのに、なぜか自分の名に聞こえた。「──点呼、終わり。呼ばれた者は、必ず帰れ」"],
+    close: "練兵場には、もう誰もいない。帰り道を引き当てる運が、隊のそばについてきた。",
+  },
+  ws3: {
+    lines: ["霧の中から、こけに覆われた鹿の古老が現れた。角には、無数の小さな灯がともっている。",
+      "古老はついて来いと言うように首を振り、霧の中を跳ねていく。根を越え、胞子の床を避け、一度も足をぬらさない。",
+      "必死に追ううち、隊の足もいつの間にか同じ拍子で地を蹴っていた。古老は振り返り、一人ひとりの額にそっと鼻先を寄せた。"],
+    close: "霧が晴れた時、古老の姿はなかった。身のこなしに、森の獣の軽さが残った。",
+  },
+  ws5: {
+    lines: ["井戸の底の泥の中で、一枚の古銭が光っている。誰かが願いと一緒に投げこんだものだ。",
+      "拾い上げると、表はすり減って何の絵だったかも分からない。裏には、小さな字で一言だけ刻まれていた。「次の人へ」",
+      "叶った願いの残りを、誰かに手渡すつもりだったのだろう。"],
+    close: "古銭は手の中でほのかに温かい。めぐり合わせが、少しだけ隊の味方をする。",
+  },
+  ws6: {
+    lines: ["狼煙台の火床のそばに、焦げた盾が一枚、炎に向けて立てかけてあった。",
+      "火の番は、吹きつける風から火を守るため、この盾を構えて夜通し立っていたのだろう。盾の裏に刻まれた日付は何十と続き、最後の一つは途中で止まっていた。",
+      "盾に触れると、百年ぶんの夜風に耐えた腕の重さが、静かにこちらへ移ってきた。"],
+    close: "狼煙の火が、ひときわ高く上がった。体が、前より風にも刃にも揺るがない。",
+  },
+  ws7: {
+    lines: ["押収品の箱の底に、すり切れた布のお守りがひとつ入っていた。札には「没収」の印と、持ち主の名。",
+      "中には、子どもの字で「とうさん かえってきて」と書いた紙が折りたたまれていた。",
+      "お守りを手に取ると、獄吏たちの重い気配が、ほんの少し遠のいた気がした。"],
+    close: "持ち主が帰れたかどうかは分からない。けれどお守りの願いは、まだ切れていない。運が、隊のそばに寄ってくる。",
+  },
+  // ---- 第三章 (第5層) ----
+  w10: {
+    lines: ["縦穴の壁をはう根のうち、一本だけが温かい。触れると、とくん、とくん、と脈を打っている。",
+      "まわりの根は灰色に乾いているのに、その一本だけは若い緑をしていた。根を伝って昇ってくるものが、まだ生きているのだ。",
+      "耳を当てるうち、根の脈と自分の鼓動がそろっていった。"],
+    close: "根から手を離しても、鼓動は力強いままだった。体の奥に、新しい命のぶんが足された。",
+  },
+  w11: {
+    lines: ["霧の底で、小さな灯がひとつ、道を外れたところに浮かんでいる。近づくと、灯は一歩ぶん遠ざかった。",
+      "追ううちに気づいた。霧は勝手に姿を変えているのではない。灯の動きに合わせて、決まった順で流れている。",
+      "その順を数え終えた時、灯はふっと手の中に降りてきて、額の奥へ溶けていった。"],
+    close: "霧の流れも、呪文の組み立ても、前よりはっきり見える。考える力が澄んだ。",
+  },
+  w12: {
+    lines: ["苗床の甘い香りの中に、ひとすじだけ香りのしないしずくが垂れている。若い芽の先から落ちる、水のように澄んだ樹液だ。",
+      "まわりの樹液は魂を溶かして濁っているのに、このしずくだけは、まだ何も混じっていない。",
+      "手のひらに受けると、しずくは肌の上で消え、冷たい泉のような魔力が身の内に満ちた。"],
+    close: "甘い香りが、もう胸を重くしない。体にたまる魔力の器が、少し広がった。",
+  },
+  w13: {
+    lines: ["大樹の根元に、折れた枝が一本転がっていた。枝の中で、無数の小さな灯がひしめいている。",
+      "持ち上げようとすると、鉄の柱のように重い。何人もの腕で、ようやく少し浮いた。",
+      "枝の灯がひとつ、またひとつと腕へ移ってくる。吸われるばかりだった魂が、こちらの力になろうとしているようだった。"],
+    close: "枝は灰になって崩れた。腕に残った重みが、そのまま打ちこむ力になる。",
+  },
+  ws4: {
+    lines: ["里の小屋の棚に、銀色の結晶がひとつ大事そうに置かれていた。のぞきこむと、中で小さな景色が動いている。",
+      "器になれなかった魂が、街を、人を、ほんの少しだけ見た時の記憶だ。銀の小人たちは、それを何度も見返していたらしい。",
+      "結晶は手の中で鈴のように鳴り、映っていた景色ごと、静かに頭の中へ流れこんだ。"],
+    close: "見たことのない街角まで、はっきり思い出せる。物を覚え、考える力が深まった。",
+  },
+  // ---- 第四章 (第6層) ----
+  w14: {
+    lines: ["水底の参道の灯籠は、どれも暗く沈んでいる。ただひとつ、水の中で青い火をともし続けている灯籠があった。",
+      "火袋の中には油も芯もない。沈む前の夜、誰かが最後に込めた祈りの熱だけで燃えている。",
+      "隊が灯籠を囲むと、青い火は水を伝って一人ひとりの胸に移り、冷えた魔力の底をあたためた。"],
+    close: "灯籠は暗くなったが、壊れはしなかった。魔力が、前より多くたくわえられる。",
+  },
+  w15: {
+    lines: ["回廊の歌が、ふいにやんだ。溺れた聖歌隊の先頭で、杖を持った隊長の影がこちらを向いている。",
+      "影は杖を下ろし、歌ではなく、低い声で短い祈りを唱えた。歌の陰で、三百年ずっと唱え続けてきた言葉だという。",
+      "「歌は神へ。祈りは、そばにいる者へ」"],
+    close: "歌がまた始まった時、祈りの言葉は隊の胸に残っていた。人を癒す力が、ひと回り深まった。",
+  },
+  w16: {
+    lines: ["水槽の縁に、王が冠を受ける前に身を清めたという小さな泉の口があった。根に吸われて、もう水は出ない。",
+      "それでも口の奥から、一滴だけ、澄んだしずくが落ちてきた。何十年に一度の、最後の一滴かもしれない。",
+      "しずくを額に受けた者から順に、ほおに血の気が戻り、胸の奥がゆっくりと満ちていった。"],
+    close: "泉の口は乾ききった。隊の体には、洗礼の水のぶんだけ命の余白が増えた。",
+  },
+  w17: {
+    lines: ["崩れた書見台に、金具で閉じた古い祈りの書が沈んでいた。三百年水に浸かっても、ページはふやけていない。",
+      "開くと、祈りの言葉の余白に細かな書きこみが並ぶ。どの言葉を、どの順で、どれだけ唱えれば届くのか。祈りを学問として調べた神官の覚え書きだ。",
+      "読み進めるほど、呪文の組み立てがほどけるように分かっていく。"],
+    close: "書を閉じると、金具が音を立てて砕けた。考える力が、ひとつ深いところへ届いた。",
+  },
+  ws8: {
+    lines: ["書庫の奥の机に、写しかけの本が一冊、開いたまま沈んでいた。墨はにじまず、筆はページの上に置かれたままだ。",
+      "写していたのは、旧都の学者たちが残した、言葉の組み立て方の本だった。司書は、都が沈む夜も筆を止めなかったらしい。",
+      "書きかけの最後の一行を読み終えると、その続きが自然に頭に浮かんだ。"],
+    close: "誰かが、ずっと読み手を待っていたのだ。考える力が、静かに深まった。",
+  },
+  // ---- 第五章 (第7層) ----
+  w18: {
+    lines: ["地割れの縁に、黒い鉄の塊が突き刺さっていた。噴き出す火に長い年月あぶられ、冷えてはまた焼かれてきた鉄だ。",
+      "握ると、手のひらが焼けるかと思うほど熱い。だが離せない。鉄の熱が、腕の筋を伝って肩まで上ってくる。",
+      "熱が引いた時、鉄は砂のように崩れた。芯の強さだけが、腕の中へ移っていた。"],
+    close: "腕に、焼きを入れたような張りが残る。一撃の重さが増した。",
+  },
+  w19: {
+    lines: ["降りしきる灰の中を、白い羽が一枚、ひらひらと舞っている。灰に触れても、焦げも汚れもしない。",
+      "羽は灰の粒と粒のあいだを、道があるかのようにすり抜けていく。",
+      "追って手を伸ばすたび、羽はひょいと逃げた。何度めかで、ようやく体の方が先に動いて、羽をつかんでいた。"],
+    close: "羽は手のひらで溶けて消えた。灰の雨の中でも、身のこなしが軽い。",
+  },
+  w20: {
+    lines: ["釜場の隅に、割れた素焼きのつぼが積まれていた。煮詰めた霊薬を詰めて運び出すためのつぼだ。",
+      "その中に一枚、何度も釜の火をくぐったように、石より固く焼きしまったかけらがあった。たたくと、鐘のように鳴る。",
+      "かけらを胸に当てると、熱にも打撃にも割れなかった固さが、肌の下へ沈んでいった。"],
+    close: "かけらはさらさらと崩れた。体が、焼きしめた土のように打たれ強くなった。",
+  },
+  w21: {
+    lines: ["大釜の縁に、一粒の火種が残っていた。業火の中で、そこだけが針の先ほどの白い光を放っている。",
+      "見つめていると、渦巻く炎のどこが厚く、どこが薄いかを、火種がひとつずつ示していく。薄いところは、いつも一点だけだった。",
+      "火種は最後に、隊の一人ひとりの目の奥へ、ちくりと飛びこんだ。"],
+    close: "まばたきをしても、白い点は消えない。敵の守りの薄い一点が、前より見える。",
+  },
+  ws9: {
+    lines: ["黒い崖の割れ口に、手のひらほどの黒曜のかけらが落ちていた。縁は、見ているだけで指が痛くなるほど鋭い。",
+      "かけらを崖に当てて引くと、岩がやすやすと切れた。刃物への力の通し方を、かけらの方が教えてくる。",
+      "隊の一人ひとりが試すうち、腕が覚えた。強く握るのではない。刃の向きに、迷わず力を通すのだ。"],
+    close: "かけらは最後の一振りで砕けた。迷いのない一撃が、腕に残った。",
+  },
+  ws10: {
+    lines: ["僧院の奥の小さな祈りの間に、年老いた火守りの幻が、ひとりで座っていた。",
+      "幻が唱えているのは、釜の火のための祈りではない。逃げていった仲間たちのための祈りだった。「どうか、あの子らが寒くないように」",
+      "唱え終えると、幻は隊の方を見て、同じ言葉をもう一度、こちらのために唱えた。"],
+    close: "炎の幻が、ひとつ静かに消えた。人を案じる祈りの力が、隊の胸に宿った。",
+  },
+  // ---- 第六章 (第8層) ----
+  w22: {
+    lines: ["吹き上げる風に削られた氷棚の縁に、古銭が一枚、ぎりぎりのところで引っかかっていた。",
+      "上から落ちてきて、ここで止まったのだ。あと指一本ずれていれば、闇の底へ消えていた。",
+      "そっと指を伸ばすと、古銭は自分から転がって、手のひらに収まった。"],
+    close: "落ちずに残ったものには、運がしみついている。そのめぐり合わせが、隊にも移った。",
+  },
+  w23: {
+    lines: ["氷の柱のひとつに、剣を振り抜く途中の剣士が閉じこめられていた。切っ先だけが、柱の外へ突き出ている。",
+      "切っ先の向かう先の氷に、髪の毛ほどの細い筋が一本走っていた。厚い氷のどこを断てば割れるのか、剣士は知っていたのだ。",
+      "隊が筋をなぞると、氷はその線で音もなく二つに割れた。凍りついた太刀筋の冴えが、見る者の目に焼きついた。"],
+    close: "剣士はなお、柱の中で剣を振り抜いている。その一点を突く目が、隊に残った。",
+  },
+  w24: {
+    lines: ["天井の極光が、ゆらりと低く垂れてきた。光の帳の端から、緑のしずくがひとつ、またひとつと落ちてくる。",
+      "しずくは凍りつかず、手のひらの上で温かく脈を打った。氷に閉じこめられた魂の光が、ほんの一部だけこぼれ落ちたものだ。",
+      "しずくを受けた者の胸で、知らない誰かの心臓の音が、ひと拍だけ重なった。"],
+    close: "極光はまた高く昇っていった。体に、もうひとつぶんの命の温もりが宿った。",
+  },
+  w25: {
+    lines: ["大回廊の壁に、青く透きとおった氷の塊が埋まっている。いくら息を吹きかけても、表面さえ曇らない。",
+      "氷の芯で、細い光がゆっくりとめぐっていた。奥の玉座の方から、長い年月をかけて流れてきた魔力だ。",
+      "隊の一人ひとりが手を当てると、氷は溶けずに光だけを手放した。冷たい魔力が、底の見えない泉のように身の内へ満ちていく。"],
+    close: "氷は相変わらず、少しも溶けていない。けれど魔力の器は、確かに深くなった。",
+  },
+  ws11: {
+    lines: ["吹き溜まりの雪の上に、大きな狼の足あとが点々と続いている。ふしぎなことに、どの足あとも浅い。",
+      "雪の固いところだけを選んで、重さを持たないかのように踏んでいるのだ。",
+      "足あとの上を同じ歩幅でたどるうち、膝の使い方が変わった。雪煙の向こうで、白狼が一度だけ振り返った。"],
+    close: "足あとは途中で風に消された。雪の上でも、足取りが沈まない。",
+  },
+  ws12: {
+    lines: ["裂け目の壁の氷は、どこも同じ厚さに見える。だが、雪解けの水が流れる筋だけは、うすく光っている。",
+      "その筋に沿って、氷から抜け落ちた者たちが歩いた跡がある。弱いところを、彼らは目で見分けていた。",
+      "光る筋を見つめるうち、どんな固い守りにも、細い割れ目が一本だけ通っていることが分かってきた。"],
+    close: "まばたきのたびに、割れ目の線が目に浮かぶ。急所を見抜く目が、少し冴えた。",
+  },
+  // ---- 第七章 (第9層) ----
+  w26: {
+    lines: ["黒い泥の岸に、古い盾が一枚、表を上にして打ち上げられていた。滝と一緒に、はるか上から落ちてきたらしい。",
+      "腐れ水に何年浸かっていたのか、まわりの鉄はぼろぼろなのに、真ん中の一枚板だけはびくともしていない。",
+      "盾を泥から起こすと、ずしりとした重みが腕を伝い、背骨の一本一本を締め直していった。"],
+    close: "盾は役目を終えたように、泥の中へ沈んでいった。体が、腐れ水にも負けない固さを得た。",
+  },
+  w27: {
+    lines: ["作りかけの人業の山の中から、鉄の拳がひとつだけ突き出ていた。腕の木はとうに腐っているのに、拳は固く握られたままだ。",
+      "指を一本ずつ開いてみると、中は空っぽだった。何かをつかもうとして、つかめないまま捨てられたのだろう。",
+      "隊の一人ひとりが、その拳を握り返した。冷たい鉄の内側に、握りしめる力だけがまだ残っていた。"],
+    close: "拳はようやく開いて、静かに山へ還った。握る力、打つ力が、腕に宿った。",
+  },
+  w28: {
+    lines: ["毒の霧の上を、灰色の水鳥がすいと渡っていった。葦の穂先から穂先へ、ほとんど羽ばたきもせずに。",
+      "落とした羽を拾うと、驚くほど軽い。付け根に、霧を吸わないための油がうすくのっていた。",
+      "羽を指先でもてあそぶうち、霧の流れと葦のしなりが読めるようになった。どちらへ身をかわせばいいか、体が先に知っている。"],
+    close: "水鳥はもう見えない。毒の霧の中でも、身のこなしが軽い。",
+  },
+  w29: {
+    lines: ["よどみのいちばん深いところで、小さな灯がひとつ、泥に沈まずに浮かんでいた。まわりの魂はどれも黒く崩れているのに。",
+      "灯の中から、誰かの穏やかな寝息のようなものが聞こえる。落ちてきた後も、何も怖がらずに眠り続けていたのかもしれない。",
+      "隊がそっと手を差しのべると、灯は泥の上を渡ってきて、一人ひとりの胸で温かくはじけた。"],
+    close: "瘴気の重さが、胸から少し引いた。腐らずにいた命のぶん、隊の体にも余白が増えた。",
+  },
+  ws13: {
+    lines: ["塚の底の暗がりに、割れた鐘が吊られている。綱には、骨の手が何本も絡みついたまま垂れていた。",
+      "骨の手は、自分たちで鐘を鳴らそうとしていたのだ。けれど割れた鐘は、かすれた音しか出さない。",
+      "隊の一人が綱を取り、ゆっくりと、ひとつずつ間をおいて鐘を鳴らした。かすれた音が、塚の上の空まで届いた気がした。"],
+    close: "骨の手が、ひとつずつ綱から離れていった。人を送る祈りの力が、隊の胸に深く宿った。",
+  },
+  ws14: {
+    lines: ["沈んだ渡し場のくいに、銅貨が一枚、くぎで打ちつけてあった。そばの板に、かすれた字で「払えぬ客のぶん」。",
+      "渡し守は、渡し賃を持たない者のために、自分の銅貨をここに置いていたのだ。",
+      "手を伸ばすと、さびたくぎは自然に抜け、銅貨は霧の中の灯をちらりと映して手のひらに落ちた。"],
+    close: "渡し守の灯が、ひとつ大きく揺れた。誰かに払ってもらった運のぶん、めぐり合わせが隊に向く。",
+  },
+  // ---- 第八章 (第10層) ----
+  w30: {
+    lines: ["螺旋階段の踊り場で、吹き抜けの風が急に向きを変え、隊を包むように渦を巻いた。",
+      "風の中には、下から運ばれてきた細かな光がまじっている。昇ってきた魂のかけらが、魔力になってほどけたものだ。",
+      "深く息を吸うと、光は胸の奥へ吸いこまれ、身の内の魔力の泉が、ひと回り広がった。"],
+    close: "風はまた上へと昇っていった。魔力が、前より多くたくわえられる。",
+  },
+  w31: {
+    lines: ["大鐘のあいだに、手のひらほどの小さな鐘がひとつ吊られていた。音を合わせるための、見本の鐘らしい。",
+      "内側に、細かな数と線がびっしり刻まれている。どの厚さで、どの形にすれば、どんな音が鳴るか。鐘を作った者の覚え書きだ。",
+      "数を一つずつ読み解くうち、音と形を結ぶ筋道が、呪文の組み立てにも通じていることに気づいた。"],
+    close: "小さな鐘を指で弾くと、澄んだ音が鳴った。考える力が、その音のように澄んだ。",
+  },
+  w32: {
+    lines: ["手すりに落ちる雷を、回廊の端でじっと見ている旅人の亡霊がいた。焦げた外套から、まだ煙が細く上っている。",
+      "「雷は、でたらめに落ちるんじゃない。落ちる前に、一本だけ細い光の糸が下りてくる」",
+      "亡霊の指さす先を見ていると、確かに見えた。雷が落ちる一瞬前、空と鉄を結ぶ、髪の毛ほどの光の筋が。"],
+    close: "亡霊は満足そうにうなずいて消えた。狙うべき一点が、前より見える。",
+  },
+  w33: {
+    lines: ["火のともらない灯台の、台座の割れ目の奥。雷雲の風も雨も届かないところで、豆粒ほどの種火がくすぶっていた。",
+      "灯台の大きな火が消えてから、誰にも気づかれず、ひとりで燃え続けてきたのだろう。",
+      "隊が手で囲うと、種火はぱちりとはぜ、温かさが指先から体の芯まで駆けのぼった。"],
+    close: "種火は割れ目の奥で、また小さくなった。それでも消えはしない。隊の体にも、その粘りが宿った。",
+  },
+  ws15: {
+    lines: ["巣の縁に、雷鳥の風切り羽が一枚引っかかっていた。触れると、指先でぱちぱちと火花がはぜる。",
+      "羽を風にかざすと、羽の方から風を切り裂き、腕ごと前へ引っぱられた。",
+      "その速さに振り回されまいと踏ん張るうち、体が、速さに追いつく足の運びを覚えていた。"],
+    close: "羽は火花になって散った。身のこなしに、雷鳥の速さがほんの少し移った。",
+  },
+  ws16: {
+    lines: ["さびた針の林の中に、一本だけ、さびひとつない針が立っていた。数えきれない雷を受けて、それでも折れなかった芯だ。",
+      "根元を握ると、雷のしびれが腕から肩へ走る。だが針は、そのしびれを地へ流し、少しも揺るがない。",
+      "しびれが通り過ぎたあと、芯の固さだけが、骨の一本一本に残っていた。"],
+    close: "針の先で、青い火花がひとつ鳴った。体が、雷にも刃にも揺るがなくなった。",
+  },
+  ws17: {
+    lines: ["雲を眺める向きの石のベンチのそばに、白い花がひとかたまり咲いていた。花びらの一枚一枚に、小さな言葉が浮かんでいる。",
+      "読めば、どれも誰かの無事を願う短い祈りだった。昇っていく途中の魂が、ここで足を止めて言い残していったのかもしれない。",
+      "花に顔を寄せると、祈りの言葉がやさしい香りと一緒に、胸の奥へ降りてきた。"],
+    close: "花は枯れずに、また風に揺れている。人を癒す祈りの力が、隊の胸に根づいた。",
+  },
+  // ---- 第九章 (第11層) ----
+  w34: {
+    lines: ["石橋の欄干の、枷をつないだ鉄の輪のひとつに、青白い光のかけらが挟まっていた。",
+      "雲の上では、夜の星がこんなにも近い。落ちてきた星のかけらが、たまたま輪に引っかかったのだろう。",
+      "かけらを手に取ると、冷たい光が指の骨を伝い、身の内の魔力の泉へ、星明かりのように溶けていった。"],
+    close: "雲間にまた星が光った。魔力の器が、夜空のように広がった。",
+  },
+  w35: {
+    lines: ["内側から破られた檻の格子に、折れた牙が一本、深く食いこんでいた。",
+      "格子は人の腕より太い鉄なのに、牙の当たったところだけが大きくゆがんでいる。外へ出たい一心で、獣は何度も何度もかみついたのだ。",
+      "牙を引き抜くと、その執念のような力が、手から腕へずしりと伝わってきた。"],
+    close: "牙は手の中で砂になった。打ちこむ力が、獣のように強くなった。",
+  },
+  w36: {
+    lines: ["石段の灰の中に、銅貨が一枚、表を上にして落ちていた。半ば透けた観客のひとりが、それを指さしている。",
+      "「勝つ方に投げたのさ。いつも負ける方にばかり賭けていたが、その日だけは当たってね」",
+      "観客は銅貨を拾えと身ぶりで勧め、自分は満足そうに、また試合の方へ向き直った。"],
+    close: "銅貨には、一度きりの大当たりの運がしみついている。そのめぐり合わせが、隊についてきた。",
+  },
+  w37: {
+    lines: ["闘技場の砂の上に、一本の溝がまっすぐに刻まれていた。どれほど砂が舞っても、この溝だけは埋まらない。",
+      "数えきれない試合の中で、一度だけ放たれた、非の打ちどころのない一太刀。その刃の通り道が、砂に焼きついているのだという。",
+      "溝の端に立ち、同じ向きに得物を振ってみる。一人ひとりの手に、相手の守りの継ぎ目へ吸いこまれる感触が残った。"],
+    close: "砂がまた舞い、溝は静かにそこにある。急所を断つ一撃が、腕に宿った。",
+  },
+  ws18: {
+    lines: ["控えの間の壁の、勝ち星の札の裏に、細かな字の覚え書きが彫られていた。",
+      "どの相手が、どの手で、何度めに崩れたか。勝ち残った闘士は、試合のたびに相手を調べ、書き留めていたのだ。",
+      "読み進めるうち、敵の手を先に読み、こちらの手を組み立てる考え方が、するすると頭に入ってきた。"],
+    close: "覚え書きの最後の一行は、書きかけのまま終わっていた。考える力が、ひとつ深くなった。",
+  },
+  ws19: {
+    lines: ["小円形場の真ん中に、二人ぶんの足あとが向かい合って刻まれていた。石の床が、そこだけすり減っている。",
+      "片方の足あとは、礼のあと、一歩で相手の懐へ跳びこんだ形をしていた。",
+      "隊の一人ひとりが、その足あとに足を重ねてみる。かかとを浮かせ、つま先で石をつかむ。体が、前へすべるように動いた。"],
+    close: "礼を交わす石の絵が、少しだけ笑ったように見えた。踏みこみの速さが、隊の身に残った。",
+  },
+  // ---- 第十章 (第12層) ----
+  w38: {
+    lines: ["濁った灯籠が積もる黒い山の、いちばん底。崩れた灯籠のすき間から、澄んだ灯がひとつだけのぞいていた。",
+      "上から何百年も灯籠が降り積もり、押しつぶされながら、それでもこの灯は濁らなかった。",
+      "灯籠をひとつずつどけてやると、灯は礼を言うように揺れ、一人ひとりの胸に温かな重みを残して昇っていった。"],
+    close: "灯のいた跡に、ほんのりと温もりが残った。体に、消えない命のぶんが足された。",
+  },
+  w39: {
+    lines: ["黒い湖の水を手ですくうと、指のすき間から、一粒だけ澄んだしずくが残った。",
+      "しずくの中には、どこにもない灯ではなく、ありのままの洞の天井が映っている。湖のささやきに惑わされない、まっすぐな水だ。",
+      "しずくをまぶたに落とすと、耳の奥のささやきがすっと遠のき、頭の中がしんと澄んだ。"],
+    close: "湖面はまた、どこにもない灯を映している。けれど、もう惑わされない。考える力が澄んだ。",
+  },
+  w40: {
+    lines: ["壁のくぼみの灯籠の前に、それぞれ小さな石が供えてあった。どの石にも、短い眠りの祈りが彫られている。",
+      "誰かが、くぼみの一つ一つの前にひざまずき、この祈りを彫っていったのだ。数えきれないくぼみの、すべてに。",
+      "隊の一人が、祈りの言葉を小さく読み上げた。石窟じゅうの濁った灯が、ほんの一瞬、やすらかに揺れた。"],
+    close: "祈りの言葉は、そのまま隊の胸に残った。人を癒す祈りの力が、ひと回り深まった。",
+  },
+  w41: {
+    lines: ["伽藍の柱の一本に、手のひらの形のくぼみがあった。誰かが長い長いあいだ、同じところに手をついてきた跡だ。",
+      "くぼみには、古い魔力が静かにしみこんでいる。手をついた者が、そのたびに少しずつ置いていったものらしい。",
+      "隊の一人ひとりが同じくぼみに手を重ねると、柱の奥から、冷たく深い魔力がゆっくりと流れこんできた。"],
+    close: "柱は、何事もなかったようにそびえている。魔力の器が、伽藍の闇のように深くなった。",
+  },
+  ws20: {
+    lines: ["寝床の骨の山のかげに、巨獣が脱ぎ捨てた岩の皮が転がっていた。それだけで、小屋ほどの大きさがある。",
+      "皮の内側は、獣の体の形にすり減ってなめらかだ。長い眠りのあいだ、この皮が獣を守ってきたのだろう。",
+      "皮の内側に背を預けると、岩の重さと固さが、背中から全身へじわりと移ってきた。"],
+    close: "皮はひびが入り、ただの岩くずに崩れた。体が、岩のように打たれ強くなった。",
+  },
+  ws21: {
+    lines: ["骨の道の途中、岩盤から竜の牙が一本、柱のように突き出ていた。石に変わっても、先はまだ鋭い。",
+      "牙の根元を握ると、岩盤ごと揺れるような、太古の顎の力がどくりと脈打った。",
+      "牙は自分から岩盤を離れ、隊の一人ひとりの手を順に渡って、その力を少しずつ分けていった。"],
+    close: "最後の手の中で、牙は砂になって崩れた。腕に、竜の顎の力が残った。",
+  },
+  ws22: {
+    lines: ["鉱脈の水晶の一面に、隊の姿が映っている。だが映った体のところどころに、小さな光の点がともっていた。",
+      "肩の付け根、膝の裏、鎧の継ぎ目。水晶の光は、どんなものの弱いところも隠さずに照らし出す。",
+      "しばらく見つめるうち、水晶から目を離しても、まわりの岩や魔物の影に同じ光の点が見えるようになった。"],
+    close: "光の点は、まばたきしても消えない。急所を見抜く目が、隊に宿った。",
+  },
+};
 for (const [dungeonId, stat, amount, name, legacyId] of DUNGEON_GIFTS) {
   const dungeon = WORLD.find((d) => d.id === dungeonId);
   // 台帳にまだ無い迷宮 (並行して足している途中) は飛ばす。抜けは tools/balance/event-boons.mjs が件数で見つける
   if (!dungeon) continue;
   const id = legacyId || `mythic_${dungeonId}`;
+  const text = MYTHIC_TEXT[dungeonId];
   let e = EVENTS.find((e) => e.id === id);
   if (!e) {
     e = { id, name, layer: dungeon.layer, tier: "mythic", icon: "event", once: true,
       intro: () => [`${dungeon.name}の奥に、淡く光るものが残されていた。`,
-        "手を伸ばすと、古い魂の力が隊の一人ひとりへ流れ込んだ。"] };
+        "手を伸ばすと、古い魂の力が隊の一人ひとりへ流れこんだ。"] };
     EVENTS.push(e);
   }
+  // 固有の本文があればそれを (旧来の極を流用した分も、いまの恵みに合う本文へ)
+  if (text) e.intro = () => [...text.lines];
   const label = stat === "crit" ? "会心率 +1%" : `${stat.toUpperCase()} +${amount}`;
   e.dungeonId = dungeonId;
   e.statBonus = { [stat]: amount };
-  e.boon = `${name} ― 全職業の${label} (永続)`;
+  e.boon = `${name} ― すべての人業の${label} (永続)`;
   delete e.minLv; delete e.deep;
   e.gift = (A) => {
     // 取得済みIDから導出するため、再計算・再読込で重複加算しない。
     A.flags().statGiftVersion = 1;
     A.recalcPermanent();
     A.sfx("heal");
-    return ["授かった力は、街へ戻っても失われない。", `✺ ${e.boon}`];
+    return [text ? text.close : "授かった力は、街へ戻っても失われない。", `✺ ${e.boon}`];
   };
 }
 
@@ -2483,6 +2906,20 @@ export function permanentEventStats(once = {}) {
     for (const [key, value] of Object.entries(e.statBonus)) stats[key] += value;
   }
   return stats;
+}
+
+// 操霊師の遺書 (c30、沈んだ礼拝堂 ws1 の極): 上のループが gift を能力の恵みに差し替えるので、
+// その後で包み直し、その層の遺書の頁を読ませて見聞録 (flags.lore) に残す
+{
+  const e = EVENTS.find((x) => x.id === "c30");
+  if (e && e.gift) {
+    const base = e.gift;
+    e.gift = (A, cell) => {
+      const L = A.layer;
+      A.flags().lore = { ...(A.flags().lore || {}), [L]: true };
+      return [...(LORE_PAGES[L] || LORE_PAGES[0]), ...(base(A, cell) || [])];
+    };
+  }
 }
 
 // 無限迷宮だけの出来事 (src/infevents.js、layer 99)。本編の迷宮には出ず、無限迷宮には本編の出来事が出ない
@@ -2536,6 +2973,7 @@ export function eligibleEvents(st, A) {
   return EVENTS.filter((e) => {
     if (!!st.abyss !== !!e.inf) return false; // 無限迷宮には無限迷宮の出来事だけ
     if (!st.abyss && e.dungeonId && e.dungeonId !== st.dungeonId) return false;
+    if (!st.abyss && e.notIn && e.notIn.includes(st.dungeonId)) return false; // 先の章の真相に触れる出来事を、早く開く寄り道に出さない
     if (!st.abyss && e.layer && e.layer !== st.layer) return false;
     if (st.first && e.tier !== "common") return false;              // 最初の迷宮は常のみ
     if (e.minFloor && st.floor < e.minFloor) return false;

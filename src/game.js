@@ -6423,12 +6423,12 @@ function eventFacts() {
   if (!rv) return out;
   for (const m of rv.mods || []) out.push({ tone: m.enemyMul ? "bad" : "gold", icon: ic, title: `出来事「${m.name}」`, accent: "#c08aff", lines: [m.desc] });
   const runLines = [];
-  if (rv.preempt > 0) runLines.push(`${inf ? "出来事の備え" : "祈りの蝋燭"} ― 次の戦闘は必ず先制 (${rv.preempt}回)`);
+  if (rv.preempt > 0) runLines.push(`${inf ? "出来事の備え" : "祈りのろうそく"} ― 次の戦闘は必ず先制 (${rv.preempt}回)`);
   if (rv.ambushNext > 0) runLines.push(`${inf ? "待ち伏せ" : "密輸人の待ち伏せ"} ― 次の戦闘は奇襲される`);
   if (rv.startHeal > 0) runLines.push(`${inf ? "加護" : "喪服の女の祝福"} ― 開戦時にHP10%回復 (残り${rv.startHeal}戦)`);
   if (rv.bomb > 0) runLines.push(`発破 ― 次の戦闘の開幕に敵全体へ痛打 (${rv.bomb}回)`);
-  if (rv.crit) runLines.push(`${inf ? "冴え" : "黒猫の幸運"} ― 会心率 +${Math.round(rv.crit * 100)}%`);
-  if (rv.edef) runLines.push(`土の護り ― 全員に${(ELEMENTS[rv.edef.el] || {}).label || rv.edef.el}の属性防御Lv${rv.edef.lv}`);
+  if (rv.crit) runLines.push(`${inf ? "冴え" : "会心の冴え"} ― 会心率 +${Math.round(rv.crit * 100)}%`);
+  if (rv.edef) { const el = (ELEMENTS[rv.edef.el] || {}).label || rv.edef.el; runLines.push(`${el}の守り ― 全員に${el}の属防Lv${rv.edef.lv}`); }
   if (rv.ruby) { const h = G.party.find((p) => p.uid === rv.ruby); if (h) runLines.push(`呪われた紅玉 ― ${h.name}の与ダメ+15% (戦闘のたび血を吸われる)`); }
   if (rv.saves) { const n = G.party.filter((p) => rv.saves[p.uid]).map((p) => p.name); if (n.length) runLines.push(`名を刻んだ墓碑 ― ${n.join("・")}は一度だけ死を免れる`); }
   if (rv.noBeast) runLines.push("鼠の王の盟約 ― 獣の魔物が寄りつかない");
