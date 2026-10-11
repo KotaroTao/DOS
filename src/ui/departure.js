@@ -83,17 +83,75 @@ function vistaCanvas(dn) {
 }
 // 由来の原画 (ストーリーの「踏破した迷宮」と同じ絵) がある迷宮は、踏破の前からそれを掲げる (ドットの情景の代わり)。
 // 秘密を描いた絵も出す (ユーザーの判断: ネタばれでよい)。原画の無い迷宮・読めない時はドットの情景。
-function vistaPic(dn) {
-  const src = LORE_IMAGES[dn.id];
-  if (!src) return vistaCanvas(dn);
-  vistaLoop++; // ドットの情景のゆらぎを止める
+// 出撃画面は5秒ごと・迷宮を選び直すたびに組み直すので、<img> は絵ごとに使い回す (作り直すと読み込みと
+// 展開をやり直し、その間は絵が消えてちらつく)。新しい絵は読めるまで前の絵を下に残し、読めたら重ねて淡く出す。
+const PIC_KEEP = 6; // 手元に残す絵の数 (1枚 1536×1024 を展開すると約6MB)
+const picCache = new Map(); // src → { img, ready }
+let lastPic = null; // いま掲げている絵 (読み込み中の次の絵の下に敷く)
+function picEntry(src) {
+  let e = picCache.get(src);
+  if (e) { picCache.delete(src); picCache.set(src, e); return e; } // 使った順に並べ直す
   const img = document.createElement("img");
   img.className = "dp-vista-img";
-  img.alt = `${dn.name}の情景`;
   img.decoding = "async";
-  img.addEventListener("error", () => { if (img.parentNode) img.replaceWith(vistaCanvas(dn)); }, { once: true });
+  e = { img, ready: false, failed: false, waits: [] };
+  const done = (ok) => {
+    if (e.ready || e.failed) return;
+    if (ok) e.ready = true; else e.failed = true;
+    const ws = e.waits; e.waits = [];
+    for (const f of ws) f(ok);
+  };
+  img.addEventListener("load", () => {
+    // 展開を済ませてから見せる (読めた直後に挿すと1コマ空になる)
+    if (typeof img.decode === "function") img.decode().then(() => done(true), () => done(true));
+    else done(true);
+  }, { once: true });
+  img.addEventListener("error", () => { picCache.delete(src); done(false); }, { once: true });
   img.src = "./" + src;
-  return img;
+  picCache.set(src, e);
+  while (picCache.size > PIC_KEEP) {
+    const [k, old] = picCache.entries().next().value;
+    if (lastPic && lastPic.e === old) { picCache.delete(k); picCache.set(k, old); break; }
+    picCache.delete(k);
+  }
+  return e;
+}
+// 門の一覧を押した (指が触れた) 時点で次の絵を読み始める
+function prefetchPic(dn) {
+  const src = dn && LORE_IMAGES[dn.id];
+  if (src) picEntry(src);
+}
+function vistaPic(dn) {
+  const src = LORE_IMAGES[dn.id];
+  if (!src) { lastPic = null; return vistaCanvas(dn); }
+  vistaLoop++; // ドットの情景のゆらぎを止める
+  const e = picEntry(src);
+  e.img.alt = `${dn.name}の情景`;
+  e.img.classList.remove("dp-vista-in", "dp-vista-under");
+  // 敷く絵: 選び直す前に掲げていた絵 (読み込み中に組み直しても、同じ絵を敷き続ける)
+  const prev = !lastPic ? null : lastPic.e !== e ? (lastPic.e.ready ? lastPic.e : lastPic.under) : lastPic.under;
+  lastPic = { src, e, under: e.ready ? null : prev };
+  if (e.ready) return e.img; // 読めている絵はそのまま (ちらつかない)
+  // まだ読めていない: 前の絵 (あれば) を敷き、読めたら新しい絵を淡く重ねる
+  const wrap = el("div", "dp-vista-stack");
+  if (prev) {
+    // 複製すると読み直しになるので、前の絵の <img> そのものを敷く (前の画面はもう外れている)
+    prev.img.classList.remove("dp-vista-in", "dp-vista-wait");
+    prev.img.classList.add("dp-vista-under");
+    wrap.appendChild(prev.img);
+  }
+  wrap.appendChild(e.img);
+  e.img.classList.add("dp-vista-wait");
+  e.waits.push((ok) => {
+    if (!wrap.isConnected) return;
+    if (!ok) { if (lastPic && lastPic.e === e) lastPic = null; wrap.replaceWith(vistaCanvas(dn)); return; }
+    e.img.classList.remove("dp-vista-wait");
+    e.img.classList.add("dp-vista-in");
+    setTimeout(() => {
+      if (prev && prev.img.parentNode === wrap) { prev.img.remove(); prev.img.classList.remove("dp-vista-under"); }
+    }, 400);
+  });
+  return wrap;
 }
 // 迷宮の章: 本筋は story.js CHAPTERS のとおり。寄り道 (CHAPTERS に無い) は同じ層の本筋の迷宮の章
 // (格上の寄り道も、魔物の層で決まる = 開く章。獄吏の詰所 → 第二章、疫病塚の底 → 第七章)
@@ -290,6 +348,7 @@ function renderGates(b) {
     r.appendChild(info);
     const st = gateStatus(dn, i);
     r.appendChild(el("span", "dp-gate-st" + (st.cls ? " " + st.cls : ""), st.text));
+    r.addEventListener("pointerdown", () => prefetchPic(dn));
     r.addEventListener("click", () => {
       if (g.dungeonIdx === i) return;
       g.dungeonIdx = i;
@@ -343,18 +402,35 @@ function renderGates(b) {
 }
 
 // ---- 潜り始める階 (到達した帰還魔法陣の次の階から) ----
-function renderStartFloor(b) {
+// 一番下の出撃の札に組み込む (ユーザーの指示、2026-10): 札の上の縁に階の札を並べ、押すと選び直す
+function startFloors() {
   const g = G();
   const dn = (game.DUNGEONS || [])[g.dungeonIdx];
-  if (!dn) return;
+  if (!dn || cur.page === "abyss") return [1];
   const floors = game.startFloorsOf ? game.startFloorsOf(dn) : [1];
   if (!floors.includes(cur.from)) cur.from = 1;
-  if (floors.length > 1) {
-    const row = el("div", "dp-from");
-    row.appendChild(el("span", "dp-from-l", "潜り始める階"));
-    row.appendChild(segmented(floors.map((f) => ({ key: String(f), label: `B${f}F` })), String(cur.from), (k) => { cur.from = Number(k) || 1; sfx("select"); refresh(); }));
-    b.appendChild(row);
+  return floors;
+}
+function startFloorPicker(floors) {
+  const box = el("div", "dp-go-fl");
+  box.setAttribute("role", "radiogroup");
+  box.setAttribute("aria-label", "潜り始める階");
+  box.appendChild(el("span", "dp-go-l", "潜り始める階"));
+  for (const f of floors) {
+    const on = f === cur.from;
+    const c = el("button", "dp-go-f" + (on ? " sel" : ""), `B${f}F`);
+    c.type = "button";
+    c.setAttribute("role", "radio");
+    c.setAttribute("aria-checked", on ? "true" : "false");
+    c.addEventListener("click", () => {
+      if (cur.from === f) return;
+      cur.from = f;
+      sfx("select");
+      refresh();
+    });
+    box.appendChild(c);
   }
+  return box;
 }
 
 // ---- 隊の備え ----
@@ -559,9 +635,12 @@ function footerSpec() {
   const again = !!(dn && w.cleared && w.cleared[dn.id]);
   const m = cur && cur.accept && cur.hasMut;
   const fl = `B${(cur && cur.from) || 1}F`;
+  // 潜り始める階を選べる時は札の上に階の札が並ぶので、名の横の階は省き、下の行に書く
+  const pick = startFloors().length > 1;
+  const go = m ? "異変ごと門をくぐる" : again ? "ふたたび門をくぐる" : "門をくぐる";
   return [{
-    label: alive ? (m ? `異変ごと門をくぐる ― ${fl}` : again ? `ふたたび門をくぐる ― ${fl}` : `門をくぐる ― ${fl}`) : "動ける人業がいない",
-    sub: dn ? `「${dn.name}」 ・ 安定度 −10／人` : "",
+    label: alive ? (pick ? go : `${go} ― ${fl}`) : "動ける人業がいない",
+    sub: dn ? (pick ? `${fl}から「${dn.name}」へ ・ 安定度 −10／人` : `「${dn.name}」 ・ 安定度 −10／人`) : "",
     kind: m ? "danger" : "primary", size: "lg", disabled: !alive || game.stabilityStatus().some(d=>d.value<10),
     onTap: () => depart(),
   }];
@@ -572,14 +651,19 @@ function refreshFooter() {
   foot.textContent = "";
   if (cur.page !== "abyss") {
     const ready = el("div", "dp-ready");
-    renderStartFloor(ready);
     renderReady(ready);
     foot.appendChild(ready);
   }
+  const floors = startFloors();
   for (const it of footerSpec()) {
     const b = button(it);
     b.classList.add("dp-cta");
-    foot.appendChild(b);
+    if (floors.length > 1) {
+      const go = el("div", "dp-go" + (it.kind === "danger" ? " danger" : ""));
+      go.appendChild(startFloorPicker(floors));
+      go.appendChild(b);
+      foot.appendChild(go);
+    } else foot.appendChild(b);
   }
   foot.classList.remove("hidden");
 }
