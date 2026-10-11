@@ -121,7 +121,15 @@ export function openInfRest(spec = {}) {
     }
   };
   const footer = () => spec.guardDown
-    ? [{ label: "帰る", sub: "拾ったものを持ち帰る", kind: "primary", size: "lg", onTap: (x) => { closing = true; x.close("ok", { silent: true }); spec.onReturn && spec.onReturn(); } },
+    ? [{ label: "帰る", sub: "拾ったものを持ち帰る", kind: "primary", size: "lg", onTap: async (x) => {
+        // 押し間違えで出撃を終えないよう、帰る前に確かめる (2026-10-11 ユーザーの指示)
+        const run = g.run || {};
+        const souls = (run.souls || []).length, embers = Math.max(0, run.embers || 0);
+        const ok = await kitConfirm({ banner: "地上へ帰る", title: `B${spec.floor || g.floor}F から地上へ帰る？`,
+          lines: [`この出撃はここで終わり、${INF_NAME}には戻れない。`, `持ち帰る: 拾った魂 ${souls}つ (＋1 の素材)・品 (商会の棚へ)・残火 ${embers}。`, "金貨・✦Soul・最初に宿した欠片は残らない。"],
+          okLabel: "帰る", cancelLabel: "まだ帰らない", danger: false });
+        if (!ok || x.closed) return;
+        closing = true; x.close("ok", { silent: true }); spec.onReturn && spec.onReturn(); } },
        { label: `続ける ― B${(spec.floor || g.floor) + 1}Fへ`, kind: "secondary", onTap: (x) => { closing = true; x.close("ok", { silent: true }); spec.onContinue && spec.onContinue(); } },
        { label: "まだ探索する", kind: "ghost", onTap: (x) => x.close() }]
     : [{ label: "主に挑む", kind: "danger", size: "lg", onTap: (x) => { closing = true; x.close("ok", { silent: true }); spec.onBoss && spec.onBoss(); } },
