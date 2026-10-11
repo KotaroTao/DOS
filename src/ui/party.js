@@ -20,7 +20,7 @@ import {
 import { deltaFloat } from "./motion.js";
 import { remember, setPref, getPref } from "./prefs.js";
 import {
-  statLines, detailLines, isEquippable, gearScore, elemStatShort, showSkillPopup, showPassivePopup, itemCatText, tagRow, spellTagKinds, specialLines, specialShort, specialParts, weaponPerformanceEl, weaponPowerPreview,
+  statLines, detailLines, isEquippable, gearScore, elemStatShort, showSkillPopup, showPassivePopup, itemCatText, tagRow, spellTagKinds, specialLines, specialShort, specialParts, resistDeltaParts, weaponPerformanceEl, weaponPowerPreview,
 } from "./itemview.js";
 import { renderSoulSeg, openSoulPicker, openSoulList, openOrderSheet } from "./soulpanel.js";
 import { expeditionStatus, expeditionButton, expeditionCount } from "./expedition.js";
@@ -412,9 +412,15 @@ const CH_CYCLE_MS = 2600;
 // lost = 外れる品にあって新しい品に無い効果 (▼) / got = 新しい品にだけある効果 (▲)
 function swapInfo(item, b) {
   const cur = (b && b.displaced) || [];
-  const before = cur.flatMap((it) => specialParts(it));
-  const after = specialParts(item);
-  return { cur, lost: before.filter((p) => !after.includes(p)), got: after.filter((p) => !before.includes(p)) };
+  const before = cur.flatMap((it) => specialParts(it, { res: false }));
+  const after = specialParts(item, { res: false });
+  // 抵抗値・ブレス耐性は種類ごとに差し引いた結果だけを出す (魅了 ▼19 と ▲22 → ▲魅了+3)
+  const rd = resistDeltaParts(cur, [item]);
+  return {
+    cur,
+    lost: [...before.filter((p) => !after.includes(p)), ...rd.filter((r) => r.d < 0).map((r) => r.text)],
+    got: [...after.filter((p) => !before.includes(p)), ...rd.filter((r) => r.d > 0).map((r) => r.text)],
+  };
 }
 const curNameEl = (cls, it) => (game.itemNameEl ? game.itemNameEl("span", cls, it, it.cursed ? " (呪)" : "") : el("span", cls, itemName(it)));
 // 「いま 〇〇」の行 (外れる品の名。何も外れなければ「いま なし」)

@@ -385,9 +385,10 @@ const AIL_SHORT = { poison: "毒", paralyze: "痺", sleep: "眠", charm: "魅", 
 export function ailResShort(r) { return r ? Object.entries(r).map(([k, v]) => `${AIL_SHORT[k] || k}${Math.round(v * 100)}`).join("・") : "—"; }
 export function onHitShort(o) { return o && o.length ? o.map((x) => `${AIL_SHORT[x.k] || x.k}${Math.round(x.chance * 100)}%`).join("・") : "—"; }
 // 一覧の一行用 (statLines に添える)
-function ailStatParts(it) {
+function ailStatParts(it, { res = true } = {}) {
   const out = [];
   if (it.onHit && it.onHit.k) out.push(`${AIL_LABEL[it.onHit.k]}付与 ${Math.round(it.onHit.chance * 100)}%`);
+  if (!res) return out;
   if (it.resists) out.push(Object.entries(it.resists).map(([k, v]) => `${RESIST_LABEL[k] || k}抵抗${v}`).join("・"));
   if (it.aRes) out.push(`抵抗値 ${Object.entries(it.aRes).map(([k, v]) => `${RESIST_LABEL[k] || k}${Math.round(v * 100)}`).join("・")}`);
   if (it.bRes) out.push(`ブレス耐性 ${Math.round(it.bRes * 100)}%`);
@@ -473,15 +474,42 @@ export function specialShort(it) {
   return specialParts(it).join("　");
 }
 // specialShort の一つ一つ (「2連撃」「吸血15%」…)。付け替えでの特殊効果の増減を比べるのに使う
-export function specialParts(it) {
+// res: false = 抵抗値・ブレス耐性を除く (付け替えの比較では resistAmounts で種類ごとに差し引きする)
+export function specialParts(it, { res = true } = {}) {
   if (!it || it.unidentified) return [];
   const parts = [...effStatParts(it)];
   if (it.magic) parts.push("魔法属性");
   const ea = elemStatText("攻撃", it.eAtk), ed = elemStatText("防御", it.eDef);
   if (ea) parts.push(ea);
   if (ed) parts.push(ed);
-  for (const x of ailStatParts(it)) parts.push(x);
+  for (const x of ailStatParts(it, { res })) parts.push(x);
   return parts;
+}
+// 抵抗値 (resists と aRes は同じ物差しで足し合う) とブレス耐性 (breath, %) を種類ごとに
+export function resistAmounts(it) {
+  const m = {};
+  if (!it || it.unidentified) return m;
+  if (it.resists) for (const [k, v] of Object.entries(it.resists)) m[k] = (m[k] || 0) + v;
+  if (it.aRes) for (const [k, v] of Object.entries(it.aRes)) m[k] = (m[k] || 0) + Math.round(v * 100);
+  if (it.bRes) m.breath = (m.breath || 0) + Math.round(it.bRes * 100);
+  return m;
+}
+// 付け替えでの抵抗値の差し引き (同じ種類の増減は合わせた結果だけ: 魅了 −19 と +22 → 魅了+3)
+export function resistDeltaParts(before, after) {
+  const sum = (list) => {
+    const m = {};
+    for (const it of list) for (const [k, v] of Object.entries(resistAmounts(it))) m[k] = (m[k] || 0) + v;
+    return m;
+  };
+  const a = sum(before), b = sum(after);
+  const out = [];
+  for (const k of [...new Set([...Object.keys(a), ...Object.keys(b)])]) {
+    const d = (b[k] || 0) - (a[k] || 0);
+    if (!d) continue;
+    const n = `${d > 0 ? "+" : ""}${d}`;
+    out.push({ d, text: k === "breath" ? `ブレス耐性${n}%` : `抵抗値 ${RESIST_LABEL[k] || k}${n}` });
+  }
+  return out;
 }
 // 特殊効果のくわしい行をまとめて (戦闘効果・武器の補正/魔法属性・属性・状態異常)。説明の文とは別に、数字で効果を言い切る
 export function specialLines(it) {
