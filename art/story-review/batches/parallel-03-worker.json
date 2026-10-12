@@ -1,0 +1,170 @@
+{
+  "worker": "03",
+  "branch": "codex/art-worker-03",
+  "base": "3312dee",
+  "generationCalls": 12,
+  "generationLimit": null,
+  "scenes": [
+    {
+      "id": "w26_splint",
+      "path": "art/story-review/chapter7/w26_splint.png",
+      "state": "ready",
+      "generationCalls": 3,
+      "visualReview": {
+        "face": "弟子の顔を保ち、隊4体は全て無顔の丸い木の頭。僧侶の右の盗賊に髪はなく、暗い革装備と短剣で基準と一致。",
+        "limbs": "隊は戦士・僧侶・盗賊・魔導士の4体、余分な頭や腕なし。見える弟子の両手・両脚、隊の手足のつながりを確認。遮蔽された指や脚は直接判別不可。",
+        "sigil": "対象の一門印なし",
+        "props": "添え木は長い人業の木製腕材ちょうど2本、黒鉄の継ぎ目、複数箇所の縄、結び目に紙。木の手指はなく脚を支える長さ。左に脚形の凹面を残す溶けた氷の断片。弟子の鞄は左腰、灯は橙。",
+        "story": "archive-storiesとSTORY_CELLS双方、prompt出力、ordo-statesを照合。氷の脚形の添え木の断片、縄で束ねた腕材2本と紙、滝・腐った魂の沼、片足を引きずる泥の跡が一致。師本人、灯る集落や先の秘密なし。"
+      },
+      "format": "PNG",
+      "size": [
+        1536,
+        1024
+      ],
+      "reviewed": true,
+      "referenceImages": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/dolls.png",
+        "docs/art/story-refs/ordo-states.png"
+      ],
+      "repairHistory": "追加依頼の修正1回で鞄と足跡、地下の天井を修正。修正前の生成元 exec-eecd4adc-bd74-4fdc-a841-85f26be6ae3d.png を保持。 ユーザー指摘により追加1回で、盗賊の胸元の髪状の塊を除去し固定デザインへ復元。添え木は承認済みordo-states第七章と本文に照合し、木の手の付いた前腕から細長い腕材2本へ修正。",
+      "finalReview": "盗賊と添え木の追加修正後に、顔・手足・印・小道具・本文との一致を目視確認。"
+    },
+    {
+      "id": "report_w26",
+      "path": "art/story-review/chapter7/report_w26.png",
+      "state": "ready",
+      "generationCalls": 1,
+      "visualReview": {
+        "face": "弟子と老王の顔・衣装が基準に一致",
+        "limbs": "両腕と見える指に余分な部位なし。弟子の両脚、王の脚は膝掛けの下",
+        "sigil": "一門印を新たに加えていない",
+        "props": "空の金杯が床、王は膝掛けの端を握る、宰相の席は空",
+        "story": "王の沈黙・杯への視線・重い雲と玉座の間を確認。可読文字なし"
+      },
+      "format": "PNG",
+      "size": [
+        1536,
+        1024
+      ],
+      "reviewed": true,
+      "referenceImages": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/king.png",
+        "docs/art/story-refs/morden.png",
+        "docs/art/story-refs/props.png",
+        "art/story-review/chapter3/report_w12.png"
+      ],
+      "finalReview": "追加修正後に5枚を再目視確認。人物の顔・見える手足・印・小道具・本文と章の状態を確認済み。"
+    },
+    {
+      "id": "w27_crest",
+      "path": "art/story-review/chapter7/w27_crest.png",
+      "state": "ready",
+      "generationCalls": 2,
+      "visualReview": {
+        "face": "弟子の後ろ姿、山頂の半彫りの顔、未完成の器を確認",
+        "limbs": "欠損した器の山と弟子の手足を確認。弟子の一方の手は隠れる",
+        "sigil": "開いた胸の扉の内側に、角張った掌・左親指・右の平行突起3本・独立した炎の小さな印を確認。小さい印の細部は解像度に依存。",
+        "props": "山頂の空の胸・膝の札、左腰の革鞄、橙の手提げ灯、開いた扉を確認",
+        "story": "修正後は地下岩壁と鍾乳石、無人の毒沼と葦、器の山。月・灯る集落は除去。先の秘密や師本人は描かれていない。"
+      },
+      "format": "PNG",
+      "size": [
+        1536,
+        1024
+      ],
+      "repairHistory": "1回目の背景と印の場所を2回目で修正。修正前は生成元 /workspace/generated_images/exec-b2f61b81-b2f2-4f13-a663-9f6406fb77da.png に保持。ユーザーの変更範囲に従い別の修正記録ファイルは追加しない。",
+      "reviewed": true,
+      "referenceImages": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/props.png",
+        "docs/art/story-refs/sigil.png"
+      ],
+      "finalReview": "追加修正後に5枚を再目視確認。人物の顔・見える手足・印・小道具・本文と章の状態を確認済み。"
+    },
+    {
+      "id": "report_w27",
+      "path": "art/story-review/chapter7/report_w27.png",
+      "state": "ready",
+      "generationCalls": 1,
+      "visualReview": {
+        "face": "老王の閉じた目、弟子の後ろ姿・衣装が基準と一致",
+        "limbs": "王と弟子の両腕と見える指を確認。脚は長衣と膝掛けに隠れる",
+        "sigil": "一門印を新たに加えていない",
+        "props": "空いた宰相の席に物なし、一本の蝋燭で照らす、弟子の鞄は左腰",
+        "story": "王の沈黙、膝掛け、弟子、空席、重い雲を確認。文字なし"
+      },
+      "format": "PNG",
+      "size": [
+        1536,
+        1024
+      ],
+      "reviewed": true,
+      "referenceImages": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/king.png",
+        "docs/art/story-refs/morden.png",
+        "art/story-review/chapter3/report_w12.png"
+      ],
+      "finalReview": "追加修正後に5枚を再目視確認。人物の顔・見える手足・印・小道具・本文と章の状態を確認済み。"
+    },
+    {
+      "id": "irene_crest",
+      "path": "art/story-review/chapter7/irene_crest.png",
+      "state": "ready",
+      "generationCalls": 5,
+      "references": "指定7画像を順番に使用。セラ2画像と、小道具・館2画像を一時シートにまとめ、追加sigilと計5ファイルとして渡した。原本は未変更。",
+      "visualReview": {
+        "face": "イレーヌとセラの基準の顔・髪・木目・衣装、弟子の茶髪と金刺繍外套を確認。",
+        "limbs": "弟子の見える左手を修正。上側の親指1本と左へ伸びる指4本、手の甲、自然な左手首を確認。イレーヌとセラの手足、顔、衣装、印、灯、本文の場面を再確認。隠れる指や画面外の脚は直接判別不可。",
+        "sigil": "前腕を返して掌を上にし、木製肘継ぎ目の内側へ掌と独立した炎の小さな印を配置。額の金の印も確認。小さな印の細部は解像度に依存。",
+        "props": "一本の白い蝋燭、古い継ぎ方の図、作業台を確認",
+        "story": "弟子が肘の印を見ている。イレーヌが上腕と手首を支え、目覚めたセラが台に座る。古い継ぎ方の紙・白い蝋燭・胸の青白い灯を確認。可読文字や先の秘密なし。"
+      },
+      "format": "PNG",
+      "size": [
+        1536,
+        1024
+      ],
+      "reviewed": true,
+      "referenceImages": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/irene.png",
+        "docs/art/story-refs/sera.png",
+        "docs/art/sera/sera-r1-final.png",
+        "docs/art/story-refs/props.png",
+        "art/story-review/chapter2/irene_roots.png",
+        "art/story-review/chapter1/irene_familiar.png",
+        "docs/art/story-refs/sigil.png"
+      ],
+      "repairHistory": "追加依頼の修正1回で弟子を加え、掌を上に向けた腕の内側の木製肘継ぎ目へ小さな印を配置。修正前の生成元 exec-81cec23e-3f68-4b31-9956-69a93a6024fb.png を保持。 ユーザー指摘の弟子の左手を2回の生成で修正（1回目不採用、2回目採用）。",
+      "finalReview": "左手修正後に目視確認。親指の側、指の本数、手首、顔、印、道具、本文との一致を確認。",
+      "handRepairAttempts": [
+        {
+          "attempt": 1,
+          "source": "/workspace/generated_images/exec-88baa64b-6233-45a8-ae95-74b9205f9da3.png",
+          "result": "左手の親指の位置が直らなかったため不採用。原画は上書きしない。"
+        },
+        {
+          "attempt": 2,
+          "source": "/workspace/generated_images/exec-9e27df26-9529-4906-a692-72441f79c8ed.png",
+          "result": "採用。手の甲をこちらへ向け、親指が上側、他の指4本が左へ伸びる左手に修正。手首から袖へのつながりを目視確認。"
+        }
+      ]
+    }
+  ],
+  "failedCalls": [
+    {
+      "id": "irene_crest",
+      "call": 5,
+      "reason": "参照8ファイルがツール上限5を超え、生成前に拒否"
+    }
+  ],
+  "stopReason": "盗賊と添え木の追加修正完了。5枚すべてready。",
+  "baseCommit": "3312deeabeb4ad5774d2902deabbfb08957da872",
+  "initialBatchGenerationCalls": 7,
+  "additionalAuthorization": "ユーザーの追加依頼「要修正の画像を修正して、5枚とも完成したらイラストをここに表示」に基づき修正を再開。初回7回上限までの履歴は保持。",
+  "repairGenerationCalls": 5
+}
