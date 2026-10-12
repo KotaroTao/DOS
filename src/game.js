@@ -12685,18 +12685,32 @@ function trainSoul(uid) { return uiSoulPanel.train(uid, 1); }
 
 // 魂の残火でメイン魂のLv上限を1上げる (上限は capBonus に蓄積される)。
 // 要る残火は職業のレア度ごと (emberCostOf: コモン1・レア2・エピック3・レジェンド5)
-function raiseSoulCap(uid) {
+// opt.by = "soul": 無限迷宮の風だまりの灯番だけ、✦Soul でも上げられる (2026-10 ユーザーの指示)。
+//   費用 = いまの Lv から次の Lv へ上がるのに要る ✦ (raiseCapSoulCost)
+function raiseSoulCap(uid, opt = {}) {
   const e = soulByUid(uid);
   if (!e) return;
-  const need = emberCostOf(e.clsKey);
-  if ((G.embers || 0) < need) { log(`魂の残火が足りない。(${need}つ要る)`, "sys"); SFX.ng(); showToast(`魂の残火が足りない（${need}つ要る）`, { noLog: true, tone: "bad" }); return false; }
-  G.embers -= need;
+  if (opt.by === "soul") {
+    if (!infAtRest()) return false;
+    const need = raiseCapSoulCost(e);
+    if ((G.soulPts || 0) < need) { SFX.ng(); showToast(`✦Soul が足りない（✦${need} 要る）`, { tone: "bad" }); return false; }
+    G.soulPts -= need;
+  } else {
+    const need = emberCostOf(e.clsKey);
+    if ((G.embers || 0) < need) { log(`魂の残火が足りない。(${need}つ要る)`, "sys"); SFX.ng(); showToast(`魂の残火が足りない（${need}つ要る）`, { noLog: true, tone: "bad" }); return false; }
+    G.embers -= need;
+  }
   e.capBonus = (e.capBonus || 0) + 1;
   recalcAllDolls();
   updateTopbar();
   const cap = soulLevelCapOf(e);
-  log(`魂の残火を${need}つ捧げ、${soulLabel(e)}のLv上限が ${cap} になった。`, "win");
-  showToast(`🔥 ${soulLabel(e)} ― Lv上限 ${cap}（残火 ${G.embers}）`, { noLog: true, tone: "gold" });
+  if (opt.by === "soul") {
+    log(`✦Soul を注ぎ、${soulLabel(e)}のLv上限が ${cap} になった。`, "win");
+    showToast(`✦ ${soulLabel(e)} ― Lv上限 ${cap}（✦${G.soulPts}）`, { noLog: true, tone: "gold" });
+  } else {
+    log(`魂の残火を${emberCostOf(e.clsKey)}つ捧げ、${soulLabel(e)}のLv上限が ${cap} になった。`, "win");
+    showToast(`🔥 ${soulLabel(e)} ― Lv上限 ${cap}（残火 ${G.embers}）`, { noLog: true, tone: "gold" });
+  }
   // 上限に届いてから蓄積していた経験値を、伸びた上限まで Lv に注ぐ (街では強化と同じ祝祭を出す)
   const lv0 = e.level;
   const ready = e.level < cap && (e.exp || 0) >= soulTrainCost(e.level);
@@ -12707,6 +12721,11 @@ function raiseSoulCap(uid) {
   renderTown();
   return true;
 }
+
+// ✦Soul で Lv上限を1上げる費用 (無限迷宮の灯番): いまの Lv から次の Lv へ上がるのに要る ✦ と同じ
+function raiseCapSoulCost(e) { return soulTrainCost((e && e.level) || 1); }
+// 無限迷宮の風だまりの灯番なら、✦Soul でも Lv上限を上げられる
+function capBySoulOk() { return infAtRest(); }
 
 // ---- 酒場「沈まぬ灯」の依頼 (クエスト。定義と掲示板の生成は src/quests.js) ----
 // G.quest = {
@@ -18320,7 +18339,7 @@ function wireUI() {
     openStatus, closeStatus, openSettings, closeSettings, tryEnterDungeon, enterDungeon, returnToTown, confirmReturnToTown,
     tutorialAllowed, palaceCallReady, currentObjective, featureUnlocked, RUSUI_EXP_RATE, rusuiSeats, rusuiSeated, toggleRusuiSeat, contentSealed, reportMainQuest, acceptMainQuest, reportPending, blockForReport, tutorialPending, blockForTutorial,
     worldState, worldOpenIdx, pendingIreneBeat, playIreneBeat, dungeonLevel, FEATURES, featureNote, chaptersDone, storyGoal, currentChapter, dungeonTrait, dungeonFloorHaz,
-    trainSoul, raiseSoulCap, soulTrainCost, soulByUid, codexSeeItem, treasuryState, heldCollectibles, donateCollectible,
+    trainSoul, raiseSoulCap, raiseCapSoulCost, capBySoulOk, soulTrainCost, soulByUid, codexSeeItem, treasuryState, heldCollectibles, donateCollectible,
     claimAchievement, claimTreasury, treasuryRewardReady, deliveryHolder, deliveryStatus, deliverQuest,
     repairDoll, repairAllDolls, repairCostOf, tryHastenRescue, reviveTimerEl, fmtRemain, awaitingRescue, hastenCostOf,
     doEquip, doUnequip, toggleItemLock, equipFromAnywhere, reforgeCost, reforgeBlock, rollReforge, setItemQuality, openEquipChooser, useItem, dropItem, dropFromBag, askRoomFor, transferItem,

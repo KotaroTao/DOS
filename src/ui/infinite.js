@@ -17,6 +17,8 @@ import { openTrainSheet, openSkillStep } from "./soulpanel.js";
 import { ITEMS, itemName, useLines } from "../items.js";
 
 const G = () => game.G;
+// Lv上限に届いた魂を、灯番で伸ばせるか (残火か、✦Soul = いまの Lv から次の Lv へ上がるのと同じだけ)
+const capRaisable = (s) => (G().embers || 0) > 0 || (G().soulPts || 0) >= (game.raiseCapSoulCost ? game.raiseCapSoulCost(s) : Infinity);
 const sfx = (k) => { try { if (game.SFX && game.SFX[k]) game.SFX[k](); } catch (e) { /* 音は演出のみ */ } };
 const RAR = { common: "コモン", rare: "レア", epic: "エピック", legend: "レジェンド" };
 const STAT_L = [["hp", "HP"], ["mp", "MP"], ["atk", "STR"], ["vit", "VIT"], ["agi", "AGI"], ["int", "INT"], ["pie", "PIE"], ["luk", "LUK"]];
@@ -385,14 +387,14 @@ function soulList(b, redraw) {
   const souls = [...(g.souls || [])].filter(Boolean).sort(game.soulSortCmp || (() => 0));
   b.appendChild(el("div", "inf-h", `魂一覧 ${souls.length}`));
   if (!souls.length) { b.appendChild(el("div", "inf-note dim", "迷宮で拾った魂がここに並ぶ。")); return; }
-  b.appendChild(el("div", "inf-note dim", "メイン魂・サブ魂・宿していない魂のどれも、✦Soul で Lv を上げ、残火で Lv上限を上げられる。同じ職の魂を拾うと、自動で融合して Lv上限が伸びる。"));
+  b.appendChild(el("div", "inf-note dim", "メイン魂・サブ魂・宿していない魂のどれも、✦Soul で Lv を上げ、✦Soul か残火で Lv上限を上げられる (✦は、いまの Lv から次の Lv へ上がるのと同じだけ)。同じ職の魂を拾うと、自動で融合して Lv上限が伸びる。"));
   for (const s of souls) {
     const cl = SOUL_CLASSES[s.clsKey] || {};
     const cap = soulLevelCapOf(s);
     const sub = `${soulHomeText(s.uid)} ・ Lv上限${cap} ・ ランク${soulRankOf(s)} ・ ${RAR[cl.rarity] || ""}`;
     const atCap = s.level >= cap;
-    const tb = button({ label: atCap ? "上限" : "強化", kind: atCap ? "ghost" : "secondary", size: "sm", disabled: atCap && !(g.embers > 0),
-      title: atCap ? "残火で Lv上限を上げる" : "✦Soul で魂の Lv を上げる",
+    const tb = button({ label: atCap ? "上限" : "強化", kind: atCap ? "ghost" : "secondary", size: "sm", disabled: atCap && !capRaisable(s),
+      title: atCap ? "✦Soul か残火で Lv上限を上げる" : "✦Soul で魂の Lv を上げる",
       onTap: () => openTrainSheet(s.uid, redraw) });
     const line = soulLine(s, sub, null, [tb]);
     const nm = line.querySelector(".ui-row-title");
@@ -448,7 +450,7 @@ function openSubs(d, onChange) {
         if (k && k.opts) { const was = k.opts.onClose; k.opts.onClose = (r) => { if (typeof was === "function") was(r); redraw(); }; } // 借りた技を選び終えたら、この画面を描き直す
       } });
       const swap = button({ label: "替える", kind: "secondary", size: "sm", onTap: () => { sfx("select"); openSubPick(d, i, redraw); } });
-      const train = button({ label: "強化", kind: "secondary", size: "sm", disabled: s.level >= soulLevelCapOf(s) && !(G().embers > 0), onTap: () => openTrainSheet(s.uid, redraw) });
+      const train = button({ label: "強化", kind: "secondary", size: "sm", disabled: s.level >= soulLevelCapOf(s) && !capRaisable(s), onTap: () => openTrainSheet(s.uid, redraw) });
       const box = el("div", "inf-sub-box");
       box.appendChild(soulLine(s, sub2, null, []));
       const acts = el("div", "inf-vessel-a");
