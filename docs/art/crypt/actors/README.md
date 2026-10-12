@@ -82,3 +82,11 @@ CRYPT_REVIEW_OUT=/tmp/crypt-actors-review node tools/crypt/verify-actors.cjs
 死体の魂火は従来の右寄せを取り除き、遺体中央を基準に小さく揺れる。光源も中央へ合わせる。駒と遺体が同じマスにいる時は、遺体を右へ寄せた分だけ魂火と光源も寄せる。大きさは元のまま、動きを減らす設定では中央で静止する。
 
 確認: `node tools/crypt/verify-common.cjs`。通常・同居時の魂火と光源の中央位置、汎用5種類の原画描画、小さい通貨表示、320/390/1280px、遅延・取得失敗時のポップアップ、ゆらめきありの描画を確認する。
+
+## 遺体の壁越え修正
+
+遺体3種を `corpses-seated-master.png` の座り姿へ更新。立っている探索者と同じ体の比率で膝を曲げ、上体を起こしている。左から風化・あたたかい・偉大なる遺体。出荷画像は `art/dungeon/crypt-corpses-seated.webp`。元の `props-c` は空の泉に引き続き使う。
+
+横幅をマスの高さから決める処理をやめ、マス幅の76%（探索者と同居する時は50%）を上限にする。縦横比を変形せず、左右の壁に余白を残す。魂火・回収状態・選択画面の3種の区別は維持する。表示のみの修正のため、酒場の心得の変更はない。
+
+確認: [壁際の盤面](seated-review/board.png) · [選択画面一覧](seated-review/popup-gallery.png) · [検査結果](seated-review/checks.json)。幅320/390/600/1280px、拡大/全体、探索者との同居で、遺体3種の実描画矩形がマス内に収まることを検査した。再確認は `CRYPT_STATES_OUT=docs/art/crypt/actors/seated-review node tools/crypt/verify-states.cjs`。

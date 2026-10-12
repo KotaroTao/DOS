@@ -37,7 +37,7 @@ export default {
     EXORCIST_MISOGI:      { name: "禊の大波", mp: 28, kind: "phys", power: 2.1, element: "water", strip: true, target: "all-enemy", desc: "禊の大波が敵陣の加護を洗い流す（水）" },
     EXORCIST_ROKKON:      { name: "六根清浄", mp: 30, kind: "phys", power: 0.65, hits: 6, agiScale: 0.3, critBonus: 0.35, element: "light", debuff: { atk: 0.85 }, target: "enemy", desc: "六連の聖斬で魔の力を削ぐ（光）" },
     EXORCIST_OOHARAE:     { name: "大祓", mp: 30, kind: "atk", power: 62, element: "light", prey: { races: UNHOLY, mul: 1.5 }, strip: true, target: "all-enemy", desc: "祝詞が敵陣を灼き加護を祓う。不浄に強い（光）" },
-    EXORCIST_GOUMA:       { name: "降魔の陣太刀", mp: 28, kind: "phys", power: 2.1, acc: 0.5, element: "light", seal: { chance: 0.35, turns: 2 }, target: "all-enemy", desc: "降魔の太刀が敵陣を斬り、特技を封じる（光）" },
+    EXORCIST_GOUMA:       { name: "降魔の陣太刀", mp: 28, kind: "phys", power: 2.1, acc: 0.13, element: "light", seal: { chance: 0.35, turns: 2 }, target: "all-enemy", desc: "降魔の太刀が敵陣を斬り、特技を封じる（光）" },
     EXORCIST_KENSHOU:     { name: "破邪顕正", mp: 40, kind: "phys", power: 9.0, agiScale: 1.8, pieScale: 0.5, critBonus: 0.5, element: "light", prey: { races: UNHOLY, mul: 1.3 }, target: "enemy", desc: "邪を破り正を顕す究極の一閃（光）" },
   },
   perks: {

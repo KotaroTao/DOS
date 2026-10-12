@@ -2,7 +2,7 @@
 import { normalizeLook, WALKER_CLOAKS, WALKER_TRIMS } from "./walkerart.js";
 
 const sheets = new Map();
-const assets = { a: ["props-a", 1536, 1024], b: ["props-b", 1536, 1024], c: ["props-c", 1536, 1024], d: ["props-d", 1536, 1024], walker: ["walker", 1254, 1254] };
+const assets = { a: ["props-a", 1536, 1024], b: ["props-b", 1536, 1024], c: ["props-c", 1536, 1024], d: ["props-d", 1536, 1024], seated: ["corpses-seated", 1536, 1024], walker: ["walker", 1254, 1254] };
 function sheet(key) {
   if (!sheets.has(key)) {
     const [name, w, h] = assets[key], image = new Image(), state = { image, ready: false };
@@ -21,8 +21,8 @@ export function prewarmCryptActors() { for (const key of Object.keys(assets)) sh
 export const CRYPT_PROP_FRAMES = {
   chest: ["a", 24, 116, 487, 360], chestOpen: ["a", 538, 36, 462, 450],
   stairs: ["a", 1028, 60, 501, 450], fountain: ["a", 37, 529, 452, 473],
-  corpse: ["c", 772, 630, 742, 292],
-  corpseWarm: ["c", 12, 140, 772, 325], corpseGreat: ["c", 773, 127, 754, 338],
+  corpse: ["seated", 8, 184, 522, 716],
+  corpseWarm: ["seated", 530, 176, 478, 720], corpseGreat: ["seated", 1008, 160, 520, 736],
   fountainEmpty: ["c", 119, 499, 502, 503], portal: ["a", 1037, 548, 486, 439],
   trap: ["b", 70, 149, 399, 275], event: ["b", 619, 17, 302, 480],
   bossDoor: ["b", 75, 509, 370, 478], wisp: ["b", 600, 524, 340, 483],

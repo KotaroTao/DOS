@@ -60,7 +60,7 @@ import { el, svgIcon, btn, button as kitButton, longPress as attachLongPress, ui
 import { nav } from "./ui/nav.js";
 import { installPhraseWrap, phrase, ZWSP } from "./ui/phrase.js";
 import * as townshell from "./ui/townshell.js";
-import { showSkillPopup,
+import { skillDescription, showSkillPopup,
   SPELL_KIND_COLOR, BUFF_NAME, tagRow, spellTagKinds, isEquippable, equipPreviewDelta, equipCompareEl, detailLines,
   equipClassText, equipPartyChips, gearScore, enemyReveal, enemyLabel, enemyUnknown, UNKNOWN_COLOR, setLogText,
 } from "./ui/itemview.js";
@@ -2884,11 +2884,11 @@ function ensureBoardArt() {
   const L = battleLayer();
   const sp = specialDef();
   const crypt = L === 1;
-  const painting = activeCfg().id === "w01" ? cryptPainting() : null;
+  const painting = cryptPainting(activeCfg().id);
   prewarmCryptActors();
   const seed = boardSeed(b, dungeonSeed(activeCfg()) * 7919 + G.floor);
   const hz = harmHaz();
-  const key = `${VW}x${VH}|${CARD_W}x${CARD_H}|${seed}|${L}|${G.eliteFloor ? "e" : ""}|${sp ? sp.id : ""}|${hz.name}|${painting ? "painted" : "raster"}`;
+  const key = `${activeCfg().id}|${VW}x${VH}|${CARD_W}x${CARD_H}|${seed}|${L}|${G.eliteFloor ? "e" : ""}|${sp ? sp.id : ""}|${hz.name}|${painting ? "painted" : "raster"}`;
   if (BV.artKey === key && BV.art) return BV.art;
   let art = BV.artCache.get(key);
   if (!art) {
@@ -3697,8 +3697,8 @@ function drawBoardIcons(lt, now, hx, hy) {
     const painted = cryptPropBitmap(cryptPropKey(cell, bossDoorHere()));
     const b = painted || plainBitmap(icon);
     const size = Math.min(r.w * (here ? 0.62 : 0.86), r.h * (here ? 0.5 : 0.62));
-    // 横たわる人物の全長を、探索者の身長と同じ基準で描く。
-    const maxW = painted && cell.type === "corpse" ? r.h * (here ? 0.76 : 0.98) : painted ? r.w * (here ? 0.55 : 0.86) : size;
+    // 遺体は膝を曲げた座り姿。頭身は原画で保ち、左右の壁と同居する駒の余白を取る。
+    const maxW = painted && cell.type === "corpse" ? r.w * (here ? 0.5 : 0.76) : painted ? r.w * (here ? 0.55 : 0.86) : size;
     const maxH = painted ? r.h * (here ? 0.5 : 0.68) : size;
     const fit = Math.min(maxW / b.w, maxH / b.h), iconW = b.w * fit, iconH = b.h * fit;
     const bottom = r.y + r.h / 2 + (painted ? iconH : size) / 2 + r.h * 0.04;
@@ -10620,7 +10620,7 @@ function showSpells(actor) {
     if (edge) { if (!tg) edge.classList.add("lead"); top.appendChild(edge); }
     top.appendChild(el("span", "sp-mp", `MP${cost}`));
     b.appendChild(top);
-    b.appendChild(el("span", "sp-d", sp.desc));
+    b.appendChild(el("span", "sp-d", skillDescription(sp)));
     b.style.setProperty("--sp-col", SPELL_KIND_COLOR[sp.kind] || "#c9a24a");
     if (locked) b.classList.add("locked");
     // 長押しでスキル詳細を表示 (MP不足などで押せない技でも内容は確認できる)

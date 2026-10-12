@@ -115,6 +115,52 @@ const samples=12000;
  }
  console.log('会心・物理貫通・VIT・斬鉄の重ね合わせ・反撃・魔法武器・物理無効を確認');
 }
+// 動体視力は回避の割合ではなく命中率へ直接加算し、技の補正とも重なる。
+{
+ const a=actor(),t=foe(),b=new Battle([a],[t],()=>{});
+ b._evadeBase=()=>.34;
+ for(const [lv,bonus] of [[0,0],[1,.1],[2,.15],[3,.2]]){
+  a.passiveMap={dynamicVision:lv};
+  assert(Math.abs(b._missP(t,a)-(.4-bonus))<1e-12);
+  assert(Math.abs(b._missP(t,a,{acc:.1})-(.3-bonus))<1e-12);
+ }
+ b._evadeBase=()=>0;
+ assert.equal(b._missP(t,a),0,'素の外れも減らし、命中率100%で止める');
+ t.metal=1;
+ const metalMiss=b._missP(t,a);
+ a.passiveMap={};
+ assert.equal(b._missP(t,a),metalMiss,'金属の魔物は対象外');
+ t.metal=0;t.side='party';a.passiveMap={dynamicVision:3};
+ assert.equal(b._missP(t,a),.06,'味方への攻撃は対象外');
+ t.side='enemy';a.side='enemy';
+ assert.equal(b._missP(t,a),.06,'敵の攻撃は対象外');
+ console.log('動体視力Lv1/2/3の命中率+10%/15%/20%、技との加算・上限・対象外を確認');
+}
+// 命中率の直接加算、上限、暗闇、必中と見切り。表示の数字も同じ定義を読む。
+{
+ const {skillDescription,skillDetailLines}=await import('../../src/ui/itemview.js');
+ const a=actor(),t=foe(),b=new Battle([a],[t],()=>{});
+ b._evadeBase=()=>.34; // 素の外れ6%と合わせて命中率60%
+ const near=(x,y)=>assert(Math.abs(x-y)<1e-10,`${x} != ${y}`);
+ near(1-b._missP(t,a),.6);
+ near(1-b._missP(t,a,{acc:.1}),.7);
+ near(1-b._missP(t,a,{acc:.23}),.83);
+ near(1-b._missP(t,a,{acc:.5}),1);
+ b._applyMod(a,'hit',.8,3,'暗闇');
+ near(1-b._missP(t,a,{acc:.1}),.5);
+ near(1-b._missP(t,a,{acc:1}),1);
+ t.side='party';t.passiveMap={parry:2};
+ const random=Math.random;Math.random=()=>0;
+ try {
+  assert(b._physical(a,t,{acc:.1}).miss,'通常の命中加算では見切りが残る');
+  assert(b._physical(a,t,{acc:1}).dmg>0,'必中は暗闇・見切りを無視する');
+ } finally {Math.random=random;}
+ assert.equal(skillDescription({kind:'phys',acc:.1,critBonus:.3,desc:'斬る'}),'会+30%・命+10%　斬る');
+ assert(skillDetailLines({kind:'phys',acc:.1}).some(x=>x.includes('命中率+10%')));
+ assert(skillDescription(SPELLS.NERAIUCHI).startsWith('命+21%'));
+ assert(skillDescription({kind:'phys',acc:1}).includes('必中'));
+ console.log('命中率60% + 10% = 70%、上限100%、暗闇・見切り・必中・表記を確認');
+}
 function samplePhys(changes={},opt={}){
  const a=actor(),t=Object.assign(foe(),changes),b=new Battle([a],[t],()=>{},{fleeK:10/3});
  if(changes.actor)Object.assign(a,changes.actor);
@@ -124,8 +170,9 @@ function samplePhys(changes={},opt={}){
  close(sum/samples,expected,`物理 ${JSON.stringify(changes)} ${JSON.stringify(opt)}`);
  return sum/samples;
 }
-for(const r of [0,20,50,75,80,100])for(const pierce of [0,.25,1])samplePhys({physResist:r},{power:1.5,acc:.4,pierce,skill:true});
+for(const r of [0,20,50,75,80,100])for(const pierce of [0,.25,1])samplePhys({physResist:r},{power:1.5,acc:.1,pierce,skill:true});
 for(const rank of [1,2,3,4])for(const pierce of [0,.5,1])samplePhys({physResist:75,actor:{passiveMap:{samuraiZantetsu:rank}}},{power:1.5,acc:1,pierce,critBonus:1,skill:true});
+samplePhys({passiveMap:{parry:2},actor:{effects:[{stat:'hit',mult:.6,turns:3}]}},{power:1.5,acc:1,skill:true});
 samplePhys({luk:8,actor:{luk:100000,critBonus:.5}},{power:1.5,skill:true});
 samplePhys({physResist:75},{power:1.5,critBonus:1,acc:1,skill:true});
 samplePhys({physResist:100},{power:1.5,critBonus:1,acc:1,skill:true});
