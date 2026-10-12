@@ -2841,11 +2841,11 @@ function ensureBoardArt() {
   const L = battleLayer();
   const sp = specialDef();
   const crypt = L === 1;
-  const painting = activeCfg().id === "w01" ? cryptPainting() : null;
+  const painting = cryptPainting(activeCfg().id);
   prewarmCryptActors();
   const seed = boardSeed(b, dungeonSeed(activeCfg()) * 7919 + G.floor);
   const hz = harmHaz();
-  const key = `${VW}x${VH}|${CARD_W}x${CARD_H}|${seed}|${L}|${G.eliteFloor ? "e" : ""}|${sp ? sp.id : ""}|${hz.name}|${painting ? "painted" : "raster"}`;
+  const key = `${activeCfg().id}|${VW}x${VH}|${CARD_W}x${CARD_H}|${seed}|${L}|${G.eliteFloor ? "e" : ""}|${sp ? sp.id : ""}|${hz.name}|${painting ? "painted" : "raster"}`;
   if (BV.artKey === key && BV.art) return BV.art;
   let art = BV.artCache.get(key);
   if (!art) {
