@@ -1,0 +1,97 @@
+{
+  "worker": "12",
+  "branch": "codex/art-worker-12",
+  "baseCommit": "1b03c31bd45aa4dcda085851309bad280439501b",
+  "generationCalls": 5,
+  "generationLimit": 15,
+  "scenes": [
+    {
+      "id": "lore_w19",
+      "path": "art/story-review/dungeons/lore_w19.png",
+      "state": "ready",
+      "generationCalls": 1,
+      "visualReview": "降り続ける灰、肩に灰の積もる祈る者3人、釜の火、焼けた空の木製人業の殻を確認。頭は無顔の丸い木、関節は黒鉄。人物の顔・指・脚は後ろ姿と長衣に隠れ直接判別不可。見える腕に増殖なし。印・先の秘密・読める文字なし。祭場に祈る者がいるため祭壇の蝋燭は不自然でない。",
+      "specifiedReferences": [],
+      "actualReferences": [
+        "docs/art/story-refs/dolls.png",
+        "art/story-review/chapter4/w14_lamp.png"
+      ],
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "fc2ce66333e045650a7591899a9bae438dfe35e11493bd29d0dd57637c57a317"
+    },
+    {
+      "id": "lore_w20",
+      "path": "art/story-review/dungeons/lore_w20.png",
+      "state": "ready",
+      "generationCalls": 1,
+      "visualReview": "並ぶ釜、樹液の滴、基準形状の金の杯、魂を燃やす青白い火と火守りを確認。別の作り方を考えた痕跡は冷えた試験器と判読不能の書きつけ。顔はフードで隠れ、握った指と長衣の脚は全数判別不可。見える腕に増殖なし。新しい一門の印・先の秘密なし。",
+      "specifiedReferences": [],
+      "actualReferences": [
+        "docs/art/story-refs/props.png",
+        "art/story-review/chapter4/w14_lamp.png"
+      ],
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "ec33793aca20bc6226e73547e350572d36a3e2c872b8d33e49ca3603ddde0316"
+    },
+    {
+      "id": "lore_w21",
+      "path": "art/story-review/dungeons/lore_w21.png",
+      "state": "ready",
+      "generationCalls": 1,
+      "visualReview": "鎖で支えた巨大な釜、煮詰まる樹液、下の底なし穴、穴から湧き戻る魂の流れ、業火を確認。生身の人物・手足・印・道具の追加なし。魂の影は抽象的で顔や指の細部はない。底や先の章の場所を描いていない。文字なし。",
+      "specifiedReferences": [],
+      "actualReferences": [
+        "art/story-review/chapter4/w14_lamp.png"
+      ],
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "c9307a4018ba066b96c34abfe8915e1d4c449d8c836001a3a52cfa15a8afb5e9"
+    },
+    {
+      "id": "lore_w22",
+      "path": "art/story-review/dungeons/lore_w22.png",
+      "state": "ready",
+      "generationCalls": 1,
+      "visualReview": "奈落の壁から張り出すらせん状の氷棚、吹き上げる雪と風、穴のある氷、凍りついた靴・袋・縄・折れた棒、再び落ちる品を確認。人物の顔・手足・一門の印なし。固有人物の持ち物との混同なし。奈落の底・先の秘密・文字・集落なし。",
+      "specifiedReferences": [],
+      "actualReferences": [
+        "art/story-review/chapter4/w14_lamp.png"
+      ],
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "5c1f8909c5c66fd6b2b89777ba37b5332239a5dc73ca9c9300c15ce148481574"
+    },
+    {
+      "id": "lore_w23",
+      "path": "art/story-review/dungeons/lore_w23.png",
+      "state": "ready",
+      "generationCalls": 1,
+      "visualReview": "氷柱ごとに一人、目を閉じた人々、根元の判読不能な名の刻み、空の割れた柱と半身が凍ったまま歩く一人を確認。近景の顔・手に明らかな崩れなし。歩く者は腕2本・脚2本。組んだ手の隠れた指、氷と長衣の内側の脚は直接判別不可。固有人物・印・道具・後の秘密なし。",
+      "specifiedReferences": [],
+      "actualReferences": [
+        "art/story-review/chapter4/w14_lamp.png"
+      ],
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "5b8d89795a4d1e92aab4eb344093f0af87fd28f31c3ffdd42d2666f1a6411dee"
+    }
+  ],
+  "handoff": "担当5枚はready。統合担当による承認・WebP変換・登録を待つ。build.py、共通queue、登録ファイル、本文、基準画像は未変更。PR・マージなし。"
+}
