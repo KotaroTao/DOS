@@ -8378,13 +8378,14 @@ function startBattleMeasured(enemies, cell) {
     if (opening) openSrc = "rand";
   }
   // 迷宮のイベント: 出来事が決めた開幕 (寝首/奇襲) ・ 密輸人の待ち伏せ ・ 祈りの蝋燭
-  if (!isBoss && !isElite) {
+  // 出来事が選択肢の文で約束した開幕 (寝込みを襲う・見つかる) は強敵の戦いにも効かせる (主の戦いは除く)
+  if (!isBoss && G._evOpening) { opening = G._evOpening; openSrc = "event"; }
+  else if (!isBoss && !isElite) {
     const rv = G.run && G.run.ev && inDungeon() ? G.run.ev : null;
     const inf = abyssActive();
-    if (G._evOpening) { opening = G._evOpening; openSrc = "event"; }
-    else if (rv && rv.ambushNext > 0) { rv.ambushNext--; opening = "ambush"; openSrc = "smuggler"; log(inf ? "待ち伏せていた魔物に襲われた！" : "密輸人どもが荷の仕返しに待ち伏せていた！", "dmg"); }
+    if (rv && rv.ambushNext > 0) { rv.ambushNext--; opening = "ambush"; openSrc = "smuggler"; log(inf ? "待ち伏せていた魔物に襲われた！" : "密輸人どもが荷の仕返しに待ち伏せていた！", "dmg"); }
     else if (rv && rv.preempt > 0) { rv.preempt--; opening = "preempt"; openSrc = "candle"; log(inf ? "出来事で得た備えのおかげで、先制した。" : "祈りの蝋燭の灯が、闇を味方につけた。", "win"); }
-  } else if (G._evOpening && isElite) opening = null;
+  }
   G._evOpening = null;
   // 迷宮の掟: どの戦闘も必ず奇襲で始まる (trait.alwaysAmbush。周囲警戒・夜営の番・先制の恵みも効かない。主の戦いは除く)
   const trA = dungeonTrait();

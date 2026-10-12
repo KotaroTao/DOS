@@ -13,11 +13,12 @@
 //   hurt: 割合 (全員の最大HP) / hurtOne: 割合 / ail: [種類, 確率] / mpLoss: 割合
 //   gold: 戦果 / soul: 戦果 / ember: 数 (無限迷宮の残火は本編の2倍 — 2026-10-12 ユーザーの指示。数はここに2倍で書く)
 //   item: pickLoot の opts ({} / {rare:true} / {elite:true}) / itemRar: "r"|"sr" (そのレア度以上)
-//   soulPick: "normal"|"common"|"rarePlus" (職業の魂を拾う。無限迷宮では同じ職なら自動で融合)
+//   soulPick: "normal"|"common"|"rarePlus" (職業の魂を拾う。無限迷宮では同じ職なら自動で融合)。配列なら書いた数だけ拾う (["normal", "normal"] = 2つ)
 //   run: この出撃だけの強化・呪い (dmgMul・soulMul・goldMul・enemyMul・packMin・ambushMul・chestRankUp・lootBonusLv・noFlee
 //        は修飾子として積む / crit・startHeal・bomb・preempt・ambushNext は回数・値を足す)
 //   floor: この階だけの強化・呪い (修飾子) / stairs: true (階段の在処) / chests: 数 (宝箱の在処を見せる)
-//   chest: { rankUp } (その場に宝箱) / fight: [出来事の戦闘の spec], win: 勝った後の効果
+//   chest: { rankUp } (その場に宝箱) / fight: [出来事の戦闘の spec], win: 勝った後の効果, opening: "preempt"|"ambush" (開幕。強敵の戦いにも効く)
+//   ※ 選択肢の文 (「― 」の後) に書いた見返り・代償は、必ずここの効果と同じにする (2026-10-12 ユーザーの指示)
 //   say: 結果の一文 (トーストと記録)
 import { random } from "./rng.js";
 
@@ -90,12 +91,12 @@ function apply(A, cell, e, from, finish, next = null) {
   if (e.stairs) A.revealStairs();
   if (e.chests) A.revealWhere((c) => c.type === "chest" && !c.cleared, e.chests);
   if (e.say) A.toast(e.say, e.tone || "info");
-  if (e.fight) { A.fight(cell, e.fight, e.tag || "w0"); return; }
+  if (e.fight) { A.fight(cell, e.fight, e.tag || "w0", e.opening ? { opening: e.opening } : {}); return; }
   // 品・魂は1つずつ見せてから次へ (重なると前の札が消える)
   const gifts = [];
   if (e.item) gifts.push((go) => A.item(e.item, from, go));
   if (e.itemRar) gifts.push((go) => A.itemMinRar(e.itemRar, from, go));
-  if (e.soulPick) gifts.push((go) => A.soulDrop(e.soulPick, `${from}で拾った魂だ。`, go));
+  for (const k of e.soulPick ? [].concat(e.soulPick) : []) gifts.push((go) => A.soulDrop(k, `${from}で拾った魂だ。`, go));
   const end = () => (e.chest ? A.chestHere(cell, e.chest, next) : finish());
   const step = (i) => (i < gifts.length ? gifts[i](() => step(i + 1)) : end());
   step(0);
@@ -174,8 +175,8 @@ ev("inf_c07", "湧き水の溜まり", "c", "fountain", ["岩の割れ目から�
   ["水筒に詰めて売る算段 ― 金貨を少し", { gold: 0.6 }],
 ]);
 ev("inf_c08", "眠る魔物", "c", "event", ["通路の真ん中で、魔物が丸くなって眠っている。"], [
-  ["忍び寄って先に打つ ― 戦闘 (先制) / 勝てば✦Soul", { fight: [{ min: 1 }], win: { soul: 1.5 } }],
-  ["起こさぬように抜ける (AGI) ― 成功で金貨・失敗で奇襲", { check: "agi", ok: { gold: 1 }, ng: { fight: [{ min: 2 }], win: { soul: 1 } } }],
+  ["忍び寄って先に打つ ― 戦闘 (先制) / 勝てば✦Soul", { fight: [{ min: 1 }], opening: "preempt", win: { soul: 1.5 } }],
+  ["起こさぬように抜ける (AGI) ― 成功で金貨・失敗で奇襲", { check: "agi", ok: { gold: 1 }, ng: { fight: [{ min: 2 }], opening: "ambush", win: { soul: 1 } } }],
 ]);
 ev("inf_c09", "錆びた鎖の束", "c", "trap", ["天井から錆びた鎖が垂れ、何かを吊るしていた跡がある。"], [
   ["鎖を手繰り寄せる ― 品 / 30%で鎖が落ちてくる", { p: 0.7, ok: { item: {} }, ng: { hurt: 0.15 } }],
@@ -219,7 +220,7 @@ ev("inf_c18", "群れの足跡", "c", "event", ["床一面に、大小さまざ�
 ]);
 ev("inf_c19", "誰かの書き置き", "c", "story", ["「ここまで来た。まだ降りる。」 炭で壁に書かれた、短い書き置き。"], [
   ["続きを書き足す ― ✦Soul", { soul: 1 }],
-  ["書き置きの下を探す ― 品 / 半分は何も無い", { p: 0.5, ok: { item: {} }, ng: { gold: 0.5 } }],
+  ["書き置きの下を探す ― 品 / 半分は金貨を少し", { p: 0.5, ok: { item: {} }, ng: { gold: 0.5 } }],
 ]);
 ev("inf_c20", "割れた水鏡", "c", "event", ["床の水たまりが、割れた鏡のように隊の姿を映している。"], [
   ["のぞき込む ― MP 2割回復 / 20%で混乱", { p: 0.8, ok: { heal: [0, 0.2] }, ng: { ail: ["confuse", 0.5] } }],
@@ -242,7 +243,7 @@ ev("inf_c24", "置き去りの盾", "c", "event", ["盾が一枚、壁に立て�
   ["盾を持っていく ― 品", { item: {} }],
 ]);
 ev("inf_c25", "地鳴り", "c", "trap", ["足の下から、低い地鳴りが近づいてくる。"], [
-  ["身を伏せてやり過ごす ― HP 1割", { hurt: 0.1, say: "揺れが過ぎた。埃の中に、光るものが落ちていた" , gold: 1 }],
+  ["身を伏せてやり過ごす ― HP 1割を失い、金貨を少し", { hurt: 0.1, say: "揺れが過ぎた。埃の中に、光るものが落ちていた" , gold: 1 }],
   ["揺れに乗じて走る (AGI) ― 成功で✦Soul ・失敗で HP 2割", { check: "agi", ok: { soul: 1.2 }, ng: { hurt: 0.2 } }],
 ]);
 ev("inf_c26", "眠り草の群生", "c", "event", ["甘い匂いの白い草が、通路をふさぐように群れている。"], [
@@ -376,12 +377,12 @@ ev("inf_u02", "灯番の残した油", "u", "fountain", ["風だまりの灯籠�
   ["油を身にまとう ― この出撃の戦闘の始めに HP回復 4回", { run: { startHeal: 4 }, say: "油の灯が隊を包む ― 戦闘の始めの回復 4回" }],
 ]);
 ev("inf_u03", "魂の溜まり", "u", "wisp", ["魂の欠片が、窪みにいくつも溜まって淡く光っている。"], [
-  ["手ですくう ― 職業の魂 2つ / 30%で一人が魂を吸われる (MP)", { p: 0.7, ok: { soulPick: "normal", soul: 1 }, ng: { soulPick: "normal", mpLoss: 0.3 } }],
+  ["手ですくう ― 職業の魂 2つ / 30%で隊の魔力が吸われる (MP 3割)", { p: 0.7, ok: { soulPick: ["normal", "normal"] }, ng: { soulPick: ["normal", "normal"], mpLoss: 0.3, say: "欠片が隊の魔力を吸っていった" } }],
   ["光を浴びる ― ✦Soul を多めに", { soul: 3.5 }],
 ]);
 ev("inf_u04", "研ぎ澄まされた刃の祭壇", "u", "event", ["祭壇に、刃だけが何十本も突き立てられている。"], [
   ["血を一滴たらす ― HP 2割を払い、この出撃の与ダメ +5%", { cost: { hp: 0.2 }, run: { dmgMul: 1.05 }, say: "刃が応えた ― 与ダメ +5% (この出撃)" }],
-  ["刃を一本抜く ― レア以上の武器が出やすい品", { itemRar: "r" }],
+  ["刃を一本抜く ― レア以上の品", { itemRar: "r" }],
 ]);
 ev("inf_u05", "群れの主", "u", "mon", ["ひときわ大きな魔物が、群れを率いて通路をふさいでいる。"], [
   ["群れごと叩く ― 戦闘 (強敵と群れ) / 勝てば品と✦Soul", { fight: [{ elite: true }, { min: 2 }], win: { item: { elite: true }, soul: 2 } }],
@@ -424,7 +425,7 @@ ev("inf_u14", "金と魂の両替商", "u", "gold", ["顔の見えない影が�
   ["✦Soul を金貨に ― ✦Soul を払い、金貨を多めに", { cost: { soul: 2 }, gold: 6 }],
 ]);
 ev("inf_u15", "眠る強敵", "u", "mon", ["大きな影が、壁に背を預けて眠っている。"], [
-  ["寝込みを襲う ― 戦闘 (強敵・先制) / 勝てば品", { fight: [{ elite: true }], win: { item: { elite: true } } }],
+  ["寝込みを襲う ― 戦闘 (強敵・先制) / 勝てば品", { fight: [{ elite: true }], opening: "preempt", win: { item: { elite: true } } }],
   ["そっと横を抜ける (AGI) ― 成功で✦Soul ・失敗で戦闘", { check: "agi", ok: { soul: 3 }, ng: { fight: [{ elite: true }], win: { item: { elite: true } } } }],
 ], { from: 6 });
 ev("inf_u16", "呪いの宝石", "u", "event", ["台座の上で、赤黒い宝石が脈打つように光っている。"], [
@@ -465,7 +466,7 @@ ev("inf_u24", "宝の地図の切れ端", "u", "story", ["誰かが残した地�
 ]);
 ev("inf_u25", "飢えた群れ", "u", "event", ["飢えた魔物の群れが、隊の匂いを嗅ぎつけて集まってくる。"], [
   ["迎え撃つ ― 戦闘 (大きな群れ) / 勝てば✦Soul と金貨を多めに", { fight: [{ min: 4 }], win: { soul: 3, gold: 3 } }],
-  ["食料を投げて逃げる ― 金貨を払う", { cost: { gold: 1 }, say: "群れは食料に群がった" }],
+  ["食料を投げて逃げる ― 金貨を払い、この階の奇襲が減る", { cost: { gold: 1 }, floor: { ambushMul: 0.5 }, say: "群れは食料に群がった ― この階は奇襲を受けにくい" }],
 ]);
 ev("inf_u26", "器職人の作業台", "u", "event", ["土くれをこねる作業台。器の継ぎ目を直す道具が揃っている。"], [
   ["器の継ぎ目を直す ― HP 5割・状態異常を治す", { heal: [0.5, 0, true] }],
@@ -484,7 +485,7 @@ ev("inf_u29", "魔物の祭り", "u", "event", ["魔物たちが輪になって�
   ["騒ぎに乗じて宝を探す (LUK) ― 成功で宝箱の在処・失敗で見つかる", { check: "luk", ok: { chests: 3 }, ng: { fight: [{ min: 3 }], win: { gold: 3 } } }],
 ]);
 ev("inf_u30", "迷い込んだ回収人の荷", "u", "gold", ["商会の荷車が、荷をこぼしたまま止まっている。御者の姿は無い。"], [
-  ["荷を拾い集める ― 回復の道具が多い品 2つ", { item: {}, itemRar: "r" }],
+  ["荷を拾い集める ― 品 2つ (1つはレア以上)", { item: {}, itemRar: "r" }],
   ["荷を見張って待つ ― 戻った御者から金貨", { gold: 4 }],
 ]);
 
@@ -531,7 +532,7 @@ ev("inf_r10", "迷宮の主の玉座", "r", "mon", ["誰もいない玉座。座
   ["玉座の主を待つ ― 戦闘 (強敵) / 勝てばスーパーレア以上の品", { fight: [{ elite: true, strong: 1.4 }], win: { itemRar: "sr", soul: 4 } }],
 ], { from: 26 });
 ev("inf_r11", "崩れた器の大墳墓", "r", "corpse", ["数えきれない仮の器が、土に還ろうとしている。魂の欠片が、あちこちで瞬いている。"], [
-  ["欠片を拾い集める ― 職業の魂 2つ", { soulPick: "normal", item: {}, say: "欠片を拾い集めた" }],
+  ["欠片を拾い集める ― 職業の魂 2つ", { soulPick: ["normal", "normal"], say: "欠片を拾い集めた" }],
   ["墳墓に眠る者たちを弔う ― ✦Soul を多めに・状態異常を治す", { soul: 6, heal: [0.3, 0.3, true] }],
 ]);
 ev("inf_r12", "黄金の間", "r", "gold", ["床も壁も天井も、すべて金貨で覆われている。"], [

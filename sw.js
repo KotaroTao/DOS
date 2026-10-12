@@ -447,6 +447,7 @@ const ASSETS = [
   "./art/jobs/inquisitor_4.webp",
   "./art/jobs/inquisitor_5.webp",
   "./src/townart.js",
+  "./src/infbannerart.js",
   "./src/walkerart.js",
   "./src/jobart.js",
   "./src/jobphotos.js",
