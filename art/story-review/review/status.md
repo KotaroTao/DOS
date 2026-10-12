@@ -2,7 +2,7 @@
 
 書き出し: `node tools/storyart/review.mjs` (build.py も書き直す。手で直さない)。
 
-場面: 出荷済み 74 ・ 出荷済み (任意の修正あり) 14 ・ 未着手 (指示あり) 34
+場面: 出荷済み 79 ・ 出荷済み (任意の修正あり) 14 ・ 未着手 (指示あり) 29
 
 | 章 | 場面 | 題 | 状態 | 確認ページ |
 |---|---|---|---|---|
@@ -91,11 +91,11 @@
 | 第7章「毒沼」 | `mem_w29` | ただひとつの言いつけ | 出荷済み | [見る](chapter7.md#mem_w29) |
 | 第7章「毒沼」 | `report_w29` | 死なない命令 | 出荷済み | [見る](chapter7.md#report_w29) |
 | 第7章「毒沼」 | `irene_order` | 灯を守る理由 | 出荷済み | [見る](chapter7.md#irene_order) |
-| 第7章「毒沼」 | `ch7_end` | 嵐の鳴る塔へ | 未着手 (指示あり) | [見る](chapter7.md#ch7_end) |
-| 第8章「嵐の尖塔」 | `w30_stick` | 雷にくれてやった杖 | 未着手 (指示あり) | [見る](chapter8.md#w30_stick) |
-| 第8章「嵐の尖塔」 | `report_w30` | 鳴りやまぬ雷 | 未着手 (指示あり) | [見る](chapter8.md#report_w30) |
-| 第8章「嵐の尖塔」 | `w31_bell` | 空へ還る鐘 | 未着手 (指示あり) | [見る](chapter8.md#w31_bell) |
-| 第8章「嵐の尖塔」 | `report_w31` | 同じ問い | 未着手 (指示あり) | [見る](chapter8.md#report_w31) |
+| 第7章「毒沼」 | `ch7_end` | 嵐の鳴る塔へ | 出荷済み | [見る](chapter7.md#ch7_end) |
+| 第8章「嵐の尖塔」 | `w30_stick` | 雷にくれてやった杖 | 出荷済み | [見る](chapter8.md#w30_stick) |
+| 第8章「嵐の尖塔」 | `report_w30` | 鳴りやまぬ雷 | 出荷済み | [見る](chapter8.md#report_w30) |
+| 第8章「嵐の尖塔」 | `w31_bell` | 空へ還る鐘 | 出荷済み | [見る](chapter8.md#w31_bell) |
+| 第8章「嵐の尖塔」 | `report_w31` | 同じ問い | 出荷済み | [見る](chapter8.md#report_w31) |
 | 第8章「嵐の尖塔」 | `irene_bell` | 鐘の節 | 未着手 (指示あり) | [見る](chapter8.md#irene_bell) |
 | 第8章「嵐の尖塔」 | `w32_rod` | 雷よけの巻き方 | 未着手 (指示あり) | [見る](chapter8.md#w32_rod) |
 | 第8章「嵐の尖塔」 | `report_w32` | 地の底に吸われる雷 | 未着手 (指示あり) | [見る](chapter8.md#report_w32) |

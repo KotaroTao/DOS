@@ -344,9 +344,9 @@
 
 <a name="ch7_end"></a>
 
-## ch7_end「嵐の鳴る塔へ」 ── 未着手 (指示あり)
+## ch7_end「嵐の鳴る塔へ」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter7/ch7_end.webp" width="576" alt="ch7_end">
 
 **ストーリー一覧の本文**
 
