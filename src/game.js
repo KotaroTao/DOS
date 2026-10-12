@@ -2986,7 +2986,7 @@ function ensureBoardScene() {
     if (c.walls.w && !seen.has(`v${x},${y}`)) { seen.add(`v${x},${y}`); walls.push({ x: L - 3, y: T, w: 6, h: B - T, horiz: false }); post(L, T); post(L, B); }
     if (c.walls.e && !seen.has(`v${x + 1},${y}`)) { seen.add(`v${x + 1},${y}`); walls.push({ x: R - 3, y: T, w: 6, h: B - T, horiz: false }); post(R, T); post(R, B); }
   }
-  if (art.painting) paintCryptMasonry(g, walls, [...posts.values()], art.painting, art.seed);
+  if (art.painting) paintCryptMasonry(g, walls, [...posts.values()], art.painting, art.seed, art.wallStyle);
   else paintCryptWalls(g, walls, [...posts.values()], art.mat, art.seed);
   BV.sceneHiKey = "";
 }
