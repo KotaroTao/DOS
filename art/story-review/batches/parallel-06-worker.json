@@ -1,0 +1,207 @@
+{
+  "worker": "06",
+  "branch": "codex/art-worker-06",
+  "baseCommit": "9990e76f75299e2b347b9354a7872cd384c9cc07",
+  "generationCalls": 9,
+  "generationLimit": 15,
+  "note": "担当06の5枚をすべてreadyで保存。生成9回（新規5回・修正4回、失敗0回）、ユーザー指定上限15回以内。各prompt.mjsの本文と指示・実画像参照に従って制作し、顔・手足・印・小道具・時系列を目視確認。原画5枚と本記録だけを変更。WebP変換、build.py、共通queue.json、登録・本文・基準画像の変更、PR・mainマージは実施しない。",
+  "scenes": [
+    {
+      "id": "irene_bell",
+      "path": "art/story-review/chapter8/irene_bell.png",
+      "state": "ready",
+      "generationCalls": 3,
+      "visualReview": "イレーヌとセラの顔・髪・衣装、セラの木目・黒鉄と金の継ぎ目・胸の魂火、額の小さい金の印（左親指・右3突起・独立した炎）を確認。各2本の腕、見える手に余分な指なし。頬に添えた手の隠れた指・画面外の脚は直接判別不可。銘の写しを読み二人で口ずさむ本文、中央の一本の白い蝋燭、読めない走り書きが一致。背景の青いランタンと壁の大きな印は除去済み。",
+      "note": "印の右3突起を再修正して確認済み。",
+      "references": [
+        "docs/art/story-refs/irene.png",
+        "docs/art/story-refs/sera.png",
+        "docs/art/sera/sera-r1-final.png",
+        "docs/art/story-refs/props.png",
+        "docs/art/story-refs/sigil.png"
+      ],
+      "omittedReferences": [
+        {
+          "path": "art/story-review/chapter2/irene_roots.png",
+          "reason": "参照最大5枚。人物・セラ必須原画・小道具・承認済み印を優先。館の造りは目視で確認。"
+        },
+        {
+          "path": "art/story-review/chapter1/irene_familiar.png",
+          "reason": "参照最大5枚。人物・セラ必須原画・小道具・承認済み印を優先。館の造りは目視で確認。"
+        }
+      ],
+      "additionalReferences": [
+        "docs/art/story-refs/sigil.png"
+      ],
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "a2aa3f9b408d23db3fbdbc6e3740049fa43c5480d20d635643fae4bfd6f46809"
+    },
+    {
+      "id": "w32_rod",
+      "path": "art/story-review/chapter8/w32_rod.png",
+      "state": "ready",
+      "generationCalls": 2,
+      "visualReview": "弟子の顔・左腰の鞄・衣装、4体の無顔の木の人業と装具、手すりの多重銅線から壁の割れ目へ逃げる雷、乾いた壁のくぼみ、紙の継ぎ目図を確認。戦士の肘と図の銅を一巻きへ修正済み。見える手足の増殖なし、隠れた指・脚は判別不可。不要な印・読める文字なし。本文と主題が一致。",
+      "note": "肘の銅線と紙の図を一巻きに修正、雨を避けるくぼみを明確化済み。",
+      "references": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/dolls.png"
+      ],
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "ba2ba67e6d064450cdb6f36ae0c855752db12bbe45924dec4dc0df1a919bd876"
+    },
+    {
+      "id": "report_w32",
+      "path": "art/story-review/chapter8/report_w32.png",
+      "state": "ready",
+      "generationCalls": 2,
+      "visualReview": "王の顔・白髪・衣装・膝掛け、窓の嵐と地へ走る雷、王の高い玉座と脇の小さい宰相の空席を確認。弟子の鞄を左腰へ移動し右肩から左腰への肩ひもを確認。見える手足に増殖なし、重ねた手の隠れた指・長衣の内側の脚は判別不可。宰相本人・余分な印・文字なし。本文と主題が一致。",
+      "note": "鞄の左右と玉座・宰相席の関係を修正済み。",
+      "references": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/king.png",
+        "docs/art/story-refs/morden.png",
+        "art/story-review/chapter3/report_w12.png"
+      ],
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "a4e7817b01ee1700b38b5de657bd2d31740d8828e0eb7d016b1a47d6d469dad3"
+    },
+    {
+      "id": "mem_w33",
+      "path": "art/story-review/chapter8/mem_w33.png",
+      "state": "ready",
+      "generationCalls": 1,
+      "visualReview": "オルドの同じ顔・灰髪・灰色の短いひげ、外套なしのシャツ・工具・両手の革手袋・左脚の木の腕2本の添え木を確認。腕2本・脚2本、石を握る手と膝の手に余分な指なし。握った隠れた指は直接判別不可。杖・鞄・灯・弟子・モルデンなし。火のない灯台、鎖の腕の像の輪と魂の渦、石で割る鎖の腕、上へ抜ける一つの魂、遠い石橋とすり鉢状の観客席が本文に一致。大きな印・文字なし。全景で主題が明瞭。",
+      "note": "原画保存・目視確認済み。",
+      "references": [
+        "docs/art/story-refs/ordo-states.png",
+        "docs/art/story-refs/ordo.png"
+      ],
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "ac23855ead2328ca25a960676d48c586ffb41c447c3bb14e95dab290b817dd36"
+    },
+    {
+      "id": "report_w33",
+      "path": "art/story-review/chapter8/report_w33.png",
+      "state": "ready",
+      "generationCalls": 1,
+      "visualReview": "王の顔・白髪・王冠・衣装、肩に掛けた灰色の膝掛け、窓枠に置く手と青空を見上げる姿、朝の陽光、玉座より小さい宰相の空席を確認。弟子の顔・衣装・左腰の鞄が一致。見える指に増殖なし。奥側の腕・長衣内の脚は直接判別不可。雷雲・稲妻・モルデン・余分な印・文字なし。青空に小さな白雲は英語指示に従う。",
+      "note": "原画保存・目視確認済み。",
+      "references": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/king.png",
+        "docs/art/story-refs/morden.png",
+        "art/story-review/chapter3/report_w12.png"
+      ],
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "0e0fc7857e2ce1286dfb8f18d64e8293521d19a8f8e7ad15694fffcd1a19ea67"
+    }
+  ],
+  "referenceHashes": {
+    "art/story-review/chapter3/report_w12.png": "b78de38be4920cb89b2bd79c59e1a34431365b9e963b621e15611fb5f0fa6517",
+    "docs/art/sera/sera-r1-final.png": "4b392934b742ea80e10abfcb6d6e5362a0becb13162af0842797f2f892c5fe6c",
+    "docs/art/story-refs/apprentice.png": "419a3d6797a8297866039b06f63b1ad79a907e800f68da7bf54b58b6858e89b2",
+    "docs/art/story-refs/dolls.png": "0815d62d79d2f2b4c7f491f4119bb7aa59acc7f43bc941c0559f7da194e316f6",
+    "docs/art/story-refs/irene.png": "6ad282363f77635736e4f6ab90d06649aa15b481e946b406f9b5564709627414",
+    "docs/art/story-refs/king.png": "341d51b7af8ae5fc6fe610902ad14b4cf95b57d2e56bcb419483a63321c4f978",
+    "docs/art/story-refs/morden.png": "b5934bc34a1d11e97e0fabe2cac71707b9a7c02201ffb21ec1669ec6a075b4d5",
+    "docs/art/story-refs/ordo-states.png": "f62bd7a6f8cbc0c9f9e620f0f90407bf907f07a0d26e9692f487cd3bf2343477",
+    "docs/art/story-refs/ordo.png": "7a51b182287aa1435f333ee6077b40f29e5c5db58d17fed3a4ca903fcaa0244d",
+    "docs/art/story-refs/props.png": "051a8f35cf00a15dfb3501cddb8f58964e5737d8d79001adbcc18135aa1309a9",
+    "docs/art/story-refs/sera.png": "341c64b2e2d3913f3cb6fe2f3ae66260a4899e588e416b098ab4433d5dcbba66",
+    "docs/art/story-refs/sigil.png": "7dfeb2dbb8eb7091557e1dd3f387b963b64b2fa4a20848c1c18734167fe47b6b"
+  },
+  "integrationNote": "統合担当へ: 全5件ready。原画はchapter8の指定先。目視記録の隠れた指・脚の判別限界を確認のうえ回収・変換・登録工程へ引き継ぐ。未完成なし。",
+  "attempts": [
+    {
+      "call": 1,
+      "id": "irene_bell",
+      "kind": "new",
+      "result": "needs-fix",
+      "reason": "額の印の突起不足と背景の青いランタン",
+      "source": "/workspace/generated_images/exec-fb17b7a2-1e19-4b16-ba36-8c47e05e6b62.png"
+    },
+    {
+      "call": 2,
+      "id": "irene_bell",
+      "kind": "edit",
+      "result": "needs-fix",
+      "reason": "背景修正済み、額の印の右3突起がまだ不明瞭",
+      "source": "/workspace/generated_images/exec-c1049e60-4d65-4086-9086-61619679c2da.png"
+    },
+    {
+      "call": 3,
+      "id": "w32_rod",
+      "kind": "new",
+      "result": "needs-fix",
+      "reason": "肘と紙の銅線を一巻きにする",
+      "source": "/workspace/generated_images/exec-b259561a-5895-4016-8248-55a15ab31ea0.png"
+    },
+    {
+      "call": 4,
+      "id": "report_w32",
+      "kind": "new",
+      "result": "needs-fix",
+      "reason": "弟子の鞄の左右、玉座と宰相の席の区別",
+      "source": "/workspace/generated_images/exec-9c7cc1f3-467a-4032-802f-c097f00f0869.png"
+    },
+    {
+      "call": 5,
+      "id": "mem_w33",
+      "kind": "new",
+      "result": "ready",
+      "source": "/workspace/generated_images/exec-4cee1113-6e95-4c96-bc99-66d72afaf6f2.png"
+    },
+    {
+      "call": 6,
+      "id": "report_w33",
+      "kind": "new",
+      "result": "ready",
+      "source": "/workspace/generated_images/exec-6662844f-1aa6-4fe4-9052-bbf030812931.png"
+    },
+    {
+      "call": 7,
+      "id": "irene_bell",
+      "kind": "edit",
+      "result": "ready",
+      "reason": "額の印を右3突起に修正",
+      "source": "/workspace/generated_images/exec-9ed90c47-5c57-4ed8-b126-27b2df93b3dd.png"
+    },
+    {
+      "call": 8,
+      "id": "w32_rod",
+      "kind": "edit",
+      "result": "ready",
+      "reason": "一巻きの銅線と乾いた壁のくぼみを明確化",
+      "source": "/workspace/generated_images/exec-fb63f09f-db51-49d5-b832-aa4cbb7877d0.png"
+    },
+    {
+      "call": 9,
+      "id": "report_w32",
+      "kind": "edit",
+      "result": "ready",
+      "reason": "左腰の鞄と小さい宰相席に修正",
+      "source": "/workspace/generated_images/exec-ea15db17-32a8-439b-a5ab-06b66f76e25e.png"
+    }
+  ]
+}
