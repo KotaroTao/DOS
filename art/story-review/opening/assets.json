@@ -1,0 +1,22 @@
+{
+  "art/opening/rift.webp": {
+    "master": "art/story-review/opening/rift.png",
+    "masterHash": "643b2899f7ab363e6ea79c69d4cd75742d11231f32cd8066d7754f2161283d25",
+    "shippedHash": "2728af233d17bfa4d4b4a280718644fc3d853c9db2a67b797096fd8fa1cb5d96"
+  },
+  "art/opening/fallen.webp": {
+    "master": "art/story-review/opening/fallen.png",
+    "masterHash": "1e7678d6102a49eafbab27acbc33ee72cf9050a8f22287a4df7b397ef5cbede5",
+    "shippedHash": "afcd98ea5702b25665b4af3af24abaae973f559221813039adcc1d19e35884db"
+  },
+  "art/opening/ordo.webp": {
+    "master": "art/story-review/opening/ordo.png",
+    "masterHash": "6ec8745fc64cb077308b0211d39033df4c7a5a17dc402890f19d298cde9cddae",
+    "shippedHash": "f961042f8c682e135cf8a310775330c153533bccf0fbc434dd31d4212e884b3d"
+  },
+  "art/opening/letter.webp": {
+    "master": "art/story-review/opening/letter.png",
+    "masterHash": "966a44dae80621f2b8fb692b40d892844af703227ea88aa3900af0bd0d95ad5d",
+    "shippedHash": "aaeba0e98c43fff5c47204008eaec4ab8f4fd0e8f8778b463bd18030d867872e"
+  }
+}

@@ -285,7 +285,10 @@ const ASSETS = [
   // <</TITLE_ART>>
   "./src/openingart.js",
   "./src/openingillustrations.js",
-  "./art/opening/scenes.png",
+  "./art/opening/rift.webp",
+  "./art/opening/fallen.webp",
+  "./art/opening/ordo.webp",
+  "./art/opening/letter.webp",
   "./src/storyart.js",
   "./art/op_dolls.png",
   "./art/mansion_irene.jpg",
