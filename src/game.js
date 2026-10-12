@@ -28,7 +28,7 @@ import { CATALOG_ITEMS } from "./catalog/index.js";
 import { poolAt, powerAt } from "./dungeons/world.js";
 import { NAMED_FOES, NAMED_IDS, TROPHY_OF, HUNT_ELITE_RATE, bountyId } from "./dungeons/named.js";
 import { FLOOR_HAZ, hazSkin, hazPlaced, layerFloorHaz } from "./dungeons/floorhaz.js";
-import { DUNGEONS, WORLD_IDS, worldIndexOf, worldById, gateFloors, isGateFloor, dungeonLevel, dungeonLevelRaw, strengthAt, wallOf, wallStepOf, lootBand, abyssLayer, ABYSS_LAYER_FLOORS, hazardsAt, levelBand, DUNGEON_MONSTERS, ELEMENTS, elemDmgMult, ELITE_ORDER, LAYER_ELITES, LAYER_BOSS, LAYER_POOLS, monsterTraits, resistHpMul, isFloating, METAL_TIERS, unknownLabel, unknownTag } from "./dungeons/index.js";
+import { DUNGEONS, WORLD_IDS, worldIndexOf, worldById, gateFloors, isGateFloor, dungeonLevel, dungeonLevelRaw, strengthAt, wallOf, wallStepOf, lootBand, abyssLayer, ABYSS_LAYER_FLOORS, hazardsAt, levelBand, DUNGEON_MONSTERS, ELEMENTS, elementAffinity, elemDmgMult, ELITE_ORDER, LAYER_ELITES, LAYER_BOSS, LAYER_POOLS, monsterTraits, resistHpMul, isFloating, METAL_TIERS, unknownLabel, unknownTag } from "./dungeons/index.js";
 import {
   INF_NAME, INF_REST_EVERY, INF_HAZ_FROM, INF_PARTY, INF_RULES, INF_RULE_MAP, INF_LV, infLevel, infGrowthMul, infRedCost, isRestFloor,
   rollInfRule, rollStartSouls, VESSEL_NAMES, mulberry32,
@@ -8470,10 +8470,10 @@ function startBattleMeasured(enemies, cell) {
   const isElite = enemies.some((e) => e.mon && e.mon.elite);
   if (cfg.element) {
     const ch = (spFloor && spFloor.elemAll) || mutNum("elemAll", false) ? 1 : 0.5;
-    for (const e of enemies) if (!e.boss && !(e.mon && e.mon.elite) && !e.metal && random() < ch) e.element = cfg.element;
+    for (const e of enemies) if (!e.boss && !(e.mon && e.mon.elite) && !e.metal && random() < ch) { e.element = cfg.element; e.affinity = elementAffinity(e.element); }
   }
   // 属性の暴走 (異変) / 属性の奔流 (特別な階): 主・強敵も含め、すべての敵の属性を6属性からでたらめに選び直す (召喚された仲間も同じ)
-  if (elemRandomHere()) for (const e of enemies) if (!e.metal) { e._elemRandom = true; e.element = randomElement(); }
+  if (elemRandomHere()) for (const e of enemies) if (!e.metal) { e._elemRandom = true; e.element = randomElement(); e.affinity = elementAffinity(e.element); }
   // 迷宮の異変 (血の満潮など): 敵の強さ倍率は HP/STR/VIT に加えて AGI にも掛ける
   // (enemyScale は HP/STR/VIT のみ。召喚で呼ばれた仲間も _agiMul を引き継ぐ)
   // 迷宮ごとの手直し (DUNGEON_TUNE) は強さだけ: 倍率で増減した戦果 (金貨・✦Soul) を元の曲線へ戻す
@@ -10422,7 +10422,7 @@ function skillElem(actor, sp) {
 function skillEdgeOn(actor, sp, e) {
   const se = skillElem(actor, sp);
   if (!se || !e || !e.alive || !enemyElemKnown(e)) return 0;
-  let m = elemDmgMult(se.el, se.lv, e.element || "none", null);
+  let m = elemDmgMult(se.el, se.lv, e.element || "none", null, e.affinity || (e.mon && e.mon.affinity));
   if (m < 1 && sp.kind === "atk" && pLv(actor, "elemFloor")) m = 1; // 森羅の理: 呪文の属性不利が出ない
   return m > 1 ? 1 : m < 1 ? -1 : 0;
 }
@@ -17653,6 +17653,7 @@ function loadGame(cloudSnapshot = null) {
     if (G.battle.baseAgi == null) G.battle.baseAgi = partyAgi(levelHere().lv); // 強敵の回避の上限を持たない古い戦闘
     for (const e of (G.battle.enemies || [])) if (e.key && MONSTERS[e.key]) {
       e.mon = MONSTERS[e.key];
+      if (!e.affinity) e.affinity = e.element && e.element !== e.mon.element ? elementAffinity(e.element) : e.mon.affinity;
       // 旧セーブの戦闘中の耐性ランクを抵抗値へ移す。
       if (!e.resists) {
         for (const k of ["physResist", "magResist"]) {

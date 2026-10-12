@@ -505,6 +505,7 @@ const ASSETS = [
   "./src/dungeons/d03.js",
   "./src/dungeons/d04.js",
   "./src/dungeons/bestiary.js",
+  "./src/dungeons/temperaments.js",
   "./src/dungeons/monart.js",
   "./src/dungeons/generator.js",
   "./src/dungeons/world.js",

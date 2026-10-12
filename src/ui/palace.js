@@ -609,7 +609,7 @@ export function codexMonSheet(key, o = {}) {
     body.appendChild(fx);
   }
   if (statsOpen) {
-    const aff = affinityRow(elKey, "pl-aff");
+    const aff = affinityRow(elKey, "pl-aff", (foe && foe.affinity) || m.affinity);
     if (aff) body.appendChild(aff);
   }
   if (loreOpen && m.desc) body.appendChild(setText(el("div", "pl-detail-desc"), m.desc));
