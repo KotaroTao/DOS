@@ -1,0 +1,31 @@
+{
+  "generationCalls": 7,
+  "note": "終了: image_gen計7回（新規成功5回・参照最大5枚制限の失敗1回・w19_husks修正成功1回）。原画5枚を共有指定先へ配置、1536x1024確認。4枚ready、w18_bladeのみneeds-fixで引継ぎ。登録・本文・基準画像・queue・git操作なし。w19_husksのmorden-chestはmem_w21以後限定で除外。irene_husksは参照上限により人物2枚・セラ原画・props・irene_rootsの5枚を使用。",
+  "scenes": [
+    {
+      "id": "w18_blade",
+      "state": "needs-fix",
+      "note": "原画: art/story-review/chapter5/w18_blade.png。生成1回。鉄扉、焦げた布、弟子、人業3体、文字なし、主題の視認性を目視確認。折れ口が柄から離れているため、柄の根元に寄せる修正を次担当へ引継ぎ。握った指・衣に隠れた脚は直接判別不可。7回上限のため本担当は修正せず終了。"
+    },
+    {
+      "id": "report_w18",
+      "state": "ready",
+      "note": "原画: art/story-review/chapter5/report_w18.png。生成1回。本文・基準、額を布でぬぐう王、空席、煤の弟子、床の赤光、熱気、重い雲、文字なし、縮小時の主題を確認。見える手に余分な指なし。脚は衣に隠れる。"
+    },
+    {
+      "id": "w19_husks",
+      "state": "ready",
+      "note": "原画: art/story-review/chapter5/w19_husks.png。生成2回（新規1・修正1）。モルデン本人を除去。本文・基準と照合し、同じ顔の焼けた木の殻、開いて空の胸、札、灰、祭壇の火、弟子、見える手足、読める文字なし、縮小時の主題を目視確認。修正前は /workspace/generated_images/exec-e2bf1d88-596a-42c5-a4cd-2fea82819453.png に残存。"
+    },
+    {
+      "id": "irene_husks",
+      "state": "ready",
+      "note": "原画: art/story-review/chapter5/irene_husks.png。生成2回（参照制限失敗1回含む）。人物基準・セラ原画・小道具・館の5参照を渡した。本文、札、肘を締める工具、目覚めたセラ、胸の青白い灯、白い蝋燭、額の承認済み印、見える手足、読める文字なし、縮小時の主題を目視確認。"
+    },
+    {
+      "id": "report_w19",
+      "state": "ready",
+      "note": "原画: art/story-review/chapter5/report_w19.png。生成1回。本文・基準、怒って肘掛けを握る衰弱した王、弟子の焦げた顔の木片、空席、重い雲、床の熱、見える手に余分な指なし、文字なし、縮小時の主題を目視確認。モルデン本人なし。衣に隠れた脚は判別不可。"
+    }
+  ]
+}

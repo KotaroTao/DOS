@@ -68,6 +68,7 @@ function next(queue) {
   console.log(`基準コミット: ${queue.baseCommit}\n生成は合計${queue.maxGenerationCalls}回まで。失敗と修正も含める。`);
   console.log("基準画像を実際に画像生成へ渡す。各画像を保存するたび worker.json に記録する。");
   console.log("参照は最大5枚。人物・印・セラの必須原画を優先し、建物の重複参照を減らす。");
+  console.log("印は形と位置を基準通りにする。弟子の背や鞄へ大きな印を追加しない。");
   console.log(`記録先: art/story-review/batches/${batch.id}-worker.json`);
   console.log("原画だけを制作し、変換・登録・本文・基準画像の変更は統合担当に任せる。\n");
   for (const id of batch.scenes) console.log(promptFor(id) + "\n");

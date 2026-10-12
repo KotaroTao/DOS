@@ -1,0 +1,381 @@
+{
+  "version": 1,
+  "baseCommit": "daa5ab0ce2fe3c76691a67143d03601fb8ca1c98",
+  "maxNewImages": 5,
+  "maxGenerationCalls": 7,
+  "references": {
+    "docs/art/story-refs/ancients.png": "8736481148bcb2604c816bfc86238b2996f80f7c789d9c315cd25d47612e35f9",
+    "docs/art/story-refs/apprentice.png": "419a3d6797a8297866039b06f63b1ad79a907e800f68da7bf54b58b6858e89b2",
+    "docs/art/story-refs/dolls.png": "0815d62d79d2f2b4c7f491f4119bb7aa59acc7f43bc941c0559f7da194e316f6",
+    "docs/art/story-refs/irene.png": "6ad282363f77635736e4f6ab90d06649aa15b481e946b406f9b5564709627414",
+    "docs/art/story-refs/king.png": "341d51b7af8ae5fc6fe610902ad14b4cf95b57d2e56bcb419483a63321c4f978",
+    "docs/art/story-refs/morden-chest.png": "5c1bd55d3bf0126fd56d482617752ddf8c53f02c883640e7dd378a93f7c78c2b",
+    "docs/art/story-refs/morden.png": "b5934bc34a1d11e97e0fabe2cac71707b9a7c02201ffb21ec1669ec6a075b4d5",
+    "docs/art/story-refs/ordo-states.png": "f62bd7a6f8cbc0c9f9e620f0f90407bf907f07a0d26e9692f487cd3bf2343477",
+    "docs/art/story-refs/ordo.png": "7a51b182287aa1435f333ee6077b40f29e5c5db58d17fed3a4ca903fcaa0244d",
+    "docs/art/story-refs/props.png": "051a8f35cf00a15dfb3501cddb8f58964e5737d8d79001adbcc18135aa1309a9",
+    "docs/art/story-refs/sera.png": "341c64b2e2d3913f3cb6fe2f3ae66260a4899e588e416b098ab4433d5dcbba66",
+    "docs/art/story-refs/sigil.png": "7dfeb2dbb8eb7091557e1dd3f387b963b64b2fa4a20848c1c18734167fe47b6b",
+    "docs/art/sera/sera-r1-final.png": "4b392934b742ea80e10abfcb6d6e5362a0becb13162af0842797f2f892c5fe6c"
+  },
+  "batches": [
+    {
+      "id": "batch-001",
+      "group": "chapter5",
+      "scenes": [
+        "w18_blade",
+        "report_w18",
+        "w19_husks",
+        "irene_husks",
+        "report_w19"
+      ],
+      "state": "integrated",
+      "worker": "integration-parent",
+      "note": "WebP化・登録・既存検査が完了。公開前。",
+      "generationCalls": 1,
+      "masterHashes": {
+        "art/story-review/chapter5/w18_blade.png": "2e66b9c5a17643123db389866a7304d03883092dddbc3351c62c5c6b392af2f1",
+        "art/story-review/chapter5/report_w18.png": "0c4d7263edc6b1b0bc84d584f8334be965a3c67e7b0a0cd23537fc373d2fb7b1",
+        "art/story-review/chapter5/w19_husks.png": "998bea9a0e73b3ecda944f39a0de939f84344cf2740d1378b472fd11a77735a6",
+        "art/story-review/chapter5/irene_husks.png": "2f65f62d411f52bb2af6ae3634e174b68f981e45556494ab25a254ec0f3255c9",
+        "art/story-review/chapter5/report_w19.png": "986ca62581ef519242cac160afadb06813f185b5bd986a3c859920ddd877ae7b"
+      },
+      "attempts": [
+        {
+          "worker": "01a12fdb-6cd6-7273-b1b5-e904e65df0ae",
+          "receipt": "batch-001-attempt-1.json"
+        }
+      ]
+    },
+    {
+      "id": "batch-002",
+      "group": "chapter5",
+      "scenes": [
+        "w20_cup",
+        "report_w20",
+        "mem_w21",
+        "report_w21",
+        "ch5_end"
+      ],
+      "state": "integrated",
+      "worker": "integration-parent",
+      "note": "WebP化・登録・既存検査が完了。公開前。",
+      "generationCalls": 2,
+      "masterHashes": {
+        "art/story-review/chapter5/w20_cup.png": "aaab5042554a412cb29903506cf255054c9acf4ce84f5841226592a598e253ff",
+        "art/story-review/chapter5/report_w20.png": "2b104b41ec6a12bb37aee3b1d6886db6db9a137a6642fd8a5e0438999d3ac429",
+        "art/story-review/chapter5/mem_w21.png": "6cf2a9fa0f604bfa6be0bc9cd0a2f4be85215adeeba9b3b7012b7de6776f2a25",
+        "art/story-review/chapter5/report_w21.png": "868999ad53085dba7593b5ac861328622dfbb009f02e42063b83fa27653f2ade",
+        "art/story-review/chapter5/ch5_end.png": "ec3777ae67fa8a1164096a6d60aad70bc9a6f9d467e9ab395ab888f179a1daf0"
+      },
+      "attempts": [
+        {
+          "worker": "01a12fe5-eb23-73aa-9324-5b2c08a290b2",
+          "receipt": "batch-002-attempt-1.json"
+        }
+      ]
+    },
+    {
+      "id": "batch-003",
+      "group": "chapter6",
+      "scenes": [
+        "w22_coat",
+        "report_w22",
+        "w23_names",
+        "report_w23",
+        "w24_aurora"
+      ],
+      "state": "pending",
+      "worker": null,
+      "note": ""
+    },
+    {
+      "id": "batch-004",
+      "group": "chapter6",
+      "scenes": [
+        "report_w24",
+        "mem_w25",
+        "report_w25",
+        "irene_lineage",
+        "ch6_end"
+      ],
+      "state": "pending",
+      "worker": null,
+      "note": ""
+    },
+    {
+      "id": "batch-005",
+      "group": "chapter7",
+      "scenes": [
+        "w26_splint",
+        "report_w26",
+        "w27_crest",
+        "report_w27",
+        "irene_crest"
+      ],
+      "state": "pending",
+      "worker": null,
+      "note": ""
+    },
+    {
+      "id": "batch-006",
+      "group": "chapter7",
+      "scenes": [
+        "w28_note",
+        "report_w28",
+        "mem_w29",
+        "report_w29",
+        "irene_order"
+      ],
+      "state": "pending",
+      "worker": null,
+      "note": ""
+    },
+    {
+      "id": "batch-007",
+      "group": "chapter7",
+      "scenes": [
+        "ch7_end"
+      ],
+      "state": "pending",
+      "worker": null,
+      "note": ""
+    },
+    {
+      "id": "batch-008",
+      "group": "chapter8",
+      "scenes": [
+        "w30_stick",
+        "report_w30",
+        "w31_bell",
+        "report_w31",
+        "irene_bell"
+      ],
+      "state": "pending",
+      "worker": null,
+      "note": ""
+    },
+    {
+      "id": "batch-009",
+      "group": "chapter8",
+      "scenes": [
+        "w32_rod",
+        "report_w32",
+        "mem_w33",
+        "report_w33",
+        "irene_rain"
+      ],
+      "state": "pending",
+      "worker": null,
+      "note": ""
+    },
+    {
+      "id": "batch-010",
+      "group": "chapter8",
+      "scenes": [
+        "ch8_end"
+      ],
+      "state": "pending",
+      "worker": null,
+      "note": ""
+    },
+    {
+      "id": "batch-011",
+      "group": "chapter9",
+      "scenes": [
+        "w34_glove",
+        "report_w34",
+        "w35_lamps",
+        "report_w35",
+        "w36_nook"
+      ],
+      "state": "pending",
+      "worker": null,
+      "note": ""
+    },
+    {
+      "id": "batch-012",
+      "group": "chapter9",
+      "scenes": [
+        "report_w36",
+        "irene_firstdoll",
+        "mem_w37",
+        "report_w37",
+        "irene_rest"
+      ],
+      "state": "pending",
+      "worker": null,
+      "note": ""
+    },
+    {
+      "id": "batch-013",
+      "group": "chapter9",
+      "scenes": [
+        "ch9_end"
+      ],
+      "state": "pending",
+      "worker": null,
+      "note": ""
+    },
+    {
+      "id": "batch-014",
+      "group": "chapter10",
+      "scenes": [
+        "w38_lamp",
+        "report_w38",
+        "w39_tags",
+        "report_w39",
+        "irene_names"
+      ],
+      "state": "pending",
+      "worker": null,
+      "note": ""
+    },
+    {
+      "id": "batch-015",
+      "group": "chapter10",
+      "scenes": [
+        "w40_eyes",
+        "report_w40",
+        "mem_w41",
+        "report_w41",
+        "irene_candle"
+      ],
+      "state": "pending",
+      "worker": null,
+      "note": ""
+    },
+    {
+      "id": "batch-016",
+      "group": "chapter10",
+      "scenes": [
+        "ch10_end"
+      ],
+      "state": "pending",
+      "worker": null,
+      "note": ""
+    },
+    {
+      "id": "batch-017",
+      "group": "dungeons",
+      "scenes": [
+        "lore_w18",
+        "lore_w19",
+        "lore_w20",
+        "lore_w21",
+        "lore_w22"
+      ],
+      "state": "pending",
+      "worker": null,
+      "note": ""
+    },
+    {
+      "id": "batch-018",
+      "group": "dungeons",
+      "scenes": [
+        "lore_w23",
+        "lore_w24",
+        "lore_w25",
+        "lore_w26",
+        "lore_w27"
+      ],
+      "state": "pending",
+      "worker": null,
+      "note": ""
+    },
+    {
+      "id": "batch-019",
+      "group": "dungeons",
+      "scenes": [
+        "lore_w28",
+        "lore_w29",
+        "lore_w30",
+        "lore_w31",
+        "lore_w32"
+      ],
+      "state": "pending",
+      "worker": null,
+      "note": ""
+    },
+    {
+      "id": "batch-020",
+      "group": "dungeons",
+      "scenes": [
+        "lore_w33",
+        "lore_w34",
+        "lore_w35",
+        "lore_w36",
+        "lore_w37"
+      ],
+      "state": "pending",
+      "worker": null,
+      "note": ""
+    },
+    {
+      "id": "batch-021",
+      "group": "dungeons",
+      "scenes": [
+        "lore_w38",
+        "lore_w39",
+        "lore_w40",
+        "lore_w41",
+        "lore_ws3"
+      ],
+      "state": "pending",
+      "worker": null,
+      "note": ""
+    },
+    {
+      "id": "batch-022",
+      "group": "dungeons",
+      "scenes": [
+        "lore_ws4",
+        "lore_ws6",
+        "lore_ws7",
+        "lore_ws8",
+        "lore_ws9"
+      ],
+      "state": "pending",
+      "worker": null,
+      "note": ""
+    },
+    {
+      "id": "batch-023",
+      "group": "dungeons",
+      "scenes": [
+        "lore_ws10",
+        "lore_ws11",
+        "lore_ws12",
+        "lore_ws13",
+        "lore_ws14"
+      ],
+      "state": "pending",
+      "worker": null,
+      "note": ""
+    },
+    {
+      "id": "batch-024",
+      "group": "dungeons",
+      "scenes": [
+        "lore_ws16",
+        "lore_ws18",
+        "lore_ws19",
+        "lore_ws20",
+        "lore_ws21"
+      ],
+      "state": "pending",
+      "worker": null,
+      "note": ""
+    },
+    {
+      "id": "batch-025",
+      "group": "dungeons",
+      "scenes": [
+        "lore_ws22"
+      ],
+      "state": "pending",
+      "worker": null,
+      "note": ""
+    }
+  ]
+}
