@@ -1,5 +1,5 @@
 -- 最新の記録を1件だけ保持。ブラウザには書き込み権限を与えない。
-create table public.cloud_saves (
+create table if not exists public.cloud_saves (
   user_id uuid primary key references auth.users(id) on delete cascade,
   revision bigint not null default 0,
   snapshot jsonb,
@@ -13,7 +13,7 @@ create table public.cloud_saves (
 alter table public.cloud_saves enable row level security;
 revoke all on public.cloud_saves from anon, authenticated;
 
-create function public.cloud_claim(p_user uuid, p_session uuid)
+create or replace function public.cloud_claim(p_user uuid, p_session uuid)
 returns jsonb language plpgsql security definer set search_path = '' as $$
 declare s public.cloud_saves;
 begin
@@ -27,7 +27,7 @@ begin
   return to_jsonb(s);
 end $$;
 
-create function public.cloud_commit(p_user uuid, p_session uuid, p_revision bigint,
+create or replace function public.cloud_commit(p_user uuid, p_session uuid, p_revision bigint,
   p_command uuid, p_request jsonb, p_snapshot jsonb, p_response jsonb)
 returns jsonb language plpgsql security definer set search_path = '' as $$
 declare s public.cloud_saves;
