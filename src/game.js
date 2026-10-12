@@ -2410,7 +2410,7 @@ function tlWhere() {
 // ---- ボード描画 ----
 // 盤面と戦闘のキャンバスは論理座標 VW×VH で描く。VH は画面の縦の余りに合わせて伸縮し
 // (縦長の端末ほどカードが縦長の墓石になる)、実画素は端末の画素密度ぶん (VSX/VSY 倍) 持つ。
-// 床・墓石・壁は論理解像度で一度だけ焼いたドット絵を補間なしで拡大し、光と粒子だけを毎フレーム重ねる。
+// 床・墓石の原画を補間し、壁は2倍の解像度で合成する。光と粒子は表示先へ直接重ねる。
 const VW = 480;
 let VH = 320, VSX = 1, VSY = 1;
 const GAP = 4;                     // 墓石と墓石の間の溝 (壁はこの溝の上に立つ)
@@ -2428,7 +2428,6 @@ function cellRect(x, y) {
 }
 // 小さい画面では盤面の一部を拡大する。カメラは保存状態や探索の結果に触れない。
 const boardCamera = { zoom: 1, x: 0, y: 0, overview: false, manual: false, board: null, px: -1, py: -1 };
-const boardCameraCopy = document.createElement("canvas");
 function updateBoardCamera() {
   const c = boardCamera, width = view.clientWidth || VW;
   c.zoom = window.innerWidth <= 600 && !c.overview ? Math.max(1, 64 * VW / (width * Math.min(CARD_W, CARD_H))) : 1;
@@ -2445,19 +2444,6 @@ function clampBoardCamera() {
   const c = boardCamera;
   c.x = Math.max(0, Math.min(VW - VW / c.zoom, c.x));
   c.y = Math.max(0, Math.min(VH - VH / c.zoom, c.y));
-}
-function presentBoardCamera() {
-  updateBoardCamera();
-  const c = boardCamera;
-  if (c.zoom === 1) return;
-  if (boardCameraCopy.width !== view.width) boardCameraCopy.width = view.width;
-  if (boardCameraCopy.height !== view.height) boardCameraCopy.height = view.height;
-  const ctx = boardCameraCopy.getContext("2d");
-  ctx.globalCompositeOperation = "copy";
-  ctx.drawImage(view, 0, 0);
-  vctx.setTransform(1, 0, 0, 1, 0, 0);
-  vctx.drawImage(boardCameraCopy, c.x * VSX, c.y * VSY, view.width / c.zoom, view.height / c.zoom, 0, 0, view.width, view.height);
-  viewTransform();
 }
 // キャンバス座標 → マス (溝の上は null)
 function cellAt(sx, sy) {
@@ -2893,16 +2879,17 @@ function ensureBoardScene() {
   for (const row of cells) for (const c of row) sig += c.revealed ? "1" : "0";
   if (sig === BV.sceneKey && BV.scene) return;
   BV.sceneKey = sig;
-  if (!BV.scene || BV.scene.width !== VW || BV.scene.height !== VH) {
+  if (!BV.scene || BV.scene.width !== VW * 2 || BV.scene.height !== VH * 2) {
     BV.scene = document.createElement("canvas");
-    BV.scene.width = VW; BV.scene.height = VH;
+    BV.scene.width = VW * 2; BV.scene.height = VH * 2;
     BV.sctx = BV.scene.getContext("2d");
   }
   const g = BV.sctx;
-  g.setTransform(1, 0, 0, 1, 0, 0);
-  g.globalCompositeOperation = "source-over"; g.globalAlpha = 1; g.imageSmoothingEnabled = false;
+  g.setTransform(2, 0, 0, 2, 0, 0);
+  g.globalCompositeOperation = "source-over"; g.globalAlpha = 1; g.imageSmoothingEnabled = true;
+  g.imageSmoothingQuality = "high";
   // 1) 盤全体の床を闇に沈める (蓋の下と溝)
-  g.drawImage(art.floor, 0, 0);
+  g.drawImage(art.floor, 0, 0, VW, VH);
   g.fillStyle = G.eliteFloor ? "rgba(10,2,3,0.78)" : "rgba(4,3,5,0.78)";
   g.fillRect(0, 0, VW, VH);
   const rev = (x, y) => x >= 0 && y >= 0 && x < COLS && y < ROWS && cells[y][x].revealed;
@@ -3072,14 +3059,22 @@ function heroPos() {
 function drawBoardFrame() {
   if (!G.board) return;
   const now = performance.now();
+  updateBoardCamera();
   ensureBoardScene();
   vctx.setTransform(1, 0, 0, 1, 0, 0);
   vctx.globalCompositeOperation = "copy";
   vctx.globalAlpha = 1;
-  vctx.drawImage(boardSceneHi(), 0, 0);
-  vctx.globalCompositeOperation = "source-over";
+  // 拡大前の画面を引き伸ばさず、表示先の画素へ直接描く。
+  // 床と墓石だけを補間し、枠・光・粒子は拡大後の座標で描く。
+  const camera = boardCamera;
   viewTransform();
-  vctx.imageSmoothingEnabled = false;
+  vctx.scale(camera.zoom, camera.zoom);
+  vctx.translate(-camera.x, -camera.y);
+  vctx.imageSmoothingEnabled = camera.zoom > 1;
+  vctx.imageSmoothingQuality = "high";
+  if (camera.zoom > 1) vctx.drawImage(BV.scene, 0, 0, VW, VH);
+  else vctx.drawImage(boardSceneHi(), 0, 0, VW, VH);
+  vctx.globalCompositeOperation = "source-over";
   const [hx, hy] = heroPos();
   const lt = boardLight(hx - CARD_W * 0.18, hy, now);
   const srcs = boardLightSources(now);
@@ -3096,7 +3091,7 @@ function drawBoardFrame() {
   drawBoardParticles(lt, now);
   vctx.globalCompositeOperation = "source-over";
   vctx.globalAlpha = 1;
-  presentBoardCamera();
+  viewTransform();
 }
 
 // 迷宮の台帳で置いている足元の仕掛け (出撃画面の「足元」)。{ fall, harm } = 定義 or null
@@ -3704,7 +3699,7 @@ function drawFlipSlab(now) {
   vctx.fillStyle = "#000";
   vctx.fillRect(r.x + ox + 2 + lift * 5, r.y + oy + 4 + lift * 7, r.w, r.h);
   vctx.globalAlpha = a;
-  vctx.imageSmoothingEnabled = false;
+  vctx.imageSmoothingEnabled = boardCamera.zoom > 1;
   const W = r.w * sc, H = r.h * sc;
   vctx.drawImage(BV.art.slabs, r.x, r.y, r.w, r.h, r.x + r.w / 2 - W / 2 + ox, r.y + r.h / 2 - H / 2 + oy, W, H);
   vctx.restore();
@@ -3793,15 +3788,13 @@ function drawHoodedWalker(wk, hx, hy, now) {
   } else if (!REDUCED_MOTION) bob = (Math.floor(now / 620) % 2) ? -k : 0;
   // 影 (浮遊中も地面に残す)
   drawWalkerShadow(x, feet, [Math.max(CARD_W * 0.3, W * 0.42), Math.max(CARD_W * 0.18, W * 0.26)], [0.32, 0.55], lift, now);
-  // 端末の画素の格子へ吸着させて、整数倍・補間なしで描く
+  // 論理座標で置き、盤面のカメラ変換を保つ。
   const dx = Math.round(x * VSX - Wd / 2);
   const dy = Math.round((feet + 1) * VSY - Hd) + bob;
   vctx.save();
-  vctx.setTransform(1, 0, 0, 1, 0, 0);
-  vctx.imageSmoothingEnabled = false;
-  vctx.drawImage(b.c, dx, dy, Wd, Hd);
+  vctx.imageSmoothingEnabled = boardCamera.zoom > 1;
+  vctx.drawImage(b.c, dx / VSX, dy / VSY, Wd / VSX, Hd / VSY);
   vctx.restore();
-  viewTransform();
   // 手に提げた角灯の灯り (絵に描かれた灯の位置に、揺らぐ光暈だけを重ねる。籠は絵のものを使う)
   const lp = walkerLampSpot(wk);
   drawLanternGlow((dx + (b.pad + lp.x + 0.5) * k) / VSX, (dy + (b.pad + lp.y + 0.5) * k) / VSY, now);
