@@ -2,13 +2,14 @@
 import { normalizeLook, WALKER_CLOAKS, WALKER_TRIMS } from "./walkerart.js";
 
 const sheets = new Map();
-const assets = { a: ["props-a", 1536, 1024], b: ["props-b", 1536, 1024], walker: ["walker", 1254, 1254] };
+const assets = { a: ["props-a", 1536, 1024], b: ["props-b", 1536, 1024], c: ["props-c", 1536, 1024], walker: ["walker", 1254, 1254] };
 function sheet(key) {
   if (!sheets.has(key)) {
     const [name, w, h] = assets[key], image = new Image(), state = { image, ready: false };
+    state.done = new Promise(resolve => { state.finish = resolve; });
     sheets.set(key, state); image.decoding = "async";
-    image.onload = () => { state.ready = image.naturalWidth === w && image.naturalHeight === h; };
-    image.onerror = () => { /* この素材だけ旧描画を使う。次回起動時に再取得する。 */ };
+    image.onload = () => { state.ready = image.naturalWidth === w && image.naturalHeight === h; state.finish(state.ready); };
+    image.onerror = () => { state.finish(false); }; // この素材だけ旧描画を使う。
     image.src = new URL(`../art/dungeon/crypt-${name}.webp`, import.meta.url).href;
   }
   const state = sheets.get(key);
@@ -20,7 +21,9 @@ export function prewarmCryptActors() { for (const key of Object.keys(assets)) sh
 export const CRYPT_PROP_FRAMES = {
   chest: ["a", 24, 116, 487, 360], chestOpen: ["a", 538, 36, 462, 450],
   stairs: ["a", 1028, 60, 501, 450], fountain: ["a", 37, 529, 452, 473],
-  corpse: ["a", 488, 672, 549, 242], portal: ["a", 1037, 548, 486, 439],
+  corpse: ["c", 772, 630, 742, 292],
+  corpseWarm: ["c", 12, 140, 772, 325], corpseGreat: ["c", 773, 127, 754, 338],
+  fountainEmpty: ["c", 119, 499, 502, 503], portal: ["a", 1037, 548, 486, 439],
   trap: ["b", 70, 149, 399, 275], event: ["b", 619, 17, 302, 480],
   bossDoor: ["b", 75, 509, 370, 478], wisp: ["b", 600, 524, 340, 483],
   story: ["b", 1176, 533, 233, 447],
@@ -30,8 +33,9 @@ export function cryptPropKey(cell, bossDoor = false) {
   if (cell.type === "portal" || (cell.type === "stairs" && cell.gate)) return "portal";
   if (cell.type === "stairs") return bossDoor ? "bossDoor" : "stairs";
   if (cell.type === "chest") return cell.cleared ? "chestOpen" : "chest";
-  if (cell.type === "corpse") return "corpse";
-  if (["trap", "fountain", "event", "story"].includes(cell.type) && !cell.cleared) return cell.type;
+  if (cell.type === "corpse") return cell.corpseGreat ? "corpseGreat" : cell.corpseWarm ? "corpseWarm" : "corpse";
+  if (cell.type === "fountain") return cell.cleared ? "fountainEmpty" : "fountain";
+  if (["trap", "event", "story"].includes(cell.type) && !cell.cleared) return cell.type;
   return null;
 }
 function crop(image, x, y, w, h) {
@@ -118,4 +122,30 @@ export function cryptWalkerBitmap(direction, value) {
     frames.set(dir, { ...coloredWalker(baseWalkers.get(dir), look, frame.lamp), lamp: frame.lamp });
   }
   return frames.get(dir);
+}
+
+// ポップアップも盤面と同じ切り出し・色を使う。読み込み完了時に既存のphoto描画が更新する。
+const propSprites = new Map();
+export function cryptPropSprite(key, fallback) {
+  const frame = CRYPT_PROP_FRAMES[key];
+  if (!frame) return null;
+  if (propSprites.has(key)) return propSprites.get(key);
+  sheet(frame[0]);
+  const w = frame[3], h = frame[4], k = 12 / Math.max(w, h), img = new Image();
+  const spr = { w: w * k, h: h * k, photo: { img, sx: 0, sy: 0, sw: w, sh: h } };
+  propSprites.set(key, spr);
+  sheets.get(frame[0]).done.then(() => {
+    const b = cryptPropBitmap(key);
+    if (b) { img.src = b.c.toDataURL(); return; }
+    // 取得失敗でも空のポップアップにしない。旧アイコンを同じ枠へ収める。
+    const c = document.createElement("canvas"); c.width = w; c.height = h;
+    const g = c.getContext("2d"), rows = fallback.art, fh = rows.length, fw = Math.max(...rows.map(r => r.length));
+    const scale = Math.min(w / fw, h / fh), ox = (w - fw * scale) / 2, oy = (h - fh * scale) / 2;
+    for (let y = 0; y < fh; y++) for (let x = 0; x < rows[y].length; x++) {
+      const color = fallback.palette[rows[y][x]];
+      if (color) { g.fillStyle = color; g.fillRect(ox + x * scale, oy + y * scale, scale, scale); }
+    }
+    img.src = c.toDataURL();
+  });
+  return spr;
 }

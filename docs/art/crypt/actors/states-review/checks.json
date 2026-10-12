@@ -1,0 +1,22 @@
+{
+  "checks": [
+    "死体3種は別の原画",
+    "飲んだ泉は空の泉として残る",
+    "作成済み14種が共通ポップアップ描画で表示される",
+    "corpseの選択画面に滑らかな原画を表示",
+    "corpseWarmの選択画面に滑らかな原画を表示",
+    "corpseGreatの選択画面に滑らかな原画を表示",
+    "状態変更とポップアップに例外なし",
+    "開いたポップアップも画像到着後に描き直される",
+    "画像取得失敗時もポップアップが空にならない"
+  ],
+  "screenshots": [
+    "board.png",
+    "drained.png",
+    "popup-gallery.png",
+    "corpse-popup.png",
+    "corpseWarm-popup.png",
+    "corpseGreat-popup.png",
+    "other-dungeon.png"
+  ]
+}

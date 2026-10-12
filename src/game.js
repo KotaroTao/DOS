@@ -51,7 +51,7 @@ import { prewarmStoryArt } from "./storyart.js";
 import { drawBattleBackdrop } from "./backdrops.js";
 import { paintCryptFloor, paintCryptSlabs, paintCryptWalls, CATACOMB, genericMaterial, boardSeed, hexRgb } from "./crypt.js";
 import { cryptPainting, paintCryptMaterials, paintCryptMasonry } from "./cryptpaint.js";
-import { prewarmCryptActors, cryptPropKey, cryptPropBitmap, cryptWalkerBitmap } from "./cryptactors.js";
+import { prewarmCryptActors, cryptPropKey, cryptPropBitmap, cryptWalkerBitmap, cryptPropSprite } from "./cryptactors.js";
 import { showTitle } from "./title.js";
 import { RARITIES, rarityKey, rarityColor, rarityLabel, rollRarity, layerRarityUp } from "./rarity.js";
 // ---- UI 基盤 (Phase 0)。新しい UI モジュールは game.js を import せず、ctx.js の UI/game/ops を通す ----
@@ -115,7 +115,9 @@ for (const id in ITEMS) {
 }
 // 装備の絵: どの装備もその品だけの絵で描く (SR・LR は手描き、ほかは部品の組み合わせ — src/itemart/)。
 // 未鑑定の品はジャンルごとの伏せ絵 (剣の影 + ？ など) で描き、鑑定に成功して初めて本来の絵を見せる
-setSpriteResolver(makeItemSpriteResolver(ITEMS));
+const resolveItemSprite = makeItemSpriteResolver(ITEMS);
+const paintedIcons = new Map(Object.keys(ICONS).filter(key => ["chest", "chestOpen", "stairs", "portal", "bossDoor", "trap", "event", "fountain", "fountainEmpty", "corpse", "corpseWarm", "corpseGreat", "wisp", "story"].includes(key)).map(key => [ICONS[key], key]));
+setSpriteResolver(spr => paintedIcons.has(spr) ? cryptPropSprite(paintedIcons.get(spr), spr) : resolveItemSprite(spr));
 // 装備の値段は性能 (能力値・属性・耐性・効果) から付け直す (src/pricing.js)。
 // 性能が同じ品は同じ値段、どこも同等以上の品は必ず高くなる
 repriceEquipment(ITEMS);
@@ -1735,7 +1737,7 @@ function dungeonTheme(cfg = activeCfg()) {
 // 階段を降りた時、一定確率で「特別な効果を持つ階」が出現する (1Fと強敵階には出ない)。
 // 効果はその階に滞在する間だけ有効。board(b) は newFloor 直後の盤面加工フック。
 const SPECIAL_FLOORS = [
-  { id: "mighty", name: "強大な気配", icon: "corpseWarm", accent: "#ffcf4a", sym: "✟", minFloor: 3, rate: 0.01,
+  { id: "mighty", name: "強大な気配", icon: "corpseGreat", accent: "#ffcf4a", sym: "✟", minFloor: 3, rate: 0.01,
     lines: ["この階のどこかに「偉大なる死体」が眠っている。", "並の魂ではない。必ずや希少な魂が宿っているだろう。"],
     board: (b) => sfPlace(b, 1, (c) => { c.type = "corpse"; c.cleared = false; c.corpseWarm = true; c.corpseGreat = true; c.corpseClass = rollGreatCorpseClass(); }) },
   { id: "bounty", name: "豊穣の間", icon: "gold", accent: "#ffd84a", sym: "❂", minFloor: 2, rate: 0.05, goldMul: 2,
@@ -3566,8 +3568,8 @@ function cellIcon(cell) {
   return cell.type === "monster" && !cell.cleared ? MONSTERS[cell.monsterKey] :
     cell.type === "chest" ? (cell.cleared ? ICONS.chestOpen : ICONS.chest) :
     cell.type === "trap" && !cell.cleared ? ICONS.trap :
-    cell.type === "fountain" && !cell.cleared ? ICONS.fountain :
-    cell.type === "corpse" ? ICONS.corpse :
+    cell.type === "fountain" ? (cell.cleared ? ICONS.fountainEmpty : ICONS.fountain) :
+    cell.type === "corpse" ? (cell.corpseGreat ? ICONS.corpseGreat : cell.corpseWarm ? ICONS.corpseWarm : ICONS.corpse) :
     isPortalCell(cell) ? ICONS.portal :
     cell.type === "stairs" ? (bossDoorHere() ? ICONS.bossDoor : ICONS.stairs) :
     cell.type === "event" && !cell.cleared ? ICONS.event :
@@ -3649,7 +3651,7 @@ function drawBoardIcons(lt, now, hx, hy) {
       }
       continue;
     }
-    const painted = activeCfg().id === "w01" ? cryptPropBitmap(cryptPropKey(cell, bossDoorHere())) : null;
+    const painted = activeCfg().id === "w01" || ["corpse", "fountain"].includes(cell.type) ? cryptPropBitmap(cryptPropKey(cell, bossDoorHere())) : null;
     const b = painted || plainBitmap(icon);
     const size = Math.min(r.w * (here ? 0.62 : 0.86), r.h * (here ? 0.5 : 0.62));
     // 横たわる人物の全長を、探索者の身長と同じ基準で描く。
@@ -7487,7 +7489,7 @@ function resolveCorpse(cell) {
     showChoice(`偉大なる死体。尋常ならざる魂の気配がする。`, [
       { label: "魂を回収する", primary: true, fn: () => collectWarmCorpse(cell, clsKey, clsLabel) },
       { label: "立ち去る", fn: () => { cell.corpseSeen = true; log("偉大なる死体に手を触れず、立ち去った。", "sys"); renderBoard(); } }, // オート移動はもう向かわない
-    ], ICONS.corpseWarm, { banner: "★ 偉大なる死体 ★", accent: "#ffcf4a", logAs: true, lines: ["まれに死体が目覚めて襲ってくる。勝てば魂は必ず手に入る。"] });
+    ], ICONS.corpseGreat, { banner: "★ 偉大なる死体 ★", accent: "#ffcf4a", logAs: true, lines: ["まれに死体が目覚めて襲ってくる。勝てば魂は必ず手に入る。"] });
     return;
   }
   if (!cell.corpseWarm) {
@@ -7521,7 +7523,7 @@ function collectWarmCorpse(cell, clsKey, clsLabel) {
     log(riseLine, "dmg");
     SFX.die(); buzz([0, 40, 60, 40]);
     showEvent({
-      sprite: ICONS.corpseWarm,
+      sprite: great ? ICONS.corpseGreat : ICONS.corpseWarm,
       banner: great ? "★ 死体が目覚めた ★" : "☠ 死体が起き上がった ☠",
       title: riseLine,
       lines: ["打ち倒せば、宿っていた魂は必ず手に入る。"],
