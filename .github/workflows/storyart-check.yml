@@ -11,7 +11,11 @@ on:
       - "src/storyimages.js"
       - "src/story.js"
       - "src/journal.js"
+      - "src/opening.js"
+      - "src/openingillustrations.js"
+      - "title.css"
       - "tools/storyart/**"
+      - "tools/openingart/**"
       - "tools/journal/**"
       - "docs/art/codex-story-art-brief.md"
       - ".github/workflows/storyart-check.yml"
@@ -40,10 +44,12 @@ jobs:
         with:
           node-version: 22
       - name: 構文
-        run: for f in $(git ls-files 'src/*.js' 'tools/storyart/*.mjs'); do node --check "$f"; done
+        run: for f in $(git ls-files 'src/*.js' 'tools/storyart/*.mjs' 'tools/openingart/*.mjs'); do node --check "$f"; done
       - name: 絵の登録と原画の作り直し (register.mjs --check)
         run: node tools/storyart/register.mjs --check
       - name: 指示書と本文 (prompt.mjs --check)
         run: node tools/storyart/prompt.mjs --check
       - name: ストーリーの一覧 (tools/journal/check.mjs)
         run: node tools/journal/check.mjs
+      - name: オープニングのWebPと専用原画
+        run: node tools/openingart/check.mjs
