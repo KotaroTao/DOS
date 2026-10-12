@@ -1,0 +1,31 @@
+{
+  "generationCalls": 7,
+  "note": "完了: image_gen総7回（新規5回、修正2回、失敗0回）。上限到達につき追加生成なし。全5枚1536x1024 PNGを指定先へ保存。ready 3枚、needs-fix 2枚。親が統合・登録と追加修正を担当。書込は担当5原画・本記録とユーザー追加指定のreport_w21-before.pngのみ。",
+  "scenes": [
+    {
+      "id": "w20_cup",
+      "state": "ready",
+      "note": "参照: apprentice, props, sigil。省略なし。1536x1024 PNG保存。本文両方・人物基準・大釜と湯気・杯・厚い帳面と別筆跡の調合図、見える両腕と指、承認印、可読文字なし、縮小相当表示で主題を確認。脚は画面外、指示の手袋は素手として描かれたが人物基準の手と一致。"
+    },
+    {
+      "id": "report_w20",
+      "state": "ready",
+      "note": "参照: apprentice, king, props, report_w12, sigil。morden基準は本人不在であり印参照枠確保のため省略。保存・目視確認済み。1536x1024 PNG。本文両方・基準の顔衣装・杯を床に置く動作・空席・帳面・見える手指と両腕・弟子の両脚・承認印・文字なし・縮小相当の主題確認。王の脚は長衣に隠れる。"
+    },
+    {
+      "id": "mem_w21",
+      "state": "ready",
+      "note": "参照: ordo-states, ordo, morden, morden-chest, sigil。省略なし。1536x1024 PNG保存・目視確認済み。本文両方、人物基準、煤と傷・外套あり・左膝負傷・刃なし・添え木なし、同じ不老のモルデンと胸の木扉の古い灯、二人のみ、釜の脚へ組みつく両腕・両脚、傾く釜・樹液・穴と冷気、見える手指・承認印・文字なし・縮小相当の主題を確認。握った手の隠れた指とモルデンの長衣内の脚は直接判別不可。"
+    },
+    {
+      "id": "report_w21",
+      "state": "needs-fix",
+      "note": "新規参照: apprentice, king, report_w12, sigil（morden基準は本人不在のため省略、英語でも除外）。修正参照5枚: report_w21原画, apprentice, king, report_w12, sigil。総7回目で背面の巨大印を細かな幾何学金刺繍に修正、鞄の巨大印は縮小されたが中央に小さな印状の金模様が残って見えるためneeds-fix。本文両方・王と空席・灰と冷気・人物の見える手足・文字なし・縮小相当の主題確認。構図維持、背景の旗も細かな金装飾へ変更。1536x1024 PNG保存・目視確認済み。修正前は art/story-review/batches/report_w21-before.png。残課題: 鞄中央の印状模様を承認基準の小さな幾何学装飾へ戻す。7回上限につき親へ引継ぎ。"
+    },
+    {
+      "id": "ch5_end",
+      "state": "needs-fix",
+      "note": "新規参照5枚: apprentice, irene, sera-r1-final（必須原画）, dolls, sigil。省略: sera基準は必須原画と重複（目視は実施し衣装・成人比率・顔髪継ぎ目を英語指定）、propsは人物と印優先で一本白蝋燭を英語指定、irene_roots/irene_familiarは館の重複参照で省略。総6回目修正参照: ch5_end原画, apprentice, irene, sera-r1-final, sigil（dollsは生成の隊形状保持のため省略）。隊4体の背中・戦士盾・旗の巨大追加印を除去、セラ盾を右3突起の承認形状へ修正。人物基準・白布セラと胸灯・一本白蝋燭・見える手足・文字なし・縮小相当の出立主題、1536x1024 PNG保存・目視確認済み。needs-fix: 弟子の視線が街向きでイレーヌを見ていない。戦士盾の中心金具も基準の丸い金属ボスと異なる可能性あり。親は追加印除去を確認済み、頭の向き編集を batch-002-repair.json で追跡すると指示。本担当は以後ch5_endを触らない。修正前ツール出力: /workspace/generated_images/exec-73cd0ea1-6f55-4b97-b7c2-ecae464d7124.png。"
+    }
+  ]
+}

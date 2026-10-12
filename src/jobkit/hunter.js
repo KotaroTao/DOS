@@ -34,7 +34,7 @@ export default {
     HUNTER_AMIUCHI:      { name: "網打ち", mp: 22, kind: "phys", power: 1.4, acc: 0.4, debuff: { agi: 0.7 }, target: "all-enemy", desc: "投網と矢で敵陣を絡め取り、足を奪う" },
     HUNTER_KARIGAMI:     { name: "狩神の六矢", mp: 30, kind: "phys", power: 0.7, hits: 6, agiScale: 0.3, critBonus: 0.25, prey: { races: BEASTS, mul: 1.3 }, target: "enemy", desc: "狩りの神に捧ぐ六連射（獣に強い）" },
     HUNTER_BAKUFU:       { name: "瀑布の矢", mp: 28, kind: "phys", power: 2.0, element: "water", debuff: { vit: 0.85 }, target: "all-enemy", desc: "滝のごとく矢を降らせ、守りを崩す（水）" },
-    HUNTER_HOSHIOTOSHI:  { name: "天弓・星落とし", mp: 40, kind: "phys", power: 9.0, agiScale: 1.8, acc: 1, pierce: 0.6, critBonus: 0.4, target: "enemy", desc: "星をも射落とす必中の奥義（貫通）" },
+    HUNTER_HOSHIOTOSHI:  { name: "天弓・星落とし", mp: 40, kind: "phys", power: 9.0, agiScale: 1.8, acc: 1, pierce: 0.6, critBonus: 0.4, target: "enemy", desc: "星をも射落とす必中の奥義（物理貫通60%）" },
   },
   perks: {
     // 獣の急所を知る狩人。仕留めた獲物で精をつける
