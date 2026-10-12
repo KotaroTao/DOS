@@ -2469,9 +2469,10 @@ function fitView(force = false) {
     + (csH ? (parseFloat(csH.paddingTop) || 0) + (parseFloat(csH.paddingBottom) || 0) : 0);
   if (combat) used += MENU_RESERVE + LOG_MIN_COMBAT + TURN_ORDER_H;
   else used += outerH(runbarEl) + outerH(ctrlEl) + LOG_MIN_BOARD;
-  // 戦場は小さい画面では横幅の0.5倍 (論理の高さ 240) まで詰めて、記録欄に場所を残す
-  const h = Math.max(cssW * (combat ? 0.5 : 0.56), Math.min(cssW * (combat ? 0.98 : 1.32), appH - used));
-  const vh = Math.max(240, Math.round((VW * h) / cssW));
+  // 縦の短い画面では戦場も縮め、記録と命令板の領域を確保する。
+  const minVH = combat ? 200 : 240;
+  const h = Math.max(cssW * (combat ? minVH / VW : 0.56), Math.min(cssW * (combat ? 0.98 : 1.32), appH - used));
+  const vh = Math.max(minVH, Math.round((VW * h) / cssW));
   const cssH = (vh * cssW) / VW;
   const dpr = Math.max(1, window.devicePixelRatio || 1);
   const S = Math.max(1, Math.min(2, (cssW * dpr) / VW));
@@ -2494,7 +2495,13 @@ function refitAndRedraw() {
   else if (G.state === "combat" && G.battle) renderCombatCanvas();
 }
 window.addEventListener("resize", () => requestAnimationFrame(refitAndRedraw));
-if (typeof ResizeObserver !== "undefined" && appEl) new ResizeObserver(() => requestAnimationFrame(refitAndRedraw)).observe(appEl);
+if (typeof ResizeObserver !== "undefined" && appEl) {
+  const observer = new ResizeObserver(() => requestAnimationFrame(refitAndRedraw));
+  for (const id of ["app", "topbar", "party", "hint", "runbar"]) {
+    const e = document.getElementById(id);
+    if (e) observer.observe(e);
+  }
+}
 
 // ダンジョンで歩く自分の駒: 頭巾つきの外套の人影 (色は設定「操霊師の装い」) (src/walkerart.js・前後左右の4方向)。最後に歩いた向きを向く (既定は正面)。
 // 絵がまだ読めない時は従来どおり、生存している先頭メンバーの職業姿 (全滅時は先頭)
@@ -9033,7 +9040,7 @@ function renderCombatCanvas() {
   });
 
   // 戦場の縦の伸び (縦長の戦場ほど魔物を大きく)
-  const k = Math.max(0.92, Math.min(1.3, VH / 330));
+  const k = Math.max(0.65, Math.min(1.3, VH < 240 ? 0.92 * VH / 240 : Math.max(0.92, VH / 330)));
   // 隊列: 4体以上は前衛(先頭3体)・後衛(4体目以降)の2列に分かれる。
   // 奥に立つ後衛から先に描き、前衛を手前に重ねて遠近を出す
   const frontRow = b.enemies.slice(0, 3);

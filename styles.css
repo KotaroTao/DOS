@@ -12,6 +12,12 @@
   --font: "Courier New", "MS Gothic", monospace;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --game-width: 520px;
+}
+
+/* マウスで遊ぶ広い画面だけ横幅を広げ、タブレットは従来の幅を保つ。 */
+@media (min-width: 1000px) and (hover: hover) and (pointer: fine) {
+  :root { --game-width: 640px; }
 }
 
 * { box-sizing: border-box; }
@@ -40,7 +46,7 @@ html, body { height: 100%; overflow: hidden; }
 
 #app {
   position: relative;
-  max-width: 520px;
+  max-width: var(--game-width);
   margin: 0 auto;
   height: 100vh;
   height: 100dvh;
@@ -408,7 +414,7 @@ canvas.spr { image-rendering: pixelated; display: block; width: var(--spr-size, 
     linear-gradient(170deg, #14101a, #07060b 65%);
   display: flex;
   flex-direction: column;
-  max-width: 520px;
+  max-width: var(--game-width);
   margin: 0 auto;
   padding: calc(var(--safe-top) + 8px) 12px calc(var(--safe-bottom) + 14px);
   overflow-y: auto;
