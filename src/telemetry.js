@@ -79,7 +79,7 @@ export function tlMeasure(where, party, source, fn) {
 }
 
 // クラスの挙動やセーブの列を変えず、同期の戦闘処理へ記録を添える。
-export function tlWatchBattle(b, where) {
+export function tlWatchBattle(b, where, onItem = null) {
   if (Object.hasOwn(b, "_tlWatched")) return;
   Object.defineProperty(b, "_tlWatched", { value: true, configurable: true });
   const methods = { advance:"battle", commit:"battle", enemyAct:"enemy", stunnedAct:"battle",
@@ -93,7 +93,12 @@ export function tlWatchBattle(b, where) {
         const cmd = args[0], actor = cmd?.actor;
         if (actor?.side === "party") addTo(slot(where), "actions", `${actor.jobKey || "?"}:${cmd.spellKey || cmd.action}`, 1);
       }
-      return tlMeasure(where, this.party, source, () => original.apply(this, args));
+      if (key === "enemyAct" && S.on) { const d = slot(where); d.enemyActions = (d.enemyActions || 0) + 1; }
+      const owner = key === "_useItem" ? (args[1]?.owner || args[0]) : null;
+      const before = owner?.items ? [...owner.items] : null;
+      const result = tlMeasure(where, this.party, source, () => original.apply(this, args));
+      if (before && onItem) for (const it of before) if (!owner.items.includes(it)) onItem(it.id);
+      return result;
     } });
   }
 }
@@ -105,6 +110,7 @@ const stamp = () => {
 
 export function tlOn() { return !!S.on; }
 export function tlSetOn(v) {
+  if (!v && S.on) for (const r of S.inf?.attempts || []) if (!r.outcome) r.complete = false;
   S.on = !!v;
   if (S.on && !S.since) S.since = stamp();
   persist();
@@ -313,6 +319,62 @@ export function tlSnapshot(kind, where, party) {
 // 直近 INF_ROWS 階ぶんだけ持つ (古い行から捨てる)
 const INF_ROWS = 400;
 function infData() { return S.inf || (S.inf = { rows: [], wipes: [], sl: {}, em: 0 }); }
+// 出撃単位の標本。終了済みの集計は保持し、詳しい編成・区間記録は直近20出撃。
+export function tlInfAttempt(point, event = "point") {
+  if (!S.on || !point?.id) return;
+  const d = infData(), runs = d.attempts || (d.attempts = []);
+  let r = runs.find(x => x.id === point.id);
+  if (!r) {
+    r = { id: point.id, start: point.f, complete: event === "start" && point.f === 1, test: !!point.test, max: point.f, checkpoints: [], initial: point.party, at: stamp() };
+    runs.push(r);
+    if (runs.length > 20) runs.shift();
+  }
+  if (r.outcome) return;
+  r.max = Math.max(r.max, point.f);
+  r.last = point;
+  if (event === "floor" || event === "start" || event === "end") {
+    const prev = r.checkpoints.at(-1);
+    if (!prev || prev.f !== point.f || event === "end") {
+      const { party, ...checkpoint } = point;
+      if (checkpoint.supply) { const { items, ...totals } = checkpoint.supply; checkpoint.supply = totals; }
+      r.checkpoints.push(checkpoint);
+      if (r.checkpoints.length > 100) r.checkpoints.shift();
+    }
+  }
+  if (event === "end") {
+    r.outcome = point.outcome; r.reason = point.reason;
+    const totals = d.attemptTotals || (d.attemptTotals = { n: 0, reach50: 0, reach100: 0, partial: 0, test: 0, personal: 0, unknown: 0 });
+    if (r.test) totals.test++;
+    else if (!r.complete) totals.partial++;
+    else if (point.reason === "personal") totals.personal++;
+    else if (point.outcome === "return" && !["resources", "danger", "reward"].includes(point.reason)) totals.unknown++;
+    else { totals.n++; if (r.max >= 50) totals.reach50++; if (r.max >= 100) totals.reach100++; }
+  }
+  persist();
+}
+function infAttemptLines(d) {
+  if (!d?.attempts?.length) return [];
+  const t = d.attemptTotals || {}, runs = d.attempts, out = ["【無限迷宮・出撃と補給】"];
+  out.push(`  通常1階開始・終了済み ${t.n || 0}回: 50階到達 ${t.reach50 || 0}/${t.n || 0} (${pct(t.reach50 || 0, t.n)}) / 100階到達 ${t.reach100 || 0}/${t.n || 0} (${pct(t.reach100 || 0, t.n)}) / 50→100階 ${pct(t.reach100 || 0, t.reach50)}`);
+  out.push(`  到達率から除外: 試遊${t.test || 0}・途中記録/記録中断${t.partial || 0}・都合で帰還${t.personal || 0}・帰還理由不明${t.unknown || 0}。未終了は失敗に数えない (直近の未終了${runs.filter(r => !r.outcome).length})。到達は主の撃破前。目標50階10%/100階2%。`);
+  const reasons = { resources: "資源不足", danger: "戦力不足", reward: "戦利品確保", personal: "都合", unknown: "不明" };
+  for (const r of runs.slice(-10)) {
+    const p = r.last;
+    out.push(`  ${r.at} ${r.test ? "試遊" : r.complete ? "通常" : "途中記録"} B${r.start}→${r.max}F ${r.outcome === "return" ? "帰還・" + (reasons[r.reason] || "不明") : r.outcome ? "全滅" + (r.outcome === "saved" ? "・赤い魂で回収" : "") : "未終了/再開待ち"} HP/MP ${p.hp}%/${p.mp}% 消耗品${p.held}個`);
+    let prev = null;
+    for (const [i, c] of r.checkpoints.entries()) {
+      const diff = k => prev ? (c.supply?.[k] || 0) - (prev.supply?.[k] || 0) : 0;
+      if (r === runs.at(-1) && i >= r.checkpoints.length - 20) out.push(`    B${prev?.f || c.f}→${c.f}F HP/MP ${c.hp}/${c.mp}% 道具残${c.held} (MP${c.mpItems}/蘇生${c.reviveItems}) 購入${diff("bought")} 使用${diff("used")} 拾得${diff("found")} 売却${diff("sold")} 廃棄${diff("discarded")} 隊Lv${c.lv} 砕け${c.dead} 補給残${c.left}`);
+      prev = c;
+    }
+  }
+  const r = runs.at(-1), p = r.last;
+  const partyText = xs => (xs || []).map(x => `${x.name}:${x.job} Lv${x.lv} ${(x.souls || []).map(s => `${s.job}/Lv${s.lv}/融合${Math.max(0, (s.count || 1) - 1)}`).join("+")} [${Object.values(x.equip || {}).filter(Boolean).join(",")}]`).join(" / ");
+  out.push("  直近の開始編成 " + partyText(r.initial));
+  out.push("  直近の編成 " + partyText(p.party));
+  out.push("  道具内訳(購入/使用/拾得/売却/廃棄) " + Object.entries(p.supply?.items || {}).map(([id, x]) => `${id}:${["bought","used","found","sold","discarded"].map(k=>x[k] || 0).join("/")}`).join(" "));
+  return out;
+}
 export function tlInfFloor(r) {
   if (!S.on || !r) return;
   const d = infData();
@@ -376,6 +438,7 @@ const mpRate = (party) => {
 // 戦闘の開始: 戦闘ごとのメモを返す (Battle に持たせ、終了時に tlBattleEnd へ渡す)
 export function tlBattleBegin({ where, kind, opening, openSrc, ambRate, party, enemies }) {
   if (!S.on || !where) return null;
+  const d = slot(where); if (d.enemyActions == null) d.enemyActions = 0;
   const alive = party.filter((p) => p.alive);
   const eAgis = enemies.map((e) => e.agi || 0);
   return {
@@ -406,6 +469,7 @@ export function tlBattleEnd(memo, { result, rounds, tally, party }) {
   memo.done = true;
   const d = slot(memo.where);
   const a = agg(d, memo.kind || "n");
+  a.deadEnd = (a.deadEnd || 0) + party.filter(p => !p.alive).length;
   a.c++;
   if (result === "win") a.w++; else if (result === "flee") a.fl++; else if (result === "lose") a.l++;
   a.r += rounds || 0;
@@ -517,6 +581,7 @@ function battleLine(kind, a) {
   if (a.pre) bits.push(`先制${a.pre}`);
   if (a.ft) bits.push(`逃走${a.fo}/${a.ft}${fleeExpect(a)}`);
   bits.push(`AGI 隊${avg(a.pAgi, a.c, 10)}/敵最大${avg(a.eAgi, a.c, 10)}`, `敵数${avg(a.en, a.c)}`);
+  if (a.deadEnd != null) bits.push(`終戦時の砕け/戦${avg(a.deadEnd, a.c)}`);
   return bits.join(" ");
 }
 // 職ごとの味方の命中 (試行の多い順に8職まで)。命中 = 試行からかわされた・見切られた分を除いた割合
@@ -531,6 +596,7 @@ function paceLine(d) {
   const battles = KINDS.reduce((s, k) => s + ((d.b && d.b[k] && d.b[k].c) || 0), 0);
   if (d.ms || d.tms) bits.push(`時間 迷宮${mins(d.ms)}/町${mins(d.tms)}`);
   if (d.fl) bits.push(`着いた階${d.fl}${d.ms ? ` (${r1(d.ms / 60000 / d.fl)}分/階)` : ""}`);
+  if (d.enemyActions != null) bits.push(`敵の行動${d.enemyActions}回`);
   if (d.ms && battles) bits.push(`${Math.round(battles / (d.ms / 3600000))}戦/時`);
   if (d.soul || d.gold) {
     const bs = d.ss ? (d.ss.bn || 0) + (d.ss.be || 0) + (d.ss.bb || 0) : 0;
@@ -552,11 +618,11 @@ function topText(b, n, label = (k) => k) {
   return Object.keys(b).sort((x, y) => b[y] - b[x]).slice(0, n).map((k) => `${label(k)}${b[k]}`).join(" ");
 }
 // HP/MP の収支 (出どころの多い順に上位3件ずつ)
-function resourceLine(res) {
+function resourceLine(res, all = false) {
   if (!res) return "";
   const box = { "hp-": {}, "hp+": {}, "mp-": {}, "mp+": {} };
   for (const k in res) { const [src, kind] = k.split(":"); if (box[kind]) box[kind][src] = res[k]; }
-  const one = (k) => topText(box[k], 3, (s) => RES_LABEL[s] || s) || "0";
+  const one = (k) => topText(box[k], all ? 20 : 3, (s) => RES_LABEL[s] || s) || "0";
   return `HP 消耗 ${one("hp-")} | 回復 ${one("hp+")} / MP 消耗 ${one("mp-")} | 回復 ${one("mp+")}`;
 }
 // 直近の出撃の作戦と魂
@@ -584,7 +650,7 @@ export function tlSummary(data = S.d) {
     if (cl) parts.push(`隊 踏破 ${cl}`);
     else if (last) parts.push(`隊 最後の階 ${last}`);
     for (const kind of KINDS) { const a = d.b && d.b[kind]; if (a && a.c) { parts.push(battleLine(kind, a)); const j = jobHitLine(a); if (j) parts.push(j); } }
-    for (const line of [paceLine(d), lootLine(d), ...gainLines(d), resourceLine(d.resources)]) if (line) parts.push(line);
+    for (const line of [paceLine(d), lootLine(d), ...gainLines(d), resourceLine(d.resources, /^I\d+$/.test(k))]) if (line) parts.push(line);
     if (d.actions) parts.push(`技 ${topText(d.actions, 10)}`);
     if (d.floors) parts.push("階到着 HP/MP% " + Object.entries(d.floors).map(([f, a]) => `B${f}:${avg(a.hp, a.n, 10)}/${avg(a.mp, a.n, 10)}`).join(" "));
     if (d.runs || d.entries) parts.push(runLine(d));
@@ -601,14 +667,14 @@ export function tlExportText({ past = false } = {}) {
   const now = tlSummary();
   if (!now.length) lines.push("(この版の迷宮の記録はまだない)");
   for (const s of now) { lines.push(s.head); for (const l of s.lines) lines.push("  " + l); }
-  lines.push(...infLines(S.inf));
+  lines.push(...infLines(S.inf), ...infAttemptLines(S.inf));
   const history = S.history || [];
   if (past) {
     for (const h of [...history].reverse()) {
       lines.push("", `【過去版 ${h.build || "旧版(不明)"}】 ${dateText(h.since)} ～ ${dateText(h.until)}`);
       lines.push(...tlStabilitySummary(h.stability));
       for (const s of tlSummary(h.d || {})) { lines.push(s.head); for (const l of s.lines) lines.push("  " + l); }
-      lines.push(...infLines(h.inf));
+      lines.push(...infLines(h.inf), ...infAttemptLines(h.inf));
     }
   } else if (history.length) lines.push(`(過去版の記録 ${history.length}件は「過去版も書き出す」で出せる)`);
   lines.push("注: 被ダメ/戦 = 戦闘前後の隊HP割合の差の平均。命中 = 物理の試行から回避・見切りを除いた割合 (括弧は試行数・そのうち当たったが無効にされた数 = 抵抗値100・加護の祈り・金剛の守り)。金属 = 金属の魔物の戦い (回避は素早さに依らず決まっている)。奇襲の予想 = 開幕の抽選の奇襲率の合計。✦の「戦闘の倍」= 迷宮で得た✦ ÷ 戦闘の✦。魂 = 職Lv+融合数。");

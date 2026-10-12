@@ -1,0 +1,64 @@
+// 補給枠の永続化と、到達率に不完全な標本を混ぜないことを確認。
+import assert from 'node:assert/strict';
+import { infRecovery, infSupplyLeft, infSpendSupply, infUseCount } from '../../src/infsupplies.js';
+const ab = {};
+assert.equal(infSupplyLeft(ab, 5), 3);
+assert.equal(infSpendSupply(ab, 5, 2), true);
+assert.equal(infSupplyLeft(ab, 5), 1);
+assert.equal(infSpendSupply(ab, 5, 2), false);
+assert.equal(infSpendSupply(ab, 5, -1), false);
+assert.equal(infSpendSupply(ab, 5, 0.5), false);
+const saved = JSON.parse(JSON.stringify(ab));
+assert.equal(infSupplyLeft(saved, 5), 1);
+assert.equal(infSupplyLeft(saved, 10), 3);
+assert.equal(infSpendSupply(saved, 5, 1), true);
+assert.equal(infSupplyLeft(saved, 5), 0);
+assert.equal(infSupplyLeft(saved, 10), 3);
+for (const u of [{mp:30},{heal:30},{revive:0.3},{cure:['poison']},{full:true},{mpFull:true}]) assert(infRecovery(u));
+assert(!infRecovery({float:3}));assert(!infRecovery({recall:true}));
+assert.equal(infUseCount(Array.from({length:50},()=>({slot:'use'}))),50);
+const store = new Map();
+globalThis.localStorage = {getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v)};
+const T = await import('../../src/telemetry.js');
+T.tlClear();T.tlSetOn(true);
+const point = (id, f, extra={})=>({id,f,hp:100,mp:80,held:12,mpItems:6,reviveItems:1,lv:1,dead:0,left:3,party:[],supply:{used:f},...extra});
+const start = (id, extra={})=>T.tlInfAttempt(point(id,1,extra),'start');
+const end = (id,f,extra={})=>T.tlInfAttempt(point(id,f,{outcome:'wipe',...extra}),'end');
+start('win50');T.tlInfAttempt(point('win50',50),'floor');end('win50',50);
+start('win100');end('win100',100,{outcome:'saved'});
+start('early');end('early',10);
+// 再開・同じ終了の再送を重複計数しない。
+end('win100',100);assert.equal(T.tlRawData().inf.attemptTotals.n,3);
+const reload = await import('../../src/telemetry.js?infinite-reload');
+reload.tlInfAttempt(point('win100',100,{outcome:'saved'}),'end');assert.equal(reload.tlRawData().inf.attemptTotals.n,3);
+start('test',{test:true});end('test',100);
+T.tlInfAttempt(point('partial',46),'floor');end('partial',100);
+start('personal');end('personal',50,{outcome:'return',reason:'personal'});
+start('unknown');end('unknown',5,{outcome:'return',reason:'unknown'});
+start('off');T.tlSetOn(false);T.tlSetOn(true);end('off',100);
+start('resource');end('resource',10,{outcome:'return',reason:'resources'});
+start('ongoing');T.tlInfAttempt(point('ongoing',100),'floor');
+assert.deepEqual(T.tlRawData().inf.attemptTotals,{n:4,reach50:2,reach100:1,partial:2,test:1,personal:1,unknown:1});
+const text = T.tlExportText();
+assert(text.includes('50階到達 2/4 (50%)'));
+assert(text.includes('100階到達 1/4 (25%)'));
+assert(text.includes('50→100階 50%'));
+assert(text.includes('未終了/再開待ち'));
+assert(text.includes('消耗品12個'));
+// 詳細の保存上限を超えても到達率の分母・分子は減らない。
+for(let i=0;i<25;i++){start(`more${i}`);end(`more${i}`,1);}
+assert.equal(T.tlRawData().inf.attempts.length,20);
+assert.equal(T.tlRawData().inf.attemptTotals.n,29);
+assert.equal(T.tlRawData().inf.attemptTotals.reach100,1);
+T.tlClear();T.tlInfAttempt(point('after-clear',50),'floor');end('after-clear',100);
+assert.equal(T.tlRawData().inf.attemptTotals.partial,1);
+console.log('無限迷宮: 階別3個・保存/再訪・50個の道具・到達率・途中記録/試遊/中断の分離・再開/二重終了・履歴上限 OK');
+// 戦闘の道具は実際に袋から消えた時だけ数える。記録OFFでも出撃の在庫計数は保つ。
+const a={id:'mp',slot:'use'},b={id:'mp',slot:'use'},p={items:[a,b]};
+const battle={party:[p],_useItem(actor,cmd){const i=actor.items.indexOf(cmd.item);if(i>=0)actor.items.splice(i,1);}};
+const used=[];
+T.tlWatchBattle(battle,{key:'I1',name:'無限迷宮',floor:1},id=>used.push(id));
+battle._useItem(p,{item:a});battle._useItem(p,{item:a});
+assert.deepEqual(used,['mp']);
+T.tlSetOn(false);battle._useItem(p,{item:b});assert.deepEqual(used,['mp','mp']);
+console.log('戦闘の道具: 同種の品・失敗時・記録OFF時の使用数 OK');
