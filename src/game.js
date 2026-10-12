@@ -11894,12 +11894,13 @@ function partyCallKey(p, st) {
 function renderParty() {
   const fx = G.partyFx;
   const st = G.state;
+  const upgrades = new Set(G.party.filter((d) => UI.hasBetterGear && UI.hasBetterGear(d)));
   // 迷宮の掟の開幕の演出を待つ間は、効く前の HP/MP/状態を札に見せる (playTraitOpening)
   const shown = (p) => (st === "combat" && G.partyShow && G.partyShow.get(p)) || p;
   const key = st + "|" + G.party.map((p) => [
     p.uid, p.name, p.cls, p.isDoll ? (p.jobLv || 1) : p.level, shown(p).hp, p.maxhp, shown(p).mp, p.maxmp, p.alive ? 1 : 0,
     shown(p).ailment || "", p.asleep && st === "combat" ? 1 : 0, st === "combat" ? (p.mind || "") : "", fx && fx.has(p) ? fx.get(p) : "", (G.partyFxV && G.partyFxV.get(p)) || "", buffBadges(p),
-    partyCallKey(p, st),
+    partyCallKey(p, st), upgrades.has(p) ? 1 : 0,
     `${p.jobKey || ""}:${p.jobRank || 1}:${p.clsKey || ""}`,
   ].join(",")).join(";");
   if (key === _partyKey && partyEl.childElementCount === G.party.length) return;
@@ -11944,6 +11945,7 @@ function renderParty() {
     const por = el("div", "pc-por");
     const pic = partyPortrait(p);
     if (pic) por.appendChild(pic);
+    if (upgrades.has(p)) por.appendChild(UI.gearUpgradeDot());
     por.appendChild(el("span", "pc-row " + (idx < 3 ? "front" : "back"), idx < 3 ? "前" : "後"));
     if (!p.alive) por.appendChild(el("span", "pc-seal dead", "死"));
     else if (sv.ailment) { const a = AIL_SEAL[sv.ailment] || ["呪", "poison"]; const s2 = el("span", "pc-seal " + a[1], a[0]); s2.title = AIL_NAME[sv.ailment] || ""; por.appendChild(s2); }

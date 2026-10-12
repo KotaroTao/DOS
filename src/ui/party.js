@@ -114,7 +114,9 @@ function portraitEl(d, { size = 44, sel = false, tag = "button", cls = "" } = {}
     const f = el("i"); f.style.width = (d.alive ? r * 100 : 0).toFixed(1) + "%"; hp.appendChild(f);
     p.appendChild(hp);
   }
-  p.setAttribute("aria-label", `${d.name}${d.alive ? "" : " (砕けた)"} ${d.cls || ""}`);
+  const upgrade = hasBetterGear(d);
+  if (upgrade) p.appendChild(gearUpgradeDot());
+  p.setAttribute("aria-label", `${upgrade ? "より強い装備あり・" : ""}${d.name}${d.alive ? "" : " (砕けた)"} ${d.cls || ""}`);
   return p;
 }
 
@@ -675,6 +677,30 @@ function betterGearCount() {
   }
   bgcMemo = { key, n, hints };
   return n;
+}
+
+// 肖像の赤丸は既読にせず、実際に付け替えられる良い品がある間だけ出す。
+const gearHintMemo = new WeakMap();
+export function hasBetterGear(d) {
+  if (!d || !d.alive || d.primary == null) return false;
+  const pool = itemsPool();
+  const key = equipSignature(pool) + JSON.stringify([
+    d.base, d.equip, d.jobLv, d.jobKey, d.clsKey, d.align, d.dualWield,
+    d.atk, d.vit, d.agi, d.int, d.pie, d.luk, d.maxhp, d.maxmp,
+    bagOwners(pool).map((o) => o.items),
+  ]);
+  const old = gearHintMemo.get(d);
+  if (old && old.key === key) return old.value;
+  const value = SLOTS.some((k) => slotCandidatesRaw(d, k, false).some((c) => c.room && c.gain > 0));
+  gearHintMemo.set(d, { key, value });
+  return value;
+}
+export function gearUpgradeDot() {
+  const dot = el("span", "gear-upgrade-dot");
+  dot.title = "より強い装備あり";
+  dot.setAttribute("role", "img");
+  dot.setAttribute("aria-label", dot.title);
+  return dot;
 }
 
 // ================= タブの印 (赤い点) =================
@@ -2818,7 +2844,7 @@ export function install() {
     openCreateDoll,
     openCreateName,
     autoEquip,
-    betterGearCount,
+    betterGearCount, hasBetterGear, gearUpgradeDot,
     equipItemTo,
     bestWearer,
     partyPortraitCanvas,
