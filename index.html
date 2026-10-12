@@ -48,6 +48,11 @@
     <main id="screen">
       <!-- カードボード / 戦闘ビュー -->
       <canvas id="view" width="480" height="320"></canvas>
+      <div id="board-camera-tools" aria-label="盤面の表示">
+        <span id="board-camera-hint">ドラッグで見渡す</span>
+        <button id="board-overview" type="button" aria-pressed="false">全体</button>
+        <button id="board-center" type="button">現在地</button>
+      </div>
     </main>
 
     <!-- 今回の探索の収穫 (階の進み・ゴールド・拾った装備のレア度別の数) -->
