@@ -1052,7 +1052,8 @@ function infSpotInfo(lv) {
   return info;
 }
 function abyssLevel(d) { return infLevel(d); }
-// 無限迷宮の死体があたたかい死体になる割合は、本編 (hazardsAt の warmChance) の1.2倍 (2026-10-12 ユーザーの指示)
+// 無限迷宮のあたたかい死体は本編の1.2倍 (2026-10-12 ユーザーの指示)。ほかのマス (敵・宝箱・風化した死体・泉・罠) の割合は
+// 本編のまま、空いたまま残る行き止まりにあたたかい死体を足す (board.js warmExtra)。そのぶん何もない行き止まりが減る
 const INF_WARM_MUL = 1.2;
 function abyssCfg() {
   const d = G.abyss.depth;
@@ -1071,7 +1072,7 @@ function abyssCfg() {
     pool: [...info.pool], deepPool: [...info.pool],
     floorHaz: fh,
     trapRate: h.trapRate, poisonRate: haz ? h.harmRate : 0, pitRate: haz ? h.fallRate : 0,
-    warmChance: Math.min(1, h.warmChance * INF_WARM_MUL), // 死体のうち、あたたかい死体になる割合 (本編の1.2倍)
+    warmChance: h.warmChance, warmExtra: INF_WARM_MUL - 1, // あたたかい死体を本編の +20% ぶん、空いた行き止まりに足す
     lootLv: lootBand(lv),
     _abyss: true,
   };
@@ -6553,8 +6554,9 @@ function eventFacts() {
   return out;
 }
 
-// 無限迷宮の階に出来事が置かれる確率 (無限迷宮だけの出来事 src/infevents.js)
-const INF_EV_FLOOR_RATE = 0.6;
+// 無限迷宮の階に出来事が置かれる確率 (無限迷宮だけの出来事 src/infevents.js)。0.6 の1.2倍 (2026-10-12 ユーザーの指示)。
+// 出来事は空いた行き止まりに置くので、ほかのマスは減らない
+const INF_EV_FLOOR_RATE = 0.6 * 1.2;
 // 階が変わった時: 持ち越しの効果を適用し、出来事を1つ置く (確率)
 function evNewFloor() {
   if (!G.board) return;
