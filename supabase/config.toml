@@ -1,0 +1,6 @@
+project_id = "dos"
+
+[functions.game-save]
+entrypoint = "./functions/game-save/index.js"
+# 関数内で /auth/v1/user に照会してJWTを検証する。新しい公開キーにも対応する。
+verify_jwt = false

@@ -17,6 +17,7 @@ import { TitleScene } from "./titleart.js";
 import { PaintedTitle, hasPaintedTitle } from "./titlepaint.js";
 import { glyphText } from "./ui/kit.js";
 import { showJobGallery } from "./ui/jobgallery.js";
+import { cloudEnabled } from "./cloud-save.js";
 
 const REDUCED = (() => {
   try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; }
@@ -114,7 +115,7 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
     btns.appendChild(testBtn);
   }
   menu.appendChild(btns);
-  menu.appendChild(div("ttl-note", hasSave ? "進行は自動で保存されています" : "ホーム画面に追加すると、オフラインでも遊べます"));
+  menu.appendChild(div("ttl-note", cloudEnabled() ? "冒険の記録に接続済み" : hasSave ? "進行は自動で保存されています" : "ホーム画面に追加すると、オフラインでも遊べます"));
   low.appendChild(menu);
   ui.appendChild(low);
   wrap.appendChild(ui);

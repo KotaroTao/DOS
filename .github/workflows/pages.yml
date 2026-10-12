@@ -17,6 +17,9 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    concurrency:
+      group: cloud-save-production
+      cancel-in-progress: false
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -30,11 +33,37 @@ jobs:
             !/docs/
             !/tools/
             !/art/story-review/
+      - uses: actions/setup-node@v4
+        if: vars.CLOUD_SAVE_ENABLED == 'true'
+        with:
+          node-version: '24'
+      - name: Configure Cloud Save
+        if: vars.CLOUD_SAVE_ENABLED == 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+        run: node supabase/deploy.mjs --prepare
+      - uses: supabase/setup-cli@v1
+        if: vars.CLOUD_SAVE_ENABLED == 'true'
+        with:
+          version: 2.120.0
+      - name: Update Cloud Save API
+        if: vars.CLOUD_SAVE_ENABLED == 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+        run: |
+          supabase secrets set GAME_ALLOWED_ORIGINS=https://kotarotao.github.io --project-ref "$SUPABASE_PROJECT_REF"
+          supabase functions deploy game-save --project-ref "$SUPABASE_PROJECT_REF" --use-api
+          node supabase/deploy.mjs --config
       # sw.js のキャッシュ版をデプロイのたびにコミットのハッシュで付け直す
       # (リポジトリでは "dos-dev" のまま。手で版を上げる運用は廃止)
       - name: Stamp Service Worker cache version
+        env:
+          CLOUD_SAVE_ENABLED: ${{ vars.CLOUD_SAVE_ENABLED }}
         run: |
           v="dos-${GITHUB_SHA::12}"
+          if [ "$CLOUD_SAVE_ENABLED" = true ]; then v="${v}-cloud-${GITHUB_RUN_ID}"; fi
           sed -i "s/^const CACHE = \"dos-dev\";/const CACHE = \"$v\";/" sw.js
           sed -i "s/^export const TEST_BUILD = \"dos-dev\";/export const TEST_BUILD = \"$v\";/" src/telemetry.js
           grep -q "^const CACHE = \"$v\";" sw.js || { echo "sw.js の CACHE を書き換えられませんでした"; exit 1; }
@@ -46,6 +75,7 @@ jobs:
       - name: Strip files the game does not ship
         run: |
           rm -rf docs tools art/story-review
+          rm -rf supabase
           rm -f AGENTS.md CLAUDE.md README.md log-many.png seg360.png seg420.png segord.png tab.png
           # sw.js の ASSETS に載せた品が消えていれば SW の導入に失敗するので止める
           # ASSETS の外には実ファイルではない内部キャッシュのキーもあるので含めない

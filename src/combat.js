@@ -3,7 +3,7 @@ import { monsterResists } from "./resistance.js";
 // 隊・呪文・ターン制戦闘ロジック
 import { MONSTERS } from "./sprites.js";
 import { ITEMS, hasQuality, rollQuality, applyQuality, weaponRange, scaleBonus, useTarget, useHelps, useCureKinds, useWhere, offhandOf, DUAL_SKILL_SHARE } from "./items.js";
-import { ELEMENTS, elemDmgMult, elemBeats, monStats, rankStats, resistRate, resistHpMul, METAL_TIERS } from "./dungeons/schema.js";
+import { ELEMENTS, elementAffinity, elemDmgMult, elemBeats, monStats, rankStats, resistRate, resistHpMul, METAL_TIERS } from "./dungeons/schema.js";
 
 import { SPELLS } from "./skilldefs.js";
 import { JOBKIT_PERKS, VICTORY_MP_PER, PASSIVE_JOB } from "./jobkit/index.js";
@@ -39,6 +39,9 @@ export function cloneItem(id, q) {
 }
 
 let _uid = 0;
+export function syncEnemyUids(enemies) {
+  for (const e of enemies || []) if (Number.isSafeInteger(e.uid)) _uid = Math.max(_uid, e.uid);
+}
 // 敵の表示Lv の札「（Lv29）」(enemylevel.js — combat.js の組み立てを借りるので、game.js が渡す)
 let _enemyLvTag = () => "";
 export function setEnemyLvTag(fn) { _enemyLvTag = typeof fn === "function" ? fn : () => ""; }
@@ -179,6 +182,7 @@ function makeEnemy(key, scale = 1, boss = false, bossRank = 0) {
   return {
     uid: ++_uid, key, mon: m, name: (boss ? m.name : m.name),
     element: m.element || "none",
+    affinity: m.affinity || elementAffinity(m.element || "none"),
     resists: monsterResists({ ...m, boss: boss || m.boss, rank: bossRank || m.rank, resists: m.resistOverrides || {} }),
     hp, maxhp: hp,
     // モンスター定義の atk/def/spd を六大ステへ写像 (def→VIT, spd→AGI)
@@ -484,6 +488,9 @@ function edefOf(t) {
   if (e && !(t.elemDef && (t.elemDef.lv || 0) >= (e.lv || 1))) return e;
   return t ? t.elemDef : null;
 }
+function eaffOf(t) {
+  return t && (t.affinity || (t.mon && t.mon.affinity)) || null;
+}
 // オートの見積もりが敵の属性を知っているか (game.js が図鑑の開示段階で判定する関数を渡す)。
 // 知らない敵は「属性なし」とみなし、相性を手の選び方に入れない (実際のダメージ計算には関わらない)
 let _elemKnown = null;
@@ -774,7 +781,7 @@ export class Battle {
       this.log(`${p.name}の竜の息吹！ 炎が敵陣を包む`, "hit");
       this._proc(p, "竜の息吹");
       for (const e of this.livingEnemies()) {
-        const em = elemDmgMult("fire", 1, e.element || "none", edefOf(e)) * this._vulnMul(e, "fire");
+        const em = elemDmgMult("fire", 1, e.element || "none", edefOf(e), eaffOf(e)) * this._vulnMul(e, "fire");
         const mr = this._resistCut(e, Math.max(1, Math.round(this._eatk(p) * k * em - this._evit(e) * 0.2)), "magResist");
         if (mr.immune) { this.log(`${e.name}には効かない`, "sys"); continue; }
         e.hp -= mr.dmg;
@@ -1936,7 +1943,7 @@ export class Battle {
         continue;
       }
       if (this._onceGuard(t, "spellGuard", "_sgUsed", "封の結界")) { res.hits.push({ target: t, dmg: 0, immune: true, died: false }); continue; }
-      const em = elemDmgMult(sp.element || "none", 1, t.element || "none", edefOf(t));
+      const em = elemDmgMult(sp.element || "none", 1, t.element || "none", edefOf(t), eaffOf(t));
       let dmg = Math.max(1, Math.round(variance(power)) - Math.floor(this._evit(t) * 0.2));
       if (em !== 1) dmg = Math.max(1, Math.round(dmg * em));
       if (t._defending) dmg = Math.ceil(dmg * 0.5);
@@ -2223,7 +2230,7 @@ export class Battle {
         if (actor._agiMul) { e._agiMul = actor._agiMul; e.agi = Math.max(1, Math.round(e.agi * actor._agiMul)); }
         scaleFoeAgi(e, this.fleeK); // 呼ばれた手下の AGI も味方の規模へ
         // 属性の暴走 (異変): 呼ばれた仲間の属性もでたらめに
-        if (actor._elemRandom) { const els = Object.keys(ELEMENTS).filter((k) => k !== "none"); e._elemRandom = true; e.element = els[Math.floor(random() * els.length)]; }
+        if (actor._elemRandom) { const els = Object.keys(ELEMENTS).filter((k) => k !== "none"); e._elemRandom = true; e.element = els[Math.floor(random() * els.length)]; e.affinity = elementAffinity(e.element); }
         // ロード復元後の uid 重複を防ぐ (uid カウンタはリロードでリセットされる)
         e.uid = [...this.party, ...this.enemies].reduce((mx, x) => Math.max(mx, x.uid || 0), 0) + 1;
         e.buffs = { atk: 1, vit: 1, agi: 1 }; e.effects = [];
@@ -2268,7 +2275,7 @@ export class Battle {
           res.hits.push({ target: t, dmg: 0, immune: true, died: false });
           continue;
         }
-        const em = elemDmgMult(actor.element || "none", 1, t.element || "none", edefOf(t));
+        const em = elemDmgMult(actor.element || "none", 1, t.element || "none", edefOf(t), eaffOf(t));
         const guard = spell ? ((t.int || 0) + (t.pie || 0)) * 0.12 : this._evit(t) * 0.25;
         let dmg = Math.max(1, Math.round((variance(this._eatk(actor) * (spell ? 0.75 : 0.85) * (cmd.mul || 1)) - guard) * hpK));
         if (em !== 1) dmg = Math.max(1, Math.round(dmg * em));
@@ -2715,7 +2722,7 @@ export class Battle {
     // 属性相性: 攻撃属性 (技 > 装備の属性攻撃 > 固有属性) × 対象の固有属性/属性防御
     const aE = opt.element || (actor.elemAtk && actor.elemAtk.el) || actor.element || "none";
     const aLv = (actor.elemAtk && actor.elemAtk.el === aE) ? Math.max(1, actor.elemAtk.lv) : 1;
-    const em = elemDmgMult(aE, aLv, tgt.element || "none", edefOf(tgt)) * this._vulnMul(tgt, aE);
+    const em = elemDmgMult(aE, aLv, tgt.element || "none", edefOf(tgt), eaffOf(tgt)) * this._vulnMul(tgt, aE);
     if (em !== 1) dmg = Math.round(dmg * em);
     // 心頭滅却 (修験者): 属性を帯びた攻撃のダメージ -10/15/20%
     if (tgt.side === "party" && actor.side === "enemy" && aE !== "none") dmg = Math.floor(dmg * (1 - this._shintou(tgt)));
@@ -2897,7 +2904,7 @@ export class Battle {
     const aE = opt.element || (actor.elemAtk && actor.elemAtk.el) || actor.element || "none";
     const aLv = (actor.elemAtk && actor.elemAtk.el === aE) ? Math.max(1, actor.elemAtk.lv) : 1;
     // 属性相性は、図鑑で属性が明かされた敵にだけ見込む (setElemKnown)。打ち込んだ属性耐性ダウンは見えているので数える
-    dmg *= (elemSeen(tgt) ? elemDmgMult(aE, aLv, tgt.element || "none", edefOf(tgt)) : 1) * this._vulnMul(tgt, aE);
+    dmg *= (elemSeen(tgt) ? elemDmgMult(aE, aLv, tgt.element || "none", edefOf(tgt), eaffOf(tgt)) : 1) * this._vulnMul(tgt, aE);
     if (opt.execute && tgt.maxhp && tgt.hp <= tgt.maxhp * 0.3) dmg *= opt.execute;
     if (opt.prey && opt.prey.races.includes(enemyRace(tgt))) dmg *= opt.prey.mul;
     if (pv(actor, "smite") && HOLY_PREY.includes(enemyRace(tgt))) dmg *= 1.3;
@@ -2948,7 +2955,7 @@ export class Battle {
     else {
       const intv = Math.max((actor.int || 0) * this._bm(actor, "int"), isFaithSpell(sp) ? (actor.pie || 0) * this._bm(actor, "pie") : 0);
       const aLv = (actor.elemAtk && actor.elemAtk.el === sp.element) ? Math.max(1, actor.elemAtk.lv) : 1;
-      let em = elemSeen(t) ? elemDmgMult(sp.element || "none", aLv, t.element || "none", edefOf(t)) : 1;
+      let em = elemSeen(t) ? elemDmgMult(sp.element || "none", aLv, t.element || "none", edefOf(t), eaffOf(t)) : 1;
       if (em < 1 && pv(actor, "elemFloor")) em = 1;
       em *= this._vulnMul(t, sp.element);
       dmg = Math.max(1, varianceMean(attackSpellPower(sp, intv) * soulPowerMul(actor, sp)) * this._lowHpMul(actor) - Math.floor(this._evit(t) * 0.2)) * em;
@@ -3093,7 +3100,7 @@ export class Battle {
         } else {
           // 呪文の属性は Lv1 扱い。同属性の属性攻撃を装備していれば、そのレベルで増幅される
           const aLv = (actor.elemAtk && actor.elemAtk.el === sp.element) ? Math.max(1, actor.elemAtk.lv) : 1;
-          em = elemDmgMult(sp.element || "none", aLv, t.element || "none", edefOf(t));
+          em = elemDmgMult(sp.element || "none", aLv, t.element || "none", edefOf(t), eaffOf(t));
           if (em < 1 && pv(actor, "elemFloor")) em = 1; // 森羅の理: 属性不利が出ない
           em *= this._vulnMul(t, sp.element); // 属性耐性ダウン
           // 攻撃呪文の威力は術者の INT で伸びる。低HP補正 (荒行の果て) も乗る
@@ -3334,7 +3341,7 @@ export class Battle {
       const targets = tk === "all-enemy" ? this.livingEnemies() : [(cmd.target && cmd.target.alive) ? cmd.target : this._randAlive(this.enemies)].filter(Boolean);
       for (const t of targets) {
         if (!t.alive) continue;
-        let em = elemDmgMult(b.el || "none", 1, t.element || "none", edefOf(t));
+        let em = elemDmgMult(b.el || "none", 1, t.element || "none", edefOf(t), eaffOf(t));
         em *= this._vulnMul(t, b.el);
         let dmg = Math.max(1, variance(b.power) - Math.floor(this._evit(t) * 0.2));
         if (em !== 1) dmg = Math.max(1, Math.round(dmg * em));
@@ -3445,7 +3452,7 @@ export class Battle {
     }
     // 聖光の追撃 (聖戦士): 10/15/20/30% で光の追撃 (STR×0.5)
     if (tgt.alive && tgt.hp > 0 && random() < this._rk(actor, "crusaderTsuigeki", [0.10, 0.15, 0.20, 0.30])) {
-      const em = elemDmgMult("light", 1, tgt.element || "none", edefOf(tgt)) * this._vulnMul(tgt, "light");
+      const em = elemDmgMult("light", 1, tgt.element || "none", edefOf(tgt), eaffOf(tgt)) * this._vulnMul(tgt, "light");
       const raw = Math.max(1, Math.round(variance(this._eatk(actor) * 0.5) * em) - Math.floor(this._evit(tgt) * 0.25));
       const pr = metalHit ? { dmg: 1, immune: false } : this._resistCut(tgt, raw, "physResist");
       if (!pr.immune) {

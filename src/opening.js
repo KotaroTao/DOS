@@ -10,6 +10,7 @@ import { SFX } from "./audio.js";
 import { pickRes } from "./pxpaint.js";
 import { SCENES, setReduced } from "./openingillustrations.js";
 import { phraseBreaks } from "./ui/phrase.js";
+import { createOpeningVoice } from "./openingvoice.js";
 
 const REDUCED = (() => {
   try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; }
@@ -51,6 +52,8 @@ function charTimes(lines) {
 
 export function showOpening(onDone) {
   setReduced(REDUCED);
+  const voice = createOpeningVoice();
+  let voiceEnabled = voice.supported;
   const wrap = div("op-overlay");
   if (REDUCED) wrap.classList.add("op-still");
   const frame = div("op-frame");
@@ -85,6 +88,13 @@ export function showOpening(onDone) {
   skip.className = "op-skip";
   skip.innerHTML = "<span>スキップ</span><b>≫</b>";
   wrap.appendChild(skip);
+  const voiceControl = document.createElement("label");
+  voiceControl.className = "op-voice";
+  const voiceToggle = document.createElement("input");
+  voiceToggle.type = "checkbox";
+  voiceToggle.checked = voiceEnabled;
+  voiceControl.append(voiceToggle, document.createTextNode("英語の語り"));
+  if (voice.supported) wrap.appendChild(voiceControl);
   const hold = div("op-hold");
   hold.append(div("op-hold-r"), div("op-hold-t", "長押しでスキップ"));
   wrap.appendChild(hold);
@@ -200,7 +210,13 @@ export function showOpening(onDone) {
     phase = "play";
     clearTimeout(autoT);
     const hold = Math.max(5200, SCENES[idx].lines.map(lineText).join("").length * 45);
-    autoT = setTimeout(() => { if (phase === "play" && !SCENES[idx].last) advance(true); }, textStart + times.total + hold);
+    if (voiceEnabled) voice.start(idx, textStart);
+    const autoAdvance = () => {
+      if (phase !== "play" || SCENES[idx].last) return;
+      if (voice.busy()) { autoT = setTimeout(autoAdvance, 250); return; }
+      advance(true);
+    };
+    autoT = setTimeout(autoAdvance, textStart + times.total + hold);
   };
 
   const completeText = () => {
@@ -215,6 +231,7 @@ export function showOpening(onDone) {
   const raiseTitle = () => {
     clearTimeout(titleT);
     if (phase === "closed" || phase === "title") return;
+    voice.stop();
     phase = "title";
     wrap.classList.add("op-final");
     sfx("stairs");
@@ -222,7 +239,12 @@ export function showOpening(onDone) {
   const showTitleCard = () => {
     if (titleShown) return;
     titleShown = true;
-    titleT = setTimeout(raiseTitle, REDUCED ? 2400 : TITLE_WAIT);
+    const waitForVoice = () => {
+      if (phase !== "play") return;
+      if (voice.busy()) { titleT = setTimeout(waitForVoice, 250); return; }
+      raiseTitle();
+    };
+    titleT = setTimeout(waitForVoice, REDUCED ? 2400 : TITLE_WAIT);
   };
 
   const advance = (auto = false) => {
@@ -231,6 +253,7 @@ export function showOpening(onDone) {
     if (!typedAll) completeText();
     if (SCENES[idx].last) { if (!titleShown) showTitleCard(); else raiseTitle(); return; }
     phase = "out";
+    voice.stop();
     clearTimeout(autoT);
     black.classList.add("on");
     cap.classList.remove("show");
@@ -250,7 +273,10 @@ export function showOpening(onDone) {
     if (closed) return;
     closed = true;
     phase = "closed";
+    voice.stop();
     clearTimeout(autoT); clearTimeout(titleT);
+    clearTimeout(pressT); clearTimeout(rsT);
+    document.removeEventListener("visibilitychange", onVisibility);
     removeEventListener("keydown", onKey, true);
     removeEventListener("resize", onResize);
     wrap.classList.add("op-out");
@@ -263,6 +289,7 @@ export function showOpening(onDone) {
     raf = requestAnimationFrame(loop);
     if (ts - last < 32) return;
     last = ts;
+    voice.busy();
     if (!shot) return;
     const sc = SCENES[idx];
     const e = elapsed();
@@ -277,7 +304,7 @@ export function showOpening(onDone) {
   // ---- 入力 ----
   let pressT = 0, pressAt = 0, longFired = false;
   const down = (ev) => {
-    if (ev.target === skip || skip.contains(ev.target)) return;
+    if (skip.contains(ev.target) || voiceControl.contains(ev.target)) return;
     pressAt = performance.now(); longFired = false;
     clearTimeout(pressT);
     hold.classList.add("on");
@@ -290,13 +317,21 @@ export function showOpening(onDone) {
   wrap.addEventListener("pointerleave", up);
   wrap.addEventListener("click", (ev) => {
     if (closed || longFired) return;
-    if (ev.target === skip || skip.contains(ev.target)) return;
+    if (skip.contains(ev.target) || voiceControl.contains(ev.target)) return;
     if (phase === "title") { sfx("select"); close(); return; }
     advance();
   });
   skip.addEventListener("click", (ev) => { ev.stopPropagation(); sfx("select"); close(); });
+  voiceToggle.addEventListener("change", () => {
+    voiceEnabled = voiceToggle.checked;
+    voice.stop();
+    if (voiceEnabled && phase === "play") voice.start(idx);
+  });
+  const onVisibility = () => { if (document.hidden) voice.stop(); };
+  document.addEventListener("visibilitychange", onVisibility);
   const onKey = (e) => {
     if (closed) return;
+    if (voiceControl.contains(e.target) && e.key === " ") return;
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault(); e.stopPropagation();
       if (phase === "title") close(); else advance();

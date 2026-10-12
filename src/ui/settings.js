@@ -16,6 +16,7 @@ import { tlOn, tlSetOn, tlClear, tlHasData, tlSummary, tlStabilitySummary, tlExp
 import { getPref, setPref, remember, autoMoveAvoid, setAutoMoveAvoid } from "./prefs.js";
 import { SFX } from "../audio.js";
 import { walkerLook, normalizeLook, WALKER_CLOAKS, WALKER_TRIMS } from "../walkerart.js";
+import { cloudEnabled, cloudAccount, cloudSignOut } from "../cloud-save.js";
 
 const sfx = (k) => { try { if (SFX[k]) SFX[k](); } catch (e) { /* noop */ } };
 
@@ -230,7 +231,13 @@ function fillAuto(box) {
   reset.appendChild(rt);
   reset.appendChild(el("span", "stg-danger-b", "削除…"));
   reset.addEventListener("click", () => { sfx("select"); confirmReset(); });
-  box.appendChild(reset);
+  if (cloudEnabled()) {
+    const account = el("button", "stg-row stg-cloud-account"); account.type = "button";
+    account.appendChild(setText(el("span", "stg-row-n"), cloudAccount()));
+    account.appendChild(setText(el("span", "stg-row-d"), "ログアウト"));
+    account.addEventListener("click", () => cloudSignOut());
+    box.appendChild(account);
+  } else box.appendChild(reset);
 }
 function fill(root) {
   const saved = remember("seg", "settings");

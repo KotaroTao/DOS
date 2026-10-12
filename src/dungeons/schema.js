@@ -1,4 +1,5 @@
 import { monsterResists } from "../resistance.js";
+import { MONSTER_TEMPERAMENTS } from "./temperaments.js";
 // モンスター共通スキーマ + 種族定義 + 共有ドット絵ライブラリ
 //
 // ===== 設計ルール (ダンジョン単位コンテンツの生命線) =====
@@ -52,6 +53,29 @@ const ELEM_BEATS = {
   light: ["dark"], dark: ["light"],
 };
 export function elemBeats(a, b) { return !!(ELEM_BEATS[a] && ELEM_BEATS[a].includes(b)); }
+export function elementAffinity(element) {
+  const weak = [], resist = [];
+  if (!element || element === "none" || !ELEMENTS[element]) return { weak, resist };
+  for (const k of Object.keys(ELEMENTS)) {
+    if (k === "none") continue;
+    if (elemBeats(k, element)) weak.push(k);
+    else if (elemBeats(element, k)) resist.push(k);
+  }
+  return { weak, resist };
+}
+export function normalizeAffinity(affinity, fallbackElement = "none", id = "monster") {
+  const src = affinity || elementAffinity(fallbackElement);
+  const out = { weak: [], resist: [] };
+  const seen = new Set();
+  const put = (side, k) => {
+    if (!k || k === "none" || !ELEMENTS[k]) throw new Error(`属性相性が不正: ${id} ${side} ${k}`);
+    if (seen.has(k)) throw new Error(`属性相性が重複: ${id} ${k}`);
+    seen.add(k); out[side].push(k);
+  };
+  for (const k of src.weak || []) put("weak", k);
+  for (const k of src.resist || []) put("resist", k);
+  return out;
+}
 // 攻撃属性 atk が 防御属性 def に与えるダメージ倍率
 // 有利: 1.5倍 / 不利(相手が有利): 0.5倍 / それ以外: 1.0倍。無属性が絡めば常に1.0
 export function elemMult(atk, def) {
@@ -64,7 +88,8 @@ export function elemMult(atk, def) {
 // ===== 属性攻撃 / 属性防御 (装備で得るレベル付きステータス) =====
 // 属性攻撃 Lv1=◯: 有利属性へのダメージ+50% / 不利属性へ-50%。Lv2=◎: ±100%。
 //   aE/aLv  : 攻撃側の属性と属性攻撃レベル (呪文・モンスター固有属性は Lv1 扱い)
-//   tgtElem : 対象の固有属性 (モンスター)。攻撃側の有利不利はこれと比較する
+//   tgtElem : 対象の固有属性。個別相性がない対象の互換用
+//   tgtAffinity : 対象の個別相性 {weak, resist}。攻撃側の有利不利はこれを優先する
 //   tgtDef  : 対象の属性防御 {el, lv} (装備由来)。攻撃属性に有利な時のみ被ダメージを軽減
 // 属性防御は「軽減のみ」: 有利属性で受けると減るが、不利属性で受けても増えない
 //   (装備した属性防具が裏目に出てダメージが増えることはない)。
@@ -97,13 +122,14 @@ export const METAL_TIERS = {
   2: { hp: 12, evade: 0.40, flee: 0.30, agiMul: 1.8, soulMul: 25, goldMul: 2.5, max: 2, layer: 4, w: [17, 27, 35] },
   3: { hp: 30, hpRank: 0.5, evade: 0.25, flee: 0.30, agiMul: 1.6, soulMul: 60, goldMul: 4, max: 1, layer: 4, w: [3, 8, 15] },
 };
-export function elemDmgMult(aE, aLv, tgtElem, tgtDef) {
+export function elemDmgMult(aE, aLv, tgtElem, tgtDef, tgtAffinity = null) {
   if (!aE || aE === "none") return 1;
   let m = 1;
-  if (aLv > 0 && tgtElem && tgtElem !== "none") {
+  if (aLv > 0) {
     const k = 0.5 * Math.min(2, aLv);
-    if (elemBeats(aE, tgtElem)) m *= 1 + k;
-    else if (elemBeats(tgtElem, aE)) m *= Math.max(0, 1 - k);
+    const aff = tgtAffinity || (tgtElem && tgtElem !== "none" ? elementAffinity(tgtElem) : null);
+    if (aff && (aff.weak || []).includes(aE)) m *= 1 + k;
+    else if (aff && (aff.resist || []).includes(aE)) m *= Math.max(0, 1 - k);
   }
   if (tgtDef && tgtDef.lv > 0 && tgtDef.el && tgtDef.el !== "none") {
     const k = 0.25 * Math.min(2, tgtDef.lv); // Lv1→25% / Lv2→50% 軽減
@@ -33762,7 +33788,7 @@ export function rankStats(rank, boss = false) {
 // ===== モンスター定義ヘルパー =====
 // すべてのモンスターはここを通る。スキーマ:
 // { id, key, name, race, rank, desc, maxhp, hp, atk, def, spd, soul, gold,
-//   art, palette, boss?, dropNormal?, dropRare?, soulClass? }
+//   art, palette, affinity?, boss?, dropNormal?, dropRare?, soulClass? }
 // soul は撃破時に回収できる Soul 量 (経験値の役割を兼ねる)。
 // 注: def/spd は定義用の名前のまま。出現時に六大ステへ写像される
 //     (combat.js makeEnemy: atk→ATK, def→VIT, spd→AGI)。
@@ -33770,6 +33796,12 @@ export function rankStats(rank, boss = false) {
 // soulClass を持つ人型は撃破時にまれに魂を落とす。
 export function defMonster(def) {
   if (!def.id) throw new Error("monster id required");
+  const temperament = MONSTER_TEMPERAMENTS[def.id];
+  if (temperament) def = {
+    ...def,
+    affinity: def.affinity || temperament.affinity,
+    resistTiers: { ...temperament.resistTiers, ...def.resistTiers },
+  };
   if (!ARTS[def.artKey || ""] && !def.art) throw new Error("unknown artKey: " + def.artKey + " (" + def.id + ")");
   const base = ARTS[def.artKey] || {};
   const m = {
@@ -33777,6 +33809,7 @@ export function defMonster(def) {
     name: def.name || "???",
     race: def.race || "beast",
     element: def.element || "none",
+    affinity: normalizeAffinity(def.affinity, def.element || "none", def.id),
     rank: def.rank || 1,
     desc: def.desc || "",
     maxhp: def.hp || 10, hp: def.hp || 10,
@@ -33825,12 +33858,19 @@ export function defMonster(def) {
   //   barrier     : 被ダメを半減できる残り回数 (数回制)
   //   (ability に "warcry"=鼓舞 / "weaken"=弱体 / "sleep"=眠り / "charm"=魅了 / "confuse"=混乱 も指定可)
   //   (ability に "charge"=溜め (予兆の後に大技) / "sunder"=守り崩し (VIT −1段) / "dispel"=打ち消し (隊の強化を剥ぐ) も指定可)
+  //   resistTiers : 状態異常の効きやすさを個体ごとに上書きする。値は weak/slight/base/strong/imm。
   if (def.magResist) m.magResist = def.magResist;
   if (def.enrage) m.enrage = true;
   if (def.endure) m.endure = true;
   if (def.lifesteal) m.lifesteal = def.lifesteal;
   if (def.multistrike) m.multistrike = def.multistrike;
   if (def.barrier) m.barrier = def.barrier;
+  if (def.resistTiers) {
+    for (const [k, v] of Object.entries(def.resistTiers)) {
+      if (!["poison", "paralyze", "sleep", "charm", "confuse", "seal", "flinch", "death", "stone"].includes(k) || !["weak", "slight", "base", "strong", "imm"].includes(v)) throw new Error(`bad resistTiers: ${def.id} ${k}=${v}`);
+    }
+    m.resistTiers = { ...def.resistTiers };
+  }
   // 第5層からの「特色を極端に押し出す」ための特性:
   //   haste  : 神速。AGI を大きく底上げし、1ターンに2度動く (ターンの頭ともう一度)
   //   abRate : 特殊能力 (ability) を使う確率 (0〜0.6)。既定は 25% (ブレス・全体呪文は 30%)。0.4 以上は図鑑で「多用」と示す
