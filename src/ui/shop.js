@@ -1,3 +1,5 @@
+import { bagItems, bagSortControl } from "./bagsort.js";
+import { bagOwners } from "../items.js";
 // ===== 商会 — 売る・鑑定 (隊の全員・控え込み) / 買う (最良の装備者へ・買って装備) =====
 // 担当: WP-C。街シェルの「商会」タブを描く。
 //   売る・鑑定: まとめて鑑定 / まとめて売る (ops の一括操作。除外の内訳つき) + 全員の持ち物 (控え込み)
@@ -47,7 +49,7 @@ function isUp(it) {
 // 未鑑定の品 (隊と控えの全員の所持品)
 export function unidList() {
   const out = [];
-  for (const d of allDolls()) for (const it of (d.items || [])) if (it && it.unidentified) out.push({ doll: d, item: it, cost: game.appraiseCost(it) });
+  for (const d of bagOwners(allDolls())) for (const it of (d.items || [])) if (it && it.unidentified) out.push({ doll: d, item: it, cost: game.appraiseCost(it) });
   return out;
 }
 export function unidCount() { return unidList().length; }
@@ -120,7 +122,7 @@ const EXCL = [
 ];
 export function exclusions() {
   const g = { upgrade: [], rare: [], misc: [], locked: [], cursed: [], unid: [], use: [] };
-  for (const d of allDolls()) {
+  for (const d of bagOwners(allDolls())) {
     for (const it of (d.items || [])) {
       if (!it) continue;
       if (it.locked) { g.locked.push({ doll: d, item: it }); continue; }
@@ -374,17 +376,17 @@ export function shopBuy(id, who, { equip = false } = {}) {
   if (!who) { sfx("ng"); toast("持てる者がいない (持ち物がいっぱい)", { tone: "bad" }); return false; }
   const price = game.buyPrice(tmpl);
   if ((g.gold || 0) < price) { sfx("ng"); toast("金貨が足りない", { tone: "bad" }); return false; }
-  if (who.items.length >= MAX_ITEMS) { sfx("ng"); toast(`${who.name} の持ち物がいっぱいだ`, { tone: "bad" }); return false; }
+  if (who.items.length >= MAX_ITEMS) { sfx("ng"); toast("隊の持ち物がいっぱいだ", { tone: "bad" }); return false; }
   const delta = equip ? deltaFor(who, tmpl) : null;
   const it = game.buyItem ? game.buyItem(id, price, who) : null;
   if (!it) return false;
   floatGold(price, "dn");
   if (equip && isEquippable(it) && canEquip(who, it)) {
     const ok = equipTo(who, it, { quiet: true });
-    const t = toast(ok ? `${it.name} を買い、${who.name} が装備した` : `${it.name} を買った → ${who.name} の袋 (入れ替えられない)`, { tone: ok ? "good" : "gold", icon: it });
+    const t = toast(ok ? `${it.name} を買い、${who.name} が装備した` : `${it.name} を買った → 隊の袋 (入れ替えられない)`, { tone: ok ? "good" : "gold", icon: it });
     if (t && ok && delta) t.el.querySelector(".ui-toast-t").appendChild(deltaEl(delta));
   } else {
-    toast(`${it.name} を買った → ${who.name} の袋`, { tone: "gold", icon: it });
+    toast(`${it.name} を買った → 隊の袋`, { tone: "gold", icon: it });
   }
   return true;
 }
@@ -487,7 +489,7 @@ function stockRow(id) {
   more.setAttribute("aria-label", "人業を選んで買う");
   more.appendChild(caretIcon());
   more.addEventListener("click", () => openBuyChooser(id));
-  act.appendChild(more);
+  if (isEquippable(it)) act.appendChild(more);
   row.appendChild(act);
   return row;
 }
@@ -496,7 +498,7 @@ function stockRow(id) {
 function openBuyChooser(id) {
   const it = ITEMS[id];
   if (!it) return null;
-  if (!isEquippable(it)) return openDollChooser(it, { mode: "bag", buyId: id, title: "買う" });
+  if (!isEquippable(it)) return shopBuy(id);
   return openDollChooser(it, { mode: "equip", buyId: id });
 }
 
@@ -601,10 +603,8 @@ function fillList(box, items, renderRow, key) {
 function dollRow(d) {
   const sec = el("section", "wpc-drow" + (isReserve(d) ? " reserve" : "") + (d.alive ? "" : " dead"));
   const hd = el("div", "wpc-drow-h");
-  hd.appendChild(dollIcon(d));
-  hd.appendChild(el("span", "wpc-doll-nm", d.name));
-  if (isReserve(d)) hd.appendChild(el("span", "wpc-tag", "控え"));
-  if (!d.alive) hd.appendChild(el("span", "wpc-tag dead", "砕けている"));
+
+  hd.appendChild(el("span", "wpc-doll-nm", "隊の持ち物"));
   hd.appendChild(el("span", "wpc-doll-cnt", `${d.items.length}/${MAX_ITEMS}`));
   const sv = d.items.filter((it) => !it.unidentified).reduce((a, it) => a + game.sellPrice(it), 0);
   if (d.items.length) {
@@ -614,7 +614,7 @@ function dollRow(d) {
   }
   sec.appendChild(hd);
   const tiles = el("div", "wpc-drow-tiles");
-  if (d.items.length) for (const it of d.items) tiles.appendChild(cell(it, d));
+  if (d.items.length) for (const it of bagItems(d.items)) tiles.appendChild(cell(it, d));
   else tiles.appendChild(el("span", "wpc-bag-empty", "持ち物なし"));
   sec.appendChild(tiles);
   return sec;
@@ -665,12 +665,13 @@ function renderSell(wrap) {
   wrap.appendChild(card);
 
   // ---- 全員の持ち物 (隊 → 控え)。収まらなければ箱の中で縦にスクロール ----
-  const dolls = allDolls().filter((d) => d && !d.isEmpty);
+  const dolls = bagOwners(allDolls());
   const nItems = dolls.reduce((a, d) => a + d.items.length, 0);
   const head = el("div", "wpc-lhead");
   head.appendChild(el("span", "wpc-lhead-t", `持ち物 ${nItems}点`));
   head.appendChild(el("span", "wpc-lhead-s", "押せば売る・鑑定・装備"));
   wrap.appendChild(head);
+  wrap.appendChild(bagSortControl(() => rerender({ top: true })));
   const box = el("div", "wpc-list sell");
   wrap.appendChild(box);
   return () => {

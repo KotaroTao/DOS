@@ -45,7 +45,7 @@ function ctxNow() {
   const dolls = [...party, ...reserve].filter((d) => !d.isEmpty);
   const items = [];
   for (const d of [...party, ...reserve]) {
-    for (const it of (d.items || [])) if (it) items.push(it);
+    for (const it of (d.items || [])) if (it && !items.includes(it)) items.push(it);
     for (const k in (d.equip || {})) if (d.equip[k]) items.push(d.equip[k]);
   }
   const ms = G.msq || {};

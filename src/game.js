@@ -13,7 +13,7 @@ import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audi
 import { spriteCanvas, crispCanvas, drawPhoto, photoReady, whenPhoto, setSpriteResolver } from "./sprites.js";
 import { makeItemSpriteResolver } from "./itemart/index.js";
 import {
-  ITEMS, SLOTS, SLOT_LABEL, MAX_ITEMS, equip as equipItem, unequip as unequipItem, canEquip, canOffhand, slotKeyFor, lvToRank, RANGE_LABEL, HAND_LABEL, weaponRange, SHIELD_KIND_LABEL, shieldKind,
+  ITEMS, SLOTS, SLOT_LABEL, MAX_ITEMS, shareInventory, setBagSource, bagOwners, equip as equipItem, unequip as unequipItem, canEquip, canOffhand, slotKeyFor, lvToRank, RANGE_LABEL, HAND_LABEL, weaponRange, SHIELD_KIND_LABEL, shieldKind,
   registerEquipLevel, equipLevelOf, equipLvShort, equipFailMsg, registerAffixes,
   UNIDENT_SLOTS, itemName, applyForge, hasQuality, applyQuality, rollQuality, qualityMatters, itemAtQuality, QUALITY_MID, useWhere, useTarget, useHelps, useLines, useCureKinds, compareUse,
 } from "./items.js";
@@ -499,6 +499,7 @@ const G = {
   stabilityBriefed: false, // 魂の安定度の門衛説明を表示済みか
   dungeonBriefed: false, // 初回出撃時の警備兵の注意事項を表示済みか
   pendingDoll: null,  // (旧形式) 未生成の人業。現在は「空の人業」(isEmpty) として reserve に残る (ロード時に移行)
+  inventory: [],      // 隊と控えで共有する持ち物 (最大50個、装備中の品は含めない)
   party: [],          // 迷宮に連れて行く人業 (最大6体)
   reserve: [],        // 酒場で待機中の人業
   // 魂は1体ごとに固有のインスタンス (本体は魂、人業は器)。同職でも個別に Lv/ランクを持つ。
@@ -1557,7 +1558,7 @@ function infAfxTrack(it) {
 // ===== 本編を退ける / 戻す =====
 // 潜っている間は、本編の隊・控え・魂・通貨を G.abyss.home に退ける (控えも退けるのは、
 // 魂の付け替え・再計算で本編の人業が仮の器の魂を読まないため)。赤い魂・図鑑・在庫は本編のまま
-const INF_HOME_KEYS = ["party", "reserve", "souls", "gold", "soulPts", "embers"];
+const INF_HOME_KEYS = ["inventory", "party", "reserve", "souls", "gold", "soulPts", "embers"];
 function infStashHome() {
   const h = {};
   for (const k of INF_HOME_KEYS) h[k] = G[k];
@@ -1622,7 +1623,7 @@ function infCloseRun(outcome) {
   // 持ち帰る品: 仮の器の装備と袋の品すべて (手元には届かず商会の棚へ)
   const items = [];
   for (const d of G.party || []) {
-    for (const it of d.items || []) if (it && it.id) items.push(it);
+    for (const it of d.items || []) if (it && it.id && !items.includes(it)) items.push(it);
     for (const k of Object.keys(d.equip || {})) { const it = d.equip[k]; if (it && it.id) items.push(it); }
   }
   const souls = (run.souls || []).map((x) => x && x.clsKey).filter((k) => k && SOUL_CLASSES[k]);
@@ -10588,7 +10589,7 @@ function itemsBanned() { return false; } // 旧仕様の奈落の誓い「無頼
 // 戦闘で使える道具を品ごとにまとめる (隊の全員の袋から。倒れた者の袋も使える)。並びは効果順 (compareUse)
 function battleItemStacks() {
   const map = new Map();
-  for (const m of G.party) {
+  for (const m of bagOwners(G.party)) {
     for (const it of (m.items || [])) {
       if (it.slot !== "use" || !it.use || useWhere(it) === "field") continue;
       const key = it.id || it.name;
@@ -11712,8 +11713,8 @@ function gameOver() {
   // 無限迷宮: 赤い魂 (全滅した階の数・上限100) を払えば拾った魂・品・残火を持ち帰れる。払わなければ何も持ち帰れない
   if (abyssActive()) {
     const cost = infRedCost(G.floor);
-    let items = 0;
-    for (const d of G.party) { items += (d.items || []).length; for (const k of Object.keys(d.equip || {})) if (d.equip[k]) items++; }
+    let items = G.inventory.length;
+    for (const d of G.party) { for (const k of Object.keys(d.equip || {})) if (d.equip[k]) items++; }
     UI.openInfWipe({
       abandoned: !!r.abandoned, floor: G.floor, cost, red: G.redSoul, canSave: G.redSoul >= cost,
       souls: (r.souls || []).length, items, embers: r.embers || 0, sold: (infTrk().sold || 0),
@@ -12218,7 +12219,8 @@ const FAC_SHELL = {
 };
 
 // 編成 + 控えの全人業
-function allDolls() { return [...G.party, ...G.reserve]; }
+function allDolls() { shareInventory(G); return [...G.party, ...G.reserve]; }
+setBagSource(() => G.inventory);
 
 // 街を描き直す (名前と約225の呼び出し元はそのまま)。中身の描き替え・スクロール位置の保持・
 // タブバーの点灯・遷移の演出は街シェル (townshell.refresh) が受け持つ
@@ -13379,7 +13381,7 @@ function rewardRows(r, jobs = []) {
 function rewardItemsRoom(r) {
   let need = 0;
   for (const [id, n] of (r.items || [])) if (ITEMS[id]) need += n;
-  const room = allDolls().reduce((a, d) => a + Math.max(0, MAX_ITEMS - (d.items || []).length), 0);
+  const room = Math.max(0, MAX_ITEMS - G.inventory.length);
   return room - need;
 }
 function grantRewardItems(r) {
@@ -14811,7 +14813,7 @@ function totalDonatedKinds() {
 // 手持ち (編成+控え) の収集品 [{doll, item}]
 function heldCollectibles() {
   const out = [];
-  for (const d of allDolls()) for (const it of (d.items || [])) if (it.slot === "misc") out.push({ doll: d, item: it });
+  for (const d of bagOwners(allDolls())) for (const it of (d.items || [])) if (it.slot === "misc") out.push({ doll: d, item: it });
   return out;
 }
 
@@ -15100,7 +15102,7 @@ function heldItems() {
   const out = [];
   for (const d of [...(G.party || []), ...(G.reserve || [])]) {
     if (!d) continue;
-    for (const it of (d.items || [])) if (it) out.push(it);
+    for (const it of (d.items || [])) if (it && !out.includes(it)) out.push(it);
     for (const it of Object.values(d.equip || {})) if (it) out.push(it);
   }
   return out;
@@ -15852,6 +15854,7 @@ function enterAbyss(picks) {
     allCommon: picks.every((k) => SOUL_CLASSES[k].rarity === "common"), trk: { sp: 0, at: 0, broke: false, rareAfx: 0, bossMax: 0 } };
   { const st = infStats(); st.runs++; for (const k of picks) st.jobs[k] = 1; }
   // 本編を退け、仮の器と無限迷宮の魂・通貨に差し替える
+  G.inventory = [];
   G.reserve = [];
   G.souls = []; setSharedSouls(G.souls);
   G.gold = 0; G.soulPts = 0; G.embers = 0;
@@ -16801,7 +16804,7 @@ function itemFitsSlot(it, slotKey, p = null) {
 }
 
 // p の slotKey に it を装備する (owner = it を袋に持っている人業。自分なら p)。
-// 規則は items.js の equip() と同じ (職・未鑑定・両手武器⇄盾・呪いは外れない・所持枠8) だが、
+// 規則は items.js の equip() と同じ (職・未鑑定・両手武器⇄盾・呪いは外れない・共有の所持枠50) だが、
 // 装飾品は「指定した枠」に付ける。stashTo を渡すと、外れた装備は p ではなくその人業の袋へ入る
 // (p の袋が満杯の時の「持ち主と取り替える」)。成否 { ok, msg, displaced, full }
 function equipAt(p, it, slotKey, owner = p, stashTo = null) {
@@ -16814,8 +16817,8 @@ function equipAt(p, it, slotKey, owner = p, stashTo = null) {
     return { ok: false, msg: pin && !pin.cursed ? `${pin.name}はロック中 ― ロックを外すと付け替えられる` : "呪われた装備が外れない" };
   }
   const bag = stashTo || p;
-  const bagAfter = bag.items.length - (owner === bag ? 1 : 0) + tr.displaced.length;
-  if (bagAfter > MAX_ITEMS) return { ok: false, full: true, msg: `${bag.name}の持ち物がいっぱいで、外した装備を入れられない` };
+  const bagAfter = bag.items.length - (owner.items === bag.items ? 1 : 0) + tr.displaced.length;
+  if (bagAfter > MAX_ITEMS) return { ok: false, full: true, msg: "隊の持ち物がいっぱいで、外した装備を入れられない" };
   const i = owner.items.indexOf(it);
   if (i < 0) return { ok: false, msg: "" };
   owner.items.splice(i, 1);
@@ -16846,7 +16849,7 @@ function equipFromWearer(p, it, slotKey, wearer) {
   // 外れるこちらの装備を仲間が付けられるなら、空いた部位へ付けて交換にする (付けられなければ仲間の部位は空き、こちらの袋へ)
   const back = autoEquip.swapBackFor(wearer, wk, tr.displaced, canEquip);
   const toBag = tr.displaced.filter((x) => x !== back);
-  if (p.items.length + toBag.length > MAX_ITEMS) return { ok: false, full: true, msg: `${p.name}の持ち物がいっぱいで、外した装備を入れられない` };
+  if (p.items.length + toBag.length > MAX_ITEMS) return { ok: false, full: true, msg: "隊の持ち物がいっぱいで、外した装備を入れられない" };
   wearer.equip[wk] = back || null;
   recalcDoll(wearer);
   wearer.hp = Math.min(wearer.hp, wearer.maxhp); wearer.mp = Math.min(wearer.mp, wearer.maxmp);
@@ -16868,7 +16871,7 @@ function equipFromAnywhere(p, slotKey, c) {
   const { it, owner } = c;
   const r = equipAt(p, it, slotKey, owner || p);
   if (r.msg) log(r.msg, r.ok ? "win" : "sys");
-  if (r.ok && owner && owner !== p) log(`${owner.name} から ${it.name} を受け取り装備した。`, "win");
+  if (r.ok && owner && owner.items !== p.items) log(`${owner.name} から ${it.name} を受け取り装備した。`, "win");
   if (r.ok) { SFX.select(); buzz(10); } else { SFX.ng(); if (r.msg) showToast(r.msg, { noLog: true, tone: "bad" }); }
   renderStatus(); renderParty();
   return r;
@@ -17007,7 +17010,7 @@ function dropItem(p, index) {
 
 // 品を from の袋から to の袋へ移す (満杯なら移さない)
 function moveItem(from, it, to) {
-  if (!from || !to || from === to) return false;
+  if (!from || !to || from === to || from.items === to.items) return false;
   const i = from.items.indexOf(it);
   if (i < 0) return false;
   if (to.items.length >= MAX_ITEMS) { SFX.ng(); showToast(`${to.name}の持ち物はいっぱいだ`, { tone: "bad" }); return false; }
@@ -17568,7 +17571,7 @@ const SAVE_FIELDS = [
   "shopAfx", "shopAfxPending",
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound", "abyss", "abyssRec",
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "stabilityBriefed", "pendingDoll",
-  "party", "reserve", "souls", "shopStock", "run", "town",
+  "inventory", "party", "reserve", "souls", "shopStock", "run", "town",
   "quest", "msq", "ach", "fastAnim", "animTempo", "tavernCrowd", "tavernHeard", "rumor", "rumorCooldown", "activeRumor", "codex", "treasury", "lrOwned", "named", "order", "rusui", "irene", "journal", "tut", "events", "story", "world", "dragonSlain", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab", "rematch",
   "lastRun",
@@ -17758,6 +17761,9 @@ function loadGame(cloudSnapshot = null) {
   try { snap = refDeserialize(JSON.parse(raw)); } catch (e) { return false; }
   if (!snap || !snap.party || (!cloudEnabled() && !snap.party.length)) return false;
   for (const k of SAVE_FIELDS) if (k in snap) G[k] = snap[k];
+  G.inventory = Array.isArray(snap.inventory) ? snap.inventory : [];
+  shareInventory(G);
+  if (G.abyss && G.abyss.home) shareInventory(G.abyss.home);
   G.rng = bindRngState(snap.rng); // 乱数の位置を続きから (旧セーブには無い → 新しい種から)
   endLegacyAbyss(); // 旧仕様の奈落の途中のセーブは、読み込みで終わらせる (記録も消す)
   if (G.abyssRec && G.abyssRec.v !== 2) G.abyssRec = null;
@@ -18014,6 +18020,7 @@ window.addEventListener("beforeunload", () => autosave(true));
 function setupNewGame() {
   // 金貨も赤い魂も持たずに着任する。まず王宮で三職の魂を拝受する。
   G.party = [];
+  G.inventory = [];
   G.reserve = [];
   G.souls = [];       // 所持魂 一覧 (魂インスタンスの配列)
   setSharedSouls(G.souls);
@@ -18121,7 +18128,7 @@ function opsEquippedBy(d, it) { for (const k in (d.equip || {})) if (d.equip[k] 
 // { includeUse } を渡せばその値が優先
 function opsJunkList({ includeUse = !!uiDungeonHud.getPref("sellUse") } = {}) {
   const out = [];
-  for (const d of allDolls()) {
+  for (const d of bagOwners(allDolls())) {
     for (const it of (d.items || [])) {
       if (!it || it.cursed || it.locked || it.unidentified || opsEquippedBy(d, it) || bulkSellBlocked(it)) continue;
       if (!includeUse && it.slot === "use") continue;
@@ -18178,7 +18185,7 @@ const OPS = {
   counts() {
     const dolls = allDolls();
     let unid = 0, unidCost = 0;
-    for (const d of dolls) for (const it of (d.items || [])) if (it && it.unidentified) { unid++; unidCost += appraiseCost(it); }
+    for (const d of bagOwners(dolls)) for (const it of (d.items || [])) if (it && it.unidentified) { unid++; unidCost += appraiseCost(it); }
     const junk = opsJunkList();
     const dead = dolls.filter((d) => d.isDoll && !d.alive);
     let repairCost = 0, hastenCost = 0, rescuing = 0, repairNow = 0;
@@ -18228,7 +18235,7 @@ const OPS = {
   identifyAll() {
     if (G.state !== "town" || !opsFacilityOpen("shop")) return { ok: false, reason: "closed", n: 0, spent: 0 };
     const list = [];
-    for (const d of allDolls()) for (const it of (d.items || [])) if (it && it.unidentified) list.push(it);
+    for (const d of bagOwners(allDolls())) for (const it of (d.items || [])) if (it && it.unidentified) list.push(it);
     list.sort((a, b) => appraiseCost(a) - appraiseCost(b));
     let n = 0, spent = 0;
     for (const it of list) {

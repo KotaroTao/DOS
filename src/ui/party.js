@@ -1,3 +1,5 @@
+import { bagItems, bagSortControl } from "./bagsort.js";
+import { bagOwners } from "../items.js";
 import { RESIST_LABEL } from "../resistance.js";
 // ===== 隊 (統合された人業の画面) — 隊列ストリップ・控え/仕立て・装備/魂/能力・迷宮内のシート =====
 // 担当: WP-B。
@@ -146,14 +148,14 @@ function slotCandidates(d, key, { includeUnid = false } = {}) {
 function slotCandidatesRaw(d, key, includeUnid) {
   const out = [];
   const base = previewStats(d, d.equip, recalc);
-  for (const owner of itemsPool()) {
+  for (const owner of bagOwners(itemsPool())) {
     for (const it of (owner.items || [])) {
       if (!it || !slotKeysFor(it, d).includes(key)) continue;
       if (it.unidentified) { if (includeUnid) out.push({ it, owner, unid: true, gain: -Infinity }); continue; }
       if (!canEquip(d, it)) continue;
       const sd = slotDelta(d, it, key, base);
       if (!sd) continue;
-      const room = (d.items.length - (owner === d ? 1 : 0) + sd.tr.displaced.length) <= MAX_ITEMS;
+      const room = (d.items.length - (owner.items === d.items ? 1 : 0) + sd.tr.displaced.length) <= MAX_ITEMS;
       out.push({ it, owner, gain: gearScore(d, sd.delta), delta: sd.delta, room, cursed: !!it.cursed });
     }
   }
@@ -352,7 +354,7 @@ function equipWithUndo(doll, item, key = null, { stashTo = null, quiet = false }
     return { ...(r || { ok: false }), key };
   }
   game.log(r.msg, "win");
-  if (owner !== doll) game.log(`${owner.name} から ${item.name} を受け取り装備した。`, "win");
+  if (owner.items !== doll.items) game.log(`${owner.name} から ${item.name} を受け取り装備した。`, "win");
   if (stashTo && r.displaced && r.displaced.length) game.log(`外した ${r.displaced.map((x) => x.name).join("・")} は ${stashTo.name} の袋へ。`, "sys");
   sfx("select"); buzz(10);
   const delta = statsDelta(before, previewStats(doll, doll.equip, recalc));
@@ -392,18 +394,18 @@ function pickWearer(doll, item, { onDone = null, chip = null, key = null } = {})
   if (r.full) {
     const owner = ownerOf(item);
     const names = (b.displaced || []).map((x) => x.name).join("・");
-    const canSwap = owner && owner !== doll && (owner.items.length - 1 + (b.displaced || []).length) <= MAX_ITEMS;
+    const canSwap = owner && owner.items !== doll.items && (owner.items.length - 1 + (b.displaced || []).length) <= MAX_ITEMS;
     if (canSwap) {
       confirm({
         banner: "持ち物がいっぱい", title: `${doll.name}の持ち物がいっぱいだ`,
         lines: [`外した ${names} を ${owner.name} の袋へ移して (取り替えて) 装備する？`],
         okLabel: "取り替えて装備", cancelLabel: "やめる", danger: false,
       }).then((y) => { if (!y) return; const r2 = equipWithUndo(doll, item, b.key, { stashTo: owner }); if (r2.ok && onDone) onDone(r2); });
-    } else if (UI.openDiscard && (b.displaced || []).length === 1) {
+    } else if (UI.openDiscard && (b.displaced || []).length > 0) {
       // 袋の品を1つ捨てて空け、外した装備をそこへ入れて装備する (docs/infinite-labyrinth.md 18章)
-      UI.openDiscard({ incoming: b.displaced[0], incomingSub: "外れる装備", members: [doll], skipLabel: "やめる",
-        title: `${doll.name}の袋の品を1つ捨てて装備する`,
-        lines: [`${doll.name}の持ち物がいっぱいで、外した ${names} を入れられない。袋の品を1つ捨てると、その空きに入る。ロックした品は出ない。`],
+      UI.openDiscard({ incoming: item, incomingSub: "装備する品", members: [doll], skipLabel: "やめる",
+        title: "隊の袋の品を1つ捨てて装備する",
+        lines: [`隊の持ち物がいっぱいで、外した ${names} を入れられない。袋の品を1つ捨てると、その空きに入る。ロックした品は出ない。`],
         onPick: () => { const r2 = equipWithUndo(doll, item, b.key); if (r2.ok && onDone) onDone(r2); } });
     } else {
       sfx("ng");
@@ -2058,7 +2060,7 @@ function segBar(d, mode) {
   return wrap;
 }
 
-// ================= 装備の区分: 8部位 (2列×4) + 所持 (8つの札を1列) =================
+// ================= 装備の区分: 8部位 (2列×4) + 隊の共有袋 (50枠) =================
 function equipSeg(root, d) {
   if (d.primary == null) root.appendChild(el("div", "pt-note c", "魂の宿らない器は装備できない。「魂」で魂を宿そう。"));
   const list = el("div", "pt-slots");
@@ -2067,7 +2069,7 @@ function equipSeg(root, d) {
   // 所持品の見出し + 隊の全員を最適装備
   const h = el("div", "pt-bagbar");
   const t = el("span", "pt-bagbar-t");
-  t.appendChild(el("span", "pt-bagbar-k", "所持"));
+  t.appendChild(el("span", "pt-bagbar-k", "隊の持ち物"));
   t.appendChild(el("b", null, `${d.items.length}/${MAX_ITEMS}`));
   const unid = d.items.filter((it) => it && it.unidentified).length;
   if (unid) t.appendChild(el("span", "pt-bagbar-x", `未鑑定${unid}`));
@@ -2101,7 +2103,14 @@ function equipSeg(root, d) {
   const wrap = el("div", "pt-bagwrap");
   wrap.appendChild(h);
   const grid = el("div", "pt-bag");
-  for (let i = 0; i < MAX_ITEMS; i++) grid.appendChild(bagCell(d, d.items[i]));
+  const drawBag = () => {
+    grid.replaceChildren();
+    for (const it of bagItems(d.items)) grid.appendChild(bagCell(d, it));
+    if (!d.items.length) grid.appendChild(el("div", "pt-note", "隊の持ち物は空だ。"));
+    grid.scrollTop = 0;
+  };
+  wrap.appendChild(bagSortControl(drawBag));
+  drawBag();
   wrap.appendChild(grid);
   root.appendChild(wrap);
 }
@@ -2163,6 +2172,7 @@ function bagCell(d, it) {
     const b = bestSlotFor(d, it);
     if (b && b.gain > 0.05) c.appendChild(el("span", "pt-bup", "▲"));
   }
+  c.appendChild(el("span", "pt-bcell-name", itemName(it)));
   c.title = itemName(it);
   c.setAttribute("aria-label", itemName(it));
   c.addEventListener("click", () => { sfx("select"); openItem(it, d, { from: "bag" }); });
@@ -2209,7 +2219,7 @@ function candBody(root, d, k, h, town) {
   }
   let mism = 0;
   const lvShort = []; // 職では扱えるが、メイン魂の Lv が装備できるLv に届かない品
-  for (const owner of itemsPool()) {
+  for (const owner of bagOwners(itemsPool())) {
     for (const it of owner.items) {
       if (!it || it.unidentified || !slotKeysFor(it).includes(k)) continue;
       if (!canEquip(d, it, { anyLv: true })) mism++;
@@ -2222,7 +2232,7 @@ function candBody(root, d, k, h, town) {
     const ll = el("div", "pt-list");
     for (const c of lvShort) {
       const ic = el("span", "pt-cand-ic"); ic.appendChild(spriteCanvas(c.it, 2));
-      ll.appendChild(row({ icon: ic, title: itemName(c.it), sub: `Lv${equipLevelOf(c.it)}から（いまLv${d.jobLv || 1}） ・ ${c.owner === d ? "自分" : c.owner.name}の袋`, chevron: true, tone: "dim",
+      ll.appendChild(row({ icon: ic, title: itemName(c.it), sub: `Lv${equipLevelOf(c.it)}から（いまLv${d.jobLv || 1}） ・ 隊の袋`, chevron: true, tone: "dim",
         onTap: () => { h.close(); openItem(c.it, c.owner, { from: "bag" }); } }));
     }
     root.appendChild(ll);
@@ -2232,7 +2242,7 @@ function candBody(root, d, k, h, town) {
     const ul = el("div", "pt-list");
     for (const c of unid) {
       const ic = el("span", "pt-cand-ic"); ic.appendChild(spriteCanvas(c.it, 2));
-      ul.appendChild(row({ icon: ic, title: itemName(c.it), sub: `${c.owner === d ? "自分" : c.owner.name}の袋 ・ ${town ? "商会で鑑定" : "鑑定の心得で試せる"}`, chevron: true, tone: "dim",
+      ul.appendChild(row({ icon: ic, title: itemName(c.it), sub: `隊の袋 ・ ${town ? "商会で鑑定" : "鑑定の心得で試せる"}`, chevron: true, tone: "dim",
         onTap: () => { h.close(); openItem(c.it, c.owner, { from: "bag" }); } }));
     }
     root.appendChild(ul);
@@ -2324,7 +2334,7 @@ function candRow(d, k, c, h) {
   const nmSuffix = c.it.cursed ? " (呪)" : c.worn && c.locked ? "（ロック中）" : "";
   top.appendChild(game.itemNameEl ? game.itemNameEl("span", "pt-cand-n", c.it, nmSuffix) : el("span", "pt-cand-n", itemName(c.it) + nmSuffix));
   top.appendChild(el("span", "pt-own" + (c.owner === d ? " me" : isReserve(c.owner) ? " res" : "") + (c.worn ? " worn" : ""),
-    c.owner === d ? "自分" : `${c.owner.name}${isReserve(c.owner) ? "・控え" : ""}${c.worn ? "が装備中" : ""}`));
+    !c.worn ? "隊の袋" : c.owner === d ? "自分が装備中" : `${c.owner.name}${isReserve(c.owner) ? "・控え" : ""}が装備中`));
   tx.appendChild(top);
   if (c.it.slot === "weapon" && k === "shield") {
     // 左手 (二刀流): 左手の攻撃力の変化
@@ -2693,7 +2703,7 @@ function fallbackItemSheet(it, owner, ctx, actions) {
 // 渡す相手 (街: 隊と控えの全員 / 迷宮: 生きている隊の者)
 function transferTargets(owner) {
   const G = G_();
-  return (inTown() ? allDolls() : G.party.filter((m) => m.alive)).filter((m) => m !== owner);
+  return (inTown() ? allDolls() : G.party.filter((m) => m.alive)).filter((m) => m !== owner && m.items !== owner.items);
 }
 export function openTransfer(owner, it) {
   const targets = transferTargets(owner);

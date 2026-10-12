@@ -9,6 +9,7 @@ const KEY = "dos-ui";
 export const UI_PREF_DEFAULTS = {
   tab: "hub",            // 最後に開いていた街のタブ
   seg: {},               // 区分 (segmented) の記憶 { scope: key }
+  bagSort: "bag",       // 隊の共通袋の表示順
   partyIdx: 0,           // 隊で選んでいた人業
   shopSeg: "sell",       // 商会: 売る・鑑定 | 買う | 鍛え直し
   shopCat: "weapon",     // 商会の分類

@@ -1,3 +1,4 @@
+import { bagOwners } from "../items.js";
 // ===== 品 — 入手の割り込み方針 (トースト/祝祭)・品シート (ItemSheet)・NEW 印 =====
 // 担当: WP-C。
 // 提供する契約:
@@ -82,7 +83,7 @@ export function equipCandidates() {
 // 品を渡せる相手 (迷宮では隊の生きている者だけ = 従来の「渡す」と同じ)
 function giveCandidates(exclude) {
   const list = inTown() ? allDolls() : (G().party || []).filter((d) => d.alive);
-  return list.filter((d) => d && d !== exclude && !d.isEmpty);
+  return list.filter((d) => d && d !== exclude && d.items !== exclude?.items && !d.isEmpty);
 }
 
 const scoreOf = (d, delta) => {
@@ -125,7 +126,7 @@ export function wearPlan(it, { owner = null, pool = null } = {}) {
     for (const s of scores) if (s.can && s.delta && s.score > 0 && (!pick || s.score > pick.score)) pick = s;
   }
   // 持ち主が装備でき、最良に近い (8割以上) なら持ち主を優先 (勝手に他の者へ回さない)
-  const own = owner && scores.find((s) => s.d === owner && s.can && s.delta);
+  const own = owner && !owner.items.includes(it) && scores.find((s) => s.d === owner && s.can && s.delta);
   if (own && own.score > 0 && (!pick || own.score >= pick.score * 0.8)) pick = own;
   if (!pick) pick = (owner && scores.find((s) => s.d === owner && s.can)) || scores.find((s) => s.can) || null;
   return { target: pick ? pick.d : null, delta: pick ? pick.delta : null, score: pick ? pick.score : 0, scores };
@@ -217,7 +218,7 @@ export function refreshViews() {
 export function markSeen(it) { if (it && it.isNew) delete it.isNew; }
 export function newCount() {
   let n = 0;
-  for (const d of allDolls()) for (const it of (d.items || [])) if (it && it.isNew) n++;
+  for (const d of bagOwners(allDolls())) for (const it of (d.items || [])) if (it && it.isNew) n++;
   return n;
 }
 
@@ -249,7 +250,7 @@ function equipFailReason(d, it) {
 // 渡す (所持品から別の人業の所持品へ。従来の「渡す」と同じ)
 function giveTo(owner, it, to) {
   const i = owner.items.indexOf(it);
-  if (i < 0 || !to || to.items.length >= MAX_ITEMS) return false;
+  if (i < 0 || !to || owner.items === to.items || to.items.length >= MAX_ITEMS) return false;
   owner.items.splice(i, 1);
   to.items.push(it);
   if (game.log) game.log(`${itemName(it)} を ${owner.name} → ${to.name} に渡した`, "win");
@@ -392,7 +393,7 @@ function bagOverflow(d, it, incoming) {
   if (it.slot === "weapon" && it.twoHanded && d.equip.shield) removed.push(d.equip.shield);
   if (it.slot === "shield" && d.equip.weapon && d.equip.weapon.twoHanded) removed.push(d.equip.weapon);
   if (key && d.equip[key] && !removed.includes(d.equip[key])) removed.push(d.equip[key]);
-  const after = d.items.length + (incoming ? 1 : 0) - 1 + removed.filter((r) => r && r !== it).length;
+  const after = d.items.length - (d.items.includes(it) ? 1 : 0) + removed.filter((r) => r && r !== it).length;
   return after > MAX_ITEMS;
 }
 // 装備できない短い理由 (できるなら null)。buy = 棚から買って装備する (袋に1枠いる)

@@ -5,7 +5,7 @@ import { zeroResists } from "./resistance.js";
 // 魂のランク = 職業の位階 (1〜5)。同じ職業の魂を3部位以上に宿すと職業発現。
 // 上位ランクの魂は下位ランクの代替になり、発現ランクは「rank>=r が3部位以上」を満たす最大の r。
 // 5部位すべて同系列職業 (同clsKey) でランクボーナス発生。上位ランクはダンジョンでは出ず、融合で入手。
-import { recalc, registerJobGear, DUAL_WIELD_RATES } from "./items.js";
+import { newDollBag, recalc, registerJobGear, DUAL_WIELD_RATES } from "./items.js";
 import { JOB_LORE_RANKS } from "./joblore.js";
 import { JOB_IMAGES } from "./jobart.js";
 import { JOB_PHOTOS, PHOTO_RES } from "./jobphotos.js";
@@ -873,7 +873,7 @@ export function makeDoll(name) {
     resists: zeroResists(), physResist: 0, magResist: 0,
     base: { hp: 1, mp: 0, atk: 0, vit: 0, agi: 1, int: 0, pie: 0, luk: 0 },
     equip: { weapon: null, body: null, shield: null, head: null, hands: null, feet: null, acc1: null, acc2: null },
-    items: [], ailment: null, spells: [], passives: [], alive: true, side: "party",
+    items: newDollBag(), ailment: null, spells: [], passives: [], alive: true, side: "party",
   };
 }
 

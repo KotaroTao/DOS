@@ -1,3 +1,4 @@
+import { rarityOrder } from "./rarity.js";
 import { random } from "./rng.js";
 import { prepareWeapon } from "./weaponpower.js";
 import { zeroResists, clampResist } from "./resistance.js";
@@ -28,7 +29,31 @@ export const SLOTS = ["weapon", "shield", "body", "head", "hands", "feet", "acc1
 export const SLOT_LABEL = {
   weapon: "武器", body: "防具", shield: "盾", head: "頭", hands: "小手", feet: "足", acc1: "装飾1", acc2: "装飾2",
 };
-export const MAX_ITEMS = 8;
+export const MAX_ITEMS = 50;
+
+// 人業の items は互換窓口。実体は隊の共通の袋を参照する。
+let bagSource = null;
+export function setBagSource(source) { bagSource = source; }
+export function newDollBag() { return bagSource ? bagSource() : []; }
+export function shareInventory(state) {
+  if (!Array.isArray(state.inventory)) state.inventory = [];
+  const seenBags = new Set([state.inventory]);
+  const seenItems = new Set(state.inventory);
+  for (const d of [...(state.party || []), ...(state.reserve || [])]) {
+    if (!d) continue;
+    if (Array.isArray(d.items) && !seenBags.has(d.items)) {
+      seenBags.add(d.items);
+      for (const it of d.items) if (it && !seenItems.has(it)) { state.inventory.push(it); seenItems.add(it); }
+    }
+    d.items = state.inventory;
+  }
+  // 旧セーブが50個を超えていても捨てない。空きができるまで新しい品は入らない。
+  return state.inventory;
+}
+export function bagOwners(dolls) {
+  const seen = new Set();
+  return (dolls || []).filter((d) => d && !seen.has(d.items) && (seen.add(d.items), true));
+}
 
 // ===== アイテム分類 (商会・図鑑のタブ) =====
 export const ITEM_CATS = [
@@ -42,6 +67,35 @@ export const ITEM_CATS = [
   { key: "acc", label: "装飾", slots: ["acc"] },
   { key: "misc", label: "収集品", slots: ["misc"] },
 ];
+// 袋の表示順だけを変える。品の実体・共通配列・装備の取り消し用の並びは保つ。
+export const BAG_SORTS = [
+  { key: "bag", label: "元の順" },
+  { key: "type", label: "種類順" },
+  { key: "rarity", label: "レア度が高い順" },
+  { key: "level", label: "装備Lvが高い順" },
+  { key: "quality", label: "品質が高い順" },
+  { key: "name", label: "名前順" },
+];
+export function sortedBag(items, key = "bag") {
+  const list = (items || []).filter(Boolean);
+  if (!BAG_SORTS.some((s) => s.key === key) || key === "bag") return list;
+  const type = (it) => {
+    const n = ITEM_CATS.findIndex((c) => c.slots.includes(it.slot));
+    return n < 0 ? ITEM_CATS.length : n;
+  };
+  const name = (a, b) => itemName(a).localeCompare(itemName(b), "ja", { numeric: true });
+  return list.sort((a, b) => {
+    // 未鑑定の正体を、並ぶ位置からも明かさない。未鑑定同士の順は保つ。
+    if (a.unidentified || b.unidentified) return Number(!!a.unidentified) - Number(!!b.unidentified);
+    if (key === "name") return name(a, b);
+    let diff = 0;
+    if (key === "type") diff = type(a) - type(b);
+    else if (key === "rarity") diff = rarityOrder(b) - rarityOrder(a);
+    else if (key === "level") diff = (b.slot === "use" || b.slot === "misc" ? 0 : equipLevelOf(b)) - (a.slot === "use" || a.slot === "misc" ? 0 : equipLevelOf(a));
+    else if (key === "quality") diff = (hasQuality(b) ? qualityOf(b) : -1) - (hasQuality(a) ? qualityOf(a) : -1);
+    return diff || type(a) - type(b) || name(a, b);
+  });
+}
 // 武器サブカテゴリ (図鑑の武器タブをさらに分ける)
 export const WEAPON_CATS = [
   { key: "ls", label: "長剣" },
@@ -1614,7 +1668,7 @@ export function equip(member, item, slotKey = null) {
   const key = offhand ? "shield" : slotKeyFor(item, member);
   if (!key) return { ok: false, msg: "装備できない" };
 
-  // 押し出される装備を先に数え、所持品が8枠を超えるなら装備自体を中止する
+  // 押し出される装備を先に数え、隊の持ち物が50枠を超えるなら装備自体を中止する
   const removed = [];
   if (item.slot === "weapon" && item.twoHanded && member.equip.shield) removed.push(member.equip.shield);
   if (key === "shield" && member.equip.weapon && member.equip.weapon.twoHanded) removed.push(member.equip.weapon);
