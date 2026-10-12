@@ -2470,7 +2470,7 @@ function fitView(force = false) {
   if (combat) used += MENU_RESERVE + LOG_MIN_COMBAT + TURN_ORDER_H;
   else used += outerH(runbarEl) + outerH(ctrlEl) + LOG_MIN_BOARD;
   // 縦の短い画面では戦場も縮め、記録と命令板の領域を確保する。
-  const minVH = combat ? 200 : 240;
+  const minVH = combat ? 140 : 240;
   const h = Math.max(cssW * (combat ? minVH / VW : 0.56), Math.min(cssW * (combat ? 0.98 : 1.32), appH - used));
   const vh = Math.max(minVH, Math.round((VW * h) / cssW));
   const cssH = (vh * cssW) / VW;
@@ -9040,7 +9040,7 @@ function renderCombatCanvas() {
   });
 
   // 戦場の縦の伸び (縦長の戦場ほど魔物を大きく)
-  const k = Math.max(0.65, Math.min(1.3, VH < 240 ? 0.92 * VH / 240 : Math.max(0.92, VH / 330)));
+  const k = VH < 240 ? 0.92 * VH / 240 : Math.max(0.92, Math.min(1.3, VH / 330));
   // 隊列: 4体以上は前衛(先頭3体)・後衛(4体目以降)の2列に分かれる。
   // 奥に立つ後衛から先に描き、前衛を手前に重ねて遠近を出す
   const frontRow = b.enemies.slice(0, 3);
@@ -9074,6 +9074,8 @@ function renderCombatCanvas() {
     // この列の名札の高さを揃える (いちばん背の高い魔物の足元の下)
     let foot = 0, head = 0;
     for (const e of row.list) { const hh = monsterHalfH(e.mon, sizeOf(e, row.back, row.list.length)); foot = Math.max(foot, hh); head = Math.max(head, hh); }
+    // 短い戦場でも、後衛の名札を上端、前衛の名札を下端で切らない。
+    if (VH < 240) row.y = row.back ? Math.max(row.y, head + 32) : Math.min(row.y, VH - foot - 30);
     const plateY = row.back ? row.y - head - 30 : row.y + foot + 7;
     row.list.forEach((e, i) => {
       const baseX = (VW / (row.list.length + 1)) * (i + 1);
