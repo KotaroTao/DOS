@@ -1169,9 +1169,12 @@ function infBuy(id, who) {
   updateTopbar(); renderParty(); autosave();
   return it;
 }
-function infSell(owner, it) {
+// keep: 商会の棚の追加つきの品とぶつかる時、残す組 ("shelf" / "new" — 回収人の「売る」でその場で選ぶ。shopAfxClash)
+function infSell(owner, it, keep = null) {
   if (!infAtRest() || !owner || !it) return false;
-  const ok = sellItem(owner, it, sellPrice(it));
+  const clash = shopAfxClash(it);
+  const ok = sellItem(owner, it, sellPrice(it), clash ? keep : null);
+  if (ok && clash && keep) log(keep === "new" ? `商会の棚の ${clash.name} は、いま売った品の追加の能力に置き換わった (前の品は通常品として並ぶ)。` : `商会の棚の ${clash.name} は、前の追加の能力のまま (いま売った品は通常品として並ぶ)。`, "sys");
   if (ok) {
     const st = infStats(); st.trades++; st.sold++; if (st.sold >= 100) infTitleGrant("trader");
     const trk = infTrk(); if (!it.unidentified) trk.sold = (trk.sold || 0) + 1; // この出撃で回収人に売った品 (全滅しても商会の棚に残る)
@@ -14953,14 +14956,26 @@ function shopAfxState() {
   if (!Array.isArray(G.shopAfxPending)) G.shopAfxPending = [];
   return G.shopAfx;
 }
-// 商会の棚へ品を受け入れる (売った・回収人に売った・無限迷宮から持ち帰った)
-function shopReceive(it) {
+// 商会の棚へ品を受け入れる (売った・回収人に売った・無限迷宮から持ち帰った)。
+// keep = すでに棚に追加つきの1点がある時、どちらの組を残すかをその場で選んだ答え ("shelf" = 棚の組 / "new" = この品の組)。
+// 無ければ組を G.shopAfxPending に積み、街でまとめて選ぶ
+function shopReceive(it, keep = null) {
   if (!it || !it.id || it.unidentified) return;
   shopStockAdd(it.id);
   if (!Array.isArray(it.afx) || !it.afx.length) return;
   const st = shopAfxState();
   const afx = it.afx.map((a) => ({ ...a }));
-  if (!st[it.id]) st[it.id] = afx; else G.shopAfxPending.push({ id: it.id, afx });
+  if (!st[it.id] || keep === "new") st[it.id] = afx;
+  else if (keep !== "shelf") G.shopAfxPending.push({ id: it.id, afx });
+}
+// 売ろうとしている品と、商会の棚の追加つきの1点がぶつかるか (同じ品に別の組)。ぶつかれば両方の組を返す (afxConflicts と同じ形)
+function shopAfxClash(it) {
+  if (!it || !it.id || it.unidentified || !Array.isArray(it.afx) || !it.afx.length || !ITEMS[it.id]) return null;
+  const cur = shopAfxState()[it.id];
+  if (!cur || !cur.length) return null;
+  const tmpl = ITEMS[it.id];
+  const sets = [cur, it.afx].map((a, i) => ({ afx: a, lines: affixLines(tmpl, a), power: Math.round(affixPower(tmpl, a) * 10) / 10, current: i === 0 }));
+  return { id: it.id, name: tmpl.name, sets, best: sets[1].power > sets[0].power ? 1 : 0 };
 }
 // 棚の追加つきの品 (並品 50 で作った見本。買うとこれが届く)。無ければ null
 function shopAfxItem(id) {
@@ -15067,7 +15082,7 @@ function bulkSellBlocked(it) {
   return rarityKey(it) === "lr";
 }
 
-function sellItem(owner, it, price) {
+function sellItem(owner, it, price, afxKeep = null) {
   const idx = owner.items.indexOf(it);
   if (idx < 0) return false;
   if (it.locked) { SFX.ng(); showToast(`${it.name}はロック中 ― 売るにはロックを外す`, { tone: "info" }); return false; }
@@ -15077,7 +15092,7 @@ function sellItem(owner, it, price) {
   G.gold += price;
   tlTown("gold", price, "sell");
   // 在庫に積む (ボルタック方式)。未鑑定品は並ばない
-  if (it.id && !it.unidentified) shopReceive(it); // 追加つきの品は、その組を商会が覚える (17-1)
+  if (it.id && !it.unidentified) shopReceive(it, afxKeep); // 追加つきの品は、その組を商会が覚える (17-1)
   codexSeeItem(it.id, it);
   SFX.select(); buzz(10);
   const shown = itemName(it);
@@ -18097,7 +18112,7 @@ bindGame({
 bindGame({
   // 出撃
   departNow, corpseFadeShare, departAbyss, infVesselNames, rematchList, departRematch, REMATCH_FORGE_MAX, townMutatorFor, preDiveIssues, departWoes, DUNGEON_BRIEFING, STORY_CELLS, startFloorsOf, worldOpenIdx, worldOpenId, worldUnlockMet, levelBand, wallOf, wallStepOf, partyLevel, storyCellPending, dungeonFacts, dungeonQuests, namedHere, namedList, namedInfo,
-  abyssRecords, infStats, infTitleList, infTitleName, setInfTitle, emptyDollCost, infRule, infAtRest, soulWorkOk, infTraderWares, infBuy, infSell, infSwapSoul, infSoulChangeBlock, infSoulChangePreview, infLevel, infGrowthMul,
+  abyssRecords, infStats, infTitleList, infTitleName, setInfTitle, emptyDollCost, infRule, infAtRest, soulWorkOk, infTraderWares, infBuy, infSell, shopAfxClash, infSwapSoul, infSoulChangeBlock, infSoulChangePreview, infLevel, infGrowthMul,
   // 迷宮の HUD
   specialDef, mutDef, eliteKey, dungeonObjective, abyssActive, abyssBossPending, findRevealedStairs, canReturnNow, confirmAbandonDungeon,
   dungeonTheme, eventFacts,
