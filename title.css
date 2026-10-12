@@ -404,8 +404,9 @@
 .test-play-banner { position: fixed; top: 0; left: 0; right: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 3px; background: #332113; color: #fff0c4; font-size: 11px; }
 .test-play-banner button { min-height: 32px; color: inherit; background: #17101b; border: 1px solid #a98b4c; cursor: pointer; }
 body:has(.test-play-banner) { padding-top: 38px; }
+body:has(.test-play-banner) #app { height: calc(100vh - 38px); height: calc(100dvh - 38px); }
 body:has(.test-play-banner) #town-shell { top: 38px; }
-body:has(.test-play-banner) .ui-sheet { top: 38px; }
+body:has(.test-play-banner) .ui-sheet { max-height: calc(100vh - 66px); max-height: calc(100dvh - 66px); }
 
 .ttl-test-field[hidden] { display: none; }
 .ttl-test-art[hidden] { display: none; }
