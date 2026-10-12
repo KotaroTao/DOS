@@ -30,6 +30,6 @@ python3 tools/storyart/to-webp.py art/story-review/opening/rift.png art/opening/
 変換後に `node tools/openingart/check.mjs --record` で原画とWebPのハッシュを記録し、
 `node tools/openingart/check.mjs` で寸法・形式・登録・変換記録を検査する。PRのCIでも検査する。
 画像を読み込めない時は既存の描画へ戻す。読み込めたWebPは原画から高解像度で描き、
-字幕・幕送り・スキップ・長押し・動きを減らす設定・ナレーションの同期を維持する。
+字幕・幕送り・スキップ・長押し・動きを減らす設定・ナレーションの挙動を維持する。
 横長画面では原画の高さを保ち、人物の頭や燭台を上下で切り落とさない。
 縦長画面では幕ごとの主題に合わせて左右の表示位置を決める。
