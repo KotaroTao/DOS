@@ -170,9 +170,9 @@
 
 <a name="w28_note"></a>
 
-## w28_note「沼を渡る薬」 ── 未着手 (指示あり)
+## w28_note「沼を渡る薬」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter7/w28_note.webp" width="576" alt="w28_note">
 
 **ストーリー一覧の本文**
 
@@ -202,9 +202,9 @@ _(絵はまだ無い)_
 
 <a name="report_w28"></a>
 
-## report_w28「毒の底の灯」 ── 未着手 (指示あり)
+## report_w28「毒の底の灯」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter7/report_w28.webp" width="576" alt="report_w28">
 
 **ストーリー一覧の本文**
 
@@ -230,9 +230,9 @@ _(絵はまだ無い)_
 
 <a name="mem_w29"></a>
 
-## mem_w29「ただひとつの言いつけ」 ── 未着手 (指示あり)
+## mem_w29「ただひとつの言いつけ」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter7/mem_w29.webp" width="576" alt="mem_w29">
 
 **ストーリー一覧の本文**
 
@@ -274,9 +274,9 @@ _(絵はまだ無い)_
 
 <a name="report_w29"></a>
 
-## report_w29「死なない命令」 ── 未着手 (指示あり)
+## report_w29「死なない命令」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter7/report_w29.webp" width="576" alt="report_w29">
 
 **ストーリー一覧の本文**
 
@@ -308,9 +308,9 @@ _(絵はまだ無い)_
 
 <a name="irene_order"></a>
 
-## irene_order「灯を守る理由」 ── 未着手 (指示あり)
+## irene_order「灯を守る理由」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter7/irene_order.webp" width="576" alt="irene_order">
 
 **ストーリー一覧の本文**
 

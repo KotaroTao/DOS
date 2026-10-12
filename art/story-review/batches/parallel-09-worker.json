@@ -1,0 +1,201 @@
+{
+  "worker": "09",
+  "branch": "codex/art-worker-09",
+  "baseCommit": "9990e76f75299e2b347b9354a7872cd384c9cc07",
+  "generationCalls": 10,
+  "generationLimit": 15,
+  "scenes": [
+    {
+      "id": "report_w37",
+      "path": "art/story-review/chapter9/report_w37.png",
+      "state": "ready",
+      "generationCalls": 2,
+      "visualReview": "弟子の鞄を左腰、肩ひもを右肩から左腰へ修正して確認。王の顔・自分の手を見る視線・膝掛け、床の杯、宰相の空席、無顔の木の人業、晴れた夕空が本文・正典に一致。見える手足に増殖なし。王の脚と背面側の手、隠れた指は直接判別不可。印の追加・文字なし。",
+      "note": "鞄修正済み。修正前はfixes/report_w37-before.png。",
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "3d1ee1f0b6ae205855be2b4f8a713a3a0d31dcb7d9b93942d445e0cfb33c2288",
+      "references": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/king.png",
+        "docs/art/story-refs/morden.png",
+        "art/story-review/chapter3/report_w12.png",
+        "docs/art/story-refs/dolls.png"
+      ],
+      "promptCommand": "node tools/storyart/prompt.mjs report_w37",
+      "promptSha256": "cbcd7943eb459be8760738e06e242115232cd77a6a4a9aab7d32ad00c6f1aa4d"
+    },
+    {
+      "id": "irene_rest",
+      "path": "art/story-review/chapter9/irene_rest.png",
+      "state": "ready",
+      "generationCalls": 3,
+      "visualReview": "イレーヌの顔・髪飾り・紫黒の衣装、セラの木の顔・実髪・金の額印・黒鉄と金の継ぎ目・青白い胸の灯、無顔の休む人業、真鍮燭台の一本の白い蝋燭を確認。見える手足に増殖なし。セラの手とイレーヌの脚、握った指は衣・姿勢で判別できない。休息と灯の見回りが本文に一致し、文字なし。",
+      "note": "胸の灯修正済み。生成前の参照数エラー1回を含む3回。修正前原画はfixes/irene_rest-before.png。",
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "93ead0e6ad887d4355863d3c45f2a5d9ae11a926fef2c6f6f38ffaf29c5d9a11",
+      "references": [
+        "docs/art/story-refs/irene.png",
+        "docs/art/story-refs/sera.png",
+        "docs/art/sera/sera-r1-final.png",
+        "docs/art/story-refs/props.png",
+        "art/story-review/chapter2/irene_roots.png",
+        "art/story-review/chapter1/irene_familiar.png",
+        "docs/art/story-refs/dolls.png",
+        "docs/art/story-refs/sigil.png"
+      ],
+      "promptCommand": "node tools/storyart/prompt.mjs irene_rest",
+      "promptSha256": "4576b1681596f75fbadd7b7481636398427a8424073064af80e81439604ff3e9"
+    },
+    {
+      "id": "ch9_end",
+      "path": "art/story-review/chapter9/ch9_end.png",
+      "state": "ready",
+      "generationCalls": 2,
+      "visualReview": "旗の指定外の印を除去して確認。弟子と4体の無顔の木の人業、左腰の鞄、橙の手提げ灯、盾・杖・短剣、底の見えない穴、梯子、灰の無人観客席が指示に一致。見える手足に増殖なし。背面の顔や握った手の指は直接判別不可。文字・先の秘密なし。",
+      "note": "旗の印除去済み。修正前はfixes/ch9_end-before.png。",
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "76b2cba667d58311c783d533d3d0cc076ff72a4c8d607cf42146036ed02d0494",
+      "references": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/dolls.png",
+        "docs/art/story-refs/props.png"
+      ],
+      "promptCommand": "node tools/storyart/prompt.mjs ch9_end",
+      "promptSha256": "92280df1307a2a64173a5bf4866bc5bd966e322cda906da53245e744cc742481"
+    },
+    {
+      "id": "w38_lamp",
+      "path": "art/story-review/chapter10/w38_lamp.png",
+      "state": "ready",
+      "generationCalls": 2,
+      "visualReview": "右腰側の鞄を除去し右肩から奥の左腰への肩ひもを確認。鞄本体は姿勢で隠れる。弟子の顔・両手・両脚に明らかな増殖なし。握った指は一部隠れる。黒い灯籠の山、一つだけ澄んだガラスの拭き跡、石で押さえた読めない書きつけ、新旧の足跡、上からの光が本文に一致。師・モルデン・名札・印の追加なし。",
+      "note": "鞄修正済み。修正前はfixes/w38_lamp-before.png。",
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "f54ae5693e16a76fce0d8daf8f2845dc11d0e8ed5d1fadc4d7afb8f372e2b4d2",
+      "references": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/props.png"
+      ],
+      "promptCommand": "node tools/storyart/prompt.mjs w38_lamp",
+      "promptSha256": "15ee52b8c347ea0a4b2b075d3b629d5950323a9e5bf3340e5221c219a1115fbe"
+    },
+    {
+      "id": "report_w38",
+      "path": "art/story-review/chapter10/report_w38.png",
+      "state": "ready",
+      "generationCalls": 1,
+      "visualReview": "王の閉じた目・顔・白髪・衣装・膝掛け、黒く濁った灯籠へ添える手、宰相の空席、床の杯、晴れた昼の空、弟子の左腰の鞄と右肩からの肩ひもを確認。見える手に余分な指なし。王の脚と弟子の顔・下肢は衣装や画角で判別不可。本文の報告場面と一致し、師・モルデン・印の追加・文字なし。",
+      "note": "原画保存済み。",
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "688a5f8d1999a72604c46fb0d650f8567efb00c00158526cf538f59e16224f67",
+      "references": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/king.png",
+        "docs/art/story-refs/morden.png",
+        "docs/art/story-refs/props.png",
+        "art/story-review/chapter3/report_w12.png"
+      ],
+      "promptCommand": "node tools/storyart/prompt.mjs report_w38",
+      "promptSha256": "c6b6b69f1f7ea8e6abcefcbb3b7c59dd12796bab5fac94c901432ac695f739ae"
+    }
+  ],
+  "referenceHashes": {
+    "art/story-review/chapter1/irene_familiar.png": "806354ad01d8596a42d695def0128860fc8a3814955a418772a8dba504bf063e",
+    "art/story-review/chapter2/irene_roots.png": "deae75376fa0ba88d8cc78f0cc1b8297be9434755df56b6d87aa63d3c87802fb",
+    "art/story-review/chapter3/report_w12.png": "b78de38be4920cb89b2bd79c59e1a34431365b9e963b621e15611fb5f0fa6517",
+    "docs/art/sera/sera-r1-final.png": "4b392934b742ea80e10abfcb6d6e5362a0becb13162af0842797f2f892c5fe6c",
+    "docs/art/story-refs/apprentice.png": "419a3d6797a8297866039b06f63b1ad79a907e800f68da7bf54b58b6858e89b2",
+    "docs/art/story-refs/dolls.png": "0815d62d79d2f2b4c7f491f4119bb7aa59acc7f43bc941c0559f7da194e316f6",
+    "docs/art/story-refs/irene.png": "6ad282363f77635736e4f6ab90d06649aa15b481e946b406f9b5564709627414",
+    "docs/art/story-refs/king.png": "341d51b7af8ae5fc6fe610902ad14b4cf95b57d2e56bcb419483a63321c4f978",
+    "docs/art/story-refs/morden.png": "b5934bc34a1d11e97e0fabe2cac71707b9a7c02201ffb21ec1669ec6a075b4d5",
+    "docs/art/story-refs/props.png": "051a8f35cf00a15dfb3501cddb8f58964e5737d8d79001adbcc18135aa1309a9",
+    "docs/art/story-refs/sera.png": "341c64b2e2d3913f3cb6fe2f3ae66260a4899e588e416b098ab4433d5dcbba66",
+    "docs/art/story-refs/sigil.png": "7dfeb2dbb8eb7091557e1dd3f387b963b64b2fa4a20848c1c18734167fe47b6b"
+  },
+  "referencePackaging": {
+    "irene_rest": "最初の4枚を個別に渡し、指定5・6枚目の館の画像を参照ボード上段の左・右に原寸で連結。下段に追加のdolls.png・sigil.pngを連結して第5参照として画像生成へ渡した。元の基準ファイルは未変更。",
+    "boardPath": "/tmp/dos-art-worker-09/irene-environment-refs.png",
+    "boardSha256": "9c757455d8e3d3a33352249f76d69c453f9e829b2c1dee2712229f5dd02665f5"
+  },
+  "generationHistory": [
+    {
+      "call": 1,
+      "id": "report_w37",
+      "result": "saved-needs-fix"
+    },
+    {
+      "call": 2,
+      "id": "irene_rest",
+      "result": "参照8パスが最大5パス制限で生成前に失敗"
+    },
+    {
+      "call": 3,
+      "id": "irene_rest",
+      "result": "saved-needs-fix"
+    },
+    {
+      "call": 4,
+      "id": "irene_rest",
+      "result": "ready・胸の灯と額印の修正"
+    },
+    {
+      "call": 5,
+      "id": "report_w37",
+      "result": "ready・鞄修正"
+    },
+    {
+      "call": 6,
+      "id": "ch9_end",
+      "result": "saved-needs-fix"
+    },
+    {
+      "call": 7,
+      "id": "ch9_end",
+      "result": "ready・旗の印除去"
+    },
+    {
+      "call": 8,
+      "id": "w38_lamp",
+      "result": "saved-needs-fix"
+    },
+    {
+      "call": 9,
+      "id": "w38_lamp",
+      "result": "ready・鞄修正"
+    },
+    {
+      "call": 10,
+      "id": "report_w38",
+      "result": "ready"
+    }
+  ],
+  "note": "担当5枚の原画完成。readyは担当者の目視確認済みを意味し、ユーザー承認済みを意味しない。本文との矛盾は正典優先で王の杯を床、人業を無顔に統一。修正前4枚をfixes/に保存。WebP変換・build.py・共通queue.json・登録・本文・基準画像の変更、PR作成、mainマージは実施しない。統合担当へ引き継ぐ。",
+  "validation": {
+    "pngDimensions": "全5枚PNG 1536×1024をヘッダで検証",
+    "thumbnailReview": "384×256で王と手、休息と胸の灯、穴と隊、磨かれた灯籠と足跡、王と黒い灯籠の主題を目視確認。",
+    "scope": "担当5枚の原画・修正前4枚・担当09記録のみ。",
+    "generationCalls": "成功9回＋参照数制限による失敗1回＝10回。"
+  },
+  "integrationNote": "ユーザーの追加指示「変換してmainにマージ」に基づき、最新origin/mainを取り込み、build.pyで担当5枚のWebP・登録・原画ハッシュ・確認ページを生成。検査成功、縮小見本確認済み。PR経由でmainマージと公開確認を進める。"
+}

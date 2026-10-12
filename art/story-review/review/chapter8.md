@@ -1,7 +1,7 @@
 # 第8章「嵐の尖塔」 の絵
 
 書き出し: `node tools/storyart/review.mjs` (手で直さない)。絵は出荷する WebP、まだ無ければ原画。
-
+ゲームで小さく出た時の見え方 (384×256): [chapter8-small.jpg](chapter8-small.jpg)
 
 <a name="w30_stick"></a>
 
@@ -306,9 +306,9 @@ _(絵はまだ無い)_
 
 <a name="irene_rain"></a>
 
-## irene_rain「雨の音」 ── 未着手 (指示あり)
+## irene_rain「雨の音」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter8/irene_rain.webp" width="576" alt="irene_rain">
 
 **ストーリー一覧の本文**
 
@@ -342,9 +342,9 @@ _(絵はまだ無い)_
 
 <a name="ch8_end"></a>
 
-## ch8_end「雲の向こうの橋」 ── 未着手 (指示あり)
+## ch8_end「雲の向こうの橋」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter8/ch8_end.webp" width="576" alt="ch8_end">
 
 **ストーリー一覧の本文**
 

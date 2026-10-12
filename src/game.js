@@ -51,6 +51,7 @@ import { prewarmStoryArt } from "./storyart.js";
 import { drawBattleBackdrop } from "./backdrops.js";
 import { paintCryptFloor, paintCryptSlabs, paintCryptWalls, CATACOMB, genericMaterial, boardSeed, hexRgb } from "./crypt.js";
 import { cryptPainting, paintCryptMaterials, paintCryptMasonry } from "./cryptpaint.js";
+import { prewarmCryptActors, cryptPropKey, cryptPropBitmap, cryptWalkerBitmap } from "./cryptactors.js";
 import { showTitle } from "./title.js";
 import { RARITIES, rarityKey, rarityColor, rarityLabel, rollRarity, layerRarityUp } from "./rarity.js";
 // ---- UI 基盤 (Phase 0)。新しい UI モジュールは game.js を import せず、ctx.js の UI/game/ops を通す ----
@@ -2839,6 +2840,7 @@ function ensureBoardArt() {
   const sp = specialDef();
   const crypt = L === 1;
   const painting = activeCfg().id === "w01" ? cryptPainting() : null;
+  if (activeCfg().id === "w01") prewarmCryptActors();
   const seed = boardSeed(b, dungeonSeed(activeCfg()) * 7919 + G.floor);
   const hz = harmHaz();
   const key = `${VW}x${VH}|${CARD_W}x${CARD_H}|${seed}|${L}|${G.eliteFloor ? "e" : ""}|${sp ? sp.id : ""}|${hz.name}|${painting ? "painted" : "raster"}`;
@@ -3647,16 +3649,21 @@ function drawBoardIcons(lt, now, hx, hy) {
       }
       continue;
     }
-    const b = plainBitmap(icon);
+    const painted = activeCfg().id === "w01" ? cryptPropBitmap(cryptPropKey(cell, bossDoorHere())) : null;
+    const b = painted || plainBitmap(icon);
     const size = Math.min(r.w * (here ? 0.62 : 0.86), r.h * (here ? 0.5 : 0.62));
-    const bottom = r.y + r.h / 2 + size / 2 + r.h * 0.04;
+    const maxW = painted ? r.w * (here ? 0.55 : 0.86) : size;
+    const maxH = painted ? r.h * (here ? 0.5 : 0.68) : size;
+    const fit = Math.min(maxW / b.w, maxH / b.h), iconW = b.w * fit, iconH = b.h * fit;
+    const bottom = r.y + r.h / 2 + (painted ? iconH : size) / 2 + r.h * 0.04;
     vctx.fillStyle = "rgba(0,0,0,0.42)";
-    vctx.beginPath(); vctx.ellipse(cx, bottom - size * 0.08, size * 0.42, 3, 0, 0, Math.PI * 2); vctx.fill();
-    drawBmpFit(b, cx, bottom, size, size, light);
+    vctx.beginPath(); vctx.ellipse(cx, bottom - size * 0.08, (painted ? iconW : size) * 0.42, 3, 0, 0, Math.PI * 2); vctx.fill();
+    drawBmpFit(b, cx, bottom, maxW, maxH, light);
     // まだあたたかい死体 (魂未回収) には青い人魂
     if (cell.type === "corpse" && cell.corpseWarm && !cell.cleared) {
       const bob = REDUCED_MOTION ? 0 : Math.sin(now * 0.004 + cx) * 2;
-      drawBmpFit(plainBitmap(ICONS.wisp), cx + size * 0.22, bottom - size * 0.62 + bob, size * 0.5, size * 0.5, 1, 0.92);
+      const wisp = activeCfg().id === "w01" ? cryptPropBitmap("wisp") : null;
+      drawBmpFit(wisp || plainBitmap(ICONS.wisp), cx + size * 0.22, bottom - size * 0.62 + bob, size * 0.5, size * 0.5, 1, 0.92);
     }
     // 宝箱のきらめき
     if (cell.type === "chest" && !cell.cleared && !REDUCED_MOTION) {
@@ -3775,6 +3782,8 @@ function drawWalker(hx, hy, now) {
 // 赤い頭巾の人影 (4方向)。端末の画素の格子に整数倍で置き、補間なしでくっきり描く。
 // 高さは墓石の約8割。足元に影、手の角灯が光の輪の源。待機中は2コマでわずかに上下し、歩く時は小さく弾む
 function drawHoodedWalker(wk, hx, hy, now) {
+  const painted = activeCfg().id === "w01" ? cryptWalkerBitmap(G._facing, PREFS.walkerLook) : null;
+  if (painted) { drawPaintedWalker(painted, hx, hy, now); return; }
   const b = monsterBitmap(wk);
   const cur = G.board.cells[G.py] && G.board.cells[G.py][G.px];
   const share = !G.heroAnim && cur && !!cellIcon(cur); // 中身のあるマスでは左手前へ寄る
@@ -3807,6 +3816,19 @@ function drawHoodedWalker(wk, hx, hy, now) {
   // 手に提げた角灯の灯り (絵に描かれた灯の位置に、揺らぐ光暈だけを重ねる。籠は絵のものを使う)
   const lp = walkerLampSpot(wk);
   drawLanternGlow((dx + (b.pad + lp.x + 0.5) * k) / VSX, (dy + (b.pad + lp.y + 0.5) * k) / VSY, now);
+}
+// 原画の人物も同じ足元・向き・浮遊状態に従い、カメラの論理座標で描く。
+function drawPaintedWalker(b, hx, hy, now) {
+  const cur = G.board.cells[G.py]?.[G.px], share = !G.heroAnim && cur && !!cellIcon(cur);
+  const x = hx - (share ? CARD_W * 0.2 : 0), feet = hy + CARD_H * 0.42;
+  const lift = walkerLift(now);
+  let bob = 0;
+  if (!REDUCED_MOTION && !lift) {
+    bob = G.heroAnim ? -Math.sin(Math.min(1, (now - G.heroAnim.t0) / Math.max(1, G.heroAnim.dur)) * Math.PI) * 1.5 : Math.sin(now * 0.0025) * 0.35;
+  }
+  drawWalkerShadow(x, feet, [CARD_W * 0.23, CARD_W * 0.14], [0.25, 0.4], lift, now);
+  const box = drawBmpFit(b, x, feet - lift + bob, CARD_W * (share ? 0.54 : 0.76), CARD_H * (share ? 0.76 : 0.88));
+  drawLanternGlow(box.x + box.W * b.lamp[0], box.y + box.H * b.lamp[1], now);
 }
 // 駒の絵の中の灯 (下半分にある明るい黄の点の重心)。向きごとに一度だけ求める
 const _lampSpot = new WeakMap();
