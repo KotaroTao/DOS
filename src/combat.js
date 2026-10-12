@@ -39,6 +39,9 @@ export function cloneItem(id, q) {
 }
 
 let _uid = 0;
+export function syncEnemyUids(enemies) {
+  for (const e of enemies || []) if (Number.isSafeInteger(e.uid)) _uid = Math.max(_uid, e.uid);
+}
 // 敵の表示Lv の札「（Lv29）」(enemylevel.js — combat.js の組み立てを借りるので、game.js が渡す)
 let _enemyLvTag = () => "";
 export function setEnemyLvTag(fn) { _enemyLvTag = typeof fn === "function" ? fn : () => ""; }
