@@ -1389,17 +1389,22 @@ function infSellPlan() {
     return { id, name: ITEMS[id].name, best: powers.indexOf(Math.max(...powers)),
       sets: sets.map((s, i) => ({ ...s, afx: s.afx.map((a) => ({ ...a })), lines: affixLines(ITEMS[id], s.afx), power: Math.round(powers[i] * 10) / 10 })) };
   });
-  return { list, conflicts, gold: list.reduce((n, x) => n + x.price, 0) };
+  // 比較相手がない品も含め、確認した時点の品質・追加の能力・棚を値として残す。
+  // item は実体への参照なので、conflicts の比較だけでは後からの変更を見逃す。
+  const snapshot = JSON.stringify(list.map(({ item }) => ({ id: item.id, q: item.q,
+    afx: item.afx || [], shelf: shelf[item.id] || [] })));
+  return { list, conflicts, snapshot, gold: list.reduce((n, x) => n + x.price, 0) };
 }
 function infSellAll(plan, choice = {}) {
   const now = infSellPlan();
   // 一覧を開いてから持ち物・値段・棚が変わったら、売らずに一覧を開き直してもらう。
-  if (!plan?.list.length || now.list.length !== plan.list.length || now.list.some((x, i) => x.item !== plan.list[i].item || x.price !== plan.list[i].price) ||
-      JSON.stringify(now.conflicts) !== JSON.stringify(plan.conflicts)) return false;
+  if (!plan?.list?.length || now.list.length !== plan.list.length || now.list.some((x, i) => x.item !== plan.list[i].item || x.price !== plan.list[i].price) ||
+      now.snapshot !== plan.snapshot) return false;
   const keeps = new Map();
   for (const c of now.conflicts) {
-    const pick = c.sets[choice[c.id] ?? c.best];
-    if (!pick) return false;
+    const index = choice[c.id] ?? c.best;
+    if (!Number.isInteger(index) || index < 0 || index >= c.sets.length) return false;
+    const pick = c.sets[index];
     keeps.set(c.id, pick.item || null);
   }
   for (const { doll, item } of now.list) {
@@ -15482,7 +15487,7 @@ function shopReceive(it, keep = null) {
   if (!Array.isArray(it.afx) || !it.afx.length) return;
   const st = shopAfxState();
   const afx = it.afx.map((a) => ({ ...a }));
-  if (!st[it.id] || keep === "new") st[it.id] = afx;
+  if (!st[it.id]?.length || keep === "new") st[it.id] = afx;
   else if (keep !== "shelf") G.shopAfxPending.push({ id: it.id, afx });
 }
 // 売ろうとしている品と、商会の棚の追加つきの1点がぶつかるか (同じ品に別の組)。ぶつかれば両方の組を返す (afxConflicts と同じ形)
