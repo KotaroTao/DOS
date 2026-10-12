@@ -61,6 +61,46 @@ const check = (name, ok) => { assert.ok(ok, name); report.checks.push(name); };
     const {page,errors}=await start();
     await page.waitForFunction(()=>actorReview.cryptPropBitmap('corpseGreat') && actorReview.cryptPropBitmap('fountainEmpty'));
     await fixture(page);
+    // マスの中身で人物が縮まないことを、実際の描画寸法で比較する。
+    for (const width of [320,390,600,1280]) {
+      await page.setViewportSize({width,height:900});
+      const stable = await page.evaluate(() => {
+        const t=actorReview,g=t.G,c=g.board.cells[g.py][g.px],saved={...c};
+        const original=t.vctx.drawImage;
+        let measured=null,target;
+        t.vctx.drawImage=function(image,x,y,w,h,...rest){
+          if(image===target) measured={x,y,w,h};
+          return original.call(this,image,x,y,w,h,...rest);
+        };
+        try {
+          for(const overview of [false,true]) for(const float of [0,5]) for(const dir of ['up','down','left','right']) {
+            t.boardCamera.overview=overview;g.run.float=float;g._facing=dir;t.fitView(true);
+            target=t.cryptWalkerBitmap(dir,t.PREFS.walkerLook).c;
+            let empty;
+            for(const type of ['empty','chest','corpse','fountain','stairs','portal','event','story']) for(const cleared of [false,true]) {
+              Object.assign(c,{type,cleared,revealed:true,corpseWarm:true});
+              measured=null;t.drawBoardFrame();
+              if(!measured)return false;
+              if(type==='empty')empty=measured;
+              if(Math.abs(measured.w-empty.w)>0.001||Math.abs(measured.h-empty.h)>0.001)return false;
+              const r=t.cellRect(g.px,g.py);
+              if(measured.x<r.x||measured.x+measured.w>r.x+r.w)return false;
+            }
+          }
+          return true;
+        } finally {
+          t.vctx.drawImage=original;Object.assign(c,saved);g.run.float=0;g._facing='down';
+        }
+      });
+      check(`幅${width}: 全4方向・浮遊・拡大/全体・小物8種で人物の大きさが一定`,stable);
+    }
+    await page.setViewportSize({width:390,height:844});
+    await fixture(page);
+    for(const type of ['empty','chest']) {
+      await page.evaluate(type=>{const t=actorReview,g=t.G;Object.assign(g.board.cells[g.py][g.px],{type,cleared:false});t.drawBoardFrame();},type);
+      await capture(page,`walker-${type}.png`,'#view');
+    }
+    await fixture(page);
     await page.evaluate(()=>{
       const t=actorReview,g=t.G;
       Object.assign(g.board.cells[2][0],{type:'corpse',corpseWarm:false,corpseGreat:false,cleared:false});

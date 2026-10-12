@@ -21,8 +21,8 @@ export function prewarmCryptActors() { for (const key of Object.keys(assets)) sh
 export const CRYPT_PROP_FRAMES = {
   chest: ["a", 24, 116, 487, 360], chestOpen: ["a", 538, 36, 462, 450],
   stairs: ["a", 1028, 60, 501, 450], fountain: ["a", 37, 529, 452, 473],
-  corpse: ["seated", 48, 166, 438, 750],
-  corpseWarm: ["seated", 526, 183, 467, 780], corpseGreat: ["seated", 1003, 126, 532, 798],
+  corpse: ["seated", 8, 180, 526, 745],
+  corpseWarm: ["seated", 484, 180, 504, 742], corpseGreat: ["seated", 990, 174, 544, 778],
   fountainEmpty: ["c", 119, 499, 502, 503], portal: ["a", 1037, 548, 486, 439],
   trap: ["b", 70, 149, 399, 275], event: ["b", 619, 17, 302, 480],
   bossDoor: ["b", 75, 509, 370, 478], wisp: ["b", 600, 524, 340, 483],
@@ -54,6 +54,9 @@ export function cryptPropBitmap(key) {
   if (!image) return null;
   if (!props.has(key)) {
     const b = crop(image, ...frame.slice(1));
+    // 隣の遺体の手だけを除き、外へ投げ出した腕は各原画に残す。
+    if (key === "corpse") b.c.getContext("2d").clearRect(476, 0, 50, 550);
+    if (key === "corpseWarm") b.c.getContext("2d").clearRect(0, 550, 50, 100);
     // 隣の区画へ飛び出した槍先・残火の先端を切り出しから除く。
     if (key === "ember") b.c.getContext("2d").clearRect(0, 472, 110, 14);
     if (key === "guard") b.c.getContext("2d").clearRect(78, 0, b.w - 78, 30);

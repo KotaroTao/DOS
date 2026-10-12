@@ -3827,7 +3827,7 @@ function drawWalker(hx, hy, now) {
   const cur = G.board.cells[G.py] && G.board.cells[G.py][G.px];
   const share = !G.heroAnim && cur && !!cellIcon(cur); // 中身のあるマスでは左手前へ寄る
   const x = hx - (share ? CARD_W * 0.2 : 0);
-  const maxH = hi ? Math.min(CARD_H * (share ? 0.86 : 0.94), 110) : Math.min(CARD_W * 0.78, CARD_H * 0.66);
+  const maxH = hi ? Math.min(CARD_H * 0.94, 110) : Math.min(CARD_W * 0.78, CARD_H * 0.66);
   const feet = hy + (hi ? CARD_H * 0.44 : CARD_H * 0.3);
   const lift = walkerLift(now); // 浮遊中は宙に浮く (影は地面に残す)
   drawWalkerShadow(x, feet, [CARD_W * 0.36, CARD_W * 0.22], [0.3, 0.55], lift, now);
@@ -3875,14 +3875,15 @@ function drawHoodedWalker(wk, hx, hy, now) {
 // 原画の人物も同じ足元・向き・浮遊状態に従い、カメラの論理座標で描く。
 function drawPaintedWalker(b, hx, hy, now) {
   const cur = G.board.cells[G.py]?.[G.px], share = !G.heroAnim && cur && !!cellIcon(cur);
-  const x = hx - (share ? CARD_W * 0.2 : 0), feet = hy + CARD_H * 0.42;
+  const x = hx - (share ? CARD_W * 0.1 : 0), feet = hy + CARD_H * 0.42;
   const lift = walkerLift(now);
   let bob = 0;
   if (!REDUCED_MOTION && !lift) {
     bob = G.heroAnim ? -Math.sin(Math.min(1, (now - G.heroAnim.t0) / Math.max(1, G.heroAnim.dur)) * Math.PI) * 1.5 : Math.sin(now * 0.0025) * 0.35;
   }
   drawWalkerShadow(x, feet, [CARD_W * 0.23, CARD_W * 0.14], [0.25, 0.4], lift, now);
-  const box = drawBmpFit(b, x, feet - lift + bob, CARD_W * (share ? 0.54 : 0.76), CARD_H * (share ? 0.76 : 0.98));
+  // 小物との同居では位置だけを寄せ、空のマスと同じ大きさを保つ。
+  const box = drawBmpFit(b, x, feet - lift + bob, CARD_W * 0.76, CARD_H * 0.98);
   drawLanternGlow(box.x + box.W * b.lamp[0], box.y + box.H * b.lamp[1], now);
 }
 // 駒の絵の中の灯 (下半分にある明るい黄の点の重心)。向きごとに一度だけ求める
