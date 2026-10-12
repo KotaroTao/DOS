@@ -546,6 +546,7 @@ const ASSETS = [
   "./art/dungeon/crypt-props-a.webp",
   "./art/dungeon/crypt-props-b.webp",
   "./art/dungeon/crypt-props-c.webp",
+  "./art/dungeon/crypt-corpses-seated.webp",
   "./art/dungeon/crypt-props-d.webp",
   "./art/dungeon/crypt-ember.webp",
   "./art/dungeon/crypt-gold.webp",

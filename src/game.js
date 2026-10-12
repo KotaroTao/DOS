@@ -3654,8 +3654,8 @@ function drawBoardIcons(lt, now, hx, hy) {
     const painted = cryptPropBitmap(cryptPropKey(cell, bossDoorHere()));
     const b = painted || plainBitmap(icon);
     const size = Math.min(r.w * (here ? 0.62 : 0.86), r.h * (here ? 0.5 : 0.62));
-    // 横たわる人物の全長を、探索者の身長と同じ基準で描く。
-    const maxW = painted && cell.type === "corpse" ? r.h * (here ? 0.76 : 0.98) : painted ? r.w * (here ? 0.55 : 0.86) : size;
+    // 遺体は膝を曲げた座り姿。頭身は原画で保ち、左右の壁と同居する駒の余白を取る。
+    const maxW = painted && cell.type === "corpse" ? r.w * (here ? 0.5 : 0.76) : painted ? r.w * (here ? 0.55 : 0.86) : size;
     const maxH = painted ? r.h * (here ? 0.5 : 0.68) : size;
     const fit = Math.min(maxW / b.w, maxH / b.h), iconW = b.w * fit, iconH = b.h * fit;
     const bottom = r.y + r.h / 2 + (painted ? iconH : size) / 2 + r.h * 0.04;
