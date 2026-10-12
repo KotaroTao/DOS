@@ -1172,6 +1172,175 @@ function infBuy(id, who) {
   updateTopbar(); renderParty(); autosave();
   return it;
 }
+// ---- 道具で全回復 (2026-10-12 ユーザーの指示): 回収人の棚の回復の道具を自動で買い、その場で使って
+// 隊の HP・MP・状態異常・砕けた器をすべて治す。買う組み合わせは、いま並んでいる品の中で一番安く済むもの。
+// 使う順 = 蘇生 → 全員の HP 回復 → 全員の MP 回復 → 一人ずつの回復 (霊薬は HP・MP の両方) → 治療。
+// 回復量は useItem と同じ (仙薬の倍率は、いま生きている隊で見る — 蘇らせた者の仙薬は数えないので、少し多めに買うことはあっても足りなくはならない)
+const INF_FIELD_AIL = ["poison", "paralyze", "stone"]; // 戦闘の外に残る状態異常 (眠り・魅了・混乱は戦闘の中だけ)
+function infHealPlan() {
+  const wares = infTraderWares().map((id) => ITEMS[id]).filter((it) => it && it.use && INF_RECOVERY(it.use));
+  const price = (it) => buyPrice(it);
+  const alc = 1 + rankParty("hermitSenyaku", [0.20, 0.30, 0.40, 0.60]);
+  const amt = (n) => Math.round(n * alc);
+  const party = (G.party || []).filter(Boolean);
+  // 品の分け方
+  const hpOne = [], hpFull = [], mpOne = [], mpFull = [], hpAll = [], mpAll = [], revives = [], cures = [], cureAll = [];
+  let elixir = null;
+  for (const it of wares) {
+    const u = it.use, c = price(it);
+    if (u.revive) { revives.push({ it, r: u.revive, c }); continue; }
+    if (u.full && u.mpFull) { if (!elixir || c < elixir.c) elixir = { it, c }; }
+    if (u.all) {
+      if (u.heal) hpAll.push({ it, a: amt(u.heal), c });
+      if (u.mp) mpAll.push({ it, a: amt(u.mp), c });
+      if (u.cure) cureAll.push({ it, kinds: useCureKinds(u), c });
+      continue;
+    }
+    if (u.full) hpFull.push({ it, c });
+    else if (u.heal) hpOne.push({ it, a: amt(u.heal), c });
+    if (u.mpFull) mpFull.push({ it, c });
+    else if (u.mp) mpOne.push({ it, a: amt(u.mp), c });
+    if (u.cure) cures.push({ it, kinds: useCureKinds(u), c });
+  }
+  // 器ごとの足りない分 (砕けた器は蘇生の品ごとに、起きた後の HP の足りない分が変わる)
+  const need = party.map((d) => {
+    const dead = !d.alive;
+    const mpD = (d.maxmp || 0) > 0 ? Math.max(0, d.maxmp - Math.max(0, d.mp || 0)) : 0;
+    const ail = !dead && d.ailment && INF_FIELD_AIL.includes(d.ailment) ? d.ailment : null;
+    return { d, dead, hpD: dead ? 0 : Math.max(0, d.maxhp - d.hp), mpD, ail,
+      rev: dead ? revives.map((r) => ({ ...r, hpD: Math.max(0, d.maxhp - Math.max(1, Math.min(d.maxhp, Math.round(d.maxhp * r.r)))) })) : null };
+  });
+  const missing = [];
+  if (need.some((n) => n.dead) && !revives.length) missing.push("蘇生の道具");
+  // 足りない分 x を埋める一番安い組 (一人ずつの品の DP。全快の品は一つで済む)
+  const maxHp = Math.max(0, ...need.map((n) => n.dead ? Math.max(0, ...n.rev.map((r) => r.hpD)) : n.hpD));
+  const maxMp = Math.max(0, ...need.map((n) => n.mpD));
+  const cover = (one, full, D) => {
+    const cost = new Float64Array(D + 1), pick = new Int32Array(D + 1).fill(-1);
+    const fullBest = full.reduce((b, x) => (!b || x.c < b.c ? x : b), null);
+    for (let x = 1; x <= D; x++) {
+      let best = fullBest ? fullBest.c : Infinity, bi = fullBest ? -2 : -1;
+      for (let i = 0; i < one.length; i++) { const v = one[i].c + cost[Math.max(0, x - one[i].a)]; if (v < best) { best = v; bi = i; } }
+      cost[x] = best; pick[x] = bi;
+    }
+    const take = (x, out) => { // x を埋める品を out (id → 数) に足す
+      while (x > 0) {
+        const bi = pick[x];
+        if (bi === -2) { out.set(fullBest.it.id, (out.get(fullBest.it.id) || 0) + 1); return; }
+        if (bi < 0) return;
+        out.set(one[bi].it.id, (out.get(one[bi].it.id) || 0) + 1);
+        x = Math.max(0, x - one[bi].a);
+      }
+    };
+    return { cost, take };
+  };
+  const hpC = cover(hpOne, hpFull, maxHp), mpC = cover(mpOne, mpFull, maxMp);
+  // 全員に効く品で、全員の足りない分を T ずつ埋める。T ごとの一番安い組 (同じ値段なら大きい T だけを候補に)
+  const allCover = (list, D) => {
+    const cost = new Float64Array(D + 1), pick = new Int32Array(D + 1).fill(-1);
+    for (let x = 1; x <= D; x++) {
+      let best = Infinity, bi = -1;
+      for (let i = 0; i < list.length; i++) { const v = list[i].c + cost[Math.max(0, x - list[i].a)]; if (v < best) { best = v; bi = i; } }
+      cost[x] = best; pick[x] = bi;
+    }
+    const cand = [0];
+    for (let x = 1; x <= D; x++) if (Number.isFinite(cost[x]) && (x === D || cost[x + 1] > cost[x])) cand.push(x);
+    const take = (x, out) => { while (x > 0 && pick[x] >= 0) { const i = pick[x]; out.set(list[i].it.id, (out.get(list[i].it.id) || 0) + 1); x = Math.max(0, x - list[i].a); } };
+    return { cost, cand, take };
+  };
+  const hpA = allCover(hpAll, maxHp), mpA = allCover(mpAll, maxMp);
+  const inf = (D, C, x) => (x <= 0 ? 0 : x <= D ? C.cost[x] : Infinity);
+  // 器ひとりの値段 (全員に効く品で T・U ずつ埋めた後): 霊薬1つ か HP・MP を別々に
+  const oneCost = (n, T, U) => {
+    const sep = (hpD) => inf(maxHp, hpC, hpD - T) + inf(maxMp, mpC, n.mpD - U);
+    const both = elixir && (n.hpD > 0 || n.mpD > 0 || n.dead) ? elixir.c : Infinity;
+    if (!n.dead) { const v = sep(n.hpD); return n.hpD - T <= 0 && n.mpD - U <= 0 ? { v: 0 } : (both < v ? { v: both, elixir: true } : { v }); }
+    let best = { v: Infinity };
+    for (const r of n.rev) {
+      const rest = r.hpD - T <= 0 && n.mpD - U <= 0 ? 0 : Math.min(sep(r.hpD), elixir ? elixir.c : Infinity);
+      const v = r.c + rest;
+      if (v < best.v) best = { v, r, elixir: rest > 0 && elixir && elixir.c <= sep(r.hpD) };
+    }
+    return best;
+  };
+  let best = null;
+  for (const T of hpA.cand) for (const U of mpA.cand) {
+    let v = hpA.cost[T] + mpA.cost[U];
+    if (!Number.isFinite(v) || (best && v >= best.v)) continue;
+    const per = [];
+    for (const n of need) { const o = oneCost(n, T, U); v += o.v; per.push(o); if (!Number.isFinite(v) || (best && v >= best.v)) break; }
+    if (per.length === need.length && Number.isFinite(v) && (!best || v < best.v)) best = { v, T, U, per };
+  }
+  // 治療: 一人ずつ一番安い治療の品 / 全員を治す品1つ のどちらか安い方
+  const ailing = need.filter((n) => n.ail);
+  const cureOf = (k) => cures.filter((x) => x.kinds.includes(k)).reduce((b, x) => (!b || x.c < b.c ? x : b), null);
+  let cureBuy = [], cureCost = 0;
+  if (ailing.length) {
+    const singles = ailing.map((n) => cureOf(n.ail));
+    const allOk = cureAll.filter((x) => ailing.every((n) => x.kinds.includes(n.ail))).reduce((b, x) => (!b || x.c < b.c ? x : b), null);
+    const sumSingles = singles.every(Boolean) ? singles.reduce((a, x) => a + x.c, 0) : Infinity;
+    if (allOk && allOk.c <= sumSingles) { cureBuy = [{ it: allOk.it, all: true }]; cureCost = allOk.c; }
+    else ailing.forEach((n, i) => {
+      const x = singles[i] || (allOk ? null : cureAll.filter((y) => y.kinds.includes(n.ail)).reduce((b, y) => (!b || y.c < b.c ? y : b), null));
+      if (x) { cureBuy.push({ it: x.it, d: n.d, all: !!x.kinds && cureAll.includes(x) }); cureCost += x.c; }
+      else if (!missing.includes(`${AIL_NAME[n.ail]}を治す道具`)) missing.push(`${AIL_NAME[n.ail]}を治す道具`);
+    });
+  }
+  // 組み立て: 品の数 (id → 数) と、使う順の手順
+  const buys = new Map(), steps = [];
+  const add = (id, k = 1) => buys.set(id, (buys.get(id) || 0) + k);
+  if (best) {
+    best.per.forEach((o, i) => { if (o.r) { add(o.r.it.id); steps.push({ kind: "revive", it: o.r.it, d: need[i].d }); } });
+    const ha = new Map(); hpA.take(best.T, ha); for (const [id, k] of ha) { add(id, k); for (let j = 0; j < k; j++) steps.push({ kind: "all", it: ITEMS[id] }); }
+    const ma = new Map(); mpA.take(best.U, ma); for (const [id, k] of ma) { add(id, k); for (let j = 0; j < k; j++) steps.push({ kind: "all", it: ITEMS[id] }); }
+    best.per.forEach((o, i) => {
+      const n = need[i];
+      if (o.elixir && elixir) { add(elixir.it.id); steps.push({ kind: "one", it: elixir.it, d: n.d }); return; }
+      const hpD = o.r ? o.r.hpD : n.hpD;
+      const one = new Map(); hpC.take(Math.max(0, hpD - best.T), one); mpC.take(Math.max(0, n.mpD - best.U), one);
+      for (const [id, k] of one) { add(id, k); for (let j = 0; j < k; j++) steps.push({ kind: "one", it: ITEMS[id], d: n.d }); }
+    });
+  } else if (need.some((n) => n.hpD > 0 || n.mpD > 0 || n.dead)) missing.push("回復の道具");
+  for (const x of cureBuy) { add(x.it.id); steps.push({ kind: x.all ? "all" : "one", it: x.it, d: x.d }); }
+  const cost = [...buys].reduce((a, [id, k]) => a + price(ITEMS[id]) * k, 0);
+  const hurt = need.some((n) => n.dead || n.hpD > 0 || n.mpD > 0 || n.ail);
+  return { hurt, cost, buys: [...buys].map(([id, k]) => ({ id, name: ITEMS[id].name, k, price: price(ITEMS[id]) })), steps, missing };
+}
+// 計画どおりに買って使う。買った品は袋を通さず、その場で使い切る
+function infHealAll() { return tlGameMeasure("item", () => infHealAllMeasured()); }
+function infHealAllMeasured() {
+  if (!infAtRest()) return false;
+  const plan = infHealPlan();
+  if (!plan.hurt) { showToast("隊はみな無事だ", { tone: "info" }); return false; }
+  if (!plan.steps.length) { SFX.ng(); showToast(`回収人の棚に${plan.missing[0] || "回復の道具"}が無い`, { tone: "bad" }); return false; }
+  if (G.gold < plan.cost) { SFX.ng(); showToast(`金貨が足りない (要 💰${plan.cost})`, { tone: "bad" }); return false; }
+  const alc = 1 + rankParty("hermitSenyaku", [0.20, 0.30, 0.40, 0.60]);
+  G.gold -= plan.cost;
+  for (const b of plan.buys) codexSeeItem(b.id);
+  const fix = (t, u) => {
+    if (u.heal || u.full) t.hp = Math.min(t.maxhp, t.hp + (u.full ? t.maxhp : Math.round(u.heal * alc)));
+    if ((u.mp || u.mpFull) && (t.maxmp || 0) > 0) t.mp = Math.min(t.maxmp, t.mp + (u.mpFull ? t.maxmp : Math.round(u.mp * alc)));
+    const kinds = useCureKinds(u);
+    if (kinds.length && t.ailment && kinds.includes(t.ailment)) t.ailment = null;
+  };
+  for (const st of plan.steps) {
+    const u = st.it.use;
+    if (st.kind === "revive") {
+      const t = st.d;
+      if (t.alive) continue;
+      t.alive = true; t.ailment = null; t.reviveAt = null; t._dead = false;
+      t.hp = Math.max(1, Math.min(t.maxhp, Math.round(t.maxhp * u.revive)));
+    } else if (st.kind === "all") { for (const t of G.party) if (t && t.alive) fix(t, u); }
+    else if (st.d && st.d.alive) fix(st.d, u);
+  }
+  const n = plan.buys.reduce((a, b) => a + b.k, 0);
+  infStats().trades += n;
+  log(`回収人から回復の道具を買って使った (−💰${plan.cost}): ${plan.buys.map((b) => `${b.name}×${b.k}`).join("・")}`, "heal");
+  SFX.heal(); buzz(10);
+  showToast(plan.missing.length ? `回復した ― ${plan.missing.join("・")}が棚に無く、治しきれないところがある` : `隊は全快した (−💰${plan.cost})`, { noLog: true, tone: plan.missing.length ? "info" : "good" });
+  updateTopbar(); renderStatus(); renderParty(); autosave(true);
+  return true;
+}
 // keep: 商会の棚の追加つきの品とぶつかる時、残す組 ("shelf" / "new" — 回収人の「売る」でその場で選ぶ。shopAfxClash)
 function infSell(owner, it, keep = null) {
   if (!infAtRest() || !owner || !it) return false;
@@ -12516,18 +12685,32 @@ function trainSoul(uid) { return uiSoulPanel.train(uid, 1); }
 
 // 魂の残火でメイン魂のLv上限を1上げる (上限は capBonus に蓄積される)。
 // 要る残火は職業のレア度ごと (emberCostOf: コモン1・レア2・エピック3・レジェンド5)
-function raiseSoulCap(uid) {
+// opt.by = "soul": 無限迷宮の風だまりの灯番だけ、✦Soul でも上げられる (2026-10 ユーザーの指示)。
+//   費用 = いまの Lv から次の Lv へ上がるのに要る ✦ (raiseCapSoulCost)
+function raiseSoulCap(uid, opt = {}) {
   const e = soulByUid(uid);
   if (!e) return;
-  const need = emberCostOf(e.clsKey);
-  if ((G.embers || 0) < need) { log(`魂の残火が足りない。(${need}つ要る)`, "sys"); SFX.ng(); showToast(`魂の残火が足りない（${need}つ要る）`, { noLog: true, tone: "bad" }); return false; }
-  G.embers -= need;
+  if (opt.by === "soul") {
+    if (!infAtRest()) return false;
+    const need = raiseCapSoulCost(e);
+    if ((G.soulPts || 0) < need) { SFX.ng(); showToast(`✦Soul が足りない（✦${need} 要る）`, { tone: "bad" }); return false; }
+    G.soulPts -= need;
+  } else {
+    const need = emberCostOf(e.clsKey);
+    if ((G.embers || 0) < need) { log(`魂の残火が足りない。(${need}つ要る)`, "sys"); SFX.ng(); showToast(`魂の残火が足りない（${need}つ要る）`, { noLog: true, tone: "bad" }); return false; }
+    G.embers -= need;
+  }
   e.capBonus = (e.capBonus || 0) + 1;
   recalcAllDolls();
   updateTopbar();
   const cap = soulLevelCapOf(e);
-  log(`魂の残火を${need}つ捧げ、${soulLabel(e)}のLv上限が ${cap} になった。`, "win");
-  showToast(`🔥 ${soulLabel(e)} ― Lv上限 ${cap}（残火 ${G.embers}）`, { noLog: true, tone: "gold" });
+  if (opt.by === "soul") {
+    log(`✦Soul を注ぎ、${soulLabel(e)}のLv上限が ${cap} になった。`, "win");
+    showToast(`✦ ${soulLabel(e)} ― Lv上限 ${cap}（✦${G.soulPts}）`, { noLog: true, tone: "gold" });
+  } else {
+    log(`魂の残火を${emberCostOf(e.clsKey)}つ捧げ、${soulLabel(e)}のLv上限が ${cap} になった。`, "win");
+    showToast(`🔥 ${soulLabel(e)} ― Lv上限 ${cap}（残火 ${G.embers}）`, { noLog: true, tone: "gold" });
+  }
   // 上限に届いてから蓄積していた経験値を、伸びた上限まで Lv に注ぐ (街では強化と同じ祝祭を出す)
   const lv0 = e.level;
   const ready = e.level < cap && (e.exp || 0) >= soulTrainCost(e.level);
@@ -12538,6 +12721,11 @@ function raiseSoulCap(uid) {
   renderTown();
   return true;
 }
+
+// ✦Soul で Lv上限を1上げる費用 (無限迷宮の灯番): いまの Lv から次の Lv へ上がるのに要る ✦ と同じ
+function raiseCapSoulCost(e) { return soulTrainCost((e && e.level) || 1); }
+// 無限迷宮の風だまりの灯番なら、✦Soul でも Lv上限を上げられる
+function capBySoulOk() { return infAtRest(); }
 
 // ---- 酒場「沈まぬ灯」の依頼 (クエスト。定義と掲示板の生成は src/quests.js) ----
 // G.quest = {
@@ -18152,7 +18340,7 @@ function wireUI() {
     openStatus, closeStatus, openSettings, closeSettings, tryEnterDungeon, enterDungeon, returnToTown, confirmReturnToTown,
     tutorialAllowed, palaceCallReady, currentObjective, featureUnlocked, RUSUI_EXP_RATE, rusuiSeats, rusuiSeated, toggleRusuiSeat, contentSealed, reportMainQuest, acceptMainQuest, reportPending, blockForReport, tutorialPending, blockForTutorial,
     worldState, worldOpenIdx, pendingIreneBeat, playIreneBeat, dungeonLevel, FEATURES, featureNote, chaptersDone, storyGoal, currentChapter, dungeonTrait, dungeonFloorHaz,
-    trainSoul, raiseSoulCap, soulTrainCost, soulByUid, codexSeeItem, treasuryState, heldCollectibles, donateCollectible,
+    trainSoul, raiseSoulCap, raiseCapSoulCost, capBySoulOk, soulTrainCost, soulByUid, codexSeeItem, treasuryState, heldCollectibles, donateCollectible,
     claimAchievement, claimTreasury, treasuryRewardReady, deliveryHolder, deliveryStatus, deliverQuest,
     repairDoll, repairAllDolls, repairCostOf, tryHastenRescue, reviveTimerEl, fmtRemain, awaitingRescue, hastenCostOf,
     doEquip, doUnequip, toggleItemLock, equipFromAnywhere, reforgeCost, reforgeBlock, rollReforge, setItemQuality, openEquipChooser, useItem, dropItem, dropFromBag, askRoomFor, transferItem,
@@ -18233,7 +18421,7 @@ bindGame({
 bindGame({
   // 出撃
   departNow, corpseFadeShare, departAbyss, infVesselNames, rematchList, departRematch, REMATCH_FORGE_MAX, townMutatorFor, preDiveIssues, departWoes, DUNGEON_BRIEFING, STORY_CELLS, startFloorsOf, worldOpenIdx, worldOpenId, worldUnlockMet, levelBand, wallOf, wallStepOf, partyLevel, storyCellPending, dungeonFacts, dungeonQuests, namedHere, namedList, namedInfo,
-  abyssRecords, infStats, infTitleList, infTitleName, setInfTitle, emptyDollCost, infRule, infAtRest, soulWorkOk, infTraderWares, infBuy, infSell, shopAfxClash, infSwapSoul, infSoulChangeBlock, infSoulChangePreview, infSubBlock, infSubPreview, infSetSub, infLevel, infGrowthMul,
+  abyssRecords, infStats, infTitleList, infTitleName, setInfTitle, emptyDollCost, infRule, infAtRest, soulWorkOk, infTraderWares, infBuy, infSell, infHealPlan, infHealAll, shopAfxClash, infSwapSoul, infSoulChangeBlock, infSoulChangePreview, infSubBlock, infSubPreview, infSetSub, infLevel, infGrowthMul,
   // 迷宮の HUD
   specialDef, mutDef, eliteKey, dungeonObjective, abyssActive, abyssBossPending, findRevealedStairs, canReturnNow, confirmAbandonDungeon,
   dungeonTheme, eventFacts,
@@ -18279,7 +18467,7 @@ function init() {
     // 宿敵の再戦の検証用
     rematch: { rematchList, departRematch, endBattle },
     // 無限迷宮の検証用
-    inf: { infStats, infTitleList, infTitleGrant, infCheckRun, doUnequip, giveItemAsk, giveItem, pickLoot, cloneItem, markDungeonLoot, shopAfxItem, buyAffixed, afxConflicts, resolveAfxConflicts, shopReceive, saveJSON: () => { const snap = {}; for (const k of SAVE_FIELDS) snap[k] = G[k]; return JSON.stringify(refSerialize(snap)); }, DUNGEONS, spawnBossEnemies, baseEnemyScale, soloScale, infBossFoes, infEliteFoes, infFoeKey, infSpotInfo, spawnCardEnemies, enemyScale, mimicRef, addSoulInstance, recalcAllDolls, enterAbyss, departAbyss, descend, openInfRest, fightAbyssGuard, abyssCfg, grantSoulQuiet, infSwapSoul, infSetSub, infSubBlock, infSubPreview, infBuy, infSell, infTraderWares, returnToTown, gameOver, leaveDungeon, abyssRecords, newFloor, renderBoard, finishToBoard },
+    inf: { infStats, infTitleList, infTitleGrant, infCheckRun, doUnequip, giveItemAsk, giveItem, pickLoot, cloneItem, markDungeonLoot, shopAfxItem, buyAffixed, afxConflicts, resolveAfxConflicts, shopReceive, saveJSON: () => { const snap = {}; for (const k of SAVE_FIELDS) snap[k] = G[k]; return JSON.stringify(refSerialize(snap)); }, DUNGEONS, spawnBossEnemies, baseEnemyScale, soloScale, infBossFoes, infEliteFoes, infFoeKey, infSpotInfo, spawnCardEnemies, enemyScale, mimicRef, addSoulInstance, recalcAllDolls, enterAbyss, departAbyss, descend, openInfRest, fightAbyssGuard, abyssCfg, grantSoulQuiet, infSwapSoul, infSetSub, infSubBlock, infSubPreview, infBuy, infSell, infTraderWares, infHealPlan, infHealAll, returnToTown, gameOver, leaveDungeon, abyssRecords, newFloor, renderBoard, finishToBoard },
     // 迷宮の掟の代償 (雲間の泉・開幕の眠り/麻痺・宝箱の罠) の検証用
     ruleCost: { TRAIT_BOARD, mutNum, useVeiledFountain, VEILED_CURSE, RULE_ONE_AIL, disarmNeed, dungeonTrait },
     // 第九章の掟 (一騎打ち・観客の注文) の検証用

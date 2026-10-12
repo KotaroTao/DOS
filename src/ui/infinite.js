@@ -17,6 +17,8 @@ import { openTrainSheet, openSkillStep } from "./soulpanel.js";
 import { ITEMS, itemName, useLines } from "../items.js";
 
 const G = () => game.G;
+// Lv上限に届いた魂を、灯番で伸ばせるか (残火か、✦Soul = いまの Lv から次の Lv へ上がるのと同じだけ)
+const capRaisable = (s) => (G().embers || 0) > 0 || (G().soulPts || 0) >= (game.raiseCapSoulCost ? game.raiseCapSoulCost(s) : Infinity);
 const sfx = (k) => { try { if (game.SFX && game.SFX[k]) game.SFX[k](); } catch (e) { /* 音は演出のみ */ } };
 const RAR = { common: "コモン", rare: "レア", epic: "エピック", legend: "レジェンド" };
 const STAT_L = [["hp", "HP"], ["mp", "MP"], ["atk", "STR"], ["vit", "VIT"], ["agi", "AGI"], ["int", "INT"], ["pie", "PIE"], ["luk", "LUK"]];
@@ -163,6 +165,7 @@ export function openInfRest(spec = {}) {
       ? "吹き上げる風が止んだ踊り場。主は討った。ここから地上へ帰るか、さらに深くへ降りるかを選ぶ。"
       : "吹き上げる風が止む踊り場。古い灯籠のそばに、商会の回収人と、名もない人業の灯番がいる。その奥で、主が待っている。"));
     b.appendChild(el("div", "inf-cur", `所持 💰${g.gold || 0} ・ ✦${g.soulPts || 0} ・ 残火 ${g.embers || 0} ・ 推奨Lv ${lv}`));
+    b.appendChild(healAllRow(() => h && !h.closed && h.update({ body: fill })));
     b.appendChild(row({ icon: ICONS.chest, title: "回収人 (商会の者)", sub: "品の買い取り (売った品はすぐ商会の棚へ ― 全滅しても残る)・回復の道具・反魂香・風切りの羽・鍛え直し", chevron: true, onTap: () => { sfx("select"); openTrader(() => h && !h.closed && h.update({ body: fill })); } }));
     b.appendChild(row({ icon: ICONS.portal, title: "灯番 (名もない人業)", sub: "メイン魂・サブ魂の付け替え・✦Soul で魂の強化・残火で Lv上限 +1", chevron: true, onTap: () => { sfx("select"); openKeeper(() => h && !h.closed && h.update({ body: fill })); } }));
     if (spec.guardDown) {
@@ -201,6 +204,28 @@ export function openInfRest(spec = {}) {
   return h;
 }
 
+// ---- 道具で全回復 (2026-10-12 ユーザーの指示): 回収人の回復の道具を一番安く済む組み合わせで買い、その場で使って
+// HP・MP・状態異常・砕けた器をすべて治す (組み合わせは game.js infHealPlan)。買う前に品と金貨を確かめる
+function healAllRow(redraw) {
+  const g = G();
+  const plan = game.infHealPlan ? game.infHealPlan() : null;
+  const short = plan && plan.hurt && plan.steps.length && (g.gold || 0) < plan.cost;
+  const sub = !plan ? "" : !plan.hurt ? "隊はみな無事だ"
+    : !plan.steps.length ? `回収人の棚に${plan.missing[0] || "回復の道具"}が無い`
+    : `回収人の道具を一番安く済む組で買って使い、HP・MP・状態異常・砕けた器を治す ― 💰${plan.cost}${short ? " (金貨が足りない)" : ""}${plan.missing.length ? ` ・ ${plan.missing.join("・")}は棚に無い` : ""}`;
+  const off = !plan || !plan.hurt || !plan.steps.length || short;
+  const r = row({ icon: ICONS.fountain || ICONS.portal, title: "道具で全回復", sub, tone: off ? "dim" : null, chevron: !off,
+    onTap: off ? null : async () => {
+      sfx("select");
+      const p = game.infHealPlan();
+      const ok = await kitConfirm({ banner: "道具で全回復", title: `💰${p.cost} で隊を全快させる？`,
+        lines: [`買って使う: ${p.buys.map((b) => `${b.name}×${b.k}`).join("・")}`, `所持 💰${g.gold || 0} → 💰${(g.gold || 0) - p.cost}`, ...(p.missing.length ? [`${p.missing.join("・")}は棚に無く、治しきれない。`] : [])],
+        okLabel: "買って使う", cancelLabel: "やめる", danger: false });
+      if (ok && game.infHealAll && game.infHealAll()) redraw();
+    } });
+  return r;
+}
+
 // ---- 回収人 ----
 // 売り買いの行: 行を押すと品の詳細 (onPeek)、右の金額の隣のボタンで売り買い (onAct)
 function tradeRow(o) {
@@ -220,7 +245,11 @@ function tradeRow(o) {
 function openTrader(onChange) {
   const g = G();
   let seg = "buy", h = null;
-  const refresh = () => { if (h && !h.closed) h.update({ body: fill }); if (onChange) onChange(); };
+  // 描き直しても、見ていた所 (縦のスクロール) はそのまま
+  const refresh = () => {
+    if (h && !h.closed) { const y = h.body ? h.body.scrollTop : 0; h.update({ body: fill }); if (h.body) h.body.scrollTop = y; }
+    if (onChange) onChange();
+  };
   // 隊の持ち物にその品がいくつあるか (装備中は数えない)
   const held = (id) => (g.party || []).reduce((n, d) => n + (d.items || []).filter((x) => x && x.id === id).length, 0);
   const fill = (b) => {
@@ -281,7 +310,7 @@ function openTrader(onChange) {
           any = true;
           const cost = game.reforgeCost ? game.reforgeCost(it) : 0;
           b.appendChild(row({ icon: itemTile(it, { size: 44 }), title: itemName(it), sub: `${d.name} ・ 品質 ${it.q == null ? 50 : it.q}`, right: `💰${cost}`,
-            onTap: () => { if (UI.openReforge) UI.openReforge(it, d); } }));
+            onTap: () => { if (UI.openReforge) UI.openReforge(it, d, { onDone: refresh, onClose: refresh }); } })); // 品質を選んだらすぐ一覧と所持金を描き直す
         }
       }
       if (!any) b.appendChild(el("div", "inf-note", "鍛え直せる装備が無い。"));
@@ -303,13 +332,22 @@ function openKeeper(onChange) {
     for (const d of g.party || []) {
       const s = soulByUid(d.primary);
       const card = el("div", "inf-vessel" + (d.alive ? "" : " dead"));
-      card.appendChild(portrait(d, { size: 48 }));
-      const tx = el("div", "inf-vessel-t");
-      tx.appendChild(el("div", "inf-vessel-n", `${d.name}${d.alive ? "" : " (砕けた)"}`));
-      tx.appendChild(el("div", "inf-vessel-s", s ? `${soulLabel(s)} ・ Lv${s.level}/${soulLevelCapOf(s)} ・ HP ${d.hp}/${d.maxhp} ・ MP ${d.mp}/${d.maxmp}` : "魂が無い"));
-      tx.appendChild(el("div", "inf-vessel-s", `サブ魂 ${subSummary(d)}`));
-      const acts = el("div", "inf-vessel-a");
       const redraw = () => { if (!h.closed) h.update({ body: fill }); if (onChange) onChange(); };
+      // 肖像・名前・能力の行を押すと、その器の詳細 (隊の様子: 装備・魂・能力) — 2026-10-12 ユーザーの指示
+      const detail = () => { sfx("select"); if (UI.openParty) UI.openParty(d, { context: "dungeon", onClose: redraw }); };
+      card.appendChild(portrait(d, { size: 48, onTap: detail }));
+      const tx = el("div", "inf-vessel-t");
+      const hit = el("button", "inf-vessel-hit");
+      hit.type = "button";
+      hit.title = "器の詳細を見る";
+      const nm = el("div", "inf-vessel-n", `${d.name}${d.alive ? "" : " (砕けた)"}`);
+      nm.appendChild(el("span", "inf-vessel-go", "詳細 ›"));
+      hit.appendChild(nm);
+      hit.appendChild(el("div", "inf-vessel-s", s ? `${soulLabel(s)} ・ Lv${s.level}/${soulLevelCapOf(s)} ・ HP ${d.hp}/${d.maxhp} ・ MP ${d.mp}/${d.maxmp}` : "魂が無い"));
+      hit.appendChild(el("div", "inf-vessel-s", `サブ魂 ${subSummary(d)}`));
+      hit.addEventListener("click", detail);
+      tx.appendChild(hit);
+      const acts = el("div", "inf-vessel-a");
       if (s) acts.appendChild(button({ label: "魂を強化", kind: "secondary", size: "sm", onTap: () => openTrainSheet(s.uid, redraw) }));
       acts.appendChild(button({ label: "魂を替える", kind: "secondary", size: "sm", disabled: !d.alive, onTap: () => openSwap(d, redraw) }));
       acts.appendChild(button({ label: "サブ魂", kind: "secondary", size: "sm", disabled: !d.alive, onTap: () => openSubs(d, redraw) }));
@@ -353,14 +391,14 @@ function soulList(b, redraw) {
   const souls = [...(g.souls || [])].filter(Boolean).sort(game.soulSortCmp || (() => 0));
   b.appendChild(el("div", "inf-h", `魂一覧 ${souls.length}`));
   if (!souls.length) { b.appendChild(el("div", "inf-note dim", "迷宮で拾った魂がここに並ぶ。")); return; }
-  b.appendChild(el("div", "inf-note dim", "メイン魂・サブ魂・宿していない魂のどれも、✦Soul で Lv を上げ、残火で Lv上限を上げられる。同じ職の魂を拾うと、自動で融合して Lv上限が伸びる。"));
+  b.appendChild(el("div", "inf-note dim", "メイン魂・サブ魂・宿していない魂のどれも、✦Soul で Lv を上げ、✦Soul か残火で Lv上限を上げられる (✦は、いまの Lv から次の Lv へ上がるのと同じだけ)。同じ職の魂を拾うと、自動で融合して Lv上限が伸びる。"));
   for (const s of souls) {
     const cl = SOUL_CLASSES[s.clsKey] || {};
     const cap = soulLevelCapOf(s);
     const sub = `${soulHomeText(s.uid)} ・ Lv上限${cap} ・ ランク${soulRankOf(s)} ・ ${RAR[cl.rarity] || ""}`;
     const atCap = s.level >= cap;
-    const tb = button({ label: atCap ? "上限" : "強化", kind: atCap ? "ghost" : "secondary", size: "sm", disabled: atCap && !(g.embers > 0),
-      title: atCap ? "残火で Lv上限を上げる" : "✦Soul で魂の Lv を上げる",
+    const tb = button({ label: atCap ? "上限" : "強化", kind: atCap ? "ghost" : "secondary", size: "sm", disabled: atCap && !capRaisable(s),
+      title: atCap ? "✦Soul か残火で Lv上限を上げる" : "✦Soul で魂の Lv を上げる",
       onTap: () => openTrainSheet(s.uid, redraw) });
     const line = soulLine(s, sub, null, [tb]);
     const nm = line.querySelector(".ui-row-title");
@@ -416,7 +454,7 @@ function openSubs(d, onChange) {
         if (k && k.opts) { const was = k.opts.onClose; k.opts.onClose = (r) => { if (typeof was === "function") was(r); redraw(); }; } // 借りた技を選び終えたら、この画面を描き直す
       } });
       const swap = button({ label: "替える", kind: "secondary", size: "sm", onTap: () => { sfx("select"); openSubPick(d, i, redraw); } });
-      const train = button({ label: "強化", kind: "secondary", size: "sm", disabled: s.level >= soulLevelCapOf(s) && !(G().embers > 0), onTap: () => openTrainSheet(s.uid, redraw) });
+      const train = button({ label: "強化", kind: "secondary", size: "sm", disabled: s.level >= soulLevelCapOf(s) && !capRaisable(s), onTap: () => openTrainSheet(s.uid, redraw) });
       const box = el("div", "inf-sub-box");
       box.appendChild(soulLine(s, sub2, null, []));
       const acts = el("div", "inf-vessel-a");

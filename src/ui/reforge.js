@@ -288,7 +288,10 @@ function forgeRow(x, d) {
   l3.appendChild(el("span", "wpc-srow-kind", x.key ? `装備中 ・ ${SLOT_LABEL[x.key] || ""}` : "持ち物"));
   tx.appendChild(l3);
   info.appendChild(tx);
-  const open = () => openReforge(it, d);
+  // 品質を選んだらすぐ、この行の品質の札を描き直す (閉じるのを待たない)
+  let live = row;
+  const redo = () => { if (!live.isConnected) return; const nr = forgeRow(x, d); live.replaceWith(nr); live = nr; };
+  const open = () => openReforge(it, d, { onDone: redo });
   info.addEventListener("click", open);
   row.appendChild(info);
   const act = el("div", "wpc-buy");

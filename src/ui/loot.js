@@ -1063,6 +1063,10 @@ function lootCelebrate(item, who, opts, next) {
     const sl = statLines(item);
     if (sl && !unid) scroll.appendChild(setText(el("div", "ig-stat"), sl));
     if (!unid && isEquippable(item)) {
+      // 装備できるLv (ユーザーの指示): 隊の誰のメイン魂も届いていなければ赤く
+      const party = (g.party || []).filter((m) => m && typeof m.jobLv === "number");
+      const short = party.length && party.every((m) => equipLvShort(m, item));
+      scroll.appendChild(el("div", "ig-eqlv" + (short ? " ng" : ""), equipLvText(item) + (short ? "（隊の誰も届いていない）" : "")));
       const plan = wearPlan(item, { owner: who });
       if (plan.target && plan.delta) {
         const dl = el("div", "wpc-is-delta center");
