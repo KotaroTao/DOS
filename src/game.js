@@ -3,14 +3,14 @@ import { monsterResists } from "./resistance.js";
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
-import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, setEnemyLvTag, scaleFoeAgi, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setModSink, setElemKnown, setPartyEvadeBonus, setPartyBreathBonus, setPartyHitBonus, partyBreathRes, perkVictory, cureAil, canSpellCure, cureBySpell, spellCureKinds, chishioState } from "./combat.js";
+import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, setEnemyLvTag, scaleFoeAgi, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setEquipSwap, setModSink, setElemKnown, setPartyEvadeBonus, setPartyBreathBonus, setPartyHitBonus, partyBreathRes, perkVictory, cureAil, canSpellCure, cureBySpell, spellCureKinds, chishioState } from "./combat.js";
 import { decideAuto, tacticOf, setResistKnown } from "./autotactics.js";
 import { STAGED, effectStage, stageOf, stageMul, stageLabel, isBattleLong, ENEMY_STAT_LABEL } from "./buffstage.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
 import { spriteCanvas, crispCanvas, drawPhoto, photoReady, whenPhoto, setSpriteResolver } from "./sprites.js";
 import { makeItemSpriteResolver } from "./itemart/index.js";
 import {
-  ITEMS, SLOTS, SLOT_LABEL, MAX_ITEMS, equip as equipItem, unequip as unequipItem, canEquip, canOffhand, slotKeyFor, lvToRank, RANGE_LABEL,
+  ITEMS, SLOTS, SLOT_LABEL, MAX_ITEMS, equip as equipItem, unequip as unequipItem, canEquip, canOffhand, slotKeyFor, lvToRank, RANGE_LABEL, HAND_LABEL, weaponRange,
   registerEquipLevel, equipLevelOf, equipLvShort, equipFailMsg, registerAffixes,
   UNIDENT_SLOTS, itemName, applyForge, hasQuality, applyQuality, rollQuality, qualityMatters, itemAtQuality, QUALITY_MID, useWhere, useTarget, useHelps, useLines, useCureKinds, compareUse,
 } from "./items.js";
@@ -9823,6 +9823,7 @@ const CMD_SVG = {
   auto: '<path d="M13.5 2.5 5 13.5h6l-1 8 8.5-11h-6Z"/>',
   fast: '<path d="M3.5 6v12l7.5-6Zm9 0v12l7.5-6Z"/>',
   item: '<path d="M9.5 3h5M10.5 3v5.2L5.6 17.6A2.2 2.2 0 0 0 7.5 21h9a2.2 2.2 0 0 0 1.9-3.4L13.5 8.2V3"/><path d="M7.4 14.5h9.2"/>',
+  swap: '<path d="M3.5 8h14l-4-4M20.5 16h-14l4 4"/>',
   back: '<path d="M15 4.5 7.5 12l7.5 7.5"/>',
   stop: '<path d="M7 7h10v10H7Z"/>',
   keep: '<path d="M4 12a8 8 0 0 1 13.7-5.6M20 12a8 8 0 0 1-13.7 5.6"/><path d="M17.8 2.8v3.8H14M6.2 21.2v-3.8H10"/>',
@@ -9863,6 +9864,10 @@ function turnPlate(name, tail, chips = [], skill = "") {
 const PLATE_CALL_MS = 1600;
 function setPlateCall(res) {
   const a = res && res.actor;
+  if (a && a.side === "party" && res.action === "swap" && res.swap) { // 持ち替え: 命令板に「〇〇の［持ち替え］」
+    G._plateCall = { actor: a, name: a.name, skill: "持ち替え", item: false, at: performance.now() };
+    return true;
+  }
   if (!a || a.side !== "party" || res.opening || res.action !== "spell" || !res.spellName) return false;
   G._plateCall = { actor: a, name: a.name, skill: res.spellName, item: !!res.item, at: performance.now() };
   return true;
@@ -10070,6 +10075,12 @@ function renderCombatMenu() {
       const nItems = battleItemStacks().reduce((a, x) => a + x.n, 0);
       sub.appendChild(cmdBtn("item", "道具", nItems ? `${nItems}個` : "なし", () => { if (!nItems) { SFX.ng(); showToast("使える道具を持っていない", { tone: "info" }); return; } SFX.select(); showBattleItems(actor); }, nItems ? "" : "muted"));
     }
+    // 持ち替え: 手番の者が自分の袋に武器を入れている時だけ出す (1手番を使う)
+    const swaps = swapWeapons(actor);
+    if (swaps.length) {
+      sub.classList.add("has-swap");
+      sub.appendChild(cmdBtn("swap", "持ち替え", `${swaps.length}本`, () => { SFX.select(); showBattleSwap(actor); }));
+    }
     // 逃走: 手番の者の AGI で決まる成功率を添える (退路を断たれていれば「不可」)
     sub.appendChild(cmdBtn("run", "逃走", b.noFlee ? "不可" : `${Math.round(b.fleeChance(actor) * 100)}%`, () => act("run")));
     // オート: 人業ごとの作戦 (隊の「能力」で選ぶ) に従って動く。長押しで隊の作戦をまとめて見る・変える
@@ -10213,6 +10224,61 @@ function itemLocked(it) {
   if (tk === "ally" || tk === "dead") return G.battle._itemTargets(it).length === 0;
   if (it.use && it.use.escape) return !!G.battle.noFlee;
   return false;
+}
+// ---- 武器の持ち替え (2026-10 ユーザーの指示) ----
+// 手番の者が自分の袋に入れている武器だけ (ほかの人業の品は選べない)。未鑑定の品は装備できないので出さない
+function swapWeapons(actor) {
+  return ((actor && actor.items) || []).filter((it) => it && it.slot === "weapon" && !it.unidentified);
+}
+// 持ち替えられない理由 (無ければ null)。判定は街の付け替え (equipAt) と同じ
+function swapBlock(actor, it) {
+  if (!canEquip(actor, it)) return equipFailMsg(actor, it);
+  const tr = autoEquip.trialEquip(actor.equip, it, "weapon");
+  if (!tr) {
+    const pin = [actor.equip.weapon, it.twoHanded ? actor.equip.shield : null].find((x) => autoEquip.isPinned(x));
+    return pin && !pin.cursed ? `${pin.name}はロック中` : "呪われた装備が外れない";
+  }
+  if (actor.items.length - 1 + tr.displaced.length > MAX_ITEMS) return "持ち物がいっぱいで外した品を入れられない";
+  return null;
+}
+function showBattleSwap(actor) {
+  combatMenu.innerHTML = "";
+  combatMenu.dataset.mode = "spells";
+  combatMenu.appendChild(turnPlate(actor.name, "の持ち替え", ["1ターン使う", "長押しで詳細"]));
+  const now = autoEquip.previewStats(actor, actor.equip);
+  const cur = actor.equip.weapon;
+  const list = el("div", "target-list" + (swapWeapons(actor).length > 4 ? " cols2" : ""));
+  for (const it of swapWeapons(actor)) {
+    const why = swapBlock(actor, it);
+    const tr = why ? null : autoEquip.trialEquip(actor.equip, it, "weapon");
+    const b = btn("", () => {
+      if (why) { SFX.ng(); showToast(why, { tone: "info" }); return; }
+      act("swap", null, { item: it });
+    });
+    b.className = "btn spell spell-phys spell-item";
+    const top = el("span", "sp-top");
+    const ic = el("span", "sp-ic");
+    ic.appendChild(spriteCanvas(it, 1));
+    top.appendChild(ic);
+    top.appendChild(el("span", "sp-n", itemName(it)));
+    top.appendChild(el("span", "sp-mp", HAND_LABEL[it.twoHanded ? 2 : 1]));
+    b.appendChild(top);
+    const parts = [];
+    if (tr) {
+      const after = autoEquip.previewStats(actor, tr.equip);
+      parts.push(`攻撃力 ${Math.round(now.power || 0)}→${Math.round(after.power || 0)}`);
+    }
+    parts.push(`射程 ${RANGE_LABEL[weaponRange(it)]}`);
+    if (tr && tr.displaced.some((x) => x && x !== cur)) parts.push("盾が外れる");
+    if (why) parts.push(why);
+    b.appendChild(el("span", "sp-d", parts.join("・")));
+    b.style.setProperty("--sp-col", SPELL_KIND_COLOR.phys || "#c9a24a");
+    if (why) b.classList.add("locked");
+    attachLongPress(b, () => { SFX.select(); UI.itemSheet(it, { context: "view" }); });
+    list.appendChild(b);
+  }
+  combatMenu.appendChild(list);
+  combatMenu.appendChild(cmdBtn("back", "戻る", "", () => renderCombatMenu(), "cmd-wide cmd-backb"));
 }
 function showBattleItems(actor) {
   combatMenu.innerHTML = "";
@@ -10487,6 +10553,7 @@ function callPartyAction(res) {
     const kind = res.item ? "item" : sp && (sp.kind === "heal" || sp.kind === "cure" || sp.kind === "mana" || sp.revive) ? "heal" : "skill";
     setPartyCall(a, res.spellName, kind, true);
   } else if (res.action === "defend") setPartyCall(a, "防御", "guard", true);
+  else if (res.action === "swap" && res.swap) setPartyCall(a, "持ち替え", "item", true);
   else if (G.partyCall && G.partyCall.has(a)) { clearTimeout(G.partyCall.get(a).timer); G.partyCall.delete(a); } // 前の手番の名は下げる
 }
 // combat.js が記録した発動した効果 (固有パッシブ・ランクのパッシブ・かばう・反撃…) を札へ移す
@@ -10501,7 +10568,7 @@ function drainPartyProcs() {
 function applyImpact(res) {
   const fx = G.fx;
   const now = performance.now();
-  if (res.action === "defend") { SFX.select(); return; }
+  if (res.action === "defend" || res.action === "swap") { SFX.select(); return; }
   if (res.action === "sleep" || res.action === "run" || res.action === "stunned") { SFX.miss(); return; }
   if (res.action === "eflee") {
     // 敵が逃げ出した (金属の魔物): 横へ駆け去る (描画は renderCombatCanvas の fleeFx)
@@ -14490,6 +14557,8 @@ function codexKillNow(e) {
   recordMonsterKill(e.key, abyssActive() ? null : G.dungeonIdx, G.floor);
 }
 setOnEnemyKilled(codexKillNow);
+// 戦闘中の武器の持ち替え: 街の付け替えと同じ処理 (両手武器なら盾が外れる・呪い/ロックの品は外れない・外した品は自分の袋へ)
+setEquipSwap((p, it) => equipAt(p, it, "weapon"));
 // 敵の属性が明かされているか: 図鑑で属性の項目が解放済み (enemyReveal の stats = 5体討伐・主は1体) か、
 // 隊の誰かが弱点看破 (scan) を持つ。戦闘の名札の属性の印・技の有利/不利・オートの見積もり (combat.js) が共通で使う
 function enemyElemKnown(e) { return !!e && (enemyReveal(e).stats || partyPassiveLv("scan") > 0); }
