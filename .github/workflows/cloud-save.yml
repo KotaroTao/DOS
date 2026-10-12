@@ -41,7 +41,9 @@ jobs:
       - name: Set allowed origin
         run: supabase secrets set GAME_ALLOWED_ORIGINS=https://kotarotao.github.io --project-ref "$SUPABASE_PROJECT_REF"
       - name: Deploy game-save
-        run: supabase functions deploy game-save --project-ref "$SUPABASE_PROJECT_REF" --use-api
+        run: |
+          npm exec --yes --package=esbuild@0.25.12 -- esbuild supabase/functions/game-save/index.js --bundle --format=esm --platform=neutral --target=es2022 --minify --allow-overwrite --outfile=supabase/functions/game-save/index.js
+          supabase functions deploy game-save --project-ref "$SUPABASE_PROJECT_REF" --use-api
       - name: Verify deployment
         run: node supabase/deploy.mjs --verify
       - name: Next step
