@@ -31,10 +31,10 @@
       ],
       "state": "integrated",
       "worker": "integration-parent",
-      "note": "PR https://github.com/KotaroTao/DOS/pull/806・PC/スマートフォン表示確認済み。本番未反映。",
-      "generationCalls": 1,
+      "note": "PR https://github.com/KotaroTao/DOS/pull/806・w18のてこを修正しPC/スマートフォン表示確認済み。本番未反映。",
+      "generationCalls": 2,
       "masterHashes": {
-        "art/story-review/chapter5/w18_blade.png": "2e66b9c5a17643123db389866a7304d03883092dddbc3351c62c5c6b392af2f1",
+        "art/story-review/chapter5/w18_blade.png": "7b81670e71d10f45c13cfc5ab88f79193c912392ee562cb79c2c5c853748b38f",
         "art/story-review/chapter5/report_w18.png": "0c4d7263edc6b1b0bc84d584f8334be965a3c67e7b0a0cd23537fc373d2fb7b1",
         "art/story-review/chapter5/w19_husks.png": "998bea9a0e73b3ecda944f39a0de939f84344cf2740d1378b472fd11a77735a6",
         "art/story-review/chapter5/irene_husks.png": "2f65f62d411f52bb2af6ae3634e174b68f981e45556494ab25a254ec0f3255c9",

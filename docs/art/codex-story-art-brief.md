@@ -397,10 +397,10 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 ### 第五章「灼熱の洞」 ― 便2
 
 **w18_blade「手放された刃」** (師の手がかり / 迷宮「火を噴く地割れ」)
-- 本文の要点: 赤く脈打つ岩の奥の鉄の扉。扉の隙間に、のこぎりのように研いだ刃が突き立ち、根元から折れている。柄に焼け焦げた布、布に煤の字。弟子は折れた刃をてこにして扉を開ける。
-- 描くもの: 折れた刃 (折れ口がはっきり) / 柄の焦げた布 / 鉄の扉 / 刃で扉をこじる弟子。描かないもの: 師本人、扉の向こうの祭場の詳しい様子。
+- 本文の要点: 赤く脈打つ岩の奥の鉄の扉。のこぎりのように研いだ刃は根元で折れ、柄と分離している。柄に焼け焦げた布、布に煤の字。弟子は柄を脇に置き、残った長い刃を布越しに握って扉をこじる。手で握る位置から扉の支点までは一本につながった金属で、力が伝わるように描く。
+- 描くもの: 根元で折れた長い刃 (手から鉄扉までつながっている) / 脇に置いた柄と焦げた布 / 鉄の扉 / 刃を布越しに握って扉をこじる弟子。描かないもの: 折れた柄を握って分離した刃を動かす構図、師本人、扉の向こうの祭場の詳しい様子。
 ```text
-Deep inside a volcanic fissure cave whose rock walls glow and pulse red with magma veins, a massive rusted iron door is set into the rock. Jammed in the gap of the door is a long serrated saw-like blade, visibly SNAPPED near the hilt; its hilt is wrapped in a scorched cloth bearing soot scribbles. The apprentice (brown hair, charcoal cloak with restrained gold embroidery, leather satchel) braces against the door and levers it open using the broken blade, heat shimmer and drifting embers around. Two or three wooden party dolls with blank round heads wait behind in the red glow. Composition centers on the broken blade in the door gap.
+Deep inside a volcanic fissure cave whose rock walls glow and pulse red with magma veins, a massive rusted iron door is set into the rock. A long serrated saw-like blade has snapped at its base and is completely separated from its hilt. The detached hilt, still wrapped in scorched cloth with illegible soot scribbles, lies on a rock beside the apprentice. The apprentice (brown hair, charcoal cloak with restrained gold embroidery, leather satchel) grips the remaining LONG METAL BLADE itself through a thick folded protective cloth and uses it as a pry bar against the iron door jamb. The metal must be continuous and intact between his cloth-protected hands and the tip wedged into the door gap; the jagged broken base is behind his grip, outside the force-bearing span. He is NOT holding the detached hilt. Heat shimmer and drifting embers surround him. Two or three wooden party dolls with blank round heads wait behind in the red glow. Composition centers on the physically plausible blade lever and the separate broken hilt.
 ```
 
 **report_w18「床の下の熱」** (報告)
