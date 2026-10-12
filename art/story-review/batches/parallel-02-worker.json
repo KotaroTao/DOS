@@ -2,8 +2,8 @@
   "worker": "02",
   "branch": "codex/art-worker-02",
   "baseCommit": "3312deeabeb4ad5774d2902deabbfb08957da872",
-  "generationCalls": 7,
-  "note": "新規5回＋修正2回＝上限7回に達したため停止。ready4枚、needs-fix1枚。ch6_endの弟子の鞄を左腰へ修正する必要がある。統合担当は未修正ch6_endを登録・変換対象にしないこと。build.py、WebP変換、queue.json、本文・基準画像・登録ファイルは未変更。PR作成・mainマージなし。",
+  "generationCalls": 8,
+  "note": "初回は新規5回＋修正2回の上限7回で停止。ユーザーの追加修正指示により1回追加し累計8回。全5枚ready。原画・修正前原画・担当記録のみ変更。WebP変換、build.py、queue.json、本文・基準画像・登録ファイルは未変更。PR作成・mainマージなし。",
   "scenes": [
     {
       "id": "report_w24",
@@ -74,10 +74,10 @@
     {
       "id": "ch6_end",
       "path": "art/story-review/chapter6/ch6_end.png",
-      "state": "needs-fix",
-      "generationCalls": 1,
-      "visualReview": "氷の崩壊、昇る魂、落ちる滝、弟子と4体の無顔の人業、衣装と道具、見える手足・文字なしを確認。弟子の鞄位置のみ不一致。背面・長衣・握った手で一部の指と脚は隠れる。",
-      "note": "弟子の鞄が右腰に出ている。固定デザインは左腰のため修正が必要。",
+      "state": "ready",
+      "generationCalls": 2,
+      "visualReview": "弟子の鞄が左腰に1つ、肩ひもが右肩から左腰へつながることを目視確認。弟子と4体の無顔の木の人業、衣装と道具、見える手足、印の追加なし、文字なし、氷の崩壊・上昇する魂・下へ落ちる滝が本文と一致。背面・長衣・握った手で隠れる指と脚は直接判別不可。",
+      "note": "追加指示による修正済み。鞄を左腰へ移し肩ひもを右肩から左腰へ接続。修正前はfixes/ch6_end-before.png。",
       "additionalReferences": [
         "docs/art/story-refs/dolls.png"
       ],
@@ -86,7 +86,7 @@
         1536,
         1024
       ],
-      "sha256": "8b85a806e4519a8d99170179a3693909865f82478405795199899cb15f9eb2e0"
+      "sha256": "06eb13be4d3267b441cf61bd1de9c7ecfdc54e5bc54df05b767aa19f69a0b1fa"
     }
   ],
   "referenceHashes": {
@@ -105,5 +105,6 @@
     "docs/art/story-refs/props.png": "051a8f35cf00a15dfb3501cddb8f58964e5737d8d79001adbcc18135aa1309a9",
     "docs/art/story-refs/sera.png": "341c64b2e2d3913f3cb6fe2f3ae66260a4899e588e416b098ab4433d5dcbba66",
     "docs/art/story-refs/sigil.png": "7dfeb2dbb8eb7091557e1dd3f387b963b64b2fa4a20848c1c18734167fe47b6b"
-  }
+  },
+  "additionalAuthorization": "ユーザーの追加指示「要修正の画像を修正して、5枚とも完成したらイラストをここに表示」により修正を再開。前回7回で停止した履歴を保ち、追加生成を累計に加算。"
 }
