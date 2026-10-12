@@ -113,3 +113,23 @@ CRYPT_REVIEW_OUT=/tmp/crypt-actors-review node tools/crypt/verify-actors.cjs
 
 確認: [空のマス](lifeless-review/walker-empty.png) · [宝箱と同居](lifeless-review/walker-chest.png) · [あたたかい死体](lifeless-review/corpseWarm-popup.png) · [検査結果](lifeless-review/checks.json)。
 `CRYPT_STATES_OUT=docs/art/crypt/actors/lifeless-review node tools/crypt/verify-states.cjs` で、幅320/390/600/1280、全4方向、浮遊、拡大/全体、未回収/回収後、小物8種の実描画寸法が一定で左右の壁内に収まることも検査する。
+
+
+## 職業4系統×3状態の12種類
+
+最新の死体は全種類で顔・髪を布または閉じた兜で隠し、性別を特定できない服装に統一。風化した骨も顔は覆う。力の抜けた首と腕、傷んだ服装・装備で死を示す。
+
+| 系統 | 9職 | 装い |
+|---|---|---|
+| 戦士 | 戦士・狂戦士・騎士・侍・守護騎士・魔騎士・勇者・修羅・竜騎士 | 壊れた鎧、剣、盾 |
+| 聖職者 | 僧侶・司教・聖騎士・聖戦士・神殿騎士・審問官・巡礼者・枢機卿・護教官 | 祭服、聖印、祈祷書 |
+| 盗賊・軽装 | 盗賊・義賊・暗殺者・狩人・魔盗賊・武僧・隠修士・修験者・祓魔師 | 革装備、旅装、道具袋 |
+| 魔法 | 魔導士・大魔導・魔法剣士・魔闘士・呪術師・護法師・秘術師・死霊術師・賢者 | 魔導衣、魔導書、杖 |
+
+各系統に風化・あたたかい・偉大なる状態を用意。分類は `src/corpseart.js`。保存済みの `corpseClass` から選び、魂の抽選確率・保存形式は変更しない。不明な職業や職業のない古いマスは戦士系にする。セラ専用職は分類の対象外。回収後も系統・状態を保持する。盤面・選択画面・行動ボタン・死体が起き上がる通知で同じ絵を使う。心得 `t_crypt_objects` に系統の見分け方を追記し、`t_corpse_appearances` の状態の説明も新しい装いに合わせた。
+
+原画は `corpses-{warrior,clergy,rogue,mage}-master.png`、配信は同名の `crypt-corpses-*.webp`。各シートは1536×1024で、左から風化・あたたかい・偉大なる。従来の原画と比較は制作履歴として保持。
+
+[12種一覧](families-review/corpse-families.png) · [盤面](families-review/families-board.png) · [検査結果](families-review/checks.json)
+
+再確認: `CRYPT_STATES_OUT=docs/art/crypt/actors/families-review node tools/crypt/verify-states.cjs`。

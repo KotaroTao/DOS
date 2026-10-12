@@ -1,8 +1,11 @@
 // 全迷宮で共用する人物と小物。透過原画を保持し、ゲーム側の状態に応じて差分を選ぶ。
 import { normalizeLook, WALKER_CLOAKS, WALKER_TRIMS } from "./walkerart.js";
 
+import { CORPSE_FAMILIES, CORPSE_STATES, corpseArtKey } from "./corpseart.js";
+
 const sheets = new Map();
-const assets = { a: ["props-a", 1536, 1024], b: ["props-b", 1536, 1024], c: ["props-c", 1536, 1024], d: ["props-d", 1536, 1024], seated: ["corpses-seated", 1536, 1024], walker: ["walker", 1254, 1254] };
+const assets = { a: ["props-a", 1536, 1024], b: ["props-b", 1536, 1024], c: ["props-c", 1536, 1024], d: ["props-d", 1536, 1024], walker: ["walker", 1254, 1254] };
+for (const family of Object.keys(CORPSE_FAMILIES)) assets[family] = [`corpses-${family}`, 1536, 1024];
 function sheet(key) {
   if (!sheets.has(key)) {
     const [name, w, h] = assets[key], image = new Image(), state = { image, ready: false };
@@ -21,8 +24,6 @@ export function prewarmCryptActors() { for (const key of Object.keys(assets)) sh
 export const CRYPT_PROP_FRAMES = {
   chest: ["a", 24, 116, 487, 360], chestOpen: ["a", 538, 36, 462, 450],
   stairs: ["a", 1028, 60, 501, 450], fountain: ["a", 37, 529, 452, 473],
-  corpse: ["seated", 8, 180, 526, 745],
-  corpseWarm: ["seated", 484, 180, 504, 742], corpseGreat: ["seated", 990, 174, 544, 778],
   fountainEmpty: ["c", 119, 499, 502, 503], portal: ["a", 1037, 548, 486, 439],
   trap: ["b", 70, 149, 399, 275], event: ["b", 619, 17, 302, 480],
   bossDoor: ["b", 75, 509, 370, 478], wisp: ["b", 600, 524, 340, 483],
@@ -31,12 +32,25 @@ export const CRYPT_PROP_FRAMES = {
   poison: ["d", 1046, 72, 463, 380], guard: ["d", 122, 480, 311, 525],
   start: ["d", 607, 487, 353, 515],
 };
+// 3状態を左から並べた原画。輪郭に合わせて区画を分ける。
+const corpseFrames = {
+  warrior: [[0, 125, 548, 845], [548, 125, 445, 845], [995, 125, 541, 845]],
+  clergy: [[0, 100, 514, 890], [515, 100, 480, 890], [995, 100, 541, 890]],
+  rogue: [[0, 140, 544, 820], [544, 140, 490, 820], [1035, 140, 501, 820]],
+  mage: [[0, 100, 507, 880], [508, 100, 472, 880], [980, 100, 556, 880]],
+};
+for (const [family, frames] of Object.entries(corpseFrames)) {
+  CORPSE_STATES.forEach((state, i) => {
+    const key = family === "warrior" ? state : `${state}_${family}`;
+    CRYPT_PROP_FRAMES[key] = [family, ...frames[i]];
+  });
+}
 export function cryptPropKey(cell, bossDoor = false) {
   if (!cell || !cell.revealed) return null;
   if (cell.type === "portal" || (cell.type === "stairs" && cell.gate)) return "portal";
   if (cell.type === "stairs") return bossDoor ? "bossDoor" : "stairs";
   if (cell.type === "chest") return cell.cleared ? "chestOpen" : "chest";
-  if (cell.type === "corpse") return cell.corpseGreat ? "corpseGreat" : cell.corpseWarm ? "corpseWarm" : "corpse";
+  if (cell.type === "corpse") return corpseArtKey(cell);
   if (cell.type === "fountain") return cell.cleared ? "fountainEmpty" : "fountain";
   if (["trap", "event", "story"].includes(cell.type) && !cell.cleared) return cell.type;
   return null;
@@ -54,9 +68,9 @@ export function cryptPropBitmap(key) {
   if (!image) return null;
   if (!props.has(key)) {
     const b = crop(image, ...frame.slice(1));
-    // 隣の遺体の手だけを除き、外へ投げ出した腕は各原画に残す。
-    if (key === "corpse") b.c.getContext("2d").clearRect(476, 0, 50, 550);
-    if (key === "corpseWarm") b.c.getContext("2d").clearRect(0, 550, 50, 100);
+    // 区画端に入った隣の遺体の布・手袋の先だけを除く。
+    if (key === "corpseWarm_clergy") b.c.getContext("2d").clearRect(465, 720, 15, 170);
+    if (key === "corpse_rogue") b.c.getContext("2d").clearRect(530, 0, 14, 590);
     // 隣の区画へ飛び出した槍先・残火の先端を切り出しから除く。
     if (key === "ember") b.c.getContext("2d").clearRect(0, 472, 110, 14);
     if (key === "guard") b.c.getContext("2d").clearRect(78, 0, b.w - 78, 30);
