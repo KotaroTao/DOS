@@ -134,7 +134,7 @@ const check = (name, ok) => { assert.ok(ok, name); report.checks.push(name); };
     for(const width of [320,390,600,1280]){await page.setViewportSize({width,height:800});await page.evaluate(()=>{actorReview.fitView(true);actorReview.drawBoardFrame();});check(`${width}pxで横あふれがない`,await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));}
     await capture(page,'desktop.png');
     const oldArt=await page.evaluate(()=>{
-      const t=actorReview;t.G.dungeonIdx=t.DUNGEONS.findIndex(d=>d.id==='w02');t.G.board=t.makeBoard(1,t.activeCfg());t.drawBoardFrame();return t.activeCfg().id==='w02'&&!t.BV.art.painting;
+      const t=actorReview;t.G.dungeonIdx=t.DUNGEONS.findIndex(d=>d.id==='w07');t.G.board=t.makeBoard(1,t.activeCfg());t.drawBoardFrame();return t.activeCfg().id==='w07'&&!t.BV.art.painting;
     });check('他の迷宮の床と壁は従来の描画を維持する',oldArt);
     check('人物・小物の描画と操作に実行時エラーがない',errors.length===0);await page.close();
     const partial=await start('partial');await partial.page.waitForFunction(()=>actorReview.cryptWalkerBitmap('down',{})&&actorReview.cryptPropBitmap('story'));

@@ -504,6 +504,25 @@ function floorTomb(R, r, rnd) {
 // 毒の汚泥の染み
 // 蝕む床の染み。色は [縁の影, 縁の照り, 中ほど, 芯, 斑点] (省略時は毒の沼の緑)
 const SWAMP_STAIN = [[26, 34, 12], [96, 128, 30], [48, 78, 18], [66, 104, 22], [150, 200, 70]];
+// 描き下ろしの床にも同じ染みと鉄菱を重ねる。座標は論理pxのまま、
+// 呼び出し側の高解像度Canvasへ描き、床全体を低解像度に戻さない。
+export function paintFloorHazards(ctx, opt) {
+  ctx.save();
+  const over = (x, y, color, alpha) => {
+    ctx.fillStyle = `rgba(${color.join(",")},${alpha})`;
+    ctx.fillRect(x | 0, y | 0, 1, 1);
+  };
+  const raster = { tint: over, over };
+  for (let y = 0; y < opt.rows; y++) for (let x = 0; x < opt.cols; x++) {
+    if (opt.cells[y][x].type !== "poison") continue;
+    const r = opt.rect(x, y);
+    const rnd = makeRng(opt.seed ^ Math.imul(x + 1, 2654435761) ^ Math.imul(y + 1, 40503));
+    poisonStain(raster, r, rnd, (opt.seed % 997) + 3, opt.harmStain);
+    stainDeco(raster, r, rnd, opt.harmFx, opt.harmStain || SWAMP_STAIN);
+  }
+  ctx.restore();
+}
+
 function poisonStain(R, r, rnd, s, st = SWAMP_STAIN) {
   st = st || SWAMP_STAIN;
   const cx = r.x + r.w / 2, cy = r.y + r.h * 0.55, rx = r.w * 0.38, ry = r.h * 0.3;
