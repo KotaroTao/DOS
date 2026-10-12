@@ -295,7 +295,15 @@ export async function sellOne(owner, it) {
     const ok = await confirm({ banner: "売却の確認", title: `${it.name} を売る？`, lines: [...warns, `売値 ${price}`], okLabel: `${price} で売る`, danger: true });
     if (!ok) return false;
   }
-  if (game.sellItem) game.sellItem(owner, it, price);
+  // 商会の棚に同じ品の追加つきの1点がもうある: どちらの追加の能力を棚に残すか、売る前に選ぶ (閉じれば売らない)
+  let keep = null;
+  const clash = !it.unidentified && game.shopAfxClash ? game.shopAfxClash(it) : null;
+  if (clash && UI.openSellClash) {
+    keep = await UI.openSellClash(clash);
+    if (!keep) return false;
+  }
+  if (game.sellItem) game.sellItem(owner, it, price, keep);
+  if (clash && keep && game.log) game.log(keep === "new" ? `商会の棚の ${clash.name} は、いま売った品の追加の能力に置き換わった (前の品は通常品として並ぶ)。` : `商会の棚の ${clash.name} は、前の追加の能力のまま (いま売った品は通常品として並ぶ)。`, "sys");
   floatGold(price);
   return true;
 }
