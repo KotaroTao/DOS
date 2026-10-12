@@ -47,7 +47,7 @@ Playwrightが別の場所にある場合は `NODE_PATH` を指定する。確認
 
 [現在の14種一覧](states-review/popup-gallery.png) · [盤面](states-review/board.png) · [偉大なる死体の選択画面](states-review/corpseGreat-popup.png) · [検査結果](states-review/checks.json)
 
-追加原画 `props-c-master.png`（1536×1024、透過PNG）は、あたたかい冒険者・偉大なる鎧の人物・乾いた泉・風化した骨を別々に描いた。元の素材集を参照して画像生成し、`crypt-props-c.webp`（約377KiB）として出荷する。手順3当初の比較画像は以前の記録として保持する。
+追加原画 `props-c-master.png`（1536×1024、透過PNG）は、顔をフードで隠し、片腕を投げ出して力尽きた冒険者・偉大なる鎧の人物・乾いた泉・風化した骨を別々に描いた。元の素材集を参照して画像生成し、`crypt-props-c.webp`（約337KiB）として出荷する。手順3当初の比較画像は以前の記録として保持する。
 
 - 死体は `corpseGreat` を優先し、次に `corpseWarm`、どちらもなければ風化した死体を描く。回収・調査後も同じ姿が残り、魂火だけが消える。全長は探索者の身長と同じ基準を維持する。
 - 泉は `cleared` で空の鉢へ切り替える。再度飲めず、オート移動の未解決対象にも戻らない。回復量・呪い・使用回数は変更しない。
@@ -66,3 +66,5 @@ node tools/crypt/verify-states.cjs
 # 従来の操作・装いの確認画像を一時フォルダへ出す場合
 CRYPT_REVIEW_OUT=/tmp/crypt-actors-review node tools/crypt/verify-actors.cjs
 ```
+
+あたたかい死体は、眠っているような仰向け・組んだ手の姿を改め、顔の見えないフードと崩れた姿勢、折れた短剣で探索中の死を示す。変更前の原画は `fixes/props-c-before-hidden-face.png` に保持。
