@@ -988,7 +988,11 @@ export function openTrainSheet(uid, onChange = null) {
     if (e.level < cap && (G.soulPts || 0) < plan.next) scroll.appendChild(el("div", "sp-short", `✦があと ${plan.next - (G.soulPts || 0)} 足りない ― 迷宮で敵を倒すと得られる`));
     else scroll.appendChild(el("div", "sp-note", `所持 ✦${G.soulPts || 0}`));
     // 魂の残火でLv上限を上げる (上限に届いた魂を伸ばし続ける手段)
-    if ((G.embers || 0) > 0 || e.level >= cap) {
+    // 無限迷宮の灯番では ✦Soul でも上げられる (費用 = いまの Lv から次の Lv へ上がるのに要る ✦)
+    const bySoul = !!(game.capBySoulOk && game.capBySoulOk());
+    if (bySoul) {
+      scroll.appendChild(el("div", "sp-note", `Lv上限 +1 に ✦${game.raiseCapSoulCost(e)} か 残火${emberCostOf(e.clsKey)}つ${e.capBonus ? `（+${e.capBonus} 済）` : ""}`));
+    } else if ((G.embers || 0) > 0 || e.level >= cap) {
       const need = emberCostOf(e.clsKey);
       scroll.appendChild(el("div", "sp-note", `魂の残火 ${G.embers || 0} ・ Lv上限 +1 に ${need}つ${e.capBonus ? `（残火で +${e.capBonus} 済）` : ""}`));
       if ((SOUL_CLASSES[e.clsKey] || {}).unique) scroll.appendChild(el("div", "sp-note", emberCapLines(e)[0]));
@@ -1005,11 +1009,20 @@ export function openTrainSheet(uid, onChange = null) {
       if (plan.n >= 2) items.push({ label: plan.to >= cap ? "上限まで" : "まとめて", sub: `→ Lv${plan.to}`, kind: "secondary",
         cost: { kind: "soul", n: plan.cost }, onTap: (h) => doTrain(h, Infinity) });
     }
+    const bySoul = !!(e && game.capBySoulOk && game.capBySoulOk());
+    const need = e ? emberCostOf(e.clsKey) : 0;
+    const emberOk = (G.embers || 0) >= need;
     if (e && ((G.embers || 0) > 0 || e.level >= cap)) {
-      const need = emberCostOf(e.clsKey);
-      items.push({ label: "Lv上限を上げる", sub: `Lv上限 ${cap} → ${cap + 1}`, kind: e.level >= cap ? "primary" : "secondary",
-        cost: { kind: "ember", n: need }, disabled: (G.embers || 0) < need,
+      items.push({ label: "Lv上限を上げる", sub: `Lv上限 ${cap} → ${cap + 1}`, kind: e.level >= cap && (emberOk || !bySoul) ? "primary" : "secondary",
+        cost: { kind: "ember", n: need }, disabled: !emberOk,
         onTap: (h) => confirmRaiseCap(e, () => { h.update({ footer: footer() }); if (onChange) onChange(); }) });
+    }
+    // 無限迷宮の灯番: ✦Soul で Lv上限を上げる (いまの Lv から次の Lv へ上がるのに要る ✦ と同じ)
+    if (bySoul) {
+      const sn = game.raiseCapSoulCost(e);
+      items.push({ label: "Lv上限を上げる", sub: `Lv上限 ${cap} → ${cap + 1}`, kind: e.level >= cap && !emberOk ? "primary" : "secondary",
+        cost: { kind: "soul", n: sn }, disabled: (G.soulPts || 0) < sn,
+        onTap: (h) => { if (game.raiseSoulCap(uid, { by: "soul" })) { h.update({ footer: footer() }); if (onChange) onChange(); } } });
     }
     items.push({ label: "閉じる", kind: "ghost", onTap: (h) => h.close() });
     return items;
