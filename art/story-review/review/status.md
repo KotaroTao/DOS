@@ -2,7 +2,7 @@
 
 書き出し: `node tools/storyart/review.mjs` (build.py も書き直す。手で直さない)。
 
-場面: 出荷済み 44 ・ 出荷済み (任意の修正あり) 14 ・ 未着手 (指示あり) 42
+場面: 出荷済み 54 ・ 出荷済み (任意の修正あり) 14 ・ 未着手 (指示あり) 54
 
 | 章 | 場面 | 題 | 状態 | 確認ページ |
 |---|---|---|---|---|
@@ -61,16 +61,16 @@
 | 第4章「王都の地下」 | `mem_w17` | 水の底の戴冠 | 出荷済み | [見る](chapter4.md#mem_w17) |
 | 第4章「王都の地下」 | `report_w17` | 杯を遠ざけた手 | 出荷済み | [見る](chapter4.md#report_w17) |
 | 第4章「王都の地下」 | `ch4_end` | 二つ並んだ影 | 出荷済み | [見る](chapter4.md#ch4_end) |
-| 第5章「灼熱の洞」 | `w18_blade` | 手放された刃 | 未着手 (指示あり) | [見る](chapter5.md#w18_blade) |
-| 第5章「灼熱の洞」 | `report_w18` | 床の下の熱 | 未着手 (指示あり) | [見る](chapter5.md#report_w18) |
-| 第5章「灼熱の洞」 | `w19_husks` | 同じ顔の器 | 未着手 (指示あり) | [見る](chapter5.md#w19_husks) |
-| 第5章「灼熱の洞」 | `irene_husks` | 締め直された継ぎ目 | 未着手 (指示あり) | [見る](chapter5.md#irene_husks) |
-| 第5章「灼熱の洞」 | `report_w19` | 燃やされる器 | 未着手 (指示あり) | [見る](chapter5.md#report_w19) |
-| 第5章「灼熱の洞」 | `w20_cup` | 三百年分の一行 | 未着手 (指示あり) | [見る](chapter5.md#w20_cup) |
-| 第5章「灼熱の洞」 | `report_w20` | 床に置かれた杯 | 未着手 (指示あり) | [見る](chapter5.md#report_w20) |
-| 第5章「灼熱の洞」 | `mem_w21` | 大釜の前の二人 | 未着手 (指示あり) | [見る](chapter5.md#mem_w21) |
-| 第5章「灼熱の洞」 | `report_w21` | 冷えていく指先 | 未着手 (指示あり) | [見る](chapter5.md#report_w21) |
-| 第5章「灼熱の洞」 | `ch5_end` | 底のない穴の上で | 未着手 (指示あり) | [見る](chapter5.md#ch5_end) |
+| 第5章「灼熱の洞」 | `w18_blade` | 手放された刃 | 出荷済み | [見る](chapter5.md#w18_blade) |
+| 第5章「灼熱の洞」 | `report_w18` | 床の下の熱 | 出荷済み | [見る](chapter5.md#report_w18) |
+| 第5章「灼熱の洞」 | `w19_husks` | 同じ顔の器 | 出荷済み | [見る](chapter5.md#w19_husks) |
+| 第5章「灼熱の洞」 | `irene_husks` | 締め直された継ぎ目 | 出荷済み | [見る](chapter5.md#irene_husks) |
+| 第5章「灼熱の洞」 | `report_w19` | 燃やされる器 | 出荷済み | [見る](chapter5.md#report_w19) |
+| 第5章「灼熱の洞」 | `w20_cup` | 三百年分の一行 | 出荷済み | [見る](chapter5.md#w20_cup) |
+| 第5章「灼熱の洞」 | `report_w20` | 床に置かれた杯 | 出荷済み | [見る](chapter5.md#report_w20) |
+| 第5章「灼熱の洞」 | `mem_w21` | 大釜の前の二人 | 出荷済み | [見る](chapter5.md#mem_w21) |
+| 第5章「灼熱の洞」 | `report_w21` | 冷えていく指先 | 出荷済み | [見る](chapter5.md#report_w21) |
+| 第5章「灼熱の洞」 | `ch5_end` | 底のない穴の上で | 出荷済み | [見る](chapter5.md#ch5_end) |
 | 第6章「氷結回廊」 | `w22_coat` | 風が受け止めたもの | 未着手 (指示あり) | [見る](chapter6.md#w22_coat) |
 | 第6章「氷結回廊」 | `report_w22` | 寒い玉座の間 | 未着手 (指示あり) | [見る](chapter6.md#report_w22) |
 | 第6章「氷結回廊」 | `w23_names` | 空けてあった柱 | 未着手 (指示あり) | [見る](chapter6.md#w23_names) |
@@ -103,6 +103,28 @@
 | 第8章「嵐の尖塔」 | `report_w33` | 百年目の青空 | 未着手 (指示あり) | [見る](chapter8.md#report_w33) |
 | 第8章「嵐の尖塔」 | `irene_rain` | 雨の音 | 未着手 (指示あり) | [見る](chapter8.md#irene_rain) |
 | 第8章「嵐の尖塔」 | `ch8_end` | 雲の向こうの橋 | 未着手 (指示あり) | [見る](chapter8.md#ch8_end) |
+| 第9章「闘技場跡」 | `w34_glove` | 置いていった手袋 | 未着手 (指示あり) | [見る](chapter9.md#w34_glove) |
+| 第9章「闘技場跡」 | `report_w34` | 空の上の町 | 未着手 (指示あり) | [見る](chapter9.md#report_w34) |
+| 第9章「闘技場跡」 | `w35_lamps` | 番号の灯籠 | 未着手 (指示あり) | [見る](chapter9.md#w35_lamps) |
+| 第9章「闘技場跡」 | `report_w35` | 使い回された魂 | 未着手 (指示あり) | [見る](chapter9.md#report_w35) |
+| 第9章「闘技場跡」 | `w36_nook` | 灯番の子 | 未着手 (指示あり) | [見る](chapter9.md#w36_nook) |
+| 第9章「闘技場跡」 | `report_w36` | 玉座と観客席 | 未着手 (指示あり) | [見る](chapter9.md#report_w36) |
+| 第9章「闘技場跡」 | `irene_firstdoll` | 最初の人形 | 未着手 (指示あり) | [見る](chapter9.md#irene_firstdoll) |
+| 第9章「闘技場跡」 | `mem_w37` | 十三度目の灯 | 未着手 (指示あり) | [見る](chapter9.md#mem_w37) |
+| 第9章「闘技場跡」 | `report_w37` | 休みのない百年 | 未着手 (指示あり) | [見る](chapter9.md#report_w37) |
+| 第9章「闘技場跡」 | `irene_rest` | 休む灯 | 未着手 (指示あり) | [見る](chapter9.md#irene_rest) |
+| 第9章「闘技場跡」 | `ch9_end` | 捨てられた魂の行き先 | 未着手 (指示あり) | [見る](chapter9.md#ch9_end) |
+| 第10章「地底大空洞」 | `w38_lamp` | 名を思い出さない灯 | 未着手 (指示あり) | [見る](chapter10.md#w38_lamp) |
+| 第10章「地底大空洞」 | `report_w38` | 底で灯を拾う者 | 未着手 (指示あり) | [見る](chapter10.md#report_w38) |
+| 第10章「地底大空洞」 | `w39_tags` | 宰相の字 | 未着手 (指示あり) | [見る](chapter10.md#w39_tags) |
+| 第10章「地底大空洞」 | `report_w39` | 呼ばれなかった名 | 未着手 (指示あり) | [見る](chapter10.md#report_w39) |
+| 第10章「地底大空洞」 | `irene_names` | 名を呼ぶ人 | 未着手 (指示あり) | [見る](chapter10.md#irene_names) |
+| 第10章「地底大空洞」 | `w40_eyes` | それでも、底へ | 未着手 (指示あり) | [見る](chapter10.md#w40_eyes) |
+| 第10章「地底大空洞」 | `report_w40` | 三百年の墓守 | 未着手 (指示あり) | [見る](chapter10.md#report_w40) |
+| 第10章「地底大空洞」 | `mem_w41` | 階段の前のふたり | 未着手 (指示あり) | [見る](chapter10.md#mem_w41) |
+| 第10章「地底大空洞」 | `report_w41` | 王の資格 | 未着手 (指示あり) | [見る](chapter10.md#report_w41) |
+| 第10章「地底大空洞」 | `irene_candle` | 消せない灯 | 未着手 (指示あり) | [見る](chapter10.md#irene_candle) |
+| 第10章「地底大空洞」 | `ch10_end` | 第一部の終わり | 未着手 (指示あり) | [見る](chapter10.md#ch10_end) |
 | 序章 | `irene_repair` | 砕けても、名は消えない | 出荷済み | [見る](chapter0.md#irene_repair) |
 | 第1章「師の灯」 | `irene_familiar` | 名で呼べる距離 | 出荷済み | [見る](chapter1.md#irene_familiar) |
 | 第3章「魂脈の根」 | `irene_trust` | 扉を開けた日のこと | 出荷済み | [見る](chapter3.md#irene_trust) |
@@ -142,6 +164,14 @@
 | 由来 | `w31` | 嵐を鳴らす鐘楼 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_w31) |
 | 由来 | `w32` | 雷の落ちる回廊 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_w32) |
 | 由来 | `w33` | 嵐の尖塔の頂 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_w33) |
+| 由来 | `w34` | 雲を渡る石橋 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_w34) |
+| 由来 | `w35` | 闘獣の檻 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_w35) |
+| 由来 | `w36` | 亡き観客の階段席 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_w36) |
+| 由来 | `w37` | 血の砂の闘技場 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_w37) |
+| 由来 | `w38` | 灯籠の吹き溜まり | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_w38) |
+| 由来 | `w39` | 黒い灯の地底湖 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_w39) |
+| 由来 | `w40` | 名を刻む石窟 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_w40) |
+| 由来 | `w41` | 底なしの大伽藍 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_w41) |
 | 由来 | `ws1` | 沈んだ礼拝堂 | 出荷済み | [見る](dungeons.md#lore_ws1) |
 | 由来 | `ws2` | 石眠りの石切り場 | 出荷済み | [見る](dungeons.md#lore_ws2) |
 | 由来 | `ws3` | 霧の迷い森 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_ws3) |
@@ -159,3 +189,8 @@
 | 由来 | `ws15` | 雷鳥の巣 | 出荷済み | [見る](dungeons.md#lore_ws15) |
 | 由来 | `ws16` | 錆びた避雷針の林 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_ws16) |
 | 由来 | `ws17` | 雲上の庭 | 出荷済み | [見る](dungeons.md#lore_ws17) |
+| 由来 | `ws18` | 勝者の控え所 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_ws18) |
+| 由来 | `ws19` | 決闘の小円形場 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_ws19) |
+| 由来 | `ws20` | 大空洞の主の寝床 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_ws20) |
+| 由来 | `ws21` | 化石竜の墓所 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_ws21) |
+| 由来 | `ws22` | 水晶の鉱脈 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_ws22) |
