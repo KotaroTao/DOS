@@ -16,7 +16,7 @@ export default {
     200 KONGOUMUSOU`,
   skills: {
     // Lv15 の固有技: 功徳を込めた掌打。打てば仲間が癒える
-    MONK_KUDOKUSHOU: { name: "功徳掌", mp: 6, kind: "phys", power: 1.2, pierce: 0.3, bladeHeal: 0.15, healCap: 0.1, target: "enemy", desc: "功徳を込めた掌打。防御を一部抜き、味方全員を少し癒す" },
+    MONK_KUDOKUSHOU: { name: "功徳掌", mp: 6, kind: "phys", power: 1.2, pierce: 0.3, bladeHeal: 0.15, healCap: 0.1, target: "enemy", desc: "功徳を込めた掌打。物理貫通30%、味方全員を少し癒す" },
     MONK_SEKEN: { name: "施拳", mp: 10, kind: "phys", power: 1.3, hits: 2, acc: 0.4, bladeHeal: 0.09, healCap: 0.12, target: "enemy", desc: "二打ちの拳の余韻が仲間を癒す" },
     MONK_MYOUOU: { name: "明王の構え", mp: 12, kind: "buff", buff: { atk: 1.4 }, stance: "counter", target: "self", tech: true, desc: "明王の怒りを宿し、攻めつつ反撃に構える" },
     MONK_CHIMYAKU: { name: "地脈掌", mp: 20, kind: "phys", power: 4.4, element: "earth", acc: 0.6, drain: 0.15, target: "enemy", desc: "大地の気を通す掌打。生気を吸い上げる" },

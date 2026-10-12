@@ -10982,7 +10982,7 @@ function applyImpact(res) {
         const st = statusFxKind(h.status);
         if (st) spawnFx(fx.skill, st, pos.cx, pos.cy, ht0 + 50 * spd, spd, { seed }); // 武器の追加効果・技の状態異常
       }
-      // 付く効果の印 (吸収・防御無視・とどめ・怯み・耐性ダウン・強化打ち消し・封印・重力・盗み・即死)
+      // 付く効果の印 (吸収・物理貫通・とどめ・怯み・耐性ダウン・強化打ち消し・封印・重力・盗み・即死)
       if (prof && !h.immune) {
         for (const r of prof.riders) {
           if (sig && !r.onDeath && !r.onFatal) continue; // 看板技は専用の演出が効果を描く (とどめ・即死の決まった印だけ重ねる)
