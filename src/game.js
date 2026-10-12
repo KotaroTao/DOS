@@ -3652,7 +3652,8 @@ function drawBoardIcons(lt, now, hx, hy) {
     const painted = activeCfg().id === "w01" ? cryptPropBitmap(cryptPropKey(cell, bossDoorHere())) : null;
     const b = painted || plainBitmap(icon);
     const size = Math.min(r.w * (here ? 0.62 : 0.86), r.h * (here ? 0.5 : 0.62));
-    const maxW = painted ? r.w * (here ? 0.55 : 0.86) : size;
+    // 横たわる人物の全長を、探索者の身長と同じ基準で描く。
+    const maxW = painted && cell.type === "corpse" ? r.h * (here ? 0.76 : 0.98) : painted ? r.w * (here ? 0.55 : 0.86) : size;
     const maxH = painted ? r.h * (here ? 0.5 : 0.68) : size;
     const fit = Math.min(maxW / b.w, maxH / b.h), iconW = b.w * fit, iconH = b.h * fit;
     const bottom = r.y + r.h / 2 + (painted ? iconH : size) / 2 + r.h * 0.04;
@@ -3662,16 +3663,16 @@ function drawBoardIcons(lt, now, hx, hy) {
     // まだあたたかい死体 (魂未回収) には青い人魂
     if (cell.type === "corpse" && cell.corpseWarm && !cell.cleared) {
       const phase = now * 0.0017 + x * 1.9 + y * 0.7;
-      const sway = REDUCED_MOTION ? 0 : Math.sin(phase) * size * 0.1;
-      const bob = REDUCED_MOTION ? 0 : Math.sin(phase * 1.37) * size * 0.07;
+      const sway = REDUCED_MOTION ? 0 : Math.sin(phase) * size * 0.035;
+      const bob = REDUCED_MOTION ? 0 : Math.sin(phase * 1.37) * size * 0.025;
       const breath = REDUCED_MOTION ? 1 : 1 + Math.sin(phase * 1.8) * 0.045;
       const wisp = activeCfg().id === "w01" ? cryptPropBitmap("wisp") : null;
-      // 従来の0.5倍枠から1.5倍枠へ。根元を遺体に置き、上へ立ちのぼらせる。
+      // 元の大きさと高さを保ち、小さくゆらめかせる。
       vctx.save();
-      vctx.translate(cx + size * 0.22 + sway, bottom - size * 0.3 + bob);
+      vctx.translate(cx + size * 0.22 + sway, bottom - size * 0.62 + bob);
       vctx.rotate(REDUCED_MOTION ? 0 : Math.sin(phase * 0.83) * 0.085);
       vctx.scale(1 / breath, breath);
-      drawBmpFit(wisp || plainBitmap(ICONS.wisp), 0, 0, size * 1.5, size * 1.5, 1, 0.94);
+      drawBmpFit(wisp || plainBitmap(ICONS.wisp), 0, 0, size * 0.5, size * 0.5, 1, 0.92);
       vctx.restore();
     }
     // 宝箱のきらめき
@@ -3836,7 +3837,7 @@ function drawPaintedWalker(b, hx, hy, now) {
     bob = G.heroAnim ? -Math.sin(Math.min(1, (now - G.heroAnim.t0) / Math.max(1, G.heroAnim.dur)) * Math.PI) * 1.5 : Math.sin(now * 0.0025) * 0.35;
   }
   drawWalkerShadow(x, feet, [CARD_W * 0.23, CARD_W * 0.14], [0.25, 0.4], lift, now);
-  const box = drawBmpFit(b, x, feet - lift + bob, CARD_W * (share ? 0.54 : 0.76), CARD_H * (share ? 0.76 : 0.88));
+  const box = drawBmpFit(b, x, feet - lift + bob, CARD_W * (share ? 0.54 : 0.76), CARD_H * (share ? 0.76 : 0.98));
   drawLanternGlow(box.x + box.W * b.lamp[0], box.y + box.H * b.lamp[1], now);
 }
 // 駒の絵の中の灯 (下半分にある明るい黄の点の重心)。向きごとに一度だけ求める
