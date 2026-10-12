@@ -263,8 +263,8 @@ export const BLADE_HEAL_CAP = 0.25;
 
 // 職業ランクパッシブのLvを引く (souls.js の recalcDoll が passiveMap を埋める)
 const pv = (a, key) => (a && a.passiveMap && a.passiveMap[key]) || 0;
-// 動体視力で消える敵の回避の割合 (DYNAMIC_VISION。味方 → 敵の物理だけ、金属の魔物は除く)
-const visionCut = (actor, tgt) => actor && actor.side === "party" && tgt && tgt.side === "enemy" && !isMetal(tgt)
+// 動体視力の命中率加算 (DYNAMIC_VISION。味方 → 敵の物理だけ、金属の魔物は除く)
+const visionHitBonus = (actor, tgt) => actor && actor.side === "party" && tgt && tgt.side === "enemy" && !isMetal(tgt)
   ? DYNAMIC_VISION[Math.min(3, pv(actor, "dynamicVision"))] || 0 : 0;
 // 職ごとの固有パッシブ (jobkit の perks)。passiveMap のうち fx を持つものを {c: 成分, lv, label} の列で返す。
 // passiveMap は recalcDoll が作り直すたびに別の器になるので、器ごとに覚えておく
@@ -373,9 +373,9 @@ const FLEE_BASE = 0.55, FLEE_SLOPE = 0.35, FLEE_MIN = 0.05, FLEE_MAX = 0.95, FLE
 // どの層でも8割前後にそろう (模擬戦)。敵がかわす側 (味方 → 敵) も同じ相対式を使う
 const EVADE_EVEN = 0.20, EVADE_SLOPE = 0.20, EVADE_MAX = 0.40;
 // 動体視力 (dynamicVision、戦士・狩人・暗殺者・武僧・聖戦士・修羅・勇者・竜騎士): 味方の物理が敵に向かう時、
-// 敵の回避 (AGI差・回避持ち) をその割合だけ消す。素の外れ6%は消さないので、これだけでは命中94%を超えない。
+// 命中率を Lv1/2/3 = 10/15/20ポイント上げる (上限100%)。
 // 重ねがけはしない (メイン魂・サブ魂のうち一番高い Lv だけ — passiveMap が最大を取る)。金属の魔物の回避は消さない
-const DYNAMIC_VISION = [0, 0.30, 0.50, 0.70];
+const DYNAMIC_VISION = [0, 0.10, 0.15, 0.20];
 // 強敵の回避の上限 (2026-10 ユーザーの指示): 主・強敵・ミミック・出来事の強敵は雑魚より1〜2ランク上の体で、
 // 素早さも雑魚の中央値の1.3〜2.0倍ある (第1層・俊敏・神速の強敵ほど速い)。手番の並び・逃走ではその速さのまま扱い、
 // 味方の物理をかわす計算でだけ「この階の基準の素早さ (baseAgi = 推奨Lvの隊のAGI) × STRONG_EVADE_CAP」までに抑える。
@@ -1478,13 +1478,13 @@ export class Battle {
   // 物理が外れる確率 (見切り・必中は別): 素の命中漏れ + 対象の敏捷(AGI)による回避 + 回避持ちの追加回避。
   // 技の命中補正 (acc) は命中率に直接加算する (0.1 = +10%、1 = 必中)。目つぶしは外れる確率を足す
   _missP(tgt, actor, opt = {}) {
-    const evade = ((isMetal(tgt) ? metalEvade(tgt) : this._evadeBase(tgt, actor)) + (tgt.evasive ? 0.15 : 0)) * (1 - visionCut(actor, tgt))
+    const evade = (isMetal(tgt) ? metalEvade(tgt) : this._evadeBase(tgt, actor)) + (tgt.evasive ? 0.15 : 0)
       + (tgt.side === "party" && actor.side === "enemy" ? this._perkSum(tgt, "evade", { tgt: actor }) + _partyEvadeBonus : 0); // 固有パッシブ (evade)・手がかりの恵み
     let missP = 0.06 + evade;
     const blind = this._bm(actor, "hit");
     if (blind < 1) missP += Math.min(0.4, 1 - blind);
     if (actor.side === "party" && _partyHitBonus) missP = Math.max(0, missP - _partyHitBonus); // 手がかりの恵み (暗がりの目)
-    return Math.max(0, Math.min(1, missP) - Math.min(1, Math.max(0, opt.acc || 0)));
+    return Math.max(0, Math.min(1, missP) - Math.min(1, Math.max(0, opt.acc || 0)) - visionHitBonus(actor, tgt));
   }
   // 見切り (parry) で物理を丸ごとかわす確率
   _parryP(t) { const lv = pv(t, "parry"); return lv >= 2 ? 0.15 : lv ? 0.10 : 0; }
