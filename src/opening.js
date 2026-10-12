@@ -315,6 +315,7 @@ export function showOpening(onDone) {
   let pressT = 0, pressAt = 0, longFired = false;
   const down = (ev) => {
     if (skip.contains(ev.target)) return;
+    if (voice.consumeRetry()) { longFired = true; return; }
     pressAt = performance.now(); longFired = false;
     clearTimeout(pressT);
     hold.classList.add("on");
@@ -338,6 +339,7 @@ export function showOpening(onDone) {
     if (closed) return;
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault(); e.stopPropagation();
+      if (voice.consumeRetry()) return;
       if (phase === "title") close(); else advance();
     } else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(); }
     else e.stopPropagation(); // オープニング中はゲームへの入力を通さない
@@ -349,11 +351,9 @@ export function showOpening(onDone) {
 
   document.body.appendChild(wrap);
   black.classList.add("on", "instant");
-  requestAnimationFrame(() => setTimeout(() => {
-    if (closed) return;
-    layout();
-    black.classList.remove("instant");
-    enterScene();
-    raf = requestAnimationFrame(loop);
-  }, 40));
+  // 開始ボタンの操作が有効な間に読み上げを要求する。
+  layout();
+  black.classList.remove("instant");
+  enterScene();
+  raf = requestAnimationFrame(loop);
 }
