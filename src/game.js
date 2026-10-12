@@ -1052,6 +1052,8 @@ function infSpotInfo(lv) {
   return info;
 }
 function abyssLevel(d) { return infLevel(d); }
+// 無限迷宮の死体があたたかい死体になる割合は、本編 (hazardsAt の warmChance) の1.2倍 (2026-10-12 ユーザーの指示)
+const INF_WARM_MUL = 1.2;
 function abyssCfg() {
   const d = G.abyss.depth;
   const lv = infLevel(d);
@@ -1069,7 +1071,7 @@ function abyssCfg() {
     pool: [...info.pool], deepPool: [...info.pool],
     floorHaz: fh,
     trapRate: h.trapRate, poisonRate: haz ? h.harmRate : 0, pitRate: haz ? h.fallRate : 0,
-    warmChance: h.warmChance,
+    warmChance: Math.min(1, h.warmChance * INF_WARM_MUL), // 死体のうち、あたたかい死体になる割合 (本編の1.2倍)
     lootLv: lootBand(lv),
     _abyss: true,
   };
