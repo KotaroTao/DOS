@@ -50,6 +50,7 @@ import { kingCanvas, prewarmTown } from "./townart.js";
 import { prewarmStoryArt } from "./storyart.js";
 import { drawBattleBackdrop } from "./backdrops.js";
 import { paintCryptFloor, paintCryptSlabs, paintCryptWalls, CATACOMB, genericMaterial, boardSeed, hexRgb } from "./crypt.js";
+import { cryptPainting, paintCryptMaterials, paintCryptMasonry } from "./cryptpaint.js";
 import { showTitle } from "./title.js";
 import { RARITIES, rarityKey, rarityColor, rarityLabel, rollRarity, layerRarityUp } from "./rarity.js";
 // ---- UI 基盤 (Phase 0)。新しい UI モジュールは game.js を import せず、ctx.js の UI/game/ops を通す ----
@@ -2828,7 +2829,7 @@ function renderBoard() {
 
 // ===== 盤面の静的な層 (床・墓石・壁) =====
 // art: 床と墓石の絵 (盤面+寸法+層+階の性質ごと。戦闘で寸法が変わっても戻った時に焼き直さないよう数枚保持)
-// scene: 踏破状況を反映した合成 (めくるたびに作り直す。論理解像度なので軽い)
+// scene: 踏破状況を反映した合成 (めくるたびに作り直し、静止中は再利用する)
 const BV = { art: null, artKey: "", artCache: new Map(), scene: null, sctx: null, sceneKey: "", sceneHi: null, sceneHiKey: "",
   dark: null, dctx: null, darkBase: null, darkKey: "", parts: [], flipSeen: null };
 function ensureBoardArt() {
@@ -2836,19 +2837,23 @@ function ensureBoardArt() {
   const L = battleLayer();
   const sp = specialDef();
   const crypt = L === 1;
+  const painting = activeCfg().id === "w01" ? cryptPainting() : null;
   const seed = boardSeed(b, dungeonSeed(activeCfg()) * 7919 + G.floor);
   const hz = harmHaz();
-  const key = `${VW}x${VH}|${CARD_W}x${CARD_H}|${seed}|${L}|${G.eliteFloor ? "e" : ""}|${sp ? sp.id : ""}|${hz.name}`;
+  const key = `${VW}x${VH}|${CARD_W}x${CARD_H}|${seed}|${L}|${G.eliteFloor ? "e" : ""}|${sp ? sp.id : ""}|${hz.name}|${painting ? "painted" : "raster"}`;
   if (BV.artKey === key && BV.art) return BV.art;
   let art = BV.artCache.get(key);
   if (!art) {
     const mat = crypt ? CATACOMB : genericMaterial(dungeonTheme());
     const opt = { seed, cols: COLS, rows: ROWS, rect: cellRect, cells: b.cells, mat, elite: !!G.eliteFloor, accent: crypt && sp ? hexRgb(sp.accent) : null, harmStain: hz.look.stain, harmFx: hz.look.fx };
-    const fl = paintCryptFloor(VW, VH, opt);
-    const slabs = crypt ? paintCryptSlabs(VW, VH, opt) : paintOldCardBacks();
-    art = { key, seed, floor: fl.canvas, candles: fl.candles, slabs, mat, crypt };
+    if (painting) art = { key, seed, mat, crypt, ...paintCryptMaterials(VW, VH, opt, painting) };
+    else {
+      const fl = paintCryptFloor(VW, VH, opt);
+      const slabs = crypt ? paintCryptSlabs(VW, VH, opt) : paintOldCardBacks();
+      art = { key, seed, floor: fl.canvas, candles: fl.candles, slabs, mat, crypt, scale: 1 };
+    }
     BV.artCache.set(key, art);
-    while (BV.artCache.size > 3) BV.artCache.delete(BV.artCache.keys().next().value);
+    while (BV.artCache.size > 2) BV.artCache.delete(BV.artCache.keys().next().value);
   }
   BV.art = art; BV.artKey = key; BV.sceneKey = "";
   return art;
@@ -2874,18 +2879,18 @@ function paintOldCardBacks() {
 }
 function ensureBoardScene() {
   const art = ensureBoardArt();
-  const cells = G.board.cells;
+  const cells = G.board.cells, sourceScale = art.scale, sceneScale = Math.max(2, sourceScale);
   let sig = BV.artKey + "|" + (G.flipAnim ? G.flipAnim.x + "," + G.flipAnim.y : "") + "|";
   for (const row of cells) for (const c of row) sig += c.revealed ? "1" : "0";
   if (sig === BV.sceneKey && BV.scene) return;
   BV.sceneKey = sig;
-  if (!BV.scene || BV.scene.width !== VW * 2 || BV.scene.height !== VH * 2) {
+  if (!BV.scene || BV.scene.width !== VW * sceneScale || BV.scene.height !== VH * sceneScale) {
     BV.scene = document.createElement("canvas");
-    BV.scene.width = VW * 2; BV.scene.height = VH * 2;
+    BV.scene.width = VW * sceneScale; BV.scene.height = VH * sceneScale;
     BV.sctx = BV.scene.getContext("2d");
   }
   const g = BV.sctx;
-  g.setTransform(2, 0, 0, 2, 0, 0);
+  g.setTransform(sceneScale, 0, 0, sceneScale, 0, 0);
   g.globalCompositeOperation = "source-over"; g.globalAlpha = 1; g.imageSmoothingEnabled = true;
   g.imageSmoothingQuality = "high";
   // 1) 盤全体の床を闇に沈める (蓋の下と溝)
@@ -2900,14 +2905,14 @@ function ensureBoardScene() {
     const c = cells[y][x], r = cellRect(x, y);
     const x0 = r.x - (!c.walls.w && rev(x - 1, y) ? half : 0), x1 = r.x + r.w + (!c.walls.e && rev(x + 1, y) ? half : 0);
     const y0 = r.y - (!c.walls.n && rev(x, y - 1) ? half : 0), y1 = r.y + r.h + (!c.walls.s && rev(x, y + 1) ? half : 0);
-    g.drawImage(art.floor, x0, y0, x1 - x0, y1 - y0, x0, y0, x1 - x0, y1 - y0);
+    g.drawImage(art.floor, x0 * sourceScale, y0 * sourceScale, (x1 - x0) * sourceScale, (y1 - y0) * sourceScale, x0, y0, x1 - x0, y1 - y0);
   }
   for (let j = 1; j < ROWS; j++) for (let i = 1; i < COLS; i++) {
     if (!rev(i - 1, j - 1) || !rev(i, j - 1) || !rev(i - 1, j) || !rev(i, j)) continue;
     const a = cells[j - 1][i - 1], d = cells[j][i];
     if (a.walls.e || a.walls.s || d.walls.n || d.walls.w) continue;
     const r = cellRect(i, j);
-    g.drawImage(art.floor, r.x - GAP, r.y - GAP, GAP, GAP, r.x - GAP, r.y - GAP, GAP, GAP);
+    g.drawImage(art.floor, (r.x - GAP) * sourceScale, (r.y - GAP) * sourceScale, GAP * sourceScale, GAP * sourceScale, r.x - GAP, r.y - GAP, GAP, GAP);
   }
   // 3) 墓石の蓋 (落ち影 → 本体)
   g.fillStyle = "rgba(0,0,0,0.55)";
@@ -2919,7 +2924,7 @@ function ensureBoardScene() {
   for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
     if (rev(x, y)) continue;
     const r = cellRect(x, y);
-    g.drawImage(art.slabs, r.x, r.y, r.w, r.h, r.x, r.y, r.w, r.h);
+    g.drawImage(art.slabs, r.x * sourceScale, r.y * sourceScale, r.w * sourceScale, r.h * sourceScale, r.x, r.y, r.w, r.h);
   }
   // 4) 踏破したマスの石壁 (共有する辺は一度だけ) と交点の柱頭
   const walls = [], posts = new Map(), seen = new Set();
@@ -2933,7 +2938,8 @@ function ensureBoardScene() {
     if (c.walls.w && !seen.has(`v${x},${y}`)) { seen.add(`v${x},${y}`); walls.push({ x: L - 3, y: T, w: 6, h: B - T, horiz: false }); post(L, T); post(L, B); }
     if (c.walls.e && !seen.has(`v${x + 1},${y}`)) { seen.add(`v${x + 1},${y}`); walls.push({ x: R - 3, y: T, w: 6, h: B - T, horiz: false }); post(R, T); post(R, B); }
   }
-  paintCryptWalls(g, walls, [...posts.values()], art.mat, art.seed);
+  if (art.painting) paintCryptMasonry(g, walls, [...posts.values()], art.painting, art.seed);
+  else paintCryptWalls(g, walls, [...posts.values()], art.mat, art.seed);
   BV.sceneHiKey = "";
 }
 // 合成済みの盤面を実画素の寸法へ拡大した写し (毎フレームは等倍で貼るだけにする)
@@ -2945,7 +2951,8 @@ function boardSceneHi() {
     BV.sceneHi.width = view.width; BV.sceneHi.height = view.height;
   }
   const g = BV.sceneHi.getContext("2d");
-  g.imageSmoothingEnabled = false;
+  g.imageSmoothingEnabled = !!BV.art.painting;
+  g.imageSmoothingQuality = "high";
   g.drawImage(BV.scene, 0, 0, view.width, view.height);
   BV.sceneHiKey = key;
   return BV.sceneHi;
@@ -3699,9 +3706,10 @@ function drawFlipSlab(now) {
   vctx.fillStyle = "#000";
   vctx.fillRect(r.x + ox + 2 + lift * 5, r.y + oy + 4 + lift * 7, r.w, r.h);
   vctx.globalAlpha = a;
-  vctx.imageSmoothingEnabled = boardCamera.zoom > 1;
+  vctx.imageSmoothingEnabled = !!BV.art.painting || boardCamera.zoom > 1;
+  const sourceScale = BV.art.scale;
   const W = r.w * sc, H = r.h * sc;
-  vctx.drawImage(BV.art.slabs, r.x, r.y, r.w, r.h, r.x + r.w / 2 - W / 2 + ox, r.y + r.h / 2 - H / 2 + oy, W, H);
+  vctx.drawImage(BV.art.slabs, r.x * sourceScale, r.y * sourceScale, r.w * sourceScale, r.h * sourceScale, r.x + r.w / 2 - W / 2 + ox, r.y + r.h / 2 - H / 2 + oy, W, H);
   vctx.restore();
 }
 
