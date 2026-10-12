@@ -51,6 +51,7 @@ import { prewarmStoryArt } from "./storyart.js";
 import { drawBattleBackdrop } from "./backdrops.js";
 import { paintCryptFloor, paintCryptSlabs, paintCryptWalls, CATACOMB, genericMaterial, boardSeed, hexRgb } from "./crypt.js";
 import { cryptPainting, paintCryptMaterials, paintCryptMasonry } from "./cryptpaint.js";
+import { CORPSE_FAMILIES, CORPSE_STATES, corpseArtKey } from "./corpseart.js";
 import { prewarmCryptActors, cryptPropKey, cryptPropBitmap, cryptWalkerBitmap, cryptPropSprite } from "./cryptactors.js";
 import { showTitle } from "./title.js";
 import { RARITIES, rarityKey, rarityColor, rarityLabel, rollRarity, layerRarityUp } from "./rarity.js";
@@ -117,6 +118,13 @@ for (const id in ITEMS) {
 // 未鑑定の品はジャンルごとの伏せ絵 (剣の影 + ？ など) で描き、鑑定に成功して初めて本来の絵を見せる
 const resolveItemSprite = makeItemSpriteResolver(ITEMS);
 const paintedIcons = new Map(Object.keys(ICONS).filter(key => ["chest", "chestOpen", "stairs", "portal", "bossDoor", "trap", "event", "fountain", "fountainEmpty", "corpse", "corpseWarm", "corpseGreat", "wisp", "story", "ember", "gold", "poison", "guard", "start"].includes(key)).map(key => [ICONS[key], key]));
+const corpseIcons = {};
+for (const family of Object.keys(CORPSE_FAMILIES)) for (const state of CORPSE_STATES) {
+  const key = family === "warrior" ? state : `${state}_${family}`;
+  corpseIcons[key] = family === "warrior" ? ICONS[state] : { ...ICONS[state] };
+  paintedIcons.set(corpseIcons[key], key);
+}
+function corpseIcon(cell) { return corpseIcons[corpseArtKey(cell)]; }
 setSpriteResolver(spr => paintedIcons.has(spr) ? cryptPropSprite(paintedIcons.get(spr), spr) : resolveItemSprite(spr));
 // 装備の値段は性能 (能力値・属性・耐性・効果) から付け直す (src/pricing.js)。
 // 性能が同じ品は同じ値段、どこも同等以上の品は必ず高くなる
@@ -3612,7 +3620,7 @@ function cellIcon(cell) {
     cell.type === "chest" ? (cell.cleared ? ICONS.chestOpen : ICONS.chest) :
     cell.type === "trap" && !cell.cleared ? ICONS.trap :
     cell.type === "fountain" ? (cell.cleared ? ICONS.fountainEmpty : ICONS.fountain) :
-    cell.type === "corpse" ? (cell.corpseGreat ? ICONS.corpseGreat : cell.corpseWarm ? ICONS.corpseWarm : ICONS.corpse) :
+    cell.type === "corpse" ? corpseIcon(cell) :
     isPortalCell(cell) ? ICONS.portal :
     cell.type === "stairs" ? (bossDoorHere() ? ICONS.bossDoor : ICONS.stairs) :
     cell.type === "event" && !cell.cleared ? ICONS.event :
@@ -7533,7 +7541,7 @@ function resolveCorpse(cell) {
     showChoice(`偉大なる死体。尋常ならざる魂の気配がする。`, [
       { label: "魂を回収する", primary: true, fn: () => collectWarmCorpse(cell, clsKey, clsLabel) },
       { label: "立ち去る", fn: () => { cell.corpseSeen = true; log("偉大なる死体に手を触れず、立ち去った。", "sys"); renderBoard(); } }, // オート移動はもう向かわない
-    ], ICONS.corpseGreat, { banner: "★ 偉大なる死体 ★", accent: "#ffcf4a", logAs: true, lines: ["まれに死体が目覚めて襲ってくる。勝てば魂は必ず手に入る。"] });
+    ], corpseIcon(cell), { banner: "★ 偉大なる死体 ★", accent: "#ffcf4a", logAs: true, lines: ["まれに死体が目覚めて襲ってくる。勝てば魂は必ず手に入る。"] });
     return;
   }
   if (!cell.corpseWarm) {
@@ -7542,7 +7550,7 @@ function resolveCorpse(cell) {
     showChoice(`風化した死体が横たわっている。調べてみるか？`, [
       { label: "調べる", primary: true, fn: () => investigateCorpse(cell, clsKey, clsLabel) },
       { label: "立ち去る", fn: () => { cell.corpseSeen = true; log("死体には触れず、立ち去った。", "sys"); renderBoard(); } },
-    ], ICONS.corpse, { banner: "— 風化した死体 —", accent: "#8c866f", logAs: true });
+    ], corpseIcon(cell), { banner: "— 風化した死体 —", accent: "#8c866f", logAs: true });
     return;
   }
   // あたたかい死体: 回収するか立ち去るか選べる。立ち去れば死体は残る。
@@ -7550,7 +7558,7 @@ function resolveCorpse(cell) {
   showChoice(`まだあたたかい死体。魂が宿っている。`, [
     { label: "魂を回収する", primary: true, fn: () => collectWarmCorpse(cell, clsKey, clsLabel) },
     { label: "立ち去る", fn: () => { cell.corpseSeen = true; log("死体に手を触れず、立ち去った。", "sys"); renderBoard(); } },
-  ], ICONS.corpseWarm, { banner: "✦ あたたかい死体 ✦", accent: "#7fd0ff", logAs: true, lines: ["まれに死体が起き上がる。勝てば魂は必ず手に入る。"] });
+  ], corpseIcon(cell), { banner: "✦ あたたかい死体 ✦", accent: "#7fd0ff", logAs: true, lines: ["まれに死体が起き上がる。勝てば魂は必ず手に入る。"] });
 }
 
 // あたたかい死体/偉大なる死体の回収: 80%で魂を直接入手、20%で死体が起き上がりアンデッド戦。
@@ -7567,7 +7575,7 @@ function collectWarmCorpse(cell, clsKey, clsLabel) {
     log(riseLine, "dmg");
     SFX.die(); buzz([0, 40, 60, 40]);
     showEvent({
-      sprite: great ? ICONS.corpseGreat : ICONS.corpseWarm,
+      sprite: corpseIcon(cell),
       banner: great ? "★ 死体が目覚めた ★" : "☠ 死体が起き上がった ☠",
       title: riseLine,
       lines: ["打ち倒せば、宿っていた魂は必ず手に入る。"],
