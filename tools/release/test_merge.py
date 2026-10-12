@@ -73,6 +73,20 @@ class MergeTests(unittest.TestCase):
         self.assertEqual(gh.call_count, 2)
         self.assertNotIn("PUT", gh.call_args_list[1].args)
 
+    def test_cloud_cache_version_matches_commit(self):
+        run = dict(id=1, head_sha=MERGED, head_branch="main", status="completed", conclusion="success", html_url="https://example.test/run/1")
+        with patch.object(merge, "gh", side_effect=[pr(state="MERGED", mergeCommit=dict(oid=MERGED)), dict(workflow_runs=[run])]) as gh, \
+             patch.object(merge.urllib.request, "urlopen", return_value=io.BytesIO(f'const CACHE = "dos-{MERGED[:12]}-cloud-123456";'.encode())):
+            merge.release(self.args(False))
+        self.assertEqual(gh.call_count, 2)
+
+    def test_later_cloud_version_is_compared_without_run_id(self):
+        run = dict(id=1, head_sha=MERGED, head_branch="main", status="completed", conclusion="success", html_url="https://example.test/run/1")
+        with patch.object(merge, "gh", side_effect=[pr(state="MERGED", mergeCommit=dict(oid=MERGED)), dict(workflow_runs=[run]), dict(status="ahead")]) as gh, \
+             patch.object(merge.urllib.request, "urlopen", return_value=io.BytesIO(b'const CACHE = "dos-cccccccccccc-cloud-999";')):
+            merge.release(self.args(False))
+        self.assertIn(MERGED + "...cccccccccccc", gh.call_args_list[2].args[1])
+
     def test_later_publication_must_include_this_merge(self):
         run = dict(id=1, head_sha=MERGED, head_branch="main", status="completed", conclusion="success", html_url="https://example.test/run/1")
         for status, responses in [("ahead", [io.BytesIO(b'const CACHE = "dos-cccccccccccc";')]),
