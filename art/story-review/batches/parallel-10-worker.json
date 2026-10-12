@@ -1,0 +1,108 @@
+{
+  "worker": "10",
+  "branch": "codex/art-worker-10",
+  "baseCommit": "9990e76f75299e2b347b9354a7872cd384c9cc07",
+  "generationCalls": 9,
+  "generationLimit": 15,
+  "scenes": [
+    {
+      "id": "w39_tags",
+      "path": "art/story-review/chapter10/w39_tags.png",
+      "state": "ready",
+      "generationCalls": 2,
+      "visualReview": "弟子の顔・髪・黒金の外套・左腰の鞄、見える指と腕脚に増殖なし。隠れた指と脚は姿勢により判別不可。濁った黒い灯籠、紐付き木札、石で押さえた書きつけ、湖の灯の映り込み、無人の岩窟を確認。文字は判読不能。一門の印の追加なし。師・宰相本人なし。 主題の視認性を確認。",
+      "note": "背景建造物と灯籠を修正。修正前原画はart/story-review/fixes/w39_tags-before.png。",
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "9b8b406602b3f8a023f7c08cb67e47e214220826e63c6e57f945acd17562fb09",
+      "specifiedReferences": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/props.png"
+      ]
+    },
+    {
+      "id": "report_w39",
+      "path": "art/story-review/chapter10/report_w39.png",
+      "state": "ready",
+      "generationCalls": 1,
+      "visualReview": "王と弟子の顔・衣装、王の膝掛け、木札と赤い印のある布告を見比べる姿、宰相の空席、晴れた夕方の空、床の金の杯を確認。見える手足に増殖なし。王の脚と握った指は隠れて判別不可。文字は読めない走り書き。一門の印・先の秘密の追加なし。 主題の視認性を確認。",
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "d370cd45caf0879232693eaae0a6e6d88a1d29b5ff04c802399393d97cc8b88b",
+      "specifiedReferences": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/king.png",
+        "docs/art/story-refs/morden.png",
+        "art/story-review/chapter3/report_w12.png"
+      ]
+    },
+    {
+      "id": "irene_names",
+      "path": "art/story-review/chapter10/irene_names.png",
+      "state": "ready",
+      "generationCalls": 4,
+      "visualReview": "木札を読めない名前の走り書きに修正。イレーヌとセラの顔・髪・衣装、セラの木肌と黒鉄金縁の関節・胸の青白い灯・額の承認印、一本の白い蝋燭を確認。見える手と腕に増殖なし。脚と奥の指は画面外・重なりで判別不可。名札を二人で見る主題が本文・制作指示と一致。 主題の視認性を確認。",
+      "referencePreparation": "/workspace/generated_images/exec-18adffb1-a3e7-44af-bf83-f03317d3efd1.png",
+      "note": "参照上限エラー1回、参照準備1回、原画1回、修正1回。修正前はart/story-review/fixes/irene_names-before.png。",
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "2d85e2bfa4bc96c7a9c8e9dcef21a7a2d8cf4877826f7fee11c7b32806484dd5",
+      "specifiedReferences": [
+        "docs/art/story-refs/irene.png",
+        "docs/art/story-refs/sera.png",
+        "docs/art/sera/sera-r1-final.png",
+        "docs/art/story-refs/props.png",
+        "art/story-review/chapter2/irene_roots.png",
+        "art/story-review/chapter1/irene_familiar.png"
+      ],
+      "referenceHandling": "ツール上限5枚。指定順の先頭3枚（イレーヌ、セラ基準、セラ原画）は直接渡した。後半3枚（小道具、館2枚）はすべて原画像を画像生成に実際に渡して参照シートを作り、4枚目として渡した。5枚目に承認済みsigil.pngを追加。参照シートは一時ファイルであり原画5枚には含めない。"
+    },
+    {
+      "id": "w40_eyes",
+      "path": "art/story-review/chapter10/w40_eyes.png",
+      "state": "ready",
+      "generationCalls": 1,
+      "visualReview": "弟子の顔・髪・黒金の外套と革鞄、書きつけを持つ両手、上へ続く壁龕、濁った黒い灯籠と刻まれた名、空のくぼみの灰色のシャツの布切れを確認。手足に見える増殖なし。指の一部と脚は紙・衣装・画角で隠れて判別不可。書きつけの最後の行は強い筆圧。文字は判読できない走り書き。師・宰相本人や新しい印なし。 主題の視認性を確認。",
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "c4943fd5c3bd4caf30605cfcbf82e65bd7de0d980a2b87b8b249a3eb3e3f1685",
+      "specifiedReferences": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/props.png"
+      ]
+    },
+    {
+      "id": "report_w40",
+      "path": "art/story-review/chapter10/report_w40.png",
+      "state": "ready",
+      "generationCalls": 1,
+      "visualReview": "王と弟子の顔・髪・衣装、王の膝掛け、胸に置いた片手と肘掛けの手、半ば閉じた目、宰相の空席、茜の空、床の金の杯を確認。見える指と腕脚に増殖なし。王の脚と弟子の奥側の手は隠れる。灯籠の持ち帰りなし、師・宰相本人・先の秘密・新しい印・文字なし。 主題の視認性を確認。",
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "2dd4ca58f91b7071b68a4df1448062a2dd5c86e89958e3c4788463139fe1f1d3",
+      "specifiedReferences": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/king.png",
+        "docs/art/story-refs/morden.png",
+        "art/story-review/chapter3/report_w12.png"
+      ]
+    }
+  ],
+  "note": "全5枚ready。生成呼出し9回（原画5回・修正2回・参照準備1回・参照枚数の受付エラー1回）。原画5枚、修正前原画2枚、担当記録のみ変更。WebP変換、build.py、共通queue.json、登録ファイル、本文、基準画像は変更しない。PR・mainマージなし。",
+  "handoff": "統合担当は本ブランチの原画5枚と目視確認記録をレビューし、変換・登録・統合を実施してください。未完成IDなし。"
+}
