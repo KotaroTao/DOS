@@ -167,7 +167,7 @@ function check(name, value) { assert.ok(value, name); report.checks.push(name); 
       }
       await page.setViewportSize({width:375,height:667});
     }
-    for (const id of ['w07','w08','ws1']) {
+    for (const id of ['ws1','ws2','ws3']) {
       const result = await fixture(page,id);
       check(`${id}は従来の素材を維持する`,result.scale===1);
     }
