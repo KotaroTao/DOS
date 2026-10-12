@@ -6,11 +6,12 @@ const { resolve } = require('node:path');
 const assert = require('node:assert/strict');
 const base = process.env.CRYPT_REVIEW_URL || 'http://localhost:8000';
 const late = process.env.DUNGEON_REVIEW_GROUP === 'w17-w21';
-const ids = process.argv.slice(2);
+const later = process.argv.includes('w07-w11');
+const ids = later ? ['w07','w08','w09','w10','w11'] : process.argv.slice(2);
 if (!ids.length) ids.push(...(late ? ['w17','w18','w19','w20','w21'] : ['w02','w03','w04','w05','w06']));
 assert.ok(ids.length >= 2 && ids.every(id => /^w\d{2}$/.test(id)), '迷宮IDを2件以上指定する');
 const first = ids[0], second = ids[1];
-const out = resolve(process.env.CRYPT_REVIEW_OUT || 'docs/art/dungeons/' + (late ? 'review-w17-w21' : 'review'));
+const out = resolve(process.env.CRYPT_REVIEW_OUT || 'docs/art/dungeons/' + (late ? 'review-w17-w21' : later ? 'review-w07-w11' : 'review'));
 mkdirSync(out, { recursive: true });
 const report = { checks: [], screenshots: [] };
 function check(name, value) { assert.ok(value, name); report.checks.push(name); }
@@ -187,7 +188,7 @@ function check(name, value) { assert.ok(value, name); report.checks.push(name); 
       }
       await page.setViewportSize({width:375,height:667});
     }
-    for (const id of ['w07','w08','ws1']) {
+    for (const id of ['ws1','ws2','ws3']) {
       const result = await fixture(page,id);
       check(`${id}は従来の素材を維持する`,result.scale===1);
     }
