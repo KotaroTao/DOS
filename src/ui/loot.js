@@ -1024,7 +1024,7 @@ function lootCelebrate(item, who, opts, next) {
       }
     }
     scroll.appendChild(el("div", "ig-desc", unid ? "なんだかよくわからない品だ。鑑定すれば正体がわかるだろう。" : (item.desc || "")));
-    if (misc && !unid) scroll.appendChild(el("div", "ig-stat", isNewCollectible(item) ? "まだ宝物庫に無い品。王宮の宝物庫に奉納できる。" : "宝物庫に奉納済みの品。商会で売れる。"));
+    if (misc && !unid) scroll.appendChild(el("div", "ig-stat", isNewCollectible(item) ? "まだ宝物庫にない品。王宮の宝物庫に納められる。" : "すでに宝物庫に納めた品。商会で売れる。"));
     if (who) scroll.appendChild(el("div", "ig-who", `${who.name} が手に入れた`));
   };
   let finished = false;
