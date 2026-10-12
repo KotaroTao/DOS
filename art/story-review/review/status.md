@@ -2,7 +2,7 @@
 
 書き出し: `node tools/storyart/review.mjs` (build.py も書き直す。手で直さない)。
 
-場面: 出荷済み 59 ・ 出荷済み (任意の修正あり) 14 ・ 未着手 (指示あり) 49
+場面: 出荷済み 64 ・ 出荷済み (任意の修正あり) 14 ・ 未着手 (指示あり) 44
 
 | 章 | 場面 | 題 | 状態 | 確認ページ |
 |---|---|---|---|---|
@@ -76,11 +76,11 @@
 | 第6章「氷結回廊」 | `w23_names` | 空けてあった柱 | 出荷済み | [見る](chapter6.md#w23_names) |
 | 第6章「氷結回廊」 | `report_w23` | 済まされていなかった処刑 | 出荷済み | [見る](chapter6.md#report_w23) |
 | 第6章「氷結回廊」 | `w24_aurora` | 天井の星 | 出荷済み | [見る](chapter6.md#w24_aurora) |
-| 第6章「氷結回廊」 | `report_w24` | 落ちきらなかった魂 | 未着手 (指示あり) | [見る](chapter6.md#report_w24) |
-| 第6章「氷結回廊」 | `mem_w25` | 氷の玉座の前で | 未着手 (指示あり) | [見る](chapter6.md#mem_w25) |
-| 第6章「氷結回廊」 | `report_w25` | 回廊の肖像 | 未着手 (指示あり) | [見る](chapter6.md#report_w25) |
-| 第6章「氷結回廊」 | `irene_lineage` | 同じ作り方の灯 | 未着手 (指示あり) | [見る](chapter6.md#irene_lineage) |
-| 第6章「氷結回廊」 | `ch6_end` | 解けていく堤 | 未着手 (指示あり) | [見る](chapter6.md#ch6_end) |
+| 第6章「氷結回廊」 | `report_w24` | 落ちきらなかった魂 | 出荷済み | [見る](chapter6.md#report_w24) |
+| 第6章「氷結回廊」 | `mem_w25` | 氷の玉座の前で | 出荷済み | [見る](chapter6.md#mem_w25) |
+| 第6章「氷結回廊」 | `report_w25` | 回廊の肖像 | 出荷済み | [見る](chapter6.md#report_w25) |
+| 第6章「氷結回廊」 | `irene_lineage` | 同じ作り方の灯 | 出荷済み | [見る](chapter6.md#irene_lineage) |
+| 第6章「氷結回廊」 | `ch6_end` | 解けていく堤 | 出荷済み | [見る](chapter6.md#ch6_end) |
 | 第7章「毒沼」 | `w26_splint` | 腕の木の添え木 | 未着手 (指示あり) | [見る](chapter7.md#w26_splint) |
 | 第7章「毒沼」 | `report_w26` | 杯を満たしたもの | 未着手 (指示あり) | [見る](chapter7.md#report_w26) |
 | 第7章「毒沼」 | `w27_crest` | 仕上がらなかった兄弟 | 未着手 (指示あり) | [見る](chapter7.md#w27_crest) |

@@ -1,7 +1,7 @@
 # 第6章「氷結回廊」 の絵
 
 書き出し: `node tools/storyart/review.mjs` (手で直さない)。絵は出荷する WebP、まだ無ければ原画。
-
+ゲームで小さく出た時の見え方 (384×256): [chapter6-small.jpg](chapter6-small.jpg)
 
 <a name="w22_coat"></a>
 
@@ -168,9 +168,9 @@
 
 <a name="report_w24"></a>
 
-## report_w24「落ちきらなかった魂」 ── 未着手 (指示あり)
+## report_w24「落ちきらなかった魂」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter6/report_w24.webp" width="576" alt="report_w24">
 
 **ストーリー一覧の本文**
 
@@ -196,9 +196,9 @@ _(絵はまだ無い)_
 
 <a name="mem_w25"></a>
 
-## mem_w25「氷の玉座の前で」 ── 未着手 (指示あり)
+## mem_w25「氷の玉座の前で」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter6/mem_w25.webp" width="576" alt="mem_w25">
 
 **ストーリー一覧の本文**
 
@@ -240,9 +240,9 @@ _(絵はまだ無い)_
 
 <a name="report_w25"></a>
 
-## report_w25「回廊の肖像」 ── 未着手 (指示あり)
+## report_w25「回廊の肖像」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter6/report_w25.webp" width="576" alt="report_w25">
 
 **ストーリー一覧の本文**
 
@@ -272,9 +272,9 @@ _(絵はまだ無い)_
 
 <a name="irene_lineage"></a>
 
-## irene_lineage「同じ作り方の灯」 ── 未着手 (指示あり)
+## irene_lineage「同じ作り方の灯」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter6/irene_lineage.webp" width="576" alt="irene_lineage">
 
 **ストーリー一覧の本文**
 
@@ -308,9 +308,9 @@ _(絵はまだ無い)_
 
 <a name="ch6_end"></a>
 
-## ch6_end「解けていく堤」 ── 未着手 (指示あり)
+## ch6_end「解けていく堤」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter6/ch6_end.webp" width="576" alt="ch6_end">
 
 **ストーリー一覧の本文**
 
