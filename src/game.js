@@ -17138,6 +17138,9 @@ function townBgm() {
 }
 let openingActive = false; // オープニング演出中は専用テーマ
 let titleActive = false;   // タイトル画面の表示中は専用テーマ
+function revealBootScreen() {
+  document.body.classList.remove("booting");
+}
 // 探索BGM: 層 (1-20) ごとのテーマ曲
 function fieldBgm() {
   return dungeonTheme().bgm;
@@ -18521,6 +18524,7 @@ async function init() {
     });
     banner.appendChild(exit); document.body.appendChild(banner);
     resumeFromState();
+    revealBootScreen();
     if (testScene?.kind === "tutorial") uiTutorial.startTestTutorial(G.testTutorial);
     else if (testScene?.id === "opening") startAfterTitle(false);
     else if (testScene) UI.playStoryChain([{ title: testScene.title || testScene.name, lines: storyLines(testScene.lines), art: testScene.art, photo: testScene.photo, who: testScene.who || "king" }], renderTown);
@@ -18588,6 +18592,7 @@ async function init() {
           url.searchParams.set("testDungeon", id); url.searchParams.set("testFloor", floor); url.searchParams.set("testPlace", place);
           location.assign(url.href);
         } });
+      revealBootScreen();
     } catch (e) { start(); }
   }
 
@@ -18642,6 +18647,7 @@ function startAfterTitle(loaded) {
       renderTown();
     } catch (e2) { /* これ以上は何もしない (セーブは温存) */ }
   }
+  revealBootScreen();
   autosave(true);
 
   if (loaded) {
@@ -18668,4 +18674,4 @@ function startAfterTitle(loaded) {
     showOpening(() => { G.prompt = false; openingActive = false; playBgm(sceneBgm()); });
   } catch (e) { G.prompt = false; openingActive = false; playBgm(sceneBgm()); }
 }
-init().catch((e) => { console.error("ゲームの起動に失敗しました", e); if (cloudEnabled()) cloudFatal(); });
+init().catch((e) => { revealBootScreen(); console.error("ゲームの起動に失敗しました", e); if (cloudEnabled()) cloudFatal(); });
