@@ -83,13 +83,13 @@
 #topbar-cur .cur { display: inline-flex; align-items: center; gap: 4px; line-height: 1.2; text-shadow: 0 1px 0 #000; }
 #topbar-cur .cur::before { content: ""; flex: 0 0 auto; width: 9px; height: 9px; }
 #topbar-cur .cur-gold { color: #f0d48c; }
-#topbar-cur .cur-gold::before { border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff3c0, #d6a93c 45%, #6e4c12 100%); box-shadow: 0 0 4px rgba(240,200,100,0.6); }
+#topbar-cur .cur-gold::before { border-radius: 0; background: url("art/dungeon/crypt-gold.webp") center / contain no-repeat; }
 #topbar-cur .cur-soul { color: #b4e6ff; }
 #topbar-cur .cur-soul::before { width: 7px; height: 7px; margin: 0 1px; transform: rotate(45deg); background: radial-gradient(circle, #ffffff, #7fd0ff 55%, #1d5a86); box-shadow: 0 0 6px rgba(127,208,255,0.9); }
 #topbar-cur .cur-red { color: #ff8a7a; }
 #topbar-cur .cur-red::before { border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffc2b2, #d1261a 50%, #4a0604 100%); box-shadow: 0 0 6px rgba(255,50,30,0.7); }
 #topbar-cur .cur-ember { color: #ffb070; }
-#topbar-cur .cur-ember::before { border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; background: radial-gradient(circle at 50% 70%, #fff0b0, #ff8a2a 50%, #6a1c04 100%); box-shadow: 0 0 6px rgba(255,140,40,0.8); }
+#topbar-cur .cur-ember::before { border-radius: 0; background: url("art/dungeon/crypt-ember.webp") center / contain no-repeat; }
 
 /* ===== 盤面/戦場の額 ===== */
 #screen { padding: 6px 6px 4px; background: transparent; }
@@ -127,7 +127,7 @@
 .rb-gold, .rb-soul { display: inline-flex; align-items: center; gap: 3px; font-weight: 700; }
 .rb-gold { color: #f0d48c; }
 .rb-soul { color: #b4e6ff; }
-.rb-gold::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff3c0, #d6a93c 45%, #6e4c12); }
+.rb-gold::before { content: ""; width: 8px; height: 8px; background: url("art/dungeon/crypt-gold.webp") center / contain no-repeat; }
 .rb-soul::before { content: ""; width: 6px; height: 6px; transform: rotate(45deg); background: radial-gradient(circle, #fff, #7fd0ff 55%, #1d5a86); box-shadow: 0 0 5px rgba(127,208,255,0.8); }
 .rb-gold.zero, .rb-soul.zero { opacity: 0.4; }
 .rb-gems { display: inline-flex; align-items: center; gap: 3px; }

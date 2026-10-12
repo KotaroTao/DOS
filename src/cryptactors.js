@@ -2,7 +2,7 @@
 import { normalizeLook, WALKER_CLOAKS, WALKER_TRIMS } from "./walkerart.js";
 
 const sheets = new Map();
-const assets = { a: ["props-a", 1536, 1024], b: ["props-b", 1536, 1024], c: ["props-c", 1536, 1024], walker: ["walker", 1254, 1254] };
+const assets = { a: ["props-a", 1536, 1024], b: ["props-b", 1536, 1024], c: ["props-c", 1536, 1024], d: ["props-d", 1536, 1024], walker: ["walker", 1254, 1254] };
 function sheet(key) {
   if (!sheets.has(key)) {
     const [name, w, h] = assets[key], image = new Image(), state = { image, ready: false };
@@ -27,6 +27,9 @@ export const CRYPT_PROP_FRAMES = {
   trap: ["b", 70, 149, 399, 275], event: ["b", 619, 17, 302, 480],
   bossDoor: ["b", 75, 509, 370, 478], wisp: ["b", 600, 524, 340, 483],
   story: ["b", 1176, 533, 233, 447],
+  ember: ["d", 80, 8, 360, 486], gold: ["d", 573, 153, 418, 311],
+  poison: ["d", 1046, 72, 463, 380], guard: ["d", 122, 480, 311, 525],
+  start: ["d", 607, 487, 353, 515],
 };
 export function cryptPropKey(cell, bossDoor = false) {
   if (!cell || !cell.revealed) return null;
@@ -51,6 +54,9 @@ export function cryptPropBitmap(key) {
   if (!image) return null;
   if (!props.has(key)) {
     const b = crop(image, ...frame.slice(1));
+    // 隣の区画へ飛び出した槍先・残火の先端を切り出しから除く。
+    if (key === "ember") b.c.getContext("2d").clearRect(0, 472, 110, 14);
+    if (key === "guard") b.c.getContext("2d").clearRect(78, 0, b.w - 78, 30);
     if (key === "story") {
       // 師の角灯は青緑の魂火。真鍮の籠を残し、窓の炎の部分だけを色替えする。
       const g = b.c.getContext("2d"), pixels = g.getImageData(0, 0, b.w, b.h), d = pixels.data;

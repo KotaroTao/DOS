@@ -1,0 +1,28 @@
+{
+  "checks": [
+    "魂火と光源が遺体中央にそろう（通常・同居）",
+    "汎用5種類のポップアップ用原画が描かれる",
+    "小さい通貨表示も同じ原画を参照する",
+    "320pxで横あふれなし",
+    "390pxで横あふれなし",
+    "1280pxで横あふれなし",
+    "通常表示に例外なし",
+    "魂の残火は画像到着後に描き直される",
+    "取得失敗時も魂の残火が空にならない",
+    "ゆらめきありの描画に例外なし",
+    "goldの上部表示が新素材",
+    "emberの上部表示が新素材",
+    "上部表示に例外なし"
+  ],
+  "screenshots": [
+    "soul-centered.png",
+    "common-gallery.png",
+    "ember-popup.png",
+    "gold-popup.png",
+    "poison-popup.png",
+    "guard-popup.png",
+    "start-popup.png",
+    "soul-moving.png",
+    "header-mobile.png"
+  ]
+}
