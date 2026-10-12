@@ -287,9 +287,9 @@ _(絵はまだ無い)_
 
 <a name="report_w37"></a>
 
-## report_w37「休みのない百年」 ── 未着手 (指示あり)
+## report_w37「休みのない百年」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter9/report_w37.webp" width="576" alt="report_w37">
 
 **ストーリー一覧の本文**
 
@@ -321,9 +321,9 @@ _(絵はまだ無い)_
 
 <a name="irene_rest"></a>
 
-## irene_rest「休む灯」 ── 未着手 (指示あり)
+## irene_rest「休む灯」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter9/irene_rest.webp" width="576" alt="irene_rest">
 
 **ストーリー一覧の本文**
 
@@ -357,9 +357,9 @@ _(絵はまだ無い)_
 
 <a name="ch9_end"></a>
 
-## ch9_end「捨てられた魂の行き先」 ── 未着手 (指示あり)
+## ch9_end「捨てられた魂の行き先」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter9/ch9_end.webp" width="576" alt="ch9_end">
 
 **ストーリー一覧の本文**
 

@@ -1,13 +1,13 @@
 # 第10章「地底大空洞」 の絵
 
 書き出し: `node tools/storyart/review.mjs` (手で直さない)。絵は出荷する WebP、まだ無ければ原画。
-
+ゲームで小さく出た時の見え方 (384×256): [chapter10-small.jpg](chapter10-small.jpg)
 
 <a name="w38_lamp"></a>
 
-## w38_lamp「名を思い出さない灯」 ── 未着手 (指示あり)
+## w38_lamp「名を思い出さない灯」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter10/w38_lamp.webp" width="576" alt="w38_lamp">
 
 **ストーリー一覧の本文**
 
@@ -40,9 +40,9 @@ _(絵はまだ無い)_
 
 <a name="report_w38"></a>
 
-## report_w38「底で灯を拾う者」 ── 未着手 (指示あり)
+## report_w38「底で灯を拾う者」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter10/report_w38.webp" width="576" alt="report_w38">
 
 **ストーリー一覧の本文**
 
