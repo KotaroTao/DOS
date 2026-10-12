@@ -264,7 +264,7 @@
   -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 7%, #000 88%, transparent 100%);
   mask-image: linear-gradient(180deg, transparent 0%, #000 7%, #000 88%, transparent 100%);
 }
-.op-scene { position: absolute; display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
+.op-scene { position: absolute; display: block; image-rendering: auto; }
 .op-veil {
   position: absolute; inset: 0; pointer-events: none;
   background:

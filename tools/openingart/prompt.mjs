@@ -1,0 +1,40 @@
+// オープニングの専用原画を、本文と物語共通の画風から依頼する。
+import { readBrief } from "../storyart/brief.mjs";
+import { SCENES } from "../../src/openingart.js";
+
+export const PAINTINGS = [
+  {
+    id: "rift", index: 0,
+    refs: ["art/story-review/prologue/road-to-roadal.png"],
+    prompt: "A wide cinematic view of a dark medieval kingdom at night, moments after its land has split apart. A gigantic fresh chasm tears through ancient stone roads and ruined battlements in the central foreground and continues toward a distant gothic castle under moonlit storm clouds. Pale cyan lights of dead souls drift down into the abyss. Detailed fractured rock, twisted roots, crumbling masonry, a few small amber embers. The central chasm is the subject, not a person. Use the attached reference only for painting style, carved stone and cold moonlight; do not copy or include its apprentice. No living people, no character portraits, no wooden dolls, no readable signs, no palm-and-flame crests, no modern objects. Keep the chasm and castle aligned near the central vertical axis so they remain understandable in a portrait crop. Do not reveal any later-chapter villain or secret.",
+  },
+  {
+    id: "fallen", index: 1,
+    refs: ["art/story-review/chapter1/w02_sigil.png"],
+    prompt: "A long ancient stone stairway descending into a ruined underground gothic cathedral. In the central foreground lies an abandoned human knight's dented closed steel helmet, battered iron armour and a sword beside a fallen brass hand lantern whose amber flame is dying. Farther down the central stairs, a few fallen human adventurers in worn armour and priestly robes lie motionless, their faces hidden and no graphic wounds visible. Pale cyan soul-light is drawn from them toward a deep dark doorway. The scene tells of living adventurers who never returned, not of wooden dolls. Worn carved stone, broken pillars, dust, cold moonlight entering from high above and a restrained warm lantern glow. Use the reference only for stone texture, painting style and lighting; do not reproduce its crest, padlock or wall composition. No apprentice, Ordo, Irene, Sera, king, chancellor, readable writing or palm-and-flame crest. Keep the helmet, lantern and descending doorway within the central half of the image, readable in both wide and portrait crops.",
+  },
+  {
+    id: "ordo", index: 3,
+    refs: ["docs/art/story-refs/ordo.png", "docs/art/story-refs/king.png", "docs/art/story-refs/dolls.png", "docs/art/story-refs/sigil.png", "art/story-review/chapter3/report_w12.png"],
+    prompt: "One year before the present story, master Ordo stands respectfully before the very old king in the reference throne room. Ordo is EXACTLY the approved Ordo reference: tall lean human man about 55, short swept-back grey hair, close grey beard, weathered face, plain worn black long coat with ONLY one small approved gold crest at the hem, dark grey shirt, leather doll-maker's tool belt and work gloves. He is healthy here: no wounds, no burnt fingertips, no limp, no splint. He has NO satchel and NO lantern, and must not resemble the brown-haired apprentice. The king is EXACTLY the normal king reference: long white hair and beard, pointed gold crown, red robes and white ermine cape with black spots, seated on his gothic throne. Two wooden party dolls with blank smooth round heads and black iron joints stand quietly just behind Ordo, dressed as the approved warrior and priest. Ordo and king's faces should be fairly close together within the CENTRAL HALF of the picture so both remain visible in a portrait crop. Make their adult proportions and faces inspectable. Cold moonlit stone and restrained warm amber candles. The small Ordo hem crest has one left thumb, three right finger projections and one separate teardrop flame exactly as the sigil reference. Do not add this crest to the king, dolls, bags, banners or architecture. No apprentice, Sera, Irene or chancellor; no chest-door revelation, no villainous expressions, no readable text. Use the fifth reference for throne-room architecture only, not to copy its scene or extra characters.",
+  },
+  {
+    id: "letter", index: 4,
+    refs: ["docs/art/story-refs/props.png", "art/story-review/prologue/road-to-roadal.png"],
+    prompt: "A close cinematic still life of a single handwritten letter delivered by master Ordo, opened on a worn dark wooden desk beside a plain red wax seal and a single WHITE CANDLE on a brass candlestick exactly like the props reference. The writing is only illegible cursive marks, never readable letters or typography. Beyond a gothic window, the small remote border town of Roadal stands under cold moonlight: modest stone houses, a few narrow spires, mist, and the silhouettes of graveyard headstones near the old town wall. It is a frontier town, not a vast royal capital. Warm candlelight on textured paper, subtle gold fittings, intricate but restrained wood carving against a cool blue night. No person, no royal goblet, no glass lantern instead of the candle, no palm-and-flame crest on the seal or elsewhere, no readable signs. Keep the letter, red seal and white candle grouped within the central half of the image, so all remain understandable in a portrait crop. References establish only the approved prop design, setting and painting style; do not add the reference's apprentice.",
+  },
+];
+
+const id = process.argv[2];
+const painting = PAINTINGS.find((p) => p.id === id);
+if (!painting) {
+  console.error("使い方: node tools/openingart/prompt.mjs rift|fallen|ordo|letter");
+  process.exitCode = 1;
+} else {
+  const scene = SCENES[painting.index];
+  console.log(`# 第${scene.cap}幕「${scene.title}」\n`);
+  console.log(`原画: art/story-review/opening/${id}.png (1536×1024)\n出荷: art/opening/${id}.webp\n`);
+  console.log("参照画像 (この順に渡す):\n" + painting.refs.join("\n") + "\n");
+  console.log("本文:\n" + scene.lines.map((l) => typeof l === "string" ? l : l.em).join("\n") + "\n");
+  console.log("画像生成に渡す指示:\n" + readBrief().style + "\n" + painting.prompt);
+}

@@ -1,13 +1,12 @@
 // オープニング — 新規ゲーム開始時に一度だけ流れる導入
 //
-// 六幕の一枚絵 (openingart.js) を、上下を闇で切った映画の画角で映す。
-// 各幕はカメラがゆっくりと滑り (多層の視差)、語りは一文字ずつ墨がにじむように現れる。
+// 六幕の物語画風のWebPを、上下を闇で切った映画の画角で映す。
+// 各幕はカメラがゆっくりと滑り、語りは一文字ずつ墨がにじむように現れる。
 // 幕と幕のあいだは闇へ溶けて切り替わり、最後に題字を掲げて街へ送り出す。
 //
 // 操作: タップ / Enter = 語りを早送り → 次の幕へ。長押し・「スキップ」・Esc = 全体をとばす。
 // showOpening(done) — 閉じたあと done() を一度だけ呼ぶ
 import { SFX } from "./audio.js";
-import { pickRes } from "./pxpaint.js";
 import { SCENES, setReduced } from "./openingillustrations.js";
 import { phraseBreaks } from "./ui/phrase.js";
 import { createOpeningVoice } from "./openingvoice.js";
@@ -116,15 +115,15 @@ export function showOpening(onDone) {
     const vw = Math.max(1, wrap.clientWidth || innerWidth), vh = Math.max(1, wrap.clientHeight || innerHeight);
     const portrait = vh / vw > 1.2;
     const top = Math.round(portrait ? vh * 0.07 : vh * 0.055);
-    const bh = Math.round(portrait ? vh * 0.58 : vh * 0.69);
+    const bh = Math.round(portrait ? vh * 0.58 : vh * 0.6);
     wrap.style.setProperty("--op-top", top + "px");
     wrap.style.setProperty("--op-bh", bh + "px");
     wrap.classList.toggle("op-portrait", portrait);
-    const dpr = Math.min(3, Math.max(1, window.devicePixelRatio || 1));
-    const r = pickRes(vw, bh, dpr, { maxArea: 120000, maxW: 440 });
-    const cssW = r.w * r.cssScale, cssH = r.h * r.cssScale;
-    cv.style.width = cssW + "px"; cv.style.height = cssH + "px";
-    cv.style.left = Math.round((vw - cssW) / 2) + "px"; cv.style.top = Math.round((bh - cssH) / 2) + "px";
+    const dpr = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+    const scale = Math.min(dpr, 2048 / vw, Math.sqrt(2200000 / (vw * bh)));
+    const r = { w: Math.max(1, Math.round(vw * scale)), h: Math.max(1, Math.round(bh * scale)) };
+    cv.style.width = vw + "px"; cv.style.height = bh + "px";
+    cv.style.left = "0px"; cv.style.top = "0px";
     const changed = !res || res.w !== r.w || res.h !== r.h;
     res = r;
     if (changed) { cv.width = r.w; cv.height = r.h; shotFor = -1; }
