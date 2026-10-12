@@ -325,7 +325,7 @@ export function tlInfAttempt(point, event = "point") {
   const d = infData(), runs = d.attempts || (d.attempts = []);
   let r = runs.find(x => x.id === point.id);
   if (!r) {
-    r = { id: point.id, start: point.f, complete: event === "start" && point.f === 1, test: !!point.test, max: point.f, checkpoints: [], initial: point.party, at: stamp() };
+    r = { id: point.id, start: point.f, complete: event === "start" && point.f === 1, test: !!point.test, max: point.f, checkpoints: [], initial: point.party, boons: point.boons, at: stamp() };
     runs.push(r);
     if (runs.length > 20) runs.shift();
   }
@@ -370,8 +370,10 @@ function infAttemptLines(d) {
   }
   const r = runs.at(-1), p = r.last;
   const partyText = xs => (xs || []).map(x => `${x.name}:${x.job} Lv${x.lv} ${(x.souls || []).map(s => `${s.job}/Lv${s.lv}/融合${Math.max(0, (s.count || 1) - 1)}`).join("+")} [${Object.values(x.equip || {}).filter(Boolean).join(",")}]`).join(" / ");
+  out.push("  直近の永続強化 " + (r.boons ? Object.entries(r.boons).map(([k, v]) => `${k}+${v}`).join(" ") : "未記録"));
   out.push("  直近の開始編成 " + partyText(r.initial));
   out.push("  直近の編成 " + partyText(p.party));
+  out.push("  直近の能力・作戦 " + (p.party || []).map(x => `${x.name} ${x.tactic || "bal"} ${Object.entries(x.stats || {}).map(([k,v]) => `${k}${v}`).join("/")} 借用${(x.borrowed || []).flatMap(s => (s.picks || []).map(p => p.skill || p.passive)).join(",")}`).join(" / "));
   out.push("  道具内訳(購入/使用/拾得/売却/廃棄) " + Object.entries(p.supply?.items || {}).map(([id, x]) => `${id}:${["bought","used","found","sold","discarded"].map(k=>x[k] || 0).join("/")}`).join(" "));
   return out;
 }

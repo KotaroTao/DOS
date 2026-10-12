@@ -31,7 +31,7 @@ import { NAMED_FOES, NAMED_IDS, TROPHY_OF, HUNT_ELITE_RATE, bountyId } from "./d
 import { FLOOR_HAZ, hazSkin, hazPlaced, layerFloorHaz } from "./dungeons/floorhaz.js";
 import { DUNGEONS, WORLD_IDS, worldIndexOf, worldById, gateFloors, isGateFloor, dungeonLevel, dungeonLevelRaw, strengthAt, wallOf, wallStepOf, lootBand, abyssLayer, ABYSS_LAYER_FLOORS, hazardsAt, levelBand, DUNGEON_MONSTERS, ELEMENTS, elementAffinity, elemDmgMult, ELITE_ORDER, LAYER_ELITES, LAYER_BOSS, LAYER_POOLS, monsterTraits, resistHpMul, isFloating, METAL_TIERS, unknownLabel, unknownTag } from "./dungeons/index.js";
 import {
-  INF_NAME, INF_REST_EVERY, INF_HAZ_FROM, INF_PARTY, INF_RULES, INF_RULE_MAP, INF_LV, infLevel, infGrowthMul, infRedCost, isRestFloor,
+  INF_NAME, INF_REST_EVERY, INF_HAZ_FROM, INF_PARTY, INF_RULES, INF_RULE_MAP, INF_LV, infLevel, infGrowthMul, infEnemyMul, infRedCost, isRestFloor,
   rollInfRule, rollStartSouls, VESSEL_NAMES, mulberry32,
 } from "./abyss.js";
 import { INF_TITLES, INF_TITLE_MAP, INF_DEPTH_TITLES } from "./inftitles.js";
@@ -1085,7 +1085,7 @@ function abyssCfg() {
   return {
     id: "abyss", name: INF_NAME, short: `無限${d}`,
     layer: L, rank: info.rank, element: info.element,
-    lv, lvTo: lv, power: { 1: info.coef }, wall: 1, // 推奨Lv と強さの素 (world.js strengthAt)。第二部の壁は乗せない
+    lv, lvTo: lv, power: { 1: info.coef * infEnemyMul(d) }, wall: 1, // 推奨Lv と強さの素 (world.js strengthAt)。第二部の壁は乗せない
     floors: 1e9, boss: null, elites: [], gates: false, noPortal: true,
     pool: [...info.pool], deepPool: [...info.pool],
     floorHaz: fh,
@@ -1180,6 +1180,7 @@ function infTlPoint(event = "point", extra = {}) {
   const sum = fn => G.party.reduce((n, d) => n + (fn(d) || 0), 0);
   const bag = G.inventory || [];
   tlInfAttempt({ id: ab.telemetryId, f: G.floor, test: !!ab.testRun,
+    boons: permanentEventStats(G.events?.once),
     hp: Math.round(100 * sum(d => d.alive ? d.hp : 0) / Math.max(1, sum(d => d.maxhp))),
     mp: Math.round(100 * sum(d => d.alive ? d.mp : 0) / Math.max(1, sum(d => d.maxmp))),
     lv: Math.round(infPartyLv() * 10) / 10, dead: G.party.filter(d => !d.alive).length,
@@ -1187,6 +1188,8 @@ function infTlPoint(event = "point", extra = {}) {
     reviveItems: bag.filter(it => it.use?.revive).length, left: infSupplyLeft(ab, G.floor),
     supply: JSON.parse(JSON.stringify(infTrk().supply || {})),
     party: G.party.map(d => ({ name: d.name, job: d.jobKey, lv: d.jobLv, tactic: d.tactic,
+      stats: { hp: d.maxhp, mp: d.maxmp, atk: d.atk, vit: d.vit, agi: d.agi, int: d.int, pie: d.pie },
+      borrowed: (d.subs || []).map(x => ({ uid: x.uid, picks: (Array.isArray(x.picks) ? x.picks : x.passive ? [{ passive: x.passive }] : x.skill ? [{ skill: x.skill }] : []).map(p => ({ ...p })) })),
       equip: Object.fromEntries(Object.entries(d.equip || {}).map(([k, it]) => [k, it?.id || null])),
       souls: [d.primary, ...(d.subs || []).map(x => x.uid)].filter(uid => uid != null).map(uid => { const x = soulByUid(uid); return { job: x?.clsKey, lv: x?.level, count: x?.count }; }) })), ...extra }, event);
 }
@@ -7991,7 +7994,10 @@ function chestTrapPhase(opener, contents, cRank = 1, abort, excludeKinds, sink =
 // 罠ダメージの基準値。disarmNeed と同じく推奨Lv の伸びに比例させ、
 // 深い迷宮ほど罠そのものが重くなる。実ダメージは罠ごとの mult を掛けた値
 function trapBaseDmg() {
-  return (5 + G.floor * 3 + rand(6)) * TRAP_K * lockPow(levelHere().lv); // 推奨Lv の隊の HP の伸びに合わせる (levelcurve.js)
+  // 本編の短い迷宮向けの階数加算を、無限迷宮の通算階数で増幅しない。
+  // 深さによる成長は推奨Lv側に任せ、補給間隔の5階分までにする。
+  const depth = abyssActive() ? Math.min(G.floor, INF_REST_EVERY) : G.floor;
+  return (5 + depth * 3 + rand(6)) * TRAP_K * lockPow(levelHere().lv); // 推奨Lv の隊の HP の伸びに合わせる (levelcurve.js)
 }
 
 // 黄金喰い・魂喰らいで失う量: その階の推奨Lv の普通の1戦 (levelcurve.js refGold / refSoul) × 戦果の数 n、±15%
