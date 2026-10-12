@@ -2,7 +2,7 @@
   "worker": "03",
   "branch": "codex/art-worker-03",
   "base": "3312dee",
-  "generationCalls": 9,
+  "generationCalls": 11,
   "generationLimit": null,
   "scenes": [
     {
@@ -113,11 +113,11 @@
       "id": "irene_crest",
       "path": "art/story-review/chapter7/irene_crest.png",
       "state": "ready",
-      "generationCalls": 3,
+      "generationCalls": 5,
       "references": "指定7画像を順番に使用。セラ2画像と、小道具・館2画像を一時シートにまとめ、追加sigilと計5ファイルとして渡した。原本は未変更。",
       "visualReview": {
         "face": "イレーヌとセラの基準の顔・髪・木目・衣装、弟子の茶髪と金刺繍外套を確認。",
-        "limbs": "掌を上にしたセラの手と腕、イレーヌの支える両手、弟子の手に余分な指や腕なし。セラの両脚は膝から下までつながる。足と弟子・イレーヌの脚は画面外。隠れる手指は判別不可。",
+        "limbs": "弟子の見える左手を修正。上側の親指1本と左へ伸びる指4本、手の甲、自然な左手首を確認。イレーヌとセラの手足、顔、衣装、印、灯、本文の場面を再確認。隠れる指や画面外の脚は直接判別不可。",
         "sigil": "前腕を返して掌を上にし、木製肘継ぎ目の内側へ掌と独立した炎の小さな印を配置。額の金の印も確認。小さな印の細部は解像度に依存。",
         "props": "一本の白い蝋燭、古い継ぎ方の図、作業台を確認",
         "story": "弟子が肘の印を見ている。イレーヌが上腕と手首を支え、目覚めたセラが台に座る。古い継ぎ方の紙・白い蝋燭・胸の青白い灯を確認。可読文字や先の秘密なし。"
@@ -138,8 +138,20 @@
         "art/story-review/chapter1/irene_familiar.png",
         "docs/art/story-refs/sigil.png"
       ],
-      "repairHistory": "追加依頼の修正1回で弟子を加え、掌を上に向けた腕の内側の木製肘継ぎ目へ小さな印を配置。修正前の生成元 exec-81cec23e-3f68-4b31-9956-69a93a6024fb.png を保持。",
-      "finalReview": "追加修正後に5枚を再目視確認。人物の顔・見える手足・印・小道具・本文と章の状態を確認済み。"
+      "repairHistory": "追加依頼の修正1回で弟子を加え、掌を上に向けた腕の内側の木製肘継ぎ目へ小さな印を配置。修正前の生成元 exec-81cec23e-3f68-4b31-9956-69a93a6024fb.png を保持。 ユーザー指摘の弟子の左手を2回の生成で修正（1回目不採用、2回目採用）。",
+      "finalReview": "左手修正後に目視確認。親指の側、指の本数、手首、顔、印、道具、本文との一致を確認。",
+      "handRepairAttempts": [
+        {
+          "attempt": 1,
+          "source": "/workspace/generated_images/exec-88baa64b-6233-45a8-ae95-74b9205f9da3.png",
+          "result": "左手の親指の位置が直らなかったため不採用。原画は上書きしない。"
+        },
+        {
+          "attempt": 2,
+          "source": "/workspace/generated_images/exec-9e27df26-9529-4906-a692-72441f79c8ed.png",
+          "result": "採用。手の甲をこちらへ向け、親指が上側、他の指4本が左へ伸びる左手に修正。手首から袖へのつながりを目視確認。"
+        }
+      ]
     }
   ],
   "failedCalls": [
@@ -149,9 +161,9 @@
       "reason": "参照8ファイルがツール上限5を超え、生成前に拒否"
     }
   ],
-  "stopReason": "追加依頼の2回の修正を完了。5枚すべてready。",
+  "stopReason": "左手の追加修正完了。5枚すべてready。",
   "baseCommit": "3312deeabeb4ad5774d2902deabbfb08957da872",
   "initialBatchGenerationCalls": 7,
   "additionalAuthorization": "ユーザーの追加依頼「要修正の画像を修正して、5枚とも完成したらイラストをここに表示」に基づき修正を再開。初回7回上限までの履歴は保持。",
-  "repairGenerationCalls": 2
+  "repairGenerationCalls": 4
 }
