@@ -353,7 +353,7 @@ function equipWithUndo(doll, item, key = null, { stashTo = null, quiet = false }
     return { ...(r || { ok: false }), key };
   }
   game.log(r.msg, "win");
-  if (owner !== doll) game.log(`${owner.name} から ${item.name} を受け取り装備した。`, "win");
+  if (owner.items !== doll.items) game.log(`${owner.name} から ${item.name} を受け取り装備した。`, "win");
   if (stashTo && r.displaced && r.displaced.length) game.log(`外した ${r.displaced.map((x) => x.name).join("・")} は ${stashTo.name} の袋へ。`, "sys");
   sfx("select"); buzz(10);
   const delta = statsDelta(before, previewStats(doll, doll.equip, recalc));
@@ -400,11 +400,11 @@ function pickWearer(doll, item, { onDone = null, chip = null, key = null } = {})
         lines: [`外した ${names} を ${owner.name} の袋へ移して (取り替えて) 装備する？`],
         okLabel: "取り替えて装備", cancelLabel: "やめる", danger: false,
       }).then((y) => { if (!y) return; const r2 = equipWithUndo(doll, item, b.key, { stashTo: owner }); if (r2.ok && onDone) onDone(r2); });
-    } else if (UI.openDiscard && (b.displaced || []).length === 1) {
+    } else if (UI.openDiscard && (b.displaced || []).length > 0) {
       // 袋の品を1つ捨てて空け、外した装備をそこへ入れて装備する (docs/infinite-labyrinth.md 18章)
-      UI.openDiscard({ incoming: b.displaced[0], incomingSub: "外れる装備", members: [doll], skipLabel: "やめる",
-        title: `${doll.name}の袋の品を1つ捨てて装備する`,
-        lines: [`${doll.name}の持ち物がいっぱいで、外した ${names} を入れられない。袋の品を1つ捨てると、その空きに入る。ロックした品は出ない。`],
+      UI.openDiscard({ incoming: item, incomingSub: "装備する品", members: [doll], skipLabel: "やめる",
+        title: "隊の袋の品を1つ捨てて装備する",
+        lines: [`隊の持ち物がいっぱいで、外した ${names} を入れられない。袋の品を1つ捨てると、その空きに入る。ロックした品は出ない。`],
         onPick: () => { const r2 = equipWithUndo(doll, item, b.key); if (r2.ok && onDone) onDone(r2); } });
     } else {
       sfx("ng");
@@ -2059,7 +2059,7 @@ function segBar(d, mode) {
   return wrap;
 }
 
-// ================= 装備の区分: 8部位 (2列×4) + 所持 (8つの札を1列) =================
+// ================= 装備の区分: 8部位 (2列×4) + 隊の共有袋 (50枠) =================
 function equipSeg(root, d) {
   if (d.primary == null) root.appendChild(el("div", "pt-note c", "魂の宿らない器は装備できない。「魂」で魂を宿そう。"));
   const list = el("div", "pt-slots");

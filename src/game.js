@@ -16840,7 +16840,7 @@ function equipFromAnywhere(p, slotKey, c) {
   const { it, owner } = c;
   const r = equipAt(p, it, slotKey, owner || p);
   if (r.msg) log(r.msg, r.ok ? "win" : "sys");
-  if (r.ok && owner && owner !== p) log(`${owner.name} から ${it.name} を受け取り装備した。`, "win");
+  if (r.ok && owner && owner.items !== p.items) log(`${owner.name} から ${it.name} を受け取り装備した。`, "win");
   if (r.ok) { SFX.select(); buzz(10); } else { SFX.ng(); if (r.msg) showToast(r.msg, { noLog: true, tone: "bad" }); }
   renderStatus(); renderParty();
   return r;
@@ -17730,6 +17730,7 @@ function loadGame(cloudSnapshot = null) {
   try { snap = refDeserialize(JSON.parse(raw)); } catch (e) { return false; }
   if (!snap || !snap.party || (!cloudEnabled() && !snap.party.length)) return false;
   for (const k of SAVE_FIELDS) if (k in snap) G[k] = snap[k];
+  G.inventory = Array.isArray(snap.inventory) ? snap.inventory : [];
   shareInventory(G);
   if (G.abyss && G.abyss.home) shareInventory(G.abyss.home);
   G.rng = bindRngState(snap.rng); // 乱数の位置を続きから (旧セーブには無い → 新しい種から)

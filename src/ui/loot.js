@@ -126,7 +126,7 @@ export function wearPlan(it, { owner = null, pool = null } = {}) {
     for (const s of scores) if (s.can && s.delta && s.score > 0 && (!pick || s.score > pick.score)) pick = s;
   }
   // 持ち主が装備でき、最良に近い (8割以上) なら持ち主を優先 (勝手に他の者へ回さない)
-  const own = owner && scores.find((s) => s.d === owner && s.can && s.delta);
+  const own = owner && !owner.items.includes(it) && scores.find((s) => s.d === owner && s.can && s.delta);
   if (own && own.score > 0 && (!pick || own.score >= pick.score * 0.8)) pick = own;
   if (!pick) pick = (owner && scores.find((s) => s.d === owner && s.can)) || scores.find((s) => s.can) || null;
   return { target: pick ? pick.d : null, delta: pick ? pick.delta : null, score: pick ? pick.score : 0, scores };

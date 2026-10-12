@@ -382,10 +382,10 @@ export function shopBuy(id, who, { equip = false } = {}) {
   floatGold(price, "dn");
   if (equip && isEquippable(it) && canEquip(who, it)) {
     const ok = equipTo(who, it, { quiet: true });
-    const t = toast(ok ? `${it.name} を買い、${who.name} が装備した` : `${it.name} を買った → ${who.name} の袋 (入れ替えられない)`, { tone: ok ? "good" : "gold", icon: it });
+    const t = toast(ok ? `${it.name} を買い、${who.name} が装備した` : `${it.name} を買った → 隊の袋 (入れ替えられない)`, { tone: ok ? "good" : "gold", icon: it });
     if (t && ok && delta) t.el.querySelector(".ui-toast-t").appendChild(deltaEl(delta));
   } else {
-    toast(`${it.name} を買った → ${who.name} の袋`, { tone: "gold", icon: it });
+    toast(`${it.name} を買った → 隊の袋`, { tone: "gold", icon: it });
   }
   return true;
 }
@@ -488,7 +488,7 @@ function stockRow(id) {
   more.setAttribute("aria-label", "人業を選んで買う");
   more.appendChild(caretIcon());
   more.addEventListener("click", () => openBuyChooser(id));
-  act.appendChild(more);
+  if (isEquippable(it)) act.appendChild(more);
   row.appendChild(act);
   return row;
 }
@@ -497,7 +497,7 @@ function stockRow(id) {
 function openBuyChooser(id) {
   const it = ITEMS[id];
   if (!it) return null;
-  if (!isEquippable(it)) return openDollChooser(it, { mode: "bag", buyId: id, title: "買う" });
+  if (!isEquippable(it)) return shopBuy(id);
   return openDollChooser(it, { mode: "equip", buyId: id });
 }
 
