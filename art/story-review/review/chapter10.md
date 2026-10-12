@@ -1,7 +1,7 @@
 # 第10章「地底大空洞」 の絵
 
 書き出し: `node tools/storyart/review.mjs` (手で直さない)。絵は出荷する WebP、まだ無ければ原画。
-
+ゲームで小さく出た時の見え方 (384×256): [chapter10-small.jpg](chapter10-small.jpg)
 
 <a name="w38_lamp"></a>
 
@@ -68,9 +68,9 @@
 
 <a name="w39_tags"></a>
 
-## w39_tags「宰相の字」 ── 未着手 (指示あり)
+## w39_tags「宰相の字」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter10/w39_tags.webp" width="576" alt="w39_tags">
 
 **ストーリー一覧の本文**
 
@@ -103,9 +103,9 @@ _(絵はまだ無い)_
 
 <a name="report_w39"></a>
 
-## report_w39「呼ばれなかった名」 ── 未着手 (指示あり)
+## report_w39「呼ばれなかった名」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter10/report_w39.webp" width="576" alt="report_w39">
 
 **ストーリー一覧の本文**
 
@@ -131,9 +131,9 @@ _(絵はまだ無い)_
 
 <a name="irene_names"></a>
 
-## irene_names「名を呼ぶ人」 ── 未着手 (指示あり)
+## irene_names「名を呼ぶ人」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter10/irene_names.webp" width="576" alt="irene_names">
 
 **ストーリー一覧の本文**
 
@@ -167,9 +167,9 @@ _(絵はまだ無い)_
 
 <a name="w40_eyes"></a>
 
-## w40_eyes「それでも、底へ」 ── 未着手 (指示あり)
+## w40_eyes「それでも、底へ」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter10/w40_eyes.webp" width="576" alt="w40_eyes">
 
 **ストーリー一覧の本文**
 
@@ -202,9 +202,9 @@ _(絵はまだ無い)_
 
 <a name="report_w40"></a>
 
-## report_w40「三百年の墓守」 ── 未着手 (指示あり)
+## report_w40「三百年の墓守」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter10/report_w40.webp" width="576" alt="report_w40">
 
 **ストーリー一覧の本文**
 

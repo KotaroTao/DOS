@@ -1,0 +1,190 @@
+{
+  "worker": "04",
+  "branch": "codex/art-worker-04",
+  "baseCommit": "9990e76f75299e2b347b9354a7872cd384c9cc07",
+  "generationCalls": 9,
+  "scenes": [
+    {
+      "id": "w28_note",
+      "path": "art/story-review/chapter7/w28_note.png",
+      "state": "ready",
+      "generationCalls": 2,
+      "visualReview": "弟子の茶髪・金刺繍の黒い外套・鞄・口を覆う布、自然な両手と屈んだ脚、石で押さえた紙、冷えた焚き火、割れた小瓶、毒霧と島の一灯を確認。月を除き地下の岩と暗がりに修正済み。文字は読めない走り書き。新たな印なし。顔下半分と奥の脚は布・姿勢で隠れる。",
+      "attempts": [
+        {
+          "call": 1,
+          "source": "/workspace/generated_images/exec-979869c2-532e-443b-893a-53103d28d09b.png",
+          "state": "needs-fix",
+          "reason": "奈落の底に不適切な月"
+        },
+        {
+          "call": 9,
+          "source": "/workspace/generated_images/exec-9a2b0ca7-cdbc-4e3d-92d6-ba9ac149a6c5.png",
+          "state": "ready",
+          "reason": "地下の場面に合わせ月を除去"
+        }
+      ],
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "3bbd64ef9a09b33353bed0924d42f9a8a997eae7016640712cfa09e4eb06edce",
+      "references": [
+        "docs/art/story-refs/apprentice.png"
+      ],
+      "thumbnailReview": "384×256で人物・場面の主題を目視確認済み。"
+    },
+    {
+      "id": "report_w28",
+      "path": "art/story-review/chapter7/report_w28.png",
+      "state": "ready",
+      "generationCalls": 1,
+      "visualReview": "王の老いた顔・白髪と白髭・王冠・赤衣と毛皮・膝掛け、弟子の衣装と鞄、空の宰相席、床の金杯、重い雲を確認。島を説明する弟子と聞き入る王が本文に一致。見える手足に増殖なし。王の脚は膝掛け、弟子の脚は外套と机、重なった指は姿勢により隠れる。追加の印・読める文字なし。",
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "bd6128a0c4f274715c0ee901a97f168024c2d1f9d4648c525ef527a5fee1ce65",
+      "references": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/king.png",
+        "docs/art/story-refs/morden.png",
+        "art/story-review/chapter3/report_w12.png"
+      ],
+      "thumbnailReview": "384×256で人物・場面の主題を目視確認済み。"
+    },
+    {
+      "id": "mem_w29",
+      "path": "art/story-review/chapter7/mem_w29.png",
+      "state": "ready",
+      "generationCalls": 2,
+      "visualReview": "モルデンの同一の細長い顔、素朴な工房服、木の手と関節、祖の伏せた顔、瘴気、奥の階段を確認。扉上の印は左の親指・右3突起・独立した炎。見える手足に増殖なし。祖の顔と脚・奥の腕は白髪や机に隠れる。オルドの重ねは省略。背景の余分な建物の灯を除去済み。読める文字なし。",
+      "attempts": [
+        {
+          "call": 3,
+          "source": "/workspace/generated_images/exec-3216f88e-9b66-405e-aec6-3a419c079c7f.png",
+          "state": "needs-fix",
+          "reason": "宰相帽・装飾衣と外の余分な建物の灯"
+        },
+        {
+          "call": 4,
+          "source": "/workspace/generated_images/exec-f4e8b8c7-6e69-4cf5-a58b-1ffec2198193.png",
+          "state": "ready",
+          "reason": "工房服と背景を修正"
+        }
+      ],
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "fb8f9ae402f179545ac3f3adb8ceb6836ba1a27a6298a025e4e59517cf137e32",
+      "references": [
+        "docs/art/story-refs/ordo-states.png",
+        "docs/art/story-refs/ordo.png",
+        "docs/art/story-refs/morden.png",
+        "docs/art/story-refs/props.png"
+      ],
+      "additionalReferences": [
+        "docs/art/story-refs/sigil.png"
+      ],
+      "thumbnailReview": "384×256で人物・場面の主題を目視確認済み。"
+    },
+    {
+      "id": "report_w29",
+      "path": "art/story-review/chapter7/report_w29.png",
+      "state": "ready",
+      "generationCalls": 2,
+      "visualReview": "王の顔・王冠と衣装、上を指す手、灰色の膝掛けとその上の羊皮紙、宰相の空席、重い雲、弟子の茶髪と黒金の外套・鞄を確認。杯は画面に描かない修正。見える手足に増殖なし。王の脚は膝掛け、弟子の片腕と脚は外套・机に隠れる。追加の印・読める文字なし。本文の塔へ向かわせる動作が明瞭。",
+      "attempts": [
+        {
+          "call": 5,
+          "source": "/workspace/generated_images/exec-32b5ebda-3959-4210-9e55-977fbdc8ec00.png",
+          "state": "needs-fix",
+          "reason": "膝掛けと杯の位置"
+        },
+        {
+          "call": 6,
+          "source": "/workspace/generated_images/exec-d04de625-ca2b-482c-9e5b-4491a4823e17.png",
+          "state": "ready",
+          "reason": "灰色の膝掛けを明瞭化、杯を画面から除去"
+        }
+      ],
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "5ac52853ba08ac7824a946b431a94306da654148adaea2dd1b0b592f50aba4d2",
+      "references": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/king.png",
+        "docs/art/story-refs/morden.png",
+        "art/story-review/chapter3/report_w12.png"
+      ],
+      "thumbnailReview": "384×256で人物・場面の主題を目視確認済み。"
+    },
+    {
+      "id": "irene_order",
+      "path": "art/story-review/chapter7/irene_order.png",
+      "state": "ready",
+      "generationCalls": 2,
+      "visualReview": "イレーヌの顔・紫の目・黒紫の長髪・髪飾りと紫黒の衣装、セラの本物の長髪・木目の顔・茶色の目・額の灯と手の印・金縁の黒い関節・白布と茶帯・胸の青白い灯を確認。白い蝋燭1本と真鍮燭台、両手と小さなはさみ、セラの組んだ両手、微笑みが本文に一致。余分な腕・指なし。重なった指と画面外の脚は直接判別不可。読める文字なし。",
+      "referencePacking": "指定された館の2画像を順に原寸のまま縦連結した一時PNGを5枚目として渡した。元画像の変更・省略なし。",
+      "attempts": [
+        {
+          "call": 7,
+          "state": "blocked",
+          "reason": "参照枚数の引数制限で生成前に拒否"
+        },
+        {
+          "call": 8,
+          "source": "/workspace/generated_images/exec-8a4587fe-3234-4cba-8543-6120c4342266.png",
+          "state": "ready"
+        }
+      ],
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "fb3754a9457af38ab9a7226b3042e79fd338e6c315d8494a2d6021a5b7fd932c",
+      "references": [
+        "docs/art/story-refs/irene.png",
+        "docs/art/story-refs/sera.png",
+        "docs/art/sera/sera-r1-final.png",
+        "docs/art/story-refs/props.png",
+        "art/story-review/chapter2/irene_roots.png",
+        "art/story-review/chapter1/irene_familiar.png"
+      ],
+      "thumbnailReview": "384×256で人物・場面の主題を目視確認済み。"
+    }
+  ],
+  "failedCalls": [
+    {
+      "call": 7,
+      "id": "irene_order",
+      "reason": "参照画像7枚はツールの最大5枚を超え生成前に拒否。失敗として回数に加算。"
+    }
+  ],
+  "referenceHashes": {
+    "art/story-review/chapter1/irene_familiar.png": "806354ad01d8596a42d695def0128860fc8a3814955a418772a8dba504bf063e",
+    "art/story-review/chapter2/irene_roots.png": "deae75376fa0ba88d8cc78f0cc1b8297be9434755df56b6d87aa63d3c87802fb",
+    "art/story-review/chapter3/report_w12.png": "b78de38be4920cb89b2bd79c59e1a34431365b9e963b621e15611fb5f0fa6517",
+    "docs/art/sera/sera-r1-final.png": "4b392934b742ea80e10abfcb6d6e5362a0becb13162af0842797f2f892c5fe6c",
+    "docs/art/story-refs/apprentice.png": "419a3d6797a8297866039b06f63b1ad79a907e800f68da7bf54b58b6858e89b2",
+    "docs/art/story-refs/irene.png": "6ad282363f77635736e4f6ab90d06649aa15b481e946b406f9b5564709627414",
+    "docs/art/story-refs/king.png": "341d51b7af8ae5fc6fe610902ad14b4cf95b57d2e56bcb419483a63321c4f978",
+    "docs/art/story-refs/morden.png": "b5934bc34a1d11e97e0fabe2cac71707b9a7c02201ffb21ec1669ec6a075b4d5",
+    "docs/art/story-refs/ordo-states.png": "f62bd7a6f8cbc0c9f9e620f0f90407bf907f07a0d26e9692f487cd3bf2343477",
+    "docs/art/story-refs/ordo.png": "7a51b182287aa1435f333ee6077b40f29e5c5db58d17fed3a4ca903fcaa0244d",
+    "docs/art/story-refs/props.png": "051a8f35cf00a15dfb3501cddb8f58964e5737d8d79001adbcc18135aa1309a9",
+    "docs/art/story-refs/sera.png": "341c64b2e2d3913f3cb6fe2f3ae66260a4899e588e416b098ab4433d5dcbba66",
+    "docs/art/story-refs/sigil.png": "7dfeb2dbb8eb7091557e1dd3f387b963b64b2fa4a20848c1c18734167fe47b6b"
+  },
+  "note": "担当04の5枚を制作。新規5回、修正3回、参照枚数の引数拒否1回、累計9回（上限15回）。全5枚readyは担当の目視確認済みを表し、ユーザー承認は別。原画5枚と担当記録のみ変更。WebP変換、build.py、共通queue.json、登録ファイル、本文、基準画像の変更なし。PR作成・mainマージなし。修正前画像は生成ツールの元出力を保持。",
+  "handoff": "統合担当はこのコミットの原画5枚と記録を取り込み、必要な承認・WebP変換・登録・公開を統合工程で行う。",
+  "integrationNote": "ユーザーの追加指示「変換してmainにマージ」により統合工程を実施。最新origin/mainを取り込み、build.pyで担当5枚のWebP・登録・第七章確認ページ・縮小見本・原画ハッシュを生成。登録・指示書・ストーリー一覧検査が成功。原画の再生成なし。"
+}
