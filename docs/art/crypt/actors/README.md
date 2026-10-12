@@ -103,3 +103,13 @@ CRYPT_REVIEW_OUT=/tmp/crypt-actors-review node tools/crypt/verify-actors.cjs
 原画は `corpses-seated-master.png`、出荷物は `crypt-corpses-seated.webp`。変更前は `fixes/corpses-seated-before-distinct-design.png` に保持。切り出し枠を新しい輪郭に合わせ、盤面とポップアップへ共通で反映する。
 確認: [盤面](distinct-review/board.png) · [選択画面一覧](distinct-review/popup-gallery.png) · [検査結果](distinct-review/checks.json)。
 再確認: `CRYPT_STATES_OUT=docs/art/crypt/actors/distinct-review node tools/crypt/verify-states.cjs`。
+
+
+## 死を示す姿勢と、同居時の人物サイズ
+
+死体3種を、首が横へ落ち、腕が地面へ垂れる姿に変更した。あたたかい死体は青白い肌と破れた作業着、偉大なる死体は壊れた鎧と外れた兜、風化した死体は崩れた骨で死を表す。前の原画は `fixes/corpses-seated-before-lifeless.png` に保持。原画の隣の手が切り出しに入る箇所だけを描画時に除いている。
+
+宝箱などのマスでもプレイヤーの描画寸法を空のマスとそろえた。原画の人物は左へマス幅の10%だけ寄せ、小物とともに表示する。人業の全身像を使う設定でも同居による高さの縮小を取り除いた。遊びの仕組み・酒場の心得に変更はない。
+
+確認: [空のマス](lifeless-review/walker-empty.png) · [宝箱と同居](lifeless-review/walker-chest.png) · [あたたかい死体](lifeless-review/corpseWarm-popup.png) · [検査結果](lifeless-review/checks.json)。
+`CRYPT_STATES_OUT=docs/art/crypt/actors/lifeless-review node tools/crypt/verify-states.cjs` で、幅320/390/600/1280、全4方向、浮遊、拡大/全体、未回収/回収後、小物8種の実描画寸法が一定で左右の壁内に収まることも検査する。
