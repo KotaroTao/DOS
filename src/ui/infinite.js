@@ -245,7 +245,11 @@ function tradeRow(o) {
 function openTrader(onChange) {
   const g = G();
   let seg = "buy", h = null;
-  const refresh = () => { if (h && !h.closed) h.update({ body: fill }); if (onChange) onChange(); };
+  // 描き直しても、見ていた所 (縦のスクロール) はそのまま
+  const refresh = () => {
+    if (h && !h.closed) { const y = h.body ? h.body.scrollTop : 0; h.update({ body: fill }); if (h.body) h.body.scrollTop = y; }
+    if (onChange) onChange();
+  };
   // 隊の持ち物にその品がいくつあるか (装備中は数えない)
   const held = (id) => (g.party || []).reduce((n, d) => n + (d.items || []).filter((x) => x && x.id === id).length, 0);
   const fill = (b) => {
@@ -306,7 +310,7 @@ function openTrader(onChange) {
           any = true;
           const cost = game.reforgeCost ? game.reforgeCost(it) : 0;
           b.appendChild(row({ icon: itemTile(it, { size: 44 }), title: itemName(it), sub: `${d.name} ・ 品質 ${it.q == null ? 50 : it.q}`, right: `💰${cost}`,
-            onTap: () => { if (UI.openReforge) UI.openReforge(it, d); } }));
+            onTap: () => { if (UI.openReforge) UI.openReforge(it, d, { onDone: refresh, onClose: refresh }); } })); // 品質を選んだらすぐ一覧と所持金を描き直す
         }
       }
       if (!any) b.appendChild(el("div", "inf-note", "鍛え直せる装備が無い。"));
