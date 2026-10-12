@@ -3661,9 +3661,18 @@ function drawBoardIcons(lt, now, hx, hy) {
     drawBmpFit(b, cx, bottom, maxW, maxH, light);
     // まだあたたかい死体 (魂未回収) には青い人魂
     if (cell.type === "corpse" && cell.corpseWarm && !cell.cleared) {
-      const bob = REDUCED_MOTION ? 0 : Math.sin(now * 0.004 + cx) * 2;
+      const phase = now * 0.0017 + x * 1.9 + y * 0.7;
+      const sway = REDUCED_MOTION ? 0 : Math.sin(phase) * size * 0.1;
+      const bob = REDUCED_MOTION ? 0 : Math.sin(phase * 1.37) * size * 0.07;
+      const breath = REDUCED_MOTION ? 1 : 1 + Math.sin(phase * 1.8) * 0.045;
       const wisp = activeCfg().id === "w01" ? cryptPropBitmap("wisp") : null;
-      drawBmpFit(wisp || plainBitmap(ICONS.wisp), cx + size * 0.22, bottom - size * 0.62 + bob, size * 0.5, size * 0.5, 1, 0.92);
+      // 従来の0.5倍枠から1.5倍枠へ。根元を遺体に置き、上へ立ちのぼらせる。
+      vctx.save();
+      vctx.translate(cx + size * 0.22 + sway, bottom - size * 0.3 + bob);
+      vctx.rotate(REDUCED_MOTION ? 0 : Math.sin(phase * 0.83) * 0.085);
+      vctx.scale(1 / breath, breath);
+      drawBmpFit(wisp || plainBitmap(ICONS.wisp), 0, 0, size * 1.5, size * 1.5, 1, 0.94);
+      vctx.restore();
     }
     // 宝箱のきらめき
     if (cell.type === "chest" && !cell.cleared && !REDUCED_MOTION) {
