@@ -711,12 +711,12 @@ export class Battle {
   // 職の Lv15 の目玉パッシブのうち、戦闘の始まりに隊として一度だけ効くもの (重複不可 = 隊で一番高いLv)
   _lv15Start() {
     const best = (k) => Math.max(0, ...this.party.filter((p) => p.alive).map((p) => pv(p, k)));
-    const ct = best("crusaderToki"); // 聖戦の鬨: 味方全員の STR ×1.2/1.5/1.8 (3ターン)
+    const ct = best("crusaderToki"); // 聖戦の雄たけび: 味方全員の STR ×1.2/1.5/1.8 (3ターン)
     if (ct) {
       const m = [1, 1.2, 1.5, 1.8][Math.min(3, ct)];
-      for (const p of this.livingParty()) this._applyMod(p, "atk", m, 3, "聖戦の鬨");
-      this.log(`聖戦の鬨！ 隊の士気が燃え上がる ― 味方全員の${modText("atk", m)}、3ターン`, "heal");
-      this._proc(this._bestHolder("crusaderToki"), "聖戦の鬨");
+      for (const p of this.livingParty()) this._applyMod(p, "atk", m, 3, "聖戦の雄たけび");
+      this.log(`聖戦の雄たけび！ 隊の士気が燃え上がる ― 味方全員の${modText("atk", m)}、3ターン`, "heal");
+      this._proc(this._bestHolder("crusaderToki"), "聖戦の雄たけび");
     }
     const ib = best("inqBrand"); // 罪の刻印: 敵全体に弱点の属性を 1/2/3 つ刻む (その属性の被ダメ ×1.5、3ターン)
     if (ib) {

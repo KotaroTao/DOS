@@ -17,10 +17,10 @@ export const LAYER4_ITEMS = [
   // ===== スーパーレア: 武器 =====
   sr(W("w_sr4_bannerpike", "旗手の槍", "sp", 33, { pow: 1.35, two: true, hp: 14, eAtk: ["light", 1], tint: "#c8b080",
     desc: "守備隊の旗手が軍旗を括りつけ、両手で掲げ通した長槍。援軍を待ち続けた百年の祈りが穂先に宿り、闇に堕ちた亡者の身を白く焼く。" })),
-  sr(W("w_sr4_garrisonblade", "守備隊長の佩刀", "ls", 36, { pow: 1.35, vitB: 3, hp: 12, tint: "#9a9aa8",
+  sr(W("w_sr4_garrisonblade", "守備隊長の長剣", "ls", 36, { pow: 1.35, vitB: 3, hp: 12, tint: "#9a9aa8",
     desc: "砦の守備隊長が最後の夜まで帯びていた長剣。刃こぼれひとつ無いのは、部下の前で一度も退かなかった証だという。" })),
-  sr(W("w_sr4_siegebolt", "攻城弩の太矢弓", "bw", 39, { scale: { agi: 0.4 }, pow: 1.35, eAtk: ["fire", 1], luk: 3, tint: "#c07a40",
-    desc: "攻城弩の太矢を射るために造り替えられた強弓。鏃に詰めた火薬が着弾と同時に爆ぜ、雷雲の魔物をも炎で包む。" })),
+  sr(W("w_sr4_siegebolt", "城攻めの太矢弓", "bw", 39, { scale: { agi: 0.4 }, pow: 1.35, eAtk: ["fire", 1], luk: 3, tint: "#c07a40",
+    desc: "城攻めに使う太い矢を放つため、作り替えられた強い弓。矢じりの火薬は当たると同時に爆発し、雷雲の魔物も炎で包む。" })),
   sr(W("w_sr4_thunderbrand", "雷避けの焼刃", "kt", 42, { pow: 1.35, eAtk: ["fire", 1], agi: 3, tint: "#e08a50",
     desc: "大手門の雷雨の中、落雷を浴びて赤く焼けたまま冷えなかった刀。刃に籠もった熱が、雷をまとった魔物の身を焼き切る。" })),
   sr(W("w_sr4_jailerkeys", "牢番の鍵束槌", "mc", 45, { pow: 1.3, hp: 16, onHit: ["paralyze", 0.15], tint: "#6a6a72",

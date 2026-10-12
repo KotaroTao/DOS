@@ -47,7 +47,7 @@ export const RANK4_ITEMS = [
 
   // ===== 足 feet (布2/軽2/重2) =====
   F("f_r4_sageshoes", "賢者の靴", 32, { weight: "cloth", tint: "#8a78c0", desc: "魔法の刺繍を施した軽い靴。足運びを滑らかにし、術者が陣形を保って動き続けるのを助ける。" }),
-  F("f_r4_swiftshoes", "韋駄天の靴", 38, { weight: "cloth", agi: 2, tint: "#7fd0c0", desc: "風をはらむように軽い魔法の靴。一歩ごとに体が前へ運ばれ、駆け出しの速さと回避の機敏さが増す。" }),
+  F("f_r4_swiftshoes", "風の神の靴", 38, { weight: "cloth", agi: 2, tint: "#7fd0c0", desc: "風をはらむように軽い魔法の靴。一歩ごとに体が前へ運ばれ、駆け出しの速さと回避の機敏さが増す。" }),
   F("f_r4_mithrilboots", "ミスリルのブーツ", 34, { tint: "#cfe0ea", desc: "軽銀で仕立てたブーツ。軽快なのに頑丈で、罠の棘も瓦礫の縁も寄せつけず足元を確かに守る。" }),
   F("f_r4_travelmagicboots", "旅人の魔法靴", 38, { tint: "#a9781f", desc: "長旅を支える祝福を込めた革靴。疲れを溜めにくく、悪路でも足取りを保つ冒険者の隠れた名品。" }),
   F("f_r4_mithrilsabaton", "ミスリルの具足", 35, { shape: "greaves", tint: "#cfe0ea", desc: "軽銀で覆う具足。重装の堅い守りを保ちつつ鋼より軽く、踏み込みの一歩を機敏に支える。" }),

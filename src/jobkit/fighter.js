@@ -26,7 +26,7 @@ export default {
     },
     // 敵を討つたびに鬨の声を上げ、傷を忘れて次の敵へ
     fighterKachidoki: {
-      label: "勝鬨",
+      label: "勝利の雄たけび",
       lv: ["敵を倒すとHP6%回復・STR×1.15 (2ターン)"],
       fx: [{ t: "kill", hp: [0.06], buff: { atk: [1.15] }, dur: 2 }],
     },

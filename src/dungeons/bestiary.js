@@ -1120,7 +1120,7 @@ const NEW_DEFS = [
   // -- rank 4 追加 (+5) --
   { id: "bs_darksamurai", name: "黒甲の武者", rank: 5, race: "armored", element: "dark", artKey: "hd_darksamurai", soulClass: "knight",
     swift: true, ability: "critical", // 抜き打ちの一閃で急所を断つ
-    desc: "東の島から雇われてきた刀使いが、黒い甲冑のまま捨て砦をさまよう亡霊。主の敵を誰にでも重ね、刀を抜くのは一瞬。抜き放った刃は鞘に戻ることを知らず、急所だけを正確に断つ。" },
+    desc: "東の島から雇われてきた刀使いが、黒い鎧のまま捨て砦をさまよう亡霊。主の敵を誰にでも重ね、刀を抜くのは一瞬。抜き放った刃はさやに戻ることを知らず、急所だけを正確に断つ。" },
   { id: "bs_cultist", name: "邪神の僧", rank: 5, race: "specter", element: "dark", artKey: "hd_cultist", soulClass: "bishop",
     ability: "drain", // 捨てたものを取り戻そうと宿した魂を喰らう
     desc: "禁忌の神をまつり命を捧げた僧侶の亡霊。神に近づくために捨てたものを取り戻そうと手を伸ばし、触れた者の宿した魂のレベルを喰らい取る。" },
