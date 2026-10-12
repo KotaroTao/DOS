@@ -967,7 +967,7 @@ export function equipClassText(it) {
 
 // 装備できるLv (メイン魂の Lv がこれに届けば付けられる。src/equiplevel.js)
 export function equipLvText(it) {
-  return `装備できるLv: メイン魂Lv${equipLevelOf(it)}から`;
+  return `装備条件：メイン魂Lv${equipLevelOf(it)}以上`;
 }
 
 // 隊メンバーの装備可否チップ (○/×)。party を省くと現在の編成 (G.party)
