@@ -169,7 +169,12 @@ const ASSETS = [
   "./art/story/dungeons/lore_ws1.webp",
   "./art/story/dungeons/lore_ws2.webp",
   "./art/story/dungeons/lore_ws5.webp",
+  "./art/story/dungeons/lore_ws11.webp",
+  "./art/story/dungeons/lore_ws12.webp",
+  "./art/story/dungeons/lore_ws13.webp",
+  "./art/story/dungeons/lore_ws14.webp",
   "./art/story/dungeons/lore_ws15.webp",
+  "./art/story/dungeons/lore_ws16.webp",
   "./art/story/dungeons/lore_ws17.webp",
   // <</STORY_ART>>
   "./src/ui/journal.js",
