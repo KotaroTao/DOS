@@ -5,7 +5,7 @@ export const clampResist = v => Math.max(0, Math.min(100, Math.round(Number(v) |
 export const zeroResists = () => Object.fromEntries(Object.keys(RESIST_LABEL).map(k => [k, 0]));
 
 // ===== 敵の体質 (効きやすい・効きにくい状態異常) =====
-// 強さ (ランク・主/強敵) で上がる基礎値に、種族と特色ごとの「効きやすい / 効きにくい」を重ねる。
+// 強さ (ランク・主/強敵) で上がる基礎値に、個体の台帳で指定した「効きやすい / 効きにくい」を重ねる。
 // 敵が強くなっても弱点の異常は効き続けるので、相手ごとに異常を使い分ける意味が出る (2026-10、ユーザーの指示)。
 //   weak   = 効きやすい: 雑魚0 / 強敵 基礎×0.25 / 主 基礎×0.4
 //   slight = やや効きやすい: 基礎×0.5
@@ -14,7 +14,7 @@ export const zeroResists = () => Object.fromEntries(Object.keys(RESIST_LABEL).ma
 // 石化は隊が敵へ掛ける手段が無いので弱点にしない。即死は弱点にしない (強すぎる)。
 export const MON_RESIST_WEAKABLE = ["poison", "paralyze", "sleep", "charm", "confuse", "seal", "flinch"];
 const WEAKABLE = MON_RESIST_WEAKABLE;
-// 種族ごとの体質。imm = 効かない (体のつくり上ありえない異常)
+// 部分指定・仮の敵の互換用。全項目を指定した個体はこの推測を使わない。
 export const RACE_RESIST = {
   amorph:    { weak: ["poison"],   slight: ["confuse"],  strong: ["paralyze", "flinch"] }, // 体の芯が無く、しびれも怯みも散る。毒は全身に回る
   beast:     { weak: ["sleep"],    slight: ["charm"],    strong: ["confuse"] },            // 獣は眠りに落ちやすく、手なずけられる。本能で動くので惑わされない
@@ -30,11 +30,36 @@ export const RACE_RESIST = {
   undead:    { weak: ["seal"],     slight: ["paralyze"], strong: ["charm"],  imm: ["poison", "sleep", "death"] }, // 呪いの力を封じれば止まる
   specter:   { weak: ["seal"],     slight: ["confuse"],  strong: ["flinch"], imm: ["poison", "sleep", "death", "paralyze", "stone"] },
   demon:     { weak: ["flinch"],   slight: ["paralyze"], strong: ["charm", "confuse", "death"] }, // 悪魔は心を読ませないが、ひるむ
-  construct: { weak: ["paralyze"], slight: ["seal"],     strong: ["flinch", "confuse"], imm: ["poison", "sleep", "charm", "death"] }, // からくりはしびれると止まる
-  armored:   { weak: ["confuse"],  slight: ["paralyze"], strong: ["flinch"], imm: ["poison", "sleep", "charm", "death"] }, // 空の鎧は命じる声が乱れると味方を斬る
+  construct: { weak: ["paralyze"], slight: ["seal"],     strong: ["flinch", "confuse"], imm: ["poison", "sleep", "charm", "death"] }, // 機械・石像は眠らないが、しびれると止まる
+  armored:   { weak: ["paralyze"], slight: ["confuse"],  strong: ["flinch"], imm: ["poison", "sleep", "charm", "death"] }, // 空の鎧は眠らず、動きを止める力に弱い
   elemental: { weak: ["seal"],     slight: ["confuse"],  strong: ["poison", "death"] },   // 精霊は術そのもの。封じれば力を失う
 };
-// 特色から読む体質 (種族より優先)
+const textOf = m => `${m.id || ""} ${m.name || ""} ${m.desc || ""}`;
+const has = (m, re) => re.test(textOf(m));
+// 特徴から読む体質。種族名そのものではなく、説明・名前・戦闘特性に現れている個性を拾う。
+function featureResist(m, put) {
+  if (has(m, /腐|屍|肉|膿|蛆|ウジ|虫|蛙/)) put("poison", "weak");
+  if (has(m, /霊|亡霊|怨霊|影|もや|火の玉|精|呪|魔力|魔法|術/)) put("seal", "weak");
+  if (has(m, /眠|夜|梟|蝙蝠|狼|猪|獣/)) put("sleep", "slight");
+  if (has(m, /兵|騎士|隊長|ゴブリン|コボルド|人|妖|魔女|司祭|術師/)) put("charm", "weak");
+  if (has(m, /王|主|隊長|族長|司祭|術師|魔女|妖/)) put("confuse", "slight");
+  if (has(m, /骨|骸|石|岩|鉱|像|棺|鎧|機械|からくり|ゴーレム|バリスタ/)) {
+    put("poison", "imm"); put("sleep", "imm"); put("charm", "imm"); put("death", "imm");
+  }
+  if (has(m, /霊|亡霊|怨霊|影|もや|火の玉/)) {
+    put("poison", "imm"); put("sleep", "imm"); put("death", "imm");
+  }
+  if (has(m, /木|蔦|草|花|菌|キノコ|胞子/)) {
+    put("charm", "strong"); put("confuse", "strong"); put("flinch", "slight");
+  }
+  if (has(m, /泥|粘|液|スライム|ウーズ|もや|霧/)) {
+    put("flinch", "strong"); put("paralyze", "strong"); put("confuse", "slight");
+  }
+  if (has(m, /竜|龍|蛇|大蛇/)) {
+    put("sleep", "weak"); put("charm", "strong"); put("confuse", "strong"); put("death", "strong");
+  }
+}
+// 戦闘上の特色から読む体質
 function traitResist(m, put) {
   if (m.haste || m.swift) put("sleep", "weak");                   // 速い者ほど眠らせれば止まる
   if (m.evasive) put("paralyze", "weak");                         // しびれた者はかわせない
@@ -47,20 +72,29 @@ function idHash(s) { let h = 2166136261; for (const c of String(s || "")) { h ^=
 
 // 種類ごとの段 (base/slight/weak/strong/imm) を決める。値は monsterResists が付ける
 export function resistTiers(m) {
+  // 全項目を明示した個体は台帳だけを読む。主・金属の戦闘上の無効は保持する。
+  if (AIL_RESIST_KINDS.every(k => k in (m.resistTiers || {}))) {
+    const t = { ...m.resistTiers };
+    if (m.boss) { t.death = "imm"; t.flinch = "imm"; }
+    if (m.metal) for (const k of AIL_RESIST_KINDS) t[k] = "imm";
+    return t;
+  }
   const t = Object.fromEntries(AIL_RESIST_KINDS.map(k => [k, "base"]));
   const race = RACE_RESIST[m.race] || {};
-  // 揺らぎ: 種族の決めていない異常から1つを「効きにくい」に
+  // 基本傾向: ただしここで終わらせず、この後の特徴・個体指定で変える。
   const free = WEAKABLE.filter(k => ![race.weak, race.slight, race.strong, race.imm].some(a => a && a.includes(k)));
   if (free.length) t[free[idHash(m.id) % free.length]] = "strong";
   for (const k of race.strong || []) t[k] = "strong";
   for (const k of race.slight || []) t[k] = "slight";
   for (const k of race.weak || []) t[k] = "weak";
-  // 特色: 種族の段を上書きする (ただし「効きやすい」を「やや」へは下げない)
+  // 特徴: 名前・説明・戦闘特性を重ねる (ただし「効きやすい」を「やや」へは下げない)
   const put = (k, tier) => { if (!(tier === "slight" && t[k] === "weak")) t[k] = tier; };
+  featureResist(m, put);
   traitResist(m, put);
   // 自分が使う異常には強い
-  if (m.ability && m.ability in t) t[m.ability] = "strong";
-  for (const k of race.imm || []) t[k] = "imm";
+  if (m.ability && m.ability in t && t[m.ability] !== "imm") t[m.ability] = "strong";
+  for (const k of race.imm || []) if (!((m.resistTiers || {})[k])) t[k] = "imm";
+  for (const [k, tier] of Object.entries(m.resistTiers || {})) if (k in t) t[k] = tier;
   if (["construct"].includes(m.race) && /石|岩|鉱|墓像|石像/.test((m.name || "") + (m.desc || ""))) t.stone = "imm";
   if (/stonegolem|rockgolem|mossgolem|gargoyle/.test(m.id || "")) t.stone = "imm";
   if (m.boss) { t.death = "imm"; t.flinch = "imm"; }

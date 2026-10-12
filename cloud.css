@@ -1,0 +1,14 @@
+.cloud-gate[hidden] { display: none; }
+.cloud-gate { position: fixed; inset: 0; z-index: 2147483646; display: flex; align-items: center; justify-content: center; overflow: auto; padding: 24px 16px; background: #121514; color: #edece7; box-sizing: border-box; }
+.cloud-panel { width: 100%; max-width: 360px; margin: auto; }
+.cloud-panel h2 { margin: 0 0 20px; font-size: 22px; }
+.cloud-panel p { min-height: 48px; font-size: 14px; line-height: 1.8; overflow-wrap: anywhere; }
+.cloud-controls, .cloud-controls form { display: grid; gap: 12px; }
+.cloud-controls label { display: grid; gap: 8px; font-size: 13px; }
+.cloud-controls input { width: 100%; min-width: 0; box-sizing: border-box; padding: 12px; border: 1px solid #65736e; border-radius: 4px; font: inherit; font-size: 16px; background: #202923; color: #fff; }
+.cloud-controls button { width: 100%; min-height: 44px; padding: 10px 16px; border: 1px solid #839987; border-radius: 4px; font: inherit; font-size: 14px; background: #344e3e; color: #fff; cursor: pointer; }
+.cloud-controls button:disabled { opacity: .5; cursor: wait; }
+.cloud-controls :focus-visible { outline: 2px solid #e4c35a; outline-offset: 3px; }
+.stg-cloud-account { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; }
+.stg-cloud-account .stg-row-n { min-width: 0; overflow-wrap: anywhere; }
+.stg-cloud-account .stg-row-d { white-space: nowrap; }
