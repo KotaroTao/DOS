@@ -2842,7 +2842,7 @@ function ensureBoardArt() {
   const sp = specialDef();
   const crypt = L === 1;
   const painting = activeCfg().id === "w01" ? cryptPainting() : null;
-  if (activeCfg().id === "w01") prewarmCryptActors();
+  prewarmCryptActors();
   const seed = boardSeed(b, dungeonSeed(activeCfg()) * 7919 + G.floor);
   const hz = harmHaz();
   const key = `${VW}x${VH}|${CARD_W}x${CARD_H}|${seed}|${L}|${G.eliteFloor ? "e" : ""}|${sp ? sp.id : ""}|${hz.name}|${painting ? "painted" : "raster"}`;
@@ -3651,7 +3651,7 @@ function drawBoardIcons(lt, now, hx, hy) {
       }
       continue;
     }
-    const painted = activeCfg().id === "w01" || ["corpse", "fountain"].includes(cell.type) ? cryptPropBitmap(cryptPropKey(cell, bossDoorHere())) : null;
+    const painted = cryptPropBitmap(cryptPropKey(cell, bossDoorHere()));
     const b = painted || plainBitmap(icon);
     const size = Math.min(r.w * (here ? 0.62 : 0.86), r.h * (here ? 0.5 : 0.62));
     // 横たわる人物の全長を、探索者の身長と同じ基準で描く。
@@ -3668,7 +3668,7 @@ function drawBoardIcons(lt, now, hx, hy) {
       const sway = REDUCED_MOTION ? 0 : Math.sin(phase) * size * 0.035;
       const bob = REDUCED_MOTION ? 0 : Math.sin(phase * 1.37) * size * 0.025;
       const breath = REDUCED_MOTION ? 1 : 1 + Math.sin(phase * 1.8) * 0.045;
-      const wisp = activeCfg().id === "w01" ? cryptPropBitmap("wisp") : null;
+      const wisp = cryptPropBitmap("wisp");
       // 元の大きさと高さを保ち、小さくゆらめかせる。
       vctx.save();
       vctx.translate(cx + sway, bottom - size * 0.62 + bob);
@@ -3794,7 +3794,7 @@ function drawWalker(hx, hy, now) {
 // 赤い頭巾の人影 (4方向)。端末の画素の格子に整数倍で置き、補間なしでくっきり描く。
 // 高さは墓石の約8割。足元に影、手の角灯が光の輪の源。待機中は2コマでわずかに上下し、歩く時は小さく弾む
 function drawHoodedWalker(wk, hx, hy, now) {
-  const painted = activeCfg().id === "w01" ? cryptWalkerBitmap(G._facing, PREFS.walkerLook) : null;
+  const painted = cryptWalkerBitmap(G._facing, PREFS.walkerLook);
   if (painted) { drawPaintedWalker(painted, hx, hy, now); return; }
   const b = monsterBitmap(wk);
   const cur = G.board.cells[G.py] && G.board.cells[G.py][G.px];
