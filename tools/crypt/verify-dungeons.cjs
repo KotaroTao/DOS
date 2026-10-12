@@ -7,9 +7,10 @@ const assert = require('node:assert/strict');
 const base = process.env.CRYPT_REVIEW_URL || 'http://localhost:8000';
 const late = process.env.DUNGEON_REVIEW_GROUP === 'w17-w21';
 const later = process.argv.includes('w07-w11');
-const targets = late ? [['w17',15],['w18',10],['w19',10],['w20',10],['w21',15]] : later ? [['w07',10],['w08',10],['w09',15],['w10',10],['w11',10]] : [['w02',10],['w03',15],['w04',10],['w05',15],['w06',10]];
-const first = targets[0][0], second = targets[1][0];
-const out = resolve('docs/art/dungeons/' + (late ? 'review-w17-w21' : later ? 'review-w07-w11' : 'review'));
+const extended = process.env.DUNGEON_REVIEW_SET === 'w12-w16';
+const ids = later ? ['w07','w08','w09','w10','w11'] : late ? ['w17','w18','w19','w20','w21'] : extended ? ['w12','w13','w14','w15','w16'] : ['w02','w03','w04','w05','w06'];
+const first = ids[0];
+const out = resolve('docs/art/dungeons/' + (later ? 'review-w07-w11' : late ? 'review-w17-w21' : extended ? 'review-w12-w16' : 'review'));
 mkdirSync(out, { recursive: true });
 const report = { checks: [], screenshots: [] };
 function check(name, value) { assert.ok(value, name); report.checks.push(name); }
@@ -22,10 +23,10 @@ function check(name, value) { assert.ok(value, name); report.checks.push(name); 
       const errors = []; page.on('pageerror', e => errors.push(e.message));
       let release;
       const gate = delay ? new Promise(resolve => { release = resolve; }) : Promise.resolve();
-      await page.route(new RegExp('/art/dungeon/(' + targets.map(([id])=>id).join('|') + ')-(materials|floor)\\.webp'), async route => {
+      await page.route(new RegExp('/art/dungeon/(' + ids.join('|') + ')-(materials|floor)\\.webp'), async route => {
         const floor = route.request().url().includes('-floor');
-        if (failure === true || failure === 'floor' && floor && route.request().url().includes('/'+first+'-')) return route.abort();
-        if (invalid && !floor && route.request().url().includes('/'+first+'-')) return route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>'});
+        if (failure === true || failure === 'floor' && floor && route.request().url().includes('/' + first + '-')) return route.abort();
+        if (invalid && !floor && route.request().url().includes('/' + first + '-')) return route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>'});
         await gate; await route.continue();
       });
       await page.route('**/src/game.js*', async route => {
@@ -34,7 +35,7 @@ function check(name, value) { assert.ok(value, name); report.checks.push(name); 
       });
       await page.goto(base);
       await page.getByRole('button', { name: /テストプレイ/ }).click();
-      await page.locator('.ttl-test select').filter({has:page.locator('option[value="'+first+'"]')}).selectOption(first);
+      await page.locator('.ttl-test select').filter({has:page.locator('option[value="' + first + '"]')}).selectOption(first);
       await page.locator('.ttl-test button').last().click();
       await page.waitForFunction(() => window.cryptReview && cryptReview.G.state === 'board' && !cryptReview.uiBlocked());
       await page.waitForTimeout(600);
@@ -69,7 +70,7 @@ function check(name, value) { assert.ok(value, name); report.checks.push(name); 
     await capture(fallback.page, 'before-mobile.png');
     await capture(fallback.page, 'before-board.png', true);
     check('素材取得失敗時に実行時エラーがない', fallback.errors.length === 0);
-    for (const [id] of targets) {
+    for (const id of ids) {
       const result=await fixture(fallback.page,id);
       check(id+'は素材失敗時にも旧描画を保つ',result.scale===1);
       await capture(fallback.page,id+'-before.png',true);
@@ -80,7 +81,7 @@ function check(name, value) { assert.ok(value, name); report.checks.push(name); 
       const sample = await start(options);
       await fixture(sample.page);
       check(JSON.stringify(options)+'でも旧描画で探索可能',await sample.page.evaluate(()=>cryptReview.BV.art.scale===1&&!cryptReview.uiBlocked()));
-      await fixture(sample.page,second);
+      await fixture(sample.page,ids[1]);
       await sample.page.waitForFunction(()=>cryptReview.BV.art.scale===3);
       check('一迷宮の素材失敗は別迷宮の素材を妨げない',sample.errors.length===0);
       await sample.page.close();
@@ -137,7 +138,7 @@ function check(name, value) { assert.ok(value, name); report.checks.push(name); 
     await page.evaluate(({x,y}) => { cryptReview.G.flipAnim = {x,y,t0:performance.now(),dur:1000}; cryptReview.drawBoardFrame(); }, target);
     await capture(page, 'flipping-mobile.png');
     await page.evaluate(() => { cryptReview.G.flipAnim = null; });
-    for (const [id, floors] of [['w01',5],...targets]) {
+    for (const [id, floors] of await page.evaluate(ids => ['w01', ...ids].map(id => { const d=cryptReview.DUNGEONS.find(d=>d.id===id); return [id,d.floors]; }), ids)) {
       await fixture(page, id);
       await page.waitForFunction(() => cryptReview.BV.art?.scale === 3);
       for (let floor = 1; floor <= floors; floor++) {
@@ -154,7 +155,7 @@ function check(name, value) { assert.ok(value, name); report.checks.push(name); 
       });
       check(id+'の蓋は中身を示さず、描画で遊びの乱数を消費しない',stable);
       await capture(page, id + '-board.png', true);
-      if (['w04','w05','w06','w08','w09','w10','w11','w17','w18','w19','w20','w21'].includes(id)) {
+      if ((later ? ['w08','w09','w10','w11'] : late ? ids : extended ? ['w13','w15','w16'] : ['w04','w05','w06']).includes(id)) {
         const hazard = await page.evaluate(() => {
           const t=cryptReview,c=t.G.board.cells[4][1]; c.type='empty';c.revealed=true;
           t.BV.artCache.clear();t.BV.artKey='';t.drawBoardFrame();
@@ -162,7 +163,7 @@ function check(name, value) { assert.ok(value, name); report.checks.push(name); 
           t.BV.artCache.clear();t.BV.artKey='';t.drawBoardFrame();
           return plain!==t.BV.art.floor.toDataURL();
         });
-        check(id+'の危険な床に専用の染み・鉄菱・胞子を重ねる',hazard);
+        check(id+'の危険な床に土地固有の模様を重ねる',hazard);
         await capture(page,id+'-hazard.png',true);
       }
       for (const width of [320,390,600,1280]) {
@@ -171,7 +172,7 @@ function check(name, value) { assert.ok(value, name); report.checks.push(name); 
       }
       await page.setViewportSize({width:375,height:667});
     }
-    for (const id of ['w12','w13','ws1']) {
+    for (const id of ['w27','w28','ws1']) {
       const result = await fixture(page,id);
       check(`${id}は従来の素材を維持する`,result.scale===1);
     }
