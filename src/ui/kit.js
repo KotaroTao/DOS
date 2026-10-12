@@ -13,6 +13,7 @@ import { rarityKey, RARITIES } from "../rarity.js";
 import { keeperCanvas, iconCanvas } from "../townart.js";
 import { isFloating } from "../dungeons/schema.js";
 import { phrase } from "./phrase.js";
+import { cloudBusy } from "../cloud-save.js";
 
 const hasDOM = () => typeof document !== "undefined" && typeof document.createElement === "function";
 
@@ -140,7 +141,7 @@ export function svgIcon(kind, cls = "ui-ic") {
 // 選択肢・シート・ステータス・設定のいずれかが開いている間は、盤面の入力と待機アニメを止める
 export function uiBlocked() {
   const G = game.G;
-  return !!(G && (G.prompt || G.statusOpen || G.settingsOpen)) || stack.length > 0;
+  return cloudBusy() || !!(G && (G.prompt || G.statusOpen || G.settingsOpen)) || stack.length > 0;
 }
 
 // ---- 揺れ ----

@@ -1,4 +1,7 @@
 import { random, fxRandom, bindRngState, rngState } from "./rng.js";
+import { refSerialize, refDeserialize, applySavePatch } from "./savegraph.js";
+import { cloudEnabled, cloudReady, cloudBusy, connectCloud, cloudSave, cloudBattle, cloudFlush, cloudFatal } from "./cloud-save.js";
+import { syncEnemyUids } from "./combat.js";
 import { monsterResists } from "./resistance.js";
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
@@ -6102,6 +6105,7 @@ function autoWalk(path) {
   G._walkAbort = false; // 1歩ずつ歩いて落とし穴に落ちた時の印が残っていても、新しい道は捨てない
   walkRedirect = null;
   const next = () => {
+    if (cloudBusy()) { setTimeout(next, 100); return; }
     // 落とし穴に落ちた: 経路は前の階のものなので、ここで歩みを止める
     if (G._walkAbort) { G._walkAbort = false; G.walking = false; walkRedirect = null; return; }
     if (walkRedirect) { const t = walkRedirect; walkRedirect = null; path = findPath(t.x, t.y); }
@@ -10614,7 +10618,7 @@ function showBattleItems(actor) {
 function spdMul() { return G.autoCombat ? 0.45 : G.fastAnim ? 1 : 2; }
 // 戦闘の一時停止: 戦闘中にシート (手帳・設定・覗き見など) が開いている間は次の一手へ進まない。
 // いま演じている一手は最後まで見せ、その次の手番で閉じるのを待つ
-function combatHeld() { return G.state === "combat" && (sheetDepth() > 0 || !!G.settingsOpen || !!G.statusOpen); }
+function combatHeld() { return G.state === "combat" && (cloudBusy() || sheetDepth() > 0 || !!G.settingsOpen || !!G.statusOpen); }
 function whenCombatFree(fn) {
   if (combatHeld()) { setTimeout(() => whenCombatFree(fn), 150); return; }
   fn();
@@ -10634,6 +10638,7 @@ function combatStep() {
     autosave(true);
     setTimeout(() => {
       holdActionEffects();
+      if (cloudEnabled() && !testPlayActive) { resolveSavedBattle("stunned"); return; }
       const res = b.stunnedAct();
       res._modFeed = takeModFeed();
       b._acted = true; // 実行済み (演出中に閉じられても、再開時にやり直さず次の手番へ)
@@ -10649,6 +10654,7 @@ function combatStep() {
     // 一瞬の間を置いてから敵が動く (ドラクエ風)
     setTimeout(() => {
       holdActionEffects();
+      if (cloudEnabled() && !testPlayActive) { resolveSavedBattle("enemy"); return; }
       const res = b.enemyAct();
       res._modFeed = takeModFeed();
       b._acted = true;
@@ -10685,10 +10691,28 @@ function runCommitted() {
   G.animating = true;
   if (G.autoCombat) renderAutoBanner(); else renderActingPlate((G.battle.pending && G.battle.pending.actor) || G.battle.current);
   holdActionEffects();
+  if (cloudEnabled() && !testPlayActive) { resolveSavedBattle("commit"); return; }
   const res = G.battle.commit();
   res._modFeed = takeModFeed();
   G.battle._acted = true;
   animateResult(res, postResolve);
+}
+
+// 確定した選択を保存し、サーバーに一手を実行させる。返答前は結果を描かない。
+async function resolveSavedBattle(action) {
+  _cloudResolving = true;
+  try {
+    await cloudFlush();
+    const response = await cloudBattle(action);
+    const packet = applySavePatch(G, refDeserialize(response.packet));
+    G.rng = bindRngState(G.rng); setSharedSouls(G.souls);
+    syncEnemyUids(G.battle.enemies);
+    G.battle.log = log;
+    _cloudResolving = false; _lastCloudSave = null;
+    for (const l of packet.logs) log(l.msg, l.cls);
+    packet.result._modFeed = packet.modFeed;
+    animateResult(packet.result, postResolve);
+  } catch (e) { cloudFatal(); }
 }
 
 // 行動の結果を演出し、終わったら次へ
@@ -10701,15 +10725,30 @@ function postResolve() {
     showToast("⚠ 敵が怒り狂っている！");
   }
   if (b.result) { G.animating = false; setTimeout(() => whenCombatFree(endBattle), 300); return; }
-  b._acted = false;
+  if (!cloudEnabled() || testPlayActive) b._acted = false;
   // ターンの初めのパッシブ・激昂などで掛かった強化・弱体は、1拍ずつ見せてから次の手番へ
   const watch = beginModWatch(true);
+  if (cloudEnabled() && !testPlayActive) { advanceSavedBattle(watch); return; }
   b.advance();
   const mw = watch ? endModWatch() : null;
   playModReveal(mw, () => {
     autosave(true);
     setTimeout(combatStep, 150 * spdMul());
   });
+}
+
+async function advanceSavedBattle(watch) {
+  _cloudResolving = true;
+  try {
+    const response = await cloudBattle("advance");
+    const packet = applySavePatch(G, refDeserialize(response.packet));
+    G.rng = bindRngState(G.rng); setSharedSouls(G.souls); G.battle.log = log;
+    _cloudResolving = false; _lastCloudSave = null;
+    for (const l of packet.logs) log(l.msg, l.cls);
+    if (watch) G.modFeed = packet.modFeed;
+    const mw = watch ? endModWatch() : null;
+    playModReveal(mw, () => { autosave(true); setTimeout(combatStep, 150 * spdMul()); });
+  } catch (e) { cloudFatal(); }
 }
 
 // 多段ヒットの時間差 (ms。spdMul で速度モードに追従)。applyImpact と共有
@@ -11058,15 +11097,19 @@ function applyImpact(res) {
         G.partyFx.set(h.target, "hit");
         setPartyFxV(h.target, "claw");
         if (h.steal === "goldSteal") {
-          const s = Math.min(G.gold, h.stealAmt || 0);
-          G.gold -= s;
-          if (G.run) G.run.gold = Math.max(0, G.run.gold - s);
+          const s = res._persistedConsequences ? h.persistedSteal : Math.min(G.gold, h.stealAmt || 0);
+          if (!res._persistedConsequences) {
+            G.gold -= s;
+            if (G.run) G.run.gold = Math.max(0, G.run.gold - s);
+          }
           log(`${h.target.name}は 💰${s} を奪われた！`, "dmg");
           fx.floats.push({ x: VW / 2, y: VH - 26, text: `-💰${s}`, color: "#ffd84a", t0: now });
         } else {
-          const s = Math.min(G.soulPts, h.stealAmt || 0);
-          G.soulPts -= s;
-          if (G.run) G.run.soulPts = Math.max(0, G.run.soulPts - s);
+          const s = res._persistedConsequences ? h.persistedSteal : Math.min(G.soulPts, h.stealAmt || 0);
+          if (!res._persistedConsequences) {
+            G.soulPts -= s;
+            if (G.run) G.run.soulPts = Math.max(0, G.run.soulPts - s);
+          }
           log(`${h.target.name}は ✦${s} Soul を吸い取られた！`, "dmg");
           fx.floats.push({ x: VW / 2, y: VH - 26, text: `-✦${s}`, color: "#b06bff", t0: now });
         }
@@ -11095,7 +11138,7 @@ function applyImpact(res) {
         fx.floats.push({ x: partyDmgN > 1 ? partyFxX(h.target) : VW / 2, y: VH - 26, text: String(h.dmg) + (h.fatal ? " 即死!" : ""), color: h.fatal ? "#ff2a2a" : "#ff6b6b", t0: now, kind: "pdmg" });
         if (h.died) anyDeath = true;
         // レベルドレイン: 宿しているメイン魂のレベルを永続的に1下げる
-        if (h.drain && h.target.isDoll && h.target.primary != null) {
+        if (!res._persistedConsequences && h.drain && h.target.isDoll && h.target.primary != null) {
           const s = soulByUid(h.target.primary);
           if (s && s.level > 1) {
             s.level--;
@@ -17376,44 +17419,6 @@ const SAVE_FIELDS = [
 
 // 参照保持シリアライズ: 共有オブジェクト/循環参照を {$r:index} で表現し、
 // ロード時に同一性 (魂が複数箇所から参照される等) を完全に復元する。関数は無視。
-function refSerialize(root) {
-  const heap = [];
-  const map = new Map();
-  function enc(v) {
-    if (v === null || v === undefined) return null;
-    const t = typeof v;
-    if (t === "number" || t === "string" || t === "boolean") return v;
-    if (t !== "object") return null; // 関数など
-    if (map.has(v)) return { $r: map.get(v) };
-    const idx = heap.length;
-    map.set(v, idx);
-    if (Array.isArray(v)) {
-      const arr = []; heap.push({ a: arr });
-      for (const x of v) arr.push(enc(x));
-    } else {
-      const obj = {}; heap.push({ o: obj });
-      for (const k in v) {
-        if (!Object.prototype.hasOwnProperty.call(v, k)) continue;
-        if (typeof v[k] === "function") continue;
-        obj[k] = enc(v[k]);
-      }
-    }
-    return { $r: idx };
-  }
-  return { root: enc(root), heap };
-}
-
-function refDeserialize(data) {
-  const heap = data.heap || [];
-  const objs = heap.map((n) => (n.a ? [] : {}));
-  const dec = (v) => (v !== null && typeof v === "object" && "$r" in v) ? objs[v.$r] : v;
-  heap.forEach((n, i) => {
-    if (n.a) for (const x of n.a) objs[i].push(dec(x));
-    else for (const k in n.o) objs[i][k] = dec(n.o[k]);
-  });
-  return dec(data.root);
-}
-
 // テストモードはURLで明示し、通常セーブの読み書きを止める。
 const testParams = new URLSearchParams(location.search);
 const testDungeonIdx = DUNGEONS.findIndex((d) => d.id === testParams.get("testDungeon"));
@@ -17437,17 +17442,27 @@ const testPlayActive = testDungeonIdx >= 0 || !!testScene || testInfFloor > 0;
 let _lastSave = 0;
 let _saveWarned = false;
 let _resetting = false; // データ削除→リロードの間に autosave が書き戻すのを防ぐ
+let _cloudResolving = false;
+let _lastCloudSave = null;
 function autosave(force = false) {
   if (_resetting || testPlayActive) return;
-  if (!G.party || !G.party.length) return;
+  if (cloudEnabled() && (!cloudReady() || _cloudResolving)) return;
+  if (!G.party || (!cloudEnabled() && !G.party.length)) return;
   const now = Date.now();
-  if (!force && now - _lastSave < 200) return;
+  if (!cloudEnabled() && !force && now - _lastSave < 200) return;
   _lastSave = now;
   try {
     codexSweepJobs(); // 職業図鑑の発見状況を保存前に最新化
     const snap = {};
     for (const k of SAVE_FIELDS) snap[k] = G[k];
-    localStorage.setItem(SAVE_KEY, JSON.stringify(refSerialize(snap)));
+    const data = refSerialize(snap);
+    if (cloudEnabled()) {
+      const raw = JSON.stringify(data);
+      if (raw === _lastCloudSave) return cloudFlush();
+      _lastCloudSave = raw;
+      return cloudSave(data);
+    }
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   } catch (e) {
     // localStorage が使えない (プライベートブラウズ等) と保存できない → 一度だけ警告
     if (!_saveWarned) {
@@ -17458,7 +17473,7 @@ function autosave(force = false) {
   }
 }
 
-function clearSave() { if (testPlayActive) return; try { localStorage.removeItem(SAVE_KEY); } catch {} }
+function clearSave() { if (testPlayActive || cloudEnabled()) return; try { localStorage.removeItem(SAVE_KEY); } catch {} }
 
 // 旧セーブの %型アイテム (.pct) をテンプレートのフラット値へ戻す。
 // refSerialize の参照共有を壊さないよう、saved item オブジェクトを in-place で変更する。
@@ -17577,14 +17592,14 @@ function migrateLegacyStats(root) {
 }
 
 // 保存データを読み込み、G を復元する。成功なら true
-function loadGame() {
+function loadGame(cloudSnapshot = null) {
   if (testPlayActive) return false;
   let raw;
-  try { raw = localStorage.getItem(SAVE_KEY); } catch { return false; }
+  try { raw = cloudEnabled() ? (cloudSnapshot ? JSON.stringify(cloudSnapshot) : null) : localStorage.getItem(SAVE_KEY); } catch { return false; }
   if (!raw) return false;
   let snap;
   try { snap = refDeserialize(JSON.parse(raw)); } catch (e) { return false; }
-  if (!snap || !snap.party || !snap.party.length) return false;
+  if (!snap || !snap.party || (!cloudEnabled() && !snap.party.length)) return false;
   for (const k of SAVE_FIELDS) if (k in snap) G[k] = snap[k];
   G.rng = bindRngState(snap.rng); // 乱数の位置を続きから (旧セーブには無い → 新しい種から)
   endLegacyAbyss(); // 旧仕様の奈落の途中のセーブは、読み込みで終わらせる (記録も消す)
@@ -17630,6 +17645,7 @@ function loadGame() {
   // クラス/参照の再リンク (Battleのメソッド・敵のmon・派生値)
   if (G.battle) {
     Object.setPrototypeOf(G.battle, Battle.prototype);
+    syncEnemyUids(G.battle.enemies);
     tlWatchBattle(G.battle, tlWhere());
     G.battle.log = log;
     if (G.battle.fleeK == null) G.battle.fleeK = fleeScale(); // 逃走の物差しを持たない古い戦闘
@@ -17812,6 +17828,7 @@ function resumeCombat() {
   // 行動を実行し終え、その演出の途中で閉じられた (次の手番へ進む前に保存された) →
   // 同じ行動をやり直さず、次の手番へ進める。旧セーブでは「resolve なのに予約が空」がその印
   if (b._acted || (b.phase === "resolve" && !b.pending)) {
+    if (cloudEnabled() && !testPlayActive) { advanceSavedBattle(false); return; }
     b._acted = false;
     b.advance();
     autosave(true);
@@ -17826,6 +17843,12 @@ function resumeCombat() {
 
 // アプリが裏に回る/閉じられる瞬間に確実に保存
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") autosave(true); });
+// 街の持ち替え・シート内の選択も、処理が終わった同じフレームで保存する。
+for (const type of ["click", "change", "keydown", "pointerup", "touchend"]) {
+  window.addEventListener(type, () => {
+    if (cloudEnabled() && cloudReady() && !cloudBusy() && !titleActive) queueMicrotask(() => autosave(true));
+  }, { capture: true });
+}
 window.addEventListener("pagehide", () => autosave(true));
 window.addEventListener("beforeunload", () => autosave(true));
 
@@ -18370,7 +18393,7 @@ function wireUI() {
 // ==== [WP-A] UI API ==== (街・王宮・物語・設定・タイトル: WP-A が所有)
 // 街タブ・王宮タブ・酒場/祠のページ・宿のシート・設定のシート・物語の場面 (src/ui/hub.js ほか) が使う game.js の内部。
 // 読み込み時に一度 bindGame で結ぶ (wireUI の bindGame と同じ窓口に足し込む。名前は重ねない)
-function resetAllData() { _resetting = true; clearSave(); location.reload(); }
+function resetAllData() { if (cloudEnabled() && !testPlayActive) return; _resetting = true; clearSave(); location.reload(); }
 bindGame({
   // いまの目標・勅命・物語
   STABILITY_MAX, STABILITY_ENTRY_COST, STABILITY_RECOVERY_MS, refreshStability, stabilityStatus, restoreStability,
@@ -18447,7 +18470,7 @@ function titleSummary() {
   return { head, lines, sprites };
 }
 
-function init() {
+async function init() {
   // UI 基盤 (ctx の結線・戻る操作・街シェル・各パッケージ) を最初の描画より前に整える
   wireUI();
   // 早期にフックを公開 (起動失敗の誤検出/デバッグ用)
@@ -18506,7 +18529,15 @@ function init() {
     return;
   }
   let loaded = false;
-  try { loaded = loadGame(); } catch (e) { loaded = false; }
+  if (cloudEnabled()) {
+    let localSave = null;
+    try { localSave = localStorage.getItem(SAVE_KEY); } catch {}
+    const snapshot = await connectCloud(localSave);
+    loaded = loadGame(snapshot);
+    if (snapshot && !loaded) throw new Error("クラウドの記録を読み込めません");
+  } else {
+    try { loaded = loadGame(); } catch (e) { loaded = false; }
+  }
   if (!loaded) {
     setupNewGame();
     G.state = "town";
@@ -18540,7 +18571,7 @@ function init() {
   if (freshStart && !loaded) start();
   else {
     try {
-      showTitle({ hasSave: loaded, summary: loaded ? titleSummary() : null, onStart: start, onNewGame: loaded ? newGameFromTitle : null,
+      showTitle({ hasSave: loaded, summary: loaded ? titleSummary() : null, onStart: start, onNewGame: loaded && !cloudEnabled() ? newGameFromTitle : null,
         testDungeons: DUNGEONS, testScenes, onTestPlay: ({ id, floor, place, scene, inf, infLv }) => {
           _resetting = true;
           const url = new URL(location.href);
@@ -18603,6 +18634,7 @@ function startAfterTitle(loaded) {
   try {
     resumeFromState();
   } catch (e) {
+    if (cloudEnabled() && !testPlayActive) { cloudFatal(); return; }
     try {
       G.state = "town"; G.town = { facility: null, sub: null, tab: "hub", page: null };
       G.statusOpen = false; G.settingsOpen = false; G.prompt = false; G.anim = null; G.walking = false;
@@ -18635,4 +18667,4 @@ function startAfterTitle(loaded) {
     showOpening(() => { G.prompt = false; openingActive = false; playBgm(sceneBgm()); });
   } catch (e) { G.prompt = false; openingActive = false; playBgm(sceneBgm()); }
 }
-init();
+init().catch((e) => { console.error("ゲームの起動に失敗しました", e); if (cloudEnabled()) cloudFatal(); });

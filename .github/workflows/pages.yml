@@ -46,6 +46,7 @@ jobs:
       - name: Strip files the game does not ship
         run: |
           rm -rf docs tools art/story-review
+          rm -rf supabase
           rm -f AGENTS.md CLAUDE.md README.md log-many.png seg360.png seg420.png segord.png tab.png
           # sw.js の ASSETS に載せた品が消えていれば SW の導入に失敗するので止める
           # ASSETS の外には実ファイルではない内部キャッシュのキーもあるので含めない
