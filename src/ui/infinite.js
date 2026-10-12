@@ -225,7 +225,7 @@ function openTrader(onChange) {
           onAct: () => {
             // 商会の棚に、同じ品の追加つきの1点がもうある: どちらの追加の能力を棚に残すか、売る前に選ぶ
             const clash = game.shopAfxClash ? game.shopAfxClash(it) : null;
-            if (clash) { openSellClash(clash, (keep) => { if (game.infSell && game.infSell(d, it, keep)) refresh(); }); return; }
+            if (clash) { openSellClash(clash).then((keep) => { if (keep && game.infSell && game.infSell(d, it, keep)) refresh(); }); return; }
             if (game.infSell && game.infSell(d, it)) refresh();
           },
           onPeek: () => { if (UI.itemSheet) UI.itemSheet(it, { owner: d, context: "dungeon", onClose: refresh }); } }));
@@ -555,10 +555,13 @@ export function openAfxConflicts() {
   return h;
 }
 
-// 回収人に売る品と、商会の棚の追加つきの1点がぶつかった時: どちらの追加の能力を棚に残すかを選んで売る (2026-10-12 ユーザーの指示)。
-// onPick(keep) — keep = "shelf" (棚にある品の組) / "new" (いま売る品の組)。閉じれば売らない
-function openSellClash(c, onPick) {
-  let pick = c.best, h = null;
+// 売る品と、商会の棚の追加つきの1点がぶつかった時: どちらの追加の能力を棚に残すかを選んで売る (2026-10-12 ユーザーの指示)。
+// 回収人 (無限迷宮) と街の商会 (UI.openSellClash ← loot.js sellOne) で共通。
+// 戻り値の Promise は keep = "shelf" (棚にある品の組) / "new" (いま売る品の組) / null (売らない・閉じた)
+export function openSellClash(c) {
+  let pick = c.best, h = null, done = null;
+  const result = new Promise((res) => { done = res; });
+  const finish = (v) => { if (done) { const f = done; done = null; f(v); } };
   const fill = (b) => {
     b.appendChild(el("div", "inf-note", `商会の棚には、追加の能力つきの「${c.name}」がもう1点ある。棚に置いておけるのは、1つの品につき1点だけ。どちらの追加の能力を残すか選んで売る。選ばなかった方は追加の能力が消え、通常品として棚に並ぶ。`));
     c.sets.forEach((set, i) => {
@@ -574,12 +577,12 @@ function openSellClash(c, onPick) {
   };
   h = sheet.open({ kind: "info", banner: "商会の棚", title: "棚に残す追加の能力を選ぶ", accent: "#c9a227", className: "inf-sheet", body: fill,
     footer: [
-      { label: "売って、選んだ方を棚に置く", kind: "primary", size: "lg", onTap: (x) => { x.close("ok", { silent: true }); onPick(pick === 1 ? "new" : "shelf"); } },
+      { label: "売って、選んだ方を棚に置く", kind: "primary", size: "lg", onTap: (x) => { finish(pick === 1 ? "new" : "shelf"); x.close("ok", { silent: true }); } },
       { label: "売らない", kind: "ghost", onTap: (x) => x.close() },
-    ] });
-  return h;
+    ], onClose: () => finish(null) });
+  return result;
 }
 
 export function install() {
-  registerUI({ openInfTitles, openInfSetup, openInfRest, openInfWipe, openInfSummary, queueAfxConflicts, openAfxConflicts });
+  registerUI({ openInfTitles, openInfSetup, openInfRest, openInfWipe, openInfSummary, queueAfxConflicts, openAfxConflicts, openSellClash });
 }

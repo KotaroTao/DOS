@@ -623,7 +623,7 @@ export function spellCost(actor, sp) {
 // Battle はセーブから復元されるため、関数はインスタンスでなくモジュールに持たせる
 let _onEnemyKilled = null;
 export function setOnEnemyKilled(fn) { _onEnemyKilled = typeof fn === "function" ? fn : null; }
-// 戦闘中の武器の持ち替え (2026-10 ユーザーの指示): 装備の付け替えは街と同じ処理 (game.js equipAt) を通す。
+// 戦闘中の武器・盾の持ち替え (2026-10 ユーザーの指示): 装備の付け替えは街と同じ処理 (game.js equipAt) を通す。
 // fn(actor, item) → { ok, msg, displaced }。両手武器なら盾が外れる・呪い/ロックの品は外れない、も街と同じ
 let _equipSwap = null;
 export function setEquipSwap(fn) { _equipSwap = typeof fn === "function" ? fn : null; }
@@ -1659,9 +1659,9 @@ export class Battle {
       return { needTarget: true };
     }
     if (action === "swap") {
-      // 武器の持ち替え: extra = { item } (手番の者の袋にある武器だけ。ほかの人業の品は選べない)。1手番を使う
+      // 武器・盾の持ち替え: extra = { item } (手番の者の袋にある武器・盾だけ。ほかの人業の品は選べない)。1手番を使う
       const it = extra && extra.item;
-      if (!it || it.slot !== "weapon" || it.unidentified || !_equipSwap || !(actor.items || []).includes(it)) return { invalid: true };
+      if (!it || (it.slot !== "weapon" && it.slot !== "shield") || it.unidentified || !_equipSwap || !(actor.items || []).includes(it)) return { invalid: true };
       this.pending = { actor, action: "swap", item: it };
       this.phase = "resolve";
       return { needTarget: false };
@@ -2069,16 +2069,16 @@ export class Battle {
       return res;
     }
     if (action === "swap") {
-      const it = cmd.item, prev = actor.equip ? actor.equip.weapon : null;
+      const it = cmd.item, prev = actor.equip ? actor.equip[it && it.slot === "shield" ? "shield" : "weapon"] : null;
       const r = _equipSwap && it && (actor.items || []).includes(it) ? _equipSwap(actor, it) : null;
       if (!r || !r.ok) {
-        this.log(`${actor.name}は武器を持ち替えられなかった${r && r.msg ? `（${r.msg}）` : ""}`, "sys");
+        this.log(`${actor.name}は持ち替えられなかった${r && r.msg ? `（${r.msg}）` : ""}`, "sys");
         res.swapFail = true;
         return res;
       }
       this._gearFields(actor); // 新しい武器の戦闘効果 (連撃・吸血…) に入れ替える
       this._recalcBuffs(actor);
-      const off = (r.displaced || []).filter((x) => x && x !== prev); // 両手武器で外れた盾
+      const off = (r.displaced || []).filter((x) => x && x !== prev); // 両手武器で外れた盾 / 盾で外れた両手武器
       this.log(`${actor.name}は ${prev ? `${prev.name} から ` : ""}${it.name} に持ち替えた！${off.length ? `（${off.map((x) => x.name).join("・")}は袋へ）` : ""}`, "hit");
       res.swap = it;
       return res;

@@ -10,7 +10,7 @@ import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audi
 import { spriteCanvas, crispCanvas, drawPhoto, photoReady, whenPhoto, setSpriteResolver } from "./sprites.js";
 import { makeItemSpriteResolver } from "./itemart/index.js";
 import {
-  ITEMS, SLOTS, SLOT_LABEL, MAX_ITEMS, equip as equipItem, unequip as unequipItem, canEquip, canOffhand, slotKeyFor, lvToRank, RANGE_LABEL, HAND_LABEL, weaponRange,
+  ITEMS, SLOTS, SLOT_LABEL, MAX_ITEMS, equip as equipItem, unequip as unequipItem, canEquip, canOffhand, slotKeyFor, lvToRank, RANGE_LABEL, HAND_LABEL, weaponRange, SHIELD_KIND_LABEL, shieldKind,
   registerEquipLevel, equipLevelOf, equipLvShort, equipFailMsg, registerAffixes,
   UNIDENT_SLOTS, itemName, applyForge, hasQuality, applyQuality, rollQuality, qualityMatters, itemAtQuality, QUALITY_MID, useWhere, useTarget, useHelps, useLines, useCureKinds, compareUse,
 } from "./items.js";
@@ -10148,11 +10148,11 @@ function renderCombatMenu() {
       const nItems = battleItemStacks().reduce((a, x) => a + x.n, 0);
       sub.appendChild(cmdBtn("item", "道具", nItems ? `${nItems}個` : "なし", () => { if (!nItems) { SFX.ng(); showToast("使える道具を持っていない", { tone: "info" }); return; } SFX.select(); showBattleItems(actor); }, nItems ? "" : "muted"));
     }
-    // 持ち替え: 手番の者が自分の袋に武器を入れている時だけ出す (1手番を使う)
+    // 持ち替え: 手番の者が自分の袋に武器・盾を入れている時だけ出す (1手番を使う)
     const swaps = swapWeapons(actor);
     if (swaps.length) {
       sub.classList.add("has-swap");
-      sub.appendChild(cmdBtn("swap", "持ち替え", `${swaps.length}本`, () => { SFX.select(); showBattleSwap(actor); }));
+      sub.appendChild(cmdBtn("swap", "持ち替え", `${swaps.length}点`, () => { SFX.select(); showBattleSwap(actor); }));
     }
     // 逃走: 手番の者の AGI で決まる成功率を添える (退路を断たれていれば「不可」)
     sub.appendChild(cmdBtn("run", "逃走", b.noFlee ? "不可" : `${Math.round(b.fleeChance(actor) * 100)}%`, () => act("run")));
@@ -10298,54 +10298,69 @@ function itemLocked(it) {
   if (it.use && it.use.escape) return !!G.battle.noFlee;
   return false;
 }
-// ---- 武器の持ち替え (2026-10 ユーザーの指示) ----
-// 手番の者が自分の袋に入れている武器だけ (ほかの人業の品は選べない)。未鑑定の品は装備できないので出さない
+// ---- 武器・盾の持ち替え (2026-10 ユーザーの指示) ----
+// 手番の者が自分の袋に入れている武器と盾だけ (ほかの人業の品は選べない)。未鑑定の品は装備できないので出さない。
+// 盾も選べるので、両手武器から片手武器に戻した後に盾を付け直せる (2026-10-12 ユーザーの指示)
+const swapSlotOf = (it) => (it && it.slot === "shield" ? "shield" : "weapon");
 function swapWeapons(actor) {
-  return ((actor && actor.items) || []).filter((it) => it && it.slot === "weapon" && !it.unidentified);
+  const bag = ((actor && actor.items) || []).filter((it) => it && !it.unidentified && (it.slot === "weapon" || it.slot === "shield"));
+  return [...bag.filter((it) => it.slot === "weapon"), ...bag.filter((it) => it.slot === "shield")]; // 武器が先、盾は後ろ
 }
 // 持ち替えられない理由 (無ければ null)。判定は街の付け替え (equipAt) と同じ
 function swapBlock(actor, it) {
   if (!canEquip(actor, it)) return equipFailMsg(actor, it);
-  const tr = autoEquip.trialEquip(actor.equip, it, "weapon");
+  const key = swapSlotOf(it);
+  const tr = autoEquip.trialEquip(actor.equip, it, key);
   if (!tr) {
-    const pin = [actor.equip.weapon, it.twoHanded ? actor.equip.shield : null].find((x) => autoEquip.isPinned(x));
+    const pin = [actor.equip[key], key === "weapon" && it.twoHanded ? actor.equip.shield : null,
+      key === "shield" && actor.equip.weapon && actor.equip.weapon.twoHanded ? actor.equip.weapon : null].find((x) => autoEquip.isPinned(x));
     return pin && !pin.cursed ? `${pin.name}はロック中` : "呪われた装備が外れない";
   }
   if (actor.items.length - 1 + tr.displaced.length > MAX_ITEMS) return "持ち物がいっぱいで外した品を入れられない";
   return null;
 }
+// 盾を付けた時に変わる能力 (大きい順に2つまで)
+const SWAP_STAT_L = [["vit", "VIT"], ["agi", "AGI"], ["int", "INT"], ["pie", "PIE"], ["maxmp", "MP"]];
 function showBattleSwap(actor) {
   combatMenu.innerHTML = "";
   combatMenu.dataset.mode = "spells";
   combatMenu.appendChild(turnPlate(actor.name, "の持ち替え", ["1ターン使う", "長押しで詳細"]));
   const now = autoEquip.previewStats(actor, actor.equip);
-  const cur = actor.equip.weapon;
-  const list = el("div", "target-list" + (swapWeapons(actor).length > 4 ? " cols2" : ""));
-  for (const it of swapWeapons(actor)) {
+  const items = swapWeapons(actor);
+  const list = el("div", "target-list" + (items.length > 4 ? " cols2" : ""));
+  for (const it of items) {
+    const key = swapSlotOf(it), cur = actor.equip[key];
     const why = swapBlock(actor, it);
-    const tr = why ? null : autoEquip.trialEquip(actor.equip, it, "weapon");
+    const tr = why ? null : autoEquip.trialEquip(actor.equip, it, key);
     const b = btn("", () => {
       if (why) { SFX.ng(); showToast(why, { tone: "info" }); return; }
       act("swap", null, { item: it });
     });
-    b.className = "btn spell spell-phys spell-item";
+    b.className = "btn spell " + (key === "shield" ? "spell-buff" : "spell-phys") + " spell-item";
     const top = el("span", "sp-top");
     const ic = el("span", "sp-ic");
     ic.appendChild(spriteCanvas(it, 1));
     top.appendChild(ic);
     top.appendChild(el("span", "sp-n", itemName(it)));
-    top.appendChild(el("span", "sp-mp", HAND_LABEL[it.twoHanded ? 2 : 1]));
+    top.appendChild(el("span", "sp-mp", key === "shield" ? (SHIELD_KIND_LABEL[shieldKind(it)] || "盾") : HAND_LABEL[it.twoHanded ? 2 : 1]));
     b.appendChild(top);
     const parts = [];
     if (tr) {
       const after = autoEquip.previewStats(actor, tr.equip);
-      parts.push(`攻撃力 ${Math.round(now.power || 0)}→${Math.round(after.power || 0)}`);
+      const pw0 = Math.round(now.power || 0), pw1 = Math.round(after.power || 0);
+      if (key === "weapon" || pw0 !== pw1) parts.push(`攻撃力 ${pw0}→${pw1}`);
+      if (key === "shield") {
+        const ch = SWAP_STAT_L.map(([k, l]) => ({ l, a: Math.round(now[k] || 0), z: Math.round(after[k] || 0) })).filter((x) => x.a !== x.z)
+          .sort((x, y) => Math.abs(y.z - y.a) - Math.abs(x.z - x.a)).slice(0, 2);
+        for (const x of ch) parts.push(`${x.l} ${x.a}→${x.z}`);
+      }
     }
-    parts.push(`射程 ${RANGE_LABEL[weaponRange(it)]}`);
-    if (tr && tr.displaced.some((x) => x && x !== cur)) parts.push("盾が外れる");
+    if (key === "weapon") parts.push(`射程 ${RANGE_LABEL[weaponRange(it)]}`);
+    const off = tr ? tr.displaced.filter((x) => x && x !== cur) : [];
+    if (off.length) parts.push(key === "weapon" ? "盾が外れる" : "両手武器が外れる");
     if (why) parts.push(why);
     b.appendChild(el("span", "sp-d", parts.join("・")));
-    b.style.setProperty("--sp-col", SPELL_KIND_COLOR.phys || "#c9a24a");
+    b.style.setProperty("--sp-col", (key === "shield" ? SPELL_KIND_COLOR.buff : SPELL_KIND_COLOR.phys) || "#c9a24a");
     if (why) b.classList.add("locked");
     attachLongPress(b, () => { SFX.select(); UI.itemSheet(it, { context: "view" }); });
     list.appendChild(b);
@@ -14631,7 +14646,7 @@ function codexKillNow(e) {
 }
 setOnEnemyKilled(codexKillNow);
 // 戦闘中の武器の持ち替え: 街の付け替えと同じ処理 (両手武器なら盾が外れる・呪い/ロックの品は外れない・外した品は自分の袋へ)
-setEquipSwap((p, it) => equipAt(p, it, "weapon"));
+setEquipSwap((p, it) => equipAt(p, it, swapSlotOf(it))); // 武器は右手、盾は盾の欄
 // 敵の属性が明かされているか: 図鑑で属性の項目が解放済み (enemyReveal の stats = 5体討伐・主は1体) か、
 // 隊の誰かが弱点看破 (scan) を持つ。戦闘の名札の属性の印・技の有利/不利・オートの見積もり (combat.js) が共通で使う
 function enemyElemKnown(e) { return !!e && (enemyReveal(e).stats || partyPassiveLv("scan") > 0); }
