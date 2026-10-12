@@ -520,3 +520,6 @@
 .rf-grp { margin-bottom: 8px; }
 .rf-grp .wpc-drow-h { margin-bottom: 4px; }
 .rf-row .wpc-srow-l3 { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+/* 入手のカードの装備できるLv */
+.ig-eqlv { font-size: 12px; color: #c9b88a; margin-top: 4px; text-align: center; }
+.ig-eqlv.ng { color: #e0705a; }
