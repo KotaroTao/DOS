@@ -9,6 +9,11 @@
     "masterHash": "1e7678d6102a49eafbab27acbc33ee72cf9050a8f22287a4df7b397ef5cbede5",
     "shippedHash": "afcd98ea5702b25665b4af3af24abaae973f559221813039adcc1d19e35884db"
   },
+  "art/opening/vessels.webp": {
+    "master": "art/story-review/opening/vessels.png",
+    "masterHash": "782694cce612fc43cc95e2ad11bec5c28d3bfcf6d9c6b883b0b8572f416d3242",
+    "shippedHash": "a868dc2a5e7349c108cf61c84189cb2ff2ce3bfbbf1c6ea00fa497eb6e6071dc"
+  },
   "art/opening/ordo.webp": {
     "master": "art/story-review/opening/ordo.png",
     "masterHash": "6ec8745fc64cb077308b0211d39033df4c7a5a17dc402890f19d298cde9cddae",
@@ -18,5 +23,10 @@
     "master": "art/story-review/opening/letter.png",
     "masterHash": "966a44dae80621f2b8fb692b40d892844af703227ea88aa3900af0bd0d95ad5d",
     "shippedHash": "aaeba0e98c43fff5c47204008eaec4ab8f4fd0e8f8778b463bd18030d867872e"
+  },
+  "art/opening/flame.webp": {
+    "master": "art/story-review/opening/flame.png",
+    "masterHash": "d6ef94d4ecab2f3c662e48b78d1f3ad5fa5b880b21e63c3e0cb1bc83f0882aec",
+    "shippedHash": "38ea632fdfd90ef7e017ca94b517420f2f173f102e74a11c6e3fbb21bbee9713"
   }
 }

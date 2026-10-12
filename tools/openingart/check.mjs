@@ -26,7 +26,7 @@ try {
     assert.equal(shipped.toString("ascii", 0, 4), "RIFF", src + " はWebPではない");
     assert.equal(shipped.toString("ascii", 8, 12), "WEBP", src + " はWebPではない");
     assert.deepEqual(imageSize(shipped), { w: 1536, h: 1024 }, src + " の寸法が不正");
-    if (!src.startsWith("art/opening/")) continue;
+    assert.ok(src.startsWith("art/opening/"), src + " はオープニング専用画像ではない");
     const master = "art/story-review/opening/" + basename(src, ".webp") + ".png";
     const png = read(master);
     assert.deepEqual(imageSize(png), { w: 1536, h: 1024 }, master + " の寸法が不正");
@@ -38,7 +38,7 @@ try {
     assert.deepEqual(JSON.parse(readFileSync(MANIFEST, "utf8")), records,
       "原画かWebPが記録と違う。再変換して node tools/openingart/check.mjs --record を実行する");
   }
-  console.log("オープニング6幕: WebP・寸法・SW登録・主題の位置・専用原画4枚の変換記録 OK");
+  console.log("オープニング6幕: WebP・寸法・SW登録・主題の位置・専用原画6枚の変換記録 OK");
 } catch (error) {
   console.error(error.message);
   process.exitCode = 1;
