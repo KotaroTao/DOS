@@ -1,5 +1,5 @@
 import { bagItems, bagSortControl } from "./bagsort.js";
-import { bagOwners } from "../items.js";
+import { bagOwners, MAX_ITEMS } from "../items.js";
 // ===== 無限迷宮の画面 — 入口の魂の3択・風だまり (回収人・灯番・主)・全滅・帰ってきた時の結果 =====
 // docs/infinite-labyrinth.md。game.js は import しない (ctx.js の UI / game / ops を通す)。
 // 提供する契約:
@@ -256,6 +256,7 @@ function openTrader(onChange) {
   const held = (id) => bagOwners(g.party).reduce((n, d) => n + (d.items || []).filter((x) => x && x.id === id).length, 0);
   const fill = (b) => {
     b.appendChild(el("div", "inf-cur", `所持 💰${g.gold || 0}`));
+    b.appendChild(el("div", "inf-cur", `隊の持ち物 ${g.inventory.length}/${MAX_ITEMS}`));
     const segs = el("div", "ui-seg");
     for (const [k, l] of [["buy", "買う"], ["sell", "売る"], ["forge", "鍛え直し"]]) {
       const x = el("button", "ui-seg-b" + (k === seg ? " on" : ""), l);
