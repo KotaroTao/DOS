@@ -317,15 +317,9 @@ function openKeeper(onChange) {
       card.appendChild(tx);
       b.appendChild(card);
     }
-    // 宿していない魂 (拾った魂)
-    const free = (g.souls || []).filter((s) => s && !(g.party || []).some((d) => d.primary === s.uid || (d.subs || []).some((x) => x && x.uid === s.uid)));
-    b.appendChild(el("div", "inf-h", `宿していない魂 ${free.length}`));
-    if (!free.length) b.appendChild(el("div", "inf-note dim", "迷宮で拾った魂がここに並ぶ。同じ職の魂を拾うと、自動で融合して Lv上限が伸びる。メイン魂にもサブ魂にも宿せる。"));
-    for (const s of free) {
-      const cl = SOUL_CLASSES[s.clsKey] || {};
-      b.appendChild(row({ icon: bust(s.clsKey, 32), title: soulLabel(s), sub: `${RAR[cl.rarity] || ""} ・ Lv${s.level}/${soulLevelCapOf(s)} ・ ランク${soulRankOf(s)}`, chevron: true,
-        onTap: () => openTrainSheet(s.uid, () => { if (!h.closed) h.update({ body: fill }); if (onChange) onChange(); }) }));
-    }
+    // 魂一覧: 持っている魂をすべて並べ、どの魂も ✦Soul・残火で強化できる (メイン魂・サブ魂・宿していない魂とも。
+    // 人業の館の魂一覧にならう — 2026-10-12 ユーザーの指示)。行を押すとその職業の図鑑
+    soulList(b, () => { if (!h.closed) h.update({ body: fill }); if (onChange) onChange(); });
   };
   // 離れる前に、サブ魂の空きを知らせる (残るなら、空きのある器が1体だけならそのサブ魂の画面を開く)
   let asking = false;
@@ -343,6 +337,36 @@ function openKeeper(onChange) {
     onBack: (x) => leave(x, "back"), onBackdrop: (x) => leave(x, "backdrop"),
     onClose: () => { if (onChange) onChange(); } });
   return h;
+}
+// 魂を宿している器と差し口 (「アリアのメイン魂」/「アリアのサブ魂1」/「宿していない」)
+function soulHomeText(uid) {
+  for (const d of G().party || []) {
+    if (d.primary === uid) return `${d.name}のメイン魂`;
+    const i = (d.subs || []).findIndex((x) => x && x.uid === uid);
+    if (i >= 0) return `${d.name}のサブ魂${i + 1}`;
+  }
+  return "宿していない";
+}
+// 灯番の魂一覧 (人業の館の魂一覧と同じ並び: 職業順・＋の多い順・Lv の高い順)
+function soulList(b, redraw) {
+  const g = G();
+  const souls = [...(g.souls || [])].filter(Boolean).sort(game.soulSortCmp || (() => 0));
+  b.appendChild(el("div", "inf-h", `魂一覧 ${souls.length}`));
+  if (!souls.length) { b.appendChild(el("div", "inf-note dim", "迷宮で拾った魂がここに並ぶ。")); return; }
+  b.appendChild(el("div", "inf-note dim", "メイン魂・サブ魂・宿していない魂のどれも、✦Soul で Lv を上げ、残火で Lv上限を上げられる。同じ職の魂を拾うと、自動で融合して Lv上限が伸びる。"));
+  for (const s of souls) {
+    const cl = SOUL_CLASSES[s.clsKey] || {};
+    const cap = soulLevelCapOf(s);
+    const sub = `${soulHomeText(s.uid)} ・ Lv上限${cap} ・ ランク${soulRankOf(s)} ・ ${RAR[cl.rarity] || ""}`;
+    const atCap = s.level >= cap;
+    const tb = button({ label: atCap ? "上限" : "強化", kind: atCap ? "ghost" : "secondary", size: "sm", disabled: atCap && !(g.embers > 0),
+      title: atCap ? "残火で Lv上限を上げる" : "✦Soul で魂の Lv を上げる",
+      onTap: () => openTrainSheet(s.uid, redraw) });
+    const line = soulLine(s, sub, null, [tb]);
+    const nm = line.querySelector(".ui-row-title");
+    if (nm && cl.glow) nm.style.color = cl.glow;
+    b.appendChild(line);
+  }
 }
 // 器のサブ魂の並び (「戦士の魂+1 Lv5 / 空き」)
 function subSummary(d) {
@@ -392,10 +416,11 @@ function openSubs(d, onChange) {
         if (k && k.opts) { const was = k.opts.onClose; k.opts.onClose = (r) => { if (typeof was === "function") was(r); redraw(); }; } // 借りた技を選び終えたら、この画面を描き直す
       } });
       const swap = button({ label: "替える", kind: "secondary", size: "sm", onTap: () => { sfx("select"); openSubPick(d, i, redraw); } });
+      const train = button({ label: "強化", kind: "secondary", size: "sm", disabled: s.level >= soulLevelCapOf(s) && !(G().embers > 0), onTap: () => openTrainSheet(s.uid, redraw) });
       const box = el("div", "inf-sub-box");
       box.appendChild(soulLine(s, sub2, null, []));
       const acts = el("div", "inf-vessel-a");
-      for (const x of [pick, swap, off]) acts.appendChild(x);
+      for (const x of [train, pick, swap, off]) acts.appendChild(x);
       box.appendChild(acts);
       b.appendChild(box);
     }

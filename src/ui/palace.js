@@ -383,14 +383,14 @@ function renderCodexJob(box) {
   const g = G();
   if (game.codexSweepJobs) game.codexSweepJobs(); // いまの魂の Lv・ランクを記録してから並べる
   const known = Object.keys(SOUL_CLASSES).filter((k) => g.codex.job[k]);
-  // 同じ系統 (見習い戦士 → 戦士 → 剣士 …) は1枚の札にまとめ、到達した最も高い位階の称号と姿で出す。
+  // 同じ系統 (見習い戦士 → 戦士 → 剣士 …) は1枚の札にまとめ、名は元の魂の職業名 (ランクの称号ではない — 2026-10 ユーザーの指示)、姿は到達した最も高い位階で出す。
   // 札を開くと詳細のシートでランクを切り替えて見られる。並びは位階の高い順
   const list = known.map((k) => ({ k, r: jobAttained(k) }));
   list.sort((a, b) => b.r - a.r);
   box.appendChild(el("div", "pl-codex-cap", "人業に発現した職業を、系統ごとに記す。"));
   const area = fillArea(box);
   refresh.list = null;
-  scrollGrid(area, list, ({ k, r }) => codexCard(jobSprite(k, r), jobRankName(k, r), { color: SOUL_CLASSES[k].glow, sub: `R${r}`, fresh: jobFreshRanks(k).length > 0,
+  scrollGrid(area, list, ({ k, r }) => codexCard(jobSprite(k, r), SOUL_CLASSES[k].label, { color: SOUL_CLASSES[k].glow, sub: `R${r}`, fresh: jobFreshRanks(k).length > 0,
     onTap: (c) => { const fr = jobFreshRanks(k); codexJobSheet(k, fr.length ? fr[fr.length - 1] : r, null, { card: c }); } }),
     { cols: 3, cellH: CARD_H, key: "job", empty: el("div", "wa-empty", "まだ職業を見つけていない。迷宮で魂を吸収すると職業が記される。") });
 }
@@ -788,7 +788,7 @@ function jobSheetView(key, rank, top, heading, onRank) {
     hd.style.color = color;
     body.appendChild(hd);
   }
-  body.appendChild(setText(el("div", "pl-detail-cat"), `${SOUL_CLASSES[key].label}系`));
+  body.appendChild(setText(el("div", "pl-detail-cat"), `ランク${rank}の称号「${jobRankName(key, rank)}」`));
   // ランクの切り替え (到達したランクが2つ以上ある時)
   if (top > 1) {
     const items = [];
@@ -852,7 +852,7 @@ function jobSheetView(key, rank, top, heading, onRank) {
     }
   }
   body.appendChild(infoBlock("技", rows.length ? rows : [pairRow("—", null, { dim: true })]));
-  return { banner: `ランク${rank}`, accent: color, art: jobSprite(key, rank), artScale: 12, title: jobRankName(key, rank), titleColor: color, body };
+  return { banner: `ランク${rank}`, accent: color, art: jobSprite(key, rank), artScale: 12, title: SOUL_CLASSES[key].label, titleColor: color, body };
 }
 
 // ================= 勲章 =================
