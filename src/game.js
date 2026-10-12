@@ -116,7 +116,7 @@ for (const id in ITEMS) {
 // 装備の絵: どの装備もその品だけの絵で描く (SR・LR は手描き、ほかは部品の組み合わせ — src/itemart/)。
 // 未鑑定の品はジャンルごとの伏せ絵 (剣の影 + ？ など) で描き、鑑定に成功して初めて本来の絵を見せる
 const resolveItemSprite = makeItemSpriteResolver(ITEMS);
-const paintedIcons = new Map(Object.keys(ICONS).filter(key => ["chest", "chestOpen", "stairs", "portal", "bossDoor", "trap", "event", "fountain", "fountainEmpty", "corpse", "corpseWarm", "corpseGreat", "wisp", "story"].includes(key)).map(key => [ICONS[key], key]));
+const paintedIcons = new Map(Object.keys(ICONS).filter(key => ["chest", "chestOpen", "stairs", "portal", "bossDoor", "trap", "event", "fountain", "fountainEmpty", "corpse", "corpseWarm", "corpseGreat", "wisp", "story", "ember", "gold", "poison", "guard", "start"].includes(key)).map(key => [ICONS[key], key]));
 setSpriteResolver(spr => paintedIcons.has(spr) ? cryptPropSprite(paintedIcons.get(spr), spr) : resolveItemSprite(spr));
 // 装備の値段は性能 (能力値・属性・耐性・効果) から付け直す (src/pricing.js)。
 // 性能が同じ品は同じ値段、どこも同等以上の品は必ず高くなる
@@ -2994,7 +2994,7 @@ function boardLightSources(now) {
     else if (c.type === "fountain" && !c.cleared) out.push({ x: cx, y: cy, r: 36, a: 0.5, col: "100,170,255", ga: 0.12, gr: 30 });
     else if (c.type === "poison") out.push({ x: cx, y: cy + r.h * 0.05, r: 34, a: 0.4, col: harmHaz().look.glow, ga: 0.1 + 0.05 * pulse, gr: 30 });
     else if (c.type === "stairs") out.push({ x: cx, y: cy, r: 30, a: 0.4, col: "160,190,255", ga: 0.06, gr: 24 });
-    else if (c.type === "corpse" && c.corpseWarm && !c.cleared) out.push({ x: cx + 7, y: cy - 14, r: 26, a: 0.5, col: "127,208,255", ga: 0.16 + 0.06 * pulse, gr: 20 });
+    else if (c.type === "corpse" && c.corpseWarm && !c.cleared) out.push({ x: cx + (x === G.px && y === G.py && !G.heroAnim ? r.w * 0.2 : 0), y: cy - 14, r: 26, a: 0.5, col: "127,208,255", ga: 0.16 + 0.06 * pulse, gr: 20 });
     else if (c.type === "chest" && !c.cleared) out.push({ x: cx, y: cy, r: c.evMark ? 34 : 22, a: c.evMark ? 0.55 : 0.3, col: "255,210,120", ga: (c.evMark ? 0.14 : 0.06) + 0.04 * pulse, gr: 18 });
     else if (c.type === "event" && !c.cleared) out.push({ x: cx, y: cy, r: 34, a: 0.5, col: "170,120,255", ga: 0.12 + 0.08 * pulse, gr: 28 });
   }
@@ -3671,7 +3671,7 @@ function drawBoardIcons(lt, now, hx, hy) {
       const wisp = activeCfg().id === "w01" ? cryptPropBitmap("wisp") : null;
       // 元の大きさと高さを保ち、小さくゆらめかせる。
       vctx.save();
-      vctx.translate(cx + size * 0.22 + sway, bottom - size * 0.62 + bob);
+      vctx.translate(cx + sway, bottom - size * 0.62 + bob);
       vctx.rotate(REDUCED_MOTION ? 0 : Math.sin(phase * 0.83) * 0.085);
       vctx.scale(1 / breath, breath);
       drawBmpFit(wisp || plainBitmap(ICONS.wisp), 0, 0, size * 0.5, size * 0.5, 1, 0.92);

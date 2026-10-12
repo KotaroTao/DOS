@@ -63,10 +63,10 @@
 
 /* ---------- 通貨の印 (絵文字の代わり) ---------- */
 .ui-g { display: inline-block; flex: 0 0 auto; width: 0.74em; height: 0.74em; margin: 0 0.2em 0 0.08em; vertical-align: -0.06em; border-radius: 50%; }
-.ui-g-gold { background: radial-gradient(circle at 35% 30%, #fff3c0, #d6a93c 45%, #6e4c12 100%); box-shadow: 0 0 4px rgba(240,200,100,0.6); }
+.ui-g-gold { border-radius: 0; background: url("art/dungeon/crypt-gold.webp") center / contain no-repeat; }
 .ui-g-soul { width: 0.6em; height: 0.6em; margin: 0 0.26em 0 0.14em; border-radius: 0; transform: rotate(45deg); background: radial-gradient(circle, #ffffff, #7fd0ff 55%, #1d5a86); box-shadow: 0 0 6px rgba(127,208,255,0.9); }
 .ui-g-red { background: radial-gradient(circle at 35% 30%, #ffc2b2, #d1261a 50%, #4a0604 100%); box-shadow: 0 0 6px rgba(255,50,30,0.7); }
-.ui-g-ember { border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; background: radial-gradient(circle at 50% 70%, #fff0b0, #ff8a2a 50%, #6a1c04 100%); box-shadow: 0 0 6px rgba(255,140,40,0.8); }
+.ui-g-ember { border-radius: 0; background: url("art/dungeon/crypt-ember.webp") center / contain no-repeat; }
 
 /* ---------- 線画アイコン ---------- */
 .ui-ic, .ui-btn-ic, .ui-hbtn-ic, .ui-row-chev, .ui-tab-ic, .ui-tab-lock {

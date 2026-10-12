@@ -17,7 +17,7 @@ const check = (name, ok) => { assert.ok(ok, name); report.checks.push(name); };
       const errors = [], requests = []; page.on('pageerror', e => errors.push(e.message));
       let release;
       const gate = mode === 'delay' ? new Promise(r => { release = r; }) : Promise.resolve();
-      await page.route(/\/art\/dungeon\/crypt-(props-a|props-b|props-c|walker)\.webp/, async route => {
+      await page.route(/\/art\/dungeon\/crypt-(props-a|props-b|props-c|props-d|walker)\.webp/, async route => {
         requests.push(route.request().url());
         if (mode === 'fail' || mode === 'partial' && route.request().url().includes('props-a')) return route.abort();
         await gate; await route.continue();
