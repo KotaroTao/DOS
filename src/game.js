@@ -1172,7 +1172,10 @@ function infBuy(id, who) {
 function infSell(owner, it) {
   if (!infAtRest() || !owner || !it) return false;
   const ok = sellItem(owner, it, sellPrice(it));
-  if (ok) { const st = infStats(); st.trades++; st.sold++; if (st.sold >= 100) infTitleGrant("trader"); }
+  if (ok) {
+    const st = infStats(); st.trades++; st.sold++; if (st.sold >= 100) infTitleGrant("trader");
+    const trk = infTrk(); if (!it.unidentified) trk.sold = (trk.sold || 0) + 1; // この出撃で回収人に売った品 (全滅しても商会の棚に残る)
+  }
   return ok;
 }
 // ---- 灯番 (名もない人業): メイン魂の付け替え。砕けた器は付け替えられない。傷・状態異常はそのまま、HP・MP は今の値 (新しい最大値まで) ----
@@ -1406,7 +1409,7 @@ function infCloseRun(outcome) {
   rec.recent = rec.recent.slice(0, 8);
   G.stats.abyssBest = Math.max(G.stats.abyssBest || 0, depth);
   G.abyss = null;
-  return { depth, outcome, keep, newDepth, got, title: infTitleName(), lost: keep ? null : { items: items.length, souls: souls.length, embers } };
+  return { depth, outcome, keep, newDepth, got, sold: trk.sold || 0, title: infTitleName(), lost: keep ? null : { items: items.length, souls: souls.length, embers } };
 }
 // 読み込み: 無限迷宮の途中なら、いったん本編の隊・魂・通貨を G へ戻して読み込みの手当てを掛け、済んだら仮の器へ戻す
 function infSwapForLoad() {
@@ -11271,7 +11274,7 @@ function gameOver() {
     for (const d of G.party) { items += (d.items || []).length; for (const k of Object.keys(d.equip || {})) if (d.equip[k]) items++; }
     UI.openInfWipe({
       abandoned: !!r.abandoned, floor: G.floor, cost, red: G.redSoul, canSave: G.redSoul >= cost,
-      souls: (r.souls || []).length, items, embers: r.embers || 0,
+      souls: (r.souls || []).length, items, embers: r.embers || 0, sold: (infTrk().sold || 0),
       onSave: () => {
         if (G.redSoul < cost) return;
         G.redSoul -= cost;
@@ -15078,8 +15081,10 @@ function sellItem(owner, it, price) {
   codexSeeItem(it.id, it);
   SFX.select(); buzz(10);
   const shown = itemName(it);
-  log(`${shown} を売った (+💰${price})。${it.unidentified ? "" : "商会に並んだ。"}`, "win");
-  showToast(`💰+${price} ${shown} を売却`);
+  // 無限迷宮の回収人に売った品は、その場で本編の商会の棚に並ぶ (この先で全滅しても消えない)
+  const inInf = abyssActive();
+  log(`${shown} を売った (+💰${price})。${it.unidentified ? "" : inInf ? "本編の商会の棚に並んだ ― 全滅しても残る。" : "商会に並んだ。"}`, "win");
+  showToast(inInf && !it.unidentified ? `💰+${price} ${shown} を売却 ― 商会の棚へ (全滅しても残る)` : `💰+${price} ${shown} を売却`, { noLog: true });
   renderTown();
   return true;
 }
