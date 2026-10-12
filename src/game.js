@@ -2469,9 +2469,10 @@ function fitView(force = false) {
     + (csH ? (parseFloat(csH.paddingTop) || 0) + (parseFloat(csH.paddingBottom) || 0) : 0);
   if (combat) used += MENU_RESERVE + LOG_MIN_COMBAT + TURN_ORDER_H;
   else used += outerH(runbarEl) + outerH(ctrlEl) + LOG_MIN_BOARD;
-  // 戦場は小さい画面では横幅の0.5倍 (論理の高さ 240) まで詰めて、記録欄に場所を残す
-  const h = Math.max(cssW * (combat ? 0.5 : 0.56), Math.min(cssW * (combat ? 0.98 : 1.32), appH - used));
-  const vh = Math.max(240, Math.round((VW * h) / cssW));
+  // 縦の短い画面では戦場も縮め、記録と命令板の領域を確保する。
+  const minVH = combat ? 140 : 240;
+  const h = Math.max(cssW * (combat ? minVH / VW : 0.56), Math.min(cssW * (combat ? 0.98 : 1.32), appH - used));
+  const vh = Math.max(minVH, Math.round((VW * h) / cssW));
   const cssH = (vh * cssW) / VW;
   const dpr = Math.max(1, window.devicePixelRatio || 1);
   const S = Math.max(1, Math.min(2, (cssW * dpr) / VW));
@@ -2494,7 +2495,13 @@ function refitAndRedraw() {
   else if (G.state === "combat" && G.battle) renderCombatCanvas();
 }
 window.addEventListener("resize", () => requestAnimationFrame(refitAndRedraw));
-if (typeof ResizeObserver !== "undefined" && appEl) new ResizeObserver(() => requestAnimationFrame(refitAndRedraw)).observe(appEl);
+if (typeof ResizeObserver !== "undefined" && appEl) {
+  const observer = new ResizeObserver(() => requestAnimationFrame(refitAndRedraw));
+  for (const id of ["app", "topbar", "party", "hint", "runbar"]) {
+    const e = document.getElementById(id);
+    if (e) observer.observe(e);
+  }
+}
 
 // ダンジョンで歩く自分の駒: 頭巾つきの外套の人影 (色は設定「操霊師の装い」) (src/walkerart.js・前後左右の4方向)。最後に歩いた向きを向く (既定は正面)。
 // 絵がまだ読めない時は従来どおり、生存している先頭メンバーの職業姿 (全滅時は先頭)
@@ -9033,7 +9040,7 @@ function renderCombatCanvas() {
   });
 
   // 戦場の縦の伸び (縦長の戦場ほど魔物を大きく)
-  const k = Math.max(0.92, Math.min(1.3, VH / 330));
+  const k = VH < 240 ? 0.92 * VH / 240 : Math.max(0.92, Math.min(1.3, VH / 330));
   // 隊列: 4体以上は前衛(先頭3体)・後衛(4体目以降)の2列に分かれる。
   // 奥に立つ後衛から先に描き、前衛を手前に重ねて遠近を出す
   const frontRow = b.enemies.slice(0, 3);
@@ -9067,6 +9074,8 @@ function renderCombatCanvas() {
     // この列の名札の高さを揃える (いちばん背の高い魔物の足元の下)
     let foot = 0, head = 0;
     for (const e of row.list) { const hh = monsterHalfH(e.mon, sizeOf(e, row.back, row.list.length)); foot = Math.max(foot, hh); head = Math.max(head, hh); }
+    // 短い戦場でも、後衛の名札を上端、前衛の名札を下端で切らない。
+    if (VH < 240) row.y = row.back ? Math.max(row.y, head + 32) : Math.min(row.y, VH - foot - 30);
     const plateY = row.back ? row.y - head - 30 : row.y + foot + 7;
     row.list.forEach((e, i) => {
       const baseX = (VW / (row.list.length + 1)) * (i + 1);
@@ -11021,7 +11030,7 @@ function applyImpact(res) {
         const st = statusFxKind(h.status);
         if (st) spawnFx(fx.skill, st, pos.cx, pos.cy, ht0 + 50 * spd, spd, { seed }); // 武器の追加効果・技の状態異常
       }
-      // 付く効果の印 (吸収・防御無視・とどめ・怯み・耐性ダウン・強化打ち消し・封印・重力・盗み・即死)
+      // 付く効果の印 (吸収・物理貫通・とどめ・怯み・耐性ダウン・強化打ち消し・封印・重力・盗み・即死)
       if (prof && !h.immune) {
         for (const r of prof.riders) {
           if (sig && !r.onDeath && !r.onFatal) continue; // 看板技は専用の演出が効果を描く (とどめ・即死の決まった印だけ重ねる)
@@ -17138,6 +17147,9 @@ function townBgm() {
 }
 let openingActive = false; // オープニング演出中は専用テーマ
 let titleActive = false;   // タイトル画面の表示中は専用テーマ
+function revealBootScreen() {
+  document.body.classList.remove("booting");
+}
 // 探索BGM: 層 (1-20) ごとのテーマ曲
 function fieldBgm() {
   return dungeonTheme().bgm;
@@ -18521,6 +18533,7 @@ async function init() {
     });
     banner.appendChild(exit); document.body.appendChild(banner);
     resumeFromState();
+    revealBootScreen();
     if (testScene?.kind === "tutorial") uiTutorial.startTestTutorial(G.testTutorial);
     else if (testScene?.id === "opening") startAfterTitle(false);
     else if (testScene) UI.playStoryChain([{ title: testScene.title || testScene.name, lines: storyLines(testScene.lines), art: testScene.art, photo: testScene.photo, who: testScene.who || "king" }], renderTown);
@@ -18588,6 +18601,7 @@ async function init() {
           url.searchParams.set("testDungeon", id); url.searchParams.set("testFloor", floor); url.searchParams.set("testPlace", place);
           location.assign(url.href);
         } });
+      revealBootScreen();
     } catch (e) { start(); }
   }
 
@@ -18642,6 +18656,7 @@ function startAfterTitle(loaded) {
       renderTown();
     } catch (e2) { /* これ以上は何もしない (セーブは温存) */ }
   }
+  revealBootScreen();
   autosave(true);
 
   if (loaded) {
@@ -18668,4 +18683,4 @@ function startAfterTitle(loaded) {
     showOpening(() => { G.prompt = false; openingActive = false; playBgm(sceneBgm()); });
   } catch (e) { G.prompt = false; openingActive = false; playBgm(sceneBgm()); }
 }
-init().catch((e) => { console.error("ゲームの起動に失敗しました", e); if (cloudEnabled()) cloudFatal(); });
+init().catch((e) => { revealBootScreen(); console.error("ゲームの起動に失敗しました", e); if (cloudEnabled()) cloudFatal(); });

@@ -57,7 +57,7 @@ globalThis.fetch = async (url, opts) => {
     return Response.json(value);
   } catch (e) { return Response.json({ message: e.message }, { status: 400 }); }
 };
-await import("../../supabase/functions/game-save/index.js");
+await import(process.argv[3] ? pathToFileURL(process.argv[3]) : "../../supabase/functions/game-save/index.js");
 const request = (body, token = "valid-token", origin = "https://game.invalid") => handler(new Request("https://db.invalid/functions/v1/game-save", {
   method: "POST", headers: { Authorization: "Bearer " + token, Origin: origin, "Content-Type": "application/json" }, body: JSON.stringify(body),
 }));

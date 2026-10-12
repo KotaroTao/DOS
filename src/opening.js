@@ -1,13 +1,12 @@
 // オープニング — 新規ゲーム開始時に一度だけ流れる導入
 //
-// 六幕の一枚絵 (openingart.js) を、上下を闇で切った映画の画角で映す。
-// 各幕はカメラがゆっくりと滑り (多層の視差)、語りは一文字ずつ墨がにじむように現れる。
+// 六幕の物語画風のWebPを、上下を闇で切った映画の画角で映す。
+// 各幕はカメラがゆっくりと滑り、語りは一文字ずつ墨がにじむように現れる。
 // 幕と幕のあいだは闇へ溶けて切り替わり、最後に題字を掲げて街へ送り出す。
 //
 // 操作: タップ / Enter = 語りを早送り → 次の幕へ。長押し・「スキップ」・Esc = 全体をとばす。
 // showOpening(done) — 閉じたあと done() を一度だけ呼ぶ
 import { SFX } from "./audio.js";
-import { pickRes } from "./pxpaint.js";
 import { SCENES, setReduced } from "./openingillustrations.js";
 import { phraseBreaks } from "./ui/phrase.js";
 import { createOpeningVoice } from "./openingvoice.js";
@@ -53,7 +52,6 @@ function charTimes(lines) {
 export function showOpening(onDone) {
   setReduced(REDUCED);
   const voice = createOpeningVoice();
-  let voiceEnabled = voice.supported;
   const wrap = div("op-overlay");
   if (REDUCED) wrap.classList.add("op-still");
   const frame = div("op-frame");
@@ -88,13 +86,6 @@ export function showOpening(onDone) {
   skip.className = "op-skip";
   skip.innerHTML = "<span>スキップ</span><b>≫</b>";
   wrap.appendChild(skip);
-  const voiceControl = document.createElement("label");
-  voiceControl.className = "op-voice";
-  const voiceToggle = document.createElement("input");
-  voiceToggle.type = "checkbox";
-  voiceToggle.checked = voiceEnabled;
-  voiceControl.append(voiceToggle, document.createTextNode("英語の語り"));
-  if (voice.supported) wrap.appendChild(voiceControl);
   const hold = div("op-hold");
   hold.append(div("op-hold-r"), div("op-hold-t", "長押しでスキップ"));
   wrap.appendChild(hold);
@@ -113,25 +104,26 @@ export function showOpening(onDone) {
   wrap.appendChild(div("op-begin", "物語を始める"));
 
   const g = cv.getContext("2d");
-  const textStart = 900; // 幕が明けてから語り出すまで
+  const textStart = 0;
   let res = null, shot = null, shotFor = -1;
   let idx = 0, t0 = 0, typedAll = false, times = null, autoT = 0, phase = "in"; // in / play / out / title / closed
   let raf = 0, last = 0;
+  let sequenceActive = false, readyAt = 0;
 
   // 画角 (上下の闇の帯) を決め、絵の解像度を選ぶ
   const layout = () => {
     const vw = Math.max(1, wrap.clientWidth || innerWidth), vh = Math.max(1, wrap.clientHeight || innerHeight);
     const portrait = vh / vw > 1.2;
     const top = Math.round(portrait ? vh * 0.07 : vh * 0.055);
-    const bh = Math.round(portrait ? vh * 0.58 : vh * 0.69);
+    const bh = Math.round(portrait ? vh * 0.58 : vh * 0.6);
     wrap.style.setProperty("--op-top", top + "px");
     wrap.style.setProperty("--op-bh", bh + "px");
     wrap.classList.toggle("op-portrait", portrait);
-    const dpr = Math.min(3, Math.max(1, window.devicePixelRatio || 1));
-    const r = pickRes(vw, bh, dpr, { maxArea: 120000, maxW: 440 });
-    const cssW = r.w * r.cssScale, cssH = r.h * r.cssScale;
-    cv.style.width = cssW + "px"; cv.style.height = cssH + "px";
-    cv.style.left = Math.round((vw - cssW) / 2) + "px"; cv.style.top = Math.round((bh - cssH) / 2) + "px";
+    const dpr = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+    const scale = Math.min(dpr, 2048 / vw, Math.sqrt(2200000 / (vw * bh)));
+    const r = { w: Math.max(1, Math.round(vw * scale)), h: Math.max(1, Math.round(bh * scale)) };
+    cv.style.width = vw + "px"; cv.style.height = bh + "px";
+    cv.style.left = "0px"; cv.style.top = "0px";
     const changed = !res || res.w !== r.w || res.h !== r.h;
     res = r;
     if (changed) { cv.width = r.w; cv.height = r.h; shotFor = -1; }
@@ -161,8 +153,9 @@ export function showOpening(onDone) {
     text.innerHTML = "";
     text.classList.remove("op-done");
     times = charTimes(sc.lines);
-    const delay = (ms) => ((textStart + ms) / 1000).toFixed(3) + "s";
     sc.lines.forEach((ln, i) => {
+      const timing = times.rows[i];
+      const delay = (ms) => (ms / 1000).toFixed(3) + "s";
       const em = typeof ln !== "string";
       const row = div(em ? "op-ln op-em" : "op-ln");
       const word = em ? div("op-em-w") : row;
@@ -172,14 +165,14 @@ export function showOpening(onDone) {
         const s = document.createElement("span");
         s.className = "op-ch";
         s.textContent = ch;
-        s.style.animationDelay = delay(times.rows[i][j]);
+        s.style.animationDelay = delay(timing[j]);
         word.appendChild(s);
       });
       if (em) {
         row.appendChild(word);
         if (ln.ruby) {
           const r = div("op-em-r", ln.ruby);
-          r.style.animationDelay = delay(times.rows[i][times.rows[i].length - 1]);
+          r.style.animationDelay = delay(timing[timing.length - 1]);
           row.appendChild(r);
         }
       }
@@ -202,6 +195,7 @@ export function showOpening(onDone) {
     wrap.classList.remove("op-typed");
     cap.classList.remove("show");
     ensureShot();
+    sequenceActive = true; readyAt = 0;
     renderText();
     t0 = performance.now();
     typedAll = false;
@@ -210,13 +204,25 @@ export function showOpening(onDone) {
     phase = "play";
     clearTimeout(autoT);
     const hold = Math.max(5200, SCENES[idx].lines.map(lineText).join("").length * 45);
-    if (voiceEnabled) voice.start(idx, textStart);
+    const sceneIndex = idx;
+    const readLine = (line) => {
+      if (idx !== sceneIndex || phase !== "play") return;
+      if (line >= SCENES[idx].lines.length) { sequenceActive = false; return; }
+      voice.start(idx, line, {
+        onEnd: () => readLine(line + 1),
+        onFallback: () => { sequenceActive = false; },
+      });
+    };
+    readLine(0);
     const autoAdvance = () => {
       if (phase !== "play" || SCENES[idx].last) return;
-      if (voice.busy()) { autoT = setTimeout(autoAdvance, 250); return; }
+      const speaking = voice.busy();
+      if (!typedAll || sequenceActive || speaking) { readyAt = 0; autoT = setTimeout(autoAdvance, 250); return; }
+      if (!readyAt) readyAt = performance.now();
+      if (performance.now() - readyAt < hold) { autoT = setTimeout(autoAdvance, 250); return; }
       advance(true);
     };
-    autoT = setTimeout(autoAdvance, textStart + times.total + hold);
+    autoT = setTimeout(autoAdvance, 250);
   };
 
   const completeText = () => {
@@ -231,6 +237,7 @@ export function showOpening(onDone) {
   const raiseTitle = () => {
     clearTimeout(titleT);
     if (phase === "closed" || phase === "title") return;
+    sequenceActive = false;
     voice.stop();
     phase = "title";
     wrap.classList.add("op-final");
@@ -241,7 +248,7 @@ export function showOpening(onDone) {
     titleShown = true;
     const waitForVoice = () => {
       if (phase !== "play") return;
-      if (voice.busy()) { titleT = setTimeout(waitForVoice, 250); return; }
+      if (voice.busy() || sequenceActive) { titleT = setTimeout(waitForVoice, 250); return; }
       raiseTitle();
     };
     titleT = setTimeout(waitForVoice, REDUCED ? 2400 : TITLE_WAIT);
@@ -253,6 +260,7 @@ export function showOpening(onDone) {
     if (!typedAll) completeText();
     if (SCENES[idx].last) { if (!titleShown) showTitleCard(); else raiseTitle(); return; }
     phase = "out";
+    sequenceActive = false;
     voice.stop();
     clearTimeout(autoT);
     black.classList.add("on");
@@ -273,6 +281,7 @@ export function showOpening(onDone) {
     if (closed) return;
     closed = true;
     phase = "closed";
+    sequenceActive = false;
     voice.stop();
     clearTimeout(autoT); clearTimeout(titleT);
     clearTimeout(pressT); clearTimeout(rsT);
@@ -304,7 +313,8 @@ export function showOpening(onDone) {
   // ---- 入力 ----
   let pressT = 0, pressAt = 0, longFired = false;
   const down = (ev) => {
-    if (skip.contains(ev.target) || voiceControl.contains(ev.target)) return;
+    if (skip.contains(ev.target)) return;
+    if (voice.consumeRetry()) { longFired = true; return; }
     pressAt = performance.now(); longFired = false;
     clearTimeout(pressT);
     hold.classList.add("on");
@@ -317,23 +327,18 @@ export function showOpening(onDone) {
   wrap.addEventListener("pointerleave", up);
   wrap.addEventListener("click", (ev) => {
     if (closed || longFired) return;
-    if (skip.contains(ev.target) || voiceControl.contains(ev.target)) return;
+    if (skip.contains(ev.target)) return;
     if (phase === "title") { sfx("select"); close(); return; }
     advance();
   });
   skip.addEventListener("click", (ev) => { ev.stopPropagation(); sfx("select"); close(); });
-  voiceToggle.addEventListener("change", () => {
-    voiceEnabled = voiceToggle.checked;
-    voice.stop();
-    if (voiceEnabled && phase === "play") voice.start(idx);
-  });
-  const onVisibility = () => { if (document.hidden) voice.stop(); };
+  const onVisibility = () => { if (document.hidden) voice.busy(); };
   document.addEventListener("visibilitychange", onVisibility);
   const onKey = (e) => {
     if (closed) return;
-    if (voiceControl.contains(e.target) && e.key === " ") return;
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault(); e.stopPropagation();
+      if (voice.consumeRetry()) return;
       if (phase === "title") close(); else advance();
     } else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(); }
     else e.stopPropagation(); // オープニング中はゲームへの入力を通さない
@@ -345,11 +350,9 @@ export function showOpening(onDone) {
 
   document.body.appendChild(wrap);
   black.classList.add("on", "instant");
-  requestAnimationFrame(() => setTimeout(() => {
-    if (closed) return;
-    layout();
-    black.classList.remove("instant");
-    enterScene();
-    raf = requestAnimationFrame(loop);
-  }, 40));
+  // 開始ボタンの操作が有効な間に読み上げを要求する。
+  layout();
+  black.classList.remove("instant");
+  enterScene();
+  raf = requestAnimationFrame(loop);
 }

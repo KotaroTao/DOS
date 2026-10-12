@@ -264,7 +264,7 @@
   -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 7%, #000 88%, transparent 100%);
   mask-image: linear-gradient(180deg, transparent 0%, #000 7%, #000 88%, transparent 100%);
 }
-.op-scene { position: absolute; display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
+.op-scene { position: absolute; display: block; image-rendering: auto; }
 .op-veil {
   position: absolute; inset: 0; pointer-events: none;
   background:
@@ -355,12 +355,6 @@
 }
 .op-skip b { font-weight: 400; letter-spacing: 0; color: #c9a24a; }
 .op-skip:hover, .op-skip:focus-visible { color: #ece2cc; border-color: #c9a24a; outline: none; }
-.op-voice {
-  position: absolute; z-index: 5; left: clamp(10px, 3vw, 28px); top: calc(var(--safe-top, 0px) + 10px);
-  display: flex; align-items: center; gap: 6px; min-height: 34px; color: #a3967f;
-  font-family: var(--font); font-size: 12px; letter-spacing: 0; cursor: pointer;
-}
-.op-voice input { accent-color: #c9a24a; width: 16px; height: 16px; margin: 0; }
 /* 長押しの合図 */
 .op-hold { position: absolute; z-index: 4; right: clamp(10px, 3vw, 28px); top: calc(var(--safe-top, 0px) + 50px); display: flex; align-items: center; gap: 8px; opacity: 0; transition: opacity 0.25s ease; pointer-events: none; }
 .op-hold.on { opacity: 1; }
@@ -410,8 +404,9 @@
 .test-play-banner { position: fixed; top: 0; left: 0; right: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 3px; background: #332113; color: #fff0c4; font-size: 11px; }
 .test-play-banner button { min-height: 32px; color: inherit; background: #17101b; border: 1px solid #a98b4c; cursor: pointer; }
 body:has(.test-play-banner) { padding-top: 38px; }
+body:has(.test-play-banner) #app { height: calc(100vh - 38px); height: calc(100dvh - 38px); }
 body:has(.test-play-banner) #town-shell { top: 38px; }
-body:has(.test-play-banner) .ui-sheet { top: 38px; }
+body:has(.test-play-banner) .ui-sheet { max-height: calc(100vh - 66px); max-height: calc(100dvh - 66px); }
 
 .ttl-test-field[hidden] { display: none; }
 .ttl-test-art[hidden] { display: none; }

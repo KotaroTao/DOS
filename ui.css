@@ -78,7 +78,7 @@
    ===================================================================== */
 #town-shell {
   position: fixed; inset: 0; z-index: 70;
-  max-width: 520px; margin: 0 auto;
+  max-width: var(--game-width); margin: 0 auto;
   display: flex; flex-direction: column;
   background: #070508;
   overflow: hidden;
@@ -88,8 +88,12 @@
   flex: 1 1 auto; min-height: 0;
   max-width: none; margin: 0;
   padding-bottom: 28px; /* 浮いた門 (16px) の下に隠れないように */
+  overflow-x: hidden;
   overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
+#town-shell > #town-screen::-webkit-scrollbar { display: none; }
 #town-shell > #town-screen.shop-mode { padding-bottom: 20px; }
 #town-shell.has-head > #town-screen { padding-top: 8px; --tw-top: 8px; }
 /* 旧広場の「迷宮へ潜る」帯は、タブバーの門と重ならないよう流れの中へ置く */
@@ -254,7 +258,7 @@
   background: radial-gradient(ellipse at 50% 35%, rgba(30,18,26,0.62), rgba(3,2,4,0.84) 72%);
 }
 .ui-sheet {
-  position: relative; width: 100%; max-width: 520px;
+  position: relative; width: 100%; max-width: var(--game-width);
   max-height: 88vh; max-height: 88dvh;
   display: flex; flex-direction: column;
   outline: none;
@@ -298,6 +302,12 @@
 .ui-art { position: relative; display: inline-block; padding: 10px; margin: 2px auto 4px; background: radial-gradient(circle, rgba(201,162,74,0.22), rgba(0,0,0,0) 68%); background: radial-gradient(circle, color-mix(in srgb, var(--sheet-accent, #c9a24a) 26%, transparent), rgba(0,0,0,0) 68%); }
 .ui-art canvas.spr { display: block; max-width: 132px; max-height: 132px; }
 .ui-art.float canvas.spr { animation: ig-float 2s ease-in-out infinite; } /* 宙に浮く魔物だけゆらめく */
+/* 手ほどきの情景は高精細でも本文を押し出さない。小さい画面では高さも抑える。 */
+.tut-intro .ui-art { max-width: 100%; box-sizing: border-box; }
+.tut-intro .ui-art canvas {
+  display: block; width: auto; height: auto; max-width: 100%;
+  max-height: min(160px, 24vh); max-height: min(160px, 24dvh);
+}
 .ui-sheet-title { margin: 4px 0 2px; font-size: 17px; font-weight: 800; line-height: 1.5; letter-spacing: 0.04em; color: var(--ink); text-shadow: 0 1px 0 #000, 0 0 12px rgba(0,0,0,0.8); }
 .ui-sheet-line { margin: 6px 2px; font-size: 13px; line-height: 1.75; color: #b2a68f; text-wrap: pretty; }
 .ui-sheet-foot {

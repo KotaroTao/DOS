@@ -1,45 +1,69 @@
-// 六幕を同じ色調で描いたドット絵。元の描画は画像が使えない時に残す。
+// 六幕を物語と同じ原画で映す。画像が使えない時は元の低解像度描画へ戻す。
 import { SCENES as ORIGINAL_SCENES, setReduced } from "./openingart.js";
+import { pickRes } from "./pxpaint.js";
 
 export { setReduced };
 
-const atlas = typeof Image === "function" ? new Image() : null;
-if (atlas) atlas.src = new URL("../art/opening/scenes.png", import.meta.url).href;
+export const OPENING_IMAGES = [
+  { src: "art/opening/rift.webp", focus: [0.5, 0.5] },
+  { src: "art/opening/fallen.webp", focus: [0.5, 0.55] },
+  { src: "art/opening/vessels.webp", focus: [0.44, 0.5] },
+  { src: "art/opening/ordo.webp", focus: [0.53, 0.5] },
+  { src: "art/opening/letter.webp", focus: [0.5, 0.56] },
+  { src: "art/opening/flame.webp", focus: [0.54, 0.53] },
+];
+
+const images = OPENING_IMAGES.map(({ src }) => {
+  if (typeof Image !== "function") return null;
+  const image = new Image();
+  image.decoding = "async";
+  image.src = new URL("../" + src, import.meta.url).href;
+  return image;
+});
 
 function illustratedShot(index, scene, W, H) {
   let fallback = null;
-  let painting = null;
+  let fallbackCanvas = null;
+  const image = images[index];
+  const { focus } = OPENING_IMAGES[index];
   return {
     draw(g, t, cam, prog) {
-      if (!atlas || !atlas.complete || !atlas.naturalWidth) {
-        fallback ||= scene.build(W, H);
-        fallback.draw(g, t, cam, prog);
+      if (!image || !image.complete || !image.naturalWidth) {
+        if (!fallback) {
+          const res = pickRes(W, H, 1, { maxArea: 120000, maxW: 440 });
+          fallbackCanvas = document.createElement("canvas");
+          fallbackCanvas.width = res.w; fallbackCanvas.height = res.h;
+          fallback = scene.build(res.w, res.h);
+        }
+        fallback.draw(fallbackCanvas.getContext("2d"), t, cam, prog);
+        g.save();
+        g.imageSmoothingEnabled = false;
+        g.drawImage(fallbackCanvas, 0, 0, W, H);
+        g.restore();
         return;
       }
-      // 一幕を低解像度の画布に固定し、移動中もドットの粒を保つ。
-      if (!painting) {
-        painting = document.createElement("canvas");
-        painting.width = 384;
-        painting.height = 256;
-        const p = painting.getContext("2d");
-        p.imageSmoothingEnabled = false;
-        const sw = atlas.naturalWidth / 2, sh = atlas.naturalHeight / 3;
-        p.drawImage(atlas, (index % 2) * sw, Math.floor(index / 2) * sh,
-          sw, sh, 0, 0, painting.width, painting.height);
-        fallback = null;
-      }
-      const scale = Math.max(W / painting.width, H / painting.height) * 1.06;
-      const dw = Math.ceil(painting.width * scale), dh = Math.ceil(painting.height * scale);
-      const x = Math.round((W - dw) / 2 - cam.x * (dw - W) * 0.16);
-      const y = Math.round((H - dh) / 2 - cam.y * (dh - H) * 0.16);
-      g.imageSmoothingEnabled = false;
+      fallback = null; fallbackCanvas = null;
+      // 横長の映画画角では絵の高さを保ち、顔や燭台を上下で切り落とさない。
+      const wide = W / H > image.naturalWidth / image.naturalHeight;
+      const scale = (wide ? H / image.naturalHeight : Math.max(W / image.naturalWidth, H / image.naturalHeight)) * 1.06;
+      const dw = image.naturalWidth * scale, dh = image.naturalHeight * scale;
+      const x = dw < W ? (W - dw) / 2 - cam.x * dw * 0.012
+        : Math.max(W - dw, Math.min(0, W / 2 - dw * focus[0] - cam.x * (dw - W) * 0.08));
+      const y = Math.max(H - dh, Math.min(0, H / 2 - dh * focus[1] - cam.y * (dh - H) * 0.08));
+      g.save();
+      g.imageSmoothingEnabled = true;
+      g.imageSmoothingQuality = "high";
       g.globalAlpha = 1;
-      g.drawImage(painting, x, y, dw, dh);
+      g.fillStyle = "#020104";
+      g.fillRect(0, 0, W, H);
+      g.drawImage(image, x, y, dw, dh);
+      g.restore();
     },
   };
 }
 
 export const SCENES = ORIGINAL_SCENES.map((scene, index) => ({
   ...scene,
+  photo: OPENING_IMAGES[index].src,
   build: (W, H) => illustratedShot(index, scene, W, H),
 }));

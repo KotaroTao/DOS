@@ -14,6 +14,7 @@ import { game, UI } from "./ctx.js";
 import { el } from "./kit.js";
 import { nav } from "./nav.js";
 import { animate, reduced } from "./motion.js";
+import { phraseBreaks } from "./phrase.js";
 import { SFX } from "../audio.js";
 import { soulByUid, soulLevelCapOf, soulRankOf, SOUL_CLASSES, soulSeriesName } from "../souls.js";
 import { MAX_ITEMS } from "../items.js";
@@ -778,7 +779,7 @@ export function playIreneScene(pages, done) {
   const dots = el("div", "iv-dots");
   const say = el("div", "pt-kp-say iv-say");
   say.appendChild(el("span", "pt-kp-who", IRENE_WHO));
-  const text = el("span", "pt-kp-text");
+  const text = el("span", "pt-kp-text no-phrase");
   say.appendChild(text);
   const nextMark = el("span", "pt-kp-next", "▼");
   say.appendChild(nextMark);
@@ -789,32 +790,40 @@ export function playIreneScene(pages, done) {
   const st = { i: -1, full: true, timer: null, closed: false };
   active = st;
   const last = () => st.i >= list.length - 1;
-  const spans = [];
+  const chars = [];
 
   const reveal = () => {
     if (st.timer) { clearInterval(st.timer); st.timer = null; }
-    list[st.i].forEach((t, j) => { if (spans[j]) spans[j].textContent = t; });
+    for (const ch of chars) ch.classList.remove("iv-unread");
     st.full = true;
     nextMark.classList.remove("hidden");
   };
   const show = (k) => {
     st.i = k;
     text.textContent = "";
-    spans.length = 0;
-    for (let j = 0; j < list[k].length; j++) { const s = el("span", "pt-kp-l"); spans.push(s); text.appendChild(s); }
+    chars.length = 0;
+    // 全文と文節の折り目を先に配置し、文字送りで改行位置や吹き出しの高さを変えない。
+    for (const t of list[k]) {
+      const s = el("span", "pt-kp-l");
+      const breaks = phraseBreaks(t);
+      Array.from(t || "").forEach((ch, j) => {
+        if (breaks.has(j)) s.appendChild(document.createElement("wbr"));
+        const c = el("span", "iv-unread", ch);
+        chars.push(c);
+        s.appendChild(c);
+      });
+      text.appendChild(s);
+    }
     dots.textContent = "";
     for (let j = 0; j < list.length; j++) dots.appendChild(el("i", j === k ? "on" : j < k ? "past" : ""));
     if (reduced()) { reveal(); return; }
     st.full = false;
     nextMark.classList.add("hidden");
     // 1文字ずつ (行をまたいで続けて) つづる
-    const all = list[k].map((t) => [...(t || "")]);
-    let li = 0, ci = 0;
+    let ci = 0;
     st.timer = setInterval(() => {
-      while (li < all.length && ci >= all[li].length) { li++; ci = 0; }
-      if (li >= all.length) { reveal(); return; }
-      ci++;
-      spans[li].textContent = all[li].slice(0, ci).join("");
+      if (ci >= chars.length) { reveal(); return; }
+      chars[ci++].classList.remove("iv-unread");
     }, 38);
   };
   const advance = () => {

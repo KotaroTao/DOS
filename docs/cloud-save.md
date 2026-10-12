@@ -21,7 +21,7 @@
 3. AuthenticationでEmailログインとメール確認を有効にする。Site URLとRedirect URLsにゲームの公開URLを登録する。開発時は `http://127.0.0.1:8001/` も登録する。
 4. 公開運用ではCustom SMTPを設定する。Supabase標準のメール送信は開発向けで、一般プレイヤー1000人の登録・パスワード再設定には使わない。メール配信サービスの無料枠・料金は別途確認する。
 5. Edge Functionのsecret `GAME_ALLOWED_ORIGINS` に `https://kotarotao.github.io` を設定する。URLの `/DOS/` は含めない。開発元も許可する場合はカンマ区切りで `http://127.0.0.1:8001` を足す。
-6. リポジトリのルートから `supabase functions deploy game-save` を実行する。`supabase/config.toml` によりゲートウェイの旧JWT検証を無効にし、関数自身が `/auth/v1/user` に照会してユーザーを検証する。
+6. リポジトリのルートから `supabase functions deploy game-save --use-docker` を実行する（Dockerが必要）。`supabase/config.toml` によりゲートウェイの旧JWT検証を無効にし、関数自身が `/auth/v1/user` に照会してユーザーを検証する。自動設定・公開では、実行環境内だけでesbuild 0.25.12によるESMの結合・圧縮を行い、CLIのDocker方式で圧縮ESZIPを作成して配置する。非圧縮のソースを送る `--use-api` ではアップロード上限を超えるため使わない。Dockerの起動確認に失敗した場合も配置を止める。ブラウザ用コードやリポジトリの関数ソースは変更しない。
 7. `src/cloud-config.js` の `url` をプロジェクトURL、`anonKey` を公開用のanonキーまたはpublishableキーにし、`enabled: true` にする。`protocol` は1のまま。
 
 `SUPABASE_URL` と `SUPABASE_SERVICE_ROLE_KEY` はEdge Functionの標準環境変数を使う。service_roleキーやSMTPパスワードはブラウザのファイル、Git、GitHub Pagesへ置かない。保存テーブルと更新関数はanon/authenticatedからアクセスできず、検証済みユーザーIDを使うEdge Functionだけが読み書きする。
@@ -32,7 +32,7 @@ CLIでの接続例（アクセス権がある端末で実行）:
 supabase link --project-ref <project-ref>
 supabase db push
 supabase secrets set GAME_ALLOWED_ORIGINS=https://kotarotao.github.io
-supabase functions deploy game-save
+supabase functions deploy game-save --use-docker
 ```
 
 ## 既存プレイヤーの移行

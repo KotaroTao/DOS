@@ -305,17 +305,18 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
   let rsT = 0;
   const onResize = () => { clearTimeout(rsT); rsT = setTimeout(() => { if (!closed) layoutScene().catch((e) => console.error(e)); }, 180); };
 
-  const close = (cb) => {
+  const close = (cb, immediate = false) => {
     if (closed) return;
     closed = true;
     removeEventListener("keydown", onKey, true);
     removeEventListener("resize", onResize);
     wrap.classList.add("ttl-out");
-    // 門の奥へ吸い込まれるように暗転してから本編へ
-    setTimeout(() => { cancelAnimationFrame(raf); if (cb) cb(); }, REDUCED ? 60 : 520);
+    if (immediate && cb) cb();
+    // 新規開始は音声の再生許可を保つため同期で渡し、再開は暗転を待つ。
+    setTimeout(() => { cancelAnimationFrame(raf); if (!immediate && cb) cb(); }, REDUCED ? 60 : 520);
     setTimeout(() => wrap.remove(), REDUCED ? 400 : 1500);
   };
-  const start = () => { sfx("stairs"); close(onStart); };
+  const start = () => { sfx("stairs"); close(onStart, !hasSave); };
   // メニューは最初から見えている。「つづきから/はじめから」は1タップで始まる (そのタップで音声も目覚める)。
   // それ以外の場所をタップすると、目覚めの演出 (鐘・門の脈動・鴉) だけを見せる
   const wake = () => {

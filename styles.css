@@ -12,9 +12,19 @@
   --font: "Courier New", "MS Gothic", monospace;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --game-width: 520px;
+}
+
+/* マウスで遊ぶ広い画面だけ横幅を広げ、タブレットは従来の幅を保つ。 */
+@media (min-width: 1000px) and (hover: hover) and (pointer: fine) {
+  :root { --game-width: 640px; }
 }
 
 * { box-sizing: border-box; }
+
+/* 全画面でスクロール操作を保ち、縦横のスクロールバーだけを隠す */
+* { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+*::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
 
 html, body {
   margin: 0;
@@ -38,9 +48,15 @@ html, body { word-break: keep-all; overflow-wrap: break-word; line-break: strict
 /* ページ自体はスクロールさせず、画面内に収める */
 html, body { height: 100%; overflow: hidden; }
 
+/* 起動中は、HTMLに置いてある素のゲームUIを見せない。
+   タイトル画面や復元後の画面が用意できてから src/game.js が解除する。 */
+body.booting #app {
+  visibility: hidden;
+}
+
 #app {
   position: relative;
-  max-width: 520px;
+  max-width: var(--game-width);
   margin: 0 auto;
   height: 100vh;
   height: 100dvh;
@@ -408,7 +424,7 @@ canvas.spr { image-rendering: pixelated; display: block; width: var(--spr-size, 
     linear-gradient(170deg, #14101a, #07060b 65%);
   display: flex;
   flex-direction: column;
-  max-width: 520px;
+  max-width: var(--game-width);
   margin: 0 auto;
   padding: calc(var(--safe-top) + 8px) 12px calc(var(--safe-bottom) + 14px);
   overflow-y: auto;
