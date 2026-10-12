@@ -115,6 +115,27 @@ const samples=12000;
  }
  console.log('会心・物理貫通・VIT・斬鉄の重ね合わせ・反撃・魔法武器・物理無効を確認');
 }
+// 動体視力は回避の割合ではなく命中率へ直接加算し、技の補正とも重なる。
+{
+ const a=actor(),t=foe(),b=new Battle([a],[t],()=>{});
+ b._evadeBase=()=>.34;
+ for(const [lv,bonus] of [[0,0],[1,.1],[2,.15],[3,.2]]){
+  a.passiveMap={dynamicVision:lv};
+  assert(Math.abs(b._missP(t,a)-(.4-bonus))<1e-12);
+  assert(Math.abs(b._missP(t,a,{acc:.1})-(.3-bonus))<1e-12);
+ }
+ b._evadeBase=()=>0;
+ assert.equal(b._missP(t,a),0,'素の外れも減らし、命中率100%で止める');
+ t.metal=1;
+ const metalMiss=b._missP(t,a);
+ a.passiveMap={};
+ assert.equal(b._missP(t,a),metalMiss,'金属の魔物は対象外');
+ t.metal=0;t.side='party';a.passiveMap={dynamicVision:3};
+ assert.equal(b._missP(t,a),.06,'味方への攻撃は対象外');
+ t.side='enemy';a.side='enemy';
+ assert.equal(b._missP(t,a),.06,'敵の攻撃は対象外');
+ console.log('動体視力Lv1/2/3の命中率+10%/15%/20%、技との加算・上限・対象外を確認');
+}
 // 命中率の直接加算、上限、暗闇、必中と見切り。表示の数字も同じ定義を読む。
 {
  const {skillDescription,skillDetailLines}=await import('../../src/ui/itemview.js');
