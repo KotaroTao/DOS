@@ -5,10 +5,11 @@ const { mkdirSync, writeFileSync } = require('node:fs');
 const { resolve } = require('node:path');
 const assert = require('node:assert/strict');
 const base = process.env.CRYPT_REVIEW_URL || 'http://localhost:8000';
+const late = process.env.DUNGEON_REVIEW_GROUP === 'w17-w21';
 const later = process.argv.includes('w07-w11');
-const targets = later ? [['w07',10],['w08',10],['w09',15],['w10',10],['w11',10]] : [['w02',10],['w03',15],['w04',10],['w05',15],['w06',10]];
+const targets = late ? [['w17',15],['w18',10],['w19',10],['w20',10],['w21',15]] : later ? [['w07',10],['w08',10],['w09',15],['w10',10],['w11',10]] : [['w02',10],['w03',15],['w04',10],['w05',15],['w06',10]];
 const first = targets[0][0], second = targets[1][0];
-const out = resolve('docs/art/dungeons/' + (later ? 'review-w07-w11' : 'review'));
+const out = resolve('docs/art/dungeons/' + (late ? 'review-w17-w21' : later ? 'review-w07-w11' : 'review'));
 mkdirSync(out, { recursive: true });
 const report = { checks: [], screenshots: [] };
 function check(name, value) { assert.ok(value, name); report.checks.push(name); }
@@ -153,7 +154,7 @@ function check(name, value) { assert.ok(value, name); report.checks.push(name); 
       });
       check(id+'の蓋は中身を示さず、描画で遊びの乱数を消費しない',stable);
       await capture(page, id + '-board.png', true);
-      if (['w04','w05','w06','w08','w09','w10','w11'].includes(id)) {
+      if (['w04','w05','w06','w08','w09','w10','w11','w17','w18','w19','w20','w21'].includes(id)) {
         const hazard = await page.evaluate(() => {
           const t=cryptReview,c=t.G.board.cells[4][1]; c.type='empty';c.revealed=true;
           t.BV.artCache.clear();t.BV.artKey='';t.drawBoardFrame();
