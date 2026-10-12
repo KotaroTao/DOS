@@ -15,7 +15,7 @@ export default {
     195 fightSpirit/3 200 METSUKYAKU`,
   skills: {
     // Lv15 の固有技: 大きく踏み込み、鎧の継ぎ目ごと叩き斬る (物理貫通25%)
-    FIGHTER_FUMIKOMI: { name: "踏み込み斬り", mp: 5, kind: "phys", power: 1.5, acc: 0.4, pierce: 0.25, target: "enemy", desc: "大きく踏み込み、鎧の継ぎ目ごと叩き斬る（物理貫通25%）" },
+    FIGHTER_FUMIKOMI: { name: "踏み込み斬り", mp: 5, kind: "phys", power: 1.5, acc: 0.1, pierce: 0.25, target: "enemy", desc: "大きく踏み込み、鎧の継ぎ目ごと叩き斬る（物理貫通25%）" },
   },
   perks: {
     // ランクのパッシブ: 鍛え抜いた剣技が、技の一撃を重くする

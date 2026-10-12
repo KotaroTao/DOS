@@ -84,10 +84,12 @@ export const SPELL_KIND_COLOR = { atk: "#e0743f", heal: "#46c08f", phys: "#d8b04
 
 // ===== 種別・属性アイコン (敵の特徴・味方のスキルに添える小さな札) =====
 // 物 = 物理 / 魔 = 魔法 (ブレス含む) / 回復 / その他 (強化・弱体・招来など)。属性は「火」「水」…の札を並べる
-// 全体 = 敵全体・味方全員を対象にする技
+// 物貫・魔貫 = 耐性貫通の技。全体 = 敵全体・味方全員を対象にする技
 const TAG_KIND = {
   phys:  { t: "物", c: "#d8b04a" },
   mag:   { t: "魔", c: "#b48ae8" },
+  physPierce: { t: "物貫", c: "#d8b04a" },
+  magPierce:  { t: "魔貫", c: "#b48ae8" },
   heal:  { t: "回復", c: "#46c08f" },
   other: { t: "その他", c: "#8f96a3" },
   all:   { t: "全体", c: "#e0b45a" },
@@ -125,7 +127,9 @@ export function tagRow(kinds, cls = "") {
 // 味方のスキルの札: 種別 + 属性。物理技に属性が無ければ、使い手の武器の属性攻撃が乗る (actor 指定時)
 export function spellTagKinds(sp, actor) {
   if (!sp) return [];
-  const out = [SPELL_TAG_KIND[sp.kind] || "other"];
+  let kind = SPELL_TAG_KIND[sp.kind] || "other";
+  if (sp.pierce > 0 && (kind === "phys" || kind === "mag")) kind += "Pierce";
+  const out = [kind];
   let elk = sp.element;
   if (!hasElem(elk) && sp.kind === "phys" && actor && actor.elemAtk) elk = actor.elemAtk.el;
   if (hasElem(elk)) out.push("el:" + elk);
@@ -237,6 +241,16 @@ export function revealLock(need, what, cls = "") {
 
 // スキルの効果をくわしい行に展開する
 const pct = (v) => `${Math.round(v * 100)}%`;
+// 技名の下の短い説明。命+は命中率への直接加算を表す。
+export function skillDescription(sp) {
+  if (!sp) return "";
+  const bonuses = [];
+  if ((sp.kind === "phys" || sp.kind === "atk") && !sp.gravity && sp.critBonus > 0)
+    bonuses.push(sp.critBonus >= 1 ? "必ず会心" : `会+${pct(sp.critBonus)}`);
+  if (sp.kind === "phys" && sp.acc > 0)
+    bonuses.push(sp.acc >= 1 ? "必中" : `命+${pct(sp.acc)}`);
+  return [bonuses.join("・"), sp.desc].filter(Boolean).join("　");
+}
 const raceList = (rs) => [...new Set((rs || []).map((r) => RACE_LABEL[r] || r))].join("・");
 const ELEM_NAME = (k) => (k === "all" ? "全属性" : (ELEMENTS[k] ? ELEMENTS[k].label : k));
 export function skillDetailLines(sp) {
@@ -264,7 +278,7 @@ export function skillDetailLines(sp) {
     if (sp.agiScale) lines.push("使い手のAGIでも威力が伸びる");
     if (sp.vitScale) lines.push("使い手のVITでも威力が伸びる");
     if (sp.pieScale) lines.push("使い手のPIEでも威力が伸びる");
-    if (sp.acc) lines.push(sp.acc >= 1 ? "必中（相手の素早さに関係なく当たる）" : `命中UP（外れる確率を${pct(sp.acc)}減らす）`);
+    if (sp.acc) lines.push(sp.acc >= 1 ? "必中（素早さ・暗闇・見切りに関係なく当たる）" : `命中率+${pct(sp.acc)}（命+${pct(sp.acc)}：命中率に直接加算、上限100%。見切りは別判定）`);
     if (sp.pierce) lines.push(`物理貫通 ${pct(sp.pierce)}（物理耐性による軽減を${pct(sp.pierce)}無視。防御は受け、物理無効は貫けない）`);
     if (sp.critBonus) lines.push(sp.critBonus >= 1 ? "必ず会心になる" : `会心率 +${pct(sp.critBonus)}`);
     if (sp.desperate) lines.push("自分のHPが減っているほど威力が上がる（最大2倍）");
@@ -339,7 +353,7 @@ export function showSkillPopup(key) {
   const tg = tagRow(spellTagKinds(sp));
   if (tg) mpRow.appendChild(tg);
   body.appendChild(mpRow);
-  if (sp.desc) body.appendChild(el("div", "ig-desc", sp.desc));
+  if (skillDescription(sp)) body.appendChild(el("div", "ig-desc", skillDescription(sp)));
   const box = el("div", "sk-lines");
   for (const ln of skillDetailLines(sp)) box.appendChild(el("div", "sk-line", ln));
   body.appendChild(box);

@@ -21,7 +21,7 @@ export default {
   skills: {
     // Lv15 の固有技: 祈りを込めた一太刀。返す光が隊を癒す
     PALADIN_INORINOKEN: { name: "祈りの剣", mp: 6, kind: "phys", power: 1.2, element: "light", bladeHeal: 0.15, healCap: 0.1, target: "enemy", desc: "祈りを込めて斬り、返す光で味方全員を癒す" },
-    PALADIN_JIKOUZAN: { name: "慈光斬", mp: 12, kind: "phys", power: 2.0, pieScale: 0.5, element: "light", acc: 0.6, bladeHeal: 0.11, healCap: 0.12, target: "enemy", desc: "祈りを込めて斬り、光の余韻が隊を癒す" },
+    PALADIN_JIKOUZAN: { name: "慈光斬", mp: 12, kind: "phys", power: 2.0, pieScale: 0.5, element: "light", acc: 0.16, bladeHeal: 0.11, healCap: 0.12, target: "enemy", desc: "祈りを込めて斬り、光の余韻が隊を癒す" },
     PALADIN_KENNOSHUKUTOU: { name: "剣の祝祷", mp: 15, kind: "heal", healMul: 1, healCap: 0.5, buff: { atk: 1.1 }, target: "all-ally", desc: "剣を掲げて祈り、味方全員を癒し攻撃を少し上げる" },
     PALADIN_HIKARINOJOUHEKI: { name: "光の城壁", mp: 10, kind: "buff", buff: { vit: 1.3 }, cure: ["charm", "confuse"], target: "all-ally", desc: "味方全員を光の壁で守り、魅了・混乱を治す" },
     PALADIN_JOUKOURIN: { name: "浄めの光輪", mp: 10, kind: "atk", power: 21, element: "light", partyHeal: 6, target: "all-enemy", desc: "光輪が敵全体を灼き、返す光が隊を癒す" },
@@ -31,7 +31,7 @@ export default {
     PALADIN_SHOKUZAI: { name: "贖罪の光", mp: 22, kind: "atk", power: 60, element: "light", debuff: { atk: 0.8 }, target: "enemy", desc: "罪を灼く聖光。敵の力を挫く" },
     PALADIN_SEIGONOTOBARI: { name: "聖護の帳", mp: 20, kind: "buff", buff: { vit: 1.5 }, regen: { pct: 0.03, turns: 3 }, target: "all-ally", desc: "聖なる帳で味方全員を厚く守り、癒しを宿す" },
     PALADIN_SEIHAI: { name: "聖杯の恵み", mp: 32, kind: "heal", healMul: 2.1, buff: { atk: 1.15 }, cure: true, target: "all-ally", desc: "味方全員を大きく癒し、異常を祓い力を与える" },
-    PALADIN_GAIKA: { name: "凱歌の聖剣", mp: 30, kind: "phys", power: 1.8, pieScale: 0.5, element: "light", acc: 0.7, bladeHeal: 0.05, healCap: 0.15, target: "all-enemy", desc: "凱歌と共に敵陣を斬り、隊を大きく癒す" },
+    PALADIN_GAIKA: { name: "凱歌の聖剣", mp: 30, kind: "phys", power: 1.8, pieScale: 0.5, element: "light", acc: 0.18, bladeHeal: 0.05, healCap: 0.15, target: "all-enemy", desc: "凱歌と共に敵陣を斬り、隊を大きく癒す" },
     PALADIN_TENJOUSOU: { name: "天上の聖槍", mp: 28, kind: "atk", power: 80, element: "light", vuln: { light: 0.8 }, target: "enemy", desc: "聖槍が貫き、光への守りを崩す" },
     PALADIN_JUNKYOUNOTATE: { name: "殉教の盾", mp: 26, kind: "buff", shield: true, buff: { vit: 1.4 }, regen: { pct: 0.06, turns: 3 }, tech: true, target: "self", desc: "身を盾に仲間を庇い、聖なる癒しを身に宿す" },
     PALADIN_SEIKISHIDAN: { name: "聖騎士団の誓い", mp: 32, kind: "buff", buff: { atk: 1.25, vit: 1.35 }, grantBarrier: 1, target: "all-ally", desc: "味方全員の攻守を高め、魔障壁を張る" },
