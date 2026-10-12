@@ -1,0 +1,50 @@
+name: Set up Cloud Save
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloud-save-setup
+  cancel-in-progress: false
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: cloud-save-production
+      cancel-in-progress: false
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            src
+            supabase
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check settings
+        run: |
+          test "$GITHUB_REF_NAME" = main || { echo "mainを選んで実行してください"; exit 1; }
+          test -n "$SUPABASE_ACCESS_TOKEN" || { echo "Secret SUPABASE_ACCESS_TOKENを登録してください"; exit 1; }
+          test -n "$SUPABASE_PROJECT_REF" || { echo "Variable SUPABASE_PROJECT_REFを登録してください"; exit 1; }
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.120.0
+      - name: Set up database and authentication
+        run: node supabase/deploy.mjs --prepare
+      - name: Set allowed origin
+        run: supabase secrets set GAME_ALLOWED_ORIGINS=https://kotarotao.github.io --project-ref "$SUPABASE_PROJECT_REF"
+      - name: Deploy game-save
+        run: supabase functions deploy game-save --project-ref "$SUPABASE_PROJECT_REF" --use-api
+      - name: Verify deployment
+        run: node supabase/deploy.mjs --verify
+      - name: Next step
+        run: |
+          echo "保存APIのセットアップ完了。次はSupabaseのCustom SMTPを設定してください。" >> "$GITHUB_STEP_SUMMARY"
+          echo "確認メールを試した後、Variable CLOUD_SAVE_ENABLEDをtrueにしてDeploy to GitHub Pagesを実行すると有効になります。" >> "$GITHUB_STEP_SUMMARY"

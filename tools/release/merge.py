@@ -99,7 +99,6 @@ def release(args):
             break
         pause("マージしたコミットのPages公開を確認中…")
 
-    expected = f'const CACHE = "dos-{merged_sha[:12]}";'
     url = args.site.rstrip("/") + "/sw.js?verify=" + merged_sha[:12]
     compared = set()
     while True:
@@ -107,10 +106,10 @@ def release(args):
             req = urllib.request.Request(url, headers={"Cache-Control": "no-cache"})
             with urllib.request.urlopen(req, timeout=20) as response:
                 source = response.read().decode("utf-8")
-            if expected in source:
+            version = re.search(r'^const CACHE = "dos-([0-9a-f]{12,40})(?:-cloud-[0-9]+)?";', source, re.M)
+            if version and merged_sha.startswith(version[1]):
                 print("公開サイトの版も一致: " + args.site, flush=True)
                 return
-            version = re.search(r'^const CACHE = "dos-([0-9a-f]{12,40})";', source, re.M)
             if version and version[1] not in compared:
                 published = version[1]
                 compared.add(published)
