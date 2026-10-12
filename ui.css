@@ -88,8 +88,12 @@
   flex: 1 1 auto; min-height: 0;
   max-width: none; margin: 0;
   padding-bottom: 28px; /* 浮いた門 (16px) の下に隠れないように */
+  overflow-x: hidden;
   overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
+#town-shell > #town-screen::-webkit-scrollbar { display: none; }
 #town-shell > #town-screen.shop-mode { padding-bottom: 20px; }
 #town-shell.has-head > #town-screen { padding-top: 8px; --tw-top: 8px; }
 /* 旧広場の「迷宮へ潜る」帯は、タブバーの門と重ならないよう流れの中へ置く */
