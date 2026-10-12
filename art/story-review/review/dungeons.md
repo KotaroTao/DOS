@@ -825,9 +825,9 @@ _(絵はまだ無い)_
 
 <a name="lore_ws11"></a>
 
-## lore_ws11「白狼の吹き溜まり」 ── 未着手
+## lore_ws11「白狼の吹き溜まり」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_ws11.webp" width="576" alt="lore_ws11">
 
 **ストーリー一覧の本文**
 
@@ -841,9 +841,9 @@ _(絵はまだ無い)_
 
 <a name="lore_ws12"></a>
 
-## lore_ws12「氷河の裂け目」 ── 未着手
+## lore_ws12「氷河の裂け目」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_ws12.webp" width="576" alt="lore_ws12">
 
 **ストーリー一覧の本文**
 
@@ -857,9 +857,9 @@ _(絵はまだ無い)_
 
 <a name="lore_ws13"></a>
 
-## lore_ws13「疫病塚の底」 ── 未着手
+## lore_ws13「疫病塚の底」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_ws13.webp" width="576" alt="lore_ws13">
 
 **ストーリー一覧の本文**
 
@@ -873,9 +873,9 @@ _(絵はまだ無い)_
 
 <a name="lore_ws14"></a>
 
-## lore_ws14「沈んだ渡し場」 ── 未着手
+## lore_ws14「沈んだ渡し場」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_ws14.webp" width="576" alt="lore_ws14">
 
 **ストーリー一覧の本文**
 
@@ -905,9 +905,9 @@ _(絵はまだ無い)_
 
 <a name="lore_ws16"></a>
 
-## lore_ws16「錆びた避雷針の林」 ── 未着手
+## lore_ws16「錆びた避雷針の林」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_ws16.webp" width="576" alt="lore_ws16">
 
 **ストーリー一覧の本文**
 

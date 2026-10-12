@@ -1,0 +1,122 @@
+{
+  "worker": 18,
+  "branch": "codex/art-worker-18",
+  "base_commit": "351479a114ff0cc60772a2705d33238f4820500b",
+  "generation_limit": 15,
+  "generation_count": 5,
+  "items": [
+    {
+      "id": "lore_ws11",
+      "path": "art/story-review/dungeons/lore_ws11.png",
+      "status": "ready",
+      "generation_count": 1,
+      "references": [
+        "art/story-review/dungeons/lore_w10.png"
+      ],
+      "visual_check": {
+        "faces": "狼3頭の顔を確認。主要人物なし。",
+        "limbs": "見える脚に余分な本数なし。雪と伏せた姿勢で隠れた脚は判別不可。",
+        "sigil": "対象なし、不要な印なし。",
+        "props": "靴・外套・文字の読めない手紙を確認。",
+        "story": "奈落の壁の雪だまりと白霜の狼、持ち物を預かる巣。後の秘密なし。",
+        "composition": "主題が明瞭。1536×1024 PNG。"
+      },
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "50b89f9f5d151c4d8cbebe6976c6c517e3ae9417632f7b053d75adfba341fda3"
+    },
+    {
+      "id": "lore_ws12",
+      "path": "art/story-review/dungeons/lore_ws12.png",
+      "status": "ready",
+      "generation_count": 1,
+      "references": [
+        "art/story-review/dungeons/lore_w10.png"
+      ],
+      "visual_check": {
+        "faces": "魂の顔は小さく抽象的。固有人物なし。",
+        "limbs": "見える魂の腕に余分な本数なし。氷越しの指と霧の脚は細部判別不可。",
+        "sigil": "対象なし、不要な印なし。",
+        "props": "人工の灯器や建物なし。",
+        "story": "解けかけた裂け目、底へ落ちる細い水、氷内の魂と抜け出して下る魂を確認。先の秘密なし。",
+        "composition": "裂け目・水・魂の主題を確認。"
+      },
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "4ec5a1bc818dfa371d7ea35bbfdd69ccbf4eb56dde809b4a25a882f1522bf60c"
+    },
+    {
+      "id": "lore_ws13",
+      "path": "art/story-review/dungeons/lore_ws13.png",
+      "status": "ready",
+      "generation_count": 1,
+      "references": [
+        "art/story-review/dungeons/lore_w10.png"
+      ],
+      "visual_check": {
+        "faces": "鐘を鳴らす死者の顔は頭巾の陰。主要人物なし。",
+        "limbs": "綱を握る両腕・両手を確認。余分な腕なし。握った指の裏側と布の中の脚は判別不可。",
+        "sigil": "一門の印なし。鐘は読める文字のない装飾。",
+        "props": "梁から下がる鐘、綱、布に包まれた亡骸を確認。",
+        "story": "城壁外の塚、死者自身の弔い、底へ続く沼を確認。灯った集落や先の秘密なし。",
+        "composition": "鐘と綱を引く死者が中心に明瞭。"
+      },
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "0ef2dbb03aa7f17102fed7c34f9540fd0128b4f213a70ae361b591d224228fda"
+    },
+    {
+      "id": "lore_ws14",
+      "path": "art/story-review/dungeons/lore_ws14.png",
+      "status": "ready",
+      "generation_count": 1,
+      "references": [
+        "art/story-review/dungeons/lore_w10.png"
+      ],
+      "visual_check": {
+        "faces": "頭巾の老いた渡し守。固有人物の顔や衣装ではない。",
+        "limbs": "灯の輪を握る手と腕を確認。余分な指なし。もう一方の腕と両脚は水中で判別不可。",
+        "sigil": "対象なし、不要な印なし。",
+        "props": "渡し守専用の素朴な鉄灯、沈んだ舟と金貨、朽ちた桟橋を確認。",
+        "story": "島の迎えの灯は消え、渡し守の灯のみ残る。舟と本人が沈んだ状態。客や先の秘密なし。",
+        "composition": "灯・渡し守・舟の金貨が明瞭。"
+      },
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "a7c668d794903f935eda2c7e4b9844398cd668968ce6a7ebcadc73a22c0bdf75"
+    },
+    {
+      "id": "lore_ws16",
+      "path": "art/story-review/dungeons/lore_ws16.png",
+      "status": "ready",
+      "generation_count": 1,
+      "references": [
+        "docs/art/story-refs/sigil.png",
+        "docs/art/story-refs/props.png",
+        "art/story-review/dungeons/lore_w10.png"
+      ],
+      "visual_check": {
+        "faces": "人物なし。",
+        "limbs": "人物なし。",
+        "sigil": "手前の根元の印をsigil.pngと照合。左の親指1・右の平行な突起3・短い手首・独立した涙形の炎1を確認。",
+        "props": "錆びた鉄針、塔内へ続く導線、焼けた旅人の荷と巻いた布を確認。",
+        "story": "塔の張り出し、林状の針、針間の青白い火花、根元の印と焼けた荷を確認。先の秘密なし。",
+        "composition": "手前の印と荷、背景の針と火花が明瞭。"
+      },
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "4ee058e5c349954e891b606d843a9ec1702ba52617e114b376744306f87b4720"
+    }
+  ],
+  "handoff": "5枚の原画と担当専用記録のみ。WebP変換・build.py・共通queue・登録ファイル・本文・基準画像の変更なし。PR作成・mainへのマージなし。統合担当へ引き継ぎ。"
+}
