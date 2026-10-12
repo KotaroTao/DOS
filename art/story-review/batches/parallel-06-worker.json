@@ -38,7 +38,9 @@
         1536,
         1024
       ],
-      "sha256": "a2aa3f9b408d23db3fbdbc6e3740049fa43c5480d20d635643fae4bfd6f46809"
+      "sha256": "a2aa3f9b408d23db3fbdbc6e3740049fa43c5480d20d635643fae4bfd6f46809",
+      "shippedPath": "art/story/chapter8/irene_bell.webp",
+      "thumbnailReview": "build.py生成の384×256縮小見本で場面の主題が判別できることを目視確認。"
     },
     {
       "id": "w32_rod",
@@ -56,7 +58,9 @@
         1536,
         1024
       ],
-      "sha256": "ba2ba67e6d064450cdb6f36ae0c855752db12bbe45924dec4dc0df1a919bd876"
+      "sha256": "ba2ba67e6d064450cdb6f36ae0c855752db12bbe45924dec4dc0df1a919bd876",
+      "shippedPath": "art/story/chapter8/w32_rod.webp",
+      "thumbnailReview": "build.py生成の384×256縮小見本で場面の主題が判別できることを目視確認。"
     },
     {
       "id": "report_w32",
@@ -76,7 +80,9 @@
         1536,
         1024
       ],
-      "sha256": "a4e7817b01ee1700b38b5de657bd2d31740d8828e0eb7d016b1a47d6d469dad3"
+      "sha256": "a4e7817b01ee1700b38b5de657bd2d31740d8828e0eb7d016b1a47d6d469dad3",
+      "shippedPath": "art/story/chapter8/report_w32.webp",
+      "thumbnailReview": "build.py生成の384×256縮小見本で場面の主題が判別できることを目視確認。"
     },
     {
       "id": "mem_w33",
@@ -94,7 +100,9 @@
         1536,
         1024
       ],
-      "sha256": "ac23855ead2328ca25a960676d48c586ffb41c447c3bb14e95dab290b817dd36"
+      "sha256": "ac23855ead2328ca25a960676d48c586ffb41c447c3bb14e95dab290b817dd36",
+      "shippedPath": "art/story/chapter8/mem_w33.webp",
+      "thumbnailReview": "build.py生成の384×256縮小見本で場面の主題が判別できることを目視確認。"
     },
     {
       "id": "report_w33",
@@ -114,7 +122,9 @@
         1536,
         1024
       ],
-      "sha256": "0e0fc7857e2ce1286dfb8f18d64e8293521d19a8f8e7ad15694fffcd1a19ea67"
+      "sha256": "0e0fc7857e2ce1286dfb8f18d64e8293521d19a8f8e7ad15694fffcd1a19ea67",
+      "shippedPath": "art/story/chapter8/report_w33.webp",
+      "thumbnailReview": "build.py生成の384×256縮小見本で場面の主題が判別できることを目視確認。"
     }
   ],
   "referenceHashes": {
@@ -131,7 +141,7 @@
     "docs/art/story-refs/sera.png": "341c64b2e2d3913f3cb6fe2f3ae66260a4899e588e416b098ab4433d5dcbba66",
     "docs/art/story-refs/sigil.png": "7dfeb2dbb8eb7091557e1dd3f387b963b64b2fa4a20848c1c18734167fe47b6b"
   },
-  "integrationNote": "統合担当へ: 全5件ready。原画はchapter8の指定先。目視記録の隠れた指・脚の判別限界を確認のうえ回収・変換・登録工程へ引き継ぐ。未完成なし。",
+  "integrationNote": "ユーザーの追加指示「変換後してmainにマージ」に基づき統合工程を実施。最新main取り込み後、build.pyで担当5枚のみWebPへ変換・登録し第八章確認ページと縮小見本を生成。縮小時の各主題を目視確認。原画・本文・基準画像・共通queue.jsonは変更なし。PR経由でmainへマージし公開確認する。",
   "attempts": [
     {
       "call": 1,
