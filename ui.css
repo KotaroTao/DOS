@@ -302,6 +302,12 @@
 .ui-art { position: relative; display: inline-block; padding: 10px; margin: 2px auto 4px; background: radial-gradient(circle, rgba(201,162,74,0.22), rgba(0,0,0,0) 68%); background: radial-gradient(circle, color-mix(in srgb, var(--sheet-accent, #c9a24a) 26%, transparent), rgba(0,0,0,0) 68%); }
 .ui-art canvas.spr { display: block; max-width: 132px; max-height: 132px; }
 .ui-art.float canvas.spr { animation: ig-float 2s ease-in-out infinite; } /* 宙に浮く魔物だけゆらめく */
+/* 手ほどきの情景は高精細でも本文を押し出さない。小さい画面では高さも抑える。 */
+.tut-intro .ui-art { max-width: 100%; box-sizing: border-box; }
+.tut-intro .ui-art canvas {
+  display: block; width: auto; height: auto; max-width: 100%;
+  max-height: min(160px, 24vh); max-height: min(160px, 24dvh);
+}
 .ui-sheet-title { margin: 4px 0 2px; font-size: 17px; font-weight: 800; line-height: 1.5; letter-spacing: 0.04em; color: var(--ink); text-shadow: 0 1px 0 #000, 0 0 12px rgba(0,0,0,0.8); }
 .ui-sheet-line { margin: 6px 2px; font-size: 13px; line-height: 1.75; color: #b2a68f; text-wrap: pretty; }
 .ui-sheet-foot {

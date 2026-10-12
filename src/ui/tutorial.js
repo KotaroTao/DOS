@@ -442,7 +442,7 @@ function introSheet(d, done) {
   let fired = false;
   const go = () => { if (fired) return; fired = true; done(); };
   const h = sheet.open({
-    kind: "choice", banner: "手ほどき", title: d.name, art, lines: d.intro(),
+    kind: "choice", className: "tut-intro", banner: "手ほどき", title: d.name, art, lines: d.intro(),
     footer: [{ label: d.who === "shop" ? "商会へ" : d.who === "gate" ? "出撃へ" : "酒場へ", kind: "primary", size: "lg", onTap: (s) => s.close("ok") }],
     onClose: go,
   });
