@@ -31,7 +31,7 @@
       ],
       "state": "integrated",
       "worker": "integration-parent",
-      "note": "WebP化・登録・既存検査が完了。公開前。",
+      "note": "PR https://github.com/KotaroTao/DOS/pull/806・PC/スマートフォン表示確認済み。本番未反映。",
       "generationCalls": 1,
       "masterHashes": {
         "art/story-review/chapter5/w18_blade.png": "2e66b9c5a17643123db389866a7304d03883092dddbc3351c62c5c6b392af2f1",
@@ -59,7 +59,7 @@
       ],
       "state": "integrated",
       "worker": "integration-parent",
-      "note": "WebP化・登録・既存検査が完了。公開前。",
+      "note": "PR https://github.com/KotaroTao/DOS/pull/806・PC/スマートフォン表示確認済み。本番未反映。",
       "generationCalls": 2,
       "masterHashes": {
         "art/story-review/chapter5/w20_cup.png": "aaab5042554a412cb29903506cf255054c9acf4ce84f5841226592a598e253ff",
