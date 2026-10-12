@@ -1,4 +1,4 @@
-// 地下墓地の人物と小物。透過原画を保持し、ゲーム側の状態に応じて差分を選ぶ。
+// 全迷宮で共用する人物と小物。透過原画を保持し、ゲーム側の状態に応じて差分を選ぶ。
 import { normalizeLook, WALKER_CLOAKS, WALKER_TRIMS } from "./walkerart.js";
 
 const sheets = new Map();

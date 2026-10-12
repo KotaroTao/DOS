@@ -4,7 +4,7 @@ const { mkdirSync, writeFileSync } = require('node:fs');
 const { resolve } = require('node:path');
 const assert = require('node:assert/strict');
 const base = process.env.CRYPT_REVIEW_URL || 'http://localhost:8000';
-const out = resolve('docs/art/crypt/actors/common-review');
+const out = resolve(process.env.CRYPT_REVIEW_OUT || 'docs/art/crypt/actors/common-review');
 mkdirSync(out, { recursive: true });
 const report = { checks: [], screenshots: [] };
 const check = (name, ok) => { assert.ok(ok, name); report.checks.push(name); };
@@ -28,7 +28,7 @@ const check = (name, ok) => { assert.ok(ok, name); report.checks.push(name); };
       });
       await page.route('**/src/game.js*', async route => {
         const response = await route.fetch();
-        await route.fulfill({ response, body: await response.text() + '\nwindow.actorReview={G,BV,PREFS,DUNGEONS,boardCamera,fitView,drawBoardFrame,cellRect,makeBoard,activeCfg,uiBlocked,cryptPropKey,cryptPropBitmap,cryptWalkerBitmap,drawPaintedWalker,cellIcon,resolveCorpse,useFountain,showChoice,closePrompt,ICONS,vctx,drawBoardIcons,boardLightSources,showEvent,showToast,updateTopbar};' });
+        await route.fulfill({ response, body: await response.text() + '\nwindow.actorReview={G,BV,PREFS,DUNGEONS,boardCamera,fitView,drawBoardFrame,cellRect,makeBoard,activeCfg,uiBlocked,cryptPropKey,cryptPropBitmap,cryptWalkerBitmap,drawPaintedWalker,cellIcon,resolveCorpse,useFountain,showChoice,closePrompt,ICONS,vctx,drawBoardIcons,boardLightSources,showEvent,showToast,updateTopbar,drawHoodedWalker,walkerSprite};window.drawnActors=[];const originalDrawBmpFit=drawBmpFit;drawBmpFit=function(b,...args){window.drawnActors.push(b.c);return originalDrawBmpFit(b,...args);};' });
       });
       await page.goto(base);
       await page.getByRole('button', { name: /テストプレイ/ }).click(); await page.locator('.ttl-test button').last().click();
@@ -64,6 +64,27 @@ const check = (name, ok) => { assert.ok(ok, name); report.checks.push(name); };
     await page.evaluate(()=>{actorReview.G.embers=12;actorReview.updateTopbar();});
     for(const key of ['gold','ember']) check(key+'の上部表示が新素材',await page.evaluate(key=>getComputedStyle(document.querySelector('#topbar-cur .cur-'+key),'::before').backgroundImage.includes('crypt-'+key+'.webp'),key));
     await capture(page,'header-mobile.png');
+    const coverage = await page.evaluate(() => {
+      const t = actorReview, g = t.G, results = [];
+      const required = ['chest','chestOpen','stairs','portal','fountain','corpseWarm','corpse','trap','event','story','wisp'];
+      const targets = t.DUNGEONS.map((d, i) => ({ id: d.id, i }));
+      targets.push({ id: 'abyss', i: 0 });
+      for (const target of targets) {
+        g.dungeonIdx = target.i;
+        g.abyss = target.id === 'abyss' ? { started: true, depth: 30 } : null;
+        window.drawnActors.length = 0;
+        t.drawBoardIcons({ x: 0, y: 0, r1: 10000 }, 1000, 0, 0);
+        t.drawHoodedWalker(t.walkerSprite(), 100, 100, 1000);
+        const missing = required.filter(key => !window.drawnActors.includes(t.cryptPropBitmap(key).c));
+        if (!window.drawnActors.includes(t.cryptWalkerBitmap(g._facing, t.PREFS.walkerLook).c)) missing.push('walker');
+        results.push({ id: target.id, missing });
+      }
+      g.abyss = null;
+      return results;
+    });
+    check('全迷宮と無限迷宮で人物・宝箱・階段・魂火などの共通原画を実描画する', coverage.every(r => r.missing.length === 0));
+    report.dungeons = coverage.map(r => r.id);
+    await fixture(page);
     const centers=await page.evaluate(()=>{
       const t=actorReview,g=t.G;
       for(const row of g.board.cells) for(const c of row) Object.assign(c,{type:'empty',cleared:true});
