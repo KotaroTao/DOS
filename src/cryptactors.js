@@ -21,8 +21,8 @@ export function prewarmCryptActors() { for (const key of Object.keys(assets)) sh
 export const CRYPT_PROP_FRAMES = {
   chest: ["a", 24, 116, 487, 360], chestOpen: ["a", 538, 36, 462, 450],
   stairs: ["a", 1028, 60, 501, 450], fountain: ["a", 37, 529, 452, 473],
-  corpse: ["seated", 8, 184, 522, 716],
-  corpseWarm: ["seated", 530, 176, 478, 720], corpseGreat: ["seated", 1008, 160, 520, 736],
+  corpse: ["seated", 48, 166, 438, 750],
+  corpseWarm: ["seated", 526, 183, 467, 780], corpseGreat: ["seated", 1003, 126, 532, 798],
   fountainEmpty: ["c", 119, 499, 502, 503], portal: ["a", 1037, 548, 486, 439],
   trap: ["b", 70, 149, 399, 275], event: ["b", 619, 17, 302, 480],
   bossDoor: ["b", 75, 509, 370, 478], wisp: ["b", 600, 524, 340, 483],
