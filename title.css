@@ -355,12 +355,6 @@
 }
 .op-skip b { font-weight: 400; letter-spacing: 0; color: #c9a24a; }
 .op-skip:hover, .op-skip:focus-visible { color: #ece2cc; border-color: #c9a24a; outline: none; }
-.op-voice {
-  position: absolute; z-index: 5; left: clamp(10px, 3vw, 28px); top: calc(var(--safe-top, 0px) + 10px);
-  display: flex; align-items: center; gap: 6px; min-height: 34px; color: #a3967f;
-  font-family: var(--font); font-size: 12px; letter-spacing: 0; cursor: pointer;
-}
-.op-voice input { accent-color: #c9a24a; width: 16px; height: 16px; margin: 0; }
 /* 長押しの合図 */
 .op-hold { position: absolute; z-index: 4; right: clamp(10px, 3vw, 28px); top: calc(var(--safe-top, 0px) + 50px); display: flex; align-items: center; gap: 8px; opacity: 0; transition: opacity 0.25s ease; pointer-events: none; }
 .op-hold.on { opacity: 1; }

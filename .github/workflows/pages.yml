@@ -54,7 +54,9 @@ jobs:
           SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
         run: |
           supabase secrets set GAME_ALLOWED_ORIGINS=https://kotarotao.github.io --project-ref "$SUPABASE_PROJECT_REF"
-          supabase functions deploy game-save --project-ref "$SUPABASE_PROJECT_REF" --use-api
+          docker info > /dev/null
+          npm exec --yes --package=esbuild@0.25.12 -- esbuild supabase/functions/game-save/index.js --bundle --format=esm --platform=neutral --target=es2022 --minify --allow-overwrite --outfile=supabase/functions/game-save/index.js
+          supabase functions deploy game-save --project-ref "$SUPABASE_PROJECT_REF" --use-docker
           node supabase/deploy.mjs --config
       # sw.js のキャッシュ版をデプロイのたびにコミットのハッシュで付け直す
       # (リポジトリでは "dos-dev" のまま。手で版を上げる運用は廃止)

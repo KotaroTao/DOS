@@ -53,7 +53,6 @@ function charTimes(lines) {
 export function showOpening(onDone) {
   setReduced(REDUCED);
   const voice = createOpeningVoice();
-  let voiceEnabled = voice.supported;
   const wrap = div("op-overlay");
   if (REDUCED) wrap.classList.add("op-still");
   const frame = div("op-frame");
@@ -88,13 +87,6 @@ export function showOpening(onDone) {
   skip.className = "op-skip";
   skip.innerHTML = "<span>スキップ</span><b>≫</b>";
   wrap.appendChild(skip);
-  const voiceControl = document.createElement("label");
-  voiceControl.className = "op-voice";
-  const voiceToggle = document.createElement("input");
-  voiceToggle.type = "checkbox";
-  voiceToggle.checked = voiceEnabled;
-  voiceControl.append(voiceToggle, document.createTextNode("英語の語り"));
-  if (voice.supported) wrap.appendChild(voiceControl);
   const hold = div("op-hold");
   hold.append(div("op-hold-r"), div("op-hold-t", "長押しでスキップ"));
   wrap.appendChild(hold);
@@ -113,10 +105,11 @@ export function showOpening(onDone) {
   wrap.appendChild(div("op-begin", "物語を始める"));
 
   const g = cv.getContext("2d");
-  const textStart = 900; // 幕が明けてから語り出すまで
+  const textStart = 0;
   let res = null, shot = null, shotFor = -1;
   let idx = 0, t0 = 0, typedAll = false, times = null, autoT = 0, phase = "in"; // in / play / out / title / closed
   let raf = 0, last = 0;
+  let sequenceActive = false, readyAt = 0;
 
   // 画角 (上下の闇の帯) を決め、絵の解像度を選ぶ
   const layout = () => {
@@ -161,8 +154,9 @@ export function showOpening(onDone) {
     text.innerHTML = "";
     text.classList.remove("op-done");
     times = charTimes(sc.lines);
-    const delay = (ms) => ((textStart + ms) / 1000).toFixed(3) + "s";
     sc.lines.forEach((ln, i) => {
+      const timing = times.rows[i];
+      const delay = (ms) => (ms / 1000).toFixed(3) + "s";
       const em = typeof ln !== "string";
       const row = div(em ? "op-ln op-em" : "op-ln");
       const word = em ? div("op-em-w") : row;
@@ -172,14 +166,14 @@ export function showOpening(onDone) {
         const s = document.createElement("span");
         s.className = "op-ch";
         s.textContent = ch;
-        s.style.animationDelay = delay(times.rows[i][j]);
+        s.style.animationDelay = delay(timing[j]);
         word.appendChild(s);
       });
       if (em) {
         row.appendChild(word);
         if (ln.ruby) {
           const r = div("op-em-r", ln.ruby);
-          r.style.animationDelay = delay(times.rows[i][times.rows[i].length - 1]);
+          r.style.animationDelay = delay(timing[timing.length - 1]);
           row.appendChild(r);
         }
       }
@@ -202,6 +196,7 @@ export function showOpening(onDone) {
     wrap.classList.remove("op-typed");
     cap.classList.remove("show");
     ensureShot();
+    sequenceActive = true; readyAt = 0;
     renderText();
     t0 = performance.now();
     typedAll = false;
@@ -210,13 +205,25 @@ export function showOpening(onDone) {
     phase = "play";
     clearTimeout(autoT);
     const hold = Math.max(5200, SCENES[idx].lines.map(lineText).join("").length * 45);
-    if (voiceEnabled) voice.start(idx, textStart);
+    const sceneIndex = idx;
+    const readLine = (line) => {
+      if (idx !== sceneIndex || phase !== "play") return;
+      if (line >= SCENES[idx].lines.length) { sequenceActive = false; return; }
+      voice.start(idx, line, {
+        onEnd: () => readLine(line + 1),
+        onFallback: () => { sequenceActive = false; },
+      });
+    };
+    readLine(0);
     const autoAdvance = () => {
       if (phase !== "play" || SCENES[idx].last) return;
-      if (voice.busy()) { autoT = setTimeout(autoAdvance, 250); return; }
+      const speaking = voice.busy();
+      if (!typedAll || sequenceActive || speaking) { readyAt = 0; autoT = setTimeout(autoAdvance, 250); return; }
+      if (!readyAt) readyAt = performance.now();
+      if (performance.now() - readyAt < hold) { autoT = setTimeout(autoAdvance, 250); return; }
       advance(true);
     };
-    autoT = setTimeout(autoAdvance, textStart + times.total + hold);
+    autoT = setTimeout(autoAdvance, 250);
   };
 
   const completeText = () => {
@@ -231,6 +238,7 @@ export function showOpening(onDone) {
   const raiseTitle = () => {
     clearTimeout(titleT);
     if (phase === "closed" || phase === "title") return;
+    sequenceActive = false;
     voice.stop();
     phase = "title";
     wrap.classList.add("op-final");
@@ -241,7 +249,7 @@ export function showOpening(onDone) {
     titleShown = true;
     const waitForVoice = () => {
       if (phase !== "play") return;
-      if (voice.busy()) { titleT = setTimeout(waitForVoice, 250); return; }
+      if (voice.busy() || sequenceActive) { titleT = setTimeout(waitForVoice, 250); return; }
       raiseTitle();
     };
     titleT = setTimeout(waitForVoice, REDUCED ? 2400 : TITLE_WAIT);
@@ -253,6 +261,7 @@ export function showOpening(onDone) {
     if (!typedAll) completeText();
     if (SCENES[idx].last) { if (!titleShown) showTitleCard(); else raiseTitle(); return; }
     phase = "out";
+    sequenceActive = false;
     voice.stop();
     clearTimeout(autoT);
     black.classList.add("on");
@@ -273,6 +282,7 @@ export function showOpening(onDone) {
     if (closed) return;
     closed = true;
     phase = "closed";
+    sequenceActive = false;
     voice.stop();
     clearTimeout(autoT); clearTimeout(titleT);
     clearTimeout(pressT); clearTimeout(rsT);
@@ -304,7 +314,8 @@ export function showOpening(onDone) {
   // ---- 入力 ----
   let pressT = 0, pressAt = 0, longFired = false;
   const down = (ev) => {
-    if (skip.contains(ev.target) || voiceControl.contains(ev.target)) return;
+    if (skip.contains(ev.target)) return;
+    if (voice.consumeRetry()) { longFired = true; return; }
     pressAt = performance.now(); longFired = false;
     clearTimeout(pressT);
     hold.classList.add("on");
@@ -317,23 +328,18 @@ export function showOpening(onDone) {
   wrap.addEventListener("pointerleave", up);
   wrap.addEventListener("click", (ev) => {
     if (closed || longFired) return;
-    if (skip.contains(ev.target) || voiceControl.contains(ev.target)) return;
+    if (skip.contains(ev.target)) return;
     if (phase === "title") { sfx("select"); close(); return; }
     advance();
   });
   skip.addEventListener("click", (ev) => { ev.stopPropagation(); sfx("select"); close(); });
-  voiceToggle.addEventListener("change", () => {
-    voiceEnabled = voiceToggle.checked;
-    voice.stop();
-    if (voiceEnabled && phase === "play") voice.start(idx);
-  });
-  const onVisibility = () => { if (document.hidden) voice.stop(); };
+  const onVisibility = () => { if (document.hidden) voice.busy(); };
   document.addEventListener("visibilitychange", onVisibility);
   const onKey = (e) => {
     if (closed) return;
-    if (voiceControl.contains(e.target) && e.key === " ") return;
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault(); e.stopPropagation();
+      if (voice.consumeRetry()) return;
       if (phase === "title") close(); else advance();
     } else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(); }
     else e.stopPropagation(); // オープニング中はゲームへの入力を通さない
@@ -345,11 +351,9 @@ export function showOpening(onDone) {
 
   document.body.appendChild(wrap);
   black.classList.add("on", "instant");
-  requestAnimationFrame(() => setTimeout(() => {
-    if (closed) return;
-    layout();
-    black.classList.remove("instant");
-    enterScene();
-    raf = requestAnimationFrame(loop);
-  }, 40));
+  // 開始ボタンの操作が有効な間に読み上げを要求する。
+  layout();
+  black.classList.remove("instant");
+  enterScene();
+  raf = requestAnimationFrame(loop);
 }

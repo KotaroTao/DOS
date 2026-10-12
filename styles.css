@@ -22,6 +22,10 @@
 
 * { box-sizing: border-box; }
 
+/* 全画面でスクロール操作を保ち、縦横のスクロールバーだけを隠す */
+* { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+*::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+
 html, body {
   margin: 0;
   padding: 0;
@@ -43,6 +47,12 @@ html, body { word-break: keep-all; overflow-wrap: break-word; line-break: strict
 
 /* ページ自体はスクロールさせず、画面内に収める */
 html, body { height: 100%; overflow: hidden; }
+
+/* 起動中は、HTMLに置いてある素のゲームUIを見せない。
+   タイトル画面や復元後の画面が用意できてから src/game.js が解除する。 */
+body.booting #app {
+  visibility: hidden;
+}
 
 #app {
   position: relative;

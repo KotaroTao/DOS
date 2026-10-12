@@ -11028,7 +11028,7 @@ function applyImpact(res) {
         const st = statusFxKind(h.status);
         if (st) spawnFx(fx.skill, st, pos.cx, pos.cy, ht0 + 50 * spd, spd, { seed }); // 武器の追加効果・技の状態異常
       }
-      // 付く効果の印 (吸収・防御無視・とどめ・怯み・耐性ダウン・強化打ち消し・封印・重力・盗み・即死)
+      // 付く効果の印 (吸収・物理貫通・とどめ・怯み・耐性ダウン・強化打ち消し・封印・重力・盗み・即死)
       if (prof && !h.immune) {
         for (const r of prof.riders) {
           if (sig && !r.onDeath && !r.onFatal) continue; // 看板技は専用の演出が効果を描く (とどめ・即死の決まった印だけ重ねる)
@@ -17145,6 +17145,9 @@ function townBgm() {
 }
 let openingActive = false; // オープニング演出中は専用テーマ
 let titleActive = false;   // タイトル画面の表示中は専用テーマ
+function revealBootScreen() {
+  document.body.classList.remove("booting");
+}
 // 探索BGM: 層 (1-20) ごとのテーマ曲
 function fieldBgm() {
   return dungeonTheme().bgm;
@@ -18528,6 +18531,7 @@ async function init() {
     });
     banner.appendChild(exit); document.body.appendChild(banner);
     resumeFromState();
+    revealBootScreen();
     if (testScene?.kind === "tutorial") uiTutorial.startTestTutorial(G.testTutorial);
     else if (testScene?.id === "opening") startAfterTitle(false);
     else if (testScene) UI.playStoryChain([{ title: testScene.title || testScene.name, lines: storyLines(testScene.lines), art: testScene.art, photo: testScene.photo, who: testScene.who || "king" }], renderTown);
@@ -18595,6 +18599,7 @@ async function init() {
           url.searchParams.set("testDungeon", id); url.searchParams.set("testFloor", floor); url.searchParams.set("testPlace", place);
           location.assign(url.href);
         } });
+      revealBootScreen();
     } catch (e) { start(); }
   }
 
@@ -18649,6 +18654,7 @@ function startAfterTitle(loaded) {
       renderTown();
     } catch (e2) { /* これ以上は何もしない (セーブは温存) */ }
   }
+  revealBootScreen();
   autosave(true);
 
   if (loaded) {
@@ -18675,4 +18681,4 @@ function startAfterTitle(loaded) {
     showOpening(() => { G.prompt = false; openingActive = false; playBgm(sceneBgm()); });
   } catch (e) { G.prompt = false; openingActive = false; playBgm(sceneBgm()); }
 }
-init().catch((e) => { console.error("ゲームの起動に失敗しました", e); if (cloudEnabled()) cloudFatal(); });
+init().catch((e) => { revealBootScreen(); console.error("ゲームの起動に失敗しました", e); if (cloudEnabled()) cloudFatal(); });

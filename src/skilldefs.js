@@ -7,7 +7,7 @@
 //
 // 物理技の威力に効く項目:
 //   power(攻撃力の倍率) / hits(多段) / critBonus(会心率加算, 1以上で必ず会心) / element(属性)
-//   acc(命中補正 0〜1: 外れる確率をこの割合だけ消す。1 = 必中) / pierce(相手のVITを無視する割合)
+//   acc(命中補正 0〜1: 外れる確率をこの割合だけ消す。1 = 必中) / pierce(物理耐性の軽減を無視する割合。VITは受け、物理無効には効かない)
 //   intScale / agiScale / vitScale / pieScale (使い手のINT/AGI/VIT/PIE × 係数 × 倍率を上乗せ)
 //   desperate(自分のHPが減るほど威力が上がる。HP0に近いほど最大2倍)
 //   execute(HP30%以下の敵への倍率 = とどめ) / prey({races, mul} 種族特効) / scatter(ランダムな敵へN回)
@@ -58,8 +58,8 @@ export const SPELLS = {
   TAME:        { name: "気合溜め", mp: 3, kind: "buff", charge: 2.0, target: "self", desc: "次の物理攻撃の威力を2倍にする" },
   MIDARE:      { name: "乱れ斬り", mp: 9, kind: "phys", power: 0.95, acc: 0.3, target: "all-enemy", desc: "敵全体を斬り乱す" },
   KIKOKU:      { name: "きこく斬", mp: 13, kind: "phys", power: 3.0, acc: 0.9, execute: 2, target: "enemy", desc: "弱った敵を確実に仕留める（命中UP・とどめ）" },
-  GOUZAN:      { name: "豪斬", mp: 10, kind: "phys", power: 2.6, acc: 0.5, pierce: 0.3, target: "enemy", desc: "鎧ごと断ち割る重い一刀" },
-  ZANTETSU:    { name: "鉄断ち", mp: 16, kind: "phys", power: 3.8, acc: 0.8, pierce: 0.6, target: "enemy", desc: "鉄をも断つ（防御を無視・命中UP）" },
+  GOUZAN:      { name: "豪斬", mp: 10, kind: "phys", power: 2.6, acc: 0.5, pierce: 0.3, target: "enemy", desc: "鎧ごと断ち割る重い一刀（物理貫通30%）" },
+  ZANTETSU:    { name: "鉄断ち", mp: 16, kind: "phys", power: 3.8, acc: 0.8, pierce: 0.6, target: "enemy", desc: "鉄をも断つ（物理貫通60%・命中UP）" },
   YOROIDACHI:  { name: "鎧断ち", mp: 14, kind: "phys", power: 2.4, acc: 0.7, debuff: { vit: 0.65 }, target: "enemy", desc: "鎧を断ち、防御を大きく下げる" },
   SANREN:      { name: "三連斬", mp: 10, kind: "phys", power: 1.0, hits: 3, acc: 0.4, target: "enemy", desc: "三たび刃を振るう" },
   DAISENPUU:   { name: "大旋風", mp: 18, kind: "phys", power: 1.9, acc: 0.6, target: "all-enemy", desc: "戦場をなぐ大回転斬り" },
@@ -67,11 +67,11 @@ export const SPELLS = {
   RANBU:       { name: "乱舞", mp: 16, kind: "phys", power: 0.9, hits: 4, acc: 0.5, target: "enemy", desc: "四連の乱舞で斬り刻む" },
   HADAN:       { name: "覇断", mp: 24, kind: "phys", power: 6.0, acc: 1, target: "enemy", desc: "覇気の一刀は外れない（必中）" },
   AMATSUKAZE:  { name: "天津風", mp: 22, kind: "phys", power: 2.4, acc: 0.7, target: "all-enemy", desc: "天を裂く烈風の全体斬" },
-  TENCHIZAN:   { name: "天地斬", mp: 28, kind: "phys", power: 7.5, acc: 1, pierce: 0.5, target: "enemy", desc: "天地を断つ（必中・防御を半ば無視）" },
+  TENCHIZAN:   { name: "天地斬", mp: 28, kind: "phys", power: 7.5, acc: 1, pierce: 0.5, target: "enemy", desc: "天地を断つ（必中・物理貫通50%）" },
   ROKUREN:     { name: "六連斬", mp: 24, kind: "phys", power: 1.35, hits: 6, acc: 0.7, target: "enemy", desc: "六たび閃く連撃" },
   KIKOKURANBU: { name: "鬼哭乱舞", mp: 30, kind: "phys", power: 3.0, acc: 0.9, target: "all-enemy", desc: "鬼すら泣く全体乱舞（命中UP）" },
   HAOUZAN:     { name: "覇王斬", mp: 32, kind: "phys", power: 9.0, acc: 1, execute: 1.5, target: "enemy", desc: "必中の大斬撃。弱った敵には更に重い" },
-  METSUKYAKU:  { name: "滅却・終ノ太刀", mp: 40, kind: "phys", power: 11.0, acc: 1, pierce: 1, target: "enemy", desc: "必中・防御無視の終ノ太刀" },
+  METSUKYAKU:  { name: "滅却・終ノ太刀", mp: 40, kind: "phys", power: 11.0, acc: 1, pierce: 1, target: "enemy", desc: "必中・物理貫通100%の終ノ太刀" },
 
   // ================= 盾 (守り手) =================
   SHIELDBASH:     { name: "盾打ち", mp: 3, kind: "phys", power: 0.8, vitScale: 0.8, acc: 0.6, flinchChance: 0.2, target: "enemy", desc: "盾で殴る。VITで威力が伸び、怯ませる" },
@@ -87,7 +87,7 @@ export const SPELLS = {
   SHIELDCHARGE:   { name: "盾突進", mp: 10, kind: "phys", power: 1.6, vitScale: 1.0, acc: 0.8, flinchChance: 0.35, target: "enemy", desc: "盾ごと突進して怯ませる" },
   OUJOU:          { name: "王城の構え", mp: 18, kind: "buff", buff: { vit: 1.6 }, dur: 4, target: "all-ally", desc: "味方全員を城壁と化す" },
   SHUGOHOUKOU:    { name: "守護咆哮", mp: 10, kind: "buff", taunt: true, buff: { vit: 1.4, atk: 1.2 }, target: "self", desc: "咆哮で敵を引き付け、攻守を高める" },
-  JOUSAITSUKI:    { name: "城塞突き", mp: 18, kind: "phys", power: 3.2, vitScale: 1.5, pierce: 0.5, acc: 1, target: "enemy", desc: "必中・防御を半ば無視する盾突き" },
+  JOUSAITSUKI:    { name: "城塞突き", mp: 18, kind: "phys", power: 3.2, vitScale: 1.5, pierce: 0.5, acc: 1, target: "enemy", desc: "必中・物理貫通50%盾突き" },
   TEPPEKIJIN:     { name: "鉄壁陣", mp: 13, kind: "heal", bodyHeal: 0.1, healCap: 0.2, buff: { vit: 1.3 }, tech: true, target: "all-ally", desc: "味方全員を手当てし、防御を上げる（使い手の最大HPで伸びる）" },
   FURAKUNOTATE:   { name: "不落の盾", mp: 20, kind: "buff", buff: { vit: 1.7 }, target: "all-ally", desc: "味方全員の防御を大きく上げる" },
   BANRAI:         { name: "万雷の盾撃", mp: 24, kind: "phys", power: 1.3, vitScale: 1.0, hits: 3, acc: 0.9, flinchChance: 0.3, target: "enemy", desc: "三連の盾撃で怯ませる" },
@@ -299,10 +299,10 @@ export const SPELLS = {
   SHIBIREYA:  { name: "痺れ矢", mp: 5, kind: "phys", power: 0.9, para: 0.5, target: "enemy", desc: "敵を麻痺させる" },
   KEMONOGARI: { name: "獣狩り", mp: 8, kind: "phys", power: 1.8, prey: { races: BEASTS, mul: 2 }, target: "enemy", desc: "獣・虫・爬虫などに2倍のダメージ" },
   KUBIKARI:   { name: "首狩り", mp: 13, kind: "phys", power: 2.4, critBonus: 0.4, execute: 2, target: "enemy", desc: "弱った獲物の首を狩る（とどめ・会心UP）" },
-  TSURANUKI:  { name: "貫き撃ち", mp: 12, kind: "phys", power: 2.6, pierce: 1, acc: 0.8, target: "enemy", desc: "防御を無視して貫く（命中UP）" },
+  TSURANUKI:  { name: "貫き撃ち", mp: 12, kind: "phys", power: 2.6, pierce: 1, acc: 0.8, target: "enemy", desc: "物理耐性を貫く一射（物理貫通100%・命中UP）" },
   RENSHA:     { name: "連射", mp: 12, kind: "phys", power: 0.95, hits: 3, acc: 0.5, target: "enemy", desc: "続けざまに三射" },
   SENNYA:     { name: "千矢", mp: 24, kind: "phys", power: 0.85, scatter: 7, target: "all-enemy", desc: "ランダムな敵に7回射掛ける" },
-  RYUUSEISHA: { name: "流星射", mp: 30, kind: "phys", power: 6.0, acc: 1, pierce: 0.5, critBonus: 0.3, target: "enemy", desc: "必中・防御を半ば無視する一射" },
+  RYUUSEISHA: { name: "流星射", mp: 30, kind: "phys", power: 6.0, acc: 1, pierce: 0.5, critBonus: 0.3, target: "enemy", desc: "必中・物理貫通50%一射" },
   // 侍
   GONOSEN:       { name: "後の先", mp: 4, kind: "buff", stance: "counter", dur: 2, target: "self", desc: "次の手番まで、物理攻撃に必ず反撃する" },
   MEIKYOU:       { name: "明鏡止水", mp: 8, kind: "buff", buff: { agi: 1.3, atk: 1.2 }, target: "self", desc: "自分の素早さとSTRを上げる" },
@@ -317,16 +317,16 @@ export const SPELLS = {
   ASHURAZAN:    { name: "阿修羅斬", mp: 15, kind: "phys", power: 0.8, hits: 5, acc: 0.6, execute: 1.5, target: "enemy", desc: "怒涛の五連斬。弱った敵に重い" },
   RINNE:        { name: "六道輪廻", mp: 42, kind: "phys", power: 1.6, hits: 6, desperate: true, acc: 0.9, target: "enemy", desc: "傷が深いほど重い六連の極み" },
   // 武僧・修験者
-  HAKKEI:       { name: "発勁", mp: 6, kind: "phys", power: 1.4, pierce: 1, acc: 0.7, target: "enemy", desc: "内に響く掌打。防御を無視する" },
+  HAKKEI:       { name: "発勁", mp: 6, kind: "phys", power: 1.4, pierce: 1, acc: 0.7, target: "enemy", desc: "内に響く掌打。物理貫通100%" },
   NOUTEN:       { name: "脳天打ち", mp: 4, kind: "phys", power: 1.1, acc: 0.6, confuse: 0.4, target: "enemy", desc: "頭を打ち据え、混乱させる" },
   TENKETSU:     { name: "点穴", mp: 5, kind: "phys", power: 0.9, acc: 0.7, seal: { chance: 0.7, turns: 3 }, target: "enemy", desc: "経穴を突き、特技を封じる" },
   KONGOURENDA:  { name: "金剛連打", mp: 12, kind: "phys", power: 0.95, hits: 3, pieScale: 0.3, acc: 0.7, target: "enemy", desc: "PIEも乗る三連打（命中UP）" },
   KONGOUTAI:    { name: "金剛体", mp: 8, kind: "buff", buff: { vit: 1.5 }, regen: { pct: 0.05, turns: 3 }, target: "self", desc: "身を固めて防御を上げ、傷を癒し続ける" },
-  HOUKEN:       { name: "崩山拳", mp: 16, kind: "phys", power: 3.6, pierce: 1, acc: 0.9, target: "enemy", desc: "防御を無視する剛拳（命中UP）" },
+  HOUKEN:       { name: "崩山拳", mp: 16, kind: "phys", power: 3.6, pierce: 1, acc: 0.9, target: "enemy", desc: "物理貫通100%剛拳（命中UP）" },
   HYAKURETSU:   { name: "百裂拳", mp: 20, kind: "phys", power: 0.8, hits: 6, acc: 0.6, target: "enemy", desc: "拳の嵐で六連打" },
-  MUSOUKEN:     { name: "無想拳", mp: 24, kind: "phys", power: 6.5, acc: 1, pierce: 0.5, target: "enemy", desc: "無想の一撃は外れない（必中）" },
+  MUSOUKEN:     { name: "無想拳", mp: 24, kind: "phys", power: 6.5, acc: 1, pierce: 0.5, target: "enemy", desc: "無想の一撃は外れない（必中）（物理貫通50%）" },
   TENMAKEN:     { name: "天魔拳", mp: 26, kind: "phys", power: 2.4, acc: 0.8, flinchChance: 0.25, target: "all-enemy", desc: "敵全体を打ち据え、怯ませる" },
-  KONGOUMUSOU:  { name: "金剛無双", mp: 40, kind: "phys", power: 10.5, pieScale: 1.0, acc: 1, pierce: 1, target: "enemy", desc: "必中・防御無視の極拳" },
+  KONGOUMUSOU:  { name: "金剛無双", mp: 40, kind: "phys", power: 10.5, pieScale: 1.0, acc: 1, pierce: 1, target: "enemy", desc: "必中・物理貫通100%の極拳" },
   SHASHINNOGYOU:{ name: "捨身の行", mp: 8, kind: "phys", power: 3.4, hpCost: 0.15, acc: 0.8, target: "enemy", desc: "HPを削って放つ荒行の一撃" },
   GONGENOROSHI: { name: "権現降ろし", mp: 24, kind: "buff", buff: { atk: 1.6, vit: 1.4 }, regen: { pct: 0.1, turns: 3 }, cure: true, target: "self", desc: "権現を宿し、攻守を上げて癒し続ける" },
   // 魔法剣・魔闘 (INTで伸びる。魔法剣は斬った属性の耐性を崩す)
@@ -340,7 +340,7 @@ export const SPELLS = {
   ROKUDOU:     { name: "魔法剣・六道", mp: 30, kind: "phys", power: 1.8, intScale: 1.0, acc: 0.8, vuln: { all: 0.8 }, target: "all-enemy", desc: "敵全体を斬り、全属性の耐性を崩す" },
   BAKUENKEN:   { name: "爆炎拳", mp: 5, kind: "phys", power: 1.3, intScale: 0.6, element: "fire", acc: 0.6, target: "enemy", desc: "INTで伸びる炎の拳（命中UP）" },
   HAMANOKEN:   { name: "破魔の拳", mp: 12, kind: "phys", power: 2.3, intScale: 0.6, acc: 0.8, strip: true, debuff: { atk: 0.85 }, target: "enemy", desc: "強化を打ち消し、攻撃を下げる拳" },
-  SAIKEN:      { name: "砕拳", mp: 10, kind: "phys", power: 2.0, pierce: 0.5, acc: 0.7, prey: { races: MACHINES, mul: 2 }, target: "enemy", desc: "構造体・機鎧・精霊に2倍のダメージ" },
+  SAIKEN:      { name: "砕拳", mp: 10, kind: "phys", power: 2.0, pierce: 0.5, acc: 0.7, prey: { races: MACHINES, mul: 2 }, target: "enemy", desc: "構造体・機鎧・精霊に2倍のダメージ（物理貫通50%）" },
   MAJINKEN:    { name: "魔神拳", mp: 18, kind: "phys", power: 3.5, intScale: 1.0, acc: 0.9, target: "enemy", desc: "INTを込めた魔神の拳（命中UP）" },
   TOUSHINHAGEKI:{ name: "闘神覇撃", mp: 36, kind: "phys", power: 9.0, intScale: 1.2, acc: 1, target: "enemy", desc: "必中の闘神の一撃" },
   // 魔騎士
@@ -354,16 +354,16 @@ export const SPELLS = {
   TENSHOU:      { name: "天翔撃", mp: 5, kind: "phys", power: 1.3, acc: 0.9, target: "enemy", desc: "跳び上がって打ち下ろす（命中大UP）" },
   RYUURIN:      { name: "竜鱗", mp: 8, kind: "buff", buff: { vit: 1.4 }, grantBarrier: 1, target: "self", desc: "竜鱗をまとい、防御と魔障壁を得る" },
   RYUUKOU:      { name: "竜の咆哮", mp: 10, kind: "debuff", debuff: { atk: 0.8 }, flinchChance: 0.3, target: "all-enemy", desc: "敵全体の攻撃を下げ、怯ませる" },
-  RYUZETSU:     { name: "竜墜とし", mp: 14, kind: "phys", power: 3.0, acc: 1, pierce: 0.5, prey: { races: DRAGONS, mul: 1.5 }, target: "enemy", desc: "必中の急降下。竜に強い" },
+  RYUZETSU:     { name: "竜墜とし", mp: 14, kind: "phys", power: 3.0, acc: 1, pierce: 0.5, prey: { races: DRAGONS, mul: 1.5 }, target: "enemy", desc: "必中の急降下。竜に強い（物理貫通50%）" },
   RYUUEN:       { name: "竜炎", mp: 14, kind: "phys", power: 1.2, vitScale: 0.6, element: "fire", acc: 0.6, target: "all-enemy", desc: "竜の炎をまとって敵全体をなぐ" },
   RYUUJINKOURIN:{ name: "竜神降臨", mp: 26, kind: "buff", buff: { atk: 1.5, vit: 1.5, agi: 1.2 }, grantBarrier: 1, target: "self", desc: "竜神を宿し、攻守と素早さを上げる" },
-  RYUUTEIGEKI:  { name: "竜帝の一撃", mp: 42, kind: "phys", power: 11.0, element: "fire", acc: 1, pierce: 1, prey: { races: DRAGONS, mul: 1.5 }, target: "enemy", desc: "必中・防御無視。竜に強い" },
+  RYUUTEIGEKI:  { name: "竜帝の一撃", mp: 42, kind: "phys", power: 11.0, element: "fire", acc: 1, pierce: 1, prey: { races: DRAGONS, mul: 1.5 }, target: "enemy", desc: "必中・物理貫通100%。竜に強い" },
   // 勇者
   YUUSHANOICHIGEKI: { name: "勇者の一撃", mp: 6, kind: "phys", power: 1.8, acc: 1, target: "enemy", desc: "決して外れぬ勇者の剣（必中）" },
   KOBU:         { name: "鼓舞", mp: 10, kind: "buff", buff: { atk: 1.2, agi: 1.2 }, target: "all-ally", desc: "味方全員のSTRと素早さを上げる" },
   RAIKOUKEN:    { name: "雷光剣", mp: 10, kind: "phys", power: 2.0, element: "wind", acc: 0.8, para: 0.3, target: "enemy", desc: "雷をまとう剣で痺れさせる" },
   RAIJINKEN:    { name: "雷神剣", mp: 34, kind: "phys", power: 3.2, element: "wind", acc: 1, para: 0.3, target: "all-enemy", desc: "必中の雷剣が敵全体を痺れさせる" },
-  TENMEINOKEN:  { name: "天命の剣", mp: 44, kind: "phys", power: 12.0, element: "light", acc: 1, pierce: 1, bladeHeal: 0.02, healCap: 0.25, target: "enemy", desc: "必中・防御無視の一刀。味方も癒す" },
+  TENMEINOKEN:  { name: "天命の剣", mp: 44, kind: "phys", power: 12.0, element: "light", acc: 1, pierce: 1, bladeHeal: 0.02, healCap: 0.25, target: "enemy", desc: "必中・物理貫通100%の一刀。味方も癒す" },
 
   // ================= 属性の物理技 (属性ごとに持ち味) =================
   // 火=威力 / 水=素早さ低下 / 風=多段・会心 / 土=防御低下・怯み / 光=HP吸収 / 闇=MP吸収・攻撃力低下
