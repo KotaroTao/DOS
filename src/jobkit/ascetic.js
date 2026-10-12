@@ -28,7 +28,7 @@ export default {
     ASCETIC_SHAKUJOU: { name: "錫杖打ち", mp: 6, kind: "phys", power: 1.3, acc: 0.7, flinchChance: 0.3, target: "enemy", desc: "錫杖を鳴らして打ち、怯ませる" },
     ASCETIC_SARASHIMI: { name: "晒し身の行", mp: 8, kind: "buff", buff: { vit: 1.4 }, taunt: true, target: "self", tech: true, desc: "鍛えた身を晒し、守りを固めて敵を引き付ける" },
     ASCETIC_KAENSHAKUJOU: { name: "火炎錫杖", mp: 11, kind: "phys", power: 2.6, element: "fire", acc: 0.4, debuff: { atk: 0.85 }, target: "enemy", desc: "炎をまとう錫杖で打ち、力を削ぐ" },
-    ASCETIC_IWAOTOOSHI: { name: "巌通し", mp: 16, kind: "phys", power: 3.3, pierce: 1, acc: 0.85, flinchChance: 0.2, target: "enemy", desc: "巌をも通す拳。守りを無視し怯ませる" },
+    ASCETIC_IWAOTOOSHI: { name: "巌通し", mp: 16, kind: "phys", power: 3.3, pierce: 1, acc: 0.85, flinchChance: 0.2, target: "enemy", desc: "巌をも通す拳。物理耐性を貫き、怯ませる（物理貫通100%）" },
     ASCETIC_ZAOU: { name: "蔵王の憤怒", mp: 10, kind: "buff", buff: { atk: 1.75 }, hpCost: 0.1, target: "self", tech: true, desc: "身を削って蔵王権現の憤怒を宿す" },
     ASCETIC_REIHOU: { name: "霊峰崩し", mp: 20, kind: "phys", power: 4.4, element: "earth", acc: 0.7, debuff: { agi: 0.75 }, target: "enemy", desc: "霊峰をも崩す一撃。足を大きく鈍らす" },
     ASCETIC_MIGAWARIGOMA: { name: "身代わりの護摩", mp: 10, kind: "buff", regen: { pct: 0.07, turns: 4 }, buff: { atk: 1.1 }, hpCost: 0.1, target: "all-ally", desc: "身を焚べる護摩が全員を癒し続ける" },
