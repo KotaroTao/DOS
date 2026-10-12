@@ -163,6 +163,7 @@ export function openInfRest(spec = {}) {
       ? "吹き上げる風が止んだ踊り場。主は討った。ここから地上へ帰るか、さらに深くへ降りるかを選ぶ。"
       : "吹き上げる風が止む踊り場。古い灯籠のそばに、商会の回収人と、名もない人業の灯番がいる。その奥で、主が待っている。"));
     b.appendChild(el("div", "inf-cur", `所持 💰${g.gold || 0} ・ ✦${g.soulPts || 0} ・ 残火 ${g.embers || 0} ・ 推奨Lv ${lv}`));
+    b.appendChild(healAllRow(() => h && !h.closed && h.update({ body: fill })));
     b.appendChild(row({ icon: ICONS.chest, title: "回収人 (商会の者)", sub: "品の買い取り (売った品はすぐ商会の棚へ ― 全滅しても残る)・回復の道具・反魂香・風切りの羽・鍛え直し", chevron: true, onTap: () => { sfx("select"); openTrader(() => h && !h.closed && h.update({ body: fill })); } }));
     b.appendChild(row({ icon: ICONS.portal, title: "灯番 (名もない人業)", sub: "メイン魂・サブ魂の付け替え・✦Soul で魂の強化・残火で Lv上限 +1", chevron: true, onTap: () => { sfx("select"); openKeeper(() => h && !h.closed && h.update({ body: fill })); } }));
     if (spec.guardDown) {
@@ -199,6 +200,28 @@ export function openInfRest(spec = {}) {
     body: fill, footer: footer(), onBack: (x) => leave(x, () => x.close("back")), onBackdrop: (x) => leave(x, () => x.close("backdrop")),
     onClose: () => { if (!closing && spec.onClose) spec.onClose(); } });
   return h;
+}
+
+// ---- 道具で全回復 (2026-10-12 ユーザーの指示): 回収人の回復の道具を一番安く済む組み合わせで買い、その場で使って
+// HP・MP・状態異常・砕けた器をすべて治す (組み合わせは game.js infHealPlan)。買う前に品と金貨を確かめる
+function healAllRow(redraw) {
+  const g = G();
+  const plan = game.infHealPlan ? game.infHealPlan() : null;
+  const short = plan && plan.hurt && plan.steps.length && (g.gold || 0) < plan.cost;
+  const sub = !plan ? "" : !plan.hurt ? "隊はみな無事だ"
+    : !plan.steps.length ? `回収人の棚に${plan.missing[0] || "回復の道具"}が無い`
+    : `回収人の道具を一番安く済む組で買って使い、HP・MP・状態異常・砕けた器を治す ― 💰${plan.cost}${short ? " (金貨が足りない)" : ""}${plan.missing.length ? ` ・ ${plan.missing.join("・")}は棚に無い` : ""}`;
+  const off = !plan || !plan.hurt || !plan.steps.length || short;
+  const r = row({ icon: ICONS.fountain || ICONS.portal, title: "道具で全回復", sub, tone: off ? "dim" : null, chevron: !off,
+    onTap: off ? null : async () => {
+      sfx("select");
+      const p = game.infHealPlan();
+      const ok = await kitConfirm({ banner: "道具で全回復", title: `💰${p.cost} で隊を全快させる？`,
+        lines: [`買って使う: ${p.buys.map((b) => `${b.name}×${b.k}`).join("・")}`, `所持 💰${g.gold || 0} → 💰${(g.gold || 0) - p.cost}`, ...(p.missing.length ? [`${p.missing.join("・")}は棚に無く、治しきれない。`] : [])],
+        okLabel: "買って使う", cancelLabel: "やめる", danger: false });
+      if (ok && game.infHealAll && game.infHealAll()) redraw();
+    } });
+  return r;
 }
 
 // ---- 回収人 ----
