@@ -623,6 +623,10 @@ export function spellCost(actor, sp) {
 // Battle はセーブから復元されるため、関数はインスタンスでなくモジュールに持たせる
 let _onEnemyKilled = null;
 export function setOnEnemyKilled(fn) { _onEnemyKilled = typeof fn === "function" ? fn : null; }
+// 戦闘中の武器の持ち替え (2026-10 ユーザーの指示): 装備の付け替えは街と同じ処理 (game.js equipAt) を通す。
+// fn(actor, item) → { ok, msg, displaced }。両手武器なら盾が外れる・呪い/ロックの品は外れない、も街と同じ
+let _equipSwap = null;
+export function setEquipSwap(fn) { _equipSwap = typeof fn === "function" ? fn : null; }
 
 // 強化・弱体が掛かった記録の受け口 (game.js の演出用 — 掛かった瞬間にその効果と札を見せる)。
 // 判定・乱数・状態には触れない。ev = { t, stat, d (段なら動いた段数・それ以外は ±1), src, before, after }
@@ -666,19 +670,10 @@ export class Battle {
       p._martyrUsed = false;
       p._kenma = false;
       p._ambushCritLeft = this.opening === "preempt" && pv(p, "ambushCrit") ? 1 : 0;
-      // LR装飾品の戦闘効果を actor に展開 (member.eff = recalc が集約済み)
       const ef = p.eff || null;
-      p.actFirst = !!(ef && ef.actFirst);
-      p.multistrike = (ef && ef.multistrike) || 0;
-      p.lifesteal = (ef && ef.lifesteal) || 0;
-      if (ef && ef.barrier) p._barrierLeft = (p._barrierLeft || 0) + ef.barrier;
-      p.guard = (ef && ef.guard) || 0;
-      p.spellCostMul = (ef && ef.spellCostMul) || 0;
-      p.autoRevive = (ef && ef.autoRevive) || 0;
+      if (ef && ef.barrier) p._barrierLeft = (p._barrierLeft || 0) + ef.barrier; // 障壁は戦闘の始めに一度だけ
       p._autoReviveUsed = false;
-      p.regen = (ef && ef.regen) || 0;             // 再生の宝珠
-      p.counter = (ef && ef.counter) || 0;          // 報復の籠手
-      p.ailmentImmune = !!(ef && ef.ailmentImmune); // 解呪の宝珠
+      this._gearFields(p);
       // 眠り・魅了・混乱は戦闘の中だけの状態 (前の戦いから持ち越さない)
       p.asleep = false; p.mind = null;
     }
@@ -690,6 +685,21 @@ export class Battle {
     this._checkEnd();
     this._openingStrikes();
     this.advance();
+  }
+
+  // 装備の戦闘効果を actor に展開 (member.eff = recalc が集約済み)。戦闘の始めと、武器を持ち替えた時に呼ぶ
+  // (外した装備の効果を持ち越さない。障壁・自動蘇生の使用済みの印は戦闘の始めにだけ付け直す)
+  _gearFields(p) {
+    const ef = p.eff || null;
+    p.actFirst = !!(ef && ef.actFirst);
+    p.multistrike = (ef && ef.multistrike) || 0;
+    p.lifesteal = (ef && ef.lifesteal) || 0;
+    p.guard = (ef && ef.guard) || 0;
+    p.spellCostMul = (ef && ef.spellCostMul) || 0;
+    p.autoRevive = (ef && ef.autoRevive) || 0;
+    p.regen = (ef && ef.regen) || 0;             // 再生の宝珠
+    p.counter = (ef && ef.counter) || 0;          // 報復の籠手
+    p.ailmentImmune = !!(ef && ef.ailmentImmune); // 解呪の宝珠
   }
 
   // 職の Lv15 の目玉パッシブのうち、戦闘の始まりに隊として一度だけ効くもの (重複不可 = 隊で一番高いLv)
@@ -1648,6 +1658,14 @@ export class Battle {
       this.phase = "target";
       return { needTarget: true };
     }
+    if (action === "swap") {
+      // 武器の持ち替え: extra = { item } (手番の者の袋にある武器だけ。ほかの人業の品は選べない)。1手番を使う
+      const it = extra && extra.item;
+      if (!it || it.slot !== "weapon" || it.unidentified || !_equipSwap || !(actor.items || []).includes(it)) return { invalid: true };
+      this.pending = { actor, action: "swap", item: it };
+      this.phase = "resolve";
+      return { needTarget: false };
+    }
     if (action === "defend" || action === "run") {
       this.pending = { actor, action };
       this.phase = "resolve";
@@ -2048,6 +2066,21 @@ export class Battle {
     if (action === "sleep") {
       // 回復判定は enemyAct の初めで済んでいる (目を覚ましたらここへは来ない)
       this.log(`${actor.name}は眠っている…`, "sys"); res.asleep = true;
+      return res;
+    }
+    if (action === "swap") {
+      const it = cmd.item, prev = actor.equip ? actor.equip.weapon : null;
+      const r = _equipSwap && it && (actor.items || []).includes(it) ? _equipSwap(actor, it) : null;
+      if (!r || !r.ok) {
+        this.log(`${actor.name}は武器を持ち替えられなかった${r && r.msg ? `（${r.msg}）` : ""}`, "sys");
+        res.swapFail = true;
+        return res;
+      }
+      this._gearFields(actor); // 新しい武器の戦闘効果 (連撃・吸血…) に入れ替える
+      this._recalcBuffs(actor);
+      const off = (r.displaced || []).filter((x) => x && x !== prev); // 両手武器で外れた盾
+      this.log(`${actor.name}は ${prev ? `${prev.name} から ` : ""}${it.name} に持ち替えた！${off.length ? `（${off.map((x) => x.name).join("・")}は袋へ）` : ""}`, "hit");
+      res.swap = it;
       return res;
     }
     if (action === "defend") {

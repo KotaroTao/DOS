@@ -3,14 +3,14 @@ import { monsterResists } from "./resistance.js";
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
-import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, setEnemyLvTag, scaleFoeAgi, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setModSink, setElemKnown, setPartyEvadeBonus, setPartyBreathBonus, setPartyHitBonus, partyBreathRes, perkVictory, cureAil, canSpellCure, cureBySpell, spellCureKinds, chishioState } from "./combat.js";
+import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, setEnemyLvTag, scaleFoeAgi, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setEquipSwap, setModSink, setElemKnown, setPartyEvadeBonus, setPartyBreathBonus, setPartyHitBonus, partyBreathRes, perkVictory, cureAil, canSpellCure, cureBySpell, spellCureKinds, chishioState } from "./combat.js";
 import { decideAuto, tacticOf, setResistKnown } from "./autotactics.js";
 import { STAGED, effectStage, stageOf, stageMul, stageLabel, isBattleLong, ENEMY_STAT_LABEL } from "./buffstage.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
 import { spriteCanvas, crispCanvas, drawPhoto, photoReady, whenPhoto, setSpriteResolver } from "./sprites.js";
 import { makeItemSpriteResolver } from "./itemart/index.js";
 import {
-  ITEMS, SLOTS, SLOT_LABEL, MAX_ITEMS, equip as equipItem, unequip as unequipItem, canEquip, canOffhand, slotKeyFor, lvToRank, RANGE_LABEL,
+  ITEMS, SLOTS, SLOT_LABEL, MAX_ITEMS, equip as equipItem, unequip as unequipItem, canEquip, canOffhand, slotKeyFor, lvToRank, RANGE_LABEL, HAND_LABEL, weaponRange,
   registerEquipLevel, equipLevelOf, equipLvShort, equipFailMsg, registerAffixes,
   UNIDENT_SLOTS, itemName, applyForge, hasQuality, applyQuality, rollQuality, qualityMatters, itemAtQuality, QUALITY_MID, useWhere, useTarget, useHelps, useLines, useCureKinds, compareUse,
 } from "./items.js";
@@ -758,6 +758,9 @@ function recalcAllDolls({ levelUp = false } = {}) {
     }
     d.hp = Math.min(d.hp, d.maxhp); d.mp = Math.min(d.mp, d.maxmp);
   }
+  // 魂の Lv・ランクが変わった時はここを通るので、職業図鑑の記録も合わせる
+  // (保存の間引き・試遊でオートセーブが走らないと、覚えた技が図鑑に出なかった)
+  codexSweepJobs();
 }
 // その魂 (uid) を誰かが宿しているか
 function soulWorn(uid) {
@@ -1166,10 +1169,16 @@ function infBuy(id, who) {
   updateTopbar(); renderParty(); autosave();
   return it;
 }
-function infSell(owner, it) {
+// keep: 商会の棚の追加つきの品とぶつかる時、残す組 ("shelf" / "new" — 回収人の「売る」でその場で選ぶ。shopAfxClash)
+function infSell(owner, it, keep = null) {
   if (!infAtRest() || !owner || !it) return false;
-  const ok = sellItem(owner, it, sellPrice(it));
-  if (ok) { const st = infStats(); st.trades++; st.sold++; if (st.sold >= 100) infTitleGrant("trader"); }
+  const clash = shopAfxClash(it);
+  const ok = sellItem(owner, it, sellPrice(it), clash ? keep : null);
+  if (ok && clash && keep) log(keep === "new" ? `商会の棚の ${clash.name} は、いま売った品の追加の能力に置き換わった (前の品は通常品として並ぶ)。` : `商会の棚の ${clash.name} は、前の追加の能力のまま (いま売った品は通常品として並ぶ)。`, "sys");
+  if (ok) {
+    const st = infStats(); st.trades++; st.sold++; if (st.sold >= 100) infTitleGrant("trader");
+    const trk = infTrk(); if (!it.unidentified) trk.sold = (trk.sold || 0) + 1; // この出撃で回収人に売った品 (全滅しても商会の棚に残る)
+  }
   return ok;
 }
 // ---- 灯番 (名もない人業): メイン魂の付け替え。砕けた器は付け替えられない。傷・状態異常はそのまま、HP・MP は今の値 (新しい最大値まで) ----
@@ -1403,7 +1412,7 @@ function infCloseRun(outcome) {
   rec.recent = rec.recent.slice(0, 8);
   G.stats.abyssBest = Math.max(G.stats.abyssBest || 0, depth);
   G.abyss = null;
-  return { depth, outcome, keep, newDepth, got, title: infTitleName(), lost: keep ? null : { items: items.length, souls: souls.length, embers } };
+  return { depth, outcome, keep, newDepth, got, sold: trk.sold || 0, title: infTitleName(), lost: keep ? null : { items: items.length, souls: souls.length, embers } };
 }
 // 読み込み: 無限迷宮の途中なら、いったん本編の隊・魂・通貨を G へ戻して読み込みの手当てを掛け、済んだら仮の器へ戻す
 function infSwapForLoad() {
@@ -9820,6 +9829,7 @@ const CMD_SVG = {
   auto: '<path d="M13.5 2.5 5 13.5h6l-1 8 8.5-11h-6Z"/>',
   fast: '<path d="M3.5 6v12l7.5-6Zm9 0v12l7.5-6Z"/>',
   item: '<path d="M9.5 3h5M10.5 3v5.2L5.6 17.6A2.2 2.2 0 0 0 7.5 21h9a2.2 2.2 0 0 0 1.9-3.4L13.5 8.2V3"/><path d="M7.4 14.5h9.2"/>',
+  swap: '<path d="M3.5 8h14l-4-4M20.5 16h-14l4 4"/>',
   back: '<path d="M15 4.5 7.5 12l7.5 7.5"/>',
   stop: '<path d="M7 7h10v10H7Z"/>',
   keep: '<path d="M4 12a8 8 0 0 1 13.7-5.6M20 12a8 8 0 0 1-13.7 5.6"/><path d="M17.8 2.8v3.8H14M6.2 21.2v-3.8H10"/>',
@@ -9860,6 +9870,10 @@ function turnPlate(name, tail, chips = [], skill = "") {
 const PLATE_CALL_MS = 1600;
 function setPlateCall(res) {
   const a = res && res.actor;
+  if (a && a.side === "party" && res.action === "swap" && res.swap) { // 持ち替え: 命令板に「〇〇の［持ち替え］」
+    G._plateCall = { actor: a, name: a.name, skill: "持ち替え", item: false, at: performance.now() };
+    return true;
+  }
   if (!a || a.side !== "party" || res.opening || res.action !== "spell" || !res.spellName) return false;
   G._plateCall = { actor: a, name: a.name, skill: res.spellName, item: !!res.item, at: performance.now() };
   return true;
@@ -10067,6 +10081,12 @@ function renderCombatMenu() {
       const nItems = battleItemStacks().reduce((a, x) => a + x.n, 0);
       sub.appendChild(cmdBtn("item", "道具", nItems ? `${nItems}個` : "なし", () => { if (!nItems) { SFX.ng(); showToast("使える道具を持っていない", { tone: "info" }); return; } SFX.select(); showBattleItems(actor); }, nItems ? "" : "muted"));
     }
+    // 持ち替え: 手番の者が自分の袋に武器を入れている時だけ出す (1手番を使う)
+    const swaps = swapWeapons(actor);
+    if (swaps.length) {
+      sub.classList.add("has-swap");
+      sub.appendChild(cmdBtn("swap", "持ち替え", `${swaps.length}本`, () => { SFX.select(); showBattleSwap(actor); }));
+    }
     // 逃走: 手番の者の AGI で決まる成功率を添える (退路を断たれていれば「不可」)
     sub.appendChild(cmdBtn("run", "逃走", b.noFlee ? "不可" : `${Math.round(b.fleeChance(actor) * 100)}%`, () => act("run")));
     // オート: 人業ごとの作戦 (隊の「能力」で選ぶ) に従って動く。長押しで隊の作戦をまとめて見る・変える
@@ -10210,6 +10230,61 @@ function itemLocked(it) {
   if (tk === "ally" || tk === "dead") return G.battle._itemTargets(it).length === 0;
   if (it.use && it.use.escape) return !!G.battle.noFlee;
   return false;
+}
+// ---- 武器の持ち替え (2026-10 ユーザーの指示) ----
+// 手番の者が自分の袋に入れている武器だけ (ほかの人業の品は選べない)。未鑑定の品は装備できないので出さない
+function swapWeapons(actor) {
+  return ((actor && actor.items) || []).filter((it) => it && it.slot === "weapon" && !it.unidentified);
+}
+// 持ち替えられない理由 (無ければ null)。判定は街の付け替え (equipAt) と同じ
+function swapBlock(actor, it) {
+  if (!canEquip(actor, it)) return equipFailMsg(actor, it);
+  const tr = autoEquip.trialEquip(actor.equip, it, "weapon");
+  if (!tr) {
+    const pin = [actor.equip.weapon, it.twoHanded ? actor.equip.shield : null].find((x) => autoEquip.isPinned(x));
+    return pin && !pin.cursed ? `${pin.name}はロック中` : "呪われた装備が外れない";
+  }
+  if (actor.items.length - 1 + tr.displaced.length > MAX_ITEMS) return "持ち物がいっぱいで外した品を入れられない";
+  return null;
+}
+function showBattleSwap(actor) {
+  combatMenu.innerHTML = "";
+  combatMenu.dataset.mode = "spells";
+  combatMenu.appendChild(turnPlate(actor.name, "の持ち替え", ["1ターン使う", "長押しで詳細"]));
+  const now = autoEquip.previewStats(actor, actor.equip);
+  const cur = actor.equip.weapon;
+  const list = el("div", "target-list" + (swapWeapons(actor).length > 4 ? " cols2" : ""));
+  for (const it of swapWeapons(actor)) {
+    const why = swapBlock(actor, it);
+    const tr = why ? null : autoEquip.trialEquip(actor.equip, it, "weapon");
+    const b = btn("", () => {
+      if (why) { SFX.ng(); showToast(why, { tone: "info" }); return; }
+      act("swap", null, { item: it });
+    });
+    b.className = "btn spell spell-phys spell-item";
+    const top = el("span", "sp-top");
+    const ic = el("span", "sp-ic");
+    ic.appendChild(spriteCanvas(it, 1));
+    top.appendChild(ic);
+    top.appendChild(el("span", "sp-n", itemName(it)));
+    top.appendChild(el("span", "sp-mp", HAND_LABEL[it.twoHanded ? 2 : 1]));
+    b.appendChild(top);
+    const parts = [];
+    if (tr) {
+      const after = autoEquip.previewStats(actor, tr.equip);
+      parts.push(`攻撃力 ${Math.round(now.power || 0)}→${Math.round(after.power || 0)}`);
+    }
+    parts.push(`射程 ${RANGE_LABEL[weaponRange(it)]}`);
+    if (tr && tr.displaced.some((x) => x && x !== cur)) parts.push("盾が外れる");
+    if (why) parts.push(why);
+    b.appendChild(el("span", "sp-d", parts.join("・")));
+    b.style.setProperty("--sp-col", SPELL_KIND_COLOR.phys || "#c9a24a");
+    if (why) b.classList.add("locked");
+    attachLongPress(b, () => { SFX.select(); UI.itemSheet(it, { context: "view" }); });
+    list.appendChild(b);
+  }
+  combatMenu.appendChild(list);
+  combatMenu.appendChild(cmdBtn("back", "戻る", "", () => renderCombatMenu(), "cmd-wide cmd-backb"));
 }
 function showBattleItems(actor) {
   combatMenu.innerHTML = "";
@@ -10484,6 +10559,7 @@ function callPartyAction(res) {
     const kind = res.item ? "item" : sp && (sp.kind === "heal" || sp.kind === "cure" || sp.kind === "mana" || sp.revive) ? "heal" : "skill";
     setPartyCall(a, res.spellName, kind, true);
   } else if (res.action === "defend") setPartyCall(a, "防御", "guard", true);
+  else if (res.action === "swap" && res.swap) setPartyCall(a, "持ち替え", "item", true);
   else if (G.partyCall && G.partyCall.has(a)) { clearTimeout(G.partyCall.get(a).timer); G.partyCall.delete(a); } // 前の手番の名は下げる
 }
 // combat.js が記録した発動した効果 (固有パッシブ・ランクのパッシブ・かばう・反撃…) を札へ移す
@@ -10498,7 +10574,7 @@ function drainPartyProcs() {
 function applyImpact(res) {
   const fx = G.fx;
   const now = performance.now();
-  if (res.action === "defend") { SFX.select(); return; }
+  if (res.action === "defend" || res.action === "swap") { SFX.select(); return; }
   if (res.action === "sleep" || res.action === "run" || res.action === "stunned") { SFX.miss(); return; }
   if (res.action === "eflee") {
     // 敵が逃げ出した (金属の魔物): 横へ駆け去る (描画は renderCombatCanvas の fleeFx)
@@ -11201,7 +11277,7 @@ function gameOver() {
     for (const d of G.party) { items += (d.items || []).length; for (const k of Object.keys(d.equip || {})) if (d.equip[k]) items++; }
     UI.openInfWipe({
       abandoned: !!r.abandoned, floor: G.floor, cost, red: G.redSoul, canSave: G.redSoul >= cost,
-      souls: (r.souls || []).length, items, embers: r.embers || 0,
+      souls: (r.souls || []).length, items, embers: r.embers || 0, sold: (infTrk().sold || 0),
       onSave: () => {
         if (G.redSoul < cost) return;
         G.redSoul -= cost;
@@ -14487,6 +14563,8 @@ function codexKillNow(e) {
   recordMonsterKill(e.key, abyssActive() ? null : G.dungeonIdx, G.floor);
 }
 setOnEnemyKilled(codexKillNow);
+// 戦闘中の武器の持ち替え: 街の付け替えと同じ処理 (両手武器なら盾が外れる・呪い/ロックの品は外れない・外した品は自分の袋へ)
+setEquipSwap((p, it) => equipAt(p, it, "weapon"));
 // 敵の属性が明かされているか: 図鑑で属性の項目が解放済み (enemyReveal の stats = 5体討伐・主は1体) か、
 // 隊の誰かが弱点看破 (scan) を持つ。戦闘の名札の属性の印・技の有利/不利・オートの見積もり (combat.js) が共通で使う
 function enemyElemKnown(e) { return !!e && (enemyReveal(e).stats || partyPassiveLv("scan") > 0); }
@@ -14878,14 +14956,26 @@ function shopAfxState() {
   if (!Array.isArray(G.shopAfxPending)) G.shopAfxPending = [];
   return G.shopAfx;
 }
-// 商会の棚へ品を受け入れる (売った・回収人に売った・無限迷宮から持ち帰った)
-function shopReceive(it) {
+// 商会の棚へ品を受け入れる (売った・回収人に売った・無限迷宮から持ち帰った)。
+// keep = すでに棚に追加つきの1点がある時、どちらの組を残すかをその場で選んだ答え ("shelf" = 棚の組 / "new" = この品の組)。
+// 無ければ組を G.shopAfxPending に積み、街でまとめて選ぶ
+function shopReceive(it, keep = null) {
   if (!it || !it.id || it.unidentified) return;
   shopStockAdd(it.id);
   if (!Array.isArray(it.afx) || !it.afx.length) return;
   const st = shopAfxState();
   const afx = it.afx.map((a) => ({ ...a }));
-  if (!st[it.id]) st[it.id] = afx; else G.shopAfxPending.push({ id: it.id, afx });
+  if (!st[it.id] || keep === "new") st[it.id] = afx;
+  else if (keep !== "shelf") G.shopAfxPending.push({ id: it.id, afx });
+}
+// 売ろうとしている品と、商会の棚の追加つきの1点がぶつかるか (同じ品に別の組)。ぶつかれば両方の組を返す (afxConflicts と同じ形)
+function shopAfxClash(it) {
+  if (!it || !it.id || it.unidentified || !Array.isArray(it.afx) || !it.afx.length || !ITEMS[it.id]) return null;
+  const cur = shopAfxState()[it.id];
+  if (!cur || !cur.length) return null;
+  const tmpl = ITEMS[it.id];
+  const sets = [cur, it.afx].map((a, i) => ({ afx: a, lines: affixLines(tmpl, a), power: Math.round(affixPower(tmpl, a) * 10) / 10, current: i === 0 }));
+  return { id: it.id, name: tmpl.name, sets, best: sets[1].power > sets[0].power ? 1 : 0 };
 }
 // 棚の追加つきの品 (並品 50 で作った見本。買うとこれが届く)。無ければ null
 function shopAfxItem(id) {
@@ -14992,7 +15082,7 @@ function bulkSellBlocked(it) {
   return rarityKey(it) === "lr";
 }
 
-function sellItem(owner, it, price) {
+function sellItem(owner, it, price, afxKeep = null) {
   const idx = owner.items.indexOf(it);
   if (idx < 0) return false;
   if (it.locked) { SFX.ng(); showToast(`${it.name}はロック中 ― 売るにはロックを外す`, { tone: "info" }); return false; }
@@ -15002,12 +15092,14 @@ function sellItem(owner, it, price) {
   G.gold += price;
   tlTown("gold", price, "sell");
   // 在庫に積む (ボルタック方式)。未鑑定品は並ばない
-  if (it.id && !it.unidentified) shopReceive(it); // 追加つきの品は、その組を商会が覚える (17-1)
+  if (it.id && !it.unidentified) shopReceive(it, afxKeep); // 追加つきの品は、その組を商会が覚える (17-1)
   codexSeeItem(it.id, it);
   SFX.select(); buzz(10);
   const shown = itemName(it);
-  log(`${shown} を売った (+💰${price})。${it.unidentified ? "" : "商会に並んだ。"}`, "win");
-  showToast(`💰+${price} ${shown} を売却`);
+  // 無限迷宮の回収人に売った品は、その場で本編の商会の棚に並ぶ (この先で全滅しても消えない)
+  const inInf = abyssActive();
+  log(`${shown} を売った (+💰${price})。${it.unidentified ? "" : inInf ? "本編の商会の棚に並んだ ― 全滅しても残る。" : "商会に並んだ。"}`, "win");
+  showToast(inInf && !it.unidentified ? `💰+${price} ${shown} を売却 ― 商会の棚へ (全滅しても残る)` : `💰+${price} ${shown} を売却`, { noLog: true });
   renderTown();
   return true;
 }
@@ -18020,7 +18112,7 @@ bindGame({
 bindGame({
   // 出撃
   departNow, corpseFadeShare, departAbyss, infVesselNames, rematchList, departRematch, REMATCH_FORGE_MAX, townMutatorFor, preDiveIssues, departWoes, DUNGEON_BRIEFING, STORY_CELLS, startFloorsOf, worldOpenIdx, worldOpenId, worldUnlockMet, levelBand, wallOf, wallStepOf, partyLevel, storyCellPending, dungeonFacts, dungeonQuests, namedHere, namedList, namedInfo,
-  abyssRecords, infStats, infTitleList, infTitleName, setInfTitle, emptyDollCost, infRule, infAtRest, soulWorkOk, infTraderWares, infBuy, infSell, infSwapSoul, infSoulChangeBlock, infSoulChangePreview, infLevel, infGrowthMul,
+  abyssRecords, infStats, infTitleList, infTitleName, setInfTitle, emptyDollCost, infRule, infAtRest, soulWorkOk, infTraderWares, infBuy, infSell, shopAfxClash, infSwapSoul, infSoulChangeBlock, infSoulChangePreview, infLevel, infGrowthMul,
   // 迷宮の HUD
   specialDef, mutDef, eliteKey, dungeonObjective, abyssActive, abyssBossPending, findRevealedStairs, canReturnNow, confirmAbandonDungeon,
   dungeonTheme, eventFacts,

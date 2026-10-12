@@ -677,7 +677,21 @@ button.dp-rule:active, .dp-rule-b:active { filter: brightness(1.25); }
 .inf-pk.done { border-color: #54463d; }
 .inf-pk-q { font-size: 18px; line-height: 30px; color: var(--accent-hi); }
 .inf-pk-n { font-size: 10px; color: var(--ink-dim); white-space: nowrap; }
+/* 品の行方 (売った品は残る・装備と持ち物は全滅で失う) */
+.inf-rule { margin: 8px 0; padding: 8px 10px; border: 1px solid #5a4a30; border-radius: 3px; background: rgba(30,24,14,0.55); }
+.inf-rule.compact { padding: 6px 8px; }
+.inf-rule-h { font-size: 11px; font-weight: 800; letter-spacing: 0.2em; color: var(--accent); margin-bottom: 4px; }
+.inf-rule-r { display: flex; align-items: flex-start; gap: 8px; margin: 4px 0; font-size: 12.5px; line-height: 1.6; color: var(--ink); }
+.inf-rule.compact .inf-rule-r { font-size: 11.5px; line-height: 1.5; }
+.inf-rule-m { flex: 0 0 auto; min-width: 2.6em; padding: 1px 5px; border-radius: 2px; font-size: 11px; font-weight: 800; text-align: center; }
+.inf-rule-r.keep .inf-rule-m { color: #0e1a0e; background: #7fd06a; }
+.inf-rule-r.lose .inf-rule-m { color: #1a0e0e; background: #e8806a; }
+.inf-rule-t b { color: var(--accent-hi); }
 .inf-bust { display: inline-flex; flex: 0 0 auto; }
+.inf-swap-row { display: flex; align-items: stretch; gap: 6px; margin: 6px 0; }
+.inf-swap-row .ui-row { flex: 1 1 auto; min-width: 0; margin: 0; }
+.inf-swap-row .ui-row-sub { white-space: normal; line-height: 1.45; }
+.inf-swap-b { flex: 0 0 auto; align-self: center; white-space: nowrap; }
 .inf-bust canvas { image-rendering: pixelated; }
 .inf-choice { display: flex; align-items: center; gap: 10px; width: 100%; margin: 6px 0; padding: 8px 10px; min-height: 64px;
   text-align: left; color: var(--ink); background: linear-gradient(180deg, #221b25, #17121b); border: 1px solid var(--border);
