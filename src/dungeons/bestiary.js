@@ -4,6 +4,8 @@
 // ・新規モンスターは bs_ 接頭辞。アートは ARTS の原型 × palette/tint で描き分ける
 // ・各ランクに通常数体 + ボス1体以上を必ず置く (generator.js が抽選する)
 import { defMonsters, monStats, tint, ARTS } from "./schema.js";
+import { monsterResists } from "../resistance.js";
+import { MONSTER_TEMPERAMENTS } from "./temperaments.js";
 import { COMMON_MONSTERS } from "./common.js";
 import * as d01 from "./d01.js";
 import * as d02 from "./d02.js";
@@ -36,6 +38,7 @@ for (const id in LEGACY) {
   m.maxhp = m.hp = s.hp;
   m.atk = s.atk; m.def = s.def; m.spd = s.spd;
   m.soul = s.soul; m.gold = s.gold;
+  m.resists = monsterResists({ ...m, resists: m.resistOverrides || {} });
 }
 
 // ---- 新規モンスター (ランクの穴を埋める + 高ランクの伝説級) ----
@@ -222,7 +225,7 @@ const NEW_DEFS = [
     ability: "paralyze", abRate: 0.45, multistrike: 2, // 樹冠から無数に垂れ、絡め取っては痺れの棘で締め上げる
     desc: "樹冠から音もなく垂れ下がり、通る者を絡め取る食人の蔦。一本に捉えられれば、たちまち十本が巻きつく。つるのとげにはしびれの汁が満ち、絡め取られた者は指一本動かせなくなる。" },
   { id: "bs_corruptstag", name: "角の魔獣", rank: 7, race: "beast", element: "wind", artKey: "hd_corruptstag",
-    haste: true, enrage: true, ability: null, // 目にも止まらぬ速さで駆け、手負いで猛り狂う
+    haste: true, enrage: true, ability: null, // 上位の獣。眠りにくいが、突進をひるませると崩れる
     desc: "霧の瘴気にのまれて変じた、森の主だった大鹿。ねじれて尖った角を振りかざし、目にも止まらぬ速さで森を駆ける。一度狙われれば逃げきれず、傷を負うほどに血走った目で猛り狂う。" },
   { id: "bs_fungalhulk", name: "キノコ人の巨体", rank: 6, race: "plant", element: "earth", artKey: "hd_fungalhulk",
     physResist: 75, regen: 0.1, magWeak: 1.5, ability: null, // 菌糸の体は刃をほとんど通さず、胞子から蘇る。炎の魔法でしか焼き払えない
@@ -1953,6 +1956,9 @@ export const BESTIARY = (() => {
   for (const id in METAL_MONSTERS) {
     if (out[id]) throw new Error("duplicate monster id: " + id);
     out[id] = METAL_MONSTERS[id];
+  }
+  for (const id of Object.keys(out)) {
+    if (!MONSTER_TEMPERAMENTS[id]) throw new Error(`魔物の個別体質が無い: ${id}`);
   }
   // 原画の差し替え (monart.js): 絵だけを上書きする。id・能力値・特徴はそのまま
   for (const id in MONSTER_ART) {

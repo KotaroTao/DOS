@@ -1,6 +1,8 @@
 // ドット絵モンスターの定義と描画
 // 各モンスターは art(文字グリッド) + palette(文字->色) で定義。
 // '.' は透明。グリッドは行ごとに任意長でよく、最大幅に右側を透明で揃える。
+import { MONSTER_TEMPERAMENTS } from "./dungeons/temperaments.js";
+import { monsterResists } from "./resistance.js";
 
 export const MONSTERS = {
   slime: {
@@ -260,6 +262,15 @@ export const MONSTERS = {
     ],
   },
 };
+
+for (const [id, m] of Object.entries(MONSTERS)) {
+  const temperament = MONSTER_TEMPERAMENTS[id];
+  if (!temperament) throw new Error(`魔物の個別体質が無い: ${id}`);
+  m.id = m.key = id;
+  m.resistTiers = { ...temperament.resistTiers };
+  m.affinity = { weak: [...temperament.affinity.weak], resist: [...temperament.affinity.resist] };
+  m.resists = monsterResists(m);
+}
 
 // 主人公トークン (盤面表示用)
 export const HERO = {

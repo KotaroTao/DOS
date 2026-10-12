@@ -6,7 +6,7 @@ import { RESIST_LABEL } from "../resistance.js";
 
 import { game } from "./ctx.js";
 import { el, sheet } from "./kit.js";
-import { ELEMENTS, elemBeats, RACE_LABEL, unknownLabel, UNK_OPEN, UNK_CLOSE } from "../dungeons/index.js";
+import { ELEMENTS, elementAffinity, RACE_LABEL, unknownLabel, UNK_OPEN, UNK_CLOSE } from "../dungeons/index.js";
 import { SPELLS, spellMpLabel, spellCureKinds, soulTierRate, healsHp, MP_DRAIN_CAP } from "../combat.js";
 import { STAGED, stageOf, stageMul, stageLabel, ENEMY_STAT_LABEL, effectStage, isBattleLong } from "../buffstage.js";
 import { ATTR_LABEL, SOUL_CLASSES, dollBust, PASSIVES, passiveName, passiveByName } from "../souls.js";
@@ -140,19 +140,12 @@ export function traitTagKinds(key, element) {
   return out;
 }
 // 固有属性から見た弱点 (受けるダメージ増) と耐性 (受けるダメージ減) の属性
-export function elemAffinity(element) {
-  const weak = [], resist = [];
-  if (!hasElem(element)) return { weak, resist };
-  for (const k of Object.keys(ELEMENTS)) {
-    if (k === "none") continue;
-    if (elemBeats(k, element)) weak.push(k);
-    else if (elemBeats(element, k)) resist.push(k);
-  }
-  return { weak, resist };
+export function elemAffinity(element, affinity = null) {
+  return affinity || elementAffinity(element);
 }
-// 「弱点 [土]　耐性 [火]」の行 (無属性なら null)
-export function affinityRow(element, cls = "") {
-  const { weak, resist } = elemAffinity(element);
+// 「弱点 [土]　耐性 [火]」の行 (無属性・相性なしなら null)
+export function affinityRow(element, cls = "", affinity = null) {
+  const { weak, resist } = elemAffinity(element, affinity);
   if (!weak.length && !resist.length) return null;
   const r = el("div", "ui-affinity" + (cls ? " " + cls : ""));
   const part = (label, list, tone) => {
