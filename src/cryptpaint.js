@@ -1,15 +1,16 @@
-// 地下墓地〜亡兵の守る外郭の描き下ろし石材。各迷宮に石板・壁材と床のWebP。
+// 迷宮ごとの描き下ろし素材。各迷宮に蓋・壁材と床のWebP。
 // 素材がまだ無い・読めない間は呼び出し側が従来の絵を使う。
 import { makeRng, paintFloorHazards } from "./crypt.js";
 
 export const CRYPT_PAINT_SCALE = 3;
-const PAINTINGS = { w01: "crypt", w02: "w02", w03: "w03", w04: "w04", w05: "w05", w06: "w06" };
+const PAINTINGS = { w01: "crypt", w02: "w02", w03: "w03", w04: "w04", w05: "w05", w06: "w06",
+  w27: "w27", w28: "w28", w29: "w29", w30: "w30", w31: "w31" };
 const paintings = new Map();
 export function cryptPainting(id = "w01") {
   if (!Object.hasOwn(PAINTINGS, id)) return null;
   if (!paintings.has(id)) {
-    // 坑口の蓋は原画上で高さ496px。下段の床を拾わないよう実際の境界を使う。
-    const state = { textures: { slabHeight: id === "w05" ? 496 : 512 }, loaded: 0 };
+    // 坑口と螺旋の蓋は原画の境界が異なる。下段の床を拾わない高さで読む。
+    const state = { textures: { slabHeight: id === "w05" ? 496 : id === "w30" ? 488 : 512 }, loaded: 0 };
     paintings.set(id, state);
     for (const [key, suffix] of [["atlas", "materials"], ["floor", "floor"]]) {
       const image = new Image();

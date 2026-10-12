@@ -5,7 +5,11 @@ const { mkdirSync, writeFileSync } = require('node:fs');
 const { resolve } = require('node:path');
 const assert = require('node:assert/strict');
 const base = process.env.CRYPT_REVIEW_URL || 'http://localhost:8000';
-const out = resolve('docs/art/dungeons/review');
+const ids = process.argv.slice(2);
+if (!ids.length) ids.push('w02','w03','w04','w05','w06');
+assert.ok(ids.length >= 2 && ids.every(id => /^w\d{2}$/.test(id)), '迷宮IDを2件以上指定する');
+const first = ids[0], second = ids[1];
+const out = resolve(process.env.CRYPT_REVIEW_OUT || 'docs/art/dungeons/review');
 mkdirSync(out, { recursive: true });
 const report = { checks: [], screenshots: [] };
 function check(name, value) { assert.ok(value, name); report.checks.push(name); }
@@ -18,10 +22,10 @@ function check(name, value) { assert.ok(value, name); report.checks.push(name); 
       const errors = []; page.on('pageerror', e => errors.push(e.message));
       let release;
       const gate = delay ? new Promise(resolve => { release = resolve; }) : Promise.resolve();
-      await page.route(/\/art\/dungeon\/w0[2-6]-(materials|floor)\.webp/, async route => {
+      await page.route(new RegExp('/art/dungeon/(' + ids.join('|') + ')-(materials|floor)\\.webp'), async route => {
         const floor = route.request().url().includes('-floor');
-        if (failure === true || failure === 'floor' && floor && route.request().url().includes('/w02-')) return route.abort();
-        if (invalid && !floor && route.request().url().includes('/w02-')) return route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>'});
+        if (failure === true || failure === 'floor' && floor && route.request().url().includes('/' + first + '-')) return route.abort();
+        if (invalid && !floor && route.request().url().includes('/' + first + '-')) return route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>'});
         await gate; await route.continue();
       });
       await page.route('**/src/game.js*', async route => {
@@ -30,13 +34,13 @@ function check(name, value) { assert.ok(value, name); report.checks.push(name); 
       });
       await page.goto(base);
       await page.getByRole('button', { name: /テストプレイ/ }).click();
-      await page.locator('.ttl-test select').filter({has:page.locator('option[value="w02"]')}).selectOption('w02');
+      await page.locator('.ttl-test select').filter({has:page.locator(`option[value="${first}"]`)}).selectOption(first);
       await page.locator('.ttl-test button').last().click();
       await page.waitForFunction(() => window.cryptReview && cryptReview.G.state === 'board' && !cryptReview.uiBlocked());
       await page.waitForTimeout(600);
       return { page, errors, release };
     }
-    async function fixture(page, id = 'w02', floor = 1) {
+    async function fixture(page, id = first, floor = 1) {
       return page.evaluate(async ({ id, floor }) => {
         const t = cryptReview, g = t.G;
         const { reseedRng } = await import('/src/rng.js');
@@ -65,7 +69,7 @@ function check(name, value) { assert.ok(value, name); report.checks.push(name); 
     await capture(fallback.page, 'before-mobile.png');
     await capture(fallback.page, 'before-board.png', true);
     check('素材取得失敗時に実行時エラーがない', fallback.errors.length === 0);
-    for (const id of ['w02','w03','w04','w05','w06']) {
+    for (const id of ids) {
       const result=await fixture(fallback.page,id);
       check(id+'は素材失敗時にも旧描画を保つ',result.scale===1);
       await capture(fallback.page,id+'-before.png',true);
@@ -76,7 +80,7 @@ function check(name, value) { assert.ok(value, name); report.checks.push(name); 
       const sample = await start(options);
       await fixture(sample.page);
       check(JSON.stringify(options)+'でも旧描画で探索可能',await sample.page.evaluate(()=>cryptReview.BV.art.scale===1&&!cryptReview.uiBlocked()));
-      await fixture(sample.page,'w03');
+      await fixture(sample.page,second);
       await sample.page.waitForFunction(()=>cryptReview.BV.art.scale===3);
       check('一迷宮の素材失敗は別迷宮の素材を妨げない',sample.errors.length===0);
       await sample.page.close();
@@ -133,7 +137,11 @@ function check(name, value) { assert.ok(value, name); report.checks.push(name); 
     await page.evaluate(({x,y}) => { cryptReview.G.flipAnim = {x,y,t0:performance.now(),dur:1000}; cryptReview.drawBoardFrame(); }, target);
     await capture(page, 'flipping-mobile.png');
     await page.evaluate(() => { cryptReview.G.flipAnim = null; });
-    for (const [id, floors] of [['w01',5],['w02',10],['w03',15],['w04',10],['w05',15],['w06',10]]) {
+    const configs = await page.evaluate(ids => ['w01', ...ids].map(id => {
+      const d = cryptReview.DUNGEONS.find(d => d.id === id);
+      return { id, floors: d.floors, harm: d.floorHaz.harm, fall: d.floorHaz.fall };
+    }), ids);
+    for (const {id, floors, harm, fall} of configs) {
       await fixture(page, id);
       await page.waitForFunction(() => cryptReview.BV.art?.scale === 3);
       for (let floor = 1; floor <= floors; floor++) {
@@ -150,7 +158,7 @@ function check(name, value) { assert.ok(value, name); report.checks.push(name); 
       });
       check(id+'の蓋は中身を示さず、描画で遊びの乱数を消費しない',stable);
       await capture(page, id + '-board.png', true);
-      if (['w04','w05','w06'].includes(id)) {
+      if (harm) {
         const hazard = await page.evaluate(() => {
           const t=cryptReview,c=t.G.board.cells[4][1]; c.type='empty';c.revealed=true;
           t.BV.artCache.clear();t.BV.artKey='';t.drawBoardFrame();
@@ -158,8 +166,19 @@ function check(name, value) { assert.ok(value, name); report.checks.push(name); 
           t.BV.artCache.clear();t.BV.artKey='';t.drawBoardFrame();
           return plain!==t.BV.art.floor.toDataURL();
         });
-        check(id+'の危険な床に専用の染み・鉄菱を重ねる',hazard);
+        check(id+'の危険な床に専用の模様を重ねる',hazard);
         await capture(page,id+'-hazard.png',true);
+      }
+      if (fall) {
+        const visible = await page.evaluate(() => {
+          const t=cryptReview, c=t.G.board.cells[4][1];
+          c.type='empty';c.revealed=true;t.BV.artCache.clear();t.BV.artKey='';t.drawBoardFrame();
+          const plain=document.querySelector('#view').toDataURL();
+          c.type='pit';t.BV.artCache.clear();t.BV.artKey='';t.drawBoardFrame();
+          return plain!==document.querySelector('#view').toDataURL() && t.BV.art.scale===3;
+        });
+        check(id+'の落ちる床を原画の上に表示できる',visible);
+        await capture(page,id+'-pit.png',true);
       }
       for (const width of [320,390,600,1280]) {
         await page.setViewportSize({width,height:800}); await fixture(page,id);
