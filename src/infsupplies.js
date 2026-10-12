@@ -10,4 +10,3 @@ export function infSpendSupply(ab, floor, n) {
   (ab.supplyBought || (ab.supplyBought = {}))[floor] = (ab.supplyBought?.[floor] || 0) + n;
   return true;
 }
-
