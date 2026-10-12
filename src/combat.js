@@ -475,8 +475,7 @@ const metalEvade = (t) => (METAL_TIERS[t.metal] || METAL_TIERS[1]).evade;
 // 迷宮のイベント (events.js) の加護: 与ダメ倍率 (_evDmg) と種族特効 (_evPrey)。game.js が戦闘開始時に人業へ付ける
 function evDealMul(actor, tgt) {
   let m = actor._evDmg || 1;
-  const pr = actor._evPrey;
-  if (pr && pr.races && pr.races.includes(enemyRace(tgt))) m *= pr.mul || 1;
+  for (const pr of [].concat(actor._evPrey || [])) if (pr && pr.races && pr.races.includes(enemyRace(tgt))) m *= pr.mul || 1;
   return m;
 }
 // 属性防御: イベントの加護 (_evEDef) は、装備の属性防御より強いときだけ使う

@@ -1782,7 +1782,7 @@ function mutDef() { return G.mutator ? MUTATORS.find((m) => m.id === G.mutator) 
 // これにより「迷宮の異変」「迷宮の掟」「無限迷宮の風の掟」が同一フックでそのまま効く。
 const MUT_AGG = {
   enemyMul: "mul", soulMul: "mul", goldMul: "mul",
-  ambushMul: "max", mimicRate: "max", chestTrapRate: "max", lockMul: "mul",
+  ambushMul: "amb", mimicRate: "max", chestTrapRate: "max", lockMul: "mul",
   lootBonusLv: "add", packMin: "max", chestRankUp: "add",
   noFlee: "or", elemAll: "or", elemRandom: "or", noTrap: "or", poisonUp: "or",
 };
@@ -1813,6 +1813,8 @@ function mutNum(key, dflt) {
     case "add": return vals.reduce((a, b) => a + b, 0);
     case "max": return vals.reduce((a, b) => Math.max(a, b), typeof dflt === "number" ? dflt : 0);
     case "or": return vals.some(Boolean);
+    // 奇襲の倍率: 増やすもの (1以上) は一番強いものだけ、減らすもの (1未満) は掛け合わせる (以前は max で、半分・0 が効いていなかった)
+    case "amb": return vals.filter((v) => v >= 1).reduce((a, b) => Math.max(a, b), 1) * vals.filter((v) => v < 1).reduce((a, b) => a * b, 1);
     default: return vals[vals.length - 1]; // 既定: 最後 (= 単一異変の従来挙動)
   }
 }
@@ -6472,12 +6474,13 @@ function evBattleStart(enemies, isBoss) {
   const on = inDungeon(); // 無限迷宮でも出来事の加護は効く (極の恵みは evBoon が外す)
   const inf = abyssActive();
   const rv = on ? evRun() : {};
-  let dmg = 1, prey = null;
-  if (on) for (const d of activeModifierDefs()) { if (d.dmgMul) dmg *= d.dmgMul; if (d.prey) prey = d.prey; }
+  let dmg = 1;
+  const prey = []; // 種族特効は出来事ごとに重ねる (この出撃の特効が、この階の別の特効で消えないように)
+  if (on) for (const d of activeModifierDefs()) { if (d.dmgMul) dmg *= d.dmgMul; if (d.prey) prey.push(d.prey); }
   const permDmg = evBoon("temper", "dmgMul", 1), permCrit = evBoon("blackCat", "crit", 0); // 極の恵み (どの戦闘でも)
   for (const p of G.party) {
     p._evDmg = (on ? dmg * (rv.ruby && rv.ruby === p.uid ? 1.15 : 1) : 1) * permDmg;
-    p._evPrey = on ? prey : null;
+    p._evPrey = on && prey.length ? prey : null;
     p._evCrit = (on ? (rv.crit || 0) : 0) + permCrit;
     p._evEDef = on ? (rv.edef || null) : null;
     p._evSave = !!(on && rv.saves && rv.saves[p.uid]);
@@ -6979,7 +6982,17 @@ const evApi = {
   hurtAllCur(pct) { const l = evAlive(); for (const p of l) p.hp = Math.max(1, p.hp - Math.ceil(p.hp * pct)); flashPartyCards(l, "hit"); },
   hurtOne(m, pct) { if (!m || !m.alive) return; m.hp = Math.max(1, m.hp - Math.ceil(m.maxhp * pct)); flashPartyCards([m], "hit"); },
   mpAll(pct) { for (const p of evAlive()) p.mp = Math.max(0, p.mp - Math.ceil(p.maxmp * pct)); renderParty(); },
-  ail(m, kind) { if (!m || !m.alive || m.ailment || (m.eff && m.eff.ailmentImmune) || random() < ((m.resists && m.resists[kind]) || 0) / 100) return; m.ailment = kind; renderParty(); },
+  ail(m, kind) {
+    if (!m || !m.alive || (m.eff && m.eff.ailmentImmune) || random() < ((m.resists && m.resists[kind]) || 0) / 100) return;
+    // 眠り・魅了・混乱は戦闘の中だけの状態 (持ち越す ailment には入らない): 次の戦闘の開幕に掛かるよう覚えておく
+    if (EV_BATTLE_AIL[kind]) {
+      const rv = evRun(); rv.nextAil = { ...(rv.nextAil || {}), [m.uid]: kind };
+      log(`${m.name}は、次の戦闘の始めに${EV_BATTLE_AIL[kind].text}に陥る。`, "dmg");
+      return;
+    }
+    if (m.ailment) return;
+    m.ailment = kind; renderParty();
+  },
   ailAll(kind, ch) { for (const p of evAlive()) if (random() < ch) evApi.ail(p, kind); flashPartyCards(evAlive(), "hit"); },
   cureAll() { for (const p of evAlive()) p.ailment = null; renderParty(); },
   // ---- 通貨 ----
@@ -8379,17 +8392,19 @@ function startBattleMeasured(enemies, cell) {
   }
   // 迷宮のイベント: 出来事が決めた開幕 (寝首/奇襲) ・ 密輸人の待ち伏せ ・ 祈りの蝋燭
   // 出来事が選択肢の文で約束した開幕 (寝込みを襲う・見つかる) は強敵の戦いにも効かせる (主の戦いは除く)
+  // 迷宮の掟: どの戦闘も必ず奇襲で始まる (trait.alwaysAmbush。周囲警戒・夜営の番・先制の恵みも効かない。主の戦いは除く)。
+  // ただし出来事がその場で約束した開幕 (寝首をかく・見つかる) はそちらを守る。先制の備え (蝋燭など) はこの掟の下では使わずに取っておく
+  const trA = dungeonTrait();
+  const forceAmb = !!(trA && trA.alwaysAmbush && !isBoss);
   if (!isBoss && G._evOpening) { opening = G._evOpening; openSrc = "event"; }
-  else if (!isBoss && !isElite) {
+  else if (!isBoss && !forceAmb) {
     const rv = G.run && G.run.ev && inDungeon() ? G.run.ev : null;
     const inf = abyssActive();
-    if (rv && rv.ambushNext > 0) { rv.ambushNext--; opening = "ambush"; openSrc = "smuggler"; log(inf ? "待ち伏せていた魔物に襲われた！" : "密輸人どもが荷の仕返しに待ち伏せていた！", "dmg"); }
-    else if (rv && rv.preempt > 0) { rv.preempt--; opening = "preempt"; openSrc = "candle"; log(inf ? "出来事で得た備えのおかげで、先制した。" : "祈りの蝋燭の灯が、闇を味方につけた。", "win"); }
+    if (rv && rv.ambushNext > 0 && !isElite) { rv.ambushNext--; opening = "ambush"; openSrc = "smuggler"; log(inf ? "待ち伏せていた魔物に襲われた！" : "密輸人どもが荷の仕返しに待ち伏せていた！", "dmg"); }
+    else if (rv && rv.preempt > 0) { rv.preempt--; opening = "preempt"; openSrc = "candle"; log(inf ? "出来事で得た備えのおかげで、先制した。" : "祈りの蝋燭の灯が、闇を味方につけた。", "win"); } // 「次の戦闘は必ず先制」— 強敵の戦いにも効く
   }
   G._evOpening = null;
-  // 迷宮の掟: どの戦闘も必ず奇襲で始まる (trait.alwaysAmbush。周囲警戒・夜営の番・先制の恵みも効かない。主の戦いは除く)
-  const trA = dungeonTrait();
-  if (trA && trA.alwaysAmbush && !isBoss) { opening = "ambush"; openSrc = "trait"; }
+  if (forceAmb && openSrc !== "event") { opening = "ambush"; openSrc = "trait"; }
   if (abyssActive()) { const trk = infTrk(); trk.fb = (trk.fb || 0) + 1; } // テスト記録の無限迷宮の欄: 階ごとの戦闘数
   evBattleStart(enemies, isBoss);
   if (opening === "preempt") { log("先制した！", "win"); showToast("⚡ 先制攻撃！", { noLog: true }); }
@@ -8471,6 +8486,18 @@ function startBattleMeasured(enemies, cell) {
       if (trOpen) trOpen.steps.push({ kind: o.key, head: r.head, accent: r.accent, label: r.name, hits: [{ p, text: o.text, color: o.color }] });
     } else log(`${ruleSay(r, o.key) || r.head} ― ${p.name}${o.miss}。`, "sys");
   }
+  // 出来事で受けた眠り・魅了・混乱 (evApi.ail が覚えた分): この戦闘の開幕に掛かる
+  const rvA = inDungeon() && G.run && G.run.ev && G.run.ev.nextAil;
+  if (rvA) {
+    delete G.run.ev.nextAil;
+    for (const [uid, kind] of Object.entries(rvA)) {
+      const p = G.battle.party.find((x) => x && String(x.uid) === uid && x.alive);
+      const o = EV_BATTLE_AIL[kind];
+      if (!p || !o || p.mind || p.asleep) continue;
+      o.put(G.battle, p);
+      log(`${p.name}${o.hit}。`, "dmg");
+    }
+  }
   // 封じの殻 (shell) — 戦闘の開幕に、主・金属の魔物を除く敵の全員に障壁 (打撃を1回だけ半ば防ぐ) を張る
   for (const r of ruleOpens) if (r.shell > 0) {
     let n = 0;
@@ -8510,6 +8537,12 @@ function startBattleMeasured(enemies, cell) {
   })));
 }
 
+// 出来事で掛かる、戦闘の中だけの異常 (evApi.ail → 次の戦闘の開幕に startBattleMeasured が掛ける)
+const EV_BATTLE_AIL = {
+  sleep: { text: "眠り", hit: "は眠りに落ちている", put: (b, p) => { p.asleep = true; b._holdAil(p, "sleep"); } },
+  charm: { text: "魅了", hit: "は魅了されている", put: (b, p) => { p.mind = "charm"; b._holdAil(p, "mind"); } },
+  confuse: { text: "混乱", hit: "は混乱している", put: (b, p) => { p.mind = "confuse"; b._holdAil(p, "mind"); } },
+};
 // 迷宮の掟の開幕に隊の一人へ掛かる異常 (startBattleMeasured)。free = まだ掛かっていない者 / put = 掛ける
 const RULE_ONE_AIL = [
   { key: "whisper", res: "confuse", text: "混乱", color: "#c8a0ff", hit: "は惑わされ、混乱した", miss: "は耳をふさいで、惑わされなかった",
