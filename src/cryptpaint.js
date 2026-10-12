@@ -1,15 +1,15 @@
-// 迷宮ごとの描き下ろし石材。各迷宮に石板・壁材と床のWebP。
+// 迷宮ごとの描き下ろし素材。各迷宮に蓋・壁材と床のWebP。
 // 素材がまだ無い・読めない間は呼び出し側が従来の絵を使う。
 import { makeRng, paintFloorHazards } from "./crypt.js";
 
 export const CRYPT_PAINT_SCALE = 3;
-const PAINTINGS = { w01: "crypt", w02: "w02", w03: "w03", w04: "w04", w05: "w05", w06: "w06", w17: "w17", w18: "w18", w19: "w19", w20: "w20", w21: "w21", w22: "w22", w23: "w23", w24: "w24", w25: "w25", w26: "w26" };
+const PAINTINGS = { w01: "crypt", w02: "w02", w03: "w03", w04: "w04", w05: "w05", w06: "w06", w07: "w07", w08: "w08", w09: "w09", w10: "w10", w11: "w11", w17: "w17", w18: "w18", w19: "w19", w20: "w20", w21: "w21", w22: "w22", w23: "w23", w24: "w24", w25: "w25", w26: "w26", w32: "w32", w33: "w33", w34: "w34", w35: "w35", w36: "w36" };
 const paintings = new Map();
 export function cryptPainting(id = "w01") {
   if (!Object.hasOwn(PAINTINGS, id)) return null;
   if (!paintings.has(id)) {
-    // 坑口の蓋は原画上で高さ496px。下段の床を拾わないよう実際の境界を使う。
-    const state = { textures: { slabHeight: id === "w05" ? 496 : 512 }, loaded: 0 };
+    // 下段の床を拾わないよう、原画ごとの蓋の実際の境界を使う。
+    const state = { textures: { slabHeight: ({ w05: 496, w07: 504, w09: 496 })[id] || 512, wallStyle: id === "w10" ? "root" : id === "w11" ? "moss" : "stone" }, loaded: 0 };
     paintings.set(id, state);
     for (const [key, suffix] of [["atlas", "materials"], ["floor", "floor"]]) {
       const image = new Image();
@@ -63,7 +63,7 @@ export function paintCryptMaterials(w, h, opt, textures) {
       candles.push({ x, y: y - 3.5, cx, cy });
     }
   }
-  return { floor: floor.canvas, slabs: slabs.canvas, candles, scale: CRYPT_PAINT_SCALE, painting: image };
+  return { floor: floor.canvas, slabs: slabs.canvas, candles, scale: CRYPT_PAINT_SCALE, painting: image, wallStyle: textures.wallStyle };
 }
 
 function paintWax(g, x, y) {
@@ -79,24 +79,29 @@ function paintWax(g, x, y) {
 }
 
 // 通行判定と同じ壁の座標を受け取り、原画の切石・細い面取り・落ち影で描く。
-export function paintCryptMasonry(g, walls, posts, image, seed) {
+export function paintCryptMasonry(g, walls, posts, image, seed, style = "stone") {
   g.save(); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = "high";
+  const organic = style === "root" || style === "moss";
+  const tint = style === "root" ? "rgba(198,168,117,0.22)" : style === "moss" ? "rgba(168,190,155,0.22)" : "rgba(177,197,211,0.48)";
+  const edge = style === "root" ? "rgba(235,207,158,0.75)" : style === "moss" ? "rgba(209,228,198,0.75)" : "rgba(221,239,250,0.85)";
   const block = (x, y, w, h, n) => {
     g.fillStyle = "rgba(0,0,0,0.72)"; g.fillRect(x - 1, y + 1.8, w + 2, h + 1.4);
     const sx = 1026 + n % 280, sy = 514 + (n * 7) % 280;
     g.drawImage(image, sx, sy, 160, 160, x, y, w, h);
     // 床の暖かい暗色から、壁の冷たい明色と黒い側面を分離する。
-    g.fillStyle = "rgba(177,197,211,0.48)"; g.fillRect(x, y, w, h);
+    g.fillStyle = tint; g.fillRect(x, y, w, h);
     const light = g.createLinearGradient(x, y, x + w * 0.2, y + h);
     light.addColorStop(0, "rgba(226,239,246,0.42)"); light.addColorStop(0.4, "rgba(80,104,124,0.08)"); light.addColorStop(1, "rgba(4,9,17,0.72)");
     g.fillStyle = light; g.fillRect(x, y, w, h);
-    g.lineWidth = 0.7; g.strokeStyle = "rgba(221,239,250,0.85)";
+    g.lineWidth = 0.7; g.strokeStyle = edge;
     g.beginPath(); g.moveTo(x + 0.3, y + h - 0.3); g.lineTo(x + 0.3, y + 0.3); g.lineTo(x + w - 0.3, y + 0.3); g.stroke();
   };
   for (const wall of walls) {
     const rnd = makeRng(seed ^ Math.imul(wall.x + 7, 92837111) ^ Math.imul(wall.y + 3, 689287499));
     const length = wall.horiz ? wall.w : wall.h;
     g.fillStyle = "#1d1c1b"; g.fillRect(wall.x - 0.8, wall.y - 0.8, wall.w + 1.6, wall.h + 1.6);
+    // 根の壁は切石の目地を入れず、連続した樹皮の原画を使う。
+    if (organic) { block(wall.x, wall.y, wall.w, wall.h, Math.floor(rnd() * 1000)); continue; }
     for (let pos = 0; pos < length;) {
       const size = Math.min(length - pos, 9 + rnd() * 8), n = Math.floor(rnd() * 1000);
       if (wall.horiz) block(wall.x + pos, wall.y, Math.max(0.2, size - 0.5), wall.h, n);

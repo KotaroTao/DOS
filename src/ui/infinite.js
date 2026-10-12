@@ -284,6 +284,9 @@ function openTrader(onChange) {
       }
     } else if (seg === "sell") {
       b.appendChild(bagSortControl(refresh));
+      const plan = game.infSellPlan();
+      b.appendChild(button({ label: `一括売却 (${plan.list.length}点・💰${plan.gold})`, kind: "primary", disabled: !plan.list.length,
+        onTap: () => openInfBulkSell(refresh) }));
       b.appendChild(itemRule());
       b.appendChild(el("div", "inf-note dim", "売った代金の金貨は、この出撃の間だけ使える (帰ると残らない)。装備している品は、外してから売れる。"));
       let any = false;
@@ -675,6 +678,46 @@ export function openAfxConflicts() {
     footer: [{ label: "選んだ方を棚に置いておく", kind: "primary", size: "lg", onTap: (x) => { x.close("ok", { silent: true }); afxOpen = null; if (game.resolveAfxConflicts) game.resolveAfxConflicts(choice); } }],
     onClose: () => { afxOpen = null; } });
   return h;
+}
+
+// 売却は選択が終わってから行う。閉じた場合は持ち物も棚も変えない。
+function openInfBulkSell(onDone) {
+  const plan = game.infSellPlan();
+  if (!plan.list.length) return;
+  const choice = Object.fromEntries(plan.conflicts.map((c) => [c.id, c.best]));
+  const sell = (h, best) => {
+    const ok = game.infSellAll(plan, best ? {} : choice);
+    h.close("ok");
+    if (!ok) toast("持ち物か商会の棚が変わった。一覧を開き直してほしい。");
+    onDone();
+  };
+  let h = null;
+  const fill = (b) => {
+    b.appendChild(el("div", "inf-note", `${plan.list.length}点を売却して 💰${plan.gold} を受け取る。残すのは商会の棚の追加の能力・特性。選ばなかった品も通常品として棚に並ぶ。`));
+    b.appendChild(el("div", "inf-note dim", "ロック中・装備中・未鑑定・呪い・LR・未奉納の収集品・道具は売らない。強さは追加の能力・特性の評価値で比べ、同じなら棚の品を優先する。"));
+    for (const c of plan.conflicts) {
+      const box = el("div", "inf-afx-c");
+      box.appendChild(el("div", "inf-h", c.name));
+      c.sets.forEach((set, i) => {
+        const r = el("button", "inf-afx-opt" + (choice[c.id] === i ? " on" : ""));
+        r.type = "button";
+        r.setAttribute("aria-pressed", String(choice[c.id] === i));
+        r.appendChild(el("span", "inf-afx-tag", `${set.current ? "いま棚にある品" : "今回売る品"} ・ 強さ ${set.power}${i === c.best ? " ・ 強い方" : ""}`));
+        for (const ln of set.lines) r.appendChild(el("span", "inf-afx-ln", ln));
+        r.addEventListener("click", () => { choice[c.id] = i; sfx("select"); h.update({ body: fill }); });
+        box.appendChild(r);
+      });
+      b.appendChild(box);
+    }
+    b.appendChild(el("div", "inf-h", "売却する品"));
+    for (const { item, price } of plan.list) b.appendChild(row({ icon: itemTile(item, { size: 44 }), title: itemName(item), right: `💰${price}` }));
+  };
+  h = sheet.open({ kind: "info", banner: "回収人", title: "一括売却", className: "inf-sheet", body: fill,
+    footer: [
+      { label: "強いほうを残して一括売却", kind: "primary", onTap: (x) => sell(x, true) },
+      { label: "選んだほうを残して一括売却", kind: "primary", onTap: (x) => sell(x, false) },
+      { label: "売らない", kind: "ghost", onTap: (x) => x.close() },
+    ] });
 }
 
 // 売る品と、商会の棚の追加つきの1点がぶつかった時: どちらの追加の能力を棚に残すかを選んで売る (2026-10-12 ユーザーの指示)。
