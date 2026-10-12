@@ -22,8 +22,8 @@ export default {
     KNIGHT_JINTOTSU: { name: "陣突き", mp: 5, kind: "phys", power: 1.2, acc: 0.6, strip: true, debuff: { atk: 0.85 }, target: "enemy", desc: "隊列を崩さず槍を突き入れ、敵の強化を剥いで力を削ぐ" },
     KNIGHT_HAJINSOU: { name: "破陣の聖槍", mp: 12, kind: "phys", power: 2.0, pieScale: 0.3, element: "light", acc: 0.7, strip: true, target: "enemy", desc: "光の槍で突き、敵の強化を剥ぐ" },
     KNIGHT_YARIBUSUMA: { name: "槍衾", mp: 6, kind: "buff", stance: "counter", buff: { vit: 1.15 }, dur: 2, tech: true, target: "self", desc: "穂先を揃えて待ち、物理に必ず突き返す" },
-    KNIGHT_JINARI: { name: "地鳴りの槍", mp: 20, kind: "phys", power: 4.6, element: "earth", acc: 0.8, pierce: 0.3, debuff: { atk: 0.8 }, target: "enemy", desc: "踏み込みの突きで鎧を穿ち、力を削ぐ" },
-    KNIGHT_ITTETSU: { name: "一徹突き", mp: 16, kind: "phys", power: 2.6, vitScale: 0.5, acc: 1, pierce: 0.4, target: "enemy", desc: "鍛えた身ごと貫く必中の突き（VITで伸びる）" },
+    KNIGHT_JINARI: { name: "地鳴りの槍", mp: 20, kind: "phys", power: 4.6, element: "earth", acc: 0.8, pierce: 0.3, debuff: { atk: 0.8 }, target: "enemy", desc: "踏み込みの突きで鎧を穿ち、力を削ぐ（物理貫通30%）" },
+    KNIGHT_ITTETSU: { name: "一徹突き", mp: 16, kind: "phys", power: 2.6, vitScale: 0.5, acc: 1, pierce: 0.4, target: "enemy", desc: "鍛えた身ごと貫く必中の突き（VITで伸びる）（物理貫通40%）" },
   },
   perks: {
     // ランクのパッシブ: 隊列の前に立つ限り、騎士は崩れない

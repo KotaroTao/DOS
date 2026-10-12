@@ -17,7 +17,7 @@ export default {
     // Lv15 の固有技: 弱った獲物の首を音もなく刈る
     SHADOW_KUBIKARI: { name: "刈り取りの刃", mp: 5, kind: "phys", power: 1.2, critBonus: 0.1, execute: 2, target: "enemy", desc: "弱った獲物の首を音もなく刈る（とどめ・会心UP）" },
     SHADOW_YADOKU:       { name: "夜毒の針", mp: 3, kind: "phys", power: 0.8, acc: 0.4, poison: { chance: 0.8, pct: 0.05 }, target: "enemy", desc: "狙い澄ました毒針で蝕む（毎ターン5%）" },
-    SHADOW_SESASHI:      { name: "背刺し", mp: 5, kind: "phys", power: 1.25, critBonus: 0.45, pierce: 0.3, target: "enemy", desc: "背後から鎧の隙を刺す（会心・貫通）" },
+    SHADOW_SESASHI:      { name: "背刺し", mp: 5, kind: "phys", power: 1.25, critBonus: 0.45, pierce: 0.3, target: "enemy", desc: "背後から鎧の隙を刺す（会心・物理貫通30%）" },
     SHADOW_KURASASORI:   { name: "黒蠍の尾", mp: 12, kind: "phys", power: 1.5, poison: { chance: 0.9, pct: 0.1 }, para: 0.2, target: "enemy", desc: "猛毒（毎ターン10%）を打ち、痺れさせることも" },
     SHADOW_KAGEITO:      { name: "影糸縛り", mp: 5, kind: "phys", power: 0.5, acc: 0.6, para: 0.45, debuff: { agi: 0.85 }, target: "enemy", desc: "影の糸で縛り、麻痺させ足も奪う" },
     SHADOW_SAKUYA:       { name: "朔夜三閃", mp: 14, kind: "phys", power: 0.95, hits: 3, agiScale: 0.4, critBonus: 0.2, element: "dark", target: "enemy", desc: "新月の闇から三度斬る（闇）" },
@@ -30,7 +30,7 @@ export default {
     SHADOW_SHINIGAMI:    { name: "死神の囁き", mp: 28, kind: "phys", power: 4.3, critBonus: 0.3, sleepChance: 0.35, instakill: { chance: 0.3 }, target: "enemy", desc: "眠りを囁き命を刈る。即死させることも" },
     SHADOW_KOKUSENPUU:   { name: "黒旋風", mp: 24, kind: "phys", power: 0.8, hits: 5, agiScale: 0.3, critBonus: 0.2, element: "wind", debuff: { agi: 0.85 }, target: "enemy", desc: "黒い旋風が五度刻み、足を鈍らせる（風）" },
     SHADOW_OBOROZUKI:    { name: "朧月夜", mp: 28, kind: "phys", power: 2.0, agiScale: 0.5, critBonus: 0.2, sleepChance: 0.2, target: "all-enemy", desc: "朧月の影が敵陣を斬り、眠りへ誘う" },
-    SHADOW_GUFUU:        { name: "颶風穿ち", mp: 21, kind: "phys", power: 1.3, hits: 4, agiScale: 0.3, critBonus: 0.1, pierce: 0.3, element: "wind", target: "enemy", desc: "颶風のごとく四度穿つ（風・貫通）" },
+    SHADOW_GUFUU:        { name: "颶風穿ち", mp: 21, kind: "phys", power: 1.3, hits: 4, agiScale: 0.3, critBonus: 0.1, pierce: 0.3, element: "wind", target: "enemy", desc: "颶風のごとく四度穿つ（風・物理貫通30%）" },
     SHADOW_SOUSOU:       { name: "葬送の一刺", mp: 32, kind: "phys", power: 7.0, critBonus: 1, execute: 1.8, target: "enemy", desc: "必ず急所を貫き、弱った敵を葬る" },
     SHADOW_SHINENTOBARI: { name: "深淵の帳", mp: 27, kind: "phys", power: 2.1, element: "dark", debuff: { hit: 0.8 }, target: "all-enemy", desc: "闇の帳で敵陣を斬り、狙いを奪う（闇）" },
     SHADOW_DOKUGIRI:     { name: "毒霧の舞", mp: 22, kind: "phys", power: 1.5, critBonus: 0.1, poison: { chance: 0.6, pct: 0.05 }, target: "all-enemy", desc: "毒霧の中を舞い、敵陣を蝕む（5%）" },

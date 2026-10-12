@@ -2523,7 +2523,7 @@ export class Battle {
       let crit = false;
       if (cLv >= 3 && random() < 0.06 + (defender.critBonus || 0)) { crit = true; dmg = Math.floor(dmg * 1.85); }
       // 反撃の会心も通常の物理と同じ耐性軽減を使う。
-      const pr = this._resistCut(attacker, dmg, "physResist", crit ? 0.5 : 0);
+      const pr = this._resistCut(attacker, dmg, "physResist", this._physPierce(defender));
       if (pr.immune) { this.log(`${defender.name}の反撃！ ${attacker.name}には効かない！ (物理無効)`, "hit"); return; }
       dmg = this._wallCut(attacker, pr.dmg);
       attacker.hp -= dmg;
@@ -2611,6 +2611,13 @@ export class Battle {
     }
   }
 
+  // 技と斬鉄の物理貫通は、残った軽減をそれぞれの割合だけ抜く (50% + 50% = 75%)。
+  _physPierce(actor, opt = {}) {
+    const skill = Math.min(1, Math.max(0, opt.pierce || 0));
+    const rank = actor.side === "party" ? this._rk(actor, "samuraiZantetsu", [0.10, 0.20, 0.30, 0.50]) : 0;
+    return 1 - (1 - skill) * (1 - rank);
+  }
+
   // 物理・魔法抵抗値 (0〜100、値と同じ割合を軽減)。key = "physResist" | "magResist"
   // 敵味方が持つ。抵抗値100 (無効) なら dmg は 0 になり immune が立つ
   _resistCut(tgt, dmg, key, ignore = 0) {
@@ -2695,10 +2702,8 @@ export class Battle {
     const stAdd = Math.round(((opt.agiScale || 0) * (actor.agi || 0) + (opt.vitScale || 0) * (actor.vit || 0) + (opt.pieScale || 0) * (actor.pie || 0)) * power);
     // 背水 (desperate): 自分のHPが減るほど威力が上がる (最大2倍)
     const despMul = opt.desperate && actor.maxhp ? 1 + Math.max(0, 1 - actor.hp / actor.maxhp) : 1;
-    // 鎧貫き (pierce): 相手のVITによる軽減をその割合だけ無視する。斬鉄 (侍のランク) は全ての物理で 10/20/30/50% を足す
-    const zt = actor.side === "party" ? this._rk(actor, "samuraiZantetsu", [0.10, 0.20, 0.30, 0.50]) : 0;
-    const pierceAll = 1 - (1 - Math.min(1, opt.pierce || 0)) * (1 - zt);
-    const defCut = Math.floor(this._evit(tgt) * 0.5 * (1 - pierceAll));
+    // VITによる防御は、会心・物理貫通でも通常どおり受ける。
+    const defCut = Math.floor(this._evit(tgt) * 0.5);
     // 魔刃一体 (魔法剣士のランク): 物理技に INT の 10/20/30/50% を上乗せ
     const mjAdd = opt.skill && actor.side === "party" ? Math.round((actor.int || 0) * this._bm(actor, "int") * this._rk(actor, "spellbladeMajin", [0.10, 0.20, 0.30, 0.50])) : 0;
     // ダメージ = STR×倍率×低HP補正 − VIT/2 (VITが被ダメージ軽減を担う)
@@ -2773,15 +2778,15 @@ export class Battle {
     // 隊列補正: 後衛は物理の与ダメ・被ダメが半減
     const rm = this._rowMul(actor, tgt);
     if (rm !== 1) dmg = Math.round(dmg * rm);
-    // 金属の体: 会心でなければ何で打っても1ダメージ (防御無視も魔法属性の武器も同じ)。会心の一撃は素通しで普段どおり通る
+    // 金属の体: 会心でなければ何で打っても1ダメージ (物理貫通も魔法属性の武器も同じ)。会心の一撃は素通しで普段どおり通る
     const metalHit = isMetal(tgt);
     if (metalHit && !crit) dmg = 1;
     // 魔法弱点 (魔法属性の武器の一撃だけ): 攻撃呪文と同じく被ダメが増える
     let magWeak = false;
     if (magHit && !metalHit && tgt.magWeak && tgt.magWeak > 1) { dmg = Math.round(dmg * tgt.magWeak); magWeak = true; }
     // 物理抵抗値: 値と同じ割合を軽減、100は無効。魔法属性の武器は魔法耐性を受ける
-    // pierceは指定割合だけ耐性の軽減を無視する。会心は軽減の半分を無視し、無効は貫けない。
-    const resistIgnore = magHit ? 0 : Math.max(Math.min(1, opt.pierce || 0), crit ? 0.5 : 0);
+    // 物理貫通だけが耐性の軽減を無視する。会心は耐性を受け、物理無効は貫けない。
+    const resistIgnore = magHit ? 0 : this._physPierce(actor, opt);
     const pr = metalHit ? { dmg, tag: crit ? "" : METAL_TAG.phys, immune: false }
       : this._resistCut(tgt, dmg, magHit ? "magResist" : "physResist", resistIgnore);
     if (pr.immune) {
@@ -2891,9 +2896,7 @@ export class Battle {
     const ibAdd = opt.intScale ? (actor.int || 0) * opt.intScale * power : 0;
     const stAdd = ((opt.agiScale || 0) * (actor.agi || 0) + (opt.vitScale || 0) * (actor.vit || 0) + (opt.pieScale || 0) * (actor.pie || 0)) * power;
     const despMul = opt.desperate && actor.maxhp ? 1 + Math.max(0, 1 - actor.hp / actor.maxhp) : 1;
-    const zt = actor.side === "party" ? this._rk(actor, "samuraiZantetsu", [0.10, 0.20, 0.30, 0.50]) : 0;
-    const pierceAll = 1 - (1 - Math.min(1, opt.pierce || 0)) * (1 - zt);
-    const defCut = Math.floor(this._evit(tgt) * 0.5 * (1 - pierceAll));
+    const defCut = Math.floor(this._evit(tgt) * 0.5);
     const mjAdd = opt.skill && actor.side === "party" ? (actor.int || 0) * this._bm(actor, "int") * this._rk(actor, "spellbladeMajin", [0.10, 0.20, 0.30, 0.50]) : 0;
     const ch = actor.effects && actor.effects.find((e) => e.stat === "charge"); // 溜めは覗くだけ
     let dmg = (varianceMean(this._physAtk(actor, opt) * power * this._lowHpMul(actor)) + sbAdd + ibAdd + stAdd + mjAdd) * despMul * (opt.offhand ? 1 : ch ? ch.mult : 1) - defCut;
@@ -2925,8 +2928,11 @@ export class Battle {
     let crit = dmg * 1.85 * [1, 1.25, 1.45][Math.min(pv(actor, "vitalEye"), 2)];
     let plain = dmg;
     if (metal) plain = 1;
-    else if (r > 0) plain *= 1 - resistRate(r) * (1 - (magHit ? 0 : Math.min(1, opt.pierce || 0)));
-    if (r > 0 && !metal) crit *= 1 - resistRate(r) * (1 - (magHit ? 0 : Math.max(0.5, Math.min(1, opt.pierce || 0))));
+    else if (r > 0) {
+      const resistMul = 1 - resistRate(r) * (1 - (magHit ? 0 : this._physPierce(actor, opt)));
+      plain *= resistMul;
+      crit *= resistMul;
+    }
     let m = 1;
     if (tgt._barrierLeft > 0) m *= 0.5;
     if (tgt.guard) m *= 1 - tgt.guard;
