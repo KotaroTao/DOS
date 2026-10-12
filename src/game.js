@@ -1350,16 +1350,59 @@ function infHealAllMeasured() {
   return true;
 }
 // keep: 商会の棚の追加つきの品とぶつかる時、残す組 ("shelf" / "new" — 回収人の「売る」でその場で選ぶ。shopAfxClash)
-function infSell(owner, it, keep = null) {
+function infSell(owner, it, keep = null, quiet = false) {
   if (!infAtRest() || !owner || !it) return false;
   const clash = shopAfxClash(it);
-  const ok = sellItem(owner, it, sellPrice(it), clash ? keep : null);
-  if (ok && clash && keep) log(keep === "new" ? `商会の棚の ${clash.name} は、いま売った品の追加の能力に置き換わった (前の品は通常品として並ぶ)。` : `商会の棚の ${clash.name} は、前の追加の能力のまま (いま売った品は通常品として並ぶ)。`, "sys");
+  const ok = sellItem(owner, it, sellPrice(it), clash ? keep : null, quiet);
+  if (!quiet && ok && clash && keep) log(keep === "new" ? `商会の棚の ${clash.name} は、いま売った品の追加の能力に置き換わった (前の品は通常品として並ぶ)。` : `商会の棚の ${clash.name} は、前の追加の能力のまま (いま売った品は通常品として並ぶ)。`, "sys");
   if (ok) {
     const st = infStats(); st.trades++; st.sold++; if (st.sold >= 100) infTitleGrant("trader");
     const trk = infTrk(); if (!it.unidentified) trk.sold = (trk.sold || 0) + 1; // この出撃で回収人に売った品 (全滅しても商会の棚に残る)
   }
   return ok;
+}
+// 一括売却は売る前に棚の候補をまとめる。同じ品を複数売る場合も、全候補から1点だけ残す。
+function infSellPlan() {
+  if (!infAtRest()) return { list: [], conflicts: [], gold: 0 };
+  const list = [];
+  for (const doll of bagOwners(G.party)) for (const item of doll.items || []) {
+    if (!item || item.locked || item.cursed || item.unidentified || item.slot === "use" || bulkSellBlocked(item)) continue;
+    if (G.party.some((d) => opsEquippedBy(d, item))) continue;
+    list.push({ doll, item, price: sellPrice(item) });
+  }
+  const by = new Map(), shelf = shopAfxState();
+  for (const { item } of list) {
+    if (!item.afx?.length || !ITEMS[item.id]) continue;
+    if (!by.has(item.id)) by.set(item.id, shelf[item.id]?.length ? [{ afx: shelf[item.id], current: true }] : []);
+    by.get(item.id).push({ afx: item.afx, item, current: false });
+  }
+  const conflicts = [...by].filter(([, sets]) => sets.length > 1).map(([id, sets]) => {
+    const powers = sets.map((s) => affixPower(ITEMS[id], s.afx));
+    return { id, name: ITEMS[id].name, best: powers.indexOf(Math.max(...powers)),
+      sets: sets.map((s, i) => ({ ...s, afx: s.afx.map((a) => ({ ...a })), lines: affixLines(ITEMS[id], s.afx), power: Math.round(powers[i] * 10) / 10 })) };
+  });
+  return { list, conflicts, gold: list.reduce((n, x) => n + x.price, 0) };
+}
+function infSellAll(plan, choice = {}) {
+  const now = infSellPlan();
+  // 一覧を開いてから持ち物・値段・棚が変わったら、売らずに一覧を開き直してもらう。
+  if (!plan?.list.length || now.list.length !== plan.list.length || now.list.some((x, i) => x.item !== plan.list[i].item || x.price !== plan.list[i].price) ||
+      JSON.stringify(now.conflicts) !== JSON.stringify(plan.conflicts)) return false;
+  const keeps = new Map();
+  for (const c of now.conflicts) {
+    const pick = c.sets[choice[c.id] ?? c.best];
+    if (!pick) return false;
+    keeps.set(c.id, pick.item || null);
+  }
+  for (const { doll, item } of now.list) {
+    infSell(doll, item, keeps.has(item.id) && keeps.get(item.id) === item ? "new" : "shelf", true);
+  }
+  log(`回収人に ${now.list.length}点を一括売却した (+💰${now.gold})。商会の棚に並んだ ― 全滅しても残る。`, "win");
+  SFX.select(); buzz(10);
+  showToast(`${now.list.length}点を売却 💰+${now.gold}`, { noLog: true });
+  renderTown();
+  autosave(true);
+  return true;
 }
 // ---- 灯番 (名もない人業): メイン魂・サブ魂の付け替え。砕けた器は付け替えられない。傷・状態異常はそのまま、HP・MP は今の値 (新しい最大値まで) ----
 // サブ魂は器ごとに MAX_SUBS (2) まで (本編の解放に依らない。2026-10-12 ユーザーの指示)。一つの器に同じ職業の魂は一つだけ、
@@ -15547,7 +15590,7 @@ function bulkSellBlocked(it) {
   return rarityKey(it) === "lr";
 }
 
-function sellItem(owner, it, price, afxKeep = null) {
+function sellItem(owner, it, price, afxKeep = null, quiet = false) {
   const idx = owner.items.indexOf(it);
   if (idx < 0) return false;
   if (it.locked) { SFX.ng(); showToast(`${it.name}はロック中 ― 売るにはロックを外す`, { tone: "info" }); return false; }
@@ -15559,6 +15602,7 @@ function sellItem(owner, it, price, afxKeep = null) {
   // 在庫に積む (ボルタック方式)。未鑑定品は並ばない
   if (it.id && !it.unidentified) shopReceive(it, afxKeep); // 追加つきの品は、その組を商会が覚える (17-1)
   codexSeeItem(it.id, it);
+  if (quiet) return true;
   SFX.select(); buzz(10);
   const shown = itemName(it);
   // 無限迷宮の回収人に売った品は、その場で本編の商会の棚に並ぶ (この先で全滅しても消えない)
@@ -18613,7 +18657,7 @@ bindGame({
 bindGame({
   // 出撃
   departNow, corpseFadeShare, departAbyss, infVesselNames, rematchList, departRematch, REMATCH_FORGE_MAX, townMutatorFor, preDiveIssues, departWoes, DUNGEON_BRIEFING, STORY_CELLS, startFloorsOf, worldOpenIdx, worldOpenId, worldUnlockMet, levelBand, wallOf, wallStepOf, partyLevel, storyCellPending, dungeonFacts, dungeonQuests, namedHere, namedList, namedInfo,
-  abyssRecords, infStats, infTitleList, infTitleName, setInfTitle, emptyDollCost, infRule, infAtRest, soulWorkOk, infTraderWares, infBuy, infSell, infHealPlan, infHealAll, shopAfxClash, infSwapSoul, infSoulChangeBlock, infSoulChangePreview, infSubBlock, infSubPreview, infSetSub, infLevel, infGrowthMul,
+  abyssRecords, infStats, infTitleList, infTitleName, setInfTitle, emptyDollCost, infRule, infAtRest, soulWorkOk, infTraderWares, infBuy, infSell, infSellPlan, infSellAll, infHealPlan, infHealAll, shopAfxClash, infSwapSoul, infSoulChangeBlock, infSoulChangePreview, infSubBlock, infSubPreview, infSetSub, infLevel, infGrowthMul,
   // 迷宮の HUD
   specialDef, mutDef, eliteKey, dungeonObjective, abyssActive, abyssBossPending, findRevealedStairs, canReturnNow, confirmAbandonDungeon,
   dungeonTheme, eventFacts,
