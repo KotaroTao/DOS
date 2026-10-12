@@ -1,3 +1,4 @@
+import { bagOwners } from "../items.js";
 // ===== 鑑定を試みる — 隊の鑑定の心得で、未鑑定の品を一つずつ確かめる =====
 // 「まとめて鑑定」(商会・有料・確実) より先に出す、隊の技による一括鑑定。
 // 鑑定は街でのみ。品ごとに、隊と控えの全員から、その品を最も見抜ける者 (成功率の高い者) が鑑定する。判定は1点ずつ:
@@ -36,7 +37,7 @@ export function appraisers() { return townAppraisers(); }
 // 技で試せる未鑑定の品 (隊と控えの所持品。失敗済みは商会でのみ)
 export function skillTargets() {
   const out = [];
-  for (const d of allDolls()) for (const it of (d.items || [])) {
+  for (const d of bagOwners(allDolls())) for (const it of (d.items || [])) {
     if (it && it.unidentified && !it.idHardFail) out.push({ item: it, doll: d });
   }
   return out;
@@ -337,7 +338,7 @@ export function openTryIdentifyAll({ onDone } = {}) {
     const sell = revealSellAction(results.filter((r) => r.ok).map((r) => r.item), refreshSummary);
     if (sell) out.push(sell);
     let left = [];
-    for (const d of allDolls()) for (const it of (d.items || [])) if (it && it.unidentified) left.push(it);
+    for (const d of bagOwners(allDolls())) for (const it of (d.items || [])) if (it && it.unidentified) left.push(it);
     if (left.length && shopOpen() && UI.confirmIdentifyAll) {
       const cost = game.appraiseCost ? left.reduce((a, it) => a + game.appraiseCost(it), 0) : 0;
       out.push({ label: "残りを商会で鑑定", sub: `${left.length}点 ・ 必ずわかる`, cost: cost ? { kind: "gold", n: cost } : null, kind: "secondary",

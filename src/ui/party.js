@@ -1,3 +1,4 @@
+import { bagOwners } from "../items.js";
 import { RESIST_LABEL } from "../resistance.js";
 // ===== 隊 (統合された人業の画面) — 隊列ストリップ・控え/仕立て・装備/魂/能力・迷宮内のシート =====
 // 担当: WP-B。
@@ -146,14 +147,14 @@ function slotCandidates(d, key, { includeUnid = false } = {}) {
 function slotCandidatesRaw(d, key, includeUnid) {
   const out = [];
   const base = previewStats(d, d.equip, recalc);
-  for (const owner of itemsPool()) {
+  for (const owner of bagOwners(itemsPool())) {
     for (const it of (owner.items || [])) {
       if (!it || !slotKeysFor(it, d).includes(key)) continue;
       if (it.unidentified) { if (includeUnid) out.push({ it, owner, unid: true, gain: -Infinity }); continue; }
       if (!canEquip(d, it)) continue;
       const sd = slotDelta(d, it, key, base);
       if (!sd) continue;
-      const room = (d.items.length - (owner === d ? 1 : 0) + sd.tr.displaced.length) <= MAX_ITEMS;
+      const room = (d.items.length - (owner.items === d.items ? 1 : 0) + sd.tr.displaced.length) <= MAX_ITEMS;
       out.push({ it, owner, gain: gearScore(d, sd.delta), delta: sd.delta, room, cursed: !!it.cursed });
     }
   }
@@ -392,7 +393,7 @@ function pickWearer(doll, item, { onDone = null, chip = null, key = null } = {})
   if (r.full) {
     const owner = ownerOf(item);
     const names = (b.displaced || []).map((x) => x.name).join("・");
-    const canSwap = owner && owner !== doll && (owner.items.length - 1 + (b.displaced || []).length) <= MAX_ITEMS;
+    const canSwap = owner && owner.items !== doll.items && (owner.items.length - 1 + (b.displaced || []).length) <= MAX_ITEMS;
     if (canSwap) {
       confirm({
         banner: "持ち物がいっぱい", title: `${doll.name}の持ち物がいっぱいだ`,
@@ -2047,7 +2048,7 @@ function equipSeg(root, d) {
   // 所持品の見出し + 隊の全員を最適装備
   const h = el("div", "pt-bagbar");
   const t = el("span", "pt-bagbar-t");
-  t.appendChild(el("span", "pt-bagbar-k", "所持"));
+  t.appendChild(el("span", "pt-bagbar-k", "隊の持ち物"));
   t.appendChild(el("b", null, `${d.items.length}/${MAX_ITEMS}`));
   const unid = d.items.filter((it) => it && it.unidentified).length;
   if (unid) t.appendChild(el("span", "pt-bagbar-x", `未鑑定${unid}`));
@@ -2081,7 +2082,8 @@ function equipSeg(root, d) {
   const wrap = el("div", "pt-bagwrap");
   wrap.appendChild(h);
   const grid = el("div", "pt-bag");
-  for (let i = 0; i < MAX_ITEMS; i++) grid.appendChild(bagCell(d, d.items[i]));
+  for (const it of d.items) grid.appendChild(bagCell(d, it));
+  if (!d.items.length) grid.appendChild(el("div", "pt-note", "隊の持ち物は空だ。"));
   wrap.appendChild(grid);
   root.appendChild(wrap);
 }
@@ -2143,6 +2145,7 @@ function bagCell(d, it) {
     const b = bestSlotFor(d, it);
     if (b && b.gain > 0.05) c.appendChild(el("span", "pt-bup", "▲"));
   }
+  c.appendChild(el("span", "pt-bcell-name", itemName(it)));
   c.title = itemName(it);
   c.setAttribute("aria-label", itemName(it));
   c.addEventListener("click", () => { sfx("select"); openItem(it, d, { from: "bag" }); });
@@ -2189,7 +2192,7 @@ function candBody(root, d, k, h, town) {
   }
   let mism = 0;
   const lvShort = []; // 職では扱えるが、メイン魂の Lv が装備できるLv に届かない品
-  for (const owner of itemsPool()) {
+  for (const owner of bagOwners(itemsPool())) {
     for (const it of owner.items) {
       if (!it || it.unidentified || !slotKeysFor(it).includes(k)) continue;
       if (!canEquip(d, it, { anyLv: true })) mism++;
@@ -2202,7 +2205,7 @@ function candBody(root, d, k, h, town) {
     const ll = el("div", "pt-list");
     for (const c of lvShort) {
       const ic = el("span", "pt-cand-ic"); ic.appendChild(spriteCanvas(c.it, 2));
-      ll.appendChild(row({ icon: ic, title: itemName(c.it), sub: `Lv${equipLevelOf(c.it)}から（いまLv${d.jobLv || 1}） ・ ${c.owner === d ? "自分" : c.owner.name}の袋`, chevron: true, tone: "dim",
+      ll.appendChild(row({ icon: ic, title: itemName(c.it), sub: `Lv${equipLevelOf(c.it)}から（いまLv${d.jobLv || 1}） ・ 隊の袋`, chevron: true, tone: "dim",
         onTap: () => { h.close(); openItem(c.it, c.owner, { from: "bag" }); } }));
     }
     root.appendChild(ll);
@@ -2212,7 +2215,7 @@ function candBody(root, d, k, h, town) {
     const ul = el("div", "pt-list");
     for (const c of unid) {
       const ic = el("span", "pt-cand-ic"); ic.appendChild(spriteCanvas(c.it, 2));
-      ul.appendChild(row({ icon: ic, title: itemName(c.it), sub: `${c.owner === d ? "自分" : c.owner.name}の袋 ・ ${town ? "商会で鑑定" : "鑑定の心得で試せる"}`, chevron: true, tone: "dim",
+      ul.appendChild(row({ icon: ic, title: itemName(c.it), sub: `隊の袋 ・ ${town ? "商会で鑑定" : "鑑定の心得で試せる"}`, chevron: true, tone: "dim",
         onTap: () => { h.close(); openItem(c.it, c.owner, { from: "bag" }); } }));
     }
     root.appendChild(ul);
@@ -2304,7 +2307,7 @@ function candRow(d, k, c, h) {
   const nmSuffix = c.it.cursed ? " (呪)" : c.worn && c.locked ? "（ロック中）" : "";
   top.appendChild(game.itemNameEl ? game.itemNameEl("span", "pt-cand-n", c.it, nmSuffix) : el("span", "pt-cand-n", itemName(c.it) + nmSuffix));
   top.appendChild(el("span", "pt-own" + (c.owner === d ? " me" : isReserve(c.owner) ? " res" : "") + (c.worn ? " worn" : ""),
-    c.owner === d ? "自分" : `${c.owner.name}${isReserve(c.owner) ? "・控え" : ""}${c.worn ? "が装備中" : ""}`));
+    !c.worn ? "隊の袋" : c.owner === d ? "自分が装備中" : `${c.owner.name}${isReserve(c.owner) ? "・控え" : ""}が装備中`));
   tx.appendChild(top);
   if (c.it.slot === "weapon" && k === "shield") {
     // 左手 (二刀流): 左手の攻撃力の変化
@@ -2696,7 +2699,7 @@ function fallbackItemSheet(it, owner, ctx, actions) {
 // 渡す相手 (街: 隊と控えの全員 / 迷宮: 生きている隊の者)
 function transferTargets(owner) {
   const G = G_();
-  return (inTown() ? allDolls() : G.party.filter((m) => m.alive)).filter((m) => m !== owner);
+  return (inTown() ? allDolls() : G.party.filter((m) => m.alive)).filter((m) => m !== owner && m.items !== owner.items);
 }
 export function openTransfer(owner, it) {
   const targets = transferTargets(owner);

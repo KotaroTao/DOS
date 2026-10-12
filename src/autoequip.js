@@ -7,7 +7,7 @@
 //   allow … (人業, 品) → false ならその人業には選ばない (例: 後衛に近接物理の武器を持たせない)
 //   呪われた装備は外さない (その部位・両手武器⇄盾で押し出す場合も含む)。
 //   両手武器を持てば盾を、盾を持てば両手武器を外して所持品へ戻す (items.js の equip() と同じ規則)。
-//   所持枠 (8) を超える付け替えはしない。
+//   共有の所持枠 (50) を超える付け替えはしない。
 //   人業をまたいで「点数の伸び (score) が最も大きい1手」を選んで仮に適用し、伸びが無くなるまで繰り返す (貪欲法)。
 //   返り値: { moves: [{ doll, item, from, slotKey, displaced, gain }], undoSnapshot, gain }
 //
@@ -179,7 +179,11 @@ export function planBestEquip(dolls, opts = {}) {
   const undoSnapshot = snapshotEquip(poolDolls);
   // 仮の状態 (人業 → 装備・所持品の写し)
   const sim = new Map();
-  for (const d of poolDolls) sim.set(d, { equip: { ...(d.equip || {}) }, items: [...(d.items || [])] });
+  const bags = new Map();
+  for (const d of poolDolls) {
+    if (!bags.has(d.items)) bags.set(d.items, [...(d.items || [])]);
+    sim.set(d, { equip: { ...(d.equip || {}) }, items: bags.get(d.items) });
+  }
 
   const moves = [];
   let total = 0;
@@ -199,7 +203,7 @@ export function planBestEquip(dolls, opts = {}) {
           for (const key of slotKeysFor(item, t)) {
             const tr = trialEquip(st.equip, item, key);
             if (!tr) continue;
-            const bagAfter = st.items.length - (owner === t ? 1 : 0) + tr.displaced.length;
+            const bagAfter = st.items.length - (os.items === st.items ? 1 : 0) + tr.displaced.length;
             if (bagAfter > maxItems) continue;
             const delta = statsDelta(baseStats, recalcPreview(t, tr.equip));
             const g = score(t, delta);
@@ -217,7 +221,7 @@ export function planBestEquip(dolls, opts = {}) {
                   if (!ok2 || !allow(t, sh)) continue;
                   const tr2 = trialEquip(tr.equip, sh, "shield");
                   if (!tr2) continue;
-                  const bag2 = bagAfter - (owner2 === t ? 1 : 0) + tr2.displaced.length;
+                  const bag2 = bagAfter - (sim.get(owner2).items === st.items ? 1 : 0) + tr2.displaced.length;
                   if (bag2 > maxItems) continue;
                   const d2 = statsDelta(baseStats, recalcPreview(t, tr2.equip));
                   const g2 = score(t, d2);
@@ -286,7 +290,7 @@ export function planDeps(plan) {
     if (!deps.has(m.doll)) deps.set(m.doll, new Set());
     for (let j = i - 1; j >= 0; j--) {
       const p = moves[j];
-      if (p.doll === m.from && (p.displaced || []).includes(m.item)) {
+      if (p.doll.items === m.from.items && (p.displaced || []).includes(m.item)) {
         if (p.doll !== m.doll) deps.get(m.doll).add(p.doll);
         break;
       }

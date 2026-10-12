@@ -28,7 +28,31 @@ export const SLOTS = ["weapon", "shield", "body", "head", "hands", "feet", "acc1
 export const SLOT_LABEL = {
   weapon: "武器", body: "防具", shield: "盾", head: "頭", hands: "小手", feet: "足", acc1: "装飾1", acc2: "装飾2",
 };
-export const MAX_ITEMS = 8;
+export const MAX_ITEMS = 50;
+
+// 人業の items は互換窓口。実体は隊の共通の袋を参照する。
+let bagSource = null;
+export function setBagSource(source) { bagSource = source; }
+export function newDollBag() { return bagSource ? bagSource() : []; }
+export function shareInventory(state) {
+  if (!Array.isArray(state.inventory)) state.inventory = [];
+  const seenBags = new Set([state.inventory]);
+  const seenItems = new Set(state.inventory);
+  for (const d of [...(state.party || []), ...(state.reserve || [])]) {
+    if (!d) continue;
+    if (Array.isArray(d.items) && !seenBags.has(d.items)) {
+      seenBags.add(d.items);
+      for (const it of d.items) if (it && !seenItems.has(it)) { state.inventory.push(it); seenItems.add(it); }
+    }
+    d.items = state.inventory;
+  }
+  // 旧セーブが50個を超えていても捨てない。空きができるまで新しい品は入らない。
+  return state.inventory;
+}
+export function bagOwners(dolls) {
+  const seen = new Set();
+  return (dolls || []).filter((d) => d && !seen.has(d.items) && (seen.add(d.items), true));
+}
 
 // ===== アイテム分類 (商会・図鑑のタブ) =====
 export const ITEM_CATS = [
@@ -1614,7 +1638,7 @@ export function equip(member, item, slotKey = null) {
   const key = offhand ? "shield" : slotKeyFor(item, member);
   if (!key) return { ok: false, msg: "装備できない" };
 
-  // 押し出される装備を先に数え、所持品が8枠を超えるなら装備自体を中止する
+  // 押し出される装備を先に数え、隊の持ち物が50枠を超えるなら装備自体を中止する
   const removed = [];
   if (item.slot === "weapon" && item.twoHanded && member.equip.shield) removed.push(member.equip.shield);
   if (key === "shield" && member.equip.weapon && member.equip.weapon.twoHanded) removed.push(member.equip.weapon);

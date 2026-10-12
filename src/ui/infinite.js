@@ -1,3 +1,4 @@
+import { bagOwners } from "../items.js";
 // ===== 無限迷宮の画面 — 入口の魂の3択・風だまり (回収人・灯番・主)・全滅・帰ってきた時の結果 =====
 // docs/infinite-labyrinth.md。game.js は import しない (ctx.js の UI / game / ops を通す)。
 // 提供する契約:
@@ -251,7 +252,7 @@ function openTrader(onChange) {
     if (onChange) onChange();
   };
   // 隊の持ち物にその品がいくつあるか (装備中は数えない)
-  const held = (id) => (g.party || []).reduce((n, d) => n + (d.items || []).filter((x) => x && x.id === id).length, 0);
+  const held = (id) => bagOwners(g.party).reduce((n, d) => n + (d.items || []).filter((x) => x && x.id === id).length, 0);
   const fill = (b) => {
     b.appendChild(el("div", "inf-cur", `所持 💰${g.gold || 0}`));
     const segs = el("div", "ui-seg");
@@ -283,12 +284,12 @@ function openTrader(onChange) {
       b.appendChild(itemRule());
       b.appendChild(el("div", "inf-note dim", "売った代金の金貨は、この出撃の間だけ使える (帰ると残らない)。装備している品は、外してから売れる。"));
       let any = false;
-      for (const d of g.party || []) for (const it of [...(d.items || [])]) {
+      for (const d of bagOwners(g.party || [])) for (const it of [...(d.items || [])]) {
         if (!it) continue;
         any = true;
         const price = game.sellPrice ? game.sellPrice(it) : 1;
         // 行を押すと品の詳細、右の「売る」で売る (2026-10-11 ユーザーの指示: 押しただけで売れていた)
-        b.appendChild(tradeRow({ icon: itemTile(it, { size: 44 }), title: itemName(it), sub: `${d.name}の持ち物${it.locked ? " ・ ロック中" : ""}`,
+        b.appendChild(tradeRow({ icon: itemTile(it, { size: 44 }), title: itemName(it), sub: `隊の持ち物${it.locked ? " ・ ロック中" : ""}`,
           price, label: "売る", disabled: !!it.locked,
           onAct: () => {
             // 商会の棚に、同じ品の追加つきの1点がもうある: どちらの追加の能力を棚に残すか、売る前に選ぶ
@@ -302,8 +303,9 @@ function openTrader(onChange) {
     } else {
       b.appendChild(el("div", "inf-note dim", "金貨を払って装備の品質 (0〜100) を引き直す。本編の商会の鍛え直しと同じ。"));
       let any = false;
+      const seen = new Set();
       for (const d of g.party || []) {
-        const list = [...Object.values(d.equip || {}), ...(d.items || [])].filter((it) => it && it.id);
+        const list = [...Object.values(d.equip || {}), ...(d.items || [])].filter((it) => it && it.id && !seen.has(it) && (seen.add(it), true));
         for (const it of list) {
           const why = game.reforgeBlock ? game.reforgeBlock(d, it, { gold: false }) : "—";
           if (why) continue;
