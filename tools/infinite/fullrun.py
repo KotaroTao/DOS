@@ -44,7 +44,9 @@ def trial(seed):
   page.wait_for_function('window.__game?.G.party.length>0 && window.__full')
   page.evaluate('v=>{window.__fullMode=true;window.__fullQueue=[];window.__full.quiet();window.__fullPower=f=>{const t=[[1,v[0]],[20,v[1]],[50,v[2]],[100,v[3]]];for(let i=1;i<t.length;i++){if(f<=t[i][0])return t[i-1][1]+(t[i][1]-t[i-1][1])*(f-t[i-1][0])/(t[i][0]-t[i-1][0]);}return v[3];};}',[float(x) for x in a.power.split(',')] if a.power != 'game' else [1,1,1,1])
   page.add_script_tag(content=script)
-  row=page.evaluate('x=>runFull(x)',{'seed':seed,'end':a.end,'profile':a.profile});browser.close();return row
+  row=page.evaluate('x=>runFull(x)',{'seed':seed,'end':a.end,'profile':a.profile})
+  ctx.unroute_all(behavior='wait')  # 読み込み中の画像の中断を片付けてから閉じる。
+  browser.close();return row
 with ThreadPoolExecutor(max_workers=4) as pool:
  for fut in as_completed([pool.submit(trial,seed) for seed in range(a.seed,a.seed+a.samples)]):
   row=fut.result();rows.append(row)
