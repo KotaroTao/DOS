@@ -2,7 +2,7 @@
 
 書き出し: `node tools/storyart/review.mjs` (build.py も書き直す。手で直さない)。
 
-場面: 出荷済み 79 ・ 出荷済み (任意の修正あり) 14 ・ 未着手 (指示あり) 29
+場面: 出荷済み 84 ・ 出荷済み (任意の修正あり) 14 ・ 未着手 (指示あり) 24
 
 | 章 | 場面 | 題 | 状態 | 確認ページ |
 |---|---|---|---|---|
@@ -86,11 +86,11 @@
 | 第7章「毒沼」 | `w27_crest` | 仕上がらなかった兄弟 | 出荷済み | [見る](chapter7.md#w27_crest) |
 | 第7章「毒沼」 | `report_w27` | 笑わない宰相 | 出荷済み | [見る](chapter7.md#report_w27) |
 | 第7章「毒沼」 | `irene_crest` | 捨てられなかった器 | 出荷済み | [見る](chapter7.md#irene_crest) |
-| 第7章「毒沼」 | `w28_note` | 沼を渡る薬 | 未着手 (指示あり) | [見る](chapter7.md#w28_note) |
-| 第7章「毒沼」 | `report_w28` | 毒の底の灯 | 未着手 (指示あり) | [見る](chapter7.md#report_w28) |
-| 第7章「毒沼」 | `mem_w29` | ただひとつの言いつけ | 未着手 (指示あり) | [見る](chapter7.md#mem_w29) |
-| 第7章「毒沼」 | `report_w29` | 死なない命令 | 未着手 (指示あり) | [見る](chapter7.md#report_w29) |
-| 第7章「毒沼」 | `irene_order` | 灯を守る理由 | 未着手 (指示あり) | [見る](chapter7.md#irene_order) |
+| 第7章「毒沼」 | `w28_note` | 沼を渡る薬 | 出荷済み | [見る](chapter7.md#w28_note) |
+| 第7章「毒沼」 | `report_w28` | 毒の底の灯 | 出荷済み | [見る](chapter7.md#report_w28) |
+| 第7章「毒沼」 | `mem_w29` | ただひとつの言いつけ | 出荷済み | [見る](chapter7.md#mem_w29) |
+| 第7章「毒沼」 | `report_w29` | 死なない命令 | 出荷済み | [見る](chapter7.md#report_w29) |
+| 第7章「毒沼」 | `irene_order` | 灯を守る理由 | 出荷済み | [見る](chapter7.md#irene_order) |
 | 第7章「毒沼」 | `ch7_end` | 嵐の鳴る塔へ | 出荷済み | [見る](chapter7.md#ch7_end) |
 | 第8章「嵐の尖塔」 | `w30_stick` | 雷にくれてやった杖 | 出荷済み | [見る](chapter8.md#w30_stick) |
 | 第8章「嵐の尖塔」 | `report_w30` | 鳴りやまぬ雷 | 出荷済み | [見る](chapter8.md#report_w30) |
