@@ -4,7 +4,7 @@ const { mkdirSync, writeFileSync } = require('node:fs');
 const { resolve } = require('node:path');
 const assert = require('node:assert/strict');
 const base = process.env.CRYPT_REVIEW_URL || 'http://localhost:8000';
-const out = resolve('docs/art/crypt/actors/states-review');
+const out = resolve(process.env.CRYPT_STATES_OUT || 'docs/art/crypt/actors/states-review');
 mkdirSync(out, { recursive: true });
 const report = { checks: [], screenshots: [] };
 const check = (name, ok) => { assert.ok(ok, name); report.checks.push(name); };
@@ -17,7 +17,7 @@ const check = (name, ok) => { assert.ok(ok, name); report.checks.push(name); };
       const errors = [], requests = []; page.on('pageerror', e => errors.push(e.message));
       let release;
       const gate = mode === 'delay' ? new Promise(r => { release = r; }) : Promise.resolve();
-      await page.route(/\/art\/dungeon\/crypt-(props-a|props-b|props-c|props-d|walker)\.webp/, async route => {
+      await page.route(/\/art\/dungeon\/crypt-(props-a|props-b|props-c|props-d|corpses-seated|walker)\.webp/, async route => {
         requests.push(route.request().url());
         if (mode === 'fail' || mode === 'partial' && route.request().url().includes('props-a')) return route.abort();
         await gate; await route.continue();
@@ -28,7 +28,7 @@ const check = (name, ok) => { assert.ok(ok, name); report.checks.push(name); };
       });
       await page.route('**/src/game.js*', async route => {
         const response = await route.fetch();
-        await route.fulfill({ response, body: await response.text() + '\nwindow.actorReview={G,BV,PREFS,DUNGEONS,boardCamera,fitView,drawBoardFrame,cellRect,makeBoard,activeCfg,uiBlocked,cryptPropKey,cryptPropBitmap,cryptWalkerBitmap,drawPaintedWalker,cellIcon,resolveCorpse,useFountain,showChoice,closePrompt,ICONS};' });
+        await route.fulfill({ response, body: await response.text() + '\nwindow.actorReview={G,BV,PREFS,DUNGEONS,boardCamera,fitView,drawBoardFrame,cellRect,makeBoard,activeCfg,uiBlocked,cryptPropKey,cryptPropBitmap,cryptWalkerBitmap,drawPaintedWalker,vctx,cellIcon,resolveCorpse,useFountain,showChoice,closePrompt,ICONS};' });
       });
       await page.goto(base);
       await page.getByRole('button', { name: /テストプレイ/ }).click(); await page.locator('.ttl-test button').last().click();
@@ -70,6 +70,33 @@ const check = (name, ok) => { assert.ok(ok, name); report.checks.push(name); };
       Object.assign(g.board.cells[3][3],{type:'fountain',cleared:true});
       t.drawBoardFrame();
     });
+    // 四方の壁と同居を含む、実際の描画矩形を調べる。
+    for (const width of [320,390,600,1280]) {
+      await page.setViewportSize({width,height:900});
+      for (const overview of [false,true]) for (const shared of [false,true]) {
+        const result = await page.evaluate(({overview,shared})=>{
+          const t=actorReview,g=t.G;
+          g.px=shared?1:4;g.py=2;
+          for(let x=0;x<3;x++) g.board.cells[2][x].walls={n:true,s:true,w:true,e:true};
+          t.boardCamera.overview=overview;t.fitView(true);
+          const bitmaps=['corpse','corpseWarm','corpseGreat'].map(k=>t.cryptPropBitmap(k));
+          const draws=[],original=t.vctx.drawImage;
+          t.vctx.drawImage=function(image,x,y,w,h,...rest){
+            const i=bitmaps.findIndex(b=>b.c===image);
+            if(i>=0)draws.push({i,x,y,w,h});
+            return original.call(this,image,x,y,w,h,...rest);
+          };
+          try {t.drawBoardFrame();} finally {t.vctx.drawImage=original;}
+          return {count:draws.length,inside:draws.every(d=>{
+            const r=t.cellRect(d.i,2);
+            return d.x>=r.x+r.w*.04 && d.x+d.w<=r.x+r.w*.96 && d.y>=r.y && d.y+d.h<=r.y+r.h;
+          })};
+        },{overview,shared});
+        check(`幅${width}・全体${overview}・同居${shared}: 遺体3種が壁の内側`,result.count===3&&result.inside);
+      }
+    }
+    await page.setViewportSize({width:390,height:844});
+    await page.evaluate(()=>{const t=actorReview;t.G.px=1;t.G.py=3;t.boardCamera.overview=true;t.fitView(true);t.drawBoardFrame();});
     await capture(page,'board.png','#view');
     check('死体3種は別の原画',await page.evaluate(()=>new Set(['corpse','corpseWarm','corpseGreat'].map(k=>actorReview.cryptPropBitmap(k).c.toDataURL())).size===3));
     check('飲んだ泉は空の泉として残る',await page.evaluate(()=>{
