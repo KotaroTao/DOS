@@ -38,6 +38,9 @@ with sync_playwright() as p:
       check(shop.unidCount()===2&&__game.ops.counts().unid===2&&skillTargets().length===2,'鑑定対象を人数分に重複させない');
       for(const x of G.inventory)x.unidentified=false;
       check(__game.ops.junkList().length===2,'売却候補を人数分に重複させない');
+      __game.UI.openDiscard({incoming:G.inventory[0],members:G.party});
+      check(document.querySelectorAll('.dc-line').length===1,'装備する品を捨てる候補から除外');
+      sheet.closeAll();
       const round=refDeserialize(JSON.parse(__game.inf.saveJSON()));
       check(round.inventory===round.party[0].items&&round.inventory===round.reserve[0].items&&round.inventory.length===2,'セーブの共通参照');
       // 旧セーブの個別袋を実際の読み込み経路へ渡す。

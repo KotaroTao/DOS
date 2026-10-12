@@ -39,14 +39,14 @@ export function openDiscard(o = {}) {
       }
       for (const l of o.lines || ["袋の品を1つ捨てると、その空きに入る。品を押すと詳しく見られる。捨てた品は二度と戻らない。ロックした品は出ない。"]) b.appendChild(el("div", "dc-note", l));
       const list = [];
-      for (const m of bagOwners(members)) for (const it of m.items || []) if (it && !it.locked) list.push({ m, it });
+      for (const m of bagOwners(members)) for (const it of m.items || []) if (it && it !== o.incoming && !it.locked) list.push({ m, it });
       list.sort((a, b2) => rarRank(a.it) - rarRank(b2.it) || (a.it.price || 0) - (b2.it.price || 0));
       if (!list.length) { b.appendChild(el("div", "dc-note dim", "捨てられる品が無い (どれもロックされている)。")); return; }
       for (const { m, it } of list) {
         const rk = rarityKey(it);
         const r = row({
           icon: itemTile(it, { size: 36 }), title: itemName(it),
-          sub: `${m.name}の袋${it.unidentified ? " ・ 未鑑定" : ""}${rk && RARITIES[rk] ? " ・ " + RARITIES[rk].label : ""}`,
+          sub: `隊の袋${it.unidentified ? " ・ 未鑑定" : ""}${rk && RARITIES[rk] ? " ・ " + RARITIES[rk].label : ""}`,
           onTap: () => showDetail(it, m),
         });
         r.classList.add("dc-row");
