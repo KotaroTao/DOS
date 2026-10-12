@@ -90,3 +90,16 @@ CRYPT_REVIEW_OUT=/tmp/crypt-actors-review node tools/crypt/verify-actors.cjs
 横幅をマスの高さから決める処理をやめ、マス幅の76%（探索者と同居する時は50%）を上限にする。縦横比を変形せず、左右の壁に余白を残す。魂火・回収状態・選択画面の3種の区別は維持する。表示のみの修正のため、酒場の心得の変更はない。
 
 確認: [壁際の盤面](seated-review/board.png) · [選択画面一覧](seated-review/popup-gallery.png) · [検査結果](seated-review/checks.json)。幅320/390/600/1280px、拡大/全体、探索者との同居で、遺体3種の実描画矩形がマス内に収まることを検査した。再確認は `CRYPT_STATES_OUT=docs/art/crypt/actors/seated-review node tools/crypt/verify-states.cjs`。
+
+
+## プレイヤーと異なる死体の装い
+
+座り姿と壁際の配置を保ち、死体3種からフード・外套・角灯をなくした。
+
+- あたたかい死体: 短い髪、橙色の作業着、白い袖、折れたつるはし。顔はうつむいて隠れる。
+- 偉大なる死体: 閉じた筒形の兜、青緑の重装鎧、壊れた丸盾。
+- 風化した死体: 露出した頭蓋骨・肋骨・手足と、薄い布の残り。
+
+原画は `corpses-seated-master.png`、出荷物は `crypt-corpses-seated.webp`。変更前は `fixes/corpses-seated-before-distinct-design.png` に保持。切り出し枠を新しい輪郭に合わせ、盤面とポップアップへ共通で反映する。
+確認: [盤面](distinct-review/board.png) · [選択画面一覧](distinct-review/popup-gallery.png) · [検査結果](distinct-review/checks.json)。
+再確認: `CRYPT_STATES_OUT=docs/art/crypt/actors/distinct-review node tools/crypt/verify-states.cjs`。
