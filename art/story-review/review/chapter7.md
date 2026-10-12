@@ -1,7 +1,7 @@
 # 第7章「毒沼」 の絵
 
 書き出し: `node tools/storyart/review.mjs` (手で直さない)。絵は出荷する WebP、まだ無ければ原画。
-
+ゲームで小さく出た時の見え方 (384×256): [chapter7-small.jpg](chapter7-small.jpg)
 
 <a name="w26_splint"></a>
 
@@ -344,9 +344,9 @@ _(絵はまだ無い)_
 
 <a name="ch7_end"></a>
 
-## ch7_end「嵐の鳴る塔へ」 ── 未着手 (指示あり)
+## ch7_end「嵐の鳴る塔へ」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter7/ch7_end.webp" width="576" alt="ch7_end">
 
 **ストーリー一覧の本文**
 

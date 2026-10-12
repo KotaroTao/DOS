@@ -95,5 +95,22 @@
       "sha256": "ae9740aa2df6cebe5e0041cd7094be74ada9fad86e1963f80188e8f111da5fba"
     }
   ],
-  "handoff": "原画5枚の目視確認済み。readyはユーザー承認前の統合確認待ち。WebP変換・build.py・共通queue・登録・本文・基準画像は変更せず。PR作成・mainマージなし。生成8回（新規5・修正3）、未完成なし。"
+  "handoff": "原画5枚の制作・目視確認済み。ユーザーの変換・mainマージ指示によりbuild.pyでWebP変換・登録・確認ページを生成。登録・指示書・読み物の検査成功、縮小表示確認済み。生成8回、未完成なし。",
+  "integration": {
+    "status": "validated",
+    "command": "python3 tools/storyart/build.py",
+    "scenes": [
+      "ch7_end",
+      "w30_stick",
+      "report_w30",
+      "w31_bell",
+      "report_w31"
+    ],
+    "checks": [
+      "register.mjs --check: OK",
+      "prompt.mjs --check: OK",
+      "tools/journal/check.mjs: OK",
+      "縮小見本の目視確認: OK"
+    ]
+  }
 }
