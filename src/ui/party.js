@@ -4,7 +4,7 @@ import { RESIST_LABEL } from "../resistance.js";
 // 担当: WP-B。
 //   街: 「隊」タブ (街シェルの中身)。迷宮: 盤面の隊の札から開く全高のシート (魂の付け替え・鍛錬はできない)。
 //   1画面に収める (390×844 でページのスクロール無し):
-//   [砕けた人業の知らせ] [隊列: 前衛3 | 後衛3 | 控え] [人業の見出し] ([野営]) [装備|魂|能力  最適装備] [区分の中身] [館の主イレーヌ (街のみ・余った高さ)]
+//   館: [砕けた人業の知らせ] [前衛3 | 後衛3] [名前・職Lv / 管理] [装備|魂|能力  最適装備] [区分の中身] [館の主イレーヌ (余った高さ)]
 //   区分の中身だけが、狭い画面 (360×640 など) で内側にスクロールする。
 // 品 → 人業を選ぶ → 装備: UI.equipChooser(item, {owner}) が「全員の札 (伸び ▲▼ / 付けられない理由)」を並べ、
 //   1タップでその人業に装備する (どの袋からでも)。元に戻すつきのトースト。他パッケージ (品シート・入手・商会) も使う。
@@ -21,7 +21,7 @@ import {
 import { deltaFloat } from "./motion.js";
 import { remember, setPref, getPref } from "./prefs.js";
 import {
-  statLines, detailLines, isEquippable, gearScore, elemStatShort, showSkillPopup, showPassivePopup, itemCatText, tagRow, spellTagKinds, specialLines, specialShort, specialParts, resistDeltaParts, weaponPerformanceEl, weaponPowerPreview,
+  itemDetailEl, statLines, isEquippable, gearScore, elemStatShort, showSkillPopup, showPassivePopup, itemCatText, tagRow, spellTagKinds, specialLines, specialShort, specialParts, resistDeltaParts, weaponPerformanceEl, weaponPowerPreview,
 } from "./itemview.js";
 import { renderSoulSeg, openSoulPicker, openSoulList, openOrderSheet } from "./soulpanel.js";
 import { IRENE_WHO, IRENE_ART, ireneState, isGreeted, nextLine, lineOpen, noteVisit, greetingPages, playIreneScene, sceneActive } from "./irene.js";
@@ -635,23 +635,12 @@ export function openEquipChooser(item, { owner = null, actions = null, onClose =
   const accent = rk ? RARITIES[rk].color : null;
   let h = null;
   const body = el("div", "pt-item ch");
-  body.appendChild(itemSummary(item, accent, { compact: true }));
-  const performance = weaponPerformanceEl(item, owner);
-  if (performance) body.appendChild(performance);
-  // 特殊効果 (追加の能力・連撃・属性・状態異常…) を数字で言い切った行で (2026-10-11 ユーザーの指示: 付け替えの時に確かめたい)。
-  // いまの装備の特殊効果は「いまの装備と比べる」に人業ごとに並ぶ
-  const fx = item.unidentified ? [] : specialLines(item);
-  if (fx.length) {
-    const fb = el("div", "pt-cur-fx pt-ch-fx");
-    fb.appendChild(el("div", "pt-cur-fxh", "特殊効果"));
-    for (const ln of fx) fb.appendChild(el("div", "pt-cur-fxl", ln));
-    body.appendChild(fb);
-  }
+  body.appendChild(itemDetailEl(item, { target: owner }));
   body.appendChild(equipChooserEl(item, { owner, onDone: () => { if (h) h.close("ok"); } }));
-  if (item.desc) body.appendChild(el("div", "pt-item-desc", item.desc));
   const acts = actions || (owner ? itemActions(item, owner, "bag", { equip: false }) : []);
   h = sheet.open({
-    kind: "info", banner: game.itemGradeText ? game.itemGradeText(item, "品") : "品", accent, body, className: "pt-item-sheet pt-ch-sheet",
+    kind: "info", accent, body, className: "wpc-isheet pt-item-sheet pt-ch-sheet",
+    onClose,
     footer: acts.length ? acts : [{ label: "閉じる", kind: "ghost", onTap: (s) => s.close() }],
   });
   return h;
@@ -1018,12 +1007,13 @@ function renderView(root, mode) {
   if (dead) root.appendChild(dead);
   if (mode === "town" || G.party.length > 1) root.appendChild(formationEl(mode));
   if (!d) return;
-  root.appendChild(picked ? pickHint() : dollHeader(d, mode));
+  root.appendChild(picked ? pickHint() : mode === "town" && !sheetTown ? mansionHeader(d) : dollHeader(d, mode));
   if (mode === "dungeon") { const cs = campStrip(d); if (cs) root.appendChild(cs); }
   root.appendChild(segBar(d, mode));
   const body = el("div", "pt-body");
   const seg = curSeg();
   body.dataset.seg = seg;
+  if (mode === "town" && !sheetTown && !d.alive) body.appendChild(rescueLine(d));
   if (seg === "equip") equipSeg(body, d, mode);
   else if (seg === "soul") renderSoulSeg(body, d, { mode, rerender, G });
   else statsSeg(body, d, mode);
@@ -1227,13 +1217,11 @@ function formationEl(mode) {
     grp.appendChild(inn);
     wrap.appendChild(grp);
   }
-  if (town) {
-    // 右: 人業 (控え) / 魂一覧 / 控えの結社 の大きな札3つ (余りが狭ければ次の段に全幅で並ぶ。機能はこの3つで固定)
+  if (town && sheetTown) {
     const side = el("div", "pt-side");
-    side.appendChild(benchButton());
-    side.appendChild(soulListButton());
-    const ob = orderButton();
-    if (ob) side.appendChild(ob);
+    side.append(benchButton(), soulListButton());
+    const order = orderButton();
+    if (order) side.appendChild(order);
     wrap.appendChild(side);
   }
   return wrap;
@@ -1793,6 +1781,44 @@ export function openStability(d, onChange) {
   return h;
 }
 
+// 館では選択と育成を中心に置き、編成や人物の操作は管理のシートへまとめる。
+function mansionHeader(d) {
+  const head = el("section", "pt-mansion-head");
+  const tx = el("div", "pt-mansion-title");
+  tx.appendChild(el("span", "pt-head-name", d.name));
+  tx.appendChild(el("span", "pt-head-cls", d.primary == null ? "空の人業" : `${d.cls} Lv${d.jobLv || 1}`));
+  head.appendChild(tx);
+  head.appendChild(button({ label: "管理", kind: "secondary", size: "sm", onTap: () => openMansionManage(d) }));
+  return head;
+}
+function openMansionManage(d) {
+  sheet.open({ kind: "info", banner: "人業の館", title: "編成・管理", className: "pt-manage-sheet",
+    body: (body, h) => {
+      const side = el("div", "pt-side pt-manage-links");
+      side.append(benchButton(), soulListButton());
+      const order = orderButton();
+      if (order) side.appendChild(order);
+      body.appendChild(side);
+      body.appendChild(dollHeader(d, "town"));
+      body.appendChild(el("div", "pt-note", "控えの人業・魂一覧・隊の入れ替えを管理する。名は筆の印から変えられる。"));
+      // 別のシートに移る前に閉じ、入れ替えや改名後の古い人物情報を残さない。
+      body.addEventListener("click", (e) => {
+        if (e.target.closest("button, [role=button]")) h.close();
+      }, { capture: true });
+    },
+  });
+}
+function stabilityButton(d, town) {
+  game.refreshStability?.();
+  const stable = game.vesselStable && game.vesselStable(d);
+  const b = stable
+    ? button({ label: "師の器 ・ 安定度を消費しない", kind: "ghost", size: "sm", onTap: () => toast("師オルドが一度で仕上げた器。魂の安定度を消費しない。メイン魂は灯守に固定", { tone: "info", noLog: true }) })
+    : button({ label: `魂の安定度 ${d.stability}/${game.STABILITY_MAX}`, kind: "ghost", size: "sm",
+      onTap: town ? () => openStability(d) : () => toast(`入場時に${game.STABILITY_ENTRY_COST}消費・${game.stabilityMinutes ? game.stabilityMinutes() : 4}分で1回復。探索中の追加消費はない`, { tone: "info", noLog: true }) });
+  b.classList.add("pt-stability");
+  return b;
+}
+
 function dollHeader(d, mode) {
   const G = G_();
   const town = mode === "town";
@@ -1842,15 +1868,9 @@ function dollHeader(d, mode) {
     }
     tx.appendChild(l2);
   }
-  game.refreshStability?.();
-  const stable = game.vesselStable && game.vesselStable(d);
-  const stability = stable
-    ? button({ label:"師の器 ・ 安定度を消費しない", kind:"ghost", size:"sm", onTap:()=>toast("師オルドが一度で仕上げた器。魂の安定度を消費しない。メイン魂は灯守に固定", {tone:"info", noLog:true}) })
-    : button({ label:`魂の安定度 ${d.stability}/${game.STABILITY_MAX}`, kind:"ghost", size:"sm",
-      onTap:town ? ()=>openStability(d) : ()=>toast(`入場時に${game.STABILITY_ENTRY_COST}消費・${game.stabilityMinutes ? game.stabilityMinutes() : 4}分で1回復。探索中の追加消費はない`, {tone:"info", noLog:true}) });
-  stability.classList.add("pt-stability"); tx.appendChild(stability);
+  tx.appendChild(stabilityButton(d, town));
   head.appendChild(tx);
-  if (town && pi < 0 && d.primary != null && !away) {
+  if (town && pi < 0 && d.primary != null && !waiting(d)) {
     const join = button({ label: G.party.length < 6 ? "隊へ" : "入れ替え", kind: "secondary", size: "sm", onTap: () => (G.party.length < 6 ? joinParty(d) : openSwapSheet(d)) });
     join.classList.add("pt-head-join");
     head.appendChild(join);
@@ -2342,6 +2362,7 @@ function candRow(d, k, c, h) {
 
 // ================= 能力の区分: 6能力 (3×2) + 説明/状態 + 技・加護の札 =================
 function statsSeg(root, d) {
+  if (inTown() && !sheetTown) root.appendChild(stabilityButton(d, true));
   const grid = el("div", "pt-stats");
   const info = el("div", "pt-info");
   const fillInfo = () => {
@@ -2663,37 +2684,13 @@ function itemActions(it, owner, ctx, { equip = true } = {}) {
   return acts;
 }
 
-// 品の要約 (絵・名・分類・能力)
-function itemSummary(it, accent, { compact = false } = {}) {
-  const top = el("div", "pt-item-top" + (compact ? " compact" : ""));
-  const art = el("span", "pt-item-art");
-  if (accent) art.style.setProperty("--edge", accent);
-  art.appendChild(spriteCanvas(it, compact ? 4 : 7));
-  top.appendChild(art);
-  const tx = el("div", "pt-item-tx");
-  tx.appendChild(game.itemNameEl ? game.itemNameEl("div", "pt-item-n", it, it.cursed && !it.unidentified ? " (呪)" : "") : el("div", "pt-item-n", itemName(it)));
-  if (!it.unidentified) {
-    tx.appendChild(el("div", "pt-item-c", itemCatText(it) + (it.slot === "weapon" ? ` ・ 射程${(RANGE_LABEL[weaponRange(it)] || "").replace("距離", "")}` : "")));
-    const s = statLines(it);
-    if (s) tx.appendChild(el("div", "pt-item-s", s));
-  } else tx.appendChild(el("div", "pt-item-c", "未鑑定 ― 正体はまだわからない"));
-  top.appendChild(tx);
-  return top;
-}
+// 共通の品の詳細に、この画面で使える操作だけを添える。
 function fallbackItemSheet(it, owner, ctx, actions) {
   const rk = rarityKey(it);
   const accent = rk ? RARITIES[rk].color : null;
-  const body = el("div", "pt-item");
-  body.appendChild(itemSummary(it, accent));
-  const performance = weaponPerformanceEl(it, owner);
-  if (performance) body.appendChild(performance);
-  const lines = el("div", "pt-item-lines");
-  const cat = itemCatText(it);
-  for (const ln of detailLines(it)) if (!(ln === cat && !it.unidentified)) lines.appendChild(el("div", "pt-item-l", ln));
-  body.appendChild(lines);
-  if (it.desc && !it.unidentified) body.appendChild(el("div", "pt-item-desc", it.desc));
+  const body = itemDetailEl(it, { target: owner });
   const footer = actions.length ? actions.map((a) => ({ ...a })) : [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }];
-  return sheet.open({ kind: "info", banner: game.itemGradeText ? game.itemGradeText(it, "品") : "品", accent, body, footer, className: "pt-item-sheet" });
+  return sheet.open({ kind: "info", accent, body, footer, className: "wpc-isheet pt-item-sheet" });
 }
 
 // 渡す相手 (街: 隊と控えの全員 / 迷宮: 生きている隊の者)

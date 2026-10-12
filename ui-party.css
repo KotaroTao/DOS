@@ -1,5 +1,4 @@
-/* =====================================================================
-   隊・魂 (WP-B) — 統合された人業の画面 (src/ui/party.js / soulpanel.js)
+/* ==============================================================   隊・魂 (WP-B) — 統合された人業の画面 (src/ui/party.js / soulpanel.js)
    ui.css のトークン (--iron-*, --gold*, --t-*, --sp-*) と kit の部品を土台に重ねる。
    黒鉄の板・燻した金の罫・明朝。押せる場所は最低 44×44。
    1画面に収める: 隊タブは街シェルの中身の高さいっぱいに広がり、ページはスクロールしない。
@@ -20,11 +19,10 @@
    中身があふれた時 (is-over) は中身が全高を取って内側でスクロールし、挿絵は畳まれる */
 .pt-root.m-town.has-keeper > .pt-body { flex-grow: 0; }
 .pt-root.m-town.has-keeper > .pt-body.is-over { flex-grow: 1; }
-.pt-root.m-town > .pt-body.is-over ~ .pt-keeper { flex: 0 0 28px; } /* 浮いた門の下の余白だけ残す */
+.pt-root.m-town > .pt-body.is-over ~ .pt-keeper { flex: 0 0 0; }
 .pt-root.m-town.has-keeper .pt-slot { min-height: 46px; padding-top: 3px; padding-bottom: 3px; }
 .pt-root.m-town.has-keeper .pt-bagbar { min-height: 28px; }
-/* 挿絵はタブバーの際 (浮いた門の下) まで降ろす。門に掛かる台詞の枠は .pt-kp-say の bottom で持ち上げる */
-#town-shell #town-screen > .pt-root.has-keeper { margin-bottom: -28px; }
+/* 下部の門のための余白は街シェルに任せ、本文も挿絵もその上で止める。 */
 /* 挿絵だけは画面の端まで (横は切らずに、縦だけ切る) */
 @supports (overflow: clip) { .pt-root.m-town.has-keeper { overflow-x: visible; overflow-y: clip; } }
 
@@ -214,8 +212,7 @@
 .pt-dead-tm { font-variant-numeric: tabular-nums; color: #ffb0a4; font-weight: 700; }
 .pt-dead-b { width: auto; flex: 0 0 auto; padding: 4px 8px; font-size: 12.5px; gap: 6px; }
 
-/* =====================================================================
-   隊列ストリップ (1列: 前衛3 | 後衛3 | 控え)
+/* ==============================================================   隊列ストリップ (1列: 前衛3 | 後衛3 | 控え)
    ===================================================================== */
 .pt-form {
   position: relative; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 6px; padding: 6px 8px 5px;
@@ -243,7 +240,7 @@
 .pt-bench-l { font-size: 11px; font-weight: 700; letter-spacing: 0.2em; padding-left: 0.2em; }
 .pt-bench-n { font-size: 20px; font-weight: 800; line-height: 1.1; color: var(--accent-hi); font-variant-numeric: tabular-nums; text-shadow: 0 0 10px rgba(243,213,139,0.3); }
 .pt-bench:active { transform: scale(0.97); }
-/* 隊列の右: 人業 (控え) / 魂一覧 / 控えの結社 の3つを横に並べた大きな札 (押しやすさ優先・ユーザーの指示、2026-10)。
+/* 管理のシート: 人業 (控え) / 魂一覧 / 控えの結社 の3つを横に並べた札。
    顔の列の右に 210px 以上の余りがあれば同じ段で顔の列の高さいっぱいに、足りなければ次の段に全幅で並ぶ (flex-wrap) */
 .pt-side { flex: 1 1 210px; margin-left: auto; align-self: stretch; display: flex; flex-direction: row; gap: 5px; min-height: 46px; }
 .pt-side .pt-bench { margin-left: 0; flex: 1 1 0; width: auto; min-width: 0; min-height: 46px; padding: 4px 4px; gap: 2px; }
@@ -263,8 +260,7 @@ body.pt-dragging, body.pt-dragging * { cursor: grabbing !important; user-select:
 .pt-pickhint-t { flex: 1 1 auto; min-width: 0; }
 .pt-pickhint-x { flex: 0 0 auto; min-height: 44px; min-width: 64px; padding: 0 10px; color: var(--ink); background: var(--plate-hi); border: 1px solid #4a3d36; border-radius: 2px; cursor: pointer; font-size: 13px; }
 
-/* =====================================================================
-   人業の見出し (2行)
+/* ==============================================================   人業の見出し (2行)
    ===================================================================== */
 .pt-head { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 2px; }
 .pt-head-tx { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
@@ -325,8 +321,7 @@ body.pt-dragging, body.pt-dragging * { cursor: grabbing !important; user-select:
 .pt-auto .ui-badge { position: absolute; top: -4px; right: -4px; }
 .pt-auto:active { transform: scale(0.97); }
 
-/* =====================================================================
-   装備の区分: 8部位 (2列×4) + 所持 (8つの札を1列)
+/* ==============================================================   装備の区分: 8部位 (2列×4) + 所持 (8つの札を1列)
    ===================================================================== */
 .pt-slots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
 .pt-slot {
@@ -524,8 +519,7 @@ button.pt-cur-ic { width: 44px; height: 44px; cursor: pointer; }
 .pt-pick-hp { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--ink-dim); }
 .pt-pick-hp .ui-bar { width: 64px; height: 4px; }
 
-/* =====================================================================
-   品 → 人業を選ぶ (UI.equipChooser / equipChooserEl)
+/* ==============================================================   品 → 人業を選ぶ (UI.equipChooser / equipChooserEl)
    ===================================================================== */
 .pt-ch { display: flex; flex-direction: column; gap: 6px; text-align: left; }
 .pt-ch-h { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 0 2px; }
@@ -601,8 +595,7 @@ button.pt-cur-ic { width: 44px; height: 44px; cursor: pointer; }
 .pt-chc-best { color: #1a0e04; background: linear-gradient(180deg, #f3d58b, #c9a24a); box-shadow: 0 0 8px rgba(243,213,139,0.6); }
 .pt-chc-own { color: #cdbf9f; background: #1a1418; border: 1px solid #4a3d36; }
 
-/* =====================================================================
-   能力の区分
+/* ==============================================================   能力の区分
    ===================================================================== */
 .pt-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
 .pt-stat {
@@ -700,8 +693,7 @@ button.pt-cur-ic { width: 44px; height: 44px; cursor: pointer; }
 .sp-head-link { cursor: pointer; border-radius: 8px; }
 .sp-head-link:active { background: rgba(255,255,255,.04); }
 
-/* =====================================================================
-   控え・仕立て (シート。4体ずつの頁)
+/* ==============================================================   控え・仕立て (シート。4体ずつの頁)
    ===================================================================== */
 .pt-res { display: flex; flex-direction: column; gap: 6px; }
 .pt-res-none { font-size: 12.5px; color: var(--ink-dim); text-align: center; padding: 10px; }
@@ -769,8 +761,7 @@ button.pt-cur-ic { width: 44px; height: 44px; cursor: pointer; }
 .ui-sheet.pt-sheet .ui-sheet-foot .ui-btn { min-height: 46px; }
 .ui-sheet.pt-sheet .ui-sheet-banner { margin-bottom: 2px; }
 
-/* =====================================================================
-   魂の区分 (soulpanel.js)
+/* ==============================================================   魂の区分 (soulpanel.js)
    ===================================================================== */
 .sp-card {
   position: relative; display: flex; flex-direction: column; gap: 8px; padding: 10px 12px 4px 14px;
@@ -1210,3 +1201,34 @@ button.sp-lu-next { cursor: pointer; }
 .pt-bagwrap .pt-bcell { flex-direction: column; gap: 5px; padding: 6px 3px; min-height: 72px; aspect-ratio: auto; }
 .pt-bcell-name { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; max-width: 100%; min-height: 2.6em; font-size: 10px; line-height: 1.3; color: var(--ink); }
 .pt-bagwrap .pt-bcell:focus-visible { outline: 2px solid var(--accent-hi); outline-offset: -2px; }
+/* 館の固定部分は隊員の選択・名前・区分だけ。育成の末尾まで門に隠さない。 */
+.pt-mansion-head { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.pt-mansion-title { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pt-mansion-title .pt-head-cls { font-size: 12px; white-space: nowrap; }
+.pt-mansion-head > .ui-btn { flex: 0 0 auto; min-width: 64px; min-height: 44px; }
+.pt-root.m-town > .pt-form { justify-content: center; }
+.sp-head { align-items: flex-start; }
+.sp-name { flex-wrap: wrap; white-space: normal; gap: 2px 6px; overflow-wrap: anywhere; }
+.sp-left { margin-left: 0; white-space: normal; }
+.sp-lv-n { align-self: center; }
+.sp-meta { flex-wrap: wrap; white-space: normal; }
+.sp-meta > * { min-width: 0; }
+@media (max-width: 420px) {
+  .pt-root.m-town { gap: 6px; }
+  .pt-root.m-town > .pt-form { padding: 4px 2px 6px; gap: 4px; }
+  .pt-root.m-town > .pt-form .pt-fgrp.back { padding-left: 4px; }
+  .pt-root.m-town > .pt-form .pt-fgrp-in { gap: 3px; }
+  .pt-root.m-town > .pt-form .pt-slotp-n { display: none; }
+  .sp-card > .sp-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; }
+  .sp-card > .sp-head > .sp-orb { display: none; }
+  .sp-card > .sp-head .sp-name { font-size: 15px; }
+}
+
+.pt-manage-links { flex: 0 0 auto; width: 100%; margin-bottom: 14px; }
+
+.pt-manage-sheet .pt-head { display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: start; }
+.pt-manage-sheet .pt-head-l1 { height: auto; min-height: 44px; flex-wrap: wrap; row-gap: 4px; }
+.pt-manage-sheet .pt-head-c { flex-basis: 100%; margin-left: 0; white-space: normal; flex-wrap: wrap; }
+.pt-manage-sheet .pt-head-cls { overflow: visible; }
+.pt-manage-sheet .pt-head-name { max-width: calc(100% - 44px); }
+.pt-manage-sheet .pt-head-join { grid-column: 1 / -1; width: 100%; min-height: 44px; }

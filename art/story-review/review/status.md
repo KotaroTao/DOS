@@ -2,7 +2,7 @@
 
 書き出し: `node tools/storyart/review.mjs` (build.py も書き直す。手で直さない)。
 
-場面: 出荷済み 54 ・ 出荷済み (任意の修正あり) 14 ・ 未着手 (指示あり) 54
+場面: 出荷済み 74 ・ 出荷済み (任意の修正あり) 14 ・ 未着手 (指示あり) 34
 
 | 章 | 場面 | 題 | 状態 | 確認ページ |
 |---|---|---|---|---|
@@ -71,31 +71,31 @@
 | 第5章「灼熱の洞」 | `mem_w21` | 大釜の前の二人 | 出荷済み | [見る](chapter5.md#mem_w21) |
 | 第5章「灼熱の洞」 | `report_w21` | 冷えていく指先 | 出荷済み | [見る](chapter5.md#report_w21) |
 | 第5章「灼熱の洞」 | `ch5_end` | 底のない穴の上で | 出荷済み | [見る](chapter5.md#ch5_end) |
-| 第6章「氷結回廊」 | `w22_coat` | 風が受け止めたもの | 未着手 (指示あり) | [見る](chapter6.md#w22_coat) |
-| 第6章「氷結回廊」 | `report_w22` | 寒い玉座の間 | 未着手 (指示あり) | [見る](chapter6.md#report_w22) |
-| 第6章「氷結回廊」 | `w23_names` | 空けてあった柱 | 未着手 (指示あり) | [見る](chapter6.md#w23_names) |
-| 第6章「氷結回廊」 | `report_w23` | 済まされていなかった処刑 | 未着手 (指示あり) | [見る](chapter6.md#report_w23) |
-| 第6章「氷結回廊」 | `w24_aurora` | 天井の星 | 未着手 (指示あり) | [見る](chapter6.md#w24_aurora) |
-| 第6章「氷結回廊」 | `report_w24` | 落ちきらなかった魂 | 未着手 (指示あり) | [見る](chapter6.md#report_w24) |
-| 第6章「氷結回廊」 | `mem_w25` | 氷の玉座の前で | 未着手 (指示あり) | [見る](chapter6.md#mem_w25) |
-| 第6章「氷結回廊」 | `report_w25` | 回廊の肖像 | 未着手 (指示あり) | [見る](chapter6.md#report_w25) |
-| 第6章「氷結回廊」 | `irene_lineage` | 同じ作り方の灯 | 未着手 (指示あり) | [見る](chapter6.md#irene_lineage) |
-| 第6章「氷結回廊」 | `ch6_end` | 解けていく堤 | 未着手 (指示あり) | [見る](chapter6.md#ch6_end) |
-| 第7章「毒沼」 | `w26_splint` | 腕の木の添え木 | 未着手 (指示あり) | [見る](chapter7.md#w26_splint) |
-| 第7章「毒沼」 | `report_w26` | 杯を満たしたもの | 未着手 (指示あり) | [見る](chapter7.md#report_w26) |
-| 第7章「毒沼」 | `w27_crest` | 仕上がらなかった兄弟 | 未着手 (指示あり) | [見る](chapter7.md#w27_crest) |
-| 第7章「毒沼」 | `report_w27` | 笑わない宰相 | 未着手 (指示あり) | [見る](chapter7.md#report_w27) |
-| 第7章「毒沼」 | `irene_crest` | 捨てられなかった器 | 未着手 (指示あり) | [見る](chapter7.md#irene_crest) |
+| 第6章「氷結回廊」 | `w22_coat` | 風が受け止めたもの | 出荷済み | [見る](chapter6.md#w22_coat) |
+| 第6章「氷結回廊」 | `report_w22` | 寒い玉座の間 | 出荷済み | [見る](chapter6.md#report_w22) |
+| 第6章「氷結回廊」 | `w23_names` | 空けてあった柱 | 出荷済み | [見る](chapter6.md#w23_names) |
+| 第6章「氷結回廊」 | `report_w23` | 済まされていなかった処刑 | 出荷済み | [見る](chapter6.md#report_w23) |
+| 第6章「氷結回廊」 | `w24_aurora` | 天井の星 | 出荷済み | [見る](chapter6.md#w24_aurora) |
+| 第6章「氷結回廊」 | `report_w24` | 落ちきらなかった魂 | 出荷済み | [見る](chapter6.md#report_w24) |
+| 第6章「氷結回廊」 | `mem_w25` | 氷の玉座の前で | 出荷済み | [見る](chapter6.md#mem_w25) |
+| 第6章「氷結回廊」 | `report_w25` | 回廊の肖像 | 出荷済み | [見る](chapter6.md#report_w25) |
+| 第6章「氷結回廊」 | `irene_lineage` | 同じ作り方の灯 | 出荷済み | [見る](chapter6.md#irene_lineage) |
+| 第6章「氷結回廊」 | `ch6_end` | 解けていく堤 | 出荷済み | [見る](chapter6.md#ch6_end) |
+| 第7章「毒沼」 | `w26_splint` | 腕の木の添え木 | 出荷済み | [見る](chapter7.md#w26_splint) |
+| 第7章「毒沼」 | `report_w26` | 杯を満たしたもの | 出荷済み | [見る](chapter7.md#report_w26) |
+| 第7章「毒沼」 | `w27_crest` | 仕上がらなかった兄弟 | 出荷済み | [見る](chapter7.md#w27_crest) |
+| 第7章「毒沼」 | `report_w27` | 笑わない宰相 | 出荷済み | [見る](chapter7.md#report_w27) |
+| 第7章「毒沼」 | `irene_crest` | 捨てられなかった器 | 出荷済み | [見る](chapter7.md#irene_crest) |
 | 第7章「毒沼」 | `w28_note` | 沼を渡る薬 | 未着手 (指示あり) | [見る](chapter7.md#w28_note) |
 | 第7章「毒沼」 | `report_w28` | 毒の底の灯 | 未着手 (指示あり) | [見る](chapter7.md#report_w28) |
 | 第7章「毒沼」 | `mem_w29` | ただひとつの言いつけ | 未着手 (指示あり) | [見る](chapter7.md#mem_w29) |
 | 第7章「毒沼」 | `report_w29` | 死なない命令 | 未着手 (指示あり) | [見る](chapter7.md#report_w29) |
 | 第7章「毒沼」 | `irene_order` | 灯を守る理由 | 未着手 (指示あり) | [見る](chapter7.md#irene_order) |
-| 第7章「毒沼」 | `ch7_end` | 嵐の鳴る塔へ | 未着手 (指示あり) | [見る](chapter7.md#ch7_end) |
-| 第8章「嵐の尖塔」 | `w30_stick` | 雷にくれてやった杖 | 未着手 (指示あり) | [見る](chapter8.md#w30_stick) |
-| 第8章「嵐の尖塔」 | `report_w30` | 鳴りやまぬ雷 | 未着手 (指示あり) | [見る](chapter8.md#report_w30) |
-| 第8章「嵐の尖塔」 | `w31_bell` | 空へ還る鐘 | 未着手 (指示あり) | [見る](chapter8.md#w31_bell) |
-| 第8章「嵐の尖塔」 | `report_w31` | 同じ問い | 未着手 (指示あり) | [見る](chapter8.md#report_w31) |
+| 第7章「毒沼」 | `ch7_end` | 嵐の鳴る塔へ | 出荷済み | [見る](chapter7.md#ch7_end) |
+| 第8章「嵐の尖塔」 | `w30_stick` | 雷にくれてやった杖 | 出荷済み | [見る](chapter8.md#w30_stick) |
+| 第8章「嵐の尖塔」 | `report_w30` | 鳴りやまぬ雷 | 出荷済み | [見る](chapter8.md#report_w30) |
+| 第8章「嵐の尖塔」 | `w31_bell` | 空へ還る鐘 | 出荷済み | [見る](chapter8.md#w31_bell) |
+| 第8章「嵐の尖塔」 | `report_w31` | 同じ問い | 出荷済み | [見る](chapter8.md#report_w31) |
 | 第8章「嵐の尖塔」 | `irene_bell` | 鐘の節 | 未着手 (指示あり) | [見る](chapter8.md#irene_bell) |
 | 第8章「嵐の尖塔」 | `w32_rod` | 雷よけの巻き方 | 未着手 (指示あり) | [見る](chapter8.md#w32_rod) |
 | 第8章「嵐の尖塔」 | `report_w32` | 地の底に吸われる雷 | 未着手 (指示あり) | [見る](chapter8.md#report_w32) |

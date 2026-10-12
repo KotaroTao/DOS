@@ -18,12 +18,12 @@ import { UI, game, ops, registerUI } from "./ctx.js";
 import { el, sheet, toast, button, confirm, setText, glyph, plainText } from "./kit.js";
 import { deltaFloat } from "./motion.js";
 import {
-  statLines, isEquippable, equipPreviewDelta, gearScore as baseGearScore, itemCatText,
-  elemDetailLines, equipClassText, equipLvText, elemStatEq, elemStatShort, ailDetailLines, handLine, specialLines, weaponPerformanceEl, qualityTone,
+  itemDetailEl, statLines, isEquippable, equipPreviewDelta, gearScore as baseGearScore, itemCatText,
+  elemDetailLines, equipLvText, elemStatEq, elemStatShort, ailDetailLines, specialLines, weaponPerformanceEl,
 } from "./itemview.js";
 import { spriteCanvas } from "../sprites.js";
 import { dollSprite, SOUL_CLASSES, canIdentify, identifyChance, identifyLabel, JOB_GEAR } from "../souls.js";
-import { ITEMS, itemName, canEquip, equipLvShort, equipFailMsg, equipLevelOf, slotKeyFor, MAX_ITEMS, SLOTS, SLOT_LABEL, weaponRange, RANGE_LABEL, WEAPON_CAT_LABEL, useLines, hasQuality, qualityOf, qualityMatters, QUALITY_MID } from "../items.js";
+import { ITEMS, itemName, canEquip, equipLvShort, equipFailMsg, equipLevelOf, slotKeyFor, MAX_ITEMS, SLOTS, SLOT_LABEL, weaponRange, RANGE_LABEL, hasQuality, qualityOf, qualityMatters } from "../items.js";
 import { RARITIES, rarityKey } from "../rarity.js";
 
 // レア度ごとの入手演出: 見出し・振動・画面の閃光 (game.js の showItemGet から移設)
@@ -574,7 +574,7 @@ export function dollGrid(it, { owner = null, mode = "equip", buyId = null, onPic
 
 // 人業を選ぶシート (トーストの「装備」・棚の ▾・鑑定の結果から)。持ち物の装備は通常の品の詳細へ
 export function openDollChooser(it, { owner = null, mode = "equip", buyId = null, title, footer } = {}) {
-  if (mode === "equip" && !buyId) return itemSheet(it, { owner });
+  if (mode === "equip") return itemSheet(it, { owner, context: buyId ? "stock" : null, stockId: buyId });
   let h = null;
   const done = () => { if (h) h.close("done"); };
   const body = (scroll) => {
@@ -848,74 +848,22 @@ export function itemSheet(item, o = {}) {
 
   const build = (scroll, h) => {
     const it = st.item;
-    const rk = rarityKey(it);
-    const top = el("div", "wpc-is-top");
-    const art = el("div", "wpc-is-art" + (rk ? " rar-" + rk : ""));
-    art.appendChild(spriteCanvas(it, 7));
-    top.appendChild(art);
-    const hd = el("div", "wpc-is-hd");
-    hd.appendChild(nameSpan(it, "wpc-is-name"));
-    const grade = el("div", "wpc-is-grade");
-    if (st.first && !it.unidentified) grade.appendChild(firstBadge("wpc-is-first"));
-    if (rk) grade.appendChild(el("span", "wpc-rtag rar-" + rk, RARITIES[rk].label));
-    const cat = it.slot === "weapon" && it.cat ? `${WEAPON_CAT_LABEL[it.cat] || "武器"} ・ 射程${(RANGE_LABEL[weaponRange(it)] || "").replace("距離", "")}` : itemCatText(it);
-    if (cat) grade.appendChild(el("span", "wpc-is-cat", cat));
-    if (it.unidentified) grade.appendChild(el("span", "wpc-is-unid", it.idHardFail ? "未鑑定 ・ 失敗済み" : "未鑑定"));
-    if (it.cursed && !it.unidentified) grade.appendChild(el("span", "wpc-is-curse", "呪い"));
-    // 品質 (装備品。棚の品は並品 = 品質50 で届く)
-    if (!it.unidentified && hasQuality(it)) {
-      const q = st.context === "stock" ? QUALITY_MID : qualityOf(it);
-      grade.appendChild(el("span", "rf-q " + qualityTone(q), st.context === "stock" ? `並品 ・ 品質${q}` : `品質 ${q}`));
-    }
-    hd.appendChild(grade);
-    const sl = statLines(it);
-    if (sl && !it.unidentified) hd.appendChild(setText(el("div", "wpc-is-stat"), sl));
-    if (st.context === "stock") {
-      const g = G();
-      const meta = el("div", "wpc-is-meta");
-      meta.appendChild(document.createTextNode(`在庫 ${(g.shopStock || {})[st.stockId || it.id] || 0} ・ 買値 `));
-      meta.appendChild(goldEl(st.price != null ? st.price : game.buyPrice(it)));
-      hd.appendChild(meta);
-    } else if (st.owner) {
-      const own2 = ownerOf(it);
-      hd.appendChild(el("div", "wpc-is-meta", own2 && own2.where === "equip" ? `${st.owner.name} が装備中` : `${st.owner.name} の持ち物`));
-    }
-    top.appendChild(hd);
-    scroll.appendChild(top);
-    if (st.flash) { top.classList.add("wpc-revealed"); st.flash = false; }
-    // 並び (ユーザーの指示、2026-10): 細目 (装備の条件・片手/両手…) と説明文 → 攻撃性能 → 特殊効果 → 誰に装備させる？
-    if (!it.unidentified) {
-      const det = [];
-      if (isEquippable(it)) { det.push(equipClassText(it)); det.push(equipLvText(it)); }
-      if (it.slot === "weapon") det.push(handLine(it));
-      if (it.align) det.push(`${it.align}属性`);
-      if (it.slot === "misc") det.push("王宮の宝物庫に奉納できる。商会では売れる。");
-      if (it.use) for (const x of useLines(it)) det.push(x);
-      if (det.length) {
-        const box = el("div", "wpc-is-lines");
-        for (const ln of det) box.appendChild(setText(el("div"), ln));
-        scroll.appendChild(box);
-      }
-      if (it.desc) scroll.appendChild(el("div", "wpc-is-lore", it.desc));
-    }
+    let meta = null;
     const equippedOwner = ownerOf(it);
-    const performance = weaponPerformanceEl(it, equippedOwner?.where === "equip" ? equippedOwner.doll : st.target || st.owner);
-    if (performance) scroll.appendChild(performance);
-    if (!it.unidentified) {
-      // 特殊効果 (吸血・連撃・属性・状態異常…) は数字で言い切った行を、説明の文とは別に目立たせる
-      const fx = specialLines(it);
-      if (fx.length) {
-        const box = el("div", "wpc-is-fx");
-        box.appendChild(el("div", "wpc-is-fxh", "特殊効果"));
-        for (const ln of fx) box.appendChild(setText(el("div", "wpc-is-fxl"), ln));
-        scroll.appendChild(box);
-      }
+    if (st.context === "stock") {
+      meta = el("div", "wpc-is-meta");
+      meta.appendChild(document.createTextNode(`在庫 ${(G().shopStock || {})[st.stockId || it.id] || 0} ・ 買値 `));
+      meta.appendChild(goldEl(st.price != null ? st.price : game.buyPrice(it)));
+    } else if (st.owner) {
+      meta = el("div", "wpc-is-meta", equippedOwner?.where === "equip" ? `${st.owner.name} が装備中` : `${st.owner.name} の持ち物`);
     }
-
-    if (it.unidentified) {
-      scroll.appendChild(el("div", "wpc-is-note", "鑑定するまで正体も性能もわからない。"));
-      scroll.appendChild(el("div", "wpc-is-lore", "なんだかよくわからない品だ。鑑定すれば正体がわかるだろう。"));
-    } else if (isEquippable(it) && st.context !== "view") {
+    const detail = itemDetailEl(it, {
+      target: equippedOwner?.where === "equip" ? equippedOwner.doll : st.target || st.owner,
+      stock: st.context === "stock", meta, first: st.first,
+    });
+    scroll.appendChild(detail);
+    if (st.flash) { detail.querySelector(".wpc-is-top").classList.add("wpc-revealed"); st.flash = false; }
+    if (!it.unidentified && isEquippable(it) && st.context !== "view") {
       const o2 = ownerOf(it);
       if (o2 && o2.where === "equip") {
         scroll.appendChild(el("div", "wpc-is-note gold", `${o2.doll.name} が装備中。外すと持ち物へ戻る。`));

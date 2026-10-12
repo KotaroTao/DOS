@@ -1,0 +1,111 @@
+{
+  "worker": "02",
+  "branch": "codex/art-worker-02",
+  "baseCommit": "3312deeabeb4ad5774d2902deabbfb08957da872",
+  "generationCalls": 8,
+  "note": "初回は新規5回＋修正2回の上限7回で停止。ユーザーの追加修正指示により1回追加し累計8回。全5枚ready。原画・修正前原画・担当記録のみ変更。WebP変換、build.py、queue.json、本文・基準画像・登録ファイルは未変更。PR作成・mainマージなし。",
+  "scenes": [
+    {
+      "id": "report_w24",
+      "path": "art/story-review/chapter6/report_w24.png",
+      "state": "ready",
+      "generationCalls": 1,
+      "visualReview": "王と弟子の顔・衣装、王の膝掛け、上向きの視線、空席、床の杯、文字なし、主題の視認性を確認。見える手足に余分な部位なし。王の脚と奥の指は衣装・姿勢で隠れる。印の追加なし。",
+      "note": "原画保存済み",
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "5f5525bd780152f54ff7e9fe32a65b859db9f4597952d850d793c9760f8f7bc3"
+    },
+    {
+      "id": "mem_w25",
+      "path": "art/story-review/chapter6/mem_w25.png",
+      "state": "ready",
+      "generationCalls": 1,
+      "visualReview": "オルドとイザークの顔・衣装、左脚の氷の固定、腰の人形師道具、魂を受け止める氷壁、霞、文字なしを確認。オルドは腕2本脚2本、見える指に増殖なし。凍王の脚は氷と衣に隠れる。外套・刃・ランタン・弟子・一門の祖なし。縮小時も治療の主題が読める。",
+      "note": "原画保存済み",
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "80097baf1564580691ebfbae4874add930b1afda7d93673f4c00ee1ed82c4da9"
+    },
+    {
+      "id": "report_w25",
+      "path": "art/story-review/chapter6/report_w25.png",
+      "state": "ready",
+      "generationCalls": 2,
+      "visualReview": "肖像をイザークの若い姿に修正。弟子とは異なる顔・髪・衣装を確認。王の組んだ手、膝掛け、空席、床の杯、本文と一致。見える手足に増殖なし、隠れた指と王の脚は判別不可。文字なし、縮小時も肖像と王の視線が読める。",
+      "note": "肖像の修正済み。修正前はfixes/report_w25-before.png",
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "ba329acfaa3631fff984e44235ce2032c5f17efee7646c76405f6cdc195431c5"
+    },
+    {
+      "id": "irene_lineage",
+      "path": "art/story-review/chapter6/irene_lineage.png",
+      "state": "ready",
+      "generationCalls": 2,
+      "visualReview": "イレーヌの視線の先の一本の白い蝋燭、セラの胸の魂火、重ねた木の手、二人の顔・髪・衣装、額の承認済み印、黒鉄と金の継ぎ目を確認。見える手に余分な指なし。腕は各2本。脚と重なった指は画面外・姿勢で判別不可。文字なし。灯と手の主題が明瞭。",
+      "note": "蝋燭を視線の先へ配置する修正済み。修正前はfixes/irene_lineage-before.png",
+      "omittedReferences": [
+        {
+          "path": "art/story-review/chapter2/irene_roots.png",
+          "reason": "最大5枚。人物・セラ原画・小道具・印の基準を優先。館の造りは目視確認して指示へ反映。"
+        },
+        {
+          "path": "art/story-review/chapter1/irene_familiar.png",
+          "reason": "館の重複参照を省略し承認済みsigil.pngを追加。"
+        }
+      ],
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "5d7a8e9f63e7d2c95bdd236faad6e41792e12bf318f79f47cfb0e89848edc149"
+    },
+    {
+      "id": "ch6_end",
+      "path": "art/story-review/chapter6/ch6_end.png",
+      "state": "ready",
+      "generationCalls": 2,
+      "visualReview": "弟子の鞄が左腰に1つ、肩ひもが右肩から左腰へつながることを目視確認。弟子と4体の無顔の木の人業、衣装と道具、見える手足、印の追加なし、文字なし、氷の崩壊・上昇する魂・下へ落ちる滝が本文と一致。背面・長衣・握った手で隠れる指と脚は直接判別不可。",
+      "note": "追加指示による修正済み。鞄を左腰へ移し肩ひもを右肩から左腰へ接続。修正前はfixes/ch6_end-before.png。",
+      "additionalReferences": [
+        "docs/art/story-refs/dolls.png"
+      ],
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "06eb13be4d3267b441cf61bd1de9c7ecfdc54e5bc54df05b767aa19f69a0b1fa"
+    }
+  ],
+  "referenceHashes": {
+    "art/story-review/chapter1/irene_familiar.png": "806354ad01d8596a42d695def0128860fc8a3814955a418772a8dba504bf063e",
+    "art/story-review/chapter2/irene_roots.png": "deae75376fa0ba88d8cc78f0cc1b8297be9434755df56b6d87aa63d3c87802fb",
+    "art/story-review/chapter3/report_w12.png": "b78de38be4920cb89b2bd79c59e1a34431365b9e963b621e15611fb5f0fa6517",
+    "docs/art/sera/sera-r1-final.png": "4b392934b742ea80e10abfcb6d6e5362a0becb13162af0842797f2f892c5fe6c",
+    "docs/art/story-refs/ancients.png": "8736481148bcb2604c816bfc86238b2996f80f7c789d9c315cd25d47612e35f9",
+    "docs/art/story-refs/apprentice.png": "419a3d6797a8297866039b06f63b1ad79a907e800f68da7bf54b58b6858e89b2",
+    "docs/art/story-refs/dolls.png": "0815d62d79d2f2b4c7f491f4119bb7aa59acc7f43bc941c0559f7da194e316f6",
+    "docs/art/story-refs/irene.png": "6ad282363f77635736e4f6ab90d06649aa15b481e946b406f9b5564709627414",
+    "docs/art/story-refs/king.png": "341d51b7af8ae5fc6fe610902ad14b4cf95b57d2e56bcb419483a63321c4f978",
+    "docs/art/story-refs/morden.png": "b5934bc34a1d11e97e0fabe2cac71707b9a7c02201ffb21ec1669ec6a075b4d5",
+    "docs/art/story-refs/ordo-states.png": "f62bd7a6f8cbc0c9f9e620f0f90407bf907f07a0d26e9692f487cd3bf2343477",
+    "docs/art/story-refs/ordo.png": "7a51b182287aa1435f333ee6077b40f29e5c5db58d17fed3a4ca903fcaa0244d",
+    "docs/art/story-refs/props.png": "051a8f35cf00a15dfb3501cddb8f58964e5737d8d79001adbcc18135aa1309a9",
+    "docs/art/story-refs/sera.png": "341c64b2e2d3913f3cb6fe2f3ae66260a4899e588e416b098ab4433d5dcbba66",
+    "docs/art/story-refs/sigil.png": "7dfeb2dbb8eb7091557e1dd3f387b963b64b2fa4a20848c1c18734167fe47b6b"
+  },
+  "additionalAuthorization": "ユーザーの追加指示「要修正の画像を修正して、5枚とも完成したらイラストをここに表示」により修正を再開。前回7回で停止した履歴を保ち、追加生成を累計に加算。",
+  "integrationNote": "ユーザーのmainマージ指示を受け統合工程を実施。必須CIのためbuild.pyで担当5枚のWebP・登録・確認ページ・原画ハッシュを生成。本文・基準画像・共通queue.jsonは変更なし。"
+}

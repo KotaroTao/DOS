@@ -477,6 +477,7 @@ function peekTile(label, value, sub, cls) {
 }
 export function peekDoll(d, { idx = 0, combat = false } = {}) {
   if (!d) return null;
+  if (!combat) return UI.openParty(d, { context: G()?.state === "town" ? "town" : "dungeon", inPlace: true });
   const g = G();
   const b = combat && g && g.battle && g.battle.peekStats ? g.battle : null;
   const ps = b ? b.peekStats(d) : null;

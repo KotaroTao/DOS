@@ -50,13 +50,14 @@ import { kingCanvas, prewarmTown } from "./townart.js";
 import { prewarmStoryArt } from "./storyart.js";
 import { drawBattleBackdrop } from "./backdrops.js";
 import { paintCryptFloor, paintCryptSlabs, paintCryptWalls, CATACOMB, genericMaterial, boardSeed, hexRgb } from "./crypt.js";
+import { cryptPainting, paintCryptMaterials, paintCryptMasonry } from "./cryptpaint.js";
 import { showTitle } from "./title.js";
 import { RARITIES, rarityKey, rarityColor, rarityLabel, rollRarity, layerRarityUp } from "./rarity.js";
 // ---- UI 基盤 (Phase 0)。新しい UI モジュールは game.js を import せず、ctx.js の UI/game/ops を通す ----
 import { UI, ops, bindGame, registerUI } from "./ui/ctx.js";
 import { el, svgIcon, btn, button as kitButton, longPress as attachLongPress, uiBlocked, sheetDepth, sheet, toast as kitToast, setToastEcho, confirm as kitConfirm, plainText, shake as kitShake } from "./ui/kit.js";
 import { nav } from "./ui/nav.js";
-import { installPhraseWrap } from "./ui/phrase.js";
+import { installPhraseWrap, phrase, ZWSP } from "./ui/phrase.js";
 import * as townshell from "./ui/townshell.js";
 import { showSkillPopup,
   SPELL_KIND_COLOR, BUFF_NAME, tagRow, spellTagKinds, isEquippable, equipPreviewDelta, equipCompareEl, detailLines,
@@ -2411,7 +2412,7 @@ function tlWhere() {
 // ---- ボード描画 ----
 // 盤面と戦闘のキャンバスは論理座標 VW×VH で描く。VH は画面の縦の余りに合わせて伸縮し
 // (縦長の端末ほどカードが縦長の墓石になる)、実画素は端末の画素密度ぶん (VSX/VSY 倍) 持つ。
-// 床・墓石・壁は論理解像度で一度だけ焼いたドット絵を補間なしで拡大し、光と粒子だけを毎フレーム重ねる。
+// 床・墓石の原画を補間し、壁は2倍の解像度で合成する。光と粒子は表示先へ直接重ねる。
 const VW = 480;
 let VH = 320, VSX = 1, VSY = 1;
 const GAP = 4;                     // 墓石と墓石の間の溝 (壁はこの溝の上に立つ)
@@ -2426,6 +2427,25 @@ function layoutBoard() {
 layoutBoard();
 function cellRect(x, y) {
   return { x: OX + x * (CARD_W + GAP), y: OY + y * (CARD_H + GAP), w: CARD_W, h: CARD_H };
+}
+// 小さい画面では盤面の一部を拡大する。カメラは保存状態や探索の結果に触れない。
+const boardCamera = { zoom: 1, x: 0, y: 0, overview: false, manual: false, board: null, px: -1, py: -1 };
+function updateBoardCamera() {
+  const c = boardCamera, width = view.clientWidth || VW;
+  c.zoom = window.innerWidth <= 600 && !c.overview ? Math.max(1, 64 * VW / (width * Math.min(CARD_W, CARD_H))) : 1;
+  if (c.board !== G.board || c.px !== G.px || c.py !== G.py) {
+    c.manual = false; c.board = G.board; c.px = G.px; c.py = G.py;
+  }
+  if (!c.manual) {
+    const [x, y] = heroPos();
+    c.x = x - VW / c.zoom / 2; c.y = y - VH / c.zoom / 2;
+  }
+  clampBoardCamera();
+}
+function clampBoardCamera() {
+  const c = boardCamera;
+  c.x = Math.max(0, Math.min(VW - VW / c.zoom, c.x));
+  c.y = Math.max(0, Math.min(VH - VH / c.zoom, c.y));
 }
 // キャンバス座標 → マス (溝の上は null)
 function cellAt(sx, sy) {
@@ -2459,6 +2479,7 @@ function fitView(force = false) {
   if (!appEl || !screenEl) return false;
   const combat = G.state === "combat" || (G.state === "over" && !!G.battle);
   appEl.classList.toggle("in-combat", combat);
+  appEl.classList.toggle("board-camera-active", G.state === "board");
   const cssW = view.clientWidth || Math.round(view.getBoundingClientRect().width);
   if (!cssW) return false;
   const csA = getComputedStyle(appEl), csS = getComputedStyle(screenEl);
@@ -2469,9 +2490,9 @@ function fitView(force = false) {
     + outerH(topbarEl) + outerH(partyEl) + outerH(hintEl)
     + (csH ? (parseFloat(csH.paddingTop) || 0) + (parseFloat(csH.paddingBottom) || 0) : 0);
   if (combat) used += MENU_RESERVE + LOG_MIN_COMBAT + TURN_ORDER_H;
-  else used += outerH(runbarEl) + outerH(ctrlEl) + LOG_MIN_BOARD;
+  else used += outerH(runbarEl) + outerH(ctrlEl) + outerH(document.getElementById("board-camera-tools")) + LOG_MIN_BOARD;
   // 縦の短い画面では戦場も縮め、記録と命令板の領域を確保する。
-  const minVH = combat ? 140 : 240;
+  const minVH = combat ? (G.battle?.enemies.length > 3 ? 280 : 180) : 240;
   const h = Math.max(cssW * (combat ? minVH / VW : 0.56), Math.min(cssW * (combat ? 0.98 : 1.32), appH - used));
   const vh = Math.max(minVH, Math.round((VW * h) / cssW));
   const cssH = (vh * cssW) / VW;
@@ -2809,7 +2830,7 @@ function renderBoard() {
 
 // ===== 盤面の静的な層 (床・墓石・壁) =====
 // art: 床と墓石の絵 (盤面+寸法+層+階の性質ごと。戦闘で寸法が変わっても戻った時に焼き直さないよう数枚保持)
-// scene: 踏破状況を反映した合成 (めくるたびに作り直す。論理解像度なので軽い)
+// scene: 踏破状況を反映した合成 (めくるたびに作り直し、静止中は再利用する)
 const BV = { art: null, artKey: "", artCache: new Map(), scene: null, sctx: null, sceneKey: "", sceneHi: null, sceneHiKey: "",
   dark: null, dctx: null, darkBase: null, darkKey: "", parts: [], flipSeen: null };
 function ensureBoardArt() {
@@ -2817,19 +2838,23 @@ function ensureBoardArt() {
   const L = battleLayer();
   const sp = specialDef();
   const crypt = L === 1;
+  const painting = activeCfg().id === "w01" ? cryptPainting() : null;
   const seed = boardSeed(b, dungeonSeed(activeCfg()) * 7919 + G.floor);
   const hz = harmHaz();
-  const key = `${VW}x${VH}|${CARD_W}x${CARD_H}|${seed}|${L}|${G.eliteFloor ? "e" : ""}|${sp ? sp.id : ""}|${hz.name}`;
+  const key = `${VW}x${VH}|${CARD_W}x${CARD_H}|${seed}|${L}|${G.eliteFloor ? "e" : ""}|${sp ? sp.id : ""}|${hz.name}|${painting ? "painted" : "raster"}`;
   if (BV.artKey === key && BV.art) return BV.art;
   let art = BV.artCache.get(key);
   if (!art) {
     const mat = crypt ? CATACOMB : genericMaterial(dungeonTheme());
     const opt = { seed, cols: COLS, rows: ROWS, rect: cellRect, cells: b.cells, mat, elite: !!G.eliteFloor, accent: crypt && sp ? hexRgb(sp.accent) : null, harmStain: hz.look.stain, harmFx: hz.look.fx };
-    const fl = paintCryptFloor(VW, VH, opt);
-    const slabs = crypt ? paintCryptSlabs(VW, VH, opt) : paintOldCardBacks();
-    art = { key, seed, floor: fl.canvas, candles: fl.candles, slabs, mat, crypt };
+    if (painting) art = { key, seed, mat, crypt, ...paintCryptMaterials(VW, VH, opt, painting) };
+    else {
+      const fl = paintCryptFloor(VW, VH, opt);
+      const slabs = crypt ? paintCryptSlabs(VW, VH, opt) : paintOldCardBacks();
+      art = { key, seed, floor: fl.canvas, candles: fl.candles, slabs, mat, crypt, scale: 1 };
+    }
     BV.artCache.set(key, art);
-    while (BV.artCache.size > 3) BV.artCache.delete(BV.artCache.keys().next().value);
+    while (BV.artCache.size > 2) BV.artCache.delete(BV.artCache.keys().next().value);
   }
   BV.art = art; BV.artKey = key; BV.sceneKey = "";
   return art;
@@ -2855,21 +2880,22 @@ function paintOldCardBacks() {
 }
 function ensureBoardScene() {
   const art = ensureBoardArt();
-  const cells = G.board.cells;
+  const cells = G.board.cells, sourceScale = art.scale, sceneScale = Math.max(2, sourceScale);
   let sig = BV.artKey + "|" + (G.flipAnim ? G.flipAnim.x + "," + G.flipAnim.y : "") + "|";
   for (const row of cells) for (const c of row) sig += c.revealed ? "1" : "0";
   if (sig === BV.sceneKey && BV.scene) return;
   BV.sceneKey = sig;
-  if (!BV.scene || BV.scene.width !== VW || BV.scene.height !== VH) {
+  if (!BV.scene || BV.scene.width !== VW * sceneScale || BV.scene.height !== VH * sceneScale) {
     BV.scene = document.createElement("canvas");
-    BV.scene.width = VW; BV.scene.height = VH;
+    BV.scene.width = VW * sceneScale; BV.scene.height = VH * sceneScale;
     BV.sctx = BV.scene.getContext("2d");
   }
   const g = BV.sctx;
-  g.setTransform(1, 0, 0, 1, 0, 0);
-  g.globalCompositeOperation = "source-over"; g.globalAlpha = 1; g.imageSmoothingEnabled = false;
+  g.setTransform(sceneScale, 0, 0, sceneScale, 0, 0);
+  g.globalCompositeOperation = "source-over"; g.globalAlpha = 1; g.imageSmoothingEnabled = true;
+  g.imageSmoothingQuality = "high";
   // 1) 盤全体の床を闇に沈める (蓋の下と溝)
-  g.drawImage(art.floor, 0, 0);
+  g.drawImage(art.floor, 0, 0, VW, VH);
   g.fillStyle = G.eliteFloor ? "rgba(10,2,3,0.78)" : "rgba(4,3,5,0.78)";
   g.fillRect(0, 0, VW, VH);
   const rev = (x, y) => x >= 0 && y >= 0 && x < COLS && y < ROWS && cells[y][x].revealed;
@@ -2880,14 +2906,14 @@ function ensureBoardScene() {
     const c = cells[y][x], r = cellRect(x, y);
     const x0 = r.x - (!c.walls.w && rev(x - 1, y) ? half : 0), x1 = r.x + r.w + (!c.walls.e && rev(x + 1, y) ? half : 0);
     const y0 = r.y - (!c.walls.n && rev(x, y - 1) ? half : 0), y1 = r.y + r.h + (!c.walls.s && rev(x, y + 1) ? half : 0);
-    g.drawImage(art.floor, x0, y0, x1 - x0, y1 - y0, x0, y0, x1 - x0, y1 - y0);
+    g.drawImage(art.floor, x0 * sourceScale, y0 * sourceScale, (x1 - x0) * sourceScale, (y1 - y0) * sourceScale, x0, y0, x1 - x0, y1 - y0);
   }
   for (let j = 1; j < ROWS; j++) for (let i = 1; i < COLS; i++) {
     if (!rev(i - 1, j - 1) || !rev(i, j - 1) || !rev(i - 1, j) || !rev(i, j)) continue;
     const a = cells[j - 1][i - 1], d = cells[j][i];
     if (a.walls.e || a.walls.s || d.walls.n || d.walls.w) continue;
     const r = cellRect(i, j);
-    g.drawImage(art.floor, r.x - GAP, r.y - GAP, GAP, GAP, r.x - GAP, r.y - GAP, GAP, GAP);
+    g.drawImage(art.floor, (r.x - GAP) * sourceScale, (r.y - GAP) * sourceScale, GAP * sourceScale, GAP * sourceScale, r.x - GAP, r.y - GAP, GAP, GAP);
   }
   // 3) 墓石の蓋 (落ち影 → 本体)
   g.fillStyle = "rgba(0,0,0,0.55)";
@@ -2899,7 +2925,7 @@ function ensureBoardScene() {
   for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
     if (rev(x, y)) continue;
     const r = cellRect(x, y);
-    g.drawImage(art.slabs, r.x, r.y, r.w, r.h, r.x, r.y, r.w, r.h);
+    g.drawImage(art.slabs, r.x * sourceScale, r.y * sourceScale, r.w * sourceScale, r.h * sourceScale, r.x, r.y, r.w, r.h);
   }
   // 4) 踏破したマスの石壁 (共有する辺は一度だけ) と交点の柱頭
   const walls = [], posts = new Map(), seen = new Set();
@@ -2913,7 +2939,8 @@ function ensureBoardScene() {
     if (c.walls.w && !seen.has(`v${x},${y}`)) { seen.add(`v${x},${y}`); walls.push({ x: L - 3, y: T, w: 6, h: B - T, horiz: false }); post(L, T); post(L, B); }
     if (c.walls.e && !seen.has(`v${x + 1},${y}`)) { seen.add(`v${x + 1},${y}`); walls.push({ x: R - 3, y: T, w: 6, h: B - T, horiz: false }); post(R, T); post(R, B); }
   }
-  paintCryptWalls(g, walls, [...posts.values()], art.mat, art.seed);
+  if (art.painting) paintCryptMasonry(g, walls, [...posts.values()], art.painting, art.seed);
+  else paintCryptWalls(g, walls, [...posts.values()], art.mat, art.seed);
   BV.sceneHiKey = "";
 }
 // 合成済みの盤面を実画素の寸法へ拡大した写し (毎フレームは等倍で貼るだけにする)
@@ -2925,7 +2952,8 @@ function boardSceneHi() {
     BV.sceneHi.width = view.width; BV.sceneHi.height = view.height;
   }
   const g = BV.sceneHi.getContext("2d");
-  g.imageSmoothingEnabled = false;
+  g.imageSmoothingEnabled = !!BV.art.painting;
+  g.imageSmoothingQuality = "high";
   g.drawImage(BV.scene, 0, 0, view.width, view.height);
   BV.sceneHiKey = key;
   return BV.sceneHi;
@@ -3039,14 +3067,22 @@ function heroPos() {
 function drawBoardFrame() {
   if (!G.board) return;
   const now = performance.now();
+  updateBoardCamera();
   ensureBoardScene();
   vctx.setTransform(1, 0, 0, 1, 0, 0);
   vctx.globalCompositeOperation = "copy";
   vctx.globalAlpha = 1;
-  vctx.drawImage(boardSceneHi(), 0, 0);
-  vctx.globalCompositeOperation = "source-over";
+  // 拡大前の画面を引き伸ばさず、表示先の画素へ直接描く。
+  // 床と墓石だけを補間し、枠・光・粒子は拡大後の座標で描く。
+  const camera = boardCamera;
   viewTransform();
-  vctx.imageSmoothingEnabled = false;
+  vctx.scale(camera.zoom, camera.zoom);
+  vctx.translate(-camera.x, -camera.y);
+  vctx.imageSmoothingEnabled = camera.zoom > 1;
+  vctx.imageSmoothingQuality = "high";
+  if (camera.zoom > 1) vctx.drawImage(BV.scene, 0, 0, VW, VH);
+  else vctx.drawImage(boardSceneHi(), 0, 0, VW, VH);
+  vctx.globalCompositeOperation = "source-over";
   const [hx, hy] = heroPos();
   const lt = boardLight(hx - CARD_W * 0.18, hy, now);
   const srcs = boardLightSources(now);
@@ -3063,6 +3099,7 @@ function drawBoardFrame() {
   drawBoardParticles(lt, now);
   vctx.globalCompositeOperation = "source-over";
   vctx.globalAlpha = 1;
+  viewTransform();
 }
 
 // 迷宮の台帳で置いている足元の仕掛け (出撃画面の「足元」)。{ fall, harm } = 定義 or null
@@ -3670,9 +3707,10 @@ function drawFlipSlab(now) {
   vctx.fillStyle = "#000";
   vctx.fillRect(r.x + ox + 2 + lift * 5, r.y + oy + 4 + lift * 7, r.w, r.h);
   vctx.globalAlpha = a;
-  vctx.imageSmoothingEnabled = false;
+  vctx.imageSmoothingEnabled = !!BV.art.painting || boardCamera.zoom > 1;
+  const sourceScale = BV.art.scale;
   const W = r.w * sc, H = r.h * sc;
-  vctx.drawImage(BV.art.slabs, r.x, r.y, r.w, r.h, r.x + r.w / 2 - W / 2 + ox, r.y + r.h / 2 - H / 2 + oy, W, H);
+  vctx.drawImage(BV.art.slabs, r.x * sourceScale, r.y * sourceScale, r.w * sourceScale, r.h * sourceScale, r.x + r.w / 2 - W / 2 + ox, r.y + r.h / 2 - H / 2 + oy, W, H);
   vctx.restore();
 }
 
@@ -3759,15 +3797,13 @@ function drawHoodedWalker(wk, hx, hy, now) {
   } else if (!REDUCED_MOTION) bob = (Math.floor(now / 620) % 2) ? -k : 0;
   // 影 (浮遊中も地面に残す)
   drawWalkerShadow(x, feet, [Math.max(CARD_W * 0.3, W * 0.42), Math.max(CARD_W * 0.18, W * 0.26)], [0.32, 0.55], lift, now);
-  // 端末の画素の格子へ吸着させて、整数倍・補間なしで描く
+  // 論理座標で置き、盤面のカメラ変換を保つ。
   const dx = Math.round(x * VSX - Wd / 2);
   const dy = Math.round((feet + 1) * VSY - Hd) + bob;
   vctx.save();
-  vctx.setTransform(1, 0, 0, 1, 0, 0);
-  vctx.imageSmoothingEnabled = false;
-  vctx.drawImage(b.c, dx, dy, Wd, Hd);
+  vctx.imageSmoothingEnabled = boardCamera.zoom > 1;
+  vctx.drawImage(b.c, dx / VSX, dy / VSY, Wd / VSX, Hd / VSY);
   vctx.restore();
-  viewTransform();
   // 手に提げた角灯の灯り (絵に描かれた灯の位置に、揺らぐ光暈だけを重ねる。籠は絵のものを使う)
   const lp = walkerLampSpot(wk);
   drawLanternGlow((dx + (b.pad + lp.x + 0.5) * k) / VSX, (dy + (b.pad + lp.y + 0.5) * k) / VSY, now);
@@ -9041,14 +9077,14 @@ function renderCombatCanvas() {
   });
 
   // 戦場の縦の伸び (縦長の戦場ほど魔物を大きく)
-  const k = VH < 240 ? 0.92 * VH / 240 : Math.max(0.92, Math.min(1.3, VH / 330));
+  const k = Math.max(0.92, Math.min(1.3, VH / 280));
   // 隊列: 4体以上は前衛(先頭3体)・後衛(4体目以降)の2列に分かれる。
-  // 奥に立つ後衛から先に描き、前衛を手前に重ねて遠近を出す
+  // 後衛を上、前衛を下の帯に置く。
   const frontRow = b.enemies.slice(0, 3);
   const backRow = b.enemies.slice(3);
   const rows = backRow.length
-    ? [{ list: backRow, y: VH * 0.31, back: true }, { list: frontRow, y: VH * 0.5, back: false }]
-    : [{ list: frontRow, y: VH * 0.41, back: false }];
+    ? [{ list: backRow, back: true }, { list: frontRow, back: false }]
+    : [{ list: frontRow, back: false }];
   const intro = G.battleIntro && G.battleIntro.battle === b ? G.battleIntro : null;
   // 奇襲の1ターン目は、魔物の下に紅い縁と「敵が先に動く」の札を敷く (名札が重なれば名札を優先)
   if (!intro && b.opening === "ambush" && b._roundNo <= 1 && !b.result) drawAmbushTag(now);
@@ -9061,29 +9097,39 @@ function renderCombatCanvas() {
   const strongTarget = b.phase === "target";
   G.enemyPos = {};
   // 魔物の大きさ: 主は戦場を圧し、強敵は一回り大きく、後衛は奥で小さく。横に並ぶ数ぶんの幅に収める
+  for (const row of rows) {
+    row.plates = row.list.map((e) => enemyPlateLayout(e, VW / row.list.length - 12));
+    row.plateH = Math.max(...row.plates.map((p) => p.height));
+  }
+  const bandH = VH / rows.length;
   const sizeOf = (e, back, n) => {
     let sz = (e.boss ? 14 : (e.mon && e.mon.elite ? 1.15 : 1) * (back ? 8 : 9)) * k;
     if (e.mon && (e.mon.art || e.mon.photo)) {
       const bm = monsterBitmap(e.mon);
       const unit = Math.max(12, bm.w, bm.h) / 12;
-      const slot = (VW / (n + 1)) * (n > 1 ? 1.12 : 1.6);
+      const slot = VW / n - 16;
       sz = Math.min(sz, (slot / (bm.w + bm.pad * 2)) * unit);
     }
-    return sz;
+    // 名札と効果の札を残し、背の高い魔物も戦場からはみ出させない。
+    const row = rows.find((r) => r.back === back);
+    const maxHalfH = Math.max(8, (bandH - row.plateH - 35) / 2);
+    return Math.min(sz, sz * maxHalfH / monsterHalfH(e.mon, sz));
   };
   for (const row of rows) {
+    const { plates, plateH } = row;
     // この列の名札の高さを揃える (いちばん背の高い魔物の足元の下)
-    let foot = 0, head = 0;
-    for (const e of row.list) { const hh = monsterHalfH(e.mon, sizeOf(e, row.back, row.list.length)); foot = Math.max(foot, hh); head = Math.max(head, hh); }
-    // 短い戦場でも、後衛の名札を上端、前衛の名札を下端で切らない。
-    if (VH < 240) row.y = row.back ? Math.max(row.y, head + 32) : Math.min(row.y, VH - foot - 30);
-    const plateY = row.back ? row.y - head - 30 : row.y + foot + 7;
+    let foot = 0;
+    for (const e of row.list) { const hh = monsterHalfH(e.mon, sizeOf(e, row.back, row.list.length)); foot = Math.max(foot, hh); }
+    // 前後それぞれの帯に姿と名前を収め、名札が別の敵に隠れないようにする。
+    const bandTop = rows.indexOf(row) * bandH;
+    row.y = bandTop + 10 + (bandH - plateH - 35) / 2;
+    const plateY = row.y + foot + 7;
     row.list.forEach((e, i) => {
-      const baseX = (VW / (row.list.length + 1)) * (i + 1);
+      const baseX = (VW / row.list.length) * (i + 0.5);
       const baseY = row.y;
       const size = sizeOf(e, row.back, row.list.length);
       const hh = monsterHalfH(e.mon, size);
-      G.enemyPos[e.uid] = { cx: baseX, cy: baseY, r: 70 * k, hh, size };
+      G.enemyPos[e.uid] = { cx: baseX, cy: baseY, r: 70 * k, hh, size, plate: { x: baseX - plates[i].width / 2, y: plateY, w: plates[i].width, h: plates[i].height } };
       // 逃げ出した敵 (金属の魔物): 逃げる演出の間だけ、横へ駆け去る姿を描く
       const fleeFx = e._fled && fx && fx.fleeAway && fx.fleeAway.uid === e.uid ? fx.fleeAway : null;
       if (e._fled && !fleeFx) return;
@@ -9177,15 +9223,13 @@ function renderCombatCanvas() {
       // 名札 + 血の小瓶 (HP)
       // 名前・HP は討伐数で明かす (enemyReveal): 名前は1体倒すまで不確定名、HP の小瓶は5体倒すまで出さない (迷宮の主は名前が最初から、HP は1体で)
       if (fleeFx) return; // 逃げる姿には名札を付けない
-      drawEnemyPlate(e, baseX, plateY, tappable && strongTarget, k);
-      const hpY = plateY + 17;
+      drawEnemyPlate(e, baseX, plateY, tappable && strongTarget, plates[i]);
+      const hpY = plateY + plateH + 2;
       const showHp = enemyReveal(e).stats;
       if (showHp) drawEnemyHpVial(e, baseX, hpY, now, k);
-      // 状態異常の札は名前の下 (HP の小瓶があればその下)。バフ/デバフ (味方カードの buffBadges に相当) は
-      // 前衛なら同じ段に続けて、後衛はプレートの上 (下に並べると奥の魔物の頭に掛かるため)
-      const statY = showHp ? hpY + 9 : plateY + 18;
-      if (row.back) { drawEnemyBadges(e, baseX, statY, { buffs: false }); drawEnemyBadges(e, baseX, plateY - 15, { ails: false }); }
-      else drawEnemyBadges(e, baseX, statY);
+      // 状態異常と強化・弱体の札は名前の下 (HP の小瓶があればその下)。
+      const statY = showHp ? hpY + 9 : plateY + plateH + 3;
+      drawEnemyBadges(e, baseX, statY);
     });
   }
 
@@ -9364,13 +9408,34 @@ function drawTargetBrackets(x, cy, hh, size, now) {
 // 敵の名札: 両端の尖った黒鉄の札。主は金、強敵は紅の縁。属性 (明かされていれば) は札の右に印で添える
 const ENEMY_SEAL = { poison: ["毒", "#8ee05a"], paralyze: ["痺", "#ffd84a"], stone: ["石", "#c9c4b8"] };
 const MIND_SEAL = { charm: ["魅", "#ff8fc8"], confuse: ["乱", "#ffa860"] };
-function drawEnemyPlate(e, x, y, hot, k) {
+// 名前は戦場の高さでは縮めず、長いものは札の幅で折り返す。
+function enemyPlateLayout(e, maxWidth) {
   vctx.save();
-  vctx.font = `800 ${Math.round(11 * Math.min(k, 1.1))}px ${CANVAS_SERIF}`;
+  vctx.font = `800 16px ${CANVAS_SERIF}`;
+  const lines = [];
+  let line = "";
+  for (const part of phrase(enemyLabel(e)).split(ZWSP)) {
+    if (line && vctx.measureText(line + part).width > maxWidth - 38) {
+      lines.push(line); line = "";
+    }
+    // 一つの文節だけで幅を超える場合に限り、字ごとに折る。
+    for (const ch of part) {
+      if (line && vctx.measureText(line + ch).width > maxWidth - 38) {
+        lines.push(line); line = "";
+      }
+      line += ch;
+    }
+  }
+  if (line) lines.push(line);
+  const width = Math.max(...lines.map((s) => vctx.measureText(s).width)) + 22;
+  vctx.restore();
+  return { lines, width, height: lines.length * 19 + 5 };
+}
+function drawEnemyPlate(e, x, y, hot, plate) {
+  vctx.save();
+  vctx.font = `800 16px ${CANVAS_SERIF}`;
   vctx.textAlign = "center"; vctx.textBaseline = "middle";
-  const label = enemyLabel(e);
-  const tw = vctx.measureText(label).width;
-  const pw = tw + 22, ph = 15, x0 = x - pw / 2, x1 = x + pw / 2;
+  const pw = plate.width, ph = plate.height, x0 = x - pw / 2, x1 = x + pw / 2;
   vctx.beginPath();
   vctx.moveTo(x0 + 6, y); vctx.lineTo(x1 - 6, y); vctx.lineTo(x1, y + ph / 2); vctx.lineTo(x1 - 6, y + ph); vctx.lineTo(x0 + 6, y + ph); vctx.lineTo(x0, y + ph / 2); vctx.closePath();
   const g = vctx.createLinearGradient(0, y, 0, y + ph);
@@ -9388,7 +9453,7 @@ function drawEnemyPlate(e, x, y, hot, k) {
   // 不確定名 (まだ名を知らない敵) は淡い藤色で、正式な名と見分ける
   vctx.fillStyle = enemyUnknown(e) ? UNKNOWN_COLOR : e.boss ? "#ffe0a0" : "#efe3cb";
   vctx.shadowColor = "#000"; vctx.shadowBlur = 0; vctx.shadowOffsetY = 1;
-  vctx.fillText(label, x, y + ph / 2 + 0.5);
+  plate.lines.forEach((line, i) => vctx.fillText(line, x, y + 12 + i * 19));
   vctx.shadowOffsetY = 0;
   // 右に添える印は属性だけ (図鑑で属性が明かされた敵 / 弱点看破)。状態異常は名前の下の札 (enemyAilSeals → drawEnemyBadges)
   if (e.element && e.element !== "none" && ELEMENTS[e.element] && enemyElemKnown(e)) {
@@ -10066,6 +10131,8 @@ function nearestEnemyAt(sx, sy, allowed = null) {
     if (!e.alive || (allowed && !allowed.includes(e))) continue;
     const pos = G.enemyPos[e.uid];
     if (!pos) continue;
+    const plate = pos.plate;
+    if (plate && sx >= plate.x && sx <= plate.x + plate.w && sy >= plate.y && sy <= plate.y + plate.h) return e;
     const d = Math.hypot(sx - pos.cx, sy - pos.cy);
     if (d < bestD) { bestD = d; best = e; }
   }
@@ -17216,13 +17283,59 @@ view.addEventListener("pointermove", (e) => { if (_enemyHold && !_enemyHold.fire
 for (const ev of ["pointerup", "pointercancel", "pointerleave"]) view.addEventListener(ev, () => { if (_enemyHold && !_enemyHold.fired) { clearTimeout(_enemyHold.t); _enemyHold = null; } });
 view.addEventListener("contextmenu", (e) => { if (G.state === "combat") e.preventDefault(); });
 
+// 盤面のドラッグは見渡す操作。隊の札からのフリックは従来どおり歩く。
+let boardPan = null, boardPanClick = false;
+view.addEventListener("pointerdown", (e) => {
+  boardPanClick = false;
+  if (!e.isPrimary || e.button !== 0 || G.state !== "board" || uiBlocked() || boardCamera.zoom === 1) return;
+  boardPan = { id: e.pointerId, x: e.clientX, y: e.clientY, cx: boardCamera.x, cy: boardCamera.y };
+  view.setPointerCapture(e.pointerId);
+});
+view.addEventListener("pointermove", (e) => {
+  if (!boardPan || boardPan.id !== e.pointerId) return;
+  if (G.state !== "board" || uiBlocked()) { boardPan = null; return; }
+  const dx = e.clientX - boardPan.x, dy = e.clientY - boardPan.y;
+  if (!boardPanClick && Math.hypot(dx, dy) < 8) return;
+  boardPanClick = true;
+  const rect = view.getBoundingClientRect();
+  boardCamera.manual = true;
+  boardCamera.x = boardPan.cx - dx * VW / rect.width / boardCamera.zoom;
+  boardCamera.y = boardPan.cy - dy * VH / rect.height / boardCamera.zoom;
+  clampBoardCamera();
+  drawBoardFrame();
+});
+for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) view.addEventListener(type, (e) => {
+  if (boardPan && boardPan.id === e.pointerId) boardPan = null;
+});
+const boardOverviewBtn = document.getElementById("board-overview");
+boardOverviewBtn.addEventListener("click", () => {
+  boardCamera.overview = !boardCamera.overview;
+  boardCamera.manual = false;
+  boardOverviewBtn.textContent = boardCamera.overview ? "拡大" : "全体";
+  boardOverviewBtn.setAttribute("aria-pressed", String(boardCamera.overview));
+  document.getElementById("board-camera-hint").textContent = boardCamera.overview ? "全体を表示中" : "ドラッグで見渡す";
+  drawBoardFrame();
+});
+document.getElementById("board-center").addEventListener("click", () => {
+  boardCamera.overview = false; boardCamera.manual = false;
+  boardOverviewBtn.textContent = "全体";
+  boardOverviewBtn.setAttribute("aria-pressed", "false");
+  document.getElementById("board-camera-hint").textContent = "ドラッグで見渡す";
+  drawBoardFrame();
+});
+
 view.addEventListener("click", (e) => {
+  if (boardPanClick) { boardPanClick = false; return; }
   if (G._swiped) { G._swiped = false; return; } // 直前のスワイプ由来の click は無視
   if (_enemyHold && _enemyHold.fired) { _enemyHold = null; return; } // 長押しで敵を覗いた直後
   _enemyHold = null;
   const rect = view.getBoundingClientRect();
-  const sx = (e.clientX - rect.left) * (VW / rect.width);
-  const sy = (e.clientY - rect.top) * (VH / rect.height);
+  let sx = (e.clientX - rect.left) * (VW / rect.width);
+  let sy = (e.clientY - rect.top) * (VH / rect.height);
+  if (G.state === "board") {
+    sx = sx / boardCamera.zoom + boardCamera.x;
+    sy = sy / boardCamera.zoom + boardCamera.y;
+  }
   // 戦闘中にオート戦闘なら、画面のどこをタップしても解除 (演出中もOK)
   if (G.state === "combat" && G.autoCombat) { buzz(10); stopAutoCombat(); return; }
   // 戦闘中: 敵スプライトを直接タップ
@@ -17327,6 +17440,7 @@ document.addEventListener("pointerdown", (e) => {
   // (メンバーカード等 SWIPE_IGNORE をタップした際にループが走り続けると、
   //  移動に伴う renderParty() でカードDOMが作り直されてタップ(openStatus)が失われる)
   stopSwipe();
+  if (e.target === view && G.state === "board" && window.innerWidth <= 600) return;
   const onParty = G.state === "board" && !uiBlocked() && e.target.closest("#party");
   if (!onParty && e.target.closest(SWIPE_IGNORE)) return;
   swipe = { x: e.clientX, y: e.clientY, dir: null, party: !!onParty };
