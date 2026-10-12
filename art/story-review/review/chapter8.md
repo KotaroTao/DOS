@@ -1,13 +1,13 @@
 # 第8章「嵐の尖塔」 の絵
 
 書き出し: `node tools/storyart/review.mjs` (手で直さない)。絵は出荷する WebP、まだ無ければ原画。
-
+ゲームで小さく出た時の見え方 (384×256): [chapter8-small.jpg](chapter8-small.jpg)
 
 <a name="w30_stick"></a>
 
-## w30_stick「雷にくれてやった杖」 ── 未着手 (指示あり)
+## w30_stick「雷にくれてやった杖」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter8/w30_stick.webp" width="576" alt="w30_stick">
 
 **ストーリー一覧の本文**
 
@@ -41,9 +41,9 @@ _(絵はまだ無い)_
 
 <a name="report_w30"></a>
 
-## report_w30「鳴りやまぬ雷」 ── 未着手 (指示あり)
+## report_w30「鳴りやまぬ雷」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter8/report_w30.webp" width="576" alt="report_w30">
 
 **ストーリー一覧の本文**
 
@@ -69,9 +69,9 @@ _(絵はまだ無い)_
 
 <a name="w31_bell"></a>
 
-## w31_bell「空へ還る鐘」 ── 未着手 (指示あり)
+## w31_bell「空へ還る鐘」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter8/w31_bell.webp" width="576" alt="w31_bell">
 
 **ストーリー一覧の本文**
 
@@ -101,9 +101,9 @@ _(絵はまだ無い)_
 
 <a name="report_w31"></a>
 
-## report_w31「同じ問い」 ── 未着手 (指示あり)
+## report_w31「同じ問い」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter8/report_w31.webp" width="576" alt="report_w31">
 
 **ストーリー一覧の本文**
 

@@ -1,7 +1,7 @@
 # 第9章「闘技場跡」 の絵
 
 書き出し: `node tools/storyart/review.mjs` (手で直さない)。絵は出荷する WebP、まだ無ければ原画。
-
+ゲームで小さく出た時の見え方 (384×256): [chapter9-small.jpg](chapter9-small.jpg)
 
 <a name="w34_glove"></a>
 

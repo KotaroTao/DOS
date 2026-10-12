@@ -1,0 +1,116 @@
+{
+  "worker": "05",
+  "branch": "codex/art-worker-05",
+  "base_commit": "9990e76f75299e2b347b9354a7872cd384c9cc07",
+  "generation_limit": 15,
+  "generation_count": 8,
+  "items": [
+    {
+      "id": "ch7_end",
+      "path": "art/story-review/chapter7/ch7_end.png",
+      "status": "ready",
+      "generation_count": 2,
+      "visual_check": "目視確認済み。弟子の背面・金刺繍・左腰鞄・橙の灯、人業4体の無顔の木頭・衣装・手足を確認。握った指と衣服下の脚は一部隠れる。静かな沼の魂火、地下縦穴の塔と開いた扉・上る階段、雷を確認。無人建物の灯を修正。印の主題なし、読める文字なし。",
+      "references": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/dolls.png"
+      ],
+      "prompt_command": "node tools/storyart/prompt.mjs ch7_end",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "17ed9e9986504c4ef10afcd5feb21f05f7e8e3d78d510614adf664f33ed5f0b7"
+    },
+    {
+      "id": "w30_stick",
+      "path": "art/story-review/chapter8/w30_stick.png",
+      "status": "ready",
+      "generation_count": 2,
+      "visual_check": "目視確認済み。弟子の顔・金刺繍・左腰鞄・橙の灯と両手、膝をついた姿を確認。衣服に隠れた脚と握った指は一部判別不可。折れた木杖の握り下の黒鉄継ぎ目、焦げ跡、石で押さえた判読不能の紙、上昇する螺旋階段を確認。柱の手形を除き鎖の擦れへ修正。印の主題なし。",
+      "references": [
+        "docs/art/story-refs/apprentice.png"
+      ],
+      "prompt_command": "node tools/storyart/prompt.mjs w30_stick",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "425f7f92c0af971e19cb65e6f27e80a19432159b140aafc8f4c08c6574a40181"
+    },
+    {
+      "id": "report_w30",
+      "path": "art/story-review/chapter8/report_w30.png",
+      "status": "ready",
+      "generation_count": 2,
+      "visual_check": "目視確認済み。弟子と老王の顔・見える手に余分な指なし、衣装・膝掛け・窓へ向く顔・雷雲・空席を確認。弟子の奥側の腕と脚、王の脚は隠れる。王の金の杯は床に1つ。余分な容器を除去。読める文字なし。先の青空や宰相を出していない。",
+      "references": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/king.png",
+        "docs/art/story-refs/morden.png",
+        "art/story-review/chapter3/report_w12.png"
+      ],
+      "prompt_command": "node tools/storyart/prompt.mjs report_w30",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "c256bc4ab46d706816a80f6a0e0f319c044bc8a0d9591558107e4797a30dbebf"
+    },
+    {
+      "id": "w31_bell",
+      "path": "art/story-review/chapter8/w31_bell.png",
+      "status": "ready",
+      "generation_count": 1,
+      "visual_check": "目視確認済み。弟子の横顔・両腕・見える手指・しゃがむ脚、左腰鞄・橙の灯を確認。一部の脚は衣服で隠れる。大鐘内側の縁に左親指1・右指3の幾何学印と独立した炎、削られた銘と判読不能の書き足し。大鐘に触れる手、他の吊り鐘、雨と雷、無人の鐘楼を確認。",
+      "references": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/props.png",
+        "docs/art/story-refs/sigil.png"
+      ],
+      "prompt_command": "node tools/storyart/prompt.mjs w31_bell",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "65294773cfb6b29affc85e0b41a3b02fbcde1943f5962a0bee80eb62125eff70"
+    },
+    {
+      "id": "report_w31",
+      "path": "art/story-review/chapter8/report_w31.png",
+      "status": "ready",
+      "generation_count": 1,
+      "visual_check": "目視確認済み。王の閉じた目と傾けた頭、膝掛け上の両手、待つ弟子の横顔・見える手と衣装を確認。奥の腕・衣服と膝掛けの下の脚・組んだ指の一部は隠れる。空席、雨の窓・遠雷、床の金の杯を確認。読める文字なし。青空や宰相など先の秘密なし。",
+      "references": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/king.png",
+        "docs/art/story-refs/morden.png",
+        "art/story-review/chapter3/report_w12.png"
+      ],
+      "prompt_command": "node tools/storyart/prompt.mjs report_w31",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "ae9740aa2df6cebe5e0041cd7094be74ada9fad86e1963f80188e8f111da5fba"
+    }
+  ],
+  "handoff": "原画5枚の制作・目視確認済み。ユーザーの変換・mainマージ指示によりbuild.pyでWebP変換・登録・確認ページを生成。登録・指示書・読み物の検査成功、縮小表示確認済み。生成8回、未完成なし。",
+  "integration": {
+    "status": "validated",
+    "command": "python3 tools/storyart/build.py",
+    "scenes": [
+      "ch7_end",
+      "w30_stick",
+      "report_w30",
+      "w31_bell",
+      "report_w31"
+    ],
+    "checks": [
+      "register.mjs --check: OK",
+      "prompt.mjs --check: OK",
+      "tools/journal/check.mjs: OK",
+      "縮小見本の目視確認: OK"
+    ]
+  }
+}
