@@ -77,19 +77,21 @@ function paintWax(g, x, y) {
 export function paintCryptMasonry(g, walls, posts, image, seed) {
   g.save(); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = "high";
   const block = (x, y, w, h, n) => {
-    g.fillStyle = "rgba(0,0,0,0.45)"; g.fillRect(x + 0.7, y + 1.3, w, h);
+    g.fillStyle = "rgba(0,0,0,0.72)"; g.fillRect(x - 1, y + 1.8, w + 2, h + 1.4);
     const sx = 1026 + n % 280, sy = 514 + (n * 7) % 280;
     g.drawImage(image, sx, sy, 160, 160, x, y, w, h);
+    // 床の暖かい暗色から、壁の冷たい明色と黒い側面を分離する。
+    g.fillStyle = "rgba(177,197,211,0.48)"; g.fillRect(x, y, w, h);
     const light = g.createLinearGradient(x, y, x + w * 0.2, y + h);
-    light.addColorStop(0, "rgba(228,215,183,0.18)"); light.addColorStop(0.4, "rgba(10,12,16,0.12)"); light.addColorStop(1, "rgba(4,6,10,0.55)");
+    light.addColorStop(0, "rgba(226,239,246,0.42)"); light.addColorStop(0.4, "rgba(80,104,124,0.08)"); light.addColorStop(1, "rgba(4,9,17,0.72)");
     g.fillStyle = light; g.fillRect(x, y, w, h);
-    g.lineWidth = 0.45; g.strokeStyle = "rgba(224,214,189,0.48)";
+    g.lineWidth = 0.7; g.strokeStyle = "rgba(221,239,250,0.85)";
     g.beginPath(); g.moveTo(x + 0.3, y + h - 0.3); g.lineTo(x + 0.3, y + 0.3); g.lineTo(x + w - 0.3, y + 0.3); g.stroke();
   };
   for (const wall of walls) {
     const rnd = makeRng(seed ^ Math.imul(wall.x + 7, 92837111) ^ Math.imul(wall.y + 3, 689287499));
     const length = wall.horiz ? wall.w : wall.h;
-    g.fillStyle = "#1d1c1b"; g.fillRect(wall.x - 0.3, wall.y - 0.3, wall.w + 0.6, wall.h + 0.6);
+    g.fillStyle = "#1d1c1b"; g.fillRect(wall.x - 0.8, wall.y - 0.8, wall.w + 1.6, wall.h + 1.6);
     for (let pos = 0; pos < length;) {
       const size = Math.min(length - pos, 9 + rnd() * 8), n = Math.floor(rnd() * 1000);
       if (wall.horiz) block(wall.x + pos, wall.y, Math.max(0.2, size - 0.5), wall.h, n);

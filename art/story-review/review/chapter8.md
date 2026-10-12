@@ -129,9 +129,9 @@
 
 <a name="irene_bell"></a>
 
-## irene_bell「鐘の節」 ── 未着手 (指示あり)
+## irene_bell「鐘の節」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter8/irene_bell.webp" width="576" alt="irene_bell">
 
 **ストーリー一覧の本文**
 
@@ -163,9 +163,9 @@ _(絵はまだ無い)_
 
 <a name="w32_rod"></a>
 
-## w32_rod「雷よけの巻き方」 ── 未着手 (指示あり)
+## w32_rod「雷よけの巻き方」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter8/w32_rod.webp" width="576" alt="w32_rod">
 
 **ストーリー一覧の本文**
 
@@ -195,9 +195,9 @@ _(絵はまだ無い)_
 
 <a name="report_w32"></a>
 
-## report_w32「地の底に吸われる雷」 ── 未着手 (指示あり)
+## report_w32「地の底に吸われる雷」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter8/report_w32.webp" width="576" alt="report_w32">
 
 **ストーリー一覧の本文**
 
@@ -223,9 +223,9 @@ _(絵はまだ無い)_
 
 <a name="mem_w33"></a>
 
-## mem_w33「縛られた魂」 ── 未着手 (指示あり)
+## mem_w33「縛られた魂」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter8/mem_w33.webp" width="576" alt="mem_w33">
 
 **ストーリー一覧の本文**
 
@@ -271,9 +271,9 @@ _(絵はまだ無い)_
 
 <a name="report_w33"></a>
 
-## report_w33「百年目の青空」 ── 未着手 (指示あり)
+## report_w33「百年目の青空」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter8/report_w33.webp" width="576" alt="report_w33">
 
 **ストーリー一覧の本文**
 

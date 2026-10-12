@@ -2,7 +2,7 @@
 
 書き出し: `node tools/storyart/review.mjs` (build.py も書き直す。手で直さない)。
 
-場面: 出荷済み 94 ・ 出荷済み (任意の修正あり) 14 ・ 未着手 (指示あり) 14
+場面: 出荷済み 99 ・ 出荷済み (任意の修正あり) 14 ・ 未着手 (指示あり) 9
 
 | 章 | 場面 | 題 | 状態 | 確認ページ |
 |---|---|---|---|---|
@@ -96,11 +96,11 @@
 | 第8章「嵐の尖塔」 | `report_w30` | 鳴りやまぬ雷 | 出荷済み | [見る](chapter8.md#report_w30) |
 | 第8章「嵐の尖塔」 | `w31_bell` | 空へ還る鐘 | 出荷済み | [見る](chapter8.md#w31_bell) |
 | 第8章「嵐の尖塔」 | `report_w31` | 同じ問い | 出荷済み | [見る](chapter8.md#report_w31) |
-| 第8章「嵐の尖塔」 | `irene_bell` | 鐘の節 | 未着手 (指示あり) | [見る](chapter8.md#irene_bell) |
-| 第8章「嵐の尖塔」 | `w32_rod` | 雷よけの巻き方 | 未着手 (指示あり) | [見る](chapter8.md#w32_rod) |
-| 第8章「嵐の尖塔」 | `report_w32` | 地の底に吸われる雷 | 未着手 (指示あり) | [見る](chapter8.md#report_w32) |
-| 第8章「嵐の尖塔」 | `mem_w33` | 縛られた魂 | 未着手 (指示あり) | [見る](chapter8.md#mem_w33) |
-| 第8章「嵐の尖塔」 | `report_w33` | 百年目の青空 | 未着手 (指示あり) | [見る](chapter8.md#report_w33) |
+| 第8章「嵐の尖塔」 | `irene_bell` | 鐘の節 | 出荷済み | [見る](chapter8.md#irene_bell) |
+| 第8章「嵐の尖塔」 | `w32_rod` | 雷よけの巻き方 | 出荷済み | [見る](chapter8.md#w32_rod) |
+| 第8章「嵐の尖塔」 | `report_w32` | 地の底に吸われる雷 | 出荷済み | [見る](chapter8.md#report_w32) |
+| 第8章「嵐の尖塔」 | `mem_w33` | 縛られた魂 | 出荷済み | [見る](chapter8.md#mem_w33) |
+| 第8章「嵐の尖塔」 | `report_w33` | 百年目の青空 | 出荷済み | [見る](chapter8.md#report_w33) |
 | 第8章「嵐の尖塔」 | `irene_rain` | 雨の音 | 出荷済み | [見る](chapter8.md#irene_rain) |
 | 第8章「嵐の尖塔」 | `ch8_end` | 雲の向こうの橋 | 出荷済み | [見る](chapter8.md#ch8_end) |
 | 第9章「闘技場跡」 | `w34_glove` | 置いていった手袋 | 出荷済み | [見る](chapter9.md#w34_glove) |
