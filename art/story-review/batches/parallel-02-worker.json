@@ -106,5 +106,6 @@
     "docs/art/story-refs/sera.png": "341c64b2e2d3913f3cb6fe2f3ae66260a4899e588e416b098ab4433d5dcbba66",
     "docs/art/story-refs/sigil.png": "7dfeb2dbb8eb7091557e1dd3f387b963b64b2fa4a20848c1c18734167fe47b6b"
   },
-  "additionalAuthorization": "ユーザーの追加指示「要修正の画像を修正して、5枚とも完成したらイラストをここに表示」により修正を再開。前回7回で停止した履歴を保ち、追加生成を累計に加算。"
+  "additionalAuthorization": "ユーザーの追加指示「要修正の画像を修正して、5枚とも完成したらイラストをここに表示」により修正を再開。前回7回で停止した履歴を保ち、追加生成を累計に加算。",
+  "integrationNote": "ユーザーのmainマージ指示を受け統合工程を実施。必須CIのためbuild.pyで担当5枚のWebP・登録・確認ページ・原画ハッシュを生成。本文・基準画像・共通queue.jsonは変更なし。"
 }
