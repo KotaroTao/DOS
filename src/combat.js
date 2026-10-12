@@ -373,7 +373,7 @@ const FLEE_BASE = 0.55, FLEE_SLOPE = 0.35, FLEE_MIN = 0.05, FLEE_MAX = 0.95, FLE
 // どの層でも8割前後にそろう (模擬戦)。敵がかわす側 (味方 → 敵) も同じ相対式を使う
 const EVADE_EVEN = 0.20, EVADE_SLOPE = 0.20, EVADE_MAX = 0.40;
 // 動体視力 (dynamicVision、戦士・狩人・暗殺者・武僧・聖戦士・修羅・勇者・竜騎士): 味方の物理が敵に向かう時、
-// 命中率を Lv1/2/3 = 10/15/20ポイント上げる (上限100%)。
+// 命中率を Lv1/2/3 = 10/15/20ポイント上げる (上限95%)。
 // 重ねがけはしない (メイン魂・サブ魂のうち一番高い Lv だけ — passiveMap が最大を取る)。金属の魔物の回避は消さない
 const DYNAMIC_VISION = [0, 0.10, 0.15, 0.20];
 // 強敵の回避の上限 (2026-10 ユーザーの指示): 主・強敵・ミミック・出来事の強敵は雑魚より1〜2ランク上の体で、
@@ -1484,7 +1484,8 @@ export class Battle {
     const blind = this._bm(actor, "hit");
     if (blind < 1) missP += Math.min(0.4, 1 - blind);
     if (actor.side === "party" && _partyHitBonus) missP = Math.max(0, missP - _partyHitBonus); // 手がかりの恵み (暗がりの目)
-    return Math.max(0, Math.min(1, missP) - Math.min(1, Math.max(0, opt.acc || 0)) - visionHitBonus(actor, tgt));
+    // 必中技以外は、すべての命中補正を含めても命中95%まで。
+    return Math.max(opt.acc >= 1 ? 0 : 0.05, Math.min(1, missP) - Math.min(1, Math.max(0, opt.acc || 0)) - visionHitBonus(actor, tgt));
   }
   // 見切り (parry) で物理を丸ごとかわす確率
   _parryP(t) { const lv = pv(t, "parry"); return lv >= 2 ? 0.15 : lv ? 0.10 : 0; }

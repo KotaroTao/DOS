@@ -1,6 +1,6 @@
 // 共通戦闘計算の回帰確認。乱数を固定して実ダメージとオートの期待値も比較する。
 import assert from 'node:assert/strict';
-import { Battle, SPELLS, luckCritBonus, attackSpellPower, healingPower, setElemKnown, spellCost, soulCostAdd, soulPowerMul, soulTierRate, spellMpLabel, SOUL_POWER_K, healsHp, BLADE_HEAL_CAP, MP_DRAIN_CAP } from '../../src/combat.js';
+import { Battle, SPELLS, setPartyHitBonus, luckCritBonus, attackSpellPower, healingPower, setElemKnown, spellCost, soulCostAdd, soulPowerMul, soulTierRate, spellMpLabel, SOUL_POWER_K, healsHp, BLADE_HEAL_CAP, MP_DRAIN_CAP } from '../../src/combat.js';
 import { makeDoll } from '../../src/souls.js';
 import { MONSTERS } from '../../src/sprites.js';
 import { DUNGEON_MONSTERS } from '../../src/dungeons/index.js';
@@ -77,6 +77,34 @@ assert(luckCritBonus(1000000)<=.25);
  t.physResist=100;assert(b._resistCut(t,100,'physResist',1).immune);
  t.physResist=75;assert.equal(b._resistCut(t,100,'physResist',.25).dmg,44);
 }
+// 命中95%の境界を実判定で確認し、必中技・眠り・麻痺の例外を保つ。
+{
+ const a=actor(),t=foe(),b=new Battle([a],[t],()=>{});
+ const oldRandom=Math.random;
+ try {
+  for(const [attacker,target] of [[a,t],[t,a]]){
+   attacker.agi=10000;target.agi=1;
+   assert.equal(b._missP(target,attacker),.06);
+   assert.equal(b._missP(target,attacker,{acc:.99}),.05);
+   Math.random=()=>.049;
+   assert(b._physical(attacker,target,{acc:.99}).miss);
+   Math.random=()=>.05;
+   assert(!b._physical(attacker,target,{acc:.99}).miss);
+   Math.random=()=>0;
+   assert(!b._physical(attacker,target,{acc:1}).miss);
+  }
+  setPartyHitBonus(1);
+  assert.equal(b._missP(t,a),.05);
+  assert.equal(b.peekStats(a).hit,.95);
+  setPartyHitBonus(0);
+  for(const state of ['sleep','paralyze']){
+   t.asleep=state==='sleep';t.ailment=state==='paralyze'?'paralyze':null;
+   assert.equal(b.peekStats(a).hit,1);
+   assert(!b._physical(a,t).miss);
+  }
+ } finally { Math.random=oldRandom;setPartyHitBonus(0); }
+ console.log('物理命中95%の境界・敵味方・命中の恵み・必中の例外を確認');
+}
 const samples=12000;
 // 会心は耐性を抜かず、物理貫通はVITを抜かない。斬鉄・反撃・魔法武器も同じ役割で確認。
 {
@@ -125,7 +153,7 @@ const samples=12000;
   assert(Math.abs(b._missP(t,a,{acc:.1})-(.3-bonus))<1e-12);
  }
  b._evadeBase=()=>0;
- assert.equal(b._missP(t,a),0,'素の外れも減らし、命中率100%で止める');
+ assert.equal(b._missP(t,a),.05,'素の外れも減らすが、命中率95%で止める');
  t.metal=1;
  const metalMiss=b._missP(t,a);
  a.passiveMap={};
@@ -145,7 +173,7 @@ const samples=12000;
  near(1-b._missP(t,a),.6);
  near(1-b._missP(t,a,{acc:.1}),.7);
  near(1-b._missP(t,a,{acc:.23}),.83);
- near(1-b._missP(t,a,{acc:.5}),1);
+ near(1-b._missP(t,a,{acc:.5}),.95);
  b._applyMod(a,'hit',.8,3,'暗闇');
  near(1-b._missP(t,a,{acc:.1}),.5);
  near(1-b._missP(t,a,{acc:1}),1);
@@ -159,7 +187,7 @@ const samples=12000;
  assert(skillDetailLines({kind:'phys',acc:.1}).some(x=>x.includes('命中率+10%')));
  assert(skillDescription(SPELLS.NERAIUCHI).startsWith('命+21%'));
  assert(skillDescription({kind:'phys',acc:1}).includes('必中'));
- console.log('命中率60% + 10% = 70%、上限100%、暗闇・見切り・必中・表記を確認');
+ console.log('命中率60% + 10% = 70%、上限95%、暗闇・見切り・必中・表記を確認');
 }
 function samplePhys(changes={},opt={}){
  const a=actor(),t=Object.assign(foe(),changes),b=new Battle([a],[t],()=>{},{fleeK:10/3});

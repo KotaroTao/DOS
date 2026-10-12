@@ -278,7 +278,7 @@ export function skillDetailLines(sp) {
     if (sp.agiScale) lines.push("使い手のAGIでも威力が伸びる");
     if (sp.vitScale) lines.push("使い手のVITでも威力が伸びる");
     if (sp.pieScale) lines.push("使い手のPIEでも威力が伸びる");
-    if (sp.acc) lines.push(sp.acc >= 1 ? "必中（素早さ・暗闇・見切りに関係なく当たる）" : `命中率+${pct(sp.acc)}（命+${pct(sp.acc)}：命中率に直接加算、上限100%。見切りは別判定）`);
+    if (sp.acc) lines.push(sp.acc >= 1 ? "必中（素早さ・暗闇・見切りに関係なく当たる）" : `命中率+${pct(sp.acc)}（命+${pct(sp.acc)}：命中率に直接加算、上限95%。見切りは別判定）`);
     if (sp.pierce) lines.push(`物理貫通 ${pct(sp.pierce)}（物理耐性による軽減を${pct(sp.pierce)}無視。防御は受け、物理無効は貫けない）`);
     if (sp.critBonus) lines.push(sp.critBonus >= 1 ? "必ず会心になる" : `会心率 +${pct(sp.critBonus)}`);
     if (sp.desperate) lines.push("自分のHPが減っているほど威力が上がる（最大2倍）");
