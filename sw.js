@@ -297,6 +297,7 @@ const ASSETS = [
   "./src/tavern.js",
   "./src/story.js",
   "./src/abyss.js",
+  "./src/infsupplies.js",
   "./src/infaffix.js",
   "./src/infevents.js",
   "./src/inftitles.js",
