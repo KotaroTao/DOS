@@ -1,0 +1,117 @@
+{
+  "worker": "07",
+  "branch": "codex/art-worker-07",
+  "baseCommit": "9990e76f75299e2b347b9354a7872cd384c9cc07",
+  "generationCalls": 8,
+  "generationLimit": 15,
+  "note": "担当07の5枚を新規制作。生成8回（新規5・修正3・失敗0）、上限15回以内。各IDのprompt.mjs出力を実行して本文と参照を確認。原画と担当専用記録のみ変更。WebP変換・build.py・登録・共通queue更新・PR・マージは未実施。統合担当の最終目視と統合待ち。",
+  "scenes": [
+    {
+      "id": "irene_rain",
+      "path": "art/story-review/chapter8/irene_rain.png",
+      "state": "ready",
+      "generationCalls": 1,
+      "visualReview": "顔・髪・衣装、セラの木目と黒鉄金縁の関節、額の印、雨を受ける手の見える指と腕2本、白い蝋燭1本、文字なしを目視確認。脚・隠れた指は画面外で判別不可。静かな雨と窓辺の主題は縮小表示でも判読可能。",
+      "references": [
+        "docs/art/story-refs/irene.png",
+        "docs/art/story-refs/sera.png",
+        "docs/art/sera/sera-r1-final.png",
+        "docs/art/story-refs/props.png",
+        "docs/art/story-refs/sigil.png"
+      ],
+      "omittedReferences": {
+        "art/story-review/chapter2/irene_roots.png": "最大5参照のため人物・必須原画・小道具・印を優先",
+        "art/story-review/chapter1/irene_familiar.png": "同上、館の造りの重複参照を省略"
+      },
+      "note": "生成出力をPNGのまま指定先へ保存。",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "52fe45c6b9f9f3c330f5f936fce7ebeffe3bab3a19683fdb520ba16432aa9efa",
+      "thumbnailReview": "384×256の実縮小一覧で主題を目視確認済み。"
+    },
+    {
+      "id": "ch8_end",
+      "path": "art/story-review/chapter8/ch8_end.png",
+      "state": "ready",
+      "generationCalls": 1,
+      "visualReview": "弟子と隊4体およびセラの背面、衣装と木の無顔の頭、見える手足、落ちた鎖・昇る魂・青空・石橋・無人の観客席、文字なしを確認。後ろ姿の顔と握り手の隠れた指は判別不可。印の不適切な追加なし。縮小でも橋と魂が判読可能。",
+      "references": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/sera.png",
+        "docs/art/sera/sera-r1-final.png",
+        "docs/art/story-refs/dolls.png",
+        "docs/art/story-refs/sigil.png"
+      ],
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "a16f5b8270ac88791e912592c78dc0326be87161d1ed3cf623aae582807cf229",
+      "thumbnailReview": "384×256の実縮小一覧で主題を目視確認済み。"
+    },
+    {
+      "id": "w34_glove",
+      "path": "art/story-review/chapter9/w34_glove.png",
+      "state": "ready",
+      "generationCalls": 2,
+      "visualReview": "修正後は火種なしの冷えた焦げ跡。弟子の顔・衣装・見える指と腕、無顔の人業4体、片方の手袋・小さな承認印・丸めた紙、鉄輪の列と遠い観客席を確認。紙は判読不能。画面外の脚と隠れた指は判別不可。縮小でも手袋と輪が読める。",
+      "references": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/dolls.png",
+        "docs/art/story-refs/props.png",
+        "docs/art/story-refs/sigil.png"
+      ],
+      "repair": "4回目の生成で火種だけ除去。修正前は/workspace/generated_images/exec-7e190ab7-f85d-4415-b138-c26ec0ce6272.pngに保持。",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "f84acda730ad158769ebdb3a90636ffa241d4424f1423fda112fc17cffc86e90",
+      "thumbnailReview": "384×256の実縮小一覧で主題を目視確認済み。"
+    },
+    {
+      "id": "report_w34",
+      "path": "art/story-review/chapter9/report_w34.png",
+      "state": "ready",
+      "generationCalls": 2,
+      "visualReview": "窓外を通常の青空へ修正済み。王の同一の顔・白髪・王冠・赤衣・白い毛皮、膝掛け、年代記を指す手、支える手、弟子の背面と鞄、宰相の空席、床の杯を確認。読める文字なし。脚と隠れた指は直接判別不可。縮小で王・本・青空が読める。印の追加なし。",
+      "references": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/king.png",
+        "docs/art/story-refs/morden.png",
+        "art/story-review/chapter3/report_w12.png"
+      ],
+      "repair": "6回目の生成で窓外のみ修正。修正前は/workspace/generated_images/exec-1e68c35b-3ee5-4335-9d16-9ffe96f5ea59.pngに保持。",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "9135e23e99fb42adc251f48a65c02e6548f2161ce80a315b3e711efd1cac3163",
+      "thumbnailReview": "384×256の実縮小一覧で主題を目視確認済み。"
+    },
+    {
+      "id": "w35_lamps",
+      "path": "art/story-review/chapter9/w35_lamps.png",
+      "state": "ready",
+      "generationCalls": 2,
+      "visualReview": "奥の壁灯を除去し柱への直接の書き込みに修正済み。弟子の顔・衣装・鞄、見える手の指と腕2本、橙の手提げ灯1つ、棚の消灯灯籠と黒く濁ったガラス、札と赤線の板、文字が判読不能であることを確認。画面外の脚と握り手の隠れた指は判別不可。印の追加なし。",
+      "references": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/props.png"
+      ],
+      "repair": "8回目の生成で通路奥の灯火と書き込み位置を修正。修正前は/workspace/generated_images/exec-3e1adf0c-f089-45ba-be55-cbbd97918593.pngに保持。",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "226d0c8de03eba27ef9947dd210e1ea57d861ec03e9cee62d46a1d2a0d5e3cde",
+      "thumbnailReview": "384×256の実縮小一覧で主題を目視確認済み。"
+    }
+  ],
+  "integration": {
+    "state": "registered",
+    "note": "追加のユーザー指示に基づき最新origin/mainを取り込み、build.pyで担当5枚のみWebP変換・登録・確認ページ生成を実施。登録・指示書・読み物検査成功、変換後の縮小画像を目視確認。"
+  }
+}
