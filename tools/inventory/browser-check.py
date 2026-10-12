@@ -62,6 +62,22 @@ with sync_playwright() as p:
     page.goto('http://localhost:8000/?testDungeon=w02&testPlace=town')
     page.wait_for_function('window.__game?.G.party.length > 0')
     page.evaluate('''() => {const g=__game.G;g.inventory.splice(0,g.inventory.length,...Array.from({length:50},()=>__game.equipLv.cloneItem('dagger')));__game.UI.openParty(0,{seg:'equip',inPlace:true});}''')
+    # ソートは表示だけを変え、操作対象は並べた品の実体を保つ。
+    page.evaluate("""() => {const bag=__game.G.inventory;bag.forEach((it,i)=>{it.name='品'+(50-i);it.q=i;});__game.UI.refreshPartySheet();window.sortOriginal=bag.slice();}""")
+    sort = page.get_by_label('隊の持ち物の並び順')
+    for key in ['type','rarity','level','quality','name','bag']:
+        sort.select_option(key)
+        assert page.evaluate("__game.G.inventory.every((it,i)=>it===window.sortOriginal[i])")
+    sort.select_option('name')
+    assert page.locator('.pt-bag button').first.get_attribute('title') == '品1'
+    sort.select_option('quality')
+    assert page.locator('.pt-bag button').first.get_attribute('title') == '品1'
+    page.locator('.pt-bag button').first.click()
+    page.wait_for_function("document.querySelectorAll('.ui-sheet-wrap').length >= 2")
+    page.evaluate("""async()=>{const {sheet}=await import('/src/ui/kit.js');sheet.top()?.close();}""")
+    sort.select_option('bag')
+    assert page.locator('.pt-bag button').first.get_attribute('title') == '品50'
+    print('ソート: 全6種の切り替え・表示順・品の参照・詳細操作 OK')
     for width,height in [(320,740),(390,844),(768,1024),(1024,768),(1440,900),(844,390)]:
         page.set_viewport_size({'width':width,'height':height})
         page.wait_for_timeout(120)
@@ -91,10 +107,17 @@ with sync_playwright() as p:
     page.wait_for_selector('.wpc-drow-tiles')
     assert page.locator('.wpc-drow').count()==1
     assert page.locator('.wpc-drow-tiles > *').count()==50
-    print('館・商会: 横はみ出しなし・共通袋を一度だけ表示')
+    page.get_by_label('隊の持ち物の並び順').select_option('name')
+    assert page.locator('.ui-bag-sort-select').input_value() == 'name'
+    page.evaluate("__game.UI.openParty(0,{seg:'equip'})")
+    page.wait_for_selector('.pt-bag')
+    assert page.get_by_label('隊の持ち物の並び順').input_value() == 'name'
+    assert page.locator('.pt-bag button').first.get_attribute('title') == '品1'
+    print('館・商会: 横はみ出しなし・共通袋を一度だけ表示・並び順を共有')
     page.goto('http://localhost:8000/')
     page.wait_for_function('window.__game?.G.inventory.length === 2')
     saved=page.evaluate('''() => ({shared:[...__game.G.party,...__game.G.reserve].every(d=>d.items===__game.G.inventory),q:__game.G.inventory.map(x=>x.q),locked:__game.G.inventory[0].locked,unid:__game.G.inventory[1].unidentified})''')
+    assert page.evaluate("JSON.parse(localStorage.getItem('dos-ui')).bagSort==='name'")
     assert saved['shared'] and saved['q']==[17,89] and saved['locked'] and saved['unid'],saved
     print('旧セーブ読み込み:',saved)
     assert not errors,errors

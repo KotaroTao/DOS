@@ -1,3 +1,4 @@
+import { bagItems, bagSortControl } from "./bagsort.js";
 import { bagOwners } from "../items.js";
 // ===== 無限迷宮の画面 — 入口の魂の3択・風だまり (回収人・灯番・主)・全滅・帰ってきた時の結果 =====
 // docs/infinite-labyrinth.md。game.js は import しない (ctx.js の UI / game / ops を通す)。
@@ -281,10 +282,11 @@ function openTrader(onChange) {
             { label: "閉じる", kind: "ghost", onTap: (x) => x.close() }] }); } }));
       }
     } else if (seg === "sell") {
+      b.appendChild(bagSortControl(refresh));
       b.appendChild(itemRule());
       b.appendChild(el("div", "inf-note dim", "売った代金の金貨は、この出撃の間だけ使える (帰ると残らない)。装備している品は、外してから売れる。"));
       let any = false;
-      for (const d of bagOwners(g.party || [])) for (const it of [...(d.items || [])]) {
+      for (const d of bagOwners(g.party || [])) for (const it of bagItems(d.items)) {
         if (!it) continue;
         any = true;
         const price = game.sellPrice ? game.sellPrice(it) : 1;

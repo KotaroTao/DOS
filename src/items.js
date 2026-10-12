@@ -1,3 +1,4 @@
+import { rarityOrder } from "./rarity.js";
 import { random } from "./rng.js";
 import { prepareWeapon } from "./weaponpower.js";
 import { zeroResists, clampResist } from "./resistance.js";
@@ -66,6 +67,35 @@ export const ITEM_CATS = [
   { key: "acc", label: "装飾", slots: ["acc"] },
   { key: "misc", label: "収集品", slots: ["misc"] },
 ];
+// 袋の表示順だけを変える。品の実体・共通配列・装備の取り消し用の並びは保つ。
+export const BAG_SORTS = [
+  { key: "bag", label: "元の順" },
+  { key: "type", label: "種類順" },
+  { key: "rarity", label: "レア度が高い順" },
+  { key: "level", label: "装備Lvが高い順" },
+  { key: "quality", label: "品質が高い順" },
+  { key: "name", label: "名前順" },
+];
+export function sortedBag(items, key = "bag") {
+  const list = (items || []).filter(Boolean);
+  if (!BAG_SORTS.some((s) => s.key === key) || key === "bag") return list;
+  const type = (it) => {
+    const n = ITEM_CATS.findIndex((c) => c.slots.includes(it.slot));
+    return n < 0 ? ITEM_CATS.length : n;
+  };
+  const name = (a, b) => itemName(a).localeCompare(itemName(b), "ja", { numeric: true });
+  return list.sort((a, b) => {
+    // 未鑑定の正体を、並ぶ位置からも明かさない。未鑑定同士の順は保つ。
+    if (a.unidentified || b.unidentified) return Number(!!a.unidentified) - Number(!!b.unidentified);
+    if (key === "name") return name(a, b);
+    let diff = 0;
+    if (key === "type") diff = type(a) - type(b);
+    else if (key === "rarity") diff = rarityOrder(b) - rarityOrder(a);
+    else if (key === "level") diff = (b.slot === "use" || b.slot === "misc" ? 0 : equipLevelOf(b)) - (a.slot === "use" || a.slot === "misc" ? 0 : equipLevelOf(a));
+    else if (key === "quality") diff = (hasQuality(b) ? qualityOf(b) : -1) - (hasQuality(a) ? qualityOf(a) : -1);
+    return diff || type(a) - type(b) || name(a, b);
+  });
+}
 // 武器サブカテゴリ (図鑑の武器タブをさらに分ける)
 export const WEAPON_CATS = [
   { key: "ls", label: "長剣" },

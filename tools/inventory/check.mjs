@@ -1,6 +1,6 @@
 // 隊の共通袋の移行・装備交換・最適装備の回帰確認。
 import assert from 'node:assert/strict';
-import { MAX_ITEMS, shareInventory, bagOwners, setBagSource, equip, unequip } from '../../src/items.js';
+import { MAX_ITEMS, shareInventory, bagOwners, setBagSource, equip, unequip, sortedBag, registerEquipLevel, BAG_SORTS } from '../../src/items.js';
 import { makeDoll } from '../../src/souls.js';
 import { planBestEquip, applyPlan, restoreEquip } from '../../src/autoequip.js';
 
@@ -69,3 +69,28 @@ const away = { party: [{ items: [] }, { items: [] }], reserve: [] };
 shareInventory(away);
 assert.notEqual(away.inventory, home);
 console.log('共通袋: 旧セーブ移行・50枠・装備交換・両手武器・最適装備・復元・無限迷宮の分離 OK');
+
+// 表示順を変えても共通袋の参照・品の品質・元の順は変わらない。
+const low = { id: 'low', name: '品10', slot: 'weapon', rar: 'c', q: 30, need: 10 };
+const high = { id: 'high', name: '品2', slot: 'body', rar: 'lr', q: 90, need: 100 };
+const herb = { id: 'herb', name: '薬草', slot: 'use' };
+const unknown1 = { id: 'hidden1', unidentified: true }, unknown2 = { id: 'hidden2', unidentified: true };
+for (const it of [unknown1, unknown2]) for (const key of ['name', 'rar', 'slot', 'q', 'need']) {
+  Object.defineProperty(it, key, { get() { throw new Error('未鑑定の正体を参照した'); } });
+}
+registerEquipLevel(it => it.need || 1);
+const unsorted = [unknown1, low, high, herb, unknown2];
+const original = unsorted.slice();
+for (const { key } of BAG_SORTS) {
+  const sorted = sortedBag(unsorted, key);
+  assert.notEqual(sorted, unsorted);
+  assert.deepEqual(unsorted, original);
+  assert.equal(new Set(sorted).size, original.length);
+  if (key !== 'bag') assert.deepEqual(sorted.slice(-2), [unknown1, unknown2]);
+}
+assert.deepEqual(sortedBag(unsorted, 'type').slice(0, 3), [herb, low, high]);
+for (const key of ['rarity', 'quality', 'level']) assert.deepEqual(sortedBag(unsorted, key).slice(0, 3), [high, low, herb]);
+assert.deepEqual(sortedBag([low, high], 'name'), [high, low]);
+assert.deepEqual(sortedBag(unsorted, 'invalid'), original);
+assert.deepEqual(sortedBag([], 'name'), []);
+console.log('ソート: 全6種・数字入りの名前・未鑑定の正体を隠す・元の順と参照の保全 OK');

@@ -1,3 +1,4 @@
+import { bagItems, bagSortControl } from "./bagsort.js";
 import { bagOwners } from "../items.js";
 // ===== 商会 — 売る・鑑定 (隊の全員・控え込み) / 買う (最良の装備者へ・買って装備) =====
 // 担当: WP-C。街シェルの「商会」タブを描く。
@@ -613,7 +614,7 @@ function dollRow(d) {
   }
   sec.appendChild(hd);
   const tiles = el("div", "wpc-drow-tiles");
-  if (d.items.length) for (const it of d.items) tiles.appendChild(cell(it, d));
+  if (d.items.length) for (const it of bagItems(d.items)) tiles.appendChild(cell(it, d));
   else tiles.appendChild(el("span", "wpc-bag-empty", "持ち物なし"));
   sec.appendChild(tiles);
   return sec;
@@ -670,6 +671,7 @@ function renderSell(wrap) {
   head.appendChild(el("span", "wpc-lhead-t", `持ち物 ${nItems}点`));
   head.appendChild(el("span", "wpc-lhead-s", "押せば売る・鑑定・装備"));
   wrap.appendChild(head);
+  wrap.appendChild(bagSortControl(() => rerender({ top: true })));
   const box = el("div", "wpc-list sell");
   wrap.appendChild(box);
   return () => {

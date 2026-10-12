@@ -1,3 +1,4 @@
+import { bagItems, bagSortControl } from "./bagsort.js";
 import { bagOwners } from "../items.js";
 import { RESIST_LABEL } from "../resistance.js";
 // ===== 隊 (統合された人業の画面) — 隊列ストリップ・控え/仕立て・装備/魂/能力・迷宮内のシート =====
@@ -2102,8 +2103,14 @@ function equipSeg(root, d) {
   const wrap = el("div", "pt-bagwrap");
   wrap.appendChild(h);
   const grid = el("div", "pt-bag");
-  for (const it of d.items) grid.appendChild(bagCell(d, it));
-  if (!d.items.length) grid.appendChild(el("div", "pt-note", "隊の持ち物は空だ。"));
+  const drawBag = () => {
+    grid.replaceChildren();
+    for (const it of bagItems(d.items)) grid.appendChild(bagCell(d, it));
+    if (!d.items.length) grid.appendChild(el("div", "pt-note", "隊の持ち物は空だ。"));
+    grid.scrollTop = 0;
+  };
+  wrap.appendChild(bagSortControl(drawBag));
+  drawBag();
   wrap.appendChild(grid);
   root.appendChild(wrap);
 }
