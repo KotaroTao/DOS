@@ -297,9 +297,9 @@ _(絵はまだ無い)_
 
 <a name="lore_w19"></a>
 
-## lore_w19「灰の降る祭場」 ── 未着手
+## lore_w19「灰の降る祭場」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_w19.webp" width="576" alt="lore_w19">
 
 **ストーリー一覧の本文**
 
@@ -313,9 +313,9 @@ _(絵はまだ無い)_
 
 <a name="lore_w20"></a>
 
-## lore_w20「魂を煮る釜場」 ── 未着手
+## lore_w20「魂を煮る釜場」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_w20.webp" width="576" alt="lore_w20">
 
 **ストーリー一覧の本文**
 
@@ -329,9 +329,9 @@ _(絵はまだ無い)_
 
 <a name="lore_w21"></a>
 
-## lore_w21「業火の大釜」 ── 未着手
+## lore_w21「業火の大釜」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_w21.webp" width="576" alt="lore_w21">
 
 **ストーリー一覧の本文**
 
@@ -345,9 +345,9 @@ _(絵はまだ無い)_
 
 <a name="lore_w22"></a>
 
-## lore_w22「奈落の氷棚」 ── 未着手
+## lore_w22「奈落の氷棚」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_w22.webp" width="576" alt="lore_w22">
 
 **ストーリー一覧の本文**
 
@@ -361,9 +361,9 @@ _(絵はまだ無い)_
 
 <a name="lore_w23"></a>
 
-## lore_w23「凍れる操霊師の間」 ── 未着手
+## lore_w23「凍れる操霊師の間」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_w23.webp" width="576" alt="lore_w23">
 
 **ストーリー一覧の本文**
 
