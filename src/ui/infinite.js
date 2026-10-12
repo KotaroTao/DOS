@@ -686,6 +686,7 @@ function openInfBulkSell(onDone) {
   if (!plan.list.length) return;
   const choice = Object.fromEntries(plan.conflicts.map((c) => [c.id, c.best]));
   const sell = (h, best) => {
+    if (h.closed) return;
     const ok = game.infSellAll(plan, best ? {} : choice);
     h.close("ok");
     if (!ok) toast("持ち物か商会の棚が変わった。一覧を開き直してほしい。");
@@ -702,9 +703,16 @@ function openInfBulkSell(onDone) {
         const r = el("button", "inf-afx-opt" + (choice[c.id] === i ? " on" : ""));
         r.type = "button";
         r.setAttribute("aria-pressed", String(choice[c.id] === i));
-        r.appendChild(el("span", "inf-afx-tag", `${set.current ? "いま棚にある品" : "今回売る品"} ・ 強さ ${set.power}${i === c.best ? " ・ 強い方" : ""}`));
+        r.appendChild(el("span", "inf-afx-tag", `${set.current ? "いま棚にある品" : `今回売る品 ${i + (c.sets[0].current ? 0 : 1)}`} ・ 強さ ${set.power}${i === c.best ? " ・ 強い方" : ""}`));
         for (const ln of set.lines) r.appendChild(el("span", "inf-afx-ln", ln));
-        r.addEventListener("click", () => { choice[c.id] = i; sfx("select"); h.update({ body: fill }); });
+        r.addEventListener("click", () => {
+          choice[c.id] = i; sfx("select");
+          // 行を作り直さず、スクロール位置とキーボードのフォーカスを保つ。
+          box.querySelectorAll(".inf-afx-opt").forEach((opt, j) => {
+            opt.classList.toggle("on", j === i);
+            opt.setAttribute("aria-pressed", String(j === i));
+          });
+        });
         box.appendChild(r);
       });
       b.appendChild(box);
@@ -714,8 +722,10 @@ function openInfBulkSell(onDone) {
   };
   h = sheet.open({ kind: "info", banner: "回収人", title: "一括売却", className: "inf-sheet", body: fill,
     footer: [
-      { label: "強いほうを残して一括売却", kind: "primary", onTap: (x) => sell(x, true) },
-      { label: "選んだほうを残して一括売却", kind: "primary", onTap: (x) => sell(x, false) },
+      ...(plan.conflicts.length ? [
+        { label: "強いほうを残して一括売却", kind: "secondary", onTap: (x) => sell(x, true) },
+        { label: "選んだほうを残して一括売却", kind: "primary", onTap: (x) => sell(x, false) },
+      ] : [{ label: "一括売却する", kind: "primary", onTap: (x) => sell(x, true) }]),
       { label: "売らない", kind: "ghost", onTap: (x) => x.close() },
     ] });
 }
