@@ -116,11 +116,11 @@
 | 第9章「闘技場跡」 | `ch9_end` | 捨てられた魂の行き先 | 未着手 (指示あり) | [見る](chapter9.md#ch9_end) |
 | 第10章「地底大空洞」 | `w38_lamp` | 名を思い出さない灯 | 未着手 (指示あり) | [見る](chapter10.md#w38_lamp) |
 | 第10章「地底大空洞」 | `report_w38` | 底で灯を拾う者 | 未着手 (指示あり) | [見る](chapter10.md#report_w38) |
-| 第10章「地底大空洞」 | `w39_tags` | 宰相の字 | 未着手 (指示あり) | [見る](chapter10.md#w39_tags) |
-| 第10章「地底大空洞」 | `report_w39` | 呼ばれなかった名 | 未着手 (指示あり) | [見る](chapter10.md#report_w39) |
-| 第10章「地底大空洞」 | `irene_names` | 名を呼ぶ人 | 未着手 (指示あり) | [見る](chapter10.md#irene_names) |
-| 第10章「地底大空洞」 | `w40_eyes` | それでも、底へ | 未着手 (指示あり) | [見る](chapter10.md#w40_eyes) |
-| 第10章「地底大空洞」 | `report_w40` | 三百年の墓守 | 未着手 (指示あり) | [見る](chapter10.md#report_w40) |
+| 第10章「地底大空洞」 | `w39_tags` | 宰相の字 | 出荷済み | [見る](chapter10.md#w39_tags) |
+| 第10章「地底大空洞」 | `report_w39` | 呼ばれなかった名 | 出荷済み | [見る](chapter10.md#report_w39) |
+| 第10章「地底大空洞」 | `irene_names` | 名を呼ぶ人 | 出荷済み | [見る](chapter10.md#irene_names) |
+| 第10章「地底大空洞」 | `w40_eyes` | それでも、底へ | 出荷済み | [見る](chapter10.md#w40_eyes) |
+| 第10章「地底大空洞」 | `report_w40` | 三百年の墓守 | 出荷済み | [見る](chapter10.md#report_w40) |
 | 第10章「地底大空洞」 | `mem_w41` | 階段の前のふたり | 未着手 (指示あり) | [見る](chapter10.md#mem_w41) |
 | 第10章「地底大空洞」 | `report_w41` | 王の資格 | 未着手 (指示あり) | [見る](chapter10.md#report_w41) |
 | 第10章「地底大空洞」 | `irene_candle` | 消せない灯 | 未着手 (指示あり) | [見る](chapter10.md#irene_candle) |
