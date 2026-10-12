@@ -303,13 +303,22 @@ function openKeeper(onChange) {
     for (const d of g.party || []) {
       const s = soulByUid(d.primary);
       const card = el("div", "inf-vessel" + (d.alive ? "" : " dead"));
-      card.appendChild(portrait(d, { size: 48 }));
-      const tx = el("div", "inf-vessel-t");
-      tx.appendChild(el("div", "inf-vessel-n", `${d.name}${d.alive ? "" : " (砕けた)"}`));
-      tx.appendChild(el("div", "inf-vessel-s", s ? `${soulLabel(s)} ・ Lv${s.level}/${soulLevelCapOf(s)} ・ HP ${d.hp}/${d.maxhp} ・ MP ${d.mp}/${d.maxmp}` : "魂が無い"));
-      tx.appendChild(el("div", "inf-vessel-s", `サブ魂 ${subSummary(d)}`));
-      const acts = el("div", "inf-vessel-a");
       const redraw = () => { if (!h.closed) h.update({ body: fill }); if (onChange) onChange(); };
+      // 肖像・名前・能力の行を押すと、その器の詳細 (隊の様子: 装備・魂・能力) — 2026-10-12 ユーザーの指示
+      const detail = () => { sfx("select"); if (UI.openParty) UI.openParty(d, { context: "dungeon", onClose: redraw }); };
+      card.appendChild(portrait(d, { size: 48, onTap: detail }));
+      const tx = el("div", "inf-vessel-t");
+      const hit = el("button", "inf-vessel-hit");
+      hit.type = "button";
+      hit.title = "器の詳細を見る";
+      const nm = el("div", "inf-vessel-n", `${d.name}${d.alive ? "" : " (砕けた)"}`);
+      nm.appendChild(el("span", "inf-vessel-go", "詳細 ›"));
+      hit.appendChild(nm);
+      hit.appendChild(el("div", "inf-vessel-s", s ? `${soulLabel(s)} ・ Lv${s.level}/${soulLevelCapOf(s)} ・ HP ${d.hp}/${d.maxhp} ・ MP ${d.mp}/${d.maxmp}` : "魂が無い"));
+      hit.appendChild(el("div", "inf-vessel-s", `サブ魂 ${subSummary(d)}`));
+      hit.addEventListener("click", detail);
+      tx.appendChild(hit);
+      const acts = el("div", "inf-vessel-a");
       if (s) acts.appendChild(button({ label: "魂を強化", kind: "secondary", size: "sm", onTap: () => openTrainSheet(s.uid, redraw) }));
       acts.appendChild(button({ label: "魂を替える", kind: "secondary", size: "sm", disabled: !d.alive, onTap: () => openSwap(d, redraw) }));
       acts.appendChild(button({ label: "サブ魂", kind: "secondary", size: "sm", disabled: !d.alive, onTap: () => openSubs(d, redraw) }));

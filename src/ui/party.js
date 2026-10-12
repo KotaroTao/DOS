@@ -2742,7 +2742,7 @@ export function pickTarget({ banner = "対象", accent = null, title = "誰に�
 
 // ================= 迷宮の隊シート =================
 // town = 街の画面 (人業の館以外) から開く: 館へ移らずに、その場のシートで街の操作 (装備の付け替え・魂など) ができる
-export function openSheet(d, seg = null, { town = false } = {}) {
+export function openSheet(d, seg = null, { town = false, onClose = null } = {}) {
   const G = G_();
   if (d) select(d);
   if (sheetH && !sheetH.closed) { if (seg) setSeg(seg); refreshSheet(); return sheetH; }
@@ -2759,6 +2759,7 @@ export function openSheet(d, seg = null, { town = false } = {}) {
       G.statusOpen = false; sheetH = null; dunSeg = null; picked = null; sheetTown = false;
       if (wasTown && inTown() && game.renderTown) { try { game.renderTown(); } catch (e) { /* noop */ } } // 街の札 (HP・装備の印) を描き直す
       if (game.renderParty) { try { game.renderParty(); } catch (e) { /* noop */ } }
+      if (onClose) { try { onClose(); } catch (e) { /* noop */ } } // 開いた側の画面 (無限迷宮の灯番など) を描き直す
     },
   });
   return sheetH;
@@ -2774,7 +2775,7 @@ export function closeSheet() {
   else if (G_()) G_().statusOpen = false;
 }
 
-// UI.openParty(idx, { context: "town"|"dungeon", seg })
+// UI.openParty(idx, { context: "town"|"dungeon", seg, onClose })
 function openParty(idx = null, o = {}) {
   const G = G_();
   if (!G) return false;
@@ -2795,7 +2796,7 @@ function openParty(idx = null, o = {}) {
     return ok;
   }
   if (G.state !== "board") return false;
-  openSheet(null, o.seg);
+  openSheet(null, o.seg, { onClose: o.onClose || null });
   return true;
 }
 
