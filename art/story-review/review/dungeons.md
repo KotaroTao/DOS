@@ -457,9 +457,9 @@ _(絵はまだ無い)_
 
 <a name="lore_w29"></a>
 
-## lore_w29「よどみの底」 ── 未着手
+## lore_w29「よどみの底」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_w29.webp" width="576" alt="lore_w29">
 
 **ストーリー一覧の本文**
 
@@ -473,9 +473,9 @@ _(絵はまだ無い)_
 
 <a name="lore_w30"></a>
 
-## lore_w30「風鳴りの螺旋」 ── 未着手
+## lore_w30「風鳴りの螺旋」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_w30.webp" width="576" alt="lore_w30">
 
 **ストーリー一覧の本文**
 
@@ -489,9 +489,9 @@ _(絵はまだ無い)_
 
 <a name="lore_w31"></a>
 
-## lore_w31「嵐を鳴らす鐘楼」 ── 未着手
+## lore_w31「嵐を鳴らす鐘楼」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_w31.webp" width="576" alt="lore_w31">
 
 **ストーリー一覧の本文**
 
@@ -505,9 +505,9 @@ _(絵はまだ無い)_
 
 <a name="lore_w32"></a>
 
-## lore_w32「雷の落ちる回廊」 ── 未着手
+## lore_w32「雷の落ちる回廊」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_w32.webp" width="576" alt="lore_w32">
 
 **ストーリー一覧の本文**
 
@@ -521,9 +521,9 @@ _(絵はまだ無い)_
 
 <a name="lore_w33"></a>
 
-## lore_w33「嵐の尖塔の頂」 ── 未着手
+## lore_w33「嵐の尖塔の頂」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_w33.webp" width="576" alt="lore_w33">
 
 **ストーリー一覧の本文**
 

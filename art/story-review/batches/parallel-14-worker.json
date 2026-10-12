@@ -1,0 +1,106 @@
+{
+  "worker": "14",
+  "branch": "codex/art-worker-14",
+  "baseCommit": "1b03c31bd45aa4dcda085851309bad280439501b",
+  "generationCalls": 6,
+  "generationLimit": 15,
+  "scenes": [
+    {
+      "id": "lore_w29",
+      "path": "art/story-review/dungeons/lore_w29.png",
+      "state": "ready",
+      "generationCalls": 2,
+      "visualReview": "沈みかけの島、腐った魂のよどみ、削りかけの木の腕、棚の割れた灯のガラス、奥の開いた扉と塔を確認。印は左親指1本・右3本・独立した炎。木の手に親指と4指、人物の顔・脚なし。道具の形、文字なし、先の秘密なし。背景の建物群と窓明かりを除去済み。",
+      "references": [
+        "docs/art/story-refs/sigil.png",
+        "docs/art/story-refs/dolls.png",
+        "art/story-review/chapter3/report_w13.png"
+      ],
+      "previousGeneration": "/workspace/generated_images/exec-3183da92-9766-4bb2-8450-4dac5c2c980e.png",
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "f6d1e2d3953a50c416f61a7a3fb49aabcb0e4d4e4e934cd7a4015decfa2c1bf2",
+      "specifiedReferences": [],
+      "referenceNote": "prompt.mjsの参照欄は「なし」。正典の印・人業の部品と承認済み画風を守るためreferencesの画像を実際に画像生成へ渡した。"
+    },
+    {
+      "id": "lore_w30",
+      "path": "art/story-review/dungeons/lore_w30.png",
+      "state": "ready",
+      "generationCalls": 1,
+      "visualReview": "丁寧な石積みの螺旋階段、底まで続く中央の吹き抜け、踊り場の石の腰掛け、上昇する魂の粒と上方の雷雲を確認。顔・手足・印・手持ち道具は描写なし。文字や先の秘密なし。",
+      "references": [
+        "art/story-review/chapter3/report_w13.png"
+      ],
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "b1e191bd85f1b504e34eb0e6f022482aef9dd2d6b640d00462bfc849d9989315",
+      "specifiedReferences": [],
+      "referenceNote": "prompt.mjsの参照欄は「なし」。正典の印・人業の部品と承認済み画風を守るためreferencesの画像を実際に画像生成へ渡した。"
+    },
+    {
+      "id": "lore_w31",
+      "path": "art/story-review/dungeons/lore_w31.png",
+      "state": "ready",
+      "generationCalls": 1,
+      "visualReview": "大小の多数の鐘、切れてほつれた綱、嵐と鐘の傾き、濡れた床の重なる爪あとを確認。内縁の印は承認形状の浮き彫りで、遠近により一部は隠れる。人物の顔・手足なし。鐘の舌と吊り金具に大きな破綻なし。文字なし、先の秘密なし。",
+      "references": [
+        "docs/art/story-refs/sigil.png",
+        "art/story-review/chapter8/w31_bell.png"
+      ],
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "6b49782762bfeabd72467503237688bf2de65a3b0b32f2370c6336308e843fc5",
+      "specifiedReferences": [],
+      "referenceNote": "prompt.mjsの参照欄は「なし」。正典の印・人業の部品と承認済み画風を守るためreferencesの画像を実際に画像生成へ渡した。"
+    },
+    {
+      "id": "lore_w32",
+      "path": "art/story-review/dungeons/lore_w32.png",
+      "state": "ready",
+      "generationCalls": 1,
+      "visualReview": "外壁を巡る吹きさらしの回廊、雷を受け塔内へ導く鉄の手すり、黒いガラス状の床石、雲の下への落下、焼けた荷と金貨を確認。顔・手足・一門の印なし。荷と金具の形に大きな破綻なし。文字なし、先の秘密なし。",
+      "references": [
+        "art/story-review/chapter8/w31_bell.png"
+      ],
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "b915f5ae20ff999e55cdbb7d5ded7f94629844bfb2d5822aebd11cb6dcc80e05",
+      "specifiedReferences": [],
+      "referenceNote": "prompt.mjsの参照欄は「なし」。正典の印・人業の部品と承認済み画風を守るためreferencesの画像を実際に画像生成へ渡した。"
+    },
+    {
+      "id": "lore_w33",
+      "path": "art/story-review/dungeons/lore_w33.png",
+      "state": "ready",
+      "generationCalls": 1,
+      "visualReview": "消えた巨大な火皿を持つ灯台、周囲の石像の輪、像の腕から空へ伸び魂を捕らえる鎖、魂が渦を作る雷雲を確認。石像の顔は陰で、長衣に脚が隠れ、遠方の指は判別不可。見える腕に増殖なし。一門の印・文字・先の章の秘密なし。",
+      "references": [
+        "art/story-review/chapter8/w31_bell.png"
+      ],
+      "format": "PNG",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "a99439d96c09dfd418990762ba9ca8d9b6959d0beea1ebe2045e818e860de0f1",
+      "specifiedReferences": [],
+      "referenceNote": "prompt.mjsの参照欄は「なし」。正典の印・人業の部品と承認済み画風を守るためreferencesの画像を実際に画像生成へ渡した。"
+    }
+  ],
+  "handoff": "統合担当へ: 5枚ともready。原画と本記録を確認し、WebP変換・登録・統合を引き継いでください。未完成IDなし。readyは担当の目視確認済みを示し、ユーザー承認ではありません。",
+  "note": "生成6回（新規5回、lore_w29の修正1回）。原画5枚と担当専用記録のみをコミット。WebP変換、build.py、共通queue.json、登録ファイル、本文、基準画像の変更なし。PR作成・mainマージなし。修正前生成物はワークツリー外の生成保存先に保持。",
+  "integrationNote": "ユーザーの追加指示「変換してmainにマージ」に基づき、最新origin/mainを取り込み、build.pyで担当5枚のWebP変換・登録・確認ページと縮小見本を生成。登録・指示書・読み物の検査に合格。縮小見本で担当5枚の主題を目視確認済み。"
+}
