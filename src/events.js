@@ -135,7 +135,7 @@ export const EVENTS = [
     id: "c03", name: "ささやく壁", layer: 0, tier: "common", icon: "event",
     intro: () => ["石壁の向こうから、誰かのささやきが漏れてくる。", "「……下へ……下へ……」"],
     choices: (A, cell) => [
-      { label: "耳を当てる ― 階段のありか / 20%で麻痺", primary: true, fn: () => {
+      A.countCells((c) => c.type === "stairs" && !c.revealed) > 0 && { label: "耳を当てる ― 階段のありか / 20%で麻痺", primary: true, fn: () => {
         A.revealStairs();
         A.toast("ささやきが道を教えた ― 階段のありかが見えた", "good", "stairs");
         if (chance(0.2)) { const m = A.randomAlive(); if (m) { A.ail(m, "paralyze"); A.toast(`${m.name}はささやきに当てられ、体がしびれた`, "bad", "trap"); } }
@@ -225,10 +225,10 @@ export const EVENTS = [
     id: "c08", name: "蝙蝠の壺", layer: 0, tier: "common", icon: "mon:bs_spiritbat",
     intro: () => ["口の欠けた大壺。中から冷たい羽音が響き、霊蝙蝠の影が揺れている。底のほうで金貨が光った。"],
     choices: (A, cell) => [
-      { label: "手を突っ込む ― 金貨 / 40%で眠り", primary: true, fn: () => {
+      { label: "手を突っ込む ― 金貨 / 40%で一人が眠り (次の戦闘)", primary: true, fn: () => {
         const m = A.randomAlive();
         A.gold(2, "壺の底");
-        if (m && chance(0.4)) { A.ail(m, "sleep"); A.toast(`${m.name}が冷たい羽音に包まれた ― 眠り`, "bad", "sleep"); }
+        if (m && chance(0.4)) { A.ail(m, "sleep"); A.toast(`${m.name}が冷たい羽音に包まれた ― 次の戦闘の始めは眠っている`, "bad", "sleep"); }
         A.done(cell);
       } },
       { label: "壺を割る ― 霊蝙蝠の群れと戦い、金貨を多く", danger: true, fn: () => {
@@ -346,7 +346,7 @@ export const EVENTS = [
     id: "c15", name: "鬼火の案内", layer: 0, tier: "uncommon", icon: "wisp",
     intro: () => ["青白い鬼火が、ついて来いとばかりに揺れている。"],
     choices: (A, cell) => [
-      { label: "ついていく ― 70%で宝と死体の在処 / 30%で罠", primary: true, fn: () => {
+      A.countCells((c) => (c.type === "chest" || c.type === "corpse") && !c.cleared && !c.revealed) > 0 && { label: "ついていく ― 70%で宝と死体の在処 / 30%で魔物の待ち伏せ (奇襲)", primary: true, fn: () => {
         if (chance(0.7)) {
           const n = A.revealWhere((c) => (c.type === "chest" || c.type === "corpse") && !c.cleared);
           A.sfx("spell"); A.toast(n ? `鬼火が ${n}か所を照らし出した` : "鬼火は何も見つけられず消えた", n ? "good" : "info", "wisp"); A.done(cell);
@@ -733,7 +733,7 @@ export const EVENTS = [
     choices: (A, cell) => {
       const c = A.check("pie");
       return [
-        { label: `慰める ― ${c.who ? c.who.name : "誰か"} (成功 ${pctTxt(c.p)}) ― 次の3戦、開戦時にHP回復`, primary: true, fn: () => {
+        { label: `慰める ― ${c.who ? c.who.name : "誰か"} (成功 ${pctTxt(c.p)}) ― 次の3戦、開戦時にHP回復 / 失敗で全員のMPが2割減る`, primary: true, fn: () => {
           if (c.ok) { A.runEv().startHeal = (A.runEv().startHeal || 0) + 3; A.sfx("heal"); A.toast("女は微笑んで消えた ― 次の3戦、開戦時にHP10%回復", "good"); }
           else { A.mpAll(0.2); A.sfx("trap"); A.toast("女は金切り声を上げた ― 全員のMPが削られた", "bad"); }
           A.done(cell);
@@ -749,9 +749,8 @@ export const EVENTS = [
     id: "l1_08", name: "鳴らずの鐘", layer: 1, tier: "uncommon", icon: "event", deep: true,
     intro: (A) => ["錆びた弔鐘。鳴らせば、この階の死者がすべて呼び集められるという。", `いま、この階には魔物が ${A.countCells((c) => c.type === "monster" && !c.cleared && !c.elite)}体 残っている。`],
     choices: (A, cell) => [
-      { label: "鐘を鳴らす ― 残る魔物が一斉に襲う大群戦 / 勝てば一掃と宝箱", danger: true, fn: () => {
+      A.monsterKeysLeft().length > 0 && { label: "鐘を鳴らす ― 残る魔物が一斉に襲う大群戦 / 勝てば一掃と宝箱", danger: true, fn: () => {
         const keys = A.monsterKeysLeft();
-        if (!keys.length) { A.sfx("ng"); A.toast("鐘の音が虚しく響いた ― もう誰も来ない", "info"); A.soul(1, "鐘の余韻"); A.done(cell); return; }
         A.fight(cell, keys.slice(0, 6).map((k) => ({ key: k, single: true })), "bell", { noChest: true });
       } },
       { label: "鐘舌を外す ― 収集品", fn: () => A.collectible("弔鐘の鐘舌", () => A.done(cell)) },
@@ -907,7 +906,7 @@ export const EVENTS = [
           if (!shown) A.placeChest({ rankUp: 0, reveal: true });
           A.sfx("itemget"); A.toast(`鼠の王は満足した ― 獣は寄りつかず${n ? ` (${n}体が退いた)` : ""}、宝の在処を教えた`, "good", "chest"); A.done(cell);
         } },
-        { label: "討つ ― 群れを呼ぶ王と戦い、✦Soul (大)", danger: true, fn: () => {
+        { label: "討つ ― 尾の絡み合った王と戦い、✦Soul (大)", danger: true, fn: () => {
           A.fight(cell, [{ key: "bs_ratking", strong: 2.0, name: "鼠の王" }], "ratking", { noChest: true });
         } },
       ];
@@ -1047,7 +1046,7 @@ export const EVENTS = [
     choices: (A, cell) => {
       const d = A.checkDisarm();
       return [
-        (cell.evTry || 0) < 3 && { label: `錠前を破る ― ${d.who ? d.who.name : "誰か"} (成功 ${pctTxt(d.p)}) / 失敗で番兵`, danger: true, fn: () => {
+        (cell.evTry || 0) < 3 && { label: `錠前を破る ― ${d.who ? d.who.name : "誰か"} (成功 ${pctTxt(d.p)}) ― 金貨と上等な品 / 失敗で${(cell.evTry || 0) >= 2 ? "金庫は二度と開かない" : "番兵"}`, danger: true, fn: () => {
           cell.evTry = (cell.evTry || 0) + 1;
           if (d.ok) { A.sfx("chest"); A.gold(10, "鉱山主の金庫"); A.item({ rare: true }, "鉱山主の金庫", () => A.done(cell)); return; }
           if (cell.evTry >= 3) { A.sfx("ng"); A.toast("錠前は完全に壊れた ― 金庫は二度と開かない", "bad"); A.done(cell); return; }
@@ -1072,7 +1071,7 @@ export const EVENTS = [
       } },
       anyHurt(A) && { label: "封の固い樽を開ける ― 半々で全員のHP3割回復 / 腐っていて全員が毒", fn: () => {
         if (chance(0.5)) { A.healAll(0.3, 0, false); A.sfx("heal"); A.toast("塩漬けの干し肉は、まだ食べられた ― HPが回復した", "good", "fountain"); }
-        else { A.ailAll("poison", 0.7); A.sfx("trap"); A.toast("樽の中身は腐っていた ― 毒に当たった", "bad", "poison"); }
+        else { A.ailAll("poison", 1); A.sfx("trap"); A.toast("樽の中身は腐っていた ― 毒に当たった", "bad", "poison"); }
         A.done(cell);
       } },
     ],
@@ -1152,7 +1151,7 @@ export const EVENTS = [
         A.floorEv().mods.push({ src: "l4_07", name: "軍鼓の響き", desc: "与えるダメージ +25%・敵の強さ ×1.15 (この階)", dmgMul: 1.25, enemyMul: 1.15 });
         A.sfx("spell"); A.flash("#c9a26a"); A.toast("軍鼓が鳴り響いた ― 与ダメ+25% (敵も昂ぶる)", "gold"); A.done(cell);
       } },
-      { label: "皮を裂く ― 亡兵が怯んで退く (この階の魔物 2体が消える)", primary: true, fn: () => {
+      A.countCells((c) => c.type === "monster" && !c.cleared && !c.elite) > 0 && { label: "皮を裂く ― 亡兵が怯んで退く (この階の魔物 2体が消える)", primary: true, fn: () => {
         const n = A.removeMonsters(2);
         A.sfx("hit"); A.toast(n ? `鼓の音を失った亡兵が、${n}体退いていった` : "退く亡兵は、もういなかった", n ? "good" : "info"); A.done(cell);
       } },
@@ -1200,7 +1199,7 @@ export const EVENTS = [
     choices: (A, cell) => [
       anyDrained(A) && { label: "輪の中で休む ― 半々で全員のMP4割回復 / 胞子を吸って全員が毒", fn: () => {
         if (chance(0.5)) { A.healAll(0, 0.4, false); A.sfx("heal"); A.toast("茸の光が魔力を満たした", "good", "fountain"); }
-        else { A.ailAll("poison", 0.8); A.sfx("trap"); A.toast("胞子が舞った ― 毒に侵された", "bad", "poison"); }
+        else { A.ailAll("poison", 1); A.sfx("trap"); A.toast("胞子が舞った ― 毒に侵された", "bad", "poison"); }
         A.done(cell);
       } },
       { label: "茸を摘む ― 収集品", primary: true, fn: () => A.collectible("光る茸", () => A.done(cell)) },
@@ -1970,7 +1969,7 @@ export const EVENTS = [
     id: "l10_03", name: "雨受けの水がめ", layer: 10, tier: "common", icon: "fountain",
     intro: () => ["窓の下に、雨水を受ける大きな水がめが置かれている。", "水は澄んでいるが、ときどき水面に小さな火花が走る。床のあちこちでも、同じ火花がぱちぱちとはぜている。"],
     choices: (A, cell) => [
-      needsCare(A) && { label: "雨水を飲む ― 全員のHP・MP3割回復", primary: true, fn: () => {
+      (anyHurt(A) || anyDrained(A)) && { label: "雨水を飲む ― 全員のHP・MP3割回復", primary: true, fn: () => {
         A.healAll(0.3, 0.3); A.sfx("heal"); A.toast("冷たい雨水が、のどをうるおした", "good", "fountain"); A.done(cell);
       } },
       A.countCells((c) => c.type === "poison") > 0 && { label: "水がめを傾けて床に流す ― 水が火花をさらい、この階の帯電した床がすべて消える", fn: () => {
@@ -2192,7 +2191,7 @@ export const EVENTS = [
     choices: (A, cell) => {
       const cost = A.goldCost(3), c = A.check("int");
       return [
-        A.canPayGold(cost) && { label: `賭けに乗る (💰${cost}) ― 50%で賭け金の倍を超える払い戻しと ✦Soul / 外れれば賭け金を失う`, primary: true, fn: () => {
+        A.canPayGold(cost) && { label: `賭けに乗る (💰${cost}) ― 50%で賭け金より多い払い戻しと ✦Soul / 外れれば賭け金を失う`, primary: true, fn: () => {
           A.payGold(cost);
           if (chance(0.5)) { A.gold(4, "賭けの払い戻し"); A.soul(2, "沸きたつ観客"); }
           else { A.sfx("trap"); A.toast("賭けた闘士は砂に沈んだ ― 賭け金は戻らない", "bad"); }
