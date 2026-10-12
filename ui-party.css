@@ -148,6 +148,7 @@
 }
 .iv-say .pt-kp-who { left: 18px; font-size: 13px; }
 .iv-say .pt-kp-l { font-size: 14.5px; line-height: 1.85; letter-spacing: 0.03em; min-height: 1.85em; }
+.iv-say .iv-unread { visibility: hidden; }
 .iv-say .pt-kp-next { right: 14px; bottom: 10px; font-size: 11px; }
 .iv-say .pt-kp-next.hidden { visibility: hidden; }
 .iv-dots { display: flex; gap: 8px; min-height: 8px; }
