@@ -62,3 +62,19 @@ battle._useItem(p,{item:a});battle._useItem(p,{item:a});
 assert.deepEqual(used,['mp']);
 T.tlSetOn(false);battle._useItem(p,{item:b});assert.deepEqual(used,['mp','mp']);
 console.log('戦闘の道具: 同種の品・失敗時・記録OFF時の使用数 OK');
+// 永続強化と借用が違う出撃を、同じ条件として比較しないための記録。
+T.tlClear();T.tlSetOn(true);
+const boonPoint=point('boons',1,{boons:{hp:20,atk:8},party:[{name:'検証',job:'priest',lv:1,tactic:'life',stats:{hp:40,mp:30},borrowed:[{uid:2,picks:[{passive:'afterMp'}]}]}]});
+T.tlInfAttempt(boonPoint,'start');
+const savedBoons=JSON.parse(JSON.stringify(T.tlRawData()));
+assert.deepEqual(savedBoons.inf.attempts[0].boons,{hp:20,atk:8});
+assert(T.tlExportText().includes('永続強化 hp+20 atk+8'));
+assert(T.tlExportText().includes('借用afterMp'));
+assert(T.tlExportText().includes('life hp40/mp30'));
+// 本編とは別の補正。50/100階の境目で飛ばず、100階以降は深くなるほど増す。
+const {infEnemyMul}=await import('../../src/abyss.js');
+assert.equal(infEnemyMul(1),.7);assert(Math.abs(infEnemyMul(50)-.8)<1e-10);
+assert(Math.abs(infEnemyMul(100)-.95)<1e-10);
+assert(Math.abs(infEnemyMul(150)-1.25)<1e-10);
+for(let f=2;f<301;f++)assert(Math.abs(infEnemyMul(f)-infEnemyMul(f-1))<.007);
+console.log('無限迷宮: 永続強化/能力/借用の記録・深さ補正の連続性 OK');

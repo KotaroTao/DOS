@@ -50,6 +50,16 @@ export function infGrowthMul(f) {
   const perLv = INF_MIN_PER_FLOOR / infLvSlope(f);
   return Math.max(1, lvMinutes(lv) * EXP_COST_K / perLv);
 }
+// 通し試験を踏まえた強さ補正。本編の強さの素とは分け、Lv1開始の育成・補給に合わせる。
+// 20階まで0.70、50階0.80、100階0.95。推奨Lvによる敵の成長は別に掛かる。
+// 100階以降も1階につき0.006を足し、育ち切った隊にも奥ほど圧力が増す。
+export function infEnemyMul(f) {
+  f = Math.max(1, Number(f) || 1);
+  if (f <= 20) return 0.70;
+  if (f <= 50) return 0.70 + (f - 20) * (0.10 / 30);
+  if (f <= 100) return 0.80 + (f - 50) * 0.003;
+  return 0.95 + (f - 100) * 0.006;
+}
 // 全滅した階の赤い魂の費用 (1階ごとに1、上限100)
 export function infRedCost(f) { return Math.max(1, Math.min(INF_RED_MAX, Math.floor(f || 1))); }
 // その階が風だまり (主の階) か
