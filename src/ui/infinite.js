@@ -426,7 +426,8 @@ function subSummary(d) {
 // 魂の行の右に、押すボタンを並べる (行を押すとその職業の図鑑)
 function soulLine(s, sub, why, btns) {
   const line = el("div", "inf-swap-row");
-  line.appendChild(row({ icon: bust(s.clsKey, 32), title: `${soulLabel(s)} ・ Lv${s.level}`, sub, tone: why ? "dim" : null,
+  line.appendChild(row({ icon: bust(s.clsKey, 32), title: `${soulLabel(s)} ・ Lv${s.level}/${soulLevelCapOf(s)}`, sub, tone: why ? "dim" : null,
+    chevron: !!game.showCodexJobDetail,
     onTap: game.showCodexJobDetail ? () => { sfx("select"); game.showCodexJobDetail(s.clsKey, soulRankOf(s)); } : null }));
   for (const b of btns) { b.classList.add("inf-swap-b"); line.appendChild(b); }
   return line;
@@ -485,6 +486,7 @@ function openSubPick(d, si, onChange) {
     kind: "info", banner: `サブ魂${si + 1}`, title: `${d.name}に宿す魂`, accent: "#7fd0ff", className: "inf-sheet",
     body: (b) => {
       if (!list.length) { b.appendChild(el("div", "inf-note dim", "宿せる魂が無い。迷宮で魂を拾うと、ここに並ぶ。")); return; }
+      b.appendChild(el("div", "inf-note dim", "Lvは現在／上限。魂を押すと職業図鑑を開く。"));
       // 宿せる魂を先に並べる
       const rows = list.map((s) => ({ s, why: game.infSubBlock ? game.infSubBlock(d, si, s.uid) : null })).sort((a, b) => (a.why ? 1 : 0) - (b.why ? 1 : 0));
       for (const { s, why } of rows) {
