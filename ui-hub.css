@@ -272,6 +272,31 @@
 .hb-tile.locked .hb-tile-n { color: #8e8576; }
 .hb-tile-lock { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 
+/* 無限迷宮の札 (酒場・宿屋・祠の札の下、横長) */
+.hb-inf {
+  position: relative; display: flex; align-items: center; width: 100%; height: 76px; margin-top: 8px; padding: 0 12px 0 0; overflow: hidden; isolation: isolate;
+  background: #060508; border: 0; border-radius: 2px;
+  box-shadow: 0 0 0 1px #000, 0 0 0 2px #1f2a2c, 0 0 0 3px rgba(120,214,196,0.38), 0 0 20px rgba(96,186,168,0.16), 0 8px 18px rgba(0,0,0,0.6);
+  font-family: var(--font); color: var(--ink); text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: transform var(--t-tap) ease-out;
+}
+.hb-inf::before { content: ""; position: absolute; inset: 0; z-index: 3; pointer-events: none; background: var(--corners); opacity: 0.7; }
+.hb-inf:active { transform: scale(0.985); }
+.hb-inf-art { position: absolute; inset: 0; z-index: 0; }
+.hb-inf-art canvas { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 30% 55%; image-rendering: pixelated; }
+.hb-inf-art::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(5,4,7,0) 34%, rgba(5,4,7,0.72) 58%, rgba(5,4,7,0.9) 100%); }
+.hb-inf-cap { position: relative; z-index: 2; flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; margin-left: 48%; }
+.hb-inf-k { font-size: 10px; letter-spacing: 0.32em; color: #8fd8c6; text-shadow: 0 1px 0 #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hb-inf-n { font-size: 17px; font-weight: 800; letter-spacing: 0.14em; color: #eafff7; text-shadow: 0 1px 0 #000, 0 0 10px rgba(120,230,206,0.55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hb-inf-s { font-size: 10.5px; color: #b2a68f; text-shadow: 0 1px 0 #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hb-inf-go {
+  position: relative; z-index: 2; flex: 0 0 auto; display: inline-flex; align-items: center; gap: 2px; margin-left: 8px; padding: 6px 6px 6px 10px;
+  font-size: 12.5px; font-weight: 800; letter-spacing: 0.1em; color: #dffbf2; border: 1px solid rgba(143,216,198,0.55); border-radius: 2px;
+  background: linear-gradient(180deg, rgba(40,92,92,0.75), rgba(14,34,38,0.85)); box-shadow: inset 0 1px 0 rgba(200,255,240,0.18), 0 0 10px rgba(96,186,168,0.2);
+}
+.hb-inf-chev { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+@media (max-width: 380px) { .hb-inf-cap { margin-left: 40%; } .hb-inf-go { padding: 5px 4px 5px 8px; font-size: 11.5px; } }
+
 /* 隊の札 */
 .hb-party { padding-top: 2px; }
 .hb-party .wa-h { margin-top: 8px; margin-bottom: 4px; }

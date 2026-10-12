@@ -14,6 +14,7 @@
 import { UI, game, ops, registerUI } from "./ctx.js";
 import { el, setText, glyph, svgIcon, button, portrait, longPress, itemTile } from "./kit.js";
 import { createTownScene, townSpots, vignetteCanvas } from "../townart.js";
+import { infBannerCanvas } from "../infbannerart.js";
 import { SFX } from "../audio.js";
 import { getPref } from "./prefs.js";
 import { ITEMS } from "../items.js";
@@ -394,6 +395,31 @@ function tiles() {
   return wrap;
 }
 
+// ---------- 無限迷宮の札 (第八章の結びで開く。開くまでは名も出さない) ----------
+// 酒場・宿屋・祠の札の下に横長の札を1枚。押すと出撃画面の無限迷宮の入口 (支度) を開く
+function infBanner() {
+  if (!game.featureUnlocked || !game.featureUnlocked("infinite")) return null;
+  const rec = game.abyssRecords ? game.abyssRecords() : { bestDepth: 0, runs: 0 };
+  const b = el("button", "hb-inf");
+  b.type = "button";
+  const a = el("span", "hb-inf-art");
+  try { a.appendChild(infBannerCanvas({ still: reducedMotion() })); } catch (e) { /* 演出のみ */ }
+  b.appendChild(a);
+  const cap = el("span", "hb-inf-cap");
+  cap.appendChild(el("span", "hb-inf-k", "果てなき縦穴"));
+  cap.appendChild(el("span", "hb-inf-n", "無限迷宮"));
+  const title = game.infTitleName ? game.infTitleName() : "";
+  const sub = rec.bestDepth ? `最深 B${rec.bestDepth}F ・ 挑戦 ${rec.runs || 0}回${title ? ` ・ 「${title}」` : ""}` : "入るたびに Lv1 から潜る";
+  cap.appendChild(setText(el("span", "hb-inf-s"), sub));
+  b.appendChild(cap);
+  const go = el("span", "hb-inf-go", "挑む");
+  go.appendChild(svgIcon("chevron", "hb-inf-chev"));
+  b.appendChild(go);
+  b.setAttribute("aria-label", "無限迷宮 " + sub);
+  b.addEventListener("click", () => { sfx("select"); if (UI.openDeparture) UI.openDeparture({ page: "abyss" }); });
+  return b;
+}
+
 // ---------- 酒場の依頼 (酒場が開いていれば街に常に並べる。報告・納品はその場で) ----------
 // 「次にすべきこと」と同じ並びの札 (最大3列)。受けている依頼が無ければ、掲示板へ誘う札を1枚。
 // 4件以上受けている時は3件ずつの頁にして、QUEST_ROTATE_MS ごとに次の頁へ切り替える
@@ -541,6 +567,8 @@ export function renderHub(root, api) {
   const fac = el("div", "hb-fac" + (dv ? " nohead" : ""));
   if (!dv) fac.appendChild(sectionHead("街"));
   fac.appendChild(tiles());
+  const inf = infBanner();
+  if (inf) fac.appendChild(inf);
   mid.appendChild(fac);
   const guides = el("div", "jr-shortcuts");
   guides.append(button({ label:"ヘルプ・酒場の噂話", kind:"secondary", onTap:()=>UI.openHelp?.() }),
