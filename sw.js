@@ -545,6 +545,7 @@ const ASSETS = [
   "./src/cryptactors.js",
   "./art/dungeon/crypt-props-a.webp",
   "./art/dungeon/crypt-props-b.webp",
+  "./art/dungeon/crypt-props-c.webp",
   "./art/dungeon/crypt-walker.webp",
   "./art/dungeon/crypt-materials.webp",
   "./art/dungeon/crypt-floor.webp",

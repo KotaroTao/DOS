@@ -1121,6 +1121,13 @@ export const ICONS = {
   },
 };
 
+// 状態の違いを識別する独立したアイコン。原画を取れない時にも区別を残す。
+ICONS.corpseGreat = { ...ICONS.corpseWarm, art: [".................Z..................", "................ZZZ.................", ...ICONS.corpseWarm.art], palette: { ...ICONS.corpseWarm.palette, Z: "#e9c66b" } };
+ICONS.fountainEmpty = {
+  palette: { a: "#242127", b: "#a29b8d", c: "#777063", d: "#544e43" },
+  art: ["............", "....bbbb....", "..bbddddbb..", ".bcddddddcb.", ".bcddddddcb.", "..bccccccb..", "...bcccb....", "....bcb.....", "....bcb.....", "...bcccb....", "..bbbbbbb...", "............"],
+};
+
 // 文字グリッドを正規化して { w, h, rows } を返す
 function normalize(art) {
   const rows = art.map((r) => r.split(""));
