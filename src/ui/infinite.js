@@ -668,48 +668,69 @@ function openInfBulkSell(onDone) {
   const plan = game.infSellPlan();
   if (!plan.list.length) return;
   const choice = Object.fromEntries(plan.conflicts.map((c) => [c.id, c.best]));
-  const sell = (h, best) => {
-    if (h.closed) return;
-    const ok = game.infSellAll(plan, best ? {} : choice);
-    h.close("ok");
-    if (!ok) toast("持ち物か商会の棚が変わった。一覧を開き直してほしい。");
-    onDone();
-  };
   let h = null;
-  const fill = (b) => {
-    b.appendChild(el("div", "inf-note", `${plan.list.length}点を売却して 💰${plan.gold} を受け取る。残すのは商会の棚の追加の能力・特性。選ばなかった品も通常品として棚に並ぶ。`));
-    b.appendChild(el("div", "inf-note dim", "ロック中・装備中・未鑑定・呪い・LR・未奉納の収集品・道具は売らない。強さは追加の能力・特性の評価値で比べ、同じなら棚の品を優先する。"));
-    for (const c of plan.conflicts) {
-      const box = el("div", "inf-afx-c");
-      box.appendChild(el("div", "inf-h", c.name));
-      c.sets.forEach((set, i) => {
-        const r = el("button", "inf-afx-opt" + (choice[c.id] === i ? " on" : ""));
-        r.type = "button";
-        r.setAttribute("aria-pressed", String(choice[c.id] === i));
-        r.appendChild(el("span", "inf-afx-tag", `${set.current ? "いま棚にある品" : `今回売る品 ${i + (c.sets[0].current ? 0 : 1)}`} ・ 強さ ${set.power}${i === c.best ? " ・ 強い方" : ""}`));
-        for (const ln of set.lines) r.appendChild(el("span", "inf-afx-ln", ln));
-        r.addEventListener("click", () => {
-          choice[c.id] = i; sfx("select");
-          // 行を作り直さず、スクロール位置とキーボードのフォーカスを保つ。
-          box.querySelectorAll(".inf-afx-opt").forEach((opt, j) => {
-            opt.classList.toggle("on", j === i);
-            opt.setAttribute("aria-pressed", String(j === i));
+  // 能力を選ぶ操作では売らない。選択を反映して確認へ戻り、確定は一つのボタンだけ。
+  const editChoice = () => {
+    const draft = { ...choice };
+    sheet.open({ kind: "info", banner: "回収人", title: "商会に残す能力を選ぶ", className: "inf-sheet",
+      body: (b) => {
+        b.appendChild(el("div", "inf-note", "同じ品の追加能力は、商会の棚に1点分だけ残せる。ここでは能力を選ぶだけで、まだ売却しない。"));
+        b.appendChild(el("div", "inf-note dim", "最初は強い方を選んでいる。同じ強さなら棚の品を優先する。"));
+        for (const c of plan.conflicts) {
+          const box = el("div", "inf-afx-c");
+          box.appendChild(el("div", "inf-h", c.name));
+          c.sets.forEach((set, i) => {
+            const r = el("button", "inf-afx-opt" + (draft[c.id] === i ? " on" : ""));
+            r.type = "button";
+            r.setAttribute("aria-pressed", String(draft[c.id] === i));
+            r.appendChild(el("span", "inf-afx-tag", `${set.current ? "いま棚にある品" : `今回売る品 ${i + (c.sets[0].current ? 0 : 1)}`} ・ 強さ ${set.power}${i === c.best ? " ・ 強い方" : ""}`));
+            for (const ln of set.lines) r.appendChild(el("span", "inf-afx-ln", ln));
+            r.addEventListener("click", () => {
+              draft[c.id] = i; sfx("select");
+              // 行を作り直さず、スクロール位置とキーボードのフォーカスを保つ。
+              box.querySelectorAll(".inf-afx-opt").forEach((opt, j) => {
+                opt.classList.toggle("on", j === i);
+                opt.setAttribute("aria-pressed", String(j === i));
+              });
+            });
+            box.appendChild(r);
           });
-        });
-        box.appendChild(r);
-      });
-      b.appendChild(box);
+          b.appendChild(box);
+        }
+      },
+      footer: [
+        { label: "この選択を使う", kind: "primary", onTap: (x) => {
+          if (x.closed || h.closed) return;
+          Object.assign(choice, draft); x.close("ok"); h.update({ body: fill });
+        } },
+        { label: "変更せず戻る", kind: "ghost", onTap: (x) => x.close() },
+      ],
+    });
+  };
+  const fill = (b) => {
+    b.appendChild(el("div", "inf-note", `下の${plan.list.length}点をすべて売り、💰${plan.gold}を受け取る。手元に残したい品は、戻って先にロックしてほしい。`));
+    b.appendChild(el("div", "inf-note dim", "ロック中・装備中・未鑑定・呪い・LR・未奉納の収集品・道具は売らない。"));
+    if (plan.conflicts.length) {
+      const changed = plan.conflicts.filter((c) => choice[c.id] !== c.best).length;
+      b.appendChild(el("div", "inf-note", changed
+        ? `商会に残す追加能力：${changed}種類を自分で選択済み。ほかは強い方を残す。`
+        : "商会に残す追加能力：強い方を自動で残す。"));
+      b.appendChild(button({ label: "商会に残す能力を変更", kind: "secondary", onTap: editChoice }));
+      b.appendChild(el("div", "inf-note dim", "選ばなかった品も、追加能力のない通常品として商会に並ぶ。袋には残らない。"));
     }
     b.appendChild(el("div", "inf-h", "売却する品"));
     for (const { item, price } of plan.list) b.appendChild(row({ icon: itemTile(item, { size: 44 }), title: itemName(item), right: `💰${price}` }));
   };
-  h = sheet.open({ kind: "info", banner: "回収人", title: "一括売却", className: "inf-sheet", body: fill,
+  h = sheet.open({ kind: "info", banner: "回収人", title: "一括売却の確認", className: "inf-sheet", body: fill,
     footer: [
-      ...(plan.conflicts.length ? [
-        { label: "強いほうを残して一括売却", kind: "secondary", onTap: (x) => sell(x, true) },
-        { label: "選んだほうを残して一括売却", kind: "primary", onTap: (x) => sell(x, false) },
-      ] : [{ label: "一括売却する", kind: "primary", onTap: (x) => sell(x, true) }]),
-      { label: "売らない", kind: "ghost", onTap: (x) => x.close() },
+      { label: `${plan.list.length}点を売却する`, cost: { kind: "gold", n: `+${plan.gold}` }, kind: "primary", onTap: (x) => {
+        if (x.closed) return;
+        const ok = game.infSellAll(plan, choice);
+        x.close("ok");
+        if (!ok) toast("持ち物か商会の棚が変わった。一覧を開き直してほしい。");
+        onDone();
+      } },
+      { label: "売らずに戻る", kind: "ghost", onTap: (x) => x.close() },
     ] });
 }
 

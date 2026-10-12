@@ -1,5 +1,10 @@
 """回収人の一括売却を実ブラウザで検証する。先にルートで HTTP サーバーを8000番で起動。"""
+import re
 from playwright.sync_api import sync_playwright
+
+# 文節の折り返し用ゼロ幅スペースを除いてボタン名を照合する。
+def label_re(text):
+    return re.compile("\u200b?".join(re.escape(c) for c in text))
 
 with sync_playwright() as p:
     browser = p.chromium.launch(executable_path='/usr/bin/chromium', args=['--no-sandbox'])
@@ -66,45 +71,71 @@ with sync_playwright() as p:
           __game.inf.openInfRest();
         }''', many)
         page.wait_for_function("!document.querySelector('.ui-sheet-wrap.closing')")
-        page.get_by_role('button', name='回収人', exact=False).click()
-        page.get_by_role('button', name='売る', exact=True).click()
-        page.get_by_role('button', name='一括売却', exact=False).click()
+        page.get_by_role('button', name=label_re('回収人'), exact=False).click()
+        page.get_by_role('button', name=label_re('売る'), exact=True).click()
+        page.get_by_role('button', name=label_re('一括売却'), exact=False).click()
 
     prepare()
     before = page.evaluate('bulkTest.state()')
-    page.get_by_role('button', name='売らない', exact=True).click()
+    page.get_by_role('button', name=label_re('売らずに戻る'), exact=True).click()
     assert page.evaluate('bulkTest.state()') == before
     prepare()
-    page.get_by_role('button', name='一括売却する', exact=True).click()
+    page.get_by_role('button', name=label_re('点を'), exact=False).click()
     page.wait_for_function('__game.G.inventory.length===0')
     page.wait_for_function("!document.querySelector('.ui-sheet-wrap.closing')")
-    assert page.get_by_role('button', name='一括売却', exact=False).is_disabled()
+    assert page.get_by_role('button', name=label_re('一括売却'), exact=False).is_disabled()
     prepare(True)
+    before = page.evaluate('bulkTest.state()')
+    assert page.locator('.ui-sheet-wrap').last.locator('.inf-afx-opt').count() == 0
+    page.get_by_role('button', name=label_re('商会に残す能力を変更')).click()
+    assert page.evaluate('bulkTest.state()') == before
     assert page.evaluate('''() => {
       const body=document.querySelector('.ui-sheet-wrap:last-child .ui-sheet-body');
       const btn=body.querySelectorAll('.inf-afx-opt')[15];btn.scrollIntoView();btn.focus();
       const top=body.scrollTop;btn.click();
       return btn.isConnected&&document.activeElement===btn&&body.scrollTop===top&&btn.getAttribute('aria-pressed')==='true';
     }''')
-    page.get_by_role('button', name='選んだほうを', exact=False).click()
+    page.get_by_role('button', name=label_re('この選択を使う')).click()
+    assert page.evaluate('bulkTest.state()') == before
+    page.wait_for_function("!document.querySelector('.ui-sheet-wrap.closing')")
+    assert page.locator('.ui-sheet-wrap').last.get_by_text(label_re('自分で'), exact=False).count() == 1
+    page.get_by_role('button', name=label_re('点を'), exact=False).click()
     page.wait_for_function('__game.G.inventory.length===0')
     assert page.evaluate('Object.values(__game.G.shopAfx).filter(a=>a[0].v===1).length') == 1
     prepare(True)
+    before = page.evaluate('bulkTest.state()')
+    page.get_by_role('button', name=label_re('商会に残す能力を変更')).click()
     page.locator('.ui-sheet-wrap').last.locator('.inf-afx-opt').nth(1).click()
-    page.get_by_role('button', name='強いほうを', exact=False).click()
+    page.get_by_role('button', name=label_re('変更せず戻る')).click()
+    assert page.evaluate('bulkTest.state()') == before
+    page.wait_for_function("!document.querySelector('.ui-sheet-wrap.closing')")
+    page.get_by_role('button', name=label_re('点を'), exact=False).click()
     page.wait_for_function('__game.G.inventory.length===0')
     assert page.evaluate('Object.values(__game.G.shopAfx).every(a=>a[0].v===2)')
     for width,height in [(320,740),(390,844),(844,390),(1440,900)]:
         page.set_viewport_size({'width':width,'height':height})
         prepare(True)
-        page.wait_for_function("!document.querySelector('.ui-sheet-wrap:last-child .ui-sheet').getAnimations().some(a=>a.playState==='running')")
-        layout = page.evaluate('''() => {
-          const card=document.querySelector('.ui-sheet-wrap:last-child .ui-sheet');
-          const foot=card.querySelector('.ui-sheet-foot').getBoundingClientRect();
-          const body=card.querySelector('.ui-sheet-body');
-          return {bottom:foot.bottom,top:foot.top,height:innerHeight,body:body.clientHeight,overflow:card.scrollWidth-card.clientWidth};
-        }''')
-        assert layout['bottom']<=height+1 and layout['top']>=0 and layout['body']>0 and layout['overflow']<=1, (width,height,layout)
+        for editor in [False, True]:
+            if editor:
+                page.get_by_role('button', name=label_re('商会に残す能力を変更')).click()
+            page.wait_for_function("!document.querySelector('.ui-sheet-wrap:last-child .ui-sheet').getAnimations().some(a=>a.playState==='running')")
+            layout = page.evaluate('''() => {
+              const card=document.querySelector('.ui-sheet-wrap:last-child .ui-sheet');
+              const foot=card.querySelector('.ui-sheet-foot').getBoundingClientRect();
+              const body=card.querySelector('.ui-sheet-body');
+              return {bottom:foot.bottom,top:foot.top,height:innerHeight,body:body.clientHeight,overflow:card.scrollWidth-card.clientWidth};
+            }''')
+            assert layout['bottom']<=height+1 and layout['top']>=0 and layout['body']>0 and layout['overflow']<=1, (width,height,layout)
+            if width == 390:
+                page.screenshot(path='/tmp/inf-bulk-editor.png' if editor else '/tmp/inf-bulk-confirm.png')
+    # 戻る操作でも選択途中の変更を反映せず、売却しない。
+    before = page.evaluate('bulkTest.state()')
+    page.locator('.ui-sheet-wrap').last.locator('.inf-afx-opt').nth(1).click()
+    page.evaluate("async()=>{const {sheet}=await import('/src/ui/kit.js');sheet.top().back();}")
+    page.wait_for_function("!document.querySelector('.ui-sheet-wrap.closing')")
+    assert page.evaluate('bulkTest.state()') == before
+    page.get_by_role('button', name=label_re('商会に残す能力を変更')).click()
+    assert page.locator('.ui-sheet-wrap').last.locator('.inf-afx-opt').nth(0).get_attribute('aria-pressed') == 'true'
     assert not errors, errors
     print('画面操作: キャンセル・通常売却・手動選択・自動選択・フォーカス維持・残数更新・4画面サイズ OK')
     browser.close()
