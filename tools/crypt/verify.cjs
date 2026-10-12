@@ -120,7 +120,7 @@ function check(name, value) { assert.ok(value, name); report.checks.push(name); 
       const result = await fixture(page, 'w01', floor);
       check(`地下墓地B${floor}Fに素材が適用される`, result.scale === 3);
     }
-    for (const id of ['w02', 'w04']) {
+    for (const id of ['w12', 'w13']) {
       const result = await fixture(page, id);
       check(`${id}は従来の素材を維持する`, result.scale === 1);
     }

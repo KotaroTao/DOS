@@ -17,7 +17,7 @@ const check = (name, ok) => { assert.ok(ok, name); report.checks.push(name); };
       const errors = [], requests = []; page.on('pageerror', e => errors.push(e.message));
       let release;
       const gate = mode === 'delay' ? new Promise(r => { release = r; }) : Promise.resolve();
-      await page.route(/\/art\/dungeon\/crypt-(props-a|props-b|props-c|props-d|walker)\.webp/, async route => {
+      await page.route(/\/art\/dungeon\/crypt-(props-a|props-b|props-c|props-d|corpses-seated|walker)\.webp/, async route => {
         requests.push(route.request().url());
         if (mode === 'fail' || mode === 'partial' && route.request().url().includes('props-a')) return route.abort();
         await gate; await route.continue();
@@ -66,7 +66,7 @@ const check = (name, ok) => { assert.ok(ok, name); report.checks.push(name); };
     check('読込中は旧人物へ戻る',await page.evaluate(()=>actorReview.cryptWalkerBitmap('down',{})===null));
     release();await page.waitForFunction(()=>actorReview.cryptWalkerBitmap('down',{}) && actorReview.cryptPropBitmap('chest') && actorReview.cryptPropBitmap('story'));
     await capture(page,'initial-mobile.png');await fixture(page);
-    check('5枚の素材が到着後、自動で利用できる',requests.length===5);
+    check('6枚の素材が到着後、自動で利用できる',requests.length===6);
     await capture(page,'after-mobile.png');await capture(page,'after-board.png','#view');
     const states=await page.evaluate(()=>{
       const k=actorReview.cryptPropKey,c=(type,extra={})=>({type,revealed:true,cleared:false,...extra});
@@ -134,12 +134,12 @@ const check = (name, ok) => { assert.ok(ok, name); report.checks.push(name); };
     for(const width of [320,390,600,1280]){await page.setViewportSize({width,height:800});await page.evaluate(()=>{actorReview.fitView(true);actorReview.drawBoardFrame();});check(`${width}pxで横あふれがない`,await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));}
     await capture(page,'desktop.png');
     const oldArt=await page.evaluate(()=>{
-      const t=actorReview;t.G.dungeonIdx=t.DUNGEONS.findIndex(d=>d.id==='w02');t.G.board=t.makeBoard(1,t.activeCfg());t.drawBoardFrame();return t.activeCfg().id==='w02'&&!t.BV.art.painting;
-    });check('他の迷宮の床と壁は従来の描画を維持する',oldArt);
+      const t=actorReview;t.G.dungeonIdx=t.DUNGEONS.findIndex(d=>d.id==='w12');t.G.board=t.makeBoard(1,t.activeCfg());t.drawBoardFrame();return t.activeCfg().id==='w12'&&!t.BV.art.painting;
+    });check('原画未登録の迷宮の床と壁は従来の描画を維持する',oldArt);
     check('人物・小物の描画と操作に実行時エラーがない',errors.length===0);await page.close();
     const partial=await start('partial');await partial.page.waitForFunction(()=>actorReview.cryptWalkerBitmap('down',{})&&actorReview.cryptPropBitmap('story'));
     check('小物1枚の失敗で人物や他の小物を止めない',await partial.page.evaluate(()=>actorReview.cryptPropBitmap('chest')===null&&!!actorReview.cryptPropBitmap('story')));
-    check('失敗した画像を毎フレーム再要求しない',partial.requests.length===5);check('部分取得失敗でも例外がない',partial.errors.length===0);await partial.page.close();
+    check('失敗した画像を毎フレーム再要求しない',partial.requests.length===6);check('部分取得失敗でも例外がない',partial.errors.length===0);await partial.page.close();
     writeFileSync(resolve(out,'checks.json'),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report,null,2));
   } finally { await browser.close(); }
 })().catch(error=>{console.error(error);process.exitCode=1;});

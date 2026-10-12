@@ -16,10 +16,10 @@ export default {
   skills: {
     // Lv15 の固有技: 弱った獲物の首を音もなく刈る
     SHADOW_KUBIKARI: { name: "刈り取りの刃", mp: 5, kind: "phys", power: 1.2, critBonus: 0.1, execute: 2, target: "enemy", desc: "弱った獲物の首を音もなく刈る（とどめ・会心UP）" },
-    SHADOW_YADOKU:       { name: "夜毒の針", mp: 3, kind: "phys", power: 0.8, acc: 0.4, poison: { chance: 0.8, pct: 0.05 }, target: "enemy", desc: "狙い澄ました毒針で蝕む（毎ターン5%）" },
+    SHADOW_YADOKU:       { name: "夜毒の針", mp: 3, kind: "phys", power: 0.8, acc: 0.1, poison: { chance: 0.8, pct: 0.05 }, target: "enemy", desc: "狙い澄ました毒針で蝕む（毎ターン5%）" },
     SHADOW_SESASHI:      { name: "背刺し", mp: 5, kind: "phys", power: 1.25, critBonus: 0.45, pierce: 0.3, target: "enemy", desc: "背後から鎧の隙を刺す（会心・物理貫通30%）" },
     SHADOW_KURASASORI:   { name: "黒蠍の尾", mp: 12, kind: "phys", power: 1.5, poison: { chance: 0.9, pct: 0.1 }, para: 0.2, target: "enemy", desc: "猛毒（毎ターン10%）を打ち、痺れさせることも" },
-    SHADOW_KAGEITO:      { name: "影糸縛り", mp: 5, kind: "phys", power: 0.5, acc: 0.6, para: 0.45, debuff: { agi: 0.85 }, target: "enemy", desc: "影の糸で縛り、麻痺させ足も奪う" },
+    SHADOW_KAGEITO:      { name: "影糸縛り", mp: 5, kind: "phys", power: 0.5, acc: 0.16, para: 0.45, debuff: { agi: 0.85 }, target: "enemy", desc: "影の糸で縛り、麻痺させ足も奪う" },
     SHADOW_SAKUYA:       { name: "朔夜三閃", mp: 14, kind: "phys", power: 0.95, hits: 3, agiScale: 0.4, critBonus: 0.2, element: "dark", target: "enemy", desc: "新月の闇から三度斬る（闇）" },
     SHADOW_TODOME:       { name: "止めの影刃", mp: 16, kind: "phys", power: 2.6, critBonus: 0.2, execute: 2.5, instakill: { chance: 0.12 }, target: "enemy", desc: "弱った敵を仕留める。命を絶つことも" },
     SHADOW_NODOBUE:      { name: "喉笛三刺", mp: 14, kind: "phys", power: 0.9, hits: 3, critBonus: 0.25, seal: { chance: 0.4, turns: 2 }, target: "enemy", desc: "喉笛を三度刺し、特技を封じる" },

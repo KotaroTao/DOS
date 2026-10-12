@@ -22,11 +22,11 @@ export default {
   skills: {
     // Lv15 の固有技: 門に立ち塞がって敵を引き付け、魔障壁を張る
     TEMPLAR_MONKEKKAI: { name: "門の結界", mp: 5, kind: "buff", taunt: true, grantBarrier: 1, target: "self", desc: "門に立ち塞がって敵を引き付け、魔障壁を張る" },
-    TEMPLAR_KUSARIUCHI: { name: "鎖打ち", mp: 7, kind: "phys", power: 1.3, acc: 0.8, seal: { chance: 0.35, turns: 2 }, target: "enemy", desc: "聖鎖を絡めて打ち、特技を封じる" },
-    TEMPLAR_SEIINUCHI: { name: "聖印打ち", mp: 12, kind: "phys", power: 2.0, pieScale: 0.5, element: "light", acc: 0.6, mpDrain: 0.15, target: "enemy", desc: "聖印を刻んで打ち、魔力を吸い上げる" },
+    TEMPLAR_KUSARIUCHI: { name: "鎖打ち", mp: 7, kind: "phys", power: 1.3, acc: 0.21, seal: { chance: 0.35, turns: 2 }, target: "enemy", desc: "聖鎖を絡めて打ち、特技を封じる" },
+    TEMPLAR_SEIINUCHI: { name: "聖印打ち", mp: 12, kind: "phys", power: 2.0, pieScale: 0.5, element: "light", acc: 0.16, mpDrain: 0.15, target: "enemy", desc: "聖印を刻んで打ち、魔力を吸い上げる" },
     TEMPLAR_MONZENNOHARAI: { name: "門前の祓い", mp: 7, kind: "buff", buff: { vit: 1.2 }, purge: true, target: "all-ally", desc: "味方全員の守りを固め、弱体を祓う" },
     TEMPLAR_MISOGI: { name: "禊の聖水", mp: 9, kind: "buff", cure: ["poison", "paralyze", "sleep"], purge: true, regen: { pct: 0.03, turns: 2 }, target: "all-ally", desc: "全員の毒・猛毒・麻痺・眠りと弱体を流し、わずかに癒し続ける" },
-    TEMPLAR_HAKAINOISHIZUCHI: { name: "破戒の石槌", mp: 12, kind: "phys", power: 2.4, element: "earth", acc: 0.5, strip: true, target: "enemy", desc: "石槌で打ち、敵の強化を打ち砕く" },
+    TEMPLAR_HAKAINOISHIZUCHI: { name: "破戒の石槌", mp: 12, kind: "phys", power: 2.4, element: "earth", acc: 0.13, strip: true, target: "enemy", desc: "石槌で打ち、敵の強化を打ち砕く" },
     TEMPLAR_HAMANOKOUSA: { name: "破魔の光鎖", mp: 10, kind: "atk", power: 20, element: "light", seal: { chance: 0.25, turns: 2 }, target: "all-enemy", desc: "光の鎖が敵陣を縛り、特技を封じる" },
     TEMPLAR_MONBANNOKAMAE: { name: "門番の構え", mp: 6, kind: "buff", stance: "counter", grantBarrier: 1, dur: 2, tech: true, target: "self", desc: "門を背に構え、反撃の構えと魔障壁を得る" },
     TEMPLAR_HAMANOOOZUCHI: { name: "破魔の大槌", mp: 18, kind: "phys", power: 3.0, vitScale: 1.4, acc: 1, vuln: { all: 0.85 }, target: "enemy", desc: "必中の大槌で、あらゆる属性への守りを崩す" },
@@ -36,7 +36,7 @@ export default {
     TEMPLAR_SEIKANOHARAI: { name: "聖火の祓い", mp: 32, kind: "heal", healMul: 2.1, cure: true, purge: true, debuffAll: { atk: 0.9 }, target: "all-ally", desc: "聖火で味方を癒し祓い、敵の力を灼き削ぐ" },
     TEMPLAR_SANJUUKEKKAI: { name: "三重結界", mp: 24, kind: "buff", grantBarrier: 2, target: "all-ally", desc: "味方全員に魔障壁を2回分重ねて張る" },
     TEMPLAR_FUUMANOOOGANE: { name: "封魔の大鐘", mp: 30, kind: "debuff", seal: { chance: 0.5, turns: 3 }, strip: true, debuff: { atk: 0.85 }, target: "all-enemy", desc: "大鐘の音が敵陣の特技と強化を封じ、力を削ぐ" },
-    TEMPLAR_KOUSANAGI: { name: "光鎖なぎ", mp: 28, kind: "phys", power: 2.0, vitScale: 0.3, element: "light", acc: 0.6, flinchChance: 0.2, target: "all-enemy", desc: "光の鎖で敵陣をなぎ、怯ませる" },
+    TEMPLAR_KOUSANAGI: { name: "光鎖なぎ", mp: 28, kind: "phys", power: 2.0, vitScale: 0.3, element: "light", acc: 0.16, flinchChance: 0.2, target: "all-enemy", desc: "光の鎖で敵陣をなぎ、怯ませる" },
     TEMPLAR_SHUMONNOJIN: { name: "守門の陣", mp: 26, kind: "buff", shield: true, buff: { vit: 1.3 }, grantBarrier: 2, tech: true, target: "self", desc: "門となって仲間を庇い、魔障壁を重ねる" },
     TEMPLAR_SEIDOUKISHI: { name: "聖堂騎士の誓詞", mp: 30, kind: "buff", buff: { vit: 1.35, atk: 1.2 }, cure: true, target: "all-ally", desc: "誓詞が味方全員の攻守を高め、異常を祓う" },
     TEMPLAR_SHINDENNOSHINPAN: { name: "神殿の審判", mp: 32, kind: "atk", power: 62, element: "light", seal: { chance: 0.35, turns: 2 }, prey: { races: UNHOLY, mul: 1.3 }, target: "all-enemy", desc: "審判の光が敵全体を灼き、特技を封じる" },
