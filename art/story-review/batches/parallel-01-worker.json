@@ -1,0 +1,93 @@
+{
+  "worker": "01",
+  "branch": "codex/art-worker-01",
+  "base_commit": "3312deeabeb4ad5774d2902deabbfb08957da872",
+  "generation_calls": 6,
+  "items": [
+    {
+      "id": "w22_coat",
+      "path": "art/story-review/chapter6/w22_coat.png",
+      "status": "ready",
+      "generation_count": 1,
+      "visual_review": {
+        "face": "弟子の茶髪・顔・金刺しゅう外套・左腰の鞄が基準と一致",
+        "limbs": "腕2本・脚2本の姿勢に破綻なし。紙を握る指と袖内の手は一部隠れるため全指の直接確認はできない",
+        "sigil": "裾に左親指・右3突起と独立した炎の幾何学印",
+        "props": "師の簡素な黒外套、凍った紙、削った足場を確認",
+        "text_match": "氷棚に半ば凍った外套・裂けた裾・奈落・弟子が紙を取り出す場面。先の秘密なし"
+      }
+    },
+    {
+      "id": "report_w22",
+      "path": "art/story-review/chapter6/report_w22.png",
+      "status": "ready",
+      "generation_count": 1,
+      "visual_review": {
+        "face": "王の白髪・白ひげ・王冠・赤衣と白毛皮、弟子の後ろ姿が基準と一致。王の口元にかすかな微笑",
+        "limbs": "王の両手に余分な指なし。握った指と膝掛け内の脚は全数を直接判別できない。弟子の手足は姿勢と画面外で一部隠れる",
+        "sigil": "一門の印を新たに描く場面ではない",
+        "props": "王が胸元へ毛皮の膝掛けを引き寄せ、宰相席は空。杯を卓上に描いていない",
+        "text_match": "寒い玉座の間、白い息、窓の霜、重い雲、弟子の報告を確認"
+      }
+    },
+    {
+      "id": "w23_names",
+      "path": "art/story-review/chapter6/w23_names.png",
+      "status": "ready",
+      "generation_count": 1,
+      "visual_review": {
+        "face": "弟子の後ろ姿・茶髪・金刺しゅうと左腰鞄が一致。凍った男女は閉眼または伏せた目",
+        "limbs": "弟子の右手は親指と4指、腕2本・脚2本。凍った11人は胸前の両手を確認、氷と衣で脚と一部の指は隠れる",
+        "sigil": "指定されない一門の印は追加なし",
+        "props": "橙の手提げ灯、根元の読めない刻字、空柱内の走り書き",
+        "text_match": "柱12本を目視計数、11人と空柱1本、円周配置、空柱へ触れる弟子。先の人物と秘密なし"
+      }
+    },
+    {
+      "id": "report_w23",
+      "path": "art/story-review/chapter6/report_w23.png",
+      "status": "ready",
+      "generation_count": 2,
+      "visual_review": {
+        "face": "王と弟子の基準を維持、沈黙と悲しみの表情",
+        "limbs": "見える手に余分な指なし。長衣と握った手の内側は隠れる",
+        "sigil": "新規の一門印なし",
+        "props": "膝掛けと空席を維持。杯を卓上から玉座脇の床へ移動",
+        "text_match": "窓の霜・白い息・重い雲・少数の低い蝋燭に修正、寒い室内と悲しむ王、11行の読めない走り書き。先の秘密なし"
+      },
+      "revision_history": [
+        {
+          "generation": 1,
+          "status": "needs-fix",
+          "reason": "卓上の杯と寒さの不足",
+          "source": "/workspace/generated_images/exec-63c7dda2-bd14-41e3-a8ae-c682b2150210.png"
+        },
+        {
+          "generation": 2,
+          "status": "ready",
+          "reason": "杯と室温表現を修正"
+        }
+      ]
+    },
+    {
+      "id": "w24_aurora",
+      "path": "art/story-review/chapter6/w24_aurora.png",
+      "status": "ready",
+      "generation_count": 1,
+      "visual_review": {
+        "face": "茶髪と横顔、固定外套、左腰鞄が基準と一致",
+        "limbs": "接地する左手は親指と4指。右手は灯を握り一部隠れる。腕2本・脚2本の膝立ちに破綻なし",
+        "sigil": "一門印を追加する場面ではない",
+        "props": "温かい橙の手提げ灯、石で押さえた紙と読めない図・走り書き、氷に閉じこめられた金貨",
+        "text_match": "天井全体の緑と紫の光が氷内の微粒子で構成、弟子が灯を下げて見上げる。玉座や先の秘密なし"
+      }
+    }
+  ],
+  "worktree": "/workspace/DOS-art-worker-01",
+  "validation": {
+    "png": "全5枚をPNG・1536×1024で検査済み",
+    "thumbnail": "全5枚を384×256で目視確認。外套と印、王と膝掛けと空席、空柱、極光と紙が読める",
+    "scope": "原画5枚と本担当記録のみ。WebP変換・build.py・共通queue・登録・本文・基準画像の変更なし",
+    "handoff": "統合担当がこのコミットの原画と記録を取り込み、承認確認と変換・登録を実施する。未完成IDなし"
+  }
+}

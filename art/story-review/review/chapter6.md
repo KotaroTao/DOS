@@ -1,13 +1,13 @@
 # 第6章「氷結回廊」 の絵
 
 書き出し: `node tools/storyart/review.mjs` (手で直さない)。絵は出荷する WebP、まだ無ければ原画。
-
+ゲームで小さく出た時の見え方 (384×256): [chapter6-small.jpg](chapter6-small.jpg)
 
 <a name="w22_coat"></a>
 
-## w22_coat「風が受け止めたもの」 ── 未着手 (指示あり)
+## w22_coat「風が受け止めたもの」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter6/w22_coat.webp" width="576" alt="w22_coat">
 
 **ストーリー一覧の本文**
 
@@ -43,9 +43,9 @@ _(絵はまだ無い)_
 
 <a name="report_w22"></a>
 
-## report_w22「寒い玉座の間」 ── 未着手 (指示あり)
+## report_w22「寒い玉座の間」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter6/report_w22.webp" width="576" alt="report_w22">
 
 **ストーリー一覧の本文**
 
@@ -71,9 +71,9 @@ _(絵はまだ無い)_
 
 <a name="w23_names"></a>
 
-## w23_names「空けてあった柱」 ── 未着手 (指示あり)
+## w23_names「空けてあった柱」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter6/w23_names.webp" width="576" alt="w23_names">
 
 **ストーリー一覧の本文**
 
@@ -106,9 +106,9 @@ _(絵はまだ無い)_
 
 <a name="report_w23"></a>
 
-## report_w23「済まされていなかった処刑」 ── 未着手 (指示あり)
+## report_w23「済まされていなかった処刑」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter6/report_w23.webp" width="576" alt="report_w23">
 
 **ストーリー一覧の本文**
 
@@ -134,9 +134,9 @@ _(絵はまだ無い)_
 
 <a name="w24_aurora"></a>
 
-## w24_aurora「天井の星」 ── 未着手 (指示あり)
+## w24_aurora「天井の星」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter6/w24_aurora.webp" width="576" alt="w24_aurora">
 
 **ストーリー一覧の本文**
 
