@@ -17,10 +17,10 @@ import { UI, game, ops, registerUI } from "./ctx.js";
 import { el, setText, glyph, svgIcon, sheet, button, segmented, chips, itemTile, scrollBox, badge, bar } from "./kit.js";
 import { remember } from "./prefs.js";
 import { softFade } from "./motion.js";
-import { statLines, itemCatText, isEquippable, equipLvText, specialLines, weaponPerformanceEl, showSkillPopup, showPassivePopup, tagRow, traitTagKinds, affinityRow, spellTagKinds, revealSteps, monKills, revealLock, elemStatShort, enemyReveal, enemyLabel, unknownArt, UNKNOWN_COLOR, effectChip } from "./itemview.js";
+import { itemDetailEl, showSkillPopup, showPassivePopup, tagRow, traitTagKinds, affinityRow, spellTagKinds, revealSteps, monKills, revealLock, elemStatShort, enemyReveal, enemyLabel, unknownArt, UNKNOWN_COLOR, effectChip } from "./itemview.js";
 import { MONSTERS, ICONS, spriteCanvas } from "../sprites.js";
 import { EVENTS, EVENT_MAP, EVENT_GROUPS, EV_TIERS, eventWhereText, onceKey, LORE_PAGES } from "../events.js";
-import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, SHIELD_KINDS, SHIELD_KIND_LABEL, shieldKind, itemName, hasQuality, qualityOf, QUALITY_SPREAD } from "../items.js";
+import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, SHIELD_KINDS, SHIELD_KIND_LABEL, shieldKind, itemName } from "../items.js";
 import { RANK_COLOR, RANK_NAME } from "../content.js";
 import { poolAt } from "../dungeons/world.js";
 import { MONSTER_LORE } from "../dungeons/monlore.js";
@@ -712,45 +712,17 @@ function codexItemView(it, o) {
     if (o.badge) hd.appendChild(el("span", "first-get", o.badge));
     body.appendChild(hd);
   }
-  // 所持品の実体が未鑑定なら正体は伏せる (名・性能・説明は鑑定するまで見せない)
-  const unid = !!(o.item && o.item.unidentified);
-  if (unid) {
-    body.appendChild(setText(el("div", "pl-detail-cat"), "未鑑定 ― 正体はまだわからない"));
-    body.appendChild(setText(el("div", "pl-detail-desc"), it.idHardFail ? "鑑定の心得では見抜けなかった。商会 (有料) でなら鑑定できる。" : "商会 (有料) か、鑑定の心得がある仲間に見てもらおう。"));
-  } else {
-    body.appendChild(setText(el("div", "pl-detail-cat"), itemCatText(it) + (isEquippable(it) ? ` ・ ${equipLvText(it)}` : "")));
-    const st = statLines(it);
-    if (st) body.appendChild(setText(el("div", "pl-detail-stats"), st));
-    // 品質: 所持品の実体ならその品質、図鑑 (目録の品) なら幅の説明 (図鑑の数値は並品 = 品質50)
-    if (hasQuality(it)) {
-      body.appendChild(setText(el("div", "pl-detail-q"), o.item
-        ? `品質 ${qualityOf(it)}（0〜100。50が並品）`
-        : `手に入れるたびに品質0〜100が決まり、性能が±${Math.round(QUALITY_SPREAD * 100)}%変わる。ここの数値は並品（品質50）。`));
-    }
-    const dolls = game.allDolls ? game.allDolls() : [...(game.G?.party || []), ...(game.G?.reserve || [])];
-    const wearer = dolls.find(d => d.equip?.weapon === it);
-    const performance = weaponPerformanceEl(it, wearer);
-    if (performance) body.appendChild(performance);
-    // 特殊効果は説明の文とは別に、数字で効果を言い切った行で出す
-    const fx = specialLines(it);
-    if (fx.length) {
-      const box = el("div", "pl-detail-fx");
-      box.appendChild(el("div", "pl-detail-fxh", "特殊効果"));
-      for (const ln of fx) box.appendChild(setText(el("div", "pl-detail-fxl"), ln));
-      body.appendChild(box);
-    }
-    if (it.desc) body.appendChild(setText(el("div", "pl-detail-desc"), it.desc));
-  }
-  return {
-    banner: unid ? "未鑑定の品" : game.itemGradeText ? game.itemGradeText(it, "品") : "品", accent: rc, art: it, artScale: 9,
-    title: unid ? itemName(it) : it.name, titleColor: rc, body,
-  };
+  const dolls = game.allDolls ? game.allDolls() : [...(game.G?.party || []), ...(game.G?.reserve || [])];
+  const wearer = dolls.find(d => Object.values(d.equip || {}).includes(it));
+  body.appendChild(itemDetailEl(it, { catalog: !o.item, target: wearer }));
+  return { accent: rc, body };
 }
+
 export function codexItemSheet(id, o = {}) {
   const it = o.item || ITEMS[id];
   if (!it) return null;
   return sheet.open({
-    kind: "info", ...codexItemView(it, o), className: "pl-detail-sheet",
+    kind: "info", ...codexItemView(it, o), className: "wpc-isheet",
     footer: o.footer || [{ label: "閉じる", kind: "ghost", onTap: (hh) => hh.close() }],
     onClose: o.onClose,
   });

@@ -497,14 +497,7 @@ function openBuyChooser(id) {
   const it = ITEMS[id];
   if (!it) return null;
   if (!isEquippable(it)) return openDollChooser(it, { mode: "bag", buyId: id, title: "買う" });
-  const buyer = defaultBuyer();
-  const plan = wearPlan(it);
-  const bagTo = plan.target && plan.target.items.length < MAX_ITEMS ? plan.target : buyer;
-  return openDollChooser(it, {
-    mode: "equip", buyId: id, title: "買って装備",
-    footer: bagTo ? [{ label: "買うだけ", sub: `${bagTo.name} の袋へ`, kind: "secondary", cost: { kind: "gold", n: game.buyPrice(it) },
-      onTap: (h) => { if (shopBuy(id, bagTo, { equip: false })) h.close("done"); } }] : [],
-  });
+  return openDollChooser(it, { mode: "equip", buyId: id });
 }
 
 // 鑑定の結果 (まとめて鑑定のあと): 正体が知れた品。押せば品シート / 「装備」で人業を選ぶ / 「売る」でその場で売る /

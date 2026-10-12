@@ -20,7 +20,7 @@ import {
 import { deltaFloat } from "./motion.js";
 import { remember, setPref, getPref } from "./prefs.js";
 import {
-  statLines, detailLines, isEquippable, gearScore, elemStatShort, showSkillPopup, showPassivePopup, itemCatText, tagRow, spellTagKinds, specialLines, specialShort, specialParts, resistDeltaParts, weaponPerformanceEl, weaponPowerPreview,
+  itemDetailEl, statLines, isEquippable, gearScore, elemStatShort, showSkillPopup, showPassivePopup, itemCatText, tagRow, spellTagKinds, specialLines, specialShort, specialParts, resistDeltaParts, weaponPerformanceEl, weaponPowerPreview,
 } from "./itemview.js";
 import { renderSoulSeg, openSoulPicker, openSoulList, openOrderSheet } from "./soulpanel.js";
 import { IRENE_WHO, IRENE_ART, ireneState, isGreeted, nextLine, lineOpen, noteVisit, greetingPages, playIreneScene, sceneActive } from "./irene.js";
@@ -634,23 +634,12 @@ export function openEquipChooser(item, { owner = null, actions = null, onClose =
   const accent = rk ? RARITIES[rk].color : null;
   let h = null;
   const body = el("div", "pt-item ch");
-  body.appendChild(itemSummary(item, accent, { compact: true }));
-  const performance = weaponPerformanceEl(item, owner);
-  if (performance) body.appendChild(performance);
-  // 特殊効果 (追加の能力・連撃・属性・状態異常…) を数字で言い切った行で (2026-10-11 ユーザーの指示: 付け替えの時に確かめたい)。
-  // いまの装備の特殊効果は「いまの装備と比べる」に人業ごとに並ぶ
-  const fx = item.unidentified ? [] : specialLines(item);
-  if (fx.length) {
-    const fb = el("div", "pt-cur-fx pt-ch-fx");
-    fb.appendChild(el("div", "pt-cur-fxh", "特殊効果"));
-    for (const ln of fx) fb.appendChild(el("div", "pt-cur-fxl", ln));
-    body.appendChild(fb);
-  }
+  body.appendChild(itemDetailEl(item, { target: owner }));
   body.appendChild(equipChooserEl(item, { owner, onDone: () => { if (h) h.close("ok"); } }));
-  if (item.desc) body.appendChild(el("div", "pt-item-desc", item.desc));
   const acts = actions || (owner ? itemActions(item, owner, "bag", { equip: false }) : []);
   h = sheet.open({
-    kind: "info", banner: game.itemGradeText ? game.itemGradeText(item, "品") : "品", accent, body, className: "pt-item-sheet pt-ch-sheet",
+    kind: "info", accent, body, className: "wpc-isheet pt-item-sheet pt-ch-sheet",
+    onClose,
     footer: acts.length ? acts : [{ label: "閉じる", kind: "ghost", onTap: (s) => s.close() }],
   });
   return h;
@@ -2660,37 +2649,13 @@ function itemActions(it, owner, ctx, { equip = true } = {}) {
   return acts;
 }
 
-// 品の要約 (絵・名・分類・能力)
-function itemSummary(it, accent, { compact = false } = {}) {
-  const top = el("div", "pt-item-top" + (compact ? " compact" : ""));
-  const art = el("span", "pt-item-art");
-  if (accent) art.style.setProperty("--edge", accent);
-  art.appendChild(spriteCanvas(it, compact ? 4 : 7));
-  top.appendChild(art);
-  const tx = el("div", "pt-item-tx");
-  tx.appendChild(game.itemNameEl ? game.itemNameEl("div", "pt-item-n", it, it.cursed && !it.unidentified ? " (呪)" : "") : el("div", "pt-item-n", itemName(it)));
-  if (!it.unidentified) {
-    tx.appendChild(el("div", "pt-item-c", itemCatText(it) + (it.slot === "weapon" ? ` ・ 射程${(RANGE_LABEL[weaponRange(it)] || "").replace("距離", "")}` : "")));
-    const s = statLines(it);
-    if (s) tx.appendChild(el("div", "pt-item-s", s));
-  } else tx.appendChild(el("div", "pt-item-c", "未鑑定 ― 正体はまだわからない"));
-  top.appendChild(tx);
-  return top;
-}
+// 共通の品の詳細に、この画面で使える操作だけを添える。
 function fallbackItemSheet(it, owner, ctx, actions) {
   const rk = rarityKey(it);
   const accent = rk ? RARITIES[rk].color : null;
-  const body = el("div", "pt-item");
-  body.appendChild(itemSummary(it, accent));
-  const performance = weaponPerformanceEl(it, owner);
-  if (performance) body.appendChild(performance);
-  const lines = el("div", "pt-item-lines");
-  const cat = itemCatText(it);
-  for (const ln of detailLines(it)) if (!(ln === cat && !it.unidentified)) lines.appendChild(el("div", "pt-item-l", ln));
-  body.appendChild(lines);
-  if (it.desc && !it.unidentified) body.appendChild(el("div", "pt-item-desc", it.desc));
+  const body = itemDetailEl(it, { target: owner });
   const footer = actions.length ? actions.map((a) => ({ ...a })) : [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }];
-  return sheet.open({ kind: "info", banner: game.itemGradeText ? game.itemGradeText(it, "品") : "品", accent, body, footer, className: "pt-item-sheet" });
+  return sheet.open({ kind: "info", accent, body, footer, className: "wpc-isheet pt-item-sheet" });
 }
 
 // 渡す相手 (街: 隊と控えの全員 / 迷宮: 生きている隊の者)

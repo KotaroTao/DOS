@@ -5,12 +5,13 @@ import { RESIST_LABEL } from "../resistance.js";
 // 呼び出し側 (game.js・各パッケージ) は同じ名前のまま import して使う。
 
 import { game } from "./ctx.js";
-import { el, sheet } from "./kit.js";
+import { el, sheet, setText } from "./kit.js";
 import { ELEMENTS, elementAffinity, RACE_LABEL, unknownLabel, UNK_OPEN, UNK_CLOSE } from "../dungeons/index.js";
 import { SPELLS, spellMpLabel, spellCureKinds, soulTierRate, healsHp, MP_DRAIN_CAP } from "../combat.js";
 import { STAGED, stageOf, stageMul, stageLabel, ENEMY_STAT_LABEL, effectStage, isBattleLong } from "../buffstage.js";
 import { ATTR_LABEL, SOUL_CLASSES, dollBust, PASSIVES, passiveName, passiveByName } from "../souls.js";
-import { WEAPON_CAT_LABEL, SHIELD_KIND_LABEL, HAND_LABEL, handOf, shieldKind, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip, equipLevelOf, AIL_LABEL, attackPower, fightPower, useLines } from "../items.js";
+import { WEAPON_CAT_LABEL, SHIELD_KIND_LABEL, HAND_LABEL, handOf, shieldKind, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip, equipLevelOf, AIL_LABEL, attackPower, fightPower, useLines, itemName, hasQuality, qualityOf, QUALITY_MID, QUALITY_SPREAD } from "../items.js";
+import { RARITIES, rarityKey } from "../rarity.js";
 import { HERO, spriteCanvas, crispCanvas } from "../sprites.js";
 
 // 魂のステータス寄与を「HP+7 STR+2.4 …」形式で列挙 (0は省略)
@@ -828,6 +829,65 @@ export function itemCatText(it) {
   if (it.slot === "weapon" && it.cat) return `武器（${WEAPON_CAT_LABEL[it.cat] || "その他"}・${HAND_LABEL[handOf(it)]}）`;
   if (it.slot === "shield") return `盾（${SHIELD_KIND_LABEL[shieldKind(it)] || "盾"}）`;
   return CAT_LABEL[it.slot] || "";
+}
+
+// 図鑑・所持品・装備選択で共通の品の詳細。操作と対象選択は呼び出し側が添える。
+export function itemDetailEl(it, { target = null, catalog = false, stock = false, meta = null, first = false } = {}) {
+  const body = el("div", "item-detail");
+  const rk = rarityKey(it);
+  const top = el("div", "wpc-is-top");
+  const art = el("div", "wpc-is-art" + (rk ? " rar-" + rk : ""));
+  art.appendChild(spriteCanvas(it, 7));
+  top.appendChild(art);
+  const hd = el("div", "wpc-is-hd");
+  hd.appendChild(game.itemNameEl ? game.itemNameEl("div", "wpc-is-name", it) : el("div", "wpc-is-name", itemName(it)));
+  const grade = el("div", "wpc-is-grade");
+  if (first && !it.unidentified) grade.appendChild(el("span", "first-get wpc-is-first", "初ゲット！"));
+  if (rk) grade.appendChild(el("span", "wpc-rtag rar-" + rk, RARITIES[rk].label));
+  if (it.unidentified) grade.appendChild(el("span", "wpc-is-unid", it.idHardFail ? "未鑑定 ・ 失敗済み" : "未鑑定"));
+  else {
+    grade.appendChild(el("span", "wpc-is-cat", itemCatText(it)));
+    if (it.cursed) grade.appendChild(el("span", "wpc-is-curse", "呪い"));
+    if (hasQuality(it)) {
+      const q = stock || catalog ? QUALITY_MID : qualityOf(it);
+      grade.appendChild(el("span", "rf-q " + qualityTone(q), stock || catalog ? `並品 ・ 品質${q}` : `品質 ${q}`));
+    }
+  }
+  hd.appendChild(grade);
+  if (!it.unidentified) {
+    const st = statLines(it);
+    if (st) hd.appendChild(setText(el("div", "wpc-is-stat"), st));
+  }
+  if (meta) hd.appendChild(meta);
+  top.appendChild(hd);
+  body.appendChild(top);
+  if (it.unidentified) {
+    for (const ln of detailLines(it).slice(1)) body.appendChild(el("div", "wpc-is-note", ln));
+    return body;
+  }
+  const det = [];
+  if (isEquippable(it)) det.push(equipClassText(it), equipLvText(it));
+  if (it.slot === "weapon") det.push(`射程: ${RANGE_LABEL[weaponRange(it)]}`, handLine(it));
+  if (it.align) det.push(`${it.align}属性`);
+  if (it.slot === "misc") det.push("王宮の宝物庫に奉納できる。商会では売れる。");
+  if (it.use) det.push(...useLines(it));
+  if (catalog && hasQuality(it)) det.push(`手に入れるたびに品質0〜100が決まり、性能が±${Math.round(QUALITY_SPREAD * 100)}%変わる。ここの数値は並品（品質50）。`);
+  if (det.length) {
+    const lines = el("div", "wpc-is-lines");
+    for (const ln of det) lines.appendChild(setText(el("div"), ln));
+    body.appendChild(lines);
+  }
+  if (it.desc) body.appendChild(el("div", "wpc-is-lore", it.desc));
+  const performance = weaponPerformanceEl(it, target);
+  if (performance) body.appendChild(performance);
+  const fx = specialLines(it);
+  if (fx.length) {
+    const box = el("div", "wpc-is-fx");
+    box.appendChild(el("div", "wpc-is-fxh", "特殊効果"));
+    for (const ln of fx) box.appendChild(setText(el("div", "wpc-is-fxl"), ln));
+    body.appendChild(box);
+  }
+  return body;
 }
 
 // ウィザードリィ風の情報テキスト行
