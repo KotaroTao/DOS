@@ -56,7 +56,7 @@ import { RARITIES, rarityKey, rarityColor, rarityLabel, rollRarity, layerRarityU
 import { UI, ops, bindGame, registerUI } from "./ui/ctx.js";
 import { el, svgIcon, btn, button as kitButton, longPress as attachLongPress, uiBlocked, sheetDepth, sheet, toast as kitToast, setToastEcho, confirm as kitConfirm, plainText, shake as kitShake } from "./ui/kit.js";
 import { nav } from "./ui/nav.js";
-import { installPhraseWrap } from "./ui/phrase.js";
+import { installPhraseWrap, phrase, ZWSP } from "./ui/phrase.js";
 import * as townshell from "./ui/townshell.js";
 import { showSkillPopup,
   SPELL_KIND_COLOR, BUFF_NAME, tagRow, spellTagKinds, isEquippable, equipPreviewDelta, equipCompareEl, detailLines,
@@ -2470,7 +2470,7 @@ function fitView(force = false) {
   if (combat) used += MENU_RESERVE + LOG_MIN_COMBAT + TURN_ORDER_H;
   else used += outerH(runbarEl) + outerH(ctrlEl) + LOG_MIN_BOARD;
   // 縦の短い画面では戦場も縮め、記録と命令板の領域を確保する。
-  const minVH = combat ? 140 : 240;
+  const minVH = combat ? (G.battle?.enemies.length > 3 ? 280 : 180) : 240;
   const h = Math.max(cssW * (combat ? minVH / VW : 0.56), Math.min(cssW * (combat ? 0.98 : 1.32), appH - used));
   const vh = Math.max(minVH, Math.round((VW * h) / cssW));
   const cssH = (vh * cssW) / VW;
@@ -9040,14 +9040,14 @@ function renderCombatCanvas() {
   });
 
   // 戦場の縦の伸び (縦長の戦場ほど魔物を大きく)
-  const k = VH < 240 ? 0.92 * VH / 240 : Math.max(0.92, Math.min(1.3, VH / 330));
+  const k = Math.max(0.92, Math.min(1.3, VH / 280));
   // 隊列: 4体以上は前衛(先頭3体)・後衛(4体目以降)の2列に分かれる。
-  // 奥に立つ後衛から先に描き、前衛を手前に重ねて遠近を出す
+  // 後衛を上、前衛を下の帯に置く。
   const frontRow = b.enemies.slice(0, 3);
   const backRow = b.enemies.slice(3);
   const rows = backRow.length
-    ? [{ list: backRow, y: VH * 0.31, back: true }, { list: frontRow, y: VH * 0.5, back: false }]
-    : [{ list: frontRow, y: VH * 0.41, back: false }];
+    ? [{ list: backRow, back: true }, { list: frontRow, back: false }]
+    : [{ list: frontRow, back: false }];
   const intro = G.battleIntro && G.battleIntro.battle === b ? G.battleIntro : null;
   // 奇襲の1ターン目は、魔物の下に紅い縁と「敵が先に動く」の札を敷く (名札が重なれば名札を優先)
   if (!intro && b.opening === "ambush" && b._roundNo <= 1 && !b.result) drawAmbushTag(now);
@@ -9060,29 +9060,39 @@ function renderCombatCanvas() {
   const strongTarget = b.phase === "target";
   G.enemyPos = {};
   // 魔物の大きさ: 主は戦場を圧し、強敵は一回り大きく、後衛は奥で小さく。横に並ぶ数ぶんの幅に収める
+  for (const row of rows) {
+    row.plates = row.list.map((e) => enemyPlateLayout(e, VW / row.list.length - 12));
+    row.plateH = Math.max(...row.plates.map((p) => p.height));
+  }
+  const bandH = VH / rows.length;
   const sizeOf = (e, back, n) => {
     let sz = (e.boss ? 14 : (e.mon && e.mon.elite ? 1.15 : 1) * (back ? 8 : 9)) * k;
     if (e.mon && (e.mon.art || e.mon.photo)) {
       const bm = monsterBitmap(e.mon);
       const unit = Math.max(12, bm.w, bm.h) / 12;
-      const slot = (VW / (n + 1)) * (n > 1 ? 1.12 : 1.6);
+      const slot = VW / n - 16;
       sz = Math.min(sz, (slot / (bm.w + bm.pad * 2)) * unit);
     }
-    return sz;
+    // 名札と効果の札を残し、背の高い魔物も戦場からはみ出させない。
+    const row = rows.find((r) => r.back === back);
+    const maxHalfH = Math.max(8, (bandH - row.plateH - 35) / 2);
+    return Math.min(sz, sz * maxHalfH / monsterHalfH(e.mon, sz));
   };
   for (const row of rows) {
+    const { plates, plateH } = row;
     // この列の名札の高さを揃える (いちばん背の高い魔物の足元の下)
-    let foot = 0, head = 0;
-    for (const e of row.list) { const hh = monsterHalfH(e.mon, sizeOf(e, row.back, row.list.length)); foot = Math.max(foot, hh); head = Math.max(head, hh); }
-    // 短い戦場でも、後衛の名札を上端、前衛の名札を下端で切らない。
-    if (VH < 240) row.y = row.back ? Math.max(row.y, head + 32) : Math.min(row.y, VH - foot - 30);
-    const plateY = row.back ? row.y - head - 30 : row.y + foot + 7;
+    let foot = 0;
+    for (const e of row.list) { const hh = monsterHalfH(e.mon, sizeOf(e, row.back, row.list.length)); foot = Math.max(foot, hh); }
+    // 前後それぞれの帯に姿と名前を収め、名札が別の敵に隠れないようにする。
+    const bandTop = rows.indexOf(row) * bandH;
+    row.y = bandTop + 10 + (bandH - plateH - 35) / 2;
+    const plateY = row.y + foot + 7;
     row.list.forEach((e, i) => {
-      const baseX = (VW / (row.list.length + 1)) * (i + 1);
+      const baseX = (VW / row.list.length) * (i + 0.5);
       const baseY = row.y;
       const size = sizeOf(e, row.back, row.list.length);
       const hh = monsterHalfH(e.mon, size);
-      G.enemyPos[e.uid] = { cx: baseX, cy: baseY, r: 70 * k, hh, size };
+      G.enemyPos[e.uid] = { cx: baseX, cy: baseY, r: 70 * k, hh, size, plate: { x: baseX - plates[i].width / 2, y: plateY, w: plates[i].width, h: plates[i].height } };
       // 逃げ出した敵 (金属の魔物): 逃げる演出の間だけ、横へ駆け去る姿を描く
       const fleeFx = e._fled && fx && fx.fleeAway && fx.fleeAway.uid === e.uid ? fx.fleeAway : null;
       if (e._fled && !fleeFx) return;
@@ -9176,15 +9186,13 @@ function renderCombatCanvas() {
       // 名札 + 血の小瓶 (HP)
       // 名前・HP は討伐数で明かす (enemyReveal): 名前は1体倒すまで不確定名、HP の小瓶は5体倒すまで出さない (迷宮の主は名前が最初から、HP は1体で)
       if (fleeFx) return; // 逃げる姿には名札を付けない
-      drawEnemyPlate(e, baseX, plateY, tappable && strongTarget, k);
-      const hpY = plateY + 17;
+      drawEnemyPlate(e, baseX, plateY, tappable && strongTarget, plates[i]);
+      const hpY = plateY + plateH + 2;
       const showHp = enemyReveal(e).stats;
       if (showHp) drawEnemyHpVial(e, baseX, hpY, now, k);
-      // 状態異常の札は名前の下 (HP の小瓶があればその下)。バフ/デバフ (味方カードの buffBadges に相当) は
-      // 前衛なら同じ段に続けて、後衛はプレートの上 (下に並べると奥の魔物の頭に掛かるため)
-      const statY = showHp ? hpY + 9 : plateY + 18;
-      if (row.back) { drawEnemyBadges(e, baseX, statY, { buffs: false }); drawEnemyBadges(e, baseX, plateY - 15, { ails: false }); }
-      else drawEnemyBadges(e, baseX, statY);
+      // 状態異常と強化・弱体の札は名前の下 (HP の小瓶があればその下)。
+      const statY = showHp ? hpY + 9 : plateY + plateH + 3;
+      drawEnemyBadges(e, baseX, statY);
     });
   }
 
@@ -9363,13 +9371,34 @@ function drawTargetBrackets(x, cy, hh, size, now) {
 // 敵の名札: 両端の尖った黒鉄の札。主は金、強敵は紅の縁。属性 (明かされていれば) は札の右に印で添える
 const ENEMY_SEAL = { poison: ["毒", "#8ee05a"], paralyze: ["痺", "#ffd84a"], stone: ["石", "#c9c4b8"] };
 const MIND_SEAL = { charm: ["魅", "#ff8fc8"], confuse: ["乱", "#ffa860"] };
-function drawEnemyPlate(e, x, y, hot, k) {
+// 名前は戦場の高さでは縮めず、長いものは札の幅で折り返す。
+function enemyPlateLayout(e, maxWidth) {
   vctx.save();
-  vctx.font = `800 ${Math.round(11 * Math.min(k, 1.1))}px ${CANVAS_SERIF}`;
+  vctx.font = `800 16px ${CANVAS_SERIF}`;
+  const lines = [];
+  let line = "";
+  for (const part of phrase(enemyLabel(e)).split(ZWSP)) {
+    if (line && vctx.measureText(line + part).width > maxWidth - 38) {
+      lines.push(line); line = "";
+    }
+    // 一つの文節だけで幅を超える場合に限り、字ごとに折る。
+    for (const ch of part) {
+      if (line && vctx.measureText(line + ch).width > maxWidth - 38) {
+        lines.push(line); line = "";
+      }
+      line += ch;
+    }
+  }
+  if (line) lines.push(line);
+  const width = Math.max(...lines.map((s) => vctx.measureText(s).width)) + 22;
+  vctx.restore();
+  return { lines, width, height: lines.length * 19 + 5 };
+}
+function drawEnemyPlate(e, x, y, hot, plate) {
+  vctx.save();
+  vctx.font = `800 16px ${CANVAS_SERIF}`;
   vctx.textAlign = "center"; vctx.textBaseline = "middle";
-  const label = enemyLabel(e);
-  const tw = vctx.measureText(label).width;
-  const pw = tw + 22, ph = 15, x0 = x - pw / 2, x1 = x + pw / 2;
+  const pw = plate.width, ph = plate.height, x0 = x - pw / 2, x1 = x + pw / 2;
   vctx.beginPath();
   vctx.moveTo(x0 + 6, y); vctx.lineTo(x1 - 6, y); vctx.lineTo(x1, y + ph / 2); vctx.lineTo(x1 - 6, y + ph); vctx.lineTo(x0 + 6, y + ph); vctx.lineTo(x0, y + ph / 2); vctx.closePath();
   const g = vctx.createLinearGradient(0, y, 0, y + ph);
@@ -9387,7 +9416,7 @@ function drawEnemyPlate(e, x, y, hot, k) {
   // 不確定名 (まだ名を知らない敵) は淡い藤色で、正式な名と見分ける
   vctx.fillStyle = enemyUnknown(e) ? UNKNOWN_COLOR : e.boss ? "#ffe0a0" : "#efe3cb";
   vctx.shadowColor = "#000"; vctx.shadowBlur = 0; vctx.shadowOffsetY = 1;
-  vctx.fillText(label, x, y + ph / 2 + 0.5);
+  plate.lines.forEach((line, i) => vctx.fillText(line, x, y + 12 + i * 19));
   vctx.shadowOffsetY = 0;
   // 右に添える印は属性だけ (図鑑で属性が明かされた敵 / 弱点看破)。状態異常は名前の下の札 (enemyAilSeals → drawEnemyBadges)
   if (e.element && e.element !== "none" && ELEMENTS[e.element] && enemyElemKnown(e)) {
@@ -10065,6 +10094,8 @@ function nearestEnemyAt(sx, sy, allowed = null) {
     if (!e.alive || (allowed && !allowed.includes(e))) continue;
     const pos = G.enemyPos[e.uid];
     if (!pos) continue;
+    const plate = pos.plate;
+    if (plate && sx >= plate.x && sx <= plate.x + plate.w && sy >= plate.y && sy <= plate.y + plate.h) return e;
     const d = Math.hypot(sx - pos.cx, sy - pos.cy);
     if (d < bestD) { bestD = d; best = e; }
   }
