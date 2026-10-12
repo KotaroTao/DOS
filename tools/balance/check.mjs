@@ -78,6 +78,43 @@ assert(luckCritBonus(1000000)<=.25);
  t.physResist=75;assert.equal(b._resistCut(t,100,'physResist',.25).dmg,44);
 }
 const samples=12000;
+// 会心は耐性を抜かず、物理貫通はVITを抜かない。斬鉄・反撃・魔法武器も同じ役割で確認。
+{
+ const fixedHit=(resist,opt={},rank=0,magic=false)=>{
+  const a=actor(),t=foe(),b=new Battle([a],[t],()=>{});
+  a.luk=8;a.critBonus=0;a.passiveMap=rank?{samuraiZantetsu:rank}:{};a.wMagic=magic;
+  t.physResist=t.magResist=resist;
+  const oldRandom=Math.random;Math.random=()=>.5;
+  try{return b._physical(a,t,{power:2,acc:1,skill:!magic,...opt}).dmg||0;}finally{Math.random=oldRandom;}
+ };
+ const base=fixedHit(0),critical=fixedHit(0,{critBonus:1});
+ assert.equal(critical,Math.floor(base*1.85));
+ assert.equal(fixedHit(75),Math.round(base*.25));
+ assert.equal(fixedHit(75,{critBonus:1}),Math.round(critical*.25),'会心も75%軽減');
+ assert.equal(fixedHit(75,{pierce:.5}),Math.round(base*.625),'物理貫通50%');
+ assert.equal(fixedHit(75,{pierce:1}),base,'物理貫通100%');
+ assert.equal(fixedHit(75,{pierce:1,critBonus:1}),critical,'貫通と会心の併用');
+ assert.equal(fixedHit(0,{pierce:1}),base,'物理貫通はVITを無視しない');
+ assert.equal(fixedHit(0,{},4),base,'斬鉄はVITを無視しない');
+ assert.equal(fixedHit(75,{},4),Math.round(base*.625),'斬鉄は物理耐性に効く');
+ assert.equal(fixedHit(75,{pierce:.5},4),Math.round(base*.8125),'技50%と斬鉄50%で75%貫通');
+ for(const critBonus of [0,1])for(const rank of [0,4])assert.equal(fixedHit(100,{pierce:1,critBonus},rank),0,'物理無効は貫けない');
+ assert.equal(fixedHit(75,{pierce:1},4,true),fixedHit(75,{},0,true),'魔法武器に物理貫通は効かない');
+ const counterHit=(resist,rank,critical)=>{
+  const a=actor(),t=foe(),b=new Battle([a],[t],()=>{});
+  a.passiveMap={counter:3,samuraiZantetsu:rank};a.critBonus=critical?1:0;t.physResist=resist;
+  b._applyMod(a,'ctr',2,2,'反撃');
+  const oldRandom=Math.random;Math.random=()=>.5;
+  try{b._tryCounter(a,t);return t.maxhp-t.hp;}finally{Math.random=oldRandom;}
+ };
+ for(const critical of [false,true]){
+  const raw=counterHit(0,0,critical);
+  assert.equal(counterHit(75,0,critical),Math.round(raw*.25),'反撃の会心も耐性を受ける');
+  assert.equal(counterHit(75,4,critical),Math.round(raw*.625),'反撃に斬鉄が効く');
+  assert.equal(counterHit(100,4,critical),0,'反撃も物理無効には効かない');
+ }
+ console.log('会心・物理貫通・VIT・斬鉄の重ね合わせ・反撃・魔法武器・物理無効を確認');
+}
 function samplePhys(changes={},opt={}){
  const a=actor(),t=Object.assign(foe(),changes),b=new Battle([a],[t],()=>{},{fleeK:10/3});
  if(changes.actor)Object.assign(a,changes.actor);
@@ -88,6 +125,7 @@ function samplePhys(changes={},opt={}){
  return sum/samples;
 }
 for(const r of [0,20,50,75,80,100])for(const pierce of [0,.25,1])samplePhys({physResist:r},{power:1.5,acc:.4,pierce,skill:true});
+for(const rank of [1,2,3,4])for(const pierce of [0,.5,1])samplePhys({physResist:75,actor:{passiveMap:{samuraiZantetsu:rank}}},{power:1.5,acc:1,pierce,critBonus:1,skill:true});
 samplePhys({luk:8,actor:{luk:100000,critBonus:.5}},{power:1.5,skill:true});
 samplePhys({physResist:75},{power:1.5,critBonus:1,acc:1,skill:true});
 samplePhys({physResist:100},{power:1.5,critBonus:1,acc:1,skill:true});

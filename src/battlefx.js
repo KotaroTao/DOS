@@ -874,7 +874,7 @@ Object.assign(DRAW, {
       ctx.fillRect(x - 1.2, y - 1.2, 2.6, 2.6);
     }
   },
-  // 防御無視: 一本の光の針が敵を貫く
+  // 物理貫通: 一本の光の針が敵を貫く
   pierce(ctx, e, t) {
     const sw = Math.min(1, t / 0.25), fade = t < 0.3 ? 1 : 1 - (t - 0.3) / 0.7, L = 60 * e.s;
     ctx.globalCompositeOperation = "lighter";
