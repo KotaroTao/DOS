@@ -1484,7 +1484,8 @@ export class Battle {
     const blind = this._bm(actor, "hit");
     if (blind < 1) missP += Math.min(0.4, 1 - blind);
     if (actor.side === "party" && _partyHitBonus) missP = Math.max(0, missP - _partyHitBonus); // 手がかりの恵み (暗がりの目)
-    return missP;
+    // 必中技以外は、命中補正・手がかりの恵みを含めても命中95%まで。
+    return opt.acc >= 1 ? missP : Math.max(0.05, missP);
   }
   // 見切り (parry) で物理を丸ごとかわす確率
   _parryP(t) { const lv = pv(t, "parry"); return lv >= 2 ? 0.15 : lv ? 0.10 : 0; }

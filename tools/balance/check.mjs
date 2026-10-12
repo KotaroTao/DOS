@@ -1,6 +1,6 @@
 // 共通戦闘計算の回帰確認。乱数を固定して実ダメージとオートの期待値も比較する。
 import assert from 'node:assert/strict';
-import { Battle, SPELLS, luckCritBonus, attackSpellPower, healingPower, setElemKnown, spellCost, soulCostAdd, soulPowerMul, soulTierRate, spellMpLabel, SOUL_POWER_K, healsHp, BLADE_HEAL_CAP, MP_DRAIN_CAP } from '../../src/combat.js';
+import { Battle, SPELLS, setPartyHitBonus, luckCritBonus, attackSpellPower, healingPower, setElemKnown, spellCost, soulCostAdd, soulPowerMul, soulTierRate, spellMpLabel, SOUL_POWER_K, healsHp, BLADE_HEAL_CAP, MP_DRAIN_CAP } from '../../src/combat.js';
 import { makeDoll } from '../../src/souls.js';
 import { MONSTERS } from '../../src/sprites.js';
 import { DUNGEON_MONSTERS } from '../../src/dungeons/index.js';
@@ -76,6 +76,34 @@ assert(luckCritBonus(1000000)<=.25);
  assert.equal(b._resistCut(t,100,'physResist',1).dmg,100);
  t.physResist=100;assert(b._resistCut(t,100,'physResist',1).immune);
  t.physResist=75;assert.equal(b._resistCut(t,100,'physResist',.25).dmg,44);
+}
+// 命中95%の境界を実判定で確認し、必中技・眠り・麻痺の例外を保つ。
+{
+ const a=actor(),t=foe(),b=new Battle([a],[t],()=>{});
+ const oldRandom=Math.random;
+ try {
+  for(const [attacker,target] of [[a,t],[t,a]]){
+   attacker.agi=10000;target.agi=1;
+   assert.equal(b._missP(target,attacker),.06);
+   assert.equal(b._missP(target,attacker,{acc:.99}),.05);
+   Math.random=()=>.049;
+   assert(b._physical(attacker,target,{acc:.99}).miss);
+   Math.random=()=>.05;
+   assert(!b._physical(attacker,target,{acc:.99}).miss);
+   Math.random=()=>0;
+   assert(!b._physical(attacker,target,{acc:1}).miss);
+  }
+  setPartyHitBonus(1);
+  assert.equal(b._missP(t,a),.05);
+  assert.equal(b.peekStats(a).hit,.95);
+  setPartyHitBonus(0);
+  for(const state of ['sleep','paralyze']){
+   t.asleep=state==='sleep';t.ailment=state==='paralyze'?'paralyze':null;
+   assert.equal(b.peekStats(a).hit,1);
+   assert(!b._physical(a,t).miss);
+  }
+ } finally { Math.random=oldRandom;setPartyHitBonus(0); }
+ console.log('物理命中95%の境界・敵味方・命中の恵み・必中の例外を確認');
 }
 const samples=12000;
 // 会心は耐性を抜かず、物理貫通はVITを抜かない。斬鉄・反撃・魔法武器も同じ役割で確認。
