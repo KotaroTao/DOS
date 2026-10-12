@@ -151,6 +151,22 @@ export function dollIcon(d, scale = 2) {
   if (cls && cls.glow) w.style.setProperty("--glow", cls.glow);
   return w;
 }
+// 入手した品で強くなる者を肖像と上向きの印だけで知らせる。
+export function upgradeIcons(item) {
+  const row = el("span", "gear-upgrade-icons");
+  const better = wearPlan(item).scores.filter((s) => s.can && s.delta && s.score > 0);
+  row.hidden = !better.length;
+  for (const { d } of better) {
+    const icon = dollIcon(d);
+    icon.title = `${d.name}：今の装備より強くなる`;
+    icon.setAttribute("role", "img");
+    icon.setAttribute("aria-label", icon.title);
+    icon.appendChild(el("span", "gear-upgrade-arrow", "▲"));
+    row.appendChild(icon);
+  }
+  return row;
+}
+
 // ▾ の線画
 export function caretIcon(cls = "wpc-caret") {
   const ns = "http://www.w3.org/2000/svg";
@@ -973,6 +989,7 @@ function lootToast(item, who, opts) {
     if (item.unidentified) l1.appendChild(el("span", "wpc-lt-unid", "未鑑定"));
     if (who) l1.appendChild(el("span", "wpc-lt-who", `→ ${who.name}`));
     tx.appendChild(l1);
+    tx.appendChild(upgradeIcons(item));
     if (act && act.plan && act.plan.delta) {
       const l2 = el("span", "wpc-lt-l2");
       l2.appendChild(deltaEl(act.plan.delta));
@@ -1007,6 +1024,7 @@ function lootCelebrate(item, who, opts, next) {
     }
     scroll.appendChild(art);
     scroll.appendChild(nameSpan(item, "ig-name wpc-cel-name"));
+    scroll.appendChild(upgradeIcons(item));
     if (rk) scroll.appendChild(el("div", "ig-rarity rar-" + rk, RARITIES[rk].label + (unid ? " ・ 未鑑定" : "")));
     else if (misc) scroll.appendChild(el("div", "ig-rarity", "収集品"));
     const sl = statLines(item);

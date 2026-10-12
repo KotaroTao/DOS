@@ -17,6 +17,7 @@ import { showSkillPopup } from "./itemview.js";
 import { ICONS, spriteCanvas, crispCanvas } from "../sprites.js";
 import { SOUL_CLASSES, soulIcon } from "../souls.js";
 import { RARITIES, rarityKey } from "../rarity.js";
+import { upgradeIcons } from "./loot.js";
 import { ITEMS, itemName } from "../items.js";
 
 const G = () => game.G;
@@ -198,13 +199,18 @@ export function openResults(spec = {}) {
       if (rk && RARITIES[rk]) nm.style.color = RARITIES[rk].color;
       t.appendChild(nm);
       t.appendChild(el("div", "rs-sub", `${rk && RARITIES[rk] ? RARITIES[rk].label + " ・ " : ""}${item.unidentified ? "未鑑定 ・ " : ""}${who ? who.name + " が持った" : ""}`));
+      const upgrades = upgradeIcons(item);
+      t.appendChild(upgrades);
       r.appendChild(t);
       // 押すと品の詳細 (鑑定は街でのみ)。鑑定済みで装備できる品は「装備」で人業を選んですぐ装備
       r.classList.add("tap");
       r.setAttribute("role", "button");
       // 装備した品はこの戦果の一覧から外す (装備したのに「装備」の行が残り続けないように — ユーザーの指示、2026-10)
       const dropIfWorn = () => {
-        if (!r.isConnected || !isWorn(item)) return;
+        if (!r.isConnected) return;
+        upgrades.replaceChildren(...upgradeIcons(item).childNodes);
+        upgrades.hidden = !upgrades.childElementCount;
+        if (!isWorn(item)) return;
         const rm = () => { if (r.isConnected) r.remove(); };
         if (reduced()) return rm();
         r.style.pointerEvents = "none";
