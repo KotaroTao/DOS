@@ -8,9 +8,12 @@ const base = process.env.CRYPT_REVIEW_URL || 'http://localhost:8000';
 const late = process.env.DUNGEON_REVIEW_GROUP === 'w17-w21';
 const later = process.argv.includes('w07-w11');
 const extended = process.env.DUNGEON_REVIEW_SET === 'w12-w16';
-const ids = later ? ['w07','w08','w09','w10','w11'] : late ? ['w17','w18','w19','w20','w21'] : extended ? ['w12','w13','w14','w15','w16'] : ['w02','w03','w04','w05','w06'];
-const first = ids[0];
-const out = resolve('docs/art/dungeons/' + (later ? 'review-w07-w11' : late ? 'review-w17-w21' : extended ? 'review-w12-w16' : 'review'));
+const ids = later ? ['w07','w08','w09','w10','w11'] : process.argv.slice(2);
+if (!ids.length && extended) ids.push('w12','w13','w14','w15','w16');
+if (!ids.length) ids.push(...(late ? ['w17','w18','w19','w20','w21'] : ['w02','w03','w04','w05','w06']));
+assert.ok(ids.length >= 2 && ids.every(id => /^w\d{2}$/.test(id)), '迷宮IDを2件以上指定する');
+const first = ids[0], second = ids[1];
+const out = resolve(process.env.CRYPT_REVIEW_OUT || 'docs/art/dungeons/' + (late ? 'review-w17-w21' : later ? 'review-w07-w11' : extended ? 'review-w12-w16' : 'review'));
 mkdirSync(out, { recursive: true });
 const report = { checks: [], screenshots: [] };
 function check(name, value) { assert.ok(value, name); report.checks.push(name); }
@@ -35,7 +38,7 @@ function check(name, value) { assert.ok(value, name); report.checks.push(name); 
       });
       await page.goto(base);
       await page.getByRole('button', { name: /テストプレイ/ }).click();
-      await page.locator('.ttl-test select').filter({has:page.locator('option[value="' + first + '"]')}).selectOption(first);
+      await page.locator('.ttl-test select').filter({has:page.locator(`option[value="${first}"]`)}).selectOption(first);
       await page.locator('.ttl-test button').last().click();
       await page.waitForFunction(() => window.cryptReview && cryptReview.G.state === 'board' && !cryptReview.uiBlocked());
       await page.waitForTimeout(600);
@@ -81,7 +84,7 @@ function check(name, value) { assert.ok(value, name); report.checks.push(name); 
       const sample = await start(options);
       await fixture(sample.page);
       check(JSON.stringify(options)+'でも旧描画で探索可能',await sample.page.evaluate(()=>cryptReview.BV.art.scale===1&&!cryptReview.uiBlocked()));
-      await fixture(sample.page,ids[1]);
+      await fixture(sample.page,second);
       await sample.page.waitForFunction(()=>cryptReview.BV.art.scale===3);
       check('一迷宮の素材失敗は別迷宮の素材を妨げない',sample.errors.length===0);
       await sample.page.close();
@@ -138,7 +141,11 @@ function check(name, value) { assert.ok(value, name); report.checks.push(name); 
     await page.evaluate(({x,y}) => { cryptReview.G.flipAnim = {x,y,t0:performance.now(),dur:1000}; cryptReview.drawBoardFrame(); }, target);
     await capture(page, 'flipping-mobile.png');
     await page.evaluate(() => { cryptReview.G.flipAnim = null; });
-    for (const [id, floors] of await page.evaluate(ids => ['w01', ...ids].map(id => { const d=cryptReview.DUNGEONS.find(d=>d.id===id); return [id,d.floors]; }), ids)) {
+    const configs = await page.evaluate(ids => ['w01', ...ids].map(id => {
+      const d = cryptReview.DUNGEONS.find(d => d.id === id);
+      return { id, floors: d.floors, harm: d.floorHaz.harm, fall: d.floorHaz.fall };
+    }), ids);
+    for (const {id, floors, harm, fall} of configs) {
       await fixture(page, id);
       await page.waitForFunction(() => cryptReview.BV.art?.scale === 3);
       for (let floor = 1; floor <= floors; floor++) {
@@ -155,7 +162,7 @@ function check(name, value) { assert.ok(value, name); report.checks.push(name); 
       });
       check(id+'の蓋は中身を示さず、描画で遊びの乱数を消費しない',stable);
       await capture(page, id + '-board.png', true);
-      if ((later ? ['w08','w09','w10','w11'] : late ? ids : extended ? ['w13','w15','w16'] : ['w04','w05','w06']).includes(id)) {
+      if (harm) {
         const hazard = await page.evaluate(() => {
           const t=cryptReview,c=t.G.board.cells[4][1]; c.type='empty';c.revealed=true;
           t.BV.artCache.clear();t.BV.artKey='';t.drawBoardFrame();
@@ -163,8 +170,19 @@ function check(name, value) { assert.ok(value, name); report.checks.push(name); 
           t.BV.artCache.clear();t.BV.artKey='';t.drawBoardFrame();
           return plain!==t.BV.art.floor.toDataURL();
         });
-        check(id+'の危険な床に土地固有の模様を重ねる',hazard);
+        check(id+'の危険な床に専用の模様を重ねる',hazard);
         await capture(page,id+'-hazard.png',true);
+      }
+      if (fall) {
+        const visible = await page.evaluate(() => {
+          const t=cryptReview, c=t.G.board.cells[4][1];
+          c.type='empty';c.revealed=true;t.BV.artCache.clear();t.BV.artKey='';t.drawBoardFrame();
+          const plain=document.querySelector('#view').toDataURL();
+          c.type='pit';t.BV.artCache.clear();t.BV.artKey='';t.drawBoardFrame();
+          return plain!==document.querySelector('#view').toDataURL() && t.BV.art.scale===3;
+        });
+        check(id+'の落ちる床を原画の上に表示できる',visible);
+        await capture(page,id+'-pit.png',true);
       }
       for (const width of [320,390,600,1280]) {
         await page.setViewportSize({width,height:800}); await fixture(page,id);
@@ -172,7 +190,7 @@ function check(name, value) { assert.ok(value, name); report.checks.push(name); 
       }
       await page.setViewportSize({width:375,height:667});
     }
-    for (const id of ['w27','w28','ws1']) {
+    for (const id of ['ws1','ws2','ws3']) {
       const result = await fixture(page,id);
       check(`${id}は従来の素材を維持する`,result.scale===1);
     }
