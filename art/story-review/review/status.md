@@ -2,7 +2,7 @@
 
 書き出し: `node tools/storyart/review.mjs` (build.py も書き直す。手で直さない)。
 
-場面: 出荷済み 84 ・ 出荷済み (任意の修正あり) 14 ・ 未着手 (指示あり) 24
+場面: 出荷済み 99 ・ 出荷済み (任意の修正あり) 14 ・ 未着手 (指示あり) 9
 
 | 章 | 場面 | 題 | 状態 | 確認ページ |
 |---|---|---|---|---|
@@ -96,11 +96,11 @@
 | 第8章「嵐の尖塔」 | `report_w30` | 鳴りやまぬ雷 | 出荷済み | [見る](chapter8.md#report_w30) |
 | 第8章「嵐の尖塔」 | `w31_bell` | 空へ還る鐘 | 出荷済み | [見る](chapter8.md#w31_bell) |
 | 第8章「嵐の尖塔」 | `report_w31` | 同じ問い | 出荷済み | [見る](chapter8.md#report_w31) |
-| 第8章「嵐の尖塔」 | `irene_bell` | 鐘の節 | 未着手 (指示あり) | [見る](chapter8.md#irene_bell) |
-| 第8章「嵐の尖塔」 | `w32_rod` | 雷よけの巻き方 | 未着手 (指示あり) | [見る](chapter8.md#w32_rod) |
-| 第8章「嵐の尖塔」 | `report_w32` | 地の底に吸われる雷 | 未着手 (指示あり) | [見る](chapter8.md#report_w32) |
-| 第8章「嵐の尖塔」 | `mem_w33` | 縛られた魂 | 未着手 (指示あり) | [見る](chapter8.md#mem_w33) |
-| 第8章「嵐の尖塔」 | `report_w33` | 百年目の青空 | 未着手 (指示あり) | [見る](chapter8.md#report_w33) |
+| 第8章「嵐の尖塔」 | `irene_bell` | 鐘の節 | 出荷済み | [見る](chapter8.md#irene_bell) |
+| 第8章「嵐の尖塔」 | `w32_rod` | 雷よけの巻き方 | 出荷済み | [見る](chapter8.md#w32_rod) |
+| 第8章「嵐の尖塔」 | `report_w32` | 地の底に吸われる雷 | 出荷済み | [見る](chapter8.md#report_w32) |
+| 第8章「嵐の尖塔」 | `mem_w33` | 縛られた魂 | 出荷済み | [見る](chapter8.md#mem_w33) |
+| 第8章「嵐の尖塔」 | `report_w33` | 百年目の青空 | 出荷済み | [見る](chapter8.md#report_w33) |
 | 第8章「嵐の尖塔」 | `irene_rain` | 雨の音 | 出荷済み | [見る](chapter8.md#irene_rain) |
 | 第8章「嵐の尖塔」 | `ch8_end` | 雲の向こうの橋 | 出荷済み | [見る](chapter8.md#ch8_end) |
 | 第9章「闘技場跡」 | `w34_glove` | 置いていった手袋 | 出荷済み | [見る](chapter9.md#w34_glove) |
@@ -111,11 +111,11 @@
 | 第9章「闘技場跡」 | `report_w36` | 玉座と観客席 | 未着手 (指示あり) | [見る](chapter9.md#report_w36) |
 | 第9章「闘技場跡」 | `irene_firstdoll` | 最初の人形 | 未着手 (指示あり) | [見る](chapter9.md#irene_firstdoll) |
 | 第9章「闘技場跡」 | `mem_w37` | 十三度目の灯 | 未着手 (指示あり) | [見る](chapter9.md#mem_w37) |
-| 第9章「闘技場跡」 | `report_w37` | 休みのない百年 | 未着手 (指示あり) | [見る](chapter9.md#report_w37) |
-| 第9章「闘技場跡」 | `irene_rest` | 休む灯 | 未着手 (指示あり) | [見る](chapter9.md#irene_rest) |
-| 第9章「闘技場跡」 | `ch9_end` | 捨てられた魂の行き先 | 未着手 (指示あり) | [見る](chapter9.md#ch9_end) |
-| 第10章「地底大空洞」 | `w38_lamp` | 名を思い出さない灯 | 未着手 (指示あり) | [見る](chapter10.md#w38_lamp) |
-| 第10章「地底大空洞」 | `report_w38` | 底で灯を拾う者 | 未着手 (指示あり) | [見る](chapter10.md#report_w38) |
+| 第9章「闘技場跡」 | `report_w37` | 休みのない百年 | 出荷済み | [見る](chapter9.md#report_w37) |
+| 第9章「闘技場跡」 | `irene_rest` | 休む灯 | 出荷済み | [見る](chapter9.md#irene_rest) |
+| 第9章「闘技場跡」 | `ch9_end` | 捨てられた魂の行き先 | 出荷済み | [見る](chapter9.md#ch9_end) |
+| 第10章「地底大空洞」 | `w38_lamp` | 名を思い出さない灯 | 出荷済み | [見る](chapter10.md#w38_lamp) |
+| 第10章「地底大空洞」 | `report_w38` | 底で灯を拾う者 | 出荷済み | [見る](chapter10.md#report_w38) |
 | 第10章「地底大空洞」 | `w39_tags` | 宰相の字 | 出荷済み | [見る](chapter10.md#w39_tags) |
 | 第10章「地底大空洞」 | `report_w39` | 呼ばれなかった名 | 出荷済み | [見る](chapter10.md#report_w39) |
 | 第10章「地底大空洞」 | `irene_names` | 名を呼ぶ人 | 出荷済み | [見る](chapter10.md#irene_names) |
