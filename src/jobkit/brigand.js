@@ -16,7 +16,7 @@ export default {
   skills: {
     // Lv15 の固有技: 峰で打って怯ませ、懐から抜き取る
     BRIGAND_MINEUCHI: { name: "峰打ち", mp: 4, kind: "phys", power: 1.0, flinchChance: 0.3, steal: 0.5, target: "enemy", desc: "峰で打ち据えて怯ませ、懐から金品を抜き取る" },
-    BRIGAND_ZENITSUBUTE: { name: "銭つぶて", mp: 3, kind: "phys", power: 0.55, acc: 0.8, flinchChance: 0.4, target: "enemy", desc: "銭を投げつけて怯ませる" },
+    BRIGAND_ZENITSUBUTE: { name: "銭つぶて", mp: 3, kind: "phys", power: 0.55, acc: 0.21, flinchChance: 0.4, target: "enemy", desc: "銭を投げつけて怯ませる" },
     BRIGAND_TEBIKI:      { name: "義の手引き", mp: 3, kind: "buff", buff: { agi: 1.3 }, target: "ally", tech: true, desc: "仲間の手を引き、素早さを上げる" },
     BRIGAND_HAIKAGURA:   { name: "灰神楽", mp: 7, kind: "debuff", debuff: { hit: 0.8 }, target: "all-enemy", tech: true, desc: "灰を巻き上げ、敵全体の狙いを乱す" },
     BRIGAND_KUJIKI:      { name: "挫き打ち", mp: 5, kind: "phys", power: 1.3, critBonus: 0.25, debuff: { atk: 0.85 }, target: "enemy", desc: "強者の腕を打ち、STRを削ぐ" },

@@ -15,7 +15,7 @@ export { SPELLS };
 export const ENEMY_BUFF_DUR = 3;
 // 大技の予兆 (溜め): 主・精鋭が手番に溜めを始める確率と、放つ大技の倍率
 const CHARGE_RATE = { boss: 0.30, elite: 0.25 };
-const CHARGED = { smash: 2.2, smashAcc: 0.5, wide: 0.85, breath: 1.6 };
+const CHARGED = { smash: 2.2, smashAcc: 0.13, wide: 0.85, breath: 1.6 };
 const OMEN_TEXT = {
   smash: (n) => `${n}は身を沈め、力を溜めている……！`,
   wide: (n) => `${n}の殺気が膨れ上がっていく……！`,
@@ -1476,15 +1476,15 @@ export class Battle {
   }
 
   // 物理が外れる確率 (見切り・必中は別): 素の命中漏れ + 対象の敏捷(AGI)による回避 + 回避持ちの追加回避。
-  // 技の命中補正 (acc) は外れる確率をその割合だけ消す (1 = 必中)。目つぶし (hit<1) は外れる確率を足す
+  // 技の命中補正 (acc) は命中率に直接加算する (0.1 = +10%、1 = 必中)。目つぶしは外れる確率を足す
   _missP(tgt, actor, opt = {}) {
     const evade = ((isMetal(tgt) ? metalEvade(tgt) : this._evadeBase(tgt, actor)) + (tgt.evasive ? 0.15 : 0)) * (1 - visionCut(actor, tgt))
       + (tgt.side === "party" && actor.side === "enemy" ? this._perkSum(tgt, "evade", { tgt: actor }) + _partyEvadeBonus : 0); // 固有パッシブ (evade)・手がかりの恵み
-    let missP = (0.06 + evade) * (1 - Math.min(1, Math.max(0, opt.acc || 0)));
+    let missP = 0.06 + evade;
     const blind = this._bm(actor, "hit");
     if (blind < 1) missP += Math.min(0.4, 1 - blind);
     if (actor.side === "party" && _partyHitBonus) missP = Math.max(0, missP - _partyHitBonus); // 手がかりの恵み (暗がりの目)
-    return missP;
+    return Math.max(0, Math.min(1, missP) - Math.min(1, Math.max(0, opt.acc || 0)));
   }
   // 見切り (parry) で物理を丸ごとかわす確率
   _parryP(t) { const lv = pv(t, "parry"); return lv >= 2 ? 0.15 : lv ? 0.10 : 0; }
@@ -2672,8 +2672,8 @@ export class Battle {
     // 職ごとの味方の物理 [試行, かわされた, 見切られた] (テスト記録「職ごとの命中」)
     const J = tk === "p" ? ((T.pj || (T.pj = {}))[actor.jobKey || "?"] || (T.pj[actor.jobKey || "?"] = [0, 0, 0])) : null;
     if (J) J[0]++;
-    // 麻痺・眠り中の敵への物理は、見切り・回避・目つぶしに関わらず必中
-    const sureHit = tgt.side === "enemy" && (tgt.asleep || tgt.ailment === "paralyze");
+    // 必中技と麻痺・眠り中の敵への物理は、見切り・回避・目つぶしを無視
+    const sureHit = opt.acc >= 1 || (tgt.side === "enemy" && (tgt.asleep || tgt.ailment === "paralyze"));
     // 見切り (parry): 確率で完全回避
     const pLvP = pv(tgt, "parry");
     if (!sureHit && pLvP && random() < (pLvP >= 2 ? 0.15 : 0.10)) {
@@ -2683,7 +2683,7 @@ export class Battle {
       return { target: tgt, miss: true, evaded: true };
     }
     // 命中判定: 素の命中漏れ + 対象の敏捷(AGI)による回避 + 回避持ちの追加回避。
-    // 技の命中補正 (acc) は外れる確率をその割合だけ消す (1 = 必中)。目つぶし (hit<1) は外れる確率を足す
+    // 技の命中補正 (acc) は命中率に直接加算する (0.1 = +10%、1 = 必中)。目つぶしは外れる確率を足す
     const missP = this._missP(tgt, actor, opt);
     if (!sureHit && random() < missP) {
       T[tk + "e"]++; if (J) J[1]++;
@@ -2888,7 +2888,7 @@ export class Battle {
     const metal = isMetal(tgt);
     if (r >= 100 && !metal) return 0; // 無効は会心でも通らない
     const missP = this._missP(tgt, actor, opt);
-    const sureHit = tgt.side === "enemy" && (tgt.asleep || tgt.ailment === "paralyze");
+    const sureHit = opt.acc >= 1 || (tgt.side === "enemy" && (tgt.asleep || tgt.ailment === "paralyze"));
     const hitP = sureHit ? 1 : Math.max(0, 1 - Math.min(1, missP)) * (1 - (pv(tgt, "parry") >= 2 ? 0.15 : pv(tgt, "parry") ? 0.1 : 0));
     const power = opt.power || 1;
     const sb = pv(actor, "spellBlade");
