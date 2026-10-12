@@ -1,9 +1,9 @@
-// 地下墓地〜亡兵の守る外郭の描き下ろし石材。各迷宮に石板・壁材と床のWebP。
+// 地下墓地〜外郭、雷廊〜観客席の描き下ろし石材。各迷宮に石板・壁材と床のWebP。
 // 素材がまだ無い・読めない間は呼び出し側が従来の絵を使う。
 import { makeRng, paintFloorHazards } from "./crypt.js";
 
 export const CRYPT_PAINT_SCALE = 3;
-const PAINTINGS = { w01: "crypt", w02: "w02", w03: "w03", w04: "w04", w05: "w05", w06: "w06" };
+const PAINTINGS = { w01: "crypt", w02: "w02", w03: "w03", w04: "w04", w05: "w05", w06: "w06", w32: "w32", w33: "w33", w34: "w34", w35: "w35", w36: "w36" };
 const paintings = new Map();
 export function cryptPainting(id = "w01") {
   if (!Object.hasOwn(PAINTINGS, id)) return null;
