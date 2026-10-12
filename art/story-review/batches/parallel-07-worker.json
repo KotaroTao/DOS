@@ -109,5 +109,9 @@
       "sha256": "226d0c8de03eba27ef9947dd210e1ea57d861ec03e9cee62d46a1d2a0d5e3cde",
       "thumbnailReview": "384×256の実縮小一覧で主題を目視確認済み。"
     }
-  ]
+  ],
+  "integration": {
+    "state": "registered",
+    "note": "追加のユーザー指示に基づき最新origin/mainを取り込み、build.pyで担当5枚のみWebP変換・登録・確認ページ生成を実施。登録・指示書・読み物検査成功、変換後の縮小画像を目視確認。"
+  }
 }

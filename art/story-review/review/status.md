@@ -2,7 +2,7 @@
 
 書き出し: `node tools/storyart/review.mjs` (build.py も書き直す。手で直さない)。
 
-場面: 出荷済み 69 ・ 出荷済み (任意の修正あり) 14 ・ 未着手 (指示あり) 39
+場面: 出荷済み 74 ・ 出荷済み (任意の修正あり) 14 ・ 未着手 (指示あり) 34
 
 | 章 | 場面 | 題 | 状態 | 確認ページ |
 |---|---|---|---|---|
@@ -101,11 +101,11 @@
 | 第8章「嵐の尖塔」 | `report_w32` | 地の底に吸われる雷 | 未着手 (指示あり) | [見る](chapter8.md#report_w32) |
 | 第8章「嵐の尖塔」 | `mem_w33` | 縛られた魂 | 未着手 (指示あり) | [見る](chapter8.md#mem_w33) |
 | 第8章「嵐の尖塔」 | `report_w33` | 百年目の青空 | 未着手 (指示あり) | [見る](chapter8.md#report_w33) |
-| 第8章「嵐の尖塔」 | `irene_rain` | 雨の音 | 未着手 (指示あり) | [見る](chapter8.md#irene_rain) |
-| 第8章「嵐の尖塔」 | `ch8_end` | 雲の向こうの橋 | 未着手 (指示あり) | [見る](chapter8.md#ch8_end) |
-| 第9章「闘技場跡」 | `w34_glove` | 置いていった手袋 | 未着手 (指示あり) | [見る](chapter9.md#w34_glove) |
-| 第9章「闘技場跡」 | `report_w34` | 空の上の町 | 未着手 (指示あり) | [見る](chapter9.md#report_w34) |
-| 第9章「闘技場跡」 | `w35_lamps` | 番号の灯籠 | 未着手 (指示あり) | [見る](chapter9.md#w35_lamps) |
+| 第8章「嵐の尖塔」 | `irene_rain` | 雨の音 | 出荷済み | [見る](chapter8.md#irene_rain) |
+| 第8章「嵐の尖塔」 | `ch8_end` | 雲の向こうの橋 | 出荷済み | [見る](chapter8.md#ch8_end) |
+| 第9章「闘技場跡」 | `w34_glove` | 置いていった手袋 | 出荷済み | [見る](chapter9.md#w34_glove) |
+| 第9章「闘技場跡」 | `report_w34` | 空の上の町 | 出荷済み | [見る](chapter9.md#report_w34) |
+| 第9章「闘技場跡」 | `w35_lamps` | 番号の灯籠 | 出荷済み | [見る](chapter9.md#w35_lamps) |
 | 第9章「闘技場跡」 | `report_w35` | 使い回された魂 | 未着手 (指示あり) | [見る](chapter9.md#report_w35) |
 | 第9章「闘技場跡」 | `w36_nook` | 灯番の子 | 未着手 (指示あり) | [見る](chapter9.md#w36_nook) |
 | 第9章「闘技場跡」 | `report_w36` | 玉座と観客席 | 未着手 (指示あり) | [見る](chapter9.md#report_w36) |
