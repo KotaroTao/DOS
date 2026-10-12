@@ -169,7 +169,7 @@ function mainCard(d, pe, town) {
   nmT.style.color = cl.glow;
   nm.appendChild(nmT);
   if (soulRankLeft(pe)) nm.appendChild(el("span", "sp-left", soulRankLeft(pe)));
-  nm.appendChild(el("span", "sp-card-k", "メイン魂"));
+  tx.appendChild(el("span", "sp-card-k", "メイン魂"));
   tx.appendChild(nm);
   const meta = el("div", "sp-meta");
   meta.appendChild(el("span", "sp-rank", `ランク${rank}`));
