@@ -56,13 +56,25 @@ export function createOpeningVoice() {
   const synth = globalThis.speechSynthesis;
   const supported = !!synth && typeof globalThis.SpeechSynthesisUtterance === "function";
   let current = null, timer = 0, deadline = 0, active = false;
-  let hooks = {}, line = 0, fraction = 0, anchor = 0, duration = 1;
+  let hooks = {}, started = false, retried = false, request = () => {};
+  const retry = (event) => {
+    if (!active || started) return;
+    request();
+    if (event?.type === "pointerdown" || event?.type === "keydown") retried = true;
+  };
+  const unlisten = () => {
+    synth?.removeEventListener?.("voiceschanged", retry);
+    document.removeEventListener("pointerdown", retry, true);
+    document.removeEventListener("keydown", retry, true);
+  };
   const stop = () => {
     clearTimeout(timer);
+    unlisten();
     active = false;
+    retried = false;
     deadline = 0;
     if (!current) return;
-    current.onend = current.onerror = current.onstart = current.onboundary = null;
+    current.onend = current.onerror = current.onstart = null;
     current = null;
     try { synth.cancel(); } catch {}
   };
@@ -71,8 +83,7 @@ export function createOpeningVoice() {
     stop();
     if (notify) notify();
   };
-  const report = (value) => { if (hooks.onProgress) hooks.onProgress(line, value); };
-  const speak = (index, voice) => {
+  const speak = (index, line, voice) => {
     if (!active) return;
     if (isMuted() || document.hidden) { fallback(); return; }
     try {
@@ -84,56 +95,61 @@ export function createOpeningVoice() {
       utterance.pitch = 0.62;
       utterance.volume = 0.85;
       current = utterance;
-      fraction = 0; anchor = 0;
-      duration = Math.max(900, content.split(/\s+/).length / (150 * utterance.rate) * 60000);
-      deadline = Date.now() + 4000;
-      timer = setTimeout(() => { if (current === utterance && !anchor) fallback(); }, 4000);
       utterance.onstart = () => {
         if (current !== utterance) return;
+        started = true;
         clearTimeout(timer);
+        unlisten();
         deadline = Date.now() + 90000;
-        anchor = Date.now();
-        report(0);
-      };
-      utterance.onboundary = (event) => {
-        if (current !== utterance || !anchor || !Number.isFinite(event.charIndex)) return;
-        fraction = Math.max(fraction, Math.min(0.98, event.charIndex / content.length));
-        anchor = Date.now();
-        report(fraction);
       };
       utterance.onend = () => {
         if (current !== utterance) return;
         clearTimeout(timer);
         current = null;
-        report(1);
-        line++;
-        if (line < NARRATION[index].length) speak(index, voice);
-        else { active = false; deadline = 0; if (hooks.onEnd) hooks.onEnd(); }
+        active = false; deadline = 0;
+        if (hooks.onEnd) hooks.onEnd();
       };
-      utterance.onerror = () => { if (current === utterance) fallback(); };
+      utterance.onerror = (event) => {
+        if (current !== utterance) return;
+        // 読み込み直後の自動再生制限は、最初の操作で同じ幕から再試行する。
+        if (!started && event.error === "not-allowed") { current = null; return; }
+        fallback();
+      };
       synth.speak(utterance);
     } catch { fallback(); }
   };
   return {
     supported,
-    start(index, callbacks = {}) {
+    start(index, line, callbacks = {}) {
       stop();
       hooks = callbacks;
-      line = 0;
-      if (!supported || isMuted() || document.hidden || !NARRATION[index]) { fallback(); return; }
-      try {
-        const voices = synth.getVoices();
-        const voice = narratorVoice(voices.filter(v => /^en[-_]/i.test(v.lang)));
-        // 未ロード時は英語の既定音声に任せる。
-        if (!voice && voices.length) { fallback(); return; }
-        active = true;
-        speak(index, voice);
-      } catch { fallback(); }
+      if (!supported || isMuted() || document.hidden || !NARRATION[index]?.[line]) { fallback(); return; }
+      active = true; started = false;
+      deadline = Date.now() + 15000;
+      timer = setTimeout(fallback, 15000);
+      request = () => {
+        try {
+          const voices = synth.getVoices();
+          const voice = narratorVoice(voices.filter(v => /^en[-_]/i.test(v.lang)));
+          // 英語音声の登録が遅い端末では、同じ行を保持して一覧の更新を待つ。
+          if (!voice && voices.length) return;
+          if (current) {
+            current.onstart = current.onend = current.onerror = null;
+            current = null;
+            synth.cancel();
+          }
+          speak(index, line, voice);
+        } catch { fallback(); }
+      };
+      synth.addEventListener?.("voiceschanged", retry);
+      document.addEventListener("pointerdown", retry, true);
+      document.addEventListener("keydown", retry, true);
+      request();
     },
     stop,
+    consumeRetry() { const value = retried; retried = false; return value; },
     busy() {
       if (active && (isMuted() || document.hidden || Date.now() >= deadline)) fallback();
-      if (current && anchor) report(Math.min(0.98, fraction + (Date.now() - anchor) / duration));
       return active;
     },
   };
