@@ -206,7 +206,14 @@
 }
 
 /* 次にすべきこと + 街の札 (背の低い端末ではこの段だけが内側で流れる) */
-.hb-mid { flex: 1 1 0 !important; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; margin: 0 -4px; padding: 0 4px; }
+.hb-mid {
+  flex: 1 1 0 !important; min-height: 0;
+  overflow-x: hidden; overflow-y: auto;
+  overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  margin: 0 -4px; padding: 0 4px;
+  scrollbar-width: none; -ms-overflow-style: none;
+}
+.hb-mid::-webkit-scrollbar { display: none; }
 .hb-sug-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .hb-sug-list.n1 { grid-template-columns: minmax(0, 1fr); }
 .hb-sug-list.n2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }

@@ -32,7 +32,7 @@ export default {
     GUARDIAN_GAJOU: { name: "牙城の名乗り", mp: 11, kind: "buff", taunt: true, buff: { vit: 1.3 }, grantBarrier: 1, tech: true, target: "self", desc: "名乗りで敵を集め、身に魔障壁を張る" },
     GUARDIAN_OMOTATE: { name: "重盾落とし", mp: 18, kind: "phys", power: 2.2, vitScale: 2.2, acc: 1, flinchChance: 0.3, target: "enemy", desc: "盾の重みを落とす必中の一撃。怯ませる" },
     GUARDIAN_JIBANSHIZUME: { name: "地盤沈め", mp: 20, kind: "phys", power: 4.4, element: "earth", acc: 0.7, debuff: { agi: 0.7 }, flinchChance: 0.25, target: "enemy", desc: "大地ごと沈め、足を奪い怯ませる" },
-    GUARDIAN_JUUGAITOOSHI: { name: "重鎧通し", mp: 16, kind: "phys", power: 2.6, vitScale: 0.5, pierce: 0.8, acc: 0.8, target: "enemy", desc: "鎧の継ぎ目を圧し通す（防御をほぼ無視）" },
+    GUARDIAN_JUUGAITOOSHI: { name: "重鎧通し", mp: 16, kind: "phys", power: 2.6, vitScale: 0.5, pierce: 0.8, acc: 0.8, target: "enemy", desc: "鎧の継ぎ目を圧し通す（物理貫通80%）" },
     GUARDIAN_SENNENJOUHEKI: { name: "千年城壁", mp: 20, kind: "buff", buff: { vit: 1.5 }, dur: 5, tech: true, target: "all-ally", desc: "崩れぬ城壁で味方全員を長く守る（5ターン）" },
     GUARDIAN_MIDARETATE: { name: "乱れ盾", mp: 25, kind: "phys", power: 1.0, vitScale: 0.8, scatter: 4, acc: 0.8, flinchChance: 0.25, target: "all-enemy", desc: "盾撃を敵陣へ4度ばらまき、怯ませる" },
     GUARDIAN_UZUSHIO: { name: "渦潮の守り", mp: 22, kind: "buff", grantBarrier: 1, debuffAll: { agi: 0.85 }, tech: true, target: "all-ally", desc: "渦潮で味方に魔障壁を張り、敵の足を奪う" },
