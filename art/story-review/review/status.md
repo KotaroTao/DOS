@@ -2,7 +2,7 @@
 
 書き出し: `node tools/storyart/review.mjs` (build.py も書き直す。手で直さない)。
 
-場面: 出荷済み 64 ・ 出荷済み (任意の修正あり) 14 ・ 未着手 (指示あり) 44
+場面: 出荷済み 69 ・ 出荷済み (任意の修正あり) 14 ・ 未着手 (指示あり) 39
 
 | 章 | 場面 | 題 | 状態 | 確認ページ |
 |---|---|---|---|---|
@@ -81,11 +81,11 @@
 | 第6章「氷結回廊」 | `report_w25` | 回廊の肖像 | 出荷済み | [見る](chapter6.md#report_w25) |
 | 第6章「氷結回廊」 | `irene_lineage` | 同じ作り方の灯 | 出荷済み | [見る](chapter6.md#irene_lineage) |
 | 第6章「氷結回廊」 | `ch6_end` | 解けていく堤 | 出荷済み | [見る](chapter6.md#ch6_end) |
-| 第7章「毒沼」 | `w26_splint` | 腕の木の添え木 | 未着手 (指示あり) | [見る](chapter7.md#w26_splint) |
-| 第7章「毒沼」 | `report_w26` | 杯を満たしたもの | 未着手 (指示あり) | [見る](chapter7.md#report_w26) |
-| 第7章「毒沼」 | `w27_crest` | 仕上がらなかった兄弟 | 未着手 (指示あり) | [見る](chapter7.md#w27_crest) |
-| 第7章「毒沼」 | `report_w27` | 笑わない宰相 | 未着手 (指示あり) | [見る](chapter7.md#report_w27) |
-| 第7章「毒沼」 | `irene_crest` | 捨てられなかった器 | 未着手 (指示あり) | [見る](chapter7.md#irene_crest) |
+| 第7章「毒沼」 | `w26_splint` | 腕の木の添え木 | 出荷済み | [見る](chapter7.md#w26_splint) |
+| 第7章「毒沼」 | `report_w26` | 杯を満たしたもの | 出荷済み | [見る](chapter7.md#report_w26) |
+| 第7章「毒沼」 | `w27_crest` | 仕上がらなかった兄弟 | 出荷済み | [見る](chapter7.md#w27_crest) |
+| 第7章「毒沼」 | `report_w27` | 笑わない宰相 | 出荷済み | [見る](chapter7.md#report_w27) |
+| 第7章「毒沼」 | `irene_crest` | 捨てられなかった器 | 出荷済み | [見る](chapter7.md#irene_crest) |
 | 第7章「毒沼」 | `w28_note` | 沼を渡る薬 | 未着手 (指示あり) | [見る](chapter7.md#w28_note) |
 | 第7章「毒沼」 | `report_w28` | 毒の底の灯 | 未着手 (指示あり) | [見る](chapter7.md#report_w28) |
 | 第7章「毒沼」 | `mem_w29` | ただひとつの言いつけ | 未着手 (指示あり) | [見る](chapter7.md#mem_w29) |
