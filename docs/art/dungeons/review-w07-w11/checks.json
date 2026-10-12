@@ -150,7 +150,7 @@
     "desktop.png"
   ],
   "localChromium": {
-    "meanFrameMs": 0.12666666666821888,
+    "meanFrameMs": 0.17666666666627862,
     "slabPixels": 1162080
   }
 }
