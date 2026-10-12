@@ -2,20 +2,20 @@
   "worker": "03",
   "branch": "codex/art-worker-03",
   "base": "3312dee",
-  "generationCalls": 7,
-  "generationLimit": 7,
+  "generationCalls": 9,
+  "generationLimit": null,
   "scenes": [
     {
       "id": "w26_splint",
       "path": "art/story-review/chapter7/w26_splint.png",
-      "state": "needs-fix",
-      "generationCalls": 1,
+      "state": "ready",
+      "generationCalls": 2,
       "visualReview": {
         "face": "弟子・無顔の隊4体が基準と一致",
         "limbs": "弟子の両腕両脚と見える指、隊の手足に余分な部位なし。隠れた指は判別不可",
         "sigil": "対象の一門印なし",
-        "props": "腕の木2本・縄・結び目の紙・溶けた氷・橙の灯を確認。鞄が右腰に見える",
-        "story": "滝・毒沼・泥を確認。引きずった足跡が不明瞭で修正が必要"
+        "props": "革鞄は弟子の左腰、右肩からの肩ひも。木の腕2本・黒鉄の継ぎ目・縄と結び目の紙、氷の脚形の断片、橙の灯を確認。",
+        "story": "右の泥岸に片足の足跡と引きずった溝が谷へ続く。滝と毒沼、地下の岩天井、無灯の廃墟を確認。可読文字や先の秘密なし。"
       },
       "format": "PNG",
       "size": [
@@ -26,7 +26,9 @@
       "referenceImages": [
         "docs/art/story-refs/apprentice.png",
         "docs/art/story-refs/dolls.png"
-      ]
+      ],
+      "repairHistory": "追加依頼の修正1回で鞄と足跡、地下の天井を修正。修正前の生成元 exec-eecd4adc-bd74-4fdc-a841-85f26be6ae3d.png を保持。",
+      "finalReview": "追加修正後に5枚を再目視確認。人物の顔・見える手足・印・小道具・本文と章の状態を確認済み。"
     },
     {
       "id": "report_w26",
@@ -52,7 +54,8 @@
         "docs/art/story-refs/morden.png",
         "docs/art/story-refs/props.png",
         "art/story-review/chapter3/report_w12.png"
-      ]
+      ],
+      "finalReview": "追加修正後に5枚を再目視確認。人物の顔・見える手足・印・小道具・本文と章の状態を確認済み。"
     },
     {
       "id": "w27_crest",
@@ -77,7 +80,8 @@
         "docs/art/story-refs/apprentice.png",
         "docs/art/story-refs/props.png",
         "docs/art/story-refs/sigil.png"
-      ]
+      ],
+      "finalReview": "追加修正後に5枚を再目視確認。人物の顔・見える手足・印・小道具・本文と章の状態を確認済み。"
     },
     {
       "id": "report_w27",
@@ -102,20 +106,21 @@
         "docs/art/story-refs/king.png",
         "docs/art/story-refs/morden.png",
         "art/story-review/chapter3/report_w12.png"
-      ]
+      ],
+      "finalReview": "追加修正後に5枚を再目視確認。人物の顔・見える手足・印・小道具・本文と章の状態を確認済み。"
     },
     {
       "id": "irene_crest",
       "path": "art/story-review/chapter7/irene_crest.png",
-      "state": "needs-fix",
-      "generationCalls": 2,
+      "state": "ready",
+      "generationCalls": 3,
       "references": "指定7画像を順番に使用。セラ2画像と、小道具・館2画像を一時シートにまとめ、追加sigilと計5ファイルとして渡した。原本は未変更。",
       "visualReview": {
-        "face": "イレーヌ・セラの顔、髪、木目、衣装、胸の灯を確認",
-        "limbs": "両者の腕2本、セラの脚2本、見える指を確認。足は画面外",
-        "sigil": "額と肘に掌と炎あり。ただし肘の印が外側の丸い面に見えるため内側位置の再確認・修正が必要",
+        "face": "イレーヌとセラの基準の顔・髪・木目・衣装、弟子の茶髪と金刺繍外套を確認。",
+        "limbs": "掌を上にしたセラの手と腕、イレーヌの支える両手、弟子の手に余分な指や腕なし。セラの両脚は膝から下までつながる。足と弟子・イレーヌの脚は画面外。隠れる手指は判別不可。",
+        "sigil": "前腕を返して掌を上にし、木製肘継ぎ目の内側へ掌と独立した炎の小さな印を配置。額の金の印も確認。小さな印の細部は解像度に依存。",
         "props": "一本の白い蝋燭、古い継ぎ方の図、作業台を確認",
-        "story": "セラは目覚めて座りイレーヌが腕を持ち上げる。弟子が描かれず、見せる相手が欠けているため修正必要"
+        "story": "弟子が肘の印を見ている。イレーヌが上腕と手首を支え、目覚めたセラが台に座る。古い継ぎ方の紙・白い蝋燭・胸の青白い灯を確認。可読文字や先の秘密なし。"
       },
       "format": "PNG",
       "size": [
@@ -132,7 +137,9 @@
         "art/story-review/chapter2/irene_roots.png",
         "art/story-review/chapter1/irene_familiar.png",
         "docs/art/story-refs/sigil.png"
-      ]
+      ],
+      "repairHistory": "追加依頼の修正1回で弟子を加え、掌を上に向けた腕の内側の木製肘継ぎ目へ小さな印を配置。修正前の生成元 exec-81cec23e-3f68-4b31-9956-69a93a6024fb.png を保持。",
+      "finalReview": "追加修正後に5枚を再目視確認。人物の顔・見える手足・印・小道具・本文と章の状態を確認済み。"
     }
   ],
   "failedCalls": [
@@ -142,6 +149,9 @@
       "reason": "参照8ファイルがツール上限5を超え、生成前に拒否"
     }
   ],
-  "stopReason": "失敗・修正込みの生成上限7回に到達。追加生成せず統合担当へ引き継ぐ。",
-  "baseCommit": "3312deeabeb4ad5774d2902deabbfb08957da872"
+  "stopReason": "追加依頼の2回の修正を完了。5枚すべてready。",
+  "baseCommit": "3312deeabeb4ad5774d2902deabbfb08957da872",
+  "initialBatchGenerationCalls": 7,
+  "additionalAuthorization": "ユーザーの追加依頼「要修正の画像を修正して、5枚とも完成したらイラストをここに表示」に基づき修正を再開。初回7回上限までの履歴は保持。",
+  "repairGenerationCalls": 2
 }
