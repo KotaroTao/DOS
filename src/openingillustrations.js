@@ -7,10 +7,10 @@ export { setReduced };
 export const OPENING_IMAGES = [
   { src: "art/opening/rift.webp", focus: [0.5, 0.5] },
   { src: "art/opening/fallen.webp", focus: [0.5, 0.55] },
-  { src: "art/story/first-vessel-awakening.webp", focus: [0.53, 0.56] },
+  { src: "art/opening/vessels.webp", focus: [0.44, 0.5] },
   { src: "art/opening/ordo.webp", focus: [0.53, 0.5] },
   { src: "art/opening/letter.webp", focus: [0.5, 0.56] },
-  { src: "art/story/irene-soul-lamp.webp", focus: [0.7, 0.56] },
+  { src: "art/opening/flame.webp", focus: [0.54, 0.53] },
 ];
 
 const images = OPENING_IMAGES.map(({ src }) => {
