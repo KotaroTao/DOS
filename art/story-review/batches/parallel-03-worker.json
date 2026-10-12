@@ -1,0 +1,147 @@
+{
+  "worker": "03",
+  "branch": "codex/art-worker-03",
+  "base": "3312dee",
+  "generationCalls": 7,
+  "generationLimit": 7,
+  "scenes": [
+    {
+      "id": "w26_splint",
+      "path": "art/story-review/chapter7/w26_splint.png",
+      "state": "needs-fix",
+      "generationCalls": 1,
+      "visualReview": {
+        "face": "弟子・無顔の隊4体が基準と一致",
+        "limbs": "弟子の両腕両脚と見える指、隊の手足に余分な部位なし。隠れた指は判別不可",
+        "sigil": "対象の一門印なし",
+        "props": "腕の木2本・縄・結び目の紙・溶けた氷・橙の灯を確認。鞄が右腰に見える",
+        "story": "滝・毒沼・泥を確認。引きずった足跡が不明瞭で修正が必要"
+      },
+      "format": "PNG",
+      "size": [
+        1536,
+        1024
+      ],
+      "reviewed": true,
+      "referenceImages": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/dolls.png"
+      ]
+    },
+    {
+      "id": "report_w26",
+      "path": "art/story-review/chapter7/report_w26.png",
+      "state": "ready",
+      "generationCalls": 1,
+      "visualReview": {
+        "face": "弟子と老王の顔・衣装が基準に一致",
+        "limbs": "両腕と見える指に余分な部位なし。弟子の両脚、王の脚は膝掛けの下",
+        "sigil": "一門印を新たに加えていない",
+        "props": "空の金杯が床、王は膝掛けの端を握る、宰相の席は空",
+        "story": "王の沈黙・杯への視線・重い雲と玉座の間を確認。可読文字なし"
+      },
+      "format": "PNG",
+      "size": [
+        1536,
+        1024
+      ],
+      "reviewed": true,
+      "referenceImages": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/king.png",
+        "docs/art/story-refs/morden.png",
+        "docs/art/story-refs/props.png",
+        "art/story-review/chapter3/report_w12.png"
+      ]
+    },
+    {
+      "id": "w27_crest",
+      "path": "art/story-review/chapter7/w27_crest.png",
+      "state": "ready",
+      "generationCalls": 2,
+      "visualReview": {
+        "face": "弟子の後ろ姿、山頂の半彫りの顔、未完成の器を確認",
+        "limbs": "欠損した器の山と弟子の手足を確認。弟子の一方の手は隠れる",
+        "sigil": "開いた胸の扉の内側に、角張った掌・左親指・右の平行突起3本・独立した炎の小さな印を確認。小さい印の細部は解像度に依存。",
+        "props": "山頂の空の胸・膝の札、左腰の革鞄、橙の手提げ灯、開いた扉を確認",
+        "story": "修正後は地下岩壁と鍾乳石、無人の毒沼と葦、器の山。月・灯る集落は除去。先の秘密や師本人は描かれていない。"
+      },
+      "format": "PNG",
+      "size": [
+        1536,
+        1024
+      ],
+      "repairHistory": "1回目の背景と印の場所を2回目で修正。修正前は生成元 /workspace/generated_images/exec-b2f61b81-b2f2-4f13-a663-9f6406fb77da.png に保持。ユーザーの変更範囲に従い別の修正記録ファイルは追加しない。",
+      "reviewed": true,
+      "referenceImages": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/props.png",
+        "docs/art/story-refs/sigil.png"
+      ]
+    },
+    {
+      "id": "report_w27",
+      "path": "art/story-review/chapter7/report_w27.png",
+      "state": "ready",
+      "generationCalls": 1,
+      "visualReview": {
+        "face": "老王の閉じた目、弟子の後ろ姿・衣装が基準と一致",
+        "limbs": "王と弟子の両腕と見える指を確認。脚は長衣と膝掛けに隠れる",
+        "sigil": "一門印を新たに加えていない",
+        "props": "空いた宰相の席に物なし、一本の蝋燭で照らす、弟子の鞄は左腰",
+        "story": "王の沈黙、膝掛け、弟子、空席、重い雲を確認。文字なし"
+      },
+      "format": "PNG",
+      "size": [
+        1536,
+        1024
+      ],
+      "reviewed": true,
+      "referenceImages": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/king.png",
+        "docs/art/story-refs/morden.png",
+        "art/story-review/chapter3/report_w12.png"
+      ]
+    },
+    {
+      "id": "irene_crest",
+      "path": "art/story-review/chapter7/irene_crest.png",
+      "state": "needs-fix",
+      "generationCalls": 2,
+      "references": "指定7画像を順番に使用。セラ2画像と、小道具・館2画像を一時シートにまとめ、追加sigilと計5ファイルとして渡した。原本は未変更。",
+      "visualReview": {
+        "face": "イレーヌ・セラの顔、髪、木目、衣装、胸の灯を確認",
+        "limbs": "両者の腕2本、セラの脚2本、見える指を確認。足は画面外",
+        "sigil": "額と肘に掌と炎あり。ただし肘の印が外側の丸い面に見えるため内側位置の再確認・修正が必要",
+        "props": "一本の白い蝋燭、古い継ぎ方の図、作業台を確認",
+        "story": "セラは目覚めて座りイレーヌが腕を持ち上げる。弟子が描かれず、見せる相手が欠けているため修正必要"
+      },
+      "format": "PNG",
+      "size": [
+        1536,
+        1024
+      ],
+      "reviewed": true,
+      "referenceImages": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/irene.png",
+        "docs/art/story-refs/sera.png",
+        "docs/art/sera/sera-r1-final.png",
+        "docs/art/story-refs/props.png",
+        "art/story-review/chapter2/irene_roots.png",
+        "art/story-review/chapter1/irene_familiar.png",
+        "docs/art/story-refs/sigil.png"
+      ]
+    }
+  ],
+  "failedCalls": [
+    {
+      "id": "irene_crest",
+      "call": 5,
+      "reason": "参照8ファイルがツール上限5を超え、生成前に拒否"
+    }
+  ],
+  "stopReason": "失敗・修正込みの生成上限7回に到達。追加生成せず統合担当へ引き継ぐ。",
+  "baseCommit": "3312deeabeb4ad5774d2902deabbfb08957da872"
+}
