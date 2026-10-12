@@ -50,6 +50,8 @@ import { kingCanvas, prewarmTown } from "./townart.js";
 import { prewarmStoryArt } from "./storyart.js";
 import { drawBattleBackdrop } from "./backdrops.js";
 import { paintCryptFloor, paintCryptSlabs, paintCryptWalls, CATACOMB, genericMaterial, boardSeed, hexRgb } from "./crypt.js";
+import { cryptPainting, paintCryptMaterials, paintCryptMasonry } from "./cryptpaint.js";
+import { prewarmCryptActors, cryptPropKey, cryptPropBitmap, cryptWalkerBitmap } from "./cryptactors.js";
 import { showTitle } from "./title.js";
 import { RARITIES, rarityKey, rarityColor, rarityLabel, rollRarity, layerRarityUp } from "./rarity.js";
 // ---- UI 基盤 (Phase 0)。新しい UI モジュールは game.js を import せず、ctx.js の UI/game/ops を通す ----
@@ -2828,7 +2830,7 @@ function renderBoard() {
 
 // ===== 盤面の静的な層 (床・墓石・壁) =====
 // art: 床と墓石の絵 (盤面+寸法+層+階の性質ごと。戦闘で寸法が変わっても戻った時に焼き直さないよう数枚保持)
-// scene: 踏破状況を反映した合成 (めくるたびに作り直す。論理解像度なので軽い)
+// scene: 踏破状況を反映した合成 (めくるたびに作り直し、静止中は再利用する)
 const BV = { art: null, artKey: "", artCache: new Map(), scene: null, sctx: null, sceneKey: "", sceneHi: null, sceneHiKey: "",
   dark: null, dctx: null, darkBase: null, darkKey: "", parts: [], flipSeen: null };
 function ensureBoardArt() {
@@ -2836,19 +2838,24 @@ function ensureBoardArt() {
   const L = battleLayer();
   const sp = specialDef();
   const crypt = L === 1;
+  const painting = activeCfg().id === "w01" ? cryptPainting() : null;
+  if (activeCfg().id === "w01") prewarmCryptActors();
   const seed = boardSeed(b, dungeonSeed(activeCfg()) * 7919 + G.floor);
   const hz = harmHaz();
-  const key = `${VW}x${VH}|${CARD_W}x${CARD_H}|${seed}|${L}|${G.eliteFloor ? "e" : ""}|${sp ? sp.id : ""}|${hz.name}`;
+  const key = `${VW}x${VH}|${CARD_W}x${CARD_H}|${seed}|${L}|${G.eliteFloor ? "e" : ""}|${sp ? sp.id : ""}|${hz.name}|${painting ? "painted" : "raster"}`;
   if (BV.artKey === key && BV.art) return BV.art;
   let art = BV.artCache.get(key);
   if (!art) {
     const mat = crypt ? CATACOMB : genericMaterial(dungeonTheme());
     const opt = { seed, cols: COLS, rows: ROWS, rect: cellRect, cells: b.cells, mat, elite: !!G.eliteFloor, accent: crypt && sp ? hexRgb(sp.accent) : null, harmStain: hz.look.stain, harmFx: hz.look.fx };
-    const fl = paintCryptFloor(VW, VH, opt);
-    const slabs = crypt ? paintCryptSlabs(VW, VH, opt) : paintOldCardBacks();
-    art = { key, seed, floor: fl.canvas, candles: fl.candles, slabs, mat, crypt };
+    if (painting) art = { key, seed, mat, crypt, ...paintCryptMaterials(VW, VH, opt, painting) };
+    else {
+      const fl = paintCryptFloor(VW, VH, opt);
+      const slabs = crypt ? paintCryptSlabs(VW, VH, opt) : paintOldCardBacks();
+      art = { key, seed, floor: fl.canvas, candles: fl.candles, slabs, mat, crypt, scale: 1 };
+    }
     BV.artCache.set(key, art);
-    while (BV.artCache.size > 3) BV.artCache.delete(BV.artCache.keys().next().value);
+    while (BV.artCache.size > 2) BV.artCache.delete(BV.artCache.keys().next().value);
   }
   BV.art = art; BV.artKey = key; BV.sceneKey = "";
   return art;
@@ -2874,18 +2881,18 @@ function paintOldCardBacks() {
 }
 function ensureBoardScene() {
   const art = ensureBoardArt();
-  const cells = G.board.cells;
+  const cells = G.board.cells, sourceScale = art.scale, sceneScale = Math.max(2, sourceScale);
   let sig = BV.artKey + "|" + (G.flipAnim ? G.flipAnim.x + "," + G.flipAnim.y : "") + "|";
   for (const row of cells) for (const c of row) sig += c.revealed ? "1" : "0";
   if (sig === BV.sceneKey && BV.scene) return;
   BV.sceneKey = sig;
-  if (!BV.scene || BV.scene.width !== VW * 2 || BV.scene.height !== VH * 2) {
+  if (!BV.scene || BV.scene.width !== VW * sceneScale || BV.scene.height !== VH * sceneScale) {
     BV.scene = document.createElement("canvas");
-    BV.scene.width = VW * 2; BV.scene.height = VH * 2;
+    BV.scene.width = VW * sceneScale; BV.scene.height = VH * sceneScale;
     BV.sctx = BV.scene.getContext("2d");
   }
   const g = BV.sctx;
-  g.setTransform(2, 0, 0, 2, 0, 0);
+  g.setTransform(sceneScale, 0, 0, sceneScale, 0, 0);
   g.globalCompositeOperation = "source-over"; g.globalAlpha = 1; g.imageSmoothingEnabled = true;
   g.imageSmoothingQuality = "high";
   // 1) 盤全体の床を闇に沈める (蓋の下と溝)
@@ -2900,14 +2907,14 @@ function ensureBoardScene() {
     const c = cells[y][x], r = cellRect(x, y);
     const x0 = r.x - (!c.walls.w && rev(x - 1, y) ? half : 0), x1 = r.x + r.w + (!c.walls.e && rev(x + 1, y) ? half : 0);
     const y0 = r.y - (!c.walls.n && rev(x, y - 1) ? half : 0), y1 = r.y + r.h + (!c.walls.s && rev(x, y + 1) ? half : 0);
-    g.drawImage(art.floor, x0, y0, x1 - x0, y1 - y0, x0, y0, x1 - x0, y1 - y0);
+    g.drawImage(art.floor, x0 * sourceScale, y0 * sourceScale, (x1 - x0) * sourceScale, (y1 - y0) * sourceScale, x0, y0, x1 - x0, y1 - y0);
   }
   for (let j = 1; j < ROWS; j++) for (let i = 1; i < COLS; i++) {
     if (!rev(i - 1, j - 1) || !rev(i, j - 1) || !rev(i - 1, j) || !rev(i, j)) continue;
     const a = cells[j - 1][i - 1], d = cells[j][i];
     if (a.walls.e || a.walls.s || d.walls.n || d.walls.w) continue;
     const r = cellRect(i, j);
-    g.drawImage(art.floor, r.x - GAP, r.y - GAP, GAP, GAP, r.x - GAP, r.y - GAP, GAP, GAP);
+    g.drawImage(art.floor, (r.x - GAP) * sourceScale, (r.y - GAP) * sourceScale, GAP * sourceScale, GAP * sourceScale, r.x - GAP, r.y - GAP, GAP, GAP);
   }
   // 3) 墓石の蓋 (落ち影 → 本体)
   g.fillStyle = "rgba(0,0,0,0.55)";
@@ -2919,7 +2926,7 @@ function ensureBoardScene() {
   for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
     if (rev(x, y)) continue;
     const r = cellRect(x, y);
-    g.drawImage(art.slabs, r.x, r.y, r.w, r.h, r.x, r.y, r.w, r.h);
+    g.drawImage(art.slabs, r.x * sourceScale, r.y * sourceScale, r.w * sourceScale, r.h * sourceScale, r.x, r.y, r.w, r.h);
   }
   // 4) 踏破したマスの石壁 (共有する辺は一度だけ) と交点の柱頭
   const walls = [], posts = new Map(), seen = new Set();
@@ -2933,7 +2940,8 @@ function ensureBoardScene() {
     if (c.walls.w && !seen.has(`v${x},${y}`)) { seen.add(`v${x},${y}`); walls.push({ x: L - 3, y: T, w: 6, h: B - T, horiz: false }); post(L, T); post(L, B); }
     if (c.walls.e && !seen.has(`v${x + 1},${y}`)) { seen.add(`v${x + 1},${y}`); walls.push({ x: R - 3, y: T, w: 6, h: B - T, horiz: false }); post(R, T); post(R, B); }
   }
-  paintCryptWalls(g, walls, [...posts.values()], art.mat, art.seed);
+  if (art.painting) paintCryptMasonry(g, walls, [...posts.values()], art.painting, art.seed);
+  else paintCryptWalls(g, walls, [...posts.values()], art.mat, art.seed);
   BV.sceneHiKey = "";
 }
 // 合成済みの盤面を実画素の寸法へ拡大した写し (毎フレームは等倍で貼るだけにする)
@@ -2945,7 +2953,8 @@ function boardSceneHi() {
     BV.sceneHi.width = view.width; BV.sceneHi.height = view.height;
   }
   const g = BV.sceneHi.getContext("2d");
-  g.imageSmoothingEnabled = false;
+  g.imageSmoothingEnabled = !!BV.art.painting;
+  g.imageSmoothingQuality = "high";
   g.drawImage(BV.scene, 0, 0, view.width, view.height);
   BV.sceneHiKey = key;
   return BV.sceneHi;
@@ -3639,16 +3648,21 @@ function drawBoardIcons(lt, now, hx, hy) {
       }
       continue;
     }
-    const b = plainBitmap(icon);
+    const painted = activeCfg().id === "w01" ? cryptPropBitmap(cryptPropKey(cell, bossDoorHere())) : null;
+    const b = painted || plainBitmap(icon);
     const size = Math.min(r.w * (here ? 0.62 : 0.86), r.h * (here ? 0.5 : 0.62));
-    const bottom = r.y + r.h / 2 + size / 2 + r.h * 0.04;
+    const maxW = painted ? r.w * (here ? 0.55 : 0.86) : size;
+    const maxH = painted ? r.h * (here ? 0.5 : 0.68) : size;
+    const fit = Math.min(maxW / b.w, maxH / b.h), iconW = b.w * fit, iconH = b.h * fit;
+    const bottom = r.y + r.h / 2 + (painted ? iconH : size) / 2 + r.h * 0.04;
     vctx.fillStyle = "rgba(0,0,0,0.42)";
-    vctx.beginPath(); vctx.ellipse(cx, bottom - size * 0.08, size * 0.42, 3, 0, 0, Math.PI * 2); vctx.fill();
-    drawBmpFit(b, cx, bottom, size, size, light);
+    vctx.beginPath(); vctx.ellipse(cx, bottom - size * 0.08, (painted ? iconW : size) * 0.42, 3, 0, 0, Math.PI * 2); vctx.fill();
+    drawBmpFit(b, cx, bottom, maxW, maxH, light);
     // まだあたたかい死体 (魂未回収) には青い人魂
     if (cell.type === "corpse" && cell.corpseWarm && !cell.cleared) {
       const bob = REDUCED_MOTION ? 0 : Math.sin(now * 0.004 + cx) * 2;
-      drawBmpFit(plainBitmap(ICONS.wisp), cx + size * 0.22, bottom - size * 0.62 + bob, size * 0.5, size * 0.5, 1, 0.92);
+      const wisp = activeCfg().id === "w01" ? cryptPropBitmap("wisp") : null;
+      drawBmpFit(wisp || plainBitmap(ICONS.wisp), cx + size * 0.22, bottom - size * 0.62 + bob, size * 0.5, size * 0.5, 1, 0.92);
     }
     // 宝箱のきらめき
     if (cell.type === "chest" && !cell.cleared && !REDUCED_MOTION) {
@@ -3699,9 +3713,10 @@ function drawFlipSlab(now) {
   vctx.fillStyle = "#000";
   vctx.fillRect(r.x + ox + 2 + lift * 5, r.y + oy + 4 + lift * 7, r.w, r.h);
   vctx.globalAlpha = a;
-  vctx.imageSmoothingEnabled = boardCamera.zoom > 1;
+  vctx.imageSmoothingEnabled = !!BV.art.painting || boardCamera.zoom > 1;
+  const sourceScale = BV.art.scale;
   const W = r.w * sc, H = r.h * sc;
-  vctx.drawImage(BV.art.slabs, r.x, r.y, r.w, r.h, r.x + r.w / 2 - W / 2 + ox, r.y + r.h / 2 - H / 2 + oy, W, H);
+  vctx.drawImage(BV.art.slabs, r.x * sourceScale, r.y * sourceScale, r.w * sourceScale, r.h * sourceScale, r.x + r.w / 2 - W / 2 + ox, r.y + r.h / 2 - H / 2 + oy, W, H);
   vctx.restore();
 }
 
@@ -3766,6 +3781,8 @@ function drawWalker(hx, hy, now) {
 // 赤い頭巾の人影 (4方向)。端末の画素の格子に整数倍で置き、補間なしでくっきり描く。
 // 高さは墓石の約8割。足元に影、手の角灯が光の輪の源。待機中は2コマでわずかに上下し、歩く時は小さく弾む
 function drawHoodedWalker(wk, hx, hy, now) {
+  const painted = activeCfg().id === "w01" ? cryptWalkerBitmap(G._facing, PREFS.walkerLook) : null;
+  if (painted) { drawPaintedWalker(painted, hx, hy, now); return; }
   const b = monsterBitmap(wk);
   const cur = G.board.cells[G.py] && G.board.cells[G.py][G.px];
   const share = !G.heroAnim && cur && !!cellIcon(cur); // 中身のあるマスでは左手前へ寄る
@@ -3798,6 +3815,19 @@ function drawHoodedWalker(wk, hx, hy, now) {
   // 手に提げた角灯の灯り (絵に描かれた灯の位置に、揺らぐ光暈だけを重ねる。籠は絵のものを使う)
   const lp = walkerLampSpot(wk);
   drawLanternGlow((dx + (b.pad + lp.x + 0.5) * k) / VSX, (dy + (b.pad + lp.y + 0.5) * k) / VSY, now);
+}
+// 原画の人物も同じ足元・向き・浮遊状態に従い、カメラの論理座標で描く。
+function drawPaintedWalker(b, hx, hy, now) {
+  const cur = G.board.cells[G.py]?.[G.px], share = !G.heroAnim && cur && !!cellIcon(cur);
+  const x = hx - (share ? CARD_W * 0.2 : 0), feet = hy + CARD_H * 0.42;
+  const lift = walkerLift(now);
+  let bob = 0;
+  if (!REDUCED_MOTION && !lift) {
+    bob = G.heroAnim ? -Math.sin(Math.min(1, (now - G.heroAnim.t0) / Math.max(1, G.heroAnim.dur)) * Math.PI) * 1.5 : Math.sin(now * 0.0025) * 0.35;
+  }
+  drawWalkerShadow(x, feet, [CARD_W * 0.23, CARD_W * 0.14], [0.25, 0.4], lift, now);
+  const box = drawBmpFit(b, x, feet - lift + bob, CARD_W * (share ? 0.54 : 0.76), CARD_H * (share ? 0.76 : 0.88));
+  drawLanternGlow(box.x + box.W * b.lamp[0], box.y + box.H * b.lamp[1], now);
 }
 // 駒の絵の中の灯 (下半分にある明るい黄の点の重心)。向きごとに一度だけ求める
 const _lampSpot = new WeakMap();
