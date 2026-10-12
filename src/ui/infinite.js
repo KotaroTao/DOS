@@ -123,6 +123,36 @@ export function openInfSetup() {
 }
 
 // ================= 風だまり =================
+// サブ魂の空き枠に宿せる魂があるのに離れようとしたら知らせる (2026-10-12 ユーザーの指示)。
+// 「このまま離れる」を選んだ階では、もう知らせない
+let subNagFloor = null;
+function subChances() {
+  const g = G();
+  if (!g || !game.infSubBlock) return [];
+  const out = [];
+  for (const d of g.party || []) {
+    if (!d || !d.alive || !d.primary) continue;
+    const si = (d.subs || []).length; // 空いた枠のうち最初の枠 (外すと詰めて並ぶ)
+    if (si >= MAX_SUBS) continue;
+    const n = (g.souls || []).filter((s) => s && s.uid !== d.primary && !game.infSubBlock(d, si, s.uid)).length;
+    if (n) out.push({ d, si, n });
+  }
+  return out;
+}
+// 離れてよければ true。残るなら onStay(候補) を呼んで false
+async function subLeaveOk(onStay) {
+  const g = G();
+  if (!g || subNagFloor === g.floor) return true;
+  const list = subChances();
+  if (!list.length) return true;
+  const ok = await kitConfirm({ banner: "灯番", title: "サブ魂に宿せる魂がある",
+    lines: [...list.map((c) => `${c.d.name} ― サブ魂${c.si + 1}が空いている (宿せる魂 ${c.n}つ)`), "サブ魂は風だまりの灯番でしか付け替えられない。"],
+    okLabel: "このまま離れる", cancelLabel: "サブ魂を選ぶ", danger: false });
+  if (ok) { subNagFloor = g.floor; return true; }
+  if (onStay) onStay(list);
+  return false;
+}
+
 export function openInfRest(spec = {}) {
   const g = G();
   if (!g) return null;
@@ -151,12 +181,23 @@ export function openInfRest(spec = {}) {
           okLabel: "帰る", cancelLabel: "まだ帰らない", danger: false });
         if (!ok || x.closed) return;
         closing = true; x.close("ok", { silent: true }); spec.onReturn && spec.onReturn(); } },
-       { label: `続ける ― B${(spec.floor || g.floor) + 1}Fへ`, kind: "secondary", onTap: (x) => { closing = true; x.close("ok", { silent: true }); spec.onContinue && spec.onContinue(); } },
-       { label: "まだ探索する", kind: "ghost", onTap: (x) => x.close() }]
-    : [{ label: "主に挑む", kind: "danger", size: "lg", onTap: (x) => { closing = true; x.close("ok", { silent: true }); spec.onBoss && spec.onBoss(); } },
-       { label: "まだ探索する", kind: "ghost", onTap: (x) => x.close() }];
+       { label: `続ける ― B${(spec.floor || g.floor) + 1}Fへ`, kind: "secondary", onTap: (x) => leave(x, () => { closing = true; x.close("ok", { silent: true }); spec.onContinue && spec.onContinue(); }) },
+       { label: "まだ探索する", kind: "ghost", onTap: (x) => leave(x, () => x.close()) }]
+    : [{ label: "主に挑む", kind: "danger", size: "lg", onTap: (x) => leave(x, () => { closing = true; x.close("ok", { silent: true }); spec.onBoss && spec.onBoss(); }) },
+       { label: "まだ探索する", kind: "ghost", onTap: (x) => leave(x, () => x.close()) }];
+  // 風だまりを離れる前に、サブ魂の空きを知らせる (残るなら灯番を開く。帰る時は出撃が終わるので知らせない)
+  const keeper = () => openKeeper(() => h && !h.closed && h.update({ body: fill }));
+  let asking = false;
+  const leave = async (x, go) => {
+    if (asking || x.closed) return;
+    asking = true;
+    const ok = await subLeaveOk(() => keeper());
+    asking = false;
+    if (ok && !x.closed) go();
+  };
   h = sheet.open({ kind: "info", banner: `✦ 風だまり B${spec.floor || g.floor}F ✦`, accent: "#8e6fd0", className: "inf-sheet",
-    body: fill, footer: footer(), onClose: () => { if (!closing && spec.onClose) spec.onClose(); } });
+    body: fill, footer: footer(), onBack: (x) => leave(x, () => x.close("back")), onBackdrop: (x) => leave(x, () => x.close("backdrop")),
+    onClose: () => { if (!closing && spec.onClose) spec.onClose(); } });
   return h;
 }
 
@@ -286,8 +327,21 @@ function openKeeper(onChange) {
         onTap: () => openTrainSheet(s.uid, () => { if (!h.closed) h.update({ body: fill }); if (onChange) onChange(); }) }));
     }
   };
+  // 離れる前に、サブ魂の空きを知らせる (残るなら、空きのある器が1体だけならそのサブ魂の画面を開く)
+  let asking = false;
+  const leave = async (x, reason) => {
+    if (asking || x.closed) return;
+    asking = true;
+    const ok = await subLeaveOk((list) => {
+      if (list.length === 1 && !h.closed) openSubs(list[0].d, () => { if (!h.closed) h.update({ body: fill }); if (onChange) onChange(); });
+    });
+    asking = false;
+    if (ok && !x.closed) x.close(reason);
+  };
   h = sheet.open({ kind: "info", banner: "灯番", title: "灯籠のそばの人業", accent: "#7fd0ff", className: "inf-sheet", body: fill,
-    footer: [{ label: "戻る", kind: "ghost", onTap: (x) => x.close() }], onClose: () => { if (onChange) onChange(); } });
+    footer: [{ label: "戻る", kind: "ghost", onTap: (x) => leave(x, "close") }],
+    onBack: (x) => leave(x, "back"), onBackdrop: (x) => leave(x, "backdrop"),
+    onClose: () => { if (onChange) onChange(); } });
   return h;
 }
 // 器のサブ魂の並び (「戦士の魂+1 Lv5 / 空き」)
