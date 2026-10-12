@@ -222,6 +222,7 @@ const ASSETS = [
   "./src/music/legacy.js",
   "./src/music/sfx.js",
   "./src/opening.js",
+  "./src/openingvoice.js",
   "./src/quests.js",
   "./src/tavern.js",
   "./src/story.js",
