@@ -574,3 +574,12 @@ canvas.unk-sil { filter: brightness(0) drop-shadow(0 0 1px rgba(185,172,217,0.85
   .pc-fx { display: none; }
   .pc-call { animation: none; }
 }
+
+/* 小さい画面の盤面は一部を拡大し、表示の切り替えは額の下に置く。 */
+#board-camera-tools { display: none; }
+@media (max-width: 600px) {
+  .board-camera-active #screen { flex-direction: column; }
+  .board-camera-active #board-camera-tools { width: 100%; flex: 0 0 auto; display: flex; align-items: center; gap: 8px; padding-top: 7px; }
+  #board-camera-tools span { flex: 1; font-size: 11px; color: var(--muted, #b6a88d); }
+  #board-camera-tools button { min-width: 56px; min-height: 44px; padding: 4px 10px; font-size: 13px; color: #eadbb3; background: #211b22; border: 1px solid #665338; border-radius: 4px; }
+}

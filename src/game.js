@@ -2426,6 +2426,39 @@ layoutBoard();
 function cellRect(x, y) {
   return { x: OX + x * (CARD_W + GAP), y: OY + y * (CARD_H + GAP), w: CARD_W, h: CARD_H };
 }
+// 小さい画面では盤面の一部を拡大する。カメラは保存状態や探索の結果に触れない。
+const boardCamera = { zoom: 1, x: 0, y: 0, overview: false, manual: false, board: null, px: -1, py: -1 };
+const boardCameraCopy = document.createElement("canvas");
+function updateBoardCamera() {
+  const c = boardCamera, width = view.clientWidth || VW;
+  c.zoom = window.innerWidth <= 600 && !c.overview ? Math.max(1, 64 * VW / (width * Math.min(CARD_W, CARD_H))) : 1;
+  if (c.board !== G.board || c.px !== G.px || c.py !== G.py) {
+    c.manual = false; c.board = G.board; c.px = G.px; c.py = G.py;
+  }
+  if (!c.manual) {
+    const [x, y] = heroPos();
+    c.x = x - VW / c.zoom / 2; c.y = y - VH / c.zoom / 2;
+  }
+  clampBoardCamera();
+}
+function clampBoardCamera() {
+  const c = boardCamera;
+  c.x = Math.max(0, Math.min(VW - VW / c.zoom, c.x));
+  c.y = Math.max(0, Math.min(VH - VH / c.zoom, c.y));
+}
+function presentBoardCamera() {
+  updateBoardCamera();
+  const c = boardCamera;
+  if (c.zoom === 1) return;
+  if (boardCameraCopy.width !== view.width) boardCameraCopy.width = view.width;
+  if (boardCameraCopy.height !== view.height) boardCameraCopy.height = view.height;
+  const ctx = boardCameraCopy.getContext("2d");
+  ctx.globalCompositeOperation = "copy";
+  ctx.drawImage(view, 0, 0);
+  vctx.setTransform(1, 0, 0, 1, 0, 0);
+  vctx.drawImage(boardCameraCopy, c.x * VSX, c.y * VSY, view.width / c.zoom, view.height / c.zoom, 0, 0, view.width, view.height);
+  viewTransform();
+}
 // キャンバス座標 → マス (溝の上は null)
 function cellAt(sx, sy) {
   const cx = Math.floor((sx - OX) / (CARD_W + GAP)), cy = Math.floor((sy - OY) / (CARD_H + GAP));
@@ -2458,6 +2491,7 @@ function fitView(force = false) {
   if (!appEl || !screenEl) return false;
   const combat = G.state === "combat" || (G.state === "over" && !!G.battle);
   appEl.classList.toggle("in-combat", combat);
+  appEl.classList.toggle("board-camera-active", G.state === "board");
   const cssW = view.clientWidth || Math.round(view.getBoundingClientRect().width);
   if (!cssW) return false;
   const csA = getComputedStyle(appEl), csS = getComputedStyle(screenEl);
@@ -2468,7 +2502,7 @@ function fitView(force = false) {
     + outerH(topbarEl) + outerH(partyEl) + outerH(hintEl)
     + (csH ? (parseFloat(csH.paddingTop) || 0) + (parseFloat(csH.paddingBottom) || 0) : 0);
   if (combat) used += MENU_RESERVE + LOG_MIN_COMBAT + TURN_ORDER_H;
-  else used += outerH(runbarEl) + outerH(ctrlEl) + LOG_MIN_BOARD;
+  else used += outerH(runbarEl) + outerH(ctrlEl) + outerH(document.getElementById("board-camera-tools")) + LOG_MIN_BOARD;
   // 縦の短い画面では戦場も縮め、記録と命令板の領域を確保する。
   const minVH = combat ? 140 : 240;
   const h = Math.max(cssW * (combat ? minVH / VW : 0.56), Math.min(cssW * (combat ? 0.98 : 1.32), appH - used));
@@ -3062,6 +3096,7 @@ function drawBoardFrame() {
   drawBoardParticles(lt, now);
   vctx.globalCompositeOperation = "source-over";
   vctx.globalAlpha = 1;
+  presentBoardCamera();
 }
 
 // 迷宮の台帳で置いている足元の仕掛け (出撃画面の「足元」)。{ fall, harm } = 定義 or null
@@ -17213,13 +17248,59 @@ view.addEventListener("pointermove", (e) => { if (_enemyHold && !_enemyHold.fire
 for (const ev of ["pointerup", "pointercancel", "pointerleave"]) view.addEventListener(ev, () => { if (_enemyHold && !_enemyHold.fired) { clearTimeout(_enemyHold.t); _enemyHold = null; } });
 view.addEventListener("contextmenu", (e) => { if (G.state === "combat") e.preventDefault(); });
 
+// 盤面のドラッグは見渡す操作。隊の札からのフリックは従来どおり歩く。
+let boardPan = null, boardPanClick = false;
+view.addEventListener("pointerdown", (e) => {
+  boardPanClick = false;
+  if (!e.isPrimary || e.button !== 0 || G.state !== "board" || uiBlocked() || boardCamera.zoom === 1) return;
+  boardPan = { id: e.pointerId, x: e.clientX, y: e.clientY, cx: boardCamera.x, cy: boardCamera.y };
+  view.setPointerCapture(e.pointerId);
+});
+view.addEventListener("pointermove", (e) => {
+  if (!boardPan || boardPan.id !== e.pointerId) return;
+  if (G.state !== "board" || uiBlocked()) { boardPan = null; return; }
+  const dx = e.clientX - boardPan.x, dy = e.clientY - boardPan.y;
+  if (!boardPanClick && Math.hypot(dx, dy) < 8) return;
+  boardPanClick = true;
+  const rect = view.getBoundingClientRect();
+  boardCamera.manual = true;
+  boardCamera.x = boardPan.cx - dx * VW / rect.width / boardCamera.zoom;
+  boardCamera.y = boardPan.cy - dy * VH / rect.height / boardCamera.zoom;
+  clampBoardCamera();
+  drawBoardFrame();
+});
+for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) view.addEventListener(type, (e) => {
+  if (boardPan && boardPan.id === e.pointerId) boardPan = null;
+});
+const boardOverviewBtn = document.getElementById("board-overview");
+boardOverviewBtn.addEventListener("click", () => {
+  boardCamera.overview = !boardCamera.overview;
+  boardCamera.manual = false;
+  boardOverviewBtn.textContent = boardCamera.overview ? "拡大" : "全体";
+  boardOverviewBtn.setAttribute("aria-pressed", String(boardCamera.overview));
+  document.getElementById("board-camera-hint").textContent = boardCamera.overview ? "全体を表示中" : "ドラッグで見渡す";
+  drawBoardFrame();
+});
+document.getElementById("board-center").addEventListener("click", () => {
+  boardCamera.overview = false; boardCamera.manual = false;
+  boardOverviewBtn.textContent = "全体";
+  boardOverviewBtn.setAttribute("aria-pressed", "false");
+  document.getElementById("board-camera-hint").textContent = "ドラッグで見渡す";
+  drawBoardFrame();
+});
+
 view.addEventListener("click", (e) => {
+  if (boardPanClick) { boardPanClick = false; return; }
   if (G._swiped) { G._swiped = false; return; } // 直前のスワイプ由来の click は無視
   if (_enemyHold && _enemyHold.fired) { _enemyHold = null; return; } // 長押しで敵を覗いた直後
   _enemyHold = null;
   const rect = view.getBoundingClientRect();
-  const sx = (e.clientX - rect.left) * (VW / rect.width);
-  const sy = (e.clientY - rect.top) * (VH / rect.height);
+  let sx = (e.clientX - rect.left) * (VW / rect.width);
+  let sy = (e.clientY - rect.top) * (VH / rect.height);
+  if (G.state === "board") {
+    sx = sx / boardCamera.zoom + boardCamera.x;
+    sy = sy / boardCamera.zoom + boardCamera.y;
+  }
   // 戦闘中にオート戦闘なら、画面のどこをタップしても解除 (演出中もOK)
   if (G.state === "combat" && G.autoCombat) { buzz(10); stopAutoCombat(); return; }
   // 戦闘中: 敵スプライトを直接タップ
@@ -17324,6 +17405,7 @@ document.addEventListener("pointerdown", (e) => {
   // (メンバーカード等 SWIPE_IGNORE をタップした際にループが走り続けると、
   //  移動に伴う renderParty() でカードDOMが作り直されてタップ(openStatus)が失われる)
   stopSwipe();
+  if (e.target === view && G.state === "board" && window.innerWidth <= 600) return;
   const onParty = G.state === "board" && !uiBlocked() && e.target.closest("#party");
   if (!onParty && e.target.closest(SWIPE_IGNORE)) return;
   swipe = { x: e.clientX, y: e.clientY, dir: null, party: !!onParty };
