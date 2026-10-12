@@ -3,7 +3,7 @@
 import { makeRng, paintFloorHazards } from "./crypt.js";
 
 export const CRYPT_PAINT_SCALE = 3;
-const PAINTINGS = { w01: "crypt", w02: "w02", w03: "w03", w04: "w04", w05: "w05", w06: "w06", w12: "w12", w13: "w13", w14: "w14", w15: "w15", w16: "w16" };
+const PAINTINGS = { w01: "crypt", w02: "w02", w03: "w03", w04: "w04", w05: "w05", w06: "w06", w12: "w12", w13: "w13", w14: "w14", w15: "w15", w16: "w16", w22: "w22", w23: "w23", w24: "w24", w25: "w25", w26: "w26" };
 const paintings = new Map();
 export function cryptPainting(id = "w01") {
   if (!Object.hasOwn(PAINTINGS, id)) return null;
