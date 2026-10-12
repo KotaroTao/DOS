@@ -1052,6 +1052,9 @@ function infSpotInfo(lv) {
   return info;
 }
 function abyssLevel(d) { return infLevel(d); }
+// 無限迷宮のあたたかい死体は本編の1.2倍 (2026-10-12 ユーザーの指示)。ほかのマス (敵・宝箱・風化した死体・泉・罠) の割合は
+// 本編のまま、空いたまま残る行き止まりにあたたかい死体を足す (board.js warmExtra)。そのぶん何もない行き止まりが減る
+const INF_WARM_MUL = 1.2;
 function abyssCfg() {
   const d = G.abyss.depth;
   const lv = infLevel(d);
@@ -1069,7 +1072,7 @@ function abyssCfg() {
     pool: [...info.pool], deepPool: [...info.pool],
     floorHaz: fh,
     trapRate: h.trapRate, poisonRate: haz ? h.harmRate : 0, pitRate: haz ? h.fallRate : 0,
-    warmChance: h.warmChance,
+    warmChance: h.warmChance, warmExtra: INF_WARM_MUL - 1, // あたたかい死体を本編の +20% ぶん、空いた行き止まりに足す
     lootLv: lootBand(lv),
     _abyss: true,
   };
@@ -1181,38 +1184,103 @@ function infSell(owner, it, keep = null) {
   }
   return ok;
 }
-// ---- 灯番 (名もない人業): メイン魂の付け替え。砕けた器は付け替えられない。傷・状態異常はそのまま、HP・MP は今の値 (新しい最大値まで) ----
+// ---- 灯番 (名もない人業): メイン魂・サブ魂の付け替え。砕けた器は付け替えられない。傷・状態異常はそのまま、HP・MP は今の値 (新しい最大値まで) ----
+// サブ魂は器ごとに MAX_SUBS (2) まで (本編の解放に依らない。2026-10-12 ユーザーの指示)。一つの器に同じ職業の魂は一つだけ、
+// 同じ魂を二つの器に宿すことはできない (無限迷宮の魂は職業ごとに1つなので、ほかの器が宿している魂は選べない)
+function infSoulHolder(d, uid) {
+  for (const x of G.party || []) {
+    if (x === d) continue;
+    if (x.primary === uid || (x.subs || []).some((sb) => sb && sb.uid === uid)) return x;
+  }
+  return null;
+}
+// 付け替えた後の姿を見積もる (器はそのまま戻す)
+function infPreviewWith(d, fn) {
+  const keep = [d.primary, (d.subs || []).map((x) => x && { ...x, picks: Array.isArray(x.picks) ? x.picks.map((p) => ({ ...p })) : x.picks })];
+  try { fn(); recalcDoll(d); return { maxhp: d.maxhp, maxmp: d.maxmp, hp: Math.min(d.hp, d.maxhp), mp: Math.min(d.mp, d.maxmp) }; }
+  finally { [d.primary, d.subs] = keep; recalcDoll(d); }
+}
 function infSoulChangePreview(d, uid) {
-  const s = soulByUid(uid);
-  if (!d || !s) return null;
-  const keep = d.primary;
-  d.primary = uid; recalcDoll(d);
-  const out = { maxhp: d.maxhp, maxmp: d.maxmp, hp: Math.min(d.hp, d.maxhp), mp: Math.min(d.mp, d.maxmp) };
-  d.primary = keep; recalcDoll(d);
-  return out;
+  if (!d || !soulByUid(uid)) return null;
+  return infPreviewWith(d, () => placeSoulInDoll(d, "primary", uid));
 }
 function infSoulChangeBlock(d, uid) {
   if (!infAtRest()) return "灯番は風だまりにいる";
   if (!d || !d.alive) return "砕けた器はメイン魂を付け替えられない";
   if (!soulByUid(uid)) return "その魂は無い";
   if (d.primary === uid) return "いま宿している魂";
-  const holder = G.party.find((x) => x !== d && x.primary === uid);
+  const holder = infSoulHolder(d, uid);
   if (holder) return `${holder.name}が宿している`;
-  return null;
+  return null; // この器のサブ魂なら、メイン魂と入れ替える (placeSoulInDoll)
 }
+// HP・MP を今の値のまま (新しい最大値まで) にして、器の能力を付け直す
+function infRefit(d, hp, mp) {
+  recalcDoll(d);
+  d.hp = Math.max(1, Math.min(hp, d.maxhp)); d.mp = Math.max(0, Math.min(mp, d.maxmp));
+  for (const x of fixHandsAndShields()) recalcDoll(x); // 二刀流を借りていたサブ魂を外した: 左手の武器は袋へ
+  refreshEquipLevels(); // Lv の低い魂へ替えた: 装備できるLv に届かない装備は袋へ
+  d.hp = Math.max(1, Math.min(hp, d.maxhp)); d.mp = Math.max(0, Math.min(mp, d.maxmp));
+}
+function infSwapCount() { const st = infStats(); st.swaps++; if (st.swaps >= 10) infTitleGrant("keeper"); }
 function infSwapSoul(d, uid) {
   const why = infSoulChangeBlock(d, uid);
   if (why) { SFX.ng(); showToast(why, { tone: "bad" }); return false; }
   const hp = d.hp, mp = d.mp, before = soulByUid(d.primary);
-  d.primary = uid;
-  recalcDoll(d);
-  d.hp = Math.max(1, Math.min(hp, d.maxhp)); d.mp = Math.max(0, Math.min(mp, d.maxmp));
-  refreshEquipLevels(); // Lv の低い魂へ替えた: 装備できるLv に届かない装備は袋へ
-  d.hp = Math.max(1, Math.min(hp, d.maxhp)); d.mp = Math.max(0, Math.min(mp, d.maxmp));
+  placeSoulInDoll(d, "primary", uid); // この器のサブ魂を選んだら、元のメイン魂がその枠へ移る
+  infRefit(d, hp, mp);
   const s = soulByUid(uid);
   SFX.levelup(); buzz([0, 20, 40, 20]);
-  { const st = infStats(); st.swaps++; if (st.swaps >= 10) infTitleGrant("keeper"); }
+  infSwapCount();
   log(`灯番が${d.name}の魂をつなぎ直した: ${before ? soulLabel(before) : "空"} → ${soulLabel(s)}。`, "win");
+  updateTopbar(); renderParty(); autosave(true);
+  return true;
+}
+// サブ魂の枠 si (0 / 1) に魂 uid を宿せないわけ (null = 宿せる)
+function infSubBlock(d, si, uid) {
+  if (!infAtRest()) return "灯番は風だまりにいる";
+  if (!d || !d.alive) return "砕けた器はサブ魂を付け替えられない";
+  if (!Number.isInteger(si) || si < 0 || si >= MAX_SUBS || si > (d.subs || []).length) return "その枠は使えない";
+  const s = soulByUid(uid);
+  if (!s) return "その魂は無い";
+  if (((d.subs || [])[si] || {}).uid === uid) return "いま宿している魂";
+  if (d.primary === uid) return "メイン魂として宿している";
+  const holder = infSoulHolder(d, uid);
+  if (holder) return `${holder.name}が宿している`;
+  const oi = (d.subs || []).findIndex((x) => x && x.uid === uid);
+  if (oi >= 0 && !(d.subs || [])[si]) return `サブ魂${oi + 1}に宿している`; // 空いた枠へ移しても並びは変わらない
+  if (soulByUid(d.primary)?.clsKey === s.clsKey) return "メイン魂と同じ職業";
+  if ((d.subs || []).some((x, i) => i !== si && x && x.uid !== uid && soulByUid(x.uid)?.clsKey === s.clsKey)) return "もう一つのサブ魂と同じ職業";
+  return null; // もう一つのサブ魂の枠にある魂なら、枠どうしを入れ替える
+}
+function infSubPreview(d, si, uid) {
+  if (!d) return null;
+  if (uid == null) return infPreviewWith(d, () => { d.subs = (d.subs || []).filter((_, i) => i !== si); });
+  if (!soulByUid(uid)) return null;
+  return infPreviewWith(d, () => placeSoulInDoll(d, "sub" + si, uid));
+}
+// サブ魂を宿す (uid) / 外す (uid = null)
+function infSetSub(d, si, uid) {
+  if (uid == null) {
+    if (!infAtRest() || !d || !d.alive) { SFX.ng(); showToast(d && !d.alive ? "砕けた器はサブ魂を付け替えられない" : "灯番は風だまりにいる", { tone: "bad" }); return false; }
+    const cur = soulByUid(((d.subs || [])[si] || {}).uid);
+    if (!cur) return false;
+    const hp = d.hp, mp = d.mp;
+    d.subs = (d.subs || []).filter((_, i) => i !== si);
+    infRefit(d, hp, mp);
+    SFX.select(); buzz(15);
+    log(`灯番が${d.name}のサブ魂 ${soulLabel(cur)} を外した。`, "sys");
+    updateTopbar(); renderParty(); autosave(true);
+    return true;
+  }
+  const why = infSubBlock(d, si, uid);
+  if (why) { SFX.ng(); showToast(why, { tone: "bad" }); return false; }
+  const hp = d.hp, mp = d.mp, before = soulByUid(((d.subs || [])[si] || {}).uid);
+  placeSoulInDoll(d, "sub" + si, uid); // 借りる技は recalcDoll が既定 (覚えている最後の技) で埋める
+  infRefit(d, hp, mp);
+  const s = soulByUid(uid);
+  SFX.levelup(); buzz([0, 20, 40, 20]);
+  infSwapCount();
+  log(`灯番が${d.name}のサブ魂${si + 1}をつなぎ直した: ${before ? soulLabel(before) : "空き"} → ${soulLabel(s)}。`, "win");
   updateTopbar(); renderParty(); autosave(true);
   return true;
 }
@@ -1432,9 +1500,8 @@ function infSwapBackAfterLoad(run) {
   setSharedSouls(G.souls);
   syncDollUids([...(ab.home.party || []), ...(ab.home.reserve || []), ...(G.party || [])]);
   for (const d of G.party || []) {
-    if (!Array.isArray(d.subs)) d.subs = [];
-    d.subs = [];
     if (d.primary != null && !soulByUid(d.primary)) d.primary = null;
+    d.subs = (Array.isArray(d.subs) ? d.subs : []).filter((x) => x && soulByUid(x.uid) && x.uid !== d.primary).slice(0, MAX_SUBS); // サブ魂は風だまりの灯番で宿す
     try { recalcDoll(d); } catch {}
   }
   syncClueBoons();
@@ -6487,8 +6554,9 @@ function eventFacts() {
   return out;
 }
 
-// 無限迷宮の階に出来事が置かれる確率 (無限迷宮だけの出来事 src/infevents.js)
-const INF_EV_FLOOR_RATE = 0.6;
+// 無限迷宮の階に出来事が置かれる確率 (無限迷宮だけの出来事 src/infevents.js)。0.6 の1.2倍 (2026-10-12 ユーザーの指示)。
+// 出来事は空いた行き止まりに置くので、ほかのマスは減らない
+const INF_EV_FLOOR_RATE = 0.6 * 1.2;
 // 階が変わった時: 持ち越しの効果を適用し、出来事を1つ置く (確率)
 function evNewFloor() {
   if (!G.board) return;
@@ -7235,7 +7303,7 @@ function investigateCorpse(cell, clsKey, clsLabel) {
   cell.cleared = true;
   const back = () => { if (G.state === "board") renderBoard(); };
   // 半分の確率で魂の残火も残っている (下の4つのどれとも別に)。魂なら同じ知らせにまとめ、ほかは知らせの末尾に添える
-  const ember = random() < EMBER_COLD_RATE ? emberEcho(EMBER_COLD * emberMul(levelHere().lv)) : 0;
+  const ember = random() < EMBER_COLD_RATE ? emberEcho(EMBER_COLD * emberMul(levelHere().lv) * infEmberK()) : 0;
   let emberDone = false;
   const emberTail = () => {
     if (!ember || emberDone) return "";
@@ -7301,8 +7369,11 @@ function investigateCorpse(cell, clsKey, clsLabel) {
 // 魂の残火: まだあたたかい死体 = 必ず1個 / 偉大なる死体 = 必ず5個 / 風化した死体 = 50%で1個 (investigateCorpse)。
 // どれも敵Lv で数が増える (levelcurve.js emberMul: Lv1〜50 ×1・51〜100 ×2 … Lv400 ×8)
 const EMBER_WARM = 1, EMBER_GREAT = 5, EMBER_COLD = 1, EMBER_COLD_RATE = 0.5;
+// 無限迷宮の死体の残火は2倍 (2026-10-12 ユーザーの指示。無限迷宮の出来事の残火は infevents.js に2倍の数で書く)
+const INF_EMBER_MUL = 2;
+const infEmberK = () => (abyssActive() && inDungeon() ? INF_EMBER_MUL : 1);
 function emberReward(great) {
-  return emberEcho((great ? EMBER_GREAT : EMBER_WARM) * emberMul(levelHere().lv));
+  return emberEcho((great ? EMBER_GREAT : EMBER_WARM) * emberMul(levelHere().lv) * infEmberK());
 }
 // 極光の書きつけ (手がかりの恵み emberEcho): 死体から魂の残火を拾った時、この確率で数が倍になる
 const EMBER_ECHO_RATE = 0.10;
@@ -18127,7 +18198,7 @@ bindGame({
 bindGame({
   // 出撃
   departNow, corpseFadeShare, departAbyss, infVesselNames, rematchList, departRematch, REMATCH_FORGE_MAX, townMutatorFor, preDiveIssues, departWoes, DUNGEON_BRIEFING, STORY_CELLS, startFloorsOf, worldOpenIdx, worldOpenId, worldUnlockMet, levelBand, wallOf, wallStepOf, partyLevel, storyCellPending, dungeonFacts, dungeonQuests, namedHere, namedList, namedInfo,
-  abyssRecords, infStats, infTitleList, infTitleName, setInfTitle, emptyDollCost, infRule, infAtRest, soulWorkOk, infTraderWares, infBuy, infSell, shopAfxClash, infSwapSoul, infSoulChangeBlock, infSoulChangePreview, infLevel, infGrowthMul,
+  abyssRecords, infStats, infTitleList, infTitleName, setInfTitle, emptyDollCost, infRule, infAtRest, soulWorkOk, infTraderWares, infBuy, infSell, shopAfxClash, infSwapSoul, infSoulChangeBlock, infSoulChangePreview, infSubBlock, infSubPreview, infSetSub, infLevel, infGrowthMul,
   // 迷宮の HUD
   specialDef, mutDef, eliteKey, dungeonObjective, abyssActive, abyssBossPending, findRevealedStairs, canReturnNow, confirmAbandonDungeon,
   dungeonTheme, eventFacts,
@@ -18173,7 +18244,7 @@ function init() {
     // 宿敵の再戦の検証用
     rematch: { rematchList, departRematch, endBattle },
     // 無限迷宮の検証用
-    inf: { infStats, infTitleList, infTitleGrant, infCheckRun, doUnequip, giveItemAsk, giveItem, pickLoot, cloneItem, markDungeonLoot, shopAfxItem, buyAffixed, afxConflicts, resolveAfxConflicts, shopReceive, saveJSON: () => { const snap = {}; for (const k of SAVE_FIELDS) snap[k] = G[k]; return JSON.stringify(refSerialize(snap)); }, DUNGEONS, spawnBossEnemies, baseEnemyScale, soloScale, infBossFoes, infEliteFoes, infFoeKey, infSpotInfo, spawnCardEnemies, enemyScale, mimicRef, addSoulInstance, recalcAllDolls, enterAbyss, departAbyss, descend, openInfRest, fightAbyssGuard, abyssCfg, grantSoulQuiet, infSwapSoul, infBuy, infSell, infTraderWares, returnToTown, gameOver, leaveDungeon, abyssRecords, newFloor, renderBoard, finishToBoard },
+    inf: { infStats, infTitleList, infTitleGrant, infCheckRun, doUnequip, giveItemAsk, giveItem, pickLoot, cloneItem, markDungeonLoot, shopAfxItem, buyAffixed, afxConflicts, resolveAfxConflicts, shopReceive, saveJSON: () => { const snap = {}; for (const k of SAVE_FIELDS) snap[k] = G[k]; return JSON.stringify(refSerialize(snap)); }, DUNGEONS, spawnBossEnemies, baseEnemyScale, soloScale, infBossFoes, infEliteFoes, infFoeKey, infSpotInfo, spawnCardEnemies, enemyScale, mimicRef, addSoulInstance, recalcAllDolls, enterAbyss, departAbyss, descend, openInfRest, fightAbyssGuard, abyssCfg, grantSoulQuiet, infSwapSoul, infSetSub, infSubBlock, infSubPreview, infBuy, infSell, infTraderWares, returnToTown, gameOver, leaveDungeon, abyssRecords, newFloor, renderBoard, finishToBoard },
     // 迷宮の掟の代償 (雲間の泉・開幕の眠り/麻痺・宝箱の罠) の検証用
     ruleCost: { TRAIT_BOARD, mutNum, useVeiledFountain, VEILED_CURSE, RULE_ONE_AIL, disarmNeed, dungeonTrait },
     // 第九章の掟 (一騎打ち・観客の注文) の検証用

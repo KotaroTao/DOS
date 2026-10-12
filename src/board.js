@@ -189,13 +189,20 @@ export function makeBoard(floor, cfg = null) {
   const pool = poolAt(dn, floor);
   const trapRate = dn.trapRate;       // イベントが罠になる割合
   const warmChance = dn.warmChance;
+  // 無限迷宮: あたたかい死体を本編の (1 + warmExtra) 倍にする。上の配分 (敵・宝箱・死体・泉・罠) は変えず、
+  // 空いたまま残る行き止まり (下の 50% に外れた側) にだけ足す。1つの行き止まりで本編が置くあたたかい死体の見込み
+  // = 0.5 × (1 − 罠) × 0.26 (死体) × warmChance。その warmExtra 倍を、空いた側の 0.5 で割った確率で置く
+  const warmExtraP = dn.warmExtra > 0 ? Math.min(1, dn.warmExtra * (1 - trapRate) * 0.26 * warmChance) : 0;
   let fountainCount = 0;
   for (let y = 0; y < ROWS; y++) {
     for (let x = 0; x < COLS; x++) {
       const c = cells[y][x];
       if (c.type !== "empty") continue;
       if (openCount(c) !== 1) continue;
-      if (random() >= 0.5) continue;
+      if (random() >= 0.5) {
+        if (warmExtraP > 0 && random() < warmExtraP) { c.type = "corpse"; c.cleared = false; c.corpseClass = rollJobClass(); c.corpseWarm = true; }
+        continue;
+      }
       const r = random();
       if (r < trapRate) { c.type = "trap"; c.cleared = false; continue; } // 罠 (迷宮ごとに頻度可変)
       // 残りは モンスター/宝箱/死体/泉 に配分

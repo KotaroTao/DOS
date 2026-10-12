@@ -708,6 +708,9 @@ button.dp-rule:active, .dp-rule-b:active { filter: brightness(1.25); }
 .inf-vessel-n { font-size: 14px; font-weight: 800; }
 .inf-vessel-s { font-size: 12px; color: var(--ink-dim); line-height: 1.6; }
 .inf-vessel-a { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.inf-sub-box { margin: 6px 0 10px; }
+.inf-sub-box .inf-swap-row { margin: 0; }
+.inf-sub-box .inf-vessel-a { justify-content: flex-end; }
 .inf-items { display: flex; flex-wrap: wrap; gap: 4px 10px; margin: 4px 0; font-size: 12.5px; }
 .inf-item.rar-c { color: #e6e0d0; } .inf-item.rar-uc { color: #7fd06a; } .inf-item.rar-r { color: #6fa8ff; }
 .inf-item.rar-sr { color: #f0a040; } .inf-item.rar-lr { color: #ff6060; }

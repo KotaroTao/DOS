@@ -8,11 +8,12 @@
 
 import { UI, game, registerUI } from "./ctx.js";
 import { el, sheet, button, row, toast, itemTile, portrait, confirm as kitConfirm, uiBlocked } from "./kit.js";
-import { SOUL_CLASSES, jobBust, soulByUid, soulLabel, soulLevelCapOf, soulRankOf, jobStatsOf } from "../souls.js";
+import { SOUL_CLASSES, jobBust, soulByUid, soulLabel, soulLevelCapOf, soulRankOf, jobStatsOf, MAX_SUBS, passiveName } from "../souls.js";
+import { SPELLS } from "../combat.js";
 import { crispCanvas } from "../sprites.js";
 import { ICONS } from "../sprites.js";
 import { INF_NAME, INF_PARTY, VESSEL_NAMES, rollStartSouls, infLevel, infRedCost, INF_RULES } from "../abyss.js";
-import { openTrainSheet } from "./soulpanel.js";
+import { openTrainSheet, openSkillStep } from "./soulpanel.js";
 import { ITEMS, itemName, useLines } from "../items.js";
 
 const G = () => game.G;
@@ -134,7 +135,7 @@ export function openInfRest(spec = {}) {
     b.appendChild(el("div", "inf-cur", `所持 💰${g.gold || 0} ・ ✦${g.soulPts || 0} ・ 残火 ${g.embers || 0} ・ 推奨Lv ${lv}`));
     b.appendChild(row({ icon: ICONS.chest, title: "回収人 (商会の者)", sub: "品の買い取り (売った品はすぐ商会の棚へ ― 全滅しても残る)・回復の道具・反魂香・風切りの羽・鍛え直し", chevron: true, onTap: () => { sfx("select"); openTrader(() => h && !h.closed && h.update({ body: fill })); } }));
     if (!spec.guardDown) b.appendChild(itemRule({ compact: true }));
-    b.appendChild(row({ icon: ICONS.portal, title: "灯番 (名もない人業)", sub: "メイン魂の付け替え・✦Soul で魂の強化・残火で Lv上限 +1", chevron: true, onTap: () => { sfx("select"); openKeeper(() => h && !h.closed && h.update({ body: fill })); } }));
+    b.appendChild(row({ icon: ICONS.portal, title: "灯番 (名もない人業)", sub: "メイン魂・サブ魂の付け替え・✦Soul で魂の強化・残火で Lv上限 +1", chevron: true, onTap: () => { sfx("select"); openKeeper(() => h && !h.closed && h.update({ body: fill })); } }));
     if (spec.guardDown) {
       b.appendChild(el("div", "inf-note dim", "帰れば: 拾った魂は ＋1 の素材として本編の魂に加わる (Lv は残らない)。品は商会の棚に並ぶ。残火は拾った数だけ本編へ。金貨と ✦Soul、最初に宿した欠片は残らない。"));
       const next = INF_RULES.filter((r) => r.from > (spec.floor || g.floor) && r.from <= (spec.floor || g.floor) + 5);
@@ -267,17 +268,20 @@ function openKeeper(onChange) {
       const tx = el("div", "inf-vessel-t");
       tx.appendChild(el("div", "inf-vessel-n", `${d.name}${d.alive ? "" : " (砕けた)"}`));
       tx.appendChild(el("div", "inf-vessel-s", s ? `${soulLabel(s)} ・ Lv${s.level}/${soulLevelCapOf(s)} ・ HP ${d.hp}/${d.maxhp} ・ MP ${d.mp}/${d.maxmp}` : "魂が無い"));
+      tx.appendChild(el("div", "inf-vessel-s", `サブ魂 ${subSummary(d)}`));
       const acts = el("div", "inf-vessel-a");
-      if (s) acts.appendChild(button({ label: "魂を強化", kind: "secondary", size: "sm", onTap: () => openTrainSheet(s.uid, () => { if (!h.closed) h.update({ body: fill }); if (onChange) onChange(); }) }));
-      acts.appendChild(button({ label: "魂を替える", kind: "secondary", size: "sm", disabled: !d.alive, onTap: () => openSwap(d, () => { if (!h.closed) h.update({ body: fill }); if (onChange) onChange(); }) }));
+      const redraw = () => { if (!h.closed) h.update({ body: fill }); if (onChange) onChange(); };
+      if (s) acts.appendChild(button({ label: "魂を強化", kind: "secondary", size: "sm", onTap: () => openTrainSheet(s.uid, redraw) }));
+      acts.appendChild(button({ label: "魂を替える", kind: "secondary", size: "sm", disabled: !d.alive, onTap: () => openSwap(d, redraw) }));
+      acts.appendChild(button({ label: "サブ魂", kind: "secondary", size: "sm", disabled: !d.alive, onTap: () => openSubs(d, redraw) }));
       tx.appendChild(acts);
       card.appendChild(tx);
       b.appendChild(card);
     }
     // 宿していない魂 (拾った魂)
-    const free = (g.souls || []).filter((s) => s && !(g.party || []).some((d) => d.primary === s.uid));
+    const free = (g.souls || []).filter((s) => s && !(g.party || []).some((d) => d.primary === s.uid || (d.subs || []).some((x) => x && x.uid === s.uid)));
     b.appendChild(el("div", "inf-h", `宿していない魂 ${free.length}`));
-    if (!free.length) b.appendChild(el("div", "inf-note dim", "迷宮で拾った魂がここに並ぶ。同じ職の魂を拾うと、自動で融合して Lv上限が伸びる。"));
+    if (!free.length) b.appendChild(el("div", "inf-note dim", "迷宮で拾った魂がここに並ぶ。同じ職の魂を拾うと、自動で融合して Lv上限が伸びる。メイン魂にもサブ魂にも宿せる。"));
     for (const s of free) {
       const cl = SOUL_CLASSES[s.clsKey] || {};
       b.appendChild(row({ icon: bust(s.clsKey, 32), title: soulLabel(s), sub: `${RAR[cl.rarity] || ""} ・ Lv${s.level}/${soulLevelCapOf(s)} ・ ランク${soulRankOf(s)}`, chevron: true,
@@ -288,7 +292,97 @@ function openKeeper(onChange) {
     footer: [{ label: "戻る", kind: "ghost", onTap: (x) => x.close() }], onClose: () => { if (onChange) onChange(); } });
   return h;
 }
-// メイン魂を付け替える: 砕けた器は不可。傷・状態異常は残り、HP・MP は今の値 (新しい最大値まで)
+// 器のサブ魂の並び (「戦士の魂+1 Lv5 / 空き」)
+function subSummary(d) {
+  const out = [];
+  for (let i = 0; i < MAX_SUBS; i++) {
+    const s = soulByUid(((d.subs || [])[i] || {}).uid);
+    out.push(s ? `${soulLabel(s)} Lv${s.level}` : "空き");
+  }
+  return out.join(" / ");
+}
+// 魂の行の右に、押すボタンを並べる (行を押すとその職業の図鑑)
+function soulLine(s, sub, why, btns) {
+  const line = el("div", "inf-swap-row");
+  line.appendChild(row({ icon: bust(s.clsKey, 32), title: `${soulLabel(s)} ・ Lv${s.level}`, sub, tone: why ? "dim" : null,
+    onTap: game.showCodexJobDetail ? () => { sfx("select"); game.showCodexJobDetail(s.clsKey, soulRankOf(s)); } : null }));
+  for (const b of btns) { b.classList.add("inf-swap-b"); line.appendChild(b); }
+  return line;
+}
+const pvText = (d, pv) => (pv ? `付け替え後 HP ${pv.hp}/${pv.maxhp} ・ MP ${pv.mp}/${pv.maxmp}${pv.hp < d.hp || pv.mp < d.mp ? " (減る)" : ""}` : "");
+// サブ魂 (器ごとに2つまで): 枠ごとに宿す・外す・借りる技を選ぶ。付け替えは風だまりの灯番だけ (2026-10-12 ユーザーの指示)
+function openSubs(d, onChange) {
+  let hh = null;
+  const redraw = () => { if (hh && !hh.closed) hh.update({ body: fill }); if (onChange) onChange(); };
+  const fill = (b) => {
+    b.appendChild(el("div", "inf-note", "サブ魂は器ごとに2つまで。宿した魂の能力の一部 (ランク1で1割〜ランク5で3割) が器に加わり、覚えている技・パッシブを魂のランクに応じた数だけ借りられる。ひとつの器に同じ職業の魂は一つだけ。付け替えても傷は残り、HP・MP は今の値のまま。"));
+    const subs = d.subs || [];
+    for (let i = 0; i < MAX_SUBS; i++) {
+      const sub = subs[i];
+      const s = sub ? soulByUid(sub.uid) : null;
+      b.appendChild(el("div", "inf-h", `サブ魂${i + 1}`));
+      if (!s && i > subs.length) { b.appendChild(el("div", "inf-note dim", "先にサブ魂1を宿す。")); continue; }
+      if (!s) {
+        b.appendChild(row({ title: "空き", sub: "宿す魂を選ぶ", chevron: true, onTap: () => { sfx("select"); openSubPick(d, i, redraw); } }));
+        continue;
+      }
+      const info = (d.subInfo || []).find((x) => x.uid === s.uid);
+      const picks = info ? info.picks.map((p) => (p.skill ? `技「${SPELLS[p.skill] ? SPELLS[p.skill].name : p.skill}」` : `パッシブ「${passiveName(p.passive)}」`)) : [];
+      const sub2 = `借りている ${picks.length}/${info ? info.cap : 1}${picks.length ? " ・ " + picks.join("・") : ""}`;
+      const off = button({ label: "外す", kind: "ghost", size: "sm", onTap: async () => {
+        const pv = game.infSubPreview ? game.infSubPreview(d, i, null) : null;
+        const ok = await kitConfirm({ title: `${soulLabel(s)}を外す？`, lines: [pvText(d, pv), "外した魂は「宿していない魂」に戻る。"].filter(Boolean), okLabel: "外す", danger: false });
+        if (ok && game.infSetSub && game.infSetSub(d, i, null)) redraw();
+      } });
+      const pick = button({ label: "借りる技", kind: "secondary", size: "sm", onTap: () => {
+        const x = (d.subs || [])[i];
+        const k = x ? openSkillStep(d, x) : null;
+        if (k && k.opts) { const was = k.opts.onClose; k.opts.onClose = (r) => { if (typeof was === "function") was(r); redraw(); }; } // 借りた技を選び終えたら、この画面を描き直す
+      } });
+      const swap = button({ label: "替える", kind: "secondary", size: "sm", onTap: () => { sfx("select"); openSubPick(d, i, redraw); } });
+      const box = el("div", "inf-sub-box");
+      box.appendChild(soulLine(s, sub2, null, []));
+      const acts = el("div", "inf-vessel-a");
+      for (const x of [pick, swap, off]) acts.appendChild(x);
+      box.appendChild(acts);
+      b.appendChild(box);
+    }
+  };
+  hh = sheet.open({ kind: "info", banner: "サブ魂", title: `${d.name}のサブ魂`, accent: "#7fd0ff", className: "inf-sheet", body: fill,
+    footer: [{ label: "戻る", kind: "ghost", onTap: (x) => x.close() }], onClose: () => { if (onChange) onChange(); } });
+  return hh;
+}
+// サブ魂の枠 si に宿す魂を選ぶ
+function openSubPick(d, si, onChange) {
+  const g = G();
+  const cur = ((d.subs || [])[si] || {}).uid;
+  const list = (g.souls || []).filter((s) => s && s.uid !== cur && s.uid !== d.primary);
+  let hh = null;
+  hh = sheet.open({
+    kind: "info", banner: `サブ魂${si + 1}`, title: `${d.name}に宿す魂`, accent: "#7fd0ff", className: "inf-sheet",
+    body: (b) => {
+      if (!list.length) { b.appendChild(el("div", "inf-note dim", "宿せる魂が無い。迷宮で魂を拾うと、ここに並ぶ。")); return; }
+      // 宿せる魂を先に並べる
+      const rows = list.map((s) => ({ s, why: game.infSubBlock ? game.infSubBlock(d, si, s.uid) : null })).sort((a, b) => (a.why ? 1 : 0) - (b.why ? 1 : 0));
+      for (const { s, why } of rows) {
+        const pv = !why && game.infSubPreview ? game.infSubPreview(d, si, s.uid) : null;
+        const oi = (d.subs || []).findIndex((x) => x && x.uid === s.uid); // この器のもう一つのサブ魂 = 枠どうしを入れ替える
+        const sub = why || (oi >= 0 ? `いまサブ魂${oi + 1} ・ ` : "") + pvText(d, pv);
+        const note = oi >= 0 ? (cur != null ? `サブ魂${oi + 1}とサブ魂${si + 1}を入れ替える (借りる技もそのまま)。` : "") : cur != null ? "元のサブ魂は「宿していない魂」に戻る。" : "";
+        const on = button({ label: "宿す", kind: "secondary", size: "sm", disabled: !!why, onTap: async () => {
+          const ok = await kitConfirm({ title: `${d.name}のサブ魂${si + 1}に${soulLabel(s)}を宿す？`, lines: [sub, note].filter(Boolean), okLabel: "宿す", danger: false });
+          if (!ok) return;
+          if (game.infSetSub && game.infSetSub(d, si, s.uid)) { toast(`${d.name} ― サブ魂${si + 1} ${soulLabel(s)}`, { tone: "good" }); if (hh) hh.close(); if (onChange) onChange(); }
+        } });
+        b.appendChild(soulLine(s, sub, why, [on]));
+      }
+    },
+    footer: [{ label: "戻る", kind: "ghost", onTap: (x) => x.close() }],
+  });
+  return hh;
+}
+// メイン魂を付け替える: 砕けた器は不可。傷・状態異常は残り、HP・MP は今の値 (新しい最大値まで)。
+// この器のサブ魂を選ぶと、元のメイン魂がそのサブ魂の枠へ移る
 function openSwap(d, onChange) {
   const g = G();
   const list = (g.souls || []).filter((s) => s && s.uid !== d.primary);
@@ -307,7 +401,8 @@ function openSwap(d, onChange) {
         line.appendChild(row({ icon: bust(s.clsKey, 32), title: `${soulLabel(s)} ・ Lv${s.level}`, sub, tone: why ? "dim" : null,
           onTap: game.showCodexJobDetail ? () => { sfx("select"); game.showCodexJobDetail(s.clsKey, soulRankOf(s)); } : null }));
         const swap = button({ label: "付け替える", kind: "secondary", size: "sm", disabled: !!why, onTap: async () => {
-          const ok = await kitConfirm({ title: `${d.name}に${soulLabel(s)}を宿す？`, lines: [sub, "元の魂は「宿していない魂」に戻る。"], okLabel: "宿す", danger: false });
+          const own = (d.subs || []).some((x) => x && x.uid === s.uid);
+          const ok = await kitConfirm({ title: `${d.name}に${soulLabel(s)}を宿す？`, lines: [sub, own ? "元のメイン魂は、この魂がいたサブ魂の枠へ移る。" : "元の魂は「宿していない魂」に戻る。"], okLabel: "宿す", danger: false });
           if (!ok) return;
           if (game.infSwapSoul && game.infSwapSoul(d, s.uid)) { toast(`${d.name} ― ${soulLabel(s)}`, { tone: "good" }); if (hh) hh.close(); if (onChange) onChange(); }
         } });
