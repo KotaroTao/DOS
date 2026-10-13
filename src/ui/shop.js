@@ -437,7 +437,7 @@ function listFor(cat, wcat) {
   });
 }
 
-// 棚の札: 名前は上段で折り返し、在庫は絵に重ねる。購入は下段の右。
+// 棚の札: 名前は購入ボタンの左だけで折り返し、在庫は絵に重ねる。装備先は独立した行。
 function stockRow(id) {
   const g = G();
   const it = ITEMS[id];
