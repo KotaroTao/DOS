@@ -317,7 +317,7 @@ const TUTS = [
     outro: ["メイン魂と別の職の魂を宿せば、職の垣根を越えた一手になる。", "借りる技は、サブ魂の札の『技』からいつでも選び直せる。"],
   },
   {
-    key: "tavern", name: "酒場の依頼", who: "tavern",
+    key: "tavern", name: "酒場の依頼と噂", who: "tavern",
     open: () => !!game.featureUnlocked?.("tavern"),
     used: () => (G_().stats?.questsDone || 0) > 0 || !!G_().quest?.active?.length || Object.keys(G_().quest?.fixed || {}).length > 0,
     prepare: () => null,
@@ -330,24 +330,24 @@ const TUTS = [
       text: "酒場の掲示板を見る", hint: "酒場 →『掲示板』",
       go: () => UI.openTavern?.("board"), target: [".fc-qarea"], on: "tavernBoard",
     }],
-    outro: ["掲示板の依頼は、札を選ぶと詳しく読める。次の探索で果たせそうな依頼を探そう。", "情報屋の噂は、さらに王への報告を重ねると聞けるようになる。"],
+    outro: ["掲示板の依頼は、札を選ぶと詳しく読める。次の探索で果たせそうな依頼を探そう。", "情報屋の噂は、酒場に入ると無料で読める。迷宮から帰還するたびに新しい話に変わり、酒場の出入りだけでは変わらない。"],
   },
   {
     key: "rumor", name: "情報屋の噂", who: "tavern",
-    open: () => !!(game.featureUnlocked && game.featureUnlocked("rumor")),
-    used: () => { const G = G_(); return !!(G.rumor || G.activeRumor || (G.rumorCooldown || 0) > 0); },
+    open: () => false, // 旧手ほどきのIDは残し、通常の案内は酒場へ統合
+    used: () => { const G = G_(); return !!(G.rumor || G.activeRumor); },
     prepare: () => null,
     intro: () => [
       "酒場「沈まぬ灯」の情報屋が、そなたに口を利くようになった。",
-      "金貨を握らせれば、どこかの迷宮で起こる異変 ── 予兆を語ってくれる。噂は、その迷宮に潜った時に現実になる。",
-      "一度聞けば、次の噂まで15分ほど間が空く。最初の一度は、情報屋のおごりだ。",
+      "酒場に入れば、情報屋の噂が無料で読める。噂は、名前の出た迷宮に潜った時に現実になる。",
+      "迷宮から帰還するたびに、新しい噂に変わる。待ち時間はなく、酒場の出入りだけでは変わらない。",
     ],
     steps: [{
-      text: "酒場で噂を聞く", hint: "酒場 →『噂を聞く』(初回は無料)",
-      go: goTavern, target: [".fc-rumor-btn"],
+      text: "酒場で噂を聞く", hint: "酒場 →『情報屋の噂』",
+      go: goTavern, target: [".fc-rumor"],
       done: () => { const G = G_(); return !!(G.rumor || G.activeRumor); },
     }],
-    outro: ["情報屋が読むのは、隊の力に見合う迷宮が多い。噂の迷宮は出撃の地図に「噂」の印で示される。気に入らなければ、間が空いた後に別の噂を聞き直せる。"],
+    outro: ["情報屋が読むのは、隊の力に見合う迷宮が多い。噂の迷宮は出撃の地図に「噂」の印で示される。迷宮から戻ったら、新しい噂を確かめよう。"],
   },
   {
     key: "order", name: "控えの結社", who: "irene",
@@ -419,7 +419,7 @@ function pending() {
 
 }
 
-// UI.tutorialFree(key): その手ほどきの最中か (酒場の噂の初回を無料にする)
+// UI.tutorialFree(key): その手ほどきの最中か (手ほどき中の費用を調整する)
 function isFree(key) { const st = tutState(); return !!st && st.cur === key && !st.done[key]; }
 
 // ---- 始める・続ける ----

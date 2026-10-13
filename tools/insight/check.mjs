@@ -1,0 +1,36 @@
+import assert from 'node:assert/strict';
+import { insightTotals } from '../../src/insight.js';
+import { MONSTERS } from '../../src/sprites.js';
+import { DUNGEON_MONSTERS } from '../../src/dungeons/index.js';
+import { ITEMS } from '../../src/items.js';
+import { CATALOG_ITEMS } from '../../src/catalog/index.js';
+import { SOUL_CLASSES } from '../../src/souls.js';
+import { EVENT_MAP } from '../../src/events.js';
+import { rarityKey } from '../../src/rarity.js';
+const catalog = { monsters: {...MONSTERS,...DUNGEON_MONSTERS}, items: {...ITEMS,...CATALOG_ITEMS}, jobs: SOUL_CLASSES, events: EVENT_MAP };
+const normal=Object.keys(catalog.monsters).find(k=>!catalog.monsters[k].boss&&!catalog.monsters[k].elite&&!catalog.monsters[k].named);
+for(const [kills,expected] of [[0,0],[1,1],[4,1],[5,3],[9,3],[10,6],[100,6]]) {
+ assert.equal(insightTotals({codex:{mon:{[normal]:{kills}}}},catalog).mon,expected);
+}
+const boss=Object.keys(catalog.monsters).find(k=>catalog.monsters[k].boss);
+assert.equal(insightTotals({},catalog).total,0);
+assert.equal(insightTotals({codex:{met:{[boss]:true}}},catalog).mon,1);
+assert.equal(insightTotals({codex:{mon:{[boss]:{kills:1}}}},catalog).mon,6);
+assert.equal(insightTotals({codex:{mon:{[normal]:true}}},catalog).mon,1);
+assert.equal(insightTotals({codex:{job:{fighter:{rank:5},sera:{rank:5}}}},catalog).job,150);
+assert.equal(insightTotals({named:{seen:{named_test:{floor:1}}}}, {...catalog,monsters:{named_test:{named:true}}}).mon,1,'名のある強敵は目撃でも名前を評価');
+const lr=Object.keys(catalog.items).find(k=>rarityKey(catalog.items[k])==='lr');
+assert.equal(insightTotals({codex:{item:{[lr]:true}}},catalog).item,5);
+const s={codex:{mon:{},item:{},job:{}},events:{seen:{}}};
+for(const k of Object.keys(catalog.monsters))s.codex.mon[k]={kills:10,main:10};
+for(const k of Object.keys(catalog.items))s.codex.item[k]=true;
+for(const k of Object.keys(catalog.jobs))s.codex.job[k]={rank:5};
+for(const k of Object.keys(catalog.events))s.events.seen[k]=99;
+const before=JSON.stringify(s);
+assert.deepEqual(insightTotals(s,catalog),{mon:3654,item:3573,job:3500,ev:1128,total:11855});
+assert.equal(JSON.stringify(s),before,'集計でセーブ記録を書き換えない');
+s.codex.item.removed=true;s.codex.job.removed={rank:5};s.events.seen.removed=1;s.codex.mon.ev_shadow={kills:999};
+assert.equal(insightTotals(s,catalog).total,11855,'未知・図鑑対象外IDは除外');
+s.inventory=[];s.souls=[];
+assert.equal(insightTotals(s,catalog).total,11855,'売却・魂融合で減らない');
+console.log('見識: 開示境界・旧記録・初発見・灯守・重複防止・全台帳の最大11,855 OK');

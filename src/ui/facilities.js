@@ -311,6 +311,7 @@ function renderTavern(root, api = null) {
   if (api && api.screenEntered) resetPages(["tav-board", "crowd"]);
   if (!facilityOpen("tavern")) { root.appendChild(lockedRow("酒場「沈まぬ灯」", game.featureNote?.("tavern"))); return; }
   if (legacyJumped()) return;
+  if (!G().rumor) queueMicrotask(() => game.ensureRumor?.());
   const wrap = el("div", "wa-page wa-fit fc-tavern");
   root.appendChild(wrap);
   const kr = keeperRow("tavern");
@@ -322,7 +323,7 @@ function renderTavern(root, api = null) {
   wrap.appendChild(body);
   const drawSeg = () => {
     body.textContent = "";
-    if (tavernSeg === "talk") return renderTalk(body);
+    if (tavernSeg === "talk") { renderRumor(body); return renderTalk(body); }
     const L = qbLists();
     const area = el("div", "fc-qarea");
     body.appendChild(sectionHead("掲示板", { note: `受注 ${L.freeCount}/${L.cap} ・ 貼り紙は帰還のたびに貼り替わる` }));
@@ -352,8 +353,6 @@ function renderRumor(wrap) {
   const g = G();
   // 情報屋の噂 (game.js FEATURES.rumor の報告で情報屋が動く)
   wrap.appendChild(sectionHead("情報屋の噂"));
-  const left = (g.rumorCooldown || 0) - Date.now();
-  const price = game.rumorPrice ? game.rumorPrice() : (game.RUMOR_PRICE || 100);
   if (g.rumor) {
     const rb = el("div", "fc-rumor");
     rb.appendChild(setText(el("div", "fc-rumor-s"), `— ${g.rumor.speaker} —`));
@@ -362,15 +361,7 @@ function renderRumor(wrap) {
     rb.appendChild(setText(el("div", "wa-note"), g.rumor.info ? `${where}の話。盤面に現れる話ではない。だが、備えあれば憂いなし。` : `この噂は、${where}${g.rumor.dungeonName ? "に潜った時" : ""}に現実になる。`));
     wrap.appendChild(rb);
   }
-  if (left > 0) {
-    wrap.appendChild(lockedRow("しばらく待て", `情報屋はまだ動いていない。あと約 ${Math.ceil(left / 60000)} 分。`));
-  } else {
-    // 手元に噂があっても、待ち時間が明ければ別の噂を聞き直せる (前の噂は忘れる)
-    const sub = g.rumor ? "いまの噂は忘れ、別の噂を聞く" : "隊の力に見合う迷宮を中心に、どこかの迷宮の話を聞く";
-    const rb = button({ label: g.rumor ? "別の噂を聞く" : "噂を聞く", sub: price ? sub : `今回は情報屋のおごり ・ ${sub}`, kind: g.rumor ? "secondary" : "primary", cost: price ? { kind: "gold", n: price } : null, disabled: g.gold < price, onTap: () => game.listenRumor() });
-    rb.classList.add("fc-rumor-btn");
-    wrap.appendChild(rb);
-  }
+  wrap.appendChild(setText(el("div", "wa-note"), "噂は無料。迷宮から帰還するたびに、新しい話に変わる。"));
 }
 // 居合わせる者たち
 // 一人ひとつ話をする: 他愛もない話 / 心得 (攻略の要点) / 言い伝え (世界のこと)。心得と言い伝えは「書き留めた話」に残る
