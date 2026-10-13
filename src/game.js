@@ -1297,7 +1297,7 @@ function infSellAll(plan, choice = {}) {
 }
 // ---- 灯番 (名もない人業): メイン魂・サブ魂の付け替え。砕けた器は付け替えられない。傷・状態異常はそのまま、HP・MP は今の値 (新しい最大値まで) ----
 // サブ魂は器ごとに MAX_SUBS (2) まで (本編の解放に依らない。2026-10-12 ユーザーの指示)。一つの器に同じ職業の魂は一つだけ、
-// 同じ魂を二つの器に宿すことはできない (無限迷宮の魂は職業ごとに1つなので、ほかの器が宿している魂は選べない)
+// 同じ魂を二つの器に宿すことはできない。ほかの器のサブ魂は、借りる技ごと交換する。
 function infSoulHolder(d, uid) {
   for (const x of G.party || []) {
     if (x === d) continue;
@@ -1356,7 +1356,12 @@ function infSubBlock(d, si, uid) {
   if (((d.subs || [])[si] || {}).uid === uid) return "いま宿している魂";
   if (d.primary === uid) return "メイン魂として宿している";
   const holder = infSoulHolder(d, uid);
-  if (holder) return `${holder.name}が宿している`;
+  if (holder) {
+    if (holder.primary === uid) return `${holder.name}がメイン魂として宿している`;
+    if (!holder.alive) return `${holder.name}の器は砕けている`;
+    const before = soulByUid((d.subs || [])[si]?.uid);
+    if (before && (soulByUid(holder.primary)?.clsKey === before.clsKey || (holder.subs || []).some((x) => x && x.uid !== uid && soulByUid(x.uid)?.clsKey === before.clsKey))) return `${holder.name}に同じ職業の魂がある`;
+  }
   const oi = (d.subs || []).findIndex((x) => x && x.uid === uid);
   if (oi >= 0 && !(d.subs || [])[si]) return `サブ魂${oi + 1}に宿している`; // 空いた枠へ移しても並びは変わらない
   if (soulByUid(d.primary)?.clsKey === s.clsKey) return "メイン魂と同じ職業";
@@ -1367,7 +1372,14 @@ function infSubPreview(d, si, uid) {
   if (!d) return null;
   if (uid == null) return infPreviewWith(d, () => { d.subs = (d.subs || []).filter((_, i) => i !== si); });
   if (!soulByUid(uid)) return null;
-  return infPreviewWith(d, () => placeSoulInDoll(d, "sub" + si, uid));
+  const holder = infSoulHolder(d, uid);
+  const sub = holder?.subs?.find((x) => x && x.uid === uid);
+  return infPreviewWith(d, () => {
+    if (sub) {
+      d.subs = [...(d.subs || [])];
+      d.subs[si] = { ...sub, picks: sub.picks?.map((p) => ({ ...p })) };
+    } else placeSoulInDoll(d, "sub" + si, uid);
+  });
 }
 // サブ魂を宿す (uid) / 外す (uid = null)
 function infSetSub(d, si, uid) {
@@ -1386,7 +1398,21 @@ function infSetSub(d, si, uid) {
   const why = infSubBlock(d, si, uid);
   if (why) { SFX.ng(); showToast(why, { tone: "bad" }); return false; }
   const hp = d.hp, mp = d.mp, before = soulByUid(((d.subs || [])[si] || {}).uid);
-  placeSoulInDoll(d, "sub" + si, uid); // 借りる技は recalcDoll が既定 (覚えている最後の技) で埋める
+  const holder = infSoulHolder(d, uid);
+  if (holder) {
+    const hi = holder.subs.findIndex((x) => x && x.uid === uid);
+    const otherHp = holder.hp, otherMp = holder.mp;
+    // 借用の選択済み印も含め、サブ魂の設定を丸ごと交換する。
+    const outgoing = (d.subs || [])[si];
+    d.subs = [...(d.subs || [])];
+    d.subs[si] = holder.subs[hi];
+    if (outgoing) holder.subs[hi] = outgoing;
+    else holder.subs.splice(hi, 1);
+    // 両者の借用を反映してから、二刀流などの装備条件を調べる。
+    recalcDoll(d); recalcDoll(holder);
+    infRefit(holder, otherHp, otherMp);
+    log(`灯番が${holder.name}のサブ魂${hi + 1}を${d.name}と交換した。`, "sys");
+  } else placeSoulInDoll(d, "sub" + si, uid);
   infRefit(d, hp, mp);
   const s = soulByUid(uid);
   SFX.levelup(); buzz([0, 20, 40, 20]);

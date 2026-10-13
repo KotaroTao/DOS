@@ -1,0 +1,66 @@
+"""灯番のサブ魂交換・借用保持・確認画面を実処理で検証 (localhost:8000)。"""
+from playwright.sync_api import sync_playwright
+
+with sync_playwright() as p:
+    browser = p.chromium.launch(executable_path='/usr/bin/chromium', args=['--no-sandbox'])
+    page = browser.new_page(viewport={'width': 390, 'height': 844})
+    errors = []
+    page.on('pageerror', lambda e: errors.append(str(e)))
+    page.goto('http://localhost:8000/?testDungeon=w02&testPlace=town&testUnlock=infinite')
+    page.wait_for_function('window.__game?.G.party.length > 0')
+    print(page.evaluate('''async () => {
+      const {game}=await import('/src/ui/ctx.js');
+      const {SOUL_CLASSES,soulLearnedSkills}=await import('/src/souls.js');
+      const {refSerialize,refDeserialize}=await import('/src/savegraph.js');
+      const G=__game.G, inf=__game.inf, out=[];
+      const check=(ok,msg)=>{if(!ok)throw Error(msg);out.push(msg);};
+      const keys=Object.keys(SOUL_CLASSES);
+      check(inf.enterAbyss(keys.slice(0,6)), '無限迷宮を開始');
+      G.floor=5; G.abyss.depth=5; inf.newFloor();
+      const [a,b]=G.party;
+      a.name='交換元'; b.name='交換先';
+      const x=inf.addSoulInstance(keys[6],1,30), y=inf.addSoulInstance(keys[7],1,30);
+      inf.infSetSub(a,0,x.uid); inf.infSetSub(b,0,y.uid);
+      a.subs[0].picks=[{skill:soulLearnedSkills(x)[0]}]; a.subs[0].picked=true;
+      b.subs[0].picks=[]; b.subs[0].picked=true;
+      inf.recalcAllDolls();
+      const left=JSON.stringify(a.subs[0]),right=JSON.stringify(b.subs[0]);
+      a.hp=1;a.mp=0;b.hp=1;b.mp=0;
+      const pv=inf.infSubPreview(a,0,y.uid);
+      check(JSON.stringify(a.subs[0])===left&&JSON.stringify(b.subs[0])===right,'見積もりで借用設定を変えない');
+      check(!inf.infSubBlock(a,0,y.uid)&&inf.infSetSub(a,0,y.uid),'他の器のサブ魂を交換');
+      check(JSON.stringify(a.subs[0])===right&&JSON.stringify(b.subs[0])===left,'技と空の選択・選択済み印を両方向に保持');
+      check(a.maxhp===pv.maxhp&&a.maxmp===pv.maxmp,'借用設定を含む見積もりと実能力が一致');
+      check(a.hp===1&&b.hp===1&&a.mp===0&&b.mp===0,'交換しても両者を回復しない');
+      check(!!inf.infSubBlock(a,0,b.primary),'他の器のメイン魂は選べない');
+      b.alive=false;check(!!inf.infSubBlock(a,0,x.uid),'砕けた器からは交換不可');b.alive=true;
+      G.floor=6;check(!!inf.infSubBlock(a,0,x.uid),'風だまり以外では交換不可');G.floor=5;
+      check(inf.infSetSub(a,1,x.uid)&&b.subs.length===0,'空き枠へ移すと相手の枠が空く');
+      check(JSON.stringify(a.subs[1])===left,'空き枠への移動も借用保持');
+      check(inf.infSetSub(a,0,x.uid)&&JSON.stringify(a.subs[0])===left&&JSON.stringify(a.subs[1])===right,'同じ器の枠交換も保持');
+      check(inf.infSetSub(b,0,y.uid),'確認画面用に相手へ戻す');
+      const saved=refDeserialize(JSON.parse(inf.saveJSON()));
+      check(JSON.stringify(saved.party[0].subs[0])===left&&JSON.stringify(saved.party[1].subs[0])===right,'保存後も両者の借用設定を保持');
+      window.swapBefore=JSON.stringify([a.subs,b.subs]);
+      inf.openInfRest();
+      return out;
+    }'''))
+    def click(text):
+        page.evaluate('''text=>{const el=[...document.querySelectorAll('button,[role="button"]')].reverse().find(e=>e.textContent.replace(/\\u200b/g,'').trim().startsWith(text));if(!el)throw Error('操作が無い:'+text);el.click();}''', text)
+        page.wait_for_timeout(150)
+    click('灯番')
+    # 最初の器のサブ魂を開く。
+    page.evaluate('''()=>{const b=[...document.querySelectorAll('button')].find(e=>e.textContent.replace(/\\u200b/g,'').trim()==='サブ魂');if(!b)throw Error('サブ魂ボタンが無い');b.click();}''')
+    click('替える')
+    page.evaluate('''()=>{const row=[...document.querySelectorAll('.inf-swap-row')].find(e=>e.textContent.replace(/\\u200b/g,'').includes('交換先がサブ魂として宿している'));if(!row)throw Error('相手の表示が無い');row.querySelector('.inf-swap-b').click();}''')
+    page.wait_for_timeout(200)
+    text=page.inner_text('body').replace('\u200b','')
+    assert 'サブ魂が交換される' in text and 'そのまま維持される' in text
+    click('やめる')
+    assert page.evaluate('swapBefore===JSON.stringify([__game.G.party[0].subs,__game.G.party[1].subs])')
+    page.evaluate('''()=>{const row=[...document.querySelectorAll('.inf-swap-row')].find(e=>e.textContent.replace(/\\u200b/g,'').includes('交換先がサブ魂として宿している'));row.querySelector('.inf-swap-b').click();}''')
+    click('交換して宿す')
+    assert page.evaluate('''()=>{const [a,b]=__game.G.party;const [oldA,oldB]=JSON.parse(swapBefore);return JSON.stringify(a.subs[0])===JSON.stringify(oldB[0])&&JSON.stringify(b.subs[0])===JSON.stringify(oldA[0]);}''')
+    print('交換警告の表示・キャンセルで変更なし・確定後に両者の設定を交換 OK')
+    assert not errors, errors
+    browser.close()
