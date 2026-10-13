@@ -97,7 +97,7 @@
    ===================================================================== */
 .hb .wa-h { margin: 10px 2px 6px; }
 /* 夜景: 箱の高さは JS (画面の高さの約27%)。絵は「舞台」(240:170) に敷き、名所の札は舞台の座標で置く */
-.tw-hero.hb-hero { flex: 0 1 auto; aspect-ratio: auto; min-height: 56px; max-height: none; margin-bottom: 0; }
+.tw-hero.hb-hero { flex: 0 0 auto; aspect-ratio: auto; min-height: 56px; max-height: none; margin: 0; }
 .hb-stage { position: absolute; z-index: 0; left: 0; right: 0; top: 0; aspect-ratio: 240 / 170; }
 .hb-stage > .town-scene { position: absolute; inset: 0; display: block; width: 100%; height: 100%; margin: 0; border: 0; image-rendering: pixelated; }
 .hb-stage > .town-scene-hd { image-rendering: auto; }
@@ -154,7 +154,7 @@
 .hb-spot-dia { display: inline-block; width: 6px; height: 6px; transform: rotate(45deg); background: #6a1410; box-shadow: 0 0 0 1px rgba(255,240,200,0.6); }
 @keyframes hb-call { 0%, 100% { box-shadow: 0 0 6px rgba(243,213,139,0.5); } 50% { box-shadow: 0 0 18px rgba(243,213,139,0.95); } }
 
-/* 帰還の報告: 夜景の右下 (いまの目標の札の右上) の小さな札。bottom は JS (目標の札と重なる帯の上)。押すと報告のシート */
+/* 帰還の報告: 夜景の右下の小さな札。押すと報告のシート */
 .hb-rr {
   position: absolute; z-index: 4; right: 8px; bottom: 22px;
   display: inline-flex; align-items: center; gap: 8px; min-height: 44px; max-width: calc(100% - 16px); padding: 4px 10px 4px 10px;
@@ -205,26 +205,21 @@
   box-shadow: inset 0 1px 0 rgba(220,200,255,0.14), 0 0 14px rgba(122,90,216,0.35), 0 2px 6px rgba(0,0,0,0.6);
 }
 
-/* 目標・行動は縮めず、依頼と施設だけを内側でスクロールする。 */
+/* 主要操作を最初に並べ、後続の依頼・バナーへは街全体をスクロールする。 */
+.hb.wa-fit { overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 .hb-actions { flex: 0 0 auto; position: relative; z-index: 3; padding: 4px 0 8px; }
 .hb-actions .hb-goal { margin: 0; }
 .hb-actions .wa-h { margin: 6px 2px 4px; min-height: 22px; }
-.hb-actions .hb-rr { position: relative; inset: auto; width: 100%; max-width: none; margin-top: 8px; min-height: 44px; }
-.hb-actions .hb-rr-tx { flex: 1; flex-direction: row; align-items: center; gap: 8px; }
-.hb-actions .hb-rr-t { font-size: 12px; letter-spacing: 0.08em; }
+.hb-hero.has-report { min-height: 100px; }
+.hb-hero .hb-rr { bottom: 6px; }
+.hb .hb-fac-first { flex: 0 0 auto; margin: 4px 0 8px; }
+.hb-fac-first .hb-tile { height: clamp(60px, 10vh, 92px); }
 .hb-actions .hb-sug:first-child { border-color: var(--accent); background: var(--grain), linear-gradient(135deg, #3b2d19, #191312); }
 .hb-hero.compact .hb-spot, .hb-hero.compact .hb-title-k { display: none; }
 .hb-hero.compact .hb-title { top: calc(var(--tw-top) + 6px); left: 54px; transform: none; }
 .hb-hero.compact .hb-title-n { font-size: 18px; letter-spacing: 0.12em; }
 
-.hb-mid {
-  flex: 1 1 64px !important; min-height: 0;
-  overflow-x: hidden; overflow-y: auto;
-  overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
-  margin: 0 -4px; padding: 0 4px;
-  scrollbar-width: none; -ms-overflow-style: none;
-}
-.hb-mid::-webkit-scrollbar { display: none; }
+.hb-mid { flex: 0 0 auto !important; min-height: 0; overflow: visible; padding: 0 0 8px; }
 .hb-sug-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .hb-sug-list.n1 { grid-template-columns: minmax(0, 1fr); }
 .hb-sug-list.n2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -910,3 +905,16 @@
 .sc-line.k-letter { font-size: 13.5px; font-style: italic; color: #d8cfb4; text-align: center; letter-spacing: 0.04em; }
 .qb-dq-myth .qb-mark-c { color: #d9a8ff; }
 .qb-dq-myth .qb-tag { background: #9b6fd0; }
+
+/* 背の低い端末では飾りと余白を抑え、目標・行動・施設の操作面を残す。 */
+@media (max-height: 600px) {
+  .hb-actions .hb-goal-seal { display: none; }
+  .hb-actions .hb-goal { gap: 6px; padding: 6px; }
+  .hb-actions .hb-goal-go { padding: 4px 6px; font-size: 12px; letter-spacing: 0; }
+  .hb-actions .hb-goal-go .ui-btn-ic { display: none; }
+  .hb-actions .hb-goal-s { font-size: 10px; }
+  .hb-actions .hb-sug-icw { display: none; }
+  .hb-actions .hb-sug { min-height: 52px; padding-top: 5px; padding-bottom: 5px; }
+  .hb-fac-first .hb-tile-cap { padding-left: 5px; padding-right: 5px; }
+  .hb-fac-first .hb-tile-n { font-size: 12px; letter-spacing: 0; }
+}

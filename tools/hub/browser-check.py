@@ -32,23 +32,44 @@ with sync_playwright() as p:
           const panel = document.querySelector('.hb-actions').getBoundingClientRect();
           const hub = document.querySelector('.hb').getBoundingClientRect();
           if (panel.top < 0 || panel.bottom > hub.bottom + 1) throw Error('行動パネルが画面外');
-          for (const b of document.querySelectorAll('.hb-actions button')) {
+          for (const b of document.querySelectorAll('.hb-actions button, .hb-fac-first button, .hb-hero .hb-rr')) {
             const r = b.getBoundingClientRect();
-            if (r.x < 0 || r.right > innerWidth || r.height < 43.99) throw Error('操作領域が不足 ' + b.className + ' ' + JSON.stringify(r));
+            if (r.x < 0 || r.right > innerWidth || r.height < 43.99 || r.bottom > hub.bottom + 1) throw Error('操作領域が不足 ' + b.className + ' ' + JSON.stringify(r));
             const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
             if (!b.contains(hit)) throw Error('ボタンが隠れている');
           }
-          const mid = document.querySelector('.hb-mid');
-          mid.scrollTop = mid.scrollHeight;
-          if (document.querySelector('.hb-actions').getBoundingClientRect().top !== panel.top)
-            throw Error('目標がスクロールに巻き込まれる');
+          const hero = document.querySelector('.hb-hero').getBoundingClientRect();
+          const report = document.querySelector('.hb-rr').getBoundingClientRect();
+          if (report.bottom > hero.bottom || hero.bottom - report.bottom > 8 || hero.right - report.right > 10)
+            throw Error('報告が街の右下に収まっていない');
+          const scroller = document.querySelector('.hb');
+          scroller.scrollTop = scroller.scrollHeight;
+          if (scroller.scrollHeight > scroller.clientHeight + 1 && (scroller.scrollTop <= 0 || document.querySelector('.hb-actions').getBoundingClientRect().top >= panel.top))
+            throw Error('街全体をスクロールできない');
+          const last = document.querySelector('.jr-shortcuts').getBoundingClientRect();
+          if (last.bottom > hub.bottom + 1) throw Error('末尾の手引きまで進めない');
+          scroller.scrollTop = 0;
         }''')
         # scrollIntoViewを使わず、現在画面に見えている座標を実際にタップする。
-        for selector in ['.hb-sug:nth-child(1)', '.hb-sug:nth-child(2)', '.hb-sug:nth-child(3)', '.hb-actions .hb-rr']:
+        for selector in ['.hb-sug:nth-child(1)', '.hb-sug:nth-child(2)', '.hb-sug:nth-child(3)', '.hb-hero .hb-rr']:
             rect = page.locator(selector).bounding_box()
             page.mouse.click(rect['x'] + rect['width'] / 2, rect['y'] + rect['height'] / 2)
         assert page.evaluate('window.hubTaps.splice(0)') == [0, 1, 2, 'report']
-        print(f'{width}×{height}: 目標・提案3件・報告の可視性と操作 OK')
+        page.screenshot(path=f'/tmp/hub-fac-{width}.png')
+        print(f'{width}×{height}: 目標・提案3件・施設3件・報告の可視性と操作 OK')
+    page.evaluate('''() => {
+      const mid = document.querySelector('.hb-mid');
+      for (let i = 0; i < 4; i++) {
+        const banner = document.createElement('div');
+        banner.style.height = '90px'; banner.textContent = '追加バナー';
+        mid.prepend(banner);
+      }
+      const hub = document.querySelector('.hb');
+      hub.scrollTop = hub.scrollHeight;
+      if (document.querySelector('.jr-shortcuts').getBoundingClientRect().bottom > hub.getBoundingClientRect().bottom + 1)
+        throw Error('バナー追加後に末尾まで進めない');
+      hub.scrollTop = 0;
+    }''')
     page.locator('.hb-goal-go').click()
     page.wait_for_timeout(400)
     assert page.locator('.dp-sheet').count() or page.locator('.ui-sheet').count()
@@ -66,7 +87,7 @@ with sync_playwright() as p:
       UI.shell.setTab('hub');
     }''')
     page.wait_for_timeout(800)
-    page.locator('.hb-sug[aria-label^="宿で休む"]').click()
+    page.locator('.hb-tile-inn').click()
     page.wait_for_timeout(400)
     assert page.evaluate('__game.G.party.every(d => d.hp === d.maxhp && d.mp === d.maxmp)')
     page.evaluate('''async () => {
