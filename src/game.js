@@ -9118,6 +9118,9 @@ function renderCombatCanvas() {
     row.plateH = Math.max(...row.plates.map((p) => p.height));
   }
   const bandH = VH / rows.length;
+  // 上端10 + 絵と名札の間7 + HPと札の間11 + 効果札12 + 下端6。
+  // 名札だけでなくHPの下の効果札まで、各列の帯の内側に収める。
+  const rowExtraH = 10 + 7 + 11 + 12 + 6;
   const sizeOf = (e, back, n) => {
     let sz = (e.boss ? 14 : (e.mon && e.mon.elite ? 1.15 : 1) * (back ? 8 : 9)) * k;
     if (e.mon && (e.mon.art || e.mon.photo)) {
@@ -9128,7 +9131,7 @@ function renderCombatCanvas() {
     }
     // 名札と効果の札を残し、背の高い魔物も戦場からはみ出させない。
     const row = rows.find((r) => r.back === back);
-    const maxHalfH = Math.max(8, (bandH - row.plateH - 35) / 2);
+    const maxHalfH = Math.max(8, (bandH - row.plateH - rowExtraH) / 2);
     return Math.min(sz, sz * maxHalfH / monsterHalfH(e.mon, sz));
   };
   for (const row of rows) {
@@ -9138,7 +9141,7 @@ function renderCombatCanvas() {
     for (const e of row.list) { const hh = monsterHalfH(e.mon, sizeOf(e, row.back, row.list.length)); foot = Math.max(foot, hh); }
     // 前後それぞれの帯に姿と名前を収め、名札が別の敵に隠れないようにする。
     const bandTop = rows.indexOf(row) * bandH;
-    row.y = bandTop + 10 + (bandH - plateH - 35) / 2;
+    row.y = bandTop + 10 + (bandH - plateH - rowExtraH) / 2;
     const plateY = row.y + foot + 7;
     row.list.forEach((e, i) => {
       const baseX = (VW / row.list.length) * (i + 0.5);
