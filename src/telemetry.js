@@ -140,14 +140,14 @@ export function tlStability(kind, changes, context = {}) {
   if (!S.on || !changes.length) return;
   const a = stabilityData();
   if (kind === "entry") a.entries++;
-  const field = kind === "entry" ? "spent" : kind === "natural" ? "natural" : "red";
+  const field = (kind === "entry" || kind === "floor") ? "spent" : kind === "natural" ? "natural" : "red";
   for (const {doll, amount} of changes) {
     const row = stabilityDoll(doll);
     a[field] += amount; row[field] += amount;
     if (kind === "entry") row.entries++;
   }
   a.events.push({ at:Date.now(), kind, activeMs:a.activeMs, ...context,
-    dolls:changes.map(({doll,amount})=>({uid:doll.uid,name:doll.name,amount,before:doll.stability+(kind==="entry" ? amount : -amount),value:doll.stability})) });
+    dolls:changes.map(({doll,amount})=>({uid:doll.uid,name:doll.name,amount,before:doll.stability+((kind==="entry" || kind==="floor") ? amount : -amount),value:doll.stability})) });
   if (a.events.length > 500) a.events.shift();
   persist();
 }

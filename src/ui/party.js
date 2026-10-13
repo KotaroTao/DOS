@@ -1495,7 +1495,7 @@ function reserveRow(d) {
   }
   else if (d.primary != null) st.appendChild(el("span", "pt-res-s", `  HP ${d.hp}/${d.maxhp}`));
   game.refreshStability?.();
-  st.appendChild(el("span", "pt-res-s", game.vesselStable && game.vesselStable(d) ? " ・ 師の器" : ` ・ 安定度 ${d.stability}/${game.STABILITY_MAX}`));
+  st.appendChild(el("span", "pt-res-s", ` ・ 安定度 ${d.stability}/${game.STABILITY_MAX}`));
   tx.appendChild(st);
   top.appendChild(tx);
   const look = button({ label: "見る", kind: "ghost", size: "sm", onTap: () => viewDoll(d) });
@@ -1837,11 +1837,8 @@ function openMansionManage(d) {
 }
 function stabilityButton(d, town) {
   game.refreshStability?.();
-  const stable = game.vesselStable && game.vesselStable(d);
-  const b = stable
-    ? button({ label: "師の器 ・ 安定度を消費しない", kind: "ghost", size: "sm", onTap: () => toast("師オルドが一度で仕上げた器。魂の安定度を消費しない。メイン魂は灯守に固定", { tone: "info", noLog: true }) })
-    : button({ label: `魂の安定度 ${d.stability}/${game.STABILITY_MAX}`, kind: "ghost", size: "sm",
-      onTap: town ? () => openStability(d) : () => toast(`入場時に${game.STABILITY_ENTRY_COST}消費・${game.stabilityMinutes ? game.stabilityMinutes() : 4}分で1回復。探索中の追加消費はない`, { tone: "info", noLog: true }) });
+  const b = button({ label: `魂の安定度 ${d.stability}/${game.STABILITY_MAX}`, kind: "ghost", size: "sm",
+      onTap: town ? () => openStability(d) : () => toast(`入場時に${game.STABILITY_ENTRY_COST}消費・${game.stabilityMinutes ? game.stabilityMinutes() : 4}分で1回復。5階ごとの次階進行時も30消費。不足分は赤い魂1で1購入できる`, { tone: "info", noLog: true }) });
   b.classList.add("pt-stability");
   return b;
 }
