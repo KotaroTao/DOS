@@ -775,11 +775,11 @@ function openAutoEquipResult(plan, before, { apply, groups }) {
   const nameEl = (cls, it) => (game.itemNameEl ? game.itemNameEl("span", cls, it) : el("span", cls, itemName(it)));
   const keep = new Set(), controls = [];
   const paint = () => {
-    for (const { tg, selected } of controls) {
+    for (const { tg, selected, bulk } of controls) {
       const on = selected.every(g => keep.has(g));
       tg.classList.toggle("on", on);
       tg.setAttribute("aria-pressed", String(on));
-      tg.textContent = on ? "元に戻す" : "承認";
+      tg.textContent = bulk ? (on ? "まとめて戻す" : "まとめて承認") : (on ? "元に戻す" : "承認");
     }
   };
   const toggle = (selected) => {
@@ -790,11 +790,11 @@ function openAutoEquipResult(plan, before, { apply, groups }) {
     game.log(on ? "承認した装備を付け替えた。" : "選んだ装備を元に戻した。", "sys");
     sfx(on ? "itemget" : "select"); paint();
   };
-  const approval = (selected, label) => {
+  const approval = (selected, label, bulk = false) => {
     const tg = el("button", "pt-ae-tg"); tg.type = "button";
     tg.setAttribute("aria-label", label);
     tg.addEventListener("click", () => toggle(selected));
-    controls.push({ tg, selected }); return tg;
+    controls.push({ tg, selected, bulk }); return tg;
   };
   const body = el("div", "pt-ae");
   for (const r of rows) {
@@ -803,9 +803,10 @@ function openAutoEquipResult(plan, before, { apply, groups }) {
     top.appendChild(portraitEl(r.d, { size: 36, tag: "span" }));
     top.appendChild(el("span", "pt-ae-n", r.d.name));
     const own = groups.filter(g => g.some(c => c.doll === r.d));
-    top.appendChild(approval(own, `${r.d.name}の変更案をまとめて承認・元に戻す`));
+    // 個別承認と同じ対象なら、人業単位のボタンは重ねない。
+    if (own.length > 1) top.appendChild(approval(own, `${r.d.name}の変更案をまとめて承認・元に戻す`, true));
     card.appendChild(top);
-    const list = el("div", "pt-ae-list");
+    const list = el("div", "pt-ae-list"), shown = new Set();
     for (const c of r.changes) {
       const ln = el("div", "pt-ae-ln");
       ln.appendChild(el("span", "pt-ae-k", slotLabelOf(r.d, c.k)));
@@ -817,14 +818,18 @@ function openAutoEquipResult(plan, before, { apply, groups }) {
       ln.appendChild(tx);
       list.appendChild(ln);
       const group = groups.find(g => g.some(x => x.doll === r.d && x.k === c.k));
-      const action = el("div", "pt-ae-action");
-      if (group.length > 1) action.appendChild(el("span", "pt-note", `一緒に変更: ${group.map(x => `${x.doll.name}・${slotLabelOf(x.doll, x.k)}`).join("、")}`));
-      action.appendChild(approval([group], `${r.d.name}の${slotLabelOf(r.d, c.k)}を承認・元に戻す`));
-      list.appendChild(action);
-      const partial = { ...plan.undoSnapshot.find(s => s.doll === r.d).equip };
-      for (const x of group) if (x.doll === r.d) partial[x.k] = x.to;
-      const delta = deltaText(statsDelta(r.b, previewStats(r.d, partial, recalc)));
-      list.appendChild(el("div", "pt-note", `この承認での変化: ${delta || "能力の変化なし"}`));
+      // 両手武器など、連動する部位の承認もカード内で一度だけ表示する。
+      if (!shown.has(group)) {
+        shown.add(group);
+        const action = el("div", "pt-ae-action");
+        if (group.length > 1) action.appendChild(el("span", "pt-note", `一緒に変更: ${group.map(x => `${x.doll.name}・${slotLabelOf(x.doll, x.k)}`).join("、")}`));
+        action.appendChild(approval([group], `${r.d.name}の${slotLabelOf(r.d, c.k)}を承認・元に戻す`));
+        list.appendChild(action);
+        const partial = { ...plan.undoSnapshot.find(s => s.doll === r.d).equip };
+        for (const x of group) if (x.doll === r.d) partial[x.k] = x.to;
+        const delta = deltaText(statsDelta(r.b, previewStats(r.d, partial, recalc)));
+        list.appendChild(el("div", "pt-note", `この承認での変化: ${delta || "能力の変化なし"}`));
+      }
       const oldFx = specialLines(c.from), newFx = specialLines(c.to);
       if (oldFx.length || newFx.length) {
         const fx = el("div", "pt-ae-fx");
