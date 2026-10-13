@@ -388,7 +388,7 @@ setInterval(() => {
   refreshStability();
   const activeAuto = inDungeon() && (G.autoCombat || G.autoMove) && !G.prompt && !uiBlocked();
   if (titleActive || openingActive || document.visibilityState !== "visible" || (Date.now() - _lastInputAt > 120000 && !activeAuto)) return;
-  tlStabilityTick(G.party, 5000);
+  tlStabilityTick(stabilityDolls(), 5000);
   G.stats.playMs = (G.stats.playMs || 0) + 5000; // 戦績: 総プレイ時間
   if (tlOn()) { tlPlayTick(inDungeon() ? tlWhere() : null, 5000); infTlPoint(); } // テスト記録: 迷宮/町の実プレイ時間
 }, 5000);
@@ -6916,9 +6916,8 @@ function restockElixirs() {
 // ===== セラ (師の作った人業) =====
 // 腕・頭・胴・脚がそろい、館の語り「セラの目覚め」(IRENE_BEATS effect: seraJoin) を聞くと仲間になる。
 // メイン魂はセラだけの専用職「灯守」(souls.js SOUL_CLASSES.sera) に固定 (外せない・付け替えられない)。サブ魂は自由。
-// 肖像は灯守の絵に固定 (面影の写しも効かない)。器 (doll.vessel = "sera") は魂の安定度を消費しない。
+// 肖像は灯守の絵に固定 (面影の写しも効かない)。器 (doll.vessel = "sera") も魂の安定度を消費する。
 // 灯守のランク = 魂の count。物語の節目で上がる (seraRankTarget)。Lv は ✦Soul で上げる (ほかの魂と同じ)
-function vesselStable(d) { return !!d && d.vessel === "sera"; }
 function seraDoll() { return allDolls().find((d) => d && d.vessel === "sera") || null; }
 function seraSoul() { return G.souls.find((s) => s && s.clsKey === "sera") || null; }
 // セラまわりの差し口の制限 (soulSlotConflict から)
@@ -6971,7 +6970,7 @@ function seraJoin() {
     else { G.reserve.push(d); log("セラは控えで待機する。館で隊と入れ替えられる。", "sys"); }
     if (!G.codex.job) G.codex.job = {};
     codexSweepJobs();
-    log(`人業「セラ」が目を覚ました。灯守 Lv${s.level}。師の作った器は、魂の安定度を消費しない。`, "win");
+    log(`人業「セラ」が目を覚ました。灯守 Lv${s.level}。師の作った器も、魂の安定度を消費する。`, "win");
     showToast("セラが仲間に加わった", { noLog: true, tone: "good" });
     SFX.itemget(); buzz([0, 30, 60, 30]);
   }
@@ -7372,7 +7371,7 @@ const evApi = {
     G.px = sp.x; G.py = sp.y; renderBoard(); autosave(true);
     askDescend(st);
   },
-  skipFloors(n) { G.floor += n; descend(); },
+  skipFloors(n) { descend({skip:n}); },
   // ---- 戦闘 ----
   poolKey: () => evPoolKey(),
   eliteKeyHere: () => eliteKey(),
@@ -8385,10 +8384,15 @@ function giveDropsFromChest(drops, i, done, sink = boardSink()) {
 // 強敵階・特別な階・奈落の変異の知らせは帳の中に2〜3行で添える (後から別の札は出さない)。
 // 見落としても、見出しの迷宮名を押す「階の情報」でいつでも読み返せる
 function descend(...args) { return tlGameMeasure("floor", () => descendMeasured(...args)); }
-function descendMeasured({ fall = false } = {}) {
+function descendMeasured({ fall = false, skip = 0 } = {}) {
+  // 出来事で2階進む場合も、5階の区切りを越える前に支払う。
+  if (Math.floor((G.floor + skip) / 5) > Math.floor((G.floor - 1) / 5)) {
+    if (!stabilityReady(() => descend({fall, skip}))) return;
+    if (!consumeEntryStability(activeCfg().id, "floor")) return;
+  }
   evOnDescend(); // 迷宮のイベント: 誓いの破約など
   if (!fall) { SFX.stairs(); buzz([0, 20, 80, 20]); }
-  G.floor++;
+  G.floor += skip + 1;
   if (G.run) G.run.descended = true;
   // 浮遊: 階を移るたびに残りの階数を減らす (唱えた階を含めて float 階のあいだ続く)
   if (G.run && G.run.float > 0) {
@@ -12301,42 +12305,76 @@ function confirmReset() {
 }
 
 // 魂の安定度: 人業の器に保存する。旧セーブは満タンから開始する。
+// 無限迷宮でも元の人業の安定度を使う。名のない器の分も保存して再入場で戻さない。
+function infiniteStabilityDolls() {
+  const home = G.abyss?.home;
+  const dolls = home ? [...home.party, ...home.reserve] : allDolls();
+  const names = home ? G.party.map(d => ({name:d.name, from:d.homeUid})) : infVesselNames();
+  const slots = infStats().stability || (infStats().stability = []);
+  return names.map((who, i) => dolls.find(d => d.uid === who.from) ||
+    (slots[i] || (slots[i] = {uid:`inf-${i}`, name:who.name, alive:true})));
+}
+function stabilityDolls(infinite = abyssActive()) {
+  return infinite ? infiniteStabilityDolls().filter((d,i) => !abyssActive() || G.party[i].alive) : G.party.filter(d=>d.alive);
+}
 function refreshStability(now = Date.now()) {
+  const home = G.abyss?.home;
+  const dolls = new Set([...allDolls(), ...(home ? [...home.party, ...home.reserve] : []), ...(G.stats.inf?.stability || []).filter(Boolean)]);
   const changes = [];
-  for (const doll of allDolls()) {
+  for (const doll of dolls) {
+    if (doll.vessel === "inf") continue;
     const amount = recoverStability(doll, now);
     if (amount) changes.push({ doll, amount });
   }
+  if (abyssActive()) infiniteStabilityDolls().forEach((d,i) => {
+    recoverStability(d, now);
+    G.party[i].stability = d.stability; G.party[i].stabilityAt = d.stabilityAt;
+  });
   tlStability("natural", changes, { state:G.state, partyUids:G.party.map(d=>d.uid) });
-  if (changes.length) autosave(true); // 記録と保存をそろえ、再読込で回復を二重記録しない
+  if (changes.length) autosave(true);
   return changes;
 }
-function stabilityStatus() {
-  const now = Date.now();
+function stabilityStatus(infinite = abyssActive()) {
+  const dolls = stabilityDolls(infinite), now = Date.now();
   refreshStability(now);
-  return G.party.filter(d=>d.alive && !vesselStable(d)).map(d=>({ uid:d.uid, name:d.name, value:d.stability,
-    after:Math.max(0,d.stability-STABILITY_ENTRY_COST), waitMs:stabilityWaitMs(d, now) }));
+  return dolls.map(d=>{ recoverStability(d, now); return { uid:d.uid, name:d.name, value:d.stability,
+    after:Math.max(0,d.stability-STABILITY_ENTRY_COST), waitMs:stabilityWaitMs(d, now) }; });
 }
-function stabilityReady() {
-  const low = stabilityStatus().filter(d=>d.value < STABILITY_ENTRY_COST);
+function stabilityReady(retry, infinite = abyssActive()) {
+  const low = stabilityStatus(infinite).filter(d=>d.value < STABILITY_ENTRY_COST);
   if (!low.length) return true;
-  SFX.ng(); showToast(`${low.map(d=>d.name).join("・")} の魂の安定度が足りない。回復するか、人業を入れ替えてください`, { tone:"bad" });
+  if (!retry) return false;
+  const cost = low.reduce((n,d)=>n+STABILITY_ENTRY_COST-d.value,0);
+  const options = [];
+  if (G.redSoul >= cost) options.push({label:`赤い魂${cost}で不足分を購入して進む`, primary:true, fn:()=>{
+    // 確認中の自然回復を差し引き、隊全員の不足分だけを一度に買う。
+    const dolls = stabilityDolls(infinite);
+    refreshStability();
+    const changes = dolls.map(doll=>({doll,amount:Math.max(0,STABILITY_ENTRY_COST-doll.stability)})).filter(c=>c.amount);
+    const pay = changes.reduce((n,c)=>n+c.amount,0);
+    if (G.redSoul < pay) { stabilityReady(retry, infinite); return; }
+    G.redSoul -= pay;
+    for (const c of changes) c.doll.stability += c.amount;
+    tlStability("red", changes, {redSpent:pay});
+    autosave(true); retry();
+  }});
+  options.push({label:"回復を待つ", fn:()=>{ autosave(true); }});
+  showChoice("魂の安定度が足りない", options, null, {banner:"魂の安定度", onDismiss:()=>{},
+    lines:[...low.map(d=>`${d.name}: ${d.value}/30`), `不足分は合計${cost}。赤い魂1で安定度1を購入できます (所持${G.redSoul})。`,
+      `4分で1回復します。全員が進めるまで約${Math.ceil(Math.max(...low.map(d=>d.waitMs))/60000)}分。回復後にもう一度進んでください。`]});
   return false;
 }
-function consumeEntryStability(where) {
-  if (!G.party.some(d=>d.alive)) return false;
-  if (!stabilityReady()) return false;
-  const changes = [];
-  for (const doll of G.party.filter(d=>d.alive && !vesselStable(d))) {
-    doll.stability -= STABILITY_ENTRY_COST;
-    changes.push({ doll, amount:STABILITY_ENTRY_COST });
-  }
-  tlStability("entry", changes, { dungeon:where });
+function consumeEntryStability(where, kind = "entry", infinite = abyssActive()) {
+  const dolls = stabilityDolls(infinite);
+  if (!dolls.length || !stabilityReady(null, infinite)) return false;
+  const changes = dolls.map(doll => { doll.stability -= STABILITY_ENTRY_COST; return {doll,amount:STABILITY_ENTRY_COST}; });
+  tlStability(kind, changes, { dungeon:where });
+  refreshStability();
   return true;
 }
 // requested = 回復させたい安定度。赤い魂1つで stabilityPerRed() 回復する (端数は切り上げて払う)
 function restoreStability(d, requested = 1) {
-  if (G.state !== "town" || !allDolls().includes(d) || vesselStable(d)) return {ok:false};
+  if (G.state !== "town" || !allDolls().includes(d)) return {ok:false};
   refreshStability();
   const per = stabilityPerRed();
   const n = Math.min(STABILITY_MAX-d.stability, Math.max(0,Math.floor(requested)), Math.max(0,Math.floor(G.redSoul)) * per);
@@ -15701,7 +15739,7 @@ function departNow({ idx = G.dungeonIdx, accept = false, from = 1 } = {}) {
   if (blockForTutorial()) return { ok: false, reason: "tutorial" };
   if (!worldOpenIdx(idx)) { showToast("その迷宮は、まだ地図に記されていない", { tone: "info" }); return { ok: false, reason: "sealed" }; }
   if (!G.party.some((p) => p.alive)) { log("動ける人業がいない。", "sys"); SFX.ng(); return { ok: false, reason: "party" }; }
-  if (!stabilityReady()) return { ok:false, reason:"stability" };
+  if (!stabilityReady(() => departNow({idx, accept, from}))) return { ok:false, reason:"stability" };
   G.dungeonIdx = idx;
   const mut = townMutatorFor(idx);
   const mutId = accept && mut ? mut.id : null;
@@ -15842,11 +15880,12 @@ function enterDungeon(mutatorId, startFloor = 1) {
 }
 
 // ===== 無限迷宮への出撃 =====
-// picks = 仮の器6体それぞれに宿す魂の職 (入口の3択で選んだもの。ui/infinite.js)。魂の安定度は使わない (仮の器なので)
+// picks = 仮の器6体それぞれに宿す魂の職 (入口の3択で選んだもの。ui/infinite.js)。魂の安定度は本編と同じように使う
 function enterAbyss(picks, testRun = false) {
   if (G.state !== "town" || G.abyss) return false;
   const ok = Array.isArray(picks) && picks.length === INF_PARTY && picks.every((k) => SOUL_CLASSES[k] && !isUniqueJob(k)) && new Set(picks).size === picks.length;
   if (!ok) { SFX.ng(); return false; }
+  if (!stabilityReady(() => enterAbyss(picks, testRun), true) || !consumeEntryStability("infinite", "entry", true)) return false;
   const seed = ((random() * 0x7fffffff) >>> 0) || 1;
   const names = infVesselNames(); // 本編の隊を退ける前に読む
   G.abyss = { v: 2, started: true, testRun, depth: 1, seed, rule: null, guardFloor: 0, picks: [...picks], home: infStashHome(), savedIdx: G.dungeonIdx,
@@ -15858,6 +15897,7 @@ function enterAbyss(picks, testRun = false) {
   G.souls = []; setSharedSouls(G.souls);
   G.gold = 0; G.soulPts = 0; G.embers = 0;
   G.party = picks.map((k, i) => makeVessel(i, k, names[i]));
+  refreshStability();
   syncClueBoons(); // 手がかりの恵みは乗せない (clueBoon が無限迷宮では効かない)
   G.mutator = null;
   G.bossDown = false;
@@ -15990,7 +16030,7 @@ function departRematch(key) {
   const t = rematchList().find((x) => x.key === key);
   if (!t) { SFX.ng(); return; }
   if (!G.party.some((p) => p.alive)) { log("動ける人業がいない。", "sys"); SFX.ng(); return; }
-  if (!stabilityReady()) return;
+  if (!stabilityReady(() => departRematch(key))) return;
   G.prompt = true;
   uiDungeonHud.sceneTransition(() => { G.prompt = false; beginRematch(t); });
 }
@@ -18562,7 +18602,7 @@ function resetAllData() { if (cloudEnabled() && !testPlayActive) return; _resett
 bindGame({
   // いまの目標・勅命・物語
   STABILITY_MAX, STABILITY_ENTRY_COST, STABILITY_RECOVERY_MS, refreshStability, stabilityStatus, restoreStability,
-  stabilityMinutes, stabilityPerRed, stabilityCost, vesselStable, clueBoon, seraDoll,
+  stabilityMinutes, stabilityPerRed, stabilityCost, clueBoon, seraDoll,
   objectiveInfo, decreeInfo, replayDecree, palaceRecords, sharePalaceRecord, departTo, goMakeDoll, audienceTutorial,
   landOnHub, legacyToPage, townBgm,
   // 勲章・宝物庫・図鑑
