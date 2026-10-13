@@ -1244,3 +1244,7 @@ button.sp-lu-next { cursor: pointer; }
 .pt-sheet .pt-form > .pt-side { flex-direction: row; flex-wrap: wrap; width: 100%; gap: 6px; }
 .pt-sheet .pt-side .pt-bench { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 4px 10px; }
 .pt-sheet .pt-slotp-n { display: none; }
+
+/* 習得元の魂と職業を、技のまとまりごとに示す */
+.sp-lu-learn-group { display: grid; gap: 5px; }
+.sp-lu-learn-source { font-size: 11.5px; font-weight: 700; color: var(--ink-dim); text-align: left; }
