@@ -2,7 +2,7 @@
 
 書き出し: `node tools/storyart/review.mjs` (build.py も書き直す。手で直さない)。
 
-場面: 出荷済み 101 ・ 出荷済み (任意の修正あり) 12 ・ 未着手 (指示あり) 11
+場面: 出荷済み 103 ・ 出荷済み (任意の修正あり) 12 ・ 未着手 (指示あり) 9
 
 | 章 | 場面 | 題 | 状態 | 確認ページ |
 |---|---|---|---|---|
@@ -12,13 +12,13 @@
 | 序章 | `irene_lamp` | 一年を越えた灯 | 出荷済み (任意の修正あり) | [見る](chapter0.md#irene_lamp) |
 | 序章 | `first_vessel` | 最初の名前 | 出荷済み | [見る](chapter0.md#first_vessel) |
 | 序章 | `three` | 森の古屋への頼み | 出荷済み | [見る](chapter0.md#three) |
-| 序章 | `forest_doll` | ほこりの下で待つ人業 | 未着手 (指示あり) | [見る](chapter0.md#forest_doll) |
+| 序章 | `forest_doll` | ほこりの下で待つ人業 | 出荷済み | [見る](chapter0.md#forest_doll) |
 | 序章 | `departure` | 四つの足音、ひとつの行き先 | 出荷済み | [見る](chapter0.md#departure) |
 | 序章 | `first_descent` | 門をくぐる前に | 出荷済み (任意の修正あり) | [見る](chapter0.md#first_descent) |
 | 第1章「師の灯」 | `w01_lantern` | 墓石の上の青い火 | 出荷済み | [見る](chapter1.md#w01_lantern) |
 | 第1章「師の灯」 | `report_w01` | 鎮魂灯と眠っていた人業 | 出荷済み | [見る](chapter1.md#report_w01) |
 | 第1章「師の灯」 | `w02_sigil` | 水音の向こうへ | 出荷済み | [見る](chapter1.md#w02_sigil) |
-| 第1章「師の灯」 | `w02_broken_doll` | 回廊の果ての六体目 | 未着手 (指示あり) | [見る](chapter1.md#w02_broken_doll) |
+| 第1章「師の灯」 | `w02_broken_doll` | 回廊の果ての六体目 | 出荷済み | [見る](chapter1.md#w02_broken_doll) |
 | 第1章「師の灯」 | `report_w02` | 祈りの終わらない場所 | 出荷済み (任意の修正あり) | [見る](chapter1.md#report_w02) |
 | 第1章「師の灯」 | `mem_w03` | 止められても進んだ人 | 出荷済み | [見る](chapter1.md#mem_w03) |
 | 第1章「師の灯」 | `report_w03` | 封じた者の沈黙 | 出荷済み | [見る](chapter1.md#report_w03) |

@@ -87,9 +87,9 @@
 
 <a name="w02_broken_doll"></a>
 
-## w02_broken_doll「回廊の果ての六体目」 ── 未着手 (指示あり)
+## w02_broken_doll「回廊の果ての六体目」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter1/w02_broken_doll.webp" width="576" alt="w02_broken_doll">
 
 **ストーリー一覧の本文**
 

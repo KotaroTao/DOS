@@ -107,9 +107,9 @@
 
 <a name="forest_doll"></a>
 
-## forest_doll「ほこりの下で待つ人業」 ── 未着手 (指示あり)
+## forest_doll「ほこりの下で待つ人業」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/forest_doll.webp" width="576" alt="forest_doll">
 
 **ストーリー一覧の本文**
 
