@@ -36,8 +36,11 @@ export function tutState() {
   if (!t.base || typeof t.base !== "object") t.base = {};
   if (typeof t.step !== "number") t.step = 0;
   if (t.cur === undefined) t.cur = null;
-  // 旧セーブの新職業案内は、人業を仕立てる手ほどきに切り替える。
-  if (t.cur === "changeJob") { t.cur = null; t.step = 0; t.ev = {}; t.base = {}; }
+  // 旧セーブで途中だった新職業の案内も、魂の付け替えへ引き継ぐ。
+  if (["changeJob", "newJobParty"].includes(t.cur)) {
+    t.cur = t.done.soulChange ? null : "soulChange";
+    t.step = 0; t.ev = {}; t.base = {};
+  }
   return t;
 }
 
@@ -137,7 +140,7 @@ function facilityVisited(key) {
 function mansionVisited() {
   const st = tutState();
   if (!st || !atMansion() || !isGreeted()) return;
-  if (!st.done.newJobParty && newJobSouls().length && G_().msq?.n >= 1) st.jobVisit = true;
+  if (!st.done.soulChange && newJobSouls().length && G_().msq?.n >= 1) st.jobVisit = true;
   facilityVisited("party");
 }
 function gateVisited() {
@@ -266,30 +269,12 @@ const TUTS = [
     steps: [{ text: "迷宮の門をくぐる", hint: "出撃 → 門をくぐる", go: () => UI.openDeparture?.(), target: [".dp-cta"], on: "dungeonEntered" }], outro: ["迷宮へ踏み出した。"],
   },
   {
-    key: "newJobParty", name: "新しい器で仲間を増やす", who: "irene", silent: true,
-    open: () => !game.prologueActive?.() && G_().msq?.n >= 1 && !!tutState().jobVisit && newJobSouls().length > 0,
-    used: () => newJobSouls().some((s) => allDolls().some((d) => d.primary === s.uid)),
-    prepare() {
-      tutState().base.jobs = newJobSouls().map((s) => s.clsKey);
-    },
-    intro: () => [
-      ["新しい職業の魂を持ち帰られたのですね。", "その魂を宿す人業を仕立てて、仲間に迎えましょう。"],
-      ["『人業を仕立てる』を開いたら、宿す魂は自由にお選びください。今は宿さずに閉じてもかまいません。", "隊には六体まで連れてゆけます。満員なら、新しい仲間は控えで待ちます。"],
-      ["同じ職業のメイン魂を宿す仲間は、一つの隊に一体だけ。", "新しい職業の仲間を加え、迷宮に備えましょう。"],
-    ],
-    steps: [{
-      text: "『人業を仕立てる』で魂の一覧を開く", hint: "人業の館 → 人業・＋ → 人業を仕立てる。その後は自由に選ぶか、閉じてよい",
-      go: () => UI.openReserve?.(), target: [".pt-res-add", ".pt-form .pt-empty-slot", ".pt-res-sw button"],
-      on: "newJobSoulPickerOpened", skip: () => !game.soulRepresentatives().some((s) => !wornSet().has(s.uid)),
-    }],
-    outro: ["新しい器に新しい職業の魂を宿せば、仲間を増やせる。", "『人業・＋』から『人業を仕立てる』を選び、魂と名前を決めよう。隊が満員なら、控えの仲間と入れ替えられる。"],
-  },
-  {
     key: "soulChange", name: "魂の付け替え", who: "irene",
-    open: () => !game.prologueActive?.() && !!game.worldState?.().reported.w02,
+    open: () => !game.prologueActive?.() && G_().msq?.n >= 1 && !!tutState().jobVisit && newJobSouls().length > 0,
     used: () => false,
     prepare: () => null,
     intro: () => [
+      ["新しい職業の魂を持ち帰られたのですね。", "その魂は、今いる人業のメイン魂と付け替えられます。人業を増やさずに、新たな職業の力を借りましょう。"],
       ["宿す魂を変えれば、今いる人業も別の職業として戦えます。魂の育ちは残り、外した魂も失われません。", "まずは『メイン魂』の枠から魂の一覧を開いて、閉じてください。実際の付け替えは、その後に自由に行えます。"],
       ["新しい職業で使えない装備は外れます。同じ職業のメイン魂は、隊に一つだけです。"],
     ],
@@ -617,11 +602,6 @@ function onEvent(name) {
   const st = tutState();
   if (!st || !st.cur) return;
   st.ev[name] = true;
-  // 一覧を開いた時点で案内を終え、選択・名前入力・中止を自由にする。
-  if (name === "newJobSoulPickerOpened" && st.cur === "newJobParty") {
-    finish(TUT_MAP.newJobParty);
-    return;
-  }
   if (name === "dungeonEntered" && st.cur === "firstDive") {
     st.done.firstDive = true; st.cur = null; st.step = 0; st.ev = {}; st.base = {};
     clearGlow(); updateGuidance();
@@ -639,10 +619,6 @@ function schedule() {
   raf = typeof requestAnimationFrame === "function" ? requestAnimationFrame(run) : setTimeout(run, 16);
 }
 function tick() {
-  // 更新前のセーブで魂の選択・名前入力まで進んでいる場合も制限を解除する。
-  if (tutState()?.cur === "newJobParty" && document.querySelector(".pt-pick-sheet .pt-soulrow, .pt-name-sheet")) {
-    onEvent("newJobSoulPickerOpened");
-  }
   const s = curStep();
   if (s && !busy && inTown() && !sceneActive() && !document.querySelector(".sc-scene:not(.out)")) {
     if (stepDone(s) || safe(() => (s.skip ? s.skip() : false), false)) {
@@ -699,7 +675,6 @@ function ireneGuidance() {
   // 目標札の操作手順ではなく、通常会話と同じ口調で案内する。
   if (p.key === "trainSoul") return ["『魂を強化』を押し、✦Soulを魂に注いでください。", "必要な✦Soulと、上がるLvを確かめましょう。"];
   if (p.key === "fusion") return ["『魂融合』を開き、素材にする魂をお選びください。", "余っている同じ職の魂を、ひとつに溶かしましょう。"];
-  if (p.key === "newJobParty") return ["『人業を仕立てる』で、魂の一覧を開いてみてください。", "その後は自由に選べます。今は宿さずに閉じてもかまいません。"];
   if (p.key === "soulChange") return ["『メイン魂』の枠で、魂の一覧を開いてみてください。", "持っている魂を確かめたら、一覧を閉じてください。"];
   if (p.key === "sub1") return tutState().step === 1 ?
     ["サブ魂の札の『技』を開いてください。", "借りる技を選んだら、閉じてください。"] :
@@ -761,7 +736,6 @@ function tutorialControls() {
     // 門衛の忠告は、本文のスクロールと支度に戻る操作も受け付ける。
     if (card.classList.contains("dp-brief-sheet")) return choose(first(card, ".ui-sheet-foot .ui-btn.k-primary"), [h.body, ...first(card,".ui-sheet-foot .ui-btn.k-ghost")]);
     if (h.kind === "celebrate" || card.classList.contains("ui-confirm") || stepDone(s)) return forward();
-    if (d.key === "newJobParty" && (card.classList.contains("pt-pick-sheet") || card.classList.contains("pt-name-sheet"))) return null;
     if (card.classList.contains("pt-name-sheet")) {
       return choose(first(card, ".ui-sheet-foot .ui-btn.k-primary"), first(card, ".pt-name-in, .pt-name-rnd"));
     }
