@@ -14488,12 +14488,12 @@ function prologueObjective() {
   const phase = prologuePhase();
   if (!prologueActive() || !G.msq.granted) return null;
   if (phase === "abbeyQuest" && (!worldState().cleared.w02 || reportMissingClue("w02"))) return { key: "prologueReturn", text: "回廊に戻り、残る手がかりを調べて踏破する", act: "探索へ", kind: "gate", run: () => departTo(worldIndexOf("w02")) };
-  if (phase === "shop") return { key: "prologueShop", text: "商会でヴォスの手ほどきを受ける", act: "商会へ", kind: "shop", run: () => UI.tutorialResume?.() };
+  if (["shop", "appraise"].includes(phase)) return { key: "prologueShop", text: phase === "appraise" ? "商会で司教の鑑定を教わる" : "商会でヴォスの手ほどきを受ける", act: "商会へ", kind: "shop", run: () => UI.tutorialResume?.() };
   const quest = { cryptQuest: "地下墓地の調査を王から受ける", corridorQuest: "亡骸の囁く回廊への依頼を受ける", abbeyQuest: "回廊の報告をし、修道院への依頼を受ける" }[phase];
   if (quest) return { key: "prologueQuest", text: quest, act: "王宮へ", kind: "palace", run: prologueAudience };
   const target = { forest: ["w00_forest", "三体で森の古屋へ行き、人業を連れ帰る"], crypt: ["w01", "四体で地下墓地の騒ぎの原因を調べる"], corridor: ["w02", "五体で亡骸の囁く回廊の最深部を調べる"], abbey: ["w03", "六体で朽ちた骸の修道院へ向かう"] }[phase];
   if (target && !reportPending()) return { key: "prologueDive", text: target[1], act: "出撃", kind: "gate", run: () => departTo(worldIndexOf(target[0])) };
-  if (["three", "fourth", "fifth", "formation", "sixth", "appraise"].includes(phase)) return { key: "prologueMansion", text: "人業の館でイレーヌの手ほどきを受ける", act: "館へ", kind: "party", run: () => UI.enterMansion?.() };
+  if (["three", "fourth", "fifth", "formation", "sixth"].includes(phase)) return { key: "prologueMansion", text: "人業の館でイレーヌの手ほどきを受ける", act: "館へ", kind: "party", run: () => UI.enterMansion?.() };
   return null;
 }
 function tutDollCount() { return allDolls().filter(d => !d.isEmpty).length; }
@@ -14729,7 +14729,7 @@ function objectiveInfo() {
   const w = worldState();
   // 解放された要素の手ほどき (済ませるまで迷宮には入れない)。踏破の報告が先
   const tut = (prologueActive() || !w.report) ? tutorialPending() : null;
-  if (tut) return { key: "tut", text: tut.text, sub: `手ほどき「${tut.name}」・ 済ませるまで迷宮の門は閉ざされる`, act: tut.started ? "続ける" : "手ほどき", kind: "party", run: () => UI.tutorialResume && UI.tutorialResume() };
+  if (tut) return { key: "tut", text: tut.text, sub: `手ほどき「${tut.name}」・ 済ませるまで迷宮の門は閉ざされる`, act: tut.started ? "続ける" : "手ほどき", kind: tut.facility || "party", run: () => UI.tutorialResume && UI.tutorialResume() };
   const po = prologueObjective();
   if (po) return po;
   if (ms.n === 0) {
@@ -15785,7 +15785,7 @@ function blockForTutorial() {
   const t = tutorialPending();
   if (!t || (t.key === "firstDive" && t.started)) return false;
   // 初回の出撃案内は、プレイヤーが迷宮を選んだ時だけ始める。
-  if (t.key === "firstDive") { UI.tutorialResume?.(); return true; }
+  if (t.key === "firstDive") { UI.tutorialGateVisited?.(); return true; }
   SFX.ng(); buzz([0, 30, 40, 30]);
   kitConfirm({
     banner: "手ほどき", danger: false,

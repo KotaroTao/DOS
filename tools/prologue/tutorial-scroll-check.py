@@ -9,6 +9,7 @@ with sync_playwright() as p:
         page.on('pageerror', lambda e: errors.append(str(e)))
         page.goto('http://localhost:8000/?testScene=tutorial:' + key)
         page.add_style_tag(content='.test-play-banner{display:none!important}')
+        page.locator('.ui-tab[data-key="shop"].tut-glow').click()
         body = page.locator('.tut-intro .ui-sheet-body')
         body.wait_for()
         page.wait_for_timeout(700)

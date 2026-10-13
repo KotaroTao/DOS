@@ -108,37 +108,42 @@ function newJobSouls() {
   return (game.soulRepresentatives ? game.soulRepresentatives() : G_().souls || []).filter((s) => !initial.has(s.clsKey));
 }
 const anyBroken = () => allDolls().some((d) => d.isDoll && !d.alive);
-let visitTimer = null;
-function atMansion() {
-  const G = G_();
-  return G && G.state === "town" && G.town?.tab === "party" && !G.town.page && !G.town.facility;
+function atMansion() { return atFacility("party"); }
+const FACILITIES = {
+  party: { name: "人業の館", target: '.ui-tab[data-key="party"]', hint: "画面下の『人業の館』を選ぶと、イレーヌがご案内します" },
+  shop: { name: "商会", target: '.ui-tab[data-key="shop"]', hint: "画面下の『商会』を選ぶと、手ほどきが始まります" },
+  tavern: { name: "酒場", target: '.hb-tile-tavern', hint: "街の『酒場』を選ぶと、手ほどきが始まります" },
+  gate: { name: "迷宮", target: '.ui-tab[data-key="gate"]', hint: "画面下の『迷宮』を選ぶと、出撃の手ほどきが始まります" },
+};
+const facilityOf = d => d.facility || (d.who === "irene" ? "party" : d.who);
+function atFacility(key) {
+  if (!inTown()) return false;
+  const town = G_().town;
+  if (key === "tavern") return town?.page === "tavern";
+  // 門はタブではなく出撃シート。入口を押した時に gateVisited で開始する。
+  if (key === "gate") return tutState()?.cur === "firstDive";
+  return town?.tab === key && !town.page && !town.facility;
 }
-const MANSION_TARGET = ['.ui-tab[data-key="party"]'];
+const facilityVisitTimers = new Map();
+function facilityVisited(key) {
+  if (!atFacility(key) || facilityVisitTimers.has(key)) return;
+  facilityVisitTimers.set(key, setTimeout(() => {
+    facilityVisitTimers.delete(key);
+    if (!atFacility(key) || busy || sceneActive() || sheetDepth() > 0 || game.isTitleActive?.() || game.isOpeningActive?.()) return;
+    const p = pending();
+    if (p?.facility === key && (!p.started || !tutorialControls()?.target)) resume();
+  }, 300));
+}
 function mansionVisited() {
   const st = tutState();
   if (!st || !atMansion() || !isGreeted()) return;
   if (!st.done.newJobParty && newJobSouls().length && G_().msq?.n >= 1) st.jobVisit = true;
-  if (visitTimer) return;
-  visitTimer = setTimeout(() => {
-    visitTimer = null;
-    if (!atMansion() || busy || sceneActive() || sheetDepth() > 0 || game.isTitleActive?.() || game.isOpeningActive?.()) return;
-    const p = pending();
-    if (p?.who === "irene" && (!p.started || !tutorialControls()?.target)) resume();
-  }, 300);
+  facilityVisited("party");
 }
-
-// 商会も、街のフッターから訪ねてから説明を始める。
-const SHOP_TARGET = '.ui-tab[data-key="shop"]';
-const atShop = () => inTown() && G_().town?.tab === "shop" && !G_().town.page && !G_().town.facility;
-let shopVisitTimer = null;
-function shopVisited() {
-  if (!atShop() || shopVisitTimer) return;
-  shopVisitTimer = setTimeout(() => {
-    shopVisitTimer = null;
-    if (!atShop() || busy || sceneActive() || sheetDepth() > 0 || game.isTitleActive?.() || game.isOpeningActive?.()) return;
-    const p = pending();
-    if (p?.who === "shop" && (!p.started || !tutorialControls()?.target)) resume();
-  }, 300);
+function gateVisited() {
+  const p = pending();
+  if (!p || p.facility !== "gate" || p.started || busy || sceneActive()) return false;
+  return start(TUT_MAP[p.key]);
 }
 
 // ---- 手ほどきの定義 (解放の順) ----
@@ -205,10 +210,10 @@ const TUTS = [
     outro: ["前衛は戦士・騎士・盗賊、後衛は魔導士・僧侶。隊列が整った。", "館では『入れ替え』でいつでも並べ直せる。隊列の顔を長押しして、替えたい相手へ動かしてもよい。", "王宮で回廊への依頼を受けよう。"],
   },
   {
-    key: "prologueAppraise", name: "司教の鑑定", who: "irene",
+    key: "prologueAppraise", name: "司教の鑑定", who: "irene", facility: "shop",
     open: () => game.prologuePhase?.() === "appraise", used: () => false,
     prepare: () => game.preparePrologueAppraisal?.(),
-    intro: () => [["司教は鑑定の技を持っています。迷宮で手に入れた品を、街で無料で鑑定できます。", "試しに、この『杖？』を鑑定してみてください。"], ["商会の『鑑定を試みる』をお選びください。", "表示される成功率を確かめてから、始めましょう。"]],
+    intro: () => [["司教は鑑定の技を持っています。迷宮で手に入れた品を、街で無料で鑑定できます。", "試しに、この『杖？』を鑑定してみてください。"], ["この商会で『鑑定を試みる』をお選びください。", "表示される成功率を確かめてから、始めましょう。"]],
     steps: [{ text: "商会で『杖？』の鑑定を試みる", hint: "商会 → 売る → 鑑定を試みる", go: () => UI.openShop?.("sell"), target: [".prologue-appraise"], done: () => !!G_().msq?.prologue?.appraised }],
     outro: ["『杖？』は、魔法の杖（品質50）だった。", "王宮で回廊の報告をし、次の依頼を受けよう。"],
   },
@@ -434,11 +439,11 @@ function pending() {
   if (!key) return null;
   const d = TUT_MAP[key];
   const step = st.cur === key ? d.steps[st.step] || d.steps[0] : d.steps[0];
-  const arrival = (d.who === "irene" && !atMansion() && !(key === "prologueAppraise" && st.cur === key)) ||
-    (d.who === "shop" && !atShop());
-  return { key, name: d.name, who: d.who, arrival,
-    text: arrival ? (d.who === "shop" ? "商会を選択してください" : "人業の館を選択してください") : step.text,
-    hint: arrival ? (d.who === "shop" ? "画面下の『商会』を選ぶと、ヴォスがご案内します" : "画面下の『人業の館』を選ぶと、イレーヌがご案内します") : step.hint,
+  const facility = facilityOf(d), place = FACILITIES[facility];
+  const arrival = !atFacility(facility);
+  return { key, name: d.name, who: d.who, facility, arrival,
+    text: arrival ? `${place.name}を選択してください` : step.text,
+    hint: arrival ? place.hint : step.hint,
     started: st.cur === key };
 
 }
@@ -459,9 +464,9 @@ function resume() {
   const st = tutState();
   const d = TUT_MAP[p.key];
   // 館の物語を読み終えてから導入へ。進行中の手ほどきには割り込ませない。
-  if (!st.cur && d.who === "irene" && game.pendingIreneBeat?.()) return false;
+  if (!st.cur && p.facility === "party" && game.pendingIreneBeat?.()) return false;
   if (p.arrival) { updateGuidance(); schedule(); return true; }
-  if (d.who === "irene" && !isGreeted()) { if (UI.enterMansion) UI.enterMansion(); return true; }
+  if (p.facility === "party" && !isGreeted()) { if (UI.enterMansion) UI.enterMansion(); return true; }
   if (st.cur !== p.key) return start(d);
   goStep(true);
   return true;
@@ -490,7 +495,7 @@ function introSheet(d, done) {
   const go = () => { if (fired) return; fired = true; done(); };
   const h = sheet.open({
     kind: "choice", className: "tut-intro", banner: "手ほどき", title: d.name, art, lines: d.intro(),
-    footer: [{ label: d.who === "shop" ? "心得た" : d.who === "gate" ? "出撃へ" : "酒場へ", kind: "primary", size: "lg", onTap: (s) => s.close("ok") }],
+    footer: [{ label: "心得た", kind: "primary", size: "lg", onTap: (s) => s.close("ok") }],
     onClose: go,
   });
   if (!h || !h.el) go();
@@ -533,14 +538,14 @@ function finish(d) {
   if (game.autosave) game.autosave(true);
   clearGlow();
   updateGuidance();
-  if (d.silent) { schedule(); return; }
+  if (d.silent) { if (pending() && !pending().started) UI.shell?.setTab?.("hub"); schedule(); return; }
   busy = true;
   const after = () => {
     busy = false;
     if (game.renderTown && inTown()) game.renderTown();
-    // 館の手ほどきと重なった商会の案内も、街からフッターを押して訪ねる。
-    if (pending()?.who === "shop" && !pending().started) UI.shell?.setTab?.("hub");
-    // 続けて済ませる手ほどきがあれば、そのまま始める
+    // 同じ施設の次の手ほどきも、街に戻って入口を押してから始める。
+    if (pending() && !pending().started) UI.shell?.setTab?.("hub");
+    // 次の手ほどきは、街で対象施設の入口を案内する
     if (pending() && !TUT_MAP[pending().key]?.manual) setTimeout(() => resume(), 240);
   };
   sfx("victory");
@@ -571,7 +576,7 @@ function afterReturn() {
     game.autosave?.(true);
   }
   if (["fourth", "sixth"].includes(game.prologuePhase?.())) {
-    UI.enterMansion?.(); mansionVisited(); return true;
+    resume(); return true;
   }
   if (st.done.repairSoul || !(anyBroken() || st.repairFell)) {
     if (st.appraisePending && !st.done.shopAppraise) { resume(); return true; }
@@ -583,9 +588,8 @@ function afterReturn() {
     st.repairResume = { cur: st.cur, step: st.step, ev: st.ev, base: st.base };
     st.cur = null; st.step = 0; st.ev = {}; st.base = {};
   }
-  if (UI.enterMansion) UI.enterMansion();
   if (game.autosave) game.autosave(true);
-  mansionVisited();
+  resume();
   return true;
 }
 
@@ -727,7 +731,7 @@ function tutorialControls() {
     return choose(nodes, readable ? [h.body] : []);
   };
   if (busy) return card ? forward(true) : null;
-  if (p?.arrival) return choose(first(document, p.who === "shop" ? SHOP_TARGET : MANSION_TARGET[0]));
+  if (p?.arrival) return choose(first(document, FACILITIES[p.facility].target));
   if (!d) return choose(first(document, ".hb-goal-go"));
   const st = tutState(), s = curStep();
   if (card) {
@@ -807,7 +811,9 @@ export function install() {
   registerUI({
     tutorialIreneLines: ireneGuidance,
     tutorialMansionVisited: mansionVisited,
-    tutorialShopVisited: shopVisited,
+    tutorialShopVisited: () => facilityVisited("shop"),
+    tutorialFacilityVisited: facilityVisited,
+    tutorialGateVisited: gateVisited,
     tutorialActive: () => busy || !!curDef(),
     tutorialPending: pending,
     tutorialResume: resume,
@@ -836,5 +842,7 @@ export const testTutorials = TUTS.map(({ key, name }) => ({ id: "tutorial:" + ke
 export function startTestTutorial(key) {
   if (!G_()?.testPlay || !TUT_MAP[key]) return false;
   G_().testTutorial = key;
-  return start(TUT_MAP[key]);
+  UI.shell?.setTab?.("hub");
+  game.renderTown?.();
+  return resume();
 }

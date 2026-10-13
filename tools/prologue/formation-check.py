@@ -40,7 +40,7 @@ with sync_playwright() as p:
                 break
             skip=page.locator('.iv-skip:visible,.sc-skip:visible')
             if skip.count():
-                skip.first.evaluate('(button)=>button.click()')
+                skip.evaluate_all('(buttons)=>buttons[0]?.click()')
                 continue
             glow=page.locator('.tut-glow:visible')
             if glow.count():
