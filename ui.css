@@ -622,3 +622,13 @@ canvas.tw-vig-hd { image-rendering: auto !important; }
 .gear-upgrade-arrow { position: absolute; right: -2px; bottom: -2px; color: #91e4ae; font-size: 10px; line-height: 1; text-shadow: 0 1px 2px #000, 1px 0 2px #000; }
 .gear-upgrade-dot { position: absolute; right: 1px; bottom: 1px; width: 7px; height: 7px; border-radius: 50%; background: #ef4444; box-shadow: 0 0 0 1.5px #211715; z-index: 5; pointer-events: none; }
 .hb-pc-fr { position: relative; }
+
+/* 手帳・設定のプレイヤー名。長い名でも編集ボタンを押し出さない。 */
+.player-name-card { display: flex; align-items: center; gap: 12px; padding: 10px 12px; margin-bottom: 10px; border: 1px solid #62503a; border-radius: 3px; background: rgba(8,6,9,.5); }
+.player-name-text { flex: 1; min-width: 0; }
+.player-name-label { display: block; font-size: 12px; color: #c3b49b; }
+.player-name-value { margin-top: 4px; color: #f1e4c8; font-size: 18px; overflow-wrap: anywhere; }
+.player-name-card > .ui-btn { flex: 0 0 auto; width: auto; min-width: 64px; }
+.player-name-input { display: block; box-sizing: border-box; width: 100%; min-height: 48px; margin-top: 8px; padding: 10px; font: inherit; font-size: 16px; color: #f1e4c8; background: #151019; border: 1px solid #746044; border-radius: 3px; }
+.player-name-help { color: #c3b49b; font-size: 13px; line-height: 1.7; }
+.player-name-error { color: #ffad97; min-height: 1.5em; font-size: 13px; }

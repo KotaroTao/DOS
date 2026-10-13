@@ -11,6 +11,7 @@
 //
 // game.js から直接使う道具 (prefs / motion) もここから再び書き出す (game.js の import 欄に触れないため)
 
+import { playerNameCard } from "./playername.js";
 import { UI, game, registerUI } from "./ctx.js";
 import { el, sheet, row, setText, glyph, itemTile, portrait, bar, reduced } from "./kit.js";
 import { getPref, setPref, remember, autoMoveAvoid } from "./prefs.js";
@@ -416,6 +417,7 @@ export function openDungeonMenu() {
     kind: "info", banner: "手帳", className: "dg-sheet dg-menu",
     accent: f.theme ? f.theme.accent : null,
     body: (b) => {
+      b.appendChild(playerNameCard());
       // 階の見出し (押すと階の情報)
       const head = el("button", "dg-floorhead tap");
       head.type = "button";

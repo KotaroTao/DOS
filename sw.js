@@ -658,6 +658,7 @@ const ASSETS = [
   "./src/ui/facilities.js",
   "./src/ui/questboard.js",
   "./src/ui/settings.js",
+  "./src/ui/playername.js",
   "./src/ui/story.js",
   "./src/ui/party.js",
   "./src/ui/irene.js",
