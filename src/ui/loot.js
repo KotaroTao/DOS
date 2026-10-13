@@ -751,7 +751,7 @@ function defaultActions(st) {
       onTap: (close) => { if (game.doUnequip) game.doUnequip(owner, eqKey); close(); refreshViews(); } });
   } else if (it.slot === "use") {
     // ---- 道具 ----
-    acts.push({ key: "use", primary: context !== "sell", label: "使う", sub: `${owner.name} が使う`,
+    acts.push({ key: "use", primary: context !== "sell", label: "使う",
       onTap: (close) => {
         const i = owner.items.indexOf(it);
         if (i < 0 || !game.useItem) return;

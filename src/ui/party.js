@@ -2698,7 +2698,7 @@ function itemActions(it, owner, ctx, { equip = true } = {}) {
       acts.push({ label: "鑑定は街でのみ", sub: "持ち帰って鑑定する", kind: "ghost", disabled: true });
     }
   } else if (it.slot === "use") {
-    acts.push({ label: `${owner.name}が使う`, kind: "primary", onTap: (h) => { close(h); const i = owner.items.indexOf(it); if (i >= 0 && game.useItem) game.useItem(owner, i); } });
+    acts.push({ label: "使う", kind: "primary", onTap: (h) => { close(h); const i = owner.items.indexOf(it); if (i >= 0 && game.useItem) game.useItem(owner, i); } });
   } else if (isEquippable(it) && equip) {
     acts.push({ label: "誰に装備させるか選ぶ", kind: "primary", onTap: (h) => { close(h); openEquipChooser(it, { owner }); } });
   } else if (it.slot === "misc") {
