@@ -696,7 +696,7 @@ function tutorialControls() {
   if (document.querySelector(".sc-scene:not(.out)") || sceneActive()) return null;
   const h = sheet.top();
   const card = h?.el;
-  const forward = () => {
+  const forward = (readable = false) => {
     let nodes = first(card, ".ui-sheet-foot .ui-btn.k-primary:not(:disabled), .ui-sheet-foot .ui-btn.k-danger:not(:disabled)");
     if (!nodes.length) {
       let next = card.querySelector(".tut-next");
@@ -706,9 +706,10 @@ function tutorialControls() {
       }
       nodes = [next];
     }
-    return choose(nodes);
+    // 導入と完了の説明は、次へ進むボタンに加えて本文のタッチスクロールを許可する。
+    return choose(nodes, readable ? [h.body] : []);
   };
-  if (busy) return card ? forward() : null;
+  if (busy) return card ? forward(true) : null;
   if (p?.arrival) return choose(first(document, MANSION_TARGET[0]));
   if (!d) return choose(first(document, ".hb-goal-go"));
   const st = tutState(), s = curStep();
