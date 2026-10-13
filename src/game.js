@@ -2691,7 +2691,7 @@ function revealAroundStairs() {
 function castField(...args) { return tlGameMeasure("camp", () => castFieldMeasured(...args)); }
 // 押し間違えやすい探りの術 (道しるべ・宝探し) は唱える前に確かめる (MP 30% を使うため。ユーザーの指示 2026-10)
 const FIELD_CONFIRM = new Set(["stairs", "chest"]);
-function castFieldMeasured(key, confirmed = false) {
+function castFieldMeasured(key, confirmed = false, caster = null) {
   if (G.state !== "board" || !inDungeon()) return;
   const sp = SPELLS[key];
   if (!sp) return;
@@ -2702,7 +2702,21 @@ function castFieldMeasured(key, confirmed = false) {
     return;
   }
   if (sp.sense === "stairs" && findRevealedStairs()) { SFX.ng(); showToast("この階の階段はもう見つけている", { tone: "info" }); return; }
-  const c = fieldCaster(key);
+  // 選んだ者を確認画面の先まで保ち、実行時にも在隊・状態・MPを確かめる。
+  const candidates = fieldCasters().filter((p) => (p.spells || []).includes(key))
+    .map((p) => ({ p, sp, cost: spellCost(p, sp) })).filter((c) => c.p.mp >= c.cost);
+  if (!caster && candidates.length > 1) {
+    SFX.select();
+    const opts = candidates.map((c) => ({
+      label: `${c.p.name} ― 消費 MP${c.cost} (いま ${c.p.mp})`,
+      fn: () => castField(key, false, c.p),
+    }));
+    opts.push({ label: "やめる", cancel: true, fn: () => {} });
+    showChoice(`${sp.name} ― 誰が唱える？`, opts, null, { banner: "迷宮の技" });
+    return;
+  }
+  const c = caster ? candidates.find((c) => c.p === caster) : candidates[0];
+  if (caster && !c) { SFX.ng(); showToast(`${caster.name}はいま${sp.name}を唱えられない`, { tone: "info" }); return; }
   if (!c) { SFX.ng(); showToast(fieldCaster(key, true) ? `${sp.name}を唱える MP が足りない` : `${sp.name}を唱えられる者がいない`, { tone: "info" }); return; }
   if (!confirmed && FIELD_CONFIRM.has(sp.sense)) {
     SFX.select();
@@ -2713,7 +2727,7 @@ function castFieldMeasured(key, confirmed = false) {
         `${c.p.name}の MP を ${c.cost} 使う (いま ${c.p.mp})。効くのはこの階だけ。`,
       ],
       okLabel: "唱える",
-      onOk: () => castField(key, true),
+      onOk: () => castField(key, true, c.p),
     });
     return;
   }
