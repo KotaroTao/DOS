@@ -2411,7 +2411,7 @@ function tlWhere() {
 
 // ---- ボード描画 ----
 // 盤面と戦闘のキャンバスは論理座標 VW×VH で描く。VH は画面の縦の余りに合わせて伸縮し
-// (縦長の端末ほどカードが縦長の墓石になる)、実画素は端末の画素密度ぶん (VSX/VSY 倍) 持つ。
+// 実画素は端末の画素密度ぶん (VSX/VSY 倍) 持つ。スマホの探索マスは正方形を保つ。
 // 床・墓石の原画を補間し、壁は2倍の解像度で合成する。光と粒子は表示先へ直接重ねる。
 const VW = 480;
 let VH = 320, VSX = 1, VSY = 1;
@@ -2421,6 +2421,7 @@ let CARD_W = 55, CARD_H = 50, OX = 6, OY = 6;
 function layoutBoard() {
   CARD_W = Math.floor((VW - BOARD_MX * 2 - GAP * (COLS - 1)) / COLS);
   CARD_H = Math.floor((VH - BOARD_MY * 2 - GAP * (ROWS - 1)) / ROWS);
+  if (window.innerWidth <= 600) CARD_W = CARD_H = Math.min(CARD_W, CARD_H);
   OX = Math.round((VW - (COLS * CARD_W + (COLS - 1) * GAP)) / 2);
   OY = Math.round((VH - (ROWS * CARD_H + (ROWS - 1) * GAP)) / 2);
 }
@@ -2490,7 +2491,7 @@ function fitView(force = false) {
     + outerH(topbarEl) + outerH(partyEl) + outerH(hintEl)
     + (csH ? (parseFloat(csH.paddingTop) || 0) + (parseFloat(csH.paddingBottom) || 0) : 0);
   if (combat) used += MENU_RESERVE + LOG_MIN_COMBAT + TURN_ORDER_H;
-  else used += outerH(runbarEl) + outerH(ctrlEl) + outerH(document.getElementById("board-camera-tools")) + LOG_MIN_BOARD;
+  else used += outerH(runbarEl) + outerH(ctrlEl) + LOG_MIN_BOARD;
   // 盤面の幅から最低高を決めると、スマホのブラウザバー表示時に記録がつぶれる。
   // 探索は低い盤面も許し、拡大表示とドラッグでマスの操作性を保つ。
   const minVH = combat ? (G.battle?.enemies.length > 3 ? 280 : 180) : 96;
@@ -2500,7 +2501,7 @@ function fitView(force = false) {
   const dpr = Math.max(1, window.devicePixelRatio || 1);
   const S = Math.max(1, Math.min(2, (cssW * dpr) / VW));
   const bw = Math.round(VW * S), bh = Math.round(vh * S);
-  const key = `${bw}x${bh}|${cssH.toFixed(1)}`;
+  const key = `${bw}x${bh}|${cssH.toFixed(1)}|${window.innerWidth <= 600}`;
   if (key === _fitKey && !force) return false;
   _fitKey = key;
   VH = vh;
