@@ -127,6 +127,20 @@ function mansionVisited() {
   }, 300);
 }
 
+// 商会も、街のフッターから訪ねてから説明を始める。
+const SHOP_TARGET = '.ui-tab[data-key="shop"]';
+const atShop = () => inTown() && G_().town?.tab === "shop" && !G_().town.page && !G_().town.facility;
+let shopVisitTimer = null;
+function shopVisited() {
+  if (!atShop() || shopVisitTimer) return;
+  shopVisitTimer = setTimeout(() => {
+    shopVisitTimer = null;
+    if (!atShop() || busy || sceneActive() || sheetDepth() > 0 || game.isTitleActive?.() || game.isOpeningActive?.()) return;
+    const p = pending();
+    if (p?.who === "shop" && (!p.started || !tutorialControls()?.target)) resume();
+  }, 300);
+}
+
 // ---- 手ほどきの定義 (解放の順) ----
 //   at = 解放の踏破報告数 / open() = 解放済みか / used() = もう使ったことがある (旧セーブは済み扱い)
 //   prepare() = 始める時 (練習用の素材を預ける。導入に添える一言を返す)
@@ -420,10 +434,11 @@ function pending() {
   if (!key) return null;
   const d = TUT_MAP[key];
   const step = st.cur === key ? d.steps[st.step] || d.steps[0] : d.steps[0];
-  const arrival = d.who === "irene" && !atMansion() && !(key === "prologueAppraise" && st.cur === key);
+  const arrival = (d.who === "irene" && !atMansion() && !(key === "prologueAppraise" && st.cur === key)) ||
+    (d.who === "shop" && !atShop());
   return { key, name: d.name, who: d.who, arrival,
-    text: arrival ? "人業の館を選択してください" : step.text,
-    hint: arrival ? "画面下の『人業の館』を選ぶと、イレーヌがご案内します" : step.hint,
+    text: arrival ? (d.who === "shop" ? "商会を選択してください" : "人業の館を選択してください") : step.text,
+    hint: arrival ? (d.who === "shop" ? "画面下の『商会』を選ぶと、ヴォスがご案内します" : "画面下の『人業の館』を選ぶと、イレーヌがご案内します") : step.hint,
     started: st.cur === key };
 
 }
@@ -475,7 +490,7 @@ function introSheet(d, done) {
   const go = () => { if (fired) return; fired = true; done(); };
   const h = sheet.open({
     kind: "choice", className: "tut-intro", banner: "手ほどき", title: d.name, art, lines: d.intro(),
-    footer: [{ label: d.who === "shop" ? "商会へ" : d.who === "gate" ? "出撃へ" : "酒場へ", kind: "primary", size: "lg", onTap: (s) => s.close("ok") }],
+    footer: [{ label: d.who === "shop" ? "心得た" : d.who === "gate" ? "出撃へ" : "酒場へ", kind: "primary", size: "lg", onTap: (s) => s.close("ok") }],
     onClose: go,
   });
   if (!h || !h.el) go();
@@ -523,6 +538,8 @@ function finish(d) {
   const after = () => {
     busy = false;
     if (game.renderTown && inTown()) game.renderTown();
+    // 館の手ほどきと重なった商会の案内も、街からフッターを押して訪ねる。
+    if (pending()?.who === "shop" && !pending().started) UI.shell?.setTab?.("hub");
     // 続けて済ませる手ほどきがあれば、そのまま始める
     if (pending() && !TUT_MAP[pending().key]?.manual) setTimeout(() => resume(), 240);
   };
@@ -710,7 +727,7 @@ function tutorialControls() {
     return choose(nodes, readable ? [h.body] : []);
   };
   if (busy) return card ? forward(true) : null;
-  if (p?.arrival) return choose(first(document, MANSION_TARGET[0]));
+  if (p?.arrival) return choose(first(document, p.who === "shop" ? SHOP_TARGET : MANSION_TARGET[0]));
   if (!d) return choose(first(document, ".hb-goal-go"));
   const st = tutState(), s = curStep();
   if (card) {
@@ -790,6 +807,7 @@ export function install() {
   registerUI({
     tutorialIreneLines: ireneGuidance,
     tutorialMansionVisited: mansionVisited,
+    tutorialShopVisited: shopVisited,
     tutorialActive: () => busy || !!curDef(),
     tutorialPending: pending,
     tutorialResume: resume,
