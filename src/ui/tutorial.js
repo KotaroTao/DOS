@@ -90,6 +90,19 @@ function initialJobsReady(jobs) {
   return jobs.every((k) => worn.has(k));
 }
 
+function formationMove() {
+  const party = G_().party, job = d => soulByUid(d.primary)?.clsKey;
+  const rear = party.slice(3);
+  const mover = rear.find(d => job(d) === "knight") || rear.find(d => ["fighter", "thief"].includes(job(d)));
+  const target = party.slice(0, 3).find(d => ["priest", "mage"].includes(job(d)));
+  return { mover, target, targetJob: target && job(target) };
+}
+function formationReady() {
+  const jobs = G_().party.map(d => soulByUid(d.primary)?.clsKey);
+  return ["fighter", "knight", "thief"].every(k => jobs.slice(0, 3).includes(k)) &&
+    ["mage", "priest"].every(k => jobs.slice(3).includes(k));
+}
+
 function newJobSouls() {
   const initial = new Set(["fighter", "priest", "thief", "knight", "mage", "bishop"]);
   return (game.soulRepresentatives ? game.soulRepresentatives() : G_().souls || []).filter((s) => !initial.has(s.clsKey));
@@ -159,17 +172,31 @@ const TUTS = [
     outro: ["三体の人業が目覚めた。", "イレーヌ「近くの森の古屋に、しばらく使っていない人業があるのです。三体と一緒に、連れ帰っていただけますか。」", "森の古屋は全三階。三階で人業を探し、館へ戻ろう。"],
   },
   ...[
-    { key: "createFourth", phase: "fourth", count: 4, job: "knight", label: "騎士", body: "ほこりをかぶった人業", intro: "連れ帰ってくださって、ありがとうございます。ほこりを払えば、この子はまだ働けます。", next: "四体の隊がそろった。王宮で依頼を受けよう。" },
-    { key: "createFifth", phase: "fifth", count: 5, job: "mage", label: "魔導士", body: "王宮から受け取った人業", intro: "王宮の倉庫に、この子が眠っていたのですね。この魂を宿してみてください……。", next: "五体の隊がそろった。王宮で回廊への依頼を受けよう。" },
-    { key: "createSixth", phase: "sixth", count: 6, job: "bishop", label: "司教", body: "壊れた人業", intro: "どこかの操霊師が使っていた人業ですね。継ぎ目を直せば、まだ使えます。館に残っていた司教の魂をお渡しします。", next: "六体の隊がそろった。続いて司教の鑑定を試そう。" },
-  ].map(({ key, phase, count, job, label, body, intro, next }) => ({
-    key, name: `${count}体目に${label}の魂を宿す`, who: "irene",
+    { key: "createFourth", phase: "fourth", count: 4, job: "mage", body: "ほこりをかぶった人業", intro: "連れ帰ってくださって、ありがとうございます。ほこりを払えば、この子はまだ働けます。", next: "四体の隊がそろった。王宮で依頼を受けよう。" },
+    { key: "createFifth", phase: "fifth", count: 5, job: "knight", body: "王宮から受け取った人業", intro: "王宮の倉庫に、この子が眠っていたのですね。この魂を宿してみてください……。", next: "五体の隊がそろった。続いて、前衛と後衛の並べ方を覚えよう。" },
+    { key: "createSixth", phase: "sixth", count: 6, job: "bishop", body: "壊れた人業", intro: "どこかの操霊師が使っていた人業ですね。継ぎ目を直せば、まだ使えます。館に残っていた司教の魂をお渡しします。", next: "六体の隊がそろった。続いて司教の鑑定を試そう。" },
+  ].map(({ key, phase, count, job, body, intro, next }) => ({
+    key, get name() { return `${count}体目に${jobLabel(game.prologueJob?.(phase) || job)}の魂を宿す`; }, who: "irene",
     open: () => game.prologuePhase?.() === phase, used: () => false,
     prepare: () => game.preparePrologueDoll?.(),
-    intro: () => [[intro], [`${body}に、${label}の魂を宿しましょう。`, "魂を選び、この子に名前を与えてください。お代は要りません。"]],
-    steps: [{ text: `${label}の魂を宿す`, hint: "人業を仕立てる → 魂 → 名前", go: () => game.goMakeDoll(), target: [".pt-form .pt-empty-slot", ".pt-res-add"], done: () => allDolls().length >= count && initialJobsReady([job]) }],
+    intro: () => [[intro], [`${body}に、${jobLabel(game.prologueJob?.(phase) || job)}の魂を宿しましょう。`, "魂を選び、この子に名前を与えてください。お代は要りません。"]],
+    steps: [{ get text() { return `${jobLabel(game.prologueJob?.(phase) || job)}の魂を宿す`; }, hint: "人業を仕立てる → 魂 → 名前", go: () => game.goMakeDoll(), target: [".pt-form .pt-empty-slot", ".pt-res-add"], done: () => allDolls().length >= count && initialJobsReady([game.prologueJob?.(phase) || job]) }],
     outro: [next],
   })),
+  {
+    key: "prologueFormation", name: "前衛と後衛の並べ方", who: "irene",
+    open: () => game.prologuePhase?.() === "formation", used: () => false,
+    intro: () => [
+      ["五体がそろいましたね。次は、隊の並びを整えましょう。", "隊列の先頭三体が前衛、続く三体までが後衛です。"],
+      ["前衛には、剣や盾で戦う子を。後衛は敵に狙われにくく、受ける物理の傷が半分になります。", "後衛から与える物理の傷も通常は半分ですが、槍や弓は威力が落ちません。術の威力は、前でも後ろでも変わりません。"],
+      ["今回は騎士を前衛に、僧侶と魔導士を後衛に置きましょう。", "動かしたい子を選び、『管理』→『入れ替え』を押してください。次に隊列の中から相手を選ぶと、二体の場所が入れ替わります。光っている札で試しましょう。"],
+    ],
+    steps: [
+      { text: "前衛へ移す人業の『入れ替え』を開く", hint: "光っている管理 → 入れ替え", go: () => UI.openParty?.(formationMove().mover, { context: "town" }), target: [".pt-mansion-head button"], on: "formationPickerOpened", done: formationReady },
+      { text: "術を使う人業を後衛に置く", hint: "隊列の中で場所を替える → 光っている相手", go: () => UI.openSwapSheet?.(formationMove().mover), target: ['.pt-sw-card[data-swap-job="priest"]'], done: formationReady },
+    ],
+    outro: ["前衛は戦士・騎士・盗賊、後衛は魔導士・僧侶。隊列が整った。", "館では『入れ替え』でいつでも並べ直せる。隊列の顔を長押しして、替えたい相手へ動かしてもよい。", "王宮で回廊への依頼を受けよう。"],
+  },
   {
     key: "prologueAppraise", name: "司教の鑑定", who: "irene",
     open: () => game.prologuePhase?.() === "appraise", used: () => false,
@@ -606,6 +633,14 @@ function ireneGuidance() {
     if (target?.dataset.drop) return ["顔アイコンの光っている空き枠『＋』を押してください。", "次の人業をお仕立てしましょう。"];
   }
   if (["createFourth", "createFifth", "createSixth"].includes(p.key)) return ["『人業を仕立てる』から、お渡しした魂を選んでください。", "この子に名前を与え、魂を宿しましょう。"];
+  if (p.key === "prologueFormation") {
+    const { mover, target } = formationMove();
+    const front = jobLabel(soulByUid(mover?.primary)?.clsKey || "knight");
+    const back = jobLabel(soulByUid(target?.primary)?.clsKey || "priest");
+    return tutState().step === 0 ?
+      [`${front}の『管理』を開き、『入れ替え』を押してください。`, `次に${back}を選び、${front}を前衛へ移しましょう。`] :
+      [`『隊列の中で場所を替える』から${back}を選んでください。`, `${front}が前衛に、${back}が後衛に移ります。`];
+  }
   // 目標札の操作手順ではなく、通常会話と同じ口調で案内する。
   if (p.key === "fusion") return ["『魂融合』を開き、素材にする魂をお選びください。", "余っている同じ職の魂を、ひとつに溶かしましょう。"];
   if (p.key === "newJobParty") return ["『人業を仕立てる』で、魂の一覧を開いてみてください。", "その後は自由に選べます。今は宿さずに閉じてもかまいません。"];
@@ -663,6 +698,8 @@ function tutorialControls() {
   if (!d) return choose(first(document, ".hb-goal-go"));
   const st = tutState(), s = curStep();
   if (card) {
+    if (d.key === "prologueFormation" && card.classList.contains("pt-manage-sheet")) return choose(first(card, ".pt-head-join"));
+    if (d.key === "prologueFormation" && card.querySelector(".pt-sw-card")) return choose(first(card, `[data-swap-job="${formationMove().targetJob}"]`));
     if (d.key === "prologueAppraise" && card.classList.contains("ap-sheet")) return choose(first(card, ".ui-sheet-foot .ui-btn.k-primary, .ui-sheet-foot .ui-btn.k-ghost, .ap-stage"));
     // 門衛の忠告は、本文のスクロールと支度に戻る操作も受け付ける。
     if (card.classList.contains("dp-brief-sheet")) return choose(first(card, ".ui-sheet-foot .ui-btn.k-primary"), [h.body, ...first(card,".ui-sheet-foot .ui-btn.k-ghost")]);
@@ -673,7 +710,7 @@ function tutorialControls() {
     }
     if (card.classList.contains("pt-res-sheet")) return choose(first(card, ".pt-res-add"));
     if (card.classList.contains("pt-pick-sheet") && ["createThree", "createFourth", "createFifth", "createSixth"].includes(d.key)) {
-      const jobs = { createFourth: ["knight"], createFifth: ["mage"], createSixth: ["bishop"] }[d.key] || ["fighter", "priest", "thief"];
+      const jobs = d.key === "createThree" ? ["fighter", "priest", "thief"] : [game.prologueJob()];
       const rows = jobs.flatMap((job) => first(card, `.pt-soulrow[data-job="${job}"]`));
       return choose(rows);
     }
@@ -693,6 +730,11 @@ function tutorialControls() {
     const primary = first(card, ".ui-sheet-foot .ui-btn.k-primary:not(:disabled)");
     const rows = first(card, ".ui-row");
     return primary.length || rows.length ? choose([...primary, ...rows]) : forward();
+  }
+  if (d.key === "prologueFormation" && st.step === 0) {
+    const { mover } = formationMove(), job = soulByUid(mover?.primary)?.clsKey;
+    const selected = document.querySelector(".pt-mansion-head")?.dataset.job === job;
+    return choose(first(document, selected ? ".pt-mansion-head button" : `.pt-form [data-drop="p${G_().party.indexOf(mover)}"]`));
   }
   if (["createThree", "createFourth", "createFifth", "createSixth"].includes(d.key)) {
     const count = allDolls().length;

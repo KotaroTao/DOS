@@ -14424,18 +14424,26 @@ function sealedLines() {
 const prologue = () => G.msq?.prologue || null;
 const prologuePhase = () => prologue()?.phase || null;
 const prologueActive = () => !!prologue() && prologuePhase() !== "done";
-const PROLOGUE_JOBS = { fourth: "knight", fifth: "mage", sixth: "bishop" };
+const PROLOGUE_JOBS = { fourth: "mage", fifth: "knight", sixth: "bishop" };
+function prologueJob(phase = prologuePhase()) {
+  // 更新前に授かった魂・育てた人業は変えず、不足している方の職を迎える。
+  const gift = soulByUid(prologue()?.gifts?.[phase]);
+  if (gift) return gift.clsKey;
+  if (phase === "fifth" && allDolls().some(d => soulByUid(d.primary)?.clsKey === "knight") &&
+      !allDolls().some(d => soulByUid(d.primary)?.clsKey === "mage")) return "mage";
+  return PROLOGUE_JOBS[phase];
+}
 function prologueDollGoal() { return { three: 3, fourth: 4, fifth: 5, sixth: 6 }[prologuePhase()] || 0; }
 function prologueCreateSouls() {
   const free = soulRepresentatives().filter(s => !soulWorn(s.uid));
   if (!prologueActive()) return free;
   const goal = prologueDollGoal();
   if (!goal || allDolls().length >= goal) return [];
-  const jobs = prologuePhase() === "three" ? ["fighter", "priest", "thief"] : [PROLOGUE_JOBS[prologuePhase()]];
+  const jobs = prologuePhase() === "three" ? ["fighter", "priest", "thief"] : [prologueJob()];
   return free.filter(s => jobs.includes(s.clsKey));
 }
 function preparePrologueDoll() {
-  const p = prologue(), phase = p?.phase, job = PROLOGUE_JOBS[phase];
+  const p = prologue(), phase = p?.phase, job = prologueJob(phase);
   if (!job || p.gifts?.[phase]) return;
   p.gifts ||= {};
   // 旧序章で下賜済みの未使用魂があれば引き継ぎ、重複して授けない。
@@ -14457,7 +14465,7 @@ function completePrologueTutorial(key) {
   const p = prologue();
   if (!p) return;
   const next = { createThree: ["three", "forest"], createFourth: ["fourth", "cryptQuest"],
-    createFifth: ["fifth", "corridorQuest"], createSixth: ["sixth", "appraise"], prologueAppraise: ["appraise", "abbeyQuest"] }[key];
+    createFifth: ["fifth", "formation"], prologueFormation: ["formation", "corridorQuest"], createSixth: ["sixth", "appraise"], prologueAppraise: ["appraise", "abbeyQuest"] }[key];
   if (!next || p.phase !== next[0]) return;
   p.phase = next[1];
   G.msq.n = 1; G.msq.state = "world";
@@ -14497,7 +14505,7 @@ function prologueObjective() {
   if (quest) return { key: "prologueQuest", text: quest, act: "王宮へ", kind: "palace", run: prologueAudience };
   const target = { forest: ["w00_forest", "三体で森の古屋へ行き、人業を連れ帰る"], crypt: ["w01", "四体で地下墓地の騒ぎの原因を調べる"], corridor: ["w02", "五体で亡骸の囁く回廊の最深部を調べる"], abbey: ["w03", "六体で朽ちた骸の修道院へ向かう"] }[phase];
   if (target && !reportPending()) return { key: "prologueDive", text: target[1], act: "出撃", kind: "gate", run: () => departTo(worldIndexOf(target[0])) };
-  if (["three", "fourth", "fifth", "sixth", "appraise"].includes(phase)) return { key: "prologueMansion", text: "人業の館でイレーヌの手ほどきを受ける", act: "館へ", kind: "party", run: () => UI.enterMansion?.() };
+  if (["three", "fourth", "fifth", "formation", "sixth", "appraise"].includes(phase)) return { key: "prologueMansion", text: "人業の館でイレーヌの手ほどきを受ける", act: "館へ", kind: "party", run: () => UI.enterMansion?.() };
   return null;
 }
 function tutDollCount() { return allDolls().filter(d => !d.isEmpty).length; }
@@ -18165,7 +18173,7 @@ function setupTestPlay() {
   setupNewGame();
   G.testPlay = true;
   G.msq = { n: 1, state: "world" };
-  const earlyTutorial = testScene?.kind === "tutorial" && ["createThree", "createFourth", "createFifth", "createSixth", "prologueAppraise", "buyEquipment", "firstDive"].includes(testScene.id.slice(9));
+  const earlyTutorial = testScene?.kind === "tutorial" && ["createThree", "createFourth", "createFifth", "createSixth", "prologueFormation", "prologueAppraise", "buyEquipment", "firstDive"].includes(testScene.id.slice(9));
   const idx = testScene || testInfFloor ? (earlyTutorial || testScene?.id === "opening" ? 0 : DUNGEONS.findLastIndex(d => !d.tutorial)) : testDungeonIdx;
   G.dungeonIdx = idx;
   const cfg = DUNGEONS[idx];
@@ -18223,12 +18231,12 @@ function setupTestPlay() {
     G.testTutorial = key;
     G.tut.done = Object.fromEntries(uiTutorial.testTutorials.filter((t) => t.id !== testScene.id).map((t) => [t.id.slice(9), true]));
     addSoulInstance("fighter"); addSoulInstance("priest"); addSoulInstance("thief"); addSoulInstance("mage");
-    if (["createThree", "createFourth", "createFifth", "createSixth", "prologueAppraise"].includes(key)) {
-      const count = { createThree: 0, createFourth: 3, createFifth: 4, createSixth: 5, prologueAppraise: 6 }[key];
-      const phase = { createThree: "three", createFourth: "fourth", createFifth: "fifth", createSixth: "sixth", prologueAppraise: "appraise" }[key];
+    if (["createThree", "createFourth", "createFifth", "createSixth", "prologueFormation", "prologueAppraise"].includes(key)) {
+      const count = { createThree: 0, createFourth: 3, createFifth: 4, createSixth: 5, prologueFormation: 5, prologueAppraise: 6 }[key];
+      const phase = { createThree: "three", createFourth: "fourth", createFifth: "fifth", createSixth: "sixth", prologueFormation: "formation", prologueAppraise: "appraise" }[key];
       G.party = []; G.reserve = []; G.souls = []; setSharedSouls(G.souls); G.dollsPurchased = 0;
       G.msq = { n: count ? 1 : 0, state: "world", granted: true, prologue: { phase, gifts: {} } };
-      for (const job of ["fighter", "priest", "thief", "knight", "mage", "bishop"].slice(0, Math.max(3, count))) {
+      for (const job of ["fighter", "priest", "thief", "mage", "knight", "bishop"].slice(0, Math.max(3, count))) {
         const soul = addSoulInstance(job);
         if (G.party.length < count) { const d = makeDoll(randomDollName()); d.primary = soul.uid; recalcDoll(d); d.hp = d.maxhp; d.mp = d.maxmp; G.party.push(d); G.dollsPurchased++; }
       }
@@ -18711,7 +18719,7 @@ bindGame({
 // 契約 (UI.openParty / autoEquip / betterGearCount / trainableList / equipItemTo / bestWearer) は各モジュールの install() が登録する
 bindGame({
   equipAt, equipFromWearer, moveItem, campCast, campSpellsOf, healAll, healAllNeed, repairCostOf, repairCostAll, repairDoll, setReviveTimers, hastenCostOf, tryHastenRescue, awaitingRescue, RESCUE_SHORTEN_MS,
-  prologuePhase, prologueActive, prologueCreateSouls, preparePrologueDoll, completePrologueTutorial, prologueAppraisalItem, preparePrologueAppraisal, prologueAudience, stabilityApplies,
+  prologuePhase, prologueActive, prologueJob, prologueCreateSouls, preparePrologueDoll, completePrologueTutorial, prologueAppraisalItem, preparePrologueAppraisal, prologueAudience, stabilityApplies,
   emptyDollCost, grantRedSoul, randomDollName, finalizeBuyDoll, soulRepresentatives, partySoulConflict, soulSlotConflict, soulTakePlan, placeSoulInDoll, ownSoulSlot, blockSoulResonance, soulSortCmp, soulRankOf, soulWorn, soulWornByOther,
   equipSoulToSlot, fuseCandidates, fuseSubWorn, fuseSoul, fuseSouls, toggleSoulLock, openFusePicker, openSubSkillPicker, slotSoul,
   unlockedSubSlots, orderSeats, orderSeatedUids, toggleOrderSeat, showCodexJobDetail, addSoulInstance, codexSweepJobs,
