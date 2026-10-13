@@ -525,7 +525,7 @@ function openMutSheet(m) {
 function openBriefing(go) {
   if (cur?.page !== "rematch" && game.stabilityApplies && !game.stabilityApplies()) {
     sheet.open({ kind: "info", banner: "出撃", title: "探索と帰還", className: "dp-brief-sheet",
-      lines: ["最下階まで進み、依頼の品を調べましょう。最下階の出口から街へ戻れます。", "五階ごとの帰還魔法陣からも、街へ戻れます。"],
+      lines: ["最下階まで進み、依頼の品を調べましょう。最下階の出口から街へ戻れます。"],
       footer: [{ label: "迷宮に入る", kind: "primary", onTap: h => { h.close(); go(); } }] });
     return;
   }
