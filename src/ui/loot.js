@@ -1042,6 +1042,13 @@ function lootCelebrate(item, who, opts, next) {
         scroll.appendChild(dl);
       }
     }
+    const traits = specialLines(item);
+    if (traits.length) {
+      const box = el("div", "wpc-is-fx");
+      box.appendChild(el("div", "wpc-is-fxh", "特性"));
+      for (const ln of traits) box.appendChild(setText(el("div", "wpc-is-fxl"), ln));
+      scroll.appendChild(box);
+    }
     scroll.appendChild(el("div", "ig-desc", unid ? "なんだかよくわからない品だ。鑑定すれば正体がわかるだろう。" : (item.desc || "")));
     if (misc && !unid) scroll.appendChild(el("div", "ig-stat", isNewCollectible(item) ? "まだ宝物庫にない品。王宮の宝物庫に納められる。" : "すでに宝物庫に納めた品。商会で売れる。"));
     if (who) scroll.appendChild(el("div", "ig-who", `${who.name} が手に入れた`));
