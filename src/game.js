@@ -18888,7 +18888,7 @@ async function init() {
     G.prompt = false;
     startAfterTitle(loaded);
   };
-  // タイトルの「はじめから」(記録あり): 確認ののち記録を消して読み直し、タイトルを飛ばして序章から始める
+  // タイトルの「はじめから」(記録あり): 確認ののち記録を消して読み直し、開始ボタンの操作で音声を解禁する
   const newGameFromTitle = (name) => {
     _resetting = true;
     clearSave();
@@ -18897,28 +18897,25 @@ async function init() {
   };
   let freshStart = false, freshName = "";
   try { freshStart = sessionStorage.getItem("dos-newgame") === "1"; sessionStorage.removeItem("dos-newgame"); freshName = normalizeName(sessionStorage.getItem("dos-newgame-name")); sessionStorage.removeItem("dos-newgame-name"); } catch (e) {}
-  if (freshStart && freshName && !loaded) start(freshName);
-  else {
-    try {
-      showTitle({ hasSave: loaded, summary: loaded ? titleSummary() : null, onStart: start, onNewGame: loaded && !cloudEnabled() ? newGameFromTitle : null,
-        testDungeons: DUNGEONS, testScenes, onTestPlay: ({ id, floor, place, scene, inf, infLv }) => {
-          _resetting = true;
-          const url = new URL(location.href);
-          if (inf) { // 無限迷宮の試遊: ○階から、隊Lv○で
-            for (const key of ["testDungeon", "testFloor", "testPlace", "testScene"]) url.searchParams.delete(key);
-            url.searchParams.set("testInf", inf);
-            if (infLv) url.searchParams.set("testInfLv", infLv); else url.searchParams.delete("testInfLv");
-            location.assign(url.href);
-            return;
-          }
-          url.searchParams.delete("testInf"); url.searchParams.delete("testInfLv");
-          if (scene) url.searchParams.set("testScene", scene); else url.searchParams.delete("testScene");
-          url.searchParams.set("testDungeon", id); url.searchParams.set("testFloor", floor); url.searchParams.set("testPlace", place);
+  try {
+    showTitle({ hasSave: loaded, startName: freshStart ? freshName : "", summary: loaded ? titleSummary() : null, onStart: start, onNewGame: loaded && !cloudEnabled() ? newGameFromTitle : null,
+      testDungeons: DUNGEONS, testScenes, onTestPlay: ({ id, floor, place, scene, inf, infLv }) => {
+        _resetting = true;
+        const url = new URL(location.href);
+        if (inf) { // 無限迷宮の試遊: ○階から、隊Lv○で
+          for (const key of ["testDungeon", "testFloor", "testPlace", "testScene"]) url.searchParams.delete(key);
+          url.searchParams.set("testInf", inf);
+          if (infLv) url.searchParams.set("testInfLv", infLv); else url.searchParams.delete("testInfLv");
           location.assign(url.href);
-        } });
-      revealBootScreen();
-    } catch (e) { start(); }
-  }
+          return;
+        }
+        url.searchParams.delete("testInf"); url.searchParams.delete("testInfLv");
+        if (scene) url.searchParams.set("testScene", scene); else url.searchParams.delete("testScene");
+        url.searchParams.set("testDungeon", id); url.searchParams.set("testFloor", floor); url.searchParams.set("testPlace", place);
+        location.assign(url.href);
+      } });
+    revealBootScreen();
+  } catch (e) { start(); }
 
   if ("serviceWorker" in navigator) {
     // 新しい SW が制御を奪った瞬間に1度だけ確実にリロード (古いJS混在を防ぐ)。

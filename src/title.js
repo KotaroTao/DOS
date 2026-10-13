@@ -32,7 +32,8 @@ function div(cls, text) {
 }
 const sfx = (k) => { try { SFX[k] && SFX[k](); } catch {} };
 
-export function showTitle({ hasSave = false, summary = null, onStart, onNewGame = null, testDungeons = [], testScenes = [], onTestPlay = null } = {}) {
+export function showTitle({ hasSave = false, summary = null, onStart, onNewGame = null, startName = "", testDungeons = [], testScenes = [], onTestPlay = null } = {}) {
+  const readyName = hasSave ? "" : normalizeName(startName);
   const wrap = div("ttl-overlay");
   if (REDUCED) wrap.classList.add("ttl-still");
   const cv = document.createElement("canvas");
@@ -104,7 +105,7 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
       btns.appendChild(newBtn);
     }
   } else {
-    goBtn = mkBtn("はじめから", "NEW GAME", "primary");
+    goBtn = mkBtn(readyName ? "物語を始める" : "はじめから", "NEW GAME", "primary");
     btns.appendChild(goBtn);
     const dis = mkBtn("つづきから", "記録なし", "off");
     dis.disabled = true;
@@ -374,7 +375,12 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
     setTimeout(() => { cancelAnimationFrame(raf); if (!immediate && cb) cb(); }, REDUCED ? 60 : 520);
     setTimeout(() => wrap.remove(), REDUCED ? 400 : 1500);
   };
-  const start = () => { if (!hasSave) { askName(); return; } sfx("stairs"); close(onStart); };
+  const start = () => {
+    // 記録消去後は名前を引き継ぎ、この操作の中で語りを始める。
+    if (readyName) { sfx("stairs"); close(() => onStart(readyName), true); return; }
+    if (!hasSave) { askName(); return; }
+    sfx("stairs"); close(onStart);
+  };
   // 新規は名前入力へ、再開はそのまま本編へ (タップで音声も目覚める)。
   // それ以外の場所をタップすると、目覚めの演出 (鐘・門の脈動・鴉) だけを見せる
   const wake = () => {
