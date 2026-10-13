@@ -34,18 +34,19 @@ const learnName = (t) => t.passive ? passiveName(t.passive, t.plv || 1) : SPELLS
 const learnKind = (t) => t.passive ? "パッシブ" : "技";
 const showLearn = (t) => t.passive ? showPassivePopup(t.passive, t.plv || 1) : showSkillPopup(t.skill);
 
-// 成長した魂のレベル範囲から拾う。サブ魂の未借用のパッシブも習得として知らせる。
-function luPassives(e) {
-  const out = new Map();
-  const ranges = [...(e.main ? [{ uid: e.uid, ...e.main }] : []), ...(e.subs || [])];
-  for (const r of ranges) {
+// 成長した魂ごとに習得を拾う。同じ技・パッシブも習得元が違えば別に知らせる。
+function luLearnGroups(e) {
+  const ranges = [...(e.main ? [{ uid: e.uid, ...e.main, main: true }] : []), ...(e.subs || [])];
+  return ranges.flatMap((r) => {
     const soul = soulByUid(r.uid);
-    if (!soul) continue;
-    for (const t of jobSkillTable(soul.clsKey)) {
-      if (t.passive && t.lvl > r.from && t.lvl <= r.to) out.set(t.passive + "/" + (t.plv || 1), t);
-    }
-  }
-  return [...out.values()];
+    if (!soul) return [];
+    const learns = jobSkillTable(soul.clsKey).filter((t) =>
+      t.lvl > r.from && t.lvl <= r.to && (t.passive || SPELLS[t.skill]));
+    if (!learns.length) return [];
+    const job = (SOUL_CLASSES[soul.clsKey] || {}).label || soul.clsKey;
+    const role = !e.doll && !e.name ? "控えの魂" : r.main ? "メイン魂" : "サブ魂";
+    return [{ label: `${role} ${job}`, learns }];
+  });
 }
 
 // ドット1つを整数倍で描く (image-rendering: pixelated)
@@ -1520,19 +1521,26 @@ function luStats(e, delay0, step = 90) {
 }
 // 覚えた技 (押すと説明)。光って現れる
 function luSkills(e, delay, { head = true } = {}) {
-  const ks = [...(e.skills || []).filter((k) => SPELLS[k]).map((skill) => ({ skill })), ...luPassives(e)];
-  if (!ks.length) return null;
+  const groups = luLearnGroups(e);
+  if (!groups.length) return null;
   const wrap = el("div", "sp-fz-sec sp-ru-blk sp-lu-learn");
   if (head) wrap.appendChild(el("div", "sp-fz-h", "新たに覚えた"));
-  const list = el("div", "sp-fz-learn");
-  ks.forEach((k, i) => {
-    const b = el("button", `sp-fz-chip ${k.passive ? "ps" : "sk"} sp-lu-chip`, `${learnKind(k)} ${learnName(k)}`);
-    b.type = "button";
-    b.style.animationDelay = `${delay + i * 140}ms, ${delay + i * 140 + 500}ms`;
-    b.addEventListener("click", () => showLearn(k));
-    list.appendChild(b);
-  });
-  wrap.appendChild(list);
+  let i = 0;
+  for (const group of groups) {
+    const section = el("div", "sp-lu-learn-group");
+    section.appendChild(el("div", "sp-lu-learn-source", group.label));
+    const list = el("div", "sp-fz-learn");
+    for (const k of group.learns) {
+      const b = el("button", `sp-fz-chip ${k.passive ? "ps" : "sk"} sp-lu-chip`, `${learnKind(k)} ${learnName(k)}`);
+      b.type = "button";
+      b.style.animationDelay = `${delay + i * 140}ms, ${delay + i * 140 + 500}ms`;
+      b.addEventListener("click", () => showLearn(k));
+      list.appendChild(b);
+      i++;
+    }
+    section.appendChild(list);
+    wrap.appendChild(section);
+  }
   return wrap;
 }
 // サブ魂の成長 (小さな札)
@@ -1574,7 +1582,7 @@ export function celebrateLevelUp(entries, onClose) {
   const list = (entries || []).filter((e) => e && (e.main || (e.subs || []).length));
   const done = () => { if (typeof onClose === "function") onClose(); };
   if (!list.length) { done(); return null; }
-  const learned = list.some((e) => (e.skills || []).some((k) => SPELLS[k]) || luPassives(e).length > 0);
+  const learned = list.some((e) => luLearnGroups(e).length > 0);
   sfx("levelup");
   buzzLv(learned ? [0, 40, 40, 40, 40, 60, 80, 160] : [0, 40, 40, 40, 40, 90]);
   if (learned) { try { if (game.flashScreen) game.flashScreen("#ffe7a0"); } catch (e) { /* 演出のみ */ } }
