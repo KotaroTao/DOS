@@ -113,6 +113,7 @@ const WORLD_DEF = [
     bands: [
       ["bs_bonebat", "bs_carrioncrow", "bs_corpsemaggot", "bs_grasphand", "bs_gravewisp", "bs_bonepile"],
     ],
+    elites: ["el_cryptlord"], // 地下墓地には蒼白の首切り鬼を出さない
     unlock: { start: true },
     hint: "序章で三体の人業を仕立てると、王が在処を明かす",
   },
