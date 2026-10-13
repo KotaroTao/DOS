@@ -18,7 +18,7 @@ export default {
     // Lv15 の固有技: 鎮め石を巡らせ、敵全体の特技と力を鎮める
     WARDEN_SHIZUMEISHI: { name: "鎮め石", mp: 6, kind: "debuff", seal: { chance: 0.35, turns: 2 }, debuff: { atk: 0.9 }, target: "all-enemy", desc: "鎮め石を巡らせ、敵全体の特技を封じて力を鈍らせる" },
     WARDEN_FUUGAN:      { name: "封眼の符", mp: 4, kind: "debuff", debuff: { hit: 0.75 }, seal: { chance: 0.3, turns: 2 }, target: "enemy", desc: "符で目を塞ぎ、狙いを乱し特技を封じる" },
-    WARDEN_SEKIRUI:     { name: "石塁の礫", mp: 8, kind: "atk", power: 24, element: "earth", debuffAll: { atk: 0.9 }, target: "enemy", desc: "石塁の礫を撃ち、敵全体の勢いを削ぐ" },
+    WARDEN_SEKIRUI:     { name: "石塁の礫", mp: 8, kind: "atk", power: 24, element: "earth", debuffAll: { atk: 0.9 }, target: "all-enemy", desc: "石塁の礫で敵全体を撃ち、勢いを削ぐ" },
     WARDEN_FUUMAKEKKAI: { name: "封魔結界", mp: 10, kind: "debuff", seal: { chance: 0.55, turns: 3 }, debuff: { agi: 0.9 }, target: "all-enemy", desc: "結界で敵全体の特技を封じ、足を鈍らせる" },
     WARDEN_CHINJUU:     { name: "鎮めの重石", mp: 7, kind: "atk", gravity: 0.2, seal: { chance: 0.5, turns: 2 }, target: "enemy", desc: "今のHPの20%を圧し、特技を鎮める" },
     WARDEN_MIZUKAGAMI:  { name: "水鏡の陣", mp: 11, kind: "buff", buff: { vit: 1.25 }, regen: { pct: 0.03, turns: 3 }, target: "all-ally", desc: "味方全員の守りを固め、傷を癒し続ける" },
