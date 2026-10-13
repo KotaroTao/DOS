@@ -11717,6 +11717,10 @@ function finishToBoard() {
   autosave(true);
 }
 
+function earlyRescueFree() {
+  return !abyssActive() && ["w00_forest", "w01", "w02"].includes(curDungeon()?.id);
+}
+const guardianCost = () => earlyRescueFree() ? 0 : GUARDIAN_COST;
 const GUARDIAN_COST = 20; // 全滅時、戦利品を守って帰還するための Red Soul
 // 全滅: 決断のシート (赤い魂で全てを守る / あきらめる)。戻る操作では閉じない。
 // 選んだら闇に溶けて街へ戻り、帰還の報告 (全滅版) に失ったもの・連れ帰りの時を残す
@@ -11761,24 +11765,25 @@ function gameOver() {
     });
     return;
   }
+  const cost = guardianCost();
   uiResults.openWipe({
     abandoned: !!r.abandoned, // 自ら迷宮を諦めた (全滅と同じ扱い)
     gold: secured ? 0 : (r.gold || 0),
     items: secured ? 0 : (r.items || []).length,
     souls: secured ? 0 : (r.souls || []).length,
     soulPts: r.soulPts || 0,
-    secured, cost: GUARDIAN_COST, red: G.redSoul,
-    canSave: G.redSoul >= GUARDIAN_COST,
+    secured, cost, red: G.redSoul,
+    canSave: G.redSoul >= cost,
     party: G.party.map((d) => ({ name: d.name, uid: d.uid })),
     // 赤い魂を使う: 何も失わず街へ即時帰還。全キャラHP1で復活する
     onSave: () => {
-      if (G.redSoul < GUARDIAN_COST) return;
-      G.redSoul -= GUARDIAN_COST;
+      if (G.redSoul < cost) return;
+      G.redSoul -= cost;
       const run = G.run;
       G.run = null; // 戦利品を確定 (没収しない)
       reviveAllAtHp1(); // 全キャラHP1で復活
       SFX.levelup(); buzz([0, 30, 40, 30]);
-      log("赤い魂が戦利品と人業を守った。一同HP1で生還する。", "win");
+      log(cost === 0 ? "戦利品と人業を守り、赤い魂を使わずに生還した。一同HP1で街へ戻る。" : "赤い魂が戦利品と人業を守った。一同HP1で生還する。", "win");
       goTown({ outcome: "saved", run });
     },
     // あきらめる: ゴールド・アイテム・魂を失う (✦Soul は残る)、人業は連れ帰りを待つ
@@ -11804,7 +11809,7 @@ function confirmAbandonDungeon() {
       `赤い魂 ${infRedCost(G.floor)} を払わなければ、拾った魂・品・残火を何も持ち帰れない。`,
     ] : [
       "全滅と同じ扱いになる。隊の人業はことごとく砕け、連れ帰りを待つ。",
-      secured ? "主を討った後なので、戦利品は失わない。" : `赤い魂 ${GUARDIAN_COST} を使わなければ、今回得た金貨・品・魂を失う。`,
+      guardianCost() === 0 ? "赤い魂なしで戦利品と人業を守り、街へ戻れる。" : secured ? "主を討った後なので、戦利品は失わない。" : `赤い魂 ${guardianCost()} を使わなければ、今回得た金貨・品・魂を失う。`,
       "✦Soul は失わない。",
     ],
     okLabel: "諦める",
@@ -15332,6 +15337,7 @@ function startRescueTimers(dolls) {
     const floor = G.floor || d.diedFloor || 1;
     d.diedFloor = floor;
     d.reviveAt = now + rescueDurationMs(floor);
+    d.rescueFree = earlyRescueFree();
   }
 }
 // 生き返った人業に残った連れ帰りの印を消す (呪文で蘇った時など)
@@ -15381,15 +15387,19 @@ function rescueArrive(d, byRedSoul = false) {
 const RESCUE_SHORTEN_MS = 20 * 60 * 1000;
 // いますぐ連れ帰るのに要る赤い魂の数 (20分ごとに1。押す回数ぶんと同じ値段)
 function hastenCostOf(d) {
-  if (!awaitingRescue(d)) return 0;
+  if (!awaitingRescue(d) || (d.rescueFree ?? earlyRescueFree())) return 0;
   return Math.max(1, Math.ceil((d.reviveAt - Date.now()) / RESCUE_SHORTEN_MS));
+}
+function canHastenRescue() {
+  return allDolls().some(d => awaitingRescue(d) && (hastenCostOf(d) === 0 || G.redSoul >= 1));
 }
 function tryHastenRescue(d) {
   if (!awaitingRescue(d)) return;
-  if (G.redSoul < 1) { log("赤い魂が足りない。", "sys"); SFX.ng(); showToast("赤い魂が足りない", { tone: "bad" }); return; }
-  G.redSoul -= 1;
-  d.reviveAt -= RESCUE_SHORTEN_MS;
-  if (d.reviveAt <= Date.now()) rescueArrive(d, true);
+  const cost = hastenCostOf(d) === 0 ? 0 : 1;
+  if (G.redSoul < cost) { log("赤い魂が足りない。", "sys"); SFX.ng(); showToast("赤い魂が足りない", { tone: "bad" }); return; }
+  G.redSoul -= cost;
+  d.reviveAt -= cost === 0 ? Math.max(0, d.reviveAt - Date.now()) : RESCUE_SHORTEN_MS;
+  if (d.reviveAt <= Date.now()) rescueArrive(d, cost > 0);
   else { SFX.select(); buzz(15); log(`${d.name} の連れ帰りを早めた。`, "sys"); }
   updateTopbar();
   if (G.statusOpen) renderStatus();
@@ -15855,7 +15865,7 @@ function preDiveIssues() {
     }
     if (wait.length) {
       const cost = wait.reduce((a, d) => a + hastenCostOf(d), 0);
-      res.items.push({ kind: "rescue", tone: "bad", text: `${namesShort(wait)} は連れ帰りを待っている`, fix: { act: "hasten", label: "今すぐ連れ帰る", cost: { kind: "red", n: cost }, ok: G.redSoul >= 1 } });
+      res.items.push({ kind: "rescue", tone: "bad", text: `${namesShort(wait)} は連れ帰りを待っている`, fix: { act: "hasten", label: "今すぐ連れ帰る", cost: { kind: "red", n: cost }, ok: canHastenRescue() } });
     }
   }
   // 仲間が少ない (宿せる魂と器の余裕がある時だけ)
@@ -18466,13 +18476,14 @@ const OPS = {
     const wait = allDolls().filter(awaitingRescue).sort((a, b) => a.reviveAt - b.reviveAt);
     let spent = 0, arrived = 0;
     for (const d of wait) {
+      if (hastenCostOf(d) === 0) { rescueArrive(d); arrived++; continue; }
       while (awaitingRescue(d) && G.redSoul >= 1) {
         G.redSoul -= 1; spent++;
         d.reviveAt -= RESCUE_SHORTEN_MS;
         if (d.reviveAt <= Date.now()) { rescueArrive(d, true); arrived++; }
       }
     }
-    if (!spent) {
+    if (!spent && !arrived) {
       if (wait.length) { log("赤い魂が足りない。", "sys"); SFX.ng(); }
       return { ok: false, spent: 0, arrived: 0 };
     }
@@ -18582,6 +18593,7 @@ const OPS = {
       SFX.ng();
       return { ok: false, levels: 0, spent: 0, from, to: from };
     }
+    UI.tutorialEvent?.("soulTrained");
     recalcAllDolls({ levelUp: true });
     codexJobSee(e.clsKey, e.count, e.level, e.capBonus);
     log(`${soulLabel(e)}が Lv${from}→${e.level} に成長した！ ${spent ? `(✦${spent})` : "(蓄積していた ✦Soul)"}`, "win");
@@ -18713,7 +18725,7 @@ function wireUI() {
     insightSummary, worldState, worldOpenIdx, pendingIreneBeat, playIreneBeat, dungeonLevel, FEATURES, featureNote, chaptersDone, storyGoal, currentChapter, dungeonTrait, dungeonFloorHaz,
     trainSoul, raiseSoulCap, raiseCapSoulCost, capBySoulOk, soulTrainCost, soulByUid, codexSeeItem, treasuryState, heldCollectibles, donateCollectible,
     claimAchievement, claimTreasury, treasuryRewardReady, deliveryHolder, deliveryStatus, deliverQuest,
-    repairDoll, repairAllDolls, repairCostOf, tryHastenRescue, reviveTimerEl, fmtRemain, awaitingRescue, hastenCostOf,
+    repairDoll, repairAllDolls, repairCostOf, tryHastenRescue, reviveTimerEl, fmtRemain, awaitingRescue, hastenCostOf, canHastenRescue,
     doEquip, doUnequip, toggleItemLock, equipFromAnywhere, reforgeCost, reforgeBlock, rollReforge, setItemQuality, openEquipChooser, useItem, dropItem, dropFromBag, askRoomFor, transferItem,
     stopAutoCombat, sceneBgm, playBgm, SFX,
     ACH_SERIES, FACILITIES, FAC_SHELL, CONTENT_LIMIT, DUNGEONS, LAYER_VISUALS,
@@ -18755,7 +18767,7 @@ bindGame({
   // 酒場・祠・宿
   ensureRumor, rumorFor, rollTavernCrowd, markTavernHeard, tavernNotes,
   questState, questLists, questByUid, questsHere, ensureQuestBoard, rollQuestBoard, acceptQuest, abandonQuest, claimQuest, questReadyCount, FREE_CAP, questHereNote, questHereCount, questsTargeting,
-  adCooldownLeft, watchShrineAd, RED_PACKS, buyRedPack, GUARDIAN_COST, RESCUE_SHORTEN_MS,
+  adCooldownLeft, watchShrineAd, RED_PACKS, buyRedPack, GUARDIAN_COST, guardianCost, RESCUE_SHORTEN_MS,
   // 設定 (端末の好み)
   PREFS, savePrefs, setWalkerLook, setVolumes, isMuted, toggleMute, ensureAudio, updateMuteBtn, resetAllData, confirmReset,
   // 他のパッケージも使える街の部品 (肖像・図鑑の詳細)

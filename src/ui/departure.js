@@ -401,7 +401,7 @@ async function runFix(fix) {
   if (fix.act === "hasten") {
     let c = null;
     try { c = ops.counts(); } catch (e) { c = null; }
-    const ok = await kitConfirm({ banner: "今すぐ連れ帰る", danger: false, title: "迷宮に残された人業を今すぐ連れ帰る", lines: [`赤い魂 🔴${c ? c.hastenCost : "?"} (20分ごとに1つ)`, "届いた器は、館で金貨を払って修復する。"], okLabel: "連れ帰る" });
+    const ok = await kitConfirm({ banner: "今すぐ連れ帰る", danger: false, title: "迷宮に残された人業を今すぐ連れ帰る", lines: [c?.hastenCost === 0 ? "回廊までの迷宮に残された人業は、赤い魂なしで今すぐ連れ帰れる。" : `赤い魂 🔴${c ? c.hastenCost : "?"} (20分ごとに1つ)`, "届いた器は、館で金貨を払って修復する。"], okLabel: "連れ帰る" });
     if (ok) ops.hastenAll();
     return;
   }

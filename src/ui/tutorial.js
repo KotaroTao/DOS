@@ -163,7 +163,7 @@ const TUTS = [
       ["この館なら、わたしが砕けた魂をつなぎ直せます。", anyBroken()
         ? "その子を選び、『砕けた魂を修復』を押してください。金貨を頂きますが、魂も器も、力を取り戻して立ち上がります。"
         : "砕けた子がいたら、館でその子を選び、『砕けた魂を修復』を押してください。金貨を頂きますが、魂も器も、力を取り戻して立ち上がります。"],
-      ["皆が倒れた時は、器が迷宮に残されます。ほかの冒険者が連れ帰るまで、お待ちください。", "深い階ほど時がかかります。赤い魂を捧げれば、連れ帰りを早められますが、修復は器が届いてからです。"],
+      ["皆が倒れた時は、器が迷宮に残されます。ほかの冒険者が連れ帰るまで、お待ちください。", "深い階ほど時がかかります。森・地下墓地・回廊からの回収は赤い魂なしで行えます。修道院以降は赤い魂で早められますが、修復は器が届いてからです。"],
       anyBroken()
         ? ["金貨が足りなければ、今すぐ修復しなくても大丈夫です。", "あの子たちの名を、忘れずにいてください。もう一度呼びかける日まで、わたしがお預かりします。"]
         : ["金貨が足りなければ、すぐに修復しなくても大丈夫です。", "砕けた子は、もう一度呼びかける日まで、わたしがお預かりします。"],
@@ -242,6 +242,22 @@ const TUTS = [
     ],
     steps: [{ text: "商会で鑑定の説明を聞く", hint: "商会 → 売る → 鑑定", done: () => true }],
     outro: ["未鑑定の品は、鑑定してから装備しよう。鑑定料と売値は同額、買値は売値の二倍。売った品は商会で買い直せる。"],
+  },
+  {
+    key: "trainSoul", name: "魂を強化", who: "irene",
+    open: () => !!tutState().trainPending, used: () => false,
+    prepare() { tutState().base.uid = UI.trainableList?.()[0]?.uid; },
+    intro: () => [
+      ["魂を育てるだけの✦Soulを持ち帰られたのですね。", "迷宮で集めた✦Soulは、館で魂の強化に使えます。"],
+      ["人業の『魂』で『魂を強化』を押すと、表示された✦Soulを使って、その子のメイン魂のLvが一つ上がります。", "能力が伸び、Lvによっては新しい技も覚えます。実際に一度、強化してみましょう。"],
+      ["✦Soulは隊で分け合うものです。育てたい子と必要な数を確かめてから使ってください。", "Lv上限に達した魂は、それ以上強化できません。"],
+    ],
+    steps: [{ text: "人業のメイン魂を一度強化する", hint: "人業の館 → 魂 → 魂を強化",
+      go: () => goSoulSeg(allDolls().find(d => d.primary === tutState().base.uid) || UI.trainableList?.()[0]?.doll),
+      target: [".sp-acts .ui-btn.k-primary:not(:disabled)"], on: "soulTrained",
+      skip: () => !(UI.trainableList?.().length > 0),
+    }],
+    outro: ["✦Soulがたまったら、館の『魂を強化』で育てよう。強化する魂と費用は、いつでも確認できる。"],
   },
   {
     key: "firstDive", name: "初めて迷宮に入る", who: "gate", manual: true,
@@ -571,6 +587,9 @@ function afterReport() {
 function afterReturn() {
   const st = tutState();
   if (!st) return false;
+  if (!st.done.trainSoul && UI.trainableList?.().length > 0) {
+    st.trainPending = true; game.autosave?.(true);
+  }
   if (!st.done.shopAppraise && UI.unidCount?.() > 0) {
     st.appraisePending = true;
     game.autosave?.(true);
@@ -579,7 +598,7 @@ function afterReturn() {
     resume(); return true;
   }
   if (st.done.repairSoul || !(anyBroken() || st.repairFell)) {
-    if (st.appraisePending && !st.done.shopAppraise) { resume(); return true; }
+    if ((st.appraisePending && !st.done.shopAppraise) || (st.trainPending && !st.done.trainSoul)) { resume(); return true; }
     return false;
   }
   st.repairPending = true;
@@ -678,6 +697,7 @@ function ireneGuidance() {
       [`『隊列の中で場所を替える』から${back}を選んでください。`, `${front}が前衛に、${back}が後衛に移ります。`];
   }
   // 目標札の操作手順ではなく、通常会話と同じ口調で案内する。
+  if (p.key === "trainSoul") return ["『魂を強化』を押し、✦Soulを魂に注いでください。", "必要な✦Soulと、上がるLvを確かめましょう。"];
   if (p.key === "fusion") return ["『魂融合』を開き、素材にする魂をお選びください。", "余っている同じ職の魂を、ひとつに溶かしましょう。"];
   if (p.key === "newJobParty") return ["『人業を仕立てる』で、魂の一覧を開いてみてください。", "その後は自由に選べます。今は宿さずに閉じてもかまいません。"];
   if (p.key === "soulChange") return ["『メイン魂』の枠で、魂の一覧を開いてみてください。", "持っている魂を確かめたら、一覧を閉じてください。"];

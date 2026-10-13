@@ -1160,7 +1160,6 @@ function emptyState() {
 
 // ---- 砕けた人業の知らせ (1行) ----
 // 全滅で迷宮に残された器は連れ帰りを待つ (赤い魂で早められる)。街にある器は、選んで「砕けた魂を修復」
-function RESCUE_MS() { return game.RESCUE_SHORTEN_MS || 20 * 60 * 1000; }
 const waiting = (d) => !!(d && !d.alive && d.reviveAt);
 function deadBanner(mode) {
   const G = G_();
@@ -1187,15 +1186,14 @@ function deadBanner(mode) {
   const tx = el("span", "pt-dead-tx");
   if (wait.length) {
     // 連れ帰りを待つ器がいる: 一番早い帰着の時 + 今すぐ連れ帰る
-    const now = Date.now();
     const soonest = wait.slice().sort((a, b) => a.reviveAt - b.reviveAt)[0];
-    const cost = wait.reduce((a, d) => a + Math.max(1, Math.ceil((d.reviveAt - now) / RESCUE_MS())), 0);
+    const cost = wait.reduce((a, d) => a + game.hastenCostOf(d), 0);
     tx.appendChild(el("b", null, wait.length > 1 ? `${wait.length}体` : wait[0].name));
     tx.appendChild(document.createTextNode(" 連れ帰り "));
     if (game.reviveTimerEl) tx.appendChild(game.reviveTimerEl("span", "pt-dead-tm", "", soonest));
     t.appendChild(tx);
     box.appendChild(t);
-    const b = button({ label: "今すぐ連れ帰る", kind: "danger", size: "sm", cost: { kind: "red", n: cost }, disabled: (G.redSoul || 0) < 1, onTap: () => confirmHastenAll(cost) });
+    const b = button({ label: "今すぐ連れ帰る", kind: "danger", size: "sm", cost: { kind: "red", n: cost }, disabled: !game.canHastenRescue(), onTap: () => confirmHastenAll(cost) });
     b.classList.add("pt-dead-b");
     box.appendChild(b);
     return box;
@@ -1215,7 +1213,7 @@ function confirmHastenAll(cost) {
   const have = G.redSoul || 0;
   confirm({
     banner: "連れ帰る", title: `赤い魂 ${Math.min(cost, have)} を捧げ、迷宮に残された人業を連れ帰る？`,
-    lines: [cost > have ? `必要 ${cost} のうち、所持の ${have} だけ捧げる (連れ帰りが早まる)。` : "赤い魂1つで連れ帰りが20分早まる。", "届いた器は、館で金貨を払って修復する。", `所持: 赤い魂 ${have}`],
+    lines: [cost === 0 ? "回廊までの迷宮に残された人業は、赤い魂なしで今すぐ連れ帰れる。" : cost > have ? `必要 ${cost} のうち、所持の ${have} だけ捧げる (連れ帰りが早まる)。` : "赤い魂1つで連れ帰りが20分早まる。", "届いた器は、館で金貨を払って修復する。", `所持: 赤い魂 ${have}`],
     okLabel: "連れ帰る", danger: false,
   }).then((ok) => {
     if (!ok) return;
@@ -1985,8 +1983,8 @@ function rescueLine(d) {
     t.appendChild(document.createTextNode("連れ帰り "));
     if (game.reviveTimerEl) t.appendChild(game.reviveTimerEl("b", "pt-rescue-tm", "", d));
     box.appendChild(t);
-    const n = Math.max(1, Math.ceil((d.reviveAt - Date.now()) / RESCUE_MS()));
-    box.appendChild(button({ label: "早める", kind: "secondary", size: "sm", cost: { kind: "red", n: 1 }, disabled: (G.redSoul || 0) < 1,
+    const n = game.hastenCostOf(d);
+    box.appendChild(button({ label: n === 0 ? "無料で連れ帰る" : "早める", kind: "secondary", size: "sm", cost: { kind: "red", n: n === 0 ? 0 : 1 }, disabled: n > 0 && (G.redSoul || 0) < 1,
       onTap: () => { if (game.tryHastenRescue) game.tryHastenRescue(d); rerender(); } }));
     if (n > 1) box.appendChild(button({ label: "今すぐ", kind: "danger", size: "sm", cost: { kind: "red", n }, disabled: (G.redSoul || 0) < 1,
       onTap: () => confirm({ banner: "連れ帰る", title: `赤い魂 ${n} で ${d.name} を今すぐ連れ帰る？`, lines: ["届いた器は、館で金貨を払って修復する。", `所持: 赤い魂 ${G.redSoul || 0}`], okLabel: "連れ帰る", danger: false })
