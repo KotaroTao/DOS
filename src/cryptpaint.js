@@ -1,5 +1,5 @@
 // 迷宮ごとの描き下ろし素材。各迷宮に蓋・壁材と床のWebP。
-// 素材がまだ無い・読めない間は呼び出し側が従来の絵を使う。
+// 読込中は表示を待ち、素材が無い・取得に失敗した時だけ従来の絵を使う。
 import { makeRng, paintFloorHazards } from "./crypt.js";
 
 export const CRYPT_PAINT_SCALE = 3;
@@ -9,19 +9,24 @@ export function cryptPainting(id = "w01") {
   if (!Object.hasOwn(PAINTINGS, id)) return null;
   if (!paintings.has(id)) {
     // 下段の床を拾わないよう、原画ごとの蓋の実際の境界を使う。
-    const state = { textures: { slabHeight: ({ w05: 496, w07: 504, w09: 496, w30: 488 })[id] || 512, wallStyle: id === "w10" ? "root" : id === "w11" ? "moss" : "stone" }, loaded: 0 };
+    const state = { textures: { slabHeight: ({ w05: 496, w07: 504, w09: 496, w30: 488 })[id] || 512, wallStyle: id === "w10" ? "root" : id === "w11" ? "moss" : "stone" }, loaded: 0, pending: 2 };
     if (id === "w00_forest") { state.textures.wallStyle = "root"; state.textures.props = false; }
     paintings.set(id, state);
     for (const [key, suffix] of [["atlas", "materials"], ["floor", "floor"]]) {
       const image = new Image();
       state.textures[key] = image; image.decoding = "async";
-      image.onload = () => { if (image.naturalWidth === 1536 && image.naturalHeight === 1024) state.loaded++; };
-      image.onerror = () => { /* 旧描画を維持し、次回の起動時に再取得する。 */ };
+      image.onload = () => { if (image.naturalWidth === 1536 && image.naturalHeight === 1024) state.loaded++; state.pending--; };
+      image.onerror = () => { state.pending--; };
       image.src = new URL(`../art/dungeon/${PAINTINGS[id]}-${suffix}.webp`, import.meta.url).href;
     }
   }
   const state = paintings.get(id);
   return state.loaded === 2 ? state.textures : null;
+}
+
+export function cryptPaintingPending(id) {
+  cryptPainting(id);
+  return (paintings.get(id)?.pending || 0) > 0;
 }
 
 function surface(w, h) {

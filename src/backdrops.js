@@ -3142,15 +3142,22 @@ function drawForestVista(ctx, w, h, dn, now) {
       state.ready = image.naturalWidth === 1536 && image.naturalHeight === 1024;
       state.failed = !state.ready;
       // 読み物の静止画も、初回の読込が終わったら描き直す。
-      if (state.ready) for (const [target, args] of state.waiting) drawDungeonVista(target, ...args);
+      for (const [target, args] of state.waiting) drawDungeonVista(target, ...args);
       state.waiting.clear();
     };
-    image.onerror = () => { state.failed = true; state.waiting.clear(); };
+    image.onerror = () => {
+      state.failed = true;
+      for (const [target, args] of state.waiting) drawDungeonVista(target, ...args);
+      state.waiting.clear();
+    };
     image.src = new URL("../art/dungeon/w00_forest-entrance.webp", import.meta.url).href;
   }
   if (!state.ready) {
-    if (!state.failed) state.waiting.set(ctx, [w, h, dn, now]);
-    return false;
+    if (state.failed) return false;
+    state.waiting.set(ctx, [w, h, dn, now]);
+    ctx.save(); ctx.globalAlpha = 1; ctx.fillStyle = "#080a10";
+    ctx.fillRect(0, 0, w, h); ctx.restore();
+    return true;
   }
   ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
   ctx.drawImage(state.image, 0, 0, w, h); ctx.restore();

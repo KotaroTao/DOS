@@ -28,7 +28,13 @@ function illustratedShot(index, scene, W, H) {
   const { focus } = OPENING_IMAGES[index];
   return {
     draw(g, t, cam, prog) {
-      if (!image || !image.complete || !image.naturalWidth) {
+      // 読込中は暗い幕を保ち、旧ドット絵は失敗時だけ使う。
+      if (image && !image.complete) {
+        g.save(); g.globalAlpha = 1; g.fillStyle = "#020104";
+        g.fillRect(0, 0, W, H); g.restore();
+        return;
+      }
+      if (!image || !image.naturalWidth) {
         if (!fallback) {
           const res = pickRes(W, H, 1, { maxArea: 120000, maxW: 440 });
           fallbackCanvas = document.createElement("canvas");
