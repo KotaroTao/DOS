@@ -1,3 +1,4 @@
+import { revealSteps } from "../monsterreveal.js";
 import { previewStats, trialEquip } from "../autoequip.js";
 import { RESIST_LABEL } from "../resistance.js";
 // ===== 品・スキルの表示まわり (game.js から移設した純粋な表示ヘルパ) =====
@@ -169,13 +170,7 @@ export function affinityRow(element, cls = "", affinity = null) {
 // 姿は最初から見える。1体 = 名前 / 5体 = 属性とHP / 10体 = 特徴・スキルと説明文。
 // 迷宮の主・強敵は1体討てば全てを明かす。主・名のある強敵は名前を最初から明かす。
 // 戦闘画面 (名札・HPの小瓶)・「敵の姿」・図鑑の一枚で共通
-export const MON_REVEAL = { name: 1, stats: 5, lore: 10 };
-export const BOSS_REVEAL = { name: 0, stats: 1, lore: 1 };
-// その魔物 (図鑑の定義) の開示段階
-// 名のある強敵 (dungeons/named.js) は名だけ最初から明かす (噂で知れ渡っている)。能力・伝承は倒して知る
-export const NAMED_REVEAL = { name: 0, stats: 1, lore: 1 };
-export const ELITE_REVEAL = { name: 1, stats: 1, lore: 1 };
-export function revealSteps(m) { return m && m.boss ? BOSS_REVEAL : m && m.named ? NAMED_REVEAL : m && m.elite ? ELITE_REVEAL : MON_REVEAL; }
+export { MON_REVEAL, BOSS_REVEAL, NAMED_REVEAL, ELITE_REVEAL, revealSteps } from "../monsterreveal.js";
 // その魔物を倒した数 (図鑑の記録を読むだけ。記録を作らない)
 export function monKills(key) {
   const g = game.G;
