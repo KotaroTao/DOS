@@ -1,18 +1,17 @@
-// ===== 街 (広場) — 夜景・帰還の報告・いまの目標・次にすべきこと・酒場/宿屋/祠の札・隊の札 =====
+// ===== 街 (広場) — 夜景・帰還の報告・いまの目標・次にすべきこと・酒場/宿屋/祠の札 =====
 // 担当: WP-A。街タブの描画 (UI.shell.registerTab("hub", …))。見出しは夜景に重ねる (シェルの見出しは出さない)。
-// 画面は1枚に収める (縦にスクロールさせない)。背の低い端末では「次にすべきこと・街の札」の段だけが内側で流れる。
+// 画面は1枚に収める (縦にスクロールさせない)。目標と次の行動は常に表示し、街の札だけが内側で流れる。
 //   夜景       … 生かしたまま使い回す (api.keep)。名所の札は 44px 以上の押せる場所
-//   帰還の報告 … 夜景の右下 (いまの目標の札の右上) に小さな札 (UI.runReportBadge)。押すと UI.openRunReport のシート (WP-D)。無ければ出さない
+//   帰還の報告 … 行動パネル内の札 (UI.runReportBadge)。押すと UI.openRunReport のシート。無ければ出さない
 //   いまの目標 … その場で果たせる操作つき (謁見する / 仕立てる / 王に報告する / 拝命する / 出撃)
 //   次にすべきこと … 優先順に最大3つ (3列の札)。1タップで実行 (売る・赤い魂を使うものは確認のシートを1枚)。
 //                   UI.registerSuggestion(fn) で他のパッケージも足せる
 //   酒場/宿屋/祠 … 宿屋の札は1タップで泊まる (詳細は長押し・泊まれない時はシート)
-//   隊の札     … タップでその人業の隊の画面 (UI.openParty(idx))
 // 提供: UI.registerSuggestion(fn) / UI.renderHub(root) (旧来の renderTownHub が委ねる)
 // game.js は import しない (ctx.js の UI / game / ops を通す)。
 
 import { UI, game, ops, registerUI } from "./ctx.js";
-import { el, setText, glyph, svgIcon, button, portrait, longPress, itemTile } from "./kit.js";
+import { el, setText, glyph, svgIcon, button, longPress, itemTile } from "./kit.js";
 import { createTownScene, townSpots, vignetteCanvas } from "../townart.js";
 import { infBannerCanvas } from "../infbannerart.js";
 import { SFX } from "../audio.js";
@@ -223,7 +222,7 @@ function spotOpen(k) {
 }
 
 // 夜景の箱は低く切り詰める。絵 (240x170) は下端に揃えた「舞台」に敷き、名所の札は舞台の座標で置く (切れても位置がずれない)
-// 帰還の報告の札 (夜景の右下)。押すと報告をシートで開く (収穫・成長・宿・鑑定・売却などの用事はそこで)
+// 帰還の報告の札 (行動パネル内)。押すと報告をシートで開く (収穫・成長・宿・鑑定・売却などの用事はそこで)
 function reportBadge(r) {
   const b = el("button", "hb-rr t-" + (r.tone || "gold"));
   b.type = "button";
@@ -238,7 +237,7 @@ function reportBadge(r) {
   return b;
 }
 
-function hero(api, { collapsed = false, width = 390, report = null } = {}) {
+function hero(api, { collapsed = false, width = 390 } = {}) {
   const g = G();
   const h = el("div", "tw-hero hb-hero" + (collapsed ? " collapsed" : ""));
   const stage = el("div", "hb-stage");
@@ -246,7 +245,6 @@ function hero(api, { collapsed = false, width = 390, report = null } = {}) {
   // 見出し (⚙・通貨) の下から、いまの目標の札 (背の高い端末では 16px 重なる) の上までに収まるようにする
   let spots = {};
   try { spots = townSpots(); } catch (e) { spots = {}; }
-  const rr = report && !collapsed ? reportBadge(report) : null;
   const layout = () => {
     const ys = SPOTS.map((s) => spots[s.k]?.y).filter((y) => typeof y === "number");
     const yTop = ys.length ? Math.min(...ys) : 0.39, yBot = ys.length ? Math.max(...ys) : 0.72;
@@ -260,11 +258,12 @@ function hero(api, { collapsed = false, width = 390, report = null } = {}) {
     const want = vh * 0.31 - (vh < 700 ? 40 : 0);
     // 原画でも、いちばん下の札を270pxの上限で切らない。
     const heroH = collapsed ? 56 : Math.round(Math.min(stageH, Math.max(minH, Math.min(270, Math.max(140, want)))));
-    const top = collapsed ? -stageH * 0.5 : Math.max(heroH - stageH, topBand);
     h.style.height = heroH + "px";
+    // 目標・行動の高さを先に取り、残りが狭ければ風景を見出しに縮める。
+    const actualH = h.isConnected ? h.clientHeight : heroH;
+    h.classList.toggle("compact", !collapsed && actualH < minH - 1);
+    const top = collapsed ? -stageH * 0.5 : Math.max(actualH - stageH, topBand);
     stage.style.top = Math.round(Math.min(0, top)) + "px";
-    // 帰還の報告の札は、いまの目標の札と重なる帯 (overlap) のすぐ上に
-    if (rr) rr.style.bottom = (overlap + 6) + "px";
     for (const s of SPOTS) {
       const b = stage.querySelector(".hb-spot-" + s.k), p = spots[s.k];
       if (!b || !p) continue;
@@ -288,7 +287,6 @@ function hero(api, { collapsed = false, width = 390, report = null } = {}) {
     }
   } catch (e) { /* 演出のみ: 失敗しても街は使える */ }
   h.appendChild(stage);
-  if (rr) h.appendChild(rr);
   // 見出し (夜景に重ねる): ⚙ ・ 題 ・ 通貨
   const bar = el("div", "hb-bar");
   const gear = el("button", "hb-gear");
@@ -486,57 +484,6 @@ function questStrip() {
   return box;
 }
 
-// ---------- 隊の札 ----------
-function partyStrip() {
-  const g = G();
-  const box = el("div", "hb-party");
-  const canOpen = facilityOpen("mansion");
-  const more = el("button", "hb-more");
-  more.type = "button";
-  more.appendChild(document.createTextNode("隊を見る"));
-  more.appendChild(svgIcon("chevron", "hb-more-ic"));
-  more.addEventListener("click", () => UI.shell.setTab("party"));
-  box.appendChild(sectionHead("隊", { note: `${(g.party || []).length}/6`, right: canOpen && (g.party || []).length ? more : null }));
-  if (!(g.party || []).length) {
-    const e = el("div", "hb-party-empty");
-    const ms = g.msq || {};
-    const granted = !(ms.n === 0 && ms.state === "active" && !ms.granted);
-    e.appendChild(setText(el("div", "hb-party-empty-t"), granted ? "まだ目覚めた人業がいない。館で人業に魂を宿そう。" : "人業がいない。まずは王宮で、王に謁見しよう。"));
-    if (granted && canOpen) e.appendChild(button({ label: "人業を仕立てる", kind: "secondary", size: "sm", onTap: () => game.goMakeDoll() }));
-    box.appendChild(e);
-    return box;
-  }
-  const row = el("div", "hb-party-row n" + g.party.length);
-  g.party.forEach((d, i) => {
-    const c = el("button", "hb-pc" + (d.alive ? "" : " dead") + (i >= 3 ? " back" : ""));
-    c.type = "button";
-    // 肖像は隊の画面と同じ描き方 (UI.partyPortraitCanvas)。無ければキットの肖像
-    if (UI.partyPortraitCanvas) {
-      const fr = el("span", "hb-pc-fr");
-      try { fr.appendChild(UI.partyPortraitCanvas(d, 40)); } catch (e) { /* 絵が無くても動く */ }
-      if (!d.alive) fr.appendChild(el("span", "hb-pc-dead", "†"));
-      if (UI.hasBetterGear && UI.hasBetterGear(d)) fr.appendChild(UI.gearUpgradeDot());
-      c.appendChild(fr);
-    } else c.appendChild(portrait(d, { size: 48, hp: false }));
-    c.appendChild(el("span", "hb-pc-n", d.name));
-    if (d.alive) {
-      const r = Math.max(0, Math.min(1, d.hp / Math.max(1, d.maxhp)));
-      const hp = el("span", "hb-pc-hp" + (r < 0.34 ? " low" : r < 1 ? " hurt" : ""));
-      const f = el("i"); f.style.width = (r * 100).toFixed(1) + "%"; hp.appendChild(f);
-      c.appendChild(hp);
-    } else if (d.reviveAt && game.reviveTimerEl) {
-      c.appendChild(game.reviveTimerEl("span", "hb-pc-rv", "連れ帰り ", d));
-    } else {
-      c.appendChild(el("span", "hb-pc-rv", "要修復"));
-    }
-    c.setAttribute("aria-label", `${d.name} ${d.cls || ""} ${d.alive ? `HP ${d.hp}/${d.maxhp}` : "砕けている"}`);
-    c.addEventListener("click", () => { sfx("select"); if (UI.openParty) UI.openParty(i, { seg: "equip", inPlace: true }); }); // 顔のアイコン → 館へ移らず、その場でその人業の「装備」
-    row.appendChild(c);
-  });
-  box.appendChild(row);
-  return box;
-}
-
 // ---------- 街タブの描画 (1画面に収める) ----------
 export function renderHub(root, api) {
   const g = G();
@@ -544,14 +491,16 @@ export function renderHub(root, api) {
   dismissGreet();
   const a = api || { keep: (k, f) => (UI.shell && UI.shell.keep ? UI.shell.keep(k, f) : f()) };
   const wrap = el("div", "hb wa-fit");
-  // 帰還の報告 (WP-D)。夜景の右下 (いまの目標の札の右上) に小さな札を置き、押すとシートで開く
+  // 帰還の報告は行動パネルに置き、風景や施設の札と重ねない
   let badge = null;
   try { badge = UI.runReportBadge ? UI.runReportBadge() : null; } catch (e) { badge = null; setTimeout(() => { throw e; }); }
-  wrap.appendChild(hero(a, { width: root.clientWidth || 390, report: badge }));
+  wrap.appendChild(hero(a, { width: root.clientWidth || 390 }));
+  const actions = el("section", "hb-actions");
+  actions.setAttribute("aria-label", "目標と次の行動");
   // いまの目標
   const o = game.objectiveInfo ? game.objectiveInfo() : null;
-  if (o) wrap.appendChild(objectiveCard(o));
-  // 次にすべきこと + 街の札 (背の低い端末ではこの段だけが内側で流れる)
+  if (o) actions.appendChild(objectiveCard(o));
+  // 次の行動はスクロール領域の外に置き、常に押せる高さを確保する
   const mid = el("div", "hb-mid");
   const sg = suggestions(3);
   if (sg.length) {
@@ -560,8 +509,10 @@ export function renderHub(root, api) {
     const list = el("div", "hb-sug-list n" + sg.length);
     for (const s of sg) list.appendChild(sugChip(s, sg.length >= 3));
     box.appendChild(list);
-    mid.appendChild(box);
+    actions.appendChild(box);
   }
+  if (badge) actions.appendChild(reportBadge(badge));
+  wrap.appendChild(actions);
   const dv = questStrip();
   if (dv) mid.appendChild(dv);
   // 酒場の依頼の段がある時は「街」の見出しを省いて札の高さを守る (札は絵と名で何かわかる)
@@ -576,13 +527,11 @@ export function renderHub(root, api) {
     UI.storyButton ? UI.storyButton() : button({ label:"ストーリー", kind:"secondary", onTap:()=>UI.openStoryArchive?.() }));
   mid.appendChild(guides);
   wrap.appendChild(mid);
-  // 隊
-  wrap.appendChild(partyStrip());
   root.appendChild(wrap);
   growTiles(mid);
 }
 
-// 背の高い画面で余った高さは街の札を背高にして埋める (札と隊のあいだに空白の帯を残さない)
+// 背の高い画面で余った高さは街の札を背高にして埋める (札の下に空白の帯を残さない)
 function growTiles(mid) {
   if (!mid || !mid.isConnected) return;
   const tl = mid.querySelectorAll(".hb-tile");

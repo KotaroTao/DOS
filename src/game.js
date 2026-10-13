@@ -6918,7 +6918,7 @@ function runStoryCell(cell) {
   SFX.itemget(); buzz([0, 30, 60, 30]);
   // 手がかりの恵み: 迷宮が開く手がかりは本文に「新たな迷宮」の行があるので、それ以外だけ最後に一行足す
   const boon = def.boon && def.boon.kind !== "dungeon" ? [`── 手がかりの恵み: ${def.boon.text}`] : [];
-  UI.playStoryChain([{ title: def.title, lines: [...storyLines(def.lines), ...boon], art: def.art, photo: key === "w01_lantern" ? null : storyImage(key), who: "none", kicker: def.prologue ? "人業の発見" : "師の手がかり", btnLabel: "胸に刻む" }], () => {
+  UI.playStoryChain([{ title: def.title, lines: [...storyLines(def.lines), ...boon], art: def.art, photo: storyImage(key), who: "none", kicker: def.prologue ? "人業の発見" : "師の手がかり", btnLabel: "胸に刻む" }], () => {
     w.found[key] = 1;
     if (prologueActive() && key === "forest_doll") prologue().phase = "fourth";
     if (prologueActive() && key === "w02_broken_doll") prologue().phase = "sixth";
@@ -11979,7 +11979,7 @@ function renderParty() {
     const por = el("div", "pc-por");
     const pic = partyPortrait(p);
     if (pic) por.appendChild(pic);
-    if (upgrades.has(p)) por.appendChild(UI.gearUpgradeDot());
+    UI.watchGearPortrait?.(por, p);
     por.appendChild(el("span", "pc-row " + (idx < 3 ? "front" : "back"), idx < 3 ? "前" : "後"));
     if (!p.alive) por.appendChild(el("span", "pc-seal dead", "死"));
     else if (sv.ailment) { const a = AIL_SEAL[sv.ailment] || ["呪", "poison"]; const s2 = el("span", "pc-seal " + a[1], a[0]); s2.title = AIL_NAME[sv.ailment] || ""; por.appendChild(s2); }
@@ -14370,7 +14370,7 @@ function reportMainQuest() {
   const after = { ...w, reported: { ...w.reported, [id]: 1 } };
   const newly = FEATURE_KEYS.filter((k) => !featureMet(k, w) && featureMet(k, after));
   const pages = [{
-    title: rep.title, lines, reward: rwText, kicker: `踏破の報告 ― ${cfg.name}`, photo: id === "w01" ? null : storyImage("report_" + id),
+    title: rep.title, lines, reward: rwText, kicker: `踏破の報告 ― ${cfg.name}`, photo: storyImage("report_" + id),
     leave: () => {
       if (w.reported[id]) return;
       G.gold += r.gold;
