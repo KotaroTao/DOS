@@ -2,7 +2,7 @@
 from playwright.sync_api import sync_playwright
 with sync_playwright() as p:
     browser=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox'])
-    for key,phase,count in [('createThree','three',0),('createFourth','fourth',3),('createFifth','fifth',4),('createSixth','sixth',5),('prologueAppraise','appraise',6)]:
+    for key,phase,count in [('createThree','three',0),('createFourth','fourth',3),('createFifth','fifth',4),('prologueFormation','formation',5),('createSixth','sixth',5),('prologueAppraise','appraise',6)]:
         context=browser.new_context(service_workers='block')
         page=context.new_page(); errors=[]
         page.on('pageerror',lambda e:errors.append(str(e)))
