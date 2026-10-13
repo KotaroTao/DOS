@@ -6918,7 +6918,7 @@ function runStoryCell(cell) {
   SFX.itemget(); buzz([0, 30, 60, 30]);
   // 手がかりの恵み: 迷宮が開く手がかりは本文に「新たな迷宮」の行があるので、それ以外だけ最後に一行足す
   const boon = def.boon && def.boon.kind !== "dungeon" ? [`── 手がかりの恵み: ${def.boon.text}`] : [];
-  UI.playStoryChain([{ title: def.title, lines: [...storyLines(def.lines), ...boon], art: def.art, photo: key === "w01_lantern" ? null : storyImage(key), who: "none", kicker: def.prologue ? "人業の発見" : "師の手がかり", btnLabel: "胸に刻む" }], () => {
+  UI.playStoryChain([{ title: def.title, lines: [...storyLines(def.lines), ...boon], art: def.art, photo: storyImage(key), who: "none", kicker: def.prologue ? "人業の発見" : "師の手がかり", btnLabel: "胸に刻む" }], () => {
     w.found[key] = 1;
     if (prologueActive() && key === "forest_doll") prologue().phase = "fourth";
     if (prologueActive() && key === "w02_broken_doll") prologue().phase = "sixth";
