@@ -1,0 +1,21 @@
+// 装備単位の承認: 共通袋・受け渡し・両手・満杯を確認する。
+import assert from 'node:assert/strict';
+import { snapshotEquip, equipApprovalGroups, applyEquipApprovals } from '../../src/autoequip.js';
+const old = { name: '旧剣' }, sword = { name: '新剣' }, helm = { name: '兜' }, shield = { name: '盾' };
+const bag = [sword, helm];
+const a = { equip: { weapon: old, shield }, items: bag }, b = { equip: {}, items: bag };
+const plan = { undoSnapshot: snapshotEquip([a,b]), final: new Map([[a,{equip:{weapon:sword,shield,head:helm}}],[b,{equip:{weapon:old}}]]) };
+const groups = equipApprovalGroups(plan), head = groups.find(g=>g.some(c=>c.k==='head'));
+const weapon = groups.find(g=>g.some(c=>c.doll===a&&c.k==='weapon'));
+const opt = { recalc: ()=>{} };
+assert.equal(groups.length,2);assert.equal(weapon.length,2);
+assert(applyEquipApprovals(plan,new Set([head]),opt));
+assert.equal(a.equip.weapon,old);assert.equal(b.equip.weapon,null);assert.equal(a.equip.head,helm);assert.deepEqual(bag,[sword]);
+assert(applyEquipApprovals(plan,new Set(groups),opt));assert.equal(b.equip.weapon,old);assert.equal(a.equip.weapon,sword);assert.equal(bag.length,0);
+assert(applyEquipApprovals(plan,new Set(),opt));assert.deepEqual(bag,[sword,helm]);assert.equal(a.equip.weapon,old);
+const two = {twoHanded:true}, full = Array.from({length:50},()=>({}));full[0]=two;
+const d={equip:{weapon:old,shield},items:full};
+const p={undoSnapshot:snapshotEquip([d]),final:new Map([[d,{equip:{weapon:two}}]])};
+const gs=equipApprovalGroups(p);assert.equal(gs.length,1);assert.equal(gs[0].length,2);
+assert.equal(applyEquipApprovals(p,new Set(gs),opt),false);assert.equal(full.length,50);assert.equal(d.equip.weapon,old);assert.equal(d.equip.shield,shield);
+console.log('装備単位の承認・取消・共通袋の同一性・受け渡し・両手の連動・満杯時の無変更: OK');
