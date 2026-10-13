@@ -31,6 +31,7 @@ export const PROLOGUE = {
   "irene-meeting": "irene_meeting",
   "royal-audience": "arrival",
   "irene-repair": "irene_repair",
+  "forest_doll": "forest_doll",
 };
 
 const webps = (dir) => existsSync(ROOT + dir)

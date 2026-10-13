@@ -3092,7 +3092,17 @@ function vCrystalVein(R, A) {
   A.part({ n: 30, col: "#c0f8ff", x0: 0, x1: 1, y0: 0.04, y1: 0.95, a: 0.85, blink: 0.7, seed: 491 });   // 水晶のきらめき
   A.part({ n: 14, col: "#e0c8ff", x0: 0, x1: 1, y0: 0.1, y1: 0.4, a: 0.7, blink: 0.5, seed: 492 });
 }
+// 森の古屋。原画の読込中・失敗時にも、墓所ではなく森と古屋を描く。
+function vForestHut(R) {
+  const { w: W, h: H } = R;
+  R.m = SURF;
+  R.poly([[W*.34,H*.42],[W*.68,H*.43],[W*.68,H*.76],[W*.34,H*.76]], "#514637");
+  R.poly([[W*.29,H*.45],[W*.46,H*.25],[W*.73,H*.44]], "#302e27");
+  R.rect(W*.46,H*.52,W*.12,H*.24,"#111713");
+  R.rect(W*.37,H*.51,W*.06,H*.08,"#17201a");
+}
 const VISTAS = {
+  w00_forest: [5, vForestHut],
   w01: [1, vCrypt], w02: [14, vWhispers], w03: [16, vAbbey], w04: [2, vIntake], w05: [3, vChains],
   w06: [4, vRanks], w07: [0, vPrison], w08: [4, vStorm], w09: [17, vCouncil],
   ws1: [6, vBell], ws2: [12, vQuarry], ws3: [5, vMistwood],
@@ -3123,8 +3133,34 @@ function buildVista(id, layer, w, h) {
   return S;
 }
 // 迷宮の顔を描く。dn = 台帳の迷宮 ({ id, layer })。w×h は戦闘背景と同じ 3:2 を想定 (表示側で上下を切る)
+const forestVista = { image: null, ready: false, failed: false, waiting: new Map() };
+function drawForestVista(ctx, w, h, dn, now) {
+  const state = forestVista;
+  if (!state.image) {
+    const image = new Image(); state.image = image; image.decoding = "async";
+    image.onload = () => {
+      state.ready = image.naturalWidth === 1536 && image.naturalHeight === 1024;
+      state.failed = !state.ready;
+      // 読み物の静止画も、初回の読込が終わったら描き直す。
+      if (state.ready) for (const [target, args] of state.waiting) drawDungeonVista(target, ...args);
+      state.waiting.clear();
+    };
+    image.onerror = () => { state.failed = true; state.waiting.clear(); };
+    image.src = new URL("../art/dungeon/w00_forest-entrance.webp", import.meta.url).href;
+  }
+  if (!state.ready) {
+    if (!state.failed) state.waiting.set(ctx, [w, h, dn, now]);
+    return false;
+  }
+  ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(state.image, 0, 0, w, h); ctx.restore();
+  return true;
+}
 export function drawDungeonVista(ctx, w, h, dn, now) {
   w = Math.max(16, Math.round(w)); h = Math.max(16, Math.round(h));
+  if (dn?.id === "w00_forest") {
+    if (drawForestVista(ctx, w, h, dn, now)) return;
+  } else forestVista.waiting.delete(ctx);
   const id = (dn && dn.id) || "", L = dn && dn.layer >= 1 && dn.layer <= 20 ? Math.floor(dn.layer) : 0;
   const key = "v|" + id + "|" + L + "|" + w + "x" + h;
   let S = CACHE.get(key);
@@ -3255,10 +3291,11 @@ const CACHE = new Map();
 const CACHE_MAX = 12;
 
 // ctx: メインキャンバス (480x320 想定だが固定しない)。layer: 1-20 (それ以外は奈落の既定背景)。
-// now: performance.now() (ms)。opts: { boss?: boolean, elite?: boolean }
+// now: performance.now() (ms)。opts: { boss?: boolean, elite?: boolean, dungeonId?: string }
 export function drawBattleBackdrop(ctx, w, h, layer, now, opts = {}) {
   w = Math.max(16, Math.round(w)); h = Math.max(16, Math.round(h));
-  const L = layer >= 1 && layer <= 20 ? Math.floor(layer) : 0;
+  // 森の古屋は第1層だが、戦場の景色は墓地ではなく森を使う。
+  const L = opts.dungeonId === "w00_forest" ? 5 : layer >= 1 && layer <= 20 ? Math.floor(layer) : 0;
   const boss = !!(opts && opts.boss), elite = !boss && !!(opts && opts.elite);
   const key = L + "|" + w + "x" + h + "|" + (boss ? "b" : elite ? "e" : "n");
   let S = CACHE.get(key);

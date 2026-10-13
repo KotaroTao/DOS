@@ -7,4 +7,7 @@ for id in "$@"; do
   for kind in materials floor; do
     magick "docs/art/dungeons/$id-$kind-master.png" -strip -define webp:method=6 -quality 88 "art/dungeon/$id-$kind.webp"
   done
+  if [ -f "docs/art/dungeons/$id-entrance-master.png" ]; then
+    magick "docs/art/dungeons/$id-entrance-master.png" -strip -define webp:method=6 -quality 88 "art/dungeon/$id-entrance.webp"
+  fi
 done
