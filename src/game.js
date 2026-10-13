@@ -2850,7 +2850,7 @@ function ensureBoardArt() {
   const b = G.board;
   const L = battleLayer();
   const sp = specialDef();
-  const crypt = L === 1;
+  const crypt = L === 1 && activeCfg().id !== "w00_forest";
   const painting = cryptPainting(activeCfg().id);
   prewarmCryptActors();
   const seed = boardSeed(b, dungeonSeed(activeCfg()) * 7919 + G.floor);
@@ -9132,6 +9132,7 @@ function renderCombatCanvas() {
   // 設定「戦闘の背景: 漆黒」では原作風に、黒地に白枠の窓で魔物だけを見せる
   if (PREFS.classicBattle) drawClassicWindow(vctx, VW, VH);
   else drawBattleBackdrop(vctx, VW, VH, battleLayer(), now, {
+    dungeonId: activeCfg().id,
     boss: b.enemies.some((e) => e.boss),
     elite: b.enemies.some((e) => e.mon && e.mon.elite),
   });
