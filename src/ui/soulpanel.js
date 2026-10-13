@@ -26,6 +26,28 @@ const allDolls = () => (game.allDolls ? game.allDolls() : [...(G_().party || [])
 const RARITY_NAME = { common: "コモン", rare: "レア", epic: "エピック", legend: "レジェンド", unique: "固有" };
 const STAT_L = { hp: "HP", mp: "MP", atk: "STR", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
 
+// 習得の案内は技とパッシブを同じレベル順で扱う。
+function nextLearn(soul) {
+  return jobSkillTable(soul.clsKey).find((t) => t.lvl > soul.level && (t.passive || SPELLS[t.skill]));
+}
+const learnName = (t) => t.passive ? passiveName(t.passive, t.plv || 1) : SPELLS[t.skill].name;
+const learnKind = (t) => t.passive ? "パッシブ" : "技";
+const showLearn = (t) => t.passive ? showPassivePopup(t.passive, t.plv || 1) : showSkillPopup(t.skill);
+
+// 成長した魂のレベル範囲から拾う。サブ魂の未借用のパッシブも習得として知らせる。
+function luPassives(e) {
+  const out = new Map();
+  const ranges = [...(e.main ? [{ uid: e.uid, ...e.main }] : []), ...(e.subs || [])];
+  for (const r of ranges) {
+    const soul = soulByUid(r.uid);
+    if (!soul) continue;
+    for (const t of jobSkillTable(soul.clsKey)) {
+      if (t.passive && t.lvl > r.from && t.lvl <= r.to) out.set(t.passive + "/" + (t.plv || 1), t);
+    }
+  }
+  return [...out.values()];
+}
+
 // ドット1つを整数倍で描く (image-rendering: pixelated)
 function pixelCanvas(spr, size) {
   // ドットを物理ピクセルの整数倍で描く (入りきらない大きな絵だけ滑らかに縮める)
@@ -229,13 +251,13 @@ function mainCard(d, pe, town) {
 
   // 次の技・次のランク・残火 (1行)
   const foot = el("div", "sp-next");
-  const nxSkill = jobSkillTable(pe.clsKey).find((t) => t.skill && t.lvl > pe.level && SPELLS[t.skill]);
+  const nxSkill = nextLearn(pe);
   if (nxSkill) {
     const b = el("button", "sp-next-sk");
     b.type = "button";
-    b.appendChild(el("span", "sp-next-k", "次の技"));
-    b.appendChild(el("span", "sp-next-v", `Lv${nxSkill.lvl}「${SPELLS[nxSkill.skill].name}」`));
-    b.addEventListener("click", () => showSkillPopup(nxSkill.skill));
+    b.appendChild(el("span", "sp-next-k", `次の${learnKind(nxSkill)}`));
+    b.appendChild(el("span", "sp-next-v", `Lv${nxSkill.lvl}「${learnName(nxSkill)}」`));
+    b.addEventListener("click", () => showLearn(nxSkill));
     foot.appendChild(b);
   }
   const nr = nextRankThreshold(pe.clsKey, pe.count);
@@ -851,8 +873,8 @@ export function openSoulDetail(uid, onChange = null) {
     const pss = Object.entries(soulLearnedPassives(s) || {});
     scroll.appendChild(el("div", "sp-sd-h", `覚えた技 ${sks.length} ・ パッシブ ${pss.length}`));
     scroll.appendChild(soulSkillChips(s));
-    const nxSkill = jobSkillTable(s.clsKey).find((t) => t.skill && t.lvl > s.level && SPELLS[t.skill]);
-    if (nxSkill) scroll.appendChild(el("div", "sp-note", `次の技: Lv${nxSkill.lvl}「${SPELLS[nxSkill.skill].name}」`));
+    const nxSkill = nextLearn(s);
+    if (nxSkill) scroll.appendChild(el("div", "sp-note", `次の${learnKind(nxSkill)}: Lv${nxSkill.lvl}「${learnName(nxSkill)}」`));
   };
   const footer = () => {
     const s = soulByUid(uid);
@@ -982,8 +1004,8 @@ export function openTrainSheet(uid, onChange = null) {
     }
     scroll.appendChild(prog);
     if (e.level >= cap && (e.exp || 0) > 0) scroll.appendChild(el("div", "sp-note", `蓄積 ✦${e.exp} ― Lv上限を上げるとすぐ Lv に注がれる`));
-    const nxSkill = jobSkillTable(e.clsKey).find((t) => t.skill && t.lvl > e.level && SPELLS[t.skill]);
-    if (nxSkill) scroll.appendChild(el("div", "sp-note", `次の技: Lv${nxSkill.lvl}「${SPELLS[nxSkill.skill].name}」`));
+    const nxSkill = nextLearn(e);
+    if (nxSkill) scroll.appendChild(el("div", "sp-note", `次の${learnKind(nxSkill)}: Lv${nxSkill.lvl}「${learnName(nxSkill)}」`));
     const plan = trainPlan(e);
     if (e.level < cap && (G.soulPts || 0) < plan.next) scroll.appendChild(el("div", "sp-short", `✦があと ${plan.next - (G.soulPts || 0)} 足りない ― 迷宮で敵を倒すと得られる`));
     else scroll.appendChild(el("div", "sp-note", `所持 ✦${G.soulPts || 0}`));
@@ -1443,15 +1465,15 @@ function luNext(soul) {
     const nx = nextRankThreshold(soul.clsKey, soul.count);
     return { cap: true, text: nx ? `Lv上限 ${cap} に到達 ― 同じ魂をあと ${nx.next - soul.count} 体 魂融合すると、ランク${soulRankOf(soul) + 1}で上限が伸びる` : `Lv上限 ${cap} に到達 ― 魂の残火で上限を伸ばせる` };
   }
-  const nxSkill = jobSkillTable(soul.clsKey).find((t) => t.skill && t.lvl > soul.level && SPELLS[t.skill]);
-  if (nxSkill) return { skill: nxSkill.skill, text: `次の技「${SPELLS[nxSkill.skill].name}」まで あと ${nxSkill.lvl - soul.level} Lv` };
+  const nxSkill = nextLearn(soul);
+  if (nxSkill) return { learn: nxSkill, text: `次の${learnKind(nxSkill)}「${learnName(nxSkill)}」まで あと ${nxSkill.lvl - soul.level} Lv` };
   return null;
 }
 function luNextEl(soul, cls = "") {
   const nx = luNext(soul);
   if (!nx) return null;
-  const b = el(nx.skill ? "button" : "div", "sp-lu-next" + (nx.cap ? " cap" : "") + (cls ? " " + cls : ""), nx.text);
-  if (nx.skill) { b.type = "button"; b.addEventListener("click", () => showSkillPopup(nx.skill)); }
+  const b = el(nx.learn ? "button" : "div", "sp-lu-next" + (nx.cap ? " cap" : "") + (cls ? " " + cls : ""), nx.text);
+  if (nx.learn) { b.type = "button"; b.addEventListener("click", () => showLearn(nx.learn)); }
   return b;
 }
 // 「Lv12 → Lv15」(新しい数字が刻んで判を押す)。gained = 上がった段数
@@ -1497,17 +1519,17 @@ function luStats(e, delay0, step = 90) {
   return { grid, n: i };
 }
 // 覚えた技 (押すと説明)。光って現れる
-function luSkills(keys, delay, { head = true } = {}) {
-  const ks = (keys || []).filter((k) => SPELLS[k]);
+function luSkills(e, delay, { head = true } = {}) {
+  const ks = [...(e.skills || []).filter((k) => SPELLS[k]).map((skill) => ({ skill })), ...luPassives(e)];
   if (!ks.length) return null;
   const wrap = el("div", "sp-fz-sec sp-ru-blk sp-lu-learn");
-  if (head) wrap.appendChild(el("div", "sp-fz-h", "新たな技を覚えた"));
+  if (head) wrap.appendChild(el("div", "sp-fz-h", "新たに覚えた"));
   const list = el("div", "sp-fz-learn");
   ks.forEach((k, i) => {
-    const b = el("button", "sp-fz-chip sk sp-lu-chip", `技 ${SPELLS[k].name}`);
+    const b = el("button", `sp-fz-chip ${k.passive ? "ps" : "sk"} sp-lu-chip`, `${learnKind(k)} ${learnName(k)}`);
     b.type = "button";
     b.style.animationDelay = `${delay + i * 140}ms, ${delay + i * 140 + 500}ms`;
-    b.addEventListener("click", () => showSkillPopup(k));
+    b.addEventListener("click", () => showLearn(k));
     list.appendChild(b);
   });
   wrap.appendChild(list);
@@ -1552,7 +1574,7 @@ export function celebrateLevelUp(entries, onClose) {
   const list = (entries || []).filter((e) => e && (e.main || (e.subs || []).length));
   const done = () => { if (typeof onClose === "function") onClose(); };
   if (!list.length) { done(); return null; }
-  const learned = list.some((e) => (e.skills || []).some((k) => SPELLS[k]));
+  const learned = list.some((e) => (e.skills || []).some((k) => SPELLS[k]) || luPassives(e).length > 0);
   sfx("levelup");
   buzzLv(learned ? [0, 40, 40, 40, 40, 60, 80, 160] : [0, 40, 40, 40, 40, 90]);
   if (learned) { try { if (game.flashScreen) game.flashScreen("#ffe7a0"); } catch (e) { /* 演出のみ */ } }
@@ -1574,7 +1596,7 @@ export function celebrateLevelUp(entries, onClose) {
     blocks.push(who, luLvRow(lv, accent));
     const st = luStats(e, 1150);
     blocks.push(st.grid);
-    const sk = luSkills(e.skills, 1250 + st.n * 90);
+    const sk = luSkills(e, 1250 + st.n * 90);
     if (sk) blocks.push(sk);
     const subs = luSubs(e.main ? e.subs : e.subs.slice(1), accent);
     if (subs) blocks.push(subs);
@@ -1612,7 +1634,7 @@ export function celebrateLevelUp(entries, onClose) {
       if (chips.childElementCount) t.appendChild(chips);
       const subs = luSubs(e.main ? e.subs : e.subs.slice(1), cl.glow || accent);
       if (subs) t.appendChild(subs);
-      const sk = luSkills(e.skills, delay + 700, { head: false });
+      const sk = luSkills(e, delay + 700, { head: false });
       if (sk) t.appendChild(sk);
       const nx = luNext(soul);
       if (nx && nx.cap) t.appendChild(el("div", "sp-lu-next cap sm", `Lv上限 ${soulLevelCapOf(soul)} に到達`));
