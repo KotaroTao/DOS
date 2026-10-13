@@ -190,15 +190,21 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
   const field = (label, input) => {
     const row = document.createElement("label");
     row.className = "ttl-test-field";
+    input.setAttribute("aria-label", label);
     row.append(div("", label), input);
     testBox.appendChild(row);
     return row;
   };
   const mode = document.createElement("select");
-  for (const [value, label] of [["prologue", "序章を通して遊ぶ"], ["dungeon", "迷宮・街"], ["inf", "無限迷宮"], ["tutorial", "チュートリアル"], ["story", "ストーリー"], ["art", "キャラ画像（全職業・全ランク）"]]) {
+  for (const [value, label] of [["prologue", "序章を通して遊ぶ"], ["dungeon", "迷宮・街"], ["inf", "無限迷宮"], ["tutorial", "チュートリアル"], ["story", "ストーリー（会話）"], ["archive", "ストーリー（読み物・追加場面）"], ["art", "キャラ画像（全職業・全ランク）"]]) {
     const o = document.createElement("option"); o.value = value; o.textContent = label; mode.appendChild(o);
   }
   field("テストする内容", mode);
+  const sceneGroup = document.createElement("select");
+  const sceneGroupRow = field("場面の種類・章", sceneGroup);
+  const sceneSearch = document.createElement("input");
+  sceneSearch.type = "search"; sceneSearch.placeholder = "場面名・IDで検索";
+  const sceneSearchRow = field("場面を探す", sceneSearch);
   const sceneSelect = document.createElement("select");
   const sceneSelectRow = field("場面", sceneSelect);
   const dungeon = document.createElement("select");
@@ -242,12 +248,26 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
     sceneSelectRow.hidden = isDungeon || isArt || isInf;
     artNote.hidden = !isArt;
     testStart.querySelector(".ttl-btn-t").textContent = isArt ? "一覧を開く" : "テスト開始";
-    sceneSelect.replaceChildren();
-    for (const d of testScenes.filter((d) => d.kind === mode.value)) {
-      const o = document.createElement("option"); o.value = d.id; o.textContent = d.name; sceneSelect.appendChild(o);
+    sceneGroupRow.hidden = sceneSearchRow.hidden = sceneSelectRow.hidden;
+    sceneGroup.replaceChildren();
+    for (const label of ["", ...new Set(testScenes.filter(d => d.kind === mode.value).map(d => d.group || "その他"))]) {
+      const o = document.createElement("option"); o.value = label; o.textContent = label || "すべて"; sceneGroup.appendChild(o);
     }
-    testStart.disabled = !isDungeon && !isArt && !isInf && !sceneSelect.options.length;
+    sceneSearch.value = "";
+    updateScenes();
   };
+  const updateScenes = () => {
+    const previous = sceneSelect.value;
+    const query = sceneSearch.value.trim().toLocaleLowerCase();
+    sceneSelect.replaceChildren();
+    for (const d of testScenes.filter(d => d.kind === mode.value && (!sceneGroup.value || (d.group || "その他") === sceneGroup.value) && `${d.name} ${d.id}`.toLocaleLowerCase().includes(query))) {
+      const o = document.createElement("option"); o.value = d.id; o.textContent = `${d.name}（${d.id}）`; sceneSelect.appendChild(o);
+    }
+    if ([...sceneSelect.options].some(o => o.value === previous)) sceneSelect.value = previous;
+    testStart.disabled = !["dungeon", "art", "inf"].includes(mode.value) && !sceneSelect.options.length;
+  };
+  sceneGroup.addEventListener("change", updateScenes);
+  sceneSearch.addEventListener("input", updateScenes);
   // キャラ画像はゲームを始めずに、タイトルの上へ一覧を重ねる
   const artNote = div("ttl-note ttl-test-art", "全職業のキャラの絵 (R1〜R5) と顔アイコンを並べて表示します。");
   testBox.appendChild(artNote);

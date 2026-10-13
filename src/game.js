@@ -74,7 +74,7 @@ import * as uiFacilities from "./ui/facilities.js";
 import * as uiSettings from "./ui/settings.js";
 import * as uiJournal from "./ui/journal.js";
 import { seedJournal, storyMediaUrls } from "./journal.js";
-import { storyImage } from "./archive-stories.js";
+import { ARCHIVE_STORIES, storyImage } from "./archive-stories.js";
 import * as uiStory from "./ui/story.js";
 import * as uiParty from "./ui/party.js";
 import * as uiSoulPanel from "./ui/soulpanel.js";
@@ -17720,9 +17720,19 @@ const testScenes = [
   ...uiTutorial.testTutorials,
   { id: "prologue:start", kind: "prologue", name: "最初から（オープニング・着任の謁見）" },
   ...[
+    ["three", "最初の三体を仕立てる", "w00_forest", 0],
     ["forest", "三体で森の古屋へ", "w00_forest", 3],
+    ["fourth", "森から帰還・四体目を迎える", "w01", 3],
+    ["cryptQuest", "地下墓地の調査を拝命する", "w01", 4],
+    ["shop", "商会で装備を購入する", "w01", 4],
     ["crypt", "四体で地下墓地へ", "w01", 4],
+    ["fifth", "地下墓地の報告後・五体目を迎える", "w02", 4],
+    ["formation", "五体の隊列を整える", "w02", 5],
+    ["corridorQuest", "回廊への依頼を受ける", "w02", 5],
     ["corridor", "五体で亡骸の囁く回廊へ", "w02", 5],
+    ["sixth", "回廊から帰還・六体目を迎える", "w03", 5],
+    ["appraise", "司教の鑑定を教わる", "w03", 6],
+    ["abbeyQuest", "回廊の報告・修道院への依頼", "w03", 6],
     ["abbey", "六体で修道院へ", "w03", 6],
   ].map(([phase, name, dungeon, count]) => ({ id: "prologue:" + phase, kind: "prologue", name, phase, dungeon, count })),
   { id: "opening", kind: "story", name: "オープニング（序章を続けて試遊）" },
@@ -17730,12 +17740,14 @@ const testScenes = [
     id: "story:" + id, kind: "story", name: ({ intro: "着任の謁見", three: "三体の支度", finale: "地下墓地の調査依頼", corridor: "亡骸の囁く回廊への依頼", epilogue: "結末" })[id], lines,
     photo: storyImage(({ intro: "arrival", three: "three", finale: "departure" })[id]),
   })),
-  ...[["cell", "師の手がかり", STORY_CELLS], ["memory", "主の記憶", BOSS_MEMORIES], ["report", "踏破の報告", REPORTS], ["chapter", "章の結び", CHAPTER_END], ["unlock", "機能の解放", UNLOCKS]].flatMap(([group, label, defs]) =>
-    Object.entries(defs).map(([id, def]) => ({ ...def, id: group + ":" + id, kind: "story", name: label + "・" + def.title, who: ["cell", "memory"].includes(group) ? "none" : "king",
-      photo: storyImage(({ cell: id, memory: "mem_" + id, report: "report_" + id, chapter: "ch" + id + "_end" })[group]) }))),
-  ...IRENE_BEATS.map((def) => ({ ...def, id: "irene:" + def.id, kind: "story", name: "館の語り・" + def.title, who: "irene", photo: storyImage(def.id) })),
+  ...[["cell", "師の手がかり", STORY_CELLS], ["memory", "主の記憶", BOSS_MEMORIES], ["report", "踏破の報告", REPORTS], ["chapter", "章の結び", CHAPTER_END], ["unlock", "機能の解放", UNLOCKS], ["late", "手がかりの追加報告", LATE_CLUES], ["rematch", "再戦の記憶", REMATCH_MEMORIES]].flatMap(([group, label, defs]) =>
+    Object.entries(defs).map(([id, def]) => ({ ...def, id: group + ":" + id, kind: "story", group: label, name: label + "・" + def.title, who: ["cell", "memory", "rematch"].includes(group) ? "none" : "king",
+      photo: storyImage(({ cell: id, late: id, memory: "mem_" + id, report: "report_" + id, chapter: "ch" + id + "_end" })[group]) }))),
+  ...IRENE_BEATS.map((def) => ({ ...def, id: "irene:" + def.id, kind: "story", group: "館の語り", name: "館の語り・" + def.title, who: "irene", photo: storyImage(def.id) })),
   { ...MINE_PASS, id: "minePass", kind: "story", name: MINE_PASS.title, photo: storyImage("minePass") },
 ];
+// 読み物も台帳から取り込み、新規場面の選択肢への転記を不要にする。
+testScenes.push(...ARCHIVE_STORIES.map(s => ({ id: "archive:" + s.id, kind: "archive", group: s.group, name: s.title, title: s.title, lines: s.lines, photo: s.image, who: "none" })));
 const testScene = testScenes.find((s) => s.id === testParams.get("testScene"));
 // 無限迷宮の試遊 (docs/infinite-labyrinth.md 16-4): URL の testInf=階 (testInfLv=隊Lv、無ければその階の推奨Lv)
 const testInfFloor = Math.max(0, Math.min(999, Math.floor(Number(testParams.get("testInf"))) || 0));
@@ -18207,18 +18219,22 @@ function setupTestPlay() {
     G.state = "town";
     if (!testScene.phase) return 1;
     const { phase, dungeon, count } = testScene;
-    G.msq = { n: 1, state: "world", granted: true, prologue: { phase, gifts: {} } };
+    G.msq = { n: count ? 1 : 0, state: "world", granted: true, prologue: { phase, gifts: {} } };
     G.irene.greeted = true;
     G.dungeonIdx = worldIndexOf(dungeon);
     const w = worldState();
-    const prior = ["w00_forest", "w01", "w02"].slice(0, count - 3);
+    const prior = ["w00_forest", "w01", "w02"].slice(0, ["w00_forest", "w01", "w02", "w03"].indexOf(dungeon));
     for (const id of prior) {
-      w.open[id] = true; w.cleared[id] = 1; w.reported[id] = true;
+      w.open[id] = true; w.cleared[id] = 1;
+      if (id !== "w02" || phase === "abbey") w.reported[id] = true;
       for (const [key, cell] of Object.entries(STORY_CELLS)) if (cell.dungeon === id) w.found[key] = true;
     }
-    const done = ["createThree", ...(count >= 4 ? ["createFourth"] : []), ...(count >= 5 ? ["createFifth", "prologueFormation"] : []), ...(count >= 6 ? ["createSixth", "prologueAppraise"] : [])];
+    const phases = testScenes.filter(s => s.kind === "prologue").map(s => s.phase);
+    const reached = key => phases.indexOf(phase) >= phases.indexOf(key);
+    const done = Object.entries({ createThree: "forest", createFourth: "cryptQuest", buyEquipment: "crypt", createFifth: "formation", prologueFormation: "corridorQuest", createSixth: "appraise", prologueAppraise: "abbeyQuest" }).filter(([, next]) => reached(next)).map(([key]) => key);
     G.tut = { done: Object.fromEntries(done.map(key => [key, true])) };
-    const jobs = count >= 5 ? ["fighter", "knight", "thief", "mage", "priest", "bishop"] : ["fighter", "priest", "thief", "mage"];
+    const jobs = ["fighter", "priest", "thief", "mage", "knight", "bishop"];
+    if (reached("corridorQuest")) [jobs[1], jobs[4]] = [jobs[4], jobs[1]];
     for (const job of jobs.slice(0, count)) {
       const soul = addSoulInstance(job, 1, dungeonLevel(DUNGEONS[G.dungeonIdx], 1));
       const doll = makeDoll(randomDollName());
@@ -18226,7 +18242,10 @@ function setupTestPlay() {
       G.party.push(doll);
     }
     G.dollsPurchased = count;
-    G.gold = count >= 4 ? 500 : 0;
+    G.gold = reached("shop") ? 500 : 0;
+    if (phase === "three") for (const job of jobs.slice(0, 3)) addSoulInstance(job);
+    preparePrologueDoll();
+    if (phase === "appraise") preparePrologueAppraisal();
     refreshWorldUnlocks();
     w.open[dungeon] = true;
     G.unlockedDungeons = worldOpenCount();

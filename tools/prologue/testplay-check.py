@@ -23,25 +23,49 @@ with sync_playwright() as p:
     page.get_by_role('button', name='テストプレイ', exact=False).click()
     selects = page.locator('.ttl-test select')
     assert selects.nth(0).input_value() == 'prologue'
-    assert selects.nth(1).locator('option').count() == 5
+    assert page.get_by_label('場面', exact=True).locator('option').count() == 15
     selects.nth(0).select_option('dungeon')
     expected = page.evaluate('__game.world.DUNGEONS.map(d=>d.id)')
-    actual = selects.nth(2).locator('option').evaluate_all('(options)=>options.map(o=>o.value)')
+    actual = page.get_by_label('進行度（迷宮）', exact=True).locator('option').evaluate_all('(options)=>options.map(o=>o.value)')
     assert sorted(actual) == sorted(expected)
     assert actual[0] == 'w00_forest'
-    selects.nth(2).select_option('w00_forest')
-    page.locator('.ttl-test input').first.fill('999')
+    page.get_by_label('進行度（迷宮）', exact=True).select_option('w00_forest')
+    page.get_by_label('開始する階', exact=True).first.fill('999')
     page.locator('.ttl-test button').last.click()
     page.wait_for_function('window.__game?.G.testPlay && __game.G.state === "board"')
     assert page.evaluate('__game.G.floor') == 3
     print('タイトルから森の最深部へ起動')
-    for scene, count, phase in [('prologue:start', 0, None), ('opening', 0, None), ('prologue:forest', 3, 'forest'), ('prologue:crypt', 4, 'crypt'), ('prologue:corridor', 5, 'corridor'), ('prologue:abbey', 6, 'abbey')]:
+    for scene, count, phase in [('prologue:start', 0, None), ('opening', 0, None), ('prologue:forest', 3, 'forest'), ('prologue:crypt', 4, 'crypt'), ('prologue:corridor', 5, 'corridor'), ('prologue:abbey', 6, 'abbey'), *[(f'prologue:{phase}', count, phase) for phase, count in [('three',0),('fourth',3),('cryptQuest',4),('shop',4),('fifth',4),('formation',5),('corridorQuest',5),('sixth',5),('appraise',6),('abbeyQuest',6)]]]:
         visit('?testScene=' + scene)
         print(scene)
         assert page.evaluate('__game.G.party.length') == count, scene
         assert page.evaluate('__game.G.msq.prologue?.phase || null') == phase, scene
         assert page.evaluate('!!__game.G.testStoryFlow'), scene
+        key = {'three':'createThree','fourth':'createFourth','shop':'buyEquipment','fifth':'createFifth','formation':'prologueFormation','sixth':'createSixth','appraise':'prologueAppraise'}.get(phase)
+        if key:
+            pending = page.evaluate('async()=>{const {UI}=await import("/src/ui/ctx.js");return UI.tutorialPending?.()?.key}')
+            assert pending == key, (scene, pending)
+        if phase in ['fourth','fifth','sixth']:
+            assert page.evaluate('!!__game.G.msq.prologue.gifts[__game.G.msq.prologue.phase]'), scene
+        if phase == 'appraise':
+            assert page.evaluate('__game.G.msq.prologue.staff.unidentified'), scene
+        if phase == 'abbeyQuest':
+            assert page.evaluate('__game.G.world.cleared.w02 && !__game.G.world.reported.w02'), scene
         assert page.evaluate('localStorage["dos-save-v7"]') == saved, scene
+    visit('')
+    page.get_by_role('button', name='テストプレイ', exact=False).click()
+    page.get_by_label('テストする内容', exact=True).select_option('archive')
+    expected = page.evaluate('async()=> (await import("/src/archive-stories.js")).ARCHIVE_STORIES.map(s=>"archive:"+s.id)')
+    assert page.get_by_label('場面', exact=True).locator('option').evaluate_all('(os)=>os.map(o=>o.value)') == expected
+    page.get_by_label('場面を探す', exact=True).fill('forest_doll')
+    assert page.get_by_label('場面', exact=True).locator('option').count() == 1
+    page.locator('.ttl-test button').last.click()
+    page.wait_for_function('window.__game?.G.testPlay')
+    assert 'archive%3Aforest_doll' in page.url
+    assert page.evaluate('localStorage["dos-save-v7"]') == saved
+    for scene in ['late:w06_roll', 'rematch:bs_cryptabbot']:
+        visit('?testScene=' + scene)
+        assert page.evaluate('__game.G.testPlay'), scene
     # 森の手がかりから四体目の手ほどきへ、本番の処理でつながる。
     visit('?testScene=prologue:forest')
     page.evaluate('''async () => {
@@ -76,5 +100,5 @@ with sync_playwright() as p:
     assert 'test' not in page.url
     assert page.evaluate('localStorage["dos-save-v7"]') == saved
     assert not errors, errors
-    print(f'OK: 序章6入口・森から四体目への進行・全{count}迷宮の入口/最深部・通常セーブ保護')
+    print(f'OK: 序章15入口・旧URL・森から四体目への進行・全{count}迷宮の入口/最深部・通常セーブ保護')
     browser.close()
