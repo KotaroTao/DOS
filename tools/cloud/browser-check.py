@@ -45,6 +45,14 @@ with sync_playwright() as p:
     assert page.evaluate("window.__game.G.apprenticeName") == "リュカ"
     page.locator(".ttl-menu .ttl-btn.primary").click()
     page.wait_for_function("document.querySelector('.cloud-gate').hidden")
+    page.locator(".ttl-overlay").wait_for(state="detached")
+    page.evaluate("__game.UI.settingsSheet()")
+    page.get_by_role("button", name="プレイヤー名を編集", exact=True).click()
+    page.get_by_label("プレイヤー名", exact=True).fill("セイン")
+    page.get_by_role("button", name="保存する", exact=True).click()
+    page.locator(".player-name-sheet").wait_for(state="detached")
+    page.get_by_role("button", name="閉じる", exact=True).click()
+    page.wait_for_function("document.querySelector('.cloud-gate').hidden")
     # 同一端末での別タブはロックされる。
     second = context.new_page()
     second.goto(GAME)
@@ -61,6 +69,7 @@ with sync_playwright() as p:
     page.reload()
     page.wait_for_selector(".ttl-overlay")
     assert page.evaluate("window.__game.G.gold") == 4320
+    assert page.evaluate("window.__game.G.apprenticeName") == "セイン"
     page.set_viewport_size({"width": 390, "height": 844})
     page.screenshot(path="/tmp/dos-cloud-title-mobile.png")
     # 実際のゲームの戦闘画面から、防御→敵の攻撃→全滅をサーバー経由で進める。
