@@ -244,7 +244,7 @@ export function queueStoryNotice() {
   const tick = () => {
     noticeTimer = null;
     const G = game.G;
-    if (!G || G.state !== "town" || G.testPlay || (G.stats?.runs || 0) < 1) return;
+    if (!G || G.state !== "town" || (G.testPlay && !G.testStoryFlow) || (G.stats?.runs || 0) < 1) return;
     if (!newStories(G).length) return;
     if (noticeBusy(G)) { if (++noticeTries < 40) noticeTimer = setTimeout(tick, 1500); return; }
     showStoryNotice(G);

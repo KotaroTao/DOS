@@ -25,7 +25,7 @@ import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, permanentEventSta
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { pickTavernCrowd, TALK_MAP } from "./tavern.js";
 import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, QUEST_LV_NEAR, rollBoard, deliveryRewardRows, NPCS, npcOf, composeReport, bondGiftAt, npcBondLabel, TIP_RATE, hasBell, BELL_EVERY_MS, QUEST_REWARD_K, QUEST_RK, questRewardK, COMMON_KEY as QUEST_COMMON_KEY } from "./quests.js";
-import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_THREE_REPORT, TUT_FINALE, STORY_CELLS, storyCellAt, BOSS_MEMORIES, REPORTS, LATE_CLUES, IRENE_BEATS, MINE_PASS, msqReward, EPILOGUE, UNLOCKS, unlockSceneFor, REMATCH_MEMORIES } from "./story.js";
+import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_THREE_REPORT, TUT_FINALE, TUT_CORRIDOR, STORY_CELLS, storyCellAt, BOSS_MEMORIES, REPORTS, LATE_CLUES, IRENE_BEATS, MINE_PASS, msqReward, EPILOGUE, UNLOCKS, unlockSceneFor, REMATCH_MEMORIES } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { poolAt, powerAt } from "./dungeons/world.js";
 import { NAMED_FOES, NAMED_IDS, TROPHY_OF, HUNT_ELITE_RATE, bountyId } from "./dungeons/named.js";
@@ -7028,7 +7028,7 @@ function stabilityPerRed() { return 1; }
 function pendingIreneBeat() {
   if (prologueActive()) return null;
   // 試遊は選択した場面だけ。準備用の報告済み状態から別の語りを始めない。
-  if (G.testPlay) return null;
+  if (G.testPlay && !G.testStoryFlow) return null;
   const w = worldState();
   return IRENE_BEATS.find((b) => !w.beats[b.id] && (!b.need || (Array.isArray(b.need) ? b.need : [b.need]).every((key) => w.found[key])) && (!b.after || w.reported[b.after]) && (!b.beat || w.beats[b.beat]) && (!b.flag || w[b.flag] === 1)) || null;
 }
@@ -14453,10 +14453,7 @@ function prologueAudience() {
   }
   if (!["cryptQuest", "corridorQuest"].includes(phase)) return;
   const crypt = phase === "cryptQuest";
-  const lines = crypt ? TUT_FINALE : [
-    "「五体の人業がそろったか。地下墓地の先、亡骸の囁く回廊を調べてほしい。」",
-    "「オルドのランタンに残された言葉は、地下の水脈を指しておる。回廊の最深部まで進んでみよ。」",
-  ];
+  const lines = crypt ? TUT_FINALE : TUT_CORRIDOR;
   playMsqChain([{ title: crypt ? "地下墓地の調査" : "亡骸の囁く回廊へ", lines,
     reward: crypt ? [{ cur: "gold", n: 500 }] : null, kicker: "王の依頼",
     leave: () => {
@@ -15732,7 +15729,7 @@ function reportMissingClue(id = worldState().report) {
 }
 // 報告の後に見つけた師の手がかりで、まだ王に伝えていないもの (鍵 / null)
 function lateClue() {
-  if (G.testPlay) return null; // 試遊は選択した場面だけ
+  if (G.testPlay && !G.testStoryFlow) return null; // 試遊は選択した場面だけ
   const w = worldState();
   return Object.keys(LATE_CLUES).find((key) => w.found[key] && w.reported[STORY_CELLS[key].dungeon] && !w.told[key]) || null;
 }
@@ -17686,9 +17683,16 @@ const testParams = new URLSearchParams(location.search);
 const testDungeonIdx = DUNGEONS.findIndex((d) => d.id === testParams.get("testDungeon"));
 const testScenes = [
   ...uiTutorial.testTutorials,
-  { id: "opening", kind: "story", name: "オープニング" },
-  ...Object.entries({ intro: TUT_INTRO, three: TUT_THREE_REPORT, finale: TUT_FINALE, epilogue: EPILOGUE }).map(([id, lines]) => ({
-    id: "story:" + id, kind: "story", name: ({ intro: "着任の謁見", three: "三体の支度", finale: "地下墓地の調査依頼", epilogue: "結末" })[id], lines,
+  { id: "prologue:start", kind: "prologue", name: "最初から（オープニング・着任の謁見）" },
+  ...[
+    ["forest", "三体で森の古屋へ", "w00_forest", 3],
+    ["crypt", "四体で地下墓地へ", "w01", 4],
+    ["corridor", "五体で亡骸の囁く回廊へ", "w02", 5],
+    ["abbey", "六体で修道院へ", "w03", 6],
+  ].map(([phase, name, dungeon, count]) => ({ id: "prologue:" + phase, kind: "prologue", name, phase, dungeon, count })),
+  { id: "opening", kind: "story", name: "オープニング（序章を続けて試遊）" },
+  ...Object.entries({ intro: TUT_INTRO, three: TUT_THREE_REPORT, finale: TUT_FINALE, corridor: TUT_CORRIDOR, epilogue: EPILOGUE }).map(([id, lines]) => ({
+    id: "story:" + id, kind: "story", name: ({ intro: "着任の謁見", three: "三体の支度", finale: "地下墓地の調査依頼", corridor: "亡骸の囁く回廊への依頼", epilogue: "結末" })[id], lines,
     photo: storyImage(({ intro: "arrival", three: "three", finale: "departure" })[id]),
   })),
   ...[["cell", "師の手がかり", STORY_CELLS], ["memory", "主の記憶", BOSS_MEMORIES], ["report", "踏破の報告", REPORTS], ["chapter", "章の結び", CHAPTER_END], ["unlock", "機能の解放", UNLOCKS]].flatMap(([group, label, defs]) =>
@@ -18161,6 +18165,38 @@ function setupNewGame() {
 function setupTestPlay() {
   setupNewGame();
   G.testPlay = true;
+  G.apprenticeName = "試遊の弟子";
+  // 通し試遊は本番の新規開始と同じ状態。保存の停止だけを残す。
+  G.testStoryFlow = testScene?.kind === "prologue" || testScene?.id === "opening";
+  if (G.testStoryFlow) {
+    G.state = "town";
+    if (!testScene.phase) return 1;
+    const { phase, dungeon, count } = testScene;
+    G.msq = { n: 1, state: "world", granted: true, prologue: { phase, gifts: {} } };
+    G.irene.greeted = true;
+    G.dungeonIdx = worldIndexOf(dungeon);
+    const w = worldState();
+    const prior = ["w00_forest", "w01", "w02"].slice(0, count - 3);
+    for (const id of prior) {
+      w.open[id] = true; w.cleared[id] = 1; w.reported[id] = true;
+      for (const [key, cell] of Object.entries(STORY_CELLS)) if (cell.dungeon === id) w.found[key] = true;
+    }
+    const done = ["createThree", ...(count >= 4 ? ["createFourth"] : []), ...(count >= 5 ? ["createFifth", "prologueFormation"] : []), ...(count >= 6 ? ["createSixth", "prologueAppraise"] : [])];
+    G.tut = { done: Object.fromEntries(done.map(key => [key, true])) };
+    const jobs = count >= 5 ? ["fighter", "knight", "thief", "mage", "priest", "bishop"] : ["fighter", "priest", "thief", "mage"];
+    for (const job of jobs.slice(0, count)) {
+      const soul = addSoulInstance(job, 1, dungeonLevel(DUNGEONS[G.dungeonIdx], 1));
+      const doll = makeDoll(randomDollName());
+      doll.primary = soul.uid; recalcDoll(doll); doll.hp = doll.maxhp; doll.mp = doll.maxmp;
+      G.party.push(doll);
+    }
+    G.dollsPurchased = count;
+    G.gold = count >= 4 ? 500 : 0;
+    refreshWorldUnlocks();
+    w.open[dungeon] = true;
+    G.unlockedDungeons = worldOpenCount();
+    return 1;
+  }
   G.msq = { n: 1, state: "world" };
   const earlyTutorial = testScene?.kind === "tutorial" && ["createThree", "createFourth", "createFifth", "createSixth", "prologueFormation", "prologueAppraise", "buyEquipment", "firstDive"].includes(testScene.id.slice(9));
   const idx = testScene || testInfFloor ? (earlyTutorial || testScene?.id === "opening" ? 0 : DUNGEONS.findLastIndex(d => !d.tutorial)) : testDungeonIdx;
@@ -18813,7 +18849,7 @@ async function init() {
     resumeFromState();
     revealBootScreen();
     if (testScene?.kind === "tutorial") uiTutorial.startTestTutorial(G.testTutorial);
-    else if (testScene?.id === "opening") startAfterTitle(false);
+    else if (G.testStoryFlow) { if (!testScene.phase) startAfterTitle(false); }
     else if (testScene) UI.playStoryChain([{ title: testScene.title || testScene.name, lines: storyLines(testScene.lines), art: testScene.art, photo: testScene.photo, who: testScene.who || "king" }], renderTown);
     else if (testInfFloor) { infTestStart(testInfFloor, Math.floor(Number(testParams.get("testInfLv"))) || 0); return; }
     else if (testParams.get("testPlace") !== "town") enterDungeon(null, floor);
