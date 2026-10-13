@@ -15300,7 +15300,8 @@ function innCost() { return G.party.length * 12 + G.maxFloorReached * 6; }
 const REPAIR_RANK_GOLD = [10, 10, 20, 40, 80, 160]; // [0] は魂の宿らぬ器の保険 (ランク1扱い)
 const REPAIR_RARITY_MUL = { common: 1, rare: 2, epic: 3, legend: 4, unique: 3 };
 function repairCostOf(d) {
-  if (!d || d.alive || awaitingRescue(d)) return 0;
+  // 回廊を踏破するまでは、隊・控えとも金貨なしで修復できる。
+  if (!d || d.alive || awaitingRescue(d) || !worldState().cleared.w02) return 0;
   const rank = Math.max(1, Math.min(5, d.jobRank || 1));
   const lv = Math.max(1, d.jobLv || 1);
   const cls = d.clsKey ? SOUL_CLASSES[d.clsKey] : null;
