@@ -1153,8 +1153,7 @@ function emptyState() {
   box.appendChild(el("div", "pt-empty-t", "人業はまだ眠っている"));
   box.appendChild(el("div", "pt-empty-s", "魂をひとつ選んで人業に宿し、名を与えれば目を覚ます。"));
   if (inTown()) {
-    const cost = game.emptyDollCost ? game.emptyDollCost() : 0;
-    box.appendChild(button({ label: "人業を仕立てる", kind: "primary", size: "lg", cost: cost ? { kind: "red", n: cost } : "無料", onTap: () => openCreateDoll() }));
+    box.appendChild(button({ label: "人業を仕立てる", kind: "primary", size: "lg", onTap: () => openCreateDoll() }));
   }
   return box;
 }
@@ -1450,11 +1449,9 @@ export function openReserve() {
   return reserveH;
 }
 function createButton() {
-  const G = G_();
-  const cost = game.emptyDollCost ? game.emptyDollCost() : 0;
   const full = allDolls().length >= 100;
   const add = button({ label: "人業を仕立てる", sub: "魂をひとつ選び、名を与える", kind: "primary",
-    cost: cost ? { kind: "red", n: cost } : "無料", disabled: full || (G.redSoul || 0) < cost, onTap: () => openCreateDoll() });
+    disabled: full, onTap: () => openCreateDoll() });
   add.classList.add("pt-res-add");
   return add;
 }
@@ -1470,8 +1467,6 @@ function reserveBody(root) {
   if (!G.reserve.length) list.appendChild(el("div", "pt-res-none", "控えはいない。隊列の人業を「控え」へ引けば下げられる。"));
   for (const d of G.reserve) list.appendChild(reserveRow(d));
   root.appendChild(list);
-  const cost = game.emptyDollCost ? game.emptyDollCost() : 0;
-  root.appendChild(el("div", "pt-note c", `仕立ての費用: 3体目まで無料 ・ 4体目 赤い魂30 ・ 5体目 50 ・ 以降 100${cost ? "" : "（いまは無料）"}。`));
 }
 function reserveRow(d) {
   const G = G_();
@@ -1690,11 +1685,8 @@ export function openSwapSheet(d) {
 // 人業を仕立てる: 宿す魂を選ぶ → 名を与える
 let createH = null; // 開いている「宿す魂をえらぶ」シート (二重に開かない: 下に古い一覧が残るため)
 export function openCreateDoll() {
-  const G = G_();
   if (!inTown()) return;
   if (createH && !createH.closed) return createH;
-  const cost = game.emptyDollCost ? game.emptyDollCost() : 0;
-  if ((G.redSoul || 0) < cost) { sfx("ng"); toast("赤い魂が足りない", { tone: "bad" }); return; }
   if (allDolls().length >= 100) { sfx("ng"); toast("これ以上は仕立てられない (100体まで)", { tone: "bad" }); return; }
   const worn = (uid) => allDolls().some((d) => d.primary === uid || (d.subs || []).some((s) => s && s.uid === uid));
   const free = (game.prologueCreateSouls ? game.prologueCreateSouls() : game.soulRepresentatives().filter((s) => !worn(s.uid))).sort(game.soulSortCmp || (() => 0));
@@ -1702,7 +1694,7 @@ export function openCreateDoll() {
   sfx("select");
   const h = createH = sheet.open({
     kind: "info", banner: "宿す魂をえらぶ", className: "pt-pick-sheet",
-    lines: [cost ? `赤い魂 ${cost} で人業を迎え、選んだ魂を宿す。` : "受け取った人業に、選んだ魂を宿す。"],
+    lines: ["宿す魂をひとつ選び、人業に名を与える。"],
     body: (scroll) => {
       const list = el("div", "pt-list");
       for (const s of free) {
@@ -1764,12 +1756,11 @@ export function nameSheet({ banner = "名を与える", title, desc, value = "",
 export function openCreateName(uid) {
   const s = game.soulByUid ? game.soulByUid(uid) : soulByUid(uid);
   if (!s) return;
-  const cost = game.emptyDollCost ? game.emptyDollCost() : 0;
   nameSheet({
     banner: "人業を仕立てる", title: `${soulLabel(s)}を宿す人業に、名を`,
     desc: "名はあとから変えられる。",
     value: game.randomDollName ? game.randomDollName() : "", random: game.randomDollName,
-    okLabel: "生成する", cost: cost ? { kind: "red", n: cost } : "無料",
+    okLabel: "仕立てる",
     onOk: (name) => {
       const d = game.finalizeBuyDoll(uid, name);
       if (d) { if (reserveH) reserveH.close(); select(d); rerender(); }

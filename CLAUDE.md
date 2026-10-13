@@ -259,6 +259,9 @@ Six elements + `none`, defined in `schema.js`. Advantage cycle is **火→風→
 - Saving uses **`refSerialize`/ref-hydrate**: a custom serializer that encodes shared/circular object references as `{$r: index}` so object **identity is preserved** on load (a single soul object referenced from multiple places stays the same instance). When adding state that relies on shared references, keep it inside this graph rather than re-cloning.
 
 ### UI 構造 (`src/ui/`) — 縦スクロール無し・少ないタップ
+
+**人業の仕立て (2026-10-13)**: 赤い魂での人業購入は廃止。宿す魂を選び、名前を与えて仕立てる。費用表・無料の札・購入用の赤い魂50個のチュートリアル配布は出さない。`emptyDollCost()` は旧呼び出し口との互換のため0を返し、`dollsPurchased` は仕立てた回数として維持する。初訪問の挨拶は呼びかけ・自己紹介と器の紹介、続く `createThree` は魂と名の操作案内に分ける。
+
 品の入手ポップアップ (`loot.js` の祝祭カード) は、装備の比較の下に「特性」欄を表示する。`specialLines` で追加特性の格・名前・効果量と装備固有の特殊効果を詳細画面と同じ内容で示し、未鑑定・特性なしでは欄を出さない。本文は既存の内側スクロールで読める。心得 `t_loot_traits`。
 技名の下の説明は `itemview.js` の `skillDescription` で会心・命中補正を冒頭に付ける（「会+30%・命+10%」「必中」「必ず会心」）。補正がない項目は省略。「命+」は命中率への直接加算（60%に命+10%なら70%、上限95%）。必中は暗闇・見切りも無視する。詳細と酒場の心得 `t_phys_pierce` に説明する。
 技の種別札 (`itemview.js` の `spellTagKinds`) は、`pierce > 0` の物理技を「物貫」、魔法技を「魔貫」と表記する。通常の技は「物」「魔」。現行の技データの `pierce` は物理技のみで、魔法貫通の技は未定義。

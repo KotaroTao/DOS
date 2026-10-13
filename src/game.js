@@ -507,9 +507,9 @@ const G = {
   px: 0, py: 0,
   gold: 0,            // 着任時は金貨を持たない
   soulPts: 0,         // Soul(魂): 敵/死体から得る。経験値の役割を兼ね、館で魂のレベルアップに使う
-  redSoul: 0,         // Red Soul(赤い魂): プレミアム通貨 (空の人業購入・加護)
+  redSoul: 0,         // Red Soul(赤い魂): 通貨 (安定度の回復・連れ帰りの短縮・戦利品の保護)
   embers: 0,          // 魂の残火: 死体から確定で得る。メイン魂のLv上限を1上げるのに使う
-  dollsPurchased: 0,  // 空の人業を購入した回数 (価格の段階に使う)
+  dollsPurchased: 0,  // 人業を仕立てた回数 (旧セーブとの互換のためキーを維持)
   stabilityBriefed: false, // 魂の安定度の門衛説明を表示済みか
   dungeonBriefed: false, // 初回出撃時の警備兵の注意事項を表示済みか
   pendingDoll: null,  // (旧形式) 未生成の人業。現在は「空の人業」(isEmpty) として reserve に残る (ロード時に移行)
@@ -12407,12 +12407,8 @@ function grantRedSoul(n, source) {
   G.redSoul += n || 0; tlRedGain(n || 0, source);
 }
 
-// 人業を仕立てる費用 (最初の3体は無料、4体目以降に段階上昇)
-function emptyDollCost() {
-  if (prologueActive() && prologueDollGoal()) return 0;
-  const n = G.dollsPurchased;
-  return n < 3 ? 0 : n === 3 ? 30 : n === 4 ? 50 : 100;
-}
+// 旧呼び出し口との互換。人業の仕立てに赤い魂は使わない。
+function emptyDollCost() { return 0; }
 
 // 所持魂の並び順: 職業順 → プラス値降順 → Lv降順
 function soulSortCmp(a, b) {
@@ -12536,14 +12532,11 @@ const DOLL_NAMES = (() => {
 })();
 function randomDollName() { return DOLL_NAMES[Math.floor(random() * DOLL_NAMES.length)]; }
 
-// 魂と名前が決まったら、赤い魂を支払って人業を生成し、編成に加える。生まれた人業を返す
+// 魂と名前が決まったら、人業を仕立てて編成に加える。生まれた人業を返す
 function finalizeBuyDoll(uid, name) {
   if (prologueActive() && !prologueCreateSouls().some(s => s.uid === uid)) return null;
-  const cost = emptyDollCost();
   const s = soulByUid(uid);
-  if (G.redSoul < cost) { log("赤い魂が足りない。", "sys"); SFX.ng(); showToast("赤い魂が足りない", { tone: "bad" }); return null; }
   if (!s || !soulRepresentatives().some((x) => x.uid === uid) || soulWorn(s.uid)) { log("その魂は宿せない。", "sys"); SFX.ng(); return null; }
-  G.redSoul -= cost;
   G.dollsPurchased++;
   const d = makeDoll(name);
   d.primary = uid; // 選んだ魂をメイン魂として宿す
@@ -12553,7 +12546,7 @@ function finalizeBuyDoll(uid, name) {
   if (G.party.length < 6 && !partySoulConflict([...G.party, d])) G.party.push(d);
   else { G.reserve.push(d); log(`${d.name} は控えで待機する。`, "sys"); }
   SFX.itemget(); buzz([0, 30, 60, 30]);
-  log(`人業「${d.name}」が生まれた！（${SOUL_CLASSES[s.clsKey].label}・🔴${cost}）`, "win");
+  log(`人業「${d.name}」が生まれた！（${SOUL_CLASSES[s.clsKey].label}）`, "win");
   showToast(`人業「${d.name}」が目覚めた`, { tone: "good" });
   if (UI.tutorialEvent) UI.tutorialEvent("dollCreated");
   autosave(true);
@@ -15851,9 +15844,8 @@ function preDiveIssues() {
   }
   // 仲間が少ない (宿せる魂と器の余裕がある時だけ)
   const free = G.souls.filter((s) => !soulWorn(s.uid)).length;
-  if (G.party.length < 3 && free > 0 && allDolls().length < 100 && G.redSoul >= emptyDollCost()) {
-    const cost = emptyDollCost();
-    lines.push(`■ 編成が ${G.party.length}体 だけだ。魔物は群れで来る。宿せる魂が ${free}個 ある (次の器 ${cost ? `🔴${cost}` : "無料"})。`);
+  if (G.party.length < 3 && free > 0 && allDolls().length < 100) {
+    lines.push(`■ 編成が ${G.party.length}体 だけだ。魔物は群れで来る。宿せる魂が ${free}個 ある。人業の館で仕立てよう。`);
     res.dolls = true;
     res.items.push({ kind: "few", tone: "warn", text: `隊が ${G.party.length}体 だけ ・ 宿せる魂 ${free}`, fix: { act: "party", label: "仕立てる" } });
   }

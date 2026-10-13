@@ -169,7 +169,7 @@ export function keeperRow(key) {
 const CUR = {
   gold: { name: "金貨", key: "gold", desc: ["宿屋・鑑定・装備の売買などに使う。", "迷宮の宝箱・戦闘・アイテム売却などで手に入る。"] },
   soul: { name: "✦Soul", key: "soulPts", desc: ["魂を強化するための力。人業ではなく魂に刻まれる。", "迷宮で敵を倒すと得られ、全滅しても失われない。"] },
-  red: { name: "赤い魂", key: "redSoul", desc: ["人業を仕立てる、全滅で迷宮に残された人業の連れ帰りを早める、全滅の時に戦利品を守る——に使う。", "赤い魂の祠で授かる。"] },
+  red: { name: "赤い魂", key: "redSoul", desc: ["魂の安定度を回復する、全滅で迷宮に残された人業の連れ帰りを早める、全滅の時に戦利品を守る——に使う。", "赤い魂の祠で授かる。"] },
   ember: { name: "魂の残火", key: "embers", desc: ["魂のLv上限を1つ上げる。", "要る数は職業のレア度で変わる (コモン1・レア2・エピック3・レジェンド5)。", "あたたかい死体の魂を回収すると必ず、風化した死体を調べると半分の確率で得る (深い迷宮ほど数が多い)。"] },
 };
 export function currencySheet(kind) {
@@ -454,7 +454,7 @@ function renderShrine(root) {
   wrap.appendChild(sectionHead("赤い魂の使い道"));
   const uses = el("div", "fc-uses wa-scroll");
   const use = (t, s) => { const r = el("div", "fc-use"); r.appendChild(el("i", "wa-dia")); const tx = el("div"); tx.appendChild(setText(el("div", "fc-use-t"), t)); tx.appendChild(setText(el("div", "fc-use-s"), s)); r.appendChild(tx); uses.appendChild(r); };
-  use("人業を仕立てる", "人業の館で (最初の3体は無料)");
+  use("魂の安定度を回復する", "赤い魂1つで安定度1を回復");
   use("迷宮に残された人業を早く連れ帰る", "全滅の時。🔴1 で連れ帰りまでの時間を 20 分縮める");
   use("全滅の時に戦利品を守る", `🔴${game.GUARDIAN_COST || 20} で拾った品を失わずに帰還する`);
   wrap.appendChild(uses);
