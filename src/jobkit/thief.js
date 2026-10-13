@@ -4,7 +4,7 @@ export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
   awaken: "thiefNukeme",
   table: `
-    1 kantei/1 2 STEAL 3 POISONSTAB 5 ambushCrit/1 7 FUYUU 10 KEMURIDAMA
+    1 thiefSuki/1 2 STEAL 3 POISONSTAB 5 ambushCrit/1 7 FUYUU 10 KEMURIDAMA
     12 SUNAKAKE 15 THIEF_SURINUKE 15 trapEye/1 20 KASUMEGIRI 22 SHIBIREBARI 25 thiefTsukekomi/1 30 ASSASSINATE
     35 thiefKasume/1 40 OBORO 45 thiefNigegoshi/1 50 THIEF_TAKARASAGASHI 50 trapEye/2 55 MAKIBISHI 57 FUUGA
     60 venomBlade/1 65 TSUJIKAZE 70 sleepKill/1 75 thiefShikake/1 80 ZETSUEI 85 SHIPPUTSUKI
@@ -20,6 +20,12 @@ export default {
     THIEF_TAKARASAGASHI: { name: "宝探し", mpPct: 0.3, mp: 5, kind: "field", sense: "chest", target: "all-ally", desc: "この階の宝箱の在りかが、伏せたカードの青い光として浮かび上がる。中身や罠、ミミックかどうかまでは分からない（迷宮で唱える。効くのはこの階だけ）" },
   },
   perks: {
+    // 傷を負う前の敵の隙をつく。連撃は一撃ごとに相手のHPを判定する。
+    thiefSuki: {
+      label: "隙をつく",
+      lv: ["HP満タンの敵への与ダメ+10%", "HP満タンの敵への与ダメ+15%", "HP満タンの敵への与ダメ+20%"],
+      fx: [{ t: "deal", v: [0.1, 0.15, 0.2], when: { tgtHigh: 1 } }],
+    },
     // 小悪党の手癖: 殴りついでに敵の強化をかすめ取る
     thiefKasume: {
       label: "かすめ取り",
