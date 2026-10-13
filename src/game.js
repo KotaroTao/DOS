@@ -52,9 +52,9 @@ import { kingCanvas, prewarmTown } from "./townart.js";
 import { prewarmStoryArt } from "./storyart.js";
 import { drawBattleBackdrop } from "./backdrops.js";
 import { paintCryptFloor, paintCryptSlabs, paintCryptWalls, CATACOMB, genericMaterial, boardSeed, hexRgb } from "./crypt.js";
-import { cryptPainting, paintCryptMaterials, paintCryptMasonry } from "./cryptpaint.js";
+import { cryptPaintingPending, cryptPainting, paintCryptMaterials, paintCryptMasonry } from "./cryptpaint.js";
 import { CORPSE_FAMILIES, CORPSE_STATES, corpseArtKey } from "./corpseart.js";
-import { prewarmCryptActors, cryptPropKey, cryptPropBitmap, cryptWalkerBitmap, cryptPropSprite } from "./cryptactors.js";
+import { cryptActorsPending, prewarmCryptActors, cryptPropKey, cryptPropBitmap, cryptWalkerBitmap, cryptPropSprite } from "./cryptactors.js";
 import { normalizeName, storyText } from "./protagonist.js";
 import { showTitle } from "./title.js";
 import { RARITIES, rarityKey, rarityColor, rarityLabel, rollRarity, layerRarityUp } from "./rarity.js";
@@ -3079,8 +3079,27 @@ function heroPos() {
   const pr = cellRect(G.px, G.py);
   return [pr.x + pr.w / 2, pr.y + pr.h / 2];
 }
+// 旧素材を一瞬出さず、床と共通素材が揃ってから盤面を描く。
+function boardArtPending() {
+  const floor = cryptPaintingPending(activeCfg().id);
+  const actors = cryptActorsPending();
+  return floor || actors;
+}
 function drawBoardFrame() {
   if (!G.board) return;
+  if (boardArtPending()) {
+    vctx.save();
+    vctx.setTransform(1, 0, 0, 1, 0, 0);
+    vctx.globalCompositeOperation = "copy"; vctx.globalAlpha = 1;
+    vctx.fillStyle = "#080a10"; vctx.fillRect(0, 0, view.width, view.height);
+    vctx.globalCompositeOperation = "source-over";
+    viewTransform();
+    vctx.fillStyle = "#b9b2a4"; vctx.font = "12px serif";
+    vctx.textAlign = "center"; vctx.textBaseline = "middle";
+    vctx.fillText("景色を読み込んでいます…", VW / 2, VH / 2);
+    vctx.restore();
+    return;
+  }
   const now = performance.now();
   updateBoardCamera();
   ensureBoardScene();
@@ -6069,6 +6088,7 @@ function tryMove(dx, dy) {
 
 // 単発移動 (方向キー/ボタン/隣接クリック)。ガード後に1歩進む
 function moveTo(nx, ny) {
+  if (G.state === "board" && boardArtPending()) return;
   if (G.state !== "board" || G.anim || G.walking || uiBlocked()) return;
   if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS) return;
   if (Math.abs(nx - G.px) + Math.abs(ny - G.py) !== 1) return;
@@ -6284,7 +6304,7 @@ function autoMoveTick() {
   // 戦闘・選択 (シート・決断の問い) が挟まったら、それが済んだところでオート移動を切る (ユーザーの指示)
   if (G.state === "combat") autoMoveBreak = "battle";
   else if (uiBlocked() && !autoMoveBreak) autoMoveBreak = "choice";
-  if (G.state !== "board" || G.anim || G.walking || uiBlocked()) { autoMoveSchedule(150); return; }
+  if (G.state !== "board" || G.anim || G.walking || uiBlocked() || boardArtPending()) { autoMoveSchedule(150); return; }
   if (autoMoveBreak) {
     setAutoMove(false);
     return;
@@ -17452,6 +17472,7 @@ document.getElementById("board-center").addEventListener("click", () => {
 });
 
 view.addEventListener("click", (e) => {
+  if (G.state === "board" && boardArtPending()) return;
   if (boardPanClick) { boardPanClick = false; return; }
   if (G._swiped) { G._swiped = false; return; } // 直前のスワイプ由来の click は無視
   if (_enemyHold && _enemyHold.fired) { _enemyHold = null; return; } // 長押しで敵を覗いた直後

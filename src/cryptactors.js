@@ -8,17 +8,21 @@ const assets = { a: ["props-a", 1536, 1024], b: ["props-b", 1536, 1024], c: ["pr
 for (const family of Object.keys(CORPSE_FAMILIES)) assets[family] = [`corpses-${family}`, 1536, 1024];
 function sheet(key) {
   if (!sheets.has(key)) {
-    const [name, w, h] = assets[key], image = new Image(), state = { image, ready: false };
+    const [name, w, h] = assets[key], image = new Image(), state = { image, ready: false, pending: true };
     state.done = new Promise(resolve => { state.finish = resolve; });
     sheets.set(key, state); image.decoding = "async";
-    image.onload = () => { state.ready = image.naturalWidth === w && image.naturalHeight === h; state.finish(state.ready); };
-    image.onerror = () => { state.finish(false); }; // この素材だけ旧描画を使う。
+    image.onload = () => { state.ready = image.naturalWidth === w && image.naturalHeight === h; state.pending = false; state.finish(state.ready); };
+    image.onerror = () => { state.pending = false; state.finish(false); }; // この素材だけ旧描画を使う。
     image.src = new URL(`../art/dungeon/crypt-${name}.webp`, import.meta.url).href;
   }
   const state = sheets.get(key);
   return state.ready ? state.image : null;
 }
 export function prewarmCryptActors() { for (const key of Object.keys(assets)) sheet(key); }
+export function cryptActorsPending() {
+  prewarmCryptActors();
+  return [...sheets.values()].some(state => state.pending);
+}
 
 // 原画の各物体を余白ごと切り出す。隣の物体を拾わないよう、格子より実際の輪郭を優先する。
 export const CRYPT_PROP_FRAMES = {
