@@ -5,7 +5,7 @@ with sync_playwright() as p:
     page=browser.new_page(viewport={'width':390,'height':844})
     errors=[]
     page.on('pageerror',lambda e:errors.append(str(e)))
-    page.goto('http://localhost:8000/?testDungeon=w02&testPlace=town&testUnlock=infinite')
+    page.goto('http://localhost:8000/?testDungeon=w03&testPlace=town&testUnlock=infinite')
     page.wait_for_function('window.__game?.G.party.length > 0')
     print(page.evaluate('''async()=>{
       const {game}=await import('/src/ui/ctx.js');
@@ -52,7 +52,7 @@ with sync_playwright() as p:
       const {game}=await import('/src/ui/ctx.js');const G=__game.G;
       for(const d of G.party){d.alive=true;d.stability=100;d.stabilityAt=Date.now();}
       G.dungeonBriefed=true;G.stabilityBriefed=true;
-      const result=game.departNow({idx:0});stabCheck(result.ok,'本編へ出撃');return stabOut;
+      const result=game.departNow({idx:__game.world.DUNGEONS.findIndex(d=>d.id==="w03")});stabCheck(result.ok,'本編へ出撃');return stabOut;
     }'''))
     page.wait_for_function('__game.G.state === "board"')
     print(page.evaluate('''async()=>{

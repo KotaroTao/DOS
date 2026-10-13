@@ -105,6 +105,7 @@ import { FLOOR_HAZ } from "./floorhaz.js";
 
 const WORLD_DEF = [
   {
+    noCorpses: true, noEvents: true, noTraps: true, noSpecial: true, stabilityFree: true,
     id: "w01", lv: 1, lvTo: 3, layer: 1, floors: 5,
     floorHaz: { fall: null, harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.7, 5: 0.868 },
@@ -115,9 +116,10 @@ const WORLD_DEF = [
     ],
     elites: ["el_cryptlord"], // 地下墓地には蒼白の首切り鬼を出さない
     unlock: { start: true },
-    hint: "序章で三体の人業を仕立てると、王が在処を明かす",
+    hint: "森から人業を連れ帰り、四体で王の調査依頼を受ける",
   },
   {
+    noCorpses: true, noEvents: true, noSpecial: true, stabilityFree: true,
     id: "w02", lv: 5, lvTo: 10, layer: 1, floors: 10,
     floorHaz: { fall: null, harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.598, 3: 0.5934, 5: 0.5292, 7: 0.5063, 8: 0.4751, 10: 0.4773 },
@@ -130,7 +132,7 @@ const WORLD_DEF = [
     elites: ["el_palebutcher"], // 名のある強敵の縄張り (named.js)
     tune: { enemyMul: 0.92 }, // generator.js DUNGEON_TUNE の D3 (2026-10 の改定後の表)
     unlock: { reported: "w01" },
-    hint: "「忘れられた地下墓地」の踏破を王に報告すると、道が示される",
+    hint: "地下墓地の報告後、五体の隊をそろえて王の依頼を受ける",
   },
   {
     id: "w03", lv: 10, lvTo: 17, layer: 1, floors: 15,
@@ -1469,6 +1471,16 @@ const WORLD_DEF = [
     unlock: { quest: "fq_gemcutter" },
     hint: "酒場の石細工の店主の依頼「くもらない石」を受けると、道が示される",
   },
+  {
+    id: "w00_forest", name: "近くの森の古屋", short: "森の古屋",
+    lv: 1, lvTo: 1, layer: 1, floors: 3, side: true, tutorial: true,
+    power: { 1: 0.12, 3: 0.12 }, floorHaz: { fall: null, harm: null },
+    bands: [["bs_dustroach", "bs_littlecentipede", "bs_woodbee"]], elites: [],
+    noCorpses: true, noEvents: true, noTraps: true, noChests: true, noSpecial: true, stabilityFree: true,
+    unlock: { prologue: "forest" },
+    hint: "三体の人業に魂を宿すと、イレーヌから依頼を受ける",
+    about: "街の近くの森。三階の古屋に、イレーヌが長く使っていない人業が残っている。",
+  },
 ];
 
 // 敵の種類: 3種 + 5階ごとに3種 (全5階 = 6種 / 全10階 = 9種 / 全15階 = 12種)。ミミック・銀業などの共通の敵と
@@ -1551,6 +1563,7 @@ function build(def) {
   const cfg = { ...h, ...def };
   // 足元の仕掛け: 台帳で置くと決めた迷宮だけに敷く (見た目と言葉は floorhaz.js)
   cfg.floorHaz = { ...def.floorHaz };
+  if (def.noTraps) cfg.trapRate = 0;
   cfg.poisonRate = def.floorHaz.harm ? harmRate : 0;
   cfg.pitRate = def.floorHaz.fall ? fallRate : 0;
   // 属性の気配 (省略時は層の属性。null = 気配なし)・宝箱と罠のランク (層から)・主のランク
@@ -1605,7 +1618,7 @@ export function abyssLayer(L) {
   L = Math.max(1, Math.floor(L));
   if (_abyssLayers.has(L)) return _abyssLayers.get(L);
   // 格上の迷宮 (challenge) と、掟で1体ずつを軽くした迷宮 (敵がみな神速の allHaste — 奈落の敵は神速にならない) は層の物差しに数えない
-  const ds = WORLD.filter((d) => d.layer === L && !d.challenge && !(d.trait && d.trait.allHaste));
+  const ds = WORLD.filter((d) => d.layer === L && !d.tutorial && !d.challenge && !(d.trait && d.trait.allHaste));
   let info;
   if (ds.length) {
     // 雑魚の実効の強さの素 = 強さの素 × 手直し (浅階 enemyMul / 深階 ×deepMul) を、その層の迷宮の全階で平均
@@ -1699,9 +1712,9 @@ export function strengthAt(cfg, floor = 1) { return powerAt(cfg, floor) * lvPow(
     // 敵の種類 = 3 + 5階ごとに3 (帯の数 = 全階数 ÷ 5、最初の帯は6種・以降は3種ずつ)
     const want = Math.ceil(d.floors / BAND_FLOORS);
     if (d.bands.length !== want) throw new Error(`world: ${d.id} needs ${want} bands`);
-    d.bands.forEach((b, i) => { if (b.length !== (i === 0 ? 6 : 3)) throw new Error(`world: ${d.id} band ${i} needs ${i === 0 ? 6 : 3} kinds`); });
+    d.bands.forEach((b, i) => { if (b.length !== (i === 0 && !d.tutorial ? 6 : 3)) throw new Error(`world: ${d.id} band ${i} needs ${i === 0 ? 6 : 3} kinds`); });
     const kinds = new Set(d.bands.flat());
-    if (kinds.size !== 3 + 3 * want) throw new Error(`world: ${d.id} duplicate kinds in bands`);
+    if (kinds.size !== (d.tutorial ? 3 : 3 + 3 * want)) throw new Error(`world: ${d.id} duplicate kinds in bands`);
     if (!d.unlock) throw new Error(`world: ${d.id} has no unlock`);
     if (!(d.lv >= 1) || !(d.lvTo >= d.lv)) throw new Error(`world: ${d.id} needs lv / lvTo (lvTo >= lv >= 1)`);
     if (!d.power || !(d.power[1] > 0) || !(d.power[d.floors] > 0) || Object.keys(d.power).some((k) => !(+k >= 1 && +k <= d.floors && d.power[k] > 0))) throw new Error(`world: ${d.id} needs power { 1: …, ${d.floors}: … } (階 1〜${d.floors} の正の値)`);

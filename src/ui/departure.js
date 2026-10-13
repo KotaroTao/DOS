@@ -465,6 +465,7 @@ function renderReadyIssues(b) {
 
 // 入場の消費予告。人業ごとの残量を表示し、不足分を街で補える。
 function renderStability(b, explain = true) {
+  if (cur?.page !== "rematch" && game.stabilityApplies && !game.stabilityApplies()) return;
   const status = game.stabilityStatus();
   b.appendChild(sec("魂の安定度", `入場時 −${game.STABILITY_ENTRY_COST}／人`));
   if (explain) b.appendChild(el("div","dp-brief-l",`上限100。入場時に${game.STABILITY_ENTRY_COST}消費し、${game.stabilityMinutes ? game.stabilityMinutes() : 4}分ごとに1回復。控えやゲームを閉じている間も回復します。5階ごとに次の階へ進む時も各人30消費します。不足分は赤い魂1で安定度1を購入して進めます。`));
@@ -522,6 +523,12 @@ function openMutSheet(m) {
 
 // ---- 初めての注意 (出撃画面と分け、全文を読めるポップアップで表示) ----
 function openBriefing(go) {
+  if (cur?.page !== "rematch" && game.stabilityApplies && !game.stabilityApplies()) {
+    sheet.open({ kind: "info", banner: "出撃", title: "探索と帰還", className: "dp-brief-sheet",
+      lines: ["最下階まで進み、依頼の品を調べましょう。最下階の出口から街へ戻れます。", "五階ごとの帰還魔法陣からも、街へ戻れます。"],
+      footer: [{ label: "迷宮に入る", kind: "primary", onTap: h => { h.close(); go(); } }] });
+    return;
+  }
   sheet.open({
     kind:"info", banner:"門衛の忠告", title:"魂の安定度",
     className:"dp-brief-sheet", accent:"#78bdd1",
@@ -533,7 +540,7 @@ function openBriefing(go) {
       illustration.width=1852;illustration.height=849;
       picture.appendChild(illustration);b.appendChild(picture);
       b.appendChild(el("div","dp-brief-h","門衛 ― 迷宮の入口を守る者"));
-      for(const text of ["人業が迷宮に入ると、魂と器の結びつきが揺らぎます。その状態を示すのが『魂の安定度』です。",
+      for(const text of ["朽ちた骸の修道院以降の迷宮では、迷宮に入ると魂と人業の結びつきが揺らぎます。その状態を示すのが『魂の安定度』です。",
         `安定度の上限は100です。入場時に人業ごとに${game.STABILITY_ENTRY_COST}消費します。5階ごとに次の階へ進む時も、一人につき30消費します。本編も無限迷宮も同じです。`,
         "安定度は4分ごとに1回復します。控えの人業も、ゲームを閉じている間も同じです。魂が不安定になった人業を休ませ、別の人業を出立させましょう。",
         `不足分は赤い魂1で安定度1を購入し、そのまま進めます。安定度が${game.STABILITY_ENTRY_COST}未満の人業がいる場合は、購入するか、4分で1回復するのを待ってください。`,
@@ -658,7 +665,7 @@ function footerSpec() {
   const go = m ? "異変ごと門をくぐる" : again ? "ふたたび門をくぐる" : "門をくぐる";
   return [{
     label: alive ? (pick ? go : `${go} ― ${fl}`) : "動ける人業がいない",
-    sub: dn ? (pick ? `${fl}から「${dn.name}」へ ・ 安定度 −${game.STABILITY_ENTRY_COST}／人` : `「${dn.name}」 ・ 安定度 −${game.STABILITY_ENTRY_COST}／人`) : "",
+    sub: dn ? (pick ? `${fl}から「${dn.name}」へ${dn.stabilityFree ? "" : ` ・ 安定度 −${game.STABILITY_ENTRY_COST}／人`}` : `「${dn.name}」${dn.stabilityFree ? "" : ` ・ 安定度 −${game.STABILITY_ENTRY_COST}／人`}`) : "",
     kind: m ? "danger" : "primary", size: "lg", disabled: !alive,
     onTap: () => depart(),
   }];
@@ -741,7 +748,7 @@ function checkWoes(go) {
 
 function depart() {
   if (!cur) return;
-  checkWoes(()=>{if(!G().stabilityBriefed || !G().dungeonBriefed)openBriefing(departGo);else departGo();});
+  checkWoes(()=>{if((game.stabilityApplies?.() && !G().stabilityBriefed) || !G().dungeonBriefed)openBriefing(departGo);else departGo();});
 }
 function departGo() {
   const g = G();

@@ -89,11 +89,9 @@ function initialJobsReady(jobs) {
   const worn = new Set(allDolls().map((d) => soulByUid(d.primary)?.clsKey));
   return jobs.every((k) => worn.has(k));
 }
-const fourthReady = () => initialJobsReady(["fighter", "priest", "thief", "mage"]);
-const fourthSheetOpen = (selector) => hasDOM() && !!document.querySelector(selector);
 
 function newJobSouls() {
-  const initial = new Set(["fighter", "priest", "thief", "mage"]);
+  const initial = new Set(["fighter", "priest", "thief", "knight", "mage", "bishop"]);
   return (game.soulRepresentatives ? game.soulRepresentatives() : G_().souls || []).filter((s) => !initial.has(s.clsKey));
 }
 function grantNewJobGift() {
@@ -154,55 +152,55 @@ const TUTS = [
     outro: ["砕けた魂は、人業の館で金貨を払って修復できる。全滅で残された器は、連れ帰りを待とう。"],
   },
   {
-    key: "createThree", name: "三体の人業を仕立てる", who: "irene",
-    open: () => G_().msq?.n === 0 && G_().msq.granted && G_().msq.stage !== "fourth",
-    used: () => initialJobsReady(["fighter", "priest", "thief"]),
-    intro: () => [["王さまから授かった三つの魂を、器に宿しましょう。", "最初の三体は無料でお仕立てします。"], ["『人業を仕立てる』から魂を選び、名前を与えてください。", "戦士・僧侶・盗賊が揃ったら、王さまにご報告を。"]],
-    steps: [{ text: "戦士・僧侶・盗賊の人業を仕立てる", hint: "人業の館 → 人業を仕立てる → 魂を選ぶ → 名前を決める", go: () => game.goMakeDoll(), target: [".pt-empty button", ".pt-soulrow", ".pt-res-sw button"], done: () => initialJobsReady(["fighter", "priest", "thief"]) }],
-    outro: ["三体の人業が目覚めた。王宮で王に報告しよう。"],
+    key: "createThree", name: "三体に魂を宿す", who: "irene",
+    open: () => game.prologuePhase?.() === "three", used: () => false,
+    intro: () => [["こちらの三体に、王さまから授かった魂を宿しましょう。", "戦士・僧侶・盗賊の魂を一つずつ選び、名前を与えてください。"]],
+    steps: [{ text: "戦士・僧侶・盗賊の魂を宿す", hint: "人業を仕立てる → 魂 → 名前", go: () => game.goMakeDoll(), target: [".pt-empty button", ".pt-form .pt-empty-slot"], done: () => initialJobsReady(["fighter", "priest", "thief"]) }],
+    outro: ["三体の人業が目覚めた。", "イレーヌ「近くの森の古屋に、しばらく使っていない人業があるのです。三体と一緒に、連れ帰っていただけますか。」", "森の古屋は全三階。三階で人業を探し、館へ戻ろう。"],
   },
+  ...[
+    { key: "createFourth", phase: "fourth", count: 4, job: "knight", label: "騎士", body: "ほこりをかぶった人業", intro: "連れ帰ってくださって、ありがとうございます。ほこりを払えば、この子はまだ働けます。", next: "四体の隊がそろった。王宮で依頼を受けよう。" },
+    { key: "createFifth", phase: "fifth", count: 5, job: "mage", label: "魔導士", body: "王宮から受け取った人業", intro: "王宮の倉庫に、この子が眠っていたのですね。この魂を宿してみてください……。", next: "五体の隊がそろった。王宮で回廊への依頼を受けよう。" },
+    { key: "createSixth", phase: "sixth", count: 6, job: "bishop", label: "司教", body: "壊れた人業", intro: "どこかの操霊師が使っていた人業ですね。継ぎ目を直せば、まだ使えます。館に残っていた司教の魂をお渡しします。", next: "六体の隊がそろった。続いて司教の鑑定を試そう。" },
+  ].map(({ key, phase, count, job, label, body, intro, next }) => ({
+    key, name: `${count}体目に${label}の魂を宿す`, who: "irene",
+    open: () => game.prologuePhase?.() === phase, used: () => false,
+    prepare: () => game.preparePrologueDoll?.(),
+    intro: () => [[intro], [`${body}に、${label}の魂を宿しましょう。`, "魂を選び、この子に名前を与えてください。お代は要りません。"]],
+    steps: [{ text: `${label}の魂を宿す`, hint: "人業を仕立てる → 魂 → 名前", go: () => game.goMakeDoll(), target: [".pt-form .pt-empty-slot", ".pt-res-add"], done: () => allDolls().length >= count && initialJobsReady([job]) }],
+    outro: [next],
+  })),
   {
-    key: "createFourth", name: "赤い魂で四体目を仕立てる", who: "irene",
-    open: () => G_().msq?.n === 0 && G_().msq.stage === "fourth",
-    used: () => initialJobsReady(["fighter", "priest", "thief", "mage"]),
-    intro: () => [["今度は、赤い魂で器をお買い求めください。", "四体目のお代は、赤い魂30です。"], ["新しい器には、王さまから授かった魔導士の魂を宿しましょう。", "名前を与えたら、もう一度王さまにご報告ください。"]],
-    steps: [
-      { text: "顔アイコンの空き枠『＋』を押す", hint: "後衛の一番左にある『＋』を押してください", lock: true, go: () => UI.enterMansion && UI.enterMansion(), target: ['.pt-form [data-drop="e3"]'], done: () => fourthSheetOpen(".pt-res-sheet, .pt-pick-sheet, .pt-name-sheet") || fourthReady() },
-      { text: "『人業を仕立てる』を押す", hint: "赤い魂30で、四体目の器を購入します", lock: true, go: () => UI.openReserve && UI.openReserve(), target: [".pt-res-sheet .pt-res-add"], done: () => fourthSheetOpen(".pt-pick-sheet, .pt-name-sheet") || fourthReady() },
-      { text: "魔導士の魂を選ぶ", hint: "光っている『魔導士の魂』を押してください", lock: true, go: () => UI.openCreateDoll && UI.openCreateDoll(), target: ['.pt-pick-sheet .pt-soulrow[data-job="mage"]'], done: () => fourthSheetOpen(".pt-name-sheet") || fourthReady() },
-      { text: "名前を決めて『生成する』を押す", hint: "名前を入力し、赤い魂30を支払って仕立てます", lock: true,
-        go: () => { const soul = (G_().souls || []).find((s) => s.clsKey === "mage"); if (soul && UI.openCreateName) UI.openCreateName(soul.uid); },
-        target: [".pt-name-sheet .ui-sheet-foot .ui-btn.k-primary"],
-        allow: [".pt-name-sheet .pt-name-in", ".pt-name-sheet .pt-name-rnd", ".pt-name-sheet .ui-sheet-foot .ui-btn.k-primary"], done: fourthReady },
-    ],
-    outro: ["四体目の魔導士が目覚めた。王に報告しよう。"],
+    key: "prologueAppraise", name: "司教の鑑定", who: "irene",
+    open: () => game.prologuePhase?.() === "appraise", used: () => false,
+    prepare: () => game.preparePrologueAppraisal?.(),
+    intro: () => [["司教は鑑定の技を持っています。迷宮で手に入れた品を、街で無料で鑑定できます。", "試しに、この『杖？』を鑑定してみてください。"], ["商会の『鑑定を試みる』をお選びください。", "表示される成功率を確かめてから、始めましょう。"]],
+    steps: [{ text: "商会で『杖？』の鑑定を試みる", hint: "商会 → 売る → 鑑定を試みる", go: () => UI.openShop?.("sell"), target: [".prologue-appraise"], done: () => !!G_().msq?.prologue?.appraised }],
+    outro: ["『杖？』は、魔法の杖（品質50）だった。", "王宮で回廊の報告をし、次の依頼を受けよう。"],
   },
+  // 旧セーブ・試遊のIDは残す。新序章では余分な装備・出撃の手ほどきを挟まない。
   {
     key: "buyEquipment", name: "商会で装備を整える", who: "shop", silent: true,
-    open: () => G_().msq?.n >= 1 && !(G_().stats?.runs > 0),
-    used: () => false,
-    intro: () => ["王から授かった金貨500で、人業の装備を整えよう。", "商会の『買う』で武器や防具を選ぶ。『買って装備』なら、そのまま人業に持たせられる。", "購入は任意。必要な分だけ自由に買い、支度ができたら画面下の『迷宮』を選ぼう。"],
-    steps: [{ text: "必要な装備を自由に購入する", hint: "購入は任意。支度ができたら画面下の『迷宮』を選ぶ", go: () => UI.openShop && UI.openShop("buy", { cat: "weapon" }), done: () => G_().town?.tab === "shop" }],
-    outro: ["支度ができたら、画面下の『迷宮』を選ぼう。"],
+    open: () => !game.prologueActive?.() && G_().msq?.n >= 1 && !(G_().stats?.runs > 0), used: () => false,
+    intro: () => ["商会で必要な武器や防具を購入しよう。"],
+    steps: [{ text: "商会を開く", hint: "商会 → 買う", go: () => UI.openShop?.("buy"), done: () => G_().town?.tab === "shop" }], outro: ["支度ができたら迷宮へ。"],
   },
   {
     key: "firstDive", name: "初めて迷宮に入る", who: "gate", manual: true,
-    open: () => G_().msq?.n >= 1 && !!tutState().done.buyEquipment,
-    used: () => (G_().stats?.runs || 0) > 0,
-    intro: () => ["四体の人業が揃った。支度ができたら、最初の迷宮へ向かおう。", "出撃の画面で『忘れられた地下墓地』と隊の備えを確認し、『門をくぐる』を押す。"],
-    steps: [{ text: "忘れられた地下墓地の門をくぐる", hint: "出撃 → 迷宮と隊の備えを確認 → 門をくぐる", go: () => UI.openDeparture && UI.openDeparture(), target: [".dp-cta"], on: "dungeonEntered" }],
-    outro: ["迷宮へ踏み出した。師の足跡を探そう。"],
+    open: () => !game.prologueActive?.() && G_().msq?.n >= 1 && !!tutState().done.buyEquipment,
+    used: () => (G_().stats?.runs || 0) > 0, intro: () => ["出撃の画面で迷宮を選び、『門をくぐる』を押す。"],
+    steps: [{ text: "迷宮の門をくぐる", hint: "出撃 → 門をくぐる", go: () => UI.openDeparture?.(), target: [".dp-cta"], on: "dungeonEntered" }], outro: ["迷宮へ踏み出した。"],
   },
   {
     key: "newJobParty", name: "新しい器で仲間を増やす", who: "irene", silent: true,
-    open: () => G_().msq?.n >= 1 && !!tutState().jobVisit && newJobSouls().length > 0,
+    open: () => !game.prologueActive?.() && G_().msq?.n >= 1 && !!tutState().jobVisit && newJobSouls().length > 0,
     used: () => newJobSouls().some((s) => allDolls().some((d) => d.primary === s.uid)),
     prepare() {
       tutState().base.jobs = newJobSouls().map((s) => s.clsKey);
       grantNewJobGift();
     },
     intro: () => [
-      ["新しい職業の魂を持ち帰られたのですね。", "新しい人業の器を購入し、その魂を宿して仲間を増やしましょう。"],
+      ["新しい職業の魂を持ち帰られたのですね。", "新しい人業を購入し、その魂を宿して仲間を増やしましょう。"],
       ["初めての職業の魂を持ち帰ったお祝いに、赤い魂50個をお渡しします。", "この赤い魂で、新しい仲間を迎えてください。"],
       ["器は、この館で赤い魂と引き換えにお仕立てします。", `今のお代は、赤い魂${game.emptyDollCost?.() || 0}です。足りない時は、街の『赤い魂の祠』で入手できます。`],
       ["『人業を仕立てる』を開いたら、宿す魂は自由にお選びください。今は宿さずに閉じてもかまいません。", "隊には六体まで連れてゆけます。満員なら、新しい仲間は控えで待ちます。"],
@@ -217,7 +215,7 @@ const TUTS = [
   },
   {
     key: "soulChange", name: "魂の付け替え", who: "irene",
-    open: () => !!game.worldState?.().reported.w02,
+    open: () => !game.prologueActive?.() && !!game.worldState?.().reported.w02,
     used: () => false,
     prepare: () => null,
     intro: () => [
@@ -386,7 +384,7 @@ function pending() {
   if (!key) return null;
   const d = TUT_MAP[key];
   const step = st.cur === key ? d.steps[st.step] || d.steps[0] : d.steps[0];
-  const arrival = d.who === "irene" && !atMansion();
+  const arrival = d.who === "irene" && !atMansion() && !(key === "prologueAppraise" && st.cur === key);
   return { key, name: d.name, who: d.who, arrival,
     text: arrival ? "人業の館を選択してください" : step.text,
     hint: arrival ? "画面下の『人業の館』を選ぶと、イレーヌがご案内します" : step.hint,
@@ -477,6 +475,7 @@ function finish(d) {
   if (resumeTimer) { clearTimeout(resumeTimer); resumeTimer = null; }
   const st = tutState();
   st.done[d.key] = true;
+  game.completePrologueTutorial?.(d.key);
   st.cur = null; st.step = 0; st.ev = {}; st.base = {};
   if (d.key === "repairSoul" && st.repairResume) {
     Object.assign(st, st.repairResume);
@@ -514,6 +513,9 @@ function afterReport() {
 // 初めて砕けた人業を伴って帰還した時。帰還の報告より館の手ほどきを優先する。
 // 赤い魂で全員が生還した時・迷宮で蘇った時も、初めて砕けたなら説明する (st.repairFell ← game.js imprintFallen)。
 function afterReturn() {
+  if (["fourth", "sixth"].includes(game.prologuePhase?.())) {
+    UI.enterMansion?.(); mansionVisited(); return true;
+  }
   const st = tutState();
   if (!st || st.done.repairSoul || !(anyBroken() || st.repairFell)) return false;
   st.repairPending = true;
@@ -600,18 +602,10 @@ function ireneGuidance() {
     const target = tutorialControls()?.target;
     if (target?.closest(".pt-name-sheet")) return ["この子に名前を与えてください。", "『生成する』を押すと、魂を宿した人業が目覚めます。"];
     if (target?.dataset.job) return [`光っている『${jobLabel(target.dataset.job)}の魂』をお選びください。`, "最初の三体は、無料でお仕立てします。"];
-    if (target?.classList.contains("pt-res-add")) return ["光っている『人業を仕立てる』を押してください。", "残る魂も、ひとつずつ器に宿しましょう。"];
+    if (target?.classList.contains("pt-res-add")) return ["光っている『人業を仕立てる』を押してください。", "残る魂も、ひとつずつ人業に宿しましょう。"];
     if (target?.dataset.drop) return ["顔アイコンの光っている空き枠『＋』を押してください。", "次の人業をお仕立てしましょう。"];
   }
-  if (p.key === "createFourth") {
-    const index = tutState().cur === p.key ? tutState().step : 0;
-    return [
-      ["後衛の一番左、顔アイコンの空き枠『＋』を押してください。", "光っているところから、四体目をお仕立てしましょう。"],
-      ["光っている『人業を仕立てる』を押してください。", "四体目の器のお代は、赤い魂30です。"],
-      ["新しい器には、魔導士の魂を宿しましょう。", "光っている『魔導士の魂』をお選びください。"],
-      ["この子に名前を与えてください。", "『生成する』を押すと、赤い魂30で人業が目覚めます。"],
-    ][index] || null;
-  }
+  if (["createFourth", "createFifth", "createSixth"].includes(p.key)) return ["『人業を仕立てる』から、お渡しした魂を選んでください。", "この子に名前を与え、魂を宿しましょう。"];
   // 目標札の操作手順ではなく、通常会話と同じ口調で案内する。
   if (p.key === "fusion") return ["『魂融合』を開き、素材にする魂をお選びください。", "余っている同じ職の魂を、ひとつに溶かしましょう。"];
   if (p.key === "newJobParty") return ["『人業を仕立てる』で、魂の一覧を開いてみてください。", "その後は自由に選べます。今は宿さずに閉じてもかまいません。"];
@@ -669,6 +663,7 @@ function tutorialControls() {
   if (!d) return choose(first(document, ".hb-goal-go"));
   const st = tutState(), s = curStep();
   if (card) {
+    if (d.key === "prologueAppraise" && card.classList.contains("ap-sheet")) return choose(first(card, ".ui-sheet-foot .ui-btn.k-primary, .ui-sheet-foot .ui-btn.k-ghost, .ap-stage"));
     // 門衛の忠告は、本文のスクロールと支度に戻る操作も受け付ける。
     if (card.classList.contains("dp-brief-sheet")) return choose(first(card, ".ui-sheet-foot .ui-btn.k-primary"), [h.body, ...first(card,".ui-sheet-foot .ui-btn.k-ghost")]);
     if (h.kind === "celebrate" || card.classList.contains("ui-confirm") || stepDone(s)) return forward();
@@ -677,8 +672,8 @@ function tutorialControls() {
       return choose(first(card, ".ui-sheet-foot .ui-btn.k-primary"), first(card, ".pt-name-in, .pt-name-rnd"));
     }
     if (card.classList.contains("pt-res-sheet")) return choose(first(card, ".pt-res-add"));
-    if (card.classList.contains("pt-pick-sheet") && ["createThree", "createFourth"].includes(d.key)) {
-      const jobs = d.key === "createFourth" ? ["mage"] : ["fighter", "priest", "thief"];
+    if (card.classList.contains("pt-pick-sheet") && ["createThree", "createFourth", "createFifth", "createSixth"].includes(d.key)) {
+      const jobs = { createFourth: ["knight"], createFifth: ["mage"], createSixth: ["bishop"] }[d.key] || ["fighter", "priest", "thief"];
       const rows = jobs.flatMap((job) => first(card, `.pt-soulrow[data-job="${job}"]`));
       return choose(rows);
     }
@@ -699,7 +694,7 @@ function tutorialControls() {
     const rows = first(card, ".ui-row");
     return primary.length || rows.length ? choose([...primary, ...rows]) : forward();
   }
-  if (d.key === "createThree") {
+  if (["createThree", "createFourth", "createFifth", "createSixth"].includes(d.key)) {
     const count = allDolls().length;
     return choose(first(document, count ? `.pt-form [data-drop="e${count}"]` : ".pt-empty button"));
   }

@@ -4,10 +4,10 @@ import { WORLD } from '../../src/dungeons/world.js';
 import { EVENTS, eligibleEvents, runEvent, permanentEventStats } from '../../src/events.js';
 import { SOUL_KEYS, makeSoulInstance, setSharedSouls, makeDoll, recalcDoll, setPermanentStatSource } from '../../src/souls.js';
 const mythics = EVENTS.filter(e => e.tier === 'mythic');
-assert.equal(mythics.length, WORLD.length - 1);
+assert.equal(mythics.length, WORLD.filter(d => !d.tutorial).length - 1);
 const counts = {};
 for (const d of WORLD) {
-  const expected = d.id === 'w01' ? 0 : 1;
+  const expected = d.noEvents ? 0 : 1;
   for (const floor of [1, d.floors]) {
     const st = { dungeonId: d.id, layer: d.layer, lv: d.lv, first: d.id === 'w01', floor, floors: d.floors, runEv: {}, onceDone: () => false };
     const candidates = eligibleEvents(st).filter(e => e.tier === 'mythic');

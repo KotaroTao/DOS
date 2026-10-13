@@ -501,7 +501,7 @@ function partyStrip() {
     const e = el("div", "hb-party-empty");
     const ms = g.msq || {};
     const granted = !(ms.n === 0 && ms.state === "active" && !ms.granted);
-    e.appendChild(setText(el("div", "hb-party-empty-t"), granted ? "人業がいない。器に魂を宿して、人業を仕立てよう。" : "人業がいない。まずは王宮で、王に謁見しよう。"));
+    e.appendChild(setText(el("div", "hb-party-empty-t"), granted ? "まだ目覚めた人業がいない。館で人業に魂を宿そう。" : "人業がいない。まずは王宮で、王に謁見しよう。"));
     if (granted && canOpen) e.appendChild(button({ label: "人業を仕立てる", kind: "secondary", size: "sm", onTap: () => game.goMakeDoll() }));
     box.appendChild(e);
     return box;

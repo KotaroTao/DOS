@@ -1148,8 +1148,8 @@ function enterMansion({ create = false } = {}) {
 // ---- 人業がひとりもいない (第0章など) ----
 function emptyState() {
   const box = el("section", "pt-empty");
-  box.appendChild(el("div", "pt-empty-t", "器はまだ空のまま"));
-  box.appendChild(el("div", "pt-empty-s", "宿す魂をひとつ選んで器を仕立て、名を与えれば人業が目覚める。"));
+  box.appendChild(el("div", "pt-empty-t", "人業はまだ眠っている"));
+  box.appendChild(el("div", "pt-empty-s", "魂をひとつ選んで人業に宿し、名を与えれば目を覚ます。"));
   if (inTown()) {
     const cost = game.emptyDollCost ? game.emptyDollCost() : 0;
     box.appendChild(button({ label: "人業を仕立てる", kind: "primary", size: "lg", cost: cost ? { kind: "red", n: cost } : "無料", onTap: () => openCreateDoll() }));
@@ -1693,12 +1693,12 @@ export function openCreateDoll() {
   if ((G.redSoul || 0) < cost) { sfx("ng"); toast("赤い魂が足りない", { tone: "bad" }); return; }
   if (allDolls().length >= 100) { sfx("ng"); toast("これ以上は仕立てられない (100体まで)", { tone: "bad" }); return; }
   const worn = (uid) => allDolls().some((d) => d.primary === uid || (d.subs || []).some((s) => s && s.uid === uid));
-  const free = game.soulRepresentatives().filter((s) => !worn(s.uid)).sort(game.soulSortCmp || (() => 0));
+  const free = (game.prologueCreateSouls ? game.prologueCreateSouls() : game.soulRepresentatives().filter((s) => !worn(s.uid))).sort(game.soulSortCmp || (() => 0));
   if (!free.length) { sfx("ng"); toast("宿せる魂がない ― 迷宮で魂を集めよう", { tone: "bad" }); return; }
   sfx("select");
   const h = createH = sheet.open({
     kind: "info", banner: "宿す魂をえらぶ", className: "pt-pick-sheet",
-    lines: [cost ? `赤い魂 ${cost} で器を買い、選んだ魂を宿す。` : "無料で器を仕立て、選んだ魂を宿す。"],
+    lines: [cost ? `赤い魂 ${cost} で人業を迎え、選んだ魂を宿す。` : "受け取った人業に、選んだ魂を宿す。"],
     body: (scroll) => {
       const list = el("div", "pt-list");
       for (const s of free) {
@@ -1762,7 +1762,7 @@ export function openCreateName(uid) {
   if (!s) return;
   const cost = game.emptyDollCost ? game.emptyDollCost() : 0;
   nameSheet({
-    banner: "人業を仕立てる", title: `${soulLabel(s)}を宿す器に、名を`,
+    banner: "人業を仕立てる", title: `${soulLabel(s)}を宿す人業に、名を`,
     desc: "名はあとから変えられる。",
     value: game.randomDollName ? game.randomDollName() : "", random: game.randomDollName,
     okLabel: "生成する", cost: cost ? { kind: "red", n: cost } : "無料",

@@ -19,6 +19,9 @@ function p(weak, strong, immune, elemWeak, elemResist, slight = "") {
 }
 
 export const MONSTER_TEMPERAMENTS = {
+  bs_dustroach: p("sleep", "", "", "fire", ""),
+  bs_littlecentipede: p("sleep", "", "", "fire", ""),
+  bs_woodbee: p("sleep", "", "", "wind", ""),
   // 序章・宝箱の魔物
   slime: p("poison", "paralyze flinch", "charm", "fire", "water"), // 毒が粘体全体に回る
   bat: p("paralyze sleep", "confuse", "", "light", "dark"), // 羽を止めると落ちる

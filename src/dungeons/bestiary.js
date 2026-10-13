@@ -1957,6 +1957,16 @@ export const BESTIARY = (() => {
     if (out[id]) throw new Error("duplicate monster id: " + id);
     out[id] = METAL_MONSTERS[id];
   }
+  for (const [id, name, base, desc] of [
+    ["bs_dustroach", "ほこりゴキブリ", "cm_caverat", "古屋のすみを走る小さなゴキブリ。かたい背を持つが、力は弱い。"],
+    ["bs_littlecentipede", "枯葉ムカデ", "cm_spider", "枯葉の下に隠れる小さなムカデ。ゆっくり近づき、小さなあごでかむ。"],
+    ["bs_woodbee", "森の小蜂", "cm_bat", "古屋の軒に巣を作る小さな蜂。羽音は大きいが、針の傷は浅い。"],
+  ]) {
+    const stats = { bs_dustroach: { hp: 12, def: 1, spd: 2, physResist: 10 }, bs_littlecentipede: { hp: 10, def: 0, spd: 1, magWeak: 1.2 }, bs_woodbee: { hp: 8, def: 0, spd: 3, magWeak: 1.2 } }[id];
+    out[id] = defMonsters([{ id, name, desc, race: "insect", element: "none", art: out[base].art, palette: out[base].palette,
+      ...stats, atk: 1, ability: null, soul: 2, gold: 2, rank: 1 }])[id];
+    out[id].tutorial = true;
+  }
   for (const id of Object.keys(out)) {
     if (!MONSTER_TEMPERAMENTS[id]) throw new Error(`魔物の個別体質が無い: ${id}`);
   }
@@ -1976,7 +1986,7 @@ export const RANK_POOLS = (() => {
   const pools = {};
   for (const id in BESTIARY) {
     const m = BESTIARY[id];
-    if (m.elite || m.evOnly || m.metal) continue; // 強敵・出来事の魔物・金属の魔物は通常プールに含めない
+    if (m.tutorial || m.elite || m.evOnly || m.metal) continue; // 強敵・出来事の魔物・金属の魔物は通常プールに含めない
     const p = pools[m.rank] || (pools[m.rank] = { regular: [], boss: [] });
     (m.boss ? p.boss : p.regular).push(id);
   }

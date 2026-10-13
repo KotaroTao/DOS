@@ -82,7 +82,7 @@ export const LORE_PAGES = {
       "森にのまれた魂は、木になり、灯になり、やがて霧になる。",
       "魂脈に吸われるよりは、ましな終わりかもしれない。私は、そう思いたい。"],
   0: ["……灯を継ぐ者よ。深く潜るほど、魂は重くなる。",
-      "人業の器がきしむのは、魂がまだ自分の体を覚えているからだ。",
+      "人業がきしむのは、魂がまだ自分の体を覚えているからだ。",
       "忘れさせてやるな。それが、私にできなかったことだ。"],
 };
 
@@ -1606,7 +1606,7 @@ export const EVENTS = [
   },
   {
     id: "l7_10", name: "溶岩に沈む器", layer: 7, tier: "rare", icon: "event", deep: true,
-    intro: () => ["溶岩の湖に、巨大な人業の器が胸まで沈んでいる。焼かれずに残った胸の奥で、魂がひとつ、かすかに灯っている。", "器の肩には、黒曜石の番兵がうずくまっている。"],
+    intro: () => ["溶岩の湖に、巨大な人業が胸まで沈んでいる。焼かれずに残った胸の奥で、魂がひとつ、かすかに灯っている。", "器の肩には、黒曜石の番兵がうずくまっている。"],
     choices: (A, cell) => [
       { label: "胸の魂を解き放つ ― 番兵と戦い、勝てば希少な魂と魂の残火", danger: true, fn: () => {
         A.fight(cell, [{ key: "bs_obsidianguard", strong: 1.8, name: "器の番兵" }], "vessel", { noChest: true });
@@ -2969,6 +2969,7 @@ export function eventWhereText(e) {
 // ===== 置き場所と抽選 =====
 // st: { dungeonId, layer, lv, first, floor, floors, abyss, runEv, onceDone(e) }。出せるイベントを重み付きで1つ選ぶ (無ければ null)
 export function eligibleEvents(st, A) {
+  if (!st.abyss && ["w00_forest", "w01", "w02"].includes(st.dungeonId)) return [];
   const deepNow = st.floor > st.floors / 2;
   return EVENTS.filter((e) => {
     if (!!st.abyss !== !!e.inf) return false; // 無限迷宮には無限迷宮の出来事だけ
