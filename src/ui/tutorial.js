@@ -16,7 +16,7 @@ import { UI, game, registerUI } from "./ctx.js";
 import { el, setText, button, sheet, toast, celebrate, sheetDepth } from "./kit.js";
 import { unphrase } from "./phrase.js";
 import { playIreneScene, sceneActive, isGreeted } from "./irene.js";
-import { vignetteCanvas } from "../townart.js";
+import { keeperCanvas, vignetteCanvas } from "../townart.js";
 import { SOUL_CLASSES, soulByUid } from "../souls.js";
 
 const hasDOM = () => typeof document !== "undefined" && typeof document.createElement === "function";
@@ -198,12 +198,31 @@ const TUTS = [
     steps: [{ text: "商会で『杖？』の鑑定を試みる", hint: "商会 → 売る → 鑑定を試みる", go: () => UI.openShop?.("sell"), target: [".prologue-appraise"], done: () => !!G_().msq?.prologue?.appraised }],
     outro: ["『杖？』は、魔法の杖（品質50）だった。", "王宮で回廊の報告をし、次の依頼を受けよう。"],
   },
-  // 旧セーブ・試遊のIDは残す。新序章では余分な装備・出撃の手ほどきを挟まない。
   {
-    key: "buyEquipment", name: "商会で装備を整える", who: "shop", silent: true,
-    open: () => !game.prologueActive?.() && G_().msq?.n >= 1 && !(G_().stats?.runs > 0), used: () => false,
-    intro: () => ["商会で必要な武器や防具を購入しよう。"],
-    steps: [{ text: "商会を開く", hint: "商会 → 買う", go: () => UI.openShop?.("buy"), done: () => G_().town?.tab === "shop" }], outro: ["支度ができたら迷宮へ。"],
+    key: "buyEquipment", name: "商会で装備を整える", who: "shop",
+    open: () => game.prologuePhase?.() === "shop", used: () => false,
+    prepare: () => { UI.openShop?.("buy", { cat: "rec" }); },
+    intro: () => [
+      "ヴォス「黒鉄商会へようこそ。王から支度金を受け取ったそうだな。まずは『買う』の『おすすめ』を見てくれ。」",
+      "『おすすめ』には、今の隊や控えの装備より役に立つ品が並ぶ。能力の増減と装備する者を確かめ、『買って装備』で一品買ってみよう。金貨を払い、その者に装備できる。",
+      "「悪いが、在庫はほとんど切らしていてな。新しい武器や防具は迷宮で探し、街へ持ち帰ってくれ。不要な品は、うちで買い取ろう。」",
+      ...(UI.tutorialPurchaseBlock?.() ? [`ヴォス「${UI.tutorialPurchaseBlock()}買い方は覚えたな。今回はこのまま向かうといい。」`] : []),
+    ],
+    steps: [{ text: "おすすめの装備を一品購入する", hint: "商会 → 買う → おすすめ → 買って装備", go: () => UI.openShop?.("buy", { cat: "rec" }), target: [".wpc-buy-main:not(:disabled)"], on: "equipmentBought", skip: () => !!UI.tutorialPurchaseBlock?.() }],
+    outro: ["ヴォス「支度はできたな。棚にない品は、迷宮で探してくれ。生きて持ち帰れば、次の備えになる。」", "地下墓地へ進めるようになった。"],
+  },
+  {
+    key: "shopAppraise", name: "持ち帰った品の鑑定", who: "shop",
+    open: () => !!tutState().appraisePending, used: () => false,
+    prepare: () => { UI.openShop?.("sell"); },
+    intro: () => [
+      "ヴォス「正体のわからない品を持ち帰ったな。『剣？』などと表示される未鑑定の品は、そのままでは装備できない。まずは鑑定して、正体を確かめるんだ。」",
+      "「商会の『売る』から鑑定を頼める。金貨はかかるが、必ず正体がわかる。鑑定料と売値は同じ額だ。鑑定して不要なら売れば、鑑定に使った金貨は戻ってくる。」",
+      "「買値は売値の二倍だ。売った品は商会の棚に並ぶから、必要になればいつでも買い直せる。ただし通常の品は並の品質になる。大事な品はよく考えてから手放せよ。」",
+      "「今は金貨が足りなければ、袋に入れたまま持っていていい。鑑定が済んだら、装備を見直してみるんだな。」",
+    ],
+    steps: [{ text: "商会で鑑定の説明を聞く", hint: "商会 → 売る → 鑑定", done: () => true }],
+    outro: ["未鑑定の品は、鑑定してから装備しよう。鑑定料と売値は同額、買値は売値の二倍。売った品は商会で買い直せる。"],
   },
   {
     key: "firstDive", name: "初めて迷宮に入る", who: "gate", manual: true,
@@ -451,7 +470,7 @@ function start(d) {
 // 酒場の手ほどきの導入 (情報屋の札)
 function introSheet(d, done) {
   let art = null;
-  try { art = vignetteCanvas(d.who === "shop" ? "shop" : d.who === "gate" ? "palace" : "tavern"); } catch (e) { art = null; }
+  try { art = d.who === "shop" ? keeperCanvas("merchant") : vignetteCanvas(d.who === "gate" ? "palace" : "tavern"); } catch (e) { art = null; }
   let fired = false;
   const go = () => { if (fired) return; fired = true; done(); };
   const h = sheet.open({
@@ -528,11 +547,19 @@ function afterReport() {
 // 初めて砕けた人業を伴って帰還した時。帰還の報告より館の手ほどきを優先する。
 // 赤い魂で全員が生還した時・迷宮で蘇った時も、初めて砕けたなら説明する (st.repairFell ← game.js imprintFallen)。
 function afterReturn() {
+  const st = tutState();
+  if (!st) return false;
+  if (!st.done.shopAppraise && UI.unidCount?.() > 0) {
+    st.appraisePending = true;
+    game.autosave?.(true);
+  }
   if (["fourth", "sixth"].includes(game.prologuePhase?.())) {
     UI.enterMansion?.(); mansionVisited(); return true;
   }
-  const st = tutState();
-  if (!st || st.done.repairSoul || !(anyBroken() || st.repairFell)) return false;
+  if (st.done.repairSoul || !(anyBroken() || st.repairFell)) {
+    if (st.appraisePending && !st.done.shopAppraise) { resume(); return true; }
+    return false;
+  }
   st.repairPending = true;
   delete st.repairFell;
   if (st.cur && st.cur !== "repairSoul") {

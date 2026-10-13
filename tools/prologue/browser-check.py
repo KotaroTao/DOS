@@ -34,7 +34,9 @@ with sync_playwright() as p:
       enter('w00_forest',3);find('forest_doll');W.commitDungeonClear(false);G.state='town';
       check(!G.world.report&&G.party.every(d=>d.stability===100)&&!G.stabilityBriefed,'森は報告・安定度消費・門衛説明なし');
       game.preparePrologueDoll();game.preparePrologueDoll();check(G.souls.filter(s=>s.clsKey==='mage').length===1,'イレーヌの魔導士の魂は一つだけ');make('mage');game.completePrologueTutorial('createFourth');W.prologueAudience();
-      check(G.party.length===4&&G.gold===500&&G.world.open.w01&&!G.world.open.w02,'四体で地下墓地調査を拝命・金貨500');
+      check(G.party.length===4&&G.gold===500&&W.prologuePhase()==='shop'&&!G.world.open.w01,'四体で金貨500・購入の手ほどきまで地下墓地は閉鎖');
+      game.completePrologueTutorial('buyEquipment');
+      check(W.prologuePhase()==='crypt'&&G.world.open.w01&&!G.world.open.w02,'購入の手ほどき完了で地下墓地を解放');
       W.prologueAudience();check(G.gold===500,'依頼の報酬は二重受領しない');
       enter('w01',5);find('w01_lantern');W.commitDungeonClear(false);G.state='town';W.reportMainQuest();
       check(W.prologuePhase()==='fifth'&&!G.world.open.w02&&!G.souls.some(s=>s.clsKey==='knight'),'王の褒美は人業のみ・回廊はまだ閉鎖');
