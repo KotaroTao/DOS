@@ -475,10 +475,12 @@ function openSubPick(d, si, onChange) {
       for (const { s, why } of rows) {
         const pv = !why && game.infSubPreview ? game.infSubPreview(d, si, s.uid) : null;
         const oi = (d.subs || []).findIndex((x) => x && x.uid === s.uid); // この器のもう一つのサブ魂 = 枠どうしを入れ替える
-        const sub = why || (oi >= 0 ? `いまサブ魂${oi + 1} ・ ` : "") + pvText(d, pv);
-        const note = oi >= 0 ? (cur != null ? `サブ魂${oi + 1}とサブ魂${si + 1}を入れ替える (借りる技もそのまま)。` : "") : cur != null ? "元のサブ魂は「宿していない魂」に戻る。" : "";
+        const holder = (g.party || []).find((x) => x !== d && (x.subs || []).some((sb) => sb && sb.uid === s.uid));
+        const sub = why || (holder ? `${holder.name}がサブ魂として宿している ・ ` : "") + (oi >= 0 ? `いまサブ魂${oi + 1} ・ ` : "") + pvText(d, pv);
+        const before = soulByUid(cur);
+        const note = holder ? `${soulLabel(s)}は${holder.name}がサブ魂として宿している。${before ? `${d.name}の${soulLabel(before)}が${holder.name}に移り、サブ魂が交換される。` : `${d.name}の空き枠へ移り、${holder.name}のサブ魂は空きになる。`}借りる技の設定は魂と一緒に移り、そのまま維持される。` : oi >= 0 ? (cur != null ? `サブ魂${oi + 1}とサブ魂${si + 1}を入れ替える (借りる技もそのまま)。` : "") : cur != null ? "元のサブ魂は「宿していない魂」に戻る。" : "";
         const on = button({ label: "宿す", kind: "secondary", size: "sm", disabled: !!why, onTap: async () => {
-          const ok = await kitConfirm({ title: `${d.name}のサブ魂${si + 1}に${soulLabel(s)}を宿す？`, lines: [sub, note].filter(Boolean), okLabel: "宿す", danger: false });
+          const ok = await kitConfirm({ title: `${d.name}のサブ魂${si + 1}に${soulLabel(s)}を宿す？`, lines: [sub, note].filter(Boolean), okLabel: holder ? "交換して宿す" : "宿す", danger: !!holder });
           if (!ok) return;
           if (game.infSetSub && game.infSetSub(d, si, s.uid)) { toast(`${d.name} ― サブ魂${si + 1} ${soulLabel(s)}`, { tone: "good" }); if (hh) hh.close(); if (onChange) onChange(); }
         } });
