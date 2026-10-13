@@ -515,7 +515,7 @@ function partyStrip() {
       const fr = el("span", "hb-pc-fr");
       try { fr.appendChild(UI.partyPortraitCanvas(d, 40)); } catch (e) { /* 絵が無くても動く */ }
       if (!d.alive) fr.appendChild(el("span", "hb-pc-dead", "†"));
-      if (UI.hasBetterGear && UI.hasBetterGear(d)) fr.appendChild(UI.gearUpgradeDot());
+      UI.watchGearPortrait?.(fr, d);
       c.appendChild(fr);
     } else c.appendChild(portrait(d, { size: 48, hp: false }));
     c.appendChild(el("span", "hb-pc-n", d.name));

@@ -28,7 +28,7 @@ import {
 import { renderSoulSeg, openSoulPicker, openSoulList, openOrderSheet } from "./soulpanel.js";
 import { IRENE_WHO, IRENE_ART, ireneState, isGreeted, nextLine, lineOpen, noteVisit, greetingPages, playIreneScene, sceneActive } from "./irene.js";
 import {
-  planBestEquip, equipApprovalGroups, applyEquipApprovals, restoreEquip, equipSignature, trialEquip, slotKeysFor, previewStats, statsDelta, snapshotEquip, isMeleeWeapon, swapBackFor,
+  planBestEquip, equipApprovalGroups, applyEquipApprovals, restoreEquip, equipSignature, trialEquip, slotKeysFor, previewStats, statsDelta, snapshotEquip, isAutoCandidate, swapBackFor,
 } from "../autoequip.js";
 import { SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, canEquip, equipLevelOf, equipLvShort, recalc, weaponRange, RANGE_LABEL, itemName, attackPower, useWhere, compareUse, AIL_LABEL, hasQuality, qualityOf, qualityMatters } from "../items.js";
 import {
@@ -116,7 +116,7 @@ function portraitEl(d, { size = 44, sel = false, tag = "button", cls = "" } = {}
     p.appendChild(hp);
   }
   const upgrade = hasBetterGear(d);
-  if (upgrade) p.appendChild(gearUpgradeDot());
+  watchGearPortrait(p, d);
   p.setAttribute("aria-label", `${upgrade ? "より強い装備あり・" : ""}${d.name}${d.alive ? "" : " (砕けた)"} ${d.cls || ""}`);
   return p;
 }
@@ -239,7 +239,7 @@ function takeFromWearer(d, c, key, h) {
 // 部位ごとの「もっと良い品がある」(▲) と候補の数
 function slotInfo(d, key) {
   const cands = slotCandidates(d, key);
-  const best = cands.find((c) => c.room && !c.cursed && c.gain > 0.05 && autoAllow(d, c.it));
+  const best = cands.find((c) => c.room && isAutoCandidate(c.it) && c.gain > 0.05);
   return { count: cands.length, better: !!best, bestGain: best ? best.gain : 0 };
 }
 // 品 it をこの人業に付けるなら、どの部位が最良か ({key, gain, delta, displaced})
@@ -651,30 +651,20 @@ export function openEquipChooser(item, { owner = null, actions = null, onClose =
 }
 
 // ================= 最適装備 =================
-// 後衛 (隊の4人目以降) には近接物理の武器を選ばない (与ダメ半減・敵の前列にしか届かない)。手で付けるのは自由
-function autoAllow(d, it) {
-  const G = G_();
-  const pi = G && G.party ? G.party.indexOf(d) : -1;
-  return !(pi >= 3 && isMeleeWeapon(it));
-}
+// 所持品の「最良」と同じ評価で選ぶ。後衛も職業・能力・特殊効果で比較する。
 let bgcMemo = { key: "", n: 0, hints: [] };
 function betterGearCount() {
   const G = G_();
   if (!G || !G.party) return 0;
   // 魂の付け替え・融合・サブ魂・結社でも能力が変わるので、能力そのものも鍵に入れる (古い見積りで印を点けない)
-  const key = equipSignature(allDolls()) + "|" + G.party.map((d) => d ? `${d.jobKey}:${d.level}:${d.maxhp},${d.maxmp},${d.atk},${d.vit},${d.agi},${d.int},${d.pie},${d.luk}:${G.party.indexOf(d)}` : "-").join(",");
+  const key = equipSignature(allDolls()) + JSON.stringify([bagOwners(itemsPool()).map(o => o.items), G.party.map(d => d && [d.base, d.equip, d.jobLv, d.dualWield])]) + "|" + G.party.map((d) => d ? `${d.jobKey}:${d.level}:${d.maxhp},${d.maxmp},${d.atk},${d.vit},${d.agi},${d.int},${d.pie},${d.luk}:${G.party.indexOf(d)}` : "-").join(",");
   if (bgcMemo.key === key) return bgcMemo.n;
   memoClear();
   let n = 0;
   const hints = [];
   for (const d of G.party) {
     if (!d) continue;
-    let hit = false;
-    for (const k of SLOTS) {
-      const best = slotCandidates(d, k).find((c) => c.room && !c.cursed && c.gain > 0.05 && autoAllow(d, c.it));
-      if (best) { hit = true; hints.push(`b${d.uid}:${k}:${best.it.id}`); }
-    }
-    if (hit) n++;
+    if (hasBetterGear(d)) { n++; hints.push(`b${d.uid}`); }
   }
   bgcMemo = { key, n, hints };
   return n;
@@ -692,7 +682,8 @@ export function hasBetterGear(d) {
   ]);
   const old = gearHintMemo.get(d);
   if (old && old.key === key) return old.value;
-  const value = SLOTS.some((k) => slotCandidatesRaw(d, k, false).some((c) => c.room && c.gain > 0));
+  // 最適装備と同じ計画で判定する。ロック・呪い・袋の上限・両手の組み合わせも一致させる。
+  const value = planBestEquip([d], { pool, canEquip, score: gearScore, recalc, maxMoves: 1 }).moves.length > 0;
   gearHintMemo.set(d, { key, value });
   return value;
 }
@@ -702,6 +693,27 @@ export function gearUpgradeDot() {
   dot.setAttribute("role", "img");
   dot.setAttribute("aria-label", dot.title);
   return dot;
+}
+
+// 開いたままの承認画面や背後の街の肖像も、実際の装備状態へ即座に合わせる。
+const gearPortraits = new WeakMap();
+function watchGearPortrait(node, d) {
+  gearPortraits.set(node, d);
+  node.dataset.gearWatch = "";
+  updateGearPortrait(node, d);
+}
+function updateGearPortrait(node, d) {
+  const better = hasBetterGear(d), dot = node.querySelector(":scope > .gear-upgrade-dot");
+  if (better && !dot) node.appendChild(gearUpgradeDot());
+  else if (!better && dot) dot.remove();
+  if (node.classList.contains("pt-port")) node.setAttribute("aria-label", `${better ? "より強い装備あり・" : ""}${d.name}${d.alive ? "" : " (砕けた)"} ${d.cls || ""}`);
+}
+function refreshGearPortraits() {
+  if (!hasDOM()) return;
+  for (const node of document.querySelectorAll("[data-gear-watch]")) {
+    const d = gearPortraits.get(node);
+    if (d) updateGearPortrait(node, d);
+  }
 }
 
 // ================= タブの印 (赤い点) =================
@@ -731,10 +743,11 @@ function autoEquip(target = "all") {
   const targets = target === "all" ? G.party.filter(Boolean) : [target].filter(Boolean);
   if (!targets.length) return { ok: false, moves: 0 };
   const pool = itemsPool();
-  const plan = planBestEquip(targets, { pool, canEquip, score: gearScore, recalc, allow: autoAllow });
+  const plan = planBestEquip(targets, { pool, canEquip, score: gearScore, recalc });
   if (!plan.moves.length) {
     sfx("select");
-    toast(targets.length > 1 ? "隊の装備は、いまが最良だ" : `${targets[0].name}の装備は、いまが最良だ`, { tone: "info" });
+    toast(targets.length > 1 ? "隊の装備は、いまが最良だ" : `${targets[0].name}の装備は、いまが最良だ`, { tone: "info", top: true });
+    refreshGearPortraits();
     return { ok: false, moves: 0 };
   }
   const involved = plan.undoSnapshot.map((s) => s.doll);
@@ -930,6 +943,7 @@ function rerender() {
   if (sheetH && !sheetH.closed) refreshSheet();
   else if (inTown() && game.renderTown) game.renderTown();
   if (game.renderParty) { try { game.renderParty(); } catch (e) { /* 盤面が無い時 */ } }
+  refreshGearPortraits();
 }
 export function refresh() {
   if (sheetH && !sheetH.closed) { refreshSheet(); return; }
@@ -2779,7 +2793,7 @@ export function install() {
     openCreateDoll,
     openCreateName,
     autoEquip,
-    betterGearCount, hasBetterGear, gearUpgradeDot,
+    betterGearCount, hasBetterGear, gearUpgradeDot, watchGearPortrait,
     equipItemTo,
     bestWearer,
     partyPortraitCanvas,
