@@ -32,7 +32,8 @@ function div(cls, text) {
 }
 const sfx = (k) => { try { SFX[k] && SFX[k](); } catch {} };
 
-export function showTitle({ hasSave = false, summary = null, onStart, onNewGame = null, testDungeons = [], testScenes = [], onTestPlay = null } = {}) {
+export function showTitle({ hasSave = false, summary = null, onStart, onNewGame = null, startName = "", testDungeons = [], testScenes = [], onTestPlay = null } = {}) {
+  const readyName = hasSave ? "" : normalizeName(startName);
   const wrap = div("ttl-overlay");
   if (REDUCED) wrap.classList.add("ttl-still");
   const cv = document.createElement("canvas");
@@ -104,7 +105,7 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
       btns.appendChild(newBtn);
     }
   } else {
-    goBtn = mkBtn("はじめから", "NEW GAME", "primary");
+    goBtn = mkBtn(readyName ? "物語を始める" : "はじめから", "NEW GAME", "primary");
     btns.appendChild(goBtn);
     const dis = mkBtn("つづきから", "記録なし", "off");
     dis.disabled = true;
@@ -112,7 +113,7 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
   }
   let testBtn = null;
   if (typeof onTestPlay === "function") {
-    testBtn = mkBtn("テストプレイ", "迷宮・手ほどき・物語・キャラ画像を選ぶ", "");
+    testBtn = mkBtn("テストプレイ", "序章・迷宮・手ほどき・物語を選ぶ", "");
     btns.appendChild(testBtn);
   }
   menu.appendChild(btns);
@@ -194,17 +195,24 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
     return row;
   };
   const mode = document.createElement("select");
-  for (const [value, label] of [["dungeon", "迷宮・街"], ["inf", "無限迷宮"], ["tutorial", "チュートリアル"], ["story", "ストーリー"], ["art", "キャラ画像（全職業・全ランク）"]]) {
+  for (const [value, label] of [["prologue", "序章を通して遊ぶ"], ["dungeon", "迷宮・街"], ["inf", "無限迷宮"], ["tutorial", "チュートリアル"], ["story", "ストーリー"], ["art", "キャラ画像（全職業・全ランク）"]]) {
     const o = document.createElement("option"); o.value = value; o.textContent = label; mode.appendChild(o);
   }
   field("テストする内容", mode);
   const sceneSelect = document.createElement("select");
   const sceneSelectRow = field("場面", sceneSelect);
   const dungeon = document.createElement("select");
-  for (const d of testDungeons) {
+  // 台帳への追加位置に依らず、森の古屋と同じ層の迷宮を探しやすくする。
+  const dungeonGroups = new Map();
+  for (const d of [...testDungeons].sort((a, b) => Number(!!b.tutorial) - Number(!!a.tutorial) || a.layer - b.layer || a.lv - b.lv)) {
     const o = document.createElement("option");
     o.value = d.id; o.textContent = `${d.name}（Lv${d.lv}〜${d.lvTo}）`;
-    dungeon.appendChild(o);
+    const label = d.tutorial ? "序章" : `第${d.layer}層`;
+    if (!dungeonGroups.has(label)) {
+      const group = document.createElement("optgroup"); group.label = label;
+      dungeonGroups.set(label, group); dungeon.appendChild(group);
+    }
+    dungeonGroups.get(label).appendChild(o);
   }
   const floor = document.createElement("input");
   floor.type = "number"; floor.min = "1"; floor.value = "1";
@@ -367,7 +375,12 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
     setTimeout(() => { cancelAnimationFrame(raf); if (!immediate && cb) cb(); }, REDUCED ? 60 : 520);
     setTimeout(() => wrap.remove(), REDUCED ? 400 : 1500);
   };
-  const start = () => { if (!hasSave) { askName(); return; } sfx("stairs"); close(onStart); };
+  const start = () => {
+    // 記録消去後は名前を引き継ぎ、この操作の中で語りを始める。
+    if (readyName) { sfx("stairs"); close(() => onStart(readyName), true); return; }
+    if (!hasSave) { askName(); return; }
+    sfx("stairs"); close(onStart);
+  };
   // 新規は名前入力へ、再開はそのまま本編へ (タップで音声も目覚める)。
   // それ以外の場所をタップすると、目覚めの演出 (鐘・門の脈動・鴉) だけを見せる
   const wake = () => {

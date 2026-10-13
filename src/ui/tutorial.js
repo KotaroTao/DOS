@@ -36,7 +36,7 @@ export function tutState() {
   if (!t.base || typeof t.base !== "object") t.base = {};
   if (typeof t.step !== "number") t.step = 0;
   if (t.cur === undefined) t.cur = null;
-  // 旧セーブの新職業案内は、器を買う手ほどきに切り替える。
+  // 旧セーブの新職業案内は、人業を仕立てる手ほどきに切り替える。
   if (t.cur === "changeJob") { t.cur = null; t.step = 0; t.ev = {}; t.base = {}; }
   return t;
 }
@@ -107,13 +107,6 @@ function newJobSouls() {
   const initial = new Set(["fighter", "priest", "thief", "knight", "mage", "bishop"]);
   return (game.soulRepresentatives ? game.soulRepresentatives() : G_().souls || []).filter((s) => !initial.has(s.clsKey));
 }
-function grantNewJobGift() {
-  const st = tutState();
-  if (st.newJobGift) return;
-  game.grantRedSoul(50, "tutorial");
-  st.newJobGift = true;
-  if (game.autosave) game.autosave(true);
-}
 const anyBroken = () => allDolls().some((d) => d.isDoll && !d.alive);
 let visitTimer = null;
 function atMansion() {
@@ -167,7 +160,7 @@ const TUTS = [
   {
     key: "createThree", name: "三体に魂を宿す", who: "irene",
     open: () => game.prologuePhase?.() === "three", used: () => false,
-    intro: () => [["こちらの三体に、王さまから授かった魂を宿しましょう。", "戦士・僧侶・盗賊の魂を一つずつ選び、名前を与えてください。"]],
+    intro: () => [["では、王さまから授かった魂を宿して、この子たちを目覚めさせましょう。", "戦士・僧侶・盗賊の魂を一つずつ選び、名前を与えてください。"]],
     steps: [{ text: "戦士・僧侶・盗賊の魂を宿す", hint: "人業を仕立てる → 魂 → 名前", go: () => game.goMakeDoll(), target: [".pt-empty button", ".pt-form .pt-empty-slot"], done: () => initialJobsReady(["fighter", "priest", "thief"]) }],
     outro: ["三体の人業が目覚めた。", "イレーヌ「近くの森の古屋に、しばらく使っていない人業があるのです。三体と一緒に、連れ帰っていただけますか。」", "森の古屋は全三階。三階で人業を探し、館へ戻ろう。"],
   },
@@ -179,7 +172,7 @@ const TUTS = [
     key, get name() { return `${count}体目に${jobLabel(game.prologueJob?.(phase) || job)}の魂を宿す`; }, who: "irene",
     open: () => game.prologuePhase?.() === phase, used: () => false,
     prepare: () => game.preparePrologueDoll?.(),
-    intro: () => [[intro], [`${body}に、${jobLabel(game.prologueJob?.(phase) || job)}の魂を宿しましょう。`, "魂を選び、この子に名前を与えてください。お代は要りません。"]],
+    intro: () => [[intro], [`${body}に、${jobLabel(game.prologueJob?.(phase) || job)}の魂を宿しましょう。`, "魂を選び、この子に名前を与えてください。"]],
     steps: [{ get text() { return `${jobLabel(game.prologueJob?.(phase) || job)}の魂を宿す`; }, hint: "人業を仕立てる → 魂 → 名前", go: () => game.goMakeDoll(), target: [".pt-form .pt-empty-slot", ".pt-res-add"], done: () => allDolls().length >= count && initialJobsReady([game.prologueJob?.(phase) || job]) }],
     outro: [next],
   })),
@@ -224,21 +217,18 @@ const TUTS = [
     used: () => newJobSouls().some((s) => allDolls().some((d) => d.primary === s.uid)),
     prepare() {
       tutState().base.jobs = newJobSouls().map((s) => s.clsKey);
-      grantNewJobGift();
     },
     intro: () => [
-      ["新しい職業の魂を持ち帰られたのですね。", "新しい人業を購入し、その魂を宿して仲間を増やしましょう。"],
-      ["初めての職業の魂を持ち帰ったお祝いに、赤い魂50個をお渡しします。", "この赤い魂で、新しい仲間を迎えてください。"],
-      ["器は、この館で赤い魂と引き換えにお仕立てします。", `今のお代は、赤い魂${game.emptyDollCost?.() || 0}です。足りない時は、街の『赤い魂の祠』で入手できます。`],
+      ["新しい職業の魂を持ち帰られたのですね。", "その魂を宿す人業を仕立てて、仲間に迎えましょう。"],
       ["『人業を仕立てる』を開いたら、宿す魂は自由にお選びください。今は宿さずに閉じてもかまいません。", "隊には六体まで連れてゆけます。満員なら、新しい仲間は控えで待ちます。"],
       ["同じ職業のメイン魂を宿す仲間は、一つの隊に一体だけ。", "新しい職業の仲間を加え、迷宮に備えましょう。"],
     ],
     steps: [{
       text: "『人業を仕立てる』で魂の一覧を開く", hint: "人業の館 → 人業・＋ → 人業を仕立てる。その後は自由に選ぶか、閉じてよい",
       go: () => UI.openReserve?.(), target: [".pt-res-add", ".pt-form .pt-empty-slot", ".pt-res-sw button"],
-      on: "newJobSoulPickerOpened", skip: () => (G_().redSoul || 0) < (game.emptyDollCost?.() || 0),
+      on: "newJobSoulPickerOpened", skip: () => !game.soulRepresentatives().some((s) => !wornSet().has(s.uid)),
     }],
-    outro: ["新しい器に新しい職業の魂を宿せば、仲間を増やせる。", "赤い魂が足りない時は祠で集めてから、『人業・＋』の『人業を仕立てる』へ。満員なら控えの仲間と入れ替えよう。"],
+    outro: ["新しい器に新しい職業の魂を宿せば、仲間を増やせる。", "『人業・＋』から『人業を仕立てる』を選び、魂と名前を決めよう。隊が満員なら、控えの仲間と入れ替えられる。"],
   },
   {
     key: "soulChange", name: "魂の付け替え", who: "irene",
@@ -372,7 +362,7 @@ const TUT_MAP = Object.fromEntries(TUTS.map((t) => [t.key, t]));
 // ---- 進み具合 ----
 // 済ませていない手ほどき (解放の順)。始めていない旧セーブの分は、もう使っていれば済み扱い
 function dueKeys() {
-  if (G_()?.testPlay) {
+  if (G_()?.testPlay && !G_().testStoryFlow) {
     const key = G_().testTutorial;
     return key && !tutState().done[key] ? [key] : [];
   }
@@ -439,8 +429,6 @@ function resume() {
   if (p.arrival) { updateGuidance(); schedule(); return true; }
   if (d.who === "irene" && !isGreeted()) { if (UI.enterMansion) UI.enterMansion(); return true; }
   if (st.cur !== p.key) return start(d);
-  // 更新前から進行中の手ほどきにも、お祝いを一度だけ渡す。
-  if (d.key === "newJobParty") grantNewJobGift();
   goStep(true);
   return true;
 }
@@ -627,8 +615,8 @@ function ireneGuidance() {
   if (!s) return null;
   if (p.key === "createThree") {
     const target = tutorialControls()?.target;
-    if (target?.closest(".pt-name-sheet")) return ["この子に名前を与えてください。", "『生成する』を押すと、魂を宿した人業が目覚めます。"];
-    if (target?.dataset.job) return [`光っている『${jobLabel(target.dataset.job)}の魂』をお選びください。`, "最初の三体は、無料でお仕立てします。"];
+    if (target?.closest(".pt-name-sheet")) return ["この子に名前を与えてください。", "『仕立てる』を押すと、魂を宿した人業が目覚めます。"];
+    if (target?.dataset.job) return [`光っている『${jobLabel(target.dataset.job)}の魂』をお選びください。`, "選んだ魂を宿す子に、名前を与えましょう。"];
     if (target?.classList.contains("pt-res-add")) return ["光っている『人業を仕立てる』を押してください。", "残る魂も、ひとつずつ人業に宿しましょう。"];
     if (target?.dataset.drop) return ["顔アイコンの光っている空き枠『＋』を押してください。", "次の人業をお仕立てしましょう。"];
   }
