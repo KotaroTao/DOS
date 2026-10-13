@@ -1,7 +1,7 @@
 // 読み物の解放・章順・参照元からの独立・通常の進行状態の保全を確認する。
 import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
-import { ARCHIVE_STORIES, storyImage } from "../../src/archive-stories.js";
+import { ARCHIVE_STORIES, storyImage, PENDING_STORY_IMAGES } from "../../src/archive-stories.js";
 import { ARCHIVE_FOCUS } from "../../src/archive-art.js";
 import { storyEntries, storyMediaUrls, journalState, newStories, unreadStories, markStoryRead, markStoriesKnown, seedJournal } from "../../src/journal.js";
 import { WORLD } from "../../src/dungeons/world.js";
@@ -49,7 +49,7 @@ for (const s of ARCHIVE_STORIES.filter(s => s.image)) {
   }
 }
 assert(ARCHIVE_STORIES.filter(s => s.image).length >= 58, "物語の絵は減らさない");
-assert(ARCHIVE_STORIES.filter(s => s.chapter === 1).every(s => s.image), "第一章の全場面に専用画像がある");
+assert(ARCHIVE_STORIES.filter(s => s.chapter === 1).every(s => s.image || PENDING_STORY_IMAGES.has(s.id)), "第一章の専用画像は、明示した序章の制作待ちだけを除外する");
 assert(ARCHIVE_STORIES.filter(s => s.chapter === 2).every(s => s.image), "第二章の全場面に専用画像がある");
 assert(ARCHIVE_STORIES.filter(s => s.chapter === 3).every(s => s.image), "第三章の全場面に専用画像がある");
 assert.equal(ARCHIVE_STORIES.filter(s => s.chapter === 4).length, 10);
@@ -73,7 +73,7 @@ assert(!byId.get("irene_trust").available({ irene:{greeted:true,visits:99} }),
 assert(byId.get("first_vessel").available({ dollsPurchased:1, party:[] }), "控えに移っても最初の誕生は読める");
 
 const g = { msq:{n:1}, irene:{greeted:true,seen:{m_bond3:true,m_bond5:true}}, dollsPurchased:6,
-  stats:{runs:1}, tut:{done:{repairSoul:true}}, treasury:{claimed:{m3:true}},
+  stabilityBriefed:true, stats:{runs:1}, tut:{done:{repairSoul:true}}, treasury:{claimed:{m3:true}},
   world:{found:{},reported:{},beats:{},cleared:{}} };
 for (const id of Object.keys(STORY_CELLS)) {
   g.world.found[id] = true;
@@ -120,5 +120,5 @@ for (const id of [...Object.keys(STORY_CELLS), ...Object.keys(REPORTS).map(k => 
   const img = storyImage(id);
   if (img) assert.equal(img, byId.get(id)?.image, `${id} の絵が一覧と同じ`);
 }
-assert.equal(storyImage("report_w01"), byId.get("report_w01").image);
+assert.equal(storyImage("report_w01"), byId.get("report_w01").image || null);
 console.log(`読み物${stories.length}場面: 解放条件・専用図版・章順・本文・状態保全・既読と知らせ OK`);

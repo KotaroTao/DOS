@@ -9,7 +9,9 @@ const group = n => ["序章", "第一章「師の灯」", "第二章「捨て砦
 // 場面の絵の台帳は art/story/ の WebP から自動で書く (src/storyimages.js ← node tools/storyart/register.mjs)
 const APPROVED_IMAGES = STORY_IMAGES;
 // ゲーム内の同じ場面 (師の手がかり・報告・主の記憶・館の語り・章の結び) でも、この描き下ろしの絵を掲げる
-export const storyImage = id => ["three", "departure", "first_descent", "w01_lantern", "report_w01"].includes(id) ? null : APPROVED_IMAGES[id] || null;
+// 序章変更の新規・修正イラストは別途制作（ユーザー指定）。承認済みの旧画像自体は削除しない。
+export const PENDING_STORY_IMAGES = new Set(["three", "departure", "first_descent", "w01_lantern", "report_w01", "forest_doll", "w02_broken_doll"]);
+export const storyImage = id => PENDING_STORY_IMAGES.has(id) ? null : APPROVED_IMAGES[id] || null;
 const scene = (id, chapter, title, available, setting, focus, lines, extra = {}) => ({
   id, chapter, group:group(chapter), title, available, lines,
   ...(storyImage(id) ? { image:storyImage(id), imageWidth:1536, imageHeight:1024, imageAlt:title + "の場面" } : {}),
@@ -42,7 +44,7 @@ export const ARCHIVE_STORIES = [
     "弟子は火に手を近づけた。探しに行く者と、帰る場所を守る者。二人の仕事が、同じ小さな明かりから始まった。",
   ], {people:"irene", pose:"lamp"}),
   scene("first_vessel", 0, "最初の名前", g => (g.dollsPurchased || 0) > 0 || (g.party || []).some(d => d.primary != null), "workshop", "vessel", [
-    "台に寝かされた器には、まだ目の光がなかった。イレーヌが継ぎ目を確かめる間、弟子は宿す魂を両手で包んで待った。",
+    "台に寝かされた人業には、まだ目の光がなかった。イレーヌが継ぎ目を確かめる間、弟子は宿す魂を両手で包んで待った。",
     "魂が胸へ沈むと、木の指が一本ずつ動いた。教えられた手順は覚えていた。それでも、こちらを見返す目が開いた瞬間、弟子は息を止めた。",
     "名を与える声は、思ったより小さかった。生まれた人業は聞き逃さず、呼ばれた名に顔を上げる。イレーヌはその様子を見届けてから、台の留め具を外した。",
     "器を仕立てることと、誰かを旅へ連れていくことは同じではない。師の教えは、その日から手の中に重さを持った。",
@@ -50,9 +52,14 @@ export const ARCHIVE_STORIES = [
   scene("three", 0, "森の古屋への頼み", g => started(g), "mansion", "partyThree", [
     "戦士、僧侶、盗賊。王から授かった三つの魂を宿し、三体の人業が目を開けた。",
     "イレーヌは、近くの森の古屋に残してきた人業を連れ帰ってほしいと頼んだ。",
-    "三体とともに森へ入り、古屋でほこりをかぶった人業を見つけた。館へ戻ると、イレーヌから騎士の魂を受け取り、四体目を迎えた。",
+    "弟子は三体の顔を見渡し、頼みを引き受けた。森の先で待っている人業を、そろって館へ連れ帰ろう。",
   ], {people:"irene"}),
-  scene("departure", 0, "四つの足音、ひとつの行き先", started, "gate", "partyFour", [
+  scene("forest_doll", 0, "ほこりの下で待つ人業", found("forest_doll"), "workshop", "vessel", [
+    "三体と歩いた森の先に、屋根の傾いた古屋があった。小さな虫が枯葉を鳴らすほかに、動くものはない。",
+    "棚の下で眠る人業の肩を払うと、ほこりの下からなめらかな木肌が現れた。長く使われていないだけで、手も足もそろっている。",
+    "弟子は人業を抱き上げた。館へ戻れば、この静かな胸にもまた魂の灯をともせる。三体の足音が、帰り道を先導した。",
+  ], {people:"none"}),
+  scene("departure", 0, "四つの足音、ひとつの行き先", g => g.msq?.prologue ? !["three", "forest", "fourth"].includes(g.msq.prologue.phase) : started(g), "gate", "partyFour", [
     "四体目が目を覚ますと、館の床に隊の影がそろった。弟子は騎士を仲間に迎え、まだ新しい留め具を確かめた。",
     "王は支度のための金貨を渡し、地下墓地の死者が騒ぐ原因を調べてほしいと頼んだ。そこは遠い戦場ではない。ロアダルで暮らした人々が眠る、街の足元だった。",
     "帰りを待つイレーヌへ、弟子は短く頭を下げた。大げさな約束は口にしなかった。四つの足音を、そのまま館へ戻すつもりだった。",
@@ -71,13 +78,18 @@ export const ARCHIVE_STORIES = [
   scene("report_w01", 1, "鎮魂灯と眠っていた人業", reported("w01"), "throne", "lantern", [
     "死者を鎮めるはずの鎮魂灯が傷み、逆に地下の魂の声を呼び寄せていた。弟子は灯を静め、傍らに残された師のランタンを王に見せた。",
     "王は墓地に静けさが戻ったことを喜び、王宮の倉庫に放置されていた人業を褒美に渡した。館のイレーヌに見せるように、と言い添えて。",
-    "イレーヌはその人業に、魔導士の魂を宿すよう促した。五体目が目覚めると、王から亡骸の囁く回廊へ向かう依頼を受けた。",
+    "弟子は師のランタンを大切に収め、眠っている人業を抱えて館へ向かった。また一つ、共に歩く灯が増えるかもしれない。",
   ], {people:"king"}),
   scene("w02_sigil", 1, "水音の向こうへ", found("w02_sigil"), "passage", "sigil", [
     "壁に残る手の印を見つけた時、弟子は自分の指でその形をなぞった。師が仕事の終わりに刻む印。その下の鉄格子には、錠に鍵が挿さったまま残っていた。",
     "隙間から上がる湿った風に、地上の匂いはない。取水口へ通じる道だと分かったが、師の短い書きつけは、その名をイレーヌに知らせないよう求めていた。",
     "なぜ館で待つ人を遠ざけたのか。答えを急いで決めることはできなかった。弟子は鍵を取った。その先へ進む時も、引き返す時も、自分で選べるように。",
   ]),
+  scene("w02_broken_doll", 1, "回廊の果ての六体目", found("w02_broken_doll"), "passage", "vessel", [
+    "回廊のいちばん奥で、五体の人業が足を止めた。壁にもたれた人業の胸には灯がなく、継ぎ目には長い旅の傷が刻まれている。",
+    "どこの誰と歩いてきたのか、今は聞くこともできない。それでも、折れたところを確かめる指先は、人業を置いていく気にはなれなかった。",
+    "弟子は壊れた人業を連れ帰ることにした。館のイレーヌなら、この旅の続きをつなげられるかもしれない。",
+  ], {people:"none"}),
   scene("report_w02", 1, "祈りの終わらない場所", reported("w02"), "throne", "abbeyMap", [
     "師の印の話を聞いた王は、次に修道院長の名を挙げた。回廊の果てで祈り続ける者なら、そこを通った人の姿を覚えているという。",
     "墓地の奥に回廊があり、その果てに修道院がある。地図の線は少しずつ増えたが、師が何を探したのかは、まだ空白だった。",
