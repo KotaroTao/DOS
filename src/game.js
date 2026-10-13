@@ -2664,7 +2664,7 @@ function dockSpec() {
   const dead = G.party.filter((t) => !t.alive).length;
   const hurt = G.party.some((t) => t.alive && (t.hp < t.maxhp || t.ailment));
   const heal = { label: "全員を回復", sub: dead ? `倒れた者 ${dead}` : hurt ? "傷ついた者がいる" : "皆 無事", hot: healAllNeed() && (healAllCasters().length > 0 || healAllRevivers().length > 0) };
-  // 迷宮で唱える技 (浮遊・気配読み・宝探し・道しるべ)。覚えた者が隊にいる時だけ、技ごとにボタンを出す
+  // 迷宮で唱える技。道具による浮遊など、効いているものは術者や魔封じに関係なく残りを表示する
   const fields = knownFieldSkills().map((k) => {
     const sp = SPELLS[k], c = fieldCaster(k, true), on = fieldActive(sp);
     // tag = 札に詰めた時の短い名。浮遊は残りの階数を添える (「浮遊 残1」、ユーザーの指示)
@@ -2705,11 +2705,11 @@ function fieldSense(kind) { return !!(inDungeon() && G.board && G.board.fsense &
 function fieldActive(sp) { return sp.float ? floatLeft() > 0 : sp.sense ? fieldSense(sp.sense) : false; }
 function fieldStateText(sp) { return sp.float ? `残り${floatLeft()}階` : "この階"; }
 function fieldCasters() { return G.party.filter((p) => p.alive && p.ailment !== "stone"); }
-// 隊の誰かが覚えている迷宮の技 (技の定義順)
+// 隊の誰かが使える迷宮の技と、すでに効いている術・道具の効果 (技の定義順)
 function knownFieldSkills() {
   const have = new Set();
   for (const p of fieldCasters()) for (const k of p.spells || []) if (SPELLS[k] && SPELLS[k].kind === "field" && skillUsable(k)) have.add(k);
-  return Object.keys(SPELLS).filter((k) => have.has(k));
+  return Object.keys(SPELLS).filter((k) => have.has(k) || (SPELLS[k].kind === "field" && fieldActive(SPELLS[k])));
 }
 // 技 key を唱えられる者: 生きていて MP が足りる者のうち、MP の最も多い者 (any = MP を問わず覚えている者)
 function fieldCaster(key, any = false) {
@@ -2754,12 +2754,12 @@ function castFieldMeasured(key, confirmed = false, caster = null) {
   if (G.state !== "board" || !inDungeon()) return;
   const sp = SPELLS[key];
   if (!sp) return;
-  if (!skillUsable(key)) { SFX.ng(); showToast("呪文を封じる霧が言葉を吸いこむ ― ここでは唱えられない", { tone: "bad" }); return; }
   if (fieldActive(sp)) {
     SFX.select();
     showToast(sp.float ? `浮遊中 ― 残り${floatLeft()}階 (${floatGuardText()})` : `${sp.name}の効果はこの階のあいだ続いている`, { tone: "info" });
     return;
   }
+  if (!skillUsable(key)) { SFX.ng(); showToast("呪文を封じる霧が言葉を吸いこむ ― ここでは唱えられない", { tone: "bad" }); return; }
   if (sp.sense === "stairs" && findRevealedStairs()) { SFX.ng(); showToast("この階の階段はもう見つけている", { tone: "info" }); return; }
   // 選んだ者を確認画面の先まで保ち、実行時にも在隊・状態・MPを確かめる。
   const candidates = fieldCasters().filter((p) => (p.spells || []).includes(key))

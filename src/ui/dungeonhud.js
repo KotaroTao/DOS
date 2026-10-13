@@ -116,7 +116,7 @@ export function renderDock(host, spec, acts = {}) {
     idle.appendChild(el("span", "dk-idle-t", spec.idle || ""));
     host.appendChild(idle);
   }
-  // 迷宮で唱える技 (浮遊・気配読み・宝探し・道しるべ。覚えた者がいる時だけ)。効いている間は光る
+  // 迷宮で唱える技 (浮遊・気配読み・宝探し・道しるべ。使えるものと効果中のもの)。道具による浮遊も効いている間は光る
   // (浮遊・道しるべ = 青緑 / 気配読み = 赤 / 宝探し = 青)。札に詰めても、効いている浮遊は「浮遊 残N」と残りの階数を出す
   const FIELD_ICON = { float: "float", enemy: "eye", chest: "loot", stairs: "stairs" };
   for (const f of fields) host.appendChild(mk("dk-float k-" + f.kind + (f.on ? " on" : ""), FIELD_ICON[f.kind] || "float", f.label, f.sub, () => (acts.field || (() => {}))(f.key), fieldTag && (f.tag || f.label)));
