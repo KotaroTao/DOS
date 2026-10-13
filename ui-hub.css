@@ -93,11 +93,11 @@
 .kp-sheet-line { padding: 8px 12px; font-size: 13px; line-height: 1.7; color: #e6dbc2; background: rgba(16,12,13,0.8); border-left: 2px solid #6e5528; }
 
 /* =====================================================================
-   街 (広場) — 夜景 / 帰還の報告 / いまの目標 / [次にすべきこと・街の札] / 隊
+   街 (広場) — 夜景 / 目標と次の行動・帰還の報告 / [街の札]
    ===================================================================== */
 .hb .wa-h { margin: 10px 2px 6px; }
 /* 夜景: 箱の高さは JS (画面の高さの約27%)。絵は「舞台」(240:170) に敷き、名所の札は舞台の座標で置く */
-.tw-hero.hb-hero { aspect-ratio: auto; min-height: 0; max-height: none; margin-bottom: 0; }
+.tw-hero.hb-hero { flex: 0 1 auto; aspect-ratio: auto; min-height: 56px; max-height: none; margin-bottom: 0; }
 .hb-stage { position: absolute; z-index: 0; left: 0; right: 0; top: 0; aspect-ratio: 240 / 170; }
 .hb-stage > .town-scene { position: absolute; inset: 0; display: block; width: 100%; height: 100%; margin: 0; border: 0; image-rendering: pixelated; }
 .hb-stage > .town-scene-hd { image-rendering: auto; }
@@ -205,9 +205,20 @@
   box-shadow: inset 0 1px 0 rgba(220,200,255,0.14), 0 0 14px rgba(122,90,216,0.35), 0 2px 6px rgba(0,0,0,0.6);
 }
 
-/* 次にすべきこと + 街の札 (背の低い端末ではこの段だけが内側で流れる) */
+/* 目標・行動は縮めず、依頼と施設だけを内側でスクロールする。 */
+.hb-actions { flex: 0 0 auto; position: relative; z-index: 3; padding: 4px 0 8px; }
+.hb-actions .hb-goal { margin: 0; }
+.hb-actions .wa-h { margin: 6px 2px 4px; min-height: 22px; }
+.hb-actions .hb-rr { position: relative; inset: auto; width: 100%; max-width: none; margin-top: 8px; min-height: 44px; }
+.hb-actions .hb-rr-tx { flex: 1; flex-direction: row; align-items: center; gap: 8px; }
+.hb-actions .hb-rr-t { font-size: 12px; letter-spacing: 0.08em; }
+.hb-actions .hb-sug:first-child { border-color: var(--accent); background: var(--grain), linear-gradient(135deg, #3b2d19, #191312); }
+.hb-hero.compact .hb-spot, .hb-hero.compact .hb-title-k { display: none; }
+.hb-hero.compact .hb-title { top: calc(var(--tw-top) + 6px); left: 54px; transform: none; }
+.hb-hero.compact .hb-title-n { font-size: 18px; letter-spacing: 0.12em; }
+
 .hb-mid {
-  flex: 1 1 0 !important; min-height: 0;
+  flex: 1 1 64px !important; min-height: 0;
   overflow-x: hidden; overflow-y: auto;
   overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
   margin: 0 -4px; padding: 0 4px;
@@ -849,6 +860,7 @@
 }
 /* 狭い画面 (360px 級) */
 @media (max-width: 370px) {
+  .hb-actions .hb-goal-seal { display: none; }
   .hb-goal-t { font-size: 13px; }
   .hb-tile-n { font-size: 12.5px; }
   .hb-sug-l { font-size: 12px; letter-spacing: 0; }
