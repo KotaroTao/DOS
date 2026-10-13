@@ -7207,9 +7207,10 @@ const evApi = {
   paySoul(n) { G.soulPts = Math.max(0, G.soulPts - n); if (G.run && inDungeon()) G.run.soulPts = Math.max(0, (G.run.soulPts || 0) - n); updateTopbar(); },
   embers: () => G.embers || 0,
   payEmber(n) { G.embers = Math.max(0, (G.embers || 0) - n); updateTopbar(); },
-  gold(u, from) {
+  gold(u, from, { quiet = false } = {}) {
     const g = runGainGold(Math.round(evUnit().gold * u * evJit()), "ev");
-    SFX.itemget(); updateTopbar();
+    if (!quiet) SFX.itemget();
+    updateTopbar();
     log(`${from}から 💰${g} を得た。`, "win");
     showToast(`${from}から 💰${g}`, { noLog: true, tone: "gold", icon: ICONS.gold });
     return g;

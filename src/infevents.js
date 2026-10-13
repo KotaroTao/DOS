@@ -65,6 +65,25 @@ function pay(A, c) {
   if (c.hp) A.hurtAll(c.hp);
   if (c.mp) A.mpAll(c.mp);
 }
+// 分岐が確定してから結果に合う演出を1つ出す。品・魂・宝箱・戦闘の専用演出はその画面に任せる。
+// 報酬と危険が同時にある時は危険を優先し、見落としやすい呪いを知らせる。
+function feedback(A, e, afflicted) {
+  const curse = [e.run, e.floor].some((m) => m &&
+    (m.enemyMul > 1 || m.ambushMul > 1 || m.ambushNext > 0 || m.noFlee || m.packMin > 0 ||
+      ["dmgMul", "soulMul", "goldMul"].some((k) => m[k] != null && m[k] < 1)));
+  let sound, color;
+  if (curse || afflicted) { sound = "trap"; color = "#8a2b92"; }
+  else if (e.hurt || e.hurtOne || e.mpLoss) { sound = "hit"; color = "#a01030"; }
+  else if (e.revive || e.heal) { sound = "heal"; color = "#5fb894"; }
+  else if (e.run || e.floor) { sound = "spell"; color = "#c08aff"; }
+  else if (e.soul || e.ember) { sound = "itemget"; color = "#80cfff"; }
+  else if (e.gold) { sound = "itemget"; color = "#ffd84a"; }
+  else if (e.stairs || e.chests) { sound = "spell"; color = "#5fb8d6"; }
+  else if (e.fight || e.item || e.itemRar || e.soulPick || e.chest) return;
+  else { sound = "miss"; color = "#a0a6b0"; }
+  A.sfx(sound);
+  A.flash(color);
+}
 // 効果を順に掛け、最後に finish (= A.done)。戦闘・宝箱はその先を自分で片付けるので finish を呼ばない (next = 勝った後の続き)
 function apply(A, cell, e, from, finish, next = null) {
   if (!e) { finish(); return; }
@@ -74,9 +93,15 @@ function apply(A, cell, e, from, finish, next = null) {
   if (e.revive) { const d = A.deadList()[0]; if (d) A.revive(d, true); }
   if (e.hurt) A.hurtAll(e.hurt);
   if (e.hurtOne) A.hurtOne(A.randomAlive(), e.hurtOne);
-  if (e.ail) A.ailAll(e.ail[0], e.ail[1]);
+  // 抵抗・確率判定で防いだ異常を、掛かったように演出しない。
+  let afflicted = false;
+  if (e.ail) {
+    const before = A.aliveList().map((m) => [m, m.ailment, A.runEv().nextAil?.[m.uid]]);
+    A.ailAll(e.ail[0], e.ail[1]);
+    afflicted = before.some(([m, ail, nextAil]) => m.ailment !== ail || A.runEv().nextAil?.[m.uid] !== nextAil);
+  }
   if (e.mpLoss) A.mpAll(e.mpLoss);
-  if (e.gold) A.gold(e.gold, from);
+  if (e.gold) A.gold(e.gold, from, { quiet: true });
   if (e.soul) A.soul(e.soul, from);
   if (e.ember) A.ember(e.ember, from);
   if (e.run) {
@@ -90,6 +115,7 @@ function apply(A, cell, e, from, finish, next = null) {
   if (e.floor) A.floorEv().mods.push({ name: from, desc: modDesc(e.floor, "この階の間"), ...e.floor });
   if (e.stairs) A.revealStairs();
   if (e.chests) A.revealWhere((c) => c.type === "chest" && !c.cleared, e.chests);
+  feedback(A, e, afflicted);
   if (e.say) A.toast(e.say, e.tone || "info");
   if (e.fight) { A.fight(cell, e.fight, e.tag || "w0", e.opening ? { opening: e.opening } : {}); return; }
   // 品・魂は1つずつ見せてから次へ (重なると前の札が消える)
