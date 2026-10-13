@@ -1,7 +1,8 @@
 // 読み物の解放・章順・参照元からの独立・通常の進行状態の保全を確認する。
 import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
-import { ARCHIVE_STORIES, storyImage, PENDING_STORY_IMAGES } from "../../src/archive-stories.js";
+import { ARCHIVE_STORIES, storyImage } from "../../src/archive-stories.js";
+import { STORY_IMAGES } from "../../src/storyimages.js";
 import { ARCHIVE_FOCUS } from "../../src/archive-art.js";
 import { storyEntries, storyMediaUrls, journalState, newStories, unreadStories, markStoryRead, markStoriesKnown, seedJournal } from "../../src/journal.js";
 import { WORLD } from "../../src/dungeons/world.js";
@@ -49,7 +50,11 @@ for (const s of ARCHIVE_STORIES.filter(s => s.image)) {
   }
 }
 assert(ARCHIVE_STORIES.filter(s => s.image).length >= 58, "物語の絵は減らさない");
-assert(ARCHIVE_STORIES.filter(s => s.chapter === 1).every(s => s.image || PENDING_STORY_IMAGES.has(s.id)), "第一章の専用画像は、明示した序章の制作待ちだけを除外する");
+assert(ARCHIVE_STORIES.filter(s => s.chapter === 1).every(s => s.image), "第一章の全場面に専用画像がある");
+for (const [id, path] of Object.entries(STORY_IMAGES)) {
+  assert.equal(storyImage(id), path, `${id} の出荷済みWebPをゲーム内で表示する`);
+  assert.equal(ARCHIVE_STORIES.find(s => s.id === id)?.image, path, `${id} の出荷済みWebPを一覧で表示する`);
+}
 assert(ARCHIVE_STORIES.filter(s => s.chapter === 2).every(s => s.image), "第二章の全場面に専用画像がある");
 assert(ARCHIVE_STORIES.filter(s => s.chapter === 3).every(s => s.image), "第三章の全場面に専用画像がある");
 assert.equal(ARCHIVE_STORIES.filter(s => s.chapter === 4).length, 10);
