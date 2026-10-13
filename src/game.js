@@ -1784,6 +1784,12 @@ const SPECIAL_FLOORS = [
 
 // 現在の階の特別階定義 (なければ null)
 function specialDef() { return G.specialFloor ? SPECIAL_FLOORS.find((s) => s.id === G.specialFloor) || null : null; }
+// 無限迷宮の50階ごとの節目は、抽選や出来事の強敵階指定より優先する。
+function applyInfMightyFloor() {
+  if (!abyssActive() || G.floor <= 0 || G.floor % 50 !== 0) return;
+  G.eliteFloor = false;
+  G.specialFloor = "mighty";
+}
 // 特別階の効果値の取り出し (効果なしなら既定値)
 function sfNum(key, dflt) { const sp = specialDef(); return sp && sp[key] != null ? sp[key] : dflt; }
 
@@ -2289,6 +2295,7 @@ function updateTopbar() {
 }
 
 function newFloor() {
+  applyInfMightyFloor();
   // ダンジョンが自前で持つ出現プール (pool=浅階 / deepPool=深階) を使う
   const cfg = activeCfg();
   G.board = makeBoard(G.floor, cfg);
@@ -8453,6 +8460,7 @@ function descendMeasured({ fall = false, skip = 0 } = {}) {
   }
   // 迷宮のイベント (奈落の縦穴): 降りた先は強敵階
   if (G.run && G.run.ev && G.run.ev.forceElite) { G.run.ev.forceElite = false; G.eliteFloor = true; G.specialFloor = null; }
+  applyInfMightyFloor();
   const sp = specialDef();
   if (G.eliteFloor) {
     log("…強敵の気配がする。この階には通常では遭遇しない強大な存在が潜む。", "dmg");
