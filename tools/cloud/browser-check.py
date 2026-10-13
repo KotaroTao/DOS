@@ -29,6 +29,8 @@ with sync_playwright() as p:
     page.wait_for_selector(".ttl-overlay")
     page.screenshot(path="/tmp/dos-cloud-login-desktop.png")
     page.locator(".ttl-menu .ttl-btn.primary").click()
+    page.get_by_role("dialog", name="弟子の名前", exact=True).get_by_role("textbox").fill("リュカ")
+    page.get_by_role("button", name="旅を始める", exact=True).click()
     page.wait_for_function("!document.querySelector('.cloud-gate') || document.querySelector('.cloud-gate').hidden")
     page.wait_for_function("window.__game.G.state === 'town'")
     page.evaluate("""async () => {
@@ -40,6 +42,7 @@ with sync_playwright() as p:
     page.reload()
     page.wait_for_selector(".ttl-overlay")
     assert page.evaluate("window.__game.G.gold") == 4321
+    assert page.evaluate("window.__game.G.apprenticeName") == "リュカ"
     page.locator(".ttl-menu .ttl-btn.primary").click()
     page.wait_for_function("document.querySelector('.cloud-gate').hidden")
     # 同一端末での別タブはロックされる。
