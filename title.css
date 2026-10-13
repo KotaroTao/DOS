@@ -454,3 +454,9 @@ body:has(.test-play-banner) .ui-sheet { max-height: calc(100vh - 66px); max-heig
 .jg-th { position: sticky; top: 0; z-index: 1; background: #0b090d; color: #a8987a; padding: 4px 0; }
 .jg-tn { color: var(--glow, #a8987a); font-size: 12px; min-width: 0; }
 .jg-tc { display: grid; place-items: center; }
+
+/* 名前入力は小さな画面とソフトキーボードでも内側をスクロールできる。 */
+.ttl-name { box-sizing: border-box; max-height: calc(100dvh - 24px); overflow-y: auto; }
+.ttl-name input { font-size: 16px; }
+
+.ttl-name .ttl-note { color: #c3b49b; line-height: 1.7; }

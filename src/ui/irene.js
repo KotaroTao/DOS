@@ -1,3 +1,4 @@
+import { storyText } from "../protagonist.js";
 // ===== 人業の館の主イレーヌ — 初訪問の挨拶 (会話の場面) と、来館ごとのひとこと =====
 // 人業の館 (隊タブ) の下段の挿絵と台詞 (party.js の keeperPanel) が使う。
 //   ・初めて館を訪れた時: playIreneScene(greetingPages()) で挨拶と館の案内を語る (全画面の会話の場面)
@@ -328,7 +329,7 @@ const LINES = [
     3: ["あの方の手記、読ませてくれてありがとうございます。", "『灯を絶やすな』……ええ、何があっても、あなたが連れ戻してくれるまで灯を守ります。"] } },
   { id: "c_back", kind: "chat", fresh: true, when: (c) => c.cleared >= 1, say: {
     0: ["初めての迷宮から、戻られたのですね。", "器に残った土の匂い……嫌いではありません。"],
-    2: ["初めての迷宮から、よく戻りましたね。", "器に残った土の匂い……嫌いではありません。"] } },
+    2: ["{弟子名:様}、初めての迷宮から、よく戻りましたね。", "器に残った土の匂い……嫌いではありません。"] } },
   // 銀業 (金属の魔物・第3層から): 人業になりそこねた魂のなれの果て。館の主には「同業の子ども」のようなもの
   { id: "c_ginkyo", kind: "chat", fresh: true, when: (c) => c.open("w05"), say: {
     0: ["廃坑で、手のひらほどの銀の人業を見かけませんでしたか。", "銀業(ぎんぎょう)。器になりそこねた魂が、銀の聖具に溶けたものです。"],
@@ -660,7 +661,7 @@ const LINES = [
   // ---- 特別 (秘密を明かす) ----
   { id: "v_secret", kind: "chat", bond: 5, when: (c) => c.revealed, say: ["わたしの胸の奥にも、ひとつ魂が眠っています。", "誰のものか……いつか、あなたにだけは話します。"] },
   { id: "c_before", kind: "chat", bond: 5, say: ["オルド様は、灯ひとつ残して戻ってきませんでした。", "だからあなたにも、心を開くのが怖かったのです。……今さら、ですけれど。"] },
-  { id: "c_home", kind: "chat", bond: 5, say: ["あなたが帰ってくる場所が、ここだと嬉しいです。", "……今のは忘れてください。ろうそくの煙が目にしみただけです。"] },
+  { id: "c_home", kind: "chat", bond: 5, say: ["{弟子名:様}が帰ってくる場所が、ここだと嬉しいです。", "……今のは忘れてください。ろうそくの煙が目にしみただけです。"] },
 ];
 
 const NOW_RECENT = []; // この起動で最近話した「いまの状況」 (同じ助言ばかりにしない)
@@ -727,7 +728,8 @@ export function topicCount() { const c = ctxNow(); return { bond: c.bond, open: 
 // ---------- 初訪問の挨拶 (館の案内)。まだよそよそしい ----------
 export function greetingPages() {
   return [
-    ["わたしはイレーヌ。オルド様の留守をあずかっております。", "こちらの三体の人業を、お使いください。"],
+    ["わたしはイレーヌ。オルド様の留守をあずかっております。", "{弟子名:様}ですね。オルド様から、お名前をうかがっております。"],
+    ["お待ちしておりました、{弟子名:様}。", "こちらの三体の人業を、お使いください。"],
     ["王さまから授かった魂を一つずつ選び、名前を与えてください。", "魂を宿すと、人業は目を覚まします。"],
   ];
 }
@@ -737,7 +739,7 @@ export function greetingPages() {
 // 「スキップ」で最後まで飛ばす。戻る操作はタップと同じ順 (出し切る → 次 → 閉じる)
 let active = null;
 export function playIreneScene(pages, done) {
-  const list = (pages || []).filter((p) => p && p.length);
+  const list = (pages || []).filter((p) => p && p.length).map(p => p.map(t => storyText(t, game.G)));
   if (!list.length || typeof document === "undefined" || !document.body || active) { if (done) done(); return null; }
   const G = game.G;
   if (G) G.prompt = true;

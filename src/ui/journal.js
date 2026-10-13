@@ -1,3 +1,4 @@
+import { storyText } from "../protagonist.js";
 // 解放済みの手引きと、体験済みの物語を読む。ヘルプは酒場で書き留めた話 (心得・言い伝え) と一つの画面で、
 // 「ヘルプ / 酒場の噂話」のタブで切り替え、検索は両方を横断する (街と迷宮の手帳から開く)。閲覧では報酬・進行を変更しない (既読の印だけを付ける)。
 // 新しく物語が記されたら、街で手の空いた時に知らせる (queueStoryNotice)。迷宮の中・語りや手ほどきの最中は待つ。
@@ -76,7 +77,7 @@ function openEntry(kind, id, handle = null) {
     body:b=>{
       b.appendChild(illustration(entry));
       if(entry.subtitle)b.appendChild(el("div","jr-subtitle",entry.subtitle));
-      for(const line of linesOf(entry))b.appendChild(el("p","jr-line",line));
+      for(const line of linesOf(entry))b.appendChild(el("p","jr-line",storyText(line, game.G)));
     },
     footer,
     // 知らせから読んだ時など、一覧を経ずに閉じたら街の未読の数を付け直す
@@ -264,7 +265,7 @@ function showStoryNotice(G) {
     body:b=>{
       b.appendChild(illustration(first));
       b.appendChild(el("div","jr-subtitle",first.id.startsWith("lore_") ? `${first.group}・迷宮の由来と秘密` : first.group));
-      const lead = linesOf(first)[0];
+      const lead = storyText(linesOf(first)[0] || "", game.G);
       if (lead) b.appendChild(el("p","jr-line jr-lead",firstSentence(lead)));
       if (rest.length) {
         const shown = rest.slice(0, 3).map(e => `「${e.title}」`).join("");

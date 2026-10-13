@@ -10,6 +10,7 @@
 // 提供: UI.openSettings() / UI.settingsSheet({onClose}) (game.js の openSettings が使う) / UI.confirmReset()
 // game.js は import しない (ctx.js の UI / game を通す)。
 
+import { playerNameCard } from "./playername.js";
 import { UI, game, registerUI } from "./ctx.js";
 import { el, setText, sheet, segmented, toast } from "./kit.js";
 import { tlOn, tlSetOn, tlClear, tlHasData, tlSummary, tlStabilitySummary, tlExportText, tlPastCount, tlPastSummary } from "../telemetry.js";
@@ -240,6 +241,7 @@ function fillAuto(box) {
   } else box.appendChild(reset);
 }
 function fill(root) {
+  root.appendChild(playerNameCard());
   const saved = remember("seg", "settings");
   const cur = saved === "auto" || saved === "look" ? saved : "sound";
   const box = el("div", "stg");

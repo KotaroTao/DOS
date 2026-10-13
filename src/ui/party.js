@@ -1,3 +1,4 @@
+import { storyText } from "../protagonist.js";
 import { bagItems, bagSortControl } from "./bagsort.js";
 import { bagOwners } from "../items.js";
 import { RESIST_LABEL } from "../resistance.js";
@@ -1114,8 +1115,9 @@ function keeperPanel() {
   const text = el("span", "pt-kp-text");
   const put = (ln) => {
     text.textContent = "";
-    for (const l of ln.lines) if (l) text.appendChild(el("span", "pt-kp-l", l));
-    say.setAttribute("aria-label", `${IRENE_WHO}「${ln.lines.join("")}」 (タップで次の話)`);
+    const lines = ln.lines.map(t => storyText(t, game.G));
+    for (const l of lines) if (l) text.appendChild(el("span", "pt-kp-l", l));
+    say.setAttribute("aria-label", `${IRENE_WHO}「${lines.join("")}」 (タップで次の話)`);
   };
   put(keeperLine());
   say.appendChild(text);
