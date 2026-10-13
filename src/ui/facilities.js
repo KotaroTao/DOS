@@ -347,6 +347,7 @@ function renderTavern(root, api = null) {
   };
   drawSeg();
   if (tavernSeg === "board") setTimeout(() => UI.tutorialEvent?.("tavernBoard"), 0);
+  UI.tutorialFacilityVisited?.("tavern");
 }
 // 情報屋の噂 (掲示板のいちばん上。顔ぶれの話のタブ「酒場の噂話」とは別物)
 function renderRumor(wrap) {

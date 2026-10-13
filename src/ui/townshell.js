@@ -265,6 +265,7 @@ export function setTab(key, { silent = false } = {}) {
 export function openGate() {
   if (isLocked("gate")) { lockedToast("gate"); return false; }
   try { SFX.select(); } catch (e) { /* noop */ }
+  if (UI.tutorialGateVisited?.()) return true;
   if (typeof UI.openDeparture === "function") UI.openDeparture();
   else if (game.tryEnterDungeon) game.tryEnterDungeon();
   return true;
