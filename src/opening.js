@@ -314,7 +314,6 @@ export function showOpening(onDone) {
   let pressT = 0, pressAt = 0, longFired = false;
   const down = (ev) => {
     if (skip.contains(ev.target)) return;
-    if (voice.consumeRetry()) { longFired = true; return; }
     pressAt = performance.now(); longFired = false;
     clearTimeout(pressT);
     hold.classList.add("on");
@@ -328,6 +327,7 @@ export function showOpening(onDone) {
   wrap.addEventListener("click", (ev) => {
     if (closed || longFired) return;
     if (skip.contains(ev.target)) return;
+    if (voice.retry()) return;
     if (phase === "title") { sfx("select"); close(); return; }
     advance();
   });
@@ -338,7 +338,7 @@ export function showOpening(onDone) {
     if (closed) return;
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault(); e.stopPropagation();
-      if (voice.consumeRetry()) return;
+      if (voice.retry()) return;
       if (phase === "title") close(); else advance();
     } else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(); }
     else e.stopPropagation(); // オープニング中はゲームへの入力を通さない
