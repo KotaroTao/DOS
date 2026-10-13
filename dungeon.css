@@ -19,6 +19,7 @@
 /* 縦の配分: 見出し・盤面・収穫・隊は固定、記録が余りを取る (戦闘では命令板が縮んで中を巻く) */
 #topbar, #screen, #runbar, #party, #hint { flex-shrink: 0; }
 #hud { flex: 1 1 0; min-height: 0; padding: 4px 6px; }
+#app.board-camera-active #hud { min-height: 102px; }
 #controls { flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; padding: 2px 6px 6px; }
 
 /* ===== 見出し (#topbar) ===== */
@@ -139,22 +140,21 @@
 .rb-rar.zero { opacity: 0.22; text-shadow: none; }
 .rb-rar.zero::before { box-shadow: inset -1px -1px 0 rgba(0,0,0,0.45); margin-right: 0; }
 
-/* ===== 記録 (#log): 下から積もる年代記。古い行ほど闇に沈む ===== */
+/* ===== 記録 (#log): 下から積もる年代記。小さい画面でも文字の明るさを保つ ===== */
 #log {
   display: flex; flex-direction: column; justify-content: flex-end;
   overflow: hidden; touch-action: manipulation; /* スクロールさせない: 溢れた古い行は上の闇へ切れて消える */
   cursor: pointer; /* タップで記録の履歴 (全文) を開く */
-  padding: 6px 10px 6px; font-size: 12.5px; line-height: 1.6;
-  -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0.25) 0, #000 34px);
-  mask-image: linear-gradient(180deg, rgba(0,0,0,0.25) 0, #000 34px);
+  min-height: 0;
+  padding: 6px 10px 6px; font-size: 13px; line-height: 1.5;
+  -webkit-mask-image: none;
+  mask-image: none;
 }
-/* 行には opacity/transform のアニメ・トランジションを付けない。iOS Safari では mask-image の欄の中で
-   行が合成レイヤーになると、オート戦闘のように行が次々に積もる時に古い描画が残って文字が重なる。
-   新しい行の現れは GPU を使わない光 (text-shadow) で示す */
+#app.board-camera-active #log { min-height: 94px; }
+/* 新しい行は文字の光だけで示し、iOSで古い描画が残る合成レイヤーを作らない。 */
 #log > div { flex: 0 0 auto; }
-#log > div { opacity: 0.62; text-shadow: 0 1px 0 #000, 0 0 6px rgba(0,0,0,0.9); }
-#log > div:nth-last-child(2) { opacity: 0.82; }
-#log > div:last-child { opacity: 1; animation: dg-line-in 0.45s ease-out; }
+#log > div { opacity: 1; text-shadow: 0 1px 0 #000, 0 0 6px rgba(0,0,0,0.9); }
+#log > div:last-child { animation: dg-line-in 0.45s ease-out; }
 @keyframes dg-line-in {
   from { text-shadow: 0 1px 0 #000, 0 0 8px rgba(255,236,200,0.55); }
   to { text-shadow: 0 1px 0 #000, 0 0 6px rgba(0,0,0,0.9); }
@@ -582,4 +582,32 @@ canvas.unk-sil { filter: brightness(0) drop-shadow(0 0 1px rgba(185,172,217,0.85
   .board-camera-active #board-camera-tools { width: 100%; flex: 0 0 auto; display: flex; align-items: center; gap: 8px; padding-top: 7px; }
   #board-camera-tools span { flex: 1; font-size: 11px; color: var(--muted, #b6a88d); }
   #board-camera-tools button { min-width: 56px; min-height: 44px; padding: 4px 10px; font-size: 13px; color: #eadbb3; background: #211b22; border: 1px solid #665338; border-radius: 4px; }
+}
+
+/* 縦の短い探索画面では隊を一列にし、記録と盤面の両方を残す。詳細は札をタップ。 */
+@media (max-width: 600px) and (max-height: 560px) {
+  #app.board-camera-active #party { flex-wrap: nowrap; gap: 3px; }
+  #app.board-camera-active #party .pc {
+    flex: 1 1 0; max-width: none; min-height: 44px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "name" "hp" "mp" "bf";
+    padding: 3px; row-gap: 3px;
+  }
+  #app.board-camera-active .pc .pc-por,
+  #app.board-camera-active .pc .cls,
+  #app.board-camera-active .pc .pc-lv { display: none; }
+}
+
+/* 戦闘では行動順と命令板もあるため、少し早めに隊の表示を詰める。 */
+@media (max-width: 600px) and (max-height: 700px) {
+  #app.in-combat #party { flex-wrap: nowrap; gap: 3px; }
+  #app.in-combat #party .pc {
+    flex: 1 1 0; max-width: none; min-height: 44px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "name" "hp" "mp" "bf";
+    padding: 3px; row-gap: 3px;
+  }
+  #app.in-combat .pc .pc-por,
+  #app.in-combat .pc .cls,
+  #app.in-combat .pc .pc-lv { display: none; }
 }

@@ -2460,13 +2460,13 @@ function viewTransform(ctx = vctx) { ctx.setTransform(VSX, 0, 0, VSY, 0, 0); }
 const h01 = (a, b = 0) => { let h = Math.imul(a | 0, 374761393) ^ Math.imul(b | 0, 668265263); h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
 
 // ===== キャンバスの寸法合わせ =====
-// 探索中: 上下の帯 (見出し・収穫・隊・記録の最低限) を除いた縦の余りを盤面に回す (縦横比 0.56〜1.24)。
+// 探索中: 上下の帯と記録4行分を先に確保し、残りの高さを盤面に回す。
 // 戦闘中: コマンド板の高さを見込んで戦場を決め、戦闘の間は固定する (メニューの出し入れで揺れないように)。
 const appEl = document.getElementById("app");
 const screenEl = document.getElementById("screen");
 const topbarEl = document.getElementById("topbar");
 // 戦闘の記録欄は最低でも4行ほど読めるように (46 = 1〜2行では、何が起きたか読めなかった — 2026-10 ユーザーの指示)
-const LOG_MIN_BOARD = 84, LOG_MIN_COMBAT = 94, MENU_RESERVE = 166;
+const LOG_MIN_BOARD = 94, LOG_MIN_COMBAT = 94, MENU_RESERVE = 166;
 const TURN_ORDER_H = 31; // 戦闘の行動順の帯 (#turn-order) の高さ + 下の余白。記録欄を削らず戦場の側で詰める
 let _fitKey = "";
 function outerH(e) {
@@ -2491,10 +2491,11 @@ function fitView(force = false) {
     + (csH ? (parseFloat(csH.paddingTop) || 0) + (parseFloat(csH.paddingBottom) || 0) : 0);
   if (combat) used += MENU_RESERVE + LOG_MIN_COMBAT + TURN_ORDER_H;
   else used += outerH(runbarEl) + outerH(ctrlEl) + outerH(document.getElementById("board-camera-tools")) + LOG_MIN_BOARD;
-  // 縦の短い画面では戦場も縮め、記録と命令板の領域を確保する。
-  const minVH = combat ? (G.battle?.enemies.length > 3 ? 280 : 180) : 240;
-  const h = Math.max(cssW * (combat ? minVH / VW : 0.56), Math.min(cssW * (combat ? 0.98 : 1.32), appH - used));
-  const vh = Math.max(minVH, Math.round((VW * h) / cssW));
+  // 盤面の幅から最低高を決めると、スマホのブラウザバー表示時に記録がつぶれる。
+  // 探索は低い盤面も許し、拡大表示とドラッグでマスの操作性を保つ。
+  const minVH = combat ? (G.battle?.enemies.length > 3 ? 280 : 180) : 96;
+  const h = Math.max(cssW * minVH / VW, Math.min(cssW * (combat ? 0.98 : 1.32), appH - used));
+  const vh = Math.max(minVH, Math.floor((VW * h) / cssW));
   const cssH = (vh * cssW) / VW;
   const dpr = Math.max(1, window.devicePixelRatio || 1);
   const S = Math.max(1, Math.min(2, (cssW * dpr) / VW));
@@ -2519,7 +2520,7 @@ function refitAndRedraw() {
 window.addEventListener("resize", () => requestAnimationFrame(refitAndRedraw));
 if (typeof ResizeObserver !== "undefined" && appEl) {
   const observer = new ResizeObserver(() => requestAnimationFrame(refitAndRedraw));
-  for (const id of ["app", "topbar", "party", "hint", "runbar"]) {
+  for (const id of ["app", "topbar", "party", "hint", "runbar", "board-camera-tools"]) {
     const e = document.getElementById(id);
     if (e) observer.observe(e);
   }
