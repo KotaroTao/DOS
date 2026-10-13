@@ -11979,7 +11979,7 @@ function renderParty() {
     const por = el("div", "pc-por");
     const pic = partyPortrait(p);
     if (pic) por.appendChild(pic);
-    if (upgrades.has(p)) por.appendChild(UI.gearUpgradeDot());
+    UI.watchGearPortrait?.(por, p);
     por.appendChild(el("span", "pc-row " + (idx < 3 ? "front" : "back"), idx < 3 ? "前" : "後"));
     if (!p.alive) por.appendChild(el("span", "pc-seal dead", "死"));
     else if (sv.ailment) { const a = AIL_SEAL[sv.ailment] || ["呪", "poison"]; const s2 = el("span", "pc-seal " + a[1], a[0]); s2.title = AIL_NAME[sv.ailment] || ""; por.appendChild(s2); }
