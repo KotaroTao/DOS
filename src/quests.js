@@ -422,7 +422,7 @@ export const FIXED_QUESTS = [
     lines: [
       "酒場の隅で、土に汚れた老人が杯を抱えていた。",
       "「……あんたが、オルドさんの弟子かね。わしは墓守のハンス。四十年、ロアダルの墓を守ってきた。」",
-      "「近ごろ、墓の下から手がはい出してくる。土をかく音で、夜も眠れん。」",
+      "「鎮魂灯を静めてくれて、助かった。だが、地上へ迷い出た手がまだ残っておる。土へ還してやりたい。」",
       "「這い寄る腐手を六つ、土に還してくれんか。オルドさんも、昔そうしてくれた。」",
     ],
     done: [
@@ -1449,6 +1449,7 @@ function genKill(ctx, cfg) {
 // (2026-10 まではどの迷宮でもよく、報酬はいちばん深い迷宮の戦果だったので、浅く安全な迷宮で回って深い迷宮の値で受け取れた)
 // 共通の依頼 (cfg なし) は隊のLv の戦果で払い、推奨Lv が common.minLv (隊のLv − QUEST_LV_NEAR) 以上の迷宮で数える
 function genSoul(ctx, cfg = null) {
+  if (cfg ? cfg.noCorpses : !ctx.dungeons.some(d => !d.noCorpses)) return null;
   if (ctx.avoid.has("s:" + (cfg ? cfg.id : COMMON_KEY))) return null;
   const goal = 1 + ctx.rand(2);
   const u = cfg ? deepUnit(ctx, cfg) : ctx.common.unit;
@@ -1460,6 +1461,7 @@ function genSoul(ctx, cfg = null) {
     desc: `「${cfg.name}」で死体から魂を ${goal}つ 拾う`, note: "その迷宮の中で拾った魂だけを数える", reward });
 }
 function genChest(ctx, cfg = null) {
+  if (cfg ? cfg.noChests : !ctx.dungeons.some(d => !d.noChests)) return null;
   if (ctx.avoid.has("c:" + (cfg ? cfg.id : COMMON_KEY))) return null;
   const goal = 2 + ctx.rand(3);
   const u = cfg ? deepUnit(ctx, cfg) : ctx.common.unit;

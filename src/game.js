@@ -984,6 +984,14 @@ function worldOpenCount() { return DUNGEONS.filter((d) => worldOpenId(d.id)).len
 // 台帳の解放条件を満たしたか (world.js の unlock)
 function worldUnlockMet(cfg) {
   const u = cfg.unlock || {}, w = worldState();
+  if (u.prologue) return prologuePhase() === u.prologue || !!prologue()?.gifts?.fourth;
+  if (prologueActive()) {
+    const phase = prologuePhase();
+    if (cfg.id === "w01") return ["crypt", "fifth", "corridorQuest", "corridor", "sixth", "appraise", "abbeyQuest"].includes(phase);
+    if (cfg.id === "w02") return ["corridor", "sixth", "appraise", "abbeyQuest", "abbey"].includes(phase);
+    if (cfg.id === "w03") return phase === "abbey";
+    return false;
+  }
   if (u.start) return worldStarted();
   if (u.reported) return !!w.reported[u.reported];
   if (u.story) return !!w.found[u.story];
@@ -2294,6 +2302,21 @@ function updateTopbar() {
   updateReturnBtn();
 }
 
+// 保存済み盤面にも序章の出現制限を適用する。壁や発見済みの状態は残す。
+function enforceDungeonRestrictions() {
+  const cfg = activeCfg();
+  if (!G.board || abyssActive()) return;
+  if (cfg.noSpecial) { G.specialFloor = null; G.mutator = null; G.activeRumor = null; }
+  for (const row of G.board.cells) for (const cell of row) {
+    if ((cfg.noCorpses && cell.type === "corpse") || (cfg.noEvents && cell.type === "event") ||
+      (cfg.noTraps && cell.type === "trap") || (cfg.noChests && cell.type === "chest")) {
+      const { walls, revealed } = cell;
+      for (const key of Object.keys(cell)) delete cell[key];
+      Object.assign(cell, { walls, revealed, type: "empty", cleared: false });
+    }
+  }
+}
+
 function newFloor() {
   applyInfMightyFloor();
   // ダンジョンが自前で持つ出現プール (pool=浅階 / deepPool=深階) を使う
@@ -2325,7 +2348,7 @@ function newFloor() {
     }
     namedSighted(ek);
   }
-  placeMetal(); // 金属の魔物: 第3層から稀に魔物の札1枚と入れ替わる
+  if (!cfg.tutorial) placeMetal(); // 金属の魔物: 第3層から稀に魔物の札1枚と入れ替わる
   // 迷宮の掟「巨獣の宝」(trait.oneChest): 宝箱は1階に1つだけ (多ければ空き床に戻し、無ければ1つ置く)。特別な階の宝箱はこの後に足される
   { const tr1 = dungeonTrait();
     if (tr1 && tr1.oneChest) {
@@ -2342,8 +2365,9 @@ function newFloor() {
   if (trf && trf.board && TRAIT_BOARD[trf.board] && !(spf && spf.noTrap && (trf.board === "mist" || trf.board === "shaft" || trf.board === "vent" || trf.board === "ledge" || trf.board === "bog"))) TRAIT_BOARD[trf.board](G.board);
   if (G.floor > G.stats.deepest) G.stats.deepest = G.floor;
   // 酒場の噂を盤面に反映 (出撃直後の階のみ)
-  if (G.activeRumor && G.activeRumor.floor === G.floor) applyRumorToBoard(G.board);
+  if (!cfg.noSpecial && G.activeRumor && G.activeRumor.floor === G.floor) applyRumorToBoard(G.board);
   storyNewFloor(); // 物語マス: 師の手がかり (決まった迷宮の決まった階に、見つけるまで毎回置く)
+  enforceDungeonRestrictions();
   evNewFloor(); // 迷宮のイベント: 必須の手がかりの場所を確保してから配置する
   G.portalFound = false; // この階の帰還魔法陣はまだ発見していない
   revealByCartography();
@@ -6798,6 +6822,7 @@ function eventFacts() {
 const INF_EV_FLOOR_RATE = 0.6 * 1.2;
 // 階が変わった時: 持ち越しの効果を適用し、出来事を1つ置く (確率)
 function evNewFloor() {
+  if (activeCfg().noEvents) return;
   if (!G.board) return;
   const inf = abyssActive(); // 無限迷宮には無限迷宮だけの出来事 (infevents.js) を置く
   G.board.ev = { mods: [] };
@@ -6833,7 +6858,7 @@ function storyNewFloor() {
   if (abyssActive() || !G.board) return;
   const cfg = curDungeon();
   const key = storyCellAt(cfg.id, G.floor);
-  if (!key || worldState().found[key]) return;
+  if (!key || worldState().found[key] || (STORY_CELLS[key].prologue && !prologueActive())) return;
   // 再開時にも呼ぶ。配置済みなら、盤面や乱数を変えずに残す。
   if (G.board.cells.flat().some((c) => c.type === "story" && c.storyKey === key && !c.cleared)) return;
   const sx = G.board.start.x, sy = G.board.start.y;
@@ -6860,7 +6885,7 @@ function storyNewFloor() {
   const walls = cell.walls;
   for (const prop of Object.keys(cell)) delete cell[prop];
   Object.assign(cell, { walls, type: "story", storyKey: key, cleared: false, revealed: true });
-  log(`この階のどこかで、師の手がかりが淡く光っている。`, "win");
+  log(`この階のどこかに、確かめるべきものがある。`, "win");
 }
 function runStoryCell(cell) {
   const key = cell.storyKey;
@@ -6870,8 +6895,10 @@ function runStoryCell(cell) {
   SFX.itemget(); buzz([0, 30, 60, 30]);
   // 手がかりの恵み: 迷宮が開く手がかりは本文に「新たな迷宮」の行があるので、それ以外だけ最後に一行足す
   const boon = def.boon && def.boon.kind !== "dungeon" ? [`── 手がかりの恵み: ${def.boon.text}`] : [];
-  UI.playStoryChain([{ title: def.title, lines: [...storyLines(def.lines), ...boon], art: def.art, photo: storyImage(key), who: "none", kicker: "師の手がかり", btnLabel: "胸に刻む" }], () => {
+  UI.playStoryChain([{ title: def.title, lines: [...storyLines(def.lines), ...boon], art: def.art, photo: key === "w01_lantern" ? null : storyImage(key), who: "none", kicker: def.prologue ? "人業の発見" : "師の手がかり", btnLabel: "胸に刻む" }], () => {
     w.found[key] = 1;
+    if (prologueActive() && key === "forest_doll") prologue().phase = "fourth";
+    if (prologueActive() && key === "w02_broken_doll") prologue().phase = "sixth";
     w.last = { kind: "cell", key };
     cell.cleared = true; cell.type = "empty";
     syncClueBoons();
@@ -6996,6 +7023,7 @@ function stabilityPerRed() { return 1; }
 // 館の語り (イレーヌ): 要る手がかりを見つけていて、まだ語っていないもの
 //   beat = 先に語っておく語り (セラが目覚めてから、など)
 function pendingIreneBeat() {
+  if (prologueActive()) return null;
   // 試遊は選択した場面だけ。準備用の報告済み状態から別の語りを始めない。
   if (G.testPlay) return null;
   const w = worldState();
@@ -7840,6 +7868,8 @@ function askDescend(cell) {
 
 // ボスのいない層途中の迷宮を踏破する (最深部到達で確定)。ボス撃破と同じ章進行・凱旋演出につなぐ。
 function clearDungeonNoBoss() {
+  const clue = reportMissingClue(curDungeon().id);
+  if (prologueActive() && clue) { showToast(`先に「${clue.name}」を確かめよう`, { tone: "info" }); return; }
   const info = commitDungeonClear(false); // boss扱いしない (戦績の主撃破は加算しない)
   showDungeonClearedPopup(info);
 }
@@ -8386,7 +8416,7 @@ function giveDropsFromChest(drops, i, done, sink = boardSink()) {
 function descend(...args) { return tlGameMeasure("floor", () => descendMeasured(...args)); }
 function descendMeasured({ fall = false, skip = 0 } = {}) {
   // 出来事で2階進む場合も、5階の区切りを越える前に支払う。
-  if (Math.floor((G.floor + skip) / 5) > Math.floor((G.floor - 1) / 5)) {
+  if (stabilityApplies(activeCfg()) && Math.floor((G.floor + skip) / 5) > Math.floor((G.floor - 1) / 5)) {
     if (!stabilityReady(() => descend({fall, skip}))) return;
     if (!consumeEntryStability(activeCfg().id, "floor")) return;
   }
@@ -8442,13 +8472,13 @@ function descendMeasured({ fall = false, skip = 0 } = {}) {
   let eliteRate = (dungeonTrait() && dungeonTrait().eliteRate) || 0.10;
   // 名のある強敵の懸賞を受けていて、ここがその縄張りなら強敵階が出やすい (named.js HUNT_ELITE_RATE)
   if (!abyssActive() && (activeCfg().elites || []).some((id) => namedHunted(id))) eliteRate = Math.max(eliteRate, HUNT_ELITE_RATE);
-  G.eliteFloor = (activeCfg().floors || 3) >= 5 && G.floor >= 3 && random() < eliteRate;
+  G.eliteFloor = !activeCfg().tutorial && (activeCfg().floors || 3) >= 5 && G.floor >= 3 && random() < eliteRate;
   // 特別階判定: 強敵階でなければ、各候補の出現条件 (階数) と出現率で抽選。
   // 第1の迷宮と1Fには特別な階は出現しない (ほかの迷宮の2F以降のみ)。
   G.specialFloor = null;
   // 迷宮の掟 (移ろう霧) は特別な階が出やすい (trait.specialRate 倍)
   const specialMul = (dungeonTrait() && dungeonTrait().specialRate) || 1;
-  if (activeCfg().id !== "w01" && !G.eliteFloor && G.floor >= 2) {
+  if (!activeCfg().noSpecial && activeCfg().id !== "w01" && !G.eliteFloor && G.floor >= 2) {
     const r = random();
     let acc = 0;
     for (const c of SPECIAL_FLOORS) {
@@ -11565,7 +11595,7 @@ function endBattleMeasured() {
       ? () => showDungeonClearedPopup(clearInfo)
       : wasGuard ? () => openInfRest()
       : (hordeRewardPending() ? () => grantHordeReward() : null);
-    const hasChest = !corpse && (trophies.length || !(evCell && evCell.evFight && evCell.evFight.noChest)) && (drop || trophies.length || wasElite || wasGuard || wasMimic || (specialDef() || {}).sureChest || random() < 0.5);
+    const hasChest = !activeCfg().noChests && !corpse && (trophies.length || !(evCell && evCell.evFight && evCell.evFight.noChest)) && (drop || trophies.length || wasElite || wasGuard || wasMimic || (specialDef() || {}).sureChest || random() < 0.5);
     const chest = hasChest
       ? battleChestSpec([...trophies, ...(drop ? [drop] : [])], wasMasterMimic ? 30 : wasMimic ? 15 : 0, wasMimic || wasMasterMimic, after ? ["alarm"] : null)
       : null;
@@ -12304,7 +12334,7 @@ function confirmReset() {
   });
 }
 
-// 魂の安定度: 人業の器に保存する。旧セーブは満タンから開始する。
+// 魂の安定度: 人業に保存する。旧セーブは満タンから開始する。
 // 無限迷宮でも元の人業の安定度を使う。名のない器の分も保存して再入場で戻さない。
 function infiniteStabilityDolls() {
   const home = G.abyss?.home;
@@ -12334,6 +12364,7 @@ function refreshStability(now = Date.now()) {
   if (changes.length) autosave(true);
   return changes;
 }
+function stabilityApplies(cfg = curDungeon()) { return abyssActive() || !cfg?.stabilityFree; }
 function stabilityStatus(infinite = abyssActive()) {
   const dolls = stabilityDolls(infinite), now = Date.now();
   refreshStability(now);
@@ -12365,6 +12396,7 @@ function stabilityReady(retry, infinite = abyssActive()) {
   return false;
 }
 function consumeEntryStability(where, kind = "entry", infinite = abyssActive()) {
+  if (!infinite && worldById(where)?.stabilityFree) return true;
   const dolls = stabilityDolls(infinite);
   if (!dolls.length || !stabilityReady(null, infinite)) return false;
   const changes = dolls.map(doll => { doll.stability -= STABILITY_ENTRY_COST; return {doll,amount:STABILITY_ENTRY_COST}; });
@@ -12393,6 +12425,7 @@ function grantRedSoul(n, source) {
 
 // 人業を仕立てる費用 (最初の3体は無料、4体目以降に段階上昇)
 function emptyDollCost() {
+  if (prologueActive() && prologueDollGoal()) return 0;
   const n = G.dollsPurchased;
   return n < 3 ? 0 : n === 3 ? 30 : n === 4 ? 50 : 100;
 }
@@ -12521,6 +12554,7 @@ function randomDollName() { return DOLL_NAMES[Math.floor(random() * DOLL_NAMES.l
 
 // 魂と名前が決まったら、赤い魂を支払って人業を生成し、編成に加える。生まれた人業を返す
 function finalizeBuyDoll(uid, name) {
+  if (prologueActive() && !prologueCreateSouls().some(s => s.uid === uid)) return null;
   const cost = emptyDollCost();
   const s = soulByUid(uid);
   if (G.redSoul < cost) { log("赤い魂が足りない。", "sys"); SFX.ng(); showToast("赤い魂が足りない", { tone: "bad" }); return null; }
@@ -13014,7 +13048,7 @@ function questLvGap(cfg, pl = partyLevel()) {
 function questDungeons() {
   const order = Object.keys(worldState().open);
   const pl = partyLevel();
-  return DUNGEONS.filter((d) => worldOpenId(d.id) && questLvGap(d, pl) <= QUEST_LV_NEAR && !dungeonFullyCleared(d))
+  return DUNGEONS.filter((d) => !d.tutorial && worldOpenId(d.id) && questLvGap(d, pl) <= QUEST_LV_NEAR && !dungeonFullyCleared(d))
     .sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
 }
 // 完全踏破 = 踏破した上で、その迷宮の魔物をすべて発見し、固有クエスト (極めて稀なる出来事を含む) をすべて果たした
@@ -13186,7 +13220,7 @@ function questsHere() {
 }
 // 出撃シートの添え書き: 酒場の依頼で開いた迷宮なら「依頼の迷宮」(受けた依頼の対象かどうかは名の横の印 questHereCount)
 function questHereNote(cfg) {
-  return cfg && cfg.side ? (cfg.unlock && cfg.unlock.quest ? "依頼の迷宮" : "寄り道の迷宮") : null;
+  return cfg?.tutorial ? "イレーヌの依頼" : cfg && cfg.side ? (cfg.unlock && cfg.unlock.quest ? "依頼の迷宮" : "寄り道の迷宮") : null;
 }
 // 迷宮ごとの記録 (出撃シートの迷宮の顔): 図鑑に記録した魔物 / その迷宮の魔物 (雑魚・強敵・主) と、
 // その迷宮の固定クエスト (依頼人の頼み) の報告済み / 総数。
@@ -13207,7 +13241,7 @@ function fixedQuestHome(def) {
 }
 // その迷宮専用の「極めて稀なる出来事」(events.js DUNGEON_GIFTS。w01・奈落には無い)。固有クエストに数える
 function dungeonMythic(cfg) {
-  if (!cfg || !cfg.id) return null;
+  if (!cfg || !cfg.id || cfg.noEvents) return null;
   return Object.values(EVENT_MAP).find((e) => e.tier === "mythic" && e.dungeonId === cfg.id) || null;
 }
 function dungeonFacts(cfg) {
@@ -13633,7 +13667,7 @@ function rollRumor() {
   cands.push([25, () => ({ type: "treasure", floor: 1, speaker,
     text: `「${dn}の奥で金属の輝きを見たという。${layer >= 10 ? "相当な業物が眠っているかもしれん。" : "上物の宝箱がひとつ余分にあるかもな。"}」` })]);
   // 特別階の予兆: 第1の迷宮を除き、B1F が好特別階になる
-  if (cfg.id !== "w01") cands.push([20, () => {
+  if (!cfg.noSpecial && cfg.id !== "w01") cands.push([20, () => {
     const sp = pickRumorSpecial(layer);
     return { type: "special", special: sp.id, floor: 1, speaker,
       text: `「${dn}の最初の階に、${sp.omen}。見過ごすなよ。」` };
@@ -13675,7 +13709,7 @@ function applyRumorToBoard(board) {
   if (!r) return;
   G.activeRumor = null;
   if (r.info) return; // 属性・主の予兆は備えを促すだけ。盤面は変えない
-  if (r.type === "special" && activeCfg().id === "w01") return; // 別の迷宮で聞いた噂でも第1の迷宮には出さない
+  if (activeCfg().noSpecial || (r.type === "special" && activeCfg().id === "w01")) return; // 別の迷宮で聞いた噂でも第1の迷宮には出さない
   const layer = activeCfg().layer || 1;
   // 行き止まり (開いた辺が1つ) のマスを候補にする
   const deadends = [];
@@ -14323,22 +14357,25 @@ function reportMainQuest() {
   const w = worldState();
   const id = w.report;
   const cfg = worldById(id);
+  if (prologueActive() && id === "w02" && prologuePhase() !== "abbeyQuest") { UI.enterMansion?.(); return; }
   if (!cfg) { w.report = null; renderTown(); return; }
   if (playBossMemory(id, reportMainQuest)) return;
   const clue = reportMissingClue();
   if (clue) { showToast(`「${clue.name}」を見つけてから、王に報告せよ`, { tone: "info" }); return; }
-  const r = msqReward(cfg.lv, !!cfg.boss);
-  const rwText = [{ cur: "gold", n: r.gold }, { cur: "soul", n: r.soulPts }, ...(r.redSoul ? [{ cur: "red", n: r.redSoul }] : [])];
+  const dollReward = prologueActive() && id === "w01";
+  const r = dollReward ? { gold: 0, soulPts: 0, redSoul: 0 } : msqReward(cfg.lv, !!cfg.boss);
+  const rwText = dollReward ? "王宮の倉庫に眠っていた人業 ×1（館のイレーヌへ）" : [{ cur: "gold", n: r.gold }, { cur: "soul", n: r.soulPts }, ...(r.redSoul ? [{ cur: "red", n: r.redSoul }] : [])];
   const rep = REPORTS[id] || { title: cfg.name, lines: ["「果たしたか。…見たものを、すべて話せ。」"] };
   // この報告で地図に現れる迷宮 (解放条件 reported:id) を、王の言葉の結びに添える
-  const opens = DUNGEONS.filter((d) => !w.open[d.id] && d.unlock && (d.unlock.reported === id || (d.unlock.all && d.unlock.all.includes(id) && d.unlock.all.every((x) => x === id || w.reported[x]))));
-  const lines = [...storyLines(rep.lines), ...opens.map((d) => `── 新たな迷宮「${d.name}」が地図に記された。`)];
+  const opens = DUNGEONS.filter((d) => !(prologueActive() && id === "w01") && !w.open[d.id] && d.unlock && (d.unlock.reported === id || (d.unlock.all && d.unlock.all.includes(id) && d.unlock.all.every((x) => x === id || w.reported[x]))));
+  const reportLines = id === "w01" && !prologue() ? [...storyLines(rep.lines).slice(0, 2), "「次は亡骸の囁く回廊を調べよ。オルドの足跡も、さらに下へ続いておろう。」"] : storyLines(rep.lines);
+  const lines = [...reportLines, ...opens.map((d) => `── 新たな迷宮「${d.name}」が地図に記された。`)];
   const toasts = [];
   // この報告で開く機能 (報告の前後で比べる)
   const after = { ...w, reported: { ...w.reported, [id]: 1 } };
   const newly = FEATURE_KEYS.filter((k) => !featureMet(k, w) && featureMet(k, after));
   const pages = [{
-    title: rep.title, lines, reward: rwText, kicker: `踏破の報告 ― ${cfg.name}`, photo: storyImage("report_" + id),
+    title: rep.title, lines, reward: rwText, kicker: `踏破の報告 ― ${cfg.name}`, photo: id === "w01" ? null : storyImage("report_" + id),
     leave: () => {
       if (w.reported[id]) return;
       G.gold += r.gold;
@@ -14346,13 +14383,15 @@ function reportMainQuest() {
       tlTown("gold", r.gold, "r"); tlTown("soul", r.soulPts, "r");
       grantRedSoul(r.redSoul || 0, "report");
       w.reported[id] = 1;
+      if (prologueActive() && id === "w01") prologue().phase = "fifth";
+      if (prologueActive() && id === "w02") prologue().phase = "abbey";
       w.report = null;
       w.last = { kind: "report", id };
       for (const key of Object.keys(LATE_CLUES)) if (STORY_CELLS[key].dungeon === id && w.found[key]) w.told[key] = 1; // 報告の文で語った
       SFX.itemget(); buzz([0, 30, 60, 30]);
       log(`「${cfg.name}」の踏破を報告した。`, "win");
       updateTopbar();
-      toasts.push({ text: `受け取った 💰${r.gold} ✦${r.soulPts}` + (r.redSoul ? ` 🔴${r.redSoul}` : ""), opts: { tone: "gold" } });
+      toasts.push({ text: dollReward ? "王宮の人業を受け取った。イレーヌのもとへ" : `受け取った 💰${r.gold} ✦${r.soulPts}` + (r.redSoul ? ` 🔴${r.redSoul}` : ""), opts: { tone: "gold" } });
       for (const d of refreshWorldUnlocks()) toasts.push({ text: `🗺 新たな迷宮「${d.name}」が地図に記された`, opts: { tone: "info" } });
       autosave(true);
     },
@@ -14370,7 +14409,7 @@ function reportMainQuest() {
     pages.push({ title: end.title, lines: end.lines, kicker: "章の結び", who: "none", art: "candle", photo: storyImage("ch" + ch.no + "_end"), btnLabel: "物語を閉じる",
       leave: () => { w.beats["ch" + ch.no + "_end"] = 1; w.last = { kind: "chapter", no: ch.no }; flashScreen("#ffd84a"); autosave(true); } });
   }
-  playMsqChain(pages, toasts, scenes.length ? () => { if (UI.tutorialAfterReport) UI.tutorialAfterReport(); } : null);
+  playMsqChain(pages, toasts, (scenes.length || prologueActive()) ? () => { if (UI.tutorialAfterReport) UI.tutorialAfterReport(); } : null);
 }
 // 旧来の入口 (次章の拝命)。迷宮は条件で地図に現れるので、拝命の手続きは無い
 function acceptMainQuest() { renderTown(); }
@@ -14381,90 +14420,106 @@ function sealedLines() {
   return (CHAPTER_END[c.no] || { lines: [] }).lines;
 }
 
-// ---- 第0章「人業の生成」(チュートリアル勅命) ----
-// 最初は三体、最初の報告後は魔導士を加えた四体を揃える。
-const TUT_DOLLS = 4;
-function tutDollCount() { return allDolls().filter((d) => !d.isEmpty).length; }
-function tutDollGoal() { return G.msq && G.msq.stage === "fourth" ? TUT_DOLLS : 3; }
-function tutorialDollsReady() {
-  const jobs = new Set(allDolls().filter((d) => !d.isEmpty).map((d) => soulByUid(d.primary)?.clsKey));
-  return tutDollCount() >= tutDollGoal() && ["fighter", "priest", "thief", ...(G.msq?.stage === "fourth" ? ["mage"] : [])].every((k) => jobs.has(k));
+// ---- 序章: 人業を3→4→5→6体と迎える。受領はmsqと共に保存する ----
+const prologue = () => G.msq?.prologue || null;
+const prologuePhase = () => prologue()?.phase || null;
+const prologueActive = () => !!prologue() && prologuePhase() !== "done";
+const PROLOGUE_JOBS = { fourth: "knight", fifth: "mage", sixth: "bishop" };
+function prologueDollGoal() { return { three: 3, fourth: 4, fifth: 5, sixth: 6 }[prologuePhase()] || 0; }
+function prologueCreateSouls() {
+  const free = soulRepresentatives().filter(s => !soulWorn(s.uid));
+  if (!prologueActive()) return free;
+  const goal = prologueDollGoal();
+  if (!goal || allDolls().length >= goal) return [];
+  const jobs = prologuePhase() === "three" ? ["fighter", "priest", "thief"] : [PROLOGUE_JOBS[prologuePhase()]];
+  return free.filter(s => jobs.includes(s.clsKey));
 }
-
-// 着任の謁見: 三職の魂だけを授け、三体の仕立てを命じる。
+function preparePrologueDoll() {
+  const p = prologue(), phase = p?.phase, job = PROLOGUE_JOBS[phase];
+  if (!job || p.gifts?.[phase]) return;
+  p.gifts ||= {};
+  // 旧序章で下賜済みの未使用魂があれば引き継ぎ、重複して授けない。
+  const soul = G.souls.find(s => s.clsKey === job && !soulWorn(s.uid)) || addSoulInstance(job);
+  p.gifts[phase] = soul.uid;
+  codexSweepJobs(); autosave(true);
+}
+function prologueAppraisalItem() { return prologue()?.staff || null; }
+function preparePrologueAppraisal() {
+  const p = prologue();
+  if (!p || p.staff) return;
+  // 物語の練習品は袋が満杯でも失わない。共有袋へ一度だけ預ける。
+  p.staff = cloneItem("magicStaff", 50);
+  p.staff.unidentified = true;
+  G.party[0].items.push(p.staff);
+  autosave(true);
+}
+function completePrologueTutorial(key) {
+  const p = prologue();
+  if (!p) return;
+  const next = { createThree: ["three", "forest"], createFourth: ["fourth", "cryptQuest"],
+    createFifth: ["fifth", "corridorQuest"], createSixth: ["sixth", "appraise"], prologueAppraise: ["appraise", "abbeyQuest"] }[key];
+  if (!next || p.phase !== next[0]) return;
+  p.phase = next[1];
+  G.msq.n = 1; G.msq.state = "world";
+  announceNewDungeons(refreshWorldUnlocks());
+  if (key === "createThree") G.dungeonIdx = worldIndexOf("w00_forest");
+  autosave(true);
+}
+function prologueAudience() {
+  const p = prologue(), phase = p?.phase;
+  if (phase === "abbeyQuest") {
+    if (!worldState().cleared.w02 || reportMissingClue("w02")) return departTo(worldIndexOf("w02"));
+    return reportMainQuest();
+  }
+  if (!["cryptQuest", "corridorQuest"].includes(phase)) return;
+  const crypt = phase === "cryptQuest";
+  const lines = crypt ? TUT_FINALE : [
+    "「五体の人業がそろったか。地下墓地の先、亡骸の囁く回廊を調べてほしい。」",
+    "「オルドのランタンに残された言葉は、地下の水脈を指しておる。回廊の最深部まで進んでみよ。」",
+  ];
+  playMsqChain([{ title: crypt ? "地下墓地の調査" : "亡骸の囁く回廊へ", lines,
+    reward: crypt ? [{ cur: "gold", n: 500 }] : null, kicker: "王の依頼",
+    leave: () => {
+      if (p.phase !== phase) return;
+      p.phase = crypt ? "crypt" : "corridor";
+      if (crypt) { G.gold += 500; tlTown("gold", 500, "r"); }
+      announceNewDungeons(refreshWorldUnlocks());
+      G.dungeonIdx = worldIndexOf(crypt ? "w01" : "w02");
+      autosave(true);
+    },
+  }]);
+}
+function prologueObjective() {
+  const phase = prologuePhase();
+  if (!prologueActive() || !G.msq.granted) return null;
+  if (phase === "abbeyQuest" && (!worldState().cleared.w02 || reportMissingClue("w02"))) return { key: "prologueReturn", text: "回廊に戻り、残る手がかりを調べて踏破する", act: "探索へ", kind: "gate", run: () => departTo(worldIndexOf("w02")) };
+  const quest = { cryptQuest: "地下墓地の調査を王から受ける", corridorQuest: "亡骸の囁く回廊への依頼を受ける", abbeyQuest: "回廊の報告をし、修道院への依頼を受ける" }[phase];
+  if (quest) return { key: "prologueQuest", text: quest, act: "王宮へ", kind: "palace", run: prologueAudience };
+  const target = { forest: ["w00_forest", "三体で森の古屋へ行き、人業を連れ帰る"], crypt: ["w01", "四体で地下墓地の騒ぎの原因を調べる"], corridor: ["w02", "五体で亡骸の囁く回廊の最深部を調べる"], abbey: ["w03", "六体で朽ちた骸の修道院へ向かう"] }[phase];
+  if (target && !reportPending()) return { key: "prologueDive", text: target[1], act: "出撃", kind: "gate", run: () => departTo(worldIndexOf(target[0])) };
+  if (["three", "fourth", "fifth", "sixth", "appraise"].includes(phase)) return { key: "prologueMansion", text: "人業の館でイレーヌの手ほどきを受ける", act: "館へ", kind: "party", run: () => UI.enterMansion?.() };
+  return null;
+}
+function tutDollCount() { return allDolls().filter(d => !d.isEmpty).length; }
+function tutDollGoal() { return prologueDollGoal() || 3; }
+function tutorialDollsReady() { return tutDollCount() >= tutDollGoal(); }
 function grantTutorialGift() {
   const ms = G.msq;
   if (!ms || ms.granted) return;
-  ms.granted = true;
-  // 初回に授けるのは三職の魂。魔導士と赤い魂は三体の報告後。
-  addSoulInstance("fighter");
-  addSoulInstance("priest");
-  addSoulInstance("thief");
-  ms.stage = "three";
-  codexSweepJobs();
-  SFX.itemget(); buzz([0, 30, 60, 30]);
+  ms.granted = true; ms.stage = "three";
+  ms.prologue = { phase: "three", gifts: {} };
+  for (const job of ["fighter", "priest", "thief"]) addSoulInstance(job);
+  codexSweepJobs(); SFX.itemget();
   log("戦士・僧侶・盗賊の魂を拝受した。", "win");
-  showToast("👑 戦士・僧侶・盗賊の魂を受け取った");
-  autosave(true);
-  renderTown();
+  autosave(true); renderTown();
 }
-
-// 着任の謁見の語り → 閉じたら下賜 (grantTutorialGift) して街へ降り立つ
 function audienceTutorial() {
-  UI.playStoryChain([{ title: "勅命 「人業の生成」", lines: TUT_INTRO, reward: [{ job: "fighter" }, { job: "priest" }, { job: "thief" }], photo: storyImage("arrival"), kicker: "着任の謁見" }], () => {
-    landOnHub();
-    grantTutorialGift();
-    if (UI.tutorialAfterReport) UI.tutorialAfterReport();
+  UI.playStoryChain([{ title: "三つの魂", lines: TUT_INTRO, reward: [{ job: "fighter" }, { job: "priest" }, { job: "thief" }], photo: storyImage("arrival"), kicker: "着任の謁見" }], () => {
+    landOnHub(); grantTutorialGift(); UI.tutorialAfterReport?.();
   });
 }
-
-// 第0章の報告: 報酬を下賜し、そのまま第1章の勅命を拝命する (1つの連なった語り)
-function reportTutorialQuest() {
-  const ms = G.msq;
-  if (!ms || ms.n !== 0 || !ms.granted || !tutorialDollsReady()) return;
-  if (ms.stage !== "fourth") {
-    playMsqChain([{
-      title: "三体の人業の報告", lines: TUT_THREE_REPORT,
-      reward: [{ cur: "red", n: 100 }, { job: "mage" }], kicker: "次の勅命", photo: storyImage("three"),
-      leave: () => {
-        if (G.msq !== ms || ms.stage === "fourth") return;
-        ms.stage = "fourth";
-        grantRedSoul(100, "tutorial");
-        addSoulInstance("mage");
-        codexSweepJobs();
-        SFX.itemget();
-        autosave(true);
-      },
-    }], [], () => { if (UI.tutorialAfterReport) UI.tutorialAfterReport(); });
-    return;
-  }
-  const toasts = [];
-  const pages = [{
-    title: "勅命「人業の生成」完遂", lines: TUT_FINALE, reward: [{ cur: "gold", n: 500 }], kicker: "勅命の完遂", photo: storyImage("departure"),
-    leave: () => {
-      if (G.msq !== ms || ms.n !== 0) return;
-      G.gold += 500;
-      tlTown("gold", 500, "r");
-      SFX.itemget(); buzz([0, 30, 60, 30]);
-      log("最初の勅命「人業の生成」を果たした。", "win");
-      toasts.push({ text: "受け取った 💰500", opts: { tone: "gold" } });
-      autosave(true);
-    },
-  }];
-  // 王が最初の迷宮の在処を明かす: 第0章を閉じ、台帳の迷宮 (start) を地図に載せる
-  pages[0].lines = [...pages[0].lines, ...DUNGEONS.filter((d) => d.unlock && d.unlock.start).map((d) => `── 新たな迷宮「${d.name}」が地図に記された。`)];
-  const leave0 = pages[0].leave;
-  pages[0].leave = () => {
-    leave0();
-    G.msq = { n: 1, state: "world" };
-    const added = refreshWorldUnlocks();
-    if (added[0]) G.dungeonIdx = worldIndexOf(added[0].id);
-    for (const d of added) toasts.push({ text: `🗺 新たな迷宮「${d.name}」が地図に記された`, opts: { tone: "info" } });
-    worldState().last = { kind: "ch0" };
-    autosave(true);
-  };
-  playMsqChain(pages, toasts, () => { if (UI.tutorialAfterReport) UI.tutorialAfterReport(); });
-}
+// 旧来の王宮UI・再開の入口も、新しい依頼へつなぐ。
+function reportTutorialQuest() { return prologueAudience(); }
 
 // 機能解放: 章 (story.js CHAPTERS) と、その章で王に報告した本筋の迷宮の数で決める (節目の報告で王から授かる)。
 //   第一章は入門なので4つ、第二章からは1章に1つ (docs/tasks.md U1)。report = その章で報告した数 / "finale" = 章の結びの迷宮。
@@ -14675,13 +14730,13 @@ function objectiveInfo() {
   if (!ms) return null;
   const w = worldState();
   // 解放された要素の手ほどき (済ませるまで迷宮には入れない)。踏破の報告が先
-  const tut = !w.report ? tutorialPending() : null;
+  const tut = (prologueActive() || !w.report) ? tutorialPending() : null;
   if (tut) return { key: "tut", text: tut.text, sub: `手ほどき「${tut.name}」・ 済ませるまで迷宮の門は閉ざされる`, act: tut.started ? "続ける" : "手ほどき", kind: "party", run: () => UI.tutorialResume && UI.tutorialResume() };
+  const po = prologueObjective();
+  if (po) return po;
   if (ms.n === 0) {
     if (!ms.granted) return { key: "audience", text: "王宮で王に謁見する", sub: "着任の挨拶", act: "謁見する", kind: "palace", run: audienceTutorial };
-    const made = tutDollCount();
-    if (!tutorialDollsReady()) return { key: "makeDoll", text: ms.stage === "fourth" ? "赤い魂で器を買い、魔導士の人業を仕立てる" : "人業を3体、仕立てる", sub: `いま ${made}/${tutDollGoal()}体 ・ ${ms.stage === "fourth" ? "4体目の器は赤い魂30" : "戦士・僧侶・盗賊を宿す (無料)"}`, act: "仕立てる", kind: "party", run: goMakeDoll };
-    return { key: "reportTut", text: ms.stage === "fourth" ? "4体目の人業を王に報告する" : "3体の人業を王に報告する", act: "王に報告する", kind: "palace", run: reportTutorialQuest };
+    return { key: "makeDoll", text: "人業の館で三体に魂を宿す", act: "館へ", kind: "party", run: goMakeDoll };
   }
   const clue = reportMissingClue();
   if (clue) return { key: "clue", text: `「${clue.name}」を見つける`, sub: `「${worldById(clue.dungeon).name}」の${clue.floor}階 ・ 王への報告に必要`, act: "探しに戻る", kind: "gate", run: () => departTo(worldIndexOf(clue.dungeon)) };
@@ -14710,6 +14765,7 @@ function currentObjective() {
 function palaceCallReady() {
   const ms = G.msq;
   if (!ms) return false;
+  if (prologueActive()) return !ms.granted || ["cryptQuest", "corridorQuest", "abbeyQuest"].includes(prologuePhase()) || (prologuePhase() === "crypt" && reportPending());
   if (ms.n === 0) return !ms.granted || tutorialDollsReady();
   return reportPending() || !!lateClue();
 }
@@ -14718,10 +14774,11 @@ function palaceCallReady() {
 function decreeInfo() {
   const ms = G.msq;
   if (!ms) return { kind: "none", head: "", text: "", replay: false };
+  const po = prologueObjective();
+  if (po) return { kind: "active", head: "序章", text: po.text, note: "", replay: false };
   if (ms.n === 0) {
     if (!ms.granted) return { kind: "ch0", head: "着任", text: "玉座の老王が、オルドの弟子の到着を待っている。", replay: false };
-    const made = tutDollCount(), goal = tutDollGoal();
-    return { kind: "ch0", head: ms.stage === "fourth" ? "勅命 「四体目の人業」" : "勅命 「三体の人業」", text: ms.stage === "fourth" ? "人業の館で赤い魂30を支払い、四体目の器に魔導士の魂を宿せ。" : "人業の館で無料の器に戦士・僧侶・盗賊の魂を宿し、三体を仕立てよ。", note: tutorialDollsReady() ? "人業が揃った。王に報告せよ。" : `仕立てたら王に報告せよ。(いま ${made}/${goal}体)`, replay: true };
+    return { kind: "ch0", head: "三つの魂", text: "イレーヌから三体の人業を受け取り、戦士・僧侶・盗賊の魂を宿せ。", replay: true };
   }
   const w = worldState();
   const ch = currentChapter();
@@ -14739,7 +14796,7 @@ function decreeInfo() {
 // 王の言葉を聞き直す (状態は変えない): 最後に語られた物語のページ
 function replayDecree() {
   const ms = G.msq || {};
-  if (!ms.n) return UI.playStoryChain([{ title: "勅命 「人業の生成」", lines: ms.stage === "fourth" ? TUT_THREE_REPORT : TUT_INTRO, photo: storyImage(ms.stage === "fourth" ? "three" : "arrival"), kicker: "着任の謁見" }]);
+  if (!ms.n) return UI.playStoryChain([{ title: "勅命 「人業の生成」", lines: TUT_INTRO, photo: storyImage("arrival"), kicker: "着任の謁見" }]);
   const last = worldState().last || {};
   if (last.kind === "chapter" && CHAPTER_END[last.no]) return UI.playStoryChain([{ title: CHAPTER_END[last.no].title, lines: CHAPTER_END[last.no].lines, kicker: "章の結び", who: "none", art: "candle", photo: storyImage("ch" + last.no + "_end") }]);
   if (last.kind === "late" && LATE_CLUES[last.key]) return UI.playStoryChain([{ title: LATE_CLUES[last.key].title, lines: storyLines(LATE_CLUES[last.key].lines), art: STORY_CELLS[last.key].art, photo: storyImage(last.key), kicker: "手がかりの報告" }]);
@@ -15676,6 +15733,8 @@ function tryEnterDungeon() {
 // 報告に必要な師の手がかり。踏破済みでも未発見なら、探しに戻れるようにする。
 function reportMissingClue(id = worldState().report) {
   const w = worldState();
+  const recovery = prologueActive() && ({ w00_forest: "forest_doll", w02: "w02_broken_doll" })[id];
+  if (recovery && !w.found[recovery]) return STORY_CELLS[recovery];
   const key = REPORTS[id]?.need;
   return key && !w.found[key] ? STORY_CELLS[key] : null;
 }
@@ -15739,7 +15798,11 @@ function departNow({ idx = G.dungeonIdx, accept = false, from = 1 } = {}) {
   if (blockForTutorial()) return { ok: false, reason: "tutorial" };
   if (!worldOpenIdx(idx)) { showToast("その迷宮は、まだ地図に記されていない", { tone: "info" }); return { ok: false, reason: "sealed" }; }
   if (!G.party.some((p) => p.alive)) { log("動ける人業がいない。", "sys"); SFX.ng(); return { ok: false, reason: "party" }; }
-  if (!stabilityReady(() => departNow({idx, accept, from}))) return { ok:false, reason:"stability" };
+  if (prologueActive()) {
+    const expected = { forest: 3, crypt: 4, corridor: 5, abbeyQuest: 6, abbey: 6 }[prologuePhase()];
+    if (!expected || G.party.length !== expected || G.party.some(d => !d.alive || d.primary == null)) { showToast("依頼に必要な人業をそろえ、手ほどきを終えてください", { tone: "info" }); return { ok:false, reason:"prologue" }; }
+  }
+  if (stabilityApplies(DUNGEONS[idx]) && !stabilityReady(() => departNow({idx, accept, from}))) return { ok:false, reason:"stability" };
   G.dungeonIdx = idx;
   const mut = townMutatorFor(idx);
   const mutId = accept && mut ? mut.id : null;
@@ -15753,7 +15816,7 @@ function departNow({ idx = G.dungeonIdx, accept = false, from = 1 } = {}) {
 // §7 M1 迷宮の異変: 街に戻るたび、出撃シートを初めて開いた時に迷宮ごとに一度だけ抽選する (D3以降・45%・同じ候補)。
 // シートを開き直しても引き直さない (G._townMutator は街にいる間だけの一時記録。出撃・帰還で消える)
 function townMutatorFor(idx) {
-  if (DUNGEONS[idx]?.id === "w01") return null; // 第1の迷宮には異変を出さない
+  if (DUNGEONS[idx]?.noSpecial || DUNGEONS[idx]?.id === "w01") return null; // 第1の迷宮には異変を出さない
   if (!G._townMutator) G._townMutator = {};
   if (!(idx in G._townMutator)) {
     let id = null;
@@ -15840,8 +15903,12 @@ const DUNGEON_BRIEFING = [
 // 出撃の実体。mutatorId を渡すと「迷宮の異変」を受け入れた状態で潜る
 function enterDungeon(mutatorId, startFloor = 1) {
   if (G.state !== "town" || !consumeEntryStability(curDungeon().id)) return false;
-  G.stabilityBriefed = true;
-  G.mutator = curDungeon().id === "w01" ? null : mutatorId || null;
+  if (stabilityApplies()) G.stabilityBriefed = true;
+  if (prologuePhase() === "abbey" && curDungeon().id === "w03") {
+    prologue().phase = "done";
+    refreshWorldUnlocks();
+  }
+  G.mutator = curDungeon().noSpecial || curDungeon().id === "w01" ? null : mutatorId || null;
   G.bossDown = false; // 帰還制限: 魔法陣を見つけるか主を討つまで帰れない
   SFX.stairs();
   sheet.closeAll();
@@ -16806,9 +16873,11 @@ function doIdentifySkill(m, it, { quiet = false } = {}) {
   if (!it || !it.unidentified || it.idHardFail) return false;
   if (G.state !== "town") return false;
   const ch = identifyChance(m, it);
-  const ok = random() < ch;
+  const practice = prologuePhase() === "appraise" && it === prologueAppraisalItem() && canIdentify(m);
+  const ok = practice || random() < ch;
   if (ok) {
     const first = revealIdentity(it);
+    if (practice) { prologue().appraised = true; autosave(true); }
     log(`${m.name}は ${it.name} を鑑定した！${first ? " (初ゲット！)" : ""}`, "win");
     if (!quiet) { SFX.itemget(); buzz(15); showToast(`${first ? "初ゲット！ " : ""}${it.name} と判明した (${m.name})`, { noLog: true, tone: "good" }); }
   } else {
@@ -17626,7 +17695,7 @@ const testScenes = [
   ...uiTutorial.testTutorials,
   { id: "opening", kind: "story", name: "オープニング" },
   ...Object.entries({ intro: TUT_INTRO, three: TUT_THREE_REPORT, finale: TUT_FINALE, epilogue: EPILOGUE }).map(([id, lines]) => ({
-    id: "story:" + id, kind: "story", name: ({ intro: "着任の謁見", three: "三体の報告", finale: "四体の報告", epilogue: "結末" })[id], lines,
+    id: "story:" + id, kind: "story", name: ({ intro: "着任の謁見", three: "三体の支度", finale: "地下墓地の調査依頼", epilogue: "結末" })[id], lines,
     photo: storyImage(({ intro: "arrival", three: "three", finale: "departure" })[id]),
   })),
   ...[["cell", "師の手がかり", STORY_CELLS], ["memory", "主の記憶", BOSS_MEMORIES], ["report", "踏破の報告", REPORTS], ["chapter", "章の結び", CHAPTER_END], ["unlock", "機能の解放", UNLOCKS]].flatMap(([group, label, defs]) =>
@@ -17799,7 +17868,7 @@ function loadGame(cloudSnapshot = null) {
   if (!raw) return false;
   let snap;
   try { snap = refDeserialize(JSON.parse(raw)); } catch (e) { return false; }
-  if (!snap || !snap.party || (!cloudEnabled() && !snap.party.length)) return false;
+  if (!snap || !Array.isArray(snap.party) || (!cloudEnabled() && !snap.party.length && !snap.msq?.granted)) return false;
   for (const k of SAVE_FIELDS) if (k in snap) G[k] = snap[k];
   G.inventory = Array.isArray(snap.inventory) ? snap.inventory : [];
   shareInventory(G);
@@ -17923,11 +17992,26 @@ function loadGame(cloudSnapshot = null) {
   if (!G.stats.bossIds || typeof G.stats.bossIds !== "object") G.stats.bossIds = {};
   if (!G.stats.elemKills || typeof G.stats.elemKills !== "object") G.stats.elemKills = {};
   if (!G.ach) G.ach = {}; // 勲章 (後付け)
-  questState(); // 酒場の依頼 (後付け。旧来の納品依頼・サブクエストは捨てて、掲示板を貼り直す)
+  questState(); // 酒場の依頼
+  for (const q of [...(G.quest.board || []), ...(G.quest.active || [])]) {
+    const cfg = worldById(q.dungeon);
+    if (q.type !== "soul" || !cfg?.noCorpses || q.state === "done" || q.state === "claimed") continue;
+    q.dungeon = "w03";
+    q.desc = `「${worldById("w03").name}」で死体から魂を ${q.goal}つ 拾う`;
+    q.note = "死体のある修道院で拾った魂を数える";
+  }
   // メインストーリー: 第0章の途中か、師を捜す旅の途中 ({n:1, state:"world"})。迷宮の地図と物語の進みは G.world
   if (!G.msq) G.msq = { n: 0, state: "active", granted: false };
   if (G.msq.n === 0 && G.msq.granted && !G.msq.stage) G.msq.stage = G.souls.some((s) => s.clsKey === "mage") ? "fourth" : "three";
-  if (G.msq.n >= 1) G.msq = { n: 1, state: "world" };
+  if (G.msq.n >= 1) { G.msq.n = 1; G.msq.state = "world"; }
+  if (G.msq.n === 0 && G.msq.granted && !G.msq.prologue) {
+    const count = tutDollCount();
+    if (count < 4) G.msq.prologue = { phase: "three", gifts: {} };
+    G.tut ||= {}; G.tut.done ||= {};
+    delete G.tut.done.createThree; delete G.tut.done.createFourth;
+    G.tut.cur = null;
+    if (count >= 4) { G.msq.n = 1; G.msq.state = "world"; } // 旧序章で四体が完成していれば巻き戻さない
+  }
   refreshWorldUnlocks();
   if (!worldOpenIdx(G.dungeonIdx)) G.dungeonIdx = Math.max(0, DUNGEONS.findIndex((d) => worldOpenId(d.id)));
   G.autoCombat = false;   // オート戦闘は再開時に解除 (誤動作防止)
@@ -17997,7 +18081,7 @@ function resumeFromState() {
   if (G.state === "board") {
     if (descendBtn) descendBtn.classList.add("hidden");
     if (!G.board) newFloor();
-    else storyNewFloor(); // 旧セーブで未発見の手がかりが配置されていなかった階を修復
+    else { enforceDungeonRestrictions(); storyNewFloor(); } // 旧セーブで未発見の手がかりが配置されていなかった階を修復
     renderBoard();
     // 会話・選択の途中で閉じた記録は、現在地の未完イベントから続ける。
     const cell = G.board.cells[G.py]?.[G.px];
@@ -18071,7 +18155,7 @@ function setupNewGame() {
   G.world = {}; worldState();
   G.shopStock = { ...SHOP_INIT_STOCK };
   G.quest = null; questState();
-  // 第0章: 三職を受ける → 三体を報告 → 🔴100と魔導士 → 四体目を報告 → 金貨500
+  // 序章: 王から三職の魂 → イレーヌの依頼から三体ずつ段階的に仲間を迎える
   G.msq = { n: 0, state: "active", granted: false };
   codexSweepJobs();
 }
@@ -18081,13 +18165,13 @@ function setupTestPlay() {
   setupNewGame();
   G.testPlay = true;
   G.msq = { n: 1, state: "world" };
-  const earlyTutorial = testScene?.kind === "tutorial" && ["createThree", "createFourth", "buyEquipment", "firstDive"].includes(testScene.id.slice(9));
-  const idx = testScene || testInfFloor ? (earlyTutorial || testScene?.id === "opening" ? 0 : DUNGEONS.length - 1) : testDungeonIdx;
+  const earlyTutorial = testScene?.kind === "tutorial" && ["createThree", "createFourth", "createFifth", "createSixth", "prologueAppraise", "buyEquipment", "firstDive"].includes(testScene.id.slice(9));
+  const idx = testScene || testInfFloor ? (earlyTutorial || testScene?.id === "opening" ? 0 : DUNGEONS.findLastIndex(d => !d.tutorial)) : testDungeonIdx;
   G.dungeonIdx = idx;
   const cfg = DUNGEONS[idx];
   const floor = Math.max(1, Math.min(cfg.floors, Math.floor(Number(testParams.get("testFloor"))) || 1));
   const w = worldState();
-  for (const d of DUNGEONS.slice(0, idx)) {
+  for (const d of (cfg.tutorial ? [] : DUNGEONS.slice(0, idx))) {
     if (d.side) continue;
     w.open[d.id] = true; w.cleared[d.id] = 1; w.reported[d.id] = true;
     if (d.boss) { w.beats["mem_" + d.id] = true; G.stats.bossIds[d.boss] = true; }
@@ -18095,7 +18179,7 @@ function setupTestPlay() {
   for (const ch of CHAPTERS) if (w.reported[ch.finale]) w.beats["ch" + ch.no + "_end"] = true;
   if (w.reported.w09) w.beats[OMOKAGE_BEAT] = true; // 第三章からの試遊は面影の写しを使える
   // 地図の解放に要る手がかりを、ここまでの進行に応じて補う。
-  for (const d of DUNGEONS.slice(0, idx + 1)) {
+  for (const d of (cfg.tutorial ? [] : DUNGEONS.slice(0, idx + 1))) {
     if (d.unlock?.story) w.found[d.unlock.story] = true;
   }
   refreshWorldUnlocks();
@@ -18104,8 +18188,9 @@ function setupTestPlay() {
   G.unlockedDungeons = worldOpenCount();
   G.irene.greeted = true;
   G.dungeonBriefed = true; G.stabilityBriefed = true;
+  if (cfg.tutorial) { G.msq.granted = true; G.msq.prologue = { phase: "forest", gifts: {} }; G.stabilityBriefed = false; }
   const level = earlyTutorial ? 1 : dungeonLevel(cfg, floor);
-  for (const [i, cls] of ["fighter", "knight", "thief", "priest", "mage", "hunter"].entries()) {
+  for (const [i, cls] of (cfg.tutorial ? ["fighter", "priest", "thief"] : ["fighter", "knight", "thief", "priest", "mage", "hunter"]).entries()) {
     const soul = addSoulInstance(cls, 1, level);
     soul.capBonus = Math.max(0, level - soulLevelCap(cls, soul.count));
     const doll = makeDoll(`試遊${i + 1}・${SOUL_CLASSES[cls].label}`);
@@ -18138,13 +18223,15 @@ function setupTestPlay() {
     G.testTutorial = key;
     G.tut.done = Object.fromEntries(uiTutorial.testTutorials.filter((t) => t.id !== testScene.id).map((t) => [t.id.slice(9), true]));
     addSoulInstance("fighter"); addSoulInstance("priest"); addSoulInstance("thief"); addSoulInstance("mage");
-    if (key === "createThree" || key === "createFourth") {
-      G.party = key === "createThree" ? [] : G.party.filter((d) => ["fighter", "priest", "thief"].includes(soulByUid(d.primary)?.clsKey));
-      G.souls.splice(0, G.souls.length, ...G.souls.filter((s) => G.party.some((d) => d.primary === s.uid)));
-      for (const cls of (key === "createThree" ? ["fighter", "priest", "thief"] : ["mage"])) addSoulInstance(cls);
-      G.dollsPurchased = G.party.length;
-      G.msq = { n: 0, state: "active", granted: true, stage: key === "createThree" ? "three" : "fourth" };
-      G.world = {}; worldState(); G.unlockedDungeons = 0;
+    if (["createThree", "createFourth", "createFifth", "createSixth", "prologueAppraise"].includes(key)) {
+      const count = { createThree: 0, createFourth: 3, createFifth: 4, createSixth: 5, prologueAppraise: 6 }[key];
+      const phase = { createThree: "three", createFourth: "fourth", createFifth: "fifth", createSixth: "sixth", prologueAppraise: "appraise" }[key];
+      G.party = []; G.reserve = []; G.souls = []; setSharedSouls(G.souls); G.dollsPurchased = 0;
+      G.msq = { n: count ? 1 : 0, state: "world", granted: true, prologue: { phase, gifts: {} } };
+      for (const job of ["fighter", "priest", "thief", "knight", "mage", "bishop"].slice(0, Math.max(3, count))) {
+        const soul = addSoulInstance(job);
+        if (G.party.length < count) { const d = makeDoll(randomDollName()); d.primary = soul.uid; recalcDoll(d); d.hp = d.maxhp; d.mp = d.maxmp; G.party.push(d); G.dollsPurchased++; }
+      }
     }
     if (key === "newJobParty") { addSoulInstance("monk"); G.tut.jobVisit = true; }
     if (key === "repairSoul") { G.party[0].alive = false; G.party[0].hp = 0; G.tut.repairPending = true; }
@@ -18624,6 +18711,7 @@ bindGame({
 // 契約 (UI.openParty / autoEquip / betterGearCount / trainableList / equipItemTo / bestWearer) は各モジュールの install() が登録する
 bindGame({
   equipAt, equipFromWearer, moveItem, campCast, campSpellsOf, healAll, healAllNeed, repairCostOf, repairCostAll, repairDoll, setReviveTimers, hastenCostOf, tryHastenRescue, awaitingRescue, RESCUE_SHORTEN_MS,
+  prologuePhase, prologueActive, prologueCreateSouls, preparePrologueDoll, completePrologueTutorial, prologueAppraisalItem, preparePrologueAppraisal, prologueAudience, stabilityApplies,
   emptyDollCost, grantRedSoul, randomDollName, finalizeBuyDoll, soulRepresentatives, partySoulConflict, soulSlotConflict, soulTakePlan, placeSoulInDoll, ownSoulSlot, blockSoulResonance, soulSortCmp, soulRankOf, soulWorn, soulWornByOther,
   equipSoulToSlot, fuseCandidates, fuseSubWorn, fuseSoul, fuseSouls, toggleSoulLock, openFusePicker, openSubSkillPicker, slotSoul,
   unlockedSubSlots, orderSeats, orderSeatedUids, toggleOrderSeat, showCodexJobDetail, addSoulInstance, codexSweepJobs,
@@ -18706,7 +18794,7 @@ async function init() {
     // 迷宮のイベント (出来事) の検証用
     ev: { evApi, runEvent, eventFightWon, EVENT_MAP, enterDungeon, newFloor, descend, resolveCell, renderBoard, endBattle, evNewFloor, evProgress, eventFacts, makeDoll, addSoulInstance, recalcDoll, evUnit },
     // 迷宮の台帳・物語の進みの検証用
-    world: { worldState, refreshWorldUnlocks, reportMainQuest, lateClue, tellLateClue, reportTutorialQuest, grantTutorialGift, commitDungeonClear, showDungeonClearedPopup, askGate, departNow, storyGoal, objectiveInfo, decreeInfo,
+    world: { prologuePhase, preparePrologueDoll, completePrologueTutorial, prologueAudience, preparePrologueAppraisal, audienceTutorial, clearDungeonNoBoss, reportMissingClue, worldState, refreshWorldUnlocks, reportMainQuest, lateClue, tellLateClue, reportTutorialQuest, grantTutorialGift, commitDungeonClear, showDungeonClearedPopup, askGate, departNow, storyGoal, objectiveInfo, decreeInfo,
       playIreneBeat, pendingIreneBeat, storyNewFloor, runStoryCell, resumeFromState, startFloorsOf, foeLevelHere, claimTreasury, partyLevel, leaveDungeon, DUNGEONS, finalizeBuyDoll, totalDonatedKinds, treasuryState,
       clueBoon, syncClueBoons, seraJoin, seraDoll, seraRankUp, syncSeraSoul, repairCostOf, restoreStability, stabilityStatus, revealByCartography } };
 

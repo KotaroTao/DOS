@@ -55,7 +55,7 @@ function bestFor(it, men) {
 export function tryIdentifyInfo() {
   const men = appraisers();
   if (!men.length) return null;
-  const list = skillTargets();
+  const list = skillTargets().filter(t => game.prologuePhase?.() !== "appraise" || t.item === game.prologueAppraisalItem?.());
   if (!list.length) return null;
   // men = 実際に担当する者 (品ごとの最良の者)。top = その中で最も成功率の高い者
   let top = null;
@@ -70,7 +70,7 @@ export function openTryIdentifyAll({ onDone } = {}) {
   if (G().state !== "town") { toast("鑑定は街でしかできない", { tone: "info" }); return null; }
   if (!men.length) { toast("鑑定の心得のある者がいない", { tone: "info" }); return null; }
   // 安い品から順に (最後に逸品が来るほど胸が高鳴る)
-  const list = skillTargets().sort((a, b) => (RAR_ORDER[rarityKey(a.item)] || 0) - (RAR_ORDER[rarityKey(b.item)] || 0) || (a.item.lv || 0) - (b.item.lv || 0));
+  const list = skillTargets().filter(t => game.prologuePhase?.() !== "appraise" || t.item === game.prologueAppraisalItem?.()).sort((a, b) => (RAR_ORDER[rarityKey(a.item)] || 0) - (RAR_ORDER[rarityKey(b.item)] || 0) || (a.item.lv || 0) - (b.item.lv || 0));
   if (!list.length) { toast("技で鑑定できる品はない", { tone: "info" }); return null; }
 
   // 担当する者 (品ごとの最良の者。控えも含む)

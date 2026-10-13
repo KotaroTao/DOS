@@ -642,6 +642,7 @@ function renderSell(wrap) {
     ? button({ label: "鑑定を試みる", sub: `${tryId.n}点 ・ 無料`, kind: "primary", onTap: () => UI.openTryIdentifyAll() })
     : button({ label: "まとめて鑑定", sub: idSub, kind: unid.length && aff.n ? "primary" : "secondary", disabled: !aff.n, onTap: () => confirmIdentifyAll() });
   idBtn.dataset.bulk = "identify";
+  if (tryId) idBtn.classList.add("prologue-appraise");
   row.appendChild(idBtn);
   const sellSub = junk.length ? `${junk.length}点 ・ 💰+${shortN(junkGold)}` : (upN ? `装備候補${upN}点は残す` : "売れる品なし");
   const sellBtn = button({ label: "まとめて売る", sub: sellSub, kind: junk.length ? "primary" : "secondary", disabled: !junk.length && !upN, onTap: () => confirmSellJunk() });

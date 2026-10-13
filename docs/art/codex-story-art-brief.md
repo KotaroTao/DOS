@@ -385,6 +385,27 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 
 ## 4. 便2・便3 ― 第5〜8章の新規 42場面
 
+### 序章改訂の追加場面（2026-10-13・制作保留）
+
+ユーザー指定により**今回は画像を作成しない**。新版の進行・修正対象の一覧は `docs/prologue-revision.md`。最初の三体は戦士・僧侶・盗賊、四体目は騎士、五体目は魔導士、六体目は司教。下記は後日の制作指示のみ。
+
+**forest_doll「ほこりの下で待つ人業」** (序章 / 森の古屋の人業)
+- 要点: 三体と森を進み、古屋でしばらく使われていない人業を発見する。人業にはまだ魂の灯がなく、壊れていない。
+- 描くもの: 森の奥の古屋の室内 / 棚にもたれる、ほこりをかぶった木と黒鉄の人業 / 戦士・僧侶・盗賊の三体 / 弟子。
+- 描かないもの: 騎士・魔導士・司教、イレーヌ、宝箱、死体、罠。
+```text
+Inside a long-unused wooden cottage in a nearby forest, dusty light enters through a cracked shutter. One dormant adult-sized articulated wooden doll rests against a shelf, covered in dust but structurally intact, with black iron joint bands and a smooth blank wooden head. The apprentice gently brushes dust from its shoulder. Exactly three awakened wooden dolls accompany the apprentice: a warrior with a red cloak and round shield, a priest in white robes with a staff, and a thief in dark leather with a dagger. Quiet discovery, no combat, no treasure chest, no corpse, no trap, no knight, no mage, no bishop, no Irene. The dormant doll has no soul light.
+```
+
+**w02_broken_doll「回廊の果ての六体目」** (第一章 / 回廊最深部の人業)
+- 要点: 五体の隊が回廊最深部で壊れた人業を発見し、館へ連れ帰ろうとする。以前の操霊師の素性は不明。セラではない。
+- 描くもの: 静かな石の回廊 / 継ぎ目が傷んで壁にもたれた、灯のない人業 / 弟子と戦士・僧侶・盗賊・騎士・魔導士の五体。
+- 描かないもの: 司教、イレーヌ、セラ、師オルド、死体、宝箱、読める文字。
+```text
+At the deepest end of a quiet stone corridor, the apprentice and exactly five adult-sized articulated wooden dolls discover another wooden doll slumped against the wall. The five companions are a warrior with a red cloak and round shield, a priest in white robes, a thief in dark leather, a knight with armor and a shield, and a mage in purple robes. All have smooth blank wooden heads and black iron joint bands. The found doll has damaged joints and an unlit chest, weathered by a previous journey; it is repairable, not a human corpse and not Sera. The apprentice supports its damaged arm, preparing to carry it home. No bishop, no Irene, no Ordo, no treasure chest, no readable text.
+```
+
+
 いまは第5〜8章の挿絵がコードで描いた小さな仮の絵なので、承認済みの章と同じ画風の原画に置き換える。
 
 - 本文は場面IDで引く: ストーリー一覧 = `src/archive-stories.js` の `scene("<場面ID>", ...)`、ゲーム内 = `src/story.js` (手がかり `STORY_CELLS.<場面ID>`、報告 `REPORTS.w18` = report_w18、主の記憶 `BOSS_MEMORIES.w21` = mem_w21、館の語り `IRENE_BEATS` の id、章の結び `CHAPTER_END[5]` = ch5_end)。**両方を読んで、両方に合う一枚にする。**
