@@ -1671,7 +1671,6 @@ export function openCreateDoll() {
       scroll.appendChild(list);
     },
   });
-  if (h?.el) UI.tutorialEvent?.("newJobSoulPickerOpened");
   return h;
 }
 function rarityName(r) { return { common: "コモン", rare: "レア", epic: "エピック", legend: "レジェンド", unique: "固有" }[r] || ""; }

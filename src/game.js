@@ -14394,7 +14394,8 @@ function reportMainQuest() {
     },
   }];
   // 機能の解放は、報告の直後に解放のページを挟む (同じ報告で2つ開くこともある)
-  const scenes = newly.map(unlockSceneFor).filter(Boolean);
+  // 修道院への出立前は依頼だけを伝え、機能の説明は館の手ほどきに任せる。
+  const scenes = id === "w02" ? [] : newly.map(unlockSceneFor).filter(Boolean);
   for (const us of scenes) {
     pages.push({ title: us.title, lines: us.lines, kicker: "秘技の伝授",
       leave: () => { SFX.victory(); buzz([0, 40, 80, 40]); toasts.push({ text: "🔓 新たな技能を授かった", opts: { tone: "good" } }); } });
@@ -14531,7 +14532,7 @@ function reportTutorialQuest() { return prologueAudience(); }
 //   まだ無い章の分 (第四章のサブ魂2枠・第五章の奈落) は、その章が台帳に載るまで開かない
 const FEATURES = {
   tavern: { chapter: 1, report: 4 },        // 第一章の本筋4か所の報告で、依頼と情報屋の噂が一緒に開く
-  soulChange: { chapter: 1, dungeon: "w02" }, // 第二の迷宮の報告後に手ほどき
+  soulChange: { chapter: 1, dungeon: "w02" }, // 旧解放条件の記録。現在は新職業の魂を持ち帰り、館の手ほどきで解放
   fusion: { chapter: 1, report: 2 },          // 魂の融合
   sub1: { chapter: 1, report: 3 },            // サブ魂 1枠
   rumor: { chapter: 1, report: 4 },           // 情報屋の噂 (酒場の掲示板)
@@ -14557,7 +14558,7 @@ const FEATURES = {
   vow: { chapter: 16, report: "finale" },       // 誓約
   sub3: { chapter: 17, report: "finale" },      // サブ魂 3枠
 };
-const FEATURE_KEYS = Object.keys(FEATURES).filter((key) => key !== "rumor" && !FEATURES[key].retired); // 噂の解放案内は酒場に統合 (旧キーは互換用に残す)
+const FEATURE_KEYS = Object.keys(FEATURES).filter((key) => key !== "rumor" && key !== "soulChange" && !FEATURES[key].retired); // 噂は酒場に統合、魂の付け替えは館で案内 (旧キーは互換用に残す)
 const chapterLabel = (no) => `第${kanjiNum(no)}章`;
 // その章で王に報告した本筋の迷宮の数
 function chapterReports(ch, w = worldState()) { return ch.dungeons.filter((id) => w.reported[id]).length; }
@@ -14574,11 +14575,12 @@ function featureMet(key, w = worldState()) {
 function featureUnlocked(key) {
   if (FEATURES[key]?.retired) return false;
   if (G.testPlay && Array.isArray(G.testUnlock) && G.testUnlock.includes(key)) return true; // 試遊の開発用 (URL の testUnlock=rusui など)
-  if (key === "soulChange") return featureMet(key) && !!G.tut?.done?.soulChange;
+  if (key === "soulChange") return !!G.tut?.done?.soulChange;
   return featureMet(key);
 }
 // まだ開いていない機能の条件の説明 (錠の札・案内文)
 function featureNote(key) {
+  if (key === "soulChange") return "新しい職業の魂を持ち帰り、人業の館で手ほどきを受けると開く";
   const f = FEATURES[key];
   if (!f) return "";
   const ch = CHAPTERS.find((c) => c.no === f.chapter);
@@ -18303,7 +18305,7 @@ function setupTestPlay() {
       const it = cloneItem("shortSword", 50); it.unidentified = true;
       G.party[0].items.push(it); G.tut.appraisePending = true;
     }
-    if (key === "newJobParty") { addSoulInstance("monk"); G.tut.jobVisit = true; }
+    if (key === "soulChange") { addSoulInstance("monk"); G.tut.jobVisit = true; }
     if (key === "repairSoul") { G.party[0].alive = false; G.party[0].hp = 0; G.tut.repairPending = true; }
     if (key === "firstDive" || key === "buyEquipment") {
       G.party = G.party.filter((d) => ["fighter", "priest", "thief", "mage"].includes(soulByUid(d.primary)?.clsKey));

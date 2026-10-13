@@ -160,7 +160,7 @@ function mainTile(d, pe, town) {
 }
 // 手ほどき中は一覧の確認だけ許す。実際の付け替えは完了後に解放する。
 function soulChangeVisible() {
-  return !!game.featureUnlocked?.("soulChange") || (G_()?.tut?.cur === "soulChange" && !!game.worldState?.().reported.w02);
+  return !!game.featureUnlocked?.("soulChange") || G_()?.tut?.cur === "soulChange";
 }
 function svgSoul() {
   const s = el("span", "sp-ic");
