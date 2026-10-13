@@ -391,6 +391,15 @@ export function shopBuy(id, who, { equip = false } = {}) {
   return true;
 }
 
+// 先に買い物を済ませた記録でも、手ほどきで操作不能にしない。
+function tutorialPurchaseBlock() {
+  if (!defaultBuyer()) return "袋がいっぱいだ。品を整理してから、また見に来てくれ。";
+  const rec = recList();
+  if (!rec.length) return "今の装備に勝る品は、もう棚にないようだ。次の装備は迷宮で探してくれ。";
+  if (!rec.some(({ id }) => game.buyPrice(ITEMS[id]) <= (G().gold || 0))) return "今の金貨で買えるおすすめはないようだ。金貨を持ち帰ったら、また見に来てくれ。";
+  return null;
+}
+
 // 棚の並び順: 武器は種別順、ほかは分類順 → 安い順 → 名前
 function catOrder(it) {
   if (it.cat) { const i = WEAPON_CATS.findIndex((c) => c.key === it.cat); return i < 0 ? 99 : i; }
@@ -813,6 +822,7 @@ export function openShop(seg, { cat } = {}) {
 export function install() {
   registerUI({
     openShop,
+    tutorialPurchaseBlock,
     unidCount,
     junkList,
     // まとめて売る (確認なし)。既定は装備の候補を残す。{ keepUpgrades:false } で ops と同じ集合 (装備中の品は二重に守る)

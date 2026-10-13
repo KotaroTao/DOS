@@ -14454,7 +14454,7 @@ function preparePrologueAppraisal() {
 function completePrologueTutorial(key) {
   const p = prologue();
   if (!p) return;
-  const next = { createThree: ["three", "forest"], createFourth: ["fourth", "cryptQuest"],
+  const next = { createThree: ["three", "forest"], createFourth: ["fourth", "cryptQuest"], buyEquipment: ["shop", "crypt"],
     createFifth: ["fifth", "formation"], prologueFormation: ["formation", "corridorQuest"], createSixth: ["sixth", "appraise"], prologueAppraise: ["appraise", "abbeyQuest"] }[key];
   if (!next || p.phase !== next[0]) return;
   p.phase = next[1];
@@ -14476,18 +14476,19 @@ function prologueAudience() {
     reward: crypt ? [{ cur: "gold", n: 500 }] : null, kicker: "王の依頼",
     leave: () => {
       if (p.phase !== phase) return;
-      p.phase = crypt ? "crypt" : "corridor";
-      if (crypt) { G.gold += 500; tlTown("gold", 500, "r"); }
+      p.phase = crypt ? "shop" : "corridor";
+      if (crypt) { G.gold += 500; tlTown("gold", 500, "r"); if (G.tut?.done) delete G.tut.done.buyEquipment; }
       announceNewDungeons(refreshWorldUnlocks());
       G.dungeonIdx = worldIndexOf(crypt ? "w01" : "w02");
       autosave(true);
     },
-  }]);
+  }], [], () => UI.tutorialAfterReport?.());
 }
 function prologueObjective() {
   const phase = prologuePhase();
   if (!prologueActive() || !G.msq.granted) return null;
   if (phase === "abbeyQuest" && (!worldState().cleared.w02 || reportMissingClue("w02"))) return { key: "prologueReturn", text: "回廊に戻り、残る手がかりを調べて踏破する", act: "探索へ", kind: "gate", run: () => departTo(worldIndexOf("w02")) };
+  if (phase === "shop") return { key: "prologueShop", text: "商会でヴォスの手ほどきを受ける", act: "商会へ", kind: "shop", run: () => UI.tutorialResume?.() };
   const quest = { cryptQuest: "地下墓地の調査を王から受ける", corridorQuest: "亡骸の囁く回廊への依頼を受ける", abbeyQuest: "回廊の報告をし、修道院への依頼を受ける" }[phase];
   if (quest) return { key: "prologueQuest", text: quest, act: "王宮へ", kind: "palace", run: prologueAudience };
   const target = { forest: ["w00_forest", "三体で森の古屋へ行き、人業を連れ帰る"], crypt: ["w01", "四体で地下墓地の騒ぎの原因を調べる"], corridor: ["w02", "五体で亡骸の囁く回廊の最深部を調べる"], abbey: ["w03", "六体で朽ちた骸の修道院へ向かう"] }[phase];
@@ -18284,6 +18285,10 @@ function setupTestPlay() {
         const soul = addSoulInstance(job);
         if (G.party.length < count) { const d = makeDoll(randomDollName()); d.primary = soul.uid; recalcDoll(d); d.hp = d.maxhp; d.mp = d.maxmp; G.party.push(d); G.dollsPurchased++; }
       }
+    }
+    if (key === "shopAppraise") {
+      const it = cloneItem("shortSword", 50); it.unidentified = true;
+      G.party[0].items.push(it); G.tut.appraisePending = true;
     }
     if (key === "newJobParty") { addSoulInstance("monk"); G.tut.jobVisit = true; }
     if (key === "repairSoul") { G.party[0].alive = false; G.party[0].hp = 0; G.tut.repairPending = true; }
