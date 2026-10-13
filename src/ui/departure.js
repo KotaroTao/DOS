@@ -309,15 +309,6 @@ function renderGates(b) {
   }
   // 選んだ迷宮を見たら「新」の印を消す
   if (w.fresh && D[g.dungeonIdx]) delete w.fresh[D[g.dungeonIdx].id];
-  // まだ地図にない迷宮: 解放の手がかり (章の迷宮のみ。手の届く手がかりだけ — 条件の迷宮が地図にある / 宝物庫。多くても3つ)
-  const near = (d) => {
-    const u = d.unlock || {};
-    if (u.reported) return isOpen(D.findIndex((x) => x.id === u.reported));
-    if (u.all) return u.all.some((id) => isOpen(D.findIndex((x) => x.id === id)));
-    if (u.story) return (game.STORY_CELLS && game.STORY_CELLS[u.story]) ? isOpen(D.findIndex((x) => x.id === game.STORY_CELLS[u.story].dungeon)) : true;
-    return true;
-  };
-  const locked = D.filter((d, i) => !isOpen(i) && (!ch || ch.dungeons.includes(d.id)) && near(d)).slice(0, 3);
   const sealedRow = (title, note, tag) => {
     const sealed = el("div", "dp-gate dp-sealed");
     sealed.appendChild(gateIcon("gateSealed"));
@@ -328,7 +319,6 @@ function renderGates(b) {
     sealed.appendChild(el("span", "dp-gate-st sealed", tag));
     list.appendChild(sealed);
   };
-  for (const dn of locked) sealedRow(null, dn.hint || "まだ地図にない迷宮。手がかりを探せ", "未発見");
   // 章の結びまで語り終えた: 次章を「準備中」として見せる (鎖で封じられた大門)
   if (game.contentSealed && game.contentSealed() && ch) sealedRow(ch.next || "次の章", ch.nextNote || "その先へ続く道は、まだ封じられている", "準備中");
   // 無限迷宮 (第八章の結びで開く)
