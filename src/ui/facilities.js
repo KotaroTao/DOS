@@ -457,7 +457,7 @@ function renderShrine(root) {
   const use = (t, s) => { const r = el("div", "fc-use"); r.appendChild(el("i", "wa-dia")); const tx = el("div"); tx.appendChild(setText(el("div", "fc-use-t"), t)); tx.appendChild(setText(el("div", "fc-use-s"), s)); r.appendChild(tx); uses.appendChild(r); };
   use("魂の安定度を回復する", "赤い魂1つで安定度1を回復");
   use("迷宮に残された人業を早く連れ帰る", "全滅の時。🔴1 で連れ帰りまでの時間を 20 分縮める");
-  use("全滅の時に戦利品を守る", `🔴${game.GUARDIAN_COST || 20} で拾った品を失わずに帰還する`);
+  use("全滅の時に戦利品を守る", `森・地下墓地・回廊は無料。修道院以降は 🔴${game.GUARDIAN_COST || 20} で拾った品を失わずに帰還する`);
   wrap.appendChild(uses);
 }
 

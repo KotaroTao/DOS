@@ -360,7 +360,7 @@ export function openWipe(spec = {}) {
   body.appendChild(keep);
   if (!spec.canSave) body.appendChild(el("div", "rs-note dim", `赤い魂 ${spec.cost} があれば何も失わずに帰れた (所持 ${spec.red || 0})。`));
   const foot = [];
-  if (spec.canSave) foot.push({ label: `赤い魂 ${spec.cost} で全てを守る`, sub: "全員 HP1 で生還する", kind: "primary", size: "lg", cost: { kind: "red", n: spec.cost }, onTap: pick(spec.onSave || (() => {})) });
+  if (spec.canSave) foot.push({ label: spec.cost === 0 ? "無料で全てを守って帰還" : `赤い魂 ${spec.cost} で全てを守る`, sub: "全員 HP1 で生還する", kind: "primary", size: "lg", cost: { kind: "red", n: spec.cost }, onTap: pick(spec.onSave || (() => {})) });
   foot.push({ label: spec.secured ? "街へ戻る ― 救出を待つ" : "あきらめる ― 救出を待つ", kind: spec.canSave ? "danger" : "primary", size: spec.canSave ? "md" : "lg", onTap: pick(spec.onGiveUp || (() => {})) });
   h = sheet.open({
     kind: "choice", banner: "全滅", accent: "#d4504e", className: "rs-sheet rs-wipe-sheet",
@@ -410,7 +410,7 @@ function rarCounts(items) {
 function confirmHasten(c) {
   return kitConfirm({
     banner: "今すぐ連れ帰る", danger: false, title: `迷宮に残された人業を今すぐ連れ帰る`,
-    lines: [`赤い魂 🔴${c.hastenCost} (20分ごとに1つ。帰りの近い者から)`, "届いた器は、館で金貨を払って修復する。"],
+    lines: [c.hastenCost === 0 ? "回廊までの迷宮に残された人業は、赤い魂なしで今すぐ連れ帰れる。" : `赤い魂 🔴${c.hastenCost} (20分ごとに1つ。帰りの近い者から)`, "届いた器は、館で金貨を払って修復する。"],
     okLabel: "連れ帰る",
   });
 }
@@ -544,7 +544,7 @@ export function renderRunReport(root) {
   } else if (c.junk > 0 && shopOpen) act({ label: "まとめて売る", cost: { kind: "gold", n: c.junkGold }, run: async () => { if (await confirmSell(c)) ops.sellJunkAll(); } });
   if (c.repairable > 0) act({ label: "館で修復", cost: { kind: "gold", n: c.repairCost || 0 }, kind: "secondary",
     run: () => { if (UI.openParty) UI.openParty(dead.find((d) => !d.reviveAt) || null, { context: "town" }); } });
-  if (c.rescuing > 0 && c.hastenCost > 0) act({ label: "今すぐ連れ帰る", cost: { kind: "red", n: c.hastenCost }, kind: lr.outcome === "wipe" ? "primary" : "secondary", disabled: g.redSoul < 1, run: async () => { if (await confirmHasten(c)) ops.hastenAll(); } });
+  if (c.rescuing > 0) act({ label: "今すぐ連れ帰る", cost: { kind: "red", n: c.hastenCost }, kind: lr.outcome === "wipe" ? "primary" : "secondary", disabled: !game.canHastenRescue(), run: async () => { if (await confirmHasten(c)) ops.hastenAll(); } });
   if (acts.childElementCount) card.appendChild(acts);
   else card.appendChild(el("div", "rr-line dim", lr.outcome === "wipe" ? "人業が連れ帰られるのを待とう。" : "片付ける用事はない。次の迷宮へ。"));
   if (root) root.insertBefore(card, root.firstChild);

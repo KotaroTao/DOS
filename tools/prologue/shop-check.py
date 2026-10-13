@@ -13,7 +13,7 @@ with sync_playwright() as p:
       const {refSerialize, refDeserialize} = await import('/src/savegraph.js');
       const G = game.G, out = [];
       const check = (ok, msg) => { if (!ok) throw Error(msg); out.push(msg); };
-      G.testPlay = false; G.msq.prologue = {phase:'crypt', gifts:{}};
+      G.soulPts = 0; G.testPlay = false; G.msq.prologue = {phase:'crypt', gifts:{}};
       G.tut = {done:{repairSoul:true}}; G.prompt = false;
       G.party.forEach(d => { d.items = []; d.alive = true; });
       G.reserve = [];

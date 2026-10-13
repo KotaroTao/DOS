@@ -49,11 +49,11 @@ function builtinSuggestions(c) {
       run: () => { if (UI.openParty) UI.openParty(d, { context: "town" }); } });
   }
   // 全滅で迷宮に残された器: 赤い魂で今すぐ連れ帰る (確認のシート)
-  if (c.rescuing && c.hastenCost > 0 && g.redSoul >= 1) {
+  if (c.rescuing && game.canHastenRescue?.()) {
     const pay = Math.min(c.hastenCost, g.redSoul);
     out.push({ key: "hasten", prio: -1, label: "連れ帰る", sub: `連れ帰り待ち ${c.rescuing}`, cost: { kind: "red", n: pay }, tone: "red", icon: "red",
       run: () => confirmThen({ banner: "今すぐ連れ帰る", title: `赤い魂 ${pay} を捧げ、迷宮に残された人業を連れ帰りますか？`,
-        lines: [c.hastenCost > g.redSoul ? `全員の連れ帰りには 🔴${c.hastenCost} が要る。足りる分だけ早める。` : "1つにつき連れ帰りまでの時間を20分縮める (押す回数ぶんと同じ値段)。", "届いた器は、館で金貨を払って修復する。"],
+        lines: [c.hastenCost === 0 ? "回廊までの迷宮に残された人業は、赤い魂なしで今すぐ連れ帰れる。" : c.hastenCost > g.redSoul ? `全員の連れ帰りには 🔴${c.hastenCost} が要る。足りる分だけ早める。` : "1つにつき連れ帰りまでの時間を20分縮める (押す回数ぶんと同じ値段)。", "届いた器は、館で金貨を払って修復する。"],
         okLabel: "連れ帰る", run: () => ops.hastenAll() }) });
   }
   // 手負い: 宿で休む (1タップ)
