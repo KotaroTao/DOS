@@ -26,6 +26,8 @@ const ASSETS = [
   "./manifest.webmanifest",
   "./icon.svg",
   "./src/game.js",
+  "./src/insight.js",
+  "./src/monsterreveal.js",
   "./cloud.css",
   "./src/savegraph.js",
   "./src/cloud-config.js",

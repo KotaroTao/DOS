@@ -202,6 +202,14 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 
 ## 3. 便1 ― 既存の絵の修正
 
+2026-10-13 序章変更に伴うユーザー指定の描き直し（4枚・済）:
+- `three`: 人業の館でイレーヌが弟子と戦士・僧侶・盗賊の3体へ、森の古屋の人業の回収を依頼する。王宮の謁見にはしない。
+- `departure`: 弟子と戦士・僧侶・盗賊・魔導士の4体が地下墓地の石段を下り、調査へ向かう。
+- `w01_lantern`: ひび割れた鎮魂灯と師のランタンを別々に描く。
+- `report_w01`: 王への報告後、王宮の倉庫で眠っていた人業を受け取る。魂の授与にはしない。
+- 今回の変更は上記のユーザー指示を優先。旧版は `art/story-review/fixes/<場面ID>-prologue-before.png` に保存。
+
+
 既存の画像を参照画像として渡し、指示した所だけを直す (`prompt.mjs <場面ID>` が直す元の絵を最初の参照に入れる)。直し終えた項目は、見出し (A) か行 (B) の末尾に「(済)」を付ける — `prompt.mjs --chapter` と確認ページが、残りの修正だけを数える。各項目の「保つもの」は変えない。英語の指示は、1-1 の前置きを付けたうえで、`Edit the attached illustration. Keep the composition, characters, lighting and style unchanged except:` に続けて書く。
 
 ### A. 必須 (物語の筋や正典と食い違う)
@@ -370,8 +378,8 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 | 序章 first_descent `art/story-review/prologue/first-descent-gatekeeper.png` | 四体が弟子の方を向く。本文「暗い入口を前にしてもこちらを向いている」。門の奥の石段は下りに |
 | 第一章 ch1_end `art/story-review/chapter1/ch1_end.png` | 人業を大人の背丈、頭は何も彫られていない丸い木 |
 | 第一章 mem_w05 `art/story-review/chapter1/mem_w05.png` | 冷えた焚き火の輪を足す。手記の脇のランタンを消す (師の物に見える) |
-| 第一章 report_w01 `art/story-review/chapter1/report_w01.png` | 王に差し出すランタンを `w01_lantern.png` と同じ形に |
-| 第一章 w01_lantern `art/story-review/chapter1/w01_lantern.png` | 墓石を崩れたものに、ランタンを真ちゅうらしく |
+| 第一章 report_w01 `art/story-review/chapter1/report_w01.png` | 新しい序章に合わせ、王への報告後に王宮の倉庫で眠っていた人業を受け取る場面へ。王が魂を渡す場面にしない (済) |
+| 第一章 w01_lantern `art/story-review/chapter1/w01_lantern.png` | ひび割れた据え付けの鎮魂灯と、傍らの崩れた墓石にある小さな真ちゅう製の師のランタンを別の物として描く (済) |
 | 第一章 report_w02 | 窓の外の地上の修道院の廃墟を消す (修道院は地下) |
 | 第二章 w06_roll | 鍵束を当直簿をとじた紐に結ぶ。窓の外の灯る城を消す |
 | 第二章 mem_w09 | 書状を握りつぶした形に |

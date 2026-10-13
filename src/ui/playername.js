@@ -7,9 +7,15 @@ export function playerNameCard() {
   const card = el("section", "player-name-card");
   const text = el("div", "player-name-text");
   const name = el("div", "player-name-value");
-  const refresh = () => { name.textContent = normalizeName(game.G?.apprenticeName) || "名前未設定"; };
+  const insight = el("div", "player-name-insight");
+  const refresh = () => {
+    name.textContent = normalizeName(game.G?.apprenticeName) || "名前未設定";
+    const unlocked = !!game.featureUnlocked?.("insight");
+    insight.hidden = !unlocked;
+    insight.textContent = unlocked ? `見識 ${game.insightSummary().total.toLocaleString("ja-JP")}` : "";
+  };
   refresh();
-  text.append(el("div", "player-name-label", "プレイヤー名"), name);
+  text.append(el("div", "player-name-label", "プレイヤー名"), name, insight);
   const edit = button({ label: "編集", onTap: () => openPlayerName(() => { refresh(); edit.focus(); }) });
   edit.setAttribute("aria-label", "プレイヤー名を編集");
   card.append(text, edit);
