@@ -991,14 +991,16 @@ button.sp-tile-main { cursor: pointer; }
 .sp-lu-lv:not(.big) .sp-lu-new { font-size: 19px; }
 .sp-lu-gain { align-self: center; padding: 1px 6px; font-size: 11px; font-weight: 800; color: #1a1206; background: var(--accent-hi, #ffd77a); border-radius: 9px; animation: ru-stamp 0.4s ease-out both; }
 .sp-lu-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px; width: 100%; }
-.sp-lu-st { display: flex; align-items: baseline; gap: 4px; padding: 4px 7px; font-size: 12.5px; background: linear-gradient(90deg, rgba(127,211,138,0.10), rgba(0,0,0,0.35) 60%); border: 1px solid #3a3029; border-radius: 2px; font-variant-numeric: tabular-nums; white-space: nowrap; animation: lu-stat 0.45s ease-out both; }
+/* 能力名と増加量の下に数値を置き、スマホでも桁を隠さない。 */
+.sp-lu-st { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 2px 4px; min-width: 0; padding: 4px 7px; font-size: 12.5px; background: linear-gradient(90deg, rgba(127,211,138,0.10), rgba(0,0,0,0.35) 60%); border: 1px solid #3a3029; border-radius: 2px; font-variant-numeric: tabular-nums; white-space: nowrap; animation: lu-stat 0.45s ease-out both; }
 @keyframes lu-stat { 0% { opacity: 0; transform: translateX(-8px); border-color: #7fd38a; } 60% { opacity: 1; border-color: #7fd38a; } 100% { opacity: 1; transform: none; } }
 .sp-lu-k { color: var(--ink-dim); font-weight: 700; min-width: 2.3em; text-align: left; }
-.sp-lu-v { flex: 1 1 auto; min-width: 0; display: inline-flex; gap: 3px; overflow: hidden; }
+.sp-lu-v { grid-column: 1 / -1; grid-row: 2; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 3px; }
+.sp-lu-v > span { flex: 0 0 auto; }
 .sp-lu-was { color: var(--ink-dim); }
 .sp-lu-to { color: var(--accent); }
 .sp-lu-now { color: #f5ecd6; font-weight: 800; }
-.sp-lu-d { font-weight: 800; color: #7fd38a; }
+.sp-lu-d { grid-column: 2; grid-row: 1; text-align: right; font-weight: 800; color: #7fd38a; }
 .sp-lu-chip { animation: ru-learn 0.5s ease-out both, lu-shine 1.6s ease-in-out infinite; }
 @keyframes lu-shine { 0%,100% { box-shadow: 0 0 0 rgba(255,215,122,0); } 50% { box-shadow: 0 0 12px rgba(255,215,122,0.55); } }
 .sp-lu-learn .sp-fz-h { color: var(--accent-hi); }
