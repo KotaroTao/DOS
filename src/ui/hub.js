@@ -27,7 +27,7 @@ const G = () => game.G;
 
 // ---------- 次にすべきこと (提案) ----------
 // 提案: { key, prio, label, short?, sub?, cost?:{kind,n}, icon?:"gold"|"soul"|"red"|svgKey, tone?, run(), hold?() }
-// prio が小さいほど先 (砕けた人業 -2 > 連れ帰り -1 > 勅命 0 > 手負い 20 > 未鑑定 30 > 売れる品 40 > より良い装備 50 > 魂融合 55 > 鍛錬 60 > 勲章 70 > 奉納 80)
+// prio が小さいほど先 (魂を修復 -2 > 連れ帰る -1 > 魂を強化 10 > 魂融合 20 > 鑑定 30 > 最適装備 40 > 売却 50 > 奉納/褒賞 60 > 勲章 70 > 宿 80 > 留守居 90)
 // 札は3列に並ぶので label は短く (5字ほど。長い時は3枚並びで使う short を添える)、詳しくは sub に
 const extra = []; // 他のパッケージが登録した提案の源 (fn(counts) → 提案 | 提案[] | null)
 export function registerSuggestion(fn) { if (typeof fn === "function" && !extra.includes(fn)) extra.push(fn); }
@@ -58,7 +58,7 @@ function builtinSuggestions(c) {
   }
   // 手負い: 宿で休む (1タップ)
   if (c.hurt && facilityOpen("inn") && g.gold >= c.innCost) {
-    out.push({ key: "rest", prio: 20, label: "宿で休む", sub: `手負い ${c.hurt}`, cost: { kind: "gold", n: c.innCost }, icon: "rest", run: () => ops.restParty() });
+    out.push({ key: "rest", prio: 80, label: "宿で休む", sub: `手負い ${c.hurt}`, cost: { kind: "gold", n: c.innCost }, icon: "rest", run: () => ops.restParty() });
   }
   // 未鑑定: まとめて鑑定 (商会 (WP-C) の確かめのシート → 正体を明かすシート。無ければ1タップ・安い順に所持金の続く限り)
   // 鑑定の心得のある者がいれば、まず隊の技で試みる (商会の「まとめて鑑定」は試せない品が残った時)
@@ -79,7 +79,7 @@ function builtinSuggestions(c) {
   const junkN = junk ? junk.length : (c.junk || 0);
   const junkGold = junk ? junk.reduce((a2, j) => a2 + (j.price || 0), 0) : (c.junkGold || 0);
   if (junkN && facilityOpen("shop")) {
-    out.push({ key: "sell", prio: 40, label: "まとめて売る", short: "売り払う", sub: `${junkN}点`, cost: { kind: "gold", n: "+" + junkGold }, icon: "coin",
+    out.push({ key: "sell", prio: 50, label: "まとめて売る", short: "売り払う", sub: `${junkN}点`, cost: { kind: "gold", n: "+" + junkGold }, icon: "coin",
       run: () => (UI.confirmSellJunk ? UI.confirmSellJunk() : confirmThen({ banner: "まとめて売る", title: `${junkN}点を売り、金貨 ${junkGold} を得ますか？`,
         lines: [`装備中・呪い・未鑑定・LR・未奉納の収集品${getPref("sellUse") ? "" : "・道具"}は売らない。`, "売った品は商会の棚に並ぶ (買い戻せる)。"],
         okLabel: "売る", run: () => (UI.sellJunkAll || ops.sellJunkAll)() })) });
@@ -88,7 +88,7 @@ function builtinSuggestions(c) {
   let better = 0;
   try { better = UI.betterGearCount ? (UI.betterGearCount() || 0) : 0; } catch (e) { better = 0; }
   if (better > 0 && facilityOpen("mansion") && UI.autoEquip) {
-    out.push({ key: "autoEquip", prio: 50, label: "最適装備", sub: `より良い品 ${better}`, icon: "party", run: () => UI.autoEquip("all") });
+    out.push({ key: "autoEquip", prio: 40, label: "最適装備", sub: `より良い品 ${better}`, icon: "party", run: () => UI.autoEquip("all") });
   }
   // 留守居の修練の空き席 (就けられる控えがいる時だけ)。タップで控えの一覧
   try {
@@ -96,7 +96,7 @@ function builtinSuggestions(c) {
     const seated = seats && game.rusuiSeated ? game.rusuiSeated() : [];
     const free = seats - seated.length;
     if (free > 0 && facilityOpen("mansion") && UI.openReserve && (g.reserve || []).some((d) => d && d.primary != null && !seated.includes(d))) {
-      out.push({ key: "rusui", prio: 52, label: "留守居を就ける", short: "留守居", sub: `空き席 ${free}`, icon: "party", run: () => UI.openReserve() });
+      out.push({ key: "rusui", prio: 90, label: "留守居を就ける", short: "留守居", sub: `空き席 ${free}`, icon: "party", run: () => UI.openReserve() });
     }
   } catch (e) { /* 提案は出さなくてよい */ }
   // 魂融合できる魂 (同じ職の魂が余っている)。タップで融合させる魂を選ぶシート、長押しで隊の魂の区分
@@ -105,7 +105,7 @@ function builtinSuggestions(c) {
   if (fl.length && facilityOpen("mansion") && UI.openFusePicker) {
     const f = fl[0];
     const idx = (g.party || []).indexOf(f.doll);
-    out.push({ key: "fuse", prio: 55, label: "魂融合", sub: `${f.name} ×${f.n}`, icon: "soul",
+    out.push({ key: "fuse", prio: 20, label: "魂融合", sub: `${f.name} ×${f.n}`, icon: "soul",
       run: () => UI.openFusePicker(f.uid),
       hold: () => { if (UI.openParty) UI.openParty(f.doll || Math.max(0, idx), { seg: "soul" }); } });
   }
@@ -117,7 +117,7 @@ function builtinSuggestions(c) {
   if (t && facilityOpen("mansion")) {
     const idx = (g.party || []).indexOf(t.doll);
     // 1段鍛える (WP-B の train は新たな技もトーストで知らせる)。長押しで隊の魂の区分 (上限まで鍛えるなど)
-    out.push({ key: "train", prio: 60, label: "魂を強化", sub: `${t.doll ? t.doll.name : ""} Lv${t.level}→${t.level + 1}`, cost: { kind: "soul", n: t.cost }, icon: "soul",
+    out.push({ key: "train", prio: 10, label: "魂を強化", sub: `${t.doll ? t.doll.name : ""} Lv${t.level}→${t.level + 1}`, cost: { kind: "soul", n: t.cost }, icon: "soul",
       run: () => (typeof t.train === "function" ? t.train(1) : ops.trainTimes(t.uid, 1)),
       hold: () => { if (UI.openParty) UI.openParty(t.doll || Math.max(0, idx), { seg: "soul" }); } });
   }
@@ -125,10 +125,10 @@ function builtinSuggestions(c) {
   if (c.ach) out.push({ key: "ach", prio: 70, label: "勲章を拝受", sub: `${c.ach} 個`, icon: "medal", run: () => { if (UI.openPalace) UI.openPalace("ach"); } });
   // 宝物庫: 収集品を奉納 → 王宮の宝物庫へ (奉納する品はそこで確かめてから納める) / 褒賞だけ残っている
   if (c.donatable) {
-    out.push({ key: "donate", prio: 80, label: "収集品を奉納", sub: `${c.donatable} 種`, icon: "treasury",
+    out.push({ key: "donate", prio: 60, label: "収集品を奉納", sub: `${c.donatable} 種`, icon: "treasury",
       run: () => { if (UI.openPalace) UI.openPalace("treasury"); } });
   } else if (c.treasuryReady) {
-    out.push({ key: "treasury", prio: 80, label: "褒賞を受け取る", short: "褒賞を拝受", sub: "宝物庫", icon: "treasury", run: () => game.claimNextTreasury && game.claimNextTreasury() });
+    out.push({ key: "treasury", prio: 60, label: "褒賞を受け取る", short: "褒賞を拝受", sub: "宝物庫", icon: "treasury", run: () => game.claimNextTreasury && game.claimNextTreasury() });
   }
   // 酒場の依頼は街の広場に常に札を並べる (questStrip) ので、ここには出さない
   return out;
