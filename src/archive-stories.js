@@ -9,9 +9,7 @@ const group = n => ["序章", "第一章「師の灯」", "第二章「捨て砦
 // 場面の絵の台帳は art/story/ の WebP から自動で書く (src/storyimages.js ← node tools/storyart/register.mjs)
 const APPROVED_IMAGES = STORY_IMAGES;
 // ゲーム内の同じ場面 (師の手がかり・報告・主の記憶・館の語り・章の結び) でも、この描き下ろしの絵を掲げる
-// 序章変更の新規・修正イラストは別途制作（ユーザー指定）。承認済みの旧画像自体は削除しない。
-export const PENDING_STORY_IMAGES = new Set(["first_descent", "report_w01", "w02_broken_doll"]);
-export const storyImage = id => PENDING_STORY_IMAGES.has(id) ? null : APPROVED_IMAGES[id] || null;
+export const storyImage = id => APPROVED_IMAGES[id] || null;
 const scene = (id, chapter, title, available, setting, focus, lines, extra = {}) => ({
   id, chapter, group:group(chapter), title, available, lines,
   ...(storyImage(id) ? { image:storyImage(id), imageWidth:1536, imageHeight:1024, imageAlt:title + "の場面" } : {}),

@@ -14370,7 +14370,7 @@ function reportMainQuest() {
   const after = { ...w, reported: { ...w.reported, [id]: 1 } };
   const newly = FEATURE_KEYS.filter((k) => !featureMet(k, w) && featureMet(k, after));
   const pages = [{
-    title: rep.title, lines, reward: rwText, kicker: `踏破の報告 ― ${cfg.name}`, photo: id === "w01" ? null : storyImage("report_" + id),
+    title: rep.title, lines, reward: rwText, kicker: `踏破の報告 ― ${cfg.name}`, photo: storyImage("report_" + id),
     leave: () => {
       if (w.reported[id]) return;
       G.gold += r.gold;
