@@ -201,13 +201,13 @@ const TUTS = [
     intro: () => [
       ["五体がそろいましたね。次は、隊の並びを整えましょう。", "隊列の先頭三体が前衛、続く三体までが後衛です。"],
       ["前衛には、剣や盾で戦う子を。後衛は敵に狙われにくく、受ける物理の傷が半分になります。", "後衛から与える物理の傷も通常は半分ですが、槍や弓は威力が落ちません。術の威力は、前でも後ろでも変わりません。"],
-      ["今回は騎士を前衛に、僧侶と魔導士を後衛に置きましょう。", "動かしたい子を選び、『管理』→『入れ替え』を押してください。次に隊列の中から相手を選ぶと、二体の場所が入れ替わります。光っている札で試しましょう。"],
+      ["今回は騎士を前衛に、僧侶と魔導士を後衛に置きましょう。", "動かしたい子を選び、『管理』→『隊列を変更』を押してください。次に隊列の中から相手を選ぶと、二体の場所が入れ替わります。光っている札で試しましょう。"],
     ],
     steps: [
-      { text: "前衛へ移す人業の『入れ替え』を開く", hint: "光っている管理 → 入れ替え", go: () => UI.openParty?.(formationMove().mover, { context: "town" }), target: [".pt-mansion-head button"], on: "formationPickerOpened", done: formationReady },
+      { text: "前衛へ移す人業の『隊列を変更』を開く", hint: "光っている管理 → 隊列を変更", go: () => UI.openParty?.(formationMove().mover, { context: "town" }), target: [".pt-mansion-head > button"], on: "formationPickerOpened", done: formationReady },
       { text: "術を使う人業を後衛に置く", hint: "隊列の中で場所を替える → 光っている相手", go: () => UI.openSwapSheet?.(formationMove().mover), target: ['.pt-sw-card[data-swap-job="priest"]'], done: formationReady },
     ],
-    outro: ["前衛は戦士・騎士・盗賊、後衛は魔導士・僧侶。隊列が整った。", "館では『入れ替え』でいつでも並べ直せる。隊列の顔を長押しして、替えたい相手へ動かしてもよい。", "王宮で回廊への依頼を受けよう。"],
+    outro: ["前衛は戦士・騎士・盗賊、後衛は魔導士・僧侶。隊列が整った。", "館では『管理』の『隊列を変更』でいつでも並べ直せる。隊列の顔を長押しして、替えたい相手へ動かしてもよい。", "王宮で回廊への依頼を受けよう。"],
   },
   {
     key: "prologueAppraise", name: "司教の鑑定", who: "irene", facility: "shop",
@@ -693,7 +693,7 @@ function ireneGuidance() {
     const front = jobLabel(soulByUid(mover?.primary)?.clsKey || "knight");
     const back = jobLabel(soulByUid(target?.primary)?.clsKey || "priest");
     return tutState().step === 0 ?
-      [`${front}の『管理』を開き、『入れ替え』を押してください。`, `次に${back}を選び、${front}を前衛へ移しましょう。`] :
+      [`${front}の『管理』を開き、『隊列を変更』を押してください。`, `次に${back}を選び、${front}を前衛へ移しましょう。`] :
       [`『隊列の中で場所を替える』から${back}を選んでください。`, `${front}が前衛に、${back}が後衛に移ります。`];
   }
   // 目標札の操作手順ではなく、通常会話と同じ口調で案内する。
@@ -755,7 +755,7 @@ function tutorialControls() {
   if (!d) return choose(first(document, ".hb-goal-go"));
   const st = tutState(), s = curStep();
   if (card) {
-    if (d.key === "prologueFormation" && card.classList.contains("pt-manage-sheet")) return choose(first(card, ".pt-head-join"));
+    if (d.key === "prologueFormation" && card.classList.contains("pt-manage-sheet")) return choose(first(card, ".pt-manage-formation"));
     if (d.key === "prologueFormation" && card.querySelector(".pt-sw-card")) return choose(first(card, `[data-swap-job="${formationMove().targetJob}"]`));
     if (d.key === "prologueAppraise" && card.classList.contains("ap-sheet")) return choose(first(card, ".ui-sheet-foot .ui-btn.k-primary, .ui-sheet-foot .ui-btn.k-ghost, .ap-stage"));
     // 門衛の忠告は、本文のスクロールと支度に戻る操作も受け付ける。
@@ -791,7 +791,7 @@ function tutorialControls() {
   if (d.key === "prologueFormation" && st.step === 0) {
     const { mover } = formationMove(), job = soulByUid(mover?.primary)?.clsKey;
     const selected = document.querySelector(".pt-mansion-head")?.dataset.job === job;
-    return choose(first(document, selected ? ".pt-mansion-head button" : `.pt-form [data-drop="p${G_().party.indexOf(mover)}"]`));
+    return choose(first(document, selected ? ".pt-mansion-head > button" : `.pt-form [data-drop="p${G_().party.indexOf(mover)}"]`));
   }
   if (["createThree", "createFourth", "createFifth", "createSixth"].includes(d.key)) {
     const count = allDolls().length;

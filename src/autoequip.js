@@ -320,6 +320,51 @@ export function applyPlanSubset(plan, keep, { recalc: recalcFn = recalcDefault, 
   return true;
 }
 
+// 最終案を部位単位の承認へ分ける。同じ品の受け渡しと両手の変更だけは一緒に扱う。
+export function equipApprovalGroups(plan) {
+  const groups = [];
+  for (const s of plan.undoSnapshot) for (const k of SLOTS) {
+    const to = plan.final.get(s.doll).equip[k] || null, from = s.equip[k] || null;
+    if (from !== to) groups.push([{ doll: s.doll, k, from, to }]);
+  }
+  const linked = (a, b) => (a.from && a.from === b.to) || (a.to && a.to === b.from) ||
+    (a.doll === b.doll && [a.k, b.k].every(k => k === "weapon" || k === "shield") &&
+      [a.from, a.to, b.from, b.to].some(it => it?.twoHanded));
+  for (let i = 0; i < groups.length; i++) for (let j = i + 1; j < groups.length;) {
+    if (groups[i].some(a => groups[j].some(b => linked(a, b)))) {
+      groups[i].push(...groups.splice(j, 1)[0]); j = i + 1;
+    } else j++;
+  }
+  return groups;
+}
+
+// 承認した部位だけの完成形を写しで検証し、成功した時だけ実体へ反映する。
+export function applyEquipApprovals(plan, keep, { recalc: recalcFn = recalcDefault, maxItems = MAX_ITEMS } = {}) {
+  const bags = new Map(), equips = new Map();
+  for (const s of plan.undoSnapshot) {
+    if (!bags.has(s.doll.items)) bags.set(s.doll.items, [...s.items]);
+    equips.set(s.doll, { ...s.equip });
+  }
+  const changes = [...keep].flat();
+  for (const c of changes) {
+    if (c.from) bags.get(c.doll.items).push(c.from);
+    equips.get(c.doll)[c.k] = c.to;
+  }
+  for (const c of changes) if (c.to) {
+    const bag = [...bags.values()].find(b => b.includes(c.to));
+    if (!bag) return false;
+    bag.splice(bag.indexOf(c.to), 1);
+  }
+  if ([...bags.values()].some(b => b.length > maxItems)) return false;
+  for (const eq of equips.values()) if (eq.weapon?.twoHanded && eq.shield) return false;
+  for (const [bag, items] of bags) bag.splice(0, bag.length, ...items);
+  for (const [d, eq] of equips) {
+    for (const k of SLOTS) d.equip[k] = eq[k] || null;
+    recalcFn(d);
+  }
+  return true;
+}
+
 // 既定の点数 (重みは素朴。game 側は itemview の gearScore を渡す)
 function defaultScore(doll, delta) {
   const W = { atk: 1, vit: 1, agi: 0.8, int: 0.6, pie: 0.6, luk: 0.4, hp: 0.2, mp: 0.15 };

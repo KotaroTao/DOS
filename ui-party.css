@@ -1250,3 +1250,11 @@ button.sp-lu-next { cursor: pointer; }
 /* 習得元の魂と職業を、技のまとまりごとに示す */
 .sp-lu-learn-group { display: grid; gap: 5px; }
 .sp-lu-learn-source { font-size: 11.5px; font-weight: 700; color: var(--ink-dim); text-align: left; }
+
+/* 詳細見出しの最適装備はスマホでも文字を表示し、縦に並べる。 */
+.pt-equip-actions { display: flex; flex-direction: column; gap: 4px; flex: 0 0 auto; }
+.pt-equip-actions > .ui-btn { min-height: 44px; min-width: 78px; padding: 4px 8px; white-space: nowrap; }
+.pt-manage-sheet .pt-equip-actions { grid-column: 1 / -1; }
+.pt-ae-action { display: flex; align-items: center; gap: 6px; }
+.pt-ae-action .pt-note { flex: 1; min-width: 0; }
+.pt-ae-tg { min-height: 44px; }
