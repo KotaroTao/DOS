@@ -1,3 +1,4 @@
+import { storyText } from "../protagonist.js";
 // ===== 物語 — 報告 → 解放 → 勅命を1つの連なった語りに (playStoryChain) =====
 // 担当: WP-A。玉座の間の一幕: 上下に黒い帯 (映画の画角)、奥に玉座の間の情景、老王の肖像、台詞が墨のようににじみ出る。
 //   1回目のタップ = 残りの台詞を一度に出す / 次のタップ = 次のページ / 最後のページは「御意」で閉じる。
@@ -132,11 +133,11 @@ function splitPages(pages) {
 }
 
 export function playStoryChain(pages, done) {
-  const list = splitPages((pages || []).filter(Boolean));
+  const list = splitPages((pages || []).filter(Boolean).map(p => ({ ...p, lines: (p.lines || []).map(t => storyText(t, game.G)) })));
   if (!list.length || typeof document === "undefined" || !document.body) { if (done) done(); return null; }
   if (active) { // 語りの最中にもう一つ: 今の語りが閉じてから続けて語る
     const prev = active.done;
-    active.done = () => { if (prev) prev(); playStoryChain(list, done); };
+    active.done = () => { if (prev) prev(); playStoryChain(pages, done); };
     return active;
   }
   const G = game.G;

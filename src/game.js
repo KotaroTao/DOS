@@ -54,6 +54,7 @@ import { paintCryptFloor, paintCryptSlabs, paintCryptWalls, CATACOMB, genericMat
 import { cryptPainting, paintCryptMaterials, paintCryptMasonry } from "./cryptpaint.js";
 import { CORPSE_FAMILIES, CORPSE_STATES, corpseArtKey } from "./corpseart.js";
 import { prewarmCryptActors, cryptPropKey, cryptPropBitmap, cryptWalkerBitmap, cryptPropSprite } from "./cryptactors.js";
+import { normalizeName, storyText } from "./protagonist.js";
 import { showTitle } from "./title.js";
 import { RARITIES, rarityKey, rarityColor, rarityLabel, rollRarity, layerRarityUp } from "./rarity.js";
 // ---- UI 基盤 (Phase 0)。新しい UI モジュールは game.js を import せず、ctx.js の UI/game/ops を通す ----
@@ -494,6 +495,7 @@ const floorInfo = document.getElementById("floor-info");
 const topbarCur = document.getElementById("topbar-cur");
 
 const G = {
+  apprenticeName: "",
   rng: rngState(), // 種つき乱数の状態 (src/rng.js。random() が書き換え続ける配列。セーブに入るので読み込み直しても同じ結果になる)
   state: "town",      // town | board | combat | over
   floor: 1,
@@ -14284,6 +14286,7 @@ function storyLineKind(t) {
 function showStoryScene(title, lines, rewardText, onClose, btnLabel = "御意") {
   // 物語の場面 (src/ui/story.js) があればそちらで語る。以下は場面が無い時の旧来のカード
   if (UI.playStoryChain && UI.playStoryChain.scene) return UI.playStoryChain([{ title, lines, reward: rewardText, btnLabel }], onClose);
+  lines = lines.map(t => storyText(t, G));
   G.prompt = true;
   const wrap = el("div", "confirm-overlay story-overlay");
   const card = el("div", "ig-card story-card");
@@ -17676,6 +17679,7 @@ if (settingsBtn) settingsBtn.addEventListener("click", () => {
 const SAVE_KEY = "dos-save-v7"; // v7 = 迷宮の台帳 (選んで潜る迷宮・師を捜す物語)。v6 以前のセーブは孤立させる (消さずに残す)
 // 保存する G のフィールド (アニメーション等の一時状態は除外)
 const SAVE_FIELDS = [
+  "apprenticeName",
   "rng",
   "shopAfx", "shopAfxPending",
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound", "abyss", "abyssRec",
@@ -17716,7 +17720,7 @@ let _lastCloudSave = null;
 function autosave(force = false) {
   if (_resetting || testPlayActive) return;
   if (cloudEnabled() && (!cloudReady() || _cloudResolving)) return;
-  if (!G.party || (!cloudEnabled() && !G.party.length)) return;
+  if (!G.party || (!cloudEnabled() && !G.party.length && !G.apprenticeName)) return;
   const now = Date.now();
   if (!cloudEnabled() && !force && now - _lastSave < 200) return;
   _lastSave = now;
@@ -17868,8 +17872,9 @@ function loadGame(cloudSnapshot = null) {
   if (!raw) return false;
   let snap;
   try { snap = refDeserialize(JSON.parse(raw)); } catch (e) { return false; }
-  if (!snap || !Array.isArray(snap.party) || (!cloudEnabled() && !snap.party.length && !snap.msq?.granted)) return false;
+  if (!snap || !Array.isArray(snap.party) || (!cloudEnabled() && !snap.party.length && !snap.msq?.granted && !normalizeName(snap.apprenticeName))) return false;
   for (const k of SAVE_FIELDS) if (k in snap) G[k] = snap[k];
+  G.apprenticeName = normalizeName(G.apprenticeName);
   G.inventory = Array.isArray(snap.inventory) ? snap.inventory : [];
   shareInventory(G);
   if (G.abyss && G.abyss.home) shareInventory(G.abyss.home);
@@ -18759,6 +18764,7 @@ function titleSummary() {
     lines.push(abyssActive() ? `探索中 — ${INF_NAME} B${G.abyss.depth}F` : `探索中 — ${curDungeon().name} B${G.floor}F`);
   }
   lines.push(`💰${G.gold}　✦${G.soulPts}　🔴${G.redSoul}`);
+  if (G.apprenticeName) lines.unshift(`操霊師 ${G.apprenticeName}`);
   const sprites = (G.party || []).filter((d) => d && d.primary != null).map((d) => dollBust(d));
   return { head, lines, sprites };
 }
@@ -18846,23 +18852,24 @@ async function init() {
   G.prompt = true;
   playBgm("title"); // 音声起動前なら初回タップ時に開始される
   let started = false;
-  const start = () => {
+  const start = (name) => {
     if (started) return;
+    if (!loaded) G.apprenticeName = normalizeName(name);
     started = true;
     titleActive = false;
     G.prompt = false;
     startAfterTitle(loaded);
   };
   // タイトルの「はじめから」(記録あり): 確認ののち記録を消して読み直し、タイトルを飛ばして序章から始める
-  const newGameFromTitle = () => {
+  const newGameFromTitle = (name) => {
     _resetting = true;
     clearSave();
-    try { sessionStorage.setItem("dos-newgame", "1"); } catch (e) {}
+    try { sessionStorage.setItem("dos-newgame", "1"); sessionStorage.setItem("dos-newgame-name", normalizeName(name)); } catch (e) {}
     location.reload();
   };
-  let freshStart = false;
-  try { freshStart = sessionStorage.getItem("dos-newgame") === "1"; sessionStorage.removeItem("dos-newgame"); } catch (e) {}
-  if (freshStart && !loaded) start();
+  let freshStart = false, freshName = "";
+  try { freshStart = sessionStorage.getItem("dos-newgame") === "1"; sessionStorage.removeItem("dos-newgame"); freshName = normalizeName(sessionStorage.getItem("dos-newgame-name")); sessionStorage.removeItem("dos-newgame-name"); } catch (e) {}
+  if (freshStart && freshName && !loaded) start(freshName);
   else {
     try {
       showTitle({ hasSave: loaded, summary: loaded ? titleSummary() : null, onStart: start, onNewGame: loaded && !cloudEnabled() ? newGameFromTitle : null,

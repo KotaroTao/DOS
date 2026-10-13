@@ -4,12 +4,13 @@
 // 画面の解像度のまま滑らかに動かし、無ければ titleart.js のドット絵を低解像度で描いて整数倍で拡大する。
 // その上に DOM で 鋳造された金と鉄のロゴ、目覚めの合図、メニューを重ねる。
 //
-// メニュー (はじめから / つづきから とセーブ概要) は最初から見えていて、1タップで本編へ入る
+// メニューは最初から見え、新規は名前入力、再開は1タップで本編へ入る
 // (そのタップで音声も解禁される)。メニュー以外をタップすると目覚めの演出だけを見せる:
 //   目覚めの鐘: 門が脈打ち、巨像の眼が灯り、鴉が飛び立つ
 // showTitle({ hasSave, summary, onStart, onNewGame? })
 //   summary: { head, lines[], sprites[] } — つづきからのカードに出す
 //   onNewGame (任意): セーブがあっても「はじめから」を選べるようにする。渡されなければ隠す
+import { normalizeName, NAME_LIMIT } from "./protagonist.js";
 import { spriteCanvas } from "./sprites.js";
 import { SFX } from "./audio.js";
 import { pickRes } from "./pxpaint.js";
@@ -129,6 +130,56 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
   cRow.append(cNo, cYes);
   confirmBox.appendChild(cRow);
   wrap.appendChild(confirmBox);
+
+  // 記録を消す前に名前を決める。取消なら現在の冒険には触れない。
+  let pendingName = "";
+  const nameBox = document.createElement("form");
+  nameBox.className = "ttl-confirm ttl-name hidden";
+  nameBox.setAttribute("role", "dialog");
+  nameBox.setAttribute("aria-modal", "true");
+  nameBox.setAttribute("aria-label", "弟子の名前");
+  nameBox.append(div("ttl-confirm-t", "オルドの弟子として、旅を始める"));
+  const nameLabel = document.createElement("label");
+  nameLabel.className = "ttl-test-field";
+  const nameInput = document.createElement("input");
+  nameInput.type = "text"; nameInput.autocomplete = "off";
+  nameInput.maxLength = NAME_LIMIT * 2;
+  nameInput.setAttribute("aria-describedby", "apprentice-name-help");
+  nameLabel.append(div("", "弟子の名前"), nameInput);
+  const nameHelp = div("ttl-note", `1〜${NAME_LIMIT}文字。あなた自身の名前です。人業の名前は、館で別につけます。`);
+  nameHelp.id = "apprentice-name-help";
+  const nameError = div("ttl-confirm-s", "");
+  nameError.setAttribute("role", "alert");
+  const nameRow = div("ttl-confirm-row");
+  const nameBack = mkBtn("戻る", null, ""); nameBack.type = "button";
+  const nameGo = mkBtn("旅を始める", null, "primary"); nameGo.type = "submit";
+  nameRow.append(nameBack, nameGo);
+  nameBox.append(nameLabel, nameHelp, nameError, nameRow);
+  wrap.appendChild(nameBox);
+  const askName = () => {
+    nameError.textContent = "";
+    nameBox.classList.remove("hidden"); wrap.classList.add("ttl-confirming");
+    nameInput.focus();
+  };
+  const hideName = () => {
+    nameBox.classList.add("hidden"); wrap.classList.remove("ttl-confirming");
+    (hasSave ? newBtn : goBtn)?.focus();
+  };
+  nameBack.addEventListener("click", hideName);
+  nameBox.addEventListener("click", e => e.stopPropagation());
+  nameBox.addEventListener("submit", e => {
+    e.preventDefault(); e.stopPropagation();
+    if (e.isComposing) return;
+    pendingName = normalizeName(nameInput.value);
+    if (!pendingName) { nameError.textContent = "名前を入力してください。"; nameInput.focus(); return; }
+    if (Array.from(nameInput.value.trim()).length > NAME_LIMIT) {
+      nameError.textContent = `名前は${NAME_LIMIT}文字以内で入力してください。`; nameInput.focus(); return;
+    }
+    nameInput.value = pendingName;
+    if (hasSave) {
+      nameBox.classList.add("hidden"); confirmBox.classList.remove("hidden"); cNo.focus();
+    } else { sfx("stairs"); close(() => onStart(pendingName), true); }
+  });
 
   // 通常の記録を読み替えず、選んだ迷宮と階から検証する。
   const testBox = div("ttl-confirm ttl-test hidden");
@@ -316,8 +367,8 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
     setTimeout(() => { cancelAnimationFrame(raf); if (!immediate && cb) cb(); }, REDUCED ? 60 : 520);
     setTimeout(() => wrap.remove(), REDUCED ? 400 : 1500);
   };
-  const start = () => { sfx("stairs"); close(onStart, !hasSave); };
-  // メニューは最初から見えている。「つづきから/はじめから」は1タップで始まる (そのタップで音声も目覚める)。
+  const start = () => { if (!hasSave) { askName(); return; } sfx("stairs"); close(onStart); };
+  // 新規は名前入力へ、再開はそのまま本編へ (タップで音声も目覚める)。
   // それ以外の場所をタップすると、目覚めの演出 (鐘・門の脈動・鴉) だけを見せる
   const wake = () => {
     if (awake) return;
@@ -330,15 +381,26 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
   if (newBtn) newBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     sfx("select");
-    confirmBox.classList.remove("hidden");
-    wrap.classList.add("ttl-confirming");
+    askName();
   });
   cNo.addEventListener("click", (e) => { e.stopPropagation(); sfx("select"); confirmBox.classList.add("hidden"); wrap.classList.remove("ttl-confirming"); });
-  cYes.addEventListener("click", (e) => { e.stopPropagation(); sfx("stairs"); close(onNewGame); });
+  cYes.addEventListener("click", (e) => { e.stopPropagation(); sfx("stairs"); close(() => onNewGame(pendingName)); });
   confirmBox.addEventListener("click", (e) => e.stopPropagation());
   wrap.addEventListener("click", () => { if (!awake) wake(); });
   const onKey = (e) => {
     if (closed) return;
+    if (!nameBox.classList.contains("hidden")) {
+      e.stopPropagation();
+      if (e.isComposing || e.keyCode === 229) return;
+      if (e.key === "Tab") {
+        const fields = [nameInput, nameBack, nameGo];
+        const i = fields.indexOf(document.activeElement);
+        e.preventDefault(); fields[(i + (e.shiftKey ? 2 : 1)) % fields.length].focus();
+      }
+      if (e.key === "Escape") { e.preventDefault(); hideName(); }
+      if (e.key === "Enter" && e.target === nameInput) { e.preventDefault(); nameBox.requestSubmit(); }
+      return;
+    }
     if (gallery) {
       e.stopPropagation();
       if (e.key === "Escape") { e.preventDefault(); gallery.close(); }
@@ -367,7 +429,7 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
     try { await layoutScene(); } catch (e) { console.error(e); }
     if (closed) return;
     wrap.classList.add("ttl-ready");
-    try { goBtn.focus({ preventScroll: true }); } catch {}
+    try { if (!wrap.classList.contains("ttl-confirming")) goBtn.focus({ preventScroll: true }); } catch {}
     if (!REDUCED) raf = requestAnimationFrame(loop);
   }, 30));
 }
