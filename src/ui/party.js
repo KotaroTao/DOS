@@ -1608,6 +1608,7 @@ function swapTarget(m, j, block, onTap) {
 // 候補の札: 顔 + 名・職 + 「替えたあと」の行
 function swapCard(m, { pos = "", after = "", block = null, onTap }) {
   const c = el("button", "pt-sw-card" + (block ? " off" : ""));
+  c.dataset.swapJob = soulByUid(m.primary)?.clsKey || "";
   c.type = "button";
   c.appendChild(portraitEl(m, { size: 44, tag: "span" }));
   const tx = el("span", "pt-sw-tx");
@@ -1634,6 +1635,7 @@ export function openSwapSheet(d) {
   if (swapH && !swapH.closed) swapH.close();
   sfx("select");
   const pi = G.party.indexOf(d);
+  if (game.prologuePhase?.() === "formation") UI.tutorialEvent?.("formationPickerOpened");
   const body = (b) => {
     const me = el("div", "pt-sw-me");
     me.appendChild(portraitEl(d, { size: 44, tag: "span" }));
@@ -1811,6 +1813,7 @@ export function openStability(d, onChange) {
 // 館では選択と育成を中心に置き、編成や人物の操作は管理のシートへまとめる。
 function mansionHeader(d) {
   const head = el("section", "pt-mansion-head");
+  head.dataset.job = soulByUid(d.primary)?.clsKey || "";
   const tx = el("div", "pt-mansion-title");
   tx.appendChild(el("span", "pt-head-name", d.name));
   tx.appendChild(el("span", "pt-head-cls", d.primary == null ? "空の人業" : `${d.cls} Lv${d.jobLv || 1}`));
@@ -2836,6 +2839,7 @@ export function install() {
   registerUI({
     openStability,
     openParty,
+    openSwapSheet,
     enterMansion,
     openReserve,
     openCreateDoll,
