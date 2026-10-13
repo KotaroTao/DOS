@@ -525,7 +525,7 @@ function openBriefing(go) {
     body:(b)=>{
       const picture=el("div","dp-gatekeeper");
       const illustration=document.createElement("img");
-      illustration.src=new URL("../../art/tutorial/gatekeeper.png",import.meta.url).href;
+      illustration.src=new URL("../../art/tutorial/gatekeeper.webp",import.meta.url).href;
       illustration.alt="槍と灯りを持つ門衛が、石造りの迷宮の入口に立っている";
       illustration.width=1852;illustration.height=849;
       picture.appendChild(illustration);b.appendChild(picture);

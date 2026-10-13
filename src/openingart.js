@@ -591,14 +591,14 @@ function scene2(W, H) {
 
 // =====================================================================
 // 幕 3「人業」— 操霊師の工房の床に、空の器 (木と鋼の関節人形) が打ち捨てられている。
-// 絵はユーザー提供の原画をドット化したもの (art/op_dolls.png: 250×141 ドット)。その上に
+// 絵はユーザー提供の原画をドット化したもの (art/op_dolls.webp: 250×141 ドット)。その上に
 // 蝋燭の揺らぎ・月光に舞う塵・魂が器に宿る光だけを重ねる。手前の壁にもたれた一体の胸に
 // 魂が封じられたとき、のっぺりとした顔に眼が静かに灯る。
 const DOLLS_W = 250, DOLLS_H = 141;
 const DOLLS_IMG = (() => {
   if (typeof Image !== "function") return null;
   const im = new Image();
-  try { im.src = new URL("../art/op_dolls.png", import.meta.url).href; } catch (e) { return null; }
+  try { im.src = new URL("../art/op_dolls.webp", import.meta.url).href; } catch (e) { return null; }
   return im;
 })();
 // 絵の中の目印 (ドット座標)
