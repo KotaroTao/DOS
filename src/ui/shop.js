@@ -437,12 +437,12 @@ function listFor(cat, wcat) {
   });
 }
 
-// 棚の1行 (高さ一定): [絵] 名前 / 種別・在庫・最良の装備者との増減 … [値段 / 買って装備|買う] [▾ 人業を選ぶ]
+// 棚の札: 名前は上段で折り返し、在庫は絵に重ねる。購入は下段の右。
 function stockRow(id) {
   const g = G();
   const it = ITEMS[id];
   const price = game.buyPrice(it);
-  const n = g.shopStock[id] || 0;
+  const n = game.shopPlainStock(id);
   const rk = rarityKey(it);
   const plan = isEquippable(it) ? wearPlan(it) : null;
   const upgrade = !!(plan && plan.target && plan.delta && plan.score > 0 && plan.target.items.length < MAX_ITEMS);
@@ -457,7 +457,9 @@ function stockRow(id) {
   const tx = el("span", "wpc-srow-t");
   const l1 = el("span", "wpc-srow-l1");
   l1.appendChild(nameSpan(it, "wpc-srow-nm"));
-  l1.appendChild(el("span", "wpc-srow-n", game.shopAfxItem && game.shopAfxItem(id) ? `通常品${game.shopPlainStock(id)}` : `在庫${n}`));
+  const count = el("span", "wpc-srow-count", `×${n}`);
+  count.setAttribute("aria-label", `通常品の在庫 ${n}点`);
+  ic.appendChild(count);
   tx.appendChild(l1);
   const l3 = el("span", "wpc-srow-l3");
   const kind = it.slot === "weapon" ? (WEAPON_CAT_LABEL[it.cat] || "武器") : ((ITEM_CATS.find((c) => c.slots.includes(it.slot)) || {}).label || "");
@@ -493,22 +495,8 @@ function stockRow(id) {
   // 最良の装備者へ買って装備 (元に戻せる) / 装備でなければ袋へ
   main.addEventListener("click", () => { if (upgrade) equipPick(plan.target, it, { buyId: id }); else shopBuy(id, buyer, { equip: false }); });
   act.appendChild(main);
-  const more = el("button", "wpc-buy-more");
-  more.type = "button";
-  more.setAttribute("aria-label", "人業を選んで買う");
-  more.appendChild(caretIcon());
-  more.addEventListener("click", () => openBuyChooser(id));
-  if (isEquippable(it)) act.appendChild(more);
   row.appendChild(act);
   return row;
-}
-
-// ▾ 人業を選んで買う: 装備品は「押せば買って装備」の肖像の札 (+ 下に「買うだけ」)。道具などは袋へ入れる相手
-function openBuyChooser(id) {
-  const it = ITEMS[id];
-  if (!it) return null;
-  if (!isEquippable(it)) return shopBuy(id);
-  return openDollChooser(it, { mode: "equip", buyId: id });
 }
 
 // 鑑定の結果 (まとめて鑑定のあと): 正体が知れた品。押せば品シート / 「装備」で人業を選ぶ / 「売る」でその場で売る /
@@ -742,9 +730,12 @@ function afxStockRow(id, it) {
   const tx = el("span", "wpc-srow-t");
   const l1 = el("span", "wpc-srow-l1");
   l1.appendChild(nameSpan(it, "wpc-srow-nm"));
-  l1.appendChild(el("span", "wpc-srow-n", "追加つき1点"));
+  const count = el("span", "wpc-srow-count", "×1");
+  count.setAttribute("aria-label", "追加つきの在庫 1点");
+  ic.appendChild(count);
   tx.appendChild(l1);
   const l3 = el("span", "wpc-srow-l3");
+  l3.appendChild(el("span", "wpc-srow-meta", "追加つき"));
   l3.appendChild(setText(el("span", "wpc-dim"), (it.afxText || []).map((a) => a.text).join("・")));
   tx.appendChild(l3);
   info.appendChild(tx);
