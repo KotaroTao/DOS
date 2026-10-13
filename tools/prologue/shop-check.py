@@ -21,12 +21,19 @@ with sync_playwright() as p:
       const it = __game.equipLv.cloneItem('shortSword', 50); it.unidentified = true;
       G.party[0].items.push(it);
       check(UI.tutorialAfterReturn(), '初回の未鑑定品で帰還案内を開始');
-      check(G.tut.cur === 'shopAppraise' && G.town.tab === 'shop', '商会へ移動して鑑定の説明を開始');
+      check(!G.tut.cur && G.town.tab === 'hub' && UI.tutorialPending()?.arrival, '帰還後は街で商会への訪問を待つ');
       const saved = refDeserialize(refSerialize(G.tut));
-      check(saved.cur === 'shopAppraise' && saved.appraisePending, '案内の開始待ちと進行は保存される');
+      check(!saved.cur && saved.appraisePending, '商会への訪問待ちは保存される');
+      G.tut = saved;
       return out;
     }'''))
     page.add_style_tag(content='.test-play-banner{display:none!important}')
+    page.wait_for_timeout(900)
+    assert page.locator('.tut-intro').count() == 0
+    assert page.evaluate('__game.G.town.tab') == 'hub'
+    page.locator('.ui-tab[data-key="shop"].tut-glow').click()
+    page.locator('.tut-intro').wait_for()
+    assert page.evaluate('__game.G.tut.cur') == 'shopAppraise'
     for _ in range(20):
         page.wait_for_timeout(450)
         if page.evaluate('__game.G.tut.done.shopAppraise'): break
@@ -43,4 +50,37 @@ with sync_playwright() as p:
       return '鑑定案内は一度だけ。金貨不足・売り切れでも購入案内は詰まらない';
     }'''))
     assert not errors, errors
+    page.close()
+    page = browser.new_page(viewport={'width': 390, 'height': 844})
+    page.on('pageerror', lambda e: errors.append(str(e)))
+    page.goto('http://localhost:8000/?testDungeon=w01&testPlace=town')
+    page.wait_for_function('window.__game?.G.party.length > 0')
+    page.add_style_tag(content='.test-play-banner{display:none!important}')
+    page.evaluate("""async () => {
+      const {game,UI}=await import('/src/ui/ctx.js');
+      const G=game.G;
+      G.testPlay=false; G.prompt=false;
+      G.tut={done:{repairSoul:true}};
+      G.msq.prologue={phase:'cryptQuest',gifts:{}}; G.gold=0;
+      delete G.world.open.w01;
+      // 王の語りが閉じた時と同じ本番コールバックを実行する。
+      UI.playStoryChain=(pages,done)=>{for(const p of pages){p.enter?.();p.leave?.();}done?.();};
+      __game.world.prologueAudience();
+    }""")
+    page.wait_for_timeout(1000)
+    assert page.evaluate('__game.G.gold') == 500
+    assert page.evaluate('__game.G.town.tab') == 'hub'
+    assert page.locator('.tut-intro').count() == 0
+    assert not page.evaluate('__game.G.world.open.w01')
+    page.locator('.ui-tab[data-key="shop"].tut-glow').click()
+    page.locator('.tut-intro').wait_for()
+    assert page.evaluate('__game.G.tut.cur') == 'buyEquipment'
+    for _ in range(25):
+        page.wait_for_timeout(450)
+        if page.evaluate('__game.G.tut.done.buyEquipment'): break
+        glow = page.locator('.tut-glow:visible')
+        if glow.count(): glow.first.click()
+    assert page.evaluate('__game.G.tut.done.buyEquipment && __game.G.world.open.w01 && __game.G.gold < 500')
+    assert not errors, errors
+    print('王の金貨受領 → 街で待機 → フッターの商会 → 説明・実購入 → 地下墓地解放')
     browser.close()
