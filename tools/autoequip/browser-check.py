@@ -24,6 +24,7 @@ with sync_playwright() as p:
       check(btns.length===2&&btns[1].getBoundingClientRect().top>=btns[0].getBoundingClientRect().bottom,'最適装備と全員最適を縦に表示');
       btns[0].click();
       check(!!document.querySelector('.pt-ae-sheet'),'個人の確認画面');
+      check(document.querySelectorAll('.pt-ae-card .pt-ae-tg').length===1,'変更が1件ならカードの承認は1つだけ');
       check(sig===equipSignature(G.party)&&hp===d.hp&&mp===d.mp,'確認だけでは装備・袋・HP・MPは不変');
       sheet.top().close();check(sig===equipSignature(G.party),'未承認で閉じても不変');
       await new Promise(r=>setTimeout(r,650));UI.autoEquip('all');const proposed=document.querySelectorAll('.pt-ae-card').length;check(proposed>1,'全員の変更案を同時に表示');
@@ -33,6 +34,14 @@ with sync_playwright() as p:
       document.querySelector('.pt-ae-action button').click();check(sig===equipSignature(G.party),'装備単位の取消');
       document.querySelector('.pt-ae-sheet .ui-sheet-foot .k-primary').click();
       await new Promise(r=>setTimeout(r,250));check(G.party.filter(d=>d.equip.head).length===proposed,'すべて承認で全員に適用');
+      await new Promise(r=>setTimeout(r,650));
+      d.equip.head=null;recalc(d);G.inventory.splice(0,G.inventory.length,game.cloneItem('cap'),game.cloneItem('robe'));
+      UI.autoEquip(d);
+      const bulk=document.querySelector('.pt-ae-top button');
+      check(bulk?.textContent==='まとめて承認'&&document.querySelectorAll('.pt-ae-action button').length===2,'複数装備はまとめて承認と個別承認を区別');
+      bulk.click();check(!!d.equip.head&&!!d.equip.body&&bulk.textContent==='まとめて戻す','人業単位の一括承認');
+      bulk.click();check(!d.equip.head&&!d.equip.body,'人業単位の一括取消');
+      sheet.top().close();
       return out;
     }'''))
     for width in [320,390,768]:
