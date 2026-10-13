@@ -201,7 +201,7 @@ const ASSETS = [
   "./src/traps.js",
   "./src/telemetry.js",
   "./src/stability.js",
-  "./art/tutorial/gatekeeper.png",
+  "./art/tutorial/gatekeeper.webp",
   "./src/levelcurve.js",
   "./src/baseline.js",
   "./src/pricing.js",
@@ -359,7 +359,7 @@ const ASSETS = [
   "./art/opening/letter.webp",
   "./art/opening/flame.webp",
   "./src/storyart.js",
-  "./art/op_dolls.png",
+  "./art/op_dolls.webp",
   "./art/mansion_irene.jpg",
   // 呪術師R1〜R5: 聖戦士基準の透明原画。
   "./art/jobs/hexer_1.webp",
