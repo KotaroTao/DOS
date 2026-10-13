@@ -1,3 +1,4 @@
+import { insightTotals } from "./insight.js";
 import { INF_BUY_CAP, infRecovery, infUseCount, infSupplyLeft, infSpendSupply } from "./infsupplies.js";
 import { random, fxRandom, bindRngState, rngState } from "./rng.js";
 import { refSerialize, refDeserialize, applySavePatch } from "./savegraph.js";
@@ -536,7 +537,8 @@ const G = {
   treasury: { donated: {}, claimed: {} }, // 王宮の宝物庫: donated={収集品id:true}, claimed={"ランク:しきい値":true}
   lrOwned: {},        // 一度でも手にしたLRのid (同じ品は何度でも出る。いまは「LRを手にしたことがあるか」にだけ使う)
   named: { seen: {}, trophy: {} }, // 名のある強敵: seen={id:{dungeon, floor}} 目撃 / trophy={id:true} 首級を手にした (全滅で失えば消す)
-  rusui: { picks: [] }, // 留守居の修練: 席に就けた控えの人業の uid の配列 (席数 = rusuiSeats()。控えにいる者だけ有効)
+  insightNotified: null, // 見識の増加通知済みの合計。評価自体は図鑑から毎回計算する
+  rusui: { picks: [] }, // 廃止済みの留守居の修練。旧セーブの席データだけ保持する
   order: { picks: [] }, // 控えの結社: 席に着けた魂のuid配列 (席数=orderSeats()。編成外の魂のみ有効。能力の一部を全員に足す)
   events: { seen: {}, picks: {}, once: {}, flags: {}, fresh: {} }, // 迷宮のイベント (src/events.js): 見聞録・一度きり・恒久の恵み
   irene: { greeted: false, visits: 0, seen: {}, last: null }, // 人業の館の主イレーヌ: 初訪問の挨拶済み・来館数・聞いた話 (src/ui/irene.js)
@@ -11387,27 +11389,7 @@ function distributeBattleSoulExpMeasured(soulGot) {
     e.exp = (e.exp || 0) + gain;
     settleSoulExp(e); // Lv上限の魂は exp に蓄積し、上限が伸びた時に Lv へ注ぐ
   }
-  // 留守居の修練: 控えの人業のメイン魂 (隊で宿している魂は上で数えたので除く)
-  const rusui = [];
-  if (!abyssActive()) {
-    for (const d of rusuiSeated()) {
-      if (d.alive === false || seen.has(d.primary)) continue;
-      const e = soulByUid(d.primary);
-      if (!e) continue;
-      seen.add(d.primary);
-      const gain = Math.floor(share * RUSUI_EXP_RATE * soulLvMul(e.level));
-      if (gain <= 0) continue;
-      const from = e.level;
-      e.exp = (e.exp || 0) + gain;
-      settleSoulExp(e);
-      if (e.level > from) rusui.push({ d, e, from });
-    }
-  }
   recalcAllDolls({ levelUp: true });
-  for (const r of rusui) { // 控えのレベルアップは帰還の報告にだけ載せる (戦闘の後の画面は隊の者だけ)
-    codexJobSee(r.e.clsKey, r.e.count, r.e.level, r.e.capBonus);
-    runLevel({ uid: r.d.uid, name: `${r.d.name} (留守居)` }, r.from, r.e.level);
-  }
   // メンバーごとに「レベルアップ(上昇ステータス付き)→新規スキル」をポップアップ用キューへ
   const STAT_LABEL = { maxhp: "HP", maxmp: "MP", atk: "STR", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
   for (const m of G.party) {
@@ -14542,9 +14524,10 @@ const FEATURES = {
   sub2: { chapter: 4, report: "finale" },     // サブ魂 2枠
   forge: { chapter: 5, report: "finale" },    // 鍛え直し (商会で金貨を払い、装備の品質を引き直す — 2026-10 ユーザーの指示)
   // ── 第六章から (docs/unlocks.md の年表。ユーザーの了解済み)。章がまだ無いので開かない。仕組みはその章を作る時に足す ──
-  rusui: { chapter: 6, report: "finale" },      // 留守居の修練 (席1。席の控えのメイン魂にも、戦闘で魂に入る経験値の一部が入る — 遠征の差し替え)
-  rusui2: { chapter: 7, report: "finale" },     // 留守居の修練の席2
-  rusui3: { chapter: 10, report: "finale" },    // 留守居の修練の席3
+  insight: { chapter: 6, report: "finale" }, // 操霊師の見識
+  rusui: { retired: true, chapter: 6, report: "finale" },      // 留守居の修練 (席1。席の控えのメイン魂にも、戦闘で魂に入る経験値の一部が入る — 遠征の差し替え)
+  rusui2: { retired: true, chapter: 7, report: "finale" },     // 留守居の修練の席2
+  rusui3: { retired: true, chapter: 10, report: "finale" },    // 留守居の修練の席3
   order4: { chapter: 8, report: "finale" },     // 結社の席4
   // 無限迷宮 (入るたびに Lv1 の仮の器で潜るローグライク — docs/infinite-labyrinth.md)。第八章の結び (2026-10-11 ユーザーの指示:
   //   第八章のあたりで Lv100・ランク3〜4 に届き、本編の育ちが単調になってくるので、第十章から前倒し)
@@ -14557,7 +14540,7 @@ const FEATURES = {
   vow: { chapter: 16, report: "finale" },       // 誓約
   sub3: { chapter: 17, report: "finale" },      // サブ魂 3枠
 };
-const FEATURE_KEYS = Object.keys(FEATURES).filter((key) => key !== "rumor"); // 噂の解放案内は酒場に統合 (旧キーは互換用に残す)
+const FEATURE_KEYS = Object.keys(FEATURES).filter((key) => key !== "rumor" && !FEATURES[key].retired); // 噂の解放案内は酒場に統合 (旧キーは互換用に残す)
 const chapterLabel = (no) => `第${kanjiNum(no)}章`;
 // その章で王に報告した本筋の迷宮の数
 function chapterReports(ch, w = worldState()) { return ch.dungeons.filter((id) => w.reported[id]).length; }
@@ -14567,11 +14550,12 @@ function chaptersDone(w = worldState()) { return CHAPTERS.filter((c) => w.report
 function featureMet(key, w = worldState()) {
   const f = FEATURES[key === "rumor" ? "tavern" : key];
   const ch = f && CHAPTERS.find((c) => c.no === f.chapter);
-  if (!ch) return false; // その章がまだ無い
+  if (!ch || f.retired) return false; // 廃止済み、またはその章がまだ無い
   if (f.dungeon) return !!w.reported[f.dungeon];
   return f.report === "finale" ? !!w.reported[ch.finale] : chapterReports(ch, w) >= f.report;
 }
 function featureUnlocked(key) {
+  if (FEATURES[key]?.retired) return false;
   if (G.testPlay && Array.isArray(G.testUnlock) && G.testUnlock.includes(key)) return true; // 試遊の開発用 (URL の testUnlock=rusui など)
   if (key === "soulChange") return featureMet(key) && !!G.tut?.done?.soulChange;
   return featureMet(key);
@@ -14641,9 +14625,9 @@ function toggleOrderSeat(uid) {
   refreshOrderBonus();
   autosave(); renderTown();
 }
-// 留守居の修練の席数 (0〜3)。第六章の結びで1席、先の章で増える (2026-10-11 ユーザーの指示)
+// 旧UI・旧セーブ向けの互換窓口。留守居の修練は操霊師の見識へ置き換えた。
 function rusuiSeats() {
-  return ["rusui3", "rusui2", "rusui"].reduce((n, k, i) => n || (featureUnlocked(k) ? 3 - i : 0), 0);
+  return 0; // 廃止済み。旧セーブの席データは保持するが、育成・画面には使わない
 }
 // 席に就いている控えの人業 (G.rusui.picks の順・控えにいて魂の宿る者だけ・席数まで)。無限迷宮の間は誰も就かない
 function rusuiSeated() {
@@ -15210,6 +15194,16 @@ function codexFresh() {
   if (!c.fresh || typeof c.fresh !== "object") c.fresh = {};
   for (const k of ["mon", "item", "job"]) if (!c.fresh[k] || typeof c.fresh[k] !== "object") c.fresh[k] = {};
   return c.fresh;
+}
+
+// 図鑑に積み重ねた見識。旧セーブも再集計するので、売却や魂融合では減らない。
+function insightSummary() { return insightTotals(G, { monsters: MONSTERS, items: ITEMS, jobs: SOUL_CLASSES, events: EVENT_MAP }); }
+function notifyInsight() {
+  if (!featureUnlocked("insight")) return;
+  const score = insightSummary();
+  const previous = G.insightNotified;
+  G.insightNotified = Math.max(Number(previous) || 0, score.total);
+  if (previous != null && score.total > previous) showToast(`見識 ＋${score.total - previous}　操霊師の見識 ${score.total.toLocaleString("ja-JP")}`, { tone: "gold" });
 }
 
 // ---- 職業図鑑の記録 ----
@@ -17687,7 +17681,7 @@ const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound", "abyss", "abyssRec",
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "stabilityBriefed", "pendingDoll",
   "inventory", "party", "reserve", "souls", "shopStock", "run", "town",
-  "quest", "msq", "ach", "fastAnim", "animTempo", "tavernCrowd", "tavernHeard", "rumor", "activeRumor", "codex", "treasury", "lrOwned", "named", "order", "rusui", "irene", "journal", "tut", "events", "story", "world", "dragonSlain", "stats",
+  "quest", "msq", "ach", "fastAnim", "animTempo", "tavernCrowd", "tavernHeard", "rumor", "activeRumor", "codex", "treasury", "lrOwned", "named", "order", "rusui", "insightNotified", "irene", "journal", "tut", "events", "story", "world", "dragonSlain", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab", "rematch",
   "lastRun",
 ];
@@ -17720,7 +17714,8 @@ let _resetting = false; // データ削除→リロードの間に autosave が�
 let _cloudResolving = false;
 let _lastCloudSave = null;
 function autosave(force = false) {
-  if (_resetting || testPlayActive) return;
+  if (_resetting) return;
+  if (testPlayActive) { codexSweepJobs(); notifyInsight(); return; }
   if (cloudEnabled() && (!cloudReady() || _cloudResolving)) return;
   if (!G.party || (!cloudEnabled() && !G.party.length && !G.apprenticeName)) return;
   const now = Date.now();
@@ -17728,6 +17723,7 @@ function autosave(force = false) {
   _lastSave = now;
   try {
     codexSweepJobs(); // 職業図鑑の発見状況を保存前に最新化
+    notifyInsight();
     const snap = {};
     for (const k of SAVE_FIELDS) snap[k] = G[k];
     const data = refSerialize(snap);
@@ -17876,6 +17872,7 @@ function loadGame(cloudSnapshot = null) {
   try { snap = refDeserialize(JSON.parse(raw)); } catch (e) { return false; }
   if (!snap || !Array.isArray(snap.party) || (!cloudEnabled() && !snap.party.length && !snap.msq?.granted && !normalizeName(snap.apprenticeName))) return false;
   for (const k of SAVE_FIELDS) if (k in snap) G[k] = snap[k];
+  G.insightNotified = snap.insightNotified ?? null;
   G.apprenticeName = normalizeName(G.apprenticeName);
   G.inventory = Array.isArray(snap.inventory) ? snap.inventory : [];
   shareInventory(G);
@@ -18660,7 +18657,7 @@ function wireUI() {
     showChoice, closePrompt, showEvent, showConfirm, showToast, showItemGet, closeItemGet, showItemDetailPopup, showStoryScene,
     openStatus, closeStatus, openSettings, closeSettings, tryEnterDungeon, enterDungeon, returnToTown, confirmReturnToTown,
     tutorialAllowed, palaceCallReady, currentObjective, featureUnlocked, RUSUI_EXP_RATE, rusuiSeats, rusuiSeated, toggleRusuiSeat, contentSealed, reportMainQuest, acceptMainQuest, reportPending, blockForReport, tutorialPending, blockForTutorial,
-    worldState, worldOpenIdx, pendingIreneBeat, playIreneBeat, dungeonLevel, FEATURES, featureNote, chaptersDone, storyGoal, currentChapter, dungeonTrait, dungeonFloorHaz,
+    insightSummary, worldState, worldOpenIdx, pendingIreneBeat, playIreneBeat, dungeonLevel, FEATURES, featureNote, chaptersDone, storyGoal, currentChapter, dungeonTrait, dungeonFloorHaz,
     trainSoul, raiseSoulCap, raiseCapSoulCost, capBySoulOk, soulTrainCost, soulByUid, codexSeeItem, treasuryState, heldCollectibles, donateCollectible,
     claimAchievement, claimTreasury, treasuryRewardReady, deliveryHolder, deliveryStatus, deliverQuest,
     repairDoll, repairAllDolls, repairCostOf, tryHastenRescue, reviveTimerEl, fmtRemain, awaitingRescue, hastenCostOf,

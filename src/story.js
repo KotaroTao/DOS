@@ -2012,6 +2012,14 @@ export function msqReward(lv, boss = false) {
 // 機能解放の勅命シーン。機能が開く報告 (game.js FEATURES = 章とその章で報告した数) の直後に授けられる。
 // キーは機能の名 (fusion / sub1 / rumor / order / order2 / order3 / … / order4)。新しい章で機能を足したら、ここにページを足す
 export const UNLOCKS = {
+  insight: {
+    title: "操霊師の見識",
+    lines: [
+      "「そなたが見た魔物、拾った品、知り得た魂。その記録には、操霊師として歩んだ道が刻まれておる。」",
+      "「これまでの知識を『見識』として記そう。まだ知らぬものを知り、知ったものを深く学べ。」",
+      "── 解放: 図鑑に「操霊師の見識」が表示される。これまでの発見もすべて評価される。",
+    ],
+  },
   soulChange: {
     title: "魂の付け替え",
     lines: [

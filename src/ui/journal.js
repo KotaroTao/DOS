@@ -281,5 +281,5 @@ function showStoryNotice(G) {
   });
 }
 export function install() {
-  registerUI({openHelp:(tab)=>openJournal("help", tab),openStoryArchive:()=>openJournal("story"),storyButton,storyUnread,queueStoryNotice});
+  registerUI({openHelpTopic:(id)=>openEntry("help",id),openHelp:(tab)=>openJournal("help", tab),openStoryArchive:()=>openJournal("story"),storyButton,storyUnread,queueStoryNotice});
 }

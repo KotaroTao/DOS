@@ -632,3 +632,9 @@ canvas.tw-vig-hd { image-rendering: auto !important; }
 .player-name-input { display: block; box-sizing: border-box; width: 100%; min-height: 48px; margin-top: 8px; padding: 10px; font: inherit; font-size: 16px; color: #f1e4c8; background: #151019; border: 1px solid #746044; border-radius: 3px; }
 .player-name-help { color: #c3b49b; font-size: 13px; line-height: 1.7; }
 .player-name-error { color: #ffad97; min-height: 1.5em; font-size: 13px; }
+
+/* 操霊師の見識: 王宮と探索中の図鑑で共通。 */
+.pl-insight { flex: 0 0 auto; padding: 10px 14px; border: 1px solid #776345; border-radius: 8px; background: #201c19; color: #e5d6b6; text-align: center; }
+.pl-insight-title { font-size: 13px; }
+.pl-insight-total { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.pl-insight-breakdown { font-size: 12px; line-height: 1.6; }
