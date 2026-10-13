@@ -529,7 +529,6 @@ const G = {
   tavernCrowd: null,  // 酒場に居合わせる者たち (帰還ごとに3〜5名を選び直す) [{type,icon,name,line,kind,id}]
   tavernHeard: null,  // 酒場で聞いた心得・言い伝え {話のid: 1} (「書き留めた話」。tavern.js TAVERN_TALKS の id)
   rumor: null,        // 酒場で表示中の噂 (次回出撃で現実化)
-  rumorCooldown: 0,   // 次の噂を聞けるUNIXタイムスタンプ(ms) — 15分クールダウン
   activeRumor: null,  // 出撃時に確定した、この迷宮で適用する噂
   codex: { mon: {}, item: {}, job: {}, met: {}, fresh: { mon: {}, item: {}, job: {} } }, // 図鑑 (モンスター/アイテム/職業)。fresh = 新着 (まだ詳細を見ていない記録)。met = 遭遇した迷宮の主 (討つ前でも図鑑に名だけ出す)
   treasury: { donated: {}, claimed: {} }, // 王宮の宝物庫: donated={収集品id:true}, claimed={"ランク:しきい値":true}
@@ -12231,7 +12230,7 @@ const FAC_SHELL = {
   tavern: { keeper: "barkeep", who: "酒場の主 グラム", lines: [
     "灯が消えぬうちは、ここは安全だ。…たぶんな。",
     "飲め。迷宮帰りの喉は、血の味しか覚えておらん。",
-    "噂は金で買える。命は買えん。その差を忘れるな。"] },
+    "情報屋の噂に金貨はいらん。迷宮から戻ったら、また聞いていけ。"] },
   shop: { keeper: "merchant", who: "黒鉄商会 ヴォス", lines: [
     "黒鉄は嘘をつかん。値札もな。",
     "死人の剣でも、研げば生者の役に立つ。",
@@ -13812,21 +13811,15 @@ function deliverQuest(q, opts = {}) {
   finishFreeQuest(q, {}, grantRewardSouls([[rarity, count]]), `「${it.name}」を納品`);
 }
 
-// 噂話を一つ買う (💰100・15分に一度)。情報屋は隊のLvに見合う迷宮を中心に、地図の迷宮を一つ読む (rollRumor)。
-// 手元に噂があっても、待ち時間が明ければ聞き直せる (前の噂は捨てる)
-const RUMOR_PRICE = 100;
-const RUMOR_COOLDOWN_MS = 15 * 60 * 1000;
-// 噂の値段。手ほどき「情報屋の噂」の最中の一度は情報屋のおごり (無料)
-function rumorPrice() { return UI.tutorialFree && UI.tutorialFree("rumor") ? 0 : RUMOR_PRICE; }
-function listenRumor() {
-  if (!featureUnlocked("rumor")) return false;
-  if ((G.rumorCooldown || 0) > Date.now()) return false;
-  const price = rumorPrice();
-  if (G.gold < price) { log("金貨が足りない。", "bad"); SFX.ng(); return false; }
-  G.gold -= price;
+// 噂は無料。帰還時に更新し、酒場の出入り・時間経過では引き直さない。
+function refreshRumor() {
+  G.activeRumor = null;
+  G.rumor = featureUnlocked("tavern") ? rollRumor() : null;
+}
+// 解放直後・旧セーブで噂が無い時だけ補う。描画からは次のマイクロタスクで呼ぶ。
+function ensureRumor() {
+  if (G.state !== "town" || !featureUnlocked("tavern") || G.rumor) return false;
   G.rumor = rollRumor();
-  G.rumorCooldown = Date.now() + RUMOR_COOLDOWN_MS;
-  SFX.select();
   autosave(true);
   renderTown();
   return true;
@@ -14535,7 +14528,7 @@ function reportTutorialQuest() { return prologueAudience(); }
 //   踏破しただけ (報告前) では開かない ― 解放のページ (story.js UNLOCKS) を見てから使えるようにする。
 //   まだ無い章の分 (第四章のサブ魂2枠・第五章の奈落) は、その章が台帳に載るまで開かない
 const FEATURES = {
-  tavern: { chapter: 1, dungeon: "w01" },    // 最初の迷宮を王に報告すると酒場が開く
+  tavern: { chapter: 1, report: 4 },        // 第一章の本筋4か所の報告で、依頼と情報屋の噂が一緒に開く
   soulChange: { chapter: 1, dungeon: "w02" }, // 第二の迷宮の報告後に手ほどき
   fusion: { chapter: 1, report: 2 },          // 魂の融合
   sub1: { chapter: 1, report: 3 },            // サブ魂 1枠
@@ -14561,7 +14554,7 @@ const FEATURES = {
   vow: { chapter: 16, report: "finale" },       // 誓約
   sub3: { chapter: 17, report: "finale" },      // サブ魂 3枠
 };
-const FEATURE_KEYS = Object.keys(FEATURES);
+const FEATURE_KEYS = Object.keys(FEATURES).filter((key) => key !== "rumor"); // 噂の解放案内は酒場に統合 (旧キーは互換用に残す)
 const chapterLabel = (no) => `第${kanjiNum(no)}章`;
 // その章で王に報告した本筋の迷宮の数
 function chapterReports(ch, w = worldState()) { return ch.dungeons.filter((id) => w.reported[id]).length; }
@@ -14569,7 +14562,7 @@ function chapterReports(ch, w = worldState()) { return ch.dungeons.filter((id) =
 function chaptersDone(w = worldState()) { return CHAPTERS.filter((c) => w.reported[c.finale]).length; }
 // w (worldState の形) の報告の状態で、その機能が開いているか (報告の前後を比べるために w を渡せる)
 function featureMet(key, w = worldState()) {
-  const f = FEATURES[key];
+  const f = FEATURES[key === "rumor" ? "tavern" : key];
   const ch = f && CHAPTERS.find((c) => c.no === f.chapter);
   if (!ch) return false; // その章がまだ無い
   if (f.dungeon) return !!w.reported[f.dungeon];
@@ -15936,8 +15929,8 @@ function enterDungeon(mutatorId, startFloor = 1) {
   G.lastRun = null;
   G._townMutator = null; G._departPre = false;
   G._lastTargetUid = null;
-  // この迷宮の噂を持っていれば確定し、現実化させる (別の迷宮の噂は持ち越す)。
-  // ただし「特別な階」を呼び込む噂は1階で潜る時のためのもの: 帰還魔法陣から潜り始める時は持ち越す
+  // この迷宮の噂を持っていれば確定し、現実化させる (別の迷宮では適用せず、帰還時に更新する)。
+  // ただし「特別な階」を呼び込む噂は1階で潜る時のためのもの: 帰還魔法陣から潜り始める時は適用しない
   // (潜り始めの階は特別な階にならない)
   if (rumorFor(curDungeon()) && !(G.floor > 1 && G.rumor.type === "special")) { G.activeRumor = { ...G.rumor, floor: G.floor }; G.rumor = null; }
   G.state = "board";
@@ -15989,7 +15982,7 @@ function enterAbyss(picks, testRun = false) {
   tlRunBegin(tlWhere(), G.party, { mode: "infinite" });
   G.lastRun = null;
   G._townMutator = null; G._departPre = false;
-  G.activeRumor = null; // 噂は地図の迷宮のもの。無限迷宮では現実にならない (手元の噂は持ち越す)
+  G.activeRumor = null; // 噂は地図の迷宮のもの。無限迷宮では現実にならない (帰還時に更新する)
   G.state = "board";
   playBgm(fieldBgm());
   if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; }
@@ -16299,6 +16292,7 @@ function returnToTown(opts = {}) {
     rollTavernCrowd();
     rollQuestBoard();
   }
+  refreshRumor(); // 空戻り・全滅・無限迷宮も含め、帰還のたびに噂を更新する
   updateTopbar();
   log(infSummary ? (outcome === "wipe" ? `仮の器は${INF_NAME}の底で崩れた。` : `仮の器は崩れ、${INF_NAME}から街へ戻った。`) : outcome === "wipe" ? "砕けた人業を残し、街へ戻った。" : "街へ帰還した。", "sys");
   G.town.facility = null; G.town.sub = null; G.town.page = null; G.town.tab = "hub";
@@ -17689,7 +17683,7 @@ const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound", "abyss", "abyssRec",
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "stabilityBriefed", "pendingDoll",
   "inventory", "party", "reserve", "souls", "shopStock", "run", "town",
-  "quest", "msq", "ach", "fastAnim", "animTempo", "tavernCrowd", "tavernHeard", "rumor", "rumorCooldown", "activeRumor", "codex", "treasury", "lrOwned", "named", "order", "rusui", "irene", "journal", "tut", "events", "story", "world", "dragonSlain", "stats",
+  "quest", "msq", "ach", "fastAnim", "animTempo", "tavernCrowd", "tavernHeard", "rumor", "activeRumor", "codex", "treasury", "lrOwned", "named", "order", "rusui", "irene", "journal", "tut", "events", "story", "world", "dragonSlain", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab", "rematch",
   "lastRun",
 ];
@@ -18704,7 +18698,7 @@ bindGame({
   achievementCards, medalRank, claimNextTreasury, TREASURY_MILESTONES, milestoneLabel, milestoneWait, totalDonatedKinds,
   codexMonEntry, dungeonRoster, CODEX_OTHER,
   // 酒場・祠・宿
-  listenRumor, RUMOR_PRICE, rumorPrice, rumorFor, rollTavernCrowd, markTavernHeard, tavernNotes,
+  ensureRumor, rumorFor, rollTavernCrowd, markTavernHeard, tavernNotes,
   questState, questLists, questByUid, questsHere, ensureQuestBoard, rollQuestBoard, acceptQuest, abandonQuest, claimQuest, questReadyCount, FREE_CAP, questHereNote, questHereCount, questsTargeting,
   adCooldownLeft, watchShrineAd, RED_PACKS, buyRedPack, GUARDIAN_COST, RESCUE_SHORTEN_MS,
   // 設定 (端末の好み)
