@@ -362,7 +362,7 @@ const TUT_MAP = Object.fromEntries(TUTS.map((t) => [t.key, t]));
 // ---- 進み具合 ----
 // 済ませていない手ほどき (解放の順)。始めていない旧セーブの分は、もう使っていれば済み扱い
 function dueKeys() {
-  if (G_()?.testPlay) {
+  if (G_()?.testPlay && !G_().testStoryFlow) {
     const key = G_().testTutorial;
     return key && !tutState().done[key] ? [key] : [];
   }
