@@ -668,9 +668,9 @@ function openInfBulkSell(onDone) {
   const plan = game.infSellPlan();
   if (!plan.list.length) return;
   const choice = Object.fromEntries(plan.conflicts.map((c) => [c.id, c.best]));
-  const sell = (h, best) => {
+  const sell = (h) => {
     if (h.closed) return;
-    const ok = game.infSellAll(plan, best ? {} : choice);
+    const ok = game.infSellAll(plan, choice);
     h.close("ok");
     if (!ok) toast("持ち物か商会の棚が変わった。一覧を開き直してほしい。");
     onDone();
@@ -705,10 +705,7 @@ function openInfBulkSell(onDone) {
   };
   h = sheet.open({ kind: "info", banner: "回収人", title: "一括売却", className: "inf-sheet", body: fill,
     footer: [
-      ...(plan.conflicts.length ? [
-        { label: "強いほうを残して一括売却", kind: "secondary", onTap: (x) => sell(x, true) },
-        { label: "選んだほうを残して一括売却", kind: "primary", onTap: (x) => sell(x, false) },
-      ] : [{ label: "一括売却する", kind: "primary", onTap: (x) => sell(x, true) }]),
+      { label: plan.conflicts.length ? "選んだほうを残して一括売却" : "一括売却する", kind: "primary", onTap: sell },
       { label: "売らない", kind: "ghost", onTap: (x) => x.close() },
     ] });
 }

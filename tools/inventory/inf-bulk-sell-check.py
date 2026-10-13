@@ -90,8 +90,8 @@ with sync_playwright() as p:
     page.wait_for_function('__game.G.inventory.length===0')
     assert page.evaluate('Object.values(__game.G.shopAfx).filter(a=>a[0].v===1).length') == 1
     prepare(True)
-    page.locator('.ui-sheet-wrap').last.locator('.inf-afx-opt').nth(1).click()
-    page.get_by_role('button', name='強いほうを', exact=False).click()
+    assert page.get_by_role('button', name='強いほうを', exact=False).count() == 0
+    page.get_by_role('button', name='選んだほうを', exact=False).click()
     page.wait_for_function('__game.G.inventory.length===0')
     assert page.evaluate('Object.values(__game.G.shopAfx).every(a=>a[0].v===2)')
     for width,height in [(320,740),(390,844),(844,390),(1440,900)]:
