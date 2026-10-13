@@ -56,22 +56,19 @@ export function createOpeningVoice() {
   const synth = globalThis.speechSynthesis;
   const supported = !!synth && typeof globalThis.SpeechSynthesisUtterance === "function";
   let current = null, timer = 0, deadline = 0, active = false;
-  let hooks = {}, started = false, retried = false, request = () => {};
-  const retry = (event) => {
-    if (!active || started) return;
+  let hooks = {}, started = false, request = () => {};
+  const retry = () => {
+    if (!active || started) return false;
     request();
-    if (event?.type === "pointerdown" || event?.type === "keydown") retried = true;
+    return true;
   };
   const unlisten = () => {
     synth?.removeEventListener?.("voiceschanged", retry);
-    document.removeEventListener("pointerdown", retry, true);
-    document.removeEventListener("keydown", retry, true);
   };
   const stop = () => {
     clearTimeout(timer);
     unlisten();
     active = false;
-    retried = false;
     deadline = 0;
     if (!current) return;
     current.onend = current.onerror = current.onstart = null;
@@ -115,6 +112,8 @@ export function createOpeningVoice() {
         if (!started && event.error === "not-allowed") { current = null; return; }
         fallback();
       };
+      // cancel() だけでは一時停止状態が解除されない端末がある。
+      if (synth.paused) synth.resume();
       synth.speak(utterance);
     } catch { fallback(); }
   };
@@ -142,12 +141,11 @@ export function createOpeningVoice() {
         } catch { fallback(); }
       };
       synth.addEventListener?.("voiceschanged", retry);
-      document.addEventListener("pointerdown", retry, true);
-      document.addEventListener("keydown", retry, true);
       request();
     },
     stop,
-    consumeRetry() { const value = retried; retried = false; return value; },
+    // タッチの終了後の click / キー操作のハンドラーから直接呼ぶ。
+    retry,
     busy() {
       if (active && (isMuted() || document.hidden || Date.now() >= deadline)) fallback();
       return active;
