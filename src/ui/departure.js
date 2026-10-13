@@ -513,6 +513,7 @@ function openMutSheet(m) {
 
 // ---- 初めての注意 (出撃画面と分け、全文を読めるポップアップで表示) ----
 function openBriefing(go) {
+  const soulRequest = cur?.page !== "rematch" && !G().stabilityBriefed && game.DUNGEONS?.[G().dungeonIdx]?.id === "w03";
   if (cur?.page !== "rematch" && game.stabilityApplies && !game.stabilityApplies()) {
     sheet.open({ kind: "info", banner: "出撃", title: "探索と帰還", className: "dp-brief-sheet",
       lines: ["最下階まで進み、依頼の品を調べましょう。最下階の出口から街へ戻れます。"],
@@ -537,7 +538,15 @@ function openBriefing(go) {
         ...(!G().dungeonBriefed ? game.DUNGEON_BRIEFING || [] : [])])b.appendChild(setText(el("div","dp-brief-l"),text));
       renderStability(b, false);
     },
-    footer:[{label:"迷宮に入る",kind:"primary",onTap:h=>{h.close("ok");go();}},
+    footer:[{label:"迷宮に入る",kind:"primary",onTap:h=>{
+      h.close("ok");
+      if (!soulRequest) { go(); return; }
+      sheet.open({ kind:"info", banner:"門衛", title:"ちょっと待ってください",
+        className:"dp-brief-sheet", accent:"#78bdd1",
+        lines:["もし迷宮の中に縛られた魂を見かけたら、持ち帰ってください。きっと、あなたの力になると思います。"],
+        footer:[{label:"迷宮に入る",kind:"primary",onTap:next=>{next.close("ok");go();}}],
+      });
+    }},
       {label:"支度に戻る",kind:"ghost",onTap:h=>h.close("cancel")}],
   });
 }
