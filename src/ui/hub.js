@@ -1,8 +1,8 @@
 // ===== 街 (広場) — 夜景・帰還の報告・いまの目標・次にすべきこと・酒場/宿屋/祠の札 =====
 // 担当: WP-A。街タブの描画 (UI.shell.registerTab("hub", …))。見出しは夜景に重ねる (シェルの見出しは出さない)。
-// 画面は1枚に収める (縦にスクロールさせない)。目標と次の行動は常に表示し、街の札だけが内側で流れる。
+// 目標・次の行動・施設を最初の画面に収め、依頼やバナーへは街全体を縦にスクロールする。
 //   夜景       … 生かしたまま使い回す (api.keep)。名所の札は 44px 以上の押せる場所
-//   帰還の報告 … 行動パネル内の札 (UI.runReportBadge)。押すと UI.openRunReport のシート。無ければ出さない
+//   帰還の報告 … 街の右下の札 (UI.runReportBadge)。押すと UI.openRunReport のシート。無ければ出さない
 //   いまの目標 … その場で果たせる操作つき (謁見する / 仕立てる / 王に報告する / 拝命する / 出撃)
 //   次にすべきこと … 優先順に最大3つ (3列の札)。1タップで実行 (売る・赤い魂を使うものは確認のシートを1枚)。
 //                   UI.registerSuggestion(fn) で他のパッケージも足せる
@@ -222,7 +222,7 @@ function spotOpen(k) {
 }
 
 // 夜景の箱は低く切り詰める。絵 (240x170) は下端に揃えた「舞台」に敷き、名所の札は舞台の座標で置く (切れても位置がずれない)
-// 帰還の報告の札 (行動パネル内)。押すと報告をシートで開く (収穫・成長・宿・鑑定・売却などの用事はそこで)
+// 帰還の報告の札 (街の右下)。押すと報告をシートで開く (収穫・成長・宿・鑑定・売却などの用事はそこで)
 function reportBadge(r) {
   const b = el("button", "hb-rr t-" + (r.tone || "gold"));
   b.type = "button";
@@ -237,27 +237,34 @@ function reportBadge(r) {
   return b;
 }
 
-function hero(api, { collapsed = false, width = 390 } = {}) {
+function hero(api, { collapsed = false, width = 390, report = null, viewport = null } = {}) {
   const g = G();
   const h = el("div", "tw-hero hb-hero" + (collapsed ? " collapsed" : ""));
   const stage = el("div", "hb-stage");
-  // 箱の高さ (画面の高さの約31%) と、絵の切り出し位置。名所の札の帯 (いちばん上の札 〜 いちばん下の札の根元) が
-  // 見出し (⚙・通貨) の下から、いまの目標の札 (背の高い端末では 16px 重なる) の上までに収まるようにする
+  if (report) { h.classList.add("has-report"); h.appendChild(reportBadge(report)); }
+  // 名所の札は見出しの下に収め、報告がある時はその下に専用の帯を取る。
   let spots = {};
   try { spots = townSpots(); } catch (e) { spots = {}; }
   const layout = () => {
     const ys = SPOTS.map((s) => spots[s.k]?.y).filter((y) => typeof y === "number");
     const yTop = ys.length ? Math.min(...ys) : 0.39, yBot = ys.length ? Math.max(...ys) : 0.72;
     const vh = (typeof innerHeight === "number" && innerHeight) || 844;
-    const overlap = vh < 700 ? 0 : 16;
+    const reportBand = report ? 52 : 0;
     const stageH = (h.clientWidth || width) * 170 / 240;
     const topBand = 84 - stageH * yTop;
     // 原画の祠は札の下に紅い魂がある。その本体まで目標の札に隠さず見せる。
     const ground = stage.querySelector(".town-scene-hd") ? stageH * 0.10 : 0;
-    const minH = topBand + stageH * yBot + ground + 6 + overlap;
+    const minH = topBand + stageH * yBot + ground + 6 + reportBand;
     const want = vh * 0.31 - (vh < 700 ? 40 : 0);
     // 原画でも、いちばん下の札を270pxの上限で切らない。
-    const heroH = collapsed ? 56 : Math.round(Math.min(stageH, Math.max(minH, Math.min(270, Math.max(140, want)))));
+    const desiredH = Math.round(Math.max(minH, Math.min(270, Math.max(140, want))));
+    const actions = viewport?.querySelector(".hb-actions");
+    const facilities = viewport?.querySelector(".hb-fac-first");
+    // 初期表示では目標・行動・施設の分を先に取る。後続の依頼・バナーは街全体で流す。
+    const budget = h.isConnected && actions && facilities
+      ? h.parentElement.clientHeight - actions.offsetHeight - facilities.offsetHeight - 12
+      : desiredH;
+    const heroH = collapsed ? 56 : Math.max(report ? 100 : 56, Math.min(desiredH, budget));
     h.style.height = heroH + "px";
     // 目標・行動の高さを先に取り、残りが狭ければ風景を見出しに縮める。
     const actualH = h.isConnected ? h.clientHeight : heroH;
@@ -282,6 +289,12 @@ function hero(api, { collapsed = false, width = 390 } = {}) {
       if (typeof ResizeObserver === "function") {
         sc.hubResizeObserver = new ResizeObserver(layout);
         sc.hubResizeObserver.observe(h);
+        if (viewport) sc.hubResizeObserver.observe(viewport);
+        requestAnimationFrame(() => {
+          if (!h.isConnected) return;
+          for (const node of viewport?.querySelectorAll(".hb-actions, .hb-fac-first") || []) sc.hubResizeObserver.observe(node);
+          layout();
+        });
       }
       stage.appendChild(sc);
     }
@@ -484,23 +497,23 @@ function questStrip() {
   return box;
 }
 
-// ---------- 街タブの描画 (1画面に収める) ----------
+// ---------- 街タブの描画 (主要操作を最初の画面に、続きは全体スクロール) ----------
 export function renderHub(root, api) {
   const g = G();
   if (!g || !root) return;
   dismissGreet();
   const a = api || { keep: (k, f) => (UI.shell && UI.shell.keep ? UI.shell.keep(k, f) : f()) };
   const wrap = el("div", "hb wa-fit");
-  // 帰還の報告は行動パネルに置き、風景や施設の札と重ねない
+  // 帰還の報告は街の右下に置き、施設の札の下に高さを確保する
   let badge = null;
   try { badge = UI.runReportBadge ? UI.runReportBadge() : null; } catch (e) { badge = null; setTimeout(() => { throw e; }); }
-  wrap.appendChild(hero(a, { width: root.clientWidth || 390 }));
+  wrap.appendChild(hero(a, { width: root.clientWidth || 390, report: badge, viewport: root }));
   const actions = el("section", "hb-actions");
   actions.setAttribute("aria-label", "目標と次の行動");
   // いまの目標
   const o = game.objectiveInfo ? game.objectiveInfo() : null;
   if (o) actions.appendChild(objectiveCard(o));
-  // 次の行動はスクロール領域の外に置き、常に押せる高さを確保する
+  // 次の行動は目標のすぐ下へ置く
   const mid = el("div", "hb-mid");
   const sg = suggestions(3);
   if (sg.length) {
@@ -511,39 +524,22 @@ export function renderHub(root, api) {
     box.appendChild(list);
     actions.appendChild(box);
   }
-  if (badge) actions.appendChild(reportBadge(badge));
   wrap.appendChild(actions);
+  // 施設は依頼より先に並べ、最初の画面から入れるようにする。
+  const fac = el("section", "hb-fac hb-fac-first");
+  fac.setAttribute("aria-label", "街の施設");
+  fac.appendChild(tiles());
+  wrap.appendChild(fac);
   const dv = questStrip();
   if (dv) mid.appendChild(dv);
-  // 酒場の依頼の段がある時は「街」の見出しを省いて札の高さを守る (札は絵と名で何かわかる)
-  const fac = el("div", "hb-fac" + (dv ? " nohead" : ""));
-  if (!dv) fac.appendChild(sectionHead("街"));
-  fac.appendChild(tiles());
   const inf = infBanner();
-  if (inf) fac.appendChild(inf);
-  mid.appendChild(fac);
+  if (inf) mid.appendChild(inf);
   const guides = el("div", "jr-shortcuts");
   guides.append(button({ label:"ヘルプ・酒場の噂話", kind:"secondary", onTap:()=>UI.openHelp?.() }),
     UI.storyButton ? UI.storyButton() : button({ label:"ストーリー", kind:"secondary", onTap:()=>UI.openStoryArchive?.() }));
   mid.appendChild(guides);
   wrap.appendChild(mid);
   root.appendChild(wrap);
-  growTiles(mid);
-}
-
-// 背の高い画面で余った高さは街の札を背高にして埋める (札の下に空白の帯を残さない)
-function growTiles(mid) {
-  if (!mid || !mid.isConnected) return;
-  const tl = mid.querySelectorAll(".hb-tile");
-  const last = mid.lastElementChild;
-  if (!tl.length || !last) return;
-  const used = last.getBoundingClientRect().bottom - mid.getBoundingClientRect().top;
-  const spare = Math.floor(mid.clientHeight - used - 2);
-  if (spare < 8) return;
-  const h0 = tl[0].getBoundingClientRect().height;
-  const h = Math.min(144, Math.round(h0 + spare));
-  if (h <= h0) return;
-  for (const t of tl) t.style.height = h + "px";
 }
 
 export function install() {
