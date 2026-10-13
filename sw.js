@@ -186,6 +186,7 @@ const ASSETS = [
   "./art/story/dungeons/lore_ws15.webp",
   "./art/story/dungeons/lore_ws16.webp",
   "./art/story/dungeons/lore_ws17.webp",
+  "./art/story/dungeons/lore_w00_forest.webp",
   // <</STORY_ART>>
   "./src/ui/journal.js",
   "./src/joblore.js",
@@ -559,6 +560,9 @@ const ASSETS = [
   "./art/dungeon/crypt-gold.webp",
   "./art/dungeon/crypt-walker.webp",
   "./art/dungeon/crypt-materials.webp",
+  "./art/dungeon/w00_forest-materials.webp",
+  "./art/dungeon/w00_forest-floor.webp",
+  "./art/dungeon/w00_forest-entrance.webp",
   "./art/dungeon/w02-materials.webp",
   "./art/dungeon/w02-floor.webp",
   "./art/dungeon/w03-materials.webp",
