@@ -7046,7 +7046,7 @@ function seraRankUp() {
   if ((d.jobRank || 1) > before) showRankUp({ clsKey: "sera", fromRank: before, toRank: d.jobRank, toCount: s1.count, fromCap, toCap: soulLevelCapOf(s1) });
 }
 // 赤い魂1つで回復する安定度
-function stabilityPerRed() { return 1; }
+function stabilityPerRed() { return 5; }
 // 館の語り (イレーヌ): 要る手がかりを見つけていて、まだ語っていないもの
 //   beat = 先に語っておく語り (セラが目覚めてから、など)
 function pendingIreneBeat() {
@@ -12427,14 +12427,15 @@ function stabilityReady(retry, infinite = abyssActive()) {
   const low = stabilityStatus(infinite).filter(d=>d.value < STABILITY_ENTRY_COST);
   if (!low.length) return true;
   if (!retry) return false;
-  const cost = low.reduce((n,d)=>n+STABILITY_ENTRY_COST-d.value,0);
+  const missing = low.reduce((n,d)=>n+STABILITY_ENTRY_COST-d.value,0);
+  const cost = stabilityCost(missing);
   const options = [];
   if (G.redSoul >= cost) options.push({label:`赤い魂${cost}で不足分を購入して進む`, primary:true, fn:()=>{
     // 確認中の自然回復を差し引き、隊全員の不足分だけを一度に買う。
     const dolls = stabilityDolls(infinite);
     refreshStability();
     const changes = dolls.map(doll=>({doll,amount:Math.max(0,STABILITY_ENTRY_COST-doll.stability)})).filter(c=>c.amount);
-    const pay = changes.reduce((n,c)=>n+c.amount,0);
+    const pay = stabilityCost(changes.reduce((n,c)=>n+c.amount,0));
     if (G.redSoul < pay) { stabilityReady(retry, infinite); return; }
     G.redSoul -= pay;
     for (const c of changes) c.doll.stability += c.amount;
@@ -12451,7 +12452,7 @@ function stabilityReady(retry, infinite = abyssActive()) {
   }});
   options.push({label:"回復を待つ", fn:()=>{ autosave(true); }});
   showChoice("魂の安定度が足りない", options, null, {banner:"魂の安定度", onDismiss:()=>{},
-    lines:[...low.map(d=>`${d.name}: ${d.value}/${STABILITY_ENTRY_COST}`), `不足分は合計${cost}。赤い魂1で安定度1を購入できます (所持${G.redSoul})。広告視聴なら、隊全員の不足分を補って1回分進めます。`,
+    lines:[...low.map(d=>`${d.name}: ${d.value}/${STABILITY_ENTRY_COST}`), `不足分は合計${missing}。赤い魂1で安定度${stabilityPerRed()}を購入できます (端数は切り上げ) (所持${G.redSoul})。広告視聴なら、隊全員の不足分を補って1回分進めます。`,
       `4分で1回復します。全員が進めるまで約${Math.ceil(Math.max(...low.map(d=>d.waitMs))/60000)}分。回復後にもう一度進んでください。`]});
   return false;
 }
