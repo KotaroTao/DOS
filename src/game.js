@@ -13674,7 +13674,8 @@ function rollTavernCrowd() {
 function tavernCurrentCrowd() {
   return (G.tavernCrowd || []).flatMap((m) => {
     const t = m && TALK_MAP[m.id];
-    return t && !t.retired && tavernHintAllowed(t.req) ? [{ ...m, line: t.t, kind: t.k }] : [];
+    // 表示にも保存対象の参照を使い、初めて聞いた印を再描画・再開後まで残す。
+    return t && !t.retired && tavernHintAllowed(t.req) ? [Object.assign(m, { line: t.t, kind: t.k })] : [];
   });
 }
 // 顔ぶれの話を聞いた (顔ぶれを開いた時)。心得・言い伝えは「書き留めた話」に残す
@@ -13683,7 +13684,7 @@ function markTavernHeard(crowd = tavernCurrentCrowd()) {
   let added = 0;
   for (const m of crowd || []) {
     const t = m && m.id && TALK_MAP[m.id];
-    if (t && t.k !== "chat" && !h[t.id]) { h[t.id] = 1; m.fresh = 1; added++; } // fresh = 初めて聞いた話 (次に顔ぶれが替わるまで「初耳」)
+    if (t && t.k !== "chat" && !h[t.id]) { h[t.id] = 1; m.fresh = 1; added++; } // fresh = 初めて聞いた話 (次に顔ぶれが替わるまで「新規」)
   }
   if (added) autosave();
   return added;
