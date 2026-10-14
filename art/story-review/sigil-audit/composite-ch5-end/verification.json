@@ -1,0 +1,67 @@
+{
+  "scene": "ch5_end",
+  "authorization": [
+    "ユーザーがPR #961のmainマージ後、次の修正の実装を指示。",
+    "ユーザーがセラの背中の光るものは本来胸にあるため、背中には付けないよう追記。"
+  ],
+  "base_main": "2622a3d5",
+  "decision": "採用・ユーザー確認待ち（未承認）",
+  "forehead_bbox_xyxy": [
+    801,
+    502,
+    816,
+    526
+  ],
+  "forehead_changed_pixels": 212,
+  "back_bbox_xyxy": [
+    862,
+    587,
+    895,
+    645
+  ],
+  "back_changed_pixels": 1169,
+  "changed_pixels": 1381,
+  "outside_two_regions_rgb_identical": true,
+  "shield_rgb_identical": true,
+  "flags_rgb_identical": true,
+  "reference_crop_xyxy": [
+    608,
+    322,
+    927,
+    771
+  ],
+  "crest_nominal_size": [
+    13,
+    19
+  ],
+  "crest_rotation_degrees": -8,
+  "supersampling": 4,
+  "crest_paste_xy": [
+    801,
+    505
+  ],
+  "candidate_1_decision": "髪際へ重なるため不採用。原画は保持して木面内へ修正。",
+  "files": {
+    "master": {
+      "path": "art/story-review/chapter5/ch5_end.png",
+      "sha256": "2650cb7053871834fd29ebb1b658c87c6f0b6e0d793d753462dc5094f29f00e3"
+    },
+    "before": {
+      "path": "art/story-review/fixes/ch5_end-sigil-back-python-before.png",
+      "sha256": "ec3777ae67fa8a1164096a6d60aad70bc9a6f9d467e9ab395ab888f179a1daf0"
+    },
+    "reference": {
+      "path": "docs/art/story-refs/sigil.png",
+      "sha256": "7dfeb2dbb8eb7091557e1dd3f387b963b64b2fa4a20848c1c18734167fe47b6b"
+    },
+    "shipped": {
+      "path": "art/story/chapter5/ch5_end.webp",
+      "sha256": "6a016c9e771aa15e19405883caa0277d9e9b450cc120abbc208485d3ff3c5699"
+    },
+    "rejected_candidate_1": {
+      "path": "art/story-review/sigil-audit/composite-ch5-end/candidate-1-rejected.png",
+      "sha256": "3218a30e3e255e40b5980d661be975ad3092b14799581d544d028ccb1e7702a5"
+    }
+  },
+  "latest_main_before_pr": "03054f18"
+}
