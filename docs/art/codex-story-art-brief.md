@@ -429,7 +429,7 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 ...except: replace ONLY the small gold crest at the CENTER OF SERA'S FOREHEAD with the approved geometric crest. Keep its existing small scale and gold material, following the plane of her forehead. Preserve her exact face, eyes, expression, hair and anatomy. Also replace ONLY the small gold crest already shown on the inner elbow joint at the center of the picture with the same approved geometric crest, at its existing position and scale. Do not change any joint or hand anatomy. Use the approved geometric crest exactly as the second reference: an angular cupped palm, ONE thumb projection on the LEFT, THREE parallel slanted finger projections on the RIGHT, a short wrist below, and ONE separate teardrop flame above. Do not add a fourth finger on the right. Do not use a cup-shaped hand with upright stubs, a star, a flower, a realistic hand, or multiple flames.
 ```
 
-**A-29. 一門の印の局所修正 irene_order** `art/story-review/chapter7/irene_order.png`
+**A-29. 一門の印の局所修正 irene_order (済)** `art/story-review/chapter7/irene_order.png`
 - 根拠と判定: 原寸で額の印が杯状の掌と上向きの短い突起の形。基準の角張った斜めの掌・右の平行な指3本へ額のみ修正。関節内側が隠れる箇所は追加しない。
 - 保つもの: 印以外の人物・顔・目・衣装・部品・構図・光。要確認の箇所は変更しない。
 ```text
