@@ -1178,7 +1178,7 @@ function emptyState() {
 
 // ---- 砕けた人業の知らせ (1行) ----
 // 全滅で迷宮に残された器は連れ帰りを待つ (赤い魂で早められる)。街にある器は、選んで「砕けた魂を修復」
-const waiting = (d) => !!(d && !d.alive && d.reviveAt);
+const waiting = (d) => game.awaitingRepairRescue ? game.awaitingRepairRescue(d) : !!(d && !d.alive && d.reviveAt);
 function deadBanner(mode) {
   const G = G_();
   // 迷宮の中: 修復も連れ帰りの時も進まない。隊の砕けた数だけ知らせる
@@ -2080,10 +2080,11 @@ function rescueLine(d) {
       lines: [`金貨 💰${cost} ・ HP/MP 満タンで立ち上がる`, `所持: 💰${G.gold || 0}`],
       okLabel: "修復する", danger: false })
       .then((ok) => { if (!ok) return; if (game.repairDoll) game.repairDoll(d); rerender(); }) }));
-  const dead = (game.allDolls ? game.allDolls() : []).filter((m) => m.isDoll && !m.alive && !waiting(m));
+  const broken = (game.allDolls ? game.allDolls() : []).filter((m) => m.isDoll && !m.alive);
+  const dead = broken.filter((m) => !waiting(m));
   if (dead.length > 1) {
     const total = dead.reduce((sum, m) => sum + game.repairCostOf(m), 0);
-    actions.appendChild(button({ label: "全員を修復", kind: "primary", size: "sm", cost: { kind: "gold", n: total }, disabled: (G.gold || 0) < total,
+    actions.appendChild(button({ label: dead.length < broken.length ? `届いた${dead.length}体を修復` : "全員を修復", kind: "primary", size: "sm", cost: { kind: "gold", n: total }, disabled: (G.gold || 0) < total,
       onTap: () => { if (game.repairAllDolls) game.repairAllDolls(); rerender(); } }));
   }
   box.appendChild(actions);
