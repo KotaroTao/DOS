@@ -759,6 +759,7 @@ const ASSETS = [
   "./src/ui/tutorial.js",
   "./src/ui/reforge.js",
   "./src/ui/infinite.js",
+  "./src/ui/infmemory.js",
   "./src/ui/discard.js",
   "./src/ui/jobgallery.js",
   "./src/dungeons/schema.js",

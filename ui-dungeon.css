@@ -745,3 +745,96 @@ button.dp-rule:active, .dp-rule-b:active { filter: brightness(1.25); }
 .inf-sell-r .ui-btn { width: auto; min-width: 64px; }
 .inf-held { color: var(--accent-hi); font-weight: 700; }
 .inf-held.none { color: var(--ink-dim); font-weight: 400; }
+
+/* 魂の記憶: 同じ器・同じ部位の前後を並べ、本文だけをスクロールする。 */
+.ui-sheet.inf-sheet { min-width: 0; }
+.inf-sheet .ui-row-title { white-space: normal; overflow-wrap: anywhere; }
+.inf-sheet .ui-row-sub { line-height: 1.6; }
+.inf-sheet .ui-sheet-foot .ui-btn { min-height: 44px; }
+.inf-sheet .ui-sheet-foot { padding-bottom: max(14px,env(safe-area-inset-bottom)); }
+.inf-pk { min-width: 0; }
+.inf-pk-n { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.inf-sell-r { gap: 6px; }
+.inf-vessel-a .ui-btn { min-height: 44px; }
+.inf-vessels { display: grid; gap: 10px; }
+.inf-vessels .inf-vessel { margin: 0; }
+.ui-sheet.inf-memory-sheet { max-width: 1040px; }
+.inf-memory-sheet .ui-sheet-body { overflow-x: hidden; }
+.inf-memory-destination { margin: 4px 0 8px; color: #b8a9e7; font-size: 13px; font-weight: 700; }
+.inf-memory-help { margin: 12px 0 4px; padding: 4px 10px; border: 1px solid #413449; border-radius: 5px; background: #18131c; }
+.inf-memory-help summary { min-height: 44px; display: list-item; align-content: center; cursor: pointer; font-size: 12px; color: #d4c5e8; }
+.inf-memory-help summary:focus-visible { outline: 2px solid #c9a24a; outline-offset: 3px; }
+.inf-memory-party, .inf-memory-list { display: grid; gap: 12px; margin: 12px 0; align-items: start; }
+.inf-memory-list .ui-row { margin: 0; }
+.inf-memory-member { min-width: 0; padding: 12px; margin: 12px 0; border: 1px solid #4a3a50; border-radius: 6px; background: linear-gradient(150deg, #201923, #151018); }
+.inf-memory-party .inf-memory-member { margin: 0; }
+.inf-memory-member-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.inf-memory-member-head > div { min-width: 0; }
+.inf-memory-face { display: inline-flex; align-items: center; flex: 0 0 auto; }
+.inf-memory-name { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 10px; font-size: 15px; line-height: 1.5; color: #eee0c7; overflow-wrap: anywhere; }
+.inf-memory-member-head .inf-memory-name { margin-bottom: 3px; }
+.inf-memory-status { flex: 0 0 auto; font-size: 11px; font-weight: 500; color: #b8a9e7; }
+.inf-memory-small, .inf-memory-affix { margin-top: 4px; font-size: 12px; line-height: 1.7; color: #c5b7d0; }
+.inf-memory-affix { color: #dbc582; }
+.inf-memory-muted { color: #a69aa9; font-size: 12px; }
+.inf-memory-label { font-size: 12px; color: #c7bba7; line-height: 1.6; }
+.inf-memory-saved-gear { display: grid; grid-template-columns: 58px minmax(0,1fr); gap: 8px; margin: 10px 0; }
+.inf-memory-equipment { margin: 10px 0; border-top: 1px solid #413348; }
+.inf-memory-equipment summary { min-height: 44px; align-content: center; cursor: pointer; font-size: 12px; color: #dbc582; }
+.inf-memory-equipment summary:focus-visible { outline: 2px solid #c9a24a; outline-offset: 2px; }
+.inf-memory-summary { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; margin: 12px 0 8px; }
+.inf-memory-summary > div { display: flex; flex-direction: column; gap: 2px; align-items: center; padding: 9px 4px; border: 1px solid #554263; background: #251b2c; border-radius: 5px; }
+.inf-memory-summary strong { font-size: 24px; color: #ddcbfa; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.inf-memory-summary span { font-size: 11px; color: #d5c6de; text-align: center; }
+.inf-memory-toolbar { position: sticky; top: -2px; z-index: 2; display: flex; flex-direction: column; gap: 6px; padding: 6px 0; background: #18121c; box-shadow: 0 5px 8px #18121c; }
+.inf-memory-filter { width: 100%; }
+.inf-memory-filter .ui-btn { width: auto; padding: 8px; letter-spacing: .04em; }
+.inf-memory-legend { text-align: center; font-size: 11px; color: #bbaaC8; }
+.inf-memory-group { margin: 12px 0 0; }
+.inf-memory-group-title { font-size: 12px; color: #b8a9e7; margin: 0; padding: 6px 0; }
+.inf-memory-row { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); border-top: 1px solid #3c3042; }
+.inf-memory-row > .inf-memory-label { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 8px 6px 4px; font-weight: 700; }
+.inf-memory-value { min-width: 0; padding: 6px; line-height: 1.6; font-size: 13px; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.inf-memory-value.after { border-left: 1px solid #413348; background: #281e31; }
+.inf-memory-cell-label { display: block; margin-bottom: 3px; font-size: 10px; color: #aa9eb5; }
+.inf-memory-value-text { display: block; }
+.inf-memory-value-title { font-size: 13px; font-weight: 700; color: #e6d8ef; }
+.inf-memory-job { display: flex; align-items: center; gap: 6px; min-width: 0; flex-wrap: wrap; }
+.inf-memory-job > span:last-child { flex: 1 1 70px; }
+.inf-memory-delta { display: inline-block; flex: 0 0 auto; padding: 1px 6px; border-radius: 3px; background: #382941; color: #d3bdf0; font-size: 11px; font-weight: 700; }
+.inf-memory-delta.up { color: #a8e0b0; background: #233b2c; }
+.inf-memory-delta.down { color: #ffc1ac; background: #492b27; }
+.inf-memory-comparison:not(.show-all) .same { display: none; }
+.inf-memory-gear { min-width: 0; }
+.inf-memory-item.ui-btn { display: flex; align-items: flex-start; justify-content: flex-start; gap: 6px; min-height: 44px; padding: 6px 0; width: 100%; text-align: left; font-size: 12px; letter-spacing: 0; }
+.inf-memory-item .ui-btn-l { min-width: 0; white-space: normal; overflow-wrap: anywhere; line-height: 1.6; text-decoration: underline; text-underline-offset: 3px; }
+.inf-memory-item > :first-child:not(.ui-btn-l) { flex: 0 0 28px; }
+.inf-memory-item:focus-visible { outline: 2px solid #e0bc65; outline-offset: 2px; }
+@media (min-width: 600px) {
+  .ui-sheet.inf-sheet { max-width: 820px; width: calc(100% - 32px); max-height: calc(100dvh - 32px); margin-bottom: 16px; border-radius: 8px; }
+  .ui-sheet.inf-memory-sheet { max-width: 1040px; }
+  .inf-memory-party, .inf-memory-list { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .inf-vessels { grid-template-columns: repeat(2,minmax(0,1fr)); align-items: start; }
+  .inf-memory-sheet .ui-sheet-foot { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .inf-memory-sheet .ui-sheet-foot > :only-child { grid-column: 1 / -1; }
+  .inf-memory-row { grid-template-columns: 120px repeat(2,minmax(0,1fr)); }
+  .inf-memory-row > .inf-memory-label { grid-column: auto; padding: 10px 6px; flex-direction: column; align-items: flex-start; justify-content: center; }
+  .inf-memory-value { padding: 10px 12px; }
+  .inf-memory-name { font-size: 17px; }
+  .inf-memory-filter { max-width: 280px; }
+  .inf-memory-toolbar { flex-direction: row; align-items: center; justify-content: space-between; }
+  .inf-memory-summary > div { flex-direction: row; justify-content: center; gap: 10px; }
+  .inf-memory-cell-label { font-size: 11px; }
+}
+@media (max-width: 359px) {
+  .inf-memory-member { padding: 8px; }
+  .inf-memory-value { padding: 5px; }
+  .inf-memory-name { font-size: 13px; }
+  .inf-memory-sheet .ui-sheet-body, .inf-memory-sheet .ui-sheet-foot { padding-left: 10px; padding-right: 10px; }
+  .inf-sell-r { flex-direction: column; gap: 2px; }
+}
+@media (max-height: 600px) {
+  .ui-sheet.inf-sheet { max-height: calc(100dvh - 12px); }
+  .inf-sheet .ui-sheet-foot { gap: 4px; padding-top: 6px; padding-bottom: max(6px,env(safe-area-inset-bottom)); }
+  .inf-memory-sheet .ui-sheet-foot .ui-btn { min-height: 44px; padding-top: 6px; padding-bottom: 6px; }
+}
