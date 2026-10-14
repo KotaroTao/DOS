@@ -122,26 +122,6 @@ export function toastNewSkills(d, keys) {
 }
 
 // ================= 魂の区分 =================
-// 館の最初の画面: 詳細の区分によらず、育成と付け替えをすぐ使える。
-export function renderSoulOverview(root, d, onChange) {
-  const pe = d.primary != null ? soulByUid(d.primary) : null;
-  const box = el("section", "pt-soul-overview");
-  const acts = el("div", "pt-growth-actions");
-  const cap = pe ? soulLevelCapOf(pe) : 0;
-  acts.appendChild(button({ label: "魂を強化", kind: "primary", size: "sm",
-    disabled: !pe || pe.level >= cap,
-    onTap: () => openTrainSheet(pe.uid, onChange) }));
-  acts.appendChild(button({ label: "Lv上限を上げる", kind: "secondary", size: "sm",
-    disabled: !pe, onTap: () => confirmRaiseCap(pe, onChange) }));
-  box.appendChild(acts);
-  const more = el("div", "sp-more");
-  if (pe) more.appendChild(mainTile(d, pe, true));
-  else more.appendChild(button({ label: "メイン魂を宿す", kind: "primary", size: "sm", onTap: () => openSoulPicker(d, "primary") }));
-  subTiles(more, d, true);
-  box.appendChild(more);
-  root.appendChild(box);
-}
-
 export function renderSoulSeg(root, d, ctx = {}) {
   const town = ctx.mode === "town";
   const pe = d.primary != null ? soulByUid(d.primary) : null;
@@ -158,7 +138,7 @@ export function renderSoulSeg(root, d, ctx = {}) {
 }
 // メイン魂のタイル (サブ魂と同じ形)。押すと魂の付け替え (手ほどき「魂の付け替え」が .sp-change を光らせる)
 function mainTile(d, pe, town) {
-  if (!soulChangeVisible()) return lockedTile("メイン魂", `${jobRankName(pe.clsKey, soulRankOf(pe))}・付け替えは未解放`);
+  if (!soulChangeVisible()) return lockedTile("未解放", "？？？");
   const tile = el("div", "sp-tile sp-main");
   const main = el(town ? "button" : "div", "sp-tile-main");
   if (town) main.type = "button";
