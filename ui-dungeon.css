@@ -78,9 +78,7 @@
 .dk-tag .dk-ic { display: block !important; width: 22px; height: 22px; }
 .dk-sl { max-width: 100%; overflow: hidden; font-size: 10.5px; font-weight: 800; letter-spacing: 0; white-space: nowrap; line-height: 1.1; text-shadow: 0 1px 0 #000; }
 #hint.dg-dock .dk-down.dk-tag { flex: 1 1 auto; }
-/* 気配読み = 赤 (魔物の気配) / 宝探し = 青 (宝箱) に灯る (浮遊・道しるべは .dk-float.on の青緑) */
-.dk-float.k-enemy.on { color: #ffc4bb; border-color: #8a3a32; box-shadow: inset 0 1px 0 rgba(255,200,190,0.12), inset 0 -2px 0 rgba(0,0,0,0.6), 0 0 0 1px rgba(255,70,50,0.22), 0 3px 0 #070507, 0 0 14px rgba(255,60,40,0.3); }
-.dk-float.k-enemy.on .dk-s { color: #e0a49a; }
+/* 宝探し = 青 (宝箱) に灯る (浮遊・道しるべは .dk-float.on の青緑) */
 .dk-float.k-chest.on { color: #c4dcff; border-color: #3a5a8a; box-shadow: inset 0 1px 0 rgba(200,220,255,0.12), inset 0 -2px 0 rgba(0,0,0,0.6), 0 0 0 1px rgba(80,150,255,0.22), 0 3px 0 #070507, 0 0 14px rgba(70,140,255,0.3); }
 .dk-float.k-chest.on .dk-s { color: #9ab8e0; }
 /* オート移動: いつも札の形で右端。ON の間は琥珀色に灯って脈打つ */

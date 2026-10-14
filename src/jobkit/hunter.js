@@ -18,8 +18,8 @@ export default {
   skills: {
     // Lv15 の固有技: 間を置かず二の矢を継ぐ確実な連射
     HUNTER_NINOYA: { name: "二の矢", mp: 5, kind: "phys", power: 0.85, hits: 2, acc: 0.16, agiScale: 0.3, target: "enemy", desc: "間を置かずに二の矢を継ぎ、確実に射抜く（AGIで伸びる）" },
-    // 迷宮で唱える術: 獣を追う勘で、この階の魔物の居場所を赤い気配として浮かび上がらせる
-    HUNTER_KEHAIYOMI:    { name: "気配読み", mpPct: 0.3, mp: 4, kind: "field", sense: "enemy", target: "all-ally", desc: "この階の魔物の居場所が、伏せたカードの赤い気配として浮かび上がる。何が潜むかまでは分からない（迷宮で唱える。効くのはこの階だけ）" },
+    // Lv22 の風の射撃。既存セーブの習得・宿し技を保つため、旧「気配読み」のキーを維持する
+    HUNTER_KEHAIYOMI:    { name: "追い風の矢", mp: 6, kind: "phys", power: 1.4, agiScale: 0.5, acc: 0.2, element: "wind", target: "enemy", desc: "追い風に乗せた矢で敵一体を射抜く（風・AGIで伸びる・命中率+20%）" },
     HUNTER_HAYATEYA:     { name: "疾風の一矢", mp: 9, kind: "phys", power: 1.3, agiScale: 0.9, acc: 0.1, element: "wind", target: "enemy", desc: "風に乗せた速射（風・命中率+10%）" },
     HUNTER_KABURAYA:     { name: "鏑矢三連", mp: 14, kind: "phys", power: 0.95, hits: 3, agiScale: 0.35, flinchChance: 0.35, target: "enemy", desc: "鳴り響く三矢で射抜き、怯ませる" },
     HUNTER_TORABASAMI:   { name: "虎挟み", mp: 16, kind: "phys", power: 2.6, acc: 0.13, para: 0.35, debuff: { agi: 0.75 }, target: "enemy", desc: "鋼の罠で脚を噛み、痺れさせる" },

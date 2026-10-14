@@ -128,7 +128,7 @@ function checkSkill(job, key, sp) {
   if (sp.bladeHeal != null && (sp.kind !== "phys" || !(sp.bladeHeal > 0 && sp.bladeHeal < 1))) fail(job, key, "bladeHeal は物理技の 0〜1");
   if (sp.kind === "phys" && sp.partyHeal) fail(job, key, "物理技の隊回復は bladeHeal (与ダメの割合) で書く");
   if (sp.kind === "heal" && sp.power > 0 && (sp.healMul || sp.healPct || sp.bodyHeal)) fail(job, key, "回復量は power か healMul/healPct/bodyHeal のどちらか");
-  if (sp.kind === "field" && !sp.float && !["enemy", "chest", "stairs"].includes(sp.sense)) fail(job, key, "迷宮で唱える技には効果 (float / sense) が必要");
+  if (sp.kind === "field" && !sp.float && !["chest", "stairs"].includes(sp.sense)) fail(job, key, "迷宮で唱える技には効果 (float / sense) が必要");
 }
 function checkPerk(job, key, pk) {
   if (!/^[a-z][A-Za-z0-9]+$/.test(key)) fail(job, key, "パッシブキーは英小文字始まり");
