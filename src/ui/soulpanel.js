@@ -135,6 +135,22 @@ export function renderSoulSeg(root, d, ctx = {}) {
   if (fz) { const acts = el("div", "sp-row2"); acts.appendChild(fz); root.appendChild(acts); }
   if (!town) root.appendChild(el("div", "pt-note c", game.featureUnlocked?.("soulChange") ? "魂の付け替え・強化は、街へ戻ってから。" : "魂の強化は、街へ戻ってから。"));
 }
+// 機能名は解放まで伏せる。専用の解放キーがない操作は既存の手ほどき・入手履歴で判定する。
+export function mansionControlUnlocked(key) {
+  const G = G_() || {}, tut = G.tut || {}, done = tut.done || {};
+  if (key === "formation") return !game.prologueActive?.() || game.prologuePhase?.() === "formation" || tut.cur === "prologueFormation" || !!done.prologueFormation;
+  if (key === "soulList") return soulChangeVisible() || !!game.featureUnlocked?.("fusion");
+  if (key === "train") return tut.cur === "trainSoul" || !!done.trainSoul || !!tut.trainPending || (G.soulPts || 0) > 0 || (G.souls || []).some(s => s.level > 1);
+  if (key === "ember") return (G.embers || 0) > 0 || (G.souls || []).some(s => s.capBonus > 0);
+  return !!game.featureUnlocked?.(key);
+}
+export function lockedControl(className = "") {
+  const b = button({ label: "未解放", kind: "secondary", size: "sm", disabled: true });
+  b.classList.add("sp-locked-control");
+  if (className) b.classList.add(...className.split(" "));
+  return b;
+}
+
 // 手ほどき中は一覧の確認だけ許す。実際の付け替えは完了後に解放する。
 function soulChangeVisible() {
   return !!game.featureUnlocked?.("soulChange") || G_()?.tut?.cur === "soulChange";
@@ -196,7 +212,7 @@ function mainCard(d, pe, town) {
       change.classList.add("sp-change");
       if (fixed) change.title = "セラのメイン魂は付け替え不可";
       levelRow.appendChild(change);
-    } else levelRow.appendChild(lockedTile("未解放", "？？？"));
+    } else levelRow.appendChild(lockedControl());
   }
   head.appendChild(levelRow);
 
@@ -215,7 +231,8 @@ function mainCard(d, pe, town) {
   if (town) {
     const acts = el("div", "sp-acts");
     let extra = null;
-    if (pe.level < cap) {
+    if (!mansionControlUnlocked("train")) acts.appendChild(lockedControl());
+    else if (pe.level < cap) {
       const plan = trainPlan(pe);
       acts.appendChild(button({ label: "魂を強化", sub: `Lv${pe.level} → ${pe.level + 1}`, kind: "primary", cost: { kind: "soul", n: plan.next },
         disabled: (G.soulPts || 0) < plan.next, onTap: () => train(pe.uid, 1) }));
@@ -226,11 +243,13 @@ function mainCard(d, pe, town) {
     } else {
       acts.appendChild(button({ label: "魂を強化", sub: "Lv上限", kind: "primary", disabled: true }));
     }
-    const need = emberCostOf(pe.clsKey);
-    const em = button({ label: `残火 ${G.embers || 0}`, sub: "Lv上限+1", kind: "secondary", size: "sm",
-      cost: { kind: "ember", n: need }, disabled: (G.embers || 0) < need, onTap: () => confirmRaiseCap(pe) });
-    em.classList.add("sp-ember-b");
-    acts.appendChild(em);
+    if (mansionControlUnlocked("ember")) {
+      const need = emberCostOf(pe.clsKey);
+      const em = button({ label: `残火 ${G.embers || 0}`, sub: "Lv上限+1", kind: "secondary", size: "sm",
+        cost: { kind: "ember", n: need }, disabled: (G.embers || 0) < need, onTap: () => confirmRaiseCap(pe) });
+      em.classList.add("sp-ember-b");
+      acts.appendChild(em);
+    } else acts.appendChild(lockedControl());
     card.appendChild(acts);
     appendSubTiles(card, d, town);
     if (extra) { const row = el("div", "sp-row2"); row.appendChild(extra); card.appendChild(row); }
@@ -305,14 +324,14 @@ function fuseButton(pe, town) {
   const worn = (uid) => allDolls().some((d) => d.primary === uid || (d.subs || []).some((s) => s && s.uid === uid));
   const spare = G.souls.filter((s) => s.uid !== pe.uid && s.clsKey === pe.clsKey && !worn(s.uid) && !s.locked);
   if (!spare.length) return null;
-  const open = game.featureUnlocked ? game.featureUnlocked("fusion") : false;
-  const b = el("button", "sp-btn sp-fuse" + (open ? " hot" : " locked"));
+  if (!game.featureUnlocked?.("fusion")) return lockedControl();
+  const b = el("button", "sp-btn sp-fuse hot");
   b.type = "button";
   const t = el("span", "sp-btn-t");
   t.appendChild(el("span", "sp-btn-l", `魂融合 ×${spare.length}`));
-  t.appendChild(el("span", "sp-btn-s", open ? "同じ魂が余っている" : "5 迷宮の踏破報告で開く"));
+  t.appendChild(el("span", "sp-btn-s", "同じ魂が余っている"));
   b.appendChild(t);
-  if (!open || !town) b.disabled = true;
+  if (!town) b.disabled = true;
   b.addEventListener("click", () => openFusePicker(pe.uid));
   return b;
 }
@@ -320,11 +339,8 @@ function fuseButton(pe, town) {
 // ---- サブ魂 (宿し技) のタイル ----
 function subTiles(more, d, town) {
   const n = game.unlockedSubSlots ? game.unlockedSubSlots() : 0;
-  if (!n) {
-    more.appendChild(lockedTile("未解放", "？？？"));
-    return;
-  }
-  for (let i = 0; i < n; i++) {
+  for (let i = 0; i < 2; i++) {
+    if (i >= n) { more.appendChild(lockedControl()); continue; }
     const sub = (d.subs || [])[i] || null;
     const se = sub ? soulByUid(sub.uid) : null;
     const tile = el("div", "sp-tile sp-sub" + (se ? "" : " empty"));
@@ -376,18 +392,6 @@ function borrowList(sub, se) {
     .map((p) => ({ passive: !!p.passive, name: p.passive ? passiveName(p.passive, lp[p.passive] || 1) : SPELLS[p.skill] ? SPELLS[p.skill].name : p.skill }));
   return { picks, cap };
 }
-function lockedTile(k, text) {
-  const t = el("div", "sp-tile locked");
-  const m = el("div", "sp-tile-main");
-  m.appendChild(el("span", "sp-tile-k", k));
-  const s = el("span", "sp-tile-s");
-  s.appendChild(svgIcon("chain", "sp-lock-ic"));
-  s.appendChild(document.createTextNode(text));
-  m.appendChild(s);
-  t.appendChild(m);
-  return t;
-}
-
 // ---- 控えの結社: タイル (席の数・全員への上乗せ) → シート ----
 // 席の魂の能力の一部 (魂ランクで R1 3% 〜 R5 8%) が人業の全員に加わる。技・パッシブは関係しない (souls.js orderStatBonus)
 const ORDER_RATE_TEXT = `R1 ${Math.round(ORDER_STAT_RATES[1] * 100)}% 〜 R5 ${Math.round(ORDER_STAT_RATES[5] * 100)}%`;
