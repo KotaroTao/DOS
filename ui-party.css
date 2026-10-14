@@ -1302,3 +1302,18 @@ button.sp-lu-next { cursor: pointer; }
   .sp-head-actions .sp-lv-n b { font-size: 20px; }
   .pt-overview .pt-stat { min-height: 56px; }
 }
+
+/* メイン魂と魂名の2行をLvが受け、交換は魂名とランクの2行に沿って右へ置く。 */
+.sp-card > .sp-head { --soul-name-col: 2; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; column-gap: 6px; row-gap: 2px; }
+.sp-card > .sp-head > .sp-orb { grid-column: 1; grid-row: 1 / 4; }
+.sp-card > .sp-head .sp-head-tx, .sp-card > .sp-head .sp-head-actions { display: contents; }
+.sp-card > .sp-head .sp-card-k { grid-column: var(--soul-name-col); grid-row: 1; }
+.sp-card > .sp-head .sp-name { grid-column: var(--soul-name-col); grid-row: 2; }
+.sp-card > .sp-head .sp-meta { grid-column: var(--soul-name-col) / span 2; grid-row: 3; }
+.sp-card > .sp-head .sp-lv-n { grid-column: calc(var(--soul-name-col) + 1); grid-row: 1 / 3; align-self: center; }
+.sp-card > .sp-head .sp-head-actions > .ui-btn,
+.sp-card > .sp-head .sp-head-actions > .sp-tile { grid-column: calc(var(--soul-name-col) + 2); grid-row: 2 / 4; margin-left: 0; align-self: center; }
+@media (max-width: 600px) {
+  .sp-card > .sp-head { --soul-name-col: 1; grid-template-columns: minmax(0, 1fr) auto auto; }
+  .sp-card > .sp-head .sp-head-actions > .ui-btn { padding: 2px 6px; font-size: 12px; }
+}

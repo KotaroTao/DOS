@@ -226,7 +226,7 @@ function mainCard(d, pe, town) {
       acts.appendChild(button({ label: "魂を強化", sub: "Lv上限", kind: "primary", disabled: true }));
     }
     const need = emberCostOf(pe.clsKey);
-    const em = button({ label: `残火 ${G.embers || 0}`, sub: `上限 +1${pe.capBonus ? `（済 +${pe.capBonus}）` : ""}`, kind: "secondary", size: "sm",
+    const em = button({ label: `残火 ${G.embers || 0}`, sub: "Lv上限+1", kind: "secondary", size: "sm",
       cost: { kind: "ember", n: need }, disabled: (G.embers || 0) < need, onTap: () => confirmRaiseCap(pe) });
     em.classList.add("sp-ember-b");
     acts.appendChild(em);
