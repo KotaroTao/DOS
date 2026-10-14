@@ -1,0 +1,34 @@
+{
+  "id": "irene_rest",
+  "size": [
+    1536,
+    1024
+  ],
+  "before_sha256": "733173d82570de84c72a21a01f02c525e8675a30b43d0f2945003fe79e7b294d",
+  "canonical_sha256": "7dfeb2dbb8eb7091557e1dd3f387b963b64b2fa4a20848c1c18734167fe47b6b",
+  "master_sha256": "45f3a757a9fbe93ceb0ea61d6315ecbb12f15d3217573cefa2f0dac0bc9e20f0",
+  "candidate_sha256": "45f3a757a9fbe93ceb0ea61d6315ecbb12f15d3217573cefa2f0dac0bc9e20f0",
+  "webp_sha256": "3f4d503a0dbf9d4ca35f5ef79cc49f92128935a3506e9e51bcd20cf2ae2e3b5a",
+  "changed_rgb_pixels": 352,
+  "allowed_region_xyxy_exclusive": [
+    441,
+    296,
+    467,
+    326
+  ],
+  "changed_bbox_xyxy_exclusive": [
+    443,
+    299,
+    464,
+    325
+  ],
+  "outside_region_rgb_identical": true,
+  "outside_region_pixels": 1572084,
+  "all_153_current_hashes_match": true,
+  "below_y326_rgb_identical_including_legs_chest_lid": true,
+  "initial_main_updated_ids_rechecked": [],
+  "previous_pr": 995,
+  "previous_merge_commit": "ad43ced918e9b26566d9c0cfbe56b995d6a05537",
+  "visual_review": "正本の角張った掌・左親指1本・右指3本・短い手首・独立した炎1つ。額中央の小さい金の印。旧印を除去、顔・目・髪・手・胸の灯を保持。WebPも原画と拡大比較し、右指3本と独立した炎を保持していることを目視確認。",
+  "pending": "ユーザー確認・mainへのマージ待ち。要確認9枚とch5_endの盾・irene_restの蓋の金の図形は従来の根拠不足の理由で保留。"
+}
