@@ -458,7 +458,7 @@ function renderStability(b, explain = true) {
   if (cur?.page !== "rematch" && game.stabilityApplies && !game.stabilityApplies()) return;
   const status = game.stabilityStatus();
   b.appendChild(sec("魂の安定度", `入場時 −${game.STABILITY_ENTRY_COST}／人`));
-  if (explain) b.appendChild(el("div","dp-brief-l",`上限100。入場時に${game.STABILITY_ENTRY_COST}消費し、${game.stabilityMinutes ? game.stabilityMinutes() : 4}分ごとに1回復。控えやゲームを閉じている間も回復します。5階ごとに次の階へ進む時も各人30消費します。不足分は赤い魂1で安定度1を購入して進めます。`));
+  if (explain) b.appendChild(el("div","dp-brief-l",`上限100。入場時に${game.STABILITY_ENTRY_COST}消費し、${game.stabilityMinutes ? game.stabilityMinutes() : 4}分ごとに1回復。控えやゲームを閉じている間も回復します。5階ごとに次の階へ進む時も各人30消費します。不足分は赤い魂1で安定度1を購入するか、広告視聴で隊全員の不足分を補って1回分進めます。`));
   for (const d of status) {
     const line=el("div","dp-stability-row");
     const wait=d.value<game.STABILITY_ENTRY_COST ? ` ・ 入場まで約${Math.ceil(d.waitMs/60000)}分` : "";
@@ -534,7 +534,7 @@ function openBriefing(go) {
       for(const text of ["この先へ入ると魂と人業の結びつきが揺らぎます。その状態を示すのが『魂の安定度』です。",
         `安定度の上限は100です。入場時に人業ごとに${game.STABILITY_ENTRY_COST}消費します。5階ごとに次の階へ進む時も、一人につき30消費します。`,
         "安定度は4分ごとに1回復します。ゲームを閉じている間も同じです。",
-        `不足分は赤い魂1で安定度1を購入し、そのまま進めます。安定度が${game.STABILITY_ENTRY_COST}未満の人業がいる場合は、購入するか、4分で1回復するのを待ってください。`,
+        `不足分は赤い魂1で安定度1を購入し、そのまま進めます。安定度が${game.STABILITY_ENTRY_COST}未満の人業がいる場合は、購入するか、広告視聴で隊全員の不足分を補って1回分進むか、4分で1回復するのを待ってください。`,
         ...(!G().dungeonBriefed ? game.DUNGEON_BRIEFING || [] : [])])b.appendChild(setText(el("div","dp-brief-l"),text));
       renderStability(b, false);
     },
@@ -573,7 +573,7 @@ function renderAbyssPage(b) {
     "拾った魂 ― ＋1 の素材として本編の魂に加わる (Lv は残らない)。",
     "拾った品 ― 手元には届かず、商会の棚に並ぶ。",
     "拾った魂の残火 ― 拾った数だけ本編へ。",
-    "最初に宿した欠片・金貨・✦Soul は持ち帰れない。全滅したら、赤い魂 (全滅した階の数・上限100) を払った時だけ持ち帰れる。",
+    "最初に宿した欠片・金貨・✦Soul は持ち帰れない。全滅したら、赤い魂20または広告視聴で持ち帰れる。",
   ]) b.appendChild(el("div", "dg-line", t));
   b.appendChild(sec("そなたの記録"));
   const t = el("div", "dg-tally");
@@ -593,7 +593,7 @@ function renderAbyssPage(b) {
   }
   if ((rec.recent || []).length) {
     b.appendChild(sec("直近の挑戦"));
-    const OUT = { return: "帰還", saved: "全滅 (赤い魂で持ち帰り)", wipe: "全滅" };
+    const OUT = { return: "帰還", saved: "全滅 (戦利品を保護)", wipe: "全滅" };
     for (const r of rec.recent.slice(0, 5)) b.appendChild(el("div", "dg-line", `B${r.depth}F ・ ${OUT[r.outcome] || r.outcome}`));
   }
 }

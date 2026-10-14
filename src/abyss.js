@@ -17,7 +17,7 @@ export const INF_REST_EVERY = 5;   // 風だまり (回収人・灯番) と主�
 export const INF_HAZ_FROM = 6;     // 落ちる床・蝕む床が出始める階
 export const INF_MIN_PER_FLOOR = 3; // 1階の長さの見込み (分)。育つ速さの計算に使う
 export const INF_PARTY = 6;        // 仮の器の数
-export const INF_RED_MAX = 100;    // 全滅の時に払う赤い魂の上限
+export const INF_RED_MAX = 20;     // 全滅の時に払う赤い魂 (本編と同じ固定額)
 
 // ===== 深さごとの推奨Lv (仮の表 — テストプレイで直す。直すのはここだけ) =====
 // [階, 推奨Lv]。間は直線で結び、最後の行より深い階は1階ごとに +1
@@ -60,8 +60,8 @@ export function infEnemyMul(f) {
   if (f <= 100) return 0.80 + (f - 50) * 0.003;
   return 0.95 + (f - 100) * 0.006;
 }
-// 全滅した階の赤い魂の費用 (1階ごとに1、上限100)
-export function infRedCost(f) { return Math.max(1, Math.min(INF_RED_MAX, Math.floor(f || 1))); }
+// 全滅時の保護帰還は深さによらず赤い魂20。広告視聴でも持ち帰れる。
+export function infRedCost() { return INF_RED_MAX; }
 // その階が風だまり (主の階) か
 export const isRestFloor = (f) => (f || 0) > 0 && f % INF_REST_EVERY === 0;
 

@@ -5,7 +5,7 @@ import { bagOwners, MAX_ITEMS } from "../items.js";
 // 提供する契約:
 //   UI.openInfSetup()        … 出撃シートの「無限迷宮」から。仮の器6体それぞれに、3つの魂の欠片から1つを選んで降りる
 //   UI.openInfRest(spec)     … 5の倍数の階の階段 (風だまり)。spec = { floor, guardDown, onBoss, onReturn, onContinue, onClose }
-//   UI.openInfWipe(spec)     … 無限迷宮で全滅した。赤い魂 (全滅した階の数・上限100) で持ち帰るか、あきらめるか
+//   UI.openInfWipe(spec)     … 無限迷宮で全滅した。赤い魂20または広告視聴で持ち帰るか、あきらめるか
 //   UI.openInfSummary(r)     … 帰ってきた (game.js infCloseRun の結果)。持ち帰った魂 (＋1 の素材)・品 (商会の棚へ)・残火
 
 import { UI, game, registerUI } from "./ctx.js";
@@ -50,7 +50,7 @@ function itemRule() {
     w.appendChild(r);
   };
   line("keep", "残る", "回収人に売った品", " ― 売ったその場で本編の商会の棚に並ぶ。この先で全滅しても消えない。");
-  line("lose", "失う", "装備している品・持ち物", " ― 全滅すると失われる。赤い魂を払って持ち帰るか、主を討って帰れば、商会の棚に並ぶ。");
+  line("lose", "失う", "装備している品・持ち物", " ― 全滅すると失われる。赤い魂20または広告視聴で持ち帰るか、主を討って帰れば、商会の棚に並ぶ。");
   return w;
 }
 
@@ -540,7 +540,7 @@ export function openInfWipe(spec = {}) {
   loss.appendChild(cell(spec.items || 0, "装備・持ち物"));
   loss.appendChild(cell(spec.embers || 0, "魂の残火"));
   body.appendChild(loss);
-  body.appendChild(el("div", "rs-keep", `赤い魂 ${spec.cost} を払えば、拾った魂 (＋1 の素材)・装備と持ち物 (商会の棚へ)・残火を持ち帰れる。費用は全滅した階の数 (上限 100)。本編の人業は街で無事に待っている。`));
+  body.appendChild(el("div", "rs-keep", `赤い魂 ${spec.cost} または広告視聴で、拾った魂 (＋1 の素材)・装備と持ち物 (商会の棚へ)・残火を持ち帰れる。費用は深さによらず同じ。本編の人業は街で無事に待っている。`));
   // 回収人に売った品は、売った時にもう商会の棚に並んでいる (全滅しても消えない)
   body.appendChild(el("div", spec.sold ? "rs-note gold" : "rs-note dim", spec.sold
     ? `回収人に売った品 ${spec.sold}点は、もう本編の商会の棚に並んでいる。持ち帰らなくても消えない。`
@@ -548,7 +548,8 @@ export function openInfWipe(spec = {}) {
   if (!spec.canSave) body.appendChild(el("div", "rs-note dim", `赤い魂が足りない (所持 ${spec.red || 0} ／ 要る ${spec.cost})。`));
   const foot = [];
   if (spec.canSave) foot.push({ label: `赤い魂 ${spec.cost} で持ち帰る`, kind: "primary", size: "lg", cost: { kind: "red", n: spec.cost }, onTap: pick(spec.onSave || (() => {})) });
-  foot.push({ label: "あきらめて街へ", kind: spec.canSave ? "danger" : "primary", size: spec.canSave ? "md" : "lg", onTap: pick(spec.onGiveUp || (() => {})) });
+  if (spec.onAd) foot.push({ label: "広告視聴で持ち帰る", sub: "赤い魂を使わず、魂・品・残火を守る", kind: "primary", size: "lg", onTap: pick(spec.onAd) });
+  foot.push({ label: "あきらめて街へ", kind: spec.canSave || spec.onAd ? "danger" : "primary", size: spec.canSave || spec.onAd ? "md" : "lg", onTap: pick(spec.onGiveUp || (() => {})) });
   h = sheet.open({
     kind: "choice", banner: "全滅", accent: "#d4504e", className: "rs-sheet rs-wipe-sheet",
     art: ICONS.corpse, artScale: 7, title: spec.abandoned ? `${INF_NAME}を諦めた…` : "仮の器は崩れ去った…",
@@ -563,7 +564,7 @@ export function openInfSummary(r = {}) {
   const got = r.got || { items: [], souls: [], embers: 0 };
   return sheet.open({
     kind: "celebrate", banner: `✺ ${INF_NAME}の記録 ✺`, accent: "#b08ac0", className: "inf-sheet inf-sum",
-    title: r.outcome === "wipe" ? `B${r.depth}F で全滅した` : r.outcome === "saved" ? `B${r.depth}F で全滅し、赤い魂で持ち帰った` : `B${r.depth}F から帰ってきた`,
+    title: r.outcome === "wipe" ? `B${r.depth}F で全滅した` : r.outcome === "saved" ? `B${r.depth}F で全滅し、戦利品を守って持ち帰った` : `B${r.depth}F から帰ってきた`,
     sparkle: !!r.newDepth,
     body: (b) => {
       if (r.title) b.appendChild(el("div", "inf-note", `称号「${r.title}」の隊`));

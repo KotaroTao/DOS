@@ -329,7 +329,7 @@ export function openResults(spec = {}) {
 }
 
 // ================= 全滅シート =================
-// spec: { gold, items, souls, soulPts, secured, cost, red, canSave, onSave, onGiveUp }
+// spec: { gold, items, souls, soulPts, secured, cost, red, canSave, onSave, onAd, onGiveUp }
 export function openWipe(spec = {}) {
   const g = G();
   if (g) g.prompt = true;
@@ -358,10 +358,11 @@ export function openWipe(spec = {}) {
   const keep = el("div", "rs-keep");
   keep.appendChild(glyphText(`✦${spec.soulPts || 0} Soul は失わない。砕けた人業は、時を経て街へ連れ帰られる。戻った器は、人業の館で金貨を払って修復する。`));
   body.appendChild(keep);
-  if (!spec.canSave) body.appendChild(el("div", "rs-note dim", `赤い魂 ${spec.cost} があれば何も失わずに帰れた (所持 ${spec.red || 0})。`));
+  if (!spec.canSave) body.appendChild(el("div", "rs-note dim", `赤い魂 ${spec.cost} で何も失わずに帰還できる (所持 ${spec.red || 0})。`));
   const foot = [];
   if (spec.canSave) foot.push({ label: spec.cost === 0 ? "無料で全てを守って帰還" : `赤い魂 ${spec.cost} で全てを守る`, sub: "全員 HP1 で生還する", kind: "primary", size: "lg", cost: { kind: "red", n: spec.cost }, onTap: pick(spec.onSave || (() => {})) });
-  foot.push({ label: spec.secured ? "街へ戻る ― 救出を待つ" : "あきらめる ― 救出を待つ", kind: spec.canSave ? "danger" : "primary", size: spec.canSave ? "md" : "lg", onTap: pick(spec.onGiveUp || (() => {})) });
+  if (spec.cost > 0 && spec.onAd) foot.push({ label: "広告視聴で全てを守って帰還", sub: "赤い魂を使わず、全員 HP1 で生還する", kind: "primary", size: "lg", onTap: pick(spec.onAd) });
+  foot.push({ label: spec.secured ? "街へ戻る ― 救出を待つ" : "あきらめる ― 救出を待つ", kind: spec.canSave || spec.onAd ? "danger" : "primary", size: spec.canSave || spec.onAd ? "md" : "lg", onTap: pick(spec.onGiveUp || (() => {})) });
   h = sheet.open({
     kind: "choice", banner: "全滅", accent: "#d4504e", className: "rs-sheet rs-wipe-sheet",
     art: ICONS.corpse, artScale: 7, title: spec.abandoned ? "迷宮を諦めた…" : "人業はことごとく砕けた…",
