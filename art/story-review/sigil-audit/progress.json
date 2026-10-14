@@ -120,10 +120,10 @@
     "id": "irene_reveal",
     "master": "art/story-review/chapter1/irene_reveal.png",
     "status": "確認済・修正不要",
-    "note": "縮小で確認。一門の印の配置指定対象なし。装飾を印と断定しない。",
+    "note": "最新mainの更新原画を384×256で再確認。一門の印の配置指定対象なし。髪飾り・装飾を印と断定しない。",
     "sha256": "e33427554761a56de72c9d9f9217c668f5c4a9d7ae2d89b63f489f839b9b6275",
-    "checked_at": "2026-10-14T10:01:20.469309+00:00",
-    "current_sha256": "e33427554761a56de72c9d9f9217c668f5c4a9d7ae2d89b63f489f839b9b6275"
+    "checked_at": "2026-10-14T18:08:36.472388+00:00",
+    "current_sha256": "2d222d175c2d7bbeb409f00febb22fa78eb4ba8e9a1467a61a611f0f28795892"
   },
   {
     "id": "mem_w03",
@@ -183,10 +183,10 @@
     "id": "report_w04",
     "master": "art/story-review/chapter1/report_w04.png",
     "status": "確認済・修正不要",
-    "note": "縮小で確認。一門の印の配置指定なし。別の器の盾・衣装の模様を一門の印と断定しない。",
+    "note": "最新mainの更新原画を384×256で再確認。一門の印の配置指定なし。弟子の刺しゅう・王宮の装飾は保持。",
     "sha256": "f7ff74726f853062306c9d4d40ba2ce960bf5a55b14d4c0f46d51c11b987c87b",
-    "checked_at": "2026-10-14T10:01:43.607347+00:00",
-    "current_sha256": "f7ff74726f853062306c9d4d40ba2ce960bf5a55b14d4c0f46d51c11b987c87b"
+    "checked_at": "2026-10-14T18:08:36.475243+00:00",
+    "current_sha256": "01bfbb1d3c89c9d56757cb0f08ce5d59b384293e9f247c6f8258923fd70b99f5"
   },
   {
     "id": "report_w05",
@@ -641,11 +641,11 @@
   {
     "id": "irene_lineage",
     "master": "art/story-review/chapter6/irene_lineage.png",
-    "status": "修正保留",
-    "note": "候補の具体的な不採用理由。原画は保持。",
+    "status": "修正済・確認済",
+    "note": "Python局所合成で現在原画の額の旧印を除去し、sigil.pngから抽出した正本を小さい金の印へ置換。左親指1本・右指3本・短い手首・独立した炎1つを拡大確認。変更1344画素、額の許可領域外RGB完全一致。人物・髪・手・胸の灯と隠れた関節内側を保持。比較・再現記録: composite-irene-lineage/。ユーザー承認・マージ待ち。",
     "sha256": "5d7a8e9f63e7d2c95bdd236faad6e41792e12bf318f79f47cfb0e89848edc149",
-    "checked_at": "2026-10-14T15:45:13.811329+00:00",
-    "current_sha256": "5d7a8e9f63e7d2c95bdd236faad6e41792e12bf318f79f47cfb0e89848edc149"
+    "checked_at": "2026-10-14T18:09:22.222535+00:00",
+    "current_sha256": "54b99f8b41b99f3229249d8cb60a092978fc2944c15c821de0cc0366dd154b7c"
   },
   {
     "id": "mem_w25",
