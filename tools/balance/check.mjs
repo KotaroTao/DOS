@@ -45,6 +45,21 @@ const close=(actual,expected,label,tolerance=.035)=>assert(Math.abs(actual-expec
  assert.equal(other.hp,1);
  assert(!logs.some(s=>s.includes('吸い取った')));
 }
+// 浮遊は最大MPの一割・端数切り上げ・最低8。軽減や現在MPでは変わらない。
+{
+ const sp=SPELLS.FUYUU;
+ for(const [maxmp,expected] of [[0,8],[1,8],[79,8],[80,8],[81,9],[100,10],[101,11],[1000,100]]){
+  const a={maxmp,mp:0,soulMp:9999,passiveMap:{chant:2},spellCostMul:.5};
+  assert.equal(spellCost(a,sp),expected,`浮遊 最大MP${maxmp}`);
+ }
+ assert.equal(spellMpLabel(sp),'MP 最大の10% (最低8)');
+ for(const key of ['HUNTER_KEHAIYOMI','THIEF_TAKARASAGASHI','BISHOP_MICHISHIRUBE']){
+  assert.equal(spellCost({maxmp:1},SPELLS[key]),1);
+  assert.equal(spellCost({maxmp:101},SPELLS[key]),31);
+  assert.equal(spellMpLabel(SPELLS[key]),'MP 最大の30%');
+ }
+ console.log('浮遊: 最大MP10%・切り上げ・最低8・軽減対象外、探りの術30%の維持を確認');
+}
 assert.equal(luckCritBonus(8),0);
 // HP/MPを吸う技も、ダメージの後に資源名と吸収量を表示する。
 for(const [key,resource] of [['KYUUKETSU','HP'],['MAGUINOTACHI','MP'],['NECROMANCER_SEIKISUI','HP'],['MARYOKUGOUDATSU','MP']]){

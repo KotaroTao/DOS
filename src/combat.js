@@ -621,13 +621,13 @@ export function soulPowerMul(actor, sp) {
 // 技の消費MPの表記 (図鑑・技の詳細): 「MP 13＋魂のMP×4%」。戦闘の一覧は spellCost の実際の値を出す
 export function spellMpLabel(sp) {
   if (!sp) return "MP 0";
-  if (sp.mpPct) return `MP 最大の${Math.round(sp.mpPct * 100)}%`;
+  if (sp.mpPct) return `MP 最大の${Math.round(sp.mpPct * 100)}%${sp.mpMin ? ` (最低${sp.mpMin})` : ""}`;
   const r = soulTierRate(sp);
   return r ? `MP ${sp.mp}＋魂のMP×${Math.round(r * 100)}%` : `MP ${sp.mp || 0}`;
 }
 export function spellCost(actor, sp) {
-  // 探りの術 (mpPct): 唱える者の最大MPの割合を払う (軽減は効かない)
-  if (sp.mpPct) return Math.max(1, Math.ceil(((actor && actor.maxmp) || 0) * sp.mpPct));
+  // 迷宮の術 (mpPct): 唱える者の最大MPの割合を払う (軽減は効かない)
+  if (sp.mpPct) return Math.max(sp.mpMin || 1, Math.ceil(((actor && actor.maxmp) || 0) * sp.mpPct));
   let mp = sp.mp + soulCostAdd(actor, sp); // 魂の格
   const c = pv(actor, "chant");
   if (c) mp = Math.ceil(mp * (c >= 2 ? 0.7 : 0.85));
