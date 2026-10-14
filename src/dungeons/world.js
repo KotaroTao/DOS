@@ -58,7 +58,7 @@
 //             shell    封じの殻: 戦闘の開幕に、主・金属の魔物を除く敵の全員に障壁 (打撃を1回だけ防ぐ) をこの回数だけ張る (名を刻む石窟)
 //             soulFeast 魂喰らいの闇: 人業を倒した敵は攻撃がこの段数だけ上がる (3ターン。底なしの大伽藍)
 //             oneChest 巨獣の宝: 宝箱は1階に1つだけ (足りなければ置く)。中身のランクは mods.chestRankUp で上げる (大空洞の主の寝床)
-//             sealedGate ★閉ざされた門: 帰還魔法陣が無く、帰還の鈴も使えない。最下階に着くか全滅するまで出られない (化石竜の墓所)
+//             sealedGate ★閉ざされた門: 帰還魔法陣が無く、帰還の鈴も使えない。最下階の主を討つか全滅するまで出られない (化石竜の墓所)
 //             corpseFade 痩せる恵み: 盤面の加工 prison で増える死体が、隊のLv が推奨Lv+2 を超えた1Lvごとに15%ずつ減る (閉ざされた獄・器の山・疫病の塚)
 //             appraised 澄んだ水晶の光: この迷宮で拾う品は、はじめから鑑定済み (水晶の鉱脈)
 //             say      開幕の効果 (mpDrain / hpDrain / chill / poisonStart / boltStart / gloom / whisper / lull / jolt) を戦闘の記録に書く時の一文
@@ -1429,20 +1429,22 @@ const WORLD_DEF = [
   },
   {
     // 格上の迷宮: 第十章 (隊は Lv110〜120) で開くが、推奨Lv は 135〜139。第12層の魔物を、層の約1.5倍の強さに引き上げた。
-    // 強い掟「閉ざされた門」(帰還魔法陣も帰還の鈴も無い — 最下階に着くか全滅するまで出られない) は格上の迷宮だけの掟
-    id: "ws21", lv: 135, lvTo: 139, layer: 12, floors: 10, side: true, challenge: true,
+    // 強い掟「閉ざされた門」(帰還魔法陣も帰還の鈴も無い — 最下階の主を討つか全滅するまで出られない) は格上の迷宮だけの掟
+    id: "ws21", lv: 135, lvTo: 139, layer: 12, floors: 15, side: true, challenge: true,
     floorHaz: { fall: "fossilcrack", harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
-    power: { 1: 0.136, 5: 0.142, 10: 0.149 },
+    power: { 1: 0.136, 5: 0.142, 15: 0.149 },
     name: "化石竜の墓所", short: "化石竜の墓所",
     about: "岩盤の中に、山のように大きな竜の骨が埋まっている。骨のすき間をたどる道は、行き着くところまで行かなければ、入った者を外へ返さない",
     bands: [
       ["bs_fossildragon", "bs_primalbeast", "bs_obsidianbeast", "bs_rocktitan", "bs_primalserpent", "bs_crystaldrake"],
       ["bs_cavebehemoth", "bs_earthshaker", "bs_abysshorror"],
+      ["bs_caveguardian", "bs_crystalspider", "bs_mawofthedeep"],
     ],
+    boss: "bs_fossildragon", bossRank: 10, // B15Fで化石竜を主の規格で出す
     elites: ["el_oremaw"],
     trait: {
       id: "sealedgate", name: "閉ざされた門", sym: "⊘", accent: "#c09060",
-      lines: ["骨の道に帰還魔法陣は無く、帰還の鈴も鳴らない。最下階に着くか全滅するまで、外へは出られない。", "骨のすき間の闇で、目が闇に慣れるまで刃が泳ぐ。戦闘が始まるたび、隊の全員の物理の命中が下がる (外れる率 +15%、3ターン)。", "太古の魂が骨に眠り、得る ✦Soul は 1.3倍。宝箱は1ランク上等。"],
+      lines: ["骨の道に帰還魔法陣は無く、帰還の鈴も鳴らない。B15Fの主・化石竜を討つか全滅するまで、外へは出られない。", "骨のすき間の闇で、目が闇に慣れるまで刃が泳ぐ。戦闘が始まるたび、隊の全員の物理の命中が下がる (外れる率 +15%、3ターン)。", "太古の魂が骨に眠り、得る ✦Soul は 1.3倍。宝箱は1ランク上等。"],
       mods: { soulMul: 1.3, chestRankUp: 1 },
       sealedGate: true,
       gloom: 0.15, say: "骨の道の闇に目がくらむ",
@@ -1583,6 +1585,7 @@ function build(def) {
   cfg.bossRank = def.boss ? (def.bossRank || def.layer + 2) : 0;
   cfg.bossScale = 1;
   cfg.gates = !(def.trait && def.trait.sealedGate); // 5階ごとの帰還魔法陣 (奈落・掟「閉ざされた門」は持たない)
+  cfg.noPortal = !cfg.gates; // 閉ざされた門は、台帳外の迷宮向けのランダム魔法陣も禁止する
   return cfg;
 }
 

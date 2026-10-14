@@ -2368,14 +2368,17 @@ function updateTopbar() {
   updateReturnBtn();
 }
 
-// 保存済み盤面にも序章の出現制限を適用する。壁や発見済みの状態は残す。
+// 保存済み盤面にも迷宮の出現制限を適用する。壁や発見済みの状態は残す。
 function enforceDungeonRestrictions() {
   const cfg = activeCfg();
   if (!G.board || abyssActive()) return;
   if (cfg.noSpecial) { G.specialFloor = null; G.mutator = null; G.activeRumor = null; }
+  if (cfg.noPortal) G.portalFound = false;
   for (const row of G.board.cells) for (const cell of row) {
+    if (cfg.noPortal) delete cell.gate;
     if ((cfg.noCorpses && cell.type === "corpse") || (cfg.noEvents && cell.type === "event") ||
-      (cfg.noTraps && cell.type === "trap") || (cfg.noChests && cell.type === "chest")) {
+      (cfg.noTraps && cell.type === "trap") || (cfg.noChests && cell.type === "chest") ||
+      (cfg.noPortal && cell.type === "portal")) {
       const { walls, revealed } = cell;
       for (const key of Object.keys(cell)) delete cell[key];
       Object.assign(cell, { walls, revealed, type: "empty", cleared: false });
@@ -18373,6 +18376,7 @@ function loadGame(cloudSnapshot = null) {
   syncClueBoons(); // 手がかりの恵み (回避率・霊薬の棚)
   syncSeraSoul(); // セラの灯守の魂 (旧版のセラの宿し直し・物語で上がるランク)
   if (infRun) infSwapBackAfterLoad(infRun);
+  enforceDungeonRestrictions(); // 戦闘中の再開でも、旧版で出た帰還魔法陣を残さない
   return true;
 }
 
