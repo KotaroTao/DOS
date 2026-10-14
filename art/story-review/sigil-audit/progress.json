@@ -551,11 +551,11 @@
   {
     "id": "irene_husks",
     "master": "art/story-review/chapter5/irene_husks.png",
-    "status": "修正保留",
-    "note": "再開時に現在原画の縮小・額部分を確認。原寸対象＋正本切り出し＋額の部分参照の候補も杯状の掌と上向きの突起が残り、承認済み幾何学形に不一致で不採用。rejected/resume/irene_husks-candidate.pngに保存。原画を保持。イレーヌの額・髪飾り・関節の金の縁は変更しない。",
+    "status": "修正済・確認済",
+    "note": "PR #965承認・mainマージ後の指示によりPython局所合成で修正。正本sigil.pngから輪郭を抽出し、額の小さい金の印へ23×32相当・25度で合成。原寸・拡大で角張った掌、左親指1本、右平行指3本、短い手首、独立した涙形の炎1つを照合して採用。変更は額の29×44（x912〜940、y149〜192）内の742画素だけ、範囲外のRGBは修正前と完全一致。修正前はfixes/irene_husks-sigil-python-before.png、比較・再現手順はcomposite-irene-husks/。イレーヌの額・髪飾り、セラの顔・目・髪・胸側の灯、関節の金の縁を保持。ユーザー確認待ち、未承認。",
     "sha256": "2f65f62d411f52bb2af6ae3634e174b68f981e45556494ab25a254ec0f3255c9",
-    "checked_at": "2026-10-14T12:33:42.349763+00:00",
-    "current_sha256": "2f65f62d411f52bb2af6ae3634e174b68f981e45556494ab25a254ec0f3255c9"
+    "checked_at": "2026-10-14T15:26:38.242919+00:00",
+    "current_sha256": "083193073df98cd8598e1480efadd25aec06bf7497ddc1d3a05ed17f3c74f634"
   },
   {
     "id": "mem_w21",
