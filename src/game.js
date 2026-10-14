@@ -13602,8 +13602,15 @@ function tavernHintAllowed(req) {
 function rollTavernCrowd() {
   G.tavernCrowd = pickTavernCrowd({ allowed: tavernHintAllowed, heard: G.tavernHeard || {} });
 }
+// 旧セーブに残る台詞も、現在の文と出現条件で読み直す。顔ぶれの抽選は変えない。
+function tavernCurrentCrowd() {
+  return (G.tavernCrowd || []).flatMap((m) => {
+    const t = m && TALK_MAP[m.id];
+    return t && !t.retired && tavernHintAllowed(t.req) ? [{ ...m, line: t.t, kind: t.k }] : [];
+  });
+}
 // 顔ぶれの話を聞いた (顔ぶれを開いた時)。心得・言い伝えは「書き留めた話」に残す
-function markTavernHeard(crowd = G.tavernCrowd) {
+function markTavernHeard(crowd = tavernCurrentCrowd()) {
   const h = G.tavernHeard || (G.tavernHeard = {});
   let added = 0;
   for (const m of crowd || []) {
@@ -13616,7 +13623,7 @@ function markTavernHeard(crowd = G.tavernCrowd) {
 // 書き留めた話 (聞いた心得・言い伝え。台帳の並び順)
 function tavernNotes() {
   const h = G.tavernHeard || {};
-  return Object.keys(h).map((id) => TALK_MAP[id]).filter((t) => t && !t.retired); // 取りやめた仕組みの話 (retired) は出さない
+  return Object.keys(h).map((id) => TALK_MAP[id]).filter((t) => t && !t.retired && tavernHintAllowed(t.req)); // 未出現の場所の話は、聞いた記録があっても伏せる
 }
 
 // ---- 情報屋の噂: 地図にある迷宮の一つを読んだ予兆を生成する ----
@@ -18799,7 +18806,7 @@ bindGame({
   achievementCards, medalRank, claimNextTreasury, TREASURY_MILESTONES, milestoneLabel, milestoneWait, totalDonatedKinds,
   codexMonEntry, dungeonRoster, CODEX_OTHER,
   // 酒場・祠・宿
-  ensureRumor, rumorFor, rollTavernCrowd, markTavernHeard, tavernNotes,
+  ensureRumor, rumorFor, rollTavernCrowd, tavernCurrentCrowd, markTavernHeard, tavernNotes,
   questState, questLists, questByUid, questsHere, ensureQuestBoard, rollQuestBoard, acceptQuest, abandonQuest, claimQuest, questReadyCount, FREE_CAP, questHereNote, questHereCount, questsTargeting,
   adCooldownLeft, watchShrineAd, RED_PACKS, buyRedPack, GUARDIAN_COST, guardianCost, RESCUE_SHORTEN_MS,
   // 設定 (端末の好み)

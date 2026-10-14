@@ -371,7 +371,8 @@ function renderTalk(wrap) {
 
   // 3) 居合わせる者たち (帰還ごとに入れ替わる)
   if ((!g.tavernCrowd || !g.tavernCrowd.length) && game.rollTavernCrowd) game.rollTavernCrowd();
-  if (game.markTavernHeard) game.markTavernHeard(g.tavernCrowd);
+  const crowd = game.tavernCurrentCrowd ? game.tavernCurrentCrowd() : [];
+  if (game.markTavernHeard) game.markTavernHeard(crowd);
   const notes = game.tavernNotes ? game.tavernNotes() : [];
   let right = null;
   if (notes.length) {
@@ -384,7 +385,7 @@ function renderTalk(wrap) {
   wrap.appendChild(sectionHead("居合わせる者たち", { note: "帰還ごとに替わる", right }));
   const area = el("div", "fc-crowd");
   wrap.appendChild(area);
-  scrollGrid(area, g.tavernCrowd || [], (m) => {
+  scrollGrid(area, crowd, (m) => {
     const r = el("div", "fc-voice" + (m.kind && m.kind !== "chat" ? " k-" + m.kind : ""));
     const h = el("div", "fc-voice-h");
     h.appendChild(setText(el("span", "fc-voice-n"), m.name));
@@ -457,7 +458,7 @@ function renderShrine(root) {
   const use = (t, s) => { const r = el("div", "fc-use"); r.appendChild(el("i", "wa-dia")); const tx = el("div"); tx.appendChild(setText(el("div", "fc-use-t"), t)); tx.appendChild(setText(el("div", "fc-use-s"), s)); r.appendChild(tx); uses.appendChild(r); };
   use("魂の安定度を回復する", "赤い魂1つで安定度1を回復");
   use("迷宮に残された人業を早く連れ帰る", "全滅の時。🔴1 で連れ帰りまでの時間を 20 分縮める");
-  use("全滅の時に戦利品を守る", `森・地下墓地・回廊は無料。修道院以降は 🔴${game.GUARDIAN_COST || 20} で拾った品を失わずに帰還する`);
+  use("全滅の時に戦利品を守る", `拾った品を守って帰還する。必要な赤い魂は帰還時に表示される (無料の迷宮もある)`);
   wrap.appendChild(uses);
 }
 
