@@ -9167,6 +9167,8 @@ function renderCombat() {
 const enemyView = { battle: null, back: false, focus: null };
 const enemyRowBtn = document.getElementById("enemy-row-toggle");
 const enemyFocusEl = document.getElementById("enemy-focus");
+const enemyNamesEl = document.getElementById("enemy-names");
+let enemyNamesKey = "";
 enemyRowBtn.addEventListener("click", () => {
   if (G.state !== "combat" || !G.battle || G.animating || G.battle.result || uiBlocked()) return;
   enemyView.back = !enemyView.back;
@@ -9219,12 +9221,22 @@ function renderCombatCanvas() {
   enemyFocusEl.classList.toggle("has-target", !!focused);
   const focusLabel = focused ? enemyLabel(focused) : twoRows && !wideBattle ? `${enemyView.back ? "後列" : "前列"}を手前に表示中` : "";
   if (enemyFocusEl.textContent.replaceAll(ZWSP, "") !== focusLabel) enemyFocusEl.textContent = focusLabel;
-  // 下部の操作帯は取らず、右上のボタンの周囲だけ敵の絵を避ける。
-  const stageH = VH;
+  // 広い画面の最下部には生存中の敵名を常設。不確定名と呼び分けは記録にそろえる。
+  const nameRows = wideBattle ? [backRow, frontRow].map((list) => list.filter((e) => e.alive)) : [];
+  const namesKey = JSON.stringify(nameRows.map((list) => list.map((e) => [enemyLabel(e), enemyUnknown(e)])));
+  if (namesKey !== enemyNamesKey) {
+    enemyNamesKey = namesKey;
+    enemyNamesEl.replaceChildren(...nameRows.filter((list) => list.length).map((list) => {
+      const row = el("div", "enemy-name-row");
+      list.forEach((e) => row.appendChild(el("span", "enemy-name" + (enemyUnknown(e) ? " unk" : ""), enemyLabel(e))));
+      return row;
+    }));
+  }
   const plateReserve = 44; // 呼び分け記号・HP・状態の札と枠の余白
   const viewRect = view.getBoundingClientRect();
   const rowBtnRect = !enemyRowBtn.hidden ? enemyRowBtn.getBoundingClientRect() : null;
   const viewScale = VW / (viewRect.width || VW);
+  const stageH = VH - (wideBattle ? enemyNamesEl.getBoundingClientRect().height * viewScale : 0);
   const toolsBottom = rowBtnRect ? (rowBtnRect.bottom - viewRect.top + 6) * viewScale : 0;
   const distantW = rowBtnRect ? Math.max(VW / 2, (rowBtnRect.left - viewRect.left - 8) * viewScale) : VW;
   const intro = G.battleIntro && G.battleIntro.battle === b ? G.battleIntro : null;
@@ -9238,7 +9250,7 @@ function renderCombatCanvas() {
     : []);
   const strongTarget = b.phase === "target";
   G.enemyPos = {};
-  // 名札を常設せず、同種の呼び分け記号と属性・HP・効果だけを残す。
+  // 絵の下は同種の呼び分け記号と属性・HP・効果だけを残す。
   const sizeOf = (e, distant, n) => {
     let sz = (e.boss ? 14 : (e.mon && e.mon.elite ? 1.15 : 1) * 9) * k;
     const maxHalfH = Math.max(8, Math.min((stageH - plateReserve) * (twoRows ? 0.32 : 0.5), (stageH - plateReserve - toolsBottom) / 2));
