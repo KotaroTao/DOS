@@ -720,8 +720,9 @@ A long ancient stone bridge stretching across a sea of storm clouds at dusk. Alo
 
 **report_w34「空の上の町」** (報告)
 - 要点: 百年晴れぬ空を見上げてきた王は、その上に橋があったと知らなかった。年代記の最初の頁「空の上に、歓声の絶えぬ町があった」。
+- 修正 (2026-10-14 ユーザーの指示): 報告の場所はロアダルの離宮。窓の外は快晴にせず、厚い灰色の雲が空を覆う。王都の晴れた空をこの場面へ流用しない。人物・年代記・室内の構図を保つ。(済)
 ```text
-The same throne room, now with a clear sky outside the tall windows. The very old king, lap blanket over his knees, holds open a huge ancient chronicle on his lap, pointing to its first page, and looks up at the high sky through the window as if searching for something above the clouds. The chancellor's chair stands empty. The apprentice reports.
+The same throne room in the royal retreat at Roadal, with a fully overcast sky outside the tall windows: thick layered grey clouds cover the entire visible sky, with no blue openings, direct sunlight, or sunny white clouds. Roadal's sky is not the clear sky over the royal capital. The very old king, lap blanket over his knees, holds open a huge ancient chronicle on his lap, pointing to its first page, and looks up at the high sky through the window as if searching for something above the clouds. The chancellor's chair stands empty. The apprentice reports. When editing the existing illustration, preserve its composition, characters, costumes, chronicle, architecture, and warm candlelight; change only the exterior sky and the daylight it casts.
 ```
 
 **w35_lamps「番号の灯籠」** (手がかり / 迷宮「闘獣の檻」)
