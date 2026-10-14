@@ -207,7 +207,7 @@ const KILL_TEXTS = [
 const SOUL_TEXTS = [
   { name: "還れぬ魂", text: "「置き去りにされた魂が泣いている。{goal}つ、拾い上げてやってくれ。」",
     done: "「拾い上げてくれたか。……泣き声が、ひとつ減った気がする。」", who: ["墓守のハンス", "破戒僧オズワルド", "老騎士ヘルマン", "詩人フェン"] },
-  { name: "魂の借金", text: "「死んだ相棒に借りがある。魂を{goal}つ回収してくれたら、少しは返せた気になれる。」",
+  { name: "魂の借金", dungeonOnly: true, text: "「死んだ相棒に借りがある。魂を{goal}つ回収してくれたら、少しは返せた気になれる。」",
     done: "「これで少しは返せたかな。……いや、借りってのは一生ものだ。」", who: ["脱走兵カイ", "隻眼のガルム"] },
   { name: "亡者の名簿", text: "「名簿に載らぬ死者たち……魂を{goal}つ。彼らにも名があったのだ。」",
     done: "「名簿に一行ずつ書き足しておこう。名も知れぬ者、と。それでも、無いよりはいい。」", who: ["破戒僧オズワルド", "墓守のハンス"] },
@@ -221,31 +221,31 @@ const SOUL_TEXTS = [
     done: "「……思ったより澄んでいる。けがれているのは魂ではなく、迷宮の方か。」", who: ["審問官ルドガー"] },
   { name: "詩の種", text: "「魂には、死んだ者の最後の一行が残っている。{goal}つ集めてくれ。詩の種にする。」",
     done: "「聞こえるかね。この魂の、最後の一行が。……『帰りたい』だそうだ。」", who: ["詩人フェン"] },
-  { name: "古い戦友", text: "「あの迷宮には、わしの隊の者が眠っている。{goal}つでいい、拾ってやってくれ。」",
+  { name: "古い戦友", dungeonOnly: true, text: "「あの迷宮には、わしの隊の者が眠っている。{goal}つでいい、拾ってやってくれ。」",
     done: "「……誰の魂かは、わからんでいい。どれも、わしの戦友だ。」", who: ["老騎士ヘルマン", "隻眼のガルム"] },
-  { name: "視えない灯", text: "「迷宮の底に、小さな灯がいくつも揺れているのが視えます。{goal}つ、すくい上げてください。」",
+  { name: "視えない灯", dungeonOnly: true, text: "「迷宮の底に、小さな灯がいくつも揺れているのが視えます。{goal}つ、すくい上げてください。」",
     done: "「灯が{goal}つ、ここへ帰ってきました。……温かい。目が見えなくても、それはわかります。」", who: ["盲目のヴェスナ"] },
   { name: "迎えに行けぬ人", text: "「迷宮で亡くなった方の魂は、祈りでは迎えに行けないのです。{goal}つでかまいません。連れ帰っていただけませんか。」",
     done: "「おかえりなさい、と言わせてください。……それから、あなたにも。おかえりなさい。」", who: ["修道女アグネス", "黒衣のセレス"] },
 ];
 const CHEST_TEXTS = [
-  { name: "置き去りの荷", text: "「荷を置いて逃げた。宝箱を{goal}つあさってくれ。中身はやる。記録だけ欲しい。」",
+  { name: "置き去りの荷", dungeonOnly: true, text: "「荷を置いて逃げた。宝箱を{goal}つあさってくれ。中身はやる。記録だけ欲しい。」",
     done: "「中身はやると言ったろう。記録は……ふむ、やはり俺の荷はなかったか。」", who: ["脱走兵カイ", "沈黙のヨル"] },
-  { name: "遺品の回収", text: "「迷宮で亡くなった隊の荷が、宝箱に残っているかもしれません。{goal}つ開けて、確かめていただけますか。」",
+  { name: "遺品の回収", dungeonOnly: true, text: "「迷宮で亡くなった隊の荷が、宝箱に残っているかもしれません。{goal}つ開けて、確かめていただけますか。」",
     done: "「……そうですか。名の刻まれた品は、ありませんでしたか。それでも、探してくださって、ありがとうございます。」", who: ["黒衣のセレス", "修道女アグネス"] },
-  { name: "中身より鍵", text: "「宝箱の中身はくれてやる。{goal}つ、開けた感触だけ教えろ。……探している鍵がある。」",
+  { name: "中身より鍵", dungeonOnly: true, text: "「宝箱の中身はくれてやる。{goal}つ、開けた感触だけ教えろ。……探している鍵がある。」",
     done: "「その錠の形……いや、なんでもない。探している鍵には、近づいた。」", who: ["沈黙のヨル"] },
-  { name: "罠師の検分", text: "「迷宮の罠は俺の師匠の仕事だ。宝箱を{goal}つ開けて、腕前を確かめてくれ。」",
+  { name: "罠師の検分", dungeonOnly: true, text: "「迷宮の罠は俺の師匠の仕事だ。宝箱を{goal}つ開けて、腕前を確かめてくれ。」",
     done: "「生きて開けたなら、お前の勝ちだ。師匠の仕事も、ついに破られる時が来たか。」", who: ["片腕のドルン", "沈黙のヨル"] },
   { name: "投機の検算", text: "「宝の質を知りたい。{goal}箱ぶん開けてこい。もうけ話の種になる。」",
     done: "「ふむふむ……これはもうかる。いや、お前さんにも分け前は渡すとも。」", who: ["行商人ザッカ"] },
   { name: "錬金の素材", text: "「宝箱の内張りに生えるカビが要るんだ。{goal}箱分、こすり取ってきてくれないかな。」",
     done: "「このカビ、思った通りだ！ ……あ、ごめん、臭うよね。でも、これで新しい薬が作れる。」", who: ["錬金術師ノア"] },
-  { name: "地図の空白", text: "「宝箱の場所を記して、地図の空白を埋めたい。{goal}つ開けて、場所を覚えてきてくれ。」",
+  { name: "地図の空白", dungeonOnly: true, text: "「宝箱の場所を記して、地図の空白を埋めたい。{goal}つ開けて、場所を覚えてきてくれ。」",
     done: "「なるほど、ここと、ここ……。空白がまた消えた。迷宮の地図は、死者の足跡でできている。」", who: ["地図屋のトビアス"] },
   { name: "宝箱のお話", text: "「宝箱の中身、何が入ってたか教えて。{goal}つ分。……ちょっと気になってるだけ！」",
     done: "「へえ、そんなのが入ってたんだ！ いいなあ……あ、お話を聞かせてくれただけで十分だよ。」", who: ["灰かぶりのミナ", "リリベル"] },
-  { name: "封印の確認", text: "「古い宝箱には封印が施されていた。{goal}つ開け、封がまだ生きているか確かめよ。」",
+  { name: "封印の確認", dungeonOnly: true, text: "「古い宝箱には封印が施されていた。{goal}つ開け、封がまだ生きているか確かめよ。」",
     done: "「封は、とうに切れていたか。……ならば中身は、とっくに外へ出ている。」", who: ["破戒僧オズワルド", "審問官ルドガー"] },
   { name: "錠前集め", text: "「宝箱の錠前には一つとして同じ物がない。{goal}つ開けて、形を覚えてきてくれ。」",
     done: "「{goal}つとも違う形だったか。……死んだ職人の数だけ、錠がある。」", who: ["片腕のドルン"] },
@@ -1374,6 +1374,11 @@ export const FIXED_BY_ID = Object.fromEntries(FIXED_QUESTS.map((q) => [q.id, q])
 // 返すのは掲示板の依頼 [{ uid, type, ……, state:"offer" }]
 // 迷宮指定なし (共通) の魂・宝箱の依頼の avoid の鍵 ("s:*" / "c:*")
 export const COMMON_KEY = "*";
+// 特定の場所・遺品を探す依頼文は、迷宮指定なしには使わない。保存済みの未受注の依頼にも適用する。
+export function commonQuestTextFits(q) {
+  if (q.dungeon || (q.type !== "soul" && q.type !== "chest")) return true;
+  return !TEXTS_OF[q.type].some((t) => t.dungeonOnly && t.name === q.name);
+}
 const fill = (s, v) => s.replace(/\{(\w+)\}/g, (_, k) => (v[k] != null ? String(v[k]) : ""));
 const round = (v) => Math.max(1, Math.round(v));
 // その魔物が初めて現れる階
@@ -1455,7 +1460,7 @@ function genSoul(ctx, cfg = null) {
   const u = cfg ? deepUnit(ctx, cfg) : ctx.common.unit;
   const reward = { soulPts: round(u.soul * (goal * 2 + 2) * SOUL_K), souls: [[ctx.rand(100) < 25 ? "rare" : "common", 1]] };
   ctx.avoid.add("s:" + (cfg ? cfg.id : COMMON_KEY));
-  if (!cfg) return offerOf("soul", pickText(ctx, "soul"), { goal }, { goal, minLv: ctx.common.minLv,
+  if (!cfg) return offerOf("soul", pickText(ctx, "soul", (t) => !t.dungeonOnly), { goal }, { goal, minLv: ctx.common.minLv,
     desc: `死体から魂を ${goal}つ 拾う`, note: `推奨Lv${ctx.common.minLv}以上の迷宮で拾った魂を数える`, reward });
   return offerOf("soul", pickText(ctx, "soul"), { goal }, { goal, dungeon: cfg.id,
     desc: `「${cfg.name}」で死体から魂を ${goal}つ 拾う`, note: "その迷宮の中で拾った魂だけを数える", reward });
@@ -1467,7 +1472,7 @@ function genChest(ctx, cfg = null) {
   const u = cfg ? deepUnit(ctx, cfg) : ctx.common.unit;
   const reward = { gold: round(u.gold * (goal * 1.3 + 1.5)), soulPts: round(u.soul * 2 * SOUL_K) };
   ctx.avoid.add("c:" + (cfg ? cfg.id : COMMON_KEY));
-  if (!cfg) return offerOf("chest", pickText(ctx, "chest"), { goal }, { goal, minLv: ctx.common.minLv,
+  if (!cfg) return offerOf("chest", pickText(ctx, "chest", (t) => !t.dungeonOnly), { goal }, { goal, minLv: ctx.common.minLv,
     desc: `宝箱を ${goal}つ 開ける`, note: `推奨Lv${ctx.common.minLv}以上の迷宮で開けた宝箱を数える`, reward });
   return offerOf("chest", pickText(ctx, "chest"), { goal }, { goal, dungeon: cfg.id,
     desc: `「${cfg.name}」で宝箱を ${goal}つ 開ける`, note: "その迷宮の中で開けた宝箱だけを数える", reward });

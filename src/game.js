@@ -24,7 +24,7 @@ import { rollAffixes, applyAffixes, gearPerks, affixPower, affixLines, AFX_TIERS
 import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, permanentEventStats, eligibleEvents, pickEvent, onceKey, runEvent, eventFightWon } from "./events.js";
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { pickTavernCrowd, TALK_MAP } from "./tavern.js";
-import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, QUEST_LV_NEAR, rollBoard, deliveryRewardRows, NPCS, npcOf, composeReport, bondGiftAt, npcBondLabel, TIP_RATE, hasBell, BELL_EVERY_MS, QUEST_REWARD_K, QUEST_RK, questRewardK, COMMON_KEY as QUEST_COMMON_KEY } from "./quests.js";
+import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, QUEST_LV_NEAR, rollBoard, deliveryRewardRows, NPCS, npcOf, composeReport, bondGiftAt, npcBondLabel, TIP_RATE, hasBell, BELL_EVERY_MS, QUEST_REWARD_K, QUEST_RK, questRewardK, commonQuestTextFits, COMMON_KEY as QUEST_COMMON_KEY } from "./quests.js";
 import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_THREE_REPORT, TUT_FINALE, TUT_CORRIDOR, STORY_CELLS, storyCellAt, BOSS_MEMORIES, REPORTS, LATE_CLUES, IRENE_BEATS, MINE_PASS, msqReward, EPILOGUE, UNLOCKS, unlockSceneFor, REMATCH_MEMORIES } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { poolAt, powerAt } from "./dungeons/world.js";
@@ -13159,7 +13159,18 @@ function rollQuestBoard() {
   s.board = rollBoard(questCtx());
   return s.board;
 }
-function ensureQuestBoard() { const s = questState(); if (!s.board) rollQuestBoard(); return s.board; }
+function freeQuestOfferAvailable(q) {
+  if (q.dungeon && !worldOpenId(q.dungeon)) return false;
+  if (!q.dungeon && (q.type === "kill" || q.type === "floor" || q.type === "clear")) return false;
+  return commonQuestTextFits(q);
+}
+function ensureQuestBoard() {
+  const s = questState();
+  if (!s.board) rollQuestBoard();
+  // 旧セーブに残る未出現の迷宮・共通枠に合わない依頼も掲示板から外す。受注済みの依頼は残す。
+  s.board = s.board.filter(freeQuestOfferAvailable);
+  return s.board;
+}
 // 固定クエストが酒場に現れる条件を満たしたか
 function fixedQuestAppears(def) {
   const a = def.appear || {}, w = worldState();
@@ -13170,6 +13181,9 @@ function fixedQuestAppears(def) {
   if (a.seen && !namedState().seen[a.seen]) return false; // 名のある強敵を目撃した
   if (a.openAny && !a.openAny.some((id) => w.open[id])) return false; // どれか1つが地図にある (懸賞 = 縄張りの迷宮)
   if (a.claimed) { const f = questState().fixed[a.claimed]; if (!f || f.state !== "claimed") return false; } // 前の依頼を報告し終えた
+  const home = fixedQuestHome(def);
+  // 受注して道を開く頼みだけは、迷宮の発見そのものなので別枠で案内する。
+  if (home && !worldOpenId(home) && !(def.opens || []).includes(home)) return false;
   return true;
 }
 // 酒場で受けられる固定クエスト (現れていて、まだ受けていないもの)
@@ -13385,7 +13399,7 @@ function acceptQuest(uid) {
     return true;
   }
   const i = (s.board || []).findIndex((q) => q.uid === uid);
-  if (i < 0) return false;
+  if (i < 0 || !freeQuestOfferAvailable(s.board[i])) return false;
   if (questCapRefused()) return false;
   const q = s.board.splice(i, 1)[0];
   q.state = "active"; q.progress = 0;
