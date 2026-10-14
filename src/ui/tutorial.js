@@ -53,19 +53,19 @@ function wornSet() {
   }
   return s;
 }
-// 融合できる人業 (メイン魂に同職の余りがある)。隊 → 控えの順
+// 手ほどきでは、練習用に渡した戦士の魂を融合する。隊 → 控えの順
 function fusableDoll() {
   if (!game.fuseCandidates) return null;
-  return allDolls().find((d) => d.primary != null && game.fuseCandidates(d.primary).length > 0) || null;
+  return allDolls().find((d) => soulByUid(d.primary)?.clsKey === "fighter" && game.fuseCandidates(d.primary).length > 0) || null;
 }
 function spareSouls() {
   const worn = wornSet();
   return (G_().souls || []).filter((s) => !worn.has(s.uid) && (G_().party || []).some((d) => !game.soulSlotConflict || !game.soulSlotConflict(d, s.uid, "sub0")));
 }
-// 融合できる魂がどこかにある (宿していない魂どうしでもよい)
+// 融合できる戦士の魂がある (宿していない魂どうしでもよい)
 function anyFusable() {
   if (!game.fuseCandidates) return false;
-  return (G_().souls || []).some((s) => game.fuseCandidates(s.uid).length > 0);
+  return (G_().souls || []).some((s) => s.clsKey === "fighter" && game.fuseCandidates(s.uid).length > 0);
 }
 function dollWithSub() {
   return (G_().party || []).find((d) => (d.subs || []).some((s) => s && soulByUid(s.uid))) || null;
@@ -287,7 +287,6 @@ const TUTS = [
     used: () => ((G_().stats || {}).fusions || 0) > 0,
     // 素材の有無に関わらず、戦士の魂を2つ預ける (宿していなくても、2つどうしで融合できる)
     prepare() {
-      tutState().base.fusions = (G_().stats || {}).fusions || 0;
       if (!grantSoul("fighter")) return null;
       grantSoul("fighter");
       return `${jobLabel("fighter")}の魂をふたつ`;
@@ -295,16 +294,16 @@ const TUTS = [
     intro: (gift) => [
       ["同じ職の余った魂を融合すると、魂の格が上がり、Lvの上限や技が増えます。素材の魂は消え、その力は残る魂へ移ります。", "『魂』の区分の『魂融合』から、一度試してみてください。"],
       gift ? [`練習に、${gift}お預けします。`, "宿している戦士の魂に溶かしても、ふたつを溶かし合わせてもかまいません。"]
-        : ["余っている同じ職の魂を、融合してみてください。"],
+        : ["余っている戦士の魂を、融合してみてください。"],
     ],
     steps: [{
-      text: "魂融合で、余っている魂を溶かす",
+      text: "魂融合で、戦士の魂を溶かす",
       // 宿している魂に融合できるなら魂の区分の『魂融合』、無ければ『メイン魂』の一覧の『魂融合』
       get hint() {
-        return fusableDoll() ? "人業の館 → 魂の区分 →『魂融合』→ 素材の魂を選ぶ" : "『魂を交換』→ 戦士の魂の『魂融合』";
+        return fusableDoll() ? "人業の館 → 戦士 →『魂融合』→ 戦士の魂を選ぶ" : "『魂を交換』→ 戦士の魂の『魂融合』";
       },
-      go: () => goSoulSeg(fusableDoll()), target: [".sp-fuse.hot", ".sp-pick-fuse", ".sp-change"],
-      done: () => ((G_().stats || {}).fusions || 0) > (tutState().base.fusions || 0),
+      go: () => goSoulSeg(fusableDoll()), target: ['.sp-fuse.hot[data-job="fighter"]', '.sp-srow[data-job="fighter"] .sp-pick-fuse', ".sp-change"],
+      on: "soulFused:fighter",
       skip: () => !anyFusable(),
     }],
     outro: ["魂を融合すると、魂の強さとLv上限が上がる。一定数以上の魂を融合すると魂がランクアップ。"],
@@ -688,7 +687,7 @@ function ireneGuidance() {
   }
   // 目標札の操作手順ではなく、通常会話と同じ口調で案内する。
   if (p.key === "trainSoul") return ["『魂を強化』を押し、✦Soulを魂に注いでください。", "必要な✦Soulと、上がるLvを確かめましょう。"];
-  if (p.key === "fusion") return ["『魂融合』を開き、素材にする魂をお選びください。", "余っている同じ職の魂を、ひとつに溶かしましょう。"];
+  if (p.key === "fusion") return ["戦士の魂の『魂融合』を開き、素材にする戦士の魂をお選びください。", "お預けした戦士の魂を、ひとつに溶かしましょう。"];
   if (p.key === "soulChange") return ["『魂を交換』で一覧を開き、持ち帰った魂をお選びください。", "能力や技を確かめて『宿す』で付け替えられます。一覧を閉じるだけでもかまいません。"];
   if (p.key === "sub1") return tutState().step === 1 ?
     ["サブ魂の札の『技』を開いてください。", "借りる技を選んだら、閉じてください。"] :
@@ -775,7 +774,7 @@ function tutorialControls() {
       return choose([...fresh, ...rows, close.target], [h.body, ...rows, ...close.allowed]);
     }
     if (card.querySelector(".sp-srow")) {
-      if (d.key === "fusion") return choose(first(card, ".sp-pick-fuse"));
+      if (d.key === "fusion") return choose(first(card, '.sp-srow[data-job="fighter"] .sp-pick-fuse'));
       let rows = first(card, ".sp-srow:not(.cur) .sp-srow-main:not(:disabled)");
       if (d.key === "changeJob") rows = rows.filter((n) => (st.base.jobs || []).includes(n.closest(".sp-srow").dataset.job));
       return choose(rows);
