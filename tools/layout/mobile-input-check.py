@@ -50,7 +50,13 @@ with sync_playwright() as p:
 
         page.evaluate('__game.UI.settingsSheet()')
         page.get_by_role('button', name='プレイヤー名を編集', exact=True).click()
-        page.get_by_label('プレイヤー名', exact=True).fill('保存する名')
+        player_name = page.get_by_label('プレイヤー名', exact=True)
+        player_name.fill('保存する名')
+        page.set_viewport_size({'width': width, 'height': 844})
+        page.wait_for_timeout(300)  # 街のresize描画が走っても、入力内容とフォーカスを保つ。
+        expect(player_name).to_have_value('保存する名')
+        expect(player_name).to_be_focused()
+        page.set_viewport_size({'width': width, 'height': height})
         page.get_by_role('button', name='保存する', exact=True).click()
         page.locator('.player-name-sheet').wait_for(state='detached')
         assert page.evaluate('__game.G.apprenticeName') == '保存する名'
@@ -58,14 +64,13 @@ with sync_playwright() as p:
         page.locator('.stg-sheet').wait_for(state='detached')
 
         page.evaluate('__game.UI.openHelp()')
-        search = page.get_by_role('searchbox')
-        search.fill('魂')
+        help_text = page.locator('.jr-results').text_content()
         page.set_viewport_size({'width': width, 'height': 844})
-        page.wait_for_timeout(300)  # 街のresize描画が走っても、編集中のシートは残る。
-        expect(search).to_have_value('魂')
+        page.wait_for_timeout(300)
+        expect(page.locator('.jr-results')).to_have_text(help_text)
         page.evaluate("async()=>{const {sheet}=await import('/src/ui/kit.js');sheet.closeAll()}")
         page.locator('.jr-sheet').wait_for(state='detached')
-    print('人業のIME・連続決定・取消、低い画面での改名・検索維持: OK')
+    print('人業のIME・連続決定・取消、低い画面での改名・入力保持・ヘルプ維持: OK')
 
     page.goto('http://localhost:8000/')
     page.get_by_role('button', name='はじめから').click()
