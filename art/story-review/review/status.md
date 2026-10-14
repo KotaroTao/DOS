@@ -177,13 +177,13 @@
 | 由来 | `ws1` | 沈んだ礼拝堂 | 出荷済み | [見る](dungeons.md#lore_ws1) |
 | 由来 | `ws2` | 石眠りの石切り場 | 出荷済み | [見る](dungeons.md#lore_ws2) |
 | 由来 | `ws3` | 霧の迷い森 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_ws3) |
-| 由来 | `ws4` | 銀業の隠れ里 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_ws4) |
+| 由来 | `ws4` | 銀業の隠れ里 | 出荷済み | [見る](dungeons.md#lore_ws4) |
 | 由来 | `ws5` | 王都の古井戸 | 出荷済み | [見る](dungeons.md#lore_ws5) |
 | 由来 | `ws6` | 見捨てられた狼煙台 | 出荷済み | [見る](dungeons.md#lore_ws6) |
-| 由来 | `ws7` | 獄吏の詰所 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_ws7) |
-| 由来 | `ws8` | 沈んだ書庫 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_ws8) |
-| 由来 | `ws9` | 黒曜の切り場 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_ws9) |
-| 由来 | `ws10` | 火守りの僧院 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_ws10) |
+| 由来 | `ws7` | 獄吏の詰所 | 出荷済み | [見る](dungeons.md#lore_ws7) |
+| 由来 | `ws8` | 沈んだ書庫 | 出荷済み | [見る](dungeons.md#lore_ws8) |
+| 由来 | `ws9` | 黒曜の切り場 | 出荷済み | [見る](dungeons.md#lore_ws9) |
+| 由来 | `ws10` | 火守りの僧院 | 出荷済み | [見る](dungeons.md#lore_ws10) |
 | 由来 | `ws11` | 白狼の吹き溜まり | 出荷済み | [見る](dungeons.md#lore_ws11) |
 | 由来 | `ws12` | 氷河の裂け目 | 出荷済み | [見る](dungeons.md#lore_ws12) |
 | 由来 | `ws13` | 疫病塚の底 | 出荷済み | [見る](dungeons.md#lore_ws13) |

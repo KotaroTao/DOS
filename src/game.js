@@ -13971,11 +13971,11 @@ function legacyToPage(page, { tab = "hub", seg = null, after = null } = {}) {
 // 手書きの段は旧来の ID、刻みで延びた段は `${系統}#${k}` (k = 手書きの最後の段から数えた番号)。
 //
 // 報酬の物差し: 迷宮の初踏破の報告 (msqReward) が 100〜350G・赤い魂 2〜10、第1章の迷宮をひと通り潜って得る金貨が 1万G ほど。
-// 序盤の段は 30〜150G (赤い魂なし〜1)、第1章の終わり頃に届く段で 300G・赤い魂2〜3、その先の段で 500G〜・赤い魂 3〜15。
-// 刻みで延びた段は、手書きの最後の段の報酬を k ごとに +30% (金貨・✦Soul)、赤い魂は +1 ずつ (上限 ACH_RED_CAP。最後の段がそれを越えていれば据え置き)。
+// 序盤の段は 30〜150G (赤い魂なし〜1)、第1章の終わり頃に届く段で 300G、その先の段で 500G〜。赤い魂はどの段も最大2個。
+// 刻みで延びた段は、手書きの最後の段の報酬を k ごとに +30% (金貨・✦Soul)、赤い魂は +1 ずつ (手書きの段も含め上限 ACH_RED_CAP)。
 const ACH_SERIES = [];
 const ACH_GROW = 0.3;
-const ACH_RED_CAP = 20;
+const ACH_RED_CAP = 2;
 const KANJI_D = ["", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
 // 1〜9999 を漢数字に (段の名前「〜・其の十二」用)
 function kanjiNum(n) {
@@ -14001,11 +14001,11 @@ function achTier(s, i) {
     if (v == null) return null;
     const grow = (n) => (n ? Math.round(n * (1 + ACH_GROW * k) / 10) * 10 : 0);
     row = { v, name: `${last.name}・其の${kanjiNum(k + 1)}`, id: `${s.key}#${k}`,
-      gold: grow(last.gold), red: last.red ? Math.max(last.red, Math.min(ACH_RED_CAP, last.red + k)) : 0, soul: grow(last.soul) };
+      gold: grow(last.gold), red: last.red ? Math.min(ACH_RED_CAP, last.red + k) : 0, soul: grow(last.soul) };
   }
   const reward = {};
   if (row.gold) reward.gold = row.gold;
-  if (row.red) reward.redSoul = row.red;
+  if (row.red) reward.redSoul = Math.min(ACH_RED_CAP, row.red);
   if (row.soul) reward.soulPts = row.soul;
   const v = row.v;
   const t = { id: row.id, name: row.name, desc: s.desc(v), v, reward, series: s.key,
