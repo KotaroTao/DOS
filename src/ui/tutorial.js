@@ -283,7 +283,7 @@ const TUTS = [
   },
   {
     key: "fusion", name: "魂融合", who: "irene",
-    open: () => !!(game.featureUnlocked && game.featureUnlocked("fusion")),
+    open: () => !!(game.featureUnlocked?.("fusion") && (tutState().fusionPending || tutState().cur === "fusion")),
     used: () => ((G_().stats || {}).fusions || 0) > 0,
     // 素材の有無に関わらず、戦士の魂を2つ預ける (宿していなくても、2つどうしで融合できる)
     prepare() {
@@ -544,8 +544,9 @@ function finish(d) {
   const after = () => {
     busy = false;
     if (game.renderTown && inTown()) game.renderTown();
-    // 同じ施設の次の手ほどきも、街に戻って入口を押してから始める。
-    if (pending() && !pending().started) UI.shell?.setTab?.("hub");
+    // 付け替えと融合が重なった時は、館に留まって続けて教わる。
+    const continueFusion = d.key === "soulChange" && pending()?.key === "fusion";
+    if (!continueFusion && pending() && !pending().started) UI.shell?.setTab?.("hub");
     // 次の手ほどきは、街で対象施設の入口を案内する
     if (pending() && !TUT_MAP[pending().key]?.manual) setTimeout(() => resume(), 240);
   };
@@ -572,6 +573,13 @@ function afterReport() {
 function afterReturn() {
   const st = tutState();
   if (!st) return false;
+  // 修道院以降の帰還で、没収されずに持ち帰った職業の魂だけを数える。
+  const haul = G_().lastRun;
+  if (!game.prologueActive?.() && G_().msq?.n >= 1 && haul?.souls?.length > 0 && !haul.forfeited) {
+    if (!st.done.soulChange && newJobSouls().length > 0) st.jobVisit = true;
+    if (!st.done.fusion && game.featureUnlocked?.("fusion")) st.fusionPending = true;
+    game.autosave?.(true);
+  }
   if (!st.done.trainSoul && UI.trainableList?.().length > 0) {
     st.trainPending = true; game.autosave?.(true);
   }
@@ -583,7 +591,7 @@ function afterReturn() {
     resume(); return true;
   }
   if (st.done.repairSoul || !(anyBroken() || st.repairFell)) {
-    if ((st.appraisePending && !st.done.shopAppraise) || (st.trainPending && !st.done.trainSoul)) { resume(); return true; }
+    if ((st.jobVisit && !st.done.soulChange) || (st.fusionPending && !st.done.fusion) || (st.appraisePending && !st.done.shopAppraise) || (st.trainPending && !st.done.trainSoul)) { resume(); return true; }
     return false;
   }
   st.repairPending = true;
