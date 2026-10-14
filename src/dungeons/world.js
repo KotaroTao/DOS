@@ -1696,6 +1696,10 @@ export function wallOf(cfg) {
 export function agiWallOf(cfg) {
   return cfg && cfg.layer >= WALL_FROM_LAYER && wallOf(cfg) > 1 ? 3 : 1;
 }
+// 第十章以降の主・強敵のHPだけ、既存の強さの壁に追加で10倍を掛ける。
+export function strongHpWallOf(cfg) {
+  return cfg && cfg.layer >= WALL_FROM_LAYER && wallOf(cfg) > 1 ? 10 : 1;
+}
 // その層の入口の段 (前の層の何倍か。壁のない層なら 1)
 export function wallStepOf(cfg) {
   if (!cfg || cfg.wall != null) return 1;

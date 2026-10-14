@@ -8,7 +8,7 @@ import { monsterResists } from "./resistance.js";
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
-import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, setEnemyLvTag, scaleFoeAgi, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setEquipSwap, setModSink, setElemKnown, setPartyEvadeBonus, setPartyBreathBonus, setPartyHitBonus, partyBreathRes, perkVictory, cureAil, canSpellCure, cureBySpell, spellCureKinds, chishioState } from "./combat.js";
+import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, setEnemyLvTag, scaleFoeAgi, scaleStrongFoeHp, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setEquipSwap, setModSink, setElemKnown, setPartyEvadeBonus, setPartyBreathBonus, setPartyHitBonus, partyBreathRes, perkVictory, cureAil, canSpellCure, cureBySpell, spellCureKinds, chishioState } from "./combat.js";
 import { decideAuto, tacticOf, setResistKnown } from "./autotactics.js";
 import { STAGED, effectStage, stageOf, stageMul, stageLabel, isBattleLong, ENEMY_STAT_LABEL } from "./buffstage.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
@@ -27,7 +27,7 @@ import { pickTavernCrowd, TALK_MAP } from "./tavern.js";
 import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, QUEST_LV_NEAR, rollBoard, deliveryRewardRows, NPCS, npcOf, composeReport, bondGiftAt, npcBondLabel, TIP_RATE, hasBell, BELL_EVERY_MS, QUEST_REWARD_K, QUEST_RK, questRewardK, commonQuestTextFits, COMMON_KEY as QUEST_COMMON_KEY } from "./quests.js";
 import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_THREE_REPORT, TUT_FINALE, TUT_CORRIDOR, STORY_CELLS, storyCellAt, BOSS_MEMORIES, REPORTS, LATE_CLUES, IRENE_BEATS, MINE_PASS, msqReward, EPILOGUE, UNLOCKS, unlockSceneFor, REMATCH_MEMORIES } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
-import { poolAt, powerAt, agiWallOf } from "./dungeons/world.js";
+import { poolAt, powerAt, agiWallOf, strongHpWallOf } from "./dungeons/world.js";
 import { NAMED_FOES, NAMED_IDS, TROPHY_OF, HUNT_ELITE_RATE, bountyId } from "./dungeons/named.js";
 import { FLOOR_HAZ, hazSkin, hazPlaced, layerFloorHaz } from "./dungeons/floorhaz.js";
 import { DUNGEONS, WORLD_IDS, worldIndexOf, worldById, gateFloors, isGateFloor, dungeonLevel, dungeonLevelRaw, strengthAt, wallOf, wallStepOf, lootBand, abyssLayer, ABYSS_LAYER_FLOORS, hazardsAt, levelBand, DUNGEON_MONSTERS, ELEMENTS, elementAffinity, elemDmgMult, ELITE_ORDER, LAYER_ELITES, LAYER_BOSS, LAYER_POOLS, monsterTraits, resistHpMul, isFloating, METAL_TIERS, unknownLabel, unknownTag } from "./dungeons/index.js";
@@ -8615,6 +8615,7 @@ function startBattleMeasured(enemies, cell) {
   // 迷宮の属性気配: 属性持ち迷宮では雑魚敵が迷宮属性を帯びやすい (主・強敵は固有属性のまま)
   const cfg = activeCfg();
   const spFloor = specialDef();
+  for (const e of enemies) scaleStrongFoeHp(e, strongHpWallOf(cfg));
   const isElite = enemies.some((e) => e.mon && e.mon.elite);
   if (cfg.element) {
     const ch = (spFloor && spFloor.elemAll) || mutNum("elemAll", false) ? 1 : 0.5;
@@ -8742,7 +8743,7 @@ function startBattleMeasured(enemies, cell) {
   for (const e of enemies) e.lv = foeLv;
   // 開幕のパッシブ・迷宮の掟の冷気で掛かる強化・弱体は、開幕の演出の後に1拍ずつ見せる (演出の設定が出す時だけ)
   const modW = beginModWatch(true);
-  G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot"), fleeK: fleeScale(), agiWall: agiWallOf(activeCfg()), baseAgi: partyAgi(levelHere().lv), foeLv, fervor: !!(trB && trB.fervor), foeRise: (trB && trB.foeRise) || 0, soulFeast: (trB && trB.soulFeast) || 0 });
+  G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot"), fleeK: fleeScale(), agiWall: agiWallOf(activeCfg()), strongHpWall: strongHpWallOf(activeCfg()), baseAgi: partyAgi(levelHere().lv), foeLv, fervor: !!(trB && trB.fervor), foeRise: (trB && trB.foeRise) || 0, soulFeast: (trB && trB.soulFeast) || 0 });
   tlWatchBattle(G.battle, tlWhere(), id => infSupplyRecord("used", id));
   // 迷宮の掟の開幕の効果: 寒さに身がすくむ (chill) — 隊の全員の AGI を段数ぶん下げる (3ターン)
   for (const r of ruleOpens) if (r.chill) {
@@ -18165,6 +18166,8 @@ function loadGame(cloudSnapshot = null) {
     tlWatchBattle(G.battle, tlWhere(), id => infSupplyRecord("used", id));
     G.battle.log = log;
     if (G.battle.fleeK == null) G.battle.fleeK = fleeScale(); // 逃走の物差しを持たない古い戦闘
+    if (G.battle.strongHpWall == null) G.battle.strongHpWall = strongHpWallOf(activeCfg());
+    for (const e of (G.battle.enemies || [])) scaleStrongFoeHp(e, G.battle.strongHpWall);
     if (G.battle.agiWall == null) G.battle.agiWall = agiWallOf(activeCfg()); // 古い戦闘にも章の素早さの壁を適用
     for (const e of (G.battle.enemies || [])) scaleFoeAgi(e, G.battle.fleeK, G.battle.agiWall); // 敵の AGI を素の値のまま保存した古い戦闘
     if (G.battle.baseAgi == null) G.battle.baseAgi = partyAgi(levelHere().lv); // 強敵の回避の上限を持たない古い戦闘
