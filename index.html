@@ -48,6 +48,10 @@
     <main id="screen">
       <!-- カードボード / 戦闘ビュー -->
       <canvas id="view" width="480" height="320"></canvas>
+      <div id="enemy-display-tools" aria-label="敵の表示">
+        <span id="enemy-focus" aria-live="polite"></span>
+        <button id="enemy-row-toggle" type="button" hidden>後列を手前に</button>
+      </div>
       <div id="board-camera-tools" aria-label="盤面の表示">
         <span id="board-camera-hint">ドラッグで見渡す</span>
         <button id="board-overview" type="button" aria-pressed="false">全体</button>

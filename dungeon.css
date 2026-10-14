@@ -612,3 +612,21 @@ canvas.unk-sil { filter: brightness(0) drop-shadow(0 0 1px rgba(185,172,217,0.85
   #app.in-combat .pc .cls,
   #app.in-combat .pc .pc-lv { display: none; }
 }
+
+/* 敵の表示操作は戦場の内側。人数によって記録・隊・命令板を動かさない。 */
+.in-combat #screen { position: relative; }
+#enemy-display-tools { display: none; }
+.in-combat #enemy-display-tools {
+  position: absolute; bottom: 10px; left: 14px; right: 14px;
+  display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+  pointer-events: none;
+}
+#enemy-focus { flex: 1; min-width: 0; color: #eadbb3; font-size: 11px; text-shadow: 0 1px 3px #000; }
+#enemy-row-toggle {
+  pointer-events: auto; flex: 0 0 auto; min-height: 44px; padding: 4px 10px;
+  font-size: 12px; color: #eadbb3; background: rgba(24, 19, 25, 0.94);
+  border: 1px solid #665338; border-radius: 4px;
+}
+#enemy-row-toggle[hidden] { display: none; }
+#enemy-row-toggle:disabled { opacity: 0.5; }
+#enemy-row-toggle:focus-visible { outline: 2px solid #f3d58b; outline-offset: 2px; }
