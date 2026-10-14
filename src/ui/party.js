@@ -1812,7 +1812,7 @@ export function openStability(d, onChange) {
   const spec = () => {
     game.refreshStability();
     const gap = game.STABILITY_MAX-d.stability;
-    const per = game.stabilityPerRed ? game.stabilityPerRed() : 1;
+    const per = game.stabilityPerRed ? game.stabilityPerRed() : 5;
     const amounts = [...new Set([per, Math.min(10,gap), gap])].filter(n=>n>0 && n<=gap);
     const costOf = (n) => Math.ceil(n / per);
     return { title:`${d.name} ― 魂の安定度 ${d.stability}/${game.STABILITY_MAX}`,

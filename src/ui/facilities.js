@@ -456,7 +456,7 @@ function renderShrine(root) {
   wrap.appendChild(sectionHead("赤い魂の使い道"));
   const uses = el("div", "fc-uses wa-scroll");
   const use = (t, s) => { const r = el("div", "fc-use"); r.appendChild(el("i", "wa-dia")); const tx = el("div"); tx.appendChild(setText(el("div", "fc-use-t"), t)); tx.appendChild(setText(el("div", "fc-use-s"), s)); r.appendChild(tx); uses.appendChild(r); };
-  use("魂の安定度を回復する", "赤い魂1つで安定度1を回復");
+  use("魂の安定度を回復する", "赤い魂1つで安定度5を回復");
   use("迷宮に残された人業を早く連れ帰る", "全滅の時。🔴1 で連れ帰りまでの時間を 20 分縮める");
   use("全滅の時に戦利品を守る", `拾った品を守って帰還する。必要な赤い魂は帰還時に表示される (無料の迷宮もある)`);
   wrap.appendChild(uses);
