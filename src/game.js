@@ -4005,15 +4005,18 @@ function mistSprite(col, a) {
 
 // 盤面の常時アニメーション: 灯の揺らぎ・微塵・霊光を毎フレーム動かす (重い層はキャッシュ済み)。
 // 移動/めくり/壁の閃きの間はそれぞれの tick が描くので、ここでは描かない。背面タブでは rAF ごと止まる
-// 操作の直後 (1.5秒) は毎フレーム描き、静止が続けば灯の揺らぎだけ約30fpsに間引く (電池と余力のため)。
-// 1フレームの描画が重い端末でも同じく間引く
-let _boardIdleCost = 0, _boardIdleSkip = false, _boardActiveAt = 0;
+// 操作の直後 (1.5秒) は最大60fps、静止が続けば灯の揺らぎだけ約30fps (電池と余力のため)。
+// 1フレームの描画が重い端末では最大20fpsに抑える
+let _boardIdleCost = 0, _boardAnimLast = 0, _boardActiveAt = 0;
 function boardAnimLoop(ts) {
   requestAnimationFrame(boardAnimLoop);
   if (G.state !== "board" || !G.board) return;
   if (G.anim || G.flipAnim || G.heroAnim || G.wallFlash) return; // 他の tick に任せる
   if (uiBlocked()) return;        // オーバーレイ表示中は不要
-  if (_boardIdleCost > 9 || ts - _boardActiveAt > 1500) { _boardIdleSkip = !_boardIdleSkip; if (_boardIdleSkip) return; }
+  // フレームを交互に捨てるだけでは120Hz端末で60fpsになり、待機中も発熱し続ける。
+  const interval = _boardIdleCost > 9 ? 50 : ts - _boardActiveAt > 1500 ? 1000 / 30 : 1000 / 60;
+  if (ts - _boardAnimLast < interval - 0.5) return;
+  _boardAnimLast = ts;
   const t0 = performance.now();
   drawBoardFrame();
   _boardIdleCost = _boardIdleCost * 0.9 + (performance.now() - t0) * 0.1;

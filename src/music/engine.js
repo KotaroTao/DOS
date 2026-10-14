@@ -178,12 +178,19 @@ export class Engine {
     src.buffer = buf;
     if (o.rate) src.playbackRate.value = o.rate;
     const g = c.createGain();
+    const nodes = [src, g];
     g.gain.value = o.vol ?? 1;
     src.connect(g);
     let node = g;
-    if (o.pan && c.createStereoPanner) { const p = c.createStereoPanner(); p.pan.value = o.pan; g.connect(p); node = p; }
+    if (o.pan && c.createStereoPanner) { const p = c.createStereoPanner(); p.pan.value = o.pan; g.connect(p); node = p; nodes.push(p); }
     node.connect(this.sfxIn);
-    if (o.rev) { const s = c.createGain(); s.gain.value = o.rev; node.connect(s); s.connect(this.sfxWet); }
+    if (o.rev) { const s = c.createGain(); s.gain.value = o.rev; node.connect(s); s.connect(this.sfxWet); nodes.push(s); }
+    // 再生が終わった音の接続とサンプル参照を、その場で解放する。
+    src.onended = () => {
+      src.onended = null;
+      for (const n of nodes) { try { n.disconnect(); } catch {} }
+      src.buffer = null;
+    };
     src.start(t);
     return src;
   }
@@ -328,10 +335,12 @@ class Player {
     if (v < 0.35) { let k = 0; for (const x of eng.allVoices) if (x.t0 <= t && x.t1 > t) k++; if (k >= eng.maxVoices) return; }
 
     const src = c.createBufferSource();
+    const nodes = [src];
     src.buffer = buf;
     const rate = Math.pow(2, (e.m - z) / 12) * (o.rate || 1);
     src.playbackRate.value = rate;
     const g = c.createGain();
+    nodes.push(g);
     const amp = Math.pow(Math.max(0, Math.min(1.2, v)), 1.5);
     let node = src;
     let t1;
@@ -349,6 +358,7 @@ class Player {
       // 声部ごとのローパス: 強弱による音色差と、立ち上がりで明るくなる息・弓の圧
       if (def.filt && !ch.noFilt && !eng.lite) {
         const f = def.filt, bq = c.createBiquadFilter();
+        nodes.push(bq);
         bq.type = "lowpass"; bq.Q.value = 0.8;
         const top = f.lo + (f.hi - f.lo) * Math.pow(Math.min(1, v), f.curve ?? 1.3);
         bq.frequency.setValueAtTime(f.lo, t);
@@ -365,6 +375,7 @@ class Player {
       if (def.ownVib && src.detune) {
         const lo = c.createOscillator(); lo.frequency.value = 5.2 + r() * 0.8;
         const lg = c.createGain(); lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(def.ownVib, t + 0.45);
+        nodes.push(lo, lg);
         lo.connect(lg); lg.connect(src.detune); lo.start(t); lo.stop(t1 + 0.05);
       }
       const offs = r() * buf.duration;
@@ -384,16 +395,28 @@ class Player {
     // 共有ヴィブラート / wow
     if (src.detune) for (const m of C.mods) m.connect(src.detune);
     try { src.stop(t1 + 0.05); } catch {}
-    const voice = { src, g, t0: t, t1 };
+    const voice = { src, g, nodes, mods: src.detune && C.mods.length ? C.mods : [], channel: C, t0: t, t1 };
     vs.push(voice);
     this.voices.push(voice);
     eng.allVoices.push(voice);
-    const mods = src.detune && C.mods.length ? C.mods : null;
-    src.onended = () => {
-      try { g.disconnect(); } catch {}
-      if (mods) for (const m of mods) { try { m.disconnect(src.detune); } catch {} }
-    };
+    src.onended = () => this.releaseVoice(voice);
     if (this.voices.length > 400) this.voices = this.voices.filter((x) => x.t1 > eng.now());
+  }
+  // 鳴り終わった声部を配列にも残さない。数百音分のAudioBufferやフィルタを
+  // 次の音まで保持すると、長時間の探索・曲の切り替えでメモリを圧迫する。
+  releaseVoice(voice) {
+    voice.src.onended = null;
+    for (const m of voice.mods) { try { m.disconnect(voice.src.detune); } catch {} }
+    for (const n of voice.nodes) {
+      // 独奏のヴィブラートも、音を途中で消した時点で止める。
+      if (n !== voice.src && typeof n.stop === "function") { try { n.stop(); } catch {} }
+      try { n.disconnect(); } catch {}
+    }
+    voice.src.buffer = null;
+    for (const list of [voice.channel.voices, this.voices, this.eng.allVoices]) {
+      const i = list.indexOf(voice);
+      if (i >= 0) list.splice(i, 1);
+    }
   }
   steal(voice, t) {
     try {
@@ -421,7 +444,10 @@ class Player {
   kill() {
     if (this.dead) return;
     this.dead = true;
-    for (const v of this.voices) { try { v.src.stop(); } catch {} }
+    for (const v of [...this.voices]) {
+      try { v.src.stop(); } catch {}
+      this.releaseVoice(v);
+    }
     for (const o of this.lfos) { try { o.stop(); } catch {} }
     for (const C of this.chans) for (const n of C.nodes) { try { n.disconnect(); } catch {} }
     for (const g of [this.dry, this.wet, this.dly]) { try { g.disconnect(); } catch {} }
