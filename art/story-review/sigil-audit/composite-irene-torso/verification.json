@@ -1,0 +1,47 @@
+{
+  "scene": "irene_torso",
+  "authorization": "ユーザーがPython局所合成によるirene_torsoの1枚の修正とPR作成を明示許可。",
+  "base_main": "49ee8c06",
+  "decision": "採用・ユーザー確認待ち（未承認）",
+  "changed_bbox_xyxy": [
+    330,
+    717,
+    357,
+    749
+  ],
+  "changed_pixels": 659,
+  "outside_bbox_rgb_identical": true,
+  "reference_crop_xyxy": [
+    608,
+    322,
+    927,
+    771
+  ],
+  "crest_resize": [
+    22,
+    31
+  ],
+  "crest_rotation_degrees": 18,
+  "crest_paste_xy": [
+    328,
+    714
+  ],
+  "files": {
+    "master": {
+      "path": "art/story-review/chapter3/irene_torso.png",
+      "sha256": "730f4b3a6203aaf7201d5b7e5d727b9c7e0509575fe3a459cba8c54a9d37acc3"
+    },
+    "before": {
+      "path": "art/story-review/fixes/irene_torso-sigil-python-before.png",
+      "sha256": "27bd1735b06870385cfdda81c90122d54b25a99fc588d12848719eec7165d0eb"
+    },
+    "reference": {
+      "path": "docs/art/story-refs/sigil.png",
+      "sha256": "7dfeb2dbb8eb7091557e1dd3f387b963b64b2fa4a20848c1c18734167fe47b6b"
+    },
+    "shipped": {
+      "path": "art/story/chapter3/irene_torso.webp",
+      "sha256": "8f57aa2a40ca78e3c5c452e7b39745fa92b0e13feb7a0cc0b62d0e498703f360"
+    }
+  }
+}

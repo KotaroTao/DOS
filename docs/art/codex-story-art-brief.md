@@ -371,7 +371,7 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 
 ### 一門の印の確認に基づく局所修正 (2026-10-14)
 
-**A-23. 一門の印の局所修正 irene_torso** `art/story-review/chapter3/irene_torso.png`
+**A-23. 一門の印の局所修正 irene_torso** `art/story-review/chapter3/irene_torso.png` (済)
 - 根拠と判定: 原寸の額の印は炎と複数の短い突起が一体化した形で、承認済みの角張った掌・独立した炎と一致しない。額のみ修正。腕の内側は金の継ぎ目と手の向きで印を判別できず追加は保留。
 - 保つもの: 印以外の人物・顔・目・衣装・部品・構図・光。要確認の箇所は変更しない。
 ```text
