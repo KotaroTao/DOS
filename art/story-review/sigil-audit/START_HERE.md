@@ -1,10 +1,10 @@
 # 別セッションで一門の印の修正を再開する
 
-**現在：出荷対象153枚、修正不要131枚、修正・確認済み10枚、修正保留3枚、要確認9枚。** 修正・確認済みのうち9枚はユーザー承認・mainマージ済み。今回のirene_rain（A-30）1枚は確認待ち。
+**現在：出荷対象153枚、修正不要131枚、修正・確認済み11枚、修正保留2枚、要確認9枚。** 修正・確認済みのうち10枚はユーザー承認・mainマージ済み。今回のirene_rest（A-31）1枚は確認待ち。
 
-2026-10-14更新：irene_order（A-29）は [PR #994](https://github.com/KotaroTao/DOS/pull/994) で承認・mainマージし、Pages公開・公開サイトの版一致を確認済み。最新mainからirene_rain（A-30）の額の印をPython局所合成で修正。[比較・検査・再現記録](composite-irene-rain/README.md)。変更1,000画素、許可領域外RGB完全一致。隠れた手首内側への印の追加は行わない。
+2026-10-14更新：irene_rain（A-30）は [PR #995](https://github.com/KotaroTao/DOS/pull/995) で承認・mainマージし、Pages公開・公開サイトの版一致を確認済み。最新mainからirene_rest（A-31）の額の印をPython局所合成で修正。[比較・検査・再現記録](composite-irene-rest/README.md)。変更352画素、許可領域外RGB完全一致。別セッションで修正済みの脚・胸と、開いた蓋の金の図形を保持。額より下の全RGBも一致を検査した。
 
-今回のPRの確認後、次の未完了対象はirene_rest（A-31）の額のみ。別セッションで修正済みの脚・胸を必ず保持し、開いた蓋の金の図形は根拠不足のため引き続き保留。
+今回のPRの確認後、次の未完了対象はirene_names（A-32）の額のみ。その後はlore_w07（A-34）。開いた蓋の金の図形は配置根拠不足のため引き続き保留。
 
 以下の再開依頼とresume-checkpoint.jsonはA-27修正前の引き継ぎ記録。現在の判定・原画ハッシュはprogress.jsonを優先する。要確認9枚と追加の保留箇所は推測で変更しない。
 
@@ -19,16 +19,19 @@
 5. [resume-checkpoint.json](resume-checkpoint.json)：引き継ぎ時のmain、正本ハッシュ、7枚の順序・原画パス・ハッシュ・要確認9枚の理由。
 6. `docs/art/codex-story-art-brief.md` の正典2-1・2-2とA-27〜A-32・A-34、正本 `docs/art/story-refs/sigil.png`。
 
-## 引き継ぎ時の7枚の順序（A-27〜A-29は承認済み、A-30は確認待ち）
+## 引き継ぎ時の7枚の順序（A-27〜A-30は承認済み、A-31は確認待ち）
 
 | 順 | 場面 | 指示書 | 変更対象 | 保持・保留 |
 |---|---|---|---|---|
-| 1 | irene_order | A-29 | [#994](https://github.com/KotaroTao/DOS/pull/994) | [額、806画素](composite-irene-order/README.md) |
+| 1 | irene_rain | A-30 | [#995](https://github.com/KotaroTao/DOS/pull/995) | [額、1,000画素](composite-irene-rain/README.md) |
+| irene_order | A-29 | [#994](https://github.com/KotaroTao/DOS/pull/994) | [額、806画素](composite-irene-order/README.md) |
 | irene_crest | A-28 | [#990](https://github.com/KotaroTao/DOS/pull/990) | [額と肘、1,261画素](composite-irene-crest/README.md) |
 | irene_lineage | A-27 | セラの額の印 | 隠れた関節内側へ追加しない |
-| 2 | irene_order | A-29 | [#994](https://github.com/KotaroTao/DOS/pull/994) | [額、806画素](composite-irene-order/README.md) |
+| 2 | irene_rain | A-30 | [#995](https://github.com/KotaroTao/DOS/pull/995) | [額、1,000画素](composite-irene-rain/README.md) |
+| irene_order | A-29 | [#994](https://github.com/KotaroTao/DOS/pull/994) | [額、806画素](composite-irene-order/README.md) |
 | irene_crest | A-28 | 額と肘内側の既存の印 | 肘の位置・手指・関節の形を保持 |
-| 3 | irene_order | A-29 | セラの額の印 | イレーヌの額、手を組む姿勢を保持 |
+| 3 | irene_rain | A-30 | [#995](https://github.com/KotaroTao/DOS/pull/995) | [額、1,000画素](composite-irene-rain/README.md) |
+| irene_order | A-29 | セラの額の印 | イレーヌの額、手を組む姿勢を保持 |
 | 4 | irene_rain | A-30 | セラの額の印 | 隠れた手首内側へ追加しない |
 | 5 | irene_rest | A-31 | 左寄りに座るセラの額の印 | 別セッションで修正済みの脚・胸を保持。開いた蓋の金の図形は要確認 |
 | 6 | irene_names | A-32 | 右寄りに身を乗り出すセラの額の印 | イレーヌの額・札・他の装飾を保持 |
@@ -36,10 +39,11 @@
 
 [next-session-small/](next-session-small/) は現在原画から作った384×256の引き継ぎ見本。新たに目視確認済み・修正済みを意味しない。再開時のハッシュが変わっていれば見本も作り直し、古い座標・判定を流用しない。
 
-## 承認・マージ済み9枚
+## 承認・マージ済み10枚
 
 | 場面 | 指示書 | PR | 修正と記録 |
 |---|---|---|---|
+| irene_rain | A-30 | [#995](https://github.com/KotaroTao/DOS/pull/995) | [額、1,000画素](composite-irene-rain/README.md) |
 | irene_order | A-29 | [#994](https://github.com/KotaroTao/DOS/pull/994) | [額、806画素](composite-irene-order/README.md) |
 | irene_crest | A-28 | [#990](https://github.com/KotaroTao/DOS/pull/990) | [額と肘、1,261画素](composite-irene-crest/README.md) |
 | irene_lineage | A-27 | [#988](https://github.com/KotaroTao/DOS/pull/988) | [額、1,344画素](composite-irene-lineage/README.md) |
@@ -50,7 +54,7 @@
 | ch5_end | A-25 | [#965](https://github.com/KotaroTao/DOS/pull/965) | [額と背中の魂火除去、1381画素](composite-ch5-end/README.md) |
 | irene_husks | A-26 | [#968](https://github.com/KotaroTao/DOS/pull/968) | [額、742画素](composite-irene-husks/README.md) |
 
-原画・WebPはmainへ反映済み。承認済みの「(済)」はA-23〜A-29・A-33・A-35。A-30は今回修正・確認済みだがユーザー承認待ち。ハッシュが変わっていなければ再修正しない。
+原画・WebPはmainへ反映済み。承認済みの「(済)」はA-23〜A-30・A-33・A-35。A-31は今回修正・確認済みだがユーザー承認待ち。ハッシュが変わっていなければ再修正しない。
 
 ## 方法と許可
 
