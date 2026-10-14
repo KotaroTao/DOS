@@ -1,0 +1,166 @@
+{
+  "recorded_at": "2026-10-14T15:43:00.954665+00:00",
+  "main_at_preparation": "aff90768e5cbffd1ed162f760f6fbf81de295f21",
+  "counts": {
+    "確認済・修正不要": 131,
+    "修正済・確認済": 6,
+    "修正保留": 7,
+    "要確認": 9
+  },
+  "first_target": "irene_lineage",
+  "canonical": "docs/art/story-refs/sigil.png",
+  "canonical_sha256": "7dfeb2dbb8eb7091557e1dd3f387b963b64b2fa4a20848c1c18734167fe47b6b",
+  "all_153_master_hashes_match": true,
+  "approved_prs": {
+    "irene_torso": 959,
+    "w16_legs": 961,
+    "ch5_end": 965,
+    "irene_husks": 968,
+    "lore_w02": 953,
+    "lore_w12": 953
+  },
+  "remaining_queue": [
+    {
+      "order": 1,
+      "id": "irene_lineage",
+      "brief": "A-27",
+      "master": "art/story-review/chapter6/irene_lineage.png",
+      "current_sha256": "5d7a8e9f63e7d2c95bdd236faad6e41792e12bf318f79f47cfb0e89848edc149",
+      "status": "修正保留",
+      "target": "セラの額の印",
+      "preserve": "隠れた関節内側へ追加しない",
+      "preview": "art/story-review/sigil-audit/next-session-small/irene_lineage.jpg",
+      "preview_is_new_review": false
+    },
+    {
+      "order": 2,
+      "id": "irene_crest",
+      "brief": "A-28",
+      "master": "art/story-review/chapter7/irene_crest.png",
+      "current_sha256": "c92dde72d66b92051dc2ff0bc08c65d3e2f3e4fb507881d7b52518c0b3c65ba3",
+      "status": "修正保留",
+      "target": "セラの額と肘内側の既存の印",
+      "preserve": "肘の位置・手指・関節を保持",
+      "preview": "art/story-review/sigil-audit/next-session-small/irene_crest.jpg",
+      "preview_is_new_review": false
+    },
+    {
+      "order": 3,
+      "id": "irene_order",
+      "brief": "A-29",
+      "master": "art/story-review/chapter7/irene_order.png",
+      "current_sha256": "fb3754a9457af38ab9a7226b3042e79fd338e6c315d8494a2d6021a5b7fd932c",
+      "status": "修正保留",
+      "target": "セラの額の印",
+      "preserve": "イレーヌの額と手を組む姿勢を保持",
+      "preview": "art/story-review/sigil-audit/next-session-small/irene_order.jpg",
+      "preview_is_new_review": false
+    },
+    {
+      "order": 4,
+      "id": "irene_rain",
+      "brief": "A-30",
+      "master": "art/story-review/chapter8/irene_rain.png",
+      "current_sha256": "52fe45c6b9f9f3c330f5f936fce7ebeffe3bab3a19683fdb520ba16432aa9efa",
+      "status": "修正保留",
+      "target": "セラの額の印",
+      "preserve": "隠れた手首内側へ追加しない",
+      "preview": "art/story-review/sigil-audit/next-session-small/irene_rain.jpg",
+      "preview_is_new_review": false
+    },
+    {
+      "order": 5,
+      "id": "irene_rest",
+      "brief": "A-31",
+      "master": "art/story-review/chapter9/irene_rest.png",
+      "current_sha256": "733173d82570de84c72a21a01f02c525e8675a30b43d0f2945003fe79e7b294d",
+      "status": "修正保留",
+      "target": "左寄りに座るセラの額の印",
+      "preserve": "最新mainの脚・胸の修正を保持。開いた蓋の金の図形は要確認",
+      "preview": "art/story-review/sigil-audit/next-session-small/irene_rest.jpg",
+      "preview_is_new_review": false
+    },
+    {
+      "order": 6,
+      "id": "irene_names",
+      "brief": "A-32",
+      "master": "art/story-review/chapter10/irene_names.png",
+      "current_sha256": "2d85e2bfa4bc96c7a9c8e9dcef21a7a2d8cf4877826f7fee11c7b32806484dd5",
+      "status": "修正保留",
+      "target": "右寄りに身を乗り出すセラの額の印",
+      "preserve": "イレーヌの額・札・他の装飾を保持",
+      "preview": "art/story-review/sigil-audit/next-session-small/irene_names.jpg",
+      "preview_is_new_review": false
+    },
+    {
+      "order": 7,
+      "id": "lore_w07",
+      "brief": "A-34",
+      "master": "art/story-review/dungeons/lore_w07.png",
+      "current_sha256": "2c946b1c0d6e9209c814db733f447beea02449cb97101a212ed45d143b9be723",
+      "status": "修正保留",
+      "target": "布に包まれたセラの頭の額の印",
+      "preserve": "基準に合う壁の印を保持",
+      "preview": "art/story-review/sigil-audit/next-session-small/lore_w07.jpg",
+      "preview_is_new_review": false
+    }
+  ],
+  "needs_confirmation": [
+    {
+      "id": "w14_lamp",
+      "master": "art/story-review/chapter4/w14_lamp.png",
+      "reason": "笠の原寸部分を確認。苔と装飾が覆い、印を識別できない。笠のどの面に彫るかは根拠不足のため追加を保留。"
+    },
+    {
+      "id": "mem_w21",
+      "master": "art/story-review/chapter5/mem_w21.png",
+      "reason": "師の裾の原寸印は幾何学基準に合う。扉の印も幾何学形だが、扉への配置は本文・指示に根拠がないため要確認。裾は修正不要。"
+    },
+    {
+      "id": "report_w20",
+      "master": "art/story-review/chapter5/report_w20.png",
+      "reason": "王の横の空席に一門の印に似た大きな金の図形。王宮の椅子の印の配置根拠なし。推測では消さない。"
+    },
+    {
+      "id": "report_w21",
+      "master": "art/story-review/chapter5/report_w21.png",
+      "reason": "玉座脇の椅子と王の後方の壁に一門の印に似た図形。王宮への配置根拠なし。推測では変更しない。"
+    },
+    {
+      "id": "w20_cup",
+      "master": "art/story-review/chapter5/w20_cup.png",
+      "reason": "背景の扉と台座に一門の印に似た図形。金の杯と帳面の場面で扉・台座の配置根拠なし。推測では修正しない。"
+    },
+    {
+      "id": "mem_w29",
+      "master": "art/story-review/chapter7/mem_w29.png",
+      "reason": "扉の上の原寸印は幾何学基準に一致し修正不要。祖の法衣は伏せた姿で装飾と印を識別できず、細かな配置指定もないため追加は保留。"
+    },
+    {
+      "id": "lore_w14",
+      "master": "art/story-review/dungeons/lore_w14.png",
+      "reason": "風景中の複数の灯籠が描かれるが、w14_lampの青白い火の灯籠と同一と確定できない。笠に一律に印を追加しない。"
+    },
+    {
+      "id": "lore_w16",
+      "master": "art/story-review/dungeons/lore_w16.png",
+      "reason": "水底の脚の内側が濁りと陰で隠れる。くるぶしの印は視認できず、指定位置が露出しているとも確定できない。追加は保留。"
+    },
+    {
+      "id": "lore_w29",
+      "master": "art/story-review/dungeons/lore_w29.png",
+      "reason": "工房の壁の赤い布に大きな一門の印らしい図形。本文は工房の扉の上の印を指定。壁の布がその印の表現か根拠不足。推測で移動・消去しない。"
+    }
+  ],
+  "additional_unresolved_regions": [
+    {
+      "id": "ch5_end",
+      "reason": "盾の大きな印の配置は根拠不足。保持する。"
+    },
+    {
+      "id": "irene_rest",
+      "reason": "開いた胸の蓋の金の図形の配置は要確認。脚・胸の既存修正を保持する。"
+    }
+  ],
+  "latest_main_before_handoff_pr": "3bb9bb8f9d3f50ee48b6369836e996d403e45b8d"
+}

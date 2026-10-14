@@ -5,7 +5,7 @@
     "ユーザーがセラの背中の光るものは本来胸にあるため、背中には付けないよう追記。"
   ],
   "base_main": "2622a3d5",
-  "decision": "採用・ユーザー確認待ち（未承認）",
+  "decision": "採用・PR #965でユーザー承認・mainへマージ済み",
   "forehead_bbox_xyxy": [
     801,
     502,
@@ -63,5 +63,6 @@
       "sha256": "3218a30e3e255e40b5980d661be975ad3092b14799581d544d028ccb1e7702a5"
     }
   },
-  "latest_main_before_pr": "03054f18"
+  "latest_main_before_pr": "03054f18",
+  "approved_pr": 965
 }
