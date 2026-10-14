@@ -90,12 +90,14 @@ function gateIcon(kind) {
 // ---- 迷宮の顔 (上半分): 選んでいる迷宮の情景・説明・記録 ----
 const VISTA_W = 480, VISTA_H = 320; // 戦闘背景と同じ 3:2 で描き、表示枠 (横長) で上下を切る
 let vistaLoop = 0;
+const PAINTED_VISTAS = new Set(["ws6", "w18", "w24", "w25", "w26", "w27"]);
 function vistaIllustration(dn) {
-  const path = dn.id === "ws6" && LORE_IMAGES[dn.id];
+  const path = PAINTED_VISTAS.has(dn.id) && LORE_IMAGES[dn.id];
   if (!path) return vistaCanvas(dn);
   const img = document.createElement("img");
   img.className = "dp-vista-cv";
   img.style.imageRendering = "auto";
+  if (dn.id === "w27") img.style.objectPosition = "50% 30%";
   img.alt = `${dn.name}の情景`;
   img.decoding = "async";
   img.onerror = () => { if (img.isConnected) img.replaceWith(vistaCanvas(dn)); };
