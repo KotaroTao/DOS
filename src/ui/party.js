@@ -1095,7 +1095,7 @@ function scheduleGreeting() {
     greetTimer = null;
     const G = G_();
     if (!G || G.state !== "town" || !G.town || G.town.tab !== "party" || G.town.page || isGreeted() || sceneActive()) return;
-    playIreneScene(greetingPages(), () => {
+    const afterGreeting = () => {
       ireneState().greeted = true;
       curLine = nextLine({ entry: true });
       if (game.autosave) game.autosave(true);
@@ -1105,7 +1105,8 @@ function scheduleGreeting() {
       wantCreate = false;
       rerender();
       if (make && inTown()) setTimeout(() => openCreateDoll(), 120);
-    });
+    };
+    if (!UI.tutorialMansionGreeting?.(afterGreeting)) playIreneScene(greetingPages(), afterGreeting);
   }, 60);
 }
 // いま枠に出すべき話 (状況が変わって当てはまらなくなった助言は、別の話に替える)

@@ -15,7 +15,7 @@
 import { UI, game, registerUI } from "./ctx.js";
 import { el, setText, button, sheet, toast, celebrate, sheetDepth } from "./kit.js";
 import { unphrase } from "./phrase.js";
-import { playIreneScene, sceneActive, isGreeted } from "./irene.js";
+import { playIreneScene, sceneActive, isGreeted, greetingPages } from "./irene.js";
 import { keeperCanvas, vignetteCanvas } from "../townart.js";
 import { SOUL_CLASSES, soulByUid } from "../souls.js";
 
@@ -472,7 +472,12 @@ function resume() {
   goStep(true);
   return true;
 }
-function start(d) {
+// 初訪問の挨拶と三体の操作案内を、同じ会話の中で続ける。
+function mansionGreeting(done) {
+  if (!atMansion() || isGreeted() || busy || sceneActive() || pending()?.key !== "createThree") return false;
+  return start(TUT_MAP.createThree, { prefix: greetingPages(), onIntroEnd: done });
+}
+function start(d, { prefix = [], onIntroEnd } = {}) {
   const st = tutState();
   st.cur = d.key; st.step = 0; st.ev = {}; st.base = {};
   const gift = safe(() => d.prepare(), null);
@@ -480,11 +485,12 @@ function start(d) {
   busy = true;
   clearGlow(); updateGuidance();
   const after = () => {
+    onIntroEnd?.();
     busy = false;
     if (gift) toast(`${gift}預かった (手ほどき用)`, { tone: "good" });
     setTimeout(() => { safe(() => d.afterIntro?.(), null); goStep(true); }, 200); // 語りを閉じたタップが、開いた先の画面に届かないように
   };
-  if (d.who === "irene") playIreneScene(d.intro(gift), after);
+  if (d.who === "irene") playIreneScene([...prefix, ...d.intro(gift)], after);
   else introSheet(d, after);
   return true;
 }
@@ -813,6 +819,7 @@ export function install() {
   registerUI({
     tutorialIreneLines: ireneGuidance,
     tutorialMansionVisited: mansionVisited,
+    tutorialMansionGreeting: mansionGreeting,
     tutorialShopVisited: () => facilityVisited("shop"),
     tutorialFacilityVisited: facilityVisited,
     tutorialGateVisited: gateVisited,

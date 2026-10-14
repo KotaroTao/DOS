@@ -22,7 +22,7 @@ import { MAX_ITEMS } from "../items.js";
 import { isMeleeWeapon } from "../autoequip.js";
 
 export const IRENE_WHO = "人業の館の主　イレーヌ";
-export const IRENE_ART = "./art/mansion_irene.jpg"; // ユーザーの原画 (ドット絵にせずそのまま)
+export const IRENE_ART = "./art/mansion_irene_guide.webp"; // 館の案内専用の原画 (ドット絵にせず滑らかに表示)
 
 const sfx = (k) => { try { if (SFX[k]) SFX[k](); } catch (e) { /* 音は演出のみ */ } };
 
