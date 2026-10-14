@@ -362,11 +362,11 @@
   {
     "id": "irene_torso",
     "master": "art/story-review/chapter3/irene_torso.png",
-    "status": "修正保留",
-    "note": "再開時の現在原画を縮小・額部分で確認。原寸対象＋正本切り出しで再編集した候補も、額の杯状の掌と上向きの突起が残り、斜めの平行な右指3本・独立した炎へ置換されていないため不採用。rejected/resume/irene_torso-candidate.pngに保存。原画を保持し、イレーヌの額・隠れた腕内側は変更していない。",
+    "status": "修正済・確認済",
+    "note": "ユーザーの明示許可によりPython局所合成を実施。正本sigil.pngから輪郭を抽出し、額の傾き18度・小さい金の印へ合成。拡大で角張った掌・左親指1本・右平行指3本・短い手首・独立した炎1つを照合して採用。変更は額の27×32範囲（x330〜356、y717〜748）の659画素のみ、範囲外のRGBは修正前と完全一致。修正前はfixes/irene_torso-sigil-python-before.png、比較・手順はcomposite-irene-torso/。イレーヌの額・顔・目・髪・腕内側などは保持。ユーザー確認待ち、未承認。",
     "sha256": "27bd1735b06870385cfdda81c90122d54b25a99fc588d12848719eec7165d0eb",
-    "checked_at": "2026-10-14T12:25:15.190009+00:00",
-    "current_sha256": "27bd1735b06870385cfdda81c90122d54b25a99fc588d12848719eec7165d0eb"
+    "checked_at": "2026-10-14T13:21:40.208497+00:00",
+    "current_sha256": "730f4b3a6203aaf7201d5b7e5d727b9c7e0509575fe3a459cba8c54a9d37acc3"
   },
   {
     "id": "irene_trust",
