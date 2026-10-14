@@ -2,9 +2,9 @@
 
 判断基準：[rules.md](rules.md)。場面ごとの本文：[evidence.json](evidence.json)。
 
-更新：2026-10-14T18:39:37.616156+00:00
+更新：2026-10-14T18:42:07.003129+00:00
 
-確認済・修正不要 131枚／修正済・確認済 8枚／要確認 9枚／修正保留 5枚
+確認済・修正不要 131枚／修正済・確認済 9枚／要確認 9枚／修正保留 4枚
 
 要確認は根拠・視認性が不足するため保留。修正保留は編集候補が基準を満たさず未完了。未確認は目視前であり、修正不要を意味しない。
 
@@ -91,8 +91,8 @@
 | 79 | [w23_names](../../../art/story-review/chapter6/w23_names.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定対象なし。 |
 | 80 | [w24_aurora](../../../art/story-review/chapter6/w24_aurora.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定対象なし。 |
 | 81 | [ch7_end](../../../art/story-review/chapter7/ch7_end.png) | 確認済・修正不要 | 縮小で確認。一門の印の指定対象なし。 |
-| 82 | [irene_crest](../../../art/story-review/chapter7/irene_crest.png) | 修正済・確認済 | Python局所合成で額と肘内側の旧印を除去し、正本sigil.pngから抽出した輪郭へ既存位置で置換。各印の左親指1本・右指3本・短い手首・独立した炎1つを拡大確認。変更1261画素（額662・肘599）、2領域外RGB完全一致。顔・髪・肘の位置・手指・関節・胸の灯を保持。比較・検査・再現: composite-irene-crest/。ユーザー承認・マージ待ち。 |
-| 83 | [irene_order](../../../art/story-review/chapter7/irene_order.png) | 修正保留 | 再開時に現在原画の縮小・額部分を確認。原寸対象＋正本切り出し＋額の部分参照の候補も杯状の掌と短い上向きの指が残り基準形に不一致で不採用。rejected/resume/irene_order-candidate.pngに保存。原画を保持。イレーヌの額と手を組む姿勢、隠れた関節は変更しない。 |
+| 82 | [irene_crest](../../../art/story-review/chapter7/irene_crest.png) | 修正済・確認済 | PR #990でユーザー承認・mainへマージ、Pages公開と公開サイトの版一致を確認済み。額と肘内側の印を正本からPython局所合成。変更1261画素、2領域外RGB完全一致。main取り込み時の進捗ページ衝突は再生成で解消し、PNG・WebPは承認時と同一。比較・検査・再現: composite-irene-crest/。 |
+| 83 | [irene_order](../../../art/story-review/chapter7/irene_order.png) | 修正済・確認済 | Python局所合成で現在原画のセラの額の旧印を除去し、sigil.pngから抽出した輪郭を15度回転して小さい金の印へ置換。角張った掌・左親指1本・右指3本・短い手首・独立した炎1つを拡大確認。変更806画素、額の許可領域外RGB完全一致。イレーヌの額・顔・髪・手を組む姿勢・胸の灯・隠れた関節を保持。比較・検査・再現: composite-irene-order/。ユーザー承認・マージ待ち。 |
 | 84 | [mem_w29](../../../art/story-review/chapter7/mem_w29.png) | 要確認 | 扉の上の原寸印は幾何学基準に一致し修正不要。祖の法衣は伏せた姿で装飾と印を識別できず、細かな配置指定もないため追加は保留。 |
 | 85 | [report_w26](../../../art/story-review/chapter7/report_w26.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定なし。王宮の星状の装飾は別物として保持。 |
 | 86 | [report_w27](../../../art/story-review/chapter7/report_w27.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定なし。王宮の星状の装飾は別物として保持。 |
