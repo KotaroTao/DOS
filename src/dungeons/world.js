@@ -1692,6 +1692,10 @@ export function wallOf(cfg) {
   if (cfg.wall != null) return cfg.wall;
   return wallAt(cfg.layer || 1);
 }
+// 第十章以降の素早さは3倍。HP・攻撃・防御の壁とは別に固定し、無限迷宮 (wall:1) は除く。
+export function agiWallOf(cfg) {
+  return cfg && cfg.layer >= WALL_FROM_LAYER && wallOf(cfg) > 1 ? 3 : 1;
+}
 // その層の入口の段 (前の層の何倍か。壁のない層なら 1)
 export function wallStepOf(cfg) {
   if (!cfg || cfg.wall != null) return 1;
