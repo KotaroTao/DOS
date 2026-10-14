@@ -1,0 +1,102 @@
+[
+  {
+    "id": "ws4",
+    "viewport": "mobile",
+    "loaded": true,
+    "size": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "ws7",
+    "viewport": "mobile",
+    "loaded": true,
+    "size": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "ws8",
+    "viewport": "mobile",
+    "loaded": true,
+    "size": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "ws9",
+    "viewport": "mobile",
+    "loaded": true,
+    "size": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "ws10",
+    "viewport": "mobile",
+    "loaded": true,
+    "size": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "viewport": "mobile",
+    "fallback": true,
+    "pageErrors": []
+  },
+  {
+    "id": "ws4",
+    "viewport": "desktop",
+    "loaded": true,
+    "size": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "ws7",
+    "viewport": "desktop",
+    "loaded": true,
+    "size": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "ws8",
+    "viewport": "desktop",
+    "loaded": true,
+    "size": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "ws9",
+    "viewport": "desktop",
+    "loaded": true,
+    "size": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "ws10",
+    "viewport": "desktop",
+    "loaded": true,
+    "size": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "viewport": "desktop",
+    "fallback": true,
+    "pageErrors": []
+  }
+]

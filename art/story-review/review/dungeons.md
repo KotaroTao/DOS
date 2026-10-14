@@ -718,9 +718,9 @@
 
 <a name="lore_ws4"></a>
 
-## lore_ws4「銀業の隠れ里」 ── 未着手
+## lore_ws4「銀業の隠れ里」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_ws4.webp" width="576" alt="lore_ws4">
 
 **ストーリー一覧の本文**
 
@@ -766,9 +766,9 @@ _(絵はまだ無い)_
 
 <a name="lore_ws7"></a>
 
-## lore_ws7「獄吏の詰所」 ── 未着手
+## lore_ws7「獄吏の詰所」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_ws7.webp" width="576" alt="lore_ws7">
 
 **ストーリー一覧の本文**
 
@@ -782,9 +782,9 @@ _(絵はまだ無い)_
 
 <a name="lore_ws8"></a>
 
-## lore_ws8「沈んだ書庫」 ── 未着手
+## lore_ws8「沈んだ書庫」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_ws8.webp" width="576" alt="lore_ws8">
 
 **ストーリー一覧の本文**
 
@@ -798,9 +798,9 @@ _(絵はまだ無い)_
 
 <a name="lore_ws9"></a>
 
-## lore_ws9「黒曜の切り場」 ── 未着手
+## lore_ws9「黒曜の切り場」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_ws9.webp" width="576" alt="lore_ws9">
 
 **ストーリー一覧の本文**
 
@@ -814,9 +814,9 @@ _(絵はまだ無い)_
 
 <a name="lore_ws10"></a>
 
-## lore_ws10「火守りの僧院」 ── 未着手
+## lore_ws10「火守りの僧院」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_ws10.webp" width="576" alt="lore_ws10">
 
 **ストーリー一覧の本文**
 
