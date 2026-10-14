@@ -2494,7 +2494,7 @@ function fitView(force = false) {
   else used += outerH(runbarEl) + outerH(ctrlEl) + LOG_MIN_BOARD;
   // 盤面の幅から最低高を決めると、スマホのブラウザバー表示時に記録がつぶれる。
   // 探索は低い盤面も許し、拡大表示とドラッグでマスの操作性を保つ。
-  const minVH = combat ? (G.battle?.enemies.length > 3 ? 280 : 180) : 96;
+  const minVH = combat ? 180 : 96;
   const h = Math.max(cssW * minVH / VW, Math.min(cssW * (combat ? 0.98 : 1.32), appH - used));
   const vh = Math.max(minVH, Math.floor((VW * h) / cssW));
   const cssH = (vh * cssW) / VW;
@@ -9141,6 +9141,20 @@ function renderCombat() {
   renderCombatMenu();
 }
 
+const enemyView = { battle: null, back: false, focus: null };
+const enemyRowBtn = document.getElementById("enemy-row-toggle");
+const enemyFocusEl = document.getElementById("enemy-focus");
+enemyRowBtn.addEventListener("click", () => {
+  if (G.state !== "combat" || !G.battle || G.animating || G.battle.result || uiBlocked()) return;
+  enemyView.back = !enemyView.back;
+  SFX.select();
+  renderCombatCanvas();
+});
+function focusEnemy(e) {
+  enemyView.focus = e?.uid ?? null;
+  if (G.state === "combat" && G.battle && !G.animating) renderCombatCanvas();
+}
+
 // キャンバスのみ (アニメーション毎フレーム用)
 function renderCombatCanvas() {
   const b = G.battle;
@@ -9160,13 +9174,27 @@ function renderCombatCanvas() {
 
   // 戦場の縦の伸び (縦長の戦場ほど魔物を大きく)
   const k = Math.max(0.92, Math.min(1.3, VH / 280));
-  // 隊列: 4体以上は前衛(先頭3体)・後衛(4体目以降)の2列に分かれる。
-  // 後衛を上、前衛を下の帯に置く。
-  const frontRow = b.enemies.slice(0, 3);
-  const backRow = b.enemies.slice(3);
-  const rows = backRow.length
-    ? [{ list: backRow, back: true }, { list: frontRow, back: false }]
-    : [{ list: frontRow, back: false }];
+  // 表示の前後だけを切り替える。戦闘の配列・射程・選択中の対象は変えない。
+  if (enemyView.battle !== b) { enemyView.battle = b; enemyView.back = false; enemyView.focus = null; }
+  const visible = (e) => e.alive || (!e._fled && !_deadShown.has(e)) || fx?.fleeAway?.uid === e.uid;
+  const frontRow = b.enemies.slice(0, 3).filter(visible);
+  const backRow = b.enemies.slice(3).filter(visible);
+  const hasFront = frontRow.some((e) => e.alive), hasBack = backRow.some((e) => e.alive);
+  const twoRows = hasFront && hasBack;
+  if (!twoRows) enemyView.back = !hasFront && hasBack;
+  const rows = [{ list: backRow, back: true }, { list: frontRow, back: false }].filter((row) => row.list.length);
+  rows.forEach((row) => { row.distant = twoRows && row.back !== enemyView.back; });
+  rows.sort((a, z) => Number(z.distant) - Number(a.distant));
+  enemyRowBtn.hidden = !twoRows;
+  const rowLabel = enemyView.back ? "前列を手前に" : "後列を手前に";
+  if (enemyRowBtn.textContent.replaceAll(ZWSP, "") !== rowLabel) enemyRowBtn.textContent = rowLabel;
+  enemyRowBtn.disabled = !!(G.animating || b.result);
+  if (b.phase !== "target") enemyView.focus = null;
+  const focused = b.phase === "target" && !G.animating && b.targetOptions().find((e) => e.side === "enemy" && e.uid === enemyView.focus);
+  const focusLabel = focused ? enemyLabel(focused) : twoRows ? `${enemyView.back ? "後列" : "前列"}を手前に表示中` : "";
+  if (enemyFocusEl.textContent.replaceAll(ZWSP, "") !== focusLabel) enemyFocusEl.textContent = focusLabel;
+  // 右下の44pxの操作欄を戦場の内側に確保する。
+  const stageH = VH - (b.enemies.length > 3 || b.phase === "target" ? 52 * VW / (view.clientWidth || VW) : 0);
   const intro = G.battleIntro && G.battleIntro.battle === b ? G.battleIntro : null;
   // 奇襲の1ターン目は、魔物の下に紅い縁と「敵が先に動く」の札を敷く (名札が重なれば名札を優先)
   if (!intro && b.opening === "ambush" && b._roundNo <= 1 && !b.result) drawAmbushTag(now);
@@ -9178,43 +9206,33 @@ function renderCombatCanvas() {
     : []);
   const strongTarget = b.phase === "target";
   G.enemyPos = {};
-  // 魔物の大きさ: 主は戦場を圧し、強敵は一回り大きく、後衛は奥で小さく。横に並ぶ数ぶんの幅に収める
-  for (const row of rows) {
-    row.plates = row.list.map((e) => enemyPlateLayout(e, VW / row.list.length - 12));
-    row.plateH = Math.max(...row.plates.map((p) => p.height));
-  }
-  const bandH = VH / rows.length;
-  // 上端10 + 絵と名札の間7 + HPと札の間11 + 効果札12 + 下端6。
-  // 名札だけでなくHPの下の効果札まで、各列の帯の内側に収める。
-  const rowExtraH = 10 + 7 + 11 + 12 + 6;
-  const sizeOf = (e, back, n) => {
-    let sz = (e.boss ? 14 : (e.mon && e.mon.elite ? 1.15 : 1) * (back ? 8 : 9)) * k;
+  // 名札を常設せず、同種の呼び分け記号と属性・HP・効果だけを残す。
+  const sizeOf = (e, distant, n) => {
+    let sz = (e.boss ? 14 : (e.mon && e.mon.elite ? 1.15 : 1) * 9) * k;
+    const maxHalfH = Math.max(8, (stageH - 44) * (twoRows ? 0.32 : 0.5));
     if (e.mon && (e.mon.art || e.mon.photo)) {
       const bm = monsterBitmap(e.mon);
       const unit = Math.max(12, bm.w, bm.h) / 12;
-      const slot = VW / n - 16;
-      sz = Math.min(sz, (slot / (bm.w + bm.pad * 2)) * unit);
+      sz = Math.min(sz, ((VW / n - 24) / (bm.w + bm.pad * 2)) * unit);
     }
-    // 名札と効果の札を残し、背の高い魔物も戦場からはみ出させない。
-    const row = rows.find((r) => r.back === back);
-    const maxHalfH = Math.max(8, (bandH - row.plateH - rowExtraH) / 2);
-    return Math.min(sz, sz * maxHalfH / monsterHalfH(e.mon, sz));
+    sz = Math.min(sz, sz * maxHalfH / monsterHalfH(e.mon, sz));
+    return sz * (distant ? 0.58 : 1);
   };
   for (const row of rows) {
-    const { plates, plateH } = row;
-    // この列の名札の高さを揃える (いちばん背の高い魔物の足元の下)
     let foot = 0;
-    for (const e of row.list) { const hh = monsterHalfH(e.mon, sizeOf(e, row.back, row.list.length)); foot = Math.max(foot, hh); }
-    // 前後それぞれの帯に姿と名前を収め、名札が別の敵に隠れないようにする。
-    const bandTop = rows.indexOf(row) * bandH;
-    row.y = bandTop + 10 + (bandH - plateH - rowExtraH) / 2;
-    const plateY = row.y + foot + 7;
+    for (const e of row.list) foot = Math.max(foot, monsterHalfH(e.mon, sizeOf(e, row.distant, row.list.length)));
+    row.y = row.distant ? 6 + foot : stageH - 40 - foot;
+    const plateY = row.y + foot + 3;
     row.list.forEach((e, i) => {
-      const baseX = (VW / row.list.length) * (i + 0.5);
+      const slot = VW / row.list.length;
+      const baseX = row.distant ? VW / 2 + (slot * (i + 0.5) - VW / 2) * 0.82 : slot * (i + 0.5);
       const baseY = row.y;
-      const size = sizeOf(e, row.back, row.list.length);
+      const size = sizeOf(e, row.distant, row.list.length);
       const hh = monsterHalfH(e.mon, size);
-      G.enemyPos[e.uid] = { cx: baseX, cy: baseY, r: 70 * k, hh, size, plate: { x: baseX - plates[i].width / 2, y: plateY, w: plates[i].width, h: plates[i].height } };
+      const bm = monsterBitmap(e.mon), unit = Math.max(12, bm.w, bm.h) / 12;
+      const hw = Math.min(slot / 2 - 4, (bm.w + bm.pad * 2) * size / unit / 2);
+      G.enemyPos[e.uid] = { cx: baseX, cy: baseY, r: Math.max(hw, hh), hw, hh, size, distant: row.distant,
+        plate: { x: baseX - 18, y: plateY, w: 36, h: 16 } };
       // 逃げ出した敵 (金属の魔物): 逃げる演出の間だけ、横へ駆け去る姿を描く
       const fleeFx = e._fled && fx && fx.fleeAway && fx.fleeAway.uid === e.uid ? fx.fleeAway : null;
       if (e._fled && !fleeFx) return;
@@ -9304,17 +9322,18 @@ function renderCombatCanvas() {
         vctx.restore();
       }
       // 対象選択中: 頭上に降りるくさびと四隅のかぎ
-      if (tappable && strongTarget) drawTargetBrackets(baseX, baseY, hh, size, now);
-      // 名札 + 血の小瓶 (HP)
-      // 名前・HP は討伐数で明かす (enemyReveal): 名前は1体倒すまで不確定名、HP の小瓶は5体倒すまで出さない (迷宮の主は名前が最初から、HP は1体で)
-      if (fleeFx) return; // 逃げる姿には名札を付けない
-      drawEnemyPlate(e, baseX, plateY, tappable && strongTarget, plates[i]);
-      const hpY = plateY + plateH + 2;
+      if (tappable && strongTarget && (!focused || focused === e)) drawTargetBrackets(baseX, baseY, hh, size, now);
+      if (fleeFx) return;
+      // 奥の記号は姿の横へ置き、小さな敵の絵を覆わない。
+      const badgeY = row.distant ? Math.max(2, baseY - hh) : plateY;
+      const badgeX = row.distant ? Math.max(14, baseX - hw - 14) : baseX;
+      G.enemyPos[e.uid].plate = { x: badgeX - 12, y: badgeY, w: 42, h: 16 };
+      const suffix = e.mon?.name && e.name.startsWith(e.mon.name) ? e.name.slice(e.mon.name.length) : "";
+      drawEnemyPlate(e, badgeX, badgeY, tappable && strongTarget, { lines: suffix ? [suffix] : [], width: 20, height: 16 });
+      const hpY = row.distant ? baseY + hh + 3 : plateY + 18;
       const showHp = enemyReveal(e).stats;
-      if (showHp) drawEnemyHpVial(e, baseX, hpY, now, k);
-      // 状態異常と強化・弱体の札は名前の下 (HP の小瓶があればその下)。
-      const statY = showHp ? hpY + 9 : plateY + plateH + 3;
-      drawEnemyBadges(e, baseX, statY);
+      if (showHp) drawEnemyHpVial(e, baseX, hpY, now, Math.min(k, slot / 150) * (row.distant ? 0.65 : 1));
+      drawEnemyBadges(e, baseX, showHp ? hpY + 9 : hpY, { maxWidth: slot - 8 });
     });
   }
 
@@ -9479,7 +9498,7 @@ function drawTargetBrackets(x, cy, hh, size, now) {
     vctx.beginPath(); vctx.moveTo(px, py + L * sy); vctx.lineTo(px, py); vctx.lineTo(px + L * sx, py); vctx.stroke();
   }
   // くさび (下向きの刃)
-  const ty = top - 10 + bob;
+  const ty = Math.max(8, top - 10 + bob);
   vctx.fillStyle = "#ffd88a";
   vctx.strokeStyle = "#3a1408";
   vctx.lineWidth = 1;
@@ -9490,56 +9509,35 @@ function drawTargetBrackets(x, cy, hh, size, now) {
   vctx.restore();
 }
 
-// 敵の名札: 両端の尖った黒鉄の札。主は金、強敵は紅の縁。属性 (明かされていれば) は札の右に印で添える
+// 敵の呼び分け記号: 両端の尖った黒鉄の札。主は金、強敵は紅の縁。属性 (明かされていれば) は札の右に印で添える
 const ENEMY_SEAL = { poison: ["毒", "#8ee05a"], paralyze: ["痺", "#ffd84a"], stone: ["石", "#c9c4b8"] };
 const MIND_SEAL = { charm: ["魅", "#ff8fc8"], confuse: ["乱", "#ffa860"] };
-// 名前は戦場の高さでは縮めず、長いものは札の幅で折り返す。
-function enemyPlateLayout(e, maxWidth) {
-  vctx.save();
-  vctx.font = `800 16px ${CANVAS_SERIF}`;
-  const lines = [];
-  let line = "";
-  for (const part of phrase(enemyLabel(e)).split(ZWSP)) {
-    if (line && vctx.measureText(line + part).width > maxWidth - 38) {
-      lines.push(line); line = "";
-    }
-    // 一つの文節だけで幅を超える場合に限り、字ごとに折る。
-    for (const ch of part) {
-      if (line && vctx.measureText(line + ch).width > maxWidth - 38) {
-        lines.push(line); line = "";
-      }
-      line += ch;
-    }
-  }
-  if (line) lines.push(line);
-  const width = Math.max(...lines.map((s) => vctx.measureText(s).width)) + 22;
-  vctx.restore();
-  return { lines, width, height: lines.length * 19 + 5 };
-}
 function drawEnemyPlate(e, x, y, hot, plate) {
   vctx.save();
   vctx.font = `800 16px ${CANVAS_SERIF}`;
   vctx.textAlign = "center"; vctx.textBaseline = "middle";
   const pw = plate.width, ph = plate.height, x0 = x - pw / 2, x1 = x + pw / 2;
-  vctx.beginPath();
-  vctx.moveTo(x0 + 6, y); vctx.lineTo(x1 - 6, y); vctx.lineTo(x1, y + ph / 2); vctx.lineTo(x1 - 6, y + ph); vctx.lineTo(x0 + 6, y + ph); vctx.lineTo(x0, y + ph / 2); vctx.closePath();
-  const g = vctx.createLinearGradient(0, y, 0, y + ph);
-  g.addColorStop(0, "rgba(34,22,24,0.94)"); g.addColorStop(1, "rgba(8,5,7,0.94)");
-  vctx.fillStyle = g;
-  vctx.fill();
-  const edge = e.boss ? "#d9b25a" : e.mon && e.mon.elite ? "#ff5a40" : hot ? "#f3c86a" : "rgba(170,60,44,0.95)";
-  if (e.boss || (e.mon && e.mon.elite)) { vctx.shadowColor = e.boss ? "rgba(255,200,100,0.6)" : "rgba(255,50,30,0.7)"; vctx.shadowBlur = 6; }
-  vctx.strokeStyle = edge; vctx.lineWidth = 1;
-  vctx.stroke();
-  vctx.shadowBlur = 0;
-  // 内側の細い罫
-  vctx.strokeStyle = "rgba(255,230,190,0.08)";
-  vctx.beginPath(); vctx.moveTo(x0 + 7, y + 2.5); vctx.lineTo(x1 - 7, y + 2.5); vctx.stroke();
-  // 不確定名 (まだ名を知らない敵) は淡い藤色で、正式な名と見分ける
-  vctx.fillStyle = enemyUnknown(e) ? UNKNOWN_COLOR : e.boss ? "#ffe0a0" : "#efe3cb";
-  vctx.shadowColor = "#000"; vctx.shadowBlur = 0; vctx.shadowOffsetY = 1;
-  plate.lines.forEach((line, i) => vctx.fillText(line, x, y + 12 + i * 19));
-  vctx.shadowOffsetY = 0;
+  if (plate.lines.length) {
+    vctx.beginPath();
+    vctx.moveTo(x0 + 6, y); vctx.lineTo(x1 - 6, y); vctx.lineTo(x1, y + ph / 2); vctx.lineTo(x1 - 6, y + ph); vctx.lineTo(x0 + 6, y + ph); vctx.lineTo(x0, y + ph / 2); vctx.closePath();
+    const g = vctx.createLinearGradient(0, y, 0, y + ph);
+    g.addColorStop(0, "rgba(34,22,24,0.94)"); g.addColorStop(1, "rgba(8,5,7,0.94)");
+    vctx.fillStyle = g;
+    vctx.fill();
+    const edge = e.boss ? "#d9b25a" : e.mon && e.mon.elite ? "#ff5a40" : hot ? "#f3c86a" : "rgba(170,60,44,0.95)";
+    if (e.boss || (e.mon && e.mon.elite)) { vctx.shadowColor = e.boss ? "rgba(255,200,100,0.6)" : "rgba(255,50,30,0.7)"; vctx.shadowBlur = 6; }
+    vctx.strokeStyle = edge; vctx.lineWidth = 1;
+    vctx.stroke();
+    vctx.shadowBlur = 0;
+    // 内側の細い罫
+    vctx.strokeStyle = "rgba(255,230,190,0.08)";
+    vctx.beginPath(); vctx.moveTo(x0 + 7, y + 2.5); vctx.lineTo(x1 - 7, y + 2.5); vctx.stroke();
+    // 不確定名 (まだ名を知らない敵) は淡い藤色で、正式な名と見分ける
+    vctx.fillStyle = enemyUnknown(e) ? UNKNOWN_COLOR : e.boss ? "#ffe0a0" : "#efe3cb";
+    vctx.shadowColor = "#000"; vctx.shadowBlur = 0; vctx.shadowOffsetY = 1;
+    plate.lines.forEach((line, i) => vctx.fillText(line, x, y + ph / 2 + i * 19));
+    vctx.shadowOffsetY = 0;
+  }
   // 右に添える印は属性だけ (図鑑で属性が明かされた敵 / 弱点看破)。状態異常は名前の下の札 (enemyAilSeals → drawEnemyBadges)
   if (e.element && e.element !== "none" && ELEMENTS[e.element] && enemyElemKnown(e)) {
     const el2 = ELEMENTS[e.element], sx = x1 + 9;
@@ -10046,6 +10044,10 @@ function drawEnemyBadges(e, baseX, yTop, opt = {}) {
   const pad = 3, gap = 3, h = 12;
   const widths = segs.map((s) => vctx.measureText(s.text).width + pad * 2);
   const total = widths.reduce((a, b) => a + b, 0) + gap * (segs.length - 1);
+  if (opt.maxWidth && total > opt.maxWidth) {
+    const scale = opt.maxWidth / total;
+    vctx.translate(baseX, yTop); vctx.scale(scale, 1); vctx.translate(-baseX, -yTop);
+  }
   let x = baseX - total / 2;
   const cy = yTop + h / 2;
   segs.forEach((s, i) => {
@@ -10207,21 +10209,19 @@ function drawFloatText(f, t) {
   vctx.restore();
 }
 
-// キャンバス座標(sx,sy)に最も近い生存中の敵を返す (一定距離以内のみ)。allowed があればその集合に限る
+// 絵・記号に触れた生存中の敵を返す。重なりは手前を優先し、allowed の射程は越えない。
 function nearestEnemyAt(sx, sy, allowed = null) {
   const b = G.battle;
   if (!b) return null;
-  let best = null, bestD = 1e9;
-  for (const e of b.enemies) {
-    if (!e.alive || (allowed && !allowed.includes(e))) continue;
-    const pos = G.enemyPos[e.uid];
-    if (!pos) continue;
-    const plate = pos.plate;
-    if (plate && sx >= plate.x && sx <= plate.x + plate.w && sy >= plate.y && sy <= plate.y + plate.h) return e;
-    const d = Math.hypot(sx - pos.cx, sy - pos.cy);
-    if (d < bestD) { bestD = d; best = e; }
+  const drawn = b.enemies.filter((e) => e.alive && G.enemyPos[e.uid]);
+  drawn.sort((a, z) => Number(G.enemyPos[a.uid].distant) - Number(G.enemyPos[z.uid].distant));
+  for (const e of drawn) {
+    const pos = G.enemyPos[e.uid], plate = pos.plate;
+    const onBody = Math.abs(sx - pos.cx) <= Math.max(16, pos.hw) && Math.abs(sy - pos.cy) <= Math.max(16, pos.hh);
+    const onPlate = plate && sx >= plate.x && sx <= plate.x + plate.w && sy >= plate.y && sy <= plate.y + plate.h;
+    if (onBody || onPlate) return !allowed || allowed.includes(e) ? e : null;
   }
-  return best && bestD < ((G.enemyPos[best.uid] && G.enemyPos[best.uid].r) || 70) ? best : null;
+  return null;
 }
 
 // オート解除は指が触れた瞬間 (pointerdown) に効かせる。オート中は手番ごとに命令板が描き直されるので、
@@ -10547,6 +10547,10 @@ function renderCombatMenu() {
     const list = el("div", "target-list" + (opts.length > 3 ? " cols2" : ""));
     for (const t of opts) {
       const tb = btn("", () => { if (t.side === "enemy") G._lastTargetUid = t.uid; b.chooseTarget(t); runCommitted(); });
+      if (t.side === "enemy") {
+        for (const ev of ["pointerenter", "focus", "pointerdown"]) tb.addEventListener(ev, () => focusEnemy(t));
+        for (const ev of ["pointerleave", "blur"]) tb.addEventListener(ev, () => focusEnemy(null));
+      }
       tb.className = "btn tgt " + (t.side === "enemy" ? "tgt-enemy" : "tgt-ally") + (t.alive ? "" : " tgt-down");
       // 敵の名前・HP は討伐数で明かす (名前は1体、HP は5体倒すまで伏せる)
       const isEn = t.side === "enemy";
@@ -17444,6 +17448,12 @@ view.addEventListener("pointerdown", (e) => {
 });
 view.addEventListener("pointermove", (e) => { if (_enemyHold && !_enemyHold.fired && Math.hypot(e.clientX - _enemyHold.x, e.clientY - _enemyHold.y) > 10) { clearTimeout(_enemyHold.t); _enemyHold = null; } });
 for (const ev of ["pointerup", "pointercancel", "pointerleave"]) view.addEventListener(ev, () => { if (_enemyHold && !_enemyHold.fired) { clearTimeout(_enemyHold.t); _enemyHold = null; } });
+view.addEventListener("pointermove", (e) => {
+  if (G.state !== "combat" || G.battle?.phase !== "target" || G.animating) return;
+  const rect = view.getBoundingClientRect();
+  focusEnemy(nearestEnemyAt((e.clientX - rect.left) * VW / rect.width, (e.clientY - rect.top) * VH / rect.height));
+});
+view.addEventListener("pointerleave", () => { if (enemyView.focus != null) focusEnemy(null); });
 view.addEventListener("contextmenu", (e) => { if (G.state === "combat") e.preventDefault(); });
 
 // 盤面のドラッグは見渡す操作。隊の札からのフリックは従来どおり歩く。
