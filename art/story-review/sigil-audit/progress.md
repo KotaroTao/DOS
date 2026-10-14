@@ -2,9 +2,9 @@
 
 判断基準：[rules.md](rules.md)。場面ごとの本文：[evidence.json](evidence.json)。
 
-更新：2026-10-14T15:45:13.816265+00:00
+更新：2026-10-14T18:09:22.225631+00:00
 
-確認済・修正不要 131枚／修正済・確認済 6枚／要確認 9枚／修正保留 7枚
+確認済・修正不要 131枚／修正済・確認済 7枚／要確認 9枚／修正保留 6枚
 
 要確認は根拠・視認性が不足するため保留。修正保留は編集候補が基準を満たさず未完了。未確認は目視前であり、修正不要を意味しない。
 
@@ -23,14 +23,14 @@
 | 11 | [ch1_end](../../../art/story-review/chapter1/ch1_end.png) | 確認済・修正不要 | 縮小で確認。一門の印の指定対象なし。弟子・隊の模様とイレーヌの装飾を保持。 |
 | 12 | [irene_familiar](../../../art/story-review/chapter1/irene_familiar.png) | 確認済・修正不要 | 縮小で確認。一門の印の指定対象なし。弟子・隊の模様とイレーヌの装飾を保持。 |
 | 13 | [irene_fort](../../../art/story-review/chapter1/irene_fort.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定対象なし。装飾を印と断定しない。 |
-| 14 | [irene_reveal](../../../art/story-review/chapter1/irene_reveal.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定対象なし。装飾を印と断定しない。 |
+| 14 | [irene_reveal](../../../art/story-review/chapter1/irene_reveal.png) | 確認済・修正不要 | 最新mainの更新原画を384×256で再確認。一門の印の配置指定対象なし。髪飾り・装飾を印と断定しない。 |
 | 15 | [mem_w03](../../../art/story-review/chapter1/mem_w03.png) | 確認済・修正不要 | 原寸部分で師の裾の幾何学印を確認。セラは横顔で額中央が髪と角度で隠れるため追加しない。 |
 | 16 | [mem_w05](../../../art/story-review/chapter1/mem_w05.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定対象なし。装飾を印と断定しない。 |
 | 17 | [minePass](../../../art/story-review/chapter1/minePass.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定なし。弟子の刺しゅう・王と宰相の装飾は修正対象外。 |
 | 18 | [report_w01](../../../art/story-review/chapter1/report_w01.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定なし。弟子の刺しゅう・王と宰相の装飾は修正対象外。 |
 | 19 | [report_w02](../../../art/story-review/chapter1/report_w02.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定なし。弟子の刺しゅう・王と宰相の装飾は修正対象外。 |
 | 20 | [report_w03](../../../art/story-review/chapter1/report_w03.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定なし。弟子の刺しゅう・王と宰相の装飾は修正対象外。 |
-| 21 | [report_w04](../../../art/story-review/chapter1/report_w04.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定なし。別の器の盾・衣装の模様を一門の印と断定しない。 |
+| 21 | [report_w04](../../../art/story-review/chapter1/report_w04.png) | 確認済・修正不要 | 最新mainの更新原画を384×256で再確認。一門の印の配置指定なし。弟子の刺しゅう・王宮の装飾は保持。 |
 | 22 | [report_w05](../../../art/story-review/chapter1/report_w05.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定なし。別の器の盾・衣装の模様を一門の印と断定しない。 |
 | 23 | [w01_lantern](../../../art/story-review/chapter1/w01_lantern.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定なし。別の器の盾・衣装の模様を一門の印と断定しない。 |
 | 24 | [w02_broken_doll](../../../art/story-review/chapter1/w02_broken_doll.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定なし。別の器の盾・衣装の模様を一門の印と断定しない。 |
@@ -81,7 +81,7 @@
 | 69 | [w19_husks](../../../art/story-review/chapter5/w19_husks.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定対象なし。 |
 | 70 | [w20_cup](../../../art/story-review/chapter5/w20_cup.png) | 要確認 | 背景の扉と台座に一門の印に似た図形。金の杯と帳面の場面で扉・台座の配置根拠なし。推測では修正しない。 |
 | 71 | [ch6_end](../../../art/story-review/chapter6/ch6_end.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定対象なし。 |
-| 72 | [irene_lineage](../../../art/story-review/chapter6/irene_lineage.png) | 修正保留 | 候補の具体的な不採用理由。原画は保持。 |
+| 72 | [irene_lineage](../../../art/story-review/chapter6/irene_lineage.png) | 修正済・確認済 | Python局所合成で現在原画の額の旧印を除去し、sigil.pngから抽出した正本を小さい金の印へ置換。左親指1本・右指3本・短い手首・独立した炎1つを拡大確認。変更1344画素、額の許可領域外RGB完全一致。人物・髪・手・胸の灯と隠れた関節内側を保持。比較・再現記録: composite-irene-lineage/。ユーザー承認・マージ待ち。 |
 | 73 | [mem_w25](../../../art/story-review/chapter6/mem_w25.png) | 確認済・修正不要 | 師は外套を残した後のシャツ姿。裾の印を足さない。凍王への追加配置指定なし。 |
 | 74 | [report_w22](../../../art/story-review/chapter6/report_w22.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定なし。王宮の星状・花状の装飾を印とは断定しない。 |
 | 75 | [report_w23](../../../art/story-review/chapter6/report_w23.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定なし。王宮の星状・花状の装飾を印とは断定しない。 |
