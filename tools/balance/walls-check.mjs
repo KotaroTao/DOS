@@ -1,4 +1,4 @@
-// 第十章からの3倍強化を、全迷宮・全階と実際の敵の組み立てで確認する。
+// 第十章からの10倍強化を、全迷宮・全階と実際の敵の組み立てで確認する。
 import assert from "node:assert/strict";
 import { WORLD, wallAt, wallOf, wallStepOf, strengthAt, poolAt, PART2_LAYER } from "../../src/dungeons/world.js";
 import { MONSTERS } from "../../src/sprites.js";
@@ -9,10 +9,10 @@ const near = (a, b) => assert(Math.abs(a - b) < 1e-10 * Math.max(1, b), `${a} / 
 assert.equal(PART2_LAYER, 13);
 for (let layer = 1; layer <= 25; layer++) {
   const oldWall = layer < 13 ? 1 : 2 * 1.4 ** (Math.min(20, layer) - 13);
-  near(wallAt(layer), oldWall * (layer >= 12 ? 3 : 1));
+  near(wallAt(layer), oldWall * (layer >= 12 ? 10 : 1));
 }
 assert.equal(wallStepOf({ layer: 11 }), 1);
-assert.equal(wallStepOf({ layer: 12 }), 3);
+assert.equal(wallStepOf({ layer: 12 }), 10);
 assert.equal(wallStepOf({ layer: 13 }), 2);
 assert.equal(wallStepOf({ layer: 14 }), 1.4);
 assert.equal(wallStepOf({ layer: 12, wall: 1 }), 1);
@@ -21,7 +21,7 @@ let floors = 0, foes = 0;
 const checkSpawn = (spawn, oldScale, newScale, factor, label) => {
   const before = spawn(oldScale)[0], after = spawn(newScale)[0];
   for (const stat of ["maxhp", "hp", "atk", "vit"]) {
-    assert(Math.abs(after[stat] - before[stat] * factor) <= (factor === 1 ? 0 : 2), `${label} ${stat}: ${before[stat]} → ${after[stat]}`);
+    assert(Math.abs(after[stat] - before[stat] * factor) <= (factor === 1 ? 0 : Math.ceil((factor + 1) / 2)), `${label} ${stat}: ${before[stat]} → ${after[stat]}`);
   }
   assert.equal(after.agi, before.agi, `${label}: 素早さ`);
   foes++;
@@ -29,7 +29,7 @@ const checkSpawn = (spawn, oldScale, newScale, factor, label) => {
 const eventKey = Object.keys(MONSTERS).find(k => MONSTERS[k].evOnly);
 assert(eventKey);
 for (const cfg of WORLD) for (let floor = 1; floor <= cfg.floors; floor++) {
-  const factor = cfg.layer >= 12 ? 3 : 1;
+  const factor = cfg.layer >= 12 ? 10 : 1;
   const oldWall = cfg.layer < 13 ? 1 : 2 * 1.4 ** (Math.min(20, cfg.layer) - 13);
   const oldScale = strengthAt({ ...cfg, wall: oldWall }, floor), newScale = strengthAt(cfg, floor);
   near(newScale, oldScale * factor);
@@ -45,4 +45,4 @@ for (const cfg of WORLD) for (let floor = 1; floor <= cfg.floors; floor++) {
   checkSpawn(s => spawnRanked(eventKey, rank, 1, s * (t.soloMul || 1)), oldScale, newScale, factor, "出来事の魔物");
   floors++;
 }
-console.log(`全${WORLD.length}迷宮・${floors}階・${foes}個体: 第九章以前は同じ、第十章以降は3倍、無限迷宮は倍率なし。第20層以降の上限と第二部の段も確認`);
+console.log(`全${WORLD.length}迷宮・${floors}階・${foes}個体: 第九章以前は同じ、第十章以降は10倍、無限迷宮は倍率なし。第20層以降の上限と第二部の段も確認`);
