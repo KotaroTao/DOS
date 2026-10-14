@@ -15398,7 +15398,7 @@ const REPAIR_RANK_GOLD = [10, 10, 20, 40, 80, 160]; // [0] は魂の宿らぬ器
 const REPAIR_RARITY_MUL = { common: 1, rare: 2, epic: 3, legend: 4, unique: 3 };
 function repairCostOf(d) {
   // 回廊を踏破するまでは、隊・控えとも金貨なしで修復できる。
-  if (!d || d.alive || awaitingRescue(d) || !worldState().cleared.w02) return 0;
+  if (!d || d.alive || awaitingRepairRescue(d) || !worldState().cleared.w02) return 0;
   const rank = Math.max(1, Math.min(5, d.jobRank || 1));
   const lv = Math.max(1, d.jobLv || 1);
   const cls = d.clsKey ? SOUL_CLASSES[d.clsKey] : null;
@@ -15425,6 +15425,11 @@ function awayInDungeon(d) {
 // 迷宮から連れ帰られるのを待っている人業か (館で修復できない)
 function awaitingRescue(d) {
   return !!(d && d.isDoll && !d.alive && d.reviveAt);
+}
+
+// 館の修復判定は監視の次の更新を待たず、満了した器も対象にする。
+function awaitingRepairRescue(d) {
+  return awaitingRescue(d) && (awayInDungeon(d) || d.reviveAt > Date.now());
 }
 
 // 全滅して街へ戻った時に、砕けた人業の連れ帰りタイマーを動かし始める (器は全滅した階に残る)
@@ -15536,7 +15541,7 @@ function reviveAllAtHp1() {
 // 砕けた魂を修復する (街の中のみ・金貨を払う)。HP/MP満タンで立ち上がる
 function repairDoll(d, { batch = false } = {}) {
   if (!d || !d.isDoll || d.alive) return { ok: false, reason: "dead" };
-  if (awaitingRescue(d)) { showToast(`${d.name} はまだ迷宮から連れ帰られていない`, { tone: "bad" }); SFX.ng(); return { ok: false, reason: "rescue" }; }
+  if (awaitingRepairRescue(d)) { showToast(`${d.name} はまだ迷宮から連れ帰られていない`, { tone: "bad" }); SFX.ng(); return { ok: false, reason: "rescue" }; }
   if (G.state !== "town") { showToast("修復は街の人業の館でしかできない", { tone: "bad" }); SFX.ng(); return { ok: false, reason: "town" }; }
   const cost = repairCostOf(d);
   if (G.gold < cost) { log("金貨が足りない。", "sys"); SFX.ng(); showToast(`金貨が足りない (💰${cost})`, { tone: "bad" }); return { ok: false, reason: "gold", cost }; }
@@ -15561,7 +15566,7 @@ function repairDoll(d, { batch = false } = {}) {
 // 館に届いている砕けた人業を、隊・控えまとめて修復する。費用不足なら誰も修復しない。
 function repairAllDolls() {
   if (G.state !== "town") return { ok: false, reason: "town" };
-  const targets = allDolls().filter((d) => d.isDoll && !d.alive && !awaitingRescue(d));
+  const targets = allDolls().filter((d) => d.isDoll && !d.alive && !awaitingRepairRescue(d));
   if (!targets.length) return { ok: false, reason: "dead" };
   const cost = targets.reduce((sum, d) => sum + repairCostOf(d), 0);
   if (G.gold < cost) { SFX.ng(); showToast(`金貨が足りない (💰${cost})`, { tone: "bad" }); return { ok: false, reason: "gold", cost }; }
@@ -18840,7 +18845,7 @@ function wireUI() {
     insightSummary, worldState, worldOpenIdx, pendingIreneBeat, playIreneBeat, dungeonLevel, FEATURES, featureNote, chaptersDone, storyGoal, currentChapter, dungeonTrait, dungeonFloorHaz,
     trainSoul, raiseSoulCap, raiseCapSoulCost, capBySoulOk, soulTrainCost, soulByUid, codexSeeItem, treasuryState, heldCollectibles, donateCollectible,
     claimAchievement, claimTreasury, treasuryRewardReady, deliveryHolder, deliveryStatus, deliverQuest,
-    repairDoll, repairAllDolls, repairCostOf, tryHastenRescue, reviveTimerEl, fmtRemain, awaitingRescue, hastenCostOf, canHastenRescue,
+    repairDoll, repairAllDolls, repairCostOf, awaitingRepairRescue, tryHastenRescue, reviveTimerEl, fmtRemain, awaitingRescue, hastenCostOf, canHastenRescue,
     doEquip, doUnequip, toggleItemLock, equipFromAnywhere, reforgeCost, reforgeBlock, rollReforge, setItemQuality, openEquipChooser, useItem, dropItem, dropFromBag, askRoomFor, transferItem,
     stopAutoCombat, sceneBgm, playBgm, SFX,
     ACH_SERIES, FACILITIES, FAC_SHELL, CONTENT_LIMIT, DUNGEONS, LAYER_VISUALS,

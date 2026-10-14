@@ -27,6 +27,14 @@ with sync_playwright() as p:
       check(targets.every(d => game.repairCostOf(d) === 0), '選択迷宮・保存再読込によらず回廊踏破前は無料');
       const all = game.repairAllDolls();
       check(all.ok && all.cost === 0 && all.count === targets.length && targets.every(d => d.alive && d.hp === d.maxhp && d.mp === d.maxmp) && G.gold === 0, '隊・控えを金貨0で一括修復');
+      targets.forEach(breakDoll);
+      targets[0].reviveAt = Date.now() - 1;
+      targets[1].reviveAt = Date.now() + 60000;
+      const ready = targets.filter(d => d !== targets[1]);
+      check(!game.awaitingRepairRescue(targets[0]) && game.awaitingRepairRescue(targets[1]), '満了した器と連れ帰り待ちを区別');
+      const expired = game.repairAllDolls();
+      check(expired.ok && expired.count === ready.length && ready.every(d => d.alive) && !targets[1].alive, '監視更新前でも満了した器・隊・控えを一括修復');
+      targets[1].reviveAt = null; game.repairAllDolls();
       breakDoll(d); d.reviveAt = Date.now() + 60000;
       check(game.repairDoll(d).reason === 'rescue', '無料でも回収待ちは修復不可');
       d.reviveAt = null; G.state = 'dungeon';
@@ -40,6 +48,15 @@ with sync_playwright() as p:
       check(game.repairCostOf(d) === 126, '踏破後の手がかり割引を維持');
       G.gold = 126;
       check(game.repairDoll(d).ok && G.gold === 0 && d.alive, '踏破後は通常の割引料金を徴収');
+      targets.forEach(breakDoll);
+      targets[0].reviveAt = Date.now() - 1;
+      targets[1].reviveAt = Date.now() + 60000;
+      const total = ready.reduce((sum,d) => sum + game.repairCostOf(d),0);
+      G.gold = total - 1;
+      check(game.repairAllDolls().reason === 'gold' && targets.every(d => !d.alive) && G.gold === total - 1, '有料の一括修復は費用不足なら誰も修復しない');
+      G.gold = total;
+      const paid = game.repairAllDolls();
+      check(paid.ok && paid.cost === total && paid.count === ready.length && G.gold === 0 && ready.every(d => d.alive && d.hp === d.maxhp && d.mp === d.maxmp && !d.reviveAt && !d._dead && !d.ailment) && !targets[1].alive, '満了直後の有料一括修復も合計金貨ぴったりで全対象を回復');
       return checks;
     }'''))
     assert not errors, errors
