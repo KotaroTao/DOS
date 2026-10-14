@@ -466,8 +466,8 @@ export function openSoulPicker(d, slotId = "primary") {
     kind: "info", className: "sp-pick-sheet", // 魂の選択は縦スクロールで1ページに
     banner: isSub ? `サブ魂${si + 1} ― ${d.name}` : `メイン魂 ― ${d.name}`,
     onClose: () => { if (!isSub) UI.tutorialEvent?.("soulChangeViewed"); },
-    lines: [isSub ? "サブ魂は、覚えた技かパッシブを貸し、能力の一部を足す (R1 10% 〜 R5 30%)。貸す数も魂のランクで増える (R1-2:1 / R3-4:2 / R5:3)。" : "メイン魂が、職業・能力・技を決める。"],
-    body: (scroll, h) => { scroll.appendChild(el("div", "pt-note", game.featureUnlocked?.("sub1") ? "メイン魂の同じ職業は隊に1つだけ。サブ魂は同じ職業の別の魂なら仲間と重複できる。他の人業が宿している魂を選ぶと、その人業から移す。同じ人業のメイン・サブには同じ職業を重ねられない (この人業のメイン魂・サブ魂どうしは入れ替えられる)。余った魂は人業の館で魂融合できる。" : "同じ職業の魂は、隊に1つだけ。仲間が宿している魂を選ぶと、その仲間から移す。")); pickerBody(scroll, d, slotId, h); },
+    lines: ["1つの隊で、同じ職業をメイン魂に複数宿すことはできない。サブ魂は、同じ職業の魂を隊に複数宿すことができる。"],
+    body: (scroll, h) => { pickerBody(scroll, d, slotId, h); },
   });
 }
 function wearerOf(uid, self) {
