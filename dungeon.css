@@ -244,8 +244,13 @@
 }
 .pc-row.front { color: #e2b773; border-color: #6e5228; }
 .pc-row.back { color: #9cbbe0; border-color: #3d5370; }
+.pc-seals {
+  grid-area: por; align-self: start; justify-self: end; z-index: 1;
+  display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 1px;
+  max-width: 100%; min-height: 16px; pointer-events: none;
+}
 .pc-seal {
-  position: absolute; right: 1px; top: 1px; width: 15px; height: 15px; display: grid; place-items: center;
+  flex: 0 0 15px; width: 15px; height: 15px; display: grid; place-items: center;
   font-size: 10px; font-weight: 800; line-height: 1; border-radius: 50%; border: 1px solid currentColor;
   background: rgba(6,4,6,0.88); box-shadow: 0 0 6px currentColor;
 }
@@ -600,9 +605,10 @@ canvas.unk-sil { filter: brightness(0) drop-shadow(0 0 1px rgba(185,172,217,0.85
   #app.board-camera-active #party .pc {
     flex: 1 1 0; max-width: none; min-height: 44px;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "name" "hp" "mp" "bf";
+    grid-template-areas: "name" "status" "hp" "mp" "bf";
     padding: 3px; row-gap: 3px;
   }
+  #app.board-camera-active .pc .pc-seals { grid-area: status; justify-self: start; }
   #app.board-camera-active .pc .pc-por,
   #app.board-camera-active .pc .cls,
   #app.board-camera-active .pc .pc-lv { display: none; }
@@ -614,9 +620,10 @@ canvas.unk-sil { filter: brightness(0) drop-shadow(0 0 1px rgba(185,172,217,0.85
   #app.in-combat #party .pc {
     flex: 1 1 0; max-width: none; min-height: 44px;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "name" "hp" "mp" "bf";
+    grid-template-areas: "name" "status" "hp" "mp" "bf";
     padding: 3px; row-gap: 3px;
   }
+  #app.in-combat .pc .pc-seals { grid-area: status; justify-self: start; }
   #app.in-combat .pc .pc-por,
   #app.in-combat .pc .cls,
   #app.in-combat .pc .pc-lv { display: none; }
