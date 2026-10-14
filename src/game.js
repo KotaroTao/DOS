@@ -2675,7 +2675,7 @@ function dockSpec() {
   const dead = G.party.filter((t) => !t.alive).length;
   const hurt = G.party.some((t) => t.alive && (t.hp < t.maxhp || t.ailment));
   const heal = { label: "全員を回復", sub: dead ? `倒れた者 ${dead}` : hurt ? "傷ついた者がいる" : "皆 無事", hot: healAllNeed() && (healAllCasters().length > 0 || healAllRevivers().length > 0) };
-  // 迷宮で唱える技 (浮遊・気配読み・宝探し・道しるべ)。覚えた者が隊にいる時だけ、技ごとにボタンを出す
+  // 迷宮で唱える技 (浮遊・宝探し・道しるべ)。覚えた者が隊にいる時だけ、技ごとにボタンを出す
   const fields = knownFieldSkills().map((k) => {
     const sp = SPELLS[k], c = fieldCaster(k, true), on = fieldActive(sp);
     // tag = 札に詰めた時の短い名。浮遊は残りの階数を添える (「浮遊 残1」、ユーザーの指示)
@@ -2709,10 +2709,11 @@ function floatGuardText() {
   if (h) return `${h.name}を踏まない`;
   return "足元の穴に落ちず、害のある床も踏まない";
 }
-// sense = 探りの術 (G.board.fsense[enemy|chest|stairs]: この階だけ、まだめくっていない墓石の魔物 / 宝箱 / 階段の位置を示す。
+// sense = 探りの術 (G.board.fsense[chest|stairs]: この階だけ、まだめくっていない墓石の宝箱 / 階段の位置を示す。
 //         stairs = 道しるべ はさらに階段の周囲8マスの墓石をめくる。階段そのものは伏せたまま ― めくれば、どこからでも降りられてしまうため)
 function floatLeft() { return (inDungeon() && G.run && G.run.float) || 0; }
-function fieldSense(kind) { return !!(inDungeon() && G.board && G.board.fsense && G.board.fsense[kind]); }
+// 旧セーブに残る気配読み (fsense.enemy) は使わない。
+function fieldSense(kind) { return !!(["chest", "stairs"].includes(kind) && inDungeon() && G.board && G.board.fsense && G.board.fsense[kind]); }
 function fieldActive(sp) { return sp.float ? floatLeft() > 0 : sp.sense ? fieldSense(sp.sense) : false; }
 function fieldStateText(sp) { return sp.float ? `残り${floatLeft()}階` : "この階"; }
 function fieldCasters() { return G.party.filter((p) => p.alive && p.ailment !== "stone"); }
@@ -2737,7 +2738,7 @@ function fieldCaster(key, any = false) {
 }
 // まだめくっていない、片付いていない墓石のうち探りの術が示すもの
 function senseTargets(kind) {
-  const want = { enemy: "monster", chest: "chest", stairs: "stairs" }[kind];
+  const want = { chest: "chest", stairs: "stairs" }[kind];
   const out = [];
   for (const row of G.board.cells) for (const c of row) if (c.type === want && !c.revealed && !c.cleared) out.push(c);
   return out;
@@ -2811,10 +2812,10 @@ function castFieldMeasured(key, confirmed = false, caster = null) {
     G.board.fsense = Object.assign({}, G.board.fsense, { [sp.sense]: true });
     if (sp.sense === "stairs") revealAroundStairs();
     const n = senseTargets(sp.sense).length;
-    const what = { enemy: "魔物の気配", chest: "宝箱", stairs: "階段" }[sp.sense];
+    const what = { chest: "宝箱", stairs: "階段" }[sp.sense];
     const msg = sp.sense === "stairs" ? "下へ続く階段の在りかが淡く光り、そのまわりのカードがひとりでにめくれた。"
       : !n ? `この階には、まだ見ぬ${what}はないようだ。`
-      : sp.sense === "enemy" ? `伏せたカードに、${n}つの赤い気配がぼんやりと浮かび上がった。` : `伏せたカードに、${n}つの青い光がぼんやりと灯った。`;
+      : `伏せたカードに、${n}つの青い光がぼんやりと灯った。`;
     log(`${c.p.name}は${sp.name}を唱えた。${msg}`, "win");
     showToast(`${sp.name} ― ${sp.sense === "stairs" ? "階段の在りかとそのまわりが開けた" : n ? `${what} ${n}` : `${what}なし`}`, { noLog: true, tone: "good" });
   }
@@ -3432,7 +3433,7 @@ function drawSenseGlow(r, rgb, now, x, y, k = 1) {
   vctx.restore();
 }
 
-// 気配読み (魔物 = ぼんやりした赤い光) / 宝探し (宝箱 = ぼんやりした青い光)。種類・強さは分からない。歩いている間も灯したまま
+// 敵感知 (魔物 = ぼんやりした赤い光) / 宝探し (宝箱 = ぼんやりした青い光)。種類・強さは分からない。歩いている間も灯したまま
 // 清めの歩み (聖騎士): まだめくっていないカードをめくるたび、全員の HP を 2/4/6 回復 (隊で一番高いLv)
 function cleanseStepHeal(...args) { return tlGameMeasure("explore", () => cleanseStepHealMeasured(...args)); }
 function cleanseStepHealMeasured() {
@@ -3462,20 +3463,19 @@ function passiveSensePlan() {
 }
 function drawSenseGlows(now) {
   if (G.state !== "board") return;
-  const fsE = fieldSense("enemy"), fsC = fieldSense("chest");
+  const fsC = fieldSense("chest");
   const psE = partyPassiveLv("senseEnemy"), psT = partyPassiveLv("senseTreasure");
   if ((psE || psT) && inDungeon()) {
     const plan = passiveSensePlan();
     const hidden = ([x, y]) => { const c = G.board.cells[y] && G.board.cells[y][x]; return c && !c.revealed && !c.cleared; };
-    if (!fsE) for (const p of plan.enemy.slice(0, Math.min(3, psE))) if (hidden(p)) drawSenseGlow(cellRect(p[0], p[1]), SENSE_GLOW.enemy, now, p[0], p[1], 0.7);
+    for (const p of plan.enemy.slice(0, Math.min(3, psE))) if (hidden(p)) drawSenseGlow(cellRect(p[0], p[1]), SENSE_GLOW.enemy, now, p[0], p[1], 0.7);
     if (!fsC) for (const p of plan.chest.slice(0, Math.min(3, psT))) if (hidden(p)) drawSenseGlow(cellRect(p[0], p[1]), SENSE_GLOW.chest, now, p[0], p[1], 0.7);
   }
-  if (!fsE && !fsC) return;
+  if (!fsC) return;
   for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
     const cell = G.board.cells[y][x];
     if (cell.revealed || cell.cleared) continue;
-    if (fsE && cell.type === "monster") drawSenseGlow(cellRect(x, y), SENSE_GLOW.enemy, now, x, y);
-    else if (fsC && cell.type === "chest") drawSenseGlow(cellRect(x, y), SENSE_GLOW.chest, now, x, y);
+    if (cell.type === "chest") drawSenseGlow(cellRect(x, y), SENSE_GLOW.chest, now, x, y);
   }
 }
 
@@ -6253,7 +6253,7 @@ function autoWalk(path) {
 //    まっすぐ進み、壁に当たれば向きを変える)
 //  ・見えている罠 (めくれた罠・落ちる床・蝕む床 ― 浮遊中・悪路渡りで無効にできる時を除く) は踏まない
 //  ・設定「オート移動で避けるもの」(prefs.js autoMoveAvoid) で、4つそれぞれ避ける/避けないを選べる:
-//      一般の敵 foe・強敵 elite = 見えている敵 (めくれた魔物の札・気配読み/敵感知の光)。避けるなら踏まない。
+//      一般の敵 foe・強敵 elite = 見えている敵 (めくれた魔物の札・敵感知の光)。避けるなら踏まない。
 //        光だけの敵は強敵か分からないので一般の敵として扱う。金属の魔物は一般の敵
 //      出来事 event = まだ訪ねていない表向きの出来事。避けないなら行き先にする
 //      宝箱 chest = 表向きでまだ開けていない宝箱 (一度「開けない」を選んだ箱は除く)。避けないなら行き先にする。
@@ -6346,11 +6346,8 @@ function autoMovePlan() {
   const avoid = autoMoveAvoid();
   const floating = floatLeft() > 0;
   const poisonSafe = floating || partyPassiveLv("poisonFloor") >= 2;
-  // 光で見えている、まだめくっていない魔物 (気配読み = すべて / 敵感知 = 選ばれた数だけ)
+  // 敵感知の光で見えている、まだめくっていない魔物 (選ばれた数だけ)
   const sensed = new Set();
-  if (fieldSense("enemy")) {
-    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) { const c = b.cells[y][x]; if (c.type === "monster" && !c.revealed && !c.cleared) sensed.add(x + "," + y); }
-  }
   const psE = partyPassiveLv("senseEnemy");
   if (psE && inDungeon()) for (const [x, y] of passiveSensePlan().enemy.slice(0, Math.min(3, psE))) sensed.add(x + "," + y);
   // 宝探し・財宝感知で光る、まだめくっていない宝箱 (宝箱を避ける時は向かわない)

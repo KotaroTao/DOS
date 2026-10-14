@@ -1,7 +1,7 @@
 // 共通戦闘計算の回帰確認。乱数を固定して実ダメージとオートの期待値も比較する。
 import assert from 'node:assert/strict';
 import { Battle, SPELLS, setPartyHitBonus, luckCritBonus, attackSpellPower, healingPower, setElemKnown, spellCost, soulCostAdd, soulPowerMul, soulTierRate, spellMpLabel, SOUL_POWER_K, healsHp, BLADE_HEAL_CAP, MP_DRAIN_CAP } from '../../src/combat.js';
-import { makeDoll } from '../../src/souls.js';
+import { makeDoll, JOB_SKILLS, battleSkills } from '../../src/souls.js';
 import { MONSTERS } from '../../src/sprites.js';
 import { DUNGEON_MONSTERS } from '../../src/dungeons/index.js';
 import { EVENTS } from '../../src/events.js';
@@ -53,12 +53,28 @@ const close=(actual,expected,label,tolerance=.035)=>assert(Math.abs(actual-expec
   assert.equal(spellCost(a,sp),expected,`浮遊 最大MP${maxmp}`);
  }
  assert.equal(spellMpLabel(sp),'MP 最大の10% (最低8)');
- for(const key of ['HUNTER_KEHAIYOMI','THIEF_TAKARASAGASHI','BISHOP_MICHISHIRUBE']){
+ for(const key of ['THIEF_TAKARASAGASHI','BISHOP_MICHISHIRUBE']){
   assert.equal(spellCost({maxmp:1},SPELLS[key]),1);
   assert.equal(spellCost({maxmp:101},SPELLS[key]),31);
   assert.equal(spellMpLabel(SPELLS[key]),'MP 最大の30%');
  }
  console.log('浮遊: 最大MP10%・切り上げ・最低8・軽減対象外、探りの術30%の維持を確認');
+}
+// 旧キーで習得済み・宿し技に選んだ場合も、Lv22の風の戦闘技として使える。
+{
+ const key='HUNTER_KEHAIYOMI',sp=SPELLS[key],a=actor(),t=foe();
+ assert.equal(JOB_SKILLS.hunter.find(e=>e.skill===key).lvl,22);
+ assert(!Object.values(SPELLS).some(s=>s.name==='気配読み'||s.sense==='enemy'));
+ a.spells=[key];a.soulMp=0;
+ assert(battleSkills(a).includes(key));
+ const b=new Battle([a],[t],()=>{}),cost=spellCost(a,sp),before=a.mp;
+ const random=Math.random;Math.random=()=>.5;
+ const r=b._exec({actor:a,action:'spell',spellKey:key,target:t});Math.random=random;
+ assert.equal(cost,6);assert.equal(before-a.mp,cost);
+ assert(r.hits.some(h=>h.target===t&&h.dmg>0));
+ const lo=b.estPhys(a,t,{...sp,skill:true});a.agi*=2;
+ assert(b.estPhys(a,t,{...sp,skill:true})>lo);
+ console.log('狩人Lv22: 旧キーの戦闘技・風属性射撃・MP消費・素早さによる威力の伸びを確認');
 }
 assert.equal(luckCritBonus(8),0);
 // HP/MPを吸う技も、ダメージの後に資源名と吸収量を表示する。
