@@ -1,9 +1,9 @@
 // 第十章からの10倍強化を、全迷宮・全階と実際の敵の組み立てで確認する。
 import assert from "node:assert/strict";
-import { WORLD, wallAt, wallOf, wallStepOf, strengthAt, poolAt, PART2_LAYER, agiWallOf, dungeonLevelRaw } from "../../src/dungeons/world.js";
+import { WORLD, wallAt, wallOf, wallStepOf, strengthAt, poolAt, PART2_LAYER, agiWallOf, strongHpWallOf, dungeonLevelRaw } from "../../src/dungeons/world.js";
 import { MONSTERS } from "../../src/sprites.js";
 import { DUNGEON_MONSTERS } from "../../src/dungeons/index.js";
-import { spawnEliteEnemies, spawnBossEnemies, spawnMimic, spawnRanked, spawnMetal, scaleFoeAgi, Battle } from "../../src/combat.js";
+import { spawnEliteEnemies, spawnBossEnemies, spawnMimic, spawnRanked, spawnMetal, scaleFoeAgi, scaleStrongFoeHp, Battle } from "../../src/combat.js";
 import { fleeScaleOf, enemyBaseSample } from "../../src/enemylevel.js";
 import { makeDoll } from "../../src/souls.js";
 Object.assign(MONSTERS, DUNGEON_MONSTERS);
@@ -20,7 +20,7 @@ assert.equal(wallStepOf({ layer: 14 }), 1.4);
 assert.equal(wallStepOf({ layer: 12, wall: 1 }), 1);
 assert.equal(wallOf(null), 1);
 assert.equal(agiWallOf(null), 1);
-let floors = 0, foes = 0, agiWall = 1, fleeK = 1;
+let floors = 0, foes = 0, agiWall = 1, strongHpWall = 1, fleeK = 1;
 const checkSpawn = (spawn, oldScale, newScale, factor, label) => {
   const before = spawn(oldScale)[0], after = spawn(newScale)[0];
   for (const stat of ["maxhp", "hp", "atk", "vit"]) {
@@ -30,8 +30,19 @@ const checkSpawn = (spawn, oldScale, newScale, factor, label) => {
   scaleFoeAgi(before, fleeK);
   scaleFoeAgi(after, fleeK, agiWall);
   near(after.agi, before.agi * agiWall);
+  const hpFactor = after.boss || after.mon?.elite ? strongHpWall : 1;
+  const oldHp = after.maxhp, oldAtk = after.atk, oldVit = after.vit, oldAgi = after.agi;
+  scaleStrongFoeHp(after, strongHpWall);
+  assert.equal(after.maxhp, oldHp * hpFactor);
+  assert.equal(after.hp, oldHp * hpFactor);
+  assert.equal(after.atk, oldAtk);
+  assert.equal(after.vit, oldVit);
+  assert.equal(after.agi, oldAgi);
   const saved = JSON.parse(JSON.stringify(after));
   scaleFoeAgi(saved, fleeK, agiWall);
+  scaleStrongFoeHp(saved, strongHpWall);
+  assert.equal(saved.maxhp, after.maxhp);
+  assert.equal(saved.hp, after.hp);
   near(saved.agi, after.agi); // 保存・復元で重ねない
   foes++;
 };
@@ -39,6 +50,9 @@ const eventKey = Object.keys(MONSTERS).find(k => MONSTERS[k].evOnly);
 assert(eventKey);
 for (const cfg of WORLD) for (let floor = 1; floor <= cfg.floors; floor++) {
   const factor = cfg.layer >= 12 ? 10 : 1;
+  strongHpWall = strongHpWallOf(cfg);
+  assert.equal(strongHpWall, cfg.layer >= 12 ? 10 : 1);
+  assert.equal(strongHpWallOf({ ...cfg, wall: 1 }), 1);
   agiWall = agiWallOf(cfg);
   assert.equal(agiWall, cfg.layer >= 12 ? 3 : 1);
   assert.equal(agiWallOf({ ...cfg, wall: 1 }), 1);
@@ -81,3 +95,23 @@ const boss = spawnBossEnemies(cfg.boss, strengthAt(cfg, cfg.floors) * (cfg.bossS
 scaleFoeAgi(boss, fleeScaleOf(cfg, dungeonLevelRaw(cfg, cfg.floors)), 3);
 near(enemyBaseSample(cfg.boss).agi, boss.agi);
 console.log("第十章以降の素早さ3倍・戦闘開始・召喚・金属・図鑑・保存復元を確認");
+
+assert.equal(strongHpWallOf(null), 1);
+const strong = spawnBossEnemies(cfg.boss, 1, cfg.bossRank)[0];
+const baseHp = strong.maxhp;
+strong.hp = Math.floor(baseHp / 2); // 古い戦闘は残りHPの割合を保つ
+const remaining = strong.hp;
+new Battle([], [strong], () => {}, { strongHpWall: strongHpWallOf(cfg) });
+assert.equal(strong.maxhp, baseHp * 10);
+assert.equal(strong.hp, remaining * 10);
+scaleStrongFoeHp(strong, 10);
+assert.equal(strong.hp, remaining * 10);
+scaleStrongFoeHp(boss, 10);
+near(enemyBaseSample(cfg.boss).hp, boss.maxhp);
+// 呼ばれた通常の手下には追加HPを掛けず、強敵を呼んだ時は適用する。
+b.strongHpWall = 10;
+caller.summonKey = cfg.elites[0];
+b._execInner({ actor: caller, action: "summon" });
+const eliteHp = spawnEliteEnemies(cfg.elites[0], 1)[0].maxhp;
+assert.equal(b.enemies.at(-1).maxhp, eliteHp * 10);
+console.log("第十章以降の主・強敵だけHP追加10倍・他能力と通常敵の維持・図鑑・召喚・保存復元を確認");

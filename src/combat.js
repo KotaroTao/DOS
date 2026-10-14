@@ -422,6 +422,15 @@ export function scaleFoeAgi(e, fleeK, agiWall = 1) {
   }
   return e;
 }
+// 主・強敵のHPの壁。保存した戦闘では残りHPの割合を保ち、二重に掛けない。
+export function scaleStrongFoeHp(e, hpWall = 1) {
+  if (!e || !(e.boss || e.mon?.elite) || e._strongHpWall != null) return e;
+  e.maxhp *= hpWall;
+  e.hp *= hpWall;
+  e._strongHpWall = hpWall;
+  delete e._dlv; // HPを変えた個体の表示Lvを計算し直す
+  return e;
+}
 // 心の状態異常 (actor.mind = "charm" 魅了 | "confuse" 混乱)。戦闘の中だけの状態で、戦いが終われば解ける。
 //  魅了: 手番ごとに味方へ襲いかかる (仲間がいなければ立ち尽くす)。傷を受けると MIND_CHARM_BREAK で正気に戻る
 //  混乱: 手番ごとに敵味方を問わず誰かを殴る / ふらついて何もできない / たまに正気で動ける
@@ -681,6 +690,8 @@ export class Battle {
     // 追跡の物差し: 敵の AGI をこの倍率で味方の AGI と同じ規模に直してから逃走率を出す
     // (game.js の fleeScale = その迷宮・階の基準AGI ÷ その迷宮の雑魚の標準AGI)
     this.fleeK = opts.fleeK || 1;
+    this.strongHpWall = opts.strongHpWall || 1;
+    for (const e of enemies) scaleStrongFoeHp(e, this.strongHpWall);
     this.agiWall = opts.agiWall || 1;
     for (const e of enemies) scaleFoeAgi(e, this.fleeK, this.agiWall); // 敵の AGI を味方の規模 (手番の速さ) に直す
     this.baseAgi = opts.baseAgi || 0; // この階の基準の素早さ (強敵の回避の上限。0 = 上限なし)
@@ -2255,6 +2266,7 @@ export class Battle {
         // 戦果の写し (game.js startBattle が推奨Lv の基準に合わせた比) を引き継ぐ
         if (actor._rk) { e._rk = actor._rk; e.soul = Math.max(1, Math.round(e.soul * actor._rk[0])); e.gold = Math.max(1, Math.round(e.gold * actor._rk[1])); }
         if (actor._agiMul) { e._agiMul = actor._agiMul; e.agi = Math.max(1, Math.round(e.agi * actor._agiMul)); }
+        scaleStrongFoeHp(e, this.strongHpWall || 1);
         scaleFoeAgi(e, this.fleeK, this.agiWall || 1); // 呼ばれた手下の AGI も味方の規模へ
         // 属性の暴走 (異変): 呼ばれた仲間の属性もでたらめに
         if (actor._elemRandom) { const els = Object.keys(ELEMENTS).filter((k) => k !== "none"); e._elemRandom = true; e.element = els[Math.floor(random() * els.length)]; e.affinity = elementAffinity(e.element); }
