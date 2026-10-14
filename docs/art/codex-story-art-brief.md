@@ -772,6 +772,7 @@ The same throne room at dusk, a calm orange sky outside the tall windows. The ve
 **irene_rest「休む灯」** (館の語り)
 - 要点: 「魂は、休ませないと腐る」。イレーヌが並んで眠る人業たちの胸の灯をひとつずつ見て回る。イレーヌも師がいなくなってから一晩も休んでいなかった。セラ「今夜はわたしが灯の番をします」。イレーヌ「あなたも、ですよ」。
 - 修正 (2026-10-14 ユーザーの指示): セラの脚を左右一本ずつ、足を二つにする。白い布の下の骨盤から腿・膝・すね・足が自然につながる座り姿に直し、余分な脚と継ぎ目を除く。顔・上半身・イレーヌ・周りの人業・構図・灯りは保つ。(済)
+- 追加修正 (2026-10-14 ユーザーの指示): 胸の開き方を `art/story-review/chapter4/irene_sera_wake.png` に合わせる。胸のアクセサリーから見える青白い光はセラ自身の魂であり、別の宝石や二つ目の魂ではない。金縁のアクセサリーと開いた木の胸板を同じ構造として描き、胸の内側の魂を一つだけ見せる。開いた蓋の装飾を別に青く光らせない。修正済みの脚二本と足二つ、顔・髪・腕・周囲の人業・構図・灯りを保つ。(済)
 ```text
 The same mansion at night. A row of wooden dolls rests seated against the wall, eyes closed, small soft lights glowing in their chest doors. Irene walks along the row holding a small lamp, checking each light with tender care. Sera (as in the Sera reference) sits among them, sleepily smiling up at her. The single white candle on its brass candlestick burns quietly in the background.
 ```
