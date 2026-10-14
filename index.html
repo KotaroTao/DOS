@@ -88,7 +88,7 @@
   <!-- UI の重ね置き場: シート (z 81+n) とトースト (z 85)。src/ui/kit.js -->
   <div id="ui-layer"></div>
 
-  <!-- 縦画面専用: スマホを横向きにした時だけ全面に出る案内 (styles.css の @media で表示) -->
+  <!-- 縦画面専用: スマホを横向きにした時だけ全面に出る案内 -->
   <div id="rotate-guard" aria-hidden="true">
     <div class="rg-phone"><span></span></div>
     <div class="rg-title">端末を縦向きにしてください</div>
@@ -100,6 +100,26 @@
   <script>
     (function () {
       var so = window.screen && screen.orientation;
+      // キーボードで表示領域が横長になっても、端末の縦向きを横向きと誤判定しない。
+      function updateOrientation() {
+        var landscape;
+        if (so && /^(portrait|landscape)-/.test(so.type)) {
+          landscape = so.type.indexOf("landscape-") === 0;
+        } else if (typeof window.orientation === "number") {
+          // Screen Orientation API がない iOS 等。
+          landscape = Math.abs(window.orientation) % 180 === 90;
+        } else {
+          var s = window.screen;
+          landscape = s && s.width > 0 && s.height > 0
+            ? s.width > s.height : window.innerWidth > window.innerHeight;
+        }
+        document.documentElement.classList.toggle("device-landscape", landscape);
+      }
+      updateOrientation();
+      if (so && typeof so.addEventListener === "function") so.addEventListener("change", updateOrientation);
+      window.addEventListener("orientationchange", updateOrientation);
+      window.addEventListener("resize", updateOrientation);
+      document.addEventListener("visibilitychange", updateOrientation);
       if (!so || typeof so.lock !== "function") return;
       function lock() { try { so.lock("portrait").catch(function () {}); } catch (e) {} }
       lock();
