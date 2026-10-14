@@ -15279,12 +15279,30 @@ function codexFresh() {
 
 // 図鑑に積み重ねた見識。旧セーブも再集計するので、売却や魂融合では減らない。
 function insightSummary() { return insightTotals(G, { monsters: MONSTERS, items: ITEMS, jobs: SOUL_CLASSES, events: EVENT_MAP }); }
+let insightAlertTimer = null;
+let insightAlertGain = 0;
 function notifyInsight() {
   if (!featureUnlocked("insight")) return;
   const score = insightSummary();
   const previous = G.insightNotified;
   G.insightNotified = Math.max(Number(previous) || 0, score.total);
-  if (previous != null && score.total > previous) showToast(`見識 ＋${score.total - previous}　操霊師の見識 ${score.total.toLocaleString("ja-JP")}`, { tone: "gold" });
+  if (previous == null || score.total <= previous) return;
+  const gain = score.total - previous;
+  log(`見識 ＋${gain}　操霊師の見識 ${score.total.toLocaleString("ja-JP")}`, "sys");
+  if (inDungeon()) setAutoMove(false);
+  insightAlertGain += gain;
+  if (insightAlertTimer !== null) return;
+  // 入手・戦果のシートが開いた後に知らせ、同じ処理での増加はまとめる。
+  insightAlertTimer = setTimeout(() => {
+    insightAlertTimer = null;
+    const gain = insightAlertGain;
+    insightAlertGain = 0;
+    sheet.open({
+      kind: "celebrate", banner: "✦ 操霊師の見識 ✦", title: `見識 ＋${gain}`,
+      lines: [`操霊師の見識が ${G.insightNotified.toLocaleString("ja-JP")} になった。`],
+      footer: [{ label: "確認", kind: "primary", size: "lg", onTap: (s) => s.close() }],
+    });
+  }, 0);
 }
 
 // ---- 職業図鑑の記録 ----
