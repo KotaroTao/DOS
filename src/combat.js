@@ -50,7 +50,7 @@ export const MAX_ENEMIES = 6;
 
 // カードでめくったモンスター: 階層が深いほど群れが膨らむ (最大6体)。scale で迷宮ごとの強さ調整。
 // 「もう1体」を確率 p で繰り返す幾何分布 — 1階 p≈0.26 (平均1.4体) → 5階以深 p≈0.6 (平均2.4体、まれに6体)。
-// opts.min は最低数の強制 (大警報の群れなど)
+// opts.min は最低数の強制 (大警報の群れなど)。opts.pool はこの階の雑魚の候補 (通常の魔物の札だけ)。
 export function spawnCardEnemies(key, floor, scale = 1, opts = {}) {
   const p = Math.min(0.62, 0.18 + floor * 0.08);
   let count = 1;
@@ -69,7 +69,25 @@ export function spawnCardEnemies(key, floor, scale = 1, opts = {}) {
     const escorts = Array.from({ length: count - 1 }, () => makeEnemy(m.escort, scale));
     list = back ? [...escorts, makeEnemy(key, scale)] : [makeEnemy(key, scale), ...escorts];
   } else {
-    list = Array.from({ length: count }, () => makeEnemy(key, scale));
+    const keys = Array(count).fill(key);
+    // 複数体の75%は別種と混ざる。札の魔物は必ず残し、数・強さの倍率は変えない。
+    // 主・強敵・金属・出来事専用・役割持ちは取り混ぜず、専用の編成を守る。
+    const pool = [...new Set(opts?.pool || [])].filter((k) => {
+      const foe = MONSTERS[k];
+      return k !== key && foe && !foe.boss && !foe.elite && !foe.metal && !foe.evOnly && !foe.role;
+    });
+    if (count > 1 && pool.length && m && !m.boss && !m.elite && !m.metal && !m.evOnly && !m.role && random() < 0.75) {
+      const kinds = [key, pool.splice(Math.floor(random() * pool.length), 1)[0]];
+      // 4体以上なら半数は3種類。少数の群れには同種が並ぶ形も残す。
+      if (count >= 4 && pool.length && random() < 0.5) kinds.push(pool[Math.floor(random() * pool.length)]);
+      for (let i = 1; i < count; i++) keys[i] = i < kinds.length ? kinds[i] : kinds[Math.floor(random() * kinds.length)];
+      // 札の魔物を先頭に残し、残りを混ぜて前衛・後衛の顔ぶれにも変化を付ける。
+      for (let i = count - 1; i > 1; i--) {
+        const j = 1 + Math.floor(random() * i);
+        [keys[i], keys[j]] = [keys[j], keys[i]];
+      }
+    }
+    list = keys.map((k) => makeEnemy(k, scale));
   }
   // 同種の群れは A/B/C… で呼び分ける (ログ・対象選択の判別用)
   const byKey = {};
