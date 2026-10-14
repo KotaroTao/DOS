@@ -355,6 +355,8 @@ The UI was rebuilt into packages under `src/ui/` (plain ES modules; **they never
 神殿騎士（`templar`）R1〜R5も承認済みR1を直接参照した独立原画へ更新。白い頭布・金髪・槍・青い盾を維持し、共通枠90×92・人体の頭頂9ドットで取り込む。原画と測定値は `docs/art/templar/README.md`、実描画比較は `docs/art/templar/game-display-review.png`。旧 `jobart.js` の対象だけを外して新WebPを選択する。
 
 ## Conventions
+
+- 異変「飢えた狩場」は戦闘開始時にも最低3体を保証する (`startBattleMeasured`)。主・強敵・銀業・ミミック・出来事・一騎打ちにも、その階の通常の魔物を不足分だけ添える。元の特殊敵は増やさず、強さ・戦果の異変倍率は従来どおり通常敵だけに効く。記憶への再戦は対象外。迷宮の掟の `packMin` は従来どおり通常の群れだけ。心得 `t_mut`。
 - ユーザーがPRのマージを指示した後は `python3 tools/release/merge.py <PR番号> --head <確認済みの40桁SHA> --merge` で検査から公開確認までまとめて実行する (`docs/merge-and-publish.md`)。公開の成否まで報告し、同じ許可を聞き直さない。指示前にはマージしない。
 - **Always reply to the user in Japanese (日本語).** All assistant chat responses, plans, questions, and PR descriptions for this repo must be written in Japanese — this is mandatory, regardless of the language the user writes in. (Code identifiers stay in English; comments and in-game strings stay Japanese as below.)
 - Comments and all in-game/user-facing strings are in **Japanese**; match the surrounding tone (dark-fantasy flavor for monster/event text).

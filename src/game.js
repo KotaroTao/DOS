@@ -8595,6 +8595,19 @@ function randomElement() {
 }
 function startBattle(...args) { return tlGameMeasure("battle", () => startBattleMeasured(...args)); }
 function startBattleMeasured(enemies, cell) {
+  // 飢えた狩場はすべての遭遇で3体以上。単体の主・強敵・銀業・ミミックにも、この階の魔物を添える。
+  // 掟の packMin は従来どおり通常の群れだけに効かせ、記憶への再戦には異変を持ち込まない。
+  const packMin = inDungeon() && !G.rematch ? mutDef()?.packMin || 0 : 0;
+  if (enemies.length && enemies.length < packMin) {
+    const pool = sfMonsterPool();
+    const key = pool[rand(pool.length)];
+    const missing = packMin - enemies.length;
+    enemies.push(...spawnCardEnemies(key, G.floor, enemyScale(), { min: missing, pool }).slice(0, missing));
+    // 元の敵と取り巻きが同種でも、個体名を重複させない。
+    const byKey = {};
+    for (const e of enemies) (byKey[e.key] ||= []).push(e);
+    for (const list of Object.values(byKey)) if (list.length > 1) list.forEach((e, i) => { e.name = e.mon.name + String.fromCharCode(65 + i); });
+  }
   // 迷宮の属性気配: 属性持ち迷宮では雑魚敵が迷宮属性を帯びやすい (主・強敵は固有属性のまま)
   const cfg = activeCfg();
   const spFloor = specialDef();
