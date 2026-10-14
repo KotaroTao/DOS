@@ -1177,7 +1177,7 @@ function emptyState() {
 }
 
 // ---- 砕けた人業の知らせ (1行) ----
-// 全滅で迷宮に残された器は連れ帰りを待つ (赤い魂で早められる)。街にある器は、選んで「砕けた魂を修復」
+// 全滅で迷宮に残された器は連れ帰りを待つ (赤い魂で早められる)。街にある器は、選んで「魂を修復」
 const waiting = (d) => game.awaitingRepairRescue ? game.awaitingRepairRescue(d) : !!(d && !d.alive && d.reviveAt);
 function deadBanner(mode) {
   const G = G_();
@@ -2051,7 +2051,7 @@ export function openOmokage(d) {
   });
 }
 
-// 砕けた人業 (見出しの2行目): 連れ帰り待ちなら残り時間 + 赤い魂で早める。街にあれば「砕けた魂を修復」(金貨・HP/MP満タン)
+// 砕けた人業 (見出しの2行目): 連れ帰り待ちなら残り時間 + 赤い魂で早める。街にあれば「魂を修復」(金貨・HP/MP満タン)
 function rescueLine(d) {
   const G = G_();
   const box = el("div", "pt-rescue");
@@ -2077,12 +2077,6 @@ function rescueLine(d) {
   t.appendChild(document.createTextNode("砕けた"));
   box.appendChild(t);
   const actions = el("div", "pt-repair-actions");
-  const cost = game.repairCostOf ? game.repairCostOf(d) : 0;
-  actions.appendChild(button({ label: "砕けた魂を修復", kind: "primary", size: "sm", cost: { kind: "gold", n: cost }, disabled: (G.gold || 0) < cost,
-    onTap: () => confirm({ banner: "魂の修復", title: `${d.name} の砕けた魂を修復する？`,
-      lines: [`金貨 💰${cost} ・ HP/MP 満タンで立ち上がる`, `所持: 💰${G.gold || 0}`],
-      okLabel: "修復する", danger: false })
-      .then((ok) => { if (!ok) return; if (game.repairDoll) game.repairDoll(d); rerender(); }) }));
   const broken = (game.allDolls ? game.allDolls() : []).filter((m) => m.isDoll && !m.alive);
   const dead = broken.filter((m) => !waiting(m));
   if (dead.length > 1) {
@@ -2090,6 +2084,12 @@ function rescueLine(d) {
     actions.appendChild(button({ label: dead.length < broken.length ? `届いた${dead.length}体を修復` : "全員を修復", kind: "primary", size: "sm", cost: { kind: "gold", n: total }, disabled: (G.gold || 0) < total,
       onTap: () => { if (game.repairAllDolls) game.repairAllDolls(); rerender(); } }));
   }
+  const cost = game.repairCostOf ? game.repairCostOf(d) : 0;
+  actions.appendChild(button({ label: "魂を修復", kind: "primary", size: "sm", cost: { kind: "gold", n: cost }, disabled: (G.gold || 0) < cost,
+    onTap: () => confirm({ banner: "魂の修復", title: `${d.name} の砕けた魂を修復する？`,
+      lines: [`金貨 💰${cost} ・ HP/MP 満タンで立ち上がる`, `所持: 💰${G.gold || 0}`],
+      okLabel: "修復する", danger: false })
+      .then((ok) => { if (!ok) return; if (game.repairDoll) game.repairDoll(d); rerender(); }) }));
   box.appendChild(actions);
   return box;
 }
