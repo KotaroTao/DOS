@@ -1279,3 +1279,26 @@ button.sp-lu-next { cursor: pointer; }
   .pt-mansion-links .pt-bench { min-width: 58px; padding: 4px 3px; }
   .pt-mansion-title .pt-head-name { font-size: 13px; }
 }
+
+/* 館の詳細は一つのスクロール領域。顔と名前と移動ボタンを上に残す。 */
+.pt-mansion-nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.pt-mansion-nav > .ui-btn { min-height: 44px; }
+.pt-overview-section { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.pt-overview-heading { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin: 4px 0 0; padding: 0 2px; min-height: 44px; border-bottom: 1px solid #493a2b; color: var(--accent-hi); }
+.pt-overview-heading h2 { margin: 0; font-size: 14px; }
+.pt-overview-heading .pt-stability { width: auto; min-height: 44px; }
+.pt-root.m-town.has-keeper > .pt-overview { flex: 1 1 auto; }
+.pt-overview .sp-card { gap: 6px; padding: 8px 10px 6px; }
+.sp-card > .sp-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 6px; }
+.sp-head-actions.sp-level-row { flex-direction: column; align-items: flex-end; gap: 2px; min-height: 0; }
+.sp-head-actions > .ui-btn { min-height: 44px; padding: 2px 8px; }
+.sp-head-actions .sp-lv-n b { font-size: 22px; }
+.sp-acts { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-flow: row; gap: 6px; }
+.sp-acts > .sp-ember-b { width: 100%; margin-left: 0; padding: 4px; }
+@media (max-width: 600px) {
+  .sp-card > .sp-head { grid-template-columns: minmax(0, 1fr) auto; }
+  .sp-card > .sp-head > .sp-orb { display: none; }
+  .sp-meta { gap: 3px; font-size: 11px; }
+  .sp-head-actions .sp-lv-n b { font-size: 20px; }
+  .pt-overview .pt-stat { min-height: 56px; }
+}

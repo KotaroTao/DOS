@@ -53,6 +53,7 @@ let sheetTown = false;   // 街の画面の上に隊のシートを開いてい�
 let dunSeg = null;        // 迷宮の隊シートで表示中の区分 (開くたび「装備」から。街の隊タブの記憶とは別)
 let statOpen = null;      // 能力の説明を開いている能力キー
 let pendingOpen = false;  // UI.openParty で人業・区分を指定して館へ入るときの印 (タブから入るときは既定へ戻す)
+let mansionPosition = { key: "soul", offset: 0 }; // 人業を替えても同じ項目の同じ位置を保つ
 let phase0ItemSheet = null; // Phase 0 の品シートのスタブ (WP-C の本物が来るまでは自前の品の画面を使う)
 
 const SEGS = [{ key: "equip", label: "装備" }, { key: "soul", label: "魂" }, { key: "stats", label: "能力" }];
@@ -62,7 +63,8 @@ function curSeg() {
 }
 function setSeg(k) {
   if (!SEGS.some((x) => x.key === k)) return;
-  if (dunSeg) dunSeg = k; else remember("seg", "party", k);
+  if (dunSeg) dunSeg = k;
+  else { remember("seg", "party", k); mansionPosition = { key: k, offset: 0 }; }
 }
 
 const G_ = () => game.G;
@@ -1000,21 +1002,70 @@ function renderView(root, mode) {
   root.appendChild(picked ? pickHint() : mode === "town" && !sheetTown ? mansionHeader(d) : dollHeader(d, mode));
   if (mode === "dungeon") { const cs = campStrip(d); if (cs) root.appendChild(cs); }
   const mansion = mode === "town" && !sheetTown;
-  if (mansion) renderSoulSummary(root, d, { mode });
-  root.appendChild(segBar(d, mode));
+  root.appendChild(mansion ? mansionNav() : segBar(d, mode));
   const body = el("div", "pt-body");
   const seg = curSeg();
   body.dataset.seg = seg;
-  if (mode === "town" && !sheetTown && !d.alive) body.appendChild(rescueLine(d));
-  if (seg === "equip") equipSeg(body, d, mode);
-  else if (seg === "soul") renderSoulSeg(body, d, { mode, rerender, G, summary: !mansion });
-  else statsSeg(body, d, mode);
+  if (mansion) renderMansionOverview(body, d);
+  else {
+    if (seg === "equip") equipSeg(body, d, mode);
+    else if (seg === "soul") renderSoulSeg(body, d, { mode, rerender, G });
+    else statsSeg(body, d, mode);
+  }
   root.appendChild(body);
   if (mode === "town" && !sheetTown) {
     scrollBox(body); // 収まらなければ内側で縦にスクロール
     root.classList.add("has-keeper");
     root.appendChild(keeperPanel());
   }
+}
+
+// 館は一つの詳細画面。見出しの移動と人業の切り替えは同じスクロール領域を使う。
+function mansionNav() {
+  const nav = el("nav", "pt-segbar pt-mansion-nav");
+  nav.setAttribute("aria-label", "人業の詳細へ移動");
+  for (const [key, label] of [["soul", "魂"], ["stats", "能力"], ["equip", "装備"]]) {
+    const b = button({ label, kind: "secondary", size: "sm", onTap: () => { setSeg(key); sfx("select"); rerender(); } });
+    b.dataset.key = key;
+    nav.appendChild(b);
+  }
+  return nav;
+}
+function renderMansionOverview(body, d) {
+  body.classList.add("pt-overview");
+  const sections = [];
+  for (const [key, label] of [["soul", "魂"], ["stats", "能力"], ["equip", "装備"]]) {
+    const section = el("section", "pt-overview-section");
+    section.dataset.mansionSection = key;
+    if (key !== "soul") {
+      const heading = el("header", "pt-overview-heading");
+      heading.appendChild(el("h2", null, label));
+      if (key === "stats") heading.appendChild(stabilityButton(d, true));
+      section.appendChild(heading);
+    }
+    if (key === "soul") {
+      if (!d.alive) section.appendChild(rescueLine(d));
+      renderSoulSummary(section, d, { mode: "town" });
+      renderSoulSeg(section, d, { mode: "town", summary: false });
+    } else if (key === "stats") statsSeg(section, d, { showStability: false });
+    else equipSeg(section, d);
+    body.appendChild(section);
+    sections.push(section);
+  }
+  const topOf = (section) => section.getBoundingClientRect().top - body.getBoundingClientRect().top + body.scrollTop;
+  let restoring = true;
+  body.addEventListener("scroll", () => {
+    if (restoring || !body.isConnected) return;
+    const section = [...sections].reverse().find(s => topOf(s) <= body.scrollTop + 1) || sections[0];
+    mansionPosition = { key: section.dataset.mansionSection, offset: body.scrollTop - topOf(section) };
+  }, { passive: true });
+  const position = { ...mansionPosition };
+  requestAnimationFrame(() => {
+    if (!body.isConnected) return;
+    const section = sections.find(s => s.dataset.mansionSection === position.key) || sections[0];
+    body.scrollTop = topOf(section) + position.offset;
+    requestAnimationFrame(() => { restoring = false; });
+  });
 }
 
 // ================= 館の主イレーヌ (街の「人業の館」の下段: 残りの高さに挿絵と台詞) =================
@@ -1036,6 +1087,7 @@ function resetView() {
   statOpen = null;
   setPref("partyIdx", 0);
   remember("seg", "party", "soul");
+  mansionPosition = { key: "soul", offset: 0 };
 }
 function scheduleGreeting() {
   if (greetTimer) return;
@@ -2359,8 +2411,8 @@ function candRow(d, k, c, h) {
 }
 
 // ================= 能力の区分: 6能力 (3×2) + 説明/状態 + 技・加護の札 =================
-function statsSeg(root, d) {
-  if (inTown() && !sheetTown) root.appendChild(stabilityButton(d, true));
+function statsSeg(root, d, { showStability = true } = {}) {
+  if (showStability && inTown() && !sheetTown) root.appendChild(stabilityButton(d, true));
   const grid = el("div", "pt-stats");
   const info = el("div", "pt-info");
   const fillInfo = () => {
