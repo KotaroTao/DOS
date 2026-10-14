@@ -233,11 +233,11 @@ function renderHero(b) {
     if (share < 1) b.appendChild(setText(el("div", "pt-note dp-after"), share <= 0
       ? "隊のLvが推奨Lvを大きく上回っている。器に残る魂は姿を見せず、掟で増える死体はもう出ない。"
       : `隊のLvが推奨Lvを上回っているので、掟で増える死体はいま約${Math.round(share * 100)}%しか出ない。`)); }
-  // 第二部の壁 (world.js wallOf): 推奨Lv に届くだけでは勝てないことを、門をくぐる前に知らせる
+  // 第十章からの壁 (world.js wallOf): 推奨Lv に届くだけでは勝てないことを、門をくぐる前に知らせる
   if (wall > 1) {
     const step = game.wallStepOf ? game.wallStepOf(dn) : 1;
     b.appendChild(setText(el("div", "pt-note dp-after dp-wall"),
-      `第二部の壁 ― この土地の敵は、第十章までの物差しの${wallText(wall)}倍の強さ${step > 1 && step < wall ? ` (ひとつ前の土地の${wallText(step)}倍)` : ""}。推奨Lvに届くだけでは歯が立たない。魂融合・宝探し・鍛え直しで隊を鍛えてから挑もう。`));
+      `第十章からの壁 ― この土地の敵は、第九章までの物差しの${wallText(wall)}倍の強さ${step > 1 && step < wall ? ` (ひとつ前の土地の${wallText(step)}倍)` : ""}。推奨Lvに届くだけでは歯が立たない。魂融合・宝探し・鍛え直しで隊を鍛えてから挑もう。`));
   }
   if (dn.id === "w04" && !game.worldState?.().reported.w03) {
     b.appendChild(setText(el("div", "pt-note dp-after"), "取水口は推奨Lv18〜21。隊の強さを確かめ、支度を整えてから向かおう。"));
