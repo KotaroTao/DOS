@@ -17,6 +17,7 @@ import { ICONS } from "../sprites.js";
 import { INF_NAME, INF_PARTY, VESSEL_NAMES, rollStartSouls, infLevel, infRedCost, INF_RULES } from "../abyss.js";
 import { openTrainSheet, openSkillStep } from "./soulpanel.js";
 import { ITEMS, itemName, useLines } from "../items.js";
+import { memoryParty, memoryComparison } from "./infmemory.js";
 
 const G = () => game.G;
 // Lv上限に届いた魂を、灯番で伸ばせるか (残火か、✦Soul = いまの Lv から次の Lv へ上がるのと同じだけ)
@@ -55,48 +56,42 @@ function itemRule() {
   return w;
 }
 
-// 記憶の魂は現在の所持魂とは別。保存済みの値をそのまま表示する。
-function memoryParty(b, memory) {
-  for (const d of memory.party) {
-    const soul = memory.souls.find(s => s.uid === d.primary), cl = SOUL_CLASSES[soul?.clsKey] || {};
-    b.appendChild(row({ icon: bust(soul?.clsKey, 32), title: `${d.name} ― ${cl.label || "魂"} ・ Lv${soul?.level || 1}`,
-      sub: `Lv上限 ${soulLevelCapOf(soul)} ・ ${RAR[cl.rarity] || ""}` }));
-    const subs = (d.subs || []).map(sub => {
-      const s = memory.souls.find(s => s.uid === sub.uid);
-      return `${SOUL_CLASSES[s?.clsKey]?.label || "魂"} Lv${s?.level || 1}`;
-    });
-    if (subs.length) b.appendChild(el("div", "inf-note dim", `サブ魂: ${subs.join(" ・ ")}`));
-    const items = Object.values(d.equip || {}).filter(Boolean);
-    b.appendChild(el("div", "inf-note dim", items.length ? `装備: ${items.map(it => `${itemName(it)}${it.q == null ? "" : ` (品質${it.q})`}`).join(" ・ ")}` : "装備なし"));
-  }
-}
 export function openInfMemories(onStart) {
-  return sheet.open({ kind: "info", banner: "魂の記憶", title: "記憶した階から挑む", accent: "#8e6fd0", className: "inf-sheet",
+  return sheet.open({ kind: "info", banner: "魂の記憶", title: "記憶した階から挑む", accent: "#8e6fd0", className: "inf-sheet inf-memory-sheet",
     body: b => {
-      b.appendChild(el("div", "inf-note", "記憶した職業・Lv・メイン魂とサブ魂・装着中の装備で、次の階から始める。HP・MPは全回復し、状態異常は消える。消費アイテム・金貨・✦Soul・残火は持ち込まない。"));
-      b.appendChild(el("div", "inf-note dim", "開始時の魂と装備は持ち帰れない。装備は売値0・鍛え直し不可で、商会にも並ばない。全滅しても記憶は残る。魂の安定度は通常の出撃と同じように消費する。"));
+      b.appendChild(el("div", "inf-note", "記憶した職業・Lv・魂・装備で、次の階から何度でも挑める。HP・MPは全回復。全滅しても記憶は残る。"));
+      b.appendChild(memoryRules());
       const memories = game.infMemories();
       if (!memories.length) b.appendChild(el("div", "inf-note dim", "まだ魂の記憶はない。50階ごとの主を討った風だまりで記憶できる。"));
-      for (const memory of memories) b.appendChild(row({ icon: ICONS.portal, title: `B${memory.floor}F の記憶`, sub: `B${memory.floor + 1}F から開始`, chevron: true,
-        onTap: () => sheet.open({ kind: "info", banner: "魂の記憶", title: `B${memory.floor}F の記憶`, className: "inf-sheet",
+      const list = el("div", "inf-memory-list");
+      for (const memory of memories) list.appendChild(row({ icon: ICONS.portal, title: `B${memory.floor}F の記憶`, sub: `B${memory.floor + 1}F から開始 ・ 平均Lv ${Math.round(memory.party.reduce((n, d) => n + (memory.souls.find(s => s.uid === d.primary)?.level || 1), 0) / memory.party.length)}`, chevron: true,
+        onTap: () => sheet.open({ kind: "info", banner: "魂の記憶", title: `B${memory.floor}F の記憶`, className: "inf-sheet inf-memory-sheet",
           body: detail => memoryParty(detail, memory), footer: [
             { label: `B${memory.floor + 1}F から始める`, kind: "primary", size: "lg", onTap: () => { sheet.closeAll(); if (onStart) onStart(); game.departAbyss(null, memory.floor); } },
             { label: "戻る", kind: "ghost", onTap: h => h.close() },
           ] }) }));
+      b.appendChild(list);
     }, footer: [{ label: "戻る", kind: "ghost", onTap: h => h.close() }] });
+}
+function memoryRules() {
+  const detail = el("details", "inf-memory-help");
+  detail.appendChild(el("summary", null, "記憶するもの・持ち帰りの決まり"));
+  detail.appendChild(el("div", "inf-note dim", "職業・Lv・装着中の装備・メイン魂とサブ魂・借りる技・作戦を記憶する。再開時はHP・MP全回復、状態異常なし。袋の品・宿していない魂・消費アイテム・金貨・✦Soul・残火・一時効果は記憶しない。魂の安定度は通常の入場分を消費する。"));
+  detail.appendChild(el("div", "inf-note dim", "開始時の魂と装備は持ち帰れない。記憶した装備は売値0・鍛え直し不可で、商会にも並ばない。記憶を保存するだけなら、今回の戦利品と現在の傷は変わらない。"));
+  return detail;
 }
 function openInfRecord(onDone) {
   const candidate = game.infMemoryPreview();
   if (!candidate) return;
   const previous = game.infMemoryAt(candidate.floor);
-  return sheet.open({ kind: "info", banner: "魂の記憶", title: `B${candidate.floor}F に魂を記憶する`, className: "inf-sheet",
+  return sheet.open({ kind: "info", banner: "魂の記憶", title: previous ? `B${candidate.floor}F の記憶を比較する` : `B${candidate.floor}F に魂を記憶する`, className: "inf-sheet inf-memory-sheet inf-memory-record",
     body: b => {
-      b.appendChild(el("div", "inf-note", `次回は B${candidate.floor + 1}F から、HP・MP全回復・状態異常なしで始められる。保存しても今回の戦利品は持ち帰れる。袋の品・宿していない魂・金貨・✦Soul・残火・出撃中の一時効果は記憶しない。`));
+      b.appendChild(el("div", "inf-memory-destination", `次の挑戦は B${candidate.floor + 1}F から`));
       if (previous) {
-        b.appendChild(el("div", "inf-note warn", "この階には既に記憶がある。上書きすると、以前の記憶は失われる。他の階の記憶はそのまま残る。"));
-        b.appendChild(el("div", "inf-h", "以前の記憶")); memoryParty(b, previous);
-      }
-      b.appendChild(el("div", "inf-h", "今回の状態")); memoryParty(b, candidate);
+        b.appendChild(el("div", "inf-note warn", "上書きすると、この階の以前の記憶は失われる。他の階の記憶は残る。"));
+        memoryComparison(b, previous, candidate);
+      } else memoryParty(b, candidate);
+      b.appendChild(memoryRules());
     }, footer: [
       { label: previous ? "この状態で上書きする" : "この状態を記憶する", kind: "primary", size: "lg", onTap: h => { if (game.infSaveMemory()) { h.close("ok"); if (onDone) onDone(); } } },
       { label: previous ? "以前の記憶を残す" : "記憶せず戻る", kind: "ghost", onTap: h => h.close() },
@@ -374,6 +369,7 @@ function openKeeper(onChange) {
     b.appendChild(el("div", "inf-note", "灯番は何も語らない。灯籠の火で、器と魂の欠片をつなぎ直してくれる。"));
     b.appendChild(el("div", "inf-cur", `所持 ✦${g.soulPts || 0} ・ 残火 ${g.embers || 0}`));
     b.appendChild(el("div", "inf-h", "仮の器"));
+    const vessels = el("div", "inf-vessels");
     for (const d of g.party || []) {
       const s = soulByUid(d.primary);
       const card = el("div", "inf-vessel" + (d.alive ? "" : " dead"));
@@ -398,8 +394,9 @@ function openKeeper(onChange) {
       acts.appendChild(button({ label: "サブ魂", kind: "secondary", size: "sm", disabled: !d.alive, onTap: () => openSubs(d, redraw) }));
       tx.appendChild(acts);
       card.appendChild(tx);
-      b.appendChild(card);
+      vessels.appendChild(card);
     }
+    b.appendChild(vessels);
     // 魂一覧: 持っている魂をすべて並べ、どの魂も ✦Soul・残火で強化できる (メイン魂・サブ魂・宿していない魂とも。
     // 人業の館の魂一覧にならう — 2026-10-12 ユーザーの指示)。行を押すとその職業の図鑑
     soulList(b, () => { if (!h.closed) h.update({ body: fill }); if (onChange) onChange(); });

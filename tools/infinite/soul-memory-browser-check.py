@@ -27,7 +27,7 @@ with sync_playwright() as p:
       check(!game.infSaveMemory(),'砕けた器がいる時は保存不可');
       G.party[0].alive=true;
       const key=Object.keys(SOUL_CLASSES).find(k=>SOUL_CLASSES[k].rarity!=='unique'&&!picks.includes(k));
-      const sub=inf.addSoulInstance(key);sub.count=100;sub.level=30;sub.capPlus=4;
+      const sub=inf.addSoulInstance(key);sub.count=100;sub.level=30;sub.capBonus=4;
       check(inf.infSetSub(G.party[0],0,sub.uid),'サブ魂を宿す');
       G.party[0].subs[0].picks=[];G.party[0].subs[0].picked=true;
       G.party[0].tactic='life';G.party[0].autoOff=['heal'];
@@ -42,7 +42,7 @@ with sync_playwright() as p:
       G.gold=4321;G.soulPts=7654;G.embers=9;
       G.inventory.push(inf.cloneItem('u_soul_incense'),inf.cloneItem(weaponId));
       G.run.souls.push({clsKey:key});G.run.embers=2;
-      const main=soulByUid(G.party[0].primary);main.count=100;main.level=70;main.exp=123;main.capPlus=3;inf.recalcAllDolls();
+      const main=soulByUid(G.party[0].primary);main.count=100;main.level=70;main.exp=123;main.capBonus=3;inf.recalcAllDolls();
       const preview=game.infMemoryPreview();
       check(preview.souls.length===7&&!preview.souls.some(s=>s.clsKey===unused),'宿しているメイン魂とサブ魂だけ保存');
       check(!preview.party[0].items&&preview.party[0].equip.weapon.q===73,'袋は保存せず装備の品質を保存');
@@ -102,10 +102,10 @@ with sync_playwright() as p:
       check(G.run.souls.length===0&&G.run.embers===0,'新しい戦利品記録で開始');
       check(G.party.every(d=>d.hp===d.maxhp&&d.mp===d.maxmp&&!d.ailment),'HP・MP全回復・状態異常なし');
       check(G.souls.length===7&&G.souls.every(s=>s.first),'開始時のメイン魂とサブ魂は持ち帰り対象外');
-      const main=soulByUid(G.party[0].primary);check(main.level===70&&main.exp===123&&main.count===100&&main.capPlus===3,'メイン魂のLv・経験値・融合数・Lv上限を復元');
+      const main=soulByUid(G.party[0].primary);check(main.level===70&&main.exp===123&&main.count===100&&main.capBonus===3,'メイン魂のLv・経験値・融合数・Lv上限を復元');
       check(G.party[0].tactic==='life'&&G.party[0].autoOff.includes('heal')&&G.party[0].subs[0].picked,'作戦と借用設定を復元');
       const sub=soulByUid(G.party[0].subs[0].uid);
-      check(sub.clsKey===e.key&&sub.level===30&&sub.count===100&&sub.capPlus===4,'サブ魂の育成状態を復元');
+      check(sub.clsKey===e.key&&sub.level===30&&sub.count===100&&sub.capBonus===4,'サブ魂の育成状態を復元');
       const gear=G.party[0].equip.weapon;
       check(gear.soulMemory&&gear.q===73&&gear.afx[0].k==='A03'&&gear.afx[0].v===2&&game.sellPrice(gear)===0,'記憶した品質・追加の能力で装備し、売値0');
       check(game.reforgeBlock(G.party[0],gear,{gold:false})&&!game.setItemQuality(G.party[0],gear,100),'鍛え直しと品質変更を禁止');
