@@ -1041,6 +1041,7 @@ function renderMansionOverview(body, d) {
       const heading = el("header", "pt-overview-heading");
       heading.appendChild(el("h2", null, label));
       if (key === "stats") heading.appendChild(stabilityButton(d, true));
+      if (key === "equip") heading.appendChild(equipActions(d, "隊の全員を最適装備"));
       section.appendChild(heading);
     }
     if (key === "soul") {
@@ -2137,9 +2138,9 @@ function campStrip(d) {
 }
 
 // 見出しの右で、個人と隊全員の変更案を開く。
-function equipActions(d) {
+function equipActions(d, allLabel = "全体最適") {
   const actions = el("div", "pt-equip-actions");
-  for (const [label, target] of [["全体最適", "all"], ["最適装備", d]]) {
+  for (const [label, target] of [[allLabel, "all"], ["最適装備", d]]) {
     const b = button({ label, kind: "secondary", size: "sm", onTap: () => autoEquip(target) });
     b.disabled = target === d ? d.primary == null : !G_().party.some(x => x?.primary != null);
     actions.appendChild(b);
@@ -2161,7 +2162,7 @@ function equipSeg(root, d) {
   const list = el("div", "pt-slots");
   for (const k of SLOTS) list.appendChild(slotCell(d, k));
   root.appendChild(list);
-  // 所持品の見出し + 隊の全員を最適装備
+  // 所持品の見出し
   const h = el("div", "pt-bagbar");
   const t = el("span", "pt-bagbar-t");
   t.appendChild(el("span", "pt-bagbar-k", "隊の持ち物"));
@@ -2169,31 +2170,6 @@ function equipSeg(root, d) {
   const unid = d.items.filter((it) => it && it.unidentified).length;
   if (unid) t.appendChild(el("span", "pt-bagbar-x", `未鑑定${unid}`));
   h.appendChild(t);
-  const acts = el("div", "pt-bagbar-acts");
-  // 全員を回復: MP の多い術者から、最少の MP で全員を全回復する呪文を唱える。MP が足りなければ 死亡>状態異常>HP の順に回復できるところまで (game.js healAll)
-  if (game.healAll) {
-    const hurt = game.healAllNeed ? game.healAllNeed() : false;
-    const b = el("button", "pt-allauto pt-allheal" + (hurt ? " hot" : ""));
-    b.type = "button";
-    const tx = el("span");
-    tx.appendChild(el("span", "nb", "全員を"));
-    tx.appendChild(el("span", "nb", "回復"));
-    b.appendChild(tx);
-    b.setAttribute("aria-label", "回復魔法で隊の全員を全回復する");
-    b.addEventListener("click", () => game.healAll());
-    acts.appendChild(b);
-  }
-  if (G_().party.length > 1) {
-    const n = betterGearCount();
-    const b = el("button", "pt-allauto" + (n ? " hot" : ""));
-    b.type = "button";
-    b.appendChild(el("span", null, "隊の全員を最適装備"));
-    if (n) b.appendChild(badge(n));
-    b.setAttribute("aria-label", `隊の全員を最適装備${n ? ` (${n}体にもっと良い装備)` : ""}`);
-    b.addEventListener("click", () => autoEquip("all"));
-    acts.appendChild(b);
-  }
-  if (acts.childElementCount) h.appendChild(acts);
   // 見出しと所持の札は1つの箱に入れる (狭い画面では左右に並べて高さを詰める: ui-party.css)
   const wrap = el("div", "pt-bagwrap");
   wrap.appendChild(h);

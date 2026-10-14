@@ -1,0 +1,61 @@
+{
+  "scene": "w16_legs",
+  "authorization": "PR #959承認後、w16_legs 1枚のPython局所合成・比較・検査・PR作成の提案に対してユーザーが「じっこうして」と指示。",
+  "base_main": "f8420149",
+  "decision": "採用・ユーザー確認待ち（未承認）",
+  "removed_crest_bbox_xyxy": [
+    837,
+    769,
+    869,
+    812
+  ],
+  "removed_crest_changed_pixels": 858,
+  "new_crest_bbox_xyxy": [
+    812,
+    792,
+    831,
+    816
+  ],
+  "new_crest_changed_pixels": 232,
+  "changed_pixels": 1090,
+  "outside_two_regions_rgb_identical": true,
+  "reference_crop_xyxy": [
+    608,
+    322,
+    927,
+    771
+  ],
+  "crest_nominal_size": [
+    18,
+    25
+  ],
+  "supersampling": 4,
+  "crest_rotation_degrees": 25,
+  "crest_paste_xy": [
+    807,
+    788
+  ],
+  "candidate_1_decision": "不採用。甲の旧印は除去できたが、側面の小さい暗い印の右指3本の隙間の判別が難しい。",
+  "files": {
+    "master": {
+      "path": "art/story-review/chapter4/w16_legs.png",
+      "sha256": "cb6dfeed738c44f60fd14b23c015e4449790f7609bc40263e16ad1b2afa5258b"
+    },
+    "before": {
+      "path": "art/story-review/fixes/w16_legs-sigil-python-before.png",
+      "sha256": "d7f9144b5d66577517c79e26f5202c806bbee6099821694e0edc53ff67659f6d"
+    },
+    "reference": {
+      "path": "docs/art/story-refs/sigil.png",
+      "sha256": "7dfeb2dbb8eb7091557e1dd3f387b963b64b2fa4a20848c1c18734167fe47b6b"
+    },
+    "shipped": {
+      "path": "art/story/chapter4/w16_legs.webp",
+      "sha256": "5222364ae05054ee5f4ad85de9ab83f60c6ef5c65d5c765486a28744d9490fa1"
+    },
+    "rejected_candidate_1": {
+      "path": "art/story-review/sigil-audit/composite-w16-legs/candidate-1-rejected.png",
+      "sha256": "a391a838169b0383efaab5251daa059c8bd24066558a9626b28dd3e6bf4a6e95"
+    }
+  }
+}
