@@ -286,9 +286,9 @@
 
 <a name="lore_w18"></a>
 
-## lore_w18「火を噴く地割れ」 ── 未着手
+## lore_w18「火を噴く地割れ」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_w18.webp" width="576" alt="lore_w18">
 
 **ストーリー一覧の本文**
 
@@ -382,9 +382,9 @@ _(絵はまだ無い)_
 
 <a name="lore_w24"></a>
 
-## lore_w24「極光の氷窟」 ── 未着手
+## lore_w24「極光の氷窟」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_w24.webp" width="576" alt="lore_w24">
 
 **ストーリー一覧の本文**
 
@@ -398,9 +398,9 @@ _(絵はまだ無い)_
 
 <a name="lore_w25"></a>
 
-## lore_w25「凍てつく大回廊」 ── 未着手
+## lore_w25「凍てつく大回廊」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_w25.webp" width="576" alt="lore_w25">
 
 **ストーリー一覧の本文**
 
@@ -414,9 +414,9 @@ _(絵はまだ無い)_
 
 <a name="lore_w26"></a>
 
-## lore_w26「腐れ水の岸」 ── 未着手
+## lore_w26「腐れ水の岸」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_w26.webp" width="576" alt="lore_w26">
 
 **ストーリー一覧の本文**
 
@@ -430,9 +430,9 @@ _(絵はまだ無い)_
 
 <a name="lore_w27"></a>
 
-## lore_w27「器の捨て場」 ── 未着手
+## lore_w27「器の捨て場」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_w27.webp" width="576" alt="lore_w27">
 
 **ストーリー一覧の本文**
 
