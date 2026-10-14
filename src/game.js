@@ -12194,29 +12194,27 @@ function partyPortrait(p) {
   return ent.c;
 }
 
-// 戦闘中の発動効果バッジ: 能力ごとに 強化(▲)/弱体(▼) を段階数ぶん並べ、残りターンを添える。
-const BUFF_STAT_ICON = BUFF_KANJI; // 絵文字は使わず、敵のピルと同じ漢字の印
+// 戦闘中の強化・弱体は種類数を1行で示す。段・倍率・残りターンは長押しの詳細へ。
 const BUFF_STAT_LABEL = { atk: "STR", vit: "VIT", agi: "AGI", pie: "PIE", ...BUFF_NAME };
 function buffBadges(p) {
   if (G.state !== "combat") return "";
-  // 戦闘中は札が無くても空の行を置く (戦場の高さは戦闘の始めに決まるので、強化・弱体が付いて札が伸びると記録欄が潰れる)
+  // 空の時も同じ高さにして、効果の増減で技の一覧を縮めない。
   if (!p.alive) return `<div class="buffs"></div>`;
   const blood = chishioState(p);
-  const effs = shownEffects(p);
-  if (!blood && (!effs || !effs.length)) return `<div class="buffs"></div>`;
-  // (能力, 方向) ごとに集約: 段数 (STR〜PIE は −3〜+3 の段) と最短残ターンを出す
-  let html = "";
-  // たぎる血潮 (修羅): いまの段を「血▲▲3」で。数字は段数 (残りターンではない)
-  if (blood) html += `<span class="bf up blood" title="たぎる血潮 ${blood.stacks}段・同じ敵への物理+${Math.round(blood.bonus * 100)}%${blood.max ? " (最大)" : ""}・別の敵に当てると0段">血${"▲".repeat(Math.min(3, blood.stacks))}<b>${blood.stacks}</b></span>`;
-  for (const g of buffGroups(effs)) {
-    const arrow = (g.up ? "▲" : "▼").repeat(Math.min(3, g.stages));
+  const groups = buffGroups(shownEffects(p));
+  let up = blood ? 1 : 0, down = 0;
+  const titles = [];
+  if (blood) titles.push(`たぎる血潮 ${blood.stacks}段・同じ敵への物理+${Math.round(blood.bonus * 100)}%${blood.max ? " (最大)" : ""}・別の敵に当てると0段`);
+  for (const g of groups) {
+    if (g.up) up++; else down++;
     const left = isBattleLong(g.turns) ? "戦闘の終わりまで" : `残り${g.turns}T`;
-    const title = STAGED.has(g.stat) ? `${BUFF_STAT_LABEL[g.stat] || g.stat} ${stageLabel(g.up ? g.stages : -g.stages)}・${left}`
-      : `${BUFF_STAT_LABEL[g.stat] || g.stat} ${g.up ? "強化" : "弱体"}・${left}`;
-    // 残りターンは札に出さない (札を長押しした「人業の様子」で確かめる — 2026-10 ユーザーの指示)
-    html += `<span class="bf ${g.up ? "up" : "dn"}" title="${title}">${BUFF_STAT_ICON[g.stat] || "◆"}${arrow}</span>`;
+    titles.push(STAGED.has(g.stat) ? `${BUFF_STAT_LABEL[g.stat] || g.stat} ${stageLabel(g.up ? g.stages : -g.stages)}・${left}`
+      : `${BUFF_STAT_LABEL[g.stat] || g.stat} ${g.up ? "強化" : "弱体"}・${left}`);
   }
-  return `<div class="buffs">${html}</div>`;
+  const label = `強化${up}種・弱体${down}種。長押しで詳細`;
+  const html = (up ? `<span class="bf up" aria-label="強化${up}種">強${up}</span>` : "")
+    + (down ? `<span class="bf dn" aria-label="弱体${down}種">弱${down}</span>` : "");
+  return `<div class="buffs no-phrase" role="group" aria-label="${label}" title="${titles.join(" / ")}${titles.length ? " / 長押しで詳細" : ""}">${html}</div>`;
 }
 
 // ---- DOM ヘルパ ----
