@@ -6440,7 +6440,7 @@ function resolveCellMeasured(cell) {
           } else {
             log("⚔ 石札の下から、魔物が這い出してきた！", "dmg");
             // 迷宮の異変 (飢えた狩場): 敵が常に群れで現れる
-            startBattle(spawnCardEnemies(cell.monsterKey, G.floor, enemyScale(), { min: mutNum("packMin", 0) }), cell);
+            startBattle(spawnCardEnemies(cell.monsterKey, G.floor, enemyScale(), { min: mutNum("packMin", 0), pool: sfMonsterPool() }), cell);
           }
         }
       }
