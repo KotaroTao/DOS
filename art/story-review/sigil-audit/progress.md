@@ -2,7 +2,7 @@
 
 判断基準：[rules.md](rules.md)。場面ごとの本文：[evidence.json](evidence.json)。
 
-更新：2026-10-14T11:09:41.581330+00:00
+更新：2026-10-14T12:49:51.505754+00:00
 
 確認済・修正不要 131枚／修正保留 11枚／要確認 9枚／修正済・確認済 2枚
 
@@ -50,7 +50,7 @@
 | 38 | [w08_banner](../../../art/story-review/chapter2/w08_banner.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定なし。旗の刺しゅう・地図の印・燭台は別物。 |
 | 39 | [w09_map](../../../art/story-review/chapter2/w09_map.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定なし。旗の刺しゅう・地図の印・燭台は別物。 |
 | 40 | [ch3_end](../../../art/story-review/chapter3/ch3_end.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定なし。旗の刺しゅう・地図の印・燭台は別物。 |
-| 41 | [irene_torso](../../../art/story-review/chapter3/irene_torso.png) | 修正保留 | 候補3も額の杯状の印が残ったため不採用。3回の原寸編集で基準形を再現できず、未完了として原画を保持。候補と失敗理由を保存し、後続の対象へ進む。 |
+| 41 | [irene_torso](../../../art/story-review/chapter3/irene_torso.png) | 修正保留 | 再開時の現在原画を縮小・額部分で確認。原寸対象＋正本切り出しで再編集した候補も、額の杯状の掌と上向きの突起が残り、斜めの平行な右指3本・独立した炎へ置換されていないため不採用。rejected/resume/irene_torso-candidate.pngに保存。原画を保持し、イレーヌの額・隠れた腕内側は変更していない。 |
 | 42 | [irene_trust](../../../art/story-review/chapter3/irene_trust.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定対象なし。 |
 | 43 | [mem_w13](../../../art/story-review/chapter3/mem_w13.png) | 確認済・修正不要 | 原寸の裾で角張った掌・右の指3本・独立した炎を照合。 |
 | 44 | [report_w10](../../../art/story-review/chapter3/report_w10.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定対象なし。 |
@@ -69,9 +69,9 @@
 | 57 | [report_w17](../../../art/story-review/chapter4/report_w17.png) | 確認済・修正不要 | 縮小で確認。一門の印の指定対象なし。神官の衣の模様を一門の印へ置き換える根拠なし。 |
 | 58 | [w14_lamp](../../../art/story-review/chapter4/w14_lamp.png) | 要確認 | 笠の原寸部分を確認。苔と装飾が覆い、印を識別できない。笠のどの面に彫るかは根拠不足のため追加を保留。 |
 | 59 | [w15_mural](../../../art/story-review/chapter4/w15_mural.png) | 確認済・修正不要 | 縮小で確認。一門の印の指定対象なし。神官の衣の模様を一門の印へ置き換える根拠なし。 |
-| 60 | [w16_legs](../../../art/story-review/chapter4/w16_legs.png) | 修正保留 | 原寸編集候補でも足の甲の印が残り、指定位置へ移っていないため不採用。原画を保持し、候補を保存。位置修正は未完了。 |
-| 61 | [ch5_end](../../../art/story-review/chapter5/ch5_end.png) | 修正保留 | 候補は額の炎状の印を修正せず、背景の旗へ不要な印を追加したため不採用。原画・盾は保持。額の修正は未完了、盾の配置は要確認。 |
-| 62 | [irene_husks](../../../art/story-review/chapter5/irene_husks.png) | 修正保留 | 編集候補の額は杯状の印のままで、基準形への置換が反映されていないため不採用。原画を保持。 |
+| 60 | [w16_legs](../../../art/story-review/chapter4/w16_legs.png) | 修正保留 | 再開時に現在原画の縮小と足・くるぶし部分を確認。原寸対象＋正本切り出しの再編集候補も足の甲の旧印が残り、内くるぶしへの位置変更が反映されず不採用。rejected/resume/w16_legs-candidate.pngに保存。脚・足・関節を含む原画を保持。 |
+| 61 | [ch5_end](../../../art/story-review/chapter5/ch5_end.png) | 修正保留 | 再開時に現在原画の縮小・額の部分を確認。原寸対象＋正本切り出し＋対象額の部分参照で編集した候補も、額に炎状の旧印が残り角張った掌・右指3本・手首が見えず不採用。rejected/resume/ch5_end-candidate.pngに保存。原画を保持。盾の配置は根拠不足のため要確認のまま、旗には追加しない。 |
+| 62 | [irene_husks](../../../art/story-review/chapter5/irene_husks.png) | 修正保留 | 再開時に現在原画の縮小・額部分を確認。原寸対象＋正本切り出し＋額の部分参照の候補も杯状の掌と上向きの突起が残り、承認済み幾何学形に不一致で不採用。rejected/resume/irene_husks-candidate.pngに保存。原画を保持。イレーヌの額・髪飾り・関節の金の縁は変更しない。 |
 | 63 | [mem_w21](../../../art/story-review/chapter5/mem_w21.png) | 要確認 | 師の裾の原寸印は幾何学基準に合う。扉の印も幾何学形だが、扉への配置は本文・指示に根拠がないため要確認。裾は修正不要。 |
 | 64 | [report_w18](../../../art/story-review/chapter5/report_w18.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定なし。 |
 | 65 | [report_w19](../../../art/story-review/chapter5/report_w19.png) | 確認済・修正不要 | 縮小で確認。一門の印の指定なし。王宮の小さな装飾を一門の印とは断定しない。 |
@@ -81,7 +81,7 @@
 | 69 | [w19_husks](../../../art/story-review/chapter5/w19_husks.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定対象なし。 |
 | 70 | [w20_cup](../../../art/story-review/chapter5/w20_cup.png) | 要確認 | 背景の扉と台座に一門の印に似た図形。金の杯と帳面の場面で扉・台座の配置根拠なし。推測では修正しない。 |
 | 71 | [ch6_end](../../../art/story-review/chapter6/ch6_end.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定対象なし。 |
-| 72 | [irene_lineage](../../../art/story-review/chapter6/irene_lineage.png) | 修正保留 | 原寸と対象の額の部分参照を渡した候補でも杯状の印が残るため不採用。原画を保持。 |
+| 72 | [irene_lineage](../../../art/story-review/chapter6/irene_lineage.png) | 修正保留 | 再開時に現在原画の縮小・額部分を確認。原寸対象＋正本切り出し＋額の部分参照の候補も杯状の掌と上向きの短い突起が残り、斜めの平行な右指3本・角張った掌へ置換されていないため不採用。rejected/resume/irene_lineage-candidate.pngに保存。原画を保持。隠れた関節内側への追加はしない。 |
 | 73 | [mem_w25](../../../art/story-review/chapter6/mem_w25.png) | 確認済・修正不要 | 師は外套を残した後のシャツ姿。裾の印を足さない。凍王への追加配置指定なし。 |
 | 74 | [report_w22](../../../art/story-review/chapter6/report_w22.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定なし。王宮の星状・花状の装飾を印とは断定しない。 |
 | 75 | [report_w23](../../../art/story-review/chapter6/report_w23.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定なし。王宮の星状・花状の装飾を印とは断定しない。 |
@@ -91,8 +91,8 @@
 | 79 | [w23_names](../../../art/story-review/chapter6/w23_names.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定対象なし。 |
 | 80 | [w24_aurora](../../../art/story-review/chapter6/w24_aurora.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定対象なし。 |
 | 81 | [ch7_end](../../../art/story-review/chapter7/ch7_end.png) | 確認済・修正不要 | 縮小で確認。一門の印の指定対象なし。 |
-| 82 | [irene_crest](../../../art/story-review/chapter7/irene_crest.png) | 修正保留 | 候補の部分拡大で額の右側に4本の短い突起があり基準の3本に不一致、肘の形も正確な幾何学形でないため不採用。原画を保持。 |
-| 83 | [irene_order](../../../art/story-review/chapter7/irene_order.png) | 修正保留 | 編集候補の額が杯状のままで幾何学基準への置換が反映されず不採用。原画を保持。 |
+| 82 | [irene_crest](../../../art/story-review/chapter7/irene_crest.png) | 修正保留 | 再開時に現在原画の縮小・額・肘内側を確認。原寸対象＋正本切り出し＋額の部分参照の候補も額の杯状の掌と上向きの突起、肘の曲線状の旧印が残り、両方とも基準の幾何学形に不一致で不採用。rejected/resume/irene_crest-candidate.pngに保存。原画と肘の位置・手指・関節を保持。 |
+| 83 | [irene_order](../../../art/story-review/chapter7/irene_order.png) | 修正保留 | 再開時に現在原画の縮小・額部分を確認。原寸対象＋正本切り出し＋額の部分参照の候補も杯状の掌と短い上向きの指が残り基準形に不一致で不採用。rejected/resume/irene_order-candidate.pngに保存。原画を保持。イレーヌの額と手を組む姿勢、隠れた関節は変更しない。 |
 | 84 | [mem_w29](../../../art/story-review/chapter7/mem_w29.png) | 要確認 | 扉の上の原寸印は幾何学基準に一致し修正不要。祖の法衣は伏せた姿で装飾と印を識別できず、細かな配置指定もないため追加は保留。 |
 | 85 | [report_w26](../../../art/story-review/chapter7/report_w26.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定なし。王宮の星状の装飾は別物として保持。 |
 | 86 | [report_w27](../../../art/story-review/chapter7/report_w27.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定なし。王宮の星状の装飾は別物として保持。 |
@@ -103,7 +103,7 @@
 | 91 | [w28_note](../../../art/story-review/chapter7/w28_note.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定対象なし。 |
 | 92 | [ch8_end](../../../art/story-review/chapter8/ch8_end.png) | 確認済・修正不要 | セラは後ろ姿で額・肘内側・背の印の指定位置は髪と衣で隠れる。隠れた位置へ追加しない。 |
 | 93 | [irene_bell](../../../art/story-review/chapter8/irene_bell.png) | 確認済・修正不要 | 額の原寸で左の角張った親指・右の平行な指3本・手首・独立した炎を確認。 |
-| 94 | [irene_rain](../../../art/story-review/chapter8/irene_rain.png) | 修正保留 | 候補の額は上向きの短い指が4本ある杯状の形で基準に不一致。原画を保持、候補は不採用。 |
+| 94 | [irene_rain](../../../art/story-review/chapter8/irene_rain.png) | 修正保留 | 再開時に現在原画の縮小・額部分を確認。原寸対象＋正本切り出し＋額の部分参照の候補も杯状の掌と上向きの短い指が残り、基準の斜めの右指3本・角張った掌に不一致で不採用。rejected/resume/irene_rain-candidate.pngに保存。原画を保持。隠れた手首内側への追加はしない。 |
 | 95 | [mem_w33](../../../art/story-review/chapter8/mem_w33.png) | 確認済・修正不要 | 師は外套を残した後のシャツ姿。外套の印を足さない。 |
 | 96 | [report_w30](../../../art/story-review/chapter8/report_w30.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定なし。 |
 | 97 | [report_w31](../../../art/story-review/chapter8/report_w31.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定なし。王宮の装飾と杖を変更しない。 |
@@ -113,12 +113,12 @@
 | 101 | [w31_bell](../../../art/story-review/chapter8/w31_bell.png) | 確認済・修正不要 | 原寸の鐘内側の縁で、各印の右の指3本・独立した炎・短い手首を確認。 |
 | 102 | [w32_rod](../../../art/story-review/chapter8/w32_rod.png) | 確認済・修正不要 | 縮小で確認。避雷針の先端の火花は一門の印ではない。場面指定なし。 |
 | 103 | [ch9_end](../../../art/story-review/chapter9/ch9_end.png) | 確認済・修正不要 | セラは後ろ姿で額と継ぎ目内側は隠れる。追加しない。 |
-| 104 | [irene_rest](../../../art/story-review/chapter9/irene_rest.png) | 修正保留 | 候補の額の旧杯状の印が残り不採用。最新main e9286bf2の別セッションによる脚と胸の修正を取り込み、現在の縮小・額部分を再確認。額の形の修正は未完了。開いた胸の蓋に印に似た金の図形が新たに見えるため、この配置も次セッションで要確認。今回その図形は変更していない。 |
+| 104 | [irene_rest](../../../art/story-review/chapter9/irene_rest.png) | 修正保留 | 再開時に現在mainの原画ハッシュ一致、縮小・額部分を確認。脚と胸の別セッションの修正を保持する指定で原寸対象＋正本切り出し＋額の部分参照を編集。候補も額の杯状の掌と上向きの短い指が残り、基準形に不一致で不採用。rejected/resume/irene_rest-candidate.pngに保存。最新原画の脚・胸をそのまま保持。開いた蓋の金の図形は配置根拠不足で要確認、推測では変更しない。 |
 | 105 | [report_w34](../../../art/story-review/chapter9/report_w34.png) | 確認済・修正不要 | 最新main e9286bf2の空の修正を取り込み縮小で再確認。一門の印の配置指定なし。王宮の装飾は保持。 |
 | 106 | [report_w37](../../../art/story-review/chapter9/report_w37.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定なし。王宮の模様・灯籠の光を保持。 |
 | 107 | [w34_glove](../../../art/story-review/chapter9/w34_glove.png) | 確認済・修正不要 | 原寸の手袋の甲に角張った掌・指3本・独立した炎・短い手首を確認。 |
 | 108 | [w35_lamps](../../../art/story-review/chapter9/w35_lamps.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定なし。王宮の模様・灯籠の光を保持。 |
-| 109 | [irene_names](../../../art/story-review/chapter10/irene_names.png) | 修正保留 | 候補の額は旧杯状の印のままで基準の幾何学形へ置換されていないため不採用。原画を保持。 |
+| 109 | [irene_names](../../../art/story-review/chapter10/irene_names.png) | 修正保留 | 再開時に現在原画の縮小・額部分を確認。原寸対象＋正本切り出し＋額の部分参照の候補も旧杯状の掌と短い上向きの指が残り、斜めの右指3本・角張った掌に不一致で不採用。rejected/resume/irene_names-candidate.pngに保存。原画を保持。イレーヌの額・札・他の装飾は変更しない。 |
 | 110 | [report_w38](../../../art/story-review/chapter10/report_w38.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定なし。王宮の装飾を保持。 |
 | 111 | [report_w39](../../../art/story-review/chapter10/report_w39.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定なし。王宮の装飾を保持。 |
 | 112 | [report_w40](../../../art/story-review/chapter10/report_w40.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定なし。王宮の装飾を保持。 |
@@ -132,7 +132,7 @@
 | 120 | [lore_w04](../../../art/story-review/dungeons/lore_w04.png) | 確認済・修正不要 | 原寸で手の甲が見える。指定位置は手首の内側で裏になるため、見える甲側へ印を追加しない。 |
 | 121 | [lore_w05](../../../art/story-review/dungeons/lore_w05.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定対象なし。旗の模様・帳面は別物。 |
 | 122 | [lore_w06](../../../art/story-review/dungeons/lore_w06.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定対象なし。旗の模様・帳面は別物。 |
-| 123 | [lore_w07](../../../art/story-review/dungeons/lore_w07.png) | 修正保留 | 編集候補も額の杯状の印が残り、基準形への置換が反映されず不採用。原画を保持。壁の印は基準に合う。 |
+| 123 | [lore_w07](../../../art/story-review/dungeons/lore_w07.png) | 修正保留 | 再開時に現在原画の縮小・額・壁の部分を確認。原寸対象＋正本切り出し＋額の部分参照の候補も額の旧杯状の印と上向きの突起が残り、基準形へ置換されず不採用。rejected/resume/lore_w07-candidate.pngに保存。原画を保持し、基準に合っている壁の印は変更しない。 |
 | 124 | [lore_w08](../../../art/story-review/dungeons/lore_w08.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定対象なし。旗の模様・帳面は別物。 |
 | 125 | [lore_w09](../../../art/story-review/dungeons/lore_w09.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定対象なし。 |
 | 126 | [lore_w10](../../../art/story-review/dungeons/lore_w10.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定対象なし。 |
