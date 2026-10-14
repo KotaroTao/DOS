@@ -140,10 +140,10 @@ export function tlStability(kind, changes, context = {}) {
   if (!S.on || !changes.length) return;
   const a = stabilityData();
   if (kind === "entry") a.entries++;
-  const field = (kind === "entry" || kind === "floor") ? "spent" : kind === "natural" ? "natural" : "red";
+  const field = (kind === "entry" || kind === "floor") ? "spent" : kind === "natural" ? "natural" : kind === "ad" ? "ad" : "red";
   for (const {doll, amount} of changes) {
     const row = stabilityDoll(doll);
-    a[field] += amount; row[field] += amount;
+    a[field] = (a[field] || 0) + amount; row[field] = (row[field] || 0) + amount;
     if (kind === "entry") row.entries++;
   }
   a.events.push({ at:Date.now(), kind, activeMs:a.activeMs, ...context,
@@ -169,7 +169,7 @@ export function tlStabilitySummary(a = S.stability) {
   const redNeeded = Object.values(a.dolls).reduce((sum,d)=>sum + (d.activeMs > 0 ? Math.max(0,d.spent - d.activeMs / STABILITY_RECOVERY_MS) : 0),0);
   return ["【魂の安定度】",
     `実プレイ ${(a.activeMs/60000).toFixed(1)}分 / 入場 ${a.entries}回 / 消費 合計${a.spent} (${perHour.toFixed(1)}/実プレイ1時間)`,
-    `自然回復 ${a.natural} (控え・オフラインを含む) / 赤い魂で回復 ${a.red} = 実際の支出 🔴${a.red}`,
+    `自然回復 ${a.natural} (控え・オフラインを含む) / 広告で回復 ${a.ad || 0} / 赤い魂で回復 ${a.red} = 実際の支出 🔴${a.red}`,
     `初期${STABILITY_MAX}を使い切った後、控えを回さず休まず続ける推計: 🔴${hours > 0 ? (redNeeded/hours).toFixed(1) : "―"}/実プレイ1時間 (各人業の編成中の消費から4分に1の自然回復を差し引く)`,
     `記録中の赤い魂の獲得 ${a.redEarned} / 安定度回復分を引いた残り ${a.redEarned-a.red} (他用途の支出は含まない)`,
     ...(Object.keys(a.dolls).length ? ["人業別 (編成中の分/消費/自然回復/赤い魂回復/残り) " + Object.values(a.dolls).map(d=>`${d.name} ${Math.round(d.activeMs/60000)}/${d.spent}/${d.natural}/${d.red}/${d.value}`).join(" ")] : []),
@@ -360,7 +360,7 @@ function infAttemptLines(d) {
   const reasons = { resources: "資源不足", danger: "戦力不足", reward: "戦利品確保", personal: "都合", unknown: "不明" };
   for (const r of runs.slice(-10)) {
     const p = r.last;
-    out.push(`  ${r.at} ${r.test ? "試遊" : r.complete ? "通常" : "途中記録"} B${r.start}→${r.max}F ${r.outcome === "return" ? "帰還・" + (reasons[r.reason] || "不明") : r.outcome ? "全滅" + (r.outcome === "saved" ? "・赤い魂で回収" : "") : "未終了/再開待ち"} HP/MP ${p.hp}%/${p.mp}% 消耗品${p.held}個`);
+    out.push(`  ${r.at} ${r.test ? "試遊" : r.complete ? "通常" : "途中記録"} B${r.start}→${r.max}F ${r.outcome === "return" ? "帰還・" + (reasons[r.reason] || "不明") : r.outcome ? "全滅" + (r.outcome === "saved" ? "・戦利品を保護" : "") : "未終了/再開待ち"} HP/MP ${p.hp}%/${p.mp}% 消耗品${p.held}個`);
     let prev = null;
     for (const [i, c] of r.checkpoints.entries()) {
       const diff = k => prev ? (c.supply?.[k] || 0) - (prev.supply?.[k] || 0) : 0;
@@ -415,7 +415,7 @@ function infLines(d) {
   }
   const sl = d.sl || {};
   out.push(`  拾った魂 コモン${sl.c || 0} レア${sl.r || 0} エピック${sl.e || 0} レジェンド${sl.l || 0} ・ 拾った残火 ${d.em || 0}`);
-  if ((d.wipes || []).length) out.push("  全滅 " + d.wipes.slice(-12).map((w) => `B${w.f}(隊Lv${w.lv}/推奨${w.rec}${w.outcome === "saved" ? "・赤い魂" : ""})`).join(" "));
+  if ((d.wipes || []).length) out.push("  全滅 " + d.wipes.slice(-12).map((w) => `B${w.f}(隊Lv${w.lv}/推奨${w.rec}${w.outcome === "saved" ? "・保護帰還" : ""})`).join(" "));
   return out;
 }
 

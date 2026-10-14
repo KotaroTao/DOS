@@ -11758,26 +11758,43 @@ function gameOver() {
     combatMenu.classList.add("hidden");
     leaveDungeon(opts);
   };
-  // 無限迷宮: 赤い魂 (全滅した階の数・上限100) を払えば拾った魂・品・残火を持ち帰れる。払わなければ何も持ち帰れない
+  // 無限迷宮: 赤い魂20または広告視聴で拾った魂・品・残火を持ち帰れる。
   if (abyssActive()) {
     const cost = infRedCost(G.floor);
     let items = G.inventory.length;
     for (const d of G.party) { for (const k of Object.keys(d.equip || {})) if (d.equip[k]) items++; }
+    let decided = false;
+    const saveLoot = (ad = false) => {
+      if (decided || (!ad && G.redSoul < cost)) return;
+      decided = true;
+      if (!ad) G.redSoul -= cost;
+      SFX.levelup(); buzz([0, 30, 40, 30]);
+      log(ad ? "広告視聴で拾った魂と品を地上へ運んだ。" : `赤い魂 ${cost} が、拾った魂と品を地上へ運んだ。`, "win");
+      goTown({ outcome: "saved" });
+    };
     UI.openInfWipe({
       abandoned: !!r.abandoned, floor: G.floor, cost, red: G.redSoul, canSave: G.redSoul >= cost,
       souls: (r.souls || []).length, items, embers: r.embers || 0, sold: (infTrk().sold || 0),
-      onSave: () => {
-        if (G.redSoul < cost) return;
-        G.redSoul -= cost;
-        SFX.levelup(); buzz([0, 30, 40, 30]);
-        log(`赤い魂 ${cost} が、拾った魂と品を地上へ運んだ。`, "win");
-        goTown({ outcome: "saved" });
-      },
-      onGiveUp: () => { log("拾った魂も品も、迷宮の底に残された…", "dmg"); goTown({ outcome: "wipe" }); },
+      onSave: () => saveLoot(),
+      // 本番の広告連携までは即時成功。回数・待ち時間の制限は設けない。
+      onAd: () => saveLoot(true),
+      onGiveUp: () => { if (decided) return; decided = true; log("拾った魂も品も、迷宮の底に残された…", "dmg"); goTown({ outcome: "wipe" }); },
     });
     return;
   }
   const cost = guardianCost();
+  let decided = false;
+  const saveParty = (ad = false) => {
+    if (decided || (!ad && G.redSoul < cost)) return;
+    decided = true;
+    if (!ad) G.redSoul -= cost;
+    const run = G.run;
+    G.run = null; // 戦利品を確定 (没収しない)
+    reviveAllAtHp1();
+    SFX.levelup(); buzz([0, 30, 40, 30]);
+    log(ad ? "広告視聴で戦利品と人業を守った。一同HP1で生還する。" : cost === 0 ? "戦利品と人業を守り、赤い魂を使わずに生還した。一同HP1で街へ戻る。" : "赤い魂が戦利品と人業を守った。一同HP1で生還する。", "win");
+    goTown({ outcome: "saved", run });
+  };
   uiResults.openWipe({
     abandoned: !!r.abandoned, // 自ら迷宮を諦めた (全滅と同じ扱い)
     gold: secured ? 0 : (r.gold || 0),
@@ -11787,19 +11804,13 @@ function gameOver() {
     secured, cost, red: G.redSoul,
     canSave: G.redSoul >= cost,
     party: G.party.map((d) => ({ name: d.name, uid: d.uid })),
-    // 赤い魂を使う: 何も失わず街へ即時帰還。全キャラHP1で復活する
-    onSave: () => {
-      if (G.redSoul < cost) return;
-      G.redSoul -= cost;
-      const run = G.run;
-      G.run = null; // 戦利品を確定 (没収しない)
-      reviveAllAtHp1(); // 全キャラHP1で復活
-      SFX.levelup(); buzz([0, 30, 40, 30]);
-      log(cost === 0 ? "戦利品と人業を守り、赤い魂を使わずに生還した。一同HP1で街へ戻る。" : "赤い魂が戦利品と人業を守った。一同HP1で生還する。", "win");
-      goTown({ outcome: "saved", run });
-    },
+    onSave: () => saveParty(),
+    // 本番の広告連携までは即時成功。回数・待ち時間の制限は設けない。
+    onAd: cost > 0 ? () => saveParty(true) : null,
     // あきらめる: ゴールド・アイテム・魂を失う (✦Soul は残る)、人業は連れ帰りを待つ
     onGiveUp: () => {
+      if (decided) return;
+      decided = true;
       const run = G.run;
       const forfeited = secured ? null : { gold: r.gold || 0, items: (r.items || []).map(({ item }) => itemName(item)), souls: (r.souls || []).map((s) => (SOUL_CLASSES[s.clsKey] || {}).label || s.clsKey) };
       forfeitRun();
@@ -11818,10 +11829,10 @@ function confirmAbandonDungeon() {
     title: "迷宮を諦める？",
     lines: abyssActive() ? [
       "全滅と同じ扱いになる。仮の器はことごとく崩れる。",
-      `赤い魂 ${infRedCost(G.floor)} を払わなければ、拾った魂・品・残火を何も持ち帰れない。`,
+      `赤い魂 ${infRedCost()} または広告視聴で、拾った魂・品・残火を持ち帰れる。`,
     ] : [
       "全滅と同じ扱いになる。隊の人業はことごとく砕け、連れ帰りを待つ。",
-      guardianCost() === 0 ? "赤い魂なしで戦利品と人業を守り、街へ戻れる。" : secured ? "主を討った後なので、戦利品は失わない。" : `赤い魂 ${guardianCost()} を使わなければ、今回得た金貨・品・魂を失う。`,
+      guardianCost() === 0 ? "赤い魂なしで戦利品と人業を守り、街へ戻れる。" : secured ? "主を討った後なので、戦利品は失わない。" : `赤い魂 ${guardianCost()} または広告視聴で、戦利品と人業を守って帰れる。`,
       "✦Soul は失わない。",
     ],
     okLabel: "諦める",
@@ -12408,9 +12419,17 @@ function stabilityReady(retry, infinite = abyssActive()) {
     tlStability("red", changes, {redSpent:pay});
     autosave(true); retry();
   }});
+  // 本番の広告連携までは即時成功。不足分だけ補い、通常の入場・進行で一回分を消費する。
+  options.push({label:"広告視聴で1回分進む", primary:G.redSoul < cost, fn:()=>{
+    refreshStability();
+    const changes = stabilityDolls(infinite).map(doll=>({doll,amount:Math.max(0,STABILITY_ENTRY_COST-doll.stability)})).filter(c=>c.amount);
+    for (const c of changes) c.doll.stability += c.amount;
+    tlStability("ad", changes);
+    autosave(true); retry();
+  }});
   options.push({label:"回復を待つ", fn:()=>{ autosave(true); }});
   showChoice("魂の安定度が足りない", options, null, {banner:"魂の安定度", onDismiss:()=>{},
-    lines:[...low.map(d=>`${d.name}: ${d.value}/30`), `不足分は合計${cost}。赤い魂1で安定度1を購入できます (所持${G.redSoul})。`,
+    lines:[...low.map(d=>`${d.name}: ${d.value}/30`), `不足分は合計${cost}。赤い魂1で安定度1を購入できます (所持${G.redSoul})。広告視聴なら、隊全員の不足分を補って1回分進めます。`,
       `4分で1回復します。全員が進めるまで約${Math.ceil(Math.max(...low.map(d=>d.waitMs))/60000)}分。回復後にもう一度進んでください。`]});
   return false;
 }
