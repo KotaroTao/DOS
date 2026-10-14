@@ -658,7 +658,7 @@ function pickerBody(root, d, slotId, h) {
     const conflict = !isCur && game.soulSlotConflict(d, s.uid, slotId);
     const other = wearerOf(s.uid, d);
     const inOther = !isCur && (d.primary === s.uid || (d.subs || []).some((x) => x && x.uid === s.uid));
-    const r = el("div", "sp-srow" + (isCur ? " cur" : "") + (other ? " taken" : ""));
+    const r = el("div", "sp-srow" + soulWearClass(s.uid) + (isCur ? " cur" : "") + (other ? " taken" : ""));
     r.dataset.job = s.clsKey;
     r.style.setProperty("--glow", cl.glow);
     const main = el("button", "sp-srow-main");
@@ -757,6 +757,11 @@ function soulHome(uid) {
   }
   return null;
 }
+// 宿している差し口を、一覧と付け替えで共通の色にする。
+function soulWearClass(uid) {
+  const home = soulHome(uid);
+  return home ? (home.slotId === "primary" ? " worn-main" : " worn-sub") : "";
+}
 function soulTags(s) {
   const tags = [];
   const home = soulHome(s.uid);
@@ -781,7 +786,7 @@ export function openSoulList() {
       for (const s of souls) {
         const cl = SOUL_CLASSES[s.clsKey]; if (!cl) continue;
         const rank = soulRankOf(s);
-        const r = el("div", "sp-srow");
+        const r = el("div", "sp-srow" + soulWearClass(s.uid));
         r.style.setProperty("--glow", cl.glow);
         const main = el("button", "sp-srow-main");
         main.type = "button";
