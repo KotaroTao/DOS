@@ -14,6 +14,7 @@ import { MONSTERS, crispCanvas } from "../sprites.js";
 import { npcOf, npcBondLabel } from "../quests.js";
 import { SFX } from "../audio.js";
 import { openItem } from "./facilities.js";
+import { questPortrait } from "./questportrait.js";
 
 const sfx = (k) => { try { if (SFX[k]) SFX[k](); } catch (e) { /* noop */ } };
 const G = () => game.G;
@@ -175,6 +176,12 @@ export function questCard(q, { mark = false } = {}) {
   if (pt) sub.appendChild(document.createTextNode(pt));
   else { const r = el("span", "qb-rw"); r.appendChild(glyphText(rewardText(q))); sub.appendChild(r); }
   info.appendChild(sub);
+  const who = q.fixed ? q.giver : npcOf(q.npc);
+  if (who) {
+    const client = el("div", "qb-client");
+    client.append(questPortrait(who, 28), setText(el("span"), who.name));
+    info.appendChild(client);
+  }
   // 掲示板の納品の依頼: 報酬の下に品の在りか
   if (!pt && q.type === "deliver") { const st = deliverSt(q); if (st) info.appendChild(el("div", "qb-have" + (st.holder ? " ok" : st.inShop ? " shop" : ""), haveLabel(st))); }
   card.appendChild(info);
@@ -219,7 +226,7 @@ export function dungeonQuestSheet(dn, { onChange = null } = {}) {
       const q = x.q;
       const card = el("button", "qb-card fixed" + (q.state === "done" ? " ready" : "") + (q.state === "claimed" ? " qb-dq-done" : ""));
       card.type = "button";
-      card.appendChild(markOf(q));
+      card.appendChild(questPortrait(q.giver, 40, () => markOf(q)));
       const info = el("div", "qb-i");
       const top = el("div", "qb-top");
       if (q.fresh) top.appendChild(el("span", "qb-new", "新"));
@@ -309,7 +316,7 @@ export function openQuestSheet(uid, { onClose = null } = {}) {
     const box = el("div", "qb-sheet");
     const who = q.fixed ? q.giver : npcOf(q.npc);
     const wh = el("div", "qb-who");
-    wh.appendChild(markOf(q, 48));
+    wh.appendChild(questPortrait(who, 52, () => markOf(q, 48)));
     const wt = el("div", "qb-who-t");
     wt.appendChild(setText(el("div", "qb-who-n"), who ? who.name : "依頼人"));
     let bond = null;

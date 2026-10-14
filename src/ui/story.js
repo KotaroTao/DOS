@@ -25,6 +25,8 @@ import { SOUL_CLASSES, soulIcon } from "../souls.js";
 import { kingCanvas, vignetteCanvas } from "../townart.js";
 import { storyArt, ART_W, ART_H } from "../storyart.js";
 import { IRENE_ART } from "./irene.js";
+import { QUEST_PORTRAITS } from "../questportraits.js";
+import { questPortrait } from "./questportrait.js";
 import { SFX } from "../audio.js";
 
 const sfx = (k) => { try { if (SFX[k]) SFX[k](); } catch (e) { /* noop */ } };
@@ -174,7 +176,10 @@ export function playStoryChain(pages, done) {
     pf.classList.toggle("mark", typeof who === "object");
     whoEl.classList.toggle("npc", typeof who === "object");
     if (who && typeof who === "object") {
-      try { const a = who.art && who.art(); if (a) pf.appendChild(a); } catch (e) { /* 絵が無くても名は出す */ }
+      try {
+        const a = QUEST_PORTRAITS[who.name] ? questPortrait(who, 112, who.art) : who.art && who.art();
+        if (a) pf.appendChild(a);
+      } catch (e) { /* 絵が無くても名は出す */ }
       whoEl.textContent = "";
       whoEl.appendChild(setText(el("span", "sc-who-n"), who.name || ""));
       if (who.sub) whoEl.appendChild(setText(el("span", "sc-who-k"), who.sub));

@@ -452,6 +452,10 @@
 .pl-dmon .pl-codex-cap { white-space: normal; }
 .qb-sheet { display: flex; flex-direction: column; gap: 10px; text-align: left; }
 .qb-who { display: flex; align-items: center; gap: 10px; }
+.qb-portrait { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; overflow: hidden; border-radius: 3px; background: #171214; box-shadow: 0 0 0 1px #594634; }
+.qb-portrait img { display: block; width: 100%; height: 100%; object-fit: cover; image-rendering: auto; }
+.qb-portrait-fallback { color: var(--accent-hi); }
+.qb-client { display: flex; align-items: center; gap: 7px; margin-top: 6px; font-size: 11px; color: var(--ink-faint); }
 .qb-who .qb-mark { width: 52px; height: 52px; }
 .qb-who-n { font-size: 14px; font-weight: 800; color: #e2cf9f; }
 .qb-who-k { font-size: 11px; letter-spacing: 0.08em; color: var(--ink-faint); }
