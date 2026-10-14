@@ -275,10 +275,10 @@ const TUTS = [
     prepare: () => null,
     intro: () => [
       ["新しい職業の魂を持ち帰られたのですね。", "その魂は、今いる人業のメイン魂と付け替えられます。人業を増やさずに、新たな職業の力を借りましょう。"],
-      ["宿す魂を変えれば、今いる人業も別の職業として戦えます。魂の育ちは残り、外した魂も失われません。", "まずは『メイン魂付け替え』から魂の一覧を開いて、閉じてください。実際の付け替えは、その後に自由に行えます。"],
+      ["宿す魂を変えれば、今いる人業も別の職業として戦えます。魂の育ちは残り、外した魂も失われません。", "まずは『魂を交換』から魂の一覧を開いて、閉じてください。実際の付け替えは、その後に自由に行えます。"],
       ["新しい職業で使えない装備は外れます。同じ職業のメイン魂は、隊に一つだけです。"],
     ],
-    steps: [{ text: "魂の一覧を開いて確認し、閉じる", hint: "人業の館 → メイン魂付け替え → 閉じる", go: () => goSoulSeg(), target: [".sp-change"], on: "soulChangeViewed" }],
+    steps: [{ text: "魂の一覧を開いて確認し、閉じる", hint: "人業の館 → 魂を交換 → 閉じる", go: () => goSoulSeg(), target: [".sp-change"], on: "soulChangeViewed" }],
     outro: ["魂の付け替えが解放された。魂の区分の『メイン魂』の枠から、いつでも変更できる。"],
   },
   {
@@ -301,7 +301,7 @@ const TUTS = [
       text: "魂融合で、余っている魂を溶かす",
       // 宿している魂に融合できるなら魂の区分の『魂融合』、無ければ『メイン魂』の一覧の『魂融合』
       get hint() {
-        return fusableDoll() ? "人業の館 → 魂の区分 →『魂融合』→ 素材の魂を選ぶ" : "『メイン魂付け替え』→ 戦士の魂の『魂融合』";
+        return fusableDoll() ? "人業の館 → 魂の区分 →『魂融合』→ 素材の魂を選ぶ" : "『魂を交換』→ 戦士の魂の『魂融合』";
       },
       go: () => goSoulSeg(fusableDoll()), target: [".sp-fuse.hot", ".sp-pick-fuse", ".sp-change"],
       done: () => ((G_().stats || {}).fusions || 0) > (tutState().base.fusions || 0),
@@ -331,7 +331,7 @@ const TUTS = [
     ],
     steps: [
       {
-        text: "サブ魂の枠に魂を宿す", hint: "魂の区分 → サブ魂1 の『＋ 魂を宿す』",
+        text: "サブ魂の枠に魂を宿す", hint: "人業の館 → サブ魂1 の『＋ 魂を宿す』",
         go: () => goSoulSeg(null), target: [".sp-sub.empty .sp-tile-main", ".sp-sub .sp-tile-main"],
         done: () => !!dollWithSub(),
         skip: () => !dollWithSub() && !spareSouls().length,

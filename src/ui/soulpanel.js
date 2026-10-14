@@ -131,10 +131,6 @@ export function renderSoulSeg(root, d, ctx = {}) {
   const pe = d.primary != null ? soulByUid(d.primary) : null;
   if (ctx.summary !== false) renderSoulSummary(root, d, ctx);
   if (!pe) return;
-  // サブ魂1・2を2列で並べる。メイン魂の付け替えは詳細の操作列から開く。
-  const more = el("div", "sp-more");
-  subTiles(more, d, town);
-  root.appendChild(more);
   const fz = fuseButton(pe, town);
   if (fz) { const acts = el("div", "sp-row2"); acts.appendChild(fz); root.appendChild(acts); }
   if (!town) root.appendChild(el("div", "pt-note c", game.featureUnlocked?.("soulChange") ? "魂の付け替え・強化は、街へ戻ってから。" : "魂の強化は、街へ戻ってから。"));
@@ -159,7 +155,7 @@ function mainCard(d, pe, town) {
   const cap = soulLevelCapOf(pe);
   card.dataset.uid = String(pe.uid);
   card.style.setProperty("--glow", cl.glow);
-  // 見出し: 宝珠 + 名 + ランク/称号 + Lv
+  // 見出し: 宝珠 + 名 + ランク/称号
   const head = el("div", "sp-head");
   head.appendChild(orb(pe.clsKey, rank, 40));
   const tx = el("div", "sp-head-tx");
@@ -167,7 +163,6 @@ function mainCard(d, pe, town) {
   const nmT = el("span", null, `${soulLabel(pe)}`);
   nmT.style.color = cl.glow;
   nm.appendChild(nmT);
-  if (soulRankLeft(pe)) nm.appendChild(el("span", "sp-left", soulRankLeft(pe)));
   tx.appendChild(el("span", "sp-card-k", "メイン魂"));
   tx.appendChild(nm);
   const meta = el("div", "sp-meta");
@@ -182,7 +177,6 @@ function mainCard(d, pe, town) {
   cur.dataset.spLv = String(pe.uid);
   lvN.appendChild(cur);
   lvN.appendChild(el("span", "sp-lv-cap", `/${cap}`));
-  head.appendChild(lvN);
   // 見出しを押すと、その職業の図鑑 (ランクごとの技・加護) を開く (ユーザーの指示、2026-10)
   if (game.showCodexJobDetail) {
     head.classList.add("sp-head-link");
@@ -191,6 +185,19 @@ function mainCard(d, pe, town) {
     head.addEventListener("click", () => game.showCodexJobDetail(pe.clsKey, rank));
   }
   card.appendChild(head);
+  const levelRow = el("div", "sp-level-row");
+  levelRow.appendChild(lvN);
+  if (town) {
+    if (soulChangeVisible()) {
+      const fixed = d.vessel === "sera";
+      const change = button({ label: "魂を交換", kind: "secondary", size: "sm", disabled: fixed,
+        onTap: () => openSoulPicker(d, "primary") });
+      change.classList.add("sp-change");
+      if (fixed) change.title = "セラのメイン魂は付け替え不可";
+      levelRow.appendChild(change);
+    } else levelRow.appendChild(lockedTile("未解放", "？？？"));
+  }
+  card.appendChild(levelRow);
 
   // 次の段までの ✦
   const need = game.soulTrainCost ? game.soulTrainCost(pe.level) : 0;
@@ -214,8 +221,6 @@ function mainCard(d, pe, town) {
       if (plan.n >= 2) {
         extra = button({ label: plan.to >= cap ? "上限まで" : "まとめて", sub: `→ Lv${plan.to}`, kind: "secondary",
           cost: { kind: "soul", n: plan.cost }, onTap: () => train(pe.uid, Infinity) });
-      } else if ((G.soulPts || 0) < plan.next) {
-        extra = el("div", "sp-short", `✦があと ${plan.next - (G.soulPts || 0)} 足りない ― 迷宮で敵を倒すと得られる`);
       }
     } else {
       acts.appendChild(button({ label: "魂を強化", sub: "Lv上限", kind: "primary", disabled: true }));
@@ -225,19 +230,19 @@ function mainCard(d, pe, town) {
       cost: { kind: "ember", n: need }, disabled: (G.embers || 0) < need, onTap: () => confirmRaiseCap(pe) });
     em.classList.add("sp-ember-b");
     acts.appendChild(em);
-    if (soulChangeVisible()) {
-      const fixed = d.vessel === "sera";
-      const change = button({ label: "メイン魂付け替え", kind: "secondary", size: "sm", disabled: fixed,
-        onTap: () => openSoulPicker(d, "primary") });
-      change.classList.add("sp-change");
-      if (fixed) change.title = "セラのメイン魂は付け替え不可";
-      acts.appendChild(change);
-    } else acts.appendChild(lockedTile("未解放", "？？？"));
     card.appendChild(acts);
+    appendSubTiles(card, d, town);
     if (extra) { const row = el("div", "sp-row2"); row.appendChild(extra); card.appendChild(row); }
   }
 
+  if (!town) appendSubTiles(card, d, town);
   return card;
+}
+
+function appendSubTiles(card, d, town) {
+  const more = el("div", "sp-more");
+  subTiles(more, d, town);
+  card.appendChild(more);
 }
 
 // 残火の段の説明。灯守 (セラだけの魂) は残火1つで上限 +1、その上限に Lv が届くたび能力が伸びる (souls.js EMBER_STAT_UP)
