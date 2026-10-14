@@ -4,7 +4,7 @@
 
 - 原画: [lore_ws6.png](lore_ws6.png)（1536×1024）
 - 配信画像: [lore_ws6.webp](../../story/dungeons/lore_ws6.webp)（品質88、約432KB）
-- [スマホの出撃画面](ws6-departure-mobile.png)・[PCの出撃画面](ws6-departure-desktop.png)
+- [スマホの出撃画面](ws6-review/departure-mobile.png)・[PCの出撃画面](ws6-review/departure-desktop.png)
 - [本文との比較](../review/dungeons.md#lore_ws6見捨てられた狼煙台--描き下ろし)・[縮小の見本](../review/dungeons-small.jpg)
 
 `python3 tools/storyart/build.py` でWebP変換、由来の台帳、Service Worker、確認ページを生成。出撃画面もws6のWebPを滑らかに表示し、取得失敗時は既存の情景へ戻す。
