@@ -99,7 +99,7 @@ function pixelCanvas(spr, size) {
   return c;
 }
 // 肖像の札 (枠・HPの細線・砕けた印)
-function portraitEl(d, { size = 44, sel = false, tag = "button", cls = "" } = {}) {
+function portraitEl(d, { size = 44, sel = false, tag = "button", cls = "", minimal = false } = {}) {
   const p = el(tag, `pt-port s${size}${sel ? " sel" : ""}${d && !d.alive ? " dead" : ""}${cls ? " " + cls : ""}`);
   if (tag === "button") p.type = "button";
   if (!d) { p.classList.add("empty"); p.appendChild(el("span", "pt-port-plus", "＋")); return p; }
@@ -111,14 +111,14 @@ function portraitEl(d, { size = 44, sel = false, tag = "button", cls = "" } = {}
   try { fr.appendChild(partyPortraitCanvas(d, size - 6)); } catch (e) { /* 絵が無くても動く */ }
   p.appendChild(fr);
   if (!d.alive) p.appendChild(el("span", "pt-port-dead", "✝"));
-  if (d.maxhp && d.primary != null) {
+  if (!minimal && d.maxhp && d.primary != null) {
     const r = Math.max(0, Math.min(1, (d.hp || 0) / Math.max(1, d.maxhp)));
     const hp = el("span", "pt-port-hp" + (r < 0.34 && d.alive ? " low" : ""));
     const f = el("i"); f.style.width = (d.alive ? r * 100 : 0).toFixed(1) + "%"; hp.appendChild(f);
     p.appendChild(hp);
   }
-  const upgrade = hasBetterGear(d);
-  watchGearPortrait(p, d);
+  const upgrade = !minimal && hasBetterGear(d);
+  if (!minimal) watchGearPortrait(p, d);
   p.setAttribute("aria-label", `${upgrade ? "より強い装備あり・" : ""}${d.name}${d.alive ? "" : " (砕けた)"} ${d.cls || ""}`);
   return p;
 }
@@ -1840,6 +1840,7 @@ function mansionHeader(d) {
   tx.appendChild(rename);
   head.appendChild(tx);
   const actions = el("div", "pt-mansion-links");
+  actions.appendChild(benchButton());
   const souls = soulListButton();
   souls.querySelector(".pt-bench-n")?.remove();
   actions.appendChild(souls);
@@ -1848,26 +1849,73 @@ function mansionHeader(d) {
   head.appendChild(actions);
   return head;
 }
-function openMansionManage(d) {
-  sheet.open({ kind: "info", banner: "人業の館", title: "隊列", className: "pt-manage-sheet",
-    body: (body, h) => {
-      const side = el("div", "pt-side pt-manage-links");
-      side.append(benchButton(), soulListButton());
-      const order = orderButton();
-      if (order) side.appendChild(order);
-      body.appendChild(side);
-      body.appendChild(dollHeader(d, "town"));
-      const formation = button({ label: "隊列を変更", kind: "secondary", onTap: () => openSwapSheet(d) });
-      formation.classList.add("pt-manage-formation");
-      body.appendChild(formation);
-      body.appendChild(el("div", "pt-note", "控えの人業・魂一覧・隊の入れ替えを管理する。名は筆の印から変えられる。"));
-      // 別のシートに移る前に閉じ、入れ替えや改名後の古い人物情報を残さない。
-      body.addEventListener("click", (e) => {
-        if (e.target.closest("button, [role=button]")) h.close();
-      }, { capture: true });
-    },
+// 隊列は前衛・後衛だけを並べ、二体のタップで場所を替える。
+let formationH = null;
+export function openFormationSheet(d) {
+  const G = G_();
+  if (!inTown()) return null;
+  formationH?.close();
+  let selected = G.party.includes(d) ? d : null;
+  let message = "";
+  const body = (container, h) => {
+    const hint = el("p", "pt-formation-hint", message || (selected
+      ? `${selected.name}と入れ替える相手を選んでください。`
+      : "動かす人業を選び、次に入れ替える相手を選んでください。"));
+    hint.setAttribute("role", "status");
+    container.appendChild(hint);
+    for (let row = 0; row < 2; row++) {
+      const group = el("section", "pt-formation-row");
+      group.appendChild(el("h3", "pt-formation-label", row ? "後衛" : "前衛"));
+      const grid = el("div", "pt-formation-grid");
+      for (let col = 0; col < 3; col++) {
+        const i = row * 3 + col, m = G.party[i];
+        if (!m) {
+          const empty = el("div", "pt-formation-card empty", "空き");
+          empty.setAttribute("aria-label", `${slotName(i)} 空き`);
+          grid.appendChild(empty);
+          continue;
+        }
+        const card = el("button", "pt-formation-card pt-sw-card" + (m === selected ? " selected" : ""));
+        card.type = "button";
+        card.dataset.swapJob = soulByUid(m.primary)?.clsKey || "";
+        card.setAttribute("aria-pressed", String(m === selected));
+        card.setAttribute("aria-label", `${slotName(i)} ${m.name} ${m === selected ? "選択を解除" : selected ? `${selected.name}と入れ替える` : "選択する"}`);
+        card.append(portraitEl(m, { size: 44, tag: "span", minimal: true }), el("span", "pt-formation-name", m.name), el("span", "pt-formation-job", m.cls));
+        card.addEventListener("click", () => {
+          message = "";
+          if (selected && selected !== m) {
+            const from = slotName(G.party.indexOf(selected));
+            message = `${selected.name}は${slotName(i)}、${m.name}は${from}に移りました。`;
+            const teaching = game.prologuePhase?.() === "formation";
+            swapParty(selected, m);
+            selected = null;
+            if (teaching) h.close();
+          } else {
+            selected = selected === m ? null : m;
+            sfx("select");
+          }
+          if (!h.closed) {
+            h.update({ body });
+            h.body.querySelector(`[data-swap-job="${card.dataset.swapJob}"]`)?.focus({ preventScroll: true });
+          }
+        });
+        grid.appendChild(card);
+      }
+      group.appendChild(grid);
+      container.appendChild(group);
+    }
+  };
+  formationH = sheet.open({ kind: "info", banner: "人業の館", title: "隊列並べ替え", className: "pt-formation-sheet", body,
+    footer: [{ label: "閉じる", kind: "ghost", onTap: () => formationH?.close() }],
+    onClose: () => { formationH = null; },
   });
+  if (game.prologuePhase?.() === "formation") UI.tutorialEvent?.("formationPickerOpened");
+  return formationH;
 }
+function openMansionManage(d) {
+  return openFormationSheet(d);
+}
+
 function stabilityButton(d, town) {
   game.refreshStability?.();
   const b = button({ label: `魂の安定度 ${d.stability}/${game.STABILITY_MAX}`, kind: "ghost", size: "sm",
@@ -2861,6 +2909,7 @@ export function install() {
     openStability,
     openParty,
     openSwapSheet,
+    openFormationSheet,
     enterMansion,
     openReserve,
     openCreateDoll,
