@@ -11993,11 +11993,28 @@ function renderParty() {
     if (pic) por.appendChild(pic);
     UI.watchGearPortrait?.(por, p);
     por.appendChild(el("span", "pc-row " + (idx < 3 ? "front" : "back"), idx < 3 ? "前" : "後"));
-    if (!p.alive) por.appendChild(el("span", "pc-seal dead", "死"));
-    else if (sv.ailment) { const a = AIL_SEAL[sv.ailment] || ["呪", "poison"]; const s2 = el("span", "pc-seal " + a[1], a[0]); s2.title = AIL_NAME[sv.ailment] || ""; por.appendChild(s2); }
-    else if (p.asleep && G.state === "combat") por.appendChild(el("span", "pc-seal sleep", "眠"));
-    else if (p.mind && G.state === "combat" && PARTY_MIND_SEAL[p.mind]) { const m = PARTY_MIND_SEAL[p.mind]; const s3 = el("span", "pc-seal " + m[1], m[0]); s3.title = AIL_NAME[p.mind] || ""; por.appendChild(s3); }
     card.appendChild(por);
+    // 肖像と同じ枠へ重ね、肖像を省くスマホ表示でも状態の印は残す。
+    const seals = el("div", "pc-seals");
+    const addSeal = (mark, tone, label) => {
+      const seal = el("span", "pc-seal " + tone, mark);
+      seal.title = label;
+      seal.setAttribute("aria-label", label);
+      seals.appendChild(seal);
+    };
+    if (!p.alive) addSeal("死", "dead", "砕けた");
+    else {
+      if (sv.ailment) {
+        const a = AIL_SEAL[sv.ailment] || ["呪", "poison"];
+        addSeal(a[0], a[1], AIL_NAME[sv.ailment] || "状態異常");
+      }
+      if (p.asleep && st === "combat") addSeal("眠", "sleep", "眠り");
+      if (p.mind && st === "combat" && PARTY_MIND_SEAL[p.mind]) {
+        const m = PARTY_MIND_SEAL[p.mind];
+        addSeal(m[0], m[1], AIL_NAME[p.mind]);
+      }
+    }
+    card.appendChild(seals);
     const nm = el("div", "name");
     nm.appendChild(el("span", "pc-n", p.name));
     nm.appendChild(el("b", "pc-lv", `Lv${p.isDoll ? (p.jobLv || 1) : p.level}`));
