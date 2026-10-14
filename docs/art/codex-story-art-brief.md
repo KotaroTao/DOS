@@ -393,7 +393,7 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 ...except: replace ONLY the small gold crest at the CENTER OF SERA'S FOREHEAD with the approved geometric crest. Keep its existing small scale and gold material, following the plane of her forehead. Preserve her exact face, eyes, expression, hair and anatomy. Keep the existing shield and its gold emblem unchanged: that shield placement is still under review. Also remove the misplaced cyan soul-light, its gold frame and attachment on Sera's BACK, restoring the surrounding wooden back, hair and white draped cloth. The soul-light belongs in the chest; do not add a new light to a hidden chest. Use the approved geometric crest exactly as the second reference: an angular cupped palm, ONE thumb projection on the LEFT, THREE parallel slanted finger projections on the RIGHT, a short wrist below, and ONE separate teardrop flame above. Do not add a fourth finger on the right. Do not use a cup-shaped hand with upright stubs, a star, a flower, a realistic hand, or multiple flames.
 ```
 
-**A-26. 一門の印の局所修正 irene_husks** `art/story-review/chapter5/irene_husks.png`
+**A-26. 一門の印の局所修正 irene_husks** `art/story-review/chapter5/irene_husks.png` (済)
 - 根拠と判定: 額を広く取り直した原寸で、金の印は圧縮した杯状の掌と上向きの突起。承認済みの斜めの平行な指3本・短い手首とは異なるため額のみ修正。先の狭い切り出しでは掌を見落としたため判定を訂正。
 - 保つもの: 印以外の人物・顔・目・衣装・部品・構図・光。要確認の箇所は変更しない。
 ```text
