@@ -2,7 +2,7 @@
   "scene": "irene_torso",
   "authorization": "ユーザーがPython局所合成によるirene_torsoの1枚の修正とPR作成を明示許可。",
   "base_main": "49ee8c06",
-  "decision": "採用・ユーザー確認待ち（未承認）",
+  "decision": "採用・PR #959でユーザー承認・mainへマージ済み",
   "changed_bbox_xyxy": [
     330,
     717,
@@ -43,5 +43,6 @@
       "path": "art/story/chapter3/irene_torso.webp",
       "sha256": "8f57aa2a40ca78e3c5c452e7b39745fa92b0e13feb7a0cc0b62d0e498703f360"
     }
-  }
+  },
+  "approved_pr": 959
 }

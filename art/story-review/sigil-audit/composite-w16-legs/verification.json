@@ -2,7 +2,7 @@
   "scene": "w16_legs",
   "authorization": "PR #959承認後、w16_legs 1枚のPython局所合成・比較・検査・PR作成の提案に対してユーザーが「じっこうして」と指示。",
   "base_main": "f8420149",
-  "decision": "採用・ユーザー確認待ち（未承認）",
+  "decision": "採用・PR #961でユーザー承認・mainへマージ済み",
   "removed_crest_bbox_xyxy": [
     837,
     769,
@@ -57,5 +57,6 @@
       "path": "art/story-review/sigil-audit/composite-w16-legs/candidate-1-rejected.png",
       "sha256": "a391a838169b0383efaab5251daa059c8bd24066558a9626b28dd3e6bf4a6e95"
     }
-  }
+  },
+  "approved_pr": 961
 }

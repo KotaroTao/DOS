@@ -1,44 +1,68 @@
 # 別セッションで一門の印の修正を再開する
 
-PR #953の引き継ぎ時点では、出荷対象153枚のうち由来の絵2枚を修正・確認済み、11枚を修正保留、9枚を要確認としていた。
+**現在：出荷対象153枚、修正不要131枚、修正・確認済み6枚、修正保留7枚、要確認9枚。** 修正・確認済み6枚はユーザー承認・mainへマージ済み。残る7枚の修正と根拠不足の9枚は未完了。
 
-**現在は修正不要131枚、修正・確認済み6枚、修正保留7枚、要確認9枚。** irene_torso（A-23）はPR #959、w16_legs（A-24）はPR #961、ch5_end（A-25）はPR #965でユーザー承認・mainへマージ済み。今回の実装指示でirene_husks（A-26）1枚を修正・確認済みとした。irene_husksはユーザー確認待ち。比較・変更範囲・再現手順は [composite-irene-husks/README.md](composite-irene-husks/README.md)。残り7枚と根拠不足の9枚は今回変更していない。
-
-## 再開後の記録
-
-最新main `d4353e92` から11枚を上記引き継ぎの順に再編集・照合。PR #957では採用0枚で、修正保留11枚・要確認9枚は未完了のまま、その時点の原画をすべて保持した。今回の候補・部分照合・入力記録は [resume-review/README.md](resume-review/README.md) を参照。各採否の直後にprogress.jsonとprogress.mdを保存した。
+次のセッションに貼る依頼は [RESUME_PROMPT.md](RESUME_PROMPT.md)。**最初はirene_lineage（A-27）1枚**をPython局所合成で修正し、比較と検査を添えたPRで確認を待つ。新しいPRのmainマージは別途ユーザー指示に従う。
 
 ## 最初に読む資料
 
-1. リポジトリの `AGENTS.md` と作業に関わる `CLAUDE.md` の節。
-2. [rules.md](rules.md)：印の形、あるべき位置、ないべき位置、隠れた位置の扱い。
-3. [progress.md](progress.md)：全153枚の判定と修正状況。[progress.json](progress.json) は同じ内容の構造化記録。
-4. [evidence.json](evidence.json)：各場面の一覧本文とゲーム内本文の抜粋。現在の本文は `node tools/storyart/prompt.mjs <場面ID>` でも必ず確認する。
-5. `docs/art/codex-story-art-brief.md` の正典とA-23〜A-35、承認済み形の正本 `docs/art/story-refs/sigil.png`。
+1. `AGENTS.md` と関連する `CLAUDE.md` の節。
+2. [rules.md](rules.md)：形・配置・隠れた位置・胸の魂火の基準。
+3. [progress.json](progress.json) と [progress.md](progress.md)：全153枚の判定・現在原画・現在ハッシュ。
+4. [evidence.json](evidence.json)：本文抜粋。各対象では `node tools/storyart/prompt.mjs <場面ID>` で現在の一覧・ゲーム内本文と指示も確認。
+5. [resume-checkpoint.json](resume-checkpoint.json)：引き継ぎ時のmain、正本ハッシュ、7枚の順序・原画パス・ハッシュ・要確認9枚の理由。
+6. `docs/art/codex-story-art-brief.md` の正典2-1・2-2とA-27〜A-32・A-34、正本 `docs/art/story-refs/sigil.png`。
 
-`sigil-reference-tight.png` は正本から切り出して縮小した入力用資料。再生成した別案ではない。`small/` は4枚以下ずつの384×256の確認用、`detail/` は必要部分の切り出し。これらは元の原画の位置を特定する補助で、修正候補に差し替えた原画ではない。
+## 残る7枚の順序
 
-## 修正を再開する順序
-
-| 順 | 場面 | 指示書 | 変更対象 | 触らない／保留する箇所 |
+| 順 | 場面 | 指示書 | 変更対象 | 保持・保留 |
 |---|---|---|---|---|
-| 1 | irene_torso (済・PR #959承認済み) | A-23 | 左下に置かれたセラの頭の額の印 | イレーヌの額は無地。腕内側の視認できない位置へ追加しない |
-| 2 | w16_legs (済・PR #961承認済み) | A-24 | 足の甲の印を除き、露出する内くるぶしの近くに小さく | すねや足の甲へ配置しない。脚・足・関節の形を変えない |
-| 3 | ch5_end (済・PR #965承認済み) | A-25 | セラの額の炎状の印。追記指示で背中の青白い灯も除去 | 盾の大きな印は配置根拠が不足し要確認。旗へ追加しない |
-| 4 | irene_husks (済・確認待ち) | A-26 | セラの額の杯状の印 | イレーヌの額・髪飾り、関節の金の縁 |
-| 5 | irene_lineage | A-27 | セラの額の杯状の印 | 隠れた関節内側に追加しない |
-| 6 | irene_crest | A-28 | セラの額と、イレーヌが見せている肘内側の既存の印 | 肘の位置・手指・関節の形 |
-| 7 | irene_order | A-29 | セラの額の杯状の印 | イレーヌの額、手を組む姿勢 |
-| 8 | irene_rain | A-30 | セラの額の杯状の印 | 隠れた手首内側に追加しない |
-| 9 | irene_rest | A-31 | 左寄りに座るセラの額の印 | 最新mainで修正された脚と胸を保持。開いた蓋の金の図形の配置は要確認 |
-| 10 | irene_names | A-32 | 右寄りに身を乗り出すセラの額の印 | イレーヌの額、札、ほかの装飾 |
-| 11 | lore_w07 | A-34 | 布に包まれたセラの頭の額の印 | 壁の印は基準に合っているので保持 |
+| 1 | irene_lineage | A-27 | セラの額の印 | 隠れた関節内側へ追加しない |
+| 2 | irene_crest | A-28 | 額と肘内側の既存の印 | 肘の位置・手指・関節の形を保持 |
+| 3 | irene_order | A-29 | セラの額の印 | イレーヌの額、手を組む姿勢を保持 |
+| 4 | irene_rain | A-30 | セラの額の印 | 隠れた手首内側へ追加しない |
+| 5 | irene_rest | A-31 | 左寄りに座るセラの額の印 | 別セッションで修正済みの脚・胸を保持。開いた蓋の金の図形は要確認 |
+| 6 | irene_names | A-32 | 右寄りに身を乗り出すセラの額の印 | イレーヌの額・札・他の装飾を保持 |
+| 7 | lore_w07 | A-34 | 布に包まれたセラの頭の額の印 | 基準に合う壁の印を保持 |
 
-A-33（lore_w02の壁の浮き彫り）とA-35（lore_w12の胴前面の紋の除去）は修正・確認済み。PR #953時点の「(済)」はこの2項目だけ。現在はA-23〜A-26も「(済)」。A-23はPR #959、A-24はPR #961、A-25はPR #965承認済み、A-26はユーザー確認待ち。PR #953へのmainマージ指示は引き継ぎ資料とこの2枚に対するもの。PR #953のマージ自体は未完了の修正やPython編集への切り替えの指定を意味しない。後続のユーザー指示で、irene_torsoの1枚のPython局所合成が許可され、PR #959承認後にw16_legs、PR #961承認後にch5_end、PR #965承認後にirene_husksの各1枚にも実行指示が出た。
+[next-session-small/](next-session-small/) は現在原画から作った384×256の引き継ぎ見本。新たに目視確認済み・修正済みを意味しない。再開時のハッシュが変わっていれば見本も作り直し、古い座標・判定を流用しない。
 
-## 原画の変更を検出する
+## 承認・マージ済み6枚
 
-最新mainから新しい作業ブランチを作り、リポジトリのルートで実行する。記録と現在の原画が異なる場合、以前の座標・判定をそのまま使わず現在の原画を再確認する。
+| 場面 | 指示書 | PR | 修正と記録 |
+|---|---|---|---|
+| lore_w02 | A-33 | [#953](https://github.com/KotaroTao/DOS/pull/953) | 壁の浮き彫りを正本へ置換 |
+| lore_w12 | A-35 | [#953](https://github.com/KotaroTao/DOS/pull/953) | 胴前面の紋を除去。背へ追加しない |
+| irene_torso | A-23 | [#959](https://github.com/KotaroTao/DOS/pull/959) | [額、659画素](composite-irene-torso/README.md) |
+| w16_legs | A-24 | [#961](https://github.com/KotaroTao/DOS/pull/961) | [甲の印を除去し内くるぶし近くへ、1090画素](composite-w16-legs/README.md) |
+| ch5_end | A-25 | [#965](https://github.com/KotaroTao/DOS/pull/965) | [額と背中の魂火除去、1381画素](composite-ch5-end/README.md) |
+| irene_husks | A-26 | [#968](https://github.com/KotaroTao/DOS/pull/968) | [額、742画素](composite-irene-husks/README.md) |
+
+原画・WebPはmainへ反映済み。「(済)」はA-23〜A-26・A-33・A-35。ハッシュが変わっていなければ再修正しない。
+
+## 方法と許可
+
+ユーザーは「Pythonによる局所合成を許可します。まずirene_torsoの1枚を修正してPRを作ってください」と指示し、承認後にw16_legs、ch5_end、irene_husksの各1枚も同じ方法で実装する指示を出した。[RESUME_PROMPT.md](RESUME_PROMPT.md) は次のirene_lineageをPython局所合成で修正する依頼。
+
+正本 `sigil.png` から輪郭を抽出し、角張った掌、左親指1本、右の平行な指3本、短い手首、独立した涙形の炎1つを保持する。対象面の小さい寸法・角度・遠近・金色や彫りの質感へ合わせる。描き直し・再生成した別形を使わず、右の指を4本にしない。人物の実際の手は親指＋4本で、印とは別。
+
+承認済み `composite-*/make_candidate.py` はPillow・NumPy・SciPyによる再現用。入力はその時点の保存した修正前と正本のハッシュに固定され、現在原画へ書き込まない。手法を参考にし、次の対象の現在ハッシュ・座標・補修範囲は改めて決める。既存スクリプトを別画像へそのまま実行しない。
+
+**セラの魂火は胸にあり、背中へ付けない**（ユーザー追記を正典・rules.mdへ保存済み）。ch5_endの背中の灯・金枠・取り付け部分はPR #965で除去済み。胸の灯、関節の金の縁、首飾りは一門の印とは別。
+
+## 現在原画と過去の記録
+
+現在原画はprogress.jsonの `master`。`sha256` は最初の確認時、`current_sha256` は進捗保存時の原画ハッシュ。
+
+`before/`・`rejected/`・`fixes/`・過去の `candidate.png` は修正前・候補・再現の記録で、**新しい編集の現在原画として使わない**。承認済みスクリプトが修正前を読むのは、採用結果の再現を検査するためだけ。
+
+`sigil-reference-tight.png` は正本の切り出し。`small/`・`detail/`・`resume-review/`・`edit-queue.json`・古い `*-prompt.md` は当時の記録。最新の状態はprogress.jsonを優先する。
+
+irene_restとreport_w34は別セッションのmain `e9286bf2` の更新を取り込み済み。irene_restの脚・胸の修正版を保持し、以前の部分参照や不採用候補へ戻さない。
+
+## 再開時のハッシュ照合
+
+最新mainからcodex/の新しいブランチを作り、リポジトリのルートで実行する。
 
 ```bash
 python3 - <<'PY'
@@ -48,36 +72,46 @@ rows = json.loads(Path('art/story-review/sigil-audit/progress.json').read_text()
 for row in rows:
     actual = hashlib.sha256(Path(row['master']).read_bytes()).hexdigest()
     if actual != row['current_sha256']:
-        print('原画が更新されているため再確認:', row['id'], row['master'])
+        print('更新されているため再確認:', row['id'], row['master'])
     if row['status'] == '修正保留':
         print('未完了:', row['id'], row['master'])
 PY
 ```
 
-`sha256` は初回確認開始時、`current_sha256` は進捗保存時の原画。`irene_rest` と `report_w34` は別セッションの更新をmain `e9286bf2` から取り込み再確認済み。現在の見本は `irene_rest-main-current.jpg`・`report_w34-main-current.jpg`、額の部分は `detail/irene_rest-main-current.png`。以前の部分参照は当時の原画の記録であり、現在の原画と取り違えない。
+準備時は153枚すべて一致。今後更新があれば現在原画から再確認。正本のハッシュもresume-checkpoint.jsonと照合する。
 
-`before/` は前セッションの修正前原画、`rejected/` は不採用候補。**不採用候補を原画として上書き・出荷しない。** 原画の正本は各記録の `master`。`edit-queue.json` と各 `*-prompt.md` は前セッションの依頼を保存した記録で、最新状態はprogress.jsonを優先する。
+## 1枚ごとの確認・保存・PR
 
-## 入力・確認・保存
+1. `node tools/storyart/prompt.mjs <場面ID>` で本文・指示を確認。
+2. 384×256の縮小を4枚以下ずつ、必要部分だけ原寸・拡大で確認。隠れた位置へ追加しない。
+3. 現在原画1536×1024の1枚だけを局所編集。参考は現在原画と正本を基本に必要最小限。
+4. 候補の形・指の数・位置・人物・周囲を照合し、変更領域外のRGBが修正前と完全一致することを検査。不適合候補は理由とともに保存し不採用にする。
+5. 確認・採否ごとにtrack.pyのupdateでprogress.json・progress.mdと現在ハッシュを保存。
+6. 採用候補だけ現在原画へ反映し、今回の修正前をfixes/の別名へ保存。過去の修正前を上書きしない。該当項目へ「(済)」。
+7. `python3 tools/storyart/build.py` で仕上げと検査。WebPの必要部分も照合。本文・自動生成台帳は手で変更しない。
+8. PR前にmainを取り込む。PRに拡大比較・全体縮小・検証・確認ページを載せ、1枚の確認を待つ。新しいPRのマージは別途指示に従う。
 
-確認は縮小を少量ずつ、必要部分だけ拡大。修正入力は原寸の対象1枚と必要最小限の参考のみ。典型は対象＋小さい印の基準。別の人物を誤修正しないよう必要な場合だけ対象部位の部分参照を追加する。`image_request_too_large` が出たら同じ入力を再送せず、参考の枚数やサイズを減らす。
-
-前セッションでは、額の旧形が残る、指が4本になる、別人の額や背景の旗に追加される、脚の印が足の甲に残るなどが起きた。生成できたことだけで修正済みとしない。左の親指1本・右の指3本・短い手首・独立した炎を拡大で照合し、位置・人物・周囲の保持を確認する。
-
-各画像を確認・修正した直後に保存する例：
+進捗保存の例（実際の判定へ置き換える）：
 
 ```bash
 python3 - <<'PY'
 import sys
 sys.path.insert(0, 'art/story-review/sigil-audit')
 from track import update
-# 実際の場面・確認結果に置き換える。未完了なら修正保留のまま具体的な理由を記す。
-update([('irene_torso', '修正保留', '再編集候補の確認結果と未完了の理由を記す。')])
+update([('irene_lineage', '修正保留', '候補の具体的な不採用理由。原画は保持。')])
 PY
 ```
 
-この道具は進捗JSON・Markdownと現在の原画ハッシュを保存し、原画を加工しない。採用した原画だけ所定のパスへ反映し、今回の修正前も別名で保存。指示書の該当項目に「(済)」を付け、`python3 tools/storyart/build.py` で変換・登録・検査する。次のPRのマージは次セッションのユーザー指示に従う。
+imagegenを使う必要がある場合も原寸対象1枚＋最小限の参考のみ。image_request_too_largeが出たら同じ入力を再送せず参考の枚数・サイズを減らす。
 
-## 要確認の9枚
+## 要確認9枚と追加の保留箇所
 
-mem_w21、report_w20、report_w21、w20_cup、w14_lamp、mem_w29、lore_w14、lore_w16、lore_w29。理由はprogress.jsonのnoteに保存している。指定外の印に見えても、配置根拠がない場所を推測で削除・移動しない。苔・陰・水の濁りで指定位置が読めない場合も、欠落を断定して追加しない。
+mem_w21、report_w20、report_w21、w20_cup、w14_lamp、mem_w29、lore_w14、lore_w16、lore_w29。理由はprogress.jsonとresume-checkpoint.jsonへ保存済み。根拠のない場所を推測で追加・削除・移動しない。苔・陰・水の濁りで読めない箇所は欠落と断定しない。
+
+9枚とは別に、ch5_endの盾の大きな印、irene_restの開いた胸の蓋の金の図形も配置が要確認。該当画像を編集しても保持する。
+
+## 過去の失敗
+
+PR #953で監査と由来2枚を保存。PR #957では保留11枚をimagegenで再編集したが旧形・旧位置が残り採用0枚。[resume-review/README.md](resume-review/README.md) に候補を保存。その後、上記4枚をPython局所合成で修正・承認済み。
+
+小さい額の旧印が残る、右の指が4本になる、別人の額や旗へ追加される、脚の印が甲に残る、額の編集が髪際へ重なる、といった失敗を原画へ反映しない。
