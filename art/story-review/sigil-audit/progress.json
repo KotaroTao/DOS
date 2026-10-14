@@ -930,9 +930,9 @@
     "id": "irene_rest",
     "master": "art/story-review/chapter9/irene_rest.png",
     "status": "修正済・確認済",
-    "note": "最新mainの現在原画の額の旧印だけをPython局所合成で除去し、sigil.pngから抽出した輪郭を22度回転して小さい金の印へ置換。角張った掌・左親指1本・右指3本・短い手首・独立した炎1つを拡大確認。変更352画素、額の許可領域外RGB完全一致。別セッションで修正済みの脚・胸を保持。開いた蓋の金の図形は配置根拠不足のため保留し変更しない。人物・顔・髪・手・周囲も保持。比較・検査・再現: composite-irene-rest/。ユーザー承認・マージ待ち。",
+    "note": "PR #996でユーザー承認・mainへマージ、Pages公開と公開サイトの版一致を確認済み。額の印を正本からPython局所合成。変更352画素、許可領域外RGB完全一致。修正済みの脚・胸と保留中の蓋の金の図形を保持。比較・検査・再現: composite-irene-rest/。",
     "sha256": "93ead0e6ad887d4355863d3c45f2a5d9ae11a926fef2c6f6f38ffaf29c5d9a11",
-    "checked_at": "2026-10-14T18:56:15.842000+00:00",
+    "checked_at": "2026-10-14T19:21:08.180913+00:00",
     "current_sha256": "45f3a757a9fbe93ceb0ea61d6315ecbb12f15d3217573cefa2f0dac0bc9e20f0"
   },
   {
@@ -974,11 +974,11 @@
   {
     "id": "irene_names",
     "master": "art/story-review/chapter10/irene_names.png",
-    "status": "修正保留",
-    "note": "再開時に現在原画の縮小・額部分を確認。原寸対象＋正本切り出し＋額の部分参照の候補も旧杯状の掌と短い上向きの指が残り、斜めの右指3本・角張った掌に不一致で不採用。rejected/resume/irene_names-candidate.pngに保存。原画を保持。イレーヌの額・札・他の装飾は変更しない。",
+    "status": "修正済・確認済",
+    "note": "Python局所合成で現在原画のセラの額の旧印を除去し、sigil.pngから抽出した輪郭を20度回転して小さい金の印へ置換。角張った掌・左親指1本・右指3本・短い手首・独立した炎1つを拡大確認。変更1140画素、額の許可領域外RGB完全一致。イレーヌの額・札・装飾・顔・髪・衣装・姿勢・胸の灯を保持。比較・検査・再現: composite-irene-names/。ユーザー承認・マージ待ち。",
     "sha256": "2d85e2bfa4bc96c7a9c8e9dcef21a7a2d8cf4877826f7fee11c7b32806484dd5",
-    "checked_at": "2026-10-14T12:47:33.310156+00:00",
-    "current_sha256": "2d85e2bfa4bc96c7a9c8e9dcef21a7a2d8cf4877826f7fee11c7b32806484dd5"
+    "checked_at": "2026-10-14T19:21:08.183825+00:00",
+    "current_sha256": "f8b7354c338722b2a7a5eefc2dd7be49e5ad3f6a7be2b43038a01c6ce1547730"
   },
   {
     "id": "report_w38",

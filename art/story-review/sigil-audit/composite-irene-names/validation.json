@@ -1,0 +1,33 @@
+{
+  "id": "irene_names",
+  "size": [
+    1536,
+    1024
+  ],
+  "before_sha256": "2d85e2bfa4bc96c7a9c8e9dcef21a7a2d8cf4877826f7fee11c7b32806484dd5",
+  "canonical_sha256": "7dfeb2dbb8eb7091557e1dd3f387b963b64b2fa4a20848c1c18734167fe47b6b",
+  "master_sha256": "f8b7354c338722b2a7a5eefc2dd7be49e5ad3f6a7be2b43038a01c6ce1547730",
+  "candidate_sha256": "f8b7354c338722b2a7a5eefc2dd7be49e5ad3f6a7be2b43038a01c6ce1547730",
+  "webp_sha256": "c94576e58d93727d3391954c5200c73501ba7e4900e050fb32e350f178540eeb",
+  "changed_rgb_pixels": 1140,
+  "allowed_region_xyxy_exclusive": [
+    784,
+    132,
+    828,
+    193
+  ],
+  "changed_bbox_xyxy_exclusive": [
+    786,
+    134,
+    825,
+    192
+  ],
+  "outside_region_rgb_identical": true,
+  "outside_region_pixels": 1570180,
+  "all_153_current_hashes_match": true,
+  "initial_main_updated_ids_rechecked": [],
+  "previous_pr": 996,
+  "previous_merge_commit": "da79588980c0f421b9578a5ad5fe9ab83e782c30",
+  "visual_review": "正本の角張った掌・左親指1本・右指3本・短い手首・独立した炎1つ。額中央の小さい金の印。旧印を除去、顔・目・髪・手・胸の灯を保持。WebPも原画と拡大比較し、右指3本と独立した炎を保持していることを目視確認。",
+  "pending": "ユーザー確認・mainへのマージ待ち。要確認9枚とch5_endの盾・irene_restの蓋の金の図形は従来の根拠不足の理由で保留。"
+}
