@@ -239,12 +239,13 @@ function reportBadge(r) {
 
 function hero(api, { collapsed = false, width = 390, report = null, viewport = null } = {}) {
   const g = G();
+  const daylight = !!g.world?.reported?.w33;
   const h = el("div", "tw-hero hb-hero" + (collapsed ? " collapsed" : ""));
   const stage = el("div", "hb-stage");
   if (report) { h.classList.add("has-report"); h.appendChild(reportBadge(report)); }
   // 名所の札は見出しの下に収め、報告がある時はその下に専用の帯を取る。
   let spots = {};
-  try { spots = townSpots(); } catch (e) { spots = {}; }
+  try { spots = townSpots(daylight); } catch (e) { spots = {}; }
   const layout = () => {
     const ys = SPOTS.map((s) => spots[s.k]?.y).filter((y) => typeof y === "number");
     const yTop = ys.length ? Math.min(...ys) : 0.39, yBot = ys.length ? Math.max(...ys) : 0.72;
@@ -280,9 +281,9 @@ function hero(api, { collapsed = false, width = 390, report = null, viewport = n
   };
   layout();
   // 原画を読めなければ、同じ舞台の札と切り取りをドット絵の座標に戻す。
-  stage.addEventListener("townscenechange", () => { spots = townSpots(); layout(); });
+  stage.addEventListener("townscenechange", () => { spots = townSpots(daylight); layout(); });
   try {
-    const sc = api.keep("townScene", createTownScene);
+    const sc = api.keep(daylight ? "townSceneDay" : "townScene", () => createTownScene(daylight));
     if (sc) {
       // 夜景を使い回す時、前の箱を監視したままにしない。
       sc.hubResizeObserver?.disconnect();

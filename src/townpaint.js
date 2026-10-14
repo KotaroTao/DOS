@@ -25,9 +25,10 @@ const TONES = {
 
 export const hasPaintedVignette = (key) => !!TOWN_KEYART[key];
 
-let panoramaFailed = false;
-export const hasPaintedTownScene = () => !!TOWN_KEYART.panorama && !panoramaFailed;
-export const paintedTownSpots = () => Object.fromEntries(Object.entries(TOWN_KEYART.panorama.spots).map(([k, p]) => [k, { x: p[0], y: p[1] }]));
+const panoramaFailed = new Set();
+const panoramaKey = (daylight) => daylight ? "panoramaDay" : "panorama";
+export const hasPaintedTownScene = (daylight = false) => !!TOWN_KEYART[panoramaKey(daylight)] && !panoramaFailed.has(panoramaKey(daylight));
+export const paintedTownSpots = (daylight = false) => Object.fromEntries(Object.entries(TOWN_KEYART[panoramaKey(daylight)].spots).map(([k, p]) => [k, { x: p[0], y: p[1] }]));
 
 // 読み込みは鍵ごとに一度だけ (成功した img / 失敗 = false)
 const _img = new Map();
@@ -159,14 +160,15 @@ function mistBand(seed) {
 
 // 広場の固定原画。240:170 の舞台と名所の座標はそのまま、canvasだけ表示解像度へ合わせる。
 // 読み込みに失敗したら同じcanvasを従来のドット絵へ戻す (keep() の参照も保つ)。
-export function paintedTownScene(living, fallback) {
-  const a = TOWN_KEYART.panorama, c = document.createElement("canvas");
+export function paintedTownScene(living, fallback, daylight = false) {
+  const key = panoramaKey(daylight), a = TOWN_KEYART[key], c = document.createElement("canvas");
   c.width = 1200; c.height = 850;
   c.className = "town-scene town-scene-hd";
-  c.setAttribute("role", "img"); c.setAttribute("aria-label", "辺境の街ロアダルの夜景");
+  c.setAttribute("role", "img"); c.setAttribute("aria-label", daylight ? "青空の下の辺境の街ロアダル" : "辺境の街ロアダルの夜景");
+  c.dataset.sky = daylight ? "day" : "night";
   c.dataset.art = "loading";
   const g = c.getContext("2d");
-  if (!g) { panoramaFailed = true; return fallback(c); }
+  if (!g) { panoramaFailed.add(key); return fallback(c); }
   const motion = typeof matchMedia === "function" ? matchMedia("(prefers-reduced-motion: reduce)") : null;
   let im = null, failed = false, lastTime = 0;
   let base = null;
@@ -190,7 +192,7 @@ export function paintedTownScene(living, fallback) {
     g.drawImage(base, 0, 0);
     // 奥の雲と雷。空全体を白くせず、雲の奥だけ二度かすかに光る。
     const flashTime = t % 29;
-    const flash = !reduced && ((flashTime > 20 && flashTime < 20.12) || (flashTime > 20.24 && flashTime < 20.34));
+    const flash = !daylight && !reduced && ((flashTime > 20 && flashTime < 20.12) || (flashTime > 20.24 && flashTime < 20.34));
     for (const b of bands.filter((b) => b.kind === "cloud")) {
       const off = fract(t * b.speed + 0.37) * w;
       g.globalAlpha = b.alpha;
@@ -283,9 +285,9 @@ export function paintedTownScene(living, fallback) {
   };
   const observer = typeof ResizeObserver === "function" ? new ResizeObserver(resize) : null;
   observer?.observe(c);
-  loadArt("panorama").then((img) => {
+  loadArt(key).then((img) => {
     if (!img || !img.naturalWidth) {
-      failed = panoramaFailed = true; observer?.disconnect();
+      failed = true; panoramaFailed.add(key); observer?.disconnect();
       c.dataset.art = "pixel";
       fallback(c);
       c.dispatchEvent(new Event("townscenechange", { bubbles: true }));

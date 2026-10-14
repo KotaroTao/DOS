@@ -29,7 +29,7 @@ SW = ROOT / "sw.js"
 QUALITY = 90
 MAX_W = 1600  # 情景は最大でも画面幅ほど (約800px × 2)
 KEYS = ("tavern", "inn", "shrine", "palace", "mansion", "shop",
-        "altar", "party", "manage", "codexMon", "codexItem", "codexJob", "codexAch", "treasury", "abyss", "panorama")
+        "altar", "party", "manage", "codexMon", "codexItem", "codexJob", "codexAch", "treasury", "abyss", "panorama", "panoramaDay")
 KEEPER_KEYS = ("barkeep", "innkeeper", "maiden", "king", "minister", "binder", "merchant")
 ICON_KEYS = ("gate", "gateOpen", "gateDone", "gateSealed", "dive", "lock", "abyss")
 TONES = ("fire", "lamp", "candle", "crystal", "moon", "soul", "soulgreen")
@@ -42,7 +42,7 @@ def frac(v, name):
 
 
 def check_point(key, pt):
-    if key == "panorama":
+    if key in ("panorama", "panoramaDay"):
         def point(v, name):
             if not isinstance(v, list) or len(v) != 2:
                 sys.exit(f"points.json の {name} は [x, y]")
@@ -100,10 +100,10 @@ def entries():
         if not pt:
             sys.exit(f"{src.relative_to(ROOT)} があるのに points.json に {key} がありません")
         check_point(key, pt)
-        if key == "panorama":
+        if key in ("panorama", "panoramaDay"):
             with Image.open(src) as im:
                 if abs(im.width / im.height - 240 / 170) > 0.002:
-                    sys.exit("panorama.png は240:170の比率で置く (座標をずらさない)")
+                    sys.exit(f"{key}.png は240:170の比率で置く (座標をずらさない)")
         out[key] = (src, SHIP / f"{key}.webp", pt)
     return out
 
@@ -130,17 +130,18 @@ def convert(src, dst, max_w=MAX_W):
 
 
 def check_panorama(es):
-    if "panorama" not in es:
-        return
-    src, dst, _ = es["panorama"]
-    with Image.open(src) as original:
-        im = original.convert("RGBA" if "A" in original.getbands() else "RGB")
-        if im.width > 2400:
-            im = im.resize((2400, round(im.height * 2400 / im.width)), Image.LANCZOS)
-        expected = BytesIO()
-        im.save(expected, "WEBP", quality=QUALITY, method=6)
-    if dst.read_bytes() != expected.getvalue():
-        sys.exit("panorama.webp が原画と食い違っています (build.py を回す)")
+    for key in ("panorama", "panoramaDay"):
+        if key not in es:
+            continue
+        src, dst, _ = es[key]
+        with Image.open(src) as original:
+            im = original.convert("RGBA" if "A" in original.getbands() else "RGB")
+            if im.width > 2400:
+                im = im.resize((2400, round(im.height * 2400 / im.width)), Image.LANCZOS)
+            expected = BytesIO()
+            im.save(expected, "WEBP", quality=QUALITY, method=6)
+        if dst.read_bytes() != expected.getvalue():
+            sys.exit(f"{key}.webp が原画と食い違っています (build.py を回す)")
 
 
 def js_block(es, keepers, icons):
@@ -154,7 +155,7 @@ def js_block(es, keepers, icons):
         if "focus" in pt:
             info["focus"] = pt["focus"]
         info["lights"] = [{k: L[k] for k in ("at", "r", "tone") if k in L} for L in pt["lights"]]
-        if key == "panorama":
+        if key in ("panorama", "panoramaDay"):
             with Image.open(es[key][0]) as im:
                 info.update(w=im.width, h=im.height)
             for field in ("spots", "soul", "bands"):
@@ -201,7 +202,7 @@ def main():
         for src, dst, _ in es.values():
             if only and src.stem != only:
                 continue
-            convert(src, dst, max_w=2400 if src.stem == "panorama" else MAX_W)
+            convert(src, dst, max_w=2400 if src.stem in ("panorama", "panoramaDay") else MAX_W)
         for src, dst in keepers.values():
             if not only:
                 convert(src, dst, max_w=640)
