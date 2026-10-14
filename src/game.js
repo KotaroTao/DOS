@@ -14797,8 +14797,8 @@ function objectiveInfo() {
   const ms = G.msq;
   if (!ms) return null;
   const w = worldState();
-  // 解放された要素の手ほどき (済ませるまで迷宮には入れない)。踏破の報告が先
-  const tut = (prologueActive() || !w.report) ? tutorialPending() : null;
+  // 操作を案内している手ほどきは、踏破の報告が残っていても優先する。
+  const tut = tutorialPending();
   if (tut) return { key: "tut", text: tut.text, sub: `手ほどき「${tut.name}」・ 済ませるまで迷宮の門は閉ざされる`, act: tut.started ? "続ける" : "手ほどき", kind: tut.facility || "party", run: () => UI.tutorialResume && UI.tutorialResume() };
   const po = prologueObjective();
   if (po) return po;
