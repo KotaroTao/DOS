@@ -1,0 +1,48 @@
+{
+  "scene": "irene_husks",
+  "authorization": "PR #965をmainにマージ後、次の修正を実装するユーザー指示。",
+  "base_main": "73fe9f03",
+  "decision": "採用・ユーザー確認待ち（未承認）",
+  "changed_bbox_xyxy": [
+    912,
+    149,
+    941,
+    193
+  ],
+  "changed_pixels": 742,
+  "outside_bbox_rgb_identical": true,
+  "reference_crop_xyxy": [
+    608,
+    322,
+    927,
+    771
+  ],
+  "crest_nominal_size": [
+    23,
+    32
+  ],
+  "supersampling": 4,
+  "crest_rotation_degrees": 25,
+  "crest_paste_xy": [
+    907,
+    149
+  ],
+  "files": {
+    "master": {
+      "path": "art/story-review/chapter5/irene_husks.png",
+      "sha256": "083193073df98cd8598e1480efadd25aec06bf7497ddc1d3a05ed17f3c74f634"
+    },
+    "before": {
+      "path": "art/story-review/fixes/irene_husks-sigil-python-before.png",
+      "sha256": "2f65f62d411f52bb2af6ae3634e174b68f981e45556494ab25a254ec0f3255c9"
+    },
+    "reference": {
+      "path": "docs/art/story-refs/sigil.png",
+      "sha256": "7dfeb2dbb8eb7091557e1dd3f387b963b64b2fa4a20848c1c18734167fe47b6b"
+    },
+    "shipped": {
+      "path": "art/story/chapter5/irene_husks.webp",
+      "sha256": "eb277114421e25d208302853994e7e69dd97bb6d29033bc7f788668a2aa0487b"
+    }
+  }
+}
