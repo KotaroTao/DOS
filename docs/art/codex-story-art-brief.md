@@ -82,6 +82,7 @@
 
 ```text
 Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge, no panels, no borders, no labels, no typography, no readable text anywhere (all writing is illegible scribbles). Match the attached Dungeon of Souls artwork exactly: lavish high-quality fine-grained pixel-textured dark fantasy illustration, sophisticated natural adult proportions, meticulously detailed gothic carved stone, embroidered cloth, black iron, carved wood, crisp tiny highlights, rich controlled cool moonlit/cyan light against warm amber candlelight. Believable hands with a thumb and four fingers, exactly two arms and two legs per character. Preserve the reference characters' identity and costumes exactly. Keep the narrative focal object readable when the image is shrunk to 384x256. Do not copy the reference composition; depict the new scene below.
+Sky continuity: In present-day scenes from report_w33 (the hundredth-year blue sky) onward, including Roadal, depict bright skies: blue daylight or luminous sunset if the text specifies evening. Do not restore the old dark storm sky. Keep explicitly night-time scenes and historical memories faithful to their stated time.
 ```
 
 ### 1-2. 画面の決まり
@@ -122,6 +123,8 @@ Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge
 5. 文字が入っていないこと (書きつけは読めない走り書き)。
 
 ## 2. 正典 ― 人物・小道具・時の流れ
+
+**空の方針 (2026-10-14 ユーザーの訂正)**: `report_w33`「百年目の青空」以降の現在の外景は、ロアダルも含め明るい空を描く。従来の暗い空・百年続く曇天へ戻さない。昼は青空、本文に夕方とある時は明るい茜空。本文が夜を明示する場面と過去の記憶は、その時刻・時代に合わせる。「空の上の町」は保存済みの元の青空原画へ復元した。
 
 本文と承認済みの原画から決めた。**ここに書いたことが、これまでの絵とずれていたら、ここが正しい。**
 
@@ -818,20 +821,20 @@ The summit of the storm tower after the storm: the statues' chains hang loose an
 
 ### 第九章「闘技場跡」 ― 便5
 
-第九章の景色: 嵐の尖塔の頂から雲海の上へ架かる長い石の橋の先に、灰に埋もれた古い闘技場の町がある。すり鉢形の石の観客席、血の染みた砂の床、床下の獣の檻と通路。町はずっと昔に焼け、灰が雪のように積もり、ところどころで熾火が赤く点る。雲の上なので空は夕暮れ〜夜の冷たい雲海。王都の空は第八章の結びで晴れたので、報告の場面の窓の外は **晴れた空** (昼は青空、夕方は茜)。
+第九章の景色: 嵐の尖塔の頂から雲海の上へ架かる長い石の橋の先に、灰に埋もれた古い闘技場の町がある。すり鉢形の石の観客席、血の染みた砂の床、床下の獣の檻と通路。町はずっと昔に焼け、灰が雪のように積もり、ところどころで熾火が赤く点る。雲の上の外景は明るい青空と白い雲海。第八章の結びでロアダルも晴れたので、報告の場面の窓の外も **晴れた空** (昼は青空、本文で夕方と指定された場面は明るい茜空)。
 
 **w34_glove「置いていった手袋」** (手がかり / 迷宮「雲を渡る石橋」)
-- 要点: 雷雲の上に伸びる長い石橋。欄干に枷をつなぐ鉄の輪がどこまでも並ぶ。橋のなかほどの輪に、焦げた革の手袋が片方だけ結ばれている (甲に灯の印の刺しゅう、指先は焼けて縮れる)。手袋の中に丸めた書きつけ。橋の先、雲の切れ間に、すり鉢の形の観客席が黒くそびえる。
+- 要点: 嵐が晴れたあとの白い雲海の上に伸びる長い石橋。欄干に枷をつなぐ鉄の輪がどこまでも並ぶ。橋のなかほどの輪に、焦げた革の手袋が片方だけ結ばれている (甲に灯の印の刺しゅう、指先は焼けて縮れる)。手袋の中に丸めた書きつけ。橋の先、雲の切れ間に、すり鉢の形の観客席が黒くそびえる。
 - 描くもの: 欄干の輪に結ばれた焦げた手袋 / 枷の輪の列 / 手袋を手に取る弟子 / 遠くの観客席。描かないもの: 師本人。
 ```text
-A long ancient stone bridge stretching across a sea of storm clouds at dusk. Along its parapet runs an endless row of iron rings once used to chain prisoners. On one ring halfway across, a single scorched leather glove is tied, its fingertips burnt and shrivelled, a small embroidered crest on the back of the hand (a palm-up hand holding a flame); a rolled note is tucked inside it. The apprentice reaches for the glove; party dolls wait behind. Far ahead, through a break in the clouds, a huge bowl-shaped stone amphitheatre looms dark against the sky, buried in grey ash.
+A long ancient stone bridge stretching across a white sea of clouds beneath a bright blue daytime sky, after the century-long storm has ended. Along its parapet runs an endless row of iron rings once used to chain prisoners. On one ring halfway across, a single scorched leather glove is tied, its fingertips burnt and shrivelled, a small embroidered crest on the back of the hand (a palm-up hand holding a flame); a rolled note is tucked inside it. The apprentice reaches for the glove; party dolls wait behind. Far ahead, through a break in the clouds, a huge bowl-shaped stone amphitheatre looms dark against the sky, buried in grey ash.
 ```
 
 **report_w34「空の上の町」** (報告)
 - 要点: 百年晴れぬ空を見上げてきた王は、その上に橋があったと知らなかった。年代記の最初の頁「空の上に、歓声の絶えぬ町があった」。
-- 修正 (2026-10-14 ユーザーの指示): 報告の場所はロアダルの離宮。窓の外は快晴にせず、黒に近い濃灰色の厚い雲が空を覆う。初稿の明るい灰色より大幅に暗く、重苦しい空にする。王都の晴れた空をこの場面へ流用しない。人物・年代記・室内の構図と蝋燭の灯を保つ。(済)
+- 修正 (2026-10-14 ユーザーの訂正): 元の青空の原画に戻す。報告の場所はロアダルの離宮だが、「百年目の青空」以降なので窓の外は明るい青空。人物・年代記・室内の構図と蝋燭の灯を保つ。(済)
 ```text
-The same throne room in the royal retreat at Roadal, with a fully overcast sky outside the tall windows: dense layered charcoal-grey clouds, nearly black in their deep folds, cover the entire visible sky. Make the sky substantially darker than ordinary grey overcast daylight, heavy and oppressive, with no bright white cloud bands, blue openings, direct sunlight, or sunny white clouds. Roadal's sky is not the clear sky over the royal capital. The very old king, lap blanket over his knees, holds open a huge ancient chronicle on his lap, pointing to its first page, and looks up at the high sky through the window as if searching for something above the clouds. The chancellor's chair stands empty. The apprentice reports. When editing the existing illustration, preserve its composition, characters, costumes, chronicle, architecture, and warm candlelight; change only the exterior sky and the daylight it casts.
+The same throne room in the royal retreat at Roadal, with a bright blue daytime sky and small white fair-weather clouds outside the tall windows. Roadal's century-long storm has ended after report_w33. Restore the original blue-sky illustration, preserving its composition, characters, costumes, chronicle, architecture, and warm candlelight. The very old king, lap blanket over his knees, holds open a huge ancient chronicle on his lap, pointing to its first page, and looks up at the high sky through the window. The chancellor's chair stands empty. The apprentice reports.
 ```
 
 **w35_lamps「番号の灯籠」** (手がかり / 迷宮「闘獣の檻」)

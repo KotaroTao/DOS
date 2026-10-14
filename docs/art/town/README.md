@@ -1,5 +1,11 @@
 # 街の施設の情景の原画 ― 制作の指示書 (Codex 向け)
 
+## 「百年目の青空」以降の昼景
+
+2026-10-14のユーザー指示: `G.world.reported.w33` が立った後、ホーム画面上部は明るい青空の街を表示する。原画 `panoramaDay.png` は夜景と同じ構図・240:170の比率。`points.json` の `panoramaDay` に札と光の位置を記録する。`python3 tools/townart/build.py --only panoramaDay` でWebP・台帳・SWを生成し、`--check` で昼景も照合する。昼景では雷を出さない。画像が読めない場合も青空の代替表示を使う。[制作・画面確認](blue-sky-review/README.md)。
+
+物語の現在の外景も「百年目の青空」以降は明るい空にする。制作の正本は `docs/art/codex-story-art-brief.md`。本文に明示された夜・過去の記憶はその時刻・時代に合わせる。
+
 ## 街の夜景パノラマ（B案採用）
 
 原画は `docs/art/town/panorama.png`（2400×1700、240:170）、出荷は `art/town/panorama.webp`。`python3 tools/townart/build.py` が変換し、`TOWN_KEYART.panorama` と `sw.js` の `<<TOWN_ART>>` を書く。台帳とSWは手で書かない。候補・原画・確認画像はデプロイで外れる `docs/` にだけ置く。`--check` で原画とWebP・台帳の食い違いも確認できる。

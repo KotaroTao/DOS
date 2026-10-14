@@ -2262,24 +2262,25 @@ function buildScene() {
 }
 
 // 名所の位置 (パノラマに対する割合)。game.js が札を重ねる
-export function townSpots() {
-  if (hasPaintedTownScene()) return paintedTownSpots();
+export function townSpots(daylight = false) {
+  if (hasPaintedTownScene(daylight)) return paintedTownSpots(daylight);
   const s = buildScene().out.spots, r = {};
   for (const k in s) r[k] = { x: s[k].x / SW, y: s[k].y / SH };
   return r;
 }
 
-export function createTownScene() {
-  if (hasPaintedTownScene() && hasDOM()) return paintedTownScene(livingCanvas, pixelTownScene);
-  return pixelTownScene();
+export function createTownScene(daylight = false) {
+  if (hasPaintedTownScene(daylight) && hasDOM()) return paintedTownScene(livingCanvas, (c) => pixelTownScene(c, daylight), daylight);
+  return pixelTownScene(null, daylight);
 }
 
-function pixelTownScene(canvas) {
+function pixelTownScene(canvas, daylight = false) {
   const c = canvas || makeCanvas(SW, SH);
   if (!c) return null;
   c.width = SW; c.height = SH;
   c.className = "town-scene";
-  if (typeof c.setAttribute === "function") { c.setAttribute("role", "img"); c.setAttribute("aria-label", "辺境の街ロアダルの夜景"); }
+  c.dataset.sky = daylight ? "day" : "night";
+  if (typeof c.setAttribute === "function") { c.setAttribute("role", "img"); c.setAttribute("aria-label", daylight ? "青空の下の辺境の街ロアダル" : "辺境の街ロアダルの夜景"); }
   const ctx = c.getContext && c.getContext("2d");
   if (!ctx) return c;
   const S = buildScene(), O = S.out;
@@ -2298,12 +2299,18 @@ function pixelTownScene(canvas) {
   const blob = (col, x, y, r, a) => { ctx.globalAlpha = a; ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; };
   function draw(ms) {
     const t = ms / 1000;
-    ctx.drawImage(S.skyC, 0, 0);
-    // 遠い雷光 (およそ 23 秒に一度、雲の奥が二度瞬く)
-    const lc = t / 23, lf = lc - Math.floor(lc), flash = lf < 0.012 || (lf > 0.02 && lf < 0.028);
-    wrapDraw(S.cloud2C, t * 1.1, 4, 480);
-    wrapDraw(S.cloudC, t * 2.2 + 140, 14, 480);
-    if (flash) { ctx.globalCompositeOperation = "lighter"; ctx.globalAlpha = 0.35; wrapDraw(S.cloudC, t * 2.2 + 140, 14, 480); ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over"; }
+    if (daylight) {
+      const sky = ctx.createLinearGradient(0, 0, 0, SH);
+      sky.addColorStop(0, "#4ba7ed"); sky.addColorStop(1, "#dcefff");
+      ctx.fillStyle = sky; ctx.fillRect(0, 0, SW, SH);
+    } else {
+      ctx.drawImage(S.skyC, 0, 0);
+      // 遠い雷光 (およそ 23 秒に一度、雲の奥が二度瞬く)
+      const lc = t / 23, lf = lc - Math.floor(lc), flash = lf < 0.012 || (lf > 0.02 && lf < 0.028);
+      wrapDraw(S.cloud2C, t * 1.1, 4, 480);
+      wrapDraw(S.cloudC, t * 2.2 + 140, 14, 480);
+      if (flash) { ctx.globalCompositeOperation = "lighter"; ctx.globalAlpha = 0.35; wrapDraw(S.cloudC, t * 2.2 + 140, 14, 480); ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over"; }
+    }
     // 魂の渦 (迷宮の真上の空で、ゆっくり回る)
     if (O.crypt) {
       ctx.globalCompositeOperation = "lighter";
@@ -2322,7 +2329,9 @@ function pixelTownScene(canvas) {
         P("#05040a", x - 1, y + (up ? -1 : 1)); P("#05040a", x + 3, y + (up ? -1 : 1));
       }
     }
+    ctx.filter = daylight ? "brightness(2) saturate(0.7)" : "none";
     ctx.drawImage(S.landC, 0, 0);
+    ctx.filter = "none";
     // 窓の灯 (ゆっくり揺らぎ、時に陰る)
     for (const w of O.windows) {
       const f = w.lit * (0.82 + 0.12 * Math.sin(t * w.sp + w.ph) + 0.08 * Math.sin(t * w.sp * 3.3 + w.ph * 2));
