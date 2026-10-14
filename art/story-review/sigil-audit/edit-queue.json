@@ -1,0 +1,119 @@
+[
+  {
+    "id": "irene_torso",
+    "master": "art/story-review/chapter3/irene_torso.png",
+    "status": "修正待ち",
+    "note": "原寸の額の印は炎と複数の短い突起が一体化した形で、承認済みの角張った掌・独立した炎と一致しない。額のみ修正。腕の内側は金の継ぎ目と手の向きで印を判別できず追加は保留。",
+    "sha256": "27bd1735b06870385cfdda81c90122d54b25a99fc588d12848719eec7165d0eb",
+    "checked_at": "2026-10-14T10:11:32.894050+00:00",
+    "edit_instruction": "replace ONLY the small gold crest at the CENTER OF SERA'S FOREHEAD with the approved geometric crest. Keep its existing small scale and gold material, following the plane of her forehead. Preserve her exact face, eyes, expression, hair and anatomy. Use the approved geometric crest exactly as the second reference: an angular cupped palm, ONE thumb projection on the LEFT, THREE parallel slanted finger projections on the RIGHT, a short wrist below, and ONE separate teardrop flame above. Do not add a fourth finger on the right. Do not use a cup-shaped hand with upright stubs, a star, a flower, a realistic hand, or multiple flames."
+  },
+  {
+    "id": "w16_legs",
+    "master": "art/story-review/chapter4/w16_legs.png",
+    "status": "修正待ち",
+    "note": "原寸で印が片足の甲にあると確認。正典はくるぶし内側。甲の印を消し、見える内くるぶし近くの木面に小さく配置する。",
+    "sha256": "d7f9144b5d66577517c79e26f5202c806bbee6099821694e0edc53ff67659f6d",
+    "checked_at": "2026-10-14T10:13:07.914318+00:00",
+    "edit_instruction": "remove ONLY the black crest from the TOP OF THE FOOT closest to the viewer, restoring its existing wood grain. Carve one SMALL dark approved crest into the exposed inner ankle-side wooden surface immediately beside/above that foot's black iron ankle joint. Keep all toes, feet, legs, roots, joints, pose, proportions, the apprentice, and the scene exactly as they are. Do not place it on the shin or the top of the foot. Use the approved geometric crest exactly as the second reference: an angular cupped palm, ONE thumb projection on the LEFT, THREE parallel slanted finger projections on the RIGHT, a short wrist below, and ONE separate teardrop flame above. Do not add a fourth finger on the right. Do not use a cup-shaped hand with upright stubs, a star, a flower, a realistic hand, or multiple flames."
+  },
+  {
+    "id": "ch5_end",
+    "master": "art/story-review/chapter5/ch5_end.png",
+    "status": "修正待ち",
+    "note": "額の原寸では金の炎だけで掌・右の指3本・手首が見えない。額のみ修正。盾の大きな印は配置根拠不足のため要確認として保持。",
+    "sha256": "ec3777ae67fa8a1164096a6d60aad70bc9a6f9d467e9ab395ab888f179a1daf0",
+    "checked_at": "2026-10-14T10:13:41.404266+00:00",
+    "edit_instruction": "replace ONLY the small gold crest at the CENTER OF SERA'S FOREHEAD with the approved geometric crest. Keep its existing small scale and gold material, following the plane of her forehead. Preserve her exact face, eyes, expression, hair and anatomy. Keep the existing shield and its gold emblem unchanged: that shield placement is still under review. Use the approved geometric crest exactly as the second reference: an angular cupped palm, ONE thumb projection on the LEFT, THREE parallel slanted finger projections on the RIGHT, a short wrist below, and ONE separate teardrop flame above. Do not add a fourth finger on the right. Do not use a cup-shaped hand with upright stubs, a star, a flower, a realistic hand, or multiple flames."
+  },
+  {
+    "id": "irene_husks",
+    "master": "art/story-review/chapter5/irene_husks.png",
+    "status": "修正待ち",
+    "note": "額を広く取り直した原寸で、金の印は圧縮した杯状の掌と上向きの突起。承認済みの斜めの平行な指3本・短い手首とは異なるため額のみ修正。先の狭い切り出しでは掌を見落としたため判定を訂正。",
+    "sha256": "2f65f62d411f52bb2af6ae3634e174b68f981e45556494ab25a254ec0f3255c9",
+    "checked_at": "2026-10-14T10:13:41.404271+00:00",
+    "edit_instruction": "replace ONLY the small gold crest at the CENTER OF SERA'S FOREHEAD with the approved geometric crest. Keep its existing small scale and gold material, following the plane of her forehead. Preserve her exact face, eyes, expression, hair and anatomy. Use the approved geometric crest exactly as the second reference: an angular cupped palm, ONE thumb projection on the LEFT, THREE parallel slanted finger projections on the RIGHT, a short wrist below, and ONE separate teardrop flame above. Do not add a fourth finger on the right. Do not use a cup-shaped hand with upright stubs, a star, a flower, a realistic hand, or multiple flames."
+  },
+  {
+    "id": "irene_lineage",
+    "master": "art/story-review/chapter6/irene_lineage.png",
+    "status": "修正待ち",
+    "note": "原寸で額の印が杯状の掌と上向きの短い突起の形。基準の角張った斜めの掌・右の平行な指3本へ額のみ修正。関節内側が隠れる箇所は追加しない。",
+    "sha256": "5d7a8e9f63e7d2c95bdd236faad6e41792e12bf318f79f47cfb0e89848edc149",
+    "checked_at": "2026-10-14T10:14:49.208359+00:00",
+    "edit_instruction": "replace ONLY the small gold crest at the CENTER OF SERA'S FOREHEAD with the approved geometric crest. Keep its existing small scale and gold material, following the plane of her forehead. Preserve her exact face, eyes, expression, hair and anatomy. Use the approved geometric crest exactly as the second reference: an angular cupped palm, ONE thumb projection on the LEFT, THREE parallel slanted finger projections on the RIGHT, a short wrist below, and ONE separate teardrop flame above. Do not add a fourth finger on the right. Do not use a cup-shaped hand with upright stubs, a star, a flower, a realistic hand, or multiple flames."
+  },
+  {
+    "id": "irene_crest",
+    "master": "art/story-review/chapter7/irene_crest.png",
+    "status": "修正待ち",
+    "note": "原寸で額と肘の内側の主題の印が杯状の別形。額と肘の既存位置の印のみ承認済み幾何学形へ修正。",
+    "sha256": "c92dde72d66b92051dc2ff0bc08c65d3e2f3e4fb507881d7b52518c0b3c65ba3",
+    "checked_at": "2026-10-14T10:14:49.208368+00:00",
+    "edit_instruction": "replace ONLY the small gold crest at the CENTER OF SERA'S FOREHEAD with the approved geometric crest. Keep its existing small scale and gold material, following the plane of her forehead. Preserve her exact face, eyes, expression, hair and anatomy. Also replace ONLY the small gold crest already shown on the inner elbow joint at the center of the picture with the same approved geometric crest, at its existing position and scale. Do not change any joint or hand anatomy. Use the approved geometric crest exactly as the second reference: an angular cupped palm, ONE thumb projection on the LEFT, THREE parallel slanted finger projections on the RIGHT, a short wrist below, and ONE separate teardrop flame above. Do not add a fourth finger on the right. Do not use a cup-shaped hand with upright stubs, a star, a flower, a realistic hand, or multiple flames."
+  },
+  {
+    "id": "irene_order",
+    "master": "art/story-review/chapter7/irene_order.png",
+    "status": "修正待ち",
+    "note": "原寸で額の印が杯状の掌と上向きの短い突起の形。基準の角張った斜めの掌・右の平行な指3本へ額のみ修正。関節内側が隠れる箇所は追加しない。",
+    "sha256": "fb3754a9457af38ab9a7226b3042e79fd338e6c315d8494a2d6021a5b7fd932c",
+    "checked_at": "2026-10-14T10:14:49.208364+00:00",
+    "edit_instruction": "replace ONLY the small gold crest at the CENTER OF SERA'S FOREHEAD with the approved geometric crest. Keep its existing small scale and gold material, following the plane of her forehead. Preserve her exact face, eyes, expression, hair and anatomy. Use the approved geometric crest exactly as the second reference: an angular cupped palm, ONE thumb projection on the LEFT, THREE parallel slanted finger projections on the RIGHT, a short wrist below, and ONE separate teardrop flame above. Do not add a fourth finger on the right. Do not use a cup-shaped hand with upright stubs, a star, a flower, a realistic hand, or multiple flames."
+  },
+  {
+    "id": "irene_rain",
+    "master": "art/story-review/chapter8/irene_rain.png",
+    "status": "修正待ち",
+    "note": "額の原寸は杯状の掌と上向きの短い指で基準形と異なる。額のみ修正。手首内側は関節の帯と手の角度で隠れるため追加しない。",
+    "sha256": "52fe45c6b9f9f3c330f5f936fce7ebeffe3bab3a19683fdb520ba16432aa9efa",
+    "checked_at": "2026-10-14T10:15:25.184463+00:00",
+    "edit_instruction": "replace ONLY the small gold crest at the CENTER OF SERA'S FOREHEAD with the approved geometric crest. Keep its existing small scale and gold material, following the plane of her forehead. Preserve her exact face, eyes, expression, hair and anatomy. Use the approved geometric crest exactly as the second reference: an angular cupped palm, ONE thumb projection on the LEFT, THREE parallel slanted finger projections on the RIGHT, a short wrist below, and ONE separate teardrop flame above. Do not add a fourth finger on the right. Do not use a cup-shaped hand with upright stubs, a star, a flower, a realistic hand, or multiple flames."
+  },
+  {
+    "id": "irene_rest",
+    "master": "art/story-review/chapter9/irene_rest.png",
+    "status": "修正待ち",
+    "note": "額の原寸で杯状の掌と短い上向きの指を確認。基準の斜めの平行な指3本・角張った掌へ額のみ修正。",
+    "sha256": "93ead0e6ad887d4355863d3c45f2a5d9ae11a926fef2c6f6f38ffaf29c5d9a11",
+    "checked_at": "2026-10-14T10:15:52.220173+00:00",
+    "edit_instruction": "replace ONLY the small gold crest at the CENTER OF SERA'S FOREHEAD with the approved geometric crest. Keep its existing small scale and gold material, following the plane of her forehead. Preserve her exact face, eyes, expression, hair and anatomy. Use the approved geometric crest exactly as the second reference: an angular cupped palm, ONE thumb projection on the LEFT, THREE parallel slanted finger projections on the RIGHT, a short wrist below, and ONE separate teardrop flame above. Do not add a fourth finger on the right. Do not use a cup-shaped hand with upright stubs, a star, a flower, a realistic hand, or multiple flames."
+  },
+  {
+    "id": "irene_names",
+    "master": "art/story-review/chapter10/irene_names.png",
+    "status": "修正待ち",
+    "note": "額の原寸で杯状の掌と短い上向きの指を確認。基準の斜めの平行な指3本・角張った掌へ額のみ修正。",
+    "sha256": "2d85e2bfa4bc96c7a9c8e9dcef21a7a2d8cf4877826f7fee11c7b32806484dd5",
+    "checked_at": "2026-10-14T10:15:52.220177+00:00",
+    "edit_instruction": "replace ONLY the small gold crest at the CENTER OF SERA'S FOREHEAD with the approved geometric crest. Keep its existing small scale and gold material, following the plane of her forehead. Preserve her exact face, eyes, expression, hair and anatomy. Use the approved geometric crest exactly as the second reference: an angular cupped palm, ONE thumb projection on the LEFT, THREE parallel slanted finger projections on the RIGHT, a short wrist below, and ONE separate teardrop flame above. Do not add a fourth finger on the right. Do not use a cup-shaped hand with upright stubs, a star, a flower, a realistic hand, or multiple flames."
+  },
+  {
+    "id": "lore_w02",
+    "master": "art/story-review/dungeons/lore_w02.png",
+    "status": "修正待ち",
+    "note": "原寸の回廊の壁は写実的な手と曲線の炎。承認済み幾何学印へ壁の印だけ置き換える。",
+    "sha256": "9085fbd3e46240091935c3054865d8cb6000cb9716a5cd07772839055355068d",
+    "checked_at": "2026-10-14T10:16:18.911400+00:00",
+    "edit_instruction": "replace ONLY the realistic hand-and-flame stone relief inside the round medallion on the right wall with the approved geometric crest, as a stone relief of the same size, perspective, lighting and weathering. Keep the circular border and the entire scene unchanged. Use the approved geometric crest exactly as the second reference: an angular cupped palm, ONE thumb projection on the LEFT, THREE parallel slanted finger projections on the RIGHT, a short wrist below, and ONE separate teardrop flame above. Do not add a fourth finger on the right. Do not use a cup-shaped hand with upright stubs, a star, a flower, a realistic hand, or multiple flames."
+  },
+  {
+    "id": "lore_w07",
+    "master": "art/story-review/dungeons/lore_w07.png",
+    "status": "修正待ち",
+    "note": "壁の原寸印は幾何学基準に一致。セラの額の印は杯状で上向きの短い突起になっているため額のみ修正。壁は保持。",
+    "sha256": "2c946b1c0d6e9209c814db733f447beea02449cb97101a212ed45d143b9be723",
+    "checked_at": "2026-10-14T10:16:52.687664+00:00",
+    "edit_instruction": "replace ONLY the small gold crest at the CENTER OF SERA'S FOREHEAD with the approved geometric crest. Keep its existing small scale and gold material, following the plane of her forehead. Preserve her exact face, eyes, expression, hair and anatomy. Keep the approved crest on the WALL unchanged. Use the approved geometric crest exactly as the second reference: an angular cupped palm, ONE thumb projection on the LEFT, THREE parallel slanted finger projections on the RIGHT, a short wrist below, and ONE separate teardrop flame above. Do not add a fourth finger on the right. Do not use a cup-shaped hand with upright stubs, a star, a flower, a realistic hand, or multiple flames."
+  },
+  {
+    "id": "lore_w12",
+    "master": "art/story-review/dungeons/lore_w12.png",
+    "status": "修正待ち",
+    "note": "原寸でセラの胴の胸前面に金の枝状の紋を確認。正典と既存の胴の修正指示は前面の紋を外すため、この前面の紋のみ除去。背へは追加しない。",
+    "sha256": "e57239667da01950df94b67bbb439bccd6532c6fd899d627c4287d1742d4570a",
+    "checked_at": "2026-10-14T10:16:52.687679+00:00",
+    "edit_instruction": "remove ONLY the decorative gold emblems/branch-like motif from the FRONT of the detached wooden torso at the right foreground. Restore smooth natural wood grain matching the surrounding torso. Do not add a crest anywhere else. Preserve the neck opening, shoulders, iron joints, curved wooden torso anatomy, the open chest hatch and cyan light, roots and the whole scene. "
+  }
+]

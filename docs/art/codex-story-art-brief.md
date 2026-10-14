@@ -369,6 +369,99 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 ...except: the great baptismal cistern water becomes dark and murky; only two small pure springs still glow clear. Faintly visible at the bottom, roots entangle a pair of wooden doll legs with black iron joints.
 ```
 
+### 一門の印の確認に基づく局所修正 (2026-10-14)
+
+**A-23. 一門の印の局所修正 irene_torso** `art/story-review/chapter3/irene_torso.png`
+- 根拠と判定: 原寸の額の印は炎と複数の短い突起が一体化した形で、承認済みの角張った掌・独立した炎と一致しない。額のみ修正。腕の内側は金の継ぎ目と手の向きで印を判別できず追加は保留。
+- 保つもの: 印以外の人物・顔・目・衣装・部品・構図・光。要確認の箇所は変更しない。
+```text
+...except: replace ONLY the small gold crest at the CENTER OF SERA'S FOREHEAD with the approved geometric crest. Keep its existing small scale and gold material, following the plane of her forehead. Preserve her exact face, eyes, expression, hair and anatomy. Use the approved geometric crest exactly as the second reference: an angular cupped palm, ONE thumb projection on the LEFT, THREE parallel slanted finger projections on the RIGHT, a short wrist below, and ONE separate teardrop flame above. Do not add a fourth finger on the right. Do not use a cup-shaped hand with upright stubs, a star, a flower, a realistic hand, or multiple flames.
+```
+
+**A-24. 一門の印の局所修正 w16_legs** `art/story-review/chapter4/w16_legs.png`
+- 根拠と判定: 原寸で印が片足の甲にあると確認。正典はくるぶし内側。甲の印を消し、見える内くるぶし近くの木面に小さく配置する。
+- 保つもの: 印以外の人物・顔・目・衣装・部品・構図・光。要確認の箇所は変更しない。
+```text
+...except: remove ONLY the black crest from the TOP OF THE FOOT closest to the viewer, restoring its existing wood grain. Carve one SMALL dark approved crest into the exposed inner ankle-side wooden surface immediately beside/above that foot's black iron ankle joint. Keep all toes, feet, legs, roots, joints, pose, proportions, the apprentice, and the scene exactly as they are. Do not place it on the shin or the top of the foot. Use the approved geometric crest exactly as the second reference: an angular cupped palm, ONE thumb projection on the LEFT, THREE parallel slanted finger projections on the RIGHT, a short wrist below, and ONE separate teardrop flame above. Do not add a fourth finger on the right. Do not use a cup-shaped hand with upright stubs, a star, a flower, a realistic hand, or multiple flames.
+```
+
+**A-25. 一門の印の局所修正 ch5_end** `art/story-review/chapter5/ch5_end.png`
+- 根拠と判定: 額の原寸では金の炎だけで掌・右の指3本・手首が見えない。額のみ修正。盾の大きな印は配置根拠不足のため要確認として保持。
+- 保つもの: 印以外の人物・顔・目・衣装・部品・構図・光。要確認の箇所は変更しない。
+```text
+...except: replace ONLY the small gold crest at the CENTER OF SERA'S FOREHEAD with the approved geometric crest. Keep its existing small scale and gold material, following the plane of her forehead. Preserve her exact face, eyes, expression, hair and anatomy. Keep the existing shield and its gold emblem unchanged: that shield placement is still under review. Use the approved geometric crest exactly as the second reference: an angular cupped palm, ONE thumb projection on the LEFT, THREE parallel slanted finger projections on the RIGHT, a short wrist below, and ONE separate teardrop flame above. Do not add a fourth finger on the right. Do not use a cup-shaped hand with upright stubs, a star, a flower, a realistic hand, or multiple flames.
+```
+
+**A-26. 一門の印の局所修正 irene_husks** `art/story-review/chapter5/irene_husks.png`
+- 根拠と判定: 額を広く取り直した原寸で、金の印は圧縮した杯状の掌と上向きの突起。承認済みの斜めの平行な指3本・短い手首とは異なるため額のみ修正。先の狭い切り出しでは掌を見落としたため判定を訂正。
+- 保つもの: 印以外の人物・顔・目・衣装・部品・構図・光。要確認の箇所は変更しない。
+```text
+...except: replace ONLY the small gold crest at the CENTER OF SERA'S FOREHEAD with the approved geometric crest. Keep its existing small scale and gold material, following the plane of her forehead. Preserve her exact face, eyes, expression, hair and anatomy. Use the approved geometric crest exactly as the second reference: an angular cupped palm, ONE thumb projection on the LEFT, THREE parallel slanted finger projections on the RIGHT, a short wrist below, and ONE separate teardrop flame above. Do not add a fourth finger on the right. Do not use a cup-shaped hand with upright stubs, a star, a flower, a realistic hand, or multiple flames.
+```
+
+**A-27. 一門の印の局所修正 irene_lineage** `art/story-review/chapter6/irene_lineage.png`
+- 根拠と判定: 原寸で額の印が杯状の掌と上向きの短い突起の形。基準の角張った斜めの掌・右の平行な指3本へ額のみ修正。関節内側が隠れる箇所は追加しない。
+- 保つもの: 印以外の人物・顔・目・衣装・部品・構図・光。要確認の箇所は変更しない。
+```text
+...except: replace ONLY the small gold crest at the CENTER OF SERA'S FOREHEAD with the approved geometric crest. Keep its existing small scale and gold material, following the plane of her forehead. Preserve her exact face, eyes, expression, hair and anatomy. Use the approved geometric crest exactly as the second reference: an angular cupped palm, ONE thumb projection on the LEFT, THREE parallel slanted finger projections on the RIGHT, a short wrist below, and ONE separate teardrop flame above. Do not add a fourth finger on the right. Do not use a cup-shaped hand with upright stubs, a star, a flower, a realistic hand, or multiple flames.
+```
+
+**A-28. 一門の印の局所修正 irene_crest** `art/story-review/chapter7/irene_crest.png`
+- 根拠と判定: 原寸で額と肘の内側の主題の印が杯状の別形。額と肘の既存位置の印のみ承認済み幾何学形へ修正。
+- 保つもの: 印以外の人物・顔・目・衣装・部品・構図・光。要確認の箇所は変更しない。
+```text
+...except: replace ONLY the small gold crest at the CENTER OF SERA'S FOREHEAD with the approved geometric crest. Keep its existing small scale and gold material, following the plane of her forehead. Preserve her exact face, eyes, expression, hair and anatomy. Also replace ONLY the small gold crest already shown on the inner elbow joint at the center of the picture with the same approved geometric crest, at its existing position and scale. Do not change any joint or hand anatomy. Use the approved geometric crest exactly as the second reference: an angular cupped palm, ONE thumb projection on the LEFT, THREE parallel slanted finger projections on the RIGHT, a short wrist below, and ONE separate teardrop flame above. Do not add a fourth finger on the right. Do not use a cup-shaped hand with upright stubs, a star, a flower, a realistic hand, or multiple flames.
+```
+
+**A-29. 一門の印の局所修正 irene_order** `art/story-review/chapter7/irene_order.png`
+- 根拠と判定: 原寸で額の印が杯状の掌と上向きの短い突起の形。基準の角張った斜めの掌・右の平行な指3本へ額のみ修正。関節内側が隠れる箇所は追加しない。
+- 保つもの: 印以外の人物・顔・目・衣装・部品・構図・光。要確認の箇所は変更しない。
+```text
+...except: replace ONLY the small gold crest at the CENTER OF SERA'S FOREHEAD with the approved geometric crest. Keep its existing small scale and gold material, following the plane of her forehead. Preserve her exact face, eyes, expression, hair and anatomy. Use the approved geometric crest exactly as the second reference: an angular cupped palm, ONE thumb projection on the LEFT, THREE parallel slanted finger projections on the RIGHT, a short wrist below, and ONE separate teardrop flame above. Do not add a fourth finger on the right. Do not use a cup-shaped hand with upright stubs, a star, a flower, a realistic hand, or multiple flames.
+```
+
+**A-30. 一門の印の局所修正 irene_rain** `art/story-review/chapter8/irene_rain.png`
+- 根拠と判定: 額の原寸は杯状の掌と上向きの短い指で基準形と異なる。額のみ修正。手首内側は関節の帯と手の角度で隠れるため追加しない。
+- 保つもの: 印以外の人物・顔・目・衣装・部品・構図・光。要確認の箇所は変更しない。
+```text
+...except: replace ONLY the small gold crest at the CENTER OF SERA'S FOREHEAD with the approved geometric crest. Keep its existing small scale and gold material, following the plane of her forehead. Preserve her exact face, eyes, expression, hair and anatomy. Use the approved geometric crest exactly as the second reference: an angular cupped palm, ONE thumb projection on the LEFT, THREE parallel slanted finger projections on the RIGHT, a short wrist below, and ONE separate teardrop flame above. Do not add a fourth finger on the right. Do not use a cup-shaped hand with upright stubs, a star, a flower, a realistic hand, or multiple flames.
+```
+
+**A-31. 一門の印の局所修正 irene_rest** `art/story-review/chapter9/irene_rest.png`
+- 根拠と判定: 額の原寸で杯状の掌と短い上向きの指を確認。基準の斜めの平行な指3本・角張った掌へ額のみ修正。
+- 保つもの: 印以外の人物・顔・目・衣装・部品・構図・光。要確認の箇所は変更しない。
+```text
+...except: replace ONLY the small gold crest at the CENTER OF SERA'S FOREHEAD with the approved geometric crest. Keep its existing small scale and gold material, following the plane of her forehead. Preserve her exact face, eyes, expression, hair and anatomy. Use the approved geometric crest exactly as the second reference: an angular cupped palm, ONE thumb projection on the LEFT, THREE parallel slanted finger projections on the RIGHT, a short wrist below, and ONE separate teardrop flame above. Do not add a fourth finger on the right. Do not use a cup-shaped hand with upright stubs, a star, a flower, a realistic hand, or multiple flames.
+```
+
+**A-32. 一門の印の局所修正 irene_names** `art/story-review/chapter10/irene_names.png`
+- 根拠と判定: 額の原寸で杯状の掌と短い上向きの指を確認。基準の斜めの平行な指3本・角張った掌へ額のみ修正。
+- 保つもの: 印以外の人物・顔・目・衣装・部品・構図・光。要確認の箇所は変更しない。
+```text
+...except: replace ONLY the small gold crest at the CENTER OF SERA'S FOREHEAD with the approved geometric crest. Keep its existing small scale and gold material, following the plane of her forehead. Preserve her exact face, eyes, expression, hair and anatomy. Use the approved geometric crest exactly as the second reference: an angular cupped palm, ONE thumb projection on the LEFT, THREE parallel slanted finger projections on the RIGHT, a short wrist below, and ONE separate teardrop flame above. Do not add a fourth finger on the right. Do not use a cup-shaped hand with upright stubs, a star, a flower, a realistic hand, or multiple flames.
+```
+
+**A-33. 一門の印の局所修正 lore_w02** `art/story-review/dungeons/lore_w02.png` (済)
+- 根拠と判定: 原寸の回廊の壁は写実的な手と曲線の炎。承認済み幾何学印へ壁の印だけ置き換える。
+- 保つもの: 印以外の人物・顔・目・衣装・部品・構図・光。要確認の箇所は変更しない。
+```text
+...except: replace ONLY the realistic hand-and-flame stone relief inside the round medallion on the right wall with the approved geometric crest, as a stone relief of the same size, perspective, lighting and weathering. Keep the circular border and the entire scene unchanged. Use the approved geometric crest exactly as the second reference: an angular cupped palm, ONE thumb projection on the LEFT, THREE parallel slanted finger projections on the RIGHT, a short wrist below, and ONE separate teardrop flame above. Do not add a fourth finger on the right. Do not use a cup-shaped hand with upright stubs, a star, a flower, a realistic hand, or multiple flames.
+```
+
+**A-34. 一門の印の局所修正 lore_w07** `art/story-review/dungeons/lore_w07.png`
+- 根拠と判定: 壁の原寸印は幾何学基準に一致。セラの額の印は杯状で上向きの短い突起になっているため額のみ修正。壁は保持。
+- 保つもの: 印以外の人物・顔・目・衣装・部品・構図・光。要確認の箇所は変更しない。
+```text
+...except: replace ONLY the small gold crest at the CENTER OF SERA'S FOREHEAD with the approved geometric crest. Keep its existing small scale and gold material, following the plane of her forehead. Preserve her exact face, eyes, expression, hair and anatomy. Keep the approved crest on the WALL unchanged. Use the approved geometric crest exactly as the second reference: an angular cupped palm, ONE thumb projection on the LEFT, THREE parallel slanted finger projections on the RIGHT, a short wrist below, and ONE separate teardrop flame above. Do not add a fourth finger on the right. Do not use a cup-shaped hand with upright stubs, a star, a flower, a realistic hand, or multiple flames.
+```
+
+**A-35. 一門の印の局所修正 lore_w12** `art/story-review/dungeons/lore_w12.png` (済)
+- 根拠と判定: 原寸でセラの胴の胸前面に金の枝状の紋を確認。正典と既存の胴の修正指示は前面の紋を外すため、この前面の紋のみ除去。背へは追加しない。
+- 保つもの: 印以外の人物・顔・目・衣装・部品・構図・光。要確認の箇所は変更しない。
+```text
+...except: remove ONLY the decorative gold emblems/branch-like motif from the FRONT of the detached wooden torso at the right foreground. Restore smooth natural wood grain matching the surrounding torso. Do not add a crest anywhere else. Preserve the neck opening, shoulders, iron joints, curved wooden torso anatomy, the open chest hatch and cyan light, roots and the whole scene.
+```
+
 ### B. 任意 (余力があれば。読者が気づきやすい順)
 
 | 場面 | 直すこと |

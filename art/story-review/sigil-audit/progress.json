@@ -1,0 +1,1381 @@
+[
+  {
+    "id": "arrival",
+    "master": "art/story-review/prologue/royal-audience.png",
+    "status": "確認済・修正不要",
+    "note": "384×256で確認。一門の印の配置指定なし。弟子の刺しゅう・王の装飾・隊の人業の継ぎ目は変更しない。",
+    "sha256": "6489b1889398ac64c081cf4a565694c2842b24675d0a77ca151c722ef0b6e881",
+    "checked_at": "2026-10-14T10:00:40.002927+00:00",
+    "current_sha256": "6489b1889398ac64c081cf4a565694c2842b24675d0a77ca151c722ef0b6e881"
+  },
+  {
+    "id": "departure",
+    "master": "art/story-review/prologue/four-vessels-departure.png",
+    "status": "確認済・修正不要",
+    "note": "384×256で確認。一門の印の配置指定なし。弟子の刺しゅう・王の装飾・隊の人業の継ぎ目は変更しない。",
+    "sha256": "011bdb197db423eac199d3770f7898ee00d16da4a3ded46b1c24e52085c68330",
+    "checked_at": "2026-10-14T10:00:40.002939+00:00",
+    "current_sha256": "011bdb197db423eac199d3770f7898ee00d16da4a3ded46b1c24e52085c68330"
+  },
+  {
+    "id": "first_descent",
+    "master": "art/story-review/prologue/first-descent-gatekeeper.png",
+    "status": "確認済・修正不要",
+    "note": "384×256で確認。一門の印の配置指定なし。弟子の刺しゅう・王の装飾・隊の人業の継ぎ目は変更しない。",
+    "sha256": "ea60e789910f647175798ac33b9cc06d548a5df987ad39c167918a1e50ff9cce",
+    "checked_at": "2026-10-14T10:00:40.002942+00:00",
+    "current_sha256": "ea60e789910f647175798ac33b9cc06d548a5df987ad39c167918a1e50ff9cce"
+  },
+  {
+    "id": "first_vessel",
+    "master": "art/story-review/prologue/first-vessel-awakening.png",
+    "status": "確認済・修正不要",
+    "note": "384×256で確認。一門の印の配置指定なし。弟子の刺しゅう・王の装飾・隊の人業の継ぎ目は変更しない。",
+    "sha256": "e56010a2995d3a99e5a2d8ab8c6d91d4ed0b4bac982674165a5d107b77536fb0",
+    "checked_at": "2026-10-14T10:00:40.002944+00:00",
+    "current_sha256": "e56010a2995d3a99e5a2d8ab8c6d91d4ed0b4bac982674165a5d107b77536fb0"
+  },
+  {
+    "id": "forest_doll",
+    "master": "art/story-review/prologue/forest_doll.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。イレーヌの髪飾り・衣装、弟子の刺しゅうは別の装飾として保持。",
+    "sha256": "d01091fd7a97d907b30b9fb686dc16ebf9e7ba926e924927f5427756add438be",
+    "checked_at": "2026-10-14T10:00:51.181466+00:00",
+    "current_sha256": "d01091fd7a97d907b30b9fb686dc16ebf9e7ba926e924927f5427756add438be"
+  },
+  {
+    "id": "irene_lamp",
+    "master": "art/story-review/prologue/irene-soul-lamp.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。イレーヌの髪飾り・衣装、弟子の刺しゅうは別の装飾として保持。",
+    "sha256": "0271a4acc22ce0d593f2af71c96140647a7f9db12d3e395a393000e68e2429e5",
+    "checked_at": "2026-10-14T10:00:51.181478+00:00",
+    "current_sha256": "0271a4acc22ce0d593f2af71c96140647a7f9db12d3e395a393000e68e2429e5"
+  },
+  {
+    "id": "irene_meeting",
+    "master": "art/story-review/prologue/irene-meeting.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。イレーヌの髪飾り・衣装、弟子の刺しゅうは別の装飾として保持。",
+    "sha256": "863e72ee37c02dde18cce5ff878a4464fd5312604c7c77b50ed42b109ac613b3",
+    "checked_at": "2026-10-14T10:00:51.181482+00:00",
+    "current_sha256": "863e72ee37c02dde18cce5ff878a4464fd5312604c7c77b50ed42b109ac613b3"
+  },
+  {
+    "id": "irene_repair",
+    "master": "art/story-review/prologue/irene-repair.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。イレーヌの髪飾り・衣装、弟子の刺しゅうは別の装飾として保持。",
+    "sha256": "fa3cecfcdc8f50c7cdc5ea41a8a9fd3029b02386e27f9857f110a489d51e38a1",
+    "checked_at": "2026-10-14T10:00:51.181484+00:00",
+    "current_sha256": "fa3cecfcdc8f50c7cdc5ea41a8a9fd3029b02386e27f9857f110a489d51e38a1"
+  },
+  {
+    "id": "opening",
+    "master": "art/story-review/prologue/road-to-roadal.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の指定対象なし。弟子・隊の模様とイレーヌの装飾を保持。",
+    "sha256": "b68b1c8004c3e17e7f3d3709a8f38de0d3af0fc0cbcd570a19bc6af5a5cb18e2",
+    "checked_at": "2026-10-14T10:01:02.935862+00:00",
+    "current_sha256": "b68b1c8004c3e17e7f3d3709a8f38de0d3af0fc0cbcd570a19bc6af5a5cb18e2"
+  },
+  {
+    "id": "three",
+    "master": "art/story-review/prologue/three-vessels-audience.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の指定対象なし。弟子・隊の模様とイレーヌの装飾を保持。",
+    "sha256": "2cf84a8613c9457dab6fb25bb94d48c46dda884a3e0ccf14f5debe5a8163a466",
+    "checked_at": "2026-10-14T10:01:02.935874+00:00",
+    "current_sha256": "2cf84a8613c9457dab6fb25bb94d48c46dda884a3e0ccf14f5debe5a8163a466"
+  },
+  {
+    "id": "ch1_end",
+    "master": "art/story-review/chapter1/ch1_end.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の指定対象なし。弟子・隊の模様とイレーヌの装飾を保持。",
+    "sha256": "1dddce87125518d07d9468fe5e8ca20f615c15de17b9a0f0c29b7b260114e455",
+    "checked_at": "2026-10-14T10:01:02.935877+00:00",
+    "current_sha256": "1dddce87125518d07d9468fe5e8ca20f615c15de17b9a0f0c29b7b260114e455"
+  },
+  {
+    "id": "irene_familiar",
+    "master": "art/story-review/chapter1/irene_familiar.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の指定対象なし。弟子・隊の模様とイレーヌの装飾を保持。",
+    "sha256": "806354ad01d8596a42d695def0128860fc8a3814955a418772a8dba504bf063e",
+    "checked_at": "2026-10-14T10:01:02.935879+00:00",
+    "current_sha256": "806354ad01d8596a42d695def0128860fc8a3814955a418772a8dba504bf063e"
+  },
+  {
+    "id": "irene_fort",
+    "master": "art/story-review/chapter1/irene_fort.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定対象なし。装飾を印と断定しない。",
+    "sha256": "f13023a9b89851025e2b3f5ab97ec4c6314d81e7b855cbc3e2270ca19f280762",
+    "checked_at": "2026-10-14T10:01:20.469297+00:00",
+    "current_sha256": "f13023a9b89851025e2b3f5ab97ec4c6314d81e7b855cbc3e2270ca19f280762"
+  },
+  {
+    "id": "irene_reveal",
+    "master": "art/story-review/chapter1/irene_reveal.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定対象なし。装飾を印と断定しない。",
+    "sha256": "e33427554761a56de72c9d9f9217c668f5c4a9d7ae2d89b63f489f839b9b6275",
+    "checked_at": "2026-10-14T10:01:20.469309+00:00",
+    "current_sha256": "e33427554761a56de72c9d9f9217c668f5c4a9d7ae2d89b63f489f839b9b6275"
+  },
+  {
+    "id": "mem_w03",
+    "master": "art/story-review/chapter1/mem_w03.png",
+    "status": "確認済・修正不要",
+    "note": "原寸部分で師の裾の幾何学印を確認。セラは横顔で額中央が髪と角度で隠れるため追加しない。",
+    "sha256": "92c2591a96c72214ba9f2800980ae5da8047276012aa02b3161d5a00c3f16690",
+    "checked_at": "2026-10-14T10:11:59.563384+00:00",
+    "current_sha256": "92c2591a96c72214ba9f2800980ae5da8047276012aa02b3161d5a00c3f16690"
+  },
+  {
+    "id": "mem_w05",
+    "master": "art/story-review/chapter1/mem_w05.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定対象なし。装飾を印と断定しない。",
+    "sha256": "d59f1e14e0e57f80b6796da3a1e9d97037945cdfae71bf5f6a3977cab4c621b7",
+    "checked_at": "2026-10-14T10:01:20.469313+00:00",
+    "current_sha256": "d59f1e14e0e57f80b6796da3a1e9d97037945cdfae71bf5f6a3977cab4c621b7"
+  },
+  {
+    "id": "minePass",
+    "master": "art/story-review/chapter1/minePass.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。弟子の刺しゅう・王と宰相の装飾は修正対象外。",
+    "sha256": "06c40e91297867d4ec25b605c9c4188984a7b80addff97d9f8291d131f2e5a81",
+    "checked_at": "2026-10-14T10:01:31.737529+00:00",
+    "current_sha256": "06c40e91297867d4ec25b605c9c4188984a7b80addff97d9f8291d131f2e5a81"
+  },
+  {
+    "id": "report_w01",
+    "master": "art/story-review/chapter1/report_w01.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。弟子の刺しゅう・王と宰相の装飾は修正対象外。",
+    "sha256": "39b11d0213e9fde393c8a2782935dedb94fcf18aed2a727cf431e721efdd3e46",
+    "checked_at": "2026-10-14T10:01:31.737606+00:00",
+    "current_sha256": "39b11d0213e9fde393c8a2782935dedb94fcf18aed2a727cf431e721efdd3e46"
+  },
+  {
+    "id": "report_w02",
+    "master": "art/story-review/chapter1/report_w02.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。弟子の刺しゅう・王と宰相の装飾は修正対象外。",
+    "sha256": "584f140ea79f6767b59edd84f4dc91e8fccc08cf17ea4cbe5579ed780b402c36",
+    "checked_at": "2026-10-14T10:01:31.737611+00:00",
+    "current_sha256": "584f140ea79f6767b59edd84f4dc91e8fccc08cf17ea4cbe5579ed780b402c36"
+  },
+  {
+    "id": "report_w03",
+    "master": "art/story-review/chapter1/report_w03.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。弟子の刺しゅう・王と宰相の装飾は修正対象外。",
+    "sha256": "798a30f115008894c29a306383de2a683c2e860f5d3171503d42662517f97bae",
+    "checked_at": "2026-10-14T10:01:31.737614+00:00",
+    "current_sha256": "798a30f115008894c29a306383de2a683c2e860f5d3171503d42662517f97bae"
+  },
+  {
+    "id": "report_w04",
+    "master": "art/story-review/chapter1/report_w04.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。別の器の盾・衣装の模様を一門の印と断定しない。",
+    "sha256": "f7ff74726f853062306c9d4d40ba2ce960bf5a55b14d4c0f46d51c11b987c87b",
+    "checked_at": "2026-10-14T10:01:43.607347+00:00",
+    "current_sha256": "f7ff74726f853062306c9d4d40ba2ce960bf5a55b14d4c0f46d51c11b987c87b"
+  },
+  {
+    "id": "report_w05",
+    "master": "art/story-review/chapter1/report_w05.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。別の器の盾・衣装の模様を一門の印と断定しない。",
+    "sha256": "0d1bb175f3e098ff9f8fcc78eccc17727beb761a1d9945d74f7a2c6f4309fa74",
+    "checked_at": "2026-10-14T10:01:43.607387+00:00",
+    "current_sha256": "0d1bb175f3e098ff9f8fcc78eccc17727beb761a1d9945d74f7a2c6f4309fa74"
+  },
+  {
+    "id": "w01_lantern",
+    "master": "art/story-review/chapter1/w01_lantern.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。別の器の盾・衣装の模様を一門の印と断定しない。",
+    "sha256": "c635a9c6cd97adfcd6244dae5500f61d8dd0dc69bd2c4a072f962edb49a006d6",
+    "checked_at": "2026-10-14T10:01:43.607391+00:00",
+    "current_sha256": "c635a9c6cd97adfcd6244dae5500f61d8dd0dc69bd2c4a072f962edb49a006d6"
+  },
+  {
+    "id": "w02_broken_doll",
+    "master": "art/story-review/chapter1/w02_broken_doll.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。別の器の盾・衣装の模様を一門の印と断定しない。",
+    "sha256": "68b5957560c1a331a2ebcedf309a7b18bc2c3f5f3790ecf25b54b1ceb3068fc7",
+    "checked_at": "2026-10-14T10:01:43.607394+00:00",
+    "current_sha256": "68b5957560c1a331a2ebcedf309a7b18bc2c3f5f3790ecf25b54b1ceb3068fc7"
+  },
+  {
+    "id": "w02_sigil",
+    "master": "art/story-review/chapter1/w02_sigil.png",
+    "status": "確認済・修正不要",
+    "note": "壁の指定位置に、独立した炎・左の親指・右の3本の指を持つ幾何学印を確認。",
+    "sha256": "0d916833874643fa31e800cb5f66494efec3be05b1988e620128d2b94f512257",
+    "checked_at": "2026-10-14T10:02:00.220270+00:00",
+    "current_sha256": "0d916833874643fa31e800cb5f66494efec3be05b1988e620128d2b94f512257"
+  },
+  {
+    "id": "w04_arm",
+    "master": "art/story-review/chapter1/w04_arm.png",
+    "status": "確認済・修正不要",
+    "note": "原寸の手首内側を確認。小さな黒い幾何学印があり、大きな前腕外側の印はない。",
+    "sha256": "7c4574576e2c4561cb904b7d2688ea622d9124bf3b81415c81c5ddb04f7f0bf5",
+    "checked_at": "2026-10-14T10:11:32.894036+00:00",
+    "current_sha256": "7c4574576e2c4561cb904b7d2688ea622d9124bf3b81415c81c5ddb04f7f0bf5"
+  },
+  {
+    "id": "ch2_end",
+    "master": "art/story-review/chapter2/ch2_end.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定対象なし。",
+    "sha256": "add64afa3ada002930bdd62ae710fd9b065bdf588a153dfdaf9a4ca59de26997",
+    "checked_at": "2026-10-14T10:02:00.220287+00:00",
+    "current_sha256": "add64afa3ada002930bdd62ae710fd9b065bdf588a153dfdaf9a4ca59de26997"
+  },
+  {
+    "id": "irene_roots",
+    "master": "art/story-review/chapter2/irene_roots.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定対象なし。",
+    "sha256": "deae75376fa0ba88d8cc78f0cc1b8297be9434755df56b6d87aa63d3c87802fb",
+    "checked_at": "2026-10-14T10:02:00.220290+00:00",
+    "current_sha256": "deae75376fa0ba88d8cc78f0cc1b8297be9434755df56b6d87aa63d3c87802fb"
+  },
+  {
+    "id": "irene_sera",
+    "master": "art/story-review/chapter2/irene_sera.png",
+    "status": "確認済・修正不要",
+    "note": "額中央の金の印を原寸部分で確認。角張った掌・左の親指・右の3本の指・短い手首・独立した炎を保持。",
+    "sha256": "35857c6f42209cc521dc755de9c2a3d58eaee9f344976f2a6ed9bb3049e612fa",
+    "checked_at": "2026-10-14T10:10:59.818166+00:00",
+    "current_sha256": "35857c6f42209cc521dc755de9c2a3d58eaee9f344976f2a6ed9bb3049e612fa"
+  },
+  {
+    "id": "mem_w09",
+    "master": "art/story-review/chapter2/mem_w09.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定対象なし。旗・封蝋・王と宰相の装飾は別物として保持。",
+    "sha256": "1808233334335cd3ee759d324e1269643b4d9b7c51ba8aa89bb6627940aee2dd",
+    "checked_at": "2026-10-14T10:02:11.717393+00:00",
+    "current_sha256": "1808233334335cd3ee759d324e1269643b4d9b7c51ba8aa89bb6627940aee2dd"
+  },
+  {
+    "id": "report_w06",
+    "master": "art/story-review/chapter2/report_w06.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定対象なし。旗・封蝋・王と宰相の装飾は別物として保持。",
+    "sha256": "2bc8fbaf864b563f8659cb4a03ad1595d12556457c8201a2b48fee5c6e7e7c24",
+    "checked_at": "2026-10-14T10:02:11.717397+00:00",
+    "current_sha256": "2bc8fbaf864b563f8659cb4a03ad1595d12556457c8201a2b48fee5c6e7e7c24"
+  },
+  {
+    "id": "report_w07",
+    "master": "art/story-review/chapter2/report_w07.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定対象なし。旗・封蝋・王と宰相の装飾は別物として保持。",
+    "sha256": "59a5a24b487b40b4467914af39f0ec7f0e774055922513b2e98e28de4187d544",
+    "checked_at": "2026-10-14T10:02:11.717399+00:00",
+    "current_sha256": "59a5a24b487b40b4467914af39f0ec7f0e774055922513b2e98e28de4187d544"
+  },
+  {
+    "id": "report_w08",
+    "master": "art/story-review/chapter2/report_w08.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。壁の名前や帳面・封蝋を印と取り違えない。",
+    "sha256": "a4365c1d72f1582844a50e8fb82356e2046987a22664216014d7b120e27e021e",
+    "checked_at": "2026-10-14T10:02:22.241724+00:00",
+    "current_sha256": "a4365c1d72f1582844a50e8fb82356e2046987a22664216014d7b120e27e021e"
+  },
+  {
+    "id": "report_w09",
+    "master": "art/story-review/chapter2/report_w09.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。壁の名前や帳面・封蝋を印と取り違えない。",
+    "sha256": "48d5da56ddf528da12ca2799bfba9394b9e84083abeb417db73964f5fcb1a2d7",
+    "checked_at": "2026-10-14T10:02:22.241737+00:00",
+    "current_sha256": "48d5da56ddf528da12ca2799bfba9394b9e84083abeb417db73964f5fcb1a2d7"
+  },
+  {
+    "id": "w06_roll",
+    "master": "art/story-review/chapter2/w06_roll.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。壁の名前や帳面・封蝋を印と取り違えない。",
+    "sha256": "7a8543feec8af44ba583647432754edbad7870fedff640fdb7c411ce04057c60",
+    "checked_at": "2026-10-14T10:02:22.241741+00:00",
+    "current_sha256": "7a8543feec8af44ba583647432754edbad7870fedff640fdb7c411ce04057c60"
+  },
+  {
+    "id": "w07_names",
+    "master": "art/story-review/chapter2/w07_names.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。壁の名前や帳面・封蝋を印と取り違えない。",
+    "sha256": "56746c5570340b3b2d8ef6fc3b60c3eb3c0293334acb8a23591634c99e83c2e6",
+    "checked_at": "2026-10-14T10:02:22.241743+00:00",
+    "current_sha256": "56746c5570340b3b2d8ef6fc3b60c3eb3c0293334acb8a23591634c99e83c2e6"
+  },
+  {
+    "id": "w07_sera",
+    "master": "art/story-review/chapter2/w07_sera.png",
+    "status": "確認済・修正不要",
+    "note": "額中央の金の印を原寸部分で確認。角張った掌・左の親指・右の3本の指・短い手首・独立した炎を保持。",
+    "sha256": "cf2fceeb443089a988207852aa7ccf32a38b12bc3a4c49eb6edb32146d3b1c9a",
+    "checked_at": "2026-10-14T10:10:59.818180+00:00",
+    "current_sha256": "cf2fceeb443089a988207852aa7ccf32a38b12bc3a4c49eb6edb32146d3b1c9a"
+  },
+  {
+    "id": "w08_banner",
+    "master": "art/story-review/chapter2/w08_banner.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。旗の刺しゅう・地図の印・燭台は別物。",
+    "sha256": "fd391c297a0b5823f1c30267b7dd60eb994942e975beb72ac1b8ab58f9723260",
+    "checked_at": "2026-10-14T10:02:34.493113+00:00",
+    "current_sha256": "fd391c297a0b5823f1c30267b7dd60eb994942e975beb72ac1b8ab58f9723260"
+  },
+  {
+    "id": "w09_map",
+    "master": "art/story-review/chapter2/w09_map.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。旗の刺しゅう・地図の印・燭台は別物。",
+    "sha256": "ebbf77f07d9fb941d27e06c0b1073df5883a4ed5a735454a618dfa1fdbb3745c",
+    "checked_at": "2026-10-14T10:02:34.493118+00:00",
+    "current_sha256": "ebbf77f07d9fb941d27e06c0b1073df5883a4ed5a735454a618dfa1fdbb3745c"
+  },
+  {
+    "id": "ch3_end",
+    "master": "art/story-review/chapter3/ch3_end.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。旗の刺しゅう・地図の印・燭台は別物。",
+    "sha256": "4dad2d5a7f93921661c04c87ce6afd3667e7461d915c1b87d0483f97a73a9ec5",
+    "checked_at": "2026-10-14T10:02:34.493121+00:00",
+    "current_sha256": "4dad2d5a7f93921661c04c87ce6afd3667e7461d915c1b87d0483f97a73a9ec5"
+  },
+  {
+    "id": "irene_torso",
+    "master": "art/story-review/chapter3/irene_torso.png",
+    "status": "修正保留",
+    "note": "候補3も額の杯状の印が残ったため不採用。3回の原寸編集で基準形を再現できず、未完了として原画を保持。候補と失敗理由を保存し、後続の対象へ進む。",
+    "sha256": "27bd1735b06870385cfdda81c90122d54b25a99fc588d12848719eec7165d0eb",
+    "checked_at": "2026-10-14T10:25:32.626973+00:00",
+    "current_sha256": "27bd1735b06870385cfdda81c90122d54b25a99fc588d12848719eec7165d0eb"
+  },
+  {
+    "id": "irene_trust",
+    "master": "art/story-review/chapter3/irene_trust.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定対象なし。",
+    "sha256": "c439fdffe525effe34479d43606f36d549cea3b24a623057a5971b11525d1d8c",
+    "checked_at": "2026-10-14T10:02:45.966984+00:00",
+    "current_sha256": "c439fdffe525effe34479d43606f36d549cea3b24a623057a5971b11525d1d8c"
+  },
+  {
+    "id": "mem_w13",
+    "master": "art/story-review/chapter3/mem_w13.png",
+    "status": "確認済・修正不要",
+    "note": "原寸の裾で角張った掌・右の指3本・独立した炎を照合。",
+    "sha256": "9f070168a987ea46167f4d4e9a50456451bfb522f8710ca2b60b0bb8c4e4a6f9",
+    "checked_at": "2026-10-14T10:11:59.563400+00:00",
+    "current_sha256": "9f070168a987ea46167f4d4e9a50456451bfb522f8710ca2b60b0bb8c4e4a6f9"
+  },
+  {
+    "id": "report_w10",
+    "master": "art/story-review/chapter3/report_w10.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定対象なし。",
+    "sha256": "1830ac75fbfd3ebcf11a2ca6512c2543f688d05af8e8656a448648a62d012aa3",
+    "checked_at": "2026-10-14T10:02:45.966988+00:00",
+    "current_sha256": "1830ac75fbfd3ebcf11a2ca6512c2543f688d05af8e8656a448648a62d012aa3"
+  },
+  {
+    "id": "report_w11",
+    "master": "art/story-review/chapter3/report_w11.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。王と宰相の装飾・弟子の刺しゅう・紙の走り書きを保持。",
+    "sha256": "67888c04c9105ec838171518b0a744810c85f13beaf979eeae2f470ab1d4051f",
+    "checked_at": "2026-10-14T10:02:55.783483+00:00",
+    "current_sha256": "67888c04c9105ec838171518b0a744810c85f13beaf979eeae2f470ab1d4051f"
+  },
+  {
+    "id": "report_w12",
+    "master": "art/story-review/chapter3/report_w12.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。王と宰相の装飾・弟子の刺しゅう・紙の走り書きを保持。",
+    "sha256": "b78de38be4920cb89b2bd79c59e1a34431365b9e963b621e15611fb5f0fa6517",
+    "checked_at": "2026-10-14T10:02:55.783495+00:00",
+    "current_sha256": "b78de38be4920cb89b2bd79c59e1a34431365b9e963b621e15611fb5f0fa6517"
+  },
+  {
+    "id": "report_w13",
+    "master": "art/story-review/chapter3/report_w13.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。王と宰相の装飾・弟子の刺しゅう・紙の走り書きを保持。",
+    "sha256": "45fd6c80fd2a0f17bef55f158277c8af6f719dd56ef20728ee3fde2ef37c138e",
+    "checked_at": "2026-10-14T10:02:55.783499+00:00",
+    "current_sha256": "45fd6c80fd2a0f17bef55f158277c8af6f719dd56ef20728ee3fde2ef37c138e"
+  },
+  {
+    "id": "w10_rope",
+    "master": "art/story-review/chapter3/w10_rope.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。王と宰相の装飾・弟子の刺しゅう・紙の走り書きを保持。",
+    "sha256": "8a97d5d410cedae91b0bab4a5ae3bf2afd3ee091e55b65e5875ba3bef5e29296",
+    "checked_at": "2026-10-14T10:02:55.783502+00:00",
+    "current_sha256": "8a97d5d410cedae91b0bab4a5ae3bf2afd3ee091e55b65e5875ba3bef5e29296"
+  },
+  {
+    "id": "w11_hut",
+    "master": "art/story-review/chapter3/w11_hut.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。ヴェルナーの衣に一門の印を置く根拠はないため追加しない。",
+    "sha256": "28a9b0d7ac1c3d58bf647dfc638e33925165d9bf7af428d3540e947e202c0b68",
+    "checked_at": "2026-10-14T10:03:08.831478+00:00",
+    "current_sha256": "28a9b0d7ac1c3d58bf647dfc638e33925165d9bf7af428d3540e947e202c0b68"
+  },
+  {
+    "id": "w12_torso",
+    "master": "art/story-review/chapter3/w12_torso.png",
+    "status": "確認済・修正不要",
+    "note": "胴の胸前面は無地、胸の扉と紙を保持。背は見えないため追加しない。",
+    "sha256": "cc62b5df1771d77c587d528327359d2511230f7a4971ffab0be8e5b1b85998bb",
+    "checked_at": "2026-10-14T10:03:08.831490+00:00",
+    "current_sha256": "cc62b5df1771d77c587d528327359d2511230f7a4971ffab0be8e5b1b85998bb"
+  },
+  {
+    "id": "ch4_end",
+    "master": "art/story-review/chapter4/ch4_end.png",
+    "status": "確認済・修正不要",
+    "note": "額中央の原寸部分で角張った掌・指3本・独立した炎を確認。露出する関節は向きと髪で内側が隠れるため追加しない。",
+    "sha256": "de603389cae7a0a969033170469354909fdcd11b20b498ccfdc31adaa2d39ef8",
+    "checked_at": "2026-10-14T10:11:59.563404+00:00",
+    "current_sha256": "de603389cae7a0a969033170469354909fdcd11b20b498ccfdc31adaa2d39ef8"
+  },
+  {
+    "id": "irene_sera_wake",
+    "master": "art/story-review/chapter4/irene_sera_wake.png",
+    "status": "確認済・修正不要",
+    "note": "額の原寸部分で幾何学印の形を確認。腕は上面が主に見え、手首・肘内側の印の有無は判別不能。胸は魂火であり印ではない。",
+    "sha256": "07a2139d71e8c3cdc08e9bf26910829839720782bbfbc2827c31d83ffb97976d",
+    "checked_at": "2026-10-14T10:11:59.563407+00:00",
+    "current_sha256": "07a2139d71e8c3cdc08e9bf26910829839720782bbfbc2827c31d83ffb97976d"
+  },
+  {
+    "id": "mem_w17",
+    "master": "art/story-review/chapter4/mem_w17.png",
+    "status": "確認済・修正不要",
+    "note": "原寸の裾で左の親指・右の指3本・独立した炎を確認。",
+    "sha256": "896cfc5e50c93e49add871f2587dadbee77410bb6186a8280cf4cd3c67d7a1fc",
+    "checked_at": "2026-10-14T10:12:37.335621+00:00",
+    "current_sha256": "896cfc5e50c93e49add871f2587dadbee77410bb6186a8280cf4cd3c67d7a1fc"
+  },
+  {
+    "id": "report_w14",
+    "master": "art/story-review/chapter4/report_w14.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定対象なし。王宮の装飾を保持。",
+    "sha256": "f40f37111228cb7268caaf0beeaf4881909305519f3de6552d369ff80d25323c",
+    "checked_at": "2026-10-14T10:03:23.120075+00:00",
+    "current_sha256": "f40f37111228cb7268caaf0beeaf4881909305519f3de6552d369ff80d25323c"
+  },
+  {
+    "id": "report_w15",
+    "master": "art/story-review/chapter4/report_w15.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定対象なし。王宮の装飾を保持。",
+    "sha256": "af7988eebb31af1b14aa8fc71bd0caa67e8e17236aa51fa19eac9a9e888fd295",
+    "checked_at": "2026-10-14T10:03:23.120080+00:00",
+    "current_sha256": "af7988eebb31af1b14aa8fc71bd0caa67e8e17236aa51fa19eac9a9e888fd295"
+  },
+  {
+    "id": "report_w16",
+    "master": "art/story-review/chapter4/report_w16.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定対象なし。王宮の装飾を保持。",
+    "sha256": "183393d8157f316095e1f9da44d97f4f0dece299a7f4bbca72abf57bab20d347",
+    "checked_at": "2026-10-14T10:03:23.120083+00:00",
+    "current_sha256": "183393d8157f316095e1f9da44d97f4f0dece299a7f4bbca72abf57bab20d347"
+  },
+  {
+    "id": "report_w17",
+    "master": "art/story-review/chapter4/report_w17.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の指定対象なし。神官の衣の模様を一門の印へ置き換える根拠なし。",
+    "sha256": "5524ca5d90d8ff30a0764b1d392b08442f1b6bcb48c777de58ec4fdca5d2ea6b",
+    "checked_at": "2026-10-14T10:03:42.154527+00:00",
+    "current_sha256": "5524ca5d90d8ff30a0764b1d392b08442f1b6bcb48c777de58ec4fdca5d2ea6b"
+  },
+  {
+    "id": "w14_lamp",
+    "master": "art/story-review/chapter4/w14_lamp.png",
+    "status": "要確認",
+    "note": "笠の原寸部分を確認。苔と装飾が覆い、印を識別できない。笠のどの面に彫るかは根拠不足のため追加を保留。",
+    "sha256": "12ee2c0ea4233fd96e57e413601ea65dbbddd9c4c7ba4710a26a85145157b05c",
+    "checked_at": "2026-10-14T10:13:41.404251+00:00",
+    "current_sha256": "12ee2c0ea4233fd96e57e413601ea65dbbddd9c4c7ba4710a26a85145157b05c"
+  },
+  {
+    "id": "w15_mural",
+    "master": "art/story-review/chapter4/w15_mural.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の指定対象なし。神官の衣の模様を一門の印へ置き換える根拠なし。",
+    "sha256": "12ee7bce5c7cf4493cc444a46146b8d24ff22bdda9a90c8b4ec00d5bc58be1c4",
+    "checked_at": "2026-10-14T10:03:42.154545+00:00",
+    "current_sha256": "12ee7bce5c7cf4493cc444a46146b8d24ff22bdda9a90c8b4ec00d5bc58be1c4"
+  },
+  {
+    "id": "w16_legs",
+    "master": "art/story-review/chapter4/w16_legs.png",
+    "status": "修正保留",
+    "note": "原寸編集候補でも足の甲の印が残り、指定位置へ移っていないため不採用。原画を保持し、候補を保存。位置修正は未完了。",
+    "sha256": "d7f9144b5d66577517c79e26f5202c806bbee6099821694e0edc53ff67659f6d",
+    "checked_at": "2026-10-14T10:28:47.626714+00:00",
+    "current_sha256": "d7f9144b5d66577517c79e26f5202c806bbee6099821694e0edc53ff67659f6d"
+  },
+  {
+    "id": "ch5_end",
+    "master": "art/story-review/chapter5/ch5_end.png",
+    "status": "修正保留",
+    "note": "候補は額の炎状の印を修正せず、背景の旗へ不要な印を追加したため不採用。原画・盾は保持。額の修正は未完了、盾の配置は要確認。",
+    "sha256": "ec3777ae67fa8a1164096a6d60aad70bc9a6f9d467e9ab395ab888f179a1daf0",
+    "checked_at": "2026-10-14T10:32:03.497869+00:00",
+    "current_sha256": "ec3777ae67fa8a1164096a6d60aad70bc9a6f9d467e9ab395ab888f179a1daf0"
+  },
+  {
+    "id": "irene_husks",
+    "master": "art/story-review/chapter5/irene_husks.png",
+    "status": "修正保留",
+    "note": "編集候補の額は杯状の印のままで、基準形への置換が反映されていないため不採用。原画を保持。",
+    "sha256": "2f65f62d411f52bb2af6ae3634e174b68f981e45556494ab25a254ec0f3255c9",
+    "checked_at": "2026-10-14T10:33:50.114061+00:00",
+    "current_sha256": "2f65f62d411f52bb2af6ae3634e174b68f981e45556494ab25a254ec0f3255c9"
+  },
+  {
+    "id": "mem_w21",
+    "master": "art/story-review/chapter5/mem_w21.png",
+    "status": "要確認",
+    "note": "師の裾の原寸印は幾何学基準に合う。扉の印も幾何学形だが、扉への配置は本文・指示に根拠がないため要確認。裾は修正不要。",
+    "sha256": "6cf2a9fa0f604bfa6be0bc9cd0a2f4be85215adeeba9b3b7012b7de6776f2a25",
+    "checked_at": "2026-10-14T10:14:16.653942+00:00",
+    "current_sha256": "6cf2a9fa0f604bfa6be0bc9cd0a2f4be85215adeeba9b3b7012b7de6776f2a25"
+  },
+  {
+    "id": "report_w18",
+    "master": "art/story-review/chapter5/report_w18.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。",
+    "sha256": "0c4d7263edc6b1b0bc84d584f8334be965a3c67e7b0a0cd23537fc373d2fb7b1",
+    "checked_at": "2026-10-14T10:04:01.294511+00:00",
+    "current_sha256": "0c4d7263edc6b1b0bc84d584f8334be965a3c67e7b0a0cd23537fc373d2fb7b1"
+  },
+  {
+    "id": "report_w19",
+    "master": "art/story-review/chapter5/report_w19.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の指定なし。王宮の小さな装飾を一門の印とは断定しない。",
+    "sha256": "986ca62581ef519242cac160afadb06813f185b5bd986a3c859920ddd877ae7b",
+    "checked_at": "2026-10-14T10:04:20.428660+00:00",
+    "current_sha256": "986ca62581ef519242cac160afadb06813f185b5bd986a3c859920ddd877ae7b"
+  },
+  {
+    "id": "report_w20",
+    "master": "art/story-review/chapter5/report_w20.png",
+    "status": "要確認",
+    "note": "王の横の空席に一門の印に似た大きな金の図形。王宮の椅子の印の配置根拠なし。推測では消さない。",
+    "sha256": "2b104b41ec6a12bb37aee3b1d6886db6db9a137a6642fd8a5e0438999d3ac429",
+    "checked_at": "2026-10-14T10:04:20.428675+00:00",
+    "current_sha256": "2b104b41ec6a12bb37aee3b1d6886db6db9a137a6642fd8a5e0438999d3ac429"
+  },
+  {
+    "id": "report_w21",
+    "master": "art/story-review/chapter5/report_w21.png",
+    "status": "要確認",
+    "note": "玉座脇の椅子と王の後方の壁に一門の印に似た図形。王宮への配置根拠なし。推測では変更しない。",
+    "sha256": "868999ad53085dba7593b5ac861328622dfbb009f02e42063b83fa27653f2ade",
+    "checked_at": "2026-10-14T10:04:20.428680+00:00",
+    "current_sha256": "868999ad53085dba7593b5ac861328622dfbb009f02e42063b83fa27653f2ade"
+  },
+  {
+    "id": "w18_blade",
+    "master": "art/story-review/chapter5/w18_blade.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。扉は縁が主に見え、印の指定なし。追加しない。",
+    "sha256": "7b81670e71d10f45c13cfc5ab88f79193c912392ee562cb79c2c5c853748b38f",
+    "checked_at": "2026-10-14T10:04:20.428684+00:00",
+    "current_sha256": "7b81670e71d10f45c13cfc5ab88f79193c912392ee562cb79c2c5c853748b38f"
+  },
+  {
+    "id": "w19_husks",
+    "master": "art/story-review/chapter5/w19_husks.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定対象なし。",
+    "sha256": "998bea9a0e73b3ecda944f39a0de939f84344cf2740d1378b472fd11a77735a6",
+    "checked_at": "2026-10-14T10:04:37.550504+00:00",
+    "current_sha256": "998bea9a0e73b3ecda944f39a0de939f84344cf2740d1378b472fd11a77735a6"
+  },
+  {
+    "id": "w20_cup",
+    "master": "art/story-review/chapter5/w20_cup.png",
+    "status": "要確認",
+    "note": "背景の扉と台座に一門の印に似た図形。金の杯と帳面の場面で扉・台座の配置根拠なし。推測では修正しない。",
+    "sha256": "aaab5042554a412cb29903506cf255054c9acf4ce84f5841226592a598e253ff",
+    "checked_at": "2026-10-14T10:04:37.550523+00:00",
+    "current_sha256": "aaab5042554a412cb29903506cf255054c9acf4ce84f5841226592a598e253ff"
+  },
+  {
+    "id": "ch6_end",
+    "master": "art/story-review/chapter6/ch6_end.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定対象なし。",
+    "sha256": "06eb13be4d3267b441cf61bd1de9c7ecfdc54e5bc54df05b767aa19f69a0b1fa",
+    "checked_at": "2026-10-14T10:04:37.550518+00:00",
+    "current_sha256": "06eb13be4d3267b441cf61bd1de9c7ecfdc54e5bc54df05b767aa19f69a0b1fa"
+  },
+  {
+    "id": "irene_lineage",
+    "master": "art/story-review/chapter6/irene_lineage.png",
+    "status": "修正保留",
+    "note": "原寸と対象の額の部分参照を渡した候補でも杯状の印が残るため不採用。原画を保持。",
+    "sha256": "5d7a8e9f63e7d2c95bdd236faad6e41792e12bf318f79f47cfb0e89848edc149",
+    "checked_at": "2026-10-14T10:35:20.375487+00:00",
+    "current_sha256": "5d7a8e9f63e7d2c95bdd236faad6e41792e12bf318f79f47cfb0e89848edc149"
+  },
+  {
+    "id": "mem_w25",
+    "master": "art/story-review/chapter6/mem_w25.png",
+    "status": "確認済・修正不要",
+    "note": "師は外套を残した後のシャツ姿。裾の印を足さない。凍王への追加配置指定なし。",
+    "sha256": "80097baf1564580691ebfbae4874add930b1afda7d93673f4c00ee1ed82c4da9",
+    "checked_at": "2026-10-14T10:04:49.135733+00:00",
+    "current_sha256": "80097baf1564580691ebfbae4874add930b1afda7d93673f4c00ee1ed82c4da9"
+  },
+  {
+    "id": "report_w22",
+    "master": "art/story-review/chapter6/report_w22.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。王宮の星状・花状の装飾を印とは断定しない。",
+    "sha256": "1d0616f523416d1fcf2a9b742ca011aa531c0e5242f479cba8e17a488ec250ff",
+    "checked_at": "2026-10-14T10:04:49.135746+00:00",
+    "current_sha256": "1d0616f523416d1fcf2a9b742ca011aa531c0e5242f479cba8e17a488ec250ff"
+  },
+  {
+    "id": "report_w23",
+    "master": "art/story-review/chapter6/report_w23.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。王宮の星状・花状の装飾を印とは断定しない。",
+    "sha256": "fb220b43413db7a502e4fb71d38df718b207b722914bfa3a88cefec1b6db7f0b",
+    "checked_at": "2026-10-14T10:04:49.135751+00:00",
+    "current_sha256": "fb220b43413db7a502e4fb71d38df718b207b722914bfa3a88cefec1b6db7f0b"
+  },
+  {
+    "id": "report_w24",
+    "master": "art/story-review/chapter6/report_w24.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。王宮の星状・花状の装飾を印とは断定しない。",
+    "sha256": "5f5525bd780152f54ff7e9fe32a65b859db9f4597952d850d793c9760f8f7bc3",
+    "checked_at": "2026-10-14T10:04:49.135754+00:00",
+    "current_sha256": "5f5525bd780152f54ff7e9fe32a65b859db9f4597952d850d793c9760f8f7bc3"
+  },
+  {
+    "id": "report_w25",
+    "master": "art/story-review/chapter6/report_w25.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定対象なし。",
+    "sha256": "ba329acfaa3631fff984e44235ce2032c5f17efee7646c76405f6cdc195431c5",
+    "checked_at": "2026-10-14T10:05:04.254314+00:00",
+    "current_sha256": "ba329acfaa3631fff984e44235ce2032c5f17efee7646c76405f6cdc195431c5"
+  },
+  {
+    "id": "w22_coat",
+    "master": "art/story-review/chapter6/w22_coat.png",
+    "status": "確認済・修正不要",
+    "note": "原寸で外套の裾に角張った掌・左親指・右3本の指・独立した炎を確認。",
+    "sha256": "1175c4e63064968a12308b6f5a2478fa9255f4e11eac80bc49769b1c46047c72",
+    "checked_at": "2026-10-14T10:14:49.208346+00:00",
+    "current_sha256": "1175c4e63064968a12308b6f5a2478fa9255f4e11eac80bc49769b1c46047c72"
+  },
+  {
+    "id": "w23_names",
+    "master": "art/story-review/chapter6/w23_names.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定対象なし。",
+    "sha256": "e7a374ac02d85fae7b5a4f91986ec9aa3322999f2f8c7f7475ed6f70a098dd60",
+    "checked_at": "2026-10-14T10:05:04.254330+00:00",
+    "current_sha256": "e7a374ac02d85fae7b5a4f91986ec9aa3322999f2f8c7f7475ed6f70a098dd60"
+  },
+  {
+    "id": "w24_aurora",
+    "master": "art/story-review/chapter6/w24_aurora.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定対象なし。",
+    "sha256": "435a23ba9d8ebe5df052680f4f9892c15e90442bdfaefa1e3ac685d5ece3ca53",
+    "checked_at": "2026-10-14T10:05:04.254335+00:00",
+    "current_sha256": "435a23ba9d8ebe5df052680f4f9892c15e90442bdfaefa1e3ac685d5ece3ca53"
+  },
+  {
+    "id": "ch7_end",
+    "master": "art/story-review/chapter7/ch7_end.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の指定対象なし。",
+    "sha256": "17ed9e9986504c4ef10afcd5feb21f05f7e8e3d78d510614adf664f33ed5f0b7",
+    "checked_at": "2026-10-14T10:05:18.006500+00:00",
+    "current_sha256": "17ed9e9986504c4ef10afcd5feb21f05f7e8e3d78d510614adf664f33ed5f0b7"
+  },
+  {
+    "id": "irene_crest",
+    "master": "art/story-review/chapter7/irene_crest.png",
+    "status": "修正保留",
+    "note": "候補の部分拡大で額の右側に4本の短い突起があり基準の3本に不一致、肘の形も正確な幾何学形でないため不採用。原画を保持。",
+    "sha256": "c92dde72d66b92051dc2ff0bc08c65d3e2f3e4fb507881d7b52518c0b3c65ba3",
+    "checked_at": "2026-10-14T10:38:18.070055+00:00",
+    "current_sha256": "c92dde72d66b92051dc2ff0bc08c65d3e2f3e4fb507881d7b52518c0b3c65ba3"
+  },
+  {
+    "id": "irene_order",
+    "master": "art/story-review/chapter7/irene_order.png",
+    "status": "修正保留",
+    "note": "編集候補の額が杯状のままで幾何学基準への置換が反映されず不採用。原画を保持。",
+    "sha256": "fb3754a9457af38ab9a7226b3042e79fd338e6c315d8494a2d6021a5b7fd932c",
+    "checked_at": "2026-10-14T10:41:16.403707+00:00",
+    "current_sha256": "fb3754a9457af38ab9a7226b3042e79fd338e6c315d8494a2d6021a5b7fd932c"
+  },
+  {
+    "id": "mem_w29",
+    "master": "art/story-review/chapter7/mem_w29.png",
+    "status": "要確認",
+    "note": "扉の上の原寸印は幾何学基準に一致し修正不要。祖の法衣は伏せた姿で装飾と印を識別できず、細かな配置指定もないため追加は保留。",
+    "sha256": "fb8f9ae402f179545ac3f3adb8ceb6836ba1a27a6298a025e4e59517cf137e32",
+    "checked_at": "2026-10-14T10:15:52.220150+00:00",
+    "current_sha256": "fb8f9ae402f179545ac3f3adb8ceb6836ba1a27a6298a025e4e59517cf137e32"
+  },
+  {
+    "id": "report_w26",
+    "master": "art/story-review/chapter7/report_w26.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。王宮の星状の装飾は別物として保持。",
+    "sha256": "b63e111a41a72ece2393535a2a1d147ad4800ce97810887c1f9f96b9136d1282",
+    "checked_at": "2026-10-14T10:05:31.248378+00:00",
+    "current_sha256": "b63e111a41a72ece2393535a2a1d147ad4800ce97810887c1f9f96b9136d1282"
+  },
+  {
+    "id": "report_w27",
+    "master": "art/story-review/chapter7/report_w27.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。王宮の星状の装飾は別物として保持。",
+    "sha256": "fb2a240cc7bcbaad1aab41924dec20438db01d9a50adb5d1c30a07cccc182c8b",
+    "checked_at": "2026-10-14T10:05:31.248392+00:00",
+    "current_sha256": "fb2a240cc7bcbaad1aab41924dec20438db01d9a50adb5d1c30a07cccc182c8b"
+  },
+  {
+    "id": "report_w28",
+    "master": "art/story-review/chapter7/report_w28.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。王宮の星状の装飾は別物として保持。",
+    "sha256": "bd6128a0c4f274715c0ee901a97f168024c2d1f9d4648c525ef527a5fee1ce65",
+    "checked_at": "2026-10-14T10:05:31.248397+00:00",
+    "current_sha256": "bd6128a0c4f274715c0ee901a97f168024c2d1f9d4648c525ef527a5fee1ce65"
+  },
+  {
+    "id": "report_w29",
+    "master": "art/story-review/chapter7/report_w29.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。王宮の星状の装飾は別物として保持。",
+    "sha256": "5ac52853ba08ac7824a946b431a94306da654148adaea2dd1b0b592f50aba4d2",
+    "checked_at": "2026-10-14T10:05:31.248401+00:00",
+    "current_sha256": "5ac52853ba08ac7824a946b431a94306da654148adaea2dd1b0b592f50aba4d2"
+  },
+  {
+    "id": "w26_splint",
+    "master": "art/story-review/chapter7/w26_splint.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定対象なし。",
+    "sha256": "ad29cbe7e93d14f10f3c3105d5284eced5c5367acf2945d09f3fc5a968345748",
+    "checked_at": "2026-10-14T10:05:46.355698+00:00",
+    "current_sha256": "ad29cbe7e93d14f10f3c3105d5284eced5c5367acf2945d09f3fc5a968345748"
+  },
+  {
+    "id": "w27_crest",
+    "master": "art/story-review/chapter7/w27_crest.png",
+    "status": "確認済・修正不要",
+    "note": "原寸の開いた扉の内側に角張った掌・右の指3本・独立した炎の印。扉の外面へ追加しない。",
+    "sha256": "0b74d9017295554d8e8e0126a1c41c4c1b5bd379053882e2338cc27ff286a9e8",
+    "checked_at": "2026-10-14T10:15:25.184445+00:00",
+    "current_sha256": "0b74d9017295554d8e8e0126a1c41c4c1b5bd379053882e2338cc27ff286a9e8"
+  },
+  {
+    "id": "w28_note",
+    "master": "art/story-review/chapter7/w28_note.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定対象なし。",
+    "sha256": "3bbd64ef9a09b33353bed0924d42f9a8a997eae7016640712cfa09e4eb06edce",
+    "checked_at": "2026-10-14T10:05:46.355712+00:00",
+    "current_sha256": "3bbd64ef9a09b33353bed0924d42f9a8a997eae7016640712cfa09e4eb06edce"
+  },
+  {
+    "id": "ch8_end",
+    "master": "art/story-review/chapter8/ch8_end.png",
+    "status": "確認済・修正不要",
+    "note": "セラは後ろ姿で額・肘内側・背の印の指定位置は髪と衣で隠れる。隠れた位置へ追加しない。",
+    "sha256": "a16f5b8270ac88791e912592c78dc0326be87161d1ed3cf623aae582807cf229",
+    "checked_at": "2026-10-14T10:05:46.355721+00:00",
+    "current_sha256": "a16f5b8270ac88791e912592c78dc0326be87161d1ed3cf623aae582807cf229"
+  },
+  {
+    "id": "irene_bell",
+    "master": "art/story-review/chapter8/irene_bell.png",
+    "status": "確認済・修正不要",
+    "note": "額の原寸で左の角張った親指・右の平行な指3本・手首・独立した炎を確認。",
+    "sha256": "a2aa3f9b408d23db3fbdbc6e3740049fa43c5480d20d635643fae4bfd6f46809",
+    "checked_at": "2026-10-14T10:15:25.184457+00:00",
+    "current_sha256": "a2aa3f9b408d23db3fbdbc6e3740049fa43c5480d20d635643fae4bfd6f46809"
+  },
+  {
+    "id": "irene_rain",
+    "master": "art/story-review/chapter8/irene_rain.png",
+    "status": "修正保留",
+    "note": "候補の額は上向きの短い指が4本ある杯状の形で基準に不一致。原画を保持、候補は不採用。",
+    "sha256": "52fe45c6b9f9f3c330f5f936fce7ebeffe3bab3a19683fdb520ba16432aa9efa",
+    "checked_at": "2026-10-14T10:44:52.460183+00:00",
+    "current_sha256": "52fe45c6b9f9f3c330f5f936fce7ebeffe3bab3a19683fdb520ba16432aa9efa"
+  },
+  {
+    "id": "mem_w33",
+    "master": "art/story-review/chapter8/mem_w33.png",
+    "status": "確認済・修正不要",
+    "note": "師は外套を残した後のシャツ姿。外套の印を足さない。",
+    "sha256": "ac23855ead2328ca25a960676d48c586ffb41c447c3bb14e95dab290b817dd36",
+    "checked_at": "2026-10-14T10:06:00.336997+00:00",
+    "current_sha256": "ac23855ead2328ca25a960676d48c586ffb41c447c3bb14e95dab290b817dd36"
+  },
+  {
+    "id": "report_w30",
+    "master": "art/story-review/chapter8/report_w30.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。",
+    "sha256": "c256bc4ab46d706816a80f6a0e0f319c044bc8a0d9591558107e4797a30dbebf",
+    "checked_at": "2026-10-14T10:06:00.337004+00:00",
+    "current_sha256": "c256bc4ab46d706816a80f6a0e0f319c044bc8a0d9591558107e4797a30dbebf"
+  },
+  {
+    "id": "report_w31",
+    "master": "art/story-review/chapter8/report_w31.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。王宮の装飾と杖を変更しない。",
+    "sha256": "ae9740aa2df6cebe5e0041cd7094be74ada9fad86e1963f80188e8f111da5fba",
+    "checked_at": "2026-10-14T10:06:14.096637+00:00",
+    "current_sha256": "ae9740aa2df6cebe5e0041cd7094be74ada9fad86e1963f80188e8f111da5fba"
+  },
+  {
+    "id": "report_w32",
+    "master": "art/story-review/chapter8/report_w32.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。王宮の装飾と杖を変更しない。",
+    "sha256": "a4e7817b01ee1700b38b5de657bd2d31740d8828e0eb7d016b1a47d6d469dad3",
+    "checked_at": "2026-10-14T10:06:14.096652+00:00",
+    "current_sha256": "a4e7817b01ee1700b38b5de657bd2d31740d8828e0eb7d016b1a47d6d469dad3"
+  },
+  {
+    "id": "report_w33",
+    "master": "art/story-review/chapter8/report_w33.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。王宮の装飾と杖を変更しない。",
+    "sha256": "0e0fc7857e2ce1286dfb8f18d64e8293521d19a8f8e7ad15694fffcd1a19ea67",
+    "checked_at": "2026-10-14T10:06:14.096658+00:00",
+    "current_sha256": "0e0fc7857e2ce1286dfb8f18d64e8293521d19a8f8e7ad15694fffcd1a19ea67"
+  },
+  {
+    "id": "w30_stick",
+    "master": "art/story-review/chapter8/w30_stick.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。王宮の装飾と杖を変更しない。",
+    "sha256": "425f7f92c0af971e19cb65e6f27e80a19432159b140aafc8f4c08c6574a40181",
+    "checked_at": "2026-10-14T10:06:14.096662+00:00",
+    "current_sha256": "425f7f92c0af971e19cb65e6f27e80a19432159b140aafc8f4c08c6574a40181"
+  },
+  {
+    "id": "w31_bell",
+    "master": "art/story-review/chapter8/w31_bell.png",
+    "status": "確認済・修正不要",
+    "note": "原寸の鐘内側の縁で、各印の右の指3本・独立した炎・短い手首を確認。",
+    "sha256": "65294773cfb6b29affc85e0b41a3b02fbcde1943f5962a0bee80eb62125eff70",
+    "checked_at": "2026-10-14T10:15:52.220167+00:00",
+    "current_sha256": "65294773cfb6b29affc85e0b41a3b02fbcde1943f5962a0bee80eb62125eff70"
+  },
+  {
+    "id": "w32_rod",
+    "master": "art/story-review/chapter8/w32_rod.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。避雷針の先端の火花は一門の印ではない。場面指定なし。",
+    "sha256": "ba2ba67e6d064450cdb6f36ae0c855752db12bbe45924dec4dc0df1a919bd876",
+    "checked_at": "2026-10-14T10:06:28.511121+00:00",
+    "current_sha256": "ba2ba67e6d064450cdb6f36ae0c855752db12bbe45924dec4dc0df1a919bd876"
+  },
+  {
+    "id": "ch9_end",
+    "master": "art/story-review/chapter9/ch9_end.png",
+    "status": "確認済・修正不要",
+    "note": "セラは後ろ姿で額と継ぎ目内側は隠れる。追加しない。",
+    "sha256": "76b2cba667d58311c783d533d3d0cc076ff72a4c8d607cf42146036ed02d0494",
+    "checked_at": "2026-10-14T10:06:28.511127+00:00",
+    "current_sha256": "76b2cba667d58311c783d533d3d0cc076ff72a4c8d607cf42146036ed02d0494"
+  },
+  {
+    "id": "irene_rest",
+    "master": "art/story-review/chapter9/irene_rest.png",
+    "status": "修正保留",
+    "note": "候補の額に旧杯状の印が残り、基準形への置換が反映されず不採用。原画を保持。",
+    "sha256": "93ead0e6ad887d4355863d3c45f2a5d9ae11a926fef2c6f6f38ffaf29c5d9a11",
+    "checked_at": "2026-10-14T10:47:53.716067+00:00",
+    "current_sha256": "93ead0e6ad887d4355863d3c45f2a5d9ae11a926fef2c6f6f38ffaf29c5d9a11"
+  },
+  {
+    "id": "report_w34",
+    "master": "art/story-review/chapter9/report_w34.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。王宮の模様・灯籠の光を保持。",
+    "sha256": "9135e23e99fb42adc251f48a65c02e6548f2161ce80a315b3e711efd1cac3163",
+    "checked_at": "2026-10-14T10:06:42.734742+00:00",
+    "current_sha256": "9135e23e99fb42adc251f48a65c02e6548f2161ce80a315b3e711efd1cac3163"
+  },
+  {
+    "id": "report_w37",
+    "master": "art/story-review/chapter9/report_w37.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。王宮の模様・灯籠の光を保持。",
+    "sha256": "3d1ee1f0b6ae205855be2b4f8a713a3a0d31dcb7d9b93942d445e0cfb33c2288",
+    "checked_at": "2026-10-14T10:06:42.734756+00:00",
+    "current_sha256": "3d1ee1f0b6ae205855be2b4f8a713a3a0d31dcb7d9b93942d445e0cfb33c2288"
+  },
+  {
+    "id": "w34_glove",
+    "master": "art/story-review/chapter9/w34_glove.png",
+    "status": "確認済・修正不要",
+    "note": "原寸の手袋の甲に角張った掌・指3本・独立した炎・短い手首を確認。",
+    "sha256": "f84acda730ad158769ebdb3a90636ffa241d4424f1423fda112fc17cffc86e90",
+    "checked_at": "2026-10-14T10:16:18.911386+00:00",
+    "current_sha256": "f84acda730ad158769ebdb3a90636ffa241d4424f1423fda112fc17cffc86e90"
+  },
+  {
+    "id": "w35_lamps",
+    "master": "art/story-review/chapter9/w35_lamps.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。王宮の模様・灯籠の光を保持。",
+    "sha256": "226d0c8de03eba27ef9947dd210e1ea57d861ec03e9cee62d46a1d2a0d5e3cde",
+    "checked_at": "2026-10-14T10:06:42.734762+00:00",
+    "current_sha256": "226d0c8de03eba27ef9947dd210e1ea57d861ec03e9cee62d46a1d2a0d5e3cde"
+  },
+  {
+    "id": "irene_names",
+    "master": "art/story-review/chapter10/irene_names.png",
+    "status": "修正保留",
+    "note": "候補の額は旧杯状の印のままで基準の幾何学形へ置換されていないため不採用。原画を保持。",
+    "sha256": "2d85e2bfa4bc96c7a9c8e9dcef21a7a2d8cf4877826f7fee11c7b32806484dd5",
+    "checked_at": "2026-10-14T10:49:29.640435+00:00",
+    "current_sha256": "2d85e2bfa4bc96c7a9c8e9dcef21a7a2d8cf4877826f7fee11c7b32806484dd5"
+  },
+  {
+    "id": "report_w38",
+    "master": "art/story-review/chapter10/report_w38.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。王宮の装飾を保持。",
+    "sha256": "688a5f8d1999a72604c46fb0d650f8567efb00c00158526cf538f59e16224f67",
+    "checked_at": "2026-10-14T10:07:01.251846+00:00",
+    "current_sha256": "688a5f8d1999a72604c46fb0d650f8567efb00c00158526cf538f59e16224f67"
+  },
+  {
+    "id": "report_w39",
+    "master": "art/story-review/chapter10/report_w39.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。王宮の装飾を保持。",
+    "sha256": "d370cd45caf0879232693eaae0a6e6d88a1d29b5ff04c802399393d97cc8b88b",
+    "checked_at": "2026-10-14T10:07:01.251852+00:00",
+    "current_sha256": "d370cd45caf0879232693eaae0a6e6d88a1d29b5ff04c802399393d97cc8b88b"
+  },
+  {
+    "id": "report_w40",
+    "master": "art/story-review/chapter10/report_w40.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。王宮の装飾を保持。",
+    "sha256": "2dd4ca58f91b7071b68a4df1448062a2dd5c86e89958e3c4788463139fe1f1d3",
+    "checked_at": "2026-10-14T10:07:01.251856+00:00",
+    "current_sha256": "2dd4ca58f91b7071b68a4df1448062a2dd5c86e89958e3c4788463139fe1f1d3"
+  },
+  {
+    "id": "w38_lamp",
+    "master": "art/story-review/chapter10/w38_lamp.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。灯籠と別の無顔の人業に印を一律に追加しない。",
+    "sha256": "f54ae5693e16a76fce0d8daf8f2845dc11d0e8ed5d1fadc4d7afb8f372e2b4d2",
+    "checked_at": "2026-10-14T10:07:14.243383+00:00",
+    "current_sha256": "f54ae5693e16a76fce0d8daf8f2845dc11d0e8ed5d1fadc4d7afb8f372e2b4d2"
+  },
+  {
+    "id": "w39_tags",
+    "master": "art/story-review/chapter10/w39_tags.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。灯籠と別の無顔の人業に印を一律に追加しない。",
+    "sha256": "9b8b406602b3f8a023f7c08cb67e47e214220826e63c6e57f945acd17562fb09",
+    "checked_at": "2026-10-14T10:07:14.243398+00:00",
+    "current_sha256": "9b8b406602b3f8a023f7c08cb67e47e214220826e63c6e57f945acd17562fb09"
+  },
+  {
+    "id": "w40_eyes",
+    "master": "art/story-review/chapter10/w40_eyes.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。灯籠と別の無顔の人業に印を一律に追加しない。",
+    "sha256": "c4943fd5c3bd4caf30605cfcbf82e65bd7de0d980a2b87b8b249a3eb3e3f1685",
+    "checked_at": "2026-10-14T10:07:14.243403+00:00",
+    "current_sha256": "c4943fd5c3bd4caf30605cfcbf82e65bd7de0d980a2b87b8b249a3eb3e3f1685"
+  },
+  {
+    "id": "lore_w00_forest",
+    "master": "art/story-review/dungeons/lore_w00_forest.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。灯籠と別の無顔の人業に印を一律に追加しない。",
+    "sha256": "a550b2d249b8f1fc4dcd00c2e5be14e3e1b05e3e80a2b7a4cea42576fc3c6ac5",
+    "checked_at": "2026-10-14T10:07:14.243435+00:00",
+    "current_sha256": "a550b2d249b8f1fc4dcd00c2e5be14e3e1b05e3e80a2b7a4cea42576fc3c6ac5"
+  },
+  {
+    "id": "lore_w01",
+    "master": "art/story-review/dungeons/lore_w01.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定対象なし。",
+    "sha256": "9259538c5c472290f5ca48ab255716b4b6ead6a9bf4f804f7f797c98d89b636b",
+    "checked_at": "2026-10-14T10:07:31.830162+00:00",
+    "current_sha256": "9259538c5c472290f5ca48ab255716b4b6ead6a9bf4f804f7f797c98d89b636b"
+  },
+  {
+    "id": "lore_w02",
+    "master": "art/story-review/dungeons/lore_w02.png",
+    "status": "修正済・確認済",
+    "note": "写実的な手と曲線の炎を、承認済みの幾何学印の石の浮き彫りへ修正。原寸部分で左親指・右3本の指・短い手首・独立した炎を確認。384×256で円枠・構図・光を確認。原画に反映。ユーザーのmainへのマージ指示を受領。",
+    "sha256": "9085fbd3e46240091935c3054865d8cb6000cb9716a5cd07772839055355068d",
+    "checked_at": "2026-10-14T10:51:32.355867+00:00",
+    "current_sha256": "0aa56f7676c2c10a9090ce42fa88e89197f937b9a3a695ac9323016e883c4feb",
+    "shipping": "build.pyで1536×1024 WebPへ変換・検査済"
+  },
+  {
+    "id": "lore_w03",
+    "master": "art/story-review/dungeons/lore_w03.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定対象なし。",
+    "sha256": "508d8150a2411de2734d51705e459d3c676f8b79f3f572d4fa91ed640be169ba",
+    "checked_at": "2026-10-14T10:07:31.830179+00:00",
+    "current_sha256": "508d8150a2411de2734d51705e459d3c676f8b79f3f572d4fa91ed640be169ba"
+  },
+  {
+    "id": "lore_w04",
+    "master": "art/story-review/dungeons/lore_w04.png",
+    "status": "確認済・修正不要",
+    "note": "原寸で手の甲が見える。指定位置は手首の内側で裏になるため、見える甲側へ印を追加しない。",
+    "sha256": "2c7a3ea6918a1173a398dcceea7c732da7b4f6f0897db1b345296dba59dc835b",
+    "checked_at": "2026-10-14T10:16:18.911405+00:00",
+    "current_sha256": "2c7a3ea6918a1173a398dcceea7c732da7b4f6f0897db1b345296dba59dc835b"
+  },
+  {
+    "id": "lore_w05",
+    "master": "art/story-review/dungeons/lore_w05.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定対象なし。旗の模様・帳面は別物。",
+    "sha256": "5068b06c838b967eac7a87eae3687c6181cfa8bb3e8ad267f50024c83d1d7bcb",
+    "checked_at": "2026-10-14T10:07:45.532937+00:00",
+    "current_sha256": "5068b06c838b967eac7a87eae3687c6181cfa8bb3e8ad267f50024c83d1d7bcb"
+  },
+  {
+    "id": "lore_w06",
+    "master": "art/story-review/dungeons/lore_w06.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定対象なし。旗の模様・帳面は別物。",
+    "sha256": "1c03569e5987a57d2b5b3a7bd556c78ca0971ce9b601bb2c02cfb4409488f86b",
+    "checked_at": "2026-10-14T10:07:45.533039+00:00",
+    "current_sha256": "1c03569e5987a57d2b5b3a7bd556c78ca0971ce9b601bb2c02cfb4409488f86b"
+  },
+  {
+    "id": "lore_w07",
+    "master": "art/story-review/dungeons/lore_w07.png",
+    "status": "修正保留",
+    "note": "編集候補も額の杯状の印が残り、基準形への置換が反映されず不採用。原画を保持。壁の印は基準に合う。",
+    "sha256": "2c946b1c0d6e9209c814db733f447beea02449cb97101a212ed45d143b9be723",
+    "checked_at": "2026-10-14T10:53:24.961558+00:00",
+    "current_sha256": "2c946b1c0d6e9209c814db733f447beea02449cb97101a212ed45d143b9be723"
+  },
+  {
+    "id": "lore_w08",
+    "master": "art/story-review/dungeons/lore_w08.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定対象なし。旗の模様・帳面は別物。",
+    "sha256": "0824c206aaa6c016643530ceb3ba062321fd8f57eca101c1a5dc0200b9d2e6d5",
+    "checked_at": "2026-10-14T10:07:45.533046+00:00",
+    "current_sha256": "0824c206aaa6c016643530ceb3ba062321fd8f57eca101c1a5dc0200b9d2e6d5"
+  },
+  {
+    "id": "lore_w09",
+    "master": "art/story-review/dungeons/lore_w09.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定対象なし。",
+    "sha256": "d515b7537f980aecf6ef89405f6f90ac5310c6e10c8b3813284b5920d92c4f0f",
+    "checked_at": "2026-10-14T10:08:01.521202+00:00",
+    "current_sha256": "d515b7537f980aecf6ef89405f6f90ac5310c6e10c8b3813284b5920d92c4f0f"
+  },
+  {
+    "id": "lore_w10",
+    "master": "art/story-review/dungeons/lore_w10.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定対象なし。",
+    "sha256": "893a168af918caa36cb19187698b9a30480d7cbdd2144acb7ad52f068181862c",
+    "checked_at": "2026-10-14T10:08:01.521218+00:00",
+    "current_sha256": "893a168af918caa36cb19187698b9a30480d7cbdd2144acb7ad52f068181862c"
+  },
+  {
+    "id": "lore_w11",
+    "master": "art/story-review/dungeons/lore_w11.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定対象なし。",
+    "sha256": "9e2cb02082ead382b05fa1b2b4f7fd939bfcabd1f1790e96873212b43362587e",
+    "checked_at": "2026-10-14T10:08:01.521224+00:00",
+    "current_sha256": "9e2cb02082ead382b05fa1b2b4f7fd939bfcabd1f1790e96873212b43362587e"
+  },
+  {
+    "id": "lore_w12",
+    "master": "art/story-review/dungeons/lore_w12.png",
+    "status": "修正済・確認済",
+    "note": "胴の前面と首前面の金の紋を除去し木目へ修正。原寸部分で前面が無地、木の形・肩関節・胸の開口部を確認。384×256で構図と光を確認。原画に反映、背の隠れた面へ印は追加していない。ユーザーのmainへのマージ指示を受領。",
+    "sha256": "e57239667da01950df94b67bbb439bccd6532c6fd899d627c4287d1742d4570a",
+    "checked_at": "2026-10-14T10:56:07.779351+00:00",
+    "current_sha256": "dbed100fad0fc68b20301b4d1115db7fcf37726a1a38885c135180d21d1aefa6",
+    "shipping": "build.pyで1536×1024 WebPへ変換・検査済"
+  },
+  {
+    "id": "lore_w13",
+    "master": "art/story-review/dungeons/lore_w13.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定対象は見えない。景色の装飾へ追加しない。",
+    "sha256": "a54cc7b55fcb24a73298d60915197c64c6e5b06ce0db4374891c7edf0733bcde",
+    "checked_at": "2026-10-14T10:08:20.081325+00:00",
+    "current_sha256": "a54cc7b55fcb24a73298d60915197c64c6e5b06ce0db4374891c7edf0733bcde"
+  },
+  {
+    "id": "lore_w14",
+    "master": "art/story-review/dungeons/lore_w14.png",
+    "status": "要確認",
+    "note": "風景中の複数の灯籠が描かれるが、w14_lampの青白い火の灯籠と同一と確定できない。笠に一律に印を追加しない。",
+    "sha256": "4537382eaae4da127f8d677e88eb85ba21c43593d0b466cd491f9723250e2a3e",
+    "checked_at": "2026-10-14T10:08:20.081346+00:00",
+    "current_sha256": "4537382eaae4da127f8d677e88eb85ba21c43593d0b466cd491f9723250e2a3e"
+  },
+  {
+    "id": "lore_w15",
+    "master": "art/story-review/dungeons/lore_w15.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定対象は見えない。景色の装飾へ追加しない。",
+    "sha256": "dba58fe159673cd6325854e4c21ab8efe918d99a080dfc8830ac012c2c18427a",
+    "checked_at": "2026-10-14T10:08:20.081340+00:00",
+    "current_sha256": "dba58fe159673cd6325854e4c21ab8efe918d99a080dfc8830ac012c2c18427a"
+  },
+  {
+    "id": "lore_w16",
+    "master": "art/story-review/dungeons/lore_w16.png",
+    "status": "要確認",
+    "note": "水底の脚の内側が濁りと陰で隠れる。くるぶしの印は視認できず、指定位置が露出しているとも確定できない。追加は保留。",
+    "sha256": "8f5a1f55915ff74b2453d8c8ac1d43954510dd81bcd7ea4faca36154507f2c9a",
+    "checked_at": "2026-10-14T10:08:20.081351+00:00",
+    "current_sha256": "8f5a1f55915ff74b2453d8c8ac1d43954510dd81bcd7ea4faca36154507f2c9a"
+  },
+  {
+    "id": "lore_w17",
+    "master": "art/story-review/dungeons/lore_w17.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。炉や金の杯の装飾を印へ置き換えない。",
+    "sha256": "eafaaaac9dbe82d9e70b9ad2177efe79e462487770bece4aed35e923b35d40e5",
+    "checked_at": "2026-10-14T10:08:32.462564+00:00",
+    "current_sha256": "eafaaaac9dbe82d9e70b9ad2177efe79e462487770bece4aed35e923b35d40e5"
+  },
+  {
+    "id": "lore_w19",
+    "master": "art/story-review/dungeons/lore_w19.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。炉や金の杯の装飾を印へ置き換えない。",
+    "sha256": "fc2ce66333e045650a7591899a9bae438dfe35e11493bd29d0dd57637c57a317",
+    "checked_at": "2026-10-14T10:08:32.462578+00:00",
+    "current_sha256": "fc2ce66333e045650a7591899a9bae438dfe35e11493bd29d0dd57637c57a317"
+  },
+  {
+    "id": "lore_w20",
+    "master": "art/story-review/dungeons/lore_w20.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。炉や金の杯の装飾を印へ置き換えない。",
+    "sha256": "ec33793aca20bc6226e73547e350572d36a3e2c872b8d33e49ca3603ddde0316",
+    "checked_at": "2026-10-14T10:08:32.462585+00:00",
+    "current_sha256": "ec33793aca20bc6226e73547e350572d36a3e2c872b8d33e49ca3603ddde0316"
+  },
+  {
+    "id": "lore_w21",
+    "master": "art/story-review/dungeons/lore_w21.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。炉や金の杯の装飾を印へ置き換えない。",
+    "sha256": "c9307a4018ba066b96c34abfe8915e1d4c449d8c836001a3a52cfa15a8afb5e9",
+    "checked_at": "2026-10-14T10:08:32.462589+00:00",
+    "current_sha256": "c9307a4018ba066b96c34abfe8915e1d4c449d8c836001a3a52cfa15a8afb5e9"
+  },
+  {
+    "id": "lore_w22",
+    "master": "art/story-review/dungeons/lore_w22.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。印を指定された物の露出はない。景色へ追加しない。",
+    "sha256": "5c1f8909c5c66fd6b2b89777ba37b5332239a5dc73ca9c9300c15ce148481574",
+    "checked_at": "2026-10-14T10:08:46.449632+00:00",
+    "current_sha256": "5c1f8909c5c66fd6b2b89777ba37b5332239a5dc73ca9c9300c15ce148481574"
+  },
+  {
+    "id": "lore_w23",
+    "master": "art/story-review/dungeons/lore_w23.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。印を指定された物の露出はない。景色へ追加しない。",
+    "sha256": "5b8d89795a4d1e92aab4eb344093f0af87fd28f31c3ffdd42d2666f1a6411dee",
+    "checked_at": "2026-10-14T10:08:46.449647+00:00",
+    "current_sha256": "5b8d89795a4d1e92aab4eb344093f0af87fd28f31c3ffdd42d2666f1a6411dee"
+  },
+  {
+    "id": "lore_w29",
+    "master": "art/story-review/dungeons/lore_w29.png",
+    "status": "要確認",
+    "note": "工房の壁の赤い布に大きな一門の印らしい図形。本文は工房の扉の上の印を指定。壁の布がその印の表現か根拠不足。推測で移動・消去しない。",
+    "sha256": "f6d1e2d3953a50c416f61a7a3fb49aabcb0e4d4e4e934cd7a4015decfa2c1bf2",
+    "checked_at": "2026-10-14T10:08:46.449658+00:00",
+    "current_sha256": "f6d1e2d3953a50c416f61a7a3fb49aabcb0e4d4e4e934cd7a4015decfa2c1bf2"
+  },
+  {
+    "id": "lore_w30",
+    "master": "art/story-review/dungeons/lore_w30.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。印を指定された物の露出はない。景色へ追加しない。",
+    "sha256": "b1e191bd85f1b504e34eb0e6f022482aef9dd2d6b640d00462bfc849d9989315",
+    "checked_at": "2026-10-14T10:08:46.449653+00:00",
+    "current_sha256": "b1e191bd85f1b504e34eb0e6f022482aef9dd2d6b640d00462bfc849d9989315"
+  },
+  {
+    "id": "lore_w31",
+    "master": "art/story-review/dungeons/lore_w31.png",
+    "status": "確認済・修正不要",
+    "note": "原寸で鐘内側の縁の印は角張った掌・右の指3本・独立した炎・短い手首。",
+    "sha256": "6b49782762bfeabd72467503237688bf2de65a3b0b32f2370c6336308e843fc5",
+    "checked_at": "2026-10-14T10:16:52.687685+00:00",
+    "current_sha256": "6b49782762bfeabd72467503237688bf2de65a3b0b32f2370c6336308e843fc5"
+  },
+  {
+    "id": "lore_w32",
+    "master": "art/story-review/dungeons/lore_w32.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印を配置する場面指定なし。雷や鐘を理由に一律に印を追加しない。",
+    "sha256": "b915f5ae20ff999e55cdbb7d5ded7f94629844bfb2d5822aebd11cb6dcc80e05",
+    "checked_at": "2026-10-14T10:09:04.609586+00:00",
+    "current_sha256": "b915f5ae20ff999e55cdbb7d5ded7f94629844bfb2d5822aebd11cb6dcc80e05"
+  },
+  {
+    "id": "lore_w33",
+    "master": "art/story-review/dungeons/lore_w33.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印を配置する場面指定なし。雷や鐘を理由に一律に印を追加しない。",
+    "sha256": "a99439d96c09dfd418990762ba9ca8d9b6959d0beea1ebe2045e818e860de0f1",
+    "checked_at": "2026-10-14T10:09:04.609592+00:00",
+    "current_sha256": "a99439d96c09dfd418990762ba9ca8d9b6959d0beea1ebe2045e818e860de0f1"
+  },
+  {
+    "id": "lore_ws1",
+    "master": "art/story-review/dungeons/lore_ws1.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印を配置する場面指定なし。雷や鐘を理由に一律に印を追加しない。",
+    "sha256": "6242e726166d0c1cce2272bb05a9f8548484dc5e975c0c22b55e5cf94db01679",
+    "checked_at": "2026-10-14T10:09:04.609597+00:00",
+    "current_sha256": "6242e726166d0c1cce2272bb05a9f8548484dc5e975c0c22b55e5cf94db01679"
+  },
+  {
+    "id": "lore_ws11",
+    "master": "art/story-review/dungeons/lore_ws11.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。別の迷宮の鐘には一律に印を追加しない。",
+    "sha256": "50b89f9f5d151c4d8cbebe6976c6c517e3ae9417632f7b053d75adfba341fda3",
+    "checked_at": "2026-10-14T10:09:17.319744+00:00",
+    "current_sha256": "50b89f9f5d151c4d8cbebe6976c6c517e3ae9417632f7b053d75adfba341fda3"
+  },
+  {
+    "id": "lore_ws12",
+    "master": "art/story-review/dungeons/lore_ws12.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。別の迷宮の鐘には一律に印を追加しない。",
+    "sha256": "4ec5a1bc818dfa371d7ea35bbfdd69ccbf4eb56dde809b4a25a882f1522bf60c",
+    "checked_at": "2026-10-14T10:09:17.319759+00:00",
+    "current_sha256": "4ec5a1bc818dfa371d7ea35bbfdd69ccbf4eb56dde809b4a25a882f1522bf60c"
+  },
+  {
+    "id": "lore_ws13",
+    "master": "art/story-review/dungeons/lore_ws13.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。別の迷宮の鐘には一律に印を追加しない。",
+    "sha256": "0ef2dbb03aa7f17102fed7c34f9540fd0128b4f213a70ae361b591d224228fda",
+    "checked_at": "2026-10-14T10:09:17.319765+00:00",
+    "current_sha256": "0ef2dbb03aa7f17102fed7c34f9540fd0128b4f213a70ae361b591d224228fda"
+  },
+  {
+    "id": "lore_ws14",
+    "master": "art/story-review/dungeons/lore_ws14.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。別の迷宮の鐘には一律に印を追加しない。",
+    "sha256": "a7c668d794903f935eda2c7e4b9844398cd668968ce6a7ebcadc73a22c0bdf75",
+    "checked_at": "2026-10-14T10:09:17.319770+00:00",
+    "current_sha256": "a7c668d794903f935eda2c7e4b9844398cd668968ce6a7ebcadc73a22c0bdf75"
+  },
+  {
+    "id": "lore_ws15",
+    "master": "art/story-review/dungeons/lore_ws15.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定対象なし。",
+    "sha256": "a94856ae1a844f1b7534cf46964ec91c0a26d76dc283d10c807ed99c6be253db",
+    "checked_at": "2026-10-14T10:09:31.172310+00:00",
+    "current_sha256": "a94856ae1a844f1b7534cf46964ec91c0a26d76dc283d10c807ed99c6be253db"
+  },
+  {
+    "id": "lore_ws16",
+    "master": "art/story-review/dungeons/lore_ws16.png",
+    "status": "確認済・修正不要",
+    "note": "原寸で避雷針の根元の印は角張った掌・右の指3本・独立した炎・短い手首。",
+    "sha256": "4ee058e5c349954e891b606d843a9ec1702ba52617e114b376744306f87b4720",
+    "checked_at": "2026-10-14T10:16:52.687690+00:00",
+    "current_sha256": "4ee058e5c349954e891b606d843a9ec1702ba52617e114b376744306f87b4720"
+  },
+  {
+    "id": "lore_ws17",
+    "master": "art/story-review/dungeons/lore_ws17.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定対象なし。",
+    "sha256": "6e160c0274f5c5e01d2d6bf38029d8e58b308ad6326195036803b33a2dd63baa",
+    "checked_at": "2026-10-14T10:09:31.172327+00:00",
+    "current_sha256": "6e160c0274f5c5e01d2d6bf38029d8e58b308ad6326195036803b33a2dd63baa"
+  },
+  {
+    "id": "lore_ws2",
+    "master": "art/story-review/dungeons/lore_ws2.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定対象なし。",
+    "sha256": "992d9cd02e60d3519ae8b1ea4396270ae30ba7e647bec18028bc9f24f3a69e6a",
+    "checked_at": "2026-10-14T10:09:31.172333+00:00",
+    "current_sha256": "992d9cd02e60d3519ae8b1ea4396270ae30ba7e647bec18028bc9f24f3a69e6a"
+  },
+  {
+    "id": "lore_ws5",
+    "master": "art/story-review/dungeons/lore_ws5.png",
+    "status": "確認済・修正不要",
+    "note": "縮小で確認。一門の印の配置指定なし。宝物の模様への追加は行わない。",
+    "sha256": "a4d5a43304bda908afb9a1544b493a7af9f3e6c7a85b7d4e50e068f92a6bbd57",
+    "checked_at": "2026-10-14T10:09:53.531182+00:00",
+    "current_sha256": "a4d5a43304bda908afb9a1544b493a7af9f3e6c7a85b7d4e50e068f92a6bbd57"
+  }
+]

@@ -2,7 +2,7 @@
 
 書き出し: `node tools/storyart/review.mjs` (build.py も書き直す。手で直さない)。
 
-場面: 出荷済み 103 ・ 出荷済み (任意の修正あり) 12 ・ 未着手 (指示あり) 9
+場面: 出荷済み 93 ・ 出荷済み (任意の修正あり) 12 ・ 出荷済み・修正待ち 10 ・ 未着手 (指示あり) 9
 
 | 章 | 場面 | 題 | 状態 | 確認ページ |
 |---|---|---|---|---|
@@ -49,7 +49,7 @@
 | 第3章「魂脈の根」 | `report_w11` | 庭師の長い歳月 | 出荷済み (任意の修正あり) | [見る](chapter3.md#report_w11) |
 | 第3章「魂脈の根」 | `w12_torso` | 軽すぎる帰りの荷 | 出荷済み | [見る](chapter3.md#w12_torso) |
 | 第3章「魂脈の根」 | `report_w12` | 飲まれなくなった杯 | 出荷済み (任意の修正あり) | [見る](chapter3.md#report_w12) |
-| 第3章「魂脈の根」 | `irene_torso` | お帰りを重ねる仕事 | 出荷済み | [見る](chapter3.md#irene_torso) |
+| 第3章「魂脈の根」 | `irene_torso` | お帰りを重ねる仕事 | 出荷済み・修正待ち | [見る](chapter3.md#irene_torso) |
 | 第3章「魂脈の根」 | `mem_w13` | 魂の流れを登る師 | 出荷済み | [見る](chapter3.md#mem_w13) |
 | 第3章「魂脈の根」 | `report_w13` | 微笑む宰相、老いていく王 | 出荷済み | [見る](chapter3.md#report_w13) |
 | 第3章「魂脈の根」 | `ch3_end` | 帰る場所から、玉座の下へ | 出荷済み | [見る](chapter3.md#ch3_end) |
@@ -57,7 +57,7 @@
 | 第4章「王都の地下」 | `report_w14` | 足元に沈む都 | 出荷済み | [見る](chapter4.md#report_w14) |
 | 第4章「王都の地下」 | `w15_mural` | 老いない横顔 | 出荷済み | [見る](chapter4.md#w15_mural) |
 | 第4章「王都の地下」 | `report_w15` | 名の残らない神官 | 出荷済み | [見る](chapter4.md#report_w15) |
-| 第4章「王都の地下」 | `w16_legs` | 根の中を歩いた脚 | 出荷済み | [見る](chapter4.md#w16_legs) |
+| 第4章「王都の地下」 | `w16_legs` | 根の中を歩いた脚 | 出荷済み・修正待ち | [見る](chapter4.md#w16_legs) |
 | 第4章「王都の地下」 | `report_w16` | 破られた誓いの水 | 出荷済み | [見る](chapter4.md#report_w16) |
 | 第4章「王都の地下」 | `irene_sera_wake` | 灯が移った夜明け | 出荷済み | [見る](chapter4.md#irene_sera_wake) |
 | 第4章「王都の地下」 | `mem_w17` | 水の底の戴冠 | 出荷済み | [見る](chapter4.md#mem_w17) |
@@ -66,13 +66,13 @@
 | 第5章「灼熱の洞」 | `w18_blade` | 手放された刃 | 出荷済み | [見る](chapter5.md#w18_blade) |
 | 第5章「灼熱の洞」 | `report_w18` | 床の下の熱 | 出荷済み | [見る](chapter5.md#report_w18) |
 | 第5章「灼熱の洞」 | `w19_husks` | 同じ顔の器 | 出荷済み | [見る](chapter5.md#w19_husks) |
-| 第5章「灼熱の洞」 | `irene_husks` | 締め直された継ぎ目 | 出荷済み | [見る](chapter5.md#irene_husks) |
+| 第5章「灼熱の洞」 | `irene_husks` | 締め直された継ぎ目 | 出荷済み・修正待ち | [見る](chapter5.md#irene_husks) |
 | 第5章「灼熱の洞」 | `report_w19` | 燃やされる器 | 出荷済み | [見る](chapter5.md#report_w19) |
 | 第5章「灼熱の洞」 | `w20_cup` | 三百年分の一行 | 出荷済み | [見る](chapter5.md#w20_cup) |
 | 第5章「灼熱の洞」 | `report_w20` | 床に置かれた杯 | 出荷済み | [見る](chapter5.md#report_w20) |
 | 第5章「灼熱の洞」 | `mem_w21` | 大釜の前の二人 | 出荷済み | [見る](chapter5.md#mem_w21) |
 | 第5章「灼熱の洞」 | `report_w21` | 冷えていく指先 | 出荷済み | [見る](chapter5.md#report_w21) |
-| 第5章「灼熱の洞」 | `ch5_end` | 底のない穴の上で | 出荷済み | [見る](chapter5.md#ch5_end) |
+| 第5章「灼熱の洞」 | `ch5_end` | 底のない穴の上で | 出荷済み・修正待ち | [見る](chapter5.md#ch5_end) |
 | 第6章「氷結回廊」 | `w22_coat` | 風が受け止めたもの | 出荷済み | [見る](chapter6.md#w22_coat) |
 | 第6章「氷結回廊」 | `report_w22` | 寒い玉座の間 | 出荷済み | [見る](chapter6.md#report_w22) |
 | 第6章「氷結回廊」 | `w23_names` | 空けてあった柱 | 出荷済み | [見る](chapter6.md#w23_names) |
@@ -81,18 +81,18 @@
 | 第6章「氷結回廊」 | `report_w24` | 落ちきらなかった魂 | 出荷済み | [見る](chapter6.md#report_w24) |
 | 第6章「氷結回廊」 | `mem_w25` | 氷の玉座の前で | 出荷済み | [見る](chapter6.md#mem_w25) |
 | 第6章「氷結回廊」 | `report_w25` | 回廊の肖像 | 出荷済み | [見る](chapter6.md#report_w25) |
-| 第6章「氷結回廊」 | `irene_lineage` | 同じ作り方の灯 | 出荷済み | [見る](chapter6.md#irene_lineage) |
+| 第6章「氷結回廊」 | `irene_lineage` | 同じ作り方の灯 | 出荷済み・修正待ち | [見る](chapter6.md#irene_lineage) |
 | 第6章「氷結回廊」 | `ch6_end` | 解けていく堤 | 出荷済み | [見る](chapter6.md#ch6_end) |
 | 第7章「毒沼」 | `w26_splint` | 腕の木の添え木 | 出荷済み | [見る](chapter7.md#w26_splint) |
 | 第7章「毒沼」 | `report_w26` | 杯を満たしたもの | 出荷済み | [見る](chapter7.md#report_w26) |
 | 第7章「毒沼」 | `w27_crest` | 仕上がらなかった兄弟 | 出荷済み | [見る](chapter7.md#w27_crest) |
 | 第7章「毒沼」 | `report_w27` | 笑わない宰相 | 出荷済み | [見る](chapter7.md#report_w27) |
-| 第7章「毒沼」 | `irene_crest` | 捨てられなかった器 | 出荷済み | [見る](chapter7.md#irene_crest) |
+| 第7章「毒沼」 | `irene_crest` | 捨てられなかった器 | 出荷済み・修正待ち | [見る](chapter7.md#irene_crest) |
 | 第7章「毒沼」 | `w28_note` | 沼を渡る薬 | 出荷済み | [見る](chapter7.md#w28_note) |
 | 第7章「毒沼」 | `report_w28` | 毒の底の灯 | 出荷済み | [見る](chapter7.md#report_w28) |
 | 第7章「毒沼」 | `mem_w29` | ただひとつの言いつけ | 出荷済み | [見る](chapter7.md#mem_w29) |
 | 第7章「毒沼」 | `report_w29` | 死なない命令 | 出荷済み | [見る](chapter7.md#report_w29) |
-| 第7章「毒沼」 | `irene_order` | 灯を守る理由 | 出荷済み | [見る](chapter7.md#irene_order) |
+| 第7章「毒沼」 | `irene_order` | 灯を守る理由 | 出荷済み・修正待ち | [見る](chapter7.md#irene_order) |
 | 第7章「毒沼」 | `ch7_end` | 嵐の鳴る塔へ | 出荷済み | [見る](chapter7.md#ch7_end) |
 | 第8章「嵐の尖塔」 | `w30_stick` | 雷にくれてやった杖 | 出荷済み | [見る](chapter8.md#w30_stick) |
 | 第8章「嵐の尖塔」 | `report_w30` | 鳴りやまぬ雷 | 出荷済み | [見る](chapter8.md#report_w30) |
@@ -103,7 +103,7 @@
 | 第8章「嵐の尖塔」 | `report_w32` | 地の底に吸われる雷 | 出荷済み | [見る](chapter8.md#report_w32) |
 | 第8章「嵐の尖塔」 | `mem_w33` | 縛られた魂 | 出荷済み | [見る](chapter8.md#mem_w33) |
 | 第8章「嵐の尖塔」 | `report_w33` | 百年目の青空 | 出荷済み | [見る](chapter8.md#report_w33) |
-| 第8章「嵐の尖塔」 | `irene_rain` | 雨の音 | 出荷済み | [見る](chapter8.md#irene_rain) |
+| 第8章「嵐の尖塔」 | `irene_rain` | 雨の音 | 出荷済み・修正待ち | [見る](chapter8.md#irene_rain) |
 | 第8章「嵐の尖塔」 | `ch8_end` | 雲の向こうの橋 | 出荷済み | [見る](chapter8.md#ch8_end) |
 | 第9章「闘技場跡」 | `w34_glove` | 置いていった手袋 | 出荷済み | [見る](chapter9.md#w34_glove) |
 | 第9章「闘技場跡」 | `report_w34` | 空の上の町 | 出荷済み | [見る](chapter9.md#report_w34) |
@@ -114,13 +114,13 @@
 | 第9章「闘技場跡」 | `irene_firstdoll` | 最初の人形 | 未着手 (指示あり) | [見る](chapter9.md#irene_firstdoll) |
 | 第9章「闘技場跡」 | `mem_w37` | 十三度目の灯 | 未着手 (指示あり) | [見る](chapter9.md#mem_w37) |
 | 第9章「闘技場跡」 | `report_w37` | 休みのない百年 | 出荷済み | [見る](chapter9.md#report_w37) |
-| 第9章「闘技場跡」 | `irene_rest` | 休む灯 | 出荷済み | [見る](chapter9.md#irene_rest) |
+| 第9章「闘技場跡」 | `irene_rest` | 休む灯 | 出荷済み・修正待ち | [見る](chapter9.md#irene_rest) |
 | 第9章「闘技場跡」 | `ch9_end` | 捨てられた魂の行き先 | 出荷済み | [見る](chapter9.md#ch9_end) |
 | 第10章「地底大空洞」 | `w38_lamp` | 名を思い出さない灯 | 出荷済み | [見る](chapter10.md#w38_lamp) |
 | 第10章「地底大空洞」 | `report_w38` | 底で灯を拾う者 | 出荷済み | [見る](chapter10.md#report_w38) |
 | 第10章「地底大空洞」 | `w39_tags` | 宰相の字 | 出荷済み | [見る](chapter10.md#w39_tags) |
 | 第10章「地底大空洞」 | `report_w39` | 呼ばれなかった名 | 出荷済み | [見る](chapter10.md#report_w39) |
-| 第10章「地底大空洞」 | `irene_names` | 名を呼ぶ人 | 出荷済み | [見る](chapter10.md#irene_names) |
+| 第10章「地底大空洞」 | `irene_names` | 名を呼ぶ人 | 出荷済み・修正待ち | [見る](chapter10.md#irene_names) |
 | 第10章「地底大空洞」 | `w40_eyes` | それでも、底へ | 出荷済み | [見る](chapter10.md#w40_eyes) |
 | 第10章「地底大空洞」 | `report_w40` | 三百年の墓守 | 出荷済み | [見る](chapter10.md#report_w40) |
 | 第10章「地底大空洞」 | `mem_w41` | 階段の前のふたり | 未着手 (指示あり) | [見る](chapter10.md#mem_w41) |
@@ -139,7 +139,7 @@
 | 由来 | `w04` | 黒水の取水口 | 出荷済み | [見る](dungeons.md#lore_w04) |
 | 由来 | `w05` | 鎖の垂れる坑口 | 出荷済み | [見る](dungeons.md#lore_w05) |
 | 由来 | `w06` | 亡兵の守る外郭 | 出荷済み | [見る](dungeons.md#lore_w06) |
-| 由来 | `w07` | 捨て砦の地下牢 | 出荷済み | [見る](dungeons.md#lore_w07) |
+| 由来 | `w07` | 捨て砦の地下牢 | 出荷済み・修正待ち | [見る](dungeons.md#lore_w07) |
 | 由来 | `w08` | 雷雨の大手門 | 出荷済み | [見る](dungeons.md#lore_w08) |
 | 由来 | `w09` | 捨て砦の本丸 | 出荷済み | [見る](dungeons.md#lore_w09) |
 | 由来 | `w10` | 根の這う縦穴 | 出荷済み | [見る](dungeons.md#lore_w10) |
