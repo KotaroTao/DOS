@@ -234,6 +234,7 @@ const ASSETS = [
   "./art/story/dungeons/lore_ws1.webp",
   "./art/story/dungeons/lore_ws2.webp",
   "./art/story/dungeons/lore_ws5.webp",
+  "./art/story/dungeons/lore_ws6.webp",
   "./art/story/dungeons/lore_ws11.webp",
   "./art/story/dungeons/lore_ws12.webp",
   "./art/story/dungeons/lore_ws13.webp",

@@ -149,6 +149,7 @@ export const LORE_IMAGES = {
   ws1: "art/story/dungeons/lore_ws1.webp",
   ws2: "art/story/dungeons/lore_ws2.webp",
   ws5: "art/story/dungeons/lore_ws5.webp",
+  ws6: "art/story/dungeons/lore_ws6.webp",
   ws11: "art/story/dungeons/lore_ws11.webp",
   ws12: "art/story/dungeons/lore_ws12.webp",
   ws13: "art/story/dungeons/lore_ws13.webp",

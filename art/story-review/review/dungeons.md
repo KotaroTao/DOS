@@ -750,9 +750,9 @@ _(絵はまだ無い)_
 
 <a name="lore_ws6"></a>
 
-## lore_ws6「見捨てられた狼煙台」 ── 未着手
+## lore_ws6「見捨てられた狼煙台」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_ws6.webp" width="576" alt="lore_ws6">
 
 **ストーリー一覧の本文**
 

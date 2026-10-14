@@ -23,6 +23,7 @@ import { ELEMENTS } from "../dungeons/index.js";
 import { iconCanvas } from "../townart.js";
 import { drawDungeonVista } from "../backdrops.js";
 import { CHAPTERS } from "../story.js";
+import { LORE_IMAGES } from "../storyimages.js";
 import { dungeonQuestSheet, dungeonActiveQuestSheet, byLevelDesc } from "./questboard.js";
 
 const G = () => game.G;
@@ -89,6 +90,18 @@ function gateIcon(kind) {
 // ---- 迷宮の顔 (上半分): 選んでいる迷宮の情景・説明・記録 ----
 const VISTA_W = 480, VISTA_H = 320; // 戦闘背景と同じ 3:2 で描き、表示枠 (横長) で上下を切る
 let vistaLoop = 0;
+function vistaIllustration(dn) {
+  const path = dn.id === "ws6" && LORE_IMAGES[dn.id];
+  if (!path) return vistaCanvas(dn);
+  const img = document.createElement("img");
+  img.className = "dp-vista-cv";
+  img.style.imageRendering = "auto";
+  img.alt = `${dn.name}の情景`;
+  img.decoding = "async";
+  img.onerror = () => { if (img.isConnected) img.replaceWith(vistaCanvas(dn)); };
+  img.src = path;
+  return img;
+}
 function vistaCanvas(dn) {
   const cv = document.createElement("canvas");
   cv.width = VISTA_W; cv.height = VISTA_H;
@@ -176,7 +189,7 @@ function renderHero(b) {
   if (!dn) return;
   const hero = el("div", "dp-hero");
   const pic = el("div", "dp-vista");
-  pic.appendChild(vistaCanvas(dn));
+  pic.appendChild(vistaIllustration(dn));
   const cap = el("div", "dp-vista-cap");
   const band = game.levelBand ? game.levelBand(dn) : [1, 1];
   const ttl = el("div", "dp-hero-t");
