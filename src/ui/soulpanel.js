@@ -185,19 +185,19 @@ function mainCard(d, pe, town) {
     head.addEventListener("click", () => game.showCodexJobDetail(pe.clsKey, rank));
   }
   card.appendChild(head);
-  const levelRow = el("div", "sp-level-row");
+  const levelRow = el("div", "sp-level-row sp-head-actions");
   levelRow.appendChild(lvN);
   if (town) {
     if (soulChangeVisible()) {
       const fixed = d.vessel === "sera";
       const change = button({ label: "魂を交換", kind: "secondary", size: "sm", disabled: fixed,
-        onTap: () => openSoulPicker(d, "primary") });
+        onTap: (e) => { e?.stopPropagation(); openSoulPicker(d, "primary"); } });
       change.classList.add("sp-change");
       if (fixed) change.title = "セラのメイン魂は付け替え不可";
       levelRow.appendChild(change);
     } else levelRow.appendChild(lockedTile("未解放", "？？？"));
   }
-  card.appendChild(levelRow);
+  head.appendChild(levelRow);
 
   // 次の段までの ✦
   const need = game.soulTrainCost ? game.soulTrainCost(pe.level) : 0;
