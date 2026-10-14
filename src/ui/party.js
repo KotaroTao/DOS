@@ -1175,7 +1175,7 @@ function confirmHastenAll(cost) {
   const have = G.redSoul || 0;
   confirm({
     banner: "連れ帰る", title: `赤い魂 ${Math.min(cost, have)} を捧げ、迷宮に残された人業を連れ帰る？`,
-    lines: [cost === 0 ? "回廊までの迷宮に残された人業は、赤い魂なしで今すぐ連れ帰れる。" : cost > have ? `必要 ${cost} のうち、所持の ${have} だけ捧げる (連れ帰りが早まる)。` : "赤い魂1つで連れ帰りが20分早まる。", "届いた器は館で修復する。回廊を踏破するまでは無料、踏破後は金貨が必要。", `所持: 赤い魂 ${have}`],
+    lines: [cost === 0 ? "この人業は、赤い魂なしで今すぐ連れ帰れる。" : cost > have ? `必要 ${cost} のうち、所持の ${have} だけ捧げる (連れ帰りが早まる)。` : "赤い魂1つで連れ帰りが20分早まる。", "届いた器は館で修復する。必要な金貨は、人業を選んで確かめよう。", `所持: 赤い魂 ${have}`],
     okLabel: "連れ帰る", danger: false,
   }).then((ok) => {
     if (!ok) return;
@@ -1944,7 +1944,7 @@ function rescueLine(d) {
     box.appendChild(button({ label: n === 0 ? "無料で連れ帰る" : "早める", kind: "secondary", size: "sm", cost: { kind: "red", n: n === 0 ? 0 : 1 }, disabled: n > 0 && (G.redSoul || 0) < 1,
       onTap: () => { if (game.tryHastenRescue) game.tryHastenRescue(d); rerender(); } }));
     if (n > 1) box.appendChild(button({ label: "今すぐ", kind: "danger", size: "sm", cost: { kind: "red", n }, disabled: (G.redSoul || 0) < 1,
-      onTap: () => confirm({ banner: "連れ帰る", title: `赤い魂 ${n} で ${d.name} を今すぐ連れ帰る？`, lines: ["届いた器は館で修復する。回廊を踏破するまでは無料、踏破後は金貨が必要。", `所持: 赤い魂 ${G.redSoul || 0}`], okLabel: "連れ帰る", danger: false })
+      onTap: () => confirm({ banner: "連れ帰る", title: `赤い魂 ${n} で ${d.name} を今すぐ連れ帰る？`, lines: ["届いた器は館で修復する。必要な金貨は、人業を選んで確かめよう。", `所持: 赤い魂 ${G.redSoul || 0}`], okLabel: "連れ帰る", danger: false })
         .then((ok) => { if (!ok) return; for (let k = 0; k < n && waiting(d) && (G.redSoul || 0) >= 1; k++) game.tryHastenRescue(d); rerender(); }) }));
     return box;
   }

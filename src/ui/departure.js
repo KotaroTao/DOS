@@ -240,7 +240,7 @@ function renderHero(b) {
       `第二部の壁 ― この土地の敵は、第十章までの物差しの${wallText(wall)}倍の強さ${step > 1 && step < wall ? ` (ひとつ前の土地の${wallText(step)}倍)` : ""}。推奨Lvに届くだけでは歯が立たない。魂融合・宝探し・鍛え直しで隊を鍛えてから挑もう。`));
   }
   if (dn.id === "w04" && !game.worldState?.().reported.w03) {
-    b.appendChild(setText(el("div", "pt-note dp-after"), "取水口は推奨Lv18〜21。まずは回廊を抜け、修道院で師の足跡を追おう。支度が整えば、先に取水口へ向かうこともできる。"));
+    b.appendChild(setText(el("div", "pt-note dp-after"), "取水口は推奨Lv18〜21。隊の強さを確かめ、支度を整えてから向かおう。"));
   }
 }
 
@@ -401,7 +401,7 @@ async function runFix(fix) {
   if (fix.act === "hasten") {
     let c = null;
     try { c = ops.counts(); } catch (e) { c = null; }
-    const ok = await kitConfirm({ banner: "今すぐ連れ帰る", danger: false, title: "迷宮に残された人業を今すぐ連れ帰る", lines: [c?.hastenCost === 0 ? "回廊までの迷宮に残された人業は、赤い魂なしで今すぐ連れ帰れる。" : `赤い魂 🔴${c ? c.hastenCost : "?"} (20分ごとに1つ)`, "届いた器は、館で金貨を払って修復する。"], okLabel: "連れ帰る" });
+    const ok = await kitConfirm({ banner: "今すぐ連れ帰る", danger: false, title: "迷宮に残された人業を今すぐ連れ帰る", lines: [c?.hastenCost === 0 ? "この人業は、赤い魂なしで今すぐ連れ帰れる。" : `赤い魂 🔴${c ? c.hastenCost : "?"} (20分ごとに1つ)`, "届いた器は、館で費用を確かめて修復する。"], okLabel: "連れ帰る" });
     if (ok) ops.hastenAll();
     return;
   }
@@ -531,7 +531,7 @@ function openBriefing(go) {
       illustration.width=1852;illustration.height=849;
       picture.appendChild(illustration);b.appendChild(picture);
       b.appendChild(el("div","dp-brief-h","門衛 ― 迷宮の入口を守る者"));
-      for(const text of ["朽ちた骸の修道院以降の迷宮では、迷宮に入ると魂と人業の結びつきが揺らぎます。その状態を示すのが『魂の安定度』です。",
+      for(const text of ["この先へ入ると魂と人業の結びつきが揺らぎます。その状態を示すのが『魂の安定度』です。",
         `安定度の上限は100です。入場時に人業ごとに${game.STABILITY_ENTRY_COST}消費します。5階ごとに次の階へ進む時も、一人につき30消費します。`,
         "安定度は4分ごとに1回復します。ゲームを閉じている間も同じです。",
         `不足分は赤い魂1で安定度1を購入し、そのまま進めます。安定度が${game.STABILITY_ENTRY_COST}未満の人業がいる場合は、購入するか、4分で1回復するのを待ってください。`,
