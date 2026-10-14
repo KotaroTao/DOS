@@ -1,6 +1,6 @@
 import { storyText } from "../protagonist.js";
 // 解放済みの手引きと、体験済みの物語を読む。ヘルプは酒場で書き留めた話 (心得・言い伝え) と一つの画面で、
-// 「ヘルプ / 酒場の噂話」のタブで切り替え、検索は両方を横断する (街と迷宮の手帳から開く)。閲覧では報酬・進行を変更しない (既読の印だけを付ける)。
+// 「ヘルプ / 酒場の噂話」のタブで切り替える (街と迷宮の手帳から開く)。閲覧では報酬・進行を変更しない (既読の印だけを付ける)。
 // 新しく物語が記されたら、街で手の空いた時に知らせる (queueStoryNotice)。迷宮の中・語りや手ほどきの最中は待つ。
 import { UI, game, registerUI } from "./ctx.js";
 import { el, button, sheet, segmented, badge, uiBlocked } from "./kit.js";
@@ -100,12 +100,8 @@ function openHelpIndex(tab = "help") {
     body:b=>{
       const segBox = el("div", "jr-segbox");
       const intro = el("p", "jr-intro");
-      const search = document.createElement("input");
-      search.type="search"; search.className="jr-search";
-      search.placeholder="ヘルプと噂話を探す";
-      search.setAttribute("aria-label",search.placeholder);
       const results=el("div","jr-results");
-      b.append(segBox, intro, search, results);
+      b.append(segBox, intro, results);
       const helpCard = entry => {
         const card=button({label:entry.title,kind:"secondary",onTap:()=>openEntry("help",entry.id)});
         card.classList.add("jr-card");
@@ -144,16 +140,6 @@ function openHelpIndex(tab = "help") {
           ? "いま使える機能の手引きです。機能が解放されると、読める項目が増えます。"
           : "酒場「沈まぬ灯」で耳にした心得と言い伝えです。居合わせる者は帰還のたびに入れ替わり、まだ聞いていない話も多くあります。";
         results.replaceChildren();
-        const query=search.value.trim();
-        if (query) {
-          // 検索はタブを問わず、ヘルプと噂話の両方から探す
-          const helpHits = list.filter(e=>`${e.title} ${e.subtitle||""} ${e.group||""}`.includes(query));
-          const talkHits = notes.filter(t=>t.t.includes(query) || (t.cat||"").includes(query));
-          if (!helpHits.length && !talkHits.length) { results.appendChild(el("p","jr-empty","該当する記録がありません。")); return; }
-          if (helpHits.length) { results.appendChild(el("h3","jr-group jr-group-top",`ヘルプ ${helpHits.length}件`)); for (const e of helpHits) results.appendChild(helpCard(e)); }
-          if (talkHits.length) { results.appendChild(el("h3","jr-group jr-group-top",`酒場の噂話 ${talkHits.length}件`)); for (const t of talkHits) results.appendChild(noteLine(t)); }
-          return;
-        }
         if (activeTab === "help") {
           if (!list.length) { results.appendChild(el("p","jr-empty","まだ読める記録がありません。旅を進めると、ここに記録が増えていきます。")); return; }
           drawHelp(list);
@@ -162,7 +148,7 @@ function openHelpIndex(tab = "help") {
           drawTalk(notes);
         }
       };
-      search.addEventListener("input",draw);draw();
+      draw();
     },
     footer:[{label:"閉じる",kind:"secondary",onTap:h=>h.close()}],
   });

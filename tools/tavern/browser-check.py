@@ -23,7 +23,8 @@ with sync_playwright() as p:
  check(!document.querySelector('.fc-rumor-btn'),'購入ボタンなし');
  const rumor=G.rumor;
  UI.openTavern('talk');await new Promise(r=>setTimeout(r,100));
- check(G.rumor===rumor&&!!document.querySelector('.fc-rumor'),'噂話タブでも同じ噂を表示');
+ check(G.rumor===rumor&&!document.querySelector('.fc-rumor')&&!!document.querySelector('.fc-crowd'),'噂話タブには居合わせる者たちだけを表示');
+ check(!document.querySelector('.fc-tav-body').textContent.includes('帰還ごとに替わる'),'顔ぶれの見出し横の説明なし');
  UI.openTavern('board');__game.renderTown();await new Promise(r=>setTimeout(r,100));
  check(G.rumor===rumor&&G.gold===0,'再入場・再描画で引き直し・課金なし');
  G.activeRumor={...rumor};G.run=null;

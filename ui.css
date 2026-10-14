@@ -578,8 +578,6 @@ button.ui-whisper { cursor: pointer; touch-action: manipulation; }
 .jr-shortcuts .ui-btn { min-width:0; font-size:13px; }
 .jr-sheet .ui-sheet-body { text-align:left; }
 .jr-intro, .jr-empty { font-size:13px; line-height:1.8; color:var(--ink-dim); text-wrap:pretty; }
-.jr-search { display:block; box-sizing:border-box; width:100%; min-width:0; min-height:44px; padding:8px 12px; font:inherit; font-size:14px; color:var(--ink); background:#100d12; border:1px solid #554739; border-radius:3px; }
-.jr-search:focus-visible { outline:2px solid var(--sheet-accent); outline-offset:2px; }
 .jr-group { margin:18px 0 8px; font-size:14px; color:var(--sheet-accent); }
 .jr-card { margin:0 0 8px; align-items:flex-start; text-align:left; flex-direction:column; gap:4px; letter-spacing:0.04em; }
 .jr-card-sub { font-size:11px; color:var(--ink-dim); font-weight:400; }
@@ -601,7 +599,6 @@ button.ui-whisper { cursor: pointer; touch-action: manipulation; }
 .jr-note { margin:0 0 6px; padding:8px 11px; font-size:13px; line-height:1.75; color:#cfc4ad; background:rgba(16,12,13,0.75); border:1px solid #2a2226; border-left:2px solid #8a6a2c; border-radius:3px; text-wrap:pretty; }
 .jr-note.k-lore { border-left-color:#5f4a7e; }
 .jr-group-lore { color:#b9a2dc; }
-.jr-group-top { margin-top:14px; padding-bottom:4px; border-bottom:1px solid #3a3128; }
 .jr-more, .jr-hint { max-width:36em; margin:0 auto 10px; font-size:12px; line-height:1.7; color:var(--ink-dim); }
 
 /* ロックした装備の印 (品の名前の右。game.js itemNameEl) */
