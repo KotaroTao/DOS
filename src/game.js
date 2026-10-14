@@ -2594,12 +2594,11 @@ function renderRunbar() {
   const show = inDungeon() && G.state === "board";
   runbarEl.classList.toggle("hidden", !show);
   if (!show) return;
-  // 帯を押すと「今回の収穫」(得た品・魂・成長の一覧)
-  if (!runbarEl.dataset.tap) {
-    runbarEl.dataset.tap = "1";
-    runbarEl.setAttribute("role", "button");
-    runbarEl.setAttribute("aria-label", "今回の収穫を見る");
-    runbarEl.addEventListener("click", function tap() {
+  // ボタンを押すと「今回の収穫」(得た品・魂・成長の一覧)
+  const lootBtn = document.getElementById("run-loot");
+  if (!lootBtn.dataset.tap) {
+    lootBtn.dataset.tap = "1";
+    lootBtn.addEventListener("click", function tap() {
       if (holdForAutoMove(tap)) return;
       if (G.state !== "board" || G.anim || G.walking || uiBlocked()) return;
       SFX.select();
@@ -2613,13 +2612,14 @@ function renderRunbar() {
   const key = `${obj.k}|${obj.t}|${run.gold}|${run.soulPts}|${Object.values(cnt).join(",")}|${G.portalFound ? 1 : 0}`;
   if (key === _runbarKey) return;
   _runbarKey = key;
-  runbarEl.innerHTML = "";
-  const goal = el("div", "rb-goal rb-goal-" + obj.k);
+  const goal = document.getElementById("runbar-goal");
+  goal.className = "rb-goal rb-goal-" + obj.k;
+  goal.replaceChildren();
   goal.appendChild(el("i", "rb-goal-ic"));
   goal.appendChild(el("span", "rb-goal-t", obj.t));
   if (G.portalFound) { const p = el("span", "rb-portal", "帰還陣"); p.title = "この階の帰還魔法陣を見つけた (下の「帰還」で街へ戻れる)"; goal.appendChild(p); }
-  runbarEl.appendChild(goal);
-  const loot = el("div", "rb-loot");
+  const loot = document.getElementById("run-loot-summary");
+  loot.replaceChildren();
   loot.title = "今回の出撃で得たもの";
   loot.appendChild(el("span", "rb-gold" + (run.gold ? "" : " zero"), String(run.gold || 0)));
   loot.appendChild(el("span", "rb-soul" + (run.soulPts ? "" : " zero"), String(run.soulPts || 0)));
@@ -2631,7 +2631,6 @@ function renderRunbar() {
   }
   loot.appendChild(gems);
   loot.appendChild(el("span", "rb-chev", "›"));
-  runbarEl.appendChild(loot);
 }
 
 // ===== 行動ドック (#hint を置き換える。画面下の 52px) =====
@@ -17491,16 +17490,8 @@ const boardOverviewBtn = document.getElementById("board-overview");
 boardOverviewBtn.addEventListener("click", () => {
   boardCamera.overview = !boardCamera.overview;
   boardCamera.manual = false;
-  boardOverviewBtn.textContent = boardCamera.overview ? "拡大" : "全体";
-  boardOverviewBtn.setAttribute("aria-pressed", String(boardCamera.overview));
-  document.getElementById("board-camera-hint").textContent = boardCamera.overview ? "全体を表示中" : "ドラッグで見渡す";
-  drawBoardFrame();
-});
-document.getElementById("board-center").addEventListener("click", () => {
-  boardCamera.overview = false; boardCamera.manual = false;
-  boardOverviewBtn.textContent = "全体";
-  boardOverviewBtn.setAttribute("aria-pressed", "false");
-  document.getElementById("board-camera-hint").textContent = "ドラッグで見渡す";
+  boardOverviewBtn.textContent = boardCamera.overview ? "現在地" : "全体";
+  boardOverviewBtn.setAttribute("aria-label", boardCamera.overview ? "現在地を拡大表示" : "迷宮全体を表示");
   drawBoardFrame();
 });
 

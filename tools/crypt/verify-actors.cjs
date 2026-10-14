@@ -111,11 +111,12 @@ const check = (name, ok) => { assert.ok(ok, name); report.checks.push(name); };
     });
     await page.setViewportSize({width:1200,height:1350});await capture(page,'gallery.png','#actor-gallery');await page.locator('#actor-gallery').evaluate(e=>e.remove());
     await page.setViewportSize({width:375,height:667});await fixture(page);
-    await page.locator('#board-overview').click();check('全体表示に切り替えられる',await page.evaluate(()=>actorReview.boardCamera.zoom===1));await capture(page,'overview.png');await page.locator('#board-center').click();
+    await page.locator('#board-overview').click();check('全体表示に切り替えられる',await page.evaluate(()=>actorReview.boardCamera.zoom===1));await capture(page,'overview.png');await page.locator('#board-overview').click();
     const pos=await page.evaluate(()=>[actorReview.G.px,actorReview.G.py]);const box=await page.locator('#view').boundingBox();
     await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();await page.mouse.move(box.x+box.width/2-60,box.y+box.height/2,{steps:5});await page.mouse.up();
     check('見渡す操作で人物を動かさない',JSON.stringify(pos)===JSON.stringify(await page.evaluate(()=>[actorReview.G.px,actorReview.G.py])));
-    await page.locator('#board-center').click();
+    await page.locator('#board-overview').click();
+    await page.locator('#board-overview').click();
     // 実際の隣接タップで移動し、4方向の追従を調べる。
     for(const [dir,dx,dy] of [['up',0,-1],['right',1,0],['down',0,1],['left',-1,0]]){
       const target=await page.evaluate(({dx,dy})=>{

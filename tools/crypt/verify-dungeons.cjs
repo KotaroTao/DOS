@@ -118,7 +118,7 @@ function check(name, value) { assert.ok(value, name); report.checks.push(name); 
     await page.locator('#board-overview').click();
     check('全体表示へ切り替えられる', await page.evaluate(() => cryptReview.boardCamera.zoom === 1));
     await capture(page, 'overview-mobile.png');
-    await page.locator('#board-center').click();
+    await page.locator('#board-overview').click();
     check('現在地の拡大表示へ戻れる', await page.evaluate(() => cryptReview.boardCamera.zoom > 1 && !cryptReview.boardCamera.manual));
     // 隣の到達可能なマスを未踏の空マスにし、実際のクリックで蓋をめくる。
     const target = await page.evaluate(() => {

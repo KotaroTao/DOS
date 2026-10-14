@@ -105,13 +105,12 @@
 /* ===== 目的と収穫 (#runbar) ===== */
 #runbar {
   position: relative;
-  margin: 4px 6px 0; padding: 0 8px 0 7px; height: 38px; gap: 8px;
+  margin: 4px 6px 0; padding: 0 8px 0 7px; min-height: 44px; gap: 6px;
   display: flex; align-items: center; justify-content: space-between;
   background: var(--grain), var(--dg-iron); border: 1px solid #33292a; border-radius: 2px;
   box-shadow: var(--dg-edge); font-size: 12px; font-variant-numeric: tabular-nums;
 }
 #runbar.hidden { display: none; }
-#runbar::before { content: ""; position: absolute; left: 0; right: 0; top: -4px; bottom: -3px; } /* 押せる幅を 44px に (見た目は 38px) */
 .rb-goal { display: flex; align-items: center; gap: 7px; min-width: 0; flex: 1 1 auto; }
 .rb-goal-ic {
   flex: 0 0 auto; width: 8px; height: 8px; transform: rotate(45deg);
@@ -575,14 +574,24 @@ canvas.unk-sil { filter: brightness(0) drop-shadow(0 0 1px rgba(185,172,217,0.85
   .pc-call { animation: none; }
 }
 
-/* スマホは盤面を主役にし、表示の切り替えを額の右上に重ねる。 */
+/* 表示操作は盤面に重ねず、記録の上で収穫ボタンの右に並べる。 */
+#runbar button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  flex: 0 0 auto; min-height: 44px; padding: 4px 10px;
+  font: inherit; color: #eadbb3; background: var(--grain), var(--dg-iron-hi);
+  border: 1px solid #665338; border-radius: 4px; white-space: nowrap;
+  cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+}
+#runbar button:active { filter: brightness(1.15); }
+#runbar button:focus-visible { outline: 2px solid #f3d58b; outline-offset: -3px; }
+#board-overview { min-width: 68px; }
 #board-camera-tools { display: none; }
 @media (max-width: 600px) {
   .board-camera-active #screen { position: relative; flex-direction: column; }
   .board-camera-active #view { flex: 0 0 auto; }
-  .board-camera-active #board-camera-tools { position: absolute; top: 10px; right: 10px; display: flex; align-items: center; gap: 6px; }
-  #board-camera-tools span { display: none; }
-  #board-camera-tools button { min-width: 56px; min-height: 44px; padding: 4px 10px; font-size: 13px; color: #eadbb3; background: rgba(24, 19, 25, 0.94); border: 1px solid #665338; border-radius: 4px; }
+  .board-camera-active #board-camera-tools { display: flex; flex: 0 0 auto; }
+  #run-loot-summary { display: none; }
+  #runbar button { font-size: 13px; }
 }
 
 /* 縦の短い探索画面では隊を一列にし、記録と盤面の両方を残す。詳細は札をタップ。 */
