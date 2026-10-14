@@ -63,7 +63,15 @@ with sync_playwright() as p:
       const ordinary=__game.equipLv.cloneItem('magicStaff',50);ordinary.unidentified=true;
       check(!game.doIdentifySkill(bishop,ordinary,{quiet:true})&&ordinary.idHardFail,'通常の品には成功保証を適用しない');
       Math.random=oldRandom;
+      const redBeforeReport=G.redSoul;
+      let reportReward;
+      const playChain=UI.playStoryChain;
+      UI.playStoryChain=(pages,done)=>{reportReward=pages[0].reward;playChain(pages,done);};
       game.completePrologueTutorial('prologueAppraise');W.prologueAudience();
+      check(reportReward.some(r=>r.cur==='red'&&r.n===100)&&G.redSoul===redBeforeReport+100,'回廊の報告に赤い魂100を表示し授与');
+      G.world.report='w02';W.reportMainQuest();
+      check(G.redSoul===redBeforeReport+100,'回廊の報告報酬は二重受領しない');
+      G.world.report=null;UI.playStoryChain=playChain;
       check(W.prologuePhase()==='abbey'&&G.world.reported.w02&&G.world.open.w03&&!G.world.open.w04,'鑑定後に六体で修道院へ向かう依頼を受ける');
       G.party.forEach(d=>{d.stability=100;d.stabilityAt=Date.now();});enter('w03');
       check(G.party.every(d=>d.stability===70)&&G.stabilityBriefed,'修道院の入場で全員30消費');
