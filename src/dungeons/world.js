@@ -1583,6 +1583,7 @@ function build(def) {
   cfg.bossRank = def.boss ? (def.bossRank || def.layer + 2) : 0;
   cfg.bossScale = 1;
   cfg.gates = !(def.trait && def.trait.sealedGate); // 5階ごとの帰還魔法陣 (奈落・掟「閉ざされた門」は持たない)
+  cfg.noPortal = !cfg.gates; // 閉ざされた門は、台帳外の迷宮向けのランダム魔法陣も禁止する
   return cfg;
 }
 
