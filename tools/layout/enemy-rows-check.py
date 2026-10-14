@@ -56,8 +56,8 @@ with sync_playwright() as p:
                 baseline = geometry
             assert all(abs(a-b) < 1 for a,b in zip(baseline, geometry)), (width,height,count,baseline,geometry)
             button = page.locator('#enemy-row-toggle')
-            assert button.is_visible() == (count > 3)
-            if count > 3:
+            assert button.is_visible() == (count > 3 and width <= 600)
+            if count > 3 and width <= 600:
                 page.evaluate('window.beforeRows = battleSnapshot()')
                 page.evaluate('''() => {
                   const r=document.getElementById('enemy-row-toggle').getBoundingClientRect();
