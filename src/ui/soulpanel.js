@@ -682,9 +682,23 @@ function pickerBody(root, d, slotId, h) {
         tx.appendChild(el("span", "sp-srow-tag", curUid != null ? `${from}と入れ替える` : `${from}から移す`));
       }
       const dl = previewSoul(d, slotId, s.uid);
-      if (dl) tx.appendChild(statDelta(dl));
+      if (dl) {
+        const change = el("span", "sp-picker-change");
+        change.setAttribute("role", "group");
+        change.setAttribute("aria-label", "付け替え後の能力変化");
+        change.appendChild(el("span", "sp-picker-change-k", "能力変化"));
+        const values = el("span", "ui-delta sp-picker-delta");
+        // 比べる場所をそろえる。変わらない能力も薄い色で残す。
+        for (const [key, label] of Object.entries(STAT_L)) {
+          const value = dl[key] || 0;
+          values.appendChild(el("span", value > 0 ? "up" : value < 0 ? "dn" : "eq",
+            `${label}${value > 0 ? "+" : value === 0 ? "±" : ""}${value}`));
+        }
+        change.appendChild(values);
+        main.appendChild(change);
+      }
     }
-    main.appendChild(tx);
+    main.insertBefore(tx, main.querySelector(".sp-picker-change"));
     main.disabled = conflict;
     main.addEventListener("click", () => {
       if (isCur || conflict) return;

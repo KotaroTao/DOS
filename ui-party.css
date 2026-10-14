@@ -909,6 +909,30 @@ button.sp-tile-main { cursor: pointer; }
 .sp-lock-btn .ui-btn-ic { width: 14px; height: 14px; }
 .sp-lock-btn.on { border-color: #8a6d2e; color: #e6c66e; }
 
+/* 魂の候補は情報・能力変化・操作を分け、細い画面でも文字を折らない。 */
+.sp-pick-sheet .sp-srow-main { flex-wrap: wrap; }
+.sp-pick-sheet .sp-srow-t { flex: 1; }
+.sp-picker-change { flex: 0 0 100%; display: flex; flex-direction: column; gap: 4px; padding-top: 5px; border-top: 1px solid #665139; }
+.sp-picker-change-k { color: var(--ink-dim); font-size: 10px; font-weight: 500; }
+.sp-picker-delta.ui-delta { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+.sp-picker-delta > span { padding: 3px 4px; white-space: nowrap; overflow-x: auto; background: #0f0c1180; border-radius: 2px; }
+@media (max-width: 560px) {
+  .sp-pick-sheet .sp-srow { flex-direction: column; gap: 0; }
+  .sp-pick-sheet .sp-srow-main { display: grid; grid-template-columns: 36px minmax(0, 1fr); align-items: start; gap: 6px 8px; min-height: 0; padding: 8px 9px; }
+  .sp-pick-sheet .sp-srow .sp-orb { width: 36px; height: 36px; }
+  .sp-pick-sheet .sp-srow-t { gap: 3px; }
+  .sp-pick-sheet .sp-srow-n, .sp-pick-sheet .sp-srow-m, .sp-pick-sheet .sp-srow-tag { display: block; white-space: nowrap; overflow-x: auto; max-width: 100%; line-height: 1.4; }
+  .sp-pick-sheet .sp-srow-n { font-size: 13px; }
+  .sp-pick-sheet .sp-srow-n .sp-left { display: none; }
+  .sp-pick-sheet .sp-srow-m { font-size: 10.5px; }
+  .sp-pick-sheet .sp-srow-tag { font-size: 10px; }
+  .sp-pick-sheet .sp-picker-change { grid-column: 1 / -1; padding-top: 4px; }
+  .sp-pick-sheet .sp-picker-delta { font-size: 11px; }
+  .sp-pick-sheet .sp-srow-side { flex-direction: row; justify-content: stretch; gap: 4px; padding: 0 8px 7px; overflow-x: auto; }
+  .sp-pick-sheet .sp-srow-side .ui-btn { flex: 1 0 82px; width: 82px; min-width: 82px; padding: 4px; font-size: 11px; letter-spacing: 0; gap: 4px; }
+  .sp-pick-sheet .sp-lock-btn .ui-btn-ic { width: 12px; height: 12px; flex-shrink: 0; }
+}
+
 /* ---------- 祝祭 (転職・ランクアップ) ---------- */
 .sp-cel-art { position: relative; display: flex; align-items: center; justify-content: center; width: 150px; height: 150px; }
 .sp-cel-art .pt-px { position: relative; z-index: 1; filter: drop-shadow(0 0 10px var(--sheet-accent, #c9a24a)); }
