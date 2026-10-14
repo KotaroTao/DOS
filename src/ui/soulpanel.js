@@ -646,9 +646,8 @@ function pickerBody(root, d, slotId, h) {
   const isSub = slotId !== "primary";
   const si = isSub ? +slotId.slice(3) : -1;
   const curUid = isSub ? ((d.subs || [])[si] || {}).uid : d.primary;
-  const fusion = game.featureUnlocked ? game.featureUnlocked("fusion") : false;
   soulSortControl(root, h);
-  const souls = [...(isSub ? G.souls.filter((s) => !(SOUL_CLASSES[s.clsKey] || {}).unique) : game.soulRepresentatives())].sort(compareSoulList); // 灯守 (セラだけの魂) は貸さない
+  const souls = G.souls.filter((s) => !(SOUL_CLASSES[s.clsKey] || {}).unique).sort(compareSoulList); // 灯守 (セラだけの魂) は貸さない
   const list = el("div", "pt-list sp-plist");
   for (const s of souls) {
     const cl = SOUL_CLASSES[s.clsKey]; if (!cl) continue;
@@ -715,48 +714,41 @@ function pickerBody(root, d, slotId, h) {
       confirmSoulEquip(d, slotId, s, cur).then((y) => { if (y) go(); });
     });
     r.appendChild(main);
-    const side = el("div", "sp-srow-side");
-    if (isCur) {
-      side.appendChild(button({ label: "外す", kind: "ghost", size: "sm", onTap: () => {
-        const go = () => game.equipSoulToSlot(d, s.uid, slotId, (applied) => { if (applied) h.close(); });
-        if (!isSub) confirm({ title: `${d.name} からメイン魂を外す？`, lines: ["魂の宿らない器は、隊で戦えない。"], okLabel: "外す" }).then((y) => { if (y) go(); });
-        else go();
-      } }));
-    }
-    // 魂を強化 (サブ魂の選択から、どの魂でも鍛えられる)。上限の魂には出さない
-    if (isSub && s.level < cap) {
-      const tb = button({ label: "強化", kind: "secondary", size: "sm", title: "✦Soul で魂のレベルを上げる",
-        onTap: (e) => { if (e) e.stopPropagation(); openTrainSheet(s.uid, () => refreshSheet(h)); } });
-      tb.classList.add("sp-pick-train");
-      side.appendChild(tb);
-    }
-    if (fusion) {
-      const n = game.fuseCandidates ? game.fuseCandidates(s.uid).length : 0;
-      if (n) {
-        const fb = button({ label: `魂融合 ${n}`, kind: "secondary", size: "sm", onTap: () => openFusePicker(s.uid, () => refreshSheet(h)) });
-        fb.classList.add("sp-pick-fuse"); // 手ほどき (魂融合) が光らせる
-        side.appendChild(fb);
-      }
-    }
-    if (game.toggleSoulLock) {
-      const lk = button({ icon: s.locked ? "lock" : "unlock", label: s.locked ? "ロック中" : "ロック", kind: s.locked ? "secondary" : "ghost", size: "sm",
-        title: s.locked ? "ロックを外す" : "魂融合の素材にできないようにする",
-        onTap: (e) => {
-          if (e) e.stopPropagation();
-          const on = game.toggleSoulLock(s.uid);
-          sfx("select");
-          toast(on ? `${soulLabel(s)}をロックした ― 魂融合の素材にならない` : `${soulLabel(s)}のロックを外した`, { tone: "info" });
-          refreshSheet(h);
-        } });
-      lk.classList.add("sp-lock-btn");
-      if (s.locked) lk.classList.add("on");
-      side.appendChild(lk);
-    }
-    if (side.childElementCount) r.appendChild(side);
+    r.appendChild(soulRowActions(s, () => refreshSheet(h)));
     list.appendChild(r);
   }
   if (!souls.length) list.appendChild(el("div", "pt-note c", "魂を持っていない。迷宮で集めよう。"));
   root.appendChild(list);
+}
+
+// 一覧と付け替えで、同じ三つの操作を同じ順に並べる。
+function soulRowActions(s, onChange) {
+  const side = el("div", "sp-srow-side");
+  const tb = button({ label: "強化", kind: "secondary", size: "sm", title: "✦SoulでLvを上げ、残火でLv上限を上げる",
+    onTap: () => openTrainSheet(s.uid, onChange) });
+  tb.classList.add("sp-pick-train");
+  side.appendChild(tb);
+  const fusion = !!game.featureUnlocked?.("fusion");
+  const unique = !!SOUL_CLASSES[s.clsKey]?.unique;
+  const n = fusion && !unique ? (game.fuseCandidates?.(s.uid).length || 0) + (game.fuseSubWorn?.(s.uid).length || 0) : 0;
+  const fb = button({ label: fusion ? `魂融合${n ? ` ${n}` : ""}` : "未解放", kind: "secondary", size: "sm", disabled: !fusion || unique,
+    title: unique && fusion ? "この魂は融合できない" : "同じ職業の魂を融合する",
+    onTap: () => openFusePicker(s.uid, onChange) });
+  fb.classList.add("sp-pick-fuse");
+  side.appendChild(fb);
+  const lk = button({ icon: s.locked ? "unlock" : "lock", label: s.locked ? "ロック解除" : "ロック",
+    kind: s.locked ? "secondary" : "ghost", size: "sm", disabled: !game.toggleSoulLock,
+    title: s.locked ? "ロックを外す" : "魂融合の素材にできないようにする",
+    onTap: () => {
+      const on = game.toggleSoulLock(s.uid);
+      sfx("select");
+      toast(on ? `${soulLabel(s)}をロックした ― 魂融合の素材にならない` : `${soulLabel(s)}のロックを外した`, { tone: "info" });
+      onChange();
+    } });
+  lk.classList.add("sp-lock-btn");
+  if (s.locked) lk.classList.add("on");
+  side.appendChild(lk);
+  return side;
 }
 
 // ================= 魂一覧 (隊列の「控え」の右から) =================
@@ -820,32 +812,7 @@ export function openSoulList() {
           game.showCodexJobDetail?.(s.clsKey, soulRankOf(s));
         });
         r.appendChild(main);
-        const side = el("div", "sp-srow-side");
-        const tb = button({ label: "強化", kind: "secondary", size: "sm", title: "✦SoulでLvを上げ、残火でLv上限を上げる",
-          onTap: () => openTrainSheet(s.uid, again) });
-        tb.classList.add("sp-pick-train");
-        side.appendChild(tb);
-        if (!cl.unique && game.featureUnlocked?.("fusion")) {
-          const n = (game.fuseCandidates?.(s.uid).length || 0) + (game.fuseSubWorn?.(s.uid).length || 0);
-          const fb = button({ label: `魂融合${n ? ` ${n}` : ""}`, kind: "secondary", size: "sm",
-            onTap: () => openFusePicker(s.uid, again) });
-          fb.classList.add("sp-pick-fuse");
-          side.appendChild(fb);
-        }
-        if (game.toggleSoulLock) {
-          const lk = button({ icon: s.locked ? "unlock" : "lock", label: s.locked ? "ロック解除" : "ロック",
-            kind: s.locked ? "secondary" : "ghost", size: "sm", title: s.locked ? "ロックを外す" : "魂融合の素材にできないようにする",
-            onTap: () => {
-              const on = game.toggleSoulLock(s.uid);
-              sfx("select");
-              toast(on ? `${soulLabel(s)}をロックした ― 魂融合の素材にならない` : `${soulLabel(s)}のロックを外した`, { tone: "info" });
-              again();
-            } });
-          lk.classList.add("sp-lock-btn");
-          if (s.locked) lk.classList.add("on");
-          side.appendChild(lk);
-        }
-        r.appendChild(side);
+        r.appendChild(soulRowActions(s, again));
         list.appendChild(r);
       }
       if (!souls.length) list.appendChild(el("div", "pt-note c", "魂を持っていない。迷宮で集めよう。"));
