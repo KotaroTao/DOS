@@ -52,15 +52,18 @@
         <span id="enemy-focus" aria-live="polite"></span>
         <button id="enemy-row-toggle" type="button" hidden>後列を手前に</button>
       </div>
-      <div id="board-camera-tools" aria-label="盤面の表示">
-        <span id="board-camera-hint">ドラッグで見渡す</span>
-        <button id="board-overview" type="button" aria-pressed="false">全体</button>
-        <button id="board-center" type="button">現在地</button>
-      </div>
     </main>
 
     <!-- 今回の探索の収穫 (階の進み・ゴールド・拾った装備のレア度別の数) -->
-    <section id="runbar" class="hidden"></section>
+    <section id="runbar" class="hidden">
+      <div id="runbar-goal" class="rb-goal"></div>
+      <button id="run-loot" type="button" aria-label="今回の収穫を見る">
+        <span>今回の収穫</span><span id="run-loot-summary" class="rb-loot"></span>
+      </button>
+      <div id="board-camera-tools" aria-label="盤面の表示">
+        <button id="board-overview" type="button" aria-label="迷宮全体を表示">全体</button>
+      </div>
+    </section>
 
     <!-- メッセージ -->
     <section id="hud">

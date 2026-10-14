@@ -116,8 +116,6 @@
 #dg-book:active { transform: scale(0.95); }
 #floor-info[role="button"] { cursor: pointer; min-height: 44px; -webkit-tap-highlight-color: transparent; }
 #floor-info .fi-more { font-size: 15px; font-weight: 800; color: #8a6d2e; line-height: 1; margin-left: -2px; }
-#runbar[role="button"] { cursor: pointer; -webkit-tap-highlight-color: transparent; }
-#runbar[role="button"]:active { filter: brightness(1.15); }
 .rb-chev { font-size: 15px; font-weight: 800; color: #8a6d2e; margin-left: 2px; line-height: 1; }
 
 /* ===================== 迷宮のシート共通 ===================== */
