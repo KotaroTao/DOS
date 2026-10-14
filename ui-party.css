@@ -1255,6 +1255,26 @@ button.sp-lu-next { cursor: pointer; }
 .pt-equip-actions { display: flex; flex-direction: column; gap: 4px; flex: 0 0 auto; }
 .pt-equip-actions > .ui-btn { min-height: 44px; min-width: 78px; padding: 4px 8px; white-space: nowrap; }
 .pt-manage-sheet .pt-equip-actions { grid-column: 1 / -1; }
+
+/* 館の概要を固定し、詳しい装備・魂・能力だけを内側でスクロールする。 */
+.pt-mansion-title { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px; align-items: baseline; }
+.pt-mansion-title .pt-head-name { grid-column: 1 / -1; max-width: none; white-space: normal; overflow-wrap: anywhere; }
+.pt-mansion-title .pt-head-cls { white-space: normal; }
+.pt-mansion-lv { color: var(--accent-hi); font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.pt-soul-overview { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.pt-growth-actions, .pt-root.m-town > .pt-equip-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.pt-growth-actions > .ui-btn, .pt-root.m-town > .pt-equip-actions > .ui-btn { min-width: 0; min-height: 44px; padding: 4px 6px; }
+.pt-soul-overview .sp-tile-main { min-height: 44px; padding: 4px 8px; }
+.pt-soul-overview .sp-tile { min-height: 46px; }
+.pt-soul-overview .sp-borrow, .pt-soul-overview .sp-tile-sk, .pt-soul-overview .sp-tile-cnt { display: none; }
+.pt-soul-overview .sp-sub .sp-orb { display: none; }
+.pt-soul-overview .sp-tile-n { white-space: normal; overflow-wrap: anywhere; font-size: 12px; }
+.pt-soul-overview .sp-sub .sp-tile-s { font-size: 11px; }
+@media (max-height: 600px) {
+  .pt-root.m-town, .pt-soul-overview, .pt-soul-overview .sp-more { gap: 4px; }
+  .pt-root.m-town > .pt-form { padding-top: 2px; padding-bottom: 2px; }
+  .pt-soul-overview .sp-main .sp-orb, .pt-soul-overview .sp-main .sp-tile-s { display: none; }
+}
 .pt-ae-action { display: flex; align-items: center; gap: 6px; }
 .pt-ae-action .pt-note { flex: 1; min-width: 0; }
 .pt-ae-tg { min-height: 44px; }
