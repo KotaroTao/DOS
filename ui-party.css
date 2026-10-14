@@ -1319,3 +1319,6 @@ button.sp-lu-next { cursor: pointer; }
   .sp-card > .sp-head { --soul-name-col: 1; grid-template-columns: minmax(0, 1fr) auto; }
   .sp-card > .sp-head .sp-head-actions > .ui-btn { padding: 2px 6px; font-size: 12px; }
 }
+
+.sp-locked-control { color: var(--ink-dim); border-style: dashed; }
+.sp-more > .sp-locked-control { min-height: 54px; width: 100%; }
