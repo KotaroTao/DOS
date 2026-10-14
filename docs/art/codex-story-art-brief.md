@@ -214,6 +214,13 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 
 ### A. 必須 (物語の筋や正典と食い違う)
 
+**A-36. 第一章 report_w04「答えを飲み込んだ王」** `art/story-review/chapter1/report_w04.png` (済)
+- 直す: 王の手が3本ある。画面右へ差し出した余分な手と、それにつながる腕・袖を消し、赤い衣と白い毛皮の自然な折り目にする。
+- 保つもの: 口元に添えた手、机に置いた手、王の顔と姿勢、宰相、弟子、地図、金貨、構図、画風、光。
+```text
+...except: the seated king currently has THREE hands. Remove ONLY the extra outstretched hand at image-right, centered near x=1015,y=535, and its attached extra arm and sleeve extending from the king's right side. Replace this extra limb with the natural folds of the king's red robe and white black-spotted ermine cape lying close to his body and lap. Preserve exactly the hand touching his mouth and the hand resting on the table near x=690,y=590, with their existing connected arms: these are his only two hands and arms. Preserve his pensive face and posture, the chancellor's gesturing hand, the apprentice, the map, coins, throne, architecture, composition, pixel texture, colors and lighting. Make no other changes.
+```
+
 **A-1. 序章 irene_repair「砕けても、名は消えない」** `art/story-review/prologue/irene-repair.png` (済)
 - 直す: 作業台の外れた人業の頭と、棚の人業に目鼻が彫られている → 人業の頭は何も彫られていない丸い木 (`src/story.js` の館の語り「人業の頭は、もとは何も彫られていない、丸い木なのです」)。
 - 保つもの: 砕けた魂の結晶、イレーヌ、弟子。

@@ -323,7 +323,7 @@ function renderTavern(root, api = null) {
   wrap.appendChild(body);
   const drawSeg = () => {
     body.textContent = "";
-    if (tavernSeg === "talk") { renderRumor(body); return renderTalk(body); }
+    if (tavernSeg === "talk") return renderTalk(body);
     const L = qbLists();
     const area = el("div", "fc-qarea");
     body.appendChild(sectionHead("掲示板", { note: `受注 ${L.freeCount}/${L.cap} ・ 貼り紙は帰還のたびに貼り替わる` }));
@@ -382,7 +382,7 @@ function renderTalk(wrap) {
     right.appendChild(svgIcon("chevron", "fc-notes-ic"));
     right.addEventListener("click", () => { sfx("select"); if (UI.openHelp) UI.openHelp("talk"); });
   }
-  wrap.appendChild(sectionHead("居合わせる者たち", { note: "帰還ごとに替わる", right }));
+  wrap.appendChild(sectionHead("居合わせる者たち", { right }));
   const area = el("div", "fc-crowd");
   wrap.appendChild(area);
   scrollGrid(area, crowd, (m) => {
