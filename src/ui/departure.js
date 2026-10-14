@@ -458,12 +458,12 @@ function renderStability(b, explain = true) {
   if (cur?.page !== "rematch" && game.stabilityApplies && !game.stabilityApplies()) return;
   const status = game.stabilityStatus();
   b.appendChild(sec("魂の安定度", `入場時 −${game.STABILITY_ENTRY_COST}／人`));
-  if (explain) b.appendChild(el("div","dp-brief-l",`上限100。入場時に${game.STABILITY_ENTRY_COST}消費し、${game.stabilityMinutes ? game.stabilityMinutes() : 4}分ごとに1回復。控えやゲームを閉じている間も回復します。5階ごとに次の階へ進む時も各人${game.STABILITY_ENTRY_COST}消費します。不足分は赤い魂1で安定度5を購入するか、広告視聴で隊全員の不足分を補って1回分進めます。`));
+  if (explain) b.appendChild(el("div","dp-brief-l",`上限100。入場時に${game.STABILITY_ENTRY_COST}消費し、${game.stabilityMinutes ? game.stabilityMinutes() : 4}分ごとに1回復。控えやゲームを閉じている間も回復します。5階ごとに次の階へ進む時も各人${game.STABILITY_ENTRY_COST}消費します。不足分は赤い魂1で安定度5を購入するか、広告視聴で隊全員の安定度を消費せず1回分進めます。残っている安定度はそのままです。`));
   for (const d of status) {
     const line=el("div","dp-stability-row");
     const wait=d.value<game.STABILITY_ENTRY_COST ? ` ・ 入場まで約${Math.ceil(d.waitMs/60000)}分` : "";
     line.appendChild(el("span",d.value<game.STABILITY_ENTRY_COST ? "dp-stability-low" : "",`${d.name} ${d.value} → ${d.value<game.STABILITY_ENTRY_COST ? "不足" : d.after}${wait}`));
-    if(d.value<game.STABILITY_ENTRY_COST0)line.appendChild(button({label:"回復",kind:"secondary",size:"sm",onTap:()=>UI.openStability?.(G().party.find(p=>p.uid===d.uid),()=>refresh())}));
+    if(d.value<game.STABILITY_ENTRY_COST)line.appendChild(button({label:"回復",kind:"secondary",size:"sm",onTap:()=>UI.openStability?.(G().party.find(p=>p.uid===d.uid),()=>refresh())}));
     b.appendChild(line);
   }
 
@@ -534,7 +534,7 @@ function openBriefing(go) {
       for(const text of ["この先へ入ると魂と人業の結びつきが揺らぎます。その状態を示すのが『魂の安定度』です。",
         `安定度の上限は100です。入場時に人業ごとに${game.STABILITY_ENTRY_COST}消費します。5階ごとに次の階へ進む時も、一人につき${game.STABILITY_ENTRY_COST}消費します。`,
         "安定度は4分ごとに1回復します。ゲームを閉じている間も同じです。",
-        `不足分は赤い魂1で安定度5を購入し、そのまま進めます。安定度が${game.STABILITY_ENTRY_COST}未満の人業がいる場合は、購入するか、広告視聴で隊全員の不足分を補って1回分進むか、4分で1回復するのを待ってください。`,
+        `不足分は赤い魂1で安定度5を購入し、そのまま進めます。安定度が${game.STABILITY_ENTRY_COST}未満の人業がいる場合は、購入するか、広告視聴で隊全員の安定度を消費せず1回分進むか、4分で1回復するのを待ってください。`,
         ...(!G().dungeonBriefed ? game.DUNGEON_BRIEFING || [] : [])])b.appendChild(setText(el("div","dp-brief-l"),text));
       renderStability(b, false);
     },
@@ -775,6 +775,7 @@ function refresh() {
   refreshFooter();
   if (cur.h.body) cur.h.body.scrollTop = scroll;
 }
+export function refreshStabilityDisplay() { refresh(); }
 const pageBanner = (page) => page === "abyss" ? "無限迷宮" : page === "rematch" ? "宿敵の再戦" : "出 撃";
 function close() {
   vistaLoop++;

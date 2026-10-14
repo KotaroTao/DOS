@@ -309,10 +309,10 @@
     "id": "w06_roll",
     "master": "art/story-review/chapter2/w06_roll.png",
     "status": "確認済・修正不要",
-    "note": "縮小で確認。一門の印の配置指定なし。壁の名前や帳面・封蝋を印と取り違えない。",
+    "note": "mainの更新原画を本文と384×256で再確認。一門の印の配置指定なし。弟子の刺しゅう・当直簿・鍵束を保持。",
     "sha256": "7a8543feec8af44ba583647432754edbad7870fedff640fdb7c411ce04057c60",
-    "checked_at": "2026-10-14T10:02:22.241741+00:00",
-    "current_sha256": "7a8543feec8af44ba583647432754edbad7870fedff640fdb7c411ce04057c60"
+    "checked_at": "2026-10-14T18:39:37.612044+00:00",
+    "current_sha256": "8ef159cab2d2d20fd8d4e22e0314a5161e1f54d5b50c38fa3805c5e009f08916"
   },
   {
     "id": "w07_names",

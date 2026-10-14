@@ -952,6 +952,13 @@ export function refresh() {
   const G = G_();
   if (G && G.state === "town" && G.town && G.town.tab === "party" && !G.town.facility && !G.town.page && game.renderTown) game.renderTown();
 }
+// 自然回復した時だけ、開いている安定度の表示と購入費用を更新する。
+let stabilityPanel = null;
+export function refreshStabilityDisplay() {
+  refresh();
+  if (reserveH && !reserveH.closed) reserveH.update({});
+  if (stabilityPanel && !stabilityPanel.h.closed) stabilityPanel.h.update(stabilityPanel.spec());
+}
 
 // 街の「隊」タブ。api.entered = 他のタブ・迷宮から館に入ってきた描画 (同じタブの描き直しでは false)
 function renderTab(root, api) {
@@ -1812,6 +1819,7 @@ export function openRename(d) {
 // 安定度の回復は街でだけ。必要数と実際の赤い魂の支出を先に表示する。
 export function openStability(d, onChange) {
   if (!inTown() || !d) return null;
+  if (stabilityPanel && !stabilityPanel.h.closed) stabilityPanel.h.close();
   let h;
   const spec = () => {
     game.refreshStability();
@@ -1826,7 +1834,8 @@ export function openStability(d, onChange) {
         {label:"戻る",kind:"ghost",onTap:()=>h.close()}],
     };
   };
-  h=sheet.open({kind:"info",banner:"魂の安定度",...spec()});
+  h=sheet.open({kind:"info",banner:"魂の安定度",...spec(), onClose:()=>{stabilityPanel=null;}});
+  stabilityPanel = {h, spec};
   return h;
 }
 
@@ -1923,7 +1932,7 @@ function openMansionManage(d) {
 function stabilityButton(d, town) {
   game.refreshStability?.();
   const b = button({ label: `魂の安定度 ${d.stability}/${game.STABILITY_MAX}`, kind: "ghost", size: "sm",
-      onTap: town ? () => openStability(d) : () => toast(`入場時に${game.STABILITY_ENTRY_COST}消費・${game.stabilityMinutes ? game.stabilityMinutes() : 4}分で1回復。5階ごとの次階進行時も${game.STABILITY_ENTRY_COST}消費。不足分は赤い魂1で1購入できる`, { tone: "info", noLog: true }) });
+      onTap: town ? () => openStability(d) : () => toast(`入場時に${game.STABILITY_ENTRY_COST}消費・${game.stabilityMinutes ? game.stabilityMinutes() : 4}分で1回復。5階ごとの次階進行時も${game.STABILITY_ENTRY_COST}消費。不足分は赤い魂1で安定度${game.stabilityPerRed()}を購入できる。広告なら安定度を消費せず1回分進める`, { tone: "info", noLog: true }) });
   b.classList.add("pt-stability");
   return b;
 }
