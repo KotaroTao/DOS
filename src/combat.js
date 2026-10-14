@@ -409,10 +409,26 @@ const TURN_JITTER = 0.20;
 // 敵の AGI は Battle を作る時に一度だけ「定義の素の値 × fleeK × TURN_K」へ直す (2026-10 ユーザーの指示: 図鑑・敵の姿の素早さを
 // 味方の AGI と見比べられるように)。直した値がそのまま手番の速さで、回避・逃走ではこれを ÷TURN_K して基準の隊の規模に戻す
 // (= 以前の「素の値 × fleeK」。戦闘の釣り合いは変えない)。金属の魔物はもともと味方の規模なので直さない (_agiScaled の印で二重に直さない)
-export function scaleFoeAgi(e, fleeK) {
-  if (!e || e._agiScaled || isMetal(e)) return e;
-  e.agi = Math.max(1, (e.agi || 1) * (fleeK || 1) * TURN_K); // 丸めない (回避・逃走が以前と同じ値になるように。表示で丸める)
-  e._agiScaled = true;
+export function scaleFoeAgi(e, fleeK, agiWall = 1) {
+  if (!e) return e;
+  if (!e._agiScaled && !isMetal(e)) {
+    e.agi = Math.max(1, (e.agi || 1) * (fleeK || 1) * TURN_K); // 丸めず、表示で丸める
+    e._agiScaled = true;
+  }
+  // 金属も含め、章の素早さの壁を一度だけ掛ける。戦闘の保存・復元でも重ねない。
+  if (e._agiWall == null) {
+    e.agi *= agiWall;
+    e._agiWall = agiWall;
+  }
+  return e;
+}
+// 主・強敵のHPの壁。保存した戦闘では残りHPの割合を保ち、二重に掛けない。
+export function scaleStrongFoeHp(e, hpWall = 1) {
+  if (!e || !(e.boss || e.mon?.elite) || e._strongHpWall != null) return e;
+  e.maxhp *= hpWall;
+  e.hp *= hpWall;
+  e._strongHpWall = hpWall;
+  delete e._dlv; // HPを変えた個体の表示Lvを計算し直す
   return e;
 }
 // 心の状態異常 (actor.mind = "charm" 魅了 | "confuse" 混乱)。戦闘の中だけの状態で、戦いが終われば解ける。
@@ -674,7 +690,10 @@ export class Battle {
     // 追跡の物差し: 敵の AGI をこの倍率で味方の AGI と同じ規模に直してから逃走率を出す
     // (game.js の fleeScale = その迷宮・階の基準AGI ÷ その迷宮の雑魚の標準AGI)
     this.fleeK = opts.fleeK || 1;
-    for (const e of enemies) scaleFoeAgi(e, this.fleeK); // 敵の AGI を味方の規模 (手番の速さ) に直す
+    this.strongHpWall = opts.strongHpWall || 1;
+    for (const e of enemies) scaleStrongFoeHp(e, this.strongHpWall);
+    this.agiWall = opts.agiWall || 1;
+    for (const e of enemies) scaleFoeAgi(e, this.fleeK, this.agiWall); // 敵の AGI を味方の規模 (手番の速さ) に直す
     this.baseAgi = opts.baseAgi || 0; // この階の基準の素早さ (強敵の回避の上限。0 = 上限なし)
     this.foeLv = opts.foeLv || 1; // 敵のLv の既定 (個体の e.lv が無い時。戦闘中に呼ばれた手下など)
     this._roundNo = 0;
@@ -2247,7 +2266,8 @@ export class Battle {
         // 戦果の写し (game.js startBattle が推奨Lv の基準に合わせた比) を引き継ぐ
         if (actor._rk) { e._rk = actor._rk; e.soul = Math.max(1, Math.round(e.soul * actor._rk[0])); e.gold = Math.max(1, Math.round(e.gold * actor._rk[1])); }
         if (actor._agiMul) { e._agiMul = actor._agiMul; e.agi = Math.max(1, Math.round(e.agi * actor._agiMul)); }
-        scaleFoeAgi(e, this.fleeK); // 呼ばれた手下の AGI も味方の規模へ
+        scaleStrongFoeHp(e, this.strongHpWall || 1);
+        scaleFoeAgi(e, this.fleeK, this.agiWall || 1); // 呼ばれた手下の AGI も味方の規模へ
         // 属性の暴走 (異変): 呼ばれた仲間の属性もでたらめに
         if (actor._elemRandom) { const els = Object.keys(ELEMENTS).filter((k) => k !== "none"); e._elemRandom = true; e.element = els[Math.floor(random() * els.length)]; e.affinity = elementAffinity(e.element); }
         // ロード復元後の uid 重複を防ぐ (uid カウンタはリロードでリセットされる)
