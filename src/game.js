@@ -9187,24 +9187,26 @@ function renderCombatCanvas() {
   const backRow = b.enemies.slice(3).filter(visible);
   const hasFront = frontRow.some((e) => e.alive), hasBack = backRow.some((e) => e.alive);
   const twoRows = hasFront && hasBack;
+  const wideBattle = window.innerWidth > 600;
+  if (wideBattle && twoRows) enemyView.back = false;
   if (!twoRows) enemyView.back = !hasFront && hasBack;
   const rows = [{ list: backRow, back: true }, { list: frontRow, back: false }].filter((row) => row.list.length);
   rows.forEach((row) => { row.distant = twoRows && row.back !== enemyView.back; });
   rows.sort((a, z) => Number(z.distant) - Number(a.distant));
-  enemyRowBtn.hidden = !twoRows;
+  enemyRowBtn.hidden = !twoRows || wideBattle;
   const rowLabel = enemyView.back ? "前列を手前に" : "後列を手前に";
   if (enemyRowBtn.textContent.replaceAll(ZWSP, "") !== rowLabel) enemyRowBtn.textContent = rowLabel;
   enemyRowBtn.disabled = !!(G.animating || b.result);
   if (b.phase !== "target") enemyView.focus = null;
   const focused = b.phase === "target" && !G.animating && b.targetOptions().find((e) => e.side === "enemy" && e.uid === enemyView.focus);
   enemyFocusEl.classList.toggle("has-target", !!focused);
-  const focusLabel = focused ? enemyLabel(focused) : twoRows ? `${enemyView.back ? "後列" : "前列"}を手前に表示中` : "";
+  const focusLabel = focused ? enemyLabel(focused) : twoRows && !wideBattle ? `${enemyView.back ? "後列" : "前列"}を手前に表示中` : "";
   if (enemyFocusEl.textContent.replaceAll(ZWSP, "") !== focusLabel) enemyFocusEl.textContent = focusLabel;
   // 下部の操作帯は取らず、右上のボタンの周囲だけ敵の絵を避ける。
   const stageH = VH;
   const plateReserve = 44; // 呼び分け記号・HP・状態の札と枠の余白
   const viewRect = view.getBoundingClientRect();
-  const rowBtnRect = twoRows ? enemyRowBtn.getBoundingClientRect() : null;
+  const rowBtnRect = !enemyRowBtn.hidden ? enemyRowBtn.getBoundingClientRect() : null;
   const viewScale = VW / (viewRect.width || VW);
   const toolsBottom = rowBtnRect ? (rowBtnRect.bottom - viewRect.top + 6) * viewScale : 0;
   const distantW = rowBtnRect ? Math.max(VW / 2, (rowBtnRect.left - viewRect.left - 8) * viewScale) : VW;
@@ -9235,8 +9237,20 @@ function renderCombatCanvas() {
   for (const row of rows) {
     let foot = 0;
     for (const e of row.list) foot = Math.max(foot, monsterHalfH(e.mon, sizeOf(e, row.distant, row.list.length)));
+    row.foot = foot;
     // 一列の時は姿と札を合わせて中央へ置く。縦長の戦場でも下端へ偏らせない。
     row.y = row.distant ? 6 + foot : twoRows ? stageH - plateReserve - foot : (stageH - plateReserve) / 2;
+  }
+  // iPad・PCでは二列を一組にして中央へ置く。スマホは従来の位置と表示切り替えを保つ。
+  if (twoRows && wideBattle) {
+    const far = rows.find((row) => row.distant), near = rows.find((row) => !row.distant);
+    const bodyH = 2 * (far.foot + near.foot) + plateReserve;
+    const gap = Math.min(32, Math.max(0, stageH - bodyH - 6));
+    far.y = Math.max(3, (stageH - bodyH - gap) / 2) + far.foot;
+    near.y = Math.min(stageH - plateReserve - near.foot, far.y + far.foot + gap + near.foot);
+  }
+  for (const row of rows) {
+    const foot = row.foot;
     const plateY = row.y + foot + 3;
     row.list.forEach((e, i) => {
       const slot = (row.distant ? distantW : VW) / row.list.length;
