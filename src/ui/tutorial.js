@@ -275,10 +275,10 @@ const TUTS = [
     prepare: () => null,
     intro: () => [
       ["新しい職業の魂を持ち帰られたのですね。", "その魂は、今いる人業のメイン魂と付け替えられます。人業を増やさずに、新たな職業の力を借りましょう。"],
-      ["宿す魂を変えれば、今いる人業も別の職業として戦えます。魂の育ちは残り、外した魂も失われません。", "まずは『魂を交換』から魂の一覧を開いて、閉じてください。実際の付け替えは、その後に自由に行えます。"],
+      ["宿す魂を変えれば、今いる人業も別の職業として戦えます。魂の育ちは残り、外した魂も失われません。", "『魂を交換』から魂の一覧を開き、持ち帰った魂を選んでみてください。能力や技を確かめてから『宿す』で付け替えられます。一覧を閉じるだけでも手ほどきは終えられます。"],
       ["新しい職業で使えない装備は外れます。同じ職業のメイン魂は、隊に一つだけです。"],
     ],
-    steps: [{ text: "魂の一覧を開いて確認し、閉じる", hint: "人業の館 → 魂を交換 → 閉じる", go: () => goSoulSeg(), target: [".sp-change"], on: "soulChangeViewed" }],
+    steps: [{ text: "魂の一覧で持ち帰った魂を確かめる", hint: "人業の館 → 魂を交換 → 魂を選んで宿す、または閉じる", go: () => goSoulSeg(), target: [".sp-change"], on: "soulChangeViewed" }],
     outro: ["魂の付け替えが解放された。魂の見出しの『魂を交換』から、いつでも変更できる。"],
   },
   {
@@ -689,7 +689,7 @@ function ireneGuidance() {
   // 目標札の操作手順ではなく、通常会話と同じ口調で案内する。
   if (p.key === "trainSoul") return ["『魂を強化』を押し、✦Soulを魂に注いでください。", "必要な✦Soulと、上がるLvを確かめましょう。"];
   if (p.key === "fusion") return ["『魂融合』を開き、素材にする魂をお選びください。", "余っている同じ職の魂を、ひとつに溶かしましょう。"];
-  if (p.key === "soulChange") return ["『メイン魂』の枠で、魂の一覧を開いてみてください。", "持っている魂を確かめたら、一覧を閉じてください。"];
+  if (p.key === "soulChange") return ["『魂を交換』で一覧を開き、持ち帰った魂をお選びください。", "能力や技を確かめて『宿す』で付け替えられます。一覧を閉じるだけでもかまいません。"];
   if (p.key === "sub1") return tutState().step === 1 ?
     ["サブ魂の札の『技』を開いてください。", "借りる技を選んだら、閉じてください。"] :
     ["サブ魂の枠を開き、魂をお選びください。", "隊に出していない魂を、宿してみてください。"];
@@ -748,6 +748,9 @@ function tutorialControls() {
     if (d.key === "prologueAppraise" && card.classList.contains("ap-sheet")) return choose(first(card, ".ui-sheet-foot .ui-btn.k-primary, .ui-sheet-foot .ui-btn.k-ghost, .ap-stage"));
     // 門衛の忠告は、本文のスクロールと支度に戻る操作も受け付ける。
     if (card.classList.contains("dp-brief-sheet")) return choose(first(card, ".ui-sheet-foot .ui-btn.k-primary"), [h.body, ...first(card,".ui-sheet-foot .ui-btn.k-ghost")]);
+    if (d.key === "soulChange" && card.classList.contains("ui-confirm")) {
+      return choose(first(card, ".ui-sheet-foot .ui-btn.k-primary:not(:disabled)"), [h.body, ...first(card, ".ui-sheet-foot .ui-btn.k-ghost")]);
+    }
     if (h.kind === "celebrate" || card.classList.contains("ui-confirm") || stepDone(s)) return forward();
     if (card.classList.contains("pt-name-sheet")) {
       return choose(first(card, ".ui-sheet-foot .ui-btn.k-primary"), first(card, ".pt-name-in, .pt-name-rnd"));
@@ -763,7 +766,14 @@ function tutorialControls() {
       if (st.ev.subPick) return forward();
       return choose(first(card, ".ui-row"));
     }
-    if (d.key === "soulChange" && card.classList.contains("sp-pick-sheet")) return forward();
+    if (d.key === "soulChange" && card.classList.contains("sp-pick-sheet")) {
+      // 持ち帰った魂を選び、能力を見比べて宿せる。一覧を閉じるだけでも完了できる。
+      const rows = first(card, ".sp-srow:not(.cur) .sp-srow-main:not(:disabled)");
+      const jobs = new Set(newJobSouls().map((soul) => soul.clsKey));
+      const fresh = rows.filter((node) => jobs.has(node.closest(".sp-srow").dataset.job));
+      const close = forward();
+      return choose([...fresh, ...rows, close.target], [h.body, ...rows, ...close.allowed]);
+    }
     if (card.querySelector(".sp-srow")) {
       if (d.key === "fusion") return choose(first(card, ".sp-pick-fuse"));
       let rows = first(card, ".sp-srow:not(.cur) .sp-srow-main:not(:disabled)");

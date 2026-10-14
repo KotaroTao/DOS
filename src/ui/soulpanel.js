@@ -151,7 +151,7 @@ export function lockedControl(className = "") {
   return b;
 }
 
-// 手ほどき中は一覧の確認だけ許す。実際の付け替えは完了後に解放する。
+// 手ほどき中も一覧を開き、魂を選んで付け替えられる。
 function soulChangeVisible() {
   return !!game.featureUnlocked?.("soulChange") || G_()?.tut?.cur === "soulChange";
 }
