@@ -1008,9 +1008,9 @@ export function awakenPerkOf(clsKey, rank) {
 // ===== 控えの結社 =====
 // 編成に出していない (primary/sub いずれにも使っていない) 魂を「結社」の席に着けると、
 // その魂の能力 (jobStatsOf) の一部が人業の全員に加わる (サブ魂の能力加算と同じ形)。技・パッシブは関係しない。
-// 割合は魂ランクで決まる (ORDER_STAT_RATES: R1 3% 〜 R5 8%。全員に効くのでサブ魂より薄い)。
+// 割合は魂ランクで決まる (ORDER_STAT_RATES: R1〜5: 5/8/12/16/20%。全員に効くのでサブ魂より薄い)。
 // 席数は game.js の orderSeats() (報告5で1, 7で2, 11で3)。席に着いている魂は game.js が setOrderSource で渡す。
-export const ORDER_STAT_RATES = [0, 0.03, 0.04, 0.05, 0.06, 0.08];
+export const ORDER_STAT_RATES = [0, 0.05, 0.08, 0.12, 0.16, 0.20];
 export function orderStatRateOfRank(rank) { return ORDER_STAT_RATES[Math.max(1, Math.min(5, rank || 1))]; }
 let ORDER_SRC = () => [];
 export function setOrderSource(fn) { ORDER_SRC = typeof fn === "function" ? fn : () => []; }

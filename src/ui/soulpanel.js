@@ -431,7 +431,7 @@ function borrowList(sub, se) {
   return { picks, cap };
 }
 // ---- 控えの結社: タイル (席の数・全員への上乗せ) → シート ----
-// 席の魂の能力の一部 (魂ランクで R1 3% 〜 R5 8%) が人業の全員に加わる。技・パッシブは関係しない (souls.js orderStatBonus)
+// 席の魂の能力の一部 (魂ランクで R1〜5: 5/8/12/16/20%) が人業の全員に加わる。技・パッシブは関係しない (souls.js orderStatBonus)
 const ORDER_RATE_TEXT = `R1 ${Math.round(ORDER_STAT_RATES[1] * 100)}% 〜 R5 ${Math.round(ORDER_STAT_RATES[5] * 100)}%`;
 // 能力の上乗せを「HP+12 STR+3 …」に (1未満は省く)
 function bonusText(b) {
