@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { recoverStability, STABILITY_RECOVERY_MS } from "../../src/stability.js";
 import { refSerialize, refDeserialize, applySavePatch } from "../../src/savegraph.js";
 import { CloudSaveClient } from "../../src/cloud-save.js";
 import { resolveCloudBattle } from "../../src/cloud-battle.js";
@@ -59,6 +60,27 @@ for (let seed = 1; seed <= 30; seed++) {
   assert.equal(game.party[0], original); assert.equal(game.battle, battle); assert.equal(game.battle.enemies[0], foe);
   assert.equal(received.result.actor, original); assert.equal(received.result.hits[0].target, foe);
   assert.equal(game.party[0].hp, server.party[0].hp); assert.deepEqual(game.rng, server.rng);
+}
+
+// 応答待ち中の自然回復は、行動結果と次の手番のどちらでも巻き戻さない。
+{
+  const game = battleState(), p = game.party[0], base = 1000000;
+  const reserve = makeDoll("控えの検証"); game.reserve.push(reserve);
+  for (const d of [p, reserve]) { d.stability = 0; d.stabilityAt = base; }
+  game.battle.chooseAction("attack"); game.battle.chooseTarget(game.battle.enemies[0]);
+  const server = clone(game), commit = resolveCloudBattle(server, "commit");
+  for (const d of [p, reserve]) recoverStability(d, base + STABILITY_RECOVERY_MS);
+  const received = applySavePatch(game, clone(commit));
+  assert.equal(received.result.actor, p);
+  for (const d of [p, reserve]) {
+    assert.equal(d.stability, 1); assert.equal(d.stabilityAt, base + STABILITY_RECOVERY_MS);
+  }
+  const advance = resolveCloudBattle(server, "advance");
+  for (const d of [p, reserve]) recoverStability(d, base + 2 * STABILITY_RECOVERY_MS);
+  applySavePatch(game, clone(advance));
+  for (const d of [p, reserve]) {
+    assert.equal(d.stability, 2); assert.equal(d.stabilityAt, base + 2 * STABILITY_RECOVERY_MS);
+  }
 }
 
 // 敵の一手で死亡した状態を保存。演出せずに読み込んでも生き返らない。
