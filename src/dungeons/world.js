@@ -1686,15 +1686,33 @@ export function wallAt(layer) {
   for (let L = WALL_FROM_LAYER; L <= Math.min(20, layer || 1); L++) k *= LAYER_WALL[L] || 1;
   return k;
 }
-// 迷宮の壁 (cfg.wall があればそれ、無ければ層から)
+// 本筋の迷宮の進行順。寄り道は同じ層で推奨Lvが直前の本筋と同じ段を使う。
+// 開放・踏破の履歴には依存させず、同じ迷宮の強さは常に同じにする。
+const PROGRESS_DUNGEONS = WORLD.filter(d => !d.side && d.layer >= WALL_FROM_LAYER)
+  .sort((a, b) => a.layer - b.layer || a.lv - b.lv);
+export function dungeonProgressOf(cfg) {
+  if (!cfg || cfg.layer < WALL_FROM_LAYER || cfg.wall != null) return 0;
+  const index = PROGRESS_DUNGEONS.findIndex(d => d.id === cfg.id);
+  if (index >= 0) return index;
+  if (!cfg.side) return 0; // 台帳外の奈落の素体には迷宮ごとの段を掛けない
+  let step = 0;
+  for (let i = 0; i < PROGRESS_DUNGEONS.length; i++) {
+    const d = PROGRESS_DUNGEONS[i];
+    if (d.layer < cfg.layer || (d.layer === cfg.layer && d.lv <= cfg.lv)) step = i;
+  }
+  return step;
+}
+export function dungeonStatMul(cfg) { return 1.5 ** dungeonProgressOf(cfg); }
+export function dungeonAgiMul(cfg) { return 1.2 ** dungeonProgressOf(cfg); }
+// 迷宮の壁 (cfg.wall があればそれ、無ければ層の壁 × 迷宮の進行倍率)
 export function wallOf(cfg) {
   if (!cfg) return 1;
   if (cfg.wall != null) return cfg.wall;
-  return wallAt(cfg.layer || 1);
+  return wallAt(cfg.layer || 1) * dungeonStatMul(cfg);
 }
-// 第十章以降の素早さは3倍。HP・攻撃・防御の壁とは別に固定し、無限迷宮 (wall:1) は除く。
+// 第十章の入口の素早さ3倍 × 迷宮ごとの進行倍率。無限迷宮 (wall:1) は除く。
 export function agiWallOf(cfg) {
-  return cfg && cfg.layer >= WALL_FROM_LAYER && wallOf(cfg) > 1 ? 3 : 1;
+  return cfg && cfg.layer >= WALL_FROM_LAYER && wallOf(cfg) > 1 ? 3 * dungeonAgiMul(cfg) : 1;
 }
 // 第十章以降の主・強敵のHPだけ、既存の強さの壁に追加で10倍を掛ける。
 export function strongHpWallOf(cfg) {

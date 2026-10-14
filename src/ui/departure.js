@@ -251,9 +251,8 @@ function renderHero(b) {
       : `隊のLvが推奨Lvを上回っているので、掟で増える死体はいま約${Math.round(share * 100)}%しか出ない。`)); }
   // 第十章からの壁 (world.js wallOf): 推奨Lv に届くだけでは勝てないことを、門をくぐる前に知らせる
   if (wall > 1) {
-    const step = game.wallStepOf ? game.wallStepOf(dn) : 1;
     b.appendChild(setText(el("div", "pt-note dp-after dp-wall"),
-      `第十章からの壁 ― この土地の敵は、第九章までの物差しの${wallText(wall)}倍の強さ${step > 1 && step < wall ? ` (ひとつ前の土地の${wallText(step)}倍)` : ""}。推奨Lvに届くだけでは歯が立たない。魂融合・宝探し・鍛え直しで隊を鍛えてから挑もう。`));
+      `第十章からの壁 ― この土地の敵は、第九章までの物差しの${wallText(wall)}倍の強さ。第十章からは本筋の迷宮が一つ進むごとにHP・攻撃・防御が1.5倍、素早さが1.2倍ずつ増える。推奨Lvに届くだけでは歯が立たない。魂融合・宝探し・鍛え直しで隊を鍛えてから挑もう。`));
   }
   if (dn.id === "w04" && !game.worldState?.().reported.w03) {
     b.appendChild(setText(el("div", "pt-note dp-after"), "取水口は推奨Lv18〜21。隊の強さを確かめ、支度を整えてから向かおう。"));
