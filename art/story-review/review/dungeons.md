@@ -942,9 +942,9 @@
 
 <a name="lore_ws18"></a>
 
-## lore_ws18「勝者の控え所」 ── 未着手
+## lore_ws18「勝者の控え所」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_ws18.webp" width="576" alt="lore_ws18">
 
 **ストーリー一覧の本文**
 
@@ -958,9 +958,9 @@ _(絵はまだ無い)_
 
 <a name="lore_ws19"></a>
 
-## lore_ws19「決闘の小円形場」 ── 未着手
+## lore_ws19「決闘の小円形場」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_ws19.webp" width="576" alt="lore_ws19">
 
 **ストーリー一覧の本文**
 
@@ -974,9 +974,9 @@ _(絵はまだ無い)_
 
 <a name="lore_ws20"></a>
 
-## lore_ws20「大空洞の主の寝床」 ── 未着手
+## lore_ws20「大空洞の主の寝床」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_ws20.webp" width="576" alt="lore_ws20">
 
 **ストーリー一覧の本文**
 
@@ -990,9 +990,9 @@ _(絵はまだ無い)_
 
 <a name="lore_ws21"></a>
 
-## lore_ws21「化石竜の墓所」 ── 未着手
+## lore_ws21「化石竜の墓所」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_ws21.webp" width="576" alt="lore_ws21">
 
 **ストーリー一覧の本文**
 
@@ -1006,9 +1006,9 @@ _(絵はまだ無い)_
 
 <a name="lore_ws22"></a>
 
-## lore_ws22「水晶の鉱脈」 ── 未着手
+## lore_ws22「水晶の鉱脈」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_ws22.webp" width="576" alt="lore_ws22">
 
 **ストーリー一覧の本文**
 
