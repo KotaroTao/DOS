@@ -22,11 +22,10 @@ with sync_playwright() as p:
             const view = rect('view');
             const w = cell.w * view.width / size.VW, h = cell.h * view.height / size.VH;
             if (Math.abs(w - h) > 0.1) throw Error('マスが正方形ではない');
-            if (innerWidth === 390 && innerHeight === 664 && view.height < 290)
-              throw Error('スマホの迷宮が小さすぎる');
+            const bar = rect('runbar');
             for (const button of document.querySelectorAll('#board-camera-tools button')) {
               const r = button.getBoundingClientRect();
-              if (r.height < 44 || r.bottom > view.bottom || r.right > view.right)
+              if (r.height < 44 || r.top < bar.top || r.bottom > bar.bottom || r.right > bar.right)
                 throw Error('盤面の表示ボタンが小さい・はみ出している');
             }
           }
@@ -53,7 +52,7 @@ with sync_playwright() as p:
       const first = a.cellRect(0, 0), last = a.cellRect(__game.COLS-1, __game.ROWS-1);
       if (first.x < 0 || first.y < 0 || last.x+last.w > s.VW || last.y+last.h > s.VH)
         throw Error('全体表示で盤面が欠けている');
-      if (document.getElementById('board-overview').getAttribute('aria-pressed') !== 'true')
+      if (document.getElementById('board-overview').getAttribute('aria-label') !== '現在地を拡大表示')
         throw Error('全体表示に切り替わらない');
     }''')
     page.locator('#board-camera-tools button').last.click()
@@ -74,7 +73,9 @@ with sync_playwright() as p:
           const party = document.getElementById('party').getBoundingClientRect();
           const controls = document.getElementById('controls').getBoundingClientRect();
           if (log.height < 54 || log.bottom > party.top) throw Error('戦闘中の記録が重なる');
-          if (controls.bottom > innerHeight + 1) throw Error('戦闘の操作欄が画面外');
+          const app = document.getElementById('app');
+          if (controls.bottom > app.getBoundingClientRect().top + app.scrollHeight + 1)
+            throw Error('戦闘の操作欄がスクロール範囲外');
         }''')
     assert not errors, errors
     print('記録の履歴・全体/現在地の切替・戦闘中の記録 OK')

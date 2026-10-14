@@ -47,7 +47,9 @@ with sync_playwright() as p:
                 if (!p || p.cx-p.hw < -1 || p.cx+p.hw > VW+1 || p.cy-p.hh < -1 || p.cy+p.hh > VH)
                   throw Error('敵の絵が戦場からはみ出す');
               }
-              if (log.bottom > party.top+1 || controls.bottom > innerHeight+1) throw Error('記録・操作欄の重なり');
+              const app = document.getElementById('app');
+              if (log.height < 54 || log.bottom > party.top+1 || controls.bottom > rect('app').top+app.scrollHeight+1)
+                throw Error('記録・操作欄の重なり');
               return [view.height,log.y,log.height,party.y,controls.y];
             }''')
             if baseline is None:
@@ -73,6 +75,13 @@ with sync_playwright() as p:
                 assert page.evaluate('!__game.G.enemyPos[9003].distant && __game.G.enemyPos[9000].distant')
                 button.click()
         print(f'{width}x{height}: 1〜6体の外側の配置が一致・前後切替・射程と乱数維持 OK')
+        page.locator('#controls .cmd-main button').first.scroll_into_view_if_needed()
+        page.evaluate('''() => {
+          const b = document.querySelector('#controls .cmd-main button'), r = b.getBoundingClientRect();
+          if (r.height < 44 || r.top < 0 || r.bottom > innerHeight || !b.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)))
+            throw Error('戦闘の操作ボタンに触れない');
+          document.getElementById('app').scrollTop = 0;
+        }''')
 
     page.set_viewport_size({'width':390,'height':664})
     page.evaluate('setEnemies(6)')

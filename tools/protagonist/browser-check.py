@@ -40,6 +40,8 @@ with sync_playwright() as p:
     dialog.get_by_role('textbox').fill('セイン')
     dialog.get_by_role('button', name='旅を始める').click()
     page.get_by_role('button', name='消して始める').click()
+    # 再起動後は音声解禁のため開始操作をもう一度行う。
+    page.locator('.ttl-btns .ttl-btn.primary').click()
     page.wait_for_function('window.__game?.G.apprenticeName === "セイン"')
     page.wait_for_function('localStorage.getItem("dos-save-v7")?.includes("セイン")')
     page.reload()

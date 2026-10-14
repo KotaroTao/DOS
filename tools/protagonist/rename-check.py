@@ -9,6 +9,8 @@ with sync_playwright() as p:
     page.on('pageerror', lambda e: errors.append(str(e)))
     page.goto('http://localhost:8000/?testDungeon=w01')
     page.wait_for_function('window.__game?.G.board')
+    # 試遊では名前が付く。名前のない旧記録は明示的に用意する。
+    page.evaluate('__game.G.apprenticeName = ""')
     page.evaluate("localStorage.setItem('dos-save-v7', __game.inf.saveJSON())")
     page.goto('http://localhost:8000/')
     page.get_by_role('button', name='つづきから').click()
@@ -74,12 +76,14 @@ with sync_playwright() as p:
     page.locator('.dg-menu').wait_for(state='detached')
     # 戦闘中の手帳と同じ状態分岐。編集を閉じても親の手帳が一時停止を保つ。
     page.evaluate("__game.G.state='combat'; __game.UI.openDungeonMenu()")
+    # 見識の解放案内など、手帳の下に残るシートも含めた深さを保つ。
+    parent_depth = page.evaluate("async()=>{const {sheetDepth}=await import('/src/ui/kit.js');return sheetDepth()}")
     edit('戦いの灯')
     page.get_by_role('button',name='保存する',exact=True).click()
     page.locator('.player-name-sheet').wait_for(state='detached')
     assert page.evaluate('__game.G.apprenticeName') == '戦いの灯'
     assert page.get_by_role('button',name='戦闘に戻る',exact=True).is_visible()
-    assert page.evaluate("async()=>{const {sheetDepth}=await import('/src/ui/kit.js');return sheetDepth()}") == 1
+    assert page.evaluate("async()=>{const {sheetDepth}=await import('/src/ui/kit.js');return sheetDepth()}") == parent_depth
     print('無限迷宮・12文字・320px・戦闘中の一時停止維持: OK')
     assert not errors, errors
     browser.close()
