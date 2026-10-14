@@ -47,6 +47,10 @@ export function refDeserialize(data) {
 // 演出・開いている画面が握っている人業の参照を、サーバーの返答でも保つ。
 export function applySavePatch(game, packet) {
   const map = new Map(), done = new Set();
+  // 戦闘サーバーは安定度を変更しない。通信待ち中に進んだ自然回復を古い値で戻さない。
+  const recovery = new Map([...(game.party || []), ...(game.reserve || [])]
+    .filter(d => Number.isFinite(d.stability) && Number.isFinite(d.stabilityAt))
+    .map(d => [d, {stability:d.stability, stabilityAt:d.stabilityAt}]));
   const snap = packet.snapshot;
   const link = (xs, ys) => {
     for (const x of xs || []) {
@@ -69,5 +73,6 @@ export function applySavePatch(game, packet) {
     return y;
   }
   for (const k of Object.keys(snap)) game[k] = copy(snap[k]);
+  for (const [d, value] of recovery) Object.assign(d, value);
   return { result: copy(packet.result), logs: packet.logs || [], modFeed: copy(packet.modFeed || []) };
 }
