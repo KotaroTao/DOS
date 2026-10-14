@@ -33,6 +33,10 @@ with sync_playwright() as p:
         change();
         const after = game.insightSummary().total;
         autosave(true);
+        if (state === 'combat') {
+          await tick(); check(!alerts().length, '戦闘中の見識アラートを保留');
+          G.state = 'board'; autosave(true);
+        }
         const under = sheet.open({title: '入手結果'});
         await tick();
         const a = alerts();
@@ -53,7 +57,7 @@ with sync_playwright() as p:
         G.codex.item[items[2]] = true;
       }, 'board', '同じ処理内の複数増加を合算');
       const mon = Object.keys(MONSTERS).find(k => !k.startsWith('ev_') && !G.codex.mon[k]);
-      await increase(() => { G.codex.mon[mon] = {kills:10}; }, 'combat', '戦闘中の魔物の開示も通知');
+      await increase(() => { G.codex.mon[mon] = {kills:10}; }, 'combat', '戦闘終了後に魔物の開示を通知');
       await increase(() => { G.codex.job.sera = {rank:5, lv:1}; }, 'town', '職業ランクによる増加も通知');
       const ev = Object.keys(EVENT_MAP).find(k => !G.events.seen[k]);
       await increase(() => { G.events.seen[ev] = 1; }, 'board', '出来事による増加も通知');

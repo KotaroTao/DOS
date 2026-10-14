@@ -11501,6 +11501,8 @@ function endBattleMeasured() {
   if (G._autoTimer) { clearTimeout(G._autoTimer); G._autoTimer = null; }
   renderCombat();
   if (b.result === "win") {
+    // 戦果の宝箱を開け終えるまで、討伐と新しい品の見識をひとまとめにする。
+    insightResultsPending = true;
     // 死体戦 (まだあたたかい/偉大なる死体が起き上がった戦闘): 宝箱なし・魂を100%回収する
     const corpse = (G.battleCell && G.battleCell._corpseRise)
       ? { clsKey: G.battleCell.corpseClass || "fighter", great: !!G.battleCell.corpseGreat }
@@ -11630,6 +11632,8 @@ function endBattleMeasured() {
       levels, skills, souls, levelUps: levelUpEntries(progress),
       chest,
       onDone: () => {
+        insightResultsPending = false;
+        notifyInsight();
         const fin = () => { if (after) after(); else if (G.state === "board") { renderBoard(); evProgress(); } };
         if (evCell && G.state === "board") eventFightWon(evApi, evCell, fin); else fin();
       },
@@ -15282,20 +15286,27 @@ function codexFresh() {
 function insightSummary() { return insightTotals(G, { monsters: MONSTERS, items: ITEMS, jobs: SOUL_CLASSES, events: EVENT_MAP }); }
 let insightAlertTimer = null;
 let insightAlertGain = 0;
+let insightResultsPending = false;
 function notifyInsight() {
   if (!featureUnlocked("insight")) return;
   const score = insightSummary();
   const previous = G.insightNotified;
   G.insightNotified = Math.max(Number(previous) || 0, score.total);
-  if (previous == null || score.total <= previous) return;
-  const gain = score.total - previous;
-  log(`見識 ＋${gain}　操霊師の見識 ${score.total.toLocaleString("ja-JP")}`, "sys");
-  if (inDungeon()) setAutoMove(false);
-  insightAlertGain += gain;
+  if (previous != null && score.total > previous) {
+    const gain = score.total - previous;
+    log(`見識 ＋${gain}　操霊師の見識 ${score.total.toLocaleString("ja-JP")}`, "sys");
+    if (inDungeon()) setAutoMove(false);
+    insightAlertGain += gain;
+  }
+  queueInsightAlert();
+}
+function queueInsightAlert() {
+  if (!insightAlertGain || G.state === "combat" || insightResultsPending) return;
   if (insightAlertTimer !== null) return;
   // 入手・戦果のシートが開いた後に知らせ、同じ処理での増加はまとめる。
   insightAlertTimer = setTimeout(() => {
     insightAlertTimer = null;
+    if (G.state === "combat" || insightResultsPending) return;
     const gain = insightAlertGain;
     insightAlertGain = 0;
     sheet.open({
