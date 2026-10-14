@@ -14414,6 +14414,7 @@ function reportMainQuest() {
   if (clue) { showToast(`「${clue.name}」を見つけてから、王に報告せよ`, { tone: "info" }); return; }
   const dollReward = prologueActive() && id === "w01";
   const r = dollReward ? { gold: 0, soulPts: 0, redSoul: 0 } : msqReward(cfg.lv, !!cfg.boss);
+  if (id === "w02") r.redSoul = 100;
   const rwText = dollReward ? "王宮の倉庫に眠っていた人業 ×1（館のイレーヌへ）" : [{ cur: "gold", n: r.gold }, { cur: "soul", n: r.soulPts }, ...(r.redSoul ? [{ cur: "red", n: r.redSoul }] : [])];
   const rep = REPORTS[id] || { title: cfg.name, lines: ["「果たしたか。…見たものを、すべて話せ。」"] };
   // この報告で地図に現れる迷宮 (解放条件 reported:id) を、王の言葉の結びに添える
