@@ -1,6 +1,6 @@
 // 第十章からの10倍強化を、全迷宮・全階と実際の敵の組み立てで確認する。
 import assert from "node:assert/strict";
-import { WORLD, wallAt, wallOf, wallStepOf, strengthAt, poolAt, PART2_LAYER, agiWallOf, strongHpWallOf, dungeonLevelRaw } from "../../src/dungeons/world.js";
+import { WORLD, wallAt, wallOf, wallStepOf, strengthAt, poolAt, PART2_LAYER, agiWallOf, strongHpWallOf, dungeonLevelRaw, dungeonProgressOf, dungeonStatMul, dungeonAgiMul } from "../../src/dungeons/world.js";
 import { MONSTERS } from "../../src/sprites.js";
 import { DUNGEON_MONSTERS } from "../../src/dungeons/index.js";
 import { spawnEliteEnemies, spawnBossEnemies, spawnMimic, spawnRanked, spawnMetal, scaleFoeAgi, scaleStrongFoeHp, Battle } from "../../src/combat.js";
@@ -49,12 +49,12 @@ const checkSpawn = (spawn, oldScale, newScale, factor, label) => {
 const eventKey = Object.keys(MONSTERS).find(k => MONSTERS[k].evOnly);
 assert(eventKey);
 for (const cfg of WORLD) for (let floor = 1; floor <= cfg.floors; floor++) {
-  const factor = cfg.layer >= 12 ? 10 : 1;
+  const factor = (cfg.layer >= 12 ? 10 : 1) * dungeonStatMul(cfg);
   strongHpWall = strongHpWallOf(cfg);
   assert.equal(strongHpWall, cfg.layer >= 12 ? 10 : 1);
   assert.equal(strongHpWallOf({ ...cfg, wall: 1 }), 1);
   agiWall = agiWallOf(cfg);
-  assert.equal(agiWall, cfg.layer >= 12 ? 3 : 1);
+  near(agiWall, cfg.layer >= 12 ? 3 * dungeonAgiMul(cfg) : 1);
   assert.equal(agiWallOf({ ...cfg, wall: 1 }), 1);
   fleeK = fleeScaleOf(cfg, dungeonLevelRaw(cfg, floor));
   const oldWall = cfg.layer < 13 ? 1 : 2 * 1.4 ** (Math.min(20, cfg.layer) - 13);
@@ -72,7 +72,7 @@ for (const cfg of WORLD) for (let floor = 1; floor <= cfg.floors; floor++) {
   checkSpawn(s => spawnRanked(eventKey, rank, 1, s * (t.soloMul || 1)), oldScale, newScale, factor, "出来事の魔物");
   floors++;
 }
-console.log(`全${WORLD.length}迷宮・${floors}階・${foes}個体: 第九章以前は同じ、第十章以降は10倍、無限迷宮は倍率なし。第20層以降の上限と第二部の段も確認`);
+console.log(`全${WORLD.length}迷宮・${floors}階・${foes}個体: 第九章以前は同じ、第十章以降は入口10倍と迷宮ごとの進行倍率、無限迷宮は倍率なし。第20層以降の上限と第二部の段も確認`);
 
 // 戦闘開始・召喚・金属の魔物・図鑑にも同じ素早さの壁が乗る。
 const cfg = WORLD.find(c => c.layer === 12 && c.boss);
@@ -80,7 +80,7 @@ const callerKey = Object.keys(MONSTERS).find(k => MONSTERS[k].summonKey);
 const caller = spawnEliteEnemies(callerKey, 1)[0];
 const b = new Battle([makeDoll("検証の人業")], [caller], () => {}, { fleeK: 2, agiWall: agiWallOf(cfg) });
 const expected = spawnEliteEnemies(caller.summonKey, 1)[0];
-scaleFoeAgi(expected, 2, 3);
+scaleFoeAgi(expected, 2, agiWallOf(cfg));
 b._execInner({ actor: caller, action: "summon" });
 assert.equal(b.enemies.length, 2);
 near(b.enemies[1].agi, expected.agi);
@@ -92,9 +92,9 @@ near(metal.agi, oldAgi * 3);
 scaleFoeAgi(metal, 2, 3);
 near(metal.agi, oldAgi * 3);
 const boss = spawnBossEnemies(cfg.boss, strengthAt(cfg, cfg.floors) * (cfg.bossScale || 1) * (cfg.tune?.bossMul || 1), cfg.bossRank)[0];
-scaleFoeAgi(boss, fleeScaleOf(cfg, dungeonLevelRaw(cfg, cfg.floors)), 3);
+scaleFoeAgi(boss, fleeScaleOf(cfg, dungeonLevelRaw(cfg, cfg.floors)), agiWallOf(cfg));
 near(enemyBaseSample(cfg.boss).agi, boss.agi);
-console.log("第十章以降の素早さ3倍・戦闘開始・召喚・金属・図鑑・保存復元を確認");
+console.log("第十章の素早さ入口3倍と迷宮ごとの進行倍率・戦闘開始・召喚・金属・図鑑・保存復元を確認");
 
 assert.equal(strongHpWallOf(null), 1);
 const strong = spawnBossEnemies(cfg.boss, 1, cfg.bossRank)[0];
@@ -115,3 +115,19 @@ b._execInner({ actor: caller, action: "summon" });
 const eliteHp = spawnEliteEnemies(cfg.elites[0], 1)[0].maxhp;
 assert.equal(b.enemies.at(-1).maxhp, eliteHp * 10);
 console.log("第十章以降の主・強敵だけHP追加10倍・他能力と通常敵の維持・図鑑・召喚・保存復元を確認");
+
+for (const [id, step] of [["w38", 0], ["w39", 1], ["w40", 2], ["w41", 3], ["ws20", 0], ["ws22", 1], ["ws21", 3]]) {
+  const dungeon = WORLD.find(d => d.id === id);
+  assert.equal(dungeonProgressOf(dungeon), step);
+  near(wallOf(dungeon), 10 * 1.5 ** step);
+  near(agiWallOf(dungeon), 3 * 1.2 ** step);
+  assert.equal(dungeonProgressOf({ ...dungeon, wall: 1 }), 0);
+}
+const main = WORLD.filter(d => !d.side && d.layer >= 12).sort((a, b) => a.layer - b.layer || a.lv - b.lv);
+for (let i = 1; i < main.length; i++) {
+  near(dungeonStatMul(main[i]) / dungeonStatMul(main[i - 1]), 1.5);
+  near(dungeonAgiMul(main[i]) / dungeonAgiMul(main[i - 1]), 1.2);
+}
+assert.equal(dungeonProgressOf(null), 0);
+assert.equal(dungeonProgressOf({ layer: 13 }), 0);
+console.log("迷宮の進行ごとのHP・攻撃・防御1.5倍 / 素早さ1.2倍・寄り道の段・除外条件を確認");
