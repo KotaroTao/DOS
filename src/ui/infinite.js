@@ -85,7 +85,7 @@ export function openInfSetup() {
         const k = picks[i], cl = SOUL_CLASSES[k] || {};
         b.appendChild(row({ icon: bust(k, 32), title: `${nameOf(i)} ― ${cl.label}の魂`, sub: `${RAR[cl.rarity] || ""} ・ Lv1 ・ ${statLine(k)}` }));
       }
-      b.appendChild(el("div", "inf-note dim", "全員 Lv1・装備なし・持ち物なし。魂の安定度は入場時と5階ごとの次階進行時に各人30消費する。最初に宿した欠片は、帰る時に迷宮へ還る (持ち帰れない)。器が崩れても、記憶は人業のもとへ帰る。"));
+      b.appendChild(el("div", "inf-note dim", `全員 Lv1・装備なし・持ち物なし。魂の安定度は入場時と5階ごとの次階進行時に各人${game.STABILITY_ENTRY_COST}消費する。最初に宿した欠片は、帰る時に迷宮へ還る (持ち帰れない)。器が崩れても、記憶は人業のもとへ帰る。`));
       b.appendChild(itemRule());
       return;
     }

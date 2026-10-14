@@ -39,7 +39,7 @@ with sync_playwright() as p:
     page.evaluate('''()=>{const g=adTest.G;g.redSoul=0;g.party.forEach((d,i)=>{d.stability=i?0:70;d.stabilityAt=Date.now()});adTest.departNow()}''')
     button('広告視聴で1回分進む').click()
     page.wait_for_function('adTest.G.state === "board" && !adTest.G.prompt')
-    assert page.evaluate('adTest.G.redSoul===0 && adTest.G.party[0].stability===40 && adTest.G.party.slice(1).every(d=>d.stability===0)')
+    assert page.evaluate('adTest.G.redSoul===0 && adTest.G.party[0].stability===50 && adTest.G.party.slice(1).every(d=>d.stability===0)')
     print('入場: 不足分だけ広告補充、通常消費、赤い魂0',flush=True)
     for floor in [5,10]:
         page.evaluate('''floor=>{const g=adTest.G;g.floor=floor;g.party.forEach(d=>{d.stability=0;d.stabilityAt=Date.now()});adTest.descend()}''',floor)
@@ -63,7 +63,7 @@ with sync_playwright() as p:
     count=page.evaluate('adTest.G.party.length')
     button('で不足分を購入して進む').click()
     page.wait_for_function('adTest.G.state === "board" && !adTest.G.prompt')
-    assert page.evaluate('adTest.G.redSoul')==999-count*30
+    assert page.evaluate('adTest.G.redSoul')==999-count*20
     print('既存の赤い魂による安定度購入も正常',flush=True)
     assert not errors,errors
     browser.close()
