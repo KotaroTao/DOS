@@ -25,7 +25,7 @@ import { remember, setPref, getPref } from "./prefs.js";
 import {
   itemDetailEl, statLines, isEquippable, gearScore, elemStatShort, showSkillPopup, showPassivePopup, itemCatText, tagRow, spellTagKinds, specialLines, specialShort, specialParts, resistDeltaParts, weaponPerformanceEl, weaponPowerPreview,
 } from "./itemview.js";
-import { renderSoulSummary, renderSoulSeg, openSoulPicker, openSoulList, openOrderSheet } from "./soulpanel.js";
+import { mansionControlUnlocked, lockedControl, renderSoulSummary, renderSoulSeg, openSoulPicker, openSoulList, openOrderSheet } from "./soulpanel.js";
 import { IRENE_WHO, IRENE_ART, ireneState, isGreeted, nextLine, lineOpen, noteVisit, greetingPages, playIreneScene, sceneActive } from "./irene.js";
 import {
   planBestEquip, equipApprovalGroups, applyEquipApprovals, restoreEquip, equipSignature, trialEquip, slotKeysFor, previewStats, statsDelta, snapshotEquip, isAutoCandidate, swapBackFor,
@@ -1260,7 +1260,9 @@ function formationEl(mode) {
     wrap.appendChild(grp);
   }
   if (town && !sheetTown) {
-    const manage = button({ label: "隊列", kind: "secondary", size: "sm", onTap: () => openMansionManage(ensureSel()) });
+    const manage = mansionControlUnlocked("formation")
+      ? button({ label: "隊列", kind: "secondary", size: "sm", onTap: () => openMansionManage(ensureSel()) })
+      : lockedControl();
     manage.classList.add("pt-mansion-manage");
     wrap.appendChild(manage);
   }
@@ -1276,7 +1278,7 @@ function formationEl(mode) {
 
 // 控えの結社 (魂一覧の右): 席の数。解放前は出さない (soulpanel.js openOrderSheet)
 function orderButton() {
-  if (!(game.featureUnlocked && game.featureUnlocked("order"))) return null;
+  if (!game.featureUnlocked?.("order")) return lockedControl("pt-bench pt-order");
   const seats = game.orderSeats ? game.orderSeats() : 0;
   const seated = game.orderSeatedUids ? game.orderSeatedUids().length : 0;
   const b = el("button", "pt-bench pt-souls pt-order");
@@ -1289,6 +1291,7 @@ function orderButton() {
 }
 // 魂一覧 (控えの右): 持っている魂を並べ、詳細・強化・融合・ロック・宿す操作 (soulpanel.js openSoulList)
 function soulListButton() {
+  if (!mansionControlUnlocked("soulList")) return lockedControl("pt-bench pt-souls");
   const G = G_();
   const b = el("button", "pt-bench pt-souls");
   b.type = "button";
@@ -1837,7 +1840,7 @@ function mansionHeader(d) {
   head.appendChild(tx);
   const actions = el("div", "pt-mansion-links");
   const souls = soulListButton();
-  souls.querySelector(".pt-bench-n").remove();
+  souls.querySelector(".pt-bench-n")?.remove();
   actions.appendChild(souls);
   const order = orderButton();
   if (order) actions.appendChild(order);
