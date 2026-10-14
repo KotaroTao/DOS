@@ -741,9 +741,9 @@
     "id": "irene_order",
     "master": "art/story-review/chapter7/irene_order.png",
     "status": "修正済・確認済",
-    "note": "Python局所合成で現在原画のセラの額の旧印を除去し、sigil.pngから抽出した輪郭を15度回転して小さい金の印へ置換。角張った掌・左親指1本・右指3本・短い手首・独立した炎1つを拡大確認。変更806画素、額の許可領域外RGB完全一致。イレーヌの額・顔・髪・手を組む姿勢・胸の灯・隠れた関節を保持。比較・検査・再現: composite-irene-order/。ユーザー承認・マージ待ち。",
+    "note": "PR #994でユーザー承認・mainへマージ、Pages公開と公開サイトの版一致を確認済み。額の印を正本からPython局所合成。変更806画素、許可領域外RGB完全一致。比較・検査・再現: composite-irene-order/。",
     "sha256": "fb3754a9457af38ab9a7226b3042e79fd338e6c315d8494a2d6021a5b7fd932c",
-    "checked_at": "2026-10-14T18:41:05.508866+00:00",
+    "checked_at": "2026-10-14T18:50:09.290164+00:00",
     "current_sha256": "401140e74fd84057ea69a6c70ad0debdcb9c19c6727b4e6db1976f2560598fe5"
   },
   {
@@ -839,11 +839,11 @@
   {
     "id": "irene_rain",
     "master": "art/story-review/chapter8/irene_rain.png",
-    "status": "修正保留",
-    "note": "再開時に現在原画の縮小・額部分を確認。原寸対象＋正本切り出し＋額の部分参照の候補も杯状の掌と上向きの短い指が残り、基準の斜めの右指3本・角張った掌に不一致で不採用。rejected/resume/irene_rain-candidate.pngに保存。原画を保持。隠れた手首内側への追加はしない。",
+    "status": "修正済・確認済",
+    "note": "Python局所合成で現在原画の額の旧印を除去し、sigil.pngから抽出した輪郭を12度回転して小さい金の印へ置換。角張った掌・左親指1本・右指3本・短い手首・独立した炎1つを拡大確認。変更1000画素、額の許可領域外RGB完全一致。人物・顔・髪・手・窓・雨・胸の灯を保持。隠れた手首内側には追加しない。比較・検査・再現: composite-irene-rain/。ユーザー承認・マージ待ち。",
     "sha256": "52fe45c6b9f9f3c330f5f936fce7ebeffe3bab3a19683fdb520ba16432aa9efa",
-    "checked_at": "2026-10-14T12:43:22.429779+00:00",
-    "current_sha256": "52fe45c6b9f9f3c330f5f936fce7ebeffe3bab3a19683fdb520ba16432aa9efa"
+    "checked_at": "2026-10-14T18:50:09.292806+00:00",
+    "current_sha256": "f7839c13a19a272a9884a87812cdc2e84b9f0c0312073d83afdd77fe1e0b7661"
   },
   {
     "id": "mem_w33",

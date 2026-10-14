@@ -2,9 +2,9 @@
 
 判断基準：[rules.md](rules.md)。場面ごとの本文：[evidence.json](evidence.json)。
 
-更新：2026-10-14T18:42:07.003129+00:00
+更新：2026-10-14T18:50:09.296383+00:00
 
-確認済・修正不要 131枚／修正済・確認済 9枚／要確認 9枚／修正保留 4枚
+確認済・修正不要 131枚／修正済・確認済 10枚／要確認 9枚／修正保留 3枚
 
 要確認は根拠・視認性が不足するため保留。修正保留は編集候補が基準を満たさず未完了。未確認は目視前であり、修正不要を意味しない。
 
@@ -92,7 +92,7 @@
 | 80 | [w24_aurora](../../../art/story-review/chapter6/w24_aurora.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定対象なし。 |
 | 81 | [ch7_end](../../../art/story-review/chapter7/ch7_end.png) | 確認済・修正不要 | 縮小で確認。一門の印の指定対象なし。 |
 | 82 | [irene_crest](../../../art/story-review/chapter7/irene_crest.png) | 修正済・確認済 | PR #990でユーザー承認・mainへマージ、Pages公開と公開サイトの版一致を確認済み。額と肘内側の印を正本からPython局所合成。変更1261画素、2領域外RGB完全一致。main取り込み時の進捗ページ衝突は再生成で解消し、PNG・WebPは承認時と同一。比較・検査・再現: composite-irene-crest/。 |
-| 83 | [irene_order](../../../art/story-review/chapter7/irene_order.png) | 修正済・確認済 | Python局所合成で現在原画のセラの額の旧印を除去し、sigil.pngから抽出した輪郭を15度回転して小さい金の印へ置換。角張った掌・左親指1本・右指3本・短い手首・独立した炎1つを拡大確認。変更806画素、額の許可領域外RGB完全一致。イレーヌの額・顔・髪・手を組む姿勢・胸の灯・隠れた関節を保持。比較・検査・再現: composite-irene-order/。ユーザー承認・マージ待ち。 |
+| 83 | [irene_order](../../../art/story-review/chapter7/irene_order.png) | 修正済・確認済 | PR #994でユーザー承認・mainへマージ、Pages公開と公開サイトの版一致を確認済み。額の印を正本からPython局所合成。変更806画素、許可領域外RGB完全一致。比較・検査・再現: composite-irene-order/。 |
 | 84 | [mem_w29](../../../art/story-review/chapter7/mem_w29.png) | 要確認 | 扉の上の原寸印は幾何学基準に一致し修正不要。祖の法衣は伏せた姿で装飾と印を識別できず、細かな配置指定もないため追加は保留。 |
 | 85 | [report_w26](../../../art/story-review/chapter7/report_w26.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定なし。王宮の星状の装飾は別物として保持。 |
 | 86 | [report_w27](../../../art/story-review/chapter7/report_w27.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定なし。王宮の星状の装飾は別物として保持。 |
@@ -103,7 +103,7 @@
 | 91 | [w28_note](../../../art/story-review/chapter7/w28_note.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定対象なし。 |
 | 92 | [ch8_end](../../../art/story-review/chapter8/ch8_end.png) | 確認済・修正不要 | セラは後ろ姿で額・肘内側・背の印の指定位置は髪と衣で隠れる。隠れた位置へ追加しない。 |
 | 93 | [irene_bell](../../../art/story-review/chapter8/irene_bell.png) | 確認済・修正不要 | 額の原寸で左の角張った親指・右の平行な指3本・手首・独立した炎を確認。 |
-| 94 | [irene_rain](../../../art/story-review/chapter8/irene_rain.png) | 修正保留 | 再開時に現在原画の縮小・額部分を確認。原寸対象＋正本切り出し＋額の部分参照の候補も杯状の掌と上向きの短い指が残り、基準の斜めの右指3本・角張った掌に不一致で不採用。rejected/resume/irene_rain-candidate.pngに保存。原画を保持。隠れた手首内側への追加はしない。 |
+| 94 | [irene_rain](../../../art/story-review/chapter8/irene_rain.png) | 修正済・確認済 | Python局所合成で現在原画の額の旧印を除去し、sigil.pngから抽出した輪郭を12度回転して小さい金の印へ置換。角張った掌・左親指1本・右指3本・短い手首・独立した炎1つを拡大確認。変更1000画素、額の許可領域外RGB完全一致。人物・顔・髪・手・窓・雨・胸の灯を保持。隠れた手首内側には追加しない。比較・検査・再現: composite-irene-rain/。ユーザー承認・マージ待ち。 |
 | 95 | [mem_w33](../../../art/story-review/chapter8/mem_w33.png) | 確認済・修正不要 | 師は外套を残した後のシャツ姿。外套の印を足さない。 |
 | 96 | [report_w30](../../../art/story-review/chapter8/report_w30.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定なし。 |
 | 97 | [report_w31](../../../art/story-review/chapter8/report_w31.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定なし。王宮の装飾と杖を変更しない。 |
