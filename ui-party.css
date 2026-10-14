@@ -910,7 +910,10 @@ button.sp-tile-main { cursor: pointer; }
 .sp-lock-btn.on { border-color: #8a6d2e; color: #e6c66e; }
 
 /* 魂の候補は情報・能力変化・操作を分け、細い画面でも文字を折らない。 */
+.sp-pick-sheet .sp-srow { flex-direction: column; gap: 0; }
 .sp-pick-sheet .sp-srow-main { flex-wrap: wrap; }
+.sp-pick-sheet .sp-srow-side { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 0 8px 7px; }
+.sp-pick-sheet .sp-srow-side .ui-btn { width: 100%; min-width: 0; }
 .sp-pick-sheet .sp-srow-t { flex: 1; }
 .sp-picker-change { flex: 0 0 100%; display: flex; flex-direction: column; gap: 4px; padding-top: 5px; border-top: 1px solid #665139; }
 .sp-picker-change-k { color: var(--ink-dim); font-size: 10px; font-weight: 500; }
@@ -928,8 +931,7 @@ button.sp-tile-main { cursor: pointer; }
   .sp-pick-sheet .sp-srow-tag { font-size: 10px; }
   .sp-pick-sheet .sp-picker-change { grid-column: 1 / -1; padding-top: 4px; }
   .sp-pick-sheet .sp-picker-delta { font-size: 11px; }
-  .sp-pick-sheet .sp-srow-side { flex-direction: row; justify-content: stretch; gap: 4px; padding: 0 8px 7px; overflow-x: auto; }
-  .sp-pick-sheet .sp-srow-side .ui-btn { flex: 1 0 82px; width: 82px; min-width: 82px; padding: 4px; font-size: 11px; letter-spacing: 0; gap: 4px; }
+  .sp-pick-sheet .sp-srow-side .ui-btn { width: 100%; min-width: 0; padding: 4px; font-size: 11px; letter-spacing: 0; gap: 4px; }
   .sp-pick-sheet .sp-lock-btn .ui-btn-ic { width: 12px; height: 12px; flex-shrink: 0; }
 }
 
