@@ -1,0 +1,244 @@
+[
+  {
+    "order": 1,
+    "id": "irene_torso",
+    "master": "art/story-review/chapter3/irene_torso.png",
+    "master_sha256": "27bd1735b06870385cfdda81c90122d54b25a99fc588d12848719eec7165d0eb",
+    "candidate": "art/story-review/sigil-audit/rejected/resume/irene_torso-candidate.png",
+    "candidate_sha256": "197fd6a3802d986e9c14168f3610b7f49884c7a598879c9309861738b1b60287",
+    "candidate_size": [
+      1536,
+      1024
+    ],
+    "input_reference": "art/story-review/sigil-audit/sigil-reference-tight.png",
+    "localizing_crop_input": null,
+    "review_crop_xyxy": [
+      225,
+      645,
+      430,
+      845
+    ],
+    "decision": "不採用",
+    "reason": "再開時の現在原画を縮小・額部分で確認。原寸対象＋正本切り出しで再編集した候補も、額の杯状の掌と上向きの突起が残り、斜めの平行な右指3本・独立した炎へ置換されていないため不採用。rejected/resume/irene_torso-candidate.pngに保存。原画を保持し、イレーヌの額・隠れた腕内側は変更していない。"
+  },
+  {
+    "order": 2,
+    "id": "w16_legs",
+    "master": "art/story-review/chapter4/w16_legs.png",
+    "master_sha256": "d7f9144b5d66577517c79e26f5202c806bbee6099821694e0edc53ff67659f6d",
+    "candidate": "art/story-review/sigil-audit/rejected/resume/w16_legs-candidate.png",
+    "candidate_sha256": "d343abf182a891b4cdd6024902f9f5d58a2d2d8f4d02b1c0be3693268558f56c",
+    "candidate_size": [
+      1536,
+      1024
+    ],
+    "input_reference": "art/story-review/sigil-audit/sigil-reference-tight.png",
+    "localizing_crop_input": null,
+    "review_crop_xyxy": [
+      740,
+      550,
+      1120,
+      860
+    ],
+    "decision": "不採用",
+    "reason": "再開時に現在原画の縮小と足・くるぶし部分を確認。原寸対象＋正本切り出しの再編集候補も足の甲の旧印が残り、内くるぶしへの位置変更が反映されず不採用。rejected/resume/w16_legs-candidate.pngに保存。脚・足・関節を含む原画を保持。"
+  },
+  {
+    "order": 3,
+    "id": "ch5_end",
+    "master": "art/story-review/chapter5/ch5_end.png",
+    "master_sha256": "ec3777ae67fa8a1164096a6d60aad70bc9a6f9d467e9ab395ab888f179a1daf0",
+    "candidate": "art/story-review/sigil-audit/rejected/resume/ch5_end-candidate.png",
+    "candidate_sha256": "a1f05e7feaeb787a08b0d2ce0d0052e5fb32bd762f2a6a11b1527e748897a79e",
+    "candidate_size": [
+      1536,
+      1024
+    ],
+    "input_reference": "art/story-review/sigil-audit/sigil-reference-tight.png",
+    "localizing_crop_input": "art/story-review/sigil-audit/resume-review/ch5_end-current-detail.png",
+    "review_crop_xyxy": [
+      760,
+      440,
+      925,
+      650
+    ],
+    "decision": "不採用",
+    "reason": "再開時に現在原画の縮小・額の部分を確認。原寸対象＋正本切り出し＋対象額の部分参照で編集した候補も、額に炎状の旧印が残り角張った掌・右指3本・手首が見えず不採用。rejected/resume/ch5_end-candidate.pngに保存。原画を保持。盾の配置は根拠不足のため要確認のまま、旗には追加しない。"
+  },
+  {
+    "order": 4,
+    "id": "irene_husks",
+    "master": "art/story-review/chapter5/irene_husks.png",
+    "master_sha256": "2f65f62d411f52bb2af6ae3634e174b68f981e45556494ab25a254ec0f3255c9",
+    "candidate": "art/story-review/sigil-audit/rejected/resume/irene_husks-candidate.png",
+    "candidate_sha256": "173818f15c6a6ba94d4ab0c49b49494c5df614f6d3745f63d9a4994aee4e54c1",
+    "candidate_size": [
+      1536,
+      1024
+    ],
+    "input_reference": "art/story-review/sigil-audit/sigil-reference-tight.png",
+    "localizing_crop_input": "art/story-review/sigil-audit/resume-review/irene_husks-current-detail.png",
+    "review_crop_xyxy": [
+      850,
+      75,
+      1090,
+      300
+    ],
+    "decision": "不採用",
+    "reason": "再開時に現在原画の縮小・額部分を確認。原寸対象＋正本切り出し＋額の部分参照の候補も杯状の掌と上向きの突起が残り、承認済み幾何学形に不一致で不採用。rejected/resume/irene_husks-candidate.pngに保存。原画を保持。イレーヌの額・髪飾り・関節の金の縁は変更しない。"
+  },
+  {
+    "order": 5,
+    "id": "irene_lineage",
+    "master": "art/story-review/chapter6/irene_lineage.png",
+    "master_sha256": "5d7a8e9f63e7d2c95bdd236faad6e41792e12bf318f79f47cfb0e89848edc149",
+    "candidate": "art/story-review/sigil-audit/rejected/resume/irene_lineage-candidate.png",
+    "candidate_sha256": "49f75e203bbf2b6f6cb0ea79e050b3cc528c8738405684cdefced4358ac780f2",
+    "candidate_size": [
+      1536,
+      1024
+    ],
+    "input_reference": "art/story-review/sigil-audit/sigil-reference-tight.png",
+    "localizing_crop_input": "art/story-review/sigil-audit/resume-review/irene_lineage-current-detail.png",
+    "review_crop_xyxy": [
+      890,
+      80,
+      1130,
+      345
+    ],
+    "decision": "不採用",
+    "reason": "再開時に現在原画の縮小・額部分を確認。原寸対象＋正本切り出し＋額の部分参照の候補も杯状の掌と上向きの短い突起が残り、斜めの平行な右指3本・角張った掌へ置換されていないため不採用。rejected/resume/irene_lineage-candidate.pngに保存。原画を保持。隠れた関節内側への追加はしない。"
+  },
+  {
+    "order": 6,
+    "id": "irene_crest",
+    "master": "art/story-review/chapter7/irene_crest.png",
+    "master_sha256": "c92dde72d66b92051dc2ff0bc08c65d3e2f3e4fb507881d7b52518c0b3c65ba3",
+    "candidate": "art/story-review/sigil-audit/rejected/resume/irene_crest-candidate.png",
+    "candidate_sha256": "b8100e66f594947a7b3f530766a6e08b5da31d8f6f76fa7fef9eefe6507ee4a9",
+    "candidate_size": [
+      1536,
+      1024
+    ],
+    "input_reference": "art/story-review/sigil-audit/sigil-reference-tight.png",
+    "localizing_crop_input": "art/story-review/sigil-audit/resume-review/irene_crest-current-detail.png",
+    "review_crop_xyxy": [
+      710,
+      115,
+      880,
+      300
+    ],
+    "decision": "不採用",
+    "reason": "再開時に現在原画の縮小・額・肘内側を確認。原寸対象＋正本切り出し＋額の部分参照の候補も額の杯状の掌と上向きの突起、肘の曲線状の旧印が残り、両方とも基準の幾何学形に不一致で不採用。rejected/resume/irene_crest-candidate.pngに保存。原画と肘の位置・手指・関節を保持。"
+  },
+  {
+    "order": 7,
+    "id": "irene_order",
+    "master": "art/story-review/chapter7/irene_order.png",
+    "master_sha256": "fb3754a9457af38ab9a7226b3042e79fd338e6c315d8494a2d6021a5b7fd932c",
+    "candidate": "art/story-review/sigil-audit/rejected/resume/irene_order-candidate.png",
+    "candidate_sha256": "3e9a68293444ae2677acd5969254a5a1dd151683c43472f819f3856391ac4f30",
+    "candidate_size": [
+      1536,
+      1024
+    ],
+    "input_reference": "art/story-review/sigil-audit/sigil-reference-tight.png",
+    "localizing_crop_input": "art/story-review/sigil-audit/resume-review/irene_order-current-detail.png",
+    "review_crop_xyxy": [
+      865,
+      65,
+      1075,
+      300
+    ],
+    "decision": "不採用",
+    "reason": "再開時に現在原画の縮小・額部分を確認。原寸対象＋正本切り出し＋額の部分参照の候補も杯状の掌と短い上向きの指が残り基準形に不一致で不採用。rejected/resume/irene_order-candidate.pngに保存。原画を保持。イレーヌの額と手を組む姿勢、隠れた関節は変更しない。"
+  },
+  {
+    "order": 8,
+    "id": "irene_rain",
+    "master": "art/story-review/chapter8/irene_rain.png",
+    "master_sha256": "52fe45c6b9f9f3c330f5f936fce7ebeffe3bab3a19683fdb520ba16432aa9efa",
+    "candidate": "art/story-review/sigil-audit/rejected/resume/irene_rain-candidate.png",
+    "candidate_sha256": "b7792c00625481906714623e5c5fb7b1a095494e855ea08a0b089157be085e7f",
+    "candidate_size": [
+      1536,
+      1024
+    ],
+    "input_reference": "art/story-review/sigil-audit/sigil-reference-tight.png",
+    "localizing_crop_input": "art/story-review/sigil-audit/resume-review/irene_rain-current-detail.png",
+    "review_crop_xyxy": [
+      870,
+      235,
+      1085,
+      460
+    ],
+    "decision": "不採用",
+    "reason": "再開時に現在原画の縮小・額部分を確認。原寸対象＋正本切り出し＋額の部分参照の候補も杯状の掌と上向きの短い指が残り、基準の斜めの右指3本・角張った掌に不一致で不採用。rejected/resume/irene_rain-candidate.pngに保存。原画を保持。隠れた手首内側への追加はしない。"
+  },
+  {
+    "order": 9,
+    "id": "irene_rest",
+    "master": "art/story-review/chapter9/irene_rest.png",
+    "master_sha256": "733173d82570de84c72a21a01f02c525e8675a30b43d0f2945003fe79e7b294d",
+    "candidate": "art/story-review/sigil-audit/rejected/resume/irene_rest-candidate.png",
+    "candidate_sha256": "e53c83c3631a6fb4ae5027bfafbb8a7d91a69017e76e8b9db15df1fd89d2808a",
+    "candidate_size": [
+      1536,
+      1024
+    ],
+    "input_reference": "art/story-review/sigil-audit/sigil-reference-tight.png",
+    "localizing_crop_input": "art/story-review/sigil-audit/resume-review/irene_rest-current-detail.png",
+    "review_crop_xyxy": [
+      325,
+      230,
+      510,
+      435
+    ],
+    "decision": "不採用",
+    "reason": "再開時に現在mainの原画ハッシュ一致、縮小・額部分を確認。脚と胸の別セッションの修正を保持する指定で原寸対象＋正本切り出し＋額の部分参照を編集。候補も額の杯状の掌と上向きの短い指が残り、基準形に不一致で不採用。rejected/resume/irene_rest-candidate.pngに保存。最新原画の脚・胸をそのまま保持。開いた蓋の金の図形は配置根拠不足で要確認、推測では変更しない。"
+  },
+  {
+    "order": 10,
+    "id": "irene_names",
+    "master": "art/story-review/chapter10/irene_names.png",
+    "master_sha256": "2d85e2bfa4bc96c7a9c8e9dcef21a7a2d8cf4877826f7fee11c7b32806484dd5",
+    "candidate": "art/story-review/sigil-audit/rejected/resume/irene_names-candidate.png",
+    "candidate_sha256": "fc73fc556dcb0c78eb7830dbb876de9caa8a1c4741c21966426fa7e33163920c",
+    "candidate_size": [
+      1536,
+      1024
+    ],
+    "input_reference": "art/story-review/sigil-audit/sigil-reference-tight.png",
+    "localizing_crop_input": "art/story-review/sigil-audit/resume-review/irene_names-current-detail.png",
+    "review_crop_xyxy": [
+      735,
+      70,
+      960,
+      310
+    ],
+    "decision": "不採用",
+    "reason": "再開時に現在原画の縮小・額部分を確認。原寸対象＋正本切り出し＋額の部分参照の候補も旧杯状の掌と短い上向きの指が残り、斜めの右指3本・角張った掌に不一致で不採用。rejected/resume/irene_names-candidate.pngに保存。原画を保持。イレーヌの額・札・他の装飾は変更しない。"
+  },
+  {
+    "order": 11,
+    "id": "lore_w07",
+    "master": "art/story-review/dungeons/lore_w07.png",
+    "master_sha256": "2c946b1c0d6e9209c814db733f447beea02449cb97101a212ed45d143b9be723",
+    "candidate": "art/story-review/sigil-audit/rejected/resume/lore_w07-candidate.png",
+    "candidate_sha256": "7f73ca0a61eeff6add3a5f33e5159a32d046976933ea12ef839e2ad8ec5b4de5",
+    "candidate_size": [
+      1536,
+      1024
+    ],
+    "input_reference": "art/story-review/sigil-audit/sigil-reference-tight.png",
+    "localizing_crop_input": "art/story-review/sigil-audit/resume-review/lore_w07-current-detail.png",
+    "review_crop_xyxy": [
+      565,
+      470,
+      790,
+      675
+    ],
+    "decision": "不採用",
+    "reason": "再開時に現在原画の縮小・額・壁の部分を確認。原寸対象＋正本切り出し＋額の部分参照の候補も額の旧杯状の印と上向きの突起が残り、基準形へ置換されず不採用。rejected/resume/lore_w07-candidate.pngに保存。原画を保持し、基準に合っている壁の印は変更しない。"
+  }
+]
