@@ -1760,6 +1760,7 @@ export function nameSheet({ banner = "名を与える", title, desc, value = "",
   body.appendChild(rowEl);
   let done = false;
   const ok = (h) => {
+    if (done || h.closed) return;
     const v = inp.value.trim();
     if (!v) { inp.focus(); return; }
     done = true; h.close("ok", { silent: true });
@@ -1773,7 +1774,10 @@ export function nameSheet({ banner = "名を与える", title, desc, value = "",
     ],
     onClose: () => { if (!done && onCancel) onCancel(); },
   });
-  inp.addEventListener("keydown", (e) => { if (e.key === "Enter") ok(h); });
+  inp.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" || e.isComposing || e.keyCode === 229) return;
+    e.preventDefault(); e.stopPropagation(); ok(h);
+  });
   return h;
 }
 export function openCreateName(uid) {

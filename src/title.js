@@ -173,7 +173,7 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
     if (e.isComposing) return;
     pendingName = normalizeName(nameInput.value);
     if (!pendingName) { nameError.textContent = "名前を入力してください。"; nameInput.focus(); return; }
-    if (Array.from(nameInput.value.trim()).length > NAME_LIMIT) {
+    if (Array.from(nameInput.value.normalize("NFC").trim()).length > NAME_LIMIT) {
       nameError.textContent = `名前は${NAME_LIMIT}文字以内で入力してください。`; nameInput.focus(); return;
     }
     nameInput.value = pendingName;

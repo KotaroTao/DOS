@@ -20,6 +20,10 @@
 #topbar, #screen, #runbar, #party, #hint { flex-shrink: 0; }
 #hud { flex: 1 1 0; min-height: 0; padding: 4px 6px; }
 #app.board-camera-active #hud { min-height: 102px; }
+/* 背の低い画面でも行動順・記録を隊の札に重ねず、収まらない分は内側で巻く。 */
+#app.in-combat { overflow-y: auto; overscroll-behavior-y: contain; }
+#app.in-combat #hud { flex-shrink: 0; min-height: 93px; }
+#app.in-combat #log { min-height: 54px; }
 #controls { flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; padding: 2px 6px 6px; }
 
 /* ===== 見出し (#topbar) ===== */
@@ -647,7 +651,7 @@ canvas.unk-sil { filter: brightness(0) drop-shadow(0 0 1px rgba(185,172,217,0.85
   font-size: 11px; text-shadow: 0 1px 3px #000;
 }
 #enemy-row-toggle {
-  pointer-events: auto; flex: 0 0 auto; min-height: 32px; padding: 4px 8px; white-space: nowrap;
+  pointer-events: auto; flex: 0 0 auto; min-height: 44px; padding: 4px 8px; white-space: nowrap;
   font-size: 12px; color: #eadbb3; background: rgba(24, 19, 25, 0.94);
   border: 1px solid #665338; border-radius: 4px;
 }
