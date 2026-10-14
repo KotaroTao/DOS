@@ -3019,6 +3019,7 @@ export function onceKey(e, layer) { return e.once === "layer" ? `${e.id}:${layer
 export function runEvent(A, cell) {
   const e = EVENT_MAP[cell.evId];
   if (!e) { A.done(cell); return; }
+  cell.evVisited = true; // 選択肢を見た印。図鑑の実行済み記録とは分ける
   // 勝った戦闘の続きが保存されたまま中断していた (勝利直後にアプリが落ちた等)
   if (cell.evFight && cell.evFight.won) { const f = cell.evFight; cell.evFight = null; if (e.onWin) e.onWin(A, cell, f, () => A.back()); else A.done(cell); return; }
   // 出来事の戦闘から逃げて戻ってきた
@@ -3037,18 +3038,21 @@ export function runEvent(A, cell) {
   }
   // 出会った出来事は記録に残す (本文は選択の札を出す時に。極は恵みの札が本文ごと記録へ書く)
   if (!(e.gift && cell.evGiven)) A.log(`◆ 出来事「${e.name}」`, "sys");
-  A.seen(e, cell);
   // 極: 選択肢は無く、踏んだその場で恒久の恵みを授かる (一度きり)。授け済みのマスを踏み直したら片付けるだけ
   if (e.gift) {
     if (cell.evGiven) { A.done(cell); return; }
     cell.evGiven = true;
+    A.seen(e, cell);
     A.picked(e, "恵みを授かった");
     const lines = e.gift(A, cell) || [];
     const t = EV_TIERS[e.tier];
     A.gift(e.name, [...e.intro(A, cell), ...lines], A.icon(e), { banner: t.banner, accent: e.accent || t.accent }, () => A.done(cell));
     return;
   }
-  const opts = (e.choices(A, cell) || []).filter(Boolean).map((o) => ({ ...o, fn: () => { A.picked(e, o.label); o.fn(); } }));
+  const opts = (e.choices(A, cell) || []).filter(Boolean).map((o) => ({ ...o, fn: () => {
+    if (!o.cancel) { A.seen(e, cell); A.picked(e, o.label); }
+    o.fn();
+  } }));
   if (!e.noLeave) opts.push({ label: e.leaveLabel || "立ち去る", cancel: true, fn: () => { A.log(`${e.name}を後にした。`, "sys"); A.back(); } });
   const tier = EV_TIERS[e.tier];
   const intro = e.intro(A, cell);
