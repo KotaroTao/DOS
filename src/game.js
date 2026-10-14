@@ -14447,8 +14447,8 @@ function reportMainQuest() {
     },
   }];
   // 機能の解放は、報告の直後に解放のページを挟む (同じ報告で2つ開くこともある)
-  // 修道院への出立前は依頼だけを伝え、機能の説明は館の手ほどきに任せる。
-  const scenes = id === "w02" ? [] : newly.map(unlockSceneFor).filter(Boolean);
+  // 回廊の踏破時に開いた見識は、報告時に王から説明する。融合の説明は館の手ほどきに任せる。
+  const scenes = (id === "w02" ? [unlockSceneFor("insight")] : newly.map(unlockSceneFor)).filter(Boolean);
   for (const us of scenes) {
     pages.push({ title: us.title, lines: us.lines, kicker: "秘技の伝授",
       leave: () => { SFX.victory(); buzz([0, 40, 80, 40]); toasts.push({ text: "🔓 新たな技能を授かった", opts: { tone: "good" } }); } });
@@ -14581,7 +14581,7 @@ function reportTutorialQuest() { return prologueAudience(); }
 // 機能解放: 章 (story.js CHAPTERS) と、その章で王に報告した本筋の迷宮の数で決める (節目の報告で王から授かる)。
 //   第一章は入門なので4つ、第二章からは1章に1つ (docs/tasks.md U1)。report = その章で報告した数 / "finale" = 章の結びの迷宮。
 //   報告の総数で決めないので、迷宮を回る順 (黒水の取水口を後回しにする等) に左右されない。
-//   踏破しただけ (報告前) では開かない ― 解放のページ (story.js UNLOCKS) を見てから使えるようにする。
+//   通常は報告後に開く。cleared 指定の機能だけは、その迷宮を踏破した時点で開く。
 //   まだ無い章の分 (第四章のサブ魂2枠・第五章の奈落) は、その章が台帳に載るまで開かない
 const FEATURES = {
   tavern: { chapter: 1, report: 4 },        // 第一章の本筋4か所の報告で、依頼と情報屋の噂が一緒に開く
@@ -14594,8 +14594,8 @@ const FEATURES = {
   order3: { chapter: 3, report: 2 },          // 結社の席3
   sub2: { chapter: 4, report: "finale" },     // サブ魂 2枠
   forge: { chapter: 5, report: "finale" },    // 鍛え直し (商会で金貨を払い、装備の品質を引き直す — 2026-10 ユーザーの指示)
+  insight: { chapter: 1, cleared: "w02" }, // 操霊師の見識: 亡骸の囁く回廊を踏破した直後
   // ── 第六章から (docs/unlocks.md の年表。ユーザーの了解済み)。章がまだ無いので開かない。仕組みはその章を作る時に足す ──
-  insight: { chapter: 6, report: "finale" }, // 操霊師の見識
   rusui: { retired: true, chapter: 6, report: "finale" },      // 留守居の修練 (席1。席の控えのメイン魂にも、戦闘で魂に入る経験値の一部が入る — 遠征の差し替え)
   rusui2: { retired: true, chapter: 7, report: "finale" },     // 留守居の修練の席2
   rusui3: { retired: true, chapter: 10, report: "finale" },    // 留守居の修練の席3
@@ -14622,6 +14622,7 @@ function featureMet(key, w = worldState()) {
   const f = FEATURES[key === "rumor" ? "tavern" : key];
   const ch = f && CHAPTERS.find((c) => c.no === f.chapter);
   if (!ch || f.retired) return false; // 廃止済み、またはその章がまだ無い
+  if (f.cleared) return !!w.cleared?.[f.cleared] || !!w.reported[f.cleared];
   if (f.dungeon) return !!w.reported[f.dungeon];
   return f.report === "finale" ? !!w.reported[ch.finale] : chapterReports(ch, w) >= f.report;
 }
@@ -14639,6 +14640,7 @@ function featureNote(key) {
   const ch = CHAPTERS.find((c) => c.no === f.chapter);
   const label = chapterLabel(f.chapter);
   if (!ch) return `${label}で開く (準備中)`;
+  if (f.cleared) return `「${worldById(f.cleared).name}」を踏破すると開く`;
   if (f.dungeon) return `「${worldById(f.dungeon).name}」を踏破し、王に報告すると開く`;
   if (f.report === "finale") {
     const fin = worldById(ch.finale);
