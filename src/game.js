@@ -6988,8 +6988,9 @@ function seraSlotBlocked(d, soul, slotId) {
   if (isUniqueJob(soul.clsKey)) return !(d && d.vessel === "sera" && slotId === "primary");
   return !!(d && d.vessel === "sera" && slotId === "primary");
 }
-// 灯守のランクの目標: 目覚め 1 / 継ぎ目の締め直し (焼かれた人業の殻) 2 / 奈落を前にした館の語り 3 (第六章から先で 4・5)
-const SERA_RANK_BEATS = ["irene_husks", "irene_abyss", "irene_crest"];
+// 灯守のランクの目標: 目覚め 1 / 館の語りの seraRank ごとに +1 (最高 5)。
+// 効果の台帳から拾い、語りを追加した時にランク更新と祝祭が抜けないようにする。
+const SERA_RANK_BEATS = IRENE_BEATS.filter((b) => b.effect === "seraRank").map((b) => b.id);
 function seraRankTarget() {
   const b = worldState().beats;
   return Math.min(5, 1 + SERA_RANK_BEATS.filter((id) => b[id]).length);
