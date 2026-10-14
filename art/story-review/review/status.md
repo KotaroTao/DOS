@@ -191,9 +191,9 @@
 | 由来 | `ws15` | 雷鳥の巣 | 出荷済み | [見る](dungeons.md#lore_ws15) |
 | 由来 | `ws16` | 錆びた避雷針の林 | 出荷済み | [見る](dungeons.md#lore_ws16) |
 | 由来 | `ws17` | 雲上の庭 | 出荷済み | [見る](dungeons.md#lore_ws17) |
-| 由来 | `ws18` | 勝者の控え所 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_ws18) |
-| 由来 | `ws19` | 決闘の小円形場 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_ws19) |
-| 由来 | `ws20` | 大空洞の主の寝床 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_ws20) |
-| 由来 | `ws21` | 化石竜の墓所 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_ws21) |
-| 由来 | `ws22` | 水晶の鉱脈 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_ws22) |
+| 由来 | `ws18` | 勝者の控え所 | 出荷済み | [見る](dungeons.md#lore_ws18) |
+| 由来 | `ws19` | 決闘の小円形場 | 出荷済み | [見る](dungeons.md#lore_ws19) |
+| 由来 | `ws20` | 大空洞の主の寝床 | 出荷済み | [見る](dungeons.md#lore_ws20) |
+| 由来 | `ws21` | 化石竜の墓所 | 出荷済み | [見る](dungeons.md#lore_ws21) |
+| 由来 | `ws22` | 水晶の鉱脈 | 出荷済み | [見る](dungeons.md#lore_ws22) |
 | 由来 | `w00_forest` | 近くの森の古屋 | 出荷済み | [見る](dungeons.md#lore_w00_forest) |
