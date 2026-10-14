@@ -24,6 +24,43 @@ const sfx = (k) => { try { const S = game.SFX; if (S && S[k]) S[k](); } catch (e
 const G_ = () => game.G;
 const allDolls = () => (game.allDolls ? game.allDolls() : [...(G_().party || []), ...(G_().reserve || [])]);
 const RARITY_NAME = { common: "コモン", rare: "レア", epic: "エピック", legend: "レジェンド", unique: "固有" };
+const SOUL_JOB_ORDER = Object.fromEntries(Object.keys(SOUL_CLASSES).map((key, i) => [key, i]));
+const SOUL_RARITY_ORDER = { common: 0, rare: 1, epic: 2, legend: 3, unique: 4 };
+const SOUL_SORTS = [
+  ["job", "職業順（戦士〜）"], ["rarity", "レア度が高い"], ["rank", "ランクが高い"],
+  ["level", "レベルが高い"], ["fusion", "融合数が多い"],
+];
+let soulSort = "job";
+function compareSoulList(a, b) {
+  const job = (SOUL_JOB_ORDER[a.clsKey] ?? 99) - (SOUL_JOB_ORDER[b.clsKey] ?? 99);
+  const fusion = (b.count || 1) - (a.count || 1);
+  const level = (b.level || 1) - (a.level || 1);
+  let primary = 0;
+  if (soulSort === "rarity") primary = (SOUL_RARITY_ORDER[SOUL_CLASSES[b.clsKey]?.rarity] ?? -1) - (SOUL_RARITY_ORDER[SOUL_CLASSES[a.clsKey]?.rarity] ?? -1);
+  else if (soulSort === "rank") primary = soulRankOf(b) - soulRankOf(a);
+  else if (soulSort === "level") primary = level;
+  else if (soulSort === "fusion") primary = fusion;
+  return primary || job || fusion || level || a.uid - b.uid;
+}
+function soulSortControl(root, h) {
+  const label = el("label", "sp-sort");
+  label.appendChild(el("span", "", "並び順"));
+  const select = el("select", "sp-sort-select");
+  for (const [value, text] of SOUL_SORTS) {
+    const option = el("option", "", text);
+    option.value = value;
+    select.appendChild(option);
+  }
+  select.value = soulSort;
+  select.addEventListener("change", () => {
+    soulSort = select.value;
+    sfx("select");
+    refreshSheet(h);
+    h.body?.querySelector(".sp-sort-select")?.focus({ preventScroll: true });
+  });
+  label.appendChild(select);
+  root.appendChild(label);
+}
 const STAT_L = { hp: "HP", mp: "MP", atk: "STR", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
 
 // 習得の案内は技とパッシブを同じレベル順で扱う。
@@ -610,11 +647,8 @@ function pickerBody(root, d, slotId, h) {
   const si = isSub ? +slotId.slice(3) : -1;
   const curUid = isSub ? ((d.subs || [])[si] || {}).uid : d.primary;
   const fusion = game.featureUnlocked ? game.featureUnlocked("fusion") : false;
-  // この人業が宿している魂を上へ: いまの差し口 → 同じ人業の別の差し口 → ほかは並び順のまま (ユーザーの指示、2026-10)
-  const ownUids = [d.primary, ...(d.subs || []).map((x) => x && x.uid)].filter((u) => u != null);
-  const ownRank = (s) => (s.uid === curUid ? 0 : ownUids.includes(s.uid) ? 1 : 2);
-  const cmp = game.soulSortCmp || (() => 0);
-  const souls = [...(isSub ? G.souls.filter((s) => !(SOUL_CLASSES[s.clsKey] || {}).unique) : game.soulRepresentatives())].sort((a, b) => ownRank(a) - ownRank(b) || cmp(a, b)); // 灯守 (セラだけの魂) は貸さない
+  soulSortControl(root, h);
+  const souls = [...(isSub ? G.souls.filter((s) => !(SOUL_CLASSES[s.clsKey] || {}).unique) : game.soulRepresentatives())].sort(compareSoulList); // 灯守 (セラだけの魂) は貸さない
   const list = el("div", "pt-list sp-plist");
   for (const s of souls) {
     const cl = SOUL_CLASSES[s.clsKey]; if (!cl) continue;
@@ -740,9 +774,9 @@ export function openSoulList() {
   const again = () => refreshSheet(h);
   h = sheet.open({
     kind: "info", banner: "魂一覧", className: "sp-pick-sheet sp-list-sheet",
-    body: (scroll) => {
-      const souls = [...(G.souls || [])].sort(game.soulSortCmp || (() => 0));
-      scroll.appendChild(el("div", "pt-note", `所持 ${souls.length} 個 ・ 所持 ✦${G.soulPts || 0} ・ 一覧から強化・魂融合・ロックを操作できる。操作以外を押すと職業図鑑を開く。`));
+    body: (scroll, handle) => {
+      soulSortControl(scroll, handle);
+      const souls = [...(G.souls || [])].sort(compareSoulList);
       const list = el("div", "pt-list sp-plist");
       for (const s of souls) {
         const cl = SOUL_CLASSES[s.clsKey]; if (!cl) continue;
