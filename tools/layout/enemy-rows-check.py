@@ -32,7 +32,7 @@ with sync_playwright() as p:
           (key,value) => key === 'stabilityAt' ? undefined : value);
       };
     }''')
-    for width, height in [(320, 480), (375, 550), (390, 664), (390, 844), (430, 932), (768, 1024), (1280, 900)]:
+    for width, height in [(320, 480), (375, 550), (390, 664), (390, 844), (430, 932), (600, 700), (601, 700), (768, 1024), (1280, 900)]:
         page.set_viewport_size({'width': width, 'height': height})
         baseline = None
         for count in [1, 2, 3, 4, 5, 6]:
@@ -55,6 +55,20 @@ with sync_playwright() as p:
             if baseline is None:
                 baseline = geometry
             assert all(abs(a-b) < 1 for a,b in zip(baseline, geometry)), (width,height,count,baseline,geometry)
+            names = page.locator('#enemy-names')
+            assert names.is_visible() == (width > 600)
+            if width > 600:
+                assert names.locator('.enemy-name').count() == count
+                assert '？' in names.inner_text(), '未判明の敵名が明かされた'
+                page.evaluate('''() => {
+                  const bar=document.getElementById('enemy-names').getBoundingClientRect();
+                  const view=document.getElementById('view').getBoundingClientRect();
+                  const {VH}=__game.autoMove.viewSize();
+                  if (Math.abs(bar.bottom-view.bottom)>1) throw Error('敵名が戦場の下端にない');
+                  for (const pos of Object.values(__game.G.enemyPos))
+                    if (view.top+(pos.cy+pos.hh)*view.height/VH > bar.top)
+                      throw Error('敵の絵と名前が重なる');
+                }''')
             button = page.locator('#enemy-row-toggle')
             assert button.is_visible() == (count > 3 and width <= 600)
             if count > 3 and width <= 600:
@@ -134,6 +148,18 @@ with sync_playwright() as p:
     page.wait_for_timeout(180)
     assert page.evaluate('canvasText.length > 0 && !canvasText.some(t=>t.includes(enemySample.mon.name))')
     page.screenshot(path='/tmp/dos-enemy-rows.png')
+    # 広い画面では演出中も既知名・呼び分けを残す。
+    page.set_viewport_size({'width':1280,'height':900})
+    page.evaluate('__game.G.animating=true')
+    page.wait_for_timeout(180)
+    assert page.locator('#enemy-names .enemy-name').count() == 6
+    enemy_name_in_bar = page.locator('#enemy-names').inner_text().replace('\u200b','')
+    assert page.evaluate('enemySample.mon.name') in enemy_name_in_bar
+    assert 'A' in enemy_name_in_bar and 'F' in enemy_name_in_bar
+    page.evaluate('__game.G.animating=false')
+    page.set_viewport_size({'width':390,'height':664})
+    page.wait_for_timeout(180)
+    assert not page.locator('#enemy-names').is_visible()
     # 前列全滅・後列だけ残った時は拡大表示へ。新しい戦闘では表示を初期化する。
     page.evaluate('''() => {
       const b=__game.G.battle;b.cancelTarget();b.enemies.slice(0,3).forEach(e=>{e.alive=false;e.hp=0});
@@ -142,6 +168,12 @@ with sync_playwright() as p:
     page.wait_for_timeout(180)
     assert not page.locator('#enemy-row-toggle').is_visible()
     assert page.evaluate('__game.G.battle.enemies.slice(3).every(e=>!__game.G.enemyPos[e.uid].distant && !__game.G.battle.isBackRow(e))')
+    page.set_viewport_size({'width':1280,'height':900})
+    page.wait_for_timeout(180)
+    assert page.locator('#enemy-names .enemy-name').count() == 3
+    assert 'A' not in page.locator('#enemy-names').inner_text()
+    page.screenshot(path='/tmp/dos-enemy-names-desktop.png')
+    page.set_viewport_size({'width':390,'height':664})
     page.evaluate('''() => {
       setEnemies(6); const G=__game.G;
       G.battle=Object.assign(Object.create(Object.getPrototypeOf(G.battle)),G.battle);
