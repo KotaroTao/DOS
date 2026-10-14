@@ -12716,7 +12716,7 @@ function equipSoulToSlot(d, uid, slotId = "primary", done = null) {
   const s = soulByUid(uid);
   if (!s || G.state !== "town") return fin(false);
   const si = slotId === "primary" ? -1 : +slotId.slice(3);
-  if (si < 0 && !featureUnlocked("soulChange")) return fin(false);
+  if (si < 0 && !featureUnlocked("soulChange") && G.tut?.cur !== "soulChange") return fin(false);
   if (si >= 0 && (!Number.isInteger(si) || si < 0 || si >= unlockedSubSlots())) return fin(false);
   // 別の差し口へ宿す (=付け替え) 場合のみ装備可否を判定する。外す操作は対象外
   const isNewEquip = !(slotId === "primary" && d.primary === uid) && !(si >= 0 && ((d.subs || [])[si] || {}).uid === uid);
