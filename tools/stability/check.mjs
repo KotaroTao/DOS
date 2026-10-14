@@ -19,7 +19,7 @@ assert.equal(recoverStability(d,base+step*100+1),0,'満タン中の時間は使�
 assert.equal(recoverStability(d,base),0,'時計の巻き戻し');
 assert.equal(d.stabilityAt,base);
 d.stability=8;
-assert.equal(stabilityWaitMs(d,base+60000),5220000);
+assert.equal(stabilityWaitMs(d,base+60000),2820000);
 assert.equal(recoverStability(d,base+step*1000),92,'長いオフライン回復は上限まで');
 const store=new Map();
 globalThis.localStorage={getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v)};

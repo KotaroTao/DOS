@@ -458,7 +458,7 @@ function renderStability(b, explain = true) {
   if (cur?.page !== "rematch" && game.stabilityApplies && !game.stabilityApplies()) return;
   const status = game.stabilityStatus();
   b.appendChild(sec("魂の安定度", `入場時 −${game.STABILITY_ENTRY_COST}／人`));
-  if (explain) b.appendChild(el("div","dp-brief-l",`上限100。入場時に${game.STABILITY_ENTRY_COST}消費し、${game.stabilityMinutes ? game.stabilityMinutes() : 4}分ごとに1回復。控えやゲームを閉じている間も回復します。5階ごとに次の階へ進む時も各人30消費します。不足分は赤い魂1で安定度1を購入するか、広告視聴で隊全員の不足分を補って1回分進めます。`));
+  if (explain) b.appendChild(el("div","dp-brief-l",`上限100。入場時に${game.STABILITY_ENTRY_COST}消費し、${game.stabilityMinutes ? game.stabilityMinutes() : 4}分ごとに1回復。控えやゲームを閉じている間も回復します。5階ごとに次の階へ進む時も各人${game.STABILITY_ENTRY_COST}消費します。不足分は赤い魂1で安定度1を購入するか、広告視聴で隊全員の不足分を補って1回分進めます。`));
   for (const d of status) {
     const line=el("div","dp-stability-row");
     const wait=d.value<game.STABILITY_ENTRY_COST ? ` ・ 入場まで約${Math.ceil(d.waitMs/60000)}分` : "";
@@ -532,7 +532,7 @@ function openBriefing(go) {
       picture.appendChild(illustration);b.appendChild(picture);
       b.appendChild(el("div","dp-brief-h","門衛 ― 迷宮の入口を守る者"));
       for(const text of ["この先へ入ると魂と人業の結びつきが揺らぎます。その状態を示すのが『魂の安定度』です。",
-        `安定度の上限は100です。入場時に人業ごとに${game.STABILITY_ENTRY_COST}消費します。5階ごとに次の階へ進む時も、一人につき30消費します。`,
+        `安定度の上限は100です。入場時に人業ごとに${game.STABILITY_ENTRY_COST}消費します。5階ごとに次の階へ進む時も、一人につき${game.STABILITY_ENTRY_COST}消費します。`,
         "安定度は4分ごとに1回復します。ゲームを閉じている間も同じです。",
         `不足分は赤い魂1で安定度1を購入し、そのまま進めます。安定度が${game.STABILITY_ENTRY_COST}未満の人業がいる場合は、購入するか、広告視聴で隊全員の不足分を補って1回分進むか、4分で1回復するのを待ってください。`,
         ...(!G().dungeonBriefed ? game.DUNGEON_BRIEFING || [] : [])])b.appendChild(setText(el("div","dp-brief-l"),text));
@@ -563,7 +563,7 @@ function renderAbyssPage(b) {
   b.appendChild(el("div", "dg-note", "口から吹き上げる風が、育って重くなった魂を吹き返す。人業はそのままでは降りられない。隊の者は魂のひとかけを土くれの仮の器6体に移し、入口に漂う「名もなき魂の欠片」を宿して Lv1 から降りる。力は置いてゆくが、記憶だけは器に残る。"));
   b.appendChild(sec("潜り方"));
   for (const t of [
-    "器ひとつごとに、3つの魂の欠片 (コモン・レア) から1つを選ぶ。全員 Lv1・装備なし・持ち物なし。魂の安定度は入場時と5階ごとの次階進行時に各人30消費する。",
+    `器ひとつごとに、3つの魂の欠片 (コモン・レア) から1つを選ぶ。全員 Lv1・装備なし・持ち物なし。魂の安定度は入場時と5階ごとの次階進行時に各人${game.STABILITY_ENTRY_COST}消費する。`,
     "5の倍数の階は風だまり。回収人 (品の買い取り・回復の道具・鍛え直し) と灯番 (魂の付け替え・強化・残火) がいて、その奥に主が立つ。",
     "帰れるのは、主を討った後の「帰る」だけ (帰還魔法陣は無い)。深くなるほど敵も風の掟も強くなるが、育つ速さも本編より速い。",
     "迷宮で拾った品は鑑定済み。同じ職の魂を拾うと自動で融合する。サブ魂・結社・極の永続強化・手がかりの恵みは乗らない。",

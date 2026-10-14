@@ -12451,7 +12451,7 @@ function stabilityReady(retry, infinite = abyssActive()) {
   }});
   options.push({label:"回復を待つ", fn:()=>{ autosave(true); }});
   showChoice("魂の安定度が足りない", options, null, {banner:"魂の安定度", onDismiss:()=>{},
-    lines:[...low.map(d=>`${d.name}: ${d.value}/30`), `不足分は合計${cost}。赤い魂1で安定度1を購入できます (所持${G.redSoul})。広告視聴なら、隊全員の不足分を補って1回分進めます。`,
+    lines:[...low.map(d=>`${d.name}: ${d.value}/${STABILITY_ENTRY_COST}`), `不足分は合計${cost}。赤い魂1で安定度1を購入できます (所持${G.redSoul})。広告視聴なら、隊全員の不足分を補って1回分進めます。`,
       `4分で1回復します。全員が進めるまで約${Math.ceil(Math.max(...low.map(d=>d.waitMs))/60000)}分。回復後にもう一度進んでください。`]});
   return false;
 }
