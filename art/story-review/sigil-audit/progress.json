@@ -642,9 +642,9 @@
     "id": "irene_lineage",
     "master": "art/story-review/chapter6/irene_lineage.png",
     "status": "修正済・確認済",
-    "note": "Python局所合成で現在原画の額の旧印を除去し、sigil.pngから抽出した正本を小さい金の印へ置換。左親指1本・右指3本・短い手首・独立した炎1つを拡大確認。変更1344画素、額の許可領域外RGB完全一致。人物・髪・手・胸の灯と隠れた関節内側を保持。比較・再現記録: composite-irene-lineage/。ユーザー承認・マージ待ち。",
+    "note": "PR #988でユーザー承認・mainへマージ、Pages公開確認済み。額の印を正本からPython局所合成。変更1344画素、許可領域外RGB完全一致。比較・検査・再現: composite-irene-lineage/。",
     "sha256": "5d7a8e9f63e7d2c95bdd236faad6e41792e12bf318f79f47cfb0e89848edc149",
-    "checked_at": "2026-10-14T18:09:22.222535+00:00",
+    "checked_at": "2026-10-14T18:28:51.811999+00:00",
     "current_sha256": "54b99f8b41b99f3229249d8cb60a092978fc2944c15c821de0cc0366dd154b7c"
   },
   {
@@ -731,11 +731,11 @@
   {
     "id": "irene_crest",
     "master": "art/story-review/chapter7/irene_crest.png",
-    "status": "修正保留",
-    "note": "再開時に現在原画の縮小・額・肘内側を確認。原寸対象＋正本切り出し＋額の部分参照の候補も額の杯状の掌と上向きの突起、肘の曲線状の旧印が残り、両方とも基準の幾何学形に不一致で不採用。rejected/resume/irene_crest-candidate.pngに保存。原画と肘の位置・手指・関節を保持。",
+    "status": "修正済・確認済",
+    "note": "Python局所合成で額と肘内側の旧印を除去し、正本sigil.pngから抽出した輪郭へ既存位置で置換。各印の左親指1本・右指3本・短い手首・独立した炎1つを拡大確認。変更1261画素（額662・肘599）、2領域外RGB完全一致。顔・髪・肘の位置・手指・関節・胸の灯を保持。比較・検査・再現: composite-irene-crest/。ユーザー承認・マージ待ち。",
     "sha256": "c92dde72d66b92051dc2ff0bc08c65d3e2f3e4fb507881d7b52518c0b3c65ba3",
-    "checked_at": "2026-10-14T12:38:02.130807+00:00",
-    "current_sha256": "c92dde72d66b92051dc2ff0bc08c65d3e2f3e4fb507881d7b52518c0b3c65ba3"
+    "checked_at": "2026-10-14T18:28:51.814487+00:00",
+    "current_sha256": "ec10d5f6436acfa64c33f89e102f632f652a5ce88c40100e6a496d0c1a8b5fd5"
   },
   {
     "id": "irene_order",

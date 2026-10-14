@@ -1,0 +1,57 @@
+{
+  "id": "irene_crest",
+  "size": [
+    1536,
+    1024
+  ],
+  "before_sha256": "c92dde72d66b92051dc2ff0bc08c65d3e2f3e4fb507881d7b52518c0b3c65ba3",
+  "canonical_sha256": "7dfeb2dbb8eb7091557e1dd3f387b963b64b2fa4a20848c1c18734167fe47b6b",
+  "candidate_sha256": "ec10d5f6436acfa64c33f89e102f632f652a5ce88c40100e6a496d0c1a8b5fd5",
+  "master_sha256": "ec10d5f6436acfa64c33f89e102f632f652a5ce88c40100e6a496d0c1a8b5fd5",
+  "webp_sha256": "a2618f788ee5ad82f74e4f91c7b094f27bce3158537f3a6c3fc2725379bbfb4a",
+  "changed_rgb_pixels": 1261,
+  "zones": {
+    "forehead": {
+      "allowed_xyxy_exclusive": [
+        752,
+        185,
+        792,
+        230
+      ],
+      "changed_bbox_xyxy_exclusive": [
+        756,
+        188,
+        787,
+        227
+      ],
+      "changed_pixels": 662,
+      "angle_degrees": 20
+    },
+    "elbow": {
+      "allowed_xyxy_exclusive": [
+        723,
+        499,
+        762,
+        541
+      ],
+      "changed_bbox_xyxy_exclusive": [
+        726,
+        502,
+        757,
+        539
+      ],
+      "changed_pixels": 599,
+      "angle_degrees": -22
+    }
+  },
+  "outside_regions_rgb_identical": true,
+  "outside_regions_pixels": 1569426,
+  "all_153_current_hashes_match": true,
+  "visual_review": "額と肘の既存位置で正本の角張った掌、左親指1本、右指3本、短い手首、独立した炎1つを確認。顔・髪・肘の位置・手指・関節・胸の灯を保持。WebPの目視比較はREADMEに記録。",
+  "previous_pr": {
+    "number": 988,
+    "merge_commit": "1dbb8a60da3a924fb40153dba1f99b13f2ff7465",
+    "pages_verified": true
+  },
+  "pending": "今回の1枚はユーザー確認・mainへのマージ待ち。要確認9枚とch5_endの盾・irene_restの蓋の金の図形は従来の理由で保留。"
+}
