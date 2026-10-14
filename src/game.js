@@ -6923,7 +6923,7 @@ function storyNewFloor() {
   Object.assign(cell, { walls, type: "story", storyKey: key, cleared: false, revealed: true });
   log(`この階のどこかに、確かめるべきものがある。`, "win");
 }
-function runStoryCell(cell) {
+function runStoryCell(cell, done) {
   const key = cell.storyKey;
   const def = STORY_CELLS[key];
   if (!def) { cell.cleared = true; cell.type = "empty"; renderBoard(); return; }
@@ -6944,6 +6944,7 @@ function runStoryCell(cell) {
     announceNewDungeons(refreshWorldUnlocks());
     autosave(true);
     renderBoard();
+    if (done) done();
   });
 }
 // ===== 手がかりの恵み (story.js STORY_CELLS の boon) =====
@@ -11951,7 +11952,7 @@ function celebrateDungeonClear({ idx, isStoryTarget }) {
     name: dn.name, layer: dn.layer, isStoryTarget, layerBoss: !!dn.boss,
     missingClue: reportMissingClue(dn.id),
     last: dn.layer >= 20 && !!dn.boss,
-    onStay: () => {
+    onStay: G.testSkipDungeon ? null : () => {
       log("迷宮は踏破した。下の「帰還」から、いつでも街へ凱旋できる。", "win");
       if (G.state === "board") renderBoard();
     },
@@ -16126,6 +16127,33 @@ function enterDungeon(mutatorId, startFloor = 1, stabilityAd = false) {
   renderBoard();
   if (UI.tutorialEvent) UI.tutorialEvent("dungeonEntered");
   autosave(true);
+  if (G.testPlay && G.testSkipDungeon) skipTestDungeon();
+}
+
+// 通し試遊だけ探索を省略する。発見の効果・踏破・主の記憶・凱旋は本番の処理に通す。
+function skipTestDungeon() {
+  const cfg = curDungeon();
+  const clues = Object.entries(STORY_CELLS)
+    .filter(([key, def]) => def.dungeon === cfg.id && !worldState().found[key] && (!def.prologue || prologueActive()))
+    .sort((a, b) => a[1].floor - b[1].floor);
+  const next = () => {
+    const clue = clues.shift();
+    if (clue) {
+      const [storyKey, def] = clue;
+      G.floor = def.floor;
+      runStoryCell({ storyKey }, next);
+      return;
+    }
+    G.floor = cfg.floors;
+    G.maxFloorReached = Math.max(G.maxFloorReached || 0, G.floor);
+    G.stats.deepest = Math.max(G.stats.deepest || 0, G.floor);
+    G.run.descended = Math.max(0, cfg.floors - G.run.startFloor);
+    G.run.floors = cfg.floors;
+    questProgress("floor", G.floor);
+    showDungeonClearedPopup(commitDungeonClear(!!cfg.boss));
+    autosave(true);
+  };
+  next();
 }
 
 // ===== 無限迷宮への出撃 =====
@@ -18374,6 +18402,7 @@ function setupTestPlay() {
   G.apprenticeName = "試遊の弟子";
   // 通し試遊は本番の新規開始と同じ状態。保存の停止だけを残す。
   G.testStoryFlow = testScene?.kind === "prologue" || testScene?.id === "opening";
+  G.testSkipDungeon = G.testStoryFlow && testParams.get("testSkipDungeon") === "1";
   if (G.testStoryFlow) {
     G.state = "town";
     if (!testScene.phase) return 1;
@@ -19056,12 +19085,12 @@ async function init() {
     titleActive = false; G.prompt = false;
     const banner = document.createElement("div");
     banner.className = "test-play-banner";
-    banner.appendChild(document.createTextNode("テストプレイ中・保存なし "));
+    banner.appendChild(document.createTextNode(G.testSkipDungeon ? "テストプレイ中・迷宮探索を省略・保存なし " : "テストプレイ中・保存なし "));
     const exit = document.createElement("button");
     exit.type = "button"; exit.textContent = "終了してホームへ";
     exit.addEventListener("click", () => {
       const url = new URL(location.href);
-      for (const key of ["testDungeon", "testFloor", "testPlace", "testScene", "testUnlock", "testInf", "testInfLv"]) url.searchParams.delete(key);
+      for (const key of ["testDungeon", "testFloor", "testPlace", "testScene", "testUnlock", "testInf", "testInfLv", "testSkipDungeon"]) url.searchParams.delete(key);
       location.replace(url.href);
     });
     banner.appendChild(exit); document.body.appendChild(banner);
@@ -19118,9 +19147,10 @@ async function init() {
   try { freshStart = sessionStorage.getItem("dos-newgame") === "1"; sessionStorage.removeItem("dos-newgame"); freshName = normalizeName(sessionStorage.getItem("dos-newgame-name")); sessionStorage.removeItem("dos-newgame-name"); } catch (e) {}
   try {
     showTitle({ hasSave: loaded, startName: freshStart ? freshName : "", summary: loaded ? titleSummary() : null, onStart: start, onNewGame: loaded && !cloudEnabled() ? newGameFromTitle : null,
-      testDungeons: DUNGEONS, testScenes, onTestPlay: ({ id, floor, place, scene, inf, infLv }) => {
+      testDungeons: DUNGEONS, testScenes, onTestPlay: ({ id, floor, place, scene, inf, infLv, skipDungeon }) => {
         _resetting = true;
         const url = new URL(location.href);
+        if (skipDungeon) url.searchParams.set("testSkipDungeon", "1"); else url.searchParams.delete("testSkipDungeon");
         if (inf) { // 無限迷宮の試遊: ○階から、隊Lv○で
           for (const key of ["testDungeon", "testFloor", "testPlace", "testScene"]) url.searchParams.delete(key);
           url.searchParams.set("testInf", inf);

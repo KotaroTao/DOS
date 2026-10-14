@@ -196,7 +196,7 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
     return row;
   };
   const mode = document.createElement("select");
-  for (const [value, label] of [["prologue", "序章を通して遊ぶ"], ["dungeon", "迷宮・街"], ["inf", "無限迷宮"], ["tutorial", "チュートリアル"], ["story", "ストーリー（会話）"], ["archive", "ストーリー（読み物・追加場面）"], ["art", "キャラ画像（全職業・全ランク）"]]) {
+  for (const [value, label] of [["prologue", "序章を通して遊ぶ"], ["flow", "迷宮探索を省略して通して遊ぶ"], ["dungeon", "迷宮・街"], ["inf", "無限迷宮"], ["tutorial", "チュートリアル"], ["story", "ストーリー（会話）"], ["archive", "ストーリー（読み物・追加場面）"], ["art", "キャラ画像（全職業・全ランク）"]]) {
     const o = document.createElement("option"); o.value = value; o.textContent = label; mode.appendChild(o);
   }
   field("テストする内容", mode);
@@ -247,10 +247,11 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
     for (const row of infRows) row.hidden = !isInf;
     sceneSelectRow.hidden = isDungeon || isArt || isInf;
     artNote.hidden = !isArt;
+    flowNote.hidden = mode.value !== "flow";
     testStart.querySelector(".ttl-btn-t").textContent = isArt ? "一覧を開く" : "テスト開始";
     sceneGroupRow.hidden = sceneSearchRow.hidden = sceneSelectRow.hidden;
     sceneGroup.replaceChildren();
-    for (const label of ["", ...new Set(testScenes.filter(d => d.kind === mode.value).map(d => d.group || "その他"))]) {
+    for (const label of ["", ...new Set(testScenes.filter(d => d.kind === (mode.value === "flow" ? "prologue" : mode.value)).map(d => d.group || "その他"))]) {
       const o = document.createElement("option"); o.value = label; o.textContent = label || "すべて"; sceneGroup.appendChild(o);
     }
     sceneSearch.value = "";
@@ -260,7 +261,7 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
     const previous = sceneSelect.value;
     const query = sceneSearch.value.trim().toLocaleLowerCase();
     sceneSelect.replaceChildren();
-    for (const d of testScenes.filter(d => d.kind === mode.value && (!sceneGroup.value || (d.group || "その他") === sceneGroup.value) && `${d.name} ${d.id}`.toLocaleLowerCase().includes(query))) {
+    for (const d of testScenes.filter(d => d.kind === (mode.value === "flow" ? "prologue" : mode.value) && (!sceneGroup.value || (d.group || "その他") === sceneGroup.value) && `${d.name} ${d.id}`.toLocaleLowerCase().includes(query))) {
       const o = document.createElement("option"); o.value = d.id; o.textContent = `${d.name}（${d.id}）`; sceneSelect.appendChild(o);
     }
     if ([...sceneSelect.options].some(o => o.value === previous)) sceneSelect.value = previous;
@@ -270,7 +271,8 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
   sceneSearch.addEventListener("input", updateScenes);
   // キャラ画像はゲームを始めずに、タイトルの上へ一覧を重ねる
   const artNote = div("ttl-note ttl-test-art", "全職業のキャラの絵 (R1〜R5) と顔アイコンを並べて表示します。");
-  testBox.appendChild(artNote);
+  const flowNote = div("ttl-note", "出撃すると、迷宮内の未発見の手がかりと主の記憶を読み、踏破して帰還します。街の支度・手ほどき・報告は通常通り進めます。");
+  testBox.append(artNote, flowNote);
   mode.addEventListener("change", updateMode);
   const testRow = div("ttl-confirm-row");
   const testCancel = mkBtn("戻る", null, "");
@@ -297,7 +299,7 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
       return;
     }
     clampFloor();
-    close(() => onTestPlay({ id: dungeon.value, floor: Number(floor.value), place: place.value, scene: mode.value === "dungeon" ? "" : sceneSelect.value }));
+    close(() => onTestPlay({ id: dungeon.value, floor: Number(floor.value), place: place.value, skipDungeon: mode.value === "flow", scene: mode.value === "dungeon" ? "" : sceneSelect.value }));
   });
   testBox.addEventListener("click", (e) => e.stopPropagation());
 
