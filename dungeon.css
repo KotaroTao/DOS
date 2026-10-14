@@ -626,13 +626,21 @@ canvas.unk-sil { filter: brightness(0) drop-shadow(0 0 1px rgba(185,172,217,0.85
 .in-combat #screen { position: relative; }
 #enemy-display-tools { display: none; }
 .in-combat #enemy-display-tools {
-  position: absolute; bottom: 10px; left: 14px; right: 14px;
-  display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+  position: absolute; top: 10px; bottom: 10px; left: 14px; right: 14px;
+  display: flex; align-items: flex-start; justify-content: flex-end; gap: 8px;
   pointer-events: none;
 }
-#enemy-focus { flex: 1; min-width: 0; color: #eadbb3; font-size: 11px; text-shadow: 0 1px 3px #000; }
+#enemy-focus {
+  position: absolute; width: 1px; height: 1px; padding: 0;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+#enemy-focus.has-target {
+  bottom: 0; left: 0; width: auto; height: auto; max-width: 100%;
+  clip-path: none; white-space: normal; color: #eadbb3;
+  font-size: 11px; text-shadow: 0 1px 3px #000;
+}
 #enemy-row-toggle {
-  pointer-events: auto; flex: 0 0 auto; min-height: 44px; padding: 4px 10px;
+  pointer-events: auto; flex: 0 0 auto; min-height: 32px; padding: 4px 8px; white-space: nowrap;
   font-size: 12px; color: #eadbb3; background: rgba(24, 19, 25, 0.94);
   border: 1px solid #665338; border-radius: 4px;
 }

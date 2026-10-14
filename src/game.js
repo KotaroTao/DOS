@@ -9190,10 +9190,16 @@ function renderCombatCanvas() {
   enemyRowBtn.disabled = !!(G.animating || b.result);
   if (b.phase !== "target") enemyView.focus = null;
   const focused = b.phase === "target" && !G.animating && b.targetOptions().find((e) => e.side === "enemy" && e.uid === enemyView.focus);
+  enemyFocusEl.classList.toggle("has-target", !!focused);
   const focusLabel = focused ? enemyLabel(focused) : twoRows ? `${enemyView.back ? "後列" : "前列"}を手前に表示中` : "";
   if (enemyFocusEl.textContent.replaceAll(ZWSP, "") !== focusLabel) enemyFocusEl.textContent = focusLabel;
-  // 右下の44pxの操作欄を戦場の内側に確保する。
-  const stageH = VH - (b.enemies.length > 3 || b.phase === "target" ? 52 * VW / (view.clientWidth || VW) : 0);
+  // 下部の操作帯は取らず、右上のボタンの周囲だけ敵の絵を避ける。
+  const stageH = VH;
+  const viewRect = view.getBoundingClientRect();
+  const rowBtnRect = twoRows ? enemyRowBtn.getBoundingClientRect() : null;
+  const viewScale = VW / (viewRect.width || VW);
+  const toolsBottom = rowBtnRect ? (rowBtnRect.bottom - viewRect.top + 6) * viewScale : 0;
+  const distantW = rowBtnRect ? Math.max(VW / 2, (rowBtnRect.left - viewRect.left - 8) * viewScale) : VW;
   const intro = G.battleIntro && G.battleIntro.battle === b ? G.battleIntro : null;
   // 奇襲の1ターン目は、魔物の下に紅い縁と「敵が先に動く」の札を敷く (名札が重なれば名札を優先)
   if (!intro && b.opening === "ambush" && b._roundNo <= 1 && !b.result) drawAmbushTag(now);
@@ -9208,11 +9214,12 @@ function renderCombatCanvas() {
   // 名札を常設せず、同種の呼び分け記号と属性・HP・効果だけを残す。
   const sizeOf = (e, distant, n) => {
     let sz = (e.boss ? 14 : (e.mon && e.mon.elite ? 1.15 : 1) * 9) * k;
-    const maxHalfH = Math.max(8, (stageH - 44) * (twoRows ? 0.32 : 0.5));
+    const maxHalfH = Math.max(8, Math.min((stageH - 44) * (twoRows ? 0.32 : 0.5), (stageH - 40 - toolsBottom) / 2));
+    const rowW = distant ? distantW : VW;
     if (e.mon && (e.mon.art || e.mon.photo)) {
       const bm = monsterBitmap(e.mon);
       const unit = Math.max(12, bm.w, bm.h) / 12;
-      sz = Math.min(sz, ((VW / n - 24) / (bm.w + bm.pad * 2)) * unit);
+      sz = Math.min(sz, ((rowW / n - 24) / (bm.w + bm.pad * 2)) * unit);
     }
     sz = Math.min(sz, sz * maxHalfH / monsterHalfH(e.mon, sz));
     return sz * (distant ? 0.58 : 1);
@@ -9223,8 +9230,8 @@ function renderCombatCanvas() {
     row.y = row.distant ? 6 + foot : stageH - 40 - foot;
     const plateY = row.y + foot + 3;
     row.list.forEach((e, i) => {
-      const slot = VW / row.list.length;
-      const baseX = row.distant ? VW / 2 + (slot * (i + 0.5) - VW / 2) * 0.82 : slot * (i + 0.5);
+      const slot = (row.distant ? distantW : VW) / row.list.length;
+      const baseX = slot * (i + 0.5);
       const baseY = row.y;
       const size = sizeOf(e, row.distant, row.list.length);
       const hh = monsterHalfH(e.mon, size);
