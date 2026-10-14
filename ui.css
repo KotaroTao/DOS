@@ -638,3 +638,6 @@ canvas.tw-vig-hd { image-rendering: auto !important; }
 .pl-insight-breakdown { font-size: 12px; line-height: 1.6; }
 
 .player-name-insight { margin-top: 4px; color: #d9bd83; font-size: 13px; font-variant-numeric: tabular-nums; }
+.player-name-insight:not([hidden]) { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 12px; row-gap: 2px; }
+.player-name-points { white-space: nowrap; }
+.player-name-title { color: #f0d99d; }
