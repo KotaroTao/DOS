@@ -1845,7 +1845,6 @@ function mansionHeader(d) {
   tx.appendChild(rename);
   head.appendChild(tx);
   const actions = el("div", "pt-mansion-links");
-  actions.appendChild(benchButton());
   const souls = soulListButton();
   souls.querySelector(".pt-bench-n")?.remove();
   actions.appendChild(souls);
