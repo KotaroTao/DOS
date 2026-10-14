@@ -21,7 +21,7 @@ with sync_playwright() as p:
       openSheet(d,null,{town:true});
       check(!document.querySelector('.pt-auto,.pt-head-join'),'旧ボタンを撤去');
       const btns=[...document.querySelectorAll('.pt-head .pt-equip-actions button')];
-      check(btns.length===2&&btns[1].getBoundingClientRect().top>=btns[0].getBoundingClientRect().bottom,'最適装備と全員最適を縦に表示');
+      check(btns.length===2&&btns[1].getBoundingClientRect().top>=btns[0].getBoundingClientRect().bottom,'シートの全体最適と最適装備を縦に表示');
       btns[0].click();
       check(!!document.querySelector('.pt-ae-sheet'),'個人の確認画面');
       check(document.querySelectorAll('.pt-ae-card .pt-ae-tg').length===1,'変更が1件ならカードの承認は1つだけ');

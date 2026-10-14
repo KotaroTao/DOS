@@ -207,7 +207,7 @@ const TUTS = [
       ["今回は騎士を前衛に、僧侶と魔導士を後衛に置きましょう。", "動かしたい子を選び、『管理』→『隊列を変更』を押してください。次に隊列の中から相手を選ぶと、二体の場所が入れ替わります。光っている札で試しましょう。"],
     ],
     steps: [
-      { text: "前衛へ移す人業の『隊列を変更』を開く", hint: "光っている管理 → 隊列を変更", go: () => UI.openParty?.(formationMove().mover, { context: "town" }), target: [".pt-mansion-head > button"], on: "formationPickerOpened", done: formationReady },
+      { text: "前衛へ移す人業の『隊列を変更』を開く", hint: "光っている管理 → 隊列を変更", go: () => UI.openParty?.(formationMove().mover, { context: "town" }), target: [".pt-mansion-manage"], on: "formationPickerOpened", done: formationReady },
       { text: "術を使う人業を後衛に置く", hint: "隊列の中で場所を替える → 光っている相手", go: () => UI.openSwapSheet?.(formationMove().mover), target: ['.pt-sw-card[data-swap-job="priest"]'], done: formationReady },
     ],
     outro: ["前衛は戦士・騎士・盗賊、後衛は魔導士・僧侶。隊列が整った。", "館では『管理』の『隊列を変更』でいつでも並べ直せる。隊列の顔を長押しして、替えたい相手へ動かしてもよい。", "王宮で次の依頼を受けよう。"],
@@ -252,10 +252,10 @@ const TUTS = [
     prepare() { tutState().base.uid = UI.trainableList?.()[0]?.uid; },
     intro: () => [
       ["魂を育てるだけの✦Soulを持ち帰られたのですね。", "迷宮で集めた✦Soulは、館で魂の強化に使えます。"],
-      ["人業の『魂』で『魂を強化』を押すと、表示された✦Soulを使って、その子のメイン魂のLvが一つ上がります。", "能力が伸び、Lvによっては新しい技も覚えます。実際に一度、強化してみましょう。"],
+      ["人業の名前の下で『魂を強化』を押すと、表示された✦Soulを使って、その子のメイン魂のLvが一つ上がります。", "能力が伸び、Lvによっては新しい技も覚えます。実際に一度、強化してみましょう。"],
       ["✦Soulは隊で分け合うものです。育てたい子と必要な数を確かめてから使ってください。", "Lv上限に達した魂は、それ以上強化できません。"],
     ],
-    steps: [{ text: "人業のメイン魂を一度強化する", hint: "人業の館 → 魂 → 魂を強化",
+    steps: [{ text: "人業のメイン魂を一度強化する", hint: "人業の館 → 魂を強化",
       go: () => goSoulSeg(allDolls().find(d => d.primary === tutState().base.uid) || UI.trainableList?.()[0]?.doll),
       target: [".sp-acts .ui-btn.k-primary:not(:disabled)"], on: "soulTrained",
       skip: () => !(UI.trainableList?.().length > 0),
@@ -275,10 +275,10 @@ const TUTS = [
     prepare: () => null,
     intro: () => [
       ["新しい職業の魂を持ち帰られたのですね。", "その魂は、今いる人業のメイン魂と付け替えられます。人業を増やさずに、新たな職業の力を借りましょう。"],
-      ["宿す魂を変えれば、今いる人業も別の職業として戦えます。魂の育ちは残り、外した魂も失われません。", "まずは『メイン魂』の枠から魂の一覧を開いて、閉じてください。実際の付け替えは、その後に自由に行えます。"],
+      ["宿す魂を変えれば、今いる人業も別の職業として戦えます。魂の育ちは残り、外した魂も失われません。", "まずは『メイン魂付け替え』から魂の一覧を開いて、閉じてください。実際の付け替えは、その後に自由に行えます。"],
       ["新しい職業で使えない装備は外れます。同じ職業のメイン魂は、隊に一つだけです。"],
     ],
-    steps: [{ text: "魂の一覧を開いて確認し、閉じる", hint: "人業の館 → 魂 → メイン魂 → 閉じる", go: () => goSoulSeg(), target: [".sp-change"], on: "soulChangeViewed" }],
+    steps: [{ text: "魂の一覧を開いて確認し、閉じる", hint: "人業の館 → メイン魂付け替え → 閉じる", go: () => goSoulSeg(), target: [".sp-change"], on: "soulChangeViewed" }],
     outro: ["魂の付け替えが解放された。魂の区分の『メイン魂』の枠から、いつでも変更できる。"],
   },
   {
@@ -301,7 +301,7 @@ const TUTS = [
       text: "魂融合で、余っている魂を溶かす",
       // 宿している魂に融合できるなら魂の区分の『魂融合』、無ければ『メイン魂』の一覧の『魂融合』
       get hint() {
-        return fusableDoll() ? "人業の館 → 魂の区分 →『魂融合』→ 素材の魂を選ぶ" : "魂の区分 →『メイン魂』→ 戦士の魂の『魂融合』";
+        return fusableDoll() ? "人業の館 → 魂の区分 →『魂融合』→ 素材の魂を選ぶ" : "『メイン魂付け替え』→ 戦士の魂の『魂融合』";
       },
       go: () => goSoulSeg(fusableDoll()), target: [".sp-fuse.hot", ".sp-pick-fuse", ".sp-change"],
       done: () => ((G_().stats || {}).fusions || 0) > (tutState().base.fusions || 0),
@@ -773,7 +773,7 @@ function tutorialControls() {
   if (d.key === "prologueFormation" && st.step === 0) {
     const { mover } = formationMove(), job = soulByUid(mover?.primary)?.clsKey;
     const selected = document.querySelector(".pt-mansion-head")?.dataset.job === job;
-    return choose(first(document, selected ? ".pt-mansion-head > button" : `.pt-form [data-drop="p${G_().party.indexOf(mover)}"]`));
+    return choose(first(document, selected ? ".pt-mansion-manage" : `.pt-form [data-drop="p${G_().party.indexOf(mover)}"]`));
   }
   if (["createThree", "createFourth", "createFifth", "createSixth"].includes(d.key)) {
     const count = allDolls().length;

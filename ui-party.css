@@ -807,8 +807,8 @@ button.pt-cur-ic { width: 44px; height: 44px; cursor: pointer; }
 .sp-prog .ui-bar { flex: 1 1 auto; height: 6px; }
 .sp-prog-v { flex: 0 0 auto; font-size: 11px; color: #9fd4f5; font-variant-numeric: tabular-nums; }
 .sp-prog-v.cap { color: var(--accent-hi); letter-spacing: 0.2em; }
-.sp-acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.sp-acts .ui-btn { min-height: 50px; padding: 4px 8px; gap: 6px; font-size: 14px; }
+.sp-acts { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 6px; }
+.sp-acts .ui-btn { min-width: 0; min-height: 50px; padding: 4px; gap: 4px; font-size: 12px; }
 .sp-acts .ui-btn:only-child { grid-column: 1 / -1; }
 .sp-short { align-self: center; font-size: 11.5px; line-height: 1.5; color: #b2a68f; }
 .sp-note { font-size: 12px; line-height: 1.55; color: #b2a68f; }
@@ -838,8 +838,8 @@ button.pt-cur-ic { width: 44px; height: 44px; cursor: pointer; }
 .sp-ic { display: inline-flex; flex: 0 0 auto; width: 32px; height: 32px; align-items: center; justify-content: center; color: var(--accent); }
 .sp-ic svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 6px rgba(201,162,74,0.4)); }
 .sp-more { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
-/* メイン魂は1列ぶん、サブ魂1・2はその下に2つ並べる (ユーザーの指示、2026-10)。サブ魂が1つだけなら横いっぱいに */
-.sp-more > :first-child, .sp-more > :nth-child(2):last-child { grid-column: 1 / -1; }
+/* サブ魂1・2を2列で並べる。1つだけなら横いっぱいに */
+.sp-more > :only-child { grid-column: 1 / -1; }
 .sp-tile {
   position: relative; display: flex; align-items: stretch; min-width: 0; min-height: 54px;
   background: var(--grain), radial-gradient(80% 80% at 0% 50%, color-mix(in srgb, var(--glow, #3a3140) 12%, transparent), rgba(0,0,0,0) 70%), var(--plate);
@@ -1211,12 +1211,17 @@ button.sp-lu-next { cursor: pointer; }
 
 .pt-bcell-name { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; max-width: 100%; min-height: 2.6em; font-size: 10px; line-height: 1.3; color: var(--ink); }
 .pt-bagwrap .pt-bcell:focus-visible { outline: 2px solid var(--accent-hi); outline-offset: -2px; }
-/* 館の固定部分は隊員の選択・名前・区分だけ。育成の末尾まで門に隠さない。 */
+/* 館の選択・名前・メイン魂の詳細・区分を固定し、区分の中身をスクロールする。 */
 .pt-mansion-head { display: flex; align-items: center; gap: 8px; min-height: 44px; }
-.pt-mansion-title { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pt-mansion-title { flex: 1; min-width: 0; display: flex; align-items: center; gap: 4px; }
 .pt-mansion-title .pt-head-cls { font-size: 12px; white-space: nowrap; }
 .pt-mansion-head > .ui-btn { flex: 0 0 auto; min-width: 64px; min-height: 44px; }
 .pt-root.m-town > .pt-form { justify-content: center; }
+.pt-mansion-manage { flex: 0 0 auto; margin-left: auto; min-width: 48px; padding: 4px 6px; }
+.pt-mansion-head > .pt-equip-actions { flex-direction: row; }
+.pt-mansion-head .pt-equip-actions > .ui-btn { min-width: 64px; padding: 4px 6px; font-size: 12px; }
+.pt-mansion-rename { flex: 0 0 auto; padding: 4px; font-size: 11px; }
+.pt-root.m-town > .sp-card { min-width: 0; }
 .sp-head { align-items: flex-start; }
 .sp-name { flex-wrap: wrap; white-space: normal; gap: 2px 6px; overflow-wrap: anywhere; }
 .sp-left { margin-left: 0; white-space: normal; }
@@ -1258,3 +1263,15 @@ button.sp-lu-next { cursor: pointer; }
 .pt-ae-action { display: flex; align-items: center; gap: 6px; }
 .pt-ae-action .pt-note { flex: 1; min-width: 0; }
 .pt-ae-tg { min-height: 44px; }
+
+@media (max-width: 360px) {
+  .pt-root.m-town > .pt-form { flex-wrap: nowrap; gap: 2px; }
+  .pt-root.m-town > .pt-form .pt-fgrp-in { gap: 1px; }
+  .pt-root.m-town > .pt-form .pt-slotp { width: 36px; }
+  .pt-root.m-town > .pt-form .pt-port { width: 36px; height: 44px; }
+  .pt-mansion-head { gap: 3px; }
+  .pt-mansion-head .pt-equip-actions { gap: 3px; }
+  .pt-mansion-head .pt-equip-actions > .ui-btn { min-width: 58px; padding: 4px 3px; font-size: 11px; }
+  .pt-mansion-title .pt-head-name { font-size: 13px; }
+  .pt-mansion-rename { font-size: 10px; }
+}
