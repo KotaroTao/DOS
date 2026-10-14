@@ -25,7 +25,7 @@ import { remember, setPref, getPref } from "./prefs.js";
 import {
   itemDetailEl, statLines, isEquippable, gearScore, elemStatShort, showSkillPopup, showPassivePopup, itemCatText, tagRow, spellTagKinds, specialLines, specialShort, specialParts, resistDeltaParts, weaponPerformanceEl, weaponPowerPreview,
 } from "./itemview.js";
-import { renderSoulSeg, openSoulPicker, openSoulList, openOrderSheet } from "./soulpanel.js";
+import { renderSoulSummary, renderSoulSeg, openSoulPicker, openSoulList, openOrderSheet } from "./soulpanel.js";
 import { IRENE_WHO, IRENE_ART, ireneState, isGreeted, nextLine, lineOpen, noteVisit, greetingPages, playIreneScene, sceneActive } from "./irene.js";
 import {
   planBestEquip, equipApprovalGroups, applyEquipApprovals, restoreEquip, equipSignature, trialEquip, slotKeysFor, previewStats, statsDelta, snapshotEquip, isAutoCandidate, swapBackFor,
@@ -999,13 +999,15 @@ function renderView(root, mode) {
   if (!d) return;
   root.appendChild(picked ? pickHint() : mode === "town" && !sheetTown ? mansionHeader(d) : dollHeader(d, mode));
   if (mode === "dungeon") { const cs = campStrip(d); if (cs) root.appendChild(cs); }
+  const mansion = mode === "town" && !sheetTown;
+  if (mansion) renderSoulSummary(root, d, { mode });
   root.appendChild(segBar(d, mode));
   const body = el("div", "pt-body");
   const seg = curSeg();
   body.dataset.seg = seg;
   if (mode === "town" && !sheetTown && !d.alive) body.appendChild(rescueLine(d));
   if (seg === "equip") equipSeg(body, d, mode);
-  else if (seg === "soul") renderSoulSeg(body, d, { mode, rerender, G });
+  else if (seg === "soul") renderSoulSeg(body, d, { mode, rerender, G, summary: !mansion });
   else statsSeg(body, d, mode);
   root.appendChild(body);
   if (mode === "town" && !sheetTown) {
@@ -1204,6 +1206,11 @@ function formationEl(mode) {
     if (!any && !town) continue;
     grp.appendChild(inn);
     wrap.appendChild(grp);
+  }
+  if (town && !sheetTown) {
+    const manage = button({ label: "管理", kind: "secondary", size: "sm", onTap: () => openMansionManage(ensureSel()) });
+    manage.classList.add("pt-mansion-manage");
+    wrap.appendChild(manage);
   }
   if (town && sheetTown) {
     const side = el("div", "pt-side");
@@ -1768,10 +1775,11 @@ function mansionHeader(d) {
   head.dataset.job = soulByUid(d.primary)?.clsKey || "";
   const tx = el("div", "pt-mansion-title");
   tx.appendChild(el("span", "pt-head-name", d.name));
-  tx.appendChild(el("span", "pt-head-cls", d.primary == null ? "空の人業" : `${d.cls} Lv${d.jobLv || 1}`));
+  const rename = button({ label: "名を変える", kind: "ghost", size: "sm", onTap: () => openRename(d) });
+  rename.classList.add("pt-mansion-rename");
+  tx.appendChild(rename);
   head.appendChild(tx);
   head.appendChild(equipActions(d));
-  head.appendChild(button({ label: "管理", kind: "secondary", size: "sm", onTap: () => openMansionManage(d) }));
   return head;
 }
 function openMansionManage(d) {
@@ -2017,7 +2025,7 @@ function campStrip(d) {
 // 見出しの右で、個人と隊全員の変更案を開く。
 function equipActions(d) {
   const actions = el("div", "pt-equip-actions");
-  for (const [label, target] of [["最適装備", d], ["全員最適", "all"]]) {
+  for (const [label, target] of [["全体最適", "all"], ["最適装備", d]]) {
     const b = button({ label, kind: "secondary", size: "sm", onTap: () => autoEquip(target) });
     b.disabled = target === d ? d.primary == null : !G_().party.some(x => x?.primary != null);
     actions.appendChild(b);
