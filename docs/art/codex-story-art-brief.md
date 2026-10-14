@@ -464,7 +464,7 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 ...except: replace ONLY the realistic hand-and-flame stone relief inside the round medallion on the right wall with the approved geometric crest, as a stone relief of the same size, perspective, lighting and weathering. Keep the circular border and the entire scene unchanged. Use the approved geometric crest exactly as the second reference: an angular cupped palm, ONE thumb projection on the LEFT, THREE parallel slanted finger projections on the RIGHT, a short wrist below, and ONE separate teardrop flame above. Do not add a fourth finger on the right. Do not use a cup-shaped hand with upright stubs, a star, a flower, a realistic hand, or multiple flames.
 ```
 
-**A-34. 一門の印の局所修正 lore_w07** `art/story-review/dungeons/lore_w07.png`
+**A-34. 一門の印の局所修正 lore_w07 (済)** `art/story-review/dungeons/lore_w07.png`
 - 根拠と判定: 壁の原寸印は幾何学基準に一致。セラの額の印は杯状で上向きの短い突起になっているため額のみ修正。壁は保持。
 - 保つもの: 印以外の人物・顔・目・衣装・部品・構図・光。要確認の箇所は変更しない。
 ```text

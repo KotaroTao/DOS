@@ -1,0 +1,46 @@
+{
+  "id": "lore_w07",
+  "size": [
+    1536,
+    1024
+  ],
+  "before_sha256": "2c946b1c0d6e9209c814db733f447beea02449cb97101a212ed45d143b9be723",
+  "canonical_sha256": "7dfeb2dbb8eb7091557e1dd3f387b963b64b2fa4a20848c1c18734167fe47b6b",
+  "master_sha256": "46bd2868c176ddb57abbd4095edcdcb417bc1882ba14ff35102564cbc6803ff3",
+  "candidate_sha256": "46bd2868c176ddb57abbd4095edcdcb417bc1882ba14ff35102564cbc6803ff3",
+  "webp_sha256": "2bc0ee9e091ce5c2a80f6ee92106cff32d58da4c30d08f64b75a755afa9bc73f",
+  "changed_rgb_pixels": 800,
+  "allowed_region_xyxy_exclusive": [
+    652,
+    519,
+    691,
+    564
+  ],
+  "changed_bbox_xyxy_exclusive": [
+    654,
+    521,
+    690,
+    563
+  ],
+  "outside_region_rgb_identical": true,
+  "outside_region_pixels": 1571109,
+  "all_153_current_hashes_match": true,
+  "wall_crest_rgb_identical": true,
+  "wall_checked_box_xyxy_exclusive": [
+    600,
+    225,
+    710,
+    360
+  ],
+  "initial_main_updated_ids_rechecked": [],
+  "previous_pr": 997,
+  "previous_merge_commit": "3d25f624ecf6b8f08758b9bfdfc2e1cfae7b1247",
+  "previous_publication": {
+    "original_run_cancelled_by_successor": 38623810050,
+    "successful_successor_run": 38623938046,
+    "published_commit_prefix": "507e3f00dbd9",
+    "comparison_from_previous_merge": "ahead"
+  },
+  "visual_review": "正本の角張った掌・左親指1本・右指3本・短い手首・独立した炎1つ。額中央の小さい金の印。旧印を除去、顔・目・髪・布・壁・牢の構図と光を保持。WebPも原画と拡大比較し、右指3本と独立した炎を保持していることを目視確認。",
+  "pending": "ユーザー確認・mainへのマージ待ち。要確認9枚とch5_endの盾・irene_restの蓋の金の図形は従来の根拠不足の理由で保留。"
+}

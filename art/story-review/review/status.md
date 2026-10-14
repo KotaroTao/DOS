@@ -139,7 +139,7 @@
 | 由来 | `w04` | 黒水の取水口 | 出荷済み | [見る](dungeons.md#lore_w04) |
 | 由来 | `w05` | 鎖の垂れる坑口 | 出荷済み | [見る](dungeons.md#lore_w05) |
 | 由来 | `w06` | 亡兵の守る外郭 | 出荷済み | [見る](dungeons.md#lore_w06) |
-| 由来 | `w07` | 捨て砦の地下牢 | 出荷済み・修正待ち | [見る](dungeons.md#lore_w07) |
+| 由来 | `w07` | 捨て砦の地下牢 | 出荷済み | [見る](dungeons.md#lore_w07) |
 | 由来 | `w08` | 雷雨の大手門 | 出荷済み | [見る](dungeons.md#lore_w08) |
 | 由来 | `w09` | 捨て砦の本丸 | 出荷済み | [見る](dungeons.md#lore_w09) |
 | 由来 | `w10` | 根の這う縦穴 | 出荷済み | [見る](dungeons.md#lore_w10) |
