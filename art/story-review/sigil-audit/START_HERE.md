@@ -1,10 +1,10 @@
 # 別セッションで一門の印の修正を再開する
 
-**現在：出荷対象153枚、修正不要131枚、修正・確認済み7枚、修正保留6枚、要確認9枚。**
+**現在：出荷対象153枚、修正不要131枚、修正・確認済み8枚、修正保留5枚、要確認9枚。** 修正・確認済みのうち7枚はユーザー承認・mainマージ済み。今回のirene_crest（A-28）1枚は確認待ち。
 
-2026-10-14追記：irene_lineage（A-27）をPython局所合成で修正・確認し、ユーザー確認待ち。[比較・検査・再現記録](composite-irene-lineage/README.md)。今回の1枚は未承認・未マージ。開始時にmainで更新されていたirene_reveal・report_w04も再確認して現在ハッシュを更新した。以下の再開依頼とresume-checkpoint.jsonは修正前の引き継ぎ記録であり、現在の判定はprogress.jsonを優先する。今回のPRの確認後、次の未完了対象はirene_crest（A-28）。
+2026-10-14更新：irene_lineage（A-27）は [PR #988](https://github.com/KotaroTao/DOS/pull/988) で承認・mainマージし、Pages公開・公開サイトの版の一致を確認済み。その後、最新mainからirene_crest（A-28）の額と肘内側の既存の印をPython局所合成で修正。[比較・検査・再現記録](composite-irene-crest/README.md)。変更1,261画素、2領域外RGB完全一致。今回のPRの確認後、次の未完了対象はirene_order（A-29）。
 
- 修正・確認済み6枚はユーザー承認・mainへマージ済み。残る7枚の修正と根拠不足の9枚は未完了。
+以下の再開依頼とresume-checkpoint.jsonはA-27修正前の引き継ぎ記録。現在の判定・原画ハッシュはprogress.jsonを優先する。要確認9枚と追加の保留箇所は推測で変更しない。
 
 次のセッションに貼る依頼は [RESUME_PROMPT.md](RESUME_PROMPT.md)。**最初はirene_lineage（A-27）1枚**をPython局所合成で修正し、比較と検査を添えたPRで確認を待つ。新しいPRのmainマージは別途ユーザー指示に従う。
 
@@ -17,7 +17,7 @@
 5. [resume-checkpoint.json](resume-checkpoint.json)：引き継ぎ時のmain、正本ハッシュ、7枚の順序・原画パス・ハッシュ・要確認9枚の理由。
 6. `docs/art/codex-story-art-brief.md` の正典2-1・2-2とA-27〜A-32・A-34、正本 `docs/art/story-refs/sigil.png`。
 
-## 残る7枚の順序
+## 引き継ぎ時の7枚の順序（A-27は承認済み、A-28は確認待ち）
 
 | 順 | 場面 | 指示書 | 変更対象 | 保持・保留 |
 |---|---|---|---|---|
@@ -31,10 +31,11 @@
 
 [next-session-small/](next-session-small/) は現在原画から作った384×256の引き継ぎ見本。新たに目視確認済み・修正済みを意味しない。再開時のハッシュが変わっていれば見本も作り直し、古い座標・判定を流用しない。
 
-## 承認・マージ済み6枚
+## 承認・マージ済み7枚
 
 | 場面 | 指示書 | PR | 修正と記録 |
 |---|---|---|---|
+| irene_lineage | A-27 | [#988](https://github.com/KotaroTao/DOS/pull/988) | [額、1,344画素](composite-irene-lineage/README.md) |
 | lore_w02 | A-33 | [#953](https://github.com/KotaroTao/DOS/pull/953) | 壁の浮き彫りを正本へ置換 |
 | lore_w12 | A-35 | [#953](https://github.com/KotaroTao/DOS/pull/953) | 胴前面の紋を除去。背へ追加しない |
 | irene_torso | A-23 | [#959](https://github.com/KotaroTao/DOS/pull/959) | [額、659画素](composite-irene-torso/README.md) |
@@ -42,7 +43,7 @@
 | ch5_end | A-25 | [#965](https://github.com/KotaroTao/DOS/pull/965) | [額と背中の魂火除去、1381画素](composite-ch5-end/README.md) |
 | irene_husks | A-26 | [#968](https://github.com/KotaroTao/DOS/pull/968) | [額、742画素](composite-irene-husks/README.md) |
 
-原画・WebPはmainへ反映済み。「(済)」はA-23〜A-26・A-33・A-35。ハッシュが変わっていなければ再修正しない。
+原画・WebPはmainへ反映済み。承認済みの「(済)」はA-23〜A-27・A-33・A-35。A-28は今回修正・確認済みだがユーザー承認待ち。ハッシュが変わっていなければ再修正しない。
 
 ## 方法と許可
 
