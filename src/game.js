@@ -4005,15 +4005,18 @@ function mistSprite(col, a) {
 
 // 盤面の常時アニメーション: 灯の揺らぎ・微塵・霊光を毎フレーム動かす (重い層はキャッシュ済み)。
 // 移動/めくり/壁の閃きの間はそれぞれの tick が描くので、ここでは描かない。背面タブでは rAF ごと止まる
-// 操作の直後 (1.5秒) は毎フレーム描き、静止が続けば灯の揺らぎだけ約30fpsに間引く (電池と余力のため)。
-// 1フレームの描画が重い端末でも同じく間引く
-let _boardIdleCost = 0, _boardIdleSkip = false, _boardActiveAt = 0;
+// 操作の直後 (1.5秒) は最大60fps、静止が続けば灯の揺らぎだけ約30fps (電池と余力のため)。
+// 1フレームの描画が重い端末では最大20fpsに抑える
+let _boardIdleCost = 0, _boardAnimLast = 0, _boardActiveAt = 0;
 function boardAnimLoop(ts) {
   requestAnimationFrame(boardAnimLoop);
   if (G.state !== "board" || !G.board) return;
   if (G.anim || G.flipAnim || G.heroAnim || G.wallFlash) return; // 他の tick に任せる
   if (uiBlocked()) return;        // オーバーレイ表示中は不要
-  if (_boardIdleCost > 9 || ts - _boardActiveAt > 1500) { _boardIdleSkip = !_boardIdleSkip; if (_boardIdleSkip) return; }
+  // フレームを交互に捨てるだけでは120Hz端末で60fpsになり、待機中も発熱し続ける。
+  const interval = _boardIdleCost > 9 ? 50 : ts - _boardActiveAt > 1500 ? 1000 / 30 : 1000 / 60;
+  if (ts - _boardAnimLast < interval - 0.5) return;
+  _boardAnimLast = ts;
   const t0 = performance.now();
   drawBoardFrame();
   _boardIdleCost = _boardIdleCost * 0.9 + (performance.now() - t0) * 0.1;
@@ -9195,6 +9198,7 @@ function renderCombatCanvas() {
   if (enemyFocusEl.textContent.replaceAll(ZWSP, "") !== focusLabel) enemyFocusEl.textContent = focusLabel;
   // 下部の操作帯は取らず、右上のボタンの周囲だけ敵の絵を避ける。
   const stageH = VH;
+  const plateReserve = 44; // 呼び分け記号・HP・状態の札と枠の余白
   const viewRect = view.getBoundingClientRect();
   const rowBtnRect = twoRows ? enemyRowBtn.getBoundingClientRect() : null;
   const viewScale = VW / (viewRect.width || VW);
@@ -9214,7 +9218,7 @@ function renderCombatCanvas() {
   // 名札を常設せず、同種の呼び分け記号と属性・HP・効果だけを残す。
   const sizeOf = (e, distant, n) => {
     let sz = (e.boss ? 14 : (e.mon && e.mon.elite ? 1.15 : 1) * 9) * k;
-    const maxHalfH = Math.max(8, Math.min((stageH - 44) * (twoRows ? 0.32 : 0.5), (stageH - 40 - toolsBottom) / 2));
+    const maxHalfH = Math.max(8, Math.min((stageH - plateReserve) * (twoRows ? 0.32 : 0.5), (stageH - plateReserve - toolsBottom) / 2));
     const rowW = distant ? distantW : VW;
     if (e.mon && (e.mon.art || e.mon.photo)) {
       const bm = monsterBitmap(e.mon);
@@ -9227,7 +9231,8 @@ function renderCombatCanvas() {
   for (const row of rows) {
     let foot = 0;
     for (const e of row.list) foot = Math.max(foot, monsterHalfH(e.mon, sizeOf(e, row.distant, row.list.length)));
-    row.y = row.distant ? 6 + foot : stageH - 40 - foot;
+    // 一列の時は姿と札を合わせて中央へ置く。縦長の戦場でも下端へ偏らせない。
+    row.y = row.distant ? 6 + foot : twoRows ? stageH - plateReserve - foot : (stageH - plateReserve) / 2;
     const plateY = row.y + foot + 3;
     row.list.forEach((e, i) => {
       const slot = (row.distant ? distantW : VW) / row.list.length;

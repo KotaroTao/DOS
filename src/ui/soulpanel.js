@@ -122,50 +122,22 @@ export function toastNewSkills(d, keys) {
 }
 
 // ================= 魂の区分 =================
+export function renderSoulSummary(root, d, ctx = {}) {
+  root.appendChild(mainCard(d, d.primary != null ? soulByUid(d.primary) : null, ctx.mode === "town"));
+}
+
 export function renderSoulSeg(root, d, ctx = {}) {
   const town = ctx.mode === "town";
   const pe = d.primary != null ? soulByUid(d.primary) : null;
-  root.appendChild(mainCard(d, pe, town));
+  if (ctx.summary !== false) renderSoulSummary(root, d, ctx);
   if (!pe) return;
-  // メイン魂 (付け替え) を1列ぶんに、サブ魂1・2をその下に2つ並べる (ui-party.css .sp-more)。控えの結社は隊列の右 (party.js) から開く (ユーザーの指示、2026-10)
-  const more = el("div", "sp-more");
-  more.appendChild(mainTile(d, pe, town));
-  subTiles(more, d, town);
-  root.appendChild(more);
   const fz = fuseButton(pe, town);
   if (fz) { const acts = el("div", "sp-row2"); acts.appendChild(fz); root.appendChild(acts); }
   if (!town) root.appendChild(el("div", "pt-note c", game.featureUnlocked?.("soulChange") ? "魂の付け替え・強化は、街へ戻ってから。" : "魂の強化は、街へ戻ってから。"));
 }
-// メイン魂のタイル (サブ魂と同じ形)。押すと魂の付け替え (手ほどき「魂の付け替え」が .sp-change を光らせる)
-function mainTile(d, pe, town) {
-  if (!soulChangeVisible()) return lockedTile("未解放", "？？？");
-  const tile = el("div", "sp-tile sp-main");
-  const main = el(town ? "button" : "div", "sp-tile-main");
-  if (town) main.type = "button";
-  main.appendChild(el("span", "sp-tile-k", "メイン魂"));
-  const rank = soulRankOf(pe);
-  tile.style.setProperty("--glow", (SOUL_CLASSES[pe.clsKey] || {}).glow || "#c9a24a");
-  const r = el("span", "sp-tile-r");
-  r.appendChild(orb(pe.clsKey, rank, 28));
-  const tx = el("span", "sp-tile-tx");
-  tx.appendChild(el("span", "sp-tile-n", `${jobRankName(pe.clsKey, rank)} Lv${pe.level}`));
-  const fixed = d.vessel === "sera"; // セラのメイン魂は灯守に固定
-  tx.appendChild(el("span", "sp-tile-s", fixed ? "セラだけの魂 (付け替え不可)" : town ? "魂を付け替える" : "付け替えは街で"));
-  r.appendChild(tx);
-  main.appendChild(r);
-  if (town && !fixed) { main.addEventListener("click", () => openSoulPicker(d, "primary")); main.classList.add("sp-change"); }
-  else if (town && fixed) main.addEventListener("click", () => game.showCodexJobDetail && game.showCodexJobDetail(pe.clsKey, rank));
-  tile.appendChild(main);
-  return tile;
-}
 // 手ほどき中は一覧の確認だけ許す。実際の付け替えは完了後に解放する。
 function soulChangeVisible() {
   return !!game.featureUnlocked?.("soulChange") || G_()?.tut?.cur === "soulChange";
-}
-function svgSoul() {
-  const s = el("span", "sp-ic");
-  s.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c3 3.2 5 6 5 9a5 5 0 0 1-10 0c0-1.6.6-3 1.6-4.2.2 1.4 1 2.4 2.1 2.8C10 8.4 10.6 5.6 12 3Z"/><path d="M7 20h10"/></svg>';
-  return s;
 }
 
 function mainCard(d, pe, town) {
@@ -183,15 +155,15 @@ function mainCard(d, pe, town) {
   const cap = soulLevelCapOf(pe);
   card.dataset.uid = String(pe.uid);
   card.style.setProperty("--glow", cl.glow);
-  // 見出し: 宝珠 + 名 + ランク/称号 + Lv
+  // 見出し: 宝珠 + 名 + ランク/称号
   const head = el("div", "sp-head");
   head.appendChild(orb(pe.clsKey, rank, 40));
   const tx = el("div", "sp-head-tx");
   const nm = el("div", "sp-name");
   const nmT = el("span", null, `${soulLabel(pe)}`);
   nmT.style.color = cl.glow;
+  nmT.title = soulLabel(pe);
   nm.appendChild(nmT);
-  if (soulRankLeft(pe)) nm.appendChild(el("span", "sp-left", soulRankLeft(pe)));
   tx.appendChild(el("span", "sp-card-k", "メイン魂"));
   tx.appendChild(nm);
   const meta = el("div", "sp-meta");
@@ -206,7 +178,7 @@ function mainCard(d, pe, town) {
   cur.dataset.spLv = String(pe.uid);
   lvN.appendChild(cur);
   lvN.appendChild(el("span", "sp-lv-cap", `/${cap}`));
-  head.appendChild(lvN);
+  nm.appendChild(lvN);
   // 見出しを押すと、その職業の図鑑 (ランクごとの技・加護) を開く (ユーザーの指示、2026-10)
   if (game.showCodexJobDetail) {
     head.classList.add("sp-head-link");
@@ -215,6 +187,18 @@ function mainCard(d, pe, town) {
     head.addEventListener("click", () => game.showCodexJobDetail(pe.clsKey, rank));
   }
   card.appendChild(head);
+  const levelRow = el("div", "sp-level-row sp-head-actions");
+  if (town) {
+    if (soulChangeVisible()) {
+      const fixed = d.vessel === "sera";
+      const change = button({ label: "魂を交換", kind: "secondary", size: "sm", disabled: fixed,
+        onTap: (e) => { e?.stopPropagation(); openSoulPicker(d, "primary"); } });
+      change.classList.add("sp-change");
+      if (fixed) change.title = "セラのメイン魂は付け替え不可";
+      levelRow.appendChild(change);
+    } else levelRow.appendChild(lockedTile("未解放", "？？？"));
+  }
+  head.appendChild(levelRow);
 
   // 次の段までの ✦
   const need = game.soulTrainCost ? game.soulTrainCost(pe.level) : 0;
@@ -229,55 +213,37 @@ function mainCard(d, pe, town) {
   card.appendChild(prog);
 
   if (town) {
+    const acts = el("div", "sp-acts");
+    let extra = null;
     if (pe.level < cap) {
       const plan = trainPlan(pe);
-      const acts = el("div", "sp-acts");
       acts.appendChild(button({ label: "魂を強化", sub: `Lv${pe.level} → ${pe.level + 1}`, kind: "primary", cost: { kind: "soul", n: plan.next },
         disabled: (G.soulPts || 0) < plan.next, onTap: () => train(pe.uid, 1) }));
       if (plan.n >= 2) {
-        acts.appendChild(button({ label: plan.to >= cap ? "上限まで" : "まとめて", sub: `→ Lv${plan.to}`, kind: "secondary",
-          cost: { kind: "soul", n: plan.cost }, onTap: () => train(pe.uid, Infinity) }));
-      } else if ((G.soulPts || 0) < plan.next) {
-        acts.appendChild(el("div", "sp-short", `✦があと ${plan.next - (G.soulPts || 0)} 足りない ― 迷宮で敵を倒すと得られる`));
+        extra = button({ label: plan.to >= cap ? "上限まで" : "まとめて", sub: `→ Lv${plan.to}`, kind: "secondary",
+          cost: { kind: "soul", n: plan.cost }, onTap: () => train(pe.uid, Infinity) });
       }
-      card.appendChild(acts);
     } else {
-      // 上限は魂融合 (1体ごと) か魂の残火で伸びる。上限の間に戦いで得た経験値は捨てずに蓄積し、伸びた時に Lv へ注ぐ
-      const how = cl.unique
-        ? (nextRankThreshold(pe.clsKey, pe.count) ? "物語の節目でランクが上がるか、魂の残火を捧げると上限が伸びる。" : "魂の残火を捧げると上限が伸び、そこまで Lv が届くと能力も伸びる。")
-        : `同じ${cl.label}の魂を魂融合するか、魂の残火を捧げると上限が伸びる。`;
-      card.appendChild(el("div", "sp-note", `Lv上限。${how}上限の間に戦いで得た経験値は蓄積され${pe.exp > 0 ? `（いま ✦${pe.exp}）` : ""}、上限が伸びるとすぐ Lv に注がれる。`));
+      acts.appendChild(button({ label: "魂を強化", sub: "Lv上限", kind: "primary", disabled: true }));
     }
-  }
-
-  // 次の技・次のランク・残火 (1行)
-  const foot = el("div", "sp-next");
-  const nxSkill = nextLearn(pe);
-  if (nxSkill) {
-    const b = el("button", "sp-next-sk");
-    b.type = "button";
-    b.appendChild(el("span", "sp-next-k", `次の${learnKind(nxSkill)}`));
-    b.appendChild(el("span", "sp-next-v", `Lv${nxSkill.lvl}「${learnName(nxSkill)}」`));
-    b.addEventListener("click", () => showLearn(nxSkill));
-    foot.appendChild(b);
-  }
-  const nr = nextRankThreshold(pe.clsKey, pe.count);
-  if (nr) {
-    const r = el("span", "sp-next-rank");
-    r.appendChild(el("span", "sp-next-k", `ランク${rank + 1}まで`));
-    // 灯守 (セラだけの魂) は魂を重ねず、物語の節目でランクが上がる
-    r.appendChild(el("span", "sp-next-v", (SOUL_CLASSES[pe.clsKey] || {}).unique ? "物語の節目で" : `魂 ${pe.count - nr.prev}/${nr.next - nr.prev}`));
-    foot.appendChild(r);
-  }
-  if (town && ((G.embers || 0) > 0 || pe.level >= cap)) {
     const need = emberCostOf(pe.clsKey);
-    const em = button({ label: `残火 ${G.embers || 0}`, sub: `上限 +1${pe.capBonus ? `（済 +${pe.capBonus}）` : ""}`, kind: "secondary", size: "sm",
+    const em = button({ label: `残火 ${G.embers || 0}`, sub: "Lv上限+1", kind: "secondary", size: "sm",
       cost: { kind: "ember", n: need }, disabled: (G.embers || 0) < need, onTap: () => confirmRaiseCap(pe) });
     em.classList.add("sp-ember-b");
-    foot.appendChild(em);
+    acts.appendChild(em);
+    card.appendChild(acts);
+    appendSubTiles(card, d, town);
+    if (extra) { const row = el("div", "sp-row2"); row.appendChild(extra); card.appendChild(row); }
   }
-  if (foot.childElementCount) card.appendChild(foot);
+
+  if (!town) appendSubTiles(card, d, town);
   return card;
+}
+
+function appendSubTiles(card, d, town) {
+  const more = el("div", "sp-more");
+  subTiles(more, d, town);
+  card.appendChild(more);
 }
 
 // 残火の段の説明。灯守 (セラだけの魂) は残火1つで上限 +1、その上限に Lv が届くたび能力が伸びる (souls.js EMBER_STAT_UP)

@@ -25,7 +25,7 @@ import { remember, setPref, getPref } from "./prefs.js";
 import {
   itemDetailEl, statLines, isEquippable, gearScore, elemStatShort, showSkillPopup, showPassivePopup, itemCatText, tagRow, spellTagKinds, specialLines, specialShort, specialParts, resistDeltaParts, weaponPerformanceEl, weaponPowerPreview,
 } from "./itemview.js";
-import { renderSoulSeg, openSoulPicker, openSoulList, openOrderSheet } from "./soulpanel.js";
+import { renderSoulSummary, renderSoulSeg, openSoulPicker, openSoulList, openOrderSheet } from "./soulpanel.js";
 import { IRENE_WHO, IRENE_ART, ireneState, isGreeted, nextLine, lineOpen, noteVisit, greetingPages, playIreneScene, sceneActive } from "./irene.js";
 import {
   planBestEquip, equipApprovalGroups, applyEquipApprovals, restoreEquip, equipSignature, trialEquip, slotKeysFor, previewStats, statsDelta, snapshotEquip, isAutoCandidate, swapBackFor,
@@ -53,6 +53,7 @@ let sheetTown = false;   // 街の画面の上に隊のシートを開いてい�
 let dunSeg = null;        // 迷宮の隊シートで表示中の区分 (開くたび「装備」から。街の隊タブの記憶とは別)
 let statOpen = null;      // 能力の説明を開いている能力キー
 let pendingOpen = false;  // UI.openParty で人業・区分を指定して館へ入るときの印 (タブから入るときは既定へ戻す)
+let mansionPosition = { key: "soul", offset: 0 }; // 人業を替えても同じ項目の同じ位置を保つ
 let phase0ItemSheet = null; // Phase 0 の品シートのスタブ (WP-C の本物が来るまでは自前の品の画面を使う)
 
 const SEGS = [{ key: "equip", label: "装備" }, { key: "soul", label: "魂" }, { key: "stats", label: "能力" }];
@@ -62,7 +63,8 @@ function curSeg() {
 }
 function setSeg(k) {
   if (!SEGS.some((x) => x.key === k)) return;
-  if (dunSeg) dunSeg = k; else remember("seg", "party", k);
+  if (dunSeg) dunSeg = k;
+  else { remember("seg", "party", k); mansionPosition = { key: k, offset: 0 }; }
 }
 
 const G_ = () => game.G;
@@ -999,20 +1001,71 @@ function renderView(root, mode) {
   if (!d) return;
   root.appendChild(picked ? pickHint() : mode === "town" && !sheetTown ? mansionHeader(d) : dollHeader(d, mode));
   if (mode === "dungeon") { const cs = campStrip(d); if (cs) root.appendChild(cs); }
-  root.appendChild(segBar(d, mode));
+  const mansion = mode === "town" && !sheetTown;
+  root.appendChild(mansion ? mansionNav() : segBar(d, mode));
   const body = el("div", "pt-body");
   const seg = curSeg();
   body.dataset.seg = seg;
-  if (mode === "town" && !sheetTown && !d.alive) body.appendChild(rescueLine(d));
-  if (seg === "equip") equipSeg(body, d, mode);
-  else if (seg === "soul") renderSoulSeg(body, d, { mode, rerender, G });
-  else statsSeg(body, d, mode);
+  if (mansion) renderMansionOverview(body, d);
+  else {
+    if (seg === "equip") equipSeg(body, d, mode);
+    else if (seg === "soul") renderSoulSeg(body, d, { mode, rerender, G });
+    else statsSeg(body, d, mode);
+  }
   root.appendChild(body);
   if (mode === "town" && !sheetTown) {
     scrollBox(body); // 収まらなければ内側で縦にスクロール
     root.classList.add("has-keeper");
     root.appendChild(keeperPanel());
   }
+}
+
+// 館は一つの詳細画面。見出しの移動と人業の切り替えは同じスクロール領域を使う。
+function mansionNav() {
+  const nav = el("nav", "pt-segbar pt-mansion-nav");
+  nav.setAttribute("aria-label", "人業の詳細へ移動");
+  for (const [key, label] of [["soul", "魂"], ["stats", "能力"], ["equip", "装備"]]) {
+    const b = button({ label, kind: "secondary", size: "sm", onTap: () => { setSeg(key); sfx("select"); rerender(); } });
+    b.dataset.key = key;
+    nav.appendChild(b);
+  }
+  return nav;
+}
+function renderMansionOverview(body, d) {
+  body.classList.add("pt-overview");
+  const sections = [];
+  for (const [key, label] of [["soul", "魂"], ["stats", "能力"], ["equip", "装備"]]) {
+    const section = el("section", "pt-overview-section");
+    section.dataset.mansionSection = key;
+    if (key !== "soul") {
+      const heading = el("header", "pt-overview-heading");
+      heading.appendChild(el("h2", null, label));
+      if (key === "stats") heading.appendChild(stabilityButton(d, true));
+      section.appendChild(heading);
+    }
+    if (key === "soul") {
+      if (!d.alive) section.appendChild(rescueLine(d));
+      renderSoulSummary(section, d, { mode: "town" });
+      renderSoulSeg(section, d, { mode: "town", summary: false });
+    } else if (key === "stats") statsSeg(section, d, { showStability: false });
+    else equipSeg(section, d);
+    body.appendChild(section);
+    sections.push(section);
+  }
+  const topOf = (section) => section.getBoundingClientRect().top - body.getBoundingClientRect().top + body.scrollTop;
+  let restoring = true;
+  body.addEventListener("scroll", () => {
+    if (restoring || !body.isConnected) return;
+    const section = [...sections].reverse().find(s => topOf(s) <= body.scrollTop + 1) || sections[0];
+    mansionPosition = { key: section.dataset.mansionSection, offset: body.scrollTop - topOf(section) };
+  }, { passive: true });
+  const position = { ...mansionPosition };
+  requestAnimationFrame(() => {
+    if (!body.isConnected) return;
+    const section = sections.find(s => s.dataset.mansionSection === position.key) || sections[0];
+    body.scrollTop = topOf(section) + position.offset;
+    requestAnimationFrame(() => { restoring = false; });
+  });
 }
 
 // ================= 館の主イレーヌ (街の「人業の館」の下段: 残りの高さに挿絵と台詞) =================
@@ -1034,6 +1087,7 @@ function resetView() {
   statOpen = null;
   setPref("partyIdx", 0);
   remember("seg", "party", "soul");
+  mansionPosition = { key: "soul", offset: 0 };
 }
 function scheduleGreeting() {
   if (greetTimer) return;
@@ -1204,6 +1258,11 @@ function formationEl(mode) {
     if (!any && !town) continue;
     grp.appendChild(inn);
     wrap.appendChild(grp);
+  }
+  if (town && !sheetTown) {
+    const manage = button({ label: "隊列", kind: "secondary", size: "sm", onTap: () => openMansionManage(ensureSel()) });
+    manage.classList.add("pt-mansion-manage");
+    wrap.appendChild(manage);
   }
   if (town && sheetTown) {
     const side = el("div", "pt-side");
@@ -1768,14 +1827,25 @@ function mansionHeader(d) {
   head.dataset.job = soulByUid(d.primary)?.clsKey || "";
   const tx = el("div", "pt-mansion-title");
   tx.appendChild(el("span", "pt-head-name", d.name));
-  tx.appendChild(el("span", "pt-head-cls", d.primary == null ? "空の人業" : `${d.cls} Lv${d.jobLv || 1}`));
+  const rename = el("button", "pt-mansion-rename pt-head-edit");
+  rename.type = "button";
+  rename.setAttribute("aria-label", "名を変える");
+  rename.title = "名を変える";
+  rename.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/></svg>';
+  rename.addEventListener("click", () => openRename(d));
+  tx.appendChild(rename);
   head.appendChild(tx);
-  head.appendChild(equipActions(d));
-  head.appendChild(button({ label: "管理", kind: "secondary", size: "sm", onTap: () => openMansionManage(d) }));
+  const actions = el("div", "pt-mansion-links");
+  const souls = soulListButton();
+  souls.querySelector(".pt-bench-n").remove();
+  actions.appendChild(souls);
+  const order = orderButton();
+  if (order) actions.appendChild(order);
+  head.appendChild(actions);
   return head;
 }
 function openMansionManage(d) {
-  sheet.open({ kind: "info", banner: "人業の館", title: "編成・管理", className: "pt-manage-sheet",
+  sheet.open({ kind: "info", banner: "人業の館", title: "隊列", className: "pt-manage-sheet",
     body: (body, h) => {
       const side = el("div", "pt-side pt-manage-links");
       side.append(benchButton(), soulListButton());
@@ -2017,7 +2087,7 @@ function campStrip(d) {
 // 見出しの右で、個人と隊全員の変更案を開く。
 function equipActions(d) {
   const actions = el("div", "pt-equip-actions");
-  for (const [label, target] of [["最適装備", d], ["全員最適", "all"]]) {
+  for (const [label, target] of [["全体最適", "all"], ["最適装備", d]]) {
     const b = button({ label, kind: "secondary", size: "sm", onTap: () => autoEquip(target) });
     b.disabled = target === d ? d.primary == null : !G_().party.some(x => x?.primary != null);
     actions.appendChild(b);
@@ -2341,8 +2411,8 @@ function candRow(d, k, c, h) {
 }
 
 // ================= 能力の区分: 6能力 (3×2) + 説明/状態 + 技・加護の札 =================
-function statsSeg(root, d) {
-  if (inTown() && !sheetTown) root.appendChild(stabilityButton(d, true));
+function statsSeg(root, d, { showStability = true } = {}) {
+  if (showStability && inTown() && !sheetTown) root.appendChild(stabilityButton(d, true));
   const grid = el("div", "pt-stats");
   const info = el("div", "pt-info");
   const fillInfo = () => {

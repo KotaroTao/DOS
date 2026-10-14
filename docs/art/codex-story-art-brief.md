@@ -813,8 +813,9 @@ A long ancient stone bridge stretching across a sea of storm clouds at dusk. Alo
 
 **report_w34「空の上の町」** (報告)
 - 要点: 百年晴れぬ空を見上げてきた王は、その上に橋があったと知らなかった。年代記の最初の頁「空の上に、歓声の絶えぬ町があった」。
+- 修正 (2026-10-14 ユーザーの指示): 報告の場所はロアダルの離宮。窓の外は快晴にせず、黒に近い濃灰色の厚い雲が空を覆う。初稿の明るい灰色より大幅に暗く、重苦しい空にする。王都の晴れた空をこの場面へ流用しない。人物・年代記・室内の構図と蝋燭の灯を保つ。(済)
 ```text
-The same throne room, now with a clear sky outside the tall windows. The very old king, lap blanket over his knees, holds open a huge ancient chronicle on his lap, pointing to its first page, and looks up at the high sky through the window as if searching for something above the clouds. The chancellor's chair stands empty. The apprentice reports.
+The same throne room in the royal retreat at Roadal, with a fully overcast sky outside the tall windows: dense layered charcoal-grey clouds, nearly black in their deep folds, cover the entire visible sky. Make the sky substantially darker than ordinary grey overcast daylight, heavy and oppressive, with no bright white cloud bands, blue openings, direct sunlight, or sunny white clouds. Roadal's sky is not the clear sky over the royal capital. The very old king, lap blanket over his knees, holds open a huge ancient chronicle on his lap, pointing to its first page, and looks up at the high sky through the window as if searching for something above the clouds. The chancellor's chair stands empty. The apprentice reports. When editing the existing illustration, preserve its composition, characters, costumes, chronicle, architecture, and warm candlelight; change only the exterior sky and the daylight it casts.
 ```
 
 **w35_lamps「番号の灯籠」** (手がかり / 迷宮「闘獣の檻」)
@@ -864,6 +865,8 @@ The same throne room at dusk, a calm orange sky outside the tall windows. The ve
 
 **irene_rest「休む灯」** (館の語り)
 - 要点: 「魂は、休ませないと腐る」。イレーヌが並んで眠る人業たちの胸の灯をひとつずつ見て回る。イレーヌも師がいなくなってから一晩も休んでいなかった。セラ「今夜はわたしが灯の番をします」。イレーヌ「あなたも、ですよ」。
+- 修正 (2026-10-14 ユーザーの指示): セラの脚を左右一本ずつ、足を二つにする。白い布の下の骨盤から腿・膝・すね・足が自然につながる座り姿に直し、余分な脚と継ぎ目を除く。顔・上半身・イレーヌ・周りの人業・構図・灯りは保つ。(済)
+- 追加修正 (2026-10-14 ユーザーの指示): 胸の開き方を `art/story-review/chapter4/irene_sera_wake.png` に合わせる。胸のアクセサリーから見える青白い光はセラ自身の魂であり、別の宝石や二つ目の魂ではない。金縁のアクセサリーと開いた木の胸板を同じ構造として描き、胸の内側の魂を一つだけ見せる。開いた蓋の装飾を別に青く光らせない。修正済みの脚二本と足二つ、顔・髪・腕・周囲の人業・構図・灯りを保つ。(済)
 ```text
 The same mansion at night. A row of wooden dolls rests seated against the wall, eyes closed, small soft lights glowing in their chest doors. Irene walks along the row holding a small lamp, checking each light with tender care. Sera (as in the Sera reference) sits among them, sleepily smiling up at her. The single white candle on its brass candlestick burns quietly in the background.
 ```

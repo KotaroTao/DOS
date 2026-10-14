@@ -204,13 +204,13 @@ const TUTS = [
     intro: () => [
       ["五体がそろいましたね。次は、隊の並びを整えましょう。", "隊列の先頭三体が前衛、続く三体までが後衛です。"],
       ["前衛には、剣や盾で戦う子を。後衛は敵に狙われにくく、受ける物理の傷が半分になります。", "後衛から与える物理の傷も通常は半分ですが、槍や弓は威力が落ちません。術の威力は、前でも後ろでも変わりません。"],
-      ["今回は騎士を前衛に、僧侶と魔導士を後衛に置きましょう。", "動かしたい子を選び、『管理』→『隊列を変更』を押してください。次に隊列の中から相手を選ぶと、二体の場所が入れ替わります。光っている札で試しましょう。"],
+      ["今回は騎士を前衛に、僧侶と魔導士を後衛に置きましょう。", "動かしたい子を選び、『隊列』→『隊列を変更』を押してください。次に隊列の中から相手を選ぶと、二体の場所が入れ替わります。光っている札で試しましょう。"],
     ],
     steps: [
-      { text: "前衛へ移す人業の『隊列を変更』を開く", hint: "光っている管理 → 隊列を変更", go: () => UI.openParty?.(formationMove().mover, { context: "town" }), target: [".pt-mansion-head > button"], on: "formationPickerOpened", done: formationReady },
+      { text: "前衛へ移す人業の『隊列を変更』を開く", hint: "光っている隊列 → 隊列を変更", go: () => UI.openParty?.(formationMove().mover, { context: "town" }), target: [".pt-mansion-manage"], on: "formationPickerOpened", done: formationReady },
       { text: "術を使う人業を後衛に置く", hint: "隊列の中で場所を替える → 光っている相手", go: () => UI.openSwapSheet?.(formationMove().mover), target: ['.pt-sw-card[data-swap-job="priest"]'], done: formationReady },
     ],
-    outro: ["前衛は戦士・騎士・盗賊、後衛は魔導士・僧侶。隊列が整った。", "館では『管理』の『隊列を変更』でいつでも並べ直せる。隊列の顔を長押しして、替えたい相手へ動かしてもよい。", "王宮で次の依頼を受けよう。"],
+    outro: ["前衛は戦士・騎士・盗賊、後衛は魔導士・僧侶。隊列が整った。", "館では『隊列』の『隊列を変更』でいつでも並べ直せる。隊列の顔を長押しして、替えたい相手へ動かしてもよい。", "王宮で次の依頼を受けよう。"],
   },
   {
     key: "prologueAppraise", name: "司教の鑑定", who: "irene", facility: "shop",
@@ -252,10 +252,10 @@ const TUTS = [
     prepare() { tutState().base.uid = UI.trainableList?.()[0]?.uid; },
     intro: () => [
       ["魂を育てるだけの✦Soulを持ち帰られたのですね。", "迷宮で集めた✦Soulは、館で魂の強化に使えます。"],
-      ["人業の『魂』で『魂を強化』を押すと、表示された✦Soulを使って、その子のメイン魂のLvが一つ上がります。", "能力が伸び、Lvによっては新しい技も覚えます。実際に一度、強化してみましょう。"],
+      ["人業の名前の下で『魂を強化』を押すと、表示された✦Soulを使って、その子のメイン魂のLvが一つ上がります。", "能力が伸び、Lvによっては新しい技も覚えます。実際に一度、強化してみましょう。"],
       ["✦Soulは隊で分け合うものです。育てたい子と必要な数を確かめてから使ってください。", "Lv上限に達した魂は、それ以上強化できません。"],
     ],
-    steps: [{ text: "人業のメイン魂を一度強化する", hint: "人業の館 → 魂 → 魂を強化",
+    steps: [{ text: "人業のメイン魂を一度強化する", hint: "人業の館 → 魂を強化",
       go: () => goSoulSeg(allDolls().find(d => d.primary === tutState().base.uid) || UI.trainableList?.()[0]?.doll),
       target: [".sp-acts .ui-btn.k-primary:not(:disabled)"], on: "soulTrained",
       skip: () => !(UI.trainableList?.().length > 0),
@@ -275,11 +275,11 @@ const TUTS = [
     prepare: () => null,
     intro: () => [
       ["新しい職業の魂を持ち帰られたのですね。", "その魂は、今いる人業のメイン魂と付け替えられます。人業を増やさずに、新たな職業の力を借りましょう。"],
-      ["宿す魂を変えれば、今いる人業も別の職業として戦えます。魂の育ちは残り、外した魂も失われません。", "まずは『メイン魂』の枠から魂の一覧を開いて、閉じてください。実際の付け替えは、その後に自由に行えます。"],
+      ["宿す魂を変えれば、今いる人業も別の職業として戦えます。魂の育ちは残り、外した魂も失われません。", "まずは『魂を交換』から魂の一覧を開いて、閉じてください。実際の付け替えは、その後に自由に行えます。"],
       ["新しい職業で使えない装備は外れます。同じ職業のメイン魂は、隊に一つだけです。"],
     ],
-    steps: [{ text: "魂の一覧を開いて確認し、閉じる", hint: "人業の館 → 魂 → メイン魂 → 閉じる", go: () => goSoulSeg(), target: [".sp-change"], on: "soulChangeViewed" }],
-    outro: ["魂の付け替えが解放された。魂の区分の『メイン魂』の枠から、いつでも変更できる。"],
+    steps: [{ text: "魂の一覧を開いて確認し、閉じる", hint: "人業の館 → 魂を交換 → 閉じる", go: () => goSoulSeg(), target: [".sp-change"], on: "soulChangeViewed" }],
+    outro: ["魂の付け替えが解放された。魂の見出しの『魂を交換』から、いつでも変更できる。"],
   },
   {
     key: "fusion", name: "魂融合", who: "irene",
@@ -301,7 +301,7 @@ const TUTS = [
       text: "魂融合で、余っている魂を溶かす",
       // 宿している魂に融合できるなら魂の区分の『魂融合』、無ければ『メイン魂』の一覧の『魂融合』
       get hint() {
-        return fusableDoll() ? "人業の館 → 魂の区分 →『魂融合』→ 素材の魂を選ぶ" : "魂の区分 →『メイン魂』→ 戦士の魂の『魂融合』";
+        return fusableDoll() ? "人業の館 → 魂の区分 →『魂融合』→ 素材の魂を選ぶ" : "『魂を交換』→ 戦士の魂の『魂融合』";
       },
       go: () => goSoulSeg(fusableDoll()), target: [".sp-fuse.hot", ".sp-pick-fuse", ".sp-change"],
       done: () => ((G_().stats || {}).fusions || 0) > (tutState().base.fusions || 0),
@@ -331,7 +331,7 @@ const TUTS = [
     ],
     steps: [
       {
-        text: "サブ魂の枠に魂を宿す", hint: "魂の区分 → サブ魂1 の『＋ 魂を宿す』",
+        text: "サブ魂の枠に魂を宿す", hint: "人業の館 → サブ魂1 の『＋ 魂を宿す』",
         go: () => goSoulSeg(null), target: [".sp-sub.empty .sp-tile-main", ".sp-sub .sp-tile-main"],
         done: () => !!dollWithSub(),
         skip: () => !dollWithSub() && !spareSouls().length,
@@ -386,10 +386,10 @@ const TUTS = [
     intro: () => [
       ["控えの結社が開かれたそうですね。"],
       ["隊に出していない魂も、ただ眠っているわけではありません。", "席に着けた魂は、その力の一部を人業のみなに分けてくれます。"],
-      ["隊列の右の『結社』を開いてみてください。"],
+      ["名前の右の『結社』を開いてみてください。"],
     ],
     steps: [{
-      text: "控えの結社を開く", hint: "人業の館 → 隊列の右の『結社』",
+      text: "控えの結社を開く", hint: "人業の館 → 名前の右の『結社』",
       go: () => goSoulSeg(null), target: [".pt-order"],
       on: "order",
     }],
@@ -677,7 +677,7 @@ function ireneGuidance() {
     const front = jobLabel(soulByUid(mover?.primary)?.clsKey || "knight");
     const back = jobLabel(soulByUid(target?.primary)?.clsKey || "priest");
     return tutState().step === 0 ?
-      [`${front}の『管理』を開き、『隊列を変更』を押してください。`, `次に${back}を選び、${front}を前衛へ移しましょう。`] :
+      [`${front}の『隊列』を開き、『隊列を変更』を押してください。`, `次に${back}を選び、${front}を前衛へ移しましょう。`] :
       [`『隊列の中で場所を替える』から${back}を選んでください。`, `${front}が前衛に、${back}が後衛に移ります。`];
   }
   // 目標札の操作手順ではなく、通常会話と同じ口調で案内する。
@@ -687,7 +687,7 @@ function ireneGuidance() {
   if (p.key === "sub1") return tutState().step === 1 ?
     ["サブ魂の札の『技』を開いてください。", "借りる技を選んだら、閉じてください。"] :
     ["サブ魂の枠を開き、魂をお選びください。", "隊に出していない魂を、宿してみてください。"];
-  if (p.key === "order") return ["隊列の右の『結社』で、控えの結社を開いてみてください。", "席に着けた魂は、みなに力を分けてくれます。"];
+  if (p.key === "order") return ["名前の右の『結社』で、控えの結社を開いてみてください。", "席に着けた魂は、みなに力を分けてくれます。"];
   if (p.key === "repairSoul") return ["砕けた人業を選び、状態を確かめてください。", "器が届いたら、わたしが金貨で魂をつなぎ直します。"];
   return null;
 }
@@ -773,7 +773,7 @@ function tutorialControls() {
   if (d.key === "prologueFormation" && st.step === 0) {
     const { mover } = formationMove(), job = soulByUid(mover?.primary)?.clsKey;
     const selected = document.querySelector(".pt-mansion-head")?.dataset.job === job;
-    return choose(first(document, selected ? ".pt-mansion-head > button" : `.pt-form [data-drop="p${G_().party.indexOf(mover)}"]`));
+    return choose(first(document, selected ? ".pt-mansion-manage" : `.pt-form [data-drop="p${G_().party.indexOf(mover)}"]`));
   }
   if (["createThree", "createFourth", "createFifth", "createSixth"].includes(d.key)) {
     const count = allDolls().length;
