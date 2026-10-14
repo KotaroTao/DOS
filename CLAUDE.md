@@ -356,7 +356,7 @@ The UI was rebuilt into packages under `src/ui/` (plain ES modules; **they never
 
 ## Conventions
 
-- 異変「飢えた狩場」は戦闘開始時にも最低3体を保証する (`startBattleMeasured`)。主・強敵・銀業・ミミック・出来事・一騎打ちにも、その階の通常の魔物を不足分だけ添える。元の特殊敵は増やさず、強さ・戦果の異変倍率は従来どおり通常敵だけに効く。記憶への再戦は対象外。迷宮の掟の `packMin` は従来どおり通常の群れだけ。心得 `t_mut`。
+- 異変「飢えた狩場」は戦闘開始時にも最低3体を保証する (`startBattleMeasured`)。主・強敵・銀業・ミミック・出来事にも、その階の通常の魔物を不足分だけ添える。一騎打ちの掟 (`trait.duel`) がある迷宮では抽選候補から除外し、以前の候補・出撃・保存済みの異変の適用時にも対象条件を確かめる (`mutatorForDungeon`)。元の特殊敵は増やさず、強さ・戦果の異変倍率は従来どおり通常敵だけに効く。記憶への再戦は対象外。迷宮の掟の `packMin` は従来どおり通常の群れだけ。心得 `t_mut`。
 - ユーザーがPRのマージを指示した後は `python3 tools/release/merge.py <PR番号> --head <確認済みの40桁SHA> --merge` で検査から公開確認までまとめて実行する (`docs/merge-and-publish.md`)。公開の成否まで報告し、同じ許可を聞き直さない。指示前にはマージしない。
 - **Always reply to the user in Japanese (日本語).** All assistant chat responses, plans, questions, and PR descriptions for this repo must be written in Japanese — this is mandatory, regardless of the language the user writes in. (Code identifiers stay in English; comments and in-game strings stay Japanese as below.)
 - Comments and all in-game/user-facing strings are in **Japanese**; match the surrounding tone (dark-fantasy flavor for monster/event text).

@@ -1,4 +1,4 @@
-"""localhost:8000で飢えた狩場の全遭遇・通常時・記憶への再戦の敵数を確認する。"""
+"""localhost:8000で飢えた狩場の敵数と、一騎打ちの迷宮での除外を確認する。"""
 from playwright.sync_api import sync_playwright
 
 with sync_playwright() as p:
@@ -51,6 +51,34 @@ with sync_playwright() as p:
       startBattle(one(),null);
       check(G.battle.enemies.length===1,'記憶への再戦に異変が効いた');
       G.rematch=null;
+      const {game} = await import('/src/ui/ctx.js');
+      const {DUNGEONS} = await import('/src/dungeons/index.js');
+      const {reseedRng} = await import('/src/rng.js');
+      const normalIdx=DUNGEONS.findIndex(cfg=>cfg.id==='w03');
+      const duelIndices=DUNGEONS.map((cfg,i)=>cfg.trait?.duel?i:-1).filter(i=>i>=0);
+      check(duelIndices.length>0,'一騎打ちの迷宮が見つからない');
+      for(const idx of [normalIdx,...duelIndices]) {
+        const duel=!!DUNGEONS[idx].trait?.duel, seen=new Set();
+        for(let seed=0;seed<2000;seed++) {
+          reseedRng(seed); G._townMutator={};
+          const candidate=game.townMutatorFor(idx);
+          if(candidate) seen.add(candidate.id);
+          check(!duel || candidate?.id!=='hungryPack','一騎打ちで飢えた狩場が抽選された');
+        }
+        check(seen.has('bloodTide'),'ほかの異変まで除外された');
+        check(duel || seen.has('hungryPack'),'通常の迷宮で飢えた狩場が出ない');
+        G._townMutator={[idx]:'hungryPack'};
+        const cached=game.townMutatorFor(idx);
+        check(duel?cached===null:cached?.id==='hungryPack','既存候補の判定が不正');
+        check(!duel || G._townMutator[idx]===null,'対象外の既存候補が残った');
+        G.dungeonIdx=idx; G.mutator='hungryPack';
+        check(duel?game.mutDef()===null:game.mutDef()?.id==='hungryPack','保存済み異変の判定が不正');
+        if(duel) {
+          startBattle(one(),null);
+          check(G.battle.enemies.length===1,'一騎打ちに飢えた狩場の取り巻きが付いた');
+        }
+        result.push(['候補・既存候補・保存済み異変',DUNGEONS[idx].id,Array.from(seen)]);
+      }
       return result;
     }''')
     assert not errors, errors
