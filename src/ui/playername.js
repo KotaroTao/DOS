@@ -2,17 +2,23 @@
 import { game } from "./ctx.js";
 import { el, button, sheet } from "./kit.js";
 import { NAME_LIMIT, normalizeName } from "../protagonist.js";
+import { insightTitle } from "../insight.js";
 
 export function playerNameCard() {
   const card = el("section", "player-name-card");
   const text = el("div", "player-name-text");
   const name = el("div", "player-name-value");
   const insight = el("div", "player-name-insight");
+  const points = el("span", "player-name-points");
+  const title = el("span", "player-name-title");
+  insight.append(points, title);
   const refresh = () => {
     name.textContent = normalizeName(game.G?.apprenticeName) || "名前未設定";
     const unlocked = !!game.featureUnlocked?.("insight");
     insight.hidden = !unlocked;
-    insight.textContent = unlocked ? `見識 ${game.insightSummary().total.toLocaleString("ja-JP")}` : "";
+    const total = unlocked ? game.insightSummary().total : 0;
+    points.textContent = unlocked ? `見識 ${total.toLocaleString("ja-JP")}` : "";
+    title.textContent = unlocked ? insightTitle(total).title : "";
   };
   refresh();
   text.append(el("div", "player-name-label", "プレイヤー名"), name, insight);

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { insightTotals } from '../../src/insight.js';
+import { insightTotals, insightTitle, INSIGHT_TITLES } from '../../src/insight.js';
 import { MONSTERS } from '../../src/sprites.js';
 import { DUNGEON_MONSTERS } from '../../src/dungeons/index.js';
 import { ITEMS } from '../../src/items.js';
@@ -8,6 +8,15 @@ import { SOUL_CLASSES } from '../../src/souls.js';
 import { EVENT_MAP } from '../../src/events.js';
 import { rarityKey } from '../../src/rarity.js';
 const catalog = { monsters: {...MONSTERS,...DUNGEON_MONSTERS}, items: {...ITEMS,...CATALOG_ITEMS}, jobs: SOUL_CLASSES, events: EVENT_MAP };
+assert.equal(INSIGHT_TITLES.length,13);
+for (let i=0;i<INSIGHT_TITLES.length;i++) {
+ const rank=INSIGHT_TITLES[i];
+ assert.equal(insightTitle(rank.min).title,rank.title,`${rank.min}で昇格`);
+ if(i) assert.equal(insightTitle(rank.min-1).title,INSIGHT_TITLES[i-1].title,`${rank.min}直前は前の称号`);
+}
+assert.equal(insightTitle(11855).title,'伝説の大操霊師');
+assert.equal(insightTitle(99999).title,'伝説の大操霊師');
+for (const total of [-1, NaN, undefined]) assert.equal(insightTitle(total).title,'かけ出し操霊師');
 const normal=Object.keys(catalog.monsters).find(k=>!catalog.monsters[k].boss&&!catalog.monsters[k].elite&&!catalog.monsters[k].named);
 for(const [kills,expected] of [[0,0],[1,1],[4,1],[5,3],[9,3],[10,6],[100,6]]) {
  assert.equal(insightTotals({codex:{mon:{[normal]:{kills}}}},catalog).mon,expected);
