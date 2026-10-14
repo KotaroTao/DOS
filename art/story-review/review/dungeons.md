@@ -446,9 +446,9 @@
 
 <a name="lore_w28"></a>
 
-## lore_w28「毒霧の葦原」 ── 未着手
+## lore_w28「毒霧の葦原」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_w28.webp" width="576" alt="lore_w28">
 
 **ストーリー一覧の本文**
 
@@ -542,9 +542,9 @@ _(絵はまだ無い)_
 
 <a name="lore_w34"></a>
 
-## lore_w34「雲を渡る石橋」 ── 未着手
+## lore_w34「雲を渡る石橋」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_w34.webp" width="576" alt="lore_w34">
 
 **ストーリー一覧の本文**
 
@@ -558,9 +558,9 @@ _(絵はまだ無い)_
 
 <a name="lore_w35"></a>
 
-## lore_w35「闘獣の檻」 ── 未着手
+## lore_w35「闘獣の檻」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_w35.webp" width="576" alt="lore_w35">
 
 **ストーリー一覧の本文**
 
@@ -574,9 +574,9 @@ _(絵はまだ無い)_
 
 <a name="lore_w36"></a>
 
-## lore_w36「亡き観客の階段席」 ── 未着手
+## lore_w36「亡き観客の階段席」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_w36.webp" width="576" alt="lore_w36">
 
 **ストーリー一覧の本文**
 
@@ -590,9 +590,9 @@ _(絵はまだ無い)_
 
 <a name="lore_w37"></a>
 
-## lore_w37「血の砂の闘技場」 ── 未着手
+## lore_w37「血の砂の闘技場」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_w37.webp" width="576" alt="lore_w37">
 
 **ストーリー一覧の本文**
 
