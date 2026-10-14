@@ -1254,7 +1254,7 @@ function infSell(owner, it, keep = null, quiet = false) {
   const clash = shopAfxClash(it);
   const ok = sellItem(owner, it, sellPrice(it), clash ? keep : null, quiet);
   if (!quiet && ok && clash && keep) log(keep === "new" ? `商会の棚の ${clash.name} は、いま売った品の追加の能力に置き換わった (前の品は通常品として並ぶ)。` : `商会の棚の ${clash.name} は、前の追加の能力のまま (いま売った品は通常品として並ぶ)。`, "sys");
-  if (ok) {
+  if (ok && !it.soulMemory) {
     infSupplyRecord("sold", it.id);
     const st = infStats(); st.trades++; st.sold++; if (st.sold >= 100) infTitleGrant("trader");
     const trk = infTrk(); if (!it.unidentified) trk.sold = (trk.sold || 0) + 1; // この出撃で回収人に売った品 (全滅しても商会の棚に残る)
@@ -1266,7 +1266,7 @@ function infSellPlan() {
   if (!infAtRest()) return { list: [], conflicts: [], gold: 0 };
   const list = [];
   for (const doll of bagOwners(G.party)) for (const item of doll.items || []) {
-    if (!item || item.locked || item.cursed || item.unidentified || item.slot === "use" || bulkSellBlocked(item)) continue;
+    if (!item || item.soulMemory || item.locked || item.cursed || item.unidentified || item.slot === "use" || bulkSellBlocked(item)) continue;
     if (G.party.some((d) => opsEquippedBy(d, item))) continue;
     list.push({ doll, item, price: sellPrice(item) });
   }
@@ -1442,6 +1442,64 @@ function abyssRecords() {
   return G.abyssRec;
 }
 
+// 魂の記憶は各50階に1枠。本編・現在の出撃とは参照を分け、再挑戦でも書き換わらない。
+function infMemories() {
+  const rec = abyssRecords();
+  if (!rec.memories || typeof rec.memories !== "object" || Array.isArray(rec.memories)) rec.memories = {};
+  return Object.values(rec.memories).filter(m => m && m.v === 1 && Number.isInteger(m.floor) && m.floor > 0 && m.floor % 50 === 0)
+    .sort((a, b) => a.floor - b.floor);
+}
+function infMemoryAt(floor) { return infMemories().find(m => m.floor === floor) || null; }
+function infMemoryBlock() {
+  if (!infAtRest() || G.floor <= 0 || G.floor % 50 !== 0) return "魂を記憶できるのは50階ごとの風だまりだけ";
+  if (abyssBossPending()) return "この階の主を討つと魂を記憶できる";
+  if (G.party.length !== INF_PARTY || G.party.some(d => !d.alive || !soulByUid(d.primary))) return "隊の全員を蘇生し、メイン魂を宿すと記憶できる";
+  return null;
+}
+function infMemoryPreview() {
+  if (infMemoryBlock()) return null;
+  const uids = new Set(G.party.flatMap(d => [d.primary, ...(d.subs || []).map(s => s.uid)]));
+  // 装着中の装備と宿している魂だけを保存。戦闘中の一時効果や袋、通貨は持ち越さない。
+  const fields = ["name", "homeUid", "primary", "subs", "equip", "tactic", "skillOrder", "skillOff", "autoOff", "face"];
+  const party = G.party.map(d => Object.fromEntries(fields.filter(k => d[k] !== undefined).map(k => [k, d[k]])));
+  return refDeserialize(refSerialize({ v: 1, floor: G.floor, at: Date.now(), party, souls: G.souls.filter(s => uids.has(s.uid)) }));
+}
+function infSaveMemory() {
+  const why = infMemoryBlock();
+  if (why) { SFX.ng(); showToast(why, { tone: "info" }); return false; }
+  const memory = infMemoryPreview();
+  infMemories();
+  abyssRecords().memories[G.floor] = memory;
+  // 保存しても今回の戦利品には制限を付けない。制限は記憶から再開した時に付く。
+  SFX.levelup();
+  log(`B${G.floor}F に魂を記憶した。次の挑戦は B${G.floor + 1}F から始められる。`, "win");
+  autosave(true);
+  return true;
+}
+function infRestoreMemory(memory, names) {
+  const copy = refDeserialize(refSerialize(memory)), uids = new Map();
+  for (const soul of copy.souls) {
+    const fresh = addSoulInstance(soul.clsKey), uid = fresh.uid;
+    uids.set(soul.uid, uid);
+    Object.assign(fresh, soul, { uid, first: true });
+  }
+  G.party = copy.party.map((saved, i) => {
+    const d = makeDoll(saved.name);
+    Object.assign(d, saved, { vessel: "inf", homeUid: names[i].from, primary: uids.get(saved.primary),
+      subs: (saved.subs || []).map(s => ({ ...s, uid: uids.get(s.uid) })) });
+    for (const it of Object.values(d.equip)) if (it) it.soulMemory = true;
+    recalcDoll(d);
+    d.hp = d.maxhp; d.mp = d.maxmp;
+    return d;
+  });
+  shareInventory(G);
+}
+// 帰還・全滅の表示も同じ対象を数える。袋と装備の共有参照は1点として扱う。
+function infReturnItems() {
+  return [...new Set([...(G.inventory || []), ...(G.party || []).flatMap(d => [...(d.items || []), ...Object.values(d.equip || {})])])]
+    .filter(it => it && it.id && !it.soulMemory);
+}
+
 // ===== 無限迷宮の称号と勲章の数え (docs/infinite-affixes.md 4・5章) =====
 // G.stats.inf = 通しの数え (勲章 ACH_SERIES の inf* と称号)。G.abyss.trk = この出撃だけの数え (称号の「1回の出撃で」)
 const INF_STAT_KEYS = ["deepest", "bosses", "runs", "homeRets", "soulsHome", "rareSouls", "rareAfx", "trades", "sold", "swaps", "clean"];
@@ -1599,11 +1657,7 @@ function infCloseRun(outcome) {
   const run = G.run || newRun();
   const depth = ab.depth || G.floor || 1;
   // 持ち帰る品: 仮の器の装備と袋の品すべて (手元には届かず商会の棚へ)
-  const items = [];
-  for (const d of G.party || []) {
-    for (const it of d.items || []) if (it && it.id && !items.includes(it)) items.push(it);
-    for (const k of Object.keys(d.equip || {})) { const it = d.equip[k]; if (it && it.id) items.push(it); }
-  }
+  const items = infReturnItems();
   const souls = (run.souls || []).map((x) => x && x.clsKey).filter((k) => k && SOUL_CLASSES[k]);
   const embers = Math.max(0, run.embers || 0);
   const vLv = infPartyLv(), vDead = (G.party || []).some((d) => !d.alive); // 仮の器の様子 (本編を戻す前に)
@@ -11820,8 +11874,7 @@ function gameOver() {
   // 無限迷宮: 赤い魂20または広告視聴で拾った魂・品・残火を持ち帰れる。
   if (abyssActive()) {
     const cost = infRedCost(G.floor);
-    let items = G.inventory.length;
-    for (const d of G.party) { for (const k of Object.keys(d.equip || {})) if (d.equip[k]) items++; }
+    const items = infReturnItems().length;
     let decided = false;
     const saveLoot = (ad = false) => {
       if (decided || (!ad && G.redSoul < cost)) return;
@@ -15706,7 +15759,7 @@ function shopAfxState() {
 // keep = すでに棚に追加つきの1点がある時、どちらの組を残すかをその場で選んだ答え ("shelf" = 棚の組 / "new" = この品の組)。
 // 無ければ組を G.shopAfxPending に積み、街でまとめて選ぶ
 function shopReceive(it, keep = null) {
-  if (!it || !it.id || it.unidentified) return;
+  if (!it || !it.id || it.unidentified || it.soulMemory) return;
   shopStockAdd(it.id);
   if (!Array.isArray(it.afx) || !it.afx.length) return;
   const st = shopAfxState();
@@ -15716,7 +15769,7 @@ function shopReceive(it, keep = null) {
 }
 // 売ろうとしている品と、商会の棚の追加つきの1点がぶつかるか (同じ品に別の組)。ぶつかれば両方の組を返す (afxConflicts と同じ形)
 function shopAfxClash(it) {
-  if (!it || !it.id || it.unidentified || !Array.isArray(it.afx) || !it.afx.length || !ITEMS[it.id]) return null;
+  if (!it || !it.id || it.unidentified || it.soulMemory || !Array.isArray(it.afx) || !it.afx.length || !ITEMS[it.id]) return null;
   const cur = shopAfxState()[it.id];
   if (!cur || !cur.length) return null;
   const tmpl = ITEMS[it.id];
@@ -15786,7 +15839,7 @@ const APPRAISE_MUL = { c: 1, uc: 1, r: 1, sr: 1.5, lr: 4 };
 const rarPriceMul = (it) => APPRAISE_MUL[rarityKey(it)] || 1;
 // 売値 = 鑑定料 = 値段の半分 × レア度の倍率。買値はその倍
 // (鑑定してすぐ売っても差し引き0。未鑑定の品は売れないので、鑑定の技・金貨の使い方が稼ぎを左右する)
-const sellPrice = (it) => Math.max(1, Math.round(Math.floor((it.price || 10) / 2) * rarPriceMul(it)));
+const sellPrice = (it) => it.soulMemory ? 0 : Math.max(1, Math.round(Math.floor((it.price || 10) / 2) * rarPriceMul(it)));
 // 店の買値・鑑定費の割引 (値切りのパッシブは廃止。いまは割引なし。呼び出し側のために残す)
 function bargainMul() { return 1; }
 const buyPrice = (it) => (it ? Math.max(1, Math.round(sellPrice(it) * 2 * bargainMul())) : 30);
@@ -15833,7 +15886,7 @@ function sellItem(owner, it, price, afxKeep = null, quiet = false) {
   if (idx < 0) return false;
   if (it.locked) { SFX.ng(); showToast(`${it.name}はロック中 ― 売るにはロックを外す`, { tone: "info" }); return false; }
   // 未鑑定品は正体不明のため二束三文 (0G) で引き取られ、商会にも並ばない
-  if (it.unidentified) price = 0;
+  if (it.unidentified || it.soulMemory) price = 0;
   owner.items.splice(idx, 1);
   G.gold += price;
   tlTown("gold", price, "sell");
@@ -15845,8 +15898,8 @@ function sellItem(owner, it, price, afxKeep = null, quiet = false) {
   const shown = itemName(it);
   // 無限迷宮の回収人に売った品は、その場で本編の商会の棚に並ぶ (この先で全滅しても消えない)
   const inInf = abyssActive();
-  log(`${shown} を売った (+💰${price})。${it.unidentified ? "" : inInf ? "本編の商会の棚に並んだ ― 全滅しても残る。" : "商会に並んだ。"}`, "win");
-  showToast(inInf && !it.unidentified ? `💰+${price} ${shown} を売却 ― 商会の棚へ (全滅しても残る)` : `💰+${price} ${shown} を売却`, { noLog: true });
+  log(`${shown} を売った (+💰${price})。${it.soulMemory ? "記憶した装備は商会には並ばない。" : it.unidentified ? "" : inInf ? "本編の商会の棚に並んだ ― 全滅しても残る。" : "商会に並んだ。"}`, "win");
+  showToast(it.soulMemory ? `${shown} を売却 ― 記憶した装備は金貨にも商会の在庫にもならない` : inInf && !it.unidentified ? `💰+${price} ${shown} を売却 ― 商会の棚へ (全滅しても残る)` : `💰+${price} ${shown} を売却`, { noLog: true });
   renderTown();
   return true;
 }
@@ -15881,6 +15934,7 @@ const REFORGE_MIN_COST = 100;
 function reforgeCost(it) { return Math.max(REFORGE_MIN_COST, buyPrice(it && it.afx ? it : (ITEMS[it && it.id] || it))); } // 追加つきの品は追加の分だけ高い
 // 鍛え直せない理由 (無ければ null)。{ gold: false } で所持金を見ない (ボタンを出すかどうかの判定)
 function reforgeBlock(owner, it, { gold = true } = {}) {
+  if (it?.soulMemory) return "魂の記憶から持ち込んだ装備は鍛え直せない";
   if (!featureUnlocked("forge")) return featureNote("forge");
   if (!it || !hasQuality(it) || !ITEMS[it.id]) return "装備品だけを鍛え直せる";
   if (it.unidentified) return "未鑑定の品は鍛え直せない";
@@ -15906,7 +15960,7 @@ function rollReforge(owner, it) {
 }
 // 品の品質を q にする (鍛え直しの結果を選んだ時)。性能を目録から写し直し、持ち主の能力を計算し直す
 function setItemQuality(owner, it, q) {
-  if (!it || !hasQuality(it)) return false;
+  if (!it || !hasQuality(it) || it.soulMemory) return false;
   it.q = Math.max(0, Math.min(100, Math.round(q)));
   resyncItem(it);
   const d = owner || allDolls().find((x) => (x.items || []).includes(it) || Object.values(x.equip || {}).includes(it));
@@ -16168,23 +16222,29 @@ function skipTestDungeon() {
 
 // ===== 無限迷宮への出撃 =====
 // picks = 仮の器6体それぞれに宿す魂の職 (入口の3択で選んだもの。ui/infinite.js)。魂の安定度は本編と同じように使う
-function enterAbyss(picks, testRun = false, stabilityAd = false) {
+function enterAbyss(picks, testRun = false, stabilityAd = false, memoryFloor = null) {
   if (G.state !== "town" || G.abyss) return false;
-  const ok = Array.isArray(picks) && picks.length === INF_PARTY && picks.every((k) => SOUL_CLASSES[k] && !isUniqueJob(k)) && new Set(picks).size === picks.length;
+  const memory = memoryFloor == null ? null : infMemoryAt(memoryFloor);
+  const ok = memoryFloor != null ? memory && memory.party?.length === INF_PARTY && memory.party.every(d =>
+    memory.souls?.some(s => s.uid === d.primary && SOUL_CLASSES[s.clsKey] && !isUniqueJob(s.clsKey)) &&
+    (d.subs || []).every(sub => memory.souls.some(s => s.uid === sub.uid && SOUL_CLASSES[s.clsKey] && !isUniqueJob(s.clsKey)))) :
+    Array.isArray(picks) && picks.length === INF_PARTY && picks.every((k) => SOUL_CLASSES[k] && !isUniqueJob(k)) && new Set(picks).size === picks.length;
   if (!ok) { SFX.ng(); return false; }
-  if (!stabilityAd && !stabilityReady(ad => enterAbyss(picks, testRun, !!ad), true)) return false;
+  if (!stabilityAd && !stabilityReady(ad => enterAbyss(picks, testRun, !!ad, memoryFloor), true)) return false;
   if (!consumeEntryStability("infinite", "entry", true, stabilityAd)) return false;
+  if (memory) picks = memory.party.map(d => memory.souls.find(s => s.uid === d.primary).clsKey);
   const seed = ((random() * 0x7fffffff) >>> 0) || 1;
   const names = infVesselNames(); // 本編の隊を退ける前に読む
-  G.abyss = { v: 2, started: true, testRun, depth: 1, seed, rule: null, guardFloor: 0, picks: [...picks], home: infStashHome(), savedIdx: G.dungeonIdx,
-    allCommon: picks.every((k) => SOUL_CLASSES[k].rarity === "common"), trk: { sp: 0, at: 0, broke: false, rareAfx: 0, bossMax: 0 } };
-  { const st = infStats(); st.runs++; for (const k of picks) st.jobs[k] = 1; }
+  G.abyss = { v: 2, started: true, testRun, depth: memory ? memory.floor + 1 : 1, memoryFloor, seed, rule: null, guardFloor: 0, picks: [...picks], home: infStashHome(), savedIdx: G.dungeonIdx,
+    allCommon: !memory && picks.every((k) => SOUL_CLASSES[k].rarity === "common"), trk: { sp: 0, at: 0, broke: false, rareAfx: 0, bossMax: 0 } };
+  { const st = infStats(); st.runs++; if (!memory) for (const k of picks) st.jobs[k] = 1; }
   // 本編を退け、仮の器と無限迷宮の魂・通貨に差し替える
   G.inventory = [];
   G.reserve = [];
   G.souls = []; setSharedSouls(G.souls);
   G.gold = 0; G.soulPts = 0; G.embers = 0;
-  G.party = picks.map((k, i) => makeVessel(i, k, names[i]));
+  if (memory) infRestoreMemory(memory, names);
+  else G.party = picks.map((k, i) => makeVessel(i, k, names[i]));
   refreshStability();
   syncClueBoons(); // 手がかりの恵みは乗せない (clueBoon が無限迷宮では効かない)
   G.mutator = null;
@@ -16194,11 +16254,12 @@ function enterAbyss(picks, testRun = false, stabilityAd = false) {
   sheet.closeAll();
   townEl.classList.add("hidden");
   G.town.facility = null; G.town.sub = null;
-  G.floor = 1;
+  G.floor = memory ? memory.floor + 1 : 1;
   G.eliteFloor = false;
   G.specialFloor = null;
   G.stats.runs++;
   G.run = newRun();
+  G.run.startFloor = G.floor;
   tlRunBegin(tlWhere(), G.party, { mode: "infinite" });
   G.lastRun = null;
   G._townMutator = null; G._departPre = false;
@@ -16208,7 +16269,7 @@ function enterAbyss(picks, testRun = false, stabilityAd = false) {
   if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; }
   newFloor();
   if (!testRun) { infTlPoint("start"); infTlArrive(); }
-  log(`✺ 隊は魂のひとかけを仮の器に移し、名もなき魂の欠片を宿して「${INF_NAME}」へ降りていく。力は風に吹き返されても、記憶は器に残る。`, "win");
+  log(memory ? `✺ B${memory.floor}F の魂の記憶を呼び戻し、隊は B${G.floor}F へ降りていく。記憶した装備と魂は持ち帰れない。` : `✺ 隊は魂のひとかけを仮の器に移し、名もなき魂の欠片を宿して「${INF_NAME}」へ降りていく。力は風に吹き返されても、記憶は器に残る。`, "win");
   renderBoard();
   autosave(true);
   return true;
@@ -16236,12 +16297,12 @@ function infTestStart(f, lv) {
   playBgm(fieldBgm());
 }
 // 出撃シートの「無限迷宮」から入口へ (魂の3択を済ませてから呼ぶ)
-function departAbyss(picks) {
+function departAbyss(picks, memoryFloor = null) {
   if (G.state !== "town" || G.prompt || G.abyss) return;
   if (!featureUnlocked("infinite")) { SFX.ng(); return; }
   if (blockForReport() || blockForTutorial()) return;
   G.prompt = true;
-  uiDungeonHud.sceneTransition(() => { G.prompt = false; enterAbyss(picks); });
+  uiDungeonHud.sceneTransition(() => { G.prompt = false; enterAbyss(picks, false, false, memoryFloor); });
 }
 
 // ===== 宿敵の再戦 (第九章の結び = FEATURES.rematch、docs/unlocks.md) =====
@@ -19030,7 +19091,7 @@ bindGame({
 bindGame({
   // 出撃
   departNow, corpseFadeShare, departAbyss, infVesselNames, rematchList, departRematch, REMATCH_FORGE_MAX, townMutatorFor, preDiveIssues, departWoes, DUNGEON_BRIEFING, STORY_CELLS, startFloorsOf, worldOpenIdx, worldOpenId, worldUnlockMet, levelBand, wallOf, wallStepOf, partyLevel, storyCellPending, dungeonFacts, dungeonQuests, namedHere, namedList, namedInfo,
-  abyssRecords, infStats, infTitleList, infTitleName, setInfTitle, emptyDollCost, infRule, infAtRest, soulWorkOk, infTraderWares, infSupplyStatus, infBuyBlock, infBuy, infSell, infSellPlan, infSellAll, shopAfxClash, infSwapSoul, infSoulChangeBlock, infSoulChangePreview, infSubBlock, infSubPreview, infSetSub, infLevel, infGrowthMul,
+  abyssRecords, infMemories, infMemoryAt, infMemoryBlock, infMemoryPreview, infSaveMemory, infReturnItems, infStats, infTitleList, infTitleName, setInfTitle, emptyDollCost, infRule, infAtRest, soulWorkOk, infTraderWares, infSupplyStatus, infBuyBlock, infBuy, infSell, infSellPlan, infSellAll, shopAfxClash, infSwapSoul, infSoulChangeBlock, infSoulChangePreview, infSubBlock, infSubPreview, infSetSub, infLevel, infGrowthMul,
   // 迷宮の HUD
   specialDef, mutDef, eliteKey, dungeonObjective, abyssActive, abyssBossPending, findRevealedStairs, canReturnNow, confirmAbandonDungeon,
   dungeonTheme, eventFacts,

@@ -51,7 +51,56 @@ function itemRule() {
   };
   line("keep", "残る", "回収人に売った品", " ― 売ったその場で本編の商会の棚に並ぶ。この先で全滅しても消えない。");
   line("lose", "失う", "装備している品・持ち物", " ― 全滅すると失われる。赤い魂20または広告視聴で持ち帰るか、主を討って帰れば、商会の棚に並ぶ。");
+  line("lose", "記憶", "魂の記憶から持ち込んだ装備", " ― 売値0・鍛え直し不可。売っても帰っても商会には並ばない。");
   return w;
+}
+
+// 記憶の魂は現在の所持魂とは別。保存済みの値をそのまま表示する。
+function memoryParty(b, memory) {
+  for (const d of memory.party) {
+    const soul = memory.souls.find(s => s.uid === d.primary), cl = SOUL_CLASSES[soul?.clsKey] || {};
+    b.appendChild(row({ icon: bust(soul?.clsKey, 32), title: `${d.name} ― ${cl.label || "魂"} ・ Lv${soul?.level || 1}`,
+      sub: `Lv上限 ${soulLevelCapOf(soul)} ・ ${RAR[cl.rarity] || ""}` }));
+    const subs = (d.subs || []).map(sub => {
+      const s = memory.souls.find(s => s.uid === sub.uid);
+      return `${SOUL_CLASSES[s?.clsKey]?.label || "魂"} Lv${s?.level || 1}`;
+    });
+    if (subs.length) b.appendChild(el("div", "inf-note dim", `サブ魂: ${subs.join(" ・ ")}`));
+    const items = Object.values(d.equip || {}).filter(Boolean);
+    b.appendChild(el("div", "inf-note dim", items.length ? `装備: ${items.map(it => `${itemName(it)}${it.q == null ? "" : ` (品質${it.q})`}`).join(" ・ ")}` : "装備なし"));
+  }
+}
+export function openInfMemories(onStart) {
+  return sheet.open({ kind: "info", banner: "魂の記憶", title: "記憶した階から挑む", accent: "#8e6fd0", className: "inf-sheet",
+    body: b => {
+      b.appendChild(el("div", "inf-note", "記憶した職業・Lv・メイン魂とサブ魂・装着中の装備で、次の階から始める。HP・MPは全回復し、状態異常は消える。消費アイテム・金貨・✦Soul・残火は持ち込まない。"));
+      b.appendChild(el("div", "inf-note dim", "開始時の魂と装備は持ち帰れない。装備は売値0・鍛え直し不可で、商会にも並ばない。全滅しても記憶は残る。魂の安定度は通常の出撃と同じように消費する。"));
+      const memories = game.infMemories();
+      if (!memories.length) b.appendChild(el("div", "inf-note dim", "まだ魂の記憶はない。50階ごとの主を討った風だまりで記憶できる。"));
+      for (const memory of memories) b.appendChild(row({ icon: ICONS.portal, title: `B${memory.floor}F の記憶`, sub: `B${memory.floor + 1}F から開始`, chevron: true,
+        onTap: () => sheet.open({ kind: "info", banner: "魂の記憶", title: `B${memory.floor}F の記憶`, className: "inf-sheet",
+          body: detail => memoryParty(detail, memory), footer: [
+            { label: `B${memory.floor + 1}F から始める`, kind: "primary", size: "lg", onTap: () => { sheet.closeAll(); if (onStart) onStart(); game.departAbyss(null, memory.floor); } },
+            { label: "戻る", kind: "ghost", onTap: h => h.close() },
+          ] }) }));
+    }, footer: [{ label: "戻る", kind: "ghost", onTap: h => h.close() }] });
+}
+function openInfRecord(onDone) {
+  const candidate = game.infMemoryPreview();
+  if (!candidate) return;
+  const previous = game.infMemoryAt(candidate.floor);
+  return sheet.open({ kind: "info", banner: "魂の記憶", title: `B${candidate.floor}F に魂を記憶する`, className: "inf-sheet",
+    body: b => {
+      b.appendChild(el("div", "inf-note", `次回は B${candidate.floor + 1}F から、HP・MP全回復・状態異常なしで始められる。保存しても今回の戦利品は持ち帰れる。袋の品・宿していない魂・金貨・✦Soul・残火・出撃中の一時効果は記憶しない。`));
+      if (previous) {
+        b.appendChild(el("div", "inf-note warn", "この階には既に記憶がある。上書きすると、以前の記憶は失われる。他の階の記憶はそのまま残る。"));
+        b.appendChild(el("div", "inf-h", "以前の記憶")); memoryParty(b, previous);
+      }
+      b.appendChild(el("div", "inf-h", "今回の状態")); memoryParty(b, candidate);
+    }, footer: [
+      { label: previous ? "この状態で上書きする" : "この状態を記憶する", kind: "primary", size: "lg", onTap: h => { if (game.infSaveMemory()) { h.close("ok"); if (onDone) onDone(); } } },
+      { label: previous ? "以前の記憶を残す" : "記憶せず戻る", kind: "ghost", onTap: h => h.close() },
+    ] });
 }
 
 // ================= 入口: 魂の欠片の3択 (仮の器6体ぶん) =================
@@ -171,8 +220,13 @@ export function openInfRest(spec = {}) {
     b.appendChild(el("div", "inf-note", `この階の回復・蘇生の補給 残り${supply.left}/${supply.limit}個`));
     b.appendChild(row({ icon: ICONS.chest, title: "回収人 (商会の者)", sub: "品の買い取り (売った品はすぐ商会の棚へ ― 全滅しても残る)・回復の道具・反魂香・風切りの羽・鍛え直し", chevron: true, onTap: () => { sfx("select"); openTrader(() => h && !h.closed && h.update({ body: fill })); } }));
     b.appendChild(row({ icon: ICONS.portal, title: "灯番 (名もない人業)", sub: "メイン魂・サブ魂の付け替え・✦Soul で魂の強化・残火で Lv上限 +1", chevron: true, onTap: () => { sfx("select"); openKeeper(() => h && !h.closed && h.update({ body: fill })); } }));
+    if ((spec.floor || g.floor) % 50 === 0) {
+      const why = game.infMemoryBlock(), previous = game.infMemoryAt(spec.floor || g.floor);
+      b.appendChild(button({ label: previous ? "魂の記憶を上書きする" : "魂を記憶する", sub: why || `次回は B${(spec.floor || g.floor) + 1}F から`,
+        kind: "secondary", disabled: !!why, onTap: () => openInfRecord(() => h && !h.closed && h.update({ body: fill })) }));
+    }
     if (spec.guardDown) {
-      b.appendChild(el("div", "inf-note dim", "帰れば: 拾った魂は ＋1 の素材として本編の魂に加わる (Lv は残らない)。品は商会の棚に並ぶ。残火は拾った数だけ本編へ。金貨と ✦Soul、最初に宿した欠片は残らない。"));
+      b.appendChild(el("div", "inf-note dim", "帰れば: 今回拾った魂は ＋1 の素材として本編の魂に加わる (Lv は残らない)。品は商会の棚に並ぶ。残火は拾った数だけ本編へ。金貨・✦Soul・開始時の魂・記憶した装備は残らない。"));
       const next = INF_RULES.filter((r) => r.from > (spec.floor || g.floor) && r.from <= (spec.floor || g.floor) + 5);
       if (next.length) b.appendChild(el("div", "inf-note warn", `この先、風の掟がさらに強まる (「${next.map((r) => r.name).join("」「")}」…)。`));
     }
@@ -183,7 +237,7 @@ export function openInfRest(spec = {}) {
         const run = g.run || {};
         const souls = (run.souls || []).length, embers = Math.max(0, run.embers || 0);
         const ok = await kitConfirm({ banner: "地上へ帰る", title: `B${spec.floor || g.floor}F から地上へ帰る？`,
-          lines: [`この出撃はここで終わり、${INF_NAME}には戻れない。`, `持ち帰る: 拾った魂 ${souls}つ (＋1 の素材)・品 (商会の棚へ)・残火 ${embers}。`, "金貨・✦Soul・最初に宿した欠片は残らない。"],
+          lines: [`この出撃はここで終わる。保存済みの魂の記憶からは、何度でも挑み直せる。`, `持ち帰る: 今回拾った魂 ${souls}つ (＋1 の素材)・品 ${game.infReturnItems().length}点 (商会の棚へ)・残火 ${embers}。`, "金貨・✦Soul・開始時の魂・記憶した装備は残らない。"],
           okLabel: "帰る", cancelLabel: "まだ帰らない", danger: false });
         if (!ok || x.closed) return;
         closing = true; x.close("ok", { silent: true }); spec.onReturn && spec.onReturn(); } },
@@ -278,7 +332,7 @@ function openTrader(onChange) {
         any = true;
         const price = game.sellPrice ? game.sellPrice(it) : 1;
         // 行を押すと品の詳細、右の「売る」で売る (2026-10-11 ユーザーの指示: 押しただけで売れていた)
-        b.appendChild(tradeRow({ icon: itemTile(it, { size: 44 }), title: itemName(it), sub: `隊の持ち物${it.locked ? " ・ ロック中" : ""}`,
+        b.appendChild(tradeRow({ icon: itemTile(it, { size: 44 }), title: itemName(it), sub: `隊の持ち物${it.soulMemory ? " ・ 記憶した装備・商会には並ばない" : ""}${it.locked ? " ・ ロック中" : ""}`,
           price, label: "売る", disabled: !!it.locked,
           onAct: () => {
             // 商会の棚に、同じ品の追加つきの1点がもうある: どちらの追加の能力を棚に残すか、売る前に選ぶ
@@ -290,7 +344,7 @@ function openTrader(onChange) {
       }
       if (!any) b.appendChild(el("div", "inf-note", "持ち物に売れる品が無い。"));
     } else {
-      b.appendChild(el("div", "inf-note dim", "金貨を払って装備の品質 (0〜100) を引き直す。本編の商会の鍛え直しと同じ。"));
+      b.appendChild(el("div", "inf-note dim", "金貨を払って装備の品質 (0〜100) を引き直す。本編の商会の鍛え直しと同じ。魂の記憶から持ち込んだ装備は鍛え直せない。"));
       let any = false;
       const seen = new Set();
       for (const d of g.party || []) {
@@ -541,6 +595,7 @@ export function openInfWipe(spec = {}) {
   loss.appendChild(cell(spec.embers || 0, "魂の残火"));
   body.appendChild(loss);
   body.appendChild(el("div", "rs-keep", `赤い魂 ${spec.cost} または広告視聴で、拾った魂 (＋1 の素材)・装備と持ち物 (商会の棚へ)・残火を持ち帰れる。費用は深さによらず同じ。本編の人業は街で無事に待っている。`));
+  body.appendChild(el("div", "rs-note dim", "開始時の魂と記憶した装備は持ち帰れない。保存済みの魂の記憶は、あきらめても消えず、次の挑戦でも使える。"));
   // 回収人に売った品は、売った時にもう商会の棚に並んでいる (全滅しても消えない)
   body.appendChild(el("div", spec.sold ? "rs-note gold" : "rs-note dim", spec.sold
     ? `回収人に売った品 ${spec.sold}点は、もう本編の商会の棚に並んでいる。持ち帰らなくても消えない。`
@@ -594,7 +649,7 @@ export function openInfSummary(r = {}) {
         b.appendChild(list);
         b.appendChild(el("div", "inf-note dim", "持ち帰った品は手元には届かず、商会の棚に並ぶ。金貨で買える。"));
       }
-      b.appendChild(el("div", "inf-note dim", "金貨・✦Soul・最初に宿した魂の欠片は、迷宮へ還った。"));
+      b.appendChild(el("div", "inf-note dim", "金貨・✦Soul・開始時の魂・記憶した装備は、迷宮へ還った。保存済みの魂の記憶は、次の挑戦でも使える。"));
     },
     footer: [{ label: "閉じる", kind: "primary", size: "lg", onTap: (h) => { h.close("ok"); if (game.renderTown) game.renderTown(); } }],
   });
@@ -681,7 +736,7 @@ function openInfBulkSell(onDone) {
   let h = null;
   const fill = (b) => {
     b.appendChild(el("div", "inf-note", `${plan.list.length}点を売却して 💰${plan.gold} を受け取る。残すのは商会の棚の追加の能力・特性。選ばなかった品も通常品として棚に並ぶ。`));
-    b.appendChild(el("div", "inf-note dim", "ロック中・装備中・未鑑定・呪い・LR・未奉納の収集品・道具は売らない。強さは追加の能力・特性の評価値で比べ、同じなら棚の品を優先する。"));
+    b.appendChild(el("div", "inf-note dim", "記憶した装備・ロック中・装備中・未鑑定・呪い・LR・未奉納の収集品・道具は売らない。強さは追加の能力・特性の評価値で比べ、同じなら棚の品を優先する。"));
     for (const c of plan.conflicts) {
       const box = el("div", "inf-afx-c");
       box.appendChild(el("div", "inf-h", c.name));
@@ -742,5 +797,5 @@ export function openSellClash(c) {
 }
 
 export function install() {
-  registerUI({ openInfTitles, openInfSetup, openInfRest, openInfWipe, openInfSummary, queueAfxConflicts, openAfxConflicts, openSellClash });
+  registerUI({ openInfTitles, openInfSetup, openInfMemories, openInfRest, openInfWipe, openInfSummary, queueAfxConflicts, openAfxConflicts, openSellClash });
 }

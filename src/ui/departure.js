@@ -344,7 +344,7 @@ function renderGates(b) {
     r.appendChild(gateIcon("abyss"));
     const info = el("span", "dp-gate-i");
     info.appendChild(el("span", "dp-gate-n", "無限迷宮"));
-    info.appendChild(el("span", "dp-gate-c", rec.bestDepth ? `最深 B${rec.bestDepth}F ・ 入るたびに Lv1 の仮の器で潜る` : "入るたびに Lv1 の仮の器で潜る。深さに果てはない。"));
+    info.appendChild(el("span", "dp-gate-c", rec.bestDepth ? `最深 B${rec.bestDepth}F ・ Lv1 または魂の記憶から挑む` : "Lv1 の仮の器で潜り、50階ごとに魂を記憶できる。深さに果てはない。"));
     r.appendChild(info);
     r.appendChild(el("span", "dp-gate-st", "支度 ›"));
     r.addEventListener("click", () => { sfx("select"); cur.page = "abyss"; refresh(); });
@@ -581,14 +581,15 @@ function renderAbyssPage(b) {
     `器ひとつごとに、3つの魂の欠片 (コモン・レア) から1つを選ぶ。全員 Lv1・装備なし・持ち物なし。魂の安定度は入場時と5階ごとの次階進行時に各人${game.STABILITY_ENTRY_COST}消費する。`,
     "5の倍数の階は風だまり。回収人 (品の買い取り・回復の道具・鍛え直し) と灯番 (魂の付け替え・強化・残火) がいて、その奥に主が立つ。",
     "帰れるのは、主を討った後の「帰る」だけ (帰還魔法陣は無い)。深くなるほど敵も風の掟も強くなるが、育つ速さも本編より速い。",
-    "迷宮で拾った品は鑑定済み。同じ職の魂を拾うと自動で融合する。サブ魂・結社・極の永続強化・手がかりの恵みは乗らない。",
+    "迷宮で拾った品は鑑定済み。同じ職の魂を拾うと自動で融合する。サブ魂は2つまで宿せる。極の永続強化は乗るが、結社・手がかりの恵みは乗らない。",
+    "50階ごとの主を討つと、魂の記憶を各階1つ保存できる。職業・Lv・装着中の装備・メイン魂とサブ魂を記憶し、次の階から何度でも挑み直せる。消費アイテム・資金・残火・袋の品・宿していない魂は記憶しない。各階の記憶は上書きできる。",
   ]) b.appendChild(el("div", "dg-line", t));
   b.appendChild(sec("持ち帰れるもの"));
   for (const t of [
     "拾った魂 ― ＋1 の素材として本編の魂に加わる (Lv は残らない)。",
     "拾った品 ― 手元には届かず、商会の棚に並ぶ。",
     "拾った魂の残火 ― 拾った数だけ本編へ。",
-    "最初に宿した欠片・金貨・✦Soul は持ち帰れない。全滅したら、赤い魂20または広告視聴で持ち帰れる。",
+    "開始時の魂・記憶した装備・金貨・✦Soul は持ち帰れない。記憶した装備は売値0・鍛え直し不可で、商会にも並ばない。全滅したら、赤い魂20または広告視聴で今回の戦利品を持ち帰れる。魂の記憶は全滅しても残る。",
   ]) b.appendChild(el("div", "dg-line", t));
   b.appendChild(sec("そなたの記録"));
   const t = el("div", "dg-tally");
@@ -665,7 +666,10 @@ function footerSpec() {
       onTap: () => { if (!x) return; const go=()=>{close();game.departRematch?.(x.key);}; if(!G().stabilityBriefed)openBriefing(go);else go(); } }];
   }
   if (cur && cur.page === "abyss") {
-    return [{ label: "入口へ ― 魂の欠片を選ぶ", sub: "仮の器6体 ・ Lv1 から", kind: "primary", size: "lg", onTap: () => { close(); if (UI.openInfSetup) UI.openInfSetup(); } }];
+    return [
+      { label: "入口へ ― 魂の欠片を選ぶ", sub: "仮の器6体 ・ Lv1 から", kind: "primary", size: "lg", onTap: () => { close(); if (UI.openInfSetup) UI.openInfSetup(); } },
+      { label: "魂の記憶から始める", sub: `保存済み ${game.infMemories().length}件`, kind: "secondary", onTap: () => UI.openInfMemories(close) },
+    ];
   }
   const D = game.DUNGEONS || [];
   const dn = D[g.dungeonIdx];
