@@ -1325,3 +1325,7 @@ button.sp-lu-next { cursor: pointer; }
 .pt-formation-name { width: 100%; font-size: 13px; font-weight: 700; overflow-wrap: anywhere; }
 .pt-formation-job { max-width: 100%; font-size: 11px; color: var(--ink-dim); overflow-wrap: anywhere; }
 .pt-formation-card.empty { border: 1px dashed #5a4a3a; border-radius: 3px; color: var(--ink-dim); font-size: 12px; }
+
+/* 館の装備見出しの右端に、隊全員と選択中の人業の最適装備を並べる。 */
+.pt-overview-heading .pt-equip-actions { margin-left: auto; flex-direction: row; flex-wrap: wrap; justify-content: flex-end; flex: 0 1 auto; }
+.pt-overview-heading .pt-equip-actions > .ui-btn { min-width: 0; white-space: normal; }
