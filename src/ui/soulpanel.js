@@ -218,11 +218,7 @@ function mainCard(d, pe, town) {
         extra = el("div", "sp-short", `✦があと ${plan.next - (G.soulPts || 0)} 足りない ― 迷宮で敵を倒すと得られる`);
       }
     } else {
-      // 上限は魂融合 (1体ごと) か魂の残火で伸びる。上限の間に戦いで得た経験値は捨てずに蓄積し、伸びた時に Lv へ注ぐ
-      const how = cl.unique
-        ? (nextRankThreshold(pe.clsKey, pe.count) ? "物語の節目でランクが上がるか、魂の残火を捧げると上限が伸びる。" : "魂の残火を捧げると上限が伸び、そこまで Lv が届くと能力も伸びる。")
-        : `同じ${cl.label}の魂を魂融合するか、魂の残火を捧げると上限が伸びる。`;
-      card.appendChild(el("div", "sp-note", `Lv上限。${how}上限の間に戦いで得た経験値は蓄積され${pe.exp > 0 ? `（いま ✦${pe.exp}）` : ""}、上限が伸びるとすぐ Lv に注がれる。`));
+      acts.appendChild(button({ label: "魂を強化", sub: "Lv上限", kind: "primary", disabled: true }));
     }
     const need = emberCostOf(pe.clsKey);
     const em = button({ label: `残火 ${G.embers || 0}`, sub: `上限 +1${pe.capBonus ? `（済 +${pe.capBonus}）` : ""}`, kind: "secondary", size: "sm",

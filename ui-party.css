@@ -1218,9 +1218,11 @@ button.sp-lu-next { cursor: pointer; }
 .pt-mansion-head > .ui-btn { flex: 0 0 auto; min-width: 64px; min-height: 44px; }
 .pt-root.m-town > .pt-form { justify-content: center; }
 .pt-mansion-manage { flex: 0 0 auto; margin-left: auto; min-width: 48px; padding: 4px 6px; }
-.pt-mansion-head > .pt-equip-actions { flex-direction: row; }
-.pt-mansion-head .pt-equip-actions > .ui-btn { min-width: 64px; padding: 4px 6px; font-size: 12px; }
-.pt-mansion-rename { flex: 0 0 auto; padding: 4px; font-size: 11px; }
+.pt-mansion-links { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+.pt-mansion-links .pt-bench { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 4px; width: auto; min-width: 64px; min-height: 44px; padding: 4px 6px; }
+.pt-mansion-links .pt-bench-l { font-size: 12px; }
+.pt-mansion-links .pt-bench-n { font-size: 11px; }
+.pt-mansion-rename.pt-head-edit { flex: 0 0 44px; margin: 0; }
 .pt-root.m-town > .sp-card { min-width: 0; }
 .sp-head { align-items: flex-start; }
 .sp-name { flex-wrap: wrap; white-space: normal; gap: 2px 6px; overflow-wrap: anywhere; }
@@ -1270,8 +1272,7 @@ button.sp-lu-next { cursor: pointer; }
   .pt-root.m-town > .pt-form .pt-slotp { width: 36px; }
   .pt-root.m-town > .pt-form .pt-port { width: 36px; height: 44px; }
   .pt-mansion-head { gap: 3px; }
-  .pt-mansion-head .pt-equip-actions { gap: 3px; }
-  .pt-mansion-head .pt-equip-actions > .ui-btn { min-width: 58px; padding: 4px 3px; font-size: 11px; }
+  .pt-mansion-links { gap: 3px; }
+  .pt-mansion-links .pt-bench { min-width: 58px; padding: 4px 3px; }
   .pt-mansion-title .pt-head-name { font-size: 13px; }
-  .pt-mansion-rename { font-size: 10px; }
 }

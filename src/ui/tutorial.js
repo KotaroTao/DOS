@@ -204,13 +204,13 @@ const TUTS = [
     intro: () => [
       ["五体がそろいましたね。次は、隊の並びを整えましょう。", "隊列の先頭三体が前衛、続く三体までが後衛です。"],
       ["前衛には、剣や盾で戦う子を。後衛は敵に狙われにくく、受ける物理の傷が半分になります。", "後衛から与える物理の傷も通常は半分ですが、槍や弓は威力が落ちません。術の威力は、前でも後ろでも変わりません。"],
-      ["今回は騎士を前衛に、僧侶と魔導士を後衛に置きましょう。", "動かしたい子を選び、『管理』→『隊列を変更』を押してください。次に隊列の中から相手を選ぶと、二体の場所が入れ替わります。光っている札で試しましょう。"],
+      ["今回は騎士を前衛に、僧侶と魔導士を後衛に置きましょう。", "動かしたい子を選び、『隊列』→『隊列を変更』を押してください。次に隊列の中から相手を選ぶと、二体の場所が入れ替わります。光っている札で試しましょう。"],
     ],
     steps: [
-      { text: "前衛へ移す人業の『隊列を変更』を開く", hint: "光っている管理 → 隊列を変更", go: () => UI.openParty?.(formationMove().mover, { context: "town" }), target: [".pt-mansion-manage"], on: "formationPickerOpened", done: formationReady },
+      { text: "前衛へ移す人業の『隊列を変更』を開く", hint: "光っている隊列 → 隊列を変更", go: () => UI.openParty?.(formationMove().mover, { context: "town" }), target: [".pt-mansion-manage"], on: "formationPickerOpened", done: formationReady },
       { text: "術を使う人業を後衛に置く", hint: "隊列の中で場所を替える → 光っている相手", go: () => UI.openSwapSheet?.(formationMove().mover), target: ['.pt-sw-card[data-swap-job="priest"]'], done: formationReady },
     ],
-    outro: ["前衛は戦士・騎士・盗賊、後衛は魔導士・僧侶。隊列が整った。", "館では『管理』の『隊列を変更』でいつでも並べ直せる。隊列の顔を長押しして、替えたい相手へ動かしてもよい。", "王宮で次の依頼を受けよう。"],
+    outro: ["前衛は戦士・騎士・盗賊、後衛は魔導士・僧侶。隊列が整った。", "館では『隊列』の『隊列を変更』でいつでも並べ直せる。隊列の顔を長押しして、替えたい相手へ動かしてもよい。", "王宮で次の依頼を受けよう。"],
   },
   {
     key: "prologueAppraise", name: "司教の鑑定", who: "irene", facility: "shop",
@@ -386,10 +386,10 @@ const TUTS = [
     intro: () => [
       ["控えの結社が開かれたそうですね。"],
       ["隊に出していない魂も、ただ眠っているわけではありません。", "席に着けた魂は、その力の一部を人業のみなに分けてくれます。"],
-      ["隊列の右の『結社』を開いてみてください。"],
+      ["名前の右の『結社』を開いてみてください。"],
     ],
     steps: [{
-      text: "控えの結社を開く", hint: "人業の館 → 隊列の右の『結社』",
+      text: "控えの結社を開く", hint: "人業の館 → 名前の右の『結社』",
       go: () => goSoulSeg(null), target: [".pt-order"],
       on: "order",
     }],
@@ -677,7 +677,7 @@ function ireneGuidance() {
     const front = jobLabel(soulByUid(mover?.primary)?.clsKey || "knight");
     const back = jobLabel(soulByUid(target?.primary)?.clsKey || "priest");
     return tutState().step === 0 ?
-      [`${front}の『管理』を開き、『隊列を変更』を押してください。`, `次に${back}を選び、${front}を前衛へ移しましょう。`] :
+      [`${front}の『隊列』を開き、『隊列を変更』を押してください。`, `次に${back}を選び、${front}を前衛へ移しましょう。`] :
       [`『隊列の中で場所を替える』から${back}を選んでください。`, `${front}が前衛に、${back}が後衛に移ります。`];
   }
   // 目標札の操作手順ではなく、通常会話と同じ口調で案内する。
@@ -687,7 +687,7 @@ function ireneGuidance() {
   if (p.key === "sub1") return tutState().step === 1 ?
     ["サブ魂の札の『技』を開いてください。", "借りる技を選んだら、閉じてください。"] :
     ["サブ魂の枠を開き、魂をお選びください。", "隊に出していない魂を、宿してみてください。"];
-  if (p.key === "order") return ["隊列の右の『結社』で、控えの結社を開いてみてください。", "席に着けた魂は、みなに力を分けてくれます。"];
+  if (p.key === "order") return ["名前の右の『結社』で、控えの結社を開いてみてください。", "席に着けた魂は、みなに力を分けてくれます。"];
   if (p.key === "repairSoul") return ["砕けた人業を選び、状態を確かめてください。", "器が届いたら、わたしが金貨で魂をつなぎ直します。"];
   return null;
 }
