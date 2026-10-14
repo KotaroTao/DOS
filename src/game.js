@@ -1850,6 +1850,7 @@ const MUTATORS = [
     risk: "すべての戦闘から逃げられない",
     gain: "宝箱がすべて 1ランク上等になる" },
   { id: "hungryPack", name: "飢えた狩場", sym: "Ψ", accent: "#c08a4a", packMin: 3, soulMul: 1.3,
+    cond: (cfg) => !cfg.trait?.duel,
     risk: "敵が常に群れで現れる (3体以上)",
     gain: "得られる ✦Soul が 30% 増える" },
   { id: "nightHunt", name: "闇討ちの宴", sym: "🌘", accent: "#7a5ad0", ambushMul: 4, goldMul: 1.5, soulMul: 1.3,
@@ -1936,7 +1937,12 @@ const TRAIT_BOARD = {
   },
 };
 // 適用中の異変の定義 (なければ null) / 効果値の取り出し
-function mutDef() { return G.mutator ? MUTATORS.find((m) => m.id === G.mutator) || null : null; }
+function mutatorForDungeon(id, cfg) {
+  const m = id ? MUTATORS.find((m) => m.id === id) : null;
+  return m && (!m.cond || m.cond(cfg)) ? m : null;
+}
+// 以前の記録で一騎打ちと飢えた狩場が重なっていても、対象外の異変は効かせない。
+function mutDef() { return G.mutator ? mutatorForDungeon(G.mutator, activeCfg()) : null; }
 
 // 効果キーごとの合成方式: 倍率は積算 / 加算値は合算 / 確率系は最大 / 真偽は論理和。
 // これにより「迷宮の異変」「迷宮の掟」「無限迷宮の風の掟」が同一フックでそのまま効く。
@@ -16005,7 +16011,8 @@ function townMutatorFor(idx) {
     G._townMutator[idx] = id;
   }
   const id = G._townMutator[idx];
-  const m = id ? MUTATORS.find((x) => x.id === id) : null;
+  const m = mutatorForDungeon(id, DUNGEONS[idx]);
+  if (id && !m) G._townMutator[idx] = null; // 変更前に抽選した対象外の候補も消す。引き直しはしない。
   return m ? { id: m.id, name: m.name, accent: m.accent, risk: m.risk, gain: m.gain } : null;
 }
 
@@ -16083,7 +16090,7 @@ function enterDungeon(mutatorId, startFloor = 1, stabilityAd = false) {
     prologue().phase = "done";
     refreshWorldUnlocks();
   }
-  G.mutator = curDungeon().noSpecial || curDungeon().id === "w01" ? null : mutatorId || null;
+  G.mutator = curDungeon().noSpecial || curDungeon().id === "w01" ? null : mutatorForDungeon(mutatorId, curDungeon())?.id || null;
   G.bossDown = false; // 帰還制限: 魔法陣を見つけるか主を討つまで帰れない
   SFX.stairs();
   sheet.closeAll();
