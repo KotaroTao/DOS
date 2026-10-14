@@ -19,7 +19,7 @@ import { sceneTransition } from "./motion.js";
 import { MONSTERS, ICONS, spriteCanvas, crispCanvas } from "../sprites.js";
 import { ELEMENTS, unknownLabel } from "../dungeons/index.js";
 import { revealSteps, monKills, BUFF_NAME, setLogText, showSkillPopup, elemStatShort, effectChip } from "./itemview.js";
-import { SPELLS, spellCost, partyBreathRes } from "../combat.js";
+import { SPELLS, spellCost, partyBreathRes, chishioState } from "../combat.js";
 import { tacticOf } from "../autotactics.js";
 import { RESIST_LABEL } from "../resistance.js";
 import { RARITIES } from "../rarity.js";
@@ -516,6 +516,8 @@ export function peekDoll(d, { idx = 0, combat = false } = {}) {
       if (d.asleep) chips.appendChild(el("span", "dg-chip bad", "眠り"));
       if (d.mind) chips.appendChild(el("span", "dg-chip bad", d.mind === "charm" ? "魅了" : "混乱"));
       if (d._defending) chips.appendChild(el("span", "dg-chip up", "防御中 (被ダメ半減)"));
+      const blood = chishioState(d);
+      if (blood) chips.appendChild(el("span", "dg-chip up", `たぎる血潮 ${blood.stacks}段・同じ敵への物理+${Math.round(blood.bonus * 100)}%${blood.max ? " (最大)" : ""}・別の敵に当てると0段`));
       for (const ef of (d.effects || [])) chips.appendChild(effectChip(ef));
       box.appendChild(chips);
 

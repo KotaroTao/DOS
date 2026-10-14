@@ -292,8 +292,18 @@
 .pc-vial.mp .pc-num { font-size: 8.5px; color: #e6f6ff; }
 .pc-num small { font-size: 0.82em; opacity: 0.72; margin-left: 1px; }
 .pc .buffs { grid-area: bf; display: flex; flex-wrap: wrap; gap: 2px; margin-top: 0; }
-/* 戦闘中は札が無くても1行ぶんの高さを取っておく (札が付くたびに隊の札が伸びて記録欄を潰さないように) */
-#app.in-combat .pc .buffs { min-height: 15px; }
+/* 戦闘中は種類数の札を1行に固定。効果が増えても技の一覧の高さを保つ。 */
+#app.in-combat .pc .buffs {
+  height: 15px; min-height: 15px; min-width: 0; flex-wrap: nowrap; align-items: center;
+}
+#app.in-combat .pc .buffs .bf {
+  flex: 0 0 auto; white-space: nowrap; font-size: 8px; padding: 2px;
+}
+/* 最も狭い6人表示でも、強化・弱体がそれぞれ二桁になった札を収める。 */
+@media (max-width: 360px) {
+  #app.in-combat .pc .buffs { gap: 1px; }
+  #app.in-combat .pc .buffs .bf { font-size: 7.5px; padding-inline: 0; }
+}
 /* Safari の操作バーで縦の余りが少ない時も、名前・HP/MP・効果の札を残す。 */
 @media (max-width: 560px) and (max-height: 760px) {
   #party .pc { grid-template-columns: 32px minmax(0, 1fr); column-gap: 4px; row-gap: 2px; padding: 3px 4px; }
@@ -307,13 +317,11 @@
   #party .cls { font-size: 9px; }
   #party .pc-vial.hp { height: 10px; }
   #party .pc-vial.mp { height: 8px; }
-  #app.in-combat .pc .buffs { min-height: 8px; }
 }
 .pc .buffs .bf { display: inline-flex; align-items: center; gap: 1px; font-size: 8.5px; font-weight: 800; line-height: 1; padding: 2px 3px; border-radius: 2px; border: 1px solid; }
 .pc .buffs .bf b { font-size: 7.5px; margin-left: 1px; opacity: 0.85; }
 .pc .buffs .bf.up { color: #8ff0b0; border-color: #2e6b48; background: rgba(30,80,50,0.4); }
 .pc .buffs .bf.dn { color: #ffa8a0; border-color: #7a2a2a; background: rgba(90,24,24,0.45); }
-.pc .buffs .bf.blood { color: #ffb0a0; border-color: #a8342a; background: rgba(110,20,16,0.5); } /* たぎる血潮の段 */
 .pc.active {
   border-color: var(--dg-gold);
   background: var(--grain), radial-gradient(90% 70% at 30% 0%, rgba(243,213,139,0.16), rgba(0,0,0,0) 70%), var(--dg-iron);
