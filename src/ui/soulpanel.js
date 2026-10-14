@@ -162,6 +162,7 @@ function mainCard(d, pe, town) {
   const nm = el("div", "sp-name");
   const nmT = el("span", null, `${soulLabel(pe)}`);
   nmT.style.color = cl.glow;
+  nmT.title = soulLabel(pe);
   nm.appendChild(nmT);
   tx.appendChild(el("span", "sp-card-k", "メイン魂"));
   tx.appendChild(nm);
@@ -177,6 +178,7 @@ function mainCard(d, pe, town) {
   cur.dataset.spLv = String(pe.uid);
   lvN.appendChild(cur);
   lvN.appendChild(el("span", "sp-lv-cap", `/${cap}`));
+  nm.appendChild(lvN);
   // 見出しを押すと、その職業の図鑑 (ランクごとの技・加護) を開く (ユーザーの指示、2026-10)
   if (game.showCodexJobDetail) {
     head.classList.add("sp-head-link");
@@ -186,7 +188,6 @@ function mainCard(d, pe, town) {
   }
   card.appendChild(head);
   const levelRow = el("div", "sp-level-row sp-head-actions");
-  levelRow.appendChild(lvN);
   if (town) {
     if (soulChangeVisible()) {
       const fixed = d.vessel === "sera";
