@@ -1,5 +1,6 @@
-"""隊列専用画面の実操作・保存・狭い表示と控えへの入口を確認する。localhost:8000。"""
+"""隊列専用画面の実操作・保存・狭い表示と魂一覧への入口を確認する。localhost:8000。"""
 from playwright.sync_api import sync_playwright
+import re
 
 with sync_playwright() as p:
     browser = p.chromium.launch(executable_path='/usr/bin/chromium', args=['--no-sandbox'])
@@ -14,6 +15,7 @@ with sync_playwright() as p:
           __game.G.party.splice(count);
           __game.G.irene.greeted=true;
           __game.G.tut.done.prologueFormation=true;
+          __game.G.tut.done.soulChange=true;
           UI.enterMansion();
           window.membersBefore=[...__game.G.party];
           window.saveCalls=0;
@@ -47,9 +49,11 @@ with sync_playwright() as p:
             assert cards.nth(i).bounding_box()['height'] >= 44
         screen.get_by_role('button', name='閉じる', exact=True).click()
         page.wait_for_timeout(400)
-        page.locator('.pt-mansion-links .pt-bench').first.click()
-        assert page.locator('.pt-res-sheet').is_visible()
+        links = page.locator('.pt-mansion-links')
+        assert links.locator('[data-drop="bench"]').count() == 0
+        links.get_by_role('button', name=re.compile(r'^魂一覧 ')).click()
+        assert page.locator('.sp-list-sheet').is_visible()
         assert not errors, errors
-        print(f'{width}×{height}: {count}体・操作・保存・控え入口・横幅 OK', flush=True)
+        print(f'{width}×{height}: {count}体・操作・保存・人業ボタン撤去・魂一覧・横幅 OK', flush=True)
         page.close()
     browser.close()
