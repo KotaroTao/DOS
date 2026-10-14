@@ -12894,6 +12894,7 @@ function fuseSouls(targetUid, consumeUids, onResultClose = null, opts = {}) {
     unequipSoulEverywhere(c.uid);
   }
   G.stats.fusions += materials.length; // 戦績: 魂の融合回数 (勲章用)
+  UI.tutorialEvent?.(`soulFused:${t.clsKey}`);
   recalcAllDolls({ levelUp: t.level > beforeLv });
   codexJobSee(t.clsKey, t.count, t.level, t.capBonus);
   const after = soulRankOf(t);

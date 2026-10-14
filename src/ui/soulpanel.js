@@ -326,6 +326,7 @@ function fuseButton(pe, town) {
   if (!spare.length) return null;
   if (!game.featureUnlocked?.("fusion")) return lockedControl();
   const b = el("button", "sp-btn sp-fuse hot");
+  b.dataset.job = pe.clsKey;
   b.type = "button";
   const t = el("span", "sp-btn-t");
   t.appendChild(el("span", "sp-btn-l", `魂融合 ×${spare.length}`));
