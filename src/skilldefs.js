@@ -243,7 +243,7 @@ export const SPELLS = {
   RYUURINJIN:     { name: "鱗壁の陣", mp: 10, kind: "buff", ward: { breath: 0.5 }, tech: true, target: "all-ally", desc: "竜鱗の構えで隊を固め、ブレスのダメージを半減する" },
   MAYOKE:         { name: "魔除けの帳", mp: 10, kind: "buff", ward: { spell: 0.5 }, target: "all-ally", desc: "魔除けの帳で隊を包み、敵の呪文のダメージを半減する" },
   // 迷宮で唱える (戦闘では使わない)
-  FUYUU:          { name: "浮遊", mp: 8, kind: "field", float: 3, target: "all-ally", desc: "隊を宙に浮かせる。3階のあいだ足元の穴に落ちず、毒の沼や灼けた床など害のある床も踏まない（迷宮で唱える）" },
+  FUYUU:          { name: "浮遊", mp: 8, mpPct: 0.1, mpMin: 8, kind: "field", float: 3, target: "all-ally", desc: "隊を宙に浮かせる。3階のあいだ足元の穴に落ちず、毒の沼や灼けた床など害のある床も踏まない（迷宮で唱える）" },
   HOUSHOUHEKI:    { name: "法障壁", mp: 13, kind: "buff", grantBarrier: 1, target: "all-ally", desc: "味方全員に魔障壁を張る" },
   DAIKEKKAI:      { name: "大結界陣", mp: 30, kind: "buff", buff: { vit: 1.5 }, grantBarrier: 2, purge: true, target: "all-ally", desc: "守りを上げ、魔障壁を重ね、弱体を解く" },
   KASUMINOTOBARI: { name: "霞の帳", mp: 13, kind: "heal", healMul: 1.1, debuffAll: { hit: 0.75 }, target: "all-ally", desc: "味方を癒し、敵全体の命中率を下げる" },
