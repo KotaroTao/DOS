@@ -2,7 +2,7 @@
 
 判断基準：[rules.md](rules.md)。場面ごとの本文：[evidence.json](evidence.json)。
 
-更新：2026-10-14T11:07:59.443916+00:00
+更新：2026-10-14T11:09:41.581330+00:00
 
 確認済・修正不要 131枚／修正保留 11枚／要確認 9枚／修正済・確認済 2枚
 
@@ -113,8 +113,8 @@
 | 101 | [w31_bell](../../../art/story-review/chapter8/w31_bell.png) | 確認済・修正不要 | 原寸の鐘内側の縁で、各印の右の指3本・独立した炎・短い手首を確認。 |
 | 102 | [w32_rod](../../../art/story-review/chapter8/w32_rod.png) | 確認済・修正不要 | 縮小で確認。避雷針の先端の火花は一門の印ではない。場面指定なし。 |
 | 103 | [ch9_end](../../../art/story-review/chapter9/ch9_end.png) | 確認済・修正不要 | セラは後ろ姿で額と継ぎ目内側は隠れる。追加しない。 |
-| 104 | [irene_rest](../../../art/story-review/chapter9/irene_rest.png) | 修正保留 | 候補の額に旧杯状の印が残り、基準形への置換が反映されず不採用。原画を保持。 |
-| 105 | [report_w34](../../../art/story-review/chapter9/report_w34.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定なし。王宮の模様・灯籠の光を保持。 |
+| 104 | [irene_rest](../../../art/story-review/chapter9/irene_rest.png) | 修正保留 | 候補の額の旧杯状の印が残り不採用。最新main e9286bf2の別セッションによる脚と胸の修正を取り込み、現在の縮小・額部分を再確認。額の形の修正は未完了。開いた胸の蓋に印に似た金の図形が新たに見えるため、この配置も次セッションで要確認。今回その図形は変更していない。 |
+| 105 | [report_w34](../../../art/story-review/chapter9/report_w34.png) | 確認済・修正不要 | 最新main e9286bf2の空の修正を取り込み縮小で再確認。一門の印の配置指定なし。王宮の装飾は保持。 |
 | 106 | [report_w37](../../../art/story-review/chapter9/report_w37.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定なし。王宮の模様・灯籠の光を保持。 |
 | 107 | [w34_glove](../../../art/story-review/chapter9/w34_glove.png) | 確認済・修正不要 | 原寸の手袋の甲に角張った掌・指3本・独立した炎・短い手首を確認。 |
 | 108 | [w35_lamps](../../../art/story-review/chapter9/w35_lamps.png) | 確認済・修正不要 | 縮小で確認。一門の印の配置指定なし。王宮の模様・灯籠の光を保持。 |

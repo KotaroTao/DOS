@@ -24,7 +24,7 @@
 | 6 | irene_crest | A-28 | セラの額と、イレーヌが見せている肘内側の既存の印 | 肘の位置・手指・関節の形 |
 | 7 | irene_order | A-29 | セラの額の杯状の印 | イレーヌの額、手を組む姿勢 |
 | 8 | irene_rain | A-30 | セラの額の杯状の印 | 隠れた手首内側に追加しない |
-| 9 | irene_rest | A-31 | 左寄りに座るセラの額の印 | 右に立つイレーヌの額、ほかの器の胸の灯 |
+| 9 | irene_rest | A-31 | 左寄りに座るセラの額の印 | 最新mainで修正された脚と胸を保持。開いた蓋の金の図形の配置は要確認 |
 | 10 | irene_names | A-32 | 右寄りに身を乗り出すセラの額の印 | イレーヌの額、札、ほかの装飾 |
 | 11 | lore_w07 | A-34 | 布に包まれたセラの頭の額の印 | 壁の印は基準に合っているので保持 |
 
@@ -48,7 +48,9 @@ for row in rows:
 PY
 ```
 
-`sha256` は初回確認開始時、`current_sha256` は進捗保存時の原画。`before/` は前セッションの修正前原画、`rejected/` は不採用候補。**不採用候補を原画として上書き・出荷しない。** 原画の正本は各記録の `master`。`edit-queue.json` と各 `*-prompt.md` は前セッションの依頼を保存した記録で、最新状態はprogress.jsonを優先する。
+`sha256` は初回確認開始時、`current_sha256` は進捗保存時の原画。`irene_rest` と `report_w34` は別セッションの更新をmain `e9286bf2` から取り込み再確認済み。現在の見本は `irene_rest-main-current.jpg`・`report_w34-main-current.jpg`、額の部分は `detail/irene_rest-main-current.png`。以前の部分参照は当時の原画の記録であり、現在の原画と取り違えない。
+
+`before/` は前セッションの修正前原画、`rejected/` は不採用候補。**不採用候補を原画として上書き・出荷しない。** 原画の正本は各記録の `master`。`edit-queue.json` と各 `*-prompt.md` は前セッションの依頼を保存した記録で、最新状態はprogress.jsonを優先する。
 
 ## 入力・確認・保存
 

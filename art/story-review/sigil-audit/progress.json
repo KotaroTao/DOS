@@ -930,19 +930,19 @@
     "id": "irene_rest",
     "master": "art/story-review/chapter9/irene_rest.png",
     "status": "修正保留",
-    "note": "候補の額に旧杯状の印が残り、基準形への置換が反映されず不採用。原画を保持。",
+    "note": "候補の額の旧杯状の印が残り不採用。最新main e9286bf2の別セッションによる脚と胸の修正を取り込み、現在の縮小・額部分を再確認。額の形の修正は未完了。開いた胸の蓋に印に似た金の図形が新たに見えるため、この配置も次セッションで要確認。今回その図形は変更していない。",
     "sha256": "93ead0e6ad887d4355863d3c45f2a5d9ae11a926fef2c6f6f38ffaf29c5d9a11",
-    "checked_at": "2026-10-14T10:47:53.716067+00:00",
-    "current_sha256": "93ead0e6ad887d4355863d3c45f2a5d9ae11a926fef2c6f6f38ffaf29c5d9a11"
+    "checked_at": "2026-10-14T11:09:41.181609+00:00",
+    "current_sha256": "733173d82570de84c72a21a01f02c525e8675a30b43d0f2945003fe79e7b294d"
   },
   {
     "id": "report_w34",
     "master": "art/story-review/chapter9/report_w34.png",
     "status": "確認済・修正不要",
-    "note": "縮小で確認。一門の印の配置指定なし。王宮の模様・灯籠の光を保持。",
+    "note": "最新main e9286bf2の空の修正を取り込み縮小で再確認。一門の印の配置指定なし。王宮の装飾は保持。",
     "sha256": "9135e23e99fb42adc251f48a65c02e6548f2161ce80a315b3e711efd1cac3163",
-    "checked_at": "2026-10-14T10:06:42.734742+00:00",
-    "current_sha256": "9135e23e99fb42adc251f48a65c02e6548f2161ce80a315b3e711efd1cac3163"
+    "checked_at": "2026-10-14T11:09:41.181625+00:00",
+    "current_sha256": "731916eb3954723dc313c19bc8a9b1d8f20a18e424f29a7d538ceb5d85612312"
   },
   {
     "id": "report_w37",

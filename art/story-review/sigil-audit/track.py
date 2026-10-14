@@ -10,7 +10,8 @@ HERE = Path(__file__).resolve().parent
 
 def save(rows):
     for row in rows:
-        row['current_sha256'] = hashlib.sha256((ROOT / row['master']).read_bytes()).hexdigest()
+        if 'current_sha256' not in row:
+            row['current_sha256'] = hashlib.sha256((ROOT / row['master']).read_bytes()).hexdigest()
     (HERE / 'progress.json').write_text(json.dumps(rows, ensure_ascii=False, indent=2)+'\n')
     counts = {}
     for r in rows:
@@ -45,6 +46,7 @@ def update(changes):
     for id, status, note in changes:
         r=next(r for r in rows if r['id']==id)
         r.update(status=status,note=note,checked_at=datetime.now(timezone.utc).isoformat())
+        r['current_sha256'] = hashlib.sha256((ROOT / r['master']).read_bytes()).hexdigest()
     save(rows)
 
 if __name__=='__main__':
