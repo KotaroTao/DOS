@@ -606,9 +606,9 @@
 
 <a name="lore_w38"></a>
 
-## lore_w38「灯籠の吹き溜まり」 ── 未着手
+## lore_w38「灯籠の吹き溜まり」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_w38.webp" width="576" alt="lore_w38">
 
 **ストーリー一覧の本文**
 
@@ -622,9 +622,9 @@ _(絵はまだ無い)_
 
 <a name="lore_w39"></a>
 
-## lore_w39「黒い灯の地底湖」 ── 未着手
+## lore_w39「黒い灯の地底湖」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_w39.webp" width="576" alt="lore_w39">
 
 **ストーリー一覧の本文**
 
@@ -638,9 +638,9 @@ _(絵はまだ無い)_
 
 <a name="lore_w40"></a>
 
-## lore_w40「名を刻む石窟」 ── 未着手
+## lore_w40「名を刻む石窟」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_w40.webp" width="576" alt="lore_w40">
 
 **ストーリー一覧の本文**
 
@@ -654,9 +654,9 @@ _(絵はまだ無い)_
 
 <a name="lore_w41"></a>
 
-## lore_w41「底なしの大伽藍」 ── 未着手
+## lore_w41「底なしの大伽藍」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_w41.webp" width="576" alt="lore_w41">
 
 **ストーリー一覧の本文**
 
@@ -702,9 +702,9 @@ _(絵はまだ無い)_
 
 <a name="lore_ws3"></a>
 
-## lore_ws3「霧の迷い森」 ── 未着手
+## lore_ws3「霧の迷い森」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/dungeons/lore_ws3.webp" width="576" alt="lore_ws3">
 
 **ストーリー一覧の本文**
 

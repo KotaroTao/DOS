@@ -170,13 +170,13 @@
 | 由来 | `w35` | 闘獣の檻 | 出荷済み | [見る](dungeons.md#lore_w35) |
 | 由来 | `w36` | 亡き観客の階段席 | 出荷済み | [見る](dungeons.md#lore_w36) |
 | 由来 | `w37` | 血の砂の闘技場 | 出荷済み | [見る](dungeons.md#lore_w37) |
-| 由来 | `w38` | 灯籠の吹き溜まり | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_w38) |
-| 由来 | `w39` | 黒い灯の地底湖 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_w39) |
-| 由来 | `w40` | 名を刻む石窟 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_w40) |
-| 由来 | `w41` | 底なしの大伽藍 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_w41) |
+| 由来 | `w38` | 灯籠の吹き溜まり | 出荷済み | [見る](dungeons.md#lore_w38) |
+| 由来 | `w39` | 黒い灯の地底湖 | 出荷済み | [見る](dungeons.md#lore_w39) |
+| 由来 | `w40` | 名を刻む石窟 | 出荷済み | [見る](dungeons.md#lore_w40) |
+| 由来 | `w41` | 底なしの大伽藍 | 出荷済み | [見る](dungeons.md#lore_w41) |
 | 由来 | `ws1` | 沈んだ礼拝堂 | 出荷済み | [見る](dungeons.md#lore_ws1) |
 | 由来 | `ws2` | 石眠りの石切り場 | 出荷済み | [見る](dungeons.md#lore_ws2) |
-| 由来 | `ws3` | 霧の迷い森 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_ws3) |
+| 由来 | `ws3` | 霧の迷い森 | 出荷済み | [見る](dungeons.md#lore_ws3) |
 | 由来 | `ws4` | 銀業の隠れ里 | 出荷済み | [見る](dungeons.md#lore_ws4) |
 | 由来 | `ws5` | 王都の古井戸 | 出荷済み | [見る](dungeons.md#lore_ws5) |
 | 由来 | `ws6` | 見捨てられた狼煙台 | 出荷済み | [見る](dungeons.md#lore_ws6) |
