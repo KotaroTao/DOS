@@ -25,7 +25,7 @@ import { remember, setPref, getPref } from "./prefs.js";
 import {
   itemDetailEl, statLines, isEquippable, gearScore, elemStatShort, showSkillPopup, showPassivePopup, itemCatText, tagRow, spellTagKinds, specialLines, specialShort, specialParts, resistDeltaParts, weaponPerformanceEl, weaponPowerPreview,
 } from "./itemview.js";
-import { renderSoulSeg, renderSoulOverview, openSoulPicker, openSoulList, openOrderSheet } from "./soulpanel.js";
+import { renderSoulSeg, openSoulPicker, openSoulList, openOrderSheet } from "./soulpanel.js";
 import { IRENE_WHO, IRENE_ART, ireneState, isGreeted, nextLine, lineOpen, noteVisit, greetingPages, playIreneScene, sceneActive } from "./irene.js";
 import {
   planBestEquip, equipApprovalGroups, applyEquipApprovals, restoreEquip, equipSignature, trialEquip, slotKeysFor, previewStats, statsDelta, snapshotEquip, isAutoCandidate, swapBackFor,
@@ -33,7 +33,7 @@ import {
 import { SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, canEquip, equipLevelOf, equipLvShort, recalc, weaponRange, RANGE_LABEL, itemName, attackPower, useWhere, compareUse, AIL_LABEL, hasQuality, qualityOf, qualityMatters } from "../items.js";
 import {
   SOUL_CLASSES, SOUL_KEYS, JOB_GEAR, dollSprite, dollBust, dollFace, jobBust, jobSprite, jobRankName, ATTR_KEYS, ATTR_LABEL, ATTR_NAME, soulLabel, soulRankLeft, soulByUid,
-  orderedSkills, isSkillOff, setSkillOff, moveSkill, resetSkillPrefs, isAutoOff, setAutoOff, skillUsable, soulLevelCapOf,
+  orderedSkills, isSkillOff, setSkillOff, moveSkill, resetSkillPrefs, isAutoOff, setAutoOff, skillUsable,
 } from "../souls.js";
 import { TACTICS, tacticOf, setTactic } from "../autotactics.js";
 import { SPELLS, spellCost, spellMpLabel } from "../combat.js";
@@ -998,10 +998,6 @@ function renderView(root, mode) {
   if (mode === "town" || G.party.length > 1) root.appendChild(formationEl(mode));
   if (!d) return;
   root.appendChild(picked ? pickHint() : mode === "town" && !sheetTown ? mansionHeader(d) : dollHeader(d, mode));
-  if (mode === "town" && !sheetTown && !picked) {
-    renderSoulOverview(root, d, rerender);
-    root.appendChild(equipActions(d));
-  }
   if (mode === "dungeon") { const cs = campStrip(d); if (cs) root.appendChild(cs); }
   root.appendChild(segBar(d, mode));
   const body = el("div", "pt-body");
@@ -1772,10 +1768,9 @@ function mansionHeader(d) {
   head.dataset.job = soulByUid(d.primary)?.clsKey || "";
   const tx = el("div", "pt-mansion-title");
   tx.appendChild(el("span", "pt-head-name", d.name));
-  const pe = soulByUid(d.primary);
-  tx.appendChild(el("span", "pt-head-cls", pe ? d.cls : "空の人業"));
-  if (pe) tx.appendChild(el("span", "pt-mansion-lv", `Lv${pe.level} / ${soulLevelCapOf(pe)}`));
+  tx.appendChild(el("span", "pt-head-cls", d.primary == null ? "空の人業" : `${d.cls} Lv${d.jobLv || 1}`));
   head.appendChild(tx);
+  head.appendChild(equipActions(d));
   head.appendChild(button({ label: "管理", kind: "secondary", size: "sm", onTap: () => openMansionManage(d) }));
   return head;
 }
