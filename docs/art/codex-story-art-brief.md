@@ -214,6 +214,14 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 
 ### A. 必須 (物語の筋や正典と食い違う)
 
+**A-37. 第一章 irene_reveal「レースの下の継ぎ目」** `art/story-review/chapter1/irene_reveal.png` (済)
+- ユーザー指定 (2026-10-14): 手首のレース下のロボット状の機構を除去し、レースを肘までめくって、他の人業と同じ黒鉄の肘の継ぎ目を見せる。白い手首と前腕は滑らかにする。
+- 本文もユーザー指示に合わせ「白い手首に、」を「白い手首の先に、」へ変更。一覧の説明も肘の継ぎ目にそろえる。
+- 保つもの: イレーヌと弟子の顔・髪・衣装、台のセラの腕、館の背景、構図、画風、光。
+```text
+...except: Irene lifts and gathers the black lace sleeve of her raised arm all the way up to just above her ELBOW with her other hand, revealing her smooth pale ivory wrist and full forearm and a clearly visible BLACK IRON ARTICULATED ELBOW JOINT. The elbow is located at the lower end of her raised forearm, near the tabletop, anatomically connecting her upper arm and forearm. Match the simple rounded hinge and black iron joint bands of the wooden party dolls reference and the detached wooden arm already on the table. Remove the entire long exposed robotic mechanism currently running along her wrist and forearm: no pistons, rods, gears, wires, exoskeleton or metal forearm plating. Her wrist, hand and forearm remain smooth pale ivory with natural adult proportions; the only exposed black iron mechanism on Irene is the compact rounded joint at the ELBOW. Her opposite hand gently gathers the sleeve above that elbow, rather than pointing at her wrist. Preserve Irene's exact face, purple eyes, hair, jewelry, gown, the apprentice, the detached Sera arm on the table, every background object, framing, detailed pixel texture and warm candlelight/cool moonlight. This is an edit of the existing composition, not a new scene. No lettering.
+```
+
 **A-36. 第一章 report_w04「答えを飲み込んだ王」** `art/story-review/chapter1/report_w04.png` (済)
 - 直す: 王の手が3本ある。画面右へ差し出した余分な手と、それにつながる腕・袖を消し、赤い衣と白い毛皮の自然な折り目にする。
 - 保つもの: 口元に添えた手、机に置いた手、王の顔と姿勢、宰相、弟子、地図、金貨、構図、画風、光。
