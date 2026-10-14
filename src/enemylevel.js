@@ -8,7 +8,7 @@
 // 図鑑の能力 (攻撃・防御・素早さ・HP) は、この基準の個体 (= Lv1) の実際の値を出す (enemyBaseSample)。
 // 素早さはその場所の fleeK で味方の規模 (手番の速さ — combat.js scaleFoeAgi) に直した値。
 // game.js も ui も import しない (combat.js の組み立てを借りるだけ)
-import { WORLD, poolAt, strengthAt, abyssLayer, dungeonLevelRaw } from "./dungeons/world.js";
+import { WORLD, poolAt, strengthAt, abyssLayer, dungeonLevelRaw, agiWallOf } from "./dungeons/world.js";
 import { lvPow, partyAgi } from "./levelcurve.js";
 import { spawnEliteEnemies, spawnBossEnemies, spawnMimic, spawnRanked, spawnMetal, scaleFoeAgi } from "./combat.js";
 import { MONSTERS } from "./sprites.js";
@@ -120,7 +120,7 @@ function baseOf(key) {
   if (!list.length) for (const at of (_abyss ||= abyssSpots())) collectAt(key, at, list);
   let best = null;
   for (const c of list) if (!best || c.s < best.s) best = c;
-  if (best) scaleFoeAgi(best.e, best.at.fleeK);
+  if (best) scaleFoeAgi(best.e, best.at.fleeK, agiWallOf(best.at.cfg));
   const v = best ? { s: best.s, e: best.e } : null;
   _ref.set(key, v);
   return v;
