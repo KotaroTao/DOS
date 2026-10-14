@@ -1116,14 +1116,15 @@ const WORLD_DEF = [
   {
     // 格上の迷宮: 第二章 (隊は Lv35 前後) で開くが、推奨Lv は第五章の火の洞と同じ。第4層の魔物 (ランク5〜6) を
     // 火を噴く地割れ w18 と同じ強さ (sqrt(HP×ATK) 約800) まで引き上げるため、強さの素は第4層の約1.65倍
-    id: "ws7", lv: 62, lvTo: 66, layer: 4, floors: 10, side: true, challenge: true,
+    id: "ws7", lv: 62, lvTo: 66, layer: 4, floors: 15, side: true, challenge: true,
     floorHaz: { fall: "oubliette", harm: "caltrop" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
-    power: { 1: 0.378, 5: 0.403, 10: 0.432 },
+    power: { 1: 0.378, 8: 0.403, 15: 0.432 },
     name: "獄吏の詰所", short: "詰所",
     about: "地下牢の番人たちが寝起きした詰所。百年、牢の恨みを浴び続けた獄吏たちは、もう人の強さではない",
     bands: [
       ["bs_cultist", "bs_banshee", "bs_dullahan", "d03_sentinel", "bs_ironknight", "bs_darksamurai"],
       ["d04_revenant", "bs_vampire", "bs_thunderknight"],
+      ["bs_bloodwraith", "bs_bonecolossus", "bs_shadowmage"],
     ],
     elites: ["el_headsman"],
     trait: {
@@ -1132,6 +1133,7 @@ const WORLD_DEF = [
       mods: { chestRankUp: 1, chestTrapRate: 1, lockMul: 2 }, // 罠・錠 = メリットしかない掟だったので足した代償 (2026-10-11 ユーザーの指示)
       board: "offering",
     },
+    boss: "bs_ironcagewarden", bossRank: 6, // 看守長も第4層の主の規格で、格上の迷宮の強さを掛ける
     tune: { enemyMul: 1.10, deepMul: 0.80, soloMul: 1.05 },
     unlock: { quest: "fq_liese2" },
     hint: "酒場の牢番の娘の依頼「鍵束の持ち主」を受けると、道が示される",
