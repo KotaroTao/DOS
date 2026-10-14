@@ -395,7 +395,7 @@ function renderCodexJob(box) {
     { cols: 3, cellH: CARD_H, key: "job", empty: el("div", "wa-empty", "まだ職業を見つけていない。迷宮で魂を吸収すると職業が記される。") });
 }
 
-// 見聞録: 迷宮で出会った出来事 (共通 / 層ごと)。出会っていない出来事は「？？？」
+// 見聞録: 迷宮で実行した出来事 (共通 / 層ごと)。実行していない出来事は「？？？」
 // 層の欄は、その層の迷宮が解放されてから出す (まだ行けない層の名を先に明かさない)。
 // 解放より先に記録がある層 (古いセーブ等) は出す
 function evGroupsOpen(rec) {
@@ -444,7 +444,7 @@ export function codexEventSheet(id) {
   const tt = el("span", "pl-tag", t.name);
   tt.style.color = t.accent;
   tag.appendChild(tt);
-  tag.appendChild(el("span", "pl-tag", `遭遇 ${rec.seen[id] || 0}`));
+  tag.appendChild(el("span", "pl-tag", `実行 ${rec.seen[id] || 0}`));
   body.appendChild(tag);
   let intro = [];
   try { intro = e.intro(EV_STUB, {}) || []; } catch (err) { intro = []; }

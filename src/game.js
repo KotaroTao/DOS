@@ -6388,7 +6388,7 @@ function autoMovePlan() {
           // 一度立ち去った出来事・「開けない」を選んだ宝箱・立ち去った死体は自動で問い直さない。
           // 死体 (あたたかい・偉大なる・風化) は宝箱と同じ設定に従う (ユーザーの指示、2026-10。起き上がって逃げた死体は除く)
           const unread = !c.cleared && (c.type === "story" ||
-            (c.type === "event" && !c.evSeen && !avoid.event) ||
+            (c.type === "event" && !c.evSeen && !c.evVisited && !avoid.event) ||
             (c.type === "chest" && !c.chestSeen && !avoid.chest) ||
             (c.type === "corpse" && !c.corpseSeen && !c._corpseRise && !avoid.chest));
           // 行き先: 挑む敵 / 伏せた墓石 (避ける宝箱の光を除く) / 未読の物語・出来事・宝箱 (見えている罠は避ける)
@@ -7210,6 +7210,7 @@ const evApi = {
     showEvent({ sprite: ICONS.event, banner: "✦ 見聞 ✦", title, lines, accent: "#c08aff", btnLabel: "閉じる", onClose: next });
   },
   seen(e, cell) {
+    // 実行した出来事だけを記す。evVisited (訪問済み) では登録しない。
     if (cell.evSeen) return;
     cell.evSeen = true;
     const first = !G.events.seen[e.id];
@@ -14063,7 +14064,7 @@ function achNext(s) {
   series("ev", [
     [5, "噂を確かめる者", 60], [10, "見聞の徒", 150], [20, "迷宮の語り部", 300, 1], [30, "奇談の収集家", 500, 2],
     [50, "見聞録の主", 1000, 4],
-  ], (v) => `迷宮の出来事に ${v}種 出会う`, eventsSeen, { more: step(10) });
+  ], (v) => `迷宮の出来事を ${v}種 実行する`, eventsSeen, { more: step(10) });
 
   // ── 戦い ──
   // 撃破数
