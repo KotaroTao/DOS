@@ -1208,7 +1208,7 @@ function formationEl(mode) {
     wrap.appendChild(grp);
   }
   if (town && !sheetTown) {
-    const manage = button({ label: "管理", kind: "secondary", size: "sm", onTap: () => openMansionManage(ensureSel()) });
+    const manage = button({ label: "隊列", kind: "secondary", size: "sm", onTap: () => openMansionManage(ensureSel()) });
     manage.classList.add("pt-mansion-manage");
     wrap.appendChild(manage);
   }
@@ -1775,15 +1775,25 @@ function mansionHeader(d) {
   head.dataset.job = soulByUid(d.primary)?.clsKey || "";
   const tx = el("div", "pt-mansion-title");
   tx.appendChild(el("span", "pt-head-name", d.name));
-  const rename = button({ label: "名を変える", kind: "ghost", size: "sm", onTap: () => openRename(d) });
-  rename.classList.add("pt-mansion-rename");
+  const rename = el("button", "pt-mansion-rename pt-head-edit");
+  rename.type = "button";
+  rename.setAttribute("aria-label", "名を変える");
+  rename.title = "名を変える";
+  rename.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/></svg>';
+  rename.addEventListener("click", () => openRename(d));
   tx.appendChild(rename);
   head.appendChild(tx);
-  head.appendChild(equipActions(d));
+  const actions = el("div", "pt-mansion-links");
+  const souls = soulListButton();
+  souls.querySelector(".pt-bench-n").remove();
+  actions.appendChild(souls);
+  const order = orderButton();
+  if (order) actions.appendChild(order);
+  head.appendChild(actions);
   return head;
 }
 function openMansionManage(d) {
-  sheet.open({ kind: "info", banner: "人業の館", title: "編成・管理", className: "pt-manage-sheet",
+  sheet.open({ kind: "info", banner: "人業の館", title: "隊列", className: "pt-manage-sheet",
     body: (body, h) => {
       const side = el("div", "pt-side pt-manage-links");
       side.append(benchButton(), soulListButton());
