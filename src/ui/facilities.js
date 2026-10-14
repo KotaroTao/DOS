@@ -393,7 +393,7 @@ function renderTalk(wrap) {
     const kind = TALK_KINDS[m.kind];
     if (kind) {
       h.appendChild(setText(el("span", "fc-voice-tag k-" + m.kind), kind.label));
-      if (m.fresh) h.appendChild(setText(el("span", "fc-voice-new"), "初耳"));
+      if (m.fresh) h.appendChild(setText(el("span", "fc-voice-new"), "新規"));
     }
     r.appendChild(h);
     r.appendChild(setText(el("div", "fc-voice-t"), m.line));
