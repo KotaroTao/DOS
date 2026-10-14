@@ -1,0 +1,16 @@
+1. 原画 → WebP
+art/story-review/chapter8/irene_rain.png 2642KB -> art/story/chapter8/irene_rain.webp 385KB
+2. 登録 (src/storyimages.js・sw.js)
+   src/storyimages.js と sw.js を書き直した (場面 115 枚・由来 38 枚)
+3. 確認ページ (art/story-review/review/)
+   art/story-review/review/chapter8.md
+   art/story-review/review/status.md
+4. 縮小の見本
+   art/story-review/review/chapter8-small.jpg
+5. 検査
+   登録は art/story/ と一致 (場面 115 枚・由来 38 枚)
+   指示書と本文は一致 (新規 66・修正 52・基準シート 11)
+   読み物124場面: 解放条件・専用図版・章順・本文・状態保全・既読と知らせ OK
+
+✓ できあがり。次: git add art/story art/story-review src/storyimages.js sw.js tools/storyart/masters.json して PR を出す
+  PR の本文には art/story-review/review/chapterN.md (絵と本文の見比べ) と chapterN-small.jpg (縮小の見本) を載せる
