@@ -1,6 +1,18 @@
 // 迷宮の透過原画。通常敵・強敵・主・召喚先・共通の敵で共用する。
 // 能力値や文字グリッドは保ち、読めた原画だけを最初の描画前に登録する。
 export const MONSTER_PHOTOS = {
+  // 地の底の霧森（通常敵9種・繭母・召喚される大蛾）。
+  bs_dryadfey: [326, 380],
+  bs_wisplure: [263, 337],
+  bs_thornhound: [383, 317],
+  bs_direboar: [349, 325],
+  bs_chimera: [404, 341],
+  bs_thunderbird: [352, 356],
+  bs_fogpanther: [420, 277],
+  bs_corruptstag: [301, 364],
+  bs_satyrpiper: [312, 345],
+  el_mistmother: [374, 378],
+  bs_giantmoth: [367, 350],
   // 亡兵の守る外郭（通常敵9種・強敵と、未登録だった共通の敵4種）。
   bs_pikewall: [491, 496],
   bs_bannerwraith: [406, 520],
