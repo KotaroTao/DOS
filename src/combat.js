@@ -1,4 +1,5 @@
 import { random } from "./rng.js";
+import { lvPow } from "./levelcurve.js";
 import { monsterResists } from "./resistance.js";
 // 隊・呪文・ターン制戦闘ロジック
 import { MONSTERS } from "./sprites.js";
@@ -281,6 +282,11 @@ export const BLADE_HEAL_CAP = 0.25;
 
 // 職業ランクパッシブのLvを引く (souls.js の recalcDoll が passiveMap を埋める)
 const pv = (a, key) => (a && a.passiveMap && a.passiveMap[key]) || 0;
+// 装備の極 (無限迷宮の追加の特性 X01〜X35) の印。items.js recalc が member.gearMisc に集める。味方だけ
+const NOMISC = Object.freeze({});
+const gm = (a) => (a && a.side === "party" && a.gearMisc) || NOMISC;
+// 極「記憶の」: 前の手番に使った技と同じ技を続けて使うか (回復・蘇生の技は除く)
+const memoryHalf = (a, sp, key) => !!(key && gm(a).memory && a._lastSkill === key && sp && sp.kind !== "heal" && !sp.revive && !healsHp(sp));
 // 動体視力の命中率加算 (DYNAMIC_VISION。味方 → 敵の物理だけ、金属の魔物は除く)
 const visionHitBonus = (actor, tgt) => actor && actor.side === "party" && tgt && tgt.side === "enemy" && !isMetal(tgt)
   ? DYNAMIC_VISION[Math.min(3, pv(actor, "dynamicVision"))] || 0 : 0;
@@ -584,9 +590,10 @@ let _partyHitBonus = 0;
 export function setPartyHitBonus(v) { _partyHitBonus = Math.max(0, +v || 0); }
 export function setPartyBreathBonus(v) { _partyBreathBonus = Math.max(0, +v || 0); }
 export function partyBreathRes(t) { return Math.min(BREATH_RES_CAP, (t.breathRes || 0) + (t.side === "party" ? _partyBreathBonus : 0)); }
-const elemSeen = (t) => !(t && t.side === "enemy" && _elemKnown && !_elemKnown(t));
+// 極「慧眼の」の持ち主 (a) は、図鑑で明かしていない敵の属性も見積もりに使う
+const elemSeen = (t, a) => !(t && t.side === "enemy" && _elemKnown && !_elemKnown(t)) || !!gm(a).insight;
 // 属性を知らない敵の見かけ (固有属性だけ「なし」に見せ、ほかは本体を読む)。固有パッシブの「弱点を突いた時」の判定用
-const elemMask = (t) => (elemSeen(t) ? t : Object.create(t, { element: { value: "none" } }));
+const elemMask = (t, a) => (elemSeen(t, a) ? t : Object.create(t, { element: { value: "none" } }));
 
 // 状態異常を抱えているか (戦闘中の眠り・魅了・混乱も含む)。治療の対象選び・オートの判断に使う
 export function ailing(t) { return !!(t && (t.ailment || t.asleep || t.mind)); }
@@ -751,7 +758,8 @@ export class Battle {
     this.foeRise = +opts.foeRise || 0;     // 迷宮の掟「起き上がる濁り魂」: 倒れた敵 (主・金属を除く) は一度だけ最大HPのこの割合で起き上がる
     this.soulFeast = +opts.soulFeast || 0; // 迷宮の掟「魂喰らいの闇」: 人業を倒した敵は攻撃がこの段数だけ上がる (3ターン)
     this.show = { sp: 0, cr: 0, dd: 0, at: 0 }; // 観客の注文 (闘技場跡の迷宮の掟) と無限迷宮の称号の判定: 隊が使った技・会心・倒れた数・通常攻撃。乱数には触れない
-    for (const a of [...party, ...enemies]) { a.buffs = { atk: 1, vit: 1, agi: 1 }; a.effects = []; a._endureUsed = 0; a._grantEndure = false; a._fgUsed = 0; a._sgUsed = 0; a._ijiUsed = 0; a._kgUsed = 0; a._hpPre = a.hp; a._nailed = false; a._bloodTgt = null; a._bloodStack = 0; a._kyouhon = 0; a._giDone = false; a._againRound = 0; }
+    for (const a of [...party, ...enemies]) { a.buffs = { atk: 1, vit: 1, agi: 1 }; a.effects = []; a._endureUsed = 0; a._grantEndure = false; a._fgUsed = 0; a._sgUsed = 0; a._ijiUsed = 0; a._kgUsed = 0; a._hpPre = a.hp; a._nailed = false; a._bloodTgt = null; a._bloodStack = 0; a._kyouhon = 0; a._giDone = false; a._againRound = 0;
+      a._splitQ = null; a._quickUsed = false; a._flipUsed = false; a._coverUsed = false; a._afterImg = false; a._parryHold = false; a._lastSkill = null; a._chainRound = 0; a._wedge = 0; }
     for (const p of party) {
       p._coverLeft = pv(p, "cover");
       p._barrierLeft = pv(p, "barrier");
@@ -939,6 +947,7 @@ export class Battle {
     if (!this.isBackRow(actor)) return 1;
     const rng = this.attackRange(actor);
     if (rng === "mid" || rng === "long") return 1; // 槍・弓は後列でも減衰なし
+    if (gm(actor).stepIn) return 1; // 極「踏み込みの」: 後列からでも近い射程の武器の与ダメが半分にならない
     return 0.5;
   }
   // 物理の隊列補正: 後衛は与ダメ(射程武器を除く)・被ダメが半減。魔法・ブレスには掛からない
@@ -992,6 +1001,9 @@ export class Battle {
   _applyMod(t, stat, mult, dur, srcName) {
     if (!t || mult === 1) return 0;
     if (mult < 1 && isMetal(t)) return 0; // 金属の体: 弱体は効かない
+    if (stat === "seal" && mult < 1 && gm(t).steadMind) { this.log(`${t.name}の不動心：封印を防いだ`, "sys"); return 0; } // 極「不動心の」
+    // 極「時告げの」: 自分が掛ける強化・弱体の持続 +1ターン (手番の者 = this._actor)
+    if (this._actor && gm(this._actor).timeKeeper && dur && !isBattleLong(dur)) dur += 1;
     t.effects = t.effects || [];
     if (STAGED.has(stat)) return this._applyStage(t, stat, stageOf(mult), dur, srcName);
     const up = mult > 1;
@@ -1010,6 +1022,8 @@ export class Battle {
   // 段の加算 (d = 符号つきの段数)
   _applyStage(t, stat, d, dur, srcName) {
     if (!d) return 0;
+    // 極「地踏みの」: STR・VIT・AGI・INT・PIE を下げる弱体を受けない (迷宮の掟の冷気も)
+    if (d < 0 && gm(t).steady) { if (!this._quietMod) this.log(`${t.name}の地踏み：弱体を防いだ`, "sys"); return 0; }
     const strong = this._strongFoe(t);
     let turns = Math.max(1, dur || 3);
     if (d < 0 && strong) turns = Math.max(2, turns - 1); // 主・精鋭: 弱体の持続 −1
@@ -1020,14 +1034,18 @@ export class Battle {
     const lo = strong ? STRONG_MIN : -STAGE_MAX;
     const before = _modSink ? snapEffects(t) : null;
     // 底・天井を越えて入れない (すでに越えている分は削らない)
-    const s1 = d > 0 ? Math.min(s0 + d, Math.max(STAGE_MAX, s0)) : Math.max(s0 + d, Math.min(lo, s0));
+    let s1 = d > 0 ? Math.min(s0 + d, Math.max(STAGE_MAX, s0)) : Math.max(s0 + d, Math.min(lo, s0));
+    // 極「裏返しの」: 1つの能力が底 (−3段) まで下がると、1戦闘に1度 +3段の強化に裏返す
+    let flipped = false;
+    if (s1 <= -STAGE_MAX && s1 < s0 && gm(t).flip && !t._flipUsed) { t._flipUsed = true; s1 = STAGE_MAX; flipped = true; }
     t.effects = t.effects.filter((e) => e.stat !== stat);
     if (s1 !== 0) {
       // 同じ向きへ掛け直せば長い方に延び、押し戻しただけなら元の持続のまま。向きが裏返ったら新しい持続
-      const nt = Math.sign(s1) !== Math.sign(d) ? t0 : Math.sign(s0) === Math.sign(d) ? Math.max(t0, turns) : turns;
+      const nt = flipped ? Math.max(t0, turns) : Math.sign(s1) !== Math.sign(d) ? t0 : Math.sign(s0) === Math.sign(d) ? Math.max(t0, turns) : turns;
       t.effects.push({ stat, stage: s1, mult: stageMul(s1), turns: Math.max(1, nt), src: srcName || "" });
     }
     this._recalcBuffs(t);
+    if (flipped) { this.log(`${t.name}の裏返し：底まで下がった弱体を +${STAGE_MAX}段の強化に裏返した`, "heal"); this._proc(t, "裏返し"); }
     if (_modSink && s1 !== s0) _modSink({ t, stat, d: s1 - s0, src: srcName || "", before, after: snapEffects(t) });
     if (s1 !== s0 && t.side === "enemy" && ENEMY_STAT_LABEL[stat] && !this._quietMod) {
       this.log(`${t.name}の${ENEMY_STAT_LABEL[stat]}${stageLabel(s1 - s0)}`, s1 > s0 ? "dmg" : "hit");
@@ -1102,6 +1120,8 @@ export class Battle {
     if (w.tgtWeakened && !(t && (t.ailment || t.asleep || t.mind || t._flinch || (t.effects || []).some((e) => e.mult < 1)))) return false;
     // 自分が敵を引き付けている (矢面の構え・挑発の効果中) — 盾役の「引き付けると硬くなる」「引き付けた打撃を返す」
     if (w.taunting && !(pv(a, "taunt") || this._bm(a, "taunt") > 1)) return false;
+    // 連携の (極): このターンに直前に動いた味方 (自分以外) と同じ敵を打つ
+    if (w.combo && !(t && this._comboTgt === t && this._comboActor && this._comboActor !== a)) return false;
     return true;
   }
   // 与ダメ・被ダメ・会心・回避などの値の合計 (自分の分 + 生きている味方の aura 付きの分)。ctx.on = その攻撃の種類の札の配列
@@ -1155,6 +1175,8 @@ export class Battle {
       if (!p.alive) continue;
       for (const { c, lv, label } of perksOf(p)) {
         if (c.t !== "start" || !this._perkRoll(c, lv) || (c.when && !this._perkWhen(p, c.when, {}))) continue;
+        // once: 持ち主が何人いても隊で1度だけ (極「号令の」)
+        if (c.once) { const used = this._startOnce || (this._startOnce = new Set()); if (used.has(c.once)) continue; used.add(c.once); }
         const tg = c.party ? this.livingParty() : [p];
         let mp = 0;
         for (const t of tg) {
@@ -1335,12 +1357,40 @@ export class Battle {
     if (actor && actor.side === "party") base += this._rk(actor, "hexerSae", [0.05, 0.10, 0.15, 0.25]); // 呪いの冴え (呪術師のランク)
     let al = actor ? this.lvOf(actor) : null;
     if (al == null) { const ps = this.party.filter((p) => p.alive); al = ps.length ? ps.reduce((a, p) => a + this.lvOf(p), 0) / ps.length : 1; }
+    // 極「縛り目の」: 自分が掛ける状態異常は Lv差で成功率が下がらない (即死は除く)
+    if (kind !== "death" && gm(actor).binder) al = Math.max(al, this.lvOf(t));
     return lvRate(base, al, this.lvOf(t)) * (kind ? 1 - (["stone", "death"].includes(kind) ? this._hardRes(t, kind) : this._ailRes(t, kind)) : 1);
   }
   // 命中した敵へ付く効果 (物理技・攻撃呪文・弱体の共通): 毒/麻痺/封印/属性耐性ダウン/打ち消し/眠り/怯み/即死。
   // 毒・麻痺・封印・眠り・魅了・混乱・即死の成功率は Lv差で決まる (lvRate)
   // 種類ごとの抵抗値を掛ける。抵抗値100は無効
   _inflict(actor, t, sp, out) {
+    const tags = out || [];
+    const n0 = tags.length;
+    const r = this._inflictOne(actor, t, sp, tags);
+    // 極「伝染の」: 新しく掛けた状態異常を、並びの隣の敵 (生きている敵の並びで前後) にも同じ確率で移す
+    if (!this._spreading && gm(actor).contagion && tags.length > n0) this._contagion(actor, t, sp, tags.slice(n0));
+    return r;
+  }
+  _contagion(actor, t, sp, got) {
+    const map = { poison: sp.poison && { poison: sp.poison }, para: sp.para && { para: sp.para }, sleep: sp.sleepChance && { sleepChance: sp.sleepChance },
+      charm: sp.charm && { charm: sp.charm }, confuse: sp.confuse && { confuse: sp.confuse }, seal: sp.seal && { seal: sp.seal } };
+    const spec = {};
+    for (const k of got) if (map[k]) Object.assign(spec, map[k]);
+    if (!Object.keys(spec).length) return;
+    const foes = this.livingEnemies(), i = foes.indexOf(t);
+    const near = [foes[i - 1], foes[i + 1]].filter((e) => e && e.alive && !isMetal(e));
+    if (!near.length) return;
+    this._spreading = true;
+    try {
+      for (const e of near) {
+        const tg = [];
+        this._inflictOne(actor, e, { ...spec, name: sp.name, quiet: true }, tg);
+        if (tg.length) { this.log(`伝染！ ${e.name}にも${tg.map((k) => STATUS_TEXT[k] || k).join("・")}`, "hit"); this._proc(actor, "伝染"); }
+      }
+    } finally { this._spreading = false; }
+  }
+  _inflictOne(actor, t, sp, out) {
     if (!t || !t.alive || t.side !== "enemy") return;
     if (isMetal(t)) return; // 金属の体: 毒・麻痺・眠り・魅了・混乱・封印・即死・耐性ダウン・打ち消しのどれも効かない
     const tags = out || [];
@@ -1415,7 +1465,17 @@ export class Battle {
   _startRound() {
     if (this._roundNo >= 1) this._roundEndRank(); // 前のターンの終わり (浄化の光)
     this._roundNo++;
+    this._comboTgt = null; this._comboActor = null; // 連携の (極): ターンごとに数え直す
     if (this._roundNo > 1) this._tickEffects(); // 2ターン目以降、強化/弱体の持続を消化
+    // 極「痛み分けの」: 後に回したダメージを、ターンの初めに受ける (倒れることもある。不屈などの踏みとどまりは普段どおり)
+    for (const p of this.party) {
+      if (!p.alive || !p._splitQ || !p._splitQ.length) continue;
+      const d = p._splitQ.shift() || 0;
+      if (d <= 0) continue;
+      p.hp -= d;
+      this.log(`${p.name}の痛み分け：残りの${d}ダメージ`, "dmg");
+      this._die(p);
+    }
     for (const p of this.party) this._recalcBuffs(p); // 固有パッシブの条件付きの能力倍率を判定し直す
     for (const a of [...this.party, ...this.enemies]) {
       if (!a.alive || a.ailment !== "poison") continue;
@@ -1481,8 +1541,14 @@ export class Battle {
     this._checkEnd();
     let pool = [...this.party, ...this.enemies];
     if (this._roundNo === 1 && this.opening === "preempt") pool = [...this.party];
-    else if (this._roundNo === 1 && this.opening === "ambush") pool = this._ambushers();
+    else if (this._roundNo === 1 && this.opening === "ambush") {
+      pool = this._ambushers();
+      // 極「警鐘の」: 奇襲を受けても、1ターン目に自分だけは動ける
+      for (const p of this.party) if (p.alive && gm(p).alarm) { pool.push(p); this.log(`${p.name}の警鐘：奇襲に気づいた`, "heal"); this._proc(p, "警鐘"); }
+    }
     const eagi = (a) => (a.agi || 1) * ((a.buffs && a.buffs.agi) || 1);
+    // 一番に動く者: 加速装置 (actFirst、毎ターン) と、極「一番手の」(戦闘の1ターン目だけ)
+    const first = (a) => !!(a.actFirst || (this._roundNo === 1 && gm(a).firstTurn));
     // 手番の速さ: 敵の AGI は Battle を作った時に味方の規模 (TURN_K 込み) へ直してある (scaleFoeAgi)。揺らぎは割合で、並べる前に1回だけ振る
     const turnAgi = (a) => eagi(a);
     const speed = new Map();
@@ -1490,11 +1556,22 @@ export class Battle {
     this.queue = pool
       .filter((a) => a.alive)
       // 加速装置 (actFirst) は必ず手番の最初に行動する。同士の中では AGI 順
-      .sort((a, b) => ((b.actFirst ? 1 : 0) - (a.actFirst ? 1 : 0)) || ((b.haste ? 1 : 0) - (a.haste ? 1 : 0)) || (speed.get(b) - speed.get(a)));
+      .sort((a, b) => ((first(b) ? 1 : 0) - (first(a) ? 1 : 0)) || ((b.haste ? 1 : 0) - (a.haste ? 1 : 0)) || (speed.get(b) - speed.get(a)));
     // 神速 (haste): 目にも止まらぬ速さの敵は、ターンの頭 (加速装置の次) に動き、後半にもう一度動く
     for (const e of this.queue.filter((a) => a.haste && a.side === "enemy")) {
       const from = Math.max(this.queue.indexOf(e) + 1, Math.ceil(this.queue.length / 2));
       this.queue.splice(from + rand(this.queue.length - from + 1), 0, e);
+    }
+    // 極「二度駆けの」: 15% (AGI が敵の最速の2倍以上なら30%) でこのターン後半にもう一度動く。
+    // 1ターンに増える行動は1回まで (時間跳躍とは重ならない — _againRound)
+    const fastFoe = Math.max(0, ...this.enemies.filter((e) => e.alive).map(eagi));
+    for (const p of this.queue.filter((a) => a.side === "party" && gm(a).dash && a._againRound !== this._roundNo)) {
+      if (random() >= (fastFoe > 0 && eagi(p) >= fastFoe * 2 ? 0.30 : 0.15)) continue;
+      p._againRound = this._roundNo;
+      const from = Math.max(this.queue.indexOf(p) + 1, Math.ceil(this.queue.length / 2));
+      this.queue.splice(from + rand(this.queue.length - from + 1), 0, p);
+      this.log(`${p.name}の二度駆け：このターン2回動く`, "hit");
+      this._proc(p, "二度駆け");
     }
     // テスト記録: 味方と敵の組のうち、味方が先に動く組の数 (先制・奇襲の1ターン目は片側だけなので数えない)
     const T = this._tally();
@@ -1607,7 +1684,7 @@ export class Battle {
         if (actor.ailment === "paralyze" && this._naturalRecover(actor, "para", 0.35)) { actor.ailment = null; this.log(`${actor.name}の麻痺解除`, "heal"); }
         if (actor.asleep && actor.ailment !== "paralyze" && actor.ailment !== "stone" && this._naturalRecover(actor, "sleep", 0.45)) { actor.asleep = false; this.log(`${actor.name}の眠り解除`, "sys"); }
         if (actor.asleep || actor.ailment === "paralyze" || actor.ailment === "stone") { this.phase = "stunned"; return; }
-        actor._defending = false; // 防御は次の自分の手番まで
+        actor._defending = false; actor._parryHold = false; // 防御は次の自分の手番まで
         // 魅了・混乱: 正気に戻れなければ勝手に動く (stunnedAct → _mindAct)。自然に戻ったらこの手番から動ける
         if (actor.mind && this._mindCheck(actor) === "auto") { this.phase = "stunned"; return; }
         this.phase = "input";
@@ -1734,7 +1811,7 @@ export class Battle {
     }
     if (action === "spell") {
       const sp = SPELLS[spellKey];
-      if (actor.mp < spellCost(actor, sp)) { this.log("MP不足", "sys"); return { invalid: true }; }
+      if (actor.mp < this.costOf(actor, sp, spellKey)) { this.log("MP不足", "sys"); return { invalid: true }; }
       this.pending = { actor, action: "spell", spellKey };
       // 単体味方呪文で効果のある対象がいない場合は唱えさせない (満タンへの回復など)
       if (sp.target === "ally" && this._allyTargets(sp).length === 0) {
@@ -1758,6 +1835,12 @@ export class Battle {
       return { needTarget: false };
     }
     return { invalid: true };
+  }
+
+  // この戦闘での実際の消費MP。極「記憶の」: 前の手番と同じ技 (回復・蘇生を除く) は半分 (切り上げ)
+  costOf(actor, sp, key) {
+    const c = spellCost(actor, sp);
+    return memoryHalf(actor, sp, key) ? Math.ceil(c / 2) : c;
   }
 
   targetOptions() {
@@ -1810,8 +1893,16 @@ export class Battle {
     this.pending = null;
     this._checkEnd();
     if (!this.result && res && res.actor && res.actor.side === "party") this._necroLegion(res.actor, res);
-    // 時間跳躍 (賢者のランク): 手番の後 10/15/20/30% でもう一度行動 (1ターン1回)
     const a = res && res.actor;
+    // 極「早業の」: 道具を使っても手番を使わない (1戦闘に1回)。時間跳躍より先に見る
+    if (!this.result && a && a.side === "party" && a.alive && res.item && gm(a).quick && !a._quickUsed) {
+      a._quickUsed = true;
+      this.queue.unshift(a);
+      this.log(`${a.name}の早業：もう一度動ける`, "hit");
+      this._proc(a, "早業");
+      return res;
+    }
+    // 時間跳躍 (賢者のランク): 手番の後 10/15/20/30% でもう一度行動 (1ターン1回)
     if (!this.result && a && a.side === "party" && a.alive && a._againRound !== this._roundNo
       && random() < this._rk(a, "sageJikan", [0.10, 0.15, 0.20, 0.30])) {
       a._againRound = this._roundNo;
@@ -1877,7 +1968,8 @@ export class Battle {
     // 魅了・混乱: 正気に戻れなければ、仲間を襲う・誰かれ構わず殴る・ふらつく。自然に戻ったらこの手番からいつも通り動く
     if (actor.mind && !actor.asleep && this._mindCheck(actor) === "auto") return this._mindAct(actor);
     // 金属の体: 自分の手番に、段ごとの確率で逃げ出す (倒されずに去った個体は戦果を残さない)
-    if (actor.metal && !actor.asleep && random() < (METAL_TIERS[actor.metal] || METAL_TIERS[1]).flee) return this._enemyFlee(actor);
+    // 極「追い足の」: 持ち主が隊にいる (生きている) と、金属の魔物の逃げる率が半分
+    if (actor.metal && !actor.asleep && random() < (METAL_TIERS[actor.metal] || METAL_TIERS[1]).flee * (this.party.some((p) => p.alive && gm(p).chaser) ? 0.5 : 1)) return this._enemyFlee(actor);
     // 特技封じ: 役割 (回復・呼び出し) と特殊能力 (ブレス・状態異常など) を使えず、通常攻撃だけになる
     const sealed = this._bm(actor, "seal") < 1;
     if (actor.asleep) {
@@ -2039,7 +2131,9 @@ export class Battle {
       dmg = Math.max(1, Math.floor(dmg * (1 - this._shintou(t))));
       const mr = this._resistCut(t, dmg, "magResist");
       dmg = mr.dmg;
+      dmg = this._gearGuard(t, dmg, "magic"); // 逆境の (極)
       dmg = this._wallCut(t, dmg);
+      dmg = this._gearSplit(t, dmg); // 痛み分けの (極)
       t.hp -= dmg;
       this.log(`${t.name}に${dmg}ダメージ${hitNote(elemNote(em, sp.element), mr.tag)}`, "dmg");
       this._wake(t);
@@ -2145,7 +2239,13 @@ export class Battle {
   _exec(cmd) {
     this._actSeq = (this._actSeq || 0) + 1; // たぎる血潮: 1手ごとに数える
     this._actor = cmd.actor; // 固有パッシブ (kill) が「誰が倒したか」を知るための印
-    try { return this._execInner(cmd); } finally { this._actor = null; }
+    const a = cmd.actor;
+    if (a && a.side === "party") { cmd._memo = memoryHalf(a, SPELLS[cmd.spellKey], cmd.action === "spell" ? cmd.spellKey : null); a._lastSkill = cmd.action === "spell" ? cmd.spellKey : null; }
+    try { return this._execInner(cmd); } finally {
+      this._actor = null;
+      // 連携の (極): このターンに直前に動いた味方と、その狙った敵
+      if (a && a.side === "party" && cmd.target && cmd.target.side === "enemy") { this._comboTgt = cmd.target; this._comboActor = a; }
+    }
   }
   _execInner(cmd) {
     const { actor, action } = cmd;
@@ -2174,7 +2274,8 @@ export class Battle {
     }
     if (action === "defend") {
       actor._defending = true;
-      this.log(`${actor.name}は防御（被ダメージ半減）`, "sys");
+      if (gm(actor).parryHold) actor._parryHold = true; // 受け流しの (極): 次の自分の手番まで敵の物理を1回かわす
+      this.log(`${actor.name}は防御（被ダメージ半減${actor._parryHold ? "・物理を1回受け流す" : ""}）`, "sys");
       return res;
     }
     if (action === "run") {
@@ -2394,7 +2495,21 @@ export class Battle {
         dmg = Math.max(1, Math.floor(dmg * (1 - this._shintou(t)))); // 心頭滅却: ブレス・呪文
         const mr = spell ? this._resistCut(t, dmg, "magResist") : { dmg, tag: "" };
         dmg = mr.dmg;
+        dmg = this._gearGuard(t, dmg, "magic"); // 逆境の (極)
         dmg = this._wallCut(t, dmg);
+        dmg = this._gearSplit(t, dmg); // 痛み分けの (極)
+        { // 肩代わりの (極): 倒れるほどの一撃を持ち主が代わりに受ける
+          const cv = this._gearCover(t, dmg);
+          if (cv) {
+            cv.hp -= dmg;
+            this.log(`${cv.name}に${dmg}ダメージ${hitNote(elemNote(em, actor.element), mr.tag)}`, "dmg");
+            this._wake(cv);
+            const cd = this._die(cv);
+            if (!cd) this._postDamage(cv);
+            res.hits.push({ target: cv, dmg, died: cd });
+            continue;
+          }
+        }
         t.hp -= dmg;
         this.log(`${t.name}に${dmg}ダメージ${hitNote(elemNote(em, actor.element), mr.tag)}`, "dmg");
         this._wake(t);
@@ -2492,6 +2607,7 @@ export class Battle {
         this.log(`${actor.name}の禍言！`, "dmg");
         let any = false;
         for (const p of this.livingParty()) {
+          if (gm(p).steadMind) { if ((p.effects || []).some((e) => e.mult > 1)) this.log(`${p.name}の不動心：強化は剥がれない`, "heal"); continue; } // 極「不動心の」
           if (!this._stripUp(p)) continue;
           any = true;
           res.hits.push({ target: p, debuff: true, mods: {}, note: "加護が剥がれた" });
@@ -2653,6 +2769,28 @@ export class Battle {
 
   // 通常攻撃後の追撃 (味方のみ): 残心 / 連撃 / 二刀の理
   _afterBasic(actor, tgt, h, res) {
+    const xm = gm(actor);
+    // 極「剥がしの」: 当たった通常攻撃が、敵の強化を1つ消す (溜め・予兆は消さない)
+    if (xm.peel && h && !h.miss && !h.immune && tgt.alive && tgt.side === "enemy") {
+      const ups = (tgt.effects || []).filter((e) => e.mult > 1 && e.stat !== "omen" && e.stat !== "charge");
+      const ef = ups[ups.length - 1];
+      if (ef) {
+        tgt.effects.splice(tgt.effects.indexOf(ef), 1);
+        this._recalcBuffs(tgt);
+        this.log(`${actor.name}の剥がし：${tgt.name}の${ENEMY_STAT_LABEL[ef.stat] || ef.src || "強化"}の強化を消した`, "hit");
+        this._proc(actor, "剥がし");
+      }
+    }
+    // 極「連なる刃の」: 通常攻撃で敵を倒すと、別の敵へもう一撃 (1ターンに1度)
+    if (xm.chain && h && h.died && actor.alive && actor._chainRound !== this._roundNo) {
+      const t2 = this._randAlive(this.attackableEnemies(actor).filter((e) => e !== tgt));
+      if (t2) {
+        actor._chainRound = this._roundNo;
+        this.log(`${actor.name}の連なる刃！`, "hit");
+        this._proc(actor, "連なる刃");
+        res.hits.push(this._physical(actor, t2, { name: "連なる刃" }));
+      }
+    }
     // 崩拳 (魔闘士のランク): 通常攻撃が 10/15/20/30% で敵を怯ませる (主・金属の魔物には効かない)
     if (h && !h.miss && !h.immune && tgt.alive && tgt.side === "enemy" && !tgt.boss && !isMetal(tgt) && !tgt._flinch
       && random() < this._rk(actor, "bmHouken", [0.10, 0.15, 0.20, 0.30])) {
@@ -2731,7 +2869,9 @@ export class Battle {
   _resistCut(tgt, dmg, key, ignore = 0) {
     // 金属の体: 物理 (反撃など) は1ダメージ、魔法 (呪文・神罰・二刀の理など) は無効
     if (isMetal(tgt)) return key === "magResist" ? { dmg: 0, tag: METAL_TAG.mag, immune: true } : { dmg: Math.min(dmg, 1), tag: METAL_TAG.phys, immune: false };
-    const r = tgt ? (tgt[key] || 0) : 0;
+    let r = tgt ? (tgt[key] || 0) : 0;
+    // 極「くさびの」で打ち込まれた分だけ物理の抵抗値が下がる (抵抗値100 = 無効には効かない)
+    if (key === "physResist" && tgt && tgt._wedge && r < 100) r = Math.max(0, r - tgt._wedge);
     const label = key === "physResist" ? "物理" : "魔法";
     if (!r) return { dmg, tag: "", immune: false };
     const rate = resistRate(r);
@@ -2740,9 +2880,48 @@ export class Battle {
     return { dmg: Math.max(1, Math.round(dmg * (1 - cut))), tag: cut > 0 ? `${label}軽減${fmtMul(cut * 100)}%` : "", immune: false };
   }
 
+  // ===== 装備の極 (受ける側) =====
+  // 逆境の (HP50%以下 −20% / 25%以下 −40%) と金城の (物理の一撃は最大HPの50%まで)。装備の軽減の上限 (GEAR_FX_CAP) の外
+  _gearGuard(t, dmg, kind) {
+    const m = gm(t);
+    if (m === NOMISC || !(dmg > 0)) return dmg;
+    if (m.adversity && t.maxhp) {
+      const f = t.hp / t.maxhp;
+      if (f <= 0.25) dmg = Math.max(1, Math.floor(dmg * 0.6)); else if (f <= 0.5) dmg = Math.max(1, Math.floor(dmg * 0.8));
+    }
+    if (m.fortress && kind === "phys" && t.maxhp) {
+      const cap = Math.max(1, Math.ceil(t.maxhp * Math.min(1, m.fortress)));
+      if (dmg > cap) { dmg = cap; this.log(`${t.name}の金城：最大HPの${Math.round(Math.min(1, m.fortress) * 100)}%で止めた`, "heal"); this._proc(t, "金城"); }
+    }
+    return dmg;
+  }
+  // 痛み分けの: 受けるダメージの割合を、次とその次のターンの初めへ半分ずつ回す。返り値 = いま受ける分
+  _gearSplit(t, dmg) {
+    const k = gm(t).split;
+    if (!k || !(dmg > 1)) return dmg;
+    const later = Math.floor(dmg * Math.min(0.9, k));
+    if (later <= 0) return dmg;
+    const a = Math.ceil(later / 2);
+    const q = t._splitQ || (t._splitQ = []);
+    q[0] = (q[0] || 0) + a; q[1] = (q[1] || 0) + (later - a);
+    this.log(`${t.name}の痛み分け：${later}ダメージを後に回す`, "sys");
+    return dmg - later;
+  }
+  // 肩代わりの: 倒れるほどの一撃を、持ち主 (本人以外・動ける・この戦闘でまだ使っていない) が代わりに受ける。残りHPの多い者から。
+  // 受けるダメージは減らない (持ち主が倒れることもある)
+  _gearCover(t, dmg) {
+    if (!t || t.side !== "party" || dmg < t.hp) return null;
+    const c = this.party.filter((p) => p !== t && p.alive && gm(p).cover && !p._coverUsed && !this._incap(p)).sort((a, b) => b.hp - a.hp)[0];
+    if (!c) return null;
+    c._coverUsed = true;
+    this.log(`${c.name}が${t.name}への一撃を肩代わりした`, "heal");
+    this._proc(c, "肩代わり");
+    return c;
+  }
+
   _physical(actor, tgt, opt = {}) {
     // かばう: 瀕死の味方への攻撃は護衛役が肩代わりする
-    let coverMul = 1;
+    let coverMul = 1, redirected = false;
     // area = 全体への打撃 (溜めた猛威): 仁王立ち・かばうでは肩代わりできない
     if (actor.side === "enemy" && tgt.side === "party" && !opt.area) {
       // 仁王立ち: 単体攻撃は構えた者がすべて受ける (かばうより先)
@@ -2750,7 +2929,7 @@ export class Battle {
       if (sh) {
         this.log(`${sh.name}が${tgt.name}をかばう`, "sys");
         this._proc(sh, "仁王立ち");
-        tgt = sh;
+        tgt = sh; redirected = true;
       }
     }
     if (actor.side === "enemy" && tgt.side === "party" && !opt.area) {
@@ -2761,7 +2940,7 @@ export class Battle {
         this._proc(g, "かばう");
         const cvLv = pv(g, "cover");
         if (cvLv >= 3) coverMul = 0.6; else if (cvLv >= 2) coverMul = 0.7;
-        tgt = g;
+        tgt = g; redirected = true;
       }
     }
     // 敵側の護り手 (guard): 仲間への物理攻撃を肩代わりする (呪文・ブレスは防げない)
@@ -2782,12 +2961,23 @@ export class Battle {
     if (J) J[0]++;
     // 必中技と麻痺・眠り中の敵への物理は、見切り・回避・目つぶしを無視
     const sureHit = opt.acc >= 1 || (tgt.side === "enemy" && (tgt.asleep || tgt.ailment === "paralyze"));
+    // 極「受け流しの」: 防御した手番から次の自分の手番まで、敵の物理を1回かわす
+    const enemyHit = actor.side === "enemy" && tgt.side === "party";
+    if (enemyHit && tgt._parryHold && tgt._defending) {
+      tgt._parryHold = false;
+      T[tk + "p"]++;
+      this.log(`${tgt.name}は受け流した`, "heal");
+      this._proc(tgt, "受け流し");
+      if (gm(tgt).afterImage) tgt._afterImg = true;
+      return { target: tgt, miss: true, evaded: true };
+    }
     // 見切り (parry): 確率で完全回避
     const pLvP = pv(tgt, "parry");
     if (!sureHit && pLvP && random() < (pLvP >= 2 ? 0.15 : 0.10)) {
       T[tk + "p"]++; if (J) J[2]++;
       this.log(`${tgt.name}は見切り`, "sys");
       this._proc(tgt, "見切り");
+      if (enemyHit && gm(tgt).afterImage) tgt._afterImg = true; // 残影の (極)
       return { target: tgt, miss: true, evaded: true };
     }
     // 命中判定: 素の命中漏れ + 対象の敏捷(AGI)による回避 + 回避持ちの追加回避。
@@ -2796,6 +2986,7 @@ export class Battle {
     if (!sureHit && random() < missP) {
       T[tk + "e"]++; if (J) J[1]++;
       this.log(`${tgt.name}は回避`, "sys");
+      if (enemyHit && gm(tgt).afterImage) tgt._afterImg = true; // 残影の (極): 次の自分の物理が強まる
       return { target: tgt, miss: true, evaded: true };
     }
     const power = opt.power || 1;       // 技の倍率 (通常攻撃は1)
@@ -2866,6 +3057,9 @@ export class Battle {
       }
     }
     if (actor.side === "party") { const evm = evDealMul(actor, tgt); if (evm !== 1) dmg = Math.round(dmg * evm); }
+    // 極「残影の」: 敵の物理をかわした後の、次の自分の物理 +30%
+    let afterImg = false;
+    if (perkFoe && actor._afterImg) { actor._afterImg = false; afterImg = true; dmg = Math.round(dmg * (1 + (gm(actor).afterImage || 0))); }
     // 会心: 基礎 + 会心パッシブ + 幸運(LUK) + 技の会心補正。確定会心系が先に立つ
     const luckCrit = luckCritBonus(actor.luk);
     let critChance = 0.06 + (actor.critBonus || 0) + luckCrit + (opt.critBonus || 0) + (actor._evCrit || 0);
@@ -2894,12 +3088,18 @@ export class Battle {
     if (magHit && !metalHit && tgt.magWeak && tgt.magWeak > 1) { dmg = Math.round(dmg * tgt.magWeak); magWeak = true; }
     // 物理抵抗値: 値と同じ割合を軽減、100は無効。魔法属性の武器は魔法耐性を受ける
     // 物理貫通だけが耐性の軽減を無視する。会心は耐性を受け、物理無効は貫けない。
-    const resistIgnore = magHit ? 0 : this._physPierce(actor, opt);
+    // 極「双魂の」: 物理の一撃を、敵の物理と魔法の抵抗値のうち低い方で受けさせる (抵抗値100でも。物理貫通は物理の時だけ)
+    let rKey = magHit ? "magResist" : "physResist";
+    if (!magHit && perkFoe && gm(actor).twinSoul) {
+      const pR = Math.max(0, (tgt.physResist || 0) - ((tgt.physResist || 0) < 100 ? (tgt._wedge || 0) : 0));
+      if ((tgt.magResist || 0) < pR) rKey = "magResist";
+    }
+    const resistIgnore = rKey === "magResist" ? 0 : this._physPierce(actor, opt);
     const pr = metalHit ? { dmg, tag: crit ? "" : METAL_TAG.phys, immune: false }
-      : this._resistCut(tgt, dmg, magHit ? "magResist" : "physResist", resistIgnore);
+      : this._resistCut(tgt, dmg, rKey, resistIgnore);
     if (pr.immune) {
       // 無効: 傷ひとつ付かない (障壁も削れず、毒刃・怯ませ等の命中時効果も乗らない)
-      this.log(`${actor.name}の${opt.name || "攻撃"}！ ${tgt.name}：${magHit ? "魔法" : "物理"}無効`, tgt.side === "party" ? "dmg" : "hit");
+      this.log(`${actor.name}の${opt.name || "攻撃"}！ ${tgt.name}：${rKey === "magResist" ? "魔法" : "物理"}無効`, tgt.side === "party" ? "dmg" : "hit");
       T[tk + "i"]++;
       return { target: tgt, dmg: 0, crit: false, died: false, immune: true };
     }
@@ -2918,10 +3118,16 @@ export class Battle {
       T[tk + "i"]++;
       return { target: tgt, dmg: 0, crit: false, died: false, immune: true };
     }
+    if (enemyHit) dmg = this._gearGuard(tgt, dmg, "phys"); // 逆境の・金城の (極)
     dmg = this._wallCut(tgt, dmg);
+    if (enemyHit) {
+      dmg = this._gearSplit(tgt, dmg); // 痛み分けの (極)
+      const cv = redirected ? null : this._gearCover(tgt, dmg); // 肩代わりの (極): かばう・仁王立ちが先
+      if (cv) tgt = cv;
+    }
     tgt.hp -= dmg;
     // 属性・障壁・物理耐性は重なっても全部見えるように併記する
-    const eff = [elemNote(metalHit && !crit ? 1 : em, aE), magWeak ? `魔法弱点×${fmtMul(tgt.magWeak)}` : "", barriered ? `障壁半減・残り${tgt._barrierLeft}回` : "", pr.tag]
+    const eff = [elemNote(metalHit && !crit ? 1 : em, aE), magWeak ? `魔法弱点×${fmtMul(tgt.magWeak)}` : "", afterImg ? "残影" : "", barriered ? `障壁半減・残り${tgt._barrierLeft}回` : "", pr.tag]
       .filter(Boolean).join("・");
     this.log(`${actor.name}の${opt.name || "攻撃"}！ ${tgt.name}に${dmg}ダメージ${hitNote(crit ? "会心" : "", eff)}`,
       tgt.side === "party" ? "dmg" : "hit");
@@ -2931,6 +3137,22 @@ export class Battle {
       stolen = Math.max(1, Math.round(dmg * actor.lifesteal));
       actor.hp = Math.min(actor.maxhp, actor.hp + stolen);
       this.log(`${actor.name}のHP吸収：HP+${stolen}`, "heal");
+    }
+    if (perkFoe && !metalHit) {
+      const m = gm(actor);
+      // 極「くさびの」: 当てるたび敵の物理の抵抗値 −10 (最大 −30、主・強敵は −20。抵抗値100には効かない)
+      if (m.wedge && (tgt.physResist || 0) > 0 && (tgt.physResist || 0) < 100) {
+        const cap = this._strongFoe(tgt) ? 20 : 30, w0 = tgt._wedge || 0;
+        if (w0 < Math.min(cap, tgt.physResist)) { tgt._wedge = Math.min(cap, w0 + 10); this.log(`${tgt.name}にくさび：物理の抵抗値−${tgt._wedge}`, "hit"); this._proc(actor, "くさび"); }
+      }
+      // 極「かすめ取りの」: 10% で盗むと同じく敵の金貨を奪う (1体につき1度)
+      if (m.pilfer && !tgt._stolen && (tgt.gold || 0) > 0 && random() < m.pilfer) {
+        const amt = Math.max(1, Math.round(tgt.gold * 0.6));
+        tgt._stolen = true;
+        this.bonusGold = (this.bonusGold || 0) + amt;
+        this.log(`${actor.name}は${tgt.name}から💰${amt}をかすめ取った`, "win");
+        this._proc(actor, "かすめ取り");
+      }
     }
     // 報復の籠手 (counter): 敵の物理攻撃を受けた味方が反撃する (LR装飾品。反撃の反撃は起きない)
     if (tgt.side === "party" && tgt.counter && tgt.alive && actor.side === "enemy" && actor.alive && !opt._counter && dmg > 0) {
@@ -2966,6 +3188,13 @@ export class Battle {
       this.log(`${tgt.name}に怯み`, "hit");
     }
     const died = this._die(tgt);
+    // 極「見届けの」: 会心が出ると、その敵のこのターンの手番を一番最後に回す
+    if (crit && perkFoe && !died && tgt.alive && gm(actor).witness && this.queue && this.queue.includes(tgt)) {
+      const n = this.queue.filter((x) => x === tgt).length;
+      this.queue = this.queue.filter((x) => x !== tgt);
+      for (let i = 0; i < n; i++) this.queue.push(tgt);
+      this.log(`${actor.name}の見届け：${tgt.name}の手番を最後に回した`, "hit");
+    }
     // 魂喰い: 敵を倒した時にMPを最大の1.5%回復
     if (died && actor.side === "party" && pv(actor, "soulEater") && actor.maxmp) {
       const mr = Math.max(1, Math.ceil(actor.maxmp * 0.015));
@@ -3008,14 +3237,14 @@ export class Battle {
     const aE = opt.element || (actor.elemAtk && actor.elemAtk.el) || actor.element || "none";
     const aLv = (actor.elemAtk && actor.elemAtk.el === aE) ? Math.max(1, actor.elemAtk.lv) : 1;
     // 属性相性は、図鑑で属性が明かされた敵にだけ見込む (setElemKnown)。打ち込んだ属性耐性ダウンは見えているので数える
-    dmg *= (elemSeen(tgt) ? elemDmgMult(aE, aLv, tgt.element || "none", edefOf(tgt), eaffOf(tgt)) : 1) * this._vulnMul(tgt, aE);
+    dmg *= (elemSeen(tgt, actor) ? elemDmgMult(aE, aLv, tgt.element || "none", edefOf(tgt), eaffOf(tgt)) : 1) * this._vulnMul(tgt, aE);
     if (opt.execute && tgt.maxhp && tgt.hp <= tgt.maxhp * 0.3) dmg *= opt.execute;
     if (opt.prey && opt.prey.races.includes(enemyRace(tgt))) dmg *= opt.prey.mul;
     if (pv(actor, "smite") && HOLY_PREY.includes(enemyRace(tgt))) dmg *= 1.3;
     if (pv(actor, "gokudoku") && tgt.ailment === "poison") dmg *= 1.3;
     const pOn = opt.basic ? ["phys", "basic"] : opt.skill ? ["phys", "skill"] : ["phys"];
     const perkFoe = actor.side === "party" && tgt.side === "enemy";
-    const tv = elemMask(tgt);
+    const tv = elemMask(tgt, actor);
     if (perkFoe) dmg *= 1 + this._perkSum(actor, "deal", { tgt: tv, el: aE, on: pOn });
     if (actor.side === "party") dmg *= evDealMul(actor, tgt);
     const luckCrit = luckCritBonus(actor.luk);
@@ -3059,7 +3288,7 @@ export class Battle {
     else {
       const intv = Math.max((actor.int || 0) * this._bm(actor, "int"), isFaithSpell(sp) ? (actor.pie || 0) * this._bm(actor, "pie") : 0);
       const aLv = (actor.elemAtk && actor.elemAtk.el === sp.element) ? Math.max(1, actor.elemAtk.lv) : 1;
-      let em = elemSeen(t) ? elemDmgMult(sp.element || "none", aLv, t.element || "none", edefOf(t), eaffOf(t)) : 1;
+      let em = elemSeen(t, actor) ? elemDmgMult(sp.element || "none", aLv, t.element || "none", edefOf(t), eaffOf(t)) : 1;
       if (em < 1 && pv(actor, "elemFloor")) em = 1;
       em *= this._vulnMul(t, sp.element);
       dmg = Math.max(1, varianceMean(attackSpellPower(sp, intv) * soulPowerMul(actor, sp)) * this._lowHpMul(actor) - Math.floor(this._evit(t) * 0.2)) * em;
@@ -3070,7 +3299,7 @@ export class Battle {
     if (r >= 100) return 0;
     if (r > 0) dmg *= 1 - resistRate(r) * (1 - this._rk(actor, "archmageShinen", [0.25, 0.50, 0.75, 1]));
     if (pv(actor, "gokudoku") && t.ailment === "poison") dmg *= 1.3;
-    dmg *= evDealMul(actor, t) * (1 + this._perkSum(actor, "deal", { tgt: elemMask(t), el: sp.element || "none", on: ["spell"] }));
+    dmg *= evDealMul(actor, t) * (1 + this._perkSum(actor, "deal", { tgt: elemMask(t, actor), el: sp.element || "none", on: ["spell"] }));
     const critP = sp.gravity ? 0 : Math.min(1, ([0, 0.10, 0.18, 0.26][Math.min(pv(actor, "spellCrit"), 3)] || 0) + (sp.critBonus || 0)
       + this._rk(actor, "arcanistShinen", [0.05, 0.08, 0.12, 0.20]));
     dmg *= 1 + critP * 0.5;
@@ -3107,7 +3336,9 @@ export class Battle {
   _cast(actor, cmd, res) {
     const sp = SPELLS[cmd.spellKey];
     const echo = !!cmd._echo; // 重詠の2回目 (MP・代償を払わない)
-    const cost = echo ? 0 : spellCost(actor, sp);
+    const full = spellCost(actor, sp);
+    const cost = echo ? 0 : cmd._memo ? Math.ceil(full / 2) : full; // 極「記憶の」: 同じ技の続けざまは半分
+    if (cmd._memo && !echo) this.log(`${actor.name}の記憶：消費MP半分（${cost}）`, "sys");
     actor.mp -= cost; // 省詠唱 (chant) 持ちは消費が軽い
     // 捨身 (hpCost): 最大HPの一定割合を代償に払う (HP1で踏みとどまる)。
     // ダメージ計算より先に払うため、自ら瀕死に踏み込んで荒行の果て・背水を起動できる
@@ -3235,9 +3466,10 @@ export class Battle {
         { const evm = evDealMul(actor, t); if (evm !== 1) dmg = Math.max(1, Math.round(dmg * evm)); } // 迷宮のイベントの加護
         { const pd = this._perkSum(actor, "deal", { tgt: t, el: sp.element || "none", on: ["spell"] }); if (pd) dmg = Math.max(1, Math.round(dmg * (1 + pd))); } // 固有パッシブ (deal)
         // 会心: 呪文会心パッシブ + 技固有の会心補正 (禁呪開帳など)。重力は会心しない
+        const sae = !!gm(actor).sae; // 極「冴えの」: 呪文の会心率 +15%・会心の威力 ×1.3
         const crit = !sp.gravity && random() < (([0, 0.10, 0.18, 0.26][Math.min(scLv, 3)] || 0) + (sp.critBonus || 0)
-          + this._rk(actor, "arcanistShinen", [0.05, 0.08, 0.12, 0.20])); // 深淵の知 (秘術師のランク)
-        if (crit) dmg = Math.floor(dmg * 1.5);
+          + this._rk(actor, "arcanistShinen", [0.05, 0.08, 0.12, 0.20]) + (sae ? 0.15 : 0)); // 深淵の知 (秘術師のランク)
+        if (crit) dmg = Math.floor(dmg * 1.5 * (sae ? 1.3 : 1));
         if (crit && actor.side === "party" && this.show) this.show.cr++; // 観客の注文 (会心を見せろ)
         if (t.guard) dmg = Math.max(1, Math.ceil(dmg * (1 - t.guard))); // 金剛の護符: 呪文・ブレスの被ダメもカット
         t.hp -= dmg;
@@ -3348,6 +3580,7 @@ export class Battle {
       // 回復量は _healAmt (術者の PIE・使い手の最大HP・対象の最大HPの割合。頭打ち healCap 込み)
       const heals = healsHp(sp);
       // 全体回復
+      let over = 0;
       if (sp.target === "all-ally") {
         let cured = false;
         for (const t of this.party) {
@@ -3362,6 +3595,7 @@ export class Battle {
             continue;
           }
           const heal = heals ? this._healAmt(actor, sp, t) : 0;
+          over += Math.max(0, t.hp + heal - t.maxhp); // 慈しみの (極): 満タンを超えた分
           t.hp = Math.min(t.maxhp, t.hp + heal);
           // 大聖祈祷 (cure): 癒しと同時に穢れを祓う / 聖壁の祈り (buff): 守りも固める
           if (sp.cure && cureBySpell(sp, t)) cured = true;
@@ -3382,6 +3616,7 @@ export class Battle {
         if (wasDead && sp.revive) { t.alive = true; t.ailment = null; t.asleep = false; t.mind = null; t.reviveAt = null; t._dead = false; }
         // revivePct があれば最大HPの割合で蘇生、それ以外は回復量
         const heal = (wasDead && sp.revive && sp.revivePct) ? Math.round(t.maxhp * sp.revivePct) : heals ? this._healAmt(actor, sp, t) : 0;
+        if (!wasDead) over += Math.max(0, t.hp + heal - t.maxhp); // 慈しみの (極): 満タンを超えた分
         t.hp = Math.min(t.maxhp, (t.hp > 0 ? t.hp : 0) + heal);
         if (wasDead && sp.revive) t.hp = Math.min(t.maxhp, t.hp + Math.round(t.maxhp * this._rk(actor, "priestInochi", [0.10, 0.20, 0.30, 0.50]))); // 生命の灯 (僧侶のランク)
         if (wasDead && sp.revive) this.log(`${t.name}は蘇生（HP${t.hp}）`, "heal");
@@ -3396,6 +3631,7 @@ export class Battle {
         }
         res.hits.push({ target: t, heal, revived: wasDead && sp.revive });
       }
+      if (over > 0) this._mercy(actor, over);
     } else if (sp.kind === "sleep") {
       for (const t of this.livingEnemies()) {
         if (isMetal(t)) { this.log(`${t.name}：効果なし`, "sys"); res.hits.push({ target: t, miss: true, resisted: true }); continue; }
@@ -3459,13 +3695,16 @@ export class Battle {
     const tk = useTarget(it);
     if (u.bomb) {
       const b = u.bomb;
+      // 極「投げ打ちの」: 威力2倍。さらにその階の推奨Lv (this.foeLv) が品の深さより上なら、敵の強さの伸び (lvPow) の比で伸びる
+      const throwMul = gm(actor).throw ? 2 * Math.max(1, lvPow(this.foeLv || 1) / lvPow(it.lv || 1)) : 1;
+      if (throwMul > 1) this.log(`${actor.name}の投げ打ち：威力×${fmtMul(throwMul)}`, "sys");
       res.spellKind = "atk"; res.spellElement = b.el || null;
       const targets = tk === "all-enemy" ? this.livingEnemies() : [(cmd.target && cmd.target.alive) ? cmd.target : this._randAlive(this.enemies)].filter(Boolean);
       for (const t of targets) {
         if (!t.alive) continue;
         let em = elemDmgMult(b.el || "none", 1, t.element || "none", edefOf(t), eaffOf(t));
         em *= this._vulnMul(t, b.el);
-        let dmg = Math.max(1, variance(b.power) - Math.floor(this._evit(t) * 0.2));
+        let dmg = Math.max(1, variance(b.power * throwMul) - Math.floor(this._evit(t) * 0.2));
         if (em !== 1) dmg = Math.max(1, Math.round(dmg * em));
         const weak = !!(t.magWeak && t.magWeak > 1);
         if (weak) dmg = Math.round(dmg * t.magWeak);
@@ -3543,6 +3782,17 @@ export class Battle {
   }
 
   // 攻撃呪文の後に味方全員を癒す (聖剣奮迅・護摩焚き)。PIEで伸びる (物理技は与ダメ基準の _bladeHeal)
+  // 極「慈しみの」: 回復で満タンを超えて余った分の半分を、生きている隊の全員に均等に分ける
+  _mercy(actor, over) {
+    const k = gm(actor).mercy;
+    if (!k || !(over > 0)) return;
+    const live = this.livingParty();
+    const each = Math.floor(over * Math.min(1, k) / Math.max(1, live.length));
+    if (each <= 0) return;
+    let any = false;
+    for (const p of live) { if (p.hp < p.maxhp) { p.hp = Math.min(p.maxhp, p.hp + each); any = true; } }
+    if (any) { this.log(`${actor.name}の慈しみ：余った癒しを隊へ（HP+${each}ずつ）`, "heal"); this._proc(actor, "慈しみ"); }
+  }
   _bladeHeal(actor, amount, cap, res) {
     const a = amount * (1 + this._perkSum(actor, "heal"));
     for (const t of this.livingParty()) {
@@ -3727,6 +3977,18 @@ export class Battle {
         }
         this.log(`殉教の祈り！ ${t.name}：隊のHP+${heal}`, "heal");
         this._proc(t, "殉教の祈り");
+      }
+      // 極「送り火の」: 本当に倒れた時 (踏みとどまりの後)、味方全員の HP を最大の20%回復し、状態異常を1つずつ治す
+      if (t.side === "party" && gm(t).sendoff) {
+        const k = Math.min(1, gm(t).sendoff);
+        let n = 0;
+        for (const p of this.party) {
+          if (!p.alive || p === t) continue;
+          n++;
+          p.hp = Math.min(p.maxhp, p.hp + Math.max(1, Math.round(p.maxhp * k)));
+          if (p.ailment) { p.ailment = null; p._poisonPct = null; } else if (p.mind) p.mind = null; else if (p.asleep) p.asleep = false;
+        }
+        if (n) { this.log(`送り火！ ${t.name}：隊のHP+最大の${Math.round(k * 100)}%・状態異常を1つずつ解除`, "heal"); this._proc(t, "送り火"); }
       }
       return true;
     }

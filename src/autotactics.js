@@ -43,7 +43,9 @@ const NO_AUTO = new Set(["field", "escape"]);
 // 図鑑の抵抗値が開放済みか。未登録・未開放なら隠れた抵抗値を判断に使わない。
 let _resistKnown = null;
 export function setResistKnown(fn) { _resistKnown = typeof fn === "function" ? fn : null; }
-const resistKnown = t => !!(_resistKnown && _resistKnown(t));
+// 極「慧眼の」の持ち主が考える間 (decideAuto) は、明かしていない敵の抵抗値も見積もりに使う
+let _seer = false;
+const resistKnown = t => _seer || !!(_resistKnown && _resistKnown(t));
 export const AUTO_AIL_RESIST_LIMIT = 50; // 成功率を半分以上削る異常技は控える
 const autoRate = (b, actor, t, base, kind) => b.estRate(actor, t, base, resistKnown(t) ? kind : undefined);
 const autoAilRes = (b, t, kind) => resistKnown(t) ? b._ailRes(t, kind) : 0;
@@ -73,6 +75,10 @@ function ailSkillBlocked(b, sp, targets) {
 // 何も通らない (届く敵がみな物理無効で、役に立つ技も無い) 時は idle: true の防御を返す (game.js が隊の全員分続いたらオートを止める)
 export function decideAuto(b, actor, dbg = null) {
   if (!b || !actor || !actor.alive) return null;
+  _seer = !!(actor.gearMisc && actor.gearMisc.insight);
+  try { return decideAutoInner(b, actor, dbg); } finally { _seer = false; }
+}
+function decideAutoInner(b, actor, dbg) {
   const tac = tacticOf(actor).key;
   const ctx = makeCtx(b, actor);
   const cands = [];
