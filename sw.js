@@ -784,6 +784,8 @@ const ASSETS = [
   "./src/items.js",
   "./src/itemnumbers.js",
   "./src/itemphotos.js",
+  "./art/items/r_phoenix_plume.webp",
+  "./art/items/r_soulking_signet.webp",
   "./art/items/dagger.webp",
   "./art/items/shortSword.webp",
   "./art/items/battleAxe.webp",
