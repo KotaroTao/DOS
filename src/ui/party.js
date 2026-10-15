@@ -1269,11 +1269,6 @@ function formationEl(mode) {
     grp.appendChild(inn);
     wrap.appendChild(grp);
   }
-  if (town && !sheetTown) {
-    const filter = gearFilterButton(ensureSel()?.items || [], () => { setSeg("equip"); rerender(); });
-    filter.classList.add("pt-mansion-filter");
-    wrap.appendChild(filter);
-  }
   if (town && sheetTown) {
     const side = el("div", "pt-side");
     side.append(benchButton(), soulListButton());

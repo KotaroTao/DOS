@@ -1373,8 +1373,7 @@ button.sp-lu-next { cursor: pointer; }
 .pt-preset-detail h3 { margin: 0; color: var(--accent-hi); font-size: 14px; }
 .pt-preset-detail button { text-align: left; white-space: normal; }
 
-/* 館の上段は装備探しを優先し、編成の入口は名前の横に保つ。 */
-.pt-mansion-filter { flex: 0 0 auto; margin-left: auto; padding: 4px 6px; }
+/* 館の編成の入口は名前の横に保つ。 */
 .pt-mansion-head { flex-wrap: wrap; }
 .pt-mansion-head .pt-mansion-title { flex-basis: 90px; }
 .pt-mansion-links .pt-mansion-manage { margin-left: 0; min-height: 44px; }
