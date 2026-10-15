@@ -15,7 +15,7 @@
 // 人業ごとに選んで適用するのは applyPlanSubset(plan, keep) (頼り合い = planDeps(plan) は一緒に入れ切りする)。
 // どちらも実体 (人業の equip / items) を書き換え、recalc で能力を再計算する。
 
-import { SLOTS, MAX_ITEMS, canEquip as canEquipDefault, recalc as recalcDefault, attackPower, weaponRange, canOffhand, fightPower, offhandPower } from "./items.js";
+import { bagCount, isFormationItem, SLOTS, MAX_ITEMS, canEquip as canEquipDefault, recalc as recalcDefault, attackPower, weaponRange, canOffhand, fightPower, offhandPower } from "./items.js";
 
 const EPS = 0.05;          // これ未満の伸びは「同じ」とみなす (同格の品を入れ替え続けない)
 const EQUIP_SLOTS = new Set(["weapon", "shield", "body", "head", "hands", "feet", "acc"]);
@@ -203,7 +203,7 @@ export function planBestEquip(dolls, opts = {}) {
           for (const key of slotKeysFor(item, t)) {
             const tr = trialEquip(st.equip, item, key);
             if (!tr) continue;
-            const bagAfter = st.items.length - (os.items === st.items ? 1 : 0) + tr.displaced.length;
+            const bagAfter = bagCount(st.items) - (os.items === st.items && !isFormationItem(item) ? 1 : 0) + bagCount(tr.displaced);
             if (bagAfter > maxItems) continue;
             const delta = statsDelta(baseStats, recalcPreview(t, tr.equip));
             const g = score(t, delta);
@@ -221,7 +221,7 @@ export function planBestEquip(dolls, opts = {}) {
                   if (!ok2 || !allow(t, sh)) continue;
                   const tr2 = trialEquip(tr.equip, sh, "shield");
                   if (!tr2) continue;
-                  const bag2 = bagAfter - (sim.get(owner2).items === st.items ? 1 : 0) + tr2.displaced.length;
+                  const bag2 = bagAfter - (sim.get(owner2).items === st.items && !isFormationItem(sh) ? 1 : 0) + bagCount(tr2.displaced);
                   if (bag2 > maxItems) continue;
                   const d2 = statsDelta(baseStats, recalcPreview(t, tr2.equip));
                   const g2 = score(t, d2);
@@ -315,7 +315,7 @@ export function applyPlanSubset(plan, keep, { recalc: recalcFn = recalcDefault, 
     for (const x of tr.displaced) d.items.push(x);
     touched.add(d); touched.add(m.from);
   }
-  if (plan.undoSnapshot.some((x) => (x.doll.items || []).length > maxItems)) { restoreEquip(plan.undoSnapshot, recalcFn); return false; }
+  if (plan.undoSnapshot.some((x) => bagCount(x.doll.items) > maxItems)) { restoreEquip(plan.undoSnapshot, recalcFn); return false; }
   for (const d of touched) recalcFn(d);
   return true;
 }
@@ -355,7 +355,7 @@ export function applyEquipApprovals(plan, keep, { recalc: recalcFn = recalcDefau
     if (!bag) return false;
     bag.splice(bag.indexOf(c.to), 1);
   }
-  if ([...bags.values()].some(b => b.length > maxItems)) return false;
+  if ([...bags.values()].some(b => bagCount(b) > maxItems)) return false;
   for (const eq of equips.values()) if (eq.weapon?.twoHanded && eq.shield) return false;
   for (const [bag, items] of bags) bag.splice(0, bag.length, ...items);
   for (const [d, eq] of equips) {

@@ -1360,3 +1360,15 @@ button.sp-lu-next { cursor: pointer; }
 /* 館の装備見出しの右端に、隊全員と選択中の人業の最適装備を並べる。 */
 .pt-overview-heading .pt-equip-actions { margin-left: auto; flex-direction: row; flex-wrap: wrap; justify-content: flex-end; flex: 0 1 auto; }
 .pt-overview-heading .pt-equip-actions > .ui-btn { min-width: 0; white-space: normal; }
+
+/* 保存編成は十枠を縦に並べ、画面内でスクロールする。 */
+.pt-presets { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.pt-preset, .pt-preset-detail { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--line, #5a4a3a); border-radius: 5px; min-width: 0; overflow-wrap: anywhere; }
+.pt-preset-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.pt-preset-actions button { min-height: 44px; }
+.pt-preset-faces { display: flex; flex-wrap: wrap; gap: 8px; }
+.pt-preset-face { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11px; max-width: 64px; }
+.pt-preset-name { display: flex; flex-direction: column; gap: 10px; }
+.pt-preset-preview .ui-sheet-body { display: flex; flex-direction: column; gap: 12px; }
+.pt-preset-detail h3 { margin: 0; color: var(--accent-hi); font-size: 14px; }
+.pt-preset-detail button { text-align: left; white-space: normal; }

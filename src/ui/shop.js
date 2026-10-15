@@ -1,5 +1,5 @@
 import { bagItems, bagSortControl } from "./bagsort.js";
-import { bagOwners } from "../items.js";
+import { bagCount, isFormationItem, bagOwners } from "../items.js";
 // ===== 商会 — 売る・鑑定 (隊の全員・控え込み) / 買う (最良の装備者へ・買って装備) =====
 // 担当: WP-C。街シェルの「商会」タブを描く。
 //   売る・鑑定: まとめて鑑定 / まとめて売る (ops の一括操作。除外の内訳つき) + 全員の持ち物 (控え込み)
@@ -60,7 +60,7 @@ function wornByAnyone(it) {
 }
 function baseJunk(opts) {
   const base = typeof ops.junkList === "function" ? ops.junkList(opts) : [];
-  return base.filter((j) => j && j.item && !j.item.cursed && !j.item.locked && !j.item.unidentified && !wornByAnyone(j.item));
+  return base.filter((j) => j && j.item && !j.item.cursed && !j.item.locked && !isFormationItem(j.item) && !j.item.unidentified && !wornByAnyone(j.item));
 }
 // 売却候補: ops と同じ集合 (呪い・未鑑定・装備中・LR・未奉納の収集品、設定で含めない限り道具も除く) から、
 // さらに「誰かの今の装備に勝る品」(装備の候補) を既定で残す。{ keepUpgrades: false } で ops と同じ集合
@@ -85,7 +85,7 @@ function sellSubset(list) {
   let n = 0, gold = 0;
   for (const { doll, item, price } of list) {
     const idx = doll.items.indexOf(item);
-    if (idx < 0 || item.cursed || item.locked || item.unidentified) continue;
+    if (idx < 0 || item.cursed || item.locked || isFormationItem(item) || item.unidentified) continue;
     doll.items.splice(idx, 1);
     g.gold += price; gold += price;
     if (game.tlTown) game.tlTown("gold", price, "sell");
@@ -362,9 +362,9 @@ function openExclusions() {
 // 袋に空きのある、生きている人業 (隊 → 控え)
 function defaultBuyer() {
   const g = G();
-  const party = (g.party || []).filter((d) => d.alive && d.items.length < MAX_ITEMS);
+  const party = (g.party || []).filter((d) => d.alive && bagCount(d.items) < MAX_ITEMS);
   if (party.length) return party[0];
-  return equipCandidates().find((d) => d.items.length < MAX_ITEMS) || null;
+  return equipCandidates().find((d) => bagCount(d.items) < MAX_ITEMS) || null;
 }
 // 棚の品を買う。equip なら買ったその場で装備させる。成功で true
 export function shopBuy(id, who, { equip = false } = {}) {
@@ -376,7 +376,7 @@ export function shopBuy(id, who, { equip = false } = {}) {
   if (!who) { sfx("ng"); toast("持てる者がいない (持ち物がいっぱい)", { tone: "bad" }); return false; }
   const price = game.buyPrice(tmpl);
   if ((g.gold || 0) < price) { sfx("ng"); toast("金貨が足りない", { tone: "bad" }); return false; }
-  if (who.items.length >= MAX_ITEMS) { sfx("ng"); toast("隊の持ち物がいっぱいだ", { tone: "bad" }); return false; }
+  if (bagCount(who.items) >= MAX_ITEMS) { sfx("ng"); toast("隊の持ち物がいっぱいだ", { tone: "bad" }); return false; }
   const delta = equip ? deltaFor(who, tmpl) : null;
   const it = game.buyItem ? game.buyItem(id, price, who) : null;
   if (!it) return false;
@@ -445,7 +445,7 @@ function stockRow(id) {
   const n = game.shopPlainStock(id);
   const rk = rarityKey(it);
   const plan = isEquippable(it) ? wearPlan(it) : null;
-  const upgrade = !!(plan && plan.target && plan.delta && plan.score > 0 && plan.target.items.length < MAX_ITEMS);
+  const upgrade = !!(plan && plan.target && plan.delta && plan.score > 0 && bagCount(plan.target.items) < MAX_ITEMS);
   const buyer = upgrade ? plan.target : defaultBuyer();
   const row = el("div", "wpc-srow" + (upgrade ? " up" : "") + (rk ? " rar-" + rk : ""));
   if (rk) row.style.setProperty("--edge", RARITIES[rk].color);
@@ -602,8 +602,8 @@ function dollRow(d) {
   const hd = el("div", "wpc-drow-h");
 
   hd.appendChild(el("span", "wpc-doll-nm", "隊の持ち物"));
-  hd.appendChild(el("span", "wpc-doll-cnt", `${d.items.length}/${MAX_ITEMS}`));
-  const sv = d.items.filter((it) => !it.unidentified).reduce((a, it) => a + game.sellPrice(it), 0);
+  hd.appendChild(el("span", "wpc-doll-cnt", `${bagCount(d.items)}/${MAX_ITEMS}`));
+  const sv = d.items.filter((it) => !it.unidentified && !isFormationItem(it)).reduce((a, it) => a + game.sellPrice(it), 0);
   if (d.items.length) {
     const s = el("span", "wpc-doll-sum");
     s.appendChild(goldEl(shortN(sv)));

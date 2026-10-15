@@ -1,6 +1,6 @@
 import { storyText } from "../protagonist.js";
 import { bagItems, bagSortControl } from "./bagsort.js";
-import { bagOwners } from "../items.js";
+import { bagCount, isFormationItem, bagOwners } from "../items.js";
 import { RESIST_LABEL } from "../resistance.js";
 // ===== 隊 (統合された人業の画面) — 隊列ストリップ・控え/仕立て・装備/魂/能力・迷宮内のシート =====
 // 担当: WP-B。
@@ -32,7 +32,7 @@ import {
 } from "../autoequip.js";
 import { SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, canEquip, equipLevelOf, equipLvShort, recalc, weaponRange, RANGE_LABEL, itemName, attackPower, useWhere, compareUse, AIL_LABEL, hasQuality, qualityOf, qualityMatters } from "../items.js";
 import {
-  SOUL_CLASSES, SOUL_KEYS, JOB_GEAR, dollSprite, dollBust, dollFace, jobBust, jobSprite, jobRankName, ATTR_KEYS, ATTR_LABEL, ATTR_NAME, soulLabel, soulRankLeft, soulByUid,
+  SOUL_CLASSES, SOUL_KEYS, JOB_GEAR, dollSprite, dollBust, dollFace, jobBust, jobSprite, jobRankName, ATTR_KEYS, ATTR_LABEL, ATTR_NAME, soulLabel, soulRankLeft, soulByUid, soulRankOf, passiveName,
   orderedSkills, isSkillOff, setSkillOff, moveSkill, resetSkillPrefs, isAutoOff, setAutoOff, skillUsable,
 } from "../souls.js";
 import { TACTICS, tacticOf, setTactic } from "../autotactics.js";
@@ -160,7 +160,7 @@ function slotCandidatesRaw(d, key, includeUnid) {
       if (!canEquip(d, it)) continue;
       const sd = slotDelta(d, it, key, base);
       if (!sd) continue;
-      const room = (d.items.length - (owner.items === d.items ? 1 : 0) + sd.tr.displaced.length) <= MAX_ITEMS;
+      const room = (bagCount(d.items) - (owner.items === d.items && !isFormationItem(it) ? 1 : 0) + bagCount(sd.tr.displaced)) <= MAX_ITEMS;
       out.push({ it, owner, gain: gearScore(d, sd.delta), delta: sd.delta, room, cursed: !!it.cursed });
     }
   }
@@ -183,7 +183,7 @@ function wornCandidates(d, key) {
         if (!sd) continue;
         // 外れるこちらの装備を仲間が付けられるなら交換になる (swap = 仲間へ渡る品)。袋に入るのはそれ以外
         const swap = swapBackFor(wearer, wk, sd.tr.displaced, canEquip);
-        const room = d.items.length + sd.tr.displaced.length - (swap ? 1 : 0) <= MAX_ITEMS;
+        const room = bagCount(d.items) + bagCount(sd.tr.displaced) - (swap && !isFormationItem(swap) ? 1 : 0) <= MAX_ITEMS;
         out.push({ it, owner: wearer, worn: wk, swap, gain: gearScore(d, sd.delta), delta: sd.delta, room, locked: !!it.locked });
       }
     }
@@ -399,7 +399,7 @@ function pickWearer(doll, item, { onDone = null, chip = null, key = null } = {})
   if (r.full) {
     const owner = ownerOf(item);
     const names = (b.displaced || []).map((x) => x.name).join("・");
-    const canSwap = owner && owner.items !== doll.items && (owner.items.length - 1 + (b.displaced || []).length) <= MAX_ITEMS;
+    const canSwap = owner && owner.items !== doll.items && (bagCount(owner.items) - (isFormationItem(item) ? 0 : 1) + bagCount(b.displaced)) <= MAX_ITEMS;
     if (canSwap) {
       confirm({
         banner: "持ち物がいっぱい", title: `${doll.name}の持ち物がいっぱいだ`,
@@ -1270,7 +1270,7 @@ function formationEl(mode) {
   }
   if (town && !sheetTown) {
     const manage = mansionControlUnlocked("formation")
-      ? button({ label: "隊列", kind: "secondary", size: "sm", onTap: () => openMansionManage(ensureSel()) })
+      ? button({ label: "編成", kind: "secondary", size: "sm", onTap: () => openMansionManage(ensureSel()) })
       : lockedControl();
     manage.classList.add("pt-mansion-manage");
     wrap.appendChild(manage);
@@ -1862,8 +1862,54 @@ function mansionHeader(d) {
   head.appendChild(actions);
   return head;
 }
-// 隊列は前衛・後衛だけを並べ、二体のタップで場所を替える。
+// 前衛・後衛の並べ替えと、魂・借りる技・装備の保存。
 let formationH = null;
+function formationResult(r, h, body) {
+  toast(r.msg, { tone: r.ok ? "good" : "bad" });
+  if (r.ok && h && !h.closed) h.update({ body });
+  return r.ok;
+}
+function openFormationName(index, refresh) {
+  const preset = G_().formations[index];
+  const label = el("label", "pt-preset-name", "編成名（24文字まで）");
+  const input = el("input", "player-name-input");
+  input.type = "text"; input.maxLength = 24; input.value = preset.name;
+  label.appendChild(input);
+  const save = h => { if (formationResult(game.renameFormation(index, input.value))) { h.close(); refresh(); } };
+  const h = sheet.open({ title: "編成の名前を変更", body: b => b.appendChild(label), footer: [
+    { label: "変更する", kind: "primary", onTap: save },
+    { label: "やめる", kind: "ghost", onTap: h => h.close() },
+  ] });
+  input.addEventListener("keydown", e => { if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); save(h); } });
+}
+function openFormationPreview(index, refresh) {
+  const G = G_(), preset = G.formations[index];
+  const body = b => {
+    const check = game.checkFormation(index);
+    b.appendChild(el("p", "pt-note", check.ok ? "参加する人業・魂・借りる技・装備をまとめて適用します。控えが使う魂・装備も必要に応じて移します。体調と安定度は回復しません。" : check.msg));
+    for (const [i, m] of preset.members.entries()) {
+      const d = [...G.party, ...G.reserve].find(d => d.uid === m.uid);
+      const card = el("section", "pt-preset-detail");
+      card.appendChild(el("h3", null, `${slotName(i)} ${d?.name || "不在の人業"}`));
+      card.appendChild(el("div", null, `メイン魂：${soulByUid(m.primary)?.clsKey ? soulLabel(soulByUid(m.primary)) : "なし・未所持"}`));
+      for (let si = 0; si < 2; si++) {
+        const sub = m.subs?.[si], soul = soulByUid(sub?.uid);
+        card.appendChild(el("div", null, `サブ魂${si + 1}：${soul ? soulLabel(soul) : sub ? "未所持" : "なし"}`));
+        if (sub) for (const p of sub.picks || []) card.appendChild(el("div", "pt-note", `借りる：${p.skill ? (SPELLS[p.skill]?.name || p.skill) : passiveName(p.passive)}`));
+      }
+      for (const k of SLOTS) {
+        const it = m.equip[k];
+        if (!it) card.appendChild(el("div", "pt-note", `${SLOT_LABEL[k]}：未装備`));
+        else card.appendChild(button({ label: `${SLOT_LABEL[k]}：${itemName(it)}`, kind: "ghost", size: "sm", onTap: () => UI.itemSheet?.(it, { context: "view" }) }));
+      }
+      b.appendChild(card);
+    }
+  };
+  sheet.open({ title: preset.name, banner: "保存編成の確認", className: "pt-preset-preview", body, footer: [
+    { label: "適用", kind: "primary", onTap: h => { if (formationResult(game.applyFormation(index))) { h.close(); refresh(); } else h.update({ body }); } },
+    { label: "閉じる", kind: "ghost", onTap: h => h.close() },
+  ] });
+}
 export function openFormationSheet(d) {
   const G = G_();
   if (!inTown()) return null;
@@ -1917,8 +1963,47 @@ export function openFormationSheet(d) {
       group.appendChild(grid);
       container.appendChild(group);
     }
+    // 序章の並べ替えの手ほどきは従来どおり。通常は同じ画面で10枠を扱う。
+    if (!game.prologueActive?.()) {
+      const presets = el("section", "pt-presets");
+      presets.appendChild(el("h3", "pt-formation-label", "保存編成"));
+      presets.appendChild(el("p", "pt-note", "現在の並び・メイン魂・サブ魂・借りる技・装備を保存します。登録装備は売却・破棄できず、持ち物袋の50枠には数えません。変更後は上書き保存してください。"));
+      const refresh = () => { selected = null; if (!h.closed) h.update({ body }); };
+      for (let i = 0; i < 10; i++) {
+        const p = G.formations?.[i];
+        const card = el("div", "pt-preset"); card.dataset.formation = i;
+        card.appendChild(el("b", null, `編成${i + 1}${p ? (p.name === `編成${i + 1}` ? "" : `：${p.name}`) : "：未保存"}`));
+        if (p) {
+          const faces = el("div", "pt-preset-faces");
+          for (const m of p.members) {
+            const d = [...G.party, ...G.reserve].find(d => d.uid === m.uid);
+            // 保存した職業の顔。今の人業の装備・魂とは区別する。
+            const s = soulByUid(m.primary);
+            const face = el("span", "pt-preset-face");
+            if (d) face.appendChild(portraitEl({ ...d, primary: m.primary, clsKey: s?.clsKey, jobKey: s?.clsKey, jobRank: s ? soulRankOf(s) : 0 }, { size: 32, tag: "span", minimal: true }));
+            face.appendChild(el("span", null, d?.name || "不在")); faces.appendChild(face);
+          }
+          card.appendChild(faces);
+        }
+        const actions = el("div", "pt-preset-actions");
+        if (p) actions.appendChild(button({ label: "確認・適用", kind: "primary", size: "sm", onTap: () => openFormationPreview(i, refresh) }));
+        actions.appendChild(button({ label: p ? "上書き保存" : "現在の編成を保存", kind: "secondary", size: "sm", onTap: async () => {
+          if (p && !await confirm({ title: `${p.name}を上書きしますか？`, lines: ["現在の隊の構成に置き換えます。登録から外れる装備は持ち物袋に戻ります。"], okLabel: "上書き保存" })) return;
+          if (formationResult(game.saveFormation(i))) refresh();
+        } }));
+        if (p) {
+          actions.appendChild(button({ label: "名前変更", kind: "ghost", size: "sm", onTap: () => openFormationName(i, refresh) }));
+          actions.appendChild(button({ label: "削除", kind: "ghost", size: "sm", onTap: async () => {
+            if (!await confirm({ title: `${p.name}を削除しますか？`, lines: ["最後の登録を外した装備は、装備中でなければ持ち物袋に戻ります。"], okLabel: "削除", danger: true })) return;
+            if (formationResult(game.saveFormation(i, null, true))) refresh();
+          } }));
+        }
+        card.appendChild(actions); presets.appendChild(card);
+      }
+      container.appendChild(presets);
+    }
   };
-  formationH = sheet.open({ kind: "info", banner: "人業の館", title: "隊列並べ替え", className: "pt-formation-sheet", body,
+  formationH = sheet.open({ kind: "info", banner: "人業の館", title: "編成", className: "pt-formation-sheet", body,
     footer: [{ label: "閉じる", kind: "ghost", onTap: () => formationH?.close() }],
     onClose: () => { formationH = null; },
   });
@@ -2179,10 +2264,12 @@ function equipSeg(root, d) {
   const h = el("div", "pt-bagbar");
   const t = el("span", "pt-bagbar-t");
   t.appendChild(el("span", "pt-bagbar-k", "隊の持ち物"));
-  t.appendChild(el("b", null, `${d.items.length}/${MAX_ITEMS}`));
+  t.appendChild(el("b", null, `${bagCount(d.items)}/${MAX_ITEMS}`));
   const unid = d.items.filter((it) => it && it.unidentified).length;
   if (unid) t.appendChild(el("span", "pt-bagbar-x", `未鑑定${unid}`));
   h.appendChild(t);
+  const registered = d.items.filter(isFormationItem).length;
+  if (registered) h.appendChild(el("span", "pt-note", `登録装備${registered}点は別枠`));
   // 見出しと所持の札は1つの箱に入れる (狭い画面では左右に並べて高さを詰める: ui-party.css)
   const wrap = el("div", "pt-bagwrap");
   wrap.appendChild(h);
@@ -2797,9 +2884,9 @@ export function openTransfer(owner, it) {
     body: (scroll, h) => {
       const l = el("div", "pt-list");
       for (const m of targets) {
-        const full = m.items.length >= MAX_ITEMS;
+        const full = bagCount(m.items) >= MAX_ITEMS;
         const ic = el("span", "pt-mini"); ic.appendChild(partyPortraitCanvas(m, 36));
-        const r = row({ icon: ic, title: `${m.name}${isReserve(m) ? "（控え）" : ""}`, sub: `持ち物 ${m.items.length}/${MAX_ITEMS}${full ? " ― 満杯" : ""}`, chevron: !full,
+        const r = row({ icon: ic, title: `${m.name}${isReserve(m) ? "（控え）" : ""}`, sub: `持ち物 ${bagCount(m.items)}/${MAX_ITEMS}${full ? " ― 満杯" : ""}`, chevron: !full,
           onTap: full ? null : () => { h.close(); if (game.moveItem) game.moveItem(owner, it, m); } });
         if (full) r.classList.add("dim");
         l.appendChild(r);

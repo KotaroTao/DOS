@@ -1,4 +1,4 @@
-import { bagOwners } from "../items.js";
+import { bagCount, isFormationItem, bagOwners } from "../items.js";
 // ===== 品 — 入手の割り込み方針 (トースト/祝祭)・品シート (ItemSheet)・NEW 印 =====
 // 担当: WP-C。
 // 提供する契約:
@@ -266,7 +266,7 @@ function equipFailReason(d, it) {
 // 渡す (所持品から別の人業の所持品へ。従来の「渡す」と同じ)
 function giveTo(owner, it, to) {
   const i = owner.items.indexOf(it);
-  if (i < 0 || !to || owner.items === to.items || to.items.length >= MAX_ITEMS) return false;
+  if (i < 0 || !to || owner.items === to.items || bagCount(to.items) >= MAX_ITEMS) return false;
   owner.items.splice(i, 1);
   to.items.push(it);
   if (game.log) game.log(`${itemName(it)} を ${owner.name} → ${to.name} に渡した`, "win");
@@ -279,6 +279,7 @@ function giveTo(owner, it, to) {
 
 // 捨てる (迷宮の中だけ。確認ののち。従来の dropItem と同じ: 二度と戻らない)
 async function discard(owner, it) {
+  if (isFormationItem(it)) { toast("保存編成に登録した装備は捨てられません"); return false; }
   if (it && it.locked) { sfx("ng"); toast(`${itemName(it)}はロック中 ― 捨てるにはロックを外す`, { tone: "info" }); return false; }
   const ok = await confirm({
     banner: "捨てる", title: `${itemName(it)} を捨てる？`,
@@ -286,7 +287,7 @@ async function discard(owner, it) {
   });
   if (!ok) return false;
   const i = owner.items.indexOf(it);
-  if (i < 0) return false;
+  if (i < 0 || isFormationItem(it)) return false;
   owner.items.splice(i, 1);
   if (game.log) game.log(`${itemName(it)}を捨てた`, "sys");
   sfx("select");
@@ -297,6 +298,7 @@ async function discard(owner, it) {
 
 // 売る (商会。警告のある品・未鑑定品は確かめてから)
 export async function sellOne(owner, it) {
+  if (isFormationItem(it)) { toast("保存編成に登録した装備は売れません"); return false; }
   if (!shopOpen() || !owner) return false;
   if (it && it.locked) { sfx("ng"); toast(`${itemName(it)}はロック中 ― 売るにはロックを外す`, { tone: "info" }); return false; }
   const warns = (game.sellWarnings ? game.sellWarnings(it) : []).map((w) => plainText(w).replace(/^⚠\s*/, ""));
@@ -409,7 +411,7 @@ function bagOverflow(d, it, incoming) {
   if (it.slot === "weapon" && it.twoHanded && d.equip.shield) removed.push(d.equip.shield);
   if (it.slot === "shield" && d.equip.weapon && d.equip.weapon.twoHanded) removed.push(d.equip.weapon);
   if (key && d.equip[key] && !removed.includes(d.equip[key])) removed.push(d.equip[key]);
-  const after = d.items.length - (d.items.includes(it) ? 1 : 0) + removed.filter((r) => r && r !== it).length;
+  const after = bagCount(d.items) - (d.items.includes(it) && !isFormationItem(it) ? 1 : 0) + bagCount(removed.filter((r) => r && r !== it));
   return after > MAX_ITEMS;
 }
 // 装備できない短い理由 (できるなら null)。buy = 棚から買って装備する (袋に1枠いる)
@@ -433,7 +435,7 @@ function localReason(d, it, { buy = false } = {}) {
   const key = slotKeyFor(it, d);
   const cur = key ? d.equip[key] : null;
   if (cur && cur !== it && cur.cursed) return "呪い";
-  if (buy && d.items.length >= MAX_ITEMS) return "満杯";
+  if (buy && bagCount(d.items) >= MAX_ITEMS) return "満杯";
   const own = ownerOf(it);
   if (bagOverflow(d, it, buy || !own || own.doll !== d)) return "満杯";
   return null;
@@ -555,7 +557,7 @@ export function dollGrid(it, { owner = null, mode = "equip", buyId = null, onPic
     else if (d === owner) reason = "持ち主";
     else if (!inTown() && isReserve(d)) reason = "街にいる";
     else if (!d.alive) reason = "砕けている"; // 従来の「渡す」「買う」と同じく、砕けた人業へは渡せない
-    else if (d.items.length >= MAX_ITEMS) reason = "満杯";
+    else if (bagCount(d.items) >= MAX_ITEMS) reason = "満杯";
     const off = !!reason;
     const c = el("button", "wpc-dchip" + (off ? " off" : "") + (d === best ? " best" : "") + (d === owner ? " own" : ""));
     c.type = "button";
@@ -569,7 +571,7 @@ export function dollGrid(it, { owner = null, mode = "equip", buyId = null, onPic
     const sub = el("span", "wpc-dchip-sub");
     if (off) sub.appendChild(el("span", "wpc-dchip-why", reason));
     else if (mode === "equip") sub.appendChild(shortDelta(deltaFor(d, it)));
-    else sub.appendChild(el("span", "wpc-dchip-bag", `袋 ${d.items.length}/${MAX_ITEMS}`));
+    else sub.appendChild(el("span", "wpc-dchip-bag", `袋 ${bagCount(d.items)}/${MAX_ITEMS}`));
     c.appendChild(sub);
     if (d === best) c.appendChild(el("span", "wpc-dchip-best", "最適"));
     if (!d.alive) c.appendChild(el("span", "wpc-dchip-dead", "†"));
@@ -707,8 +709,8 @@ function defaultActions(st) {
     const price = st.price != null ? st.price : game.buyPrice(it);
     const stock = (g.shopStock || {})[id] || 0;
     const short = (g.gold || 0) < price;
-    const tgt = st.target && st.target.items.length < MAX_ITEMS ? st.target : null;
-    const buyer = tgt || chooserDolls().find((d) => d.alive && d.items.length < MAX_ITEMS) || null;
+    const tgt = st.target && bagCount(st.target.items) < MAX_ITEMS ? st.target : null;
+    const buyer = tgt || chooserDolls().find((d) => d.alive && bagCount(d.items) < MAX_ITEMS) || null;
     const off = short || stock <= 0 || !buyer;
     const sub = stock <= 0 ? "売り切れ" : short ? "金貨が足りない" : buyer ? `${buyer.name} の袋へ` : "持てる者がいない";
     acts.push({ key: "buy", primary: !isEquippable(it), kind: isEquippable(it) ? "secondary" : "primary",
@@ -747,7 +749,7 @@ function defaultActions(st) {
   } else if (eqKey) {
     // ---- 装備中 ----
     acts.push({ key: "unequip", primary: true, label: it.cursed ? "呪われていて外せない" : it.locked ? "ロック中は外せない" : "外す", disabled: !!it.cursed || !!it.locked,
-      sub: it.locked ? "ロックを外すと外せる" : !it.cursed && owner.items.length >= MAX_ITEMS ? "持ち物がいっぱい ― 袋の品を1つ捨てて外す" : `${SLOT_LABEL[eqKey] || ""}`,
+      sub: it.locked ? "ロックを外すと外せる" : !it.cursed && !isFormationItem(it) && bagCount(owner.items) >= MAX_ITEMS ? "持ち物がいっぱい ― 袋の品を1つ捨てて外す" : `${SLOT_LABEL[eqKey] || ""}`,
       onTap: (close) => { if (game.doUnequip) game.doUnequip(owner, eqKey); close(); refreshViews(); } });
   } else if (it.slot === "use") {
     // ---- 道具 ----
@@ -778,7 +780,7 @@ function defaultActions(st) {
     acts.push({ key: "lock", label: it.locked ? "ロックを外す" : "ロック", kind: it.locked ? "secondary" : "ghost",
       onTap: () => { game.toggleItemLock(it); st.rerender ? st.rerender({}) : refreshViews(); } });
   }
-  if (town && shopOpen() && inBag && !it.locked) {
+  if (town && shopOpen() && inBag && !it.locked && !isFormationItem(it)) {
     const price = it.unidentified ? 0 : game.sellPrice(it);
     const warn = !it.unidentified && game.sellWarnings && game.sellWarnings(it).length;
     acts.push({ key: "sell", primary: context === "sell" && !it.unidentified && !st.equipFirst, kind: it.unidentified || warn ? "danger" : null,
@@ -791,7 +793,7 @@ function defaultActions(st) {
     acts.push({ key: "reforge", label: "鍛え直し", sub: `品質 ${qualityOf(it)}`, onTap: () => UI.openReforge(it, owner, { onClose: () => st.rerender && st.rerender({}) }) });
   }
   // 捨てるのは迷宮の中だけ (持ちきれない時の手段。街では売る・奉納で足りる)
-  if (inBag && !town && !it.locked) acts.push({ key: "drop", label: "捨てる", kind: "ghost", onTap: async (close) => { if (await discard(owner, it)) close(); } });
+  if (inBag && !town && !it.locked && !isFormationItem(it)) acts.push({ key: "drop", label: "捨てる", kind: "ghost", onTap: async (close) => { if (await discard(owner, it)) close(); } });
   return acts;
 }
 
@@ -853,7 +855,7 @@ export function itemSheet(item, o = {}) {
     if (item.unidentified || !isEquippable(item)) {
       if (st.context === "stock" && !st.target) {
         const party = (G().party || []).filter((d) => d.alive);
-        st.target = party.find((d) => d.items.length < MAX_ITEMS) || equipCandidates().find((d) => d.items.length < MAX_ITEMS) || null;
+        st.target = party.find((d) => bagCount(d.items) < MAX_ITEMS) || equipCandidates().find((d) => bagCount(d.items) < MAX_ITEMS) || null;
       }
       return;
     }
