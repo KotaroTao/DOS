@@ -30,6 +30,9 @@ export const SLOT_LABEL = {
   weapon: "武器", body: "防具", shield: "盾", head: "頭", hands: "小手", feet: "足", acc1: "装飾1", acc2: "装飾2",
 };
 export const MAX_ITEMS = 50;
+// 登録装備は袋で見られるが、通常の50枠には数えない。参照の実体は保存編成と共有する。
+export const isFormationItem = it => !!it?.formationNames?.length;
+export const bagCount = items => (items || []).reduce((n, it) => n + (it && !isFormationItem(it) ? 1 : 0), 0);
 
 // 人業の items は互換窓口。実体は隊の共通の袋を参照する。
 let bagSource = null;
@@ -1674,7 +1677,7 @@ export function equip(member, item, slotKey = null) {
   if (key === "shield" && member.equip.weapon && member.equip.weapon.twoHanded) removed.push(member.equip.weapon);
   if (member.equip[key]) removed.push(member.equip[key]);
   const idx = member.items.indexOf(item);
-  const bagAfter = member.items.length - (idx >= 0 ? 1 : 0) + removed.filter((r) => r && r !== item).length;
+  const bagAfter = bagCount(member.items) - (idx >= 0 && !isFormationItem(item) ? 1 : 0) + bagCount(removed.filter((r) => r && r !== item));
   if (bagAfter > MAX_ITEMS) return { ok: false, msg: "持ち物がいっぱいで装備を入れ替えられない" };
 
   // 所持品から取り出し、外した装備を所持品へ戻す
@@ -1692,7 +1695,7 @@ export function unequip(member, key) {
   if (!it) return { ok: false, msg: "" };
   if (it.cursed) return { ok: false, msg: `${it.name}は呪われていて外せない！` };
   if (it.locked) return { ok: false, msg: `${it.name}はロック中 ― ロックを外すと外せる` };
-  if (member.items.length >= MAX_ITEMS) return { ok: false, msg: "持ち物がいっぱいだ" };
+  if (!isFormationItem(it) && bagCount(member.items) >= MAX_ITEMS) return { ok: false, msg: "持ち物がいっぱいだ" };
   member.equip[key] = null;
   member.items.push(it);
   recalc(member);

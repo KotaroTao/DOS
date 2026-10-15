@@ -18,7 +18,7 @@ import { animate, reduced } from "./motion.js";
 import { phraseBreaks } from "./phrase.js";
 import { SFX } from "../audio.js";
 import { soulByUid, soulLevelCapOf, soulRankOf, SOUL_CLASSES, soulSeriesName } from "../souls.js";
-import { MAX_ITEMS } from "../items.js";
+import { bagCount, MAX_ITEMS } from "../items.js";
 import { isMeleeWeapon } from "../autoequip.js";
 
 export const IRENE_WHO = "人業の館の主　イレーヌ";
@@ -91,7 +91,7 @@ function ctxNow() {
 // いまの状況への助言で使う、当てはまる人業 (最初のひとり)
 const deadDoll = (c) => c.dolls.find((d) => d.alive === false) || null;
 const hurtDoll = (c) => c.party.find((d) => d.alive !== false && d.maxhp > 0 && d.hp < d.maxhp * 0.5) || null;
-const fullBag = (c) => c.party.find((d) => (d.items || []).length >= MAX_ITEMS) || null;
+const fullBag = (c) => c.party.find((d) => bagCount(d.items) >= MAX_ITEMS) || null;
 // 後衛で近接物理の武器を持つ人業 (杖は呪文の補助なので数えない — autoequip の isMeleeWeapon と同じ判定)
 const backMelee = (c) => c.party.find((d, i) => i >= 3 && d.primary != null && d.equip && d.equip.weapon && !d.equip.weapon.unidentified && isMeleeWeapon(d.equip.weapon)) || null;
 function trainable(c) {

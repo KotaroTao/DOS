@@ -204,13 +204,13 @@ const TUTS = [
     intro: () => [
       ["五体がそろいましたね。次は、隊の並びを整えましょう。", "隊列の先頭三体が前衛、続く三体までが後衛です。"],
       ["前衛には、剣や盾で戦う子を。後衛は敵に狙われにくく、受ける物理の傷が半分になります。", "後衛から与える物理の傷も通常は半分ですが、槍や弓は威力が落ちません。術の威力は、前でも後ろでも変わりません。"],
-      ["今回は騎士を前衛に、僧侶と魔導士を後衛に置きましょう。", "動かしたい子を選び、『隊列』を押してください。次に隊列の中から相手を選ぶと、二体の場所が入れ替わります。光っている札で試しましょう。"],
+      ["今回は騎士を前衛に、僧侶と魔導士を後衛に置きましょう。", "動かしたい子を選び、『編成』を押してください。次に隊列の中から相手を選ぶと、二体の場所が入れ替わります。光っている札で試しましょう。"],
     ],
     steps: [
-      { text: "前衛へ移す人業の『隊列』を開く", hint: "光っている隊列", go: () => UI.openParty?.(formationMove().mover, { context: "town" }), target: [".pt-mansion-manage"], on: "formationPickerOpened", done: formationReady },
+      { text: "前衛へ移す人業の『編成』を開く", hint: "光っている隊列", go: () => UI.openParty?.(formationMove().mover, { context: "town" }), target: [".pt-mansion-manage"], on: "formationPickerOpened", done: formationReady },
       { text: "術を使う人業を後衛に置く", hint: "光っている入れ替え相手", go: () => UI.openFormationSheet?.(formationMove().mover), target: ['.pt-sw-card[data-swap-job="priest"]'], done: formationReady },
     ],
-    outro: ["前衛は戦士・騎士・盗賊、後衛は魔導士・僧侶。隊列が整った。", "館では『隊列』で二体を選べば、いつでも並べ直せる。隊列の顔を長押しして、替えたい相手へ動かしてもよい。", "王宮で次の依頼を受けよう。"],
+    outro: ["前衛は戦士・騎士・盗賊、後衛は魔導士・僧侶。隊列が整った。", "館では『編成』で二体を選べば、いつでも並べ直せる。隊列の顔を長押しして、替えたい相手へ動かしてもよい。", "王宮で次の依頼を受けよう。"],
   },
   {
     key: "prologueAppraise", name: "司教の鑑定", who: "irene", facility: "shop",
@@ -682,7 +682,7 @@ function ireneGuidance() {
     const front = jobLabel(soulByUid(mover?.primary)?.clsKey || "knight");
     const back = jobLabel(soulByUid(target?.primary)?.clsKey || "priest");
     return tutState().step === 0 ?
-      [`${front}の『隊列』を開いてください。`, `次に${back}を選び、${front}を前衛へ移しましょう。`] :
+      [`${front}の『編成』を開いてください。`, `次に${back}を選び、${front}を前衛へ移しましょう。`] :
       [`隊列から${back}を選んでください。`, `${front}が前衛に、${back}が後衛に移ります。`];
   }
   // 目標札の操作手順ではなく、通常会話と同じ口調で案内する。
