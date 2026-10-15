@@ -219,6 +219,13 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 ### A. 必須 (物語の筋や正典と食い違う)
 
 
+**A-39. 第十章 pre_w41「階段の前の宰相」地面の足跡を除去** `art/story-review/chapter10/pre_w41.png` (済)
+- ユーザー指定 (2026-10-16): 画面下部中央やや右の石床にある、足裏の形をした二つの深い跡を消し、周囲と同じ石畳に戻す。本文は変えない。
+- 保つもの: 人物・手指・衣装・灯籠・札・書見台・石段・伽藍・構図・画風・光。床の修正範囲外は保つ。
+```text
+...remove ONLY the TWO conspicuous foot-shaped depressions in the stone floor in the lower center-right of the attached illustration (roughly x=950-1180, y=705-830 on the 1536x1024 image). Completely erase both dark sole silhouettes, their heel/toe indentations, rims and internal shadows. Reconstruct continuous ordinary worn gothic stone paving in those two small regions, matching the surrounding irregular slab texture, joints, cracks, perspective and warm amber/cool cyan lighting. Keep the horizontal step edge in front intact. The finished floor must have no recognizable footprints, shoe prints, sole shapes or paired foot-shaped hollows. Preserve every other part of the illustration exactly: all people, faces, hair, hands, costumes, lanterns, tags, lectern, stairs, architecture, composition, colors, crisp fine pixel texture and lighting. Do not move any object or change the camera. No new objects or readable text.
+```
+
 **A-38. 第二章 report_w09「先代という仮面」（ゲーム内「先代の王」）** `art/story-review/chapter2/report_w09.png` (済)
 - ユーザー指定 (2026-10-15): 弟子が持つ手紙を、`art/story-review/chapter2/mem_w09.png`「砦を捧げた書状」と同じ書状にする。赤い封蝋を横に二つ並べ、左を金の王冠の王家の紋、右を参照と同じ金の宰相府の紋にし、赤金の組紐も合わせる。手に持つ角度と縮尺に合わせる。
 - 保つもの: 王と弟子の顔・姿勢・手・衣装、空の宰相の席、玉座の間、構図、画風、光。本文は変えない。
@@ -1019,10 +1026,10 @@ Return to the same deep underground gothic cathedral stairway as the approved fi
 ```
 
 **pre_w41「階段の前の宰相」** (主との対面 / 宰相モルデン。戦いの前)
-- 要点: 大伽藍のいちばん奥、さらに下へ降りる石段の手前に小さな書見台。痩せた長身の宰相モルデンが細い筆で木札に名を書き終え、筆を置き、札を灯籠に結んで振り返る。足もとに名札つきの濁った灯籠が行儀よく並ぶ (湖の札・灯籠の山の足跡・壁龕の名と同じ手)。石段の前の石は、三百年立ち続けた足の形にすり減っている。「ここから先へは、行かせません」。敵意ではなく、静かな拒み。
+- 要点: 大伽藍のいちばん奥、さらに下へ降りる石段の手前に小さな書見台。痩せた長身の宰相モルデンが細い筆で木札に名を書き終え、筆を置き、札を灯籠に結んで振り返る。足もとに名札つきの濁った灯籠が行儀よく並ぶ (湖の札・灯籠の山の足跡・壁龕の名と同じ手)。ユーザー指定 (2026-10-16): 石床には足形の跡を描かず、周囲と続く自然な石畳にする (本文は維持)。「ここから先へは、行かせません」。敵意ではなく、静かな拒み。
 - 描くもの: 書見台・筆・木札 / 名札つきの灯籠の列 / 石段の前に立つモルデン (正典の顔、胸の扉は閉じている) / 手前に立つ弟子と隊の後ろ姿。描かないもの: 師。底のものの正体 (光だけ)。
 ```text
-The innermost depth of a gigantic cavern-cathedral, ceiling lost in darkness. Before a broad ancient stone stairway descending into an abyss (a faint unearthly light far below) stands a small wooden lectern with a fine brush and a stack of small wooden name tags. The chancellor Morden (exact canon face: gaunt, pale, ageless, thin sad smile, tall black-purple hat with gold band, red inner robe, gold chain with a red jewel) has just set down the brush and turns toward the viewer, one hand tying a tag onto a small clouded lantern. Rows of small clouded-black antique lanterns with wooden name tags stand neatly at his feet. The worn top step bears two foot-shaped hollows. In the foreground, the apprentice and the party of wooden dolls are seen from behind. Calm, sorrowful, a quiet refusal rather than menace.
+The innermost depth of a gigantic cavern-cathedral, ceiling lost in darkness. Before a broad ancient stone stairway descending into an abyss (a faint unearthly light far below) stands a small wooden lectern with a fine brush and a stack of small wooden name tags. The chancellor Morden (exact canon face: gaunt, pale, ageless, thin sad smile, tall black-purple hat with gold band, red inner robe, gold chain with a red jewel) has just set down the brush and turns toward the viewer, one hand tying a tag onto a small clouded lantern. Rows of small clouded-black antique lanterns with wooden name tags stand neatly at his feet. The worn stone floor has ordinary continuous paving, with no footprint-shaped hollows (user correction, 2026-10-16). In the foreground, the apprentice and the party of wooden dolls are seen from behind. Calm, sorrowful, a quiet refusal rather than menace.
 ```
 
 **mem_w41「階段の前のふたり」** (主の記憶 / 宰相モルデン)
