@@ -422,12 +422,13 @@ export function scaleFoeAgi(e, fleeK, agiWall = 1) {
   }
   return e;
 }
-// 主・強敵のHPの壁。保存した戦闘では残りHPの割合を保ち、二重に掛けない。
+// 主・強敵のHPの段 (world.js strongHpWallOf = {boss, elite}。旧い保存の戦闘は数1つ)。二重に掛けない。
 export function scaleStrongFoeHp(e, hpWall = 1) {
   if (!e || !(e.boss || e.mon?.elite) || e._strongHpWall != null) return e;
-  e.maxhp *= hpWall;
-  e.hp *= hpWall;
-  e._strongHpWall = hpWall;
+  const k = typeof hpWall === "number" ? hpWall : ((e.boss ? hpWall?.boss : hpWall?.elite) || 1);
+  e.maxhp = Math.max(1, Math.round(e.maxhp * k));
+  e.hp = Math.max(1, Math.round(e.hp * k));
+  e._strongHpWall = k;
   delete e._dlv; // HPを変えた個体の表示Lvを計算し直す
   return e;
 }

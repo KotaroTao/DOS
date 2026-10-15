@@ -1673,53 +1673,61 @@ export function powerAt(cfg, floor = 1) {
   }
   return pw[ks[ks.length - 1]];
 }
-// ===== 第十章からの壁 (2026-10 ユーザーの指示: 第十章以降の敵を従来の10倍にする) =====
-// 第十章 (第12層) の入口で従来の10倍。第二部 (第十一章 = 第13層から) は土地 (層) が変わるたびに
-// 敵の強さが段で跳ね上がり、推奨Lv に届くだけでは勝てない — 魂融合・トレハン (奈落・無限迷宮の品)・鍛え直しで
-// 隊を鍛えてから挑む。段は「その層の入口で、前の層の強さに何倍を掛けるか」で、層をまたいで積み重なる。
-// 強さ (HP・攻撃・防御) が k 倍になると、推奨Lv だけの隊の1戦の被ダメはおよそ k² 倍 (一撃が k 倍 × 倒すまでの手数が k 倍)。
-// ×10.0 = 被ダメ約100倍 (第十章の入口) / ×2.0 = 被ダメ約4倍 (第二部の始まり) / ×1.4 = 約2倍 (各層の壁)。戦果 (✦Soul・金貨) は推奨Lv の基準のまま (startBattle の battleRewardK)。
-// 値はその章を作る時に模擬戦とテスト記録で合わせる (docs/difficulty-walls.md)。無限迷宮は独自の推奨Lv の表で強さを決めるので cfg.wall = 1 で外す
+// ===== 敵の強さの段 (2026-10-15 ユーザーの指示: 第十章で急に強くするのではなく、序盤から徐々に強くして第十章で今の強さに) =====
+// 第一章・第二章 (第1〜4層) は従来のまま。第三章 (第5層) の最初の本筋 w10 から、本筋の迷宮を一つ進むごとに敵が少しずつ強くなり、
+// 第十章の入口 (第12層の最初の本筋 w38) でちょうど「HP・攻撃・防御 ×10・素早さ ×3・強敵のHP ×3・主のHP ×5」に届く (段の間は等比)。
+// 第十章からは本筋の迷宮を一つ進むごとに HP・攻撃・防御 ×1.5・素早さ ×1.1 (強敵・主のHPの追加は ×3・×5 のまま)。
+// 第二部 (第13層〜) は層の入口の段 LAYER_WALL (×2.0、その先 ×1.4) をさらに重ねる。
+// 強さ (HP・攻撃・防御) が k 倍になると、同じ隊の1戦の被ダメはおよそ k² 倍 (一撃が k 倍 × 倒すまでの手数が k 倍)。
+// 戦果 (✦Soul・金貨) は推奨Lv の基準のまま (startBattle の battleRewardK)。無限迷宮は独自の推奨Lv の表で強さを決めるので cfg.wall = 1 で外す
 export const PART2_LAYER = 13; // 第十一章 (物語の第二部の開始は変えない)
-export const WALL_FROM_LAYER = 12; // 第十章
-export const LAYER_WALL = { 12: 10.0, 13: 2.0, 14: 1.4, 15: 1.4, 16: 1.4, 17: 1.4, 18: 1.4, 19: 1.4, 20: 1.4 };
-// 第L層の壁 = 第12層から第L層までの段の積 (第21層より先は第20層のまま)
+export const RAMP_FROM_LAYER = 5; // 第三章: ここから本筋の迷宮ごとに強くなる
+export const WALL_FROM_LAYER = 12; // 第十章: ここで RAMP_TO に届き、以降は迷宮ごとに STEP_AFTER
+const RAMP_TO = { stat: 10, agi: 3, elite: 3, boss: 5 };
+const STEP_AFTER = { stat: 1.5, agi: 1.1 };
+export const LAYER_WALL = { 13: 2.0, 14: 1.4, 15: 1.4, 16: 1.4, 17: 1.4, 18: 1.4, 19: 1.4, 20: 1.4 };
+// 第L層の壁 = 第13層から第L層までの段の積 (第21層より先は第20層のまま)
 export function wallAt(layer) {
   let k = 1;
   for (let L = WALL_FROM_LAYER; L <= Math.min(20, layer || 1); L++) k *= LAYER_WALL[L] || 1;
   return k;
 }
-// 本筋の迷宮の進行順。寄り道は同じ層で推奨Lvが直前の本筋と同じ段を使う。
-// 開放・踏破の履歴には依存させず、同じ迷宮の強さは常に同じにする。
-const PROGRESS_DUNGEONS = WORLD.filter(d => !d.side && d.layer >= WALL_FROM_LAYER)
+// 本筋の迷宮の進行順 (第三章から)。開放・踏破の履歴には依存させず、同じ迷宮の強さは常に同じにする。
+const PROGRESS_DUNGEONS = WORLD.filter(d => !d.side && d.layer >= RAMP_FROM_LAYER)
   .sort((a, b) => a.layer - b.layer || a.lv - b.lv);
+// 第十章の入口の段 (= 第三章〜第九章の本筋の数)
+const RAMP_LEN = Math.max(1, PROGRESS_DUNGEONS.findIndex(d => d.layer >= WALL_FROM_LAYER));
+// 段 = 本筋は進行順の番号、寄り道・格上の迷宮は推奨Lv が届いている最後の本筋の段 (第三章より前の推奨Lv なら0)
 export function dungeonProgressOf(cfg) {
-  if (!cfg || cfg.layer < WALL_FROM_LAYER || cfg.wall != null) return 0;
+  if (!cfg || cfg.wall != null) return 0;
   const index = PROGRESS_DUNGEONS.findIndex(d => d.id === cfg.id);
   if (index >= 0) return index;
-  if (!cfg.side) return 0; // 台帳外の奈落の素体には迷宮ごとの段を掛けない
+  if (!cfg.side) return 0; // 第二章までの本筋・台帳外の素体には段を掛けない
   let step = 0;
-  for (let i = 0; i < PROGRESS_DUNGEONS.length; i++) {
-    const d = PROGRESS_DUNGEONS[i];
-    if (d.layer < cfg.layer || (d.layer === cfg.layer && d.lv <= cfg.lv)) step = i;
-  }
+  for (let i = 0; i < PROGRESS_DUNGEONS.length; i++) if (PROGRESS_DUNGEONS[i].lv <= cfg.lv) step = i;
   return step;
 }
-export function dungeonStatMul(cfg) { return 1.5 ** dungeonProgressOf(cfg); }
-export function dungeonAgiMul(cfg) { return 1.2 ** dungeonProgressOf(cfg); }
-// 迷宮の壁 (cfg.wall があればそれ、無ければ層の壁 × 迷宮の進行倍率)
+// 段ごとの倍率: 第十章の入口まで base^(段/RAMP_LEN)、その先は after^(段−RAMP_LEN) を重ねる
+function rampMul(step, base, after = 1) {
+  return base ** (Math.min(step, RAMP_LEN) / RAMP_LEN) * after ** Math.max(0, step - RAMP_LEN);
+}
+export function dungeonStatMul(cfg) { return rampMul(dungeonProgressOf(cfg), RAMP_TO.stat, STEP_AFTER.stat); }
+export function dungeonAgiMul(cfg) { return rampMul(dungeonProgressOf(cfg), RAMP_TO.agi, STEP_AFTER.agi); }
+// 迷宮の壁 (cfg.wall があればそれ、無ければ段の倍率 × 第二部の層の壁)
 export function wallOf(cfg) {
   if (!cfg) return 1;
   if (cfg.wall != null) return cfg.wall;
   return wallAt(cfg.layer || 1) * dungeonStatMul(cfg);
 }
-// 第十章の入口の素早さ3倍 × 迷宮ごとの進行倍率。無限迷宮 (wall:1) は除く。
+// 素早さの段。無限迷宮 (wall:1) は除く。
 export function agiWallOf(cfg) {
-  return cfg && cfg.layer >= WALL_FROM_LAYER && wallOf(cfg) > 1 ? 3 * dungeonAgiMul(cfg) : 1;
+  return cfg && cfg.wall == null ? dungeonAgiMul(cfg) : 1;
 }
-// 第十章以降の主・強敵のHPだけ、既存の強さの壁に追加で10倍を掛ける。
+// 主・強敵のHPだけに重ねる段 ({boss, elite} — combat.js scaleStrongFoeHp)。無限迷宮は除く。
 export function strongHpWallOf(cfg) {
-  return cfg && cfg.layer >= WALL_FROM_LAYER && wallOf(cfg) > 1 ? 10 : 1;
+  if (!cfg || cfg.wall != null) return { boss: 1, elite: 1 };
+  const step = dungeonProgressOf(cfg);
+  return { boss: rampMul(step, RAMP_TO.boss), elite: rampMul(step, RAMP_TO.elite) };
 }
 // その層の入口の段 (前の層の何倍か。壁のない層なら 1)
 export function wallStepOf(cfg) {
@@ -1727,14 +1735,14 @@ export function wallStepOf(cfg) {
   return (cfg.layer >= WALL_FROM_LAYER && cfg.layer <= 20) ? (LAYER_WALL[cfg.layer] || 1) : 1;
 }
 
-// その階の敵の強さ (手直し・特別な階・異変を除く): 強さの素 × 推奨Lv の伸び × 第十章からの壁
+// その階の敵の強さ (手直し・特別な階・異変を除く): 強さの素 × 推奨Lv の伸び × 敵の強さの段 (第三章から)
 export function strengthAt(cfg, floor = 1) { return powerAt(cfg, floor) * lvPow(dungeonLevelRaw(cfg, floor)) * wallOf(cfg); }
 
 
 // 検証: id の重複・素体の欠け・出現表の空
 {
   for (const [L, k] of Object.entries(LAYER_WALL)) {
-    if (!(Number(L) >= WALL_FROM_LAYER && Number(L) <= 20) || !(k >= 1)) throw new Error(`world: 第十章からの壁 ${L} は第12〜20層・1以上`);
+    if (!(Number(L) >= PART2_LAYER && Number(L) <= 20) || !(k >= 1)) throw new Error(`world: 第二部の層の壁 ${L} は第13〜20層・1以上`);
   }
   const seen = new Set();
   for (const d of WORLD) {

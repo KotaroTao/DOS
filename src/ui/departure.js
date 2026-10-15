@@ -198,7 +198,8 @@ function renderHero(b) {
   const ttl = el("div", "dp-hero-t");
   ttl.appendChild(el("div", "dp-hero-n", dn.name));
   const sub = [`推奨Lv${band[0]}${band[1] > band[0] ? `〜${band[1]}` : ""}`, `全${dn.floors}階`];
-  const wall = game.wallOf ? game.wallOf(dn) : 1;
+  // 敵の強さの段は第三章から少しずつ上がる (world.js wallOf)。札と注意は大きく跳ねる第十章からだけ出す
+  const wall = game.wallOf && dn.layer >= 12 ? game.wallOf(dn) : 1;
   if (wall > 1) sub.push(`壁 敵の強さ×${wallText(wall)}`);
   if (dn.boss) sub.push("主が待つ");
   else if (dn.element && ELEMENTS[dn.element] && dn.element !== "none") sub.push(`${ELEMENTS[dn.element].label}の気配`);
@@ -252,7 +253,7 @@ function renderHero(b) {
   // 第十章からの壁 (world.js wallOf): 推奨Lv に届くだけでは勝てないことを、門をくぐる前に知らせる
   if (wall > 1) {
     b.appendChild(setText(el("div", "pt-note dp-after dp-wall"),
-      `第十章からの壁 ― この土地の敵は、第九章までの物差しの${wallText(wall)}倍の強さ。第十章からは本筋の迷宮が一つ進むごとにHP・攻撃・防御が1.5倍、素早さが1.2倍ずつ増える。推奨Lvに届くだけでは歯が立たない。魂融合・宝探し・鍛え直しで隊を鍛えてから挑もう。`));
+      `第十章からの壁 ― この土地の敵は、第二章までの物差しの${wallText(wall)}倍の強さ。第三章から少しずつ強くなってきた敵は、第十章からは本筋の迷宮が一つ進むごとにHP・攻撃・防御が1.5倍、素早さが1.1倍ずつ増える。推奨Lvに届くだけでは歯が立たない。魂融合・宝探し・鍛え直しで隊を鍛えてから挑もう。`));
   }
   if (dn.id === "w04" && !game.worldState?.().reported.w03) {
     b.appendChild(setText(el("div", "pt-note dp-after"), "取水口は推奨Lv18〜21。隊の強さを確かめ、支度を整えてから向かおう。"));
