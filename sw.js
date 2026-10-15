@@ -52,6 +52,8 @@ const ASSETS = [
   "./art/offerings/m_silent_alarm.webp",
   "./art/offerings/m_wall_lizard_fang.webp",
   "./art/offerings/m_undying_ember.webp",
+  "./art/monsters/bs_misttreant.webp",
+  "./art/monsters/bs_willowwitch.webp",
   "./art/monsters/bs_fortlord.webp",
   "./src/collectiblephotos.js",
   "./art/collectibles/m_widows_veil.webp",
