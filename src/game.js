@@ -12031,9 +12031,11 @@ function playBossPrelude(id, done) {
   const p = bossPreludeFor(id);
   if (!p) return false;
   const w = worldState();
-  const photo = storyImage(p.def === BOSS_PRELUDES[id].first ? p.key : null);
+  const sceneId = p.def === BOSS_PRELUDES[id].first ? p.key : p.key + "_retry";
+  const photo = storyImage(sceneId);
   UI.playStoryChain([{ title: p.def.title, lines: storyLines(p.def.lines), art: p.def.art, photo, who: "none", kicker: "主との対面", btnLabel: "挑む" }], () => {
     w.beats[p.key] = 1;
+    w.beats[sceneId] = 1;
     autosave(true);
     if (done) done();
   });
@@ -18021,7 +18023,7 @@ const testScenes = [
     Object.entries(defs).map(([id, def]) => ({ ...def, id: group + ":" + id, kind: "story", group: label, name: label + "・" + def.title, who: ["cell", "memory", "rematch"].includes(group) ? "none" : "king",
       photo: storyImage(({ cell: id, late: id, memory: "mem_" + id, report: "report_" + id, chapter: "ch" + id + "_end" })[group]) }))),
   ...Object.entries(BOSS_PRELUDES).flatMap(([id, pre]) => ["first", "retry"].filter((k) => pre[k]).map((k) => ({ ...pre[k], id: `prelude:${id}_${k}`, kind: "story", group: "主との対面",
-    name: `主との対面・${pre[k].title}`, who: "none", photo: k === "first" ? storyImage("pre_" + id) : null }))),
+    name: `主との対面・${pre[k].title}`, who: "none", photo: storyImage("pre_" + id + (k === "retry" ? "_retry" : "")) }))),
   ...IRENE_BEATS.map((def) => ({ ...def, id: "irene:" + def.id, kind: "story", group: "館の語り", name: "館の語り・" + def.title, who: "irene", photo: storyImage(def.id) })),
   { ...MINE_PASS, id: "minePass", kind: "story", name: MINE_PASS.title, photo: storyImage("minePass") },
 ];

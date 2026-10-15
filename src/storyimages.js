@@ -121,6 +121,7 @@ export const STORY_IMAGES = {
   w40_eyes: "art/story/chapter10/w40_eyes.webp",
   report_w40: "art/story/chapter10/report_w40.webp",
   pre_w41: "art/story/chapter10/pre_w41.webp",
+  pre_w41_retry: "art/story/chapter10/pre_w41_retry.webp",
   mem_w41: "art/story/chapter10/mem_w41.webp",
   report_w41: "art/story/chapter10/report_w41.webp",
   irene_candle: "art/story/chapter10/irene_candle.webp",

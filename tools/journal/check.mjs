@@ -61,6 +61,10 @@ assert.equal(ARCHIVE_STORIES.filter(s => s.chapter === 4).length, 10);
 assert(ARCHIVE_STORIES.filter(s => s.chapter === 4).every(s => s.image), "第四章の全場面に専用画像がある");
 const byId = new Map(ARCHIVE_STORIES.map(s => [s.id, s]));
 assert.equal(byId.size, ARCHIVE_STORIES.length, "ストーリーのIDが重複しない");
+assert(!byId.get("pre_w41_retry").available({world:{beats:{pre_w41:1,fell_w41:1}}}),
+  "初対面と全滅の記録だけでは、まだ再挑戦の語りを読めない");
+assert(byId.get("pre_w41_retry").available({world:{beats:{pre_w41_retry:1}}}),
+  "再挑戦の語りを聞いた後に一覧へ追加する");
 for (const s of ARCHIVE_STORIES) {
   assert(s.lines.length >= 3, `${s.id} の本文`);
   assert(ARCHIVE_FOCUS.includes(s.illustration.focus), `${s.id} の専用図版`);
@@ -102,7 +106,10 @@ for (const id of Object.keys(REPORTS)) {
   assert(byId.get(`report_${id}`)?.available({ world:{reported:{[id]:true}} }));
 }
 for (const id of Object.keys(BOSS_MEMORIES)) g.world.beats[`mem_${id}`] = true;
-for (const id of Object.keys(BOSS_PRELUDES)) g.world.beats[`pre_${id}`] = true; // 主との対面
+for (const [id, pre] of Object.entries(BOSS_PRELUDES)) {
+  g.world.beats[`pre_${id}`] = true; // 主との対面
+  if (pre.retry) g.world.beats[`pre_${id}_retry`] = true;
+}
 for (const s of IRENE_BEATS) g.world.beats[s.id] = true;
 for (const id of Object.keys(CHAPTER_END)) g.world.beats[`ch${id}_end`] = true;
 for (const d of WORLD) g.world.cleared[d.id] = true;

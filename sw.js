@@ -210,6 +210,7 @@ const ASSETS = [
   "./art/story/chapter10/w40_eyes.webp",
   "./art/story/chapter10/report_w40.webp",
   "./art/story/chapter10/pre_w41.webp",
+  "./art/story/chapter10/pre_w41_retry.webp",
   "./art/story/chapter10/mem_w41.webp",
   "./art/story/chapter10/report_w41.webp",
   "./art/story/chapter10/irene_candle.webp",
