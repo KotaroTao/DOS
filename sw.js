@@ -11,6 +11,7 @@
 const CACHE = "dos-dev";
 const DEV = CACHE === "dos-dev";
 const ASSETS = [
+  "./art/monsters/bs_fortlord.webp",
   "./src/collectiblephotos.js",
   "./art/collectibles/m_widows_veil.webp",
   "./art/collectibles/m_cursed_war_coin.webp",
