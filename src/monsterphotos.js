@@ -1,6 +1,30 @@
 // 迷宮の透過原画。通常敵・強敵・主・召喚先・共通の敵で共用する。
 // 能力値や文字グリッドは保ち、読めた原画だけを最初の描画前に登録する。
 export const MONSTER_PHOTOS = {
+  // <<TOXIC_SWAMP_ART>>
+  // 第7章「毒沼」（作成済みの通常敵・強敵・共通敵は既存原画を共用）。
+  bs_plaguerat: [520, 334],
+  bs_rotooze: [520, 344],
+  bs_bogdrowned: [520, 311],
+  bs_leechswarm: [520, 342],
+  bs_marshlurker: [520, 350],
+  bs_blightmoth: [520, 337],
+  bs_sludgehydra: [520, 374],
+  bs_gasfiend: [520, 445],
+  bs_plaguebeast: [520, 318],
+  bs_discardeddoll: [387, 520],
+  bs_fungalcorpse: [392, 520],
+  bs_miasmawraith: [471, 520],
+  bs_venomspider: [520, 362],
+  bs_necromancer: [511, 520],
+  bs_toxicgolem: [520, 459],
+  bs_plaguewraith: [520, 498],
+  bs_corpseflower: [494, 520],
+  bs_swamphag: [520, 475],
+  bs_pestilenceknight: [520, 475],
+  bs_plaguelich: [520, 485],
+  bs_swamplord: [520, 268],
+  // <</TOXIC_SWAMP_ART>>
   // <<FROST_CORRIDOR_ART>>
   // 第六章・氷結回廊（強敵2種は作成済み原画を共用）。
   bs_frostwolf: [515, 456],
