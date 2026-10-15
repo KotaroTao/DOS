@@ -52,6 +52,8 @@ if __name__ == '__main__':
     target.mkdir(parents=True, exist_ok=True)
     for sheet, (columns, ids) in SHEETS.items():
         for key, image in split_sheet(sheet, columns, ids):
+            if key != 'bs_fortlord':
+                continue  # mainに先行して追加された5体は作り直さない。
             image.thumbnail((512, 512), Image.Resampling.LANCZOS)
             padded = Image.new('RGBA', (image.width + 8, image.height + 8))
             padded.paste(image, (4, 4))
