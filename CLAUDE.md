@@ -190,6 +190,7 @@ Every equipment item has `rar`: `c` コモン(白) / `uc` アンコモン(緑) /
 - Owned items are re-synced to the catalog on load (`reflattenItemStats`: stats/art/rar/etc. from `ITEMS[id]`, instance flags like `unidentified` kept).
 
 ### 装備の絵 (`src/itemart/`) — 全装備が固有の絵 (2026-10, user direction)
+制作番号1601〜1700も同じ透過WebP描画口へ登録。森の古屋の3体と図鑑の説明を基準に制作。原画・対応表・確認資料は `docs/art/items-1601-1700/`、再変換は `python3 tools/itemart/build-1601-1700.py`、表示・未鑑定・取得失敗の検証は `node tools/itemart/verify-1601-1700.cjs`。
 制作番号1001〜1100も同じ384×384の透過WebP方式で登録済み。制作記録 `docs/art/items-1001-1100/`、再変換 `python3 tools/itemart/build-1001-1100.py`、実描画の検証 `node tools/itemart/verify-1001-1100.cjs`。
 制作番号1401〜1500も同じ透過WebP描画口に登録。森の古屋の3体と図鑑を基準に制作し、原画・対応表・確認画像は `docs/art/items-1401-1500/`、再変換・実描画検証は `tools/itemart/build-1401-1500.py`・`verify-1401-1500.cjs`。
 制作番号1301〜1400も `art/items/<既存ID>.webp` の透過原画を使用する。制作記録 `docs/art/items-1301-1400/`、再変換 `python3 tools/itemart/build-1301-1400.py`、実描画の検証 `node tools/itemart/verify-1301-1400.cjs`。
@@ -210,6 +211,8 @@ Every equipment item (1,877 incl. items.js base gear) is drawn with its own 24×
 制作番号301〜400も同じ差し替え口で透過WebPを表示する。森の小屋の3体と各品の図鑑を参照し、原画・対応表・一覧は `docs/art/items-301-400/`、変換は `python3 tools/itemart/build-301-400.py`、描画と取得失敗の検証は `node tools/itemart/verify-301-400.cjs`。
 
 制作番号1201〜1300も同じ透過WebPの仕組みで表示する。制作記録 `docs/art/items-1201-1300/`、再変換 `python3 tools/itemart/build-1201-1300.py`、描画検証 `node tools/itemart/verify-1201-1300.cjs`。
+
+制作番号1801〜1900も同じ透過WebP描画口に登録。原画・対応表・確認資料は `docs/art/items-1801-1900/`、再変換は `python3 tools/itemart/build-1801-1900.py`、表示・未鑑定・取得失敗の検証は `node tools/itemart/verify-1801-1900.cjs`。
 
 ### 画面テーマ — `theme.css`
 スマホの探索 (幅600px以下) はマスを正方形に保ち、通常は一辺64px以上に拡大する。「全体・現在地」は盤面右上へ重ね、表示ボタン用の縦の帯は取らない。高さ760px以下では隊を一列の名前・HP/MP・効果の札にまとめ、最新4行の記録と盤面の高さを確保する。詳細は隊の札をタップ。心得 `t_board_camera`。
@@ -240,6 +243,7 @@ The game is migrating from **10 rank-bands × 10 dungeons** to **20 layers × 5 
 - **業火の大釜のWebP原画** (`w21`): 未作成だった釜底の古竜と業火の主を透過WebPに登録。森の古屋の3体と図鑑の説明・伝承を参照し、通常敵・強敵・召喚先・共通敵の作成済み原画は共用する。原画・確認画像は `docs/art/inferno-cauldron-enemies/`、再変換は `python3 tools/inferno-cauldron/build-enemies.py`、全22種の登録網羅・実画面・取得失敗の検証は `node tools/inferno-cauldron/verify-enemies.cjs`。能力・技・本文・出現条件は維持。
 - **化石竜の墓所のWebP原画** (`ws21`): 未作成の化石竜・原初の獣・原初の大蛇・大空洞の巨獣・地揺らす巨体・深淵の異形の6体を透過WebPに登録。作成済みの通常敵6種・鉱脈喰らい・共通敵は既存原画を共用する。森の古屋の3体と図鑑の説明・伝承を参照。原画・確認画像は `docs/art/fossil-tomb-enemies/`、再変換は `python3 tools/fossil-tomb/build-enemies.py`、出現対象の網羅・表示・取得失敗の確認は `node tools/fossil-tomb/verify-enemies.cjs`。能力・本文・出現条件は維持。
 - **地下墓地のWebP原画** (`src/monsterphotos.js`): `w01` の通常敵6種、墓所の君主、召喚先の囚人の亡骸、ミミックの計9体は `art/monsters/<ID>.webp` の透過原画を共通の `photo` 描画口で表示する。同じIDの絵は別の迷宮でも共用。起動時に並列読み込みし、取得失敗・寸法不一致・4秒の待ち時間超過では元のドット絵を残す。能力・技・伝承・出現条件は変更しない。森の小屋の3体を画風の基準に制作。原画・制作記録は `docs/art/crypt-enemies/`、変換は `python3 tools/crypt/build-enemies.py`、実画面と取得失敗時の検証は `node tools/crypt/verify-enemies.cjs`。 黒水の取水口 (`w04`) の通常敵9種と子産みヒルの女王も同じ描画口の透過WebPに更新。召喚先は吸血大ヒル、ミミックは既存原画を共用。原画・図鑑との対応・確認画像は `docs/art/blackwater-enemies/`、再生成は `python3 tools/crypt/build-blackwater-enemies.py`、検証は `node tools/crypt/verify-blackwater-enemies.cjs`。
+- **第九章・闘技場跡のWebP原画**: 本筋 `w34`〜`w37` と寄り道 `ws18`・`ws19` の通常敵20種・闘技場の支配者を `src/monsterphotos.js` に登録。強敵2種と共通敵は既存原画を共用。森の小屋の3体と図鑑の説明・伝承を基準に制作し、能力・出現条件は維持。原画・確認画像は `docs/art/arena-enemies/`、再変換と実画面・取得失敗時の検証は `tools/arena/`。
 - **本丸のWebP原画**: `w09` の砦の主を `src/monsterphotos.js` に追加。ほかの敵は作成済み原画を共用し、能力・出現条件は維持。原画・制作記録は `docs/art/honmaru-enemies/`、再変換・実画面検証は `tools/honmaru/`。
 
 - **坑口のWebP原画**: `w05` の通常敵12種・鎖鞭の坑監・坑道の主・銀業を `src/monsterphotos.js` に登録。召喚先とミミックは共用。森の3体と図鑑を基準に制作し、原画・確認画像は `docs/art/mine-enemies/`、再変換と実画面検証は `tools/mine/`。既存の取得失敗時の代替表示を維持する。
