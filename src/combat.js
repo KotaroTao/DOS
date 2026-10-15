@@ -422,12 +422,25 @@ export function scaleFoeAgi(e, fleeK, agiWall = 1) {
   }
   return e;
 }
-// 主・強敵のHPの壁。保存した戦闘では残りHPの割合を保ち、二重に掛けない。
+// 能力ごとの段 (world.js statWallOf = {atk, hp}): 強さの素は HP・攻撃・防御に同じ倍率なので、攻撃と HP だけを直す
+// (攻撃は軽く、HP は重く — 味方の VIT・HP が効くように)。一度だけ掛け (_statWall の印)、戦闘の保存・復元でも重ねない
+export function scaleFoeStats(e, wall) {
+  if (!e || !wall || e._statWall != null) return e; // 段を持たない戦闘 (検証の道具など) では印も付けない
+  const atk = wall.atk || 1, hp = wall.hp || 1;
+  if (atk !== 1) e.atk = Math.max(1, Math.round(e.atk * atk));
+  // 金属の魔物の HP は会心で削る小さな固定値 (段ごとの数) なので直さない
+  if (hp !== 1 && !isMetal(e)) { e.maxhp = Math.max(1, Math.round(e.maxhp * hp)); e.hp = Math.max(1, Math.round(e.hp * hp)); }
+  e._statWall = { atk, hp };
+  delete e._dlv; // 能力を変えた個体の表示Lvを計算し直す
+  return e;
+}
+// 主・強敵のHPの段 (world.js strongHpWallOf = {boss, elite}。旧い保存の戦闘は数1つ)。二重に掛けない。
 export function scaleStrongFoeHp(e, hpWall = 1) {
   if (!e || !(e.boss || e.mon?.elite) || e._strongHpWall != null) return e;
-  e.maxhp *= hpWall;
-  e.hp *= hpWall;
-  e._strongHpWall = hpWall;
+  const k = typeof hpWall === "number" ? hpWall : ((e.boss ? hpWall?.boss : hpWall?.elite) || 1);
+  e.maxhp = Math.max(1, Math.round(e.maxhp * k));
+  e.hp = Math.max(1, Math.round(e.hp * k));
+  e._strongHpWall = k;
   delete e._dlv; // HPを変えた個体の表示Lvを計算し直す
   return e;
 }
@@ -696,6 +709,8 @@ export class Battle {
     // 追跡の物差し: 敵の AGI をこの倍率で味方の AGI と同じ規模に直してから逃走率を出す
     // (game.js の fleeScale = その迷宮・階の基準AGI ÷ その迷宮の雑魚の標準AGI)
     this.fleeK = opts.fleeK || 1;
+    this.statWall = opts.statWall || null;
+    for (const e of enemies) scaleFoeStats(e, this.statWall);
     this.strongHpWall = opts.strongHpWall || 1;
     for (const e of enemies) scaleStrongFoeHp(e, this.strongHpWall);
     this.agiWall = opts.agiWall || 1;
@@ -2274,6 +2289,7 @@ export class Battle {
         // 戦果の写し (game.js startBattle が推奨Lv の基準に合わせた比) を引き継ぐ
         if (actor._rk) { e._rk = actor._rk; e.soul = Math.max(1, Math.round(e.soul * actor._rk[0])); e.gold = Math.max(1, Math.round(e.gold * actor._rk[1])); }
         if (actor._agiMul) { e._agiMul = actor._agiMul; e.agi = Math.max(1, Math.round(e.agi * actor._agiMul)); }
+        scaleFoeStats(e, this.statWall);
         scaleStrongFoeHp(e, this.strongHpWall || 1);
         scaleFoeAgi(e, this.fleeK, this.agiWall || 1); // 呼ばれた手下の AGI も味方の規模へ
         // 属性の暴走 (異変): 呼ばれた仲間の属性もでたらめに

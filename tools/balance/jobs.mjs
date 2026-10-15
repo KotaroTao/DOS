@@ -10,7 +10,7 @@
 //   --mode rank2: 全職を魂ランク2にそろえる (重ねやすさを無視した、魂1つの格の比較)
 import fs from "node:fs";
 import assert from "node:assert/strict";
-import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, Battle, SPELLS, spellCost, setElemKnown, cureAil, ailing, perkVictory, healsHp, canSpellCure } from "../../src/combat.js";
+import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, scaleFoeStats, scaleStrongFoeHp, scaleFoeAgi, Battle, SPELLS, spellCost, setElemKnown, cureAil, ailing, perkVictory, healsHp, canSpellCure } from "../../src/combat.js";
 import { decideAuto, setResistKnown } from "../../src/autotactics.js";
 import { SOUL_CLASSES, SOUL_KEYS, makeDoll, makeSoulInstance, setSharedSouls, recalcDoll, rankThresholds, soulLevelCap, soulRankFromCount, JOB_GEAR } from "../../src/souls.js";
 import { minutesToLevel, partyAgi } from "../../src/levelcurve.js";
@@ -20,7 +20,7 @@ import { monsterResists } from "../../src/resistance.js";
 import { CATALOG_ITEMS } from "../../src/catalog/index.js";
 import { planBestEquip, applyPlan } from "../../src/autoequip.js";
 import { gearScore } from "../../src/ui/itemview.js";
-import { lootBand, WORLD, strengthAt, poolAt } from "../../src/dungeons/world.js";
+import { lootBand, WORLD, strengthAt, poolAt, statWallOf, strongHpWallOf, agiWallOf } from "../../src/dungeons/world.js";
 import { useMathRandom } from "../../src/rng.js";
 useMathRandom(); // ゲームの乱数 (src/rng.js) を Math.random に従わせる — 下で Math.random を差し替えて結果を固定する
 Object.assign(MONSTERS, DUNGEON_MONSTERS);
@@ -176,7 +176,8 @@ function realFoes(level, kind, site, k) {
     const el = site.cfg.elites || [];
     list = el.length ? spawnEliteEnemies(el[Math.floor(Math.random() * el.length)], site.solo * k) : spawnCardEnemies(site.pool[0], site.floor, site.mob * k, { min: 4 });
   } else list = spawnCardEnemies(site.pool[Math.floor(Math.random() * site.pool.length)], site.floor, site.mob * k);
-  list.forEach((e, i) => { e.lv = level; e.uid = 100000 + i; });
+  // 章の段 (game.js startBattle と同じ): 能力ごとの段・主/強敵のHPの追加・素早さ
+  list.forEach((e, i) => { e.lv = level; e.uid = 100000 + i; scaleFoeStats(e, statWallOf(site.cfg)); scaleStrongFoeHp(e, strongHpWallOf(site.cfg)); scaleFoeAgi(e, site.fleeK, agiWallOf(site.cfg)); });
   return list;
 }
 
