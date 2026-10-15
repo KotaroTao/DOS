@@ -2,7 +2,7 @@
 
 書き出し: `node tools/storyart/review.mjs` (build.py も書き直す。手で直さない)。
 
-場面: 出荷済み 104 ・ 出荷済み (任意の修正あり) 11 ・ 未着手 (指示あり) 9
+場面: 出荷済み 104 ・ 出荷済み (任意の修正あり) 11 ・ 未着手 (指示あり) 22
 
 | 章 | 場面 | 題 | 状態 | 確認ページ |
 |---|---|---|---|---|
@@ -123,10 +123,23 @@
 | 第10章「地底大空洞」 | `irene_names` | 名を呼ぶ人 | 出荷済み | [見る](chapter10.md#irene_names) |
 | 第10章「地底大空洞」 | `w40_eyes` | それでも、底へ | 出荷済み | [見る](chapter10.md#w40_eyes) |
 | 第10章「地底大空洞」 | `report_w40` | 三百年の墓守 | 出荷済み | [見る](chapter10.md#report_w40) |
+| 第10章「地底大空洞」 | `pre_w41` | 階段の前の宰相 | 未着手 (指示あり) | [見る](chapter10.md#pre_w41) |
 | 第10章「地底大空洞」 | `mem_w41` | 階段の前のふたり | 未着手 (指示あり) | [見る](chapter10.md#mem_w41) |
 | 第10章「地底大空洞」 | `report_w41` | 王の資格 | 未着手 (指示あり) | [見る](chapter10.md#report_w41) |
 | 第10章「地底大空洞」 | `irene_candle` | 消せない灯 | 未着手 (指示あり) | [見る](chapter10.md#irene_candle) |
 | 第10章「地底大空洞」 | `ch10_end` | 第一部の終わり | 未着手 (指示あり) | [見る](chapter10.md#ch10_end) |
+| 第11章「夜明けの町」 | `w42_dawn` | 夜明けの町 | 未着手 (指示あり) | [見る](chapter11.md#w42_dawn) |
+| 第11章「夜明けの町」 | `report_w42` | 命令の届かぬ所 | 未着手 (指示あり) | [見る](chapter11.md#report_w42) |
+| 第11章「夜明けの町」 | `irene_why` | ついて歩く理由 | 未着手 (指示あり) | [見る](chapter11.md#irene_why) |
+| 第11章「夜明けの町」 | `w43_jars` | 今日の瓶 | 未着手 (指示あり) | [見る](chapter11.md#w43_jars) |
+| 第11章「夜明けの町」 | `report_w43` | 晴れた空の雨 | 未着手 (指示あり) | [見る](chapter11.md#report_w43) |
+| 第11章「夜明けの町」 | `w44_glass` | 一度だけ | 未着手 (指示あり) | [見る](chapter11.md#w44_glass) |
+| 第11章「夜明けの町」 | `irene_onlyonce` | 決めるのは | 未着手 (指示あり) | [見る](chapter11.md#irene_onlyonce) |
+| 第11章「夜明けの町」 | `report_w44` | 一度だけ、と言える者 | 未着手 (指示あり) | [見る](chapter11.md#report_w44) |
+| 第11章「夜明けの町」 | `mem_w45` | 終わりの頁 | 未着手 (指示あり) | [見る](chapter11.md#mem_w45) |
+| 第11章「夜明けの町」 | `report_w45` | 余の終わりの頁 | 未着手 (指示あり) | [見る](chapter11.md#report_w45) |
+| 第11章「夜明けの町」 | `irene_lastpage` | 両方を持って | 未着手 (指示あり) | [見る](chapter11.md#irene_lastpage) |
+| 第11章「夜明けの町」 | `ch11_end` | 同じ天井の下で | 未着手 (指示あり) | [見る](chapter11.md#ch11_end) |
 | 序章 | `irene_repair` | 砕けても、名は消えない | 出荷済み | [見る](chapter0.md#irene_repair) |
 | 第1章「師の灯」 | `irene_familiar` | 名で呼べる距離 | 出荷済み | [見る](chapter1.md#irene_familiar) |
 | 第3章「魂脈の根」 | `irene_trust` | 扉を開けた日のこと | 出荷済み | [見る](chapter3.md#irene_trust) |
@@ -174,6 +187,10 @@
 | 由来 | `w39` | 黒い灯の地底湖 | 出荷済み | [見る](dungeons.md#lore_w39) |
 | 由来 | `w40` | 名を刻む石窟 | 出荷済み | [見る](dungeons.md#lore_w40) |
 | 由来 | `w41` | 底なしの大伽藍 | 出荷済み | [見る](dungeons.md#lore_w41) |
+| 由来 | `w42` | 書架の大階段 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_w42) |
+| 由来 | `w43` | 雨垂れの書庫 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_w43) |
+| 由来 | `w44` | 眠り灯の工房 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_w44) |
+| 由来 | `w45` | 大書庫 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_w45) |
 | 由来 | `ws1` | 沈んだ礼拝堂 | 出荷済み | [見る](dungeons.md#lore_ws1) |
 | 由来 | `ws2` | 石眠りの石切り場 | 出荷済み | [見る](dungeons.md#lore_ws2) |
 | 由来 | `ws3` | 霧の迷い森 | 出荷済み | [見る](dungeons.md#lore_ws3) |
@@ -196,4 +213,6 @@
 | 由来 | `ws20` | 大空洞の主の寝床 | 出荷済み | [見る](dungeons.md#lore_ws20) |
 | 由来 | `ws21` | 化石竜の墓所 | 出荷済み | [見る](dungeons.md#lore_ws21) |
 | 由来 | `ws22` | 水晶の鉱脈 | 出荷済み | [見る](dungeons.md#lore_ws22) |
+| 由来 | `ws23` | 絵本の閲覧室 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_ws23) |
+| 由来 | `ws24` | 閉架の書庫 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_ws24) |
 | 由来 | `w00_forest` | 近くの森の古屋 | 出荷済み | [見る](dungeons.md#lore_w00_forest) |
