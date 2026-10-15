@@ -48,17 +48,30 @@ with sync_playwright() as p:
                   throw Error('敵の絵が戦場からはみ出す');
               }
               const app = document.getElementById('app');
-              if (log.height < 54 || log.bottom > party.top+1 || controls.bottom > rect('app').top+app.scrollHeight+1)
+              const minLog = innerWidth <= 600 && __game.G.battle.enemies.length > 3 ? 47.5 : 54;
+              if (log.height < minLog || log.bottom > party.top+1 || controls.bottom > rect('app').top+app.scrollHeight+1)
                 throw Error('記録・操作欄の重なり');
               return [view.height,log.y,log.height,party.y,controls.y];
             }''')
             if baseline is None:
                 baseline = geometry
-            assert all(abs(a-b) < 1 for a,b in zip(baseline, geometry)), (width,height,count,baseline,geometry)
+            extra = 6.5 if width <= 600 and count > 3 else 0
+            expected = [baseline[0], baseline[1]+extra, baseline[2]-extra, baseline[3], baseline[4]]
+            assert all(abs(a-b) < 1 for a,b in zip(expected, geometry)), (width,height,count,expected,geometry)
             names = page.locator('#enemy-names')
             assert names.is_visible()
             assert names.locator('.enemy-name').count() == count
             assert '？' in names.inner_text(), '未判明の敵名が明かされた'
+            page.evaluate('''() => {
+              const bar=document.getElementById('enemy-names'), r=bar.getBoundingClientRect();
+              for (const name of bar.querySelectorAll('.enemy-name')) {
+                const range=document.createRange();range.selectNodeContents(name);
+                for (const text of range.getClientRects())
+                  if(text.top<r.top-1 || text.bottom>r.bottom+1) throw Error('敵名の文字が名前欄から欠ける');
+              }
+              if (innerWidth<=600 && getComputedStyle(bar).zIndex==='auto')
+                throw Error('敵名が戦場の枠の影に隠れる');
+            }''')
             if width <= 600:
                 # 敵名の有無で座標・大きさ・戦場の高さを変えない。
                 page.evaluate('''async () => {

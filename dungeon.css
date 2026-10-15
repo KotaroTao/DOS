@@ -686,8 +686,12 @@ canvas.unk-sil { filter: brightness(0) drop-shadow(0 0 1px rgba(185,172,217,0.85
 @media (max-width: 600px) {
   .in-combat #screen { flex-direction: column; }
   .in-combat #enemy-names {
-    position: static; width: 100%; min-height: 27px; box-sizing: border-box;
+    position: relative; z-index: 1; inset: auto; width: 100%; min-height: 27px; box-sizing: border-box;
     padding: 1px 4px; gap: 1px; align-content: center; font-size: 10px; line-height: 1.2;
   }
   .enemy-name-row { gap: 4px; }
+  /* 二列の時だけ記録の文字半分 (13px / 2) を名前の上の余白へ回す。 */
+  #app.in-combat.enemy-names-two-rows #enemy-names { min-height: 33.5px; padding-top: 7.5px; }
+  #app.in-combat.enemy-names-two-rows #hud { min-height: 86.5px; }
+  #app.in-combat.enemy-names-two-rows #log { min-height: 47.5px; }
 }

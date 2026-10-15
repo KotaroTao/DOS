@@ -9290,6 +9290,7 @@ function renderCombatCanvas() {
   if (enemyFocusEl.textContent.replaceAll(ZWSP, "") !== focusLabel) enemyFocusEl.textContent = focusLabel;
   // 最下部には生存中の敵名を常設。不確定名と呼び分けは記録にそろえる。
   const nameRows = [backRow, frontRow].map((list) => list.filter((e) => e.alive));
+  appEl.classList.toggle("enemy-names-two-rows", nameRows.every((list) => list.length > 0));
   const nameClass = (e) => enemyUnknown(e) ? " unk" : enemyCodexComplete(e) ? " complete" : "";
   const namesKey = JSON.stringify(nameRows.map((list) => list.map((e) => [enemyLabel(e), nameClass(e)])));
   if (namesKey !== enemyNamesKey) {
