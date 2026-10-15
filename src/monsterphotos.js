@@ -25,6 +25,18 @@ export const MONSTER_PHOTOS = {
   el_cryptlord: [463, 472],
   d01_skeleton: [359, 422],
   mimic: [443, 440],
+  bs_zombie: [336, 363],
+  bs_weepangel: [409, 406],
+  bs_tombwarden: [369, 384],
+  bs_shroudstrangler: [408, 391],
+  bs_pettyrevenant: [379, 400],
+  bs_sarcoguard: [315, 383],
+  bs_ghoul: [397, 387],
+  bs_skullswarm: [394, 403],
+  d02_soldier: [372, 463],
+  bs_bonechanter: [378, 399],
+  bs_gravecaller: [408, 389],
+  bs_cryptabbot: [434, 392],
 };
 
 function loadImage(img, src, width, height) {
