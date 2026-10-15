@@ -1679,17 +1679,25 @@ export function powerAt(cfg, floor = 1) {
 // 守護騎士 Lv45・魔騎士 Lv60…) を覚える頃なので、その推奨Lv に当たる第四章の入口 (RAMP_JUMP.id = w14、推奨Lv52) で HP・攻撃・防御と
 // 主・強敵のHPの追加を一段 (×RAMP_JUMP) 強くする。第十章の入口 (第12層の最初の本筋 w38) でちょうど「HP・攻撃・防御 ×10・素早さ ×3・
 // 強敵のHP ×3・主のHP ×5」に届く (段の間は等比。素早さは一段の跳ねを持たない)。
-// 第十章からは本筋の迷宮を一つ進むごとに HP・攻撃・防御 ×1.5・素早さ ×1.1 (強敵・主のHPの追加は ×3・×5 のまま)。
-// 第二部 (第13層〜) は層の入口の段 LAYER_WALL (×2.0、その先 ×1.4) をさらに重ねる。
-// 強さ (HP・攻撃・防御) が k 倍になると、同じ隊の1戦の被ダメはおよそ k² 倍 (一撃が k 倍 × 倒すまでの手数が k 倍)。
+// 第十章の中は本筋の迷宮を一つ進むごとに HP・攻撃・防御 ×1.5・素早さ ×1.1 (強敵・主のHPの追加は ×3・×5 のまま)。
+// 第二部 (第13層〜) は本筋の迷宮ごとに ×PART2_STEP と、層の入口の段 LAYER_WALL (第13層 ×1.25、その先 ×1.2) を重ねる
+// (2026-10-15 ユーザーの指示: 第13層の入口で約100倍はやり過ぎ → 第十章の最後 w41 の約1.33倍 = 約45倍)。
+// ここまでの倍率 W (wallOf) は「HP・攻撃・防御を同じだけ上げたら」の物差し。実際には能力ごとに分ける (STAT_SPLIT、2026-10-15 ユーザーの指示
+// 「HP・VIT に意味を」): 味方の守りは VIT の引き算なので、敵の攻撃を W 倍すると VIT が効かなくなり、一撃が隊員の HP を何倍も超える。
+// そこで攻撃は W^(1/3) だけ上げ、その分の難しさを敵の HP (W^1.3) で取り戻す。防御は W のまま (statWallOf → combat.js scaleFoeStats)。
+// 1.3 は模擬戦で決めた: 推奨Lv の標準の隊を、W 倍の敵 (今までの仕様) に休まず12戦して半ばまでもつ強さに鍛え、その隊が攻撃 W^(1/3) の敵にも
+// 同じだけもつ敵の HP を w13〜w41 で探すと W^0.3 前後 (戦いは長くなる)。
 // 戦果 (✦Soul・金貨) は推奨Lv の基準のまま (startBattle の battleRewardK)。無限迷宮は独自の推奨Lv の表で強さを決めるので cfg.wall = 1 で外す
 export const PART2_LAYER = 13; // 第十一章 (物語の第二部の開始は変えない)
 export const RAMP_FROM_LAYER = 5; // 第三章: ここから本筋の迷宮ごとに強くなる
 export const WALL_FROM_LAYER = 12; // 第十章: ここで RAMP_TO に届き、以降は迷宮ごとに STEP_AFTER
 const RAMP_TO = { stat: 10, agi: 3, elite: 3, boss: 5 };
 export const RAMP_JUMP = { id: "w14", stat: 2, boss: 2, elite: 2 }; // 蘇生・HP1 で踏みとどまる技を覚える頃の一段 (素早さは跳ねない)
-const STEP_AFTER = { stat: 1.5, agi: 1.1 };
-export const LAYER_WALL = { 13: 2.0, 14: 1.4, 15: 1.4, 16: 1.4, 17: 1.4, 18: 1.4, 19: 1.4, 20: 1.4 };
+const STEP_AFTER = { stat: 1.5, agi: 1.1 }; // 第十章 (第12層) の中だけ
+const PART2_STEP = { stat: 1.07, agi: 1.03 }; // 第二部の本筋の迷宮ごと
+export const LAYER_WALL = { 13: 1.25, 14: 1.2, 15: 1.2, 16: 1.2, 17: 1.2, 18: 1.2, 19: 1.2, 20: 1.2 };
+// 能力ごとの段の掛け方 (W = wallOf の何乗か)。防御 (VIT) と素早さ・主/強敵のHPの追加は別 (W のまま / agiWallOf / strongHpWallOf)
+export const STAT_SPLIT = { atk: 1 / 3, hp: 1.3 };
 // 第L層の壁 = 第13層から第L層までの段の積 (第21層より先は第20層のまま)
 export function wallAt(layer) {
   let k = 1;
@@ -1702,6 +1710,8 @@ const PROGRESS_DUNGEONS = WORLD.filter(d => !d.side && d.layer >= RAMP_FROM_LAYE
 // 第十章の入口の段 (= 第三章〜第九章の本筋の数) と、一段強くなる段
 const RAMP_LEN = Math.max(1, PROGRESS_DUNGEONS.findIndex(d => d.layer >= WALL_FROM_LAYER));
 const JUMP_AT = PROGRESS_DUNGEONS.findIndex(d => d.id === RAMP_JUMP.id);
+// 第一部 (第12層まで) の最後の本筋の段。これより先は第二部の伸び
+const P1_END = PROGRESS_DUNGEONS.reduce((last, d, i) => (d.layer < PART2_LAYER ? i : last), RAMP_LEN);
 if (!(JUMP_AT > 0 && JUMP_AT <= RAMP_LEN)) throw new Error(`world: 敵の強さの一段 ${RAMP_JUMP.id} は第三章〜第十章の入口の本筋`);
 // 段 = 本筋は進行順の番号、寄り道・格上の迷宮は推奨Lv が届いている最後の本筋の段 (第三章より前の推奨Lv なら0)
 export function dungeonProgressOf(cfg) {
@@ -1714,13 +1724,14 @@ export function dungeonProgressOf(cfg) {
   return step;
 }
 // 段ごとの倍率: 第十章の入口まで等比で base に届き (jump があれば JUMP_AT の段で ×jump、その分だけ前後の伸びを緩める)、
-// その先は after^(段−RAMP_LEN) を重ねる
-function rampMul(step, base, after = 1, jump = 1) {
+// 第十章の中は after^(段−RAMP_LEN)、第二部の本筋は part2^(段−P1_END) を重ねる
+function rampMul(step, base, after = 1, jump = 1, part2 = 1) {
   const s = Math.min(step, RAMP_LEN);
-  return (base / jump) ** (s / RAMP_LEN) * (s >= JUMP_AT ? jump : 1) * after ** Math.max(0, step - RAMP_LEN);
+  return (base / jump) ** (s / RAMP_LEN) * (s >= JUMP_AT ? jump : 1)
+    * after ** Math.max(0, Math.min(step, P1_END) - RAMP_LEN) * part2 ** Math.max(0, step - P1_END);
 }
-export function dungeonStatMul(cfg) { return rampMul(dungeonProgressOf(cfg), RAMP_TO.stat, STEP_AFTER.stat, RAMP_JUMP.stat); }
-export function dungeonAgiMul(cfg) { return rampMul(dungeonProgressOf(cfg), RAMP_TO.agi, STEP_AFTER.agi); }
+export function dungeonStatMul(cfg) { return rampMul(dungeonProgressOf(cfg), RAMP_TO.stat, STEP_AFTER.stat, RAMP_JUMP.stat, PART2_STEP.stat); }
+export function dungeonAgiMul(cfg) { return rampMul(dungeonProgressOf(cfg), RAMP_TO.agi, STEP_AFTER.agi, 1, PART2_STEP.agi); }
 // 迷宮の壁 (cfg.wall があればそれ、無ければ段の倍率 × 第二部の層の壁)
 export function wallOf(cfg) {
   if (!cfg) return 1;
@@ -1730,6 +1741,13 @@ export function wallOf(cfg) {
 // 素早さの段。無限迷宮 (wall:1) は除く。
 export function agiWallOf(cfg) {
   return cfg && cfg.wall == null ? dungeonAgiMul(cfg) : 1;
+}
+// 能力ごとの段 (combat.js scaleFoeStats が個体に一度だけ掛ける): strengthAt は HP・攻撃・防御に同じ W を掛けるので、
+// 攻撃は W^STAT_SPLIT.atk に、HP は W^STAT_SPLIT.hp に直す倍率。防御は W のまま。無限迷宮・第二章までは {1, 1}
+export function statWallOf(cfg) {
+  const w = wallOf(cfg);
+  if (!cfg || cfg.wall != null || !(w > 1)) return { atk: 1, hp: 1 };
+  return { atk: w ** (STAT_SPLIT.atk - 1), hp: w ** (STAT_SPLIT.hp - 1) };
 }
 // 主・強敵のHPだけに重ねる段 ({boss, elite} — combat.js scaleStrongFoeHp)。無限迷宮は除く。
 export function strongHpWallOf(cfg) {

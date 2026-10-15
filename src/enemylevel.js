@@ -8,9 +8,9 @@
 // 図鑑の能力 (攻撃・防御・素早さ・HP) は、この基準の個体 (= Lv1) の実際の値を出す (enemyBaseSample)。
 // 素早さはその場所の fleeK で味方の規模 (手番の速さ — combat.js scaleFoeAgi) に直した値。
 // game.js も ui も import しない (combat.js の組み立てを借りるだけ)
-import { WORLD, poolAt, strengthAt, abyssLayer, dungeonLevelRaw, agiWallOf, strongHpWallOf } from "./dungeons/world.js";
+import { WORLD, poolAt, strengthAt, abyssLayer, dungeonLevelRaw, agiWallOf, strongHpWallOf, statWallOf } from "./dungeons/world.js";
 import { lvPow, partyAgi } from "./levelcurve.js";
-import { spawnEliteEnemies, spawnBossEnemies, spawnMimic, spawnRanked, spawnMetal, scaleFoeAgi, scaleStrongFoeHp } from "./combat.js";
+import { spawnEliteEnemies, spawnBossEnemies, spawnMimic, spawnRanked, spawnMetal, scaleFoeAgi, scaleStrongFoeHp, scaleFoeStats } from "./combat.js";
 import { MONSTERS } from "./sprites.js";
 import { METAL_TIERS } from "./dungeons/index.js";
 
@@ -42,14 +42,14 @@ function topRank(cfg, pool) {
 }
 
 // 一つの場所 (迷宮の1階ぶん) で、その魔物が出うる組み立ての強さをすべて list へ積む
-//   at = { cfg, floor, base (強さの素 × 推奨Lv の伸び), pool, tune, deep, bottom, elites, boss, bossRank, bossScale, layer }
+//   at = { cfg, floor, base (強さの素 × 推奨Lv の伸び), statWall (能力ごとの段。奈落の層は無し), pool, tune, deep, bottom, elites, boss, bossRank, bossScale, layer }
 function collectAt(key, at, list) {
   const m = MONSTERS[key];
   if (!m) return;
   const t = at.tune || {};
   const solo = at.base * (t.soloMul || 1);
   const reg = at.base * (t.enemyMul || 1) * (at.deep ? (t.deepMul || 1) : 1);
-  const one = (arr) => { if (arr && arr[0]) { scaleStrongFoeHp(arr[0], strongHpWallOf(at.cfg)); list.push({ s: strengthIndex(arr[0]), e: arr[0], at }); } };
+  const one = (arr) => { if (arr && arr[0]) { scaleFoeStats(arr[0], at.statWall); scaleStrongFoeHp(arr[0], strongHpWallOf(at.cfg)); list.push({ s: strengthIndex(arr[0]), e: arr[0], at }); } };
   // 雑魚 (出現表)・取り巻き (escort)・呼ばれる手下 (summonKey) は雑魚の倍率で組まれる
   if (at.pool.includes(key)) one(spawnEliteEnemies(key, reg));
   for (const k of at.pool) {
@@ -84,7 +84,7 @@ function worldSpots() {
   const out = [];
   for (const cfg of WORLD) for (let f = 1; f <= (cfg.floors || 1); f++) {
     out.push({
-      cfg, floor: f, base: strengthAt(cfg, f), fleeK: fleeScaleOf(cfg, dungeonLevelRaw(cfg, f)), pool: poolAt(cfg, f), tune: cfg.tune, deep: f > (cfg.floors || 3) / 2,
+      cfg, floor: f, base: strengthAt(cfg, f), statWall: statWallOf(cfg), fleeK: fleeScaleOf(cfg, dungeonLevelRaw(cfg, f)), pool: poolAt(cfg, f), tune: cfg.tune, deep: f > (cfg.floors || 3) / 2,
       bottom: f === cfg.floors, elites: cfg.elites, boss: cfg.boss, bossRank: cfg.bossRank, bossScale: (cfg.bossScale || 1) * ((cfg.tune && cfg.tune.bossMul) || 1),
       layer: cfg.layer || 1,
     });
