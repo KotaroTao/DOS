@@ -1,4 +1,4 @@
-// 地下墓地の透過原画。通常敵・名のある強敵・召喚される骸・ミミックで共用する。
+// 地下墓地・回廊の透過原画。通常敵・強敵・取り巻き・ミミックで共用する。
 // 能力値や文字グリッドは保ち、読めた原画だけを最初の描画前に登録する。
 export const MONSTER_PHOTOS = {
   bs_bonebat: [448, 415],
@@ -10,6 +10,17 @@ export const MONSTER_PHOTOS = {
   el_cryptlord: [463, 472],
   d01_skeleton: [359, 422],
   mimic: [443, 440],
+  bs_mournshade: [338, 366],
+  bs_ghoul: [323, 350],
+  bs_pettyrevenant: [369, 371],
+  bs_sarcoguard: [280, 368],
+  bs_skullswarm: [313, 348],
+  bs_spiritbat: [398, 361],
+  bs_shroudstrangler: [356, 350],
+  bs_tombwarden: [341, 375],
+  bs_weepangel: [369, 358],
+  el_palebutcher: [365, 378],
+  bs_zombie: [384, 374],
 };
 
 function loadImage(img, src, width, height) {
