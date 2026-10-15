@@ -39,6 +39,9 @@ import { keeperRow, sectionHead, scrollGrid, openItem, resetPages } from "./faci
 
 const sfx = (k) => { try { if (SFX[k]) SFX[k](); } catch (e) { /* noop */ } };
 const G = () => game.G;
+// 全件表示は試遊の図鑑シートを開いている間だけ。発見・討伐の記録は作らない。
+let testCodexAll = false;
+const allData = () => !!(game.G?.testPlay && testCodexAll);
 const SEGS = ["decree", "codex", "ach", "treasury"];
 
 function curSeg() { const s = remember("seg", "palace"); return SEGS.includes(s) ? s : "decree"; }
@@ -136,7 +139,7 @@ const isFreshMon = (k) => !!(freshOf("mon")[k] && G().codex.mon[k] && MONSTERS[k
 const isFreshItem = (id) => !!(freshOf("item")[id] && G().codex.item[id] && ITEMS[id]);
 const isFreshJob = (k, r) => !!(freshOf("job")[k + ":" + r] && SOUL_CLASSES[k]);
 // 職業の到達ランク (図鑑の記録。無ければ 1)
-const jobAttained = (k) => { const rec = G().codex.job[k]; return Math.max(1, Math.min(5, (rec && rec.rank) || 1)); };
+const jobAttained = (k) => { if (allData()) return 5; const rec = G().codex.job[k]; return Math.max(1, Math.min(5, (rec && rec.rank) || 1)); };
 // その職業の、到達済みで新着のランク
 const jobFreshRanks = (k) => {
   if (!G().codex.job[k]) return [];
@@ -158,6 +161,7 @@ function evRec() { const g = G(); return (g && g.events) || { seen: {}, picks: {
 function evFresh() { const f = evRec().fresh; return f && typeof f === "object" ? f : {}; }
 const isFreshEv = (id) => !!(evFresh()[id] && EVENT_MAP[id]);
 function markSeenEv(id, card) {
+  if (allData()) return;
   const f = evFresh();
   if (!f[id]) return;
   delete f[id];
@@ -166,6 +170,7 @@ function markSeenEv(id, card) {
 }
 // 詳細を開いた = 見た。印を消して数え直す
 function markSeen(kind, key, card) {
+  if (allData()) return;
   const f = freshOf(kind);
   if (!f[key]) return;
   delete f[key];
@@ -174,6 +179,7 @@ function markSeen(kind, key, card) {
 }
 // 職業のランクを見た: そのランクの印を消し、職業の札の印は新着のランクが残っていなければ消す
 function markSeenJob(k, r, card) {
+  if (allData()) return;
   const f = freshOf("job");
   if (!f[k + ":" + r]) return;
   delete f[k + ":" + r];
@@ -218,7 +224,7 @@ function codexCard(sprite, name, { color = null, onTap = null, sub = null, price
 // 名のある強敵の札: 名は最初から出す。討つまでは絵を伏せ、目撃・首級を添える
 function namedCard(key, m, n) {
   const g = G();
-  const killed = !!g.codex.mon[key];
+  const killed = allData() || !!g.codex.mon[key];
   const sub = n ? (n.trophy ? "首級 ✓" : killed ? "首級なし" : n.seen ? `目撃 ${n.seenAt}` : null) : null;
   if (killed) return codexCard(m, m.name, { color: "#ff7a5a", sub, kills: monKills(key), fresh: isFreshMon(key), onTap: (c) => { codexMonSheet(key); markSeen("mon", key, c); } });
   const c = el("button", "pl-card unknown boss-unk");
@@ -254,7 +260,7 @@ function monCard(key, namedBy = null) {
   const g = G();
   const m = MONSTERS[key];
   if (namedBy && m.named) return namedCard(key, m, namedBy[key]);
-  if (!g.codex.mon[key]) return m.boss && g.codex.met && g.codex.met[key] ? bossNameCard(key, m) : unknownCard();
+  if (!allData() && !g.codex.mon[key]) return m.boss && g.codex.met && g.codex.met[key] ? bossNameCard(key, m) : unknownCard();
   return codexCard(m, m.name, { color: m.rank ? RANK_COLOR[m.rank] : null, sub: m.boss ? "主" : m.elite ? "強敵" : null, kills: monKills(key), fresh: isFreshMon(key),
     onTap: (c) => { codexMonSheet(key); markSeen("mon", key, c); } });
 }
@@ -266,7 +272,7 @@ export function dungeonMonSheet(dungeonIdx) {
   if (!g || !dn) return null;
   const roster = game.dungeonRoster ? game.dungeonRoster(dn) : [];
   const namedBy = Object.fromEntries((game.namedHere ? game.namedHere(dn) : []).map((n) => [n.id, n]));
-  const seen = roster.filter((k) => g.codex.mon[k]).length;
+  const seen = roster.filter((k) => allData() || g.codex.mon[k]).length;
   const box = el("div", "pl-dmon");
   box.appendChild(el("div", "pl-codex-cap", `発見した魔物 ${seen}/${roster.length} ・ 討った敵は札から詳しく見られる`));
   const grid = el("div", "wa-pgrid pl-dmon-grid");
@@ -284,30 +290,31 @@ export function dungeonMonSheet(dungeonIdx) {
 }
 
 // 敵の図鑑はダンジョン単位: 地図に現れた迷宮ごとの札 (台帳の並び) + その他。札の中身は、その迷宮に出る雑魚・強敵・主
-const dunOpen = (i) => { try { return game.worldOpenIdx ? game.worldOpenIdx(i) : i < Math.max(1, G().unlockedDungeons || 1); } catch (e) { return i === 0; } };
+const dunOpen = (i) => { try { return allData() || (game.worldOpenIdx ? game.worldOpenIdx(i) : i < Math.max(1, G().unlockedDungeons || 1)); } catch (e) { return i === 0; } };
 function renderCodexMon(box) {
   const g = G();
   const opened = DUNGEONS.map((d, i) => i).filter((i) => DUNGEONS[i].tutorial || dunOpen(i));
   if (!opened.length) opened.push(0);
   let idx = Number(remember("codex", "dungeon"));
   // 名のある強敵 (縄張りが地図に現れた者)。区分 -2
-  const named = game.namedList ? game.namedList() : [];
+  const named = allData() ? Object.keys(MONSTERS).filter((k) => MONSTERS[k].named).map((k) => game.namedInfo(k)) : game.namedList ? game.namedList() : [];
   const namedBy = Object.fromEntries(named.map((n) => [n.id, n]));
-  if (!Number.isFinite(idx) || (idx !== -1 && !(idx === -2 && named.length) && !opened.includes(idx))) idx = opened[0];
+  if (!Number.isFinite(idx) || (idx !== -1 && !(idx === -2 && named.length) && !(idx === -3 && allData()) && !opened.includes(idx))) idx = opened[0];
   const items = [];
+  if (allData()) items.push({ key: "-3", label: "すべての魔物" });
   if (named.length) items.push({ key: "-2", label: "名のある強敵" });
   for (const i of opened) items.push({ key: String(i), label: DUNGEONS[i].name });
   items.push({ key: "-1", label: "その他" });
-  const rosterOf = (i) => i === -2 ? named.map((n) => n.id) : i === -1 ? (game.CODEX_OTHER || []).filter((k) => MONSTERS[k]) : (game.dungeonRoster ? game.dungeonRoster(DUNGEONS[i]) : []);
+  const rosterOf = (i) => i === -3 && allData() ? Object.keys(MONSTERS) : i === -2 ? named.map((n) => n.id) : i === -1 ? (game.CODEX_OTHER || []).filter((k) => MONSTERS[k]) : (game.dungeonRoster ? game.dungeonRoster(DUNGEONS[i]) : []);
   const freshIn = (i) => rosterOf(i).filter(isFreshMon).length || null;
   for (const it of items) it.badge = freshIn(Number(it.key));
   const cap = el("div", "pl-codex-cap");
   let area = null;
   const draw = () => {
-    const isOther = idx === -1, isNamed = idx === -2;
+    const isOther = idx === -1, isNamed = idx === -2, isAll = idx === -3;
     const roster = rosterOf(idx);
-    const seen = roster.filter((k) => g.codex.mon[k]).length;
-    cap.textContent = isNamed ? `名のある強敵 — 縄張りの迷宮の強敵階に出る。初めて討てば首級　討伐 ${seen}/${roster.length}`
+    const seen = roster.filter((k) => allData() || g.codex.mon[k]).length;
+    cap.textContent = isAll ? `すべての魔物　${roster.length}種` : isNamed ? `名のある強敵 — 縄張りの迷宮の強敵階に出る。初めて討てば首級　討伐 ${seen}/${roster.length}`
       : isOther ? `その他 — 宝箱や出来事に潜む敵・まれに紛れ込む者　記録 ${seen}/${roster.length}` : `${DUNGEONS[idx].name}　記録 ${seen}/${roster.length}`;
     scrollGrid(area, roster, (key) => isNamed ? namedCard(key, MONSTERS[key], namedBy[key]) : monCard(key),
       { cols: 3, cellH: MON_CARD_H, key: "mon:" + idx, empty: el("div", "wa-empty", "記録なし。") });
@@ -362,7 +369,7 @@ const sellOf = (it) => (game.sellPrice ? game.sellPrice(it) : Math.max(1, Math.f
 
 function renderCodexItem(box) {
   const g = G();
-  const seenIds = Object.keys(g.codex.item).filter((id) => ITEMS[id]);
+  const seenIds = Object.keys(allData() ? ITEMS : g.codex.item).filter((id) => ITEMS[id]);
   let cat = remember("codex", "itemCat") || "weapon";
   if (!ITEM_CATS.some((c) => c.key === cat)) cat = "weapon";
   let wcat = remember("codex", "weaponCat") || "all";
@@ -419,8 +426,8 @@ function renderCodexItem(box) {
 
 function renderCodexJob(box) {
   const g = G();
-  if (game.codexSweepJobs) game.codexSweepJobs(); // いまの魂の Lv・ランクを記録してから並べる
-  const known = Object.keys(SOUL_CLASSES).filter((k) => g.codex.job[k]);
+  if (!allData() && game.codexSweepJobs) game.codexSweepJobs(); // いまの魂の Lv・ランクを記録してから並べる
+  const known = Object.keys(SOUL_CLASSES).filter((k) => allData() || g.codex.job[k]);
   // 同じ系統 (見習い戦士 → 戦士 → 剣士 …) は1枚の札にまとめ、名は元の魂の職業名 (ランクの称号ではない — 2026-10 ユーザーの指示)、姿は到達した最も高い位階で出す。
   // 札を開くと詳細のシートでランクを切り替えて見られる。並びは位階の高い順
   const list = known.map((k) => ({ k, r: jobAttained(k) }));
@@ -440,7 +447,7 @@ function evGroupsOpen(rec) {
   // 層の欄は、その層の景色の迷宮が地図に現れてから出す
   const layers = new Set(DUNGEONS.filter((d, i) => dunOpen(i)).map((d) => d.layer));
   if (game.featureUnlocked && game.featureUnlocked("infinite")) layers.add(99); // 無限迷宮の欄は奈落が開いてから
-  return EVENT_GROUPS.filter((x) => !x.layer || layers.has(x.layer)
+  return EVENT_GROUPS.filter((x) => allData() || !x.layer || layers.has(x.layer)
     || EVENTS.some((e) => (e.layer || 0) === x.layer && rec.seen[e.id]));
 }
 const EV_STUB = { countCells: () => 0, monName: () => "古強者", eliteKeyHere: () => null, sense: () => false, layer: 1 };
@@ -456,10 +463,10 @@ function renderCodexEvents(box) {
   let area = null;
   const draw = () => {
     const list = listOf(gk);
-    const seen = list.filter((e) => rec.seen[e.id]).length;
+    const seen = list.filter((e) => allData() || rec.seen[e.id]).length;
     cap.textContent = `${(EVENT_GROUPS.find((x) => x.key === gk) || {}).name || ""}の出来事　見聞 ${seen}/${list.length}`;
     scrollGrid(area, list, (e) => {
-      if (!rec.seen[e.id]) return unknownCard();
+      if (!allData() && !rec.seen[e.id]) return unknownCard();
       const t = EV_TIERS[e.tier];
       return codexCard(evIcon(e), e.name, { color: t.accent, sub: t.label, fresh: isFreshEv(e.id),
         onTap: (c) => { codexEventSheet(e.id); markSeenEv(e.id, c); } });
@@ -499,7 +506,7 @@ export function codexEventSheet(id) {
   // 操霊師の遺書: 読んだページ
   if (id === "c30") {
     const lore = (rec.flags && rec.flags.lore) || {};
-    const ls = Object.keys(lore).filter((k) => lore[k]).sort();
+    const ls = allData() ? Object.keys(LORE_PAGES).sort((a, b) => Number(a) - Number(b)) : Object.keys(lore).filter((k) => lore[k]).sort();
     if (ls.length) for (const L of ls) body.appendChild(infoBlock(`第${L}層のページ`, (LORE_PAGES[L] || LORE_PAGES[0]).map((x) => setText(el("div", "pl-detail-desc"), x))));
   }
   return sheet.open({
@@ -512,14 +519,14 @@ export function codexEventSheet(id) {
 function codexTotals() {
   const g = G();
   return {
-    mon: Object.keys(g.codex.mon).filter((k) => MONSTERS[k]).length,
-    item: Object.keys(g.codex.item).filter((k) => ITEMS[k]).length,
-    job: Object.keys(g.codex.job).filter((k) => SOUL_CLASSES[k]).length,
-    ev: Object.keys((g.events && g.events.seen) || {}).filter((k) => EVENT_MAP[k]).length,
+    mon: Object.keys(allData() ? MONSTERS : g.codex.mon).filter((k) => MONSTERS[k]).length,
+    item: Object.keys(allData() ? ITEMS : g.codex.item).filter((k) => ITEMS[k]).length,
+    job: Object.keys(allData() ? SOUL_CLASSES : g.codex.job).filter((k) => SOUL_CLASSES[k]).length,
+    ev: Object.keys(allData() ? EVENT_MAP : (g.events && g.events.seen) || {}).filter((k) => EVENT_MAP[k]).length,
   };
 }
 function renderCodex(body) {
-  if (game.featureUnlocked?.("insight")) {
+  if (!allData() && game.featureUnlocked?.("insight")) {
     game.codexSweepJobs?.();
     const score = game.insightSummary();
     const card = el("section", "pl-insight");
@@ -555,7 +562,8 @@ function renderCodex(body) {
 
 // 迷宮の中で開く図鑑 (手帳の「図鑑」から)。王宮の図鑑と同じ中身 (敵/アイテム/職業/見聞) を背の高いシートに収める。
 // 敵はいま潜っている迷宮の札から開く (dungeonIdx)
-export function openCodexSheet({ dungeonIdx = null } = {}) {
+export function openCodexSheet({ dungeonIdx = null, all = false } = {}) {
+  testCodexAll = !!(game.G?.testPlay && all);
   const g = G();
   if (!g) return null;
   codexHome.dungeon = Number.isInteger(dungeonIdx) && dungeonIdx >= 0 && dunOpen(dungeonIdx) ? dungeonIdx : 0;
@@ -563,9 +571,9 @@ export function openCodexSheet({ dungeonIdx = null } = {}) {
   const box = el("div", "pl-body cx-body");
   refresh.top = refresh.sub = refresh.list = null;
   const h = sheet.open({
-    kind: "info", banner: "図鑑", className: "cx-sheet", body: box,
+    kind: "info", banner: allData() ? "図鑑・全データ（テスト用）" : "図鑑", className: "cx-sheet", body: box,
     footer: [{ label: "閉じる", kind: "ghost", onTap: (s) => s.close() }],
-    onClose: () => { refresh.sub = refresh.list = null; codexHome.dungeon = 0; },
+    onClose: () => { testCodexAll = false; refresh.sub = refresh.list = null; codexHome.dungeon = 0; },
   });
   renderCodex(box); // シートが画面に出てから描く (めくる格子が残りの高さを測るため)
   scrollBox(box);
@@ -631,7 +639,7 @@ export function codexMonSheet(key, o = {}) {
   const special = !!(rv && rv.special);
   const kills = monKills(key);
   const R = revealSteps(m);
-  const statsOpen = rv ? rv.stats : kills >= R.stats, loreOpen = rv ? rv.lore : kills >= R.lore;
+  const statsOpen = allData() || (rv ? rv.stats : kills >= R.stats), loreOpen = allData() || (rv ? rv.lore : kills >= R.lore);
   const tag = el("div", "pl-detail-tags");
   if (statsOpen) {
     const et = el("span", "pl-tag", `属性 ${elm.label}`);
@@ -665,7 +673,7 @@ export function codexMonSheet(key, o = {}) {
   // 伝承: 説明文と同じ段 (通常敵・強敵10体、主1体) で開く、世界の側から見たその魔物。出典を添える
   // 無限迷宮で倒しただけでは開かない: 本編の迷宮で1体以上倒した魔物だけ (docs/infinite-labyrinth.md 7章)
   const mainKills = rec === true ? 1 : Math.max(0, Number(e.main ?? e.kills) || 0);
-  const lore = loreOpen && mainKills > 0 ? MONSTER_LORE[key] : null;
+  const lore = loreOpen && (allData() || mainKills > 0) ? MONSTER_LORE[key] : null;
   if (loreOpen && !lore && MONSTER_LORE[key]) body.appendChild(el("div", "pl-lore pl-lore-lock", "伝承 ― 本編の迷宮でこの魔物を1体倒すと開く"));
   if (lore) {
     const box = el("div", "pl-lore");
@@ -735,17 +743,17 @@ export function codexMonSheet(key, o = {}) {
     const tro = ni.trophyId && ITEMS[ni.trophyId] ? ITEMS[ni.trophyId].name : "";
     const bountyTxt = { offer: "酒場に懸賞あり", active: "受けている", done: "果たした (酒場で報告)", claimed: "報告済み" }[ni.bounty] || (ni.posted ? "酒場に懸賞あり" : "縄張りの迷宮が地図に現れると酒場に出る");
     body.appendChild(infoBlock("名のある強敵", [
-      pairRow("縄張り", (ni.homes || []).join("・") || "—"),
+      pairRow("縄張り", (allData() ? DUNGEONS.filter((d) => (d.elites || []).includes(key)).map((d) => d.name) : ni.homes || []).join("・") || "—"),
       pairRow("目撃", ni.seen ? `${ni.seenAt ? ni.seenAt + " " : ""}B${ni.seen.floor}F` : "まだ姿を見せていない"),
       pairRow("首級", ni.trophy ? `${tro} ✓` : kills > 0 ? `${tro} (いま手元にない — 次に討てばまた落とす)` : "初めて討てば手に入る"),
       pairRow("懸賞", bountyTxt),
     ]));
   }
-  const idxs = Object.keys(e.dungeons || {}).map(Number).filter((i) => DUNGEONS[i] && dunOpen(i));
+  const idxs = (allData() ? DUNGEONS.map((d, i) => game.dungeonRoster(d).includes(key) ? i : null).filter((i) => i !== null) : Object.keys(e.dungeons || {})).map(Number).filter((i) => DUNGEONS[i] && dunOpen(i));
   if (!special) body.appendChild(infoBlock("出現した迷宮", idxs.length ? idxs.map((i) => pairRow(DUNGEONS[i].name, appearFloorsText(DUNGEONS[i], key, e.floors && e.floors[i]))) : [pairRow("記録なし", null, { dim: true })]));
   return sheet.open({
     kind: "info", banner: isOther ? "その他" : `${RACE_LABEL[m.race] || "敵"}${m.rank ? "・" + RANK_NAME[m.rank] + "級" : ""}`,
-    accent: rc, art: (foe ? !!m.art : kills > 0 || !(m.boss || m.named)) ? (rv && !rv.name ? unknownArt(m, 8) : m) : null, artScale: 8, float: isFloating(m, key),
+    accent: rc, art: (allData() || (foe ? !!m.art : kills > 0 || !(m.boss || m.named))) ? (rv && !rv.name ? unknownArt(m, 8) : m) : null, artScale: 8, float: isFloating(m, key),
     title: foe ? enemyLabel(foe) : m.name, titleColor: rv && !rv.name ? UNKNOWN_COLOR : null, body, className: "pl-detail-sheet",
     footer: [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }],
   });
@@ -781,12 +789,12 @@ export function codexItemSheet(id, o = {}) {
 // (o.card = 図鑑の札。見たランクの新着の印を消す時に札の印も整える)
 export function codexJobSheet(key, rank, heading, o = {}) {
   if (!SOUL_CLASSES[key]) return null;
-  if (game.codexSweepJobs) game.codexSweepJobs(); // 覚えたばかりの技も出るよう、開く前に記録を最新に
+  if (!allData() && game.codexSweepJobs) game.codexSweepJobs(); // 覚えたばかりの技も出るよう、開く前に記録を最新に
   const g = G();
   const rec = g.codex.job[key];
   rank = Math.max(1, Math.min(5, rank || (rec && rec.rank) || 1));
   // 切り替えられるのは到達したランクまで (記録より先のランクを開いた時はそこまで)
-  const top = Math.max(rank, rec ? jobAttained(key) : 1);
+  const top = allData() ? 5 : Math.max(rank, rec ? jobAttained(key) : 1);
   let h = null;
   const show = (r) => {
     if (rec) markSeenJob(key, r, o.card);
@@ -858,7 +866,7 @@ function jobSheetView(key, rank, top, heading, onRank) {
   }
   body.appendChild(infoBlock("ランクのパッシブ", rkRows.length ? rkRows : [pairRow("—", null, { dim: true })]));
   // スキル表: このランクのLv上限まで。到達したLvのものだけ開示
-  const reached = (rec && typeof rec === "object" && rec.lv) || 0;
+  const reached = allData() ? Math.max(1, ...jobSkillTable(key).map((e) => e.lvl)) : (rec && typeof rec === "object" && rec.lv) || 0;
   const capCount = (rankThresholds(SOUL_CLASSES[key].rarity)[rank - 1]) || 1;
   const lvCap = Math.max(soulLevelCap(key, capCount), reached);
   const rows = [];

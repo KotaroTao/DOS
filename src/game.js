@@ -19189,6 +19189,10 @@ async function init() {
     const banner = document.createElement("div");
     banner.className = "test-play-banner";
     banner.appendChild(document.createTextNode(G.testSkipDungeon ? "テストプレイ中・迷宮探索を省略・保存なし " : "テストプレイ中・保存なし "));
+    const codex = document.createElement("button");
+    codex.type = "button"; codex.textContent = "図鑑・全データ";
+    codex.addEventListener("click", () => UI.openCodexSheet?.({ all: true }));
+    banner.appendChild(codex);
     const exit = document.createElement("button");
     exit.type = "button"; exit.textContent = "終了してホームへ";
     exit.addEventListener("click", () => {
