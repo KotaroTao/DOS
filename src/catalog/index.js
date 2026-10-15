@@ -1,3 +1,4 @@
+import { itemNumber } from "../itemnumbers.js";
 import { prepareWeapon } from "../weaponpower.js";
 // アイテムカタログの集約窓口。
 // 各カテゴリファイル (weapons/armor/gear/misc) を統合し、ID重複を検査する。
@@ -181,6 +182,7 @@ for (const list of [WEAPONS, SHIELDS, ARMORS, HEADS, FEET, HANDS, ACCS, MISC, US
   for (const it of list) {
     if (CATALOG_ITEMS[it.id]) throw new Error("duplicate item id: " + it.id);
     prepareWeapon(it);
+    it.number = itemNumber(it.id);
     CATALOG_ITEMS[it.id] = it;
   }
 }
