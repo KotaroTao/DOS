@@ -9,12 +9,17 @@ const assert = require('node:assert/strict');
       const page = await browser.newPage({ viewport: { width: 1100, height: 900 }, serviceWorkers: 'block' });
       // クラウド上の初回モジュール読込だけに余裕を持たせる。製品のHTMLは変更しない。
       await page.route('http://localhost:8000/?testDungeon=*', async route => {
-        const response = await route.fetch();
-        const html = (await response.text()).replace('}, 5000);', '}, 60000);');
-        await route.fulfill({ response, body: html });
+        const html = require('node:fs').readFileSync('index.html', 'utf8').replace('}, 5000);', '}, 60000);');
+        await route.fulfill({ contentType: 'text/html', body: html });
       });
       await page.route('https://fonts.googleapis.com/**', route => route.abort());
       await page.route('https://fonts.gstatic.com/**', route => route.abort());
+      // ほかの制作範囲の画像を同時取得せず、この100点の表示を検査する。
+      const targets = new Set(require('../../docs/art/items-1601-1700/items.json').map(item => item.id));
+      await page.route('**/art/**', route => {
+        const id = new URL(route.request().url()).pathname.split('/').pop().replace(/\.webp$/, '');
+        return targets.has(id) ? route.continue() : route.abort();
+      });
       if (mode === 'error') await page.route('**/art/items/*.webp', r => r.abort());
       if (mode === 'wrong-size') await page.route('**/art/items/*.webp', r => r.fulfill({
         contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>',
@@ -23,8 +28,8 @@ const assert = require('node:assert/strict');
         await new Promise(resolve => setTimeout(resolve, 5000));
         await r.abort().catch(() => {});
       });
-      await page.goto('http://localhost:8000/?testDungeon=w01&testFloor=1');
-      await page.waitForFunction(() => window.__game?.G.state === 'board', { timeout: 30000 });
+      await page.goto('http://localhost:8000/?testDungeon=w01&testFloor=1', { waitUntil: 'commit' });
+      await page.waitForFunction(() => window.__game?.G.state === 'board', { timeout: 60000 });
       assert.equal(await page.getByText('⚠ 読み込みに失敗しました', { exact: true }).count(), 0);
       if (mode === 'normal') {
         await page.setViewportSize({ width: 390, height: 844 });
