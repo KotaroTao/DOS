@@ -1372,3 +1372,24 @@ button.sp-lu-next { cursor: pointer; }
 .pt-preset-preview .ui-sheet-body { display: flex; flex-direction: column; gap: 12px; }
 .pt-preset-detail h3 { margin: 0; color: var(--accent-hi); font-size: 14px; }
 .pt-preset-detail button { text-align: left; white-space: normal; }
+
+/* 館の上段は装備探しを優先し、編成の入口は名前の横に保つ。 */
+.pt-mansion-filter { flex: 0 0 auto; margin-left: auto; padding: 4px 6px; }
+.pt-mansion-head { flex-wrap: wrap; }
+.pt-mansion-head .pt-mansion-title { flex-basis: 90px; }
+.pt-mansion-links .pt-mansion-manage { margin-left: 0; min-height: 44px; }
+.gf-summary, .gf-picked, .gf-elements, .gf-groups, .gf-options { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.gf-summary:empty, .gf-picked:empty { display: none; }
+.gf-summary { margin: 4px 0; }
+.gf-rule { align-self: center; font-size: 11px; color: var(--ink-dim); }
+.gf-panel { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.gf-panel h3 { margin: 3px 0; font-size: 14px; color: var(--accent-hi); }
+.gf-hint, .gf-result { margin: 0; font-size: 12px; color: var(--ink-dim); line-height: 1.7; }
+.gf-result { color: var(--accent-hi); }
+.gf-search { box-sizing: border-box; width: 100%; min-width: 0; min-height: 44px; padding: 8px; border: 1px solid #66543c; border-radius: 3px; background: #171614; color: var(--ink); font: inherit; font-size: 16px; }
+.gf-mode { display: flex; align-items: center; gap: 8px; min-height: 44px; font-size: 12px; }
+.gf-mode input { width: 20px; height: 20px; }
+.gf-panel .ui-btn, .gf-summary .ui-btn { min-height: 44px; max-width: 100%; white-space: normal; }
+.gf-sheet .ui-sheet-foot { flex-wrap: wrap; }
+.gf-sheet .ui-sheet-foot .ui-btn { min-width: 80px; }
+.pt-bagwrap > .gf-open { align-self: flex-start; }

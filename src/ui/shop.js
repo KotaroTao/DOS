@@ -1,9 +1,9 @@
 import { bagItems, bagSortControl } from "./bagsort.js";
 import { bagCount, isFormationItem, bagOwners } from "../items.js";
-// ===== 商会 — 売る・鑑定 (隊の全員・控え込み) / 買う (最良の装備者へ・買って装備) =====
+// ===== 商会 — 売る・鑑定 (隊の全員・控え込み) / 買う (選択した人業と比較・買って装備) =====
 // 担当: WP-C。街シェルの「商会」タブを描く。
 //   売る・鑑定: まとめて鑑定 / まとめて売る (ops の一括操作。除外の内訳つき) + 全員の持ち物 (控え込み)
-//   買う      : 分類のチップ1列 (武器だけ下に種別の列) + 棚の行 (最良の装備者との増減・買って装備・▾ 渡す先)
+//   買う      : 人業の選択 + 分類のチップ1列 + 棚の行 (選択者の現在装備との増減・買って装備)
 // 最後に開いた区分・分類は prefs (dos-ui) に覚える。
 // 提供する契約: UI.openShop(seg, {cat}) / UI.unidCount() / UI.junkList(opts) / UI.shopBuy(id, who, {equip})
 //              UI.confirmSellJunk() / UI.confirmIdentifyAll() (帰還の報告・提案からも同じ確認で呼べる)
@@ -12,7 +12,7 @@ import { bagCount, isFormationItem, bagOwners } from "../items.js";
 import { UI, game, ops, registerUI } from "./ctx.js";
 import { el, button, segmented, chips, whisper, sheet, toast, setText, glyph, longPress } from "./kit.js";
 import { getPref, setPref, remember } from "./prefs.js";
-import { statLines, isEquippable } from "./itemview.js";
+import { statLines, isEquippable, gearScore } from "./itemview.js";
 import { equipLevelOf } from "../items.js";
 import {
   itemSheet, wearPlan, deltaFor, deltaEl, nameSpan, goldEl, caretIcon, equipTo, floatGold, ownerOf, equipCandidates, shopOpen, isUpgrade,
@@ -34,6 +34,54 @@ const forgeOpen = () => !!(game.featureUnlocked && game.featureUnlocked("forge")
 const segOf = () => { const s = getPref("shopSeg"); return s === "buy" ? "buy" : s === "forge" && forgeOpen() ? "forge" : "sell"; };
 const catOf = () => getPref("shopBuyCat", "rec") || "rec";
 const wcatOf = () => remember("seg", "shopWeapon") || "all";
+
+function selectedBuyer() {
+  const dolls = allDolls().filter(d => d && !d.isEmpty);
+  return dolls.find(d => d.uid === getPref("shopDollUid")) || dolls.find(d => d.alive && d.primary != null) || dolls[0] || null;
+}
+function buyerPlan(it) {
+  const d = selectedBuyer();
+  const plan = wearPlan(it, { pool: d && d.alive ? [d] : [] });
+  const sw = plan.target && UI.equipSwapInfo?.(d, it);
+  if (sw) { plan.delta = sw.delta; plan.score = gearScore(d, sw.delta); }
+  return plan;
+}
+function buyerStrip() {
+  const selected = selectedBuyer();
+  const box = el("section", "wpc-characters");
+  box.setAttribute("aria-label", "比較する人業");
+  const strip = el("div", "wpc-character-strip");
+  for (const d of allDolls().filter(d => d && !d.isEmpty)) {
+    const b = el("button", "wpc-character" + (d === selected ? " selected" : ""));
+    b.type = "button";
+    b.dataset.dollUid = d.uid;
+    b.setAttribute("aria-pressed", String(d === selected));
+    b.setAttribute("aria-label", `${d.name}${isReserve(d) ? "（控え）" : ""}の装備と比較`);
+    b.append(UI.partyPortraitCanvas ? UI.partyPortraitCanvas(d, 44) : dollIcon(d), el("span", null, d.name));
+    b.addEventListener("click", () => { setPref("shopDollUid", d.uid); sfx("select"); rerender(); });
+    strip.appendChild(b);
+  }
+  box.append(strip, el("div", "wpc-comparison-label", selected ? `${selected.name}の現在装備と比較${isReserve(selected) ? "（控え）" : ""}` : "比較する人業がいない"));
+  requestAnimationFrame(() => strip.querySelector(".selected")?.scrollIntoView({ block: "nearest", inline: "nearest" }));
+  return box;
+}
+
+// 数値が下がる品も増減を示す。特殊効果は点数と分け、失う効果を隠さない。
+function buyerComparison(it, plan) {
+  const box = el("span", "wpc-comparison");
+  const d = selectedBuyer();
+  const sw = d?.alive ? UI.equipSwapInfo?.(d, it) : null;
+  if (plan.delta) box.appendChild(deltaEl(plan.delta));
+  if (sw) {
+    box.appendChild(el("span", "wpc-current", `いま：${sw.cur.length ? sw.cur.map(itemName).join("・") : "未装備"}`));
+    if (sw.lost.length) box.appendChild(el("span", "wpc-effect lost", `失う：${sw.lost.join("・")}`));
+    if (sw.got.length) box.appendChild(el("span", "wpc-effect got", `得る：${sw.got.join("・")}`));
+  } else if (!plan.delta) {
+    const why = !d ? "人業がいない" : !d.alive ? "魂が砕けている" : UI.canEquipReason?.(d, it) || "装備を入れ替えられない";
+    box.appendChild(el("span", "wpc-dim", `装備不可：${why}`));
+  }
+  return box;
+}
 
 // 「装備の候補か」の見立ては重い (人業ごとに仮の再計算) ので、同じ同期の処理の中だけ覚えておく
 const upCache = new Map();
@@ -361,6 +409,8 @@ function openExclusions() {
 // ---------------------------------------------------------------- 買う
 // 袋に空きのある、生きている人業 (隊 → 控え)
 function defaultBuyer() {
+  const selected = selectedBuyer();
+  if (selected?.alive && bagCount(selected.items) < MAX_ITEMS) return selected;
   const g = G();
   const party = (g.party || []).filter((d) => d.alive && bagCount(d.items) < MAX_ITEMS);
   if (party.length) return party[0];
@@ -409,14 +459,14 @@ function stockIds() {
   const g = G();
   return Object.keys(g.shopStock || {}).filter((id) => ITEMS[id] && g.shopStock[id] > 0);
 }
-// おすすめ: 隊 (と控え) の誰かが得をする棚の品を、得の大きい順に
+// おすすめ: 選択した人業に役立つ品だけ。通常品と追加つきの在庫を別々に見立てる。
 function recList() {
   const out = [];
   for (const id of stockIds()) {
-    const it = ITEMS[id];
-    if (!isEquippable(it)) continue;
-    const plan = wearPlan(it);
-    if (plan.target && plan.delta && plan.score > 0) out.push({ id, plan });
+    const variants = [game.shopPlainStock(id) > 0 ? ITEMS[id] : null, game.shopAfxItem?.(id)].filter(Boolean);
+    const plans = variants.filter(isEquippable).map(buyerPlan).filter(p => p.target && p.delta && p.score > 0);
+    plans.sort((a, b) => b.score - a.score);
+    if (plans.length) out.push({ id, plan: plans[0] });
   }
   out.sort((a, b) => b.plan.score - a.plan.score);
   return out;
@@ -444,7 +494,7 @@ function stockRow(id) {
   const price = game.buyPrice(it);
   const n = game.shopPlainStock(id);
   const rk = rarityKey(it);
-  const plan = isEquippable(it) ? wearPlan(it) : null;
+  const plan = isEquippable(it) ? buyerPlan(it) : null;
   const upgrade = !!(plan && plan.target && plan.delta && plan.score > 0 && bagCount(plan.target.items) < MAX_ITEMS);
   const buyer = upgrade ? plan.target : defaultBuyer();
   const row = el("div", "wpc-srow" + (upgrade ? " up" : "") + (rk ? " rar-" + rk : ""));
@@ -464,24 +514,22 @@ function stockRow(id) {
   const l3 = el("span", "wpc-srow-l3");
   const kind = it.slot === "weapon" ? (WEAPON_CAT_LABEL[it.cat] || "武器") : ((ITEM_CATS.find((c) => c.slots.includes(it.slot)) || {}).label || "");
   l3.appendChild(el("span", "wpc-srow-kind", kind));
-  // 装備できるLv (隊・控えの誰も届いていなければ赤く)
+  // 装備できるLv (選択した人業が届いていなければ赤く)
   const needLv = isEquippable(it) ? equipLevelOf(it) : 1;
   if (needLv > 1) {
-    const reach = ((g.party || []).concat(g.reserve || [])).some((d) => d && d.primary != null && (d.jobLv || 1) >= needLv);
+    const d = selectedBuyer();
+    const reach = d && d.primary != null && (d.jobLv || 1) >= needLv;
     l3.appendChild(el("span", "wpc-srow-lv" + (reach ? "" : " ng"), `Lv${needLv}〜`));
   }
-  if (upgrade) {
-    l3.appendChild(deltaEl(plan.delta));
-    l3.appendChild(el("span", "wpc-srow-who", plan.target.name));
-  } else if (plan) {
-    l3.appendChild(el("span", "wpc-dim", plan.scores.some((s) => s.can) ? "今の装備が勝る" : needLv > 1 && !((g.party || []).concat(g.reserve || [])).some((d) => d && d.primary != null && (d.jobLv || 1) >= needLv) ? `メイン魂Lv${needLv}から装備できる` : "装備できる者がいない"));
+  if (plan) {
+    l3.appendChild(buyerComparison(it, plan));
   } else {
     const s = statLines(it);
     l3.appendChild(setText(el("span", "wpc-dim"), s || (it.slot === "misc" ? "宝物庫に奉納できる" : "")));
   }
   tx.appendChild(l3);
   info.appendChild(tx);
-  info.addEventListener("click", () => { sfx("select"); itemSheet(it, { context: "stock", stockId: id, price, target: plan && plan.target ? plan.target : buyer }); });
+  info.addEventListener("click", () => { sfx("select"); itemSheet(it, { context: "stock", stockId: id, price, target: selectedBuyer(), fixedTarget: true }); });
   row.appendChild(info);
 
   const act = el("div", "wpc-buy");
@@ -492,7 +540,7 @@ function stockRow(id) {
   main.appendChild(el("span", "wpc-buy-l", upgrade ? "買って装備" : "買う"));
   main.disabled = short || !buyer || n <= 0;
   main.setAttribute("aria-label", `${it.name} を ${price} で${upgrade ? "買って " + plan.target.name + " に装備" : "買う"}`);
-  // 最良の装備者へ買って装備 (元に戻せる) / 装備でなければ袋へ
+  // 選択した人業へ買って装備 (元に戻せる) / 装備でなければ袋へ
   main.addEventListener("click", () => { if (upgrade) equipPick(plan.target, it, { buyId: id }); else shopBuy(id, buyer, { equip: false }); });
   act.appendChild(main);
   row.appendChild(act);
@@ -700,7 +748,7 @@ function renderBuy(wrap) {
   wrap.appendChild(box);
   return () => {
     if (!ids.length) {
-      box.appendChild(el("div", "wpc-empty big", cat === "rec" ? "いまの隊の装備に勝る品は、棚に並んでいない。" : "この種類の品は売り切れだ。"));
+      box.appendChild(el("div", "wpc-empty big", cat === "rec" ? `${selectedBuyer()?.name || "選択した人業"}の装備に勝る品は、棚に並んでいない。` : "この種類の品は売り切れだ。"));
       return;
     }
     fillList(box, ids, stockRowsFor, "buyPage");
@@ -709,10 +757,10 @@ function renderBuy(wrap) {
 // 棚の1品ぶんの行: 追加つきの1点があれば先に (docs/infinite-labyrinth.md 17-1)、通常品が残っていれば通常の行
 function stockRowsFor(id) {
   const ax = game.shopAfxItem ? game.shopAfxItem(id) : null;
-  if (!ax) return stockRow(id);
   const frag = document.createDocumentFragment();
-  frag.appendChild(afxStockRow(id, ax));
-  if ((game.shopPlainStock ? game.shopPlainStock(id) : 0) > 0) frag.appendChild(stockRow(id));
+  const recommended = it => catOf() !== "rec" || buyerPlan(it).score > 0;
+  if (ax && recommended(ax)) frag.appendChild(afxStockRow(id, ax));
+  if (game.shopPlainStock(id) > 0 && recommended(ITEMS[id])) frag.appendChild(stockRow(id));
   return frag;
 }
 // 追加つきの品の行: 名・追加の印と短い説明・値段 (追加の分だけ高い)。買うと、その品の組は消える
@@ -737,9 +785,10 @@ function afxStockRow(id, it) {
   const l3 = el("span", "wpc-srow-l3");
   l3.appendChild(el("span", "wpc-srow-meta", "追加つき"));
   l3.appendChild(setText(el("span", "wpc-dim"), (it.afxText || []).map((a) => a.text).join("・")));
+  if (isEquippable(it)) l3.appendChild(buyerComparison(it, buyerPlan(it)));
   tx.appendChild(l3);
   info.appendChild(tx);
-  info.addEventListener("click", () => { sfx("select"); itemSheet(it, {}); });
+  info.addEventListener("click", () => { sfx("select"); itemSheet(it, { target: selectedBuyer(), fixedTarget: true }); });
   row.appendChild(info);
   const act = el("div", "wpc-buy");
   const buyer = defaultBuyer();
@@ -778,6 +827,7 @@ function render(root) {
   const seg = segOf();
   const wrap = el("div", "wpc-shop seg-" + seg);
   wrap.appendChild(keeperLine(seg));
+  if (seg === "buy") wrap.appendChild(buyerStrip());
   const bar = el("div", "wpc-bar");
   const unid = unidCount();
   bar.appendChild(segmented(

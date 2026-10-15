@@ -735,6 +735,7 @@ const ASSETS = [
   "./src/ui/ctx.js",
   "./src/ui/prefs.js",
   "./src/ui/bagsort.js",
+  "./src/ui/gearfilter.js",
   "./src/ui/motion.js",
   "./src/ui/nav.js",
   "./src/ui/kit.js",
