@@ -1,4 +1,4 @@
-// 地下墓地・修道院・黒水の取水口・回廊の透過原画。通常敵・強敵・主・召喚先・ミミックで共用する。
+// 地下墓地・修道院・黒水の取水口・回廊・沈んだ礼拝堂の透過原画。通常敵・強敵・主・召喚先・ミミックで共用する。
 // 能力値や文字グリッドは保ち、読めた原画だけを最初の描画前に登録する。
 export const MONSTER_PHOTOS = {
   bs_bonebat: [448, 415],
@@ -36,6 +36,18 @@ export const MONSTER_PHOTOS = {
   bs_bonechanter: [378, 399],
   bs_gravecaller: [408, 389],
   bs_cryptabbot: [434, 392],
+  // 沈んだ礼拝堂（通常敵9種・強敵・主。召喚先は汚泥の塊）。
+  bs_sludgeooze: [378, 330],
+  bs_waterelemental: [296, 348],
+  bs_sewerdredger: [358, 336],
+  bs_brinewraith: [348, 356],
+  bs_waterhag: [329, 345],
+  bs_eelfiend: [351, 365],
+  bs_anglerfiend: [348, 334],
+  d03_sahagin: [418, 334],
+  bs_abysstentacle: [330, 337],
+  el_drownedpaladin: [363, 371],
+  bs_sewerlord: [498, 372],
 };
 
 function loadImage(img, src, width, height) {
