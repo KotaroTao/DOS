@@ -1,6 +1,32 @@
 // 迷宮の透過原画。通常敵・強敵・主・召喚先・共通の敵で共用する。
 // 能力値や文字グリッドは保ち、読めた原画だけを最初の描画前に登録する。
 export const MONSTER_PHOTOS = {
+  // <<ASH_ALTAR_ART>>
+  // 灰の降る祭場（作成済みの通常敵・強敵・共通敵は既存原画を共用）。
+  bs_demon: [447, 520],
+  bs_pyrelich: [268, 520],
+  bs_brimstonegolem: [336, 520],
+  bs_shadowogre: [412, 520],
+  bs_darkliege: [383, 520],
+  bs_flamedrake: [359, 520],
+  // <</ASH_ALTAR_ART>>
+  // <<DROWNED_HYMN_ART>>
+  // 溺れた聖歌の回廊（作成済みの敵・召喚先は既存原画を共用）。
+  d04_grudge: [520, 445],
+  bs_idolguardian: [459, 491],
+  bs_shadowseraph: [486, 477],
+  bs_dreadlich: [448, 520],
+  bs_crystalgolem: [501, 520],
+  // <</DROWNED_HYMN_ART>>
+  // <<FOSSIL_TOMB_ART>>
+  // 化石竜の墓所（作成済みの通常敵・強敵・共通敵は既存原画を共用）。
+  bs_fossildragon: [520, 357],
+  bs_primalbeast: [520, 367],
+  bs_primalserpent: [520, 339],
+  bs_cavebehemoth: [520, 335],
+  bs_earthshaker: [520, 404],
+  bs_abysshorror: [520, 361],
+  // <</FOSSIL_TOMB_ART>>
   // <<SUNKEN_PATH_ART>>
   // 水底の参道（作成済みの異端大司教・共通敵は既存原画を共用）。
   bs_kelpdrowned: [520, 445],
@@ -13,6 +39,16 @@ export const MONSTER_PHOTOS = {
   bs_sunkenbell: [490, 520],
   bs_soulharvester: [520, 492],
   // <</SUNKEN_PATH_ART>>
+  // 火を噴く地割れ（残り火の王は作成済み原画を共用）。
+  bs_magmaslime: [426, 407],
+  bs_emberswarm: [425, 387],
+  bs_ashghoul: [397, 393],
+  bs_cinderwraith: [426, 425],
+  bs_lavamaw: [425, 418],
+  bs_sulfurfiend: [412, 425],
+  bs_lavagolem: [395, 399],
+  bs_magmaray: [425, 425],
+  bs_hellhound: [389, 425],
   // 銀業の隠れ里の未作成だった黄金の守り像。他12体は既存絵を共用。
   bs_goldgolem: [363, 443],
   // 水晶の鉱脈（作成済みの鉱脈喰らいは既存絵を使う）。

@@ -218,6 +218,15 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 
 ### A. 必須 (物語の筋や正典と食い違う)
 
+**A-40. 第三章 report_w11「師の師」王の重複した左腕の修正** `art/story-review/chapter3/report_w11.png` (済)
+
+- ユーザー指定: 「師の師」の王の左手が2本ある。口元に添えた左手を残し、画面右下の肘掛けを握る余分な左手・前腕を取り除く。衣のひだで自然につなぎ、ほかは保つ。
+
+```text
+...except: correct ONLY the king's duplicated left arm. Preserve his left hand touching his mouth and its connected bent arm. Remove the extra left hand gripping the armrest at image-right near x=990,y=600 and the attached extra forearm and sleeve below the mouth-touching arm. Replace this extra limb with natural folds of his red embroidered robe and white black-spotted ermine cape lying close to his torso and lap; leave the carved armrest visible and unoccupied. The king's right arm remains concealed behind the open book at image-left; do not add a hand. Preserve his face, crown, beard, pensive posture, apprentice, open book, map, throne, background chair, architecture, composition, fine pixel texture, colors and lighting exactly. Make no other changes.
+```
+
+
 
 **A-39. 第十章 pre_w41「階段の前の宰相」地面の足跡を除去** `art/story-review/chapter10/pre_w41.png` (済)
 - ユーザー指定 (2026-10-16): 画面下部中央やや右の石床にある、足裏の形をした二つの深い跡を消し、周囲と同じ石畳に戻す。本文は変えない。
