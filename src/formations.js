@@ -4,7 +4,7 @@ import { recalcDoll, subPicks, subPickCap, soulLearnedSkills, soulLearnedPassive
 
 export const FORMATION_COUNT = 10;
 const dollsOf = g => [...(g.party || []), ...(g.reserve || [])];
-const copySubs = subs => (subs || []).map(s => s ? { uid: s.uid, picked: true, picks: subPicks({ ...s, picks: s.picks?.map(p => ({ ...p })) }).map(p => ({ ...p })) } : null);
+const copySubs = subs => (subs || []).map(s => s ? { uid: s.uid, picked: s.picked, picks: subPicks({ ...s, picks: s.picks?.map(p => ({ ...p })) }).map(p => ({ ...p })) } : null);
 export function formationItems(presets) {
   return new Set((presets || []).flatMap(p => (p?.members || []).flatMap(m => Object.values(m.equip || {}).filter(Boolean))));
 }
@@ -28,7 +28,7 @@ export function saveFormation(g, index, name = null, remove = false) {
   const presets = Array.from({ length: FORMATION_COUNT }, (_, i) => g.formations?.[i] || null);
   const old = presets[index];
   const title = String(name ?? old?.name ?? `編成${index + 1}`).trim().slice(0, 24) || `編成${index + 1}`;
-  presets[index] = remove ? null : { name: title, members: g.party.map(d => ({ uid: d.uid, primary: d.primary ?? null, subs: copySubs(d.subs), equip: Object.fromEntries(SLOTS.map(k => [k, d.equip?.[k] || null])) })) };
+  presets[index] = remove ? null : { name: title, members: g.party.map(d => ({ uid: d.uid, primary: d.primary ?? null, subs: copySubs(d.subs).map(s => s ? { ...s, picked: true } : null), equip: Object.fromEntries(SLOTS.map(k => [k, d.equip?.[k] || null])) })) };
   const reserved = formationItems(presets);
   const used = (g.inventory || []).filter(it => !reserved.has(it)).length;
   if (used > MAX_ITEMS && used > (g.inventory || []).filter(it => !isFormationItem(it)).length) return { ok: false, msg: `持ち物袋にあと${used - MAX_ITEMS}枠の空きが必要です。` };
