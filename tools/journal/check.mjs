@@ -77,6 +77,14 @@ assert(!byId.get("irene_omokage").available({ world:{reported:{w09:true},beats:{
   "第三章へ進んでも、館で聞くまでは面影の話を明かさない");
 assert(byId.get("irene_omokage").available({ world:{beats:{irene_omokage:true}} }),
   "彫られた顔は館の語りを聞くと読める");
+// 進行条件の達成と、館で実際に語りを聞いた記録は区別する。
+for (const id of ["irene_boons", "irene_undercity", "irene_furnace", "irene_abyss", "irene_coat", "irene_frozen"]) {
+  const ready = { world:{boonsIntro:1,reported:{w13:true,w17:true,w21:true},found:{w22_coat:true,w23_names:true},beats:{}} };
+  assert(!byId.get(id).available(ready), `${id} は聞く前に一覧へ出さない`);
+  ready.world.beats[id] = true;
+  assert(byId.get(id).available(ready), `${id} は聞いた後に一覧へ出す`);
+  assert.equal(byId.get(id).image, storyImage(id), `${id} はイベントと一覧で同じ絵を使う`);
+}
 assert(!byId.get("irene_trust").available({ irene:{greeted:true,visits:99} }),
   "来館数だけで未読の親しさの会話を明かさない");
 assert(byId.get("first_vessel").available({ dollsPurchased:1, party:[] }), "控えに移っても最初の誕生は読める");
