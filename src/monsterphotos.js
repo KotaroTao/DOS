@@ -137,6 +137,13 @@ export const MONSTER_PHOTOS = {
   d03_sahagin: [418, 334],
   bs_abysstentacle: [330, 337],
   bs_sewerlord: [498, 372],
+  // 捨て砦の地下牢の未作成だった通常敵6体。
+  d03_ghost: [429, 417],
+  bs_banshee: [364, 411],
+  bs_shadowmage: [390, 434],
+  bs_dullahan: [410, 408],
+  bs_bloodwraith: [448, 431],
+  bs_vampire: [339, 444],
 };
 
 function loadImage(img, src, width, height) {
