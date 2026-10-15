@@ -11,6 +11,28 @@
 const CACHE = "dos-dev";
 const DEV = CACHE === "dos-dev";
 const ASSETS = [
+  // 奉納品21〜40の透過原画。
+  "./art/misc/m_keep_seal_key.webp",
+  "./art/misc/m_deathpaint_bottle.webp",
+  "./art/misc/m_halfburnt_chronicle.webp",
+  "./art/misc/m_haunted_glass_eye.webp",
+  "./art/misc/m_groaning_iron.webp",
+  "./art/misc/m_mist_crystal.webp",
+  "./art/misc/m_abyss_black_pearl.webp",
+  "./art/misc/m_sahagin_barb.webp",
+  "./art/misc/m_shriek_root_cloth.webp",
+  "./art/misc/m_martyr_skull.webp",
+  "./art/misc/m_watergrave_coin.webp",
+  "./art/misc/m_whelp_shed_horn.webp",
+  "./art/misc/m_water_sprite_bell.webp",
+  "./art/misc/m_dragon_silver.webp",
+  "./art/misc/m_robber_left_pouch.webp",
+  "./art/misc/m_hollow_armor_core.webp",
+  "./art/misc/m_ogre_molar.webp",
+  "./art/misc/m_grave_star_iron.webp",
+  "./art/misc/m_guardian_tablet.webp",
+  "./art/misc/m_ossuary_key.webp",
+
   "./art/monsters/bs_dryadfey.webp",
   "./art/monsters/bs_wisplure.webp",
   "./art/monsters/bs_thornhound.webp",
