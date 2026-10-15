@@ -24,5 +24,4 @@ for n,(e,box) in enumerate(zip(entries,boxes),1):
  tile.thumbnail((288,288),Image.Resampling.LANCZOS)
  out=Image.new('RGBA',(320,320));out.alpha_composite(tile,((320-tile.width)//2,(320-tile.height)//2))
  out.save('art/offerings/'+e['id']+'.webp',quality=88,method=6)
-Path('docs/art/offerings/README.md').write_text('# 奉納品1〜20\n\n`src/catalog/misc.js` の登録順。原画は `01-20-master.png`、出荷用は `art/offerings/<id>.webp` (320×320、透過)。原画を各品ごとに切り出し、余白を付けてWebPに変換。\n\n'+ '\n'.join(f'{n}. {e["name"]} — `{e["id"]}`' for n,e in enumerate(entries,1))+'\n')
 print('WebP',len(entries),sum(p.stat().st_size for p in Path('art/offerings').glob('*.webp')),'bytes')
