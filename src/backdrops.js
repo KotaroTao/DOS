@@ -1,4 +1,6 @@
-// ===== 戦闘背景: 層ごとのピクセルアート情景 =====
+import { drawIllustratedBattleBackdrop } from "./battlebackgrounds.js";
+
+// ===== 迷宮ごとのWebP戦闘背景と、読み込み中のピクセルアート情景 =====
 // 公開関数は drawBattleBackdrop(ctx, w, h, layer, now, opts) のみ。
 // ・静的な情景は (層, サイズ, 変種) ごとに半解像度 (480x320 → 240x160) のオフスクリーンへ一度だけ描いて
 //   キャッシュし、毎フレームは 2 倍拡大 (補間なし) で貼る → ゲーム本体と同じ「粗いドット」の質感になる。
@@ -3477,6 +3479,7 @@ const CACHE_MAX = 12;
 // ctx: メインキャンバス (480x320 想定だが固定しない)。layer: 1-20 (それ以外は奈落の既定背景)。
 // now: performance.now() (ms)。opts: { boss?: boolean, elite?: boolean, dungeonId?: string }
 export function drawBattleBackdrop(ctx, w, h, layer, now, opts = {}) {
+  if (drawIllustratedBattleBackdrop(ctx, w, h, opts)) return;
   w = Math.max(16, Math.round(w)); h = Math.max(16, Math.round(h));
   // 森の古屋は第1層だが、戦場の景色は墓地ではなく森を使う。
   const L = opts.dungeonId === "w00_forest" ? 5 : layer >= 1 && layer <= 20 ? Math.floor(layer) : 0;

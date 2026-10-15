@@ -54,7 +54,7 @@ export const LAYER8_ITEMS = [
     desc: "極光の色をひと筋だけ閉じ込めた、透きとおった石の指輪。氷に閉じ込められた魂のひとつが石に宿り、持ち主の心が光に惑わされぬよう見守る。" })),
 
   // ===== レジェンドレア (全職共通・固有効果) =====
-  lr(W("lr_l8_weirspear", "堤守りの氷槍", "sp", 90, { pow: 1.45, two: true, eAtk: ["earth", 2], hp: 30, eff: { counter: 0.35 }, tint: "#90b0d0",
+  lr(W("lr_l8_weirspear", "堤守りの氷槍", "sp", 90, { pow: 1.45, two: true, eAtk: ["earth", 2], hp: 30, eff: { counter: 0.4 }, tint: "#90b0d0",
     desc: "回廊を堤にした凍王の傍らで、三百年、下へ落ちる魂を見張り続けた番人の槍。穂先を構えたまま眠っていても、突きかかる者は必ず返り討ちにする。" })),
   lr(W("lr_l8_aurorastaff", "極光をくむ杖", "st", 92, { magic: true, pow: 1.45, two: true, eAtk: ["earth", 2], mp: 28, eff: { spellCostMul: 0.85 }, tint: "#70d0b0",
     desc: "氷に閉じ込められた魂の光を、杖頭の器にくみ取る杖。器の中の魂たちが唱える者に力を貸し、呪文の消耗を肩代わりする。" })),

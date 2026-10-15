@@ -39,7 +39,7 @@ export default {
     GUARDIAN_DAIBANJAKU: { name: "大磐石", mp: 28, kind: "phys", power: 4.0, vitScale: 2.0, desperate: true, acc: 1, target: "enemy", desc: "傷を負うほど重くなる必中の大盾撃" },
     GUARDIAN_JIJIKUYURASHI: { name: "地軸揺らし", mp: 28, kind: "phys", power: 1.7, vitScale: 0.4, element: "earth", acc: 0.16, debuff: { vit: 0.85 }, target: "all-enemy", desc: "大地を揺さぶり、敵全体の守りを崩す" },
     GUARDIAN_TAKANAMI: { name: "高波の盾", mp: 22, kind: "phys", power: 1.5, vitScale: 0.7, element: "water", acc: 0.18, debuff: { agi: 0.85 }, flinchChance: 0.2, target: "all-enemy", desc: "大盾で高波を起こし、敵陣を押し流す" },
-    GUARDIAN_KINJOUTEPPEKI: { name: "金城鉄壁", mp: 26, kind: "buff", shield: true, stance: "counter", buff: { vit: 1.35 }, regen: { pct: 0.05, turns: 3 }, tech: true, target: "self", desc: "仲間を庇って必ず反撃し、傷を癒し続ける" },
+    GUARDIAN_KINJOUTEPPEKI: { name: "金城鉄壁", mp: 26, kind: "buff", shield: true, stance: "counter", ctrMul: 1.8, buff: { vit: 1.35 }, regen: { pct: 0.05, turns: 3 }, tech: true, target: "self", desc: "仲間を庇って必ず反撃し、傷を癒し続ける（攻撃力×1.8）" },
     GUARDIAN_ROUJOU: { name: "籠城の大号令", mp: 30, kind: "buff", buff: { vit: 1.4 }, regen: { pct: 0.05, turns: 4 }, tech: true, target: "all-ally", desc: "味方全員を守り固め、毎ターン癒す" },
     GUARDIAN_TENCHIGAESHI: { name: "天地返し", mp: 28, kind: "phys", power: 5.6, vitScale: 0.3, acc: 1, debuff: { atk: 0.75 }, flinchChance: 0.3, target: "enemy", desc: "天地を返す必中の盾撃。力を挫き怯ませる" },
     GUARDIAN_EIGOUJOUSAI: { name: "永劫城塞", mp: 18, kind: "heal", bodyHeal: 0.12, healCap: 0.25, buff: { vit: 1.7 }, regen: { pct: 0.05, turns: 4 }, grantBarrier: 1, tech: true, target: "all-ally", desc: "味方全員を手当てし、城塞と障壁で守り続ける（守護騎士の最大HPで伸びる）" },
@@ -63,8 +63,8 @@ export default {
     },
     guardianHoufuku: {
       label: "報復の楯",
-      lv: ["物理を受けると35%で、受けた傷の100%を相手に返す", "物理を受けると40%で、受けた傷の140%を相手に返す", "物理を受けると45%で、受けた傷の180%を相手に返す"],
-      fx: [{ t: "hurt", chance: [0.35, 0.40, 0.45], thorns: [1.0, 1.4, 1.8] }],
+      lv: ["物理を受けるたび、VIT×0.3の盾打ちでやり返す", "物理を受けるたび、VIT×0.5の盾打ちでやり返す", "物理を受けるたび、VIT×0.6の盾打ちでやり返す"],
+      fx: [{ t: "hurt", ret: { stat: "vit", k: [0.3, 0.5, 0.6] } }],
     },
     guardianTatenochikai: {
       label: "楯の誓い",

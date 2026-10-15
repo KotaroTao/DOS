@@ -27,7 +27,7 @@ export default {
     DRAGONKNIGHT_TENKUU: { name: "天空落とし", mp: 24, kind: "phys", power: 5.4, acc: 1, critBonus: 0.2, target: "enemy", desc: "天高く跳び、急降下で貫く（必中・会心UP）" },
     DRAGONKNIGHT_RYUUKOTSU: { name: "竜骨砕き", mp: 28, kind: "phys", power: 6.6, acc: 0.23, pierce: 0.4, debuff: { vit: 0.75 }, target: "enemy", desc: "竜骨をも砕く剛撃。守りを崩す（物理貫通40%）" },
     DRAGONKNIGHT_RYUUBI: { name: "竜尾なぎ", mp: 24, kind: "phys", power: 1.5, vitScale: 0.5, acc: 0.21, flinchChance: 0.3, target: "all-enemy", desc: "竜の尾のごとく敵陣をなぎ払い、怯ませる" },
-    DRAGONKNIGHT_GEKIRIN: { name: "逆鱗の構え", mp: 26, kind: "buff", taunt: true, stance: "counter", buff: { atk: 1.3, vit: 1.3 }, tech: true, target: "self", desc: "逆鱗を晒して敵を誘い、触れた者に必ず反撃する" },
+    DRAGONKNIGHT_GEKIRIN: { name: "逆鱗の構え", mp: 26, kind: "buff", taunt: true, stance: "counter", ctrMul: 1.8, buff: { atk: 1.3, vit: 1.3 }, tech: true, target: "self", desc: "逆鱗を晒して敵を誘い、触れた者に必ず反撃する（攻撃力×1.8）" },
     DRAGONKNIGHT_TATSUMAKI: { name: "竜巻き上げ", mp: 18, kind: "phys", power: 1.7, agiScale: 0.3, element: "wind", acc: 0.16, debuff: { agi: 0.85 }, target: "all-enemy", desc: "竜巻で敵陣を巻き上げ、足を奪う" },
     DRAGONKNIGHT_ARASHIRYUU: { name: "嵐竜の咆哮", mp: 27, kind: "phys", power: 2.0, element: "wind", acc: 0.16, flinchChance: 0.3, debuff: { atk: 0.9 }, target: "all-enemy", desc: "嵐を呼ぶ咆哮が敵陣を刻み、竦ませる" },
     DRAGONKNIGHT_RYUUOUDAN: { name: "竜王断", mp: 32, kind: "phys", power: 8.0, acc: 1, execute: 1.6, prey: { races: DRAGONS, mul: 1.3 }, target: "enemy", desc: "必中の大斬撃。弱った敵と竜に重い" },

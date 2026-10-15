@@ -1,6 +1,6 @@
 // 共通戦闘計算の回帰確認。乱数を固定して実ダメージとオートの期待値も比較する。
 import assert from 'node:assert/strict';
-import { Battle, SPELLS, setPartyHitBonus, luckCritBonus, attackSpellPower, healingPower, setElemKnown, spellCost, soulCostAdd, soulPowerMul, soulTierRate, spellMpLabel, SOUL_POWER_K, healsHp, BLADE_HEAL_CAP, MP_DRAIN_CAP } from '../../src/combat.js';
+import { Battle, SPELLS, setPartyHitBonus, luckCritBonus, attackSpellPower, healingPower, setElemKnown, spellCost, soulCostAdd, soulPowerMul, soulTierRate, spellMpLabel, SOUL_POWER_K, healsHp, BLADE_HEAL_CAP, MP_DRAIN_CAP, COUNTER_K, DIVINE_COUNTER_K, KAESHI_K, REFLECT_K, PASSIVE_RET_MIN, PASSIVE_RET_MAX, stanceCtrK, reflectPow } from '../../src/combat.js';
 import { makeDoll, JOB_SKILLS, battleSkills } from '../../src/souls.js';
 import { MONSTERS } from '../../src/sprites.js';
 import { DUNGEON_MONSTERS } from '../../src/dungeons/index.js';
@@ -372,6 +372,40 @@ console.log(`全${count}技を実行。会心・耐性・命中・攻撃/回復�
  // 威力999の書き方は残っていない
  for(const [k,s2] of Object.entries(SPELLS)) assert(!(s2.kind==='heal'&&s2.power>=999),`${k}: 全快は healPct で書く`);
  console.log('回復: ヒールの頭打ち・ハイヒール2.5倍・全快・体の手当て (使い手の最大HP)・刃の癒し (与ダメ) を確認');
+
+// やり返し (2026-10-15 ユーザーの指示): パッシブの係数は 0.2〜1.0・必ず発動。味方全員への反撃の構え・反射の陣
+{
+  for (const k of [...COUNTER_K.slice(1), DIVINE_COUNTER_K, ...KAESHI_K, REFLECT_K]) assert.ok(k >= PASSIVE_RET_MIN && k <= PASSIVE_RET_MAX, `やり返しの係数 ${k}`);
+  const mkr = (pm = {}) => Object.assign(makeDoll('返'), { level: 120, atk: 300, vit: 200, agi: 1, int: 400, pie: 150, luk: 50, hp: 1e6, maxhp: 1e6, mp: 1e5, maxmp: 1e5, critBonus: 0, passiveMap: pm });
+  const foe = () => ({ uid: 900001, name: '的', key: 'bs_ghoul', mon: MONSTERS.bs_ghoul, side: 'enemy', alive: true, hp: 1e7, maxhp: 1e7, atk: 800, vit: 20, agi: 1, int: 40, pie: 40, luk: 8, lv: 40, element: 'none', spells: [] });
+  // 当たった物理には毎回反撃・神罰が返る
+  for (const pm of [{ counter: 1 }, { divineCounter: 1 }]) {
+    let hit = 0, back = 0;
+    for (let i = 0; i < 100; i++) { const a = mkr(pm), e = foe(); const b = new Battle([a], [e], () => {}); const hp = a.hp, ehp = e.hp; b._physical(e, a); if (a.hp < hp) { hit++; if (e.hp < ehp) back++; } }
+    assert.equal(back, hit, `やり返しは必ず発動 ${JSON.stringify(pm)}`);
+  }
+  const ps = [mkr(), mkr(), mkr()], e = foe(), b = new Battle(ps, [e], () => {});
+  b._cast(ps[0], { spellKey: 'KNIGHT_OUHOUJIN', target: null }, { hits: [] });
+  assert.ok(ps.every((p) => stanceCtrK(p) === SPELLS.KNIGHT_OUHOUJIN.ctrMul), '応報の陣は味方全員に反撃の構え');
+  ps[1].int = ps[1].pie = 1;
+  b._cast(ps[0], { spellKey: 'WARDEN_UTSUSHIGAESHI', target: null }, { hits: [] });
+  assert.ok(ps.every((p) => reflectPow(p) === Math.round(400 * SPELLS.WARDEN_UTSUSHIGAESHI.reflect)), '映し返しの陣は唱えた者の魔力で味方全員に');
+  const ehp = e.hp; b._execInner({ action: 'breath', actor: e, kind: 'spell' });
+  assert.ok(e.hp < ehp, '反射の陣は呪文を返す');
+}
+{
+  // 装備のやり返し: 茨の を防具5か所に付けても合わせて GEAR_RET_CAP、極「鏡鎧の」は1つでその値のまま
+  const { gearPerks, GEAR_RET_CAP } = await import('../../src/infaffix.js');
+  const thorn = (k) => ({ c: { t: 'hurt', ret: { stat: 'vit', k } }, label: '茨の' });
+  const sum = gearPerks([0.3, 0.3, 0.3, 0.3, 0.3].map(thorn)).reduce((a, p) => a + p.c.ret.k, 0);
+  assert.ok(Math.abs(sum - GEAR_RET_CAP) < 0.01, `茨の の合計 ${sum}`);
+  assert.equal(gearPerks([thorn(0.25)])[0].c.ret.k, 0.25);
+  const mirror = gearPerks([{ c: { t: 'hurt', on: 'magic', ret: { stat: 'vit', k: 0.7, magic: true } }, label: '鏡鎧の' }, thorn(0.3)]);
+  assert.equal(mirror[0].c.ret.k, 0.7); assert.equal(mirror[1].c.ret.k, 0.3);
+  const { CATALOG_ITEMS } = await import('../../src/catalog/index.js');
+  for (const it of Object.values(CATALOG_ITEMS)) if (it.eff && it.eff.counter) assert.ok(it.eff.counter >= PASSIVE_RET_MIN && it.eff.counter <= PASSIVE_RET_MAX, `${it.id} の報復 ${it.eff.counter}`);
+}
+console.log('やり返し: パッシブの係数0.2〜1.0・必ず発動、応報の陣 (味方全員に反撃の構え)・映し返しの陣 (反射)・装備のやり返しの範囲と上限を確認');
 }
 // 出来事の全選択肢を、成功/失敗の乱数と傷・異常・死者がいる条件で確認する。
 let choices=0;

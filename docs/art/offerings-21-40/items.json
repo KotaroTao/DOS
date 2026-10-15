@@ -1,0 +1,102 @@
+[
+  {
+    "n": 21,
+    "id": "m_keep_seal_key",
+    "name": "城の封じろう"
+  },
+  {
+    "n": 22,
+    "id": "m_deathpaint_bottle",
+    "name": "死化粧の白い粉瓶"
+  },
+  {
+    "n": 23,
+    "id": "m_halfburnt_chronicle",
+    "name": "焼け残りの戦記"
+  },
+  {
+    "n": 24,
+    "id": "m_haunted_glass_eye",
+    "name": "亡霊が宿る作り目"
+  },
+  {
+    "n": 25,
+    "id": "m_groaning_iron",
+    "name": "うめく鉄塊"
+  },
+  {
+    "n": 26,
+    "id": "m_mist_crystal",
+    "name": "霧を呼ぶ水晶"
+  },
+  {
+    "n": 27,
+    "id": "m_abyss_black_pearl",
+    "name": "深い闇の黒真珠"
+  },
+  {
+    "n": 28,
+    "id": "m_sahagin_barb",
+    "name": "水の魔物の返し牙"
+  },
+  {
+    "n": 29,
+    "id": "m_shriek_root_cloth",
+    "name": "悲鳴草の根布"
+  },
+  {
+    "n": 30,
+    "id": "m_martyr_skull",
+    "name": "殉教者の頭の骨"
+  },
+  {
+    "n": 31,
+    "id": "m_watergrave_coin",
+    "name": "水葬の金貨"
+  },
+  {
+    "n": 32,
+    "id": "m_whelp_shed_horn",
+    "name": "幼竜の抜け角"
+  },
+  {
+    "n": 33,
+    "id": "m_water_sprite_bell",
+    "name": "水霊の鎮め鈴"
+  },
+  {
+    "n": 34,
+    "id": "m_dragon_silver",
+    "name": "溶け残りの竜銀"
+  },
+  {
+    "n": 35,
+    "id": "m_robber_left_pouch",
+    "name": "盗掘者の忘れ袋"
+  },
+  {
+    "n": 36,
+    "id": "m_hollow_armor_core",
+    "name": "無人の鎧の心の玉"
+  },
+  {
+    "n": 37,
+    "id": "m_ogre_molar",
+    "name": "人食い鬼の奥歯"
+  },
+  {
+    "n": 38,
+    "id": "m_grave_star_iron",
+    "name": "墓標の星鉄"
+  },
+  {
+    "n": 39,
+    "id": "m_guardian_tablet",
+    "name": "番人の銘板"
+  },
+  {
+    "n": 40,
+    "id": "m_ossuary_key",
+    "name": "納骨堂の弔い鈴"
+  }
+]

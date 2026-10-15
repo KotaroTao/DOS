@@ -22,8 +22,12 @@
 //               リジェネ (最大HPの割合) / MP を最大の割合だけ回復 / 不屈を1回 / 挑発 / 溜め
 //  { t:"round", chance?, when?, party?, hp?:[…], mp?:[…], buff?:{stat:[…]}, dur? }  2ターン目以降の毎ターン初め
 //  { t:"kill",  chance?, hp?:[…], mp?:[…], buff?:{stat:[…]}, dur? }   自分の手番で敵を倒した時
-//  { t:"hurt",  chance?, on?, when?, buff?:{stat:[…]}, dur?, thorns?:[…], mp?:[…], hp?:[…] }  敵の物理 (on:"breath" ならブレス) を受けた時。
-//               thorns = 受けたダメージのその割合を相手に返す
+//  { t:"hurt",  chance?, on?, when?, buff?:{stat:[…]}, dur?, ret?:{stat, k:[…], magic?}, mp?:[…], hp?:[…] }  敵の物理 (on:"breath" ならブレス、
+//               "spell" なら敵の呪文、"magic" ならブレスと呪文の両方) を受けた時。
+//               ret = やり返し: 受けたダメージに依らず、持ち主の stat (atk = 攻撃力 / vit / int / pie / mag = INT・PIE の高い方) × k を
+//               相手へ返す (magic なら魔法の一撃で魔法の抵抗値、そうでなければ物理の抵抗値で減る。2026-10 ユーザーの指示で
+//               「受けたダメージの割合を返す」thorns を廃して統一)
+//               k は 0.2〜1.0、chance は付けない (2026-10-15 ユーザーの指示: やり返しは必ず発動)
 //  { t:"hit",   chance:[…], on?, ail, pct?, turns?, mul?, el? }  自分の物理が敵に当たった時、確率で付与:
 //               ail = poison(pct=毎ターンの割合) / para / sleep / confuse / charm / seal(turns) / flinch / strip /
 //                     atk・vit・agi (mul 倍率の弱体) / vuln (el 属性の耐性を mul に)
@@ -89,7 +93,7 @@ export const JOBKIT = {
 // ---- 検証 (読み込み時に壊れた定義を弾く) ----
 const SKILL_KEYS = new Set(("name mp kind target desc power hits scatter critBonus element acc pierce intScale agiScale vitScale pieScale " +
   "desperate execute prey debuff vuln seal poison para sleepChance flinchChance strip charm confuse instakill steal plunder drain mpDrain mpDrainCap " +
-  "hpCost gravity gravityIntCap partyHeal buff taunt shield stance charge regen grantBarrier grantEndure cure purge revive revivePct dur debuffAll tech quiet " +
+  "hpCost gravity gravityIntCap partyHeal buff taunt shield stance ctrMul reflect charge regen grantBarrier grantEndure cure purge revive revivePct dur debuffAll tech quiet " +
   "ward faith float sense mpPct mpMin healMul healCap healPct bodyHeal bladeHeal").split(" "));
 const KINDS = new Set(["phys", "atk", "heal", "cure", "buff", "debuff", "mana", "sleep", "escape", "field"]);
 const TARGETS = new Set(["enemy", "all-enemy", "ally", "all-ally", "self"]);
@@ -98,7 +102,7 @@ const STATS = new Set(["atk", "vit", "agi", "int", "pie", "hit"]);
 const FX_FIELDS = {
   deal: "v on when aura best holder", take: "v on when aura best holder", crit: "v on when aura", evade: "v when aura", heal: "v", cost: "v on",
   stat: "mul when", start: "chance when party dur buff foe barrier wall regen mp endure taunt charge",
-  round: "chance when party hp mp buff dur", kill: "chance hp mp buff dur", hurt: "chance on when buff dur thorns mp hp",
+  round: "chance when party hp mp buff dur", kill: "chance hp mp buff dur", hurt: "chance on when buff dur ret mp hp",
   hit: "chance on ail pct turns mul el", cast: "chance on refund hp mp party", fall: "chance buff dur hp", win: "hp mp party",
 };
 const WHEN = new Set(("race tgtElem tgtAil tgtDebuffed tgtLow tgtHigh boss noBoss selfLow selfHigh selfAil buffed defending mpHigh " +
@@ -141,6 +145,14 @@ function checkPerk(job, key, pk) {
     if (c.when) for (const w in c.when) if (!WHEN.has(w)) fail(job, key, `when.${w}`);
     if (c.holder) { if (!c.aura) fail(job, key, "holder は aura の時だけ"); for (const w in c.holder) if (!WHEN.has(w)) fail(job, key, `holder.${w}`); }
     if (c.t === "hit" && !AILS.has(c.ail)) fail(job, key, `hit.ail ${c.ail}`);
+    if (c.t === "hurt" && c.on && !["phys", "breath", "spell", "magic"].includes(c.on)) fail(job, key, `hurt.on ${c.on}`);
+    if (c.ret) {
+      for (const k in c.ret) if (!["stat", "k", "magic"].includes(k)) fail(job, key, `ret.${k}`);
+      if (!["atk", "vit", "int", "pie", "mag"].includes(c.ret.stat)) fail(job, key, `ret.stat ${c.ret.stat}`);
+      // 2026-10-15 ユーザーの指示: やり返しのパッシブは係数 0.2〜1.0、発動率は100% (chance を付けない)
+      if (![].concat(c.ret.k).every((v) => v >= 0.2 && v <= 1)) fail(job, key, "ret.k は 0.2〜1.0");
+      if (c.chance != null) fail(job, key, "やり返し (ret) に chance は付けない (必ず発動)");
+    }
     if (c.t === "win" && c.mp != null && [].concat(c.mp).some(v => !(v >= 0 && v <= VICTORY_MP_PER + 1e-9))) fail(job, key, `勝利後のMP回復は1つ${VICTORY_MP_PER * 100}%まで`);
     if (["deal", "take", "crit", "evade", "heal", "cost"].includes(c.t) && c.v == null) fail(job, key, `fx ${c.t} に v が必要`);
     for (const o of ["buff", "foe"]) if (c[o]) for (const s in c[o]) if (!STATS.has(s)) fail(job, key, `${o}.${s}`);
