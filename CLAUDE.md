@@ -190,13 +190,14 @@ Every equipment item has `rar`: `c` コモン(白) / `uc` アンコモン(緑) /
 - Owned items are re-synced to the catalog on load (`reflattenItemStats`: stats/art/rar/etc. from `ITEMS[id]`, instance flags like `unidentified` kept).
 
 ### 装備の絵 (`src/itemart/`) — 全装備が固有の絵 (2026-10, user direction)
-制作番号2101〜2201も透過WebP描画口に登録。原画・対応表・確認資料は `docs/art/items-2101-2201/`、再変換は `python3 tools/itemart/build-2101-2201.py`、表示・未鑑定・取得失敗の検証は `node tools/itemart/verify-2101-2201.cjs`。
+制作番号1101〜1200も透過WebPを `src/itemphotos.js` に登録。制作記録は `docs/art/items-1101-1200/`、再変換は `python3 tools/itemart/build-1101-1200.py`、表示検証は `node tools/itemart/verify-1101-1200.cjs`。
 制作番号1901〜2000も同じ透過WebP描画口に登録。原画・対応表・確認資料は `docs/art/items-1901-2000/`、再変換は `python3 tools/itemart/build-1901-2000.py`、図鑑・未鑑定・取得失敗・寸法不一致・時間切れの検証は `node tools/itemart/verify-1901-2000.cjs`。
 制作番号701〜800も同じ透過WebP描画口に登録。原画・対応表・確認資料は `docs/art/items-701-800/`、再変換は `python3 tools/itemart/build-701-800.py`、表示・未鑑定・取得失敗の検証は `node tools/itemart/verify-701-800.cjs`。
 制作番号1〜300は `art/items/<既存ID>.webp` の透過原画を `src/itemphotos.js` で読み、共通のスプライト差し替え口で図鑑・袋・装備・商会へ表示する。森の小屋の3体と図鑑の説明が制作基準。未鑑定装備は伏せ絵を優先し、取得失敗・寸法不一致・4秒の時間切れでは下記の既存絵を使う。制作記録 `docs/art/items-001-100/`、再変換 `python3 tools/itemart/build-001-100.py`、実描画の検証 `node tools/itemart/verify-001-100.cjs`。101〜200の制作記録は `docs/art/items-101-200/`、再変換は `python3 tools/itemart/build-101-200.py`、検証は `node tools/itemart/verify-101-200.cjs`。201〜300の制作記録は `docs/art/items-201-300/`、変換は `python3 tools/itemart/build-201-300.py`、表示・未鑑定・取得失敗の検証は `node tools/itemart/verify-201-300.cjs`。
 制作番号501〜600も `art/items/<既存ID>.webp` の透過原画で表示する。制作記録 `docs/art/items-501-600/`、再変換 `python3 tools/itemart/build-501-600.py`、実描画の検証 `node tools/itemart/verify-501-600.cjs`。
 制作番号401〜500もWebP化済み。401・402は `art/items/` の新規原画、403〜500は既存の奉納品98点を再利用する。制作記録 `docs/art/items-401-500/`、変換 `python3 tools/itemart/build-401-500.py`、100点の図鑑・伏せ絵・取得失敗の検証 `node tools/itemart/verify-401-500.cjs`。
 制作番号801〜900の制作記録は `docs/art/items-801-900/`、再変換は `python3 tools/itemart/build-801-900.py`、実描画の検証は `node tools/itemart/verify-801-900.cjs`。
+制作番号2101〜2201も透過WebP描画口に登録。原画・対応表・確認資料は `docs/art/items-2101-2201/`、再変換は `python3 tools/itemart/build-2101-2201.py`、表示・未鑑定・取得失敗の検証は `node tools/itemart/verify-2101-2201.cjs`。
 
 制作番号601〜700も `art/items/` の透過WebPを共通描画口へ登録。制作記録 `docs/art/items-601-700/`、変換 `python3 tools/itemart/build-601-700.py`、図鑑・伏せ絵・取得失敗・寸法不一致・時間切れの検証 `node tools/itemart/verify-601-700.cjs`。
 
@@ -417,6 +418,8 @@ The UI was rebuilt into packages under `src/ui/` (plain ES modules; **they never
 神殿騎士（`templar`）R1〜R5も承認済みR1を直接参照した独立原画へ更新。白い頭布・金髪・槍・青い盾を維持し、共通枠90×92・人体の頭頂9ドットで取り込む。原画と測定値は `docs/art/templar/README.md`、実描画比較は `docs/art/templar/game-display-review.png`。旧 `jobart.js` の対象だけを外して新WebPを選択する。
 
 ## Conventions
+
+- 職業の魂の入手ポップアップは `src/ui/soulart.js` の透過アニメーションWebP (`art/souls/acquisition.webp`) を使い、職業の `glow` 色に染める。動きを減らす設定では静止WebP、読み込み失敗時は従来の人魂アイコン。トースト・戦果の小さな魂は従来どおり。心得 `t_soul_wisp`。
 
 - 戦闘背景は `src/battlebackgrounds.js` の迷宮ID対応で `art/battle/<id>.webp` を読み込む (全70迷宮 + 無限迷宮)。中央を暗くし、主・強敵は赤い周辺光を重ねる。読み込み中・失敗時は `backdrops.js` の既存情景を使う。出撃画面の `drawDungeonVista` と設定「漆黒」は従来どおり。心得 `t_battle_scenery`。
 
