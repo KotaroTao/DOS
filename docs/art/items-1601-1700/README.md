@@ -1,0 +1,27 @@
+# アイテム制作番号1601〜1700
+
+固定制作番号1601〜1700の100点。既存の文字列ID・名称・説明・性能・入手条件を維持する。
+`items.json` は図鑑の説明と制作番号・既存IDの対応表。
+
+森の古屋のほこりゴキブリ・枯葉ムカデ・森の小蜂の原画3点を直接参照し、
+細かなドットの質感、左上からの光、深い影を基準に描いた。
+図鑑に合わせ、天銀・神鋼・水竜革・星霊銀・黄金の竜王鱗などの素材と形を描き分けた。
+
+原画は `master-1601-1620.png` から `master-1681-1700.png` の5枚。
+各5列×4行、左から右・上から下の順。
+氷神の槍は穂先と石突きの余白を確保した `w_r9_icegodspear.png` を優先する。
+本体の連結成分と近接領域で分割し、384×384の透過WebPへ変換する。
+原画・確認資料は公開対象外、出荷物は `art/items/<既存ID>.webp` の100点。
+
+```sh
+python3 tools/itemart/build-1601-1700.py
+node tools/itemart/numbers.mjs --update
+node tools/itemart/numbers.mjs
+python3 -m http.server 8000
+node tools/itemart/verify-1601-1700.cjs
+```
+
+`src/itemphotos.js` と `sw.js` へ登録し、図鑑・所持品・装備・商会の共通描画口を使う。
+未鑑定では伏せ絵を表示し、画像取得失敗・寸法不一致・4秒の時間切れでは既存の固有絵へ戻る。
+`preview.jpg` は100点の一覧、`game-preview.png` は共通描画口での一覧。
+`codex-*.png` は携帯幅390pxの図鑑表示。
