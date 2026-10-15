@@ -144,12 +144,13 @@ def({ id: "J04", name: "討ち魔の", tier: "r", kind: "abs", r: [0.01, 0.02], 
   fx: (v) => [{ t: "kill", mp: v }], text: (v) => `敵を倒すと MP ${pct(v)} 回復` });
 def({ id: "J05", name: "痛みの糧の", tier: "r", kind: "abs", r: [0.02, 0.03], slots: ["a"], ...JMARK, pts: (v) => v * 250,
   fx: (v) => [{ t: "hurt", chance: 0.25, mp: v }], text: (v) => `物理を受けると 25% で MP ${pct(v)} 回復` });
-// やり返しは「受けたダメージの割合」ではなく持ち主の能力 × 係数 (2026-10 ユーザーの指示で統一。combat.js _retaliate)
-def({ id: "J06", name: "茨の", tier: "r", kind: "abs", r: [0.15, 0.30], slots: ["a"], ...JMARK, pts: (v) => v * 40,
+// やり返しは「受けたダメージの割合」ではなく持ち主の能力 × 係数 (2026-10 ユーザーの指示で統一。combat.js _retaliate)。
+// 装備の効果はパッシブと同じく低め (使う技の反撃の構えは高め — combat.js stanceMulOf)
+def({ id: "J06", name: "茨の", tier: "r", kind: "abs", r: [0.10, 0.20], slots: ["a"], ...JMARK, pts: (v) => v * 60,
   fx: (v) => [{ t: "hurt", ret: { stat: "vit", k: v } }], text: (v) => `物理を受けるたび VIT${mulx(v)} でやり返す` });
 def({ id: "J07", name: "再生の", tier: "r", kind: "abs", r: [0.01, 0.02], slots: ["a", "acc"], ...JMARK, pts: (v) => v * 150, apply: (it, v) => effPut("regen", () => v)(it), text: (v) => `毎ターン HP ${pct(v)} 回復` });
 def({ id: "J08", name: "吸血の", tier: "r", kind: "abs", r: [0.03, 0.06], slots: ["w"], ...JMARK, pts: (v) => v * 60, apply: (it, v) => effPut("lifesteal", () => v)(it), text: (v) => `与ダメの ${pct(v)} を吸う` });
-def({ id: "J09", name: "報復の", tier: "r", kind: "abs", r: [0.10, 0.20], slots: ["w", "shield"], ...JMARK, pts: (v) => v * 40, apply: (it, v) => effPut("counter", () => v)(it), text: (v) => `物理を受けるたび 攻撃力${mulx(v)} でやり返す` });
+def({ id: "J09", name: "報復の", tier: "r", kind: "abs", r: [0.08, 0.15], slots: ["w", "shield"], ...JMARK, pts: (v) => v * 50, apply: (it, v) => effPut("counter", () => v)(it), text: (v) => `物理を受けるたび 攻撃力${mulx(v)} でやり返す` });
 def({ id: "J10", name: "一番手の", tier: "x", kind: "abs", r: [1, 1], slots: ["feet", "acc"], ...JMARK, pts: () => 15, apply: effPut("actFirst", () => true), text: () => "戦闘の1ターン目に一番手で動く" });
 def({ id: "J11", name: "不屈の", tier: "x", kind: "abs", r: [0.1, 0.1], slots: ["acc"], ...JMARK, pts: () => 8, apply: (it, v) => effPut("autoRevive", () => v)(it), text: () => "1戦闘に1度、倒れずに HP 10% で踏みとどまる" });
 def({ id: "J12", name: "守りの気の", tier: "r", kind: "abs", r: [0.03, 0.05], slots: ["a"], ...JMARK, pts: (v) => v * 100, apply: (it, v) => effPut("guard", () => v)(it), text: (v) => `被ダメ−${pct(v)}` });
@@ -160,7 +161,7 @@ def({ id: "J16", name: "錠外しの", tier: "u", kind: "abs", r: [0.05, 0.10], 
 def({ id: "J17", name: "灯の", tier: "u", kind: "abs", r: [0.03, 0.05], slots: ["acc"], ...JMARK, pts: (v) => v * 100, misc: (v) => ({ descHp: v }), text: (v) => `階を降りると HP ${pct(v)} 回復` });
 def({ id: "J18", name: "風読みの", tier: "u", kind: "abs", r: [0.02, 0.03], slots: ["acc"], ...JMARK, pts: (v) => v * 150, misc: (v) => ({ descMp: v }), text: (v) => `階を降りると MP ${pct(v)} 回復` });
 def({ id: "J19", name: "泥除けの", tier: "u", kind: "abs", r: [0.5, 0.5], slots: ["feet"], ...JMARK, pts: () => 4, misc: () => ({ mudGuard: true }), text: () => "蝕む床の痛手を半分に (毒消しの書きつけと重ならない)" });
-def({ id: "J20", name: "鏡鎧の", tier: "x", kind: "abs", r: [0.6, 1.0], slots: ["body"], ...JMARK, pts: (v) => v * 15,
+def({ id: "J20", name: "鏡鎧の", tier: "x", kind: "abs", r: [0.4, 0.7], slots: ["body"], ...JMARK, pts: (v) => v * 20,
   fx: (v) => [{ t: "hurt", on: "magic", ret: { stat: "vit", k: v, magic: true } }], text: (v) => `ブレス・呪文を受けるたび VIT${mulx(v)} の魔法の一撃で返す` });
 
 // ---- K. 諸刃 (大きな得と小さな損。点は得 − 損) ----

@@ -9,7 +9,7 @@ import { RESIST_LABEL } from "../resistance.js";
 import { game } from "./ctx.js";
 import { el, sheet, setText } from "./kit.js";
 import { ELEMENTS, elementAffinity, RACE_LABEL, unknownLabel, UNK_OPEN, UNK_CLOSE } from "../dungeons/index.js";
-import { SPELLS, spellMpLabel, spellCureKinds, soulTierRate, healsHp, MP_DRAIN_CAP } from "../combat.js";
+import { SPELLS, spellMpLabel, spellCureKinds, soulTierRate, healsHp, MP_DRAIN_CAP, stanceMulOf } from "../combat.js";
 import { STAGED, stageOf, stageMul, stageLabel, ENEMY_STAT_LABEL, effectStage, isBattleLong } from "../buffstage.js";
 import { ATTR_LABEL, SOUL_CLASSES, dollBust, PASSIVES, passiveName, passiveByName } from "../souls.js";
 import { WEAPON_CAT_LABEL, SHIELD_KIND_LABEL, HAND_LABEL, handOf, shieldKind, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip, equipLevelOf, AIL_LABEL, attackPower, fightPower, useLines, itemName, hasQuality, qualityOf, QUALITY_MID, QUALITY_SPREAD } from "../items.js";
@@ -304,7 +304,7 @@ export function skillDetailLines(sp) {
   if (sp.vuln) { const nm = Object.keys(sp.vuln).map(ELEM_NAME).join("・"); lines.push(`${nm}耐性を下げる（${nm}の攻撃から受けるダメージ ×${(1 / Object.values(sp.vuln)[0]).toFixed(2)}）`); }
   if (sp.taunt) lines.push("挑発: 敵の単体攻撃が自分に向かいやすくなる");
   if (sp.shield) lines.push("仁王立ち: 味方への単体の物理攻撃を代わりに受ける");
-  if (sp.stance === "counter") lines.push("反撃の構え: 物理攻撃を受けると必ず反撃する");
+  if (sp.stance === "counter") lines.push(`反撃の構え: 物理攻撃を受けると、必ず攻撃力×${stanceMulOf(sp)}で反撃する`);
   if (sp.charge) lines.push(`溜め: 次の物理攻撃・物理技の威力 ×${sp.charge}`);
   if (sp.regen) lines.push(`リジェネ: 毎ターン最大HPの${pct(sp.regen.pct)}を回復（${sp.regen.turns}ターン）`);
   if (sp.ward && sp.ward.breath) lines.push(`ブレス避け: 敵のブレスから受けるダメージ −${pct(sp.ward.breath)}（${sp.dur || 3}ターン）`);

@@ -61,9 +61,9 @@ export default {
     },
     wardenJusogaeshi: {
       label: "呪い返し",
-      lv: ["ブレス・呪文を受けた時、INTとPIEの高い方×0.6の魔法の一撃で返す", "ブレス・呪文を受けた時、INTとPIEの高い方×0.8の魔法の一撃で返す",
-        "ブレス・呪文を受けた時、INTとPIEの高い方×1.0の魔法の一撃で返す"],
-      fx: [{ t: "hurt", on: "magic", ret: { stat: "mag", k: [0.6, 0.8, 1.0], magic: true } }],
+      lv: ["ブレス・呪文を受けた時、INTとPIEの高い方×0.4の魔法の一撃で返す", "ブレス・呪文を受けた時、INTとPIEの高い方×0.5の魔法の一撃で返す",
+        "ブレス・呪文を受けた時、INTとPIEの高い方×0.6の魔法の一撃で返す"],
+      fx: [{ t: "hurt", on: "magic", ret: { stat: "mag", k: [0.4, 0.5, 0.6], magic: true } }],
     },
   },
 };

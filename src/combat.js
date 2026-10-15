@@ -317,8 +317,18 @@ const lvv = (v, lv) => (Array.isArray(v) ? v[Math.min(Math.max(1, lv), v.length)
 const hurtOn = (on, kind) => (on || "phys") === kind || (on === "magic" && (kind === "breath" || kind === "spell"));
 // やり返しの能力: atk = 攻撃力 (武器の参照式) / vit・int・pie = その能力 / mag = INT と PIE の高い方 (強化・弱体込み)
 export const RET_STATS = ["atk", "vit", "int", "pie", "mag"];
-export const KAESHI_RATE = [0.10, 0.15, 0.20, 0.30], KAESHI_K = [0.8, 1.0, 1.2, 1.5]; // 呪文返し (魔盗賊のランク2〜5)
-export const REFLECT_K = 1.0; // 魔力反射 (魔闘士 Lv125)
+export const KAESHI_RATE = [0.10, 0.15, 0.20, 0.30], KAESHI_K = [0.5, 0.6, 0.8, 1.0]; // 呪文返し (魔盗賊のランク2〜5)
+export const REFLECT_K = 0.6; // 魔力反射 (魔闘士 Lv125)
+// 2026-10-15 ユーザーの指示「パッシブは低め、使用する必要がある技は高め」: パッシブ (戦士の反撃・神罰の鉄槌) は低め、
+// 反撃の構え (技・stance "counter") は技ごとの ctrMul (1.2〜2.0、習得Lv・消費MP・付く効果で決める)。効果 ctr の倍率 = 1 + ctrMul
+export const COUNTER_K = [0, 0.4, 0.55, 0.7], DIVINE_COUNTER_K = 0.6, STANCE_CTR_DEFAULT = 1.2, STANCE_CTR_MAX = 2;
+export const stanceMulOf = (sp) => Math.min(STANCE_CTR_MAX, (sp && sp.ctrMul) || STANCE_CTR_DEFAULT);
+// 掛かっている反撃の構えの係数 (重ねがけは一番強いものだけ)。構えが無ければ 0
+export function stanceCtrK(t) {
+  let m = 1;
+  for (const ef of (t && t.effects) || []) if (ef.stat === "ctr" && ef.mult > m) m = ef.mult;
+  return Math.min(STANCE_CTR_MAX, m - 1);
+}
 // 固有パッシブ・目玉パッシブの発動を記録欄に書く時に添える「何が起きたか」(2026-10 ユーザーの指示:
 // 「開戦の号令！」「闇の障壁！」だけでは何の効果か分からない)。定義の値から作る (段は buffstage.js の表で、実際に掛かる倍率)
 const MOD_NAME = { atk: "STR", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", hit: "命中" };
@@ -2354,11 +2364,11 @@ export class Battle {
           dmg = Math.ceil(dmg * 0.5);
           this.log(`${t.name}の魔障壁：${what}半減（残り${t._barrierLeft}回）`, "heal");
           this._proc(t, "魔障壁");
-          // 魔力反射 (魔闘士): 魔障壁で防いだ時、INT × 1.0 の魔法の一撃で返す
+          // 魔力反射 (魔闘士): 魔障壁で防いだ時、INT × 0.6 の魔法の一撃で返す
           if (cut > 0 && pv(t, "reflect")) this._retaliate(t, actor, "int", REFLECT_K, "魔力反射", true);
         }
         if (this._onceGuard(t, "spellGuard", "_sgUsed", "封の結界")) { res.hits.push({ target: t, dmg: 0, immune: true, died: false }); continue; }
-        // 呪文返し (魔盗賊のランク): 敵の呪文を 10/15/20/30% で打ち消し、INT × 0.8/1.0/1.2/1.5 の魔法の一撃で返す
+        // 呪文返し (魔盗賊のランク): 敵の呪文を 10/15/20/30% で打ち消し、INT × 0.5/0.6/0.8/1.0 の魔法の一撃で返す
         if (spell && actor.alive && random() < this._rk(t, "arcthiefKaeshi", KAESHI_RATE)) {
           this.log(`${t.name}は呪文を打ち消した`, "heal");
           this._retaliate(t, actor, "int", this._rk(t, "arcthiefKaeshi", KAESHI_K), "呪文返し", true);
@@ -2591,10 +2601,12 @@ export class Battle {
     if (defender.side !== "party" || !defender.alive || !attacker || !attacker.alive) return;
     if (this._incap(defender)) return;
     let cLv = pv(defender, "counter");
-    const stance = this._bm(defender, "ctr") > 1; // 反撃の構え: 必ず STR×1.0 で反撃
+    // 反撃の構え (技): 必ず 攻撃力 × 技ごとの係数 (ctrMul) で反撃。戦士の反撃 (パッシブ) は確率で低めの係数
+    const stanceK = stanceCtrK(defender);
+    const stance = stanceK > 0;
     if (stance || (cLv && random() < [0, 0.15, 0.25, 0.35][cLv])) {
       this._proc(defender, "反撃");
-      const mul = stance ? 1.0 : [0, 0.5, 0.7, 1.0][cLv];
+      const mul = stance ? stanceK : COUNTER_K[cLv];
       // 反撃も物理なので隊列補正を受ける
       let dmg = Math.max(1, Math.round((variance(Math.round(this._eatk(defender) * mul)) - Math.floor(this._evit(attacker) * 0.5)) * this._rowMul(defender, attacker)));
       let crit = false;
@@ -2611,7 +2623,7 @@ export class Battle {
     if (pv(defender, "divineCounter") && random() < 0.20) {
       this._proc(defender, "神罰の鉄槌");
       // 神罰は聖なる術の一撃: 魔法耐性を受ける
-      const mr = this._resistCut(attacker, Math.max(1, variance(Math.round((defender.pie || 1) * 0.8))), "magResist");
+      const mr = this._resistCut(attacker, Math.max(1, variance(Math.round((defender.pie || 1) * DIVINE_COUNTER_K))), "magResist");
       if (mr.immune) { this.log(`${defender.name}の神罰の鉄槌！ ${attacker.name}：魔法無効`, "hit"); return; }
       const dmg = mr.dmg;
       attacker.hp -= dmg;
@@ -3238,7 +3250,7 @@ export class Battle {
         // 構え: 挑発 / 仁王立ち / 反撃の構え / 溜め / リジェネ (いずれも効果として持続ターンを持つ)
         if (sp.taunt) { this._applyMod(t, "taunt", 3, sp.dur, sp.name); mods.taunt = 3; }
         if (sp.shield) { this._applyMod(t, "shield", 2, sp.dur, sp.name); mods.shield = 2; }
-        if (sp.stance === "counter") { this._applyMod(t, "ctr", 2, sp.dur, sp.name); mods.ctr = 2; }
+        if (sp.stance === "counter") { const cm = 1 + stanceMulOf(sp); this._applyMod(t, "ctr", cm, sp.dur, sp.name); mods.ctr = cm; }
         if (sp.charge) {
           t.effects = (t.effects || []).filter((e) => e.stat !== "charge"); // 溜めは重ねず掛け直し
           this._applyMod(t, "charge", sp.charge, sp.dur, sp.name); mods.charge = sp.charge;
@@ -3261,7 +3273,7 @@ export class Battle {
       if (sp.buff) notes.push(buffText(sp.buff, 1));
       if (sp.taunt) notes.push("引き付け");
       if (sp.shield) notes.push("かばう構え");
-      if (sp.stance === "counter") notes.push("反撃の構え");
+      if (sp.stance === "counter") notes.push(`反撃の構え（攻撃力×${stanceMulOf(sp)}）`);
       if (sp.charge) notes.push(`次の物理×${fmtMul(sp.charge)}`);
       if (sp.regen) notes.push(`毎ターン最大HP${fmtMul(sp.regen.pct * 100)}%回復・${sp.regen.turns}ターン`);
       if (sp.grantBarrier) notes.push(`魔障壁${sp.grantBarrier}回（ブレス・呪文半減）`);

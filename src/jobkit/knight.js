@@ -21,7 +21,7 @@ export default {
     // Lv15 の固有技: 隊列を崩さず槍を突き入れ、強化を剥いで力を削ぐ
     KNIGHT_JINTOTSU: { name: "陣突き", mp: 5, kind: "phys", power: 1.2, acc: 0.16, strip: true, debuff: { atk: 0.85 }, target: "enemy", desc: "隊列を崩さず槍を突き入れ、敵の強化を剥いで力を削ぐ" },
     KNIGHT_HAJINSOU: { name: "破陣の聖槍", mp: 12, kind: "phys", power: 2.0, pieScale: 0.3, element: "light", acc: 0.18, strip: true, target: "enemy", desc: "光の槍で突き、敵の強化を剥ぐ" },
-    KNIGHT_YARIBUSUMA: { name: "槍衾", mp: 6, kind: "buff", stance: "counter", buff: { vit: 1.15 }, dur: 2, tech: true, target: "self", desc: "穂先を揃えて待ち、物理に必ず突き返す" },
+    KNIGHT_YARIBUSUMA: { name: "槍衾", mp: 6, kind: "buff", stance: "counter", ctrMul: 1.4, buff: { vit: 1.15 }, dur: 2, tech: true, target: "self", desc: "穂先を揃えて待ち、物理に必ず突き返す（攻撃力×1.4）" },
     KNIGHT_JINARI: { name: "地鳴りの槍", mp: 20, kind: "phys", power: 4.6, element: "earth", acc: 0.21, pierce: 0.3, debuff: { atk: 0.8 }, target: "enemy", desc: "踏み込みの突きで鎧を穿ち、力を削ぐ（物理貫通30%）" },
     KNIGHT_ITTETSU: { name: "一徹突き", mp: 16, kind: "phys", power: 2.6, vitScale: 0.5, acc: 1, pierce: 0.4, target: "enemy", desc: "鍛えた身ごと貫く必中の突き（VITで伸びる）（物理貫通40%）" },
   },
@@ -35,12 +35,12 @@ export default {
     knightTessoku: {
       label: "騎士の鉄則",
       // 盾役の見直し (2026-10): 引き付けている間 (矢面の構え) は硬くなり、受けた物理に攻撃力でやり返し、主・強敵の気を引いて隊に隙を作る
-      lv: ["物理が当たると10%で敵の攻撃×0.85 (3ターン)。敵を引き付けている間、受けるダメージ-25%・物理を受けるたび攻撃力×0.25でやり返す・主・強敵への味方全員の与ダメージ+12% (盾役どうしでは一番強いものだけ)",
-        "物理が当たると14%で敵の攻撃×0.85 (3ターン)。敵を引き付けている間、受けるダメージ-32%・物理を受けるたび攻撃力×0.35でやり返す・主・強敵への味方全員の与ダメージ+16% (盾役どうしでは一番強いものだけ)",
-        "物理が当たると18%で敵の攻撃×0.85 (3ターン)。敵を引き付けている間、受けるダメージ-40%・物理を受けるたび攻撃力×0.45でやり返す・主・強敵への味方全員の与ダメージ+20% (盾役どうしでは一番強いものだけ)"],
+      lv: ["物理が当たると10%で敵の攻撃×0.85 (3ターン)。敵を引き付けている間、受けるダメージ-25%・物理を受けるたび攻撃力×0.2でやり返す・主・強敵への味方全員の与ダメージ+12% (盾役どうしでは一番強いものだけ)",
+        "物理が当たると14%で敵の攻撃×0.85 (3ターン)。敵を引き付けている間、受けるダメージ-32%・物理を受けるたび攻撃力×0.25でやり返す・主・強敵への味方全員の与ダメージ+16% (盾役どうしでは一番強いものだけ)",
+        "物理が当たると18%で敵の攻撃×0.85 (3ターン)。敵を引き付けている間、受けるダメージ-40%・物理を受けるたび攻撃力×0.3でやり返す・主・強敵への味方全員の与ダメージ+20% (盾役どうしでは一番強いものだけ)"],
       fx: [{ t: "hit", chance: [0.10, 0.14, 0.18], ail: "atk", mul: 0.85 },
         { t: "take", when: { taunting: true }, v: [0.25, 0.32, 0.40] },
-        { t: "hurt", when: { taunting: true }, ret: { stat: "atk", k: [0.25, 0.35, 0.45] } },
+        { t: "hurt", when: { taunting: true }, ret: { stat: "atk", k: [0.2, 0.25, 0.3] } },
         { t: "deal", aura: true, best: true, holder: { taunting: true }, when: { strong: true }, v: [0.12, 0.16, 0.20] }],
     },
     knightFutai: {
