@@ -2,7 +2,7 @@
 
 書き出し: `node tools/storyart/review.mjs` (build.py も書き直す。手で直さない)。
 
-場面: 出荷済み 105 ・ 出荷済み (任意の修正あり) 11 ・ 未着手 (指示あり) 22
+場面: 出荷済み 111 ・ 出荷済み (任意の修正あり) 11 ・ 未着手 (指示あり) 22
 
 | 章 | 場面 | 題 | 状態 | 確認ページ |
 |---|---|---|---|---|
@@ -15,6 +15,7 @@
 | 序章 | `forest_doll` | ほこりの下で待つ人業 | 出荷済み | [見る](chapter0.md#forest_doll) |
 | 序章 | `departure` | 四つの足音、ひとつの行き先 | 出荷済み | [見る](chapter0.md#departure) |
 | 序章 | `first_descent` | 門をくぐる前に | 出荷済み (任意の修正あり) | [見る](chapter0.md#first_descent) |
+| 第1章「師の灯」 | `irene_boons` | 手がかりの恵み | 出荷済み | [見る](chapter1.md#irene_boons) |
 | 第1章「師の灯」 | `w01_lantern` | 墓石の上の青い火 | 出荷済み | [見る](chapter1.md#w01_lantern) |
 | 第1章「師の灯」 | `report_w01` | 鎮魂灯と眠っていた人業 | 出荷済み | [見る](chapter1.md#report_w01) |
 | 第1章「師の灯」 | `w02_sigil` | 水音の向こうへ | 出荷済み | [見る](chapter1.md#w02_sigil) |
@@ -53,6 +54,7 @@
 | 第3章「魂脈の根」 | `irene_torso` | お帰りを重ねる仕事 | 出荷済み | [見る](chapter3.md#irene_torso) |
 | 第3章「魂脈の根」 | `mem_w13` | 魂の流れを登る師 | 出荷済み | [見る](chapter3.md#mem_w13) |
 | 第3章「魂脈の根」 | `report_w13` | 微笑む宰相、老いていく王 | 出荷済み | [見る](chapter3.md#report_w13) |
+| 第3章「魂脈の根」 | `irene_undercity` | 灯の高さ | 出荷済み | [見る](chapter3.md#irene_undercity) |
 | 第3章「魂脈の根」 | `ch3_end` | 帰る場所から、玉座の下へ | 出荷済み | [見る](chapter3.md#ch3_end) |
 | 第4章「王都の地下」 | `w14_lamp` | 水底に残された灯 | 出荷済み (任意の修正あり) | [見る](chapter4.md#w14_lamp) |
 | 第4章「王都の地下」 | `report_w14` | 足元に沈む都 | 出荷済み | [見る](chapter4.md#report_w14) |
@@ -64,6 +66,7 @@
 | 第4章「王都の地下」 | `mem_w17` | 水の底の戴冠 | 出荷済み | [見る](chapter4.md#mem_w17) |
 | 第4章「王都の地下」 | `report_w17` | 杯を遠ざけた手 | 出荷済み | [見る](chapter4.md#report_w17) |
 | 第4章「王都の地下」 | `ch4_end` | 二つ並んだ影 | 出荷済み | [見る](chapter4.md#ch4_end) |
+| 第5章「灼熱の洞」 | `irene_furnace` | 火の洞へ | 出荷済み | [見る](chapter5.md#irene_furnace) |
 | 第5章「灼熱の洞」 | `w18_blade` | 手放された刃 | 出荷済み | [見る](chapter5.md#w18_blade) |
 | 第5章「灼熱の洞」 | `report_w18` | 床の下の熱 | 出荷済み | [見る](chapter5.md#report_w18) |
 | 第5章「灼熱の洞」 | `w19_husks` | 同じ顔の器 | 出荷済み | [見る](chapter5.md#w19_husks) |
@@ -73,10 +76,13 @@
 | 第5章「灼熱の洞」 | `report_w20` | 床に置かれた杯 | 出荷済み | [見る](chapter5.md#report_w20) |
 | 第5章「灼熱の洞」 | `mem_w21` | 大釜の前の二人 | 出荷済み | [見る](chapter5.md#mem_w21) |
 | 第5章「灼熱の洞」 | `report_w21` | 冷えていく指先 | 出荷済み | [見る](chapter5.md#report_w21) |
+| 第5章「灼熱の洞」 | `irene_abyss` | 落ち続ける灯 | 出荷済み | [見る](chapter5.md#irene_abyss) |
 | 第5章「灼熱の洞」 | `ch5_end` | 底のない穴の上で | 出荷済み | [見る](chapter5.md#ch5_end) |
 | 第6章「氷結回廊」 | `w22_coat` | 風が受け止めたもの | 出荷済み | [見る](chapter6.md#w22_coat) |
+| 第6章「氷結回廊」 | `irene_coat` | 師の外套 | 出荷済み | [見る](chapter6.md#irene_coat) |
 | 第6章「氷結回廊」 | `report_w22` | 寒い玉座の間 | 出荷済み | [見る](chapter6.md#report_w22) |
 | 第6章「氷結回廊」 | `w23_names` | 空けてあった柱 | 出荷済み | [見る](chapter6.md#w23_names) |
+| 第6章「氷結回廊」 | `irene_frozen` | 受け止める手 | 出荷済み | [見る](chapter6.md#irene_frozen) |
 | 第6章「氷結回廊」 | `report_w23` | 済まされていなかった処刑 | 出荷済み | [見る](chapter6.md#report_w23) |
 | 第6章「氷結回廊」 | `w24_aurora` | 天井の星 | 出荷済み | [見る](chapter6.md#w24_aurora) |
 | 第6章「氷結回廊」 | `report_w24` | 落ちきらなかった魂 | 出荷済み | [見る](chapter6.md#report_w24) |

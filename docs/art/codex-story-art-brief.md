@@ -110,7 +110,7 @@ Sky continuity: In present-day scenes from report_w33 (the hundredth-year blue s
 - **置き場所 = 登録**: 原画 `art/story-review/chapterN/<場面ID>.png` → 出荷 `art/story/chapterN/<場面ID>.webp`。序章は `prologue/` (名前と場面IDの対応は `tools/storyart/register.mjs` の `PROLOGUE`)、由来は `dungeons/lore_<迷宮ID>.png`。場面ID と章は `src/archive-stories.js` の `scene("<場面ID>", N, …)` と一致させる (違えば build.py が止まる)。
 - 原画は `art/story-review/` (デプロイで外れる)、ゲームが読むのは `art/story/` の WebP だけ。GitHub Pages は 1GB まで (デプロイは 800MB で止まる)。原画・比較画像・案を `art/story/` に置かない。
 - 直しを待つ原画は `tools/storyart/hold.json` の `hold` (いまは由来の w14・w16。build.py は変換しない)、物語の絵ではない原画 (一覧の見本・参照) は `skip`。直し終えたら `hold` から外す。
-- ストーリー一覧に無い、ゲーム内だけの場面 (館の語り `irene_abyss` など) には絵を付けられない。付けたい時は Claude に一覧の場面を足してもらう。
+- ストーリー一覧に無い、ゲーム内だけの場面 (未登録の館の語りなど) には絵を付けられない。付けたい時は Claude に一覧の場面を足してもらう。
 - 遊ぶ人の端末は、進めている章までの物語の絵と、地図に現れた迷宮の由来の絵だけを裏で先に集める (`sw.js` の warmMedia ← `src/journal.js` の `storyMediaUrls`)。先の章の絵を足しても、まだそこへ着いていない人の通信は増えない。
 - 1便ごとに1つの PR。最初の数枚で止まって承認を待つ (各便の依頼文)。Pillow (`pip install pillow`) と Node 22 が要る。
 
@@ -513,6 +513,53 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 ---
 
 ## 4. 便2・便3 ― 第5〜8章の新規 42場面
+
+**irene_boons「手がかりの恵み」** (第1章 / 館の語り)
+- 要点: 旧セーブへの案内。燭台の横で紙束と手記を調べ、残された手助けを示すイレーヌ。進行度に関係なく使えるよう、特定の後半章の品や秘密は描かない。
+- 描かないもの: 読める文字・後の章の秘密・本文にない幻影。
+```text
+Irene must match the approved Irene reference exactly: long black hair with a purple sheen, purple eyes, gold-and-purple jeweled hair ornament, purple-and-black lace gothic gown with off-shoulder sleeves, natural adult proportions and a calm gentle face. In the familiar gothic mansion workshop, Irene sits at a broad wooden worktable, carefully reviewing a modest collection of weathered loose notes and a small open leather notebook brought back from the labyrinths. Her left hand gently holds one curled page flat; her right index finger points to a small illegible marginal sketch, as she explains the practical help hidden in these clues to an unseen listener. All notes are unreadable scribbles. The single white candle on a brass candlestick illuminates the notes and her gentle attentive face. Compose a three-quarter view across the papers, with Irene on the right half and the gathered clues readable as the focal collection in the center foreground. Keep her wrists covered with black lace cuffs. Show only modest paper clues and ordinary workshop tools, with no named relic, doll parts, future secrets or magical symbols. This scene must work at any point in the player's progress. No Sera, Ordo, apprentice, or party dolls. No readable text.
+```
+
+
+**irene_undercity「灯の高さ」** (第3章 / 館の語り)
+- 要点: 第三章の報告後。燭台の高い暖色の炎を見上げるイレーヌ。セラの未回収部品は進行で異なるため画面に入れない。
+- 描かないもの: 読める文字・後の章の秘密・本文にない幻影。
+```text
+Irene must match the approved Irene reference exactly: long black hair with a purple sheen, purple eyes, gold-and-purple jeweled hair ornament, purple-and-black lace gothic gown with off-shoulder sleeves, natural adult proportions and a calm gentle face. In the same gothic mansion, Irene stands quietly beside a tall brass candlestick holding ONE white wax candle. Its warm amber flame burns noticeably tall and steady, rising above her eye line; she lifts her purple-eyed gaze toward its tip with a small renewed hope. Her hands rest gently together at waist height, away from the flame. Compose a graceful medium-wide side view with Irene on the left and the unusually high candle flame near the center, against the dark vertical carved shelves and cool blue gothic window. The real candle and her upward gaze are the two clear focal details at thumbnail size. The flame is ordinary warm candlelight, not blue soul-fire or a giant magical fire. No doll parts, Sera, Ordo, apprentice, visions of roots, or hidden future revelations. No readable text.
+```
+
+
+**irene_furnace「火の洞へ」** (第5章 / 館の語り)
+- 要点: 第五章の入口。イレーヌが小さな芯切りばさみで白い蝋燭の芯を短く整える。館の中の静かな警告で、炎の洞窟や燃える人業は描かない。
+- 描かないもの: 読める文字・後の章の秘密・本文にない幻影。
+```text
+Irene must match the approved Irene reference exactly: long black hair with a purple sheen, purple eyes, gold-and-purple jeweled hair ornament, purple-and-black lace gothic gown with off-shoulder sleeves, natural adult proportions and a calm gentle face. In the familiar mansion workshop, Irene carefully trims the wick of the single white candle on its brass candlestick with small black iron wick scissors. Her right hand naturally grips the small closed scissor handles, with the narrow tips positioned at the charred wick; her left hand lightly steadies the brass base well below the flame. The flame is small, warm amber and controlled. She looks down at the wick with a tender but worried expression, warning an unseen listener about fire. Compose a medium-close three-quarter view from table height, the candle and small wick scissors clearly visible between her face and hands. Keep both lace cuffs covering the wrists. This is an indoor quiet moment; no burning dolls, furnace, lava, threatening fire, dramatic sparks, or blue flame. No Sera, Ordo, apprentice, or party dolls. No readable text.
+```
+
+
+**irene_abyss「落ち続ける灯」** (第5章 / 館の語り)
+- 要点: 第五章終了前後。燭台の前で両手を固く組むイレーヌ。セラの覚醒前後どちらの分岐にも使えるよう、セラと部品は画面に入れない。
+- 描かないもの: 読める文字・後の章の秘密・本文にない幻影。
+```text
+Irene must match the approved Irene reference exactly: long black hair with a purple sheen, purple eyes, gold-and-purple jeweled hair ornament, purple-and-black lace gothic gown with off-shoulder sleeves, natural adult proportions and a calm gentle face. Late at night inside the familiar gothic mansion workshop, Irene sits alone before ONE white candle on a brass candlestick, both hands clasped tightly together just below her chin. Show two anatomically natural hands, interlaced with quiet restrained tension, black lace cuffs covering the wrists. Her eyes stay fixed on the small steady warm amber flame, her expression anxious and resolute rather than crying or smiling. Compose an intimate side-on view with Irene on the right and the small candle on the left, deep shadow separating them from the distant cool-blue gothic window. The surrounding darkness suggests the feared endless fall only through mood; the room remains a real workshop. Show neither a literal abyss nor a falling figure. No Sera, doll parts, Ordo, apprentice, chancellor, visions, blue soul-fire, or readable text. This same image must fit both dialogue branches, before and after the companion awakens.
+```
+
+
+**irene_coat「師の外套」** (第6章 / 館の語り)
+- 要点: 第六章。燭台のそばで凍った師の外套の氷を溶かすイレーヌ。師の外套は無地の古びた黒、裾に小さな金糸の印ひとつだけ。弟子の全面の金模様と区別する。
+- 描かないもの: 読める文字・後の章の秘密・本文にない幻影。
+```text
+Irene must match the approved Irene reference exactly: long black hair with a purple sheen, purple eyes, gold-and-purple jeweled hair ornament, purple-and-black lace gothic gown with off-shoulder sleeves, natural adult proportions and a calm gentle face. In the same gothic mansion workshop, Irene gently spreads a recovered frozen long travel coat across a wooden worktable beside a single white candle on a brass candlestick, slowly thawing it. The coat is plain worn BLACK wool, with restrained weathering and NO all-over embroidery, no rich gold trim, no purple lining, and no attached satchel. Thin translucent ice clings to its folded shoulder and one edge; a few beads of meltwater glisten on the wood. Irene carefully lifts the coat's hem in one hand and supports the heavy folded cloth with the other, looking down with tenderness and recognition. On the hem show ONLY ONE small GOLD-THREAD approved geometric lamp-on-palm crest: an angular cupped palm, one left thumb projection, three parallel slanted right finger projections, a short wrist below and a separate teardrop flame above. Keep this modest embroidery small but legible, not enlarged into a decorative panel. Compose a medium-wide view with the frozen black coat filling the foreground and Irene behind it; an empty simple coat stand is in the dim background. Warm amber light melts the frost against cool blue window light. No Sera, Ordo, apprentice, human figure inside the coat, injury, blue flame or readable text.
+```
+
+
+**irene_frozen「受け止める手」** (第6章 / 館の語り)
+- 要点: 第六章。燭台の炎に開いた両手をかざすイレーヌ。氷の中の操霊師は語られる内容であり、館内に描かない。
+- 描かないもの: 読める文字・後の章の秘密・本文にない幻影。
+```text
+Irene must match the approved Irene reference exactly: long black hair with a purple sheen, purple eyes, gold-and-purple jeweled hair ornament, purple-and-black lace gothic gown with off-shoulder sleeves, natural adult proportions and a calm gentle face. Inside the same gothic mansion workshop, Irene raises her TWO OPEN hands toward the gentle warmth of a single white candle on a brass candlestick. Her palms are curved upward and inward on either side, safely apart from the flame, each natural hand with one thumb and four fingers; neither hand touches the flame or overlaps the other. Her thoughtful gentle face appears above and behind the hands, looking at their softly lit palms as she reflects on hands that catch and shelter falling souls. Compose a close three-quarter frontal view, with the candle at the lower center and the two open cupped hands forming the main narrative shape around its warm amber flame. Lace cuffs cover her wrists. Cool blue moonlight through the familiar gothic window contrasts with the small candle. Keep this a literal moment in the mansion, without magical images, trapped bodies, frozen people, icy cavern, falling souls, extra hands or diagrams. No Sera, Ordo, apprentice, or readable text.
+```
 
 **irene_omokage「彫られた顔」** (第三章 / 館の語り)
 - 要点: 第三章の入口。イレーヌが燭台のそばでセラの頭を柔らかい布でぬぐい、人業の顔と「面影の写し」を教える。
@@ -1079,9 +1126,9 @@ The same mansion workshop late at night. Irene trims the single white candle, he
 The underground town square under a ceiling of thousands of glowing clear lanterns on iron frames (no sky). One new lantern is being hung in the quietest corner of the frame high above. In the square, beside a large chalk circle with a lamp-on-palm crest, two townsfolk dolls stand side by side facing the apprentice: one in a rain-damp cloak holding a glass jar, the other with ink-stained fingers holding a sheaf of copied pages; their postures differ — one hopeful, one uneasy — but they stand together. The apprentice, with the party of wooden dolls, touches the chalk line with the tip of a boot. Kitchen steam and small child-shaped dolls playing in the distance. Warm light, open question.
 ```
 
-### 第五章の任意の1枚
+### 館の語りの追加 (2026-10-16)
 
-- **irene_abyss「落ち続ける灯」** (館の語り。ゲーム内だけで、ストーリー一覧に無い。絵を付けるなら、先に Claude に一覧の場面を足してもらう — 1-3): 燭台の前で両手を固く組むイレーヌ、胸の扉に手を当てて灯を強く燃やすセラ。
+`irene_boons`・`irene_undercity`・`irene_furnace`・`irene_abyss`・`irene_coat`・`irene_frozen` は一覧へ追加済み。制作指示は4章冒頭。セラの覚醒状態で分岐する語りには、両方に合うイレーヌ中心の絵を使う。
 
 ---
 
