@@ -10,7 +10,7 @@ SHEETS = {
     'a': ['bs_tomeguardian', 'bs_runegolem', 'bs_forbiddenspirit', 'bs_mindeater'],
     'b': ['bs_spellwraith', 'bs_cosmicwraith', 'bs_inkdragon', 'bs_elderlich'],
     'c': ['bs_arcanesentinel', 'bs_soulreaper', 'bs_inkhorror', 'bs_grimoirebeast'],
-    'd': ['el_librarian', 'mt_gold', 'mt_king', 'master_mimic'],
+    'd': ['el_librarian'],
 }
 
 def build():
