@@ -10743,15 +10743,17 @@ function showSpells(actor) {
     // (disabled だと pointer イベントが飛ばず長押しを拾えない)
     const locked = skillLocked(actor, key);
     const b = btn("", () => { if (locked) { SFX.ng(); return; } act("spell", key); });
-    b.className = "btn spell spell-" + (sp.kind || "atk") + (key === quick ? " last" : "");
+    b.className = "btn spell spell-skill spell-" + (sp.kind || "atk") + (key === quick ? " last" : "");
     const top = el("span", "sp-top");
     top.appendChild(el("span", "sp-n", sp.name));
-    const tg = tagRow(spellTagKinds(sp, actor), "sp-tags");
-    if (tg) top.appendChild(tg);
-    const edge = skillEdgeTags(actor, sp);
-    if (edge) { if (!tg) edge.classList.add("lead"); top.appendChild(edge); }
     top.appendChild(el("span", "sp-mp", `MP${cost}`));
     b.appendChild(top);
+    const meta = el("span", "sp-meta");
+    const tg = tagRow(spellTagKinds(sp, actor), "sp-tags");
+    if (tg) meta.appendChild(tg);
+    const edge = skillEdgeTags(actor, sp);
+    if (edge) meta.appendChild(edge);
+    if (meta.childElementCount) b.appendChild(meta);
     b.appendChild(el("span", "sp-d", skillDescription(sp)));
     b.style.setProperty("--sp-col", SPELL_KIND_COLOR[sp.kind] || "#c9a24a");
     if (locked) b.classList.add("locked");

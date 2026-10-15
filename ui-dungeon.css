@@ -501,6 +501,13 @@ button.rs-line { cursor: pointer; touch-action: manipulation; }
 /* スキルの種別・属性の札 (戦闘のスキル一覧・早出しボタン) */
 #combat-menu .sp-tags { margin-left: auto; }
 #combat-menu .sp-tags .ui-tag { font-size: 9.5px; }
+/* 技名・札・説明を別の段にし、2列の狭い札でも名前を読めるようにする。 */
+#combat-menu .btn.spell-skill { height: max-content; min-width: 0; grid-auto-rows: max-content; }
+#combat-menu .spell-skill .sp-top { align-items: flex-start; }
+#combat-menu .spell-skill .sp-n { flex: 1 1 auto; min-width: 0; white-space: normal; overflow: visible; }
+#combat-menu .sp-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 6px; min-width: 0; }
+#combat-menu .sp-meta .sp-tags { margin-left: 0; flex-shrink: 1; flex-wrap: wrap; white-space: normal; }
+
 #combat-menu .cmd-s .sp-tags { margin-left: 4px; }
 #combat-menu .cmd-s .sp-tags .ui-tag { font-size: 8.5px; }
 /* 技の属性の有利・不利 (属性の明かされた敵に対して)。対象選択では「弱点」「耐性」 */
