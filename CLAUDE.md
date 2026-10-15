@@ -191,6 +191,7 @@ Every equipment item has `rar`: `c` コモン(白) / `uc` アンコモン(緑) /
 
 ### 装備の絵 (`src/itemart/`) — 全装備が固有の絵 (2026-10, user direction)
 制作番号1001〜1100も同じ384×384の透過WebP方式で登録済み。制作記録 `docs/art/items-1001-1100/`、再変換 `python3 tools/itemart/build-1001-1100.py`、実描画の検証 `node tools/itemart/verify-1001-1100.cjs`。
+制作番号1401〜1500も同じ透過WebP描画口に登録。森の古屋の3体と図鑑を基準に制作し、原画・対応表・確認画像は `docs/art/items-1401-1500/`、再変換・実描画検証は `tools/itemart/build-1401-1500.py`・`verify-1401-1500.cjs`。
 制作番号1301〜1400も `art/items/<既存ID>.webp` の透過原画を使用する。制作記録 `docs/art/items-1301-1400/`、再変換 `python3 tools/itemart/build-1301-1400.py`、実描画の検証 `node tools/itemart/verify-1301-1400.cjs`。
 制作番号1101〜1200も透過WebPを `src/itemphotos.js` に登録。制作記録は `docs/art/items-1101-1200/`、再変換は `python3 tools/itemart/build-1101-1200.py`、表示検証は `node tools/itemart/verify-1101-1200.cjs`。
 制作番号1901〜2000も同じ透過WebP描画口に登録。原画・対応表・確認資料は `docs/art/items-1901-2000/`、再変換は `python3 tools/itemart/build-1901-2000.py`、図鑑・未鑑定・取得失敗・寸法不一致・時間切れの検証は `node tools/itemart/verify-1901-2000.cjs`。
@@ -199,6 +200,7 @@ Every equipment item has `rar`: `c` コモン(白) / `uc` アンコモン(緑) /
 制作番号501〜600も `art/items/<既存ID>.webp` の透過原画で表示する。制作記録 `docs/art/items-501-600/`、再変換 `python3 tools/itemart/build-501-600.py`、実描画の検証 `node tools/itemart/verify-501-600.cjs`。
 制作番号401〜500もWebP化済み。401・402は `art/items/` の新規原画、403〜500は既存の奉納品98点を再利用する。制作記録 `docs/art/items-401-500/`、変換 `python3 tools/itemart/build-401-500.py`、100点の図鑑・伏せ絵・取得失敗の検証 `node tools/itemart/verify-401-500.cjs`。
 制作番号801〜900の制作記録は `docs/art/items-801-900/`、再変換は `python3 tools/itemart/build-801-900.py`、実描画の検証は `node tools/itemart/verify-801-900.cjs`。
+制作番号2101〜2201も透過WebP描画口に登録。原画・対応表・確認資料は `docs/art/items-2101-2201/`、再変換は `python3 tools/itemart/build-2101-2201.py`、表示・未鑑定・取得失敗の検証は `node tools/itemart/verify-2101-2201.cjs`。
 
 制作番号601〜700も `art/items/` の透過WebPを共通描画口へ登録。制作記録 `docs/art/items-601-700/`、変換 `python3 tools/itemart/build-601-700.py`、図鑑・伏せ絵・取得失敗・寸法不一致・時間切れの検証 `node tools/itemart/verify-601-700.cjs`。
 
