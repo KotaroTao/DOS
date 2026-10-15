@@ -3,6 +3,8 @@
 export const MONSTER_PHOTOS = {
   // 魂喰らいの大樹の主（通常敵・強敵・召喚先は作成済み原画を共用）。
   bs_forestlord: [520, 520],
+  // 獄吏の詰所の主（通常敵・強敵・召喚先は作成済み原画を共用）。
+  bs_ironcagewarden: [520, 381],
   // <<GRAND_LIBRARY_ART>>
   // 大書庫の主（通常敵・強敵・召喚先は作成済み原画を共用）。
   bs_archivist: [520, 414],
