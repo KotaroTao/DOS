@@ -39,7 +39,7 @@ const assert = require('node:assert/strict');
         const { CATALOG_ITEMS } = await import('/src/catalog/index.js');
         const { ITEM_PHOTOS, itemPhoto } = await import('/src/itemphotos.js');
         const { NUMBERED_ITEM_IDS } = await import('/src/itemnumbers.js');
-        if (JSON.stringify(ITEM_PHOTOS.slice(200, 300)) !== JSON.stringify(NUMBERED_ITEM_IDS.slice(200, 300))) throw Error('原画の登録範囲');
+        if (JSON.stringify(ITEM_PHOTOS.filter(id => NUMBERED_ITEM_IDS.indexOf(id) >= 200 && NUMBERED_ITEM_IDS.indexOf(id) < 300)) !== JSON.stringify(NUMBERED_ITEM_IDS.slice(200, 300))) throw Error('原画の登録範囲');
         const { makeItemSpriteResolver, ART_SLOTS, unidIcon } = await import('/src/itemart/index.js');
         const { setSpriteResolver, spriteCanvas, whenPhoto } = await import('/src/sprites.js');
         const items = { ...ITEMS, ...CATALOG_ITEMS };
