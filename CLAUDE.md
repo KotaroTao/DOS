@@ -190,6 +190,7 @@ Every equipment item has `rar`: `c` コモン(白) / `uc` アンコモン(緑) /
 - Owned items are re-synced to the catalog on load (`reflattenItemStats`: stats/art/rar/etc. from `ITEMS[id]`, instance flags like `unidentified` kept).
 
 ### 装備の絵 (`src/itemart/`) — 全装備が固有の絵 (2026-10, user direction)
+制作番号1301〜1400も `art/items/<既存ID>.webp` の透過原画を使用する。制作記録 `docs/art/items-1301-1400/`、再変換 `python3 tools/itemart/build-1301-1400.py`、実描画の検証 `node tools/itemart/verify-1301-1400.cjs`。
 制作番号1101〜1200も透過WebPを `src/itemphotos.js` に登録。制作記録は `docs/art/items-1101-1200/`、再変換は `python3 tools/itemart/build-1101-1200.py`、表示検証は `node tools/itemart/verify-1101-1200.cjs`。
 制作番号1901〜2000も同じ透過WebP描画口に登録。原画・対応表・確認資料は `docs/art/items-1901-2000/`、再変換は `python3 tools/itemart/build-1901-2000.py`、図鑑・未鑑定・取得失敗・寸法不一致・時間切れの検証は `node tools/itemart/verify-1901-2000.cjs`。
 制作番号701〜800も同じ透過WebP描画口に登録。原画・対応表・確認資料は `docs/art/items-701-800/`、再変換は `python3 tools/itemart/build-701-800.py`、表示・未鑑定・取得失敗の検証は `node tools/itemart/verify-701-800.cjs`。
