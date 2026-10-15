@@ -1,6 +1,15 @@
 // 迷宮の透過原画。通常敵・強敵・主・召喚先・共通の敵で共用する。
 // 能力値や文字グリッドは保ち、読めた原画だけを最初の描画前に登録する。
 export const MONSTER_PHOTOS = {
+  // <<FOSSIL_TOMB_ART>>
+  // 化石竜の墓所（作成済みの通常敵・強敵・共通敵は既存原画を共用）。
+  bs_fossildragon: [520, 357],
+  bs_primalbeast: [520, 367],
+  bs_primalserpent: [520, 339],
+  bs_cavebehemoth: [520, 335],
+  bs_earthshaker: [520, 404],
+  bs_abysshorror: [520, 361],
+  // <</FOSSIL_TOMB_ART>>
   // 銀業の隠れ里の未作成だった黄金の守り像。他12体は既存絵を共用。
   bs_goldgolem: [363, 443],
   // 水晶の鉱脈（作成済みの鉱脈喰らいは既存絵を使う）。
