@@ -5,6 +5,7 @@ with sync_playwright() as p:
     browser = p.chromium.launch(executable_path='/usr/bin/chromium', args=['--no-sandbox'])
     for width, height in [(390,844), (320,568), (844,390), (1024,768)]:
         page = browser.new_page(viewport={'width':width,'height':height}, service_workers='block')
+        page.route('https://fonts.googleapis.com/**',lambda route:route.fulfill(content_type='text/css',body=''))
         errors=[]
         page.on('pageerror', lambda e: errors.append(str(e)))
         page.goto('http://localhost:8000/?testDungeon=w05&testPlace=town')
@@ -17,7 +18,7 @@ with sync_playwright() as p:
           const {applyAffixes}=await import('/src/infaffix.js');
           window.api=game;window.ui=UI;
           const g=game.G;
-          g.irene.greeted=true;g.tut.cur=null;g.gold=10000000;
+          g.irene.greeted=true;g.tut.cur=null;g.gold=10000000;g.insightNotified=Number.MAX_SAFE_INTEGER;
           const {_TUTS}=await import('/src/ui/tutorial.js');
           _TUTS.forEach(t=>g.tut.done[t.key]=true);
           g.msq.prologue={phase:'done',gifts:{}};

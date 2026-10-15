@@ -223,7 +223,7 @@ const TUTS = [
   {
     key: "buyEquipment", name: "商会で装備を整える", who: "shop",
     open: () => game.prologuePhase?.() === "shop", used: () => false,
-    prepare: () => { UI.openShop?.("buy", { cat: "rec" }); },
+    prepare: () => { UI.openShop?.("buy", { cat: "rec", clearFilters: true }); },
     intro: () => [
       "ヴォス「黒鉄商会へようこそ。王から支度金を受け取ったそうだな。まずは『買う』の『おすすめ』を見てくれ。」",
       "ヴォスの下に並ぶ顔から、装備を整える人業を選ぼう。『おすすめ』には、選んだ者の現在装備より役に立つ品が並ぶ。能力の増減と失う特殊効果も確かめ、『買って装備』で一品買ってみよう。金貨を払い、その者に装備できる。",
