@@ -37,16 +37,17 @@ const assert = require('node:assert/strict');
       const result = await page.evaluate(async mode => {
         const { ITEMS } = await import('/src/items.js');
         const { CATALOG_ITEMS } = await import('/src/catalog/index.js');
-        const { ITEM_PHOTOS, itemPhoto } = await import('/src/itemphotos.js');
+        const { ITEM_PHOTOS: ALL_ITEM_PHOTOS, itemPhoto } = await import('/src/itemphotos.js');
         const { makeItemSpriteResolver, ART_SLOTS, unidIcon } = await import('/src/itemart/index.js');
         const { setSpriteResolver, spriteCanvas, whenPhoto } = await import('/src/sprites.js');
         const items = { ...ITEMS, ...CATALOG_ITEMS };
+        const ITEM_PHOTOS = ALL_ITEM_PHOTOS.filter(id => items[id].number <= 100);
         const resolve = makeItemSpriteResolver(items);
         setSpriteResolver(resolve);
         document.body.replaceChildren();
         Object.assign(document.body.style, { background: '#19191f', color: '#ddd', display: 'grid', gridTemplateColumns: 'repeat(10,1fr)', gap: '8px' });
         let count = 0, hidden = 0;
-        for (const id of ITEM_PHOTOS.filter(id => items[id].number <= 100)) {
+        for (const id of ITEM_PHOTOS) {
           const item = items[id], sprite = resolve({ ...item });
           if (!!itemPhoto(id) !== (mode === 'normal')) throw Error(id + ': 読み込み結果');
           if (mode === 'normal') {
@@ -64,7 +65,7 @@ const assert = require('node:assert/strict');
           card.append(canvas, document.createElement('br'), `${item.number} ${item.name}`);
           document.body.append(card);
         }
-        for (const item of Object.values(items).filter(i => !ITEM_PHOTOS.includes(i.id) && ART_SLOTS.has(i.slot))) {
+        for (const item of Object.values(items).filter(i => !ALL_ITEM_PHOTOS.includes(i.id) && ART_SLOTS.has(i.slot))) {
           if (resolve(item)?.photo) throw Error(item.id + ': 対象外の絵が変更された');
         }
         await new Promise(resolve => setTimeout(resolve, 150));
