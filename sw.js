@@ -287,6 +287,7 @@ const ASSETS = [
   "./art/monsters/el_cryptlord.webp",
   "./art/monsters/d01_skeleton.webp",
   "./art/monsters/mimic.webp",
+  "./art/monsters/bs_goldgolem.webp",
   "./art/monsters/bs_crystalspider.webp",
   "./art/monsters/bs_crystaldrake.webp",
   "./art/monsters/bs_glowspore.webp",
