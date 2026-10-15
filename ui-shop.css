@@ -569,3 +569,17 @@
 .wpc-shop .wpc-lhead { flex-wrap: wrap; }
 .wpc-shop .wpc-lhead .gf-open { margin-left: auto; }
 .wpc-shop > .gf-summary { max-height: 100px; overflow-y: auto; }
+
+/* スマホの購入画面は棚を広く使う。比較相手は横一列の小さな顔と名前で選ぶ。 */
+@media (max-width: 600px), (max-height: 500px) {
+  .wpc-shop.seg-buy { gap: 4px; }
+  .wpc-shop.seg-buy > .ui-whisper { display: none; }
+  .seg-buy .wpc-character-strip { padding-block: 2px; }
+  .seg-buy .wpc-character {
+    flex: 0 0 auto; flex-direction: row; min-height: 44px; gap: 4px; padding: 3px 6px;
+  }
+  .seg-buy .wpc-character > canvas { width: 28px; height: 28px; }
+  .seg-buy .wpc-comparison-label { display: none; }
+  .seg-buy .wpc-bar { gap: 4px; }
+  .wpc-shop.seg-buy > .gf-summary { max-height: 52px; }
+}

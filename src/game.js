@@ -15,6 +15,10 @@ import { STAGED, effectStage, stageOf, stageMul, stageLabel, isBattleLong, ENEMY
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
 import { spriteCanvas, crispCanvas, drawPhoto, photoReady, whenPhoto, setSpriteResolver } from "./sprites.js";
 import { makeItemSpriteResolver } from "./itemart/index.js";
+import { loadCollectiblePhotos } from "./collectiblephotos.js";
+import { loadTreasuryPhotos } from "./treasuryphotos.js";
+import { loadMiscPhotos } from "./miscphotos.js";
+import { loadMonsterPhotos } from "./monsterphotos.js";
 import { bagCount, isFormationItem,
   ITEMS, SLOTS, SLOT_LABEL, MAX_ITEMS, shareInventory, setBagSource, bagOwners, equip as equipItem, unequip as unequipItem, canEquip, canOffhand, slotKeyFor, lvToRank, RANGE_LABEL, HAND_LABEL, weaponRange, SHIELD_KIND_LABEL, shieldKind,
   registerEquipLevel, equipLevelOf, equipLvShort, equipFailMsg, registerAffixes,
@@ -7678,7 +7682,7 @@ function investigateCorpse(cell, clsKey, clsLabel) {
   cell.cleared = true;
   const back = () => { if (G.state === "board") renderBoard(); };
   // 半分の確率で魂の残火も残っている (下の4つのどれとも別に)。魂なら同じ知らせにまとめ、ほかは知らせの末尾に添える
-  const ember = random() < EMBER_COLD_RATE ? emberEcho(EMBER_COLD * emberMul(levelHere().lv)) : 0;
+  const ember = random() < EMBER_COLD_RATE ? emberEcho(EMBER_COLD * emberMul(battleLayer())) : 0;
   let emberDone = false;
   const emberTail = () => {
     if (!ember || emberDone) return "";
@@ -7742,11 +7746,12 @@ function investigateCorpse(cell, clsKey, clsLabel) {
 }
 
 // 魂の残火: まだあたたかい死体 = 必ず1個 / 偉大なる死体 = 必ず5個 / 風化した死体 = 50%で1個 (investigateCorpse)。
-// どれも敵Lv で数が増える (levelcurve.js emberMul: Lv1〜50 ×1・51〜100 ×2 … Lv400 ×8)
+// 第1〜9章は上記の基本数、第10章以降 (第12層〜) は通常・風化2個 / 偉大10個。
+// levelcurve.js emberMul で本編の層に対応させ、敵Lvや隊のLvでは増やさない。
 const EMBER_WARM = 1, EMBER_GREAT = 5, EMBER_COLD = 1, EMBER_COLD_RATE = 0.5;
 // 無限迷宮も本編と同じ数の残火を得る (2026-10-13 ユーザーの指示)。
 function emberReward(great) {
-  return emberEcho((great ? EMBER_GREAT : EMBER_WARM) * emberMul(levelHere().lv));
+  return emberEcho((great ? EMBER_GREAT : EMBER_WARM) * emberMul(battleLayer()));
 }
 // 極光の書きつけ (手がかりの恵み emberEcho): 死体から魂の残火を拾った時、この確率で数が倍になる
 const EMBER_ECHO_RATE = 0.10;
@@ -9291,6 +9296,7 @@ function renderCombatCanvas() {
   if (enemyFocusEl.textContent.replaceAll(ZWSP, "") !== focusLabel) enemyFocusEl.textContent = focusLabel;
   // 最下部には生存中の敵名を常設。不確定名と呼び分けは記録にそろえる。
   const nameRows = [backRow, frontRow].map((list) => list.filter((e) => e.alive));
+  appEl.classList.toggle("enemy-names-two-rows", nameRows.every((list) => list.length > 0));
   const nameClass = (e) => enemyUnknown(e) ? " unk" : enemyCodexComplete(e) ? " complete" : "";
   const namesKey = JSON.stringify(nameRows.map((list) => list.map((e) => [enemyLabel(e), nameClass(e)])));
   if (namesKey !== enemyNamesKey) {
@@ -12030,9 +12036,11 @@ function playBossPrelude(id, done) {
   const p = bossPreludeFor(id);
   if (!p) return false;
   const w = worldState();
-  const photo = storyImage(p.def === BOSS_PRELUDES[id].first ? p.key : null);
+  const sceneId = p.def === BOSS_PRELUDES[id].first ? p.key : p.key + "_retry";
+  const photo = storyImage(sceneId);
   UI.playStoryChain([{ title: p.def.title, lines: storyLines(p.def.lines), art: p.def.art, photo, who: "none", kicker: "主との対面", btnLabel: "挑む" }], () => {
     w.beats[p.key] = 1;
+    w.beats[sceneId] = 1;
     autosave(true);
     if (done) done();
   });
@@ -15084,18 +15092,17 @@ function sharePalaceRecord() {
 //   reward:"minePass" = 坑口の通行証 (台帳の迷宮「鎖の垂れる坑口」が地図に現れる。world.js unlock treasury:3)
 //   cls   = 決まった職の魂
 //   soul  = 魂 (1 = 通常の抽選 / "legend" = レジェンドの職から1つ)
-//   gear  = スーパーレア装備 1点 (いま踏破した最深の迷宮の出現上限から。隊の誰かが装備できる品)
 //   embers = 魂の残火
-//   lr + tier = 職業専用LR武器 (隊の職の品) / 全職共通のLR防具 を1点 (層の逸品は含めない)。
+//   lr + tier = LR装備 (gear) / 職業専用LR武器 (weapon) / 全職共通のLR防具 (armor) を1点 (層の逸品は含めない)。
 //               深さの解禁値 (LR_UNLOCK) に届く迷宮を踏破するまでは受け取れない (先に集めても待つだけで、失わない)
 // 節目の ID ("m" + n) はセーブに残る。n を変えない・消さない (足すのは可)
 const TREASURY_MILESTONES = [
   { n: 3, reward: "minePass" },
   { n: 5, cls: "bishop" },          // 司教の魂 (鑑定の技)
   { n: 10, cls: "samurai" },        // 侍の魂
-  { n: 15, gear: 1 },
+  { n: 15, lr: "gear", tier: 5 },
   { n: 20, soul: "legend" },
-  { n: 25, gear: 1, embers: 3 },
+  { n: 25, lr: "gear", tier: 5, embers: 3 },
   { n: 30, lr: "weapon", tier: 5 },
   { n: 40, lr: "armor", tier: 5 },
   { n: 50, soul: "legend", embers: 5 },
@@ -15111,10 +15118,9 @@ const LR_ARMOR_SLOTS = ["body", "head", "feet", "hands", "shield"];
 function milestoneLabel(m) {
   if (m.reward === "minePass") return "坑口の通行証";
   if (m.cls) return ((SOUL_CLASSES[m.cls] || {}).label || m.cls) + "の魂";
-  if (m.lr) return m.lr === "weapon" ? `LR${m.tier} 専用武器` : `LR${m.tier} 防具`;
   const parts = [];
   if (m.soul) parts.push(m.soul === "legend" ? "レジェンドの魂" : "魂");
-  if (m.gear) parts.push("SR装備");
+  if (m.lr) parts.push(`LR${m.tier} ${m.lr === "weapon" ? "専用武器" : m.lr === "armor" ? "防具" : "装備"}`);
   if (m.embers) parts.push(`魂の残火×${m.embers}`);
   return parts.join("＋") || "装備";
 }
@@ -15191,60 +15197,7 @@ function treasuryReceiver(forJob) {
     || G.party.find((p) => !p.isEmpty && room(p))
     || allDolls().find((d) => !d.isEmpty && room(d));
 }
-// 重みつきの抽選 ([[id, 重み]])
-function pickWeighted(list) {
-  const total = list.reduce((a, [, w]) => a + w, 0);
-  if (!total) return null;
-  let x = random() * total;
-  for (const [id, w] of list) { x -= w; if (x <= 0) return id; }
-  return list[list.length - 1][0];
-}
-const usableByParty = (it) => G.party.some((m) => !m.isEmpty && canEquip(m, it, { anyLv: true }));
-// 褒賞のスーパーレア装備を選ぶ: 踏破した最深の迷宮の出現上限 (基準R + LOOT_R_HEADROOM) から下へ、6点以上の候補がそろうまで広げる。
-// 隊の誰かが装備できる品だけ (ほかの職の専用品は出さない)。上限に近いランクほど・隊の職の専用品ほど出やすい
-function pickTreasurySR() {
-  const dep = treasuryDepth();
-  const capR = Math.min(20, Math.ceil(dep.lv / 10) + LOOT_R_HEADROOM);
-  const idx = lootByRarity().sr;
-  for (let span = 1; span <= 8; span++) {
-    const list = [];
-    for (let r = Math.max(1, capR - span); r <= capR; r++) {
-      for (const id of idx[r]) {
-        const it = ITEMS[id];
-        if ((it.layer || 0) > dep.layer) continue; // 層の逸品はその層を踏破してから
-        const fj = it.forJob;
-        if (fj && !G.party.some((m) => m.clsKey === fj)) continue;
-        if (!usableByParty(it)) continue;
-        list.push([id, (fj ? 2 : 1) * Math.max(1, 3 - (capR - r))]);
-      }
-    }
-    if (list.length >= 6 || span === 8) { const id = pickWeighted(list); if (id) return id; } // 顔ぶれが少なければ下へ広げる
-  }
-  return pickItemByLv(Math.min(200, dep.lv));
-}
-// 褒賞の装備を1点下賜する (所持枠が無ければ売値の金貨に換える)。完了後 onClose を呼ぶ
-function grantTreasuryItem(onClose) {
-  const id = pickTreasurySR();
-  const it = ITEMS[id] ? cloneItem(id) : null;
-  const who = it && treasuryReceiver(it.forJob);
-  if (who) {
-    runGainItem(who, it); codexSeeItem(id, it);
-    log(`宝物庫の褒賞として ${itemName(it)} を賜った。(${who.name})`, "win");
-    showItemGet(it, who, onClose);
-    return;
-  }
-  // 渡せない: 売値の金貨にする
-  const g = it ? Math.max(1, sellPrice(it)) : 100;
-  G.gold += g; updateTopbar();
-  tlTown("gold", g, "t");
-  log(`所持枠が満杯のため、宝物庫の褒賞は 💰${g} に換えられた。`, "win");
-  showEvent({
-    sprite: ICONS.gold, title: "褒賞を換金した", accent: "#e8c24a", banner: "✦ 宝物庫の褒賞 ✦",
-    lines: [`持ちきれぬため、褒賞は 💰${g} に換えられた。`], onClose: onClose,
-  });
-}
-
-// 褒賞のLRを選ぶ: tier の職業専用武器か全職共通の防具。迷宮のLRドロップ (pickLR) と同じく、
+// 褒賞のLRを選ぶ: tier の装備全般・職業専用武器・全職共通の防具。迷宮のLRドロップ (pickLR) と同じく、
 // 編成の職で重みを付けず全職の品から均等に (2026-10 ユーザーの指示)。
 // 層の逸品 (layer つき) は含めない。まだ手にしていない品 (G.lrOwned 外) を先に
 function pickTreasuryLR(m) {
@@ -15252,7 +15205,8 @@ function pickTreasuryLR(m) {
   const all = exclIds().filter((id) => {
     const it = ITEMS[id];
     if (!it || it.rar !== "lr" || it.layer || it.lr !== m.tier) return false;
-    return m.lr === "weapon" ? it.slot === "weapon" : LR_ARMOR_SLOTS.includes(it.slot);
+    return m.lr === "gear" ? ["weapon", ...LR_ARMOR_SLOTS, "acc"].includes(it.slot)
+      : m.lr === "weapon" ? it.slot === "weapon" : LR_ARMOR_SLOTS.includes(it.slot);
   });
   const fresh = all.filter((id) => !G.lrOwned[id]);
   const pool = fresh.length ? fresh : all;
@@ -15263,7 +15217,14 @@ function grantTreasuryLR(m, onClose) {
   const id = pickTreasuryLR(m);
   const it = id ? cloneItem(id) : null;
   const who = it && treasuryReceiver(it.forJob);
-  if (!who) { grantTreasuryItem(onClose); return; } // 品が無い・所持枠が無ければ通常の褒賞へ
+  if (!who) { // 所持枠が無ければ、抽選したLRの売値を金貨で渡す。
+    const gold = it ? Math.max(1, sellPrice(it)) : 100;
+    G.gold += gold; updateTopbar(); tlTown("gold", gold, "t");
+    log(`所持枠が満杯のため、宝物庫の褒賞は 💰${gold} に換えられた。`, "win");
+    showEvent({ sprite: ICONS.gold, title: "褒賞を換金した", accent: "#e8c24a", banner: "✦ 宝物庫の褒賞 ✦",
+      lines: [`持ちきれぬため、褒賞は 💰${gold} に換えられた。`], onClose });
+    return;
+  }
   it.unidentified = true;
   runGainItem(who, it); codexSeeItem(id, it);
   flashScreen("#ff5fae"); SFX.victory(); buzz([0, 60, 50, 60, 50, 60, 240]);
@@ -15320,10 +15281,9 @@ function treasuryRewardLines(m, n) {
 // 褒賞の「受け取るもの」(物語のページの欄)
 function treasuryRewardRows(m) {
   if (m.cls) return [{ job: m.cls }];
-  if (m.lr) return m.lr === "weapon" ? `LR${m.tier} の専用武器 1点 (未鑑定)` : `LR${m.tier} の防具 1点 (未鑑定)`;
   const parts = [];
   if (m.soul) parts.push(`${m.soul === "legend" ? "レジェンドの魂" : "魂"} 1つ`);
-  if (m.gear) parts.push("スーパーレアの装備 1点");
+  if (m.lr) parts.push(`LR${m.tier} の${m.lr === "weapon" ? "専用武器" : m.lr === "armor" ? "防具" : "装備"} 1点 (未鑑定)`);
   if (m.embers) parts.push(`魂の残火 ×${m.embers}`);
   return parts.join(" ・ ") || "装備 1点";
 }
@@ -15333,7 +15293,7 @@ function grantTreasuryReward(m, reason, back) {
     G.embers = (G.embers || 0) + m.embers; updateTopbar();
     log(`宝物庫の褒賞として 魂の残火 を ${m.embers}つ 賜った。`, "win");
   }
-  const gear = (next) => (m.lr ? grantTreasuryLR(m, next) : m.gear ? grantTreasuryItem(next) : next());
+  const gear = (next) => (m.lr ? grantTreasuryLR(m, next) : next());
   if (m.cls) acquireSoul(m.cls, reason, back); // 特定職の魂のみ
   else if (m.soul) acquireSoul(m.soul === "legend" ? rollClassOfRarity("legend") : rollJobClass(), reason, () => gear(back));
   else gear(back);
@@ -18216,7 +18176,7 @@ const testScenes = [
     Object.entries(defs).map(([id, def]) => ({ ...def, id: group + ":" + id, kind: "story", group: label, name: label + "・" + def.title, who: ["cell", "memory", "rematch"].includes(group) ? "none" : "king",
       photo: storyImage(({ cell: id, late: id, memory: "mem_" + id, report: "report_" + id, chapter: "ch" + id + "_end" })[group]) }))),
   ...Object.entries(BOSS_PRELUDES).flatMap(([id, pre]) => ["first", "retry"].filter((k) => pre[k]).map((k) => ({ ...pre[k], id: `prelude:${id}_${k}`, kind: "story", group: "主との対面",
-    name: `主との対面・${pre[k].title}`, who: "none", photo: k === "first" ? storyImage("pre_" + id) : null }))),
+    name: `主との対面・${pre[k].title}`, who: "none", photo: storyImage("pre_" + id + (k === "retry" ? "_retry" : "")) }))),
   ...IRENE_BEATS.map((def) => ({ ...def, id: "irene:" + def.id, kind: "story", group: "館の語り", name: "館の語り・" + def.title, who: "irene", photo: storyImage(def.id) })),
   { ...MINE_PASS, id: "minePass", kind: "story", name: MINE_PASS.title, photo: storyImage("minePass") },
 ];
@@ -19345,6 +19305,7 @@ function titleSummary() {
 }
 
 async function init() {
+  await Promise.all([loadMonsterPhotos(MONSTERS), loadMiscPhotos(), loadCollectiblePhotos(), loadTreasuryPhotos()]);
   // UI 基盤 (ctx の結線・戻る操作・街シェル・各パッケージ) を最初の描画より前に整える
   wireUI();
   // 早期にフックを公開 (起動失敗の誤検出/デバッグ用)
@@ -19369,7 +19330,7 @@ async function init() {
     // 第九章の掟 (一騎打ち・観客の注文) の検証用
     arenaRules: { duelFoes, audienceOrderFor, AUDIENCE_ORDERS },
     // 宝物庫の褒賞の検証用
-    treasury: { TREASURY_MILESTONES, treasuryState, totalDonatedKinds, treasuryDepth, milestoneWait, milestoneReady, pickTreasurySR, pickTreasuryLR, claimTreasury, claimNextTreasury, treasuryRewardReady },
+    treasury: { TREASURY_MILESTONES, treasuryState, totalDonatedKinds, treasuryDepth, milestoneWait, milestoneReady, pickTreasuryLR, claimTreasury, claimNextTreasury, treasuryRewardReady },
     // 酒場の依頼の検証用
     quest: { questState, questLists, rollQuestBoard, acceptQuest, claimQuest, deliverQuest, questProgress, questDungeons, dungeonFullyCleared, partyLevel },
     // 迷宮のイベント (出来事) の検証用
@@ -19385,6 +19346,10 @@ async function init() {
     const banner = document.createElement("div");
     banner.className = "test-play-banner";
     banner.appendChild(document.createTextNode(G.testSkipDungeon ? "テストプレイ中・迷宮探索を省略・保存なし " : "テストプレイ中・保存なし "));
+    const codex = document.createElement("button");
+    codex.type = "button"; codex.textContent = "図鑑・全データ";
+    codex.addEventListener("click", () => UI.openCodexSheet?.({ all: true }));
+    banner.appendChild(codex);
     const exit = document.createElement("button");
     exit.type = "button"; exit.textContent = "終了してホームへ";
     exit.addEventListener("click", () => {

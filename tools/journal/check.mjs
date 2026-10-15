@@ -61,6 +61,10 @@ assert.equal(ARCHIVE_STORIES.filter(s => s.chapter === 4).length, 10);
 assert(ARCHIVE_STORIES.filter(s => s.chapter === 4).every(s => s.image), "第四章の全場面に専用画像がある");
 const byId = new Map(ARCHIVE_STORIES.map(s => [s.id, s]));
 assert.equal(byId.size, ARCHIVE_STORIES.length, "ストーリーのIDが重複しない");
+assert(!byId.get("pre_w41_retry").available({world:{beats:{pre_w41:1,fell_w41:1}}}),
+  "初対面と全滅の記録だけでは、まだ再挑戦の語りを読めない");
+assert(byId.get("pre_w41_retry").available({world:{beats:{pre_w41_retry:1}}}),
+  "再挑戦の語りを聞いた後に一覧へ追加する");
 for (const s of ARCHIVE_STORIES) {
   assert(s.lines.length >= 3, `${s.id} の本文`);
   assert(ARCHIVE_FOCUS.includes(s.illustration.focus), `${s.id} の専用図版`);
@@ -73,6 +77,18 @@ assert(!byId.get("irene_reveal").available({ irene:{greeted:true}, world:{found:
   "腕の発見だけでは、まだ館で語られていない正体を明かさない");
 assert(!byId.get("irene_torso").available({ world:{found:{w12_torso:true}} }),
   "館での再会と迷宮での発見を区別する");
+assert(!byId.get("irene_omokage").available({ world:{reported:{w09:true},beats:{irene_roots:true}} }),
+  "第三章へ進んでも、館で聞くまでは面影の話を明かさない");
+assert(byId.get("irene_omokage").available({ world:{beats:{irene_omokage:true}} }),
+  "彫られた顔は館の語りを聞くと読める");
+// 進行条件の達成と、館で実際に語りを聞いた記録は区別する。
+for (const id of ["irene_boons", "irene_undercity", "irene_furnace", "irene_abyss", "irene_coat", "irene_frozen"]) {
+  const ready = { world:{boonsIntro:1,reported:{w13:true,w17:true,w21:true},found:{w22_coat:true,w23_names:true},beats:{}} };
+  assert(!byId.get(id).available(ready), `${id} は聞く前に一覧へ出さない`);
+  ready.world.beats[id] = true;
+  assert(byId.get(id).available(ready), `${id} は聞いた後に一覧へ出す`);
+  assert.equal(byId.get(id).image, storyImage(id), `${id} はイベントと一覧で同じ絵を使う`);
+}
 assert(!byId.get("irene_trust").available({ irene:{greeted:true,visits:99} }),
   "来館数だけで未読の親しさの会話を明かさない");
 assert(byId.get("first_vessel").available({ dollsPurchased:1, party:[] }), "控えに移っても最初の誕生は読める");
@@ -90,7 +106,10 @@ for (const id of Object.keys(REPORTS)) {
   assert(byId.get(`report_${id}`)?.available({ world:{reported:{[id]:true}} }));
 }
 for (const id of Object.keys(BOSS_MEMORIES)) g.world.beats[`mem_${id}`] = true;
-for (const id of Object.keys(BOSS_PRELUDES)) g.world.beats[`pre_${id}`] = true; // 主との対面
+for (const [id, pre] of Object.entries(BOSS_PRELUDES)) {
+  g.world.beats[`pre_${id}`] = true; // 主との対面
+  if (pre.retry) g.world.beats[`pre_${id}_retry`] = true;
+}
 for (const s of IRENE_BEATS) g.world.beats[s.id] = true;
 for (const id of Object.keys(CHAPTER_END)) g.world.beats[`ch${id}_end`] = true;
 for (const d of WORLD) g.world.cleared[d.id] = true;

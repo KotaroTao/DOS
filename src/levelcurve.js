@@ -1,6 +1,6 @@
 // ===== レベルの曲線 (レベルデザインの1か所) =====
 // 「6人を均等に育てて、実プレイ 7時間で Lv50 / 20時間で Lv100 / 以降 20時間ごとに +100」を目標に、
-// 推奨Lv・敵の✦Soul・魂の強化費用・魂の残火をすべて Lv から決める。
+// 推奨Lv・敵の✦Soul・魂の強化費用は Lv、死体の魂の残火は物語の層から決める。
 //
 //   1Lv の目標時間 lvMinutes(L) : Lv1〜49 は 4.3分 → 12.9分へ伸び (計7時間)、Lv50〜99 は 15.6分 (計13時間)、Lv100〜 は 12分
 //   1戦の✦Soul  refSoul(L)     : 敵Lv L の迷宮で、出現表の雑魚と戦う普通の1戦に得る ✦Soul の基準 (精鋭・主はこの何倍か)
@@ -71,8 +71,9 @@ export function trainCost(L) {
 // 人業の能力値の Lv による伸び (souls.js の lvlFactor と同じ式)。敵の強さを推奨Lvに合わせる物差し
 export function lvPow(L) { return 1 + (Math.max(1, L) - 1) * 0.12; }
 
-// 魂の残火: 1回に得る数は敵Lv で増える (Lv1〜50 = 1、51〜100 = 2 … Lv400 = 8)
-export function emberMul(L) { return Math.max(1, Math.ceil(Math.max(1, L) / 50)); }
+// 死体の魂の残火: 第1〜9章 (第1〜11層) は基本数、第10章以降 (第12層〜) は2倍。
+// 無限迷宮も、対応する本編の層に合わせる。敵Lvや隊のLvでは増やさない。
+export function emberMul(layer) { return layer >= 12 ? 2 : 1; }
 
 // ===== 推奨Lv で引く隊の物差し (docs/tasks.md B1) =====
 // 基準の隊の AGI ÷ lvPow(Lv)。旧来は基準の隊 (baseline.js) を迷宮の番号 n で引き、推奨Lv の伸びを掛けていた。

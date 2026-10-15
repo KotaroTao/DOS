@@ -1,0 +1,26 @@
+{
+  "scenes": [
+    "report_w35",
+    "w36_nook",
+    "report_w36",
+    "irene_firstdoll",
+    "mem_w37"
+  ],
+  "reference_source": "docs/art/story-refs/README.md (承認済み基準シート)",
+  "prompt_source": "node tools/storyart/prompt.mjs <場面ID>",
+  "dimensions": [
+    1536,
+    1024
+  ],
+  "notes": [
+    "irene_firstdollの参照画像は上限5枚のため、館の追加参考irene_familiar.pngのみ省略。人物基準・セラ原画・小道具・館irene_roots.pngを参照。",
+    "w36_nookは師の写し絵を追加し、外の空を青空へ修正。",
+    "irene_firstdollは生成時に追加された実物の小人形を除去し、紙の写し絵を残した。"
+  ],
+  "verification": [
+    "本文と基準画像の人物・衣装・小道具を目視確認",
+    "見える腕・手・指を目視確認。隠れた指は判定対象外",
+    "384×256の縮小表示を確認",
+    "build.pyによる登録・指示書・読み物検査が成功"
+  ]
+}

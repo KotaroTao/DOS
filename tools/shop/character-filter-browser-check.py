@@ -72,7 +72,7 @@ with sync_playwright() as p:
           if(second.equip.weapon?.id!=='shortSword'||api.G.gold>=gold)throw Error('購入先不一致');
           ui.enterMansion();return '選択者へ購入・装備';
         }'''),flush=True)
-        assert page.locator('.pt-form > .gf-open').count()==1
+        assert page.locator('.pt-form > .gf-open').count()==0
         assert page.locator('.pt-mansion-links .pt-mansion-manage').count()==1
         # 保存編成入口が残る。
         page.locator('.pt-mansion-manage').click()
@@ -96,7 +96,8 @@ with sync_playwright() as p:
           if(!gearEffectOptions(d).some(o=>o.key==='afx:A03'))throw Error('追加特性の台帳ID');
           ui.enterMansion();return '属性・効果量集約・未鑑定・複数AND・追加特性';
         }'''),flush=True)
-        page.locator('.pt-form > .gf-open').click()
+        page.evaluate("ui.openParty(null,{seg:'equip'})")
+        page.locator('.pt-bagwrap > .gf-open').click()
         panel=page.locator('.gf-sheet')
         search=panel.locator('.gf-search')
         search.fill('吸血')
@@ -106,8 +107,8 @@ with sync_playwright() as p:
         panel.get_by_role('button',name='2点を表示',exact=True).click()
         page.wait_for_timeout(650)
         assert page.locator('.pt-bag .pt-bcell').count()==2
-        assert '絞り込み' in page.locator('.pt-form > .gf-open').inner_text()
-        page.locator('.pt-form > .gf-open').click()
+        assert '絞り込み' in page.locator('.pt-bagwrap > .gf-open').inner_text()
+        page.locator('.pt-bagwrap > .gf-open').click()
         panel=page.locator('.gf-sheet')
         panel.locator('[data-filter-key="eAtk:fire"]').click()
         panel.get_by_role('button',name='1点を表示',exact=True).click()
@@ -121,7 +122,7 @@ with sync_playwright() as p:
         page.evaluate("async()=>{const {sheet}=await import('/src/ui/kit.js');sheet.closeAll()}")
         page.wait_for_timeout(650)
         # 追加条件で0件になっても、条件と解除の入口を残す。
-        page.locator('.pt-form > .gf-open').click()
+        page.locator('.pt-bagwrap > .gf-open').click()
         panel=page.locator('.gf-sheet')
         panel.locator('.gf-search').fill('再生')
         panel.locator('[data-filter-key="eff:regen"]').click()
