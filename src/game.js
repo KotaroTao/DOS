@@ -18,6 +18,7 @@ import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audi
 import { spriteCanvas, crispCanvas, drawPhoto, photoReady, whenPhoto, setSpriteResolver } from "./sprites.js";
 import { makeItemSpriteResolver } from "./itemart/index.js";
 import { loadCollectiblePhotos } from "./collectiblephotos.js";
+import { loadUnidPhotos } from "./itemart/unid.js";
 import { loadItemPhotos } from "./itemphotos.js";
 import { loadTreasuryPhotos } from "./treasuryphotos.js";
 import { loadMiscPhotos } from "./miscphotos.js";
@@ -19314,7 +19315,7 @@ function titleSummary() {
 }
 
 async function init() {
-  await Promise.all([loadMonsterPhotos(MONSTERS), loadMiscPhotos(), loadCollectiblePhotos(), loadTreasuryPhotos(), loadItemPhotos()]);
+  await Promise.all([loadMonsterPhotos(MONSTERS), loadMiscPhotos(), loadCollectiblePhotos(), loadTreasuryPhotos(), loadItemPhotos(), loadUnidPhotos()]);
   // UI 基盤 (ctx の結線・戻る操作・街シェル・各パッケージ) を最初の描画より前に整える
   wireUI();
   // 早期にフックを公開 (起動失敗の誤検出/デバッグ用)
