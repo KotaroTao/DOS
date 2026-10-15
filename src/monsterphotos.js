@@ -1,4 +1,4 @@
-// 地下墓地・修道院・黒水の取水口の透過原画。通常敵・強敵・主・召喚先・ミミックで共用する。
+// 地下墓地・修道院・黒水の取水口・回廊の透過原画。通常敵・強敵・主・召喚先・ミミックで共用する。
 // 能力値や文字グリッドは保ち、読めた原画だけを最初の描画前に登録する。
 export const MONSTER_PHOTOS = {
   bs_bonebat: [448, 415],
@@ -10,6 +10,9 @@ export const MONSTER_PHOTOS = {
   el_cryptlord: [463, 472],
   d01_skeleton: [359, 422],
   mimic: [443, 440],
+  bs_mournshade: [338, 366],
+  bs_spiritbat: [398, 361],
+  el_palebutcher: [365, 378],
   // 黒水の取水口（通常敵9種と女王。召喚先は吸血大ヒル）。
   bs_bloatfly: [512, 435],
   bs_fogspecter: [403, 512],
