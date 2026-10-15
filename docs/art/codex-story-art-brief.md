@@ -334,9 +334,10 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 
 **A-11. 第三章 w12_torso「軽すぎる帰りの荷」** `art/story-review/chapter3/w12_torso.png` (済)
 - 追加のユーザー指示: セラの胴の乳首を消し、胸の面は滑らかな木目にする。胸の扉と中の紙は保つ。
+- 追加のユーザー指示: 腹の低い位置の四角い開口を、`chapter3/irene_torso.png` の胸中央の縦長で角の丸い扉へ合わせる。首の下から胸骨に沿う位置とし、腹は滑らかな木肌に戻す。扉の中の折り畳んだ紙は残す。
 - 直す: 胴の胸に星形の紋 → 外す。本文は「背に彫られた、灯を掌に載せた手」なので、胴を少し回して背の印 (掌に炎) が見えるようにするか、胸は無地に。胸の扉と中の紙は保つ。
 ```text
-...except: remove the star-shaped emblem from the torso's front; if the back is visible, carve the small palm-up hand holding a flame there. Keep the open chest hatch with the folded paper inside.
+...except: correct ONLY Sera's chest hatch using the attached irene_torso reference. Replace the misplaced low rectangular abdominal opening and box-shaped lid with a vertically elongated, rounded-corner chest door centered along the sternum, beginning below the neck and ending above the abdomen. Match the reference torso construction: gently curved continuous wooden chest shell, narrow dark metal rim, small side hinges, curved wooden door swung outward. Keep ONE folded paper inside this chest cavity, no soul-fire before awakening. Restore the old abdominal opening to uninterrupted smooth wood grain. Keep the torso orientation, neck and joint sockets, apprentice, hands, roots, background, composition, fine texture, colors and lighting exactly. No nipples, front crest, extra parts or readable writing.
 ```
 
 **A-12. 第三章 mem_w13「魂の流れを登る師」** `art/story-review/chapter3/mem_w13.png` (済)
