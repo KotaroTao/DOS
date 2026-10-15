@@ -170,6 +170,7 @@ Sky continuity: In present-day scenes from report_w33 (the hundredth-year blue s
 | 第九章 | 膝掛け。自分の手を見る | 晴れた空 (昼は青空、夕方は茜) | 杖なし。指先の焼けた手 (手袋は石橋の輪に結んで残した)。片脚を引きずる |
 | 第十章 | 膝掛け。玉座の肘掛けを強く握る (report_w41) | 晴れた空 | 第九章と同じ (手袋なし・焼けた指・片脚を引きずる)。**記憶の中だけに出る** (mem_w41)。悪人にも聖人にも見せない — 静かで、決意の固い顔 |
 | 第十一章 | 膝掛け。自分の手を見る (report_w44)。町からの古い本を膝に (report_w45) | 晴れた空 (夕方は茜) | 第十章と同じ。**記憶の中だけに出る** (mem_w45: 大書庫の長机で古い記録を読み、余白に書きこむ。町の人業が運んだ椀は手つかず)。迷いのある、静かな顔 |
+| 第十二章 | 膝掛け。手の中の王冠を見る (report_w46)。床の杯を見る (report_w47)。顔を覆う (report_w48)。自分の手を見て穏やかに笑う (report_w49) | 晴れた空 (夕方は茜、report_w49 は朝の青空) | 第十一章と同じ姿。**記憶の中だけに出る** (mem_w49: 廟の玉座の前で、ろうと金に覆われた最初の王の「終わらせてくれ」に答えず、玉座の裏の階段を降りる)。悲しみと決意の静かな顔 |
 
 ---
 
@@ -1150,6 +1151,103 @@ The same mansion workshop late at night. Irene trims the single white candle, he
 The underground town square under a ceiling of thousands of glowing clear lanterns on iron frames (no sky). One new lantern is being hung in the quietest corner of the frame high above. In the square, beside a large chalk circle with a lamp-on-palm crest, two townsfolk dolls stand side by side facing the apprentice: one in a rain-damp cloak holding a glass jar, the other with ink-stained fingers holding a sheaf of copied pages; their postures differ — one hopeful, one uneasy — but they stand together. The apprentice, with the party of wooden dolls, touches the chalk line with the tip of a boot. Kitchen steam and small child-shaped dolls playing in the distance. Warm light, open question.
 ```
 
+### 第十二章「王家の廟」 ― 便8
+
+第十二章の景色: 大書庫の底の扉 (師が内側から閂を掛けた) の下に広がる、この国の**王家の廟**。王が死ぬと亡骸に香油を塗り、ろうで固めて、王都の地下の縦穴から綱で降ろし、ここへ葬る。千年分の棺が段をなして並ぶ。**ろうそくは一度も消えない** (壁のくぼみに何千本)、甘い香油の匂い、金の死面と金の飾り、白く固まった亡骸 (屍蝋 = ろうのように白くなった亡骸。木の人業とははっきり見分ける — 人の亡骸で、木目も黒鉄の継ぎ目も無い)。光は温かい琥珀のろうそくの灯だけ。地下なので空は描かない (報告の窓の外は晴れた空)。門の上に古い字の一行「王を終わらせるな」(読める文字にしない — 刻まれた一行として見せる)。主題は「誰の意思で、誰の救いを決めるのか」: 最初の王は千年戻され続け、一度だけ「もう、よい」と言ったが、法だけが残って誰も止めなかった。師はその反対の法を書きに降り、隊は灯に「どうしたいのか」と訊く。**師も最初の王も、悪人にも聖人にも見せない。**
+
+人物の追加 (この章だけ): 最初の王 = 若い頃は痩せた二十代の王 (記憶の中、熱にうなされる)。玉座の姿はろうと香油と金に覆われ、王冠が額に溶けついた千年の亡骸 / 太后 = 王の母、喪の黒いヴェール、王の手を握って泣く (記憶の中だけ) / 防腐師の霊 = 香油の壺と細い刷毛を持つ半透明の職人 / 王子 = 金の針金で編んだ小さな冠 (記憶の中で子ども)。
+
+**w46_bar「王を終わらせるな」** (手がかり / 迷宮「弔い灯の参道」)
+- 要点: 消えないろうそくの並ぶ参道を降りきると葬列の歌が途切れ、見上げるほどの石の門。門の上に古い字の一行。門の脇に師の野営の跡 (燃え尽きたランプ、石で重しをした書きつけ)。師は町の眠りを守るため、上の扉に閂を掛けていった。門の向こうから香油の匂い。
+- 描くもの: 両側の壁のくぼみに何千と灯るろうそくの参道 / 石の門と刻まれた一行 (読めない) / 野営の跡と書きつけ / 書きつけを拾う弟子。描かないもの: 師。亡骸の大写し。
+```text
+At the bottom of a long underground processional road whose walls are lined floor-to-ceiling with small niches, each holding a lit candle that never burns down — thousands of warm amber flames receding upward into darkness. Ahead rises a towering ancient stone gate of a royal mausoleum, with a single line of archaic carved letters above the lintel (illegible). Beside the gate, the small remains of a camp: a burnt-out brass hand lamp and a folded handwritten note held down by a flat stone. The apprentice kneels to pick up the note, a warm orange hand-lamp at their side. Faint pale ghost-like mourners in a procession fade away behind. Sweet oily haze, solemn, hushed, golden-dark.
+```
+
+**report_w46「即位の日の文句」** (報告)
+- 要点: 門の一行を聞いた王は、即位の日にも同じ言葉を聞かされたと打ち明ける (古い儀式の文句だと思っていた)。歴代の王の棺は縦穴から綱で降ろされ、その底を王は知ろうとしなかった。「そこに眠る者は、みな余の祖だ。荒らすでないぞ」。
+```text
+The same throne room in daylight, clear sky outside the tall windows. The very old king (lap blanket over his knees) sits looking at the crown resting in his hands as if reading something written inside its rim, remembering his coronation. The chancellor's chair beside the throne stands empty. The apprentice stands below the dais. Quiet, troubled.
+```
+
+**w47_ledger「最初の器」** (手がかり / 迷宮「香油の仕立て場」)
+- 要点: 亡骸を整える作業場。何百もの石の台、香油の壺と刷毛。いちばん奥の古い台の脇の書見台に、鎖でつながれた厚い帳面 (防腐師たちが代々書き継いだ記録)。最初の頁は、若くして死んだ王の亡骸に魂を戻した日の記録。余白に師の書きつけ。
+- 描くもの: 石の台の列と香油の壺 / 鎖の帳面と開いた最初の頁 (読めない古い字) / 挟まれた師の書きつけ / 帳面を読む弟子。描かないもの: 師。台の上の亡骸の大写し (布をかけた形だけ)。
+```text
+An ancient underground embalming workshop: hundreds of worn stone slabs in rows, some with sheet-covered shapes, shelves of sealed oil jars and fine brushes, golden candlelight, a sweet oily haze. At the far end, by the oldest, deeply worn slab, a heavy ledger is chained to a lectern, open to its very first page of faded archaic script (illegible); a small newer handwritten note is tucked in the margin. The apprentice leans over the ledger with a warm orange hand-lamp. Reverent, unsettling, tender.
+```
+
+**irene_vessel「木の手のひら」** (館の語り)
+- 要点: 最初の器は王自身の亡骸だったと聞き、イレーヌは自分の木の手のひらを見る。一門が木を選んだのは、誰の亡骸も使わずに済むようにか、いつか朽ちてくれるからか。セラ「木でよかった。借り物じゃなく、わたしの体だから」。死なせたくないという気持ちを、間違いとは言いたくない。
+```text
+The same mansion workshop at night, the single white candle burning steady on its brass candlestick. Irene sits at the worktable looking down at her own open wooden palm, the fine black-iron joint at her wrist visible, thoughtful and gentle. Sera (as in the Sera reference) sits beside her and places her own wooden hand flat next to Irene's, smiling softly. Warm, intimate.
+```
+
+**report_w47「術の生まれた所」** (報告)
+- 要点: 魂を器へ戻す術はこの国の王家が生んだものだった。霊薬で百年生き延びた自分も、その術の続きにすぎない。死なせたくない者を何人も見送った王は、師の書きつけを責めない。
+```text
+The same throne room in late-afternoon light, clear sky outside. The very old king grips the armrests of his throne, gazing at the gold cup that sits on the floor beside the throne (he no longer drinks from it). The chancellor's chair stands empty. The apprentice stands below. Heavy, self-reflective.
+```
+
+**w48_masks「三枚の死面」** (手がかり / 迷宮「眠らずの近衛廊」)
+- 要点: 近衛廊の果ての小部屋に、歴代の王の金の死面が古い順に壁一面。顔は一枚ごとに違うが、いちばん新しい三枚だけが年の違う同じ男 (今の王) の顔。記録官の帳面は三度の葬儀の欄だけ亡骸の名が空いている。
+- 描くもの: 壁一面の金の死面 (目を閉じた顔の列) / いちばん新しい三枚 (同じ顔の若い頃・中年・老年。今の王の正典の顔立ちに合わせる) / 台の上の開いた帳面 / 見上げる弟子。描かないもの: 王本人。師。読める文字。
+```text
+A small vaulted chamber at the end of a long mausoleum corridor guarded by statue-still royal guards. The entire wall is covered with golden death masks of past kings, hung in rows from oldest to newest, every face calm with eyes closed, each face different. The three newest masks at the end of the last row show the same man at three different ages — young, middle-aged, old — matching the very old king's face (long features, later a long beard). On a stand below lies an open register with three blank lines. The apprentice looks up at the three masks, holding a warm orange hand-lamp. Golden candlelight, stunned silence.
+```
+
+**irene_masks「留守の帳面」** (館の語り)
+- 要点: 死面の話を聞いて、イレーヌは古い帳面を棚から下ろす。師が戻らなかった一年、毎晩つけた留守の記録。どの日も同じ一行「オルド様、留守」— 死んだとは書けなかった。書かないままでは、その人はどこにもいなくなってしまう。
+```text
+The same mansion workshop at night. Irene sits by the single white candle with an old leather notebook open on her lap, every page filled with the same short line repeated, her finger resting on the latest entry. Sera (as in the Sera reference) leans in to look at the page with a small hopeful face. Soft, melancholy candlelight.
+```
+
+**report_w48「尋ねなかった名」** (報告)
+- 要点: 弟子が口を開く前に、王は「いちばん新しい三枚は、余の顔であったろう」と言う。百年のあいだに三度死んだことにされ、跡継ぎのふりで玉座に座り直した。棺の中に誰がいるのか、一度も尋ねなかった。「その者たちの名を、余は知りたい」。
+```text
+The same throne room at dusk, a clear amber sky outside. The very old king sits with his eyes closed and one hand over his face, the other hand open on the armrest, deeply ashamed. On a small table beside the throne lies a stack of old hospice registers. The chancellor's chair stands empty. The apprentice stands below, silent. Grave.
+```
+
+**pre_w49「玉座の王」** (主との対面 / 王家の廟の主。戦いの前)
+- 要点: 段をなして並ぶ歴代の棺の頂に玉座。ろうと香油と金に覆われた千年の王が座る (王冠は額に溶けつき、手は玉座の飾りと見分けがつかない)。防腐師の霊たちが休みなく刷毛で頬のひびを埋める。濁った目が開き、唇が何か言いかける。近衛が槍を構える。玉座の脇に空の新しい棺。
+- 描くもの: 棺の段と玉座 / 王 (恐ろしいより、痛ましい) / 刷毛を動かす半透明の防腐師たち / 槍の近衛 / 空の新しい棺 / 手前の弟子と隊の後ろ姿。描かないもの: 師。戦闘の閃光。
+```text
+The deepest hall of an underground royal mausoleum: tier upon tier of ancient coffins rising like steps, and at the top a throne. On it sits a thousand-year-old king entirely encased in pale wax, embalming oil and gold, his crown melted into his brow, his hands fused with the ornate armrests — more pitiful than monstrous. Translucent ghostly embalmers with oil jars and fine brushes hurry around him, smoothing cracks on his cheeks. His clouded eyes have just opened and his lips part as if to say something. Royal guards encased in wax lower their spears. Beside the throne stands one new, empty coffin. In the foreground, the apprentice and a party of wooden dolls seen from behind. Thousands of candles flare up. Tragic, solemn.
+```
+
+**pre_w49_retry「ふたたび玉座の前で」** (主との対面 / 王家の廟の主。全滅後の再挑戦)
+- 要点: 器を直して玉座の間へ戻る。防腐師の霊は前よりせわしなく刷毛を動かし、王の唇はまた何か言いかけて止まる。砕けても直され、灯を戻されて帰ってきたのは隊も同じ。
+- 描くもの: pre_w49 と同じ玉座と王を、別の構図 (近め) で / 修復済みの人業2体と弟子。描かないもの: 壊れた体・遺体、師、読める文字。
+```text
+Return to the same mausoleum throne hall as the first-encounter illustration, in a NEW closer composition for a SECOND encounter. The wax-and-gold encased ancient king on his throne, lips half-parted again as if about to speak; the ghostly embalmers brush oil onto his face more hurriedly than before. In the near foreground the apprentice is seen from behind with just two repaired wooden party dolls (red-cloaked warrior and white-robed priest, smooth blank round heads, black iron joint bands), intact. Quiet weight of returning after defeat — both the party and the king have been "brought back" again.
+```
+
+**mem_w49「もう、よい」** (主の記憶 / 王家の廟の主)
+- 要点: 記憶の場面。千年よりも昔、熱にうなされる若い王の手を、喪のヴェールの太后が握って泣く (「この子を終わらせてはなりません」)。重ねて、三月前の場面: 玉座の前に立つ師オルドと、「終わらせてくれ」と言う王。師は答えずに玉座の裏の階段を降りる (下から熱い鉄の風)。**悪人にも聖人にも見せない。**
+- 描くもの: 左に過去 (寝台の若い王と太后、香油を持つ術者) / 右に三月前 (ろうと金の王の前に立つ師 — 第十一章と同じ姿: 外套なし・暗い灰色のシャツ・手袋なし・指先の焼けた手・片脚を引きずる) / 奥に玉座の裏の暗い階段と赤い熱の光。描かないもの: 弟子。底のものの正体。
+```text
+A memory scene with faint amber-hazed edges, two moments blending across one wide image. On the left, over a thousand years ago: a feverish young king lies on a canopied bed while his mother, the queen dowager in a black mourning veil, grips his hand and weeps; court practitioners wait with oil jars. On the right, three months ago: the same king now a wax-and-gold encased figure on a throne, lips parted in a plea; before him stands Ordo (as in the Ordo reference: tall lean man about 55, short grey hair, grey beard), no coat — a torn worn dark grey shirt — gloveless with burnt fingertips, leaning on one leg, looking at the king with quiet sorrow and resolve, not answering. Behind the throne, a dark stairway descends, a faint red heat glowing from below. Melancholy, unresolved.
+```
+
+**report_w49「余が決めた日に」** (報告)
+- 要点: 隊が灯に「どうしたいのか」と訊いたと聞き、王は深く息をつく (命令でしか救えない者も、訊いていては間に合わない者もいる)。玉座の脇の棺のことを聞き、自分の手を見る。「いつか、余はその棺に入る。余が決めた日に、余の足で」。
+```text
+The same throne room in clear morning light, blue sky outside the tall windows. The very old king sits upright, looking at his own open hands with a calm, almost peaceful faint smile, as if he has made a private decision. The chancellor's chair stands empty. The apprentice stands below. Serene, resolute.
+```
+
+**irene_enough「訊く人」** (館の語り)
+- 要点: 燭台の芯を整えながら、イレーヌは言えたのに千年聞いてもらえなかった言葉のことを考える。灯に訊くことは法には書けない、訊く人がそこにいなければ。セラ「まだ全然よくない！」— イレーヌは思わず笑う。いつかその日が来たら聞いてほしい。
+```text
+The same mansion workshop late at night. Irene trims the single white candle, laughing softly despite herself; Sera (as in the Sera reference) stands beside her with fists raised in a lively, indignant "not yet!" gesture. The apprentice sits nearby, smiling. Warm candlelight, tender and light-hearted after sorrow.
+```
+
+**ch12_end「答えを聞くまで」** (章の結び)
+- 要点: 最初の王の灯は千年ぶりに玉座を離れ、天井の闇へ昇っていく。防腐師たちの刷毛は止まり、参道のろうそくのいくつかが静かに消える。玉座の脇の空の棺。玉座の裏の階段から熱い鉄の匂いの風 (次章の溶鉄炉へ)。
+- 描くもの: 空になった玉座と、ほどけた殻の金のかけら / 昇っていく小さな灯 / 刷毛を下ろした防腐師たち / 空の新しい棺 / 玉座の裏の階段と赤い熱の光 / 見上げる弟子と隊。描かないもの: 師。
+```text
+The deepest hall of the royal mausoleum after the battle, quiet. The throne at the top of the coffin tiers is empty, a heap of broken wax and gold fragments on its seat. A single small soul-light rises slowly from it into the dark vaulted ceiling. Translucent embalmers have lowered their brushes and stand still, watching. Some of the candles along the walls have gone out for the first time. Beside the throne, one new empty coffin. Behind the throne, a dark stairway descends with a faint red glow and heat shimmer rising from below. The apprentice and the party of wooden dolls look up at the rising light. Release, sorrow, an open question.
+```
+
 ### 館の語りの追加 (2026-10-16)
 
 `irene_boons`・`irene_undercity`・`irene_furnace`・`irene_abyss`・`irene_coat`・`irene_frozen` は一覧へ追加済み。制作指示は4章冒頭。セラの覚醒状態で分岐する語りには、両方に合うイレーヌ中心の絵を使う。
@@ -1197,6 +1295,9 @@ The underground town square under a ceiling of thousands of glowing clear lanter
 | 2 | ws20 大空洞の主の寝床 | 大空洞の脇の天井の高い岩屋、床一面の巨獣の骨、骨の山の上で光るものを一つ抱えて眠る山のような巨獣 (済) |
 | 1 | ws21 化石竜の墓所 | 岩盤に丸ごと埋まった山のように大きな竜の骨、骨のすき間をたどる道、頭骨の目のくぼみの奥の小さな灯 (済) |
 | 2 | ws22 水晶の鉱脈 | 大空洞の壁を割って走る青白い水晶の鉱脈、闇の中の灯を拾って昼のように明るい奥 (済) |
+| 2 | ws25 名の無い墓所 | 灯も届かない小さな墓所。王の名を刻んだ墓碑が並び、そのひとつの下に震える字で別の名が書き足されている。名を探して泣く貴人の霊 (第十二章) |
+| 2 | ws26 剥製の大広間 | 天井の高い広間に、香油とろうで固められ牙をむいたまま並ぶ何百もの獣 (王たちの狩りの獲物)。奥に剥製師の作業机 (第十二章) |
+| 2 | ws27 王子の墓所 | 小さな墓所の奥で、金の針金の小さな王冠をかぶった若い骸と従者たち。一度も読み上げられなかった即位の誓いの巻物 (第十二章) |
 | 3 | w18〜w33 本筋の16迷宮 | 各迷宮の情景 (`about` と本文)。手がかりの場面と構図を変える |
 
 ---

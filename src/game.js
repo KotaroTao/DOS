@@ -10,7 +10,7 @@ import { monsterResists } from "./resistance.js";
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
-import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, setEnemyLvTag, scaleFoeAgi, scaleStrongFoeHp, scaleFoeStats, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setEquipSwap, setModSink, setElemKnown, setPartyEvadeBonus, setPartyBreathBonus, setPartyHitBonus, partyBreathRes, perkVictory, cureAil, canSpellCure, cureBySpell, spellCureKinds, chishioState } from "./combat.js";
+import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, setEnemyLvTag, scaleFoeAgi, scaleStrongFoeHp, scaleFoeStats, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setEquipSwap, setModSink, setElemKnown, setPartyEvadeBonus, setPartyBreathBonus, setPartyHitBonus, setPartyAilBonus, partyBreathRes, perkVictory, cureAil, canSpellCure, cureBySpell, spellCureKinds, chishioState } from "./combat.js";
 import { decideAuto, tacticOf, setResistKnown } from "./autotactics.js";
 import { STAGED, effectStage, stageOf, stageMul, stageLabel, isBattleLong, ENEMY_STAT_LABEL } from "./buffstage.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
@@ -7027,12 +7027,15 @@ const CLUE_BREATH = 0.05;
 const CLUE_HIT = 0.02;
 // 眠り灯の吹き方 (rescue): 全滅した時の連れ帰りの時 ×0.9 (rescueDurationMs)
 const CLUE_RESCUE = 0.9;
+// ほぐし薬の書きつけ (waxward): 隊の全員の麻痺の抵抗値 +5 (combat.js setPartyAilBonus)
+const CLUE_WAX = 0.05;
 // セラの囁き (soulEcho): 迷宮で職業の魂を拾った時、この確率でもう一つ拾える (grantSoulQuiet)
 const SOUL_ECHO_RATE = 0.05;
 function syncClueBoons() {
   setPartyEvadeBonus(clueBoon("evade") ? CLUE_EVADE : 0);
   setPartyBreathBonus(clueBoon("breathWard") ? CLUE_BREATH : 0);
   setPartyHitBonus(clueBoon("eyes") ? CLUE_HIT : 0);
+  setPartyAilBonus(clueBoon("waxward") ? { paralyze: CLUE_WAX } : null);
   restockElixirs();
 }
 function stabilityMinutes() { return Math.round(stabilityRecoveryMs() / 60000); }
@@ -8817,7 +8820,7 @@ function startBattleMeasured(enemies, cell) {
   for (const e of enemies) e.lv = foeLv;
   // 開幕のパッシブ・迷宮の掟の冷気で掛かる強化・弱体は、開幕の演出の後に1拍ずつ見せる (演出の設定が出す時だけ)
   const modW = beginModWatch(true);
-  G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot"), fleeK: fleeScale(), agiWall: agiWallOf(activeCfg()), statWall: statWallOf(activeCfg()), strongHpWall: strongHpWallOf(activeCfg()), baseAgi: partyAgi(levelHere().lv), foeLv, fervor: !!(trB && trB.fervor), foeRise: (trB && trB.foeRise) || 0, soulFeast: (trB && trB.soulFeast) || 0 });
+  G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot"), fleeK: fleeScale(), agiWall: agiWallOf(activeCfg()), statWall: statWallOf(activeCfg()), strongHpWall: strongHpWallOf(activeCfg()), baseAgi: partyAgi(levelHere().lv), foeLv, fervor: !!(trB && trB.fervor), foeRise: (trB && trB.foeRise) || 0, soulFeast: (trB && trB.soulFeast) || 0, focus: !!(trB && trB.focus) });
   tlWatchBattle(G.battle, tlWhere(), id => infSupplyRecord("used", id));
   // 迷宮の掟の開幕の効果: 寒さに身がすくむ (chill) — 隊の全員の AGI を段数ぶん下げる (3ターン)
   for (const r of ruleOpens) if (r.chill) {
@@ -8870,7 +8873,7 @@ function startBattleMeasured(enemies, cell) {
       else flashScreen("#d8e0ff");
     }
   }
-  // ささやく湖面 (whisper 混乱) / 響く聖歌 (lull 眠り) / 帯電した手すり (jolt 麻痺) — 戦闘の開幕に、隊の一人がこの確率で掛かる (その抵抗で防げる)
+  // ささやく湖面 (whisper 混乱) / 響く聖歌 (lull 眠り) / 帯電した手すり (jolt 麻痺) / 惑わしの香油 (allure 魅了) — 戦闘の開幕に、隊の一人がこの確率で掛かる (その抵抗で防げる)
   for (const r of ruleOpens) for (const o of RULE_ONE_AIL) if (r[o.key] > 0) {
     const live = G.battle.party.filter((p) => p.alive && o.free(p));
     if (!live.length) continue;
@@ -8901,6 +8904,7 @@ function startBattleMeasured(enemies, cell) {
     if (n) log(`${r.name || r.head}：敵に障壁${r.shell}回（半減）`, "sys");
   }
   if (trB && trB.foeRise) log(`${trB.name}：敵が1回蘇生`, "sys");
+  if (trB && trB.focus) log(`${trB.name}：敵は倒れるまで同じ者を狙う（挑発で引き剥がせる）`, "sys");
   if (trB && trB.fervor) log("観客の歓声：2ターン目から毎ターン、敵味方の攻撃+1段", "sys");
   // 闘技場跡の迷宮の掟 (audience): 観客の注文をひとつ出す (応えて勝てば、この戦闘の ✦Soul・金貨 1.5倍 — endBattle)
   G.battle.audience = audienceOrderFor(enemies);
@@ -8947,6 +8951,8 @@ const RULE_ONE_AIL = [
     free: (p) => !p.mind && !p.asleep, put: (b, p) => { p.asleep = true; b._holdAil(p, "sleep"); } },
   { key: "jolt", res: "paralyze", text: "麻痺", color: "#f0e080", hit: "はしびれて、動けなくなった", miss: "はしびれをこらえた",
     free: (p) => !p.ailment, put: (b, p) => { p.ailment = "paralyze"; b._holdAil(p, "para"); } },
+  { key: "allure", res: "charm", text: "魅了", color: "#f0a0d0", hit: "は甘い香りに惑わされ、魅了された", miss: "は香りに惑わされなかった",
+    free: (p) => !p.mind && !p.asleep, put: (b, p) => { p.mind = "charm"; b._holdAil(p, "mind"); } },
 ];
 
 // ===== 迷宮の掟の開幕の演出 (ユーザーの指示、2026-10: 戦闘開始時の傷・吸われた魔力・毒・冷気がログだけでは分からない) =====
@@ -8971,6 +8977,7 @@ const TRAIT_OPEN_FX = {
   whisper: { fx: "dark",  card: "status",   sfx: () => SFX.spell() },
   lull:   { fx: "light",  card: "status",   sfx: () => SFX.spell() },
   jolt:   { fx: "light",  card: "status",   sfx: () => SFX.thunder(), flash: "#f0f0b0" },
+  allure: { fx: "dark",   card: "status",   sfx: () => SFX.spell() },
 };
 function playTraitOpening(info, done) {
   const finish = () => { G.partyShow = null; renderParty(); done(); };
