@@ -136,8 +136,9 @@ const JMARK = { group: "J" };
 const effPut = (k, val) => (it) => { it.eff = { ...(it.eff || {}) }; it.eff[k] = val(it); };
 def({ id: "J01", name: "守りの帳の", tier: "r", kind: "abs", r: [1, 1], slots: ["a"], ...JMARK, pts: () => 10,
   fx: () => [{ t: "start", wall: 1 }], text: () => "戦闘の始めに魔法壁1回 (受けるダメージ半減)" });
-def({ id: "J02", name: "号令の", tier: "x", kind: "abs", r: [0.20, 0.35], slots: ["acc"], ...JMARK, pts: (v) => v * 50,
-  fx: (v) => [{ t: "start", chance: v, party: true, buff: { atk: 1.25 }, dur: 2 }], text: (v) => `戦闘の始めに ${pct(v)} で味方全員の STR+1段 (2ターン)` });
+// 2026-10-16 ユーザーの指示: 必ず掛かる (確率なし)。持ち主が何人いても隊で1度だけ (once)。以前の品の値 v (20〜35%) は使わない
+def({ id: "J02", name: "号令の", tier: "x", kind: "abs", r: [1, 1], slots: ["acc"], ...JMARK, pts: () => 15,
+  fx: () => [{ t: "start", once: "J02", party: true, buff: { atk: 1.25 }, dur: 2 }], text: () => "戦闘の始めに味方全員の STR+1段 (×1.25、2ターン。持ち主が何人いても1度だけ)" });
 def({ id: "J03", name: "討ち癒しの", tier: "r", kind: "abs", r: [0.02, 0.04], slots: ["w"], ...JMARK, pts: (v) => v * 250,
   fx: (v) => [{ t: "kill", hp: v }], text: (v) => `敵を倒すと HP ${pct(v)} 回復` });
 def({ id: "J04", name: "討ち魔の", tier: "r", kind: "abs", r: [0.01, 0.02], slots: ["w"], ...JMARK, pts: (v) => v * 400,
@@ -152,8 +153,9 @@ def({ id: "J06", name: "茨の", tier: "r", kind: "abs", r: [0.20, 0.30], slots:
 def({ id: "J07", name: "再生の", tier: "r", kind: "abs", r: [0.01, 0.02], slots: ["a", "acc"], ...JMARK, pts: (v) => v * 150, apply: (it, v) => effPut("regen", () => v)(it), text: (v) => `毎ターン HP ${pct(v)} 回復` });
 def({ id: "J08", name: "吸血の", tier: "r", kind: "abs", r: [0.03, 0.06], slots: ["w"], ...JMARK, pts: (v) => v * 60, apply: (it, v) => effPut("lifesteal", () => v)(it), text: (v) => `与ダメの ${pct(v)} を吸う` });
 def({ id: "J09", name: "報復の", tier: "r", kind: "abs", r: [0.20, 0.30], slots: ["w", "shield"], ...JMARK, pts: (v) => v * 24, apply: (it, v) => effPut("counter", () => v)(it), text: (v) => `物理を受けるたび 攻撃力${mulx(v)} でやり返す` });
-def({ id: "J10", name: "一番手の", tier: "x", kind: "abs", r: [1, 1], slots: ["feet", "acc"], ...JMARK, pts: () => 15, apply: effPut("actFirst", () => true), text: () => "戦闘の1ターン目に一番手で動く" });
-def({ id: "J11", name: "不屈の", tier: "x", kind: "abs", r: [0.1, 0.1], slots: ["acc"], ...JMARK, pts: () => 8, apply: (it, v) => effPut("autoRevive", () => v)(it), text: () => "1戦闘に1度、倒れずに HP 10% で踏みとどまる" });
+// 一番手のは戦闘の1ターン目だけ (2026-10-16 ユーザーの指示。LR の加速装置 eff.actFirst は毎ターンのまま)
+def({ id: "J10", name: "一番手の", tier: "x", kind: "abs", r: [1, 1], slots: ["feet", "acc"], ...JMARK, pts: () => 12, misc: () => ({ firstTurn: true }), text: () => "戦闘の1ターン目に、敵味方の誰よりも先に動く (持ち主どうしは AGI 順)" });
+def({ id: "J11", name: "不屈の", tier: "x", kind: "abs", r: [0.1, 0.1], slots: ["acc"], ...JMARK, pts: () => 8, apply: (it, v) => effPut("autoRevive", () => v)(it), text: () => "1戦闘に1回、倒れた時に最大HPの10%で立ち上がる" });
 def({ id: "J12", name: "守りの気の", tier: "r", kind: "abs", r: [0.03, 0.05], slots: ["a"], ...JMARK, pts: (v) => v * 100, apply: (it, v) => effPut("guard", () => v)(it), text: (v) => `被ダメ−${pct(v)}` });
 def({ id: "J13", name: "節約の", tier: "r", kind: "abs", r: [0.05, 0.10], slots: ["acc", "w"], ...JMARK, pts: (v) => v * 60, apply: (it, v) => effPut("spellCostMul", () => Math.round((1 - v) * 100) / 100)(it), text: (v) => `消費MP−${pct(v)}` });
 def({ id: "J14", name: "金運の", tier: "u", kind: "abs", r: [0.10, 0.20], slots: ["acc"], ...JMARK, pts: (v) => v * 30, apply: (it, v) => effPut("goldUp", () => v)(it), text: (v) => `金貨+${pct(v)}` });
@@ -181,7 +183,7 @@ def({ id: "K10", name: "生き急ぎの", tier: "r", kind: "abs", r: [0.3, 0.3],
 
 // ---- X. 極 (2026-10-15 ユーザーの決定: 部位ごとに6つ。docs/infinite-affixes.md 2-1) ----
 // どれも「戦い方が変わる」効果。数値は固定で、it.afxMisc の印 (items.js recalc → member.gearMisc) を combat.js / game.js が読む。
-// 以前の極 (号令・一番手・不屈) は拾えなくした (retired。付いている品・巻物はそのまま効く)
+// 以前からの極 (号令・一番手・不屈・鏡鎧) と合わせて、武器・胴・頭・小手は6つ、足は7つ、装飾は9つ
 const XM = (key, val = true) => () => ({ [key]: val });
 const X = [
   // 武器
@@ -228,7 +230,6 @@ const X = [
 ];
 const X_FX = { X13: () => [{ t: "deal", v: 0.3, when: { tgtWeak: true } }], X20: () => [{ t: "deal", v: 0.25, when: { combo: true } }] };
 for (const [id, name, slots, p, misc, text] of X) def({ id, name, tier: "x", kind: "abs", r: [1, 1], slots, pts: () => p, ...(misc ? { misc } : {}), ...(X_FX[id] ? { fx: X_FX[id] } : {}), text: () => text });
-for (const id of ["J02", "J10", "J11"]) AFX_MAP[id].retired = true;
 { const seen = new Set(); for (const d of AFX) { if (seen.has(d.name)) throw new Error(`infaffix: 名前が重複: ${d.name}`); seen.add(d.name); } }
 
 export const AFX_COUNT = AFX.length;
@@ -434,8 +435,8 @@ export function enchantBlock(it, page, rk, tmpl = null) {
 
 // 検査 (読み込み時): 173種そろっているか (2026-10-15 に極「鏡鎧の」と、部位ごとの極35種を足した)
 if (AFX.length !== 173) throw new Error(`infaffix: 追加の種類は173のはず (いま ${AFX.length})`);
-// 極は部位ごとに6つ (拾えるもの。武器・胴・頭・小手・足・装飾)
-for (const g of ["w", "body", "head", "hands", "feet", "acc"]) {
+// 極の数 (部位ごと。号令の・一番手の・不屈の は 2026-10-16 にユーザーの指示で極に戻した)
+for (const [g, want] of [["w", 6], ["body", 6], ["head", 6], ["hands", 6], ["feet", 7], ["acc", 9]]) {
   const n = AFX.filter((d) => d.tier === "x" && !d.retired && d.slots.includes(g)).length;
-  if (n !== 6) throw new Error(`infaffix: ${g} の極は6つのはず (いま ${n})`);
+  if (n !== want) throw new Error(`infaffix: ${g} の極は${want}つのはず (いま ${n})`);
 }

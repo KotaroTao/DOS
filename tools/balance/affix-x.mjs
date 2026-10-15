@@ -1,5 +1,5 @@
-// 無限迷宮の追加の特性「極」(X01〜X35、2026-10-15 ユーザーの決定) の検査。
-// 台帳 (部位ごとに6つ・旧い極は拾えない) と、戦闘・魂の処理で効果が実際に出るかを1つずつ確かめる。
+// 無限迷宮の追加の特性「極」(X01〜X35 と J02・J10・J11、2026-10-15〜16 ユーザーの決定) の検査。
+// 台帳 (武器・胴・頭・小手6つ・足7つ・装飾9つ) と、戦闘・魂の処理で効果が実際に出るかを1つずつ確かめる。
 //   node tools/balance/affix-x.mjs
 import assert from "node:assert/strict";
 import { Battle, SPELLS, spellCost } from "../../src/combat.js";
@@ -23,21 +23,11 @@ const withRand = (v, fn) => { const r = Math.random; Math.random = typeof v === 
 
 // ---- 台帳 ----
 const xs = AFX.filter((d) => d.tier === "x");
-for (const g of ["w", "body", "head", "hands", "feet", "acc"]) {
-  assert.equal(xs.filter((d) => !d.retired && d.slots.includes(g)).length, 6, `部位 ${g} の極は6つ`);
+for (const [g, want] of [["w", 6], ["body", 6], ["head", 6], ["hands", 6], ["feet", 7], ["acc", 9]]) {
+  assert.equal(xs.filter((d) => !d.retired && d.slots.includes(g)).length, want, `部位 ${g} の極は${want}つ`);
 }
-for (const id of ["J02", "J10", "J11"]) assert.ok(afxDef(id).retired, `${id} は拾えない`);
+for (const id of ["J02", "J10", "J11"]) assert.ok(!afxDef(id).retired && afxDef(id).tier === "x", `${id} は極として拾える`);
 for (let i = 1; i <= 35; i++) { const d = afxDef(`X${String(i).padStart(2, "0")}`); assert.ok(d && d.tier === "x" && d.text(1, 1).length > 8, `X${i} の説明`); }
-// 深い階で何度振っても旧い極は付かない
-{
-  const tmpl = Object.values(ITEMS).find((it) => it.slot === "acc" && it.price > 0 && !it.cursed);
-  let x = 0;
-  for (let i = 0; i < 4000; i++) {
-    const it = { ...tmpl, lv: 150 };
-    const afx = rollAffixes(it, 300, () => (i % 7) / 7 + 0.0001 * (i % 11)) || [];
-    for (const a of afx) { assert.ok(!afxDef(a.k).retired, `旧い極 ${a.k} が付いた`); if (afxDef(a.k).tier === "x") x++; }
-  }
-}
 // 品に付けると afxMisc / afxFx になる
 const itemWith = (slot, k) => {
   const tmpl = Object.values(ITEMS).find((it) => it.slot === slot && it.price > 0 && !it.cursed && !it.forJob && !it.cls);
@@ -320,7 +310,7 @@ const bigFoe = (o) => foe({ atk: 9000, ...o });
 {
   const d = doll();
   assert.equal(kindleSubIndex(d), -1);
-  d.equip.acc = itemWith("acc", "X30");
+  d.equip.acc1 = itemWith("acc", "X30");
   d.subs = [{ uid: -1, picks: [] }];
   assert.equal(kindleSubIndex(d), -1, "宿り火: サブ魂が無ければ増えない");
   const lo = makeSoulInstance("thief", 1, 30), hi = makeSoulInstance("mage", 12, 30);
@@ -329,7 +319,7 @@ const bigFoe = (o) => foe({ atk: 9000, ...o });
   assert.equal(kindleSubIndex(d), 1, "宿り火: ランクの高い方のサブ魂");
   assert.equal(subPickCapFor(d, d.subs[1]), subPickCap(hi) + 1, "宿り火: 借りる数 +1");
   assert.equal(subPickCapFor(d, d.subs[0]), subPickCap(lo), "宿り火: もう一方は変わらない");
-  d.equip.acc = null;
+  d.equip.acc1 = null;
   assert.equal(subPickCapFor(d, d.subs[1]), subPickCap(hi), "宿り火: 外せば元に戻る");
   setSharedSouls([]);
 }
@@ -367,7 +357,7 @@ const bigFoe = (o) => foe({ atk: 9000, ...o });
 {
   const ALL = { chain: true, twinSoul: true, contagion: true, wedge: true, witness: true, peel: true, fortress: 0.5, split: 0.5, cover: true, sendoff: 0.2,
     adversity: true, steadMind: true, sae: true, memory: true, alarm: true, insight: true, quick: true, throw: true, parryHold: true, mercy: 0.5, pilfer: 0.1,
-    stepIn: true, afterImage: 0.3, dash: true, steady: true, chaser: true, kindle: true, timeKeeper: true, binder: true, flip: true, treasure: true, teller: true };
+    stepIn: true, firstTurn: true, afterImage: 0.3, dash: true, steady: true, chaser: true, kindle: true, timeKeeper: true, binder: true, flip: true, treasure: true, teller: true };
   const jobs = SOUL_KEYS.filter((k) => !SOUL_CLASSES[k].unique);
   let fights = 0;
   for (let g = 0; g < jobs.length; g += 6) {
@@ -403,4 +393,29 @@ const bigFoe = (o) => foe({ atk: 9000, ...o });
   setSharedSouls([]);
   console.log(`乱戦 ${fights}戦 (極をすべて付けた36職・通常/奇襲/先制): 例外なし`);
 }
-console.log("極35種: 台帳 (部位ごと6つ・旧い極は拾えない) と効果を確認 (浮き足の・宝呼びの・語り部の・慧眼の は game.js / autotactics.js)");
+// J02 号令の: 必ず掛かり、持ち主が何人いても1度だけ
+{
+  const a = doll("号令1"), b2 = doll("号令2");
+  a.equip.acc1 = itemWith("acc", "J02"); b2.equip.acc1 = itemWith("acc", "J02");
+  recalc(a); recalc(b2);
+  const b = withRand(0.99, () => battle([a, b2], [foe()]));
+  assert.equal(b.stageOf(a, "atk"), 1, "号令: 必ず STR+1段・重ならない");
+  assert.equal(a.effects.find((e) => e.stat === "atk").turns, 2);
+}
+// J10 一番手の: 戦闘の1ターン目だけ一番先に動く
+{
+  const p = misc(Object.assign(doll("一番手"), { agi: 1 }), { firstTurn: true }), e = foe({ agi: 9999 });
+  const b = new Battle([p], [e], () => {});
+  assert.equal(b.current, p, "一番手: 1ターン目は誰より先");
+  b.queue = []; b._startRound();
+  assert.equal(b.queue[0], e, "一番手: 2ターン目からは普段どおり");
+}
+// J11 不屈の: 1戦闘に1回、最大HPの10%で立ち上がる
+{
+  const p = doll("不屈");
+  p.equip.acc1 = itemWith("acc", "J11"); recalc(p);
+  const b = battle([p], [foe()]);
+  p.hp = 0; assert.ok(!b._die(p) && p.hp === Math.max(1, Math.round(p.maxhp * 0.1)), "不屈: HP10%で立ち上がる");
+  p.hp = 0; assert.ok(b._die(p), "不屈: 1戦闘に1回");
+}
+console.log("極38種: 台帳 (武器・胴・頭・小手6つ・足7つ・装飾9つ) と効果を確認 (浮き足の・宝呼びの・語り部の・慧眼の は game.js / autotactics.js)");

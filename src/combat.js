@@ -1175,6 +1175,8 @@ export class Battle {
       if (!p.alive) continue;
       for (const { c, lv, label } of perksOf(p)) {
         if (c.t !== "start" || !this._perkRoll(c, lv) || (c.when && !this._perkWhen(p, c.when, {}))) continue;
+        // once: 持ち主が何人いても隊で1度だけ (極「号令の」)
+        if (c.once) { const used = this._startOnce || (this._startOnce = new Set()); if (used.has(c.once)) continue; used.add(c.once); }
         const tg = c.party ? this.livingParty() : [p];
         let mp = 0;
         for (const t of tg) {
@@ -1545,6 +1547,8 @@ export class Battle {
       for (const p of this.party) if (p.alive && gm(p).alarm) { pool.push(p); this.log(`${p.name}の警鐘：奇襲に気づいた`, "heal"); this._proc(p, "警鐘"); }
     }
     const eagi = (a) => (a.agi || 1) * ((a.buffs && a.buffs.agi) || 1);
+    // 一番に動く者: 加速装置 (actFirst、毎ターン) と、極「一番手の」(戦闘の1ターン目だけ)
+    const first = (a) => !!(a.actFirst || (this._roundNo === 1 && gm(a).firstTurn));
     // 手番の速さ: 敵の AGI は Battle を作った時に味方の規模 (TURN_K 込み) へ直してある (scaleFoeAgi)。揺らぎは割合で、並べる前に1回だけ振る
     const turnAgi = (a) => eagi(a);
     const speed = new Map();
@@ -1552,7 +1556,7 @@ export class Battle {
     this.queue = pool
       .filter((a) => a.alive)
       // 加速装置 (actFirst) は必ず手番の最初に行動する。同士の中では AGI 順
-      .sort((a, b) => ((b.actFirst ? 1 : 0) - (a.actFirst ? 1 : 0)) || ((b.haste ? 1 : 0) - (a.haste ? 1 : 0)) || (speed.get(b) - speed.get(a)));
+      .sort((a, b) => ((first(b) ? 1 : 0) - (first(a) ? 1 : 0)) || ((b.haste ? 1 : 0) - (a.haste ? 1 : 0)) || (speed.get(b) - speed.get(a)));
     // 神速 (haste): 目にも止まらぬ速さの敵は、ターンの頭 (加速装置の次) に動き、後半にもう一度動く
     for (const e of this.queue.filter((a) => a.haste && a.side === "enemy")) {
       const from = Math.max(this.queue.indexOf(e) + 1, Math.ceil(this.queue.length / 2));
