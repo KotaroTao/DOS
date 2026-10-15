@@ -28,7 +28,7 @@ export default {
     TEMPLAR_MISOGI: { name: "禊の聖水", mp: 9, kind: "buff", cure: ["poison", "paralyze", "sleep"], purge: true, regen: { pct: 0.03, turns: 2 }, target: "all-ally", desc: "全員の毒・猛毒・麻痺・眠りと弱体を流し、わずかに癒し続ける" },
     TEMPLAR_HAKAINOISHIZUCHI: { name: "破戒の石槌", mp: 12, kind: "phys", power: 2.4, element: "earth", acc: 0.13, strip: true, target: "enemy", desc: "石槌で打ち、敵の強化を打ち砕く" },
     TEMPLAR_HAMANOKOUSA: { name: "破魔の光鎖", mp: 10, kind: "atk", power: 20, element: "light", seal: { chance: 0.25, turns: 2 }, target: "all-enemy", desc: "光の鎖が敵陣を縛り、特技を封じる" },
-    TEMPLAR_MONBANNOKAMAE: { name: "門番の構え", mp: 6, kind: "buff", stance: "counter", grantBarrier: 1, dur: 2, tech: true, target: "self", desc: "門を背に構え、反撃の構えと魔障壁を得る" },
+    TEMPLAR_MONBANNOKAMAE: { name: "門番の構え", mp: 6, kind: "buff", stance: "counter", ctrMul: 1.3, grantBarrier: 1, dur: 2, tech: true, target: "self", desc: "門を背に構え、反撃の構えと魔障壁を得る（攻撃力×1.3）" },
     TEMPLAR_HAMANOOOZUCHI: { name: "破魔の大槌", mp: 18, kind: "phys", power: 3.0, vitScale: 1.4, acc: 1, vuln: { all: 0.85 }, target: "enemy", desc: "必中の大槌で、あらゆる属性への守りを崩す" },
     TEMPLAR_SEIIKIKEKKAI: { name: "聖域結界", mp: 15, kind: "heal", healMul: 1, healCap: 0.5, grantBarrier: 1, target: "all-ally", desc: "聖域を張って味方全員を癒し、魔障壁を配る" },
     TEMPLAR_DANZAINOFUUIN: { name: "断罪の封印", mp: 23, kind: "atk", power: 56, element: "light", seal: { chance: 0.5, turns: 3 }, strip: true, target: "enemy", desc: "断罪の光で撃ち、特技と強化を封じ去る" },

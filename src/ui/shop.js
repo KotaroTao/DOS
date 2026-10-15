@@ -6,7 +6,7 @@ import { bagCount, isFormationItem, bagOwners } from "../items.js";
 //   売る・鑑定: まとめて鑑定 / まとめて売る (ops の一括操作。除外の内訳つき) + 全員の持ち物 (控え込み)
 //   買う      : 人業の選択 + 分類のチップ1列 + 棚の行 (選択者の現在装備との増減・買って装備)
 // 最後に開いた区分・分類は prefs (dos-ui) に覚える。
-// 提供する契約: UI.openShop(seg, {cat}) / UI.unidCount() / UI.junkList(opts) / UI.shopBuy(id, who, {equip})
+// 提供する契約: UI.openShop(seg, {cat}) (seg: sell / buy / forge / enchant) / UI.unidCount() / UI.junkList(opts) / UI.shopBuy(id, who, {equip})
 //              UI.confirmSellJunk() / UI.confirmIdentifyAll() (帰還の報告・提案からも同じ確認で呼べる)
 // game.js は import しない (ctx.js の UI / game / ops を通す。kit.js・itemview.js は自由に使ってよい)。
 
@@ -32,7 +32,8 @@ const isReserve = (d) => (G().reserve || []).includes(d);
 const view = { sellPage: 0, buyPage: 0 };
 // 鍛え直し (第五章の結びで開く) の区分は、開くまで出さない
 const forgeOpen = () => !!(game.featureUnlocked && game.featureUnlocked("forge"));
-const segOf = () => { const s = getPref("shopSeg"); return s === "buy" ? "buy" : s === "forge" && forgeOpen() ? "forge" : "sell"; };
+const enchantOpen = () => !!(game.featureUnlocked && game.featureUnlocked("enchant"));
+const segOf = () => { const s = getPref("shopSeg"); return s === "buy" ? "buy" : s === "forge" && forgeOpen() ? "forge" : s === "enchant" && enchantOpen() ? "enchant" : "sell"; };
 const catOf = () => getPref("shopBuyCat", "rec") || "rec";
 const wcatOf = () => remember("seg", "shopWeapon") || "all";
 const SHOP_FILTER = "shopGearFilter";
@@ -269,6 +270,7 @@ function keeperLine(seg) {
   if (seg === "sell" && unidCount() > 0) line = "未鑑定の品か。正体を知るのは、金を払ってからだ。";
   else if (seg === "buy") line = "黒鉄は嘘をつかん。値札もな。";
   else if (seg === "forge") line = "同じ品でも、打ちの出来はまちまちだ。金を積めば、何度でも炉に入れてやる。";
+  else if (seg === "enchant") line = "夜明けの町の書き手から習った術だ。巻物に写すと元の品は崩れる。書く先はよく選べ。";
   return whisper("merchant", line, { who: shell.who || "黒鉄商会 ヴォス" });
 }
 
@@ -843,7 +845,7 @@ function render(root) {
   const bar = el("div", "wpc-bar");
   const unid = unidCount();
   bar.appendChild(segmented(
-    [{ key: "sell", label: "売る・鑑定", badge: unid || null }, { key: "buy", label: "買う" }, ...(forgeOpen() ? [{ key: "forge", label: "鍛え直し" }] : [])],
+    [{ key: "sell", label: "売る・鑑定", badge: unid || null }, { key: "buy", label: "買う" }, ...(forgeOpen() ? [{ key: "forge", label: "鍛え直し" }] : []), ...(enchantOpen() ? [{ key: "enchant", label: "付呪" }] : [])],
     seg, (k) => { setPref("shopSeg", k); sfx("select"); rerender({ top: true }); },
   ));
   if (seg === "buy") {
@@ -855,7 +857,7 @@ function render(root) {
     bar.appendChild(cc);
   }
   wrap.appendChild(bar);
-  const fill = seg === "buy" ? renderBuy(wrap) : seg === "forge" && UI.renderForgeList ? UI.renderForgeList(wrap) : renderSell(wrap);
+  const fill = seg === "buy" ? renderBuy(wrap) : seg === "forge" && UI.renderForgeList ? UI.renderForgeList(wrap) : seg === "enchant" && UI.renderEnchantList ? UI.renderEnchantList(wrap) : renderSell(wrap);
   root.appendChild(wrap);
   // 置いてから高さを測ってページを切る
   try { fill(); } catch (e) { setTimeout(() => { throw e; }); }
@@ -864,7 +866,7 @@ function render(root) {
 // 商会を開く (seg: "sell" | "buy"、cat: 買うの分類)
 export function openShop(seg, { cat, clearFilters = false } = {}) {
   if (clearFilters) setPref(SHOP_FILTER, {});
-  if (seg === "sell" || seg === "buy" || seg === "forge") setPref("shopSeg", seg);
+  if (seg === "sell" || seg === "buy" || seg === "forge" || seg === "enchant") setPref("shopSeg", seg);
   if (cat) { setPref("shopBuyCat", cat); view.buyPage = 0; }
   const g = G();
   if (!g || g.state !== "town") return false;

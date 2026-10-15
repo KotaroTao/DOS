@@ -61,7 +61,7 @@ export const LAYER2_ITEMS = [
     desc: "王都の水が澄んでいた頃の最後の一滴を封じた護符。胸元で冷たく光り、濁った水の呪いと魔物の飛沫から持ち主を守る。" })),
 
   // ===== レジェンドレア (全職共通・固有効果) =====
-  lr(R("lr_l2_tidering", "潮騒の指輪", "ring", 31, { pow: 1.6, hp: 30, def: 4, eff: { counter: 0.4 }, tint: "#3a7a9a",
+  lr(R("lr_l2_tidering", "潮騒の指輪", "ring", 31, { pow: 1.6, hp: 30, def: 4, eff: { counter: 0.3 }, tint: "#3a7a9a",
     desc: "地下水路が海へ通じていた頃の潮騒を閉じ込めた指輪。打たれれば打ち返す波のように、受けた刃へ必ず報いの一撃を返す。" })),
   lr(R("lr_l2_drownedcrown", "溺れ王の冠環", "amulet", 32, { pow: 1.6, mp: 16, int: 6, eff: { spellCostMul: 0.75 }, tint: "#4a6a8a",
     desc: "水路に身を投げた古王の冠を鋳直した首環。沈んだ王の魔力がいまもよどんでおり、術者の唱える呪文の代償を肩代わりする。" })),

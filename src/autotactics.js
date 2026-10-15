@@ -10,7 +10,7 @@
 // 作戦はこの重みと MP の値段を変える。game.js はここを呼んで chooseAction / chooseTarget するだけ。
 // (このファイルは game.js を import しない)
 
-import { SPELLS, spellCost, soulPowerMul, healsHp, isMetal, spellCureKinds, breathHpK, manaGiftAmount, tauntGuard } from "./combat.js";
+import { SPELLS, spellCost, soulPowerMul, healsHp, isMetal, spellCureKinds, breathHpK, manaGiftAmount, tauntGuard, stanceMulOf } from "./combat.js";
 import { autoSkills } from "./souls.js";
 import { STAGED, STAGE_MAX, STRONG_MIN, stageMul, stageOf } from "./buffstage.js";
 
@@ -369,11 +369,13 @@ function allyEffects(b, ctx, actor, sp, a, c, W) {
     if (om && om.kind === "smash") c.guard += ctx.threat(e) * (0.5 + 2 * tauntGuard(a));
   }
   if (sp.shield && b._bm(a, "shield") <= 1 && sturdy && wounded) c.guard += ctx.maxThreat * n * 0.6;
-  if (sp.stance === "counter" && b._bm(a, "ctr") <= 1) c.edge += ctx.hitsOn(a) * ctx.basic(a) * ctx.dmgK * 0.8 * n;
+  if (sp.stance === "counter" && b._bm(a, "ctr") <= 1) c.edge += ctx.hitsOn(a) * ctx.basic(a) * ctx.dmgK * 0.8 * stanceMulOf(sp) * n;
   if (sp.charge && !(a.effects || []).some((e) => e.stat === "charge") && ctx.rounds > 1) c.edge += (sp.charge - 1) * ctx.basic(a) * ctx.dmgK * 0.8;
   const casters = ctx.foes.filter((e) => e.ability === "breath" || e.ability === "spell");
   if (casters.length) {
     const th = casters.reduce((s, e) => s + ctx.threat(e), 0);
+    // 反射の陣: 呪文・ブレスの使い手がいる時、受けるたびに唱えた者の魔力 × 係数で返す見込み
+    if (sp.reflect && b._bm(a, "rfl") <= 1) c.edge += casters.length * Math.max(actor.int || 0, actor.pie || 0) * sp.reflect * ctx.dmgK * 0.3 * n;
     if (sp.ward) for (const w in sp.ward) {
       if (b._bm(a, w === "breath" ? "wardB" : "wardS") > 1) continue;
       if (casters.some((e) => e.ability === w)) c.guard += sp.ward[w] * th / Math.max(1, ctx.allies.length) * n * 0.5;
