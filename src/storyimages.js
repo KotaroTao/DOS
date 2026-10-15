@@ -38,6 +38,7 @@ export const STORY_IMAGES = {
   report_w09: "art/story/chapter2/report_w09.webp",
   irene_roots: "art/story/chapter2/irene_roots.webp",
   ch2_end: "art/story/chapter2/ch2_end.webp",
+  irene_omokage: "art/story/chapter3/irene_omokage.webp",
   w10_rope: "art/story/chapter3/w10_rope.webp",
   report_w10: "art/story/chapter3/report_w10.webp",
   w11_hut: "art/story/chapter3/w11_hut.webp",

@@ -514,6 +514,14 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 
 ## 4. 便2・便3 ― 第5〜8章の新規 42場面
 
+**irene_omokage「彫られた顔」** (第三章 / 館の語り)
+- 要点: 第三章の入口。イレーヌが燭台のそばでセラの頭を柔らかい布でぬぐい、人業の顔と「面影の写し」を教える。
+- 描くもの: 既存の館の作業台 / イレーヌ / 台の柔らかい布に寝かせたセラの頭と本物の長い黒髪 / 彫られた木の顔・閉じた目・額の小さな金の印 / 真鍮の燭台の一本の白い蝋燭。
+- 描かないもの: セラの胴・脚・目覚めた全身、胸の魂火、血や傷、宙に浮く顔、鏡や選択画面、読める文字。師は登場させない。
+```text
+Inside the same gothic mansion workshop, Irene gently wipes Sera's detached wooden head with a soft ivory cloth beside a single white candle on a brass candlestick. Irene has the exact face, long purple-sheened black hair, purple eyes, gold-and-purple jeweled hair ornament and purple-and-black lace gown of the approved Irene reference. Both her hands are naturally positioned: one steadies the head on the padded cloth on the table, the other holds the wiping cloth against the wooden cheek. Sera is still asleep: ONLY her detached head rests on folded dark velvet, with long wavy near-black REAL hair spread softly across the table, carved wooden facial features, visible wood grain and closed eyelids. Match Sera's face and real hair to the Sera reference, translated into the established adult-proportioned story illustration style. At the center of Sera's forehead, show a small gold approved geometric lamp-on-palm crest: angular cupped palm, one thumb projection on the left, three parallel slanted finger projections on the right, short wrist below, one separate teardrop flame above. The candlelight reveals the carved cheek and the fine real hair, the two narrative focal details, clearly readable at thumbnail size. Frame a tender quiet medium-close scene centered on Irene's careful hands and Sera's head, with Irene's gentle face above and the candle beside them. Rich restrained amber candlelight and cool blue window light, carved wood, purple fabric and gothic stone consistent with the mansion reference. This is a crafted wooden doll part lovingly cared for, with a clean wooden neck base. No torso, legs, awakened Sera, blue soul-fire, gore, floating faces, mirrors, interface, or readable text. No Ordo.
+```
+
 ### 序章改訂の追加場面（2026-10-13・制作保留）
 
 ユーザー指定により**今回は画像を作成しない**。新版の進行・修正対象の一覧は `docs/prologue-revision.md`。最初の三体は戦士・僧侶・盗賊、四体目は魔導士、五体目は騎士、六体目は司教。下記は後日の制作指示のみ。
