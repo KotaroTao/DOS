@@ -10,7 +10,7 @@
 //   │ (●) 忘れられた地下墓地 推奨Lv1・全5階 踏破 │ 門は 5 行ぶん見せ、6 つ目からは一覧を縦に巻く
 //   │ ▒▒ まだ地図にない迷宮 ― 解放の手がかり  │ 台帳 (world.js) の unlock を満たすと現れる
 //   │ 潜り始める階 [B1F|B6F]                  │ 到達した帰還魔法陣の次の階から潜れる
-//   │ ◆ 隊の備え [肖像][肖像][肖像]   入替 ›  │
+//   │ [肖像][肖像][肖像]              編成 ›  │
 //   │ ⚠ フィモンが深手     [宿で休む ●48]      │ 直し方はその場に (別の札は出さない)
 //   ├──────────────────────────────────────┤
 //   │ [ ◆ 門をくぐる ― B1F ◆ ]                │ 階選択・隊の備えと共に下部へ固定
@@ -436,12 +436,8 @@ async function runFix(fix) {
 }
 function renderReady(b) {
   const g = G();
-  // 1行: 「隊の備え」+ 肖像 (HP の細線つき) + 入替 ›
+  // 1行: 肖像 (HP の細線つき) + 編成 ›
   const strip = el("div", "dp-party");
-  const lab = el("div", "dp-party-l");
-  lab.appendChild(el("span", "dp-party-t", "隊の備え"));
-  lab.appendChild(el("span", "dp-party-n", `${g.party.length}/6`));
-  strip.appendChild(lab);
   g.party.forEach((d, i) => {
     const p = portrait(d, { size: 48, hp: true, row: i < 3 ? "前" : "後", onTap: () => { close(); setTimeout(() => UI.openParty && UI.openParty(i, { seg: "equip", inPlace: true }), 0); } });
     strip.appendChild(p);
