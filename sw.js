@@ -11,6 +11,14 @@
 const CACHE = "dos-dev";
 const DEV = CACHE === "dos-dev";
 const ASSETS = [
+  "./art/monsters/bs_giantowl.webp",
+  "./art/monsters/bs_stranglevine.webp",
+  "./art/monsters/bs_sporezombie.webp",
+  "./art/monsters/bs_fungalhulk.webp",
+  "./art/monsters/bs_flytrap.webp",
+  "./art/monsters/bs_mossgolem.webp",
+  "./art/monsters/bs_stonegazer.webp",
+  "./art/monsters/bs_griffon.webp",
   "./art/monsters/bs_dryadfey.webp",
   "./art/monsters/bs_wisplure.webp",
   "./art/monsters/bs_thornhound.webp",
