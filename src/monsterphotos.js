@@ -1,6 +1,12 @@
 // 迷宮の透過原画。通常敵・強敵・主・召喚先・共通の敵で共用する。
 // 能力値や文字グリッドは保ち、読めた原画だけを最初の描画前に登録する。
 export const MONSTER_PHOTOS = {
+  // <<CHAPTER10_ART>>
+  // 第十章・地底大空洞（作成済み26体は既存原画を共用）。
+  bs_echowraith: [520, 493],
+  bs_stalactiteghost: [333, 520],
+  bs_moldern: [250, 520],
+  // <</CHAPTER10_ART>>
   // <<TOXIC_SWAMP_ART>>
   // 第7章「毒沼」（作成済みの通常敵・強敵・共通敵は既存原画を共用）。
   bs_plaguerat: [520, 334],
