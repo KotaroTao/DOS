@@ -187,10 +187,11 @@ function afxPts(d, v, B) {
 const DEPTH_ROWS = [
   { to: 20, n: 1, extra: 0.25, w: { c: 85, u: 15, r: 0, x: 0 } },
   { to: 40, n: 1, extra: 0.50, w: { c: 70, u: 25, r: 5, x: 0 } },
-  { to: 60, n: 2, extra: 0.30, w: { c: 55, u: 32, r: 12, x: 1 } },
-  { to: 80, n: 2, extra: 0.60, w: { c: 45, u: 35, r: 17, x: 3 } },
-  { to: 100, n: 3, extra: 0.30, w: { c: 35, u: 38, r: 22, x: 5 } },
-  { to: Infinity, n: 3, extra: 0.60, w: { c: 30, u: 38, r: 25, x: 7 } },
+  // 極は付呪で誰にでも書けるので、拾える割合はごく低く (2026-10-15 ユーザーの指示。以前は 1 / 3 / 5 / 7)
+  { to: 60, n: 2, extra: 0.30, w: { c: 55, u: 32, r: 12, x: 0.05 } },
+  { to: 80, n: 2, extra: 0.60, w: { c: 45, u: 35, r: 17, x: 0.1 } },
+  { to: 100, n: 3, extra: 0.30, w: { c: 35, u: 38, r: 22, x: 0.25 } },
+  { to: Infinity, n: 3, extra: 0.60, w: { c: 30, u: 38, r: 25, x: 0.4 } },
 ];
 const depthRow = (f) => DEPTH_ROWS.find((r) => (f || 1) <= r.to);
 const AFX_SLOTS = new Set(["weapon", "shield", "body", "head", "hands", "feet", "acc"]);
@@ -287,6 +288,78 @@ export function gearPerks(list) {
     const k = cap != null && c.v > 0 && sums[c.t] > cap ? cap / sums[c.t] : 1;
     return { c: k === 1 ? c : { ...c, v: Math.round(c.v * k * 1000) / 1000 }, lv: 1, label, key: `afx${i}` };
   });
+}
+
+// ===== 付呪 (第十一章の結び — docs/infinite-affixes.md 6章、2026-10-15 ユーザーの決定) =====
+// 無限迷宮で拾った品の追加の能力・特性を1つ選んで「術の頁」に写し取り (元の品は消える)、任意の装備へ書き込む。
+//  ・書ける数はレア度で決まる (コモン1 / アンコモン2 / レア3 / スーパーレア4 / レジェンド5)。格の上限は無い
+//  ・能力値の追加 (kind B・fixB) の合計は、書き込む品の B(R) × ENCHANT_CAP[レア度] まで (LR の 1.0 = 無限迷宮で拾う品と同じ天井)
+//  ・同じ種類は1つ、属攻・属防・追加効果・発動する特性 (J) はそれぞれ1つ、極は1つの品に1つまで (拾う品と同じ決まり)。
+//    隊の別々の人業が同じ極を付けるのはよい
+//  ・頁の値: 能力値の追加 (kind B) は B(R) に対する割合で持ち、書き込む品のランクで値を出し直す。それ以外 (割合・固定の値) はそのまま
+export const ENCHANT_SLOTS = { c: 1, uc: 2, r: 3, sr: 4, lr: 5 };
+export const ENCHANT_CAP = { c: 0.35, uc: 0.55, r: 0.75, sr: 0.9, lr: 1.0 };
+// 書き込みの費用 = 書き込む品の買値 × 格の倍率 × 枠の倍率 (1枠目1・2枠目1.5・3枠目2… — game.js enchantCost)
+export const ENCHANT_TIER_COST = { c: 0.5, u: 1, r: 2, x: 4 };
+
+// 品 it の追加 a ({k, v}) を写し取った頁 ({k, v} か、kind B なら {k, r})
+export function pageFromAffix(it, a) {
+  const d = AFX_MAP[a && a.k];
+  if (!d) return null;
+  const src = { from: it.name, lv: it.lv || 1 };
+  if (d.kind === "B") return { k: d.id, r: Math.round((a.v / afxBase(it)) * 10000) / 10000, ...src };
+  return { k: d.id, v: a.v, ...src };
+}
+// 頁を品 it に書いた時の値
+export function pageValue(page, it) {
+  const d = AFX_MAP[page && page.k];
+  if (!d) return 0;
+  if (d.kind === "B") return Math.round((page.r != null ? page.r : 0) * afxBase(it) * 100) / 100;
+  return page.v != null ? page.v : d.r[0];
+}
+export function pageDef(page) { return AFX_MAP[page && page.k] || null; }
+// 頁の術をその部位の品に書けるか (書く先の一覧に出すか)
+export function pageFitsSlot(page, it) { const d = pageDef(page); return !!(d && it && fitsSlot(d, it)); }
+// 頁の説明 (品 it に書いた時の値で。it が無ければ写し取った品のランクでの値)
+export function pageText(page, it = null) {
+  const d = pageDef(page);
+  if (!d) return "";
+  if (it) { const B = afxBase(it); return d.text(pageValue(page, it), B); }
+  if (d.kind === "B") { const ref = { lv: page.lv || 1 }; const B = afxBase(ref); return d.text(pageValue(page, ref), B); }
+  return d.text(page.v != null ? page.v : d.r[0], 1);
+}
+// 品の「能力値の追加」の点 (容量に数える分)
+function capPts(it, afx) {
+  const B = afxBase(it);
+  return (afx || []).reduce((s, a) => { const d = AFX_MAP[a.k]; return s + (d && (d.kind === "B" || d.kind === "fixB") ? afxPts(d, a.v, B) : 0); }, 0);
+}
+// 品の書き込みの枠と容量: { slots, used, cap, capUsed }。rk = レア度 (c/uc/r/sr/lr)
+export function enchantRoom(it, rk) {
+  const B = afxBase(it);
+  return { slots: ENCHANT_SLOTS[rk] || 1, used: (it.afx || []).length, cap: Math.round(B * (ENCHANT_CAP[rk] || ENCHANT_CAP.c) * 10) / 10, capUsed: Math.round(capPts(it, it.afx) * 10) / 10 };
+}
+// 頁を品 it に書けない理由 (書ければ null)。tmpl = 目録の品 (生まれつきの属攻・属防・追加効果を見る)
+export function enchantBlock(it, page, rk, tmpl = null) {
+  const d = pageDef(page);
+  if (!d) return "読めない頁";
+  if (!it || !AFX_SLOTS.has(it.slot)) return "装備品にだけ書ける";
+  if (!fitsSlot(d, it)) return "この部位には書けない術";
+  const afx = it.afx || [];
+  const room = enchantRoom(it, rk);
+  if (afx.length >= room.slots) return `書ける数 ${room.slots}つがいっぱい`;
+  if (afx.some((a) => a.k === d.id)) return "同じ術がもう書いてある";
+  const has = (fn) => afx.some((a) => { const x = AFX_MAP[a.k]; return x && fn(x); });
+  if (d.tier === "x" && has((x) => x.tier === "x")) return "極は1つの品に1つまで";
+  if (d.group && has((x) => x.group === d.group)) return d.group === "J" ? "発動する特性は1つの品に1つまで" : d.group === "eAtk" ? "属攻は1つまで" : d.group === "eDef" ? "属防は1つまで" : "追加効果は1つまで";
+  const base = tmpl || {};
+  if (d.group === "eAtk" && base.eAtk) return "この品には属攻が元からある";
+  if (d.group === "eDef" && base.eDef) return "この品には属防が元からある";
+  if (d.group === "onHit" && base.onHit) return "この品には追加効果が元からある";
+  if (d.kind === "B" || d.kind === "fixB") {
+    const add = afxPts(d, pageValue(page, it), afxBase(it));
+    if (room.capUsed + add > room.cap + 1e-6) return `能力値の容量を超える (${Math.round((room.capUsed + add) * 10) / 10} / ${room.cap})`;
+  }
+  return null;
 }
 
 // 検査 (読み込み時): 137種そろっているか

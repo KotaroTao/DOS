@@ -21,7 +21,7 @@ import { bagCount, isFormationItem,
   UNIDENT_SLOTS, itemName, applyForge, hasQuality, applyQuality, rollQuality, qualityMatters, itemAtQuality, QUALITY_MID, useWhere, useTarget, useHelps, useLines, useCureKinds, compareUse,
 } from "./items.js";
 import { equipLevelFor, LR_UNLOCK, LOOT_R_HEADROOM } from "./equiplevel.js";
-import { rollAffixes, applyAffixes, gearPerks, affixPower, affixLines, AFX_TIERS } from "./infaffix.js";
+import { rollAffixes, applyAffixes, gearPerks, affixPower, affixLines, AFX_TIERS, afxDef, pageFromAffix, pageValue, pageText, enchantRoom, enchantBlock, ENCHANT_TIER_COST } from "./infaffix.js";
 import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, permanentEventStats, eligibleEvents, pickEvent, onceKey, runEvent, eventFightWon } from "./events.js";
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { pickTavernCrowd, TALK_MAP } from "./tavern.js";
@@ -89,6 +89,7 @@ import * as uiResults from "./ui/results.js";
 import * as uiAppraise from "./ui/appraise.js";
 import * as uiTutorial from "./ui/tutorial.js";
 import * as uiReforge from "./ui/reforge.js";
+import * as uiEnchant from "./ui/enchant.js";
 import * as uiInfinite from "./ui/infinite.js";
 import * as uiDiscard from "./ui/discard.js";
 
@@ -14794,7 +14795,7 @@ const FEATURES = {
   //   第八章のあたりで Lv100・ランク3〜4 に届き、本編の育ちが単調になってくるので、第十章から前倒し)
   infinite: { chapter: 8, report: "finale" },
   rematch: { chapter: 9, report: "finale" },    // 宿敵の再戦 (名のある強敵・主の強化版)
-  enchant: { chapter: 11, report: "finale", pending: true },   // 付呪 (仕組みがまだ無いので、第十一章が台帳に載っても開かない — 作る時に pending を外し、UNLOCKS のページを足す)
+  enchant: { chapter: 11, report: "finale" },  // 付呪 (無限迷宮の品の追加の能力を写し取り、任意の装備へ書き込む — 2026-10-15 ユーザーの決定)
   order5: { chapter: 12, report: "finale" },    // 結社の席5
   rebirth: { chapter: 14, report: "finale" },   // 魂の転生
   mutPick: { chapter: 15, report: "finale" },   // 異変を選ぶ
@@ -16030,6 +16031,154 @@ function setItemQuality(owner, it, q) {
   if (d) { recalcDoll(d); d.hp = Math.min(d.hp, d.maxhp); d.mp = Math.min(d.mp, d.maxmp); }
   autosave();
   renderStatus(); renderParty();
+  return true;
+}
+
+// ---- 付呪 (第十一章の結び — src/infaffix.js の「付呪」、docs/infinite-affixes.md 6章。2026-10-15 ユーザーの決定) ----
+// 無限迷宮で拾った品の追加の能力・特性を1つ選んで「術の頁」(G.afxPages) に写し取り (元の品は消える)、
+// 金貨を払って任意の装備に書き込む。書いた術は消せる (頁は戻らない)。街の商会でだけ
+const ENCHANT_MIN_COST = 100;
+function afxPagesState() { if (!Array.isArray(G.afxPages)) G.afxPages = []; return G.afxPages; }
+// 品の持ち主と置き場所 ({ doll, key } — key = 装備の欄、袋の中なら doll = null・key = null)。持っていなければ null
+function itemHolder(it) {
+  for (const d of allDolls()) for (const k of SLOTS) if (d.equip && d.equip[k] === it) return { doll: d, key: k };
+  if ((G.inventory || []).includes(it)) return { doll: null, key: null };
+  return null;
+}
+const enchantable = (it) => !!(it && ITEMS[it.id] && hasQuality(it) && !it.unidentified && !it.soulMemory && !it.cursed && it.price !== 0);
+// 付呪の画面を使えない理由 (使えれば null)
+function enchantClosed() {
+  if (!featureUnlocked("enchant")) return featureNote("enchant");
+  if (G.state !== "town" || abyssActive()) return "付呪は街の商会でだけ";
+  if (!opsFacilityOpen("shop")) return "商会が開いていない";
+  return null;
+}
+// 写し取れる品: 手元 (装備中・袋) と商会の棚の追加つきの品。{ it, doll, key, shelf }
+function enchantSources() {
+  const out = [];
+  for (const d of allDolls()) for (const k of SLOTS) { const it = d.equip && d.equip[k]; if (it && it.afx && it.afx.length && !it.unidentified && !it.soulMemory) out.push({ it, doll: d, key: k, shelf: false }); }
+  for (const it of (G.inventory || [])) if (it && it.afx && it.afx.length && !it.unidentified && !it.soulMemory) out.push({ it, doll: null, key: null, shelf: false });
+  for (const id of Object.keys(shopAfxState())) { const it = shopAfxItem(id); if (it) out.push({ it, doll: null, key: null, shelf: true }); }
+  return out;
+}
+// 写し取れない理由 (写せれば null)。棚の品は買値を払って写す
+function extractBlock(src, { gold = true } = {}) {
+  const why = enchantClosed();
+  if (why) return why;
+  if (!src || !src.it || !src.it.afx || !src.it.afx.length) return "追加の能力が無い品";
+  if (src.shelf) return gold && G.gold < buyPrice(src.it) ? "金貨が足りない" : null;
+  if (src.key) return "装備中の品は、外してから写し取る";
+  if (src.it.locked) return "ロック中の品は写し取れない";
+  if (isFormationItem(src.it)) return "保存編成に登録した品は写し取れない";
+  return null;
+}
+function enchantStats() { if (!G.stats) G.stats = {}; if (!G.stats.enchant) G.stats.enchant = { pages: 0, written: 0, erased: 0 }; return G.stats.enchant; }
+// 品の追加の idx 番目を頁に写し取る。元の品は消える (棚の品は買値を払う)。作った頁を返す
+function extractAffix(src, idx) {
+  const why = extractBlock(src);
+  if (why) { SFX.ng(); showToast(why, { tone: "bad", noLog: true }); return null; }
+  const it = src.it, a = it.afx[idx];
+  const page = a && pageFromAffix(it, a);
+  if (!page) return null;
+  if (src.shelf) {
+    const price = buyPrice(it);
+    G.gold -= price;
+    G.shopStock[it.id] = Math.max(0, (G.shopStock[it.id] || 0) - 1);
+    delete shopAfxState()[it.id];
+    log(`商会の棚の ${itemName(it)} を買い取り (−💰${price})、術を写し取った。`, "sys");
+  } else {
+    const bag = G.inventory || [];
+    const i = bag.indexOf(it);
+    if (i < 0) return null;
+    bag.splice(i, 1);
+  }
+  afxPagesState().push(page);
+  enchantStats().pages++;
+  SFX.itemget(); buzz(12);
+  log(`術の頁「${afxDef(page.k).name.replace(/の$/, "")}」を写し取った ― ${itemName(it)} は崩れて消えた。`, "win");
+  showToast(`術の頁「${afxDef(page.k).name.replace(/の$/, "")}」を写し取った`, { tone: "good", noLog: true });
+  autosave();
+  renderTown();
+  return page;
+}
+// 書き込める品: 手元の装備品 (装備中・袋)。{ it, doll, key }
+function enchantTargets() {
+  const out = [];
+  for (const d of allDolls()) for (const k of SLOTS) { const it = d.equip && d.equip[k]; if (enchantable(it)) out.push({ it, doll: d, key: k }); }
+  for (const it of (G.inventory || [])) if (enchantable(it)) out.push({ it, doll: null, key: null });
+  return out;
+}
+// 品に頁を書いた後の写し (値段・説明を見るため。品そのものは変えない)
+function enchantPreview(it, page) {
+  const copy = JSON.parse(JSON.stringify(it));
+  copy.afx = [...(copy.afx || []), { k: page.k, v: pageValue(page, it) }];
+  resyncItem(copy);
+  return copy;
+}
+// 書き込みの費用 = 品の買値 × 格の倍率 (常0.5 / 稀1 / 秘2 / 極4) × 枠の倍率 (1枠目1・2枠目1.5・3枠目2…)。
+// 最低 ENCHANT_MIN_COST。買値が上がる分 (= 売値の上がる分の2倍) より安くはしない (書いて売るだけで儲からないように)
+function enchantCost(it, page) {
+  const d = afxDef(page && page.k);
+  if (!it || !d) return 0;
+  const n = (it.afx || []).length;
+  const base = Math.round(buyPrice(ITEMS[it.id] || it) * (ENCHANT_TIER_COST[d.tier] || 1) * (1 + 0.5 * n));
+  const rise = Math.max(0, buyPrice(enchantPreview(it, page)) - buyPrice(it));
+  return Math.max(ENCHANT_MIN_COST, base, rise);
+}
+// 頁を品に書けない理由 (書ければ null)
+function writeBlock(it, page, { gold = true } = {}) {
+  const why = enchantClosed();
+  if (why) return why;
+  if (!enchantable(it)) return "この品には書けない";
+  if (!itemHolder(it)) return "手元に無い品";
+  const b = enchantBlock(it, page, rarityKey(it) || "c", ITEMS[it.id]);
+  if (b) return b;
+  if (gold && G.gold < enchantCost(it, page)) return "金貨が足りない";
+  return null;
+}
+function enchantInfo(it, page) {
+  return { block: writeBlock(it, page), why: writeBlock(it, page, { gold: false }), cost: enchantCost(it, page), room: enchantRoom(it, rarityKey(it) || "c"), text: pageText(page, it) };
+}
+function refreshHolder(it) {
+  const h = itemHolder(it);
+  if (h && h.doll) { recalcDoll(h.doll); h.doll.hp = Math.min(h.doll.hp, h.doll.maxhp); h.doll.mp = Math.min(h.doll.mp, h.doll.maxmp); }
+}
+// 頁を品に書く (頁は使い切り)
+function writeAffix(it, page) {
+  const why = writeBlock(it, page);
+  if (why) { SFX.ng(); showToast(why, { tone: "bad", noLog: true }); return false; }
+  const pages = afxPagesState();
+  const pi = pages.indexOf(page);
+  if (pi < 0) return false;
+  const cost = enchantCost(it, page);
+  G.gold -= cost;
+  pages.splice(pi, 1);
+  it.afx = [...(it.afx || []), { k: page.k, v: pageValue(page, it) }];
+  resyncItem(it);
+  refreshHolder(it);
+  enchantStats().written++;
+  SFX.itemget(); buzz(15);
+  log(`${itemName(it)} に「${afxDef(page.k).name.replace(/の$/, "")}」を書き込んだ (−💰${cost}) ― ${pageText(page, it)}`, "win");
+  showToast(`${itemName(it)} に書き込んだ`, { tone: "good", noLog: true });
+  autosave();
+  renderStatus(); renderParty(); renderTown();
+  return true;
+}
+// 手元の品の追加を1つ消す (頁は戻らない。費用なし)
+function eraseAffix(it, idx) {
+  const why = enchantClosed();
+  if (why) { SFX.ng(); showToast(why, { tone: "bad", noLog: true }); return false; }
+  if (!it || !it.afx || !it.afx[idx] || !itemHolder(it) || it.soulMemory) return false;
+  const d = afxDef(it.afx[idx].k);
+  it.afx.splice(idx, 1);
+  resyncItem(it); // 空でも applyAffixes が名前の前置き・印を外す
+  if (!it.afx.length) delete it.afx;
+  refreshHolder(it);
+  enchantStats().erased++;
+  SFX.select();
+  log(`${itemName(it)} から「${d ? d.name.replace(/の$/, "") : "術"}」を消した。`, "sys");
+  autosave();
+  renderStatus(); renderParty(); renderTown();
   return true;
 }
 
@@ -18025,7 +18174,7 @@ const SAVE_KEY = "dos-save-v7"; // v7 = 迷宮の台帳 (選んで潜る迷宮�
 const SAVE_FIELDS = [
   "apprenticeName",
   "rng",
-  "shopAfx", "shopAfxPending",
+  "shopAfx", "shopAfxPending", "afxPages",
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound", "abyss", "abyssRec",
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "stabilityBriefed", "pendingDoll",
   "formations", "inventory", "party", "reserve", "souls", "shopStock", "run", "town",
@@ -19087,7 +19236,8 @@ function wireUI() {
     trainSoul, raiseSoulCap, raiseCapSoulCost, capBySoulOk, soulTrainCost, soulByUid, codexSeeItem, treasuryState, heldCollectibles, donateCollectible,
     claimAchievement, claimTreasury, treasuryRewardReady, deliveryHolder, deliveryStatus, deliverQuest,
     repairDoll, repairAllDolls, repairCostOf, awaitingRepairRescue, tryHastenRescue, reviveTimerEl, fmtRemain, awaitingRescue, hastenCostOf, canHastenRescue,
-    doEquip, doUnequip, toggleItemLock, equipFromAnywhere, reforgeCost, reforgeBlock, rollReforge, setItemQuality, openEquipChooser, useItem, dropItem, dropFromBag, askRoomFor, transferItem,
+    doEquip, doUnequip, toggleItemLock, equipFromAnywhere, reforgeCost, reforgeBlock, rollReforge, setItemQuality,
+    afxPagesState, enchantClosed, enchantSources, extractBlock, extractAffix, enchantTargets, enchantInfo, writeAffix, eraseAffix, itemHolder, openEquipChooser, useItem, dropItem, dropFromBag, askRoomFor, transferItem,
     stopAutoCombat, sceneBgm, playBgm, SFX,
     ACH_SERIES, FACILITIES, FAC_SHELL, CONTENT_LIMIT, DUNGEONS, LAYER_VISUALS,
     isTitleActive: () => titleActive,
@@ -19107,7 +19257,7 @@ function wireUI() {
     }).observe(itemGetEl, { attributes: true, attributeFilter: ["class"] });
   }
   // 各パッケージの UI を登録 (スタブを差し替える)。A→B→C→D の順
-  for (const m of [uiHub, uiPalace, uiFacilities, uiSettings, uiJournal, uiStory, uiParty, uiSoulPanel, autoEquip, uiShop, uiLoot, uiAppraise, uiDeparture, uiDungeonHud, uiResults, uiTutorial, uiReforge, uiInfinite, uiDiscard]) {
+  for (const m of [uiHub, uiPalace, uiFacilities, uiSettings, uiJournal, uiStory, uiParty, uiSoulPanel, autoEquip, uiShop, uiLoot, uiAppraise, uiDeparture, uiDungeonHud, uiResults, uiTutorial, uiReforge, uiEnchant, uiInfinite, uiDiscard]) {
     try { m.install(); } catch (e) { console.error(e); }
   }
 }

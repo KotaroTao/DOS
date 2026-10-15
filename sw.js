@@ -760,6 +760,7 @@ const ASSETS = [
   "./src/ui/results.js",
   "./src/ui/tutorial.js",
   "./src/ui/reforge.js",
+  "./src/ui/enchant.js",
   "./src/ui/infinite.js",
   "./src/ui/infmemory.js",
   "./src/ui/discard.js",
