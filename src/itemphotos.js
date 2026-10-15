@@ -2,6 +2,7 @@
 import { NUMBERED_ITEM_IDS } from "./itemnumbers.js";
 
 export const ITEM_PHOTOS = Object.freeze([
+  ...NUMBERED_ITEM_IDS.slice(1300, 1400),
   // 制作番号1101〜1200の追加原画。
   ...NUMBERED_ITEM_IDS.slice(1100, 1200),
   // 制作番号1901〜2000の追加原画。
@@ -14,11 +15,14 @@ export const ITEM_PHOTOS = Object.freeze([
   ...NUMBERED_ITEM_IDS.slice(700, 800),
   ...NUMBERED_ITEM_IDS.slice(800, 900),
   ...NUMBERED_ITEM_IDS.slice(900, 1000),
+  // 制作番号1701〜1800の追加原画。
+  ...NUMBERED_ITEM_IDS.slice(1700, 1800),
+  ...NUMBERED_ITEM_IDS.slice(1200, 1300),
 
   // 制作番号601〜700の追加原画。
   ...NUMBERED_ITEM_IDS.slice(600, 700),
-  // 制作番号1701〜1800の追加原画。
-  ...NUMBERED_ITEM_IDS.slice(1700, 1800),
+  // 制作番号2101〜2201の追加原画。
+  ...NUMBERED_ITEM_IDS.slice(2100, 2201),
 ]);
 const photos = new Map();
 export function itemPhoto(id) { return photos.get(id) || null; }
