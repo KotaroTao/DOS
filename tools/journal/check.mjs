@@ -73,6 +73,10 @@ assert(!byId.get("irene_reveal").available({ irene:{greeted:true}, world:{found:
   "腕の発見だけでは、まだ館で語られていない正体を明かさない");
 assert(!byId.get("irene_torso").available({ world:{found:{w12_torso:true}} }),
   "館での再会と迷宮での発見を区別する");
+assert(!byId.get("irene_omokage").available({ world:{reported:{w09:true},beats:{irene_roots:true}} }),
+  "第三章へ進んでも、館で聞くまでは面影の話を明かさない");
+assert(byId.get("irene_omokage").available({ world:{beats:{irene_omokage:true}} }),
+  "彫られた顔は館の語りを聞くと読める");
 assert(!byId.get("irene_trust").available({ irene:{greeted:true,visits:99} }),
   "来館数だけで未読の親しさの会話を明かさない");
 assert(byId.get("first_vessel").available({ dollsPurchased:1, party:[] }), "控えに移っても最初の誕生は読める");
