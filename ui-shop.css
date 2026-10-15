@@ -522,3 +522,26 @@
 /* 入手のカードの装備できるLv */
 .ig-eqlv { font-size: 12px; color: #c9b88a; margin-top: 4px; text-align: center; }
 .ig-eqlv.ng { color: #e0705a; }
+
+/* 比較する人業は館と同じ肖像。控えが増えても横に流して選べる。 */
+.wpc-characters { flex: 0 0 auto; min-width: 0; }
+.wpc-character-strip { display: flex; gap: 5px; overflow-x: auto; padding: 3px; scrollbar-width: thin; touch-action: pan-x; }
+.wpc-character { flex: 0 0 55px; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 66px; padding: 3px; border: 1px solid #594a38; border-radius: 3px; background: var(--plate); color: var(--ink-dim); font: inherit; cursor: pointer; }
+.wpc-character > canvas { width: 44px; height: 44px; image-rendering: pixelated; }
+.wpc-character > span { max-width: 55px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 10px; }
+.wpc-character.selected { border-color: var(--accent-hi); color: var(--accent-hi); background: #362a19; box-shadow: inset 0 0 0 1px var(--accent-hi); }
+.wpc-character:focus-visible { outline: 2px solid var(--accent-hi); outline-offset: 1px; }
+.wpc-comparison-label { padding: 3px 5px; color: var(--accent-hi); font-size: 11px; }
+.wpc-comparison { display: flex; flex: 1 1 100%; flex-direction: column; gap: 3px; min-width: 0; }
+.wpc-current { color: var(--ink-dim); }
+.wpc-effect.lost { color: #f4a49b; }
+.wpc-effect.got { color: #a4d9b0; }
+@media (max-height: 600px) {
+  .wpc-character { min-height: 48px; flex-basis: 48px; }
+  .wpc-character > canvas { width: 30px; height: 30px; }
+}
+/* 横向きなど背の低い画面では商会の箱を流し、棚の高さを潰さない。 */
+@media (max-height: 500px) {
+  .wpc-shop { overflow-y: auto; overscroll-behavior: contain; }
+  .wpc-shop > .wpc-list { flex: 0 0 auto !important; min-height: 140px; overflow-y: visible; }
+}

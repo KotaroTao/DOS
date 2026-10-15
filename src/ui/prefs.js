@@ -12,6 +12,8 @@ export const UI_PREF_DEFAULTS = {
   bagSort: "bag",       // 隊の共通袋の表示順
   partyIdx: 0,           // 隊で選んでいた人業
   shopSeg: "sell",       // 商会: 売る・鑑定 | 買う | 鍛え直し
+  shopDollUid: null,      // 商会で比較する人業 (隊列を替えても同じ者)
+  gearFilter: {},         // 館の装備一覧・候補の属性と特殊効果
   shopCat: "weapon",     // 商会の分類
   codexDungeon: 0,       // 図鑑で開いていた迷宮
   lastSkill: {},         // 人業uid → 最後に使ったスキル

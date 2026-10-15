@@ -1,5 +1,6 @@
 import { storyText } from "../protagonist.js";
 import { bagItems, bagSortControl } from "./bagsort.js";
+import { gearFilterCount, matchesGearFilter, gearFilterButton, gearFilterSummary } from "./gearfilter.js";
 import { bagCount, isFormationItem, bagOwners } from "../items.js";
 import { RESIST_LABEL } from "../resistance.js";
 // ===== 隊 (統合された人業の画面) — 隊列ストリップ・控え/仕立て・装備/魂/能力・迷宮内のシート =====
@@ -462,14 +463,14 @@ function fxDeltaSpans(sw) {
     ...sw.got.map((p) => el("span", "fx up", `▲${p}`)),
   ];
 }
-export function equipChooserEl(item, { owner = null, onPick = null, onDone = null, town = null } = {}) {
+export function equipChooserEl(item, { owner = null, onPick = null, onDone = null, town = null, pool = null } = {}) {
   const G = G_();
   const inT = town == null ? inTown() : town;
   const wrap = el("div", "pt-ch");
   const head = el("div", "pt-ch-h");
-  head.appendChild(el("span", "pt-ch-t", "誰に装備させる？"));
+  head.appendChild(el("span", "pt-ch-t", pool ? `${pool[0]?.name || "選択した人業"}の装備と比較` : "誰に装備させる？"));
   wrap.appendChild(head);
-  const dolls = inT ? allDolls() : G.party.slice();
+  const dolls = pool || (inT ? allDolls() : G.party.slice());
   const infos = dolls.map((d) => {
     const why = canEquipReason(d, item);
     const b = why ? null : bestSlotFor(d, item);
@@ -1269,11 +1270,9 @@ function formationEl(mode) {
     wrap.appendChild(grp);
   }
   if (town && !sheetTown) {
-    const manage = mansionControlUnlocked("formation")
-      ? button({ label: "編成", kind: "secondary", size: "sm", onTap: () => openMansionManage(ensureSel()) })
-      : lockedControl();
-    manage.classList.add("pt-mansion-manage");
-    wrap.appendChild(manage);
+    const filter = gearFilterButton(ensureSel()?.items || [], () => { setSeg("equip"); rerender(); });
+    filter.classList.add("pt-mansion-filter");
+    wrap.appendChild(filter);
   }
   if (town && sheetTown) {
     const side = el("div", "pt-side");
@@ -1854,6 +1853,11 @@ function mansionHeader(d) {
   tx.appendChild(rename);
   head.appendChild(tx);
   const actions = el("div", "pt-mansion-links");
+  const manage = mansionControlUnlocked("formation")
+    ? button({ label: "編成", kind: "secondary", size: "sm", onTap: () => openMansionManage(d) })
+    : lockedControl();
+  manage.classList.add("pt-mansion-manage");
+  actions.appendChild(manage);
   const souls = soulListButton();
   souls.querySelector(".pt-bench-n")?.remove();
   actions.appendChild(souls);
@@ -2274,13 +2278,20 @@ function equipSeg(root, d) {
   const wrap = el("div", "pt-bagwrap");
   wrap.appendChild(h);
   const grid = el("div", "pt-bag");
+  const shownCount = el("span", "pt-bagbar-x");
+  t.appendChild(shownCount);
   const drawBag = () => {
     grid.replaceChildren();
-    for (const it of bagItems(d.items)) grid.appendChild(bagCell(d, it));
+    const shown = bagItems(d.items).filter(it => matchesGearFilter(it));
+    for (const it of shown) grid.appendChild(bagCell(d, it));
     if (!d.items.length) grid.appendChild(el("div", "pt-note", "隊の持ち物は空だ。"));
+    else if (!shown.length) grid.appendChild(el("div", "pt-note", "条件に合う品はない。絞り込みの条件を外してください。"));
+    setText(shownCount, gearFilterCount() ? `表示 ${shown.length}点` : "");
     grid.scrollTop = 0;
   };
   wrap.appendChild(bagSortControl(drawBag));
+  wrap.appendChild(gearFilterButton(d.items, rerender));
+  wrap.appendChild(gearFilterSummary(d.items, rerender));
   drawBag();
   wrap.appendChild(grid);
   root.appendChild(wrap);
@@ -2373,15 +2384,21 @@ function candBody(root, d, k, h, town) {
     root.appendChild(el("div", "pt-note c", "ロック中 ― この部位は付け替え・最適装備の対象にならない。付け替えるにはロックを外す。"));
     return;
   }
-  const cands = slotCandidates(d, k, { includeUnid: true });
+  const allCands = slotCandidates(d, k, { includeUnid: true });
+  const allWorn = wornCandidates(d, k);
+  const later = bagOwners(itemsPool()).flatMap(o => o.items).filter(it => it && !it.unidentified && slotKeysFor(it, d).includes(k) && canEquip(d, it, { anyLv: true }) && equipLvShort(d, it));
+  const source = [...new Set([...allCands.map(c => c.it), ...allWorn.map(c => c.it), ...later])];
+  const update = () => { rerender(); if (!h.closed) h.update({ body: (scroll, x) => candBody(scroll, d, k, x, town) }); };
+  root.append(gearFilterButton(source, update), gearFilterSummary(source, update));
+  const cands = allCands.filter(c => matchesGearFilter(c.it));
   const ok = cands.filter((c) => !c.unid);
   const unid = cands.filter((c) => c.unid);
-  if (!ok.length) root.appendChild(el("div", "pt-note c", "付けられる品が、どの袋にもない。"));
+  if (!ok.length) root.appendChild(el("div", "pt-note c", gearFilterCount() ? "条件に合う装備候補はない。絞り込みの条件を外してください。" : "付けられる品が、どの袋にもない。"));
   const list = el("div", "pt-list");
   for (const c of ok) list.appendChild(candRow(d, k, c, h));
   root.appendChild(list);
   // 仲間が装備している品 (譲り受け、こちらの装備を仲間が付けられれば交換。ロック中の品は「（ロック中）」と添え、選ぶとロックを外すか確かめる)
-  const worn = wornCandidates(d, k);
+  const worn = allWorn.filter(c => matchesGearFilter(c.it));
   if (worn.length) {
     root.appendChild(el("div", "pt-h sm", `仲間が装備している品 ${worn.length}点 ― 選ぶと仲間と装備を交換する`));
     const wl = el("div", "pt-list");
@@ -2392,7 +2409,7 @@ function candBody(root, d, k, h, town) {
   const lvShort = []; // 職では扱えるが、メイン魂の Lv が装備できるLv に届かない品
   for (const owner of bagOwners(itemsPool())) {
     for (const it of owner.items) {
-      if (!it || it.unidentified || !slotKeysFor(it).includes(k)) continue;
+      if (!it || it.unidentified || !slotKeysFor(it, d).includes(k) || !matchesGearFilter(it)) continue;
       if (!canEquip(d, it, { anyLv: true })) mism++;
       else if (equipLvShort(d, it)) lvShort.push({ it, owner });
     }
@@ -2993,6 +3010,11 @@ export function install() {
     autoEquip,
     betterGearCount, hasBetterGear, gearUpgradeDot, watchGearPortrait,
     equipItemTo,
+    equipSwapInfo: (d, it) => {
+      if (canEquipReason(d, it)) return null;
+      const b = bestSlotFor(d, it);
+      return b ? { ...swapInfo(it, b), delta: b.delta } : null;
+    },
     bestWearer,
     partyPortraitCanvas,
     canEquipReason,

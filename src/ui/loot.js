@@ -119,7 +119,7 @@ export function wearPlan(it, { owner = null, pool = null } = {}) {
   if (it.unidentified || !isEquippable(it)) return { target: null, delta: null, score: 0, scores };
   let pick = null;
   try {
-    const bw = typeof UI.bestWearer === "function" ? UI.bestWearer(it) : null;
+    const bw = !pool && typeof UI.bestWearer === "function" ? UI.bestWearer(it) : null;
     if (bw) pick = scores.find((s) => s.d === bw) || null;
   } catch (e) { pick = null; }
   if (!pick) {
@@ -536,19 +536,19 @@ export function equipPick(d, it, { buyId = null, onDone } = {}) {
 // 肖像の札の並び (品シートの主役の段・選ぶシートの中身)
 //   mode: "equip" (押せば装備) | "bag" (押せば袋へ = 渡す/買うだけ)
 //   buyId: 棚の品 (押せば買ってから)。onPick(d) を渡すと既定の動きの代わりに呼ぶ
-export function dollGrid(it, { owner = null, mode = "equip", buyId = null, onPick, onDone } = {}) {
+export function dollGrid(it, { owner = null, mode = "equip", buyId = null, onPick, onDone, pool = null } = {}) {
   if (mode === "equip" && typeof UI.equipChooserEl === "function") {
     try {
       const pick = onPick || (buyId ? (d, info) => {
         if (info && info.reason) { sfx("ng"); toast(`${d.name}: ${info.reason}`, { tone: "bad" }); return; }
         equipPick(d, it, { buyId, onDone });
       } : null);
-      const node = UI.equipChooserEl(it, { owner, onPick: pick, onDone: onDone ? () => onDone() : null });
+      const node = UI.equipChooserEl(it, { owner, onPick: pick, onDone: onDone ? () => onDone() : null, pool });
       if (node) { node.classList.add("wpc-chooser-el"); return node; }
     } catch (e) { setTimeout(() => { throw e; }); }
   }
   const grid = el("div", "wpc-dgrid");
-  const dolls = chooserDolls();
+  const dolls = pool || chooserDolls();
   const plan = mode === "equip" ? wearPlan(it, { owner, pool: dolls.filter((d) => !canEquipReason(d, it, { buy: !!buyId })) }) : null;
   const best = plan && plan.target && plan.score > 0 ? plan.target : null;
   for (const d of dolls) {
@@ -852,6 +852,7 @@ export function itemSheet(item, o = {}) {
   markSeen(item);
   // 比べる相手: 棚の品は最良の装備者 / 所持品は持ち主か最良の者
   const pickTarget = () => {
+    if (o.fixedTarget) return;
     if (item.unidentified || !isEquippable(item)) {
       if (st.context === "stock" && !st.target) {
         const party = (G().party || []).filter((d) => d.alive);
@@ -890,11 +891,12 @@ export function itemSheet(item, o = {}) {
         const sec = el("div", "wpc-is-pick");
         if (typeof UI.equipChooserEl !== "function" || st.context === "stock") {
           const lab = el("div", "wpc-is-picklab");
-          lab.appendChild(el("span", null, st.context === "stock" ? "買って装備する人業を選ぶ" : "装備する人業を選ぶ"));
+          lab.appendChild(el("span", null, st.context === "stock" ? o.fixedTarget ? "選択した人業に買って装備" : "買って装備する人業を選ぶ" : "装備する人業を選ぶ"));
           if (st.context === "stock") lab.appendChild(goldEl(st.price != null ? st.price : game.buyPrice(it)));
           sec.appendChild(lab);
         }
         sec.appendChild(dollGrid(it, {
+          pool: o.fixedTarget ? [st.target].filter(Boolean) : null,
           owner: st.context === "stock" ? null : st.owner, mode: "equip",
           buyId: st.context === "stock" ? (st.stockId || it.id) : null,
           onDone: () => st.close(),
