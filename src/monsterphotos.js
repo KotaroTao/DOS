@@ -7,6 +7,11 @@ export const MONSTER_PHOTOS = {
   bs_fallenangel: [306,520],
   bs_templelord: [303,520],
   // <</SUNKEN_TEMPLE_ART>>
+  // <<INFERNO_CAULDRON_ART>>
+  // 業火の大釜（作成済みの通常敵・強敵・共通敵は既存原画を共用）。
+  bs_doombringer: [520, 429],
+  bs_infernolord: [430, 520],
+  // <</INFERNO_CAULDRON_ART>>
   // <<CAVERN_LAIR_ART>>
   // 大空洞の主の寝床（作成済みの敵・召喚先・共通敵は既存原画を共用）。
   bs_cavetroll: [434, 520],
