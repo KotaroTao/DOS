@@ -1,6 +1,6 @@
 // 敵の強さの段 (第三章から本筋の迷宮ごとに少しずつ強くなり、第十章の入口で10倍) を、全迷宮・全階と実際の敵の組み立てで確認する。
 import assert from "node:assert/strict";
-import { WORLD, wallAt, wallOf, wallStepOf, strengthAt, poolAt, PART2_LAYER, RAMP_FROM_LAYER, WALL_FROM_LAYER, agiWallOf, strongHpWallOf, dungeonLevelRaw, dungeonProgressOf, dungeonStatMul, dungeonAgiMul } from "../../src/dungeons/world.js";
+import { WORLD, wallAt, wallOf, wallStepOf, strengthAt, poolAt, PART2_LAYER, RAMP_FROM_LAYER, WALL_FROM_LAYER, RAMP_JUMP, agiWallOf, strongHpWallOf, dungeonLevelRaw, dungeonProgressOf, dungeonStatMul, dungeonAgiMul } from "../../src/dungeons/world.js";
 import { MONSTERS } from "../../src/sprites.js";
 import { DUNGEON_MONSTERS } from "../../src/dungeons/index.js";
 import { spawnEliteEnemies, spawnBossEnemies, spawnMimic, spawnRanked, spawnMetal, scaleFoeAgi, scaleStrongFoeHp, Battle } from "../../src/combat.js";
@@ -26,7 +26,13 @@ const stepOf = (cfg) => {
   MAIN.forEach((d, j) => { if (d.lv <= cfg.lv) s = j; });
   return s;
 };
-const ramp = (s, base, after = 1) => base ** (Math.min(s, LEN) / LEN) * after ** Math.max(0, s - LEN);
+assert.deepEqual(RAMP_JUMP, { id: "w14", stat: 2 }, "一段強くなるのは第四章の入口 (蘇生・HP1で踏みとどまる技を覚える頃)");
+const JUMP = MAIN.findIndex(d => d.id === "w14");
+assert.equal(JUMP, 4);
+const ramp = (s, base, after = 1, jump = 1) => {
+  const t = Math.min(s, LEN);
+  return (base / jump) ** (t / LEN) * (t >= JUMP ? jump : 1) * after ** Math.max(0, s - LEN);
+};
 const partWall = (layer) => layer < 13 ? 1 : 2 * 1.4 ** (Math.min(20, layer) - 13);
 
 for (let layer = 1; layer <= 25; layer++) near(wallAt(layer), partWall(layer));
@@ -43,7 +49,7 @@ assert.deepEqual(strongHpWallOf(null), { boss: 1, elite: 1 });
 for (const cfg of WORLD) {
   const s = stepOf(cfg);
   assert.equal(dungeonProgressOf(cfg), s, cfg.id);
-  near(wallOf(cfg), partWall(cfg.layer) * ramp(s, 10, 1.5));
+  near(wallOf(cfg), partWall(cfg.layer) * ramp(s, 10, 1.5, 2));
   near(agiWallOf(cfg), ramp(s, 3, 1.1));
   const hp = strongHpWallOf(cfg);
   near(hp.boss, ramp(s, 5));
@@ -59,6 +65,8 @@ for (const cfg of WORLD) {
 const at = (id) => WORLD.find(d => d.id === id);
 assert.equal(wallOf(at("w09")), 1);
 assert.equal(wallOf(at("w10")), 1);
+near(wallOf(at("w13")), 5 ** (3 / 28));
+near(wallOf(at("w14")), 2 * 5 ** (4 / 28));
 near(wallOf(at("w38")), 10);
 near(agiWallOf(at("w38")), 3);
 assert.deepEqual(strongHpWallOf(at("w38")), { boss: 5, elite: 3 });
@@ -70,10 +78,10 @@ for (const [id, main] of [["ws20", "w38"], ["ws22", "w39"], ["ws21", "w41"], ["w
 }
 for (let i = 1; i < MAIN.length; i++) {
   const r = dungeonStatMul(MAIN[i]) / dungeonStatMul(MAIN[i - 1]), a = dungeonAgiMul(MAIN[i]) / dungeonAgiMul(MAIN[i - 1]);
-  near(r, i <= LEN ? 10 ** (1 / LEN) : 1.5);
+  near(r, i > LEN ? 1.5 : i === JUMP ? 2 * 5 ** (1 / LEN) : 5 ** (1 / LEN));
   near(a, i <= LEN ? 3 ** (1 / LEN) : 1.1);
 }
-console.log(`段: 第三章 w10 から本筋${LEN}迷宮で第十章の入口 w38 に ×10 (1迷宮 ×${(10 ** (1 / LEN)).toFixed(4)}・素早さ ×${(3 ** (1 / LEN)).toFixed(4)})、以降 ×1.5 / ×1.1。寄り道は推奨Lvの届く本筋の段。無限迷宮は段なし`);
+console.log(`段: 第三章 w10 から本筋${LEN}迷宮で第十章の入口 w38 に ×10 (1迷宮 ×${(5 ** (1 / LEN)).toFixed(4)}・第四章の入口 w14 で ×2・素早さ ×${(3 ** (1 / LEN)).toFixed(4)})、以降 ×1.5 / ×1.1。寄り道は推奨Lvの届く本筋の段。無限迷宮は段なし`);
 
 // ---- 実際の敵の組み立て (全迷宮・全階) ----
 let floors = 0, foes = 0;

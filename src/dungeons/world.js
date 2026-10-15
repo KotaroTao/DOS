@@ -1673,9 +1673,12 @@ export function powerAt(cfg, floor = 1) {
   }
   return pw[ks[ks.length - 1]];
 }
-// ===== 敵の強さの段 (2026-10-15 ユーザーの指示: 第十章で急に強くするのではなく、序盤から徐々に強くして第十章で今の強さに) =====
-// 第一章・第二章 (第1〜4層) は従来のまま。第三章 (第5層) の最初の本筋 w10 から、本筋の迷宮を一つ進むごとに敵が少しずつ強くなり、
-// 第十章の入口 (第12層の最初の本筋 w38) でちょうど「HP・攻撃・防御 ×10・素早さ ×3・強敵のHP ×3・主のHP ×5」に届く (段の間は等比)。
+// ===== 敵の強さの段 (2026-10-15 ユーザーの指示: 第十章で急に強くするのではなく、味方の育ちに合わせて強くし、第十章で今の強さに) =====
+// 第一章・第二章 (第1〜4層) は従来のまま。第三章 (第5層) の最初の本筋 w10 から、本筋の迷宮を一つ進むごとに敵が緩やかに強くなる。
+// 味方が一気に強くなるのは蘇生 (リバイブ: 僧侶・枢機卿 Lv50、護教官 Lv55、多くの職 Lv60) と HP1 で踏みとどまる技 (武僧 Lv35・
+// 守護騎士 Lv45・魔騎士 Lv60…) を覚える頃なので、その推奨Lv に当たる第四章の入口 (RAMP_JUMP.id = w14、推奨Lv52) で HP・攻撃・防御を
+// 一段 (×RAMP_JUMP.stat) 強くする。第十章の入口 (第12層の最初の本筋 w38) でちょうど「HP・攻撃・防御 ×10・素早さ ×3・強敵のHP ×3・
+// 主のHP ×5」に届く (段の間は等比。素早さと主・強敵のHPの追加は一段の跳ねを持たない)。
 // 第十章からは本筋の迷宮を一つ進むごとに HP・攻撃・防御 ×1.5・素早さ ×1.1 (強敵・主のHPの追加は ×3・×5 のまま)。
 // 第二部 (第13層〜) は層の入口の段 LAYER_WALL (×2.0、その先 ×1.4) をさらに重ねる。
 // 強さ (HP・攻撃・防御) が k 倍になると、同じ隊の1戦の被ダメはおよそ k² 倍 (一撃が k 倍 × 倒すまでの手数が k 倍)。
@@ -1684,6 +1687,7 @@ export const PART2_LAYER = 13; // 第十一章 (物語の第二部の開始は�
 export const RAMP_FROM_LAYER = 5; // 第三章: ここから本筋の迷宮ごとに強くなる
 export const WALL_FROM_LAYER = 12; // 第十章: ここで RAMP_TO に届き、以降は迷宮ごとに STEP_AFTER
 const RAMP_TO = { stat: 10, agi: 3, elite: 3, boss: 5 };
+export const RAMP_JUMP = { id: "w14", stat: 2 }; // 蘇生・HP1 で踏みとどまる技を覚える頃の一段 (HP・攻撃・防御だけ)
 const STEP_AFTER = { stat: 1.5, agi: 1.1 };
 export const LAYER_WALL = { 13: 2.0, 14: 1.4, 15: 1.4, 16: 1.4, 17: 1.4, 18: 1.4, 19: 1.4, 20: 1.4 };
 // 第L層の壁 = 第13層から第L層までの段の積 (第21層より先は第20層のまま)
@@ -1695,8 +1699,10 @@ export function wallAt(layer) {
 // 本筋の迷宮の進行順 (第三章から)。開放・踏破の履歴には依存させず、同じ迷宮の強さは常に同じにする。
 const PROGRESS_DUNGEONS = WORLD.filter(d => !d.side && d.layer >= RAMP_FROM_LAYER)
   .sort((a, b) => a.layer - b.layer || a.lv - b.lv);
-// 第十章の入口の段 (= 第三章〜第九章の本筋の数)
+// 第十章の入口の段 (= 第三章〜第九章の本筋の数) と、一段強くなる段
 const RAMP_LEN = Math.max(1, PROGRESS_DUNGEONS.findIndex(d => d.layer >= WALL_FROM_LAYER));
+const JUMP_AT = PROGRESS_DUNGEONS.findIndex(d => d.id === RAMP_JUMP.id);
+if (!(JUMP_AT > 0 && JUMP_AT <= RAMP_LEN)) throw new Error(`world: 敵の強さの一段 ${RAMP_JUMP.id} は第三章〜第十章の入口の本筋`);
 // 段 = 本筋は進行順の番号、寄り道・格上の迷宮は推奨Lv が届いている最後の本筋の段 (第三章より前の推奨Lv なら0)
 export function dungeonProgressOf(cfg) {
   if (!cfg || cfg.wall != null) return 0;
@@ -1707,11 +1713,13 @@ export function dungeonProgressOf(cfg) {
   for (let i = 0; i < PROGRESS_DUNGEONS.length; i++) if (PROGRESS_DUNGEONS[i].lv <= cfg.lv) step = i;
   return step;
 }
-// 段ごとの倍率: 第十章の入口まで base^(段/RAMP_LEN)、その先は after^(段−RAMP_LEN) を重ねる
-function rampMul(step, base, after = 1) {
-  return base ** (Math.min(step, RAMP_LEN) / RAMP_LEN) * after ** Math.max(0, step - RAMP_LEN);
+// 段ごとの倍率: 第十章の入口まで等比で base に届き (jump があれば JUMP_AT の段で ×jump、その分だけ前後の伸びを緩める)、
+// その先は after^(段−RAMP_LEN) を重ねる
+function rampMul(step, base, after = 1, jump = 1) {
+  const s = Math.min(step, RAMP_LEN);
+  return (base / jump) ** (s / RAMP_LEN) * (s >= JUMP_AT ? jump : 1) * after ** Math.max(0, step - RAMP_LEN);
 }
-export function dungeonStatMul(cfg) { return rampMul(dungeonProgressOf(cfg), RAMP_TO.stat, STEP_AFTER.stat); }
+export function dungeonStatMul(cfg) { return rampMul(dungeonProgressOf(cfg), RAMP_TO.stat, STEP_AFTER.stat, RAMP_JUMP.stat); }
 export function dungeonAgiMul(cfg) { return rampMul(dungeonProgressOf(cfg), RAMP_TO.agi, STEP_AFTER.agi); }
 // 迷宮の壁 (cfg.wall があればそれ、無ければ段の倍率 × 第二部の層の壁)
 export function wallOf(cfg) {
