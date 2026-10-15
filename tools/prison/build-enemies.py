@@ -71,6 +71,9 @@ if __name__ == '__main__':
     target.mkdir(parents=True, exist_ok=True)
     for sheet, (columns, ids) in SHEETS.items():
         for key, image in split_sheet(sheet, columns, ids):
+            # 大手門の更新で先に公開された共通3体は上書きしない。
+            if key in {'bs_cultist', 'bs_bloodorc', 'bs_bonecolossus'}:
+                continue
             image.thumbnail((512, 512), Image.Resampling.LANCZOS)
             padded = Image.new('RGBA', (image.width + 8, image.height + 8))
             padded.paste(image, (4, 4))

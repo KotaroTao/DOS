@@ -1,17 +1,20 @@
 // 迷宮の透過原画。通常敵・強敵・主・召喚先・共通の敵で共用する。
 // 能力値や文字グリッドは保ち、読めた原画だけを最初の描画前に登録する。
 export const MONSTER_PHOTOS = {
-  // 捨て砦の地下牢の未作成だった通常敵9体。
+  // 捨て砦の地下牢の未作成だった通常敵6体。
   d03_ghost: [429, 417],
   bs_banshee: [364, 411],
-  bs_cultist: [389, 467],
   bs_shadowmage: [390, 434],
   bs_dullahan: [410, 408],
-  bs_bloodorc: [389, 374],
   bs_bloodwraith: [448, 431],
   bs_vampire: [339, 444],
-  bs_bonecolossus: [436, 448],
 
+  // 雷雨の大手門（既存原画を除く通常敵5種）。
+  bs_bloodorc: [520, 500],
+  bs_thunderknight: [520, 460],
+  bs_cultist: [468, 511],
+  bs_stormgiant: [520, 508],
+  bs_bonecolossus: [520, 457],
   // <<CLOSED_STACKS_ART>>
   // 閉架の書庫（主は禁書の巨像と共用）。
   bs_tomeguardian: [473, 439],
