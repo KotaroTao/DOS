@@ -1,6 +1,15 @@
 // 迷宮の透過原画。通常敵・強敵・主・召喚先・共通の敵で共用する。
 // 能力値や文字グリッドは保ち、読めた原画だけを最初の描画前に登録する。
 export const MONSTER_PHOTOS = {
+  // <<ASH_ALTAR_ART>>
+  // 灰の降る祭場（作成済みの通常敵・強敵・共通敵は既存原画を共用）。
+  bs_demon: [447, 520],
+  bs_pyrelich: [268, 520],
+  bs_brimstonegolem: [336, 520],
+  bs_shadowogre: [412, 520],
+  bs_darkliege: [383, 520],
+  bs_flamedrake: [359, 520],
+  // <</ASH_ALTAR_ART>>
   // <<DROWNED_HYMN_ART>>
   // 溺れた聖歌の回廊（作成済みの敵・召喚先は既存原画を共用）。
   d04_grudge: [520, 445],
