@@ -113,6 +113,9 @@ const ASSETS = [
   "./art/items/w_r9_earthgodhammer.webp",
   "./art/items/w_r9_godsteelspear.webp",
   // <</ITEM_1501_1600_ART>>
+  "./src/ui/soulart.js",
+  "./art/souls/acquisition.webp",
+  "./art/souls/acquisition-still.webp",
   // 制作番号1901〜2000の透過原画。
   "./art/items/w_r15_legendkatana.webp",
   "./art/items/w_r15_heroaxe.webp",
