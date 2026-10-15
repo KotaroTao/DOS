@@ -194,10 +194,10 @@
 | 由来 | `w39` | 黒い灯の地底湖 | 出荷済み | [見る](dungeons.md#lore_w39) |
 | 由来 | `w40` | 名を刻む石窟 | 出荷済み | [見る](dungeons.md#lore_w40) |
 | 由来 | `w41` | 底なしの大伽藍 | 出荷済み | [見る](dungeons.md#lore_w41) |
-| 由来 | `w42` | 書架の大階段 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_w42) |
-| 由来 | `w43` | 雨垂れの書庫 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_w43) |
-| 由来 | `w44` | 眠り灯の工房 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_w44) |
-| 由来 | `w45` | 大書庫 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_w45) |
+| 由来 | `w42` | 書架の大階段 | 出荷済み | [見る](dungeons.md#lore_w42) |
+| 由来 | `w43` | 雨垂れの書庫 | 出荷済み | [見る](dungeons.md#lore_w43) |
+| 由来 | `w44` | 眠り灯の工房 | 出荷済み | [見る](dungeons.md#lore_w44) |
+| 由来 | `w45` | 大書庫 | 出荷済み | [見る](dungeons.md#lore_w45) |
 | 由来 | `ws1` | 沈んだ礼拝堂 | 出荷済み | [見る](dungeons.md#lore_ws1) |
 | 由来 | `ws2` | 石眠りの石切り場 | 出荷済み | [見る](dungeons.md#lore_ws2) |
 | 由来 | `ws3` | 霧の迷い森 | 出荷済み | [見る](dungeons.md#lore_ws3) |
@@ -220,6 +220,6 @@
 | 由来 | `ws20` | 大空洞の主の寝床 | 出荷済み | [見る](dungeons.md#lore_ws20) |
 | 由来 | `ws21` | 化石竜の墓所 | 出荷済み | [見る](dungeons.md#lore_ws21) |
 | 由来 | `ws22` | 水晶の鉱脈 | 出荷済み | [見る](dungeons.md#lore_ws22) |
-| 由来 | `ws23` | 絵本の閲覧室 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_ws23) |
-| 由来 | `ws24` | 閉架の書庫 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_ws24) |
+| 由来 | `ws23` | 絵本の閲覧室 | 出荷済み | [見る](dungeons.md#lore_ws23) |
+| 由来 | `ws24` | 閉架の書庫 | 出荷済み | [見る](dungeons.md#lore_ws24) |
 | 由来 | `w00_forest` | 近くの森の古屋 | 出荷済み | [見る](dungeons.md#lore_w00_forest) |

@@ -167,6 +167,10 @@ export const LORE_IMAGES = {
   w39: "art/story/dungeons/lore_w39.webp",
   w40: "art/story/dungeons/lore_w40.webp",
   w41: "art/story/dungeons/lore_w41.webp",
+  w42: "art/story/dungeons/lore_w42.webp",
+  w43: "art/story/dungeons/lore_w43.webp",
+  w44: "art/story/dungeons/lore_w44.webp",
+  w45: "art/story/dungeons/lore_w45.webp",
   ws1: "art/story/dungeons/lore_ws1.webp",
   ws2: "art/story/dungeons/lore_ws2.webp",
   ws3: "art/story/dungeons/lore_ws3.webp",
@@ -189,5 +193,7 @@ export const LORE_IMAGES = {
   ws20: "art/story/dungeons/lore_ws20.webp",
   ws21: "art/story/dungeons/lore_ws21.webp",
   ws22: "art/story/dungeons/lore_ws22.webp",
+  ws23: "art/story/dungeons/lore_ws23.webp",
+  ws24: "art/story/dungeons/lore_ws24.webp",
   w00_forest: "art/story/dungeons/lore_w00_forest.webp",
 };
