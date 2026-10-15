@@ -46,7 +46,7 @@ const assert = require('node:assert/strict');
         document.body.replaceChildren();
         Object.assign(document.body.style, { background: '#19191f', color: '#ddd', display: 'grid', gridTemplateColumns: 'repeat(10,1fr)', gap: '8px' });
         let count = 0, hidden = 0;
-        for (const id of ITEM_PHOTOS.slice(0, 100)) {
+        for (const id of ITEM_PHOTOS.filter(id => items[id].number <= 100)) {
           const item = items[id], sprite = resolve({ ...item });
           if (!!itemPhoto(id) !== (mode === 'normal')) throw Error(id + ': 読み込み結果');
           if (mode === 'normal') {
