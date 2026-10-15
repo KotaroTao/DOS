@@ -1,6 +1,12 @@
 // 迷宮の透過原画。通常敵・強敵・主・召喚先・共通の敵で共用する。
 // 能力値や文字グリッドは保ち、読めた原画だけを最初の描画前に登録する。
 export const MONSTER_PHOTOS = {
+  // 雷雨の大手門（既存原画を除く通常敵5種）。
+  bs_bloodorc: [520, 500],
+  bs_thunderknight: [520, 460],
+  bs_cultist: [468, 511],
+  bs_stormgiant: [520, 508],
+  bs_bonecolossus: [520, 457],
   // 名のある強敵24体の透過原画。
   el_palebutcher: [573, 475],
   el_cryptlord: [473, 493],
