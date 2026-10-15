@@ -313,6 +313,12 @@ function perksOfPassives(a) {
 }
 // Lv ごとの値 (配列なら Lv 番目。足りなければ最後) / 単なる数ならそのまま
 const lvv = (v, lv) => (Array.isArray(v) ? v[Math.min(Math.max(1, lv), v.length) - 1] : v);
+// hurt の on: "phys" (既定) / "breath" / "spell" / "magic" (ブレスと敵の呪文の両方)
+const hurtOn = (on, kind) => (on || "phys") === kind || (on === "magic" && (kind === "breath" || kind === "spell"));
+// やり返しの能力: atk = 攻撃力 (武器の参照式) / vit・int・pie = その能力 / mag = INT と PIE の高い方 (強化・弱体込み)
+export const RET_STATS = ["atk", "vit", "int", "pie", "mag"];
+export const KAESHI_RATE = [0.10, 0.15, 0.20, 0.30], KAESHI_K = [0.8, 1.0, 1.2, 1.5]; // 呪文返し (魔盗賊のランク2〜5)
+export const REFLECT_K = 1.0; // 魔力反射 (魔闘士 Lv125)
 // 固有パッシブ・目玉パッシブの発動を記録欄に書く時に添える「何が起きたか」(2026-10 ユーザーの指示:
 // 「開戦の号令！」「闇の障壁！」だけでは何の効果か分からない)。定義の値から作る (段は buffstage.js の表で、実際に掛かる倍率)
 const MOD_NAME = { atk: "STR", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", hit: "命中" };
@@ -1186,20 +1192,14 @@ export class Battle {
   _perkHurt(t, attacker, dmg, kind) {
     if (!t || t.side !== "party" || !t.alive || !(dmg > 0)) return;
     for (const { c, lv, label } of perksOf(t)) {
-      if (c.t !== "hurt" || (c.on || "phys") !== kind || (c.when && !this._perkWhen(t, c.when, { tgt: attacker })) || !this._perkRoll(c, lv)) continue;
+      if (c.t !== "hurt" || !hurtOn(c.on, kind) || (c.when && !this._perkWhen(t, c.when, { tgt: attacker })) || !this._perkRoll(c, lv)) continue;
       if (c.buff) this._perkBuff(t, c.buff, lv, c.dur || 2, label);
       const h = this._perkHeal(t, lvv(c.hp, lv)), m = this._perkMp(t, lvv(c.mp, lv));
       if (c.buff || h || m) {
         const note = [c.buff ? perkNote({ buff: c.buff, dur: c.dur }, lv, 2) : "", gainText(h, m)].filter(Boolean).join("・");
         this.log(`${t.name}の${label}！ ${note}`, "heal"); this._proc(t, label);
       }
-      if (c.thorns && attacker && attacker.alive && attacker.side === "enemy") {
-        const back = isMetal(attacker) ? 1 : Math.max(1, Math.round(dmg * (lvv(c.thorns, lv) || 0)));
-        attacker.hp -= back;
-        this.log(`${t.name}の${label}！ ${attacker.name}に${back}ダメージ`, "hit");
-        this._proc(t, label);
-        this._die(attacker);
-      }
+      if (c.ret) this._retaliate(t, attacker, c.ret.stat, lvv(c.ret.k, lv), label, !!c.ret.magic);
     }
   }
   // 自分の物理が敵に当たった時 (hit): 確率で状態異常・弱体を付ける。付いた札を返す
@@ -2354,21 +2354,15 @@ export class Battle {
           dmg = Math.ceil(dmg * 0.5);
           this.log(`${t.name}の魔障壁：${what}半減（残り${t._barrierLeft}回）`, "heal");
           this._proc(t, "魔障壁");
-          if (cut > 0 && pv(t, "reflect") && actor.alive && !isMetal(actor)) {
-            actor.hp -= cut;
-            this.log(`魔力反射！ ${actor.name}に${cut}ダメージ`, "hit");
-            this._proc(t, "魔力反射");
-            this._die(actor);
-          }
+          // 魔力反射 (魔闘士): 魔障壁で防いだ時、INT × 1.0 の魔法の一撃で返す
+          if (cut > 0 && pv(t, "reflect")) this._retaliate(t, actor, "int", REFLECT_K, "魔力反射", true);
         }
         if (this._onceGuard(t, "spellGuard", "_sgUsed", "封の結界")) { res.hits.push({ target: t, dmg: 0, immune: true, died: false }); continue; }
-        // 呪文返し (魔盗賊のランク): 敵の呪文を 10/15/20/30% で跳ね返す
-        if (spell && actor.alive && !isMetal(actor) && random() < this._rk(t, "arcthiefKaeshi", [0.10, 0.15, 0.20, 0.30])) {
-          actor.hp -= dmg;
-          this.log(`${t.name}は呪文反射！ ${actor.name}に${dmg}ダメージ`, "hit");
-          this._proc(t, "呪文返し");
+        // 呪文返し (魔盗賊のランク): 敵の呪文を 10/15/20/30% で打ち消し、INT × 0.8/1.0/1.2/1.5 の魔法の一撃で返す
+        if (spell && actor.alive && random() < this._rk(t, "arcthiefKaeshi", KAESHI_RATE)) {
+          this.log(`${t.name}は呪文を打ち消した`, "heal");
+          this._retaliate(t, actor, "int", this._rk(t, "arcthiefKaeshi", KAESHI_K), "呪文返し", true);
           res.hits.push({ target: t, dmg: 0, immune: true, died: false });
-          this._die(actor);
           continue;
         }
         // 護法の結界 (護法師のランク): 隊の全員が受ける呪文・ブレスのダメージ -5/8/12/20% (一番高いLv)
@@ -2568,6 +2562,28 @@ export class Battle {
     t.hp = Math.min(t.maxhp, t.hp + heal);
     this.log(`聖典の加護！ ${t.name}のHP+${heal}`, "heal");
     this._proc(t, "聖典の加護");
+  }
+
+  // やり返し (2026-10 ユーザーの指示「自分の攻撃力でやり返すに統一」): 受けたダメージの大きさに依らず、
+  // 持ち主の能力 × 係数のダメージを相手へ返す。物理は物理の抵抗値・魔法 (magic) は魔法の抵抗値で減り、
+  // 守りの差し引き・隊列の補正は無い。金属の魔物には物理1・魔法無効 (_resistCut)。
+  _retStat(t, stat) {
+    if (stat === "atk") return this._eatk(t);
+    if (stat === "vit") return this._evit(t);
+    const v = (k) => (t[k] || 0) * this._bm(t, k);
+    return stat === "mag" ? Math.max(v("int"), v("pie")) : v(stat);
+  }
+  _retaliate(t, attacker, stat, k, label, magic) {
+    if (!t || !attacker || !attacker.alive || attacker.side !== "enemy" || !(k > 0)) return 0;
+    const raw = variance(Math.max(1, this._retStat(t, stat) * k));
+    const r = this._resistCut(attacker, raw, magic ? "magResist" : "physResist");
+    this._proc(t, label);
+    if (r.immune) { this.log(`${t.name}の${label}！ ${attacker.name}：${r.tag}`, "hit"); return 0; }
+    const dmg = this._wallCut(attacker, r.dmg);
+    attacker.hp -= dmg;
+    this.log(`${t.name}の${label}！ ${attacker.name}に${dmg}ダメージ${hitNote(r.tag)}`, "hit");
+    this._die(attacker);
+    return dmg;
   }
 
   // 反撃 (counter/神罰の鉄槌): 物理を受けた味方が生きていれば反撃判定
@@ -2887,11 +2903,7 @@ export class Battle {
     }
     // 報復の籠手 (counter): 敵の物理攻撃を受けた味方が反撃する (LR装飾品。反撃の反撃は起きない)
     if (tgt.side === "party" && tgt.counter && tgt.alive && actor.side === "enemy" && actor.alive && !opt._counter && dmg > 0) {
-      const cdmg = isMetal(actor) ? 1 : Math.max(1, Math.round(this._eatk(tgt) * tgt.counter));
-      actor.hp -= cdmg;
-      this.log(`${tgt.name}の報復！ ${actor.name}に${cdmg}ダメージ`, "hit");
-      this._proc(tgt, "報復");
-      this._die(actor);
+      this._retaliate(tgt, actor, "atk", tgt.counter, "報復", false);
     }
     this._wake(tgt);
     if (perkFoe) this._rankOnHit(actor, tgt, dmg, metalHit);

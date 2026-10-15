@@ -1,4 +1,4 @@
-// ===== 無限迷宮の追加の能力・特性 (docs/infinite-affixes.md — 2026-10-11 採用の137種) =====
+// ===== 無限迷宮の追加の能力・特性 (docs/infinite-affixes.md — 2026-10-11 採用の137種 + 2026-10-15 の極「鏡鎧の」) =====
 // 無限迷宮で拾った装備にだけ、ランダムな追加の能力・特性が付く (本編の迷宮で拾った品には付かない)。
 //  ・品の実体に it.afx = [{ k: 種類のid, v: 振った値 }] を保存する。目録から写し直した後、品質の後・＋N の段の前に applyAffixes で掛け直す
 //    (game.js resyncItem・items.js itemAtQuality)。値は「同じランクの標準品の点」B(R) の割合か、固定の幅
@@ -22,7 +22,7 @@ export function afxBase(it) {
 }
 
 // 部位: all = すべて / w = 武器 / a = 防具 (体・頭・足・小手・盾) / acc = 装飾 / 個別の部位 (shield / feet / hands)
-const SLOT_GROUP = { weapon: ["all", "w"], body: ["all", "a"], head: ["all", "a"], feet: ["all", "a", "feet"], hands: ["all", "a", "hands"], shield: ["all", "a", "shield"], acc: ["all", "acc"] };
+const SLOT_GROUP = { weapon: ["all", "w"], body: ["all", "a", "body"], head: ["all", "a"], feet: ["all", "a", "feet"], hands: ["all", "a", "hands"], shield: ["all", "a", "shield"], acc: ["all", "acc"] };
 const fitsSlot = (d, it) => (SLOT_GROUP[it.slot] || []).some((g) => d.slots.includes(g));
 
 const STAT_W = { atk: 1, vit: 1, agi: 1, int: 0.7, pie: 0.7, luk: 0.6, hp: 0.15, mp: 0.25 };
@@ -31,6 +31,7 @@ const EL_JA = { fire: "火", water: "水", wind: "風", earth: "土", light: "�
 const RES_JA = { poison: "毒", paralyze: "麻痺", sleep: "眠り", charm: "魅了", confuse: "混乱", stone: "石化", seal: "封印", flinch: "怯み", death: "即死", physResist: "物理", magResist: "魔法" };
 const RACE_JA = Object.fromEntries(MON_RACES.map((r) => [r.key, r.label]));
 const pct = (v) => `${Math.round(v * 1000) / 10}%`;
+const mulx = (v) => `×${Math.round(v * 100) / 100}`;
 const pt = (v) => Math.max(1, Math.round(v));
 
 export const AFX = [];
@@ -143,11 +144,12 @@ def({ id: "J04", name: "討ち魔の", tier: "r", kind: "abs", r: [0.01, 0.02], 
   fx: (v) => [{ t: "kill", mp: v }], text: (v) => `敵を倒すと MP ${pct(v)} 回復` });
 def({ id: "J05", name: "痛みの糧の", tier: "r", kind: "abs", r: [0.02, 0.03], slots: ["a"], ...JMARK, pts: (v) => v * 250,
   fx: (v) => [{ t: "hurt", chance: 0.25, mp: v }], text: (v) => `物理を受けると 25% で MP ${pct(v)} 回復` });
-def({ id: "J06", name: "茨の", tier: "r", kind: "abs", r: [0.05, 0.10], slots: ["a"], ...JMARK, pts: (v) => v * 80,
-  fx: (v) => [{ t: "hurt", thorns: v }], text: (v) => `物理を受けると ${pct(v)} を跳ね返す` });
+// やり返しは「受けたダメージの割合」ではなく持ち主の能力 × 係数 (2026-10 ユーザーの指示で統一。combat.js _retaliate)
+def({ id: "J06", name: "茨の", tier: "r", kind: "abs", r: [0.15, 0.30], slots: ["a"], ...JMARK, pts: (v) => v * 40,
+  fx: (v) => [{ t: "hurt", ret: { stat: "vit", k: v } }], text: (v) => `物理を受けるたび VIT${mulx(v)} でやり返す` });
 def({ id: "J07", name: "再生の", tier: "r", kind: "abs", r: [0.01, 0.02], slots: ["a", "acc"], ...JMARK, pts: (v) => v * 150, apply: (it, v) => effPut("regen", () => v)(it), text: (v) => `毎ターン HP ${pct(v)} 回復` });
 def({ id: "J08", name: "吸血の", tier: "r", kind: "abs", r: [0.03, 0.06], slots: ["w"], ...JMARK, pts: (v) => v * 60, apply: (it, v) => effPut("lifesteal", () => v)(it), text: (v) => `与ダメの ${pct(v)} を吸う` });
-def({ id: "J09", name: "報復の", tier: "r", kind: "abs", r: [0.05, 0.10], slots: ["w", "shield"], ...JMARK, pts: (v) => v * 40, apply: (it, v) => effPut("counter", () => v)(it), text: (v) => `${pct(v)} で反撃` });
+def({ id: "J09", name: "報復の", tier: "r", kind: "abs", r: [0.10, 0.20], slots: ["w", "shield"], ...JMARK, pts: (v) => v * 40, apply: (it, v) => effPut("counter", () => v)(it), text: (v) => `物理を受けるたび 攻撃力${mulx(v)} でやり返す` });
 def({ id: "J10", name: "一番手の", tier: "x", kind: "abs", r: [1, 1], slots: ["feet", "acc"], ...JMARK, pts: () => 15, apply: effPut("actFirst", () => true), text: () => "戦闘の1ターン目に一番手で動く" });
 def({ id: "J11", name: "不屈の", tier: "x", kind: "abs", r: [0.1, 0.1], slots: ["acc"], ...JMARK, pts: () => 8, apply: (it, v) => effPut("autoRevive", () => v)(it), text: () => "1戦闘に1度、倒れずに HP 10% で踏みとどまる" });
 def({ id: "J12", name: "守りの気の", tier: "r", kind: "abs", r: [0.03, 0.05], slots: ["a"], ...JMARK, pts: (v) => v * 100, apply: (it, v) => effPut("guard", () => v)(it), text: (v) => `被ダメ−${pct(v)}` });
@@ -158,6 +160,8 @@ def({ id: "J16", name: "錠外しの", tier: "u", kind: "abs", r: [0.05, 0.10], 
 def({ id: "J17", name: "灯の", tier: "u", kind: "abs", r: [0.03, 0.05], slots: ["acc"], ...JMARK, pts: (v) => v * 100, misc: (v) => ({ descHp: v }), text: (v) => `階を降りると HP ${pct(v)} 回復` });
 def({ id: "J18", name: "風読みの", tier: "u", kind: "abs", r: [0.02, 0.03], slots: ["acc"], ...JMARK, pts: (v) => v * 150, misc: (v) => ({ descMp: v }), text: (v) => `階を降りると MP ${pct(v)} 回復` });
 def({ id: "J19", name: "泥除けの", tier: "u", kind: "abs", r: [0.5, 0.5], slots: ["feet"], ...JMARK, pts: () => 4, misc: () => ({ mudGuard: true }), text: () => "蝕む床の痛手を半分に (毒消しの書きつけと重ならない)" });
+def({ id: "J20", name: "鏡鎧の", tier: "x", kind: "abs", r: [0.6, 1.0], slots: ["body"], ...JMARK, pts: (v) => v * 15,
+  fx: (v) => [{ t: "hurt", on: "magic", ret: { stat: "vit", k: v, magic: true } }], text: (v) => `ブレス・呪文を受けるたび VIT${mulx(v)} の魔法の一撃で返す` });
 
 // ---- K. 諸刃 (大きな得と小さな損。点は得 − 損) ----
 const EDGE = [["K01", "狂刃の", "atk", "vit"], ["K02", "砂時計の", "agi", "hp"], ["K03", "血盟の", "hp", "mp"], ["K04", "禁書の", "int", "pie"], ["K05", "苦行の", "pie", "luk"], ["K06", "鉛の", "vit", "agi"]];
@@ -362,5 +366,5 @@ export function enchantBlock(it, page, rk, tmpl = null) {
   return null;
 }
 
-// 検査 (読み込み時): 137種そろっているか
-if (AFX.length !== 137) throw new Error(`infaffix: 追加の種類は137のはず (いま ${AFX.length})`);
+// 検査 (読み込み時): 138種そろっているか (2026-10-15 に極「鏡鎧の」を足した)
+if (AFX.length !== 138) throw new Error(`infaffix: 追加の種類は138のはず (いま ${AFX.length})`);
