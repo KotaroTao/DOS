@@ -9,6 +9,15 @@ export const MONSTER_PHOTOS = {
   bs_dreadlich: [448, 520],
   bs_crystalgolem: [501, 520],
   // <</DROWNED_HYMN_ART>>
+  // <<FOSSIL_TOMB_ART>>
+  // 化石竜の墓所（作成済みの通常敵・強敵・共通敵は既存原画を共用）。
+  bs_fossildragon: [520, 357],
+  bs_primalbeast: [520, 367],
+  bs_primalserpent: [520, 339],
+  bs_cavebehemoth: [520, 335],
+  bs_earthshaker: [520, 404],
+  bs_abysshorror: [520, 361],
+  // <</FOSSIL_TOMB_ART>>
   // <<SUNKEN_PATH_ART>>
   // 水底の参道（作成済みの異端大司教・共通敵は既存原画を共用）。
   bs_kelpdrowned: [520, 445],
