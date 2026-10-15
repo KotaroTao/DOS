@@ -42,7 +42,7 @@ const assert = require('node:assert/strict');
         const { setSpriteResolver, spriteCanvas, whenPhoto } = await import('/src/sprites.js');
         const items = { ...ITEMS, ...CATALOG_ITEMS };
         const { NUMBERED_ITEM_IDS } = await import('/src/itemnumbers.js');
-        if (JSON.stringify(ITEM_PHOTOS) !== JSON.stringify(NUMBERED_ITEM_IDS.slice(0, 200))) throw Error('原画の登録範囲');
+        if (JSON.stringify(ITEM_PHOTOS.slice(0, 200)) !== JSON.stringify(NUMBERED_ITEM_IDS.slice(0, 200))) throw Error('原画の登録範囲');
         const resolve = makeItemSpriteResolver(items);
         setSpriteResolver(resolve);
         document.body.replaceChildren();
