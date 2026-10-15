@@ -12,6 +12,12 @@ export const MONSTER_PHOTOS = {
   bs_corruptstag: [301, 364],
   bs_satyrpiper: [312, 345],
   bs_giantmoth: [367, 350],
+  // 雷雨の大手門（既存原画を除く通常敵5種）。
+  bs_bloodorc: [520, 500],
+  bs_thunderknight: [520, 460],
+  bs_cultist: [468, 511],
+  bs_stormgiant: [520, 508],
+  bs_bonecolossus: [520, 457],
   // <<CLOSED_STACKS_ART>>
   // 閉架の書庫（主は禁書の巨像と共用）。
   bs_tomeguardian: [473, 439],
