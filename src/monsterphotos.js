@@ -11,6 +11,8 @@ export const MONSTER_PHOTOS = {
   bs_stonegazer: [520, 380],
   bs_griffon: [499, 432],
 
+  // 捨て砦の本丸の主（ほかの敵は作成済み原画を共用）。
+  bs_fortlord: [506, 520],
   // 地の底の霧森（通常敵9種と召喚される大蛾。繭母は共通の強敵原画）。
   bs_dryadfey: [326, 380],
   bs_wisplure: [263, 337],
