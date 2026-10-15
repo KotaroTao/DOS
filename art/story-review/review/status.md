@@ -2,7 +2,7 @@
 
 書き出し: `node tools/storyart/review.mjs` (build.py も書き直す。手で直さない)。
 
-場面: 出荷済み 116 ・ 出荷済み (任意の修正あり) 11 ・ 未着手 (指示あり) 17
+場面: 出荷済み 122 ・ 出荷済み (任意の修正あり) 11 ・ 未着手 (指示あり) 11
 
 | 章 | 場面 | 題 | 状態 | 確認ページ |
 |---|---|---|---|---|
@@ -135,12 +135,12 @@
 | 第10章「地底大空洞」 | `report_w41` | 王の資格 | 出荷済み | [見る](chapter10.md#report_w41) |
 | 第10章「地底大空洞」 | `irene_candle` | 消せない灯 | 出荷済み | [見る](chapter10.md#irene_candle) |
 | 第10章「地底大空洞」 | `ch10_end` | 第一部の終わり | 出荷済み | [見る](chapter10.md#ch10_end) |
-| 第11章「夜明けの町」 | `w42_dawn` | 夜明けの町 | 未着手 (指示あり) | [見る](chapter11.md#w42_dawn) |
-| 第11章「夜明けの町」 | `report_w42` | 命令の届かぬ所 | 未着手 (指示あり) | [見る](chapter11.md#report_w42) |
-| 第11章「夜明けの町」 | `irene_why` | ついて歩く理由 | 未着手 (指示あり) | [見る](chapter11.md#irene_why) |
-| 第11章「夜明けの町」 | `w43_jars` | 今日の瓶 | 未着手 (指示あり) | [見る](chapter11.md#w43_jars) |
-| 第11章「夜明けの町」 | `report_w43` | 晴れた空の雨 | 未着手 (指示あり) | [見る](chapter11.md#report_w43) |
-| 第11章「夜明けの町」 | `w44_glass` | 一度だけ | 未着手 (指示あり) | [見る](chapter11.md#w44_glass) |
+| 第11章「夜明けの町」 | `w42_dawn` | 夜明けの町 | 出荷済み | [見る](chapter11.md#w42_dawn) |
+| 第11章「夜明けの町」 | `report_w42` | 命令の届かぬ所 | 出荷済み | [見る](chapter11.md#report_w42) |
+| 第11章「夜明けの町」 | `irene_why` | ついて歩く理由 | 出荷済み | [見る](chapter11.md#irene_why) |
+| 第11章「夜明けの町」 | `w43_jars` | 今日の瓶 | 出荷済み | [見る](chapter11.md#w43_jars) |
+| 第11章「夜明けの町」 | `report_w43` | 晴れた空の雨 | 出荷済み | [見る](chapter11.md#report_w43) |
+| 第11章「夜明けの町」 | `w44_glass` | 一度だけ | 出荷済み | [見る](chapter11.md#w44_glass) |
 | 第11章「夜明けの町」 | `irene_onlyonce` | 決めるのは | 未着手 (指示あり) | [見る](chapter11.md#irene_onlyonce) |
 | 第11章「夜明けの町」 | `report_w44` | 一度だけ、と言える者 | 未着手 (指示あり) | [見る](chapter11.md#report_w44) |
 | 第11章「夜明けの町」 | `mem_w45` | 終わりの頁 | 未着手 (指示あり) | [見る](chapter11.md#mem_w45) |
