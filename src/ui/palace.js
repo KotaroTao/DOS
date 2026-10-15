@@ -22,6 +22,7 @@ import { MONSTERS, ICONS, spriteCanvas } from "../sprites.js";
 import { EVENTS, EVENT_MAP, EVENT_GROUPS, EV_TIERS, eventWhereText, onceKey, LORE_PAGES } from "../events.js";
 import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, SHIELD_KINDS, SHIELD_KIND_LABEL, shieldKind, itemName } from "../items.js";
 import { RANK_COLOR, RANK_NAME } from "../content.js";
+import { CHAPTERS } from "../story.js";
 import { poolAt } from "../dungeons/world.js";
 import { MONSTER_LORE } from "../dungeons/monlore.js";
 import { DUNGEONS, ELEMENTS, RACE_LABEL, monsterTraits, isFloating, resistHpMul, METAL_TIERS } from "../dungeons/index.js";
@@ -286,7 +287,7 @@ export function dungeonMonSheet(dungeonIdx) {
 const dunOpen = (i) => { try { return game.worldOpenIdx ? game.worldOpenIdx(i) : i < Math.max(1, G().unlockedDungeons || 1); } catch (e) { return i === 0; } };
 function renderCodexMon(box) {
   const g = G();
-  const opened = DUNGEONS.map((d, i) => i).filter(dunOpen);
+  const opened = DUNGEONS.map((d, i) => i).filter((i) => DUNGEONS[i].tutorial || dunOpen(i));
   if (!opened.length) opened.push(0);
   let idx = Number(remember("codex", "dungeon"));
   // 名のある強敵 (縄張りが地図に現れた者)。区分 -2
@@ -311,9 +312,46 @@ function renderCodexMon(box) {
     scrollGrid(area, roster, (key) => isNamed ? namedCard(key, MONSTERS[key], namedBy[key]) : monCard(key),
       { cols: 3, cellH: MON_CARD_H, key: "mon:" + idx, empty: el("div", "wa-empty", "記録なし。") });
   };
-  const ch = chips(items, String(idx), (k) => { idx = Number(k); remember("codex", "dungeon", idx); resetPages(["mon:"]); draw(); });
-  refresh.list = () => items.forEach((it, i) => setBadge(chipBtn(ch, i), freshIn(Number(it.key))));
-  box.appendChild(ch);
+  const picker = el("label", "pl-mon-picker");
+  picker.appendChild(el("span", "", "迷宮"));
+  const select = el("select", "pl-mon-select");
+  select.setAttribute("aria-label", "敵図鑑の迷宮");
+  const groups = new Map(), options = new Map();
+  for (const it of items) {
+    const i = Number(it.key), dn = DUNGEONS[i];
+    // 寄り道は出撃シートと同じく、同じ層 (無ければ近い層) の本筋の章へ。
+    const chapter = dn && !dn.tutorial && (CHAPTERS.find((c) => c.dungeons.includes(dn.id)) ||
+      CHAPTERS.slice().sort((a, b) => {
+        const gap = (c) => Math.min(...c.dungeons.map((id) => Math.abs((DUNGEONS.find((d) => d.id === id)?.layer ?? Infinity) - dn.layer)));
+        return gap(a) - gap(b) || a.no - b.no;
+      })[0]);
+    const order = dn?.tutorial ? 0 : chapter ? chapter.no : Infinity;
+    if (!groups.has(order)) {
+      const group = el("optgroup");
+      group.label = order === 0 ? "序章" : chapter ? `第${chapter.no}章「${chapter.title}」` : "そのほか";
+      groups.set(order, group);
+    }
+    const option = el("option");
+    option.value = it.key;
+    groups.get(order).appendChild(option);
+    options.set(it.key, option);
+  }
+  for (const [, group] of [...groups].sort((a, b) => a[0] - b[0])) select.appendChild(group);
+  const updateOptions = () => {
+    for (const it of items) {
+      const fresh = freshIn(Number(it.key));
+      options.get(it.key).textContent = it.label + (fresh ? `（新着 ${fresh}）` : "");
+    }
+  };
+  updateOptions();
+  select.value = String(idx);
+  select.addEventListener("change", () => {
+    sfx("select"); idx = Number(select.value);
+    remember("codex", "dungeon", idx); resetPages(["mon:"]); draw();
+  });
+  refresh.list = updateOptions;
+  picker.appendChild(select);
+  box.appendChild(picker);
   box.appendChild(cap);
   area = fillArea(box);
   draw();
