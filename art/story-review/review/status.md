@@ -2,7 +2,7 @@
 
 書き出し: `node tools/storyart/review.mjs` (build.py も書き直す。手で直さない)。
 
-場面: 出荷済み 128 ・ 出荷済み (任意の修正あり) 11 ・ 未着手 (指示あり) 5
+場面: 出荷済み 133 ・ 出荷済み (任意の修正あり) 11
 
 | 章 | 場面 | 題 | 状態 | 確認ページ |
 |---|---|---|---|---|
@@ -115,11 +115,11 @@
 | 第9章「闘技場跡」 | `w34_glove` | 置いていった手袋 | 出荷済み | [見る](chapter9.md#w34_glove) |
 | 第9章「闘技場跡」 | `report_w34` | 空の上の町 | 出荷済み | [見る](chapter9.md#report_w34) |
 | 第9章「闘技場跡」 | `w35_lamps` | 番号の灯籠 | 出荷済み | [見る](chapter9.md#w35_lamps) |
-| 第9章「闘技場跡」 | `report_w35` | 使い回された魂 | 未着手 (指示あり) | [見る](chapter9.md#report_w35) |
-| 第9章「闘技場跡」 | `w36_nook` | 灯番の子 | 未着手 (指示あり) | [見る](chapter9.md#w36_nook) |
-| 第9章「闘技場跡」 | `report_w36` | 玉座と観客席 | 未着手 (指示あり) | [見る](chapter9.md#report_w36) |
-| 第9章「闘技場跡」 | `irene_firstdoll` | 最初の人形 | 未着手 (指示あり) | [見る](chapter9.md#irene_firstdoll) |
-| 第9章「闘技場跡」 | `mem_w37` | 十三度目の灯 | 未着手 (指示あり) | [見る](chapter9.md#mem_w37) |
+| 第9章「闘技場跡」 | `report_w35` | 使い回された魂 | 出荷済み | [見る](chapter9.md#report_w35) |
+| 第9章「闘技場跡」 | `w36_nook` | 灯番の子 | 出荷済み | [見る](chapter9.md#w36_nook) |
+| 第9章「闘技場跡」 | `report_w36` | 玉座と観客席 | 出荷済み | [見る](chapter9.md#report_w36) |
+| 第9章「闘技場跡」 | `irene_firstdoll` | 最初の人形 | 出荷済み | [見る](chapter9.md#irene_firstdoll) |
+| 第9章「闘技場跡」 | `mem_w37` | 十三度目の灯 | 出荷済み | [見る](chapter9.md#mem_w37) |
 | 第9章「闘技場跡」 | `report_w37` | 休みのない百年 | 出荷済み | [見る](chapter9.md#report_w37) |
 | 第9章「闘技場跡」 | `irene_rest` | 休む灯 | 出荷済み | [見る](chapter9.md#irene_rest) |
 | 第9章「闘技場跡」 | `ch9_end` | 捨てられた魂の行き先 | 出荷済み | [見る](chapter9.md#ch9_end) |
