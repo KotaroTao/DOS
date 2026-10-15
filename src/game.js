@@ -9282,8 +9282,8 @@ function renderCombatCanvas() {
   enemyFocusEl.classList.toggle("has-target", !!focused);
   const focusLabel = focused ? enemyLabel(focused) : twoRows && !wideBattle ? `${enemyView.back ? "後列" : "前列"}を手前に表示中` : "";
   if (enemyFocusEl.textContent.replaceAll(ZWSP, "") !== focusLabel) enemyFocusEl.textContent = focusLabel;
-  // 広い画面の最下部には生存中の敵名を常設。不確定名と呼び分けは記録にそろえる。
-  const nameRows = wideBattle ? [backRow, frontRow].map((list) => list.filter((e) => e.alive)) : [];
+  // 最下部には生存中の敵名を常設。不確定名と呼び分けは記録にそろえる。
+  const nameRows = [backRow, frontRow].map((list) => list.filter((e) => e.alive));
   const nameClass = (e) => enemyUnknown(e) ? " unk" : enemyCodexComplete(e) ? " complete" : "";
   const namesKey = JSON.stringify(nameRows.map((list) => list.map((e) => [enemyLabel(e), nameClass(e)])));
   if (namesKey !== enemyNamesKey) {
