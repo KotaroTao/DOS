@@ -545,3 +545,7 @@
   .wpc-shop { overflow-y: auto; overscroll-behavior: contain; }
   .wpc-shop > .wpc-list { flex: 0 0 auto !important; min-height: 140px; overflow-y: visible; }
 }
+/* 武器種別と特殊効果の絞り込みを組み合わせる。 */
+.wpc-shop .wpc-lhead { flex-wrap: wrap; }
+.wpc-shop .wpc-lhead .gf-open { margin-left: auto; }
+.wpc-shop > .gf-summary { max-height: 100px; overflow-y: auto; }

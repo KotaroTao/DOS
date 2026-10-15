@@ -1,4 +1,5 @@
 import { bagItems, bagSortControl } from "./bagsort.js";
+import { gearFilter, gearFilterCount, matchesGearFilter, gearFilterButton, gearFilterSummary } from "./gearfilter.js";
 import { bagCount, isFormationItem, bagOwners } from "../items.js";
 // ===== 商会 — 売る・鑑定 (隊の全員・控え込み) / 買う (選択した人業と比較・買って装備) =====
 // 担当: WP-C。街シェルの「商会」タブを描く。
@@ -34,6 +35,8 @@ const forgeOpen = () => !!(game.featureUnlocked && game.featureUnlocked("forge")
 const segOf = () => { const s = getPref("shopSeg"); return s === "buy" ? "buy" : s === "forge" && forgeOpen() ? "forge" : "sell"; };
 const catOf = () => getPref("shopBuyCat", "rec") || "rec";
 const wcatOf = () => remember("seg", "shopWeapon") || "all";
+const SHOP_FILTER = "shopGearFilter";
+const shopFilter = () => gearFilter(SHOP_FILTER);
 
 function selectedBuyer() {
   const dolls = allDolls().filter(d => d && !d.isEmpty);
@@ -459,17 +462,28 @@ function stockIds() {
   const g = G();
   return Object.keys(g.shopStock || {}).filter((id) => ITEMS[id] && g.shopStock[id] > 0);
 }
+// 通常品と追加つきは実際の在庫ごとに扱い、追加つきだけが条件に合う場合も残す。
+function stockVariants(id) {
+  const out = [];
+  const ax = game.shopAfxItem?.(id);
+  if (ax) out.push({ id, item: ax, affixed: true });
+  if (game.shopPlainStock(id) > 0) out.push({ id, item: ITEMS[id], affixed: false });
+  return out;
+}
 // おすすめ: 選択した人業に役立つ品だけ。通常品と追加つきの在庫を別々に見立てる。
 function recList() {
   const out = [];
   for (const id of stockIds()) {
-    const variants = [game.shopPlainStock(id) > 0 ? ITEMS[id] : null, game.shopAfxItem?.(id)].filter(Boolean);
+    const variants = stockVariants(id).map(x => x.item);
     const plans = variants.filter(isEquippable).map(buyerPlan).filter(p => p.target && p.delta && p.score > 0);
     plans.sort((a, b) => b.score - a.score);
     if (plans.length) out.push({ id, plan: plans[0] });
   }
   out.sort((a, b) => b.plan.score - a.plan.score);
   return out;
+}
+function stockEntries(cat, wcat) {
+  return listFor(cat, wcat).flatMap(stockVariants).filter(x => cat !== "rec" || buyerPlan(x.item).score > 0);
 }
 function listFor(cat, wcat) {
   if (cat === "rec") return recList().map((x) => x.id);
@@ -729,9 +743,13 @@ function renderSell(wrap) {
 function renderBuy(wrap) {
   const cat = catOf();
   const wcat = wcatOf();
-  const ids = listFor(cat, wcat);
+  const entries = stockEntries(cat, wcat);
+  const items = entries.map(x => x.item);
+  const f = shopFilter();
+  const shown = entries.filter(x => matchesGearFilter(x.item, f));
+  const changeFilter = () => { view.buyPage = 0; rerender(); };
   const head = el("div", "wpc-lhead");
-  head.appendChild(el("span", "wpc-lhead-t", cat === "rec" ? `おすすめ ${ids.length}点` : `棚 ${ids.length}点`));
+  head.appendChild(el("span", "wpc-lhead-t", cat === "rec" ? `おすすめ ${shown.length}点` : `棚 ${shown.length}点`));
   if (cat === "weapon") {
     // 武器の種別は1列のチップを増やさず、小さな選び札で絞る
     const label = wcat === "all" ? "すべて" : (WEAPON_CATS.find((c) => c.key === wcat) || {}).label || "すべて";
@@ -743,25 +761,19 @@ function renderBuy(wrap) {
     kb.addEventListener("click", () => openWeaponKind());
     head.appendChild(kb);
   }
+  head.appendChild(gearFilterButton(items, changeFilter, SHOP_FILTER));
   wrap.appendChild(head);
+  // 分類を替えて0件になっても、選んだ条件の名と解除の入口を保つ。
+  wrap.appendChild(gearFilterSummary(items, changeFilter, SHOP_FILTER));
   const box = el("div", "wpc-list buy");
   wrap.appendChild(box);
   return () => {
-    if (!ids.length) {
-      box.appendChild(el("div", "wpc-empty big", cat === "rec" ? `${selectedBuyer()?.name || "選択した人業"}の装備に勝る品は、棚に並んでいない。` : "この種類の品は売り切れだ。"));
+    if (!shown.length) {
+      box.appendChild(el("div", "wpc-empty big", gearFilterCount(f) ? "条件に合う品はない。絞り込みの条件を外すか、品の分類・武器の種別を変えてください。" : cat === "rec" ? `${selectedBuyer()?.name || "選択した人業"}の装備に勝る品は、棚に並んでいない。` : "この種類の品は売り切れだ。"));
       return;
     }
-    fillList(box, ids, stockRowsFor, "buyPage");
+    fillList(box, shown, x => x.affixed ? afxStockRow(x.id, x.item) : stockRow(x.id), "buyPage");
   };
-}
-// 棚の1品ぶんの行: 追加つきの1点があれば先に (docs/infinite-labyrinth.md 17-1)、通常品が残っていれば通常の行
-function stockRowsFor(id) {
-  const ax = game.shopAfxItem ? game.shopAfxItem(id) : null;
-  const frag = document.createDocumentFragment();
-  const recommended = it => catOf() !== "rec" || buyerPlan(it).score > 0;
-  if (ax && recommended(ax)) frag.appendChild(afxStockRow(id, ax));
-  if (game.shopPlainStock(id) > 0 && recommended(ITEMS[id])) frag.appendChild(stockRow(id));
-  return frag;
 }
 // 追加つきの品の行: 名・追加の印と短い説明・値段 (追加の分だけ高い)。買うと、その品の組は消える
 function afxStockRow(id, it) {
@@ -813,7 +825,7 @@ function openWeaponKind() {
   const body = el("div", "wpc-kindgrid");
   let h = null;
   for (const c of [{ key: "all", label: "すべて" }, ...WEAPON_CATS]) {
-    const n = listFor("weapon", c.key).length;
+    const n = stockEntries("weapon", c.key).filter(x => matchesGearFilter(x.item, shopFilter())).length;
     const b = button({ label: c.label, sub: `${n}点`, kind: c.key === cur ? "primary" : "secondary", disabled: !n && c.key !== "all",
       onTap: () => { remember("seg", "shopWeapon", c.key); view.buyPage = 0; h.close("pick", { silent: true }); sfx("select"); rerender(); } });
     body.appendChild(b);
@@ -835,7 +847,7 @@ function render(root) {
     seg, (k) => { setPref("shopSeg", k); sfx("select"); rerender({ top: true }); },
   ));
   if (seg === "buy") {
-    const rec = recList().length;
+    const rec = stockEntries("rec", wcatOf()).filter(x => matchesGearFilter(x.item, shopFilter())).length;
     const cat = catOf();
     const items = [{ key: "rec", label: "おすすめ", badge: rec || null }, ...ITEM_CATS.map((c) => ({ key: c.key, label: c.label }))];
     const cc = chips(items, cat, (k) => { setPref("shopBuyCat", k); view.buyPage = 0; sfx("select"); rerender({ top: true }); });
@@ -850,7 +862,8 @@ function render(root) {
 }
 
 // 商会を開く (seg: "sell" | "buy"、cat: 買うの分類)
-export function openShop(seg, { cat } = {}) {
+export function openShop(seg, { cat, clearFilters = false } = {}) {
+  if (clearFilters) setPref(SHOP_FILTER, {});
   if (seg === "sell" || seg === "buy" || seg === "forge") setPref("shopSeg", seg);
   if (cat) { setPref("shopBuyCat", cat); view.buyPage = 0; }
   const g = G();

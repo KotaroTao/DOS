@@ -1,4 +1,4 @@
-// 館の装備探し。効果の数値や格は条件にせず、種類ごとにまとめる。
+// 館と商会の装備探し。効果の数値や格は条件にせず、種類ごとにまとめる。
 import { el, button, sheet } from "./kit.js";
 import { getPref, setPref } from "./prefs.js";
 import { EFF_INFO, isEquippable, elemName } from "./itemview.js";
@@ -9,9 +9,9 @@ const ELEMENT_KEYS = ["fire", "water", "wind", "earth", "light", "dark"];
 const GROUPS = [["all", "すべて"], ["attack", "攻撃"], ["defense", "防御・抵抗"], ["heal", "回復"], ["ability", "能力"], ["other", "探索・その他"]];
 const EFF_GROUP = { actFirst: "attack", multistrike: "attack", lifesteal: "heal", guard: "defense", autoRevive: "heal", regen: "heal", counter: "attack", spellCostMul: "heal", ailmentImmune: "defense", goldUp: "other", soulUp: "other", disarmUp: "other", barrier: "defense" };
 const normalize = s => String(s).normalize("NFKC").toLocaleLowerCase().replace(/[\s\u200b]/g, "").replace(/クリティカル/g, "会心").replace(/ドレイン/g, "吸血").replace(/リジェネ/g, "再生");
-export function gearFilter() {
-  const f = getPref("gearFilter") || {};
-  return { elements: Array.isArray(f.elements) ? f.elements.filter(k => /^(eAtk|eDef):/.test(k)) : [], effects: Array.isArray(f.effects) ? f.effects.filter(k => typeof k === "string") : [], allEffects: !!f.allEffects };
+export function gearFilter(prefKey = "gearFilter") {
+  const f = getPref(prefKey) || {};
+  return { elements: Array.isArray(f.elements) ? f.elements.filter(k => /^(eAtk|eDef):/.test(k)) : [], effects: Array.isArray(f.effects) ? f.effects.filter(k => typeof k === "string") : [], allEffects: !!f.allEffects, labels: f.labels || {} };
 }
 export const gearFilterCount = (f = gearFilter()) => f.elements.length + f.effects.length;
 
@@ -39,7 +39,7 @@ export function gearEffectOptions(it) {
   }
   if (it.onHit) add(`hit:${it.onHit.k}`, `${RESIST_LABEL[it.onHit.k] || it.onHit.k}の追加効果`, "attack");
   if (it.bRes > 0) add("breath", "ブレス耐性", "defense");
-  if (it.magic) add("magic", "魔法属性", "attack");
+  if (it.magic) add("magic", "魔法属性（通常攻撃）", "attack", "通常攻撃で魔法ダメージを与える。魔法攻撃として敵の魔法耐性・魔法弱点で判定する。物理技は物理のまま。");
   if (it.crit > 0) add("crit", "会心率", "attack", "会心率（クリティカル）を上げる");
   // 追加特性は表示台帳と同じIDで選ぶ。値の違う同じ特性は一つの候補。
   for (const a of it.afxText || []) add(`afx:${a.k || a.name}`, `追加：${a.name.replace(/の$/, "")}`, textGroup(a.text), `${a.name} ${a.text}`);
@@ -66,31 +66,31 @@ function effectCatalog(items) {
   }
   return [...map.values()].sort((a, b) => a.label.localeCompare(b.label, "ja"));
 }
-export function gearFilterSummary(items, onChange) {
-  const f = gearFilter(), wrap = el("div", "gf-summary");
+export function gearFilterSummary(items, onChange, prefKey = "gearFilter") {
+  const f = gearFilter(prefKey), wrap = el("div", "gf-summary");
   if (!gearFilterCount(f)) return wrap;
   const labels = new Map(effectCatalog(items).map(x => [x.key, x.label]));
   const remove = (kind, key) => {
-    setPref("gearFilter", { ...f, [kind]: f[kind].filter(k => k !== key) });
+    setPref(prefKey, { ...f, [kind]: f[kind].filter(k => k !== key) });
     onChange();
   };
   for (const key of f.elements) wrap.appendChild(button({ label: `${elementLabel(key)} ×`, kind: "secondary", size: "sm", onTap: () => remove("elements", key) }));
-  for (const key of f.effects) wrap.appendChild(button({ label: `${labels.get(key) || "特殊効果"} ×`, kind: "secondary", size: "sm", onTap: () => remove("effects", key) }));
+  for (const key of f.effects) wrap.appendChild(button({ label: `${labels.get(key) || f.labels[key] || "特殊効果"} ×`, kind: "secondary", size: "sm", onTap: () => remove("effects", key) }));
   if (f.effects.length > 1) wrap.appendChild(el("span", "gf-rule", f.allEffects ? "効果をすべて含む" : "効果のいずれかを含む"));
-  wrap.appendChild(button({ label: "すべて解除", kind: "ghost", size: "sm", onTap: () => { setPref("gearFilter", {}); onChange(); } }));
+  wrap.appendChild(button({ label: "すべて解除", kind: "ghost", size: "sm", onTap: () => { setPref(prefKey, {}); onChange(); } }));
   return wrap;
 }
-export function gearFilterButton(items, onChange) {
-  const n = gearFilterCount();
-  const b = button({ label: `絞り込み${n ? `・${n}` : ""}`, kind: n ? "primary" : "secondary", size: "sm", onTap: () => openGearFilter(items, onChange) });
+export function gearFilterButton(items, onChange, prefKey = "gearFilter") {
+  const n = gearFilterCount(gearFilter(prefKey));
+  const b = button({ label: `絞り込み${n ? `・${n}` : ""}`, kind: n ? "primary" : "secondary", size: "sm", onTap: () => openGearFilter(items, onChange, prefKey) });
   b.classList.add("gf-open");
   return b;
 }
 
-export function openGearFilter(items, onApply) {
+export function openGearFilter(items, onApply, prefKey = "gearFilter") {
   const source = [...new Set(items.filter(Boolean))];
   const options = effectCatalog(source), labels = new Map(options.map(x => [x.key, x.label]));
-  let draft = gearFilter(), group = "all", query = "", h;
+  let draft = gearFilter(prefKey), group = "all", query = "", h;
   const body = el("div", "gf-panel");
   body.appendChild(el("p", "gf-hint", "属性と特殊効果の両方に一致する品を表示する。数値の違う同じ効果はまとめて探せる。未鑑定の品は鑑定してから。"));
   const picked = el("div", "gf-picked"), elements = el("div", "gf-elements"), groups = el("div", "gf-groups"), list = el("div", "gf-options");
@@ -117,7 +117,7 @@ export function openGearFilter(items, onApply) {
   function refresh() {
     picked.replaceChildren();
     for (const key of draft.elements) picked.appendChild(button({ label: `${elementLabel(key)} ×`, kind: "primary", size: "sm", onTap: () => toggle("elements", key) }));
-    for (const key of draft.effects) picked.appendChild(button({ label: `${labels.get(key) || "特殊効果"} ×`, kind: "primary", size: "sm", onTap: () => toggle("effects", key) }));
+    for (const key of draft.effects) picked.appendChild(button({ label: `${labels.get(key) || draft.labels?.[key] || "特殊効果"} ×`, kind: "primary", size: "sm", onTap: () => toggle("effects", key) }));
     elements.replaceChildren();
     for (const kind of ["eAtk", "eDef"]) for (const e of ELEMENT_KEYS) elements.appendChild(optionButton("elements", `${kind}:${e}`, elementLabel(`${kind}:${e}`)));
     groups.replaceChildren();
@@ -142,7 +142,11 @@ export function openGearFilter(items, onApply) {
   const footer = n => [
     { label: "すべて解除", kind: "ghost", onTap: () => { draft = { elements: [], effects: [], allEffects: false }; mode.checked = false; refresh(); } },
     { label: "キャンセル", kind: "secondary", onTap: x => x.close() },
-    { label: `${n}点を表示`, kind: "primary", onTap: x => { setPref("gearFilter", draft); x.close(); onApply(); } },
+    { label: `${n}点を表示`, kind: "primary", onTap: x => {
+      // 売り切れや分類の変更後も、選択済みの条件を名前で解除できるようにする。
+      draft.labels = Object.fromEntries(draft.effects.map(key => [key, labels.get(key) || draft.labels?.[key] || "特殊効果"]));
+      setPref(prefKey, draft); x.close(); onApply();
+    } },
   ];
   refresh();
   h = sheet.open({ kind: "info", title: "装備の絞り込み", body, className: "gf-sheet", footer: footer(source.filter(it => matchesGearFilter(it, draft)).length) });
