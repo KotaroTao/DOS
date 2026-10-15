@@ -304,6 +304,8 @@ const ASSETS = [
   "./art/monsters/el_tunnelking.webp",
   "./art/monsters/el_oremaw.webp",
   "./src/monsterphotos.js",
+  "./art/monsters/bs_doombringer.webp",
+  "./art/monsters/bs_infernolord.webp",
   "./art/monsters/bs_gloomstalker.webp",
   "./art/monsters/bs_cavetroll.webp",
   "./art/monsters/bs_blindhorror.webp",
