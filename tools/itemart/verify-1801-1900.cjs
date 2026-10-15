@@ -15,7 +15,7 @@ const assert = require('node:assert/strict');
         await new Promise(resolve => setTimeout(resolve, 5000));
         await r.abort().catch(() => {});
       });
-      await page.goto(`${process.env.ITEM_ART_BASE_URL || 'http://localhost:8000'}/?testDungeon=w01&testFloor=1`);
+      await page.goto(`${process.env.ITEM_ART_BASE_URL || 'http://localhost:8000'}/?testDungeon=w01&testFloor=1`, { waitUntil: 'domcontentloaded' });
       await page.waitForFunction(() => window.__game?.G.state === 'board', { timeout: 30000 });
       if (mode === 'normal') {
         assert(!await page.getByText('⚠ 読み込みに失敗しました', { exact: true }).count(), '起動エラーが表示されている');
