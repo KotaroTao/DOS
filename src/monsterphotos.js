@@ -1,6 +1,18 @@
 // 迷宮の透過原画。通常敵・強敵・主・召喚先・共通の敵で共用する。
 // 能力値や文字グリッドは保ち、読めた原画だけを最初の描画前に登録する。
 export const MONSTER_PHOTOS = {
+  // <<SUNKEN_PATH_ART>>
+  // 水底の参道（作成済みの異端大司教・共通敵は既存原画を共用）。
+  bs_kelpdrowned: [520, 445],
+  bs_abyssjelly: [471, 520],
+  bs_fonthorror: [520, 502],
+  bs_drownedpriest: [474, 520],
+  bs_naga: [497, 520],
+  bs_choirwraith: [520, 509],
+  bs_tidecaller: [520, 496],
+  bs_sunkenbell: [490, 520],
+  bs_soulharvester: [520, 492],
+  // <</SUNKEN_PATH_ART>>
   // 銀業の隠れ里の未作成だった黄金の守り像。他12体は既存絵を共用。
   bs_goldgolem: [363, 443],
   // 水晶の鉱脈（作成済みの鉱脈喰らいは既存絵を使う）。
