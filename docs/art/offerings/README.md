@@ -22,3 +22,11 @@
 18. 鳴らされなかった警鐘 — `m_silent_alarm`
 19. 城トカゲの毒牙 — `m_wall_lizard_fang`
 20. 冷めないおき石 — `m_undying_ember`
+
+確認: Chromiumで全20点の描画と残り88点の対象外を確認。スマホ幅390pxの品の詳細で表示を確認。画像取得を全失敗させても元の絵で探索画面が起動し、JavaScript例外なし。構文・既存108点の固有絵・SWの配信ファイル存在も検査済み。
+
+![20点の一覧](preview.png)
+
+![スマホの品の詳細](item-mobile.png)
+
+再出力: `python3 tools/offerings/export.py` (Pillow・NumPy・SciPy・Nodeが必要)。

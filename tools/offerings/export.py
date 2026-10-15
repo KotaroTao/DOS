@@ -14,10 +14,11 @@ for n,(e,box) in enumerate(zip(entries,boxes),1):
  tile=im.crop(box)
  a=np.array(tile)
  labels,count=label(a[:,:,3]>16)
+ largest=int(np.bincount(labels.ravel())[1:].argmax()+1)
  for component in range(1,count+1):
   yy,xx=np.where(labels==component)
   edge=(xx.min()==0 or yy.min()==0 or xx.max()==tile.width-1 or yy.max()==tile.height-1)
-  if len(xx)<20 or (n in [7,10,13,15] and edge): a[labels==component,3]=0
+  if len(xx)<20 or (n in [7,10,13,15] and edge and component!=largest): a[labels==component,3]=0
  tile=Image.fromarray(a)
  tile=tile.crop(tile.getbbox())
  tile.thumbnail((288,288),Image.Resampling.LANCZOS)
