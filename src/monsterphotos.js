@@ -11,6 +11,8 @@ export const MONSTER_PHOTOS = {
   bs_lavagolem: [395, 399],
   bs_magmaray: [425, 425],
   bs_hellhound: [389, 425],
+  // 銀業の隠れ里の未作成だった黄金の守り像。他12体は既存絵を共用。
+  bs_goldgolem: [363, 443],
   // 水晶の鉱脈（作成済みの鉱脈喰らいは既存絵を使う）。
   bs_crystalspider: [405, 373],
   bs_crystaldrake: [404, 375],
