@@ -1,6 +1,28 @@
 // 迷宮の透過原画。通常敵・強敵・主・召喚先・共通の敵で共用する。
 // 能力値や文字グリッドは保ち、読めた原画だけを最初の描画前に登録する。
 export const MONSTER_PHOTOS = {
+  // 第8章「嵐の尖塔」（通常敵・主。作成済みの強敵・共通敵は既存原画を共用）。
+  bs_galewisp: [477, 444],
+  bs_ravenswarm: [495, 496],
+  bs_windscythe: [500, 434],
+  bs_galehound: [520, 277],
+  bs_windwraith: [490, 432],
+  bs_thunderbeast: [500, 457],
+  bs_cyclonecore: [415, 520],
+  bs_zephyrfiend: [489, 513],
+  bs_lightninggolem: [520, 458],
+  bs_boltarcher: [505, 507],
+  bs_soulanchor: [469, 520],
+  bs_stormelemental: [492, 520],
+  bs_stormcaller: [520, 504],
+  bs_harpyqueen: [520, 497],
+  bs_cloudgiant: [469, 520],
+  bs_thunderroc: [513, 520],
+  bs_tempestserpent: [481, 509],
+  bs_galeknight: [471, 501],
+  bs_stormhag: [474, 491],
+  bs_skydrake: [520, 324],
+  bs_stormlord: [520, 458],
   // <<FROST_CORRIDOR_ART>>
   // 第六章・氷結回廊（強敵2種は作成済み原画を共用）。
   bs_frostwolf: [515, 456],
