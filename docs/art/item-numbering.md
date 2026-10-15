@@ -30,3 +30,5 @@ node tools/itemart/numbers.mjs 101 200  # 次の担当
 制作番号1〜100の原画・確認資料は `docs/art/items-001-100/`、ゲーム用WebPは `art/items/`。制作台帳の既存WebP列もこの保存先を参照する。
 
 制作番号101〜200の原画・確認資料は `docs/art/items-101-200/`。出荷先と表示方式は1〜100と共通。
+
+制作番号301〜400の原画・対応表・確認資料は `docs/art/items-301-400/`。ゲーム用WebPは同じ `art/items/` に置く。
