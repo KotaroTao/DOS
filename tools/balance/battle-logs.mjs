@@ -68,4 +68,12 @@ for (const element of Object.keys(ELEMENTS).filter(k => k !== 'none')) {
   b._exec({ actor: a, action: 'spell', spellKey: buffKey, target: a });
   assert(logs.some(s => /(?:味方|隊)：.*(?:STR|VIT|AGI|INT).*(?:ターン|戦闘中)/.test(s)));
 }
+// 魔法耐性を無視した分も、ログの軽減率へ反映する。
+for (const [lv, note] of [[2, '魔法軽減25%'], [4, null]]) {
+  const { a, t, b, logs } = setup();
+  a.passiveMap = { archmageShinen: lv }; t.magResist = 50;
+  b._exec({ actor: a, action: 'spell', spellKey: spellKey('fire'), target: t });
+  if (note) assert(logs.some(s => s.includes(note)));
+  else assert(!logs.some(s => s.includes('魔法軽減')));
+}
 console.log('戦闘ログ：6属性×6経路・竜の息吹の弱点／耐性／等倍、会心・貫通後の軽減・無効・金属・状態異常・全体回復・強化を確認');
