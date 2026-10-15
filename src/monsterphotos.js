@@ -1,6 +1,18 @@
 // 迷宮の透過原画。通常敵・強敵・主・召喚先・共通の敵で共用する。
 // 能力値や文字グリッドは保ち、読めた原画だけを最初の描画前に登録する。
 export const MONSTER_PHOTOS = {
+  // <<PICTUREBOOK_ART>>
+  // 絵本の閲覧室（作成済みのうごめく魔導書・共通敵は既存原画を共用）。
+  bs_bookworm: [439, 520],
+  bs_papermimic: [455, 520],
+  bs_familiarswarm: [381, 520],
+  bs_glyphhound: [505, 520],
+  bs_cursescroll: [267, 520],
+  bs_eyetome: [425, 520],
+  bs_wordwraith: [292, 520],
+  bs_astralwraith: [297, 520],
+  el_voidarchon: [290, 520],
+  // <</PICTUREBOOK_ART>>
   // 根の這う縦穴（大蛾・古樹は作成済みの原画を共用）。
   bs_giantowl: [502, 379],
   bs_stranglevine: [473, 386],
