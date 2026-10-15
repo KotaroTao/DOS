@@ -1,0 +1,802 @@
+[
+  {
+    "number": 1701,
+    "id": "w_r11_riftquakehammer",
+    "name": "地烈の鎚",
+    "slot": "weapon",
+    "rarity": "uc",
+    "desc": "大地を裂く力を封じた巨槌。肩に担いだ槌頭を両手で渾身の力で叩きつけると地脈が割れるほどの衝撃が走り、相手の構えを岩盤ごと崩して圧し潰す。"
+  },
+  {
+    "number": 1702,
+    "id": "w_r11_mythrilspear",
+    "name": "神話銀の槍",
+    "slot": "weapon",
+    "rarity": "c",
+    "desc": "穂先に神話銀を鍛えた槍。間合いを保ったまま古き力を乗せた鋭い一突きを送り込み、鎧の継ぎ目を過たず貫く。"
+  },
+  {
+    "number": 1703,
+    "id": "w_r11_frostprisonspear",
+    "name": "凍獄の槍",
+    "slot": "weapon",
+    "rarity": "uc",
+    "desc": "凍てつく獄の凍気を宿した大身槍。両の手で長柄を繰り出して突き立てれば傷口は一瞬で氷の牢と化し、相手の血の巡りも身のこなしも凍て止める。"
+  },
+  {
+    "number": 1704,
+    "id": "w_r11_primordialbow",
+    "name": "原初の長弓",
+    "slot": "weapon",
+    "rarity": "c",
+    "desc": "世界の始まりの木から削り出したと伝わる長弓。古き力を宿した弓身が矢に鋭い初速を与え、分厚い鎧をも射抜く。"
+  },
+  {
+    "number": 1705,
+    "id": "w_r11_meteorbow",
+    "name": "天弓・流星",
+    "slot": "weapon",
+    "rarity": "uc",
+    "desc": "放つ矢が流星のごとく天を翔ける弓。矢は神々しい疾風に乗って加速し、遠間の的を風の刃ごと貫いて射抜く。"
+  },
+  {
+    "number": 1706,
+    "id": "w_r11_jewelstaff",
+    "name": "宝玉の杖",
+    "slot": "weapon",
+    "rarity": "c",
+    "desc": "大粒の宝玉を頂く神器域の術杖。珠が魔力を澄ませて何倍にも練り上げ、唱える呪文を冴え冴えと強く放つ。"
+  },
+  {
+    "number": 1707,
+    "id": "w_r11_heaventruthstaff",
+    "name": "天理の大杖",
+    "slot": "weapon",
+    "rarity": "uc",
+    "desc": "天の理を写したと伝わる大杖。両手で掲げた頂に天の魔力が渦を巻き、蓄えた力を惜しみなく呪文へ注いで攻撃術の威力を極限まで引き上げる。"
+  },
+  {
+    "number": 1708,
+    "id": "w_r11_primordialgreatsword",
+    "name": "原初のグレートソード",
+    "slot": "weapon",
+    "rarity": "c",
+    "desc": "原初の鋼から削り出したと伝わる巨大な剣。両手で担ぎ上げて振り下ろせば太古の力が刃に満ち、岩も鎧も区別なく叩き斬る。"
+  },
+  {
+    "number": 1709,
+    "id": "a_r11_jewelrobe",
+    "name": "宝玉のローブ",
+    "slot": "body",
+    "rarity": "c",
+    "desc": "宝玉の力を織り込んだ淡紅のローブ。布を巡る膨大な魔力が術者の力を整え、唱える呪文の循環を澄み渡らせる。"
+  },
+  {
+    "number": 1710,
+    "id": "a_r11_heaventruthvestment",
+    "name": "天理の法衣",
+    "slot": "body",
+    "rarity": "uc",
+    "desc": "天の理を織り込んだと伝わる荘厳な法衣。布全体が神域の魔力の器となり、まとう者の呪文を極限まで強める。"
+  },
+  {
+    "number": 1711,
+    "id": "a_r11_primordialmail",
+    "name": "原初のくさりかたびら",
+    "slot": "body",
+    "rarity": "c",
+    "desc": "原初の鋼の細環で編んだくさりかたびら。古き力を宿した環が鋼をはるかにしのぐ強度を持ち、身のこなしを一切損なわない。"
+  },
+  {
+    "number": 1712,
+    "id": "a_r11_lightdragonhide",
+    "name": "光竜革の鎧",
+    "slot": "body",
+    "rarity": "uc",
+    "desc": "光竜の革をなめして仕立てた軽鎧。竜の光の加護が宿り、まとう者を聖光が包んで闇の力をやわらかく払う。"
+  },
+  {
+    "number": 1713,
+    "id": "a_r11_mythrilplate",
+    "name": "神話銀の板金鎧",
+    "slot": "body",
+    "rarity": "c",
+    "desc": "神話銀を曲面に打ち出した板金鎧。宿した古き力が刃の勢いを大きく和らげ、重厚な守りに究極の堅牢さを加える。"
+  },
+  {
+    "number": 1714,
+    "id": "a_r11_heavenemperorarmor",
+    "name": "天帝の鎧",
+    "slot": "body",
+    "rarity": "uc",
+    "desc": "天帝がまとったと伝わる黄金の全身鎧。天威を宿した鎧が、まともな攻撃のすべてを正面から退ける。"
+  },
+  {
+    "number": 1715,
+    "id": "h_r11_jewelcrown",
+    "name": "宝玉の冠",
+    "slot": "head",
+    "rarity": "c",
+    "desc": "巨大な宝玉をはめ込んだ淡紅の冠。戴く者の知を極限まで研ぎ澄まし、唱える攻撃術の冴えをくっきりと際立たせる。"
+  },
+  {
+    "number": 1716,
+    "id": "h_r11_heavenbishopcrown",
+    "name": "天司教の宝冠",
+    "slot": "head",
+    "rarity": "uc",
+    "desc": "天上の聖句と宝玉を巡らせた高位司教の宝冠。戴く者の祈りに魔力を乗せやすくし、癒しの奇跡を大きく強める。"
+  },
+  {
+    "number": 1717,
+    "id": "h_r11_primordialcoif",
+    "name": "原初の鎖頭巾",
+    "slot": "head",
+    "rarity": "c",
+    "desc": "原初の鋼で編んだ鎖頭巾。古き力を宿して軽いのに首筋まで堅く守り、衝撃を逃がして俊敏さを保つ。"
+  },
+  {
+    "number": 1718,
+    "id": "h_r11_lightdragonhood",
+    "name": "光竜革の帽子",
+    "slot": "head",
+    "rarity": "uc",
+    "desc": "光竜の革で仕立てた軽い帽子。竜革のしなやかさと光の加護が頭上への一撃を聖光ごと受け流してしまう。"
+  },
+  {
+    "number": 1719,
+    "id": "h_r11_mythrilhelm",
+    "name": "神話銀の兜",
+    "slot": "head",
+    "rarity": "c",
+    "desc": "神話銀を打ち出した堅牢な兜。曲面が打撃をいなし、宿る古き力が衝撃を散らして頭蓋をまるごと守り抜く。"
+  },
+  {
+    "number": 1720,
+    "id": "h_r11_heavenemperorhelm",
+    "name": "天帝の兜",
+    "slot": "head",
+    "rarity": "uc",
+    "desc": "天帝の証たる黄金の大兜。天威を宿した荘厳な前立てが敵を圧し、頭部を鉄壁の守りで包み込む。"
+  },
+  {
+    "number": 1721,
+    "id": "f_r11_jewelshoes",
+    "name": "宝玉の靴",
+    "slot": "feet",
+    "rarity": "c",
+    "desc": "宝玉の刺繍を施した淡紅の軽い靴。足運びが滑らかになり、術者が陣形を保ったまま静かに動き続けられる。"
+  },
+  {
+    "number": 1722,
+    "id": "f_r11_heavenstepshoes",
+    "name": "天歩の靴",
+    "slot": "feet",
+    "rarity": "uc",
+    "desc": "天を歩むがごとき速さを宿す魔法の靴。地を蹴れば体が瞬時に運ばれ、駆け出しの速さと回避の鋭さが究極に達する。"
+  },
+  {
+    "number": 1723,
+    "id": "f_r11_primordialboots",
+    "name": "原初のブーツ",
+    "slot": "feet",
+    "rarity": "c",
+    "desc": "原初の鋼で仕立てたブーツ。軽快なのに頑丈無比で、古き力が衝撃を和らげ、罠の刃も瓦礫の縁も寄せつけない。"
+  },
+  {
+    "number": 1724,
+    "id": "f_r11_lightdragonboots",
+    "name": "光竜革のブーツ",
+    "slot": "feet",
+    "rarity": "uc",
+    "desc": "光竜の革で仕立てた長靴。しなやかで足になじみ、光の加護が足取りを支えて悪路でも俊敏さを保たせる。"
+  },
+  {
+    "number": 1725,
+    "id": "f_r11_mythrilsabaton",
+    "name": "神話銀の具足",
+    "slot": "feet",
+    "rarity": "c",
+    "desc": "神話銀で覆う具足。重装の堅い守りに古き力の支えを兼ね、踏み込みの一歩に揺るぎない安定をもたらす。"
+  },
+  {
+    "number": 1726,
+    "id": "f_r11_heavenemperorgreaves",
+    "name": "天帝の脚甲",
+    "slot": "feet",
+    "rarity": "uc",
+    "desc": "天帝の威信を示す黄金の脚甲。天威を宿した脚甲が脚を支え、前線に踏みとどまる足を斬撃も落石も通さず守る。"
+  },
+  {
+    "number": 1727,
+    "id": "g_r11_jewelgloves",
+    "name": "宝玉の手袋",
+    "slot": "hands",
+    "rarity": "c",
+    "desc": "宝玉の紋を縫い込んだ淡紅の薄手の手袋。指先の感覚を保ちつつ、握った触媒へ膨大な魔力を澄んだまま導く。"
+  },
+  {
+    "number": 1728,
+    "id": "g_r11_heavenbishopgloves",
+    "name": "天司教の宝手袋",
+    "slot": "hands",
+    "rarity": "uc",
+    "desc": "祈りの所作を支える宝玉装飾の聖手袋。掌の聖印が祈祷に魔力を乗せやすくし、癒しの奇跡を大きく後押しする。"
+  },
+  {
+    "number": 1729,
+    "id": "g_r11_primordialgloves",
+    "name": "原初の手袋",
+    "slot": "hands",
+    "rarity": "c",
+    "desc": "原初の鋼を編んだ手袋。指の自由を残したまま拳を堅く守り、古き力が握った得物の一打に鋭い冴えを加える。"
+  },
+  {
+    "number": 1730,
+    "id": "g_r11_marksmanglove",
+    "name": "流星射手の手袋",
+    "slot": "hands",
+    "rarity": "uc",
+    "desc": "流星を射る射手のためにあつらえた手袋。引き手の震えを完全に抑え込み、狙い澄ました一矢の精度を究極まで高める。"
+  },
+  {
+    "number": 1731,
+    "id": "g_r11_mythrilgauntlet",
+    "name": "神話銀の籠手",
+    "slot": "hands",
+    "rarity": "c",
+    "desc": "神話銀を関節ごとに連ねた籠手。宿る古き力を帯びた拳が、振るう得物の一撃に冴えと究極の重みを上乗せする。"
+  },
+  {
+    "number": 1732,
+    "id": "g_r11_heavenemperorgauntlet",
+    "name": "天帝の籠手",
+    "slot": "hands",
+    "rarity": "uc",
+    "desc": "天帝の証たる黄金の籠手。天威を宿した甲が指先まで包んで握力を損なわず、剣を振る手に絶大な信頼を置かせる。"
+  },
+  {
+    "number": 1733,
+    "id": "s_r11_primordialround",
+    "name": "原初の円盾",
+    "slot": "shield",
+    "rarity": "c",
+    "desc": "原初の鋼を打ち出した円盾。軽く取り回せるのに恐ろしく硬く、古き力を宿した盾面が受けた刃を弾き返す。"
+  },
+  {
+    "number": 1734,
+    "id": "s_r11_heavenemperorshield",
+    "name": "天帝の大盾",
+    "slot": "shield",
+    "rarity": "uc",
+    "desc": "天帝の紋を刻んだ黄金の大盾。構えれば天光の膜が張られ、闇の力をやわらげながら重い一撃を受け止める。"
+  },
+  {
+    "number": 1735,
+    "id": "s_r11_mythrilbuckler",
+    "name": "神話銀のバックラー",
+    "slot": "shield",
+    "rarity": "c",
+    "desc": "神話の時代の銀を打ち延ばしたバックラー。拳に握る軽さながら星光を映す盾面が刃を受け流し、反撃の隙をたやすく生む。"
+  },
+  {
+    "number": 1736,
+    "id": "s_r11_sunhazebuckler",
+    "name": "陽炎の手盾",
+    "slot": "shield",
+    "rarity": "uc",
+    "desc": "天帝の陽光を鍛え込んだ朱金の手盾。揺らめく陽炎が持ち主の輪郭をぼかし、風の刃を焼き払いながら一撃を軽やかに逸らす。"
+  },
+  {
+    "number": 1737,
+    "id": "s_r11_primordialorb",
+    "name": "原初の魔晶",
+    "slot": "shield",
+    "rarity": "c",
+    "desc": "世界の始まりから眠っていたという薄紫の魔晶。太古の魔力が術者の力と共鳴し、攻めの呪文を原初の勢いで膨れ上がらせる。"
+  },
+  {
+    "number": 1738,
+    "id": "s_r11_heavenlightorb",
+    "name": "天帝光の宝珠",
+    "slot": "shield",
+    "rarity": "uc",
+    "desc": "天帝の玉座を照らしたと伝わる黄金の宝珠。内に満ちた天光が術者の魔力を輝かせ、攻撃の術を眩い聖光で貫かせる。"
+  },
+  {
+    "number": 1739,
+    "id": "s_r11_mythprayer",
+    "name": "神話の祈祷書",
+    "slot": "shield",
+    "rarity": "c",
+    "desc": "神話の時代の祈りを集めた古い祈祷書。擦り切れた頁に宿る幾千の祈りが唱える者の声に重なり、癒しの奇跡をひときわ深める。"
+  },
+  {
+    "number": 1740,
+    "id": "s_r11_heavenscripture",
+    "name": "天帝の聖典",
+    "slot": "shield",
+    "rarity": "uc",
+    "desc": "天帝が民に授けた教えを記す黄金装の聖典。掲げれば天光の加護が闇の力を退け、捧げる祈りと癒しを天の高みまで届かせる。"
+  },
+  {
+    "number": 1741,
+    "id": "r_r11_heavenemperorring",
+    "name": "天帝の覇輪",
+    "slot": "acc",
+    "rarity": "c",
+    "desc": "天帝の威を封じた黄金の覇輪。はめた者の体に天帝の覇気が満ち、生命力を大きく底上げして一打に究極の力を与える。"
+  },
+  {
+    "number": 1742,
+    "id": "r_r11_heaventruthorb",
+    "name": "天理の宝珠",
+    "slot": "acc",
+    "rarity": "uc",
+    "desc": "天の理を結晶させた宝珠の護符。巡る魔力を澄ませて蓄えを大きく増やし、唱える攻撃術の冴えを極限まで高める。"
+  },
+  {
+    "number": 1743,
+    "id": "w_r12_grantsword",
+    "name": "神授の長剣",
+    "slot": "weapon",
+    "rarity": "c",
+    "desc": "神より授かったと伝わる神授鋼の長剣。刃が常に温かな光を帯び、振るう者の祈りと技を余さず一閃へ込める。"
+  },
+  {
+    "number": 1744,
+    "id": "w_r12_seraphsword",
+    "name": "熾天の宝剣",
+    "slot": "weapon",
+    "rarity": "uc",
+    "desc": "熾天使が振るったと伝わる宝剣。抜けば刀身が灼けるほどの聖光に燃え立ち、闇に巣食う者を浄化で焼き尽くす。"
+  },
+  {
+    "number": 1745,
+    "id": "w_r12_stigmadagger",
+    "name": "聖痕の短剣",
+    "slot": "weapon",
+    "rarity": "c",
+    "desc": "聖痕の刻まれた銀から鍛えた短剣。神聖な刃が手に吸いつき、穢れた者の急所を音もなく深々と貫き通す。"
+  },
+  {
+    "number": 1746,
+    "id": "w_r12_abyssblade",
+    "name": "奈落の妖刃",
+    "slot": "weapon",
+    "rarity": "uc",
+    "desc": "奈落の底の闇を鍛え込んだ妖刃。刺せば傷口から底なしの暗黒が溢れ、相手の魂ごと生気を奈落へ引きずり込む。"
+  },
+  {
+    "number": 1747,
+    "id": "w_r12_grantkatana",
+    "name": "神授の刀",
+    "slot": "weapon",
+    "rarity": "c",
+    "desc": "神授鋼を折り返して鍛えた刀。刃文に沿って聖光が奔り、抜き打ちの一閃が常の刀より一段深く鋭く伸びる。"
+  },
+  {
+    "number": 1748,
+    "id": "w_r12_godthunderkatana",
+    "name": "神鳴丸",
+    "slot": "weapon",
+    "rarity": "uc",
+    "desc": "神鳴りを宿すと伝わる大振りの太刀。両手で八双に構えれば刃に天の雷が奔り、一閃のたびに轟雷が相手を斬撃ごと打ち据えて痺れさせる。"
+  },
+  {
+    "number": 1749,
+    "id": "w_r12_grantaxe",
+    "name": "神授の戦斧",
+    "slot": "weapon",
+    "rarity": "c",
+    "desc": "神授鋼を鋳た刃を持つ戦斧。神域の力が刃の重みを極限まで増し、振り下ろす一撃が盾の構えごと断ち割る。"
+  },
+  {
+    "number": 1750,
+    "id": "w_r12_crimsonhellaxe",
+    "name": "紅蓮獄の巨斧",
+    "slot": "weapon",
+    "rarity": "uc",
+    "desc": "紅蓮の地獄を宿した巨斧。身の丈ほどもある刃を両手で横なぎに払えば業火の大弧が空を裂き、相手を一切ごと業火の渦へ呑み込む。"
+  },
+  {
+    "number": 1751,
+    "id": "w_r12_seraphhammer",
+    "name": "熾天の戦鎚",
+    "slot": "weapon",
+    "rarity": "c",
+    "desc": "熾天使の祝福を受けた戦鎚。打ち下ろすたびに灼ける聖光が爆ぜ、不浄なる者を浄化の一撃で完全に焼き払う。"
+  },
+  {
+    "number": 1752,
+    "id": "w_r12_riftbreakhammer",
+    "name": "大地裂の鎚",
+    "slot": "weapon",
+    "rarity": "uc",
+    "desc": "大地を引き裂く力を封じた巨槌。両腕で高々と振りかぶって打ち下ろせば地脈が割れるほどの衝撃が走り、相手の構えを岩盤ごと崩し潰す。"
+  },
+  {
+    "number": 1753,
+    "id": "w_r12_grantspear",
+    "name": "神授の槍",
+    "slot": "weapon",
+    "rarity": "c",
+    "desc": "穂先に神授鋼を鍛えた槍。間合いを保ったまま神域の力を乗せた鋭い一突きを送り込み、鎧の継ぎ目を過たず貫く。"
+  },
+  {
+    "number": 1754,
+    "id": "w_r12_iceprisonspear",
+    "name": "氷牢の槍",
+    "slot": "weapon",
+    "rarity": "uc",
+    "desc": "凍てつく氷牢の凍気を宿した長槍。両手で長柄を握り踏み込んで突けば傷口は瞬時に氷の牢と化し、相手の血の巡りも身のこなしも凍て止める。"
+  },
+  {
+    "number": 1755,
+    "id": "w_r12_stigmabow",
+    "name": "聖痕の長弓",
+    "slot": "weapon",
+    "rarity": "c",
+    "desc": "聖痕の刻まれた銀を弓身に張った長弓。神聖な力が矢に鋭い初速を与え、分厚い鎧をも力ずくで射抜いてしまう。"
+  },
+  {
+    "number": 1756,
+    "id": "w_r12_cometbow",
+    "name": "神弓・彗星",
+    "slot": "weapon",
+    "rarity": "uc",
+    "desc": "放つ矢が彗星のごとく天を裂く神の弓。矢は神々しい疾風に乗って加速し、遠間の的を風の刃ごと貫いて射抜く。"
+  },
+  {
+    "number": 1757,
+    "id": "w_r12_stigmastaff",
+    "name": "聖痕の杖",
+    "slot": "weapon",
+    "rarity": "c",
+    "desc": "聖痕を刻んだ神域の術杖。杖身が魔力を澄ませて何倍にも練り上げ、唱える呪文を冴え冴えと強く放つ。"
+  },
+  {
+    "number": 1758,
+    "id": "w_r12_godbloodstaff",
+    "name": "神血の大杖",
+    "slot": "weapon",
+    "rarity": "uc",
+    "desc": "神の血を封じたと伝わる大杖。両手で抱えるほど太い杖身に神血が脈打ち、膨大な魔力を呪文へ注ぎ込んで攻撃術の威力を極限まで引き上げる。"
+  },
+  {
+    "number": 1759,
+    "id": "w_r12_stigmagreatsword",
+    "name": "聖痕銀の大剣",
+    "slot": "weapon",
+    "rarity": "c",
+    "desc": "聖痕を刻んだ銀で鍛えた大剣。両手で正眼に構えると刻印が淡く脈打ち、渾身の一太刀が罪深き者を盾ごと両断する。"
+  },
+  {
+    "number": 1760,
+    "id": "a_r12_grantrobe",
+    "name": "神授のローブ",
+    "slot": "body",
+    "rarity": "c",
+    "desc": "神授の術式を織り込んだ象牙色のローブ。布を巡る膨大な魔力が術者の力を整え、唱える呪文の循環を澄み渡らせる。"
+  },
+  {
+    "number": 1761,
+    "id": "a_r12_godbloodvestment",
+    "name": "神血の法衣",
+    "slot": "body",
+    "rarity": "uc",
+    "desc": "神の血を織り込んだと伝わる荘厳な法衣。布全体が神域の魔力の器となり、まとう者の呪文を極限まで強める。"
+  },
+  {
+    "number": 1762,
+    "id": "a_r12_stigmamail",
+    "name": "聖痕のくさりかたびら",
+    "slot": "body",
+    "rarity": "c",
+    "desc": "聖痕を刻んだ銀の細環で編んだくさりかたびら。神聖な力が鋼をはるかにしのぐ強度を与え、身のこなしを一切損なわない。"
+  },
+  {
+    "number": 1763,
+    "id": "a_r12_darkdragonhide",
+    "name": "闇竜革の鎧",
+    "slot": "body",
+    "rarity": "uc",
+    "desc": "闇竜の革をなめして仕立てた軽鎧。竜の闇の加護が宿り、まとう者を暗い帳が包んで光の刃をやわらかく逸らす。"
+  },
+  {
+    "number": 1764,
+    "id": "a_r12_grantplate",
+    "name": "神授の板金鎧",
+    "slot": "body",
+    "rarity": "c",
+    "desc": "神授鋼を曲面に打ち出した板金鎧。宿した神域の力が刃の勢いを大きく和らげ、重厚な守りに究極の堅牢さを加える。"
+  },
+  {
+    "number": 1765,
+    "id": "a_r12_serapharmor",
+    "name": "熾天の鎧",
+    "slot": "body",
+    "rarity": "uc",
+    "desc": "熾天使の威光を宿したと伝わる黄金の全身鎧。聖光をまとう鎧が、まともな攻撃のすべてを正面から退ける。"
+  },
+  {
+    "number": 1766,
+    "id": "h_r12_grantcrown",
+    "name": "神授の冠",
+    "slot": "head",
+    "rarity": "c",
+    "desc": "神授の宝玉をはめ込んだ象牙色の冠。戴く者の知を極限まで研ぎ澄まし、唱える攻撃術の冴えをくっきりと際立たせる。"
+  },
+  {
+    "number": 1767,
+    "id": "h_r12_seraphcrown",
+    "name": "熾天の宝冠",
+    "slot": "head",
+    "rarity": "uc",
+    "desc": "熾天使の聖句と宝玉を巡らせた黄金の宝冠。戴く者の祈りに魔力を乗せやすくし、癒しの奇跡を大きく強める。"
+  },
+  {
+    "number": 1768,
+    "id": "h_r12_stigmacoif",
+    "name": "聖痕の鎖頭巾",
+    "slot": "head",
+    "rarity": "c",
+    "desc": "聖痕を刻んだ銀で編んだ鎖頭巾。神聖な力を宿して軽いのに首筋まで堅く守り、衝撃を逃がして俊敏さを保つ。"
+  },
+  {
+    "number": 1769,
+    "id": "h_r12_darkdragonhood",
+    "name": "闇竜革の帽子",
+    "slot": "head",
+    "rarity": "uc",
+    "desc": "闇竜の革で仕立てた軽い帽子。竜革のしなやかさと闇の加護が頭上への一撃を暗い帳ごと受け流してしまう。"
+  },
+  {
+    "number": 1770,
+    "id": "h_r12_granthelm",
+    "name": "神授の兜",
+    "slot": "head",
+    "rarity": "c",
+    "desc": "神授鋼を打ち出した堅牢な兜。曲面が打撃をいなし、宿る神域の力が衝撃を散らして頭蓋をまるごと守り抜く。"
+  },
+  {
+    "number": 1771,
+    "id": "h_r12_seraphhelm",
+    "name": "熾天の兜",
+    "slot": "head",
+    "rarity": "uc",
+    "desc": "熾天使の証たる黄金の大兜。聖光をまとう荘厳な前立てが敵を圧し、頭部を鉄壁の守りで包み込む。"
+  },
+  {
+    "number": 1772,
+    "id": "f_r12_grantshoes",
+    "name": "神授の靴",
+    "slot": "feet",
+    "rarity": "c",
+    "desc": "神授の刺繍を施した象牙色の軽い靴。足運びが滑らかになり、術者が陣形を保ったまま静かに動き続けられる。"
+  },
+  {
+    "number": 1773,
+    "id": "f_r12_skyrunshoes",
+    "name": "天駆の靴",
+    "slot": "feet",
+    "rarity": "uc",
+    "desc": "天を駆けるがごとき速さを宿す神域の靴。地を蹴れば体が瞬時に運ばれ、駆け出しの速さと回避の鋭さが究極に達する。"
+  },
+  {
+    "number": 1774,
+    "id": "f_r12_stigmaboots",
+    "name": "聖痕のブーツ",
+    "slot": "feet",
+    "rarity": "c",
+    "desc": "聖痕を刻んだ銀で仕立てたブーツ。軽快なのに頑丈無比で、神聖な力が衝撃を和らげ、罠の刃も瓦礫の縁も寄せつけない。"
+  },
+  {
+    "number": 1775,
+    "id": "f_r12_darkdragonboots",
+    "name": "闇竜革のブーツ",
+    "slot": "feet",
+    "rarity": "uc",
+    "desc": "闇竜の革で仕立てた長靴。しなやかで足になじみ、闇の加護が足取りを支えて悪路でも俊敏さを保たせる。"
+  },
+  {
+    "number": 1776,
+    "id": "f_r12_grantsabaton",
+    "name": "神授の具足",
+    "slot": "feet",
+    "rarity": "c",
+    "desc": "神授鋼で覆う具足。重装の堅い守りに神域の力の支えを兼ね、踏み込みの一歩に揺るぎない安定をもたらす。"
+  },
+  {
+    "number": 1777,
+    "id": "f_r12_seraphgreaves",
+    "name": "熾天の脚甲",
+    "slot": "feet",
+    "rarity": "uc",
+    "desc": "熾天使の威光を示す黄金の脚甲。聖光をまとう脚甲が脚を支え、前線に踏みとどまる足を斬撃も落石も通さず守る。"
+  },
+  {
+    "number": 1778,
+    "id": "g_r12_grantgloves",
+    "name": "神授の手袋",
+    "slot": "hands",
+    "rarity": "c",
+    "desc": "神授の紋を縫い込んだ象牙色の薄手の手袋。指先の感覚を保ちつつ、握った触媒へ膨大な魔力を澄んだまま導く。"
+  },
+  {
+    "number": 1779,
+    "id": "g_r12_seraphgloves",
+    "name": "熾天の宝手袋",
+    "slot": "hands",
+    "rarity": "uc",
+    "desc": "祈りの所作を支える黄金刺繍の宝手袋。掌の聖印が祈祷に魔力を乗せやすくし、癒しの奇跡を大きく後押しする。"
+  },
+  {
+    "number": 1780,
+    "id": "g_r12_stigmagloves",
+    "name": "聖痕の手袋",
+    "slot": "hands",
+    "rarity": "c",
+    "desc": "聖痕を刻んだ銀を編んだ手袋。指の自由を残したまま拳を堅く守り、神聖な力が握った得物の一打に鋭い冴えを加える。"
+  },
+  {
+    "number": 1781,
+    "id": "g_r12_marksmanglove",
+    "name": "彗星射手の手袋",
+    "slot": "hands",
+    "rarity": "uc",
+    "desc": "彗星を射る射手のためにあつらえた手袋。引き手の震えを完全に抑え込み、狙い澄ました一矢の精度を究極まで高める。"
+  },
+  {
+    "number": 1782,
+    "id": "g_r12_grantgauntlet",
+    "name": "神授の籠手",
+    "slot": "hands",
+    "rarity": "c",
+    "desc": "神授鋼を関節ごとに連ねた籠手。宿る神域の力を帯びた拳が、振るう得物の一撃に冴えと究極の重みを上乗せする。"
+  },
+  {
+    "number": 1783,
+    "id": "g_r12_seraphgauntlet",
+    "name": "熾天の籠手",
+    "slot": "hands",
+    "rarity": "uc",
+    "desc": "熾天使の証たる黄金の籠手。聖光をまとう甲が指先まで包んで握力を損なわず、剣を振る手に絶大な信頼を置かせる。"
+  },
+  {
+    "number": 1784,
+    "id": "s_r12_stigmaround",
+    "name": "聖痕の円盾",
+    "slot": "shield",
+    "rarity": "c",
+    "desc": "聖痕を刻んだ銀を打ち出した円盾。軽く取り回せるのに恐ろしく硬く、神聖な盾面が受けた刃を弾き返す。"
+  },
+  {
+    "number": 1785,
+    "id": "s_r12_seraphshield",
+    "name": "熾天の大盾",
+    "slot": "shield",
+    "rarity": "uc",
+    "desc": "熾天使の紋を刻んだ黄金の大盾。構えれば灼ける聖光の膜が張られ、闇の力を退けながら重い一撃を受け止める。"
+  },
+  {
+    "number": 1786,
+    "id": "s_r12_grantbuckler",
+    "name": "神授鋼の小盾",
+    "slot": "shield",
+    "rarity": "c",
+    "desc": "神授鋼を薄く打った小盾。温かな光を帯びた盾面は驚くほど軽く、刃の勢いを殺さず滑らせて身のこなしを少しも妨げない。"
+  },
+  {
+    "number": 1787,
+    "id": "s_r12_iwakurabuckler",
+    "name": "磐座の手盾",
+    "slot": "shield",
+    "rarity": "uc",
+    "desc": "神の降りる磐座から削り出したという石の手盾。見た目に反して軽く、大地の加護が水の力を受け止め、一撃を岩肌で受け流す。"
+  },
+  {
+    "number": 1788,
+    "id": "s_r12_stigmaorb",
+    "name": "聖痕の水晶球",
+    "slot": "shield",
+    "rarity": "c",
+    "desc": "聖痕を刻んだ銀の台に載る水晶球。刻印が術者の掌と響き合って魔力を澄ませ、攻めの呪文の威力をひと回り高める。"
+  },
+  {
+    "number": 1789,
+    "id": "s_r12_seraphflameorb",
+    "name": "熾天炎の宝珠",
+    "slot": "shield",
+    "rarity": "uc",
+    "desc": "熾天使の翼から落ちた炎を封じたと伝わる宝珠。灼ける光が珠を満たし、術者の魔力を燃え立たせて攻撃の術を苛烈に強める。"
+  },
+  {
+    "number": 1790,
+    "id": "s_r12_grantscripture",
+    "name": "神授の経典",
+    "slot": "shield",
+    "rarity": "c",
+    "desc": "神より授かった言葉を記すという白金装の経典。開けば頁が自ら淡く光り、読み上げる祈りを深めて癒しの奇跡を確かなものにする。"
+  },
+  {
+    "number": 1791,
+    "id": "s_r12_seraphscripture",
+    "name": "熾天の聖典",
+    "slot": "shield",
+    "rarity": "uc",
+    "desc": "熾天使の讃歌をつづった聖典。表紙に灼ける聖光が宿って闇の力を退け、捧げる祈りを天上の調べに乗せて癒しを深める。"
+  },
+  {
+    "number": 1792,
+    "id": "r_r12_seraphring",
+    "name": "熾天の覇輪",
+    "slot": "acc",
+    "rarity": "c",
+    "desc": "熾天使の威光を封じた黄金の覇輪。はめた者の体に聖なる覇気が満ち、生命力を大きく底上げして一打に究極の力を与える。"
+  },
+  {
+    "number": 1793,
+    "id": "r_r12_godbloodorb",
+    "name": "神血の宝珠",
+    "slot": "acc",
+    "rarity": "uc",
+    "desc": "神の血を結晶させた紅い宝珠の護符。脈打つ神血が魔力の蓄えを大きく増やし、唱える攻撃術の冴えを極限まで高める。"
+  },
+  {
+    "number": 1794,
+    "id": "w_r13_relicsword",
+    "name": "聖遺の長剣",
+    "slot": "weapon",
+    "rarity": "c",
+    "desc": "聖人の遺骨を鋼に溶かし込んで鍛えた長剣。刃が静かな光を帯び、振るう者の祈りと技を余さず一閃へ込める。"
+  },
+  {
+    "number": 1795,
+    "id": "w_r13_messiahsword",
+    "name": "救世主の剣",
+    "slot": "weapon",
+    "rarity": "uc",
+    "desc": "世を救った聖者が遺したと伝わる聖剣。抜けば刀身がまばゆい救済の光に燃え立ち、闇に巣食う者を浄化で焼き尽くす。"
+  },
+  {
+    "number": 1796,
+    "id": "w_r13_martyrdagger",
+    "name": "殉教の短剣",
+    "slot": "weapon",
+    "rarity": "c",
+    "desc": "殉教者の血を浴びた銀から鍛えた短剣。神聖な刃が手に吸いつき、穢れた者の急所を音もなく深々と貫き通す。"
+  },
+  {
+    "number": 1797,
+    "id": "w_r13_fallenblade",
+    "name": "堕天の妖刃",
+    "slot": "weapon",
+    "rarity": "uc",
+    "desc": "堕ちた天使の羽から鍛えた妖刃。刺せば傷口から堕落の闇が溢れ、相手の魂ごと生気を底なしの淵へ引きずり込む。"
+  },
+  {
+    "number": 1798,
+    "id": "w_r13_relickatana",
+    "name": "聖遺の刀",
+    "slot": "weapon",
+    "rarity": "c",
+    "desc": "聖遺鋼を折り返して鍛えた刀。刃文に沿って清光が奔り、抜き打ちの一閃が常の刀より一段深く鋭く伸びる。"
+  },
+  {
+    "number": 1799,
+    "id": "w_r13_truethunderkatana",
+    "name": "神鳴・真",
+    "slot": "weapon",
+    "rarity": "uc",
+    "desc": "神鳴丸の真打と伝わる大太刀。長い柄を両手で握り込んで抜き放てば刃に真の天雷が奔り、轟雷が相手を斬撃ごと打ち据えて痺れさせる。"
+  },
+  {
+    "number": 1800,
+    "id": "w_r13_relicaxe",
+    "name": "聖遺の戦斧",
+    "slot": "weapon",
+    "rarity": "c",
+    "desc": "聖遺鋼を鋳た刃を持つ戦斧。聖なる力が刃の重みを極限まで増し、振り下ろす一撃が盾の構えごと断ち割る。"
+  }
+]

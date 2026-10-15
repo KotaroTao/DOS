@@ -635,3 +635,9 @@ canvas.tw-vig-hd { image-rendering: auto !important; }
 .player-name-insight:not([hidden]) { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 12px; row-gap: 2px; }
 .player-name-points { white-space: nowrap; }
 .player-name-title { color: #f0d99d; }
+
+/* 職業の魂の入手イラスト。WebP 自体がゆらめく。 */
+.ui-soul-art { position: relative; display: block; width: 176px; height: 176px; }
+.ui-soul-art img { display: block; width: 100%; height: 100%; object-fit: contain; image-rendering: auto; }
+.ui-soul-art > svg { position: absolute; width: 0; height: 0; overflow: hidden; }
+.ui-soul-art canvas.spr { width: 132px; height: 132px; margin: 22px; }
