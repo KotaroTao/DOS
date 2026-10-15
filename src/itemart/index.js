@@ -10,6 +10,7 @@
 // 秘宝 (LR・職業専用・神話級 lv165+) は輪郭の外に淡い燐光をまとう (catalog/defs.js と同じ規則)。
 // 未鑑定の品はジャンルごとの伏せ絵 (unid.js) — sprites.js の差し替え口 (setSpriteResolver) から描き分ける。
 import { collectiblePhoto } from "../collectiblephotos.js";
+import { miscPhoto } from "../miscphotos.js";
 import { themeOf } from "./theme.js";
 import { weaponArt } from "./weapons.js";
 import { armorArt } from "./armor.js";
@@ -78,7 +79,7 @@ export function itemArt(tmpl) {
 export function makeItemSpriteResolver(items) {
   return (spr) => {
     if (!spr || typeof spr !== "object") return null;
-    if (spr.slot === "misc") return collectiblePhoto(spr.id);
+    if (spr.slot === "misc") return collectiblePhoto(spr.id) || miscPhoto(spr);
     if (!spr.slot || !ART_SLOTS.has(spr.slot)) return null;
     if (spr.unidentified) return unidIcon(spr);
     const tmpl = (spr.id && items[spr.id]) || null;

@@ -5,7 +5,7 @@
 - 原画：`master.png`（画像生成による専用イラスト、5列×4行、左上から配列順）
 - 出荷：`art/collectibles/<品ID>.webp`（384×384）
 - 変換：`python3 tools/collectibles/build-61-80.py`
-- 表示：`src/collectiblephotos.js` で読み込み、装備と同じスプライト差し替え口を通す。対象外の収集品は従来の絵を使う。取得失敗・寸法不一致・4秒の時間切れは既存の固有ドット絵に戻る。
+- 表示：`src/collectiblephotos.js` で読み込み、装備と同じスプライト差し替え口を通す。対象外の収集品は既存の描画を維持する（41〜60番のWebPも共存）。取得失敗・寸法不一致・4秒の時間切れは既存の固有ドット絵に戻る。
 - 確認：HTTPサーバー起動後に `node tools/collectibles/verify-61-80.cjs`。20品の表示・描画内容・対象外88品・画像取得失敗時の復帰を検査する。
 - 実描画見本：`game-preview.png`
 
