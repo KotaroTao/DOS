@@ -1,5 +1,8 @@
 """localhost:8000でPCの左右配置とスマホ・タブレットの表示維持を確認する。"""
+from pathlib import Path
 from playwright.sync_api import sync_playwright
+
+Path("work").mkdir(exist_ok=True)
 
 with sync_playwright() as p:
     browser = p.chromium.launch(executable_path='/usr/bin/chromium', args=['--no-sandbox'])
