@@ -112,6 +112,9 @@ const ASSETS = [
   "./art/items/w_r1_rustgreatsword.webp",
   "./art/items/a_r1_clothrobe.webp",
   "./art/items/a_r1_raggedrobe.webp",
+  "./src/ui/soulart.js",
+  "./art/souls/acquisition.webp",
+  "./art/souls/acquisition-still.webp",
   // 制作番号1901〜2000の透過原画。
   "./art/items/w_r15_legendkatana.webp",
   "./art/items/w_r15_heroaxe.webp",
