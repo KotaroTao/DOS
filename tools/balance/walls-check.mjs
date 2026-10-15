@@ -23,7 +23,8 @@ const stepOf = (cfg) => {
   if (i >= 0) return i;
   if (!cfg.side) return 0;
   let s = 0;
-  MAIN.forEach((d, j) => { if (d.lv <= cfg.lv) s = j; });
+  // 第一部の寄り道は、推奨Lv が第二部の本筋を越えても第二部の段を受けない (ws21 は w41 の段)
+  MAIN.forEach((d, j) => { if (d.lv <= cfg.lv && (cfg.layer >= 13 || d.layer < 13)) s = j; });
   return s;
 };
 assert.deepEqual(RAMP_JUMP, { id: "w14", stat: 2, boss: 2, elite: 2 }, "一段強くなるのは第四章の入口 (蘇生・HP1で踏みとどまる技を覚える頃)。主・強敵のHPも同じく");
@@ -86,13 +87,14 @@ assert.deepEqual(strongHpWallOf(at("w38")), { boss: 5, elite: 3 });
 near(wallOf(at("w41")), 10 * 1.5 ** 3);
 near(agiWallOf(at("w41")), 3 * 1.1 ** 3);
 assert.deepEqual(strongHpWallOf(at("w41")), { boss: 5, elite: 3 });
-for (const [id, main] of [["ws20", "w38"], ["ws22", "w39"], ["ws21", "w41"], ["ws7", "w18"], ["ws13", "w35"], ["ws5", "w15"], ["ws4", "w10"], ["ws3", "w01"], ["ws6", "w01"]]) {
+for (const [id, main] of [["ws20", "w38"], ["ws22", "w39"], ["ws21", "w41"], ["ws23", "w42"], ["ws24", "w45"], ["ws7", "w18"], ["ws13", "w35"], ["ws5", "w15"], ["ws4", "w10"], ["ws3", "w01"], ["ws6", "w01"]]) {
   assert.equal(dungeonProgressOf(at(id)), Math.max(0, MAIN.findIndex(d => d.id === main)), id);
 }
 for (let i = 1; i < MAIN.length; i++) {
   const r = dungeonStatMul(MAIN[i]) / dungeonStatMul(MAIN[i - 1]), a = dungeonAgiMul(MAIN[i]) / dungeonAgiMul(MAIN[i - 1]);
-  near(r, i > LEN ? 1.5 : i === JUMP ? 2 * 5 ** (1 / LEN) : 5 ** (1 / LEN));
-  near(a, i <= LEN ? 3 ** (1 / LEN) : 1.1);
+  const p2 = MAIN[i].layer >= 13; // 第二部の本筋は ×1.07 / ×1.03
+  near(r, p2 ? 1.07 : i > LEN ? 1.5 : i === JUMP ? 2 * 5 ** (1 / LEN) : 5 ** (1 / LEN));
+  near(a, p2 ? 1.03 : i <= LEN ? 3 ** (1 / LEN) : 1.1);
 }
 console.log(`段: 第三章 w10 から本筋${LEN}迷宮で第十章の入口 w38 に ×10 (1迷宮 ×${(5 ** (1 / LEN)).toFixed(4)}・第四章の入口 w14 で ×2・素早さ ×${(3 ** (1 / LEN)).toFixed(4)})、第十章の中は ×1.5 / ×1.1、第二部は ×1.07 / ×1.03 と層の段 ×1.25・×1.2。能力ごとに 攻撃 W^(1/3)・HP W^1.3・防御 W。寄り道は推奨Lvの届く本筋の段。無限迷宮は段なし`);
 

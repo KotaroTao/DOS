@@ -679,44 +679,44 @@ const NEW_DEFS = [
   { id: "bs_moldern", name: "宰相モルデン", rank: 10, boss: true, race: "construct", element: "none", artKey: "hd_moldern", soulClass: "sage",
     role: "summoner", summonKey: "bs_echowraith", ability: "dispel", abRate: 0.45, physResist: 50, endure: true, // 隊の加護を払い落とし続け、名を呼んで反響の霊を呼ぶ。木の体は刃を半ば逸らし、一度は倒れない
     desc: "痩せた長身に、宰相の黒い長衣をまとった人業。三百年よりも昔、最初の操霊師に作られた、ただ一つ仕上がった人業だ。青白い顔はいつまでも老いず、細い目と薄い笑みはどこまでも静かで、胸の扉の奥には古い灯がひとつ、小さく揺れている。隊が加護を重ねるたびに手の一振りで払い落とし、低い声で名を呼べば、反響の霊が寄ってくる。長衣の下の木の体は刃を半ば逸らし、致命の一撃を受けても一度は倒れない。" },
-  // -- 第13層「魔導書庫」 (rank 10・闇/魔導。操霊師の術の源) --
+  // -- 第13層「魔導書庫」 (rank 10・闇/魔導。第十一章: 夜明けの町を囲む古い大書庫。眠れなかった雨の魂が古い本にしみこんだ墨・魔導書・言霊の魔物) --
   { id: "bs_grimoirebeast", name: "うごめく魔導書", rank: 10, race: "construct", element: "dark", artKey: "grimoirebeast",
-    multistrike: 2, magResist: 75, barrier: 2, desc: "自らページをめくり、書かれた術を放つ巨大な魔導書。紙の刃を続けざまに飛ばし、魔力は表紙に弾かれる。読み解こうとした者を、片端から己のページにとじ込んでいく。" },
+    multistrike: 2, magResist: 75, barrier: 2, desc: "書庫の古い魔導書に、眠れなかった雨の魂がしみこんで動き出したもの。人の背丈ほどもある革の表紙を羽のように打ち、ひとりでに頁をめくっては、紙の刃を続けざまに二度飛ばす。雨を吸って固まった表紙に呪文はほとんど通らず、はじめの数度は打撃も半ばで受け止める。頁の文字は雨ににじんで、もう誰にも読めない。" },
   { id: "bs_inkhorror", name: "墨の異形", rank: 10, race: "amorph", element: "dark", artKey: "inkhorror",
-    ability: "poison", physResist: 75, lifesteal: 0.3, desc: "こぼれた魔導の墨が意思を得て這い回る異形。触れたものを文字ごと溶かして喰らい、刃を突き立てても墨に沈んで効かない。喰らった知識の分だけ、黒く濃くなる。" },
+    ability: "poison", physResist: 75, lifesteal: 0.3, desc: "書庫の床にこぼれた古い墨に、濁った雨の魂が溶けこんで這い出した黒い塊。触れた本の文字を吸い上げて、白い頁だけを後に残す。墨の毒で隊を蝕み、かみついた傷からは命まで吸い取る。刃を突き立てても墨の中へ沈むばかりで手応えが薄いが、呪文はそのまま通る。雨の日には、ひと回り大きくなる。" },
   { id: "bs_spellwraith", name: "呪文の亡霊", rank: 10, race: "specter", element: "dark", artKey: "spellwraith",
-    ability: "drain", magResist: 75, paralyze: undefined, desc: "唱えられぬまま忘れられた呪文が、霊となって書庫を漂う。生者の魔力と命を吸って自らを保ち、向けられた魔法を呪文ごと打ち消す。意味を失った詠唱を、永遠に呟き続ける。" },
+    ability: "drain", magResist: 75, paralyze: undefined, desc: "書きかけのまま雨にぬれた呪文の頁から、にじみ出た霊。唱え終わらない詠唱を口の中でくり返しながら近づき、宿した魂のLvを少しずつ喰らっていく。向けられた呪文は唱え損じの言葉にほどけて、ほとんど届かない。薄い体は、刃なら切り裂ける。" },
   { id: "bs_runegolem", name: "ルーンの守護者", rank: 10, race: "construct", element: "dark", artKey: "runegolem",
-    magResist: 75, barrier: 2, physResist: 75, desc: "禁書を守るために刻まれた、ルーンの光を放つ石の守護者。刻印が刃も魔も阻み、書庫の奥へ通すまいと立ちはだかる。ルーンを一つずつ消さねば、決して崩れない。" },
+    magResist: 75, barrier: 2, physResist: 75, desc: "書庫を建てた誰かが、書架の番に据えた石の守護者。体じゅうに刻まれた古い文字が淡く光り、刃も呪文も同じように大半を受け流す。はじめの数度は、刻印の光が打撃をさらに半ばで受け止める。主の名も守る理由も忘れたまま、決まった通路を今も行き来している。崩すには、根気よく打ち続けるほかない。" },
   { id: "bs_papermimic", name: "擬書", rank: 10, race: "construct", element: "dark", artKey: "papermimic",
-    ability: "critical", barrier: 2, desc: "ただの本のふりをして棚に紛れ、手に取った者に襲いかかる擬態の魔。紙とは思えぬ鋭さでページの縁が急所を裂く。書庫のどの一冊が擬書なのか、開くまで分からない。" },
+    ability: "critical", barrier: 2, desc: "ありふれた本の顔をして書架に並び、手に取った者に襲いかかる魔物。雨の魂がしみこんだのは、誰にも開かれなかった一冊だという。紙の縁は刃物のように研がれ、急所を狙って深く裂く。表紙を固めて、はじめの数度は打撃を半ばで受け止める。夜明けの町の者は、知らない本を指でつついてから開く。" },
   { id: "bs_eyetome", name: "眼の魔導書", rank: 10, race: "specter", element: "dark", artKey: "eyetome",
-    ability: "paralyze", lifesteal: 0.3, evasive: true, desc: "ページというページに瞳が描かれ、すべてが一斉に見開く呪われた書。その視線を浴びた者は石のように動けなくなり、見られるほど命を吸われる。閉じても、表紙の眼が見ている。" },
+    ability: "paralyze", lifesteal: 0.3, evasive: true, desc: "頁という頁に目が描かれた古い本に、雨の魂が宿ったもの。目が一斉に開くと、見つめられた者は体がこわばって動けなくなる。宙をひらひらと舞って刃をかわし、かみついた傷から命を吸い取る。本を閉じても、表紙の目だけは閉じない。眠れなかった魂は、目を閉じることを忘れてしまったのかもしれない。" },
   { id: "bs_forbiddenspirit", name: "禁書の精", rank: 10, race: "elemental", element: "dark", artKey: "forbiddenspirit",
-    multistrike: 2, magResist: 75, ability: "paralyze", desc: "封印された禁書から漏れ出した、剥き出しの魔力の精。触れれば麻痺し、暴走する術が続けざまに弾ける。封を解いた者の手で、最初にたたる。" },
+    multistrike: 2, magResist: 75, ability: "paralyze", desc: "鎖で封じられた禁書の頁から漏れ出した、むき出しの魔力の精。雨の魂がしみこんで封がゆるみ、閉じこめられていた術が勝手に形をとった。続けざまに二度はじけ、触れた者の手足をしびれさせる。もとが術そのものなので、向けられた呪文はほとんど吸いこんでしまう。封を解こうとした者に、まず牙をむく。" },
   { id: "bs_bookworm", name: "知識喰らいの蟲", rank: 10, race: "insect", element: "dark", artKey: "bookworm",
-    multistrike: 2, lifesteal: 0.3, swift: true, desc: "魔導書の知識を喰らって異常に育った、無数の本の蟲。素早くページを食い破って術を盗み、近づく者の記憶ごとかじり取る。一冊喰らうたび、新たな術を一つ覚える。" },
+    multistrike: 2, lifesteal: 0.3, swift: true, desc: "濡れた本の頁を食べて育った、腕ほどもある本の虫。墨にしみた雨の魂ごと紙を食べるので、腹の中に誰かの言葉がたまっている。すばやく書架を走り、続けざまに二度かみついて、その傷から命を吸い取る。食べた頁の文字が、背中の節に逆さに透けて見える。一匹で、ひと冬の本が消える。" },
   { id: "bs_arcanesentinel", name: "書庫の番兵", rank: 10, race: "construct", element: "dark", artKey: "arcanesentinel",
-    ability: "critical", magResist: 75, barrier: 2, desc: "禁書の間を巡回する、魔力で動く鋼の番兵。光の刃で侵入者の急所を断ち、刻まれた術式が魔法を弾く。書庫の静寂を破る者を、一人も逃さない。" },
+    ability: "critical", magResist: 75, barrier: 2, desc: "書庫が使われていた頃から、閲覧室の入口に立ち続けてきた鋼の番兵。胸の刻印にはまだ古い術が通っていて、呪文はほとんど弾かれる。はじめの数度は刻印の光が打撃を半ばで受け止め、手にした刃は鎧のすき間を狙って急所を断つ。静かにせよと言わんばかりに、音を立てた者から斬りかかる。" },
   { id: "bs_cursescroll", name: "呪いの巻物", rank: 10, race: "specter", element: "dark", artKey: "cursescroll",
-    ability: "weaken", evasive: true, magResist: 75, desc: "読み上げれば災いを呼ぶ、宙に漂う呪いの巻物。広げた文面から呪いを浴びせて力を奪い、丸まって刃をかわす。燃やそうにも、呪いが手に移って離れない。" },
+    ability: "weaken", evasive: true, magResist: 75, desc: "開けば災いを呼ぶと書かれた巻物が、雨の魂を吸って宙に浮いたもの。ひとりでに広がっては呪いの文を読み上げ、聞いた者の力を削ぐ。くるりと丸まって刃をかわし、呪文もほとんど受けつけない。燃やそうとした者の手には、焦げた文字がしばらく消えずに残るという。" },
   { id: "bs_wordwraith", name: "言霊の霊", rank: 10, race: "specter", element: "dark", artKey: "wordwraith",
-    ability: "drain", magResist: 75, evasive: true, desc: "書き記された言葉そのものが霊と化したもの。発せられた言霊が生者の力と命を削り、文字となって揺らめき刃をすり抜ける。聞いてはならぬ真名を、囁き続けている。" },
+    ability: "drain", magResist: 75, evasive: true, desc: "本から書き言葉だけが抜け出して、霊の形をとったもの。眠れなかった魂が、最後に読んだ言葉にすがりついたのだという。耳もとで同じ一文をささやき続け、聞いた者の宿した魂のLvを喰らう。文字の体はゆらめいて刃をすり抜け、呪文もほとんど届かない。ささやく一文は、どの霊も少しずつ違う。" },
   { id: "bs_inkdragon", name: "墨竜", rank: 10, race: "dragon", element: "dark", artKey: "inkdragon",
-    ability: "breath", magResist: 75, multistrike: 2, desc: "こぼれた墨が幾百年を経て竜の形を得たもの。墨のブレスで全体を黒く塗り潰し、その身に魔法は吸われて消える。書庫の最も古い棚の影から、音もなく現れる。" },
+    ability: "breath", magResist: 75, multistrike: 2, desc: "書庫の最も古い棚の影で、こぼれた墨が長い年月をかけて竜の形をとったもの。墨のブレスで前衛も後衛もまとめて黒く塗りつぶし、長い尾と爪で続けざまに二度打つ。体はどこまでも墨なので、呪文はしみこむように吸われて消える。通ったあとの書架は、背表紙の題までまっ黒に塗られている。" },
   { id: "bs_familiarswarm", name: "使い魔の群れ", rank: 10, race: "demon", element: "dark", artKey: "familiarswarm",
-    pack: true, ability: "critical", swift: true, desc: "主を失い、書庫に取り残された無数の使い魔の群れ。素早く飛び回って急所を突き、群れで一斉に襲いかかる。かつての契約者を探して、永遠に書庫をさまよっている。" },
+    pack: true, ability: "critical", swift: true, desc: "書庫が使われていた頃の読み手たちが、本を運ばせていた小さな使い魔の群れ。主がいなくなった後も書架のあいだを飛び回り、雨の魂を吸った今は、近づく者をみな本泥棒と思いこんでいる。必ず群れで現れ、すばやく飛びこんでは急所を突く。かぎ爪に、背表紙の金文字のかけらがこびりついている。" },
   { id: "bs_mindeater", name: "知識を貪る者", rank: 10, race: "specter", element: "dark", artKey: "mindeater",
-    ability: "drain", magResist: 75, lifesteal: 0.3, desc: "禁断の知識を求めるあまり、頭から脳ごと知識を貪る化け物に堕ちた学者の霊。記憶と魔力を吸い上げ、奪うほどに肥大した頭が脈打つ。知りすぎることの、成れの果てだ。" },
+    ability: "drain", magResist: 75, lifesteal: 0.3, desc: "本を読みたいという思いだけを残して濁った魂が、書庫の暗がりで頭ばかり大きくなった姿。読み手の宿した魂のLvを喰らい、かみついた傷から命まで吸い取る。ふくれた頭は脈打ち、呪文をほとんど受けつけない。いくら喰らっても、何を読んだのかは少しも覚えていない。" },
   { id: "bs_glyphhound", name: "呪印の番犬", rank: 10, race: "beast", element: "dark", artKey: "glyphhound",
-    swift: true, pack: true, magResist: 75, desc: "呪印を全身に刻まれ、書庫を守る番犬に作り変えられた獣の群れ。素早く取り囲んで噛みつき、刻印が魔法を弾く。侵入者の魔力の匂いを、決して見失わない。" },
+    swift: true, pack: true, magResist: 75, desc: "書庫を建てた誰かが、全身に呪印を刻んで番に置いた犬の群れ。主の帰りを待つうちに、体は呪印の墨と同じ色に染まった。必ず群れで現れ、すばやく取り囲んではかみつく。刻まれた呪印が、向けられた呪文をほとんど弾く。侵入者の足音を、どの書架の陰からでも聞きつける。" },
   { id: "bs_tomeguardian", name: "禁書の巨像", rank: 10, race: "construct", element: "dark", artKey: "tomeguardian",
-    physResist: 75, magResist: 75, barrier: 2, desc: "最も危険な禁書を抱え込んだまま固まった、本でできた巨像。刃も魔も分厚いページの鎧に阻まれ、抱えた禁書には誰も触れられない。守っているのか、囚われているのか分からない。" },
+    physResist: 75, magResist: 75, barrier: 2, desc: "いちばん危うい禁書を胸に抱えこんだまま、本を積み上げて固まった巨像。書庫の奥に立ち、近づく読み手を大きな腕で払いのける。分厚い頁の鎧は刃も呪文も大半を受け流し、はじめの数度は、さらに半ばで受け止める。抱えた禁書を守っているのか、禁書に縛られているのかは分からない。" },
   { id: "bs_astralwraith", name: "星辰の霊", rank: 10, race: "specter", element: "dark", artKey: "astralwraith",
-    magResist: 75, multistrike: 2, evasive: true, desc: "天文の禁書に封じられた、星の運行を司る霊。星屑の刃で幾度も斬りつけ、星明かりのように掴みどころがない。その身には、見てはならぬ天の理が書き込まれている。" },
+    magResist: 75, multistrike: 2, evasive: true, desc: "古い星図の本に、雨の魂がしみこんで生まれた霊。空の無い地の底で、見たことのない星の並びを頁の上に光らせている。星くずのような刃で続けざまに二度斬りつけ、瞬く光のように刃をかわす。呪文はほとんど通らない。夜明けの町の子どもたちは、この霊を「本の中の夜空」と呼ぶ。" },
   { id: "bs_archivist", name: "大書庫の主", rank: 10, boss: true, race: "undead", element: "dark", artKey: "archivist", soulClass: "sage",
     role: "summoner", summonKey: "bs_grimoirebeast", ability: "drain", magResist: 75, physResist: 75,
-    desc: "操霊師の術のすべてを記し、最初の手記を守り続ける大書庫の主。うごめく魔導書を次々と呼び、生者の命と知識を吸い上げる。最初の操霊師がなぜ救い手から檻の番人に堕ちたか――その答えを、誰にも読ませまいとしている。" },
+    desc: "大書庫の奥の長机に座り続ける、年老いた司書。いつの時代から書庫を守っているのか、夜明けの町の誰も知らない。ひび割れた体のすき間から濁った光がもれ、もう訪れる者の顔を見分けられない。書架からうごめく魔導書を次々と呼び寄せ、近づく者の宿した魂のLvを喰らう。古い体は、刃も呪文も大半を受け流す。読みかけの本を、今も胸に抱えている。" },
   // -- 第14層「屍蝋の回廊」 (rank 10・闇/王家の廟。朽ちぬ亡骸) --
   { id: "bs_wickmummy", name: "屍蝋の王", rank: 10, race: "undead", element: "dark", artKey: "wickmummy",
     ability: "drain", critical: undefined, physResist: 75, enrage: true, desc: "魂を抜かれて腐ることすら許されず、蝋のように固まった歴代の王。乾いた手で生者の命を吸い、王冠の重みのまま立ち上がる。朽ちぬことは、安らぎではなく罰だ。" },
@@ -1038,8 +1038,8 @@ const NEW_DEFS = [
   // -- rank 9 --
   { id: "bs_elderlich", name: "エルダーリッチ", rank: 9, race: "undead", element: "dark", artKey: "skeleton", soulClass: "mage",
     palette: tint(ARTS.skeleton.palette, "#7a4aa0", 0.4),
-    ability: "drain", regen: 0.06, // 宿した魂を喰らい、七つに裂いた魂を依代に蘇る
-    desc: "幾つもの王朝の興亡を骨の玉座から眺めてきた大死霊。触れた者の宿した魂を喰らって己を保ち、魂を七つに裂いて隠したゆえ、砕いても蘇って死がこの者を裁けない。" },
+    ability: "drain", regen: 0.06, // 宿した魂のLvを喰らい、頁をめくるたびに骨を組み直す
+    desc: "書庫が使われていた頃、ここで一生を読み通した学者の亡骸。眠れなかった雨の魂がしみこんで、古いローブのまま書見台の前に起き上がった。近づく者の宿した魂のLvを喰らい、崩された骨も、頁をめくるたびに少しずつ組み直していく。書見台の本は、いつも同じ頁が開いている。" },
   { id: "bs_fallenangel", name: "堕天使", rank: 8, race: "demon", element: "light", artKey: "hd_fallenangel", soulClass: "priest",
     ability: "critical", abRate: 0.45, swift: true, // 素早く舞い降り、祈るような手つきの裁きの一撃で急所を断ち続ける
     desc: "神殿とともに水に沈み、水を吸って重くなった翼の御使い。濡れた髪で顔を伏せたまま素早く舞い降り、逆さに構えた細身の剣を祈るような手つきで振り下ろして、生者の急所を正確に断つ。" },
@@ -1220,7 +1220,7 @@ const NEW_DEFS = [
     desc: "終末の予言書に記された竜。世界の終わりに先立って現れると言われ、前衛後衛もろとも呑む吐息が触れた大地は、二度と命を育まない。" },
   { id: "bs_soulreaper", name: "魂の刈人", rank: 9, race: "specter", element: "dark", artKey: "reaper",
     swift: true, ability: "soulSteal", // 音もなく現れ、鎌で魂を刈り取って逃さない
-    desc: "冥府の正規の従者として魂を刈る役目を持つ上位の霊。迷宮で死を迎えた者には必ず音もなく現れ、鎌の一振りで魂を刈り取って、逃げぬよう懐に包む。" },
+    desc: "書庫の天井の割れ目の下に立ち、しみこんでくる雨の魂を鎌で刈り集める影。自分では、魂が本にしみこむ前に守っているつもりらしい。すばやく音もなく近づいて鎌を振るい、隊の懐の ✦Soul を刈り取っていく。刈り集めた魂は外套の内に包んだまま、どこへも休ませに行かない。" },
   { id: "bs_plaguelich", name: "疫病のリッチ", rank: 10, race: "undead", element: "dark", artKey: "hd_plaguelich", soulClass: "mage", // 第9層 (絵は hd_* の固有原型)
     ability: "dispel", endure: true, // 隊の加護が厚くなるとひび割れた禍言の輪でまとめて断ち切り、宝珠を依代に一度だけ踏みとどまる
     desc: "病を術として究めた術師の死霊。腐った法衣の帯には病の混ぜ薬の小瓶がいくつも下がり、片手には黄緑の膿の詰まった宝珠をかかげる。隊が加護を重ねるほど目を光らせ、膿の宝珠をかざして、まとめて腐らせてしまう。宝珠が割れぬうちは、砕いても一度だけ持ちこたえる。" },
@@ -1242,10 +1242,10 @@ const NEW_DEFS = [
     palette: tint(ARTS.knightmare.palette, "#0a1a2a", 0.6),
     physResist: 100, regen: 0.06, // 不滅の鎧は刃を通さず、削っても再び立ち上がる
     desc: "迷宮の最深部への通路を守り続ける不滅の番人。何千もの挑戦者を退けてきた鎧は刃を通さず、崩しても再び立ち上がる。その鎧には敗者たちの名が刻まれている。" },
-  { id: "bs_cosmicwraith", name: "宇宙の亡霊", rank: 10, race: "specter", element: "dark", artKey: "wraith",
+  { id: "bs_cosmicwraith", name: "とじ目の亡霊", rank: 10, race: "specter", element: "dark", artKey: "wraith",
     palette: tint(ARTS.wraith.palette, "#0a0a2a", 0.7),
-    evasive: true, ability: "soulSteal", // 虚空に紛れて刃をかわし、覗いた者の魂を奪う
-    desc: "星々の間の冷たい虚空から迷い込んだ宇宙的な霊体。虚空に紛れて刃をすり抜け、その目が向いた先の空気は消え、覗き込んだ者は魂ごと宇宙の孤独に溺れる。" },
+    evasive: true, ability: "soulSteal", // 頁のとじ目の暗がりにまぎれて刃をかわし、✦Soul を抜き取る
+    desc: "本と本のすき間、頁のとじ目の暗がりに棲みついた亡霊。雨の魂のうち、どの本にもしみこめなかったものが、闇のすき間に寄り集まったのだという。暗がりにまぎれて刃をすり抜け、隊の懐の ✦Soul を少しずつ抜き取っていく。開いた本の真ん中の影が、ときどきこちらを見ている。" },
   { id: "bs_godslayer", name: "神殺し", rank: 10, race: "humanoid", element: "dark", artKey: "orc", soulClass: "fighter",
     palette: tint(ARTS.orc.palette, "#2a0a0a", 0.6),
     swift: true, ability: "critical", // 神を斬った剣技で先んじ、急所を一刀で断つ
@@ -1795,10 +1795,10 @@ const ELITE_DEFS = [
   { id: "el_stareater", name: "星喰らい", elite: true, rank: 10, race: "demon", element: "dark", artKey: "hd_stareater", // 第10層の強敵。絵は hd_* の固有原型
     ability: "drain", abRate: 0.45, physResist: 75, // 腹まで裂けた大口で近づく者の命を何度も吸い上げ、分厚い闇の皮は刃を呑む
     desc: "塔の外壁にしがみつき、雷雲の切れ間から夜空の星をひとつずつ喰らってきた大悪魔。夜空を切り取ったような黒紫の肌に、のみこんだ星の光が点々と透ける。腹まで裂けた大口へ光の筋が吸いこまれていくように、近づく者の命も何度も吸い上げる。分厚い闇の皮は、突き立てた刃をのみこんでしまう。この塔の上に星が見えないのは、こいつのせいだと言う者もいる。" }, // 第10層
-  { id: "el_voidarchon", name: "虚空の執政官", elite: true, rank: 10, race: "specter", element: "light", artKey: "fogspecter", soulClass: "mage",
+  { id: "el_voidarchon", name: "白紙の執政官", elite: true, rank: 10, race: "specter", element: "light", artKey: "fogspecter", soulClass: "mage",
     palette: tint(ARTS.fogspecter.palette, "#f0f0e8", 0.55),
-    evasive: true, ability: "soulSteal", // 虚空に紛れて刃をかわし、直視した者の存在を奪う
-    desc: "塔の観測室が「何もない場所」を覗いた時、向こう側から歩いてきた執政官。虚空に紛れて刃をかわし、白く輝くその姿を直視した者は、輪郭から順に魂ごと存在を失う。" }, // 第13層
+    evasive: true, ability: "soulSteal", // 白く定まらない輪郭で刃をかわし、✦Soul を白紙のように消す
+    desc: "書庫の文字をすべて消し去ろうとする、まっ白な影。昔、書庫の決まりを定めた執政官の魂が、雨にさらされるうちに名も言葉も洗い流され、白紙だけが残ったのだという。白く光る体は輪郭が定まらず、刃をするりとかわす。触れられた者は、懐の ✦Soul を頁の文字のように消されていく。歩いたあとの本は、どれも白紙に変わっている。" }, // 第13層
   { id: "el_geargod", name: "歯車の神", elite: true, rank: 10, race: "construct", element: "none", artKey: "siegeballista",
     palette: tint(ARTS.siegeballista.palette, "#b8a060", 0.35),
     physResist: 75, ability: "critical", // 噛み合う鋼鉄は刃を通さず、設計図から生命を除去する一撃
@@ -1863,7 +1863,7 @@ const LAYER_ELITE_DEFS = [
     desc: "毒の沼に棲む、小屋ほどもある大蛙の王。頭には、沼に沈んだ兵のさびた兜を潰して重ねた冠をいただく。長い舌を伸ばして獲物を打ち、舌先の粘液に触れた者はしびれて動けなくなる。半ば泥に浸かった体は、傷を負っても泥に潜ればたちまち塞がる。沼の蛙の鳴き声は、すべてこの王をたたえる歌だという。" }, // 第9層
   { id: "el_librarian", name: "禁書の司書長", elite: true, rank: 10, race: "undead", element: "dark", artKey: "pettyrevenant", soulClass: "mage",
     ability: "spell", abRate: 0.45, magResist: 50, // 暗記した呪文を浴びせ続け、乾いた体は呪文を吸う
-    desc: "魔導書庫の禁書の棚を、死してなお守り続ける司書長。許しなく頁を開いた者に、暗記した数千の呪文を浴びせる。乾ききった体は呪文を吸い、頁をめくる音が止むことはない。" }, // 第13層
+    desc: "禁書の棚の鍵束を腰に下げたまま干からびた、昔の司書長の亡骸。眠れなかった雨の魂がしみこんで、今も持ち場の棚を見回っている。許しなく頁を開いた者がいれば、暗記した呪文を隊の全員へ何度も浴びせる。乾ききった体は、向けられた呪文を半ば吸いこんでしまう。鍵束の鳴る音が、近づいてくる合図だ。" }, // 第13層
   { id: "el_moltengiant", name: "熔鉄の巨人", elite: true, rank: 10, race: "giant", element: "fire", artKey: "stormgiant",
     palette: tint(ARTS.stormgiant.palette, "#d8602a", 0.5),
     ability: "breath", endure: true, // 溶鉄の飛沫を浴びせ、固まった体は致命の一撃を一度だけ耐える

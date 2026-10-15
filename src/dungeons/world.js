@@ -992,6 +992,94 @@ const WORLD_DEF = [
     unlock: { all: ["w39", "w40"] },
     hint: "「黒い灯の地底湖」と「名を刻む石窟」の両方を踏破して王に報告し、探索の記録を照らし合わせて大空洞の最奥への道筋を地図に記す",
   },
+  // ---- 第十一章「夜明けの町」(第13層の顔ぶれ) ── 大伽藍の階段の下。人業が自分で選んで暮らす町と、町を囲む古い大書庫 ----
+  //   強さの素は第十章の各迷宮の 0.9倍 (第二部の壁 wallOf が層の入口 ×1.25・本筋ごと ×1.07 を重ねる)。手直しは第十章に倣う (下書き。テスト記録で測る)
+  //   顔ぶれは第13層「魔導書庫」の魔物 (書庫の古い本に、眠れなかった雨の魂がしみこんだもの)。最後の迷宮の主は大書庫の主 (bs_archivist)
+  {
+    id: "w42", lv: 123, lvTo: 126, layer: 13, floors: 10,
+    floorHaz: { fall: "brokenstair", harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
+    power: { 1: 0.0920, 5: 0.0989, 10: 0.1071 },
+    name: "書架の大階段", short: "大階段",
+    about: "大伽藍の奥から、闇の底へまっすぐ降りる長い階段。両の壁には古い書架が彫りこまれ、誰も読まない本が段ごとに並んでいる",
+    bands: [
+      ["bs_bookworm", "bs_inkhorror", "bs_papermimic", "bs_glyphhound", "bs_cursescroll", "bs_familiarswarm"],
+      ["bs_arcanesentinel", "bs_wordwraith", "bs_runegolem"],
+    ],
+    elites: ["el_voidarchon"],
+    trait: {
+      id: "missedstep", name: "踏み外しの段", sym: "⇣", accent: "#c0a080",
+      lines: ["すり減った段は、ところどころ踏み板が抜けている。どの階にも (最下階を除く) 崩れた段が2か所増え、踏めば下の階へ転げ落ちる。", "長い階段に積もった古い頁の気配で、得る ✦Soul は 1.25倍。"],
+      mods: { soulMul: 1.25 },
+      board: "shaft",
+    },
+    tune: { enemyMul: 0.96, deepMul: 0.82, soloMul: 1.00 },
+    unlock: { reported: "w41" },
+    hint: "「底なしの大伽藍」の踏破を王に報告し、モルデンの守っていた階段の下へ降りる道を地図に記す",
+  },
+  {
+    id: "w43", lv: 126, lvTo: 129, layer: 13, floors: 10,
+    floorHaz: { fall: null, harm: "rainsoak" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
+    power: { 1: 0.0897, 5: 0.0968, 10: 0.1048 },
+    name: "雨垂れの書庫", short: "雨垂れの書庫",
+    about: "町の上に広がる書庫の翼。岩の割れ目から雨がしみこみ、濡れた本の頁に、眠れなかった魂がにじんでいる",
+    bands: [
+      ["bs_inkhorror", "bs_spellwraith", "bs_wordwraith", "bs_bookworm", "bs_eyetome", "bs_mindeater"],
+      ["bs_inkdragon", "bs_soulreaper", "bs_grimoirebeast"],
+    ],
+    elites: ["el_librarian"],
+    trait: {
+      id: "soakingrain", name: "しみこむ雨", sym: "☂", accent: "#8aa4c8",
+      lines: ["しみこむ雨は、魔物の傷も隊の傷も等しく洗う。魔物は毎ターン最大HPの4%を回復する。", "雨に洗われて、勝てば隊の全員のHPが最大の8%戻る。"],
+      foeRegen: 0.04,
+      victoryHeal: 0.08,
+    },
+    tune: { enemyMul: 0.96, deepMul: 0.82, soloMul: 1.00 }, // 再生する分だけ控えめ
+    unlock: { story: "w42_dawn" },
+    hint: "「書架の大階段」の底に、何かがあるという",
+  },
+  {
+    id: "w44", lv: 129, lvTo: 132, layer: 13, floors: 10,
+    floorHaz: { fall: null, harm: "cullet" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
+    power: { 1: 0.0887, 5: 0.0956, 10: 0.1037 },
+    name: "眠り灯の工房", short: "工房",
+    about: "書庫の奥に残る、古い硝子の工房。昔はここで、魂を眠らせる灯籠が吹かれていた。冷えた炉のひとつに、新しい火が入っている",
+    bands: [
+      ["bs_runegolem", "bs_arcanesentinel", "bs_forbiddenspirit", "bs_familiarswarm", "bs_glyphhound", "bs_astralwraith"],
+      ["bs_tomeguardian", "bs_cosmicwraith", "bs_elderlich"],
+    ],
+    elites: ["el_voidarchon"],
+    trait: {
+      id: "embersforge", name: "熾火の炉", sym: "♨", accent: "#e0a060",
+      lines: ["炉の熾火が、工房の空気を焼いている。戦闘が始まるたび、隊のHPが最大の5%減る (HP1 より下にはならない)。", "吹き損じの硝子に混じった古い銭で、得る金貨は 1.35倍。"],
+      mods: { goldMul: 1.35 },
+      hpDrain: 0.05, say: "炉の熾火の熱が肌を焼いた",
+    },
+    tune: { enemyMul: 0.95, deepMul: 0.84, soloMul: 1.05 },
+    unlock: { reported: "w42" },
+    hint: "「書架の大階段」の踏破を王に報告し、書庫の奥の工房へ続く道を地図に記す",
+  },
+  {
+    id: "w45", lv: 132, lvTo: 136, layer: 13, floors: 15,
+    floorHaz: { fall: "stackfall", harm: "inkpool" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
+    power: { 1: 0.0866, 5: 0.0907, 10: 0.0953, 15: 0.0995 },
+    name: "大書庫", short: "大書庫",
+    about: "町の下に広がる、果ての見えない書庫の本体。天井まで届く書架のあいだを、墨と頁の魔物がさまよう。いちばん下に、さらに下へ降りる扉があるという",
+    bands: [
+      ["bs_grimoirebeast", "bs_eyetome", "bs_spellwraith", "bs_mindeater", "bs_papermimic", "bs_cursescroll"],
+      ["bs_tomeguardian", "bs_astralwraith", "bs_forbiddenspirit"],
+      ["bs_inkdragon", "bs_elderlich", "bs_soulreaper"],
+    ],
+    elites: ["el_voidarchon", "el_librarian"],
+    trait: {
+      id: "nolender", name: "読み手を逃さぬ書庫", sym: "✎", accent: "#9a88c0",
+      lines: ["書庫は、一度入った読み手を頁の途中で帰さない。この迷宮の戦闘からは逃げられない。", "書架に眠る古い魂の気配が濃く、得る ✦Soul は 1.4倍。"],
+      mods: { noFlee: true, soulMul: 1.4 },
+    },
+    boss: LAYER_BOSS[12], bossRank: 10,
+    tune: { enemyMul: 0.96, deepMul: 0.88, soloMul: 1.10, bossMul: 0.85 },
+    unlock: { all: ["w43", "w44"] },
+    hint: "「雨垂れの書庫」と「眠り灯の工房」の両方を踏破して王に報告し、探索の記録を照らし合わせて大書庫への道筋を地図に記す",
+  },
   // ---- 依頼の迷宮 (酒場の固定クエストを受けると地図に現れる) ----
   {
     id: "ws1", lv: 20, lvTo: 23, layer: 2, floors: 10, side: true,
@@ -1475,6 +1563,53 @@ const WORLD_DEF = [
     unlock: { quest: "fq_gemcutter" },
     hint: "酒場の石細工の店主の依頼「くもらない石」を受けると、道が示される",
   },
+  // ---- 第十一章の寄り道 ----
+  {
+    id: "ws23", lv: 125, lvTo: 129, layer: 13, floors: 10, side: true,
+    floorHaz: { fall: null, harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js) — 子どものための閲覧室には仕掛けを置かない
+    power: { 1: 0.0900, 5: 0.0965, 10: 0.1040 },
+    name: "絵本の閲覧室", short: "閲覧室",
+    about: "夜明けの町の外れ、鉄の扉の向こうの古い閲覧室。低い書架には絵の多い本が並び、小さな椅子がいくつも置き去りにされている",
+    bands: [
+      ["bs_bookworm", "bs_papermimic", "bs_familiarswarm", "bs_glyphhound", "bs_cursescroll", "bs_eyetome"],
+      ["bs_wordwraith", "bs_grimoirebeast", "bs_astralwraith"],
+    ],
+    elites: ["el_voidarchon"],
+    trait: {
+      id: "readaloud", name: "読み聞かせの声", sym: "♪", accent: "#c8b8e0",
+      lines: ["誰もいない閲覧室に、本を読み聞かせる古い声が残っている。戦闘が始まるたび、隊の一人が 40% で子守歌のような声に誘われて眠る (眠りの抵抗で防げる)。", "小さな読み手のために隠された宝箱は、1ランク上等。"],
+      mods: { chestRankUp: 1 },
+      lull: 0.4, say: "読み聞かせの声が、子守歌のように耳に届く",
+    },
+    tune: { enemyMul: 0.96, deepMul: 0.84, soloMul: 1.00 },
+    unlock: { quest: "fq_picturebook" },
+    hint: "酒場の子守りの人業の依頼「小さな読み手の部屋」を受けると、道が示される",
+  },
+  {
+    // 格上の迷宮: 第十一章 (隊は Lv125〜135) で開くが、推奨Lv は 150〜154。第13層の魔物を、層の約1.4倍の強さに引き上げた。
+    // 強い掟「閉架」(帰還魔法陣も帰還の鈴も無い — 最下階の主を討つか全滅するまで出られない) は格上の迷宮だけの掟
+    id: "ws24", lv: 150, lvTo: 154, layer: 13, floors: 15, side: true, challenge: true,
+    floorHaz: { fall: null, harm: "inkpool" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
+    power: { 1: 0.124, 5: 0.130, 15: 0.137 },
+    name: "閉架の書庫", short: "閉架",
+    about: "大書庫の脇に、鍵で閉ざされた書架の迷路がある。読み手を選ぶ本ばかりを集めた閉架で、入った者は奥まで読み終えなければ外へ出られない",
+    bands: [
+      ["bs_tomeguardian", "bs_runegolem", "bs_forbiddenspirit", "bs_mindeater", "bs_spellwraith", "bs_cosmicwraith"],
+      ["bs_inkdragon", "bs_elderlich", "bs_arcanesentinel"],
+      ["bs_soulreaper", "bs_inkhorror", "bs_grimoirebeast"],
+    ],
+    boss: "bs_tomeguardian", bossRank: 10, // B15Fで禁書の巨像を主の規格で出す
+    elites: ["el_librarian"],
+    trait: {
+      id: "closedstacks", name: "閉架", sym: "⊘", accent: "#a088c8",
+      lines: ["閉架に帰還魔法陣は無く、帰還の鈴も鳴らない。B15Fの主・禁書の巨像を討つか全滅するまで、外へは出られない。", "読み手を選ぶ本の知恵が魂を育て、得る ✦Soul は 1.3倍。落ちている装備の質も上がる。"],
+      mods: { soulMul: 1.3, lootBonusLv: 4 },
+      sealedGate: true,
+    },
+    tune: { enemyMul: 1.00, deepMul: 0.84, soloMul: 1.05 },
+    unlock: { quest: "fq_closedstacks" },
+    hint: "酒場の書き写し屋の人業の依頼「閉架の綴じ本」を受けると、道が示される",
+  },
   {
     id: "w00_forest", name: "近くの森の古屋", short: "森の古屋",
     lv: 1, lvTo: 1, layer: 1, floors: 3, side: true, tutorial: true,
@@ -1720,7 +1855,11 @@ export function dungeonProgressOf(cfg) {
   if (index >= 0) return index;
   if (!cfg.side) return 0; // 第二章までの本筋・台帳外の素体には段を掛けない
   let step = 0;
-  for (let i = 0; i < PROGRESS_DUNGEONS.length; i++) if (PROGRESS_DUNGEONS[i].lv <= cfg.lv) step = i;
+  // 第一部の寄り道 (格上の迷宮を含む) は、推奨Lv が第二部の本筋を越えても第二部の伸びを受けない (化石竜の墓所 ws21 は w41 の段のまま)
+  for (let i = 0; i < PROGRESS_DUNGEONS.length; i++) {
+    const d = PROGRESS_DUNGEONS[i];
+    if (d.lv <= cfg.lv && (cfg.layer >= PART2_LAYER || d.layer < PART2_LAYER)) step = i;
+  }
   return step;
 }
 // 段ごとの倍率: 第十章の入口まで等比で base に届き (jump があれば JUMP_AT の段で ×jump、その分だけ前後の伸びを緩める)、

@@ -238,6 +238,9 @@ const UNKNOWN_NAME = {
   el_tunnelking: "灯籠の冠の大男",
   bs_cavernlord: "山のような獣の影",
   bs_moldern: "黒い長衣の人影",
+  // 第十一章 (第13層): 鋼や本の巨体を「宙に浮く書」と呼ばない
+  bs_arcanesentinel: "書架のあいだを歩く鋼",
+  bs_tomeguardian: "本を積み上げた巨体",
 };
 
 // 画面に出すときの不確定名: 正式な名と見分けがつくよう末尾に「？」を添える (「羽ばたく小さなもの？」)。
