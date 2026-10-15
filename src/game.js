@@ -1,3 +1,4 @@
+import * as formations from "./formations.js";
 import { insightTotals, insightTitle } from "./insight.js";
 import { INF_BUY_CAP, infRecovery, infUseCount, infSupplyLeft, infSpendSupply } from "./infsupplies.js";
 import { random, fxRandom, bindRngState, rngState } from "./rng.js";
@@ -14,7 +15,7 @@ import { STAGED, effectStage, stageOf, stageMul, stageLabel, isBattleLong, ENEMY
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
 import { spriteCanvas, crispCanvas, drawPhoto, photoReady, whenPhoto, setSpriteResolver } from "./sprites.js";
 import { makeItemSpriteResolver } from "./itemart/index.js";
-import {
+import { bagCount, isFormationItem,
   ITEMS, SLOTS, SLOT_LABEL, MAX_ITEMS, shareInventory, setBagSource, bagOwners, equip as equipItem, unequip as unequipItem, canEquip, canOffhand, slotKeyFor, lvToRank, RANGE_LABEL, HAND_LABEL, weaponRange, SHIELD_KIND_LABEL, shieldKind,
   registerEquipLevel, equipLevelOf, equipLvShort, equipFailMsg, registerAffixes,
   UNIDENT_SLOTS, itemName, applyForge, hasQuality, applyQuality, rollQuality, qualityMatters, itemAtQuality, QUALITY_MID, useWhere, useTarget, useHelps, useLines, useCureKinds, compareUse,
@@ -516,6 +517,7 @@ const G = {
   stabilityBriefed: false, // 魂の安定度の門衛説明を表示済みか
   dungeonBriefed: false, // 初回出撃時の警備兵の注意事項を表示済みか
   pendingDoll: null,  // (旧形式) 未生成の人業。現在は「空の人業」(isEmpty) として reserve に残る (ロード時に移行)
+  formations: [],     // 編成1〜10 (装備は実物への共有参照)
   inventory: [],      // 隊と控えで共有する持ち物 (最大50個、装備中の品は含めない)
   party: [],          // 迷宮に連れて行く人業 (最大6体)
   reserve: [],        // 酒場で待機中の人業
@@ -1217,7 +1219,7 @@ function infReturn() {
 function infSupplyStatus() { return { held: infUseCount(G.inventory), left: infSupplyLeft(G.abyss, G.floor), limit: INF_BUY_CAP }; }
 function infBuyBlock(id) {
   if (INF_RECOVERY(ITEMS[id]?.use) && infSupplyLeft(G.abyss, G.floor) < 1) return "この階の回復・蘇生の補給は使い切った";
-  if (G.inventory.length >= MAX_ITEMS) return "持ち物がいっぱいだ";
+  if (bagCount(G.inventory) >= MAX_ITEMS) return "持ち物がいっぱいだ";
   return null;
 }
 function infTraderWares() {
@@ -1233,8 +1235,8 @@ function infBuy(id, who) {
   if (block) { SFX.ng(); showToast(block, { tone: "bad" }); return null; }
   const price = buyPrice(ITEMS[id]);
   if (G.gold < price) { SFX.ng(); showToast("金貨が足りない", { tone: "bad" }); return null; }
-  if (!who) who = G.party.find((m) => m.items.length < MAX_ITEMS) || null;
-  if (!who || who.items.length >= MAX_ITEMS) { SFX.ng(); showToast("持ち物がいっぱいだ", { tone: "bad" }); return null; }
+  if (!who) who = G.party.find((m) => bagCount(m.items) < MAX_ITEMS) || null;
+  if (!who || bagCount(who.items) >= MAX_ITEMS) { SFX.ng(); showToast("持ち物がいっぱいだ", { tone: "bad" }); return null; }
   const it = cloneItem(id, QUALITY_MID);
   if (!it) return null;
   if (INF_RECOVERY(ITEMS[id].use)) infSpendSupply(G.abyss, G.floor, 1);
@@ -7720,8 +7722,8 @@ function investigateCorpse(cell, clsKey, clsLabel) {
 
   // 20%: 傍らに遺された装備品 (渡せなければ金品にフォールバック)
   const id = pickLoot();
-  const who = G.party.find((p) => p.alive && p.items.length < MAX_ITEMS)
-    || G.party.find((p) => p.items.length < MAX_ITEMS);
+  const who = G.party.find((p) => p.alive && bagCount(p.items) < MAX_ITEMS)
+    || G.party.find((p) => bagCount(p.items) < MAX_ITEMS);
   if (who && ITEMS[id]) {
     const it = cloneItem(id);
     markDungeonLoot(it);
@@ -8473,8 +8475,8 @@ function giveDropsFromChest(drops, i, done, sink = boardSink()) {
   if (i >= drops.length) { done(); return; }
   const d = drops[i];
   const next = () => giveDropsFromChest(drops, i + 1, done, sink);
-  const who = G.party.find((p) => p.alive && p.items.length < MAX_ITEMS)
-    || G.party.find((p) => p.items.length < MAX_ITEMS);
+  const who = G.party.find((p) => p.alive && bagCount(p.items) < MAX_ITEMS)
+    || G.party.find((p) => bagCount(p.items) < MAX_ITEMS);
   if (!who) {
     // 持ち物がいっぱい: 袋の品を1つ捨てて入れるか、置いていく (docs/infinite-labyrinth.md 18章)
     markDungeonLoot(d.item);
@@ -10810,7 +10812,7 @@ function swapBlock(actor, it) {
       key === "shield" && actor.equip.weapon && actor.equip.weapon.twoHanded ? actor.equip.weapon : null].find((x) => autoEquip.isPinned(x));
     return pin && !pin.cursed ? `${pin.name}はロック中` : "呪われた装備が外れない";
   }
-  if (actor.items.length - 1 + tr.displaced.length > MAX_ITEMS) return "持ち物がいっぱいで外した品を入れられない";
+  if (bagCount(actor.items) - (isFormationItem(it) ? 0 : 1) + bagCount(tr.displaced) > MAX_ITEMS) return "持ち物がいっぱいで外した品を入れられない";
   return null;
 }
 // 盾を付けた時に変わる能力 (大きい順に2つまで)
@@ -12419,9 +12421,21 @@ const FAC_SHELL = {
 function allDolls() { shareInventory(G); return [...G.party, ...G.reserve]; }
 setBagSource(() => G.inventory);
 
+function formationOptions() { return { subSlots: unlockedSubSlots(), soulChange: featureUnlocked("soulChange") }; }
+function formationAction(action, ...args) {
+  const r = formations[action](G, ...args);
+  if (r.ok) { autosave(true); renderTown(); }
+  return r;
+}
+const saveFormation = (...args) => formationAction("saveFormation", ...args);
+const renameFormation = (...args) => formationAction("renameFormation", ...args);
+const checkFormation = index => formations.planFormation(G, index, formationOptions());
+const applyFormation = index => formationAction("applyFormation", index, formationOptions());
+
 // 街を描き直す (名前と約225の呼び出し元はそのまま)。中身の描き替え・スクロール位置の保持・
 // タブバーの点灯・遷移の演出は街シェル (townshell.refresh) が受け持つ
 function renderTown() {
+  formations.syncFormationItems(G);
   // 迷宮の中 (無限迷宮の風だまりで魂を鍛えた・品を売った時など) は街を描かず、見出しと隊の札だけ描き直す
   if (inDungeon()) { updateTopbar(); renderParty(); autosave(); return; }
   const then = G.town && G.town.facility ? takeLegacyEntry() : null; // 旧来の入口は新しいタブ/ページへ付け替えてから描く
@@ -12850,12 +12864,12 @@ function equipSoulToSlot(d, uid, slotId = "primary", done = null) {
   if (isNewEquip && newMain && d.primary !== newMain.uid) {
     const bad = unequippableUnder(d, newMain);
     if (bad.length) {
-      const free = MAX_ITEMS - d.items.length;
+      const free = MAX_ITEMS - bagCount(d.items);
       const names = bad.map((b) => {
         const need = equipLevelOf(b.item);
         return `・${b.item.name}（${SLOT_LABEL[b.key] || b.key}${(newMain.level || 1) < need ? `・Lv${need}から` : ""}）`;
       });
-      if (bad.length > free) {
+      if (bagCount(bad.map(b => b.item)) > free) {
         // 外した装備を持ち物に入れる空きが足りない → 付け替えを中止
         SFX.ng();
         showEvent({
@@ -13635,14 +13649,14 @@ function rewardRows(r, jobs = []) {
 function rewardItemsRoom(r) {
   let need = 0;
   for (const [id, n] of (r.items || [])) if (ITEMS[id]) need += n;
-  const room = Math.max(0, MAX_ITEMS - G.inventory.length);
+  const room = Math.max(0, MAX_ITEMS - bagCount(G.inventory));
   return room - need;
 }
 function grantRewardItems(r) {
   for (const [id, n] of (r.items || [])) {
     for (let k = 0; k < n; k++) {
       const it = cloneItem(id);
-      const who = it && allDolls().find((d) => (d.items || []).length < MAX_ITEMS);
+      const who = it && allDolls().find((d) => bagCount(d.items) < MAX_ITEMS);
       if (!who) break;
       who.items.push(it);
       codexSeeItem(id, it);
@@ -15131,7 +15145,7 @@ function donateCollectible(doll, it) {
 
 // 褒賞の品を渡す人業 (品の持ち主の職 → 隊の生きている者 → 隊 → 控え。袋に空きのある者)
 function treasuryReceiver(forJob) {
-  const room = (d) => (d.items || []).length < MAX_ITEMS;
+  const room = (d) => bagCount(d.items) < MAX_ITEMS;
   return (forJob && G.party.find((m) => m.clsKey === forJob && room(m)))
     || G.party.find((p) => p.alive && room(p))
     || G.party.find((p) => !p.isEmpty && room(p))
@@ -15802,8 +15816,8 @@ function buyAffixed(id, who) {
   if (!it) { SFX.ng(); return null; }
   const price = buyPrice(it);
   if (G.gold < price) { log("お金が足りない。", "sys"); SFX.ng(); return null; }
-  if (!who) who = G.party.find((m) => m.alive && m.items.length < MAX_ITEMS) || null;
-  if (!who || who.items.length >= MAX_ITEMS) { SFX.ng(); showToast("持ち物がいっぱいだ", { tone: "bad" }); return null; }
+  if (!who) who = G.party.find((m) => m.alive && bagCount(m.items) < MAX_ITEMS) || null;
+  if (!who || bagCount(who.items) >= MAX_ITEMS) { SFX.ng(); showToast("持ち物がいっぱいだ", { tone: "bad" }); return null; }
   G.gold -= price;
   G.shopStock[id]--;
   delete G.shopAfx[id];
@@ -15884,12 +15898,14 @@ function sellWarnings(it) {
 // まとめて売るから外す品: 未奉納の収集品とレジェンドレア (2026-10 ユーザーの指示: SR はまとめて売るに含める。
 // 一点ずつの「売る」では sellWarnings が SR にも警告を出す)
 function bulkSellBlocked(it) {
+  if (isFormationItem(it)) return true;
   if (!it) return true;
   if (it.slot === "misc" && it.id && !treasuryState().donated[it.id]) return true;
   return rarityKey(it) === "lr";
 }
 
 function sellItem(owner, it, price, afxKeep = null, quiet = false) {
+  if (isFormationItem(it)) { showToast("保存編成に登録した装備は売れません", { tone: "info" }); return false; }
   const idx = owner.items.indexOf(it);
   if (idx < 0) return false;
   if (it.locked) { SFX.ng(); showToast(`${it.name}はロック中 ― 売るにはロックを外す`, { tone: "info" }); return false; }
@@ -15918,9 +15934,9 @@ function buyItem(id, price, who) {
   price = buyPrice(ITEMS[id]);
   if (G.gold < price) { log("お金が足りない。", "sys"); SFX.ng(); return null; }
   if (shopPlainStock(id) <= 0) { log("在庫切れだ。", "sys"); SFX.ng(); return null; } // 追加つきの1点は buyAffixed で
-  if (!who) who = G.party.find((m) => m.alive && m.items.length < MAX_ITEMS) || null;
+  if (!who) who = G.party.find((m) => m.alive && bagCount(m.items) < MAX_ITEMS) || null;
   if (!who || !who.alive) { log("取引する人業を選ぼう。", "sys"); SFX.ng(); return null; }
-  if (who.items.length >= MAX_ITEMS) { log(`${who.name} の所持品がいっぱいだ。`, "sys"); SFX.ng(); return null; }
+  if (bagCount(who.items) >= MAX_ITEMS) { log(`${who.name} の所持品がいっぱいだ。`, "sys"); SFX.ng(); return null; }
   const it = cloneItem(id, QUALITY_MID); // 商会の棚の品は並品 (品質50)。売った品も並品として棚に戻る
   if (!it) return null;
   G.gold -= price;
@@ -17217,7 +17233,7 @@ function equipAt(p, it, slotKey, owner = p, stashTo = null) {
     return { ok: false, msg: pin && !pin.cursed ? `${pin.name}はロック中 ― ロックを外すと付け替えられる` : "呪われた装備が外れない" };
   }
   const bag = stashTo || p;
-  const bagAfter = bag.items.length - (owner.items === bag.items ? 1 : 0) + tr.displaced.length;
+  const bagAfter = bagCount(bag.items) - (owner.items === bag.items && !isFormationItem(it) ? 1 : 0) + bagCount(tr.displaced);
   if (bagAfter > MAX_ITEMS) return { ok: false, full: true, msg: "隊の持ち物がいっぱいで、外した装備を入れられない" };
   const i = owner.items.indexOf(it);
   if (i < 0) return { ok: false, msg: "" };
@@ -17249,7 +17265,7 @@ function equipFromWearer(p, it, slotKey, wearer) {
   // 外れるこちらの装備を仲間が付けられるなら、空いた部位へ付けて交換にする (付けられなければ仲間の部位は空き、こちらの袋へ)
   const back = autoEquip.swapBackFor(wearer, wk, tr.displaced, canEquip);
   const toBag = tr.displaced.filter((x) => x !== back);
-  if (p.items.length + toBag.length > MAX_ITEMS) return { ok: false, full: true, msg: "隊の持ち物がいっぱいで、外した装備を入れられない" };
+  if (bagCount(p.items) + bagCount(toBag) > MAX_ITEMS) return { ok: false, full: true, msg: "隊の持ち物がいっぱいで、外した装備を入れられない" };
   wearer.equip[wk] = back || null;
   recalcDoll(wearer);
   wearer.hp = Math.min(wearer.hp, wearer.maxhp); wearer.mp = Math.min(wearer.mp, wearer.maxmp);
@@ -17290,7 +17306,7 @@ function toggleItemLock(it) {
 function doUnequip(p, key) {
   // 袋がいっぱい: 袋の品を1つ捨てて空けてから外す (docs/infinite-labyrinth.md 18章)
   const cur = p && p.equip && p.equip[key];
-  if (cur && !cur.cursed && !cur.locked && p.items.length >= MAX_ITEMS && UI.openDiscard) {
+  if (cur && !cur.cursed && !cur.locked && !isFormationItem(cur) && bagCount(p.items) >= MAX_ITEMS && UI.openDiscard) {
     askRoomFor(cur, (who) => { if (who) doUnequip(p, key); }, [p], {
       title: `${itemName(cur)} を外すには、${p.name}の袋の品を1つ捨てる`, skipLabel: "やめる", incomingSub: "外す装備",
       lines: [`${p.name}の持ち物がいっぱいだ。袋の品を1つ捨てると、外した装備がその空きに入る。捨てた品は二度と戻らない。ロックした品は出ない。`] });
@@ -17393,6 +17409,7 @@ function useItemMeasured(p, index, target) {
 function dropItem(p, index) {
   const it = p.items[index];
   if (!it || G.state === "town") return;
+  if (isFormationItem(it)) { showToast("保存編成に登録した装備は捨てられません", { tone: "info" }); return; }
   if (it.locked) { SFX.ng(); showToast(`${it.name}はロック中 ― 捨てるにはロックを外す`, { tone: "info" }); return; }
   showConfirm({
     title: `${it.name} を捨てる？`,
@@ -17400,7 +17417,7 @@ function dropItem(p, index) {
     okLabel: "捨てる",
     onOk: () => {
       const i = p.items.indexOf(it);
-      if (i >= 0) { p.items.splice(i, 1); infSupplyRecord("discarded", it.id); }
+      if (i >= 0 && !isFormationItem(it)) { p.items.splice(i, 1); infSupplyRecord("discarded", it.id); } else return;
       log(`${it.name}を捨てた`, "sys");
       showToast(`${it.name}を捨てた`, { noLog: true, tone: "info" });
       renderStatus();
@@ -17413,7 +17430,7 @@ function moveItem(from, it, to) {
   if (!from || !to || from === to || from.items === to.items) return false;
   const i = from.items.indexOf(it);
   if (i < 0) return false;
-  if (to.items.length >= MAX_ITEMS) { SFX.ng(); showToast(`${to.name}の持ち物はいっぱいだ`, { tone: "bad" }); return false; }
+  if (bagCount(to.items) >= MAX_ITEMS) { SFX.ng(); showToast(`${to.name}の持ち物はいっぱいだ`, { tone: "bad" }); return false; }
   from.items.splice(i, 1);
   to.items.push(it);
   log(`${it.name} を ${from.name} → ${to.name} に渡した`, "win");
@@ -17459,7 +17476,7 @@ function markDungeonLoot(it) {
 // 持ち物がいっぱいの時 (docs/infinite-labyrinth.md 18章。本編・無限迷宮とも): 袋の品を1つ選んで捨てる画面 (ui/discard.js)。
 // ロックした品は候補に出さない。dropFromBag = 選んだ品を捨てる / askRoomFor = 入れたい品のために空きを作り、空いた人業を cb へ (置いていけば null)
 function dropFromBag(owner, it) {
-  if (!owner || !it || it.locked) return false;
+  if (!owner || !it || it.locked || isFormationItem(it)) return false;
   const i = (owner.items || []).indexOf(it);
   if (i < 0) return false;
   owner.items.splice(i, 1); infSupplyRecord("discarded", it.id);
@@ -17468,20 +17485,20 @@ function dropFromBag(owner, it) {
   return true;
 }
 function askRoomFor(it, cb, members = G.party, opts = {}) {
-  const free = (members || []).find((m) => m.items.length < MAX_ITEMS);
+  const free = (members || []).find((m) => bagCount(m.items) < MAX_ITEMS);
   if (free) { cb(free); return; }
-  if (!UI.openDiscard || !(members || []).some((m) => (m.items || []).some((x) => x && !x.locked))) { cb(null); return; }
+  if (!UI.openDiscard || !(members || []).some((m) => (m.items || []).some((x) => x && !x.locked && !isFormationItem(x)))) { cb(null); return; }
   UI.openDiscard({ incoming: it, members, ...opts, onPick: (owner) => cb(owner), onSkip: () => cb(null) });
 }
 // 品を手に入れる (袋がいっぱいなら、捨てる品を選ぶ画面を挟む)。cb(got = {item, who} | null, lost = 置いていった品 | null)
 function giveItemAsk(id, cb) {
   if (!ITEMS[id]) { cb(null, null); return; }
-  if (G.party.some((m) => m.items.length < MAX_ITEMS)) { cb(giveItem(id), null); return; }
+  if (G.party.some((m) => bagCount(m.items) < MAX_ITEMS)) { cb(giveItem(id), null); return; }
   const it = cloneItem(id);
   if (!it) { cb(null, null); return; }
   markDungeonLoot(it);
   askRoomFor(it, (who) => {
-    if (!who || who.items.length >= MAX_ITEMS) { cb(null, it); return; }
+    if (!who || bagCount(who.items) >= MAX_ITEMS) { cb(null, it); return; }
     runGainItem(who, it);
     codexSeeItem(id, it);
     log(`${itemName(it)} を手に入れた！ (${who.name})`, logClassForItem(it));
@@ -17492,7 +17509,7 @@ function giveItem(id) {
   const it = cloneItem(id);
   if (!it) return null;
   markDungeonLoot(it);
-  const who = G.party.find((m) => m.items.length < MAX_ITEMS);
+  const who = G.party.find((m) => bagCount(m.items) < MAX_ITEMS);
   if (!who) {
     log(`${itemName(it)}を見つけたが、誰も持てない…`, "sys");
     showToast(`持ちきれず ${itemName(it)} を置いてきた`, { noLog: true, tone: "bad" });
@@ -17971,7 +17988,7 @@ const SAVE_FIELDS = [
   "shopAfx", "shopAfxPending",
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound", "abyss", "abyssRec",
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "stabilityBriefed", "pendingDoll",
-  "inventory", "party", "reserve", "souls", "shopStock", "run", "town",
+  "formations", "inventory", "party", "reserve", "souls", "shopStock", "run", "town",
   "quest", "msq", "ach", "fastAnim", "animTempo", "tavernCrowd", "tavernHeard", "rumor", "activeRumor", "codex", "treasury", "lrOwned", "named", "order", "rusui", "insightNotified", "irene", "journal", "tut", "events", "story", "world", "dragonSlain", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab", "rematch",
   "lastRun",
@@ -18081,6 +18098,7 @@ function reflattenItemStats() {
     visited.add(it);
     resyncItem(it);
   }
+  for (const it of formations.formationItems(G.formations)) refresh(it);
   for (const m of [...(G.party || []), ...(G.reserve || [])]) {
     for (const it of (m.items || [])) refresh(it);
     for (const k of Object.keys(m.equip || {})) refresh(m.equip[k]);
@@ -18103,7 +18121,7 @@ function fixHandsAndShields(offhand = true) {
     if (!clash && !bad) continue;
     d.equip.shield = null;
     if (!Array.isArray(d.items)) d.items = [];
-    const room = d.items.length < MAX_ITEMS ? d : all.find((x) => Array.isArray(x.items) && x.items.length < MAX_ITEMS);
+    const room = bagCount(d.items) < MAX_ITEMS ? d : all.find((x) => Array.isArray(x.items) && bagCount(x.items) < MAX_ITEMS);
     (room || d).items.push(sh);
     moved.push(d);
   }
@@ -18122,7 +18140,7 @@ function fixEquipLevels() {
       if (!it || it.cursed || !equipLvShort(d, it)) continue;
       d.equip[k] = null;
       if (!Array.isArray(d.items)) d.items = [];
-      const room = d.items.length < MAX_ITEMS ? d : all.find((x) => Array.isArray(x.items) && x.items.length < MAX_ITEMS);
+      const room = bagCount(d.items) < MAX_ITEMS ? d : all.find((x) => Array.isArray(x.items) && bagCount(x.items) < MAX_ITEMS);
       (room || d).items.push(it);
       moved.push({ d, it });
     }
@@ -18184,9 +18202,11 @@ function loadGame(cloudSnapshot = null) {
   for (const k of SAVE_FIELDS) if (k in snap) G[k] = snap[k];
   G.insightNotified = snap.insightNotified ?? null;
   G.apprenticeName = normalizeName(G.apprenticeName);
+  G.formations = Array.isArray(snap.formations) ? snap.formations : [];
   G.inventory = Array.isArray(snap.inventory) ? snap.inventory : [];
   shareInventory(G);
   if (G.abyss && G.abyss.home) shareInventory(G.abyss.home);
+  formations.syncFormationItems(G);
   G.rng = bindRngState(snap.rng); // 乱数の位置を続きから (旧セーブには無い → 新しい種から)
   endLegacyAbyss(); // 旧仕様の奈落の途中のセーブは、読み込みで終わらせる (記録も消す)
   if (G.abyssRec && G.abyssRec.v !== 2) G.abyssRec = null;
@@ -18460,6 +18480,7 @@ window.addEventListener("beforeunload", () => autosave(true));
 
 // 新規プレイの初期化: 人業ロスター・魂ストック・初期装備を整える
 function setupNewGame() {
+  G.formations = [];
   // 金貨も赤い魂も持たずに着任する。まず王宮で三職の魂を拝受する。
   G.party = [];
   G.inventory = [];
@@ -19010,6 +19031,7 @@ function dungeonBack() {
 function wireUI() {
   bindGame({
     G, log, autosave, buzz, flashScreen, shakeScreen,
+    saveFormation, renameFormation, checkFormation, applyFormation,
     renderTown, renderBoard, renderParty, renderRunbar, updateTopbar, renderStatus,
     allDolls, recalcAllDolls, inDungeon, curDungeon, activeCfg, clearedDungeonCount, reportedDungeonCount,
     sellPrice, buyPrice, appraiseCost, innCost, sellWarnings, bulkSellBlocked, bargainMul, shopStockAdd, shopReceive, shopAfxItem, shopPlainStock, buyAffixed, afxConflicts, resolveAfxConflicts, tlTown,
