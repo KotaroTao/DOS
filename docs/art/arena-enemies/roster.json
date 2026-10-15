@@ -1,0 +1,42 @@
+{
+  "dungeons": [
+    "w34",
+    "w35",
+    "w36",
+    "w37",
+    "ws18",
+    "ws19"
+  ],
+  "newIds": [
+    "bs_championwraith",
+    "bs_netfighter",
+    "bs_arenabeast",
+    "bs_spectreaudience",
+    "bs_chainedogre",
+    "bs_bladedancer",
+    "bs_executioner",
+    "bs_beastmaster",
+    "bs_mirrorduelist",
+    "bs_crowdroar",
+    "bs_sandlurker",
+    "bs_gladiatorlich",
+    "bs_spikedgolem",
+    "bs_hookmaster",
+    "bs_bloodpriest",
+    "bs_warbeasthound",
+    "bs_championofash",
+    "bs_impaler",
+    "bs_ghostgladiator",
+    "bs_chaingang",
+    "bs_arenalord"
+  ],
+  "existingIds": [
+    "el_ashshogun",
+    "el_dragonslayer",
+    "mimic",
+    "master_mimic",
+    "mt_silver",
+    "mt_gold",
+    "mt_king"
+  ]
+}
