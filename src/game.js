@@ -2194,8 +2194,8 @@ function audienceOrderFor(enemies) {
 function audienceJudge(b) {
   const k = b && b.audience, o = k && AUDIENCE_ORDERS[k];
   if (!o) return 1;
-  if (o.ok(b)) { log(`観客が沸いた！ 注文「${o.label}」に応えた ― ✦Soul・金貨 ${AUDIENCE_MUL}倍。`, "win"); G.stats.audience = (G.stats.audience || 0) + 1; return AUDIENCE_MUL; }
-  log(`注文「${o.label}」には応えられなかった。観客席から、ため息が漏れた。`, "sys");
+  if (o.ok(b)) { log(`観客の注文「${o.label}」達成！ ✦Soul・金貨×${AUDIENCE_MUL}`, "win"); G.stats.audience = (G.stats.audience || 0) + 1; return AUDIENCE_MUL; }
+  log(`観客の注文「${o.label}」未達成`, "sys");
   return 1;
 }
 
@@ -6839,18 +6839,18 @@ function evBattleStart(enemies, isBoss) {
   if (rv.startHeal > 0) {
     rv.startHeal--;
     for (const p of evAlive()) p.hp = Math.min(p.maxhp, p.hp + Math.ceil(p.maxhp * 0.10));
-    log(inf ? "出来事で得た加護が、戦いの前に傷を癒した。" : "喪服の女の祝福が、戦いの前に傷を癒した。", "heal");
+    log(inf ? "出来事の加護：隊のHP回復" : "喪服の女の祝福：隊のHP回復", "heal");
   }
   if (rv.bomb > 0) {
     rv.bomb--;
     for (const e of enemies) e.hp = Math.max(1, e.hp - Math.ceil(e.maxhp * (e.boss ? 0.12 : 0.30)));
-    log("発破が炸裂した！ 敵全体が爆風に呑まれた。", "win");
+    log("発破！ 敵全体にダメージ", "win");
     setTimeout(() => showToast("💥 発破が炸裂 ― 敵全体に痛打", { noLog: true, tone: "gold" }), 300);
   }
   const bw = G.events && G.events.flags && G.events.flags.bossWeak;
   if (isBoss && !inf && bw && bw[battleLayer()]) {
     for (const e of enemies) if (e.boss) { e.maxhp = Math.max(1, Math.round(e.maxhp * 0.9)); e.hp = Math.min(e.hp, e.maxhp); }
-    log(battleLayer() === 1 ? "告解室で聞いた秘密が、主の守りの綻びを教えてくれる。(主の最大HP -10%)" : "迷宮で聞いた主の弱みが、守りの綻びを教えてくれる。(主の最大HP -10%)", "win");
+    log(battleLayer() === 1 ? "告解室の秘密：主の最大HP-10%" : "主の弱み：主の最大HP-10%", "win");
   }
 }
 // 戦闘の後: 墓碑の加護の消費を記録し、紅玉に血を吸わせる
@@ -6860,7 +6860,7 @@ function evBattleEnd(won) {
   if (rv.saves) for (const p of G.party) if (rv.saves[p.uid] && !p._evSave) delete rv.saves[p.uid];
   if (won && rv.ruby) {
     const h = G.party.find((p) => p.uid === rv.ruby && p.alive);
-    if (h) { h.hp = Math.max(1, h.hp - Math.ceil(h.maxhp * 0.05)); log(`紅玉が${h.name}の血を吸った。`, "dmg"); }
+    if (h) { const before = h.hp; h.hp = Math.max(1, h.hp - Math.ceil(h.maxhp * 0.05)); log(`紅玉：${h.name}のHP-${before - h.hp}`, "dmg"); }
   }
 }
 // 階の情報 (手帳) に並べる、いま効いている出来事の効果
@@ -8715,14 +8715,14 @@ function startBattleMeasured(enemies, cell) {
     let drained = 0;
     const hits = [];
     for (const p of G.party) if (p.alive && p.mp > 0) { const d = Math.min(p.mp, Math.ceil(p.maxmp * r.mpDrain)); traitOpenHold(p); drained += d; p.mp -= d; hits.push({ p, text: "MP-" + d, color: "#7fb8ff" }); }
-    if (drained) { log(`${ruleSay(r, "mpDrain") || `${r.head}が隊の魔力を奪った`} (MP -${drained})。`, "dmg"); trOpen.steps.push({ kind: "mp", head: r.head, accent: r.accent, label: r.name, hits }); }
+    if (drained) { log(`${r.name || r.head}：隊合計MP-${drained}`, "dmg"); trOpen.steps.push({ kind: "mp", head: r.head, accent: r.accent, label: r.name, hits }); }
   }
   // HP1 より下にはならない
   for (const r of ruleOpens) if (r.hpDrain) {
     let burnt = 0;
     const hits = [];
     for (const p of G.party) if (p.alive && p.hp > 1) { const d = Math.min(p.hp - 1, Math.ceil(p.maxhp * r.hpDrain)); traitOpenHold(p); burnt += d; p.hp -= d; hits.push({ p, text: String(d), dmg: true }); }
-    if (burnt) { log(`${ruleSay(r, "hpDrain") || `${r.head}が隊を焼いた`} (HP -${burnt})。`, "dmg"); trOpen.steps.push({ kind: "heat", head: r.head, accent: r.accent, label: r.name, hits }); }
+    if (burnt) { log(`${r.name || r.head}：隊合計HP-${burnt}`, "dmg"); trOpen.steps.push({ kind: "heat", head: r.head, accent: r.accent, label: r.name, hits }); }
   }
   // 迷宮の掟: 疾風の巣 (trait.allHaste) — 敵はみな神速 (ターンの頭に動き、後半にもう一度動く)。主と金属の魔物は除く
   if (trB && trB.allHaste) for (const e of enemies) if (!e.boss && !e.metal && !e.haste) { e.haste = true; e.agi += 8; }
@@ -8736,7 +8736,7 @@ function startBattleMeasured(enemies, cell) {
   const sameKind = enemies.length > 1 && enemies.every((e) => e.key === enemies[0].key);
   // 名前は討伐数1で明かす (それまでは不確定名「小さく蠢くもの？」など。迷宮の主は最初から名乗る — 伏せるのは log の maskUnknownEnemies)
   // 名前の後に表示Lv (その魔物が一番弱く出る所と比べた実際の強さ — enemylevel.js。状態異常に使う e.lv とは別)
-  log(`${sameKind ? `${enemies[0].mon.name}${enemyLvTag(enemies[0])} ×${enemies.length}` : enemies.map((e) => e.name + enemyLvTag(e)).join("・")} が現れた！`, "dmg");
+  log(`${sameKind ? `${enemies[0].mon.name}${enemyLvTag(enemies[0])} ×${enemies.length}` : enemies.map((e) => e.name + enemyLvTag(e)).join("・")}が出現`, "dmg");
   // 先制・奇襲の判定 (ボス戦・強敵戦では発生しない)。
   // 周囲警戒 (vigilance) が奇襲を抑え、先制の心得 (initiative) が先制を伸ばす
   const isBoss = enemies.some((e) => e.boss);
@@ -8779,8 +8779,8 @@ function startBattleMeasured(enemies, cell) {
   else if (!isBoss && !forceAmb) {
     const rv = G.run && G.run.ev && inDungeon() ? G.run.ev : null;
     const inf = abyssActive();
-    if (rv && rv.ambushNext > 0 && !isElite) { rv.ambushNext--; opening = "ambush"; openSrc = "smuggler"; log(inf ? "待ち伏せていた魔物に襲われた！" : "密輸人どもが荷の仕返しに待ち伏せていた！", "dmg"); }
-    else if (rv && rv.preempt > 0) { rv.preempt--; opening = "preempt"; openSrc = "candle"; log(inf ? "出来事で得た備えのおかげで、先制した。" : "祈りの蝋燭の灯が、闇を味方につけた。", "win"); } // 「次の戦闘は必ず先制」— 強敵の戦いにも効く
+    if (rv && rv.ambushNext > 0 && !isElite) { rv.ambushNext--; opening = "ambush"; openSrc = "smuggler"; log(inf ? "魔物の待ち伏せ" : "密輸人の待ち伏せ", "dmg"); }
+    else if (rv && rv.preempt > 0) { rv.preempt--; opening = "preempt"; openSrc = "candle"; log(inf ? "出来事の備え：先制確定" : "祈りの蝋燭：先制確定", "win"); } // 「次の戦闘は必ず先制」— 強敵の戦いにも効く
   }
   G._evOpening = null;
   if (forceAmb && openSrc !== "event") { opening = "ambush"; openSrc = "trait"; }
@@ -8789,7 +8789,7 @@ function startBattleMeasured(enemies, cell) {
   if (opening === "preempt") { log("先制した！", "win"); showToast("⚡ 先制攻撃！", { noLog: true }); }
   else if (opening === "ambush") {
     // 奇襲: 紅い閃光・揺れ・専用の効果音で知らせ、開幕の帯 (drawAmbushIntro) と1ターン目の札で敵の先手を示す
-    log("奇襲された！ 敵が先に動く！", "dmg");
+    log("奇襲！ 敵が先に行動", "dmg");
     showToast("⚠ 奇襲された！ 敵が先に動く", { noLog: true, tone: "bad" });
     SFX.ambush(); flashScreen("#9a0a06"); shakeScreen(true); buzz([0, 90, 50, 90, 50, 160]);
   }
@@ -8806,14 +8806,14 @@ function startBattleMeasured(enemies, cell) {
   for (const r of ruleOpens) if (r.chill) {
     const hits = [];
     for (const p of G.battle.party) if (p.alive) { G.battle._applyMod(p, "agi", Math.pow(0.8, r.chill), 3, r.name); hits.push({ p, text: `AGI${"▼".repeat(r.chill)}`, color: "#ff8a8a", buff: true }); }
-    log(`${ruleSay(r, "chill") || `${r.head}が隊の足を鈍らせる`} (隊の AGI ▼${r.chill})。`, "dmg");
+    log(`${r.name || r.head}：隊のAGI-${r.chill}段、3ターン`, "dmg");
     if (trOpen && hits.length && !modW) trOpen.steps.push({ kind: "chill", head: r.head, accent: r.accent, label: r.name, hits });
   }
   // 底なしの闇 (gloom) — 戦闘の開幕に、隊の全員の命中が下がる (物理が外れる率をこの分だけ足す。3ターン)
   for (const r of ruleOpens) if (r.gloom > 0) {
     const hits = [];
     for (const p of G.battle.party) if (p.alive) { G.battle._applyMod(p, "hit", 1 - r.gloom, 3, r.name); hits.push({ p, text: "命中▼", color: "#c8b898", buff: true }); }
-    log(`${ruleSay(r, "gloom") || `${r.head}が隊の目をくらませる`} (隊の命中 ▼)。`, "dmg");
+    log(`${r.name || r.head}：隊の命中低下`, "dmg");
     if (trOpen && hits.length && !modW) trOpen.steps.push({ kind: "gloom", head: r.head, accent: r.accent, label: r.name, hits });
   }
   // 飢えた獣 (foeRally) — 戦闘の開幕に、敵全体の攻撃を段数だけ上げる (3ターン。主・金属の魔物は除く)
@@ -8822,7 +8822,7 @@ function startBattleMeasured(enemies, cell) {
     G.battle._quietMod = true;
     for (const e of G.battle.enemies) if (e.alive && !e.boss && !e.metal) n += G.battle._applyStage(e, "atk", r.foeRally, 3, r.name) > 0 ? 1 : 0;
     G.battle._quietMod = false;
-    if (n) log(`${r.head} ― 飢えた魔物たちが牙をむく (敵の攻撃 ▲${r.foeRally})。`, "dmg");
+    if (n) log(`${r.name || r.head}：敵の攻撃+${r.foeRally}段`, "dmg");
   }
   const modReveal = modW ? endModWatch() : null;
   // よどんだ瘴気 (poisonStart) — 戦闘の開幕に、隊の一人ひとりがこの確率で毒に冒される (毒の耐性で防げる)
@@ -8836,7 +8836,7 @@ function startBattleMeasured(enemies, cell) {
       }
     }
     if (sick.length) {
-      log(`${ruleSay(r, "poisonStart") || r.head} ― ${sick.map((p) => p.name).join("・")}は毒に冒された。`, "dmg");
+      log(`${r.name || r.head}：${sick.map((p) => p.name).join("・")}に毒`, "dmg");
       if (trOpen) trOpen.steps.push({ kind: "poison", head: r.head, accent: r.accent, label: r.name, hits: sick.map((p) => ({ p, text: "毒", color: "#b4f06a" })) });
     }
   }
@@ -8848,7 +8848,7 @@ function startBattleMeasured(enemies, cell) {
       const d = Math.min(p.hp - 1, Math.max(1, Math.ceil(p.maxhp * r.boltStart * (1 - partyBreathRes(p)))));
       traitOpenHold(p);
       p.hp -= d;
-      log(`${ruleSay(r, "boltStart") || r.head} ― ${p.name}が焼かれた (HP -${d})。`, "dmg");
+      log(`${r.name || r.head}：${p.name}のHP-${d}`, "dmg");
       if (trOpen) trOpen.steps.push({ kind: "bolt", head: r.head, accent: r.accent, label: r.name, hits: [{ p, text: String(d), dmg: true }] });
       else flashScreen("#d8e0ff");
     }
@@ -8881,19 +8881,19 @@ function startBattleMeasured(enemies, cell) {
   for (const r of ruleOpens) if (r.shell > 0) {
     let n = 0;
     for (const e of G.battle.enemies) if (e.alive && !e.boss && !e.metal) { e._barrierLeft = (e._barrierLeft || 0) + r.shell; n++; }
-    if (n) log(`${r.head} ― 魔物たちが眠りの封じの殻をまとった (障壁)。`, "sys");
+    if (n) log(`${r.name || r.head}：敵に障壁${r.shell}回（半減）`, "sys");
   }
-  if (trB && trB.foeRise) log(`${trB.name} ― 倒れた魔物は、一度だけ起き上がってくる。`, "sys");
-  if (trB && trB.fervor) log("観客の歓声が戦う者を煽る ― 2ターン目から、敵も味方も攻撃が上がっていく。", "sys");
+  if (trB && trB.foeRise) log(`${trB.name}：敵が1回蘇生`, "sys");
+  if (trB && trB.fervor) log("観客の歓声：2ターン目から毎ターン、敵味方の攻撃+1段", "sys");
   // 闘技場跡の迷宮の掟 (audience): 観客の注文をひとつ出す (応えて勝てば、この戦闘の ✦Soul・金貨 1.5倍 — endBattle)
   G.battle.audience = audienceOrderFor(enemies);
   if (G.battle.audience) {
     const o = AUDIENCE_ORDERS[G.battle.audience];
-    log(`観客の注文 ―「${o.label}」(応えて勝てば ✦Soul・金貨 ${AUDIENCE_MUL}倍)`, "sys");
+    log(`観客の注文「${o.label}」（達成して勝利で✦Soul・金貨×${AUDIENCE_MUL}）`, "sys");
     setTimeout(() => showToast(`♛ 観客の注文:「${o.label}」`, { tone: "info", noLog: true }), 500);
   }
-  if (physOnlyHere()) log("呪文を封じる霧が立ちこめている ― 物理技と道具のほかは使えない。", "sys");
-  if (foeLv - partyLevel() >= 4) log(`格上の迷宮だ (推奨Lv${foeLv})。眠りや毒、即死の術はほとんど効かず、敵の術はよく効く。`, "sys");
+  if (physOnlyHere()) log("魔封じ：物理技・道具のみ使用可", "sys");
+  if (foeLv - partyLevel() >= 4) log(`格上の迷宮（推奨Lv${foeLv}）：味方の異常・即死は効きにくく、敵の術は効きやすい`, "sys");
   // テスト記録: 戦闘の種類 (主 / 金属の魔物 / 精鋭・ミミック・出来事の戦い / 通常) と開始時の様子。
   // 金属の魔物は素早さに依らない回避を持つので、精鋭等の命中に混ぜない
   if (tlOn() && inDungeon() && !G.rematch) {
@@ -11387,7 +11387,7 @@ function applyImpact(res) {
             G.gold -= s;
             if (G.run) G.run.gold = Math.max(0, G.run.gold - s);
           }
-          log(`${h.target.name}は 💰${s} を奪われた！`, "dmg");
+          log(`${h.target.name}は💰${s}を盗まれた`, "dmg");
           fx.floats.push({ x: VW / 2, y: VH - 26, text: `-💰${s}`, color: "#ffd84a", t0: now });
         } else {
           const s = res._persistedConsequences ? h.persistedSteal : Math.min(G.soulPts, h.stealAmt || 0);
@@ -11395,7 +11395,7 @@ function applyImpact(res) {
             G.soulPts -= s;
             if (G.run) G.run.soulPts = Math.max(0, G.run.soulPts - s);
           }
-          log(`${h.target.name}は ✦${s} Soul を吸い取られた！`, "dmg");
+          log(`${h.target.name}は✦${s}を奪われた`, "dmg");
           fx.floats.push({ x: VW / 2, y: VH - 26, text: `-✦${s}`, color: "#b06bff", t0: now });
         }
         updateTopbar();
@@ -11429,7 +11429,7 @@ function applyImpact(res) {
             s.level--;
             recalcAllDolls();
             const lbl = SOUL_CLASSES[s.clsKey].label;
-            log(`${h.target.name}の${lbl}の魂が喰われ、Lv${s.level} に堕ちた…！`, "dmg");
+            log(`${h.target.name}の${lbl}の魂：Lv${s.level}に低下`, "dmg");
             setTimeout(() => showToast(`☠ レベルドレイン: ${lbl}の魂 Lv-1`, { noLog: true }), 300);
           }
         }
@@ -11632,9 +11632,9 @@ function endBattleMeasured() {
     // (Lv差の減りは魂それぞれの Lv で掛け直すので、隊のLv で減らす前の額を渡す)
     const progress = distributeBattleSoulExp(soulOut.raw ?? soulGot);
     updateTopbar();
-    log(`勝利！ 💰${goldGot} と ✦${soulGot} Soul を得た。`, "win");
+    log(`勝利！ 💰${goldGot}・✦${soulGot}`, "win");
     const fled = b.enemies.filter((e) => e._fled).length; // 逃げ去った金属の魔物 (戦果は倒した分だけ)
-    if (fled) log(`${fled}体には逃げられた (逃げた分の戦果は無い)。`, "sys");
+    if (fled) log(`敵${fled}体が逃走（戦果なし）`, "sys");
     SFX.victory();
     // 討伐クエストの進捗 + 戦績 + 図鑑記録 (倒した敵を集計)。
     // 戦利品はここでは抽選のみ。実物は勝利後の宝箱から取り出す
@@ -11668,7 +11668,7 @@ function endBattleMeasured() {
       const nf = !e.alive && !e._fled && e.mon && e.mon.named ? NAMED_FOES[e.key] : null;
       if (nf && ITEMS[nf.trophy] && !namedState().trophy[e.key] && !trophies.some((t) => t.id === nf.trophy)) {
         trophies.push({ key: "trophy", name: "首級", id: nf.trophy, item: cloneItem(nf.trophy), rare: true });
-        log(`名のある強敵「${e.name}」を討ち取った！`, "win");
+        log(`名のある強敵「${e.name}」討伐`, "win");
       }
     }
     // 無限迷宮の主: boss フラグを持つが踏破ではない。撃破で適正帯より上等な戦利品を残す
@@ -11686,7 +11686,7 @@ function endBattleMeasured() {
       const soulChance = wasElite ? 0.40 : 0.08; // 強敵は魂ドロップ率が大幅上昇
       if (random() < soulChance) {
         const clsKey = rollJobClass();
-        log(`${e.name}が ${SOUL_CLASSES[clsKey].label}の魂 を落とした！`, "win");
+        log(`${e.name}から${SOUL_CLASSES[clsKey].label}の魂`, "win");
         souls.push(grantSoulQuiet(clsKey, `${e.name}が落とした魂だ。`));
       }
     }
@@ -11732,8 +11732,8 @@ function endBattleMeasured() {
     const levels = progress.filter((q) => q.kind === "level").map((q) => ({ name: q.member.name, uid: q.member.uid, from: q.fromLv, to: q.toLv, deltas: q.deltas || [], sub: !!q.sub, soulLabel: q.soulLabel || "" }));
     const skills = progress.filter((q) => q.kind === "skill").map((q) => ({ name: q.member.name, key: q.skill, skill: SPELLS[q.skill] ? SPELLS[q.skill].name : q.skill, desc: SPELLS[q.skill] ? SPELLS[q.skill].desc : "" }));
     // 成長と覚えた技は戦果シートに出るだけだったので、記録にも残す
-    for (const l of levels) log(`${l.name}${l.sub && l.soulLabel ? `のサブ魂「${l.soulLabel}の魂」` : ""}が Lv${l.from} → Lv${l.to} に上がった！`, "win");
-    for (const k of skills) log(`${k.name}は「${k.skill}」を覚えた！`, "win");
+    for (const l of levels) log(`${l.name}${l.sub && l.soulLabel ? `のサブ魂「${l.soulLabel}の魂」` : ""}：Lv${l.from}→${l.to}`, "win");
+    for (const k of skills) log(`${k.name}が「${k.skill}」習得`, "win");
     uiResults.openResults({
       kind: wasBoss ? "boss" : wasElite ? "elite" : wasGuard ? "guard" : corpse ? "corpse" : "win",
       gold: goldGot, soul: soulGot, kills, fled,
@@ -11751,17 +11751,17 @@ function endBattleMeasured() {
     // 逃走: 元のマスへ戻る (カードは表のまま)。盗んだ金は持ち帰る
     SFX.flee();
     const stolen = takeStolenGold(b);
-    if (stolen) { log(`盗んだ 💰${stolen} を懐に逃げ延びた`, "win"); updateTopbar(); }
+    if (stolen) { log(`盗んだ💰${stolen}を持ち帰った`, "win"); updateTopbar(); }
     evBattleEnd(false);
     if (G.prevPos) { G.px = G.prevPos.x; G.py = G.prevPos.y; }
     finishToBoard();
   } else if (b.result === "escaped") {
     // 敵に1体残らず逃げられた (金属の魔物): 戦果はなく、札は消える
     SFX.flee();
-    log("逃げられてしまった…", "sys");
+    log("敵が全員逃走", "sys");
     const stolen = takeStolenGold(b);
-    if (stolen) { log(`盗んだ 💰${stolen} だけは手元に残った`, "win"); updateTopbar(); }
-    showToast("逃げられてしまった…", { noLog: true, tone: "info" });
+    if (stolen) { log(`盗んだ💰${stolen}を確保`, "win"); updateTopbar(); }
+    showToast("敵が全員逃走", { noLog: true, tone: "info" });
     if (G.battleCell && G.battleCell.type === "monster") G.battleCell.cleared = true;
     evBattleEnd(false);
     finishToBoard();
@@ -11776,9 +11776,10 @@ function applyVictoryPassivesMeasured() {
   let pope = 0;
   for (const p of G.party) if (p.alive && pLv(p, "popePrayer")) pope = Math.max(pope, pLv(p, "afterHeal"));
   const HEAL_PCT = [0, 0.05, 0.10, 0.20, 0.30];
-  let healed = false;
+  let healed = false, hpGain = 0, mpGain = 0;
   for (const p of G.party) {
     if (!p.alive) continue;
+    const beforeHp = p.hp, beforeMp = p.mp;
     const hpct = HEAL_PCT[Math.max(pLv(p, "afterHeal"), pope)];
     const ml = pLv(p, "afterMp");
     // 職ごとの固有パッシブ (win) と、MP の共通パッシブ (魔力回路 1/2%)。MP は魂1つあたり4%まで (perkVictory)
@@ -11787,26 +11788,29 @@ function applyVictoryPassivesMeasured() {
     const mpct = pw.mp;
     if (hpct2 > 0 && p.hp < p.maxhp) { p.hp = Math.min(p.maxhp, p.hp + Math.ceil(p.maxhp * hpct2)); healed = true; }
     if (mpct > 0 && p.mp < p.maxmp) { p.mp = Math.min(p.maxmp, p.mp + Math.ceil(p.maxmp * mpct)); healed = true; }
+    hpGain += p.hp - beforeHp; mpGain += p.mp - beforeMp;
   }
-  if (healed) log("勝利の余韻が隊を癒した。", "heal");
+  if (healed) log(`勝利後の加護：隊合計HP+${hpGain}・MP+${mpGain}`, "heal");
   // 特別階 (癒しの霊気)・迷宮の掟 (癒しの樹液): 戦闘勝利のたび隊の全員のHP・MPが回復する
   const fh = Math.max(sfNum("victoryHeal", 0), (dungeonTrait() && dungeonTrait().victoryHeal) || 0);
   tlGameMeasure("victoryTerrain", () => {
   if (fh > 0) {
-    let mist = false;
+    let mist = false, hpGain = 0, mpGain = 0;
     for (const p of G.party) {
       if (!p.alive) continue;
+      const beforeHp = p.hp, beforeMp = p.mp;
       if (p.hp < p.maxhp) { p.hp = Math.min(p.maxhp, p.hp + Math.ceil(p.maxhp * fh)); mist = true; }
       if (p.mp < p.maxmp) { p.mp = Math.min(p.maxmp, p.mp + Math.ceil(p.maxmp * fh)); mist = true; }
+      hpGain += p.hp - beforeHp; mpGain += p.mp - beforeMp;
     }
-    if (mist) log(sfNum("victoryHeal", 0) > 0 ? "癒しの霊気が傷を塞ぎ、魔力を満たした。" : "樹液の香りが傷を塞ぎ、魔力を満たした。", "heal");
+    if (mist) log(`${sfNum("victoryHeal", 0) > 0 ? "癒しの霊気" : "樹液の香り"}：隊合計HP+${hpGain}・MP+${mpGain}`, "heal");
   }
   });
   // 法力の灯 (隊の全員): 生きている味方の状態異常をすべて治す (毒・麻痺・石化も。2026-10 ユーザーの指示)
   if (G.party.some((p) => p.alive && pLv(p, "afterBoth"))) {
     let lit = false;
     for (const p of G.party) if (p.alive && cureAil(p)) lit = true;
-    if (lit) log("法力の灯が隊を照らし、穢れをすべて払った。", "heal");
+    if (lit) log("法力の灯：隊の状態異常解除", "heal");
   }
   // 浄化 (隊の全員) / 自浄 (自分): 毒・麻痺を治す (石化は対象外)
   const hasPurify = G.party.some((p) => p.alive && pLv(p, "purify"));
@@ -11815,7 +11819,7 @@ function applyVictoryPassivesMeasured() {
     if (!p.alive || (p.ailment !== "poison" && p.ailment !== "paralyze")) continue;
     if (hasPurify || pLv(p, "selfPurify")) { p.ailment = null; cured = true; }
   }
-  if (cured) log("浄化の祈りが穢れを払った。", "heal");
+  if (cured) log("浄化の祈り：隊の状態異常解除", "heal");
   // 慈悲の祈り: 倒れた味方1人をHP10%で蘇生 (1探索1回)
   if (G.party.some((p) => p.alive && pLv(p, "mercy")) && G.run && !G.run.secured && !G.run.mercyUsed) {
     const dead = G.party.find((p) => !p.alive);
@@ -11826,7 +11830,7 @@ function applyVictoryPassivesMeasured() {
       dead.ailment = null;
       dead.reviveAt = null;
       dead._dead = false;
-      log(`慈悲の祈り！ ${dead.name}が立ち上がった`, "win");
+      log(`慈悲の祈り！ ${dead.name}は蘇生（HP${dead.hp}）`, "win");
       setTimeout(() => showToast(`慈悲の祈り ― ${dead.name}が立ち上がった`, { noLog: true, tone: "good" }), 400);
     }
   }
@@ -11858,7 +11862,7 @@ function gameOver() {
   playBgm(null);
   SFX.gameover();
   buzz([0, 90, 70, 90, 70, 250]);
-  log(G.run && G.run.abandoned ? "迷宮を諦めた。人業はことごとく砕けた…" : "人業はことごとく砕けた…", "dmg");
+  log(G.run && G.run.abandoned ? "迷宮を断念（全滅扱い）" : "全滅…", "dmg");
   imprintFallen(); // 記憶を刻む (器は迷宮に残り、街へ戻ってから連れ帰りの時を数える)
   G.autoCombat = false;
   if (G._autoTimer) { clearTimeout(G._autoTimer); G._autoTimer = null; }
@@ -11885,7 +11889,7 @@ function gameOver() {
       decided = true;
       if (!ad) G.redSoul -= cost;
       SFX.levelup(); buzz([0, 30, 40, 30]);
-      log(ad ? "広告視聴で拾った魂と品を地上へ運んだ。" : `赤い魂 ${cost} が、拾った魂と品を地上へ運んだ。`, "win");
+      log(ad ? "広告視聴：拾った魂・品を確保" : `赤い魂-${cost}：拾った魂・品を確保`, "win");
       goTown({ outcome: "saved" });
     };
     UI.openInfWipe({
@@ -11894,7 +11898,7 @@ function gameOver() {
       onSave: () => saveLoot(),
       // 本番の広告連携までは即時成功。回数・待ち時間の制限は設けない。
       onAd: () => saveLoot(true),
-      onGiveUp: () => { if (decided) return; decided = true; log("拾った魂も品も、迷宮の底に残された…", "dmg"); goTown({ outcome: "wipe" }); },
+      onGiveUp: () => { if (decided) return; decided = true; log("拾った魂・品を失った", "dmg"); goTown({ outcome: "wipe" }); },
     });
     return;
   }
@@ -11908,7 +11912,7 @@ function gameOver() {
     G.run = null; // 戦利品を確定 (没収しない)
     reviveAllAtHp1();
     SFX.levelup(); buzz([0, 30, 40, 30]);
-    log(ad ? "広告視聴で戦利品と人業を守った。一同HP1で生還する。" : cost === 0 ? "戦利品と人業を守り、赤い魂を使わずに生還した。一同HP1で街へ戻る。" : "赤い魂が戦利品と人業を守った。一同HP1で生還する。", "win");
+    log(ad ? "広告視聴：戦利品を確保・隊全員HP1で帰還" : cost === 0 ? "無料救済：戦利品を確保・隊全員HP1で帰還" : `赤い魂-${cost}：戦利品を確保・隊全員HP1で帰還`, "win");
     goTown({ outcome: "saved", run });
   };
   uiResults.openWipe({
@@ -11930,7 +11934,7 @@ function gameOver() {
       const run = G.run;
       const forfeited = secured ? null : { gold: r.gold || 0, items: (r.items || []).map(({ item }) => itemName(item)), souls: (r.souls || []).map((s) => (SOUL_CLASSES[s.clsKey] || {}).label || s.clsKey) };
       forfeitRun();
-      log(secured ? "砕けた人業は、連れ帰りを待つ。" : "今回得た金貨・アイテム・魂は失われた…（✦Soul は残った）", "dmg");
+      log(secured ? "人業は連れ帰り待ち（戦利品確保済み）" : "今回の金貨・品・魂を失った（✦Soulは保持）", "dmg");
       goTown({ outcome: "wipe", run, forfeited });
     },
   });
@@ -16491,8 +16495,8 @@ function endRematch(b) {
   }
   const levels = progress.filter((q) => q.kind === "level").map((q) => ({ name: q.member.name, uid: q.member.uid, from: q.fromLv, to: q.toLv, deltas: q.deltas || [], sub: !!q.sub, soulLabel: q.soulLabel || "" }));
   const skills = progress.filter((q) => q.kind === "skill").map((q) => ({ name: q.member.name, key: q.skill, skill: SPELLS[q.skill] ? SPELLS[q.skill].name : q.skill, desc: SPELLS[q.skill] ? SPELLS[q.skill].desc : "" }));
-  for (const l of levels) log(`${l.name}${l.sub && l.soulLabel ? `のサブ魂「${l.soulLabel}の魂」` : ""}が Lv${l.from} → Lv${l.to} に上がった！`, "win");
-  for (const k of skills) log(`${k.name}は「${k.skill}」を覚えた！`, "win");
+  for (const l of levels) log(`${l.name}${l.sub && l.soulLabel ? `のサブ魂「${l.soulLabel}の魂」` : ""}：Lv${l.from}→${l.to}`, "win");
+  for (const k of skills) log(`${k.name}が「${k.skill}」習得`, "win");
   G.battle = null; G.state = "board";
   combatMenu.classList.add("hidden");
   const mem = rm.kind === "boss" && REMATCH_MEMORIES[rm.key] && !worldState().beats["rm_" + rm.key] ? REMATCH_MEMORIES[rm.key] : null;
@@ -17772,7 +17776,7 @@ view.addEventListener("click", (e) => {
     if (b.phase === "target" && enemy) {
       const opts = b.targetOptions();
       if (b.pending && b.pending.action !== "attack" && opts.every((t) => t.side !== "enemy")) return;
-      if (!opts.includes(enemy)) { log(`${enemy.name}までは届かない！ (射程: ${RANGE_LABEL[b.attackRange((b.pending && b.pending.actor) || b.current)]})`, "sys"); SFX.ng(); return; }
+      if (!opts.includes(enemy)) { log(`${enemy.name}は射程外（${RANGE_LABEL[b.attackRange((b.pending && b.pending.actor) || b.current)]}）`, "sys"); SFX.ng(); return; }
       SFX.select(); buzz(10); G._lastTargetUid = enemy.uid; b.chooseTarget(enemy); runCommitted();
       return;
     }
@@ -17780,7 +17784,7 @@ view.addEventListener("click", (e) => {
     // 何もないところなら最寄り/先頭の敵を自動で狙う (いずれも射程内のみ)。
     if (b.phase === "input") {
       const reach = b.attackableEnemies(b.current);
-      if (enemy && !reach.includes(enemy)) { log(`${enemy.name}までは届かない！ (射程: ${RANGE_LABEL[b.attackRange(b.current)]})`, "sys"); SFX.ng(); return; }
+      if (enemy && !reach.includes(enemy)) { log(`${enemy.name}は射程外（${RANGE_LABEL[b.attackRange(b.current)]}）`, "sys"); SFX.ng(); return; }
       const tgt = enemy || nearestEnemyAt(sx, sy, reach) || defaultAttackTarget(b.current);
       if (!tgt) return;
       attackNow(tgt);
