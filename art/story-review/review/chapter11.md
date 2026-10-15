@@ -1,13 +1,13 @@
 # 第11章「夜明けの町」 の絵
 
 書き出し: `node tools/storyart/review.mjs` (手で直さない)。絵は出荷する WebP、まだ無ければ原画。
-
+ゲームで小さく出た時の見え方 (384×256): [chapter11-small.jpg](chapter11-small.jpg)
 
 <a name="w42_dawn"></a>
 
-## w42_dawn「夜明けの町」 ── 未着手 (指示あり)
+## w42_dawn「夜明けの町」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter11/w42_dawn.webp" width="576" alt="w42_dawn">
 
 **ストーリー一覧の本文**
 
@@ -80,9 +80,9 @@ _(絵はまだ無い)_
 
 <a name="report_w42"></a>
 
-## report_w42「命令の届かぬ所」 ── 未着手 (指示あり)
+## report_w42「命令の届かぬ所」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter11/report_w42.webp" width="576" alt="report_w42">
 
 **ストーリー一覧の本文**
 
@@ -116,9 +116,9 @@ _(絵はまだ無い)_
 
 <a name="irene_why"></a>
 
-## irene_why「ついて歩く理由」 ── 未着手 (指示あり)
+## irene_why「ついて歩く理由」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter11/irene_why.webp" width="576" alt="irene_why">
 
 **ストーリー一覧の本文**
 
@@ -156,9 +156,9 @@ _(絵はまだ無い)_
 
 <a name="w43_jars"></a>
 
-## w43_jars「今日の瓶」 ── 未着手 (指示あり)
+## w43_jars「今日の瓶」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter11/w43_jars.webp" width="576" alt="w43_jars">
 
 **ストーリー一覧の本文**
 
@@ -197,9 +197,9 @@ _(絵はまだ無い)_
 
 <a name="report_w43"></a>
 
-## report_w43「晴れた空の雨」 ── 未着手 (指示あり)
+## report_w43「晴れた空の雨」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter11/report_w43.webp" width="576" alt="report_w43">
 
 **ストーリー一覧の本文**
 
@@ -229,9 +229,9 @@ _(絵はまだ無い)_
 
 <a name="w44_glass"></a>
 
-## w44_glass「一度だけ」 ── 未着手 (指示あり)
+## w44_glass「一度だけ」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter11/w44_glass.webp" width="576" alt="w44_glass">
 
 **ストーリー一覧の本文**
 
