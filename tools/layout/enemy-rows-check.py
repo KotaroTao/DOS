@@ -6,8 +6,16 @@ with sync_playwright() as p:
     page = browser.new_page(viewport={'width': 390, 'height': 664}, service_workers='block')
     errors = []
     page.on('pageerror', lambda e: errors.append(str(e)))
+    # 外部フォントの応答待ちで起動監視が発火しないよう、端末の代替書体を使う。
+    page.route('https://fonts.googleapis.com/**', lambda route: route.abort())
+    # 検証用VMでは大量のES Modulesの取得が5秒を超えるため、起動監視だけ猶予を延ばす。
+    def boot_page(route):
+        response = route.fetch()
+        route.fulfill(response=response, body=response.text().replace('}, 5000);', '}, 60000);'))
+    page.route('http://localhost:8000/?testDungeon=*', boot_page)
     page.goto('http://localhost:8000/?testDungeon=w02')
     page.wait_for_function('window.__game?.G.party.length > 0')
+    page.wait_for_timeout(2000)
     page.evaluate('''() => {
       const g = __game;
       g.G.autoCombat = false;
@@ -49,7 +57,9 @@ with sync_playwright() as p:
               }
               const app = document.getElementById('app');
               const minLog = innerWidth <= 600 && __game.G.battle.enemies.length > 3 ? 47.5 : 54;
-              if (log.height < minLog || log.bottom > party.top+1 || controls.bottom > rect('app').top+app.scrollHeight+1)
+              const desktop = getComputedStyle(document.getElementById('app')).display === 'grid';
+              const overlap = desktop ? rect('hud').top < party.bottom : log.bottom > party.top+1;
+              if (log.height < minLog || overlap || controls.bottom > rect('app').top+app.scrollHeight+1)
                 throw Error('記録・操作欄の重なり');
               return [view.height,log.y,log.height,party.y,controls.y];
             }''')

@@ -1,3 +1,4 @@
+import "./desktop.js";
 import * as formations from "./formations.js";
 import { soulAcquisitionArt } from "./ui/soulart.js";
 import { insightTotals, insightTitle } from "./insight.js";
@@ -2571,7 +2572,11 @@ function fitView(force = false) {
   // 盤面の幅から最低高を決めると、スマホのブラウザバー表示時に記録がつぶれる。
   // 探索は低い盤面も許し、拡大表示とドラッグでマスの操作性を保つ。
   const minVH = combat ? 180 : 96;
-  const h = Math.max(cssW * minVH / VW, Math.min(cssW * (combat ? 0.98 : 1.32), appH - used));
+  // PC の左右配置では隊・記録・命令板は右側。左の戦場からその高さを引かない。
+  const desktop = csA.display === "grid";
+  const available = desktop ? screenEl.clientHeight
+    - (parseFloat(csS.paddingTop) || 0) - (parseFloat(csS.paddingBottom) || 0) : appH - used;
+  const h = Math.max(cssW * minVH / VW, desktop ? available : Math.min(cssW * (combat ? 0.98 : 1.32), available));
   const vh = Math.max(minVH, Math.floor((VW * h) / cssW));
   const cssH = (vh * cssW) / VW;
   const dpr = Math.max(1, window.devicePixelRatio || 1);
@@ -2584,6 +2589,8 @@ function fitView(force = false) {
   if (view.width !== bw) view.width = bw;
   if (view.height !== bh) view.height = bh;
   view.style.height = cssH.toFixed(2) + "px";
+  if (desktop) screenEl.style.setProperty("--pc-view-height", cssH.toFixed(2) + "px");
+  else screenEl.style.removeProperty("--pc-view-height");
   VSX = bw / VW; VSY = bh / VH;
   layoutBoard();
   return true;
@@ -2597,7 +2604,7 @@ function refitAndRedraw() {
 window.addEventListener("resize", () => requestAnimationFrame(refitAndRedraw));
 if (typeof ResizeObserver !== "undefined" && appEl) {
   const observer = new ResizeObserver(() => requestAnimationFrame(refitAndRedraw));
-  for (const id of ["app", "topbar", "party", "hint", "runbar", "board-camera-tools"]) {
+  for (const id of ["app", "screen", "topbar", "party", "hint", "runbar", "board-camera-tools"]) {
     const e = document.getElementById(id);
     if (e) observer.observe(e);
   }
