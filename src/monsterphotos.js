@@ -8,6 +8,12 @@ export const MONSTER_PHOTOS = {
   bs_cavernlord: [520, 365],
   bs_gloomstalker: [520, 354],
   // <</CAVERN_LAIR_ART>>
+  // <<BAPTISM_ART>>
+  // 洗礼の大水槽（作成済みの通常敵・強敵・共通敵は既存原画を共用）。
+  bs_irongolem: [520, 401],
+  bs_voidwalker: [322, 520],
+  bs_shadowdragon: [516, 520],
+  // <</BAPTISM_ART>>
   // <<CAULDRON_ART>>
   // 魂を煮る釜場（作成済みの通常敵・強敵・共通敵は既存原画を共用）。
   bs_furnacefiend: [520, 359],
