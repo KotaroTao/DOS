@@ -42,6 +42,9 @@ if __name__ == '__main__':
     _, nearest = distance_transform_edt(owners == 0, return_indices=True)
     assignment = owners[tuple(nearest)]
     for index, key in enumerate(IDS, 1):
+        # 繭母はmainで採用済みの共通原画を保つ（シート内の案は出荷しない）。
+        if key == "el_mistmother":
+            continue
         isolated = pixels.copy()
         isolated[assignment != index] = 0
         image = Image.fromarray(isolated)
