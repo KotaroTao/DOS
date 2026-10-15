@@ -11,6 +11,7 @@
 const CACHE = "dos-dev";
 const DEV = CACHE === "dos-dev";
 const ASSETS = [
+
   // 奉納品21〜40の透過原画。
   "./art/misc/m_keep_seal_key.webp",
   "./art/misc/m_deathpaint_bottle.webp",
@@ -1109,6 +1110,36 @@ const ASSETS = [
   "./art/jobs/chaplain_3.webp",
   "./art/jobs/chaplain_4.webp",
   "./art/jobs/chaplain_5.webp",
+  // 奉納品81〜108の専用原画
+  "./src/treasuryphotos.js",
+  "./art/treasury/m_petrified_heart.webp",
+  "./art/treasury/m_grave_lantern_oil.webp",
+  "./art/treasury/m_ossified_wreath.webp",
+  "./art/treasury/m_revenant_chain.webp",
+  "./art/treasury/m_tomb_seal_wax.webp",
+  "./art/treasury/m_wyrm_eye_jelly.webp",
+  "./art/treasury/m_dragon_sinew.webp",
+  "./art/treasury/m_molten_scale.webp",
+  "./art/treasury/m_drake_gizzard_stone.webp",
+  "./art/treasury/m_wyrm_whisker.webp",
+  "./art/treasury/m_dragonfire_cinder.webp",
+  "./art/treasury/m_serpent_crown_shard.webp",
+  "./art/treasury/m_elder_heartscale.webp",
+  "./art/treasury/m_world_root_splinter.webp",
+  "./art/treasury/m_star_iron_ingot.webp",
+  "./art/treasury/m_sovereign_signet.webp",
+  "./art/treasury/m_phoenix_down.webp",
+  "./art/treasury/m_abyssal_pearl_core.webp",
+  "./art/treasury/m_godslayer_fang.webp",
+  "./art/treasury/m_first_flame_ember.webp",
+  "./art/treasury/m_monk_prayer_beads.webp",
+  "./art/treasury/m_banner_tassel.webp",
+  "./art/treasury/m_moss_offering_dish.webp",
+  "./art/treasury/m_unmelting_frost.webp",
+  "./art/treasury/m_lightning_fossil.webp",
+  "./art/treasury/m_arena_seat_tally.webp",
+  "./art/treasury/m_millennium_cocoon.webp",
+  "./art/treasury/m_still_hourglass.webp",
 ];
 
 // 絵 (png/webp/jpg) は版ごとに取り直さない。ASSETS の大半 (約50MB。2026-10 に物語の絵を WebP にするまでは約250MB) は絵で、
