@@ -218,6 +218,15 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 
 ### A. 必須 (物語の筋や正典と食い違う)
 
+**A-39. 第三章 report_w11「師の師」王の重複した左腕の修正** `art/story-review/chapter3/report_w11.png` (済)
+
+- ユーザー指定: 「師の師」の王の左手が2本ある。口元に添えた左手を残し、画面右下の肘掛けを握る余分な左手・前腕を取り除く。衣のひだで自然につなぎ、ほかは保つ。
+
+```text
+...except: correct ONLY the king's duplicated left arm. Preserve his left hand touching his mouth and its connected bent arm. Remove the extra left hand gripping the armrest at image-right near x=990,y=600 and the attached extra forearm and sleeve below the mouth-touching arm. Replace this extra limb with natural folds of his red embroidered robe and white black-spotted ermine cape lying close to his torso and lap; leave the carved armrest visible and unoccupied. The king's right arm remains concealed behind the open book at image-left; do not add a hand. Preserve his face, crown, beard, pensive posture, apprentice, open book, map, throne, background chair, architecture, composition, fine pixel texture, colors and lighting exactly. Make no other changes.
+```
+
+
 
 **A-38. 第二章 report_w09「先代という仮面」（ゲーム内「先代の王」）** `art/story-review/chapter2/report_w09.png` (済)
 - ユーザー指定 (2026-10-15): 弟子が持つ手紙を、`art/story-review/chapter2/mem_w09.png`「砦を捧げた書状」と同じ書状にする。赤い封蝋を横に二つ並べ、左を金の王冠の王家の紋、右を参照と同じ金の宰相府の紋にし、赤金の組紐も合わせる。手に持つ角度と縮尺に合わせる。
