@@ -1,0 +1,1602 @@
+[
+  {
+    "number": 401,
+    "id": "r_phoenix_plume",
+    "name": "不死鳥の尾羽",
+    "desc": "灰から蘇る霊鳥が灰に残した一枚の尾羽。身につける者の命をおき火のように保ち、いかなる業火も同じ炎として素通りする。",
+    "path": "art/items/r_phoenix_plume.webp",
+    "created": true,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 402,
+    "id": "r_soulking_signet",
+    "name": "魂王の印の指輪",
+    "desc": "百の迷宮の主たちが恐れる印が刻まれた黒い指輪。はめた者の影が一回り濃くなり、迷宮の闇が道を譲るとも、招くともいう。",
+    "path": "art/items/r_soulking_signet.webp",
+    "created": true,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 403,
+    "id": "m_rat_king_tooth",
+    "name": "ネズミ王の前歯",
+    "desc": "牢の残飯や死体を食べて育った、ネズミの王の前歯。鉄格子には何本もの歯形が残っている。悪い細工師が、象牙に似せた品を作るために買ってゆく。",
+    "path": "art/offerings/m_rat_king_tooth.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 404,
+    "id": "m_chained_finger",
+    "name": "鎖を握る指の骨",
+    "desc": "名も知らない囚人が、鎖を握ったまま骨になった指。死んでも離さないその力は、呪いの道具に向くという。裏通りの道具屋が、何も言わず棚の奥にしまう。",
+    "path": "art/offerings/m_chained_finger.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 405,
+    "id": "m_gaoler_bell",
+    "name": "看守の呼び鈴",
+    "desc": "囚人に最後の朝を知らせるため、看守が振った金色の鈴。すんだ音とは裏腹に、暗い過去を持つ。珍しい品を集める者たちが、その話を聞いて買い求める。",
+    "path": "art/offerings/m_gaoler_bell.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 406,
+    "id": "m_bribe_copper",
+    "name": "袖の下の銅貨",
+    "desc": "看守たちへのわいろとして渡されてきた銅貨。表面は手の脂でくもり、皇帝の横顔も見分けられない。それでも、つぶして重さを量れば銅の値段で売れる。",
+    "path": "art/offerings/m_bribe_copper.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 407,
+    "id": "m_unlisted_cell_key",
+    "name": "牢の古株の隠し銀",
+    "desc": "牢の古株が、壁のすき間にためこんだ銀貨。看守に見つからないよう、米粒を混ぜたしっくいで隠していた。どこから出た品でも銀は銀。商人は何も聞かず、はかりに載せる。",
+    "path": "art/offerings/m_unlisted_cell_key.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 408,
+    "id": "m_execution_shroud",
+    "name": "処刑日の白い服",
+    "desc": "処刑の朝にだけ着せられた白い服。そで口をかきむしった跡が、着ていた者の最後の時を物語る。はらい師は、この服に残る呪いを清めの儀式に使うという。",
+    "path": "art/offerings/m_execution_shroud.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 409,
+    "id": "m_kobold_keepsake",
+    "name": "犬鬼の集め袋",
+    "desc": "犬頭の小鬼が冒険者の骸から拾い集めた小物の袋。指輪、乳歯、結い紐——持ち主の数だけ墓標が足りない。遺族を探す教会が、中身ごと引き取ってくれる。",
+    "path": "art/offerings/m_kobold_keepsake.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 410,
+    "id": "m_bat_night_eye",
+    "name": "大コウモリの夜の目",
+    "desc": "闇の中だけで生きた大コウモリの眼球。死してなお光をいとい、灯りを近づけるとまぶたのない目がわずかにすぼまる。暗視の秘薬の主材として、薬師が高値で買い上げてゆく。",
+    "path": "art/offerings/m_bat_night_eye.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 411,
+    "id": "m_rust_worm_iron",
+    "name": "さび虫の残し鉄",
+    "desc": "鉄格子を食い荒らすさび虫が、なぜか口をつけずに残した鉄。混ざりものの無い証だと知れ渡っており、鍛冶師たちの間では炉の前で奪い合いが起きる。",
+    "path": "art/offerings/m_rust_worm_iron.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 412,
+    "id": "m_imp_milk_horn",
+    "name": "幼い悪魔の抜け角",
+    "desc": "幼い悪魔が乳歯のように生え替わらせて落とす、小さなねじれ角。悪運除けのお守りとして裏通りで重宝がられるが、教会はこれを下げた者の葬儀を渋るという。",
+    "path": "art/offerings/m_imp_milk_horn.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 413,
+    "id": "m_tear_bottle",
+    "name": "囚人の涙瓶",
+    "desc": "死を待つ囚人の涙を集めた小瓶。誰が何のために集めさせたのか、知る者はもういない。深い悲しみが宿るため、呪いの儀式に使う者が高値で買い取る。",
+    "path": "art/offerings/m_tear_bottle.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 414,
+    "id": "m_unjudged_skull",
+    "name": "裁かれぬ者のどくろ",
+    "desc": "裁きを待つうちに牢で死んだ男の頭の骨。罪があったのかも分からないまま、死者の国とこの世の間をさまようという。死者の魂を呼ぶ術師が、儀式のために買い求める。",
+    "path": "art/offerings/m_unjudged_skull.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 415,
+    "id": "m_gaol_confession",
+    "name": "囚人の告白の書",
+    "desc": "死刑囚が、壁のすすと自分の血で罪を書き残した本。ページをめくるほど文字は落ち着き、最後のページだけは黒く塗りつぶされている。聖堂はこの記録を集めるため、金を惜しまない。",
+    "path": "art/offerings/m_gaol_confession.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 416,
+    "id": "m_candle_amber",
+    "name": "ろうに似たこはく",
+    "desc": "木の樹液が、長い年月をかけて固まった石。ろうそくから流れ落ちたろうに似ている。中には小さな羽虫が閉じこめられ、磨けば美しい宝石になる。",
+    "path": "art/offerings/m_candle_amber.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 417,
+    "id": "m_harpy_pinion",
+    "name": "鳥乙女の風切羽",
+    "desc": "砦の塔に巣食う鳥女の翼から抜け落ちた風切羽。矢羽根に仕立てると狙いが歌うように伸びるといわれ、弓師が言い値で買い付けてゆく。",
+    "path": "art/offerings/m_harpy_pinion.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 418,
+    "id": "m_lost_realm_silver",
+    "name": "滅んだ国の銀貨",
+    "desc": "滅んだ国で、兵士への給料に使われていた銀貨。国の印にはもう意味がないが、銀としての価値は残っている。お金を両替する商人は、刻まれた印をつぶして店の奥にしまう。",
+    "path": "art/offerings/m_lost_realm_silver.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 419,
+    "id": "m_warhorse_neckbone",
+    "name": "軍馬の首の骨",
+    "desc": "主人とともに城門の前で倒れた軍馬の、太い首の骨。最後まで主人を守った馬の骨は、魔よけの細工に使われる。雨の夜には、かすかなひづめの音がするという。",
+    "path": "art/offerings/m_warhorse_neckbone.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 420,
+    "id": "m_silent_alarm",
+    "name": "鳴らされなかった警鐘",
+    "desc": "物見の兵が綱に手をかけたまま射抜かれ、ついに落城を知らせられなかった鐘。ひと晩の沈黙を飲んだ青銅は妙に重く、収集家はその静けさごと買ってゆく。",
+    "path": "art/offerings/m_silent_alarm.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 421,
+    "id": "m_wall_lizard_fang",
+    "name": "城トカゲの毒牙",
+    "desc": "石壁を音もなくはう大トカゲの牙。根元の毒袋にはまだ毒が眠り、針の先ほどの傷で大の男が気絶する。毒師と医師が、同じ顔つきでこれを求めに来る。",
+    "path": "art/offerings/m_wall_lizard_fang.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 422,
+    "id": "m_undying_ember",
+    "name": "冷めないおき石",
+    "desc": "小悪魔の火種だったとささやかれる、いつまでも冷めないおき火。炉も薪も要らない小さな暖を求めて、北へ向かう隊商が革手袋越しに銀と引き換える。",
+    "path": "art/offerings/m_undying_ember.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 423,
+    "id": "m_keep_seal_key",
+    "name": "城の封じろう",
+    "desc": "「決して開けるな」という城主の命令で、城の扉を封じていた赤いろう。割れた今も紋章は読み取れるが、誰が封を破ったのかは分からない。物好きな貴族は、その暗い過去にも高い値をつける。",
+    "path": "art/misc/m_keep_seal_key.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 424,
+    "id": "m_deathpaint_bottle",
+    "name": "死化粧の白い粉瓶",
+    "desc": "城が落ちる前の夜、女たちが互いの顔を白く整えるのに使った粉。真珠を細かくした粉がたっぷり混ざっている。絵の具を売る商人と、にせ金を作る者が欲しがる。",
+    "path": "art/misc/m_deathpaint_bottle.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 425,
+    "id": "m_halfburnt_chronicle",
+    "name": "焼け残りの戦記",
+    "desc": "城の書庫で、一冊だけ焼け残った戦いの記録。勝者が燃やしたかったはずのページほど、きれいに残っている。隠された歴史を知りたい学者が、高い金を払う。",
+    "path": "art/misc/m_halfburnt_chronicle.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 426,
+    "id": "m_haunted_glass_eye",
+    "name": "亡霊が宿る作り目",
+    "desc": "片目を失った城主がはめていた、ガラスの作り目。のぞくと、この世にはいない誰かと目が合う。宿った霊ごと手に入れたい術師たちが、高値で買い求める。",
+    "path": "art/misc/m_haunted_glass_eye.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 427,
+    "id": "m_groaning_iron",
+    "name": "うめく鉄塊",
+    "desc": "炉にくべると人の声でうめく鉄。鍛え直されるのを拒んでいるのか、許しを願っているのか。並の鍛冶は手を引くが、名のある刀匠は『良い声だ』と笑って引き取る。",
+    "path": "art/misc/m_groaning_iron.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 428,
+    "id": "m_mist_crystal",
+    "name": "霧を呼ぶ水晶",
+    "desc": "常に薄い霧をまとう水晶の球。亡霊たちはこの霧を産着のように懐かしむという。霧の渦が深い玉ほどよく視えると信じる占い師が、競うように札を入れる。",
+    "path": "art/misc/m_mist_crystal.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 429,
+    "id": "m_abyss_black_pearl",
+    "name": "深い闇の黒真珠",
+    "desc": "光の届かぬ水底で育った黒真珠。灯りを寄せると、嫌がるようにわずかに身じろいで見える。首飾りに仕立てれば一財産だが、夜ごとの悪夢までは値に含まれていない。",
+    "path": "art/misc/m_abyss_black_pearl.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 430,
+    "id": "m_sahagin_barb",
+    "name": "水の魔物の返し牙",
+    "desc": "水底に潜む半魚の戦士がもりの代わりに振るう、返しの付いた牙。刺されば二度と抜けないその造りは、皮肉にも釣り針職人たちの長年の理想だった。",
+    "path": "art/misc/m_sahagin_barb.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 431,
+    "id": "m_shriek_root_cloth",
+    "name": "悲鳴草の根布",
+    "desc": "引き抜く者を悲鳴で殺す草の根を、布に織り上げたもの。作った者は耳をろうでふさいでいたという。音を吸い取るため、秘密の話が多い貴族が壁掛けとして欲しがる。",
+    "path": "art/misc/m_shriek_root_cloth.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 432,
+    "id": "m_martyr_skull",
+    "name": "殉教者の頭の骨",
+    "desc": "灰に沈んだ聖堂から掘り出された、額に聖印の焼き痕を持つ頭の骨。聖遺物としてまつりたい教会と、呪具に変えたい術師が、同じ競り台を黙って囲む。",
+    "path": "art/misc/m_martyr_skull.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 433,
+    "id": "m_watergrave_coin",
+    "name": "水葬の金貨",
+    "desc": "財宝とともに水底へ沈んだ商人が、最後まで握っていた金貨。緑色のさびに覆われているが、金の重さは変わらない。磨けば、過去を気にせず買う者もいるだろう。",
+    "path": "art/misc/m_watergrave_coin.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 434,
+    "id": "m_whelp_shed_horn",
+    "name": "幼竜の抜け角",
+    "desc": "育ち盛りの竜が岩肌に擦りつけて落とした角。生え替わりの角にも炎の気配はくすぶり、削り粉は火薬より素直に燃える。竜のものはかけらであっても竜の値が付く。",
+    "path": "art/misc/m_whelp_shed_horn.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 435,
+    "id": "m_water_sprite_bell",
+    "name": "水霊の鎮め鈴",
+    "desc": "水霊の洞のみこが、荒ぶる流れをなだめるために振った銀の鈴。音は水面の下でだけ澄んで響く。みこの血筋が絶えた今、その振り方ごと伝説の値が付いた。",
+    "path": "art/misc/m_water_sprite_bell.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 436,
+    "id": "m_dragon_silver",
+    "name": "溶け残りの竜銀",
+    "desc": "竜の吐息を浴びてなお溶けきらなかった銀の塊。並の炉では二度と形を変えられず、それゆえ『竜銀』の名で武具の芯に大切にされる。",
+    "path": "art/misc/m_dragon_silver.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 437,
+    "id": "m_robber_left_pouch",
+    "name": "盗掘者の忘れ袋",
+    "desc": "墓を荒らした末に死んだ者の革袋。中には、死者とともに墓へ納められた品がきれいに分けられている。袋の持ち主を示す品だけはなく、古道具屋も出所を聞こうとしない。",
+    "path": "art/misc/m_robber_left_pouch.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 438,
+    "id": "m_hollow_armor_core",
+    "name": "無人の鎧の心の玉",
+    "desc": "中身のない鎧を立たせ、歩かせ、剣まで振るわせていた光の珠。手のひらに載せると、見えない誰かに姿勢を正される心地がする。魔導具師が体ごと欲しがる逸品の、その心臓。",
+    "path": "art/misc/m_hollow_armor_core.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 439,
+    "id": "m_ogre_molar",
+    "name": "人食い鬼の奥歯",
+    "desc": "墓を荒らして死体を食べる大鬼の、あごから抜け落ちた奥歯。すり減った歯が何をかんできたのかは、考えない方がいい。象牙よりも硬く、細工師が材料に使う。",
+    "path": "art/misc/m_ogre_molar.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 440,
+    "id": "m_grave_star_iron",
+    "name": "墓標の星鉄",
+    "desc": "天から落ちた鉄を削って建てられたという墓標のかけら。地の鉄とは交わらない気位を保ち、これを芯に鍛えた剣はさびを知らないと鍛冶師たちは信じている。",
+    "path": "art/misc/m_grave_star_iron.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 441,
+    "id": "m_guardian_tablet",
+    "name": "番人の銘板",
+    "desc": "石の番人の胸にはまっていた銘板。『荒らす者を砕け』——最初の主の筆跡が、今も読み取れる。動かぬ巨体そのものより、この一片こそが術師たちの長年の探し物だ。",
+    "path": "art/misc/m_guardian_tablet.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 442,
+    "id": "m_ossuary_key",
+    "name": "納骨堂の弔い鈴",
+    "desc": "何千の骸を納めた地下納骨堂で、ひつぎがひとつ納まるたびに振られた弔いの鈴。墓守の血筋が絶え、鈴は鳴らし手より長く生きた。教会は鎮魂のために、降霊術師は逆さの目的で、互いに知らぬ顔のまま値を競る。",
+    "path": "art/misc/m_ossuary_key.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 443,
+    "id": "m_oath_rib",
+    "name": "誓いのあばら骨",
+    "desc": "竜に挑んで命を落とした騎士のあばら骨。朽ちた鎧の内側で、骨は今も誓いを守るように残っている。教会は、清めれば身を守る力が宿ると信じ、買い戻しに来る。",
+    "path": "art/misc/m_oath_rib.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      255,
+      255
+    ]
+  },
+  {
+    "number": 444,
+    "id": "m_ash_woven_vestment",
+    "name": "屍灰織りの祭服",
+    "desc": "聖堂が灰に沈んだ朝、降り積もる灰を糸にして織り上げたという服。そでを通すと、誰かに祈られている気がする。作ることを禁じられた品で、出所を聞かない者だけが買う。",
+    "path": "art/misc/m_ash_woven_vestment.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      255,
+      255
+    ]
+  },
+  {
+    "number": 445,
+    "id": "m_ferrymans_fee",
+    "name": "冥府の渡し賃",
+    "desc": "死者のまぶたに載せ、死者の国へ渡る船の代金にする銀貨。墓から持ち出されたこの一枚のせいで、誰かが岸辺に取り残されている。銀の質は、この世で使う銀貨よりも高い。",
+    "path": "art/misc/m_ferrymans_fee.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      255,
+      255
+    ]
+  },
+  {
+    "number": 446,
+    "id": "m_gold_seared_eye",
+    "name": "黄金に焼かれた眼",
+    "desc": "竜の財宝を見つめたまま事切れた盗掘者の眼球。瞳には今も黄金の山が映り込んで固まっている。財のありかが視えると信じて、相場を捨てた額を積む者が後を絶たない。",
+    "path": "art/misc/m_gold_seared_eye.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      255,
+      255
+    ]
+  },
+  {
+    "number": 447,
+    "id": "m_challenger_blood",
+    "name": "竜に挑んだ者の血",
+    "desc": "墓所の床に滴ったそれを、固まるより早く何者かが瓶に汲んだ挑戦者の血。竜を前にひるまなかった血は強心の秘薬の主材で、汲んだ者の度胸まで含めた売値が立つ。",
+    "path": "art/misc/m_challenger_blood.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      255,
+      255
+    ]
+  },
+  {
+    "number": 448,
+    "id": "m_dragon_tear_stone",
+    "name": "竜の涙石",
+    "desc": "古竜が眠っている間に流すという、涙の結晶。ひと粒で小さな城が建つほどの価値がある。本物を見分けられる者は、世界に数えるほどしかいない。",
+    "path": "art/misc/m_dragon_tear_stone.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      255,
+      255
+    ]
+  },
+  {
+    "number": 449,
+    "id": "m_hoard_flake_pouch",
+    "name": "竜金のこぼれ袋",
+    "desc": "竜の寝床から、命がけで集めた金のかけら。うろこのようにはがれた金は、竜の体温で少し溶けて固まっている。印がなくても、どこから来た金か分かってしまう。",
+    "path": "art/misc/m_hoard_flake_pouch.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      255,
+      255
+    ]
+  },
+  {
+    "number": 450,
+    "id": "m_mourning_moon_orb",
+    "name": "死者を送る月の玉",
+    "desc": "月の昇らない墓所の通夜のため、葬送の司祭らがあつらえた小さな月。骸のそばで満ち欠けし、喪が明ければ光を失う。まだ満ちる途中のこれを、次の国葬が待っている。",
+    "path": "art/misc/m_mourning_moon_orb.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      255,
+      255
+    ]
+  },
+  {
+    "number": 451,
+    "id": "m_elder_horn_shard",
+    "name": "古竜の砕け角",
+    "desc": "古竜の頭冠から、いくさの果てに砕け落ちた角の先。大気の魔力を吸い、今もわずかに重さを増し続けている。王は玉座の飾りに、術師は杖の芯にと欲し、値は天井を知らない。",
+    "path": "art/misc/m_elder_horn_shard.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      255,
+      255
+    ]
+  },
+  {
+    "number": 452,
+    "id": "m_crown_fused_skull",
+    "name": "王冠ごと溶けた頭の骨",
+    "desc": "竜の炎に黄金の冠ごと焼かれ、骨と王権がひとつに溶け合った頭の骨。王の名はもう誰も知らない。それでも国宝と呼んで買い戻したがる子孫だけは、いまだに絶えない。",
+    "path": "art/misc/m_crown_fused_skull.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      255,
+      255
+    ]
+  },
+  {
+    "number": 453,
+    "id": "m_rusted_shackle_pin",
+    "name": "足かせの留め針",
+    "desc": "囚人の足かせを留めていたさびた鉄の留め針。これが外れたとき、その足はもう自分では歩けなくなっていた。鉄くず買いが束にして量り取ってゆく。",
+    "path": "art/misc/m_rusted_shackle_pin.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      255,
+      255
+    ]
+  },
+  {
+    "number": 454,
+    "id": "m_prisoners_dice",
+    "name": "囚人の骨サイコロ",
+    "desc": "牢の囚人が、自分の指の骨を削って作ったというサイコロ。振るたびに、持ち主に悪いことが起きたと伝わる。古い品を集める物好きが、薄笑いを浮かべて買ってゆく。",
+    "path": "art/misc/m_prisoners_dice.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      255,
+      255
+    ]
+  },
+  {
+    "number": 455,
+    "id": "m_warden_signet",
+    "name": "看守長の印",
+    "desc": "看守長が、牢の鍵をまとめる輪につけていた金色の印。今はもう、この印が示す権力も意味を持たない。それでも金属としての価値は残っている。",
+    "path": "art/misc/m_warden_signet.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      255,
+      255
+    ]
+  },
+  {
+    "number": 456,
+    "id": "m_centipede_husk",
+    "name": "地虫の抜け殻",
+    "desc": "地下の闇で肥え太った大ムカデが脱ぎ捨てた殻。乾かせば軽く頑丈で、矢筒や護符入れに化けるため、革細工師が皮の代わりにと買い集める。",
+    "path": "art/misc/m_centipede_husk.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      255,
+      255
+    ]
+  },
+  {
+    "number": 457,
+    "id": "m_phosphor_moss_jar",
+    "name": "光りこけの小瓶",
+    "desc": "灯りのない牢の壁にだけ生える、ほのかに光るこけを詰めた小瓶。揺らすと青白い光がしばらく尾を引く。薬師が夜目の秘薬の素にと先を争う。",
+    "path": "art/misc/m_phosphor_moss_jar.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      255,
+      255
+    ]
+  },
+  {
+    "number": 458,
+    "id": "m_siege_arrowhead",
+    "name": "攻城戦の矢じり",
+    "desc": "落城の朝に城壁へ降り注いだ無数の矢じりの、生き残った一つ。さびの下にまだ研ぎ目が残り、誰かの最期の腕前を黙って語っている。",
+    "path": "art/misc/m_siege_arrowhead.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      255,
+      255
+    ]
+  },
+  {
+    "number": 459,
+    "id": "m_chatelaine_brooch",
+    "name": "城守りの妻の飾り留め",
+    "desc": "城が落ちた日に行方が分からなくなった、城を守る役人の妻の飾り。服のえり元につけていたものらしい。宝石商は、その不思議な過去にも高い値をつける。",
+    "path": "art/misc/m_chatelaine_brooch.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      255,
+      255
+    ]
+  },
+  {
+    "number": 460,
+    "id": "m_mercenary_tag",
+    "name": "傭兵の認識札",
+    "desc": "給金と引き換えに名を売った傭兵が、首から下げていた鉛の小札。刻まれた名はもう誰も呼ばないが、鉛は鉛として量り買いされる。",
+    "path": "art/misc/m_mercenary_tag.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      255,
+      255
+    ]
+  },
+  {
+    "number": 461,
+    "id": "m_battlements_keystone",
+    "name": "城壁を支えた石",
+    "desc": "崩れ落ちた城壁を支えていた、先の細い石。今は失われた建て方を知る手がかりとして、石工たちが手本に欲しがる。",
+    "path": "art/misc/m_battlements_keystone.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      255,
+      255
+    ]
+  },
+  {
+    "number": 462,
+    "id": "m_gargoyle_chip",
+    "name": "石像鬼の欠け爪",
+    "desc": "夜ごと石の体を起こして歩くと噂された石像鬼の、砕け落ちた爪の先。魔よけになるとして、門柱の根元に埋める風習がある。",
+    "path": "art/misc/m_gargoyle_chip.webp",
+    "created": false,
+    "size": [
+      320,
+      320
+    ],
+    "alphaRange": [
+      255,
+      255
+    ]
+  },
+  {
+    "number": 463,
+    "id": "m_widows_veil",
+    "name": "夫を失った女の布",
+    "desc": "城が落ちた日に夫を失った女が、一生外さなかったという黒いかぶり布。深い悲しみが染みこんでいる。はらい師は、死者の魂をしずめる儀式に使うという。",
+    "path": "art/collectibles/m_widows_veil.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 464,
+    "id": "m_cursed_war_coin",
+    "name": "呪われた戦勝貨",
+    "desc": "戦いの勝利を記念して作られた金貨。顔を刻まれた将軍は、翌朝には死んでいたという。運を気にするばくち打ちが、怖いもの見たさで集める。",
+    "path": "art/collectibles/m_cursed_war_coin.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 465,
+    "id": "m_alchemist_residue",
+    "name": "錬金術師の残りかす瓶",
+    "desc": "砦の塔にこもったまま死んだ錬金術師の小瓶。底には、虹色の粉が沈んでいる。ほかの錬金術師が、失われた薬の作り方を知る手がかりとして買い求める。",
+    "path": "art/collectibles/m_alchemist_residue.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 466,
+    "id": "m_chasm_echo_shell",
+    "name": "こだま貝",
+    "desc": "奈落に落ちた者の最期の声を吸い込んで殻を閉じたという巻貝。耳に当てると、底の見えぬ暗がりが今も何かをささやき返してくる。",
+    "path": "art/collectibles/m_chasm_echo_shell.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 467,
+    "id": "m_void_moth_dust",
+    "name": "闇のガの粉袋",
+    "desc": "光を食らうと恐れられた大きなガの羽から集めた粉。闇に溶けこむほど黒い染料が作れるため、裏通りの染め物職人が高く買い取る。",
+    "path": "art/collectibles/m_void_moth_dust.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 468,
+    "id": "m_fallen_rope_knot",
+    "name": "落ちた者の結び縄",
+    "desc": "奈落に挑んだ探索者が命綱に結んだ、ついにほどけぬままの縄の結び目。縄の先に何が残されたかは、買う者も売る者も問わない。",
+    "path": "art/collectibles/m_fallen_rope_knot.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 469,
+    "id": "m_pale_lantern_glass",
+    "name": "青いちょうちんのガラス",
+    "desc": "奈落の番人が持っていたという、青くにごったちょうちんのガラス。割れてもなお、冷たい光を放つ。指を近づけると、そっと熱をうばわれる。",
+    "path": "art/collectibles/m_pale_lantern_glass.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 470,
+    "id": "m_abyss_salt",
+    "name": "奈落の塩",
+    "desc": "日の差さない底で、長い時をかけて固まった塩。なめると少し苦い。物が腐るのを防ぐため、死者の体を清める者が欠かさず買い求める。",
+    "path": "art/collectibles/m_abyss_salt.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 471,
+    "id": "m_drowned_lyre_string",
+    "name": "水に沈んだたて琴の弦",
+    "desc": "水底に沈んだ吟遊詩人のたて琴から、ただ一本だけ切れずに残った弦。指ではじけば、おぼれゆく者の歌が水越しに聞こえるという。",
+    "path": "art/collectibles/m_drowned_lyre_string.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 472,
+    "id": "m_nixie_scale",
+    "name": "水の精のうろこ",
+    "desc": "水霊の洞の主が落とした、虹をはらんだ一枚のうろこ。乾くと色をすっかり失うため、目利きは水を張った器ごと大切に運んでゆく。",
+    "path": "art/collectibles/m_nixie_scale.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 473,
+    "id": "m_tidebound_compass",
+    "name": "潮に縛られた方位磁石",
+    "desc": "水底の渦に飲まれた船乗りの方位磁石。針はもう出口を指さず、いつも一番深い暗がりの方へとゆっくり傾いてゆく。",
+    "path": "art/collectibles/m_tidebound_compass.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 474,
+    "id": "m_pearl_diver_lung",
+    "name": "海にもぐる女の胸の石",
+    "desc": "長年、息を止めて海にもぐっていた女の胸に、いつしか生まれたという石。握っていると、水の中で長く息を止めていられると信じられている。",
+    "path": "art/collectibles/m_pearl_diver_lung.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 475,
+    "id": "m_river_god_tear",
+    "name": "川の神の涙",
+    "desc": "洪水をしずめるため、いけにえにされたみこ。その死を悲しんだ川の神が流したという涙。決してにごらない水として、清めの儀式に使われる。",
+    "path": "art/collectibles/m_river_god_tear.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 476,
+    "id": "m_censer_ash",
+    "name": "香炉に残った灰",
+    "desc": "焼け落ちた聖堂の香炉に、ひとすくいだけ残っていた灰。死者を送る煙の名残を、降霊術師が儀式の材料として高値で求めてくる。",
+    "path": "art/collectibles/m_censer_ash.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 477,
+    "id": "m_choir_bone_flute",
+    "name": "聖歌隊の骨笛",
+    "desc": "聖歌隊の子らの骨で作られたとささやかれる横笛。吹けば賛美歌のような、それでいて悲鳴のような音が、細い指の穴から漏れ出てくる。",
+    "path": "art/collectibles/m_choir_bone_flute.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 478,
+    "id": "m_reliquary_nail",
+    "name": "聖者の釘",
+    "desc": "ある殉教者をはりつけにしたと伝わる、赤くさびた長い釘。聖遺物としてまつりたい教会と、呪具の芯に変えたい術師とが、黙って競り台を囲む。",
+    "path": "art/collectibles/m_reliquary_nail.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 479,
+    "id": "m_mourning_glass",
+    "name": "喪のいろガラス",
+    "desc": "焼け落ちた聖堂の、花の形をした窓から拾った色ガラス。日にかざすと、描かれた聖者の伏せた目だけが、今もあざやかに浮かび上がる。",
+    "path": "art/collectibles/m_mourning_glass.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 480,
+    "id": "m_funeral_mask",
+    "name": "葬送の仮面",
+    "desc": "死者の顔に被せて野辺へと送った白磁の仮面。裏側には、これまで送られた者たちの名が一つずつ、びっしりと刻まれている。",
+    "path": "art/collectibles/m_funeral_mask.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 481,
+    "id": "m_blackened_thurible",
+    "name": "すすけた振り香炉",
+    "desc": "鎮魂のため何晩も振り続けられ、ついにすすで真っ黒になった香炉。鎖の擦り切れ具合が、絶やされなかった祈りの長さを物語る。",
+    "path": "art/collectibles/m_blackened_thurible.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 482,
+    "id": "m_knight_gorget",
+    "name": "竜に挑んだのど当て",
+    "desc": "竜の墓所に骸をさらした騎士の、かみ砕かれて歪んだのど当て。忠勇の証としてその破片ごと、遺族が涙ながらに買い戻しに来る。",
+    "path": "art/collectibles/m_knight_gorget.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 483,
+    "id": "m_petrified_heart",
+    "name": "石化した心臓",
+    "desc": "石化の息吹を浴び、鼓動を刻んだその形のまま固まった心臓。精巧な彫像と見間違えるそれを、医師と術師が別々の理由で欲しがる。",
+    "path": "art/treasury/m_petrified_heart.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 484,
+    "id": "m_grave_lantern_oil",
+    "name": "墓守の灯油壺",
+    "desc": "何百年も墓所の灯を絶やさなかった、不思議と尽きることのない灯油の壺。一滴で一晩燃えるといわれ、北へ向かう隊商が銀と引き換える。",
+    "path": "art/treasury/m_grave_lantern_oil.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 485,
+    "id": "m_ossified_wreath",
+    "name": "石になった供え花",
+    "desc": "墓前に手向けられたまま、長い年月に石と化した花の輪。供えた者の名も、供えられた者の名も、もう誰にも読み取れない。",
+    "path": "art/treasury/m_ossified_wreath.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 486,
+    "id": "m_revenant_chain",
+    "name": "よみがえり封じの鎖",
+    "desc": "ひつぎからよみがえる死者を、しばるための呪いの鎖。さびても決してほどけない。死者の魂を呼ぶ術師は、死者をしずめるのとは逆の目的で欲しがる。",
+    "path": "art/treasury/m_revenant_chain.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 487,
+    "id": "m_tomb_seal_wax",
+    "name": "墓の封じろう",
+    "desc": "『眠りを妨げるな』——墓の建物の扉を堅く封じていた黒い封じろう。砕かれた今、その奥で何が起き出したのかを知る者はいない。",
+    "path": "art/treasury/m_tomb_seal_wax.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 488,
+    "id": "m_wyrm_eye_jelly",
+    "name": "竜の目の透明な玉",
+    "desc": "倒された飛竜の目から取り出した、金色にすんだ玉。のぞくと、竜が空高く舞っていた日の記憶が、底でかすかにゆれるという。",
+    "path": "art/treasury/m_wyrm_eye_jelly.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 489,
+    "id": "m_dragon_sinew",
+    "name": "竜のすじ",
+    "desc": "竜の翼を動かしていた、太く丈夫なすじ。乾かしてより合わせれば、どんな強い弓にも使える弦になる。弓職人たちが必死に探し回る品。",
+    "path": "art/treasury/m_dragon_sinew.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 490,
+    "id": "m_molten_scale",
+    "name": "溶け残りの竜のうろこ",
+    "desc": "炎の息吹を真正面から浴びてなお、溶けきらなかった一枚のうろこ。鎧の胸当てに縫い込むだけで火を恐れずに済むと信じられている。",
+    "path": "art/treasury/m_molten_scale.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 491,
+    "id": "m_drake_gizzard_stone",
+    "name": "竜の胃石",
+    "desc": "竜が腹にためていた石。飲みこんだ宝石とこすれ合い、なめらかに磨かれている。刃をとぐと、どんなとぎ石よりも細かく仕上がる。",
+    "path": "art/treasury/m_drake_gizzard_stone.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 492,
+    "id": "m_wyrm_whisker",
+    "name": "古竜のひげ",
+    "desc": "古竜のあごから抜け落ちた、一本の長い銀のひげ。大気の流れを敏感に読むといわれ、占い師が星の動きを調べる道具として求めてくる。",
+    "path": "art/treasury/m_wyrm_whisker.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 493,
+    "id": "m_dragonfire_cinder",
+    "name": "竜火のおき火",
+    "desc": "竜の吐息が地に落ち、燃え尽きることなく固まったおき火。手のひらに載せると今も温かく、雪の中でも消えぬ火種として隊商が競って買う。",
+    "path": "art/treasury/m_dragonfire_cinder.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 494,
+    "id": "m_serpent_crown_shard",
+    "name": "蛇王の冠のかけら",
+    "desc": "水底の大蛇がかぶっていたという冠のかけら。かぶった者は水を思いのままに動かせるという。それを確かめに水底へ向かった者は、誰も帰ってこない。",
+    "path": "art/treasury/m_serpent_crown_shard.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 495,
+    "id": "m_elder_heartscale",
+    "name": "古竜の心臓を守るうろこ",
+    "desc": "古竜の心臓を覆っていた、その身で最も硬い一枚のうろこ。今も脈打つような熱を宿し、握りしめると己の鼓動と重なって脈打つ。",
+    "path": "art/treasury/m_elder_heartscale.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 496,
+    "id": "m_world_root_splinter",
+    "name": "世界樹の木片",
+    "desc": "迷宮の最奥に根を張る巨樹からはがれ落ちた木片。腐らず、燃えず、ただ静かに淡い緑の光を放ち続けている。",
+    "path": "art/treasury/m_world_root_splinter.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 497,
+    "id": "m_star_iron_ingot",
+    "name": "落ちた星の鉄の塊",
+    "desc": "空から落ちた鉄を打ち固めた塊。この世の決まりに従わない、不思議な力を持つ。神話に出てくる武具の芯にだけ使われたと伝わる。",
+    "path": "art/treasury/m_star_iron_ingot.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 498,
+    "id": "m_sovereign_signet",
+    "name": "滅んだ国の王の印",
+    "desc": "竜の炎で滅んだ国の、最後の王が使っていた印。押すはずだった書類も、王が治める国も、もうどこにも残っていない。",
+    "path": "art/treasury/m_sovereign_signet.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 499,
+    "id": "m_phoenix_down",
+    "name": "不死鳥の綿羽",
+    "desc": "灰からよみがえる鳥が、生涯にただ一度だけ落とすという綿羽。摘まんだ指先がほのかに温み、傷の治りを早めると古くから信じられている。",
+    "path": "art/treasury/m_phoenix_down.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  {
+    "number": 500,
+    "id": "m_abyssal_pearl_core",
+    "name": "深い闇の真珠の芯",
+    "desc": "光の絶えた最深部で、何千年もかけて巻き上げられた黒真珠の核。のぞき込む者の顔を映さず、ただ底知れぬ闇だけを静かに返す。",
+    "path": "art/treasury/m_abyssal_pearl_core.webp",
+    "created": false,
+    "size": [
+      384,
+      384
+    ],
+    "alphaRange": [
+      0,
+      255
+    ]
+  }
+]
