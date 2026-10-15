@@ -1,5 +1,5 @@
 // 奉納品の透過WebP。読めない時は元の固有ドット絵を使う。
-// 1〜20は art/offerings/、41〜60は art/misc/ (misc.js の登録順)。
+// 1〜20は art/offerings/、21〜60は art/misc/ (misc.js の登録順)。
 export const MISC_PHOTO_IDS = [
   "m_rat_king_tooth",
   "m_chained_finger",
@@ -23,6 +23,27 @@ export const MISC_PHOTO_IDS = [
   "m_undying_ember",
 ];
 export const MISC_PHOTOS = [
+  "m_keep_seal_key", // 21 城の封じろう
+  "m_deathpaint_bottle", // 22 死化粧の白い粉瓶
+  "m_halfburnt_chronicle", // 23 焼け残りの戦記
+  "m_haunted_glass_eye", // 24 亡霊が宿る作り目
+  "m_groaning_iron", // 25 うめく鉄塊
+  "m_mist_crystal", // 26 霧を呼ぶ水晶
+  "m_abyss_black_pearl", // 27 深い闇の黒真珠
+  "m_sahagin_barb", // 28 水の魔物の返し牙
+  "m_shriek_root_cloth", // 29 悲鳴草の根布
+  "m_martyr_skull", // 30 殉教者の頭の骨
+  "m_watergrave_coin", // 31 水葬の金貨
+  "m_whelp_shed_horn", // 32 幼竜の抜け角
+  "m_water_sprite_bell", // 33 水霊の鎮め鈴
+  "m_dragon_silver", // 34 溶け残りの竜銀
+  "m_robber_left_pouch", // 35 盗掘者の忘れ袋
+  "m_hollow_armor_core", // 36 無人の鎧の心の玉
+  "m_ogre_molar", // 37 人食い鬼の奥歯
+  "m_grave_star_iron", // 38 墓標の星鉄
+  "m_guardian_tablet", // 39 番人の銘板
+  "m_ossuary_key", // 40 納骨堂の弔い鈴
+
   "m_oath_rib", // 41 誓いのあばら骨
   "m_ash_woven_vestment", // 42 屍灰織りの祭服
   "m_ferrymans_fee", // 43 冥府の渡し賃
