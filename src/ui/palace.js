@@ -526,17 +526,6 @@ function codexTotals() {
   };
 }
 function renderCodex(body) {
-  if (!allData() && game.featureUnlocked?.("insight")) {
-    game.codexSweepJobs?.();
-    const score = game.insightSummary();
-    const card = el("section", "pl-insight");
-    card.setAttribute("aria-label", "操霊師の見識");
-    card.appendChild(el("div", "pl-insight-title", "操霊師の見識"));
-    card.appendChild(el("div", "pl-insight-total", score.total.toLocaleString("ja-JP")));
-    card.appendChild(el("div", "pl-insight-breakdown", `魔物 ${score.mon.toLocaleString("ja-JP")}　品 ${score.item.toLocaleString("ja-JP")}　職業 ${score.job.toLocaleString("ja-JP")}　出来事 ${score.ev.toLocaleString("ja-JP")}`));
-    card.appendChild(button({ label: "見識の積み重ね方", kind: "ghost", size: "sm", onTap: () => UI.openHelpTopic?.("insight") }));
-    body.appendChild(card);
-  }
   const subs = codexSubs();
   const sub = subs.includes(remember("seg", "codex")) ? remember("seg", "codex") : "mon";
   const { mon: mons, item: items, job: jobs, ev: evs } = codexTotals();
