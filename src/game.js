@@ -15,8 +15,8 @@ import { STAGED, effectStage, stageOf, stageMul, stageLabel, isBattleLong, ENEMY
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
 import { spriteCanvas, crispCanvas, drawPhoto, photoReady, whenPhoto, setSpriteResolver } from "./sprites.js";
 import { makeItemSpriteResolver } from "./itemart/index.js";
-import { loadMonsterPhotos } from "./monsterphotos.js";
 import { loadMiscPhotos } from "./miscphotos.js";
+import { loadMonsterPhotos } from "./monsterphotos.js";
 import { bagCount, isFormationItem,
   ITEMS, SLOTS, SLOT_LABEL, MAX_ITEMS, shareInventory, setBagSource, bagOwners, equip as equipItem, unequip as unequipItem, canEquip, canOffhand, slotKeyFor, lvToRank, RANGE_LABEL, HAND_LABEL, weaponRange, SHIELD_KIND_LABEL, shieldKind,
   registerEquipLevel, equipLevelOf, equipLvShort, equipFailMsg, registerAffixes,

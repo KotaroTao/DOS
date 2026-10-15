@@ -30,3 +30,5 @@
 ![スマホの品の詳細](item-mobile.png)
 
 再出力: `python3 tools/offerings/export.py` (Pillow・NumPy・SciPy・Nodeが必要)。
+
+main統合後にも1〜20の20枚と既存41〜60の20枚が同時に読み込まれることを再確認。1〜20の取得を失敗させても探索画面が起動し、JavaScript例外なし。
