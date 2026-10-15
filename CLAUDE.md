@@ -265,6 +265,7 @@ The goal (per design direction): **every enemy is individually distinctive**, bo
 - **`weapons.js`/`armor.js`/`gear.js`/`misc.js`/`legends.js`** — the hand-written unique-item catalogs (100 weapons, 50 shields, 50 body, 50 head, 50 feet, 18 hands, 8 accessories, **108 収集品/collectible loot (10-11 per rank band R1-R10, grouped by `ceil(lv/20)` — 8 were added in 2026-10 so the treasury's last 100-kind milestone has slack, user direction)**, a few potions, plus 11 mythic legends at lv165-200). **`index.js`** merges them into `CATALOG_ITEMS` (throws on duplicate IDs); `game.js` does `Object.assign(ITEMS, CATALOG_ITEMS)` at load.
 - Item IDs are prefixed (`w_`/`s_`/`a_`/`h_`/`f_`/`g_`/`r_`/`m_`/`u_`) and **append-only** (saves/codex reference them). Names are unique one-offs — there are no rank-prefix "二つ名" items anymore.
 - Every item has a **hidden level `lv` (1-200)** matching the 100-dungeon `lootLv` bands (lv1-20 = mundane gear, 165-200 = mythic): dungeons define a `lootLv: [min, max]` band (interpolated by floor depth) and `game.js` rolls loot with a gaussian window around that center plus a global decay, so higher-lv items are rarer everywhere. Post-victory loot is rolled generically from the current dungeon's `lootLv` band (`rollGenericDrop`; per-monster 固有ドロップ was removed). Display rank (R1-R6) derives from lv via `lvToRank` (thresholds 20/45/80/120/165). When adding items, keep every ~20-lv bucket populated or loot rolls in that band degrade to the `herb` fallback.
+- 収集品の登録順1〜20は `art/offerings/<id>.webp` の透過イラストを使用 (`src/miscphotos.js`、起動時に読み込み、装備と共通の描画窓口で差し替え)。読み込みに失敗した品は既存の固有ドット絵を使用。
 - **収集品の絵は1品ごとの固有の絵** (ユーザーの指示、2026-10): `src/catalog/miscart.js` の `MISC_ART[id] = {pal, art}` (24×24、共有パレット `ITEM_PALETTE` (defs.js の P) に `pal` を足す・染めない)。`M()` が id で引き、無ければ投げる — 収集品を足すときは絵も足す。`shape` は品の種類の目印として残すだけ。見本と検査 `node tools/miscart.mjs` (下書き: `node tools/miscart.mjs <file.mjs>`)。 奉納品41〜60（`misc.js` の並び、1始まり）は専用WebP（`art/misc/<id>.webp`、320×320）を `src/miscphotos.js` で読み込み、装備と共通の描画差し替え口から滑らかに表示する。原画・対応表は `docs/art/offerings/41-60/`。読み込み失敗時は既存の固有ドット絵を使う。
 - 奉納品21〜40も同じWebP描画口に登録。原画・対応表・見本は `docs/art/offerings-21-40/`、再変換は `python3 tools/miscart/build-21-40.py`。
 - **奉納品61〜80番のWebP原画**: `misc.js` の収集品配列順（1始まり）の20品は `art/collectibles/<id>.webp` を表示する。`collectiblephotos.js` が読み込み、`itemart/index.js` の共通差し替え口で目録・所持品のどちらにも適用。取得失敗は元の固有ドット絵へ戻る。原画・対応表・見本は `docs/art/collectibles-61-80/`、変換と確認は `tools/collectibles/`。
@@ -306,6 +307,8 @@ Six elements + `none`, defined in `schema.js`. Advantage cycle is **火→風→
 - Saving uses **`refSerialize`/ref-hydrate**: a custom serializer that encodes shared/circular object references as `{$r: index}` so object **identity is preserved** on load (a single soul object referenced from multiple places stays the same instance). When adding state that relies on shared references, keep it inside this graph rather than re-cloning.
 
 ### UI 構造 (`src/ui/`) — 縦スクロール無し・少ないタップ
+
+迷宮の出撃シートでは、キャラアイコンの上の「隊の備え」と人数表示を省き、肖像と「編成」ボタンを表示する。
 
 敵図鑑の迷宮選択は章別の `optgroup` を持つドロップダウン。森の古屋は旧セーブの解放記録がなくても「序章」に載せる。寄り道は出撃シートと同じ層の章へ分類し、未解放の本筋・寄り道は伏せる。名のある強敵・その他、新着件数、探索中の迷宮から開く動作も維持する。心得 `t_codex_dungeons`。
 

@@ -11,7 +11,7 @@ const assert = require('node:assert/strict');
    await page.goto('http://localhost:8000/__offerings-review');
    const result = await page.evaluate(async failure => {
     const { MISC } = await import('/src/catalog/misc.js');
-    const { MISC_PHOTOS, miscPhoto, loadMiscPhotos } = await import('/src/miscphotos.js');
+    const { MISC_PHOTOS, MISC_PHOTO_IDS, miscPhoto, loadMiscPhotos } = await import('/src/miscphotos.js');
     const { makeItemSpriteResolver } = await import('/src/itemart/index.js');
     const { setSpriteResolver, spriteCanvas, crispCanvas, whenPhoto, photoReady } = await import('/src/sprites.js');
     const all = MISC.filter(x=>x.slot==='misc'), targets=all.slice(20,40);
@@ -35,7 +35,7 @@ const assert = require('node:assert/strict');
      }
      const card=document.createElement('div');card.style.textAlign='center'; card.append(crispCanvas(tmpl,200),document.createElement('br'),`${i+21}. ${tmpl.name}`);grid.append(card);count++;
     }
-    if (all.filter(x=>!MISC_PHOTOS.includes(x.id)).some(x=>resolve(x)!==null)) throw Error('対象外の絵の変更');
+    if (all.filter(x=>![...MISC_PHOTOS,...MISC_PHOTO_IDS].includes(x.id)).some(x=>resolve(x)!==null)) throw Error('対象外の絵の変更');
     return {count,total:all.length,failure};
    }, failure);
    assert.equal(result.count,20); console.log(result);
