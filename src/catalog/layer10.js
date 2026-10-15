@@ -59,7 +59,7 @@ export const LAYER10_ITEMS = [
     desc: "雷鳥の胸の羽根を一枚、銅の枠に収めた首飾り。羽根は風を読み、持ち主の体を一歩先へ動かして、吹きつける雷の息をかわさせる。" })),
 
   // ===== レジェンドレア (全職共通・固有効果) =====
-  lr(W("lr_l10_skyfiresword", "天火の大剣", "ls", 110, { pow: 1.45, two: true, eAtk: ["fire", 2], hp: 30, eff: { counter: 0.35 }, tint: "#e07040",
+  lr(W("lr_l10_skyfiresword", "天火の大剣", "ls", 110, { pow: 1.45, two: true, eAtk: ["fire", 2], hp: 30, eff: { counter: 0.45 }, tint: "#e07040",
     desc: "雷が塔の頂に落ちて起きた火を、刃に封じて鍛えたという大剣。打ちかかった者には、落雷のような速さで炎の一撃を返す。" })),
   lr(W("lr_l10_emberstaff", "消えずの火種の杖", "st", 112, { magic: true, pow: 1.45, two: true, eAtk: ["fire", 2], mp: 28, eff: { spellCostMul: 0.85 }, tint: "#f0a050",
     desc: "どれほどの嵐にも吹き消されなかった小さな火種を、杖頭の籠に収めた杖。火種は唱える者の息に応えて燃え上がり、呪文の消耗を肩代わりする。" })),

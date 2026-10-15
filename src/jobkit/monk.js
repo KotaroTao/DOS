@@ -18,7 +18,7 @@ export default {
     // Lv15 の固有技: 功徳を込めた掌打。打てば仲間が癒える
     MONK_KUDOKUSHOU: { name: "功徳掌", mp: 6, kind: "phys", power: 1.2, pierce: 0.3, bladeHeal: 0.15, healCap: 0.1, target: "enemy", desc: "功徳を込めた掌打。物理貫通30%、味方全員を少し癒す" },
     MONK_SEKEN: { name: "施拳", mp: 10, kind: "phys", power: 1.3, hits: 2, acc: 0.1, bladeHeal: 0.09, healCap: 0.12, target: "enemy", desc: "二打ちの拳の余韻が仲間を癒す" },
-    MONK_MYOUOU: { name: "明王の構え", mp: 12, kind: "buff", buff: { atk: 1.4 }, stance: "counter", target: "self", tech: true, desc: "明王の怒りを宿し、攻めつつ反撃に構える" },
+    MONK_MYOUOU: { name: "明王の構え", mp: 12, kind: "buff", buff: { atk: 1.4 }, stance: "counter", ctrMul: 1.5, target: "self", tech: true, desc: "明王の怒りを宿し、攻めつつ反撃に構える（攻撃力×1.5）" },
     MONK_CHIMYAKU: { name: "地脈掌", mp: 20, kind: "phys", power: 4.4, element: "earth", acc: 0.16, drain: 0.15, target: "enemy", desc: "大地の気を通す掌打。生気を吸い上げる" },
     MONK_NENJU: { name: "念珠乱打", mp: 16, kind: "phys", power: 0.8, hits: 4, acc: 0.13, debuff: { atk: 0.85 }, target: "enemy", desc: "数珠を巻いた四連打で敵の力を封じる" },
     MONK_SENPUUKYAKU: { name: "旋風脚", mp: 21, kind: "phys", power: 0.9, hits: 2, agiScale: 0.2, element: "wind", acc: 0.13, target: "all-enemy", desc: "旋風の回し蹴りが敵全体を二度なぐ" },
@@ -50,7 +50,7 @@ export default {
       fx: [{ t: "kill", hp: [0.03, 0.04, 0.05, 0.06], buff: { atk: [1.1, 1.15, 1.2, 1.25] } }] },
     monkFue: { label: "金剛不壊", lv: ["戦闘ごとに一度、致死をHP1で耐える", "戦闘ごとに一度致死を耐える・HP30%以下でSTR+10%", "戦闘ごとに一度致死を耐える・HP30%以下でSTR+20%"],
       fx: [{ t: "start", endure: true }, { t: "stat", when: { selfLow: 0.3 }, mul: { atk: [0, 0.1, 0.2] } }] },
-    monkOuhou: { label: "応報の掌", lv: ["物理を受けた時20%で、受けた40%を打ち返す", "物理を受けた時30%で、受けた60%を打ち返す"],
-      fx: [{ t: "hurt", chance: [0.2, 0.3], thorns: [0.4, 0.6] }] },
+    monkOuhou: { label: "応報の掌", lv: ["物理を受けるたび、攻撃力×0.5で打ち返す", "物理を受けるたび、攻撃力×0.7で打ち返す"],
+      fx: [{ t: "hurt", ret: { stat: "atk", k: [0.5, 0.7] } }] },
   },
 };

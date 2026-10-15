@@ -2,7 +2,7 @@
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { ARCHIVE_STORIES } from "../../src/archive-stories.js";
-import { STORY_CELLS, REPORTS, BOSS_MEMORIES, IRENE_BEATS, CHAPTER_END, MINE_PASS } from "../../src/story.js";
+import { STORY_CELLS, REPORTS, BOSS_MEMORIES, BOSS_PRELUDES, IRENE_BEATS, CHAPTER_END, MINE_PASS } from "../../src/story.js";
 import { DUNGEON_LORE } from "../../src/journal.js";
 import { WORLD } from "../../src/dungeons/world.js";
 import { PROLOGUE } from "./register.mjs";
@@ -33,6 +33,11 @@ export function gameText(id) {
   if (STORY_CELLS[id]) src = { where: "師の手がかり STORY_CELLS." + id, ...STORY_CELLS[id] };
   else if (id.startsWith("report_") && REPORTS[id.slice(7)]) src = { where: "王への報告 REPORTS." + id.slice(7), ...REPORTS[id.slice(7)] };
   else if (id.startsWith("mem_") && BOSS_MEMORIES[id.slice(4)]) src = { where: "主の記憶 BOSS_MEMORIES." + id.slice(4), ...BOSS_MEMORIES[id.slice(4)] };
+  else if (/^pre_w\d+(_retry)?$/.test(id)) {
+    const key = id.slice(4).replace(/_retry$/, ""), kind = id.endsWith("_retry") ? "retry" : "first";
+    const pre = BOSS_PRELUDES[key]?.[kind];
+    if (pre) src = { where: `主との対面 BOSS_PRELUDES.${key}.${kind}`, ...pre };
+  }
   else if (/^ch\d+_end$/.test(id) && CHAPTER_END[+id.slice(2, -4)]) src = { where: "章の結び CHAPTER_END[" + id.slice(2, -4) + "]", ...CHAPTER_END[+id.slice(2, -4)] };
   else if (id === "minePass") src = { where: "坑口の通行証 MINE_PASS", ...MINE_PASS };
   else { const b = IRENE_BEATS.find((x) => x.id === id); if (b) src = { where: "館の語り IRENE_BEATS." + id, ...b }; }

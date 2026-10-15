@@ -69,7 +69,7 @@ export const LAYER12_ITEMS = [
     desc: "矢じりに灯の火をともして射る長弓。矢は闇の底まで筋を引いて岩の肌も貫き、刺さった相手の命の火を少しだけ持ち主へ分ける。" })),
   lr(H("lr_l12_wakefulhelm", "眠らぬ灯の兜", 133, { weight: "heavy", pow: 1.6, hp: 32, aRes: { confuse: 0.4, stone: 0.3 }, eff: { guard: 0.08 }, tint: "#c8b880",
     desc: "額に小さな灯をはめこんだ兜。灯は一度も眠らず、かぶる者の心を湖面のささやきから守り、受ける痛手をやわらげる。" })),
-  lr(A("lr_l12_fossilplate", "化石竜のあばら鎧", 134, { weight: "heavy", pow: 1.6, hp: 42, eDef: ["wind", 2], bRes: 0.2, aRes: { stone: 0.35 }, eff: { counter: 0.35 }, tint: "#c8bca0",
+  lr(A("lr_l12_fossilplate", "化石竜のあばら鎧", 134, { weight: "heavy", pow: 1.6, hp: 42, eDef: ["wind", 2], bRes: 0.2, aRes: { stone: 0.35 }, eff: { counter: 0.45 }, tint: "#c8bca0",
     desc: "大空洞の底に眠っていた化石の竜の、石になったあばら骨を胸当てに組んだ鎧。骨はいまも竜の気性を残し、打ちかかる相手にすぐさま牙をむき返す。" })),
   lr(F("lr_l12_darkwalker", "闇渡りの軽靴", 136, { weight: "light", pow: 1.6, agi: 11, aRes: { paralyze: 0.35, poison: 0.35 }, eff: { actFirst: true }, tint: "#6a6a80",
     desc: "光のない大空洞を、灯も持たずに渡りきった者の軽靴。はく者は闇に目をならすより早く、誰よりも先に動き出す。" })),

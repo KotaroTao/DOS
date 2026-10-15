@@ -519,6 +519,26 @@
 .rf-grp { margin-bottom: 8px; }
 .rf-grp .wpc-drow-h { margin-bottom: 4px; }
 .rf-row .wpc-srow-l3 { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+/* 付呪 (src/ui/enchant.js) — 術の格で札の色を分ける: 常 = 薄い金 / ◇稀 = 青 / ◆秘 = 紫 / ★極 = 金 */
+.ec-tag { display: inline-block; padding: 1px 7px; border: 1px solid rgba(201,162,92,0.45); border-radius: 3px; font-size: 12px; font-weight: 700; color: #e8dcc0; background: rgba(0,0,0,0.3); white-space: nowrap; }
+.ec-tag.t-u { color: #8fc4ff; border-color: rgba(120,170,255,0.55); }
+.ec-tag.t-r { color: #d6a8ff; border-color: rgba(190,130,255,0.55); }
+.ec-tag.t-x { color: #ffd76a; border-color: rgba(255,210,100,0.7); background: rgba(80,60,10,0.35); }
+.ec-tag.big { font-size: 15px; padding: 2px 10px; }
+.ec-tags { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.ec-h { font-weight: 800; color: #f2c879; }
+.ec-row .wpc-srow-l3, .ec-sub { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ec-row.off { opacity: 0.55; }
+.ec-room { font-size: 11.5px; color: #c9b88a; }
+.ec-val { font-size: 12px; color: #bfe9b0; }
+.ec-why { font-size: 11.5px; color: #e8a090; }
+.ec-holder { margin-left: 6px; vertical-align: middle; }
+.ec-afx { display: grid; gap: 8px; margin-top: 8px; }
+.ec-afx-row { padding: 8px 10px; border: 1px solid rgba(201,162,92,0.25); border-radius: 4px; background: rgba(0,0,0,0.22); }
+.ec-afx-top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ec-afx-t { font-size: 12.5px; }
+.ec-afx-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.ec-page-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 4px; }
 /* 入手のカードの装備できるLv */
 .ig-eqlv { font-size: 12px; color: #c9b88a; margin-top: 4px; text-align: center; }
 .ig-eqlv.ng { color: #e0705a; }

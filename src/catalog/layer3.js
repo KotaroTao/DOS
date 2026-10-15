@@ -73,7 +73,7 @@ export const LAYER3_ITEMS = [
     desc: "罪人たちを見張った坑監長の黒鉄の重鎧。落盤にも暴動にも耐えるよう鍛えられ、まとう者は倒れた仲間の前に立ちはだかる壁となる。" })),
   lr(H("lr_l3_undyinglamp", "消えずの坑灯兜", 46, { weight: "light", pow: 1.6, hp: 22, eff: { regen: 0.05 }, tint: "#e8b050",
     desc: "閉ざされた坑の底で、百年燃え続けていた坑灯を据えた兜。その小さな炎は被る者の命の灯と結びつき、傷を負うたびに静かに温め直す。" })),
-  lr(G("lr_l3_convictirons", "罪人の鉄枷", 47, { role: "atk", weight: "heavy", pow: 1.6, hp: 16, eff: { counter: 0.4 }, tint: "#4a4048",
+  lr(G("lr_l3_convictirons", "罪人の鉄枷", 47, { role: "atk", weight: "heavy", pow: 1.6, hp: 16, eff: { counter: 0.3 }, tint: "#4a4048",
     desc: "千の鞭打ちに耐えた罪人の手枷。打たれるたびに積もった恨みが鉄に染みつき、はめた者が受けた一撃には、必ず枷の重い報いが返る。" })),
   lr(R("lr_l3_proxydoll", "坑夫の身代わり人形", "amulet", 49, { pow: 1.6, hp: 36, eff: { autoRevive: 0.3 }, tint: "#c8a880",
     desc: "坑夫の妻たちが夫の無事を願って彫った、小さな木の身代わり人形。落盤の下から掘り出されたものには、持ち主の代わりに砕けた跡が残っている。" })),
