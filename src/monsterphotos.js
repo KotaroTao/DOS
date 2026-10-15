@@ -51,6 +51,14 @@ export const MONSTER_PHOTOS = {
   bs_bonechanter: [378, 399],
   bs_gravecaller: [408, 389],
   bs_cryptabbot: [434, 392],
+  // 石眠りの石切り場（固有7種。坑口の4種とミミックは共用）。
+  d03_orc: [493, 434],
+  bs_shieldogre: [512, 467],
+  bs_stonegorgon: [396, 512],
+  d03_mandrake: [480, 504],
+  bs_orehulk: [512, 462],
+  bs_deepgolem: [487, 482],
+  el_crystalseer: [466, 507],
   // 沈んだ礼拝堂（通常敵9種・強敵・主。召喚先は汚泥の塊）。
   bs_sludgeooze: [378, 330],
   bs_waterelemental: [296, 348],

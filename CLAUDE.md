@@ -232,6 +232,8 @@ Each layer's two elites (`LAYER_ELITES`) are **named foes** you hunt on purpose.
 ### 抵抗値 (src/resistance.js)
 敵味方の物理・魔法・毒・麻痺・眠り・魅了・混乱・石化・封印・怯み・即死は0〜100の抵抗値。状態異常はLv差込みの成功率×(1−抵抗値/100)、物理・魔法は被ダメージを同じ割合で軽減し、100は無効。会心・貫通による部分無視は残すが100は貫けない。敵の状態異常抵抗値はランク・主/強敵の基礎値 (0〜60) に個体の**体質の段**を重ねる。段 (`resistTiers`): 効きやすい = 雑魚0・強敵 基礎×0.25・主 基礎×0.4 / やや = 基礎×0.5 / 効きにくい = 基礎+40 (60〜95) / 効かない = 100。**全敵は `src/dungeons/temperaments.js` にIDごとに9種の段と属性相性を明示** (2026-10 ユーザーの指示)。序章から層順に体・習性・能力を検討し、設定理由を各行のコメントに残す。機械は基本眠り無効・麻痺弱点、獣は基本眠り弱点だが、角の魔獣などの上位獣や剥製・影の獣は個別に変える。不死などの種族名だけで無効を決めない。全項目を指定した体質は種族・説明文・特徴・IDハッシュの推測を使わず、その個体の指定だけを読む。推測は部分指定・検証用の仮の敵の互換処理に限る。金属以外の各敵には隊が狙える異常の弱点と耐性を最低1つずつ指定し、石化・即死は弱点にしない。主の即死・怯み100と金属の全100は戦闘の規則として保持。個別の `resists` 指定も最終上書きできる。図鑑・戦闘の「敵の姿」は抵抗値を段で色分けし、「状態異常の効き」に一覧する (`resistLean`)。通常敵10体、主/強敵1体討伐で全抵抗値を開示。隊が掛けられない石化は表示しない。職業/ランクの基礎特性 (`JOB_BASE_TRAITS`) に装備の `resists` と既存 `aRes` を種類別に加算して100で止める。パッシブ耐性は戦闘時に加算し、合計上限100%。魔物を足す時は台帳にも行を足し、`node tools/balance/monster-temperaments.mjs` (全敵の設定・推測からの独立・戦闘/図鑑の一致・属性相性) と `node tools/balance/resistance.mjs`、`node tools/balance/auto-resistance.mjs` を回す。
 
+- **石眠りの石切り場のWebP原画**: `ws2` の通常敵9種・晶に憑かれし錬金術師・銀業の11体を `src/monsterphotos.js` に登録。ミミックは既存WebPを共用し、全12種を透過原画で表示する。森の古屋の3体と図鑑を参照。原画・制作記録は `docs/art/quarry-enemies/`、変換は `python3 tools/crypt/build-quarry-enemies.py`、表示・取得失敗時の検証は `node tools/crypt/verify-quarry-enemies.cjs`。
+
 ### Monster individuation (固有デザイン・特徴・スキル) — the per-monster identity rules
 The goal (per design direction): **every enemy is individually distinctive**, both visually and mechanically. Two rules enforce this — apply them whenever adding or refining a monster.
 
