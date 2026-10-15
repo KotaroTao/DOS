@@ -1,14 +1,17 @@
 // 迷宮の透過原画。通常敵・強敵・主・召喚先・共通の敵で共用する。
 // 能力値や文字グリッドは保ち、読めた原画だけを最初の描画前に登録する。
 export const MONSTER_PHOTOS = {
-  // 捨て砦の地下牢の未作成だった通常敵6体。
-  d03_ghost: [429, 417],
-  bs_banshee: [364, 411],
-  bs_shadowmage: [390, 434],
-  bs_dullahan: [410, 408],
-  bs_bloodwraith: [448, 431],
-  bs_vampire: [339, 444],
-
+  // 地の底の霧森（通常敵9種と召喚される大蛾。繭母は共通の強敵原画）。
+  bs_dryadfey: [326, 380],
+  bs_wisplure: [263, 337],
+  bs_thornhound: [383, 317],
+  bs_direboar: [349, 325],
+  bs_chimera: [404, 341],
+  bs_thunderbird: [352, 356],
+  bs_fogpanther: [420, 277],
+  bs_corruptstag: [301, 364],
+  bs_satyrpiper: [312, 345],
+  bs_giantmoth: [367, 350],
   // 雷雨の大手門（既存原画を除く通常敵5種）。
   bs_bloodorc: [520, 500],
   bs_thunderknight: [520, 460],
@@ -134,6 +137,13 @@ export const MONSTER_PHOTOS = {
   d03_sahagin: [418, 334],
   bs_abysstentacle: [330, 337],
   bs_sewerlord: [498, 372],
+  // 捨て砦の地下牢の未作成だった通常敵6体。
+  d03_ghost: [429, 417],
+  bs_banshee: [364, 411],
+  bs_shadowmage: [390, 434],
+  bs_dullahan: [410, 408],
+  bs_bloodwraith: [448, 431],
+  bs_vampire: [339, 444],
 };
 
 function loadImage(img, src, width, height) {
