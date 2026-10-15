@@ -23,8 +23,8 @@ const stepOf = (cfg) => {
   if (i >= 0) return i;
   if (!cfg.side) return 0;
   let s = 0;
-  // 第一部の寄り道は、推奨Lv が第二部の本筋を越えても第二部の段を受けない (ws21 は w41 の段)
-  MAIN.forEach((d, j) => { if (d.lv <= cfg.lv && (cfg.layer >= 13 || d.layer < 13)) s = j; });
+  // 第一部の寄り道は、推奨Lv が第二部の本筋を越えても第二部の段を受けない (ws21 は w41 の段)。第二部の寄り道は自分の層の本筋まで (ws24 は w45 の段)
+  MAIN.forEach((d, j) => { if (d.lv <= cfg.lv && (cfg.layer >= 13 ? d.layer <= cfg.layer : d.layer < 13)) s = j; });
   return s;
 };
 assert.deepEqual(RAMP_JUMP, { id: "w14", stat: 2, boss: 2, elite: 2 }, "一段強くなるのは第四章の入口 (蘇生・HP1で踏みとどまる技を覚える頃)。主・強敵のHPも同じく");
@@ -87,7 +87,7 @@ assert.deepEqual(strongHpWallOf(at("w38")), { boss: 5, elite: 3 });
 near(wallOf(at("w41")), 10 * 1.5 ** 3);
 near(agiWallOf(at("w41")), 3 * 1.1 ** 3);
 assert.deepEqual(strongHpWallOf(at("w41")), { boss: 5, elite: 3 });
-for (const [id, main] of [["ws20", "w38"], ["ws22", "w39"], ["ws21", "w41"], ["ws23", "w42"], ["ws24", "w45"], ["ws7", "w18"], ["ws13", "w35"], ["ws5", "w15"], ["ws4", "w10"], ["ws3", "w01"], ["ws6", "w01"]]) {
+for (const [id, main] of [["ws20", "w38"], ["ws22", "w39"], ["ws21", "w41"], ["ws23", "w42"], ["ws24", "w45"], ["ws25", "w48"], ["ws26", "w46"], ["ws27", "w47"], ["ws7", "w18"], ["ws13", "w35"], ["ws5", "w15"], ["ws4", "w10"], ["ws3", "w01"], ["ws6", "w01"]]) {
   assert.equal(dungeonProgressOf(at(id)), Math.max(0, MAIN.findIndex(d => d.id === main)), id);
 }
 for (let i = 1; i < MAIN.length; i++) {

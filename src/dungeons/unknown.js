@@ -241,6 +241,15 @@ const UNKNOWN_NAME = {
   // 第十一章 (第13層): 鋼や本の巨体を「宙に浮く書」と呼ばない
   bs_arcanesentinel: "書架のあいだを歩く鋼",
   bs_tomeguardian: "本を積み上げた巨体",
+  // 第十二章 (第14層「王家の廟」): ろうで固めた亡骸を「骨」と呼ばない
+  bs_wickmummy: "冠をかぶった亡骸",
+  bs_corpsewax: "白く固まった人影",
+  bs_candlewraith: "揺れる灯",
+  bs_embalmer: "刷毛を持つ影",
+  bs_shroudkeeper: "白い布をかかえた影",
+  bs_funeralwraith: "列をなす影",
+  el_lanternreaper: "灯を追う影",
+  bs_cryptking: "玉座の影",
 };
 
 // 画面に出すときの不確定名: 正式な名と見分けがつくよう末尾に「？」を添える (「羽ばたく小さなもの？」)。

@@ -588,6 +588,9 @@ let _partyBreathBonus = 0;
 // 手がかりの恵み (暗がりの目): 隊の全員の物理が外れる率から引く割合 (game.js syncClueBoons が渡す)
 let _partyHitBonus = 0;
 export function setPartyHitBonus(v) { _partyHitBonus = Math.max(0, +v || 0); }
+// 手がかりの恵み (ほぐし薬の書きつけ): 隊の全員の状態異常の抵抗に種類ごとに足す割合 (抵抗値 5 = 0.05)。game.js syncClueBoons が渡す
+let _partyAilBonus = {};
+export function setPartyAilBonus(m) { _partyAilBonus = { ...(m || {}) }; }
 export function setPartyBreathBonus(v) { _partyBreathBonus = Math.max(0, +v || 0); }
 export function partyBreathRes(t) { return Math.min(BREATH_RES_CAP, (t.breathRes || 0) + (t.side === "party" ? _partyBreathBonus : 0)); }
 // 極「慧眼の」の持ち主 (a) は、図鑑で明かしていない敵の属性も見積もりに使う
@@ -757,6 +760,8 @@ export class Battle {
     this.fervor = !!opts.fervor; // 迷宮の掟「高まる戦意」: 2ターン目から毎ターン、敵味方とも攻撃 +1段 (+3段まで)
     this.foeRise = +opts.foeRise || 0;     // 迷宮の掟「起き上がる濁り魂」: 倒れた敵 (主・金属を除く) は一度だけ最大HPのこの割合で起き上がる
     this.soulFeast = +opts.soulFeast || 0; // 迷宮の掟「魂喰らいの闇」: 人業を倒した敵は攻撃がこの段数だけ上がる (3ターン)
+    this.focus = !!opts.focus;             // 迷宮の掟「槍ぶすま」: 敵は狙った人業が倒れるまで同じ者を狙い続ける。挑発の技の効果で外れる (_pickPartyTarget)
+    this._focusT = null;
     this.show = { sp: 0, cr: 0, dd: 0, at: 0 }; // 観客の注文 (闘技場跡の迷宮の掟) と無限迷宮の称号の判定: 隊が使った技・会心・倒れた数・通常攻撃。乱数には触れない
     for (const a of [...party, ...enemies]) { a.buffs = { atk: 1, vit: 1, agi: 1 }; a.effects = []; a._endureUsed = 0; a._grantEndure = false; a._fgUsed = 0; a._sgUsed = 0; a._ijiUsed = 0; a._kgUsed = 0; a._hpPre = a.hp; a._nailed = false; a._bloodTgt = null; a._bloodStack = 0; a._kyouhon = 0; a._giDone = false; a._againRound = 0;
       a._splitQ = null; a._quickUsed = false; a._flipUsed = false; a._coverUsed = false; a._afterImg = false; a._parryHold = false; a._lastSkill = null; a._chainRound = 0; a._wedge = 0; }
@@ -2227,12 +2232,18 @@ export class Battle {
   _pickPartyTarget() {
     const list = this.livingParty();
     if (!list.length) return null;
+    // 迷宮の掟「槍ぶすま」(focus): 狙った人業が倒れるまで同じ者を狙い続ける。挑発の技 (効果の taunt) が掛かっている間だけは
+    // 引き剥がされていつもどおりに狙い、切れたら次に狙った者に定める (常に効くパッシブの挑発は、最初の狙いの重みにだけ効く)
+    const taunting = this.focus && list.some((p) => this._bm(p, "taunt") > 1);
+    if (this.focus && !taunting && this._focusT && list.includes(this._focusT)) return this._focusT;
     const pool = [];
     for (const p of list) {
       const w = (this.isBackRow(p) ? 1 : 3) * (pv(p, "taunt") ? 3 : 1) * Math.round(this._bm(p, "taunt"));
       for (let i = 0; i < w; i++) pool.push(p);
     }
-    return pool[rand(pool.length)];
+    const t = pool[rand(pool.length)];
+    if (this.focus) this._focusT = taunting ? null : t;
+    return t;
   }
 
   // 行動を実行し、演出用の結果 { actor, action, side, hits:[{target,dmg,crit,miss,heal,sleep,died}] } を返す
@@ -2671,7 +2682,7 @@ export class Battle {
     if (lv < 1 && this.party.some((p) => p.alive && pv(p, "sanctuary"))) lv = 1;
     const pas = lv >= 2 ? 0.60 : lv === 1 ? 0.30 : 0;
     const eq = kind && t.resists ? (t.resists[kind] || 0) / 100 : (kind && t.ailRes && t.ailRes[kind]) || 0;
-    return Math.min(1, pas + eq + this._zokusei(t));
+    return Math.min(1, pas + eq + this._zokusei(t) + ((kind && _partyAilBonus[kind]) || 0));
   }
   // 俗世拒絶 (隠修士): 敵から受ける状態異常 (石化・即死も) を -10/20/30%
   _zokusei(t) { return [0, 0.10, 0.20, 0.30][Math.min(3, pv(t, "hermitZokusei"))] || 0; }
