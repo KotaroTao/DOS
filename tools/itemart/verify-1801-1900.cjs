@@ -15,8 +15,13 @@ const assert = require('node:assert/strict');
         await new Promise(resolve => setTimeout(resolve, 5000));
         await r.abort().catch(() => {});
       });
+      // 失敗系は読み込み口を単独で検証し、ゲーム全体の起動や外部フォントを待たない。
+      if (mode !== 'normal') await page.route('**/?testDungeon=w01&testFloor=1', r => r.fulfill({
+        contentType: 'text/html', body: '<!doctype html><html><body></body></html>',
+      }));
       await page.goto(`${process.env.ITEM_ART_BASE_URL || 'http://localhost:8000'}/?testDungeon=w01&testFloor=1`, { waitUntil: 'domcontentloaded' });
-      await page.waitForFunction(() => window.__game?.G.state === 'board', { timeout: 30000 });
+      if (mode === 'normal') await page.waitForFunction(() => window.__game?.G.state === 'board', { timeout: 30000 });
+      else await page.evaluate(async () => (await import('/src/itemphotos.js')).loadItemPhotos());
       if (mode === 'normal') {
         assert(!await page.getByText('⚠ 読み込みに失敗しました', { exact: true }).count(), '起動エラーが表示されている');
         await page.setViewportSize({ width: 390, height: 844 });
