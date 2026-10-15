@@ -1,4 +1,5 @@
 import { revealSteps } from "../monsterreveal.js";
+import { MONSTER_LORE } from "../dungeons/monlore.js";
 import { previewStats, trialEquip } from "../autoequip.js";
 import { RESIST_LABEL } from "../resistance.js";
 // ===== 品・スキルの表示まわり (game.js から移設した純粋な表示ヘルパ) =====
@@ -168,7 +169,7 @@ export function affinityRow(element, cls = "", affinity = null) {
 
 // ===== 敵の情報の段階開示 (討伐数しだい) =====
 // 姿は最初から見える。1体 = 名前 / 5体 = 属性とHP / 10体 = 特徴・スキルと説明文。
-// 迷宮の主・強敵は1体討てば全てを明かす。主・名のある強敵は名前を最初から明かす。
+// 迷宮の主は1体、強敵は10体で全てを明かす (強敵の属性とHPは1体)。主・名のある強敵は名前を最初から明かす。
 // 戦闘画面 (名札・HPの小瓶)・「敵の姿」・図鑑の一枚で共通
 export { MON_REVEAL, BOSS_REVEAL, NAMED_REVEAL, ELITE_REVEAL, revealSteps } from "../monsterreveal.js";
 // その魔物を倒した数 (図鑑の記録を読むだけ。記録を作らない)
@@ -203,6 +204,14 @@ export function enemyLabel(e) {
 }
 // 名前がまだ明かされていない敵か (名札・ボタンの色分け用)
 export function enemyUnknown(e) { return !!e && !enemyReveal(e).name; }
+// 図鑑の全開示。無限迷宮だけで討った魔物は、本編で伝承が開くまで未完とする。
+export function enemyCodexComplete(e) {
+  const rv = enemyReveal(e);
+  if (rv.special || !rv.name || !rv.stats || !rv.lore) return false;
+  const rec = game.G?.codex?.mon?.[e.key];
+  const mainKills = rec === true ? 1 : Math.max(0, Number(rec?.main ?? rec?.kills) || 0);
+  return !MONSTER_LORE[e.key] || mainKills > 0;
+}
 // 名前のまだわからない魔物の絵: 闇色の影に不確定名の色の淡い縁 (CSS の .unk-sil。戦闘の game.js monsterUnknownBitmap と揃える)
 export function unknownArt(m, scale = 2) {
   const c = spriteCanvas(m, scale);

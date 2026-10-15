@@ -679,5 +679,6 @@ canvas.unk-sil { filter: brightness(0) drop-shadow(0 0 1px rgba(185,172,217,0.85
   .enemy-name-row { display: flex; gap: 8px; }
   .enemy-name { flex: 1; min-width: 0; text-align: center; overflow-wrap: anywhere; }
   .enemy-name.unk { color: #b9acd9; }
+  .enemy-name.complete { color: #ffd36b; }
   .in-combat #enemy-focus.has-target { top: 0; bottom: auto; }
 }

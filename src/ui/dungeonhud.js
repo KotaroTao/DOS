@@ -597,7 +597,7 @@ export function peekDoll(d, { idx = 0, combat = false } = {}) {
 
 // 敵の一枚: 図鑑の魔物の一枚と同じ中身 (palace.js codexMonSheet) に、いまの残りHPと不確定名を添える
 // (ユーザーの指示、2026-10)。倒した数に応じて段階的に明かす (MON_REVEAL / enemyReveal):
-// 1体 = 名前 / 5体 = 属性・能力・HP / 10体 = 特徴・スキル・抵抗値・説明文 (迷宮の主・強敵は1体で全て)
+// 1体 = 名前 / 5体 = 属性・能力・HP / 10体 = 特徴・スキル・抵抗値・説明文 (主は1体で全て、強敵は1体で能力・10体で全て)
 export function peekEnemy(e) {
   if (!e || !UI.codexMonSheet) return null;
   return UI.codexMonSheet(e.key, { enemy: e });

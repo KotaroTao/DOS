@@ -588,7 +588,7 @@ export function codexMonSheet(key, o = {}) {
   const elm = ELEMENTS[elKey] || ELEMENTS.none;
   const isOther = (game.CODEX_OTHER || []).includes(key);
   const body = el("div", "pl-detail");
-  // 倒した数に応じて段階的に明かす (主・強敵は1体討てば全て)。出来事だけの敵は最初から全て
+  // 倒した数に応じて段階的に明かす (主は1体、通常敵・強敵は10体で全て)。出来事だけの敵は最初から全て
   const rv = foe ? enemyReveal(foe) : null;
   const special = !!(rv && rv.special);
   const kills = monKills(key);
@@ -624,7 +624,7 @@ export function codexMonSheet(key, o = {}) {
     if (aff) body.appendChild(aff);
   }
   if (loreOpen && m.desc) body.appendChild(setText(el("div", "pl-detail-desc"), m.desc));
-  // 伝承: 説明文と同じ段 (10体・主と強敵は1体) で開く、世界の側から見たその魔物。出典を添える
+  // 伝承: 説明文と同じ段 (通常敵・強敵10体、主1体) で開く、世界の側から見たその魔物。出典を添える
   // 無限迷宮で倒しただけでは開かない: 本編の迷宮で1体以上倒した魔物だけ (docs/infinite-labyrinth.md 7章)
   const mainKills = rec === true ? 1 : Math.max(0, Number(e.main ?? e.kills) || 0);
   const lore = loreOpen && mainKills > 0 ? MONSTER_LORE[key] : null;
