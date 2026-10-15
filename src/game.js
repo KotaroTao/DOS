@@ -66,7 +66,7 @@ import { installPhraseWrap, phrase, ZWSP } from "./ui/phrase.js";
 import * as townshell from "./ui/townshell.js";
 import { skillDescription, showSkillPopup,
   SPELL_KIND_COLOR, BUFF_NAME, tagRow, spellTagKinds, isEquippable, equipPreviewDelta, equipCompareEl, detailLines,
-  equipClassText, equipPartyChips, gearScore, enemyReveal, enemyLabel, enemyUnknown, UNKNOWN_COLOR, setLogText,
+  equipClassText, equipPartyChips, gearScore, enemyReveal, enemyLabel, enemyUnknown, enemyCodexComplete, UNKNOWN_COLOR, setLogText,
 } from "./ui/itemview.js";
 import * as uiHub from "./ui/hub.js";
 import * as uiPalace from "./ui/palace.js";
@@ -9281,12 +9281,13 @@ function renderCombatCanvas() {
   if (enemyFocusEl.textContent.replaceAll(ZWSP, "") !== focusLabel) enemyFocusEl.textContent = focusLabel;
   // 広い画面の最下部には生存中の敵名を常設。不確定名と呼び分けは記録にそろえる。
   const nameRows = wideBattle ? [backRow, frontRow].map((list) => list.filter((e) => e.alive)) : [];
-  const namesKey = JSON.stringify(nameRows.map((list) => list.map((e) => [enemyLabel(e), enemyUnknown(e)])));
+  const nameClass = (e) => enemyUnknown(e) ? " unk" : enemyCodexComplete(e) ? " complete" : "";
+  const namesKey = JSON.stringify(nameRows.map((list) => list.map((e) => [enemyLabel(e), nameClass(e)])));
   if (namesKey !== enemyNamesKey) {
     enemyNamesKey = namesKey;
     enemyNamesEl.replaceChildren(...nameRows.filter((list) => list.length).map((list) => {
       const row = el("div", "enemy-name-row");
-      list.forEach((e) => row.appendChild(el("span", "enemy-name" + (enemyUnknown(e) ? " unk" : ""), enemyLabel(e))));
+      list.forEach((e) => row.appendChild(el("span", "enemy-name" + nameClass(e), enemyLabel(e))));
       return row;
     }));
   }
