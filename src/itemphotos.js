@@ -14,6 +14,7 @@ export const ITEM_PHOTOS = Object.freeze([
   ...NUMBERED_ITEM_IDS.slice(700, 800),
   ...NUMBERED_ITEM_IDS.slice(800, 900),
   ...NUMBERED_ITEM_IDS.slice(900, 1000),
+  ...NUMBERED_ITEM_IDS.slice(1200, 1300),
 
   // 制作番号2001〜2100の追加原画。
   ...NUMBERED_ITEM_IDS.slice(2000, 2100),
