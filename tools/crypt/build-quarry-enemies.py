@@ -3,6 +3,8 @@ from pathlib import Path
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]
+# mainで先に公開された坑口の共通4種は、その原画と変換道具を正本として共用する。
+SHARED = {'bs_rockworm', 'bs_dustwraith', 'bs_tunneler', 'mt_silver'}
 FRAMES = {
     'a': {
         'd03_orc': (0, 0, 512, 516),
@@ -27,6 +29,8 @@ if __name__ == '__main__':
     for sheet, frames in FRAMES.items():
         source = Image.open(ROOT / f'docs/art/quarry-enemies/master-{sheet}.png').convert('RGBA')
         for key, frame in frames.items():
+            if key in SHARED:
+                continue
             image = source.crop(frame)
             # 生成原画のほぼ透明な背景を除き、髪・粉塵・細い爪を含む輪郭を残す。
             alpha = image.getchannel('A').point(lambda a: a if a > 8 else 0)
