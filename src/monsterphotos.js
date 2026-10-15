@@ -1,6 +1,21 @@
 // 迷宮の透過原画。通常敵・強敵・主・召喚先・共通の敵で共用する。
 // 能力値や文字グリッドは保ち、読めた原画だけを最初の描画前に登録する。
 export const MONSTER_PHOTOS = {
+  // 亡兵の守る外郭（通常敵9種・強敵と、未登録だった共通の敵4種）。
+  bs_pikewall: [491, 496],
+  bs_bannerwraith: [406, 520],
+  bs_drumwraith: [284, 408],
+  d03_sentinel: [495, 473],
+  bs_darksamurai: [520, 398],
+  bs_ironknight: [424, 466],
+  bs_gravecaptain: [520, 457],
+  bs_siegeballista: [520, 343],
+  d04_revenant: [480, 520],
+  el_warbanner: [376, 520],
+  master_mimic: [517, 520],
+  bs_cagewarden: [447, 520],
+  mt_gold: [492, 520],
+  mt_king: [486, 520],
   mt_silver: [347, 520],
   el_chainoverseer: [520, 482],
   bs_tunneler: [520, 501],
