@@ -10,6 +10,14 @@ export const MONSTER_PHOTOS = {
   bs_darkliege: [383, 520],
   bs_flamedrake: [359, 520],
   // <</ASH_ALTAR_ART>>
+  // <<DROWNED_HYMN_ART>>
+  // 溺れた聖歌の回廊（作成済みの敵・召喚先は既存原画を共用）。
+  d04_grudge: [520, 445],
+  bs_idolguardian: [459, 491],
+  bs_shadowseraph: [486, 477],
+  bs_dreadlich: [448, 520],
+  bs_crystalgolem: [501, 520],
+  // <</DROWNED_HYMN_ART>>
   // <<FOSSIL_TOMB_ART>>
   // 化石竜の墓所（作成済みの通常敵・強敵・共通敵は既存原画を共用）。
   bs_fossildragon: [520, 357],
