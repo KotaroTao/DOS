@@ -56,10 +56,23 @@ with sync_playwright() as p:
                 baseline = geometry
             assert all(abs(a-b) < 1 for a,b in zip(baseline, geometry)), (width,height,count,baseline,geometry)
             names = page.locator('#enemy-names')
-            assert names.is_visible() == (width > 600)
+            assert names.is_visible()
+            assert names.locator('.enemy-name').count() == count
+            assert '？' in names.inner_text(), '未判明の敵名が明かされた'
+            if width <= 600:
+                # 敵名の有無で座標・大きさ・戦場の高さを変えない。
+                page.evaluate('''async () => {
+                  const snapshot=()=>JSON.stringify({pos:__game.G.enemyPos,
+                    view:document.getElementById('view').getBoundingClientRect().toJSON()});
+                  const before=snapshot(),bar=document.getElementById('enemy-names');
+                  if (bar.getBoundingClientRect().top < document.getElementById('view').getBoundingClientRect().bottom-1)
+                    throw Error('敵名が敵の絵・HP・状態の領域に重なる');
+                  bar.style.display='none';
+                  await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+                  if (before!==snapshot()) throw Error('敵名表示の有無で敵の配置が変わる');
+                  bar.style.removeProperty('display');
+                }''')
             if width > 600:
-                assert names.locator('.enemy-name').count() == count
-                assert '？' in names.inner_text(), '未判明の敵名が明かされた'
                 page.evaluate('''() => {
                   const bar=document.getElementById('enemy-names').getBoundingClientRect();
                   const view=document.getElementById('view').getBoundingClientRect();
@@ -139,7 +152,7 @@ with sync_playwright() as p:
     }''')
     page.mouse.click(point['x'],point['y'])
     assert page.evaluate('beforeRows === battleSnapshot()'), '表示切替で射程外の敵へ攻撃できた'
-    assert '届かない' in page.locator('#log').inner_text().replace('\u200b','')
+    assert '射程外' in page.locator('#log').inner_text().replace('\u200b','')
     # 描画に敵名を常設しない（選択名はDOMに出す）。
     page.evaluate('''() => {
       window.canvasText=[]; const ctx=document.getElementById('view').getContext('2d');
@@ -159,7 +172,9 @@ with sync_playwright() as p:
     page.evaluate('__game.G.animating=false')
     page.set_viewport_size({'width':390,'height':664})
     page.wait_for_timeout(180)
-    assert not page.locator('#enemy-names').is_visible()
+    assert page.locator('#enemy-names').is_visible()
+    assert page.locator('#enemy-names .enemy-name').count() == 6
+    page.screenshot(path='/tmp/dos-enemy-names-mobile.png')
     # 前列全滅・後列だけ残った時は拡大表示へ。新しい戦闘では表示を初期化する。
     page.evaluate('''() => {
       const b=__game.G.battle;b.cancelTarget();b.enemies.slice(0,3).forEach(e=>{e.alive=false;e.hp=0});

@@ -667,18 +667,27 @@ canvas.unk-sil { filter: brightness(0) drop-shadow(0 0 1px rgba(185,172,217,0.85
 #enemy-row-toggle:disabled { opacity: 0.5; }
 #enemy-row-toggle:focus-visible { outline: 2px solid #f3d58b; outline-offset: 2px; }
 
-/* 広い画面だけ、戦場の下端に前後の列と同じ並びで名を残す。 */
+/* 戦場の下端に前後の列と同じ並びで名を残す。スマホの敵の配置は変えない。 */
 #enemy-names { display: none; }
-@media (min-width: 601px) {
+.in-combat #enemy-names {
+  display: grid; position: absolute; bottom: 4px; left: 6px; right: 6px;
+  padding: 4px 8px; gap: 3px; pointer-events: none;
+  background: rgba(14, 12, 19, 0.88); color: #eadbb3;
+  font-size: 12px; line-height: 1.4;
+}
+.enemy-name-row { display: flex; gap: 8px; }
+.enemy-name { flex: 1; min-width: 0; text-align: center; overflow-wrap: anywhere; }
+.enemy-name.unk { color: #b9acd9; }
+.enemy-name.complete { color: #ffd36b; }
+.in-combat #enemy-focus.has-target { top: 0; bottom: auto; }
+@media (min-width: 560px) {
+  .in-combat #enemy-names { left: 10px; right: 10px; }
+}
+@media (max-width: 600px) {
+  .in-combat #screen { flex-direction: column; }
   .in-combat #enemy-names {
-    display: grid; position: absolute; bottom: 4px; left: 10px; right: 10px;
-    padding: 4px 8px; gap: 3px; pointer-events: none;
-    background: rgba(14, 12, 19, 0.88); color: #eadbb3;
-    font-size: 12px; line-height: 1.4;
+    position: static; width: 100%; min-height: 27px; box-sizing: border-box;
+    padding: 1px 4px; gap: 1px; align-content: center; font-size: 10px; line-height: 1.2;
   }
-  .enemy-name-row { display: flex; gap: 8px; }
-  .enemy-name { flex: 1; min-width: 0; text-align: center; overflow-wrap: anywhere; }
-  .enemy-name.unk { color: #b9acd9; }
-  .enemy-name.complete { color: #ffd36b; }
-  .in-combat #enemy-focus.has-target { top: 0; bottom: auto; }
+  .enemy-name-row { gap: 4px; }
 }
