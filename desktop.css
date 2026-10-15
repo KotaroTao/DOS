@@ -1,4 +1,4 @@
-/* PC の探索・戦闘。街・シートとタッチ端末は従来の配置を使う。 */
+/* PC向けの配置。タッチ端末・狭いウィンドウは既存のCSSを使う。 */
 @media (min-width: 1100px) and (min-height: 600px) and (hover: hover) and (pointer: fine) {
   html.pc-input #app:is(.board-camera-active, .in-combat) {
     width: calc(100% - 32px); max-width: 1440px;
@@ -39,4 +39,174 @@
   html.pc-input #app:is(.board-camera-active, .in-combat) :is(button, [role="button"]):focus-visible {
     outline: 2px solid #f3d58b; outline-offset: -2px;
   }
+}
+
+/* 閉じる操作はPCのウィンドウにだけ表示する。タッチ端末の寸法は変えない。 */
+.ui-pc-close { display: none; }
+.jr-text { display: contents; }
+
+@media (min-width: 1100px) and (min-height: 600px) and (hover: hover) and (pointer: fine) {
+  /* 画面全体と常設の施設メニュー。画面を替えても同じ場所から移動する。 */
+  html.pc-input { --game-width: min(1440px, calc(100vw - 32px)); }
+  html.pc-input #town-shell {
+    display: grid; grid-template-columns: 152px minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr); gap: 0;
+    border-inline: 1px solid #493a2b;
+  }
+  html.pc-input #town-shell > .ts-head { grid-column: 2; grid-row: 1; }
+  html.pc-input #town-shell > #town-screen {
+    grid-column: 2; grid-row: 2; min-width: 0; padding: 12px 20px 16px;
+  }
+  html.pc-input #town-shell > .ui-tabbar {
+    grid-column: 1; grid-row: 1 / -1; height: auto; min-height: 0;
+    display: flex; flex-direction: column; justify-content: center; gap: 12px;
+    padding: 24px 10px; border-right: 1px solid #493a2b; border-top: 0;
+  }
+  html.pc-input #town-shell .ui-tab {
+    flex: 0 0 auto; height: 76px; width: 100%; padding: 10px 4px;
+    border: 1px solid transparent; border-radius: 4px;
+  }
+  html.pc-input #town-shell .ui-tab.on { border-color: #8a6d2e; background: rgba(201,162,74,.1); }
+  html.pc-input #town-shell .ui-tab-l { font-size: 14px; letter-spacing: .08em; }
+  html.pc-input #town-shell .ui-tab.center { justify-content: center; gap: 4px; }
+  html.pc-input #town-shell .ui-tab.center .ui-tab-icw {
+    position: relative; inset: auto; transform: none; width: 36px; height: 36px;
+  }
+  html.pc-input #town-shell .ui-gate-medal { box-shadow: none; animation: none; }
+  html.pc-input #town-shell .ui-gate-ic { width: 28px; height: 32px; }
+  html.pc-input #town-shell .ui-tab.center .ui-tab-l { padding: 2px 8px; }
+  html.pc-input :is(button, [role="button"], input, select, textarea):focus-visible {
+    outline: 2px solid #f3d58b; outline-offset: -2px;
+  }
+  html.pc-input button:not(:disabled):hover { filter: brightness(1.12); }
+  html.pc-input :is(.ui-chips-in, .wpc-character-strip) { flex-wrap: wrap; overflow-x: visible; }
+  html.pc-input .ui-sheet :is(.ui-chips-in, .wpc-character-strip) { overflow-x: auto; }
+
+  /* 街は風景と目標を並べ、その下へ施設・依頼を続ける。 */
+  html.pc-input #town-screen > .hb {
+    display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    grid-template-rows: auto auto auto; align-content: start; gap: 16px;
+    overflow-y: auto;
+  }
+  html.pc-input .hb > .hb-hero { grid-column: 1; grid-row: 1; height: clamp(240px, 40dvh, 420px) !important; }
+  html.pc-input .hb > .hb-actions { grid-column: 2; grid-row: 1; margin: 0; min-width: 0; }
+  html.pc-input .hb > .hb-fac { grid-column: 1 / -1; margin: 0; }
+  html.pc-input .hb > .hb-mid { grid-column: 1 / -1; }
+  html.pc-input .hb-sug-list { grid-template-columns: minmax(0, 1fr); }
+  html.pc-input .hb-sug { min-height: 56px; }
+  html.pc-input .hb .hb-tile { height: 112px; }
+
+  /* 館では魂と能力を見比べられ、装備と共有袋は幅いっぱいを使う。 */
+  html.pc-input .pt-root.m-town > .pt-overview {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;
+    align-items: start; align-content: start;
+  }
+  html.pc-input .pt-overview > [data-mansion-section="equip"] { grid-column: 1 / -1; }
+  html.pc-input .pt-overview .pt-slots { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  html.pc-input .pt-form { gap: 14px; }
+  html.pc-input .pt-slotp { width: 60px; }
+  html.pc-input .pt-slotp-n { max-width: 60px; font-size: 12px; }
+  html.pc-input .pt-bagwrap .pt-bag { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); }
+
+  /* 商会・図鑑・依頼・魂などの一覧。中身だけをスクロールする。 */
+  html.pc-input .wpc-list:is(.buy, .rf-list, .ec-list) {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start;
+    align-items: start; gap: 12px;
+  }
+  html.pc-input .wpc-list:is(.buy, .rf-list, .ec-list) > .wpc-empty { grid-column: 1 / -1; }
+  html.pc-input .wpc-character { flex-basis: 76px; min-height: 76px; }
+  html.pc-input .wpc-character > span { max-width: 70px; font-size: 12px; }
+  html.pc-input .wa-pgrid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
+    grid-auto-rows: minmax(112px, auto) !important;
+  }
+  html.pc-input :is(.jr-results, .pt-chl, .dp-gates) {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-content: start;
+  }
+  html.pc-input .dp-gates > :is(.dp-chap, .dp-sealed, .dp-abyss) { grid-column: 1 / -1; }
+
+  /* 共通シートは中央のウィンドウ。短い確認や祝祭は読みやすい幅を保つ。 */
+  html.pc-input .ui-sheet-wrap { justify-content: center; padding: 24px; }
+  html.pc-input .ui-sheet:not(.k-celebrate) {
+    width: min(960px, calc(100vw - 48px)); max-width: 960px;
+    max-height: calc(100dvh - 64px); border: 1px solid var(--sheet-accent, #8a6d2e);
+    border-radius: 8px; padding-top: 18px;
+  }
+  html.pc-input .ui-sheet:is(.ui-confirm, .dp-brief-sheet, .pt-pick-sheet, .player-name-sheet) { max-width: 600px; }
+  html.pc-input .ui-sheet.k-celebrate { max-width: 460px; }
+  html.pc-input .ui-sheet .ui-grab { display: none; }
+  html.pc-input .ui-sheet-head { padding-inline: 56px; }
+  html.pc-input .ui-sheet-body { padding: 12px 24px 20px; }
+  html.pc-input .ui-sheet-foot { padding: 12px 24px 18px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+  html.pc-input .ui-sheet-foot > .dp-ready { grid-column: 1 / -1; }
+  html.pc-input .ui-pc-close {
+    display: flex; align-items: center; justify-content: center;
+    position: absolute; right: 8px; top: 6px; z-index: 4;
+    width: 44px; height: 44px; border: 1px solid #665338; border-radius: 4px;
+    background: #1d171c; color: #eadbb3; font: 24px/1 var(--font); cursor: pointer;
+  }
+  html.pc-input .ui-sheet :is(.ui-lines, .jr-text, .dp-brief-l) { max-width: 48em; margin-inline: auto; }
+  html.pc-input .ui-sheet:is(.cx-sheet, .pt-sheet) { height: calc(100dvh - 64px); }
+  html.pc-input .stg { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
+  html.pc-input .stg > .stg-h { grid-column: 1 / -1; }
+  html.pc-input .stg-row { min-width: 0; }
+  html.pc-input .stg > .stg-stack { grid-column: 1 / -1; }
+  html.pc-input .jr-detail:has(.jr-illustration) .ui-sheet-body {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start;
+  }
+  html.pc-input .jr-detail .ui-sheet-title { grid-column: 1 / -1; }
+  html.pc-input .jr-detail .jr-illustration { grid-column: 1; grid-row: 2; margin-top: 0; }
+  html.pc-input .jr-detail .jr-text { grid-column: 2; grid-row: 2; }
+  html.pc-input .jr-text { display: block; min-width: 0; }
+  html.pc-input .jr-results > :is(.jr-group, .jr-empty) { grid-column: 1 / -1; }
+  html.pc-input .jr-results .jr-card { margin: 0; height: 100%; }
+  html.pc-input .jr-results .jr-note { min-width: 0; }
+
+
+  /* タイトルと物語。本文の長い行を抑え、絵と操作を左右に配置する。 */
+  html.pc-input .ttl-ui {
+    max-width: 1280px; margin: auto; padding: 48px;
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, .9fr);
+    gap: 48px; align-content: center; align-items: center;
+  }
+  html.pc-input .ttl-space { display: none; }
+  html.pc-input .ttl-menu:is(.has-save, .no-save) { max-width: 540px; display: flex; }
+  html.pc-input .ttl-menu.no-save .ttl-btns { flex-direction: column; }
+  html.pc-input .ttl-note { line-height: 1.7; }
+  html.pc-input .ttl-main { font-size: clamp(64px, 8vw, 110px); }
+  html.pc-input .ttl-en { font-size: 12px; }
+  html.pc-input .sc-stage {
+    max-width: 1200px; padding: 48px 32px;
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto auto auto minmax(0, 1fr) auto; column-gap: 40px;
+  }
+  html.pc-input .sc-stage > .sc-head { grid-column: 1; grid-row: 1 / -1; align-self: center; }
+  html.pc-input .sc-stage > .sc-art { grid-column: 1; grid-row: 1 / -1; align-self: center; margin: 0; }
+  html.pc-input .sc-stage > :is(.sc-kicker, .sc-title, .sc-page, .sc-foot) { grid-column: 2; }
+  html.pc-input .sc-stage > .sc-kicker { grid-row: 1; }
+  html.pc-input .sc-stage > .sc-title { grid-row: 2; }
+  html.pc-input .sc-stage > .sc-page { grid-row: 4; }
+  html.pc-input .sc-stage > .sc-foot { grid-row: 5; }
+  html.pc-input .sc-art :is(img, canvas) { width: 100% !important; height: auto !important; max-height: 70dvh; object-fit: contain; }
+  html.pc-input .sc-line { font-size: 16px; line-height: 1.9; }
+  html.pc-input .op-text { width: min(760px, calc(100% - 64px)); max-width: 760px; margin-inline: auto; font-size: clamp(16px, 2vh, 20px); }
+  html.pc-input :is(.ui-sheet-body, .pt-overview, .wa-parea, .wpc-list, .hb, .fc-tav-body, .pt-bag, .sc-page) { scrollbar-width: thin !important; scrollbar-color: #8a6d2e #17121a; }
+  html.pc-input :is(.ui-sheet-body, .pt-overview, .wa-parea, .wpc-list, .hb, .fc-tav-body, .pt-bag, .sc-page)::-webkit-scrollbar { display: block !important; width: 8px !important; height: 8px !important; }
+  html.pc-input :is(.ui-sheet-body, .pt-overview, .wa-parea, .wpc-list, .hb, .fc-tav-body, .pt-bag, .sc-page)::-webkit-scrollbar-thumb { background: #8a6d2e; border-radius: 4px; }
+
+  /* 館の会話、魂の一覧、認証など、独立して開く画面にも同じPC幅を使う。 */
+  html.pc-input .iv-scene { max-width: min(1200px, calc(100vw - 48px)); }
+  html.pc-input .iv-art { left: 0; right: 44%; top: 48px; bottom: 48px; height: auto; }
+  html.pc-input .iv-stage { left: 58%; right: 32px; top: 72px; bottom: 48px; justify-content: center; padding: 0; }
+  html.pc-input .iv-say .pt-kp-l { font-size: 16px; }
+  html.pc-input .story-card { max-width: 760px; }
+  html.pc-input .confirm-card { max-width: 520px; }
+  html.pc-input .cloud-panel { max-width: 480px; padding: 28px; border: 1px solid #65736e; border-radius: 8px; background: #171d1a; }
+  html.pc-input .sp-pick-sheet .sp-plist { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-items: start; }
+  html.pc-input .pt-chl > :is(.pt-chl-new, .pt-chl-s, .pt-ch-sep) { grid-column: 1 / -1; }
+  html.pc-input .jg-overlay { max-width: var(--game-width); margin-inline: auto; }
+  html.pc-input .jg-close { min-height: 44px; }
+
+  html.pc-input body:has(.test-play-banner) :is(.iv-scene, .sc-scene, .op-overlay, .jg-overlay) { top: 38px; }
+
 }
