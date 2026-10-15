@@ -1,0 +1,35 @@
+{
+  "references": [
+    "docs/art/prologue-enemies/bs_dustroach.png",
+    "docs/art/prologue-enemies/bs_littlecentipede.png",
+    "docs/art/prologue-enemies/bs_woodbee.png"
+  ],
+  "layout": "5列×4行、左から右・上から下。背景透過。文字・枠・人物なし。左上の光、深い影、控えめな色、細かなドットの質感。各品全体を収める。",
+  "batches": [
+    {
+      "from": 1701,
+      "to": 1720,
+      "prompt": "1701 colossal two-handed earth-splitting stone/bronze maul with cracked heavy rectangular head; 1702 elegant ancient mythril silver spear; 1703 large two-handed icy prison spear with ice cage spearhead; 1704 primordial gnarled wood longbow; 1705 celestial meteor bow with restrained wind-streak ornament; 1706 jeweled magic staff with large gemstone at top; 1707 two-handed celestial law greatstaff with orbital celestial crown; 1708 enormous primordial steel two-handed greatsword; 1709 pale rose jewel-woven robe, empty clothing; 1710 grand celestial-law vestment with blue/gold astronomical embroidery; 1711 primordial steel chainmail shirt; 1712 light dragon pale gold leather armor; 1713 mythril silver plate cuirass; 1714 heavenly emperor ornate gold armor; 1715 pale rose crown with huge gem; 1716 tall heavenly bishop jeweled mitre/crown; 1717 primordial steel chain coif covering neck; 1718 light-dragon supple pale leather cap; 1719 mythril silver enclosed helmet; 1720 grand gold emperor helmet with imposing crest"
+    },
+    {
+      "from": 1721,
+      "to": 1740,
+      "prompt": "1721 pale rose light shoes with gem embroidery, pair; 1722 celestial step magical light shoes with subtle wing-like trim, pair; 1723 primordial steel boots, pair; 1724 pale light dragon leather tall boots, pair; 1725 mythril silver armored sabatons, pair; 1726 golden emperor armored greaves including feet, pair; 1727 pale rose thin jeweled gloves, pair; 1728 bishop prayer gloves with jewels and palm holy sigil, pair; 1729 primordial steel woven gloves, pair; 1730 meteor archer brown leather shooting gloves with finger reinforcement, pair; 1731 articulated mythril silver gauntlets, pair; 1732 golden emperor articulated gauntlets, pair; 1733 primordial steel round shield; 1734 grand golden emperor tower/kite shield with sun crest; 1735 small mythril silver round buckler reflecting starlight; 1736 vermilion gold sun-haze small hand shield; 1737 pale lavender primordial magic crystal; 1738 golden celestial light orb; 1739 old worn prayer book with rubbed leather cover and weathered pages; 1740 gold bound emperor holy scripture book"
+    },
+    {
+      "from": 1741,
+      "to": 1760,
+      "prompt": "1741 broad golden emperor ring with sun jewel; 1742 celestial-law crystal orb amulet on short chain with orbit metalwork; 1743 divine bestowed steel longsword glowing subtly warm; 1744 seraph golden jewel sword with restrained holy flame along blade; 1745 silver stigma-marked short dagger; 1746 abyss-forged black-purple cursed dagger with hooked sinister blade; 1747 divine steel katana with luminous temper line; 1748 large two-handed thunder tachi katana with restrained lightning; 1749 divine bestowed steel battle axe; 1750 enormous two-handed crimson inferno great axe, ember red blade; 1751 seraph holy warhammer with small holy light accents; 1752 massive earth-rending two-handed maul with cracked angular stone head; 1753 divine steel spear; 1754 two-handed long ice-prison spear with cage of ice around head; 1755 silver stigma-inscribed longbow; 1756 divine comet bow with comet-shaped horn tips and wind motifs; 1757 holy stigma engraved magical staff; 1758 thick two-handed godblood greatstaff with crimson blood crystal vessel at top; 1759 huge silver stigma-engraved two-handed greatsword; 1760 ivory robe with divine embroidered arcane patterns, empty clothing"
+    },
+    {
+      "from": 1761,
+      "to": 1780,
+      "prompt": "1761 grand godblood priestly vestment, crimson and ivory with blood-red woven lines; 1762 silver stigma-inscribed chainmail shirt; 1763 dark dragon leather lightweight cuirass with charcoal violet scales; 1764 divine steel plate cuirass with warm platinum highlights; 1765 golden seraph full armor chest piece with wing motifs; 1766 ivory crown inset with divine gemstone; 1767 golden seraph jeweled bishop crown with wing-shaped trim; 1768 silver stigma engraved chain coif covering neck; 1769 dark dragon leather cap; 1770 divine steel helmet; 1771 grand gold seraph helmet with radiant feathered crest; 1772 ivory light shoes with divine embroidery, pair; 1773 divine sky-running shoes with small wing-like trim, pair; 1774 silver stigma-inscribed boots, pair; 1775 dark dragon leather tall boots, pair; 1776 divine steel heavy sabatons, pair; 1777 golden seraph armored greaves including feet, pair; 1778 thin ivory gloves with divine embroidery, pair; 1779 ivory prayer gloves with gold embroidery and palm holy sigil, pair; 1780 silver stigma-engraved woven metal gloves, pair"
+    },
+    {
+      "from": 1781,
+      "to": 1800,
+      "prompt": "1781 comet archer leather shooting gloves with finger reinforcement and comet stitched emblem, pair; 1782 articulated divine steel gauntlets, pair; 1783 golden seraph articulated gauntlets with wing motifs, pair; 1784 silver stigma-engraved round shield; 1785 golden seraph great kite/tower shield with wing crest; 1786 light divine steel small round buckler; 1787 small hand shield carved from sacred rock with natural stone texture; 1788 clear crystal ball on stigma-engraved silver stand; 1789 seraph flame orb enclosing warm holy fire in gold mount; 1790 platinum-bound divine scripture book slightly open with pale pages; 1791 ornate gold seraph holy book with wing crest; 1792 broad golden seraph ring with wing motifs; 1793 red crystallized godblood orb amulet on short metal chain; 1794 steel holy relic longsword with bone-white inlay in blade; 1795 Messiah holy sword with restrained radiant gold light; 1796 martyr silver dagger with dried blood patina; 1797 fallen angel cursed dagger, dark feather-shaped blade; 1798 holy relic katana with bone-white steel and clear pale temper line; 1799 large two-handed true-thunder tachi katana with long grip and restrained blue lightning; 1800 holy relic steel battle axe with bone-white inlay"
+    }
+  ]
+}
