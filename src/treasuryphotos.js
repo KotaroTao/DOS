@@ -40,7 +40,10 @@ export async function loadTreasuryPhotos() {
       clearTimeout(timer);
       img.onload = img.onerror = null;
       if (ok) photos.set(id, { w: 24, h: 24,
-        photo: { img, sx: 0, sy: 0, sw: 384, sh: 384 } });
+        photo: { img, sx: 0, sy: 0, sw: 384, sh: 384,
+          // 下端右側の木片だけを隠し、左側にあるひげの先端は残す。
+          exclude: id === "m_wyrm_whisker" ? [{ x: 260, y: 344, w: 124, h: 40 }] : undefined,
+        } });
       resolve();
     };
     img.decoding = "async";
