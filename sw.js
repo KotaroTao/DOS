@@ -112,6 +112,9 @@ const ASSETS = [
   "./art/items/w_r13_relickatana.webp",
   "./art/items/w_r13_truethunderkatana.webp",
   "./art/items/w_r13_relicaxe.webp",
+  "./src/ui/soulart.js",
+  "./art/souls/acquisition.webp",
+  "./art/souls/acquisition-still.webp",
   // 制作番号1901〜2000の透過原画。
   "./art/items/w_r15_legendkatana.webp",
   "./art/items/w_r15_heroaxe.webp",
