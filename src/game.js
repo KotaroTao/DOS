@@ -7218,10 +7218,15 @@ function evSoulClass(mode) {
   return rollJobClass();
 }
 // 品を渡して演出する (誰も持てなければ知らせて次へ)
-function evGive(id, next) {
+function evGive(id, next, { beforeLoot = false } = {}) {
   const fin = next || (() => { if (G.state === "board") renderBoard(); });
   giveItemAsk(id, (got, lost) => {
-    if (got) { UI.loot(got.item, got.who, { source: "chest" }, fin); return; }
+    if (got) {
+      // 収集品は入手と出来事の完了を保存してから祝祭カードを開く。
+      if (beforeLoot) { fin(); autosave(true); }
+      UI.loot(got.item, got.who, { source: "chest" }, beforeLoot ? undefined : fin);
+      return;
+    }
     if (lost) { runLost(itemName(lost)); showToast(`持ちきれず置いてきた: ${itemName(lost)}`, { noLog: false, tone: "bad" }); }
     fin();
   });
@@ -7397,11 +7402,16 @@ const evApi = {
   item: (opts, from, next) => { log(`${from}で品を見つけた。`, "win"); evGive(pickLoot({ ...(opts || {}), noLR: true }), next); },
   itemMinRar: (rar, from, next) => { log(`${from}で品を受け取った。`, "win"); evGive(evPickMinRar(rar), next); },
   giveItemId: (id, next) => evGive(id, next),
-  collectible(from, next) {
-    const id = evPickCollectible();
+  collectible(from, next, cell) {
+    const id = cell?.evCollectible || evPickCollectible();
     if (!id) { evApi.gold(1, from); if (next) next(); return; }
-    log(`${from}で収集品を見つけた。`, "win");
-    evGive(id, next);
+    if (from) log(`${from}で収集品を見つけた。`, "win");
+    // 抽選結果と支払った代償を、袋の整理画面を出す前に保存する。
+    if (cell) { cell.evCollectible = id; autosave(true); }
+    evGive(id, () => {
+      if (cell) delete cell.evCollectible;
+      if (next) next();
+    }, { beforeLoot: true });
   },
   price: (id) => (ITEMS[id] && ITEMS[id].price) || 20,
   itemNameOf: (id) => (ITEMS[id] && ITEMS[id].name) || id,
