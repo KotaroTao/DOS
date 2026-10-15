@@ -218,6 +218,14 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 
 ### A. 必須 (物語の筋や正典と食い違う)
 
+
+**A-38. 第二章 report_w09「先代という仮面」（ゲーム内「先代の王」）** `art/story-review/chapter2/report_w09.png` (済)
+- ユーザー指定 (2026-10-15): 弟子が持つ手紙を、`art/story-review/chapter2/mem_w09.png`「砦を捧げた書状」と同じ書状にする。赤い封蝋を横に二つ並べ、左を金の王冠の王家の紋、右を参照と同じ金の宰相府の紋にし、赤金の組紐も合わせる。手に持つ角度と縮尺に合わせる。
+- 保つもの: 王と弟子の顔・姿勢・手・衣装、空の宰相の席、玉座の間、構図、画風、光。本文は変えない。
+```text
+...except: correct ONLY the parchment letter held by the apprentice in the foreground. Use art/story-review/chapter2/mem_w09.png as the exact reference for the SAME physical letter: aged parchment with illegible ink scribbles and TWO glossy deep red wax seals side by side across its lower portion, each with a gold embossed emblem and matching short red-and-gold twisted cords. The LEFT seal bears the identical gold royal CROWN emblem. The RIGHT seal bears the identical gold chancellery emblem from the reference (the branching upright staff/cross-like heraldic design, not a crown and not a lamp or flame). Replace the current vertically stacked mismatched seals. Match both silhouettes, colors, emblems, relative arrangement and cords to the reference letter, adapted to the perspective and small size of the parchment held in the apprentice's hands. Keep the paper naturally held in the existing hands. Preserve every other part of the original illustration, including the king, apprentice, hands, costumes, empty chancellor chair, architecture, framing, fine pixel texture and lighting. Do not copy the fortress scene. No readable lettering.
+```
+
 **A-37. 第一章 irene_reveal「レースの下の継ぎ目」** `art/story-review/chapter1/irene_reveal.png` (済)
 - ユーザー指定 (2026-10-14): 手首のレース下のロボット状の機構を除去し、レースを肘までめくって、他の人業と同じ黒鉄の肘の継ぎ目を見せる。白い手首と前腕は滑らかにする。
 - 本文もユーザー指示に合わせ「白い手首に、」を「白い手首の先に、」へ変更。一覧の説明も肘の継ぎ目にそろえる。
