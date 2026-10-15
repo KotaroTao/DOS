@@ -1676,9 +1676,9 @@ export function powerAt(cfg, floor = 1) {
 // ===== 敵の強さの段 (2026-10-15 ユーザーの指示: 第十章で急に強くするのではなく、味方の育ちに合わせて強くし、第十章で今の強さに) =====
 // 第一章・第二章 (第1〜4層) は従来のまま。第三章 (第5層) の最初の本筋 w10 から、本筋の迷宮を一つ進むごとに敵が緩やかに強くなる。
 // 味方が一気に強くなるのは蘇生 (リバイブ: 僧侶・枢機卿 Lv50、護教官 Lv55、多くの職 Lv60) と HP1 で踏みとどまる技 (武僧 Lv35・
-// 守護騎士 Lv45・魔騎士 Lv60…) を覚える頃なので、その推奨Lv に当たる第四章の入口 (RAMP_JUMP.id = w14、推奨Lv52) で HP・攻撃・防御を
-// 一段 (×RAMP_JUMP.stat) 強くする。第十章の入口 (第12層の最初の本筋 w38) でちょうど「HP・攻撃・防御 ×10・素早さ ×3・強敵のHP ×3・
-// 主のHP ×5」に届く (段の間は等比。素早さと主・強敵のHPの追加は一段の跳ねを持たない)。
+// 守護騎士 Lv45・魔騎士 Lv60…) を覚える頃なので、その推奨Lv に当たる第四章の入口 (RAMP_JUMP.id = w14、推奨Lv52) で HP・攻撃・防御と
+// 主・強敵のHPの追加を一段 (×RAMP_JUMP) 強くする。第十章の入口 (第12層の最初の本筋 w38) でちょうど「HP・攻撃・防御 ×10・素早さ ×3・
+// 強敵のHP ×3・主のHP ×5」に届く (段の間は等比。素早さは一段の跳ねを持たない)。
 // 第十章からは本筋の迷宮を一つ進むごとに HP・攻撃・防御 ×1.5・素早さ ×1.1 (強敵・主のHPの追加は ×3・×5 のまま)。
 // 第二部 (第13層〜) は層の入口の段 LAYER_WALL (×2.0、その先 ×1.4) をさらに重ねる。
 // 強さ (HP・攻撃・防御) が k 倍になると、同じ隊の1戦の被ダメはおよそ k² 倍 (一撃が k 倍 × 倒すまでの手数が k 倍)。
@@ -1687,7 +1687,7 @@ export const PART2_LAYER = 13; // 第十一章 (物語の第二部の開始は�
 export const RAMP_FROM_LAYER = 5; // 第三章: ここから本筋の迷宮ごとに強くなる
 export const WALL_FROM_LAYER = 12; // 第十章: ここで RAMP_TO に届き、以降は迷宮ごとに STEP_AFTER
 const RAMP_TO = { stat: 10, agi: 3, elite: 3, boss: 5 };
-export const RAMP_JUMP = { id: "w14", stat: 2 }; // 蘇生・HP1 で踏みとどまる技を覚える頃の一段 (HP・攻撃・防御だけ)
+export const RAMP_JUMP = { id: "w14", stat: 2, boss: 2, elite: 2 }; // 蘇生・HP1 で踏みとどまる技を覚える頃の一段 (素早さは跳ねない)
 const STEP_AFTER = { stat: 1.5, agi: 1.1 };
 export const LAYER_WALL = { 13: 2.0, 14: 1.4, 15: 1.4, 16: 1.4, 17: 1.4, 18: 1.4, 19: 1.4, 20: 1.4 };
 // 第L層の壁 = 第13層から第L層までの段の積 (第21層より先は第20層のまま)
@@ -1735,7 +1735,7 @@ export function agiWallOf(cfg) {
 export function strongHpWallOf(cfg) {
   if (!cfg || cfg.wall != null) return { boss: 1, elite: 1 };
   const step = dungeonProgressOf(cfg);
-  return { boss: rampMul(step, RAMP_TO.boss), elite: rampMul(step, RAMP_TO.elite) };
+  return { boss: rampMul(step, RAMP_TO.boss, 1, RAMP_JUMP.boss), elite: rampMul(step, RAMP_TO.elite, 1, RAMP_JUMP.elite) };
 }
 // その層の入口の段 (前の層の何倍か。壁のない層なら 1)
 export function wallStepOf(cfg) {

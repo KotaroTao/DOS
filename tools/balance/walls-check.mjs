@@ -26,7 +26,7 @@ const stepOf = (cfg) => {
   MAIN.forEach((d, j) => { if (d.lv <= cfg.lv) s = j; });
   return s;
 };
-assert.deepEqual(RAMP_JUMP, { id: "w14", stat: 2 }, "一段強くなるのは第四章の入口 (蘇生・HP1で踏みとどまる技を覚える頃)");
+assert.deepEqual(RAMP_JUMP, { id: "w14", stat: 2, boss: 2, elite: 2 }, "一段強くなるのは第四章の入口 (蘇生・HP1で踏みとどまる技を覚える頃)。主・強敵のHPも同じく");
 const JUMP = MAIN.findIndex(d => d.id === "w14");
 assert.equal(JUMP, 4);
 const ramp = (s, base, after = 1, jump = 1) => {
@@ -52,8 +52,8 @@ for (const cfg of WORLD) {
   near(wallOf(cfg), partWall(cfg.layer) * ramp(s, 10, 1.5, 2));
   near(agiWallOf(cfg), ramp(s, 3, 1.1));
   const hp = strongHpWallOf(cfg);
-  near(hp.boss, ramp(s, 5));
-  near(hp.elite, ramp(s, 3));
+  near(hp.boss, ramp(s, 5, 1, 2));
+  near(hp.elite, ramp(s, 3, 1, 2));
   // 無限迷宮 (wall:1) は段を受けない
   assert.equal(dungeonProgressOf({ ...cfg, wall: 1 }), 0);
   assert.equal(agiWallOf({ ...cfg, wall: 1 }), 1);
@@ -67,6 +67,9 @@ assert.equal(wallOf(at("w09")), 1);
 assert.equal(wallOf(at("w10")), 1);
 near(wallOf(at("w13")), 5 ** (3 / 28));
 near(wallOf(at("w14")), 2 * 5 ** (4 / 28));
+near(strongHpWallOf(at("w13")).boss, 2.5 ** (3 / 28));
+near(strongHpWallOf(at("w14")).boss, 2 * 2.5 ** (4 / 28));
+near(strongHpWallOf(at("w14")).elite, 2 * 1.5 ** (4 / 28));
 near(wallOf(at("w38")), 10);
 near(agiWallOf(at("w38")), 3);
 assert.deepEqual(strongHpWallOf(at("w38")), { boss: 5, elite: 3 });
