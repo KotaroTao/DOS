@@ -1,7 +1,6 @@
 // 迷宮の透過原画。通常敵・強敵・主・召喚先・共通の敵で共用する。
 // 能力値や文字グリッドは保ち、読めた原画だけを最初の描画前に登録する。
 export const MONSTER_PHOTOS = {
-  // 名のある強敵24体。森の小屋の3体と図鑑の記述に合わせた透過原画。
   el_palebutcher: [573, 475],
   el_cryptlord: [473, 493],
   el_bloatqueen: [513, 477],
@@ -26,6 +25,7 @@ export const MONSTER_PHOTOS = {
   el_dragonslayer: [501, 504],
   el_tunnelking: [524, 505],
   el_oremaw: [519, 506],
+  // 名のある強敵24体。森の小屋の3体と図鑑の記述に合わせた透過原画。
   mt_silver: [347, 520],
   bs_tunneler: [520, 501],
   bs_troll: [520, 501],
@@ -72,6 +72,17 @@ export const MONSTER_PHOTOS = {
   bs_bonechanter: [378, 399],
   bs_gravecaller: [408, 389],
   bs_cryptabbot: [434, 392],
+  // 沈んだ礼拝堂（通常敵9種・強敵・主。召喚先は汚泥の塊）。
+  bs_sludgeooze: [378, 330],
+  bs_waterelemental: [296, 348],
+  bs_sewerdredger: [358, 336],
+  bs_brinewraith: [348, 356],
+  bs_waterhag: [329, 345],
+  bs_eelfiend: [351, 365],
+  bs_anglerfiend: [348, 334],
+  d03_sahagin: [418, 334],
+  bs_abysstentacle: [330, 337],
+  bs_sewerlord: [498, 372],
 };
 
 function loadImage(img, src, width, height) {
