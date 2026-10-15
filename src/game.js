@@ -6827,7 +6827,9 @@ function evStartFight(cell) {
   const f = cell.evFight;
   if (!f) { renderBoard(); return; }
   G._evOpening = f.opening || null;
-  startBattle(evBuildFoes(f.specs), cell);
+  const foes = evBuildFoes(f.specs);
+  if (evAlarmNotice) queueDanger({ kind: "battle", enemies: foes, cell, opening: f.opening, notice: evAlarmNotice });
+  else startBattle(foes, cell);
 }
 // 戦闘の開始時: イベントの加護を人業へ展開し、開幕の効果 (回復・発破・層主の弱体) を掛ける
 function evBattleStart(enemies, isBoss) {
@@ -7218,20 +7220,115 @@ function evSoulClass(mode) {
   }
   return rollJobClass();
 }
-// 品を渡して演出する (誰も持てなければ知らせて次へ)
-function evGive(id, next, { beforeLoot = false } = {}) {
-  const fin = next || (() => { if (G.state === "board") renderBoard(); });
-  giveItemAsk(id, (got, lost) => {
-    if (got) {
-      // 収集品は入手と出来事の完了を保存してから祝祭カードを開く。
-      if (beforeLoot) { fin(); autosave(true); }
-      UI.loot(got.item, got.who, { source: "chest" }, beforeLoot ? undefined : fin);
+// 入手待ちの実物と危険・戦果はセーブに載せる。画面を閉じる関数は保存しない。
+let pickupBusy = false;
+let pickupScheduled = false;
+let evAlarmNotice = null;
+const pickupViews = new WeakMap();
+let pickupAfters = [];
+function queuePickup(task, view = null) {
+  (G.pendingPickups || (G.pendingPickups = [])).push(task);
+  if (view) pickupViews.set(task, view);
+  if (!pickupScheduled) {
+    pickupScheduled = true;
+    queueMicrotask(() => { pickupScheduled = false; processPickups(); });
+  }
+}
+function afterPickups(fn) {
+  if (!fn) return;
+  if (pickupBusy || G.pendingPickups?.length) pickupAfters.push(fn);
+  else fn();
+}
+function processPickups(done = null) {
+  if (done) pickupAfters.push(done);
+  if (pickupBusy || G.pendingDanger || G.pendingTreasury) return;
+  pickupBusy = true;
+  const step = () => {
+    const task = G.pendingPickups?.[0];
+    if (!task) {
+      pickupBusy = false;
+      const afters = pickupAfters; pickupAfters = [];
+      for (const f of afters) f();
       return;
     }
-    if (lost) { runLost(itemName(lost)); showToast(`持ちきれず置いてきた: ${itemName(lost)}`, { noLog: false, tone: "bad" }); }
-    fin();
-  });
+    const take = () => { G.pendingPickups.shift(); autosave(true); };
+    if (task.kind === "notice") { take(); showEvent({ ...task.notice, sprite: ICONS[task.notice.icon], onClose: step }); return; }
+    if (task.kind === "soul") { take(); celebrateSoul(task.soul, step); return; }
+    if (task.kind === "lootNotice") { take(); UI.loot(task.item, task.who, { source: task.source }, step); return; }
+    const it = task.item;
+    askRoomFor(it, (who) => {
+      let got = null;
+      if (who && bagCount(who.items) < MAX_ITEMS) {
+        runGainItem(who, it); codexSeeItem(it.id, it);
+        if (task.drop && task.drop.key !== "loot") {
+          const ce = codexMonEntry(task.drop.key);
+          if (task.drop.rare) ce.rare = true; else ce.normal = true;
+        }
+        log(`${itemName(it)} を手に入れた！ (${who.name})`, logClassForItem(it));
+        got = { item: it, who };
+      } else { runLost(itemName(it)); log(`持ちきれず置いてきた: ${itemName(it)}`, "sys"); }
+      if (task.chest) task.chest.outputs.push(got ? { kind: "loot", item: it, who } : { kind: "lost", name: itemName(it) });
+      take(); // 実物の追加と受け取り待ちの削除を同時に保存してから知らせる。
+      const view = pickupViews.get(task);
+      if (view) view(got, got ? null : it, step);
+      else if (got) UI.loot(it, who, { source: task.source || "chest" }, step);
+      else { showToast(`持ちきれず置いてきた: ${itemName(it)}`, { tone: "bad" }); step(); }
+    });
+  };
+  step();
 }
+function queueDanger(data) {
+  G.pendingDanger = data;
+  autosave(true);
+  presentPendingDanger();
+}
+function presentPendingDanger() {
+  const d = G.pendingDanger;
+  if (!d) return;
+  const n = d.notice;
+  showEvent({ ...n, sprite: n.monster ? MONSTERS[n.monster] : ICONS[n.icon] || ICONS.trap, onClose: () => {
+    if (G.pendingDanger !== d) return;
+    G.pendingDanger = null;
+    if (d.kind === "battle") {
+      // 警報で中断した戦果の続きは、次の戦闘へ持ち越さない。
+      if (!d.cell) G.pendingResults = null;
+      G._evOpening = d.opening || null;
+      startBattle(d.enemies, d.cell);
+    } else if (d.kind === "wipe") gameOver();
+    else { autosave(true); processPickups(resumeFromState); }
+  } });
+}
+function showPendingResults() {
+  const r = G.pendingResults;
+  if (!r) return;
+  insightResultsPending = true;
+  if (r.chest) battleChestSpec(null, 0, false, null, r.chest);
+  uiResults.openResults({ ...r, onDone: () => {
+    if (G.pendingResults !== r) return;
+    G.pendingResults = null;
+    insightResultsPending = false;
+    notifyInsight();
+    const a = r.after || {};
+    const fin = () => afterPickups(() => {
+      if (a.clearInfo) showDungeonClearedPopup(a.clearInfo);
+      else if (a.wasGuard) openInfRest();
+      else if (a.horde && hordeRewardPending()) grantHordeReward();
+      else if (G.state === "board") { renderBoard(); evProgress(); }
+    });
+    const cell = a.evCell || G.board?.cells[G.py]?.[G.px];
+    if (G.state === "board" && cell?.type === "event" && cell.evFight?.won) eventFightWon(evApi, cell, fin); else fin();
+    autosave(true);
+  } });
+}
+
+// 品を渡して演出する (誰も持てなければ知らせて次へ)
+function evGive(id, next) {
+  const it = ITEMS[id] && cloneItem(id);
+  if (it) { markDungeonLoot(it); queuePickup({ kind: "item", item: it, source: "chest" }); }
+  if (next) next(); else if (G.state === "board") renderBoard();
+  autosave(true);
+}
+
 function evPickMinRar(rar) {
   const order = ["c", "uc", "r", "sr"];
   const lo = Math.max(0, order.indexOf(rar));
@@ -7246,10 +7343,12 @@ function evPickCollectible() {
   return pool.length ? pool[rand(pool.length)] : null;
 }
 function evOpenChestAt(cell) {
+  if (G.pendingDanger) return; // 危険を確認した後、現在地の宝箱から再開する。
+  if (pickupBusy || G.pendingPickups?.length) { afterPickups(() => evOpenChestAt(cell)); return; }
   const pos = evCellPos(cell);
   if (G.state !== "board" || !pos || pos.x !== G.px || pos.y !== G.py || cell.type !== "chest" || cell.cleared) { if (G.state === "board") renderBoard(); return; }
   if (G.prompt || uiBlocked()) { renderBoard(); return; }
-  askOpenChest(cell);
+  afterPickups(() => askOpenChest(cell));
 }
 
 // events.js へ渡す操作の窓口 (A)。events.js は game.js を import しないので、必要な操作はここに集める
@@ -7276,10 +7375,12 @@ const evApi = {
     if (next) next(); else if (G.state === "board") renderBoard();
     autosave(true);
   },
-  reopen(cell) { if (G.state === "board" && !G.prompt && !uiBlocked() && !cell.cleared) runEvent(evApi, cell); else if (G.state === "board") renderBoard(); },
+  reopen(cell) { afterPickups(() => { if (G.state === "board" && !G.prompt && !uiBlocked() && !cell.cleared) runEvent(evApi, cell); else if (G.state === "board") renderBoard(); }); },
   alarm(title, lines, icon, then) {
     SFX.trap(); buzz([0, 60, 40, 60]);
-    showEvent({ sprite: ICONS[icon] || ICONS.trap, banner: "⚠ 危険 ⚠", title, lines, accent: "#d4504e", btnLabel: "応戦する", onClose: then });
+    // 戦う相手を先に確定し、警告を閉じる前の中断でも同じ戦いへ戻す。
+    evAlarmNotice = { title, lines, icon, banner: "⚠ 危険 ⚠", btnLabel: "応戦する", accent: "#d4504e" };
+    try { then(); } finally { evAlarmNotice = null; }
   },
   // 極の出来事: 授かった恵みを見せる (閉じるだけ。選択肢は無い)
   gift(title, lines, icon, { banner, accent }, next) {
@@ -7287,8 +7388,10 @@ const evApi = {
     showEvent({ sprite: icon, banner, title, lines, accent, sparkle: true, btnLabel: "閉じる", onClose: next });
   },
   story(title, lines, next) {
+    if (next) next();
+    autosave(true);
     SFX.itemget();
-    showEvent({ sprite: ICONS.event, banner: "✦ 見聞 ✦", title, lines, accent: "#c08aff", btnLabel: "閉じる", onClose: next });
+    showEvent({ sprite: ICONS.event, banner: "✦ 見聞 ✦", title, lines, accent: "#c08aff", btnLabel: "閉じる" });
   },
   seen(e, cell) {
     // 実行した出来事だけを記す。evVisited (訪問済み) では登録しない。
@@ -7412,7 +7515,7 @@ const evApi = {
     evGive(id, () => {
       if (cell) delete cell.evCollectible;
       if (next) next();
-    }, { beforeLoot: true });
+    });
   },
   price: (id) => (ITEMS[id] && ITEMS[id].price) || 20,
   itemNameOf: (id) => (ITEMS[id] && ITEMS[id].name) || id,
@@ -7425,7 +7528,11 @@ const evApi = {
     }
     return cell.evWares.filter((id) => ITEMS[id]);
   },
-  soulDrop: (mode, line, next) => acquireSoul(evSoulClass(mode), line, next),
+  soulDrop(mode, line, next) {
+    queuePickup({ kind: "soul", soul: grantSoulQuiet(evSoulClass(mode), line) });
+    if (next) next();
+    autosave(true);
+  },
   // ---- 盤面 ----
   countCells: (fn) => evCells(fn).length,
   revealStairs() { evRevealStairs(); renderBoard(); },
@@ -7485,6 +7592,7 @@ const evApi = {
     cell.cRank = cRank || Math.min(5, chestRankOf(null) + rankUp);
     if (lootBonus) cell.lootBonus = lootBonus;
     delete cell.evFight;
+    autosave(true);
     if (noOpen) return;
     if (next) { next(); setTimeout(() => evOpenChestAt(cell), 60); }
     else evOpenChestAt(cell);
@@ -7844,6 +7952,7 @@ function celebrateSoul(s, onClose) {
 function acquireSoul(clsKey, sourceLine, onClose, emberCount = 0) {
   const after = onClose || (() => { if (G.state === "board") renderBoard(); });
   const s = grantSoulQuiet(clsKey, sourceLine, emberCount);
+  autosave(true);
   if (s.rare || G.state !== "town") { celebrateSoul(s, after); return; }
   SFX.itemget(); buzz([0, 30, 60, 30]);
   showToast(`${s.label}の魂を手に入れた${s.embers > 0 ? ` ・ 魂の残火 ×${s.embers}` : ""}`, { tone: "good", icon: soulIcon(clsKey) });
@@ -8106,6 +8215,7 @@ function openChest(cell, opener) {
   G.stats.chests++; // 戦績: 開けた宝箱の数 (勲章用)
   questProgress("chest", null, 1); // 盤面の宝箱を開けた (サブクエスト用)
   rollChest(cell, true, () => { if (G.state === "board") renderBoard(); }, opener);
+  autosave(true);
 }
 
 // 宝箱の中身を解決。allowDanger=falseなら罠/ミミックなし (戦闘後の宝箱。罠フェーズは戦果シート側)。
@@ -8125,19 +8235,20 @@ function rollChest(cell, allowDanger, done, opener, cRankIn, lvBonus, noGold = f
       SFX.trap(); buzz([0, 60, 40, 60]);
       log(master ? "宝箱はマスターミミックだった！" : "宝箱はミミックだった！", "dmg");
       sink.interrupt();
-      showEvent({
-        sprite: master ? MONSTERS.master_mimic : MONSTERS.mimic,
+      queueDanger({ kind: "battle", enemies: soloFoes(spawnMimic(ref.rank, ref.scale, master)), cell, notice: {
+        monster: master ? "master_mimic" : "mimic",
         title: master ? "マスターミミックだ！" : "ミミックだ！",
         accent: master ? "#ffd34d" : "#d4504e", banner: master ? "⚠ 危険 ⚠⚠" : "⚠ 危険 ⚠",
         lines: master ? ["金色に輝く宝箱が牙を剥いた！", "強敵だ。倒せば極上の宝が手に入る。"] : ["宝箱は怪物だった！", "倒せば上質な宝箱を残す。"],
         btnLabel: "戦う",
-        onClose: () => startBattle(soloFoes(spawnMimic(ref.rank, ref.scale, master)), cell),
-      });
+      } });
       return;
     }
     // 黒い宝箱: 一段上のレベル帯の品が眠るが、開けると呪いの危険を伴う (任意の賭け)
     if (!legendary && random() < 0.10) {
       sink.interrupt();
+      G.pendingCursedChest = true;
+      autosave(true);
       askCursedChest(done);
       return;
     }
@@ -8341,46 +8452,37 @@ function teleportParty() {
 // 札で止めるのは、飛ばされた・呼び寄せた (戦闘)・倒れた者が出た・全滅 の時だけ。
 // fin.proceed: 生存時の続き (宝箱なら中身の取得、床罠なら盤面へ戻る) / fin.abort: 中身を失った時の終わり
 function presentTrap(res, fin, sink = boardSink()) {
-  const chest = !!fin.chest;
-  const trap = res.trap;
-  // 罠の痛手・状態異常・奪われた物 (札・戦果シート・トーストのどこに出ても、記録には1行ずつ残す)
+  const chest = !!fin.chest, trap = res.trap;
   for (const ln of res.lines || []) logEcho(ln, "dmg");
+  const notice = { icon: "trap", title: `${trap.name}！`, lines: [...res.lines], accent: "#d4504e", banner: chest ? "✗ 罠解除失敗 ✗" : "⚠ 罠 ⚠", btnLabel: "進む" };
   if (res.kind === "teleport") {
     sink.interrupt();
-    showEvent({
-      sprite: ICONS.trap, title: `${trap.name}！`, accent: "#8a2be2", banner: chest ? "✗ 罠解除失敗 ✗" : "⚠ 罠 ⚠",
-      lines: [...res.lines, ...(chest ? ["宝箱は闇の彼方に消えた…"] : [])],
-      btnLabel: "進む",
-      onClose: () => { teleportParty(); if (fin.abort) fin.abort(); else renderBoard(); },
-    });
+    teleportParty(); // 転送先まで確定してから知らせる。
+    if (chest) notice.lines.push("宝箱は闇の彼方に消えた…");
+    notice.accent = "#8a2be2";
+    G.pendingDanger = { kind: "notice", notice };
+    if (fin.abort) fin.abort();
+    autosave(true); presentPendingDanger();
     return;
   }
   if (res.kind === "alarm") {
     sink.interrupt();
-    showEvent({
-      sprite: ICONS.trap, title: `${trap.name}！`, accent: "#d4504e", banner: chest ? "✗ 罠解除失敗 ✗" : "⚠ 罠 ⚠",
-      lines: [...res.lines, ...(chest ? ["宝箱を検める暇はない！"] : [])],
-      btnLabel: "戦う",
-      onClose: () => startBattle(spawnCardEnemies(res.key, G.floor, res.scale, res.opts), null),
-    });
+    if (chest) notice.lines.push("宝箱を検める暇はない！");
+    notice.btnLabel = "戦う";
+    queueDanger({ kind: "battle", enemies: spawnCardEnemies(res.key, G.floor, res.scale, res.opts), cell: null, notice });
     return;
   }
   flashPartyCards(res.hurt, "hit");
+  imprintFallen();
   if (res.wiped || res.fallen.length) {
     sink.interrupt();
-    showEvent({
-      sprite: ICONS.trap, title: chest ? `解除失敗！「${trap.name}」発動` : `${trap.name}！`, lines: res.lines, accent: "#d4504e",
-      banner: chest ? "✗ 罠解除失敗 ✗" : "⚠ 危険 ⚠", btnLabel: res.wiped ? "…" : "進む",
-      onClose: () => {
-        if (res.wiped) { gameOver(); return; }
-        SFX.die();
-        imprintFallen();
-        fin.proceed(); // 痛手は負ったが、先へ進める (宝箱なら中身は手に入る)
-      },
-    });
+    notice.title = chest ? `解除失敗！「${trap.name}」発動` : `${trap.name}！`;
+    notice.btnLabel = res.wiped ? "…" : "進む";
+    G.pendingDanger = { kind: res.wiped ? "wipe" : "notice", notice };
+    if (!res.wiped) fin.proceed();
+    autosave(true); presentPendingDanger();
     return;
   }
-  imprintFallen();
   sink.note(`${chest ? "解除失敗 ― " : ""}罠「${trap.name}」${res.brief ? " ― " + res.brief : ""}`, "bad", ICONS.trap, true);
   fin.proceed();
 }
@@ -8416,40 +8518,31 @@ function chestContents(cell, done, cRank = 1, lvBonus = 0, noGold = false, sink 
   }
   // 宝: 装備/アイテム (迷宮のアイテムレベル帯から抽選。高ランクの宝箱は一段上の帯)
   const id = pickLoot({ chestRank: cRank, lvBonus: lootUp });
-  giveItemAsk(id, (got, lost) => {
-    if (got) {
-      if (legendary) { flashScreen("#ffcf4a"); SFX.victory(); log(`✦ 伝説の宝箱から ${itemName(got.item)} を見つけた！`, "win"); }
-      sink.loot(got.item, got.who, fin); // 演出 (トースト/祝祭) の後に fin
-      return;
-    }
-    // 誰も持てない (§7 M8): 捨てずに置いていった品を今回の記録に残し、知らせる
-    if (lost) {
-      const nm = itemName(lost);
-      runLost(nm);
-      log(`${nm}を見つけたが、誰も持てない…`, "sys");
-      sink.lost(nm);
-    }
-    SFX.chest();
-    if (done) done();
-  });
+  const it = cloneItem(id);
+  if (it) {
+    markDungeonLoot(it);
+    queuePickup({ kind: "item", item: it, source: "chest", chest: sink.savedChest }, (got, lost, next) => {
+      if (got) {
+        if (legendary) { flashScreen("#ffcf4a"); SFX.victory(); log(`✦ 伝説の宝箱から ${itemName(got.item)} を見つけた！`, "win"); }
+        sink.loot(got.item, got.who, next);
+      } else { if (lost) sink.lost(itemName(lost)); next(); }
+    });
+  }
+  autosave(true);
+  afterPickups(fin);
 }
 
 // 黒い宝箱: 開ければ一段上のレベル帯の装備が出るが、50%で呪いがふきだす。
 // 「開けない」が常に選べる、純粋なリスクとリターンの賭け
 function askCursedChest(done) {
   const openIt = () => {
+    G.pendingCursedChest = false;
     const giveLoot = () => {
       const id = pickLoot({ rare: true });
-      giveItemAsk(id, (got, lost) => {
-        if (got) { UI.loot(got.item, got.who, { source: "chest" }, done); return; }
-        if (lost) {
-          const nm = itemName(lost);
-          runLost(nm);
-          showToast(`持ちきれず置いてきた: ${nm}`, { tone: "bad" });
-        }
-        SFX.chest();
-        done();
-      });
+      const it = cloneItem(id);
+      if (it) { markDungeonLoot(it); queuePickup({ kind: "item", item: it, source: "chest" }); }
+      autosave(true);
+      afterPickups(done);
     };
     if (random() < 0.5) {
       // 呪い: 全員ダメージ (死にはしない) + 毒か麻痺。その上で中身は手に入る
@@ -8468,7 +8561,7 @@ function askCursedChest(done) {
   };
   showChoice("黒い宝箱だ。禍々しい気配を放っている…", [
     { label: "開ける ― 上質な品 / 呪いの危険", danger: true, fn: openIt },
-    { label: "立ち去る", fn: done },
+    { label: "立ち去る", fn: () => { G.pendingCursedChest = false; autosave(true); done(); } },
   ], ICONS.chest, { banner: "⚠ 黒い宝箱 ⚠", accent: "#8a2be2", logAs: true, lines: ["一段上の品が眠る。半分の確率で呪いがふきだすが、中身は本物だ。"] });
 }
 
@@ -8476,55 +8569,43 @@ function askCursedChest(done) {
 // 開ける者の解除値で判定する (盤面の宝箱と同じ罠フェーズを通る)。戦果シートに載せる宝箱の定義を返す。
 // 敵がアイテムを落としていれば中身はそれ。なければダンジョンレベル準拠の抽選。
 // exclude: 出さない罠 (踏破演出など続きがある時は戦闘になる警報を出さない)。lvBonus: ミミック撃破宝箱などの中身底上げ
-function battleChestSpec(drops, lvBonus = 0, noGold = false, exclude = null) {
-  const cRank = chestRankOf(null);
+function battleChestSpec(drops, lvBonus = 0, noGold = false, exclude = null, saved = null) {
+  const data = saved || { cRank: chestRankOf(null), drops, lvBonus, noGold, exclude, state: "closed" };
+  data.outputs ||= [];
   const alive = G.party.filter((p) => p.alive);
-  const openers = alive
-    .map((p) => ({ uid: p.uid, name: p.name, pct: Math.round(disarmChance(p, cRank) * 100) }))
-    .sort((a, b) => b.pct - a.pct);
-  return {
-    cRank, name: `${CHEST_RANKS[cRank]}宝箱`, openers,
-    // 開ける: sink = 戦果シートの出し先 / done = 宝箱の処理が済んだ (シートが閉じられていても呼ぶ)
-    open(uid, sink, done) {
-      const p = alive.find((x) => x.uid === uid && x.alive) || bestDisarmer();
-      const contents = () => {
-        if (drops && drops.length) giveDropsFromChest(drops, 0, done, sink);
-        else rollChest(null, false, done, null, cRank, lvBonus, noGold, sink);
-      };
-      chestTrapPhase(p, contents, cRank, done, exclude, sink);
-    },
+  data.name = `${CHEST_RANKS[data.cRank]}宝箱`;
+  data.openers = alive.map((p) => ({ uid: p.uid, name: p.name, pct: Math.round(disarmChance(p, data.cRank) * 100) })).sort((a, b) => b.pct - a.pct);
+  data.open = (uid, sink, done) => {
+    if (data.state !== "closed") return;
+    // ここから先は同じJSの処理内で効果・実物・警告をすべて確定する。
+    data.state = "done";
+    const p = alive.find((x) => x.uid === uid && x.alive) || bestDisarmer();
+    const out = { ...sink, savedChest: data,
+      note(text, tone, icon, logged) { data.outputs.push({ kind: "note", text, tone }); sink.note(text, tone, icon, logged); },
+      gold(n, from) { data.outputs.push({ kind: "gold", n, from }); sink.gold(n, from); },
+    };
+    const contents = () => {
+      if (data.drops?.length) giveDropsFromChest(data.drops, 0, done, out);
+      else rollChest(null, false, done, null, data.cRank, data.lvBonus, data.noGold, out);
+    };
+    chestTrapPhase(p, contents, data.cRank, done, data.exclude, out);
+    autosave(true);
   };
+  return data;
 }
-// 宝箱から敵のドロップ品を順に取り出す。図鑑への開示も実際に手にした時に行う
+// 全部の実物を先に受け取り待ちへ置く。整理中の中断でも次の品を失わない。
 function giveDropsFromChest(drops, i, done, sink = boardSink()) {
-  if (i >= drops.length) { done(); return; }
-  const d = drops[i];
-  const next = () => giveDropsFromChest(drops, i + 1, done, sink);
-  const who = G.party.find((p) => p.alive && bagCount(p.items) < MAX_ITEMS)
-    || G.party.find((p) => bagCount(p.items) < MAX_ITEMS);
-  if (!who) {
-    // 持ち物がいっぱい: 袋の品を1つ捨てて入れるか、置いていく (docs/infinite-labyrinth.md 18章)
+  for (const d of drops.slice(i)) {
     markDungeonLoot(d.item);
-    askRoomFor(d.item, (owner) => {
-      if (owner) { giveDropsFromChest(drops, i, done, sink); return; }
-      log(`${itemName(d.item)}を見つけたが、誰も持てない…`, "sys");
-      runLost(itemName(d.item));
-      sink.lost(itemName(d.item));
-      next();
+    queuePickup({ kind: "item", item: d.item, source: "chest", drop: { key: d.key, rare: d.rare }, chest: sink.savedChest }, (got, lost, next) => {
+      if (got) sink.loot(got.item, got.who, next);
+      else { if (lost) sink.lost(itemName(lost)); next(); }
     });
-    return;
   }
-  const ce = codexMonEntry(d.key);
-  if (d.rare) ce.rare = true; else ce.normal = true;
-  markDungeonLoot(d.item); // 未鑑定にしてから図鑑へ (先に記すと、まだ知らない品を「正体を知った」と数えてしまう)
-  codexSeeItem(d.id, d.item);
-  runGainItem(who, d.item);
-  SFX.chest();
-  // 「〜の落とした」は落とし主のいる品 (強敵・門番) だけ。ふつうの戦利品 (key "loot") は落とし主を言わない
-  const from = d.key === "loot" ? "" : `${d.name}の落とした `;
-  log(`宝箱から ${from}${itemName(d.item)} を手に入れた！`, logClassForItem(d.item, d.rare ? "win" : "sys"));
-  sink.loot(d.item, who, next);
+  autosave(true);
+  afterPickups(done);
 }
+
 
 
 // 階段を降りる: 墨の帳 (約1.3秒・400ms 後はタップで飛ばせる) の暗転のうちに次の階へ。
@@ -11744,19 +11825,15 @@ function endBattleMeasured() {
     // 主討伐の確定処理 (踏破記録・初踏破なら王への報告待ち G.world.report・戦利品確定) は演出より先に行い、
     // 直後の finishToBoard の保存に乗せる。演出中に中断されても踏破は失われない
     const clearInfo = wasBoss ? commitDungeonClear() : null;
-    finishToBoard();
     // 宝箱はドロップ品があれば必ず、なければ50%で出現。強敵・ミミックは宝箱確定。
     // ミミックが残す宝箱は中身が上質 (アイテムレベル+15)。マスターミミックは+30。死体戦は宝箱なし
     const wasMimic = b.enemies.some((e) => e.isMimic);
     const wasMasterMimic = b.enemies.some((e) => e.isMasterMimic);
     // 戦果の後に続くもの: 主討伐の踏破の祝祭 → なければ「餓えた群れ」殲滅報酬
-    const after = clearInfo
-      ? () => showDungeonClearedPopup(clearInfo)
-      : wasGuard ? () => openInfRest()
-      : (hordeRewardPending() ? () => grantHordeReward() : null);
+    const after = { clearInfo, wasGuard, horde: hordeRewardPending(), evCell };
     const hasChest = !activeCfg().noChests && !corpse && (trophies.length || !(evCell && evCell.evFight && evCell.evFight.noChest)) && (drop || trophies.length || wasElite || wasGuard || wasMimic || (specialDef() || {}).sureChest || random() < 0.5);
     const chest = hasChest
-      ? battleChestSpec([...trophies, ...(drop ? [drop] : [])], wasMasterMimic ? 30 : wasMimic ? 15 : 0, wasMimic || wasMasterMimic, after ? ["alarm"] : null)
+      ? battleChestSpec([...trophies, ...(drop ? [drop] : [])], wasMasterMimic ? 30 : wasMimic ? 15 : 0, wasMimic || wasMasterMimic, clearInfo || wasGuard || after.horde ? ["alarm"] : null)
       : null;
     // 戦果シート (§3.3): 勝利・獲得・成長・魂・宝箱を1枚にまとめる (旧: 勝利・Lv・技・宝箱・罠・中身の札が1枚ずつ)
     const levels = progress.filter((q) => q.kind === "level").map((q) => ({ name: q.member.name, uid: q.member.uid, from: q.fromLv, to: q.toLv, deltas: q.deltas || [], sub: !!q.sub, soulLabel: q.soulLabel || "" }));
@@ -11764,18 +11841,13 @@ function endBattleMeasured() {
     // 成長と覚えた技は戦果シートに出るだけだったので、記録にも残す
     for (const l of levels) log(`${l.name}${l.sub && l.soulLabel ? `のサブ魂「${l.soulLabel}の魂」` : ""}：Lv${l.from}→${l.to}`, "win");
     for (const k of skills) log(`${k.name}が「${k.skill}」習得`, "win");
-    uiResults.openResults({
+    G.pendingResults = {
       kind: wasBoss ? "boss" : wasElite ? "elite" : wasGuard ? "guard" : corpse ? "corpse" : "win",
       gold: goldGot, soul: soulGot, kills, fled,
-      levels, skills, souls, levelUps: levelUpEntries(progress),
-      chest,
-      onDone: () => {
-        insightResultsPending = false;
-        notifyInsight();
-        const fin = () => { if (after) after(); else if (G.state === "board") { renderBoard(); evProgress(); } };
-        if (evCell && G.state === "board") eventFightWon(evApi, evCell, fin); else fin();
-      },
-    });
+      levels, skills, souls, levelUps: levelUpEntries(progress), chest, after,
+    };
+    finishToBoard();
+    showPendingResults();
     return;
   } else if (b.result === "flee") {
     // 逃走: 元のマスへ戻る (カードは表のまま)。盗んだ金は持ち帰る
@@ -15225,31 +15297,25 @@ function pickTreasuryLR(m) {
   return pool.length ? pool[rand(pool.length)] : null;
 }
 // 褒賞のLRを1点下賜する。LRは未鑑定で渡る (商会・鑑定の技で鑑定する)
-function grantTreasuryLR(m, onClose) {
+function grantTreasuryLR(m) {
   const id = pickTreasuryLR(m);
   const it = id ? cloneItem(id) : null;
   const who = it && treasuryReceiver(it.forJob);
-  if (!who) { // 所持枠が無ければ、抽選したLRの売値を金貨で渡す。
+  if (!who) {
     const gold = it ? Math.max(1, sellPrice(it)) : 100;
-    G.gold += gold; updateTopbar(); tlTown("gold", gold, "t");
+    G.gold += gold; tlTown("gold", gold, "t");
     log(`所持枠が満杯のため、宝物庫の褒賞は 💰${gold} に換えられた。`, "win");
-    showEvent({ sprite: ICONS.gold, title: "褒賞を換金した", accent: "#e8c24a", banner: "✦ 宝物庫の褒賞 ✦",
-      lines: [`持ちきれぬため、褒賞は 💰${gold} に換えられた。`], onClose });
+    queuePickup({ kind: "notice", notice: { icon: "gold", title: "褒賞を換金した", accent: "#e8c24a", banner: "✦ 宝物庫の褒賞 ✦", lines: [`持ちきれぬため、褒賞は 💰${gold} に換えられた。`] } });
     return;
   }
   it.unidentified = true;
   runGainItem(who, it); codexSeeItem(id, it);
-  flashScreen("#ff5fae"); SFX.victory(); buzz([0, 60, 50, 60, 50, 60, 240]);
-  const nm = itemName(it); // 未鑑定なら伏せ名
-  log(`★ 宝物庫の褒賞として LR${it.lr} の品(未鑑定)「${nm}」を賜った。(${who.name})`, "win");
-  setTimeout(() => showToast(`★ ${nm}`, { noLog: true }), 200);
-  showItemGet(it, who, onClose);
+  queuePickup({ kind: "lootNotice", item: it, who, source: "treasury" });
 }
 
-// 褒賞を受領する。総種類数が節目 n に達していて、深さの条件も満たしていれば一度だけ。
 function claimTreasury(n) {
-  const ts = treasuryState();
-  const m = TREASURY_MILESTONES.find((x) => x.n === n);
+  if (G.pendingTreasury) { showPendingTreasury(); return; }
+  const ts = treasuryState(), m = TREASURY_MILESTONES.find((x) => x.n === n);
   if (!m || !milestoneReady(m)) {
     SFX.ng();
     const wait = milestoneWait(m);
@@ -15257,22 +15323,24 @@ function claimTreasury(n) {
     return;
   }
   ts.claimed["m" + n] = true;
-  const back = () => { autosave(); if (G.state === "town") renderTown(); };
-  const reason = `収集品を ${n} 種 宝物庫に納めた褒賞だ。`;
-  // 坑口の通行証: 品の代わりに、封じられた迷宮を地図に記す
-  if (m.reward === "minePass") {
-    UI.playStoryChain([{ title: MINE_PASS.title, kicker: `宝物庫の褒賞 ― 奉納 ${n} 種`, lines: MINE_PASS.lines, photo: storyImage("minePass"), reward: "坑口の通行証 (新たな迷宮)", btnLabel: "ありがたく賜る" }], () => {
-      SFX.itemget(); buzz([0, 30, 60, 30]);
-      announceNewDungeons(refreshWorldUnlocks());
-      back();
-    });
-    return;
-  }
-  // 玉座の間で老王から褒賞を賜る場面を見せてから、品を渡す (品の演出・効果音は渡す側で鳴る)
-  UI.playStoryChain([{
-    title: `宝物庫の褒賞 ― 奉納 ${n} 種`, kicker: "褒賞の下賜", lines: treasuryRewardLines(m, n),
-    reward: treasuryRewardRows(m), btnLabel: "ありがたく賜る",
-  }], () => grantTreasuryReward(m, reason, back));
+  G.pendingTreasury = n;
+  grantTreasuryReward(m, `収集品を ${n} 種 宝物庫に納めた褒賞だ。`);
+  if (m.reward === "minePass") announceNewDungeons(refreshWorldUnlocks());
+  autosave(true);
+  showPendingTreasury();
+}
+function showPendingTreasury() {
+  const m = TREASURY_MILESTONES.find((x) => x.n === G.pendingTreasury);
+  if (!m) { G.pendingTreasury = null; return; }
+  const scene = m.reward === "minePass"
+    ? { title: MINE_PASS.title, kicker: `宝物庫の褒賞 ― 奉納 ${m.n} 種`, lines: MINE_PASS.lines, photo: storyImage("minePass"), reward: "坑口の通行証 (新たな迷宮)" }
+    : { title: `宝物庫の褒賞 ― 奉納 ${m.n} 種`, kicker: "褒賞の下賜", lines: treasuryRewardLines(m, m.n), reward: treasuryRewardRows(m) };
+  UI.playStoryChain([{ ...scene, btnLabel: "ありがたく賜る" }], () => {
+    if (m.reward === "minePass") { SFX.itemget(); buzz([0, 30, 60, 30]); }
+    G.pendingTreasury = null;
+    autosave(true);
+    processPickups(() => { if (G.state === "town") renderTown(); });
+  });
 }
 
 // 褒賞の場面の台詞 (褒賞の種類で王の言葉を変える)
@@ -15299,16 +15367,18 @@ function treasuryRewardRows(m) {
   if (m.embers) parts.push(`魂の残火 ×${m.embers}`);
   return parts.join(" ・ ") || "装備 1点";
 }
-// 褒賞の品を渡す (場面を閉じた後): 残火 → 魂 → 装備 の順
-function grantTreasuryReward(m, reason, back) {
+// 語りの前に褒賞を確定する。残火 → 魂 → 装備の順で、通知だけを後に回す。
+function grantTreasuryReward(m, reason) {
   if (m.embers) {
-    G.embers = (G.embers || 0) + m.embers; updateTopbar();
+    G.embers = (G.embers || 0) + m.embers;
     log(`宝物庫の褒賞として 魂の残火 を ${m.embers}つ 賜った。`, "win");
   }
-  const gear = (next) => (m.lr ? grantTreasuryLR(m, next) : next());
-  if (m.cls) acquireSoul(m.cls, reason, back); // 特定職の魂のみ
-  else if (m.soul) acquireSoul(m.soul === "legend" ? rollClassOfRarity("legend") : rollJobClass(), reason, () => gear(back));
-  else gear(back);
+  if (m.cls || m.soul) {
+    const cls = m.cls || (m.soul === "legend" ? rollClassOfRarity("legend") : rollJobClass());
+    queuePickup({ kind: "soul", soul: grantSoulQuiet(cls, reason) });
+  }
+  if (m.lr) grantTreasuryLR(m);
+  updateTopbar();
 }
 
 // 受領できる最初の褒賞を受け取る (街の「次にすべきこと」・宝物庫の褒賞の段)。無ければ false
@@ -16258,6 +16328,7 @@ function townMutatorFor(idx) {
       if (cand) id = cand.id;
     }
     G._townMutator[idx] = id;
+    autosave(true);
   }
   const id = G._townMutator[idx];
   const m = mutatorForDungeon(id, DUNGEONS[idx]);
@@ -18145,7 +18216,7 @@ const SAVE_KEY = "dos-save-v7"; // v7 = 迷宮の台帳 (選んで潜る迷宮�
 // 保存する G のフィールド (アニメーション等の一時状態は除外)
 const SAVE_FIELDS = [
   "apprenticeName",
-  "rng",
+  "rng", "_townMutator", "pendingPickups", "pendingDanger", "pendingResults", "pendingTreasury", "pendingCursedChest",
   "shopAfx", "shopAfxPending", "afxPages",
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound", "abyss", "abyssRec",
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "stabilityBriefed", "pendingDoll",
@@ -18573,6 +18644,11 @@ function loadGame(cloudSnapshot = null) {
 // 復元した状態に応じて画面を再構築 (やり直し不可の再開)
 function resumeFromState() {
   refreshStability();
+  if (G.pendingDanger) { presentPendingDanger(); return; }
+  if (G.pendingTreasury) { showPendingTreasury(); return; }
+  if (G.pendingPickups?.length) { processPickups(resumeFromState); return; }
+  if (G.state === "board" && G.pendingResults) { renderBoard(); showPendingResults(); return; }
+  if (G.pendingCursedChest) { askCursedChest(() => { renderBoard(); autosave(true); }); return; }
   if (G.rematch) { abortRematch(); return; } // 宿敵の再戦の途中で閉じた: 試合は無かったことにする
   if (!G.state || G.state === "town") {
     G.state = "town";
@@ -18588,7 +18664,7 @@ function resumeFromState() {
     renderBoard();
     // 会話・選択の途中で閉じた記録は、現在地の未完イベントから続ける。
     const cell = G.board.cells[G.py]?.[G.px];
-    if (cell && !cell.cleared && (cell.type === "story" || cell.type === "event")) resolveCell(cell);
+    if (cell && !cell.cleared && (cell.type === "story" || cell.type === "event" || cell.type === "chest")) resolveCell(cell);
     return;
   }
   if (G.state === "combat") {
@@ -19498,8 +19574,9 @@ function startAfterTitle(loaded) {
 
   if (loaded) {
     playBgm(sceneBgm());
+    if (G.pendingTreasury || G.pendingDanger || G.pendingPickups?.length || pickupBusy || G.pendingResults || G.pendingCursedChest) return;
     // 勝利は確定済みだが、魂の記憶を読む途中で閉じた場合は再表示する。
-    if (G.state === "board" && G.bossDown && !abyssActive()) {
+    if (G.state === "board" && !G.pendingResults && !G.pendingPickups?.length && !G.pendingDanger && G.bossDown && !abyssActive()) {
       const dn = curDungeon();
       if (BOSS_MEMORIES[dn.id] && !worldState().beats["mem_" + dn.id]) {
         showDungeonClearedPopup({ idx: G.dungeonIdx, isStoryTarget: !worldState().reported[dn.id] });

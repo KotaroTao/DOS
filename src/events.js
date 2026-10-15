@@ -278,7 +278,8 @@ export const EVENTS = [
     intro: (A, cell) => ["青白い怨霊が道を塞いだ。", `「答えよ。${RIDDLES[cell.evRiddle || 0].q}」`],
     choices: (A, cell) => {
       const r = RIDDLES[cell.evRiddle || 0];
-      const answers = [r.a, ...r.w].sort(() => random() - 0.5);
+      if (!cell.evAnswers) cell.evAnswers = [r.a, ...r.w].sort(() => random() - 0.5);
+      const answers = cell.evAnswers;
       return answers.map((ans) => ({ label: `「${ans}」`, fn: () => {
         if (ans === r.a) {
           A.sfx("victory");
@@ -3254,7 +3255,17 @@ export function runEvent(A, cell) {
     A.gift(e.name, [...e.intro(A, cell), ...lines], A.icon(e), { banner: t.banner, accent: e.accent || t.accent }, () => A.done(cell));
     return;
   }
-  const opts = (e.choices(A, cell) || []).filter(Boolean).map((o) => ({ ...o, fn: () => {
+  const viewApi = Object.create(A);
+  let building = true;
+  for (const key of ["check", "checkDisarm"]) viewApi[key] = (...args) => {
+    if (!building) return A[key](...args);
+    const cache = cell.evChecks || (cell.evChecks = {});
+    const id = `${key}:${args[0] || ""}:${args[1]?.uid || ""}`;
+    return cache[id] || (cache[id] = A[key](...args));
+  };
+  const choices = e.choices(viewApi, cell) || [];
+  building = false;
+  const opts = choices.filter(Boolean).map((o) => ({ ...o, fn: () => {
     if (!o.cancel) { A.seen(e, cell); A.picked(e, o.label); }
     o.fn();
   } }));

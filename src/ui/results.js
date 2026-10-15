@@ -50,7 +50,7 @@ export function openResults(spec = {}) {
   const g = G();
   const k = KIND[spec.kind] || KIND.win;
   const celebrations = []; // シートを閉じた後に祝う (レベルアップ・レア以上の品・宝物庫にまだ無い収集品・拾った魂)
-  let chestState = spec.chest ? "closed" : "none"; // closed (未開封) | busy (開けている) | done (済み) | left (置いて進む)
+  let chestState = spec.chest ? (spec.chest.state || "closed") : "none"; // closed (未開封) | busy (開けている) | done (済み) | left (置いて進む)
   let finished = false, interrupted = false, autoTimer = null, h = null;
   let notable = false; // 宝箱の結果に目を留めるべきもの (痛手・SR/LR・置いてきた品) があったか
   if (g) g.prompt = true;
@@ -264,7 +264,7 @@ export function openResults(spec = {}) {
 
   // ---- 足元 ----
   const footer = () => {
-    if (chestState === "closed") return [{ label: "置いて進む", kind: "ghost", onTap: () => { chestState = "left"; close(); } }];
+    if (chestState === "closed") return [{ label: "置いて進む", kind: "ghost", onTap: () => { chestState = "left"; spec.chest.state = "left"; if (game.autosave) game.autosave(true); close(); } }];
     if (chestState === "busy") return [{ label: "…", kind: "ghost", disabled: true }];
     return [{ label: celebrations.length ? "進む ― 祝う" : "進む", kind: "primary", size: "lg", onTap: () => close() }];
   };
@@ -319,11 +319,18 @@ export function openResults(spec = {}) {
     onBack: (s) => { if (chestState === "closed" || chestState === "busy") { try { s.el.animate([{ transform: "translateX(-5px)" }, { transform: "translateX(4px)" }, { transform: "none" }], { duration: 220 }); } catch (e) { /* noop */ } } else close(); },
     onBackdrop: () => { if (chestState !== "closed" && chestState !== "busy") close(); },
   });
+  // 再開した戦果でも、保存した罠・金貨・品・放棄の結果を同じ行で示す。
+  for (const out of spec.chest?.outputs || []) {
+    if (out.kind === "note") sinkSheet.note(out.text, out.tone);
+    else if (out.kind === "gold") sinkSheet.gold(out.n, out.from);
+    else if (out.kind === "loot") sinkSheet.loot(out.item, out.who);
+    else if (out.kind === "lost") sinkSheet.lost(out.name);
+  }
   // 本文に触れたら自動で進むのを止める (読みたい時はそのまま留まれる)
   if (h && h.body) h.body.addEventListener("pointerdown", () => { if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; refreshFooter(false); } });
   if (spec.kind === "boss" || spec.kind === "elite" || spec.kind === "guard") goldFlash(k.accent);
   // 宝箱を最良の解除役で開ける設定 (§7 M5)
-  if (spec.chest && getPref("chestAuto") && spec.chest.openers[0]) setTimeout(() => openChestWith(spec.chest.openers[0].uid), 380);
+  if (chestState === "closed" && spec.chest && getPref("chestAuto") && spec.chest.openers[0]) setTimeout(() => openChestWith(spec.chest.openers[0].uid), 380);
   else { refreshFooter(getPref("autoCloseResults") && !spec.chest); armAutoClose(); }
   return h;
 }
