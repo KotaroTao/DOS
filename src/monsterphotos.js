@@ -1,6 +1,10 @@
 // 迷宮の透過原画。通常敵・強敵・主・召喚先・共通の敵で共用する。
 // 能力値や文字グリッドは保ち、読めた原画だけを最初の描画前に登録する。
 export const MONSTER_PHOTOS = {
+  // <<GRAND_LIBRARY_ART>>
+  // 大書庫の主（通常敵・強敵・召喚先は作成済み原画を共用）。
+  bs_archivist: [520, 414],
+  // <</GRAND_LIBRARY_ART>>
   // 樹液の苗床（ほかの通常敵・強敵・召喚先は作成済み原画を共用）。
   bs_misttreant: [520, 419],
   bs_willowwitch: [413, 520],
