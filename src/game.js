@@ -16,6 +16,7 @@ import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audi
 import { spriteCanvas, crispCanvas, drawPhoto, photoReady, whenPhoto, setSpriteResolver } from "./sprites.js";
 import { makeItemSpriteResolver } from "./itemart/index.js";
 import { loadMonsterPhotos } from "./monsterphotos.js";
+import { loadMiscPhotos } from "./miscphotos.js";
 import { bagCount, isFormationItem,
   ITEMS, SLOTS, SLOT_LABEL, MAX_ITEMS, shareInventory, setBagSource, bagOwners, equip as equipItem, unequip as unequipItem, canEquip, canOffhand, slotKeyFor, lvToRank, RANGE_LABEL, HAND_LABEL, weaponRange, SHIELD_KIND_LABEL, shieldKind,
   registerEquipLevel, equipLevelOf, equipLvShort, equipFailMsg, registerAffixes,
@@ -19152,7 +19153,7 @@ function titleSummary() {
 }
 
 async function init() {
-  await loadMonsterPhotos(MONSTERS);
+  await Promise.all([loadMonsterPhotos(MONSTERS), loadMiscPhotos()]);
   // UI 基盤 (ctx の結線・戻る操作・街シェル・各パッケージ) を最初の描画より前に整える
   wireUI();
   // 早期にフックを公開 (起動失敗の誤検出/デバッグ用)
