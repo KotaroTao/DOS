@@ -1,7 +1,7 @@
 # 第11章「夜明けの町」 の絵
 
 書き出し: `node tools/storyart/review.mjs` (手で直さない)。絵は出荷する WebP、まだ無ければ原画。
-
+ゲームで小さく出た時の見え方 (384×256): [chapter11-small.jpg](chapter11-small.jpg)
 
 <a name="w42_dawn"></a>
 
@@ -268,9 +268,9 @@
 
 <a name="irene_onlyonce"></a>
 
-## irene_onlyonce「決めるのは」 ── 未着手 (指示あり)
+## irene_onlyonce「決めるのは」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter11/irene_onlyonce.webp" width="576" alt="irene_onlyonce">
 
 **ストーリー一覧の本文**
 
@@ -308,9 +308,9 @@ _(絵はまだ無い)_
 
 <a name="report_w44"></a>
 
-## report_w44「一度だけ、と言える者」 ── 未着手 (指示あり)
+## report_w44「一度だけ、と言える者」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter11/report_w44.webp" width="576" alt="report_w44">
 
 **ストーリー一覧の本文**
 
@@ -338,9 +338,9 @@ _(絵はまだ無い)_
 
 <a name="mem_w45"></a>
 
-## mem_w45「終わりの頁」 ── 未着手 (指示あり)
+## mem_w45「終わりの頁」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter11/mem_w45.webp" width="576" alt="mem_w45">
 
 **ストーリー一覧の本文**
 
@@ -399,9 +399,9 @@ _(絵はまだ無い)_
 
 <a name="report_w45"></a>
 
-## report_w45「余の終わりの頁」 ── 未着手 (指示あり)
+## report_w45「余の終わりの頁」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter11/report_w45.webp" width="576" alt="report_w45">
 
 **ストーリー一覧の本文**
 
@@ -433,9 +433,9 @@ _(絵はまだ無い)_
 
 <a name="irene_lastpage"></a>
 
-## irene_lastpage「両方を持って」 ── 未着手 (指示あり)
+## irene_lastpage「両方を持って」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter11/irene_lastpage.webp" width="576" alt="irene_lastpage">
 
 **ストーリー一覧の本文**
 
@@ -465,9 +465,9 @@ _(絵はまだ無い)_
 
 <a name="ch11_end"></a>
 
-## ch11_end「同じ天井の下で」 ── 未着手 (指示あり)
+## ch11_end「同じ天井の下で」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter11/ch11_end.webp" width="576" alt="ch11_end">
 
 **ストーリー一覧の本文**
 

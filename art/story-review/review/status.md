@@ -2,7 +2,7 @@
 
 書き出し: `node tools/storyart/review.mjs` (build.py も書き直す。手で直さない)。
 
-場面: 出荷済み 122 ・ 出荷済み (任意の修正あり) 11 ・ 未着手 (指示あり) 11
+場面: 出荷済み 128 ・ 出荷済み (任意の修正あり) 11 ・ 未着手 (指示あり) 5
 
 | 章 | 場面 | 題 | 状態 | 確認ページ |
 |---|---|---|---|---|
@@ -141,12 +141,12 @@
 | 第11章「夜明けの町」 | `w43_jars` | 今日の瓶 | 出荷済み | [見る](chapter11.md#w43_jars) |
 | 第11章「夜明けの町」 | `report_w43` | 晴れた空の雨 | 出荷済み | [見る](chapter11.md#report_w43) |
 | 第11章「夜明けの町」 | `w44_glass` | 一度だけ | 出荷済み | [見る](chapter11.md#w44_glass) |
-| 第11章「夜明けの町」 | `irene_onlyonce` | 決めるのは | 未着手 (指示あり) | [見る](chapter11.md#irene_onlyonce) |
-| 第11章「夜明けの町」 | `report_w44` | 一度だけ、と言える者 | 未着手 (指示あり) | [見る](chapter11.md#report_w44) |
-| 第11章「夜明けの町」 | `mem_w45` | 終わりの頁 | 未着手 (指示あり) | [見る](chapter11.md#mem_w45) |
-| 第11章「夜明けの町」 | `report_w45` | 余の終わりの頁 | 未着手 (指示あり) | [見る](chapter11.md#report_w45) |
-| 第11章「夜明けの町」 | `irene_lastpage` | 両方を持って | 未着手 (指示あり) | [見る](chapter11.md#irene_lastpage) |
-| 第11章「夜明けの町」 | `ch11_end` | 同じ天井の下で | 未着手 (指示あり) | [見る](chapter11.md#ch11_end) |
+| 第11章「夜明けの町」 | `irene_onlyonce` | 決めるのは | 出荷済み | [見る](chapter11.md#irene_onlyonce) |
+| 第11章「夜明けの町」 | `report_w44` | 一度だけ、と言える者 | 出荷済み | [見る](chapter11.md#report_w44) |
+| 第11章「夜明けの町」 | `mem_w45` | 終わりの頁 | 出荷済み | [見る](chapter11.md#mem_w45) |
+| 第11章「夜明けの町」 | `report_w45` | 余の終わりの頁 | 出荷済み | [見る](chapter11.md#report_w45) |
+| 第11章「夜明けの町」 | `irene_lastpage` | 両方を持って | 出荷済み | [見る](chapter11.md#irene_lastpage) |
+| 第11章「夜明けの町」 | `ch11_end` | 同じ天井の下で | 出荷済み | [見る](chapter11.md#ch11_end) |
 | 序章 | `irene_repair` | 砕けても、名は消えない | 出荷済み | [見る](chapter0.md#irene_repair) |
 | 第1章「師の灯」 | `irene_familiar` | 名で呼べる距離 | 出荷済み | [見る](chapter1.md#irene_familiar) |
 | 第3章「魂脈の根」 | `irene_trust` | 扉を開けた日のこと | 出荷済み | [見る](chapter3.md#irene_trust) |
