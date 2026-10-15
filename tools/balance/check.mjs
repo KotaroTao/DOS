@@ -393,7 +393,19 @@ console.log(`全${count}技を実行。会心・耐性・命中・攻撃/回復�
   const ehp = e.hp; b._execInner({ action: 'breath', actor: e, kind: 'spell' });
   assert.ok(e.hp < ehp, '反射の陣は呪文を返す');
 }
-console.log('やり返し: パッシブの係数0.2〜1.0・必ず発動、応報の陣 (味方全員に反撃の構え)・映し返しの陣 (反射) を確認');
+{
+  // 装備のやり返し: 茨の を防具5か所に付けても合わせて GEAR_RET_CAP、極「鏡鎧の」は1つでその値のまま
+  const { gearPerks, GEAR_RET_CAP } = await import('../../src/infaffix.js');
+  const thorn = (k) => ({ c: { t: 'hurt', ret: { stat: 'vit', k } }, label: '茨の' });
+  const sum = gearPerks([0.3, 0.3, 0.3, 0.3, 0.3].map(thorn)).reduce((a, p) => a + p.c.ret.k, 0);
+  assert.ok(Math.abs(sum - GEAR_RET_CAP) < 0.01, `茨の の合計 ${sum}`);
+  assert.equal(gearPerks([thorn(0.25)])[0].c.ret.k, 0.25);
+  const mirror = gearPerks([{ c: { t: 'hurt', on: 'magic', ret: { stat: 'vit', k: 0.7, magic: true } }, label: '鏡鎧の' }, thorn(0.3)]);
+  assert.equal(mirror[0].c.ret.k, 0.7); assert.equal(mirror[1].c.ret.k, 0.3);
+  const { CATALOG_ITEMS } = await import('../../src/catalog/index.js');
+  for (const it of Object.values(CATALOG_ITEMS)) if (it.eff && it.eff.counter) assert.ok(it.eff.counter >= PASSIVE_RET_MIN && it.eff.counter <= PASSIVE_RET_MAX, `${it.id} の報復 ${it.eff.counter}`);
+}
+console.log('やり返し: パッシブの係数0.2〜1.0・必ず発動、応報の陣 (味方全員に反撃の構え)・映し返しの陣 (反射)・装備のやり返しの範囲と上限を確認');
 }
 // 出来事の全選択肢を、成功/失敗の乱数と傷・異常・死者がいる条件で確認する。
 let choices=0;

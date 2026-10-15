@@ -61,7 +61,7 @@ export const LAYER6_ITEMS = [
     desc: "溺れた聖歌隊を三百年率いてきた隊長の冠。冠をいただく者の唱える言葉は歌のようによどみなく流れ、呪文の消耗が軽くなり、眠りを誘う歌にも惑わされない。" })),
   lr(A("lr_l6_fontplate", "洗礼泉の聖鎧", 76, { weight: "heavy", pow: 1.6, hp: 34, eDef: ["earth", 2], eff: { guard: 0.10 }, tint: "#a0c0d0",
     desc: "洗礼の大水槽の底で、泉の水を浴び続けた聖なる鎧。継ぎ目からいまも澄んだ水がにじみ、受けた傷を清めるように和らげる。" })),
-  lr(S("lr_l6_sunkenaltar", "沈める祭壇の大盾", 77, { shape: "kite", pow: 1.6, hp: 32, eDef: ["light", 2], eff: { counter: 0.3 }, tint: "#c8b890",
+  lr(S("lr_l6_sunkenaltar", "沈める祭壇の大盾", 77, { shape: "kite", pow: 1.6, hp: 32, eDef: ["light", 2], eff: { counter: 0.4 }, tint: "#c8b890",
     desc: "大神殿の主祭壇を飾っていた金の浮彫りを、そのまま盾に打ち出したもの。闇の一撃を受け止めると、浮彫りの聖者たちが打ち返す。" })),
   lr(R("lr_l6_idoltear", "神像の涙", "amulet", 78, { pow: 1.6, hp: 30, pie: 8, eff: { autoRevive: 0.3 }, tint: "#c0e0f0",
     desc: "沈んだ神殿の神像が、三百年流し続けた涙が固まった石。持ち主が倒れると涙が一粒こぼれ、一度だけ魂を呼び戻す。" })),
