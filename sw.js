@@ -193,6 +193,7 @@ const ASSETS = [
   "./art/monsters/el_tunnelking.webp",
   "./art/monsters/el_oremaw.webp",
   "./src/monsterphotos.js",
+  "./art/monsters/bs_forestlord.webp",
   "./art/monsters/bs_archivist.webp",
   "./art/monsters/bs_bookworm.webp",
   "./art/monsters/bs_papermimic.webp",
