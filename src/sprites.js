@@ -1138,6 +1138,7 @@ function normalize(art) {
 
 // ---- 原画そのまま版の絵 (職業の全身像・胸像) ----
 // spr.photo = { img, sx, sy, sw, sh } (原画の切り出し矩形。画像の外にはみ出した分は透明)、
+// photo.exclude = [{ x, y, w, h }] は原画上で隠す矩形 (隣の品の映り込みなど)。
 // spr.w / spr.h = ドット絵と同じ升目単位の大きさ。ドット絵と同じ関数 (drawSprite / crispCanvas /
 // spriteCanvas) で、升目の大きさに合わせて滑らかに拡大縮小して描く。
 // 原画は読み込んだら一度だけ canvas に写し取り (_photoSurf)、以後はその写しから描く。
@@ -1210,6 +1211,14 @@ export function drawPhoto(ctx, spr, dx, dy, dw, dh) {
   if (x1 <= x0 || y1 <= y0) return true;
   const kx = dw / p.sw, ky = dh / p.sh;
   ctx.save();
+  if (p.exclude?.length) {
+    const clip = new Path2D();
+    clip.rect(dx, dy, dw, dh);
+    for (const r of p.exclude) {
+      clip.rect(dx + (r.x - p.sx) * kx, dy + (r.y - p.sy) * ky, r.w * kx, r.h * ky);
+    }
+    ctx.clip(clip, "evenodd");
+  }
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
   ctx.drawImage(src, x0, y0, x1 - x0, y1 - y0, dx + (x0 - p.sx) * kx, dy + (y0 - p.sy) * ky, (x1 - x0) * kx, (y1 - y0) * ky);
