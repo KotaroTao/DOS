@@ -1,4 +1,4 @@
-// ===== 無限迷宮の追加の能力・特性 (docs/infinite-affixes.md — 2026-10-11 採用の137種 + 2026-10-15 の極「鏡鎧の」) =====
+// ===== 無限迷宮の追加の能力・特性 (docs/infinite-affixes.md — 2026-10-11 採用の137種 + 2026-10-15 の極「鏡鎧の」と部位ごとの極35種) =====
 // 無限迷宮で拾った装備にだけ、ランダムな追加の能力・特性が付く (本編の迷宮で拾った品には付かない)。
 //  ・品の実体に it.afx = [{ k: 種類のid, v: 振った値 }] を保存する。目録から写し直した後、品質の後・＋N の段の前に applyAffixes で掛け直す
 //    (game.js resyncItem・items.js itemAtQuality)。値は「同じランクの標準品の点」B(R) の割合か、固定の幅
@@ -21,8 +21,8 @@ export function afxBase(it) {
   return Math.max(3, 1.2 * R + 0.13 * R * R);
 }
 
-// 部位: all = すべて / w = 武器 / a = 防具 (体・頭・足・小手・盾) / acc = 装飾 / 個別の部位 (shield / feet / hands)
-const SLOT_GROUP = { weapon: ["all", "w"], body: ["all", "a", "body"], head: ["all", "a"], feet: ["all", "a", "feet"], hands: ["all", "a", "hands"], shield: ["all", "a", "shield"], acc: ["all", "acc"] };
+// 部位: all = すべて / w = 武器 / a = 防具 (体・頭・足・小手・盾) / acc = 装飾 / 個別の部位 (shield / body / head / feet / hands)
+const SLOT_GROUP = { weapon: ["all", "w"], body: ["all", "a", "body"], head: ["all", "a", "head"], feet: ["all", "a", "feet"], hands: ["all", "a", "hands"], shield: ["all", "a", "shield"], acc: ["all", "acc"] };
 const fitsSlot = (d, it) => (SLOT_GROUP[it.slot] || []).some((g) => d.slots.includes(g));
 
 const STAT_W = { atk: 1, vit: 1, agi: 1, int: 0.7, pie: 0.7, luk: 0.6, hp: 0.15, mp: 0.25 };
@@ -179,6 +179,58 @@ def({ id: "K09", name: "呪われた宝の", tier: "r", kind: "abs", r: [0.3, 0.
 def({ id: "K10", name: "生き急ぎの", tier: "r", kind: "abs", r: [0.3, 0.3], slots: ["w", "acc"], pts: () => 8,
   fx: (v) => [{ t: "deal", v, when: { round1: true } }, { t: "deal", v: -0.1, when: { roundGE: 3 } }], text: (v) => `1ターン目の与ダメ+${pct(v)}・3ターン目から−10%` });
 
+// ---- X. 極 (2026-10-15 ユーザーの決定: 部位ごとに6つ。docs/infinite-affixes.md 2-1) ----
+// どれも「戦い方が変わる」効果。数値は固定で、it.afxMisc の印 (items.js recalc → member.gearMisc) を combat.js / game.js が読む。
+// 以前の極 (号令・一番手・不屈) は拾えなくした (retired。付いている品・巻物はそのまま効く)
+const XM = (key, val = true) => () => ({ [key]: val });
+const X = [
+  // 武器
+  ["X01", "連なる刃の", ["w"], 12, XM("chain"), "通常攻撃で敵を倒すと、別の敵へもう一撃 (1ターンに1度)"],
+  ["X02", "双魂の", ["w"], 14, XM("twinSoul"), "物理の一撃を、敵の物理と魔法の抵抗値のうち低い方で計算する (抵抗値100でも)"],
+  ["X03", "伝染の", ["w"], 12, XM("contagion"), "敵に新しく掛けた状態異常を、並びの隣の敵にも同じ確率で移す (Lv差の判定あり)"],
+  ["X04", "くさびの", ["w"], 12, XM("wedge"), "物理を当てるたび、敵の物理の抵抗値−10 (最大−30、主・強敵は−20まで。抵抗値100・金属の魔物には効かない)"],
+  ["X05", "見届けの", ["w"], 10, XM("witness"), "会心が出ると、その敵のこのターンの手番を一番最後に回す"],
+  ["X06", "剥がしの", ["w"], 10, XM("peel"), "通常攻撃が当たると、敵の強化を1つ消す (溜めは消さない)"],
+  // 胴
+  ["X07", "金城の", ["body"], 14, XM("fortress", 0.5), "物理の一撃で受けるダメージは最大HPの50%まで (渾身の一撃・猛威も)"],
+  ["X08", "痛み分けの", ["body"], 12, XM("split", 0.5), "受けるダメージの50%を、次とその次のターンの初めに分けて受ける (戦闘が終われば残りは消える)"],
+  ["X09", "肩代わりの", ["body"], 12, XM("cover"), "味方が倒れるほどの一撃を、1戦闘に1度だけ代わりに受ける (受けるダメージは減らない。かばう・仁王立ちが先)"],
+  ["X10", "送り火の", ["body"], 10, XM("sendoff", 0.2), "自分が倒れた時、味方全員のHPを最大の20%回復し、状態異常を1つずつ治す"],
+  ["X11", "逆境の", ["body"], 12, XM("adversity"), "HP50%以下で受けるダメージ−20%、25%以下で−40% (装備の軽減の上限とは別)"],
+  // 頭
+  ["X12", "不動心の", ["head"], 14, XM("steadMind"), "魅了・混乱・特技封じが効かず、敵の打ち消しで自分の強化が剥がれない"],
+  ["X13", "見抜きの", ["head"], 12, null, "弱点の属性で攻めた時 与ダメ+30%"],
+  ["X14", "冴えの", ["head"], 12, XM("sae"), "攻撃呪文の会心率+15%、呪文の会心の威力+30% (×1.5 → ×1.95)"],
+  ["X15", "記憶の", ["head"], 10, XM("memory"), "前の手番と同じ技を続けて使うと消費MPが半分 (回復・蘇生の技は除く。戦闘をまたがない)"],
+  ["X16", "警鐘の", ["head"], 10, XM("alarm"), "奇襲を受けた戦闘でも、1ターン目に自分だけは動ける"],
+  ["X17", "慧眼の", ["head"], 8, XM("insight"), "図鑑で明かしていない敵の属性・抵抗値も、自分のオートの見積もりに使う"],
+  // 小手
+  ["X18", "早業の", ["hands"], 12, XM("quick"), "道具を使っても手番を使わない (1戦闘に1回)"],
+  ["X19", "投げ打ちの", ["hands"], 8, XM("throw"), "攻撃の道具の威力が2倍。さらにその階の推奨Lvで伸びる"],
+  ["X20", "連携の", ["hands"], 12, null, "このターンに直前に動いた味方と同じ敵を打つと 与ダメ+25%"],
+  ["X21", "受け流しの", ["hands"], 10, XM("parryHold"), "防御した手番から次の自分の手番まで、敵の物理を1回かわす"],
+  ["X22", "慈しみの", ["hands"], 10, XM("mercy", 0.5), "回復で満タンを超えて余った分の半分を、隊の全員に均等に分ける"],
+  ["X23", "かすめ取りの", ["hands"], 8, XM("pilfer", 0.1), "物理を当てると10%で、盗むと同じく敵の金貨を奪う (敵1体につき1度)"],
+  // 足
+  ["X24", "踏み込みの", ["feet"], 10, XM("stepIn"), "後列にいても、近い射程の武器で与えるダメージが半分にならない (前に踏み込んで打つ)"],
+  ["X25", "残影の", ["feet"], 10, XM("afterImage", 0.3), "敵の物理をかわすと、次の自分の物理の与ダメ+30%"],
+  ["X26", "二度駆けの", ["feet"], 16, XM("dash"), "15%で1ターンに2回動く (AGIが敵の最速の2倍以上なら30%)。1ターンに増える行動は1回まで"],
+  ["X27", "地踏みの", ["feet"], 12, XM("steady"), "STR・VIT・AGI・INT・PIE を下げる弱体を受けない (迷宮の掟の冷気も)"],
+  ["X28", "追い足の", ["feet"], 6, XM("chaser"), "自分が隊にいると、金属の魔物の逃げる率が半分"],
+  ["X29", "浮き足の", ["feet"], 6, XM("floatStep", 0.05), "蝕む床を踏むと、傷の代わりにHPが最大の5%回復する (浮遊中は何も起きない)"],
+  // 装飾
+  ["X30", "宿り火の", ["acc"], 16, XM("kindle"), "サブ魂から借りられる技・パッシブが1つ増える (ランクの高い方のサブ魂。同じならサブ魂1)"],
+  ["X31", "時告げの", ["acc"], 12, XM("timeKeeper"), "自分が掛ける強化・弱体の持続+1ターン"],
+  ["X32", "縛り目の", ["acc"], 12, XM("binder"), "自分が掛ける状態異常は、Lv差で成功率が下がらない (即死は除く)"],
+  ["X33", "裏返しの", ["acc"], 10, XM("flip"), "1つの能力が−3段 (底) まで下がると、1戦闘に1度 +3段の強化に裏返す"],
+  ["X34", "宝呼びの", ["acc"], 8, XM("treasure"), "戦闘後の宝箱が出る率+20%・宝箱のランク+1 (隊で重ならない)"],
+  ["X35", "語り部の", ["acc"], 8, XM("teller"), "戦闘で入る魂の経験値が隊の全員+10% (隊で重ならない)"],
+];
+const X_FX = { X13: () => [{ t: "deal", v: 0.3, when: { tgtWeak: true } }], X20: () => [{ t: "deal", v: 0.25, when: { combo: true } }] };
+for (const [id, name, slots, p, misc, text] of X) def({ id, name, tier: "x", kind: "abs", r: [1, 1], slots, pts: () => p, ...(misc ? { misc } : {}), ...(X_FX[id] ? { fx: X_FX[id] } : {}), text: () => text });
+for (const id of ["J02", "J10", "J11"]) AFX_MAP[id].retired = true;
+{ const seen = new Set(); for (const d of AFX) { if (seen.has(d.name)) throw new Error(`infaffix: 名前が重複: ${d.name}`); seen.add(d.name); } }
+
 export const AFX_COUNT = AFX.length;
 export function afxDef(k) { return AFX_MAP[k] || null; }
 
@@ -219,10 +271,10 @@ export function rollAffixes(it, floor, rng = random) {
       let pick = rng() * tot, tier = "c";
       for (const t in row.w) { pick -= row.w[t]; if (pick < 0) { tier = t; break; } }
       if (tier === "x" && x) tier = "r";
-      let cand = AFX.filter((d) => d.tier === tier && fitsSlot(d, it) && !out.some((o) => o.k === d.id)
+      let cand = AFX.filter((d) => d.tier === tier && !d.retired && fitsSlot(d, it) && !out.some((o) => o.k === d.id)
         && !(d.group && groups.has(d.group)) && !(d.group === "J" && j)
         && !(d.group === "eAtk" && it.eAtk) && !(d.group === "eDef" && it.eDef) && !(d.group === "onHit" && it.onHit));
-      if (!cand.length) cand = AFX.filter((d) => d.tier === "c" && fitsSlot(d, it) && !out.some((o) => o.k === d.id));
+      if (!cand.length) cand = AFX.filter((d) => d.tier === "c" && !d.retired && fitsSlot(d, it) && !out.some((o) => o.k === d.id));
       if (!cand.length) continue;
       const d = cand[Math.floor(rng() * cand.length)];
       // 幅の中の値: 深い階ほど上の方が出やすい
@@ -380,5 +432,10 @@ export function enchantBlock(it, page, rk, tmpl = null) {
   return null;
 }
 
-// 検査 (読み込み時): 138種そろっているか (2026-10-15 に極「鏡鎧の」を足した)
-if (AFX.length !== 138) throw new Error(`infaffix: 追加の種類は138のはず (いま ${AFX.length})`);
+// 検査 (読み込み時): 173種そろっているか (2026-10-15 に極「鏡鎧の」と、部位ごとの極35種を足した)
+if (AFX.length !== 173) throw new Error(`infaffix: 追加の種類は173のはず (いま ${AFX.length})`);
+// 極は部位ごとに6つ (拾えるもの。武器・胴・頭・小手・足・装飾)
+for (const g of ["w", "body", "head", "hands", "feet", "acc"]) {
+  const n = AFX.filter((d) => d.tier === "x" && !d.retired && d.slots.includes(g)).length;
+  if (n !== 6) throw new Error(`infaffix: ${g} の極は6つのはず (いま ${n})`);
+}
