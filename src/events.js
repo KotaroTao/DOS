@@ -278,7 +278,8 @@ export const EVENTS = [
     intro: (A, cell) => ["青白い怨霊が道を塞いだ。", `「答えよ。${RIDDLES[cell.evRiddle || 0].q}」`],
     choices: (A, cell) => {
       const r = RIDDLES[cell.evRiddle || 0];
-      const answers = [r.a, ...r.w].sort(() => random() - 0.5);
+      if (!cell.evAnswers) cell.evAnswers = [r.a, ...r.w].sort(() => random() - 0.5);
+      const answers = cell.evAnswers;
       return answers.map((ans) => ({ label: `「${ans}」`, fn: () => {
         if (ans === r.a) {
           A.sfx("victory");
@@ -303,7 +304,7 @@ export const EVENTS = [
           A.payGold(cost); A.runEv().preempt = (A.runEv().preempt || 0) + 1;
           A.sfx("spell"); A.toast("ろうそくが灯った ― 次の戦闘は必ず先制できる", "good"); A.done(cell);
         } },
-        { label: "ろうを持ち帰る ― 収集品", fn: () => A.collectible("祈りの燭台", () => A.done(cell)) },
+        { label: "ろうを持ち帰る ― 収集品", fn: () => A.collectible("祈りの燭台", () => A.done(cell), cell) },
       ];
     },
   },
@@ -518,7 +519,7 @@ export const EVENTS = [
       } },
       { label: "鏡を割る ― 鏡の欠片 (収集品) / 全員に小さな傷", fn: () => {
         A.sfx("hit"); A.hurtAll(0.08);
-        A.collectible("鏡の欠片", () => A.done(cell));
+        A.collectible("鏡の欠片", () => A.done(cell), cell);
       } },
     ],
     onWin: (A, cell, f, next) => { A.soul(8, "鏡の影"); A.item({ rare: true }, "鏡の奥", () => A.done(cell, next)); },
@@ -753,7 +754,7 @@ export const EVENTS = [
         const keys = A.monsterKeysLeft();
         A.fight(cell, keys.slice(0, 6).map((k) => ({ key: k, single: true })), "bell", { noChest: true });
       } },
-      { label: "鐘舌を外す ― 収集品", fn: () => A.collectible("弔鐘の鐘舌", () => A.done(cell)) },
+      { label: "鐘舌を外す ― 収集品", fn: () => A.collectible("弔鐘の鐘舌", () => A.done(cell), cell) },
     ],
     onWin: (A, cell, f, next) => {
       const n = A.clearMonsters();
@@ -791,7 +792,7 @@ export const EVENTS = [
       { label: "あさる ― 金貨と時に収集品 / 30%で群れに襲われる", danger: true, fn: () => {
         if (chance(0.3)) { A.alarm("群れが飛び出してきた！", ["漂着物の山は巣だった。"], "trap", () => A.fight(cell, [{ pool: true, min: 3 }], "drift", { noChest: true })); return; }
         A.gold(2, "漂着物");
-        if (chance(0.3)) A.collectible("漂着物", () => A.done(cell)); else A.done(cell);
+        if (chance(0.3)) A.collectible("漂着物", () => A.done(cell), cell); else A.done(cell);
       } },
     ],
     onWin: (A, cell, f, next) => { A.gold(2, "漂着物"); A.done(cell, next); },
@@ -888,7 +889,7 @@ export const EVENTS = [
         }
         A.item({ rare: true }, "大ワニの腹", () => A.done(cell));
       } },
-      { label: "牙を抜く ― 収集品", fn: () => A.collectible("大ワニの牙", () => A.done(cell)) },
+      { label: "牙を抜く ― 収集品", fn: () => A.collectible("大ワニの牙", () => A.done(cell), cell) },
     ],
     onWin: (A, cell, f, next) => A.item({ rare: true }, "大ワニの腹", () => A.done(cell, next)),
   },
@@ -1107,7 +1108,7 @@ export const EVENTS = [
     id: "l4_04", name: "戦死者の名札", layer: 4, tier: "common", icon: "corpse",
     intro: () => ["鎧ごと朽ちた兵の骸。首から下げた真ちゅうの名札だけが、鈍く光っている。"],
     choices: (A, cell) => [
-      { label: "名札を持ち帰る ― 収集品", fn: () => A.collectible("戦死者の名札", () => A.done(cell)) },
+      { label: "名札を持ち帰る ― 収集品", fn: () => A.collectible("戦死者の名札", () => A.done(cell), cell) },
       { label: "名を呼んで弔う ― ✦Soul と、近くの骸に魂が宿る", primary: true, fn: () => {
         A.sfx("heal"); A.soul(1, "戦死者の弔い");
         if (A.warmCorpse()) A.toast("呼ばれた名に応えて、近くの骸が温もりを取り戻した", "good", "corpseWarm");
@@ -1202,7 +1203,7 @@ export const EVENTS = [
         else { A.ailAll("poison", 1); A.sfx("trap"); A.toast("胞子が舞った ― 毒に侵された", "bad", "poison"); }
         A.done(cell);
       } },
-      { label: "茸を摘む ― 収集品", primary: true, fn: () => A.collectible("光る茸", () => A.done(cell)) },
+      { label: "茸を摘む ― 収集品", primary: true, fn: () => A.collectible("光る茸", () => A.done(cell), cell) },
     ],
   },
   {
@@ -1327,7 +1328,7 @@ export const EVENTS = [
         A.floorEv().mods.push({ src: "l5_11", name: "断たれた根", desc: "植物の魔物への与ダメージ +30% (この階)", prey: { races: ["plant"], mul: 1.3 } });
         A.sfx("hit"); A.toast("根を断った ― 大樹の叫びが響く。植物の魔物への与ダメ+30%", "gold"); A.done(cell);
       } },
-      { label: "鋏を持ち帰る ― 収集品", fn: () => A.collectible("庭師の鋏", () => A.done(cell)) },
+      { label: "鋏を持ち帰る ― 収集品", fn: () => A.collectible("庭師の鋏", () => A.done(cell), cell) },
     ],
   },
   {
@@ -1381,7 +1382,7 @@ export const EVENTS = [
       (anyHurt(A) || anyAiling(A)) && { label: "水を浴びる ― 全員のHP3割回復・状態異常が治る", primary: true, fn: () => {
         A.healAll(0.3, 0, true); A.sfx("heal"); A.toast("洗礼の水が、傷と汚れを洗い流した", "good", "fountain"); A.done(cell);
       } },
-      { label: "水盤の底をさらう ― 収集品", fn: () => A.collectible("洗礼の水盤", () => A.done(cell)) },
+      { label: "水盤の底をさらう ― 収集品", fn: () => A.collectible("洗礼の水盤", () => A.done(cell), cell) },
     ],
   },
   {
@@ -1438,7 +1439,7 @@ export const EVENTS = [
           const n = A.revealWhere((x) => x.type === "chest" && !x.cleared);
           A.story("封じられた巻物", ["「……泉のほとりに、若い神官が見慣れぬ苗木を植えた。」", "「神官王さまはお怒りになったが、あの方は、ただ微笑むばかりだった……」", "巻物はそこで、水に溶けて読めなくなった。", n ? `余白の地図に、この階の宝箱${n}つの在処が記されていた。` : "余白の地図は、もう読み取れなかった。"], () => A.done(cell));
         } },
-        { label: "巻物を持ち帰る ― 収集品", fn: () => A.collectible("封じられた巻物", () => A.done(cell)) },
+        { label: "巻物を持ち帰る ― 収集品", fn: () => A.collectible("封じられた巻物", () => A.done(cell), cell) },
       ];
     },
   },
@@ -1666,7 +1667,7 @@ export const EVENTS = [
         } },
         m && m.mp > 0 && { label: `${m.name}の魔力の熱で氷を溶かす (${m.name}のMPが半分になる) ― 収集品`, fn: () => {
           m.mp = Math.floor(m.mp / 2); A.refresh(); A.sfx("spell");
-          A.collectible("凍った泉", () => A.done(cell));
+          A.collectible("凍った泉", () => A.done(cell), cell);
         } },
       ];
     },
@@ -1805,7 +1806,7 @@ export const EVENTS = [
         A.done(cell);
       } },
       { label: "あぶくの湧く底を探る ― 収集品 / 毒気で全員のHPが少し減る", fn: () => {
-        A.hurtAll(0.05); A.collectible("あぶくの湧く底", () => A.done(cell));
+        A.hurtAll(0.05); A.collectible("あぶくの湧く底", () => A.done(cell), cell);
       } },
     ],
   },
@@ -1945,7 +1946,7 @@ export const EVENTS = [
     id: "l10_01", name: "落雷の跡", layer: 10, tier: "common", icon: "chest",
     intro: () => ["床の石が、黒く焦げて割れている。雷の落ちた跡だ。", "割れ目の中で、雷に溶かされて固まった、ガラスのようなものが光っている。頭の上の雷雲は、まだ低くうなっている。"],
     choices: (A, cell) => [
-      { label: "割れ目のガラスを掘り出す ― 収集品", primary: true, fn: () => { A.collectible("落雷の跡", () => A.done(cell)); } },
+      { label: "割れ目のガラスを掘り出す ― 収集品", primary: true, fn: () => { A.collectible("落雷の跡", () => A.done(cell), cell); } },
       { label: "次の雷を待って、焼けた石にふれる ― ✦Soul / 30%で雷がすぐそばに落ち、全員のHP2割を失う", danger: true, fn: () => {
         if (chance(0.3)) { A.hurtAll(0.2); A.flash("#d8e0ff"); A.sfx("trap"); A.toast("雷が目の前に落ちた ― 全員が打たれた", "bad", "trap"); }
         A.sfx("spell"); A.soul(2, "雷の落ちた石"); A.done(cell);
@@ -2103,7 +2104,7 @@ export const EVENTS = [
         if (chance(0.25)) { A.alarm("鎖の鳴る音が近づいてくる！", ["橋の向こうから、枷をつけたままの囚徒たちが歩いてきた。"], "trap", () => A.fight(cell, [{ key: "bs_chaingang", min: 2 }], "shackle", { noChest: true })); return; }
         A.item({}, "欄干の枷", () => A.done(cell));
       } },
-      { label: "すり切れた札を持ち帰る ― 収集品", primary: true, fn: () => { A.collectible("欄干の枷の輪", () => A.done(cell)); } },
+      { label: "すり切れた札を持ち帰る ― 収集品", primary: true, fn: () => { A.collectible("欄干の枷の輪", () => A.done(cell), cell); } },
     ],
     onWin: (A, cell, f, next) => A.item({}, "欄干の枷", () => A.done(cell, next)),
   },
@@ -2264,7 +2265,7 @@ export const EVENTS = [
           if (c.ok) { A.sfx("heal"); A.soul(2, "灯籠に残っていた灯"); A.done(cell); return; }
           A.hurtAll(0.1); A.sfx("trap"); A.toast("足もとの灯籠の山が崩れた ― 全員がガラスの雪崩に巻きこまれた", "bad", "trap"); A.done(cell);
         } },
-        { label: "割れた灯籠のガラスを拾う ― 収集品", fn: () => { A.collectible("割れた灯籠のガラス", () => A.done(cell)); } },
+        { label: "割れた灯籠のガラスを拾う ― 収集品", fn: () => { A.collectible("割れた灯籠のガラス", () => A.done(cell), cell); } },
       ];
     },
   },
@@ -2386,7 +2387,7 @@ export const EVENTS = [
       { label: "光るきのこを摘んでいく ― 収集品と ✦Soul / 舞い上がった胞子で一人が毒", fn: () => {
         const m = A.randomAlive(); if (m) { A.ail(m, "poison"); A.toast(`${m.name}は舞い上がった胞子を吸いこんだ`, "bad", "poison"); }
         A.soul(2, "きのこの光にまじる灯");
-        A.collectible("光るきのこの洞", () => A.done(cell));
+        A.collectible("光るきのこの洞", () => A.done(cell), cell);
       } },
     ],
   },
@@ -2428,7 +2429,7 @@ export const EVENTS = [
         if (chance(0.3)) { A.alarm("本の背から、蟲があふれ出た！", ["濡れた頁をかじっていた蟲たちが、布を持つ手に群がってきた。"], "trap", () => A.fight(cell, [{ key: "bs_bookworm", min: 2 }], "soakedshelf", { noChest: true })); return; }
         A.sfx("heal"); A.soul(1.5, "頁ににじんだ灯"); A.done(cell);
       } },
-      { label: "まだ読める一冊を抜いて持ち帰る ― 収集品", fn: () => { A.collectible("雨にふやけた書架", () => A.done(cell)); } },
+      { label: "まだ読める一冊を抜いて持ち帰る ― 収集品", fn: () => { A.collectible("雨にふやけた書架", () => A.done(cell), cell); } },
     ],
     onWin: (A, cell, f, next) => { A.soul(1.5, "蟲から取り戻した灯"); A.gold(1, "書架の奥の銭"); A.done(cell, next); },
   },
@@ -3222,6 +3223,8 @@ export function onceKey(e, layer) { return e.once === "layer" ? `${e.id}:${layer
 export function runEvent(A, cell) {
   const e = EVENT_MAP[cell.evId];
   if (!e) { A.done(cell); return; }
+  // 袋の整理中に閉じても、選択や代償を繰り返さず同じ収集品の受け取りへ戻る。
+  if (cell.evCollectible) { A.collectible("", () => A.done(cell), cell); return; }
   cell.evVisited = true; // 選択肢を見た印。図鑑の実行済み記録とは分ける
   // 勝った戦闘の続きが保存されたまま中断していた (勝利直後にアプリが落ちた等)
   if (cell.evFight && cell.evFight.won) { const f = cell.evFight; cell.evFight = null; if (e.onWin) e.onWin(A, cell, f, () => A.back()); else A.done(cell); return; }
@@ -3252,7 +3255,17 @@ export function runEvent(A, cell) {
     A.gift(e.name, [...e.intro(A, cell), ...lines], A.icon(e), { banner: t.banner, accent: e.accent || t.accent }, () => A.done(cell));
     return;
   }
-  const opts = (e.choices(A, cell) || []).filter(Boolean).map((o) => ({ ...o, fn: () => {
+  const viewApi = Object.create(A);
+  let building = true;
+  for (const key of ["check", "checkDisarm"]) viewApi[key] = (...args) => {
+    if (!building) return A[key](...args);
+    const cache = cell.evChecks || (cell.evChecks = {});
+    const id = `${key}:${args[0] || ""}:${args[1]?.uid || ""}`;
+    return cache[id] || (cache[id] = A[key](...args));
+  };
+  const choices = e.choices(viewApi, cell) || [];
+  building = false;
+  const opts = choices.filter(Boolean).map((o) => ({ ...o, fn: () => {
     if (!o.cancel) { A.seen(e, cell); A.picked(e, o.label); }
     o.fn();
   } }));
