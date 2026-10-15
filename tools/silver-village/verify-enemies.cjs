@@ -46,9 +46,9 @@ const ids=['bs_goldgolem'];
     await page.evaluate(()=>{for(const id of Object.keys(enemyReview.MONSTERS))enemyReview.G.codex.mon[id]={kills:10,main:10};enemyReview.UI.codexMonSheet('bs_goldgolem');});
     await page.waitForTimeout(500);await page.screenshot({path:'docs/art/silver-village-enemies/codex-mobile.png'});
     await page.getByRole('button',{name:'閉じる',exact:true}).click();
-    await page.evaluate(()=>{const t=enemyReview,g=t.G;g.anim=false;g.heroAnim=null;g.flipAnim=null;g.walking=false;g.prompt=false;g.board=t.makeBoard(1,t.activeCfg());g.px=g.board.start.x;g.py=g.board.start.y;let i=0;for(const row of g.board.cells)for(const c of row){c.revealed=true;if(i<6&&c.x!==g.px&&c.y!==g.py){Object.assign(c,{type:'monster',monsterKey:['bs_siegeballista', 'bs_gravecaptain', 'd04_revenant', 'bs_thunderknight', 'bs_bonecolossus', 'bs_fungalhulk'][i++],cleared:false});}}t.renderBoard();});
+    await page.evaluate(()=>{const t=enemyReview,g=t.G;g.anim=false;g.heroAnim=null;g.flipAnim=null;g.walking=false;g.prompt=false;g.board=t.makeBoard(1,t.activeCfg());g.px=g.board.start.x;g.py=g.board.start.y;let i=0;for(const row of g.board.cells)for(const c of row){c.revealed=true;if(i<6&&c.x!==g.px&&c.y!==g.py){Object.assign(c,{type:'monster',monsterKey:['bs_goldgolem', 'bs_mossgolem', 'bs_misttreant', 'mt_silver', 'mt_gold', 'mt_king'][i++],cleared:false});}}t.renderBoard();});
     await page.waitForTimeout(600);await page.screenshot({path:'docs/art/silver-village-enemies/board-mobile.png'});
-    await page.evaluate(()=>{const t=enemyReview;t.G.prompt=false;t.startBattle(['bs_siegeballista', 'bs_gravecaptain', 'd04_revenant', 'bs_thunderknight', 'bs_bonecolossus', 'bs_fungalhulk'].map(id=>t.spawnCardEnemies(id,1,1,{min:1}).slice(0,1)[0]),null);});
+    await page.evaluate(()=>{const t=enemyReview;t.G.prompt=false;t.startBattle(['bs_goldgolem', 'bs_mossgolem', 'bs_misttreant', 'mt_silver', 'mt_gold', 'mt_king'].map(id=>t.spawnCardEnemies(id,1,1,{min:1}).slice(0,1)[0]),null);});
     await page.waitForTimeout(1200);await page.screenshot({path:'docs/art/silver-village-enemies/battle-mobile.png'});
     assert.equal(await page.evaluate(()=>enemyReview.G.state),'combat');
    }
