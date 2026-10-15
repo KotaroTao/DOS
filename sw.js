@@ -1123,6 +1123,8 @@ const ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
+  "./desktop.css",
+  "./src/desktop.js",
   "./theme.css",
   "./title.css",
   "./town.css",
