@@ -70,6 +70,13 @@ const sources = [
   ...MISC_PHOTOS.map(id => [id, `../art/misc/${id}.webp`]),
 ];
 const photos = new Map();
+// 原画の下段から混入した品だけを隠し、本体の大きさと位置は保つ。
+const PHOTO_EXCLUDES = {
+  m_mourning_moon_orb: [{ x: 0, y: 290, w: 320, h: 30 }],
+  m_rusted_shackle_pin: [{ x: 0, y: 280, w: 320, h: 40 }],
+  m_prisoners_dice: [{ x: 0, y: 280, w: 320, h: 40 }],
+  m_centipede_husk: [{ x: 0, y: 290, w: 320, h: 30 }],
+};
 export function miscPhoto(spr) {
   if (!spr || spr.slot !== "misc" || spr.unidentified) return null;
   return photos.get(spr.id) || null;
@@ -85,6 +92,7 @@ export async function loadMiscPhotos() {
       img.onload = img.onerror = null;
       if (ok) photos.set(id, { w: 24, h: 24, photo: {
         img, sx: 0, sy: 0, sw: img.naturalWidth, sh: img.naturalHeight,
+        exclude: PHOTO_EXCLUDES[id],
       } });
       resolve();
     };
