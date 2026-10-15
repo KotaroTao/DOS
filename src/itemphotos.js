@@ -13,6 +13,8 @@ export const ITEM_PHOTOS = Object.freeze([
 
   // 制作番号601〜700の追加原画。
   ...NUMBERED_ITEM_IDS.slice(600, 700),
+  // 制作番号1701〜1800の追加原画。
+  ...NUMBERED_ITEM_IDS.slice(1700, 1800),
 ]);
 const photos = new Map();
 export function itemPhoto(id) { return photos.get(id) || null; }
