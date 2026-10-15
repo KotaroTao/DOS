@@ -46,7 +46,7 @@ const assert = require('node:assert/strict');
         document.body.replaceChildren();
         Object.assign(document.body.style, { background: '#19191f', color: '#ddd', display: 'grid', gridTemplateColumns: 'repeat(10,1fr)', gap: '8px' });
         let count = 0, hidden = 0;
-        for (const id of ITEM_PHOTOS) {
+        for (const id of ITEM_PHOTOS.slice(0, 100)) {
           const item = items[id], sprite = resolve({ ...item });
           if (!!itemPhoto(id) !== (mode === 'normal')) throw Error(id + ': 読み込み結果');
           if (mode === 'normal') {
@@ -64,7 +64,7 @@ const assert = require('node:assert/strict');
           card.append(canvas, document.createElement('br'), `${item.number} ${item.name}`);
           document.body.append(card);
         }
-        for (const item of Object.values(items).filter(i => i.number > 100 && ART_SLOTS.has(i.slot))) {
+        for (const item of Object.values(items).filter(i => !ITEM_PHOTOS.includes(i.id) && ART_SLOTS.has(i.slot))) {
           if (resolve(item)?.photo) throw Error(item.id + ': 対象外の絵が変更された');
         }
         await new Promise(resolve => setTimeout(resolve, 150));
