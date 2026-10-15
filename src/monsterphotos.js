@@ -1,6 +1,31 @@
 // 迷宮の透過原画。通常敵・強敵・主・召喚先・共通の敵で共用する。
 // 能力値や文字グリッドは保ち、読めた原画だけを最初の描画前に登録する。
 export const MONSTER_PHOTOS = {
+  // <<INFERNO_CAULDRON_ART>>
+  // 業火の大釜（作成済みの通常敵・強敵・共通敵は既存原画を共用）。
+  bs_doombringer: [520, 429],
+  bs_infernolord: [430, 520],
+  // <</INFERNO_CAULDRON_ART>>
+  // <<CAVERN_LAIR_ART>>
+  // 大空洞の主の寝床（作成済みの敵・召喚先・共通敵は既存原画を共用）。
+  bs_cavetroll: [434, 520],
+  bs_blindhorror: [520, 332],
+  bs_cavernlord: [520, 365],
+  bs_gloomstalker: [520, 354],
+  // <</CAVERN_LAIR_ART>>
+  // <<BAPTISM_ART>>
+  // 洗礼の大水槽（作成済みの通常敵・強敵・共通敵は既存原画を共用）。
+  bs_irongolem: [520, 401],
+  bs_voidwalker: [322, 520],
+  bs_shadowdragon: [516, 520],
+  // <</BAPTISM_ART>>
+  // <<CAULDRON_ART>>
+  // 魂を煮る釜場（作成済みの通常敵・強敵・共通敵は既存原画を共用）。
+  bs_furnacefiend: [520, 359],
+  bs_obsidianguard: [443, 520],
+  bs_basaltdrake: [520, 381],
+  bs_infernaltyrant: [378, 520],
+  // <</CAULDRON_ART>>
   // <<ASH_ALTAR_ART>>
   // 灰の降る祭場（作成済みの通常敵・強敵・共通敵は既存原画を共用）。
   bs_demon: [447, 520],

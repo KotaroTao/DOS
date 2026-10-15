@@ -65,7 +65,7 @@ const assert = require('node:assert/strict');
           card.append(canvas, document.createElement('br'), `${item.number} ${item.name}`);
           document.body.append(card);
         }
-        for (const item of Object.values(items).filter(i => i.number > 100 && !ITEM_PHOTOS.includes(i.id) && ART_SLOTS.has(i.slot))) {
+        for (const item of Object.values(items).filter(i => !ALL_ITEM_PHOTOS.includes(i.id) && ART_SLOTS.has(i.slot))) {
           if (resolve(item)?.photo) throw Error(item.id + ': 対象外の絵が変更された');
         }
         await new Promise(resolve => setTimeout(resolve, 150));
