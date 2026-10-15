@@ -10,6 +10,28 @@ export const MONSTER_PHOTOS = {
   bs_earthshaker: [520, 404],
   bs_abysshorror: [520, 361],
   // <</FOSSIL_TOMB_ART>>
+  // <<SUNKEN_PATH_ART>>
+  // 水底の参道（作成済みの異端大司教・共通敵は既存原画を共用）。
+  bs_kelpdrowned: [520, 445],
+  bs_abyssjelly: [471, 520],
+  bs_fonthorror: [520, 502],
+  bs_drownedpriest: [474, 520],
+  bs_naga: [497, 520],
+  bs_choirwraith: [520, 509],
+  bs_tidecaller: [520, 496],
+  bs_sunkenbell: [490, 520],
+  bs_soulharvester: [520, 492],
+  // <</SUNKEN_PATH_ART>>
+  // 火を噴く地割れ（残り火の王は作成済み原画を共用）。
+  bs_magmaslime: [426, 407],
+  bs_emberswarm: [425, 387],
+  bs_ashghoul: [397, 393],
+  bs_cinderwraith: [426, 425],
+  bs_lavamaw: [425, 418],
+  bs_sulfurfiend: [412, 425],
+  bs_lavagolem: [395, 399],
+  bs_magmaray: [425, 425],
+  bs_hellhound: [389, 425],
   // 銀業の隠れ里の未作成だった黄金の守り像。他12体は既存絵を共用。
   bs_goldgolem: [363, 443],
   // 水晶の鉱脈（作成済みの鉱脈喰らいは既存絵を使う）。

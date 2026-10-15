@@ -11,6 +11,16 @@
 const CACHE = "dos-dev";
 const DEV = CACHE === "dos-dev";
 const ASSETS = [
+  "./art/monsters/bs_magmaslime.webp",
+  "./art/monsters/bs_emberswarm.webp",
+  "./art/monsters/bs_ashghoul.webp",
+  "./art/monsters/bs_cinderwraith.webp",
+  "./art/monsters/bs_lavamaw.webp",
+  "./art/monsters/bs_sulfurfiend.webp",
+  "./art/monsters/bs_lavagolem.webp",
+  "./art/monsters/bs_magmaray.webp",
+  "./art/monsters/bs_hellhound.webp",
+
   "./src/battlebackgrounds.js",
   "./art/battle/w01.webp",
   "./art/battle/w02.webp",
@@ -200,6 +210,15 @@ const ASSETS = [
   "./art/monsters/bs_cavebehemoth.webp",
   "./art/monsters/bs_earthshaker.webp",
   "./art/monsters/bs_abysshorror.webp",
+  "./art/monsters/bs_kelpdrowned.webp",
+  "./art/monsters/bs_abyssjelly.webp",
+  "./art/monsters/bs_fonthorror.webp",
+  "./art/monsters/bs_drownedpriest.webp",
+  "./art/monsters/bs_naga.webp",
+  "./art/monsters/bs_choirwraith.webp",
+  "./art/monsters/bs_tidecaller.webp",
+  "./art/monsters/bs_sunkenbell.webp",
+  "./art/monsters/bs_soulharvester.webp",
   "./art/monsters/bs_forestlord.webp",
   "./art/monsters/bs_archivist.webp",
   "./art/monsters/bs_bookworm.webp",
