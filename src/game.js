@@ -7677,7 +7677,7 @@ function investigateCorpse(cell, clsKey, clsLabel) {
   cell.cleared = true;
   const back = () => { if (G.state === "board") renderBoard(); };
   // 半分の確率で魂の残火も残っている (下の4つのどれとも別に)。魂なら同じ知らせにまとめ、ほかは知らせの末尾に添える
-  const ember = random() < EMBER_COLD_RATE ? emberEcho(EMBER_COLD * emberMul(levelHere().lv)) : 0;
+  const ember = random() < EMBER_COLD_RATE ? emberEcho(EMBER_COLD * emberMul(battleLayer())) : 0;
   let emberDone = false;
   const emberTail = () => {
     if (!ember || emberDone) return "";
@@ -7741,11 +7741,12 @@ function investigateCorpse(cell, clsKey, clsLabel) {
 }
 
 // 魂の残火: まだあたたかい死体 = 必ず1個 / 偉大なる死体 = 必ず5個 / 風化した死体 = 50%で1個 (investigateCorpse)。
-// どれも敵Lv で数が増える (levelcurve.js emberMul: Lv1〜50 ×1・51〜100 ×2 … Lv400 ×8)
+// 第1〜9章は上記の基本数、第10章以降 (第12層〜) は通常・風化2個 / 偉大10個。
+// levelcurve.js emberMul で本編の層に対応させ、敵Lvや隊のLvでは増やさない。
 const EMBER_WARM = 1, EMBER_GREAT = 5, EMBER_COLD = 1, EMBER_COLD_RATE = 0.5;
 // 無限迷宮も本編と同じ数の残火を得る (2026-10-13 ユーザーの指示)。
 function emberReward(great) {
-  return emberEcho((great ? EMBER_GREAT : EMBER_WARM) * emberMul(levelHere().lv));
+  return emberEcho((great ? EMBER_GREAT : EMBER_WARM) * emberMul(battleLayer()));
 }
 // 極光の書きつけ (手がかりの恵み emberEcho): 死体から魂の残火を拾った時、この確率で数が倍になる
 const EMBER_ECHO_RATE = 0.10;
