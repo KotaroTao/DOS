@@ -1,6 +1,12 @@
 // 迷宮の透過原画。通常敵・強敵・主・召喚先・共通の敵で共用する。
 // 能力値や文字グリッドは保ち、読めた原画だけを最初の描画前に登録する。
 export const MONSTER_PHOTOS = {
+  // <<SUNKEN_TEMPLE_ART>>
+  // 沈める大神殿（作成済みの敵・召喚先は既存原画を共用）。
+  bs_divinegolem: [281,520],
+  bs_fallenangel: [306,520],
+  bs_templelord: [303,520],
+  // <</SUNKEN_TEMPLE_ART>>
   // <<INFERNO_CAULDRON_ART>>
   // 業火の大釜（作成済みの通常敵・強敵・共通敵は既存原画を共用）。
   bs_doombringer: [520, 429],
