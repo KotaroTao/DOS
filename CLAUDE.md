@@ -234,6 +234,8 @@ Each layer's two elites (`LAYER_ELITES`) are **named foes** you hunt on purpose.
 
 - **石眠りの石切り場のWebP原画**: `ws2` の通常敵9種・晶に憑かれし錬金術師・銀業の11体を `src/monsterphotos.js` に登録。ミミックは既存WebPを共用し、全12種を透過原画で表示する。森の古屋の3体と図鑑を参照。原画・制作記録は `docs/art/quarry-enemies/`、変換は `python3 tools/crypt/build-quarry-enemies.py`、表示・取得失敗時の検証は `node tools/crypt/verify-quarry-enemies.cjs`。
 
+地下牢 (`w07`) の未作成だった通常敵9種も透過WebPを共用する。図鑑・伝承と森の小屋の3体を基準に制作し、作成済みの強敵・共通敵は維持。原画・確認画像は `docs/art/prison-enemies/`、再変換は `python3 tools/prison/build-enemies.py`、表示・取得失敗の確認は `node tools/prison/verify-enemies.cjs`。
+
 ### Monster individuation (固有デザイン・特徴・スキル) — the per-monster identity rules
 The goal (per design direction): **every enemy is individually distinctive**, both visually and mechanically. Two rules enforce this — apply them whenever adding or refining a monster.
 
