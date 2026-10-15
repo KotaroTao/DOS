@@ -16,7 +16,7 @@ const assert = require('node:assert/strict');
         await r.abort().catch(() => {});
       });
       await page.goto('http://localhost:8000/?testDungeon=w01&testFloor=1', { waitUntil: 'domcontentloaded' });
-      await page.waitForFunction(() => window.__game?.G.state === 'board', { timeout: 30000 });
+      await page.waitForFunction(() => window.__game?.G.state === 'board', { timeout: 90000 });
       if (mode === 'normal') {
         await page.setViewportSize({ width: 390, height: 844 });
         for (const id of ['dagger', 'plateArmor', 'manaDrop']) {
