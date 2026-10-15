@@ -1,7 +1,7 @@
-// 固定制作番号1〜100の透過原画。取得できない品は既存の絵へ戻す。
+// 固定制作番号1〜100・801〜900の透過原画。取得できない品は既存の絵へ戻す。
 import { NUMBERED_ITEM_IDS } from "./itemnumbers.js";
 
-export const ITEM_PHOTOS = Object.freeze(NUMBERED_ITEM_IDS.slice(0, 100));
+export const ITEM_PHOTOS = Object.freeze([...NUMBERED_ITEM_IDS.slice(0, 100), ...NUMBERED_ITEM_IDS.slice(800, 900)]);
 const photos = new Map();
 export function itemPhoto(id) { return photos.get(id) || null; }
 

@@ -37,10 +37,11 @@ const assert = require('node:assert/strict');
       const result = await page.evaluate(async mode => {
         const { ITEMS } = await import('/src/items.js');
         const { CATALOG_ITEMS } = await import('/src/catalog/index.js');
-        const { ITEM_PHOTOS, itemPhoto } = await import('/src/itemphotos.js');
+        const { ITEM_PHOTOS: ALL_ITEM_PHOTOS, itemPhoto } = await import('/src/itemphotos.js');
         const { makeItemSpriteResolver, ART_SLOTS, unidIcon } = await import('/src/itemart/index.js');
         const { setSpriteResolver, spriteCanvas, whenPhoto } = await import('/src/sprites.js');
         const items = { ...ITEMS, ...CATALOG_ITEMS };
+        const ITEM_PHOTOS = ALL_ITEM_PHOTOS.filter(id => items[id].number <= 100);
         const resolve = makeItemSpriteResolver(items);
         setSpriteResolver(resolve);
         document.body.replaceChildren();
@@ -64,7 +65,7 @@ const assert = require('node:assert/strict');
           card.append(canvas, document.createElement('br'), `${item.number} ${item.name}`);
           document.body.append(card);
         }
-        for (const item of Object.values(items).filter(i => i.number > 100 && ART_SLOTS.has(i.slot))) {
+        for (const item of Object.values(items).filter(i => !ALL_ITEM_PHOTOS.includes(i.id) && ART_SLOTS.has(i.slot))) {
           if (resolve(item)?.photo) throw Error(item.id + ': 対象外の絵が変更された');
         }
         await new Promise(resolve => setTimeout(resolve, 150));
