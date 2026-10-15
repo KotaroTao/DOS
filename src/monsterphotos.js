@@ -12,6 +12,22 @@ export const MONSTER_PHOTOS = {
   bs_corruptstag: [301, 364],
   bs_satyrpiper: [312, 345],
   bs_giantmoth: [367, 350],
+  // <<CLOSED_STACKS_ART>>
+  // 閉架の書庫（主は禁書の巨像と共用）。
+  bs_tomeguardian: [473, 439],
+  bs_runegolem: [520, 403],
+  bs_forbiddenspirit: [520, 376],
+  bs_mindeater: [515, 433],
+  bs_spellwraith: [520, 354],
+  bs_cosmicwraith: [520, 388],
+  bs_inkdragon: [520, 284],
+  bs_elderlich: [438, 476],
+  bs_arcanesentinel: [520, 473],
+  bs_soulreaper: [520, 406],
+  bs_inkhorror: [520, 316],
+  bs_grimoirebeast: [520, 367],
+  el_librarian: [520, 403],
+  // <</CLOSED_STACKS_ART>>
   // 名のある強敵24体の透過原画。
   el_palebutcher: [573, 475],
   el_cryptlord: [473, 493],
