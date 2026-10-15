@@ -443,7 +443,7 @@ export function ailDetailLines(it) {
 const MULT_LABEL = { hp: "最大HP", mp: "最大MP", atk: "STR", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
 const MULT_ORDER = ["hp", "mp", "atk", "vit", "agi", "int", "pie", "luk"];
 // 効果の名 (短い表記) と くわしい説明
-const EFF_INFO = {
+export const EFF_INFO = {
   actFirst: { short: () => "一番手", line: () => "一番手: どのターンも、敵味方の誰よりも先に行動する" },
   multistrike: { short: (v) => `${Math.min(4, v)}連撃`, line: (v) => `連撃: 通常攻撃が一手で${Math.min(4, v)}回の攻撃になる（標的が倒れたら次の敵へ。技は1回のまま。連撃の装備は回数を足し合い、最大4回）` },
   lifesteal: { short: (v) => `吸血${pct(v)}`, line: (v) => `吸血: 物理攻撃（通常攻撃・物理技）で与えたダメージの${pct(v)}だけ、自分のHPを回復する` },
