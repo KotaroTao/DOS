@@ -1,6 +1,30 @@
 // 迷宮の透過原画。通常敵・強敵・主・召喚先・共通の敵で共用する。
 // 能力値や文字グリッドは保ち、読めた原画だけを最初の描画前に登録する。
 export const MONSTER_PHOTOS = {
+  // <<FROST_CORRIDOR_ART>>
+  // 第六章・氷結回廊（強敵2種は作成済み原画を共用）。
+  bs_frostwolf: [515, 456],
+  bs_winterbat: [520, 390],
+  bs_icewraith: [450, 469],
+  bs_blizzardspirit: [460, 513],
+  bs_iceserpent: [470, 499],
+  bs_glacialcrab: [514, 490],
+  bs_snowstalker: [474, 503],
+  bs_rimecrawler: [520, 388],
+  bs_frozenexplorer: [451, 470],
+  bs_snowmantis: [520, 456],
+  bs_aurorawisp: [374, 485],
+  bs_iciclehorror: [465, 505],
+  bs_frostknight: [520, 408],
+  bs_frostlich: [482, 445],
+  bs_frostmaiden: [487, 488],
+  bs_icegolem: [520, 463],
+  bs_frozenangel: [439, 508],
+  bs_frostwyrm: [478, 502],
+  bs_rimegiant: [451, 520],
+  bs_frostfiend: [520, 449],
+  bs_glaciallord: [520, 489],
+  // <</FROST_CORRIDOR_ART>>
   // <<SUNKEN_TEMPLE_ART>>
   // 沈める大神殿（作成済みの敵・召喚先は既存原画を共用）。
   bs_divinegolem: [281,520],
