@@ -1,4 +1,4 @@
-// 地下墓地・回廊の透過原画。通常敵・強敵・取り巻き・ミミックで共用する。
+// 地下墓地・回廊・修道院の透過原画。通常敵・強敵・主・召喚先・ミミックで共用する。
 // 能力値や文字グリッドは保ち、読めた原画だけを最初の描画前に登録する。
 export const MONSTER_PHOTOS = {
   bs_bonebat: [448, 415],
@@ -11,16 +11,20 @@ export const MONSTER_PHOTOS = {
   d01_skeleton: [359, 422],
   mimic: [443, 440],
   bs_mournshade: [338, 366],
-  bs_ghoul: [323, 350],
-  bs_pettyrevenant: [369, 371],
-  bs_sarcoguard: [280, 368],
-  bs_skullswarm: [313, 348],
   bs_spiritbat: [398, 361],
-  bs_shroudstrangler: [356, 350],
-  bs_tombwarden: [341, 375],
-  bs_weepangel: [369, 358],
   el_palebutcher: [365, 378],
-  bs_zombie: [384, 374],
+  bs_zombie: [336, 363],
+  bs_weepangel: [409, 406],
+  bs_tombwarden: [369, 384],
+  bs_shroudstrangler: [408, 391],
+  bs_pettyrevenant: [379, 400],
+  bs_sarcoguard: [315, 383],
+  bs_ghoul: [397, 387],
+  bs_skullswarm: [394, 403],
+  d02_soldier: [372, 463],
+  bs_bonechanter: [378, 399],
+  bs_gravecaller: [408, 389],
+  bs_cryptabbot: [434, 392],
 };
 
 function loadImage(img, src, width, height) {

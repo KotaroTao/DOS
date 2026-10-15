@@ -6,23 +6,14 @@ ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / 'docs/art/corridor-enemies/master.png'
 FRAMES = {
     'bs_mournshade': (0, 0, 365, 358),
-    'bs_ghoul': (380, 0, 705, 358),
-    'bs_pettyrevenant': (725, 0, 1086, 363),
-    'bs_sarcoguard': (35, 358, 320, 718),
-    'bs_skullswarm': (385, 360, 695, 700),
     'bs_spiritbat': (695, 365, 1086, 718),
-    'bs_shroudstrangler': (0, 718, 365, 1060),
-    'bs_tombwarden': (370, 700, 705, 1067),
-    'bs_weepangel': (710, 718, 1086, 1068),
     'el_palebutcher': (0, 1068, 375, 1448),
-    'bs_zombie': (385, 1068, 765, 1448),
 }
 
 if __name__ == '__main__':
     source = Image.open(SOURCE).convert('RGBA')
     for key, frame in FRAMES.items():
         image = source.crop(frame)
-        if key == 'bs_tombwarden':
             image.paste((0, 0, 0, 0), (230, 0, 335, 28))
         # 隣接する行の小片だけを除き、対象の一続きの輪郭を保つ。
         if key in ('bs_shroudstrangler', 'bs_tombwarden', 'el_palebutcher'):
