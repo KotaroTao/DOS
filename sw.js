@@ -635,6 +635,7 @@ const ASSETS = [
   "./src/ui/journal.js",
   "./src/joblore.js",
   "./src/items.js",
+  "./src/itemnumbers.js",
   "./src/equiplevel.js",
   "./src/weaponpower.js",
   "./src/board.js",
