@@ -500,12 +500,13 @@ const enemyRace = (e) => (e && e.mon && e.mon.race) || null;
 // 金属の体を持つ敵か (METAL_TIERS)。呪文・状態異常・弱体を受けず、会心でない物理は1ダメージ
 export const isMetal = (t) => !!(t && t.side === "enemy" && t.metal);
 const METAL_TAG = { phys: "かたい！", mag: "呪文をはじいた！" };
-// 記録欄の属性の相性の添え書き。倍率まで言い切る (「耐性…」だけでは文が途中で切れたように読めた)
+// 記録欄には攻撃の属性・ダメージの増減・適用された相性倍率を添える
 const fmtMul = (m) => String(Math.round(m * 100) / 100);
-function elemNote(em, weak = false) {
+function elemNote(em, element, weak = false) {
   const out = [];
-  if (em > 1) out.push(`属性の弱点！（×${fmtMul(em)}）`);
-  else if (em < 1) out.push(em <= 0 ? "属性の相性で通じない（×0）" : `属性の相性で軽減（×${fmtMul(em)}）`);
+  const label = ELEMENTS[element] && element !== "none" ? `${ELEMENTS[element].label}属性` : "属性";
+  if (em > 1) out.push(`${label}の弱点でダメージ増加（×${fmtMul(em)}）`);
+  else if (em < 1) out.push(`${label}の相性でダメージ減少（×${fmtMul(em)}）`);
   if (weak) out.push("魔法の弱点！");
   return out.join(" ");
 }
@@ -823,7 +824,8 @@ export class Battle {
         const mr = this._resistCut(e, Math.max(1, Math.round(this._eatk(p) * k * em - this._evit(e) * 0.2)), "magResist");
         if (mr.immune) { this.log(`${e.name}には効かない`, "sys"); continue; }
         e.hp -= mr.dmg;
-        this.log(`${e.name}に ${mr.dmg} ダメージ`, "dmg");
+        const eff = [elemNote(em, "fire"), mr.tag].filter(Boolean).map((x) => " " + x).join("");
+        this.log(`${e.name}に ${mr.dmg} ダメージ${eff}`, "dmg");
         this._wake(e); this._die(e);
       }
       this._checkEnd();
@@ -1999,7 +2001,7 @@ export class Battle {
       dmg = this._resistCut(t, dmg, "magResist").dmg;
       dmg = this._wallCut(t, dmg);
       t.hp -= dmg;
-      this.log(`${t.name}に ${dmg} ダメージ${elemNote(em) ? " " + elemNote(em) : ""}`, "dmg");
+      this.log(`${t.name}に ${dmg} ダメージ${elemNote(em, sp.element) ? " " + elemNote(em, sp.element) : ""}`, "dmg");
       this._wake(t);
       const died = this._die(t);
       if (!died) { this._postDamage(t); this._perkHurt(t, actor, dmg, "spell"); }
@@ -2357,7 +2359,7 @@ export class Battle {
         if (spell) dmg = this._resistCut(t, dmg, "magResist").dmg;
         dmg = this._wallCut(t, dmg);
         t.hp -= dmg;
-        this.log(`${t.name}に ${dmg} ダメージ${elemNote(em) ? " " + elemNote(em) : ""}`, "dmg");
+        this.log(`${t.name}に ${dmg} ダメージ${elemNote(em, actor.element) ? " " + elemNote(em, actor.element) : ""}`, "dmg");
         this._wake(t);
         const died = this._die(t);
         if (!died) { this._postDamage(t); this._perkHurt(t, actor, dmg, spell ? "spell" : "breath"); }
@@ -2853,7 +2855,7 @@ export class Battle {
     dmg = this._wallCut(tgt, dmg);
     tgt.hp -= dmg;
     // 属性・障壁・物理耐性は重なっても全部見えるように併記する
-    const eff = [elemNote(em), magWeak ? "魔法の弱点！" : "", barriered ? "障壁で半減！" : "", pr.tag]
+    const eff = [elemNote(metalHit && !crit ? 1 : em, aE), magWeak ? "魔法の弱点！" : "", barriered ? "障壁で半減！" : "", pr.tag]
       .filter(Boolean).map((t) => " " + t).join("");
     this.log(`${actor.name}の${opt.name || "攻撃"}！ ${tgt.name}に ${dmg} ダメージ${crit ? "(会心!)" : ""}${eff}`,
       tgt.side === "party" ? "dmg" : "hit");
@@ -3175,7 +3177,7 @@ export class Battle {
         if (t.guard) dmg = Math.max(1, Math.ceil(dmg * (1 - t.guard))); // 金剛の護符: 呪文・ブレスの被ダメもカット
         t.hp -= dmg;
         dealt += dmg;
-        const eff = [elemNote(em, magWeak), mr.tag]
+        const eff = [elemNote(em, sp.element, magWeak), mr.tag]
           .filter(Boolean).map((t) => " " + t).join("");
         this.log(`${t.name}に ${dmg} ダメージ${crit ? "(会心!)" : ""}${eff}`, "dmg");
         this._wake(t);
@@ -3393,7 +3395,7 @@ export class Battle {
         dmg = mr.dmg;
         if (t.guard) dmg = Math.max(1, Math.ceil(dmg * (1 - t.guard)));
         t.hp -= dmg;
-        const eff = [elemNote(em, weak), mr.tag].filter(Boolean).map((x) => " " + x).join("");
+        const eff = [elemNote(em, b.el, weak), mr.tag].filter(Boolean).map((x) => " " + x).join("");
         this.log(`${t.name}に ${dmg} ダメージ${eff}`, "dmg");
         this._wake(t);
         const died = this._die(t);

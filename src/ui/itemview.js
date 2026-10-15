@@ -879,6 +879,7 @@ export function itemDetailEl(it, { target = null, catalog = false, stock = false
   if (meta) hd.appendChild(meta);
   top.appendChild(hd);
   body.appendChild(top);
+  if (!catalog && !stock && it.formationNames?.length) body.appendChild(el("p", "pt-note", `保存先：${it.formationNames.join("、")}。売却・破棄不可。持ち物袋の枠を使いません。`));
   if (it.unidentified) {
     for (const ln of detailLines(it).slice(1)) body.appendChild(el("div", "wpc-is-note", ln));
     return body;

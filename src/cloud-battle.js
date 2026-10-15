@@ -5,7 +5,7 @@ import { MONSTERS } from "./sprites.js";
 import { DUNGEON_MONSTERS } from "./dungeons/index.js";
 import { NAMED_IDS } from "./dungeons/named.js";
 import { STORY_CELLS, CHAPTERS } from "./story.js";
-import { ITEMS, SLOTS, MAX_ITEMS, canEquip, equipFailMsg, registerEquipLevel, registerAffixes } from "./items.js";
+import { bagCount, isFormationItem, ITEMS, SLOTS, MAX_ITEMS, canEquip, equipFailMsg, registerEquipLevel, registerAffixes } from "./items.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { equipLevelFor } from "./equiplevel.js";
 import { applyAffixes, gearPerks } from "./infaffix.js";
@@ -74,7 +74,7 @@ export function resolveCloudBattle(s, operation) {
   setEquipSwap((p, it) => {
     if (!canEquip(p, it)) return { ok: false, msg: equipFailMsg(p, it) };
     const tr = trialEquip(p.equip, it, it.slot === "shield" ? "shield" : "weapon");
-    if (!tr || p.items.length - 1 + tr.displaced.length > MAX_ITEMS) return { ok: false, msg: "装備を持ち替えられない" };
+    if (!tr || bagCount(p.items) - (isFormationItem(it) ? 0 : 1) + bagCount(tr.displaced) > MAX_ITEMS) return { ok: false, msg: "装備を持ち替えられない" };
     const i = p.items.indexOf(it);
     if (i < 0) return { ok: false, msg: "品が見つからない" };
     p.items.splice(i, 1);

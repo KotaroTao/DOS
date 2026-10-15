@@ -26,6 +26,7 @@ const ASSETS = [
   "./manifest.webmanifest",
   "./icon.svg",
   "./src/game.js",
+  "./src/formations.js",
   // <<QUEST_PORTRAITS>>
   "./src/questportraits.js",
   "./src/ui/questportrait.js",

@@ -445,9 +445,9 @@ function renderReady(b) {
   });
   const swap = el("button", "dp-swap");
   swap.type = "button";
-  swap.appendChild(el("span", null, "入替"));
+  swap.appendChild(el("span", null, "編成"));
   swap.appendChild(el("span", "dp-swap-c", "›"));
-  swap.addEventListener("click", () => { sfx("select"); close(); setTimeout(() => UI.openParty && UI.openParty(0), 0); });
+  swap.addEventListener("click", () => { sfx("select"); close(); setTimeout(() => UI.openFormationSheet?.(), 0); });
   strip.appendChild(swap);
   b.appendChild(strip);
 }
