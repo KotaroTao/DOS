@@ -1,6 +1,21 @@
-// 地下墓地・修道院・黒水の取水口・回廊の透過原画。通常敵・強敵・主・召喚先・ミミックで共用する。
+// 迷宮の透過原画。通常敵・強敵・主・召喚先・共通の敵で共用する。
 // 能力値や文字グリッドは保ち、読めた原画だけを最初の描画前に登録する。
 export const MONSTER_PHOTOS = {
+  mt_silver: [347, 520],
+  el_chainoverseer: [520, 482],
+  bs_tunneler: [520, 501],
+  bs_troll: [520, 501],
+  bs_timbermite: [464, 512],
+  bs_steelspider: [502, 510],
+  bs_rockworm: [500, 520],
+  bs_minelord: [520, 387],
+  bs_minebat: [520, 344],
+  bs_koboldsapper: [463, 505],
+  bs_gargoyle: [495, 520],
+  bs_dustwraith: [489, 495],
+  bs_crystalcrawler: [520, 502],
+  bs_chainedconvict: [510, 501],
+  bs_blastsprite: [493, 486],
   bs_bonebat: [448, 415],
   bs_carrioncrow: [418, 438],
   bs_corpsemaggot: [398, 415],
