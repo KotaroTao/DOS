@@ -119,7 +119,7 @@ export function storyEntries(g) {
     const image = DUNGEON_LORE_IMAGES[d.id];
     // 専用の原画が無い寄り道の迷宮は、ほかの迷宮の手がかりの絵を借りず、出撃画面と同じその迷宮の情景 (backdrops.js) を掲げる
     const vista = !image && d.side ? { id:d.id, layer:d.layer } : null;
-    return { id:`lore_${d.id}`, group:chapter ? `第${chapter.no}章「${chapter.title}」` : "寄り道の物語",
+    return { id:`lore_${d.id}`, group:d.tutorial ? "序章" : chapter ? `第${chapter.no}章「${chapter.title}」` : "寄り道の物語",
       title:d.name, subtitle:"迷宮の由来と秘密", ...DUNGEON_LORE[d.id],
       ...(image ? { image, imageWidth:1536, imageHeight:1024, imageAlt:`${d.name}の情景` } : {}),
       ...(vista ? { vista } : {}) };
