@@ -44,6 +44,25 @@ with sync_playwright() as p:
     blocked.goto('http://127.0.0.1:8765/docs/art/battle-backgrounds/review.html')
     result['fallback']=blocked.evaluate('''async()=>{const {drawBattleBackdrop}=await import('/src/backdrops.js');const c=document.createElement('canvas');c.width=480;c.height=320;const g=c.getContext('2d');drawBattleBackdrop(g,480,320,1,0,{dungeonId:'w01'});await new Promise(r=>setTimeout(r,100));drawBattleBackdrop(g,480,320,1,0,{dungeonId:'w01'});return g.getImageData(0,0,480,320).data.some((v,i)=>i%4!==3&&v>0);}''')
     result['pageErrors']=errors
+    result['battles']=[]
+    for id,width,height in [('w01',390,844),('w12',1280,900),('w24',390,844),('w45',390,844)]:
+        battle=browser.new_page(viewport={'width':width,'height':height},service_workers='block')
+        battle.add_init_script('performance.setResourceTimingBufferSize(10000)')
+        battle_errors=[]
+        battle.on('pageerror',lambda e:battle_errors.append(str(e)))
+        def expose(route):
+            response=route.fetch()
+            route.fulfill(response=response,body=response.text()+'\nwindow.backgroundReview={G,activeCfg,spawnCardEnemies,startBattle};')
+        battle.route('**/src/game.js*',expose)
+        battle.goto(f'http://127.0.0.1:8765/?testDungeon={id}&testFloor=1',wait_until='domcontentloaded')
+        battle.wait_for_function("window.backgroundReview && backgroundReview.G.state === 'board'")
+        battle.evaluate("""()=>{const t=backgroundReview;t.G.prompt=false;t.G.anim=false;t.G.heroAnim=null;t.G.flipAnim=null;t.G.walking=false;const key=t.activeCfg().bands[0][0];t.startBattle(t.spawnCardEnemies(key,1,1,{min:1}),null);}""")
+        battle.wait_for_timeout(3000)
+        status=battle.evaluate("""()=>({state:backgroundReview.G.state,id:backgroundReview.activeCfg().id,loaded:performance.getEntriesByType('resource').filter(r=>r.name.includes('/art/battle/')).map(r=>r.name.split('/').pop())})""")
+        battle.screenshot(path=str(out/f'battle-{id}.png'),full_page=True)
+        assert status['state']=='combat' and status['id']==id and id+'.webp' in status['loaded'] and not battle_errors,(status,battle_errors)
+        result['battles'].append(status)
+        battle.close()
     browser.close()
 server.shutdown()
 (out/'checks.json').write_text(json.dumps(result,indent=2)+'\n')

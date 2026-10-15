@@ -361,5 +361,35 @@
     ]
   ],
   "fallback": true,
-  "pageErrors": []
+  "pageErrors": [],
+  "battles": [
+    {
+      "state": "combat",
+      "id": "w01",
+      "loaded": [
+        "w01.webp"
+      ]
+    },
+    {
+      "state": "combat",
+      "id": "w12",
+      "loaded": [
+        "w12.webp"
+      ]
+    },
+    {
+      "state": "combat",
+      "id": "w24",
+      "loaded": [
+        "w24.webp"
+      ]
+    },
+    {
+      "state": "combat",
+      "id": "w45",
+      "loaded": [
+        "w45.webp"
+      ]
+    }
+  ]
 }

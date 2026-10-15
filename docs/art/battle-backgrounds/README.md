@@ -13,3 +13,5 @@
 酒場の心得 `t_battle_scenery` を追加。`sw.js` に全画像と読み込みモジュールを登録した。
 
 再生成: `python3 tools/battle-backgrounds/build.py` (Pillow)。ブラウザ検査: `python3 tools/battle-backgrounds/check.py` (Playwright・Chromium、ポート8765)。
+
+実戦画面: 地下墓地 (`battle-w01.png`)・苗床 (`battle-w12.png`、横長)・極光の氷窟 (`battle-w24.png`)・大書庫 (`battle-w45.png`)。テストプレイで戦闘状態に入り、対応WebPの取得とブラウザ例外なしを確認。
