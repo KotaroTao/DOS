@@ -46,7 +46,8 @@ const assert = require('node:assert/strict');
         const resolve = makeItemSpriteResolver(items);
         setSpriteResolver(resolve);
         document.body.replaceChildren();
-        Object.assign(document.body.style, { background: '#19191f', color: '#ddd', display: 'grid', gridTemplateColumns: 'repeat(10,1fr)', gap: '8px' });
+        Object.assign(document.documentElement.style, { height: 'auto', overflow: 'visible' });
+        Object.assign(document.body.style, { height: 'auto', maxHeight: 'none', overflow: 'visible', background: '#19191f', color: '#ddd', display: 'grid', gridTemplateColumns: 'repeat(10,1fr)', gap: '8px' });
         let count = 0, hidden = 0;
         for (const id of ITEM_PHOTOS.filter(id => items[id].number >= 101 && items[id].number <= 200)) {
           const item = items[id], sprite = resolve({ ...item });
