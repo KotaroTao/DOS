@@ -29,7 +29,7 @@ const assert = require('node:assert/strict');
         await r.abort().catch(() => {});
       });
       await page.goto('http://localhost:8000/?testDungeon=w01&testFloor=1', { waitUntil: 'commit' });
-      await page.waitForFunction(() => window.__game?.G.state === 'board', { timeout: 60000 });
+      await page.waitForFunction(() => window.__game?.G.state === 'board', null, { timeout: 60000 });
       assert.equal(await page.getByText('⚠ 読み込みに失敗しました', { exact: true }).count(), 0);
       if (mode === 'normal') {
         await page.setViewportSize({ width: 390, height: 844 });
