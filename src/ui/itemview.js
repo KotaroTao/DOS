@@ -69,7 +69,7 @@ export function elemStatShort(e) { return e && e.el ? `${elemName(e.el)}${e.lv >
 // ===== スキル詳細 =====
 export const SPELL_KIND_LABEL = { atk: "攻撃呪文", heal: "回復呪文", phys: "物理技", buff: "支援", debuff: "弱体", sleep: "状態異常", cure: "治療", mana: "魔力譲渡", escape: "逃走", field: "迷宮の術" };
 // 能力の倍率キーの呼び名 (STR/VIT… 以外の効果)
-export const BUFF_NAME = { hit: "命中率", int: "INT", pie: "PIE", omen: "大技の予兆", taunt: "挑発", shield: "仁王立ち", ctr: "反撃の構え", charge: "溜め", regen: "リジェネ", seal: "特技封じ", wardB: "ブレス避け", wardS: "呪文避け",
+export const BUFF_NAME = { hit: "命中率", int: "INT", pie: "PIE", omen: "大技の予兆", taunt: "挑発", shield: "仁王立ち", ctr: "反撃の構え", rfl: "反射の陣", charge: "溜め", regen: "リジェネ", seal: "特技封じ", wardB: "ブレス避け", wardS: "呪文避け",
   r_fire: "火耐性", r_water: "水耐性", r_wind: "風耐性", r_earth: "土耐性", r_light: "光耐性", r_dark: "闇耐性", r_all: "全属性耐性" };
 // 掛かっている強化・弱体の1つを札に (長押しの「人業の様子」・戦闘中の「敵の姿」)。
 // 戦闘の札には残りターンを出さないので、ここで段・倍率・残りターンを確かめる (2026-10 ユーザーの指示)
@@ -78,8 +78,10 @@ export function effectChip(ef, { enemy = false } = {}) {
   const st = effectStage(ef);
   const name = (enemy && ENEMY_STAT_LABEL[ef.stat]) || ATTR_LABEL[ef.stat] || BUFF_NAME[ef.stat] || (ef.stat || "").toUpperCase();
   const mul = st && ef.mult ? ` ×${Math.round(ef.mult * 100) / 100}` : "";
+  const extra = ef.stat === "ctr" && ef.mult > 1 ? ` 攻撃力×${Math.round((ef.mult - 1) * 100) / 100}`
+    : ef.stat === "rfl" && ef.mult > 1 ? ` 魔力${ef.pow || 0}×${Math.round((ef.mult - 1) * 100) / 100}` : "";
   const turns = isBattleLong(ef.turns) ? "戦闘の終わりまで" : `残り${ef.turns}ターン`;
-  return el("span", "dg-chip " + (ef.mult > 1 ? "up" : "bad"), `${name}${st ? stageLabel(st) : ef.mult > 1 ? "▲" : "▼"}${mul}・${turns}`);
+  return el("span", "dg-chip " + (ef.mult > 1 ? "up" : "bad"), `${name}${st ? stageLabel(st) : ef.mult > 1 ? "▲" : "▼"}${mul}${extra}・${turns}`);
 }
 export const SPELL_TARGET_LABEL = { enemy: "敵単体", "all-enemy": "敵全体", ally: "味方単体", "all-ally": "味方全員", self: "自分" };
 export const SPELL_KIND_COLOR = { atk: "#e0743f", heal: "#46c08f", phys: "#d8b04a", buff: "#5fa8e0", debuff: "#a06fd6", sleep: "#a06fd6", cure: "#46c08f", mana: "#5fa8e0", escape: "#8f96a3", field: "#8fd0c8" };
@@ -304,7 +306,8 @@ export function skillDetailLines(sp) {
   if (sp.vuln) { const nm = Object.keys(sp.vuln).map(ELEM_NAME).join("・"); lines.push(`${nm}耐性を下げる（${nm}の攻撃から受けるダメージ ×${(1 / Object.values(sp.vuln)[0]).toFixed(2)}）`); }
   if (sp.taunt) lines.push("挑発: 敵の単体攻撃が自分に向かいやすくなる");
   if (sp.shield) lines.push("仁王立ち: 味方への単体の物理攻撃を代わりに受ける");
-  if (sp.stance === "counter") lines.push(`反撃の構え: 物理攻撃を受けると、必ず攻撃力×${stanceMulOf(sp)}で反撃する`);
+  if (sp.stance === "counter") lines.push(`反撃の構え: 物理攻撃を受けると、必ず${sp.target === "all-ally" ? "それぞれの" : ""}攻撃力×${stanceMulOf(sp)}で反撃する`);
+  if (sp.reflect) lines.push(`反射の陣: 敵の呪文・ブレスを受けると、必ず唱えた者のINT・PIEの高い方×${sp.reflect}の魔法の一撃で返す（魔法の抵抗値で減る）`);
   if (sp.charge) lines.push(`溜め: 次の物理攻撃・物理技の威力 ×${sp.charge}`);
   if (sp.regen) lines.push(`リジェネ: 毎ターン最大HPの${pct(sp.regen.pct)}を回復（${sp.regen.turns}ターン）`);
   if (sp.ward && sp.ward.breath) lines.push(`ブレス避け: 敵のブレスから受けるダメージ −${pct(sp.ward.breath)}（${sp.dur || 3}ターン）`);
@@ -335,7 +338,7 @@ export function skillDetailLines(sp) {
   if (sp.grantBarrier) lines.push(`魔障壁${sp.grantBarrier}回分（ブレス・呪文の被ダメ半減）を付与`);
   if (sp.debuffAll) lines.push(`さらに敵全体を弱体: ${fx(sp.debuffAll)}`);
   // 効果の持続ターン数。STR〜PIE の段は強化と弱体で打ち消し合い、±3段で止まる (主・精鋭への弱体は −2段まで・持続 −1)
-  if (sp.dur && (sp.buff || sp.debuff || sp.debuffAll || sp.vuln || sp.taunt || sp.shield || sp.stance || sp.charge)) lines.push(`効果は ${sp.dur} ターン持続`);
+  if (sp.dur && (sp.buff || sp.debuff || sp.debuffAll || sp.vuln || sp.taunt || sp.shield || sp.stance || sp.reflect || sp.charge)) lines.push(`効果は ${sp.dur} ターン持続`);
   if ([sp.buff, sp.debuff, sp.debuffAll].some((o) => o && Object.keys(o).some((k) => STAGED.has(k)))) lines.push("能力の段は強化と弱体で打ち消し合い、±3段で止まる（主・強敵への弱体は −2段まで・持続 −1）");
   if (sp.strip) lines.push("敵の大技の予兆（溜め）も打ち消せる");
   const tier = soulTierRate(sp);

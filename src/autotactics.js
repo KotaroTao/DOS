@@ -374,6 +374,8 @@ function allyEffects(b, ctx, actor, sp, a, c, W) {
   const casters = ctx.foes.filter((e) => e.ability === "breath" || e.ability === "spell");
   if (casters.length) {
     const th = casters.reduce((s, e) => s + ctx.threat(e), 0);
+    // 反射の陣: 呪文・ブレスの使い手がいる時、受けるたびに唱えた者の魔力 × 係数で返す見込み
+    if (sp.reflect && b._bm(a, "rfl") <= 1) c.edge += casters.length * Math.max(actor.int || 0, actor.pie || 0) * sp.reflect * ctx.dmgK * 0.3 * n;
     if (sp.ward) for (const w in sp.ward) {
       if (b._bm(a, w === "breath" ? "wardB" : "wardS") > 1) continue;
       if (casters.some((e) => e.ability === w)) c.guard += sp.ward[w] * th / Math.max(1, ctx.allies.length) * n * 0.5;

@@ -10121,7 +10121,7 @@ requestAnimationFrame(combatAnimLoop);
 // 敵にかかっている強化(▲)/弱体(▼)を名前プレート付近に小さなピルで描く。
 // 能力(攻/守/速)ごとに集約し、段階ぶんの矢印と最短残ターンを添える。
 const BUFF_KANJI = {
-  atk: "攻", vit: "守", agi: "速", int: "知", pie: "信", hit: "眼", seal: "封", taunt: "挑", shield: "庇", ctr: "返", charge: "溜", omen: "溜", regen: "癒", wardB: "鱗", wardS: "帳",
+  atk: "攻", vit: "守", agi: "速", int: "知", pie: "信", hit: "眼", seal: "封", taunt: "挑", shield: "庇", ctr: "返", rfl: "映", charge: "溜", omen: "溜", regen: "癒", wardB: "鱗", wardS: "帳",
   r_fire: "火", r_water: "水", r_wind: "風", r_earth: "土", r_light: "光", r_dark: "闇", r_all: "属",
 };
 // 強化/弱体が「かかった瞬間」に出すフロート文字と色 (敵味方共通)。

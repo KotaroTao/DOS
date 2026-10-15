@@ -10,7 +10,7 @@ export default {
     35 wardenFuujite/1 40 KOUSHUNOHOUJIN 45 wardenHouheki/2 47 ICELANCE 50 WARDEN_FUUMAKEKKAI 50 spellGuard/2 55 WARDEN_CHINJUU
     60 wardenGohoujin/2 62 LANDSLIDE 65 MADALT 70 wardenJusogaeshi/1 75 resistAilment/1 80 WARDEN_MIZUKAGAMI
     85 ELEMBREAK 90 wardenSeihitsu/1 95 WARDEN_HAJA 100 WARDEN_SHIHOU 100 spellGuard/3 102 WARDEN_JIBAKU 105 wardenFuujite/2
-    110 WARDEN_SUIROU 115 wardenGohoujin/3 120 WARDEN_FUDOU 125 wardenSeihitsu/2 130 WARDEN_TAIZAN 135 wardenJusogaeshi/2
+    110 WARDEN_SUIROU 115 wardenGohoujin/3 117 WARDEN_UTSUSHIGAESHI 120 WARDEN_FUDOU 125 wardenSeihitsu/2 130 WARDEN_TAIZAN 135 wardenJusogaeshi/2
     140 WARDEN_GANKAI 145 wardenHouheki/3 150 WARDEN_KONGOU 155 resistAilment/2 160 WARDEN_BAKUFU 165 wardenFuujite/3
     170 DAIKEKKAI 172 WARDEN_KANAME 175 wardenJusogaeshi/3 180 WARDEN_CHIMYAKU 185 wardenGohoujin/4 190 WARDEN_HYOUFUU
     195 WARDEN_SEISHIN 200 WARDEN_BANSHOU`,
@@ -26,6 +26,8 @@ export default {
     WARDEN_SHIHOU:      { name: "四方結界", mp: 20, kind: "buff", buff: { vit: 1.2 }, grantBarrier: 1, cure: true, target: "all-ally", desc: "魔障壁を張り、守りを上げ穢れを祓う" },
     WARDEN_JIBAKU:      { name: "地縛の陣", mp: 16, kind: "atk", power: 44, element: "earth", para: 0.25, target: "enemy", desc: "地に縛り付けて撃ち、痺れさせる" },
     WARDEN_SUIROU:      { name: "水牢", mp: 14, kind: "atk", power: 34, element: "water", debuff: { atk: 0.85 }, target: "enemy", desc: "水の牢で締め上げ、力を奪う" },
+    // 味方全体に反射 (2026-10-15 ユーザーの指示): 受けた呪文・ブレスを、唱えた護法師の魔力 (INT・PIE の高い方) × 0.8 で返す
+    WARDEN_UTSUSHIGAESHI: { name: "映し返しの陣", mp: 24, kind: "buff", reflect: 0.8, dur: 3, target: "all-ally", desc: "鏡の結界で味方全員を包み、受けた呪文・ブレスを返す（唱えた者のINT・PIEの高い方×0.8の魔法の一撃）" },
     WARDEN_FUDOU:       { name: "不動の陣", mp: 16, kind: "buff", buff: { vit: 1.4 }, dur: 5, target: "all-ally", tech: true, desc: "味方全員の守りを長く固める (5ターン)" },
     WARDEN_TAIZAN:      { name: "泰山の重圧", mp: 18, kind: "atk", gravity: 0.25, debuff: { atk: 0.85 }, target: "all-enemy", desc: "敵全体の今のHPの25%を圧し、力を奪う" },
     WARDEN_GANKAI:      { name: "岩戒の陣", mp: 27, kind: "atk", power: 70, element: "earth", flinchChance: 0.3, target: "all-enemy", desc: "岩の戒めが敵全体を打ち、怯ませる" },
