@@ -1,3 +1,4 @@
+import { itemNumber } from "./itemnumbers.js";
 import { rarityOrder } from "./rarity.js";
 import { random } from "./rng.js";
 import { prepareWeapon } from "./weaponpower.js";
@@ -1915,4 +1916,7 @@ export const SLOT_ICONS = {
 };
 
 // 基本品も大量カタログと同じ参照仕様に整える。
-for (const it of Object.values(ITEMS)) prepareWeapon(it);
+for (const it of Object.values(ITEMS)) {
+  prepareWeapon(it);
+  it.number = itemNumber(it.id);
+}
