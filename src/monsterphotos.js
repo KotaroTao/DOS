@@ -1,6 +1,12 @@
 // 迷宮の透過原画。通常敵・強敵・主・召喚先・共通の敵で共用する。
 // 能力値や文字グリッドは保ち、読めた原画だけを最初の描画前に登録する。
 export const MONSTER_PHOTOS = {
+  // <<BAPTISM_ART>>
+  // 洗礼の大水槽（作成済みの通常敵・強敵・共通敵は既存原画を共用）。
+  bs_irongolem: [520, 401],
+  bs_voidwalker: [322, 520],
+  bs_shadowdragon: [516, 520],
+  // <</BAPTISM_ART>>
   // <<CAULDRON_ART>>
   // 魂を煮る釜場（作成済みの通常敵・強敵・共通敵は既存原画を共用）。
   bs_furnacefiend: [520, 359],
