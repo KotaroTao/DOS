@@ -77,7 +77,8 @@ export function itemArt(tmpl) {
 // items = ITEMS (目録)。品の実体は雛形の一部 (形の手がかり shape など) を持たないので、雛形から描く
 export function makeItemSpriteResolver(items) {
   return (spr) => {
-    if (spr && spr.slot === "misc") return miscPhoto(spr);
+    const photo = miscPhoto(spr);
+    if (photo) return photo;
     if (!spr || typeof spr !== "object" || !spr.slot || !ART_SLOTS.has(spr.slot)) return null;
     if (spr.unidentified) return unidIcon(spr);
     const tmpl = (spr.id && items[spr.id]) || null;
