@@ -1,0 +1,42 @@
+/* PC の探索・戦闘。街・シートとタッチ端末は従来の配置を使う。 */
+@media (min-width: 1100px) and (min-height: 600px) and (hover: hover) and (pointer: fine) {
+  html.pc-input #app:is(.board-camera-active, .in-combat) {
+    width: calc(100% - 32px); max-width: 1440px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    grid-template-rows: auto auto minmax(100px, 1fr) auto auto;
+    grid-template-areas: "top top" "scene party" "scene log" "scene commands" "haul dock";
+    overflow: hidden;
+  }
+  html.pc-input #app:is(.board-camera-active, .in-combat) > #topbar { grid-area: top; }
+  html.pc-input #app:is(.board-camera-active, .in-combat) > #screen {
+    grid-area: scene; min-width: 0; min-height: 0; align-self: stretch;
+    padding: 12px 10px 8px; align-items: flex-start;
+  }
+  html.pc-input #app:is(.board-camera-active, .in-combat) > #party {
+    grid-area: party; align-self: start; padding: 12px 10px 6px;
+  }
+  html.pc-input #app:is(.board-camera-active, .in-combat) > #hud {
+    grid-area: log; min-height: 100px; min-width: 0; padding: 6px 10px;
+  }
+  html.pc-input #app:is(.board-camera-active, .in-combat) #log { min-height: 54px; font-size: 14px; }
+  html.pc-input #app:is(.board-camera-active, .in-combat) > #controls {
+    grid-area: commands; min-height: 0; max-height: 45dvh; overflow-y: auto;
+  }
+  html.pc-input #app:is(.board-camera-active, .in-combat) > #runbar { grid-area: haul; margin: 0 10px 8px; }
+  html.pc-input #app:is(.board-camera-active, .in-combat) > #hint { grid-area: dock; min-width: 0; }
+  html.pc-input #app.board-camera-active #hint.dg-dock { flex-wrap: wrap; }
+  html.pc-input #app.board-camera-active #hint.dg-dock::before {
+    content: "移動: 矢印キー / WASD ・ 戻る: Esc";
+    flex: 1 0 100%; padding: 2px 4px; color: #b9ad94; font-size: 12px;
+  }
+  html.pc-input #app.board-camera-active #hint .dk-idle { display: none; }
+  html.pc-input #app.board-camera-active #hint .dk-btn { flex: 1 1 auto; }
+  html.pc-input #app.board-camera-active #runbar { align-self: end; }
+  html.pc-input #app.in-combat #enemy-names {
+    top: calc(12px + var(--pc-view-height)); bottom: auto; transform: translateY(-100%);
+  }
+  html.pc-input #app:is(.board-camera-active, .in-combat) :is(button, [role="button"]):focus-visible {
+    outline: 2px solid #f3d58b; outline-offset: -2px;
+  }
+}

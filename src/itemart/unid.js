@@ -1,5 +1,5 @@
 // 未鑑定の品の伏せ絵: ジャンル (武器8種・盾・鎧・頭・小手・足・装飾) ごとに一枚。
-// 形は目録の手描きの原型 (catalog/defs.js の ARTS) を影絵にし、右下に「？」を重ねる。
+// WebP の伏せ絵を優先し、取得失敗時は従来の影絵と「？」へ戻す。
 // 鑑定に成功するまで本来の絵は見せない (どの品かは名前も絵も伏せる)
 import { ARTS } from "../catalog/defs.js";
 
@@ -69,8 +69,29 @@ function build(genre) {
 }
 
 const ICONS = {};
+const PHOTOS = new Map();
 export function unidIcon(it) {
   const genre = it && it.slot === "weapon" ? (SHAPE_OF[it.cat] ? it.cat : "ls") : SHAPE_OF[it && it.slot] ? it.slot : "acc";
-  return ICONS[genre] || (ICONS[genre] = build(genre));
+  return PHOTOS.get(genre) || ICONS[genre] || (ICONS[genre] = build(genre));
 }
 export const UNID_GENRES = Object.keys(SHAPE_OF);
+
+// 起動時に全ジャンルを読み込む。正体・レア度・品IDには依存しない。
+export async function loadUnidPhotos() {
+  if (typeof Image === "undefined") return;
+  await Promise.all(UNID_GENRES.map(genre => new Promise(resolve => {
+    const img = new Image();
+    const timer = setTimeout(() => finish(false), 4000);
+    const finish = ok => {
+      clearTimeout(timer);
+      img.onload = img.onerror = null;
+      if (ok) PHOTOS.set(genre, { w: 24, h: 24,
+        photo: { img, sx: 0, sy: 0, sw: 384, sh: 384 } });
+      resolve();
+    };
+    img.decoding = "async";
+    img.onload = () => finish(img.naturalWidth === 384 && img.naturalHeight === 384);
+    img.onerror = () => finish(false);
+    img.src = new URL(`../../art/unidentified/${genre}.webp`, import.meta.url).href;
+  })));
+}

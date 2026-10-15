@@ -11,6 +11,21 @@
 const CACHE = "dos-dev";
 const DEV = CACHE === "dos-dev";
 const ASSETS = [
+  "./art/unidentified/ls.webp",
+  "./art/unidentified/dg.webp",
+  "./art/unidentified/kt.webp",
+  "./art/unidentified/ax.webp",
+  "./art/unidentified/mc.webp",
+  "./art/unidentified/sp.webp",
+  "./art/unidentified/bw.webp",
+  "./art/unidentified/st.webp",
+  "./art/unidentified/shield.webp",
+  "./art/unidentified/body.webp",
+  "./art/unidentified/head.webp",
+  "./art/unidentified/hands.webp",
+  "./art/unidentified/feet.webp",
+  "./art/unidentified/acc.webp",
+
   // <<ITEM_1601_1700_ART>>
   "./art/items/w_r9_icegodspear.webp",
   "./art/items/w_r9_celestialbow.webp",
@@ -1291,6 +1306,8 @@ const ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
+  "./desktop.css",
+  "./src/desktop.js",
   "./theme.css",
   "./title.css",
   "./town.css",

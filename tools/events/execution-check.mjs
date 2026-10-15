@@ -27,7 +27,8 @@ function fixture(ok) {
     story:(_title,_lines,next)=>next?.(),
   };
   for (const k of ['back','toast','log','sfx','flash','refresh','recalcPermanent','payGold','paySoul','payEmber','healAll','hurtAll','hurtAllCur','hurtOne','ail','ailAll','cureAll','mpAll','revive','gold','soul','ember','giveGoldRaw','giveSoulRaw','revealStairs','revealWhere','warmCorpse','skipFloors','warpToStairs','removeMonsters','clearMonsters','clearPoison','reviveMonsters','floodHalf','purgeBeasts','placeChest','trap','reopen','refight']) A[k]=()=>{};
-  for (const k of ['item','itemMinRar','soulDrop','collectible']) A[k]=(_o,_from,next)=>next?.();
+  A.collectible=(_from,next)=>next?.();
+  for (const k of ['item','itemMinRar','soulDrop']) A[k]=(_o,_from,next)=>next?.();
   A.giveItemId=(_id,next)=>next?.();
   A.chestHere=(_cell,_o,next)=>next?.();
   A.openChestAt=()=>{};

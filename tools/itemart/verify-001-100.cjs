@@ -15,8 +15,8 @@ const assert = require('node:assert/strict');
         await new Promise(resolve => setTimeout(resolve, 5000));
         await r.abort().catch(() => {});
       });
-      await page.goto('http://localhost:8000/?testDungeon=w01&testFloor=1');
-      await page.waitForFunction(() => window.__game?.G.state === 'board', { timeout: 30000 });
+      await page.goto('http://localhost:8000/?testDungeon=w01&testFloor=1', { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction(() => window.__game?.G.state === 'board', null, { timeout: 90000 });
       if (mode === 'normal') {
         await page.setViewportSize({ width: 390, height: 844 });
         for (const id of ['dagger', 'plateArmor', 'manaDrop']) {
@@ -57,7 +57,7 @@ const assert = require('node:assert/strict');
           }
           if (ART_SLOTS.has(item.slot)) {
             const unknown = resolve({ ...item, unidentified: true });
-            if (unknown.photo || JSON.stringify(unknown) !== JSON.stringify(unidIcon(item))) throw Error(id + ': 未鑑定の姿が漏れている');
+            if (JSON.stringify(unknown) !== JSON.stringify(unidIcon(item))) throw Error(id + ': 未鑑定の姿が漏れている');
             hidden++;
           }
           const canvas = spriteCanvas({ ...item }, 4, 24);
