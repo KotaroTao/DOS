@@ -23,7 +23,7 @@ const source = fs.readFileSync(sourcePath, "utf8").replace(
 );
 const cell = value => '"' + String(value ?? "").replaceAll('"', '""') + '"';
 const rows = [["制作番号", "担当範囲", "既存ID", "名前", "部位", "レア度", "説明", "既存WebP"]];
-const photoDirs = ["art/collectibles/", "art/offerings/", "art/misc/", "art/treasury/"];
+const photoDirs = ["art/items/", "art/collectibles/", "art/offerings/", "art/misc/", "art/treasury/"];
 ids.forEach((id, i) => {
   const it = all[id], number = i + 1, start = Math.floor(i / 100) * 100 + 1;
   if (!update && it.number !== number) fail("品の制作番号が一致しません: " + id);

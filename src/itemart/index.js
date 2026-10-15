@@ -13,6 +13,7 @@ import { collectiblePhoto } from "../collectiblephotos.js";
 import { treasuryPhoto } from "../treasuryphotos.js";
 import { miscPhoto } from "../miscphotos.js";
 import { themeOf } from "./theme.js";
+import { itemPhoto } from "../itemphotos.js";
 import { weaponArt } from "./weapons.js";
 import { armorArt } from "./armor.js";
 import { HAND_ART } from "./hand/index.js";
@@ -80,9 +81,11 @@ export function itemArt(tmpl) {
 export function makeItemSpriteResolver(items) {
   return (spr) => {
     if (!spr || typeof spr !== "object") return null;
+    if (spr.unidentified && ART_SLOTS.has(spr.slot)) return unidIcon(spr);
+    const photo = itemPhoto(spr.id);
+    if (photo) return photo;
     if (spr.slot === "misc") return treasuryPhoto(spr.id) || collectiblePhoto(spr.id) || miscPhoto(spr);
     if (!spr.slot || !ART_SLOTS.has(spr.slot)) return null;
-    if (spr.unidentified) return unidIcon(spr);
     const tmpl = (spr.id && items[spr.id]) || null;
     return tmpl ? itemArt(tmpl) : null;
   };
