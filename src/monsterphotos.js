@@ -1,4 +1,4 @@
-// 地下墓地・修道院・黒水の取水口・回廊の透過原画。通常敵・強敵・主・召喚先・ミミックで共用する。
+// 地下墓地・修道院・黒水の取水口・回廊・石切り場の透過原画。通常敵・強敵・主・召喚先・ミミックで共用する。
 // 能力値や文字グリッドは保ち、読めた原画だけを最初の描画前に登録する。
 export const MONSTER_PHOTOS = {
   bs_bonebat: [448, 415],
@@ -36,6 +36,18 @@ export const MONSTER_PHOTOS = {
   bs_bonechanter: [378, 399],
   bs_gravecaller: [408, 389],
   bs_cryptabbot: [434, 392],
+  // 石眠りの石切り場（通常敵9種・強敵・銀業。ミミックは共用）。
+  d03_orc: [493, 434],
+  bs_shieldogre: [512, 467],
+  bs_stonegorgon: [396, 512],
+  bs_rockworm: [502, 499],
+  bs_dustwraith: [476, 504],
+  bs_tunneler: [498, 459],
+  d03_mandrake: [480, 504],
+  bs_orehulk: [512, 462],
+  bs_deepgolem: [487, 482],
+  el_crystalseer: [466, 507],
+  mt_silver: [325, 379],
 };
 
 function loadImage(img, src, width, height) {
