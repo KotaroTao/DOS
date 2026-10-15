@@ -1,8 +1,8 @@
 // ===== 付呪 — 商会で、無限迷宮の品の追加の能力・特性を写し取り、任意の装備に書き込む (第十一章の結びで開く) =====
 // 仕組みは src/infaffix.js の「付呪」と game.js の enchant* / extractAffix / writeAffix / eraseAffix。
-//   商会の区分「付呪」: 術の頁 (写し取った術) と、術の付いた品 (手元・商会の棚) を並べる
-//   ・術の付いた品を押す → 術を1つ選んで「写し取る」(元の品は消える。棚の品は買値を払う) か「消す」(手元の品だけ。頁は戻らない)
-//   ・術の頁を押す → 書き込む品を選ぶ (書ける数・容量・費用・書けない理由) → 確かめて書き込む
+//   商会の区分「付呪」: 特性の巻物 (写し取った特性) と、特性の付いた品 (手元・商会の棚) を並べる
+//   ・特性の付いた品を押す → 特性を1つ選んで「写し取る」(元の品は消える。棚の品は買値を払う) か「消す」(手元の品だけ。巻物は戻らない)
+//   ・特性の巻物を押す → 書き込む品を選ぶ (書ける数・容量・費用・書けない理由) → 確かめて書き込む
 // 提供する契約: UI.renderEnchantList(wrap) → 描く関数
 // game.js は import しない (ctx.js の UI / game を通す)。
 
@@ -19,9 +19,9 @@ const sfx = (k, ...a) => { try { if (game.SFX && game.SFX[k]) game.SFX[k](...a);
 const shortN = (n) => (n >= 100000 ? `${Math.round(n / 1000)}k` : String(n));
 const tierOf = (k) => { const d = afxDef(k); return d ? AFX_TIERS[d.tier] : AFX_TIERS.c; };
 const afxName = (k) => { const d = afxDef(k); return d ? d.name.replace(/の$/, "") : "？"; };
-export const ENCHANT_NOTE = `無限迷宮で拾った品の追加の能力・特性を1つ選んで「術の頁」に写し取り (元の品は消える)、好きな装備に書き込める。書ける数はレア度で決まる: ${Object.entries(ENCHANT_SLOTS).map(([k, n]) => `${RARITIES[k] ? RARITIES[k].label : k}${n}`).join("・")}。`;
+export const ENCHANT_NOTE = `無限迷宮で拾った品の追加の能力・特性を1つ選んで「特性の巻物」に写し取り (元の品は消える)、好きな装備に書き込める。書ける数はレア度で決まる: ${Object.entries(ENCHANT_SLOTS).map(([k, n]) => `${RARITIES[k] ? RARITIES[k].label : k}${n}`).join("・")}。`;
 
-// 術の名の札 (格の印と名。格で色を分ける)
+// 特性の名の札 (格の印と名。格で色を分ける)
 function afxTag(k, cls = "") {
   const t = tierOf(k);
   const d = afxDef(k);
@@ -58,7 +58,7 @@ function afxSummary(it) {
   return l;
 }
 
-// ---------------------------------------------------------------- 術の付いた品のシート (写し取る / 消す)
+// ---------------------------------------------------------------- 特性の付いた品のシート (写し取る / 消す)
 function openSourceSheet(src, onDone) {
   let h = null;
   const it = src.it;
@@ -85,14 +85,14 @@ function openSourceSheet(src, onDone) {
       list.appendChild(box);
     });
     b.appendChild(list);
-    b.appendChild(setText(el("div", "rf-note"), "写し取ると、この品は崩れて消える。写せるのは1つの品から1つだけ。写した術は「術の頁」になり、好きな装備に書き込める。"));
-    if (!src.shelf) b.appendChild(setText(el("div", "rf-note"), "「消す」はこの品から術を消すだけで、頁にはならない。"));
+    b.appendChild(setText(el("div", "rf-note"), "写し取ると、この品は崩れて消える。写せるのは1つの品から1つだけ。写した特性は「特性の巻物」になり、好きな装備に書き込める。"));
+    if (!src.shelf) b.appendChild(setText(el("div", "rf-note"), "「消す」はこの品から特性を消すだけで、巻物にはならない。"));
   };
   async function doExtract(i) {
     const name = afxName(it.afx[i].k);
     const ok = await confirm({
       banner: "写し取る", title: `「${name}」を写し取る`,
-      lines: [src.shelf ? `${itemName(it)} を買値 💰${shortN(game.buyPrice ? game.buyPrice(it) : 0)} で買い取り、術を写し取る。` : `写し取ると、${itemName(it)} は崩れて消える。`, "ほかの術は失われる。"],
+      lines: [src.shelf ? `${itemName(it)} を買値 💰${shortN(game.buyPrice ? game.buyPrice(it) : 0)} で買い取り、特性を写し取る。` : `写し取ると、${itemName(it)} は崩れて消える。`, "ほかの術は失われる。"],
       okLabel: "写し取る",
     });
     if (!ok) return;
@@ -103,7 +103,7 @@ function openSourceSheet(src, onDone) {
   }
   async function doErase(i) {
     const name = afxName(it.afx[i].k);
-    const ok = await confirm({ banner: "術を消す", title: `「${name}」を消す`, lines: [`${itemName(it)} から術を消す。頁にはならず、戻せない。`], okLabel: "消す" });
+    const ok = await confirm({ banner: "特性を消す", title: `「${name}」を消す`, lines: [`${itemName(it)} から特性を消す。巻物にはならず、戻せない。`], okLabel: "消す" });
     if (!ok) return;
     if (game.eraseAffix && game.eraseAffix(it, i)) {
       toast(`「${name}」を消した`, { tone: "info", noLog: true });
@@ -113,11 +113,11 @@ function openSourceSheet(src, onDone) {
     }
   }
   sfx("select");
-  h = sheet.open({ kind: "info", banner: "術の付いた品", art: it, artScale: 6, body, className: "ec-sheet", footer: [{ label: "閉じる", kind: "ghost", onTap: (x) => x.close() }] });
+  h = sheet.open({ kind: "info", banner: "特性の付いた品", art: it, artScale: 6, body, className: "ec-sheet", footer: [{ label: "閉じる", kind: "ghost", onTap: (x) => x.close() }] });
   return h;
 }
 
-// ---------------------------------------------------------------- 術の頁 → 書き込む品を選ぶ
+// ---------------------------------------------------------------- 特性の巻物 → 書き込む品を選ぶ
 function openWriteSheet(page, onDone) {
   let h = null;
   const body = (b) => {
@@ -126,18 +126,18 @@ function openWriteSheet(page, onDone) {
     head.appendChild(setText(el("span", "ec-afx-t"), pageText(page)));
     b.appendChild(head);
     const d = afxDef(page.k);
-    if (d && d.kind === "B") b.appendChild(setText(el("div", "rf-note"), "能力値の術は、書き込む品のランクに合わせて値が変わる (下の一覧の値)。"));
+    if (d && d.kind === "B") b.appendChild(setText(el("div", "rf-note"), "能力値の特性は、書き込む品のランクに合わせて値が変わる (下の一覧の値)。"));
     const targets = (game.enchantTargets ? game.enchantTargets() : []).filter((x) => pageFitsSlot(page, x.it)); // 部位の合わない品は出さない
     const infos = targets.map((x) => ({ x, info: game.enchantInfo(x.it, page) }));
     infos.sort((a, b2) => (a.info.why ? 1 : 0) - (b2.info.why ? 1 : 0));
     const n = infos.filter((y) => !y.info.why).length;
     b.appendChild(el("div", "wpc-lhead", `書き込める品 ${n}点`));
     const box = el("div", "wpc-list ec-list");
-    if (!infos.length) box.appendChild(el("div", "wpc-empty", "この術を書ける部位の装備品が無い。未鑑定の品は、先に鑑定する。"));
+    if (!infos.length) box.appendChild(el("div", "wpc-empty", "この特性を書ける部位の装備品が無い。未鑑定の品は、先に鑑定する。"));
     for (const { x, info } of infos) {
       const sub = el("span", "wpc-srow-l3 ec-sub");
       const r = info.room;
-      sub.appendChild(el("span", "ec-room", `術 ${r.used}/${r.slots} ・ 能力値 ${r.capUsed}/${r.cap}`));
+      sub.appendChild(el("span", "ec-room", `特性 ${r.used}/${r.slots} ・ 能力値 ${r.capUsed}/${r.cap}`));
       sub.appendChild(el("span", "wpc-srow-kind", whereText(x)));
       if (!info.why) sub.appendChild(setText(el("span", "ec-val"), info.text));
       else sub.appendChild(el("span", "ec-why", info.why));
@@ -160,7 +160,7 @@ function openWriteSheet(page, onDone) {
   };
   async function doWrite(x, info) {
     if (info.block) { sfx("ng"); toast(info.block, { tone: "bad", noLog: true }); return; }
-    const lines = [`${itemName(x.it)} に書き込む: ${info.text}`, `費用 💰${shortN(info.cost)} (所持 💰${shortN(G().gold || 0)})`, "書いた術は消せるが、頁は戻らない。"];
+    const lines = [`${itemName(x.it)} に書き込む: ${info.text}`, `費用 💰${shortN(info.cost)} (所持 💰${shortN(G().gold || 0)})`, "書いた特性は消せるが、巻物は戻らない。"];
     const ok = await confirm({ banner: "付呪", title: `「${afxName(page.k)}」を書き込む`, lines, okLabel: "書き込む", danger: false });
     if (!ok) return;
     if (game.writeAffix && game.writeAffix(x.it, page)) {
@@ -169,7 +169,7 @@ function openWriteSheet(page, onDone) {
     }
   }
   sfx("select");
-  h = sheet.open({ kind: "info", banner: "術の頁を書き込む", body, className: "ec-sheet", footer: [{ label: "閉じる", kind: "ghost", onTap: (x) => x.close() }] });
+  h = sheet.open({ kind: "info", banner: "特性の巻物を書き込む", body, className: "ec-sheet", footer: [{ label: "閉じる", kind: "ghost", onTap: (x) => x.close() }] });
   return h;
 }
 
@@ -177,7 +177,7 @@ function openWriteSheet(page, onDone) {
 export function renderEnchantList(wrap) {
   const intro = el("section", "rf-intro");
   intro.appendChild(setText(el("div", "rf-intro-t"), ENCHANT_NOTE));
-  intro.appendChild(setText(el("div", "rf-intro-s"), "能力値の術は、書く品のランクとレア度で決まる容量まで。極・発動する特性・属攻・属防・追加効果は、1つの品にそれぞれ1つまで。費用は書く品の買値と術の格・何枠目かで決まる。"));
+  intro.appendChild(setText(el("div", "rf-intro-s"), "能力値の特性は、書く品のランクとレア度で決まる容量まで。極・発動する特性・属攻・属防・追加効果は、1つの品にそれぞれ1つまで。費用は書く品の買値と術の格・何枠目かで決まる。"));
   wrap.appendChild(intro);
   const head = el("div", "wpc-lhead");
   head.appendChild(el("span", "wpc-lhead-t", "付呪"));
@@ -193,8 +193,8 @@ export function renderEnchantList(wrap) {
     box.textContent = "";
     const pages = game.afxPagesState ? game.afxPagesState() : [];
     const pg = el("section", "rf-grp ec-pages");
-    pg.appendChild(el("div", "wpc-drow-h ec-h", `術の頁 ${pages.length}枚`));
-    if (!pages.length) pg.appendChild(el("div", "wpc-empty", "まだ頁が無い。下の「術の付いた品」から写し取る。"));
+    pg.appendChild(el("div", "wpc-drow-h ec-h", `特性の巻物 ${pages.length}本`));
+    if (!pages.length) pg.appendChild(el("div", "wpc-empty", "まだ巻物が無い。下の「特性の付いた品」から写し取る。"));
     for (const page of pages) {
       const row = el("div", "wpc-srow ec-prow");
       const info = el("button", "wpc-srow-info");
@@ -220,8 +220,8 @@ export function renderEnchantList(wrap) {
     box.appendChild(pg);
     const srcs = game.enchantSources ? game.enchantSources() : [];
     const sg = el("section", "rf-grp ec-srcs");
-    sg.appendChild(el("div", "wpc-drow-h ec-h", `術の付いた品 ${srcs.length}点`));
-    if (!srcs.length) sg.appendChild(el("div", "wpc-empty", "術の付いた品が無い。無限迷宮で拾った品は、持ち帰ると商会の棚に並ぶ。"));
+    sg.appendChild(el("div", "wpc-drow-h ec-h", `特性の付いた品 ${srcs.length}点`));
+    if (!srcs.length) sg.appendChild(el("div", "wpc-empty", "特性の付いた品が無い。無限迷宮で拾った品は、持ち帰ると商会の棚に並ぶ。"));
     for (const x of srcs) {
       const sub = afxSummary(x.it);
       sub.appendChild(el("span", "wpc-srow-kind", whereText(x) + (x.shelf ? ` 💰${shortN(game.buyPrice ? game.buyPrice(x.it) : 0)}` : "")));

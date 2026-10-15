@@ -1,4 +1,4 @@
-"""付呪 (第十一章の結び) の写し取り・書き込み・消す・容量と数の決まり・保存・商会の画面を実処理で検証 (localhost:8000)。"""
+"""付呪 (第十一章の結び) の写し取り (特性の巻物)・書き込み・消す・容量と数の決まり・保存・商会の画面を実処理で検証 (localhost:8000)。"""
 import os
 from playwright.sync_api import sync_playwright
 
@@ -62,9 +62,9 @@ with sync_playwright() as p:
       game.writeAffix(tu,same);
       check(tu.afx.length===2,'アンコモンに2つ書ける');
       const same2={k:'A05',r:0.2};
-      check(/同じ術/.test(X.enchantBlock(tl,same2,'lr')||'x')===false,'別の品には同じ術も書ける');
+      check(/同じ特性/.test(X.enchantBlock(tl,same2,'lr')||'x')===false,'別の品には同じ術も書ける');
       tl.afx=[{k:'A05',v:5}];X.applyAffixes(tl);
-      check(/同じ術/.test(X.enchantBlock(tl,same2,'lr')),'同じ品に同じ種類は書けない');
+      check(/同じ特性/.test(X.enchantBlock(tl,same2,'lr')),'同じ品に同じ種類は書けない');
       check(/部位/.test(X.enchantBlock(tl,{k:'J10',v:1},'lr')),'一番手は武器に書けない');
       const acc=mk(Object.values(ITEMS).find(x=>x.rar==='lr'&&x.slot==='acc').id);
       acc.afx=[{k:'J11',v:0.1}];X.applyAffixes(acc);
@@ -94,7 +94,7 @@ with sync_playwright() as p:
       check(game.sellPrice(t5)-sp0<inf5.cost,'書き込みの費用は売値の上がり分より高い');
       // 保存
       const snap=refDeserialize(JSON.parse(__game.inf.saveJSON()));
-      check(Array.isArray(snap.afxPages)&&snap.afxPages.length===game.afxPagesState().length,'術の頁を保存する');
+      check(Array.isArray(snap.afxPages)&&snap.afxPages.length===game.afxPagesState().length,'特性の巻物を保存する');
       // 極の出やすさ
       let x=0,n=0;const t=ITEMS[byRar('c','acc').id];for(let i=0;i<4000;i++){const a=X.rollAffixes(game.cloneItem(t.id,50),150);if(a){n++;if(a.some(o=>X.afxDef(o.k).tier==='x'))x++;}}
       check(x/n<0.03,`150階の装飾に極が付く割合 ${(x/n*100).toFixed(2)}% (3%未満)`);
@@ -103,7 +103,7 @@ with sync_playwright() as p:
     page.evaluate('''async()=>{const {UI}=await import('/src/ui/ctx.js');UI.openShop('enchant');}''')
     page.wait_for_timeout(300)
     text = page.inner_text('body').replace('​', '')
-    assert '付呪' in text and '術の頁' in text and '術の付いた品' in text, text[:500]
+    assert '付呪' in text and '特性の巻物' in text and '特性の付いた品' in text, text[:500]
     page.evaluate('''()=>{const b=[...document.querySelectorAll('.ec-prow .wpc-buy-main')][0];if(!b)throw Error('書き込むボタンが無い');b.click();}''')
     page.wait_for_timeout(300)
     text = page.inner_text('body').replace('​', '')

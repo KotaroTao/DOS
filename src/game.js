@@ -16035,8 +16035,8 @@ function setItemQuality(owner, it, q) {
 }
 
 // ---- 付呪 (第十一章の結び — src/infaffix.js の「付呪」、docs/infinite-affixes.md 6章。2026-10-15 ユーザーの決定) ----
-// 無限迷宮で拾った品の追加の能力・特性を1つ選んで「術の頁」(G.afxPages) に写し取り (元の品は消える)、
-// 金貨を払って任意の装備に書き込む。書いた術は消せる (頁は戻らない)。街の商会でだけ
+// 無限迷宮で拾った品の追加の能力・特性を1つ選んで「特性の巻物」(G.afxPages) に写し取り (元の品は消える)、
+// 金貨を払って任意の装備に書き込む。書いた特性は消せる (巻物は戻らない)。街の商会でだけ
 const ENCHANT_MIN_COST = 100;
 function afxPagesState() { if (!Array.isArray(G.afxPages)) G.afxPages = []; return G.afxPages; }
 // 品の持ち主と置き場所 ({ doll, key } — key = 装備の欄、袋の中なら doll = null・key = null)。持っていなければ null
@@ -16073,7 +16073,7 @@ function extractBlock(src, { gold = true } = {}) {
   return null;
 }
 function enchantStats() { if (!G.stats) G.stats = {}; if (!G.stats.enchant) G.stats.enchant = { pages: 0, written: 0, erased: 0 }; return G.stats.enchant; }
-// 品の追加の idx 番目を頁に写し取る。元の品は消える (棚の品は買値を払う)。作った頁を返す
+// 品の追加の idx 番目を巻物に写し取る。元の品は消える (棚の品は買値を払う)。作った巻物を返す
 function extractAffix(src, idx) {
   const why = extractBlock(src);
   if (why) { SFX.ng(); showToast(why, { tone: "bad", noLog: true }); return null; }
@@ -16085,7 +16085,7 @@ function extractAffix(src, idx) {
     G.gold -= price;
     G.shopStock[it.id] = Math.max(0, (G.shopStock[it.id] || 0) - 1);
     delete shopAfxState()[it.id];
-    log(`商会の棚の ${itemName(it)} を買い取り (−💰${price})、術を写し取った。`, "sys");
+    log(`商会の棚の ${itemName(it)} を買い取り (−💰${price})、特性を写し取った。`, "sys");
   } else {
     const bag = G.inventory || [];
     const i = bag.indexOf(it);
@@ -16095,8 +16095,8 @@ function extractAffix(src, idx) {
   afxPagesState().push(page);
   enchantStats().pages++;
   SFX.itemget(); buzz(12);
-  log(`術の頁「${afxDef(page.k).name.replace(/の$/, "")}」を写し取った ― ${itemName(it)} は崩れて消えた。`, "win");
-  showToast(`術の頁「${afxDef(page.k).name.replace(/の$/, "")}」を写し取った`, { tone: "good", noLog: true });
+  log(`特性の巻物「${afxDef(page.k).name.replace(/の$/, "")}」を写し取った ― ${itemName(it)} は崩れて消えた。`, "win");
+  showToast(`特性の巻物「${afxDef(page.k).name.replace(/の$/, "")}」を写し取った`, { tone: "good", noLog: true });
   autosave();
   renderTown();
   return page;
@@ -16108,7 +16108,7 @@ function enchantTargets() {
   for (const it of (G.inventory || [])) if (enchantable(it)) out.push({ it, doll: null, key: null });
   return out;
 }
-// 品に頁を書いた後の写し (値段・説明を見るため。品そのものは変えない)
+// 品に巻物を書いた後の写し (値段・説明を見るため。品そのものは変えない)
 function enchantPreview(it, page) {
   const copy = JSON.parse(JSON.stringify(it));
   copy.afx = [...(copy.afx || []), { k: page.k, v: pageValue(page, it) }];
@@ -16125,7 +16125,7 @@ function enchantCost(it, page) {
   const rise = Math.max(0, buyPrice(enchantPreview(it, page)) - buyPrice(it));
   return Math.max(ENCHANT_MIN_COST, base, rise);
 }
-// 頁を品に書けない理由 (書ければ null)
+// 巻物を品に書けない理由 (書ければ null)
 function writeBlock(it, page, { gold = true } = {}) {
   const why = enchantClosed();
   if (why) return why;
@@ -16143,7 +16143,7 @@ function refreshHolder(it) {
   const h = itemHolder(it);
   if (h && h.doll) { recalcDoll(h.doll); h.doll.hp = Math.min(h.doll.hp, h.doll.maxhp); h.doll.mp = Math.min(h.doll.mp, h.doll.maxmp); }
 }
-// 頁を品に書く (頁は使い切り)
+// 巻物を品に書く (巻物は使い切り)
 function writeAffix(it, page) {
   const why = writeBlock(it, page);
   if (why) { SFX.ng(); showToast(why, { tone: "bad", noLog: true }); return false; }
@@ -16164,7 +16164,7 @@ function writeAffix(it, page) {
   renderStatus(); renderParty(); renderTown();
   return true;
 }
-// 手元の品の追加を1つ消す (頁は戻らない。費用なし)
+// 手元の品の追加を1つ消す (巻物は戻らない。費用なし)
 function eraseAffix(it, idx) {
   const why = enchantClosed();
   if (why) { SFX.ng(); showToast(why, { tone: "bad", noLog: true }); return false; }
@@ -16176,7 +16176,7 @@ function eraseAffix(it, idx) {
   refreshHolder(it);
   enchantStats().erased++;
   SFX.select();
-  log(`${itemName(it)} から「${d ? d.name.replace(/の$/, "") : "術"}」を消した。`, "sys");
+  log(`${itemName(it)} から「${d ? d.name.replace(/の$/, "") : "特性"}」を消した。`, "sys");
   autosave();
   renderStatus(); renderParty(); renderTown();
   return true;

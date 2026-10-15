@@ -270,7 +270,7 @@ function keeperLine(seg) {
   if (seg === "sell" && unidCount() > 0) line = "未鑑定の品か。正体を知るのは、金を払ってからだ。";
   else if (seg === "buy") line = "黒鉄は嘘をつかん。値札もな。";
   else if (seg === "forge") line = "同じ品でも、打ちの出来はまちまちだ。金を積めば、何度でも炉に入れてやる。";
-  else if (seg === "enchant") line = "夜明けの町の書き手から習った術だ。頁に写すと元の品は崩れる。書く先はよく選べ。";
+  else if (seg === "enchant") line = "夜明けの町の書き手から習った術だ。巻物に写すと元の品は崩れる。書く先はよく選べ。";
   return whisper("merchant", line, { who: shell.who || "黒鉄商会 ヴォス" });
 }
 
