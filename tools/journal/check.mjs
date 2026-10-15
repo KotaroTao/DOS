@@ -6,7 +6,7 @@ import { STORY_IMAGES } from "../../src/storyimages.js";
 import { ARCHIVE_FOCUS } from "../../src/archive-art.js";
 import { storyEntries, storyMediaUrls, journalState, newStories, unreadStories, markStoryRead, markStoriesKnown, seedJournal } from "../../src/journal.js";
 import { WORLD } from "../../src/dungeons/world.js";
-import { STORY_CELLS, REPORTS, BOSS_MEMORIES, IRENE_BEATS, CHAPTER_END } from "../../src/story.js";
+import { STORY_CELLS, REPORTS, BOSS_MEMORIES, BOSS_PRELUDES, IRENE_BEATS, CHAPTER_END } from "../../src/story.js";
 import { imageSize } from "../storyart/imagesize.mjs";
 import { registerDrift } from "../storyart/register.mjs";
 
@@ -90,6 +90,7 @@ for (const id of Object.keys(REPORTS)) {
   assert(byId.get(`report_${id}`)?.available({ world:{reported:{[id]:true}} }));
 }
 for (const id of Object.keys(BOSS_MEMORIES)) g.world.beats[`mem_${id}`] = true;
+for (const id of Object.keys(BOSS_PRELUDES)) g.world.beats[`pre_${id}`] = true; // 主との対面
 for (const s of IRENE_BEATS) g.world.beats[s.id] = true;
 for (const id of Object.keys(CHAPTER_END)) g.world.beats[`ch${id}_end`] = true;
 for (const d of WORLD) g.world.cleared[d.id] = true;

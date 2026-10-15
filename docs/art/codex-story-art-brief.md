@@ -169,6 +169,7 @@ Sky continuity: In present-day scenes from report_w33 (the hundredth-year blue s
 | 第八章 report_w33 以降 | 窓辺で空を見上げる | **百年で初めての青空** (朝) | ― |
 | 第九章 | 膝掛け。自分の手を見る | 晴れた空 (昼は青空、夕方は茜) | 杖なし。指先の焼けた手 (手袋は石橋の輪に結んで残した)。片脚を引きずる |
 | 第十章 | 膝掛け。玉座の肘掛けを強く握る (report_w41) | 晴れた空 | 第九章と同じ (手袋なし・焼けた指・片脚を引きずる)。**記憶の中だけに出る** (mem_w41)。悪人にも聖人にも見せない — 静かで、決意の固い顔 |
+| 第十一章 | 膝掛け。自分の手を見る (report_w44)。町からの古い本を膝に (report_w45) | 晴れた空 (夕方は茜) | 第十章と同じ。**記憶の中だけに出る** (mem_w45: 大書庫の長机で古い記録を読み、余白に書きこむ。町の人業が運んだ椀は手つかず)。迷いのある、静かな顔 |
 
 ---
 
@@ -946,30 +947,120 @@ A towering cavern wall carved with hundreds of small niches rising tier upon tie
 The same throne room at dusk, orange sky outside. The very old king leans back on the throne, eyes half-closed, one hand over his heart as if mourning, speaking quietly to himself. The chancellor's chair stands empty. The apprentice stands below.
 ```
 
+**pre_w41「階段の前の宰相」** (主との対面 / 宰相モルデン。戦いの前)
+- 要点: 大伽藍のいちばん奥、さらに下へ降りる石段の手前に小さな書見台。痩せた長身の宰相モルデンが細い筆で木札に名を書き終え、筆を置き、札を灯籠に結んで振り返る。足もとに名札つきの濁った灯籠が行儀よく並ぶ (湖の札・灯籠の山の足跡・壁龕の名と同じ手)。石段の前の石は、三百年立ち続けた足の形にすり減っている。「ここから先へは、行かせません」。敵意ではなく、静かな拒み。
+- 描くもの: 書見台・筆・木札 / 名札つきの灯籠の列 / 石段の前に立つモルデン (正典の顔、胸の扉は閉じている) / 手前に立つ弟子と隊の後ろ姿。描かないもの: 師。底のものの正体 (光だけ)。
+```text
+The innermost depth of a gigantic cavern-cathedral, ceiling lost in darkness. Before a broad ancient stone stairway descending into an abyss (a faint unearthly light far below) stands a small wooden lectern with a fine brush and a stack of small wooden name tags. The chancellor Morden (exact canon face: gaunt, pale, ageless, thin sad smile, tall black-purple hat with gold band, red inner robe, gold chain with a red jewel) has just set down the brush and turns toward the viewer, one hand tying a tag onto a small clouded lantern. Rows of small clouded-black antique lanterns with wooden name tags stand neatly at his feet. The worn top step bears two foot-shaped hollows. In the foreground, the apprentice and the party of wooden dolls are seen from behind. Calm, sorrowful, a quiet refusal rather than menace.
+```
+
 **mem_w41「階段の前のふたり」** (主の記憶 / 宰相モルデン)
-- 要点: 一年前。大伽藍のいちばん奥、さらに下へ続く階段の前で、宰相モルデンと師オルドが向かい合う。モルデンは三百年、地上の務めの合間にこの階段を守ってきた。底に眠るものを手にした者は「魂の王」になる。祖は触れるなと言い残した。師は「それを取りに来た」と言い、命令では誰も救えなかったから巡りを書き換えると言う。モルデンは「命を思うままにする者は、いつか必ず命を使い潰す」と答える。師は階段を降り、モルデンは追えない。**どちらも悪人にも聖人にも見せない** — 二人とも正しく、二人とも迷っている。
+- 要点: 一年前。大伽藍のいちばん奥、さらに下へ続く階段の前で、宰相モルデンと師オルドが向かい合う。モルデンは三百年、地上の務めの合間にこの階段を守ってきた。底に眠るものを手にした者は「魂の王」になる。祖は触れるなと言い残した。師は「それを取りに来た」と言う — 魂を何度でも器へ戻せる仕組みに限りを書き入れ、生き切った魂を誰も引き止められないようにするために (イレーヌ・セラにも及ぶ。大事な者だけを例外にはしない。声を聞く仕組みも書く、書けるかは分からない)。モルデンが恐れるのは悪い王ではなく善い王 (正しい言いつけのために旧都を沈めた自分のように)。師は階段を降り、モルデンは追えない。**どちらも悪人にも聖人にも見せない** — 二人とも正しく、二人とも迷っている。
 - 描くもの: 天井の見えない巨大な伽藍 / 下の闇へ続く石段 (底にかすかな光) / 胸の小さな扉を開けて古い灯を見せるモルデン (正典の顔・老いない) / 手袋なし・指先の焼けた手で片脚を引きずる師オルド (第十章の姿) / 二人のまわりに並ぶ名札つきの灯籠。描かないもの: 弟子。底のものの正体 (光だけ)。
 ```text
 A memory scene with faint amber-hazed edges: the innermost depth of a gigantic cavern-cathedral whose ceiling is lost in darkness. At its heart, a broad ancient stone stairway descends into an abyss, a faint unearthly light glowing far below. Before the top step stand two men facing each other in tense, sorrowful silence. On the stair side, the chancellor Morden (exact canon face: gaunt, pale, ageless, thin sad smile, tall black-purple hat with gold band, red inner robe, gold chain with a red jewel) has a small door open in his chest revealing an ancient flickering soul-light; he stands between the stair and the other man, not attacking, pleading. Facing him, Ordo (as in the Ordo reference: tall lean man about 55, short grey hair, grey beard) wearing no coat — a torn, worn dark grey shirt (his coat was left frozen on the ice ledges long before) — gloveless, fingertips burnt, leaning on one leg, calm and resolute. Around them, rows of small clouded lanterns with wooden name tags. Neither looks villainous: both look tired, certain, and grieving.
 ```
 
 **report_w41「王の資格」** (報告)
-- 要点: オルドが魂の王になるために底へ降りたと聞き、王は玉座の肘掛けを強く握る。民の命を霊薬に変えて飲んできた自分に、それを責める資格はない。モルデンの言葉もオルドの言葉も、王はこの百年のうちに一度は口にしてきた。「追って、確かめて、そなたの目で決めよ。余の命令ではない」。
+- 要点: オルドが魂の王になって、器へ戻す仕組みに限りを書くために底へ降りたと聞き、王は玉座の肘掛けを強く握る。限りのない命を霊薬で百年生きてきた自分に、それを責める資格はない。善い王ほど誰の声も聞かなくなるというモルデンの言葉にも覚えがある。勝った者が正しいとは限らない。「追って、確かめて、そなたの目で決めよ。余の命令ではない」。
 ```text
 The same throne room in daylight, clear sky outside. The very old king grips the armrests of his throne hard, knuckles white, his gaze lowered to his own crown resting on his lap as if questioning what it means to be a king. The chancellor's chair stands empty. The apprentice stands below, with Sera (as in the Sera reference) and a doll beside them. Solemn.
 ```
 
 **irene_candle「消せない灯」** (館の語り)
-- 要点: その夜、イレーヌは燭台の前に座ったまま朝まで動かない。「灯を絶やすな」と言われて守ってきた灯。もし師が間違ったことをしようとしているなら、この灯を守ることは正しいのか。それでも「灯は絶やしません。あの方に、もう一度会うために」。セラがいれば「オルド様に会って、どうしてって聞きたい」。
+- 要点: その夜、イレーヌは燭台の前に座ったまま朝まで動かない。師の書こうとしている限りには、イレーヌもセラも入っている。「灯を絶やすな」と言われて守ってきた灯を守ることは正しいのか — 間違っているのかどうかも、まだ分からない。それでも「灯は絶やしません。あの方に、もう一度会うために」。セラは「まだ休みたくない。でもオルド様に会って、どうしてって聞きたい」。
 ```text
 The same mansion at dawn: grey-blue light creeping in through the window. Irene has sat all night before the single white candle on its brass candlestick, her hands folded in her lap, eyes red but resolute, still watching the flame. Sera (as in the Sera reference) sits beside her on the floor, leaning against her knee. The candle still burns, small and steady.
 ```
 
 **ch10_end「第一部の終わり」** (章の結び)
-- 要点: 宰相モルデンは大伽藍の階段の前で、三百年ぶりの眠りにつく。胸の灯は消えず、小さく静かに揺れる。師は魂の王になるために、さらに下へ降りていった。町を焼いた祖、言いつけを守ったモルデン、王になろうとする師、縛りを解いてきた隊 — 語り手は誰が正しいとも言わない。
+- 要点: 宰相モルデンは大伽藍の階段の前で、三百年ぶりの眠りにつく。胸の灯は消えず、小さく静かに揺れる。師は魂の王になるために、さらに下へ降りていった。町を焼いた祖、言いつけを守ったモルデン、王になろうとする師、縛りを解きセラを連れ戻してきた隊 — 語り手は誰が正しいとも言わない。「どのように生きたいのか」という宰相の問いに、隊の誰もまだ答えていない。
 - 描くもの: 階段の脇に座って眠るように目を閉じたモルデン (胸の扉の中に小さな灯、まわりに名札つきの灯籠) / 下の闇へ続く階段 / 階段の上に立って下をのぞく弟子と隊。
 ```text
 The same gigantic cavern-cathedral after the battle, quiet. Beside the top of the descending stairway, the chancellor Morden (exact canon face, ageless) sits against a pillar with his eyes closed as if peacefully asleep, his chest door ajar with a small, steady soul-light inside, surrounded by rows of small lanterns with wooden name tags. The apprentice and the party (wooden dolls, Sera) stand at the top step, looking down the endless stairs into the abyss, where a faint unearthly light glows far below. Melancholy, resolve, the end of a long first journey.
+```
+
+### 第十一章「夜明けの町」 ― 便7
+
+第十一章の景色: 大伽藍の階段の下に広がる、人業が自分で選んで暮らす町。**地上ではない**: 空のかわりに岩の天井いっぱいに古い鉄の吊り枠が張られ、何千もの澄んだ硝子の灯籠「眠り灯」が吊るされている。眠り灯の中では雨と一緒に流れ着いたくたびれた魂が休んでいて、休む魂は温かな白金色に光る。太陽も雲も無く、影の向きも無い (光は天井一面から柔らかく降る)。町は誰が建てたのかも分からない古い地下の大書庫の跡: 閲覧室や回廊が家や店に、書架の板が床や戸口になっている。洗濯物・店先の硝子・台所の湯気。住民はみな人業 (木の関節人形・のっぺりした丸い頭・黒鉄の継ぎ目。正典の隊の人業と同じ作り)、子どもの姿に作られた小さな人業もいる。町の周りの書庫 (迷宮) は暗く、濡れた本・墨だまり・書架の迷路。第十章までの暗い遺跡や戦場とちがい、**光と暮らし**で見せる章。王都の空は晴れたまま (報告の窓の外は晴れた空)。物語の主題は「誰の意思で、誰の救いを決めるのか」 — 師オルドを悪人にも聖人にも見せない。
+
+町の人物 (どれも人業。顔は彫らない丸い頭に、服と持ち物で見分ける): アデーレ = 老婦人の姿、白い髪を結い上げた灰色の長衣、天蓋守の長い鉤棒 / ピム = 子どもの姿の小さな人業、短い上着 / ミラ = 雨に濡れた外套、硝子の瓶 / ヨルク = インクのしみた指、書き写した紙の束 / ロッテ = 前かけ、絵本。
+
+**w42_dawn「夜明けの町」** (手がかり / 迷宮「書架の大階段」)
+- 要点: 長い階段の最後の段を降りると、足もとに影が無い。光は岩の天井いっぱいの眠り灯から降る — 空ではない。灯の下に、崩れた書庫を住まいにした町。洗濯物、台所の湯気、自分の用事に向かう人業たち。駆けてくる小さな人業ピムと、後ろから歩いてくる婦人の人業アデーレ。広場に白墨で描かれた戻り灯の陣 (縁に一門の印)。
+- 描くもの: 手前に暗い階段の最後の段と弟子・隊の後ろ姿 / 下に広がる光の町と眠り灯の天井 (吊り枠と鉄鎖が見えて、空ではないと分かること) / 駆けてくるピム / 広場の白墨の陣。描かないもの: 師。太陽・青空・雲。
+```text
+From the last steps of a long dark stairway carved with bookshelves, the apprentice and a party of wooden dolls look down into a vast underground cavern lit like early morning. The light does not come from any sky: the rock ceiling is covered with old iron chandelier frames and chains from which thousands of clear glass lanterns hang, each glowing a soft warm white-gold; no sun, no clouds, no directional shadows. Below lies a town built into the ruins of an ancient underground library — reading halls turned into houses, shelf planks used as doors and floors, laundry lines, shop fronts with glassware, thin kitchen steam. The townsfolk are all wooden articulated dolls (blank round heads, black iron joint bands) going about their own business. A small child-shaped doll runs up the last step toward the party; behind it walks a doll in the shape of an old woman with neatly tied white hair and a grey robe. In the square, a large chalk circle with a small lamp-on-palm crest at its rim. Warm, hopeful, quietly strange.
+```
+
+**report_w42「命令の届かぬ所」** (報告)
+- 要点: 主をなくした人業たちが自分の暮らしを選ぶ町 — その多くが王家の操霊師の器だったと聞き、王は長く目を伏せる (百年、その主たちを牢へ送ってきたのは自分)。オルドが救い主と呼ばれていると聞いて少し笑う。「その町では客であれ」。
+```text
+The same throne room in daylight, clear sky outside the tall windows. The very old king, lap blanket over his knees, sits with his eyes lowered, holding a small glass lantern glowing soft white-gold that the apprentice has brought; a faint, rueful smile at the corner of his mouth. The chancellor's chair beside the throne stands empty. The apprentice stands below the dais.
+```
+
+**irene_why「ついて歩く理由」** (館の語り)
+- 要点: ピムの問い「どうしてその人について歩いているの？」を持ち帰る。イレーヌは主を選んだことがないと言う。答えるのはセラ — 「名前を呼ばれて、一緒に迷宮へ降りて、一緒に帰ってくる。そうやって生きていたい」。イレーヌは「待つことも、選んでいたのかもしれません」。「あなたが代わりに答えてはいけませんよ」。
+```text
+The same mansion workshop at night, warm candlelight from the single white candle on its brass candlestick. Sera (as in the Sera reference) stands with one hand on her chest door, answering earnestly; Irene sits beside the candle, her hand stopped halfway to trimming the wick, listening with a soft, surprised look. The apprentice sits a little apart, deliberately silent. Intimate and gentle.
+```
+
+**w43_jars「今日の瓶」** (手がかり / 迷宮「雨垂れの書庫」)
+- 要点: 濡れた書架のあいだの岩の割れ目から、雨が細い糸になって落ちる。下に硝子の瓶がずらりと並び、中で疲れた小さな魂が丸くなっている。字のにじんだ板 (眠り灯の空き無し、日付と数)。黒くふくらんだ一冊から墨が這い出す。柱に師の書きつけと、その下に別の手の書き足し。
+- 描くもの: 割れ目から落ちる雨の糸 / 並ぶ瓶と中の青白い光 / 濡れた書架と墨のにじむ本 / 柱の二枚の書きつけ (読めない走り書き) / 瓶を見る弟子。描かないもの: 師・ミラ本人。
+```text
+A wing of an ancient underground library: tall shelves of soaked, swollen books. From a crack in the rock ceiling, rain falls in thin silver threads onto a long row of glass jars set on the floor; inside each jar a small, pale, tired soul-light lies curled. A board hangs at the end of the row, covered in blurred tally marks. From one swollen black book on a nearby shelf, ink slowly crawls out like a living thing. On a shelf post, a handwritten note is pinned, with a second smaller note in a different hand beneath it. The apprentice crouches by the jars with a warm orange hand-lamp. Cold blue rain, dim, melancholy, but tender.
+```
+
+**report_w43「晴れた空の雨」** (報告)
+- 要点: 塔の上で鎖を解いた魂も、雨になってあの町へ流れ着いているのかもしれない。王は窓の外の青空を見上げる。「解いたことを悔やむな。縛られたまま腐るより、眠れる場所を探して流れてくるほうがよい」。
+```text
+The same throne room. The very old king stands at the tall window (helped by a cane or the window frame), looking up at a bright clear blue sky where a light, sunlit rain is falling. The chancellor's chair stands empty. The apprentice stands behind him. Bittersweet.
+```
+
+**w44_glass「一度だけ」** (手がかり / 迷宮「眠り灯の工房」)
+- 要点: 冷えた炉の並ぶ古い硝子工房で、ひとつの炉だけが温かい (師が火を入れ直した)。作業台に吹きかけの澄んだ灯籠と細い吹き竿、開いたままの師の帳面 (眠り灯の吹き方・数・一行だけの名前、最後の頁に眠らせるための灯籠の絵)。
+- 描くもの: 冷えた炉の列とひとつだけ赤い炉 / 吹きかけの灯籠・吹き竿 / 開いた帳面 (絵と読めない走り書き) / 帳面を読む弟子。描かないもの: 師・ミラ本人。
+```text
+An ancient glass-blowing workshop deep inside an underground library: a row of cold, dark brick furnaces, only one of them glowing red with a relit fire. On a worn workbench lie a half-blown clear glass lantern, a thin blowpipe, ash and tools, and an open handwritten notebook whose last page shows a careful drawing of a simple lantern. Racks of finished clear lanterns stand dim along the wall. The apprentice leans over the notebook in the furnace glow. Warm amber against cold dark, contemplative.
+```
+
+**irene_onlyonce「決めるのは」** (館の語り)
+- 要点: 帳面の写しの「一度だけ」の一行を、イレーヌが指でなぞる。師は器へ戻す数に限りを書こうとしている — 自分たちのような器にも。セラ「戻してくれてありがとうって、わたしは言いました」。イレーヌはセラを連れ戻したことを間違いだとは思わない。「いつか眠りたいと思う日が来ても、その日を決めるのがわたしであってほしい」。
+```text
+The same mansion workshop at night. Irene sits at the worktable tracing one line of a copied notebook page with her fingertip, thoughtful. Sera (as in the Sera reference) leans over her shoulder with a small, determined, almost indignant smile. The single white candle burns steady beside them. Warm, quiet, resolute.
+```
+
+**report_w44「一度だけ、と言える者」** (報告)
+- 要点: 雨の魂に器を渡し二度目は無いと言った師の話を、王は自分の手のしわを見ながら聞く。「一度だけと言える者が、少しうらやましい」。王が決めれば命令、誰も決めねば使い潰される — オルドはその真ん中で迷っている。
+```text
+The same throne room in late-afternoon light, clear sky outside. The very old king sits looking down at his own wrinkled, spotted hands held open in his lap, a gold cup set aside on the floor by the throne. The chancellor's chair stands empty. The apprentice stands below. Quiet, self-reproaching.
+```
+
+**mem_w45「終わりの頁」** (主の記憶 / 大書庫の主)
+- 要点: 記憶の場面。大書庫の長机。読み続けるために器が朽ちるたび自分の魂を新しい器へ移し、そのたびに濁っていった老司書 (痩せたローブの屍のような姿、濁った目、読みかけの本を抱える)。向かいに、片脚を引きずる師オルド (第十章と同じ姿: 外套なし・暗い灰色のシャツ・手袋なし・指先の焼けた手) が古い記録を読み、余白に書きこむ。脇に町の人業が運んだ湯気の立つ椀 (手つかず)。奥に、さらに下へ降りる暗い扉。**悪人にも聖人にも見せない** — 司書の「まだ読みたい」と、師の答えられない沈黙。
+- 描くもの: 長机・積まれた古い本・余白に書きこむ師 / 向かいの老司書 / 手つかずの椀 / 奥の扉。描かないもの: 弟子。扉の先のもの。
+```text
+A memory scene with faint amber-hazed edges: a long reading table in a vast underground library whose towering shelves recede into darkness. On one side sits an ancient gaunt librarian in a dusty robe, clouded eyes, clutching an unfinished book to his chest, looking across the table with a quiet plea. On the other side Ordo (as in the Ordo reference: tall lean man about 55, short grey hair, grey beard), wearing no coat — a torn, worn dark grey shirt — gloveless with burnt fingertips, writing in the margin of the oldest open book by lamplight, pen paused. Beside him a steaming bowl, untouched. Far behind, at the very end of the shelves, a dark plain door leading further down. Melancholy, unresolved.
+```
+
+**report_w45「余の終わりの頁」** (報告)
+- 要点: 終わりの頁がない術の話を聞き、王は自分の百年にも終わりの頁がなかったと言う。終わりがあれば、とうに死んでいた — それが正しかったのだろう。だが、決めるのは自分であってほしかった。「追え。オルドが何を書こうとしておるのか、そなたの目で読んでこい」。
+```text
+The same throne room at dusk, a clear amber sky outside. The very old king sits with an old leather-bound book open on his lap (a gift from the town), one hand resting on a blank last page, gazing at it. The chancellor's chair stands empty. The apprentice stands below, ready to leave. Grave, gentle.
+```
+
+**irene_lastpage「両方を持って」** (館の語り)
+- 要点: 燭台の灯が消える日を、イレーヌは一度も考えたことがなかった。大切な人だから、いつか休ませてあげたい。大切な人だから、もう一度会いたい。まだ選べない。セラ「選ばなくていい。両方持って、会いに行きましょう」。
+```text
+The same mansion workshop late at night. Irene trims the single white candle, her face lit from below, eyes glistening but calm. Sera (as in the Sera reference) holds Irene's other hand in both of hers. The flame is small and steady. Tender, bittersweet.
+```
+
+**ch11_end「同じ天井の下で」** (章の結び)
+- 要点: 司書の灯は眠り灯の天井のいちばん静かな所に吊るされた。広場の戻り灯の陣のそばで、師に救われたミラ (「一度だけで十分。先生を信じる」) と、師の決まりに不安を持つヨルク (「生き切ったって、誰が決めるんだ」) が弟子を待つ。ふたりは言い争わず、同じ灯の下で暮らしている。弟子は師が何を書こうとしているのか確かめに行くと決め、陣の白墨の線を靴の先でなぞる。
+- 描くもの: 眠り灯の天井 (いちばん静かな所に吊るされる灯籠ひとつ) / 広場の陣 / ミラ (濡れた外套・瓶) とヨルク (インクの指・紙束) / 弟子と隊 / 遠くの台所の湯気と小さな人業たち。描かないもの: 師。
+```text
+The underground town square under a ceiling of thousands of glowing clear lanterns on iron frames (no sky). One new lantern is being hung in the quietest corner of the frame high above. In the square, beside a large chalk circle with a lamp-on-palm crest, two townsfolk dolls stand side by side facing the apprentice: one in a rain-damp cloak holding a glass jar, the other with ink-stained fingers holding a sheaf of copied pages; their postures differ — one hopeful, one uneasy — but they stand together. The apprentice, with the party of wooden dolls, touches the chalk line with the tip of a boot. Kitchen steam and small child-shaped dolls playing in the distance. Warm light, open question.
 ```
 
 ### 第五章の任意の1枚

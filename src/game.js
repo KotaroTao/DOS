@@ -26,7 +26,7 @@ import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, permanentEventSta
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { pickTavernCrowd, TALK_MAP } from "./tavern.js";
 import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, QUEST_LV_NEAR, rollBoard, deliveryRewardRows, NPCS, npcOf, composeReport, bondGiftAt, npcBondLabel, TIP_RATE, hasBell, BELL_EVERY_MS, QUEST_REWARD_K, QUEST_RK, questRewardK, commonQuestTextFits, COMMON_KEY as QUEST_COMMON_KEY } from "./quests.js";
-import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_THREE_REPORT, TUT_FINALE, TUT_CORRIDOR, STORY_CELLS, storyCellAt, BOSS_MEMORIES, REPORTS, LATE_CLUES, IRENE_BEATS, MINE_PASS, msqReward, EPILOGUE, UNLOCKS, unlockSceneFor, REMATCH_MEMORIES } from "./story.js";
+import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_THREE_REPORT, TUT_FINALE, TUT_CORRIDOR, STORY_CELLS, storyCellAt, BOSS_MEMORIES, BOSS_PRELUDES, REPORTS, LATE_CLUES, IRENE_BEATS, MINE_PASS, msqReward, EPILOGUE, UNLOCKS, unlockSceneFor, REMATCH_MEMORIES } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { poolAt, powerAt, agiWallOf, strongHpWallOf, statWallOf } from "./dungeons/world.js";
 import { NAMED_FOES, NAMED_IDS, TROPHY_OF, HUNT_ELITE_RATE, bountyId } from "./dungeons/named.js";
@@ -7018,6 +7018,8 @@ const CLUE_EVADE = 0.01;
 const CLUE_BREATH = 0.05;
 // 暗がりの目 (eyes): 隊の全員の物理が外れる率 −2ポイント (combat.js setPartyHitBonus)
 const CLUE_HIT = 0.02;
+// 眠り灯の吹き方 (rescue): 全滅した時の連れ帰りの時 ×0.9 (rescueDurationMs)
+const CLUE_RESCUE = 0.9;
 // セラの囁き (soulEcho): 迷宮で職業の魂を拾った時、この確率でもう一つ拾える (grantSoulQuiet)
 const SOUL_ECHO_RATE = 0.05;
 function syncClueBoons() {
@@ -7942,12 +7944,16 @@ function askDescend(cell) {
     [
       { label, danger: boss, primary: !boss, fn: () => {
         if (boss) {
-          log("迷宮の主が立ちはだかる！", "dmg");
-          // 迷宮ごとの手直し (generator.js DUNGEON_TUNE): 主は雑魚の倍率ではなく bossMul、HP はさらに bossHpMul
-          const tn = dn.tune || {};
-          const foes = spawnBossEnemies(dn.boss, dn.bossScale * (tn.bossMul || 1) * baseEnemyScale(true), dn.bossRank);
-          if ((tn.bossHpMul || 1) !== 1) for (const e of foes) e.maxhp = e.hp = Math.max(1, Math.round(e.maxhp * tn.bossHpMul));
-          startBattle(foes, cell);
+          const fight = () => {
+            log("迷宮の主が立ちはだかる！", "dmg");
+            // 迷宮ごとの手直し (generator.js DUNGEON_TUNE): 主は雑魚の倍率ではなく bossMul、HP はさらに bossHpMul
+            const tn = dn.tune || {};
+            const foes = spawnBossEnemies(dn.boss, dn.bossScale * (tn.bossMul || 1) * baseEnemyScale(true), dn.bossRank);
+            if ((tn.bossHpMul || 1) !== 1) for (const e of foes) e.maxhp = e.hp = Math.max(1, Math.round(e.maxhp * tn.bossHpMul));
+            startBattle(foes, cell);
+          };
+          // 主との対面の語り (story.js BOSS_PRELUDES): 語り終えてから戦いに入る
+          if (!playBossPrelude(dn.id, fight)) fight();
         }
         else if (clearNoBoss) clearDungeonNoBoss();
         else descend();
@@ -11769,6 +11775,7 @@ function endBattleMeasured() {
     evBattleEnd(false);
     finishToBoard();
   } else if (b.result === "lose") {
+    markBossFell(b);
     gameOver();
   }
 }
@@ -12005,6 +12012,35 @@ function showDungeonClearedPopup(info) {
   const dn = DUNGEONS[info.idx];
   if (playBossMemory(dn?.id, () => celebrateDungeonClear(info))) return;
   celebrateDungeonClear(info);
+}
+// 主との対面の語り (story.js BOSS_PRELUDES)。まだ討っていない主にだけ語る: 初めて挑む時は first を一度だけ、その主に一度でも全滅して
+// いれば (world.beats["fell_" + id]) 挑むたびに retry。どちらにも当たらなければ false (すぐ戦いへ)。語りの中断 (閉じる) でも done へ進む
+function bossPreludeFor(id) {
+  const pre = BOSS_PRELUDES[id];
+  const w = worldState();
+  if (!pre || w.cleared[id] || abyssActive()) return null;
+  if (w.beats["fell_" + id] && pre.retry) return { def: pre.retry, key: "pre_" + id };
+  if (!w.beats["pre_" + id] && pre.first) return { def: pre.first, key: "pre_" + id };
+  return null;
+}
+function playBossPrelude(id, done) {
+  const p = bossPreludeFor(id);
+  if (!p) return false;
+  const w = worldState();
+  const photo = storyImage(p.def === BOSS_PRELUDES[id].first ? p.key : null);
+  UI.playStoryChain([{ title: p.def.title, lines: storyLines(p.def.lines), art: p.def.art, photo, who: "none", kicker: "主との対面", btnLabel: "挑む" }], () => {
+    w.beats[p.key] = 1;
+    autosave(true);
+    if (done) done();
+  });
+  return true;
+}
+// 主との戦いで全滅した印 (bossPreludeFor が再挑戦の語りに替える)。まだ討っていない主だけ。宿敵の再戦・無限迷宮は数えない
+function markBossFell(b) {
+  if (!b || G.rematch || abyssActive()) return;
+  const dn = curDungeon();
+  if (!dn || !dn.boss || !BOSS_PRELUDES[dn.id] || worldState().cleared[dn.id]) return;
+  if ((b.enemies || []).some((e) => e && e.key === dn.boss && e.boss)) worldState().beats["fell_" + dn.id] = 1;
 }
 // 読み終えた時だけ記録する。中断した記憶は、再開時にも報告前にも読み直せる。
 function playBossMemory(id, done) {
@@ -14756,7 +14792,7 @@ const FEATURES = {
   //   第八章のあたりで Lv100・ランク3〜4 に届き、本編の育ちが単調になってくるので、第十章から前倒し)
   infinite: { chapter: 8, report: "finale" },
   rematch: { chapter: 9, report: "finale" },    // 宿敵の再戦 (名のある強敵・主の強化版)
-  enchant: { chapter: 11, report: "finale" },   // 付呪
+  enchant: { chapter: 11, report: "finale", pending: true },   // 付呪 (仕組みがまだ無いので、第十一章が台帳に載っても開かない — 作る時に pending を外し、UNLOCKS のページを足す)
   order5: { chapter: 12, report: "finale" },    // 結社の席5
   rebirth: { chapter: 14, report: "finale" },   // 魂の転生
   mutPick: { chapter: 15, report: "finale" },   // 異変を選ぶ
@@ -14773,7 +14809,7 @@ function chaptersDone(w = worldState()) { return CHAPTERS.filter((c) => w.report
 function featureMet(key, w = worldState()) {
   const f = FEATURES[key === "rumor" ? "tavern" : key];
   const ch = f && CHAPTERS.find((c) => c.no === f.chapter);
-  if (!ch || f.retired) return false; // 廃止済み、またはその章がまだ無い
+  if (!ch || f.retired || f.pending) return false; // 廃止済み、その章がまだ無い、または仕組みがまだ無い
   if (f.cleared) return !!w.cleared?.[f.cleared] || !!w.reported[f.cleared];
   if (f.dungeon) return !!w.reported[f.dungeon];
   return f.report === "finale" ? !!w.reported[ch.finale] : chapterReports(ch, w) >= f.report;
@@ -14791,7 +14827,7 @@ function featureNote(key) {
   if (!f) return "";
   const ch = CHAPTERS.find((c) => c.no === f.chapter);
   const label = chapterLabel(f.chapter);
-  if (!ch) return `${label}で開く (準備中)`;
+  if (!ch || f.pending) return `${label}で開く (準備中)`;
   if (f.cleared) return `「${worldById(f.cleared).name}」を踏破すると開く`;
   if (f.dungeon) return `「${worldById(f.dungeon).name}」を踏破し、王に報告すると開く`;
   if (f.report === "finale") {
@@ -15563,7 +15599,7 @@ function repairCostAll() {
 // 連れ帰り時間: 砕けた階層が深いほど長い。1〜5階=5分 / 6〜10階=10分 / … 5階ごとに+5分、最大120分
 function rescueDurationMs(floor) {
   const minutes = Math.min(120, Math.ceil((floor || 1) / 5) * 5);
-  return minutes * 60 * 1000;
+  return minutes * 60 * 1000 * (clueBoon("rescue") ? CLUE_RESCUE : 1); // 眠り灯の吹き方 (手がかりの恵み): 1割短く
 }
 
 // 迷宮を探索中の隊にいる人業か (連れ帰りの時は、街へ戻るまで数えない)
@@ -16239,8 +16275,9 @@ function skipTestDungeon() {
     G.run.descended = Math.max(0, cfg.floors - G.run.startFloor);
     G.run.floors = cfg.floors;
     questProgress("floor", G.floor);
-    showDungeonClearedPopup(commitDungeonClear(!!cfg.boss));
-    autosave(true);
+    const clear = () => { showDungeonClearedPopup(commitDungeonClear(!!cfg.boss)); autosave(true); };
+    // 主との対面の語りは、探索を省いても読む (戦いは省く)
+    if (!(cfg.boss && playBossPrelude(cfg.id, clear))) clear();
   };
   next();
 }
@@ -18027,6 +18064,8 @@ const testScenes = [
   ...[["cell", "師の手がかり", STORY_CELLS], ["memory", "主の記憶", BOSS_MEMORIES], ["report", "踏破の報告", REPORTS], ["chapter", "章の結び", CHAPTER_END], ["unlock", "機能の解放", UNLOCKS], ["late", "手がかりの追加報告", LATE_CLUES], ["rematch", "再戦の記憶", REMATCH_MEMORIES]].flatMap(([group, label, defs]) =>
     Object.entries(defs).map(([id, def]) => ({ ...def, id: group + ":" + id, kind: "story", group: label, name: label + "・" + def.title, who: ["cell", "memory", "rematch"].includes(group) ? "none" : "king",
       photo: storyImage(({ cell: id, late: id, memory: "mem_" + id, report: "report_" + id, chapter: "ch" + id + "_end" })[group]) }))),
+  ...Object.entries(BOSS_PRELUDES).flatMap(([id, pre]) => ["first", "retry"].filter((k) => pre[k]).map((k) => ({ ...pre[k], id: `prelude:${id}_${k}`, kind: "story", group: "主との対面",
+    name: `主との対面・${pre[k].title}`, who: "none", photo: k === "first" ? storyImage("pre_" + id) : null }))),
   ...IRENE_BEATS.map((def) => ({ ...def, id: "irene:" + def.id, kind: "story", group: "館の語り", name: "館の語り・" + def.title, who: "irene", photo: storyImage(def.id) })),
   { ...MINE_PASS, id: "minePass", kind: "story", name: MINE_PASS.title, photo: storyImage("minePass") },
 ];
@@ -19157,7 +19196,7 @@ async function init() {
   // UI 基盤 (ctx の結線・戻る操作・街シェル・各パッケージ) を最初の描画より前に整える
   wireUI();
   // 早期にフックを公開 (起動失敗の誤検出/デバッグ用)
-  window.__game = { G, edgeOpen, COLS, ROWS, autosave, loadGame, clearSave, renderTown, ACH_SERIES, achievementCards, medalRank, questProgress, pickLoot, showItemGet, startBattle, spawnCardEnemies, spawnBossEnemies, activeCfg,
+  window.__game = { G, edgeOpen, playBossPrelude, bossPreludeFor, markBossFell, worldState, COLS, ROWS, autosave, loadGame, clearSave, renderTown, ACH_SERIES, achievementCards, medalRank, questProgress, pickLoot, showItemGet, startBattle, spawnCardEnemies, spawnBossEnemies, activeCfg,
     UI, ops, nav, townshell,
     // 罠の解除の検証用
     trap: { disarmChance, disarmNeed, bestDisarmer, sfNum },

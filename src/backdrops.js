@@ -3101,6 +3101,182 @@ function vForestHut(R) {
   R.rect(W*.46,H*.52,W*.12,H*.24,"#111713");
   R.rect(W*.37,H*.51,W*.06,H*.08,"#17201a");
 }
+// ---- 第十一章「夜明けの町」の迷宮 (大伽藍の階段の下の、古い地下の大書庫。町は眠り灯の天井の下、まわりは濡れた書架の迷宮) ----
+const SPINE_V = ["#5a2622", "#26344e", "#34402a", "#5a4622", "#422a52", "#62543a", "#22403e", "#4a2236"];
+// 眠り灯 (鉄の吊り枠から下がる澄んだ灯籠。中で休む魂が白金に光る)。(x, y) = 吊り金具、s = 大きさ。on = 灯っている
+function sleepLampV(R, x, y, s, on = true) {
+  R.m = SURF;
+  if (s < 1) { R.m = SKY; R.px(x, y + 1, on ? "#fff4d8" : "#5a544c"); if (on) R.glow(x + 0.5, y + 1.5, 3, 3, "#ffd890", 0.35, 3); R.m = SURF; return; }
+  R.rect(x, y, 1, 2 * s, "#3a322c");
+  R.rect(x - s, y + 2 * s, 2 * s + 1, Math.max(1, 0.7 * s), "#3e342e");
+  R.m = SKY; R.ellipse(x + 0.5, y + 4.4 * s, 1.4 * s + 0.4, 1.9 * s, on ? "#fff0cc" : "#4a4a48");
+  if (on) { R.px(x, y + 4.2 * s, "#ffffff"); R.glow(x + 0.5, y + 4.4 * s, 7 * s, 6 * s, "#ffd890", 0.35, 4); }
+  R.m = SURF;
+}
+// 書架の壁を遠近で描く (一点透視の廊下の左右の壁)。(vx, vy) = 消失点、side = -1 左 / 1 右、zNear..zFar = 手前と奥、top/bot = 天井と床の高さ
+function shelfCorridor(R, vx, vy, side, zNear, zFar, top, bot, seed, { k = 1, wet = 0, carved = false } = {}) {
+  const X = (z) => vx + side * (R.w * 0.5) / z;
+  R.m = SURF; R.poly([[X(zNear), vy - top / zNear], [X(zFar), vy - top / zFar], [X(zFar), vy + bot / zFar], [X(zNear), vy + bot / zNear]], (x, y) => {
+    const z = (R.w * 0.5) / Math.max(0.5, Math.abs(x - vx)), v = (y - vy) * z, u = z * 36;
+    const row = Math.floor((v + top) / 9), rv = ((v + top) % 9 + 9) % 9, col = Math.floor(u), ru = u - col, tall = rv > 2.2 + hash(col, row, seed + 3) * 1.6;
+    let c;
+    if (carved && (Math.floor(z * 1.6) % 3 === 0)) c = mix(C("#4a423a"), C("#2e2824"), vnoise(x * 0.3, y * 0.3, seed));   // 彫り残した岩の柱
+    else if (rv < 1.3) c = C("#5a4430");                                                                    // 段板
+    else if (hash(col, row, seed) < 0.12 || !tall) c = C("#0c0908");                                       // 抜けた本・本の上の隙間
+    else { c = mix(C(SPINE_V[(col * 7 + row * 3) % SPINE_V.length]), C("#2a2018"), 0.25 + 0.3 * (ru > 0.7 ? 1 : 0)); if (wet) c = mix(c, C("#141a22"), wet * (0.4 + 0.5 * vnoise(x * 0.1, y * 0.05, seed + 1))); }
+    return mul(c, k * Math.min(1, 1.8 / z) * (0.8 + 0.3 * vnoise(x * 0.4, y * 0.4, seed + 2)));
+  });
+}
+// ガラスの雨受け瓶 (丸い胴と広い口)。(x, by) = 底の中央、s = 大きさ。soul = 中の魂の光
+function jarV(R, x, by, s, soul = false) {
+  R.m = SURF; R.ellipse(x, by - 3 * s, 3 * s, 3.2 * s, "#2a3646"); R.rect(x - 1.8 * s, by - 7 * s, 3.6 * s, 1.4 * s, "#7a8a9a");
+  R.px(x - 2 * s, by - 4 * s, "#c8d4e0"); R.px(x - 2 * s, by - 3 * s, "#8a9aaa");
+  if (soul) { R.m = SKY; R.ellipse(x + 0.5, by - 3 * s, 0.9 * s, 1.2 * s, "#e8f2fa"); R.glow(x + 0.5, by - 3 * s, 6 * s, 6 * s, "#9ac0e8", 0.35, 4); R.m = SURF; }
+}
+// w42 書架の大階段: 大伽藍の床から下る長い石段。両側の壁に古い書架が彫りこまれ、闇の底のずっと下から温かな光がのぼる
+function vShelfStair(R, A) {
+  const { w: W, h: H } = R, vx = W * 0.5, vy = H * 0.66;
+  R.amb = [0.34, 0.32, 0.32];
+  R.m = SURF; R.rect(0, 0, W, H, (x, y) => mul(C("#1a1614"), 0.4 + 0.6 * clamp01(Math.hypot((x - vx) / W, (y - vy) / H) * 1.6)));
+  for (const side of [-1, 1]) shelfCorridor(R, vx, vy, side, 1.05, 12, H * 0.62, H * 0.2, 601 + side, { k: 1, carved: true });
+  // 天井 (岩の丸天井。奥へ闇に沈む)
+  R.m = SURF; R.poly([[0, 0], [W, 0], [vx + (W * 0.5) / 12, vy - (H * 0.62) / 12], [vx - (W * 0.5) / 12, vy - (H * 0.62) / 12]], (x, y) => mul(C("#2a2420"), (0.4 + 0.6 * (1 - y / vy)) * (0.8 + 0.3 * vnoise(x * 0.1, y * 0.2, 603))));
+  // 石段 (手前から奥の底へ。段の鼻だけが底の光を受ける)
+  R.m = SURF; R.poly([[0, H], [W, H], [vx + (W * 0.5) / 12, vy + (H * 0.2) / 12], [vx - (W * 0.5) / 12, vy + (H * 0.2) / 12]], (x, y) => {
+    const z = (H * 0.2) / Math.max(0.5, y - vy), st = (z * 2.2) % 1;
+    return mul(st < 0.22 ? C("#8a7a64") : st < 0.6 ? C("#4a4038") : C("#1a1614"), Math.min(1, 1.3 / Math.sqrt(z)) * (0.85 + 0.25 * vnoise(x * 0.2, y * 0.5, 605)));
+  });
+  // 底の光 (町の眠り灯の明かりが、階段の果てから)
+  R.m = SKY; R.rect(vx - 5, vy + 1, 10, 2, "#ffe6b0"); R.glow(vx, vy, 40, 24, "#ffc878", 0.6, 5); R.glow(vx, vy, 14, 8, "#fff0c8", 0.6, 4);
+  R.light(vx, vy, W * 0.5, "#ffd090", 0.9, H * 0.45);
+  R.light(W * 0.12, H * 0.92, 70, "#ffb060", 0.45, 40);
+  A.part({ n: 20, col: "#ffe8c0", x0: 0.42, x1: 0.58, y0: 0.35, y1: 0.66, vy: -0.02, sway: 3, swf: 0.4, a: 0.5, tw: 1, seed: 611 });   // 底から昇る光の粒
+  A.part({ n: 16, col: "#b0a090", x0: 0, x1: 1, y0: 0.05, y1: 0.95, vy: 0.006, sway: 6, swf: 0.2, a: 0.22, tw: 0.8, seed: 612 });
+  A.pulse((P) => { P.m = ADD; P.glow(vx, vy, 46, 26, "#a07040", 0.45, 5); }, (t) => 0.4 + 0.25 * Math.sin(t * 0.0008));
+}
+// w43 雨垂れの書庫: 濡れて黒ずんだ書架の列。天井の岩の割れ目から雨が糸になって落ち、町の者が並べたガラスの瓶が受ける。瓶の中に淡い魂
+function vRainArchive(R, A) {
+  const { w: W, h: H } = R, cx = W * 0.5, gy = Math.round(H * 0.68);
+  R.amb = [0.46, 0.48, 0.56];
+  R.m = SURF; R.rect(0, 0, W, H, "#0c0e14");
+  bookshelf(R, W * 0.2, H * 0.12, W * 0.6, gy - H * 0.12, 621, 0.6);
+  bookshelf(R, -2, 0, W * 0.2, H, 623, 0.75); bookshelf(R, W * 0.8 + 2, 0, W * 0.2, H, 625, 0.7);
+  R.post.push((out, w) => { // 濡れた書架: 下へ黒ずみ、青みに寄せる
+    for (let y = 0; y < R.h; y++) for (let x = 0; x < w; x++) { const i = (y * w + x) * 3, k = 0.88 + 0.2 * (1 - y / R.h); out[i] *= k * 0.86; out[i + 1] *= k * 0.94; out[i + 2] *= k * 1.12; }
+  });
+  // 天井の岩と割れ目
+  R.m = SURF; R.rect(0, 0, W, H * 0.1, (x, y) => mul(C("#26242a"), 0.7 + 0.4 * vnoise(x * 0.1, y * 0.3, 627)));
+  { let y = H * 0.05; R.m = SURF; const pts = []; for (let x = cx - 28; x <= cx + 28; x += 3) { y = H * 0.05 + (hash(x | 0, 1, 627) - 0.5) * 4; pts.push([x, y]); }
+    for (let i = 0; i + 1 < pts.length; i++) { R.line(pts[i][0], pts[i][1] - 1, pts[i + 1][0], pts[i + 1][1] - 1, "#06060a", 1, 2); }
+    R.m = SKY; for (let i = 0; i + 1 < pts.length; i++) R.line(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], i > 3 && i < 15 ? "#d8e4f4" : "#7a8aa8"); }
+  R.glow(cx, H * 0.06, 40, 14, "#8aa8d0", 0.5, 4);
+  R.m = ADD; R.poly([[cx - 20, H * 0.06], [cx + 20, H * 0.06], [cx + 40, gy], [cx - 40, gy]], (x, y) => mul(C("#3a4a62"), 0.3 * (1 - y / gy)));
+  // 濡れた床と墨の水たまり
+  ground(R, gy, "#2a2a30", "#14141a", 629, 0.1, 0.3);
+  R.m = SKY; for (let i = 0; i < 6; i++) { const x = W * 0.25 + hash(i, 1, 631) * W * 0.5, y = gy + 6 + hash(i, 2, 631) * (H - gy - 10); R.ellipse(x, y, 8 + hash(i, 3, 631) * 10, 2, "#0a0c16"); R.rect(x - 3, y, 6, 1, "#3a4a66", 0.6); }
+  // 雨受けの瓶の列 (奥から手前へ)
+  for (const [y, s, n, dx] of [[gy + 6, 1, 9, 14], [gy + 16, 1.4, 7, 19], [gy + 30, 2, 5, 28]]) for (let i = 0; i < n; i++) jarV(R, cx - (n - 1) * dx / 2 + i * dx + (hash(i, y, 633) - 0.5) * 3, y, s, hash(i, y, 635) > 0.4);
+  R.light(cx, H * 0.1, 110, "#a0b8e0", 0.8, 90); R.light(cx, gy + 20, 100, "#b0c8f0", 0.4, 40);
+  A.part({ n: 26, col: "#a8c0e0", x0: 0.3, x1: 0.7, y0: 0.06, y1: gy / H, vy: 0.5, a: 0.4, sz: 2, len: 3, seed: 641 });   // 割れ目からの雨垂れ
+  A.part({ n: 8, col: "#8098b8", x0: 0.18, x1: 0.82, y0: 0.12, y1: 0.6, vy: 0.4, a: 0.3, sz: 2, len: 2, seed: 642 });     // 書架から垂れるしずく
+  A.part({ n: 14, col: "#e0f0ff", x0: 0.2, x1: 0.8, y0: (gy + 2) / H, y1: 0.98, a: 0.7, blink: 0.4, seed: 643 });        // 瓶の中の魂のまたたき
+}
+// w44 眠り灯の工房: 書庫の奥の古いガラス工房。蜂の巣のような煉瓦の炉が並び、真ん中の一つだけ火が入る。壁の棚に吹き上がった眠り灯
+function vGlassWorks(R, A) {
+  const { w: W, h: H } = R, gy = Math.round(H * 0.7), fx = W * 0.5;
+  R.amb = [0.36, 0.3, 0.28];
+  bricks(R, 0, 0, W, gy, "#4a2c24", "#24140f", 12, 6, 651);
+  ground(R, gy, "#3a2c24", "#1a120e", 653, 0.1, 0.3);
+  // 炉の列 (蜂の巣のような丸屋根の上半分と、煉瓦の台。口は台の下にアーチ形)。真ん中だけ火が入る
+  for (const [x, r, hot] of [[W * 0.12, 20, 0], [W * 0.88, 20, 0], [W * 0.3, 15, 0], [W * 0.7, 15, 0], [fx, 28, 1]]) {
+    const by = gy + 6, dy = by - r * 0.6;
+    const brick = (px, py) => { const row = Math.floor((py - dy) / 3), lx = px + (row & 1) * 3; return mul(C(hot ? "#7a4632" : "#665650"), (lx % 6 === 0 || (py - dy) % 3 === 0 ? 0.55 : 0.85 + 0.3 * vnoise(px * 0.3, py * 0.5, 655 + x)) * (0.7 + 0.45 * clamp01((x - px) / r + 0.5))); };
+    R.m = SURF; R.poly([...Array.from({ length: 17 }, (_, i) => { const a = Math.PI + (i / 16) * Math.PI; return [x + Math.cos(a) * r, dy + Math.sin(a) * r]; }), [x + r, by], [x - r, by]], brick);
+    const mw = r * 0.34, mh = r * 0.5;
+    R.m = SKY; R.rect(x - mw, by - mh * 0.6, mw * 2, mh * 0.6, hot ? "#ff9a40" : "#0a0808"); R.ellipse(x, by - mh * 0.6, mw, mh * 0.4, hot ? "#ffd890" : "#0a0808");
+    if (hot) { R.glow(x, by - mh * 0.5, r * 2.2, r * 1.5, "#ff7020", 0.6, 5); R.light(x, by - mh * 0.5, W * 0.55, "#ff9040", 1.3, H * 0.6); }
+  }
+  // 煙突 (火の入った炉の上へ)
+  R.m = SURF; R.rect(fx - 6, 0, 12, gy - 30, (x, y) => mul(C("#3a2018"), 0.8 + 0.3 * vnoise(x * 0.4, y * 0.3, 659)));
+  // 壁の棚と、吹き上がった眠り灯
+  for (const sx of [W * 0.02, W * 0.76]) for (let k = 0; k < 3; k++) {
+    const y = H * 0.1 + k * H * 0.13; R.m = SURF; R.rect(sx, y + 9, W * 0.22, 2, "#5a3e28");
+    for (let i = 0; i < 6; i++) { const x = sx + 4 + i * W * 0.034, on = hash(i, k * 3 + (sx > W / 2 ? 1 : 0), 661) > 0.55; R.m = SKY; R.ellipse(x, y + 5, 2.4, 3.4, on ? "#fff0cc" : "#3a3e44"); R.px(x - 1, y + 4, on ? "#ffffff" : "#8a929a"); if (on) R.glow(x, y + 5, 8, 7, "#ffd890", 0.3, 4); }
+  }
+  R.m = SURF; R.rect(W * 0.6, gy + 10, W * 0.3, 3, "#6a4a30"); R.rect(W * 0.62, gy + 13, 3, H - gy - 13, "#4a3020"); R.rect(W * 0.87, gy + 13, 3, H - gy - 13, "#4a3020");   // 作業台
+  R.m = SKY; R.ellipse(W * 0.66, gy + 6, 4, 4.4, "#5a5a5e"); R.px(W * 0.66 - 2, gy + 4, "#ffffff"); R.line(W * 0.66 + 3, gy + 8, W * 0.82, gy + 18, "#c0c0c8"); R.ellipse(W * 0.66 + 3, gy + 8, 1.6, 1.4, "#ff9040");   // 吹きかけのガラス
+  A.part({ n: 24, col: "#ffb060", x0: 0.42, x1: 0.58, y0: 0.2, y1: 0.66, vy: -0.05, sway: 4, swf: 0.5, a: 0.8, tw: 1.4, seed: 671 });   // 火の粉
+  A.flick(fx, gy - 8, 28, "#ff8a30", 0.35, 1.2);
+  A.part({ n: 10, col: "#fff0cc", x0: 0.02, x1: 0.98, y0: 0.08, y1: 0.42, a: 0.6, blink: 0.4, seed: 672 });
+}
+// w45 大書庫: 天井の見えない闇へそびえる書架が、遠近の果てまで並ぶ。真ん中を長い閲覧机が奥へ延び、いちばん奥にかすかな扉
+function vGreatArchive(R, A) {
+  const { w: W, h: H } = R, vx = W * 0.5, vy = H * 0.5;
+  R.amb = [0.3, 0.3, 0.34];
+  R.m = SURF; R.rect(0, 0, W, H, (x, y) => mul(C("#141216"), 0.3 + 0.7 * clamp01(Math.hypot((x - vx) / W, (y - vy) / H) * 1.8)));
+  ground(R, Math.round(vy + (H * 0.5) / 14), "#2a2420", "#3e3630", 683, 0.08, 0.3);
+  for (const side of [-1, 1]) shelfCorridor(R, vx, vy, side, 1.05, 14, H * 1.4, H * 0.5, 681 + side, { k: 0.9 });
+  // いちばん奥の扉 (書架の果てに、さらに下へ降りる黒い扉)
+  R.m = SURF; R.rect(vx - 6, vy - 12, 12, 16, "#3a3430"); R.m = SKY; R.rect(vx - 3, vy - 8, 6, 12, "#020203"); R.ellipse(vx, vy - 8, 3, 2.4, "#020203"); R.px(vx + 2, vy - 1, "#8a7050");
+  R.glow(vx, vy - 4, 14, 12, "#5a6a80", 0.25, 4);
+  // 長い閲覧机 (手前から奥へ)。机の上にランプが点々と、本の山
+  R.m = SURF; R.poly([[vx - 34, H], [vx + 34, H], [vx + 3, vy + 6], [vx - 3, vy + 6]], (x, y) => mul(C("#8a6440"), 0.5 + 0.5 * (y - vy) / (H - vy)));
+  R.line(vx - 34, H, vx - 3, vy + 6, "#c8a070"); R.line(vx + 34, H, vx + 3, vy + 6, "#3a2818");
+  for (const [t, on] of [[0.25, 1], [0.5, 0], [0.75, 1], [0.92, 1]]) {
+    const y = vy + 6 + (H - vy - 6) * t * t, s = 0.4 + t * 1.6;
+    R.m = SURF; R.rect(vx - 6 * s, y - 2 * s, 4 * s, 2 * s, "#c8b48c"); R.rect(vx + 3 * s, y - 3 * s, 3 * s, 3 * s, "#5a2626");
+    if (on) { R.m = SKY; R.ellipse(vx, y - 3 * s, 1.2 * s, 1.6 * s, "#ffe8b0"); R.glow(vx, y - 3 * s, 14 * s, 10 * s, "#ffb050", 0.4, 4); R.light(vx, y - 3 * s, 40 * s, "#ffc070", 0.7, 30 * s); }
+  }
+  A.part({ n: 22, col: "#d8c8a8", x0: 0.1, x1: 0.9, y0: 0.05, y1: 0.95, vy: 0.005, sway: 6, swf: 0.2, a: 0.25, tw: 0.8, seed: 691 });
+  A.part({ n: 10, col: "#ffe0a0", x0: 0.4, x1: 0.6, y0: 0.55, y1: 0.95, a: 0.5, blink: 0.3, seed: 692 });
+}
+// ws23 絵本の閲覧室: 町外れの子どものための古い閲覧室。低い書架に絵本、小さな椅子と机、やわらかな眠り灯がひとつ
+function vPictureRoom(R, A) {
+  const { w: W, h: H } = R, gy = Math.round(H * 0.66), lx = W * 0.5;
+  R.amb = [0.4, 0.36, 0.32];
+  R.m = SURF; R.rect(0, 0, W, gy, (x, y) => mul(C("#4a3a2c"), 0.5 + 0.3 * vnoise(x * 0.05, y * 0.1, 701)));
+  for (let x = 0; x < W; x += 16) { R.rect(x, 0, 1, gy, "#2e2218"); }                                           // 壁の板目
+  R.rect(0, gy - 30, W, 2, "#6a5038");
+  // 壁に貼られた古い絵 (色あせた子どもの絵)
+  for (const [x, y, c] of [[W * 0.18, H * 0.16, "#8a5a4a"], [W * 0.72, H * 0.12, "#4a6a8a"], [W * 0.42, H * 0.1, "#6a7a4a"]]) { R.m = SURF; R.rect(x, y, 22, 16, "#b8a888"); R.rect(x + 3, y + 3, 16, 10, mix(C(c), C("#b8a888"), 0.4)); R.ellipse(x + 11, y + 8, 4, 3, C(c)); }
+  ground(R, gy, "#5a4a3a", "#3a2e24", 703, 0.08, 0.3);
+  // 低い書架 (左右の壁ぎわ、子どもの背丈)。絵本が表紙を向けて立てかけてある
+  for (const [x0, w] of [[0, W * 0.3], [W * 0.7, W * 0.3]]) {
+    bookshelf(R, x0, gy - 28, w, 28, 705 + x0, 0.85);
+    for (let i = 0; i < 4; i++) { const x = x0 + 6 + i * (w - 12) / 4, c = ["#c0604a", "#4a7aa8", "#d0a040", "#6a9a5a"][i]; R.m = SURF; R.rect(x, gy - 38, 10, 10, c); R.rect(x + 2, gy - 36, 6, 4, mix(C(c), C("#f0e8d0"), 0.5)); }
+  }
+  // 小さな机と椅子 (子どもの背丈)。机の上に開いた絵本
+  R.m = SURF; R.rect(lx - 26, gy + 12, 52, 4, "#7a5a38"); R.rect(lx - 24, gy + 16, 3, 14, "#5a4028"); R.rect(lx + 21, gy + 16, 3, 14, "#5a4028");
+  for (const sx of [-38, 36]) { R.rect(lx + sx, gy + 18, 10, 3, "#6a4a30"); R.rect(lx + sx + 1, gy + 21, 2, 9, "#4a3420"); R.rect(lx + sx + 7, gy + 21, 2, 9, "#4a3420"); R.rect(lx + sx + (sx < 0 ? 0 : 8), gy + 6, 2, 12, "#6a4a30"); }
+  R.poly([[lx - 12, gy + 12], [lx, gy + 10], [lx + 12, gy + 12], [lx + 12, gy + 9], [lx, gy + 7], [lx - 12, gy + 9]], "#e8dcc0"); R.rect(lx - 9, gy + 9, 6, 2, "#c06048"); R.rect(lx + 3, gy + 9, 6, 2, "#4a7aa8");
+  // 天井から下がる、やわらかな眠り灯
+  R.m = SURF; R.rect(lx, 0, 1, H * 0.18, "#3a322c");
+  sleepLampV(R, lx, H * 0.18, 2.4, true); R.light(lx, H * 0.3, W * 0.7, "#ffd8a0", 1.1, H * 0.7);
+  A.part({ n: 18, col: "#ffe8c8", x0: 0.1, x1: 0.9, y0: 0.05, y1: 0.9, vy: 0.004, sway: 6, swf: 0.2, a: 0.28, tw: 0.8, seed: 711 });
+  A.flick(lx, H * 0.3, 30, "#ffd890", 0.25, 0.4);
+}
+// ws24 閉架の書庫: 鉄格子で閉ざされた書架の列。格子に鎖と錠、奥の禁書がかすかな紫の光をにじませる
+function vClosedStacks(R, A) {
+  const { w: W, h: H } = R, vx = W * 0.5, vy = H * 0.52;
+  R.amb = [0.26, 0.24, 0.32];
+  R.m = SURF; R.rect(0, 0, W, H, (x, y) => mul(C("#120e18"), 0.4 + 0.6 * clamp01(Math.hypot((x - vx) / W, (y - vy) / H) * 1.6)));
+  ground(R, Math.round(vy + (H * 0.48) / 12), "#1e1a24", "#2e2834", 723, 0.08, 0.3);
+  for (const side of [-1, 1]) shelfCorridor(R, vx, vy, side, 1.05, 12, H * 1.2, H * 0.48, 721 + side, { k: 0.75 });
+  // 書架の前の鉄格子 (遠近で奥へ。手前ほど太い)
+  for (const side of [-1, 1]) for (let z = 1.2; z < 12; z *= 1.22) {
+    const x = vx + side * (W * 0.5) / z; R.m = SURF; R.rect(x - 1.4 / z * 2, vy - (H * 1.2) / z, Math.max(1, 3 / z * 2), (H * 1.68) / z, "#3a3644");
+    R.rect(x - 1.4 / z * 2, vy - (H * 1.2) / z, 1, (H * 1.68) / z, "#6a6478");
+  }
+  for (const side of [-1, 1]) for (const v of [-0.9, -0.3, 0.3]) { const X = (z) => vx + side * (W * 0.5) / z; R.m = SURF; R.line(X(1.05), vy + (H * v) / 1.05, X(12), vy + (H * v) / 12, "#4a4658", 1, 2); }
+  // 鎖と錠 (手前の格子に、斜めに掛けて垂れる)
+  chainSag(R, W * 0.02, H * 0.3, W * 0.2, H * 0.36, 12, "#6a6670", 1); chainSag(R, W * 0.8, H * 0.32, W * 0.98, H * 0.28, 12, "#6a6670", 1);
+  for (const [x, y] of [[W * 0.11, H * 0.5], [W * 0.89, H * 0.48]]) { R.m = SURF; R.rect(x - 4, y, 8, 7, "#7a6a4a"); R.rect(x - 3, y - 4, 6, 4, "#5a5260"); R.rect(x - 2, y - 3, 4, 3, "#120e18"); R.px(x, y + 3, "#120e18"); }
+  // 奥の禁書の紫の光
+  R.m = SKY; R.rect(vx - 5, vy - 10, 10, 12, "#0a0610"); R.glow(vx, vy - 4, 50, 34, "#6a3aa0", 0.5, 5); R.glow(vx, vy - 4, 16, 12, "#b080e0", 0.4, 4);
+  R.light(vx, vy, W * 0.5, "#8a60c0", 0.7, H * 0.45);
+  A.part({ n: 16, col: "#c0a0f0", x0: 0.36, x1: 0.64, y0: 0.3, y1: 0.7, vy: -0.015, sway: 4, swf: 0.4, a: 0.5, tw: 1, rune: true, seed: 731 });
+  A.pulse((P) => { P.m = ADD; P.glow(vx, vy - 4, 56, 36, "#4a2470", 0.5, 5); }, (t) => 0.35 + 0.3 * Math.sin(t * 0.0011));
+}
 const VISTAS = {
   w00_forest: [5, vForestHut],
   w01: [1, vCrypt], w02: [14, vWhispers], w03: [16, vAbbey], w04: [2, vIntake], w05: [3, vChains],
@@ -3115,6 +3291,7 @@ const VISTAS = {
   w30: [0, vSpiral], w31: [0, vBelfry], w32: [0, vGallery], w33: [0, vSummit], ws15: [0, vNest], ws16: [0, vRodForest], ws17: [0, vCloudGarden],
   w34: [0, vCloudBridge], w35: [0, vBeastCages], w36: [0, vSpectreStands], w37: [11, vBloodSand], ws18: [0, vVictorsRoom], ws19: [0, vDuelRing],
   w38: [0, vLampDrift], w39: [0, vBlackLake], w40: [0, vNameGrotto], w41: [0, vGreatNave], ws20: [0, vBeastLair], ws21: [0, vFossilDragon], ws22: [12, vCrystalVein],
+  w42: [0, vShelfStair], w43: [0, vRainArchive], w44: [0, vGlassWorks], w45: [0, vGreatArchive], ws23: [0, vPictureRoom], ws24: [0, vClosedStacks],
 };
 function finishVista(out, w, h) { // 周辺減光だけ (名札帯・中央減光はしない)
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {

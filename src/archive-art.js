@@ -1,7 +1,7 @@
 // 読み物専用の一枚絵。場面ごとに背景・主題・人物の位置と手の動きを描き分ける。
 // 既存の storyArt や館の肖像は使わない。192×108の素材色を点光源で照らし、共通パレットへ量子化する。
 import { Layer, Mask, h2 } from "./pxpaint.js";
-import { ICE_PAL, SWAMP_PAL, STORM_PAL, ARENA_PAL, CAVERN_PAL } from "./storyart.js"; // 第六章の氷の青と極光の紫 / 第七章の沼の緑と枯れ葦 / 第八章の雷雲と稲妻 / 第九章の灰と雲海の夕映え / 第十章の土と琥珀と濁った灯を足したパレット
+import { ICE_PAL, SWAMP_PAL, STORM_PAL, ARENA_PAL, CAVERN_PAL, DAWN_PAL } from "./storyart.js"; // 第六章の氷の青と極光の紫 / 第七章の沼の緑と枯れ葦 / 第八章の雷雲と稲妻 / 第九章の灰と雲海の夕映え / 第十章の土と琥珀と濁った灯 / 第十一章の白金と古い紙と墨を足したパレット
 
 export const ARCHIVE_ART_W = 192, ARCHIVE_ART_H = 108;
 export const ARCHIVE_FOCUS = ["city", "threeSouls", "door", "lamp", "vessel", "partyThree", "partyFour", "guard",
@@ -14,7 +14,8 @@ export const ARCHIVE_FOCUS = ["city", "threeSouls", "door", "lamp", "vessel", "p
   "splint", "dollPile", "miasmaNote", "workshopIsle", "tower",
   "stick", "bell", "rodNote", "beacon", "bridge",
   "glove", "lampRack", "dollNook", "lampRing",
-  "polishedLamp", "nameTags", "wallNiches", "moldernLamp", "deepStairs"];
+  "polishedLamp", "nameTags", "wallNiches", "moldernLamp", "deepStairs", "moldernBrush",
+  "dawnTown", "lampVault", "rainJars", "sleepGlass", "archiveDesk"];
 // 氷の場面は氷の青を足したパレットで量子化する (共通のパレットだと青が灰色に沈む)
 const ICE_FOCUS = ["coat", "frozenMasters", "auroraMap", "frostKing", "thaw"];
 // 沼の場面は沼の緑と枯れ葦の黄土を足したパレットで量子化する
@@ -27,7 +28,11 @@ const STORM_FOCUS = ["stick", "bell", "rodNote", "beacon", "bridge"];
 const ARENA_FOCUS = ["glove", "lampRack", "dollNook", "lampRing"];
 // 地底大空洞の場面は土の茶・灯の琥珀・濁った灯の青灰を足したパレットで量子化する。背景 "cavern" は主題で描き分ける
 // (灯籠の山 = 天井の穴から光が差す吹き溜まり / 湖 = 黒い地底湖 / 壁龕 = 名を刻む石窟 / 大伽藍 = 巨柱の並ぶ闇の広間)
-const CAVERN_FOCUS = ["polishedLamp", "nameTags", "wallNiches", "moldernLamp", "deepStairs"];
+const CAVERN_FOCUS = ["polishedLamp", "nameTags", "wallNiches", "moldernLamp", "deepStairs", "moldernBrush"];
+// 夜明けの町の場面は白金の光・古い紙と書架の木・墨の藍を足したパレットで量子化する。背景 "dawntown" = 眠り灯の天井の下の町
+// (主題 "lampVault" は天井を見上げる)、"archive" = 町のまわりの書庫で、主題で描き分ける (雨受け = 雨垂れの書庫 / 工房 = 眠り灯の工房 / 机 = 大書庫)
+const DAWN_FOCUS = ["dawnTown", "lampVault"];
+const ARCHIVE_ROOM_FOCUS = ["rainJars", "sleepGlass", "archiveDesk"];
 const cache = new Map();
 const C = { stone:[71,67,85], dark:[25,22,37], edge:[114,104,118], wood:[104,64,47], gold:[199,150,70], paper:[201,183,139],
   iron:[81,94,115], bone:[185,165,137], soul:[73,214,190], blue:[91,131,190], purple:[107,65,143], skin:[188,151,147], black:[31,25,38],
@@ -44,16 +49,20 @@ function paintScene(scene) {
   const arena = scene.setting === "arena" || ARENA_FOCUS.includes(scene.focus);
   const arenaMode = scene.focus === "glove" ? "bridge" : ["lampRack", "dollNook"].includes(scene.focus) ? "under" : "bowl";
   const cavern = scene.setting === "cavern" || CAVERN_FOCUS.includes(scene.focus);
-  const caveMode = scene.focus === "nameTags" ? "lake" : scene.focus === "wallNiches" ? "niche" : ["moldernLamp", "deepStairs"].includes(scene.focus) ? "nave" : "heap";
+  const caveMode = scene.focus === "nameTags" ? "lake" : scene.focus === "wallNiches" ? "niche" : ["moldernLamp", "deepStairs", "moldernBrush"].includes(scene.focus) ? "nave" : "heap";
+  const dawn = !cavern && (scene.setting === "dawntown" || DAWN_FOCUS.includes(scene.focus));
+  const archive = !cavern && !dawn && (scene.setting === "archive" || ARCHIVE_ROOM_FOCUS.includes(scene.focus));
+  const archMode = scene.focus === "sleepGlass" ? "kiln" : scene.focus === "archiveDesk" ? "hall" : "wet";
   const indoor = ["mansion", "workshop", "throne", "treasury", "warroom", "prison", "crypt", "passage", "abbey", "mine"].includes(scene.setting);
   const roomLight = ["mansion", "workshop", "throne", "treasury"].includes(scene.setting);
   const focalX = scene.people === "king" ? 139 : scene.people === "irene" ? 121 : 105;
-  const light = { x:focalX, y:56, color:roomLight ? [1,0.69,0.38] : scene.setting==="ice" ? [0.55,0.8,1] : scene.setting==="swamp" ? [0.72,0.9,0.46] : spire ? [0.66,0.72,1] : arena ? [1,0.64,0.46] : cavern ? (caveMode==='niche'||caveMode==='nave' ? [0.5,0.72,0.7] : [1,0.76,0.46]) : [0.33,0.86,0.82] };
+  const light = { x:focalX, y:56, color:roomLight ? [1,0.69,0.38] : scene.setting==="ice" ? [0.55,0.8,1] : scene.setting==="swamp" ? [0.72,0.9,0.46] : spire ? [0.66,0.72,1] : arena ? [1,0.64,0.46] : cavern ? (caveMode==='niche'||caveMode==='nave' ? [0.5,0.72,0.7] : [1,0.76,0.46]) : dawn ? [1,0.88,0.64] : archive ? (archMode==='kiln' ? [1,0.56,0.26] : archMode==='hall' ? [1,0.76,0.46] : [0.62,0.72,0.88]) : [0.33,0.86,0.82] };
+  const ambK = dawn ? 0.6 : 0.32;   // 夜明けの町は影の向きが無いほど明るい
   function rgb(base, x, y, edge = false) {
     const d = Math.hypot((x - light.x) * 0.8, y - light.y) / 100;
     const k = Math.max(0, 1 - d) ** 2;
     const grain = (h2(x, y, seed) - 0.5) * 0.13;
-    return base.map((v, i) => v * (0.32 + k * light.color[i] * 0.85 + grain + (edge ? 0.15 : 0)));
+    return base.map((v, i) => v * (ambK + k * light.color[i] * 0.85 + grain + (edge ? 0.15 : 0)));
   }
   const mask = () => new Mask(W, H);
   function draw(m, col, textured = true) { L.paint(m, (x,y) => textured ? rgb(col,x,y,m.nx(x,y,3) < -0.2) : col); }
@@ -229,6 +238,48 @@ function paintScene(scene) {
       for(let i=0;i<30;i++)rect(50+h2(i,37,seed)*92,24+h2(i,38,seed)*36,1,1,h2(i,39,seed)<0.5?[70,86,90]:[44,50,52],false);
     }
   }
+  // 第十一章: 夜明けの町と、そのまわりの書庫
+  // 眠り灯 (鉄の吊り枠から下がる澄んだ灯籠。中で休む魂が白金に光る)。(x, y) = 吊り金具、sc = 大きさ、on = 灯っているか
+  function sleepLampA(x,y,sc=1,on=true,wire=2){if(sc<0.8){rect(x,y,1,1,on?[255,240,200]:[90,80,70],false);if(on)glow(x+0.5,y+0.5,3,[255,220,150],0.35);return;}line(x,y,x,y+wire*sc,[70,60,50],1,false);rect(x-1.2*sc,y+wire*sc,2.4*sc+1,sc,[60,50,44]);ellipse(x+0.5,y+wire*sc+3*sc,1.5*sc+0.3,2*sc,on?[255,244,214]:[120,120,116],false);if(on){rect(x,y+wire*sc+2.6*sc,1,1,[255,255,250],false);glow(x+0.5,y+wire*sc+3*sc,7*sc,[255,214,140],0.5);}}
+  // のっぺりした丸い頭の人業 (木の体と関節の黒鉄の帯)。(x, by) = 足もと、sc = 大きさ、child = 子どもの姿、up = 両腕を上げる
+  function blankDoll(x,by,sc=1,child=false,up=false){const k=child?0.62:1,hip=by-11*k*sc,sh=hip-9*k*sc,hr=(child?3.8:3.2)*sc;
+    line(x-1.6*sc,hip,x-2*sc,by,C.wood,Math.max(1,2*sc));line(x+1.6*sc,hip,x+2*sc,by,C.wood,Math.max(1,2*sc));poly([[x-3*sc,hip],[x+3*sc,hip],[x+3.8*sc,sh],[x-3.8*sc,sh]],C.wood);
+    if(up){line(x-3.4*sc,sh,x-4.6*sc,sh-9*sc,C.wood,Math.max(1,1.6*sc));line(x+3.4*sc,sh,x+4.6*sc,sh-9*sc,C.wood,Math.max(1,1.6*sc));}else{line(x-3.6*sc,sh,x-4.6*sc,hip,C.wood,Math.max(1,1.6*sc));line(x+3.6*sc,sh,x+4.6*sc,hip,C.wood,Math.max(1,1.6*sc));}
+    ellipse(x,sh-1.2*sc-hr,hr,hr*1.05,[150,118,84],false);ellipse(x-hr*0.15,sh-1.2*sc-hr*1.1,hr*0.8,hr*0.85,[196,164,120],false);rect(x-hr*0.5,sh-1.2*sc-hr*1.6,Math.max(1,hr*0.5),1,[226,200,160],false);rect(x-1*sc,sh-1.6*sc,2*sc,1.4*sc,[34,34,40],false);rect(x-3*sc,hip-0.6*sc,6*sc,Math.max(1,1.2*sc),[34,34,40],false);for(const a of [-1,1])rect(x+a*3.4*sc-0.6*sc,sh,Math.max(1,1.2*sc),Math.max(1,1.2*sc),[34,34,40],false);}
+  // 書架 (枠・段板・背表紙)。wet = 濡れて黒ずむ
+  function shelfA(x0,y0,w,h,row=7,dim=1,wet=false){rect(x0,y0,w,h,[40*dim,28*dim,20*dim]);for(let yy=y0;yy<y0+h;yy+=row){rect(x0,yy,w,1,[110*dim,82*dim,56*dim]);for(let xx=x0+1;xx<x0+w-1;xx+=2){if(h2(xx,yy,seed)<0.1)continue;const c=[[110,46,42],[52,66,96],[66,82,52],[120,96,52],[86,58,96]][Math.floor(h2(xx,yy+1,seed)*5)];const hh=row-2-Math.floor(h2(xx,yy+2,seed)*2);rect(xx,yy+row-hh,2,hh,c.map(v=>v*dim*(wet?0.6:1)));}}if(wet)for(let i=0;i<w*h/160;i++){const xx=x0+h2(i,51,seed)*w,yy=y0+h2(i,52,seed)*h;line(xx,yy,xx,yy+1+h2(i,53,seed)*3,[70,82,100],1,false);}}
+  if(dawn){
+    // 岩の天井いっぱいの鉄の吊り枠と、何千もの眠り灯 (奥ほど小さく密に)。太陽は無く、影の向きも無い
+    for(let yy=0;yy<H;yy++){const t=yy/H;rect(0,yy,W,1,[130+t*70,110+t*66,84+t*52],false);}
+    const vault=scene.focus==="lampVault";
+    const rows=vault?[[3,22,3,3],[16,15,2,2],[27,10,1.4,2],[36,7,1,1.5],[44,5,0.7,1],[50,4,0.6,1],[55,3,0.5,1]]:[[2,15,1.6,2],[10,10,1,1.5],[17,7,0.7,1],[23,5,0.6,1],[28,3.6,0.5,1],[32,2.8,0.5,1],[36,2.2,0.5,1]];
+    for(const [yy,gap,sc,sag] of rows){const off=h2(yy,1,seed)*gap;for(let xx=0;xx<W;xx++)rect(xx,yy+Math.sin(((xx+off)%(gap*3))/(gap*3)*Math.PI)*sag,1,1,yy<20?[50,42,36]:[120,104,84],false);for(let xx=off;xx<W;xx+=gap)if(h2(xx|0,yy,seed)>0.06)sleepLampA(Math.round(xx),Math.round(yy+Math.sin(((xx+off)%(gap*3))/(gap*3)*Math.PI)*sag),sc,true,sc>=1?2:1);}
+    glow(96,20,120,[255,220,160],0.25);
+    if(!vault){
+      // 大書庫の書架の壁 (何層もの回廊。書架の区画をくりぬいた家の窓が灯る)
+      L.shade(0,40,W-1,73,(xx,yy)=>{const fl=(yy-40)%8,pil=(xx+9)%30<4;return pil?[190,166,128]:fl<1?[180,150,108]:fl<2?(xx%3?[200,184,148]:[120,96,70]):h2(xx>>1,yy>>3,seed)>0.8?[100,80,60]:[[150,110,96],[120,130,150],[130,140,110],[170,150,110]][((xx*7+(yy>>3)*13)>>1)%4];});
+      for(let i=0;i<24;i++){const xx=4+h2(i,61,seed)*184,yy=42+Math.floor(h2(i,62,seed)*3)*8;if((xx+9)%30<6)continue;rect(xx,yy,3,4,[255,220,150],false);rect(xx,yy,3,1,[255,244,210],false);}
+      rect(0,84,W,24,[176,152,116]);for(let i=0;i<60;i++)rect(h2(i,63,seed)*W,86+h2(i,64,seed)*20,3,1,[150,128,96],false);
+    }
+  }
+  if(archive){
+    if(archMode==="kiln"){                                   // 眠り灯の工房 (煤けた煉瓦の壁、蜂の巣のような炉の列)
+      rect(0,0,W,H,[44,28,24]);for(let yy=0;yy<86;yy+=5)for(let xx=(yy/5%2)*6;xx<W;xx+=12){line(xx,yy,xx+11,yy,[30,20,18]);line(xx,yy,xx,yy+5,[30,20,18]);}
+      for(const [q,by,r] of [[16,84,14],[170,80,12]]){ellipse(q,by,r,r*1.1,[86,72,66]);rect(q-r,by,r*2,r*1.1,[86,72,66]);ellipse(q,by+2,r*0.34,r*0.4,[10,8,8],false);}
+      rect(0,86,W,22,[60,46,40]);for(let i=0;i<40;i++)rect(h2(i,65,seed)*W,88+h2(i,66,seed)*18,4,1,[40,30,26]);
+      for(let k=0;k<3;k++){rect(150,12+k*14,40,2,C.wood);for(let i=0;i<5;i++){const on=h2(i,k,seed)>0.6;ellipse(155+i*8,9+k*14,2.4,3.4,on?[255,240,200]:[90,96,100],false);if(on)glow(155+i*8,9+k*14,6,[255,214,140],0.4);}}
+    } else if(archMode==="hall"){                            // 大書庫 (天井まで届く書架が奥へ並ぶ。果てに黒い扉)
+      rect(0,0,W,H,[14,12,14]);
+      for(const side of [-1,1])for(let z=6;z>=1;z--){const xa=96+side*110/(z+1),xb=96+side*110/z;shelfA(Math.min(xa,xb),0,Math.abs(xb-xa),40+66/z,Math.max(4,Math.round(14/z)),0.45+0.5/z);}
+      rect(82,6,28,40,[54,48,46]);rect(91,28,10,15,[4,4,6],false);ellipse(96,28,5,4,[4,4,6],false);rect(91,27,10,1,[110,96,80]);
+      poly([[40,108],[152,108],[104,48],[88,48]],[50,44,40]);
+    } else {                                                 // 雨垂れの書庫 (濡れた書架の列、天井の岩の割れ目から雨。床に墨の水たまり)
+      rect(0,0,W,H,[12,14,20]);shelfA(40,10,112,66,7,0.6,true);shelfA(-2,0,40,H,10,0.85,true);shelfA(154,0,40,H,10,0.75,true);
+      rect(0,0,W,8,[40,38,44]);for(let q=80;q<118;q+=2)rect(q,3+Math.round(Math.sin(q*0.6)*1.5),2,2,[210,224,240],false);glow(98,4,30,[150,180,220],0.45);
+      rect(40,76,114,32,[58,58,66]);for(let i=0;i<8;i++)ellipse(56+h2(i,67,seed)*84,84+h2(i,68,seed)*20,4+h2(i,69,seed)*8,1.4,[10,12,24],false);
+      for(let i=0;i<16;i++){const q=80+h2(i,70,seed)*38,yy=8+h2(i,71,seed)*62;line(q,yy,q,yy+2,[120,140,170],1,false);}
+    }
+  }
   if(scene.setting==="water"){rect(0,73,W,35,[20,49,61]);for(let i=0;i<40;i++){const x=h2(i,1,seed)*W,y=76+h2(i,3,seed)*30;line(x,y,x+9,y,C.blue);}for(let x=143;x<183;x+=9)rect(x,18,3,71,C.iron);}
 
   // 一枚ごとの主題。小道具だけの色違いではなく、物語で向き合う相手と場所を変える。
@@ -381,6 +432,31 @@ function paintScene(scene) {
       line(88,70,82,84,[30,26,34],3);line(110,70,116,84,[30,26,34],3);rect(95,70,8,9,[16,20,22]);poly([[95,70],[90,71],[90,78],[95,79]],C.brass);ellipse(99,75,1.2,1.6,[160,240,220],false);glow(99,75,9,[60,200,170],0.35);break;
     case "deepStairs": poly([[68,108],[124,108],[108,72],[84,72]],[24,22,22]);for(let k=0;k<9;k++){const t=k/9,yy=108-t*36,hw=28-t*16;rect(96-hw,yy-2,hw*2,1,[Math.round(110-t*80),Math.round(102-t*74),Math.round(92-t*66)]);}
       rect(84,70,24,3,[214,216,186],false);glow(96,70,40,[190,196,150],0.6);for(let i=0;i<24;i++)rect(84+h2(i,42,seed)*24,20+h2(i,43,seed)*50,1,1,[220,224,196],false);break;
+    // ---- 第十章の結び・第十一章「夜明けの町」 ----
+    case "moldernBrush": poly([[70,100],[76,86],[118,84],[124,100]],[40,36,34]);for(let k=0;k<6;k++){const yy=86+k*2.4;line(78-k,yy,116+k,yy,[Math.round(60-k*6),Math.round(56-k*6),Math.round(50-k*5)]);}rect(84,82,24,2,[220,224,186],false);glow(97,84,36,[180,190,140],0.7);   // 下へ降りる石段の口と、底のかすかな光
+      for(let i=0;i<7;i++){const q=20+i*24+(i>2?14:0),yy=96-Math.abs(i-3)*3;if(i===3)continue;caveLamp(q,yy,1.8,i%2?"dead":"murk");line(q,yy-9,q+5,yy-8,[200,180,130]);rect(q+4,yy-8,3,5,[226,196,140],false);for(let k=0;k<3;k++)rect(q+5,yy-6+k*1.4,1,1,[40,30,26],false);}   // 名札を結んだ灯籠
+      poly([[134,96],[136,70],[142,60],[152,60],[158,70],[160,96]],[56,52,66]);poly([[138,62],[140,54],[144,58],[150,58],[154,54],[156,62]],[56,52,66]);line(158,70,160,96,[120,150,140],1,false);line(152,60,158,70,[120,150,140],1,false);ellipse(147,52,5,6,[226,216,206],false);poly([[142,48],[147,45],[152,48],[151,52],[143,52]],[22,20,24]);rect(143,55,3,1,[60,52,56],false);   // 宰相モルデン (筆を置いたばかり)
+      line(140,70,128,78,[56,52,66],3);rect(124,77,5,2,[214,204,196]);rect(144,70,7,9,[16,20,22]);poly([[144,70],[139,71],[139,78],[144,79]],C.brass);ellipse(147,75,1.2,1.6,[160,240,220],false);glow(147,75,9,[60,200,170],0.35);
+      glow(119,80,22,[150,200,180],0.35);rect(110,80,18,3,[150,104,70]);line(119,83,119,98,[120,84,56],2);rect(113,98,12,2,[120,84,56]);rect(113,75,6,5,[226,196,140],false);for(let k=0;k<3;k++)rect(115,76+k*1.4,1,1,[40,30,26],false);line(121,79,127,76,[60,48,40],1);rect(127,75,2,2,[20,18,20],false);break;   // 小さな書見台に置いた木札と筆
+    case "dawnTown": for(let i=0;i<12;i++){const q=-6+i*17+h2(i,5,seed)*6,w2=12+h2(i,6,seed)*9,top=58+h2(i,7,seed)*12;rect(q,top,w2,84-top,h2(i,8,seed)>0.5?[214,188,146]:[176,158,132]);rect(q-2,top-2,w2+4,3,[100,74,50]);rect(q+2,top+4,3,3,[255,222,160],false);if(w2>15)rect(q+w2-6,top+4,3,3,[255,222,160],false);if(h2(i,9,seed)>0.5)rect(q+w2*0.4,78,3,6,[74,52,38]);}
+      for(let i=0;i<5;i++){const a=14+i*36,b=a+28,yy=58+h2(i,10,seed)*6;for(let q=a;q<=b;q++){const t=(q-a)/(b-a),y2=yy+Math.sin(t*Math.PI)*3;rect(q,y2,1,1,[96,80,64],false);if(q%4===1)rect(q,y2+1,2,2+(q%2),[[226,216,196],[176,90,70],[96,124,164],[206,186,116]][(q+i)%4]);}}
+      poly([[118,74],[146,74],[150,79],[114,79]],[150,90,70]);for(let q=116;q<150;q+=4)rect(q,74,2,5,[210,196,170]);rect(118,79,28,5,[120,90,60]);   // 店先の日よけ
+      for(const [q,hh] of [[40,18],[92,24],[160,14]])for(let k=0;k<hh;k++)rect(q+Math.sin(k*0.4)*(1+k*0.08),56-k,2+k*0.15,1,[230,214,184],false);   // まっすぐ昇る煮炊きの煙
+      blankDoll(60,96,1.1);blankDoll(74,96,0.8,true);blankDoll(132,94,1);blankDoll(100,100,1.3,true);break;
+    case "lampVault": for(let i=0;i<3;i++){const yy=10+i*14;line(0,yy+i*2,W,yy-i,[44,38,34],2);}line(150,0,150,108,[70,56,40],2);for(let k=0;k<14;k++)line(144,6+k*7,156,6+k*7,[90,70,48]);   // 鉄の吊り枠と、吊り枠へ掛けたはしご
+      blankDoll(150,80,1.2,false,true);sleepLampA(150,28,2.4,true,1);glow(150,38,26,[255,220,150],0.6);   // はしごの上で、眠り灯を吊り枠へ掛ける人業
+      for(const [q,yy,sc] of [[30,12,2.2],[64,24,1.8],[100,14,2],[120,30,1.6],[176,22,1.8],[12,36,1.4]])sleepLampA(q,yy,sc,true,2);
+      for(let i=0;i<12;i++){const q=-4+i*17,top=90+h2(i,73,seed)*8;poly([[q-2,top+2],[q+8,top-3],[q+18,top+2],[q+18,108],[q-2,108]],[120,92,64]);rect(q+4,top+5,3,3,[255,222,160],false);}   // 下の町の屋根
+      blankDoll(60,106,1.4,true);blankDoll(80,108,1.6);break;   // 下から見上げる町の者
+    case "rainJars": for(const [yy,sc,n,x0,dx] of [[84,0.7,7,62,12],[94,1,6,58,15],[106,1.5,4,56,23]])for(let i=0;i<n;i++){const q=x0+i*dx;ellipse(q,yy-5*sc,4.6*sc,5*sc,[110,130,154]);ellipse(q,yy-4.6*sc,3.6*sc,4*sc,[44,56,72],false);rect(q-2.6*sc,yy-11*sc,5.2*sc,2*sc,[170,186,200]);line(q-2*sc,yy-8*sc,q-2*sc,yy-3*sc,[210,222,232],1,false);if(h2(i,yy,seed)>0.4){ellipse(q,yy-5*sc,1.2*sc,1.6*sc,[236,244,250],false);glow(q,yy-5*sc,7*sc,[150,190,230],0.6);}}
+      for(let yy=6;yy<70;yy++)rect(98,yy,1,1,[196,210,230],false);
+      paper(16,40,14,16);rect(22,40,1,2,[180,180,190],false);ellipse(26,32,2,3,[255,240,200],false);glow(26,32,14,[255,214,140],0.5);break;   // 柱に留めた書きつけと番のランタン
+    case "sleepGlass": ellipse(64,72,26,28,[120,74,56]);rect(38,72,52,30,[120,74,56]);rect(58,0,12,46,[96,60,46]);ellipse(64,66,9,8,[255,214,140],false);rect(55,66,18,6,[255,190,100],false);glow(64,68,40,[255,120,40],0.7);rect(52,74,24,3,[150,110,84]);   // 火を入れ直した炉
+      line(106,70,150,104,[190,190,200],2);ellipse(102,66,6,6.6,[56,52,54]);ellipse(102,66,4.6,5.2,[34,32,36],false);rect(99,62,2,3,[255,246,220],false);ellipse(107,70,2.4,2,[255,130,50],false);glow(104,68,12,[255,160,90],0.4);   // 吹き竿の先の、吹きかけの澄んだガラス
+      rect(120,86,64,4,C.wood);rect(124,90,4,18,C.wood);rect(176,90,4,18,C.wood);paper(136,78,26,8);line(149,78,149,86,[150,130,100]);sleepLampA(176,72,2,true,0);break;   // 作業台の帳面と、吹き上がった眠り灯
+    case "archiveDesk": poly([[58,100],[134,100],[102,54],[90,54]],C.wood);rect(58,100,76,3,[70,48,34]);for(let i=0;i<5;i++){const yy=60+i*8,q=96+(h2(i,72,seed)-0.5)*(yy-50)*1.2;rect(q-3*(yy-50)/20,yy,6*(yy-50)/20,2,i%2?C.paper:[110,46,42]);}
+      paper(78,84,30,11);for(let i=0;i<3;i++)line(81,87+i*2.4,104-i*4,87+i*2.4,C.wood);line(108,86,118,84,[150,60,50]);rect(112,78,4,6,C.gold);ellipse(114,75,2,3,[255,240,190],false);glow(114,76,28,[255,190,100],0.6);   // 古い記録の余白の書きこみと、机のランプ
+      poly([[150,100],[152,60],[156,48],[164,48],[168,60],[170,100]],[80,72,62]);poly([[154,52],[155,40],[160,36],[165,40],[166,52]],[66,60,52]);ellipse(158.4,46,2.4,3.4,[160,150,136]);rect(157,45,1,1,[10,8,10],false);line(152,64,140,80,[80,72,62],2);break;   // 痩せこけた司書
     default: throw new Error(`読み物の図版に未定義の主題: ${scene.focus}`);
   }
   if(scene.people==="irene")irene(scene.pose==="shelter"?80:62,scene.pose==="seated"?66:63,scene.pose);
@@ -391,7 +467,7 @@ function paintScene(scene) {
     for(let j=0;j<3;j++)L.c[i+j]*=1-d;
   }
   const swamp = scene.setting === "swamp" || SWAMP_FOCUS.includes(scene.focus);
-  return L.canvas(8, cavern ? CAVERN_PAL : arena ? ARENA_PAL : spire || STORM_FOCUS.includes(scene.focus) ? STORM_PAL : swamp ? SWAMP_PAL : scene.setting === "ice" || ICE_FOCUS.includes(scene.focus) ? ICE_PAL : undefined);
+  return L.canvas(8, dawn || archive ? DAWN_PAL : cavern ? CAVERN_PAL : arena ? ARENA_PAL : spire || STORM_FOCUS.includes(scene.focus) ? STORM_PAL : swamp ? SWAMP_PAL : scene.setting === "ice" || ICE_FOCUS.includes(scene.focus) ? ICE_PAL : undefined);
 }
 
 export function archiveArt(scene) {
