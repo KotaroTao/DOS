@@ -1,6 +1,16 @@
 // 迷宮の透過原画。通常敵・強敵・主・召喚先・共通の敵で共用する。
 // 能力値や文字グリッドは保ち、読めた原画だけを最初の描画前に登録する。
 export const MONSTER_PHOTOS = {
+  // 火を噴く地割れ（残り火の王は作成済み原画を共用）。
+  bs_magmaslime: [426, 407],
+  bs_emberswarm: [425, 387],
+  bs_ashghoul: [397, 393],
+  bs_cinderwraith: [426, 425],
+  bs_lavamaw: [425, 418],
+  bs_sulfurfiend: [412, 425],
+  bs_lavagolem: [395, 399],
+  bs_magmaray: [425, 425],
+  bs_hellhound: [389, 425],
   // 水晶の鉱脈（作成済みの鉱脈喰らいは既存絵を使う）。
   bs_crystalspider: [405, 373],
   bs_crystaldrake: [404, 375],
