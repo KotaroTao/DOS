@@ -11,6 +11,28 @@
 const CACHE = "dos-dev";
 const DEV = CACHE === "dos-dev";
 const ASSETS = [
+  "./src/collectiblephotos.js",
+  "./art/collectibles/m_widows_veil.webp",
+  "./art/collectibles/m_cursed_war_coin.webp",
+  "./art/collectibles/m_alchemist_residue.webp",
+  "./art/collectibles/m_chasm_echo_shell.webp",
+  "./art/collectibles/m_void_moth_dust.webp",
+  "./art/collectibles/m_fallen_rope_knot.webp",
+  "./art/collectibles/m_pale_lantern_glass.webp",
+  "./art/collectibles/m_abyss_salt.webp",
+  "./art/collectibles/m_drowned_lyre_string.webp",
+  "./art/collectibles/m_nixie_scale.webp",
+  "./art/collectibles/m_tidebound_compass.webp",
+  "./art/collectibles/m_pearl_diver_lung.webp",
+  "./art/collectibles/m_river_god_tear.webp",
+  "./art/collectibles/m_censer_ash.webp",
+  "./art/collectibles/m_choir_bone_flute.webp",
+  "./art/collectibles/m_reliquary_nail.webp",
+  "./art/collectibles/m_mourning_glass.webp",
+  "./art/collectibles/m_funeral_mask.webp",
+  "./art/collectibles/m_blackened_thurible.webp",
+  "./art/collectibles/m_knight_gorget.webp",
+
   "./art/monsters/bs_dryadfey.webp",
   "./art/monsters/bs_wisplure.webp",
   "./art/monsters/bs_thornhound.webp",
