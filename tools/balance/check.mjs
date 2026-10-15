@@ -33,17 +33,17 @@ const close=(actual,expected,label,tolerance=.035)=>assert(Math.abs(actual-expec
  const hit=b._physical(other,t,{acc:1});
  assert(hit.lifesteal>0);
  assert.equal(other.hp,Math.min(other.maxhp,1+hit.lifesteal));
- assert(logs.findIndex(s=>s.includes('ダメージ'))<logs.findIndex(s=>s.includes('HPを吸い取った')));
+ assert(logs.findIndex(s=>s.includes('ダメージ'))<logs.findIndex(s=>s.includes('HP吸収')));
  logs.length=0;t.physResist=100;other.hp=1;
  assert(b._physical(other,t,{acc:1}).immune);
  assert.equal(other.hp,1);
- assert(!logs.some(s=>s.includes('吸い取った')));
+ assert(!logs.some(s=>s.includes('吸収')));
  t.physResist=0;
  const random=Math.random;Math.random=()=>0;
  assert(b._physical(other,t,{}).miss);
  Math.random=random;
  assert.equal(other.hp,1);
- assert(!logs.some(s=>s.includes('吸い取った')));
+ assert(!logs.some(s=>s.includes('吸収')));
 }
 // 浮遊は最大MPの一割・端数切り上げ・最低8。軽減や現在MPでは変わらない。
 {
@@ -87,7 +87,7 @@ for(const [key,resource] of [['KYUUKETSU','HP'],['MAGUINOTACHI','MP'],['NECROMAN
   const random=Math.random;Math.random=()=>.5;
   const res=b._exec({actor:a,action:'spell',spellKey:key,target:t});
   Math.random=random;
-  const absorption=logs.findIndex(s=>s.includes(`${resource}を吸い取った (${resource}+`));
+  const absorption=logs.findIndex(s=>s.includes(`${resource}吸収：${resource}+`));
   if(immune){assert.equal(absorption,-1);assert(!res.hits.some(h=>h.heal));}
   else {assert(res.hits.some(h=>h.dmg>0));assert(absorption>logs.findIndex(s=>s.includes('ダメージ')));}
  }
