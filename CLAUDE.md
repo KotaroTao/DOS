@@ -219,6 +219,7 @@ The game is migrating from **10 rank-bands × 10 dungeons** to **20 layers × 5 
 
 - **地下墓地のWebP原画** (`src/monsterphotos.js`): `w01` の通常敵6種、墓所の君主、召喚先の囚人の亡骸、ミミックの計9体は `art/monsters/<ID>.webp` の透過原画を共通の `photo` 描画口で表示する。同じIDの絵は別の迷宮でも共用。起動時に並列読み込みし、取得失敗・寸法不一致・4秒の待ち時間超過では元のドット絵を残す。能力・技・伝承・出現条件は変更しない。森の小屋の3体を画風の基準に制作。原画・制作記録は `docs/art/crypt-enemies/`、変換は `python3 tools/crypt/build-enemies.py`、実画面と取得失敗時の検証は `node tools/crypt/verify-enemies.cjs`。 黒水の取水口 (`w04`) の通常敵9種と子産みヒルの女王も同じ描画口の透過WebPに更新。召喚先は吸血大ヒル、ミミックは既存原画を共用。原画・図鑑との対応・確認画像は `docs/art/blackwater-enemies/`、再生成は `python3 tools/crypt/build-blackwater-enemies.py`、検証は `node tools/crypt/verify-blackwater-enemies.cjs`。
 
+- **坑口のWebP原画**: `w05` の通常敵12種・鎖鞭の坑監・坑道の主・銀業を `src/monsterphotos.js` に登録。召喚先とミミックは共用。森の3体と図鑑を基準に制作し、原画・確認画像は `docs/art/mine-enemies/`、再変換と実画面検証は `tools/mine/`。既存の取得失敗時の代替表示を維持する。
 - **回廊のWebP原画**: `w02` の嘆きの喪影・霊蝙蝠・蒼白の首切り鬼の3種を `src/monsterphotos.js` へ追加。通常敵・取り巻きの8種は修道院の絵、ミミックは地下墓地の絵を共用し、回廊で遭遇する12種を透過WebPで表示する。森の小屋の3体と図鑑を参照。制作記録 `docs/art/corridor-enemies/`、再生成 `python3 tools/crypt/build-corridor-enemies.py`、画面・取得失敗の検証 `node tools/crypt/verify-corridor-enemies.cjs`。
 - **修道院のWebP原画**: `w03` の未作成12種（通常敵11種・骸の修道院長）も同じ `monsterphotos.js` へ登録済み。既存の囚人の亡骸・墓所の君主・ミミックと合わせて全15種を網羅。原画・制作記録は `docs/art/abbey-enemies/`、変換は `python3 tools/abbey/build-enemies.py`、表示と取得失敗の検証は `node tools/abbey/verify-enemies.cjs`。
 
