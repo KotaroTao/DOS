@@ -25,6 +25,9 @@ export const MONSTER_PHOTOS = {
   el_cryptlord: [463, 472],
   d01_skeleton: [359, 422],
   mimic: [443, 440],
+  bs_mournshade: [338, 366],
+  bs_spiritbat: [398, 361],
+  el_palebutcher: [365, 378],
   // 黒水の取水口（通常敵9種と女王。召喚先は吸血大ヒル）。
   bs_bloatfly: [512, 435],
   bs_fogspecter: [403, 512],
