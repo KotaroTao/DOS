@@ -218,7 +218,7 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 
 ### A. 必須 (物語の筋や正典と食い違う)
 
-**A-39. 第三章 report_w11「師の師」王の重複した左腕の修正** `art/story-review/chapter3/report_w11.png` (済)
+**A-40. 第三章 report_w11「師の師」王の重複した左腕の修正** `art/story-review/chapter3/report_w11.png` (済)
 
 - ユーザー指定: 「師の師」の王の左手が2本ある。口元に添えた左手を残し、画面右下の肘掛けを握る余分な左手・前腕を取り除く。衣のひだで自然につなぎ、ほかは保つ。
 
