@@ -1,4 +1,4 @@
-// 通常敵・名のある強敵の透過原画。通常敵・強敵・主・召喚先・ミミックで共用する。
+// 迷宮の透過原画。通常敵・強敵・主・召喚先・共通の敵で共用する。
 // 能力値や文字グリッドは保ち、読めた原画だけを最初の描画前に登録する。
 export const MONSTER_PHOTOS = {
   // 名のある強敵24体。森の小屋の3体と図鑑の記述に合わせた透過原画。
@@ -26,6 +26,20 @@ export const MONSTER_PHOTOS = {
   el_dragonslayer: [501, 504],
   el_tunnelking: [524, 505],
   el_oremaw: [519, 506],
+  mt_silver: [347, 520],
+  bs_tunneler: [520, 501],
+  bs_troll: [520, 501],
+  bs_timbermite: [464, 512],
+  bs_steelspider: [502, 510],
+  bs_rockworm: [500, 520],
+  bs_minelord: [520, 387],
+  bs_minebat: [520, 344],
+  bs_koboldsapper: [463, 505],
+  bs_gargoyle: [495, 520],
+  bs_dustwraith: [489, 495],
+  bs_crystalcrawler: [520, 502],
+  bs_chainedconvict: [510, 501],
+  bs_blastsprite: [493, 486],
   bs_bonebat: [448, 415],
   bs_carrioncrow: [418, 438],
   bs_corpsemaggot: [398, 415],
@@ -34,6 +48,8 @@ export const MONSTER_PHOTOS = {
   bs_bonepile: [464, 400],
   d01_skeleton: [359, 422],
   mimic: [443, 440],
+  bs_mournshade: [338, 366],
+  bs_spiritbat: [398, 361],
   // 黒水の取水口（通常敵9種と女王。召喚先は吸血大ヒル）。
   bs_bloatfly: [512, 435],
   bs_fogspecter: [403, 512],
