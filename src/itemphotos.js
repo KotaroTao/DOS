@@ -2,6 +2,8 @@
 import { NUMBERED_ITEM_IDS } from "./itemnumbers.js";
 
 export const ITEM_PHOTOS = Object.freeze([
+  // 制作番号1601〜1700の追加原画。
+  ...NUMBERED_ITEM_IDS.slice(1600, 1700),
   // 制作番号1401〜1500の追加原画。
   ...NUMBERED_ITEM_IDS.slice(1400, 1500),
   ...NUMBERED_ITEM_IDS.slice(1300, 1400),
