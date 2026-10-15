@@ -356,11 +356,11 @@ export const MONSTER_TEMPERAMENTS = {
   bs_glyphhound: p("sleep", "seal confuse", "", "fire light", "dark", "paralyze"), // 呪印の守りでも獣は眠る
   bs_tomeguardian: p("paralyze", "seal flinch confuse", "poison sleep charm death", "fire light", "dark earth"), // 本の鎧の動きを止める
   bs_astralwraith: p("seal", "confuse charm", G, "light earth", "dark wind", "flinch"), // 星の運行を縛る術
-  bs_elderlich: p("seal", "confuse charm flinch", D, "light fire", "dark", "paralyze"), // 七つに分けた魂の術
+  bs_elderlich: p("seal", "confuse charm flinch", D, "light fire", "dark", "paralyze"), // 器を替えて生き延びる術を封じる
   bs_soulreaper: p("seal", "confuse charm flinch", G, "light fire", "dark"), // 冥府の役目を封じる
-  bs_cosmicwraith: p("charm", "seal confuse flinch", G, "light", "dark water"), // 宇宙の孤独を惑わす
-  bs_archivist: p("seal", "charm confuse", D, "light fire", "dark", "paralyze"), // 手記を守る術を断つ
-  el_voidarchon: p("seal", "confuse charm flinch", G, "dark earth", "light wind"), // 虚空の白い輪郭
+  bs_cosmicwraith: p("charm", "seal confuse flinch", G, "light", "dark water"), // とじ目のほどけた頁を惑わす
+  bs_archivist: p("seal", "charm confuse", D, "light fire", "dark", "paralyze"), // 読み続ける司書の術を断つ
+  el_voidarchon: p("seal", "confuse charm flinch", G, "dark earth", "light wind"), // 白紙になった執政官の輪郭
   el_librarian: p("paralyze", "seal confuse charm", D, "fire light", "dark", "flinch"), // 呪文を吸う司書の手を止める
   // 第14層・屍蝋の回廊
   bs_wickmummy: p("seal", "paralyze flinch charm", D, "fire light", "dark earth", "confuse"), // 蝋に固められた歴代の王

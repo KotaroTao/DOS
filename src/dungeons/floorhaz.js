@@ -91,6 +91,13 @@ export const FLOOR_HAZ = {
   fossilcrack: { kind: "fall", name: "化石の割れ目", desc: "竜の化石を抱いた岩盤の割れ目。骨と骨のすき間が、下の階まで続いている",
     look: { shape: "crack", deco: "rubble", rim: "#6a5e4c", chip: "#8e826c", core: ["#000000", "#070605", "#1c1712"], mote: "#d8ccb0", glow: null },
     line: "岩盤が割れた！ 隊は化石の骨のすき間を、下の階まで滑り落ちていく…" },
+  // 第十一章「夜明けの町」
+  brokenstair: { kind: "fall", name: "崩れた段", desc: "書架を彫りこんだ大階段の、踏み板が抜け落ちたところ。下の段の書架がのぞく",
+    look: { shape: "square", deco: "rubble", rim: "#4a3e34", chip: "#6e5e4c", core: ["#000000", "#060504", "#17120e"], mote: "#c8b090", glow: null },
+    line: "段が崩れた！ 隊は古い本といっしょに、下の階まで転げ落ちていく…" },
+  stackfall: { kind: "fall", name: "書架の崩れ穴", desc: "倒れた書架が床ごと抜け落ちた穴。下の階の書架の天板が見える",
+    look: { shape: "hole", deco: "timber", rim: "#3e3228", chip: "#5e4c3a", core: ["#000000", "#050403", "#150f0b"], mote: "#d0c0a0", glow: null },
+    line: "書架が床ごと抜けた！ 隊は舞い散る頁の中を、下の階へ落ちていく…" },
 
   // ===== 蝕む床 =====
   sewage: { kind: "harm", name: "汚水のよどみ", desc: "黒い水がよどんだ溜まり。触れた肌がただれる",
@@ -165,6 +172,16 @@ export const FLOOR_HAZ = {
   crystalthorn: { kind: "harm", name: "水晶の棘", desc: "鉱脈から床へ生え出した、針のような水晶。踏めば足の裏を貫く",
     look: { stain: [[20, 26, 34], [110, 150, 190], [40, 54, 70], [64, 88, 116], [220, 240, 255]], glow: "160,200,240", fx: "glint", fxCol: "#e0f0ff", mist: null },
     verb: "水晶の棘に足を貫かれた", die: "水晶の上に倒れた…", flash: "#2a3a5a", accent: "#8ab0d8" },
+  // 第十一章「夜明けの町」
+  rainsoak: { kind: "harm", name: "濁り雨のしみ", desc: "天井からしみこんだ雨が、濁った魂ごと床にたまったところ。踏めば冷たい声が足にまとわりつく",
+    look: { stain: [[18, 22, 30], [90, 110, 140], [32, 40, 54], [54, 66, 88], [190, 210, 235]], glow: "150,180,220", fx: "soul", fxCol: "#c8daf0", mist: "70,86,110" },
+    verb: "濁り雨のしみに体温を吸われた", die: "雨のしみの中に倒れた…", flash: "#24304a", accent: "#8aa4c8" },
+  cullet: { kind: "harm", name: "硝子くず", desc: "吹き損じた灯籠の硝子が、床一面に砕けて散っている。踏めば足の裏を裂く",
+    look: { stain: [[30, 26, 22], [170, 150, 120], [60, 52, 42], [100, 88, 70], [240, 228, 200]], glow: "230,200,150", fx: "glint", fxCol: "#f4e8d0", mist: null },
+    verb: "硝子くずに足を裂かれた", die: "硝子くずの上に倒れた…", flash: "#4a3a28", accent: "#d0b890" },
+  inkpool: { kind: "harm", name: "墨だまり", desc: "本からしみ出した黒い墨のたまり。濁った魂が溶けていて、触れた者の力を吸う",
+    look: { stain: [[8, 8, 12], [60, 52, 80], [16, 14, 22], [30, 26, 42], [150, 130, 190]], glow: "130,110,180", fx: "bubble", fxCol: "#a898c8", mist: "40,34,56" },
+    verb: "墨だまりに力を吸われた", die: "墨だまりの中に倒れた…", flash: "#1e1828", accent: "#9a88c0" },
 };
 
 // 置き場所の既定 (台帳に floorHaz が無い時・奈落の層)。null = その仕掛けを置かない
@@ -181,8 +198,9 @@ export const LAYER_FLOOR_HAZ = {
   10: { fall: "stairwell", harm: "charged" },    // 嵐の尖塔
   11: { fall: "arenatrap", harm: "bladesand" },  // 闘技場跡
   12: { fall: "abysscleft", harm: "rotglow" },   // 地底大空洞
+  13: { fall: "stackfall", harm: "inkpool" },    // 夜明けの町の大書庫
 };
-// まだ迷宮の無い層 (第13層から) の奈落は、どの層の既定にも当てはまらないので毒の沼のまま
+// まだ迷宮の無い層 (第14層から) の奈落は、どの層の既定にも当てはまらないので毒の沼のまま
 const FALLBACK = { fall: "collapse", harm: "swamp" };
 
 export function layerFloorHaz(L) {
