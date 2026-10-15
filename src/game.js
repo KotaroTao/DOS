@@ -1,4 +1,5 @@
 import * as formations from "./formations.js";
+import { soulAcquisitionArt } from "./ui/soulart.js";
 import { insightTotals, insightTitle } from "./insight.js";
 import { INF_BUY_CAP, infRecovery, infUseCount, infSupplyLeft, infSpendSupply } from "./infsupplies.js";
 import { random, fxRandom, bindRngState, rngState } from "./rng.js";
@@ -7826,7 +7827,7 @@ function celebrateSoul(s, onClose) {
   SFX.itemget(); buzz(common ? [0, 30, 60, 30] : [0, 40, 50, 40, 50, 150]);
   if (cls.rarity === "legend") { flashScreen("#ffcf4a"); SFX.victory(); }
   showEvent({
-    sprite: soulIcon(s.clsKey),
+    sprite: soulAcquisitionArt(s.clsKey),
     banner: common ? "✦ 魂を入手 ✦" : `★ ${RARITY_LABEL[cls.rarity] || "希少"}の魂を入手 ★`,
     title: `${cls.label}の魂`,
     lines: [s.line, s.inf ? "帰れば、＋1 の素材として本編の魂に加わる。" : "所持魂の一覧に加わった。", ...(s.embers > 0 ? [`魂の残火を ${s.embers}つ 手に入れた (魂のLv上限を上げる)`] : [])].filter(Boolean),

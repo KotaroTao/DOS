@@ -1,0 +1,35 @@
+{
+  "range": [
+    1901,
+    2000
+  ],
+  "count": 100,
+  "size": [
+    384,
+    384
+  ],
+  "format": "WebP",
+  "transparent": true,
+  "browser": {
+    "normal": {
+      "count": 100,
+      "hidden": 100,
+      "canvases": 100
+    },
+    "error": {
+      "count": 0,
+      "hidden": 100,
+      "canvases": 100
+    },
+    "wrong-size": {
+      "count": 0,
+      "hidden": 100,
+      "canvases": 100
+    },
+    "timeout": {
+      "count": 0,
+      "hidden": 100,
+      "canvases": 100
+    }
+  }
+}
