@@ -1,0 +1,303 @@
+{
+  "base": "744ecd77d3f8c576f05657f82f932b061bfa8591",
+  "dungeons": [
+    {
+      "id": "w38",
+      "name": "灯籠の吹き溜まり",
+      "enemies": [
+        "bs_glowspore",
+        "bs_gloomstalker",
+        "bs_echowraith",
+        "bs_stalactiteghost",
+        "bs_deepworm",
+        "bs_blindhorror",
+        "bs_cavetroll",
+        "bs_abysshorror",
+        "bs_mawofthedeep",
+        "el_tunnelking"
+      ]
+    },
+    {
+      "id": "w39",
+      "name": "黒い灯の地底湖",
+      "enemies": [
+        "bs_cavefisher",
+        "bs_echowraith",
+        "bs_glowspore",
+        "bs_blindhorror",
+        "bs_primalserpent",
+        "bs_stalactiteghost",
+        "bs_crystalspider",
+        "bs_abysshorror",
+        "bs_obsidianbeast",
+        "el_oremaw"
+      ]
+    },
+    {
+      "id": "w40",
+      "name": "名を刻む石窟",
+      "enemies": [
+        "bs_caveguardian",
+        "bs_stalactiteghost",
+        "bs_crystalspider",
+        "bs_gloomstalker",
+        "bs_obsidianbeast",
+        "bs_echowraith",
+        "bs_rocktitan",
+        "bs_fossildragon",
+        "bs_earthshaker",
+        "el_tunnelking"
+      ]
+    },
+    {
+      "id": "w41",
+      "name": "底なしの大伽藍",
+      "enemies": [
+        "bs_obsidianbeast",
+        "bs_mawofthedeep",
+        "bs_cavetroll",
+        "bs_caveguardian",
+        "bs_abysshorror",
+        "bs_primalbeast",
+        "bs_rocktitan",
+        "bs_earthshaker",
+        "bs_crystaldrake",
+        "bs_fossildragon",
+        "bs_cavebehemoth",
+        "bs_primalserpent",
+        "bs_moldern",
+        "el_tunnelking",
+        "el_oremaw"
+      ]
+    },
+    {
+      "id": "ws20",
+      "name": "大空洞の主の寝床",
+      "enemies": [
+        "bs_cavebehemoth",
+        "bs_primalbeast",
+        "bs_deepworm",
+        "bs_cavetroll",
+        "bs_blindhorror",
+        "bs_earthshaker",
+        "bs_rocktitan",
+        "bs_mawofthedeep",
+        "bs_fossildragon",
+        "bs_cavernlord",
+        "el_oremaw",
+        "el_tunnelking"
+      ]
+    },
+    {
+      "id": "ws21",
+      "name": "化石竜の墓所",
+      "enemies": [
+        "bs_fossildragon",
+        "bs_primalbeast",
+        "bs_obsidianbeast",
+        "bs_rocktitan",
+        "bs_primalserpent",
+        "bs_crystaldrake",
+        "bs_cavebehemoth",
+        "bs_earthshaker",
+        "bs_abysshorror",
+        "bs_caveguardian",
+        "bs_crystalspider",
+        "bs_mawofthedeep",
+        "el_oremaw"
+      ]
+    },
+    {
+      "id": "ws22",
+      "name": "水晶の鉱脈",
+      "enemies": [
+        "bs_crystalspider",
+        "bs_crystaldrake",
+        "bs_glowspore",
+        "bs_deepworm",
+        "bs_obsidianbeast",
+        "bs_cavefisher",
+        "bs_rocktitan",
+        "bs_caveguardian",
+        "bs_mawofthedeep",
+        "el_oremaw"
+      ]
+    }
+  ],
+  "enemies": [
+    {
+      "id": "mimic",
+      "name": "mimic",
+      "created": false,
+      "summon": null
+    },
+    {
+      "id": "master_mimic",
+      "name": "master_mimic",
+      "created": false,
+      "summon": null
+    },
+    {
+      "id": "mt_silver",
+      "name": "銀業",
+      "created": false,
+      "summon": null
+    },
+    {
+      "id": "mt_gold",
+      "name": "金業",
+      "created": false,
+      "summon": null
+    },
+    {
+      "id": "mt_king",
+      "name": "銀業の王",
+      "created": false,
+      "summon": null
+    },
+    {
+      "id": "bs_glowspore",
+      "name": "光胞子の群れ",
+      "created": false,
+      "summon": null
+    },
+    {
+      "id": "bs_gloomstalker",
+      "name": "闇這いの蟲",
+      "created": false,
+      "summon": null
+    },
+    {
+      "id": "bs_echowraith",
+      "name": "反響の霊",
+      "created": true,
+      "summon": null
+    },
+    {
+      "id": "bs_stalactiteghost",
+      "name": "つらら石の霊",
+      "created": true,
+      "summon": null
+    },
+    {
+      "id": "bs_deepworm",
+      "name": "地底の大蟲",
+      "created": false,
+      "summon": null
+    },
+    {
+      "id": "bs_blindhorror",
+      "name": "盲いた深淵獣",
+      "created": false,
+      "summon": null
+    },
+    {
+      "id": "bs_cavetroll",
+      "name": "洞窟のトロール",
+      "created": false,
+      "summon": null
+    },
+    {
+      "id": "bs_abysshorror",
+      "name": "深淵の異形",
+      "created": false,
+      "summon": null
+    },
+    {
+      "id": "bs_mawofthedeep",
+      "name": "深淵の顎",
+      "created": false,
+      "summon": null
+    },
+    {
+      "id": "el_tunnelking",
+      "name": "穴蔵の王",
+      "created": false,
+      "summon": "bs_gloomstalker"
+    },
+    {
+      "id": "bs_cavefisher",
+      "name": "洞天井の漁り手",
+      "created": false,
+      "summon": null
+    },
+    {
+      "id": "bs_primalserpent",
+      "name": "原初の大蛇",
+      "created": false,
+      "summon": null
+    },
+    {
+      "id": "bs_crystalspider",
+      "name": "晶蟲の大蜘蛛",
+      "created": false,
+      "summon": null
+    },
+    {
+      "id": "bs_obsidianbeast",
+      "name": "黒曜の獣",
+      "created": false,
+      "summon": null
+    },
+    {
+      "id": "el_oremaw",
+      "name": "鉱脈喰らい",
+      "created": false,
+      "summon": null
+    },
+    {
+      "id": "bs_caveguardian",
+      "name": "大空洞の守護像",
+      "created": false,
+      "summon": null
+    },
+    {
+      "id": "bs_rocktitan",
+      "name": "岩の巨人",
+      "created": false,
+      "summon": null
+    },
+    {
+      "id": "bs_fossildragon",
+      "name": "化石竜",
+      "created": false,
+      "summon": null
+    },
+    {
+      "id": "bs_earthshaker",
+      "name": "地揺らす巨体",
+      "created": false,
+      "summon": null
+    },
+    {
+      "id": "bs_primalbeast",
+      "name": "原初の獣",
+      "created": false,
+      "summon": null
+    },
+    {
+      "id": "bs_crystaldrake",
+      "name": "水晶竜",
+      "created": false,
+      "summon": null
+    },
+    {
+      "id": "bs_cavebehemoth",
+      "name": "大空洞の巨獣",
+      "created": false,
+      "summon": null
+    },
+    {
+      "id": "bs_moldern",
+      "name": "宰相モルデン",
+      "created": true,
+      "summon": "bs_echowraith"
+    },
+    {
+      "id": "bs_cavernlord",
+      "name": "大空洞の主",
+      "created": false,
+      "summon": "bs_blindhorror"
+    }
+  ]
+}

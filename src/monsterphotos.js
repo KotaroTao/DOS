@@ -1,6 +1,82 @@
 // 迷宮の透過原画。通常敵・強敵・主・召喚先・共通の敵で共用する。
 // 能力値や文字グリッドは保ち、読めた原画だけを最初の描画前に登録する。
 export const MONSTER_PHOTOS = {
+  // <<CHAPTER10_ART>>
+  // 第十章・地底大空洞（作成済み26体は既存原画を共用）。
+  bs_echowraith: [520, 493],
+  bs_stalactiteghost: [333, 520],
+  bs_moldern: [250, 520],
+  // <</CHAPTER10_ART>>
+  // <<TOXIC_SWAMP_ART>>
+  // 第7章「毒沼」（作成済みの通常敵・強敵・共通敵は既存原画を共用）。
+  bs_plaguerat: [520, 334],
+  bs_rotooze: [520, 344],
+  bs_bogdrowned: [520, 311],
+  bs_leechswarm: [520, 342],
+  bs_marshlurker: [520, 350],
+  bs_blightmoth: [520, 337],
+  bs_sludgehydra: [520, 374],
+  bs_gasfiend: [520, 445],
+  bs_plaguebeast: [520, 318],
+  bs_discardeddoll: [387, 520],
+  bs_fungalcorpse: [392, 520],
+  bs_miasmawraith: [471, 520],
+  bs_venomspider: [520, 362],
+  bs_necromancer: [511, 520],
+  bs_toxicgolem: [520, 459],
+  bs_plaguewraith: [520, 498],
+  bs_corpseflower: [494, 520],
+  bs_swamphag: [520, 475],
+  bs_pestilenceknight: [520, 475],
+  bs_plaguelich: [520, 485],
+  bs_swamplord: [520, 268],
+  // <</TOXIC_SWAMP_ART>>
+  // 第8章「嵐の尖塔」（通常敵・主。作成済みの強敵・共通敵は既存原画を共用）。
+  bs_galewisp: [477, 444],
+  bs_ravenswarm: [495, 496],
+  bs_windscythe: [500, 434],
+  bs_galehound: [520, 277],
+  bs_windwraith: [490, 432],
+  bs_thunderbeast: [500, 457],
+  bs_cyclonecore: [415, 520],
+  bs_zephyrfiend: [489, 513],
+  bs_lightninggolem: [520, 458],
+  bs_boltarcher: [505, 507],
+  bs_soulanchor: [469, 520],
+  bs_stormelemental: [492, 520],
+  bs_stormcaller: [520, 504],
+  bs_harpyqueen: [520, 497],
+  bs_cloudgiant: [469, 520],
+  bs_thunderroc: [513, 520],
+  bs_tempestserpent: [481, 509],
+  bs_galeknight: [471, 501],
+  bs_stormhag: [474, 491],
+  bs_skydrake: [520, 324],
+  bs_stormlord: [520, 458],
+  // <<ARENA_ART>>
+  // 第九章・闘技場跡（本筋4・寄り道2。強敵と共通敵は作成済み原画を共用）。
+  bs_championwraith: [478, 444],
+  bs_netfighter: [520, 502],
+  bs_arenabeast: [448, 504],
+  bs_spectreaudience: [515, 447],
+  bs_chainedogre: [520, 447],
+  bs_bladedancer: [422, 519],
+  bs_executioner: [469, 520],
+  bs_beastmaster: [520, 486],
+  bs_mirrorduelist: [462, 483],
+  bs_crowdroar: [489, 457],
+  bs_sandlurker: [520, 325],
+  bs_gladiatorlich: [453, 482],
+  bs_spikedgolem: [478, 520],
+  bs_hookmaster: [520, 417],
+  bs_bloodpriest: [367, 520],
+  bs_warbeasthound: [520, 284],
+  bs_championofash: [389, 488],
+  bs_impaler: [520, 466],
+  bs_ghostgladiator: [520, 462],
+  bs_chaingang: [520, 364],
+  bs_arenalord: [520, 506],
+  // <</ARENA_ART>>
   // <<FROST_CORRIDOR_ART>>
   // 第六章・氷結回廊（強敵2種は作成済み原画を共用）。
   bs_frostwolf: [515, 456],
