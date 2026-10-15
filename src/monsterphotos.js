@@ -1,4 +1,4 @@
-// 地下墓地・黒水の取水口の透過原画。通常敵・強敵・召喚先・ミミックで共用する。
+// 地下墓地・修道院・黒水の取水口の透過原画。通常敵・強敵・主・召喚先・ミミックで共用する。
 // 能力値や文字グリッドは保ち、読めた原画だけを最初の描画前に登録する。
 export const MONSTER_PHOTOS = {
   bs_bonebat: [448, 415],
@@ -21,6 +21,18 @@ export const MONSTER_PHOTOS = {
   bs_toxictoad: [512, 399],
   bs_drownedcorpse: [503, 512],
   el_bloatqueen: [512, 453],
+  bs_zombie: [336, 363],
+  bs_weepangel: [409, 406],
+  bs_tombwarden: [369, 384],
+  bs_shroudstrangler: [408, 391],
+  bs_pettyrevenant: [379, 400],
+  bs_sarcoguard: [315, 383],
+  bs_ghoul: [397, 387],
+  bs_skullswarm: [394, 403],
+  d02_soldier: [372, 463],
+  bs_bonechanter: [378, 399],
+  bs_gravecaller: [408, 389],
+  bs_cryptabbot: [434, 392],
 };
 
 function loadImage(img, src, width, height) {
