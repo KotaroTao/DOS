@@ -11,6 +11,7 @@
 const CACHE = "dos-dev";
 const DEV = CACHE === "dos-dev";
 const ASSETS = [
+  "./src/photoload.js",
   "./src/local-save.js",
   "./art/unidentified/ls.webp",
   "./art/unidentified/dg.webp",
@@ -3574,8 +3575,8 @@ const ASSETS = [
 // 端末に古い版が残り続けた。絵は版をまたいで残す MEDIA に置き、
 //   - install では JS/CSS/HTML (約10MB) だけを先読みして版を切り替える
 //   - 絵は使う時にキャッシュから返し、新しい版で初めて使う時だけ裏で取り直す
-//   - 切り替えの後、まだ持っていない絵だけを裏でゆっくり集める (オフライン用)
-//   - ただし物語・由来の絵 (art/story/) は、ページが伝えてきた分 (進めている章まで —
+//   - 未表示の全画像は先読みしない。使った絵はオフラインでも利用できるよう保存する
+//   - 物語・由来の絵 (art/story/) だけは、ページが伝えてきた分 (進めている章まで —
 //     journal.js storyMediaUrls) だけを集める。まだ着いていない章の絵は、開いた時に取りに行く
 const MEDIA = "dos-media";
 const isMedia = (u) => /\.(png|webp|jpe?g|gif)$/i.test(new URL(u, self.location.href).pathname);
@@ -3631,7 +3632,7 @@ async function carryMedia() {
   }
 }
 
-// まだ持っていない絵を少しずつ取りに行く (版の切り替えとは無関係・失敗は次の機会に)
+// 現在の章に必要な物語の絵だけを先読みする。ほかの絵は使う時に保存する。
 let warming = null, rewarm = false;
 function warmMedia(again = false) {
   if (DEV) return null;
@@ -3647,7 +3648,7 @@ function warmMedia(again = false) {
     const allow = await storyAllowed(media);
     const todo = [];
     for (const u of MEDIA_ASSETS) {
-      if (isStory(u) && !allow.has(abs(u))) continue; // まだ着いていない章の物語の絵は先に集めない
+      if (!isStory(u) || !allow.has(abs(u))) continue; // 未表示の全画像を初回に集めない
       if (!(await media.match(u))) todo.push(u);
     }
     let i = 0;

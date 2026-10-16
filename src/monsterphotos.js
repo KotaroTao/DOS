@@ -1,5 +1,6 @@
+import { lazyPhoto } from "./photoload.js";
 // 迷宮の透過原画。通常敵・強敵・主・召喚先・共通の敵で共用する。
-// 能力値や文字グリッドは保ち、読めた原画だけを最初の描画前に登録する。
+// 能力値や文字グリッドは保ち、原画の取得は表示に必要になってから始める。
 export const MONSTER_PHOTOS = {
   // <<CHAPTER12_ART>>
   // 第十二章「王家の廟」。共通の敵は作成済み原画を共用。
@@ -398,34 +399,29 @@ export const MONSTER_PHOTOS = {
   bs_vampire: [339, 444],
 };
 
-function loadImage(img, src, width, height) {
-  return new Promise(resolve => {
-    // 配信失敗・応答のない回線でも起動を止めず、既存のドット絵を使う。
-    const timer = setTimeout(() => finish(false), 4000);
-    const finish = ok => {
-      clearTimeout(timer);
-      img.onload = img.onerror = null;
-      resolve(ok);
-    };
-    img.onload = () => finish(img.naturalWidth === width && img.naturalHeight === height);
-    img.onerror = () => finish(false);
-    img.src = src;
-  });
+// 台帳への登録だけでは通信しない。描画が必要になった魔物の原画だけ取得する。
+export function registerMonsterPhotos(monsters) {
+  for (const [id, [width, height]] of Object.entries(MONSTER_PHOTOS)) {
+    const mon = monsters[id];
+    if (!mon || mon.photo) continue;
+    const size = mon.elite ? 120 : 96, k = size / Math.max(width, height);
+    const sprite = lazyPhoto(new URL(`../art/monsters/${id}.webp`, import.meta.url).href,
+      { w: Math.round(width * k), h: Math.round(height * k), width, height });
+    Object.assign(mon, sprite, { fallback: { art: mon.art, palette: mon.palette } });
+  }
 }
 
+// サーバーや保存記録の魔物には、端末だけが持つ画像の取得口を結び直す。
+export function restoreMonsterPhotos(enemies, monsters) {
+  for (const enemy of enemies || []) {
+    const sprite = monsters[enemy.key];
+    if (sprite?.photo && enemy.mon) Object.assign(enemy.mon,
+      { photo: sprite.photo, fallback: sprite.fallback, w: sprite.w, h: sprite.h });
+  }
+}
+
+// 制作確認用の一括読み込み。通常の起動では登録だけを行う。
 export async function loadMonsterPhotos(monsters) {
-  await Promise.all(Object.entries(MONSTER_PHOTOS).map(async ([id, [width, height]]) => {
-    const mon = monsters[id];
-    if (!mon || mon.photo || typeof Image === "undefined") return;
-    const img = new Image();
-    img.decoding = "async";
-    const src = new URL(`../art/monsters/${id}.webp`, import.meta.url).href;
-    if (!await loadImage(img, src, width, height)) return;
-    const size = mon.elite ? 120 : 96;
-    const k = size / Math.max(width, height);
-    Object.assign(mon, {
-      w: Math.round(width * k), h: Math.round(height * k),
-      photo: { img, sx: 0, sy: 0, sw: width, sh: height },
-    });
-  }));
+  registerMonsterPhotos(monsters);
+  await Promise.all(Object.keys(MONSTER_PHOTOS).map(id => monsters[id]?.photo?.load?.()));
 }

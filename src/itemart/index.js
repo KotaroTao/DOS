@@ -88,7 +88,10 @@ export function makeItemSpriteResolver(items) {
       const fallback = ART_SLOTS.has(spr.slot) ? itemArt(items[spr.id]) : { ...spr, id: null };
       return { ...photo, fallback };
     }
-    if (spr.slot === "misc") return treasuryPhoto(spr.id) || collectiblePhoto(spr.id) || miscPhoto(spr);
+    if (spr.slot === "misc") {
+      const photo = treasuryPhoto(spr.id) || collectiblePhoto(spr.id) || miscPhoto(spr);
+      return photo ? { ...photo, fallback: { ...spr, id: null } } : null;
+    }
     if (!spr.slot || !ART_SLOTS.has(spr.slot)) return null;
     const tmpl = (spr.id && items[spr.id]) || null;
     return tmpl ? itemArt(tmpl) : null;

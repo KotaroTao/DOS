@@ -1,3 +1,4 @@
+import { lazyPhoto } from "./photoload.js";
 // 固定制作番号に対応する透過原画。取得できない品は既存の絵へ戻す。
 import { NUMBERED_ITEM_IDS } from "./itemnumbers.js";
 
@@ -38,49 +39,18 @@ export const ITEM_PHOTOS = Object.freeze([
 ]);
 const photos = new Map();
 const ids = new Set(ITEM_PHOTOS);
-const queue = [];
-let active = 0;
-// 起動時に全品を解読すると iPad の通信・メモリを圧迫する。見える品だけ、最大6枚ずつ読む。
-function pump() {
-  while (active < 6 && queue.length) {
-    active++;
-    queue.shift()();
-  }
-}
 export function itemPhoto(id) {
   if (!ids.has(id) || typeof Image === "undefined") return null;
-  let entry = photos.get(id);
-  if (entry?.failedAt != null) {
-    if (Date.now() - entry.failedAt < 30000) return null;
-    photos.delete(id); // 通信が戻った後、次に表示する時に取り直す
-    entry = null;
+  let sprite = photos.get(id);
+  if (!sprite) {
+    sprite = lazyPhoto(new URL(`../art/items/${id}.webp`, import.meta.url).href, { width: 384, height: 384 });
+    photos.set(id, sprite);
   }
-  if (entry) return entry.sprite;
-  const img = new Image();
-  let done;
-  const ready = new Promise(resolve => { done = resolve; });
-  const sprite = { w: 24, h: 24, photo: { img, ready, sx: 0, sy: 0, sw: 384, sh: 384 } };
-  entry = { sprite };
-  photos.set(id, entry);
-  queue.push(() => {
-    const finish = ok => {
-      img.onload = img.onerror = null;
-      if (!ok) entry.failedAt = Date.now();
-      done(ok);
-      active--;
-      pump();
-    };
-    img.decoding = "async";
-    img.onload = () => finish(img.naturalWidth === 384 && img.naturalHeight === 384);
-    img.onerror = () => finish(false);
-    // 待ち行列や回線の遅さで原画を諦めない。届くまでは描画側で既存の絵を表示する。
-    img.src = new URL(`../art/items/${id}.webp`, import.meta.url).href;
-  });
-  pump();
+  sprite.photo.load();
   return sprite;
 }
 
-// 制作確認用の一括読み込み。通常の起動では呼ばず、描画時に itemPhoto が必要な分を読む。
+// 制作確認用の一括読み込み。通常の起動では呼ばない。
 export async function loadItemPhotos() {
   await Promise.all(ITEM_PHOTOS.map(id => itemPhoto(id)?.photo.ready));
 }

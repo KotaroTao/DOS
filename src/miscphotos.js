@@ -1,3 +1,4 @@
+import { lazyPhoto } from "./photoload.js";
 // 奉納品の透過WebP。読めない時は元の固有ドット絵を使う。
 // 1〜20は art/offerings/、21〜60は art/misc/ (misc.js の登録順)。
 export const MISC_PHOTO_IDS = [
@@ -65,10 +66,10 @@ export const MISC_PHOTOS = [
   "m_battlements_keystone", // 59 城壁を支えた石
   "m_gargoyle_chip", // 60 石像鬼の欠け爪
 ];
-const sources = [
+const sources = new Map([
   ...MISC_PHOTO_IDS.map(id => [id, `../art/offerings/${id}.webp`]),
   ...MISC_PHOTOS.map(id => [id, `../art/misc/${id}.webp`]),
-];
+]);
 const photos = new Map();
 // 原画の下段から混入した品だけを隠し、本体の大きさと位置は保つ。
 const PHOTO_EXCLUDES = {
@@ -78,27 +79,12 @@ const PHOTO_EXCLUDES = {
   m_centipede_husk: [{ x: 0, y: 290, w: 320, h: 30 }],
 };
 export function miscPhoto(spr) {
-  if (!spr || spr.slot !== "misc" || spr.unidentified) return null;
-  return photos.get(spr.id) || null;
+  if (!spr || spr.slot !== "misc" || spr.unidentified || !sources.has(spr.id)) return null;
+  if (!photos.has(spr.id)) photos.set(spr.id, lazyPhoto(new URL(sources.get(spr.id), import.meta.url).href,
+    { width: 320, height: 320, exclude: PHOTO_EXCLUDES[spr.id] }));
+  return photos.get(spr.id);
 }
+// 制作確認用。通常は表示時に取得する。
 export async function loadMiscPhotos() {
-  if (typeof Image === "undefined") return;
-  await Promise.all(sources.map(([id, src]) => new Promise(resolve => {
-    if (photos.has(id)) { resolve(); return; }
-    const img = new Image();
-    const timer = setTimeout(() => finish(false), 4000);
-    const finish = ok => {
-      clearTimeout(timer);
-      img.onload = img.onerror = null;
-      if (ok) photos.set(id, { w: 24, h: 24, photo: {
-        img, sx: 0, sy: 0, sw: img.naturalWidth, sh: img.naturalHeight,
-        exclude: PHOTO_EXCLUDES[id],
-      } });
-      resolve();
-    };
-    img.onload = () => finish(img.naturalWidth > 0 && img.naturalHeight > 0);
-    img.onerror = () => finish(false);
-    img.decoding = "async";
-    img.src = new URL(src, import.meta.url).href;
-  })));
+  await Promise.all([...sources.keys()].map(id => miscPhoto({ id, slot: "misc" }).photo.load()));
 }

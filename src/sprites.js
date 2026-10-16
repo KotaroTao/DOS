@@ -1157,12 +1157,14 @@ function photoLoaded(img) {
     img.addEventListener("error", onErr);
   });
 }
-function preparePhoto(img, ready) {
+function preparePhoto(photo) {
+  const ready = photo.load ? photo.load() : photo.ready;
+  const img = photo.img;
   if (!img || !img.addEventListener || typeof document === "undefined") return Promise.resolve(false);
   let w = _photoWait.get(img);
   if (w) return w;
   w = (async () => {
-    if (ready && !(await ready)) return false;
+    if (ready && !(await ready)) { _photoWait.delete(img); return false; }
     const base = img.src;
     for (let t = 0; t < PHOTO_TRIES; t++) {
       if (t > 0) await waitMs(400 * t);
@@ -1205,7 +1207,7 @@ export function drawPhoto(ctx, spr, dx, dy, dw, dh) {
   const p = spr.photo;
   const src = p.img && _photoSurf.get(p.img);
   if (!src) {
-    preparePhoto(p.img, p.ready);
+    preparePhoto(p);
     if (spr.fallback) {
       const { w, h } = dims(spr.fallback);
       drawSprite(ctx, spr.fallback, dx + dw / 2, dy + dh / 2, Math.min(dw / w, dh / h));
@@ -1237,7 +1239,7 @@ export function drawPhoto(ctx, spr, dx, dy, dw, dh) {
 export function whenPhoto(spr, fn) {
   const p = spr.photo;
   if (photoReady(p)) { fn(); return; }
-  preparePhoto(p.img, p.ready).then((ok) => { if (ok) fn(); });
+  preparePhoto(p).then((ok) => { if (ok) fn(); });
 }
 // 原画版の絵を canvas に描く (読み込み待ちなら読み込み後に描き直す)。滑らかに縮める絵なので pixelated にしない
 function photoInto(c, spr, dx, dy, dw, dh) {
