@@ -30,7 +30,7 @@ import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, permanentEventSta
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { pickTavernCrowd, TALK_MAP } from "./tavern.js";
 import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, QUEST_LV_NEAR, rollBoard, deliveryRewardRows, NPCS, npcOf, composeReport, bondGiftAt, npcBondLabel, TIP_RATE, hasBell, BELL_EVERY_MS, QUEST_REWARD_K, QUEST_RK, questRewardK, commonQuestTextFits, COMMON_KEY as QUEST_COMMON_KEY } from "./quests.js";
-import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_THREE_REPORT, TUT_FINALE, TUT_CORRIDOR, STORY_CELLS, storyCellAt, BOSS_MEMORIES, BOSS_PRELUDES, REPORTS, LATE_CLUES, IRENE_BEATS, MINE_PASS, msqReward, EPILOGUE, UNLOCKS, unlockSceneFor, REMATCH_MEMORIES } from "./story.js";
+import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_THREE_REPORT, TUT_FINALE, TUT_CORRIDOR, STORY_CELLS, BOSS_MEMORIES, BOSS_PRELUDES, REPORTS, LATE_CLUES, IRENE_BEATS, MINE_PASS, msqReward, EPILOGUE, UNLOCKS, unlockSceneFor, REMATCH_MEMORIES } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { poolAt, powerAt, agiWallOf, strongHpWallOf, statWallOf } from "./dungeons/world.js";
 import { NAMED_FOES, NAMED_IDS, TROPHY_OF, HUNT_ELITE_RATE, bountyId } from "./dungeons/named.js";
@@ -2473,7 +2473,7 @@ function newFloor() {
   if (G.floor > G.stats.deepest) G.stats.deepest = G.floor;
   // 酒場の噂を盤面に反映 (出撃直後の階のみ)
   if (!cfg.noSpecial && G.activeRumor && G.activeRumor.floor === G.floor) applyRumorToBoard(G.board);
-  storyNewFloor(); // 物語マス: 師の手がかり (決まった迷宮の決まった階に、見つけるまで毎回置く)
+  storyNewFloor(); // 物語マス: 師の手がかり (取り逃した分も現在の階に置く)
   enforceDungeonRestrictions();
   evNewFloor(); // 迷宮のイベント: 必須の手がかりの場所を確保してから配置する
   placeAbbeyFirstSoul();
@@ -7006,15 +7006,21 @@ function evNewFloor() {
   if (e.setup) e.setup(evApi, cell);
 }
 // ===== 物語マス (src/story.js STORY_CELLS) =====
-// 決まった迷宮の決まった階に、見つけるまで毎回置く。最初から表を向いて淡く光る (見落とさないように)。
-// 踏むと一枚絵つきの語り → 手がかりを記録し、条件 (story) の迷宮を地図に載せる
+// 決まった階から、見つけるまで後続の階にも置く。取り逃したまま降りた保存記録も救済する。
+function storyFloor(key, cfg = curDungeon()) {
+  return G.run?.legacyEarly === cfg.id ? EARLY_STORY_FLOORS[key] ?? STORY_CELLS[key].floor : STORY_CELLS[key].floor;
+}
 function storyNewFloor() {
-  if (abyssActive() || !G.board) return;
-  const cfg = curDungeon();
-  const key = G.run?.legacyEarly === cfg.id
-    ? Object.keys(STORY_CELLS).find(k => STORY_CELLS[k].dungeon === cfg.id && (EARLY_STORY_FLOORS[k] ?? STORY_CELLS[k].floor) === G.floor)
-    : storyCellAt(cfg.id, G.floor);
-  if (!key || worldState().found[key] || (STORY_CELLS[key].prologue && !prologueActive())) return;
+  if (abyssActive() || G.rematch || !G.board) return;
+  const cfg = curDungeon(), found = worldState().found;
+  const keys = Object.keys(STORY_CELLS).filter((key) => {
+    const def = STORY_CELLS[key];
+    return def.dungeon === cfg.id && storyFloor(key, cfg) <= G.floor && !found[key] && (!def.prologue || prologueActive());
+  }).sort((a, b) => storyFloor(a, cfg) - storyFloor(b, cfg));
+  // 最深部の人業と取り逃した印など、同じ階の手がかりをすべて残す。
+  for (const key of keys) placeStoryCell(key);
+}
+function placeStoryCell(key) {
   // 再開時にも呼ぶ。配置済みなら、盤面や乱数を変えずに残す。
   if (G.board.cells.flat().some((c) => c.type === "story" && c.storyKey === key && !c.cleared)) return;
   const sx = G.board.start.x, sy = G.board.start.y;
@@ -8147,7 +8153,7 @@ function askDescend(cell) {
     prompt = `「${dn.name}」の最深部に至った。`;
     lines = ["踏破して街へ凱旋する。"];
     const clue = reportMissingClue(dn.id);
-    if (clue && clue.floor === G.floor) lines.push(`この階に「${clue.name}」が残っている。王への報告に必要だ。『まだ探索する』を選び、光る手がかりを探そう。`);
+    if (clue && G.board.cells.flat().some(c => c.type === "story" && STORY_CELLS[c.storyKey] === clue && !c.cleared)) lines.push(`この階に「${clue.name}」が残っている。王への報告に必要だ。『まだ探索する』を選び、光る手がかりを探そう。`);
   }
   else { label = `B${G.floor + 1}F へ降りる`; banner = "✦ 下り階段 ✦"; prompt = `下り階段を見つけた。`; lines = [`B${G.floor + 1}Fへ。下の「降りる」からも、いつでも降りられる。`]; }
   showChoice(
@@ -8179,7 +8185,7 @@ function askDescend(cell) {
 // ボスのいない層途中の迷宮を踏破する (最深部到達で確定)。ボス撃破と同じ章進行・凱旋演出につなぐ。
 function clearDungeonNoBoss() {
   const clue = reportMissingClue(curDungeon().id);
-  if (prologueActive() && clue) { showToast(`先に「${clue.name}」を確かめよう`, { tone: "info" }); return; }
+  if (prologueActive() && clue) { storyNewFloor(); renderBoard(); showToast(`先に「${clue.name}」を確かめよう`, { tone: "info" }); return; }
   const info = commitDungeonClear(false); // boss扱いしない (戦績の主撃破は加算しない)
   showDungeonClearedPopup(info);
 }
