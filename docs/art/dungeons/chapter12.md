@@ -23,3 +23,5 @@ bash tools/crypt/build-dungeons.sh w46 w47 w48 w49 ws25 ws26 ws27
 python3 -m http.server 8000
 NODE_PATH=/path/to/node_modules CRYPT_REVIEW_OUT=docs/art/dungeons/review-chapter12 node tools/crypt/verify-dungeons.cjs w46 w47 w48 w49 ws25 ws26 ws27
 ```
+
+検証結果: ローカルChromiumで159項目成功。対象全75階と地下墓地5階、320/390/600/1280px幅、取得失敗・片方の失敗・寸法不正・遅延、タップ・蓋めくり・ドラッグ・全体表示、遊びの乱数保持、危険な床、対象外の迷宮、キャッシュ上限を確認。実機での速度測定は含まない。配信WebPは計約7.21MiB。確認結果は `review-chapter12/checks.json`、実画面は同じフォルダ。
