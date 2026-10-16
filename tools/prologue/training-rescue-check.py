@@ -94,7 +94,8 @@ with sync_playwright() as p:
         page.goto('http://localhost:8000/?testDungeon='+dungeon+'&testPlace=town')
         page.wait_for_function('window.__game?.G.party.length > 0')
         page.evaluate("async ({dungeon,red})=>{\n          const {game}=await import('/src/ui/ctx.js');\n          const {G,ev,inf}=__game;\n          G.dungeonIdx=game.DUNGEONS.findIndex(d=>d.id===dungeon);\n          ev.enterDungeon(null,1);G.redSoul=red;\n          G.party.forEach(d=>{d.alive=false;d.hp=0;});\n          inf.gameOver();\n        }",{'dungeon':dungeon,'red':red})
-        button=page.locator('.rs-wipe-sheet .ui-sheet-foot .ui-btn.k-primary')
+        # 修道院以降は広告のボタンもあるため、費用を検証する赤い魂の帰還を選ぶ。
+        button=page.locator('.rs-wipe-sheet .ui-sheet-foot .ui-btn.k-primary').first
         button.click()
         page.wait_for_function('__game.G.state === "town"')
         assert page.evaluate('__game.G.party.every(d=>d.alive&&d.hp>=1)')
