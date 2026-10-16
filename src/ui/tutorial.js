@@ -588,7 +588,7 @@ function afterReturn() {
     if (haul.abbeyRare) st.abbeyRareReturned = true;
     if (!st.done.soulChange && newJobSouls().length > 0) st.jobVisit = true;
     // 同じ帰還の案内を再開しても融合を追加しない。サブ魂を学んだ後の次の持ち帰りで教える。
-    if ((haul.sub1LearnedBeforeReturn ?? st.done.sub1) && !st.done.fusion && game.featureUnlocked?.("fusion")) st.fusionPending = true;
+    if ((haul.sub1LearnedBeforeReturn ?? st.done.sub1) && !st.done.fusion) st.fusionPending = true;
     game.autosave?.(true);
   }
   if (!st.done.trainSoul && UI.trainableList?.().length > 0) {

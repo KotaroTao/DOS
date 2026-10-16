@@ -60,7 +60,7 @@ with sync_playwright() as p:
       game.pendingIreneBeat=()=>null;
       inf.returnToTown({outcome:'return'});
       check(G.tut.abbeyRareReturned&&UI.tutorialPending()?.key==='soulChange','無事に持ち帰ったら付け替えが先');
-      check(!G.tut.fusionPending&&!game.featureUnlocked('sub1'),'付け替え前はサブ魂と融合の案内を開かない');
+      check(!G.tut.fusionPending&&!game.featureUnlocked('fusion')&&!game.featureUnlocked('sub1'),'二報告済みでも手ほどき前は魂融合とサブ魂を開かない');
       G.tut.done.soulChange=true;
       check(!game.featureUnlocked('sub1')&&UI.tutorialPending()?.key!=='sub1','途中帰還で付け替えを学んでもサブ魂を案内しない');
       G.world.cleared.w03=1;
@@ -69,11 +69,15 @@ with sync_playwright() as p:
       check(game.featureUnlocked('sub1'),'踏破後はレア魂の持ち帰り・付け替えの習得を解放条件にしない');
       G.tut.done.soulChange=true;G.tut.abbeyRareReturned=true;
       G.tut.done.sub1=true;delete G.lastRun.soulTutorialHandled;UI.tutorialAfterReturn();
-      check(!G.tut.fusionPending,'同じ帰還を再処理しても融合を始めない');
+      check(!G.tut.fusionPending&&!game.featureUnlocked('fusion'),'同じ帰還を再処理しても融合の機能と案内を開かない');
       G.party.forEach(d=>{d.stability=100;d.stabilityAt=Date.now();});ev.enterDungeon(null,1);
       check(inf.grantSoulQuiet('fighter').rarity==='common','持ち帰り後はレア保証を繰り返さない');
       inf.returnToTown({outcome:'return'});
-      check(G.tut.fusionPending&&UI.tutorialPending()?.key==='fusion','次に魂を持ち帰った帰還で融合を案内');
+      check(G.tut.fusionPending&&game.featureUnlocked('fusion')&&UI.tutorialPending()?.key==='fusion','次の職業の魂の持ち帰りで融合の機能と手ほどきを同時解放');
+      G.tut.fusionPending=false;G.tut.done.fusion=true;
+      check(game.featureUnlocked('fusion'),'融合習得済みの機能を保持する');
+      G.tut.done.fusion=false;G.stats.fusions=1;
+      check(game.featureUnlocked('fusion'),'使用済みの融合機能を保持する');G.stats.fusions=0;
       reset();G.tut.done.sub1=true;
       check(game.featureUnlocked('sub1'),'すでに教わったサブ魂は踏破記録がなくても保持する');
       G.tut.done.sub1=false;G.tut.sub1Legacy=true;

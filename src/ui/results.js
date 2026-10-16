@@ -571,7 +571,9 @@ export function openLootCodex(id, item, unid) {
 export function soulChip(clsKey, rarity) {
   const chip = el("button", "dg-soul r-" + (rarity || "common"));
   chip.type = "button";
-  chip.setAttribute("aria-label", `${(SOUL_CLASSES[clsKey] || {}).label || clsKey}の図鑑を見る`);
+  const codexReady = !!game.featureUnlocked?.("codex");
+  chip.disabled = !codexReady;
+  chip.setAttribute("aria-label", `${(SOUL_CLASSES[clsKey] || {}).label || clsKey}${codexReady ? "の図鑑を見る" : "の魂"}`);
   chip.addEventListener("click", () => { sfx("select"); if (UI.codexJobSheet) UI.codexJobSheet(clsKey); });
   return chip;
 }

@@ -43,9 +43,10 @@ const G = () => game.G;
 // 全件表示は試遊の図鑑シートを開いている間だけ。発見・討伐の記録は作らない。
 let testCodexAll = false;
 const allData = () => !!(game.G?.testPlay && testCodexAll);
+const codexAvailable = () => allData() || !!game.featureUnlocked?.("codex");
 const SEGS = ["decree", "codex", "ach", "treasury"];
 
-function curSeg() { const s = remember("seg", "palace"); return SEGS.includes(s) ? s : "decree"; }
+function curSeg() { const s = remember("seg", "palace"); return SEGS.includes(s) && (s !== "codex" || codexAvailable()) ? s : "decree"; }
 // 図鑑は前回の位置を覚えない: 入るたび・区分を替えるたびに既定 (敵=最初の迷宮 / アイテム=武器・すべて / 見聞=共通、どれも1ページ目) へ戻す
 // 迷宮の手帳から開いた図鑑だけは、敵の既定がいま潜っている迷宮になる (codexHome)
 const codexHome = { dungeon: 0 };
@@ -268,6 +269,7 @@ function monCard(key, namedBy = null) {
 
 // 出撃シートの「発見した魔物」から開く: その迷宮に出る魔物 (雑魚・強敵・主) の札。札をタップ = 図鑑の詳細
 export function dungeonMonSheet(dungeonIdx) {
+  if (!codexAvailable()) return null;
   const g = G();
   const dn = DUNGEONS[dungeonIdx];
   if (!g || !dn) return null;
@@ -481,6 +483,7 @@ function renderCodexEvents(box) {
   draw();
 }
 export function codexEventSheet(id) {
+  if (!codexAvailable()) return null;
   const e = EVENT_MAP[id];
   if (!e) return null;
   const rec = evRec();
@@ -527,6 +530,7 @@ function codexTotals() {
   };
 }
 function renderCodex(body) {
+  if (!codexAvailable()) return null;
   const subs = codexSubs();
   const sub = subs.includes(remember("seg", "codex")) ? remember("seg", "codex") : "mon";
   const { mon: mons, item: items, job: jobs, ev: evs } = codexTotals();
@@ -553,6 +557,7 @@ function renderCodex(body) {
 // 迷宮の中で開く図鑑 (手帳の「図鑑」から)。王宮の図鑑と同じ中身 (敵/アイテム/職業/見聞) を背の高いシートに収める。
 // 敵はいま潜っている迷宮の札から開く (dungeonIdx)
 export function openCodexSheet({ dungeonIdx = null, all = false } = {}) {
+  if (!game.featureUnlocked?.("codex") && !(game.G?.testPlay && all)) return null;
   testCodexAll = !!(game.G?.testPlay && all);
   const g = G();
   if (!g) return null;
@@ -612,6 +617,7 @@ function appearFloorsText(cfg, key, rec) {
 // o.enemy = 戦闘中の敵 (戦闘で敵を押した時の「敵の姿」— 図鑑と同じ一枚に、いまのHPと不確定名を添える。
 // ユーザーの指示、2026-10)
 export function codexMonSheet(key, o = {}) {
+  if (!o.enemy && !codexAvailable()) return null; // 戦闘中の相手の姿・状態は、図鑑の解放前も確認できる
   const foe = o.enemy || null;
   const m = MONSTERS[key] || (foe && foe.mon);
   if (!m) return null;
@@ -766,6 +772,7 @@ function codexItemView(it, o) {
 }
 
 export function codexItemSheet(id, o = {}) {
+  if (!o.item && !codexAvailable()) return null; // 所持品の能力・鑑定結果は図鑑とは別に確認できる
   const it = o.item || ITEMS[id];
   if (!it) return null;
   return sheet.open({
@@ -778,6 +785,7 @@ export function codexItemSheet(id, o = {}) {
 // 職業の詳細。同じ系統の職業は1枚のシートにまとめ、到達したランクの間を切り替えて見る
 // (o.card = 図鑑の札。見たランクの新着の印を消す時に札の印も整える)
 export function codexJobSheet(key, rank, heading, o = {}) {
+  if (!codexAvailable()) return null;
   if (!SOUL_CLASSES[key]) return null;
   if (!allData() && game.codexSweepJobs) game.codexSweepJobs(); // 覚えたばかりの技も出るよう、開く前に記録を最新に
   const g = G();
@@ -1067,7 +1075,7 @@ function renderPalace(root, api) {
   const seg = curSeg();
   const segs = [
     { key: "decree", label: "勅命", badge: call ? true : null },
-    { key: "codex", label: "図鑑", badge: freshCounts().total || null },
+    ...(codexAvailable() ? [{ key: "codex", label: "図鑑", badge: freshCounts().total || null }] : []),
     { key: "ach", label: "勲章", badge: counts && counts.ach ? counts.ach : null },
     { key: "treasury", label: "宝物庫", badge: counts && (counts.donatable || counts.treasuryReady) ? true : null },
   ];
@@ -1088,6 +1096,7 @@ function renderPalace(root, api) {
     const menu = el("nav", "pc-palace-nav");menu.setAttribute("aria-label", "王宮での用事");
     const sub = remember("seg", "codex") || "mon";
     for (const [key,label] of [["decree","勅命"],["codex:mon","敵の図鑑"],["codex:item","品の図鑑"],["codex:job","職業の図鑑"],["codex:ev","見聞"],["ach","勲章"],["treasury","宝物庫"]]) {
+      if (key.startsWith("codex:") && !codexAvailable()) continue;
       const on=key===seg || key===`codex:${sub}`&&seg==="codex";
       const b=button({label,kind:on?"primary":"secondary",onTap:()=>openPalace(key)});
       b.setAttribute("aria-pressed",String(on));menu.appendChild(b);
@@ -1104,7 +1113,8 @@ function renderPalace(root, api) {
     draw(k);
     softFade(body);
   }, { prefKey: "palace" });
-  refresh.top = () => setBadge(segBtn(segEl, 1), freshCounts().total || null);
+  const codexIndex = segs.findIndex(s => s.key === "codex");
+  refresh.top = () => { if (codexIndex >= 0) setBadge(segBtn(segEl, codexIndex), freshCounts().total || null); };
   segEl.classList.add("pl-seg");
   wrap.appendChild(segEl);
   wrap.appendChild(body);
@@ -1114,6 +1124,7 @@ function renderPalace(root, api) {
 
 // 王宮タブを開く (seg を指定すればその区分。"codex:item" のように図鑑の区分も指定できる)
 export function openPalace(seg) {
+  if (String(seg || "").startsWith("codex") && !codexAvailable()) return false;
   if (seg) {
     const [s, sub] = String(seg).split(":");
     if (SEGS.includes(s)) remember("seg", "palace", s);
