@@ -933,8 +933,8 @@ The same throne room in daylight. The very old king sits slumped, staring down a
 ```
 
 **w36_nook「灯番の子」** (手がかり / 迷宮「亡き観客の階段席」)
-- 要点: 観客席のいちばん下、石段の裏の狭いすき間に小さな寝床。すり切れた毛布、木の椀、壁に日を数えた刻み目が何列も。毛布の上に、胸のくぼみに灯籠のガラスのかけらをはめこんだ手のひらほどの木の人形。壁の端に子どもが彫った「灯を掌に載せた手」の絵と、削り取られた名前。毛布の端に、人形を写した絵と師の字の書きつけ (イレーヌの語り irene_firstdoll の写し絵)。
-- 描くもの: 狭い寝床 / 刻み目の壁 / 小さな木の人形 / 子どもの彫った印 / かがみこむ弟子。描かないもの: 子ども本人。
+- 要点: 観客席のいちばん下、石段の裏の狭いすき間に小さな寝床。すり切れた毛布、木の椀、壁に日を数えた刻み目が何列も。毛布の上に、胸のくぼみに灯籠のガラスのかけらをはめこんだ手のひらほどの木の人業。壁の端に子どもが彫った「灯を掌に載せた手」の絵と、削り取られた名前。毛布の端に、人業を写した絵と師の字の書きつけ (イレーヌの語り irene_firstdoll の写し絵)。
+- 描くもの: 狭い寝床 / 刻み目の壁 / 小さな木の人業 / 子どもの彫った印 / かがみこむ弟子。描かないもの: 子ども本人。
 ```text
 A cramped hollow beneath the stone tiers of an ancient amphitheatre, lit by a small lamp held by the apprentice crouching at its entrance. Inside: a tiny child's bed of a threadbare blanket, a wooden bowl, and rows of tally scratches counting days on the wall. On the blanket sits a palm-sized carved wooden doll with a small hollow in its chest holding a shard of lantern glass that faintly glows. At the end of the tallies, a child's crude carving of a palm-up hand holding a flame; beneath it a name has been scraped away. Grey ash drifts in from above. Quiet, tender, sad.
 ```
@@ -945,9 +945,9 @@ A cramped hollow beneath the stone tiers of an ancient amphitheatre, lit by a sm
 The same throne room in late-afternoon light. The very old king, lap blanket over his knees, gazes from his throne down the long empty hall as if at an invisible crowd, then glances at the chancellor's empty chair beside him. The apprentice stands below the dais.
 ```
 
-**irene_firstdoll「最初の人形」** (館の語り)
+**irene_firstdoll「最初の人業」** (館の語り)
 - 修正 (2026-10-16): イレーヌの余分な手と腕を除き、写し絵を持つ手と工具を使う手の2本にする。セラの胸は基準シートと同じ、金縁で上が尖り下が丸いしずく形の青白い魂火の窓に統一し、箱形の灯器を除く。(済)
-- 要点: 師が書き写してきた人形の絵を、イレーヌが長いあいだ見る (胸のくぼみに灯籠のガラス)。セラが自分の胸の扉に手を当てる。その夜、イレーヌは人形の絵を手本にセラの胸の継ぎ目を締め直す。「あったかい」。
+- 要点: 師が書き写してきた人業の絵を、イレーヌが長いあいだ見る (胸のくぼみに灯籠のガラス)。セラが自分の胸の扉に手を当てる。その夜、イレーヌは人業の絵を手本にセラの胸の継ぎ目を締め直す。「あったかい」。
 ```text
 The same mansion workshop at night. Irene holds a sketch of a small wooden doll with a lantern-glass shard in its chest, comparing it as she gently tightens the joint of Sera's chest door with a fine tool. Sera (as in the Sera reference) sits on the workbench with a hand over her chest, smiling softly, her chest glowing warm. Single white candle on a brass candlestick.
 ```
@@ -1072,7 +1072,7 @@ The same gigantic cavern-cathedral after the battle, quiet. Beside the top of th
 
 ### 第十一章「夜明けの町」 ― 便7
 
-第十一章の景色: 大伽藍の階段の下に広がる、人業が自分で選んで暮らす町。**地上ではない**: 空のかわりに岩の天井いっぱいに古い鉄の吊り枠が張られ、何千もの澄んだ硝子の灯籠「眠り灯」が吊るされている。眠り灯の中では雨と一緒に流れ着いたくたびれた魂が休んでいて、休む魂は温かな白金色に光る。太陽も雲も無く、影の向きも無い (光は天井一面から柔らかく降る)。町は誰が建てたのかも分からない古い地下の大書庫の跡: 閲覧室や回廊が家や店に、書架の板が床や戸口になっている。洗濯物・店先の硝子・台所の湯気。住民はみな人業 (木の関節人形・のっぺりした丸い頭・黒鉄の継ぎ目。正典の隊の人業と同じ作り)、子どもの姿に作られた小さな人業もいる。町の周りの書庫 (迷宮) は暗く、濡れた本・墨だまり・書架の迷路。第十章までの暗い遺跡や戦場とちがい、**光と暮らし**で見せる章。王都の空は晴れたまま (報告の窓の外は晴れた空)。物語の主題は「誰の意思で、誰の救いを決めるのか」 — 師オルドを悪人にも聖人にも見せない。
+第十一章の景色: 大伽藍の階段の下に広がる、人業が自分で選んで暮らす町。**地上ではない**: 空のかわりに岩の天井いっぱいに古い鉄の吊り枠が張られ、何千もの澄んだ硝子の灯籠「眠り灯」が吊るされている。眠り灯の中では雨と一緒に流れ着いたくたびれた魂が休んでいて、休む魂は温かな白金色に光る。太陽も雲も無く、影の向きも無い (光は天井一面から柔らかく降る)。町は誰が建てたのかも分からない古い地下の大書庫の跡: 閲覧室や回廊が家や店に、書架の板が床や戸口になっている。洗濯物・店先の硝子・台所の湯気。住民はみな人業 (木の関節人業・のっぺりした丸い頭・黒鉄の継ぎ目。正典の隊の人業と同じ作り)、子どもの姿に作られた小さな人業もいる。町の周りの書庫 (迷宮) は暗く、濡れた本・墨だまり・書架の迷路。第十章までの暗い遺跡や戦場とちがい、**光と暮らし**で見せる章。王都の空は晴れたまま (報告の窓の外は晴れた空)。物語の主題は「誰の意思で、誰の救いを決めるのか」 — 師オルドを悪人にも聖人にも見せない。
 
 町の人物 (どれも人業。顔は彫らない丸い頭に、服と持ち物で見分ける): アデーレ = 老婦人の姿、白い髪を結い上げた灰色の長衣、天蓋守の長い鉤棒 / ピム = 子どもの姿の小さな人業、短い上着 / ミラ = 雨に濡れた外套、硝子の瓶 / ヨルク = インクのしみた指、書き写した紙の束 / ロッテ = 前かけ、絵本。
 
@@ -1283,7 +1283,7 @@ The deepest hall of the royal mausoleum after the battle, quiet. The throne at t
 | 1 | ws13 疫病塚の底 | 城壁の外の塚、底の穴は奈落の沼へ。夜ごと死者が自分で鳴らす弔いの鐘 |
 | 1 | ws10 火守りの僧院 | 釜の火を神の火と信じた僧院。炎の中に見える顔、目を閉じて祈る火守り、底の帳面 |
 | 2 | ws3 霧の迷い森 | 道を隠す霧、奥の泉の周りの行き来の跡、水辺で誰かを待つ気配 |
-| 2 | ws4 銀業の隠れ里 | 霧の奥の里、銀の小人たち (器になれなかった魂)、彼らを守る空の鎧と石の人形 |
+| 2 | ws4 銀業の隠れ里 | 霧の奥の里、銀の小人たち (器になれなかった魂)、彼らを守る空の鎧と石の人業 |
 | 2 | ws6 見捨てられた狼煙台 | 砦の扉や旗竿までくべて燃やし続けた狼煙の火の塔、来なかった援軍 |
 | 2 | ws7 獄吏の詰所 | 牢番の寝起きした詰所、押収品の箱と鍵束、人を越えた番人 |
 | 2 | ws8 沈んだ書庫 | 内から閉ざされた書庫の塔、封をした書の箱、名を墨で塗りつぶした写し |

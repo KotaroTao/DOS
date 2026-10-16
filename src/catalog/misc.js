@@ -193,7 +193,7 @@ export const USABLES = [
   U("u_frost_flask", "凍て水の瓶", 10, { bomb: { power: 24, el: "water", all: true } }, { shape: "bomb", tint: "#4aa3ff", tintAmt: 0.34, desc: "雪解けの湧き水に、凍て蛇の毒袋を沈めて封じた瓶。割れると中身は霧となって降り注ぎ、触れたものの肌を凍てつかせる。" }),
   U("u_gale_seed", "旋風の種", 14, { bomb: { power: 30, el: "wind", all: true } }, { shape: "herb", tint: "#5fd08a", tintAmt: 0.34, desc: "風の吹き溜まりにだけ根づく草の、固く閉じた種。地に叩きつければ殻が裂け、閉じ込められていた旋風が刃となって吹き荒れる。" }),
   U("u_quake_stone", "地鳴りの小石", 19, { bomb: { power: 36, el: "earth", all: true } }, { shape: "ore", tint: "#c89a4a", tintAmt: 0.34, desc: "崩落した坑道の奥で拾われる、低くうなり続ける石。投げ落とせば足元の岩盤が共鳴し、地鳴りとともに魔物たちの足を砕く。" }),
-  U("u_curse_nail", "呪い釘", 23, { bomb: { power: 70, el: "dark" } }, { shape: "fang", tint: "#9b6bd0", tintAmt: 0.34, desc: "夜中にわら人形へ打ちこまれ、恨みを吸い続けたさびた釘。狙った相手へ投げると、積もった恨みが深く食いこむ。" }),
+  U("u_curse_nail", "呪い釘", 23, { bomb: { power: 70, el: "dark" } }, { shape: "fang", tint: "#9b6bd0", tintAmt: 0.34, desc: "夜中にわら人業へ打ちこまれ、恨みを吸い続けたさびた釘。狙った相手へ投げると、積もった恨みが深く食いこむ。" }),
   U("u_dragon_powder", "竜吐きの火薬壺", 60, { bomb: { power: 120, el: "fire", all: true } }, { shape: "bomb", tint: "#ff4a2a", tintAmt: 0.36, desc: "火竜ののど袋から採れる燃える粉を、素焼きの壺に詰めたもの。火口に火が届いた瞬間、竜の吐息そのものが戦場をなめ尽くす。" }),
   U("u_star_shard", "落ち星のかけら", 110, { bomb: { power: 260, el: "light", all: true, prey: true }, drop: 0.6 }, { shape: "gem", tint: "#fff0a0", tintAmt: 0.34, desc: "夜空から落ちた星の、まだ熱を帯びたかけら。高く放れば落ちた星の光をもう一度だけ呼び戻し、群れ集う魔を白く焼き払う。" }),
   // ---- 妨害 (戦闘中) ----
