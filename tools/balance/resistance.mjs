@@ -5,7 +5,7 @@ import { SOUL_KEYS, SOUL_CLASSES, makeSoulInstance, setSharedSouls, recalcDoll, 
 import { recalc } from '../../src/items.js';
 import { MONSTERS } from '../../src/sprites.js';
 import { DUNGEON_MONSTERS } from '../../src/dungeons/index.js';
-import { RESIST_LABEL, zeroResists, monsterResists, resistTiers, resistLean, RACE_RESIST, MON_RESIST_WEAKABLE } from '../../src/resistance.js';
+import { RESIST_LABEL, AIL_RESIST_KINDS, zeroResists, monsterResists, resistTiers, resistLean, RACE_RESIST, MON_RESIST_WEAKABLE } from '../../src/resistance.js';
 import { revealSteps } from '../../src/ui/itemview.js';
 import { useMathRandom } from '../../src/rng.js';
 useMathRandom(); // ゲームの乱数 (src/rng.js) を Math.random に従わせる — 下で Math.random を差し替えて結果を固定する
@@ -31,7 +31,17 @@ try {
 } finally { Math.random = oldRandom; }
 for (const m of Object.values(DUNGEON_MONSTERS)) {
   for (const k in RESIST_LABEL) assert(Number.isInteger(m.resists[k]) && m.resists[k]>=0 && m.resists[k]<=100, `${m.id} ${k}`);
-  assert.equal(revealSteps(m).lore, m.boss || m.elite || m.named ? 1 : 10);
+  const expected = m.boss ? {name:0,stats:1,lore:1}
+    : m.named ? {name:0,stats:1,lore:10}
+    : m.elite ? {name:1,stats:1,lore:10} : {name:1,stats:5,lore:10};
+  assert.deepEqual(revealSteps(m), expected, `${m.id}: 図鑑の名前・能力・伝承の開示`);
+}
+// 推測・明示した体質・数値の上書きの優先順を独立した例で確かめる。
+{
+  const m = {id:'test_explicit',rank:10,race:'specter',ability:'confuse'};
+  assert(monsterResists(m).confuse >= 60, '未指定なら使用する異常に強い');
+  assert.equal(monsterResists({...m,resistTiers:{confuse:'weak'}}).confuse, 0, '個体の弱点指定を優先');
+  assert.equal(monsterResists({...m,resistTiers:{confuse:'weak'},resists:{confuse:17}}).confuse, 17, '数値の上書きを最優先');
 }
 assert.equal(DUNGEON_MONSTERS.bs_weepangel.resists.stone,100);
 assert.equal(DUNGEON_MONSTERS.bs_mossgolem.resists.stone,100);
@@ -50,13 +60,23 @@ assert(monsterResists({rank:4,boss:true,id:'x',race:'beast'}).poison > monsterRe
     const weak = W.filter(k => t[k] === 'weak');
     assert(weak.length >= 1, `効きやすい異常が無い: ${m.id}`);
     weak.forEach(k => seenWeak.add(k));
-    assert(W.some(k => ['strong','imm'].includes(t[k])) || t.death === 'imm', `効きにくい異常が無い: ${m.id}`);
+    if (['bs_dustroach','bs_littlecentipede','bs_woodbee'].includes(m.id)) {
+      assert.equal(m.rank, 1, `${m.id}: 序章の魔物`);
+      for (const k of AIL_RESIST_KINDS) assert.equal(m.resists[k], 0, `${m.id}: 序章の三種は状態異常抵抗なし`);
+      assert.equal(t.sleep, 'weak', `${m.id}: 眠りが弱点`);
+    } else assert(W.some(k => ['strong','imm'].includes(t[k])) || t.death === 'imm', `効きにくい異常が無い: ${m.id}`);
     for (const k of weak) {
       const v = m.resists[k];
       assert(v <= (m.boss ? 24 : m.elite ? 15 : 0), `${m.id} ${k}=${v}`);
       assert(v < 100);
     }
-    if (m.ability && m.ability in t && m.ability !== 'stone') assert(['strong','imm'].includes(t[m.ability]), `自分の異常に強くない: ${m.id}`);
+    // 個体が体質を指定した場合は、使用する異常への耐性もその指定を優先する。
+    // 種族からの推測だけで「自分の異常に必ず強い」とは判定しない。
+    if (m.ability && m.ability in t && m.ability !== 'stone') {
+      const explicit = m.resistTiers?.[m.ability];
+      if (explicit) assert.equal(t[m.ability], explicit, `${m.id}: 明示した体質`);
+      else assert(['strong','imm'].includes(t[m.ability]), `自分の異常に強くない: ${m.id}`);
+    }
     if ((m.rank || 1) > 1) assert(lean.weak.length >= 1, `図鑑に効きやすい異常が出ない: ${m.id}`);
     const key = m.race + ':' + W.map(k => t[k]).join(',');
     sig.set(key, (sig.get(key) || 0) + 1);

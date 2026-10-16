@@ -53,15 +53,23 @@ try {
  assert(!has(choose([foe('test_a',{sleep:100}),foe('test_b',{sleep:50})]),'TEST_ALL'));
  game.G.codex.mon.test_b.kills=9;
  assert(has(choose([foe('test_a',{sleep:100}),foe('test_b',{sleep:100})]),'TEST_ALL'));
+ // 能力が開いても、抵抗値・特徴の開示まではオートへ情報を渡さない。
+ // 主は1体で全開示。強敵・名のある強敵は1体で能力、10体で抵抗値まで開く。
  for (const type of ['boss','elite','named']) {
-  const t=foe('test_b',{paralyze:100});t.mon[type]=true;
-  game.G.codex.mon.test_b.kills=0;assert(has(choose([t]),'TEST_PARA'));
-  game.G.codex.mon.test_b.kills=1;assert(!has(choose([t]),'TEST_PARA'));
+  for (const kills of [0,1,5,9,10]) {
+   const t=foe('test_b',{paralyze:100});t.mon[type]=true;
+   game.G.codex.mon.test_b.kills=kills;
+   const rv=enemyReveal(t), known=kills >= (type==='boss'?1:10);
+   assert.equal(rv.name, type!=='elite'||kills>=1, `${type}/${kills}: 名前`);
+   assert.equal(rv.stats, kills>=1, `${type}/${kills}: 能力`);
+   assert.equal(rv.lore, known, `${type}/${kills}: 抵抗値・特徴`);
+   assert.equal(has(choose([t]),'TEST_PARA'), !known, `${type}/${kills}: オートの抵抗値参照`);
+  }
  }
  // オートの見積もりだけを変え、未開放でも実際の付与では抵抗100を守る。
  game.G.codex.mon.test_a.kills=0;
  const r=choose([foe('test_a',{paralyze:100})]);assert.equal(r.b.estRate(r.a,r.b.enemies[0],.5,'paralyze'),0);
- console.log('図鑑0/5/9/10体・主/強敵1体、抵抗0/49/50/80/100、複合技・全体技・未開放時の情報遮断を確認');
+ console.log('図鑑0/5/9/10体・主1体/強敵と名のある強敵10体、抵抗0/49/50/80/100、複合技・全体技・未開放時の情報遮断を確認');
 } finally {
  for(const key of Object.keys(specs))delete SPELLS[key];
  setResistKnown(null);delete game.G;
