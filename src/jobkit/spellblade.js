@@ -17,7 +17,7 @@ export default {
   skills: {
     // Lv15 の固有技: 剣に術を重ね、全属性の守りを緩める
     SPELLBLADE_KENJURENKAN: { name: "剣呪連環", mp: 6, kind: "phys", power: 1.1, intScale: 0.4, vuln: { all: 0.9 }, target: "enemy", desc: "剣に術を重ねて斬り、全属性の守りを緩める（INTでも伸びる）" },
-    SPELLBLADE_KASANE: { name: "魔刃重ね", mp: 10, kind: "phys", power: 1.6, intScale: 0.7, acc: 0.13, target: "enemy", desc: "魔力を重ねた刃で斬る（INTで伸びる）" },
+    SPELLBLADE_KASANE: { name: "魔刃重ね", mp: 10, kind: "phys", power: 2.2, intScale: 0.7, acc: 0.13, target: "enemy", desc: "魔力を重ねた刃で斬る（INTで伸びる）" },
     SPELLBLADE_RENSEI: { name: "剣気練成", mp: 4, kind: "buff", buff: { int: 1.25, atk: 1.15 }, target: "self", tech: true, desc: "剣気と魔力を同時に練り上げる" },
     SPELLBLADE_YOROIDOOSHI: { name: "魔刃・鎧通し", mp: 16, kind: "phys", power: 2.2, intScale: 0.7, pierce: 0.6, acc: 0.18, target: "enemy", desc: "魔力の刃を鎧の隙へ通す（物理貫通60%）" },
     SPELLBLADE_FUUJIN: { name: "風刃陣", mp: 10, kind: "atk", power: 30, element: "wind", vuln: { wind: 0.85 }, target: "all-enemy", desc: "風の刃を撒き、風の守りを裂く" },

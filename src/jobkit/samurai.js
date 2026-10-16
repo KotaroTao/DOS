@@ -17,7 +17,7 @@ export default {
   skills: {
     // Lv15 の固有技: 月を描く返し刃。会心と足止めを兼ねる
     SAMURAI_ZANGETSUGAESHI: { name: "月返し", mp: 5, kind: "phys", power: 1.2, critBonus: 0.25, agiScale: 0.3, debuff: { agi: 0.85 }, target: "enemy", desc: "月を描く返し刃。会心しやすく、敵の足を鈍らせる" },
-    SAMURAI_SAYABASHIRI: { name: "鞘走り", mp: 4, kind: "phys", power: 1.35, agiScale: 0.45, critBonus: 0.15, target: "enemy", desc: "鞘走る抜き打ち。素早さで伸び会心しやすい" },
+    SAMURAI_SAYABASHIRI: { name: "鞘走り", mp: 4, kind: "phys", power: 1.7, agiScale: 0.45, critBonus: 0.15, target: "enemy", desc: "鞘走る抜き打ち。素早さで伸び会心しやすい" },
     SAMURAI_OBOROZUKI: { name: "朧月", mp: 10, kind: "phys", power: 0.85, agiScale: 0.25, debuff: { agi: 0.85 }, target: "all-enemy", desc: "朧の弧を描く抜刀で敵陣の足を鈍らせる" },
     SAMURAI_SHINOGI: { name: "鎬削り", mp: 4, kind: "phys", power: 1.15, acc: 0.1, debuff: { hit: 0.8 }, target: "enemy", desc: "鎬で刃を受け流し、敵の狙いを乱す" },
     SAMURAI_RYUUSUI: { name: "流水三段", mp: 14, kind: "phys", power: 0.95, hits: 3, agiScale: 0.4, acc: 0.08, critBonus: 0.15, target: "enemy", desc: "流れる水のごとく三度斬る（命中率+8%）" },
@@ -33,8 +33,8 @@ export default {
     SAMURAI_HAPPOU: { name: "八方斬り", mp: 30, kind: "phys", power: 2.8, acc: 0.23, flinchChance: 0.2, target: "all-enemy", desc: "八方の敵を斬り伏せ、怯ませる" },
     SAMURAI_NOWAKI: { name: "野分斬り", mp: 21, kind: "phys", power: 1.3, hits: 4, agiScale: 0.35, critBonus: 0.1, element: "wind", vuln: { wind: 0.85 }, target: "enemy", desc: "野分の風の四連斬。風の守りを裂く" },
     SAMURAI_RIKKA: { name: "六花", mp: 24, kind: "phys", power: 0.7, hits: 6, acc: 0.16, vuln: { water: 0.85 }, target: "enemy", desc: "凍てつく六閃。水の守りを裂く" },
-    SAMURAI_GEKKA: { name: "月下一閃", mp: 32, kind: "phys", power: 7.0, acc: 1, critBonus: 0.4, target: "enemy", desc: "月下の必中の抜刀。会心しやすい" },
-    SAMURAI_KOCHOU: { name: "胡蝶の夢", mp: 30, kind: "phys", power: 0.6, scatter: 7, agiScale: 0.3, critBonus: 0.4, target: "all-enemy", desc: "夢幻の七閃が敵陣を舞う" },
+    SAMURAI_GEKKA: { name: "月下一閃", mp: 32, kind: "phys", power: 8.2, acc: 1, critBonus: 0.4, target: "enemy", desc: "月下の必中の抜刀。会心しやすい" },
+    SAMURAI_KOCHOU: { name: "胡蝶の夢", mp: 30, kind: "phys", power: 1.0, scatter: 7, agiScale: 0.3, critBonus: 0.4, target: "all-enemy", desc: "夢幻の七閃が敵陣を舞う" },
     SAMURAI_MUKYUU: { name: "一閃無窮", mp: 40, kind: "phys", power: 9.5, acc: 1, pierce: 1, critBonus: 0.3, target: "enemy", desc: "必中・物理貫通100%の終の抜刀" },
   },
   perks: {
