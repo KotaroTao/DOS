@@ -44,7 +44,7 @@
 | 第2章「捨て砦」 | `report_w09` | 先代という仮面 | 出荷済み | [見る](chapter2.md#report_w09) |
 | 第2章「捨て砦」 | `irene_roots` | 両手で囲った夜 | 出荷済み | [見る](chapter2.md#irene_roots) |
 | 第2章「捨て砦」 | `ch2_end` | 百年の底へ | 出荷済み | [見る](chapter2.md#ch2_end) |
-| 第3章「魂脈の根」 | `irene_omokage` | 彫られた顔 | 出荷済み | [見る](chapter3.md#irene_omokage) |
+| 第2章「捨て砦」 | `irene_omokage` | 彫られた顔 | 出荷済み | [見る](chapter2.md#irene_omokage) |
 | 第3章「魂脈の根」 | `w10_rope` | 二人が降りた綱 | 出荷済み (任意の修正あり) | [見る](chapter3.md#w10_rope) |
 | 第3章「魂脈の根」 | `report_w10` | 庭へ出られない王 | 出荷済み | [見る](chapter3.md#report_w10) |
 | 第3章「魂脈の根」 | `w11_hut` | 三代の師弟が残す頁 | 出荷済み | [見る](chapter3.md#w11_hut) |

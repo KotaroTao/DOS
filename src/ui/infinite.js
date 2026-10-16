@@ -1,3 +1,4 @@
+import { UNLOCKS } from "../story.js";
 import { bagItems, bagSortControl } from "./bagsort.js";
 import { bagCount, bagOwners, MAX_ITEMS } from "../items.js";
 // ===== 無限迷宮の画面 — 入口の魂の3択・風だまり (回収人・灯番・主)・全滅・帰ってきた時の結果 =====
@@ -619,6 +620,10 @@ export function openInfSummary(r = {}) {
     title: r.outcome === "wipe" ? `B${r.depth}F で全滅した` : r.outcome === "saved" ? `B${r.depth}F で全滅し、戦利品を守って持ち帰った` : `B${r.depth}F から帰ってきた`,
     sparkle: !!r.newDepth,
     body: (b) => {
+      if (r.enchantUnlocked) {
+        b.appendChild(el("div", "inf-h gold", "付呪が解放された"));
+        for (const line of UNLOCKS.enchant.lines) b.appendChild(el("div", "inf-note", line));
+      }
       if (r.title) b.appendChild(el("div", "inf-note", `称号「${r.title}」の隊`));
       if (r.newDepth) b.appendChild(el("div", "inf-note gold", "★ 最深到達を更新した！"));
       if (!r.keep) {
