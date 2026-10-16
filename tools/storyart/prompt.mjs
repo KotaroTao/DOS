@@ -45,6 +45,7 @@ function refsFor({ text, kind = "", id = "", chapter = 0, master = null }) {
   const out = [], note = [];
   const add = (p, why) => { if (p && !out.some((r) => r.path === p)) out.push({ path: p, why, ok: exists(p) }); };
   if (master) add(master, "直す元の絵 (いちばん先に渡す)");
+  if (/candlestick|white candle/i.test(text) && /\birene\b|\bmansion\b/i.test(text)) add("art/story-review/opening/flame.png", "館の灯の形の正本 (オープニング第六幕)");
   // 「No apprentice in this memory.」のような打ち消しの文は数えない
   text = text.replace(/[^.]*\b(no|without|not)\b[^.]*\b(apprentice|party|dolls?|sera|irene|ordo|king|chancellor|morden)\b[^.]*\./gi, "");
   for (const [name, re] of CAST) {
