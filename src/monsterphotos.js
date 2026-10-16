@@ -1,6 +1,32 @@
 // 迷宮の透過原画。通常敵・強敵・主・召喚先・共通の敵で共用する。
 // 能力値や文字グリッドは保ち、読めた原画だけを最初の描画前に登録する。
 export const MONSTER_PHOTOS = {
+  // <<CHAPTER12_ART>>
+  // 第十二章「王家の廟」。共通の敵は作成済み原画を共用。
+  bs_wickmummy: [520, 403],
+  bs_embalmer: [520, 497],
+  bs_graveroyalguard: [494, 520],
+  bs_waxhorror: [520, 337],
+  bs_mournfulchancellor: [520, 471],
+  bs_candlewraith: [505, 520],
+  bs_preservedbeast: [520, 272],
+  bs_tombpriest: [520, 367],
+  bs_sarcophagusguard: [520, 379],
+  bs_wailingnoble: [520, 479],
+  bs_coffincrawler: [520, 272],
+  bs_mummylord: [520, 416],
+  bs_deathmask: [479, 455],
+  bs_corpsewax: [520, 388],
+  bs_funeralwraith: [520, 357],
+  bs_boneprince: [520, 454],
+  bs_crypthound: [520, 340],
+  bs_shroudkeeper: [502, 520],
+  bs_doomknight: [520, 329],
+  bs_voidknight: [520, 311],
+  el_lanternreaper: [520, 360],
+  el_soulflayer: [381, 520],
+  bs_cryptking: [520, 449],
+  // <</CHAPTER12_ART>>
   // <<CHAPTER10_ART>>
   // 第十章・地底大空洞（作成済み26体は既存原画を共用）。
   bs_echowraith: [520, 493],

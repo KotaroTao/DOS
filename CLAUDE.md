@@ -359,7 +359,7 @@ Six elements + `none`, defined in `schema.js`. Advantage cycle is **火→風→
 
 戦闘画面下の敵名 (全画面幅の `#enemy-names`) は、図鑑の名前・能力・特徴・説明文・伝承が全開示済みなら金色 (`.enemy-name.complete`)。通常敵・強敵は10体、主は1体 (強敵の能力は従来どおり1体)。伝承のある魔物は本編で1体以上の討伐も必要。図鑑対象外の出来事の敵は対象外。酒場の心得 `t_codex_complete`。
 
-酒場の依頼者47人の肖像は `src/questportraits.js` の名前別台帳と `src/ui/questportrait.js` で表示する。掲示板は目的の印に加えて顔と名前を添え、固有の依頼一覧・詳細・報告でも同じ顔を使う。読み込み失敗時は従来の目的の印へ戻す。原画は `docs/art/tavern-clients/`、出荷は `art/quest-clients/` の圧縮WebP。セーブ内の依頼人番号と依頼IDは変えない。心得 `t_quest_faces`。
+酒場の依頼者52人の肖像は `src/questportraits.js` の名前別台帳と `src/ui/questportrait.js` で表示する。掲示板は目的の印に加えて顔と名前を添え、固有の依頼一覧・詳細・報告でも同じ顔を使う。読み込み失敗時は従来の目的の印へ戻す。原画は `docs/art/tavern-clients/`、出荷は `art/quest-clients/` の圧縮WebP。セーブ内の依頼人番号と依頼IDは変えない。心得 `t_quest_faces`。
 
 背の低い画面の戦闘では行動順と記録（最低54px）を隊の札に重ねず、収まらない部分はゲームの内側を縦にスクロールして操作できる。通常の高さでは従来どおり1画面に収める。心得 `t_log_all`。
 
@@ -437,7 +437,7 @@ The UI was rebuilt into packages under `src/ui/` (plain ES modules; **they never
 
 - 職業の魂の入手ポップアップは `src/ui/soulart.js` の透過アニメーションWebP (`art/souls/acquisition.webp`) を使い、職業の `glow` 色に染める。動きを減らす設定では静止WebP、読み込み失敗時は従来の人魂アイコン。トースト・戦果の小さな魂は従来どおり。心得 `t_soul_wisp`。
 
-- 戦闘背景は `src/battlebackgrounds.js` の迷宮ID対応で `art/battle/<id>.webp` を読み込む (全70迷宮 + 無限迷宮)。中央を暗くし、主・強敵は赤い周辺光を重ねる。読み込み中・失敗時は `backdrops.js` の既存情景を使う。出撃画面の `drawDungeonVista` と設定「漆黒」は従来どおり。心得 `t_battle_scenery`。
+- 戦闘背景は `src/battlebackgrounds.js` の迷宮ID対応で `art/battle/<id>.webp` を読み込む (全77迷宮 + 無限迷宮)。中央を暗くし、主・強敵は赤い周辺光を重ねる。読み込み中・失敗時は `backdrops.js` の既存情景を使う。出撃画面の `drawDungeonVista` と設定「漆黒」は従来どおり。心得 `t_battle_scenery`。
 
 - 異変「飢えた狩場」は戦闘開始時にも最低3体を保証する (`startBattleMeasured`)。主・強敵・銀業・ミミック・出来事にも、その階の通常の魔物を不足分だけ添える。一騎打ちの掟 (`trait.duel`) がある迷宮では抽選候補から除外し、以前の候補・出撃・保存済みの異変の適用時にも対象条件を確かめる (`mutatorForDungeon`)。元の特殊敵は増やさず、強さ・戦果の異変倍率は従来どおり通常敵だけに効く。記憶への再戦は対象外。迷宮の掟の `packMin` は従来どおり通常の群れだけ。心得 `t_mut`。
 - ユーザーがPRのマージを指示した後は `python3 tools/release/merge.py <PR番号> --head <確認済みの40桁SHA> --merge` で検査から公開確認までまとめて実行する (`docs/merge-and-publish.md`)。公開の成否まで報告し、同じ許可を聞き直さない。指示前にはマージしない。
