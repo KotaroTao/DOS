@@ -33,7 +33,7 @@ with sync_playwright() as p:
     page.get_by_label('開始する階', exact=True).first.fill('999')
     page.locator('.ttl-test button').last.click()
     page.wait_for_function('window.__game?.G.testPlay && __game.G.state === "board"')
-    assert page.evaluate('__game.G.floor') == 3
+    assert page.evaluate('__game.G.floor') == 2
     print('タイトルから森の最深部へ起動')
     for scene, count, phase in [('prologue:start', 0, None), ('opening', 0, None), ('prologue:forest', 3, 'forest'), ('prologue:crypt', 4, 'crypt'), ('prologue:corridor', 5, 'corridor'), ('prologue:abbey', 6, 'abbey'), *[(f'prologue:{phase}', count, phase) for phase, count in [('three',0),('fourth',3),('cryptQuest',4),('shop',4),('fifth',4),('formation',5),('corridorQuest',5),('sixth',5),('appraise',6),('abbeyQuest',6)]]]:
         visit('?testScene=' + scene)
@@ -72,7 +72,7 @@ with sync_playwright() as p:
       const {UI}=await import('/src/ui/ctx.js');
       UI.playStoryChain=(pages, done)=>{for(const p of pages){p.enter?.();p.leave?.();}done?.();};
       const {G,ev,world:W}=__game;
-      ev.enterDungeon(null,3);
+      ev.enterDungeon(null,2);
       const cell=G.board.cells.flat().find(c=>c.storyKey==='forest_doll');
       if(!cell)throw Error('森の人業が配置されていない');
       W.runStoryCell(cell); W.commitDungeonClear(false);
@@ -95,7 +95,7 @@ with sync_playwright() as p:
       return W.DUNGEONS.length;
     }''')
     assert page.evaluate('localStorage["dos-save-v7"]') == saved
-    page.locator('.test-play-banner button').click()
+    page.locator('.test-play-banner button').last.click()
     page.wait_for_selector('.ttl-overlay')
     assert 'test' not in page.url
     assert page.evaluate('localStorage["dos-save-v7"]') == saved

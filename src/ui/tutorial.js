@@ -184,7 +184,7 @@ const TUTS = [
     open: () => game.prologuePhase?.() === "three", used: () => false,
     intro: () => [["では、王さまから授かった魂を宿して、この子たちを目覚めさせましょう。", "戦士・僧侶・盗賊の魂を一つずつ選び、名前を与えてください。"]],
     steps: [{ text: "戦士・僧侶・盗賊の魂を宿す", hint: "人業を仕立てる → 魂 → 名前", go: () => game.goMakeDoll(), target: [".pt-empty button", ".pt-form .pt-empty-slot"], done: () => initialJobsReady(["fighter", "priest", "thief"]) }],
-    outro: ["三体の人業が目覚めた。", "イレーヌ「近くの森の古屋に、しばらく使っていない人業があるのです。三体と一緒に、連れ帰っていただけますか。」", "森の古屋は全三階。三階で人業を探し、館へ戻ろう。"],
+    outro: ["三体の人業が目覚めた。", "イレーヌ「近くの森の古屋に、しばらく使っていない人業があるのです。三体と一緒に、連れ帰っていただけますか。」", "森の古屋は全二階。二階で人業を探し、館へ戻ろう。"],
   },
   ...[
     { key: "createFourth", phase: "fourth", count: 4, job: "mage", body: "ほこりをかぶった人業", intro: "連れ帰ってくださって、ありがとうございます。ほこりを払えば、この子はまだ働けます。", next: "四体の隊がそろった。王宮で依頼を受けよう。" },
@@ -320,13 +320,13 @@ const TUTS = [
       return `${jobLabel(cls)}の魂をひとつ`;
     },
     intro: (gift) => [
-      ["王さまから伺いました。", "人業に、もうひとつ魂を宿せるようになったのですね。"],
+      ["持ち帰った魂には、もうひとつ使い道があります。", "職業を変えるメイン魂とは別に、サブ魂として宿すこともできます。"],
       ["本来の魂 (メイン魂) のほかに、もうひとつ。", "これを『サブ魂』と呼びます。"],
       ["サブ魂は、覚えた技やパッシブを貸してくれます。", "それに、その魂の能力の一部が器に足されます。魂のランクが高いほど多くなります。"],
       ["貸してくれる数は、魂のランクで決まります。", "R1-2はひとつ、R3-4はふたつ、R5なら三つです。"],
       gift ? [`練習に、${gift}お預けします。`, "空いている魂を、サブ魂の枠に宿してみてください。"]
         : ["隊に出していない魂を、", "サブ魂の枠に宿してみてください。"],
-      ["宿したら『技』で、借りる技を選びます。", "済ませるまで、王さまは門をお開けになりません。"],
+      ["メイン魂を付け替えたなら、外した元の魂もサブ魂に使えます。", "宿したら『技』で、借りる技をひとつ選んでみましょう。"],
     ],
     steps: [
       {
@@ -549,9 +549,9 @@ function finish(d) {
   const after = () => {
     busy = false;
     if (game.renderTown && inTown()) game.renderTown();
-    // 付け替えと融合が重なった時は、館に留まって続けて教わる。
-    const continueFusion = d.key === "soulChange" && pending()?.key === "fusion";
-    if (!continueFusion && pending() && !pending().started) UI.shell?.setTab?.("hub");
+    // 最初のレア魂は、付け替えの確認からサブ魂へ同じ館で続ける。
+    const continueSouls = d.key === "soulChange" && pending()?.key === "sub1";
+    if (!continueSouls && pending() && !pending().started) UI.shell?.setTab?.("hub");
     // 次の手ほどきは、街で対象施設の入口を案内する
     if (pending() && !TUT_MAP[pending().key]?.manual) setTimeout(() => resume(), 240);
   };
@@ -580,9 +580,12 @@ function afterReturn() {
   if (!st) return false;
   // 修道院以降の帰還で、没収されずに持ち帰った職業の魂だけを数える。
   const haul = G_().lastRun;
-  if (!game.prologueActive?.() && G_().msq?.n >= 1 && haul?.souls?.length > 0 && !haul.forfeited) {
+  if (!game.prologueActive?.() && G_().msq?.n >= 1 && haul?.souls?.length > 0 && !haul.forfeited && haul.outcome !== "wipe" && !haul.soulTutorialHandled) {
+    haul.soulTutorialHandled = true;
+    if (haul.abbeyRare) st.abbeyRareReturned = true;
     if (!st.done.soulChange && newJobSouls().length > 0) st.jobVisit = true;
-    if (!st.done.fusion && game.featureUnlocked?.("fusion")) st.fusionPending = true;
+    // 同じ帰還の案内を再開しても融合を追加しない。サブ魂を学んだ後の次の持ち帰りで教える。
+    if ((haul.sub1LearnedBeforeReturn ?? st.done.sub1) && !st.done.fusion && game.featureUnlocked?.("fusion")) st.fusionPending = true;
     game.autosave?.(true);
   }
   if (!st.done.trainSoul && UI.trainableList?.().length > 0) {
@@ -596,7 +599,7 @@ function afterReturn() {
     resume(); return true;
   }
   if (st.done.repairSoul || !(anyBroken() || st.repairFell)) {
-    if ((st.jobVisit && !st.done.soulChange) || (st.fusionPending && !st.done.fusion) || (st.appraisePending && !st.done.shopAppraise) || (st.trainPending && !st.done.trainSoul)) { resume(); return true; }
+    if (pending()) { resume(); return true; }
     return false;
   }
   st.repairPending = true;
@@ -739,6 +742,8 @@ function tutorialControls() {
     return choose(nodes, readable ? [h.body] : []);
   };
   if (busy) return card ? forward(true) : null;
+  // 初レア魂で増えた見識などの知らせを閉じてから、館への訪問を案内する。
+  if (card && h.kind === "celebrate") return forward(true);
   if (p?.arrival) return choose(first(document, FACILITIES[p.facility].target));
   if (!d) return choose(first(document, ".hb-goal-go"));
   const st = tutState(), s = curStep();
