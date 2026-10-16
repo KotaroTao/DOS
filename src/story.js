@@ -119,17 +119,17 @@ export const TUT_CORRIDOR = [
 //            waxward … 隊の全員の麻痺の抵抗値 +5
 export const STORY_CELLS = {
   forest_doll: {
-    dungeon: "w00_forest", floor: 3, name: "ほこりをかぶった人業", title: "古屋に眠る人業", art: "candle", prologue: true,
+    dungeon: "w00_forest", floor: 2, name: "ほこりをかぶった人業", title: "古屋に眠る人業", art: "candle", prologue: true,
     lines: ["森の奥の古屋。棚にもたれ、ほこりをかぶった人業が座っていた。", "継ぎ目はしっかりしている。イレーヌのもとへ連れ帰ろう。"],
     toast: "ほこりをかぶった人業を手に入れた", boon: { kind: "prologueDoll", text: "館で四体目に魂を宿せる" },
   },
   w02_broken_doll: {
-    dungeon: "w02", floor: 10, name: "壊れた人業", title: "回廊に残された人業", art: "candle", prologue: true,
+    dungeon: "w02", floor: 5, name: "壊れた人業", title: "回廊に残された人業", art: "candle", prologue: true,
     lines: ["回廊の最深部に、壊れた人業が倒れていた。", "胸には魂の灯がない。継ぎ目の傷をかばい、街へ連れ帰ることにした。"],
     toast: "壊れた人業を手に入れた", boon: { kind: "prologueDoll", text: "館でイレーヌに見せられる" },
   },
   w01_lantern: {
-    dungeon: "w01", floor: 5, name: "師のランタン", art: "lantern", title: "師のランタン",
+    dungeon: "w01", floor: 3, name: "師のランタン", art: "lantern", title: "師のランタン",
     lines: [
       "最深部の鎮魂灯に、ひびが入っていた。死者を鎮めるはずの灯が、地下の魂の声を増幅している。",
       "灯を支える古い輪を外すと、青白い光が静まった。棺をかく音も、ようやく止む。",
@@ -142,7 +142,7 @@ export const STORY_CELLS = {
     toast: "師のランタンを見つけた",
   },
   w02_sigil: {
-    dungeon: "w02", floor: 4, name: "壁に刻まれた印", art: "sigil", title: "壁に刻まれた印", opens: ["w04"],
+    dungeon: "w02", floor: 3, name: "壁に刻まれた印", art: "sigil", title: "壁に刻まれた印", opens: ["w04"],
     lines: [
       "回廊の壁に、見覚えのある印が刻まれていた──灯を掌に載せた手。",
       "師が仕事の跡に残す印だ。刻み目はまだ新しい。",

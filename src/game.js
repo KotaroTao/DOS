@@ -104,6 +104,7 @@ const REDUCED_MOTION = (() => { try { return matchMedia("(prefers-reduced-motion
 import { pickTrap, CHEST_RANKS, rollChestRank } from "./traps.js";
 import { refSoul, refGold, trainCost, lvPow, emberMul, partyAgi, LOCK_K, TRAP_K, lockPow } from "./levelcurve.js";
 import { STABILITY_MAX, STABILITY_ENTRY_COST, STABILITY_RECOVERY_MS, recoverStability, stabilityWaitMs, stabilityRecoveryMs } from "./stability.js";
+import { startPlaytest, playtestEvent, finishPlaytest, showPlaytestRecords } from "./playtest.js";
 import { tlStability, tlStabilityTick, tlRedGain, tlOn, tlMeasure, tlWatchBattle, tlRunBegin, tlRunEnd, tlSnapshot, tlBattleBegin, tlHits, tlBattleEnd, tlLoot, tlLost, tlGain, tlTownGain, tlPlayTick, tlSoul, tlInfAttempt, tlInfFloor, tlInfSoul, tlInfEmbers, tlInfWipe } from "./telemetry.js";
 import { repriceEquipment } from "./pricing.js";
 import { spawnFx, drawBattleFx, weaponFxStyle, statusFxKind, skillProfile, ELEM_FX_COL, SIG_FX } from "./battlefx.js";
@@ -553,7 +554,7 @@ const G = {
   events: { seen: {}, picks: {}, once: {}, flags: {}, fresh: {} }, // 迷宮のイベント (src/events.js): 見聞録・一度きり・恒久の恵み
   irene: { greeted: false, visits: 0, seen: {}, last: null }, // 人業の館の主イレーヌ: 初訪問の挨拶済み・来館数・聞いた話 (src/ui/irene.js)
   journal: { read: {}, known: {} }, // ストーリー一覧: 読んだ物語・「物語が記された」を知らせた物語 (src/journal.js)
-  tut: { done: {}, cur: null, step: 0, ev: {}, base: {} }, // 解放された要素の手ほどき: 済んだもの・最中のもの (src/ui/tutorial.js)
+  tut: { earlySoulVersion: 1, done: {}, cur: null, step: 0, ev: {}, base: {} }, // 解放された要素の手ほどき: 済んだもの・最中のもの (src/ui/tutorial.js)
   story: 0,           // 王宮ストーリーの進行段階
   dragonSlain: false, // 竜を討ったか
   // 戦績。bossIds/elemKills は集合 ({key:true})、swiftBoss/masterMimicSlain は一度きりの達成フラグ
@@ -728,12 +729,26 @@ function runGainItem(owner, item) {
 // 魂の吸収を記録 (全滅没収で巻き戻すため {doll, clsKey} で覚える)
 // 魂の入手を記録 (全滅没収で巻き戻すため)。kind: "awaken"(共有countへ) | "bag"(未覚醒)
 function runTrackSoul(clsKey, kind) { if (G.run && inDungeon()) G.run.souls.push({ clsKey, kind }); }
-// テスト記録: 職業の魂を1つ手に入れた (迷宮の中ならその迷宮の欄、町なら次に入る迷宮の「町」の欄へ)
-function tlSoulGot(clsKey) { if (tlOn()) tlSoul(inDungeon() ? tlWhere() : null, (SOUL_CLASSES[clsKey] || {}).rarity); }
+// 試遊記録は名前を含めず、その時点の編成・装備・進行を写す。
+function playtestContext() {
+  return { state: G.state, phase: G.msq?.prologue?.phase || null,
+    dungeon: curDungeon()?.id, floor: G.floor, gold: G.gold, soulPts: G.soulPts,
+    subUnlocked: featureUnlocked("sub1"), tutorial: G.tut?.cur || null, tutorialStep: G.tut?.step, tutorialDone: Object.keys(G.tut?.done || {}).filter(k => G.tut.done[k]),
+    automatic: !!((G.autoCombat || G.autoMove) && !G.prompt),
+    party: G.party.map(d => ({ uid: d.uid, hp: d.hp, maxhp: d.maxhp,
+      primary: soulByUid(d.primary)?.clsKey, level: soulByUid(d.primary)?.level,
+      subs: (d.subs || []).filter(Boolean).map(x => ({ clsKey: soulByUid(x.uid)?.clsKey, picks: x.picks })),
+      equip: Object.fromEntries(Object.entries(d.equip || {}).map(([k, v]) => [k, v?.id || null])) })) };
+}
+// 戦闘集計と序盤の到達点は、それぞれの記録先へ送る。
+function tlSoulGot(clsKey) {
+  if (tlOn()) tlSoul(inDungeon() ? tlWhere() : null, (SOUL_CLASSES[clsKey] || {}).rarity);
+  if (SOUL_CLASSES[clsKey]?.rarity === "rare") playtestEvent("到達", { clsKey }, "rareFound");
+}
 // 今回の出撃の記録 (D1): 戦利品に加え、倒した数・魂の成長・持ちきれず置いてきた品・到達階を数える。
 // 旧セーブの G.run はこれらを持たないので、読む側は必ず || の既定値で受ける
 function newRun() {
-  return { gold: 0, soulPts: 0, items: [], souls: [], kills: 0, levels: [], lost: [], floors: 1, embers: 0, at: Date.now() };
+  return { earlyLayout: 1, gold: 0, soulPts: 0, items: [], souls: [], kills: 0, levels: [], lost: [], floors: 1, embers: 0, at: Date.now() };
 }
 function runCount(key, n = 1) {
   if (G.run && inDungeon()) G.run[key] = (G.run[key] || 0) + n;
@@ -753,7 +768,9 @@ function runSummary(r, outcome, extra = {}) {
   const dn = curDungeon();
   return {
     v: 1, at: Date.now(), outcome,
-    dungeon: { idx: G.dungeonIdx, name: abyssActive() ? INF_NAME : (dn ? dn.name : ""), layer: dn ? dn.layer : 1 },
+    abbeyRare: !!r.abbeyRareSoul,
+    sub1LearnedBeforeReturn: !!G.tut?.done?.sub1,
+    dungeon: { id: dn?.id, idx: G.dungeonIdx, name: abyssActive() ? INF_NAME : (dn ? dn.name : ""), layer: dn ? dn.layer : 1 },
     abyss: G.abyss ? G.abyss.depth : null,
     floor: G.floor, floors: Math.max(r.floors || 1, G.floor || 1),
     gold: r.gold || 0, soulPts: r.soulPts || 0, kills: r.kills || 0, embers: r.embers || 0,
@@ -955,7 +972,19 @@ function logEcho(text, cls = "sys", key = null) {
 setToastEcho((text, o) => logEcho(text, LOG_TONE[o.tone || "gold"] || "sys", o.logKey || null));
 
 // 現在の迷宮設定
-function curDungeon() { return DUNGEONS[G.dungeonIdx] || DUNGEONS[0]; }
+const EARLY_LEGACY = {
+  w00_forest: { floors: 3, power: { 1: 0.12, 3: 0.12 } },
+  w01: { floors: 5, power: { 1: 0.7, 5: 0.868 } },
+  w02: { floors: 10, power: { 1: 0.598, 3: 0.5934, 5: 0.5292, 7: 0.5063, 8: 0.4751, 10: 0.4773 } },
+  w03: { floors: 15, power: { 1: 0.41, 4: 0.4165, 5: 0.4011, 6: 0.3663, 7: 0.356, 10: 0.3619, 12: 0.3522, 15: 0.3685 } },
+};
+const EARLY_STORY_FLOORS = { forest_doll: 3, w01_lantern: 5, w02_sigil: 4, w02_broken_doll: 10 };
+function curDungeon() {
+  const cfg = DUNGEONS[G.dungeonIdx] || DUNGEONS[0];
+  // 更新前から潜っている一回だけは、盤面・戦闘・未発見の手がかりを元の階数で続ける。
+  return inDungeon() && G.run?.legacyEarly === cfg.id
+    ? { ...cfg, ...EARLY_LEGACY[cfg.id], bandFloors: 5, rewardMul: 1 } : cfg;
+}
 
 // ===== 迷宮の地図 (src/dungeons/world.js の台帳) と物語の進み (G.world) =====
 // 迷宮は一本道ではない: 解放条件を満たした迷宮が地図に現れ、どれに潜るかは自由 (推奨Lvより遥かに強い迷宮にも入れる)。
@@ -2445,6 +2474,7 @@ function newFloor() {
   storyNewFloor(); // 物語マス: 師の手がかり (決まった迷宮の決まった階に、見つけるまで毎回置く)
   enforceDungeonRestrictions();
   evNewFloor(); // 迷宮のイベント: 必須の手がかりの場所を確保してから配置する
+  placeAbbeyFirstSoul();
   G.portalFound = false; // この階の帰還魔法陣はまだ発見していない
   revealByCartography();
   passiveSensePlan(); // 敵感知・財宝感知の札は階の始めに決める (描画の時に乱数を引かない — src/rng.js)
@@ -6979,7 +7009,9 @@ function evNewFloor() {
 function storyNewFloor() {
   if (abyssActive() || !G.board) return;
   const cfg = curDungeon();
-  const key = storyCellAt(cfg.id, G.floor);
+  const key = G.run?.legacyEarly === cfg.id
+    ? Object.keys(STORY_CELLS).find(k => STORY_CELLS[k].dungeon === cfg.id && (EARLY_STORY_FLOORS[k] ?? STORY_CELLS[k].floor) === G.floor)
+    : storyCellAt(cfg.id, G.floor);
   if (!key || worldState().found[key] || (STORY_CELLS[key].prologue && !prologueActive())) return;
   // 再開時にも呼ぶ。配置済みなら、盤面や乱数を変えずに残す。
   if (G.board.cells.flat().some((c) => c.type === "story" && c.storyKey === key && !c.cleared)) return;
@@ -7912,8 +7944,34 @@ function collectSoul(cell, clsKey, clsLabel) {
 const RARITY_LABEL = { common: "コモン", rare: "レア", epic: "エピック", legend: "レジェンド", unique: "固有" };
 
 // 魂を受け取る (演出なし): 所持魂の一覧へ加え、戦績・図鑑・今回の記録に残す。死体の残火も同時に受け取る。
-// 戦果シートのように一覧へまとめて見せる場面と、トースト/祝祭で知らせる acquireSoul の共通の芯
+// 修道院の導入: 最初の魂は、無事に持ち帰るまでレアを保証する。
+function abbeyFirstSoulPending() {
+  return inDungeon() && !abyssActive() && !G.rematch && curDungeon().id === "w03"
+    && !G.tut?.abbeyRareReturned && !G.run?.abbeyRareSoul;
+}
+// 修道院B2Fに、見落としにくい魂の回収先を一つ置く。乱数は生成時だけに使う。
+function placeAbbeyFirstSoul() {
+  if (G.floor !== 2 || !G.board || !abbeyFirstSoulPending()) return;
+  if (G.board.cells.flat().some(c => c.abbeyFirstSoul && !c.cleared)) return;
+  const start = G.board.start, seen = new Set([`${start.x},${start.y}`]), queue = [start];
+  for (let i = 0; i < queue.length; i++) {
+    const { x, y } = queue[i], cell = G.board.cells[y][x];
+    if (cell.type === "empty" && !(x === G.px && y === G.py)) {
+      Object.assign(cell, { type: "corpse", cleared: false, revealed: true, corpseWarm: true,
+        corpseClass: rollClassOfRarity("rare"), abbeyFirstSoul: true });
+      return;
+    }
+    for (const [dir, dx, dy] of [["n", 0, -1], ["e", 1, 0], ["s", 0, 1], ["w", -1, 0]]) {
+      const nx = x + dx, ny = y + dy, key = `${nx},${ny}`;
+      if (cell.walls[dir] || !G.board.cells[ny]?.[nx] || seen.has(key)) continue;
+      seen.add(key); queue.push({ x: nx, y: ny });
+    }
+  }
+}
+// 戦果・出来事・死体で共通の受取処理。保存に乗せてから演出する。
 function grantSoulQuiet(clsKey, sourceLine = "", emberCount = 0) {
+  const firstAbbeySoul = abbeyFirstSoulPending();
+  if (firstAbbeySoul && SOUL_CLASSES[clsKey]?.rarity !== "rare") clsKey = rollClassOfRarity("rare");
   const cls = SOUL_CLASSES[clsKey] || SOUL_CLASSES.fighter;
   // 無限迷宮: 同じ職の魂を持っていれば自動で融合し、無ければ灯番で宿せる魂として加わる。持ち帰りは拾った数 (G.run.souls)
   if (abyssActive() && inDungeon()) {
@@ -7931,7 +7989,8 @@ function grantSoulQuiet(clsKey, sourceLine = "", emberCount = 0) {
   }
   G.stats.soulsFound++;
   questProgress("soul", null, 1);
-  addSoulInstance(clsKey);
+  const receivedSoul = addSoulInstance(clsKey);
+  if (firstAbbeySoul && G.run) G.run.abbeyRareSoul = receivedSoul.uid;
   runTrackSoul(clsKey, "bag");
   tlSoulGot(clsKey);
   codexJobSee(clsKey, 1, 1);
@@ -9030,6 +9089,11 @@ function startBattleMeasured(enemies, cell) {
   if (foeLv - partyLevel() >= 4) log(`格上の迷宮（推奨Lv${foeLv}）：味方の異常・即死は効きにくく、敵の術は効きやすい`, "sys");
   // テスト記録: 戦闘の種類 (主 / 金属の魔物 / 精鋭・ミミック・出来事の戦い / 通常) と開始時の様子。
   // 金属の魔物は素早さに依らない回避を持つので、精鋭等の命中に混ぜない
+  if (!G.rematch) {
+    playtestEvent("到達", { boss: isBoss }, "firstBattle");
+    playtestEvent("戦闘開始", { boss: isBoss, enemies: enemies.map(e => e.key) });
+    if (G.party.some(d => d.subs?.some(Boolean))) playtestEvent("到達", {}, "subBattle");
+  }
   if (tlOn() && inDungeon() && !G.rematch) {
     const kind = isBoss ? "b" : enemies.some((e) => e.metal) ? "m" : (isElite || enemies.some((e) => e.isMimic) || (cell && cell.evFight)) ? "e" : "n";
     G.battle.tl = tlBattleBegin({ where: tlWhere(), kind, opening, openSrc, ambRate, party: G.party, enemies });
@@ -11750,6 +11814,7 @@ function levelUpEntries(progress) {
 function endBattle(...args) { return tlGameMeasure("battle", () => endBattleMeasured(...args)); }
 function endBattleMeasured() {
   const b = G.battle;
+  if (!G.rematch) playtestEvent("戦闘終了", { result: b.result, rounds: b._roundNo });
   G.effShow = null; G.modFeed = null; flushModLines(null, Infinity);
   if (b.tl) tlBattleEnd(b.tl, { result: b.result, rounds: b._roundNo, tally: b.tally, party: G.party });
   if (G.rematch) return endRematch(b); // 宿敵の再戦: 終われば隊を戻して街へ (迷宮の戦果・踏破・全滅の扱いには入らない)
@@ -11767,6 +11832,9 @@ function endBattleMeasured() {
     // 倒した敵から Soul(魂) を回収する。Soul が経験値の役割を兼ね、館での魂の強化に使う
     // 金運 (goldLuck) / 魂寄せ (soulLure) は戦闘報酬を底上げする (隊内最高Lvのみ)
     let { soul, gold } = b.rewards();
+    // 序盤を短くしても、次の迷宮へ進むための育ちと支度金を減らさない。
+    const earlyReward = activeCfg().rewardMul || 1;
+    soul = Math.round(soul * earlyReward); gold = Math.round(gold * earlyReward);
     // 観客の注文 (闘技場跡の迷宮の掟): 応えて勝てば、この戦闘の ✦Soul・金貨が増える
     { const am = audienceJudge(b); if (am !== 1) { soul = Math.round(soul * am); gold = Math.round(gold * am); } }
     const gl = partyPassiveLv("goldLuck"), sl = partyPassiveLv("soulLure");
@@ -11835,8 +11903,9 @@ function endBattleMeasured() {
       const soulChance = wasElite ? 0.40 : 0.08; // 強敵は魂ドロップ率が大幅上昇
       if (random() < soulChance) {
         const clsKey = rollJobClass();
-        log(`${e.name}から${SOUL_CLASSES[clsKey].label}の魂`, "win");
-        souls.push(grantSoulQuiet(clsKey, `${e.name}が落とした魂だ。`));
+        const received = grantSoulQuiet(clsKey, `${e.name}が落とした魂だ。`);
+        log(`${e.name}から${received.label}の魂`, "win");
+        souls.push(received);
       }
     }
     // 死体戦は宝箱を出さず、死体に残っていた魂を100%回収する (残火も同時に)
@@ -11852,6 +11921,7 @@ function endBattleMeasured() {
     }
     // 迷宮踏破は本物の主戦のみ。死体から湧いた個体 (corpse)・無限迷宮の主は踏破扱いにしない
     const wasBoss = !corpse && !abyssActive() && b.enemies.some((e) => e.boss);
+    if (wasBoss) playtestEvent("到達", {}, "firstBoss");
     if (wasBoss) { flashScreen("#ffd84a"); buzz([0, 60, 50, 60, 50, 250]); } // 主討伐は特別な瞬間
     else if (wasElite) { flashScreen("#d4504e"); buzz([0, 80, 50, 80, 50, 300]); }
     // 出来事の戦闘: マスはイベント側が片付ける (連戦・報酬の続きがある)。勝った印だけ先に残す
@@ -11999,6 +12069,7 @@ const GUARDIAN_COST = 20; // 全滅時、戦利品を守って帰還するため
 // 全滅: 決断のシート (赤い魂で全てを守る / あきらめる)。戻る操作では閉じない。
 // 選んだら闇に溶けて街へ戻り、帰還の報告 (全滅版) に失ったもの・連れ帰りの時を残す
 function gameOver() {
+  playtestEvent("全滅・断念", { abandoned: !!G.run?.abandoned });
   G.state = "over";
   playBgm(null);
   SFX.gameover();
@@ -12924,6 +12995,7 @@ function finalizeBuyDoll(uid, name) {
   SFX.itemget(); buzz([0, 30, 60, 30]);
   log(`人業「${d.name}」が生まれた！（${SOUL_CLASSES[s.clsKey].label}）`, "win");
   showToast(`人業「${d.name}」が目覚めた`, { tone: "good" });
+  if (G.party.length >= 6) playtestEvent("到達", {}, "sixDolls");
   if (UI.tutorialEvent) UI.tutorialEvent("dollCreated");
   autosave(true);
   renderTown();
@@ -13003,6 +13075,8 @@ function applyEquipSoul(d, uid, s, slotId = "primary") {
   }
   recalcDoll(d);
   keepHpMpRatio(d, vit);
+  playtestEvent("魂の付け替え", { doll: d.uid, slot: slotId, clsKey: s.clsKey });
+  if (G.party.some(p => p.subs?.some(Boolean))) playtestEvent("到達", {}, "subEquipped");
   SFX.select(); buzz(15);
   autosave(true);
   renderTown();
@@ -14885,6 +14959,7 @@ function grantTutorialGift() {
   const ms = G.msq;
   if (!ms || ms.granted) return;
   ms.granted = true; ms.stage = "three";
+  G.tut.earlySoulVersion = 1;
   ms.prologue = { phase: "three", gifts: {} };
   for (const job of ["fighter", "priest", "thief"]) addSoulInstance(job);
   codexSweepJobs(); SFX.itemget();
@@ -14908,7 +14983,7 @@ const FEATURES = {
   tavern: { chapter: 1, report: 4 },        // 第一章の本筋4か所の報告で、依頼と情報屋の噂が一緒に開く
   soulChange: { chapter: 1, dungeon: "w02" }, // 旧解放条件の記録。現在は新職業の魂を持ち帰り、館の手ほどきで解放
   fusion: { chapter: 1, report: 2 },          // 魂の融合
-  sub1: { chapter: 1, report: 3 },            // サブ魂 1枠
+  sub1: { chapter: 1, earlySoul: true },       // 修道院のレア魂を持ち帰り、付け替えを教わると1枠
   rumor: { chapter: 1, report: 4 },           // 情報屋の噂 (酒場の掲示板)
   order: { chapter: 1, report: "finale" },    // 控えの結社 (席1)
   order2: { chapter: 2, report: 2 },          // 結社の席2
@@ -14932,7 +15007,7 @@ const FEATURES = {
   vow: { chapter: 16, report: "finale" },       // 誓約
   sub3: { chapter: 17, report: "finale" },      // サブ魂 3枠
 };
-const FEATURE_KEYS = Object.keys(FEATURES).filter((key) => key !== "rumor" && key !== "soulChange" && !FEATURES[key].retired); // 噂は酒場に統合、魂の付け替えは館で案内 (旧キーは互換用に残す)
+const FEATURE_KEYS = Object.keys(FEATURES).filter((key) => key !== "rumor" && key !== "soulChange" && key !== "sub1" && !FEATURES[key].retired); // 噂は酒場に統合、魂の付け替えは館で案内 (旧キーは互換用に残す)
 const chapterLabel = (no) => `第${kanjiNum(no)}章`;
 // その章で王に報告した本筋の迷宮の数
 function chapterReports(ch, w = worldState()) { return ch.dungeons.filter((id) => w.reported[id]).length; }
@@ -14943,6 +15018,7 @@ function featureMet(key, w = worldState()) {
   const f = FEATURES[key === "rumor" ? "tavern" : key];
   const ch = f && CHAPTERS.find((c) => c.no === f.chapter);
   if (!ch || f.retired || f.pending) return false; // 廃止済み、その章がまだ無い、または仕組みがまだ無い
+  if (f.earlySoul) return !!(G.tut?.sub1Legacy || G.tut?.done?.sub1 || (G.tut?.abbeyRareReturned && G.tut?.done?.soulChange));
   if (f.cleared) return !!w.cleared?.[f.cleared] || !!w.reported[f.cleared];
   if (f.dungeon) return !!w.reported[f.dungeon];
   return f.report === "finale" ? !!w.reported[ch.finale] : chapterReports(ch, w) >= f.report;
@@ -14955,6 +15031,7 @@ function featureUnlocked(key) {
 }
 // まだ開いていない機能の条件の説明 (錠の札・案内文)
 function featureNote(key) {
+  if (key === "sub1") return "修道院のレアの魂を持ち帰り、館で魂の付け替えを教わると開く";
   if (key === "soulChange") return "新しい職業の魂を持ち帰り、人業の館で手ほどきを受けると開く";
   const f = FEATURES[key];
   if (!f) return "";
@@ -16462,6 +16539,7 @@ function enterDungeon(mutatorId, startFloor = 1, stabilityAd = false) {
   G.stats.runs++;
   // 今回の戦利品トラッキングを初期化 (帰還の報告は次の帰還で書き直す)
   G.run = newRun();
+  playtestEvent("出撃");
   G.run.startFloor = G.floor; // 潜り始めの階 (そこから降りずに何もせず戻ったら、帰還で酒場を貼り替えない)
   tlRunBegin(tlWhere(), G.party, { mutator:G.mutator, loadout:G.party.map(p=>({ name:p.name, tactic:p.tactic, equip:Object.fromEntries(Object.entries(p.equip || {}).map(([k, it])=>[k, it ? it.id : null])), passives:p.passiveMap,
     souls:[p.primary, ...(p.subs || []).map(x=>x.uid)].filter(x=>x!=null).map(uid=>{ const soul=soulByUid(uid); return soul ? { uid, clsKey:soul.clsKey, level:soul.level, count:soul.count } : { uid }; }) })) });
@@ -16861,6 +16939,11 @@ function returnToTown(opts = {}) {
   if (!G.party.some((p) => p.alive)) startRescueTimers(G.party);
   if (summary) summary.dead = G.party.filter((d) => d && d.isDoll && !d.alive).map((d) => ({ uid: d.uid, name: d.name }));
   G.lastRun = summary;
+  playtestEvent("帰還", { outcome, souls: summary?.souls, forfeited: !!summary?.forfeited });
+  if (outcome !== "wipe" && !summary?.forfeited && summary?.souls?.some(s => s.rarity === "rare")) playtestEvent("到達", {}, "rareHome");
+  if (summary?.abbeyRare && outcome !== "wipe" && !summary.forfeited) {
+    G.tut ||= {}; G.tut.abbeyRareReturned = true;
+  }
   // 酒場の顔ぶれと掲示板の依頼は帰還のたびに入れ替わる (受けた依頼は残る)。
   // ただし潜り始めの階から降りず、何も得ずに戻っただけ (帰還魔法陣で入ってすぐ出た) なら貼り替えない
   if (!idleRun(runRef)) {
@@ -18479,6 +18562,11 @@ function loadGame(cloudSnapshot = null) {
   try { snap = refDeserialize(JSON.parse(raw)); } catch (e) { return false; }
   if (!snap || !Array.isArray(snap.party) || (!cloudEnabled() && !snap.party.length && !snap.msq?.granted && !normalizeName(snap.apprenticeName))) return false;
   for (const k of SAVE_FIELDS) if (k in snap) G[k] = snap[k];
+  // 旧序盤の探索中の記録は、その出撃だけ元の階数で続ける。
+  const loadedDungeon = DUNGEONS[G.dungeonIdx];
+  if (inDungeon() && !G.abyss && !G.rematch && EARLY_LEGACY[loadedDungeon?.id] && !G.run?.earlyLayout) {
+    G.run ||= newRun(); G.run.legacyEarly = loadedDungeon.id;
+  }
   G.insightNotified = snap.insightNotified ?? null;
   G.apprenticeName = normalizeName(G.apprenticeName);
   G.formations = Array.isArray(snap.formations) ? snap.formations : [];
@@ -18504,6 +18592,13 @@ function loadGame(cloudSnapshot = null) {
   if (!G.irene || typeof G.irene !== "object") G.irene = { greeted: false, visits: 0, seen: {}, last: null }; // 館の主イレーヌ (後付け: 既存の記録では次の来館で挨拶する)
   if (!G.irene.seen || typeof G.irene.seen !== "object") G.irene.seen = {};
   if (!G.tut || typeof G.tut !== "object") G.tut = { done: {}, cur: null, step: 0, ev: {}, base: {} }; // 手ほどき (後付け: 解放済みで未使用の要素は目標の札から手ほどきする)
+  G.tut.done ||= {};
+  if (!G.tut.earlySoulVersion) {
+    G.tut.sub1Legacy = CHAPTERS[0].dungeons.filter(id => G.world?.reported?.[id]).length >= 3
+      || !!G.tut.done.sub1 || [...G.party, ...(G.reserve || [])].some(d => d.subs?.some(Boolean));
+    G.tut.earlySoulVersion = 1;
+    if (G.world?.reported?.w03 && G.tut.abbeyRareReturned === undefined) G.tut.abbeyRareReturned = true;
+  }
   if (!("journal" in snap) || !G.journal || typeof G.journal !== "object") { G.journal = null; seedJournal(G); } // ストーリーの既読 (後付け: いま読める物語は既読にして、知らせを山積みにしない)
   if (!G.events || typeof G.events !== "object") G.events = {}; // 迷宮のイベント (後付け)
   for (const k of ["seen", "picks", "once", "flags", "fresh"]) if (!G.events[k] || typeof G.events[k] !== "object") G.events[k] = {};
@@ -19484,21 +19579,28 @@ async function init() {
   if (testPlayActive) {
     const floor = setupTestPlay();
     titleActive = false; G.prompt = false;
+    const recording = G.testStoryFlow && !testScene?.phase;
+    if (recording) startPlaytest(playtestContext, { skippedDungeon: !!G.testSkipDungeon });
     const banner = document.createElement("div");
     banner.className = "test-play-banner";
-    banner.appendChild(document.createTextNode(G.testSkipDungeon ? "テストプレイ中・迷宮探索を省略・保存なし " : "テストプレイ中・保存なし "));
+    banner.appendChild(document.createTextNode(recording ? (G.testSkipDungeon ? "試遊・探索省略 " : "試遊・記録中 ") : (G.testSkipDungeon ? "試遊・探索省略・保存なし " : "試遊・保存なし ")));
     const codex = document.createElement("button");
     codex.type = "button"; codex.textContent = "図鑑・全データ";
     codex.addEventListener("click", () => UI.openCodexSheet?.({ all: true }));
     banner.appendChild(codex);
+    const record = document.createElement("button");
+    record.type = "button"; record.textContent = recording ? "記録・メモ" : "試遊の記録";
+    record.onclick = showPlaytestRecords; banner.appendChild(record);
     const exit = document.createElement("button");
     exit.type = "button"; exit.textContent = "終了してホームへ";
     exit.addEventListener("click", () => {
+      finishPlaytest();
       const url = new URL(location.href);
       for (const key of ["testDungeon", "testFloor", "testPlace", "testScene", "testUnlock", "testInf", "testInfLv", "testSkipDungeon"]) url.searchParams.delete(key);
       location.replace(url.href);
     });
     banner.appendChild(exit); document.body.appendChild(banner);
+    new ResizeObserver(() => document.body.style.setProperty("--test-banner-height", `${banner.getBoundingClientRect().height}px`)).observe(banner);
     resumeFromState();
     revealBootScreen();
     if (testScene?.kind === "tutorial") uiTutorial.startTestTutorial(G.testTutorial);

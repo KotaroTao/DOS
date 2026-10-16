@@ -1,3 +1,4 @@
+import { showPlaytestRecords } from "./playtest.js";
 // タイトル画面 — 起動のたびに最初に出る「顔」
 //
 // 一枚絵「百の迷宮の門」を全面に敷く。描き下ろしの原画 (titlekeyart.js の台帳) があれば titlepaint.js が
@@ -118,6 +119,9 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
   }
   menu.appendChild(btns);
   menu.appendChild(div("ttl-note", cloudEnabled() ? "冒険の記録に接続済み" : hasSave ? "進行は自動で保存されています" : "ホーム画面に追加すると、オフラインでも遊べます"));
+  const records = mkBtn("試遊の記録", null, "");
+  records.addEventListener("click", e => { e.stopPropagation(); showPlaytestRecords(); });
+  menu.appendChild(records);
   low.appendChild(menu);
   ui.appendChild(low);
   wrap.appendChild(ui);

@@ -403,10 +403,10 @@
 .ttl-test-field select, .ttl-test-field input { width: 100%; box-sizing: border-box; min-height: 44px; padding: 8px; color: #f1e4c8; background: #151019; border: 1px solid #746044; font: inherit; }
 .test-play-banner { position: fixed; top: 0; left: 0; right: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 3px; background: #332113; color: #fff0c4; font-size: 11px; }
 .test-play-banner button { min-height: 32px; color: inherit; background: #17101b; border: 1px solid #a98b4c; cursor: pointer; }
-body:has(.test-play-banner) { padding-top: 38px; }
-body:has(.test-play-banner) #app { height: calc(100vh - 38px); height: calc(100dvh - 38px); }
-body:has(.test-play-banner) #town-shell { top: 38px; }
-body:has(.test-play-banner) .ui-sheet { max-height: calc(100vh - 66px); max-height: calc(100dvh - 66px); }
+body:has(.test-play-banner) { padding-top: var(--test-banner-height, 38px); }
+body:has(.test-play-banner) #app { height: calc(100vh - var(--test-banner-height, 38px)); height: calc(100dvh - var(--test-banner-height, 38px)); }
+body:has(.test-play-banner) #town-shell { top: var(--test-banner-height, 38px); }
+body:has(.test-play-banner) .ui-sheet { max-height: calc(100vh - var(--test-banner-height, 38px) - 28px); max-height: calc(100dvh - var(--test-banner-height, 38px) - 28px); }
 
 .ttl-test-field[hidden] { display: none; }
 .ttl-test-art[hidden] { display: none; }
@@ -460,3 +460,15 @@ body:has(.test-play-banner) .ui-sheet { max-height: calc(100vh - 66px); max-heig
 .ttl-name input { font-size: 16px; }
 
 .ttl-name .ttl-note { color: #c3b49b; line-height: 1.7; }
+
+/* 試遊メモは物語や手ほどきの上からも開ける。 */
+.playtest-records { box-sizing: border-box; width: min(720px, calc(100vw - 20px)); max-height: calc(100dvh - 24px); overflow: auto; background: #211c25; color: #fff0d1; border: 1px solid #a98b4c; padding: 16px; }
+.playtest-records::backdrop { background: #000b; }
+.playtest-records h2 { margin: 0 0 12px; }
+.playtest-records select, .playtest-records textarea { box-sizing: border-box; display: block; width: 100%; margin: 8px 0; background: #141018; color: inherit; border: 1px solid #796b7d; padding: 8px; font: inherit; }
+.playtest-records textarea { min-height: 80px; }
+.playtest-records textarea[readonly] { height: 220px; font-size: 12px; }
+.playtest-records button { min-height: 40px; color: inherit; background: #382d3c; border: 1px solid #a98b4c; padding: 6px 10px; }
+.playtest-controls { display: flex; flex-wrap: wrap; gap: 8px; }
+.test-play-banner { gap: 4px; font-size: 10px; }
+.test-play-banner button { font-size: 10px; padding: 2px 4px; white-space: nowrap; }

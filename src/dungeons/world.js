@@ -20,7 +20,8 @@
 //           選ぶ (墓所に沼は置かない…)。出撃画面の「足元」・盤面の絵・踏んだ時の言葉がこれで決まる。新しい迷宮では必ず決める
 //   layer   景色・探索BGM・出来事の層 (1-20)。出現表 (pool/deepPool) と強敵 (elites) もこの層の顔ぶれから選ぶ
 //   floors  全階数。5の倍数の階 (最下階を除く) は下り階段の代わりに「帰還魔法陣」が立つ (game.js / board.js)
-//   bands   雑魚の顔ぶれ (5階ごとの帯。下の poolAt)。boss = 最下階の主 (無ければ最下階の階段で踏破)
+//   bands   雑魚の顔ぶれ (通常5階ごと。序盤は bandFloors で短縮)。boss = 最下階の主
+//   rewardMul 序盤短縮分の戦闘✦Soul・金貨の補正 (魂の自動成長にも適用)
 //   elites  強敵階に出る強敵 (省略時は層の LAYER_ELITES)。名のある強敵 (named.js) の縄張り — 迷宮ごとに1体へ絞ると狩りに行ける
 //   unlock  地図に現れる条件 (game.js worldUnlocked):
 //             { start: true }         第0章 (人業の生成) を終えた時
@@ -109,9 +110,9 @@ import { FLOOR_HAZ } from "./floorhaz.js";
 const WORLD_DEF = [
   {
     noCorpses: true, noEvents: true, noTraps: true, noSpecial: true, stabilityFree: true,
-    id: "w01", lv: 1, lvTo: 3, layer: 1, floors: 5,
+    id: "w01", lv: 1, lvTo: 3, layer: 1, floors: 3, rewardMul: 5 / 3,
     floorHaz: { fall: null, harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
-    power: { 1: 0.7, 5: 0.868 },
+    power: { 1: 0.7, 3: 0.868 },
     name: "忘れられた地下墓地", short: "地下墓地",
     about: "ロアダルの墓所の下。師オルドが最後に降りたと伝わる",
     bands: [
@@ -123,9 +124,9 @@ const WORLD_DEF = [
   },
   {
     noCorpses: true, noEvents: true, noSpecial: true, stabilityFree: true,
-    id: "w02", lv: 5, lvTo: 10, layer: 1, floors: 10,
+    id: "w02", lv: 5, lvTo: 10, layer: 1, floors: 5, bandFloors: 3, rewardMul: 2,
     floorHaz: { fall: null, harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
-    power: { 1: 0.598, 3: 0.5934, 5: 0.5292, 7: 0.5063, 8: 0.4751, 10: 0.4773 },
+    power: { 1: 0.598, 2: 0.5934, 3: 0.5292, 4: 0.5063, 5: 0.4773 },
     name: "亡骸の囁く回廊", short: "囁く回廊",
     about: "墓地の奥へ続く長い回廊。壁の向こうから、死者のささやきが漏れてくる",
     bands: [
@@ -138,9 +139,9 @@ const WORLD_DEF = [
     hint: "地下墓地の報告後、五体の隊をそろえて王の依頼を受ける",
   },
   {
-    id: "w03", lv: 10, lvTo: 17, layer: 1, floors: 15,
+    id: "w03", lv: 10, lvTo: 17, layer: 1, floors: 10, bandFloors: 4, rewardMul: 1.5,
     floorHaz: { fall: null, harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
-    power: { 1: 0.41, 4: 0.4165, 5: 0.4011, 6: 0.3663, 7: 0.356, 10: 0.3619, 12: 0.3522, 15: 0.3685 },
+    power: { 1: 0.41, 3: 0.4165, 4: 0.4011, 5: 0.3663, 6: 0.356, 7: 0.3619, 8: 0.3522, 10: 0.3685 },
     name: "朽ちた骸の修道院", short: "骸の修道院",
     about: "死者を弔い続けた修道士たちが、骸になってなお祈る修道院。最下階に骸の修道院長が待つ",
     bands: [
@@ -1768,13 +1769,13 @@ const WORLD_DEF = [
   },
   {
     id: "w00_forest", name: "近くの森の古屋", short: "森の古屋",
-    lv: 1, lvTo: 1, layer: 1, floors: 3, side: true, tutorial: true,
-    power: { 1: 0.12, 3: 0.12 }, floorHaz: { fall: null, harm: null },
+    lv: 1, lvTo: 1, layer: 1, floors: 2, side: true, tutorial: true, rewardMul: 1.5,
+    power: { 1: 0.12, 2: 0.12 }, floorHaz: { fall: null, harm: null },
     bands: [["bs_dustroach", "bs_littlecentipede", "bs_woodbee"]], elites: [],
     noCorpses: true, noEvents: true, noTraps: true, noChests: true, noSpecial: true, stabilityFree: true,
     unlock: { prologue: "forest" },
     hint: "三体の人業に魂を宿すと、イレーヌから依頼を受ける",
-    about: "街の近くの森。三階の古屋に、イレーヌが長く使っていない人業が残っている。",
+    about: "街の近くの森。二階の古屋に、イレーヌが長く使っていない人業が残っている。",
   },
 ];
 
@@ -1785,7 +1786,7 @@ export const BAND_FLOORS = 5;
 export function bandIndex(cfg, floor) {
   const bands = cfg && cfg.bands;
   if (!bands || !bands.length) return 0;
-  return Math.min(bands.length - 1, Math.floor(Math.max(0, (floor || 1) - 1) / BAND_FLOORS));
+  return Math.min(bands.length - 1, Math.floor(Math.max(0, (floor || 1) - 1) / (cfg.bandFloors || BAND_FLOORS)));
 }
 // その階に出る雑魚の顔ぶれ。帯の無い迷宮 (奈落の素体) は旧来どおり浅階 pool / 深階 deepPool
 export function poolAt(cfg, floor) {
@@ -2075,8 +2076,8 @@ export function strengthAt(cfg, floor = 1) { return powerAt(cfg, floor) * lvPow(
     if (seen.has(d.id)) throw new Error(`world: duplicate id ${d.id}`);
     seen.add(d.id);
     if (!d.bands || !d.bands.length) throw new Error(`world: ${d.id} has no bands`);
-    // 敵の種類 = 3 + 5階ごとに3 (帯の数 = 全階数 ÷ 5、最初の帯は6種・以降は3種ずつ)
-    const want = Math.ceil(d.floors / BAND_FLOORS);
+    // 最初の帯は6種・以降は3種ずつ。序盤だけ bandFloors に合わせて帯を詰める。
+    const want = Math.ceil(d.floors / (d.bandFloors || BAND_FLOORS));
     if (d.bands.length !== want) throw new Error(`world: ${d.id} needs ${want} bands`);
     d.bands.forEach((b, i) => { if (b.length !== (i === 0 && !d.tutorial ? 6 : 3)) throw new Error(`world: ${d.id} band ${i} needs ${i === 0 ? 6 : 3} kinds`); });
     const kinds = new Set(d.bands.flat());
