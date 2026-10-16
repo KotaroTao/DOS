@@ -37,23 +37,50 @@ export const ITEM_PHOTOS = Object.freeze([
   ...NUMBERED_ITEM_IDS.slice(1000, 1100),
 ]);
 const photos = new Map();
-export function itemPhoto(id) { return photos.get(id) || null; }
-
-export async function loadItemPhotos() {
-  if (typeof Image === "undefined") return;
-  await Promise.all(ITEM_PHOTOS.map(id => new Promise(resolve => {
-    const img = new Image();
-    const timer = setTimeout(() => finish(false), 4000);
+const ids = new Set(ITEM_PHOTOS);
+const queue = [];
+let active = 0;
+// 起動時に全品を解読すると iPad の通信・メモリを圧迫する。見える品だけ、最大6枚ずつ読む。
+function pump() {
+  while (active < 6 && queue.length) {
+    active++;
+    queue.shift()();
+  }
+}
+export function itemPhoto(id) {
+  if (!ids.has(id) || typeof Image === "undefined") return null;
+  let entry = photos.get(id);
+  if (entry?.failedAt != null) {
+    if (Date.now() - entry.failedAt < 30000) return null;
+    photos.delete(id); // 通信が戻った後、次に表示する時に取り直す
+    entry = null;
+  }
+  if (entry) return entry.sprite;
+  const img = new Image();
+  let done;
+  const ready = new Promise(resolve => { done = resolve; });
+  const sprite = { w: 24, h: 24, photo: { img, ready, sx: 0, sy: 0, sw: 384, sh: 384 } };
+  entry = { sprite };
+  photos.set(id, entry);
+  queue.push(() => {
     const finish = ok => {
-      clearTimeout(timer);
       img.onload = img.onerror = null;
-      if (ok) photos.set(id, { w: 24, h: 24,
-        photo: { img, sx: 0, sy: 0, sw: 384, sh: 384 } });
-      resolve();
+      if (!ok) entry.failedAt = Date.now();
+      done(ok);
+      active--;
+      pump();
     };
     img.decoding = "async";
     img.onload = () => finish(img.naturalWidth === 384 && img.naturalHeight === 384);
     img.onerror = () => finish(false);
+    // 待ち行列や回線の遅さで原画を諦めない。届くまでは描画側で既存の絵を表示する。
     img.src = new URL(`../art/items/${id}.webp`, import.meta.url).href;
-  })));
+  });
+  pump();
+  return sprite;
+}
+
+// 制作確認用の一括読み込み。通常の起動では呼ばず、描画時に itemPhoto が必要な分を読む。
+export async function loadItemPhotos() {
+  await Promise.all(ITEM_PHOTOS.map(id => itemPhoto(id)?.photo.ready));
 }

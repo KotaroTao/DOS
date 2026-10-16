@@ -83,7 +83,11 @@ export function makeItemSpriteResolver(items) {
     if (!spr || typeof spr !== "object") return null;
     if (spr.unidentified && ART_SLOTS.has(spr.slot)) return unidIcon(spr);
     const photo = itemPhoto(spr.id);
-    if (photo) return photo;
+    if (photo) {
+      // 読み込み中・取得失敗でも枠を空にせず、原画が届いたら同じ canvas を描き直す。
+      const fallback = ART_SLOTS.has(spr.slot) ? itemArt(items[spr.id]) : { ...spr, id: null };
+      return { ...photo, fallback };
+    }
     if (spr.slot === "misc") return treasuryPhoto(spr.id) || collectiblePhoto(spr.id) || miscPhoto(spr);
     if (!spr.slot || !ART_SLOTS.has(spr.slot)) return null;
     const tmpl = (spr.id && items[spr.id]) || null;
