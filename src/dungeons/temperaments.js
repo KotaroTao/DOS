@@ -135,7 +135,7 @@ export const MONSTER_TEMPERAMENTS = {
   bs_banshee: p("seal", "confuse charm", G, "light wind", "dark", "flinch"), // 恐怖を運ぶ絶叫
   d03_sentinel: p("paralyze", "flinch confuse", M, "dark water", "light earth", "seal"), // 中空の鎧を動かす誓い
   bs_dullahan: p("seal", "flinch confuse", M, "light fire", "dark", "paralyze"), // 小脇の首のささやきを封じる
-  bs_ironknight: p("paralyze", "flinch confuse seal", M, "water", "earth fire"), // 命令だけで動く鉄人形
+  bs_ironknight: p("paralyze", "flinch confuse seal", M, "water", "earth fire"), // 命令だけで動く鉄人業
   bs_shadowmage: p("seal", "confuse", G, "light wind", "dark", "flinch"), // 肉体を失った術師の影
   bs_bloodwraith: p("seal", "flinch charm", G, "light fire", "dark water", "confuse"), // 血を集める霊力
   bs_bonecolossus: p("confuse", "flinch paralyze", D, "light wind", "earth dark", "seal"), // 多数の骨の意志を乱す
@@ -580,7 +580,7 @@ export const MONSTER_TEMPERAMENTS = {
   bs_hollowkodama: p("poison", "sleep charm confuse", "", "fire wind", "earth light", "seal"), // 木の根へ毒を巡らせる
   bs_bloodbriar: p("seal", "poison charm confuse", "", "fire light", "dark earth", "sleep"), // 血と魂を吸う茨の力
   bs_birchwitch: p("seal", "confuse charm", G, "fire light", "water", ""), // 奪う体温の呪文を断つ
-  bs_pyretreant: p("seal", "paralyze confuse", "poison sleep charm death", "water wind", "fire earth"), // 燃え続ける木の人形
+  bs_pyretreant: p("seal", "paralyze confuse", "poison sleep charm death", "water wind", "fire earth"), // 燃え続ける木の人業
   bs_bogtyrant: p("sleep", "paralyze poison", "", "earth light", "water dark", "seal"), // 沼で待つ本体を眠らせる
   bs_curseroot: p("seal", "poison charm confuse", "", "fire wind", "dark earth", "sleep"), // 森をつなぐ根の呪い
   bs_rotgardener: p("seal", "paralyze confuse charm", D, "fire light", "earth dark"), // 死体を芽吹かせる術

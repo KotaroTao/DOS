@@ -1,7 +1,7 @@
 import { sphere, ellipsoid, cone, slab, cyl, box, torus, U, Sub, Disp, Paint, render, ramp, Canvas, fbm, rand } from "../sdf.mjs";
 import { FLAG, STONE, WOOD, RIM, flagstones, arrowShafts, ash, grit } from "../fort.mjs";
 export const meta = { id: "bs_ironknight", key: "hd_ironknight", w: 96, h: 96,
-  note: "鉄の騎士: 古代に鋳造された鉄塊の自動人形。箱を積んだような寸胴の胴に鋲を打った分厚い板金、のぞき穴が一本の横スリットだけの桶兜、その奥に青白い炉の光。両手で地に突いた巨大な鉄塊の剣、関節から歯車がのぞく" };
+  note: "鉄の騎士: 古代に鋳造された鉄塊の自動人業。箱を積んだような寸胴の胴に鋲を打った分厚い板金、のぞき穴が一本の横スリットだけの桶兜、その奥に青白い炉の光。両手で地に突いた巨大な鉄塊の剣、関節から歯車がのぞく" };
 export function build() {
   const mats = {
     iron: { ramp: ramp(["#020203", "#07080a", "#0f1114", "#181b20", "#22262d", "#2e333c", "#3d434e", "#525a66", "#6c7480"], 9), spec: 1.2, pow: 35, specCol: "#a8b0bc", dither: 0.5,

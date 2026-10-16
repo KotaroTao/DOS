@@ -1230,7 +1230,7 @@ const WORLD_DEF = [
     floorHaz: { fall: null, harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.2129, 5: 0.2258, 10: 0.2402 },
     name: "銀業の隠れ里", short: "銀の里",
-    about: "器になりそこねた魂が流れ着く、霧の奥の隠れ里。空の鎧と石の人形が、銀の小人を守っている",
+    about: "器になりそこねた魂が流れ着く、霧の奥の隠れ里。空の鎧と石の人業が、銀の小人を守っている",
     element: null,
     bands: [
       ["bs_siegeballista", "bs_gravecaptain", "d04_revenant", "bs_thunderknight", "bs_bonecolossus", "bs_fungalhulk"],
@@ -1238,7 +1238,7 @@ const WORLD_DEF = [
     ],
     trait: {
       id: "silver", name: "銀の里", sym: "◇", accent: "#d0d8e8",
-      lines: ["銀の小人たちの隠れ里。金属の魔物がとても出やすい (各階45%・札は2枚まで)。会心の一撃で仕留めよ。", "里の番人 (空の鎧と石の人形) は群れで里を守り、魔物はつねに三体以上で現れる。物理に固い者が多い。"],
+      lines: ["銀の小人たちの隠れ里。金属の魔物がとても出やすい (各階45%・札は2枚まで)。会心の一撃で仕留めよ。", "里の番人 (空の鎧と石の人業) は群れで里を守り、魔物はつねに三体以上で現れる。物理に固い者が多い。"],
       mods: { packMin: 3 }, // メリットしかない掟だったので代償を足した (2026-10-11 ユーザーの指示)
       metalRate: 0.45, metalMax: 2,
     },

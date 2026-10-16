@@ -18554,8 +18554,8 @@ function loadGame(cloudSnapshot = null) {
     G.reserve.push(pd);
     G.pendingDoll = null;
   }
-  // この世界の器は「人業」と呼ぶ。旧版で「空の人形」と名付けられた控えを改める
-  for (const d of (G.reserve || [])) if (d && d.name === "空の人形") d.name = "空の人業";
+  // この世界の器は「人業」と呼ぶ。旧版の既定名で保存された控えを改める
+  for (const d of (G.reserve || [])) if (d && d.name === "空の人\u5f62") d.name = "空の人業";
   // 所持魂 (v5): 配列に整え、無効な職業を除き、人業のメイン魂/サブ魂を実在する魂に整える
   if (!Array.isArray(G.souls)) G.souls = [];
   G.souls = G.souls.filter((s) => s && SOUL_CLASSES[s.clsKey]);
