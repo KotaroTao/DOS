@@ -47,4 +47,9 @@ export const QUEST_PORTRAITS = {
   "宝石職人のリラ": "art/quest-clients/client-44.webp",
   "老書記ベルンハルト": "art/quest-clients/client-45.webp",
   "賞金首の元締めゴドー": "art/quest-clients/client-46.webp",
+  "老侍従エーリク": "art/quest-clients/client-47.webp",
+  "扉番のカスパル": "art/quest-clients/client-48.webp",
+  "書き写しのヨルク": "art/quest-clients/client-49.webp",
+  "雨受けのミラ": "art/quest-clients/client-50.webp",
+  "子守りのロッテ": "art/quest-clients/client-51.webp",
 };

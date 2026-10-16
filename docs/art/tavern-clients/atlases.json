@@ -1,0 +1,26 @@
+[
+  {
+    "file": "atlas-1.png",
+    "cols": 4,
+    "rows": 4,
+    "count": 16
+  },
+  {
+    "file": "atlas-2.png",
+    "cols": 4,
+    "rows": 4,
+    "count": 16
+  },
+  {
+    "file": "atlas-3.png",
+    "cols": 4,
+    "rows": 4,
+    "count": 15
+  },
+  {
+    "file": "atlas-4.png",
+    "cols": 3,
+    "rows": 2,
+    "count": 5
+  }
+]
