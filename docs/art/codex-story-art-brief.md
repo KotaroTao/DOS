@@ -517,6 +517,13 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 ...except: remove ONLY the decorative gold emblems/branch-like motif from the FRONT of the detached wooden torso at the right foreground. Restore smooth natural wood grain matching the surrounding torso. Do not add a crest anywhere else. Preserve the neck opening, shoulders, iron joints, curved wooden torso anatomy, the open chest hatch and cyan light, roots and the whole scene.
 ```
 
+**A-36. 一門の印の局所修正 w42_dawn** `art/story-review/chapter11/w42_dawn.png` (済)
+- 根拠と判定: 広場の白墨の印が杯状の掌と中抜きの炎になっている。承認済み `docs/art/story-refs/sigil.png` の幾何学印へ修正。
+- 保つもの: 白墨の円周・石畳・人物・町・眠り灯・構図・光。印の白墨の質感と床面の遠近を保つ。
+```text
+...except: replace ONLY the incorrect chalk hand-and-flame crest inside the town square circle with the approved geometric crest in docs/art/story-refs/sigil.png, supplied as the second reference. Use its exact silhouette: an angular cupped palm, ONE thumb projection on the LEFT, THREE parallel slanted finger projections on the RIGHT, a short wrist below, and ONE separate solid teardrop flame above. Do not add a fourth finger on the right. Do not use a symmetrical cup, a hollow flame, extra flames, or a realistic hand. Render the approved silhouette in warm off-white chalk on the cobblestones, matching the existing crest's scale and the perspective of the ground plane. Preserve the circular chalk border and every other part of the original image exactly, including all people, buildings, lanterns and lighting.
+```
+
 ### B. 任意 (余力があれば。読者が気づきやすい順)
 
 | 場面 | 直すこと |
