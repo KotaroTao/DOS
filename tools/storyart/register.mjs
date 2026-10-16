@@ -121,7 +121,8 @@ export function registerPlan() {
   for (const f of webps("art/story")) {
     const stem = f.slice(0, -5), id = PROLOGUE[stem];
     if (!id) errors.push(`art/story/${f}: 序章の対応表 (register.mjs の PROLOGUE) に無い。第N章の場面なら art/story/chapterN/ へ`);
-    else addScene(id, `art/story/${f}`, 0);
+    // 門衛の場面は修道院前の第一章へ移動したが、既存の原画・配信URLは保つ。
+    else addScene(id, `art/story/${f}`, id === "first_descent" ? 1 : 0);
   }
   const chapters = existsSync(ROOT + "art/story") ? readdirSync(ROOT + "art/story").map((d) => d.match(/^chapter(\d+)$/)).filter(Boolean)
     .map((m) => +m[1]).sort((a, b) => a - b) : [];
