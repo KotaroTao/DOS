@@ -531,7 +531,7 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 |---|---|
 | 序章 arrival `art/story-review/prologue/royal-audience.png` | 授かる三つの魂の色を職業の色に: 戦士 = 赤、僧侶 = 金、盗賊 = 緑 (紫は後で授かる魔導士の色なので外す) |
 | 序章 irene_lamp `art/story-review/prologue/irene-soul-lamp.png` | 弟子を燭台の近くに。本文「弟子は火に手を近づけた」 |
-| 第一章 first_descent `art/story-review/chapter1/first_descent.png` | 四体が弟子の方を向く。本文「暗い入口を前にしてもこちらを向いている」。門の奥の石段は下りに |
+| 序章 first_descent `art/story-review/prologue/first-descent-gatekeeper.png` | 四体が弟子の方を向く。本文「暗い入口を前にしてもこちらを向いている」。門の奥の石段は下りに |
 | 第一章 ch1_end `art/story-review/chapter1/ch1_end.png` | 人業を大人の背丈、頭は何も彫られていない丸い木 |
 | 第一章 mem_w05 `art/story-review/chapter1/mem_w05.png` | 冷えた焚き火の輪を足す。手記の脇のランタンを消す (師の物に見える) |
 | 第一章 report_w01 `art/story-review/chapter1/report_w01.png` | 新しい序章に合わせ、王への報告後に王宮の倉庫で眠っていた人業を受け取る場面へ。王が魂を渡す場面にしない (済) |

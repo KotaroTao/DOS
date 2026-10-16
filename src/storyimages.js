@@ -15,7 +15,7 @@ export const STORY_IMAGES = {
   w02_sigil: "art/story/chapter1/w02_sigil.webp",
   w02_broken_doll: "art/story/chapter1/w02_broken_doll.webp",
   report_w02: "art/story/chapter1/report_w02.webp",
-  first_descent: "art/story/chapter1/first_descent.webp",
+  first_descent: "art/story/first-descent-gatekeeper.webp",
   mem_w03: "art/story/chapter1/mem_w03.webp",
   report_w03: "art/story/chapter1/report_w03.webp",
   w04_arm: "art/story/chapter1/w04_arm.webp",

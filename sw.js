@@ -1538,7 +1538,7 @@ const ASSETS = [
   "./art/story/chapter1/w02_sigil.webp",
   "./art/story/chapter1/w02_broken_doll.webp",
   "./art/story/chapter1/report_w02.webp",
-  "./art/story/chapter1/first_descent.webp",
+  "./art/story/first-descent-gatekeeper.webp",
   "./art/story/chapter1/mem_w03.webp",
   "./art/story/chapter1/report_w03.webp",
   "./art/story/chapter1/w04_arm.webp",

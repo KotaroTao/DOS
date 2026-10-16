@@ -13,13 +13,14 @@ export const SCENES = ARCHIVE_STORIES;
 export const sceneById = (id) => ARCHIVE_STORIES.find((s) => s.id === id) || null;
 const prologueName = (id) => (Object.entries(PROLOGUE).find(([, v]) => v === id) || [])[0];
 
-// 原画 (PNG) と出荷 (WebP) の置き場所。章 0 = 序章
+// 原画 (PNG) と出荷 (WebP) の置き場所。旧序章の対応表にある絵は、場面の章が変わっても元の場所を保つ。
 export function scenePaths(id) {
   if (id.startsWith("lore_")) return { master: `art/story-review/dungeons/${id}.png`, shipped: `art/story/dungeons/${id}.webp` };
   const s = sceneById(id);
   if (!s) return null;
-  if (s.chapter === 0) {
-    const name = prologueName(id) || id;
+  const legacyName = prologueName(id);
+  if (legacyName || s.chapter === 0) {
+    const name = legacyName || id;
     return { master: `art/story-review/prologue/${name}.png`, shipped: `art/story/${name}.webp` };
   }
   return { master: `art/story-review/chapter${s.chapter}/${id}.png`, shipped: `art/story/chapter${s.chapter}/${id}.webp` };

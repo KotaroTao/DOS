@@ -142,7 +142,7 @@
 >
 > 水音の奥には、回廊よりも深い闇がある。
 >
-> ── 「黒水の取水口」へ続く道を記録した (寄り道の迷宮・推奨Lv18〜21)。隊の支度を整えてから向かおう。
+> ── 「黒水の取水口」へ続く道を記録した (推奨Lv18〜21)。まずは回廊の最深部を調べ、修道院へ進む支度を整えよう。
 
 <a name="w02_broken_doll"></a>
 
@@ -204,7 +204,7 @@
 
 ## first_descent「門をくぐる前に」 ── 出荷済み (任意の修正あり)
 
-<img src="../../../art/story/chapter1/first_descent.webp" width="576" alt="first_descent">
+<img src="../../../art/story/first-descent-gatekeeper.webp" width="576" alt="first_descent">
 
 **ストーリー一覧の本文**
 

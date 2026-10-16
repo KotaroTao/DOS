@@ -14019,6 +14019,7 @@ function tavernHintAllowed(req) {
   if (!req) return true;
   const w = worldState();
   if (req.startsWith("rep:")) return !!w.reported[req.slice(4)];       // その迷宮を王に報告した後
+  if (req.startsWith("beat:")) return !!w.beats[req.slice(5)];         // その館の語りを聞いた後
   if (req.startsWith("found:")) return !!w.found[req.slice(6)];         // その手がかりを見つけた後
   if (req.startsWith("open:")) return worldOpenId(req.slice(5));        // その迷宮が地図に現れた後 (依頼の迷宮)
   if (req.startsWith("ch:")) return chaptersDone(w) >= Number(req.slice(3)); // 第n章を結んだ後
