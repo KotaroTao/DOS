@@ -92,9 +92,14 @@ function gateIcon(kind) {
 const VISTA_W = 480, VISTA_H = 320; // 戦闘背景と同じ 3:2 で描き、表示枠 (横長) で上下を切る
 let vistaLoop = 0;
 function vistaIllustration(dn) {
+  // 定期更新や備えの変更では、読み込み済みの絵と情景の描画ループを保つ。
+  if (cur.vista?.id === dn.id) return cur.vista.node;
+  vistaLoop++;
+  const vista = { id: dn.id, node: null };
+  cur.vista = vista;
   // 全迷宮で専用のWebP原画を使う。序章は入口の絵を保ち、由来の結末を見せない。
   const path = dn.id === "w00_forest" ? "art/dungeon/w00_forest-entrance.webp" : LORE_IMAGES[dn.id] || BATTLE_BACKGROUNDS[dn.id];
-  if (!path) return vistaCanvas(dn);
+  if (!path) return (vista.node = vistaCanvas(dn));
   const img = document.createElement("img");
   img.className = "dp-vista-cv";
   img.style.imageRendering = "auto";
@@ -102,9 +107,13 @@ function vistaIllustration(dn) {
   if (dn.id === "w34") img.style.objectPosition = "50% 20%";
   img.alt = `${dn.name}の情景`;
   img.decoding = "async";
-  img.onerror = () => { if (img.isConnected) img.replaceWith(vistaCanvas(dn)); };
+  img.onerror = () => {
+    if (cur?.vista !== vista || !img.isConnected) return;
+    vista.node = vistaCanvas(dn);
+    img.replaceWith(vista.node);
+  };
   img.src = path;
-  return img;
+  return (vista.node = img);
 }
 function vistaCanvas(dn) {
   const cv = document.createElement("canvas");
