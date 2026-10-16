@@ -12,8 +12,14 @@ for (const d of WORLD) {
     const st = { dungeonId: d.id, layer: d.layer, lv: d.lv, first: d.id === 'w01', floor, floors: d.floors, runEv: {}, onceDone: () => false };
     const candidates = eligibleEvents(st).filter(e => e.tier === 'mythic');
     assert.equal(candidates.length, expected, `${d.id} B${floor}`);
-    // 無限迷宮には無限迷宮だけの出来事 (infevents.js) が出て、極・本編の出来事は出ない
-    { const inf = eligibleEvents({ ...st, abyss: true, floors: 9999 }); assert(inf.length > 0 && inf.every(e => e.inf && e.tier !== 'mythic'), `${d.id} 無限迷宮`); }
+    // 無限迷宮では専用の出来事と対応先の本編の出来事を一緒に抽選する。
+    {
+      const inf = eligibleEvents({ ...st, abyss: true, floors: 9999, sources: [st] });
+      assert(inf.some(e => e.inf), `${d.id} 無限迷宮の専用出来事`);
+      const own = mythics.find(e => e.dungeonId === d.id);
+      if (own) assert(inf.includes(own), `${d.id} 無限迷宮で固有の極も候補`);
+      assert(inf.every(e => e.inf || !e.dungeonId || e.dungeonId === d.id), `${d.id} 別迷宮の極を除外`);
+    }
     assert.equal(eligibleEvents(st).filter(e => e.inf).length, 0);
     assert.equal(eligibleEvents({ ...st, onceDone: () => true }).filter(e => e.tier === 'mythic').length, 0);
   }

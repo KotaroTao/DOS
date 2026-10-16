@@ -1085,19 +1085,20 @@ const abyssActive = () => !!(G.abyss && G.abyss.started);
 // その Lv の前後 INF_SPOT_SPAN の階の顔ぶれを混ぜる (一つの層を丸ごと混ぜると、浅い階に層の終わりの魔物が出てしまう)。
 // 格上の迷宮・敵がみな神速の迷宮は物差しにしない。台帳の一番深い Lv より先は、一番深い階の顔ぶれのまま推奨Lv だけ上がる
 const INF_SPOT_SPAN = 1.5;
-let _infSpots = null;
-function infSpots() {
-  if (_infSpots) return _infSpots;
+const _infSpots = new Map();
+function infSpots(events = false) {
+  if (_infSpots.has(events)) return _infSpots.get(events);
   const out = [];
   for (const d of DUNGEONS) {
-    if (!d || d.challenge || (d.trait && d.trait.allHaste) || !(d.bands && d.bands.length)) continue;
+    if (!d || (!events && (d.challenge || d.trait?.allHaste)) || !(d.bands && d.bands.length)) continue;
     for (let f = 1; f <= (d.floors || 1); f++) {
       const t = d.tune || {}, deep = f > (d.floors || 1) / 2;
       out.push({ d, f, lv: dungeonLevelRaw(d, f), pow: powerAt(d, f) * (t.enemyMul || 1) * (deep ? (t.deepMul || 1) : 1) });
     }
   }
   out.sort((a, b) => a.lv - b.lv);
-  return (_infSpots = out);
+  _infSpots.set(events, out);
+  return out;
 }
 const _infSpotCache = new Map();
 function infSpotInfo(lv) {
@@ -1111,7 +1112,12 @@ function infSpotInfo(lv) {
   const pool = [...new Set(near.flatMap((s) => poolAt(s.d, s.f)))].filter((k) => MONSTERS[k] && !MONSTERS[k].evOnly);
   const main = near.reduce((a, b) => (Math.abs(b.lv - at) < Math.abs(a.lv - at) ? b : a));
   const els = near.map((s) => s.d.element).filter(Boolean);
+  // 出来事には格上・神速の迷宮も含める。魔物の顔ぶれとは別に、同じLvの本編の階を対応させる。
+  const eventSpots = infSpots(true), eventLv = Math.min(lv, eventSpots[eventSpots.length - 1].lv);
+  let sources = eventSpots.filter((s) => Math.abs(s.lv - eventLv) <= INF_SPOT_SPAN);
+  if (!sources.length) sources = [eventSpots.reduce((a, b) => Math.abs(b.lv - eventLv) < Math.abs(a.lv - eventLv) ? b : a)];
   const info = {
+    eventSources: sources.map(({ d, f }) => ({ dungeonId: d.id, layer: d.layer, floor: f, floors: d.floors || 1 })),
     pool, coef: near.reduce((a, s) => a + s.pow, 0) / near.length,
     layer: main.d.layer || 1, rank: Math.max(...near.map((s) => s.d.rank || 1)),
     element: els.length ? els.sort((a, b) => els.filter((x) => x === b).length - els.filter((x) => x === a).length)[0] : null,
@@ -6971,14 +6977,14 @@ function eventFacts() {
   return out;
 }
 
-// 無限迷宮の階に出来事が置かれる確率 (無限迷宮だけの出来事 src/infevents.js)。0.6 の1.2倍 (2026-10-12 ユーザーの指示)。
+// 無限迷宮の階に出来事が置かれる確率 (専用の出来事と対応する本編の出来事)。0.6 の1.2倍 (2026-10-12 ユーザーの指示)。
 // 出来事は空いた行き止まりに置くので、ほかのマスは減らない
 const INF_EV_FLOOR_RATE = 0.6 * 1.2;
 // 階が変わった時: 持ち越しの効果を適用し、出来事を1つ置く (確率)
 function evNewFloor() {
   if (activeCfg().noEvents) return;
   if (!G.board) return;
-  const inf = abyssActive(); // 無限迷宮には無限迷宮だけの出来事 (infevents.js) を置く
+  const inf = abyssActive(); // 専用の出来事に加え、同じ推奨Lvの本編の出来事も置く
   G.board.ev = { mods: [] };
   const rv = evRun();
   if (Array.isArray(rv.nextFloorMods) && rv.nextFloorMods.length) { G.board.ev.mods.push(...rv.nextFloorMods); rv.nextFloorMods = []; }
@@ -6996,6 +7002,7 @@ function evNewFloor() {
   if (!cand.length) for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) { const c = G.board.cells[y][x]; if (ok(c, x, y) && Math.abs(x - sx) + Math.abs(y - sy) >= 3) cand.push(c); }
   if (!cand.length) return;
   const st = { dungeonId: cfg.id, layer, lv, first, abyss: inf, floor: G.floor, floors: inf ? 9999 : cfg.floors || 3, runEv: rv, onceDone: (e) => !!G.events.once[onceKey(e, layer)] };
+  if (inf) st.sources = infSpotInfo(lv).eventSources;
   // 義賊のパッシブ 義の巡り合わせ (brigandMeguri): 極めて稀なる出来事の出る確率 Lv1 = 2倍 / Lv2 = 3倍 (隊で一番高い Lv)
   const meguri = partyPassiveLv("brigandMeguri");
   const e = pickEvent(eligibleEvents(st, evApi), { mythicMul: meguri ? Math.min(2, meguri) + 1 : 1 });

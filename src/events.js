@@ -3332,7 +3332,7 @@ export function permanentEventStats(once = {}) {
   }
 }
 
-// 無限迷宮だけの出来事 (src/infevents.js、layer 99)。本編の迷宮には出ず、無限迷宮には本編の出来事が出ない
+// 無限迷宮だけの出来事 (src/infevents.js、layer 99)。本編の迷宮には出ない。無限迷宮では対応する本編の出来事と一緒に抽選する
 EVENTS.push(...INF_EVENTS);
 export const EVENT_MAP = Object.fromEntries(EVENTS.map((e) => [e.id, e]));
 // 定義の検査 (読み込み時): 重複id・格・層の誤りは即座に知らせる
@@ -3368,7 +3368,7 @@ export const EVENT_GROUPS = [
 
 // 出現条件の説明 (見聞録用)
 export function eventWhereText(e) {
-  const parts = [e.inf ? "無限迷宮のみ" : e.dungeonId ? WORLD.find((d) => d.id === e.dungeonId).name + "のみ" : e.layer ? `第${e.layer}層のみ` : "どの層でも"];
+  const parts = [e.inf ? "無限迷宮のみ" : e.dungeonId ? WORLD.find((d) => d.id === e.dungeonId).name + "・対応する無限迷宮" : e.layer ? `第${e.layer}層・対応する無限迷宮` : "どの層でも"];
   if (e.minLv) parts.push(`推奨Lv${e.minLv}以降`);
   if (e.deep) parts.push("迷宮の後半の階");
   else if (e.minFloor && e.minFloor > 1) parts.push(`B${e.minFloor}F以降`);
@@ -3379,20 +3379,25 @@ export function eventWhereText(e) {
 }
 
 // ===== 置き場所と抽選 =====
-// st: { dungeonId, layer, lv, first, floor, floors, abyss, runEv, onceDone(e) }。出せるイベントを重み付きで1つ選ぶ (無ければ null)
+// st: { dungeonId, layer, lv, first, floor, floors, abyss, sources (無限迷宮に対応する本編の階), runEv, onceDone(e) }。出せるイベントを重み付きで1つ選ぶ (無ければ null)
 export function eligibleEvents(st, A) {
   if (!st.abyss && ["w00_forest", "w01", "w02"].includes(st.dungeonId)) return [];
-  const deepNow = st.floor > st.floors / 2;
   return EVENTS.filter((e) => {
-    if (!!st.abyss !== !!e.inf) return false; // 無限迷宮には無限迷宮の出来事だけ
-    if (!st.abyss && e.dungeonId && e.dungeonId !== st.dungeonId) return false;
-    if (!st.abyss && e.notIn && e.notIn.includes(st.dungeonId)) return false; // 先の章の真相に触れる出来事を、早く開く寄り道に出さない
-    if (!st.abyss && e.layer && e.layer !== st.layer) return false;
-    if (st.first && e.tier !== "common") return false;              // 最初の迷宮は常のみ
-    if (e.minFloor && st.floor < e.minFloor) return false;
-    if (e.deep && !deepNow) return false;
+    if (e.inf && !st.abyss) return false;
+    // 本編の出来事は、対応する迷宮のいずれかで条件を満たせば候補にする。
+    // 階数・深部の条件は本編の階で判断し、無限迷宮の通算階数とは混ぜない。
+    const sources = st.abyss && !e.inf ? (st.sources || []) : [st];
+    if (!sources.some((source) => {
+      if (!e.inf && e.dungeonId && e.dungeonId !== source.dungeonId) return false;
+      if (!e.inf && e.notIn?.includes(source.dungeonId)) return false;
+      if (!e.inf && e.layer && e.layer !== source.layer) return false;
+      if (source.first && e.tier !== "common") return false;
+      if (e.minFloor && source.floor < e.minFloor) return false;
+      if (e.deep && source.floor <= source.floors / 2) return false;
+      if (e.maxSkip != null && source.floor + e.maxSkip >= source.floors) return false;
+      return true;
+    })) return false;
     if (e.minLv && st.lv < e.minLv) return false;
-    if (e.maxSkip != null && st.floor + e.maxSkip >= st.floors) return false; // 先に必要な階が無い
     if (e.tier === "rare" && st.runEv.rareUsed && st.runEv.rareUsed[e.id]) return false;
     if (e.once && st.onceDone(e)) return false;
     if (e.cond && A && !e.cond(A)) return false;
