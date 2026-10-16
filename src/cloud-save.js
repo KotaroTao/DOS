@@ -1,13 +1,17 @@
+import { localSaveKey } from "./local-save.js";
 import { CLOUD_CONFIG } from "./cloud-config.js";
 
 const AUTH_KEY = "dos-cloud-auth";
 const getJSON = (key) => { try { return JSON.parse(localStorage.getItem(key)); } catch { return null; } };
 const putJSON = (key, value) => localStorage.setItem(key, JSON.stringify(value));
-const pendingKey = (id) => "dos-cloud-pending:" + id;
+// 記録1のキーは旧版の送信待ちもそのまま回収する。
+const slotSuffix = slot => slot === 1 ? "" : ":slot:" + slot;
+const pendingKey = (id, slot = 1) => "dos-cloud-pending:" + id + slotSuffix(slot);
 const session = (a) => ({ ...a, expires_at: a.expires_at || Math.floor(Date.now() / 1000) + (a.expires_in || 3600) });
 
 export class CloudSaveClient {
-  constructor(config, { fetcher = (input, init) => fetch(input, init), storage = localStorage, onBusy = () => {}, onFailure = null } = {}) {
+  constructor(config, { fetcher = (input, init) => fetch(input, init), storage = localStorage, slot = 1, onBusy = () => {}, onFailure = null } = {}) {
+    localSaveKey(slot); this.slot = slot;
     this.config = config; this.fetcher = fetcher; this.storage = storage;
     this.onBusy = onBusy; this.onFailure = onFailure;
     this.auth = null; this.sessionId = null; this.revision = 0;
@@ -36,6 +40,7 @@ export class CloudSaveClient {
     return this.refreshing;
   }
   async request(body) {
+    if (this.slot !== 1) body = { ...body, slot: this.slot };
     const send = async (token) => this.fetchJSON("/functions/v1/game-save", { method: "POST",
       headers: { apikey: this.config.anonKey, Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify(body) });
@@ -50,11 +55,11 @@ export class CloudSaveClient {
         commandId: crypto.randomUUID(), revision: this.revision, op, ...data };
       // 送信前に記録する。結果の返答を失っても同じID・同じ内容で再送する。
       const result = await this.retry(async () => {
-        this.storage.setItem(pendingKey(this.auth.user.id), JSON.stringify(body));
+        this.storage.setItem(pendingKey(this.auth.user.id, this.slot), JSON.stringify(body));
         return this.request(body);
       });
       this.revision = result.revision;
-      this.storage.removeItem(pendingKey(this.auth.user.id));
+      this.storage.removeItem(pendingKey(this.auth.user.id, this.slot));
       return result;
     });
     this.tail = task;
@@ -80,13 +85,13 @@ export class CloudSaveClient {
     return data.snapshot;
   }
   async recover() {
-    const raw = this.storage.getItem(pendingKey(this.auth.user.id));
+    const raw = this.storage.getItem(pendingKey(this.auth.user.id, this.slot));
     if (!raw) return;
     const body = JSON.parse(raw);
     if (body.sessionId !== this.sessionId) throw new Error("記録の接続が一致しません");
     const result = await this.retry(() => this.request(body));
     this.revision = result.revision;
-    this.storage.removeItem(pendingKey(this.auth.user.id));
+    this.storage.removeItem(pendingKey(this.auth.user.id, this.slot));
   }
 }
 
@@ -124,7 +129,7 @@ function failure(e) {
     } else if (e.status === 409 && e.message !== "cloud_session_busy") {
       showGate("記録が別の画面で更新されたか、ゲームの版が変わりました。最新の記録から再開してください。");
       button("最新の記録から再開", () => {
-        localStorage.removeItem(pendingKey(client.auth.user.id)); location.reload();
+        localStorage.removeItem(pendingKey(client.auth.user.id, client.slot)); location.reload();
       });
     } else {
       showGate(e.message === "cloud_session_busy" ? "別の端末か画面で冒険中です。そちらを閉じて、しばらくしてから再接続してください。"
@@ -215,12 +220,12 @@ export function cloudFatal() {
   button("再接続", () => location.reload());
 }
 
-export async function connectCloud(localSave) {
+export async function connectCloud(localSave, slot = 1) {
   ensureGate(); showGate("記録に接続しています…");
   if (!CLOUD_CONFIG.url || !CLOUD_CONFIG.anonKey || !/^https:\/\//.test(CLOUD_CONFIG.url)) {
     showGate("クラウド保存の接続先が設定されていません。"); throw new Error("クラウド設定が未完了です");
   }
-  client = new CloudSaveClient(CLOUD_CONFIG, { onBusy: (busy) => {
+  client = new CloudSaveClient(CLOUD_CONFIG, { slot, onBusy: (busy) => {
     if (terminal || client.waiting) return;
     if (busy) showGate("記録を保存しています…"); else gate.hidden = true;
   }, onFailure: failure });
@@ -235,14 +240,14 @@ export async function connectCloud(localSave) {
   // タブの複製で同じ送信待ちIDが使われても、1画面だけが進められる。
   if (navigator.locks) {
     await new Promise((resolve) => {
-      navigator.locks.request("dos-cloud:" + client.auth.user.id, { ifAvailable: true }, async (lock) => {
+      navigator.locks.request("dos-cloud:" + client.auth.user.id + slotSuffix(slot), { ifAvailable: true }, async (lock) => {
         if (!lock) { showGate("このアカウントは別の画面で開かれています。"); button("再接続", () => location.reload()); return; }
         resolve(); await new Promise(() => {});
       });
     });
   }
-  const pending = getJSON(pendingKey(client.auth.user.id));
-  const sessionKey = "dos-cloud-session:" + client.auth.user.id;
+  const pending = getJSON(pendingKey(client.auth.user.id, client.slot));
+  const sessionKey = "dos-cloud-session:" + client.auth.user.id + slotSuffix(slot);
   client.sessionId = pending?.sessionId || localStorage.getItem(sessionKey) || crypto.randomUUID();
   localStorage.setItem(sessionKey, client.sessionId);
   showGate("記録を読み込んでいます…");
@@ -250,7 +255,7 @@ export async function connectCloud(localSave) {
   if (pending) { await client.recover(); snapshot = await client.retry(() => client.claim()); }
   if (!snapshot && localSave) {
     const useLocal = await new Promise((resolve) => {
-      showGate("このアカウントには冒険の記録がありません。この端末の記録を引き継ぎますか？");
+      showGate("このアカウントの選んだ枠には冒険の記録がありません。この端末の記録を引き継ぎますか？");
       button("端末の記録を引き継ぐ", () => resolve(true)); button("新しい冒険を始める", () => resolve(false));
     });
     if (useLocal) { snapshot = JSON.parse(localSave); await client.save(snapshot); }

@@ -1,6 +1,6 @@
 // 記録の排他・原本の比較・退避失敗時の保全を確認する。
 import assert from "node:assert/strict";
-import { LocalSaveSession, LOCAL_SAVE_KEY as KEY, LOCAL_RECOVERY_KEY as BACKUP } from "../../src/local-save.js";
+import { LocalSaveSession, LOCAL_SAVE_KEY as KEY, LOCAL_RECOVERY_KEY as BACKUP, localSaveKey, saveSlotFromURL } from "../../src/local-save.js";
 const values = new Map([[KEY, "最初の記録"]]);
 let fail = false;
 const storage = {
@@ -44,3 +44,22 @@ assert(![...values.keys()].some(k => k.includes("-damaged-")));
 assert.equal(storage.getItem("dos-prefs"), "音の好み"); c.release();
 await assert.rejects(new LocalSaveSession({ storage, locks: null }).acquire(), /ブラウザ/);
 console.log("同時起動の排他・解放後の再開・古い保存/削除の拒否・復旧用記録・重複退避の防止・保存先満杯・非対応環境の保全: OK");
+
+// 三つの枠を同時に開いても、保存・退避・削除は選んだ枠だけに届く。
+const slots = [1, 2, 3].map(slot => new LocalSaveSession({ storage, locks, slot }));
+for (const [i, s] of slots.entries()) {
+  assert(await s.acquire()); assert(s.write(`記録${i + 1}`)); s.keepRecovery(); assert(s.quarantine());
+}
+assert(!await new LocalSaveSession({ storage, locks, slot: 2 }).acquire());
+assert(slots[1].eraseAll());
+assert.equal(storage.getItem(localSaveKey(2)), null);
+for (const i of [0, 2]) {
+  assert.equal(storage.getItem(localSaveKey(i + 1)), `記録${i + 1}`);
+  assert.equal(storage.getItem(localSaveKey(i + 1) + "-recovery"), `記録${i + 1}`);
+  assert([...values.keys()].some(k => k.startsWith(localSaveKey(i + 1) + "-damaged-")));
+}
+for (const s of slots) s.release();
+for (const slot of [0, 4, -1, 1.5, "2"]) assert.throws(() => localSaveKey(slot));
+assert.equal(saveSlotFromURL("https://game.invalid/?saveSlot=3"), 3);
+assert.equal(saveSlotFromURL("https://game.invalid/?saveSlot=4"), 1);
+console.log("三枠の保存・排他・復旧・削除の独立、旧記録1のキー維持: OK");

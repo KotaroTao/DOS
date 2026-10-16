@@ -66,6 +66,11 @@ if (process.argv[2]) {
   // SQL Editorで先に設定したプロジェクトでも再実行できる。
   await db.exec("delete from supabase_migrations.schema_migrations;"); await db.exec(migrationQuery(sql));
   assert.equal((await db.query("select revision from public.cloud_saves")).rows[0].revision, 7);
+  const slotsSQL = await readFile(new URL("../../supabase/migrations/202610160001_save_slots.sql", import.meta.url), "utf8");
+  await db.exec(migrationQuery(slotsSQL, "202610160001"));
+  await db.exec(migrationQuery(slotsSQL, "202610160001"));
+  const old = (await db.query("select slot, revision, snapshot from public.cloud_saves")).rows[0];
+  assert.equal(old.slot, 1); assert.equal(old.revision, 7); assert.deepEqual(old.snapshot, { progress: true });
   await db.close();
 }
 console.log("自動セットアップ: 管理キー非公開・既存設定保護・SMTP/認証/権限確認・再実行と記録保持 OK");

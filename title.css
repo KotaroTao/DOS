@@ -472,3 +472,10 @@ body:has(.test-play-banner) .ui-sheet { max-height: calc(100vh - var(--test-bann
 .playtest-controls { display: flex; flex-wrap: wrap; gap: 8px; }
 .test-play-banner { gap: 4px; font-size: 10px; }
 .test-play-banner button { font-size: 10px; padding: 2px 4px; white-space: nowrap; }
+
+/* 三つの冒険の記録。狭い画面でも同時に選べる。 */
+.ttl-slots { display:flex; gap:8px; grid-column:1 / -1; }
+.ttl-slot { flex:1; min-height:44px; border:1px solid #746348; background:#17151c; color:#e7d6b4; font:inherit; cursor:pointer; }
+.ttl-slot[aria-pressed="true"] { border-color:#e6bf70; background:#3a2e23; color:#ffe4a3; }
+.ttl-slot:focus-visible { outline:2px solid #ffe4a3; outline-offset:2px; }
+.ttl-menu { max-height:65dvh; overflow-y:auto; padding:4px; }

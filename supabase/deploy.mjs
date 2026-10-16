@@ -4,20 +4,20 @@ import { pathToFileURL } from "node:url";
 
 export const SITE = "https://kotarotao.github.io/DOS/";
 export const MIGRATION = "202610120001";
-export const signature = "public.cloud_commit(uuid,uuid,bigint,uuid,jsonb,jsonb,jsonb)";
+export const signature = "public.cloud_commit_slot(uuid,uuid,bigint,uuid,jsonb,jsonb,jsonb,integer)";
 const literal = (s) => "'" + s.replaceAll("'", "''") + "'";
 
-export function migrationQuery(sql) {
+export function migrationQuery(sql, version = MIGRATION) {
   return `begin;
 select pg_advisory_xact_lock(hashtext('dos-cloud-schema'));
 create schema if not exists supabase_migrations;
 create table if not exists supabase_migrations.schema_migrations (version text primary key, statements text[], name text);
 do $dos_schema$
 begin
-  if not exists (select 1 from supabase_migrations.schema_migrations where version = '${MIGRATION}') then
+  if not exists (select 1 from supabase_migrations.schema_migrations where version = '${version}') then
     execute ${literal(sql)};
     insert into supabase_migrations.schema_migrations(version, statements, name)
-      values ('${MIGRATION}', array[${literal(sql)}], 'cloud_save');
+      values ('${version}', array[${literal(sql)}], 'cloud_save');
   end if;
 end $dos_schema$;
 commit;`;
@@ -73,6 +73,8 @@ export async function run(mode, { env = process.env, fetcher = fetch, writer = w
     const settings = authSettings(auth);
     const sql = await reader(new URL("./migrations/202610120001_cloud_save.sql", import.meta.url), "utf8");
     await management("/database/query", "POST", { query: migrationQuery(sql) });
+    const slotsSQL = await reader(new URL("./migrations/202610160001_save_slots.sql", import.meta.url), "utf8");
+    await management("/database/query", "POST", { query: migrationQuery(slotsSQL, "202610160001") });
     await management("/config/auth", "PATCH", settings);
     console.log("保存テーブル・更新関数・メールログイン・確認メール・ログイン先URLを設定しました。");
     return;

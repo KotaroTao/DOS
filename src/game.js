@@ -6,7 +6,7 @@ import { INF_BUY_CAP, infRecovery, infUseCount, infSupplyLeft, infSpendSupply } 
 import { random, fxRandom, bindRngState, rngState } from "./rng.js";
 import { refSerialize, refDeserialize, applySavePatch } from "./savegraph.js";
 import { cloudEnabled, cloudReady, cloudBusy, connectCloud, cloudSave, cloudBattle, cloudFlush, cloudFatal } from "./cloud-save.js";
-import { LocalSaveSession, showLocalSaveBlocked, showLocalSaveRecovery } from "./local-save.js";
+import { LocalSaveSession, showLocalSaveBlocked, showLocalSaveRecovery, saveSlotFromURL, localSaveKey, selectSaveSlot } from "./local-save.js";
 import { syncEnemyUids } from "./combat.js";
 import { monsterResists } from "./resistance.js";
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
@@ -18342,7 +18342,8 @@ if (settingsBtn) settingsBtn.addEventListener("click", () => {
 // 一度選択した行動は取り消せない。タスクキルされても直前の状態 (戦闘なら確定済みの
 // 行動が実行される直前) から再開する。
 // v2: 全コンテンツ再編 (隠しレベル1-200 / 迷宮100 / 魂cap拡張)。v1セーブとは互換しない
-const SAVE_KEY = "dos-save-v7"; // v7 = 迷宮の台帳 (選んで潜る迷宮・師を捜す物語)。v6 以前のセーブは孤立させる (消さずに残す)
+const SAVE_SLOT = saveSlotFromURL();
+const SAVE_KEY = localSaveKey(SAVE_SLOT); // v7 = 迷宮の台帳 (選んで潜る迷宮・師を捜す物語)。v6 以前のセーブは孤立させる (消さずに残す)
 // 保存する G のフィールド (アニメーション等の一時状態は除外)
 const SAVE_FIELDS = [
   "apprenticeName",
@@ -18427,7 +18428,7 @@ function autosave(force = false) {
       _lastCloudSave = raw;
       return cloudSave(data);
     }
-    localSaveSession.write(JSON.stringify(data));
+    return localSaveSession.write(JSON.stringify(data));
   } catch (e) {
     // localStorage が使えない (プライベートブラウズ等) と保存できない → 一度だけ警告
     if (!_saveWarned) {
@@ -19476,6 +19477,15 @@ function wireUI() {
 // ==== [WP-A] UI API ==== (街・王宮・物語・設定・タイトル: WP-A が所有)
 // 街タブ・王宮タブ・酒場/祠のページ・宿のシート・設定のシート・物語の場面 (src/ui/hub.js ほか) が使う game.js の内部。
 // 読み込み時に一度 bindGame で結ぶ (wireUI の bindGame と同じ窓口に足し込む。名前は重ねない)
+async function returnToTitle() {
+  if (!testPlayActive) {
+    const saved = autosave(true);
+    if (cloudEnabled()) { await saved; await cloudFlush(); }
+    else if (saved !== true || !localSaveSession?.owned || !localSaveSession.unchanged()) return;
+  }
+  _resetting = true;
+  location.reload();
+}
 function resetAllData() { if (cloudEnabled() && !testPlayActive) return; if (!testPlayActive && !clearSave()) return; _resetting = true; location.reload(); }
 bindGame({
   // いまの目標・勅命・物語
@@ -19491,7 +19501,7 @@ bindGame({
   questState, questLists, questByUid, questsHere, ensureQuestBoard, rollQuestBoard, acceptQuest, abandonQuest, claimQuest, questReadyCount, FREE_CAP, questHereNote, questHereCount, questsTargeting,
   adCooldownLeft, watchShrineAd, RED_PACKS, buyRedPack, GUARDIAN_COST, guardianCost, RESCUE_SHORTEN_MS,
   // 設定 (端末の好み)
-  PREFS, savePrefs, setWalkerLook, setVolumes, isMuted, toggleMute, ensureAudio, updateMuteBtn, resetAllData, confirmReset,
+  PREFS, savePrefs, setWalkerLook, setVolumes, isMuted, toggleMute, ensureAudio, updateMuteBtn, resetAllData, confirmReset, returnToTitle, saveSlot: SAVE_SLOT,
   // 他のパッケージも使える街の部品 (肖像・図鑑の詳細)
   showCodexMonDetail, showCodexItemDetail, showCodexJobDetail,
 });
@@ -19636,12 +19646,12 @@ async function init() {
   if (cloudEnabled()) {
     let localSave = null;
     try { localSave = localStorage.getItem(SAVE_KEY); } catch {}
-    const snapshot = await connectCloud(localSave);
+    const snapshot = await connectCloud(localSave, SAVE_SLOT);
     loaded = loadGame(snapshot);
     if (snapshot && !loaded) throw new Error("クラウドの記録を読み込めません");
   } else {
     try {
-      localSaveSession = new LocalSaveSession({ onConflict: () => {
+      localSaveSession = new LocalSaveSession({ slot: SAVE_SLOT, onConflict: () => {
         localSaveReady = false; G.prompt = true;
         showLocalSaveBlocked("別の画面で冒険の記録が変更されました。この画面からは保存しません。再読み込みして、最新の記録から再開してください。");
       } });
@@ -19706,7 +19716,7 @@ async function init() {
   let freshStart = false, freshName = "";
   try { freshStart = sessionStorage.getItem("dos-newgame") === "1"; sessionStorage.removeItem("dos-newgame"); freshName = normalizeName(sessionStorage.getItem("dos-newgame-name")); sessionStorage.removeItem("dos-newgame-name"); } catch (e) {}
   try {
-    showTitle({ hasSave: loaded, startName: freshStart ? freshName : "", summary: loaded ? titleSummary() : null, onStart: start, onNewGame: loaded && !cloudEnabled() ? newGameFromTitle : null,
+    showTitle({ saveSlot: SAVE_SLOT, onSelectSlot: selectSaveSlot, hasSave: loaded, startName: freshStart ? freshName : "", summary: loaded ? titleSummary() : null, onStart: start, onNewGame: loaded && !cloudEnabled() ? newGameFromTitle : null,
       testDungeons: DUNGEONS, testScenes, onTestPlay: ({ id, floor, place, scene, inf, infLv, skipDungeon }) => {
         _resetting = true;
         const url = new URL(location.href);

@@ -37,6 +37,21 @@ with sync_playwright() as p:
       window.__game.G.gold = 4321;
       await window.__game.autosave(true);
     }""")
+    page.reload(); page.wait_for_selector(".ttl-overlay")
+    # 三つの枠を切り替えて、それぞれの記録と名前を再開する。
+    for slot in [2, 3]:
+        page.get_by_role("button", name=f"記録{slot}", exact=True).click()
+        page.wait_for_url(f"**saveSlot={slot}")
+        page.wait_for_selector(".ttl-overlay")
+        assert page.locator(".ttl-save").count() == 0
+        page.evaluate(f"async()=>{{__game.G.apprenticeName='旅人{slot}';__game.G.gold={slot*100};await __game.autosave(true)}}")
+        page.reload(); page.wait_for_selector(".ttl-overlay")
+        assert page.evaluate("__game.G.gold") == slot*100
+        assert page.evaluate("__game.G.apprenticeName") == f"旅人{slot}"
+    page.get_by_role("button", name="記録1", exact=True).click()
+    page.wait_for_url("**saveSlot=1"); page.wait_for_selector(".ttl-overlay")
+    assert page.evaluate("__game.G.gold") == 4321
+    assert page.evaluate("__game.G.apprenticeName") == "リュカ"
     # 再読み込みしても端末の古い記録を使わず、クラウドの金貨を読み込む。
     page.evaluate("localStorage.setItem('dos-save-v7', JSON.stringify({root:{$r:0},heap:[{o:{gold:999999}}]}))")
     page.reload()
@@ -51,7 +66,7 @@ with sync_playwright() as p:
     page.get_by_label("プレイヤー名", exact=True).fill("セイン")
     page.get_by_role("button", name="保存する", exact=True).click()
     page.locator(".player-name-sheet").wait_for(state="detached")
-    page.get_by_role("button", name="閉じる", exact=True).click()
+    page.get_by_role("button", name="閉じる", exact=True).first.click()
     page.wait_for_function("document.querySelector('.cloud-gate').hidden")
     # 同一端末での別タブはロックされる。
     second = context.new_page()

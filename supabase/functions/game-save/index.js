@@ -22,7 +22,9 @@ async function rpc(name, body) {
 async function command(user, body) {
   if (body.protocol !== 1) throw Object.assign(new Error("cloud_version_mismatch"), { status: 409 });
   if (!uuid.test(body.sessionId)) throw Object.assign(new Error("通信の形式が不正です"), { status: 400 });
-  const s = await rpc("cloud_claim", { p_user: user.id, p_session: body.sessionId });
+  const slot = body.slot === undefined ? 1 : body.slot;
+  if (!Number.isInteger(slot) || slot < 1 || slot > 3) throw Object.assign(new Error("記録の番号が不正です"), { status: 400 });
+  const s = await rpc("cloud_claim_slot", { p_user: user.id, p_session: body.sessionId, p_slot: slot });
   if (body.op === "claim") return { revision: s.revision, snapshot: s.snapshot };
   if (body.op === "renew") {
     if (s.revision !== body.revision) throw Object.assign(new Error("cloud_revision_conflict"), { status: 409 });
@@ -33,7 +35,7 @@ async function command(user, body) {
   }
   if (s.last_command === body.commandId) {
     // JSONBのキー順には依存せず、DB側の構造比較で一致を確かめる。
-    return await rpc("cloud_commit", { p_user: user.id, p_session: body.sessionId,
+    return await rpc("cloud_commit_slot", { p_user: user.id, p_session: body.sessionId, p_slot: slot,
       p_revision: body.revision, p_command: body.commandId, p_request: body,
       p_snapshot: s.snapshot, p_response: s.last_response });
   }
@@ -51,7 +53,7 @@ async function command(user, body) {
     response.packet = refSerialize(resolveCloudBattle(current, body.action));
     snapshot = refSerialize(current);
   } else throw Object.assign(new Error("通信の種類が不正です"), { status: 400 });
-  return await rpc("cloud_commit", { p_user: user.id, p_session: body.sessionId,
+  return await rpc("cloud_commit_slot", { p_user: user.id, p_session: body.sessionId, p_slot: slot,
     p_revision: body.revision, p_command: body.commandId, p_request: body,
     p_snapshot: snapshot, p_response: response });
 }
