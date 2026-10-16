@@ -227,6 +227,7 @@ function fillAuto(box) {
   box.appendChild(sec("データ"));
   const title = el("button", "stg-row");
   title.type = "button";
+  title.setAttribute("aria-label", `記録${game.saveSlot || 1}を保存してタイトルへ`);
   title.appendChild(setText(el("span", "stg-row-n"), `記録${game.saveSlot || 1}を保存してタイトルへ`));
   title.appendChild(setText(el("span", "stg-row-d"), "タイトルで3つの冒険の記録を選べる"));
   title.addEventListener("click", () => game.returnToTitle?.());
