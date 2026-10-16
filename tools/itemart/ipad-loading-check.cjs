@@ -33,7 +33,7 @@ const assert = require('node:assert/strict');
         const ids = [...ITEM_PHOTOS.slice(0, 7),
           ...['misc', 'use'].map(slot => ITEM_PHOTOS.find(id => items[id].slot === slot))];
         const hidden = resolve({ ...items[ids[0]], unidentified: true });
-        if (hidden.photo || JSON.stringify(hidden) !== JSON.stringify(unidIcon(items[ids[0]]))) throw Error('未鑑定の姿が漏れた');
+        if (hidden !== unidIcon(items[ids[0]])) throw Error('未鑑定の姿が漏れた');
         window.check = { ids, items, resolve, spriteCanvas, whenPhoto, photoReady, crispCanvas };
       });
       assert.equal(requests, 0, '未表示・未鑑定の画像を取得した');

@@ -18,11 +18,7 @@ import { STAGED, effectStage, stageOf, stageMul, stageLabel, isBattleLong, ENEMY
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
 import { spriteCanvas, crispCanvas, drawPhoto, photoReady, whenPhoto, setSpriteResolver } from "./sprites.js";
 import { makeItemSpriteResolver } from "./itemart/index.js";
-import { loadCollectiblePhotos } from "./collectiblephotos.js";
-import { loadUnidPhotos } from "./itemart/unid.js";
-import { loadTreasuryPhotos } from "./treasuryphotos.js";
-import { loadMiscPhotos } from "./miscphotos.js";
-import { loadMonsterPhotos } from "./monsterphotos.js";
+import { registerMonsterPhotos, restoreMonsterPhotos } from "./monsterphotos.js";
 import { bagCount, isFormationItem,
   ITEMS, SLOTS, SLOT_LABEL, MAX_ITEMS, shareInventory, setBagSource, bagOwners, equip as equipItem, unequip as unequipItem, canEquip, canOffhand, slotKeyFor, lvToRank, RANGE_LABEL, HAND_LABEL, weaponRange, SHIELD_KIND_LABEL, shieldKind,
   registerEquipLevel, equipLevelOf, equipLvShort, equipFailMsg, registerAffixes,
@@ -10102,7 +10098,10 @@ function photoMonsterBitmap(mon) {
   const c = document.createElement("canvas");
   c.width = (w + pad * 2) * R; c.height = (h + pad * 2) * R;
   const b = { c, w, h, pad };
-  if (!photoReady(p)) { whenPhoto(mon, () => {}); return b; } // 写しを始めておく (焼けるまでは空)
+  if (!photoReady(p)) {
+    whenPhoto(mon, () => {});
+    return mon.fallback ? monsterBitmap(mon.fallback) : b;
+  } // 届くまでは既存の姿を使い、空の写しを覚えない
   const body = document.createElement("canvas");
   body.width = w * R; body.height = h * R;
   const bg = body.getContext("2d");
@@ -11134,6 +11133,7 @@ async function resolveSavedBattle(action) {
     await cloudFlush();
     const response = await cloudBattle(action);
     const packet = applySavePatch(G, refDeserialize(response.packet));
+    restoreMonsterPhotos(G.battle.enemies, MONSTERS);
     G.rng = bindRngState(G.rng); setSharedSouls(G.souls);
     syncEnemyUids(G.battle.enemies);
     G.battle.log = log;
@@ -11172,6 +11172,7 @@ async function advanceSavedBattle(watch) {
   try {
     const response = await cloudBattle("advance");
     const packet = applySavePatch(G, refDeserialize(response.packet));
+    restoreMonsterPhotos(G.battle.enemies, MONSTERS);
     G.rng = bindRngState(G.rng); setSharedSouls(G.souls); G.battle.log = log;
     _cloudResolving = false; _lastCloudSave = null;
     refreshStability();
@@ -19443,7 +19444,7 @@ function titleSummary() {
 }
 
 async function init() {
-  await Promise.all([loadMonsterPhotos(MONSTERS), loadMiscPhotos(), loadCollectiblePhotos(), loadTreasuryPhotos(), loadUnidPhotos()]);
+  registerMonsterPhotos(MONSTERS);
   // UI 基盤 (ctx の結線・戻る操作・街シェル・各パッケージ) を最初の描画より前に整える
   wireUI();
   // 早期にフックを公開 (起動失敗の誤検出/デバッグ用)

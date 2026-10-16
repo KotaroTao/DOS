@@ -1,3 +1,4 @@
+import { lazyPhoto } from "./photoload.js";
 // 奉納品81〜108番。読めない場合は既存の固有ドット絵を使う。
 export const TREASURY_PHOTOS = [
   "m_petrified_heart", // 81 石化した心臓
@@ -30,25 +31,14 @@ export const TREASURY_PHOTOS = [
   "m_still_hourglass", // 108 時を刻まぬ砂時計
 ];
 const photos = new Map();
-export function treasuryPhoto(id) { return photos.get(id) || null; }
+const ids = new Set(TREASURY_PHOTOS);
+export function treasuryPhoto(id) {
+  if (!ids.has(id)) return null;
+  if (!photos.has(id)) photos.set(id, lazyPhoto(new URL(`../art/treasury/${id}.webp`, import.meta.url).href,
+    { width: 384, height: 384, exclude: id === "m_wyrm_whisker" ? [{ x: 260, y: 344, w: 124, h: 40 }] : undefined, }));
+  return photos.get(id);
+}
+// 制作確認用。通常は表示時に取得する。
 export async function loadTreasuryPhotos() {
-  if (typeof Image === "undefined") return;
-  await Promise.all(TREASURY_PHOTOS.map(id => new Promise(resolve => {
-    const img = new Image();
-    const timer = setTimeout(() => finish(false), 4000);
-    const finish = ok => {
-      clearTimeout(timer);
-      img.onload = img.onerror = null;
-      if (ok) photos.set(id, { w: 24, h: 24,
-        photo: { img, sx: 0, sy: 0, sw: 384, sh: 384,
-          // 下端右側の木片だけを隠し、左側にあるひげの先端は残す。
-          exclude: id === "m_wyrm_whisker" ? [{ x: 260, y: 344, w: 124, h: 40 }] : undefined,
-        } });
-      resolve();
-    };
-    img.decoding = "async";
-    img.onload = () => finish(img.naturalWidth === 384 && img.naturalHeight === 384);
-    img.onerror = () => finish(false);
-    img.src = new URL(`../art/treasury/${id}.webp`, import.meta.url).href;
-  })));
+  await Promise.all(TREASURY_PHOTOS.map(id => treasuryPhoto(id).photo.load()));
 }

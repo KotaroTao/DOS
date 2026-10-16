@@ -1,3 +1,4 @@
+import { lazyPhoto } from "./photoload.js";
 // 奉納品61〜80番。読めない場合は既存の固有ドット絵を使う。
 export const COLLECTIBLE_PHOTOS = [
   "m_widows_veil",
@@ -22,22 +23,14 @@ export const COLLECTIBLE_PHOTOS = [
   "m_knight_gorget",
 ];
 const photos = new Map();
-export function collectiblePhoto(id) { return photos.get(id) || null; }
+const ids = new Set(COLLECTIBLE_PHOTOS);
+export function collectiblePhoto(id) {
+  if (!ids.has(id)) return null;
+  if (!photos.has(id)) photos.set(id, lazyPhoto(new URL(`../art/collectibles/${id}.webp`, import.meta.url).href,
+    { width: 384, height: 384,  }));
+  return photos.get(id);
+}
+// 制作確認用。通常は表示時に取得する。
 export async function loadCollectiblePhotos() {
-  if (typeof Image === "undefined") return;
-  await Promise.all(COLLECTIBLE_PHOTOS.map(id => new Promise(resolve => {
-    const img = new Image();
-    const timer = setTimeout(() => finish(false), 4000);
-    const finish = ok => {
-      clearTimeout(timer);
-      img.onload = img.onerror = null;
-      if (ok) photos.set(id, { w: 24, h: 24,
-        photo: { img, sx: 0, sy: 0, sw: 384, sh: 384 } });
-      resolve();
-    };
-    img.decoding = "async";
-    img.onload = () => finish(img.naturalWidth === 384 && img.naturalHeight === 384);
-    img.onerror = () => finish(false);
-    img.src = new URL(`../art/collectibles/${id}.webp`, import.meta.url).href;
-  })));
+  await Promise.all(COLLECTIBLE_PHOTOS.map(id => collectiblePhoto(id).photo.load()));
 }
