@@ -1,6 +1,7 @@
 // 回復時計の境界と、安定度記録の収支・連続プレイ推計を確認する。
 import assert from 'node:assert/strict';
 import { recoverStability, stabilityWaitMs, STABILITY_RECOVERY_MS as step } from '../../src/stability.js';
+assert.equal(step,180000,'3分で1回復');
 const base = 1000000;
 const old = {};
 assert.equal(recoverStability(old,base),0);
@@ -19,7 +20,7 @@ assert.equal(recoverStability(d,base+step*100+1),0,'満タン中の時間は使�
 assert.equal(recoverStability(d,base),0,'時計の巻き戻し');
 assert.equal(d.stabilityAt,base);
 d.stability=8;
-assert.equal(stabilityWaitMs(d,base+60000),2820000);
+assert.equal(stabilityWaitMs(d,base+60000),2100000);
 assert.equal(recoverStability(d,base+step*1000),92,'長いオフライン回復は上限まで');
 const store=new Map();
 globalThis.localStorage={getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v)};
@@ -37,7 +38,7 @@ assert.equal(data().stability.events[0].dolls[0].before,100);
 assert.equal(data().stability.natural,5);
 assert.equal(data().stability.red,10);
 assert.equal(data().stability.redEarned,60);
-assert(T.tlStabilitySummary().some(s=>s.includes('🔴105.0/実プレイ1時間')));
+assert(T.tlStabilitySummary().some(s=>s.includes('🔴90.0/実プレイ1時間')));
 T.tlStability('floor',[{doll:party[0],amount:30}]);
 assert.equal(data().stability.spent,330);
 assert.equal(data().stability.entries,10);

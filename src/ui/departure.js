@@ -545,8 +545,8 @@ function openBriefing(go) {
       b.appendChild(el("div","dp-brief-h","門衛 ― 迷宮の入口を守る者"));
       for(const text of ["この先へ入ると魂と人業の結びつきが揺らぎます。その状態を示すのが『魂の安定度』です。",
         `安定度の上限は100です。入場時に人業ごとに${game.STABILITY_ENTRY_COST}消費します。5階ごとに次の階へ進む時も、一人につき${game.STABILITY_ENTRY_COST}消費します。`,
-        "安定度は4分ごとに1回復します。ゲームを閉じている間も同じです。",
-        `不足分は赤い魂1で安定度5を購入し、そのまま進めます。安定度が${game.STABILITY_ENTRY_COST}未満の人業がいる場合は、購入するか、広告視聴で隊全員の安定度を消費せず1回分進むか、4分で1回復するのを待ってください。`,
+        "安定度は3分ごとに1回復します。ゲームを閉じている間も同じです。",
+        `不足分は赤い魂1で安定度5を購入し、そのまま進めます。安定度が${game.STABILITY_ENTRY_COST}未満の人業がいる場合は、購入するか、広告視聴で隊全員の安定度を消費せず1回分進むか、3分で1回復するのを待ってください。`,
         ...(!G().dungeonBriefed ? game.DUNGEON_BRIEFING || [] : [])])b.appendChild(setText(el("div","dp-brief-l"),text));
       renderStability(b, false);
     },

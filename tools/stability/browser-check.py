@@ -53,8 +53,8 @@ with sync_playwright() as p:
     page.get_by_role('button',name='回復を待つ',exact=True).last.evaluate("b=>b.click()")
     print(page.evaluate('''async()=>{
       const {game}=await import('/src/ui/ctx.js');const G=__game.G;
-      for(const d of [...G.abyss.home.party,...G.abyss.home.reserve,...(G.stats.inf.stability||[])].filter(Boolean)){d.stabilityAt=Date.now()-20*240000;}
-      __game.inf.descend();stabCheck(G.floor===21&&game.stabilityStatus().every(d=>d.value===0),'4分×20の自然回復で購入せず進行');
+      for(const d of [...G.abyss.home.party,...G.abyss.home.reserve,...(G.stats.inf.stability||[])].filter(Boolean)){d.stabilityAt=Date.now()-20*180000;}
+      __game.inf.descend();stabCheck(G.floor===21&&game.stabilityStatus().every(d=>d.value===0),'3分×20の自然回復で購入せず進行');
       const home=G.abyss.home;for(const [k,v] of Object.entries(home))G[k]=v;G.abyss=null;G.state='town';G.prompt=false;
       stabCheck(!__game.inf.enterAbyss(stabPicks),'再入場で安定度はリセットされない');return stabOut;
     }'''))
@@ -88,7 +88,7 @@ with sync_playwright() as p:
       stabCheck(G.floor===16&&G.redSoul===0&&game.stabilityStatus().every(d=>d.value===0),'隊全員の端数を合算し不足2を赤い魂1で購入');
       for(const d of G.party){d.stability=20;d.stabilityAt=Date.now();}
       G.party[0].stability=14;G.floor=20;G.redSoul=2;__game.inf.descend();
-      G.party[0].stabilityAt=Date.now()-240000;return stabOut;
+      G.party[0].stabilityAt=Date.now()-180000;return stabOut;
     }'''))
     page.get_by_role('button',name='赤い魂2で不足分を購入して進む',exact=True).last.evaluate("b=>b.click()")
     print(page.evaluate('''async()=>{
