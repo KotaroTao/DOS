@@ -316,7 +316,7 @@ function renderGates(b) {
     r.addEventListener("click", () => {
       if (g.dungeonIdx === i) return;
       g.dungeonIdx = i;
-      cur.from = 1;
+      cur.from = null;
       sfx("select");
       if (game.autosave) game.autosave();
       refresh();
@@ -376,7 +376,7 @@ function startFloors() {
   const dn = (game.DUNGEONS || [])[g.dungeonIdx];
   if (!dn || cur.page !== "gates") return [1];
   const floors = game.startFloorsOf ? game.startFloorsOf(dn) : [1];
-  if (!floors.includes(cur.from)) cur.from = 1;
+  if (!floors.includes(cur.from)) cur.from = floors[floors.length - 1] || 1;
   return floors;
 }
 function startFloorPicker(floors) {
