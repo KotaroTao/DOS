@@ -1,3 +1,4 @@
+import { isDesktopLayout } from "../desktop.js";
 import { RESIST_LABEL, resistLean } from "../resistance.js";
 import { ENEMY_STAT_LABEL } from "../buffstage.js";
 // ===== 王宮 — 勅命 / 図鑑 / 勲章 / 宝物庫 (区分ごとに印) =====
@@ -1082,6 +1083,20 @@ function renderPalace(root, api) {
     else if (k === "treasury") renderTreasury(body);
     else renderDecree(body);
   };
+  if (isDesktopLayout() && !game.tutorialAllowed?.()) {
+    wrap.classList.add("pc-palace");
+    const menu = el("nav", "pc-palace-nav");menu.setAttribute("aria-label", "王宮での用事");
+    const sub = remember("seg", "codex") || "mon";
+    for (const [key,label] of [["decree","勅命"],["codex:mon","敵の図鑑"],["codex:item","品の図鑑"],["codex:job","職業の図鑑"],["codex:ev","見聞"],["ach","勲章"],["treasury","宝物庫"]]) {
+      const on=key===seg || key===`codex:${sub}`&&seg==="codex";
+      const b=button({label,kind:on?"primary":"secondary",onTap:()=>openPalace(key)});
+      b.setAttribute("aria-pressed",String(on));menu.appendChild(b);
+    }
+    wrap.append(menu,body);draw(seg);
+    // PCでは左の分類を常設し、同じ分類の操作を重ねない。
+    if(seg==="codex")body.querySelector(".pl-codex-seg")?.remove();
+    scrollBox(body);return;
+  }
   const segEl = segmented(segs, seg, (k) => {
     sfx("select");
     resetPages(); // 区分を替えたら、どの格子も1ページ目から

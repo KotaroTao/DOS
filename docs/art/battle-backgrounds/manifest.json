@@ -424,5 +424,47 @@
     "atlas": 8,
     "tile": 8,
     "bytes": 34502
+  },
+  {
+    "id": "w46",
+    "atlas": 9,
+    "tile": 1,
+    "bytes": 53180
+  },
+  {
+    "id": "w47",
+    "atlas": 9,
+    "tile": 2,
+    "bytes": 49800
+  },
+  {
+    "id": "w48",
+    "atlas": 9,
+    "tile": 3,
+    "bytes": 46260
+  },
+  {
+    "id": "w49",
+    "atlas": 9,
+    "tile": 4,
+    "bytes": 57112
+  },
+  {
+    "id": "ws25",
+    "atlas": 9,
+    "tile": 5,
+    "bytes": 38512
+  },
+  {
+    "id": "ws26",
+    "atlas": 9,
+    "tile": 6,
+    "bytes": 46404
+  },
+  {
+    "id": "ws27",
+    "atlas": 9,
+    "tile": 7,
+    "bytes": 50324
   }
 ]

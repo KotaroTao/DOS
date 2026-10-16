@@ -12,7 +12,8 @@
 
 import { playerNameCard } from "./playername.js";
 import { UI, game, registerUI } from "./ctx.js";
-import { el, setText, sheet, segmented, toast } from "./kit.js";
+import { isDesktopLayout } from "../desktop.js";
+import { el, button, setText, sheet, segmented, toast } from "./kit.js";
 import { tlOn, tlSetOn, tlClear, tlHasData, tlSummary, tlStabilitySummary, tlExportText, tlPastCount, tlPastSummary } from "../telemetry.js";
 import { getPref, setPref, remember, autoMoveAvoid, setAutoMoveAvoid } from "./prefs.js";
 import { SFX } from "../audio.js";
@@ -241,6 +242,7 @@ function fillAuto(box) {
   } else box.appendChild(reset);
 }
 function fill(root) {
+  if (isDesktopLayout()) return fillDesktop(root);
   root.appendChild(playerNameCard());
   const saved = remember("seg", "settings");
   const cur = saved === "auto" || saved === "look" ? saved : "sound";
@@ -390,4 +392,22 @@ export function install() {
     settingsSheet,
     confirmReset,
   });
+}
+
+function fillDesktop(root) {
+  const workspace=el("div","pc-settings"),nav=el("nav","pc-settings-nav"),body=el("div","pc-settings-body");
+  nav.setAttribute("aria-label","設定の分類");
+  let current=remember("seg","settings");if(!["sound","look","auto"].includes(current))current="sound";
+  const buttons=[];
+  const draw=k=>{
+    current=k;remember("seg","settings",k);body.replaceChildren(playerNameCard());
+    const box=el("div","stg");
+    if(k==="look")fillLook(box);else if(k==="auto")fillAuto(box);else fillSound(box);
+    body.appendChild(box);buttons.forEach(([key,b])=>b.setAttribute("aria-pressed",String(key===k)));
+  };
+  for(const [key,label] of [["sound","音・戦闘"],["look","装い"],["auto","自動化・データ"]]) {
+    const b=button({label,kind:"secondary",onTap:()=>draw(key)});buttons.push([key,b]);nav.appendChild(b);
+  }
+  nav.appendChild(el("p","pc-muted","音の切り替え: M　閉じる: Esc"));
+  workspace.append(nav,body);root.appendChild(workspace);draw(current);
 }

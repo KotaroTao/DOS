@@ -31,7 +31,7 @@ export const QUEST_PORTRAITS = {
   "織り子ハンナ": "art/quest-clients/client-28.webp",
   "灰の尼イルマ": "art/quest-clients/client-29.webp",
   "毛皮売りのアウグスト": "art/quest-clients/client-30.webp",
-  "人形師マルタ": "art/quest-clients/client-31.webp",
+  "人業師マルタ": "art/quest-clients/client-31.webp",
   "くちばし面のロッホス": "art/quest-clients/client-32.webp",
   "渡し守の孫娘リタ": "art/quest-clients/client-33.webp",
   "鐘鋳りのクララ": "art/quest-clients/client-34.webp",
@@ -47,4 +47,9 @@ export const QUEST_PORTRAITS = {
   "宝石職人のリラ": "art/quest-clients/client-44.webp",
   "老書記ベルンハルト": "art/quest-clients/client-45.webp",
   "賞金首の元締めゴドー": "art/quest-clients/client-46.webp",
+  "老侍従エーリク": "art/quest-clients/client-47.webp",
+  "扉番のカスパル": "art/quest-clients/client-48.webp",
+  "書き写しのヨルク": "art/quest-clients/client-49.webp",
+  "雨受けのミラ": "art/quest-clients/client-50.webp",
+  "子守りのロッテ": "art/quest-clients/client-51.webp",
 };

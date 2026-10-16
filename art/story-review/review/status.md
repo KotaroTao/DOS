@@ -118,7 +118,7 @@
 | 第9章「闘技場跡」 | `report_w35` | 使い回された魂 | 出荷済み | [見る](chapter9.md#report_w35) |
 | 第9章「闘技場跡」 | `w36_nook` | 灯番の子 | 出荷済み | [見る](chapter9.md#w36_nook) |
 | 第9章「闘技場跡」 | `report_w36` | 玉座と観客席 | 出荷済み | [見る](chapter9.md#report_w36) |
-| 第9章「闘技場跡」 | `irene_firstdoll` | 最初の人形 | 出荷済み | [見る](chapter9.md#irene_firstdoll) |
+| 第9章「闘技場跡」 | `irene_firstdoll` | 最初の人業 | 出荷済み | [見る](chapter9.md#irene_firstdoll) |
 | 第9章「闘技場跡」 | `mem_w37` | 十三度目の灯 | 出荷済み | [見る](chapter9.md#mem_w37) |
 | 第9章「闘技場跡」 | `report_w37` | 休みのない百年 | 出荷済み | [見る](chapter9.md#report_w37) |
 | 第9章「闘技場跡」 | `irene_rest` | 休む灯 | 出荷済み | [見る](chapter9.md#irene_rest) |
@@ -213,10 +213,10 @@
 | 由来 | `w43` | 雨垂れの書庫 | 出荷済み | [見る](dungeons.md#lore_w43) |
 | 由来 | `w44` | 眠り灯の工房 | 出荷済み | [見る](dungeons.md#lore_w44) |
 | 由来 | `w45` | 大書庫 | 出荷済み | [見る](dungeons.md#lore_w45) |
-| 由来 | `w46` | 弔い灯の参道 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_w46) |
-| 由来 | `w47` | 香油の仕立て場 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_w47) |
-| 由来 | `w48` | 眠らずの近衛廊 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_w48) |
-| 由来 | `w49` | 終わらずの玉座 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_w49) |
+| 由来 | `w46` | 弔い灯の参道 | 出荷済み | [見る](dungeons.md#lore_w46) |
+| 由来 | `w47` | 香油の仕立て場 | 出荷済み | [見る](dungeons.md#lore_w47) |
+| 由来 | `w48` | 眠らずの近衛廊 | 出荷済み | [見る](dungeons.md#lore_w48) |
+| 由来 | `w49` | 終わらずの玉座 | 出荷済み | [見る](dungeons.md#lore_w49) |
 | 由来 | `ws1` | 沈んだ礼拝堂 | 出荷済み | [見る](dungeons.md#lore_ws1) |
 | 由来 | `ws2` | 石眠りの石切り場 | 出荷済み | [見る](dungeons.md#lore_ws2) |
 | 由来 | `ws3` | 霧の迷い森 | 出荷済み | [見る](dungeons.md#lore_ws3) |
@@ -241,7 +241,7 @@
 | 由来 | `ws22` | 水晶の鉱脈 | 出荷済み | [見る](dungeons.md#lore_ws22) |
 | 由来 | `ws23` | 絵本の閲覧室 | 出荷済み | [見る](dungeons.md#lore_ws23) |
 | 由来 | `ws24` | 閉架の書庫 | 出荷済み | [見る](dungeons.md#lore_ws24) |
-| 由来 | `ws25` | 名の無い墓所 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_ws25) |
-| 由来 | `ws26` | 剥製の大広間 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_ws26) |
-| 由来 | `ws27` | 王子の墓所 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_ws27) |
+| 由来 | `ws25` | 名の無い墓所 | 出荷済み | [見る](dungeons.md#lore_ws25) |
+| 由来 | `ws26` | 剥製の大広間 | 出荷済み | [見る](dungeons.md#lore_ws26) |
+| 由来 | `ws27` | 王子の墓所 | 出荷済み | [見る](dungeons.md#lore_ws27) |
 | 由来 | `w00_forest` | 近くの森の古屋 | 出荷済み | [見る](dungeons.md#lore_w00_forest) |

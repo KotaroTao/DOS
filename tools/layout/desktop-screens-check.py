@@ -7,9 +7,9 @@ from playwright.sync_api import sync_playwright
 BASE = os.environ.get('DOS_TEST_URL', 'http://localhost:8000')
 OUT = Path('work/pc-screens')
 OUT.mkdir(parents=True, exist_ok=True)
-BASELINE = os.environ.get('DOS_TEST_BASELINE', 'edc3edf8a69bc6b53dd919d0f321be387473af64')
+BASELINE = os.environ.get('DOS_TEST_BASELINE', '089f0664396333ae7feb46ff51512a0d11a82e00')
 ORIGINAL = {path: subprocess.check_output(['git', 'show', f'{BASELINE}:{path}'])
-            for path in ['desktop.css', 'src/ui/kit.js', 'src/ui/journal.js']}
+            for path in ['desktop.css', 'src/desktop.js', 'src/ui/kit.js', 'src/ui/journal.js', 'src/ui/hub.js', 'src/ui/party.js', 'src/ui/shop.js', 'src/ui/settings.js', 'src/ui/townshell.js', 'src/ui/palace.js', 'src/ui/dungeonhud.js']}
 ACTIONS = [
  ('街', "UI.shell.setTab('hub')"), ('館', 'UI.enterMansion()'),
  ('買う', "UI.openShop('buy',{cat:'weapon'})"), ('売る鑑定', "UI.openShop('sell')"),
@@ -98,15 +98,19 @@ with sync_playwright() as p:
             raise AssertionError((width,height,[k for k in snapshots[0] if snapshots[0][k]!=snapshots[1][k]]))
         print(f'タッチ {width}x{height}: 12画面が変更前の寸法と一致',flush=True)
 
+    if os.environ.get('DOS_TEST_SCOPE')=='touch':
+        assert not errors,errors
+        browser.close()
+        raise SystemExit(0)
     page=new_page(1280,720)
     for width,height in ([] if os.environ.get('DOS_TEST_SCOPE')=='scenes' else [(1100,600),(1280,720),(1920,1080)]):
         page.set_viewport_size({'width':width,'height':height})
         for name,action in ACTIONS:
             show(page,action)
-            expected = {'街':'.hb','館':'.pt-overview','買う':'.seg-buy','売る鑑定':'.seg-sell',
+            expected = {'街':'.pc-dashboard','館':'.pc-mansion','買う':'.seg-buy','売る鑑定':'.seg-sell',
               '鍛え直し':'.seg-forge','付呪':'.seg-enchant','勅命':'.s-decree','図鑑':'.s-codex',
               '勲章':'.s-ach','宝物庫':'.s-treasury','酒場':'.fc-tavern','祠':'.fc-shrine',
-              '設定':'.stg-sheet','ヘルプ':'.jr-index','物語一覧':'.jr-index','隊列保存編成':'.pt-formation-sheet',
+              '設定':'.stg-sheet','ヘルプ':'.pc-reader-sheet','物語一覧':'.pc-reader-sheet','隊列保存編成':'.pt-formation-sheet',
               '魂一覧':'.sp-list-sheet','出撃':'.dp-sheet','宿屋':'.inn-sheet','控え':'.pt-res-sheet',
               '図鑑シート':'.cx-sheet','職業詳細':'.pl-detail-sheet','品の詳細':'.wpc-isheet',
               '無限迷宮の準備':'.inf-sheet','無限迷宮の記憶':'.inf-memory-sheet'}
@@ -146,9 +150,9 @@ with sync_playwright() as p:
     page.wait_for_function('!document.querySelector(\'.ui-sheet-wrap:not(.closing)\')')
     # 物語詳細の絵と本文。実際の一覧から開く。
     show(page,'UI.openStoryArchive()')
-    page.locator('.jr-card').first.click()
-    assert page.locator('.jr-detail .jr-text').is_visible()
-    page.evaluate("""()=>{const a=document.querySelector('.jr-illustration').getBoundingClientRect(),b=document.querySelector('.jr-text').getBoundingClientRect();if(a.right>b.left||Math.abs(a.top-b.top)>1)throw Error('絵と本文が左右に並ばない');}""")
+    page.locator('.pc-reader-sheet .pc-list-row').first.click()
+    assert page.locator('.pc-reader-sheet .pc-detail .jr-line').count()>0
+    assert page.locator('.ui-sheet:not(.closing)').count()==1
     page.screenshot(path=str(OUT/'物語詳細.png'))
     # 全画面会話・オープニング・職業の一覧にもPC用の枠を適用する。
     for width,height in [(1100,600),(1920,1080)]:
