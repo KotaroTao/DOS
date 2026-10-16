@@ -3572,7 +3572,7 @@ const ASSETS = [
 // 版のたびに全部を先読みしていた頃は、1つでも取りこぼすと新しい版へ切り替わらず、
 // 端末に古い版が残り続けた。絵は版をまたいで残す MEDIA に置き、
 //   - install では JS/CSS/HTML (約10MB) だけを先読みして版を切り替える
-//   - 絵は使う時にキャッシュから返し、裏で取り直して差し替わりに追いつく
+//   - 絵は使う時にキャッシュから返し、新しい版で初めて使う時だけ裏で取り直す
 //   - 切り替えの後、まだ持っていない絵だけを裏でゆっくり集める (オフライン用)
 //   - ただし物語・由来の絵 (art/story/) は、ページが伝えてきた分 (進めている章まで —
 //     journal.js storyMediaUrls) だけを集める。まだ着いていない章の絵は、開いた時に取りに行く
@@ -3581,6 +3581,29 @@ const isMedia = (u) => /\.(png|webp|jpe?g|gif)$/i.test(new URL(u, self.location.
 const CORE = ASSETS.filter((u) => !isMedia(u));
 const MEDIA_ASSETS = ASSETS.filter(isMedia);
 const abs = (u) => new URL(u, self.location.href).href;
+const MEDIA_VERSION = "X-DOS-Media-Version";
+const mediaRequests = new Map();
+// 表示と裏の先読みが重なっても、同じ絵の通信は1回にまとめる。
+function fetchMedia(request) {
+  const url = new URL(typeof request === "string" ? request : request.url, self.location.href);
+  url.search = "";
+  const key = url.href;
+  if (!mediaRequests.has(key)) {
+    const pending = (async () => {
+      const res = await fetch(request, { cache: "no-cache" });
+      if (res.ok) {
+        const headers = new Headers(res.headers);
+        headers.set(MEDIA_VERSION, CACHE);
+        const saved = new Response(res.clone().body, { status: res.status, statusText: res.statusText, headers });
+        try { await (await caches.open(MEDIA)).put(key, saved); }
+        catch (err) { /* 容量不足でも表示は続ける */ }
+      }
+      return res;
+    })().finally(() => mediaRequests.delete(key));
+    mediaRequests.set(key, pending);
+  }
+  return mediaRequests.get(key).then((res) => res.clone());
+}
 const isStory = (u) => new URL(u, self.location.href).pathname.includes("/art/story/");
 // ページから届いた「集めてよい物語の絵」の一覧。SW は止まっても消えないよう MEDIA に置く
 const STORY_ALLOW = "./__story-media__";
@@ -3630,7 +3653,10 @@ function warmMedia(again = false) {
     const worker = async () => {
       while (i < todo.length) {
         const u = todo[i++];
-        try { const res = await fetch(u, { cache: "no-cache" }); if (res.ok) await media.put(u, res); }
+        try {
+          if (await media.match(u)) continue; // 順番待ちの間に画面の表示で保存された絵は取り直さない
+          await fetchMedia(u);
+        }
         catch (err) { /* 通信が切れても次の機会に取り直す */ }
       }
     };
@@ -3682,17 +3708,14 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   if (url.origin !== self.location.origin) return; // 他オリジンは介入しない
 
-  // 絵: 持っていればすぐ返し、裏で取り直して差し替わった絵に追いつく
+  // 絵: 持っていればすぐ返す。版ごとの確認済み印も保存し、再起動で通信を繰り返さない。
   if (isMedia(url.href)) {
     const media = caches.open(MEDIA);
     const hit = media.then((m) => m.match(e.request, { ignoreSearch: true }));
-    const net = media.then((m) => fetch(e.request).then((res) => {
-      if (res.ok) m.put(e.request, res.clone()).catch(() => {});
-      return res;
-    }));
+    const net = hit.then((h) => h && h.headers.get(MEDIA_VERSION) === CACHE ? null : fetchMedia(e.request));
     e.respondWith(hit.then((h) => h || net));
-    // 裏の取り直しと、止まっていた残りの絵の取り寄せの再開
-    e.waitUntil(net.catch(() => {}).then(() => warmMedia()).catch(() => {}));
+    // 更新に失敗しても保存済みの絵を残し、次に使う時に再試行する。
+    e.waitUntil(net.catch(() => {}));
     return;
   }
 
