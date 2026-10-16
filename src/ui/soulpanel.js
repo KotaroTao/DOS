@@ -13,7 +13,7 @@ import { skillDescription, showSkillPopup, showPassivePopup, SPELL_KIND_LABEL, t
 import {
   SOUL_CLASSES, jobSprite, jobBust, soulByUid, soulRankOf, soulLevelCapOf, emberCostOf, nextRankThreshold, jobRankName, soulSeriesName,
   soulLearnedSkills, soulLearnedPassives, soulLabel, soulRankLeft, passiveName, passiveDesc, orderStatBonus, orderStatRateOfRank, ORDER_STAT_RATES,
-  jobSkillTable, recalcDoll, subPicks, subPickCap, toggleSubPick, subPickIndex, jobStatsOf, subStatRateOfRank,
+  jobSkillTable, recalcDoll, subPicks, subPickCap, subPickCapFor, toggleSubPick, subPickIndex, jobStatsOf, subStatRateOfRank,
   EMBER_STAT_UP, emberStatSteps,
 } from "../souls.js";
 import { SPELLS, spellMpLabel } from "../combat.js";
@@ -384,7 +384,7 @@ function subTiles(more, d, town) {
     const tile = el("div", "sp-tile sp-sub" + (se ? "" : " empty"));
     const main = el(town ? "button" : "div", "sp-tile-main");
     if (town) main.type = "button";
-    const bw = se ? borrowList(sub, se) : null;
+    const bw = se ? borrowList(sub, se, d) : null;
     const hd = el("span", "sp-tile-hd");
     hd.appendChild(el("span", "sp-tile-k", `サブ魂${i + 1}`));
     if (bw && bw.picks.length) hd.appendChild(el("span", "sp-tile-cnt", `借 ${bw.picks.length}/${bw.cap}`));
@@ -422,8 +422,8 @@ function subTiles(more, d, town) {
   }
 }
 // サブ魂タイルの借用一覧 ({picks: [{name, passive}], cap})。効いている分 (覚えていて上限内) だけ数える
-function borrowList(sub, se) {
-  const cap = subPickCap(se);
+function borrowList(sub, se, d) {
+  const cap = d ? subPickCapFor(d, sub) : subPickCap(se);
   const lp = soulLearnedPassives(se);
   const learned = soulLearnedSkills(se);
   const picks = subPicks(sub).filter((p) => (p.passive ? lp[p.passive] : learned.includes(p.skill))).slice(0, cap)
@@ -1092,7 +1092,7 @@ export function openSkillStep(d, subRef) {
   const passives = soulLearnedPassives(s);
   const pkeys = Object.keys(passives);
   if (!learned.length && !pkeys.length) { sfx("ng"); toast("この魂はまだ技もパッシブも覚えていない", { tone: "info" }); tutSeen(); return null; }
-  const cap = subPickCap(s);
+  const cap = subPickCapFor(d, subRef); // 宿り火の (極) で1つ増えることがある
   const refit = () => { recalcDoll(d); d.hp = Math.min(d.hp, d.maxhp); d.mp = Math.min(d.mp, d.maxmp); };
   // 効いている借用 (覚えている分・上限内) の数
   const usedCount = () => subPicks(subRef).filter((p) => (p.passive ? passives[p.passive] : learned.includes(p.skill))).slice(0, cap).length;
@@ -1103,7 +1103,7 @@ export function openSkillStep(d, subRef) {
     // 覚えていない (古い) 借用が枠を塞がないよう、選ぶ前に落としておく
     const cur = subPicks(subRef);
     for (let i = cur.length - 1; i >= 0; i--) { const p = cur[i]; if (!(p.passive ? passives[p.passive] : learned.includes(p.skill))) cur.splice(i, 1); }
-    if (!toggleSubPick(subRef, kind, key)) { sfx("ng"); toast(`この魂から借りられるのは${cap}つまで ― 先にどれかを外す`, { tone: "info" }); return; }
+    if (!toggleSubPick(subRef, kind, key, d)) { sfx("ng"); toast(`この魂から借りられるのは${cap}つまで ― 先にどれかを外す`, { tone: "info" }); return; }
     refit(); sfx("select");
     if (game.autosave) game.autosave(true);
     if (cap === 1) { h.close(); return; }

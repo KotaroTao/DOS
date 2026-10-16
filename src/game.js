@@ -11,7 +11,7 @@ import { monsterResists } from "./resistance.js";
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
-import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, setEnemyLvTag, scaleFoeAgi, scaleStrongFoeHp, scaleFoeStats, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setEquipSwap, setModSink, setElemKnown, setPartyEvadeBonus, setPartyBreathBonus, setPartyHitBonus, partyBreathRes, perkVictory, cureAil, canSpellCure, cureBySpell, spellCureKinds, chishioState } from "./combat.js";
+import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, setEnemyLvTag, scaleFoeAgi, scaleStrongFoeHp, scaleFoeStats, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setEquipSwap, setModSink, setElemKnown, setPartyEvadeBonus, setPartyBreathBonus, setPartyHitBonus, setPartyAilBonus, partyBreathRes, perkVictory, cureAil, canSpellCure, cureBySpell, spellCureKinds, chishioState } from "./combat.js";
 import { decideAuto, tacticOf, setResistKnown } from "./autotactics.js";
 import { STAGED, effectStage, stageOf, stageMul, stageLabel, isBattleLong, ENEMY_STAT_LABEL } from "./buffstage.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
@@ -6419,7 +6419,9 @@ function autoMovePlan() {
   if (!b) return null;
   const avoid = autoMoveAvoid();
   const floating = floatLeft() > 0;
-  const poisonSafe = floating || partyPassiveLv("poisonFloor") >= 2;
+  // 隊の全員が極「浮き足の」の持ち主なら、蝕む床は傷にならない (かえって癒える)
+  const allFloat = G.party.some((p) => p.alive) && G.party.every((p) => !p.alive || (p.gearMisc && p.gearMisc.floatStep));
+  const poisonSafe = floating || partyPassiveLv("poisonFloor") >= 2 || allFloat;
   // 敵感知の光で見えている、まだめくっていない魔物 (選ばれた数だけ)
   const sensed = new Set();
   const psE = partyPassiveLv("senseEnemy");
@@ -6578,6 +6580,19 @@ function resolveCellMeasured(cell) {
         }
         break;
       }
+      // 極「浮き足の」: 持ち主は傷の代わりに HP が最大の5%回復する。隊の全員が持ち主なら誰も傷つかない
+      const floaters = G.party.filter((p) => p.alive && p.gearMisc && p.gearMisc.floatStep);
+      const floatHeal = () => {
+        let any = false;
+        for (const p of floaters) { const h = Math.max(1, Math.ceil(p.maxhp * Math.min(1, p.gearMisc.floatStep))); if (p.hp < p.maxhp) { p.hp = Math.min(p.maxhp, p.hp + h); any = true; } }
+        return any;
+      };
+      if (floaters.length && floaters.length === G.party.filter((p) => p.alive).length) {
+        const healed = floatHeal();
+        log(`${hz.name}を浮き足で軽く渡った。${healed ? "かえって足が軽くなり、傷が癒えた。" : ""}`, "sys");
+        if (healed) renderParty();
+        break;
+      }
       SFX.trap(); buzz([0, 40, 30, 40]);
       flashScreen(hz.flash);
       // 床ダメージ率: 基本5% + 層に応じて微増 (層1=5% → 層20≈10.7%, 上限12%)。
@@ -6588,8 +6603,9 @@ function resolveCellMeasured(cell) {
       const ward = (hz.toxic && clueBoon("miasma")) || G.party.some((p) => p.alive && p.gearMisc && p.gearMisc.mudGuard); // 泥除けの (追加の特性) は書きつけと重ならない
       let anyDeath = false;
       const fallen = [], hurt = [];
+      const floated = floatHeal();
       for (const p of G.party) {
-        if (!p.alive) continue;
+        if (!p.alive || floaters.includes(p)) continue;
         let dmg = Math.max(1, Math.ceil(p.maxhp * pct));
         if (resist === 1) dmg = Math.max(1, Math.ceil(dmg * 0.5));
         if (ward) dmg = Math.max(1, Math.ceil(dmg * 0.5));
@@ -6597,18 +6613,18 @@ function resolveCellMeasured(cell) {
         hurt.push(p);
         if (p.hp === 0) { p.alive = false; anyDeath = true; fallen.push(p.name); log(`${p.name}は${hz.die}`, "dmg"); }
       }
-      const note = `${resist === 1 ? " (悪路渡りで半減)" : ""}${ward ? " (毒消しの心得で半減)" : ""}`;
-      log(`${hz.name}だ！ 隊の全員が${hz.verb}${note}`, "dmg");
+      const note = `${resist === 1 ? " (悪路渡りで半減)" : ""}${ward ? " (毒消しの心得で半減)" : ""}${floaters.length ? ` (${floaters.map((p) => p.name).join("・")}は浮き足で渡り${floated ? "、傷が癒えた" : "、無傷"})` : ""}`;
+      log(`${hz.name}だ！ ${floaters.length ? "隊の" : "隊の全員が"}${hz.verb}${note}`, "dmg");
       flashPartyCards(hurt, "hit");
       if (!anyDeath) {
         // 軽い痛手はトーストと札の明滅だけ (歩みを止めない)
-        showToast(`${hz.name} ― 隊の全員が${hz.verb}${note}`, { noLog: true, tone: "bad", icon: ICONS.poison });
+        showToast(`${hz.name} ― ${floaters.length ? "隊の" : "隊の全員が"}${hz.verb}${note}`, { noLog: true, tone: "bad", icon: ICONS.poison });
         break;
       }
       // 倒れた者が出た時だけ札で知らせる
       showEvent({
         sprite: ICONS.poison, title: `${hz.name}！`, accent: hz.accent, banner: "⚠ 危険 ⚠",
-        lines: [`隊の全員が${hz.verb}${note}…`, ...fallen.map((n) => `${n}は${hz.die}`)],
+        lines: [`${floaters.length ? "隊の" : "隊の全員が"}${hz.verb}${note}…`, ...fallen.map((n) => `${n}は${hz.die}`)],
         btnLabel: "進む",
         onClose: () => {
           SFX.die(); imprintFallen(); if (!G.party.some((p) => p.alive)) { gameOver(); return; }
@@ -7037,12 +7053,15 @@ const CLUE_BREATH = 0.05;
 const CLUE_HIT = 0.02;
 // 眠り灯の吹き方 (rescue): 全滅した時の連れ帰りの時 ×0.9 (rescueDurationMs)
 const CLUE_RESCUE = 0.9;
+// ほぐし薬の書きつけ (waxward): 隊の全員の麻痺の抵抗値 +5 (combat.js setPartyAilBonus)
+const CLUE_WAX = 0.05;
 // セラの囁き (soulEcho): 迷宮で職業の魂を拾った時、この確率でもう一つ拾える (grantSoulQuiet)
 const SOUL_ECHO_RATE = 0.05;
 function syncClueBoons() {
   setPartyEvadeBonus(clueBoon("evade") ? CLUE_EVADE : 0);
   setPartyBreathBonus(clueBoon("breathWard") ? CLUE_BREATH : 0);
   setPartyHitBonus(clueBoon("eyes") ? CLUE_HIT : 0);
+  setPartyAilBonus(clueBoon("waxward") ? { paralyze: CLUE_WAX } : null);
   restockElixirs();
 }
 function stabilityMinutes() { return Math.round(stabilityRecoveryMs() / 60000); }
@@ -8577,8 +8596,10 @@ function askCursedChest(done) {
 // 開ける者の解除値で判定する (盤面の宝箱と同じ罠フェーズを通る)。戦果シートに載せる宝箱の定義を返す。
 // 敵がアイテムを落としていれば中身はそれ。なければダンジョンレベル準拠の抽選。
 // exclude: 出さない罠 (踏破演出など続きがある時は戦闘になる警報を出さない)。lvBonus: ミミック撃破宝箱などの中身底上げ
+// 極「宝呼びの」: 生きている持ち主がいれば、戦闘後の宝箱が出る率 +20%・宝箱のランク +1 (隊で重ならない)
+const treasureCaller = () => G.party.some((p) => p && p.alive && p.gearMisc && p.gearMisc.treasure);
 function battleChestSpec(drops, lvBonus = 0, noGold = false, exclude = null, saved = null) {
-  const data = saved || { cRank: chestRankOf(null), drops, lvBonus, noGold, exclude, state: "closed" };
+  const data = saved || { cRank: Math.min(5, chestRankOf(null) + (treasureCaller() ? 1 : 0)), drops, lvBonus, noGold, exclude, state: "closed" };
   data.outputs ||= [];
   const alive = G.party.filter((p) => p.alive);
   data.name = `${CHEST_RANKS[data.cRank]}宝箱`;
@@ -8916,7 +8937,7 @@ function startBattleMeasured(enemies, cell) {
   for (const e of enemies) e.lv = foeLv;
   // 開幕のパッシブ・迷宮の掟の冷気で掛かる強化・弱体は、開幕の演出の後に1拍ずつ見せる (演出の設定が出す時だけ)
   const modW = beginModWatch(true);
-  G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot"), fleeK: fleeScale(), agiWall: agiWallOf(activeCfg()), statWall: statWallOf(activeCfg()), strongHpWall: strongHpWallOf(activeCfg()), baseAgi: partyAgi(levelHere().lv), foeLv, fervor: !!(trB && trB.fervor), foeRise: (trB && trB.foeRise) || 0, soulFeast: (trB && trB.soulFeast) || 0 });
+  G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot"), fleeK: fleeScale(), agiWall: agiWallOf(activeCfg()), statWall: statWallOf(activeCfg()), strongHpWall: strongHpWallOf(activeCfg()), baseAgi: partyAgi(levelHere().lv), foeLv, fervor: !!(trB && trB.fervor), foeRise: (trB && trB.foeRise) || 0, soulFeast: (trB && trB.soulFeast) || 0, focus: !!(trB && trB.focus) });
   tlWatchBattle(G.battle, tlWhere(), id => infSupplyRecord("used", id));
   // 迷宮の掟の開幕の効果: 寒さに身がすくむ (chill) — 隊の全員の AGI を段数ぶん下げる (3ターン)
   for (const r of ruleOpens) if (r.chill) {
@@ -8969,7 +8990,7 @@ function startBattleMeasured(enemies, cell) {
       else flashScreen("#d8e0ff");
     }
   }
-  // ささやく湖面 (whisper 混乱) / 響く聖歌 (lull 眠り) / 帯電した手すり (jolt 麻痺) — 戦闘の開幕に、隊の一人がこの確率で掛かる (その抵抗で防げる)
+  // ささやく湖面 (whisper 混乱) / 響く聖歌 (lull 眠り) / 帯電した手すり (jolt 麻痺) / 惑わしの香油 (allure 魅了) — 戦闘の開幕に、隊の一人がこの確率で掛かる (その抵抗で防げる)
   for (const r of ruleOpens) for (const o of RULE_ONE_AIL) if (r[o.key] > 0) {
     const live = G.battle.party.filter((p) => p.alive && o.free(p));
     if (!live.length) continue;
@@ -9000,6 +9021,7 @@ function startBattleMeasured(enemies, cell) {
     if (n) log(`${r.name || r.head}：敵に障壁${r.shell}回（半減）`, "sys");
   }
   if (trB && trB.foeRise) log(`${trB.name}：敵が1回蘇生`, "sys");
+  if (trB && trB.focus) log(`${trB.name}：敵は倒れるまで同じ者を狙う（挑発で引き剥がせる）`, "sys");
   if (trB && trB.fervor) log("観客の歓声：2ターン目から毎ターン、敵味方の攻撃+1段", "sys");
   // 闘技場跡の迷宮の掟 (audience): 観客の注文をひとつ出す (応えて勝てば、この戦闘の ✦Soul・金貨 1.5倍 — endBattle)
   G.battle.audience = audienceOrderFor(enemies);
@@ -9046,6 +9068,8 @@ const RULE_ONE_AIL = [
     free: (p) => !p.mind && !p.asleep, put: (b, p) => { p.asleep = true; b._holdAil(p, "sleep"); } },
   { key: "jolt", res: "paralyze", text: "麻痺", color: "#f0e080", hit: "はしびれて、動けなくなった", miss: "はしびれをこらえた",
     free: (p) => !p.ailment, put: (b, p) => { p.ailment = "paralyze"; b._holdAil(p, "para"); } },
+  { key: "allure", res: "charm", text: "魅了", color: "#f0a0d0", hit: "は甘い香りに惑わされ、魅了された", miss: "は香りに惑わされなかった",
+    free: (p) => !p.mind && !p.asleep, put: (b, p) => { p.mind = "charm"; b._holdAil(p, "mind"); } },
 ];
 
 // ===== 迷宮の掟の開幕の演出 (ユーザーの指示、2026-10: 戦闘開始時の傷・吸われた魔力・毒・冷気がログだけでは分からない) =====
@@ -9070,6 +9094,7 @@ const TRAIT_OPEN_FX = {
   whisper: { fx: "dark",  card: "status",   sfx: () => SFX.spell() },
   lull:   { fx: "light",  card: "status",   sfx: () => SFX.spell() },
   jolt:   { fx: "light",  card: "status",   sfx: () => SFX.thunder(), flash: "#f0f0b0" },
+  allure: { fx: "dark",   card: "status",   sfx: () => SFX.spell() },
 };
 function playTraitOpening(info, done) {
   const finish = () => { G.partyShow = null; renderParty(); done(); };
@@ -10668,10 +10693,12 @@ function quickSkillOf(actor) {
   const list = actor ? battleSkills(actor).filter((s) => SPELLS[s]) : [];
   return list[0] || null;
 }
+// 戦闘での消費MP (極「記憶の」で同じ技の続けざまは半分 — Battle.costOf)
+const battleCost = (actor, sp, key) => (G.battle && G.battle.costOf ? G.battle.costOf(actor, sp, key) : spellCost(actor, sp));
 function skillLocked(actor, key) {
   const sp = SPELLS[key];
   if (!sp) return true;
-  if (actor.mp < spellCost(actor, sp)) return true;
+  if (actor.mp < battleCost(actor, sp, key)) return true;
   return sp.target === "ally" && G.battle._allyTargets(sp).length === 0;
 }
 
@@ -10733,7 +10760,7 @@ function renderCombatMenu() {
     if (quick) {
       const sp = SPELLS[quick];
       const locked = skillLocked(actor, quick);
-      const qb = cmdBtn("quick", sp.name, `MP ${spellCost(actor, sp)}`, () => { if (locked) { SFX.ng(); showToast(actor.mp < spellCost(actor, sp) ? "MPが足りない" : "効果のある対象がいない", { tone: "info" }); return; } act("spell", quick); }, "cmd-quick" + (locked ? " locked" : ""));
+      const qb = cmdBtn("quick", sp.name, `MP ${battleCost(actor, sp, quick)}`, () => { if (locked) { SFX.ng(); showToast(actor.mp < battleCost(actor, sp, quick) ? "MPが足りない" : "効果のある対象がいない", { tone: "info" }); return; } act("spell", quick); }, "cmd-quick" + (locked ? " locked" : ""));
       qb.style.setProperty("--sp-col", SPELL_KIND_COLOR[sp.kind] || "#c9a24a");
       const qs = qb.querySelector(".cmd-s"), qt = tagRow(spellTagKinds(sp, actor), "sp-tags");
       if (qs && qt) qs.appendChild(qt);
@@ -10852,7 +10879,7 @@ function showSpells(actor) {
   const quick = lastSkillOf(actor);
   for (const key of skills) {
     const sp = SPELLS[key];
-    const cost = spellCost(actor, sp); // 省詠唱 (chant) 持ちは消費が軽い
+    const cost = battleCost(actor, sp, key); // 省詠唱 (chant) 持ちは消費が軽い・記憶の (極) は同じ技の続けざまが半分
     // 使えない技も長押しで詳細を見られるよう、native disabled ではなく soft-lock にする
     // (disabled だと pointer イベントが飛ばず長押しを拾えない)
     const locked = skillLocked(actor, key);
@@ -11612,7 +11639,9 @@ function distributeBattleSoulExpMeasured(soulGot) {
   const share = Math.floor((soulGot || 0) / 3);
   if (share <= 0) return queue;
   // 魂の薫陶 (soulTutor): その人業が宿す魂 (メイン・サブ) の得るEXP +10/20/30%
-  const tutorMul = (m) => 1 + ([0, 0.10, 0.20, 0.30][Math.min(3, pLv(m, "soulTutor"))] || 0);
+  // 極「語り部の」: 生きている持ち主がいれば隊の全員の魂の EXP +10% (隊で重ならない)
+  const teller = G.party.some((p) => p && p.alive && p.gearMisc && p.gearMisc.teller) ? 0.10 : 0;
+  const tutorMul = (m) => 1 + ([0, 0.10, 0.20, 0.30][Math.min(3, pLv(m, "soulTutor"))] || 0) + teller;
   // 経験値は「編成中に宿している魂」(メイン魂・サブ魂とも) ごとに1回ずつ入る。
   // 魂インスタンスごとに1回だけ加算する (旧セーブの重複装着でも二重加算しない)。
   // サブ魂が得る経験値はメイン魂の 1/3 (SUB_EXP_RATE)。どこかでメイン魂として宿していれば全量扱いにする。
@@ -11839,7 +11868,7 @@ function endBattleMeasured() {
     const wasMasterMimic = b.enemies.some((e) => e.isMasterMimic);
     // 戦果の後に続くもの: 主討伐の踏破の祝祭 → なければ「餓えた群れ」殲滅報酬
     const after = { clearInfo, wasGuard, horde: hordeRewardPending(), evCell };
-    const hasChest = !activeCfg().noChests && !corpse && (trophies.length || !(evCell && evCell.evFight && evCell.evFight.noChest)) && (drop || trophies.length || wasElite || wasGuard || wasMimic || (specialDef() || {}).sureChest || random() < 0.5);
+    const hasChest = !activeCfg().noChests && !corpse && (trophies.length || !(evCell && evCell.evFight && evCell.evFight.noChest)) && (drop || trophies.length || wasElite || wasGuard || wasMimic || (specialDef() || {}).sureChest || random() < 0.5 + (treasureCaller() ? 0.2 : 0));
     const chest = hasChest
       ? battleChestSpec([...trophies, ...(drop ? [drop] : [])], wasMasterMimic ? 30 : wasMimic ? 15 : 0, wasMimic || wasMasterMimic, clearInfo || wasGuard || after.horde ? ["alarm"] : null)
       : null;
@@ -19415,6 +19444,8 @@ async function init() {
     evApi, runEvent, logHistory,
     // 留守居の修練の検証用
     rusui: { distributeBattleSoulExp, RUSUI_EXP_RATE, soulByUid, rusuiSeats, rusuiSeated, toggleRusuiSeat },
+    // 極 (無限迷宮の追加の特性) の検証用
+    affix: { resolveCell, treasureCaller, battleChestSpec, distributeBattleSoulExp },
     // オート移動の検証用
     autoMove: { setAutoMove, toggleAutoMove, autoMovePlan, cellRect, viewSize: () => ({ VW, VH }) },
     // 宿敵の再戦の検証用

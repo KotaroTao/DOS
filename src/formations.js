@@ -1,6 +1,6 @@
 // 保存編成。人業は uid、装備は実物への参照を残す。成長や体調は保存しない。
 import { SLOTS, MAX_ITEMS, canEquip, canOffhand, itemName, isFormationItem } from "./items.js";
-import { recalcDoll, subPicks, subPickCap, soulLearnedSkills, soulLearnedPassives } from "./souls.js";
+import { recalcDoll, subPicks, subPickCap, kindleSubIndex, soulLearnedSkills, soulLearnedPassives } from "./souls.js";
 
 export const FORMATION_COUNT = 10;
 const dollsOf = g => [...(g.party || []), ...(g.reserve || [])];
@@ -64,6 +64,7 @@ export function planFormation(g, index, { subSlots = 2, soulChange = true } = {}
     const local = new Set(main ? [main.clsKey] : []);
     const subs = copySubs(m.subs);
     if (subs.some((s, i) => s && i >= subSlots)) return fail(`${d.name}のサブ魂の枠はまだ解放されていません。`);
+    const kidx = kindleSubIndex({ equip: m.equip || {}, subs }); // 宿り火の (極): 保存した装備で借りる数が1つ増える
     for (const sub of subs.filter(Boolean)) {
       const s = souls.get(sub.uid);
       if (!s) return fail(`${d.name}のサブ魂を所持していません。`);
@@ -71,7 +72,7 @@ export function planFormation(g, index, { subSlots = 2, soulChange = true } = {}
       local.add(s.clsKey);
       const skills = soulLearnedSkills(s), passives = soulLearnedPassives(s);
       const keys = sub.picks.map(p => `${p.skill ? "s" : "p"}:${p.skill || p.passive}`);
-      if (sub.picks.length > subPickCap(s) || new Set(keys).size !== keys.length || sub.picks.some(p => p.skill ? !skills.includes(p.skill) : !passives[p.passive])) return fail(`${d.name}の借りる技・パッシブを再現できません。`);
+      if (sub.picks.length > subPickCap(s) + (subs.indexOf(sub) === kidx ? 1 : 0) || new Set(keys).size !== keys.length || sub.picks.some(p => p.skill ? !skills.includes(p.skill) : !passives[p.passive])) return fail(`${d.name}の借りる技・パッシブを再現できません。`);
     }
     for (const uid of [m.primary, ...subs.filter(Boolean).map(s => s.uid)].filter(x => x != null)) {
       if (claimedSouls.has(uid)) return fail("同じ魂を複数の場所には宿せません。");

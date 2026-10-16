@@ -3294,6 +3294,8 @@ const VISTAS = {
   w34: [0, vCloudBridge], w35: [0, vBeastCages], w36: [0, vSpectreStands], w37: [11, vBloodSand], ws18: [0, vVictorsRoom], ws19: [0, vDuelRing],
   w38: [0, vLampDrift], w39: [0, vBlackLake], w40: [0, vNameGrotto], w41: [0, vGreatNave], ws20: [0, vBeastLair], ws21: [0, vFossilDragon], ws22: [12, vCrystalVein],
   w42: [0, vShelfStair], w43: [0, vRainArchive], w44: [0, vGlassWorks], w45: [0, vGreatArchive], ws23: [0, vPictureRoom], ws24: [0, vClosedStacks],
+  // 第十二章「王家の廟」: 専用の情景は描き下ろし待ち (docs/art/chapter12-art-list.md)。それまでは近い情景を借りる
+  w46: [0, vNameGrotto], w47: [0, vGlassWorks], w48: [0, vGreatNave], w49: [0, vGreatNave], ws25: [0, vNameGrotto], ws26: [0, vBeastLair], ws27: [0, vGreatNave],
 };
 function finishVista(out, w, h) { // 周辺減光だけ (名札帯・中央減光はしない)
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
