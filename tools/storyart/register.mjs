@@ -27,7 +27,6 @@ export const PROLOGUE = {
   "first-vessel-awakening": "first_vessel",
   "three-vessels-audience": "three",
   "four-vessels-departure": "departure",
-  "first-descent-gatekeeper": "first_descent",
   "irene-meeting": "irene_meeting",
   "royal-audience": "arrival",
   "irene-repair": "irene_repair",
