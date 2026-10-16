@@ -118,7 +118,7 @@
 | 第9章「闘技場跡」 | `report_w35` | 使い回された魂 | 出荷済み | [見る](chapter9.md#report_w35) |
 | 第9章「闘技場跡」 | `w36_nook` | 灯番の子 | 出荷済み | [見る](chapter9.md#w36_nook) |
 | 第9章「闘技場跡」 | `report_w36` | 玉座と観客席 | 出荷済み | [見る](chapter9.md#report_w36) |
-| 第9章「闘技場跡」 | `irene_firstdoll` | 最初の人形 | 出荷済み | [見る](chapter9.md#irene_firstdoll) |
+| 第9章「闘技場跡」 | `irene_firstdoll` | 最初の人業 | 出荷済み | [見る](chapter9.md#irene_firstdoll) |
 | 第9章「闘技場跡」 | `mem_w37` | 十三度目の灯 | 出荷済み | [見る](chapter9.md#mem_w37) |
 | 第9章「闘技場跡」 | `report_w37` | 休みのない百年 | 出荷済み | [見る](chapter9.md#report_w37) |
 | 第9章「闘技場跡」 | `irene_rest` | 休む灯 | 出荷済み | [見る](chapter9.md#irene_rest) |
