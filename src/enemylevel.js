@@ -10,7 +10,7 @@
 // game.js も ui も import しない (combat.js の組み立てを借りるだけ)
 import { WORLD, poolAt, strengthAt, abyssLayer, dungeonLevelRaw, agiWallOf, strongHpWallOf, statWallOf } from "./dungeons/world.js";
 import { lvPow, partyAgi } from "./levelcurve.js";
-import { spawnEliteEnemies, spawnBossEnemies, spawnMimic, spawnRanked, spawnMetal, scaleFoeAgi, scaleStrongFoeHp, scaleFoeStats } from "./combat.js";
+import { spawnEliteEnemies, spawnBossEnemies, setBossHp, regularHpRef, spawnMimic, spawnRanked, spawnMetal, scaleFoeAgi, scaleStrongFoeHp, scaleFoeStats } from "./combat.js";
 import { MONSTERS } from "./sprites.js";
 import { METAL_TIERS } from "./dungeons/index.js";
 
@@ -61,12 +61,12 @@ function collectAt(key, at, list) {
     if (k === key) one(spawnEliteEnemies(key, solo));
     else if (MONSTERS[k] && MONSTERS[k].summonKey === key) one(spawnEliteEnemies(key, solo));
   }
-  // 迷宮の主 (最下階)。主の呼ぶ手下は主の倍率のまま
+  // 迷宮の主 (最下階)。主の呼ぶ手下は主の倍率のまま。HP は雑魚の平均HP の基準の倍率
   if (at.bottom && at.boss) {
     const bs = at.bossScale * at.base;
     if (at.boss === key) {
       const e = spawnBossEnemies(key, bs, at.bossRank)[0];
-      if ((t.bossHpMul || 1) !== 1) e.maxhp = e.hp = Math.max(1, Math.round(e.maxhp * t.bossHpMul));
+      setBossHp(e, regularHpRef(at.pool, reg)); // 最下階の雑魚の平均HP × 基準の倍率 × 特色 (game.js と同じ)
       one([e]);
     } else if (MONSTERS[at.boss] && MONSTERS[at.boss].summonKey === key) one(spawnEliteEnemies(key, bs));
   }
