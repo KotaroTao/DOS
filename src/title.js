@@ -33,7 +33,7 @@ function div(cls, text) {
 }
 const sfx = (k) => { try { SFX[k] && SFX[k](); } catch {} };
 
-export function showTitle({ hasSave = false, summary = null, onStart, onNewGame = null, startName = "", testDungeons = [], testScenes = [], onTestPlay = null } = {}) {
+export function showTitle({ hasSave = false, summary = null, onStart, onNewGame = null, saveSlot = 1, onSelectSlot = null, startName = "", testDungeons = [], testScenes = [], onTestPlay = null } = {}) {
   const readyName = hasSave ? "" : normalizeName(startName);
   const wrap = div("ttl-overlay");
   if (REDUCED) wrap.classList.add("ttl-still");
@@ -68,9 +68,27 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
   low.appendChild(tap);
 
   const menu = div("ttl-menu " + (hasSave && summary ? "has-save" : "no-save"));
+  if (onSelectSlot) {
+    const slots = div("ttl-slots");
+    slots.setAttribute("role", "group");
+    slots.setAttribute("aria-label", "冒険の記録を選ぶ");
+    for (let slot = 1; slot <= 3; slot++) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "ttl-slot";
+      b.textContent = `記録${slot}`;
+      b.setAttribute("aria-pressed", String(slot === saveSlot));
+      b.addEventListener("click", e => {
+        e.stopPropagation();
+        if (slot !== saveSlot) onSelectSlot(slot);
+      });
+      slots.appendChild(b);
+    }
+    menu.appendChild(slots);
+  }
   if (hasSave && summary) {
     const sc = div("ttl-save");
-    sc.appendChild(div("ttl-save-k", "冒険の記録"));
+    sc.appendChild(div("ttl-save-k", `冒険の記録${saveSlot}`));
     if (summary.head) sc.appendChild(div("ttl-save-h", summary.head));
     if (summary.sprites && summary.sprites.length) {
       const row = div("ttl-party");
@@ -128,7 +146,7 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
 
   // 「はじめから」(セーブあり) の確認
   const confirmBox = div("ttl-confirm hidden");
-  confirmBox.append(div("ttl-confirm-t", "いまの記録を消して、最初から始めますか？"), div("ttl-confirm-s", "消した記録は二度と戻りません。"));
+  confirmBox.append(div("ttl-confirm-t", "この記録を消して、最初から始めますか？"), div("ttl-confirm-s", "ほかの記録は残ります。消した記録は二度と戻りません。"));
   const cRow = div("ttl-confirm-row");
   const cYes = mkBtn("消して始める", null, "danger");
   const cNo = mkBtn("やめる", null, "");
@@ -454,7 +472,7 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
       e.preventDefault(); e.stopPropagation();
       if (!confirmBox.classList.contains("hidden")) return;
       const a = document.activeElement;
-      if (a && a.classList && a.classList.contains("ttl-btn") && wrap.contains(a)) { a.click(); return; }
+      if (a && a.classList && (a.classList.contains("ttl-btn") || a.classList.contains("ttl-slot")) && wrap.contains(a)) { a.click(); return; }
       start();
     } else e.stopPropagation(); // タイトル表示中はゲームへの入力を通さない
   };

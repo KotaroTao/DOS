@@ -158,4 +158,28 @@ for (const ability of ["goldSteal", "soulSteal", "drain"]) {
   await Promise.all([c.save({ first: true }), c.save({ second: true }), c.battle("enemy")]);
   assert.deepEqual(revisions, [0, 1, 2]); assert.equal(c.revision, 3);
 }
+// 別の枠の送信待ちを残したまま、それぞれ同じ要求を回収できる。
+{
+  const disk = storage(), sent = new Map();
+  for (const slot of [1, 2, 3]) {
+    const c = new CloudSaveClient(config, { storage: disk, slot, fetcher: async (url, opts) => {
+      const body = JSON.parse(opts.body);
+      assert.equal(body.slot ?? 1, slot);
+      sent.set(slot, body); throw new Error("終了");
+    } });
+    c.auth = auth; c.sessionId = "session";
+    await assert.rejects(c.save({ slot }));
+  }
+  for (const slot of [3, 2, 1]) {
+    const c = new CloudSaveClient(config, { storage: disk, slot, fetcher: async (url, opts) => {
+      assert.deepEqual(JSON.parse(opts.body), sent.get(slot));
+      return Response.json({ revision: 1 });
+    } });
+    c.auth = auth; c.sessionId = "session";
+    await c.recover();
+    const key = n => "dos-cloud-pending:test-user" + (n === 1 ? "" : ":slot:" + n);
+    assert.equal(disk.getItem(key(slot)), null);
+    for (let n = 1; n < slot; n++) assert(disk.getItem(key(n)));
+  }
+}
 console.log("クラウド保存: 共有参照・30種の再開・死亡・再送・送信待ち回収・直列更新 OK");

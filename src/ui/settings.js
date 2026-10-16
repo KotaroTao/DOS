@@ -6,7 +6,7 @@
 //   自動化  … オート継続・オート移動と見えている敵・宝箱は最良の解除役で開ける・朽ちた死体を自動で調べる・戦果を自動で閉じる・帰還時に宿で休む・まとめて売るに道具を含める
 //              UI の好み (prefs.js = dos-ui)。読むのは各パッケージ (WP-D の戦闘/盤面/帰還、街の宿)
 //   テスト記録 … 戦闘バランス調整用の記録 (telemetry.js) の ON/OFF・要約の閲覧・書き出し (コピー)・消去
-//   データ  … はじめから (全削除)。決断は二段で、どちらも「やめておく」に手が掛かる並び
+//   データ  … 保存してタイトルへ / 選んだ記録だけを削除してはじめから。決断は二段で、どちらも「やめておく」に手が掛かる並び
 // 提供: UI.openSettings() / UI.settingsSheet({onClose}) (game.js の openSettings が使う) / UI.confirmReset()
 // game.js は import しない (ctx.js の UI / game を通す)。
 
@@ -225,10 +225,16 @@ function fillAuto(box) {
   logRow.classList.toggle("hidden", !tlOn() && !tlHasData());
   box.appendChild(logRow);
   box.appendChild(sec("データ"));
+  const title = el("button", "stg-row");
+  title.type = "button";
+  title.appendChild(setText(el("span", "stg-row-n"), `記録${game.saveSlot || 1}を保存してタイトルへ`));
+  title.appendChild(setText(el("span", "stg-row-d"), "タイトルで3つの冒険の記録を選べる"));
+  title.addEventListener("click", () => game.returnToTitle?.());
+  box.appendChild(title);
   const reset = el("button", "stg-row stg-danger");
   reset.type = "button";
   const rt = el("span", "stg-row-t");
-  rt.appendChild(setText(el("span", "stg-row-n"), "はじめから (全データ削除)"));
+  rt.appendChild(setText(el("span", "stg-row-n"), "この記録を削除して はじめから"));
   rt.appendChild(setText(el("span", "stg-row-d"), "人業・魂・図鑑・進行度がすべて失われる"));
   reset.appendChild(rt);
   reset.appendChild(el("span", "stg-danger-b", "削除…"));
@@ -378,10 +384,10 @@ function dangerConfirm({ banner, title, lines = [], okLabel }) {
 }
 
 export function confirmReset() {
-  dangerConfirm({ banner: "警告", title: "全データを削除して、最初から始めますか？", lines: ["人業・魂・図鑑・進行度がすべて失われる。"], okLabel: "削除へ進む" })
+  dangerConfirm({ banner: "警告", title: "この冒険の記録を削除して、最初から始めますか？", lines: ["人業・魂・図鑑・進行度がすべて失われる。"], okLabel: "削除へ進む" })
     .then((ok) => {
       if (!ok) return;
-      return dangerConfirm({ banner: "最終確認", title: "本当に、すべてを消しますか？", lines: ["消した記録は二度と戻らない。", "(音量などの端末の好みは残る)"], okLabel: "すべて削除して はじめから" })
+      return dangerConfirm({ banner: "最終確認", title: "本当に、この記録を消しますか？", lines: ["消した記録は二度と戻らない。", "ほかの冒険の記録と、音量などの端末の好みは残る"], okLabel: "この記録を削除して はじめから" })
         .then((ok2) => { if (ok2 && game.resetAllData) game.resetAllData(); });
     });
 }

@@ -25,7 +25,7 @@ for f in $(git ls-files 'src/*.js'); do node --check "$f"; done   # 構文チェ
 - `main` へ push すると GitHub Pages に自動でデプロイされる。`main` へ直接 push しない (PR 経由)。
 - GitHub Pages の公開サイトは **1GB まで**。デプロイは `docs/`・`tools/`・`art/story-review/`・ルートの `*.md` と確認用 PNG を外して公開し、800MB を超えるか `ASSETS` の品が欠けると止まる。原画・制作記録は `docs/` か `art/story-review/` に置き、ゲームが読むフォルダ (`art/story/`・`art/jobs/` など) には置かない。
 - **ID は足すだけ** (セーブ・図鑑が参照する): 魔物 (`bs_*` など)・品 (`w_`/`lr_`…)・技の鍵・出来事 (`c01`…)・依頼・勲章の段・イレーヌの台詞・迷宮 (`w01`…) の id を改名・再利用・削除しない。
-- セーブのキーは `dos-save-v7`。保存するのは game.js の `SAVE_FIELDS` だけ。共有参照は `refSerialize` が保つので、状態を複製し直さない。
+- セーブは3枠。記録1のキーは `dos-save-v7`、記録2・3は `dos-save-v7-slot-2/3`。保存するのは game.js の `SAVE_FIELDS` だけ。共有参照は `refSerialize` が保つので、状態を複製し直さない。
 - **結果を決める乱数は `src/rng.js` の `random()` / `randInt(n)`** (種つき・位置は `G.rng` でセーブに入る)。`Math.random` は演出 (粒子・揺れ・台詞の選び方) だけに使い、描画の中で `random()` を引かない。詳細は `CLAUDE.md` の `### State & persistence`。
 - 依存の向き: `src/ui/*` と `src/events.js` は **game.js を import しない** (ui は `ctx.js` の `UI`/`game`/`ops`、出来事は `evApi` 経由)。`combat.js` は純粋なロジックで、演出・効果音は game.js 側。
 - 画面: ページ送り (‹ 1/2 ›) は作らない。入りきらない中身は内側の箱を縦にスクロールさせる。説明文の改行は `src/ui/phrase.js` が自動で行うので、手で `\n` を入れて折らない。

@@ -1,9 +1,26 @@
 // ローカルの記録は一つの画面だけが扱う。ロックは画面を閉じるまで保つ。
 export const LOCAL_SAVE_KEY = "dos-save-v7";
 export const LOCAL_RECOVERY_KEY = LOCAL_SAVE_KEY + "-recovery";
+export const SAVE_SLOT_COUNT = 3;
+export function saveSlotFromURL(href = location.href) {
+  const slot = Number(new URL(href).searchParams.get("saveSlot") || 1);
+  return Number.isInteger(slot) && slot >= 1 && slot <= SAVE_SLOT_COUNT ? slot : 1;
+}
+export function localSaveKey(slot = 1) {
+  if (!Number.isInteger(slot) || slot < 1 || slot > SAVE_SLOT_COUNT) throw new Error("記録の番号が不正です。");
+  return slot === 1 ? LOCAL_SAVE_KEY : `${LOCAL_SAVE_KEY}-slot-${slot}`;
+}
+export function selectSaveSlot(slot) {
+  localSaveKey(slot);
+  const url = new URL(location.href);
+  url.searchParams.set("saveSlot", slot);
+  location.assign(url.href);
+}
 
 export class LocalSaveSession {
-  constructor({ storage = localStorage, locks = navigator.locks, onConflict = () => {} } = {}) {
+  constructor({ storage = localStorage, locks = navigator.locks, slot = 1, onConflict = () => {} } = {}) {
+    this.key = localSaveKey(slot);
+    this.recoveryKey = this.key + "-recovery";
     this.storage = storage;
     this.locks = locks;
     this.onConflict = onConflict;
@@ -14,10 +31,10 @@ export class LocalSaveSession {
     // 排他を保証できない環境では、古い記録を上書きさせない。
     if (!this.locks) throw new Error("記録を安全に開くため、ブラウザを最新版に更新してください。");
     return new Promise((resolve, reject) => {
-      this.locks.request(LOCAL_SAVE_KEY, { ifAvailable: true }, async lock => {
+      this.locks.request(this.key, { ifAvailable: true }, async lock => {
         if (!lock) { resolve(false); return; }
         this.owned = true;
-        try { this.raw = this.storage.getItem(LOCAL_SAVE_KEY); }
+        try { this.raw = this.storage.getItem(this.key); }
         catch (e) { this.owned = false; reject(e); return; }
         resolve(true);
         await new Promise(done => { this.release = () => { this.owned = false; done(); }; });
@@ -26,37 +43,37 @@ export class LocalSaveSession {
   }
   unchanged() {
     if (!this.owned) return false;
-    if (this.storage.getItem(LOCAL_SAVE_KEY) === this.raw) return true;
+    if (this.storage.getItem(this.key) === this.raw) return true;
     this.owned = false;
     this.onConflict();
     return false;
   }
   write(raw) {
     if (!this.unchanged()) return false;
-    if (raw === null) this.storage.removeItem(LOCAL_SAVE_KEY);
-    else this.storage.setItem(LOCAL_SAVE_KEY, raw);
+    if (raw === null) this.storage.removeItem(this.key);
+    else this.storage.setItem(this.key, raw);
     this.raw = raw;
     return true;
   }
   eraseAll() {
     if (!this.unchanged()) return false;
     for (const key of Array.from({ length: this.storage.length }, (_, i) => this.storage.key(i))) {
-      if (key === LOCAL_RECOVERY_KEY || key?.startsWith(LOCAL_SAVE_KEY + "-damaged-")) this.storage.removeItem(key);
+      if (key === this.recoveryKey || key?.startsWith(this.key + "-damaged-")) this.storage.removeItem(key);
     }
     return this.write(null);
   }
   // 正常に読み込めた起動時の記録を残す。退避の失敗で本来の保存は止めない。
   keepRecovery() {
     if (this.raw === null || !this.unchanged()) return;
-    try { this.storage.setItem(LOCAL_RECOVERY_KEY, this.raw); } catch {}
+    try { this.storage.setItem(this.recoveryKey, this.raw); } catch {}
   }
   quarantine() {
     if (this.raw === null || !this.unchanged()) return false;
     for (let i = 0; i < this.storage.length; i++) {
       const key = this.storage.key(i);
-      if (key?.startsWith(LOCAL_SAVE_KEY + "-damaged-") && this.storage.getItem(key) === this.raw) return true;
+      if (key?.startsWith(this.key + "-damaged-") && this.storage.getItem(key) === this.raw) return true;
     }
-    const key = LOCAL_SAVE_KEY + "-damaged-" + crypto.randomUUID();
+    const key = this.key + "-damaged-" + crypto.randomUUID();
     this.storage.setItem(key, this.raw);
     if (this.storage.getItem(key) !== this.raw) throw new Error("記録を退避できませんでした。");
     return true;
@@ -103,7 +120,7 @@ export function showLocalSaveRecovery(session, valid) {
     document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   }).focus();
   let backup = null;
-  try { backup = session.storage.getItem(LOCAL_RECOVERY_KEY); } catch {}
+  try { backup = session.storage.getItem(session.recoveryKey); } catch {}
   if (archived && backup && valid(backup)) {
     g.button("前に読み込めた記録から復旧する", () => {
       try { if (session.write(backup)) location.reload(); }
