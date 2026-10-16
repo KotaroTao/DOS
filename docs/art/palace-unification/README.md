@@ -14,11 +14,14 @@
 
 共通基準は [制作指示書2-5](../codex-story-art-brief.md#2-5-王宮の建築を統一する基準)。`prompt.mjs` は玉座の間の全50場面（未制作の第十二章も含む）に共通の建築指示と `report_w12` を付け、序章の外観には街のパノラマを付ける。場面を増やす際も `illustration.setting === "throne"` を用いる。基準を人物や小道具と同じ指示書から読むため、二重管理しない。
 
+専用の挿絵がない語りで、初回に王宮背景が省略されていた不具合も修正した。未描画の状態を「専用絵なし」の `null` と分け、最初のページでも既定の背景を描く。
+
 ## 確認
 
 - `python3 tools/storyart/build.py`: 変更した物語原画2枚のみをWebPへ変換。登録・制作指示・読み物159場面の検査に合格。
 - `python3 tools/townart/build.py --only palace` と `--check`: 王宮背景を変換し、登録・原画の整合を確認。
 - 玉座の間50場面への建築指示・参照画像の付与、凍王や王家の廟・館への非適用を確認。
+- スマホ390×844・タブレット744×1000の実際の物語UIで3枚を確認。王宮背景はcanvasの描画完了も確認し、画像の読み込み失敗・実行時エラーなし。
 - 物語本文・ゲームの規則・保存データは変更しない。酒場の心得の追加・更新は対象外。
 
 物語の確認ページ: [序章](../../../art/story-review/review/chapter0.md) / [第二章](../../../art/story-review/review/chapter2.md)。縮小の見本: [序章](../../../art/story-review/review/chapter0-small.jpg) / [第二章](../../../art/story-review/review/chapter2-small.jpg)。
