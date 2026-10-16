@@ -24,6 +24,7 @@ import { iconCanvas } from "../townart.js";
 import { drawDungeonVista } from "../backdrops.js";
 import { CHAPTERS } from "../story.js";
 import { LORE_IMAGES } from "../storyimages.js";
+import { BATTLE_BACKGROUNDS } from "../battlebackgrounds.js";
 import { dungeonQuestSheet, dungeonActiveQuestSheet, byLevelDesc } from "./questboard.js";
 
 const G = () => game.G;
@@ -92,7 +93,7 @@ const VISTA_W = 480, VISTA_H = 320; // 戦闘背景と同じ 3:2 で描き、表
 let vistaLoop = 0;
 function vistaIllustration(dn) {
   // 全迷宮で専用のWebP原画を使う。序章は入口の絵を保ち、由来の結末を見せない。
-  const path = dn.id === "w00_forest" ? "art/dungeon/w00_forest-entrance.webp" : LORE_IMAGES[dn.id];
+  const path = dn.id === "w00_forest" ? "art/dungeon/w00_forest-entrance.webp" : LORE_IMAGES[dn.id] || BATTLE_BACKGROUNDS[dn.id];
   if (!path) return vistaCanvas(dn);
   const img = document.createElement("img");
   img.className = "dp-vista-cv";

@@ -437,7 +437,7 @@ The UI was rebuilt into packages under `src/ui/` (plain ES modules; **they never
 
 - 職業の魂の入手ポップアップは `src/ui/soulart.js` の透過アニメーションWebP (`art/souls/acquisition.webp`) を使い、職業の `glow` 色に染める。動きを減らす設定では静止WebP、読み込み失敗時は従来の人魂アイコン。トースト・戦果の小さな魂は従来どおり。心得 `t_soul_wisp`。
 
-- 戦闘背景は `src/battlebackgrounds.js` の迷宮ID対応で `art/battle/<id>.webp` を読み込む (全77迷宮 + 無限迷宮)。中央を暗くし、主・強敵は赤い周辺光を重ねる。読み込み中・失敗時は `backdrops.js` の既存情景を使う。出撃画面は台帳の全迷宮で専用WebPを表示する (`src/ui/departure.js`。序章は `art/dungeon/w00_forest-entrance.webp`、ほかは `LORE_IMAGES` の原画。取得失敗時は `drawDungeonVista` の情景に戻る)。設定「漆黒」は従来どおり。心得 `t_battle_scenery`。
+- 戦闘背景は `src/battlebackgrounds.js` の迷宮ID対応で `art/battle/<id>.webp` を読み込む (全77迷宮 + 無限迷宮)。中央を暗くし、主・強敵は赤い周辺光を重ねる。読み込み中・失敗時は `backdrops.js` の既存情景を使う。出撃画面は台帳の全迷宮で専用WebPを表示する (`src/ui/departure.js`。序章は `art/dungeon/w00_forest-entrance.webp`、ほかは `LORE_IMAGES` の原画、未登録なら専用の `BATTLE_BACKGROUNDS`。取得失敗時は `drawDungeonVista` の情景に戻る)。設定「漆黒」は従来どおり。心得 `t_battle_scenery`。
 
 - 異変「飢えた狩場」は戦闘開始時にも最低3体を保証する (`startBattleMeasured`)。主・強敵・銀業・ミミック・出来事にも、その階の通常の魔物を不足分だけ添える。一騎打ちの掟 (`trait.duel`) がある迷宮では抽選候補から除外し、以前の候補・出撃・保存済みの異変の適用時にも対象条件を確かめる (`mutatorForDungeon`)。元の特殊敵は増やさず、強さ・戦果の異変倍率は従来どおり通常敵だけに効く。記憶への再戦は対象外。迷宮の掟の `packMin` は従来どおり通常の群れだけ。心得 `t_mut`。
 - ユーザーがPRのマージを指示した後は `python3 tools/release/merge.py <PR番号> --head <確認済みの40桁SHA> --merge` で検査から公開確認までまとめて実行する (`docs/merge-and-publish.md`)。公開の成否まで報告し、同じ許可を聞き直さない。指示前にはマージしない。
