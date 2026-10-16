@@ -11,6 +11,7 @@
 const CACHE = "dos-dev";
 const DEV = CACHE === "dos-dev";
 const ASSETS = [
+  "./src/local-save.js",
   "./art/unidentified/ls.webp",
   "./art/unidentified/dg.webp",
   "./art/unidentified/kt.webp",
