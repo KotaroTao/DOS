@@ -9,10 +9,13 @@ import { WORLD } from "../../src/dungeons/world.js";
 import { STORY_CELLS, REPORTS, BOSS_MEMORIES, BOSS_PRELUDES, IRENE_BEATS, CHAPTER_END } from "../../src/story.js";
 import { imageSize } from "../storyart/imagesize.mjs";
 import { registerDrift } from "../storyart/register.mjs";
+import { scenePaths } from "../storyart/scenes.mjs";
 
 const sw = readFileSync(new URL("../../sw.js", import.meta.url), "utf8");
 // 絵の登録 (src/storyimages.js・sw.js の ASSETS) が art/story/ の WebP と一致する (tools/storyart/register.mjs)
 assert.deepEqual(registerDrift(), [], "物語・由来の絵の登録");
+assert.equal(ARCHIVE_STORIES.find(s => s.id === "first_descent").chapter, 1, "安定度の手引きは修道院前の第一章");
+assert.deepEqual(scenePaths("first_descent"), { master: "art/story-review/prologue/first-descent-gatekeeper.png", shipped: "art/story/first-descent-gatekeeper.webp" }, "章を移しても門衛の絵の原画・配信先を保つ");
 // 端末へ裏で集める物語の絵は、進めている章まで (sw.js warmMedia)
 {
   const ch = (urls) => [...new Set(urls.filter(u => !u.includes("/dungeons/"))
