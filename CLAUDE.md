@@ -359,7 +359,7 @@ Six elements + `none`, defined in `schema.js`. Advantage cycle is **火→風→
 
 戦闘画面下の敵名 (全画面幅の `#enemy-names`) は、図鑑の名前・能力・特徴・説明文・伝承が全開示済みなら金色 (`.enemy-name.complete`)。通常敵・強敵は10体、主は1体 (強敵の能力は従来どおり1体)。伝承のある魔物は本編で1体以上の討伐も必要。図鑑対象外の出来事の敵は対象外。酒場の心得 `t_codex_complete`。
 
-酒場の依頼者47人の肖像は `src/questportraits.js` の名前別台帳と `src/ui/questportrait.js` で表示する。掲示板は目的の印に加えて顔と名前を添え、固有の依頼一覧・詳細・報告でも同じ顔を使う。読み込み失敗時は従来の目的の印へ戻す。原画は `docs/art/tavern-clients/`、出荷は `art/quest-clients/` の圧縮WebP。セーブ内の依頼人番号と依頼IDは変えない。心得 `t_quest_faces`。
+酒場の依頼者52人の肖像は `src/questportraits.js` の名前別台帳と `src/ui/questportrait.js` で表示する。掲示板は目的の印に加えて顔と名前を添え、固有の依頼一覧・詳細・報告でも同じ顔を使う。読み込み失敗時は従来の目的の印へ戻す。原画は `docs/art/tavern-clients/`、出荷は `art/quest-clients/` の圧縮WebP。セーブ内の依頼人番号と依頼IDは変えない。心得 `t_quest_faces`。
 
 背の低い画面の戦闘では行動順と記録（最低54px）を隊の札に重ねず、収まらない部分はゲームの内側を縦にスクロールして操作できる。通常の高さでは従来どおり1画面に収める。心得 `t_log_all`。
 
