@@ -14975,7 +14975,7 @@ function audienceTutorial() {
 function reportTutorialQuest() { return prologueAudience(); }
 
 // 機能解放: 章 (story.js CHAPTERS) と、その章で王に報告した本筋の迷宮の数で決める (節目の報告で王から授かる)。
-//   第一章は入門なので4つ、第二章からは1章に1つ (docs/tasks.md U1)。report = その章で報告した数 / "finale" = 章の結びの迷宮。
+//   第一章は入門なので段階的に開き、第二章からは1章に1つ (docs/tasks.md U1)。report = その章で報告した数 / "finale" = 章の結びの迷宮。
 //   報告の総数で決めないので、迷宮を回る順 (黒水の取水口を後回しにする等) に左右されない。
 //   通常は報告後に開く。cleared 指定の機能だけは、その迷宮を踏破した時点で開く。
 //   まだ無い章の分 (第四章のサブ魂2枠・第五章の奈落) は、その章が台帳に載るまで開かない
@@ -19592,6 +19592,10 @@ async function init() {
     const codex = document.createElement("button");
     codex.type = "button"; codex.textContent = "図鑑・全データ";
     codex.addEventListener("click", () => UI.openCodexSheet?.({ all: true }));
+    // 序章を通す試遊では、本編と同じ解放時期を確かめられるようにする。
+    const updateCodexButton = () => { codex.hidden = !!G.testStoryFlow && !featureUnlocked("codex"); };
+    updateCodexButton();
+    setInterval(updateCodexButton, 1000);
     banner.appendChild(codex);
     const record = document.createElement("button");
     record.type = "button"; record.textContent = recording ? "記録・メモ" : "試遊の記録";

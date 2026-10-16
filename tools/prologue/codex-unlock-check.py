@@ -72,6 +72,11 @@ with sync_playwright() as p:
         page.wait_for_function('window.__game?.G.party.length===6')
         assert page.evaluate('async()=>{const {game}=await import("/src/ui/ctx.js");return game.featureUnlocked("codex")&&game.featureUnlocked("insight")&&game.featureUnlocked("tavern")}')
         assert page.evaluate("JSON.stringify(Object.fromEntries(['mon','item','job'].map(k=>[k,__game.G.codex[k]])))") == expected
+        page.goto('http://localhost:8000/?testScene=prologue:start', wait_until='domcontentloaded')
+        page.wait_for_selector('.test-play-banner')
+        assert not page.get_by_role('button', name='図鑑・全データ', exact=True).is_visible()
+        page.evaluate('__game.G.world.cleared.w02=1')
+        page.get_by_role('button', name='図鑑・全データ', exact=True).wait_for(state='visible')
         assert not errors, errors
         context.close()
         print(f'{width}px: 図鑑の解放・入口制限・記録保全・回廊報告と二報告の酒場解放 OK', flush=True)
