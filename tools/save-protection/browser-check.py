@@ -30,6 +30,12 @@ async def main():
         page = await c.new_page()
         await visit(page, "?testDungeon=w05&testPlace=town")
         seed = await page.evaluate("__game.inf.saveJSON()")
+        await page.evaluate("s=>localStorage.setItem('dos-save-v7',s)", seed)
+        async with page.expect_navigation(wait_until="domcontentloaded"):
+            await page.evaluate("async()=>{const {game}=await import('/src/ui/ctx.js');game.resetAllData()}")
+        await page.wait_for_function("window.__game?.G.party.length>0 && !document.body.classList.contains('booting')")
+        assert await page.evaluate("localStorage.getItem('dos-save-v7')") == seed
+        print("試遊のやり直しは通常記録を消さずに再開: OK", flush=True)
         await c.close()
 
         c = await context()

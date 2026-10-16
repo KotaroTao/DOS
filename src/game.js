@@ -19363,7 +19363,7 @@ function wireUI() {
 // ==== [WP-A] UI API ==== (街・王宮・物語・設定・タイトル: WP-A が所有)
 // 街タブ・王宮タブ・酒場/祠のページ・宿のシート・設定のシート・物語の場面 (src/ui/hub.js ほか) が使う game.js の内部。
 // 読み込み時に一度 bindGame で結ぶ (wireUI の bindGame と同じ窓口に足し込む。名前は重ねない)
-function resetAllData() { if (cloudEnabled() && !testPlayActive) return; if (!clearSave()) return; _resetting = true; location.reload(); }
+function resetAllData() { if (cloudEnabled() && !testPlayActive) return; if (!testPlayActive && !clearSave()) return; _resetting = true; location.reload(); }
 bindGame({
   // いまの目標・勅命・物語
   STABILITY_MAX, STABILITY_ENTRY_COST, STABILITY_RECOVERY_MS, refreshStability, stabilityStatus, restoreStability,
