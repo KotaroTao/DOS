@@ -270,9 +270,9 @@
   html.pc-input .wpc-list.buy.pc-shop-browser { display: flex; overflow: hidden; }
   html.pc-input .pc-master { flex: 1 1 0; grid-template-columns: minmax(240px, .85fr) minmax(0, 1.15fr); height: 100%; }
   html.pc-input .pc-rows { max-height: none; flex: 1 1 0; }
-  html.pc-input .pc-detail .wpc-srow { flex-direction: column; align-items: stretch; gap: 12px; }
+  html.pc-input .pc-detail .wpc-srow { display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
   html.pc-input .pc-detail .wpc-srow-info { width: 100%; }
-  html.pc-input .pc-detail .wpc-buy { width: 100%; }
+  html.pc-input .pc-detail .wpc-buy { width: 100%; padding: 0 10px 10px; box-sizing: border-box; }
   html.pc-input .pc-detail .wpc-buy-main { width: 100%; min-height: 52px; }
   html.pc-input .pc-reader-sheet .ui-sheet-body { display: flex; flex-direction: column; overflow: hidden; gap: 12px; }
   html.pc-input .pc-reader-sheet { height: calc(100dvh - 64px); }

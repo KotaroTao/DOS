@@ -306,7 +306,7 @@ function openDesktopJournal(kind, tab) {
         if(entry.subtitle)pane.appendChild(el("p","jr-subtitle",entry.subtitle));
         for(const line of category==="talk"?[entry.text]:linesOf(entry))pane.appendChild(el("p","jr-line",storyText(line,game.G)));
       },
-      onSelect:entry=>{if(kind==="story"&&!read[entry.id]){markStoryRead(game.G,entry.id);game.autosave?.();root.querySelector(".pc-list-row[aria-pressed=\"true\"] .pc-unread")?.remove();}},
+      onSelect:entry=>{if(kind==="story"&&!read[entry.id]){markStoryRead(game.G,entry.id);game.autosave?.();queueMicrotask(()=>root.querySelector(".pc-list-row[aria-pressed=\"true\"] .pc-unread")?.remove());}},
     }));
   };
   handle=sheet.open({kind:"info",banner:title,className:"pc-reader-sheet",body:draw,
