@@ -4,7 +4,7 @@
 
 | 迷宮 | 本文に合わせた主題 | WebP | スマホ | PC |
 |---|---|---|---|---|
-| 銀業の隠れ里 | 霧の里で暮らす銀の小人と、守り手の空の鎧・石の人形 | [画像](../../story/dungeons/lore_ws4.webp) | [表示](five-side-dungeons-review/ws4-mobile.png) | [表示](five-side-dungeons-review/ws4-desktop.png) |
+| 銀業の隠れ里 | 霧の里で暮らす銀の小人と、守り手の空の鎧・石の人業 | [画像](../../story/dungeons/lore_ws4.webp) | [表示](five-side-dungeons-review/ws4-mobile.png) | [表示](five-side-dungeons-review/ws4-desktop.png) |
 | 獄吏の詰所 | 寝床、押収品の箱、鍵束、人の強さを越えた番人 | [画像](../../story/dungeons/lore_ws7.webp) | [表示](five-side-dungeons-review/ws7-mobile.png) | [表示](five-side-dungeons-review/ws7-desktop.png) |
 | 沈んだ書庫 | 内から閉じた扉、封をした書の箱、名を墨で消した写し | [画像](../../story/dungeons/lore_ws8.webp) | [表示](five-side-dungeons-review/ws8-mobile.png) | [表示](five-side-dungeons-review/ws8-desktop.png) |
 | 黒曜の切り場 | 黒いガラスの崖、古い刃と鏡、割れ口の研ぎ跡 | [画像](../../story/dungeons/lore_ws9.webp) | [表示](five-side-dungeons-review/ws9-mobile.png) | [表示](five-side-dungeons-review/ws9-desktop.png) |

@@ -489,7 +489,7 @@ function shrine() {
   return s;
 }
 
-// ===== 人業の館: 人形の工房。ゆがんだオルゴールのワルツと、きしむ弦 =====
+// ===== 人業の館: 人業の工房。ゆがんだオルゴールのワルツと、きしむ弦 =====
 // ホ短調 3/4 84BPM。後半、オルゴールは巻きが切れていき、弦が魂の動機を不穏になぞる
 function mansion() {
   const s = new Score({ name: "mansion", bpm: 84, bpb: 3, loop: [0, 32], gain: 2.6, fadeIn: 1.0, delay: { l: 1, r: 1.5, fb: 0.3, lp: 2400 } });
