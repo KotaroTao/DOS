@@ -1,6 +1,163 @@
 // 迷宮の透過原画。通常敵・強敵・主・召喚先・共通の敵で共用する。
 // 能力値や文字グリッドは保ち、読めた原画だけを最初の描画前に登録する。
 export const MONSTER_PHOTOS = {
+  // <<CHAPTER12_ART>>
+  // 第十二章「王家の廟」。共通の敵は作成済み原画を共用。
+  bs_wickmummy: [520, 403],
+  bs_embalmer: [520, 497],
+  bs_graveroyalguard: [494, 520],
+  bs_waxhorror: [520, 337],
+  bs_mournfulchancellor: [520, 471],
+  bs_candlewraith: [505, 520],
+  bs_preservedbeast: [520, 272],
+  bs_tombpriest: [520, 367],
+  bs_sarcophagusguard: [520, 379],
+  bs_wailingnoble: [520, 479],
+  bs_coffincrawler: [520, 272],
+  bs_mummylord: [520, 416],
+  bs_deathmask: [479, 455],
+  bs_corpsewax: [520, 388],
+  bs_funeralwraith: [520, 357],
+  bs_boneprince: [520, 454],
+  bs_crypthound: [520, 340],
+  bs_shroudkeeper: [502, 520],
+  bs_doomknight: [520, 329],
+  bs_voidknight: [520, 311],
+  el_lanternreaper: [520, 360],
+  el_soulflayer: [381, 520],
+  bs_cryptking: [520, 449],
+  // <</CHAPTER12_ART>>
+  // <<CHAPTER10_ART>>
+  // 第十章・地底大空洞（作成済み26体は既存原画を共用）。
+  bs_echowraith: [520, 493],
+  bs_stalactiteghost: [333, 520],
+  bs_moldern: [250, 520],
+  // <</CHAPTER10_ART>>
+  // <<TOXIC_SWAMP_ART>>
+  // 第7章「毒沼」（作成済みの通常敵・強敵・共通敵は既存原画を共用）。
+  bs_plaguerat: [520, 334],
+  bs_rotooze: [520, 344],
+  bs_bogdrowned: [520, 311],
+  bs_leechswarm: [520, 342],
+  bs_marshlurker: [520, 350],
+  bs_blightmoth: [520, 337],
+  bs_sludgehydra: [520, 374],
+  bs_gasfiend: [520, 445],
+  bs_plaguebeast: [520, 318],
+  bs_discardeddoll: [387, 520],
+  bs_fungalcorpse: [392, 520],
+  bs_miasmawraith: [471, 520],
+  bs_venomspider: [520, 362],
+  bs_necromancer: [511, 520],
+  bs_toxicgolem: [520, 459],
+  bs_plaguewraith: [520, 498],
+  bs_corpseflower: [494, 520],
+  bs_swamphag: [520, 475],
+  bs_pestilenceknight: [520, 475],
+  bs_plaguelich: [520, 485],
+  bs_swamplord: [520, 268],
+  // <</TOXIC_SWAMP_ART>>
+  // 第8章「嵐の尖塔」（通常敵・主。作成済みの強敵・共通敵は既存原画を共用）。
+  bs_galewisp: [477, 444],
+  bs_ravenswarm: [495, 496],
+  bs_windscythe: [500, 434],
+  bs_galehound: [520, 277],
+  bs_windwraith: [490, 432],
+  bs_thunderbeast: [500, 457],
+  bs_cyclonecore: [415, 520],
+  bs_zephyrfiend: [489, 513],
+  bs_lightninggolem: [520, 458],
+  bs_boltarcher: [505, 507],
+  bs_soulanchor: [469, 520],
+  bs_stormelemental: [492, 520],
+  bs_stormcaller: [520, 504],
+  bs_harpyqueen: [520, 497],
+  bs_cloudgiant: [469, 520],
+  bs_thunderroc: [513, 520],
+  bs_tempestserpent: [481, 509],
+  bs_galeknight: [471, 501],
+  bs_stormhag: [474, 491],
+  bs_skydrake: [520, 324],
+  bs_stormlord: [520, 458],
+  // <<ARENA_ART>>
+  // 第九章・闘技場跡（本筋4・寄り道2。強敵と共通敵は作成済み原画を共用）。
+  bs_championwraith: [478, 444],
+  bs_netfighter: [520, 502],
+  bs_arenabeast: [448, 504],
+  bs_spectreaudience: [515, 447],
+  bs_chainedogre: [520, 447],
+  bs_bladedancer: [422, 519],
+  bs_executioner: [469, 520],
+  bs_beastmaster: [520, 486],
+  bs_mirrorduelist: [462, 483],
+  bs_crowdroar: [489, 457],
+  bs_sandlurker: [520, 325],
+  bs_gladiatorlich: [453, 482],
+  bs_spikedgolem: [478, 520],
+  bs_hookmaster: [520, 417],
+  bs_bloodpriest: [367, 520],
+  bs_warbeasthound: [520, 284],
+  bs_championofash: [389, 488],
+  bs_impaler: [520, 466],
+  bs_ghostgladiator: [520, 462],
+  bs_chaingang: [520, 364],
+  bs_arenalord: [520, 506],
+  // <</ARENA_ART>>
+  // <<FROST_CORRIDOR_ART>>
+  // 第六章・氷結回廊（強敵2種は作成済み原画を共用）。
+  bs_frostwolf: [515, 456],
+  bs_winterbat: [520, 390],
+  bs_icewraith: [450, 469],
+  bs_blizzardspirit: [460, 513],
+  bs_iceserpent: [470, 499],
+  bs_glacialcrab: [514, 490],
+  bs_snowstalker: [474, 503],
+  bs_rimecrawler: [520, 388],
+  bs_frozenexplorer: [451, 470],
+  bs_snowmantis: [520, 456],
+  bs_aurorawisp: [374, 485],
+  bs_iciclehorror: [465, 505],
+  bs_frostknight: [520, 408],
+  bs_frostlich: [482, 445],
+  bs_frostmaiden: [487, 488],
+  bs_icegolem: [520, 463],
+  bs_frozenangel: [439, 508],
+  bs_frostwyrm: [478, 502],
+  bs_rimegiant: [451, 520],
+  bs_frostfiend: [520, 449],
+  bs_glaciallord: [520, 489],
+  // <</FROST_CORRIDOR_ART>>
+  // <<SUNKEN_TEMPLE_ART>>
+  // 沈める大神殿（作成済みの敵・召喚先は既存原画を共用）。
+  bs_divinegolem: [281,520],
+  bs_fallenangel: [306,520],
+  bs_templelord: [303,520],
+  // <</SUNKEN_TEMPLE_ART>>
+  // <<INFERNO_CAULDRON_ART>>
+  // 業火の大釜（作成済みの通常敵・強敵・共通敵は既存原画を共用）。
+  bs_doombringer: [520, 429],
+  bs_infernolord: [430, 520],
+  // <</INFERNO_CAULDRON_ART>>
+  // <<CAVERN_LAIR_ART>>
+  // 大空洞の主の寝床（作成済みの敵・召喚先・共通敵は既存原画を共用）。
+  bs_cavetroll: [434, 520],
+  bs_blindhorror: [520, 332],
+  bs_cavernlord: [520, 365],
+  bs_gloomstalker: [520, 354],
+  // <</CAVERN_LAIR_ART>>
+  // <<BAPTISM_ART>>
+  // 洗礼の大水槽（作成済みの通常敵・強敵・共通敵は既存原画を共用）。
+  bs_irongolem: [520, 401],
+  bs_voidwalker: [322, 520],
+  bs_shadowdragon: [516, 520],
+  // <</BAPTISM_ART>>
+  // <<CAULDRON_ART>>
+  // 魂を煮る釜場（作成済みの通常敵・強敵・共通敵は既存原画を共用）。
+  bs_furnacefiend: [520, 359],
+  bs_obsidianguard: [443, 520],
+  bs_basaltdrake: [520, 381],
+  bs_infernaltyrant: [378, 520],
+  // <</CAULDRON_ART>>
   // <<ASH_ALTAR_ART>>
   // 灰の降る祭場（作成済みの通常敵・強敵・共通敵は既存原画を共用）。
   bs_demon: [447, 520],

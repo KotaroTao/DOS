@@ -6,8 +6,16 @@ with sync_playwright() as p:
     page = browser.new_page(viewport={'width': 390, 'height': 664}, service_workers='block')
     errors = []
     page.on('pageerror', lambda e: errors.append(str(e)))
+    # 外部フォントの応答待ちで起動監視が発火しないよう、端末の代替書体を使う。
+    page.route('https://fonts.googleapis.com/**', lambda route: route.abort())
+    # 検証用VMでは大量のES Modulesの取得が5秒を超えるため、起動監視だけ猶予を延ばす。
+    def boot_page(route):
+        response = route.fetch()
+        route.fulfill(response=response, body=response.text().replace('}, 5000);', '}, 60000);'))
+    page.route('http://localhost:8000/?testDungeon=*', boot_page)
     page.goto('http://localhost:8000/?testDungeon=w02')
     page.wait_for_function('window.__game?.G.party.length > 0')
+    page.wait_for_timeout(2000)
     page.evaluate('''() => {
       for (let i = 1; i <= 12; i++) __game.evApi.log('記録の確認 ' + i);
     }''')
@@ -29,7 +37,9 @@ with sync_playwright() as p:
                 throw Error('盤面の表示ボタンが小さい・はみ出している');
             }
           }
-          if (log.height < 94 || log.bottom > hud.bottom || log.bottom > party.top)
+          const desktop = getComputedStyle(document.getElementById('app')).display === 'grid';
+          const overlap = desktop ? hud.top < party.bottom : log.bottom > party.top;
+          if (log.height < 94 || log.bottom > hud.bottom || overlap)
             throw Error('記録の高さ不足・隊との重なり');
           if (rect('hint').bottom > rect('app').bottom + 1) throw Error('操作欄が画面外');
           const rows = [...document.querySelectorAll('#log > div')].slice(-4);

@@ -278,7 +278,8 @@ export const EVENTS = [
     intro: (A, cell) => ["青白い怨霊が道を塞いだ。", `「答えよ。${RIDDLES[cell.evRiddle || 0].q}」`],
     choices: (A, cell) => {
       const r = RIDDLES[cell.evRiddle || 0];
-      const answers = [r.a, ...r.w].sort(() => random() - 0.5);
+      if (!cell.evAnswers) cell.evAnswers = [r.a, ...r.w].sort(() => random() - 0.5);
+      const answers = cell.evAnswers;
       return answers.map((ans) => ({ label: `「${ans}」`, fn: () => {
         if (ans === r.a) {
           A.sfx("victory");
@@ -303,7 +304,7 @@ export const EVENTS = [
           A.payGold(cost); A.runEv().preempt = (A.runEv().preempt || 0) + 1;
           A.sfx("spell"); A.toast("ろうそくが灯った ― 次の戦闘は必ず先制できる", "good"); A.done(cell);
         } },
-        { label: "ろうを持ち帰る ― 収集品", fn: () => A.collectible("祈りの燭台", () => A.done(cell)) },
+        { label: "ろうを持ち帰る ― 収集品", fn: () => A.collectible("祈りの燭台", () => A.done(cell), cell) },
       ];
     },
   },
@@ -518,7 +519,7 @@ export const EVENTS = [
       } },
       { label: "鏡を割る ― 鏡の欠片 (収集品) / 全員に小さな傷", fn: () => {
         A.sfx("hit"); A.hurtAll(0.08);
-        A.collectible("鏡の欠片", () => A.done(cell));
+        A.collectible("鏡の欠片", () => A.done(cell), cell);
       } },
     ],
     onWin: (A, cell, f, next) => { A.soul(8, "鏡の影"); A.item({ rare: true }, "鏡の奥", () => A.done(cell, next)); },
@@ -753,7 +754,7 @@ export const EVENTS = [
         const keys = A.monsterKeysLeft();
         A.fight(cell, keys.slice(0, 6).map((k) => ({ key: k, single: true })), "bell", { noChest: true });
       } },
-      { label: "鐘舌を外す ― 収集品", fn: () => A.collectible("弔鐘の鐘舌", () => A.done(cell)) },
+      { label: "鐘舌を外す ― 収集品", fn: () => A.collectible("弔鐘の鐘舌", () => A.done(cell), cell) },
     ],
     onWin: (A, cell, f, next) => {
       const n = A.clearMonsters();
@@ -791,7 +792,7 @@ export const EVENTS = [
       { label: "あさる ― 金貨と時に収集品 / 30%で群れに襲われる", danger: true, fn: () => {
         if (chance(0.3)) { A.alarm("群れが飛び出してきた！", ["漂着物の山は巣だった。"], "trap", () => A.fight(cell, [{ pool: true, min: 3 }], "drift", { noChest: true })); return; }
         A.gold(2, "漂着物");
-        if (chance(0.3)) A.collectible("漂着物", () => A.done(cell)); else A.done(cell);
+        if (chance(0.3)) A.collectible("漂着物", () => A.done(cell), cell); else A.done(cell);
       } },
     ],
     onWin: (A, cell, f, next) => { A.gold(2, "漂着物"); A.done(cell, next); },
@@ -888,7 +889,7 @@ export const EVENTS = [
         }
         A.item({ rare: true }, "大ワニの腹", () => A.done(cell));
       } },
-      { label: "牙を抜く ― 収集品", fn: () => A.collectible("大ワニの牙", () => A.done(cell)) },
+      { label: "牙を抜く ― 収集品", fn: () => A.collectible("大ワニの牙", () => A.done(cell), cell) },
     ],
     onWin: (A, cell, f, next) => A.item({ rare: true }, "大ワニの腹", () => A.done(cell, next)),
   },
@@ -1107,7 +1108,7 @@ export const EVENTS = [
     id: "l4_04", name: "戦死者の名札", layer: 4, tier: "common", icon: "corpse",
     intro: () => ["鎧ごと朽ちた兵の骸。首から下げた真ちゅうの名札だけが、鈍く光っている。"],
     choices: (A, cell) => [
-      { label: "名札を持ち帰る ― 収集品", fn: () => A.collectible("戦死者の名札", () => A.done(cell)) },
+      { label: "名札を持ち帰る ― 収集品", fn: () => A.collectible("戦死者の名札", () => A.done(cell), cell) },
       { label: "名を呼んで弔う ― ✦Soul と、近くの骸に魂が宿る", primary: true, fn: () => {
         A.sfx("heal"); A.soul(1, "戦死者の弔い");
         if (A.warmCorpse()) A.toast("呼ばれた名に応えて、近くの骸が温もりを取り戻した", "good", "corpseWarm");
@@ -1202,7 +1203,7 @@ export const EVENTS = [
         else { A.ailAll("poison", 1); A.sfx("trap"); A.toast("胞子が舞った ― 毒に侵された", "bad", "poison"); }
         A.done(cell);
       } },
-      { label: "茸を摘む ― 収集品", primary: true, fn: () => A.collectible("光る茸", () => A.done(cell)) },
+      { label: "茸を摘む ― 収集品", primary: true, fn: () => A.collectible("光る茸", () => A.done(cell), cell) },
     ],
   },
   {
@@ -1327,7 +1328,7 @@ export const EVENTS = [
         A.floorEv().mods.push({ src: "l5_11", name: "断たれた根", desc: "植物の魔物への与ダメージ +30% (この階)", prey: { races: ["plant"], mul: 1.3 } });
         A.sfx("hit"); A.toast("根を断った ― 大樹の叫びが響く。植物の魔物への与ダメ+30%", "gold"); A.done(cell);
       } },
-      { label: "鋏を持ち帰る ― 収集品", fn: () => A.collectible("庭師の鋏", () => A.done(cell)) },
+      { label: "鋏を持ち帰る ― 収集品", fn: () => A.collectible("庭師の鋏", () => A.done(cell), cell) },
     ],
   },
   {
@@ -1381,7 +1382,7 @@ export const EVENTS = [
       (anyHurt(A) || anyAiling(A)) && { label: "水を浴びる ― 全員のHP3割回復・状態異常が治る", primary: true, fn: () => {
         A.healAll(0.3, 0, true); A.sfx("heal"); A.toast("洗礼の水が、傷と汚れを洗い流した", "good", "fountain"); A.done(cell);
       } },
-      { label: "水盤の底をさらう ― 収集品", fn: () => A.collectible("洗礼の水盤", () => A.done(cell)) },
+      { label: "水盤の底をさらう ― 収集品", fn: () => A.collectible("洗礼の水盤", () => A.done(cell), cell) },
     ],
   },
   {
@@ -1438,7 +1439,7 @@ export const EVENTS = [
           const n = A.revealWhere((x) => x.type === "chest" && !x.cleared);
           A.story("封じられた巻物", ["「……泉のほとりに、若い神官が見慣れぬ苗木を植えた。」", "「神官王さまはお怒りになったが、あの方は、ただ微笑むばかりだった……」", "巻物はそこで、水に溶けて読めなくなった。", n ? `余白の地図に、この階の宝箱${n}つの在処が記されていた。` : "余白の地図は、もう読み取れなかった。"], () => A.done(cell));
         } },
-        { label: "巻物を持ち帰る ― 収集品", fn: () => A.collectible("封じられた巻物", () => A.done(cell)) },
+        { label: "巻物を持ち帰る ― 収集品", fn: () => A.collectible("封じられた巻物", () => A.done(cell), cell) },
       ];
     },
   },
@@ -1666,7 +1667,7 @@ export const EVENTS = [
         } },
         m && m.mp > 0 && { label: `${m.name}の魔力の熱で氷を溶かす (${m.name}のMPが半分になる) ― 収集品`, fn: () => {
           m.mp = Math.floor(m.mp / 2); A.refresh(); A.sfx("spell");
-          A.collectible("凍った泉", () => A.done(cell));
+          A.collectible("凍った泉", () => A.done(cell), cell);
         } },
       ];
     },
@@ -1805,7 +1806,7 @@ export const EVENTS = [
         A.done(cell);
       } },
       { label: "あぶくの湧く底を探る ― 収集品 / 毒気で全員のHPが少し減る", fn: () => {
-        A.hurtAll(0.05); A.collectible("あぶくの湧く底", () => A.done(cell));
+        A.hurtAll(0.05); A.collectible("あぶくの湧く底", () => A.done(cell), cell);
       } },
     ],
   },
@@ -1945,7 +1946,7 @@ export const EVENTS = [
     id: "l10_01", name: "落雷の跡", layer: 10, tier: "common", icon: "chest",
     intro: () => ["床の石が、黒く焦げて割れている。雷の落ちた跡だ。", "割れ目の中で、雷に溶かされて固まった、ガラスのようなものが光っている。頭の上の雷雲は、まだ低くうなっている。"],
     choices: (A, cell) => [
-      { label: "割れ目のガラスを掘り出す ― 収集品", primary: true, fn: () => { A.collectible("落雷の跡", () => A.done(cell)); } },
+      { label: "割れ目のガラスを掘り出す ― 収集品", primary: true, fn: () => { A.collectible("落雷の跡", () => A.done(cell), cell); } },
       { label: "次の雷を待って、焼けた石にふれる ― ✦Soul / 30%で雷がすぐそばに落ち、全員のHP2割を失う", danger: true, fn: () => {
         if (chance(0.3)) { A.hurtAll(0.2); A.flash("#d8e0ff"); A.sfx("trap"); A.toast("雷が目の前に落ちた ― 全員が打たれた", "bad", "trap"); }
         A.sfx("spell"); A.soul(2, "雷の落ちた石"); A.done(cell);
@@ -2103,7 +2104,7 @@ export const EVENTS = [
         if (chance(0.25)) { A.alarm("鎖の鳴る音が近づいてくる！", ["橋の向こうから、枷をつけたままの囚徒たちが歩いてきた。"], "trap", () => A.fight(cell, [{ key: "bs_chaingang", min: 2 }], "shackle", { noChest: true })); return; }
         A.item({}, "欄干の枷", () => A.done(cell));
       } },
-      { label: "すり切れた札を持ち帰る ― 収集品", primary: true, fn: () => { A.collectible("欄干の枷の輪", () => A.done(cell)); } },
+      { label: "すり切れた札を持ち帰る ― 収集品", primary: true, fn: () => { A.collectible("欄干の枷の輪", () => A.done(cell), cell); } },
     ],
     onWin: (A, cell, f, next) => A.item({}, "欄干の枷", () => A.done(cell, next)),
   },
@@ -2264,7 +2265,7 @@ export const EVENTS = [
           if (c.ok) { A.sfx("heal"); A.soul(2, "灯籠に残っていた灯"); A.done(cell); return; }
           A.hurtAll(0.1); A.sfx("trap"); A.toast("足もとの灯籠の山が崩れた ― 全員がガラスの雪崩に巻きこまれた", "bad", "trap"); A.done(cell);
         } },
-        { label: "割れた灯籠のガラスを拾う ― 収集品", fn: () => { A.collectible("割れた灯籠のガラス", () => A.done(cell)); } },
+        { label: "割れた灯籠のガラスを拾う ― 収集品", fn: () => { A.collectible("割れた灯籠のガラス", () => A.done(cell), cell); } },
       ];
     },
   },
@@ -2386,7 +2387,7 @@ export const EVENTS = [
       { label: "光るきのこを摘んでいく ― 収集品と ✦Soul / 舞い上がった胞子で一人が毒", fn: () => {
         const m = A.randomAlive(); if (m) { A.ail(m, "poison"); A.toast(`${m.name}は舞い上がった胞子を吸いこんだ`, "bad", "poison"); }
         A.soul(2, "きのこの光にまじる灯");
-        A.collectible("光るきのこの洞", () => A.done(cell));
+        A.collectible("光るきのこの洞", () => A.done(cell), cell);
       } },
     ],
   },
@@ -2428,7 +2429,7 @@ export const EVENTS = [
         if (chance(0.3)) { A.alarm("本の背から、蟲があふれ出た！", ["濡れた頁をかじっていた蟲たちが、布を持つ手に群がってきた。"], "trap", () => A.fight(cell, [{ key: "bs_bookworm", min: 2 }], "soakedshelf", { noChest: true })); return; }
         A.sfx("heal"); A.soul(1.5, "頁ににじんだ灯"); A.done(cell);
       } },
-      { label: "まだ読める一冊を抜いて持ち帰る ― 収集品", fn: () => { A.collectible("雨にふやけた書架", () => A.done(cell)); } },
+      { label: "まだ読める一冊を抜いて持ち帰る ― 収集品", fn: () => { A.collectible("雨にふやけた書架", () => A.done(cell), cell); } },
     ],
     onWin: (A, cell, f, next) => { A.soul(1.5, "蟲から取り戻した灯"); A.gold(1, "書架の奥の銭"); A.done(cell, next); },
   },
@@ -2575,6 +2576,162 @@ export const EVENTS = [
     },
     onWin: (A, cell, f, next) => A.soulDrop("rarePlus", "書架に閉じこめられていた雨の魂だ。", () => { A.ember(2, "書架の底の残火"); A.done(cell, next); }),
   },
+  // ================= 第14層「王家の廟」(10) ── 第十二章。大書庫の底の扉の下、歴代の王が香油とろうで固めた亡骸となって眠る廟 =================
+  //   門に刻まれた法「王を終わらせるな」のもと、王も従者も、終わることを許されないまま千年の務めを続けている。
+  //   最初の王の言葉・今の王のために用意された棺・王の葬儀の身代わりには触れない (近衛廊の手がかりと主の記憶で明かす)
+  {
+    id: "l14_01", name: "供物の皿", layer: 14, tier: "common", icon: "chest",
+    intro: () => ["壁のくぼみに、金の縁取りの皿がいくつも並んでいる。どの皿にも、色の変わった古い銭と、干からびた果物が載っている。", "千年前の葬儀で、王に供えられたものらしい。皿の奥で、何かが低くうなった。"],
+    choices: (A, cell) => [
+      { label: "皿の古い銭を集める ― 金貨 / 30%で、供物の番をしていた番犬の群れが飛びかかってくる", primary: true, fn: () => {
+        if (chance(0.3)) { A.alarm("皿の奥から、番犬が飛び出した！", ["金の首輪の犬たちが、供物に手を伸ばした者へ牙をむいた。"], "trap", () => A.fight(cell, [{ key: "bs_crypthound", min: 2 }], "offering14", { noChest: true })); return; }
+        A.sfx("chest"); A.gold(2, "供物の皿の古い銭"); A.done(cell);
+      } },
+      { label: "干からびた果物を下げ、持っていた食べ物を供えなおす ― ✦Soul と、全員のHP1割回復", fn: () => {
+        A.healAll(0.1, 0, false); A.sfx("heal"); A.soul(1.5, "新しい供物の礼"); A.toast("皿の奥のうなり声が、静かになった", "good"); A.done(cell);
+      } },
+    ],
+    onWin: (A, cell, f, next) => { A.gold(2, "供物の皿の古い銭"); A.done(cell, next); },
+  },
+  {
+    id: "l14_02", name: "消えないろうそくの棚", layer: 14, tier: "common", icon: "fountain",
+    intro: () => ["壁一面の棚に、ろうそくがすき間なく灯っている。どれも短くならず、しずくも落ちない。", "灯のそばに立つと、冷えきった廟の中で、ここだけがほのかに温かい。"],
+    choices: (A, cell) => [
+      (anyHurt(A) || anyDrained(A)) && { label: "灯のそばで体を温める ― 全員のHP・MP3割回復", primary: true, fn: () => {
+        A.healAll(0.3, 0.3, false); A.sfx("heal"); A.toast("消えない灯の温もりが、指先までしみた", "good", "fountain"); A.done(cell);
+      } },
+      { label: "一本を借りて先を照らす ― わずかな ✦Soul と、階段の在処", fn: () => {
+        A.revealStairs(); A.sfx("step"); A.soul(1, "借りた弔い灯");
+        A.toast("借りた灯の向こうに、下へ降りる段が浮かんだ", "good", "stairs"); A.done(cell);
+      } },
+    ],
+  },
+  {
+    id: "l14_03", name: "香油の壺の棚", layer: 14, tier: "common", icon: "event",
+    intro: () => ["作業場の棚に、封をした香油の壺がずらりと並んでいる。甘い匂いが、壺の口からかすかにもれている。", "倒れた壺のひとつの底に、金の粒が沈んで光っている。"],
+    choices: (A, cell) => [
+      { label: "香油を刃に塗る ― この階の間、不死の魔物への与ダメ+25% / 香油の毒気で一人が毒", primary: true, fn: () => {
+        A.floorEv().mods.push({ src: "l14_03", name: "香油を塗った刃", desc: "不死の魔物への与ダメージ +25% (この階)", prey: { races: ["undead"], mul: 1.25 } });
+        const m = A.randomAlive(); if (m) { A.ail(m, "poison"); A.toast(`${m.name}は香油の毒気を吸いこんだ`, "bad", "poison"); }
+        A.sfx("spell"); A.toast("刃に、亡骸を清める香油の照りが移った ― この階、不死の魔物への与ダメ+25%", "gold"); A.done(cell);
+      } },
+      { label: "壺の底の金の粒をすくう ― 金貨 / 30%で、こぼれた香油が形をとって襲ってくる", danger: true, fn: () => {
+        if (chance(0.3)) { A.alarm("床の香油が、ぬるりと盛り上がった！", ["こぼれた香油とろうが寄り集まり、いくつもの顔を浮かべた。"], "trap", () => A.fight(cell, [{ key: "bs_waxhorror", strong: 1.2, name: "こぼれた香油の塊" }], "balmjar", { noChest: true })); return; }
+        A.gold(2, "香油の壺の金の粒"); A.done(cell);
+      } },
+    ],
+    onWin: (A, cell, f, next) => { A.gold(2, "香油の壺の金の粒"); A.done(cell, next); },
+  },
+  {
+    id: "l14_04", name: "棺に横たわる従者", layer: 14, tier: "common", icon: "corpse",
+    intro: () => ["蓋のずれた棺に、白く固まった従者の亡骸が横たわっている。両手には、王の靴を磨く布を握ったままだ。", "棺の縁に、細い字の札が結ばれている。葬られた日と、務めの名が書かれているらしい。"],
+    choices: (A, cell) => {
+      const c = A.check("int");
+      return [
+        { label: `札の古い字を読み解く ― ${c.who ? c.who.name : "誰か"} (成功 ${pctTxt(c.p)}) ― この階の魔物と宝箱の在処 / 失敗で札に残った呪いに当たり、一人が混乱 (次の戦闘)`, primary: true, fn: () => {
+          if (c.ok) {
+            const n = A.revealWhere((x) => (x.type === "monster" || x.type === "chest") && !x.cleared); A.sfx("spell");
+            A.toast(n ? `札の裏に、廟の見回りの道順と ${n}か所の印が記されていた` : "札の裏に、廟の見回りの道順が記されていた", "good", "stairs"); A.done(cell); return;
+          }
+          const m = c.who || A.randomAlive(); if (m) A.ail(m, "confuse");
+          A.sfx("ng"); A.toast("読み進めるうち、葬儀の日付が頭の中でぐるぐる回りだした", "bad"); A.done(cell);
+        } },
+        { label: "布を握った手をそっとほどき、蓋を閉じる ― わずかな ✦Soul と金貨", fn: () => {
+          A.sfx("heal"); A.soul(1, "務めを終えた従者"); A.gold(1, "従者の小銭入れ"); A.done(cell);
+        } },
+      ];
+    },
+  },
+  {
+    id: "l14_05", name: "葬列の最後尾", layer: 14, tier: "uncommon", icon: "event", minFloor: 2,
+    intro: () => ["通路の向こうから、低い弔いの歌が近づいてくる。ろうそくを掲げた霊の葬列が、ゆっくりと角を曲がってきた。", "列の最後尾には、ひとつ分だけ空きがある。誰かが並ぶのを待っているかのように。"],
+    choices: (A, cell) => {
+      const c = A.check("agi");
+      return [
+        { label: `最後尾に紛れて、列といっしょに歩く ― ${c.who ? c.who.name : "誰か"} (成功 ${pctTxt(c.p)}) ― ✦Soul と、列の行き先 (階段の傍) へ / 失敗で生者と気づかれ、葬列の霊の群れと戦う`, primary: true, fn: () => {
+          if (!c.ok) { A.alarm("葬列が、いっせいに振り返った！", ["列に紛れた温かい体に、霊たちが気づいた。"], "trap", () => A.fight(cell, [{ key: "bs_funeralwraith", min: 3 }], "procession", { noChest: true })); return; }
+          A.soul(2, "葬列の弔いの灯"); A.sfx("step");
+          cell.cleared = true; A.toast("歌が途切れたところで列を抜けると、下へ降りる段のそばに出ていた", "good", "stairs"); A.warpToStairs();
+        } },
+        { label: "道をあけて列を見送り、列がこぼしていった供物を拾う ― 品", fn: () => { A.sfx("itemget"); A.item({}, "葬列のこぼした供物", () => A.done(cell)); } },
+      ];
+    },
+    onWin: (A, cell, f, next) => { A.soul(2, "散った葬列の灯"); A.item({}, "葬列のこぼした供物", () => A.done(cell, next)); },
+  },
+  {
+    id: "l14_06", name: "やりかけの作業台", layer: 14, tier: "uncommon", icon: "chest", minFloor: 2,
+    intro: () => ["石の作業台の上に、香油の壺と細い刷毛、布の束が、使いかけのまま置かれている。", "台の下には、防腐師の道具箱。蓋の金具が、手入れされたばかりのように光っている。"],
+    choices: (A, cell) => [
+      needsCare(A) && { label: "台の香油と布で、隊の傷を手当てする ― 全員のHP・MP4割回復・状態異常が治る", primary: true, fn: () => {
+        A.healAll(0.4, 0.4, true); A.sfx("heal"); A.toast("亡骸を清める香油は、生きた傷にもよく効いた", "good", "fountain"); A.done(cell);
+      } },
+      { label: "道具箱を開ける ― 宝箱 (ランク+1) / 35%で、道具を取りに防腐師の霊が戻ってくる", danger: true, fn: () => {
+        if (chance(0.35)) { A.alarm("背後で、刷毛の落ちる音がした！", ["道具箱の持ち主が、作業の続きをしに戻ってきた。"], "trap", () => A.fight(cell, [{ key: "bs_embalmer", strong: 1.3, name: "道具箱の持ち主" }], "embalmtable", { noChest: true })); return; }
+        A.sfx("hit"); A.chestHere(cell, { rankUp: 1 });
+      } },
+    ],
+    onWin: (A, cell, f, next) => A.chestHere(cell, { rankUp: 1 }, next),
+  },
+  {
+    id: "l14_07", name: "交代を待つ近衛", layer: 14, tier: "uncommon", icon: "event", deep: true,
+    intro: () => ["通路の角に、近衛がひとり、槍を立てて立っている。ほかの近衛と違い、兜の奥の目がこちらを見ていた。", "「……交代は、まだか」 かすれた声だった。「持ち場を離れるなと言われたきり、誰も来ない」"],
+    choices: (A, cell) => [
+      { label: "「交代の時間だ」と告げる ― 近衛が槍を置いて眠りにつく。✦Soul と、貯めこんだ俸給の金貨", primary: true, fn: () => {
+        A.sfx("heal"); A.soul(3, "務めを終えた近衛"); A.gold(2, "近衛の貯めた俸給");
+        A.toast("近衛は槍を壁に立てかけ、その場に腰を下ろして目を閉じた", "good"); A.done(cell);
+      } },
+      A.aliveList().some((m) => m.mp > 0) && { label: "槍の構えを教わる (長い稽古に全員のMP2割を使う) ― この出撃の間、会心率+5%と ✦Soul", fn: () => {
+        A.mpAll(0.2); A.runEv().crit = (A.runEv().crit || 0) + 0.05;
+        A.sfx("spell"); A.soul(1.5, "近衛の稽古"); A.toast("鎧のすき間の突き方が、体に入った ― この出撃の間、会心率+5%", "gold"); A.done(cell);
+      } },
+    ],
+  },
+  {
+    id: "l14_08", name: "死面の写し場", layer: 14, tier: "uncommon", icon: "event", minFloor: 3,
+    intro: () => ["小さな部屋の壁に、金の仮面の型がいくつも掛けられている。王の死に顔を写しとるための部屋らしい。", "作業台に、写し終えたばかりのような仮面が一枚、裏返しに置かれている。"],
+    choices: (A, cell) => [
+      { label: "仮面をかぶり、廟の者のふりをして進む ― 次の戦闘は必ず先制", primary: true, fn: () => {
+        A.runEv().preempt = (A.runEv().preempt || 0) + 1;
+        A.sfx("spell"); A.toast("金の仮面の下で息をひそめた ― 次の戦闘は必ず先制できる", "good"); A.done(cell);
+      } },
+      { label: "仮面の縁の金をはがす ― 金貨 / 30%で、壁の仮面がいっせいに浮かび上がる", danger: true, fn: () => {
+        if (chance(0.3)) { A.alarm("壁の仮面が、いっせいにこちらを向いた！", ["型に掛けられていた仮面が、ふわりと宙に浮かんだ。"], "trap", () => A.fight(cell, [{ key: "bs_deathmask", min: 2 }], "maskroom", { noChest: true })); return; }
+        A.sfx("chest"); A.gold(3, "死面の縁の金"); A.done(cell);
+      } },
+    ],
+    onWin: (A, cell, f, next) => { A.gold(3, "死面の縁の金"); A.done(cell, next); },
+  },
+  {
+    id: "l14_09", name: "玉座の間に仕えた侍女", layer: 14, tier: "rare", icon: "event", deep: true, minLv: 142,
+    intro: () => ["廊下の隅で、白い前かけの侍女の霊が、銀の盆を胸に抱えて立っている。", "「最初の陛下のお世話をしておりました。……千年、お食事をお運びしても、一度も召し上がりません」", "「この先の玉座へ行かれるのでしょう。陛下のお癖なら、お教えできます」"],
+    choices: (A, cell) => [
+      { label: "王の癖を聞く ― 第14層の主の力を削ぐ (最大HP-10%)", primary: true, fn: () => {
+        A.flags().bossWeak = { ...(A.flags().bossWeak || {}), 14: true };
+        A.sfx("spell");
+        A.story("玉座の間に仕えた侍女", ["「陛下は、名を呼ばれると、ほんのひと息だけ、お手が止まります。……もう誰も、陛下のお名前を呼びませんけれど」", "「呼ぶ者がいなくなっても、陛下はずっと、呼ばれるのを待っておられるのかもしれません」", "第14層の主の最大HPが1割削られる (討つまで有効)。"], () => A.done(cell));
+      } },
+      { label: "盆の上の品を受け取る ― 上等な品 (レア以上)", fn: () => { A.sfx("itemget"); A.itemMinRar("r", "侍女の銀の盆", () => A.done(cell)); } },
+    ],
+  },
+  {
+    id: "l14_10", name: "封じられた魂の壺", layer: 14, tier: "rare", icon: "wisp", deep: true,
+    intro: () => ["石の台座の上に、ろうで口を封じた壺がいくつも並んでいる。壺の中で、小さな灯がもがくように揺れている。", "亡骸から抜け出した魂を、もとの器へ戻す日まで閉じこめておく壺らしい。灯の半分は澄み、半分は濁りかけている。", "台座の前には、石棺の守り手が一体、身じろぎもせずに立っている。"],
+    choices: (A, cell) => {
+      const c = A.check("pie");
+      return [
+        { label: "封を割って灯を解き放つ ― 壺の番人と戦い、勝てば希少な魂と魂の残火2", danger: true, fn: () => {
+          A.fight(cell, [{ key: "bs_sarcophagusguard", strong: 1.8, name: "魂の壺の番人" }], "soulurns", { noChest: true });
+        } },
+        { label: `眠りの祈りを唱えて、澄んだ灯だけを呼び出す ― ${c.who ? c.who.name : "誰か"} (成功 ${pctTxt(c.p)}) ― 希少な魂 (レア以上) / 失敗で濁った灯が騒ぎ、全員のHP2割と一人が混乱 (次の戦闘)`, primary: true, fn: () => {
+          if (c.ok) { A.sfx("heal"); A.soulDrop("rarePlus", "祈りに応えて壺を抜け出した魂だ。", () => A.done(cell)); return; }
+          A.hurtAll(0.2); A.flash("#4a3a30"); A.sfx("trap");
+          const m = A.randomAlive(); if (m) A.ail(m, "confuse");
+          A.toast("濁った灯がいっせいに騒ぎ、壺が鳴った", "bad"); A.done(cell);
+        } },
+      ];
+    },
+    onWin: (A, cell, f, next) => A.soulDrop("rarePlus", "壺に閉じこめられていた魂だ。", () => { A.ember(2, "壺の底の残火"); A.done(cell, next); }),
+  },
 ];
 
 // 各迷宮に固有の極を1件。既存IDは見聞録・取得済みセーブのため維持する。
@@ -2655,6 +2812,14 @@ const DUNGEON_GIFTS = [
   ["w45", "int", 2, "余白に書き継がれた読み方"],
   ["ws23", "luk", 2, "絵本に挟まった四つ葉"],
   ["ws24", "crit", 0.01, "鎖で留められた急所の図"],
+  // 第十二章 (第14層)
+  ["w46", "pie", 2, "参道の終わりの祈りの石"],
+  ["w47", "vit", 2, "千年腐らぬ香油の匂い"],
+  ["w48", "atk", 2, "近衛の槍の握りの跡"],
+  ["w49", "luk", 2, "玉座の下の小さな冠"],
+  ["ws25", "hp", 5, "名を書き足した墓碑"],
+  ["ws26", "crit", 0.01, "剥製師の急所の印"],
+  ["ws27", "mp", 5, "継がれなかった王冠の宝石"],
 ];
 // 迷宮ごとの極の本文 (2〜4行) と、恵みを受け取った時の結びの一文。無い迷宮は汎用の2行に戻る。
 // その迷宮が開く章までに明かされたことだけを書く (寄り道は開く時期の章まで)。ws1 (c30 操霊師の遺書) は c30 の定義の本文を使う
@@ -3072,6 +3237,49 @@ const MYTHIC_TEXT = {
       "頁をめくるたび、赤い点が目の奥に焼きついていく。気づけば、本から目を上げても点は消えなかった。"],
     close: "鎖の本は、ひとりでに閉じた。魔物の体にほどける点が見える。急所を見抜く目が、隊に宿った。",
   },
+  // ---- 第十二章 (第14層) ----
+  w46: {
+    lines: ["参道のいちばん下に、ひざの形にすり減った石がある。千年、葬列の誰もがここで膝をつき、祈りの最後の一節を唱えずに立ち去っていった。",
+      "石のそばの壁に、唱えられなかった一節が小さく刻まれている。『安らかに行け。灯は、ここに置いてゆけ』。",
+      "隊の一人ひとりがその一節を口にすると、参道のろうそくの灯が、ほんの少しだけ低くなった。"],
+    close: "唱え終えた祈りの言葉が、胸の奥に静かに残った。祈りの力が、ひとつ深くなった。",
+  },
+  w47: {
+    lines: ["作業場の奥の棚に、封の切られていない香油の壺がひとつ残っていた。千年たっても、匂いは少しも変わっていない。",
+      "壺の首には札が掛けてある。『亡骸ではなく、生きている者の傷に塗ること。あの子が生きているうちに』。",
+      "札の言葉どおり、隊の一人ひとりの古傷に香油を塗ると、こわばっていた体の奥が、ゆっくりとほどけていった。"],
+    close: "甘い匂いは、しばらく消えなかった。体が、打たれても崩れないほど強くなった。",
+  },
+  w48: {
+    lines: ["近衛廊の柱の一本に、槍の握りの形に深くすり減ったくぼみがある。千年、同じ近衛が、同じ場所で槍を握り続けた跡だ。",
+      "くぼみの下に、小さく刻まれていた。『誰か来たら、この握りを教えてやれ。私はもう、離せないから』。",
+      "隊の一人ひとりが、くぼみに手を合わせて握り方をなぞると、槍を構える近衛の重心が、手のひらに伝わってきた。"],
+    close: "柱から手を離しても、握りの感触は残っていた。打ちこむ力が、ひとつ強くなった。",
+  },
+  w49: {
+    lines: ["玉座の段の下に、子どもの頭ほどの小さな冠が落ちていた。王冠をまねて、誰かが金の針金で編んだものらしい。",
+      "冠の内側に、たどたどしい字が刻まれている。『ちちうえが、いつか おやすみできますように』。",
+      "隊の一人ひとりが冠を手のひらに載せると、千年冷えていた金が、かすかに温かくなった。"],
+    close: "冠は、玉座の段のいちばん下にそっと置いた。運が、隊に味方するようになった。",
+  },
+  ws25: {
+    lines: ["名の無い墓碑のひとつに、誰かが小さく名を書き足していた。墓碑に刻まれた王の名の下に、細い、震える字で。",
+      "書き足した者は、王の名を消そうとはしなかった。ただ、その下にもうひとつ、本当に眠る者の名を並べていた。",
+      "隊の一人ひとりがその名を声に出して呼ぶと、墓所の冷たい空気が、ほんの少しだけゆるんだ気がした。"],
+    close: "呼ばれた名は、もう墓碑から消えない。体の奥に、尽きにくい力が満ちた。",
+  },
+  ws26: {
+    lines: ["大広間のいちばん奥に、剥製師の作業机が残っていた。机の上の獣の図には、赤い点がいくつも打たれている。",
+      "獣を傷つけずに仕留めるための、急所の印だ。王の狩りの獲物は、皮に傷が少ないほど喜ばれたのだという。",
+      "図を見比べるうちに、どの獣の体にも同じ赤い点が透けて見えるようになった。"],
+    close: "図を机に戻しても、赤い点は目の奥に残った。急所を見抜く目が、隊に宿った。",
+  },
+  ws27: {
+    lines: ["王子の墓所の奥の小箱に、王冠に嵌めるはずだった宝石がひとつ、布にくるまれて眠っていた。",
+      "即位の日に嵌めるつもりで、王子が自分で選んだ石だという。その日は、ついに来なかった。",
+      "隊の一人ひとりが宝石を光にかざすと、石の奥の青い光が、胸の灯にそっと移っていった。"],
+    close: "宝石は小箱へ戻した。魔力の器が、王冠の石のように深く満ちた。",
+  },
 };
 for (const [dungeonId, stat, amount, name, legacyId] of DUNGEON_GIFTS) {
   const dungeon = WORLD.find((d) => d.id === dungeonId);
@@ -3154,6 +3362,7 @@ export const EVENT_GROUPS = [
   { key: "11", label: "闘技場", name: "第11層 闘技場跡", layer: 11 },
   { key: "12", label: "大空洞", name: "第12層 地底大空洞", layer: 12 },
   { key: "13", label: "書庫", name: "第13層 古い書庫", layer: 13 },
+  { key: "14", label: "王家の廟", name: "第14層 王家の廟", layer: 14 },
   { key: "99", label: "無限迷宮", name: "無限迷宮", layer: INF_EV_LAYER },
 ];
 
@@ -3222,6 +3431,8 @@ export function onceKey(e, layer) { return e.once === "layer" ? `${e.id}:${layer
 export function runEvent(A, cell) {
   const e = EVENT_MAP[cell.evId];
   if (!e) { A.done(cell); return; }
+  // 袋の整理中に閉じても、選択や代償を繰り返さず同じ収集品の受け取りへ戻る。
+  if (cell.evCollectible) { A.collectible("", () => A.done(cell), cell); return; }
   cell.evVisited = true; // 選択肢を見た印。図鑑の実行済み記録とは分ける
   // 勝った戦闘の続きが保存されたまま中断していた (勝利直後にアプリが落ちた等)
   if (cell.evFight && cell.evFight.won) { const f = cell.evFight; cell.evFight = null; if (e.onWin) e.onWin(A, cell, f, () => A.back()); else A.done(cell); return; }
@@ -3252,7 +3463,17 @@ export function runEvent(A, cell) {
     A.gift(e.name, [...e.intro(A, cell), ...lines], A.icon(e), { banner: t.banner, accent: e.accent || t.accent }, () => A.done(cell));
     return;
   }
-  const opts = (e.choices(A, cell) || []).filter(Boolean).map((o) => ({ ...o, fn: () => {
+  const viewApi = Object.create(A);
+  let building = true;
+  for (const key of ["check", "checkDisarm"]) viewApi[key] = (...args) => {
+    if (!building) return A[key](...args);
+    const cache = cell.evChecks || (cell.evChecks = {});
+    const id = `${key}:${args[0] || ""}:${args[1]?.uid || ""}`;
+    return cache[id] || (cache[id] = A[key](...args));
+  };
+  const choices = e.choices(viewApi, cell) || [];
+  building = false;
+  const opts = choices.filter(Boolean).map((o) => ({ ...o, fn: () => {
     if (!o.cancel) { A.seen(e, cell); A.picked(e, o.label); }
     o.fn();
   } }));

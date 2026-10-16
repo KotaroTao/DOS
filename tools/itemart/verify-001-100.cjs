@@ -15,8 +15,8 @@ const assert = require('node:assert/strict');
         await new Promise(resolve => setTimeout(resolve, 5000));
         await r.abort().catch(() => {});
       });
-      await page.goto('http://localhost:8000/?testDungeon=w01&testFloor=1');
-      await page.waitForFunction(() => window.__game?.G.state === 'board', { timeout: 30000 });
+      await page.goto('http://localhost:8000/?testDungeon=w01&testFloor=1', { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction(() => window.__game?.G.state === 'board', null, { timeout: 90000 });
       if (mode === 'normal') {
         await page.setViewportSize({ width: 390, height: 844 });
         for (const id of ['dagger', 'plateArmor', 'manaDrop']) {
@@ -37,10 +37,11 @@ const assert = require('node:assert/strict');
       const result = await page.evaluate(async mode => {
         const { ITEMS } = await import('/src/items.js');
         const { CATALOG_ITEMS } = await import('/src/catalog/index.js');
-        const { ITEM_PHOTOS, itemPhoto } = await import('/src/itemphotos.js');
+        const { ITEM_PHOTOS: ALL_ITEM_PHOTOS, itemPhoto } = await import('/src/itemphotos.js');
         const { makeItemSpriteResolver, ART_SLOTS, unidIcon } = await import('/src/itemart/index.js');
         const { setSpriteResolver, spriteCanvas, whenPhoto } = await import('/src/sprites.js');
         const items = { ...ITEMS, ...CATALOG_ITEMS };
+        const ITEM_PHOTOS = ALL_ITEM_PHOTOS.filter(id => items[id].number <= 100);
         const resolve = makeItemSpriteResolver(items);
         setSpriteResolver(resolve);
         document.body.replaceChildren();
@@ -56,7 +57,7 @@ const assert = require('node:assert/strict');
           }
           if (ART_SLOTS.has(item.slot)) {
             const unknown = resolve({ ...item, unidentified: true });
-            if (unknown.photo || JSON.stringify(unknown) !== JSON.stringify(unidIcon(item))) throw Error(id + ': 未鑑定の姿が漏れている');
+            if (JSON.stringify(unknown) !== JSON.stringify(unidIcon(item))) throw Error(id + ': 未鑑定の姿が漏れている');
             hidden++;
           }
           const canvas = spriteCanvas({ ...item }, 4, 24);
@@ -64,7 +65,7 @@ const assert = require('node:assert/strict');
           card.append(canvas, document.createElement('br'), `${item.number} ${item.name}`);
           document.body.append(card);
         }
-        for (const item of Object.values(items).filter(i => i.number > 100 && ART_SLOTS.has(i.slot))) {
+        for (const item of Object.values(items).filter(i => !ALL_ITEM_PHOTOS.includes(i.id) && ART_SLOTS.has(i.slot))) {
           if (resolve(item)?.photo) throw Error(item.id + ': 対象外の絵が変更された');
         }
         await new Promise(resolve => setTimeout(resolve, 150));

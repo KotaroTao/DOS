@@ -76,8 +76,10 @@ function openEntry(kind, id, handle = null) {
     className:"jr-sheet jr-detail", accent:kind==="help"?"#78bdd1":"#d9b76e",
     body:b=>{
       b.appendChild(illustration(entry));
-      if(entry.subtitle)b.appendChild(el("div","jr-subtitle",entry.subtitle));
-      for(const line of linesOf(entry))b.appendChild(el("p","jr-line",storyText(line, game.G)));
+      const text = el("div", "jr-text");
+      if(entry.subtitle)text.appendChild(el("div","jr-subtitle",entry.subtitle));
+      for(const line of linesOf(entry))text.appendChild(el("p","jr-line",storyText(line, game.G)));
+      b.appendChild(text);
     },
     footer,
     // 知らせから読んだ時など、一覧を経ずに閉じたら街の未読の数を付け直す

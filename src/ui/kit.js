@@ -277,6 +277,15 @@ export const sheet = {
       else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
     });
 
+    // PCでは右上から閉じられる。戻ると同じ経路を通し、確認の取消も保つ。
+    if (dismissible && kind !== "celebrate") {
+      const close = el("button", "ui-pc-close", "×");
+      close.type = "button";
+      close.setAttribute("aria-label", "閉じる");
+      close.title = "閉じる (Esc)";
+      close.addEventListener("click", () => h.back());
+      card.appendChild(close);
+    }
     stack.push(h);
     h.navEntry = nav.push({ id: "sheet", onBack: () => h.back() });
     uiLayer().appendChild(wrap);
@@ -648,6 +657,19 @@ export function tabbar(tabs, active, onChange) {
   const bar = el("nav", "ui-tabbar");
   bar.setAttribute("role", "tablist");
   bar.setAttribute("aria-label", "街の区画");
+  // PCの縦メニューは上下キーでも移動できる。狭い画面の操作は従来どおり。
+  bar.addEventListener("focusin", () => {
+    bar.setAttribute("aria-orientation", getComputedStyle(bar).flexDirection === "column" ? "vertical" : "horizontal");
+  });
+  bar.addEventListener("keydown", (e) => {
+    if (getComputedStyle(bar).flexDirection !== "column" || !["ArrowUp", "ArrowDown", "Home", "End"].includes(e.key)) return;
+    const buttons = [...bar.querySelectorAll(".ui-tab:not(.locked):not(:disabled)")];
+    const i = buttons.indexOf(e.target);
+    if (i < 0 || !buttons.length) return;
+    e.preventDefault();
+    const next = e.key === "Home" ? 0 : e.key === "End" ? buttons.length - 1 : (i + (e.key === "ArrowDown" ? 1 : -1) + buttons.length) % buttons.length;
+    buttons[next].focus(); buttons[next].click();
+  });
   for (const t of tabs) {
     const b = el("button", "ui-tab" + (t.center ? " center" : ""));
     b.type = "button";
