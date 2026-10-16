@@ -224,7 +224,7 @@ function renderHero(b) {
   if (f) {
     // 押すと詳細: 発見した魔物 = その迷宮の魔物の札 (図鑑) / 固有クエスト = 依頼人の頼みの一覧 (状態・現れる条件)
     const di = g.dungeonIdx;
-    facts.appendChild(fact("発見した魔物", `${f.monSeen}/${f.monTotal}`, f.monTotal && f.monSeen >= f.monTotal ? "full" : "",
+    if (game.featureUnlocked?.("codex")) facts.appendChild(fact("発見した魔物", `${f.monSeen}/${f.monTotal}`, f.monTotal && f.monSeen >= f.monTotal ? "full" : "",
       f.monTotal && UI.dungeonMonSheet ? () => UI.dungeonMonSheet(di) : null, "魔物"));
     // 受注中の依頼 = この迷宮を対象にしている依頼 (名の横の「依頼」の印と同じ数え方)。押すと札の一覧
     let qs = [];

@@ -438,7 +438,7 @@ export function openDungeonMenu() {
         : menuTile("party", "隊を見る", "装備・能力・道具", go(() => UI.openParty(0, { context: "dungeon" }))));
       grid.appendChild(menuTile("loot", "今回の収穫", `💰${r.gold || 0} ✦${r.soulPts || 0} 品${(r.items || []).length}`, go(openRunLoot)));
       grid.appendChild(menuTile("scroll", "記録を読む", "出来事の全文", go(openLog)));
-      grid.appendChild(menuTile("book", "図鑑", "敵・品・見聞", go(() => UI.openCodexSheet && UI.openCodexSheet({ dungeonIdx: g.dungeonIdx }))));
+      if (game.featureUnlocked?.("codex")) grid.appendChild(menuTile("book", "図鑑", "敵・品・見聞", go(() => UI.openCodexSheet && UI.openCodexSheet({ dungeonIdx: g.dungeonIdx }))));
       // ヘルプ (酒場で書き留めた話もタブで) とストーリー。街の同じボタンと同じ画面を開く
       grid.appendChild(menuTile("help", "ヘルプ・酒場の噂話", "機能の手引き・聞いた話", go(() => UI.openHelp && UI.openHelp())));
       const unread = UI.storyUnread ? UI.storyUnread() : 0;
@@ -661,9 +661,11 @@ function refreshDesktopTools() {
   const show=isDesktopLayout()&&game.G?.state==="board";
   app.classList.toggle("has-pc-tools",show);
   if(!show){tools?.remove();return;}
-  if(tools)return;
-  tools=el("nav","pc-explore-tools");tools.id="pc-explore-tools";tools.setAttribute("aria-label","探索の操作");
-  const actions=[["隊・持ち物",()=>UI.openParty?.(null,{context:"dungeon"})],["探索記録",openLog],["敵の図鑑",()=>UI.openCodexSheet?.({dungeonIdx:game.G.dungeonIdx})],
+  const codexReady = !!game.featureUnlocked?.("codex");
+  if(tools && tools.dataset.codex === String(codexReady))return;
+  tools?.remove();
+  tools=el("nav","pc-explore-tools");tools.dataset.codex=String(codexReady);tools.id="pc-explore-tools";tools.setAttribute("aria-label","探索の操作");
+  const actions=[["隊・持ち物",()=>UI.openParty?.(null,{context:"dungeon"})],["探索記録",openLog],...(codexReady ? [["敵の図鑑",()=>UI.openCodexSheet?.({dungeonIdx:game.G.dungeonIdx})]] : []),
     ["今回の収穫",openRunLoot],["ヘルプ",()=>UI.openHelp?.()],["ストーリー",()=>UI.openStoryArchive?.()]];
   for(const [label,run] of actions){const b=el("button","pc-tool",label);b.type="button";
     b.addEventListener("click",()=>{if(!uiBlocked())run();});tools.appendChild(b);}

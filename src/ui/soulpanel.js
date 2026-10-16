@@ -233,7 +233,7 @@ function mainCard(d, pe, town) {
   lvN.appendChild(el("span", "sp-lv-cap", `/${cap}`));
   nm.appendChild(lvN);
   // 見出しを押すと、その職業の図鑑 (ランクごとの技・加護) を開く (ユーザーの指示、2026-10)
-  if (game.showCodexJobDetail) {
+  if (game.featureUnlocked?.("codex") && game.showCodexJobDetail) {
     head.classList.add("sp-head-link");
     head.setAttribute("role", "button");
     head.setAttribute("aria-label", `${cl.label || ""}の職業図鑑を見る`);
@@ -599,7 +599,7 @@ function confirmSoulEquip(d, slotId, s, cur) {
       isSub ? "同じ職業でも別の魂なら仲間と重複して宿せる。借りる技・パッシブは、宿したあとに選ぶ。技を押すとくわしい説明。" : "メイン魂の技・パッシブをすべて使える。技を押すとくわしい説明。"],
     body, className: "sp-eqc-sheet", okLabel: "宿す", danger: false,
     // 「宿す」の下に、その魂の職業図鑑 (この確認の上に開く。ユーザーの指示、2026-10)
-    extra: [game.showCodexJobDetail ? { label: "職業図鑑を見る", kind: "secondary", onTap: () => game.showCodexJobDetail(s.clsKey, soulRankOf(s)) } : null],
+    extra: [game.featureUnlocked?.("codex") && game.showCodexJobDetail ? { label: "職業図鑑を見る", kind: "secondary", onTap: () => game.showCodexJobDetail(s.clsKey, soulRankOf(s)) } : null],
   });
 }
 // 耐性の増減 (変わった項目だけ、2列)
@@ -805,7 +805,8 @@ export function openSoulList() {
         tx.appendChild(el("span", "sp-srow-m", `Lv${s.level}/${soulLevelCapOf(s)} ・ ランク${rank} ・ ${RARITY_NAME[cl.rarity] || ""}`));
         tx.appendChild(el("span", "sp-srow-tag", soulTags(s)));
         main.appendChild(tx);
-        main.setAttribute("aria-label", `${soulLabel(s)}の職業図鑑を見る`);
+        main.disabled = !game.featureUnlocked?.("codex");
+        main.setAttribute("aria-label", game.featureUnlocked?.("codex") ? `${soulLabel(s)}の職業図鑑を見る` : soulLabel(s));
         r.addEventListener("click", (e) => {
           if (e.target.closest(".sp-srow-side .ui-btn")) return;
           sfx("select");
@@ -848,7 +849,7 @@ export function openSoulDetail(uid, onChange = null) {
     // 魂の名と同じ列の右端に「職業図鑑を見る」(その職業の図鑑をこのシートの上に開く。ユーザーの指示、2026-10)
     const nmRow = el("div", "sp-sd-nmrow");
     nmRow.appendChild(nm);
-    if (game.showCodexJobDetail) {
+    if (game.featureUnlocked?.("codex") && game.showCodexJobDetail) {
       const cb = button({ label: "職業図鑑を見る", kind: "secondary", size: "sm", onTap: () => game.showCodexJobDetail(s.clsKey, rank) });
       cb.classList.add("sp-sd-codex");
       nmRow.appendChild(cb);
@@ -1408,7 +1409,7 @@ export function celebrateJob(d) {
     title: `${d.name} は ${d.cls} になった`, titleColor: cl.glow, lines,
     footer: [
       { label: "受け取る", kind: "primary", size: "lg", onTap: (h) => h.close("ok") },
-      game.showCodexJobDetail ? { label: "職業を見る", kind: "ghost", onTap: (h) => { h.close("ok"); game.showCodexJobDetail(d.jobKey, d.jobRank); } } : null,
+      game.featureUnlocked?.("codex") && game.showCodexJobDetail ? { label: "職業を見る", kind: "ghost", onTap: (h) => { h.close("ok"); game.showCodexJobDetail(d.jobKey, d.jobRank); } } : null,
     ],
   });
 }

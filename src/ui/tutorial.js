@@ -552,7 +552,7 @@ function finish(d) {
   const after = () => {
     busy = false;
     if (game.renderTown && inTown()) game.renderTown();
-    // 最初のレア魂は、付け替えの確認からサブ魂へ同じ館で続ける。
+    // 修道院を踏破済みなら、付け替えの確認からサブ魂へ同じ館で続ける。
     const continueSouls = d.key === "soulChange" && pending()?.key === "sub1";
     if (!continueSouls && pending() && !pending().started) UI.shell?.setTab?.("hub");
     // 次の手ほどきは、街で対象施設の入口を案内する
@@ -588,7 +588,7 @@ function afterReturn() {
     if (haul.abbeyRare) st.abbeyRareReturned = true;
     if (!st.done.soulChange && newJobSouls().length > 0) st.jobVisit = true;
     // 同じ帰還の案内を再開しても融合を追加しない。サブ魂を学んだ後の次の持ち帰りで教える。
-    if ((haul.sub1LearnedBeforeReturn ?? st.done.sub1) && !st.done.fusion && game.featureUnlocked?.("fusion")) st.fusionPending = true;
+    if ((haul.sub1LearnedBeforeReturn ?? st.done.sub1) && !st.done.fusion) st.fusionPending = true;
     game.autosave?.(true);
   }
   if (!st.done.trainSoul && UI.trainableList?.().length > 0) {

@@ -37,8 +37,11 @@ with sync_playwright() as p:
         G.party.forEach(d=>{d.stability=100;d.stabilityAt=Date.now();});
         UI.closeAll?.();ev.enterDungeon(null,1);
       };
-      reset();G.world.reported.w03=1;G.tut.done.soulChange=true;
-      check(!game.featureUnlocked('sub1'),'新規冒険は三報告だけではサブ魂を開かない');
+      reset();G.tut.done.soulChange=true;G.tut.abbeyRareReturned=true;
+      check(!game.featureUnlocked('sub1'),'レア魂を持ち帰り付け替えを学んでも踏破前はサブ魂を開かない');
+      G.world.reported.w03=1;
+      check(game.featureUnlocked('sub1'),'踏破記録のない既存の修道院報告も解放として扱う');
+      delete G.tut.abbeyRareReturned;
       check(inf.grantSoulQuiet('fighter').rarity==='rare','修道院を先に報告しても初回の魂はレア');
       reset();G.floor=2;ev.newFloor();
       check(G.board.cells.flat().filter(c=>c.abbeyFirstSoul&&c.corpseWarm&&c.revealed&&SOUL_CLASSES[c.corpseClass].rarity==='rare').length===1,'B2Fに発見済みのレアの死体を配置');
@@ -57,15 +60,28 @@ with sync_playwright() as p:
       game.pendingIreneBeat=()=>null;
       inf.returnToTown({outcome:'return'});
       check(G.tut.abbeyRareReturned&&UI.tutorialPending()?.key==='soulChange','無事に持ち帰ったら付け替えが先');
-      check(!G.tut.fusionPending&&!game.featureUnlocked('sub1'),'付け替え前はサブ魂と融合の案内を開かない');
+      check(!G.tut.fusionPending&&!game.featureUnlocked('fusion')&&!game.featureUnlocked('sub1'),'二報告済みでも手ほどき前は魂融合とサブ魂を開かない');
       G.tut.done.soulChange=true;
-      check(game.featureUnlocked('sub1')&&UI.tutorialPending()?.key==='sub1','付け替えを学んだ直後にサブ魂が開く');
+      check(!game.featureUnlocked('sub1')&&UI.tutorialPending()?.key!=='sub1','途中帰還で付け替えを学んでもサブ魂を案内しない');
+      G.world.cleared.w03=1;
+      check(game.featureUnlocked('sub1')&&UI.tutorialPending()?.key==='sub1','修道院踏破後、報告前にサブ魂が開き館を案内する');
+      delete G.tut.abbeyRareReturned;G.tut.done.soulChange=false;
+      check(game.featureUnlocked('sub1'),'踏破後はレア魂の持ち帰り・付け替えの習得を解放条件にしない');
+      G.tut.done.soulChange=true;G.tut.abbeyRareReturned=true;
       G.tut.done.sub1=true;delete G.lastRun.soulTutorialHandled;UI.tutorialAfterReturn();
-      check(!G.tut.fusionPending,'同じ帰還を再処理しても融合を始めない');
+      check(!G.tut.fusionPending&&!game.featureUnlocked('fusion'),'同じ帰還を再処理しても融合の機能と案内を開かない');
       G.party.forEach(d=>{d.stability=100;d.stabilityAt=Date.now();});ev.enterDungeon(null,1);
       check(inf.grantSoulQuiet('fighter').rarity==='common','持ち帰り後はレア保証を繰り返さない');
       inf.returnToTown({outcome:'return'});
-      check(G.tut.fusionPending&&UI.tutorialPending()?.key==='fusion','次に魂を持ち帰った帰還で融合を案内');
+      check(G.tut.fusionPending&&game.featureUnlocked('fusion')&&UI.tutorialPending()?.key==='fusion','次の職業の魂の持ち帰りで融合の機能と手ほどきを同時解放');
+      G.tut.fusionPending=false;G.tut.done.fusion=true;
+      check(game.featureUnlocked('fusion'),'融合習得済みの機能を保持する');
+      G.tut.done.fusion=false;G.stats.fusions=1;
+      check(game.featureUnlocked('fusion'),'使用済みの融合機能を保持する');G.stats.fusions=0;
+      reset();G.tut.done.sub1=true;
+      check(game.featureUnlocked('sub1'),'すでに教わったサブ魂は踏破記録がなくても保持する');
+      G.tut.done.sub1=false;G.tut.sub1Legacy=true;
+      check(game.featureUnlocked('sub1'),'旧版から引き継いだサブ魂の枠を保持する');
       return checks;
     }''')
     print('\n'.join(result), flush=True)
@@ -80,7 +96,7 @@ with sync_playwright() as p:
           const {game,UI}=await import('/src/ui/ctx.js');const {G,ev,inf}=__game;
           game.pendingIreneBeat=()=>null;G.irene.greeted=true;
           G.tut={earlySoulVersion:1,done:{repairSoul:true,trainSoul:true,shopAppraise:true}};
-          ev.enterDungeon(null,1);inf.grantSoulQuiet('samurai');inf.returnToTown({outcome:'return'});
+          ev.enterDungeon(null,1);inf.grantSoulQuiet('samurai');G.world.cleared.w03=1;inf.returnToTown({outcome:'clear'});
         }''')
         main_chosen=False
         seen=[]
@@ -113,7 +129,7 @@ with sync_playwright() as p:
             assert main_chosen
             assert page.evaluate('async()=>{const {soulByUid}=await import("/src/souls.js");return __game.G.party.some(d=>soulByUid(d.primary)?.clsKey==="samurai")}')
         assert not errors,errors
-        print(f'{width}px: 付け替え→サブ魂の実操作、融合は次の帰還へ',flush=True)
+        print(f'{width}px: 修道院踏破後に付け替え→サブ魂の実操作、融合は次の帰還へ',flush=True)
         context.close()
 
     # 実際の通常ロードで旧版の深い階と、既に開いたサブ魂を保持する。
@@ -140,5 +156,24 @@ with sync_playwright() as p:
         page.evaluate('async()=>{const {game}=await import("/src/ui/ctx.js");game.returnToTown({outcome:"return"})}')
         assert page.evaluate('__game.activeCfg().floors')==({'w01':3,'w02':5,'w03':10}[dungeon])
         print(dungeon+': 旧探索を保持、帰還後は短縮版、既存のサブ魂は保持',flush=True)
+        context.close()
+    # 直前の公開版のセーブも通常ロードし、未使用の枠は新条件、開始済み・装着済みは継続する。
+    for state in ['unlearned', 'started', 'equipped']:
+        context, page = fresh()
+        page.evaluate('''async(state)=>{
+          const {G,inf}=__game;
+          G.state='town';G.world.reported={w01:1,w02:1};G.world.cleared={w01:1,w02:1};
+          G.tut={earlySoulVersion:1,abbeyRareReturned:true,done:{soulChange:true},cur:state==='started'?'sub1':null,step:0,ev:{},base:{}};
+          if(state==='equipped') {
+            const soul=inf.addSoulInstance('samurai');
+            G.party[0].subs=[{uid:soul.uid,picks:[]}];inf.recalcAllDolls();
+          }
+          localStorage.setItem('dos-save-v7',inf.saveJSON());
+        }''', state)
+        page.goto(BASE,wait_until='domcontentloaded');page.wait_for_function('window.__game?.G.party.length===6')
+        assert page.evaluate('async()=>{const {game}=await import("/src/ui/ctx.js");return game.featureUnlocked("sub1")}') == (state != 'unlearned'), state
+        if state == 'equipped':
+            assert page.evaluate('__game.G.party[0].subs.length') == 1
+        print(state+': 現行版セーブを読み込み、未踏破の解放条件・使用済みの引き継ぎを確認',flush=True)
         context.close()
     browser.close()
