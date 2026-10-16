@@ -55,7 +55,8 @@ function refsFor({ text, kind = "", id = "", chapter = 0, master = null }) {
     for (const p of refs) add(p, `基準: ${name}`);
     if (name === "sera") add(SERA_REF, "セラの原画 (必ず)");
   }
-  if (/報告/.test(kind) || id.startsWith("report_")) add(THRONE, "玉座の間の造り");
+  if (sceneById(id)?.illustration?.setting === "throne" || /報告/.test(kind) || id.startsWith("report_")) add(THRONE, "玉座の間の造り");
+  if (id === "opening") add("docs/art/town/panorama.png", "ロアダルの離宮の外観");
   if (/館の語り/.test(kind) || /mansion/i.test(text)) for (const p of MANSION) add(p, "館の造り");
   return { refs: out, note };
 }
@@ -91,6 +92,8 @@ export function promptFor(id, { fix = null } = {}) {
   const p = scenePaths(id);
   if (!p) throw new Error(`場面「${id}」は src/archive-stories.js にも迷宮の由来にも無い`);
   const s = sceneById(id), chapter = s?.chapter ?? 0;
+  const palace = (s?.illustration?.setting === "throne" || id === "opening") ? brief.palace : "";
+  const instructions = (...parts) => [...parts, palace].filter(Boolean).join("\n");
   const shipped = exists(p.shipped);
   const fixes = fix ?? (shipped ? fixFor(brief, p.master) : []);
   const head = `# ${id}「${archiveText(id)?.title || ""}」 ${chapter ? `第${chapter}章` : id.startsWith("lore_") ? "踏破した迷宮の由来" : "序章"}`;
@@ -100,8 +103,8 @@ export function promptFor(id, { fix = null } = {}) {
     const r = refsFor({ text: f.prompt || f.notes.join(" "), kind: s?.title, id, chapter, master: p.master });
     return [head + ` ── 修正 (${f.key === "B" ? "任意" : f.key})`, `## 保存先 (同じ名前で上書き)\n${save(p.master, p.shipped)}`,
       `## 参照画像 (この順に渡す)\n${refList(r)}`, texts(id), `## 直すこと (指示書 3章)\n${f.notes.map((n) => "- " + n).join("\n")}`,
-      en ? "## 画像生成に貼る英語の指示\n```text\n" + [brief.style, en].join("\n") + "\n```"
-        : "## 英語の指示\n指示書に英語の指示が無い (任意の修正)。上の「直すこと」を英語にして、次の前置きの後に書く:\n```text\n" + [brief.style, brief.fixLead].join("\n") + "\n```"].join("\n\n");
+      en ? "## 画像生成に貼る英語の指示\n```text\n" + instructions(brief.style, en) + "\n```"
+        : "## 英語の指示\n指示書に英語の指示が無い (任意の修正)。上の「直すこと」を英語にして、次の前置きの後に書く:\n```text\n" + instructions(brief.style, brief.fixLead) + "\n```"].join("\n\n");
   }
   if (id.startsWith("lore_")) {
     const d = WORLD.find((w) => w.id === id.slice(5)), row = brief.lore[id.slice(5)];
@@ -111,11 +114,12 @@ export function promptFor(id, { fix = null } = {}) {
       "## 英語の指示\n上の中身を英語にして、次の前置きの後に書く:\n```text\n" + brief.style + "\n```"].join("\n\n");
   }
   const sp = brief.scenes[id];
-  if (!sp) return [head, shipped ? "出荷済み。直す項目は指示書に無い。" : "**指示書 4章にこの場面の指示が無い** (Claude に指示を足してもらう)", texts(id)].join("\n\n");
+  if (!sp) return [head, shipped ? "出荷済み。直す項目は指示書に無い。" : "**指示書 4章にこの場面の指示が無い** (Claude に指示を足してもらう)", texts(id),
+    palace ? `## 建築の基準 (今後の修正でも維持)\n${refList(refsFor({ text: "", id, chapter }))}\n\n${palace}` : ""].filter(Boolean).join("\n\n");
   const r = refsFor({ text: sp.prompt, kind: sp.kind, id, chapter });
   return [head + ` ── 新規 (${sp.kind})`, `## 保存先\n${save(p.master, p.shipped)}`, `## 参照画像 (この順に渡す)\n${refList(r)}`,
     texts(id), `## 描くもの・描かないもの (指示書 4章)\n${sp.notes.map((n) => "- " + n).join("\n")}`,
-    "## 画像生成に貼る英語の指示\n```text\n" + [brief.style, sp.prompt].join("\n") + "\n```"].join("\n\n");
+    "## 画像生成に貼る英語の指示\n```text\n" + instructions(brief.style, sp.prompt) + "\n```"].join("\n\n");
 }
 
 // 絵が要る場面 (出荷済みで修正の項目も無いものは除く)
