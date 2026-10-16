@@ -24,14 +24,21 @@ async def main():
             await pg.wait_for_function("!document.body.classList.contains('booting')")
 
         async def select(slot):
-            await page.get_by_role("button", name=f"記録{slot}", exact=True).focus()
-            await page.keyboard.press("Enter")
+            async with page.expect_navigation(wait_until="domcontentloaded"):
+                await page.get_by_role("button", name=f"記録{slot}", exact=True).press("Enter")
             await page.wait_for_url(f"**saveSlot={slot}")
             await ready()
             await expect(page.get_by_role("button", name=f"記録{slot}", exact=True)).to_have_attribute("aria-pressed", "true")
 
         await page.goto(BASE+"?testDungeon=w05&testPlace=town")
         await page.wait_for_function("window.__game?.G.party.length>0 && !document.body.classList.contains('booting')")
+        await page.evaluate("""async()=>{
+          const g=__game.G;
+          const {_TUTS}=await import('/src/ui/tutorial.js');
+          _TUTS.forEach(t=>g.tut.done[t.key]=true);
+          g.tut.cur=null;g.irene.greeted=true;g.insightNotified=Number.MAX_SAFE_INTEGER;
+          for(const id of Object.keys(g.world.cleared)) g.world.beats['mem_'+id]=true;
+        }""")
         seed = await page.evaluate("__game.inf.saveJSON()")
         await page.evaluate("s=>localStorage.setItem('dos-save-v7',s)", seed)
         await page.goto(BASE)
@@ -49,7 +56,8 @@ async def main():
             await page.wait_for_function(f"__game.G.apprenticeName==='旅人{slot}'")
             await page.evaluate(f"__game.G.gold={slot*111};__game.autosave(true)")
             # 設定から戻る実処理を通す。
-            await page.evaluate("async()=>{const {game}=await import('/src/ui/ctx.js');await game.returnToTitle()}")
+            async with page.expect_navigation(wait_until="domcontentloaded"):
+                await page.evaluate("async()=>{const {game}=await import('/src/ui/ctx.js');await game.returnToTitle()}")
             await ready()
             assert await page.evaluate("__game.G.gold") == slot*111
             await expect(page.locator(".ttl-save")).to_contain_text(f"旅人{slot}")
@@ -58,9 +66,10 @@ async def main():
             assert await page.evaluate("__game.G.gold") == slot*111
         await page.locator(".ttl-menu .ttl-btn.primary").click()
         await page.locator(".ttl-overlay").wait_for(state="detached")
-        await page.evaluate("__game.UI.settingsSheet()")
+        await page.evaluate("__game.UI.openSettings()")
         await page.get_by_role("tab", name="自動化・データ", exact=True).click()
-        await page.get_by_role("button", name="記録1を保存してタイトルへ", exact=False).click()
+        async with page.expect_navigation(wait_until="domcontentloaded"):
+            await page.get_by_role("button", name="記録1を保存してタイトルへ", exact=False).click()
         await ready()
         assert await page.evaluate("__game.G.gold") == 111
         # 同じ枠は拒否し、別の枠は同時に開ける。
@@ -71,7 +80,8 @@ async def main():
         await select(2)
         assert await page.evaluate("__game.G.gold") == 224
         keep = await page.evaluate("[localStorage.getItem('dos-save-v7'),localStorage.getItem('dos-save-v7-slot-3')]")
-        await page.evaluate("async()=>{const {game}=await import('/src/ui/ctx.js');game.resetAllData()}")
+        async with page.expect_navigation(wait_until="domcontentloaded"):
+            await page.evaluate("async()=>{const {game}=await import('/src/ui/ctx.js');game.resetAllData()}")
         await ready()
         assert await page.evaluate("localStorage.getItem('dos-save-v7-slot-2')") is None
         assert await page.evaluate("[localStorage.getItem('dos-save-v7'),localStorage.getItem('dos-save-v7-slot-3')]") == keep
