@@ -1897,7 +1897,7 @@ function vWell(R, A) {
   R.glow(cx, oy, 50, 44, "#8a9ad0", 0.35, 5); R.light(cx, oy, 130, "#a0b0e0", 1, 120);
   // 口から垂れる綱と桶
   R.m = SURF; R.line(cx + 4, oy + 8, cx + 10, H * 0.62, "#6a5a40"); R.rect(cx + 6, H * 0.62, 9, 7, "#4a3a28"); R.rect(cx + 6, H * 0.62, 9, 1, "#8a7050");
-  // 底に積もった願いの品 (金貨・指輪・人形・手紙) と、紫に灯る願い
+  // 底に積もった願いの品 (金貨・指輪・人業・手紙) と、紫に灯る願い
   R.m = SURF; R.ellipse(cx, H * 1.02, W * 0.48, H * 0.2, tex("#2a2430", "#141018", 0.2, 6));
   const r = rnd(81);
   for (let i = 0; i < 70; i++) {
@@ -3294,6 +3294,8 @@ const VISTAS = {
   w34: [0, vCloudBridge], w35: [0, vBeastCages], w36: [0, vSpectreStands], w37: [11, vBloodSand], ws18: [0, vVictorsRoom], ws19: [0, vDuelRing],
   w38: [0, vLampDrift], w39: [0, vBlackLake], w40: [0, vNameGrotto], w41: [0, vGreatNave], ws20: [0, vBeastLair], ws21: [0, vFossilDragon], ws22: [12, vCrystalVein],
   w42: [0, vShelfStair], w43: [0, vRainArchive], w44: [0, vGlassWorks], w45: [0, vGreatArchive], ws23: [0, vPictureRoom], ws24: [0, vClosedStacks],
+  // 第十二章「王家の廟」: 専用の情景は描き下ろし待ち (docs/art/chapter12-art-list.md)。それまでは近い情景を借りる
+  w46: [0, vNameGrotto], w47: [0, vGlassWorks], w48: [0, vGreatNave], w49: [0, vGreatNave], ws25: [0, vNameGrotto], ws26: [0, vBeastLair], ws27: [0, vGreatNave],
 };
 function finishVista(out, w, h) { // 周辺減光だけ (名札帯・中央減光はしない)
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {

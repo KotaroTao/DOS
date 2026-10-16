@@ -2,7 +2,7 @@ import { sphere, ellipsoid, cone, tube, box, cyl, torus, U, Sub, Disp, render, r
 import { humanoid } from "../human.mjs";
 import { SAND, BLOOD, ASHBED, STONE, IRON, RIM, sandFloor, ashfall, slashArc } from "../arena.mjs";
 export const meta = { id: "bs_mirrorduelist", key: "hd_mirrorduelist", w: 96, h: 96,
-  note: "鏡写しの決闘者: 全身を磨き上げた鋼の板で覆った、顔のない決闘人形。卵形の頭はつるりとした鏡で、雲海の光と闘技場の砂を映す。片足を大きく踏み出して細剣を突き、続けざまに二度突く (二連撃) — 二筋の突きの光。撃ちこまれた呪文は鏡の体で弾き返され、まったく通らない (魔法抵抗100)。重ねた加護も鏡の面に映して消す (打ち消し)" };
+  note: "鏡写しの決闘者: 全身を磨き上げた鋼の板で覆った、顔のない決闘人業。卵形の頭はつるりとした鏡で、雲海の光と闘技場の砂を映す。片足を大きく踏み出して細剣を突き、続けざまに二度突く (二連撃) — 二筋の突きの光。撃ちこまれた呪文は鏡の体で弾き返され、まったく通らない (魔法抵抗100)。重ねた加護も鏡の面に映して消す (打ち消し)" };
 export function build() {
   // 鏡の鋼: 上を向いた面は空 (雲海の冷たい明るさ)、地平の暗い帯、下を向いた面は砂の照り返し
   const mats = {

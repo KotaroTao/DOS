@@ -98,6 +98,13 @@ export const FLOOR_HAZ = {
   stackfall: { kind: "fall", name: "書架の崩れ穴", desc: "倒れた書架が床ごと抜け落ちた穴。下の階の書架の天板が見える",
     look: { shape: "hole", deco: "timber", rim: "#3e3228", chip: "#5e4c3a", core: ["#000000", "#050403", "#150f0b"], mote: "#d0c0a0", glow: null },
     line: "書架が床ごと抜けた！ 隊は舞い散る頁の中を、下の階へ落ちていく…" },
+  // 第十二章「王家の廟」
+  coffinchute: { kind: "fall", name: "棺の落とし口", desc: "王家の棺を下の段へ降ろした床の口。蓋の留め金が、とうに朽ちている",
+    look: { shape: "trapdoor", rim: "#3a3028", chip: "#6a5638", core: ["#000000", "#050403", "#16110c"], mote: "#d8c8a0", glow: null },
+    line: "棺の落とし口の蓋が開いた！ 隊は棺の滑り板を、下の階まで滑り落ちていく…" },
+  gravepit: { kind: "fall", name: "掘りかけの墓穴", desc: "誰かのために掘られ、埋められないまま口を開けた墓穴。底が下の階へ抜けている",
+    look: { shape: "square", deco: "rubble", rim: "#3e3830", chip: "#5e564a", core: ["#000000", "#060505", "#18140f"], mote: "#c0b49c", glow: null },
+    line: "墓穴の底が抜けた！ 隊は土くれといっしょに、下の階へ落ちていく…" },
 
   // ===== 蝕む床 =====
   sewage: { kind: "harm", name: "汚水のよどみ", desc: "黒い水がよどんだ溜まり。触れた肌がただれる",
@@ -182,6 +189,13 @@ export const FLOOR_HAZ = {
   inkpool: { kind: "harm", name: "墨だまり", desc: "本からしみ出した黒い墨のたまり。濁った魂が溶けていて、触れた者の力を吸う",
     look: { stain: [[8, 8, 12], [60, 52, 80], [16, 14, 22], [30, 26, 42], [150, 130, 190]], glow: "130,110,180", fx: "bubble", fxCol: "#a898c8", mist: "40,34,56" },
     verb: "墨だまりに力を吸われた", die: "墨だまりの中に倒れた…", flash: "#1e1828", accent: "#9a88c0" },
+  // 第十二章「王家の廟」
+  waxdrip: { kind: "harm", name: "弔い灯のしずく", desc: "消えないろうそくから垂れ続けたしずくが、床に熱いまま溜まっている。踏めば足を焼き、まとわりつく",
+    look: { stain: [[34, 28, 20], [210, 186, 140], [80, 66, 46], [150, 128, 90], [250, 236, 200]], glow: "240,200,130", fx: "ember", fxCol: "#f8e0a8", mist: null },
+    verb: "熱いしずくに足を焼かれた", die: "弔い灯のしずくの中に倒れた…", flash: "#5a4628", accent: "#d8b878" },
+  balm: { kind: "harm", name: "香油のしみ", desc: "亡骸に塗る香油がこぼれ、床にしみこんだところ。甘い匂いの奥に、喉を焼く毒がある",
+    look: { stain: [[22, 26, 18], [150, 160, 96], [44, 50, 32], [92, 104, 60], [214, 220, 150]], glow: "190,200,120", fx: "bubble", fxCol: "#d8e0a0", mist: "110,120,70" },
+    verb: "香油の毒気に喉を焼かれた", die: "香油の匂いの中に倒れた…", flash: "#3a4224", accent: "#b0b878", toxic: true },
 };
 
 // 置き場所の既定 (台帳に floorHaz が無い時・奈落の層)。null = その仕掛けを置かない
@@ -199,8 +213,9 @@ export const LAYER_FLOOR_HAZ = {
   11: { fall: "arenatrap", harm: "bladesand" },  // 闘技場跡
   12: { fall: "abysscleft", harm: "rotglow" },   // 地底大空洞
   13: { fall: "stackfall", harm: "inkpool" },    // 夜明けの町の大書庫
+  14: { fall: "coffinchute", harm: "waxdrip" },  // 王家の廟
 };
-// まだ迷宮の無い層 (第14層から) の奈落は、どの層の既定にも当てはまらないので毒の沼のまま
+// まだ迷宮の無い層 (第15層から) の奈落は、どの層の既定にも当てはまらないので毒の沼のまま
 const FALLBACK = { fall: "collapse", harm: "swamp" };
 
 export function layerFloorHaz(L) {

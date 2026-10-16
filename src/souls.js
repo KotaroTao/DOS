@@ -789,6 +789,24 @@ export function subStatRateOfRank(rank) { return SUB_STAT_RATES[Math.max(1, Math
 // サブ魂1つから借りられる技/パッシブの数は、その魂のランクで増える (R1-2=1 / R3-4=2 / R5=3)
 export function subPickCapOfRank(rank) { return rank >= 5 ? 3 : rank >= 3 ? 2 : 1; }
 export function subPickCap(soul) { return subPickCapOfRank(soul ? soulRankFromCount(soul.clsKey, soul.count) : 0); }
+// 極「宿り火の」(無限迷宮の追加の特性): 装備に付いていれば、ランクの高い方のサブ魂 (同じならサブ魂1) の借りる数 +1。
+// 装備の品の afxMisc (infaffix.js applyAffixes) を見る — items.js の recalc より先に recalcDoll が借用を数えるため
+export function kindleSubIndex(doll) {
+  if (!doll || !doll.equip || !Object.values(doll.equip).some((it) => it && it.afxMisc && it.afxMisc.kindle)) return -1;
+  let best = -1, br = -1;
+  (doll.subs || []).forEach((sub, i) => {
+    const se = sub ? soulByUid(sub.uid) : null;
+    if (!se || isUniqueJob(se.clsKey)) return;
+    const r = soulRankFromCount(se.clsKey, se.count);
+    if (r > br) { br = r; best = i; }
+  });
+  return best;
+}
+// 人業 doll のサブ魂 sub から借りられる数 (宿り火の込み)
+export function subPickCapFor(doll, sub) {
+  const base = subPickCap(sub ? soulByUid(sub.uid) : null);
+  return base + (doll && sub && (doll.subs || []).indexOf(sub) === kindleSubIndex(doll) ? 1 : 0);
+}
 // サブ魂の借用リスト sub.picks = [{skill} | {passive}] を返す。旧形式 {skill, passive} はここで移し替える
 export function subPicks(sub) {
   if (!sub) return [];
@@ -805,12 +823,12 @@ export function subPickIndex(sub, kind, key) {
 }
 // 借用を入れ替える。外す → true / 足す → true / 枠がいっぱいで足せない → false。
 // 枠が1つの魂は、選び直すと入れ替える (旧来の「1つだけ借りる」と同じ手触り)。
-export function toggleSubPick(sub, kind, key) {
+export function toggleSubPick(sub, kind, key, doll = null) {
   const picks = subPicks(sub);
   sub.picked = true; // 一度でも選び直したら、空にしても既定の技で埋めない
   const i = subPickIndex(sub, kind, key);
   if (i >= 0) { picks.splice(i, 1); return true; }
-  const cap = subPickCap(soulByUid(sub.uid));
+  const cap = doll ? subPickCapFor(doll, sub) : subPickCap(soulByUid(sub.uid));
   if (picks.length >= cap) {
     if (cap !== 1) return false;
     picks.length = 0;
@@ -1157,11 +1175,12 @@ export function recalcDoll(doll) {
   // 借用は sub.picks。覚えていない/上限を超えた分は効かない (外した後の空きは既定で埋めない)。
   // ステータスはその魂のステの subStatRateOfRank(ランク) (R1 10% 〜 R5 30%) を加算する。
   doll.subInfo = [];
+  const kidx = kindleSubIndex(doll);
   for (const sub of doll.subs) {
     const se = sub ? soulByUid(sub.uid) : null;
     if (!se) continue;
     const sr = soulRankFromCount(se.clsKey, se.count);
-    const cap = subPickCapOfRank(sr);
+    const cap = subPickCapOfRank(sr) + (doll.subs.indexOf(sub) === kidx ? 1 : 0); // 宿り火の (極)
     const learned = soulLearnedSkills(se);
     const learnedPassives = soulLearnedPassives(se);
     const picks = subPicks(sub);

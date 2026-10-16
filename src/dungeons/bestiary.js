@@ -543,7 +543,7 @@ const NEW_DEFS = [
   // 雑魚・主・強敵ともに rank10 (上限)。灰に埋もれた闘技場で終わらない試合を続ける闘士の霊、見世物の獣、観客の霊、闘技場の仕掛けと裏方たち。
   // 第5層からの流儀で特色を極端に押し出す (神速・特技の多用・ブレス・全体呪文・3連撃・守り崩し・打ち消し・魔法抵抗100・護衛)。
   // 剣闘の層だが痛撃は3体 (多用は処刑人) に抑え、魅了・混乱・弱体・麻痺・吸命・魂奪い・金貨奪い・鼓舞・吸血・不屈などへ散らした。
-  // 属性は無が中心で、霊は闇、砂の獣と巨人は土、灰の覇者・灰燼の将と主 (町を焼いた魂の火の灯を負う) は火、網の闘士は水、舞い手は風、鏡の人形は光。
+  // 属性は無が中心で、霊は闇、砂の獣と巨人は土、灰の覇者・灰燼の将と主 (町を焼いた魂の火の灯を負う) は火、網の闘士は水、舞い手は風、鏡の人業は光。
   // 絵は hd_* の固有原型 (tools/hdart/layer11/)。どの個体も ability を明示する (種族の既定の特技は付けない)
   { id: "bs_championwraith", name: "不滅の闘士", rank: 10, race: "armored", element: "none", artKey: "hd_championwraith", soulClass: "fighter",
     endure: true, enrage: true, multistrike: 2, ability: null, // 続けざまに二度斬り、手負いで猛り、致命の一撃を一度は耐える
@@ -571,7 +571,7 @@ const NEW_DEFS = [
     desc: "長いむちと鍵束を腰に下げた、猛獣使いの霊。腰から下は砂煙にほどけている。むちを鳴らして檻の闘犬を呼び出し、鋭い口笛で闘技場の魔物たちをあおり続ける。自分は決して砂の上へは降りてこない。" },
   { id: "bs_mirrorduelist", name: "鏡写しの決闘者", rank: 10, race: "construct", element: "light", artKey: "hd_mirrorduelist",
     magResist: 100, multistrike: 2, ability: "dispel", // 鏡の体が呪文を弾き、細剣で二度突き、重ねた加護を鏡に映して消す
-    desc: "全身を磨き上げた鋼の板で覆った、顔のない決闘人形。鏡のような体は撃ちこまれた呪文をそのまま弾き返し、まったく通さない。細い剣で続けざまに二度突き、隊が守りの加護を重ねると、鏡の面に映して消し去ってしまう。刃で磨きを削るしかない。" },
+    desc: "全身を磨き上げた鋼の板で覆った、顔のない決闘人業。鏡のような体は撃ちこまれた呪文をそのまま弾き返し、まったく通さない。細い剣で続けざまに二度突き、隊が守りの加護を重ねると、鏡の面に映して消し去ってしまう。刃で磨きを削るしかない。" },
   { id: "bs_crowdroar", name: "歓声の渦", rank: 10, race: "specter", element: "dark", artKey: "hd_crowdroar",
     pack: true, ability: "confuse", abRate: 0.45, evasive: true, // 群れで耳もとで叫び続けて惑わせ、声の渦は刃をすり抜ける
     desc: "闘技場の上に渦を巻く、数えきれない口だけの霊。歓声も、悲鳴も、笑い声も、みな同じ渦の中で響いている。群れで押し寄せて耳もとで叫び続け、聞いた者は、自分が誰に斬りかかっているのかも分からなくなる。声の渦は刃をすり抜け、つかみどころがない。" },
@@ -717,49 +717,67 @@ const NEW_DEFS = [
   { id: "bs_archivist", name: "大書庫の主", rank: 10, boss: true, race: "undead", element: "dark", artKey: "archivist", soulClass: "sage",
     role: "summoner", summonKey: "bs_grimoirebeast", ability: "drain", magResist: 75, physResist: 75,
     desc: "大書庫の奥の長机に座り続ける、年老いた司書。いつの時代から書庫を守っているのか、夜明けの町の誰も知らない。ひび割れた体のすき間から濁った光がもれ、もう訪れる者の顔を見分けられない。書架からうごめく魔導書を次々と呼び寄せ、近づく者の宿した魂のLvを喰らう。古い体は、刃も呪文も大半を受け流す。読みかけの本を、今も胸に抱えている。" },
-  // -- 第14層「屍蝋の回廊」 (rank 10・闇/王家の廟。朽ちぬ亡骸) --
-  { id: "bs_wickmummy", name: "屍蝋の王", rank: 10, race: "undead", element: "dark", artKey: "wickmummy",
-    ability: "drain", critical: undefined, physResist: 75, enrage: true, desc: "魂を抜かれて腐ることすら許されず、蝋のように固まった歴代の王。乾いた手で生者の命を吸い、王冠の重みのまま立ち上がる。朽ちぬことは、安らぎではなく罰だ。" },
+  // -- 第14層「王家の廟」 (rank 10・闇。第十二章: 大書庫の底の扉の下。歴代の王が香油とろうで固めた亡骸となって眠る廟と、その世話を続ける者たち) --
+  { id: "bs_wickmummy", name: "眠らずの王", rank: 10, race: "undead", element: "dark", artKey: "wickmummy",
+    ability: "goldSteal", abRate: 0.45, physResist: 75, enrage: true, // 貢ぎ物を求めて懐の金貨をはぎ取り、傷を負えば王の怒りで猛る
+    desc: "香油を塗られ、ろうで固められて、棺から起き上がった昔の王の亡骸。王冠も衣も、葬られた日のままだ。近づく者を貢ぎ物を持参した臣下と思いこみ、懐の金貨を何度もはぎ取っていく。固まった体は刃を大半はね返し、傷を負えば王の怒りで猛る。どの王の顔も、ろうの下で同じように静かだ。" },
   { id: "bs_embalmer", name: "防腐処理の番人", rank: 10, race: "specter", element: "dark", artKey: "embalmer",
-    ability: "drain", regen: 0.08, physResist: 75, desc: "王の亡骸を腐らせぬよう、永遠に処置を続ける防腐師の霊。生者をも『標本』にしようと命を抜き取り、自らの崩れた体も薬で繕う。完璧な保存だけが、こいつの執念だ。" },
+    role: "healer", ability: "paralyze", physResist: 50, // 傷んだ仲間の亡骸を手際よく繕い、香油を塗りつけて生者の手足を固める
+    desc: "廟の亡骸を腐らせないよう、千年、手入れを続けてきた防腐師の霊。香油の壺と細い刷毛を手放さず、傷ついた仲間の亡骸を見つけると、戦いの最中でも手際よく繕ってしまう。生者にも香油を塗りつけ、手足をこわばらせて動けなくする。生きている者と亡骸の区別は、もうついていない。" },
   { id: "bs_graveroyalguard", name: "不朽の近衛", rank: 10, race: "armored", element: "dark", artKey: "graveroyalguard",
-    ability: "critical", barrier: 2, physResist: 75, desc: "王の死後も廟を守り続ける、屍蝋と化した近衛兵。錆びぬ槍で急所を貫き、王家の紋章を刻んだ鎧が刃を阻む。守るべき王は、とうに空の棺の中だ。" },
-  { id: "bs_waxhorror", name: "蝋の塊", rank: 10, race: "amorph", element: "dark", artKey: "waxhorror",
-    ability: "paralyze", physResist: 75, multistrike: 2, desc: "防腐の蝋がこぼれ溜まり、無数の顔を浮かべてうごめく塊。触れた者を蝋で固めて痺れさせ、幾つもの腕で打ち据える。塗り込められた顔は、皆この廟に眠る者たちだ。" },
+    role: "guard", ability: "sunder", physResist: 75, // 仲間の前に立ちはだかり、槍の石突きで隊の守りを崩す
+    desc: "王の棺の前に立ったまま、ろうで固められた近衛兵。誰も交代を告げに来なかったので、千年、持ち場を離れていない。仲間の前に立ちはだかって刃を受け、槍の石突きで鎧を打って守りを崩す。固まった体は刃を大半はね返す。兜の下の目は、ずっと前から開いたままだ。" },
+  { id: "bs_waxhorror", name: "顔の浮かぶ塊", rank: 10, race: "amorph", element: "dark", artKey: "waxhorror",
+    ability: "paralyze", abRate: 0.45, physResist: 75, magWeak: 1.3, // 熱いしずくを何度も浴びせて手足を固め、刃はしずくに沈む。呪文には弱い
+    desc: "亡骸に塗るろうと香油が床にこぼれ、千年かけて溜まって動き出した塊。白い表面に、いくつもの顔がぼんやり浮かんでは沈む。熱いしずくを何度も浴びせ、触れた者の手足を固めて動けなくする。刃はやわらかい体に沈んで手応えが薄いが、呪文はよく通る。浮かぶ顔は、どれも眠っているように目を閉じている。" },
   { id: "bs_mournfulchancellor", name: "廟の記録官", rank: 10, race: "specter", element: "dark", artKey: "mournfulchancellor",
-    ability: "weaken", role: "summoner", summonKey: "bs_corpsewax", magResist: 75, desc: "歴代の王の葬儀を書き留め続け、自らも廟に葬られた記録官の霊。呪いで挑む者の力を奪い、眠れる屍蝋人を呼び起こす。新しい三度の葬儀だけ、亡骸の欄が空いたままで、今も筆を置けずにいる。" },
-  { id: "bs_candlewraith", name: "蝋燭の霊", rank: 10, race: "specter", element: "dark", artKey: "candlewraith",
-    ability: "drain", magWeak: 1.3, evasive: true, desc: "廟を照らし続ける弔いの蝋燭に宿った霊。近づく者の命を芯にして燃え、その炎は揺らめいて刃をかわす。蝋燭が尽きぬ限り、王の眠りは照らされ続ける。" },
+    role: "summoner", summonKey: "bs_corpsewax", ability: "dispel", magResist: 75, // 隊の加護を帳面から消すように払い落とし、葬られた従者を呼び起こす
+    desc: "歴代の王の葬儀を一つ残らず書き留めてきた記録官の霊。分厚い帳面を抱え、廟を回っては欄を確かめている。隊が加護を重ねると、帳面の書き損じを消すように払い落とし、葬られた従者を呼び起こす。呪文はほとんど受けつけない。いくつかの欄は、何度書こうとしても筆が止まるらしい。" },
+  { id: "bs_candlewraith", name: "弔い灯の霊", rank: 10, race: "specter", element: "dark", artKey: "candlewraith",
+    ability: "spell", abRate: 0.45, magWeak: 1.3, evasive: true, // 灯の火を隊の全員へ何度も降らせ、炎のように揺らいで刃をかわす
+    desc: "参道の壁で燃え続けるろうそくの火に、弔いの言葉がしみこんで霊になったもの。千年、一度も消えたことがないという。暗い火を隊の全員へ何度も降らせ、炎のように揺らいで刃をかわす。体はただの灯なので、呪文には弱い。吹き消そうとした者は、なぜか自分の息が冷たくなる。" },
   { id: "bs_preservedbeast", name: "剥製の獣", rank: 10, race: "beast", element: "dark", artKey: "preservedbeast",
-    ability: "critical", multistrike: 2, physResist: 75, desc: "王の狩りの戦利品として剥製にされ、なお動き出した獣。乾いた爪で急所を続けざまにえぐり、防腐された皮は刃を通しにくい。ガラスの目の奥に、まだ怒りが宿っている。" },
+    ability: "critical", multistrike: 2, physResist: 75, // 乾いた爪で急所を続けざまにえぐり、固めた皮は刃を通しにくい
+    desc: "昔の王たちが狩りで仕留め、香油とろうで固めて廟に飾った獣。王と一緒に眠らせておけば、あの世でも狩りができると信じられていた。乾いた爪で急所を続けざまに二度えぐり、固められた皮は刃を通しにくい。はめこまれた硝子の目に、獲物の姿だけが映っている。" },
   { id: "bs_tombpriest", name: "埋葬司祭", rank: 10, race: "undead", element: "dark", artKey: "tombpriest",
-    ability: "drain", regen: 0.08, magResist: 75, desc: "歴代の王を弔い続け、自らも廟に取り込まれた司祭の骸。葬送の祈りで生者の命を奪い、その祈祷が自らの崩れを繕う。誰の葬儀も、まだ終わっていないと信じている。" },
+    ability: "drain", abRate: 0.45, magResist: 75, // 終わらない弔いの祈りで生者の命を何度も吸い上げる
+    desc: "王を棺に納めるたびに弔いの祈りを唱えてきた司祭の骸。祈りを終えれば王が去ってしまうので、終わりの一節だけは決して唱えない。終わらない祈りで、近づく者の命を何度も吸い上げる。乾いた体は呪文をほとんど受けつけない。祈りの声は、千年、同じところで途切れている。" },
   { id: "bs_sarcophagusguard", name: "石棺の守り手", rank: 10, race: "construct", element: "dark", artKey: "sarcophagusguard",
-    ability: "critical", physResist: 75, barrier: 2, desc: "王の石棺そのものが守護者となって動き出した像。重い蓋の縁で急所を断ち、黄金の装飾が刃を弾く。中の王を守るためか、出さぬためか――蓋は固く閉ざされている。" },
-  { id: "bs_wailingnoble", name: "嘆く身代わり", rank: 10, race: "specter", element: "dark", artKey: "wailingnoble",
-    ability: "weaken", magWeak: 1.3, evasive: true, desc: "王の衣を着せられ、王の代わりに棺へ納められた身代わりの霊。嘆きの声で生者の気力を萎えさせ、未練のままにさまよう。『わたしは、王ではない』と、自分の名の無い墓碑を見つめている。" },
+    ability: "charge", physResist: 75, barrier: 2, // 重い蓋を振りかぶって力を溜め、次の手番で叩きつける。金の飾りが打撃を受け止める
+    desc: "王の石棺に彫られた守りの像が、棺ごと起き上がったもの。重い蓋を振りかぶって身を沈め、力を溜めてから叩きつける。金の飾りがはじめの数度の打撃を半ばで受け止め、石の体は刃を大半はね返す。蓋の内側には、出てはならぬと、中の王に言い聞かせる言葉が彫られている。" },
+  { id: "bs_wailingnoble", name: "嘆きの貴人", rank: 10, race: "specter", element: "dark", artKey: "wailingnoble",
+    ability: "confuse", abRate: 0.45, magWeak: 1.3, evasive: true, // 自分の名を探して嘆き、聞いた者は自分が誰かを見失う
+    desc: "王の衣を着せられて葬られた、名の分からない霊。墓碑には王の名が刻まれているが、その下に眠っているのは王ではない。自分の名を探して泣き続け、その嘆きを聞いた者は、自分が誰なのかを見失う。薄い体はゆらめいて刃をかわすが、呪文には弱い。" },
   { id: "bs_coffincrawler", name: "棺這いの蟲", rank: 10, race: "insect", element: "dark", artKey: "coffincrawler",
-    ability: "critical", multistrike: 2, lifesteal: 0.3, swift: true, desc: "棺の中の亡骸を喰らって肥えた、無数の脚をもつ蟲。素早く棺から這い出て急所に喰らいつき、喰らうほどに肥大する。王の眠りを、内側から食い荒らしている。" },
+    ability: "poison", multistrike: 2, lifesteal: 0.3, swift: true, // 棺の中の腐れを牙に溜め、すばやく続けざまに噛みついて命を吸う
+    desc: "腐らないはずの亡骸の、ほんのわずかな傷みを嗅ぎつけて棺に入りこんだ蟲。すばやく這い出して続けざまに二度噛みつき、牙に溜めた棺の中の腐れで毒を回す。噛んだ傷からは命まで吸う。防腐師の霊は、この蟲を見つけると、刷毛を放り出して追いかける。" },
   { id: "bs_mummylord", name: "ミイラの将", rank: 10, race: "armored", element: "dark", artKey: "mummylord",
-    ability: "critical", enrage: true, physResist: 75, desc: "王に殉じて自ら包帯を巻き、屍蝋となった将軍。黄金の戦装束で急所を貫き、傷を負うほど主への忠義で猛る。死してなお、ただ一人の王を守り続けている。" },
+    ability: "warcry", enrage: true, physResist: 50, // 号令で仲間を奮い立たせ、傷を負うほど主への忠義で猛る
+    desc: "王の葬儀の日に、自ら包帯を巻いて棺のそばに横たわった将軍。王を一人で行かせるわけにはいかないと言ったという。号令をかけて仲間の亡骸を奮い立たせ、傷を負うほど忠義で猛る。金の戦装束は刃を半ば逸らす。包帯の下の顔は、王の棺のほうを向いたままだ。" },
   { id: "bs_deathmask", name: "死面", rank: 10, race: "construct", element: "dark", artKey: "deathmask",
-    ability: "paralyze", evasive: true, barrier: 2, desc: "歴代の王の死に顔を象った、宙を漂う黄金の仮面の群れ。覗き込んだ者を石のように固まらせ、ひらりと翻って刃をかわす。新しい三枚の仮面だけは、なぜか同じ顔をしている。" },
-  { id: "bs_corpsewax", name: "屍蝋人", rank: 10, race: "undead", element: "dark", artKey: "corpsewax",
-    ability: "paralyze", pack: true, regen: 0.06, desc: "腐ることを許されず、蝋のように固まった廟の住人たちの群れ。冷たい手で掴んで痺れさせ、崩しても溶けた蝋から固まり直す。皆かつて、王に仕えた者たちだ。" },
+    ability: "stone", evasive: true, barrier: 2, // 王の死に顔の目で見つめて体を石のように固め、ひらりと翻って刃をかわす
+    desc: "歴代の王の死に顔を写しとった金の仮面が、宙に浮いて漂うもの。じっと見つめられた者は、体が石のように固まってしまう。ひらりと翻って刃をかわし、はじめの数度の打撃は金の面が半ばで受け止める。仮面の裏には、写した日と王の名が刻まれている。" },
+  { id: "bs_corpsewax", name: "朽ちぬ亡骸", rank: 10, race: "undead", element: "dark", artKey: "corpsewax",
+    ability: null, pack: true, regen: 0.06, // 群れで這い寄り、崩しても固まり直す (特技は持たない)
+    desc: "王と一緒に葬られた従者や召使いの亡骸が、ろうに固められたまま起き上がったもの。必ず群れで這い寄り、冷たい手でつかみかかる。崩しても、ろうがゆっくりと固まり直して元の形に戻る。みな、王の身の回りの仕事の途中の姿をしている。" },
   { id: "bs_funeralwraith", name: "葬列の霊", rank: 10, race: "specter", element: "dark", artKey: "funeralwraith",
-    ability: "weaken", pack: true, magResist: 75, desc: "終わらぬ王の葬列を、列をなして練り歩く弔問客の霊。すれ違う者の気力を奪い、群れで静かに取り囲む。誰の葬列なのかは、参列者自身も忘れている。" },
+    ability: "weaken", pack: true, magResist: 75, // 列をなして取り囲み、すれ違う者の力をそぐ
+    desc: "参道を歩き続ける、終わらない葬列の霊たち。誰の葬列なのかは、列の誰も覚えていない。必ず列をなして現れ、すれ違う者の力をそいでいく。呪文はほとんど受けつけない。列の先頭は、千年たっても棺の置き場所に着いていない。" },
   { id: "bs_boneprince", name: "白骨の王子", rank: 10, race: "undead", element: "dark", artKey: "boneprince",
-    ability: "critical", multistrike: 2, role: "summoner", summonKey: "bs_corpsewax", desc: "王位が空くのを待ちきれずに死に、廟へ入れられた王子の白骨。細身の剣で急所を続けざまに突き、廟の従者を呼び従える。継げなかった王冠を、今も骨の頭に載せている。" },
+    haste: true, ability: "charm", role: "summoner", summonKey: "bs_corpsewax", // 誰よりも先に動いて微笑みで隊を魅了し、葬られた従者を呼び従える
+    desc: "王冠を受け継ぐ日を待ちながら死に、廟に葬られた王子の白骨。骨の頭に、まだ一度もかぶれなかった王冠を載せている。誰よりも先に動いて、生きていた頃と同じ微笑みで隊の心を奪い、仲間を斬らせる。葬られた従者を呼び従えるが、従者たちは王子を王とは呼ばない。" },
   { id: "bs_crypthound", name: "墓守の番犬", rank: 10, race: "beast", element: "dark", artKey: "crypthound",
-    ability: "critical", swift: true, pack: true, desc: "王の廟を守るために殉葬された、黄金の首輪の番犬の群れ。素早く取り囲んで急所に喰らいつき、侵入者を一人も通さない。主の亡骸の匂いだけを、永遠に守り続ける。" },
+    ability: "critical", swift: true, pack: true, // 群れですばやく取り囲み、急所に食らいつく
+    desc: "王の棺のそばで眠らされ、金の首輪のまま廟の番犬になった犬の群れ。主の亡骸の匂いだけを覚えていて、それ以外の匂いはみな侵入者だと思っている。群れですばやく取り囲み、急所に食らいつく。ときおり、棺の前で尾を振る音が聞こえるという。" },
   { id: "bs_shroudkeeper", name: "死に装束の守人", rank: 10, race: "specter", element: "dark", artKey: "shroudkeeper",
-    ability: "paralyze", lifesteal: 0.3, evasive: true, desc: "王に被せる死に装束を抱え、廟を巡る守人の霊。垂れた布で生者を絡めて痺れさせ、その温もりを吸う。新たに包む亡骸を、いつも探している。" },
-  { id: "bs_cryptking", name: "屍蝋の回廊の主", rank: 10, boss: true, race: "undead", element: "dark", artKey: "cryptking", soulClass: "hexer",
+    ability: "sleep", abRate: 0.45, lifesteal: 0.3, evasive: true, // 白い装束をふわりとかけて眠らせ、その温もりを吸う
+    desc: "王に着せる死に装束を何枚も抱えて、廟を回り続ける守人の霊。生きている者を見つけると、白い装束をふわりとかけて眠らせてしまう。眠った者の温もりを吸い、布のようにゆらめいて刃をかわす。新しく包む亡骸を、いつも探している。" },
+  { id: "bs_cryptking", name: "王家の廟の主", rank: 10, boss: true, race: "undead", element: "dark", artKey: "cryptking", soulClass: "hexer",
     role: "summoner", summonKey: "bs_graveroyalguard", ability: "drain", physResist: 75, enrage: true,
-    desc: "屍蝋の回廊を統べる、朽ちることを許されぬ最も古い王。近衛を呼び従え、生者の命と若さを吸い上げる。回廊の奥の空の棺は、今の王のために用意されたもの――その日まで、こいつは玉座を空けて待っている。" },
+    desc: "廟のいちばん深い玉座に、千年座り続けている最初の王。何度も何度も亡骸へ戻され、ろうと香油と金で固められた体は、もう玉座と見分けがつかない。近衛を呼び従え、近づく者の命を吸い上げる。刃は大半がはね返され、傷を負えば猛る。玉座の脇には、まだ誰も入っていない新しい棺が一つ置かれている。" },
   // -- 第15層「溶鉄炉」 (rank 10・火/鋳造。器を鋳る工房) --
   { id: "bs_moltensmith", name: "溶鉄の鍛冶", rank: 10, race: "construct", element: "fire", artKey: "moltensmith",
-    ability: "critical", multistrike: 2, physResist: 75, desc: "灼けた鎚を振るい続ける、溶鉄でできた鍛冶の自動人形。鎚の一打は鎧ごと急所を砕き、続けざまに打ち下ろす。今も誰かの『器』を鍛えようと、生者を炉へ運ぼうとする。" },
+    ability: "critical", multistrike: 2, physResist: 75, desc: "灼けた鎚を振るい続ける、溶鉄でできた鍛冶の自動人業。鎚の一打は鎧ごと急所を砕き、続けざまに打ち下ろす。今も誰かの『器』を鍛えようと、生者を炉へ運ぼうとする。" },
   { id: "bs_forgegolem", name: "鋳造のゴーレム", rank: 10, race: "construct", element: "fire", artKey: "forgegolem",
     physResist: 100, barrier: 2, enrage: true, desc: "鋳型に溶鉄を流し込む工程そのものが意思を得た巨像。腹に炉を抱え、傷を負えば溶鉄を噴いて荒れる。分厚い鋳鉄の体は、並の刃を寄せつけない。" },
   { id: "bs_slagbeast", name: "鉱くずの獣", rank: 10, race: "beast", element: "fire", artKey: "slagbeast",
@@ -1043,10 +1061,10 @@ const NEW_DEFS = [
   { id: "bs_fallenangel", name: "堕天使", rank: 8, race: "demon", element: "light", artKey: "hd_fallenangel", soulClass: "priest",
     ability: "critical", abRate: 0.45, swift: true, // 素早く舞い降り、祈るような手つきの裁きの一撃で急所を断ち続ける
     desc: "神殿とともに水に沈み、水を吸って重くなった翼の御使い。濡れた髪で顔を伏せたまま素早く舞い降り、逆さに構えた細身の剣を祈るような手つきで振り下ろして、生者の急所を正確に断つ。" },
-  { id: "bs_doomknight", name: "冥府の騎士", rank: 9, race: "armored", element: "dark", artKey: "knightmare", soulClass: "knight",
+  { id: "bs_doomknight", name: "喪の近衛騎士", rank: 9, race: "armored", element: "dark", artKey: "knightmare", soulClass: "knight",
     palette: tint(ARTS.knightmare.palette, "#6a1a2a", 0.35),
-    physResist: 75, ability: "soulSteal", // 冥鉄の鎧が刃を弾き、その剣は生きる理由(魂)を奪う
-    desc: "冥府の門を守ると誓った騎士の末路。冥鉄の鎧は刃を弾き、その剣に斬られた者は傷ではなく、生きる理由ごと魂を失って倒れる。" },
+    physResist: 75, ability: "soulSteal", // 喪の色の鎧が刃を弾き、剣の一振りで隊の懐の ✦Soul を刈る (第14層の近衛)
+    desc: "王家の廟を守る近衛の中でも、王の棺のすぐそばに立つことを許された騎士。王が葬られた日から、黒い喪の色の鎧を一度も脱いでいない。鎧は刃をほとんど弾き、その剣に触れられた者は、懐の ✦Soul を刈り取られていく。兜の飾り紐だけが、千年分すり切れている。" },
   // -- rank 10 --
   { id: "bs_voiddragon", name: "虚無竜", rank: 10, race: "dragon", element: "dark", artKey: "dragon",
     palette: tint(ARTS.dragon.palette, "#1a1a2a", 0.45),
@@ -1136,7 +1154,7 @@ const NEW_DEFS = [
   // -- rank 5 追加 (+5) --
   { id: "bs_ironknight", name: "鉄の騎士", rank: 5, race: "armored", element: "none", artKey: "hd_ironknight", soulClass: "knight",
     physResist: 75, ability: "sunder", // 無骨な鉄塊の体は刃を通さず、鉄の拳で鎧ごと守りを打ち砕く (守り崩し)
-    desc: "古代の砦を守るために鋳造された鉄の自動人形。命令のみで動き、千年の時を経た今もその命令を忠実に実行し続ける。分厚い鉄塊の体は並の武器をほとんど通さず、振り下ろす鉄の拳は鎧ごと守りを打ち砕く。" },
+    desc: "古代の砦を守るために鋳造された鉄の自動人業。命令のみで動き、千年の時を経た今もその命令を忠実に実行し続ける。分厚い鉄塊の体は並の武器をほとんど通さず、振り下ろす鉄の拳は鎧ごと守りを打ち砕く。" },
   { id: "bs_thunderbird", name: "雷鳥", rank: 6, race: "avian", element: "wind", artKey: "hd_thunderbird",
     ability: "spell", abRate: 0.4, swift: true, // 翼から落雷を降らせて隊の全員を撃つ (第5層)
     desc: "嵐の中でのみ現れる雷光の鳥。黒雲を背負って翼を広げれば、羽の縁から幾筋もの稲妻が地上へ降り注ぎ、隊の誰ひとり逃さず撃ち据える。稲光とともに素早く宙を舞う。" },
@@ -1210,10 +1228,10 @@ const NEW_DEFS = [
     ability: "soulSteal", abRate: 0.4, enrage: true, // 釜にくべる魂 (✦Soul) をかき集め、手負いで荒れ狂う
     desc: "全身がすすで真っ黒な、腹の突き出た大鬼。釜にくべる魂を集めるのが役目で、大きな鉄のシャベルを担ぎ、出会った者の魂をすくい取っては腰の網袋へ押し込む。追い詰められると、すすをまき散らして暴れ回る。" },
   // -- rank 9 追加 (+7) --
-  { id: "bs_voidknight", name: "虚無の騎士", rank: 9, race: "armored", element: "dark", artKey: "knightmare", soulClass: "knight",
+  { id: "bs_voidknight", name: "名を削られた騎士", rank: 9, race: "armored", element: "dark", artKey: "knightmare", soulClass: "knight",
     palette: tint(ARTS.knightmare.palette, "#1a1a2a", 0.6),
-    physResist: 75, ability: "critical", // 虚無の鎧が刃を逸らし、現実に穴を開ける剣が急所を貫く
-    desc: "冥府の門を守護する騎士の中で、存在そのものが消えかかった最古参。希薄な鎧は刃を逸らし、その剣が触れた場所は現実の布地ごと急所に穴を開ける。" },
+    physResist: 75, ability: "critical", endure: true, // 薄い鎧が刃を逸らし、鎧のすき間を正確に突く。致命の一撃を一度だけ耐える (第14層の近衛)
+    desc: "廟を守る近衛のひとり。鎧の胸に刻まれていたはずの名は、のみで削り取られて読めない。王に背いた罰だとも、王の秘密を知りすぎた口封じだとも言われる。刃を逸らす薄い鎧をまとい、鎧のすき間を正確に突いて急所を貫く。致命の一撃を受けても、一度だけは倒れない。" },
   { id: "bs_apocalypsedrake", name: "終末の竜", rank: 9, race: "dragon", element: "dark", artKey: "dragon",
     palette: tint(ARTS.dragon.palette, "#3a1a4a", 0.5),
     ability: "breath", // 大地を不毛に変える終末の吐息で全体を灼く
@@ -1382,7 +1400,7 @@ const NEW_DEFS = [
   { id: "bs_pyretreant", name: "燃え木の巨人", rank: 4, boss: true, race: "plant", element: "fire", artKey: "ogre",
     palette: tint(ARTS.ogre.palette, "#c85a2a", 0.4),
     physResist: 50, regen: 0.06, // 百年消えぬ火を宿し、焦げてもまた燃え立つ
-    desc: "炎樹の回廊で燃えながら決して倒れぬ巨木の人形。硬い幹は刃を弾き、抱きしめられた者は薪の仲間入りをする。幹の火は百年消えたことがなく、焼け焦げてもまた燃え立つ。" },
+    desc: "炎樹の回廊で燃えながら決して倒れぬ巨木の人業。硬い幹は刃を弾き、抱きしめられた者は薪の仲間入りをする。幹の火は百年消えたことがなく、焼け焦げてもまた燃え立つ。" },
   { id: "bs_bogtyrant", name: "底なし沼の主", rank: 4, boss: true, race: "aquatic", element: "water", artKey: "sahagin",
     palette: tint(ARTS.sahagin.palette, "#4a5a2a", 0.4),
     ability: "paralyze", // 泥から伸びる無数の腕が獲物を絡めて沈める
@@ -1734,8 +1752,8 @@ const ELITE_DEFS = [
     ability: "stone", abRate: 0.45, physResist: 75, // 鉱石の粉を吹きつけ続けて手足を石に変え、原石を固めた体は刃をほとんど通さない
     desc: "水晶の鉱脈ごと岩盤を喰らって肥え太った、岩塊の大きな獣。喰いこんだ原石が体じゅうから突き出し、腹の奥ではのんだ濁った魂がいくつも光っている。口から細かい鉱石の粉を何度も吹きつけ、浴びた者は手足から石に変わっていく。原石を固めた体に、刃は欠けるばかりだ。" }, // 第12層
   { id: "el_lanternreaper", name: "灯火狩り", elite: true, rank: 10, race: "specter", element: "dark", artKey: "mournshade", soulClass: "thief",
-    swift: true, ability: "soulSteal", // 闇を駆け、灯火もろとも魂を狩り取る
-    desc: "坑道で果てた者たちの「消えた灯」が寄り集まった漆黒の影。闇を音もなく駆けて先んじ、生者の掲げる灯りを憎んで、灯火を狩るついでにその魂を吸い取る。" }, // 第14層
+    swift: true, ability: "soulSteal", abRate: 0.45, // 闇をすばやく駆け、逃げ出した魂の灯を狩るように隊の ✦Soul を何度も刈り取る
+    desc: "王家の廟で、亡骸から抜け出した魂の灯を狩り集めてきた黒い影。廟の法では、王も従者も終わってはならない。灯がひとつ逃げれば、影は闇をすばやく駆けて捕まえ、もとの亡骸へ連れ戻す。生者の掲げる灯も逃げた魂と見分けがつかず、隊の懐の ✦Soul を何度も刈り取っていく。" }, // 第14層
   { id: "el_tunnelking", name: "穴蔵の王", elite: true, rank: 10, race: "humanoid", element: "earth", artKey: "hd_tunnelking", soulClass: "thief", // 第12層の強敵 (絵は hd_* の固有原型)
     role: "summoner", summonKey: "bs_gloomstalker", ability: "goldSteal", abRate: 0.45, // 闇這いの蟲を呼んで灯籠を運ばせ、隊の懐から金貨をかすめ取り続ける
     desc: "灯籠の山の奥に穴蔵を掘り、黒く濁った灯籠を宝として溜めこんできた、背の曲がった大男。頭には灯籠を編んだ冠を、背には灯籠をつないだ長いマントを引きずっている。闇這いの蟲を呼んで灯籠を運ばせ、隊の懐からも金貨をかすめ取り続ける。灯籠の中の魂が誰のものかには、少しも興味がない。" }, // 第12層
@@ -1810,8 +1828,8 @@ const ELITE_DEFS = [
     desc: "冥獄の最下層を預かる大典獄。引きずる焼けた鎖から獄炎を前衛後衛もろとも撒き、灼熱の巨体は並の刃を弾く。腰に下がる無数の鍵は「出られなかった者」の数であり、新たな鍵を増やすことだけを喜びとする。" }, // 第18層
   { id: "el_soulflayer", name: "魂剥ぎの主", elite: true, rank: 10, race: "specter", element: "dark", artKey: "shroudstrangler", soulClass: "bishop",
     palette: tint(ARTS.shroudstrangler.palette, "#6a3a8a", 0.5),
-    ability: "soulSteal", regen: 0.06, // 魂の殻を剥いで奪い、その力で己を保つ
-    desc: "刈り取った魂の「殻」を剥ぎ、冥府への通行料として徴収する首領。剥ぎ取った魂で己を繕い、剥がれた魂は名を忘れ、名を忘れた魂は、もう誰にも弔えない。" }, // 第14層
+    ability: "dispel", abRate: 0.45, regen: 0.06, magResist: 50, // 魂から殻を剥ぐ手つきで隊の加護をはぎ取り続け、剥いだ殻で己を繕う
+    desc: "王家の廟で、傷んだ亡骸から魂を剥がし、新しく整えた亡骸へ移してきた術者たちの長。長い指で、魂の殻を一枚ずつ剥ぐように、隊が重ねた加護を何度もはぎ取る。剥いだ殻で自分の体を繕い、呪文は半ば受け流す。この者に剥がされた魂は、自分がどの器にいたのかを忘れてしまう。" }, // 第14層
   { id: "el_palerider", name: "青ざめた騎手", elite: true, rank: 10, race: "armored", element: "dark", artKey: "dullahan", soulClass: "knight",
     palette: tint(ARTS.dullahan.palette, "#d8d8d0", 0.5),
     swift: true, ability: "critical", // 蹄鉄の音とともに先んじ、額へ一撃を打ち込む
@@ -1896,7 +1914,7 @@ export const LAYER_ELITES = {
   11: ["el_ashshogun", "el_dragonslayer"],      // 闘技場跡
   12: ["el_oremaw", "el_tunnelking"],           // 地底大空洞
   13: ["el_voidarchon", "el_librarian"],        // 魔導書庫
-  14: ["el_lanternreaper", "el_soulflayer"],    // 屍蝋の回廊
+  14: ["el_lanternreaper", "el_soulflayer"],    // 王家の廟 (第十二章)
   15: ["el_geargod", "el_moltengiant"],         // 溶鉄炉
   16: ["el_sorrowsaint", "el_huntsmanwraith"],  // 深淵の聖堂
   17: ["el_palerider", "el_tombcaptain"],       // 凍てつく王墓
@@ -2051,7 +2069,7 @@ const LAYER_BOSS_OVERRIDE = {
   17: "bs_frostmonarch", // 第17層「凍てつく王墓」: 凍てつく王墓の主 (rank10・水ボス)
   16: "bs_highpontiff", // 第16層「深淵の聖堂」: 深淵の聖堂の主 (rank10・光ボス)
   15: "bs_forgemaster", // 第15層「溶鉄炉」: 溶鉄炉の主 (rank10・火ボス)
-  14: "bs_cryptking", // 第14層「屍蝋の回廊」: 屍蝋の回廊の主 (rank10・闇ボス)
+  14: "bs_cryptking", // 第14層「王家の廟」: 王家の廟の主 (rank10・闇ボス)
   13: "bs_archivist", // 第13層「魔導書庫」: 大書庫の主 (rank10・闇ボス)
   12: "bs_cavernlord", // 第12層「地底大空洞」: 大空洞の主 (rank10・土ボス)
   11: "bs_arenalord", // 第11層「闘技場跡」: 闘技場の支配者 (rank10・剣闘ボス)
@@ -2212,7 +2230,7 @@ export const LAYER_POOLS = {
     // 既存の闇/魔導系を再配置
     "bs_elderlich", "bs_soulreaper", "bs_cosmicwraith",
   ],
-  // 第14層「屍蝋の回廊」: 闇/王家の廟中心、全rank10。闇騎士2体を近衛として再配置
+  // 第14層「王家の廟」(第十二章): 闇/王家の廟中心、全rank10 (近衛の騎士2体は rank9)。闇騎士2体を近衛として再配置
   14: [
     "bs_wickmummy", "bs_embalmer", "bs_graveroyalguard", "bs_waxhorror", "bs_mournfulchancellor",
     "bs_candlewraith", "bs_preservedbeast", "bs_tombpriest", "bs_sarcophagusguard", "bs_wailingnoble",

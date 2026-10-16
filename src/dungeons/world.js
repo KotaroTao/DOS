@@ -55,13 +55,15 @@
 //             whisper  ささやく湖面: 戦闘の開幕に隊の一人がささやきに惑わされ、この確率で混乱する (混乱の抵抗で防げる。黒い灯の地底湖)
 //             lull     眠りの歌: 戦闘の開幕に隊の一人がこの確率で眠る (眠りの抵抗で防げる。溺れた聖歌の回廊)
 //             jolt     しびれる雷: 戦闘の開幕に隊の一人がこの確率で麻痺する (麻痺の抵抗で防げる。雷の落ちる回廊)
+//             allure   惑わしの香油: 戦闘の開幕に隊の一人がこの確率で魅了される (魅了の抵抗で防げる。香油の仕立て場)
+//             focus    槍ぶすま: 挑発する者がいない間、敵は狙った人業が倒れるまで同じ者を狙い続ける (眠らずの近衛廊)
 //             shell    封じの殻: 戦闘の開幕に、主・金属の魔物を除く敵の全員に障壁 (打撃を1回だけ防ぐ) をこの回数だけ張る (名を刻む石窟)
 //             soulFeast 魂喰らいの闇: 人業を倒した敵は攻撃がこの段数だけ上がる (3ターン。底なしの大伽藍)
 //             oneChest 巨獣の宝: 宝箱は1階に1つだけ (足りなければ置く)。中身のランクは mods.chestRankUp で上げる (大空洞の主の寝床)
 //             sealedGate ★閉ざされた門: 帰還魔法陣が無く、帰還の鈴も使えない。最下階の主を討つか全滅するまで出られない (化石竜の墓所)
 //             corpseFade 痩せる恵み: 盤面の加工 prison で増える死体が、隊のLv が推奨Lv+2 を超えた1Lvごとに15%ずつ減る (閉ざされた獄・器の山・疫病の塚)
 //             appraised 澄んだ水晶の光: この迷宮で拾う品は、はじめから鑑定済み (水晶の鉱脈)
-//             say      開幕の効果 (mpDrain / hpDrain / chill / poisonStart / boltStart / gloom / whisper / lull / jolt) を戦闘の記録に書く時の一文
+//             say      開幕の効果 (mpDrain / hpDrain / chill / poisonStart / boltStart / gloom / whisper / lull / jolt / allure) を戦闘の記録に書く時の一文
 //             audience 見世物の闘技場: 戦闘の開幕に観客の注文がひとつ出て、応えて勝てば ✦Soul・金貨が増える (game.js AUDIENCE_ORDERS。闘技場跡)
 //             gloom    底なしの闇: 戦闘の開幕に隊の全員の命中が下がる (物理が外れる率をこの分だけ足す。3ターン。地底大空洞)
 //           say は文字列か、開幕の効果を2つ持つ時は効果ごとの文 ({ mpDrain: "…", chill: "…" })
@@ -97,6 +99,7 @@
 //           第10層 (第八章) も第七章の 0.9倍。寄り道の雷鳥の巣 (敵はみな神速) は二度動く分だけ強さの素を約2割下げた。テスト記録で測り直す
 //           第11層 (第九章) も第八章の 0.9倍。第一部の最後から2つ目の層なので壁 (第二部) はまだ掛からない。テスト記録で測り直す
 //           第12層 (第十章) も第九章の 0.9倍。第一部の最後の層。主は宰相モルデン (層の主 bs_cavernlord は寄り道の寝床の主)。テスト記録で測り直す
+//           第13層 (第十一章) も第十章の 0.9倍。第14層 (第十二章) も第十一章の 0.9倍 (層の入口の壁は wallOf が持つ)。テスト記録で測り直す
 import { LAYER_ELEMENT } from "./generator.js";
 import { LAYER_BOSS, LAYER_ELITES, LAYER_POOLS, BESTIARY } from "./bestiary.js";
 import { baselineLv } from "../baseline.js";
@@ -1080,6 +1083,94 @@ const WORLD_DEF = [
     unlock: { all: ["w43", "w44"] },
     hint: "「雨垂れの書庫」と「眠り灯の工房」の両方を踏破して王に報告し、探索の記録を照らし合わせて大書庫への道筋を地図に記す",
   },
+  // ---- 第十二章「王家の廟」(第14層の顔ぶれ) ── 大書庫の底の扉の下。歴代の王が香油とろうで固めた亡骸となって眠り、魂を器へ戻す術が生まれた場所 ----
+  //   強さの素は第十一章の各迷宮の 0.9倍 (第二部の壁 wallOf が層の入口 ×1.2・本筋ごと ×1.07 を重ねる)。手直しは第十一章に倣う (下書き。テスト記録で測る)
+  //   顔ぶれは第14層の魔物 (王家の廟の、腐ることを許されぬ亡骸と、その世話を続ける者たち)。最後の迷宮の主は王家の廟の主 (bs_cryptking)
+  {
+    id: "w46", lv: 136, lvTo: 139, layer: 14, floors: 10,
+    floorHaz: { fall: null, harm: "waxdrip" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
+    power: { 1: 0.0828, 5: 0.0890, 10: 0.0964 },
+    name: "弔い灯の参道", short: "参道",
+    about: "大書庫の底の扉の下へ、まっすぐに降りていく長い参道。両側の壁のくぼみに、消えないろうそくが何千と灯り、終わらない葬列が今も歩いている",
+    bands: [
+      ["bs_candlewraith", "bs_funeralwraith", "bs_corpsewax", "bs_crypthound", "bs_coffincrawler", "bs_shroudkeeper"],
+      ["bs_tombpriest", "bs_waxhorror", "bs_embalmer"],
+    ],
+    elites: ["el_lanternreaper"],
+    trait: {
+      id: "endlessrite", name: "途切れぬ葬列", sym: "✝", accent: "#c8b890",
+      lines: ["参道を進む葬列は、列を乱さない。魔物の札の戦闘は、どれも4体以上の群れになる。", "長い葬列が落としていった弔いの灯の気配で、得る ✦Soul は 1.25倍。"],
+      mods: { packMin: 4, soulMul: 1.25 },
+    },
+    tune: { enemyMul: 0.96, deepMul: 0.82, soloMul: 1.00 },
+    unlock: { reported: "w45" },
+    hint: "「大書庫」の踏破を王に報告し、師が降りていった底の扉の下を地図に記す",
+  },
+  {
+    id: "w47", lv: 139, lvTo: 142, layer: 14, floors: 10,
+    floorHaz: { fall: null, harm: "balm" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
+    power: { 1: 0.0807, 5: 0.0871, 10: 0.0943 },
+    name: "香油の仕立て場", short: "仕立て場",
+    about: "参道の脇に口を開けた、亡骸を整える古い作業場。石の台が何百と並び、甘い香油の匂いが、千年分しみこんでいる",
+    bands: [
+      ["bs_embalmer", "bs_waxhorror", "bs_corpsewax", "bs_preservedbeast", "bs_coffincrawler", "bs_candlewraith"],
+      ["bs_wickmummy", "bs_shroudkeeper", "bs_sarcophagusguard"],
+    ],
+    elites: ["el_soulflayer"],
+    trait: {
+      id: "sweetbalm", name: "惑わしの香油", sym: "❀", accent: "#c8b878",
+      lines: ["作業場には、亡骸に塗る香油の甘い匂いがこもっている。戦闘が始まるたび、隊の一人が 45% で香りに惑わされて魅了される (魅了の抵抗で防げる)。", "香油に溶けた古い魂の気配で、得る ✦Soul は 1.3倍。"],
+      mods: { soulMul: 1.3 },
+      allure: 0.45, say: "甘い香油の匂いが、頭の芯までしみこむ",
+    },
+    tune: { enemyMul: 0.95, deepMul: 0.84, soloMul: 1.00 },
+    unlock: { story: "w46_bar" },
+    hint: "「弔い灯の参道」の底に、何かがあるという",
+  },
+  {
+    id: "w48", lv: 142, lvTo: 145, layer: 14, floors: 10,
+    floorHaz: { fall: "coffinchute", harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
+    power: { 1: 0.0798, 5: 0.0860, 10: 0.0933 },
+    name: "眠らずの近衛廊", short: "近衛廊",
+    about: "廟の奥へ続く、天井の高い回廊。両側に、ろうで固められた近衛がずらりと並び、誰も交代を告げに来ないまま、千年、持ち場に立っている",
+    bands: [
+      ["bs_graveroyalguard", "bs_crypthound", "bs_mummylord", "bs_deathmask", "bs_funeralwraith", "bs_tombpriest"],
+      ["bs_doomknight", "bs_mournfulchancellor", "bs_sarcophagusguard"],
+    ],
+    elites: ["el_lanternreaper"],
+    trait: {
+      id: "spearwall", name: "槍ぶすま", sym: "↟", accent: "#b0a0a0",
+      lines: ["近衛は、狙った侵入者が倒れるまで同じ者に槍を向け続ける。挑発する者がいない間、敵の攻撃はひとりに集まる (挑発で引き剥がせる)。", "近衛の詰め所に残された古い俸給の銭で、得る金貨は 1.35倍。"],
+      mods: { goldMul: 1.35 },
+      focus: true,
+    },
+    tune: { enemyMul: 0.95, deepMul: 0.84, soloMul: 1.05 },
+    unlock: { reported: "w46" },
+    hint: "「弔い灯の参道」の踏破を王に報告し、廟の奥へ続く回廊を地図に記す",
+  },
+  {
+    id: "w49", lv: 145, lvTo: 149, layer: 14, floors: 15,
+    floorHaz: { fall: "coffinchute", harm: "waxdrip" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
+    power: { 1: 0.0779, 5: 0.0816, 10: 0.0858, 15: 0.0896 },
+    name: "終わらずの玉座", short: "玉座",
+    about: "王家の廟のいちばん深いところ。歴代の王の棺が段をなして並び、その上に、千年座り続けている王の玉座があるという",
+    bands: [
+      ["bs_graveroyalguard", "bs_wickmummy", "bs_deathmask", "bs_embalmer", "bs_tombpriest", "bs_waxhorror"],
+      ["bs_mummylord", "bs_voidknight", "bs_mournfulchancellor"],
+      ["bs_boneprince", "bs_wailingnoble", "bs_doomknight"],
+    ],
+    elites: ["el_lanternreaper", "el_soulflayer"],
+    trait: {
+      id: "noend", name: "王を終わらせるな", sym: "♚", accent: "#d0b070",
+      lines: ["廟の門に刻まれた法は、ここではまだ生きている。倒れた敵 (主を除く) は、戦闘ごとに一度だけ最大HPの4割で起き上がる。", "千年分の弔いの灯の気配が濃く、得る ✦Soul は 1.4倍。"],
+      mods: { soulMul: 1.4 },
+      foeRise: 0.4,
+    },
+    boss: LAYER_BOSS[13], bossRank: 10,
+    tune: { enemyMul: 0.94, deepMul: 0.86, soloMul: 1.10, bossMul: 0.85 },
+    unlock: { all: ["w47", "w48"] },
+    hint: "「香油の仕立て場」と「眠らずの近衛廊」の両方を踏破して王に報告し、探索の記録を照らし合わせて廟の最奥への道筋を地図に記す",
+  },
   // ---- 依頼の迷宮 (酒場の固定クエストを受けると地図に現れる) ----
   {
     id: "ws1", lv: 20, lvTo: 23, layer: 2, floors: 10, side: true,
@@ -1139,7 +1230,7 @@ const WORLD_DEF = [
     floorHaz: { fall: null, harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.2129, 5: 0.2258, 10: 0.2402 },
     name: "銀業の隠れ里", short: "銀の里",
-    about: "器になりそこねた魂が流れ着く、霧の奥の隠れ里。空の鎧と石の人形が、銀の小人を守っている",
+    about: "器になりそこねた魂が流れ着く、霧の奥の隠れ里。空の鎧と石の人業が、銀の小人を守っている",
     element: null,
     bands: [
       ["bs_siegeballista", "bs_gravecaptain", "d04_revenant", "bs_thunderknight", "bs_bonecolossus", "bs_fungalhulk"],
@@ -1147,7 +1238,7 @@ const WORLD_DEF = [
     ],
     trait: {
       id: "silver", name: "銀の里", sym: "◇", accent: "#d0d8e8",
-      lines: ["銀の小人たちの隠れ里。金属の魔物がとても出やすい (各階45%・札は2枚まで)。会心の一撃で仕留めよ。", "里の番人 (空の鎧と石の人形) は群れで里を守り、魔物はつねに三体以上で現れる。物理に固い者が多い。"],
+      lines: ["銀の小人たちの隠れ里。金属の魔物がとても出やすい (各階45%・札は2枚まで)。会心の一撃で仕留めよ。", "里の番人 (空の鎧と石の人業) は群れで里を守り、魔物はつねに三体以上で現れる。物理に固い者が多い。"],
       mods: { packMin: 3 }, // メリットしかない掟だったので代償を足した (2026-10-11 ユーザーの指示)
       metalRate: 0.45, metalMax: 2,
     },
@@ -1610,6 +1701,71 @@ const WORLD_DEF = [
     unlock: { quest: "fq_closedstacks" },
     hint: "酒場の書き写し屋の人業の依頼「閉架の綴じ本」を受けると、道が示される",
   },
+  // ---- 第十二章の寄り道 ----
+  {
+    id: "ws25", lv: 143, lvTo: 147, layer: 14, floors: 10, side: true,
+    floorHaz: { fall: "gravepit", harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
+    power: { 1: 0.0815, 5: 0.0875, 10: 0.0945 },
+    name: "名の無い墓所", short: "名の無い墓所",
+    about: "近衛廊の裏の、灯も届かない小さな墓所。王の名を刻んだ墓碑がいくつも並ぶが、その下に眠る者の名は、どこにも書かれていない",
+    bands: [
+      ["bs_wailingnoble", "bs_funeralwraith", "bs_shroudkeeper", "bs_corpsewax", "bs_coffincrawler", "bs_deathmask"],
+      ["bs_mournfulchancellor", "bs_tombpriest", "bs_voidknight"],
+    ],
+    elites: ["el_soulflayer"],
+    trait: {
+      id: "namelessstone", name: "名の無い墓碑", sym: "∅", accent: "#a0a0b8",
+      lines: ["名を呼ばれぬ者たちの嘆きが、魔力をそぎ落とす。戦闘が始まるたび、隊のMPが最大の6%吸われる。", "名の無い墓碑の下に、葬られた者の骸が残っている。どの階にも死体が2つ増える (隊のLvが推奨Lv+2を超えると減っていく)。宝箱は1ランク上等。"],
+      mods: { chestRankUp: 1 },
+      board: "prison", corpseFade: true,
+      mpDrain: 0.06, say: "名を呼ばれぬ嘆きが、魔力をそぎ落とした",
+    },
+    tune: { enemyMul: 0.96, deepMul: 0.84, soloMul: 1.00 },
+    unlock: { quest: "fq_proxyname" },
+    hint: "酒場の王宮の老侍従の依頼「棺の中の名」を受けると、道が示される",
+  },
+  {
+    id: "ws26", lv: 138, lvTo: 142, layer: 14, floors: 10, side: true,
+    floorHaz: { fall: null, harm: "balm" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
+    power: { 1: 0.0820, 5: 0.0882, 10: 0.0955 },
+    name: "剥製の大広間", short: "大広間",
+    about: "参道の分かれ道の先の、天井の高い広間。王たちの狩りの獲物が、香油とろうで固められ、牙をむいたまま何百と並んでいる",
+    bands: [
+      ["bs_preservedbeast", "bs_crypthound", "bs_coffincrawler", "bs_candlewraith", "bs_waxhorror", "bs_corpsewax"],
+      ["bs_mummylord", "bs_sarcophagusguard", "bs_wickmummy"],
+    ],
+    elites: ["el_lanternreaper"],
+    trait: {
+      id: "wakingtrophy", name: "目を覚ます剥製", sym: "✶", accent: "#c0a080",
+      lines: ["侵入者の足音で、剥製の獣たちが目を覚ます。戦闘が始まるたび、主を除く敵全体の攻撃が1段上がる (3ターン)。", "獣の首に掛けられた金の飾りで、得る金貨は 1.35倍。"],
+      mods: { goldMul: 1.35 },
+      foeRally: 1,
+    },
+    tune: { enemyMul: 0.95, deepMul: 0.84, soloMul: 1.00 },
+    unlock: { quest: "fq_doorscratch" },
+    hint: "酒場の夜明けの町の扉番の依頼「扉を引っかく音」を受けると、道が示される",
+  },
+  {
+    id: "ws27", lv: 140, lvTo: 144, layer: 14, floors: 10, side: true,
+    floorHaz: { fall: "gravepit", harm: "waxdrip" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
+    power: { 1: 0.0810, 5: 0.0870, 10: 0.0940 },
+    name: "王子の墓所", short: "王子の墓所",
+    about: "仕立て場の奥の階段を降りた先に、小さな墓所がある。王冠をかぶった若い骸と、その従者たちが、即位の日を待ち続けている",
+    bands: [
+      ["bs_boneprince", "bs_corpsewax", "bs_funeralwraith", "bs_shroudkeeper", "bs_graveroyalguard", "bs_candlewraith"],
+      ["bs_voidknight", "bs_doomknight", "bs_embalmer"],
+    ],
+    elites: ["el_soulflayer"],
+    trait: {
+      id: "heirsretinue", name: "王子の従者たち", sym: "♔", accent: "#c8a868",
+      lines: ["王子のそばには、選び抜かれた従者が控えている。どの階も半分の確率で強敵の階になる。", "即位の日のために蓄えられた品が眠り、落ちている装備の質が上がる。"],
+      mods: { lootBonusLv: 4 },
+      eliteRate: 0.5,
+    },
+    tune: { enemyMul: 0.95, deepMul: 0.84, soloMul: 0.98 },
+    unlock: { quest: "fq_heir" },
+    hint: "酒場の夜明けの町の書き写し屋の依頼「継げなかった王子」を受けると、道が示される",
+  },
   {
     id: "w00_forest", name: "近くの森の古屋", short: "森の古屋",
     lv: 1, lvTo: 1, layer: 1, floors: 3, side: true, tutorial: true,
@@ -1855,10 +2011,12 @@ export function dungeonProgressOf(cfg) {
   if (index >= 0) return index;
   if (!cfg.side) return 0; // 第二章までの本筋・台帳外の素体には段を掛けない
   let step = 0;
-  // 第一部の寄り道 (格上の迷宮を含む) は、推奨Lv が第二部の本筋を越えても第二部の伸びを受けない (化石竜の墓所 ws21 は w41 の段のまま)
+  // 第一部の寄り道 (格上の迷宮を含む) は、推奨Lv が第二部の本筋を越えても第二部の伸びを受けない (化石竜の墓所 ws21 は w41 の段のまま)。
+  // 第二部の寄り道は、自分の層の本筋までしか数えない (層ごとに入口の壁 LAYER_WALL が重なるので、格上の閉架の書庫 ws24 が
+  // 次の層の本筋 (第十二章) の段まで跳ね上がらないように)
   for (let i = 0; i < PROGRESS_DUNGEONS.length; i++) {
     const d = PROGRESS_DUNGEONS[i];
-    if (d.lv <= cfg.lv && (cfg.layer >= PART2_LAYER || d.layer < PART2_LAYER)) step = i;
+    if (d.lv <= cfg.lv && (cfg.layer >= PART2_LAYER ? d.layer <= cfg.layer : d.layer < PART2_LAYER)) step = i;
   }
   return step;
 }
@@ -1928,7 +2086,7 @@ export function strengthAt(cfg, floor = 1) { return powerAt(cfg, floor) * lvPow(
     if (d.trait) {
       const t = d.trait;
       if (!t.id || !t.name || !Array.isArray(t.lines)) throw new Error(`world: ${d.id} trait needs id/name/lines`);
-      for (const k of Object.keys(t)) if (!["id", "name", "sym", "accent", "lines", "mods", "eliteRate", "board", "specialRate", "victoryHeal", "foeRegen", "mpDrain", "hpDrain", "metalRate", "metalMax", "chill", "physOnly", "alwaysAmbush", "poisonStart", "boltStart", "allHaste", "say", "audience", "gloom", "foeRally", "fervor", "duel", "foeRise", "whisper", "lull", "jolt", "shell", "soulFeast", "oneChest", "sealedGate", "appraised", "corpseFade"].includes(k)) throw new Error(`world: ${d.id} trait has unknown field ${k}`);
+      for (const k of Object.keys(t)) if (!["id", "name", "sym", "accent", "lines", "mods", "eliteRate", "board", "specialRate", "victoryHeal", "foeRegen", "mpDrain", "hpDrain", "metalRate", "metalMax", "chill", "physOnly", "alwaysAmbush", "poisonStart", "boltStart", "allHaste", "say", "audience", "gloom", "foeRally", "fervor", "duel", "foeRise", "whisper", "lull", "jolt", "allure", "focus", "shell", "soulFeast", "oneChest", "sealedGate", "appraised", "corpseFade"].includes(k)) throw new Error(`world: ${d.id} trait has unknown field ${k}`);
     }
     if (d.realm != null) throw new Error(`world: ${d.id} の realm は廃止 (土地の掟は迷宮の掟に統合した)`);
     if (d.trait && d.trait.say && typeof d.trait.say === "object") {

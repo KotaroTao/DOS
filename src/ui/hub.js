@@ -10,6 +10,9 @@
 // 提供: UI.registerSuggestion(fn) / UI.renderHub(root) (旧来の renderTownHub が委ねる)
 // game.js は import しない (ctx.js の UI / game / ops を通す)。
 
+import { isDesktopLayout } from "../desktop.js";
+import { pcPanel } from "./pc.js";
+import { SOUL_CLASSES } from "../souls.js";
 import { UI, game, ops, registerUI } from "./ctx.js";
 import { el, setText, glyph, svgIcon, button, longPress, itemTile } from "./kit.js";
 import { createTownScene, townSpots, vignetteCanvas } from "../townart.js";
@@ -503,6 +506,7 @@ export function renderHub(root, api) {
   const g = G();
   if (!g || !root) return;
   dismissGreet();
+  if (isDesktopLayout() && !game.tutorialAllowed?.()) return renderDesktopHub(root, api);
   const a = api || { keep: (k, f) => (UI.shell && UI.shell.keep ? UI.shell.keep(k, f) : f()) };
   const wrap = el("div", "hb wa-fit");
   // 帰還の報告は街の右下に置き、施設の札の下に高さを確保する
@@ -548,4 +552,52 @@ export function install() {
   for (const fn of (UI._suggestions || [])) registerSuggestion(fn);
   registerUI({ registerSuggestion, renderHub: (root) => renderHub(root), suggestions });
   if (UI.shell) UI.shell.registerTab("hub", { title: "街", header: false, render: (root, api) => renderHub(root, api) });
+}
+
+// PCの街は、出撃前に確かめる情報と操作をまとめる。
+function renderDesktopHub(root, api) {
+  const g = G(), wrap = el("div", "pc-dashboard");
+  const a = api || { keep: (k, f) => UI.shell.keep(k, f) };
+  wrap.appendChild(hero(a, { collapsed: true, width: root.clientWidth, viewport: root }));
+  const summary = el("div", "pc-summary");
+  const c = ops.counts?.() || {};
+  for (const [label, value] of [["隊", `${g.party.length}体`], ["隊の持ち物", `${(g.inventory || []).length}/50`],
+    ["手負い", `${g.party.filter(d => d.alive && (d.hp < d.maxhp || d.mp < d.maxmp)).length}体`], ["未鑑定", `${c.unid || 0}点`]]) {
+    const cell = el("div", "pc-summary-cell"); cell.append(el("span", "pc-muted", label), el("b", null, value)); summary.appendChild(cell);
+  }
+  wrap.appendChild(summary);
+  const goal = pcPanel("いまの目標", "pc-dashboard-goal");
+  const o = game.objectiveInfo?.(); if (o) goal.appendChild(objectiveCard(o));
+  const services = el("div", "pc-service-actions");
+  for (const [key, label] of [["crypt", "出撃の支度"], ["mansion", "隊を整える"], ["shop", "持ち物を整理"], ["palace", "王宮へ"]]) {
+    if (spotOpen(key)) services.appendChild(button({ label, kind: key === "crypt" ? "primary" : "secondary", onTap: () => spotGo(key) }));
+  }
+  goal.appendChild(services);wrap.appendChild(goal);
+  const tasks = pcPanel("次にすべきこと", "pc-dashboard-tasks");
+  const sg = suggestions(8);
+  if (!sg.length) tasks.appendChild(el("p", "pc-muted", "支度は整っている。いまの目標から次の行動を選べる。"));
+  for (const task of sg) tasks.appendChild(sugChip(task, false));
+  wrap.appendChild(tasks);
+  const party = pcPanel("隊の状況", "pc-dashboard-party");
+  for (const d of g.party) {
+    const b = button({ label: "", kind: "secondary", onTap: () => UI.openParty?.(d, { context: "town" }) });
+    b.classList.add("pc-party-card");b.replaceChildren();
+    if (UI.partyPortraitCanvas) b.appendChild(UI.partyPortraitCanvas(d, 44));
+    const text = el("span", "pc-person-text");
+    text.append(el("b", null, d.name), el("span", "pc-muted", `${SOUL_CLASSES[d.clsKey]?.name || "魂なし"} Lv${d.jobLv || 1}`),
+      el("span", null, d.alive ? `HP ${d.hp}/${d.maxhp}　MP ${d.mp}/${d.maxmp}` : "砕けている"));
+    b.appendChild(text); party.appendChild(b);
+  }
+  wrap.appendChild(party);
+  const more = pcPanel("街での用事", "pc-dashboard-more");
+  for (const [key,label] of [["tavern","酒場の依頼・噂話"],["inn","宿の様子・休む"],["shrine","赤い魂の祠"]]) {
+    if (spotOpen(key)) more.appendChild(button({label,kind:"secondary",onTap:()=>spotGo(key)}));
+  }
+  const report = UI.runReportBadge?.();
+  if (report) more.appendChild(button({label:report.banner || "帰還の報告",kind:"secondary",onTap:()=>UI.openRunReport?.()}));
+  more.append(button({label:"ヘルプ・酒場の噂話",kind:"secondary",onTap:()=>UI.openHelp?.()}),
+    UI.storyButton ? UI.storyButton() : button({label:"ストーリー",kind:"secondary",onTap:()=>UI.openStoryArchive?.()}));
+  const inf = infBanner();if(inf) more.appendChild(inf);
+  const quests = questStrip();if(quests) more.appendChild(quests);
+  wrap.appendChild(more);root.appendChild(wrap);
 }

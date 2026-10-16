@@ -1588,6 +1588,8 @@ export function recalc(member) {
   const arOut = {};
   for (const k in ar) if (ar[k] > 0) arOut[k] = Math.min(AIL_RES_CAP, Math.round(ar[k] * 100) / 100);
   for (const k in arOut) if (k in resist) resist[k] += arOut[k] * 100;
+  // 極「不動心の」: 魅了・混乱・特技封じが効かない (抵抗値100)
+  if (gmisc.steadMind) for (const k of ["charm", "confuse", "seal"]) if (k in resist) resist[k] = 100;
   for (const k in resist) resist[k] = clampResist(resist[k]);
   member.resists = resist;
   member.physResist = resist.physResist; member.magResist = resist.magResist;

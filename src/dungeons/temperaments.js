@@ -135,7 +135,7 @@ export const MONSTER_TEMPERAMENTS = {
   bs_banshee: p("seal", "confuse charm", G, "light wind", "dark", "flinch"), // 恐怖を運ぶ絶叫
   d03_sentinel: p("paralyze", "flinch confuse", M, "dark water", "light earth", "seal"), // 中空の鎧を動かす誓い
   bs_dullahan: p("seal", "flinch confuse", M, "light fire", "dark", "paralyze"), // 小脇の首のささやきを封じる
-  bs_ironknight: p("paralyze", "flinch confuse seal", M, "water", "earth fire"), // 命令だけで動く鉄人形
+  bs_ironknight: p("paralyze", "flinch confuse seal", M, "water", "earth fire"), // 命令だけで動く鉄人業
   bs_shadowmage: p("seal", "confuse", G, "light wind", "dark", "flinch"), // 肉体を失った術師の影
   bs_bloodwraith: p("seal", "flinch charm", G, "light fire", "dark water", "confuse"), // 血を集める霊力
   bs_bonecolossus: p("confuse", "flinch paralyze", D, "light wind", "earth dark", "seal"), // 多数の骨の意志を乱す
@@ -362,11 +362,11 @@ export const MONSTER_TEMPERAMENTS = {
   bs_archivist: p("seal", "charm confuse", D, "light fire", "dark", "paralyze"), // 読み続ける司書の術を断つ
   el_voidarchon: p("seal", "confuse charm flinch", G, "dark earth", "light wind"), // 白紙になった執政官の輪郭
   el_librarian: p("paralyze", "seal confuse charm", D, "fire light", "dark", "flinch"), // 呪文を吸う司書の手を止める
-  // 第14層・屍蝋の回廊
-  bs_wickmummy: p("seal", "paralyze flinch charm", D, "fire light", "dark earth", "confuse"), // 蝋に固められた歴代の王
+  // 第14層・王家の廟 (第十二章)
+  bs_wickmummy: p("seal", "paralyze flinch charm", D, "fire light", "dark earth", "confuse"), // ろうで固められた歴代の王
   bs_embalmer: p("confuse", "seal charm", G, "fire light", "dark", "flinch"), // 完璧な保存への執念を乱す
-  bs_graveroyalguard: p("paralyze", "flinch confuse", M, "fire light", "dark earth", "seal"), // 屍蝋の近衛の関節
-  bs_waxhorror: p("seal", "paralyze flinch", "poison sleep death", "fire light", "dark earth", "confuse charm"), // 蝋の顔をつなぐ魂
+  bs_graveroyalguard: p("paralyze", "flinch confuse", M, "fire light", "dark earth", "seal"), // ろうで固めた近衛の関節
+  bs_waxhorror: p("seal", "paralyze flinch", "poison sleep death", "fire light", "dark earth", "confuse charm"), // 塊の顔をつなぐ魂
   bs_mournfulchancellor: p("seal charm", "confuse", G, "fire light", "dark", "flinch"), // 空欄を埋めたい記録官
   bs_candlewraith: p("seal", "flinch", G, "water light", "fire dark", "confuse charm"), // 命を芯にする弔い火
   bs_preservedbeast: p("seal", "paralyze flinch confuse", D, "fire light", "dark earth", "charm"), // 剥製は生きた獣の眠りを持たない
@@ -376,16 +376,16 @@ export const MONSTER_TEMPERAMENTS = {
   bs_coffincrawler: p("sleep", "poison charm", "", "fire light", "dark earth", "paralyze"), // 棺を食い荒らす生きた虫
   bs_mummylord: p("seal", "paralyze flinch confuse", D, "fire dark", "earth light", "charm"), // 包帯の将の忠義
   bs_deathmask: p("seal", "paralyze confuse flinch", M, "fire dark", "light earth"), // 黄金の仮面の凝視
-  bs_corpsewax: p("seal", "paralyze flinch", D, "fire light", "dark earth", "confuse charm"), // 蝋から固まり直す従者
+  bs_corpsewax: p("seal", "paralyze flinch", D, "fire light", "dark earth", "confuse charm"), // ろうから固まり直す従者
   bs_funeralwraith: p("confuse charm", "flinch", G, "light wind", "dark", "seal"), // 葬列の行く先を惑わす
   bs_boneprince: p("charm", "flinch confuse", D, "light fire", "dark", "seal paralyze"), // 王冠を欲しがる王子
   bs_crypthound: p("seal", "confuse flinch", D, "light fire", "dark", "paralyze"), // 殉葬された犬は眠らない
   bs_shroudkeeper: p("seal", "confuse flinch", G, "fire light", "dark", "charm"), // 装束を絡める力
-  bs_doomknight: p("paralyze", "seal flinch confuse", M, "light water", "dark earth"), // 冥鉄の鎧の誓い
-  bs_voidknight: p("seal", "confuse flinch", G, "light", "dark", "charm"), // 消えかけた鎧の存在
+  bs_doomknight: p("paralyze", "seal flinch confuse", M, "light water", "dark earth"), // 喪の鎧の誓い
+  bs_voidknight: p("seal", "confuse flinch", G, "light", "dark", "charm"), // 名を削られた鎧
   bs_cryptking: p("seal", "charm confuse", D, "light fire", "dark earth", "paralyze"), // 王の吸命を封じる
-  el_lanternreaper: p("confuse", "seal flinch", G, "light fire", "dark", "charm"), // 消えた灯の憎しみを乱す
-  el_soulflayer: p("seal", "confuse charm flinch", G, "light fire", "dark"), // 奪った魂の殻をほどく
+  el_lanternreaper: p("confuse", "seal flinch", G, "light fire", "dark", "charm"), // 逃げた灯を追う執念を乱す
+  el_soulflayer: p("seal", "confuse charm flinch", G, "light fire", "dark"), // 剥いだ魂の殻をほどく
   // 第15層・溶鉄炉
   bs_moltensmith: p("paralyze", "flinch confuse", M, "water", "fire earth", "seal"), // 鍛冶の自動機構
   bs_forgegolem: p("seal", "paralyze flinch confuse", M, "water wind", "fire earth"), // 鋳造工程の意志を断つ
@@ -580,7 +580,7 @@ export const MONSTER_TEMPERAMENTS = {
   bs_hollowkodama: p("poison", "sleep charm confuse", "", "fire wind", "earth light", "seal"), // 木の根へ毒を巡らせる
   bs_bloodbriar: p("seal", "poison charm confuse", "", "fire light", "dark earth", "sleep"), // 血と魂を吸う茨の力
   bs_birchwitch: p("seal", "confuse charm", G, "fire light", "water", ""), // 奪う体温の呪文を断つ
-  bs_pyretreant: p("seal", "paralyze confuse", "poison sleep charm death", "water wind", "fire earth"), // 燃え続ける木の人形
+  bs_pyretreant: p("seal", "paralyze confuse", "poison sleep charm death", "water wind", "fire earth"), // 燃え続ける木の人業
   bs_bogtyrant: p("sleep", "paralyze poison", "", "earth light", "water dark", "seal"), // 沼で待つ本体を眠らせる
   bs_curseroot: p("seal", "poison charm confuse", "", "fire wind", "dark earth", "sleep"), // 森をつなぐ根の呪い
   bs_rotgardener: p("seal", "paralyze confuse charm", D, "fire light", "earth dark"), // 死体を芽吹かせる術

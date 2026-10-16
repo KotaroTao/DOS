@@ -139,7 +139,7 @@ export function isUpgrade(it, opts) {
   return !!(plan.target && plan.delta && plan.score > 0);
 }
 
-// 小さな人形の絵 (キャンバス)
+// 小さな人業の絵 (キャンバス)
 export function dollIcon(d, scale = 2) {
   const w = el("span", "wpc-dic");
   // 肖像は WP-B の UI.partyPortraitCanvas (隊の絵の差し替え点) で描く。無ければ従来のスプライト
@@ -619,7 +619,7 @@ export function openDollChooser(it, { owner = null, mode = "equip", buyId = null
 }
 
 // ---------------------------------------------------------------- 選ぶシート
-// 行 (人形 + 名前 + 補足 + 右の値)。押せる行は 56px 以上
+// 行 (人業 + 名前 + 補足 + 右の値)。押せる行は 56px 以上
 function pickRow({ doll, title, sub, right, onTap, disabled, extra, tone }) {
   const r = el("div", "wpc-prow" + (disabled ? " off" : "") + (tone ? " t-" + tone : ""));
   const main = el("button", "wpc-prow-main");

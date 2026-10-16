@@ -120,8 +120,8 @@ const UNKNOWN_RULES = [
   [["demon"], /獄卒|看守|典獄/, "鍵束を持つ異形"],
   [["demon"], /鬼/, "角のある異形"],
   // 構造体
-  [["construct"], /人業|抜け殻/, "動く人形"],
-  [["construct"], /銀業|金業/, "光る人形"],
+  [["construct"], /人業|抜け殻/, "動く人業"],
+  [["construct"], /銀業|金業/, "光る人業"],
   [["construct"], /魔導書|擬書|書庫|禁書/, "宙に浮く書"],
   [["construct"], /棺|石棺/, "動く棺"],
   [["construct"], /鐘/, "動く大鐘"],
@@ -208,7 +208,7 @@ const UNKNOWN_NAME = {
   bs_impaler: "長い槍を構える人影",
   bs_beastmaster: "鞭を鳴らす影",
   bs_ghostgladiator: "揺らぐ剣士の影",
-  bs_mirrorduelist: "光る鋼の人形",
+  bs_mirrorduelist: "光る鋼の人業",
   bs_championofash: "灰をかぶった鎧",
   bs_arenalord: "仮面の巨大な影",
   el_ashshogun: "灰の大鎧",
@@ -241,6 +241,15 @@ const UNKNOWN_NAME = {
   // 第十一章 (第13層): 鋼や本の巨体を「宙に浮く書」と呼ばない
   bs_arcanesentinel: "書架のあいだを歩く鋼",
   bs_tomeguardian: "本を積み上げた巨体",
+  // 第十二章 (第14層「王家の廟」): ろうで固めた亡骸を「骨」と呼ばない
+  bs_wickmummy: "冠をかぶった亡骸",
+  bs_corpsewax: "白く固まった人影",
+  bs_candlewraith: "揺れる灯",
+  bs_embalmer: "刷毛を持つ影",
+  bs_shroudkeeper: "白い布をかかえた影",
+  bs_funeralwraith: "列をなす影",
+  el_lanternreaper: "灯を追う影",
+  bs_cryptking: "玉座の影",
 };
 
 // 画面に出すときの不確定名: 正式な名と見分けがつくよう末尾に「？」を添える (「羽ばたく小さなもの？」)。
