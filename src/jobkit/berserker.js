@@ -32,7 +32,7 @@ export default {
     BERSERKER_ENGOKU: { name: "焔獄なぎ", mp: 28, kind: "phys", power: 2.4, element: "fire", acc: 0.16, debuff: { vit: 0.85 }, target: "all-enemy", desc: "焔で敵陣をなぎ、鎧を焼き脆くする" },
     BERSERKER_METTAUCHI: { name: "滅多打ち", mp: 16, kind: "phys", power: 0.72, hits: 5, acc: 0.1, flinchChance: 0.2, target: "enemy", desc: "身を顧みず五度叩きつけ、怯ませる" },
     BERSERKER_KYOUOU: { name: "狂王の鉄槌", mp: 32, kind: "phys", power: 7.5, acc: 1, desperate: true, target: "enemy", desc: "必中。傷が深いほど重い狂王の一撃" },
-    BERSERKER_YATSUZAKI: { name: "八つ裂き", mp: 24, kind: "phys", power: 0.55, hits: 8, acc: 0.16, target: "enemy", desc: "八度切り裂く狂乱の連撃" },
+    BERSERKER_YATSUZAKI: { name: "八つ裂き", mp: 24, kind: "phys", power: 1.1, hits: 8, acc: 0.16, target: "enemy", desc: "八度切り裂く狂乱の連撃" },
     BERSERKER_SENKETSU: { name: "鮮血の終焉", mp: 40, kind: "phys", power: 11.5, acc: 1, pierce: 0.8, hpCost: 0.15, drain: 0.2, target: "enemy", desc: "血を捧げる必中の終撃。命を吸い返す（物理貫通80%）" },
   },
   perks: {

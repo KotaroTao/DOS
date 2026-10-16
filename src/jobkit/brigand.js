@@ -32,7 +32,7 @@ export default {
     BRIGAND_HANAMICHI:   { name: "義賊の花道", mp: 28, kind: "phys", power: 1.9, agiScale: 0.5, bladeHeal: 0.03, healCap: 0.15, target: "all-enemy", desc: "見得を切って敵陣を斬り、味方を癒す" },
     BRIGAND_SEIBAI:      { name: "成敗", mp: 28, kind: "phys", power: 4.6, critBonus: 0.4, instakill: { chance: 0.25 }, target: "enemy", desc: "悪を成敗する一撃。即死させることも" },
     BRIGAND_NAGESEN:     { name: "投げ銭乱舞", mp: 22, kind: "phys", power: 1.0, scatter: 5, critBonus: 0.2, target: "all-enemy", desc: "銭と刃を雨あられと敵陣に投げる" },
-    BRIGAND_SHIRANAMI:   { name: "白浪五段", mp: 24, kind: "phys", power: 0.75, hits: 5, agiScale: 0.3, critBonus: 0.25, element: "water", target: "enemy", desc: "白浪のごとく打ち寄せる五連撃（水）" },
+    BRIGAND_SHIRANAMI:   { name: "白浪五段", mp: 24, kind: "phys", power: 0.95, hits: 5, agiScale: 0.3, critBonus: 0.25, element: "water", target: "enemy", desc: "白浪のごとく打ち寄せる五連撃（水）" },
     BRIGAND_DOTOU:       { name: "怒濤の義挙", mp: 28, kind: "phys", power: 2.0, element: "water", steal: 0.4, target: "all-enemy", desc: "怒濤のごとく敵陣を呑み、金品をさらう（水）" },
     BRIGAND_TENCHUU:     { name: "天誅", mp: 32, kind: "phys", power: 7.2, critBonus: 0.4, execute: 2.2, element: "dark", target: "enemy", desc: "悪に下す闇の天誅。弱った敵に絶大（闇）" },
     BRIGAND_SENRYOU:     { name: "千両箱崩し", mp: 30, kind: "phys", power: 0.65, hits: 6, agiScale: 0.3, critBonus: 0.3, steal: 0.8, plunder: true, target: "enemy", desc: "六度斬りつけ、千両箱ごと奪い去る" },
