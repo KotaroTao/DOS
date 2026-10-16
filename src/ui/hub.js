@@ -48,7 +48,7 @@ function builtinSuggestions(c) {
     const all = game.allDolls ? game.allDolls() : (g.party || []);
     const d = all.find((x) => x && x.isDoll && !x.alive && !x.reviveAt) || null;
     out.push({ key: "repair", prio: -2, label: "魂を修復", sub: `砕けた人業 ${c.repairable}`, cost: { kind: "gold", n: c.repairCost || 0 }, tone: "red", icon: "red",
-      run: () => { if (UI.openParty) UI.openParty(d, { context: "town" }); } });
+      run: () => { if (UI.openParty) UI.openParty(d, { context: "town", seg: "soul" }); } });
   }
   // 全滅で迷宮に残された器: 赤い魂で今すぐ連れ帰る (確認のシート)
   if (c.rescuing && game.canHastenRescue?.()) {

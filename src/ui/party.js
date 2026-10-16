@@ -2982,7 +2982,10 @@ function openParty(idx = null, o = {}) {
     const onMansion = t.tab === "party" && !t.facility && !t.page;
     // inPlace: 館へ移らず、いまの画面の上に隊のシートで開く (街の顔アイコンから。館にいる時は館のまま)
     if (o.inPlace && !onMansion) { openSheet(d, o.seg || "equip", { town: true }); return true; }
-    if (o.seg) setSeg(o.seg);
+    if (o.seg) {
+      setSeg(o.seg);
+      desktopMansionScroll.set(o.seg, 0); // 指定された項目はPCでも先頭から見せる
+    }
     if (onMansion) { game.renderTown(); return true; }
     pendingOpen = true; // 指定した人業・区分で入る (既定へ戻さない)
     const ok = UI.shell ? UI.shell.setTab("party") : false;
