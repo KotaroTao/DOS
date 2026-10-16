@@ -205,6 +205,20 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 
 ---
 
+### 2-5. 王宮の建築を統一する基準
+
+2026-10-16 ユーザー指示。ロアダルの離宮は、外観を `docs/art/town/panorama.png`（昼は `panoramaDay.png`）、玉座の間を `art/story-review/chapter3/report_w12.png` に合わせる。新しい別案の城や玉座を作らない。既存の原画を参照し、未承認の新規シートを基準にしない。
+
+- 外観: 岩山の上の小規模な石造りの離宮。段状の城壁、四角い塔、中央の角塔と低い四角錐の屋根。細長い針状の尖塔を林立させた巨大な城にしない。昼夜で建物の輪郭を変えない。
+- 玉座: 黒い彫刻の高い尖頭アーチ形の背、細い金の縁と透かし飾り、小尖塔、深紅の張り地、角張った黒と金の肘掛け。丸い天蓋や、別の巨大な金のアーチを玉座の背にしない。
+- 室内: 灰黒色の石柱と尖頭アーチ窓、金の模様の深紅の垂れ旗、石の像、黒鉄の燭台、黒い石床と赤い敷物。宰相の椅子は玉座より低く小さく、第二の玉座にしない。
+- 見る角度・寄り引き・人物に隠れた部分は変わってよい。左右反転して配置をそろえない。王の姿勢・老い・杯・膝掛け、第四章から空いた宰相の席、`report_w33` 以降の青空は各場面の本文を優先する。
+- 百年前に王国が裂けたオープニング第一幕は、現在のロアダルの離宮とは同定しない。王都・地底の廃都・凍王の玉座・王家の廟も別の場所。これらを離宮の形に置き換えない。
+
+```text
+Palace continuity: For scenes set in the present-day Roadal royal audience hall, use the attached report_w12 reference as the architectural design source, never as the scene composition. The royal throne has a tall narrow pointed Gothic black carved back, delicate gold tracery and small pinnacles, deep crimson upholstery, and squared black-and-gold armrests. Retain the same dark stone columns, pointed windows, crimson banners with gold ornament, hooded stone statues, black iron candle stands, black stone floor and red carpet. The chancellor's chair is smaller and lower, never a second throne. Camera angles and occlusion may vary; do not mirror the entire scene. Preserve each scene's characters, gestures, narrative props and chapter-specific weather. For an exterior view of Roadal's palace, match the town panorama: a compact stepped stone fortress on a rocky wooded hill, square crenellated towers and one central square tower capped by a low pyramidal roof; no forest of needle-like spires. Do not apply this Roadal architecture to the historical kingdom in the opening rift scene, the buried capital, the frost king's throne or the royal mausoleum.
+```
+
 ## 3. 便1 ― 既存の絵の修正
 
 2026-10-13 序章変更に伴うユーザー指定の描き直し（4枚・済）:
@@ -218,6 +232,20 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 既存の画像を参照画像として渡し、指示した所だけを直す (`prompt.mjs <場面ID>` が直す元の絵を最初の参照に入れる)。直し終えた項目は、見出し (A) か行 (B) の末尾に「(済)」を付ける — `prompt.mjs --chapter` と確認ページが、残りの修正だけを数える。各項目の「保つもの」は変えない。英語の指示は、1-1 の前置きを付けたうえで、`Edit the attached illustration. Keep the composition, characters, lighting and style unchanged except:` に続けて書く。
 
 ### A. 必須 (物語の筋や正典と食い違う)
+
+**A-42. 序章 opening「師のいない街へ」離宮の外観を街のパノラマへ統一** `art/story-review/prologue/road-to-roadal.png` (済)
+- 直すもの: 右奥の岩山の離宮だけ。パノラマにある四角い塔と段状の城壁、中央の四角い塔と低い四角錐の屋根へ合わせる。
+- 保つもの: 弟子、道、墓所の門、街、山、夜空、月、構図、画風。百年前の王国を描く第一幕は変更しない。
+```text
+...except: replace ONLY the distant royal palace on the rocky wooded hill at the upper right with the exact compact stepped fortress design seen in the attached town panorama. Match its square crenellated stone towers, stepped curtain walls, central square tower and low pyramidal roof. Remove the old forest of tall thin Gothic spires from that palace only. Keep the palace in the same distant position and scale, with warm amber windows under cold blue moonlight. Preserve the entire foreground apprentice, road, lantern, cemetery gateway, all other town buildings, mountains, sky, moon, composition and pixel-textured painting style. Do not add the panorama's green soul beam or red shrine to this image.
+```
+
+**A-43. 第二章 report_w06「守れと命じ、迎えなかった」玉座の背を統一** `art/story-review/chapter2/report_w06.png` (済)
+- 直すもの: 王の背後の丸い天蓋を、基準の黒と金の細長い尖頭アーチ形の玉座へ。小さな宰相の椅子は低いままにする。
+- 保つもの: 王と弟子と宰相、姿勢と手、衣装、顔、段と赤い敷物、室内の光、窓外の夜、構図、本文。
+```text
+...except: correct ONLY the royal throne's back and canopy to match the attached report_w12 architectural reference. Replace the round fan-like canopy with the same tall narrow pointed Gothic black carved back, delicate gold tracery and small pinnacles, crimson upholstery and squared black-and-gold armrests. Preserve the original camera angle and the size and position of the seated king. Preserve every character's face, anatomy, gestures, clothing, the apprentice, the chancellor, the stairs, carpet, banners, windows, night sky, candlelight, framing and fine pixel-textured style. Do not copy the reference's king pose, foreground table, apprentice position or map. Keep the chancellor's chair small and subordinate.
+```
 
 **A-41. 館の灯をオープニングの燭台へ統一** (済) `art/story-review/prologue/irene-soul-lamp.png`・`art/story-review/chapter1/irene_boons.png`・`art/story-review/chapter1/irene_familiar.png`・`art/story-review/chapter1/irene_fort.png`・`art/story-review/chapter2/irene_roots.png`・`art/story-review/chapter2/irene_sera.png`・`art/story-review/chapter3/irene_undercity.png`・`art/story-review/chapter3/irene_omokage.png`・`art/story-review/chapter3/irene_trust.png`・`art/story-review/chapter3/ch3_end.png`・`art/story-review/chapter4/ch4_end.png`・`art/story-review/chapter5/irene_abyss.png`・`art/story-review/chapter5/irene_furnace.png`・`art/story-review/chapter5/irene_husks.png`・`art/story-review/chapter6/irene_coat.png`・`art/story-review/chapter6/irene_frozen.png`・`art/story-review/chapter6/irene_lineage.png`・`art/story-review/chapter7/irene_order.png`・`art/story-review/chapter8/irene_bell.png`・`art/story-review/chapter8/irene_rain.png`・`art/story-review/chapter10/irene_names.png`・`art/story-review/chapter10/irene_candle.png`・`art/story-review/chapter11/irene_lastpage.png`・`art/story-review/chapter11/irene_onlyonce.png`・`art/story-review/chapter11/irene_why.png`
 

@@ -168,7 +168,8 @@ export function playStoryChain(pages, done) {
   const artBox = el("div", "sc-art hidden");
   stage.appendChild(artBox);
   // 語り手の肖像 (ページごとに替わる時だけ描き直す)
-  let curWho = null, curArt = null;
+  // 未描画と「専用の絵なし」(null) を分け、初回も既定の王宮背景を置く。
+  let curWho = null, curArt;
   const setWho = (who) => {
     if (who === curWho) return;
     curWho = who;

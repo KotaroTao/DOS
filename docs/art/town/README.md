@@ -188,3 +188,13 @@ A dark stone shrine at night. The hero of the image, center: inside a gothic poi
 - 登録は `python3 tools/townart/build.py` で生成する。`TOWN_KEYART`・`TOWN_KEEPERART`・`TOWN_ICONART` とSWの `<<TOWN_ART>>` は手で直さない。
 - 画像の読み込み失敗時は従来のドット絵へ戻す。夜景の描画と名所の位置は変えない。
 - [画面写真・確認記録](review-complete/README.md)。
+
+## 8. 王宮の建築の統一（2026-10-16）
+
+外観は採用済みの昼夜パノラマ、室内は `art/story-review/chapter3/report_w12.png` を基準にする。共通の形は `docs/art/codex-story-art-brief.md` 2-5。背景 `palace.png` も物語と同じ黒と金の尖頭アーチの玉座へ合わせる。人物・杯・宰相の在席や空模様は場面ごとの本文に従い、建築の統一で物語を上書きしない。
+
+王宮背景の修正指示（最初に元の `palace.png`、次に `report_w12.png` を渡す）:
+
+```text
+Edit the first attached illustration, the wide frontal palace background, to match the royal throne design in the second attached report_w12 architectural reference. Change ONLY the central royal throne and the large decorative canopy immediately behind it. Remove the oversized separate gold pointed-arch canopy with its red fabric wall; replace it with the same single tall narrow black carved Gothic throne back, delicate gold tracery, small pinnacles, crimson upholstered seat back and squared black-and-gold armrests seen in report_w12. Behind the throne expose the same dark stone architecture, not another giant throne or canopy. Keep the original seated king and his exact face, crown, ermine cloak, red robe, pose and size. Preserve the frontal symmetrical camera, stairs, red carpet, statues, columns, banners, windows, cold blue moonlight and warm candlelight. Keep both existing flame bowls exactly at their original positions so the game's light overlay remains aligned. No extra people, no text, no border, no pixel grid; retain the existing smooth high-resolution painterly dark-fantasy background style. Output one 1536x1024 image.
+```

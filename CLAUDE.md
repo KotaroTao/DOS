@@ -32,6 +32,8 @@ There is no test suite. To sanity-check JS edits, use Node:
 
 第四章「王都の地下」のストーリー全10場面は `art/story/chapter4/` の専用原画（1536×1024）を表示する。第二章・第三章の既存原画を直接参照して人物と画風をそろえ、`storyImage` とSWにも登録済み。制作記録と本文・画像一覧は `art/story-review/chapter4/`、再作成は `node tools/storyart/chapter4.mjs`。
 
+王宮の建築は外観を街の昼夜パノラマ、玉座の間を第三章 `report_w12` に統一する (`docs/art/codex-story-art-brief.md` 2-5)。`tools/storyart/prompt.mjs` は `illustration.setting === "throne"` の場面に共通基準と参照画像を付ける。凍王の玉座・王家の廟・百年前の王国とは区別する。
+
 ## Architecture
 
 ### Module layout (`src/`)
