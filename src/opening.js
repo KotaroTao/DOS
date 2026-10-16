@@ -1,3 +1,4 @@
+import { playtestEvent } from "./playtest.js";
 // オープニング — 新規ゲーム開始時に一度だけ流れる導入
 //
 // 六幕の物語画風のWebPを、上下を闇で切った映画の画角で映す。
@@ -277,8 +278,9 @@ export function showOpening(onDone) {
   };
 
   let closed = false;
-  const close = () => {
+  const close = (reason = null) => {
     if (closed) return;
+    if (reason) playtestEvent("説明のスキップ操作", { source: "序幕", reason, page: idx, phase });
     closed = true;
     phase = "closed";
     sequenceActive = false;
@@ -317,7 +319,7 @@ export function showOpening(onDone) {
     pressAt = performance.now(); longFired = false;
     clearTimeout(pressT);
     hold.classList.add("on");
-    pressT = setTimeout(() => { longFired = true; hold.classList.remove("on"); sfx("select"); close(); }, 900);
+    pressT = setTimeout(() => { longFired = true; hold.classList.remove("on"); sfx("select"); close("長押し"); }, 900);
   };
   const up = () => { clearTimeout(pressT); hold.classList.remove("on"); };
   wrap.addEventListener("pointerdown", down);
@@ -331,7 +333,7 @@ export function showOpening(onDone) {
     if (phase === "title") { sfx("select"); close(); return; }
     advance();
   });
-  skip.addEventListener("click", (ev) => { ev.stopPropagation(); sfx("select"); close(); });
+  skip.addEventListener("click", (ev) => { ev.stopPropagation(); sfx("select"); close("スキップボタン"); });
   const onVisibility = () => { if (document.hidden) voice.busy(); };
   document.addEventListener("visibilitychange", onVisibility);
   const onKey = (e) => {
@@ -340,7 +342,7 @@ export function showOpening(onDone) {
       e.preventDefault(); e.stopPropagation();
       if (voice.retry()) return;
       if (phase === "title") close(); else advance();
-    } else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(); }
+    } else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close("Escape"); }
     else e.stopPropagation(); // オープニング中はゲームへの入力を通さない
   };
   addEventListener("keydown", onKey, true);

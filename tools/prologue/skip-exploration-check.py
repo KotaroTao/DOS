@@ -47,7 +47,7 @@ with sync_playwright() as p:
     visit('?testScene=prologue:abbey&testSkipDungeon=1')
     result = page.evaluate('''async()=>{
       const {G,UI,ev,world:W}=__game;
-      const {STORY_CELLS,BOSS_MEMORIES}=await import('/src/story.js');
+      const {STORY_CELLS,BOSS_MEMORIES,BOSS_PRELUDES}=await import('/src/story.js');
       const {testTutorials}=await import('/src/ui/tutorial.js');
       const checks=[];
       UI.playStoryChain=(pages,done)=>{window.seen.push(...pages.map(p=>p.title));pages.forEach(p=>{p.enter?.();p.leave?.();});done?.();};
@@ -59,6 +59,7 @@ with sync_playwright() as p:
         G.tut={done:Object.fromEntries(testTutorials.map(t=>[t.id.slice(9),true]))};
         window.seen=[];
         const expected=Object.values(STORY_CELLS).filter(d=>d.dungeon===cfg.id&&(!d.prologue||cfg.tutorial||cfg.id==='w02')).sort((a,b)=>a.floor-b.floor).map(d=>d.title);
+        if(cfg.boss&&BOSS_PRELUDES[cfg.id]?.first)expected.push(BOSS_PRELUDES[cfg.id].first.title);
         if(BOSS_MEMORIES[cfg.id])expected.push(BOSS_MEMORIES[cfg.id].title);
         const bosses=G.stats.bossKills;
         ev.enterDungeon(null,1);
@@ -77,7 +78,7 @@ with sync_playwright() as p:
     }''')
     print(f'OK: 全{len(result)}迷宮の手がかり順・主の記憶・踏破・報告待ち')
     assert page.evaluate('localStorage["dos-save-v7"]') == saved
-    page.locator('.test-play-banner button').click()
+    page.get_by_role('button', name='終了してホームへ', exact=True).click()
     page.wait_for_selector('.ttl-overlay')
     assert 'test' not in page.url
     assert page.evaluate('localStorage["dos-save-v7"]') == saved

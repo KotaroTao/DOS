@@ -104,6 +104,7 @@ const REDUCED_MOTION = (() => { try { return matchMedia("(prefers-reduced-motion
 import { pickTrap, CHEST_RANKS, rollChestRank } from "./traps.js";
 import { refSoul, refGold, trainCost, lvPow, emberMul, partyAgi, LOCK_K, TRAP_K, lockPow } from "./levelcurve.js";
 import { STABILITY_MAX, STABILITY_ENTRY_COST, STABILITY_RECOVERY_MS, recoverStability, stabilityWaitMs, stabilityRecoveryMs } from "./stability.js";
+import { startPlaytest, playtestEvent, finishPlaytest, showPlaytestRecords } from "./playtest.js";
 import { tlStability, tlStabilityTick, tlRedGain, tlOn, tlMeasure, tlWatchBattle, tlRunBegin, tlRunEnd, tlSnapshot, tlBattleBegin, tlHits, tlBattleEnd, tlLoot, tlLost, tlGain, tlTownGain, tlPlayTick, tlSoul, tlInfAttempt, tlInfFloor, tlInfSoul, tlInfEmbers, tlInfWipe } from "./telemetry.js";
 import { repriceEquipment } from "./pricing.js";
 import { spawnFx, drawBattleFx, weaponFxStyle, statusFxKind, skillProfile, ELEM_FX_COL, SIG_FX } from "./battlefx.js";
@@ -728,8 +729,22 @@ function runGainItem(owner, item) {
 // 魂の吸収を記録 (全滅没収で巻き戻すため {doll, clsKey} で覚える)
 // 魂の入手を記録 (全滅没収で巻き戻すため)。kind: "awaken"(共有countへ) | "bag"(未覚醒)
 function runTrackSoul(clsKey, kind) { if (G.run && inDungeon()) G.run.souls.push({ clsKey, kind }); }
-// テスト記録: 職業の魂を1つ手に入れた (迷宮の中ならその迷宮の欄、町なら次に入る迷宮の「町」の欄へ)
-function tlSoulGot(clsKey) { if (tlOn()) tlSoul(inDungeon() ? tlWhere() : null, (SOUL_CLASSES[clsKey] || {}).rarity); }
+// 試遊記録は名前を含めず、その時点の編成・装備・進行を写す。
+function playtestContext() {
+  return { state: G.state, phase: G.msq?.prologue?.phase || null,
+    dungeon: curDungeon()?.id, floor: G.floor, gold: G.gold, soulPts: G.soulPts,
+    subUnlocked: featureUnlocked("sub1"), tutorial: G.tut?.cur || null, tutorialStep: G.tut?.step, tutorialDone: Object.keys(G.tut?.done || {}).filter(k => G.tut.done[k]),
+    automatic: !!((G.autoCombat || G.autoMove) && !G.prompt),
+    party: G.party.map(d => ({ uid: d.uid, hp: d.hp, maxhp: d.maxhp,
+      primary: soulByUid(d.primary)?.clsKey, level: soulByUid(d.primary)?.level,
+      subs: (d.subs || []).filter(Boolean).map(x => ({ clsKey: soulByUid(x.uid)?.clsKey, picks: x.picks })),
+      equip: Object.fromEntries(Object.entries(d.equip || {}).map(([k, v]) => [k, v?.id || null])) })) };
+}
+// 戦闘集計と序盤の到達点は、それぞれの記録先へ送る。
+function tlSoulGot(clsKey) {
+  if (tlOn()) tlSoul(inDungeon() ? tlWhere() : null, (SOUL_CLASSES[clsKey] || {}).rarity);
+  if (SOUL_CLASSES[clsKey]?.rarity === "rare") playtestEvent("到達", { clsKey }, "rareFound");
+}
 // 今回の出撃の記録 (D1): 戦利品に加え、倒した数・魂の成長・持ちきれず置いてきた品・到達階を数える。
 // 旧セーブの G.run はこれらを持たないので、読む側は必ず || の既定値で受ける
 function newRun() {
@@ -9074,6 +9089,11 @@ function startBattleMeasured(enemies, cell) {
   if (foeLv - partyLevel() >= 4) log(`格上の迷宮（推奨Lv${foeLv}）：味方の異常・即死は効きにくく、敵の術は効きやすい`, "sys");
   // テスト記録: 戦闘の種類 (主 / 金属の魔物 / 精鋭・ミミック・出来事の戦い / 通常) と開始時の様子。
   // 金属の魔物は素早さに依らない回避を持つので、精鋭等の命中に混ぜない
+  if (!G.rematch) {
+    playtestEvent("到達", { boss: isBoss }, "firstBattle");
+    playtestEvent("戦闘開始", { boss: isBoss, enemies: enemies.map(e => e.key) });
+    if (G.party.some(d => d.subs?.some(Boolean))) playtestEvent("到達", {}, "subBattle");
+  }
   if (tlOn() && inDungeon() && !G.rematch) {
     const kind = isBoss ? "b" : enemies.some((e) => e.metal) ? "m" : (isElite || enemies.some((e) => e.isMimic) || (cell && cell.evFight)) ? "e" : "n";
     G.battle.tl = tlBattleBegin({ where: tlWhere(), kind, opening, openSrc, ambRate, party: G.party, enemies });
@@ -11794,6 +11814,7 @@ function levelUpEntries(progress) {
 function endBattle(...args) { return tlGameMeasure("battle", () => endBattleMeasured(...args)); }
 function endBattleMeasured() {
   const b = G.battle;
+  if (!G.rematch) playtestEvent("戦闘終了", { result: b.result, rounds: b._roundNo });
   G.effShow = null; G.modFeed = null; flushModLines(null, Infinity);
   if (b.tl) tlBattleEnd(b.tl, { result: b.result, rounds: b._roundNo, tally: b.tally, party: G.party });
   if (G.rematch) return endRematch(b); // 宿敵の再戦: 終われば隊を戻して街へ (迷宮の戦果・踏破・全滅の扱いには入らない)
@@ -11900,6 +11921,7 @@ function endBattleMeasured() {
     }
     // 迷宮踏破は本物の主戦のみ。死体から湧いた個体 (corpse)・無限迷宮の主は踏破扱いにしない
     const wasBoss = !corpse && !abyssActive() && b.enemies.some((e) => e.boss);
+    if (wasBoss) playtestEvent("到達", {}, "firstBoss");
     if (wasBoss) { flashScreen("#ffd84a"); buzz([0, 60, 50, 60, 50, 250]); } // 主討伐は特別な瞬間
     else if (wasElite) { flashScreen("#d4504e"); buzz([0, 80, 50, 80, 50, 300]); }
     // 出来事の戦闘: マスはイベント側が片付ける (連戦・報酬の続きがある)。勝った印だけ先に残す
@@ -12047,6 +12069,7 @@ const GUARDIAN_COST = 20; // 全滅時、戦利品を守って帰還するため
 // 全滅: 決断のシート (赤い魂で全てを守る / あきらめる)。戻る操作では閉じない。
 // 選んだら闇に溶けて街へ戻り、帰還の報告 (全滅版) に失ったもの・連れ帰りの時を残す
 function gameOver() {
+  playtestEvent("全滅・断念", { abandoned: !!G.run?.abandoned });
   G.state = "over";
   playBgm(null);
   SFX.gameover();
@@ -12972,6 +12995,7 @@ function finalizeBuyDoll(uid, name) {
   SFX.itemget(); buzz([0, 30, 60, 30]);
   log(`人業「${d.name}」が生まれた！（${SOUL_CLASSES[s.clsKey].label}）`, "win");
   showToast(`人業「${d.name}」が目覚めた`, { tone: "good" });
+  if (G.party.length >= 6) playtestEvent("到達", {}, "sixDolls");
   if (UI.tutorialEvent) UI.tutorialEvent("dollCreated");
   autosave(true);
   renderTown();
@@ -13051,6 +13075,8 @@ function applyEquipSoul(d, uid, s, slotId = "primary") {
   }
   recalcDoll(d);
   keepHpMpRatio(d, vit);
+  playtestEvent("魂の付け替え", { doll: d.uid, slot: slotId, clsKey: s.clsKey });
+  if (G.party.some(p => p.subs?.some(Boolean))) playtestEvent("到達", {}, "subEquipped");
   SFX.select(); buzz(15);
   autosave(true);
   renderTown();
@@ -16513,6 +16539,7 @@ function enterDungeon(mutatorId, startFloor = 1, stabilityAd = false) {
   G.stats.runs++;
   // 今回の戦利品トラッキングを初期化 (帰還の報告は次の帰還で書き直す)
   G.run = newRun();
+  playtestEvent("出撃");
   G.run.startFloor = G.floor; // 潜り始めの階 (そこから降りずに何もせず戻ったら、帰還で酒場を貼り替えない)
   tlRunBegin(tlWhere(), G.party, { mutator:G.mutator, loadout:G.party.map(p=>({ name:p.name, tactic:p.tactic, equip:Object.fromEntries(Object.entries(p.equip || {}).map(([k, it])=>[k, it ? it.id : null])), passives:p.passiveMap,
     souls:[p.primary, ...(p.subs || []).map(x=>x.uid)].filter(x=>x!=null).map(uid=>{ const soul=soulByUid(uid); return soul ? { uid, clsKey:soul.clsKey, level:soul.level, count:soul.count } : { uid }; }) })) });
@@ -16912,6 +16939,8 @@ function returnToTown(opts = {}) {
   if (!G.party.some((p) => p.alive)) startRescueTimers(G.party);
   if (summary) summary.dead = G.party.filter((d) => d && d.isDoll && !d.alive).map((d) => ({ uid: d.uid, name: d.name }));
   G.lastRun = summary;
+  playtestEvent("帰還", { outcome, souls: summary?.souls, forfeited: !!summary?.forfeited });
+  if (outcome !== "wipe" && !summary?.forfeited && summary?.souls?.some(s => s.rarity === "rare")) playtestEvent("到達", {}, "rareHome");
   if (summary?.abbeyRare && outcome !== "wipe" && !summary.forfeited) {
     G.tut ||= {}; G.tut.abbeyRareReturned = true;
   }
@@ -19550,21 +19579,28 @@ async function init() {
   if (testPlayActive) {
     const floor = setupTestPlay();
     titleActive = false; G.prompt = false;
+    const recording = G.testStoryFlow && !testScene?.phase;
+    if (recording) startPlaytest(playtestContext, { skippedDungeon: !!G.testSkipDungeon });
     const banner = document.createElement("div");
     banner.className = "test-play-banner";
-    banner.appendChild(document.createTextNode(G.testSkipDungeon ? "テストプレイ中・迷宮探索を省略・保存なし " : "テストプレイ中・保存なし "));
+    banner.appendChild(document.createTextNode(recording ? (G.testSkipDungeon ? "試遊・探索省略 " : "試遊・記録中 ") : (G.testSkipDungeon ? "試遊・探索省略・保存なし " : "試遊・保存なし ")));
     const codex = document.createElement("button");
     codex.type = "button"; codex.textContent = "図鑑・全データ";
     codex.addEventListener("click", () => UI.openCodexSheet?.({ all: true }));
     banner.appendChild(codex);
+    const record = document.createElement("button");
+    record.type = "button"; record.textContent = recording ? "記録・メモ" : "試遊の記録";
+    record.onclick = showPlaytestRecords; banner.appendChild(record);
     const exit = document.createElement("button");
     exit.type = "button"; exit.textContent = "終了してホームへ";
     exit.addEventListener("click", () => {
+      finishPlaytest();
       const url = new URL(location.href);
       for (const key of ["testDungeon", "testFloor", "testPlace", "testScene", "testUnlock", "testInf", "testInfLv", "testSkipDungeon"]) url.searchParams.delete(key);
       location.replace(url.href);
     });
     banner.appendChild(exit); document.body.appendChild(banner);
+    new ResizeObserver(() => document.body.style.setProperty("--test-banner-height", `${banner.getBoundingClientRect().height}px`)).observe(banner);
     resumeFromState();
     revealBootScreen();
     if (testScene?.kind === "tutorial") uiTutorial.startTestTutorial(G.testTutorial);

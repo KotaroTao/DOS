@@ -1,0 +1,48 @@
+// 時計・到達点の重複防止・編成の写し・上限の確認。
+import assert from 'node:assert/strict';
+let now = 0;
+const values = new Map();
+globalThis.localStorage = { getItem: k => values.get(k) ?? null, setItem: (k, v) => values.set(k, v) };
+globalThis.window = new EventTarget();
+globalThis.innerWidth = 390; globalThis.innerHeight = 844;
+globalThis.document = new EventTarget();
+document.visibilityState = 'visible';
+globalThis.performance = { now: () => now };
+const realDateNow = Date.now;
+Date.now = () => now;
+globalThis.setInterval = () => 1;
+globalThis.clearInterval = () => {};
+const {startPlaytest, playtestEvent, finishPlaytest, playtestRecords, playtestText} = await import('../../src/playtest.js');
+const state = { party: [{ subs: [{picks: ['heal']}] }], automatic: false };
+startPlaytest(() => state);
+now = 1000; playtestEvent('到達', {check: true}, 'firstBattle');
+state.party[0].subs[0].picks.push('fire');
+now = 2000; playtestEvent('到達', {check: true}, 'firstBattle');
+let s = playtestRecords().at(-1);
+assert.equal(s.events.filter(e => e.detail.check).length, 1);
+assert.deepEqual(s.milestones.firstBattle.context.party[0].subs[0].picks, ['heal']);
+assert.equal(s.milestones.firstBattle.activeMs, 1000);
+// 非表示の間は経過時間だけを進める。
+document.visibilityState = 'hidden'; document.dispatchEvent(new Event('visibilitychange'));
+now = 62000; playtestEvent('確認');
+s = playtestRecords().at(-1);
+assert.equal(s.activeMs, 2000); assert.equal(s.elapsedMs, 62000);
+document.visibilityState = 'visible'; document.dispatchEvent(new Event('visibilitychange'));
+// 無操作が2分を超えた刻みでも、期限までの操作中時間は残す。
+now = 63000; playtestEvent('確認');
+now = 200000; playtestEvent('確認');
+assert.equal(playtestRecords().at(-1).activeMs, 60000);
+state.automatic = true; now = 205000; playtestEvent('確認');
+assert.equal(playtestRecords().at(-1).activeMs, 65000);
+for (let i = 0; i < 610; i++) playtestEvent('確認');
+playtestEvent('到達', {}, 'firstBoss');
+playtestEvent('試遊者メモ', {kind:'迷った',text:'上限を超えても残すメモ'});
+s = playtestRecords().at(-1);
+assert.equal(s.events.length, 600); assert.ok(s.omittedEvents > 0); assert.ok(s.milestones.firstBoss);
+assert.match(playtestText(s), /記録上限で省略/);
+assert.match(playtestText(s), /上限を超えても残すメモ/);
+finishPlaytest();
+assert.ok(playtestRecords().at(-1).endedAt);
+assert.equal(values.has('dos-save-v7'), false);
+Date.now = realDateNow;
+console.log('OK: 操作中と非表示・無操作・オートの時間、重複防止、編成の写し、記録上限、通常セーブ分離');
