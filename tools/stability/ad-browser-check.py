@@ -17,7 +17,7 @@ with sync_playwright() as p:
           window.T=await import('/src/telemetry.js');T.tlClear();T.tlSetOn(true);
           const G=__game.G;G.dungeonBriefed=true;G.stabilityBriefed=true;G.redSoul=0;
           window.check=(ok,msg)=>{if(!ok)throw Error(msg);};
-          window.setValues=ds=>ds.forEach((d,i)=>{d.stability=values[i];d.stabilityAt=Date.now()-180000;});
+          window.setValues=ds=>ds.forEach((d,i)=>{d.stability=values[i];d.stabilityAt=Date.now()-120000;});
           setValues(G.party);window.before=G.party.map(d=>({...d}));
         }''', VALUES)
 
@@ -46,7 +46,7 @@ with sync_playwright() as p:
     # 開いたままの隊シートが、5秒ごとの自然回復処理で表示も更新する。
     page.evaluate('''()=>{
       const d=__game.G.party[0];d.stability=3;d.stabilityAt=Date.now();partyUI.openSheet(d);
-      d.stabilityAt-=240000;
+      d.stabilityAt-=180000;
     }''')
     page.wait_for_function('__game.G.party[0].stability===4', timeout=7000)
     page.wait_for_function('document.querySelector(".pt-stability")?.innerText.includes("4/100")')
@@ -67,7 +67,7 @@ with sync_playwright() as p:
     setup()
     page.evaluate('''()=>{
       const d=__game.G.party[0];d.stability=94;d.stabilityAt=Date.now();__game.G.redSoul=10;
-      partyUI.openStability(d);d.stabilityAt-=240000;
+      partyUI.openStability(d);d.stabilityAt-=180000;
     }''')
     page.wait_for_function('__game.G.party[0].stability===95', timeout=7000)
     page.wait_for_function('document.querySelector(".ui-sheet-title")?.innerText.includes("95/100")')
@@ -79,7 +79,7 @@ with sync_playwright() as p:
     setup()
     page.evaluate('ctx.UI.openDeparture()')
     assert page.get_by_role('button', name='回復', exact=True).count() == 3
-    page.evaluate('__game.G.party[0].stabilityAt=Date.now()-240000')
+    page.evaluate('__game.G.party[0].stabilityAt=Date.now()-180000')
     page.wait_for_function('__game.G.party[0].stability===1', timeout=7000)
     page.wait_for_function('document.querySelector(".dp-stability-row")?.innerText.includes(" 1 →")')
     print('出撃画面: 不足時の回復ボタン・自然回復表示を確認')

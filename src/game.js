@@ -12826,7 +12826,7 @@ function stabilityReady(retry, infinite = abyssActive()) {
   options.push({label:"回復を待つ", fn:()=>{ autosave(true); }});
   showChoice("魂の安定度が足りない", options, null, {banner:"魂の安定度", onDismiss:()=>{},
     lines:[...low.map(d=>`${d.name}: ${d.value}/${STABILITY_ENTRY_COST}`), `不足分は合計${missing}。赤い魂1で安定度${stabilityPerRed()}を購入できます (端数は切り上げ) (所持${G.redSoul})。広告視聴なら、隊全員の安定度を消費せず1回分進めます。残っている安定度はそのままです。`,
-      `4分で1回復します。全員が進めるまで約${Math.ceil(Math.max(...low.map(d=>d.waitMs))/60000)}分。回復後にもう一度進んでください。`]});
+      `3分で1回復します。全員が進めるまで約${Math.ceil(Math.max(...low.map(d=>d.waitMs))/60000)}分。回復後にもう一度進んでください。`]});
   return false;
 }
 function consumeEntryStability(where, kind = "entry", infinite = abyssActive(), ad = false) {
