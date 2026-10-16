@@ -6,6 +6,7 @@ import { INF_BUY_CAP, infRecovery, infUseCount, infSupplyLeft, infSpendSupply } 
 import { random, fxRandom, bindRngState, rngState } from "./rng.js";
 import { refSerialize, refDeserialize, applySavePatch } from "./savegraph.js";
 import { cloudEnabled, cloudReady, cloudBusy, connectCloud, cloudSave, cloudBattle, cloudFlush, cloudFatal } from "./cloud-save.js";
+import { LocalSaveSession, showLocalSaveBlocked, showLocalSaveRecovery } from "./local-save.js";
 import { syncEnemyUids } from "./combat.js";
 import { monsterResists } from "./resistance.js";
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
@@ -17934,6 +17935,7 @@ function townBgm() {
 let openingActive = false; // オープニング演出中は専用テーマ
 let titleActive = false;   // タイトル画面の表示中は専用テーマ
 function revealBootScreen() {
+  window.dosBoot?.ready();
   document.body.classList.remove("booting");
 }
 // 探索BGM: 層 (1-20) ごとのテーマ曲
@@ -18310,9 +18312,12 @@ let _saveWarned = false;
 let _resetting = false; // データ削除→リロードの間に autosave が書き戻すのを防ぐ
 let _cloudResolving = false;
 let _lastCloudSave = null;
+let localSaveSession = null;
+let localSaveReady = false;
 function autosave(force = false) {
   if (_resetting) return;
   if (testPlayActive) { codexSweepJobs(); notifyInsight(); return; }
+  if (!cloudEnabled() && (!localSaveReady || !localSaveSession?.owned)) return;
   if (cloudEnabled() && (!cloudReady() || _cloudResolving)) return;
   if (!G.party || (!cloudEnabled() && !G.party.length && !G.apprenticeName)) return;
   const now = Date.now();
@@ -18330,7 +18335,7 @@ function autosave(force = false) {
       _lastCloudSave = raw;
       return cloudSave(data);
     }
-    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    localSaveSession.write(JSON.stringify(data));
   } catch (e) {
     // localStorage が使えない (プライベートブラウズ等) と保存できない → 一度だけ警告
     if (!_saveWarned) {
@@ -18341,7 +18346,10 @@ function autosave(force = false) {
   }
 }
 
-function clearSave() { if (testPlayActive || cloudEnabled()) return; try { localStorage.removeItem(SAVE_KEY); } catch {} }
+function clearSave() {
+  if (testPlayActive || cloudEnabled() || !localSaveReady) return false;
+  try { return localSaveSession.eraseAll(); } catch { return false; }
+}
 
 // 旧セーブの %型アイテム (.pct) をテンプレートのフラット値へ戻す。
 // refSerialize の参照共有を壊さないよう、saved item オブジェクトを in-place で変更する。
@@ -18752,7 +18760,13 @@ for (const type of ["click", "change", "keydown", "pointerup", "touchend"]) {
     if (cloudEnabled() && cloudReady() && !cloudBusy() && !titleActive) queueMicrotask(() => autosave(true));
   }, { capture: true });
 }
-window.addEventListener("pagehide", () => autosave(true));
+window.addEventListener("pagehide", () => {
+  autosave(true);
+  localSaveReady = false;
+  localSaveSession?.release?.();
+});
+// 履歴から戻った画面は、占有を取り直して最新の記録を読み直す。
+window.addEventListener("pageshow", e => { if (e.persisted && !testPlayActive && !cloudEnabled()) location.reload(); });
 window.addEventListener("beforeunload", () => autosave(true));
 
 // 新規プレイの初期化: 人業ロスター・魂ストック・初期装備を整える
@@ -19349,7 +19363,7 @@ function wireUI() {
 // ==== [WP-A] UI API ==== (街・王宮・物語・設定・タイトル: WP-A が所有)
 // 街タブ・王宮タブ・酒場/祠のページ・宿のシート・設定のシート・物語の場面 (src/ui/hub.js ほか) が使う game.js の内部。
 // 読み込み時に一度 bindGame で結ぶ (wireUI の bindGame と同じ窓口に足し込む。名前は重ねない)
-function resetAllData() { if (cloudEnabled() && !testPlayActive) return; _resetting = true; clearSave(); location.reload(); }
+function resetAllData() { if (cloudEnabled() && !testPlayActive) return; if (!testPlayActive && !clearSave()) return; _resetting = true; location.reload(); }
 bindGame({
   // いまの目標・勅命・物語
   STABILITY_MAX, STABILITY_ENTRY_COST, STABILITY_RECOVERY_MS, refreshStability, stabilityStatus, restoreStability,
@@ -19502,7 +19516,39 @@ async function init() {
     loaded = loadGame(snapshot);
     if (snapshot && !loaded) throw new Error("クラウドの記録を読み込めません");
   } else {
+    try {
+      localSaveSession = new LocalSaveSession({ onConflict: () => {
+        localSaveReady = false; G.prompt = true;
+        showLocalSaveBlocked("別の画面で冒険の記録が変更されました。この画面からは保存しません。再読み込みして、最新の記録から再開してください。");
+      } });
+      if (!await localSaveSession.acquire()) {
+        revealBootScreen();
+        showLocalSaveBlocked("別の画面で冒険中です。そちらを閉じてから、再読み込みしてください。");
+        return;
+      }
+    } catch (e) {
+      revealBootScreen();
+      showLocalSaveBlocked(navigator.locks ? "記録を開けません。ブラウザの保存設定を確認して、再読み込みしてください。"
+        : "記録を安全に開くため、ブラウザを最新版に更新してください。");
+      return;
+    }
+    window.addEventListener("storage", e => {
+      if (e.key === SAVE_KEY || e.key === null) localSaveSession.unchanged();
+    });
     try { loaded = loadGame(); } catch (e) { loaded = false; }
+    if (localSaveSession.raw !== null && !loaded) {
+      revealBootScreen();
+      showLocalSaveRecovery(localSaveSession, raw => {
+        try {
+          const s = refDeserialize(JSON.parse(raw));
+          return !!s && Array.isArray(s.party) && !!(s.party.length || s.msq?.granted || normalizeName(s.apprenticeName));
+        } catch { return false; }
+      });
+      return;
+    }
+    if (loaded) localSaveSession.keepRecovery();
+    if (!localSaveSession.owned) return;
+    localSaveReady = true;
   }
   if (!loaded) {
     setupNewGame();
@@ -19528,8 +19574,8 @@ async function init() {
   };
   // タイトルの「はじめから」(記録あり): 確認ののち記録を消して読み直し、開始ボタンの操作で音声を解禁する
   const newGameFromTitle = (name) => {
+    if (!clearSave()) return;
     _resetting = true;
-    clearSave();
     try { sessionStorage.setItem("dos-newgame", "1"); sessionStorage.setItem("dos-newgame-name", normalizeName(name)); } catch (e) {}
     location.reload();
   };
@@ -19635,4 +19681,8 @@ function startAfterTitle(loaded) {
     showOpening(() => { G.prompt = false; openingActive = false; playBgm(sceneBgm()); });
   } catch (e) { G.prompt = false; openingActive = false; playBgm(sceneBgm()); }
 }
-init().catch((e) => { revealBootScreen(); console.error("ゲームの起動に失敗しました", e); if (cloudEnabled()) cloudFatal(); });
+init().catch((e) => {
+  console.error("ゲームの起動に失敗しました", e);
+  if (cloudEnabled()) { revealBootScreen(); cloudFatal(); }
+  else window.dosBoot?.fail("ゲームを起動できませんでした。冒険の記録は消さずに、再読み込みしてください。");
+});
