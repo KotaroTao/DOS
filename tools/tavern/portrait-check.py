@@ -48,6 +48,8 @@ with sync_playwright() as p:
           document.querySelector('#portrait-review').remove();
           const {game,UI}=portraitCheck, G=game.G;
           G.tut={done:{tavern:true,rumor:true}};
+          // 肖像の検査では見識の通知を出さず、報告画面を見える状態に保つ。
+          G.insightNotified=Number.MAX_SAFE_INTEGER;
           G.quest={board:[{uid:'portrait-free',npc:0,state:'offer',type:'chest',name:'宝箱の頼み',text:'「頼むぞ。」',desc:'宝箱を1つ開ける',goal:1,progress:0,reward:{gold:10}}],active:[],fixed:{},npcs:{}};
           UI.openTavern('board');
         }''')
@@ -105,6 +107,8 @@ with sync_playwright() as p:
             page.wait_for_selector('.sc-portrait img')
             page.locator('.sc-portrait img').evaluate('(img)=>img.decode()')
             assert page.locator('.sc-portrait img').get_attribute('alt') == name
+            page.wait_for_timeout(800)
+            page.locator('.sc-scene').click(position={'x':10,'y':200})
             page.screenshot(path=str(OUT / f'{quest_id}-{width}.png'))
         assert not errors, errors
         results.append({'width':width,**result,'errors':errors,'freeAndFixedReport':True,'fallback':True,'addedFixedReports':5})

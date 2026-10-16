@@ -5,7 +5,8 @@
     "assets": 52,
     "errors": [],
     "freeAndFixedReport": true,
-    "fallback": true
+    "fallback": true,
+    "addedFixedReports": 5
   },
   {
     "width": 744,
@@ -13,6 +14,7 @@
     "assets": 52,
     "errors": [],
     "freeAndFixedReport": true,
-    "fallback": true
+    "fallback": true,
+    "addedFixedReports": 5
   }
 ]
