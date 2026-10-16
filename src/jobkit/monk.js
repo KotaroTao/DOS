@@ -27,7 +27,7 @@ export default {
     MONK_HOURIN: { name: "法輪掌", mp: 30, kind: "phys", power: 2.7, acc: 0.23, seal: { chance: 0.3, turns: 2 }, target: "all-enemy", desc: "法輪が敵陣を打ち、特技を封じる" },
     MONK_GASSHOU: { name: "合掌の祈り", mp: 19, kind: "heal", healMul: 1.4, buff: { atk: 1.1 }, target: "all-ally", desc: "全員を癒し、闘志を奮い立たせる" },
     MONK_KUDOKUNOHIKARI: { name: "功徳の光", mp: 23, kind: "heal", healMul: 1.8, cure: true, target: "all-ally", desc: "積んだ功徳が全員を癒し清める" },
-    MONK_NEHAN: { name: "涅槃掌", mp: 30, kind: "phys", power: 3.4, pieScale: 0.5, critBonus: 0.3, acc: 0.21, target: "enemy", desc: "祈りを込めた掌。PIEが乗り会心が出やすい" },
+    MONK_NEHAN: { name: "涅槃掌", mp: 30, kind: "phys", power: 5.6, pieScale: 0.5, critBonus: 0.3, acc: 0.21, target: "enemy", desc: "祈りを込めた掌。PIEが乗り会心が出やすい" },
   },
   perks: {
     // ランクのパッシブ: 練った気が、戦いの合間に傷を塞ぐ
