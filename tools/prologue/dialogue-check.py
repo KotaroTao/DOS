@@ -11,7 +11,7 @@ with sync_playwright() as p:
     print(page.evaluate('''async () => {
       const {game} = await import('/src/ui/ctx.js');
       const {_TUTS} = await import('/src/ui/tutorial.js');
-      const {REPORTS} = await import('/src/story.js');
+      const {REPORTS, IRENE_BEATS, STORY_CELLS} = await import('/src/story.js');
       const {TALK_MAP} = await import('/src/tavern.js');
       const {lineOpen} = await import('/src/ui/irene.js');
       const G = game.G, checks = [];
@@ -49,6 +49,28 @@ with sync_playwright() as p:
         G.world.open[id]=1;
         check(game.tavernCurrentCrowd()[0]?.line===t.t, t.id+': 出現後は最新の文を表示');
       }
+      // 面影は地下牢を訪ねず第二章を二報告しても案内される。
+      const omokage = IRENE_BEATS.find(b=>b.id==='irene_omokage');
+      for (const known of [[], ['irene_reveal'], ['irene_sera']]) {
+        const lines=omokage.lines({beat:id=>known.includes(id)});
+        check(known.length ? !lines.some(l=>l.includes('セラという子')) : lines.some(l=>l.includes('セラという子')), 'セラの紹介を既知・未知で切り替える: '+known);
+        check(!lines.join('').includes('この顔') && !lines.join('').includes('頭をぬぐって'), '未回収の頭が館にある前提を置かない: '+known);
+      }
+      const {WORLD}=await import('/src/dungeons/world.js');
+      check(WORLD.find(d=>d.id==='w04').hint.includes('B'+STORY_CELLS.w02_sigil.floor+'F'), '取水口の案内は実際の師の印の階と一致');
+      G.tavernHeard.t_omokage=1;
+      G.tavernCrowd=[{id:'t_omokage',line:'旧文'}];
+      delete G.world.beats.irene_omokage;
+      check(!game.tavernCurrentCrowd().length && !game.tavernNotes().some(t=>t.id==='t_omokage'), '面影の語りを聞く前は噂と心得を伏せる');
+      G.world.beats.irene_omokage=1;
+      check(game.tavernCurrentCrowd()[0]?.line===TALK_MAP.t_omokage.t && game.tavernNotes().some(t=>t.id==='t_omokage'), '面影の語りを聞いたら最新の噂と心得を読める');
+      G.testUnlock=[];G.tut={earlySoulVersion:1,midUnlockVersion:1,done:{}};
+      G.world={open:{},reported:{},cleared:{w03:1},found:{},beats:{}};
+      G.stats.fusions=0;
+      G.tavernCrowd=[{id:'t_fusesub',line:'旧文'}];
+      check(game.featureUnlocked('sub1') && !game.tavernCurrentCrowd().length, 'サブ魂だけ開いても融合の噂はまだ伏せる');
+      G.tut.fusionPending=true;
+      check(game.tavernCurrentCrowd()[0]?.line===TALK_MAP.t_fusesub.t, '融合の案内が届いたら融合の噂も開く');
       return checks.length + '項目成功';
     }'''))
     assert not errors, errors
