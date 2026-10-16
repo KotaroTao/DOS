@@ -486,7 +486,7 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
     try { await layoutScene(); } catch (e) { console.error(e); }
     if (closed) return;
     wrap.classList.add("ttl-ready");
-    try { if (!wrap.classList.contains("ttl-confirming")) goBtn.focus({ preventScroll: true }); } catch {}
+    try { if (!wrap.classList.contains("ttl-confirming") && !wrap.contains(document.activeElement)) goBtn.focus({ preventScroll: true }); } catch {}
     if (!REDUCED) raf = requestAnimationFrame(loop);
   }, 30));
 }

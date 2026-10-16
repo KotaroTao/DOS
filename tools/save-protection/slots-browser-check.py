@@ -1,6 +1,7 @@
 """三つの冒険の切り替え・再開・削除・別画面の保護を実際の画面で確認する。"""
 import asyncio
 import os
+from urllib.parse import parse_qs, urlparse
 from playwright.async_api import async_playwright, expect
 
 BASE = os.environ.get("DOS_TEST_URL", "http://localhost:8000/")
@@ -20,13 +21,13 @@ async def main():
         page = await c.new_page()
 
         async def ready(pg=page):
-            await pg.wait_for_selector(".ttl-overlay")
+            await pg.wait_for_selector(".ttl-overlay.ttl-ready")
             await pg.wait_for_function("!document.body.classList.contains('booting')")
 
         async def select(slot):
             async with page.expect_navigation(wait_until="domcontentloaded"):
                 await page.get_by_role("button", name=f"記録{slot}", exact=True).press("Enter")
-            await page.wait_for_url(f"**saveSlot={slot}")
+            await page.wait_for_url(lambda u: parse_qs(urlparse(u).query).get("saveSlot") == [str(slot)], wait_until="domcontentloaded")
             await ready()
             await expect(page.get_by_role("button", name=f"記録{slot}", exact=True)).to_have_attribute("aria-pressed", "true")
 
