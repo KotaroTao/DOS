@@ -1,3 +1,4 @@
+import { isDesktopLayout, onDesktopLayoutChange } from "../desktop.js";
 // ===== 街シェル: 見出し + 中身 + 下のタブバー (§3.1) =====
 //   [見出し: ⚙/‹ ・ 題 ・ 通貨]   (header:false のタブ/ページは自前の見出しを持つ)
 //   [中身 (#town-screen)]         ← game.js の townEl はここを指す
@@ -215,6 +216,7 @@ export function refresh() {
     def.render(content, api);
   } else showHeader(null);
   updateBar(tab);
+  updateDesktopShortcuts();
   content.scrollTop = keepScroll;
   if (!same && lastKey) {
     if (tab !== lastTab) tabTransition(content, (TAB_INDEX[tab] || 0) - (TAB_INDEX[lastTab] || 0));
@@ -328,4 +330,20 @@ export function install() {
       }, 250);
     });
   }
+}
+
+// レイアウトだけを切り替え、街の場所・人業・所持品は保つ。
+onDesktopLayoutChange(() => {
+  if (game.G?.state === "town" && shell && !shell.classList.contains("hidden")) game.renderTown?.();
+});
+
+function updateDesktopShortcuts() {
+  bar?.querySelector(".pc-town-shortcuts")?.remove();
+  if(!bar || !isDesktopLayout() || allowedList())return;
+  const links=el("div","pc-town-shortcuts");
+  for(const [label,run] of [["酒場",()=>UI.openTavern?.()],["宿屋",()=>UI.openInn?.()],
+    ["ヘルプ",()=>UI.openHelp?.()],["ストーリー",()=>UI.openStoryArchive?.()],["設定",()=>game.openSettings?.()]]) {
+    const b=el("button","pc-town-link",label);b.type="button";b.addEventListener("click",run);links.appendChild(b);
+  }
+  bar.appendChild(links);
 }

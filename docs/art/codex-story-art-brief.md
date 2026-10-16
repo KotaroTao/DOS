@@ -946,6 +946,7 @@ The same throne room in late-afternoon light. The very old king, lap blanket ove
 ```
 
 **irene_firstdoll「最初の人業」** (館の語り)
+- 修正 (2026-10-16): イレーヌの余分な手と腕を除き、写し絵を持つ手と工具を使う手の2本にする。セラの胸は基準シートと同じ、金縁で上が尖り下が丸いしずく形の青白い魂火の窓に統一し、箱形の灯器を除く。(済)
 - 要点: 師が書き写してきた人業の絵を、イレーヌが長いあいだ見る (胸のくぼみに灯籠のガラス)。セラが自分の胸の扉に手を当てる。その夜、イレーヌは人業の絵を手本にセラの胸の継ぎ目を締め直す。「あったかい」。
 ```text
 The same mansion workshop at night. Irene holds a sketch of a small wooden doll with a lantern-glass shard in its chest, comparing it as she gently tightens the joint of Sera's chest door with a fine tool. Sera (as in the Sera reference) sits on the workbench with a hand over her chest, smiling softly, her chest glowing warm. Single white candle on a brass candlestick.
