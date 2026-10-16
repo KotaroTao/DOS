@@ -2,7 +2,7 @@
 
 書き出し: `node tools/storyart/review.mjs` (build.py も書き直す。手で直さない)。
 
-場面: 出荷済み 134 ・ 出荷済み (任意の修正あり) 11 ・ 未着手 (指示あり) 14
+場面: 出荷済み 148 ・ 出荷済み (任意の修正あり) 11
 
 | 章 | 場面 | 題 | 状態 | 確認ページ |
 |---|---|---|---|---|
@@ -148,20 +148,20 @@
 | 第11章「夜明けの町」 | `report_w45` | 余の終わりの頁 | 出荷済み | [見る](chapter11.md#report_w45) |
 | 第11章「夜明けの町」 | `irene_lastpage` | 両方を持って | 出荷済み | [見る](chapter11.md#irene_lastpage) |
 | 第11章「夜明けの町」 | `ch11_end` | 同じ天井の下で | 出荷済み | [見る](chapter11.md#ch11_end) |
-| 第12章「王家の廟」 | `w46_bar` | 王を終わらせるな | 未着手 (指示あり) | [見る](chapter12.md#w46_bar) |
-| 第12章「王家の廟」 | `report_w46` | 即位の日の文句 | 未着手 (指示あり) | [見る](chapter12.md#report_w46) |
-| 第12章「王家の廟」 | `w47_ledger` | 最初の器 | 未着手 (指示あり) | [見る](chapter12.md#w47_ledger) |
-| 第12章「王家の廟」 | `irene_vessel` | 木の手のひら | 未着手 (指示あり) | [見る](chapter12.md#irene_vessel) |
-| 第12章「王家の廟」 | `report_w47` | 術の生まれた所 | 未着手 (指示あり) | [見る](chapter12.md#report_w47) |
-| 第12章「王家の廟」 | `w48_masks` | 三枚の死面 | 未着手 (指示あり) | [見る](chapter12.md#w48_masks) |
-| 第12章「王家の廟」 | `irene_masks` | 留守の帳面 | 未着手 (指示あり) | [見る](chapter12.md#irene_masks) |
-| 第12章「王家の廟」 | `report_w48` | 尋ねなかった名 | 未着手 (指示あり) | [見る](chapter12.md#report_w48) |
-| 第12章「王家の廟」 | `pre_w49` | 玉座の王 | 未着手 (指示あり) | [見る](chapter12.md#pre_w49) |
-| 第12章「王家の廟」 | `pre_w49_retry` | ふたたび玉座の前で | 未着手 (指示あり) | [見る](chapter12.md#pre_w49_retry) |
-| 第12章「王家の廟」 | `mem_w49` | もう、よい | 未着手 (指示あり) | [見る](chapter12.md#mem_w49) |
-| 第12章「王家の廟」 | `report_w49` | 余が決めた日に | 未着手 (指示あり) | [見る](chapter12.md#report_w49) |
-| 第12章「王家の廟」 | `irene_enough` | 訊く人 | 未着手 (指示あり) | [見る](chapter12.md#irene_enough) |
-| 第12章「王家の廟」 | `ch12_end` | 答えを聞くまで | 未着手 (指示あり) | [見る](chapter12.md#ch12_end) |
+| 第12章「王家の廟」 | `w46_bar` | 王を終わらせるな | 出荷済み | [見る](chapter12.md#w46_bar) |
+| 第12章「王家の廟」 | `report_w46` | 即位の日の文句 | 出荷済み | [見る](chapter12.md#report_w46) |
+| 第12章「王家の廟」 | `w47_ledger` | 最初の器 | 出荷済み | [見る](chapter12.md#w47_ledger) |
+| 第12章「王家の廟」 | `irene_vessel` | 木の手のひら | 出荷済み | [見る](chapter12.md#irene_vessel) |
+| 第12章「王家の廟」 | `report_w47` | 術の生まれた所 | 出荷済み | [見る](chapter12.md#report_w47) |
+| 第12章「王家の廟」 | `w48_masks` | 三枚の死面 | 出荷済み | [見る](chapter12.md#w48_masks) |
+| 第12章「王家の廟」 | `irene_masks` | 留守の帳面 | 出荷済み | [見る](chapter12.md#irene_masks) |
+| 第12章「王家の廟」 | `report_w48` | 尋ねなかった名 | 出荷済み | [見る](chapter12.md#report_w48) |
+| 第12章「王家の廟」 | `pre_w49` | 玉座の王 | 出荷済み | [見る](chapter12.md#pre_w49) |
+| 第12章「王家の廟」 | `pre_w49_retry` | ふたたび玉座の前で | 出荷済み | [見る](chapter12.md#pre_w49_retry) |
+| 第12章「王家の廟」 | `mem_w49` | もう、よい | 出荷済み | [見る](chapter12.md#mem_w49) |
+| 第12章「王家の廟」 | `report_w49` | 余が決めた日に | 出荷済み | [見る](chapter12.md#report_w49) |
+| 第12章「王家の廟」 | `irene_enough` | 訊く人 | 出荷済み | [見る](chapter12.md#irene_enough) |
+| 第12章「王家の廟」 | `ch12_end` | 答えを聞くまで | 出荷済み | [見る](chapter12.md#ch12_end) |
 | 序章 | `irene_repair` | 砕けても、名は消えない | 出荷済み | [見る](chapter0.md#irene_repair) |
 | 第1章「師の灯」 | `irene_familiar` | 名で呼べる距離 | 出荷済み | [見る](chapter1.md#irene_familiar) |
 | 第3章「魂脈の根」 | `irene_trust` | 扉を開けた日のこと | 出荷済み | [見る](chapter3.md#irene_trust) |
