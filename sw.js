@@ -1562,7 +1562,7 @@ const ASSETS = [
   "./art/story/chapter2/report_w09.webp",
   "./art/story/chapter2/irene_roots.webp",
   "./art/story/chapter2/ch2_end.webp",
-  "./art/story/chapter3/irene_omokage.webp",
+  "./art/story/chapter2/irene_omokage.webp",
   "./art/story/chapter3/w10_rope.webp",
   "./art/story/chapter3/report_w10.webp",
   "./art/story/chapter3/w11_hut.webp",

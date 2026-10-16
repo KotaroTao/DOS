@@ -554,7 +554,7 @@ const G = {
   events: { seen: {}, picks: {}, once: {}, flags: {}, fresh: {} }, // 迷宮のイベント (src/events.js): 見聞録・一度きり・恒久の恵み
   irene: { greeted: false, visits: 0, seen: {}, last: null }, // 人業の館の主イレーヌ: 初訪問の挨拶済み・来館数・聞いた話 (src/ui/irene.js)
   journal: { read: {}, known: {} }, // ストーリー一覧: 読んだ物語・「物語が記された」を知らせた物語 (src/journal.js)
-  tut: { earlySoulVersion: 1, done: {}, cur: null, step: 0, ev: {}, base: {} }, // 解放された要素の手ほどき: 済んだもの・最中のもの (src/ui/tutorial.js)
+  tut: { midUnlockVersion: 1, earlySoulVersion: 1, done: {}, cur: null, step: 0, ev: {}, base: {} }, // 解放された要素の手ほどき: 済んだもの・最中のもの (src/ui/tutorial.js)
   story: 0,           // 王宮ストーリーの進行段階
   dragonSlain: false, // 竜を討ったか
   // 戦績。bossIds/elemKills は集合 ({key:true})、swiftBoss/masterMimicSlain は一度きりの達成フラグ
@@ -1701,6 +1701,8 @@ function infCloseRun(outcome) {
   infRestoreHome(ab.home);
   if (ab.savedIdx != null) G.dungeonIdx = Math.min(DUNGEONS.length - 1, Math.max(0, ab.savedIdx));
   const got = { items: [], souls: [], embers: 0 };
+  const enchantUnlocked = keep && !featureUnlocked("enchant");
+  if (keep) { G.tut ||= { done: {} }; G.tut.enchantReturned = true; }
   if (keep) {
     for (const it of items) { shopReceive(it); codexSeeItem(it.id, it); got.items.push({ id: it.id, name: itemName(it), rar: rarityKey(it), afx: !!(it.afx && it.afx.length) }); }
     for (const k of souls) { addSoulInstance(k); codexJobSee(k, 1, 1); tlSoulGot(k); got.souls.push(k); }
@@ -1724,7 +1726,7 @@ function infCloseRun(outcome) {
   rec.recent = rec.recent.slice(0, 8);
   G.stats.abyssBest = Math.max(G.stats.abyssBest || 0, depth);
   G.abyss = null;
-  return { depth, outcome, keep, newDepth, got, sold: trk.sold || 0, title: infTitleName(), lost: keep ? null : { items: items.length, souls: souls.length, embers } };
+  return { depth, outcome, keep, newDepth, got, enchantUnlocked, sold: trk.sold || 0, title: infTitleName(), lost: keep ? null : { items: items.length, souls: souls.length, embers } };
 }
 // 読み込み: 無限迷宮の途中なら、いったん本編の隊・魂・通貨を G へ戻して読み込みの手当てを掛け、済んだら仮の器へ戻す
 function infSwapForLoad() {
@@ -7187,7 +7189,7 @@ function pendingIreneBeat() {
   // 試遊は選択した場面だけ。準備用の報告済み状態から別の語りを始めない。
   if (G.testPlay && !G.testStoryFlow) return null;
   const w = worldState();
-  return IRENE_BEATS.find((b) => !w.beats[b.id] && (!b.need || (Array.isArray(b.need) ? b.need : [b.need]).every((key) => w.found[key])) && (!b.after || w.reported[b.after]) && (!b.beat || w.beats[b.beat]) && (!b.flag || w[b.flag] === 1)) || null;
+  return IRENE_BEATS.find((b) => !w.beats[b.id] && (!b.need || (Array.isArray(b.need) ? b.need : [b.need]).every((key) => w.found[key])) && (!b.after || w.reported[b.after]) && (!b.reports || chapterReports(CHAPTERS.find(c => c.no === b.reports.chapter), w) >= b.reports.count) && (!b.beat || w.beats[b.beat]) && (!b.flag || w[b.flag] === 1)) || null;
 }
 // 館に入った時に語る (party.js から)。語ったら true
 function playIreneBeat(done) {
@@ -14986,21 +14988,21 @@ const FEATURES = {
   sub1: { chapter: 1, cleared: "w03" },       // 修道院の主を討ち、踏破したら1枠
   rumor: { chapter: 1, report: 2 },           // 情報屋の噂 (酒場の掲示板)
   order: { chapter: 1, report: "finale" },    // 控えの結社 (席1)
-  order2: { chapter: 2, report: 2 },          // 結社の席2
-  order3: { chapter: 3, report: 2 },          // 結社の席3
-  sub2: { chapter: 4, report: "finale" },     // サブ魂 2枠
+  order2: { chapter: 2, report: "finale" },          // 結社の席2
+  order3: { chapter: 4, report: "finale" },          // 結社の席3
+  sub2: { chapter: 3, report: 2 },     // サブ魂 2枠
   forge: { chapter: 5, report: "finale" },    // 鍛え直し (商会で金貨を払い、装備の品質を引き直す — 2026-10 ユーザーの指示)
   insight: { chapter: 1, cleared: "w02" }, // 操霊師の見識: 亡骸の囁く回廊を踏破した直後
   // ── 第六章から (docs/unlocks.md の年表。ユーザーの了解済み)。章がまだ無いので開かない。仕組みはその章を作る時に足す ──
   rusui: { retired: true, chapter: 6, report: "finale" },      // 留守居の修練 (席1。席の控えのメイン魂にも、戦闘で魂に入る経験値の一部が入る — 遠征の差し替え)
   rusui2: { retired: true, chapter: 7, report: "finale" },     // 留守居の修練の席2
   rusui3: { retired: true, chapter: 10, report: "finale" },    // 留守居の修練の席3
-  order4: { chapter: 8, report: "finale" },     // 結社の席4
+  order4: { chapter: 6, report: "finale" },     // 結社の席4
   // 無限迷宮 (入るたびに Lv1 の仮の器で潜るローグライク — docs/infinite-labyrinth.md)。第八章の結び (2026-10-11 ユーザーの指示:
   //   第八章のあたりで Lv100・ランク3〜4 に届き、本編の育ちが単調になってくるので、第十章から前倒し)
   infinite: { chapter: 8, report: "finale" },
   rematch: { chapter: 9, report: "finale" },    // 宿敵の再戦 (名のある強敵・主の強化版)
-  enchant: { chapter: 11, report: "finale" },  // 付呪 (無限迷宮の品の追加の能力を写し取り、任意の装備へ書き込む — 2026-10-15 ユーザーの決定)
+  enchant: { chapter: 8, firstInfReturn: true },  // 付呪 (無限迷宮の品の追加の能力を写し取り、任意の装備へ書き込む — 2026-10-15 ユーザーの決定)
   order5: { chapter: 12, report: "finale" },    // 結社の席5
   rebirth: { chapter: 14, report: "finale" },   // 魂の転生
   mutPick: { chapter: 15, report: "finale" },   // 異変を選ぶ
@@ -15018,6 +15020,8 @@ function featureMet(key, w = worldState()) {
   const f = FEATURES[key === "rumor" ? "tavern" : key];
   const ch = f && CHAPTERS.find((c) => c.no === f.chapter);
   if (!ch || f.retired || f.pending) return false; // 廃止済み、その章がまだ無い、または仕組みがまだ無い
+  if (f.firstInfReturn) return !!(G.tut?.enchantReturned || G.stats?.inf?.homeRets > 0 || (G.abyssRec?.v === 2 && G.abyssRec.recent?.some(r => ["return", "saved"].includes(r.outcome))) || w.reported?.w45 || G.stats?.enchant?.pages > 0 || G.stats?.enchant?.written > 0);
+  if (G.tut?.midUnlockLegacy?.[key]) return true;
   if (f.soulTutorial) return !!(G.tut?.fusionPending || G.tut?.cur === "fusion" || G.tut?.done?.fusion || G.stats?.fusions > 0);
   if (key === "sub1" && (G.tut?.sub1Legacy || G.tut?.done?.sub1)) return true; // 解放済みの枠は引き継ぐ
   if (f.cleared) return !!w.cleared?.[f.cleared] || !!w.reported[f.cleared];
@@ -15033,6 +15037,7 @@ function featureUnlocked(key) {
 }
 // まだ開いていない機能の条件の説明 (錠の札・案内文)
 function featureNote(key) {
+  if (key === "enchant") return "無限迷宮から初めて戦利品を持ち帰ると開く（通常帰還・保護帰還）";
   if (key === "fusion") return "サブ魂を教わった後、次に職業の魂を持ち帰ると館で手ほどきを受けられる";
   if (key === "soulChange") return "新しい職業の魂を持ち帰り、人業の館で手ほどきを受けると開く";
   const f = FEATURES[key];
@@ -18595,6 +18600,12 @@ function loadGame(cloudSnapshot = null) {
   if (!G.irene.seen || typeof G.irene.seen !== "object") G.irene.seen = {};
   if (!G.tut || typeof G.tut !== "object") G.tut = { done: {}, cur: null, step: 0, ev: {}, base: {} }; // 手ほどき (後付け: 解放済みで未使用の要素は目標の札から手ほどきする)
   G.tut.done ||= {};
+  if (!G.tut.midUnlockVersion) {
+    const reported = G.world?.reported || {};
+    const reports = no => CHAPTERS.find(c => c.no === no).dungeons.filter(id => reported[id]).length;
+    G.tut.midUnlockLegacy = { order2: reports(2) >= 2, order3: reports(3) >= 2 };
+    G.tut.midUnlockVersion = 1;
+  }
   // 旧条件で手ほどきを始めた/装着済みの枠を、更新で使えなくしない。
   if (G.tut.cur === "sub1" || (!G.abyss && [...G.party, ...(G.reserve || [])].some(d => d.subs?.some(Boolean)))) G.tut.sub1Legacy = true;
   if (!G.tut.earlySoulVersion) {
@@ -18915,7 +18926,7 @@ function setupTestPlay() {
     const phases = testScenes.filter(s => s.kind === "prologue").map(s => s.phase);
     const reached = key => phases.indexOf(phase) >= phases.indexOf(key);
     const done = Object.entries({ createThree: "forest", createFourth: "cryptQuest", buyEquipment: "crypt", createFifth: "formation", prologueFormation: "corridorQuest", createSixth: "appraise", prologueAppraise: "abbeyQuest" }).filter(([, next]) => reached(next)).map(([key]) => key);
-    G.tut = { done: Object.fromEntries(done.map(key => [key, true])) };
+    G.tut = { midUnlockVersion: 1, done: Object.fromEntries(done.map(key => [key, true])) };
     const jobs = ["fighter", "priest", "thief", "mage", "knight", "bishop"];
     if (reached("corridorQuest")) [jobs[1], jobs[4]] = [jobs[4], jobs[1]];
     for (const job of jobs.slice(0, count)) {
