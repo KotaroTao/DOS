@@ -436,7 +436,8 @@ function stepDone(s) {
 function pending() {
   const keys = dueKeys();
   const st = tutState();
-  const key = st && st.cur && keys.includes(st.cur) ? st.cur : keys[0];
+  // 開始後に解放条件が変わっても、完了するまでは現在の手順を案内する。
+  const key = curDef()?.key || keys[0];
   if (!key) return null;
   const d = TUT_MAP[key];
   const step = st.cur === key ? d.steps[st.step] || d.steps[0] : d.steps[0];
@@ -598,21 +599,17 @@ function afterReturn() {
     st.appraisePending = true;
     game.autosave?.(true);
   }
-  if (["fourth", "sixth"].includes(game.prologuePhase?.())) {
-    resume(); return true;
+  if (!["fourth", "sixth"].includes(game.prologuePhase?.()) && !st.done.repairSoul && (anyBroken() || st.repairFell)) {
+    st.repairPending = true;
+    delete st.repairFell;
+    if (st.cur && st.cur !== "repairSoul") {
+      st.repairResume = { cur: st.cur, step: st.step, ev: st.ev, base: st.base };
+      st.cur = null; st.step = 0; st.ev = {}; st.base = {};
+    }
+    if (game.autosave) game.autosave(true);
   }
-  if (st.done.repairSoul || !(anyBroken() || st.repairFell)) {
-    if (pending()) { resume(); return true; }
-    return false;
-  }
-  st.repairPending = true;
-  delete st.repairFell;
-  if (st.cur && st.cur !== "repairSoul") {
-    st.repairResume = { cur: st.cur, step: st.step, ev: st.ev, base: st.base };
-    st.cur = null; st.step = 0; st.ev = {}; st.base = {};
-  }
-  if (game.autosave) game.autosave(true);
-  // 帰還時は街を描いた後に修復の案内が決まるため、古い目標をここで描き直す。
+  if (!pending()) return false;
+  // 帰還時は街を描いた後に手ほどきの条件が決まるため、全ての案内で目標を描き直す。
   if (inTown()) game.renderTown?.();
   resume();
   return true;
