@@ -1,6 +1,6 @@
 {
-  "count": 71,
-  "world": 70,
+  "count": 78,
+  "world": 77,
   "missing": [],
   "failures": [],
   "sizes": [
@@ -350,6 +350,41 @@
       336
     ],
     [
+      "w46",
+      504,
+      336
+    ],
+    [
+      "w47",
+      504,
+      336
+    ],
+    [
+      "w48",
+      504,
+      336
+    ],
+    [
+      "w49",
+      504,
+      336
+    ],
+    [
+      "ws25",
+      504,
+      336
+    ],
+    [
+      "ws26",
+      504,
+      336
+    ],
+    [
+      "ws27",
+      504,
+      336
+    ],
+    [
       "w00_forest",
       504,
       336
@@ -365,30 +400,51 @@
   "battles": [
     {
       "state": "combat",
-      "id": "w01",
+      "id": "w46",
       "loaded": [
-        "w01.webp"
+        "w46.webp"
       ]
     },
     {
       "state": "combat",
-      "id": "w12",
+      "id": "w47",
       "loaded": [
-        "w12.webp"
+        "w47.webp"
       ]
     },
     {
       "state": "combat",
-      "id": "w24",
+      "id": "w48",
       "loaded": [
-        "w24.webp"
+        "w48.webp"
       ]
     },
     {
       "state": "combat",
-      "id": "w45",
+      "id": "w49",
       "loaded": [
-        "w45.webp"
+        "w49.webp"
+      ]
+    },
+    {
+      "state": "combat",
+      "id": "ws25",
+      "loaded": [
+        "ws25.webp"
+      ]
+    },
+    {
+      "state": "combat",
+      "id": "ws26",
+      "loaded": [
+        "ws26.webp"
+      ]
+    },
+    {
+      "state": "combat",
+      "id": "ws27",
+      "loaded": [
+        "ws27.webp"
       ]
     }
   ]
