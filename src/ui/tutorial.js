@@ -552,7 +552,7 @@ function finish(d) {
   const after = () => {
     busy = false;
     if (game.renderTown && inTown()) game.renderTown();
-    // 最初のレア魂は、付け替えの確認からサブ魂へ同じ館で続ける。
+    // 修道院を踏破済みなら、付け替えの確認からサブ魂へ同じ館で続ける。
     const continueSouls = d.key === "soulChange" && pending()?.key === "sub1";
     if (!continueSouls && pending() && !pending().started) UI.shell?.setTab?.("hub");
     // 次の手ほどきは、街で対象施設の入口を案内する

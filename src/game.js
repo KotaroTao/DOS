@@ -14983,7 +14983,7 @@ const FEATURES = {
   tavern: { chapter: 1, report: 4 },        // 第一章の本筋4か所の報告で、依頼と情報屋の噂が一緒に開く
   soulChange: { chapter: 1, dungeon: "w02" }, // 旧解放条件の記録。現在は新職業の魂を持ち帰り、館の手ほどきで解放
   fusion: { chapter: 1, report: 2 },          // 魂の融合
-  sub1: { chapter: 1, earlySoul: true },       // 修道院のレア魂を持ち帰り、付け替えを教わると1枠
+  sub1: { chapter: 1, cleared: "w03" },       // 修道院の主を討ち、踏破したら1枠
   rumor: { chapter: 1, report: 4 },           // 情報屋の噂 (酒場の掲示板)
   order: { chapter: 1, report: "finale" },    // 控えの結社 (席1)
   order2: { chapter: 2, report: 2 },          // 結社の席2
@@ -15018,7 +15018,7 @@ function featureMet(key, w = worldState()) {
   const f = FEATURES[key === "rumor" ? "tavern" : key];
   const ch = f && CHAPTERS.find((c) => c.no === f.chapter);
   if (!ch || f.retired || f.pending) return false; // 廃止済み、その章がまだ無い、または仕組みがまだ無い
-  if (f.earlySoul) return !!(G.tut?.sub1Legacy || G.tut?.done?.sub1 || (G.tut?.abbeyRareReturned && G.tut?.done?.soulChange));
+  if (key === "sub1" && (G.tut?.sub1Legacy || G.tut?.done?.sub1)) return true; // 解放済みの枠は引き継ぐ
   if (f.cleared) return !!w.cleared?.[f.cleared] || !!w.reported[f.cleared];
   if (f.dungeon) return !!w.reported[f.dungeon];
   return f.report === "finale" ? !!w.reported[ch.finale] : chapterReports(ch, w) >= f.report;
@@ -15031,7 +15031,6 @@ function featureUnlocked(key) {
 }
 // まだ開いていない機能の条件の説明 (錠の札・案内文)
 function featureNote(key) {
-  if (key === "sub1") return "修道院のレアの魂を持ち帰り、館で魂の付け替えを教わると開く";
   if (key === "soulChange") return "新しい職業の魂を持ち帰り、人業の館で手ほどきを受けると開く";
   const f = FEATURES[key];
   if (!f) return "";
@@ -18593,8 +18592,10 @@ function loadGame(cloudSnapshot = null) {
   if (!G.irene.seen || typeof G.irene.seen !== "object") G.irene.seen = {};
   if (!G.tut || typeof G.tut !== "object") G.tut = { done: {}, cur: null, step: 0, ev: {}, base: {} }; // 手ほどき (後付け: 解放済みで未使用の要素は目標の札から手ほどきする)
   G.tut.done ||= {};
+  // 旧条件で手ほどきを始めた/装着済みの枠を、更新で使えなくしない。
+  if (G.tut.cur === "sub1" || (!G.abyss && [...G.party, ...(G.reserve || [])].some(d => d.subs?.some(Boolean)))) G.tut.sub1Legacy = true;
   if (!G.tut.earlySoulVersion) {
-    G.tut.sub1Legacy = CHAPTERS[0].dungeons.filter(id => G.world?.reported?.[id]).length >= 3
+    G.tut.sub1Legacy ||= CHAPTERS[0].dungeons.filter(id => G.world?.reported?.[id]).length >= 3
       || !!G.tut.done.sub1 || [...G.party, ...(G.reserve || [])].some(d => d.subs?.some(Boolean));
     G.tut.earlySoulVersion = 1;
     if (G.world?.reported?.w03 && G.tut.abbeyRareReturned === undefined) G.tut.abbeyRareReturned = true;
