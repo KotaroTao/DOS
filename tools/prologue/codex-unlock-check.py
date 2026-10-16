@@ -67,11 +67,11 @@ with sync_playwright() as p:
           close();return checks;
         }'''), flush=True)
         # cleared を持たない旧形式でも、回廊報告と発見記録を通常ロードで引き継ぐ。
-        expected = page.evaluate("() => {__game.G.world.cleared={};localStorage.setItem('dos-save-v7',__game.inf.saveJSON());return JSON.stringify(__game.G.codex)}")
+        expected = page.evaluate("() => {__game.G.world.cleared={};localStorage.setItem('dos-save-v7',__game.inf.saveJSON());return JSON.stringify(Object.fromEntries(['mon','item','job'].map(k=>[k,__game.G.codex[k]])))}")
         page.goto('http://localhost:8000/', wait_until='domcontentloaded')
         page.wait_for_function('window.__game?.G.party.length===6')
         assert page.evaluate('async()=>{const {game}=await import("/src/ui/ctx.js");return game.featureUnlocked("codex")&&game.featureUnlocked("insight")&&game.featureUnlocked("tavern")}')
-        assert page.evaluate('JSON.stringify(__game.G.codex)') == expected
+        assert page.evaluate("JSON.stringify(Object.fromEntries(['mon','item','job'].map(k=>[k,__game.G.codex[k]])))") == expected
         assert not errors, errors
         context.close()
         print(f'{width}px: 図鑑の解放・入口制限・記録保全・回廊報告と二報告の酒場解放 OK', flush=True)

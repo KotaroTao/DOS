@@ -16,7 +16,7 @@ Codex など AGENTS.md を読むエージェント向けの要約。**仕様の�
 python3 -m http.server 8000   # http://localhost:8000/ (file:// では動かない)
 for f in $(git ls-files 'src/*.js'); do node --check "$f"; done   # 構文チェック
 ```
-- テストは無い。ロジックは Node で直接 import して確かめる (`combat.js`・`dungeons/*` など純粋なモジュール)。戦闘を単体で試す時は先に `Object.assign(MONSTERS, DUNGEON_MONSTERS)` (普段は game.js が行う)。
+- テストフレームワークは使わず、`tools/` にNode・Playwrightの検査がある。ロジックは Node で直接 import して確かめる (`combat.js`・`dungeons/*` など純粋なモジュール)。戦闘を単体で試す時は先に `Object.assign(MONSTERS, DUNGEON_MONSTERS)` (普段は game.js が行う)。
 - `src/game.js` を丸ごと読み込む時は `document`/`window`/`localStorage`/`AudioContext` の偽物を `globalThis` に置く。
 - 技・出来事・戦闘の式を変えたら、`CLAUDE.md` に書かれた一括の確認 (全技を1回ずつ・全出来事×全選択肢・模擬戦) を回す。
 

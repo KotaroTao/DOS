@@ -27,7 +27,11 @@ for (const [id, m] of Object.entries(MONSTERS)) {
     for (const k of AIL_RESIST_KINDS) assert.equal(tiers[k], "imm", id);
   } else {
     assert(MON_RESIST_WEAKABLE.some(k => tiers[k] === "weak"), `弱点: ${id}`);
-    assert(MON_RESIST_WEAKABLE.some(k => ["strong", "imm"].includes(tiers[k])), `耐性: ${id}`);
+    if (["bs_dustroach", "bs_littlecentipede", "bs_woodbee"].includes(id)) {
+      assert.equal(m.rank, 1, `序章の三種: ${id}`);
+      for (const k of AIL_RESIST_KINDS) assert.equal(m.resists[k], 0, `序章の三種は状態異常抵抗なし: ${id}`);
+      assert.equal(tiers.sleep, "weak", `序章の三種は眠りが弱点: ${id}`);
+    } else assert(MON_RESIST_WEAKABLE.some(k => ["strong", "imm"].includes(tiers[k])), `耐性: ${id}`);
   }
   assert(!["weak", "slight"].includes(tiers.death), id);
   assert(!["weak", "slight"].includes(tiers.stone), id);

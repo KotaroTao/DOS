@@ -542,7 +542,6 @@ button.rs-line { cursor: pointer; touch-action: manipulation; }
    左右も本文の余白まで広げて下を巻く門の一覧が透けないようにする */
 .dp-hero { position: sticky; top: -2px; z-index: 3; margin: -2px calc(-1 * var(--sp-4)) 8px; padding: 2px var(--sp-4) 8px; background: linear-gradient(180deg, #1a151a, #141015); border-bottom: 1px solid #2c2427; box-shadow: 0 8px 12px -6px rgba(0,0,0,0.85); }
 .dp-after { margin: 0 0 8px; }
-.pt-note.dp-wall { border-left: 3px solid #c4513f; padding-left: 8px; color: #e8c9b8; }
 .dp-vista { position: relative; display: flex; flex-direction: column; justify-content: flex-end; min-height: clamp(150px, 30vh, 270px); min-height: clamp(150px, 30dvh, 270px); margin: 0 calc(-1 * var(--sp-4)); overflow: hidden; background: #050407; border-top: 1px solid #241d22; border-bottom: 1px solid #2c2427; }
 .dp-vista-cv { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 62%; image-rendering: pixelated; }
 /* 名前・説明・記録の札はイラストの下側に重ねる (札は押せる) */

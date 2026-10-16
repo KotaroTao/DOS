@@ -177,8 +177,6 @@ function fullyCleared(dn) {
   try { f = game.dungeonFacts ? game.dungeonFacts(dn) : null; } catch (e) { f = null; }
   return !!f && f.monSeen >= f.monTotal && f.fqDone >= f.fqTotal;
 }
-// 壁の倍率の表記 (×2 / ×2.8 / ×3.9)
-function wallText(k) { return String(Math.round(k * 10) / 10); }
 // onTap を渡すと押せる札になる (詳細のポップアップを開く。右に › の印)
 // short = 狭い画面で出す短い名 (札を1行に収める)
 function fact(label, value, cls, onTap = null, short = null) {
@@ -208,12 +206,6 @@ function renderHero(b) {
   const ttl = el("div", "dp-hero-t");
   ttl.appendChild(el("div", "dp-hero-n", dn.name));
   const sub = [`推奨Lv${band[0]}${band[1] > band[0] ? `〜${band[1]}` : ""}`, `全${dn.floors}階`];
-  // 敵の強さの段は第三章から少しずつ上がる (world.js wallOf)。札と注意は大きく跳ねる第十章からだけ出す
-  const wall = game.wallOf && dn.layer >= 12 ? game.wallOf(dn) : 1;
-  // 能力ごとの段 (world.js statWallOf): HP は重く、攻撃は軽く掛かる
-  const sw = wall > 1 && game.statWallOf ? game.statWallOf(dn) : { atk: 1, hp: 1 };
-  const wallHp = wall * sw.hp, wallAtk = wall * sw.atk;
-  if (wall > 1) sub.push(`壁 HP×${wallText(wallHp)}・攻撃×${wallText(wallAtk)}`);
   if (dn.boss) sub.push("主が待つ");
   else if (dn.element && ELEMENTS[dn.element] && dn.element !== "none") sub.push(`${ELEMENTS[dn.element].label}の気配`);
   ttl.appendChild(el("div", "dp-hero-s", sub.join(" ・ ")));
@@ -263,11 +255,6 @@ function renderHero(b) {
     if (share < 1) b.appendChild(setText(el("div", "pt-note dp-after"), share <= 0
       ? "隊のLvが推奨Lvを大きく上回っている。器に残る魂は姿を見せず、掟で増える死体はもう出ない。"
       : `隊のLvが推奨Lvを上回っているので、掟で増える死体はいま約${Math.round(share * 100)}%しか出ない。`)); }
-  // 第十章からの壁 (world.js wallOf): 推奨Lv に届くだけでは勝てないことを、門をくぐる前に知らせる
-  if (wall > 1) {
-    b.appendChild(setText(el("div", "pt-note dp-after dp-wall"),
-      `第十章からの壁 ― この土地の敵は、第二章までの物差しでHP${wallText(wallHp)}倍・防御${wallText(wall)}倍・攻撃${wallText(wallAtk)}倍。第三章から少しずつ強くなってきた敵は、第十章の中では本筋の迷宮が一つ進むごとにHPが約1.7倍、防御が1.5倍、攻撃が約1.15倍、素早さが1.1倍ずつ増える。硬くて長い戦いになるので、HP・VITと回復の備えが物を言う。推奨Lvに届くだけでは歯が立たない。魂融合・宝探し・鍛え直しで隊を鍛えてから挑もう。`));
-  }
   if (dn.id === "w04" && !game.worldState?.().reported.w03) {
     b.appendChild(setText(el("div", "pt-note dp-after"), "取水口は推奨Lv18〜21。隊の強さを確かめ、支度を整えてから向かおう。"));
   }
