@@ -10,10 +10,12 @@ import { bagCount, isFormationItem, bagOwners } from "../items.js";
 //              UI.confirmSellJunk() / UI.confirmIdentifyAll() (帰還の報告・提案からも同じ確認で呼べる)
 // game.js は import しない (ctx.js の UI / game / ops を通す。kit.js・itemview.js は自由に使ってよい)。
 
+import { isDesktopLayout } from "../desktop.js";
+import { pcMasterDetail } from "./pc.js";
 import { UI, game, ops, registerUI } from "./ctx.js";
 import { el, button, segmented, chips, whisper, sheet, toast, setText, glyph, longPress } from "./kit.js";
 import { getPref, setPref, remember } from "./prefs.js";
-import { statLines, isEquippable, gearScore } from "./itemview.js";
+import { statLines, isEquippable, gearScore, itemCatText } from "./itemview.js";
 import { equipLevelOf } from "../items.js";
 import {
   itemSheet, wearPlan, deltaFor, deltaEl, nameSpan, goldEl, caretIcon, equipTo, floatGold, ownerOf, equipCandidates, shopOpen, isUpgrade,
@@ -774,7 +776,23 @@ function renderBuy(wrap) {
       box.appendChild(el("div", "wpc-empty big", gearFilterCount(f) ? "条件に合う品はない。絞り込みの条件を外すか、品の分類・武器の種別を変えてください。" : cat === "rec" ? `${selectedBuyer()?.name || "選択した人業"}の装備に勝る品は、棚に並んでいない。` : "この種類の品は売り切れだ。"));
       return;
     }
-    fillList(box, shown, x => x.affixed ? afxStockRow(x.id, x.item) : stockRow(x.id), "buyPage");
+    if (isDesktopLayout()) {
+      box.classList.add("pc-shop-browser");
+      box.appendChild(pcMasterDetail({
+        key: `shop:${cat}:${wcat}`, items: shown, label: "商品", getKey: x => `${x.id}:${!!x.affixed}`,
+        searchText: x => itemName(x.item),
+        summary: x => {
+          const text = el("span", "pc-stock-summary");
+          text.append(el("b",null,itemName(x.item)),el("span","pc-muted",`${itemCatText(x.item)}${x.affixed ? " ・ 追加効果つき" : ""}`),goldEl(game.buyPrice(x.item)));
+          return text;
+        },
+        detail: (x,pane) => {
+          pane.appendChild(el("h2","pc-heading",`${selectedBuyer()?.name || "選択した人業"}と比較`));
+          pane.appendChild(x.affixed ? afxStockRow(x.id,x.item) : stockRow(x.id));
+          pane.appendChild(el("p","pc-muted","商品を選んだだけでは購入しません。能力と特殊効果の変化を確かめて、購入方法を選んでください。"));
+        },
+      }));
+    } else fillList(box, shown, x => x.affixed ? afxStockRow(x.id, x.item) : stockRow(x.id), "buyPage");
   };
 }
 // 追加つきの品の行: 名・追加の印と短い説明・値段 (追加の分だけ高い)。買うと、その品の組は消える

@@ -1,3 +1,4 @@
+import { isDesktopLayout, onDesktopLayoutChange } from "../desktop.js";
 // ===== 迷宮の HUD — 行動ドック・手帳シート・階の情報・今回の収穫・長押しの覗き見・墨の帳 =====
 // 担当: WP-D。game.js は import しない (ctx.js の UI / game / ops を通す)。
 // 提供する契約: UI.openDungeonMenu() (手帳 = 迷宮の一時停止シート)
@@ -13,7 +14,7 @@
 
 import { playerNameCard } from "./playername.js";
 import { UI, game, registerUI } from "./ctx.js";
-import { el, sheet, row, setText, glyph, itemTile, portrait, bar, reduced } from "./kit.js";
+import { el, sheet, row, setText, glyph, itemTile, portrait, bar, reduced, uiBlocked } from "./kit.js";
 import { getPref, setPref, remember, autoMoveAvoid } from "./prefs.js";
 import { sceneTransition } from "./motion.js";
 import { MONSTERS, ICONS, spriteCanvas, crispCanvas } from "../sprites.js";
@@ -75,6 +76,7 @@ function dockIcon(kind, cls = "dk-ic") {
 let _dockKey = "";
 export function renderDock(host, spec, acts = {}) {
   if (!host) return;
+  refreshDesktopTools();
   host.classList.add("dg-dock");
   const key = spec ? JSON.stringify([spec.down, spec.home, spec.heal, spec.fields, spec.auto, spec.idle]) : "none";
   if (key === _dockKey && host.childElementCount) return;
@@ -651,3 +653,20 @@ export function floorTransition({ floor, tone = "", sub = "", color = null, line
 export function install() {
   registerUI({ openDungeonMenu, openFloorInfo, openRunLoot, peekDoll, peekEnemy });
 }
+
+// 探索中のPC用ショートカット。既存の手帳にある操作だけを直接開く。
+function refreshDesktopTools() {
+  const app=document.getElementById("app");if(!app)return;
+  let tools=document.getElementById("pc-explore-tools");
+  const show=isDesktopLayout()&&game.G?.state==="board";
+  app.classList.toggle("has-pc-tools",show);
+  if(!show){tools?.remove();return;}
+  if(tools)return;
+  tools=el("nav","pc-explore-tools");tools.id="pc-explore-tools";tools.setAttribute("aria-label","探索の操作");
+  const actions=[["隊・持ち物",()=>UI.openParty?.(null,{context:"dungeon"})],["探索記録",openLog],["敵の図鑑",()=>UI.openCodexSheet?.({dungeonIdx:game.G.dungeonIdx})],
+    ["今回の収穫",openRunLoot],["ヘルプ",()=>UI.openHelp?.()],["ストーリー",()=>UI.openStoryArchive?.()]];
+  for(const [label,run] of actions){const b=el("button","pc-tool",label);b.type="button";
+    b.addEventListener("click",()=>{if(!uiBlocked())run();});tools.appendChild(b);}
+  app.querySelector("#topbar")?.after(tools);
+}
+onDesktopLayoutChange(refreshDesktopTools);

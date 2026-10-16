@@ -1308,6 +1308,7 @@ const ASSETS = [
   "./styles.css",
   "./desktop.css",
   "./src/desktop.js",
+  "./src/ui/pc.js",
   "./theme.css",
   "./title.css",
   "./town.css",

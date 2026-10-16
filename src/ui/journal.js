@@ -1,3 +1,5 @@
+import { isDesktopLayout } from "../desktop.js";
+import { pcMasterDetail } from "./pc.js";
 import { storyText } from "../protagonist.js";
 // 解放済みの手引きと、体験済みの物語を読む。ヘルプは酒場で書き留めた話 (心得・言い伝え) と一つの画面で、
 // 「ヘルプ / 酒場の噂話」のタブで切り替える (街と迷宮の手帳から開く)。閲覧では報酬・進行を変更しない (既読の印だけを付ける)。
@@ -157,6 +159,7 @@ function openHelpIndex(tab = "help") {
 }
 
 export function openJournal(kind = "help", tab = "help") {
+  if (isDesktopLayout()) return openDesktopJournal(kind, tab);
   if (kind === "help") return openHelpIndex(tab);
   const list = entries("story");
   sheet.open({
@@ -270,4 +273,44 @@ function showStoryNotice(G) {
 }
 export function install() {
   registerUI({openHelpTopic:(id)=>openEntry("help",id),openHelp:(tab)=>openJournal("help", tab),openStoryArchive:()=>openJournal("story"),storyButton,storyUnread,queueStoryNotice});
+}
+
+// PCでは一覧を残したまま本文を読む。解放済みの台帳だけを候補にする。
+function openDesktopJournal(kind, tab) {
+  let category = kind === "story" ? "story" : tab === "talk" ? "talk" : "help";
+  const title = kind === "story" ? "ストーリー" : "ヘルプ・酒場の噂話";
+  let handle = null;
+  const draw = root => {
+    const controls = el("div", "pc-reader-categories");
+    const categories = kind === "story" ? [["story","ストーリー"],["dungeons","踏破した迷宮"]] : [["help","ヘルプ"],["talk","酒場の噂話"]];
+    for(const [key,label] of categories) {
+      const b=button({label,kind:key===category?"primary":"secondary",onTap:()=>{category=key;handle.update({});}});
+      b.setAttribute("aria-pressed",String(key===category));controls.appendChild(b);
+    }
+    root.appendChild(controls);
+    const list = category === "talk" ? tavernNotes().map(t=>({id:t.id,title:t.cat || "酒場の噂話",subtitle:t.k === "lore" ? "言い伝え" : "心得",text:t.t}))
+      : entries(kind).filter(e=>kind!=="story" || e.id.startsWith("lore_") === (category==="dungeons"));
+    if(!list.length) { root.appendChild(el("p","jr-empty","まだ読める記録がありません。旅を進めると、ここに記録が増えていきます。")); return; }
+    const read = journalState(game.G || {}).read;
+    root.appendChild(pcMasterDetail({
+      key:`journal:${kind}:${category}`,items:list,label:category==="talk"?"噂話":"記録",getKey:e=>e.id,
+      searchText:e=>[e.title,e.subtitle,e.group,e.chapter].filter(Boolean).join(" "),
+      summary:e=>{
+        const text=el("span","pc-person-text");text.appendChild(el("b",null,e.title));
+        if(e.subtitle||e.group)text.appendChild(el("span","pc-muted",e.subtitle||e.group));
+        if(kind==="story"&&!read[e.id])text.appendChild(el("span","pc-unread","未読"));return text;
+      },
+      detail:(entry,pane)=>{
+        pane.appendChild(el("h2","pc-heading",entry.title));
+        if(category!=="talk")pane.appendChild(illustration(entry));
+        if(entry.subtitle)pane.appendChild(el("p","jr-subtitle",entry.subtitle));
+        for(const line of category==="talk"?[entry.text]:linesOf(entry))pane.appendChild(el("p","jr-line",storyText(line,game.G)));
+      },
+      onSelect:entry=>{if(kind==="story"&&!read[entry.id]){markStoryRead(game.G,entry.id);game.autosave?.();root.querySelector(".pc-list-row[aria-pressed=\"true\"] .pc-unread")?.remove();}},
+    }));
+  };
+  handle=sheet.open({kind:"info",banner:title,className:"pc-reader-sheet",body:draw,
+    footer:[{label:"閉じる",kind:"secondary",onTap:h=>h.close()}],
+    onClose:()=>{if(game.G?.state==="town")game.renderTown?.();}});
+  return handle;
 }
