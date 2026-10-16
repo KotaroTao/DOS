@@ -103,6 +103,48 @@ export function spawnBossEnemies(key = "dragon", scale = 1, bossRank = 0) {
   return [makeEnemy(key, scale, true, bossRank)];
 }
 
+// ===== 主のHPの基準 (2026-10-16、ユーザーの指示「主のHPも雑魚の約◯倍を基準に。ただし敵の特徴に応じて増減」) =====
+// 主のHP = その迷宮の最下階の雑魚の平均HP × BOSS_HP_X × 特色の倍率 (bossHpTraitMul)。
+// それまでは主のランクの体 × 迷宮の手直し × 第三章から重ねた「主のHPの追加」(第十章で ×5) で決まり、
+// 雑魚の約4倍 (第一〜三章) から約26倍 (化石竜の墓所) までばらついていた。強敵は雑魚の約5倍なので、主はその上の約10倍。
+// 攻撃・防御・素早さは従来どおり (ランクの体 × 手直し)。HPだけを置き換える。
+export const BOSS_HP_X = 10;
+// 特色の倍率: 打撃・呪文を削る守り、自分で戻す・長引かせる力、手下を呼ぶ・かわす力があるほどHPを減らし、
+// 弱点があるほど増やす (特色が無い主ほど大きな体を持つ)。掛け合わせて 0.55〜1.3 に収める。
+//   物理抵抗値 50 = ×0.85 / 75 = ×0.7 / 100 = ×0.5 (打撃の被ダメが半分・1/4 になる分を、全部は打ち消さない)
+//   魔法抵抗値 50 = ×0.95 / 75 = ×0.9 / 100 = ×0.85 (隊の削りは打撃が主なので軽め)
+//   再生 = ×(1 − 再生の割合×4、最大 −30%) / 障壁 = 1回につき ×0.95 / 不屈・激昂 = ×0.95 / 手下を呼ぶ = ×0.9
+//   回避 = ×0.9 / 神速 = ×0.9 / 吸血 = ×(1 − 吸血の割合×0.5) / 魔法に弱い = ×(1 + (倍率−1)×0.5)
+export const BOSS_HP_TRAIT_RANGE = [0.55, 1.3];
+export function bossHpTraitMul(m) {
+  if (!m) return 1;
+  const pr = m.physResist || 0, mr = m.magResist || 0;
+  let k = 1;
+  k *= pr >= 100 ? 0.5 : pr >= 75 ? 0.7 : pr >= 50 ? 0.85 : pr > 0 ? 0.95 : 1;
+  k *= mr >= 100 ? 0.85 : mr >= 75 ? 0.9 : mr >= 50 ? 0.95 : 1;
+  if (m.regen > 0) k *= 1 - Math.min(0.3, m.regen * 4);
+  if (m.barrier > 0) k *= 0.95 ** m.barrier;
+  if (m.endure) k *= 0.95;
+  if (m.enrage) k *= 0.95;
+  if (m.role === "summoner") k *= 0.9;
+  if (m.evasive) k *= 0.9;
+  if (m.haste) k *= 0.9;
+  if (m.lifesteal > 0) k *= 1 - Math.min(0.3, m.lifesteal * 0.5);
+  if (m.magWeak > 1) k *= 1 + (m.magWeak - 1) * 0.5;
+  return Math.min(BOSS_HP_TRAIT_RANGE[1], Math.max(BOSS_HP_TRAIT_RANGE[0], k));
+}
+// 雑魚の平均HP (出現表 pool の素の体 × 雑魚の強さ scale)。金属・出来事の魔物・主は数えない。数えるものが無ければ 0
+export function regularHpRef(pool, scale = 1) {
+  const hs = (pool || []).map((k) => MONSTERS[k]).filter((m) => m && !m.metal && !m.evOnly && !m.boss && m.maxhp > 0).map((m) => m.maxhp);
+  return hs.length ? hs.reduce((a, b) => a + b, 0) / hs.length * scale : 0;
+}
+// 主のHPを基準に置き換える (refHp = regularHpRef。0 なら元のまま)。能力ごとの段 (scaleFoeStats) はこの後に雑魚と同じだけ掛かる
+export function setBossHp(e, refHp) {
+  if (!e || !(refHp > 0)) return e;
+  e.maxhp = e.hp = Math.max(1, Math.round(refHp * BOSS_HP_X * bossHpTraitMul(e.mon)));
+  return e;
+}
+
 // 強敵階の強敵: 必ず単体で出現する規格外の個体。
 // boss フラグは立てない (迷宮踏破の判定・主討伐演出と混同しないため)
 export function spawnEliteEnemies(key, scale = 1) {

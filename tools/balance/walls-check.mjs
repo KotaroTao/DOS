@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { WORLD, wallAt, wallOf, wallStepOf, strengthAt, poolAt, PART2_LAYER, RAMP_FROM_LAYER, WALL_FROM_LAYER, RAMP_JUMP, STAT_SPLIT, agiWallOf, strongHpWallOf, statWallOf, dungeonLevelRaw, dungeonProgressOf, dungeonStatMul, dungeonAgiMul } from "../../src/dungeons/world.js";
 import { MONSTERS } from "../../src/sprites.js";
 import { DUNGEON_MONSTERS } from "../../src/dungeons/index.js";
-import { spawnEliteEnemies, spawnBossEnemies, spawnMimic, spawnRanked, spawnMetal, scaleFoeAgi, scaleStrongFoeHp, scaleFoeStats, Battle } from "../../src/combat.js";
+import { spawnEliteEnemies, spawnBossEnemies, setBossHp, regularHpRef, bossHpTraitMul, BOSS_HP_X, BOSS_HP_TRAIT_RANGE, spawnMimic, spawnRanked, spawnMetal, scaleFoeAgi, scaleStrongFoeHp, scaleFoeStats, Battle } from "../../src/combat.js";
 import { fleeScaleOf, enemyBaseSample } from "../../src/enemylevel.js";
 import { makeDoll } from "../../src/souls.js";
 Object.assign(MONSTERS, DUNGEON_MONSTERS);
@@ -27,7 +27,7 @@ const stepOf = (cfg) => {
   MAIN.forEach((d, j) => { if (d.lv <= cfg.lv && (cfg.layer >= 13 ? d.layer <= cfg.layer : d.layer < 13)) s = j; });
   return s;
 };
-assert.deepEqual(RAMP_JUMP, { id: "w14", stat: 2, boss: 2, elite: 1 }, "一段強くなるのは第四章の入口 (蘇生・HP1で踏みとどまる技を覚える頃)。主のHPも同じく。強敵のHPの追加は無し (2026-10-16)");
+assert.deepEqual(RAMP_JUMP, { id: "w14", stat: 2, boss: 1, elite: 1 }, "一段強くなるのは第四章の入口 (蘇生・HP1で踏みとどまる技を覚える頃)。主・強敵のHPの追加は無し (2026-10-16)");
 assert.deepEqual(STAT_SPLIT, { atk: 1 / 3, hp: 1.3 }, "能力ごとの段: 攻撃は軽く、HP は重く (VIT・HP が効くように)");
 const JUMP = MAIN.findIndex(d => d.id === "w14");
 assert.equal(JUMP, 4);
@@ -63,8 +63,7 @@ for (const cfg of WORLD) {
   if (W > 1) { near(sw.atk, W ** (1 / 3 - 1)); near(sw.hp, W ** 0.3); } else assert.deepEqual(sw, { atk: 1, hp: 1 }, cfg.id);
   assert.deepEqual(statWallOf({ ...cfg, wall: 1 }), { atk: 1, hp: 1 });
   const hp = strongHpWallOf(cfg);
-  near(hp.boss, ramp(s, 5, 1, 2));
-  assert.equal(hp.elite, 1, cfg.id); // 強敵のHPの追加は無し (雑魚と同じ体の段だけ)
+  assert.deepEqual(hp, { boss: 1, elite: 1 }, cfg.id); // 主・強敵のHPの追加は無し (主のHPは雑魚の平均HPの基準の倍率 — 下の検査)
   // 無限迷宮 (wall:1) は段を受けない
   assert.equal(dungeonProgressOf({ ...cfg, wall: 1 }), 0);
   assert.equal(agiWallOf({ ...cfg, wall: 1 }), 1);
@@ -78,15 +77,13 @@ assert.equal(wallOf(at("w09")), 1);
 assert.equal(wallOf(at("w10")), 1);
 near(wallOf(at("w13")), 5 ** (3 / 28));
 near(wallOf(at("w14")), 2 * 5 ** (4 / 28));
-near(strongHpWallOf(at("w13")).boss, 2.5 ** (3 / 28));
-near(strongHpWallOf(at("w14")).boss, 2 * 2.5 ** (4 / 28));
-assert.equal(strongHpWallOf(at("w14")).elite, 1);
+assert.deepEqual(strongHpWallOf(at("w14")), { boss: 1, elite: 1 });
 near(wallOf(at("w38")), 10);
 near(agiWallOf(at("w38")), 3);
-assert.deepEqual(strongHpWallOf(at("w38")), { boss: 5, elite: 1 });
+assert.deepEqual(strongHpWallOf(at("w38")), { boss: 1, elite: 1 });
 near(wallOf(at("w41")), 10 * 1.5 ** 3);
 near(agiWallOf(at("w41")), 3 * 1.1 ** 3);
-assert.deepEqual(strongHpWallOf(at("w41")), { boss: 5, elite: 1 });
+assert.deepEqual(strongHpWallOf(at("w41")), { boss: 1, elite: 1 });
 for (const [id, main] of [["ws20", "w38"], ["ws22", "w39"], ["ws21", "w41"], ["ws23", "w42"], ["ws24", "w45"], ["ws25", "w48"], ["ws26", "w46"], ["ws27", "w47"], ["ws7", "w18"], ["ws13", "w35"], ["ws5", "w15"], ["ws4", "w10"], ["ws3", "w01"], ["ws6", "w01"]]) {
   assert.equal(dungeonProgressOf(at(id)), Math.max(0, MAIN.findIndex(d => d.id === main)), id);
 }
@@ -152,7 +149,7 @@ for (const cfg of WORLD) for (let floor = 1; floor <= cfg.floors; floor++) {
   C(s => spawnRanked(eventKey, rank, 1, s * (t.soloMul || 1)), "出来事の魔物");
   floors++;
 }
-console.log(`全${WORLD.length}迷宮・${floors}階・${foes}個体: 段のとおりの HP (W^1.3)・攻撃 (W^(1/3))・防御 (W)・素早さ、主だけHPの追加、保存・復元で重ねない`);
+console.log(`全${WORLD.length}迷宮・${floors}階・${foes}個体: 段のとおりの HP (W^1.3)・攻撃 (W^(1/3))・防御 (W)・素早さ、主・強敵のHPの追加は無し、保存・復元で重ねない`);
 
 // ---- 戦闘開始・召喚・金属・図鑑 ----
 const cfg = WORLD.find(c => c.layer === 12 && c.boss);
@@ -177,19 +174,20 @@ assert.equal(metal.maxhp, metalHp); // 金属の HP (会心で削る数) は直�
 scaleFoeAgi(metal, 2, 3);
 near(metal.agi, oldAgi * 3);
 const boss = spawnBossEnemies(cfg.boss, strengthAt(cfg, cfg.floors) * (cfg.bossScale || 1) * (cfg.tune?.bossMul || 1), cfg.bossRank)[0];
+setBossHp(boss, regularHpRef(poolAt(cfg, cfg.floors), strengthAt(cfg, cfg.floors) * (cfg.tune?.enemyMul || 1) * (cfg.tune?.deepMul || 1)));
 scaleFoeAgi(boss, fleeScaleOf(cfg, dungeonLevelRaw(cfg, cfg.floors)), agiWallOf(cfg));
 near(enemyBaseSample(cfg.boss).agi, boss.agi);
 scaleFoeStats(boss, statWallOf(cfg));
 near(enemyBaseSample(cfg.boss).atk, boss.atk);
 scaleStrongFoeHp(boss, strongHpWallOf(cfg));
 near(enemyBaseSample(cfg.boss).hp, boss.maxhp);
-// 主のHPは ×5、旧い保存の戦闘 (数1つ) もそのまま読め、二重に掛けない
+// 主のHPの追加は無い。旧い保存の戦闘 (数1つ) もそのまま読め、二重に掛けない
 const strong = spawnBossEnemies(cfg.boss, 1, cfg.bossRank)[0];
 const baseHp = strong.maxhp;
 new Battle([], [strong], () => {}, { strongHpWall: strongHpWallOf(cfg) });
-assert.equal(strong.maxhp, baseHp * 5);
+assert.equal(strong.maxhp, baseHp);
 scaleStrongFoeHp(strong, 10);
-assert.equal(strong.maxhp, baseHp * 5);
+assert.equal(strong.maxhp, baseHp);
 const legacy = spawnBossEnemies(cfg.boss, 1, cfg.bossRank)[0];
 scaleStrongFoeHp(legacy, 10);
 assert.equal(legacy.maxhp, baseHp * 10);
@@ -199,3 +197,34 @@ b._execInner({ actor: caller, action: "summon" });
 const eliteHp = scaleFoeStats(spawnEliteEnemies(cfg.elites[0], 1)[0], statWallOf(cfg)).maxhp;
 assert.equal(b.enemies.at(-1).maxhp, eliteHp);
 console.log("戦闘開始・召喚 (手下・強敵とも追加なし、能力ごとの段も)・金属 (HPは直さない)・図鑑・旧い保存の戦闘を確認");
+
+// ---- 主のHPの基準: 最下階の雑魚の平均HP × BOSS_HP_X × 特色の倍率 (combat.js setBossHp) ----
+assert.equal(BOSS_HP_X, 10);
+{
+  const rows = [];
+  for (const c of WORLD.filter(d => d.boss)) {
+    const f = c.floors, t = c.tune || {}, mob = strengthAt(c, f) * (t.enemyMul || 1) * (t.deepMul || 1);
+    const ref = regularHpRef(poolAt(c, f), mob);
+    assert(ref > 0, c.id);
+    const e = spawnBossEnemies(c.boss, strengthAt(c, f) * (c.bossScale || 1) * (t.bossMul || 1), c.bossRank)[0];
+    const atk = e.atk;
+    setBossHp(e, ref);
+    assert.equal(e.atk, atk, "HP だけを置き換える");
+    const k = bossHpTraitMul(MONSTERS[c.boss]);
+    assert(k >= BOSS_HP_TRAIT_RANGE[0] && k <= BOSS_HP_TRAIT_RANGE[1], c.id);
+    assert(Math.abs(e.maxhp / ref - BOSS_HP_X * k) < 0.01, c.id);
+    // 図鑑・表示Lv の基準 (enemyBaseSample) も同じ HP
+    rows.push(`${c.id} ×${(e.maxhp / ref).toFixed(1)}`);
+  }
+  // 特色が無ければ ×10、守り・粘りが増えるほど少なく、弱点があれば多い
+  assert.equal(bossHpTraitMul({}), 1);
+  assert(bossHpTraitMul({ physResist: 75 }) < bossHpTraitMul({ physResist: 50 }));
+  assert(bossHpTraitMul({ physResist: 50, regen: 0.05 }) < bossHpTraitMul({ physResist: 50 }));
+  assert(bossHpTraitMul({ magWeak: 1.3 }) > 1);
+  assert.equal(bossHpTraitMul({ physResist: 100, magResist: 100, regen: 1, barrier: 9, endure: true, enrage: true, role: "summoner", evasive: true, haste: true }), BOSS_HP_TRAIT_RANGE[0]);
+  // 0 の基準 (出現表の無い場所) では元のまま
+  const keep = spawnBossEnemies(cfg.boss, 1, cfg.bossRank)[0], hp0 = keep.maxhp;
+  setBossHp(keep, 0);
+  assert.equal(keep.maxhp, hp0);
+  console.log(`主のHP = 最下階の雑魚の平均HP × ${BOSS_HP_X} × 特色 (${BOSS_HP_TRAIT_RANGE.join("〜")}): ${rows.join(" ")}`);
+}

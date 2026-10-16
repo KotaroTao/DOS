@@ -12,7 +12,7 @@ import { monsterResists } from "./resistance.js";
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
-import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, setEnemyLvTag, scaleFoeAgi, scaleStrongFoeHp, scaleFoeStats, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setEquipSwap, setModSink, setElemKnown, setPartyEvadeBonus, setPartyBreathBonus, setPartyHitBonus, setPartyAilBonus, partyBreathRes, perkVictory, cureAil, canSpellCure, cureBySpell, spellCureKinds, chishioState } from "./combat.js";
+import { spawnCardEnemies, spawnBossEnemies, setBossHp, regularHpRef, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, setEnemyLvTag, scaleFoeAgi, scaleStrongFoeHp, scaleFoeStats, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setEquipSwap, setModSink, setElemKnown, setPartyEvadeBonus, setPartyBreathBonus, setPartyHitBonus, setPartyAilBonus, partyBreathRes, perkVictory, cureAil, canSpellCure, cureBySpell, spellCureKinds, chishioState } from "./combat.js";
 import { decideAuto, tacticOf, setResistKnown } from "./autotactics.js";
 import { STAGED, effectStage, stageOf, stageMul, stageLabel, isBattleLong, ENEMY_STAT_LABEL } from "./buffstage.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
@@ -8100,10 +8100,12 @@ function askDescend(cell) {
         if (boss) {
           const fight = () => {
             log("迷宮の主が立ちはだかる！", "dmg");
-            // 迷宮ごとの手直し (generator.js DUNGEON_TUNE): 主は雑魚の倍率ではなく bossMul、HP はさらに bossHpMul
+            // 迷宮ごとの手直し (generator.js DUNGEON_TUNE): 主の攻撃・防御は雑魚の倍率ではなく bossMul。
+            // HP は最下階の雑魚の平均HP × 基準の倍率 × 主の特色 (combat.js setBossHp)
             const tn = dn.tune || {};
             const foes = spawnBossEnemies(dn.boss, dn.bossScale * (tn.bossMul || 1) * baseEnemyScale(true), dn.bossRank);
-            if ((tn.bossHpMul || 1) !== 1) for (const e of foes) e.maxhp = e.hp = Math.max(1, Math.round(e.maxhp * tn.bossHpMul));
+            const refHp = regularHpRef(poolAt(activeCfg(), G.floor), baseEnemyScale(true) * tuneMul());
+            for (const e of foes) setBossHp(e, refHp);
             startBattle(foes, cell);
           };
           // 主との対面の語り (story.js BOSS_PRELUDES): 語り終えてから戦いに入る
@@ -16701,7 +16703,9 @@ function beginRematch(t, stabilityAd = false) {
   let foes;
   if (t.kind === "boss") {
     foes = spawnBossEnemies(t.key, (ref.bossScale || 1) * (tn.bossMul || 1) * atRef * k, ref.bossRank);
-    if ((tn.bossHpMul || 1) !== 1) for (const e of foes) e.maxhp = e.hp = Math.max(1, Math.round(e.maxhp * tn.bossHpMul));
+    // HP は手本の迷宮の最下階の雑魚の平均HP (挑む Lv に写す) × 基準の倍率 × その主の特色
+    const refHp = regularHpRef(poolAt(ref, ref.floors || 1), atRef * k * (tn.enemyMul || 1) * (tn.deepMul || 1));
+    for (const e of foes) setBossHp(e, refHp);
   } else {
     // 名のある強敵: 体 (HP・攻撃・防御・素早さ) と抵抗の格は手本の迷宮の強敵から。特色と見た目はその強敵のまま
     const tpl = spawnEliteEnemies((ref.elites || [])[0] || t.key, atRef * (tn.soloMul || 1) * k)[0];

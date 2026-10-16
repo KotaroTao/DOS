@@ -10,7 +10,7 @@
 //   --mode rank2: 全職を魂ランク2にそろえる (重ねやすさを無視した、魂1つの格の比較)
 import fs from "node:fs";
 import assert from "node:assert/strict";
-import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, scaleFoeStats, scaleStrongFoeHp, scaleFoeAgi, Battle, SPELLS, spellCost, setElemKnown, cureAil, ailing, perkVictory, healsHp, canSpellCure } from "../../src/combat.js";
+import { spawnCardEnemies, spawnBossEnemies, setBossHp, regularHpRef, spawnEliteEnemies, scaleFoeStats, scaleStrongFoeHp, scaleFoeAgi, Battle, SPELLS, spellCost, setElemKnown, cureAil, ailing, perkVictory, healsHp, canSpellCure } from "../../src/combat.js";
 import { decideAuto, setResistKnown } from "../../src/autotactics.js";
 import { SOUL_CLASSES, SOUL_KEYS, makeDoll, makeSoulInstance, setSharedSouls, recalcDoll, rankThresholds, soulLevelCap, soulRankFromCount, JOB_GEAR } from "../../src/souls.js";
 import { minutesToLevel, partyAgi } from "../../src/levelcurve.js";
@@ -164,19 +164,19 @@ function siteAt(level) {
   // 主のいない迷宮の Lv では、推奨Lv の近い本筋の主を、この階の強さで呼ぶ (主だけの戦いを測るため)
   const bossCfg = cfg.boss ? cfg : MAIN.filter((d) => d.boss).sort((a, b) => Math.abs((a.lv + a.lvTo) / 2 - level) - Math.abs((b.lv + b.lvTo) / 2 - level))[0];
   const bt = bossCfg.tune || {};
-  return { cfg, bossCfg, floor, pool, fleeK, base, boss: base * (bt.bossMul || 1), bossHpMul: bt.bossHpMul || 1, mob: base * (t.enemyMul || 1) * (deep ? (t.deepMul || 1) : 1), solo: base * (t.soloMul || 1) };
+  return { cfg, bossCfg, floor, pool, fleeK, base, boss: base * (bt.bossMul || 1), mob: base * (t.enemyMul || 1) * (deep ? (t.deepMul || 1) : 1), solo: base * (t.soloMul || 1) };
 }
 function realFoes(level, kind, site, k) {
   let list;
   // mixed では従来どおり、主のいない迷宮の最後の戦いは強敵 (基準の測定を変えない)
   if (kind === "boss" && (site.cfg.boss || SCENARIO !== "mixed")) {
     list = spawnBossEnemies(site.bossCfg.boss, site.boss * k, site.bossCfg.bossRank || 0);
-    for (const e of list) { e.maxhp = e.hp = Math.round(e.hp * site.bossHpMul); }
+    for (const e of list) setBossHp(e, regularHpRef(site.pool, site.mob * k)); // 主のHP = この階の雑魚の平均HP × 基準の倍率 × 特色 (game.js と同じ)
   } else if (kind === "boss" || kind === "elite") {
     const el = site.cfg.elites || [];
     list = el.length ? spawnEliteEnemies(el[Math.floor(Math.random() * el.length)], site.solo * k) : spawnCardEnemies(site.pool[0], site.floor, site.mob * k, { min: 4 });
   } else list = spawnCardEnemies(site.pool[Math.floor(Math.random() * site.pool.length)], site.floor, site.mob * k);
-  // 章の段 (game.js startBattle と同じ): 能力ごとの段・主/強敵のHPの追加・素早さ
+  // 章の段 (game.js startBattle と同じ): 能力ごとの段・素早さ (主/強敵のHPの追加はいま1)
   list.forEach((e, i) => { e.lv = level; e.uid = 100000 + i; scaleFoeStats(e, statWallOf(site.cfg)); scaleStrongFoeHp(e, strongHpWallOf(site.cfg)); scaleFoeAgi(e, site.fleeK, agiWallOf(site.cfg)); });
   return list;
 }

@@ -150,7 +150,7 @@ const WORLD_DEF = [
     ],
     elites: ["el_cryptlord"], // 名のある強敵の縄張り (named.js)
     boss: LAYER_BOSS[0], bossRank: 3,
-    tune: { enemyMul: 0.90, bossMul: 1.00, bossHpMul: 2 }, // DUNGEON_TUNE の D4 の雑魚 + D5 の主 (主の HP ×2)
+    tune: { enemyMul: 0.90, bossMul: 1.00 }, // DUNGEON_TUNE の D4 の雑魚 + D5 の主 (主の HP は雑魚の基準の倍率 — combat.js setBossHp)
     unlock: { reported: "w02" },
     hint: "「亡骸の囁く回廊」の踏破を王に報告すると、道が示される",
   },
@@ -1968,9 +1968,9 @@ export function powerAt(cfg, floor = 1) {
 // 第一章・第二章 (第1〜4層) は従来のまま。第三章 (第5層) の最初の本筋 w10 から、本筋の迷宮を一つ進むごとに敵が緩やかに強くなる。
 // 味方が一気に強くなるのは蘇生 (リバイブ: 僧侶・枢機卿 Lv50、護教官 Lv55、多くの職 Lv60) と HP1 で踏みとどまる技 (武僧 Lv35・
 // 守護騎士 Lv45・魔騎士 Lv60…) を覚える頃なので、その推奨Lv に当たる第四章の入口 (RAMP_JUMP.id = w14、推奨Lv52) で HP・攻撃・防御と
-// 主のHPの追加を一段 (×RAMP_JUMP) 強くする。第十章の入口 (第12層の最初の本筋 w38) でちょうど「HP・攻撃・防御 ×10・素早さ ×3・
-// 主のHP ×5」に届く (段の間は等比。素早さは一段の跳ねを持たない。強敵のHPの追加は無し — 下の RAMP_TO の注)。
-// 第十章の中は本筋の迷宮を一つ進むごとに HP・攻撃・防御 ×1.5・素早さ ×1.1 (主のHPの追加は ×5 のまま)。
+// 一段 (×RAMP_JUMP) 強くする。第十章の入口 (第12層の最初の本筋 w38) でちょうど「HP・攻撃・防御 ×10・素早さ ×3」に届く
+// (段の間は等比。素早さは一段の跳ねを持たない。主・強敵のHPの追加は無し — 下の RAMP_TO の注)。
+// 第十章の中は本筋の迷宮を一つ進むごとに HP・攻撃・防御 ×1.5・素早さ ×1.1。
 // 第二部 (第13層〜) は本筋の迷宮ごとに ×PART2_STEP と、層の入口の段 LAYER_WALL (第13層 ×1.25、その先 ×1.2) を重ねる
 // (2026-10-15 ユーザーの指示: 第13層の入口で約100倍はやり過ぎ → 第十章の最後 w41 の約1.33倍 = 約45倍)。
 // ここまでの倍率 W (wallOf) は「HP・攻撃・防御を同じだけ上げたら」の物差し。実際には能力ごとに分ける (STAT_SPLIT、2026-10-15 ユーザーの指示
@@ -1984,13 +1984,15 @@ export const RAMP_FROM_LAYER = 5; // 第三章: ここから本筋の迷宮ご�
 export const WALL_FROM_LAYER = 12; // 第十章: ここで RAMP_TO に届き、以降は迷宮ごとに STEP_AFTER
 // 強敵のHPの追加は取りやめた (2026-10-16 ユーザーの指摘「強敵のHPが多すぎる」): 第四章の ×2・第十章の ×3 が乗ると、強敵は雑魚の16〜19倍
 // (同じ層の主とほぼ同じ) になり、w42 の強敵1体に50ターンかかった。強敵は第三章までと同じ「雑魚の約5倍」(体の段 HP W^1.3 は雑魚と同じに受ける)。
-// 主の追加 (×5) は残す。仕組み (strongHpWallOf の elite) は残し、値を 1 にした
-const RAMP_TO = { stat: 10, agi: 3, elite: 1, boss: 5 };
-export const RAMP_JUMP = { id: "w14", stat: 2, boss: 2, elite: 1 }; // 蘇生・HP1 で踏みとどまる技を覚える頃の一段 (素早さは跳ねない)
+// 主のHPの追加 (第四章で ×2・第十章で ×5) も取りやめた (同日のユーザーの指示「主のHPも雑魚の約◯倍を基準に。特徴に応じて増減」):
+// 主のHPは最下階の雑魚の平均HP × 基準の倍率 × 特色の倍率 (combat.js BOSS_HP_X / bossHpTraitMul / setBossHp)。
+// 仕組み (strongHpWallOf) は旧い保存の戦闘の印 (_strongHpWall) のために残し、値を 1 にした
+const RAMP_TO = { stat: 10, agi: 3, elite: 1, boss: 1 };
+export const RAMP_JUMP = { id: "w14", stat: 2, boss: 1, elite: 1 }; // 蘇生・HP1 で踏みとどまる技を覚える頃の一段 (素早さは跳ねない)
 const STEP_AFTER = { stat: 1.5, agi: 1.1 }; // 第十章 (第12層) の中だけ
 const PART2_STEP = { stat: 1.07, agi: 1.03 }; // 第二部の本筋の迷宮ごと
 export const LAYER_WALL = { 13: 1.25, 14: 1.2, 15: 1.2, 16: 1.2, 17: 1.2, 18: 1.2, 19: 1.2, 20: 1.2 };
-// 能力ごとの段の掛け方 (W = wallOf の何乗か)。防御 (VIT) と素早さ・主/強敵のHPの追加は別 (W のまま / agiWallOf / strongHpWallOf)
+// 能力ごとの段の掛け方 (W = wallOf の何乗か)。防御 (VIT) と素早さは別 (W のまま / agiWallOf)
 export const STAT_SPLIT = { atk: 1 / 3, hp: 1.3 };
 // 第L層の壁 = 第13層から第L層までの段の積 (第21層より先は第20層のまま)
 export function wallAt(layer) {
