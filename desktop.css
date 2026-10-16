@@ -210,3 +210,95 @@
   html.pc-input body:has(.test-play-banner) :is(.iv-scene, .sc-scene, .op-overlay, .jg-overlay) { top: 38px; }
 
 }
+
+/* PC専用部品。狭い窓へ切り替えても、開いている本文と操作は残す。 */
+.pc-panel { min-width: 0; border: 1px solid #493a2b; border-radius: 4px; background: var(--grain), #100d12; padding: 12px; }
+.pc-heading { margin: 0 0 12px; font-size: 15px; color: #e8d08a; line-height: 1.5; }
+.pc-muted { color: #b3a78f; font-size: 12px; line-height: 1.6; }
+.pc-person-text, .pc-stock-summary { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; text-align: left; }
+.pc-person-text b, .pc-stock-summary b { white-space: normal; overflow-wrap: anywhere; font-size: 14px; }
+.pc-master { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; min-height: 0; min-width: 0; }
+.pc-master-list { display: flex; flex-direction: column; gap: 8px; min-height: 0; min-width: 0; }
+.pc-search { width: 100%; min-height: 44px; border: 1px solid #665338; border-radius: 4px; padding: 8px 12px; font: 14px var(--font); color: var(--ink); background: #151019; }
+.pc-count { font-size: 12px; color: #b3a78f; }
+.pc-rows { display: flex; flex-direction: column; gap: 6px; min-height: 0; overflow-y: auto; max-height: 40dvh; padding: 2px; }
+.pc-list-row { flex: 0 0 auto; width: 100%; padding: 10px 12px; justify-content: flex-start; }
+.pc-list-row[aria-pressed="true"], .pc-roster-row[aria-pressed="true"] { border-color: #e8d08a; background: #34291b; box-shadow: inset 3px 0 #e8d08a; }
+.pc-detail { min-width: 0; min-height: 0; overflow-y: auto; padding: 12px; border: 1px solid #493a2b; background: #100d12; text-align: left; }
+.pc-unread { font-size: 11px; color: #e8d08a; }
+.pc-reader-categories, .pc-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.pc-settings { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+.pc-settings-nav { display: flex; flex-wrap: wrap; gap: 8px; align-content: start; }
+.pc-settings-body { min-width: 0; }
+
+@media (min-width: 1100px) and (min-height: 600px) and (hover: hover) and (pointer: fine) {
+  html.pc-input .pc-dashboard {
+    flex: 1 1 0; min-height: 0; display: grid; overflow-y: auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-content: start; padding: 2px;
+  }
+  html.pc-input .pc-dashboard > :is(.hb-hero, .pc-summary) { grid-column: 1 / -1; }
+  html.pc-input .pc-dashboard > .hb-hero { height: 56px; }
+  html.pc-input .pc-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  html.pc-input .pc-summary-cell { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px; border: 1px solid #493a2b; background: #151019; }
+  html.pc-input .pc-summary-cell b { color: #e8d08a; font-size: 18px; }
+  html.pc-input .pc-service-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 16px; }
+  html.pc-input :is(.pc-dashboard-tasks, .pc-dashboard-more) { display: flex; flex-direction: column; gap: 8px; }
+  html.pc-input .pc-dashboard-tasks .hb-sug { flex: 0 0 auto; }
+  html.pc-input .pc-dashboard-party { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; align-content: start; }
+  html.pc-input .pc-dashboard-party .pc-heading { grid-column: 1 / -1; }
+  html.pc-input .pc-party-card { justify-content: flex-start; gap: 10px; padding: 8px; min-height: 90px; }
+  html.pc-input .pc-party-card canvas { width: 44px; height: 44px; flex: 0 0 auto; }
+
+  html.pc-input .pt-root.pc-mansion { display: grid; grid-template-columns: 220px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); gap: 12px; }
+  html.pc-input .pc-roster { grid-column: 1; grid-row: 1 / -1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+  html.pc-input .pc-roster-row { flex: 0 0 auto; display: flex; justify-content: flex-start; gap: 8px; padding: 8px; }
+  html.pc-input .pc-roster-row canvas { width: 44px; height: 44px; flex: 0 0 auto; }
+  html.pc-input .pc-roster-row .pc-person-text { font-size: 11px; }
+  html.pc-input .pc-mansion-head { grid-column: 2; grid-row: 1; min-width: 0; }
+  html.pc-input .pc-mansion-head h1 { display: inline; font-size: 20px; margin-right: 12px; color: #e8d08a; }
+  html.pc-input .pc-mansion-head .pc-actions { margin-top: 12px; }
+  html.pc-input .pc-mansion-head .pc-actions > button { width: auto; flex: 0 0 auto; }
+  html.pc-input .pc-actions > .pt-equip-actions { display: flex; flex-direction: row; flex-wrap: wrap; margin-left: auto; }
+  html.pc-input .pc-actions :is(.pt-bench, .pt-order) { width: auto; flex-direction: row; padding: 6px 12px; }
+  html.pc-input .pc-mansion-columns { grid-column: 2; grid-row: 2; min-height: 0; display: grid; gap: 12px; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); grid-template-rows: minmax(0, 1fr) minmax(150px, .65fr); }
+  html.pc-input .pc-mansion-section { min-height: 0; overflow-y: auto; }
+  html.pc-input .pc-mansion-section[data-section="stats"] { grid-column: 1 / -1; }
+  html.pc-input .pc-mansion-section > .pc-heading { position: sticky; top: -12px; z-index: 2; padding: 10px 0; background: #100d12; }
+  html.pc-input .pc-mansion-section .pt-slots { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  html.pc-input .pc-mansion-section .pt-bagwrap .pt-bag { grid-template-columns: repeat(4, minmax(0, 1fr)); max-height: none; overflow: visible; }
+
+  html.pc-input .wpc-list.buy.pc-shop-browser { display: flex; overflow: hidden; }
+  html.pc-input .pc-master { flex: 1 1 0; grid-template-columns: minmax(240px, .85fr) minmax(0, 1.15fr); height: 100%; }
+  html.pc-input .pc-rows { max-height: none; flex: 1 1 0; }
+  html.pc-input .pc-detail .wpc-srow { display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
+  html.pc-input .pc-detail .wpc-srow-info { width: 100%; }
+  html.pc-input .pc-detail .wpc-buy { width: 100%; padding: 0 10px 10px; box-sizing: border-box; }
+  html.pc-input .pc-detail .wpc-buy-main { width: 100%; min-height: 52px; }
+  html.pc-input .pc-reader-sheet .ui-sheet-body { display: flex; flex-direction: column; overflow: hidden; gap: 12px; }
+  html.pc-input .pc-reader-sheet { height: calc(100dvh - 64px); }
+  html.pc-input .pc-reader-sheet .pc-master { grid-template-columns: minmax(220px, .7fr) minmax(0, 1.3fr); }
+  html.pc-input .pc-reader-sheet .jr-line { max-width: 100%; font-size: 15px; }
+  html.pc-input .pc-settings { grid-template-columns: 172px minmax(0, 1fr); }
+  html.pc-input .pc-settings-nav { flex-direction: column; flex-wrap: nowrap; }
+  html.pc-input .pc-settings-nav button { text-align: left; justify-content: flex-start; }
+  html.pc-input .pc-settings-nav [aria-pressed="true"] { border-color: #e8d08a; background: #34291b; }
+  html.pc-input .pc-settings .stg { display: flex; flex-direction: column; }
+
+  html.pc-input #app.has-pc-tools { grid-template-rows: auto auto auto minmax(100px, 1fr) auto auto; grid-template-areas: "top top" "tools tools" "scene party" "scene log" "scene commands" "haul dock"; }
+  html.pc-input #pc-explore-tools { grid-area: tools; display: flex; gap: 8px; padding: 8px 12px; border-bottom: 1px solid #493a2b; background: #151019; }
+  html.pc-input .pc-tool { flex: 1 1 0; min-height: 44px; min-width: 0; padding: 6px; font: 13px var(--font); border: 1px solid #665338; border-radius: 4px; background: #221b22; color: #eadbb3; cursor: pointer; }
+  html.pc-input :is(.pc-dashboard, .pc-roster, .pc-mansion-section, .pc-rows, .pc-detail) { scrollbar-width: thin !important; scrollbar-color: #8a6d2e #17121a; }
+  html.pc-input :is(.pc-dashboard, .pc-roster, .pc-mansion-section, .pc-rows, .pc-detail)::-webkit-scrollbar { display: block !important; width: 8px !important; height: 8px !important; }
+  html.pc-input :is(.pc-dashboard, .pc-roster, .pc-mansion-section, .pc-rows, .pc-detail)::-webkit-scrollbar-thumb { background: #8a6d2e; border-radius: 4px; }
+}
+
+@media (min-width: 1100px) and (min-height: 600px) and (hover: hover) and (pointer: fine) {
+  html.pc-input #town-shell > .ui-tabbar:has(.pc-town-shortcuts) { justify-content: flex-start; padding: 12px 10px; gap: 6px; overflow-y: auto; }
+  html.pc-input #town-shell .ui-tabbar:has(.pc-town-shortcuts) > .ui-tab { height: 58px; }
+  html.pc-input .pc-town-shortcuts { display: flex; flex-direction: column; gap: 6px; width: 100%; margin-top: 12px; padding-top: 12px; border-top: 1px solid #665338; }
+  html.pc-input .pc-town-link { min-height: 44px; padding: 6px; background: #1d171c; border: 1px solid #493a2b; border-radius: 3px; color: #eadbb3; font: 13px var(--font); cursor: pointer; }
+  html.pc-input .pc-palace { display: grid; grid-template-columns: 160px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); gap: 12px; }
+  html.pc-input .pc-palace > .kp-full { grid-column: 1 / -1; }
+  html.pc-input .pc-palace-nav { grid-column: 1; grid-row: 2; display: flex; flex-direction: column; gap: 8px; min-height: 0; overflow-y: auto; }
+  html.pc-input .pc-palace > .pl-body { grid-column: 2; grid-row: 2; min-width: 0; }
+}

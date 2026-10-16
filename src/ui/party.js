@@ -1,3 +1,5 @@
+import { isDesktopLayout } from "../desktop.js";
+import { pcPanel } from "./pc.js";
 import { storyText } from "../protagonist.js";
 import { bagItems, bagSortControl } from "./bagsort.js";
 import { gearFilterCount, matchesGearFilter, gearFilterButton, gearFilterSummary } from "./gearfilter.js";
@@ -1003,6 +1005,7 @@ function renderView(root, mode) {
     if (mode === "town" && !sheetTown) { root.classList.add("has-keeper"); root.appendChild(keeperPanel()); }
     return;
   }
+  if (isDesktopLayout() && mode === "town" && !sheetTown && !game.tutorialAllowed?.() && d) return renderDesktopMansion(root, d);
   const dead = deadBanner(mode);
   if (dead) root.appendChild(dead);
   if (mode === "town" || G.party.length > 1) root.appendChild(formationEl(mode));
@@ -1097,6 +1100,7 @@ function resetView() {
   setPref("partyIdx", 0);
   remember("seg", "party", "soul");
   mansionPosition = { key: "soul", offset: 0 };
+  desktopMansionScroll.clear();
 }
 function scheduleGreeting() {
   if (greetTimer) return;
@@ -3028,4 +3032,48 @@ export function install() {
       badge: tabBadge,
     });
   }
+}
+
+const desktopMansionScroll = new Map();
+function renderDesktopMansion(root, d) {
+  root.classList.add("pc-mansion");
+  const roster = pcPanel("隊の人業", "pc-roster");
+  const rememberScroll = () => {
+    for (const box of root.querySelectorAll(".pc-mansion-section")) desktopMansionScroll.set(box.dataset.section, box.scrollTop);
+  };
+  for (const member of allDolls()) {
+    const i = G_().party.indexOf(member), position = i < 0 ? "控え" : `${i < 3 ? "前衛" : "後衛"}${i % 3 + 1}`;
+    const b = button({ label: "", kind: "secondary", onTap: () => { rememberScroll(); select(member); rerender(); } });
+    b.classList.add("pc-roster-row");b.setAttribute("aria-pressed", String(member === d));b.replaceChildren();
+    b.appendChild(partyPortraitCanvas(member, 44));
+    const text = el("span", "pc-person-text");
+    text.append(el("b",null,member.name),el("span","pc-muted",`${position} ・ ${SOUL_CLASSES[member.clsKey]?.name || "魂なし"} Lv${member.jobLv || 1}`),
+      el("span",null,member.alive ? `HP ${member.hp}/${member.maxhp}　MP ${member.mp}/${member.maxmp}` : "砕けている"));
+    b.appendChild(text);roster.appendChild(b);
+  }
+  roster.appendChild(button({label:"イレーヌの助言",kind:"secondary",onTap:()=>{
+    rememberScroll();
+    playIreneScene([keeperLine().lines],()=>{curLine=nextLine();rerender();});
+  }}));
+  root.appendChild(roster);
+  const head = el("header", "pc-mansion-head");
+  head.append(el("h1", null, d.name), el("span", "pc-muted", `${SOUL_CLASSES[d.clsKey]?.name || "魂なし"} Lv${d.jobLv || 1}`));
+  const actions = el("div", "pc-actions");
+  actions.appendChild(button({label:"名前を変える",kind:"secondary",onTap:()=>openRename(d)}));
+  if(mansionControlUnlocked("formation")) actions.appendChild(button({label:"隊列・保存編成",kind:"secondary",onTap:()=>openFormationSheet()}));
+  actions.appendChild(soulListButton());const order=orderButton();if(order)actions.appendChild(order);
+  actions.appendChild(equipActions(d,"隊の全員を最適装備"));
+  head.appendChild(actions);root.appendChild(head);
+  const columns = el("div", "pc-mansion-columns");
+  for(const [key,label] of [["soul","魂・育成"],["equip","装備・持ち物"],["stats","能力・技"]]) {
+    const section=pcPanel(label,"pc-mansion-section");section.dataset.section=key;
+    if(key==="soul") {
+      if(!d.alive)section.appendChild(rescueLine(d));
+      renderSoulSummary(section,d,{mode:"town"});renderSoulSeg(section,d,{mode:"town",summary:false});
+    } else if(key==="equip") equipSeg(section,d);
+    else statsSeg(section,d);
+    columns.appendChild(section);
+    requestAnimationFrame(()=>{if(section.isConnected)section.scrollTop=desktopMansionScroll.get(key)||0;});
+  }
+  root.appendChild(columns);
 }

@@ -543,7 +543,7 @@ const NEW_DEFS = [
   // 雑魚・主・強敵ともに rank10 (上限)。灰に埋もれた闘技場で終わらない試合を続ける闘士の霊、見世物の獣、観客の霊、闘技場の仕掛けと裏方たち。
   // 第5層からの流儀で特色を極端に押し出す (神速・特技の多用・ブレス・全体呪文・3連撃・守り崩し・打ち消し・魔法抵抗100・護衛)。
   // 剣闘の層だが痛撃は3体 (多用は処刑人) に抑え、魅了・混乱・弱体・麻痺・吸命・魂奪い・金貨奪い・鼓舞・吸血・不屈などへ散らした。
-  // 属性は無が中心で、霊は闇、砂の獣と巨人は土、灰の覇者・灰燼の将と主 (町を焼いた魂の火の灯を負う) は火、網の闘士は水、舞い手は風、鏡の人形は光。
+  // 属性は無が中心で、霊は闇、砂の獣と巨人は土、灰の覇者・灰燼の将と主 (町を焼いた魂の火の灯を負う) は火、網の闘士は水、舞い手は風、鏡の人業は光。
   // 絵は hd_* の固有原型 (tools/hdart/layer11/)。どの個体も ability を明示する (種族の既定の特技は付けない)
   { id: "bs_championwraith", name: "不滅の闘士", rank: 10, race: "armored", element: "none", artKey: "hd_championwraith", soulClass: "fighter",
     endure: true, enrage: true, multistrike: 2, ability: null, // 続けざまに二度斬り、手負いで猛り、致命の一撃を一度は耐える
@@ -571,7 +571,7 @@ const NEW_DEFS = [
     desc: "長いむちと鍵束を腰に下げた、猛獣使いの霊。腰から下は砂煙にほどけている。むちを鳴らして檻の闘犬を呼び出し、鋭い口笛で闘技場の魔物たちをあおり続ける。自分は決して砂の上へは降りてこない。" },
   { id: "bs_mirrorduelist", name: "鏡写しの決闘者", rank: 10, race: "construct", element: "light", artKey: "hd_mirrorduelist",
     magResist: 100, multistrike: 2, ability: "dispel", // 鏡の体が呪文を弾き、細剣で二度突き、重ねた加護を鏡に映して消す
-    desc: "全身を磨き上げた鋼の板で覆った、顔のない決闘人形。鏡のような体は撃ちこまれた呪文をそのまま弾き返し、まったく通さない。細い剣で続けざまに二度突き、隊が守りの加護を重ねると、鏡の面に映して消し去ってしまう。刃で磨きを削るしかない。" },
+    desc: "全身を磨き上げた鋼の板で覆った、顔のない決闘人業。鏡のような体は撃ちこまれた呪文をそのまま弾き返し、まったく通さない。細い剣で続けざまに二度突き、隊が守りの加護を重ねると、鏡の面に映して消し去ってしまう。刃で磨きを削るしかない。" },
   { id: "bs_crowdroar", name: "歓声の渦", rank: 10, race: "specter", element: "dark", artKey: "hd_crowdroar",
     pack: true, ability: "confuse", abRate: 0.45, evasive: true, // 群れで耳もとで叫び続けて惑わせ、声の渦は刃をすり抜ける
     desc: "闘技場の上に渦を巻く、数えきれない口だけの霊。歓声も、悲鳴も、笑い声も、みな同じ渦の中で響いている。群れで押し寄せて耳もとで叫び続け、聞いた者は、自分が誰に斬りかかっているのかも分からなくなる。声の渦は刃をすり抜け、つかみどころがない。" },
@@ -777,7 +777,7 @@ const NEW_DEFS = [
     desc: "廟のいちばん深い玉座に、千年座り続けている最初の王。何度も何度も亡骸へ戻され、ろうと香油と金で固められた体は、もう玉座と見分けがつかない。近衛を呼び従え、近づく者の命を吸い上げる。刃は大半がはね返され、傷を負えば猛る。玉座の脇には、まだ誰も入っていない新しい棺が一つ置かれている。" },
   // -- 第15層「溶鉄炉」 (rank 10・火/鋳造。器を鋳る工房) --
   { id: "bs_moltensmith", name: "溶鉄の鍛冶", rank: 10, race: "construct", element: "fire", artKey: "moltensmith",
-    ability: "critical", multistrike: 2, physResist: 75, desc: "灼けた鎚を振るい続ける、溶鉄でできた鍛冶の自動人形。鎚の一打は鎧ごと急所を砕き、続けざまに打ち下ろす。今も誰かの『器』を鍛えようと、生者を炉へ運ぼうとする。" },
+    ability: "critical", multistrike: 2, physResist: 75, desc: "灼けた鎚を振るい続ける、溶鉄でできた鍛冶の自動人業。鎚の一打は鎧ごと急所を砕き、続けざまに打ち下ろす。今も誰かの『器』を鍛えようと、生者を炉へ運ぼうとする。" },
   { id: "bs_forgegolem", name: "鋳造のゴーレム", rank: 10, race: "construct", element: "fire", artKey: "forgegolem",
     physResist: 100, barrier: 2, enrage: true, desc: "鋳型に溶鉄を流し込む工程そのものが意思を得た巨像。腹に炉を抱え、傷を負えば溶鉄を噴いて荒れる。分厚い鋳鉄の体は、並の刃を寄せつけない。" },
   { id: "bs_slagbeast", name: "鉱くずの獣", rank: 10, race: "beast", element: "fire", artKey: "slagbeast",
@@ -1154,7 +1154,7 @@ const NEW_DEFS = [
   // -- rank 5 追加 (+5) --
   { id: "bs_ironknight", name: "鉄の騎士", rank: 5, race: "armored", element: "none", artKey: "hd_ironknight", soulClass: "knight",
     physResist: 75, ability: "sunder", // 無骨な鉄塊の体は刃を通さず、鉄の拳で鎧ごと守りを打ち砕く (守り崩し)
-    desc: "古代の砦を守るために鋳造された鉄の自動人形。命令のみで動き、千年の時を経た今もその命令を忠実に実行し続ける。分厚い鉄塊の体は並の武器をほとんど通さず、振り下ろす鉄の拳は鎧ごと守りを打ち砕く。" },
+    desc: "古代の砦を守るために鋳造された鉄の自動人業。命令のみで動き、千年の時を経た今もその命令を忠実に実行し続ける。分厚い鉄塊の体は並の武器をほとんど通さず、振り下ろす鉄の拳は鎧ごと守りを打ち砕く。" },
   { id: "bs_thunderbird", name: "雷鳥", rank: 6, race: "avian", element: "wind", artKey: "hd_thunderbird",
     ability: "spell", abRate: 0.4, swift: true, // 翼から落雷を降らせて隊の全員を撃つ (第5層)
     desc: "嵐の中でのみ現れる雷光の鳥。黒雲を背負って翼を広げれば、羽の縁から幾筋もの稲妻が地上へ降り注ぎ、隊の誰ひとり逃さず撃ち据える。稲光とともに素早く宙を舞う。" },
@@ -1400,7 +1400,7 @@ const NEW_DEFS = [
   { id: "bs_pyretreant", name: "燃え木の巨人", rank: 4, boss: true, race: "plant", element: "fire", artKey: "ogre",
     palette: tint(ARTS.ogre.palette, "#c85a2a", 0.4),
     physResist: 50, regen: 0.06, // 百年消えぬ火を宿し、焦げてもまた燃え立つ
-    desc: "炎樹の回廊で燃えながら決して倒れぬ巨木の人形。硬い幹は刃を弾き、抱きしめられた者は薪の仲間入りをする。幹の火は百年消えたことがなく、焼け焦げてもまた燃え立つ。" },
+    desc: "炎樹の回廊で燃えながら決して倒れぬ巨木の人業。硬い幹は刃を弾き、抱きしめられた者は薪の仲間入りをする。幹の火は百年消えたことがなく、焼け焦げてもまた燃え立つ。" },
   { id: "bs_bogtyrant", name: "底なし沼の主", rank: 4, boss: true, race: "aquatic", element: "water", artKey: "sahagin",
     palette: tint(ARTS.sahagin.palette, "#4a5a2a", 0.4),
     ability: "paralyze", // 泥から伸びる無数の腕が獲物を絡めて沈める

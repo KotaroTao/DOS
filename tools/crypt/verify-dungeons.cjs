@@ -11,7 +11,7 @@ const extended = process.env.DUNGEON_REVIEW_SET === 'w12-w16';
 const ids = later ? ['w07','w08','w09','w10','w11'] : process.argv.slice(2);
 if (!ids.length && extended) ids.push('w12','w13','w14','w15','w16');
 if (!ids.length) ids.push(...(late ? ['w17','w18','w19','w20','w21'] : ['w02','w03','w04','w05','w06']));
-assert.ok(ids.length >= 2 && ids.every(id => /^(w\d{2}|w00_forest)$/.test(id)), '迷宮IDを2件以上指定する');
+assert.ok(ids.length >= 2 && ids.every(id => /^(ws?\d{2}|w00_forest)$/.test(id)), '迷宮IDを2件以上指定する');
 const first = ids[0], second = ids[1];
 const out = resolve(process.env.CRYPT_REVIEW_OUT || 'docs/art/dungeons/' + (late ? 'review-w17-w21' : later ? 'review-w07-w11' : extended ? 'review-w12-w16' : 'review'));
 mkdirSync(out, { recursive: true });
@@ -34,7 +34,7 @@ function check(name, value) { assert.ok(value, name); report.checks.push(name); 
       });
       await page.route('**/src/game.js*', async route => {
         const response = await route.fetch();
-        await route.fulfill({ response, body: await response.text() + '\nwindow.cryptReview={G,BV,boardCamera,fitView,drawBoardFrame,drawFlipSlab,cellRect,makeBoard,activeCfg,uiBlocked,DUNGEONS};' });
+        await route.fulfill({ response, body: await response.text() + '\nwindow.cryptReview={G,BV,boardCamera,fitView,drawBoardFrame,drawFlipSlab,cellRect,makeBoard,activeCfg,uiBlocked,boardArtPending,DUNGEONS};' });
       });
       // URLの試遊入口を使う。遅延画像の検査ではloadを待たない。
       await page.goto(base + '?testDungeon=' + first, { waitUntil: 'domcontentloaded' });
@@ -58,7 +58,10 @@ function check(name, value) { assert.ok(value, name); report.checks.push(name); 
         g.board.cells[g.py][g.px].type = 'start';
         t.boardCamera.overview = false; t.boardCamera.manual = false;
         t.fitView(true); t.drawBoardFrame();
-        return { scale: t.BV.art.scale, width: t.BV.art.slabs.width, height: t.BV.art.slabs.height };
+        const deadline = performance.now() + 10000;
+        while (t.boardArtPending() && performance.now() < deadline) await new Promise(resolve => setTimeout(resolve, 20));
+        t.drawBoardFrame();
+        return { scale: t.BV.art?.scale, width: t.BV.art?.slabs.width, height: t.BV.art?.slabs.height };
       }, { id, floor });
     }
     async function capture(page, name, boardOnly = false) {
@@ -88,7 +91,7 @@ function check(name, value) { assert.ok(value, name); report.checks.push(name); 
       await sample.page.close();
     }
     const { page, errors, release } = await start({ delay: true });
-    check('読込待ちでも旧描画が表示される', await page.evaluate(() => cryptReview.BV.art.scale === 1));
+    check('素材到着までは読込表示を保つ', await page.evaluate(() => cryptReview.boardArtPending()));
     release();
     await page.waitForFunction(() => cryptReview.BV.art?.scale === 3);
     check('素材到着後に描き下ろしへ自動で切り替わる', true);
