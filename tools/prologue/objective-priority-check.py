@@ -60,6 +60,29 @@ with sync_playwright() as p:
       G.tut.done.trainSoul = true;
       check(game.objectiveInfo().key === 'report', '通常プレイでも完了後は報告に戻る');
       checks.push('通常プレイ: 解放条件による手ほどきと報告の重複');
+      // 帰還の街を描いた後に修復の手ほどきが発生しても、表示中の目標を更新する。
+      const repair = _TUTS.find(d => d.key === 'repairSoul');
+      for (const fallen of ['broken', 'rescued', 'revived']) {
+        for (const interrupted of [false, true]) {
+          G.tut = {done: Object.fromEntries(_TUTS.filter(d => !['repairSoul', 'trainSoul'].includes(d.key)).map(d => [d.key, true])),
+            cur: interrupted ? 'trainSoul' : null, step: 0, ev: {}, base: {}, trainPending: interrupted};
+          G.town = {tab: 'hub', page: null, facility: null};
+          G.prompt = false;
+          G.party[0].alive = fallen === 'revived';
+          G.party[0].reviveAt = fallen === 'rescued' ? Date.now() + 60000 : null;
+          if (fallen === 'revived') G.tut.repairFell = true;
+          game.renderTown();
+          check(UI.tutorialAfterReturn(), fallen + ': 帰還で修復案内を開始');
+          check(UI.tutorialPending()?.key === 'repairSoul', fallen + ': 別の手ほどきより優先');
+          const shown = unphrase(document.querySelector('.hb-goal-t').textContent);
+          check(shown === game.objectiveInfo().text, fallen + ': 描画済みの目標も即更新');
+          check(shown.includes('砕けた魂の修復'), fallen + ': 修復を教わる目標を明示');
+          check(unphrase(document.querySelector('.hb-goal-s').textContent).includes(repair.name), fallen + ': 修復案内の補足');
+          check(w.report === 'w03', fallen + ': 王への報告待ちを保持');
+          check(!interrupted || G.tut.repairResume?.cur === 'trainSoul', fallen + ': 中断した案内を保持');
+          checks.push(fallen + (interrupted ? '・強化中' : '・報告待ち') + ': 帰還直後の目標表示を更新');
+        }
+      }
       return checks;
     }'''))
     assert not errors, errors

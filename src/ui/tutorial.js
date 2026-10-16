@@ -443,7 +443,7 @@ function pending() {
   const facility = facilityOf(d), place = FACILITIES[facility];
   const arrival = !atFacility(facility);
   return { key, name: d.name, who: d.who, facility, arrival,
-    text: arrival ? `${place.name}を選択してください` : step.text,
+    text: arrival ? (key === "repairSoul" ? "人業の館で砕けた魂の修復を教わる" : `${place.name}を選択してください`) : step.text,
     hint: arrival ? place.hint : step.hint,
     started: st.cur === key };
 
@@ -612,6 +612,8 @@ function afterReturn() {
     st.cur = null; st.step = 0; st.ev = {}; st.base = {};
   }
   if (game.autosave) game.autosave(true);
+  // 帰還時は街を描いた後に修復の案内が決まるため、古い目標をここで描き直す。
+  if (inTown()) game.renderTown?.();
   resume();
   return true;
 }
