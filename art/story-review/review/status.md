@@ -2,7 +2,7 @@
 
 書き出し: `node tools/storyart/review.mjs` (build.py も書き直す。手で直さない)。
 
-場面: 出荷済み 134 ・ 出荷済み (任意の修正あり) 11
+場面: 出荷済み 134 ・ 出荷済み (任意の修正あり) 11 ・ 未着手 (指示あり) 14
 
 | 章 | 場面 | 題 | 状態 | 確認ページ |
 |---|---|---|---|---|
@@ -148,6 +148,20 @@
 | 第11章「夜明けの町」 | `report_w45` | 余の終わりの頁 | 出荷済み | [見る](chapter11.md#report_w45) |
 | 第11章「夜明けの町」 | `irene_lastpage` | 両方を持って | 出荷済み | [見る](chapter11.md#irene_lastpage) |
 | 第11章「夜明けの町」 | `ch11_end` | 同じ天井の下で | 出荷済み | [見る](chapter11.md#ch11_end) |
+| 第12章「王家の廟」 | `w46_bar` | 王を終わらせるな | 未着手 (指示あり) | [見る](chapter12.md#w46_bar) |
+| 第12章「王家の廟」 | `report_w46` | 即位の日の文句 | 未着手 (指示あり) | [見る](chapter12.md#report_w46) |
+| 第12章「王家の廟」 | `w47_ledger` | 最初の器 | 未着手 (指示あり) | [見る](chapter12.md#w47_ledger) |
+| 第12章「王家の廟」 | `irene_vessel` | 木の手のひら | 未着手 (指示あり) | [見る](chapter12.md#irene_vessel) |
+| 第12章「王家の廟」 | `report_w47` | 術の生まれた所 | 未着手 (指示あり) | [見る](chapter12.md#report_w47) |
+| 第12章「王家の廟」 | `w48_masks` | 三枚の死面 | 未着手 (指示あり) | [見る](chapter12.md#w48_masks) |
+| 第12章「王家の廟」 | `irene_masks` | 留守の帳面 | 未着手 (指示あり) | [見る](chapter12.md#irene_masks) |
+| 第12章「王家の廟」 | `report_w48` | 尋ねなかった名 | 未着手 (指示あり) | [見る](chapter12.md#report_w48) |
+| 第12章「王家の廟」 | `pre_w49` | 玉座の王 | 未着手 (指示あり) | [見る](chapter12.md#pre_w49) |
+| 第12章「王家の廟」 | `pre_w49_retry` | ふたたび玉座の前で | 未着手 (指示あり) | [見る](chapter12.md#pre_w49_retry) |
+| 第12章「王家の廟」 | `mem_w49` | もう、よい | 未着手 (指示あり) | [見る](chapter12.md#mem_w49) |
+| 第12章「王家の廟」 | `report_w49` | 余が決めた日に | 未着手 (指示あり) | [見る](chapter12.md#report_w49) |
+| 第12章「王家の廟」 | `irene_enough` | 訊く人 | 未着手 (指示あり) | [見る](chapter12.md#irene_enough) |
+| 第12章「王家の廟」 | `ch12_end` | 答えを聞くまで | 未着手 (指示あり) | [見る](chapter12.md#ch12_end) |
 | 序章 | `irene_repair` | 砕けても、名は消えない | 出荷済み | [見る](chapter0.md#irene_repair) |
 | 第1章「師の灯」 | `irene_familiar` | 名で呼べる距離 | 出荷済み | [見る](chapter1.md#irene_familiar) |
 | 第3章「魂脈の根」 | `irene_trust` | 扉を開けた日のこと | 出荷済み | [見る](chapter3.md#irene_trust) |
@@ -199,6 +213,10 @@
 | 由来 | `w43` | 雨垂れの書庫 | 出荷済み | [見る](dungeons.md#lore_w43) |
 | 由来 | `w44` | 眠り灯の工房 | 出荷済み | [見る](dungeons.md#lore_w44) |
 | 由来 | `w45` | 大書庫 | 出荷済み | [見る](dungeons.md#lore_w45) |
+| 由来 | `w46` | 弔い灯の参道 | 出荷済み | [見る](dungeons.md#lore_w46) |
+| 由来 | `w47` | 香油の仕立て場 | 出荷済み | [見る](dungeons.md#lore_w47) |
+| 由来 | `w48` | 眠らずの近衛廊 | 出荷済み | [見る](dungeons.md#lore_w48) |
+| 由来 | `w49` | 終わらずの玉座 | 出荷済み | [見る](dungeons.md#lore_w49) |
 | 由来 | `ws1` | 沈んだ礼拝堂 | 出荷済み | [見る](dungeons.md#lore_ws1) |
 | 由来 | `ws2` | 石眠りの石切り場 | 出荷済み | [見る](dungeons.md#lore_ws2) |
 | 由来 | `ws3` | 霧の迷い森 | 出荷済み | [見る](dungeons.md#lore_ws3) |
@@ -223,4 +241,7 @@
 | 由来 | `ws22` | 水晶の鉱脈 | 出荷済み | [見る](dungeons.md#lore_ws22) |
 | 由来 | `ws23` | 絵本の閲覧室 | 出荷済み | [見る](dungeons.md#lore_ws23) |
 | 由来 | `ws24` | 閉架の書庫 | 出荷済み | [見る](dungeons.md#lore_ws24) |
+| 由来 | `ws25` | 名の無い墓所 | 出荷済み | [見る](dungeons.md#lore_ws25) |
+| 由来 | `ws26` | 剥製の大広間 | 出荷済み | [見る](dungeons.md#lore_ws26) |
+| 由来 | `ws27` | 王子の墓所 | 出荷済み | [見る](dungeons.md#lore_ws27) |
 | 由来 | `w00_forest` | 近くの森の古屋 | 出荷済み | [見る](dungeons.md#lore_w00_forest) |
