@@ -240,9 +240,22 @@ const varianceMean = (base) => { const b = Math.max(1, Math.round(base)); return
 // LUKの成長を会心確定へ直結させない。低い値では従来に近く、加算は最大25%。
 export const luckCritBonus = (luk) => 0.25 * (1 - Math.exp(-Math.max(0, (luk || 0) - 8) / 50));
 // 上位呪文ほどINT/PIEの伸びを受ける。全体呪文は単体より係数を抑える。
-export function attackSpellPower(sp, stat) {
-  const power = Math.max(0, sp.power || 0);
-  return power + Math.max(0, stat || 0) * (0.25 + Math.min(140, power) / (sp.target === "all-enemy" ? 60 : 40));
+// 呪文の伸び (2026-10-16、ユーザーの指摘「物理に比べて魔法が弱過ぎる」): 物理技は 攻撃力 (武器で STR の約1.5〜2.5倍。
+// 武器の Lv とともに育つ) × 技の倍率で伸びるのに、呪文は INT × 係数だけで、Lv40 から同じレア度の物理職の 1/4〜1/6 しか出なかった。
+// 武器の倍率に当たるものとして、使い手の Lv (メイン魂の Lv。写し身はその階の Lv) で育つ倍率 spellGrowth を INT の係数に掛ける。
+// Lv10 まで ×1、Lv50 で ×4、その先は 80Lv ごとに +1 (Lv130 ×5・Lv210 ×6)。単体の呪文どうし・全体の呪文どうしは同じ倍率なので
+// MP 効率の比は変わらない。敵全体の呪文は伸びた分の6割 (allShare) — 物理の全体技は単体の1/3ほどなので、群れを一手で払う力が
+// 強くなりすぎないように (全体技が単体技より得になりすぎない向きにだけ動く。tools/balance/attack-skills.mjs)
+export const SPELL_GROWTH = { from: 10, to: 50, mid: 3, lateLv: 80, allShare: 0.6 };
+export function spellGrowth(lv, all = false) {
+  const g = SPELL_GROWTH, L = Math.max(1, lv || 1);
+  const up = g.mid * Math.min(1, Math.max(0, (L - g.from) / (g.to - g.from))) + Math.max(0, L - g.to) / g.lateLv;
+  return 1 + up * (all ? g.allShare : 1);
+}
+// lv = 使い手の Lv (Battle.lvOf)。省くと伸びなし (×1)
+export function attackSpellPower(sp, stat, lv = 1) {
+  const power = Math.max(0, sp.power || 0), all = sp.target === "all-enemy";
+  return power + Math.max(0, stat || 0) * (0.25 + Math.min(140, power) / (all ? 60 : 40)) * spellGrowth(lv, all);
 }
 // 重力の基本ダメージ。上限を持つ技だけ有効INTで制限し、強化・耐性は後から適用する。
 function gravityDamage(sp, intv, t) {
@@ -2060,7 +2073,7 @@ export class Battle {
     if (random() >= MIMIC_SKILL_RATE) return null;
     const n = this.livingParty().length;
     const score = ([, sp]) => (sp.kind === "phys" ? (sp.power || 1) * (sp.scatter || sp.hits || 1) * this._eatk(actor)
-      : attackSpellPower(sp, Math.max(actor.int || 0, isFaithSpell(sp) ? actor.pie || 0 : 0))) * (sp.target === "all-enemy" ? n * 0.7 : 1);
+      : attackSpellPower(sp, Math.max(actor.int || 0, isFaithSpell(sp) ? actor.pie || 0 : 0), this.lvOf(actor))) * (sp.target === "all-enemy" ? n * 0.7 : 1);
     const atks = usable.filter(([, sp]) => (sp.kind === "phys" && (sp.power || 0) > 0) || (sp.kind === "atk" && !sp.gravity && (sp.power || 0) > 0));
     if (!atks.length) return null;
     const [k] = atks.reduce((a, b) => (score(b) > score(a) ? b : a));
@@ -2111,7 +2124,7 @@ export class Battle {
     // 攻撃呪文: 味方の呪文と同じ威力 (INT、光・祈りの呪文は INT と PIE の高い方)。守りは隊が受ける呪文と同じ (魔法抵抗値・呪文避け・魔障壁・封の結界)
     res.action = "breath"; res.breath = true; res.espell = true; res.fxEl = sp.element || "none";
     const intv = Math.max((actor.int || 0) * this._bm(actor, "int"), isFaithSpell(sp) ? (actor.pie || 0) * this._bm(actor, "pie") : 0);
-    const power = attackSpellPower(sp, intv) * soulPowerMul(actor, sp);
+    const power = attackSpellPower(sp, intv, this.lvOf(actor)) * soulPowerMul(actor, sp);
     const tgts = all ? this.livingParty() : [(cmd.target && cmd.target.alive) ? cmd.target : this._pickPartyTarget()].filter(Boolean);
     for (const t of tgts) {
       if ((t.magResist || 0) >= 100) {
@@ -3302,7 +3315,7 @@ export class Battle {
       let em = elemSeen(t, actor) ? elemDmgMult(sp.element || "none", aLv, t.element || "none", edefOf(t), eaffOf(t)) : 1;
       if (em < 1 && pv(actor, "elemFloor")) em = 1;
       em *= this._vulnMul(t, sp.element);
-      dmg = Math.max(1, varianceMean(attackSpellPower(sp, intv) * soulPowerMul(actor, sp)) * this._lowHpMul(actor) - Math.floor(this._evit(t) * 0.2)) * em;
+      dmg = Math.max(1, varianceMean(attackSpellPower(sp, intv, this.lvOf(actor)) * soulPowerMul(actor, sp)) * this._lowHpMul(actor) - Math.floor(this._evit(t) * 0.2)) * em;
       if (t.magWeak > 1) dmg *= t.magWeak;
       if (sp.prey && sp.prey.races.includes(enemyRace(t))) dmg *= sp.prey.mul;
     }
@@ -3450,7 +3463,7 @@ export class Battle {
           if (em < 1 && pv(actor, "elemFloor")) em = 1; // 森羅の理: 属性不利が出ない
           em *= this._vulnMul(t, sp.element); // 属性耐性ダウン
           // 攻撃呪文の威力は術者の INT で伸びる。低HP補正 (荒行の果て) も乗る
-          const power = attackSpellPower(sp, intv) * soulPowerMul(actor, sp); // 魂の格
+          const power = attackSpellPower(sp, intv, this.lvOf(actor)) * soulPowerMul(actor, sp); // 魂の格
           dmg = Math.max(1, Math.round(variance(power) * this._lowHpMul(actor)) - Math.floor(this._evit(t) * 0.2));
           if (em !== 1) dmg = Math.max(1, Math.round(dmg * em));
           // 魔法弱点: 攻撃呪文の被ダメが増える (「魔法に弱い」)

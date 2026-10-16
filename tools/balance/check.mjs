@@ -1,6 +1,6 @@
 // 共通戦闘計算の回帰確認。乱数を固定して実ダメージとオートの期待値も比較する。
 import assert from 'node:assert/strict';
-import { Battle, SPELLS, setPartyHitBonus, luckCritBonus, attackSpellPower, healingPower, setElemKnown, spellCost, soulCostAdd, soulPowerMul, soulTierRate, spellMpLabel, SOUL_POWER_K, healsHp, BLADE_HEAL_CAP, MP_DRAIN_CAP, COUNTER_K, DIVINE_COUNTER_K, KAESHI_K, REFLECT_K, PASSIVE_RET_MIN, PASSIVE_RET_MAX, stanceCtrK, reflectPow } from '../../src/combat.js';
+import { Battle, SPELLS, setPartyHitBonus, luckCritBonus, attackSpellPower, spellGrowth, healingPower, setElemKnown, spellCost, soulCostAdd, soulPowerMul, soulTierRate, spellMpLabel, SOUL_POWER_K, healsHp, BLADE_HEAL_CAP, MP_DRAIN_CAP, COUNTER_K, DIVINE_COUNTER_K, KAESHI_K, REFLECT_K, PASSIVE_RET_MIN, PASSIVE_RET_MAX, stanceCtrK, reflectPow } from '../../src/combat.js';
 import { makeDoll, JOB_SKILLS, battleSkills } from '../../src/souls.js';
 import { MONSTERS } from '../../src/sprites.js';
 import { DUNGEON_MONSTERS } from '../../src/dungeons/index.js';
@@ -248,6 +248,14 @@ samplePhys({physResist:75,asleep:true},{power:1.5,acc:1,skill:true});
 assert.equal(attackSpellPower({power:10,target:'enemy'},100),60);
 assert(attackSpellPower({power:100,target:'enemy'},200)-attackSpellPower({power:100,target:'enemy'},100)>attackSpellPower({power:10,target:'enemy'},200)-attackSpellPower({power:10,target:'enemy'},100));
 assert(attackSpellPower({power:100,target:'enemy'},100)>attackSpellPower({power:100,target:'all-enemy'},100));
+// 呪文の伸び (2026-10-16): 使い手の Lv で INT の係数が育つ。Lv10 まで ×1・Lv50 で ×4・以降 80Lv ごとに +1、全体は伸びた分の6割
+assert.equal(spellGrowth(1),1);assert.equal(spellGrowth(10),1);assert.equal(spellGrowth(50),4);assert.equal(spellGrowth(130),5);
+assert.equal(spellGrowth(50,true),1+3*0.6);
+assert.equal(attackSpellPower({power:10,target:'enemy'},100,50),10+100*0.5*4);
+for(let L=1;L<=250;L++)assert(spellGrowth(L+1)>=spellGrowth(L)&&spellGrowth(L+1,true)>=spellGrowth(L,true),'呪文の伸びは Lv で下がらない');
+// どの呪文にも同じ倍率: 同じ使い手なら呪文どうしの INT の係数の比は Lv に依らない
+{const k=(p,L)=>attackSpellPower({power:p,target:'enemy'},1000,L)-p;assert(Math.abs(k(60,120)/k(14,120)-k(60,1)/k(14,1))<1e-9,'呪文どうしの係数の比');}
+console.log('呪文の伸び: Lv10 ×1・Lv50 ×4・Lv130 ×5、全体は6割、呪文どうしの比は不変を確認');
 assert.equal(healingPower(14,100),64);
 assert(healingPower(60,200)-healingPower(60,100)>healingPower(14,200)-healingPower(14,100));
 // 虚重: 上限・現在HP・主補正と、上限の後に掛かる強化/耐性を実処理と見積もりで確認。
