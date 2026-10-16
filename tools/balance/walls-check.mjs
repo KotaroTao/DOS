@@ -27,7 +27,7 @@ const stepOf = (cfg) => {
   MAIN.forEach((d, j) => { if (d.lv <= cfg.lv && (cfg.layer >= 13 ? d.layer <= cfg.layer : d.layer < 13)) s = j; });
   return s;
 };
-assert.deepEqual(RAMP_JUMP, { id: "w14", stat: 2, boss: 2, elite: 2 }, "一段強くなるのは第四章の入口 (蘇生・HP1で踏みとどまる技を覚える頃)。主・強敵のHPも同じく");
+assert.deepEqual(RAMP_JUMP, { id: "w14", stat: 2, boss: 2, elite: 1 }, "一段強くなるのは第四章の入口 (蘇生・HP1で踏みとどまる技を覚える頃)。主のHPも同じく。強敵のHPの追加は無し (2026-10-16)");
 assert.deepEqual(STAT_SPLIT, { atk: 1 / 3, hp: 1.3 }, "能力ごとの段: 攻撃は軽く、HP は重く (VIT・HP が効くように)");
 const JUMP = MAIN.findIndex(d => d.id === "w14");
 assert.equal(JUMP, 4);
@@ -64,7 +64,7 @@ for (const cfg of WORLD) {
   assert.deepEqual(statWallOf({ ...cfg, wall: 1 }), { atk: 1, hp: 1 });
   const hp = strongHpWallOf(cfg);
   near(hp.boss, ramp(s, 5, 1, 2));
-  near(hp.elite, ramp(s, 3, 1, 2));
+  assert.equal(hp.elite, 1, cfg.id); // 強敵のHPの追加は無し (雑魚と同じ体の段だけ)
   // 無限迷宮 (wall:1) は段を受けない
   assert.equal(dungeonProgressOf({ ...cfg, wall: 1 }), 0);
   assert.equal(agiWallOf({ ...cfg, wall: 1 }), 1);
@@ -80,13 +80,13 @@ near(wallOf(at("w13")), 5 ** (3 / 28));
 near(wallOf(at("w14")), 2 * 5 ** (4 / 28));
 near(strongHpWallOf(at("w13")).boss, 2.5 ** (3 / 28));
 near(strongHpWallOf(at("w14")).boss, 2 * 2.5 ** (4 / 28));
-near(strongHpWallOf(at("w14")).elite, 2 * 1.5 ** (4 / 28));
+assert.equal(strongHpWallOf(at("w14")).elite, 1);
 near(wallOf(at("w38")), 10);
 near(agiWallOf(at("w38")), 3);
-assert.deepEqual(strongHpWallOf(at("w38")), { boss: 5, elite: 3 });
+assert.deepEqual(strongHpWallOf(at("w38")), { boss: 5, elite: 1 });
 near(wallOf(at("w41")), 10 * 1.5 ** 3);
 near(agiWallOf(at("w41")), 3 * 1.1 ** 3);
-assert.deepEqual(strongHpWallOf(at("w41")), { boss: 5, elite: 3 });
+assert.deepEqual(strongHpWallOf(at("w41")), { boss: 5, elite: 1 });
 for (const [id, main] of [["ws20", "w38"], ["ws22", "w39"], ["ws21", "w41"], ["ws23", "w42"], ["ws24", "w45"], ["ws25", "w48"], ["ws26", "w46"], ["ws27", "w47"], ["ws7", "w18"], ["ws13", "w35"], ["ws5", "w15"], ["ws4", "w10"], ["ws3", "w01"], ["ws6", "w01"]]) {
   assert.equal(dungeonProgressOf(at(id)), Math.max(0, MAIN.findIndex(d => d.id === main)), id);
 }
@@ -152,7 +152,7 @@ for (const cfg of WORLD) for (let floor = 1; floor <= cfg.floors; floor++) {
   C(s => spawnRanked(eventKey, rank, 1, s * (t.soloMul || 1)), "出来事の魔物");
   floors++;
 }
-console.log(`全${WORLD.length}迷宮・${floors}階・${foes}個体: 段のとおりの HP (W^1.3)・攻撃 (W^(1/3))・防御 (W)・素早さ、主・強敵だけHPの追加、保存・復元で重ねない`);
+console.log(`全${WORLD.length}迷宮・${floors}階・${foes}個体: 段のとおりの HP (W^1.3)・攻撃 (W^(1/3))・防御 (W)・素早さ、主だけHPの追加、保存・復元で重ねない`);
 
 // ---- 戦闘開始・召喚・金属・図鑑 ----
 const cfg = WORLD.find(c => c.layer === 12 && c.boss);
@@ -193,9 +193,9 @@ assert.equal(strong.maxhp, baseHp * 5);
 const legacy = spawnBossEnemies(cfg.boss, 1, cfg.bossRank)[0];
 scaleStrongFoeHp(legacy, 10);
 assert.equal(legacy.maxhp, baseHp * 10);
-// 呼ばれた通常の手下には追加HPを掛けず、強敵を呼んだ時は ×3
+// 呼ばれた通常の手下にも、呼ばれた強敵にも追加HPは掛けない (強敵のHPの追加は無し)
 caller.summonKey = cfg.elites[0];
 b._execInner({ actor: caller, action: "summon" });
 const eliteHp = scaleFoeStats(spawnEliteEnemies(cfg.elites[0], 1)[0], statWallOf(cfg)).maxhp;
-assert.equal(b.enemies.at(-1).maxhp, eliteHp * 3);
-console.log("戦闘開始・召喚 (手下は追加なし・強敵は×3、能力ごとの段も)・金属 (HPは直さない)・図鑑・旧い保存の戦闘を確認");
+assert.equal(b.enemies.at(-1).maxhp, eliteHp);
+console.log("戦闘開始・召喚 (手下・強敵とも追加なし、能力ごとの段も)・金属 (HPは直さない)・図鑑・旧い保存の戦闘を確認");
