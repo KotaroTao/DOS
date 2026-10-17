@@ -407,7 +407,7 @@ export function registerMonsterPhotos(monsters) {
     const size = mon.elite ? 120 : 96, k = size / Math.max(width, height);
     const sprite = lazyPhoto(new URL(`../art/monsters/${id}.webp`, import.meta.url).href,
       { w: Math.round(width * k), h: Math.round(height * k), width, height });
-    Object.assign(mon, sprite, { fallback: { art: mon.art, palette: mon.palette } });
+    Object.assign(mon, sprite);
   }
 }
 
@@ -416,7 +416,7 @@ export function restoreMonsterPhotos(enemies, monsters) {
   for (const enemy of enemies || []) {
     const sprite = monsters[enemy.key];
     if (sprite?.photo && enemy.mon) Object.assign(enemy.mon,
-      { photo: sprite.photo, fallback: sprite.fallback, w: sprite.w, h: sprite.h });
+      { photo: sprite.photo, w: sprite.w, h: sprite.h });
   }
 }
 

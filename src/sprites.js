@@ -1202,16 +1202,24 @@ function dims(spr) {
   if (spr.photo) return { w: spr.w, h: spr.h, rows: null };
   return normalize(spr.art);
 }
+// 取得中・失敗時も旧イラストを描かず、姿を持たない共通の待機印で位置を示す。
+export function drawPhotoPlaceholder(ctx, dx, dy, dw, dh) {
+  const r = Math.min(dw, dh) * 0.16, x = dx + dw / 2, y = dy + dh / 2;
+  ctx.save();
+  ctx.strokeStyle = "#9b9488";
+  ctx.lineWidth = Math.max(1, r / 12);
+  ctx.beginPath();
+  ctx.moveTo(x, y - r); ctx.lineTo(x + r, y); ctx.lineTo(x, y + r);
+  ctx.lineTo(x - r, y); ctx.closePath(); ctx.stroke();
+  ctx.restore();
+}
 // 原画の矩形を (dx,dy,dw,dh) へ描く。まだ写し終わっていなければ写しを始めて false
 export function drawPhoto(ctx, spr, dx, dy, dw, dh) {
   const p = spr.photo;
   const src = p.img && _photoSurf.get(p.img);
   if (!src) {
     preparePhoto(p);
-    if (spr.fallback) {
-      const { w, h } = dims(spr.fallback);
-      drawSprite(ctx, spr.fallback, dx + dw / 2, dy + dh / 2, Math.min(dw / w, dh / h));
-    }
+    drawPhotoPlaceholder(ctx, dx, dy, dw, dh);
     return false;
   }
   const iw = src.width, ih = src.height;
@@ -1244,7 +1252,7 @@ export function whenPhoto(spr, fn) {
 // 原画版の絵を canvas に描く (読み込み待ちなら読み込み後に描き直す)。滑らかに縮める絵なので pixelated にしない
 function photoInto(c, spr, dx, dy, dw, dh) {
   c.style.imageRendering = "auto";
-  if (spr.fallback) drawPhoto(c.getContext("2d"), spr, dx, dy, dw, dh);
+  drawPhoto(c.getContext("2d"), spr, dx, dy, dw, dh);
   whenPhoto(spr, () => {
     const g = c.getContext("2d");
     if (!g) return;

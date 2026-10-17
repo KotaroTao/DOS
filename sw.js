@@ -3575,7 +3575,7 @@ const ASSETS = [
 // 版のたびに全部を先読みしていた頃は、1つでも取りこぼすと新しい版へ切り替わらず、
 // 端末に古い版が残り続けた。絵は版をまたいで残す MEDIA に置き、
 //   - install では JS/CSS/HTML (約10MB) だけを先読みして版を切り替える
-//   - 絵は使う時にキャッシュから返し、新しい版で初めて使う時だけ裏で取り直す
+//   - 絵は現在の版で確認済みのキャッシュだけ返す。版が違えば取得完了を待つ
 //   - 未表示の全画像は先読みしない。使った絵はオフラインでも利用できるよう保存する
 //   - 物語・由来の絵 (art/story/) だけは、ページが伝えてきた分 (進めている章まで —
 //     journal.js storyMediaUrls) だけを集める。まだ着いていない章の絵は、開いた時に取りに行く
@@ -3650,14 +3650,14 @@ function warmMedia(again = false) {
     const todo = [];
     for (const u of MEDIA_ASSETS) {
       if (!isStory(u) || !allow.has(abs(u))) continue; // 未表示の全画像を初回に集めない
-      if (!(await media.match(u))) todo.push(u);
+      if ((await media.match(u))?.headers.get(MEDIA_VERSION) !== CACHE) todo.push(u);
     }
     let i = 0;
     const worker = async () => {
       while (i < todo.length) {
         const u = todo[i++];
         try {
-          if (await media.match(u)) continue; // 順番待ちの間に画面の表示で保存された絵は取り直さない
+          if ((await media.match(u))?.headers.get(MEDIA_VERSION) === CACHE) continue; // 順番待ちの間に画面の表示で保存された絵は取り直さない
           await fetchMedia(u);
         }
         catch (err) { /* 通信が切れても次の機会に取り直す */ }
@@ -3711,14 +3711,14 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   if (url.origin !== self.location.origin) return; // 他オリジンは介入しない
 
-  // 絵: 持っていればすぐ返す。版ごとの確認済み印も保存し、再起動で通信を繰り返さない。
+  // 絵: 現在の版で確認済みのものだけ返す。旧版の絵は通信失敗時も表示しない。
   if (isMedia(url.href)) {
-    const media = caches.open(MEDIA);
-    const hit = media.then((m) => m.match(e.request, { ignoreSearch: true }));
-    const net = hit.then((h) => h && h.headers.get(MEDIA_VERSION) === CACHE ? null : fetchMedia(e.request));
-    e.respondWith(hit.then((h) => h || net));
-    // 更新に失敗しても保存済みの絵を残し、次に使う時に再試行する。
-    e.waitUntil(net.catch(() => {}));
+    e.respondWith((async () => {
+      const media = await caches.open(MEDIA);
+      const hit = await media.match(e.request, { ignoreSearch: true });
+      if (hit?.headers.get(MEDIA_VERSION) === CACHE) return hit;
+      return fetchMedia(e.request);
+    })());
     return;
   }
 

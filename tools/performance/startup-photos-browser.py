@@ -96,6 +96,8 @@ async def main():
                 unidIcon({slot:'weapon',cat:'ls'}),
                 {...miscPhoto(items[MISC_PHOTO_IDS[0]]),fallback:old(items[MISC_PHOTO_IDS[0]])},
                 direct(collectiblePhoto,COLLECTIBLE_PHOTOS[0]),direct(treasuryPhoto,TREASURY_PHOTOS[0])];
+              // 旧絵の参照が残っていれば、待機中・失敗時とも直ちに失敗させる。
+              for(const s of sprite)Object.defineProperty(s,'fallback',{get(){throw Error('旧イラストを参照した')}});
               window.review={sprite,spriteCanvas,crispCanvas,whenPhoto,photoReady};
             }""")
             # 装備だけは参照時に取得を予約するが、ほかの未表示原画は取得しない。
@@ -142,6 +144,7 @@ async def main():
             await page.wait_for_function("window.reviewBattle && window.__game?.G.party.length>0")
             before = await page.evaluate("""()=>{
               const r=reviewBattle,m=r.MONSTERS.bs_wickmummy;
+              Object.defineProperty(m,'fallback',{get(){throw Error('戦闘で旧イラストを参照した')}});
               const bitmap=r.monsterBitmap(m),unknown=r.monsterUnknownBitmap(m);
               if(!bitmap.c.getContext('2d').getImageData(0,0,bitmap.c.width,bitmap.c.height).data.some((v,i)=>i%4===3&&v))throw Error('戦闘の待機画像が空');
               return [bitmap.c.toDataURL(),unknown.c.toDataURL()];
@@ -155,7 +158,7 @@ async def main():
             }""")
             assert (before == after) if failure else (before != after)
             await ctx.close()
-            print("戦闘の代替絵・正体不明の影:", "通信失敗でも維持" if failure else "原画へ切替", flush=True)
+            print("戦闘の待機印・正体不明の影:", "通信失敗でも維持" if failure else "原画へ切替", flush=True)
         await browser.close()
 
 asyncio.run(main())

@@ -109,8 +109,7 @@ function vistaIllustration(dn) {
   img.decoding = "async";
   img.onerror = () => {
     if (cur?.vista !== vista || !img.isConnected) return;
-    vista.node = vistaCanvas(dn);
-    img.replaceWith(vista.node);
+    img.style.visibility = "hidden";
   };
   img.src = path;
   return (vista.node = img);

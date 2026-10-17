@@ -49,18 +49,23 @@ const base = process.env.ART_REVIEW_URL || 'http://localhost:8000';
       assert.equal(pending.oldBuilds, 0, '待機中に旧オープニングを生成しない');
       release();
       await page.waitForFunction(() => !artReview.boardArtPending());
-      await page.waitForFunction(() => vistaCanvas.toDataURL() !== vistaBefore);
+      if (['failure', 'invalid'].includes(mode)) {
+        await page.waitForTimeout(200);
+        assert.equal(await page.evaluate(() => vistaCanvas.toDataURL() === vistaBefore), true, '取得失敗・寸法不一致でも旧情景を出さない');
+      }
+      else await page.waitForFunction(() => vistaCanvas.toDataURL() !== vistaBefore);
       await page.waitForFunction(() => [...document.images].every(im => im.complete));
       const result = await page.evaluate(async () => {
         artReview.drawBoardFrame();
         const actors = await import('/src/cryptactors.js');
         shot.draw(shotCanvas.getContext('2d'), 0, { x: 0, y: 0 }, 0);
-        return { scale: artReview.BV.art.scale, chest: !!actors.cryptPropBitmap('chest'), walker: !!actors.cryptWalkerBitmap('down', {}), oldBuilds };
+        return { unavailable: !!artReview.BV.art.unavailable, scale: artReview.BV.art.scale, chest: !!actors.cryptPropBitmap('chest'), walker: !!actors.cryptWalkerBitmap('down', {}), oldBuilds };
       });
       assert.equal(result.scale, ['failure', 'invalid'].includes(mode) ? 1 : 3);
+      assert.equal(result.unavailable, ['failure', 'invalid'].includes(mode), '専用素材の失敗時は旧床ではなく無地の盤面を使う');
       assert.equal(result.chest, mode === 'success');
       assert.equal(result.walker, ['success', 'partial'].includes(mode));
-      assert.equal(result.oldBuilds, mode === 'failure' ? 1 : 0);
+      assert.equal(result.oldBuilds, 0, '取得失敗時も旧オープニングを生成しない');
       // 別の迷宮へ切り替える時も、前の盤面や旧素材を一瞬出さない。
       let nextRelease;
       const nextGate = new Promise(resolve => { nextRelease = resolve; });
@@ -76,7 +81,7 @@ const base = process.env.ART_REVIEW_URL || 'http://localhost:8000';
       await page.waitForFunction(() => !artReview.boardArtPending());
       assert.equal(await page.evaluate(() => { artReview.drawBoardFrame(); return artReview.BV.art.scale; }), 3);
       assert.deepEqual(errors, []);
-      console.log(`${mode}: 読込中の旧画像なし・完了後の描画と代替表示 OK`);
+      console.log(`${mode}: 読込中の旧画像なし・完了後の描画・失敗時も旧画像なし OK`);
       await page.close();
     }
   } finally { await browser.close(); }

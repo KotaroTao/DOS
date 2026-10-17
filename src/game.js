@@ -16,7 +16,7 @@ import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spaw
 import { decideAuto, tacticOf, setResistKnown } from "./autotactics.js";
 import { STAGED, effectStage, stageOf, stageMul, stageLabel, isBattleLong, ENEMY_STAT_LABEL } from "./buffstage.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
-import { spriteCanvas, crispCanvas, drawPhoto, photoReady, whenPhoto, setSpriteResolver } from "./sprites.js";
+import { spriteCanvas, crispCanvas, drawPhoto, drawPhotoPlaceholder, photoReady, whenPhoto, setSpriteResolver } from "./sprites.js";
 import { makeItemSpriteResolver } from "./itemart/index.js";
 import { registerMonsterPhotos, restoreMonsterPhotos } from "./monsterphotos.js";
 import { bagCount, isFormationItem,
@@ -57,7 +57,7 @@ import { kingCanvas, prewarmTown } from "./townart.js";
 import { prewarmStoryArt } from "./storyart.js";
 import { drawBattleBackdrop } from "./backdrops.js";
 import { paintCryptFloor, paintCryptSlabs, paintCryptWalls, CATACOMB, genericMaterial, boardSeed, hexRgb } from "./crypt.js";
-import { cryptPaintingPending, cryptPainting, paintCryptMaterials, paintCryptMasonry } from "./cryptpaint.js";
+import { cryptPaintingPending, hasCryptPainting, cryptPainting, paintCryptMaterials, paintCryptMasonry } from "./cryptpaint.js";
 import { CORPSE_FAMILIES, CORPSE_STATES, corpseArtKey } from "./corpseart.js";
 import { cryptActorsPending, prewarmCryptActors, cryptPropKey, cryptPropBitmap, cryptWalkerBitmap, cryptPropSprite } from "./cryptactors.js";
 import { normalizeName, storyText } from "./protagonist.js";
@@ -135,7 +135,7 @@ for (const family of Object.keys(CORPSE_FAMILIES)) for (const state of CORPSE_ST
   paintedIcons.set(corpseIcons[key], key);
 }
 function corpseIcon(cell) { return corpseIcons[corpseArtKey(cell)]; }
-setSpriteResolver(spr => paintedIcons.has(spr) ? cryptPropSprite(paintedIcons.get(spr), spr) : resolveItemSprite(spr));
+setSpriteResolver(spr => paintedIcons.has(spr) ? cryptPropSprite(paintedIcons.get(spr)) : resolveItemSprite(spr));
 // 装備の値段は性能 (能力値・属性・耐性・効果) から付け直す (src/pricing.js)。
 // 性能が同じ品は同じ値段、どこも同等以上の品は必ず高くなる
 repriceEquipment(ITEMS);
@@ -2982,7 +2982,19 @@ function ensureBoardArt() {
     const mat = crypt ? CATACOMB : genericMaterial(dungeonTheme());
     const opt = { seed, cols: COLS, rows: ROWS, rect: cellRect, cells: b.cells, mat, elite: !!G.eliteFloor, accent: crypt && sp ? hexRgb(sp.accent) : null, harmStain: hz.look.stain, harmFx: hz.look.fx };
     if (painting) art = { key, seed, mat, crypt, ...paintCryptMaterials(VW, VH, opt, painting) };
-    else {
+    else if (hasCryptPainting(activeCfg().id)) {
+      // 専用素材の取得失敗時も、旧絵は使わず通路と未踏破の区別を保つ。
+      const floor = document.createElement("canvas"), slabs = document.createElement("canvas");
+      floor.width = slabs.width = VW; floor.height = slabs.height = VH;
+      const f = floor.getContext("2d"), s = slabs.getContext("2d");
+      f.fillStyle = "#171b22"; f.fillRect(0, 0, VW, VH);
+      s.fillStyle = "#30313a"; s.strokeStyle = "#77717b";
+      for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+        const r = cellRect(x, y);
+        s.fillRect(r.x, r.y, r.w, r.h); s.strokeRect(r.x, r.y, r.w, r.h);
+      }
+      art = { key, seed, floor, slabs, candles: [], mat, crypt, scale: 1, unavailable: true };
+    } else {
       const fl = paintCryptFloor(VW, VH, opt);
       const slabs = crypt ? paintCryptSlabs(VW, VH, opt) : paintOldCardBacks();
       art = { key, seed, floor: fl.canvas, candles: fl.candles, slabs, mat, crypt, scale: 1 };
@@ -3074,7 +3086,10 @@ function ensureBoardScene() {
     if (c.walls.e && !seen.has(`v${x + 1},${y}`)) { seen.add(`v${x + 1},${y}`); walls.push({ x: R - 3, y: T, w: 6, h: B - T, horiz: false }); post(R, T); post(R, B); }
   }
   if (art.painting) paintCryptMasonry(g, walls, [...posts.values()], art.painting, art.seed, art.wallStyle);
-  else paintCryptWalls(g, walls, [...posts.values()], art.mat, art.seed);
+  else if (art.unavailable) {
+    g.fillStyle = "#62606a";
+    for (const wall of walls) g.fillRect(wall.x, wall.y, wall.w, wall.h);
+  } else paintCryptWalls(g, walls, [...posts.values()], art.mat, art.seed);
   BV.sceneHiKey = "";
 }
 // 合成済みの盤面を実画素の寸法へ拡大した写し (毎フレームは等倍で貼るだけにする)
@@ -3799,8 +3814,9 @@ function drawBoardIcons(lt, now, hx, hy) {
       }
       continue;
     }
-    const painted = cryptPropBitmap(cryptPropKey(cell, bossDoorHere()));
-    const b = painted || plainBitmap(icon);
+    const propKey = cryptPropKey(cell, bossDoorHere());
+    const painted = cryptPropBitmap(propKey);
+    const b = painted || (propKey ? pendingArtBitmap() : plainBitmap(icon));
     const size = Math.min(r.w * (here ? 0.62 : 0.86), r.h * (here ? 0.5 : 0.62));
     // 遺体は膝を曲げた座り姿。頭身は原画で保ち、左右の壁と同居する駒の余白を取る。
     const maxW = painted && cell.type === "corpse" ? r.w * (here ? 0.5 : 0.76) : painted ? r.w * (here ? 0.55 : 0.86) : size;
@@ -3822,7 +3838,7 @@ function drawBoardIcons(lt, now, hx, hy) {
       vctx.translate(cx + sway, bottom - size * 0.62 + bob);
       vctx.rotate(REDUCED_MOTION ? 0 : Math.sin(phase * 0.83) * 0.085);
       vctx.scale(1 / breath, breath);
-      drawBmpFit(wisp || plainBitmap(ICONS.wisp), 0, 0, size * 0.5, size * 0.5, 1, 0.92);
+      drawBmpFit(wisp || pendingArtBitmap(), 0, 0, size * 0.5, size * 0.5, 1, 0.92);
       vctx.restore();
     }
     // 宝箱のきらめき
@@ -3939,43 +3955,21 @@ function drawWalker(hx, hy, now) {
   const box = drawBmpFit(b, x, feet + 1 - lift, hi ? CARD_W * 1.1 : maxH, maxH);
   drawHandLantern(x - box.W * (hi ? 0.36 : 0.42) - 2, box.y + box.H * (hi ? 0.5 : 0.56), now);
 }
-// 赤い頭巾の人影 (4方向)。端末の画素の格子に整数倍で置き、補間なしでくっきり描く。
-// 高さは墓石の約8割。足元に影、手の角灯が光の輪の源。待機中は2コマでわずかに上下し、歩く時は小さく弾む
+// 取得失敗時の小物も、旧スプライトを使わず共通の待機印で示す。
+let pendingBitmap = null;
+function pendingArtBitmap() {
+  if (!pendingBitmap) {
+    const c = document.createElement("canvas"); c.width = c.height = 96;
+    drawPhotoPlaceholder(c.getContext("2d"), 0, 0, 96, 96);
+    pendingBitmap = { c, w: 96, h: 96, pad: 0 };
+  }
+  return pendingBitmap;
+}
 function drawHoodedWalker(wk, hx, hy, now) {
   const painted = cryptWalkerBitmap(G._facing, PREFS.walkerLook);
   if (painted) { drawPaintedWalker(painted, hx, hy, now); return; }
-  const b = monsterBitmap(wk);
-  const cur = G.board.cells[G.py] && G.board.cells[G.py][G.px];
-  const share = !G.heroAnim && cur && !!cellIcon(cur); // 中身のあるマスでは左手前へ寄る
-  const x = hx - (share ? CARD_W * 0.2 : 0);
-  const rows = b.h + b.pad * 2, cols = b.w + b.pad * 2;
-  // 整数の拡大率 (端末の画素単位)。墓石の高さの 72〜88% に収まる整数倍を選ぶ
-  const want = CARD_H * 0.8 * VSY / rows;
-  const kMax = Math.max(1, Math.floor(CARD_H * 0.9 * VSY / rows));
-  const k = Math.max(1, Math.min(kMax, Math.round(want)));
-  const Wd = cols * k, Hd = rows * k;              // 端末の画素での寸法
-  const W = Wd / VSX, H = Hd / VSY;                // 論理座標での寸法
-  const feet = hy + CARD_H * 0.42;
-  // 待機の2コマ (約0.6秒ごとに1ドット) / 歩みの弾み。浮遊中は弾まず、宙をゆっくり漂う
-  const lift = walkerLift(now);
-  let bob = 0;
-  if (lift > 0) bob = -Math.round(lift * VSY);
-  else if (G.heroAnim) {
-    const t = Math.min(1, (performance.now() - G.heroAnim.t0) / Math.max(1, G.heroAnim.dur));
-    bob = REDUCED_MOTION ? 0 : -Math.round(Math.sin(t * Math.PI) * 1.5) * k;
-  } else if (!REDUCED_MOTION) bob = (Math.floor(now / 620) % 2) ? -k : 0;
-  // 影 (浮遊中も地面に残す)
-  drawWalkerShadow(x, feet, [Math.max(CARD_W * 0.3, W * 0.42), Math.max(CARD_W * 0.18, W * 0.26)], [0.32, 0.55], lift, now);
-  // 論理座標で置き、盤面のカメラ変換を保つ。
-  const dx = Math.round(x * VSX - Wd / 2);
-  const dy = Math.round((feet + 1) * VSY - Hd) + bob;
-  vctx.save();
-  vctx.imageSmoothingEnabled = boardCamera.zoom > 1;
-  vctx.drawImage(b.c, dx / VSX, dy / VSY, Wd / VSX, Hd / VSY);
-  vctx.restore();
-  // 手に提げた角灯の灯り (絵に描かれた灯の位置に、揺らぐ光暈だけを重ねる。籠は絵のものを使う)
-  const lp = walkerLampSpot(wk);
-  drawLanternGlow((dx + (b.pad + lp.x + 0.5) * k) / VSX, (dy + (b.pad + lp.y + 0.5) * k) / VSY, now);
+  // 人物の原画が使えない時も、位置だけを待機印で示す。
+  drawPhotoPlaceholder(vctx, hx - CARD_W * 0.38, hy - CARD_H * 0.5, CARD_W * 0.76, CARD_H * 0.98);
 }
 // 原画の人物も同じ足元・向き・浮遊状態に従い、カメラの論理座標で描く。
 function drawPaintedWalker(b, hx, hy, now) {
@@ -10163,8 +10157,9 @@ function photoMonsterBitmap(mon) {
   const b = { c, w, h, pad };
   if (!photoReady(p)) {
     whenPhoto(mon, () => {});
-    return mon.fallback ? monsterBitmap(mon.fallback) : b;
-  } // 届くまでは既存の姿を使い、空の写しを覚えない
+    drawPhotoPlaceholder(c.getContext("2d"), pad * R, pad * R, w * R, h * R);
+    return b;
+  } // 届くまでは待機印を使い、この写しは覚えない
   const body = document.createElement("canvas");
   body.width = w * R; body.height = h * R;
   const bg = body.getContext("2d");
@@ -10230,7 +10225,7 @@ function monsterUnknownBitmap(mon) {
     g.fillStyle = "#0d0a14";
     g.fillRect(0, 0, c.width, c.height);
     s = { c, w: b.w, h: b.h, pad: b.pad };
-    if (_monBmp.get(mon) === b) _monUnk.set(mon, s); // 読み込み待ちの空の写しは覚えない
+    if (_monBmp.get(mon) === b) _monUnk.set(mon, s); // 読み込み待ちの写しは覚えない
     return s;
   }
   const rows = mon.art || [];

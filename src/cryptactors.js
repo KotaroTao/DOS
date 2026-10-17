@@ -1,4 +1,5 @@
 // 全迷宮で共用する人物と小物。透過原画を保持し、ゲーム側の状態に応じて差分を選ぶ。
+import { drawPhotoPlaceholder } from "./sprites.js";
 import { normalizeLook, WALKER_CLOAKS, WALKER_TRIMS } from "./walkerart.js";
 
 import { CORPSE_FAMILIES, CORPSE_STATES, corpseArtKey } from "./corpseart.js";
@@ -12,7 +13,7 @@ function sheet(key) {
     state.done = new Promise(resolve => { state.finish = resolve; });
     sheets.set(key, state); image.decoding = "async";
     image.onload = () => { state.ready = image.naturalWidth === w && image.naturalHeight === h; state.pending = false; state.finish(state.ready); };
-    image.onerror = () => { state.pending = false; state.finish(false); }; // この素材だけ旧描画を使う。
+    image.onerror = () => { state.pending = false; state.finish(false); }; // 失敗時も旧描画へ戻さない。
     image.src = new URL(`../art/dungeon/crypt-${name}.webp`, import.meta.url).href;
   }
   const state = sheets.get(key);
@@ -153,7 +154,7 @@ export function cryptWalkerBitmap(direction, value) {
 
 // ポップアップも盤面と同じ切り出し・色を使う。読み込み完了時に既存のphoto描画が更新する。
 const propSprites = new Map();
-export function cryptPropSprite(key, fallback) {
+export function cryptPropSprite(key) {
   const frame = CRYPT_PROP_FRAMES[key];
   if (!frame) return null;
   if (propSprites.has(key)) return propSprites.get(key);
@@ -164,14 +165,9 @@ export function cryptPropSprite(key, fallback) {
   sheets.get(frame[0]).done.then(() => {
     const b = cryptPropBitmap(key);
     if (b) { img.src = b.c.toDataURL(); return; }
-    // 取得失敗でも空のポップアップにしない。旧アイコンを同じ枠へ収める。
+    // 原画を取れない時は、共通の待機印だけを表示する。
     const c = document.createElement("canvas"); c.width = w; c.height = h;
-    const g = c.getContext("2d"), rows = fallback.art, fh = rows.length, fw = Math.max(...rows.map(r => r.length));
-    const scale = Math.min(w / fw, h / fh), ox = (w - fw * scale) / 2, oy = (h - fh * scale) / 2;
-    for (let y = 0; y < fh; y++) for (let x = 0; x < rows[y].length; x++) {
-      const color = fallback.palette[rows[y][x]];
-      if (color) { g.fillStyle = color; g.fillRect(ox + x * scale, oy + y * scale, scale, scale); }
-    }
+    drawPhotoPlaceholder(c.getContext("2d"), 0, 0, w, h);
     img.src = c.toDataURL();
   });
   return spr;

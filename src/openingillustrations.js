@@ -1,6 +1,5 @@
-// 六幕を物語と同じ原画で映す。画像が使えない時は元の低解像度描画へ戻す。
+// 六幕を物語と同じ原画で映す。画像が使えない時も暗い幕を保つ。
 import { SCENES as ORIGINAL_SCENES, setReduced } from "./openingart.js";
-import { pickRes } from "./pxpaint.js";
 
 export { setReduced };
 
@@ -21,34 +20,17 @@ const images = OPENING_IMAGES.map(({ src }) => {
   return image;
 });
 
-function illustratedShot(index, scene, W, H) {
-  let fallback = null;
-  let fallbackCanvas = null;
+function illustratedShot(index, W, H) {
   const image = images[index];
   const { focus } = OPENING_IMAGES[index];
   return {
     draw(g, t, cam, prog) {
-      // 読込中は暗い幕を保ち、旧ドット絵は失敗時だけ使う。
-      if (image && !image.complete) {
+      // 取得中・失敗時とも旧イラストは使わない。
+      if (!image?.complete || !image.naturalWidth) {
         g.save(); g.globalAlpha = 1; g.fillStyle = "#020104";
         g.fillRect(0, 0, W, H); g.restore();
         return;
       }
-      if (!image || !image.naturalWidth) {
-        if (!fallback) {
-          const res = pickRes(W, H, 1, { maxArea: 120000, maxW: 440 });
-          fallbackCanvas = document.createElement("canvas");
-          fallbackCanvas.width = res.w; fallbackCanvas.height = res.h;
-          fallback = scene.build(res.w, res.h);
-        }
-        fallback.draw(fallbackCanvas.getContext("2d"), t, cam, prog);
-        g.save();
-        g.imageSmoothingEnabled = false;
-        g.drawImage(fallbackCanvas, 0, 0, W, H);
-        g.restore();
-        return;
-      }
-      fallback = null; fallbackCanvas = null;
       // 横長の映画画角では絵の高さを保ち、顔や燭台を上下で切り落とさない。
       const wide = W / H > image.naturalWidth / image.naturalHeight;
       const scale = (wide ? H / image.naturalHeight : Math.max(W / image.naturalWidth, H / image.naturalHeight)) * 1.06;
@@ -71,5 +53,5 @@ function illustratedShot(index, scene, W, H) {
 export const SCENES = ORIGINAL_SCENES.map((scene, index) => ({
   ...scene,
   photo: OPENING_IMAGES[index].src,
-  build: (W, H) => illustratedShot(index, scene, W, H),
+  build: (W, H) => illustratedShot(index, W, H),
 }));

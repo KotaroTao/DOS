@@ -3334,8 +3334,7 @@ function drawForestVista(ctx, w, h, dn, now) {
     image.src = new URL("../art/dungeon/w00_forest-entrance.webp", import.meta.url).href;
   }
   if (!state.ready) {
-    if (state.failed) return false;
-    state.waiting.set(ctx, [w, h, dn, now]);
+    if (!state.failed) state.waiting.set(ctx, [w, h, dn, now]);
     ctx.save(); ctx.globalAlpha = 1; ctx.fillStyle = "#080a10";
     ctx.fillRect(0, 0, w, h); ctx.restore();
     return true;

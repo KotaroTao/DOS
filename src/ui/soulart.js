@@ -1,6 +1,5 @@
 // 入手の祝祭だけに使う魂のイラスト。小さな一覧の印は soulIcon のまま。
-import { SOUL_CLASSES, soulIcon } from "../souls.js";
-import { crispCanvas } from "../sprites.js";
+import { SOUL_CLASSES } from "../souls.js";
 
 let serial = 0;
 export function soulAcquisitionArt(jobKey) {
@@ -31,7 +30,7 @@ export function soulAcquisitionArt(jobKey) {
   img.style.filter = `url(#${filter.id})`;
   const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   img.src = new URL(`../../art/souls/acquisition${still ? "-still" : ""}.webp`, import.meta.url).href;
-  img.onerror = () => { img.remove(); box.appendChild(crispCanvas(soulIcon(jobKey), 132)); };
+  img.onerror = () => { img.remove(); };
   box.appendChild(img);
   return box;
 }

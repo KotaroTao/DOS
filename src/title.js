@@ -328,7 +328,7 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
   // ---- 一枚絵 ----
   // 描き下ろしの原画があれば画面の解像度のまま滑らかに (titlepaint.js)、無ければドット絵 (titleart.js)
   let scene = null, resKey = "", lastTs = 0, building = 0;
-  let painted = hasPaintedTitle();
+  const painted = hasPaintedTitle();
   const layoutPainted = async (vw, vh) => {
     const dpr = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
     const wr = wrap.getBoundingClientRect();
@@ -359,8 +359,10 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
     const vw = Math.max(1, wrap.clientWidth || innerWidth), vh = Math.max(1, wrap.clientHeight || innerHeight);
     if (painted) {
       try { return await layoutPainted(vw, vh); } catch (e) {
-        console.error(e); // 原画が読めなければドット絵へ
-        painted = false; resKey = ""; scene = null; cv.classList.remove("hd"); wrap.classList.remove("ttl-hd");
+        console.error(e); // 原画が読めなくても旧イラストへ戻さない。
+        scene = null; resKey = "";
+        g.clearRect(0, 0, cv.width, cv.height);
+        return;
       }
     }
     const dpr = Math.min(3, Math.max(1, window.devicePixelRatio || 1));
