@@ -1,4 +1,4 @@
-import { canonicalPassiveKey } from "./jobkit/common.js";
+import { canonicalPassiveKey, UNHOLY } from "./jobkit/common.js";
 import { random } from "./rng.js";
 import { lvPow } from "./levelcurve.js";
 import { monsterResists } from "./resistance.js";
@@ -898,17 +898,6 @@ export class Battle {
     }
   }
 
-  // ターンの終わり: 浄化の光 (ランク) = 20/40/60/80% で味方1人の状態異常と弱体を治す
-  _roundEndRank() {
-    const p = this._rkParty("exorcistJouka", [0.2, 0.4, 0.6, 0.8]);
-    if (!p || random() >= p) return;
-    const hurt = this.livingParty().filter((m) => ailing(m) || (m.effects || []).some((e) => e.mult < 1));
-    if (!hurt.length) return;
-    const m = hurt[Math.floor(random() * hurt.length)];
-    cureAil(m); this._purgeDown(m);
-    this.log(`浄化の光！ ${m.name}の異常・弱体解除`, "heal");
-    this._proc(m, "浄化の光");
-  }
   // ターンの初め: 竜の息吹 (ランク) = 15/20/25/40% で、竜騎士が敵全体へ火のブレス (STR×0.5/0.6/0.8/1.2)
   _roundStartRank() {
     for (const p of this.livingParty()) {
@@ -1186,6 +1175,10 @@ export class Battle {
       }
     }
     sum += best;
+    // 破魔の祝詞: 生存者の最高ランクだけ。灯守の「闇を照らす灯」などとは加算する。
+    if (type === "deal" && ctx.tgt && ctx.tgt.side === "enemy" && UNHOLY.includes(enemyRace(ctx.tgt))) {
+      sum += this._rkParty("exorcistJouka", [0.10, 0.15, 0.20, 0.25]);
+    }
     return sum;
   }
   // 発動の判定 (chance が無ければ必ず)
@@ -1514,7 +1507,6 @@ export class Battle {
   // AGI(+乱数)で行動順を組み直す。ターン開始時に毒のダメージが入る。
   // 第1ターンは先制/奇襲なら片側のみが行動する
   _startRound() {
-    if (this._roundNo >= 1) this._roundEndRank(); // 前のターンの終わり (浄化の光)
     this._roundNo++;
     this._comboTgt = null; this._comboActor = null; // 連携の (極): ターンごとに数え直す
     if (this._roundNo > 1) this._tickEffects(); // 2ターン目以降、強化/弱体の持続を消化
