@@ -1361,15 +1361,30 @@ function infSoulHolder(d, uid) {
   }
   return null;
 }
-// 付け替えた後の姿を見積もる (器はそのまま戻す)
+// 器の写しで付け替え後を見積もる。候補を見るだけでは傷・借用・装備を変えない。
 function infPreviewWith(d, fn) {
-  const keep = [d.primary, (d.subs || []).map((x) => x && { ...x, picks: Array.isArray(x.picks) ? x.picks.map((p) => ({ ...p })) : x.picks })];
-  try { fn(); recalcDoll(d); return { maxhp: d.maxhp, maxmp: d.maxmp, hp: Math.min(d.hp, d.maxhp), mp: Math.min(d.mp, d.maxmp) }; }
-  finally { [d.primary, d.subs] = keep; recalcDoll(d); }
+  const fake = { ...d, equip: { ...d.equip },
+    subs: (d.subs || []).map((x) => x && { ...x, picks: x.picks?.map((p) => ({ ...p })) }) };
+  fn(fake);
+  recalcDoll(fake);
+  // 実際の infRefit と同じ順で、左手の条件と装備できるLvを反映する。
+  const sh = fake.equip.shield;
+  if (sh && !sh.cursed && (fake.equip.weapon?.twoHanded || (sh.slot === "weapon" ? !canOffhand(fake, sh) : !canEquip(fake, sh, { anyLv: true })))) {
+    fake.equip.shield = null;
+    recalcDoll(fake);
+  }
+  for (const k of SLOTS) {
+    const it = fake.equip[k];
+    if (it && !it.cursed && equipLvShort(fake, it)) fake.equip[k] = null;
+  }
+  recalcDoll(fake);
+  const stats = {};
+  for (const k of ["maxhp", "maxmp", "atk", "vit", "agi", "int", "pie", "luk"]) stats[k] = fake[k];
+  return { ...stats, hp: Math.min(d.hp, fake.maxhp), mp: Math.min(d.mp, fake.maxmp) };
 }
 function infSoulChangePreview(d, uid) {
   if (!d || !soulByUid(uid)) return null;
-  return infPreviewWith(d, () => placeSoulInDoll(d, "primary", uid));
+  return infPreviewWith(d, (f) => placeSoulInDoll(f, "primary", uid));
 }
 function infSoulChangeBlock(d, uid) {
   if (!infAtRest()) return "灯番は風だまりにいる";
@@ -1426,16 +1441,23 @@ function infSubBlock(d, si, uid) {
 }
 function infSubPreview(d, si, uid) {
   if (!d) return null;
-  if (uid == null) return infPreviewWith(d, () => { d.subs = (d.subs || []).filter((_, i) => i !== si); });
+  if (uid == null) return infPreviewWith(d, (f) => { f.subs = (f.subs || []).filter((_, i) => i !== si); });
   if (!soulByUid(uid)) return null;
   const holder = infSoulHolder(d, uid);
   const sub = holder?.subs?.find((x) => x && x.uid === uid);
-  return infPreviewWith(d, () => {
-    if (sub) {
-      d.subs = [...(d.subs || [])];
-      d.subs[si] = { ...sub, picks: sub.picks?.map((p) => ({ ...p })) };
-    } else placeSoulInDoll(d, "sub" + si, uid);
+  const pv = infPreviewWith(d, (f) => {
+    if (sub) f.subs[si] = { ...sub, picks: sub.picks?.map((p) => ({ ...p })) };
+    else placeSoulInDoll(f, "sub" + si, uid);
   });
+  if (sub) {
+    const hi = holder.subs.findIndex((x) => x && x.uid === uid);
+    const outgoing = d.subs?.[si];
+    pv.other = { name: holder.name, from: { ...holder }, to: infPreviewWith(holder, (f) => {
+      if (outgoing) f.subs[hi] = { ...outgoing, picks: outgoing.picks?.map((p) => ({ ...p })) };
+      else f.subs.splice(hi, 1);
+    }) };
+  }
+  return pv;
 }
 // サブ魂を宿す (uid) / 外す (uid = null)
 function infSetSub(d, si, uid) {

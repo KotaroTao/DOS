@@ -691,6 +691,16 @@ button.dp-rule:active, .dp-rule-b:active { filter: brightness(1.25); }
 .inf-swap-row .ui-row-sub { white-space: normal; line-height: 1.45; }
 .inf-swap-row.inf-sub-taken .ui-row { border-color: #71c4ed; background: linear-gradient(90deg, #1b3b50, #132430); box-shadow: inset 4px 0 0 #71c4ed; }
 .inf-swap-row.inf-sub-taken .ui-row-sub { color: #a6d9f2; }
+/* 灯番の魂比較: 増減は色と記号を併記し、狭い候補行では1列に収める。 */
+.inf-stat-preview { display: block; margin-top: 8px; padding-top: 6px; border-top: 1px solid #52616b; text-align: left; }
+.inf-stat-head { font-size: 11px; color: var(--ink-dim); margin: 3px 0 5px; }
+.inf-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: 3px 12px; }
+.inf-stat-cell { display: grid; grid-template-columns: 4em 1fr auto; align-items: baseline; gap: 5px; font-size: 12px; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.inf-stat-label { color: var(--ink-dim); white-space: nowrap; }
+.inf-stat-values { color: var(--ink); white-space: nowrap; }
+.inf-stat-delta { white-space: nowrap; }
+.inf-stat-delta.up { color: #9de3a0; }
+.inf-stat-delta.down { color: #ffaaa0; }
 .inf-swap-b { flex: 0 0 auto; align-self: center; white-space: nowrap; }
 .inf-bust canvas { image-rendering: pixelated; }
 .inf-choice { display: flex; align-items: center; gap: 10px; width: 100%; margin: 6px 0; padding: 8px 10px; min-height: 64px;
