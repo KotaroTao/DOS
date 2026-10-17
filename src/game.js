@@ -2367,7 +2367,9 @@ function ensureTopbarHud() {
     floorInfo.setAttribute("role", "button");
     floorInfo.addEventListener("click", function tap() {
       if (holdForAutoMove(tap)) return;
-      if (G.state !== "board" || G.anim || G.walking || uiBlocked()) return;
+      if (!inDungeon() || uiBlocked()) return;
+      // 戦闘中も階の情報を開ける。表示中は既存のシートの仕組みで戦闘を止める。
+      if (G.state === "board" ? (G.anim || G.walking) : (G.state !== "combat" || !G.battle)) return;
       SFX.select();
       uiDungeonHud.openFloorInfo();
     });
