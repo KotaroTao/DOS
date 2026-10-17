@@ -40,7 +40,7 @@ const G = () => game.G;
 const sfx = (k) => { try { if (game.SFX && game.SFX[k]) game.SFX[k](); } catch (e) { /* 音が無くても動く */ } };
 
 // ================= 行動ドック =================
-// spec: { down:{key,label,sub,kind,icon} | null, home:{label,sub} | null, heal:{label,sub,hot} | null, auto:{on,sub} | null, idle } (game.js の dockSpec)
+// spec: { down:{key,label,sub,kind,icon,disabled} | null, home:{label,sub} | null, heal:{label,sub,hot} | null, auto:{on,sub} | null, idle } (game.js の dockSpec)
 //   heal = 「全員を回復」(隊の画面と同じ game.healAll)。帰還の右に並ぶ
 //   auto = オート移動の切り替え (いつも札の形で右端。ON の間は琥珀色に灯る)
 // 盤面は毎フレーム描き直されるので、中身が変わった時だけ作り直す
@@ -110,7 +110,11 @@ export function renderDock(host, spec, acts = {}) {
     b.addEventListener("click", (e) => { e.stopPropagation(); onTap(); });
     return b;
   };
-  if (spec.down) host.appendChild(mk("dk-down k-" + (spec.down.kind || "primary"), spec.down.icon || "down", spec.down.label, spec.down.sub, acts.descend || (() => {}), downTag && (DOWN_SHORT[spec.down.key] || spec.down.label)));
+  if (spec.down) {
+    const b = mk("dk-down k-" + (spec.down.kind || "primary"), spec.down.icon || "down", spec.down.label, spec.down.sub, acts.descend || (() => {}), downTag && (DOWN_SHORT[spec.down.key] || spec.down.label));
+    b.disabled = !!spec.down.disabled;
+    host.appendChild(b);
+  }
   if (spec.home) host.appendChild(mk("dk-home", "home", spec.home.label, spec.home.sub, acts.goHome || (() => {}), tight && spec.home.label));
   if (!spec.down && !spec.home) {
     const idle = el("div", "dk-idle");

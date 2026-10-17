@@ -2777,7 +2777,7 @@ function renderRunbar() {
 }
 
 // ===== 行動ドック (#hint を置き換える。画面下の 52px) =====
-// その場で取れる行動だけを大きく出す: 階段を見つけたら「▼ B3Fへ降りる」(主の階は挑む/踏破)、
+// その場で取れる行動だけを大きく出す: 階段を見つけ、めくった道がつながれば「▼ B3Fへ降りる」(主の階は挑む/踏破)、
 // 帰還陣を見つけたか主を討ったら「⌂ 帰還」。何も無い時は操作の手引きを薄く出す。戦闘中は命令板が代わる
 function dockSpec() {
   if (G.state !== "board" || !G.board) return null;
@@ -2802,6 +2802,7 @@ function dockSpec() {
       }
     }
   }
+  if (down && !canReachStairs(st)) { down.disabled = true; down.sub = "階段までの道がつながっていない"; }
   const home = abyssActive()
     ? (G.bossDown ? { label: "帰る", sub: "主を討った", icon: "home" } : null)
     : (G.portalFound || G.bossDown) ? { label: "帰還", sub: G.bossDown && !G.portalFound ? "主を討った" : "帰還陣から", icon: "home" } : null;
@@ -2823,7 +2824,7 @@ function dockDescend() {
   if (holdForAutoMove(dockDescend)) return;
   if (G.state !== "board" || G.anim || G.walking || uiBlocked()) return;
   const cell = findRevealedStairs();
-  if (!cell) return;
+  if (!cell || !canReachStairs(cell)) return;
   SFX.select();
   // 途中の階はそのまま降りる (確認なし)。主の間・踏破・無限迷宮の風だまりは決断のシートを挟む
   const dn = curDungeon();
@@ -2844,7 +2845,7 @@ function floatGuardText() {
   return "足元の穴に落ちず、害のある床も踏まない";
 }
 // sense = 探りの術 (G.board.fsense[chest|stairs]: この階だけ、まだめくっていない墓石の宝箱 / 階段の位置を示す。
-//         stairs = 道しるべ はさらに階段の周囲8マスの墓石をめくる。階段そのものは伏せたまま ― めくれば、どこからでも降りられてしまうため)
+//         stairs = 道しるべ はさらに階段の周囲8マスの墓石をめくる。階段そのものは伏せたまま。降下には、めくった道が階段までつながる必要がある)
 function floatLeft() { return (inDungeon() && G.run && G.run.float) || 0; }
 // 旧セーブに残る気配読み (fsense.enemy) は使わない。
 function fieldSense(kind) { return !!(["chest", "stairs"].includes(kind) && inDungeon() && G.board && G.board.fsense && G.board.fsense[kind]); }
@@ -12661,7 +12662,7 @@ function updateDescendBtn() {
   }
   const stairCell = (G.state === "board" && G.board) ? findRevealedStairs() : null;
   descendBtn.classList.toggle("hidden", !stairCell);
-  descendBtn.disabled = !stairCell;
+  descendBtn.disabled = !stairCell || !canReachStairs(stairCell);
 }
 
 function findRevealedStairs() {
@@ -12673,6 +12674,12 @@ function findRevealedStairs() {
     }
   }
   return null;
+}
+
+// 遠くの階段を術や出来事で見つけても、現在地からめくった道がつながるまでは降りられない。
+function canReachStairs(cell) {
+  const pos = cell && evCellPos(cell);
+  return !!pos && ((pos.x === G.px && pos.y === G.py) || findPath(pos.x, pos.y).length > 0);
 }
 
 let altarSel = null; // 訓練所で選択中 { doll, part }
