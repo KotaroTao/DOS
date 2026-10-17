@@ -259,19 +259,20 @@ const AFX_SLOTS = new Set(["weapon", "shield", "body", "head", "hands", "feet", 
 export function rollAffixes(it, floor, rng = random) {
   if (!it || !AFX_SLOTS.has(it.slot) || it.cursed || it.price === 0) return null;
   const row = depthRow(floor);
-  const n = row.n + (rng() < row.extra ? 1 : 0);
+  let n = row.n + (rng() < row.extra ? 1 : 0);
+  // 深い階のレジェンドは、4つ付く時に同じ確率でもう1枠を抽選する。極の格は枠ごとに独立して引く。
+  if ((it.rar === "lr" || it.lr) && n === 4 && rng() < row.extra) n++;
   const B = afxBase(it);
   const deep = Math.min(1, (floor || 1) / 100);
   for (let tries = 0; tries < 12; tries++) {
     const out = [];
-    let sum = 0, j = false, x = false;
+    let sum = 0, j = false;
     const groups = new Set();
     for (let i = 0; i < n; i++) {
       // 格を引く
       let tot = 0; for (const t in row.w) tot += row.w[t];
       let pick = rng() * tot, tier = "c";
       for (const t in row.w) { pick -= row.w[t]; if (pick < 0) { tier = t; break; } }
-      if (tier === "x" && x) tier = "r";
       let cand = AFX.filter((d) => d.tier === tier && !d.retired && fitsSlot(d, it) && !out.some((o) => o.k === d.id)
         && !(d.group && groups.has(d.group)) && !(d.group === "J" && j)
         && !(d.group === "eAtk" && it.eAtk) && !(d.group === "eDef" && it.eDef) && !(d.group === "onHit" && it.onHit));
@@ -286,7 +287,6 @@ export function rollAffixes(it, floor, rng = random) {
       if (d.kind === "B" || d.kind === "fixB") sum += afxPts(d, v, B);
       if (d.group) groups.add(d.group);
       if (d.group === "J") j = true;
-      if (d.tier === "x") x = true;
     }
     // 1つの品の能力値の追加の合計は B(R) × 1.0 まで (超えたら引き直す)
     if (sum <= B * 1.0 + 1e-6) return out.length ? out : null;
@@ -365,7 +365,7 @@ export function gearPerks(list) {
 // 無限迷宮で拾った品の追加の能力・特性を1つ選んで「特性の巻物」に写し取り (元の品は消える)、任意の装備へ書き込む。
 //  ・書ける数はレア度で決まる (コモン1 / アンコモン2 / レア3 / スーパーレア4 / レジェンド5)。格の上限は無い
 //  ・能力値の追加 (kind B・fixB) の合計は、書き込む品の B(R) × ENCHANT_CAP[レア度] まで (LR の 1.0 = 無限迷宮で拾う品と同じ天井)
-//  ・同じ種類は1つ、属攻・属防・追加効果・発動する特性 (J) はそれぞれ1つ、極は1つの品に1つまで (拾う品と同じ決まり)。
+//  ・同じ種類は1つ、属攻・属防・追加効果・発動する特性 (J) はそれぞれ1つ、付呪ではすでに極のある品に極を書けない (拾う品には極が複数付くことがある)。
 //    隊の別々の人業が同じ極を付けるのはよい
 //  ・巻物の値: 能力値の追加 (kind B) は B(R) に対する割合で持ち、書き込む品のランクで値を出し直す。それ以外 (割合・固定の値) はそのまま
 export const ENCHANT_SLOTS = { c: 1, uc: 2, r: 3, sr: 4, lr: 5 };
