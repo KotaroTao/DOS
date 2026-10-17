@@ -21,12 +21,12 @@ import { RESIST_LABEL } from "../resistance.js";
 
 import { UI, game, ops, registerUI } from "./ctx.js";
 import {
-  el, button, row, segmented, sheet, toast, confirm, statDelta, bar, badge, setText, longPress, shake, scrollBox, uiBlocked,
+  el, button, row, segmented, sheet, toast, confirm, statDelta, bar, badge, setText, longPress, shake, scrollBox, uiBlocked, DELTA_LABEL, DELTA_PERCENT,
 } from "./kit.js";
 import { deltaFloat } from "./motion.js";
 import { remember, setPref, getPref } from "./prefs.js";
 import {
-  itemDetailEl, statLines, isEquippable, gearScore, elemStatShort, showSkillPopup, showPassivePopup, itemCatText, tagRow, spellTagKinds, specialLines, specialShort, specialParts, resistDeltaParts, weaponPerformanceEl, weaponPowerPreview,
+  itemDetailEl, statLines, isEquippable, gearScore, elemStatShort, showSkillPopup, showPassivePopup, itemCatText, tagRow, spellTagKinds, specialLines, specialShort, specialParts, resistDeltaParts, weaponPerformanceEl, weaponPowerPreview, equipEffectDeltaEl,
 } from "./itemview.js";
 import { mansionControlUnlocked, lockedControl, renderSoulSummary, renderSoulSeg, openSoulPicker, openSoulList, openOrderSheet } from "./soulpanel.js";
 import { IRENE_WHO, IRENE_ART, ireneState, isGreeted, nextLine, lineOpen, noteVisit, greetingPages, playIreneScene, sceneActive } from "./irene.js";
@@ -85,7 +85,7 @@ const ATTR_DESC = {
   pie: "信仰心。回復呪文に加え、聖杖・聖武器の攻撃力を伸ばす。",
   luk: "会心（クリティカル）の発生率を左右する幸運。高いほど大ダメージが出やすい。",
 };
-const DLABEL = { power: "攻撃力", atk: "STR", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK", hp: "HP", mp: "MP" };
+const DLABEL = Object.fromEntries(Object.entries(DELTA_LABEL).filter(([k]) => !["physResist", "magResist", "breathRes"].includes(k)));
 
 // ================= 肖像 (隊の絵の差し替え点) =================
 // 人業の肖像を、ドット1つを整数倍で描いた canvas で返す (image-rendering: pixelated)。
@@ -338,7 +338,7 @@ function deltaKeys(delta) {
 function sortedDeltaKeys(delta) {
   return deltaKeys(delta).sort((a, b) => Math.abs(delta[b]) - Math.abs(delta[a]));
 }
-const deltaLabel = (delta, k) => `${delta[k] > 0 ? "▲" : "▼"}${DLABEL[k]}${delta[k] > 0 ? "+" : ""}${delta[k]}`;
+const deltaLabel = (delta, k) => `${delta[k] > 0 ? "▲" : "▼"}${DLABEL[k]}${delta[k] > 0 ? "+" : ""}${delta[k]}${DELTA_PERCENT.has(k) ? "%" : ""}`;
 const deltaSpan = (delta, k) => el("span", delta[k] > 0 ? "up" : "dn", deltaLabel(delta, k));
 function deltaText(delta, n = 3) {
   if (!delta) return "";
@@ -844,7 +844,7 @@ function openAutoEquipResult(plan, before, { apply, groups }) {
         list.appendChild(action);
         const partial = { ...plan.undoSnapshot.find(s => s.doll === r.d).equip };
         for (const x of group) if (x.doll === r.d) partial[x.k] = x.to;
-        const delta = deltaText(statsDelta(r.b, previewStats(r.d, partial, recalc)));
+        const delta = deltaText(statsDelta(r.b, previewStats(r.d, partial, recalc)), Infinity);
         list.appendChild(el("div", "pt-note", `この承認での変化: ${delta || "能力の変化なし"}`));
       }
       const oldFx = specialLines(c.from), newFx = specialLines(c.to);
@@ -872,23 +872,26 @@ function openAutoEquipResult(plan, before, { apply, groups }) {
       const chip = el("span", "pt-ae-s " + (v1 > v0 ? "up" : "dn"));
       chip.appendChild(el("span", "pt-ae-sk", DLABEL[lab]));
       chip.appendChild(el("span", null, `${v0}→${v1}`));
-      chip.appendChild(el("span", "pt-ae-sd", `${v1 > v0 ? "▲" : "▼"}${Math.abs(v1 - v0)}`));
+      chip.appendChild(el("span", "pt-ae-sd", `${v1 > v0 ? "▲" : "▼"}${Math.round(Math.abs(v1 - v0) * 1000) / 1000}`));
       st.appendChild(chip);
     }
     // 能力値以外で点数に効くもの (ブレス耐性・状態異常耐性) も、付け替えの理由がわかるように出す。
     // 状態異常耐性は種類ごとに (合計だと何の耐性が動いたのかわからない — ユーザーの指示)
     const pct = (v) => Math.round((v || 0) * 100);
-    const resRows = [["ブレス耐性", pct(r.b.breathRes), pct(r.a.breathRes)]];
-    for (const k of Object.keys(AIL_LABEL)) resRows.push([`${AIL_LABEL[k]}耐性`, pct((r.b.ailRes || {})[k]), pct((r.a.ailRes || {})[k])]);
-    for (const [lab, v0, v1] of resRows) {
+    const resRows = [["ブレス耐性", pct(r.b.breathRes), pct(r.a.breathRes), "%"]];
+    for (const [key, stat] of [["crit", "critBonus"], ["critDamage", "critDamageBonus"], ["spellCrit", "spellCritBonus"], ["spellCritDamage", "spellCritDamageBonus"]]) resRows.push([DLABEL[key], Math.round((r.b[stat] || 0) * 1000) / 10, Math.round((r.a[stat] || 0) * 1000) / 10, "%"]);
+    for (const key of ["physResist", "magResist"]) resRows.push([DELTA_LABEL[key], r.b[key] || 0, r.a[key] || 0, ""]);
+    for (const k of Object.keys(AIL_LABEL)) resRows.push([`${AIL_LABEL[k]}抵抗値`, pct((r.b.ailRes || {})[k]), pct((r.a.ailRes || {})[k]), ""]);
+    for (const [lab, v0, v1, unit] of resRows) {
       if (v0 === v1) continue;
       const chip = el("span", "pt-ae-s " + (v1 > v0 ? "up" : "dn"));
       chip.appendChild(el("span", "pt-ae-sk", lab));
-      chip.appendChild(el("span", null, `${v0}→${v1}%`));
-      chip.appendChild(el("span", "pt-ae-sd", `${v1 > v0 ? "▲" : "▼"}${Math.abs(v1 - v0)}`));
+      chip.appendChild(el("span", null, `${v0}→${v1}${unit}`));
+      chip.appendChild(el("span", "pt-ae-sd", `${v1 > v0 ? "▲" : "▼"}${Math.round(Math.abs(v1 - v0) * 1000) / 1000}`));
       st.appendChild(chip);
     }
-    if (!st.childElementCount) st.appendChild(el("span", "pt-ae-s eq", "能力の変化なし"));
+    st.appendChild(equipEffectDeltaEl({ ...statsDelta(r.b, r.a), ailRes: null }));
+    if (!st.textContent) st.appendChild(el("span", "pt-ae-s eq", "能力の変化なし"));
     card.appendChild(st);
     body.appendChild(card);
   }
@@ -2532,6 +2535,7 @@ function candRow(d, k, c, h) {
     if (result) tx.appendChild(el("span", "pt-cand-power", `攻撃力 ${result.before} → ${result.power}（${result.delta > 0 ? "+" : ""}${result.delta}）`));
   }
   tx.appendChild(statDelta(c.it.slot === "weapon" ? { ...c.delta, power: 0 } : c.delta));
+  tx.appendChild(equipEffectDeltaEl(c.delta));
   // 能力の伸びには出ない特殊効果 (吸血・連撃・属性・状態異常…) は短い札で添える
   const fxs = specialShort(c.it);
   if (fxs) tx.appendChild(el("span", "pt-cand-fx", fxs));

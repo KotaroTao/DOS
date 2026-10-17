@@ -15,11 +15,11 @@ import { bagCount, isFormationItem, bagOwners } from "../items.js";
 // game.js は import しない (ctx.js の UI / game / ops を通す)。
 
 import { UI, game, ops, registerUI } from "./ctx.js";
-import { el, sheet, toast, button, confirm, setText, glyph, plainText } from "./kit.js";
+import { el, sheet, toast, button, confirm, setText, glyph, plainText, statDelta } from "./kit.js";
 import { deltaFloat } from "./motion.js";
 import {
   itemDetailEl, statLines, qualityTone, isEquippable, equipPreviewDelta, gearScore as baseGearScore, itemCatText,
-  elemDetailLines, equipLvText, elemStatEq, elemStatShort, ailDetailLines, specialLines, weaponPerformanceEl,
+  elemDetailLines, equipLvText, ailDetailLines, specialLines, weaponPerformanceEl, equipEffectDeltaEl,
 } from "./itemview.js";
 import { spriteCanvas } from "../sprites.js";
 import { dollSprite, SOUL_CLASSES, canIdentify, identifyChance, identifyLabel, JOB_GEAR } from "../souls.js";
@@ -192,24 +192,10 @@ export function nameSpan(it, cls = "wpc-nm") {
 export function deltaEl(delta, { empty = "変化なし" } = {}) {
   const w = el("span", "ui-delta wpc-delta");
   if (!delta) { w.appendChild(el("span", "eq", empty)); return w; }
-  // 攻撃力 (参照能力 × 武器の係数) を先頭に。STR は攻撃力と同じだけ動いた時は省く
-  const L = [["power", "攻撃力"], ["atk", "STR"], ["vit", "VIT"], ["agi", "AGI"], ["int", "INT"], ["pie", "PIE"], ["luk", "LUK"], ["hp", "HP"], ["mp", "MP"]];
-  let any = false;
-  for (const [k, lb] of L) {
-    const v = delta[k];
-    if (!v || typeof v !== "number" || (k === "atk" && delta.power === v)) continue;
-    any = true;
-    w.appendChild(el("span", v > 0 ? "up" : "dn", `${v > 0 ? "▲" : "▼"}${lb}${v > 0 ? "+" : ""}${v}`));
-  }
-  if (delta.crit) { any = true; w.appendChild(el("span", delta.crit > 0 ? "up" : "dn", `${delta.crit > 0 ? "▲" : "▼"}会心${delta.crit > 0 ? "+" : ""}${delta.crit}%`)); }
-  const lv = (e) => (e && e.el ? Math.min(2, e.lv || 1) : 0);
-  for (const [lb, ch] of [["属攻", delta.elemAtk], ["属防", delta.elemDef]]) {
-    if (!ch || elemStatEq(ch.from, ch.to)) continue;
-    any = true;
-    // 「属防 —→火◎」(いま → 装備後)。段が上がれば緑、下がれば赤
-    w.appendChild(el("span", lv(ch.to) >= lv(ch.from) ? "up" : "dn", `${lb} ${elemStatShort(ch.from)}→${elemStatShort(ch.to)}`));
-  }
-  if (!any) w.appendChild(el("span", "eq", empty));
+  const stats = statDelta(delta, { compact: false }), effects = equipEffectDeltaEl(delta);
+  const same = stats.querySelector(".eq");
+  if (same) { if (effects.childElementCount) same.remove(); else same.textContent = empty; }
+  w.append(stats, effects);
   return w;
 }
 // 金貨つきの値段 (●120)
@@ -453,23 +439,10 @@ export function canEquipReason(d, it, opts) {
   return localReason(d, it, opts);
 }
 
-// 増減の短い表記 (大きい順に3つまで)
+// 人業を選ぶ一覧でも、会心だけの変化や失う特殊効果を省かない。
 function shortDelta(delta) {
-  const w = el("span", "wpc-sd");
-  if (!delta) { w.appendChild(el("span", "eq", "変化なし")); return w; }
-  const L = { power: "攻撃力", atk: "STR", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK", hp: "HP", mp: "MP" };
-  const list = Object.keys(L).filter((k) => delta[k] && typeof delta[k] === "number" && !(k === "atk" && delta.power === delta.atk)).map((k) => [k, delta[k]]);
-  if (delta.crit) list.push(["crit", delta.crit]);
-  const lvOf = (e) => (e && e.el ? Math.min(2, e.lv || 1) : 0);
-  for (const [k, ch] of [["属攻", delta.elemAtk], ["属防", delta.elemDef]]) if (ch && !elemStatEq(ch.from, ch.to)) list.push([k, (lvOf(ch.to) - lvOf(ch.from)) || 0.1]);
-  if (!list.length) { w.appendChild(el("span", "eq", "変化なし")); return w; }
-  list.sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]) || (b[1] > 0) - (a[1] > 0));
-  for (const [k, v] of list.slice(0, 3)) {
-    const lb = L[k] || (k === "crit" ? "会心" : k);
-    const num = k.startsWith("属") ? "" : `${v > 0 ? "+" : ""}${v}${k === "crit" ? "%" : ""}`;
-    w.appendChild(el("span", v > 0 ? "up" : "dn", `${v > 0 ? "▲" : "▼"}${lb}${num}`));
-  }
-  if (list.length > 3) w.appendChild(el("span", "more", "…"));
+  const w = deltaEl(delta);
+  w.classList.add("wpc-sd");
   return w;
 }
 

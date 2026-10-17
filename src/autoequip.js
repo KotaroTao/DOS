@@ -15,7 +15,15 @@
 // 人業ごとに選んで適用するのは applyPlanSubset(plan, keep) (頼り合い = planDeps(plan) は一緒に入れ切りする)。
 // どちらも実体 (人業の equip / items) を書き換え、recalc で能力を再計算する。
 
+import { afxDef } from "./infaffix.js";
 import { bagCount, isFormationItem, SLOTS, MAX_ITEMS, canEquip as canEquipDefault, recalc as recalcDefault, attackPower, weaponRange, canOffhand, fightPower, offhandPower } from "./items.js";
+
+// 条件つき・探索用の追加特性は、能力値だけでは変化がわからないため説明も比較する。
+export function equipmentTraitTexts(equip) {
+  return [...new Set(Object.values(equip || {}))].filter(it => it && !it.unidentified).flatMap(it => (it.afxText || []).filter(a => {
+    const d = afxDef(a.k); return d && (d.fx || d.misc);
+  }).map(a => `${a.name.replace(/の$/, "")}：${a.text}`));
+}
 
 const EPS = 0.05;          // これ未満の伸びは「同じ」とみなす (同格の品を入れ替え続けない)
 const EQUIP_SLOTS = new Set(["weapon", "shield", "body", "head", "hands", "feet", "acc"]);
@@ -50,6 +58,8 @@ export function previewStats(doll, equip, recalcFn = recalcDefault) {
     ailRes: fake.ailRes || null, onHit: fake.onHit || null, // 状態異常耐性・追加効果 (itemview の gearScore が数える)
     power: attackPower(fake), weapon: equip.weapon || null, shield: equip.shield || null, // 攻撃力 (参照能力 × 武器の係数) と武器・盾
     offPower: offhandPower(fake), fight: fightPower(fake), // 二刀流: 左手の攻撃力 / 比べる物差しの攻撃力 (右手 + 左手の DUAL_VALUE_SHARE)
+    physResist: fake.physResist || 0, magResist: fake.magResist || 0,
+    traits: equipmentTraitTexts(equip),
     eff: fake.eff || null, // 戦闘効果 (連撃・吸血・守り…。itemview の gearScore が effScore で数える)
   };
 }
@@ -59,6 +69,9 @@ export function statsDelta(from, to) {
   return {
     // 戦闘効果の付け替え前後と、付け替え後の攻撃力・最大HP/MP (効果の値打ちはこの人業の強さで測る)
     eff: { from: from.eff || null, to: to.eff || null },
+    traits: { from: from.traits || [], to: to.traits || [] },
+    weaponMode: { from: from.weapon || null, to: to.weapon || null },
+    offhandMode: { from: offW(from), to: offW(to) },
     abs: { power: fp(to), maxhp: to.maxhp || 0, maxmp: to.maxmp || 0 },
     atk: to.atk - from.atk, vit: to.vit - from.vit, agi: to.agi - from.agi,
     int: to.int - from.int, pie: to.pie - from.pie, luk: to.luk - from.luk,
@@ -69,6 +82,8 @@ export function statsDelta(from, to) {
     spellCritDamage: Math.round(((to.spellCritDamageBonus || 0) - (from.spellCritDamageBonus || 0)) * 1000) / 10,
     elemAtk: { from: from.elemAtk, to: to.elemAtk },
     elemDef: { from: from.elemDef, to: to.elemDef },
+    physResist: (to.physResist || 0) - (from.physResist || 0),
+    magResist: (to.magResist || 0) - (from.magResist || 0),
     breathRes: Math.round(((to.breathRes || 0) - (from.breathRes || 0)) * 100), // ブレス耐性 (%)
     ailRes: { from: from.ailRes || null, to: to.ailRes || null },
     onHit: { from: from.onHit || null, to: to.onHit || null },

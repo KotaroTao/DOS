@@ -1,13 +1,13 @@
 import { revealSteps } from "../monsterreveal.js";
 import { MONSTER_LORE } from "../dungeons/monlore.js";
-import { previewStats, trialEquip } from "../autoequip.js";
+import { previewStats, trialEquip, equipmentTraitTexts } from "../autoequip.js";
 import { RESIST_LABEL } from "../resistance.js";
 // ===== 品・スキルの表示まわり (game.js から移設した純粋な表示ヘルパ) =====
 // 状態を変えない。G が要るものは引数で受け取るか、ctx の game.G を読む。
 // 呼び出し側 (game.js・各パッケージ) は同じ名前のまま import して使う。
 
 import { game } from "./ctx.js";
-import { el, sheet, setText } from "./kit.js";
+import { el, sheet, setText, statDelta } from "./kit.js";
 import { ELEMENTS, elementAffinity, RACE_LABEL, unknownLabel, UNK_OPEN, UNK_CLOSE } from "../dungeons/index.js";
 import { SPELLS, spellMpLabel, spellCureKinds, soulTierRate, healsHp, MP_DRAIN_CAP, stanceMulOf } from "../combat.js";
 import { STAGED, stageOf, stageMul, stageLabel, ENEMY_STAT_LABEL, effectStage, isBattleLong } from "../buffstage.js";
@@ -414,7 +414,7 @@ export function skillChips(keys, label) {
 const AIL_SHORT = { poison: "毒", paralyze: "痺", sleep: "眠", charm: "魅", confuse: "乱", stone: "石" };
 // 短い表記: 「魅30・乱30」 / 「痺15%」
 export function ailResShort(r) { return r ? Object.entries(r).map(([k, v]) => `${AIL_SHORT[k] || k}${Math.round(v * 100)}`).join("・") : "—"; }
-export function onHitShort(o) { return o && o.length ? o.map((x) => `${AIL_SHORT[x.k] || x.k}${Math.round(x.chance * 100)}%`).join("・") : "—"; }
+export function onHitShort(o) { return o && o.length ? o.map((x) => `${AIL_LABEL[x.k] || x.k}${Math.round(x.chance * 1000) / 10}%${x.k === "poison" ? `（毎ターンHP${Math.round((x.pct || 0.05) * 1000) / 10}%）` : ""}`).join("・") : "—"; }
 // 一覧の一行用 (statLines に添える)
 function ailStatParts(it, { res = true } = {}) {
   const out = [];
@@ -510,7 +510,7 @@ export function specialParts(it, { res = true } = {}) {
   if (!it || it.unidentified) return [];
   const parts = [...effStatParts(it)];
   // 無限迷宮の追加の能力・特性 (src/infaffix.js): 格の印と名で (くわしくは specialLines)
-  for (const a of it.afxText || []) parts.push(`${a.tier === "x" ? "★" : a.tier === "r" ? "◆" : a.tier === "u" ? "◇" : "＋"}${a.name.replace(/の$/, "")}`);
+  for (const a of it.afxText || []) parts.push(`${a.tier === "x" ? "★" : a.tier === "r" ? "◆" : a.tier === "u" ? "◇" : "＋"}${a.name.replace(/の$/, "")}：${a.text}`);
   if (it.magic) parts.push("魔法属性");
   const ea = elemStatText("攻撃", it.eAtk), ed = elemStatText("防御", it.eDef);
   if (ea) parts.push(ea);
@@ -672,59 +672,63 @@ export function equipPreviewDelta(p, cand, slotKey = null) {
     breathRes: Math.round(((fake.breathRes || 0) - (p.breathRes || 0)) * 100),
     onHit: { from: p.onHit || null, to: fake.onHit || null },
     eff: { from: p.eff || null, to: fake.eff || null },
+    traits: { from: equipmentTraitTexts(p.equip), to: equipmentTraitTexts(eq) },
+    weaponMode: { from: p.equip.weapon || null, to: eq.weapon || null },
+    offhandMode: { from: offW(p.equip), to: offW(eq) },
     abs: { power: fightPower(fake), maxhp: fake.maxhp || 0, maxmp: fake.maxmp || 0 },
   };
 }
 
-// 装備候補の「装備中と比べた増減」行 (増・緑/減・赤)。何かを付け替えるときだけ呼ぶ。
-export function equipCompareEl(p, cand) {
-  const d = equipPreviewDelta(p, cand);
-  const row = el("span", "eq-cd");
-  row.appendChild(el("span", "eq-cd-lab", "装備すると"));
-  let any = false;
-  if (d) {
-    // 攻撃力 (参照能力 × 武器の係数)。STR は攻撃力と増減が違う時だけ併記する
-    if (d.power) {
-      any = true;
-      row.appendChild(el("span", "eq-cd-seg " + (d.power > 0 ? "up" : "down"), `攻撃力 ${d.power > 0 ? "▲+" + d.power : "▼" + d.power}`));
-    }
-    for (const [label, k] of [["STR", "atk"], ["VIT", "vit"], ["AGI", "agi"], ["INT", "int"], ["PIE", "pie"], ["LUK", "luk"], ["HP", "hp"], ["MP", "mp"]]) {
-      const v = d[k];
-      if (!v || (k === "atk" && v === d.power)) continue;
-      any = true;
-      row.appendChild(el("span", "eq-cd-seg " + (v > 0 ? "up" : "down"), `${label} ${v > 0 ? "▲+" + v : "▼" + v}`));
-    }
-    // 会心率 (%)
-    for (const [key, label] of [["crit", "会心"], ["critDamage", "会心ダメージ"], ["spellCrit", "魔法会心"], ["spellCritDamage", "魔法会心ダメージ"]]) {
-      if (!d[key]) continue;
-      any = true;
-      row.appendChild(el("span", "eq-cd-seg " + (d[key] > 0 ? "up" : "down"), `${label} ${d[key] > 0 ? "▲+" + d[key] : "▼" + d[key]}%`));
-    }
-    // 属性攻撃/防御の変化 (—→火◯ のように現状→装備後で表示)
-    for (const [label, ch] of [["属攻", d.elemAtk], ["属防", d.elemDef]]) {
-      if (elemStatEq(ch.from, ch.to)) continue;
-      any = true;
-      row.appendChild(el("span", "eq-cd-seg elem", `${label} ${elemStatShort(ch.from)}→${elemStatShort(ch.to)}`));
-    }
-    for (const k of ["physResist", "magResist"]) if (d[k]) {
-      any = true;
-      row.appendChild(el("span", "eq-cd-seg " + (d[k] > 0 ? "up" : "down"), `${RESIST_LABEL[k]}抵抗値 ${d[k] > 0 ? "+" : ""}${d[k]}`));
-    }
-    // 状態異常耐性 / 追加効果の変化
-    if (d.ailRes && ailResShort(d.ailRes.from) !== ailResShort(d.ailRes.to)) {
-      any = true;
-      row.appendChild(el("span", "eq-cd-seg elem", `異常耐性 ${ailResShort(d.ailRes.from)}→${ailResShort(d.ailRes.to)}`));
-    }
-    if (d.breathRes) {
-      any = true;
-      row.appendChild(el("span", "eq-cd-seg " + (d.breathRes > 0 ? "up" : "down"), `ブレス耐性 ${d.breathRes > 0 ? "▲+" + d.breathRes : "▼" + d.breathRes}%`));
-    }
-    if (d.onHit && onHitShort(d.onHit.from) !== onHitShort(d.onHit.to)) {
-      any = true;
-      row.appendChild(el("span", "eq-cd-seg elem", `追加効果 ${onHitShort(d.onHit.from)}→${onHitShort(d.onHit.to)}`));
+// 数値以外の付け替え結果。ほかの部位も含めた集計値で比べる。
+export function equipEffectDeltaParts(delta) {
+  if (!delta) return [];
+  const out = [];
+  for (const [label, ch] of [["属攻", delta.elemAtk], ["属防", delta.elemDef]]) {
+    if (ch && !elemStatEq(ch.from, ch.to)) out.push({ text: `${label} ${elemStatShort(ch.from)}→${elemStatShort(ch.to)}`, d: 0 });
+  }
+  for (const [label, ch] of [["通常攻撃", delta.weaponMode], ["左手", delta.offhandMode]]) {
+    if (!ch) continue;
+    if (!!ch.from?.magic !== !!ch.to?.magic) out.push({ text: `${label} ${ch.from?.magic ? "魔法" : "物理"}→${ch.to?.magic ? "魔法" : "物理"}`, d: 0 });
+    if (weaponRange(ch.from) !== weaponRange(ch.to)) out.push({ text: `${label}の射程 ${RANGE_LABEL[weaponRange(ch.from)]}→${RANGE_LABEL[weaponRange(ch.to)]}`, d: 0 });
+  }
+  const ar = delta.ailRes;
+  if (ar) for (const k of new Set([...Object.keys(ar.from || {}), ...Object.keys(ar.to || {})])) {
+    const v = Math.round((((ar.to || {})[k] || 0) - ((ar.from || {})[k] || 0)) * 1000) / 10;
+    if (v) out.push({ text: `${RESIST_LABEL[k] || AIL_LABEL[k] || k}抵抗値${v > 0 ? "+" : ""}${v}`, d: v });
+  }
+  if (delta.onHit && onHitShort(delta.onHit.from) !== onHitShort(delta.onHit.to)) out.push({ text: `追加効果 ${onHitShort(delta.onHit.from)}→${onHitShort(delta.onHit.to)}`, d: 0 });
+  const eff = delta.eff;
+  if (eff) for (const k of new Set([...Object.keys(eff.from || {}), ...Object.keys(eff.to || {})])) {
+    const a = (eff.from || {})[k] || 0, b = (eff.to || {})[k] || 0;
+    if (a === b) continue;
+    const info = EFF_INFO[k], text = v => v ? (info ? info.short(typeof v === "number" ? v : 1) : k) : "なし";
+    if (text(a) === text(b)) continue;
+    out.push({ text: `${text(a)}→${text(b)}`, d: k === "spellCostMul" ? (a || 1) - (b || 1) : b - a });
+  }
+  if (delta.traits) {
+    const counts = list => { const m = new Map(); for (const text of list) m.set(text, (m.get(text) || 0) + 1); return m; };
+    const a = counts(delta.traits.from), b = counts(delta.traits.to);
+    for (const text of new Set([...a.keys(), ...b.keys()])) {
+      const diff = (b.get(text) || 0) - (a.get(text) || 0);
+      if (diff) out.push({ text: `${diff > 0 ? "得る" : "失う"} ${text}${Math.abs(diff) > 1 ? ` ×${Math.abs(diff)}` : ""}`, d: diff });
     }
   }
-  if (!any) row.appendChild(el("span", "eq-cd-same", "変化なし"));
+  return out;
+}
+export function equipEffectDeltaEl(delta) {
+  const row = el("span", "ui-delta");
+  for (const { text, d } of equipEffectDeltaParts(delta)) row.appendChild(el("span", d > 0 ? "up" : d < 0 ? "dn" : "elem", text));
+  return row;
+}
+// 装備候補の増減。会心4種・抵抗値・耐性・追加効果・戦闘効果を共通の内容で示す。
+export function equipCompareEl(p, cand) {
+  const delta = equipPreviewDelta(p, cand), row = el("span", "eq-cd");
+  row.appendChild(el("span", "eq-cd-lab", "装備すると"));
+  const effects = equipEffectDeltaParts(delta);
+  const stats = statDelta(delta || {}, { compact: false });
+  if (effects.length) stats.querySelector(".eq")?.remove();
+  row.appendChild(stats);
+  row.appendChild(equipEffectDeltaEl(delta));
   return row;
 }
 
