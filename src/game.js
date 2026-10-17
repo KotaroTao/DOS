@@ -2101,7 +2101,7 @@ function shadeHex(hex, f) {
   const n = parseInt(hex.slice(1), 16);
   return `rgb(${Math.round(((n >> 16) & 255) * f)},${Math.round(((n >> 8) & 255) * f)},${Math.round((n & 255) * f)})`;
 }
-// 偉大なる死体の職業: レア30% / エピック50% / レジェンド20% (souls.js の共通定義を使う)
+// 偉大なる死体の職業: エピック80% / レジェンド20% (souls.js の共通定義を使う)
 function rollGreatCorpseClass() { return rollGreatJobClass(); }
 
 // ランクのパッシブの Lv (1-4 = ランク2-5) から、その段の値を引く (combat.js の _rk と同じ)
