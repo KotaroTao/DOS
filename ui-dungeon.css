@@ -868,3 +868,27 @@ button.dp-rule:active, .dp-rule-b:active { filter: brightness(1.25); }
 :is(#combat-menu, .battle-skill-picker).battle-skill-picker .btn.spell { min-height: 56px; width: 100%; padding: 8px 10px; font-size: 14px; gap: 4px; }
 .battle-skill-picker .btn.spell.locked { opacity: 0.5; }
 .battle-skill-picker .ui-sheet-foot { flex: 0 0 auto; }
+
+/* 人業の様子: 正確な数値は省略せず、狭い画面では項目名と分けて読む。 */
+.dg-peek .dg-peek-bv { min-width: 0; display: flex; flex-wrap: wrap; justify-content: flex-end; }
+.dg-peek .dg-peek-bv > span { min-width: 0; overflow-wrap: anywhere; }
+.dg-peek .dg-stat, .dg-peek .dg-num-h, .dg-peek .dg-stat-v,
+.dg-peek .dg-chip, .dg-peek .dg-skill-n, .dg-peek .dg-skill-mp { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+.dg-peek .dg-chip { flex-wrap: wrap; white-space: normal; }
+@media (max-width: 600px) {
+  .dg-peek .dg-peek-top { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 4px 12px; }
+  .dg-peek .dg-peek-top > .ui-port { grid-row: 1 / span 2; align-self: center; }
+  .dg-peek .dg-peek-tx { display: contents; }
+  .dg-peek .dg-peek-n, .dg-peek .dg-peek-c { grid-column: 2; min-width: 0; overflow-wrap: anywhere; }
+  .dg-peek .dg-peek-bar { grid-column: 1 / -1; grid-template-columns: 28px minmax(0, 1fr); gap: 4px 8px; margin-top: 6px; }
+  .dg-peek .dg-peek-bl { grid-column: 1; grid-row: 1; }
+  .dg-peek .dg-peek-bv { grid-column: 2; grid-row: 1; }
+  .dg-peek .dg-peek-bar > .ui-bar { grid-column: 1 / -1; grid-row: 2; width: 100%; }
+  .dg-peek .dg-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .dg-peek .dg-stat, .dg-peek .dg-num-h { flex-direction: column; align-items: stretch; gap: 4px; }
+  .dg-peek .dg-stat { padding: 8px 10px; }
+  .dg-peek .dg-stat-v { text-align: right; line-height: 1.4; }
+  .dg-peek .dg-stat-b { display: block; margin: 3px 0 0; line-height: 1.4; }
+  .dg-peek .dg-num-s { margin-top: 3px; }
+  .dg-peek .dg-skill { min-height: 44px; }
+}
