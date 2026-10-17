@@ -7937,7 +7937,7 @@ function undeadKeyForDungeon() {
 function investigateCorpse(cell, clsKey, clsLabel) {
   cell.cleared = true;
   const back = () => { if (G.state === "board") renderBoard(); };
-  // 半分の確率で魂の残火も残っている (下の4つのどれとも別に)。魂なら同じ知らせにまとめ、ほかは知らせの末尾に添える
+  // 残火は50%で残る。職業の魂を得た時は外れても規定数を保証し、同じ知らせにまとめる。
   const ember = random() < EMBER_COLD_RATE ? emberEcho(EMBER_COLD * emberMul(battleLayer())) : 0;
   let emberDone = false;
   const emberTail = () => {
@@ -7964,7 +7964,8 @@ function investigateCorpse(cell, clsKey, clsLabel) {
 
   // 20%: 職能の記憶を宿した「魂」
   if (roll < 0.20) {
-    acquireSoul(clsKey, `風化した死体の残りかすに、まだ職能の記憶が宿っていた。`, back, ember);
+    const soulEmber = ember || emberEcho(EMBER_COLD * emberMul(battleLayer()));
+    acquireSoul(clsKey, `風化した死体の残りかすに、まだ職能の記憶が宿っていた。`, back, soulEmber);
     return;
   }
 
@@ -8001,7 +8002,8 @@ function investigateCorpse(cell, clsKey, clsLabel) {
   giveGold();
 }
 
-// 魂の残火: まだあたたかい死体 = 必ず1個 / 偉大なる死体 = 必ず5個 / 風化した死体 = 50%で1個 (investigateCorpse)。
+// 魂の残火: まだあたたかい死体 = 必ず1個 / 偉大なる死体 = 必ず5個。
+// 風化した死体は職業の魂を得たら必ず1個、それ以外は50%で1個 (investigateCorpse)。
 // 第1〜9章は上記の基本数、第10章以降 (第12層〜) は通常・風化2個 / 偉大10個。
 // levelcurve.js emberMul で本編の層に対応させ、敵Lvや隊のLvでは増やさない。
 const EMBER_WARM = 1, EMBER_GREAT = 5, EMBER_COLD = 1, EMBER_COLD_RATE = 0.5;
