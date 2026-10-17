@@ -18,7 +18,7 @@ import { UI, game, ops, registerUI } from "./ctx.js";
 import { el, sheet, toast, button, confirm, setText, glyph, plainText } from "./kit.js";
 import { deltaFloat } from "./motion.js";
 import {
-  itemDetailEl, statLines, isEquippable, equipPreviewDelta, gearScore as baseGearScore, itemCatText,
+  itemDetailEl, statLines, qualityTone, isEquippable, equipPreviewDelta, gearScore as baseGearScore, itemCatText,
   elemDetailLines, equipLvText, elemStatEq, elemStatShort, ailDetailLines, specialLines, weaponPerformanceEl,
 } from "./itemview.js";
 import { spriteCanvas } from "../sprites.js";
@@ -991,6 +991,7 @@ function lootToast(item, who, opts) {
     const l1 = el("span", "wpc-lt-l1");
     l1.appendChild(nameSpan(item, "wpc-lt-nm"));
     if (item.unidentified) l1.appendChild(el("span", "wpc-lt-unid", "未鑑定"));
+    else if (hasQuality(item)) l1.appendChild(el("span", "rf-q " + qualityTone(qualityOf(item)), `品質 ${qualityOf(item)}`));
     if (who) l1.appendChild(el("span", "wpc-lt-who", `→ ${who.name}`));
     tx.appendChild(l1);
     tx.appendChild(upgradeIcons(item));
@@ -1031,6 +1032,7 @@ function lootCelebrate(item, who, opts, next) {
     scroll.appendChild(upgradeIcons(item));
     if (rk) scroll.appendChild(el("div", "ig-rarity rar-" + rk, RARITIES[rk].label + (unid ? " ・ 未鑑定" : "")));
     else if (misc) scroll.appendChild(el("div", "ig-rarity", "収集品"));
+    if (!unid && hasQuality(item)) scroll.appendChild(el("div", "rf-q " + qualityTone(qualityOf(item)), `品質 ${qualityOf(item)}`));
     const sl = statLines(item);
     if (sl && !unid) scroll.appendChild(setText(el("div", "ig-stat"), sl));
     if (!unid && isEquippable(item)) {
