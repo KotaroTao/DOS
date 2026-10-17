@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { itemDepthMul, infEnemyMul } from '../../src/itemdepth.js';
 import { lvPow } from '../../src/levelcurve.js';
-import { AFX, afxDef, afxBase, rollAffixes, applyAffixes, affixPower, pageFromAffix, pageValue, pageText, enchantBlock } from '../../src/infaffix.js';
+import { AFX, afxDef, afxBase, rollAffixes, applyAffixes, affixPower, affixRange, pageFromAffix, pageValue, pageText, enchantBlock } from '../../src/infaffix.js';
 import { ITEMS, SLOTS, itemAtQuality, recalc, registerAffixes } from '../../src/items.js';
 import { CATALOG_ITEMS } from '../../src/catalog/index.js';
 import { equipScore, equipPrice, priceForScore, repriceEquipment } from '../../src/pricing.js';
@@ -47,22 +47,22 @@ const values=Object.fromEntries(['A09','A10','A11','A12'].map(k=>[k,new Set()]))
 for(let i=0;i<50000;i++){
  const depth=i%2?20:1000,it={slot:'weapon',lv:200,price:10,rar:'lr',depth};
  const afx=rollAffixes(it,depth,rng);assert(afx.length<=5);
- for(const a of afx){const d=afxDef(a.k);if(d.kind==='B')assert(a.v<=d.r[1]*afxBase(it)+1e-6);
-  else assert(a.v>=d.r[0]-1e-6&&a.v<=d.r[1]+1e-6,a.k);
+ for(const a of afx){const d=afxDef(a.k);if(d.kind==='B')assert(a.v<=affixRange(d,it)[1]*afxBase(it)+1e-6);
+  else assert(a.v>=affixRange(d,it)[0]-1e-6&&a.v<=affixRange(d,it)[1]+1e-6,a.k);
   if(values[a.k]){values[a.k].add(a.v);near(a.v/d.step,Math.round(a.v/d.step));}
  }
 }
 // 両端を含む全刻みを、実際のドロップ抽選へ制御した乱数を渡して検査する。
-for(const k of Object.keys(values)){
- const d=afxDef(k),count=Math.round((d.r[1]-d.r[0])/d.step),cand=AFX.filter(x=>x.tier===d.tier&&x.slots.some(s=>['all','w'].includes(s)));
+for(const rar of ['c','uc','r','sr','lr'])for(const k of Object.keys(values)){
+ const d=afxDef(k),band=affixRange(d,{rar}),count=Math.round((band[1]-band[0])/d.step),cand=AFX.filter(x=>x.tier===d.tier&&x.slots.some(s=>['all','w'].includes(s)));
  for(let j=0;j<=count;j++){
   const r=(j+.5)/(count+1),seq=[.99,d.tier==='u'?49/93.4:80.5/93.4,(cand.indexOf(d)+.5)/cand.length,r/1.3,r/1.3,r/1.3];
-  const afx=rollAffixes({slot:'weapon',lv:200,price:10,rar:'c'},1000,()=>seq.length?seq.shift():rng());
-  assert.equal(afx[0].k,k);near(afx[0].v,d.r[0]+j*d.step);
+  const afx=rollAffixes({slot:'weapon',lv:200,price:10,rar},1000,()=>seq.length?seq.shift():rng());
+  assert.equal(afx[0].k,k);near(afx[0].v,band[0]+j*d.step);
  }
 }
 // 巻物と品の浅い方の深度で実数を決定。深い素材を浅い品へ移しても底上げしない。
-const deep={lv:200,depth:1000,name:'検査の品'},shallow={lv:200,name:'検査の品'},a={k:'A03',v:afxBase(deep)*.2};
+const deep={lv:200,rar:'lr',depth:1000,name:'検査の品'},shallow={lv:200,rar:'lr',name:'検査の品'},a={k:'A03',v:afxBase(deep)*.2};
 const dp=pageFromAffix(deep,a),sp=pageFromAffix(shallow,{k:'A03',v:afxBase(shallow)*.2});
 near(pageValue(dp,deep),Math.round(a.v*100)/100);near(pageValue(dp,shallow),15.2);near(pageValue(sp,deep),15.2);
 assert(pageText(dp).includes(String(Math.round(a.v))));

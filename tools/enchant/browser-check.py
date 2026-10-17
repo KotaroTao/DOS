@@ -50,7 +50,7 @@ with sync_playwright() as p:
       const g0=G.gold, cost=game.enchantInfo(tc,pg).cost;
       check(cost>=100,'費用は最低100');
       check(game.writeAffix(tc,pg)&&tc.afx.length===1&&G.gold===g0-cost,'書き込むと金貨が減り、品に術が付く');
-      check(Math.abs(tc.afx[0].v-pg.r*X.afxBase(tc))<0.01,'値は書く品のランクで出し直す');
+      check(Math.abs(tc.afx[0].v-Math.min(pg.r,X.affixRange(pg.k,tc)[1])*X.afxBase(tc))<0.01,'値は書く品のランクとレア度上限で出し直す');
       check(!game.afxPagesState().includes(pg),'頁は使い切り');
       check(tc.afxPre==='力の','名の前置きが付く');
       const pg2={k:'A05',v:5};pg2.r=0.2;delete pg2.v;game.afxPagesState().push(pg2);
@@ -73,9 +73,9 @@ with sync_playwright() as p:
       check(/発動/.test(X.enchantBlock(acc,{k:'J11',v:0.1},'lr')),'発動する特性は1つの品に1つまで');
       // 容量: 能力値の術の合計
       const capT=mk(byRar('r','body').id);
-      const big=[{k:'B01',r:0.35},{k:'B04',r:0.35},{k:'B12',r:0.35}];
+      const big=['B01','B04','B12'].map(k=>({k,r:X.affixRange(k,capT)[1]}));
       capT.afx=[];for(const b of big.slice(0,2)){capT.afx.push({k:b.k,v:X.pageValue(b,capT)});}X.applyAffixes(capT);
-      check(/容量/.test(X.enchantBlock(capT,big[2],'r')),'レアの容量 0.75 を超える能力値の術は書けない');
+      check(!X.enchantBlock(capT,big[2],'r'),'レアの最大3枠を各上限0.525Bで埋めても容量1.575Bに収まる');
       check(!X.enchantBlock(capT,{k:'I12',v:0.06},'r'),'割合の術は容量に数えない');
       // 消す
       check(game.eraseAffix(tu,0)&&tu.afx.length===1,'術を消せる');
