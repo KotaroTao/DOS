@@ -4,7 +4,7 @@
 // その上に明かりのゆらめきだけを重ねる。絵そのものは描き換えない。
 // 明かりの種類 (tone): fire 炉・松明 / lamp 吊り灯 / candle 蝋燭 / crystal 祠の紅い魂 (ゆっくり脈打つ) / moon 月光 (ほぼ動かない)
 // 原画がある鍵では、取得に失敗しても旧ドット絵へ戻さない。
-import { watchIllustration } from "./imageloading.js";
+import { watchIllustration, sceneReady } from "./imageloading.js";
 import { TOWN_KEYART } from "./townkeyart.js";
 
 export const PW = 1200, PH = 750; // 情景の canvas (townart の 120x75 の10倍。比率は同じ)
@@ -121,6 +121,7 @@ export function paintedVignette(key, living) {
   };
   const ready = loadArt(key);
   watchIllustration(ready, ready, c);
+  sceneReady(c, ready);
   ready.then((im) => {
     if (!im) return;
     box = baseOf(key, im);
@@ -285,6 +286,7 @@ export function paintedTownScene(living, _unused, daylight = false) {
   observer?.observe(c);
   const ready = loadArt(key);
   watchIllustration(ready, ready, c);
+  sceneReady(c, ready);
   ready.then((img) => {
     if (!img || !img.naturalWidth) {
       failed = true; observer?.disconnect();

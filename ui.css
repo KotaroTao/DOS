@@ -642,7 +642,7 @@ canvas.tw-vig-hd { image-rendering: auto !important; }
 .ui-soul-art > svg { position: absolute; width: 0; height: 0; overflow: hidden; }
 .ui-soul-art canvas.spr { width: 132px; height: 132px; margin: 22px; }
 
-/* 画像取得の合図。燭台は動かさず、火の範囲だけを揺らす。準備が整うまで黒い幕で画面を覆う。 */
+/* 画像取得の合図。燭台は動かさず、火の範囲だけを揺らす。通常の画像待ちでは操作を遮らない。初回起動だけ黒い幕で覆う。 */
 body.screen-loading::before, body.booting::before {
   content: ""; position: fixed; inset: 0; z-index: 2147483647; background: #000;
 }
@@ -670,3 +670,8 @@ body.screen-loading::before, body.booting::before {
   .image-loading { transition: none; }
   .image-loading[data-state="loading"] .image-loading-flame { animation: none; }
 }
+
+/* 背景が届くまで直前の街の画面を残す。新しい中身は配置だけ先に整える。 */
+#town-screen:has(> .scene-hold) { position: relative; }
+.scene-hold { position: absolute; inset: 0; z-index: 20; overflow: hidden; background: #121018; }
+.scene-next { visibility: hidden; }
