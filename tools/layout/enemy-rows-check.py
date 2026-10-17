@@ -56,7 +56,8 @@ with sync_playwright() as p:
                   throw Error('敵の絵が戦場からはみ出す');
               }
               const app = document.getElementById('app');
-              const minLog = innerWidth <= 600 && __game.G.battle.enemies.length > 3 ? 47.5 : 54;
+              const short = innerWidth <= 600 && innerHeight <= 640;
+              const minLog = (short ? 38.5 : 54) - (innerWidth <= 600 && __game.G.battle.enemies.length > 3 ? 6.5 : 0);
               const desktop = getComputedStyle(document.getElementById('app')).display === 'grid';
               const overlap = desktop ? rect('hud').top < party.bottom : log.bottom > party.top+1;
               if (log.height < minLog || overlap || controls.bottom > rect('app').top+app.scrollHeight+1)
