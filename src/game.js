@@ -10761,7 +10761,7 @@ function defaultAttackTarget(actor) {
   const last = G._lastTargetUid != null ? reach.find((e) => e.uid === G._lastTargetUid) : null;
   return last || reach[0];
 }
-// 攻撃を1タップで確定する (対象を選ばせない)
+// 敵の絵を直接タップした時は、その敵への攻撃を確定する
 function attackNow(target) {
   const b = G.battle;
   if (!b || b.phase !== "input" || G.animating) return;
@@ -10847,11 +10847,15 @@ function renderCombatMenu() {
     combatMenu.dataset.mode = "input";
     const rowTag = b.isBackRow(actor) ? "後衛" : "前衛";
     combatMenu.appendChild(turnPlate(actor.name, "の手番", [rowTag, "射程 " + RANGE_LABEL[b.attackRange(actor)]]));
-    // 主の段: 攻撃 (狙いを添えて1タップで確定) ・ 最後に使った技 (未使用なら先頭の技) ・ スキル一覧
-    const tgt = defaultAttackTarget(actor);
+    // 主の段: 攻撃 (長押しで防御) ・ 最後に使った技 (未使用なら先頭の技) ・ 技の一覧
     const quick = quickSkillOf(actor);
     const main = el("div", "cmd-main" + (quick ? " has-quick" : ""));
-    main.appendChild(cmdBtn("attack", "攻撃", tgt ? `→ ${enemyLabel(tgt)}` : "敵をタップでも", () => attackNow(), "primary"));
+    const attackB = cmdBtn("attack", "攻撃", "長押しで防御", () => { SFX.select(); buzz(10); act("attack"); }, "primary");
+    attachLongPress(attackB, () => {
+      if (G.battle !== b || b.phase !== "input" || G.animating) return;
+      SFX.select(); buzz(10); act("defend");
+    });
+    main.appendChild(attackB);
     if (quick) {
       const sp = SPELLS[quick];
       const locked = skillLocked(actor, quick);
@@ -10870,7 +10874,6 @@ function renderCombatMenu() {
     else main.appendChild(cmdBtn("skill", "技", "使えない", () => log("技を使えない", "sys"), "muted"));
     combatMenu.appendChild(main);
     const sub = el("div", "cmd-sub");
-    sub.appendChild(cmdBtn("defend", "防御", "", () => act("defend")));
     // 道具: 隊の誰かの袋にある、戦闘で使える品 (無頼の誓では使えない)
     if (itemsBanned()) sub.appendChild(cmdBtn("item", "道具", "封印", () => { SFX.ng(); showToast("無頼の誓により、道具は使えない", { tone: "bad" }); }, "muted"));
     else {
@@ -10890,8 +10893,6 @@ function renderCombatMenu() {
     if (UI.openPartyTactics) {
       const tactics = () => { SFX.select(); UI.openPartyTactics(G.party.filter(Boolean), { onDone: () => { if (G.state === "combat" && !G.autoCombat) renderCombatMenu(); } }); };
       attachLongPress(autoB, tactics);
-      sub.appendChild(cmdBtn("skill", "作戦", "技の設定", tactics));
-      sub.classList.add("has-tactics");
     }
     sub.appendChild(autoB);
     sub.appendChild(cmdBtn("fast", "倍速", G.fastAnim ? "ON" : "OFF", () => { G.fastAnim = !G.fastAnim; autosave(); renderCombatMenu(); }, G.fastAnim ? "on" : ""));
