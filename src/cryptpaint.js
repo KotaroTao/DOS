@@ -1,10 +1,11 @@
 // 迷宮ごとの描き下ろし素材。各迷宮に蓋・壁材と床のWebP。
-// 読込中は表示を待ち、素材が無い・取得に失敗した時だけ従来の絵を使う。
+// 読込中は表示を待ち、取得に失敗しても旧素材へ戻さない。
 import { makeRng, paintFloorHazards } from "./crypt.js";
 
 export const CRYPT_PAINT_SCALE = 3;
 const PAINTINGS = { w00_forest: "w00_forest", w01: "crypt", w02: "w02", w03: "w03", w04: "w04", w05: "w05", w06: "w06", w07: "w07", w08: "w08", w09: "w09", w10: "w10", w11: "w11", w12: "w12", w13: "w13", w14: "w14", w15: "w15", w16: "w16", w17: "w17", w18: "w18", w19: "w19", w20: "w20", w21: "w21", w22: "w22", w23: "w23", w24: "w24", w25: "w25", w26: "w26", w27: "w27", w28: "w28", w29: "w29", w30: "w30", w31: "w31", w32: "w32", w33: "w33", w34: "w34", w35: "w35", w36: "w36", w37: "w37", w38: "w38", w39: "w39", w40: "w40", w41: "w41", w46: "w46", w47: "w47", w48: "w48", w49: "w49", ws25: "ws25", ws26: "ws26", ws27: "ws27" };
 const paintings = new Map();
+export const hasCryptPainting = id => Object.hasOwn(PAINTINGS, id);
 export function cryptPainting(id = "w01") {
   if (!Object.hasOwn(PAINTINGS, id)) return null;
   if (!paintings.has(id)) {

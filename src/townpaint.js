@@ -3,7 +3,7 @@
 // 原画 (art/town/<鍵>.webp、townkeyart.js が台帳) を情景の比率 (16:10) に切り取って高精細に敷き、
 // その上に明かりのゆらめきだけを重ねる。絵そのものは描き換えない。
 // 明かりの種類 (tone): fire 炉・松明 / lamp 吊り灯 / candle 蝋燭 / crystal 祠の紅い魂 (ゆっくり脈打つ) / moon 月光 (ほぼ動かない)
-// 原画が無い鍵・読めなかった鍵は、townart.js が従来のドット絵を出す。
+// 原画がある鍵では、取得に失敗しても旧ドット絵へ戻さない。
 import { TOWN_KEYART } from "./townkeyart.js";
 
 export const PW = 1200, PH = 750; // 情景の canvas (townart の 120x75 の10倍。比率は同じ)
@@ -25,9 +25,8 @@ const TONES = {
 
 export const hasPaintedVignette = (key) => !!TOWN_KEYART[key];
 
-const panoramaFailed = new Set();
 const panoramaKey = (daylight) => daylight ? "panoramaDay" : "panorama";
-export const hasPaintedTownScene = (daylight = false) => !!TOWN_KEYART[panoramaKey(daylight)] && !panoramaFailed.has(panoramaKey(daylight));
+export const hasPaintedTownScene = (daylight = false) => !!TOWN_KEYART[panoramaKey(daylight)];
 export const paintedTownSpots = (daylight = false) => Object.fromEntries(Object.entries(TOWN_KEYART[panoramaKey(daylight)].spots).map(([k, p]) => [k, { x: p[0], y: p[1] }]));
 
 // 読み込みは鍵ごとに一度だけ (成功した img / 失敗 = false)
@@ -89,8 +88,8 @@ function level(T, t, seed) {
 }
 
 // 情景の canvas を作る。living = townart の livingCanvas (毎フレームの描き直しの登録)。
-// 原画が読めなければ fallback() (従来のドット絵の canvas) と差し替える
-export function paintedVignette(key, living, fallback) {
+// 原画が読めなくても旧ドット絵へ差し替えない
+export function paintedVignette(key, living) {
   const a = TOWN_KEYART[key];
   const c = document.createElement("canvas");
   c.width = PW; c.height = PH;
@@ -120,11 +119,7 @@ export function paintedVignette(key, living, fallback) {
     g.globalAlpha = 1;
   };
   loadArt(key).then((im) => {
-    if (!im) { // 原画が読めない: ドット絵へ
-      const fb = fallback && fallback();
-      if (fb && c.parentNode) c.parentNode.replaceChild(fb, c);
-      return;
-    }
+    if (!im) return;
     box = baseOf(key, im);
     draw(typeof performance !== "undefined" ? performance.now() : 0);
   });
@@ -159,8 +154,8 @@ function mistBand(seed) {
 }
 
 // 広場の固定原画。240:170 の舞台と名所の座標はそのまま、canvasだけ表示解像度へ合わせる。
-// 読み込みに失敗したら同じcanvasを従来のドット絵へ戻す (keep() の参照も保つ)。
-export function paintedTownScene(living, fallback, daylight = false) {
+// 読み込みに失敗しても原画の座標と枠を保つ。
+export function paintedTownScene(living, _unused, daylight = false) {
   const key = panoramaKey(daylight), a = TOWN_KEYART[key], c = document.createElement("canvas");
   c.width = 1200; c.height = 850;
   c.className = "town-scene town-scene-hd";
@@ -168,7 +163,7 @@ export function paintedTownScene(living, fallback, daylight = false) {
   c.dataset.sky = daylight ? "day" : "night";
   c.dataset.art = "loading";
   const g = c.getContext("2d");
-  if (!g) { panoramaFailed.add(key); return fallback(c); }
+  if (!g) return c;
   const motion = typeof matchMedia === "function" ? matchMedia("(prefers-reduced-motion: reduce)") : null;
   let im = null, failed = false, lastTime = 0;
   let base = null;
@@ -287,9 +282,8 @@ export function paintedTownScene(living, fallback, daylight = false) {
   observer?.observe(c);
   loadArt(key).then((img) => {
     if (!img || !img.naturalWidth) {
-      failed = true; panoramaFailed.add(key); observer?.disconnect();
-      c.dataset.art = "pixel";
-      fallback(c);
+      failed = true; observer?.disconnect();
+      c.dataset.art = "unavailable";
       c.dispatchEvent(new Event("townscenechange", { bubbles: true }));
       return;
     }

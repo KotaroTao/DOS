@@ -1,5 +1,5 @@
 import { lazyPhoto } from "./photoload.js";
-// 奉納品61〜80番。読めない場合は既存の固有ドット絵を使う。
+// 奉納品61〜80番。読めない場合は共通の待機印を表示する。
 export const COLLECTIBLE_PHOTOS = [
   "m_widows_veil",
   "m_cursed_war_coin",

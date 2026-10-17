@@ -19,7 +19,9 @@ export function questPortrait(who, size = 40, fallback = null) {
   img.width = img.height = size;
   img.decoding = "async";
   img.draggable = false;
-  img.addEventListener("error", showFallback, { once: true });
+  img.addEventListener("error", () => {
+    img.remove(); box.appendChild(el("span", "qb-portrait-fallback", "◆"));
+  }, { once: true });
   box.appendChild(img);
   return box;
 }

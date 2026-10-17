@@ -1,5 +1,5 @@
 import { lazyPhoto } from "./photoload.js";
-// 奉納品81〜108番。読めない場合は既存の固有ドット絵を使う。
+// 奉納品81〜108番。読めない場合は共通の待機印を表示する。
 export const TREASURY_PHOTOS = [
   "m_petrified_heart", // 81 石化した心臓
   "m_grave_lantern_oil", // 82 墓守の灯油壺

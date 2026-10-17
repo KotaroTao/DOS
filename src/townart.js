@@ -1255,7 +1255,7 @@ function vignetteFrames(key) {
 // 施設の情景 canvas (揺らぐ灯つき)
 export function vignetteCanvas(key) {
   // 描き下ろしの原画がある情景 (酒場・宿屋・祠) は townpaint.js が高精細に描き、明かりだけを揺らす
-  if (hasPaintedVignette(key) && hasDOM()) return paintedVignette(key, livingCanvas, () => pixelVignette(key));
+  if (hasPaintedVignette(key) && hasDOM()) return paintedVignette(key, livingCanvas);
   return pixelVignette(key);
 }
 function pixelVignette(key) {
@@ -1564,7 +1564,7 @@ function pixelKeeperCanvas(key) {
 
 // 描き下ろしの胸像は静止画。読めない時は従来の胸像へ戻す。
 const _paintedImages = new Map();
-function paintedStill(src, width, height, className, fallback, contain = false) {
+function paintedStill(src, width, height, className, contain = false) {
   const c = makeCanvas(width, height);
   if (!c) return null;
   c.className = className;
@@ -1581,11 +1581,7 @@ function paintedStill(src, width, height, className, fallback, contain = false) 
     }));
   }
   _paintedImages.get(src).then((im) => {
-    if (!im) {
-      const fb = fallback();
-      if (fb && c.parentNode) c.parentNode.replaceChild(fb, c);
-      return;
-    }
+    if (!im) return;
     const fit = contain ? Math.min : Math.max;
     const s = fit(c.width / im.naturalWidth, c.height / im.naturalHeight);
     const w = im.naturalWidth * s, h = im.naturalHeight * s;
@@ -1597,12 +1593,12 @@ function paintedStill(src, width, height, className, fallback, contain = false) 
 }
 export function keeperCanvas(key) {
   const src = TOWN_KEEPERART[key];
-  return src ? paintedStill(src, 480, 560, "tw-bust tw-bust-hd", () => pixelKeeperCanvas(key)) : pixelKeeperCanvas(key);
+  return src ? paintedStill(src, 480, 560, "tw-bust tw-bust-hd") : pixelKeeperCanvas(key);
 }
 // 王の対話枠は正方形。王冠を含む原画全体を収める。
 export function kingCanvas() {
   const src = TOWN_KEEPERART.king;
-  return src ? paintedStill(src, 480, 480, "tw-bust tw-bust-hd", () => pixelKeeperCanvas("king")) : pixelKeeperCanvas("king");
+  return src ? paintedStill(src, 480, 480, "tw-bust tw-bust-hd") : pixelKeeperCanvas("king");
 }
 
 // 街の絵の下ごしらえ: 夜景と施設の情景を、アイドル時間に少しずつ描いておく (初めて街を開く時の引っかかりを消す)
@@ -1714,7 +1710,7 @@ function pixelIconCanvas(key) {
 export function iconCanvas(key) {
   const d = ICONS_DEF[key], src = TOWN_ICONART[key];
   if (!d) return null;
-  return src ? paintedStill(src, d[0] * 12, d[1] * 12, "tw-icon tw-icon-hd", () => pixelIconCanvas(key), true) : pixelIconCanvas(key);
+  return src ? paintedStill(src, d[0] * 12, d[1] * 12, "tw-icon tw-icon-hd", true) : pixelIconCanvas(key);
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -2270,7 +2266,7 @@ export function townSpots(daylight = false) {
 }
 
 export function createTownScene(daylight = false) {
-  if (hasPaintedTownScene(daylight) && hasDOM()) return paintedTownScene(livingCanvas, (c) => pixelTownScene(c, daylight), daylight);
+  if (hasPaintedTownScene(daylight) && hasDOM()) return paintedTownScene(livingCanvas, undefined, daylight);
   return pixelTownScene(null, daylight);
 }
 

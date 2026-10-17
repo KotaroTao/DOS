@@ -80,7 +80,7 @@ export const BATTLE_BACKGROUNDS = Object.freeze({
   "abyss": "art/battle/abyss.webp",
 });
 
-// 読み込み中・失敗時は呼び出し元の情景を使い、次のフレームで再確認する。
+// 読み込み中・失敗時は暗い幕にし、次のフレームで再確認する。
 const images = new Map();
 const MAX_IMAGES = 6;
 function backgroundImage(id) {
@@ -108,7 +108,11 @@ export function drawIllustratedBattleBackdrop(ctx, w, h, opts = {}) {
   if (!opts.dungeonId) return false;
   const id = Object.hasOwn(BATTLE_BACKGROUNDS, opts.dungeonId) ? opts.dungeonId : "abyss";
   const img = backgroundImage(id);
-  if (!img) return false;
+  if (!img) {
+    ctx.save(); ctx.globalAlpha = 1; ctx.fillStyle = "#080a10";
+    ctx.fillRect(0, 0, w, h); ctx.restore();
+    return true;
+  }
   ctx.save();
   ctx.globalAlpha = 1;
   ctx.globalCompositeOperation = "source-over";

@@ -1,6 +1,6 @@
 import { lazyPhoto } from "../photoload.js";
 // 未鑑定の品の伏せ絵: ジャンル (武器8種・盾・鎧・頭・小手・足・装飾) ごとに一枚。
-// WebP の伏せ絵を優先し、取得失敗時は従来の影絵と「？」へ戻す。
+// WebP の伏せ絵を使い、取得失敗時も従来の影絵へ戻さない。
 // 鑑定に成功するまで本来の絵は見せない (どの品かは名前も絵も伏せる)
 import { ARTS } from "../catalog/defs.js";
 
@@ -69,14 +69,11 @@ function build(genre) {
   return { palette: { ".": null, k: "#0d0b10", ...VEIL, ...MARK }, art: rows.map((r) => r.join("")) };
 }
 
-const ICONS = {};
 const PHOTOS = new Map();
 export function unidIcon(it) {
   const genre = it && it.slot === "weapon" ? (SHAPE_OF[it.cat] ? it.cat : "ls") : SHAPE_OF[it && it.slot] ? it.slot : "acc";
-  const fallback = ICONS[genre] || (ICONS[genre] = build(genre));
-  if (typeof Image === "undefined") return fallback;
   if (!PHOTOS.has(genre)) PHOTOS.set(genre, { ...lazyPhoto(new URL(`../../art/unidentified/${genre}.webp`, import.meta.url).href,
-    { width: 384, height: 384 }), fallback });
+    { width: 384, height: 384 }) });
   return PHOTOS.get(genre);
 }
 export const UNID_GENRES = Object.keys(SHAPE_OF);
@@ -85,7 +82,7 @@ export const UNID_GENRES = Object.keys(SHAPE_OF);
 export async function loadUnidPhotos() {
   for (const genre of UNID_GENRES) {
     if (!PHOTOS.has(genre)) PHOTOS.set(genre, { ...lazyPhoto(new URL(`../../art/unidentified/${genre}.webp`, import.meta.url).href,
-      { width: 384, height: 384 }), fallback: ICONS[genre] || (ICONS[genre] = build(genre)) });
+      { width: 384, height: 384 }) });
   }
   await Promise.all([...PHOTOS.values()].map(spr => spr.photo.load()));
 }

@@ -36,7 +36,7 @@ const monsters = { [id]: { art: ["x"], palette: { x: "#fff" }, atk: 123 } };
 const before = requests;
 registerMonsterPhotos(monsters); registerMonsterPhotos(monsters);
 assert.equal(requests, before); assert.equal(monsters[id].atk, 123);
-assert.equal(monsters[id].fallback.art, monsters[id].art);
+assert.equal(monsters[id].fallback, undefined);
 const snapshot = refSerialize(monsters);
 assert(!JSON.stringify(snapshot).includes('"img"')); assert.equal(requests, before);
 const enemy = { key: id, mon: refDeserialize(snapshot)[id] };

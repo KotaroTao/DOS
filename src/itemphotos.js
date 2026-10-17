@@ -1,5 +1,5 @@
 import { lazyPhoto } from "./photoload.js";
-// 固定制作番号に対応する透過原画。取得できない品は既存の絵へ戻す。
+// 固定制作番号に対応する透過原画。取得できない品は共通の待機印を表示する。
 import { NUMBERED_ITEM_IDS } from "./itemnumbers.js";
 
 export const ITEM_PHOTOS = Object.freeze([
