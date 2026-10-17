@@ -802,9 +802,12 @@ A memory scene with frosted, softly blurred edges. At the end of a great ice cor
 ```
 
 **report_w25「回廊の肖像」** (報告)
-- 要点: イザークの名を聞いて、王はこの離宮の回廊に一枚だけ掛かる肖像のことを話す (病で死んだと伝わる、最初の王家の操霊師)。十一人の魂も還った。王は冷えた手を組む。
+- 要点: イザークの名を聞いて王が思い出す、王宮の回廊に一枚だけ掛かる古い肖像。報告を聞く玉座の間ではなく、肖像のある別の場所を描く。
+- 描くもの: 人のいない王宮の石造りの回廊 / 壁に掛かる古い額入りの肖像 (凍る前の若いイザーク、暗い衣、厳しくも優しい目) / 奥へ続くアーチと窓 / 冷たい光と暖かなろうそくの光。
+- 描かないもの: 玉座・玉座の間・王・弟子・宰相・空の椅子・ほかの肖像・読める文字。
+- 修正 (2026-10-17、済): 玉座で報告を聞く構図をやめ、王宮の回廊に掛かる肖像を主題に描き直した。
 ```text
-The same cold throne room. The very old king, lap blanket over his knees, clasps his cold hands and looks toward a single old portrait hanging in the dim corridor beyond an archway: a young royal soul-mage in dark robes (Isaak, before he froze). The chancellor's chair stands empty. The apprentice stands beside, listening. Frost, heavy clouds.
+An unoccupied stone corridor in the royal palace, a separate place from the audience chamber, visualizing the remembered portrait. The main subject is a single old framed painted portrait hanging directly on the corridor's carved stone wall, large and clearly readable in the central band: young Isaak before he froze, a royal soul-mage in dark robes, with a lean face, dark hair, and stern yet kind eyes. Use the ancient-character reference for his facial identity, but show his younger living appearance inside an aged painting, without ice. An oblique view shows the wall and frame beside a long corridor receding under gothic arches, narrow windows with cold cloudy light, worn polished stone flooring, restrained red drapery and warm amber wall candles. Keep the richly detailed dark fantasy style of the palace reference, using it only for materials, carving and lighting; replace its throne-room composition completely. No throne, dais, audience chamber, chairs, king, apprentice, chancellor, living figures, other portraits, royal crown, ice crown, readable plaque or text. The single hanging portrait and the corridor itself must dominate the illustration, with quiet age and remembrance.
 ```
 
 **irene_lineage「同じ作り方の灯」** (館の語り)
