@@ -59,6 +59,20 @@ export function gearCritMul(actor, spell = false) {
   return 1 + Math.max(0, actor[spell ? "spellCritDamageBonus" : "critDamageBonus"] || 0);
 }
 
+// 必殺 (暗殺者のランク): 物理会心の倍率を20/30/40/50%増やす。装備の補正とも重なる。
+export function physicalCritMul(actor) {
+  const lv = actor?.side === "party" ? pv(actor, "shadowHissatsu") : 0;
+  return gearCritMul(actor) * (1 + (lv ? [0.20, 0.30, 0.40, 0.50][Math.min(4, lv) - 1] : 0));
+}
+
+// 待ち伏せは先制率への固定加算。奇襲率が高くても、増えた先制の枠を削らない。
+export function openingRates(preempt, ambush, hunterLv = 0) {
+  const bonus = [0, 0.05, 0.10, 0.15, 0.20][Math.min(4, Math.max(0, hunterLv))];
+  const pre = Math.min(1, Math.max(0, preempt + bonus));
+  const amb = Math.min(Math.max(0, ambush), hunterLv ? 1 - pre : 1);
+  return { pre, amb };
+}
+
 // カードでめくったモンスター: 階層が深いほど群れが膨らむ (最大6体)。scale で迷宮ごとの強さ調整。
 // 「もう1体」を確率 p で繰り返す幾何分布 — 1階 p≈0.26 (平均1.4体) → 5階以深 p≈0.6 (平均2.4体、まれに6体)。
 // opts.min は最低数の強制 (大警報の群れなど)。opts.pool はこの階の雑魚の候補 (通常の魔物の札だけ)。
@@ -803,7 +817,7 @@ export class Battle {
     this.focus = !!opts.focus;             // 迷宮の掟「槍ぶすま」: 敵は狙った人業が倒れるまで同じ者を狙い続ける。挑発の技の効果で外れる (_pickPartyTarget)
     this._focusT = null;
     this.show = { sp: 0, cr: 0, dd: 0, at: 0 }; // 観客の注文 (闘技場跡の迷宮の掟) と無限迷宮の称号の判定: 隊が使った技・会心・倒れた数・通常攻撃。乱数には触れない
-    for (const a of [...party, ...enemies]) { a.buffs = { atk: 1, vit: 1, agi: 1 }; a.effects = []; a._endureUsed = 0; a._grantEndure = false; a._fgUsed = 0; a._sgUsed = 0; a._ijiUsed = 0; a._kgUsed = 0; a._hpPre = a.hp; a._nailed = false; a._bloodTgt = null; a._bloodStack = 0; a._kyouhon = 0; a._giDone = false; a._againRound = 0;
+    for (const a of [...party, ...enemies]) { a.buffs = { atk: 1, vit: 1, agi: 1 }; a.effects = []; a._endureUsed = 0; a._grantEndure = false; a._fgUsed = 0; a._sgUsed = 0; a._ijiUsed = 0; a._kgUsed = 0; a._hpPre = a.hp; a._nailed = false; a._bloodTgt = null; a._bloodStack = 0; a._kyouhon = 0; a._giDone = false; a._againRound = 0; a._actedRound = -1;
       a._splitQ = null; a._quickUsed = false; a._flipUsed = false; a._coverUsed = false; a._afterImg = false; a._parryHold = false; a._lastSkill = null; a._chainRound = 0; a._wedge = 0; }
     for (const p of party) {
       p._coverLeft = pv(p, "cover");
@@ -863,14 +877,6 @@ export class Battle {
       for (const e of this.livingEnemies()) for (const el of pick) this._applyMod(e, "r_" + el, 1 / 1.5, 3, "罪の刻印");
       this.log(`罪の刻印！ 敵全体：${pick.map((k) => (ELEMENTS[k] && ELEMENTS[k].label) || k).join("・")}弱点×1.5、3ターン`, "hit");
       this._proc(this._bestHolder("inqBrand"), "罪の刻印");
-    }
-    // 狩りの采配 (ランク): 敵全体の AGI ×0.9/0.8/0.7/0.6 (3ターン)
-    const hs = this._rkParty("hunterSaihai", [0.9, 0.8, 0.7, 0.6]);
-    if (hs) {
-      this._quietMod = true;
-      try { for (const e of this.livingEnemies()) this._applyMod(e, "agi", hs, 3, "狩りの采配"); } finally { this._quietMod = false; }
-      this.log(`狩りの采配！ 敵全体の${modText("agi", hs, true)}、3ターン`, "hit");
-      this._proc(this._bestHolder("hunterSaihai"), "狩りの采配");
     }
     // 死の宣告 (ランク): 主・金属の魔物以外の敵が、それぞれ 3/5/8/15% で即死
     // 倒した敵は開幕の演出 (openingResults の先頭) で見せる — game.js playOpeningStrikes が大鎌の演出で刈り取る
@@ -1126,6 +1132,7 @@ export class Battle {
     const t = ctx.tgt || null;
     const frac = (x) => (x && x.maxhp ? x.hp / x.maxhp : 1);
     if (w.race && !(t && w.race.includes(enemyRace(t)))) return false;
+    if (w.tgtUnacted && !(t && t.side === "enemy" && t._actedRound !== this._roundNo)) return false;
     if (w.tgtElem && !(t && t.element === w.tgtElem)) return false;
     if (w.tgtAil && !(t && (t.ailment || t.asleep || t.mind || t._flinch))) return false;
     if (w.tgtDebuffed && !(t && (t.effects || []).some((e) => e.mult < 1))) return false;
@@ -1508,6 +1515,7 @@ export class Battle {
   // 第1ターンは先制/奇襲なら片側のみが行動する
   _startRound() {
     this._roundNo++;
+    for (const a of [...this.party, ...this.enemies]) a._actedRound = -1; // 先の太刀: 毎ターン、未行動に戻す
     this._comboTgt = null; this._comboActor = null; // 連携の (極): ターンごとに数え直す
     if (this._roundNo > 1) this._tickEffects(); // 2ターン目以降、強化/弱体の持続を消化
     // 極「痛み分けの」: 後に回したダメージを、ターンの初めに受ける (倒れることもある。不屈などの踏みとどまりは普段どおり)
@@ -1707,7 +1715,7 @@ export class Battle {
     const qi = this.queue.indexOf(a);
     const order = this.current === a ? "now" : qi >= 0 ? this.queue.slice(0, qi).filter((x) => x.alive).length : null;
     return { stats, power: this._eatk(a), hit, crit, spellCrit: this._spellCritChance(a, {}),
-      critMul: 1.85 * gearCritMul(a) * [1, 1.25, 1.45][Math.min(pv(a, "vitalEye"), 2)],
+      critMul: 1.85 * physicalCritMul(a) * [1, 1.25, 1.45][Math.min(pv(a, "vitalEye"), 2)],
       spellCritMul: 1.5 * (gm(a).sae ? 1.3 : 1) * gearCritMul(a, true), evade, flee: this.fleeChance(a), order, back: this.isBackRow(a), reach: reach.length, foes: foes.length, range: this.attackRange(a) };
   }
 
@@ -1743,6 +1751,7 @@ export class Battle {
   // 行動不能の味方の手番 (睡眠/麻痺/石化)。麻痺・睡眠の回復判定は advance で済んでいる (治れば input へ進む)
   stunnedAct() {
     const a = this.current;
+    a._actedRound = this._roundNo;
     // 魅了・混乱で勝手に動く手番 (眠り・麻痺・石化が先に効く)
     if (a.mind && !a.asleep && a.ailment !== "paralyze" && a.ailment !== "stone") return this._mindAct(a);
     const res = { actor: a, action: "stunned", side: a.side, hits: [] };
@@ -1978,6 +1987,7 @@ export class Battle {
   // 敵の手番を実行し結果を返す。特殊能力 (ability) 持ちは一定確率で使う
   enemyAct() {
     const actor = this.current;
+    actor._actedRound = this._roundNo; // 行動不能で手番を失う時も、このターンは行動済み
     let cmd;
     // 大技の予兆: 眠り・麻痺・石化・心の乱れ・怯み・特技封じを受けていれば、溜めた力は霧散する
     if (this._omenOf(actor) && this._omenBroken(actor)) this._breakOmen(actor);
@@ -2269,6 +2279,12 @@ export class Battle {
     }
     return best;
   }
+  // 気配断ち: 本人の標的選択の重みだけを20/35/50%減らす。隊列・挑発の補正に乗算。
+  _targetWeight(p) {
+    const base = (this.isBackRow(p) ? 1 : 3) * (pv(p, "taunt") ? 3 : 1) * Math.round(this._bm(p, "taunt"));
+    const conceal = [1, 0.80, 0.65, 0.50][Math.min(3, pv(p, "stealthStep"))];
+    return base * conceal;
+  }
   _pickPartyTarget() {
     const list = this.livingParty();
     if (!list.length) return null;
@@ -2276,12 +2292,14 @@ export class Battle {
     // 引き剥がされていつもどおりに狙い、切れたら次に狙った者に定める (常に効くパッシブの挑発は、最初の狙いの重みにだけ効く)
     const taunting = this.focus && list.some((p) => this._bm(p, "taunt") > 1);
     if (this.focus && !taunting && this._focusT && list.includes(this._focusT)) return this._focusT;
-    const pool = [];
-    for (const p of list) {
-      const w = (this.isBackRow(p) ? 1 : 3) * (pv(p, "taunt") ? 3 : 1) * Math.round(this._bm(p, "taunt"));
-      for (let i = 0; i < w; i++) pool.push(p);
+    // 気配断ちの端数を保つ重み付き抽選。整数の人数分だけ並べる方式では20/35%を表せない。
+    const weights = list.map((p) => this._targetWeight(p));
+    let pick = random() * weights.reduce((sum, w) => sum + w, 0);
+    let t = list[list.length - 1];
+    for (let i = 0; i < list.length; i++) {
+      pick -= weights[i];
+      if (pick < 0) { t = list[i]; break; }
     }
-    const t = pool[rand(pool.length)];
     if (this.focus) this._focusT = taunting ? null : t;
     return t;
   }
@@ -2291,6 +2309,7 @@ export class Battle {
     this._actSeq = (this._actSeq || 0) + 1; // たぎる血潮: 1手ごとに数える
     this._actor = cmd.actor; // 固有パッシブ (kill) が「誰が倒したか」を知るための印
     const a = cmd.actor;
+    if (a) a._actedRound = this._roundNo;
     if (a && a.side === "party") { cmd._memo = memoryHalf(a, SPELLS[cmd.spellKey], cmd.action === "spell" ? cmd.spellKey : null); a._lastSkill = cmd.action === "spell" ? cmd.spellKey : null; }
     try { return this._execInner(cmd); } finally {
       this._actor = null;
@@ -2794,7 +2813,7 @@ export class Battle {
       // 反撃も物理なので隊列補正を受ける
       let dmg = Math.max(1, Math.round((variance(Math.round(this._eatk(defender) * mul)) - Math.floor(this._evit(attacker) * 0.5)) * this._rowMul(defender, attacker)));
       let crit = false;
-      if (cLv >= 3 && random() < Math.min(1, Math.max(0, 0.06 + (defender.critBonus || 0)))) { crit = true; dmg = Math.floor(dmg * 1.85 * gearCritMul(defender)); }
+      if (cLv >= 3 && random() < Math.min(1, Math.max(0, 0.06 + (defender.critBonus || 0)))) { crit = true; dmg = Math.floor(dmg * 1.85 * physicalCritMul(defender)); }
       // 反撃の会心も通常の物理と同じ耐性軽減を使う。
       const pr = this._resistCut(attacker, dmg, "physResist", this._physPierce(defender));
       if (pr.immune) this.log(`${defender.name}の反撃！ ${attacker.name}：物理無効`, "hit");
@@ -2911,7 +2930,7 @@ export class Battle {
   // 技と斬鉄の物理貫通は、残った軽減をそれぞれの割合だけ抜く (50% + 50% = 75%)。
   _physPierce(actor, opt = {}) {
     const skill = Math.min(1, Math.max(0, opt.pierce || 0));
-    const rank = actor.side === "party" ? this._rk(actor, "samuraiZantetsu", [0.10, 0.20, 0.30, 0.50]) : 0;
+    const rank = actor.side === "party" ? this._rk(actor, "samuraiZantetsu", [0.10, 0.20, 0.30, 0.40]) : 0;
     return 1 - (1 - skill) * (1 - rank);
   }
 
@@ -3127,7 +3146,7 @@ export class Battle {
     critChance = (opt.critBonus || 0) >= 1 ? 1 : Math.min(1, Math.max(0, critChance));
     const crit = sureCrit || random() < critChance;
     if (crit && actor.side === "party" && tgt.side === "enemy" && this.show) this.show.cr++; // 観客の注文 (会心を見せろ)
-    if (crit) dmg = Math.floor(dmg * 1.85 * gearCritMul(actor) * [1, 1.25, 1.45][Math.min(pv(actor, "vitalEye"), 2)]); // 急所読み: 会心強化
+    if (crit) dmg = Math.floor(dmg * 1.85 * physicalCritMul(actor) * [1, 1.25, 1.45][Math.min(pv(actor, "vitalEye"), 2)]); // 急所読み: 会心強化
     // 隊列補正: 後衛は物理の与ダメ・被ダメが半減
     const rm = this._rowMul(actor, tgt);
     if (rm !== 1) dmg = Math.round(dmg * rm);
@@ -3309,7 +3328,7 @@ export class Battle {
     critP = sureCrit ? 1 : Math.min(1, Math.max(0, critP));
     dmg *= this._rowMul(actor, tgt);
     if (magHit && !metal && tgt.magWeak > 1) dmg *= tgt.magWeak;
-    let crit = dmg * 1.85 * gearCritMul(actor) * [1, 1.25, 1.45][Math.min(pv(actor, "vitalEye"), 2)];
+    let crit = dmg * 1.85 * physicalCritMul(actor) * [1, 1.25, 1.45][Math.min(pv(actor, "vitalEye"), 2)];
     let plain = dmg;
     if (metal) plain = 1;
     else if (r > 0) {
@@ -3895,7 +3914,7 @@ export class Battle {
     for (const h of res.hits.filter((h) => h.heal)) this.log(`${h.target.name}のHP+${h.heal}（聖なる残光）`, "heal");
   }
 
-  // 物理が敵に当たった後のランクのパッシブ: 癒しの剣 / 聖光の追撃 / 必殺
+  // 物理が敵に当たった後のランクのパッシブ: 癒しの剣 / 聖光の追撃
   _rankOnHit(actor, tgt, dmg, metalHit) {
     // 癒しの剣 (聖騎士): 与えたダメージの 3/5/8/12% だけ味方全員を回復
     const iy = this._rk(actor, "paladinIyashi", [0.03, 0.05, 0.08, 0.12]);
@@ -3915,12 +3934,6 @@ export class Battle {
         this.log(`聖光の追撃！ ${tgt.name}に${pr.dmg}ダメージ`, "hit");
         this._proc(actor, "聖光の追撃");
       }
-    }
-    // 必殺 (暗殺者): 2/3/4/6% で即死 (主・金属の魔物には効かない)
-    if (tgt.alive && tgt.hp > 0 && !tgt.boss && !metalHit && random() < this._rk(actor, "shadowHissatsu", [0.02, 0.03, 0.04, 0.06])) {
-      tgt.hp = 0;
-      this.log(`必殺！ ${tgt.name}は即死`, "hit");
-      this._proc(actor, "必殺");
     }
   }
   // ランクのパッシブの Lv (lv: 1-4 = ランク2-5) から、その段の値を引く

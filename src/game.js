@@ -7,7 +7,7 @@ import { random, fxRandom, bindRngState, rngState } from "./rng.js";
 import { refSerialize, refDeserialize, applySavePatch } from "./savegraph.js";
 import { cloudEnabled, cloudReady, cloudBusy, connectCloud, cloudSave, cloudBattle, cloudFlush, cloudFatal } from "./cloud-save.js";
 import { LocalSaveSession, showLocalSaveBlocked, showLocalSaveRecovery, saveSlotFromURL, localSaveKey, selectSaveSlot } from "./local-save.js";
-import { syncEnemyUids, enemySoulRewardMul } from "./combat.js";
+import { syncEnemyUids, enemySoulRewardMul, openingRates } from "./combat.js";
 import { monsterResists } from "./resistance.js";
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
@@ -9009,8 +9009,8 @@ function startBattleMeasured(enemies, cell, { visibleEnemy = cell?.type === "mon
   // 名前は討伐数1で明かす (それまでは不確定名「小さく蠢くもの？」など。迷宮の主は最初から名乗る — 伏せるのは log の maskUnknownEnemies)
   // 名前の後に表示Lv (その魔物が一番弱く出る所と比べた実際の強さ — enemylevel.js。状態異常に使う e.lv とは別)
   log(`${sameKind ? `${enemies[0].mon.name}${enemyLvTag(enemies[0])} ×${enemies.length}` : enemies.map((e) => e.name + enemyLvTag(e)).join("・")}が出現`, "dmg");
-  // 先制・奇襲の判定。主は対象外、強敵は見えていた時の先制+20ポイントだけ抽選。
-  // 周囲警戒 (vigilance) が奇襲を抑え、先制の心得 (initiative) が先制を伸ばす
+  // 先制・奇襲の判定。主は対象外。強敵にも待ち伏せと、見えていた時の先制+20ポイントを適用。
+  // 周囲警戒 (vigilance) が奇襲を抑え、待ち伏せ (hunterSaihai) が先制を伸ばす
   const isBoss = enemies.some((e) => e.boss);
   // オート継続 (§7 M2): 前の戦闘から持ち越したオートは、主・強敵の戦いと深手 (HP3割未満) の者がいる時は止める
   if (G.autoCombat && (isBoss || isElite || G.party.some((p) => p.alive && p.hp < p.maxhp * 0.3))) {
@@ -9020,23 +9020,20 @@ function startBattleMeasured(enemies, cell, { visibleEnemy = cell?.type === "mon
   }
   let opening = null;
   let openSrc = null, ambRate = 0; // テスト記録: 開幕の出どころ (rand/event/smuggler/candle) と、抽選の奇襲率
-  if (!isBoss && (!isElite || visibleEnemy)) {
+  const hunterLv = partyPassiveLv("hunterSaihai");
+  if (!isBoss && (!isElite || visibleEnemy || hunterLv)) {
     const vig = partyPassiveLv("vigilance");
     // 迷宮の異変 (闇討ちの宴): 奇襲率が跳ね上がる (周囲警戒は引き続き有効)
     // 極の恵み「霧渡りの目」は奇襲を半分に
     // 夜営の番 (nightWatch): 奇襲される確率 −50/75/100%
     const nw = 1 - ([0, 0.50, 0.75, 1][Math.min(3, partyPassiveLv("nightWatch"))] || 0);
-    const amb = visibleEnemy || (spFloor && spFloor.noAmbush) ? 0 : 0.08 * mutNum("ambushMul", 1) * (vig >= 2 ? 0 : vig === 1 ? 0.5 : 1) * evBoon("mistEye", "ambush", 1) * nw;
+    const rawAmb = isElite || visibleEnemy || (spFloor && spFloor.noAmbush) ? 0 : 0.08 * mutNum("ambushMul", 1) * (vig >= 2 ? 0 : vig === 1 ? 0.5 : 1) * evBoon("mistEye", "ambush", 1) * nw;
     // 追い風の階 (preempt100) では必ず先制できる。
-    // 先制の心得 (initiative) で +15/25/40%、周囲警戒Lv3 で挑戦時さらに +10%
-    const ini = partyPassiveLv("initiative");
-    // 忍び足 (stealthStep) +10/15/20%
-    const iniBonus = (ini >= 3 ? 0.40 : ini >= 2 ? 0.25 : ini >= 1 ? 0.15 : 0)
-      + ([0, 0.10, 0.15, 0.20][Math.min(3, partyPassiveLv("stealthStep"))] || 0);
+    // 待ち伏せ (hunterSaihai) は +5/10/15/20ポイント。周囲警戒Lv3 でさらに +10%
     // 極の恵み「守備隊の敬礼」は先手 +8%
     // 見えていた敵は奇襲0%、先制に固定の20ポイント加算 (倍率ではない)。
-    const basePre = isElite ? 0 : (spFloor && spFloor.preempt100) ? 1 : 0.08 + iniBonus + (vig >= 3 ? 0.10 : 0) + evBoon("salute", "preempt", 0);
-    const pre = Math.min(1, basePre + (visibleEnemy ? 0.20 : 0));
+    const basePre = isElite ? 0 : (spFloor && spFloor.preempt100) ? 1 : 0.08 + (vig >= 3 ? 0.10 : 0) + evBoon("salute", "preempt", 0);
+    const { pre, amb } = openingRates(basePre + (visibleEnemy ? 0.20 : 0), rawAmb, hunterLv);
     const r = random();
     if (r < amb) opening = "ambush";
     else if (r < amb + pre) opening = "preempt";

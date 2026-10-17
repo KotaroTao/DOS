@@ -41,12 +41,34 @@ with sync_playwright() as p:
         if(r>=0.08&&r<0.28)cases.add('加算');
         if(r>=0.28)cases.add('通常');
         if(r<0.08)cases.add('奇襲抑止');
-        reset();G.party[0].passiveMap={initiative:1};
-        const ini=fight(r,cell());check(ini===(r<0.43?'preempt':null),'先制の心得に20ポイント加算 '+JSON.stringify({r,ini}));
+        reset();G.party[0].passiveMap={hunterSaihai:3};
+        const ini=fight(r,cell());check(ini===(r<0.43?'preempt':null),'待ち伏せ15ポイント＋可視20ポイント '+JSON.stringify({r,ini}));
         reset();
         check(fight(r,cell(),()=>combat.spawnEliteEnemies('el_palebutcher'))===(r<0.20?'preempt':null),'見えている強敵は20%');
       }
       check(cases.size===3,'境界の両側を検査できていない');
+      const elite=()=>combat.spawnEliteEnemies('el_palebutcher');
+      for(let lv=1;lv<=4;lv++){
+        const bonus=[0,.05,.10,.15,.20][lv];
+        for(const [visible,base] of [[false,0],[true,.20]])for(const r of [base+bonus-1e-6,base+bonus+1e-6]){
+          reset();G.party[0].passiveMap={hunterSaihai:lv};
+          check(fight(r,{...cell(),revealed:visible},elite)===(r<base+bonus?'preempt':null),'強敵の待ち伏せ固定加算');
+        }
+      }
+      reset();G.party[0].passiveMap={initiative:1};
+      check(fight(.30,cell())===null,'先の太刀は先制率を上げない');
+      reset();G.party[0].passiveMap={stealthStep:3};
+      check(fight(.30,cell())===null,'気配断ちは先制率を上げない');
+      reset();G.party[0].passiveMap={hunterSaihai:4};G.party[1].passiveMap={hunterSaihai:2};
+      check(fight(.49,cell())===null,'同じ待ち伏せは最高Lvのみ (可視48%)');
+      reset();G.party[0].passiveMap={hunterSaihai:4};G.party[0].alive=false;
+      check(fight(.30,cell())===null,'倒れた狩人は先制率に寄与しない');
+      reset();G.party[0].passiveMap={hunterSaihai:4};
+      check(fight(.01,cell(),()=>combat.spawnBossEnemies('dragon'))===null,'待ち伏せも主には無効');
+      reset();G.party[0].passiveMap={hunterSaihai:4};
+      G.dungeonIdx=DUNGEONS.findIndex(d=>d.trait?.alwaysAmbush);
+      check(fight(.99,cell())==='ambush','待ち伏せより必ず奇襲の掟が優先');
+
       reset();G.specialFloor='tailwind';check(fight(0.9,cell())==='preempt','追い風の先制100%');
       reset();G.mutator='nightHunt';check(fight(0.9,cell())!=='ambush','闇討ちの宴でも見えていれば通常奇襲0%');
       reset();G.dungeonIdx=DUNGEONS.findIndex(d=>d.trait?.alwaysAmbush);G._evOpening='preempt';G.run.ev.preempt=2;
@@ -67,7 +89,7 @@ with sync_playwright() as p:
         if(/先 制|奇 襲|先制 ―|奇襲 ―/.test(text))openingText.push(text);
         return fill.call(this,text,...args);
       };
-      return '12種の境界値で基礎8%/先制28%/心得込み43%/強敵20%・掟・出来事・主・保存を確認';
+      return '12種の境界値で基礎8%/先制28%/待ち伏せ込み43%/強敵20%・掟・出来事・主・保存を確認';
     }'''))
 
     # 実際の1歩で、めくる前の公開状態が判定に届くことを確認する。

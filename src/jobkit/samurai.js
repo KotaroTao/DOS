@@ -38,6 +38,12 @@ export default {
     SAMURAI_MUKYUU: { name: "一閃無窮", mp: 40, kind: "phys", power: 9.5, acc: 1, pierce: 1, critBonus: 0.3, target: "enemy", desc: "必中・物理貫通100%の終の抜刀" },
   },
   perks: {
+    // Lv35: 先に動いて、相手の出足を斬る。保存済みの借用を保つため旧キーを維持。
+    initiative: {
+      label: "先の太刀",
+      lv: ["そのターン、まだ行動していない敵への物理ダメージ+15%"],
+      fx: [{ t: "deal", on: "phys", when: { tgtUnacted: true }, v: [0.15] }],
+    },
     // Lv15 の目玉パッシブ: 武士の一分 — 退けぬ一線が刃を冴えさせる
     samuraiIchibun: {
       label: "武士の一分",
