@@ -2,7 +2,7 @@
 // 仕組みは src/infaffix.js の「付呪」と game.js の enchant* / extractAffix / writeAffix / eraseAffix。
 //   商会の区分「付呪」: 特性の巻物 (写し取った特性) と、特性の付いた品 (手元・商会の棚) を並べる
 //   ・特性の付いた品を押す → 特性を1つ選んで「写し取る」(元の品は消える。棚の品は買値を払う) か「消す」(手元の品だけ。巻物は戻らない)
-//   ・特性の巻物を押す → 書き込む品を選ぶ (書ける数・容量・費用・書けない理由) → 確かめて書き込む
+//   ・特性の巻物を押す → 書き込む品を選ぶ (書ける数・費用・書けない理由) → 確かめて書き込む
 // 提供する契約: UI.renderEnchantList(wrap) → 描く関数
 // game.js は import しない (ctx.js の UI / game を通す)。
 
@@ -137,7 +137,7 @@ function openWriteSheet(page, onDone) {
     for (const { x, info } of infos) {
       const sub = el("span", "wpc-srow-l3 ec-sub");
       const r = info.room;
-      sub.appendChild(el("span", "ec-room", `特性 ${r.used}/${r.slots} ・ 能力値 ${r.capUsed}/${r.cap}`));
+      sub.appendChild(el("span", "ec-room", `特性 ${r.used}/${r.slots}`));
       sub.appendChild(el("span", "wpc-srow-kind", whereText(x)));
       if (!info.why) sub.appendChild(setText(el("span", "ec-val"), info.text));
       else sub.appendChild(el("span", "ec-why", info.why));
@@ -177,7 +177,7 @@ function openWriteSheet(page, onDone) {
 export function renderEnchantList(wrap) {
   const intro = el("section", "rf-intro");
   intro.appendChild(setText(el("div", "rf-intro-t"), ENCHANT_NOTE));
-  intro.appendChild(setText(el("div", "rf-intro-s"), "能力値の特性は、書く品のランクとレア度で決まる容量まで。極・発動する特性・属攻・属防・追加効果は、1つの品にそれぞれ1つまで。費用は書く品の買値と術の格・何枠目かで決まる。"));
+  intro.appendChild(setText(el("div", "rf-intro-s"), "特性の値の上限は、書く品のレア度で決まる。極・発動する特性・属攻・属防・追加効果は、1つの品にそれぞれ1つまで。費用は書く品の買値と術の格・何枠目かで決まる。"));
   wrap.appendChild(intro);
   const head = el("div", "wpc-lhead");
   head.appendChild(el("span", "wpc-lhead-t", "付呪"));

@@ -1,6 +1,6 @@
-// 全176特性×5レア度の共通下限・段階上限、ドロップ・付呪・合計容量を確認。
+// 全176特性×5レア度の共通下限・段階上限、ドロップ・付呪を確認。
 import assert from 'node:assert/strict';
-import { AFX, afxDef, affixRange, AFFIX_RARITY_MAX, afxBase, affixCapacity, rollAffixes, applyAffixes, pageFromAffix, pageValue, pageText, enchantBlock, ENCHANT_CAP, ENCHANT_SLOTS, gearPerks } from '../../src/infaffix.js';
+import { AFX, afxDef, affixRange, AFFIX_RARITY_MAX, afxBase, rollAffixes, applyAffixes, pageFromAffix, pageValue, pageText, enchantBlock, ENCHANT_SLOTS, gearPerks } from '../../src/infaffix.js';
 import { RARITY_KEYS } from '../../src/rarity.js';
 import { ITEMS, registerAffixes, itemAtQuality } from '../../src/items.js';
 import { CATALOG_ITEMS } from '../../src/catalog/index.js';
@@ -21,26 +21,26 @@ let drops=0,lrFive=false;
 for(const rar of RARITY_KEYS)for(const slot of ['weapon','body','head','hands','feet','shield','acc'])for(const depth of [1,25,50,75,100,200,1000])for(let i=0;i<100;i++){
  const it={slot,lv:200,price:100,rar,depth},B=afxBase(it),afx=rollAffixes(it,depth,rng);assert(afx?.length,rar+'/'+slot+'/'+depth);
  assert(afx.length<=(rar==='lr'?5:4));if(afx.length===5)lrFive=true;
- let sum=0;
  for(const a of afx){const d=afxDef(a.k),[lo,hi]=affixRange(d,it),v=d.kind==='B'?a.v/B:a.v;
   assert(v>=lo-1e-7&&v<=hi+1e-7,`${rar}/${a.k}/${v} 範囲 ${lo}〜${hi}`);
   if(d.step)near(a.v/d.step,Math.round(a.v/d.step));
-  if(d.kind==='B')sum+=a.v;else if(d.kind==='fixB')sum+=B*d.r[0];
  }
- assert(sum<=affixCapacity(it,afx.length)+1e-6);drops++;
+ drops++;
 }
 assert(lrFive,'LRの5枠を維持');
-// 書ける全枠を、2能力の上限値で埋められる。丸め表示で容量判定を誤らない。
+// 合計容量を設けず、枠数だけで制限する。旧品の大きな保存値も書込を妨げない。
 for(const rar of RARITY_KEYS)for(const depth of [0,201,1001]){
- const it={slot:'body',lv:193,rar,depth,price:100,name:'容量検査',afx:[]},count=ENCHANT_SLOTS[rar];
+ const it={slot:'body',lv:193,rar,depth,price:100,name:'枠数検査',afx:[]},count=ENCHANT_SLOTS[rar];
  const keys=['B01','B02','B03','B04','B05'];
  for(const k of keys.slice(0,count)){
   const page={k,r:affixRange(k,it)[1],depth};assert.equal(enchantBlock(it,page,rar),null,k+'/'+rar);
   it.afx.push({k,v:pageValue(page,it)});
  }
- near(affixCapacity(it,count)/afxBase(it),ENCHANT_CAP[rar]);
  assert(enchantBlock(it,{k:'B06',r:.7,depth},rar).includes('いっぱい'));
 }
+
+const over={slot:'body',lv:200,rar:'r',price:100,afx:[{k:'A03',v:1e9}]};
+assert.equal(enchantBlock(over,{k:'A04',r:.25},'r'),null,'既存の能力値の合計による書込制限なし');
 // 上限の高い巻物を低レアへ移しても対象の上限まで。高レアへ移しても弱い巻物を底上げしない。
 const deep={lv:200,depth:1000,rar:'lr',name:'深いLR'},shallow={lv:200,rar:'c',name:'C'};
 for(const [k,v] of [['A09',.10],['A10',.60],['J12',.10],['F01',.24]]){

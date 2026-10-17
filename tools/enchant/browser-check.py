@@ -1,4 +1,4 @@
-"""付呪 (第十一章の結び) の写し取り (特性の巻物)・書き込み・消す・容量と数の決まり・保存・商会の画面を実処理で検証 (localhost:8000)。"""
+"""付呪 (第十一章の結び) の写し取り (特性の巻物)・書き込み・消す・数の決まり・保存・商会の画面を実処理で検証 (localhost:8000)。"""
 import os
 from playwright.sync_api import sync_playwright
 
@@ -71,12 +71,14 @@ with sync_playwright() as p:
       check(/極は1つ/.test(X.enchantBlock(acc,{k:'J02',v:0.3},'lr')),'極は1つの品に1つまで');
       acc.afx=[{k:'J14',v:0.1}];X.applyAffixes(acc);
       check(/発動/.test(X.enchantBlock(acc,{k:'J11',v:0.1},'lr')),'発動する特性は1つの品に1つまで');
-      // 容量: 能力値の術の合計
+      // 能力値の合計にかかわらず、枠が空いていれば書ける
       const capT=mk(byRar('r','body').id);
       const big=['B01','B04','B12'].map(k=>({k,r:X.affixRange(k,capT)[1]}));
       capT.afx=[];for(const b of big.slice(0,2)){capT.afx.push({k:b.k,v:X.pageValue(b,capT)});}X.applyAffixes(capT);
-      check(!X.enchantBlock(capT,big[2],'r'),'レアの最大3枠を各上限0.525Bで埋めても容量1.575Bに収まる');
-      check(!X.enchantBlock(capT,{k:'I12',v:0.06},'r'),'割合の術は容量に数えない');
+      check(!X.enchantBlock(capT,big[2],'r'),'レアの最大3枠を各上限値で埋められる');
+      check(!X.enchantBlock(capT,{k:'I12',v:0.06},'r'),'割合の術も空き枠に書ける');
+      capT.afx[0].v=1e9;
+      check(!X.enchantBlock(capT,big[2],'r'),'既存能力値の合計が大きくても空き枠へ書ける');
       // 消す
       check(game.eraseAffix(tu,0)&&tu.afx.length===1,'術を消せる');
       check(game.eraseAffix(tu,0)&&!tu.afx&&!tu.afxPre,'全部消すと名の前置きも外れる');
@@ -108,6 +110,7 @@ with sync_playwright() as p:
     page.wait_for_timeout(300)
     text = page.inner_text('body').replace('​', '')
     assert '書き込める品' in text, text[:500]
+    assert '容量' not in text and '能力値 ' not in text, '廃止した容量表示が残っている'
     if os.environ.get('SHOT'): page.screenshot(path=os.environ['SHOT'])
     print('商会の「付呪」の区分と書き込み先の一覧 OK')
     assert not errors, errors

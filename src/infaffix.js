@@ -18,7 +18,7 @@ import { MON_RACES } from "./dungeons/schema.js";
 // 格: c 常 / u 稀 (◇) / r 秘 (◆) / x 極 (★)
 export const AFX_TIERS = { c: { name: "常", mark: "", rank: 0 }, u: { name: "稀", mark: "◇", rank: 1 }, r: { name: "秘", mark: "◆", rank: 2 }, x: { name: "極", mark: "★", rank: 3 } };
 
-// 同じランクの標準品の性能点 B(R) (R10 = 25 / R20 = 76)。深度で数値の容量も成長する。
+// 同じランクの標準品の性能点 B(R) (R10 = 25 / R20 = 76)。深度で実数追加の大きさも成長する。
 export function afxBase(it) {
   const R = Math.max(1, Math.min(20, Math.ceil((it && it.lv || 1) / 10)));
   return Math.max(3, 1.2 * R + 0.13 * R * R) * itemDepthMul(it);
@@ -259,12 +259,7 @@ export function affixRange(definition, it) {
   const step = d.kind === "B" ? 0 : d.step || 0.001;
   return [lo, step ? Math.floor((hi + 1e-9) / step) * step : hi].map(v => Math.round(v * 10000) / 10000);
 }
-// 枠数に見合う実数追加の容量。諸刃0.3B・属攻0.25Bも収まる。
-export function affixCapacity(it, slots) {
-  return afxBase(it) * slots * Math.max(0.3, affixRange("B01", it)[1]);
-}
-
-// 1つの追加の点 (値段・品ごとの上限に数える)
+// 1つの追加の点 (強さ・値段に数える)
 function afxPts(d, v, B) {
   if (d.kind === "B") return v * (d.ptsMul || 1);
   if (d.kind === "fixB") return B * d.r[0];
@@ -293,37 +288,32 @@ export function rollAffixes(it, floor, rng = random) {
   if ((it.rar === "lr" || it.lr) && n === 4 && rng() < row.extra) n++;
   const B = afxBase(it);
   const deep = Math.min(1, (floor || 1) / 100);
-  for (let tries = 0; tries < 12; tries++) {
-    const out = [];
-    let sum = 0, j = false;
-    const groups = new Set();
-    for (let i = 0; i < n; i++) {
-      // 格を引く
-      let tot = 0; for (const t in row.w) tot += row.w[t];
-      let pick = rng() * tot, tier = "c";
-      for (const t in row.w) { pick -= row.w[t]; if (pick < 0) { tier = t; break; } }
-      let cand = AFX.filter((d) => d.tier === tier && !d.retired && fitsSlot(d, it) && !out.some((o) => o.k === d.id)
-        && !(d.group && groups.has(d.group)) && !(d.group === "J" && j)
-        && !(d.group === "eAtk" && it.eAtk) && !(d.group === "eDef" && it.eDef) && !(d.group === "onHit" && it.onHit));
-      if (!cand.length) cand = AFX.filter((d) => d.tier === "c" && !d.retired && fitsSlot(d, it) && !out.some((o) => o.k === d.id));
-      if (!cand.length) continue;
-      const d = cand[Math.floor(rng() * cand.length)];
-      // 幅の中の値: 深い階ほど上の方が出やすい
-      const r = Math.min(1, rng() * (1 - 0.4 * deep) + 0.4 * deep * rng() + 0.3 * deep * rng());
-      const band = affixRange(d, it);
-      const lo = d.kind === "B" ? band[0] * B : band[0], hi = d.kind === "B" ? band[1] * B : band[1];
-      const steps = d.step ? Math.round((hi - lo) / d.step) : 0;
-      const v = d.step ? Math.round((lo + Math.min(steps, Math.floor(r * (steps + 1))) * d.step) * 1000) / 1000
-        : d.kind === "B" ? lo + (hi - lo) * r : Math.round((lo + (hi - lo) * r) * 1000) / 1000;
-      out.push({ k: d.id, v });
-      if (d.kind === "B" || d.kind === "fixB") sum += afxPts(d, v, B);
-      if (d.group) groups.add(d.group);
-      if (d.group === "J") j = true;
-    }
-    // 能力値の追加の容量も、装備のレア度と抽選した枠数に合わせる。
-    if (sum <= affixCapacity(it, n) + 1e-6) return out.length ? out : null;
+  const out = [];
+  let j = false;
+  const groups = new Set();
+  for (let i = 0; i < n; i++) {
+    // 格を引く
+    let tot = 0; for (const t in row.w) tot += row.w[t];
+    let pick = rng() * tot, tier = "c";
+    for (const t in row.w) { pick -= row.w[t]; if (pick < 0) { tier = t; break; } }
+    let cand = AFX.filter((d) => d.tier === tier && !d.retired && fitsSlot(d, it) && !out.some((o) => o.k === d.id)
+      && !(d.group && groups.has(d.group)) && !(d.group === "J" && j)
+      && !(d.group === "eAtk" && it.eAtk) && !(d.group === "eDef" && it.eDef) && !(d.group === "onHit" && it.onHit));
+    if (!cand.length) cand = AFX.filter((d) => d.tier === "c" && !d.retired && fitsSlot(d, it) && !out.some((o) => o.k === d.id));
+    if (!cand.length) continue;
+    const d = cand[Math.floor(rng() * cand.length)];
+    // 幅の中の値: 深い階ほど上の方が出やすい
+    const r = Math.min(1, rng() * (1 - 0.4 * deep) + 0.4 * deep * rng() + 0.3 * deep * rng());
+    const band = affixRange(d, it);
+    const lo = d.kind === "B" ? band[0] * B : band[0], hi = d.kind === "B" ? band[1] * B : band[1];
+    const steps = d.step ? Math.round((hi - lo) / d.step) : 0;
+    const v = d.step ? Math.round((lo + Math.min(steps, Math.floor(r * (steps + 1))) * d.step) * 1000) / 1000
+      : d.kind === "B" ? lo + (hi - lo) * r : Math.round((lo + (hi - lo) * r) * 1000) / 1000;
+    out.push({ k: d.id, v });
+    if (d.group) groups.add(d.group);
+    if (d.group === "J") j = true;
   }
-  return null;
+  return out.length ? out : null;
 }
 
 // 品1点の上限に届いた会心は効果・評価に二重加算しない。保存する抽選値は変えない。
@@ -432,12 +422,11 @@ export function gearPerks(list) {
 // ===== 付呪 (第十一章の結び — docs/infinite-affixes.md 6章、2026-10-15 ユーザーの決定) =====
 // 無限迷宮で拾った品の追加の能力・特性を1つ選んで「特性の巻物」に写し取り (元の品は消える)、任意の装備へ書き込む。
 //  ・書ける数はレア度で決まる (コモン1 / アンコモン2 / レア3 / スーパーレア4 / レジェンド5)。格の上限は無い
-//  ・能力値の追加 (kind B・fixB) の合計は、書き込む品の B(R) × ENCHANT_CAP[レア度] まで (レア度別の幅と最大枠数に合わせる)
+//  ・能力値の合計容量は設けない。各特性のレア度別上限と枠数で制限する
 //  ・同じ種類は1つ、属攻・属防・追加効果・発動する特性 (J) はそれぞれ1つ、付呪ではすでに極のある品に極を書けない (拾う品には極が複数付くことがある)。
 //    隊の別々の人業が同じ極を付けるのはよい
 //  ・巻物の値: 能力値の追加 (kind B) は B(R) に対する割合で持ち、書き込む品のランクで値を出し直す。それ以外 (割合・固定の値) は保存値と対象レア度の上限の低い方
 export const ENCHANT_SLOTS = { c: 1, uc: 2, r: 3, sr: 4, lr: 5 };
-export const ENCHANT_CAP = { c: 0.35, uc: 0.875, r: 1.575, sr: 2.45, lr: 3.5 };
 // 書き込みの費用 = 書き込む品の買値 × 格の倍率 × 枠の倍率 (1枠目1・2枠目1.5・3枠目2… — game.js enchantCost)
 export const ENCHANT_TIER_COST = { c: 0.5, u: 1, r: 2, x: 4 };
 
@@ -474,15 +463,9 @@ export function pageText(page, it = null) {
   if (d.kind === "B") { const ref = { lv: page.lv || 1, depth: page.depth || 0, rar: page.rar || "lr" }; const B = afxBase(ref); return d.text(Math.round((page.r || 0) * B * 100) / 100, B); }
   return d.text(page.v != null ? page.v : d.r[0], afxBase({ lv: page.lv || 1, depth: page.depth || 0 }));
 }
-// 品の「能力値の追加」の点 (容量に数える分)
-function capPts(it, afx) {
-  const B = afxBase(it);
-  return (afx || []).reduce((s, a) => { const d = AFX_MAP[a.k]; return s + (d && (d.kind === "B" || d.kind === "fixB") ? afxPts(d, a.v, B) : 0); }, 0);
-}
-// 品の書き込みの枠と容量: { slots, used, cap, capUsed }。rk = レア度 (c/uc/r/sr/lr)
+// 品の書き込みの枠: { slots, used }。rk = レア度 (c/uc/r/sr/lr)
 export function enchantRoom(it, rk) {
-  const B = afxBase(it);
-  return { slots: ENCHANT_SLOTS[rk] || 1, used: (it.afx || []).length, cap: Math.round(B * (ENCHANT_CAP[rk] || ENCHANT_CAP.c) * 10) / 10, capUsed: Math.round(capPts(it, it.afx) * 10) / 10 };
+  return { slots: ENCHANT_SLOTS[rk] || 1, used: (it.afx || []).length };
 }
 // 巻物を品 it に書けない理由 (書ければ null)。tmpl = 目録の品 (生まれつきの属攻・属防・追加効果を見る)
 export function enchantBlock(it, page, rk, tmpl = null) {
@@ -506,10 +489,6 @@ export function enchantBlock(it, page, rk, tmpl = null) {
   if (d.group === "eAtk" && base.eAtk) return "この品には属攻が元からある";
   if (d.group === "eDef" && base.eDef) return "この品には属防が元からある";
   if (d.group === "onHit" && base.onHit) return "この品には追加効果が元からある";
-  if (d.kind === "B" || d.kind === "fixB") {
-    const add = afxPts(d, pageValue(page, it), afxBase(it));
-    if (capPts(it, afx) + add > afxBase(it) * (ENCHANT_CAP[rk] || ENCHANT_CAP.c) + 1e-6) return `能力値の容量を超える (${Math.round((room.capUsed + add) * 10) / 10} / ${room.cap})`;
-  }
   return null;
 }
 
