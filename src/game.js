@@ -6244,9 +6244,19 @@ function moveTo(nx, ny) {
   moveStep(nx, ny);
 }
 
+// 公開済みの魔物と、敵感知で位置が示されている魔物。
+function mapEnemyVisible(cell, x, y) {
+  if (!cell || cell.type !== "monster" || cell.cleared) return false;
+  if (cell.revealed) return true;
+  const sense = Math.min(3, partyPassiveLv("senseEnemy"));
+  return sense > 0 && inDungeon() && passiveSensePlan().enemy.slice(0, sense).some(p => p[0] === x && p[1] === y);
+}
+
 // 隣接マスへ1歩進む実体。未公開ならめくり→スライド、完了後に onDone
 function moveStep(nx, ny, onDone) {
   const cell = G.board.cells[ny][nx];
+  // めくる前に判定する。踏み込んで初めて見えた敵には備えの利点を付けない。
+  const visibleEnemy = mapEnemyVisible(cell, nx, ny);
   G._facing = nx > G.px ? "right" : nx < G.px ? "left" : ny < G.py ? "up" : "down"; // 駒は歩く向きを向く
   G.prevPos = { x: G.px, y: G.py };
   G.anim = { busy: true };
@@ -6261,7 +6271,7 @@ function moveStep(nx, ny, onDone) {
         G.anim = null;
         G.px = nx; G.py = ny;
         renderBoard();
-        resolveCell(cell);
+        resolveCell(cell, { visibleEnemy });
         // 毒は1歩ごとに蝕む (戦闘/選択へ移っていなければ)
         if (G.state === "board" && !G.prompt) tickPoison();
         if (G.state === "board" && !G.prompt) evProgress(); // 誓い・頼みの達成
@@ -6541,7 +6551,7 @@ function dirName(d) { return d[0] === 1 ? "e" : d[0] === -1 ? "w" : d[1] === 1 ?
 // 褒美・罠の解除・軽い痛手・風化した死体はトースト (札の明滅) で知らせて歩みを止めない。
 // 札 (カード) で止めるのは、倒れた者が出た時・飛ばされた時・呼び寄せた時・戦闘が始まる時だけ。
 function resolveCell(...args) { return tlGameMeasure("terrain", () => resolveCellMeasured(...args)); }
-function resolveCellMeasured(cell) {
+function resolveCellMeasured(cell, { visibleEnemy = cell.type === "monster" && !!cell.revealed } = {}) {
   switch (cell.type) {
     case "monster":
       if (!cell.cleared) {
@@ -6551,21 +6561,21 @@ function resolveCellMeasured(cell) {
         if (mon.metal) {
           // 金属の魔物: 倒せば莫大な✦Soul。ただしすぐ逃げる
           log(`✦ ${name} だ！ 逃がすな！`, "win");
-          startBattle(spawnMetal(cell.monsterKey, metalRef(cell.monsterKey)), cell);
+          startBattle(spawnMetal(cell.monsterKey, metalRef(cell.monsterKey)), cell, { visibleEnemy });
         } else if (cell.elite) {
           // 強敵は群れない: 規格外の1体が立ちはだかる
           log(`☠ 強敵 ${name} が立ちはだかる！`, "dmg");
-          startBattle(abyssActive() ? infEliteFoes(cell.monsterKey) : soloFoes(spawnEliteEnemies(cell.monsterKey, soloScale())), cell);
+          startBattle(abyssActive() ? infEliteFoes(cell.monsterKey) : soloFoes(spawnEliteEnemies(cell.monsterKey, soloScale())), cell, { visibleEnemy });
         } else {
           const tr = dungeonTrait();
           if (tr && tr.duel) {
             // 迷宮の掟「一騎打ち」: 群れずに1体だけ。強敵並みに強く、戦果は群れの分だけ持つ
             log(`⚔ ${name}が、一騎打ちを挑んできた！`, "dmg");
-            startBattle(duelFoes(cell.monsterKey), cell);
+            startBattle(duelFoes(cell.monsterKey), cell, { visibleEnemy });
           } else {
             log("⚔ 石札の下から、魔物が這い出してきた！", "dmg");
             // 迷宮の異変 (飢えた狩場): 敵が常に群れで現れる
-            startBattle(spawnCardEnemies(cell.monsterKey, G.floor, enemyScale(), { min: mutNum("packMin", 0), pool: sfMonsterPool() }), cell);
+            startBattle(spawnCardEnemies(cell.monsterKey, G.floor, enemyScale(), { min: mutNum("packMin", 0), pool: sfMonsterPool() }), cell, { visibleEnemy });
           }
         }
       }
@@ -8858,7 +8868,7 @@ function randomElement() {
   return els[Math.floor(random() * els.length)];
 }
 function startBattle(...args) { return tlGameMeasure("battle", () => startBattleMeasured(...args)); }
-function startBattleMeasured(enemies, cell) {
+function startBattleMeasured(enemies, cell, { visibleEnemy = cell?.type === "monster" && !!cell.revealed && !cell.cleared } = {}) {
   // 飢えた狩場はすべての遭遇で3体以上。単体の主・強敵・銀業・ミミックにも、この階の魔物を添える。
   // 掟の packMin は従来どおり通常の群れだけに効かせ、記憶への再戦には異変を持ち込まない。
   const packMin = inDungeon() && !G.rematch ? mutDef()?.packMin || 0 : 0;
@@ -8940,7 +8950,7 @@ function startBattleMeasured(enemies, cell) {
   // 名前は討伐数1で明かす (それまでは不確定名「小さく蠢くもの？」など。迷宮の主は最初から名乗る — 伏せるのは log の maskUnknownEnemies)
   // 名前の後に表示Lv (その魔物が一番弱く出る所と比べた実際の強さ — enemylevel.js。状態異常に使う e.lv とは別)
   log(`${sameKind ? `${enemies[0].mon.name}${enemyLvTag(enemies[0])} ×${enemies.length}` : enemies.map((e) => e.name + enemyLvTag(e)).join("・")}が出現`, "dmg");
-  // 先制・奇襲の判定 (ボス戦・強敵戦では発生しない)。
+  // 先制・奇襲の判定。主は対象外、強敵は見えていた時の先制+20ポイントだけ抽選。
   // 周囲警戒 (vigilance) が奇襲を抑え、先制の心得 (initiative) が先制を伸ばす
   const isBoss = enemies.some((e) => e.boss);
   // オート継続 (§7 M2): 前の戦闘から持ち越したオートは、主・強敵の戦いと深手 (HP3割未満) の者がいる時は止める
@@ -8951,13 +8961,13 @@ function startBattleMeasured(enemies, cell) {
   }
   let opening = null;
   let openSrc = null, ambRate = 0; // テスト記録: 開幕の出どころ (rand/event/smuggler/candle) と、抽選の奇襲率
-  if (!isBoss && !isElite) {
+  if (!isBoss && (!isElite || visibleEnemy)) {
     const vig = partyPassiveLv("vigilance");
     // 迷宮の異変 (闇討ちの宴): 奇襲率が跳ね上がる (周囲警戒は引き続き有効)
     // 極の恵み「霧渡りの目」は奇襲を半分に
     // 夜営の番 (nightWatch): 奇襲される確率 −50/75/100%
     const nw = 1 - ([0, 0.50, 0.75, 1][Math.min(3, partyPassiveLv("nightWatch"))] || 0);
-    const amb = (spFloor && spFloor.noAmbush) ? 0 : 0.08 * mutNum("ambushMul", 1) * (vig >= 2 ? 0 : vig === 1 ? 0.5 : 1) * evBoon("mistEye", "ambush", 1) * nw;
+    const amb = visibleEnemy || (spFloor && spFloor.noAmbush) ? 0 : 0.08 * mutNum("ambushMul", 1) * (vig >= 2 ? 0 : vig === 1 ? 0.5 : 1) * evBoon("mistEye", "ambush", 1) * nw;
     // 追い風の階 (preempt100) では必ず先制できる。
     // 先制の心得 (initiative) で +15/25/40%、周囲警戒Lv3 で挑戦時さらに +10%
     const ini = partyPassiveLv("initiative");
@@ -8965,7 +8975,9 @@ function startBattleMeasured(enemies, cell) {
     const iniBonus = (ini >= 3 ? 0.40 : ini >= 2 ? 0.25 : ini >= 1 ? 0.15 : 0)
       + ([0, 0.10, 0.15, 0.20][Math.min(3, partyPassiveLv("stealthStep"))] || 0);
     // 極の恵み「守備隊の敬礼」は先手 +8%
-    const pre = (spFloor && spFloor.preempt100) ? 1 : 0.08 + iniBonus + (vig >= 3 ? 0.10 : 0) + evBoon("salute", "preempt", 0);
+    // 見えていた敵は奇襲0%、先制に固定の20ポイント加算 (倍率ではない)。
+    const basePre = isElite ? 0 : (spFloor && spFloor.preempt100) ? 1 : 0.08 + iniBonus + (vig >= 3 ? 0.10 : 0) + evBoon("salute", "preempt", 0);
+    const pre = Math.min(1, basePre + (visibleEnemy ? 0.20 : 0));
     const r = random();
     if (r < amb) opening = "ambush";
     else if (r < amb + pre) opening = "preempt";
@@ -8975,7 +8987,7 @@ function startBattleMeasured(enemies, cell) {
   // 迷宮のイベント: 出来事が決めた開幕 (寝首/奇襲) ・ 密輸人の待ち伏せ ・ 祈りの蝋燭
   // 出来事が選択肢の文で約束した開幕 (寝込みを襲う・見つかる) は強敵の戦いにも効かせる (主の戦いは除く)
   // 迷宮の掟: どの戦闘も必ず奇襲で始まる (trait.alwaysAmbush。周囲警戒・夜営の番・先制の恵みも効かない。主の戦いは除く)。
-  // ただし出来事がその場で約束した開幕 (寝首をかく・見つかる) はそちらを守る。先制の備え (蝋燭など) はこの掟の下では使わずに取っておく
+  // 必ず奇襲になる掟は、見えていた敵への備えや出来事が決めた先制より優先する。先制の備えは使わずに取っておく
   const trA = dungeonTrait();
   const forceAmb = !!(trA && trA.alwaysAmbush && !isBoss);
   if (!isBoss && G._evOpening) { opening = G._evOpening; openSrc = "event"; }
@@ -8986,12 +8998,15 @@ function startBattleMeasured(enemies, cell) {
     else if (rv && rv.preempt > 0) { rv.preempt--; opening = "preempt"; openSrc = "candle"; log(inf ? "出来事の備え：先制確定" : "祈りの蝋燭：先制確定", "win"); } // 「次の戦闘は必ず先制」— 強敵の戦いにも効く
   }
   G._evOpening = null;
-  if (forceAmb && openSrc !== "event") { opening = "ambush"; openSrc = "trait"; }
+  if (forceAmb) { opening = "ambush"; openSrc = "trait"; }
   if (abyssActive()) { const trk = infTrk(); trk.fb = (trk.fb || 0) + 1; } // テスト記録の無限迷宮の欄: 階ごとの戦闘数
   evBattleStart(enemies, isBoss);
-  if (opening === "preempt") { log("先制した！", "win"); showToast("⚡ 先制攻撃！", { noLog: true }); }
+  if (opening === "preempt") {
+    log("先制した！", "win"); showToast("⚡ 先制した！ 隊が先に動く", { noLog: true, tone: "good" });
+    SFX.spell(); flashScreen("#297b5e"); buzz([0, 35, 40, 70]);
+  }
   else if (opening === "ambush") {
-    // 奇襲: 紅い閃光・揺れ・専用の効果音で知らせ、開幕の帯 (drawAmbushIntro) と1ターン目の札で敵の先手を示す
+    // 奇襲: 紅い閃光・揺れ・専用の効果音で知らせ、開幕の帯 (drawOpeningIntro) と1ターン目の札で敵の先手を示す
     log("奇襲！ 敵が先に行動", "dmg");
     showToast("⚠ 奇襲された！ 敵が先に動く", { noLog: true, tone: "bad" });
     SFX.ambush(); flashScreen("#9a0a06"); shakeScreen(true); buzz([0, 90, 50, 90, 50, 160]);
@@ -9512,8 +9527,8 @@ function renderCombatCanvas() {
   const toolsBottom = rowBtnRect ? (rowBtnRect.bottom - viewRect.top + 6) * viewScale : 0;
   const distantW = rowBtnRect ? Math.max(VW / 2, (rowBtnRect.left - viewRect.left - 8) * viewScale) : VW;
   const intro = G.battleIntro && G.battleIntro.battle === b ? G.battleIntro : null;
-  // 奇襲の1ターン目は、魔物の下に紅い縁と「敵が先に動く」の札を敷く (名札が重なれば名札を優先)
-  if (!intro && b.opening === "ambush" && b._roundNo <= 1 && !b.result) drawAmbushTag(now);
+  // 先制・奇襲の1ターン目は、開幕の色と札を残す (名札が重なれば名札を優先)。
+  if (!intro && b.opening && b._roundNo <= 1 && !b.result) drawOpeningTag(now, b.opening === "preempt");
   // タップで狙える敵 = 攻撃が届く敵のみ (対象選択中は候補、入力中は手番キャラの武器射程)
   const targetable = new Set(
     G.animating ? []
@@ -9941,7 +9956,7 @@ function drawBattleIntro(intro, now) {
     vctx.fillRect(0, 0, W, H);
     vctx.restore();
   }
-  if (intro.ambush) { drawAmbushIntro(intro, t); return; }
+  if (intro.ambush || intro.preempt) { drawOpeningIntro(intro, t); return; }
   if (!intro.boss) return;
   const a = Math.min(1, Math.max(0, (t - 120) / 240)) * Math.min(1, Math.max(0, (intro.dur - t) / 340));
   if (a <= 0) return;
@@ -10004,44 +10019,45 @@ function drawBattleIntro(intro, now) {
   vctx.restore();
 }
 
-// 奇襲の開幕: 紅い縁が脈打ち、「奇 襲」の帯を叩きつける
-function drawAmbushIntro(intro, t) {
+// 先制・奇襲の開幕: 緑または紅い縁と、大きな帯で手番を知らせる。
+function drawOpeningIntro(intro, t) {
+  const preempt = !!intro.preempt, label = preempt ? "先 制" : "奇 襲";
   const W = VW, H = VH;
   const cl = (v) => Math.max(0, Math.min(1, v));
   const a = cl((t - 40) / 160) * cl((intro.dur - t) / Math.min(320, intro.dur * 0.3)); // 短い演出 (オート) でも帯が読める間を残す
   if (a <= 0) return;
   vctx.save();
-  // 紅い縁 (心拍のように脈打つ)
+  // 開幕の縁を脈打たせる
   const beat = 0.65 + 0.35 * Math.abs(Math.sin(t * 0.0068));
   const vg = vctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.22, W / 2, H / 2, Math.max(W, H) * 0.72);
-  vg.addColorStop(0, "rgba(150,0,0,0)");
-  vg.addColorStop(1, `rgba(170,10,6,${0.6 * a * beat})`);
+  vg.addColorStop(0, preempt ? "rgba(0,150,100,0)" : "rgba(150,0,0,0)");
+  vg.addColorStop(1, `rgba(${preempt ? "10,140,95" : "170,10,6"},${0.6 * a * beat})`);
   vctx.fillStyle = vg;
   vctx.fillRect(0, 0, W, H);
   // 帯
   const bh = 60, by = H * 0.74 - bh / 2;
   vctx.globalAlpha = a;
   const g = vctx.createLinearGradient(0, 0, W, 0);
-  g.addColorStop(0, "rgba(20,2,2,0)");
-  g.addColorStop(0.16, "rgba(34,4,4,0.93)");
-  g.addColorStop(0.84, "rgba(34,4,4,0.93)");
-  g.addColorStop(1, "rgba(20,2,2,0)");
+  g.addColorStop(0, preempt ? "rgba(2,20,14,0)" : "rgba(20,2,2,0)");
+  g.addColorStop(0.16, preempt ? "rgba(4,34,24,0.93)" : "rgba(34,4,4,0.93)");
+  g.addColorStop(0.84, preempt ? "rgba(4,34,24,0.93)" : "rgba(34,4,4,0.93)");
+  g.addColorStop(1, preempt ? "rgba(2,20,14,0)" : "rgba(20,2,2,0)");
   vctx.fillStyle = g;
   vctx.fillRect(0, by, W, bh);
-  // 紅い罫 (中央から左右へ伸びる)
+  // 罫を中央から左右へ伸ばす
   const ease = 1 - Math.pow(1 - cl((t - 40) / 300), 3);
   const lw = W * 0.38 * ease;
-  vctx.fillStyle = "#e0503c";
+  vctx.fillStyle = preempt ? "#70dbad" : "#e0503c";
   vctx.fillRect(W / 2 - lw, by + 3, lw * 2, 1);
   vctx.fillRect(W / 2 - lw, by + bh - 4, lw * 2, 1);
-  // 文字: 小さな前書き + 叩きつけるように縮む「奇 襲」
+  // 小さな前書きと、手番を知らせる大きな文字
   vctx.textAlign = "center";
   vctx.textBaseline = "alphabetic";
   vctx.font = `800 10px ${CANVAS_SERIF}`;
   if ("letterSpacing" in vctx) vctx.letterSpacing = "4px";
-  vctx.fillStyle = "#ffb4a4";
-  vctx.shadowColor = "rgba(255,40,20,0.8)"; vctx.shadowBlur = 8;
-  vctx.fillText("背後を取られた", W / 2, by + 17);
+  vctx.fillStyle = preempt ? "#b4ffdb" : "#ffb4a4";
+  vctx.shadowColor = preempt ? "rgba(40,255,160,0.8)" : "rgba(255,40,20,0.8)"; vctx.shadowBlur = 8;
+  vctx.fillText(preempt ? "隊が先に動く" : "背後を取られた", W / 2, by + 17);
   if ("letterSpacing" in vctx) vctx.letterSpacing = "2px";
   const slam = 1 - Math.pow(1 - cl((t - 60) / 220), 3);
   const sc = 1.45 - 0.45 * slam;
@@ -10054,40 +10070,40 @@ function drawAmbushIntro(intro, t) {
   vctx.lineJoin = "round";
   vctx.lineWidth = 5;
   vctx.strokeStyle = "#000";
-  vctx.strokeText("奇 襲", 0, 0);
+  vctx.strokeText(label, 0, 0);
   const tg = vctx.createLinearGradient(0, -22, 0, 2);
-  tg.addColorStop(0, "#fff4ec"); tg.addColorStop(0.5, "#ff8a6a"); tg.addColorStop(1, "#d0301c");
+  tg.addColorStop(0, preempt ? "#ecfff4" : "#fff4ec"); tg.addColorStop(0.5, preempt ? "#8affc0" : "#ff8a6a"); tg.addColorStop(1, preempt ? "#30b87c" : "#d0301c");
   vctx.fillStyle = tg;
-  vctx.shadowColor = "rgba(255,50,30,0.7)"; vctx.shadowBlur = 14;
-  vctx.fillText("奇 襲", 0, 0);
+  vctx.shadowColor = preempt ? "rgba(50,255,170,0.7)" : "rgba(255,50,30,0.7)"; vctx.shadowBlur = 14;
+  vctx.fillText(label, 0, 0);
   vctx.restore();
   vctx.restore();
 }
 
-// 奇襲の1ターン目 (敵だけが動く間): 戦場の縁を薄く紅く脈打たせ、上端に「奇襲 ― 敵が先に動く」の札を残す
-function drawAmbushTag(now) {
+// 1ターン目の間は、どちらが先に動くかを戦場の札で示す。
+function drawOpeningTag(now, preempt = false) {
   const W = VW, H = VH;
   const pulse = REDUCED_MOTION ? 1 : 0.55 + 0.45 * Math.abs(Math.sin(now * 0.004));
   vctx.save();
   const vg = vctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.75);
-  vg.addColorStop(0, "rgba(150,0,0,0)");
-  vg.addColorStop(1, `rgba(160,10,6,${0.28 * pulse})`);
+  vg.addColorStop(0, preempt ? "rgba(0,150,100,0)" : "rgba(150,0,0,0)");
+  vg.addColorStop(1, `rgba(${preempt ? "10,140,95" : "160,10,6"},${0.28 * pulse})`);
   vctx.fillStyle = vg;
   vctx.fillRect(0, 0, W, H);
-  const label = "奇襲 ― 敵が先に動く";
+  const label = preempt ? "先制 ― 隊が先に動く" : "奇襲 ― 敵が先に動く";
   vctx.font = `800 11px ${CANVAS_SERIF}`;
   if ("letterSpacing" in vctx) vctx.letterSpacing = "1px";
   const pw = Math.ceil(vctx.measureText(label).width) + 22, ph = 19;
   const px = Math.round((W - pw) / 2), py = 5;
-  vctx.fillStyle = "rgba(34,4,4,0.86)";
+  vctx.fillStyle = preempt ? "rgba(4,34,24,0.86)" : "rgba(34,4,4,0.86)";
   vctx.fillRect(px, py, pw, ph);
-  vctx.strokeStyle = `rgba(228,85,79,${0.5 + 0.5 * pulse})`;
+  vctx.strokeStyle = `rgba(${preempt ? "85,228,160" : "228,85,79"},${0.5 + 0.5 * pulse})`;
   vctx.lineWidth = 1;
   vctx.strokeRect(px + 0.5, py + 0.5, pw - 1, ph - 1);
   vctx.textAlign = "center";
   vctx.textBaseline = "middle";
-  vctx.fillStyle = "#ffc4b8";
-  vctx.shadowColor = "rgba(255,40,20,0.7)"; vctx.shadowBlur = 6;
+  vctx.fillStyle = preempt ? "#c4ffdb" : "#ffc4b8";
+  vctx.shadowColor = preempt ? "rgba(40,255,160,0.7)" : "rgba(255,40,20,0.7)"; vctx.shadowBlur = 6;
   vctx.fillText(label, W / 2, py + ph / 2 + 1);
   vctx.restore();
 }
@@ -10104,19 +10120,19 @@ function playBattleIntro(done) {
   if (REDUCED_MOTION) { done(); return; }
   // 開幕の演出: オート中は短く、倍速 ON は標準、OFF はその 1/2 の速さ
   const introMul = G.autoCombat ? 0.6 : G.fastAnim ? 1 : 2;
-  const ambush = b.opening === "ambush";
+  const ambush = b.opening === "ambush", preempt = b.opening === "preempt";
   let dur = (boss ? 1900 : 640 + b.enemies.length * 90) * introMul;
-  // 奇襲の帯を読めるだけ留める (下限も戦闘スピードの設定に従う: オート 600 / 倍速 ON 1000 / OFF 2000ms)
-  if (ambush) dur = Math.max(dur, 1000 * introMul);
-  G.battleIntro = { battle: b, t0: performance.now(), dur, ambush, boss: boss ? (enemyReveal(boss).name ? (boss.mon && boss.mon.name) || boss.name : unknownLabel(boss.mon)) : null };
+  // 先制・奇襲の帯を読めるだけ留める (下限も戦闘スピードの設定に従う: オート 600 / 倍速 ON 1000 / OFF 2000ms)
+  if (ambush || preempt) dur = Math.max(dur, 1000 * introMul);
+  G.battleIntro = { battle: b, t0: performance.now(), dur, ambush, preempt, boss: boss ? (enemyReveal(boss).name ? (boss.mon && boss.mon.name) || boss.name : unknownLabel(boss.mon)) : null };
   G.animating = true;
   combatMenu.innerHTML = "";
   if (G.autoCombat) renderAutoBanner();
-  else if (ambush) {
-    // 奇襲: 敵が一巡するまで命令板が出ないので、開幕の演出の間からオートを押せるようにする
+  else if (ambush || preempt) {
+    // 開幕の演出の間からオートを押せるようにする
     combatMenu.dataset.mode = "acting";
-    const w = turnPlate("奇襲", "敵が先に動く", []);
-    w.classList.add("who-foe");
+    const w = turnPlate(preempt ? "先制" : "奇襲", preempt ? "隊が先に動く" : "敵が先に動く", []);
+    if (ambush) w.classList.add("who-foe");
     combatMenu.appendChild(w);
     appendAutoStart();
   }
@@ -19607,7 +19623,7 @@ async function init() {
     // 極 (無限迷宮の追加の特性) の検証用
     affix: { resolveCell, treasureCaller, battleChestSpec, distributeBattleSoulExp },
     // オート移動の検証用
-    autoMove: { setAutoMove, toggleAutoMove, autoMovePlan, cellRect, viewSize: () => ({ VW, VH }) },
+    autoMove: { setAutoMove, toggleAutoMove, autoMovePlan, moveStep, cellRect, viewSize: () => ({ VW, VH }) },
     // 宿敵の再戦の検証用
     rematch: { rematchList, departRematch, endBattle },
     // 無限迷宮の検証用
