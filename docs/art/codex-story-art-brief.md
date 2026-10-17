@@ -847,6 +847,7 @@ The same cold throne room. The very old king, lap blanket over his knees, stares
 - 要点: 谷の奥に作りかけの器の山 (腕の無いもの・顔の無いもの・胸の扉が開いたままのもの)。どれも三百年より古い。胸の扉の内側に灯を掌に載せた手の印。山の頂に一体だけ、きれいに座らされた器 (顔は彫りかけ、胸は空)、膝に師の札。
 - 2026-10-17 ユーザー指定の修正: 捨てられた人業の胸の扉は、すべて一枚の片開き。構図・人物・光を保ち、両開きの扉を直した (済)。
 - 同日の追加修正: 片開きは保ち、弟子の脚・足首・ブーツを自然につながる形に直し、器の山に足を置いて登る姿勢に整えた (済)。
+- 同日の追加修正: 足の周りのマントを、背中から続く一枚の布として自然に垂れる裾とひだに直した。脚を囲む筒状の縁や分かれた布片に見せない (済)。
 ```text
 A deep valley by the poison swamp, piled high with ancient unfinished wooden dolls: some armless, some faceless with blank heads, many with small chest doors hanging open, and inside each open door the same carved crest — a palm-up hand holding a flame. Every chest hatch has exactly one full-width wooden door panel hinged on one side only, never two opposing leaves. Everything is grey with age and moss. At the very top of the pile, one doll sits neatly upright, its face only half-carved, its chest empty, a wooden tag resting on its knees. The apprentice climbs the heap toward it. Green miasma, dead reeds.
 ```
