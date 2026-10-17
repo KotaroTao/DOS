@@ -57,9 +57,7 @@ with sync_playwright() as p:
           if(!b)throw Error('ボタンが無い: '+text);b.click();
         }''', text)
 
-    click('魂を記憶する')
-    page.wait_for_timeout(100)
-    click('この状態を記憶する')
+    assert page.evaluate('!!__game.G.abyssRec.memories[50]'), '初回の節目で自動保存'
     page.wait_for_timeout(100)
     print(page.evaluate('''async () => {
       const {game,UI}=await import('/src/ui/ctx.js');
@@ -70,7 +68,7 @@ with sync_playwright() as p:
       const check=(ok,msg)=>{if(!ok)throw Error(msg);out.push(msg);};
       sheet.closeAll();
       const memory=game.infMemoryAt(50);
-      check(!!memory&&G.party[0].hp===1&&G.party[0].ailment==='poison','実ボタンで保存・現在の傷は変えない');
+      check(!!memory&&G.party[0].hp===1&&G.party[0].ailment==='poison','自動保存・現在の傷は変えない');
       check(!G.party[0].equip.weapon.soulMemory&&G.run.souls.length===1,'保存しても今回の戦利品は通常のまま');
       G.party[0].equip.weapon.q=10;soulByUid(G.party[0].primary).level=2;
       check(memory.party[0].equip.weapon.q===73&&memory.souls.find(s=>s.uid===memory.party[0].primary).level===70,'装備と魂の記憶は独立した写し');

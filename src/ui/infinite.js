@@ -18,7 +18,7 @@ import { ICONS } from "../sprites.js";
 import { INF_NAME, INF_PARTY, VESSEL_NAMES, rollStartSouls, infLevel, infRedCost, INF_RULES } from "../abyss.js";
 import { openTrainSheet, openSkillStep } from "./soulpanel.js";
 import { ITEMS, itemName, useLines } from "../items.js";
-import { memoryParty, memoryComparison } from "./infmemory.js";
+import { memoryParty, memoryComparison, memoryChanges } from "./infmemory.js";
 
 const G = () => game.G;
 // Lv上限に届いた魂を、灯番で伸ばせるか (残火か、✦Soul = いまの Lv から次の Lv へ上がるのと同じだけ)
@@ -208,8 +208,17 @@ async function subLeaveOk(onStay) {
 export function openInfRest(spec = {}) {
   const g = G();
   if (!g) return null;
-  let h = null, closing = false;
+  let h = null, closing = false, autoSaved = false;
+  const floor = spec.floor || g.floor;
+  // 初回だけ自動記録。蘇生などで保存条件を満たした時の再描画も対象にする。
+  const autoRecord = () => {
+    if (floor % 50 === 0 && !game.infMemoryAt(floor) && !game.infMemoryBlock()) {
+      autoSaved = game.infSaveMemory() || autoSaved;
+    }
+  };
+  const refresh = () => h && !h.closed && h.update({ body: fill });
   const fill = (b) => {
+    autoRecord();
     const lv = Math.round(infLevel(spec.floor || g.floor));
     b.appendChild(el("div", "inf-note", spec.guardDown
       ? "吹き上げる風が止んだ踊り場。主は討った。ここから地上へ帰るか、さらに深くへ降りるかを選ぶ。"
@@ -217,10 +226,11 @@ export function openInfRest(spec = {}) {
     b.appendChild(el("div", "inf-cur", `所持 💰${g.gold || 0} ・ ✦${g.soulPts || 0} ・ 残火 ${g.embers || 0} ・ 推奨Lv ${lv}`));
     const supply = game.infSupplyStatus();
     b.appendChild(el("div", "inf-note", `この階の回復・蘇生の補給 残り${supply.left}/${supply.limit}個`));
-    b.appendChild(row({ icon: ICONS.chest, title: "回収人 (商会の者)", sub: "品の買い取り (売った品はすぐ商会の棚へ ― 全滅しても残る)・回復の道具・反魂香・風切りの羽・鍛え直し", chevron: true, onTap: () => { sfx("select"); openTrader(() => h && !h.closed && h.update({ body: fill })); } }));
-    b.appendChild(row({ icon: ICONS.portal, title: "灯番 (名もない人業)", sub: "メイン魂・サブ魂の付け替え・✦Soul で魂の強化・残火で Lv上限 +1", chevron: true, onTap: () => { sfx("select"); openKeeper(() => h && !h.closed && h.update({ body: fill })); } }));
+    b.appendChild(row({ icon: ICONS.chest, title: "回収人 (商会の者)", sub: "品の買い取り (売った品はすぐ商会の棚へ ― 全滅しても残る)・回復の道具・反魂香・風切りの羽・鍛え直し", chevron: true, onTap: () => { sfx("select"); openTrader(refresh); } }));
+    b.appendChild(row({ icon: ICONS.portal, title: "灯番 (名もない人業)", sub: "メイン魂・サブ魂の付け替え・✦Soul で魂の強化・残火で Lv上限 +1", chevron: true, onTap: () => { sfx("select"); openKeeper(refresh); } }));
     if ((spec.floor || g.floor) % 50 === 0) {
-      const why = game.infMemoryBlock(), previous = game.infMemoryAt(spec.floor || g.floor);
+      const why = game.infMemoryBlock(), previous = game.infMemoryAt(floor);
+      if (autoSaved) b.appendChild(el("div", "inf-note", `B${floor}F の隊を自動で記憶した。装備や魂を替えた後は、上書きして記憶できる。`));
       b.appendChild(button({ label: previous ? "魂の記憶を上書きする" : "魂を記憶する", sub: why || `次回は B${(spec.floor || g.floor) + 1}F から`,
         kind: "secondary", disabled: !!why, onTap: () => openInfRecord(() => h && !h.closed && h.update({ body: fill })) }));
     }
@@ -240,16 +250,31 @@ export function openInfRest(spec = {}) {
           okLabel: "帰る", cancelLabel: "まだ帰らない", danger: false });
         if (!ok || x.closed) return;
         closing = true; x.close("ok", { silent: true }); spec.onReturn && spec.onReturn(); } },
-       { label: `続ける ― B${(spec.floor || g.floor) + 1}Fへ`, kind: "secondary", onTap: (x) => leave(x, () => { closing = true; x.close("ok", { silent: true }); spec.onContinue && spec.onContinue(); }) },
+       { label: `続ける ― B${(spec.floor || g.floor) + 1}Fへ`, kind: "secondary", onTap: (x) => leave(x, () => { closing = true; x.close("ok", { silent: true }); spec.onContinue && spec.onContinue(); }, true) },
        { label: "まだ探索する", kind: "ghost", onTap: (x) => leave(x, () => x.close()) }]
     : [{ label: "主に挑む", kind: "danger", size: "lg", onTap: (x) => leave(x, () => { closing = true; x.close("ok", { silent: true }); spec.onBoss && spec.onBoss(); }) },
        { label: "まだ探索する", kind: "ghost", onTap: (x) => leave(x, () => x.close()) }];
   // 風だまりを離れる前に、サブ魂の空きを知らせる (残るなら灯番を開く。帰る時は出撃が終わるので知らせない)
   const keeper = () => openKeeper(() => h && !h.closed && h.update({ body: fill }));
   let asking = false;
-  const leave = async (x, go) => {
+  const leave = async (x, go, nextFloor = false) => {
     if (asking || x.closed) return;
     asking = true;
+    if (nextFloor && floor % 50 === 0) {
+      autoRecord();
+      const previous = game.infMemoryAt(floor), candidate = game.infMemoryPreview();
+      if (!previous || !candidate || memoryChanges(previous, candidate).count) {
+        const ok = await kitConfirm({ banner: "魂の記憶", title: "今の隊を記憶せずに進む？",
+          lines: [game.infMemoryBlock() || "今の隊は、この階の魂の記憶に保存されていない。",
+            previous ? "以前の記憶は残るが、今の隊での再挑戦はできない。" : "この階から再挑戦するための記憶は残らない。"],
+          okLabel: "記憶せずに進む", cancelLabel: candidate ? "隊の記憶を確認する" : "風だまりに戻る", danger: false });
+        if (!ok || x.closed) {
+          asking = false;
+          if (!ok && !x.closed && candidate) openInfRecord(refresh);
+          return;
+        }
+      }
+    }
     const ok = await subLeaveOk(() => keeper());
     asking = false;
     if (ok && !x.closed) go();
@@ -257,6 +282,7 @@ export function openInfRest(spec = {}) {
   h = sheet.open({ kind: "info", banner: `✦ 風だまり B${spec.floor || g.floor}F ✦`, accent: "#8e6fd0", className: "inf-sheet",
     body: fill, footer: footer(), onBack: (x) => leave(x, () => x.close("back")), onBackdrop: (x) => leave(x, () => x.close("backdrop")),
     onClose: () => { if (!closing && spec.onClose) spec.onClose(); } });
+  if (floor % 50 === 0 && !autoSaved && !game.infMemoryBlock()) openInfRecord(refresh);
   return h;
 }
 

@@ -87,7 +87,8 @@ with sync_playwright() as p:
         assert result['footer'] <= result['h'] + 1 and not result['bad'], (name, size, result)
         page.screenshot(path=str(ARTIFACTS / f'{name}-{size[0]}x{size[1]}.png'))
 
-    click('魂の記憶を上書きする')
+    assert page.locator('.inf-memory-comparison.show-all').count() == 1
+    click('変更のみ')
     page.wait_for_timeout(1800)
     for size in SIZES:
         page.set_viewport_size({'width': size[0], 'height': size[1]})
@@ -131,6 +132,7 @@ with sync_playwright() as p:
     for size in [SIZES[0], SIZES[3], SIZES[5]]:
         page.set_viewport_size({'width': size[0], 'height': size[1]})
         page.evaluate("import('/src/ui/kit.js').then(({sheet})=>{sheet.closeAll();__game.inf.openInfRest();})")
+        click('以前の記憶を残す')
         fit('rest', size)
         click('回収人')
         fit('trader', size)
