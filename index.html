@@ -7,6 +7,14 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>百の迷宮と 魂の王 - Hundred Labyrinths: Rise of the Soul King</title>
+  <!-- モジュールとCSSの到着前も、途中の画面を見せない。 -->
+  <style>
+    html { background: #000; }
+    body.booting::before, body.screen-loading::before {
+      content: ""; position: fixed; inset: 0; background: #000; z-index: 2147483647;
+    }
+    body.booting .image-loading { visibility: visible; opacity: 1; }
+  </style>
   <link rel="manifest" href="manifest.webmanifest" />
   <!-- 明朝体 (オフライン時は端末の明朝体にフォールバック) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -26,6 +34,27 @@
   <link rel="stylesheet" href="desktop.css" />
 </head>
 <body class="booting">
+  <!-- 燭台自身の取得を待たず、最初の画面から灯す。 -->
+  <script>
+    (function () {
+      var lamp = document.createElement("div");
+      lamp.className = "image-loading"; lamp.dataset.state = "loading";
+      lamp.setAttribute("role", "status"); lamp.setAttribute("aria-live", "polite");
+      lamp.style.cssText = "position:fixed;left:calc(env(safe-area-inset-left,0px) + 10px);bottom:calc(env(safe-area-inset-bottom,0px) + 10px);width:42px;height:63px;z-index:2147483647;pointer-events:none";
+      var src = "data:image/webp;base64,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";
+      ["body", "flame"].forEach(function (part) {
+        var image = new Image(); image.src = src; image.alt = "";
+        image.className = "image-loading-" + part; image.setAttribute("aria-hidden", "true");
+        image.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:contain";
+        lamp.appendChild(image);
+      });
+      var label = document.createElement("span"); label.className = "image-loading-label";
+      label.textContent = "画面を読み込んでいます";
+      label.style.cssText = "position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap";
+      lamp.appendChild(label); document.body.appendChild(lamp);
+    })();
+  </script>
+
   <div id="app">
     <header id="topbar">
       <div class="topbar-left">
@@ -142,7 +171,7 @@
         var d = document.createElement("div");
         d.id = "boot-notice";
         d.setAttribute("role", failed ? "alert" : "status");
-        d.style.cssText = "position:fixed;inset:0;z-index:9999;background:#0b0b12;color:#e7e3d4;" +
+        d.style.cssText = "position:fixed;inset:0;z-index:2147483647;background:#0b0b12;color:#e7e3d4;" +
           "display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;" +
           "padding:24px;text-align:center;font-family:monospace";
         var h = document.createElement("div"); h.textContent = title;
@@ -180,10 +209,7 @@
       window.addEventListener("unhandledrejection", function (ev) {
         if (!ready) showFatal(ev.reason && ev.reason.message ? ev.reason.message : String(ev.reason || ""));
       });
-      // 遅い回線は失敗と決めつけず待つ。起動できた時点で、この案内も取り除く。
-      timer = setTimeout(function () {
-        if (!ready) showPanel("読み込み中です", "回線の速さによって時間がかかることがあります。そのままお待ちください。", false);
-      }, 5000);
+      // 遅い回線でも黒い幕と燭台のまま待つ。失敗時だけ復旧の案内を出す。
     })();
   </script>
   <script type="module" src="src/game.js" onerror="window.dosBoot.fail('ゲームを読み込めませんでした。接続を確かめて、再読み込みしてください。')"></script>
