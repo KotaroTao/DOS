@@ -533,6 +533,13 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 ...except: correct ONLY the legs of the small wooden articulated doll seated on the cushion in the center foreground. Its back faces the camera and its torso faces the picture book. Correct the backward lower body: seat it naturally on the cushion with BOTH knees directed FORWARD toward the book, away from the camera. Fold the lower legs underneath its body in a natural kneeling sitting pose, with the backs of the heels and soles visible from behind. Do not extend the legs or point the toes backward toward the camera. Exactly two naturally connected wooden legs with black-iron knee and ankle joints. Allow the table to naturally occlude parts of the forward-facing legs. Preserve its leaning upper body and reading gesture, the other dolls, the book, the room, composition, style and lighting.
 ```
 
+**A-38. 第五章 report_w18「床の下の熱」の床の修正** `art/story-review/chapter5/report_w18.png` (済)
+- 直す (2026-10-17 ユーザーの指示): 玉座の間がやけに暑い程度なので、床と階段を通常の石造りに戻す。赤く光る亀裂・溶岩・床からの蒸気と赤い反射光を除去し、暑さは額をぬぐう王の仕草で伝える。
+- 保つもの: 王と弟子の姿・衣装・仕草、空いた宰相の席、絨毯、蝋燭、窓外の重い雲、構図・画風。修正前は `art/story-review/fixes/report_w18-before.png` に保存。
+```text
+...except: restore ONLY the floor and the throne dais steps to ordinary intact dark polished stone masonry with normal non-glowing tile joints. Remove ALL red-orange glowing fissures, lava, molten seams, fiery light from under the floor or steps, red reflections caused by those fissures, and ALL steam or smoke rising from the floor. The room is merely unusually hot, not visibly volcanic or structurally damaged. Normal warm candle reflections on the stone are allowed. Keep the king wiping his brow, the kneeling soot-covered apprentice, their faces, hands, clothes and crests, the empty chancellor chair, the red carpet, candles, gothic architecture, cloudy sky, camera composition, and fine-grained pixel-textured style unchanged. Do not add people or objects.
+```
+
 ### B. 任意 (余力があれば。読者が気づきやすい順)
 
 | 場面 | 直すこと |
@@ -655,9 +662,9 @@ Deep inside a volcanic fissure cave whose rock walls glow and pulse red with mag
 
 **report_w18「床の下の熱」** (報告)
 - 要点: 玉座の間がひどく暑く、王が何度も額をぬぐう。床の下で何かが煮えている音。弟子は煤だらけ。
-- 描くもの: 額を布でぬぐう王 / 床石のすき間から漏れる赤い光と陽炎 / 空いた宰相の席 / 煤だらけの弟子。
+- 描くもの: 額を布でぬぐう王 / 通常の石床と階段 (赤い亀裂・発光・蒸気なし) / 空いた宰相の席 / 煤だらけの弟子。
 ```text
-The same gothic throne room. The very old king (long white hair and beard, pointed gold crown, red robes, white ermine with black spots) sits on the throne wiping sweat from his brow with a cloth; the air wavers with heat shimmer and a faint red glow seeps up through cracks between the floor tiles, as if something boils beneath. The chancellor's chair beside the throne is conspicuously empty. The apprentice, cloak dusted with soot, kneels in rear three-quarter view. Heavy dark clouds outside the tall windows. Candles drooping in the heat.
+The same gothic throne room. The very old king (long white hair and beard, pointed gold crown, red robes, white ermine with black spots) sits on the throne wiping sweat from his brow with a cloth; the room is unusually hot, conveyed by his gesture, while the floor and dais steps remain ordinary intact dark stone with non-glowing joints, no molten cracks, no red light from below and no steam rising from the floor. The chancellor's chair beside the throne is conspicuously empty. The apprentice, cloak dusted with soot, kneels in rear three-quarter view. Heavy dark clouds outside the tall windows. Candles drooping in the heat.
 ```
 
 **w19_husks「同じ顔の器」** (手がかり / 迷宮「灰の降る祭場」)
