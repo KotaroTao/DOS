@@ -31,9 +31,26 @@ with sync_playwright() as p:
             const w = cell.w * view.width / size.VW, h = cell.h * view.height / size.VH;
             if (Math.abs(w - h) > 0.1) throw Error('マスが正方形ではない');
             const bar = rect('runbar');
+            const app=document.getElementById('app');
+            const buttons=[...document.querySelectorAll('#runbar button,#hint button')].filter(b=>b.getBoundingClientRect().height>0);
+            const compact=buttons.map(b=>b.getBoundingClientRect().height);
+            const before=rect('runbar').height+rect('hint').height;
+            app.classList.add('measure-explore-buttons');
+            const full=buttons.map(b=>b.getBoundingClientRect().height);
+            const saved=rect('runbar').height+rect('hint').height-before;
+            app.classList.remove('measure-explore-buttons');
+            for(let i=0;i<buttons.length;i++) {
+              if(Math.abs(compact[i]-full[i]*0.9)>0.1) throw Error('探索のボタンが0.9倍ではない');
+              const r=buttons[i].getBoundingClientRect();
+              if(!buttons[i].contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)))
+                throw Error('探索のボタンに触れない');
+            }
+            const partyExtra=parseFloat(app.style.getPropertyValue('--party-log-extra'))||0;
+            if(saved<=0 || Math.abs(log.height-32.5-partyExtra-saved)>0.1)
+              throw Error('探索ボタンを縮めた分が記録へ渡っていない');
             for (const button of document.querySelectorAll('#board-camera-tools button')) {
               const r = button.getBoundingClientRect();
-              if (r.height < 44 || r.top < bar.top || r.bottom > bar.bottom || r.right > bar.right)
+              if (r.height < 39.5 || r.top < bar.top || r.bottom > bar.bottom || r.right > bar.right)
                 throw Error('盤面の表示ボタンが小さい・はみ出している');
             }
           }
@@ -76,7 +93,7 @@ with sync_playwright() as p:
       const full=party.getBoundingClientRect().height;
       party.classList.remove('measure-vitals');
       const log=document.getElementById('log').getBoundingClientRect();
-      if(full<=before || Math.abs(log.height-32.5-(full-before))>1.1)
+      if(full<=before || Math.abs(log.height-32.5-(parseFloat(app.style.getPropertyValue('--explore-button-log-extra'))||0)-(full-before))>1.1)
         throw Error('札を縮めた高さが記録へ渡っていない');
     }''')
     page.locator('#board-camera-tools button').first.click()

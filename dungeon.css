@@ -724,7 +724,7 @@ canvas.unk-sil { filter: brightness(0) drop-shadow(0 0 1px rgba(185,172,217,0.85
 
 .pc-current-short { display: none; }
 @media (max-width: 600px) {
-  #app.board-camera-active { --log-extra: var(--party-log-extra, 0px); }
+  #app.board-camera-active { --log-extra: calc(var(--party-log-extra, 0px) + var(--explore-button-log-extra, 9.2px)); }
   #app.board-camera-active #party:not(.measure-vitals) .pc-num {
     flex-wrap: nowrap; white-space: nowrap; overflow-wrap: normal;
   }
@@ -743,4 +743,21 @@ canvas.unk-sil { filter: brightness(0) drop-shadow(0 0 1px rgba(185,172,217,0.85
 }
 @media (max-width: 560px) and (max-height: 640px) {
   #app.in-combat { --command-reserve: 120px; }
+}
+
+/* スマホの探索ボタンは元の実寸高の0.9倍。安全領域を残して縮小分を記録へ渡す。 */
+@media (max-width: 600px) {
+  #app.board-camera-active:not(.measure-explore-buttons) #runbar {
+    height: var(--explore-runbar-height, 41.6px); min-height: 0;
+  }
+  #app.board-camera-active:not(.measure-explore-buttons) #runbar button {
+    height: var(--explore-run-button-height, 39.6px); min-height: 0; padding-block: 3px;
+  }
+  #app.board-camera-active:not(.measure-explore-buttons) #hint.dg-dock {
+    height: var(--explore-dock-height, calc(52.2px + var(--safe-bottom))); min-height: 0;
+  }
+  #app.board-camera-active:not(.measure-explore-buttons) #hint .dk-btn {
+    height: var(--explore-dock-button-height, 43.2px); min-height: 0; padding-block: 2.5px;
+  }
+  #app.board-camera-active:not(.measure-explore-buttons) #hint .dk-idle { min-height: 0; }
 }

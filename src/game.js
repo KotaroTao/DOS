@@ -2607,7 +2607,7 @@ const topbarEl = document.getElementById("topbar");
 const LOG_MIN_BOARD = 94, LOG_MIN_COMBAT = 94, MENU_RESERVE = 166;
 const TURN_ORDER_H = 31; // 戦闘の行動順の帯 (#turn-order) の高さ + 下の余白。記録欄を削らず戦場の側で詰める
 let _fitKey = "";
-let _partyLogKey = "", _commandSizeKey = "", _commandSizeRow = null;
+let _partyLogKey = "", _commandSizeKey = "", _commandSizeRow = null, _exploreButtonKey = "";
 // 元の札との差を測るのは内容・画面サイズが変わった時だけ。毎フレームの再配置を避ける。
 function updatePartyLogSpace() {
   const key = `${_partyKey}|${view.clientWidth}|${window.innerHeight}`;
@@ -2618,6 +2618,22 @@ function updatePartyLogSpace() {
   const full = outerH(partyEl);
   partyEl.classList.remove("measure-vitals");
   appEl.style.setProperty("--party-log-extra", Math.max(0, full - compact) + "px");
+}
+// 探索の収穫・表示切替と下部の行動ボタンを詰めた高さも、記録へ足す。
+function updateExploreButtonLogSpace() {
+  const key = `${view.clientWidth}|${window.innerHeight}|${getComputedStyle(hintEl).paddingBottom}|${runbarEl.className}:${runbarEl.textContent}|${hintEl.className}:${hintEl.textContent}`;
+  if (key === _exploreButtonKey) return;
+  _exploreButtonKey = key;
+  appEl.classList.add("measure-explore-buttons");
+  const buttonH = (host) => Math.max(0, ...Array.from(host.querySelectorAll("button"), (b) => b.getBoundingClientRect().height));
+  const runH = runbarEl.getBoundingClientRect().height, dockH = hintEl.getBoundingClientRect().height;
+  const runButtonH = buttonH(runbarEl), dockButtonH = buttonH(hintEl);
+  appEl.classList.remove("measure-explore-buttons");
+  appEl.style.setProperty("--explore-run-button-height", runButtonH * 0.9 + "px");
+  appEl.style.setProperty("--explore-dock-button-height", dockButtonH * 0.9 + "px");
+  appEl.style.setProperty("--explore-runbar-height", runH - runButtonH * 0.1 + "px");
+  appEl.style.setProperty("--explore-dock-height", dockH - dockButtonH * 0.1 + "px");
+  appEl.style.setProperty("--explore-button-log-extra", (runButtonH + dockButtonH) * 0.1 + "px");
 }
 function updateCommandLogSpace() {
   if (window.innerWidth > 600) return;
@@ -2651,11 +2667,14 @@ function fitView(force = false) {
   const hudEl = document.getElementById("hud"), ctrlEl = document.getElementById("controls");
   const csH = hudEl ? getComputedStyle(hudEl) : null;
   const appH = appEl.clientHeight - (parseFloat(csA.paddingTop) || 0) - (parseFloat(csA.paddingBottom) || 0);
+  const mobile = window.innerWidth <= 600;
+  if (mobile) {
+    if (combat) updateCommandLogSpace();
+    else if (G.state === "board") { updatePartyLogSpace(); updateExploreButtonLogSpace(); }
+  }
   let used = (parseFloat(csS.paddingTop) || 0) + (parseFloat(csS.paddingBottom) || 0)
     + outerH(topbarEl) + outerH(partyEl) + outerH(hintEl)
     + (csH ? (parseFloat(csH.paddingTop) || 0) + (parseFloat(csH.paddingBottom) || 0) : 0);
-  const mobile = window.innerWidth <= 600;
-  if (mobile) { if (combat) updateCommandLogSpace(); else if (G.state === "board") updatePartyLogSpace(); }
   const logH = mobile ? parseFloat(getComputedStyle(document.getElementById("log")).height) : 0;
   // スマホは札と命令板を詰めた分の記録を確保し、枠と敵名の帯も引いた残りを絵に使う。
   const csV = getComputedStyle(view);
