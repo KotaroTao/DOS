@@ -527,9 +527,10 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 
 **A-37. 絵本の閲覧室の脚の局所修正 lore_ws23** `art/story-review/dungeons/lore_ws23.png` (済)
 - 根拠と判定: 中央手前でクッションに座る小さな人業の脚のつながりが不自然だった。左右それぞれの太もも・膝・すね・足首・足が自然につながる座り姿へ修正。
+- 追加修正 (2026-10-17 ユーザーの指示): 足が背中側を向いているため、中央の人業の骨盤・膝・足先を上半身と同じ絵本側へ向ける。クッションの上で両膝を絵本側へ向けて脚を折り、後ろからは足裏とかかとが見える自然な座り姿に修正。今回の修正前は `art/story-review/fixes/lore_ws23-feet-before.png` に保存。
 - 保つもの: 中央の人業の頭・上半身・読書のしぐさ、左右の人業、絵本、閲覧室の構図・画風・光。修正前は `art/story-review/fixes/lore_ws23-before.png` に保存。
 ```text
-...except: correct ONLY the legs of the small wooden articulated doll seated on the cushion in the center foreground. Give it exactly two naturally connected legs, each with a short wooden thigh, a black-iron knee joint, a wooden shin, a distinct ankle joint and a wooden foot resting on the rug. Preserve its leaning upper body and reading gesture, the other dolls, the book, the room, composition, style and lighting.
+...except: correct ONLY the legs of the small wooden articulated doll seated on the cushion in the center foreground. Its back faces the camera and its torso faces the picture book. Correct the backward lower body: seat it naturally on the cushion with BOTH knees directed FORWARD toward the book, away from the camera. Fold the lower legs underneath its body in a natural kneeling sitting pose, with the backs of the heels and soles visible from behind. Do not extend the legs or point the toes backward toward the camera. Exactly two naturally connected wooden legs with black-iron knee and ankle joints. Allow the table to naturally occlude parts of the forward-facing legs. Preserve its leaning upper body and reading gesture, the other dolls, the book, the room, composition, style and lighting.
 ```
 
 ### B. 任意 (余力があれば。読者が気づきやすい順)
