@@ -64,3 +64,39 @@ for (let lv = 1; lv <= 4; lv++) {
   low.passiveMap = {}; b._recalcBuffs(low); assert.equal(low.buffs.atk, 1);
 }
 console.log('全37職・ランク1〜5、メイン/サブの同Lv・異Lv・順序・取り外し・再計算、二刀流と伝説の勇者の重複なしを確認');
+
+// 希望の陽だまり: 3職の習得・旧借用・同一人業と隊内の重複を確認。
+for (const [job, steps] of [['hero', [[25,1],[125,2],[145,3]]], ['archbishop', [[45,1],[90,2],[145,3]]], ['paladin', [[45,1],[105,2]]]]) {
+  for (const [level, lv] of steps) {
+    const d=wearer(rankedSoul(job, 2, level));
+    displayed(d);
+    assert.equal(d.passiveMap.heroKibouHidamari,lv,`${job} Lv${level}`);
+    assert.equal(d.passives.filter(n=>n.startsWith('希望の陽だまり')).length,1);
+    assert(!d.passiveMap.paladinKoukan&&!d.passiveMap.archbishopMinasoko);
+  }
+}
+for (const [job,key] of [['paladin','paladinKoukan'],['archbishop','archbishopMinasoko']]) {
+  const main=rankedSoul('fighter',2), sub=rankedSoul(job,2);
+  const d=wearer(main,[sub],key);
+  assert.equal(d.subs[0].picks[0].passive,'heroKibouHidamari','旧借用を共通キーへ引き継ぐ');
+  assert.equal(d.passiveMap.heroKibouHidamari,job==='paladin'?2:3);
+  displayed(d);
+  const old=makeDoll('旧形式');old.primary=main.uid;old.subs=[{uid:sub.uid,passive:key}];recalcDoll(old);
+  assert.equal(old.passiveMap.heroKibouHidamari,d.passiveMap.heroKibouHidamari);
+  d.subs=[];recalcDoll(d);assert(!d.passiveMap.heroKibouHidamari,'外した後に残さない');
+}
+for (let lv=1;lv<=3;lv++) {
+  const make=(map)=>Object.assign(makeDoll('陽だまりの検証'),{maxhp:10000,hp:1000,passiveMap:map});
+  const a=make({heroKibouHidamari:lv,paladinKoukan:lv,archbishopMinasoko:lv});
+  const low=make({heroKibouHidamari:1}), same=make({archbishopMinasoko:lv});
+  const logs=[];
+  const b=new Battle([a,low,same],[{uid:999999,side:'enemy',name:'敵',alive:true,hp:1e9,maxhp:1e9,atk:1,vit:1,agi:1}],s=>logs.push(s));
+  assert.deepEqual([a.hp,low.hp,same.hp],[1000,1000,1000],'1ターン目は回復しない');
+  b._roundNo=1;b._startRound();
+  assert.deepEqual([a.hp,low.hp,same.hp],Array(3).fill(1000+[400,800,1200][lv-1]));
+  assert.equal(logs.filter(s=>s.includes('希望の陽だまり')).length,1,'同一人業の別名・複数人の加護も1回だけ');
+  a.alive=false;same.alive=false;low.hp=1000;b._startRound();
+  assert.equal(low.hp,1400,'最高Lvの持ち主が倒れたら生存者の最高Lvへ戻る');
+  assert.equal(a.hp,1000+[400,800,1200][lv-1],'倒れた者は回復しない');
+}
+console.log('希望の陽だまり: 3職の習得Lv維持、旧形式と旧キーの借用互換、4/8/12%、同一人業/隊内の最高Lvのみ、1ターン目・死亡を確認');

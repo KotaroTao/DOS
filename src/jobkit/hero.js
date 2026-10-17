@@ -1,3 +1,4 @@
+import { HOPE_HIDAMARI } from "./common.js";
 // 勇者 (hero) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 持ち味: 仲間を鼓舞し何でもこなす希望の剣と雷の剣。強敵にこそ燃え、倒れた仲間の分まで立つ (風/光)
@@ -40,8 +41,7 @@ export default {
       fx: [{ t: "deal", v: [0.05, 0.08, 0.11, 0.14], when: { boss: true } }, { t: "crit", v: [0.06, 0.09, 0.12, 0.15], when: { boss: true } }] },
     heroKaisenGourei: { label: "開戦の号令", lv: ["戦闘開始時、味方全員のVIT×1.1 (3ターン)", "戦闘開始時、味方全員のVIT×1.15", "戦闘開始時、味方全員のVIT×1.2"],
       fx: [{ t: "start", party: true, buff: { vit: [1.1, 1.15, 1.2] }, dur: 3 }] },
-    heroKibouHidamari: { label: "希望の陽だまり", lv: ["2ターン目から毎ターン味方全員のHP4%回復", "毎ターン味方全員のHP8%回復", "毎ターン味方全員のHP12%回復"],
-      fx: [{ t: "round", party: true, hp: [0.04, 0.08, 0.12] }] },
+    heroKibouHidamari: HOPE_HIDAMARI,
     heroYuushaSenaka: { label: "勇者の背中", lv: ["生きている間、味方全員の与ダメ+3%", "味方全員の与ダメ+5%", "味方全員の与ダメ+7%"],
       fx: [{ t: "deal", v: [0.03, 0.05, 0.07], aura: true }] },
     heroOrenuKokoro: { label: "折れぬ心", lv: ["味方が倒れるとSTR×1.2・AGI×1.1 (3ターン)・HP10%回復", "味方が倒れるとSTR×1.25・AGI×1.15・HP15%回復", "味方が倒れるとSTR×1.3・AGI×1.2・HP20%回復"],

@@ -37,20 +37,29 @@ try {
  assert.deepEqual(unknownHigh.dbg.map(c=>[c.spellKey,c.score]),unknownLow.dbg.map(c=>[c.spellKey,c.score]));
  game.G.codex.mon.test_a={kills:10};
  const known=choose([e]);
- for (const key of Object.keys(specs)) assert(!has(known,key),key);
+ for (const key of Object.keys(specs)) assert.equal(has(known,key), ['TEST_HIT','TEST_DEATH'].includes(key), key);
+ for (const key of ['TEST_HIT','TEST_DEATH']) {
+  const c=known.dbg.find(c=>c.spellKey===key);assert(c.dmg>0);assert.equal(c.stat,0);assert.equal(c.death||0,0);
+ }
  for (const resist of [0,49,50,80,100]) {
   const r=choose([foe('test_a',{paralyze:resist})]);
-  assert.equal(has(r,'TEST_PARA'),resist<50);assert.equal(has(r,'TEST_HIT'),resist<50);
+  assert.equal(has(r,'TEST_PARA'),resist<100);assert(has(r,'TEST_HIT'));
+  const c=r.dbg.find(c=>c.spellKey==='TEST_HIT');
+  const plain=choose([foe('test_a',{paralyze:0})]).dbg.find(c=>c.spellKey==='TEST_HIT');
+  assert.equal(c.dmg,plain.dmg,'異常抵抗で攻撃部分は減らない');
+  assert(Math.abs(c.stat-plain.stat*(1-resist/100))<1e-8,'追加効果だけが抵抗で減る');
  }
  const lowSleep=choose([foe('test_a',{paralyze:49,sleep:0,poison:100,seal:100,death:100})]);
  assert(lowSleep.dbg.find(c=>c.spellKey==='TEST_SLEEP').score > lowSleep.dbg.find(c=>c.spellKey==='TEST_PARA').score);
  assert.equal(choose([foe('test_a',{paralyze:49,sleep:0})],['TEST_SLEEP','TEST_PARA']).action.spellKey,'TEST_SLEEP');
  assert.equal(choose([foe('test_a',{paralyze:0,sleep:49})],['TEST_SLEEP','TEST_PARA']).action.spellKey,'TEST_PARA');
  const mix=choose([foe('test_a',{poison:100,paralyze:0})]);assert(has(mix,'TEST_MIX'));
- assert(!has(choose([foe('test_a',{poison:50,paralyze:80})]),'TEST_MIX'));
+ assert(has(choose([foe('test_a',{poison:50,paralyze:80})]),'TEST_MIX'));
+ assert(!has(choose([foe('test_a',{poison:100,paralyze:100})]),'TEST_MIX'));
  game.G.codex.mon.test_b={kills:10};
  assert(has(choose([foe('test_a',{sleep:100}),foe('test_b',{sleep:0})]),'TEST_ALL'));
- assert(!has(choose([foe('test_a',{sleep:100}),foe('test_b',{sleep:50})]),'TEST_ALL'));
+ assert(has(choose([foe('test_a',{sleep:100}),foe('test_b',{sleep:50})]),'TEST_ALL'));
+ assert(!has(choose([foe('test_a',{sleep:100}),foe('test_b',{sleep:100})]),'TEST_ALL'));
  game.G.codex.mon.test_b.kills=9;
  assert(has(choose([foe('test_a',{sleep:100}),foe('test_b',{sleep:100})]),'TEST_ALL'));
  // 能力が開いても、抵抗値・特徴の開示まではオートへ情報を渡さない。
@@ -65,6 +74,12 @@ try {
    assert.equal(rv.lore, known, `${type}/${kills}: 抵抗値・特徴`);
    assert.equal(has(choose([t]),'TEST_PARA'), !known, `${type}/${kills}: オートの抵抗値参照`);
   }
+ }
+ for (const kind of ['phys','atk']) {
+  const r=choose([foe('test_a',{paralyze:100})],[kind==='phys'?'TEST_HIT':'TEST_DEATH']);
+  r.a.atk=r.a.int=500;r.a.tactic='all';
+  const dbg=[], action=decideAuto(r.b,r.a,dbg);
+  assert.equal(action.spellKey,kind==='phys'?'TEST_HIT':'TEST_DEATH','無効の異常付き攻撃も火力で選ぶ');
  }
  // オートの見積もりだけを変え、未開放でも実際の付与では抵抗100を守る。
  game.G.codex.mon.test_a.kills=0;

@@ -46,29 +46,7 @@ export function setResistKnown(fn) { _resistKnown = typeof fn === "function" ? f
 // 極「慧眼の」の持ち主が考える間 (decideAuto) は、明かしていない敵の抵抗値も見積もりに使う
 let _seer = false;
 const resistKnown = t => _seer || !!(_resistKnown && _resistKnown(t));
-export const AUTO_AIL_RESIST_LIMIT = 50; // 成功率を半分以上削る異常技は控える
-const autoRate = (b, actor, t, base, kind) => b.estRate(actor, t, base, resistKnown(t) ? kind : undefined);
-const autoAilRes = (b, t, kind) => resistKnown(t) ? b._ailRes(t, kind) : 0;
-function skillAilments(sp) {
-  const kinds = [];
-  if (sp.poison) kinds.push("poison");
-  if (sp.para) kinds.push("paralyze");
-  if (sp.sleepChance || sp.kind === "sleep") kinds.push("sleep");
-  if (sp.charm) kinds.push("charm");
-  if (sp.confuse) kinds.push("confuse");
-  if (sp.seal) kinds.push("seal");
-  if (sp.flinchChance) kinds.push("flinch");
-  if (sp.instakill) kinds.push("death");
-  return kinds;
-}
-// 複合技は最小の抵抗値を採用。全体技は効きやすい敵が1体でもいれば候補に残す。
-function ailSkillBlocked(b, sp, targets) {
-  const kinds = skillAilments(sp);
-  return kinds.length > 0 && targets.length > 0 && targets.every(t =>
-    resistKnown(t) && Math.min(...kinds.map(k =>
-      (["stone", "death"].includes(k) ? b._hardRes(t, k) : b._ailRes(t, k)) * 100
-    )) >= AUTO_AIL_RESIST_LIMIT);
-}
+const autoRate = (b, actor, t, base, kind) => b.estRate(actor, t, base, kind, resistKnown(t));
 
 // (dbg に配列を渡すと、比べた候補をすべて積む — 模擬戦での検証用)
 // 手番の者 actor の一手を決める。{ action: "attack"|"spell"|"defend", spellKey?, target?, idle? }。
@@ -104,7 +82,7 @@ function decideAutoInner(b, actor, dbg) {
     if (!W) c.score = c.raw || 0; // 刃のみ: 通常攻撃の与ダメだけで比べる
     else {
       const cost = c.spellKey ? spellCost(actor, SPELLS[c.spellKey]) : 0;
-      c.score = (c.dmg || 0) * W.dmg + (c.heal || 0) + (c.revive || 0) * W.revive + (c.guard || 0) * W.guard
+      c.score = ((c.dmg || 0) + (c.death || 0)) * W.dmg + (c.heal || 0) + (c.revive || 0) * W.revive + (c.guard || 0) * W.guard
         + (c.edge || 0) * W.edge + (c.stat || 0) * W.stat - (c.pen || 0) - cost * ctx.mpPrice(actor, W.mpK) - cost * 1e-3;
     }
     c.score += (c.target && c.target.side === "enemy" ? ctx.threat(c.target) * 1e-3 : 0); // 同点なら脅威の大きい敵
@@ -233,7 +211,6 @@ function skillCands(b, ctx, actor, key, sp) {
     for (const g of groups) {
       const c = mk(g);
       const tgts = g ? [g] : b.livingEnemies();
-      if (ailSkillBlocked(b, sp, tgts)) continue;
       let dSum = 0; // この手で与える傷の合計 (刃の癒しの見積もり)
       for (const t of tgts) {
         let d = 0;
@@ -244,11 +221,11 @@ function skillCands(b, ctx, actor, key, sp) {
           d = sp.scatter ? per * sp.scatter / tgts.length : per * (sp.hits || 1);
         } else if (sp.kind === "atk") d = b.estSpell(actor, sp, t);
         dSum += Math.min(d, t.hp);
-        let v = dmgValue(ctx, t, d) * (t.mind === "charm" ? CHARMED_TGT_MUL : 1);
+        const v = dmgValue(ctx, t, d) * (t.mind === "charm" ? CHARMED_TGT_MUL : 1);
         // 即死: 主には効かない。当たれば残りのHPぶんの傷と同じ
         if (sp.instakill && !t.boss && !isMetal(t) && d < t.hp && (!sp.instakill.races || sp.instakill.races.includes(t.mon && t.mon.race))) {
-          const p = autoRate(b, actor, t, sp.instakill.chance, "death");
-          v += p * ((t.hp - d) * ctx.dmgK + ctx.threat(t) * KILL_W);
+          const p = b.spellStatusChances(actor, sp, t, resistKnown(t)).find(r => r.kind === "death")?.rate || 0;
+          c.death = (c.death || 0) + p * ((t.hp - d) * ctx.dmgK + ctx.threat(t) * KILL_W);
         }
         c.dmg += v;
         if (d < t.hp * 0.9) c.stat += foeEffects(b, ctx, actor, sp, t);
@@ -262,7 +239,8 @@ function skillCands(b, ctx, actor, key, sp) {
         c.stat += autoRate(b, actor, t, 0.6, "sleep") * ctx.threat(t) * Math.min(2, ctx.rounds) * 0.5;
       }
       hpPen(c);
-      out.push(c);
+      // 無効の追加効果は0点。攻撃や他の効果に価値があれば、技の候補は残す。
+      if (c.dmg > 0 || c.death > 0 || c.stat > 0 || c.heal > 0) out.push(c);
     }
     return out;
   }
@@ -284,9 +262,10 @@ function skillCands(b, ctx, actor, key, sp) {
 
 // 敵 t に付く状態異常・弱体の値打ち (_inflict と同じ条件・確率)
 function foeEffects(b, ctx, actor, sp, t) {
-  if (!t.alive || isMetal(t)) return 0;
+  if (!t.alive || isMetal(t) || (sp.kind === "phys" && t.physResist >= 100) || (sp.kind === "atk" && t.magResist >= 100)) return 0;
   const th = ctx.threat(t);
-  const rate = (x, kind) => autoRate(b, actor, t, x, kind);
+  const rates = b.spellStatusChances(actor, sp, t, resistKnown(t));
+  const rate = (x, kind) => rates.find(r => r.kind === kind)?.rate || 0;
   let v = 0;
   if (sp.poison && !t.ailment) v += rate(sp.poison.chance, "poison") * Math.min(t.hp, (t.boss ? Math.max(0.05, sp.poison.pct * 0.5) : sp.poison.pct) * t.maxhp * ctx.left(3)) * ctx.dmgK;
   if (sp.para && !t.ailment) v += rate(sp.para, "paralyze") * th * Math.min(2, ctx.rounds) * 0.6;
@@ -294,7 +273,7 @@ function foeEffects(b, ctx, actor, sp, t) {
   if (sp.charm && !t.mind) v += rate(sp.charm, "charm") * th * Math.min(2, ctx.rounds) * 1.2;
   if (sp.confuse && !t.mind) v += rate(sp.confuse, "confuse") * th * Math.min(2, ctx.rounds) * 0.8;
   if (sp.seal && (t.ability || t.role) && b._bm(t, "seal") >= 1) v += rate(sp.seal.chance, "seal") * th * 0.6 * ctx.left(sp.seal.turns || 3);
-  if (sp.flinchChance && !t.boss && !t._flinch) v += sp.flinchChance * (1 - autoAilRes(b, t, "flinch")) * th;
+  if (sp.flinchChance && !t.boss && !t._flinch) v += rate(sp.flinchChance, "flinch") * th;
   if (sp.strip && (t.effects || []).some((e) => e.mult > 1)) v += th * 0.5 * Math.min(2, ctx.rounds);
   // 大技の予兆: 封じ・眠り・麻痺・魅了・混乱・怯み・打ち消しのどれかが通れば溜めた力が霧散する
   if (b._omenOf && b._omenOf(t)) {
@@ -304,7 +283,7 @@ function foeEffects(b, ctx, actor, sp, t) {
     if (sp.sleepChance && !t.asleep) keep *= 1 - rate(sp.sleepChance, "sleep");
     if (sp.charm && !t.mind) keep *= 1 - rate(sp.charm, "charm");
     if (sp.confuse && !t.mind) keep *= 1 - rate(sp.confuse, "confuse");
-    if (sp.flinchChance && !t.boss) keep *= 1 - sp.flinchChance * (1 - autoAilRes(b, t, "flinch"));
+    if (sp.flinchChance && !t.boss) keep *= 1 - rate(sp.flinchChance, "flinch");
     if (sp.strip) keep = 0;
     v += (1 - keep) * th * 0.5; // threat は予兆で2倍にしてある。その上乗せ分を防ぐ
   }
