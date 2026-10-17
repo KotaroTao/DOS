@@ -28,7 +28,7 @@ with sync_playwright() as p:
       G.shopAfx={};G.shopAfxDepth={};G.shopAfxPending=[];G.shopStock={};
       inf.shopReceive(deep);
       const shelf=inf.shopAfxItem('dagger');
-      check(shelf.depth===500&&shelf.price===deep.price&&shelf.crit===.037&&shelf.spellCrit===.019,'売却の棚・再構築で深度、価格と会心を維持');
+      check(shelf.depth===500&&shelf.price===deep.price&&shelf.crit===deep.crit&&shelf.spellCrit===.019,'売却の棚・再構築で深度、価格と会心を維持');
       const shallow=itemAtQuality({...it,depth:0,afx:crits},50);
       G.inventory.length=0;G.inventory.push(shallow);
       G.floor=1000;G.abyss.depth=1000;
@@ -47,10 +47,10 @@ with sync_playwright() as p:
       const bare=itemAtQuality({...it,afx:[]},50);inf.shopReceive(bare);
       check(inf.shopAfxItem('dagger').depth===500,'特性を消した深度品の本体も棚へ保存');
       const text=statLines(deep);
-      check(text.includes('3.7%')&&text.includes('1.9%')&&text.includes('23%')&&text.includes('17%')&&text.includes('500'),'会心の小数・4種・深度を品に表示');
+      check(text.includes('4.7%')&&text.includes('1.9%')&&text.includes('23%')&&text.includes('17%')&&text.includes('500'),'会心の小数・4種・深度を品に表示');
       const wearer=G.party[0];wearer.equip.weapon=null;inf.recalcAllDolls();
       const delta=equipPreviewDelta(wearer,deep);
-      check(delta.crit===3.7&&delta.critDamage===23&&delta.spellCrit===1.9&&delta.spellCritDamage===17,'装備比較で小数の会心と倍率の増減を保持');
+      check(delta.crit===4.7&&delta.critDamage===23&&delta.spellCrit===1.9&&delta.spellCritDamage===17,'装備比較で小数の会心と倍率の増減を保持');
       wearer.equip.weapon=deep;inf.recalcAllDolls();
       check(wearer.critDamageBonus===.23&&wearer.spellCritBonus===.019&&wearer.spellCritDamageBonus===.17,'装備効果の集計に会心4種を反映');
       G.state='town';G.abyss=null;G.inventory.push(deep);

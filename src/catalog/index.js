@@ -9,6 +9,7 @@ import { HEADS, FEET, HANDS, ACCS } from "./gear.js";
 import { MISC, USABLES } from "./misc.js";
 import { LEGENDS } from "./legends.js";
 import { EXCLUSIVES } from "./exclusives.js";
+import { applyNativeCritical } from "../equipmentcrit.js";
 import { LR_ITEMS } from "./lr.js";
 import { LAYER1_ITEMS } from "./layer1.js";
 import { LAYER2_ITEMS } from "./layer2.js";
@@ -182,6 +183,7 @@ for (const list of [WEAPONS, SHIELDS, ARMORS, HEADS, FEET, HANDS, ACCS, MISC, US
   for (const it of list) {
     if (CATALOG_ITEMS[it.id]) throw new Error("duplicate item id: " + it.id);
     prepareWeapon(it);
+    applyNativeCritical(it);
     it.number = itemNumber(it.id);
     CATALOG_ITEMS[it.id] = it;
   }

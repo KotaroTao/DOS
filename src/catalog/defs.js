@@ -2012,7 +2012,10 @@ function base(id, name, slot, lv, artKey, opt) {
   if (opt.int) it.int = opt.int;
   if (opt.pie) it.pie = opt.pie;
   if (opt.luk) it.luk = opt.luk;
-  if (opt.crit) it.crit = opt.crit;
+  for (const [key, cap] of [["crit", .2], ["critDamage", 1], ["spellCrit", .2], ["spellCritDamage", 1]]) if (opt[key] != null) {
+    chk(typeof opt[key] === "number" && opt[key] >= 0 && opt[key] <= cap, "bad critical: " + id + "/" + key);
+    it[key] = opt[key];
+  }
   if (opt.atkB) it.atk = opt.atkB;     // 防具などの攻撃ボーナス
   if (opt.vitB) it.vit = opt.vitB;     // 武器・装飾の VIT 補正 (負値=重武器のペナルティ等)
   if (opt.cursed) it.cursed = true;
