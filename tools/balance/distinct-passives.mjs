@@ -138,4 +138,12 @@ for(let lv=1;lv<=3;lv++) {
   b._roundNo=4; e.lifesteal=.5; e.hp=5000;
   b._exec({actor:e,action:'attack',target:a}); assert.equal(e._healJudgeRound,4);
 }
+{
+  // 写し身が借りた回復技でも、HPを回復した敵への異議を発動する。
+  const a=member({inquisitorShinmonNirami:3}), e=foe(), b=new Battle([a],[e],()=>{});
+  e.hp=5000; e.mp=1000;
+  const r=b._exec({actor:e,action:'mimic',spellKey:'DIOS'});
+  const heal=r.hits.find(h=>h.heal>0), judge=r.hits.find(h=>h.proc==='祝福への異議');
+  assert(heal); assert(judge); assert.equal(judge.dmg,120); assert.equal(e.hp,5000+heal.heal-120);
+}
 console.log('独自パッシブ6職: 習得段・本人/隊・確率境界・余剰・解除・復活・敵回復反応 OK');

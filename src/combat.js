@@ -916,7 +916,7 @@ export class Battle {
       this._proc(p, "竜の息吹");
       for (const e of this.livingEnemies()) {
         const em = elemDmgMult("fire", 1, e.element || "none", edefOf(e), eaffOf(e)) * this._vulnMul(e, "fire");
-        const mr = this._resistCut(e, Math.max(1, Math.round(this._eatk(p) * k * em - this._evit(e) * 0.2)), "magResist");
+        const mr = this._resistCut(e, Math.max(1, Math.round(this._eatk(p) * k * em - this._evit(e, p) * 0.2)), "magResist");
         if (mr.immune) { this.log(`${e.name}：魔法無効`, "sys"); continue; }
         e.hp -= mr.dmg;
         const eff = [elemNote(em, "fire"), mr.tag].filter(Boolean).join("・");
@@ -948,7 +948,7 @@ export class Battle {
         const t = this._randAlive(this.enemies);
         if (t) {
           this._proc(p, "開幕呪撃");
-          const mr = this._resistCut(t, Math.max(1, Math.round(variance((p.int || 1) * 1.2) - this._evit(t) * 0.2)), "magResist");
+          const mr = this._resistCut(t, Math.max(1, Math.round(variance((p.int || 1) * 1.2) - this._evit(t, p) * 0.2)), "magResist");
           if (mr.immune) {
             this.log(`${p.name}の開幕呪撃！ ${t.name}：魔法無効`, "hit");
             this.openingResults.push({ side: "party", actor: p, action: "spell", spellKind: "atk", spellElement: "none", opening: "openSpell", hits: [{ target: t, dmg: 0, immune: true, died: false }] });
@@ -1128,7 +1128,14 @@ export class Battle {
   }
 
   // 能力倍率 (atk/vit/agi 以外の効果: seal/taunt/shield/ctr/charge/regen/hit/int/r_<属性>) を読む
-  _bm(t, k) { return (t && t.buffs && t.buffs[k]) || 1; }
+  _bm(t, k, opponent = null) {
+    const mult = (t && t.buffs && t.buffs[k]) || 1;
+    // 無心の境地: 対峙する本人にだけ強化の段を差し引く。敵の効果や他の倍率は書き換えない。
+    if (t?.side !== "enemy" || opponent?.side !== "party" || !STAGED.has(k)) return mult;
+    const ignore = this._perkValue(opponent, "ignoreStage");
+    const stage = ignore ? this.stageOf(t, k) : 0;
+    return stage > 0 ? mult * stageMul(Math.max(0, stage - ignore)) / stageMul(stage) : mult;
+  }
 
   // ---- 職ごとの固有パッシブ (jobkit の perks。成分の意味は jobkit/index.js 冒頭) ----
   // 条件 when を満たすか。a = 持ち主、ctx.tgt = 与える時は攻撃先・受ける時は攻撃してきた敵、ctx.el = 攻撃の属性
@@ -1745,7 +1752,7 @@ export class Battle {
   // AGI による回避の素の率。双方の速度を同じ尺度にそろえた相対値 (EVADE_*)。
   // 攻撃側と対象の実効AGIの比で回避を決める (上限40%)。バフ/デバフ込み
   _evadeBase(tgt, actor) {
-    const agiOf = (a) => Math.max(1, (a.agi || 1) * ((a.buffs && a.buffs.agi) || 1));
+    const agiOf = (a) => Math.max(1, (a.agi || 1) * this._bm(a, "agi", a === actor ? tgt : actor));
     if (!actor) return 0;
     // 敵のAGIは味方と規模が違うので、双方向とも逃走の物差しでそろえる。
     const scaledAgi = (a) => (a.side === "enemy" ? this._foeAgiBase(a, agiOf(a)) : agiOf(a));
@@ -2224,9 +2231,11 @@ export class Battle {
       const tgts = sp.target === "all-ally" ? this.livingEnemies() : [this._woundedAlly(actor) || actor].filter((t) => t.alive);
       for (const t of tgts) {
         const heal = Math.min(t.maxhp - t.hp, healOnTarget(sp, t, sp.healPct ? 0 : variance(raw)));
+        const before = t.hp;
         t.hp += Math.max(0, heal);
         this.log(`${t.name}のHP+${Math.max(0, heal)}`, "dmg");
         res.hits.push({ target: t, heal: Math.max(0, heal) });
+        this._enemyHealed(t, before);
       }
       return;
     }
@@ -2252,8 +2261,6 @@ export class Battle {
     }
     // 攻撃呪文: 味方の呪文と同じ威力 (INT、光・祈りの呪文は INT と PIE の高い方)。守りは隊が受ける呪文と同じ (魔法抵抗値・呪文避け・魔障壁・封の結界)
     res.action = "breath"; res.breath = true; res.espell = true; res.fxEl = sp.element || "none";
-    const intv = Math.max((actor.int || 0) * this._bm(actor, "int"), isFaithSpell(sp) ? (actor.pie || 0) * this._bm(actor, "pie") : 0);
-    const power = attackSpellPower(sp, intv, this.lvOf(actor)) * soulPowerMul(actor, sp);
     const tgts = all ? this.livingParty() : [(cmd.target && cmd.target.alive) ? cmd.target : this._pickPartyTarget()].filter(Boolean);
     for (const t of tgts) {
       if ((t.magResist || 0) >= 100) {
@@ -2262,8 +2269,10 @@ export class Battle {
         continue;
       }
       if (this._onceGuard(t, "spellGuard", "_sgUsed", "封の結界")) { res.hits.push({ target: t, dmg: 0, immune: true, died: false }); continue; }
+      const intv = Math.max((actor.int || 0) * this._bm(actor, "int", t), isFaithSpell(sp) ? (actor.pie || 0) * this._bm(actor, "pie", t) : 0);
+      const power = attackSpellPower(sp, intv, this.lvOf(actor)) * soulPowerMul(actor, sp);
       const em = elemDmgMult(sp.element || "none", 1, t.element || "none", edefOf(t), eaffOf(t));
-      let dmg = Math.max(1, Math.round(variance(power)) - Math.floor(this._evit(t) * 0.2));
+      let dmg = Math.max(1, Math.round(variance(power)) - Math.floor(this._evit(t, actor) * 0.2));
       if (em !== 1) dmg = Math.max(1, Math.round(dmg * em));
       if (t._defending) dmg = Math.ceil(dmg * 0.5);
       { const pt = this._perkSum(t, "take", { tgt: actor, el: sp.element || "none", on: ["spell"] }); if (pt) dmg = Math.max(1, Math.floor(dmg * Math.max(0.2, 1 - pt))); }
@@ -2629,8 +2638,8 @@ export class Battle {
           continue;
         }
         const em = elemDmgMult(actor.element || "none", 1, t.element || "none", edefOf(t), eaffOf(t));
-        const guard = spell ? ((t.int || 0) + (t.pie || 0)) * 0.12 : this._evit(t) * 0.25;
-        let dmg = Math.max(1, Math.round((variance(this._eatk(actor) * (spell ? 0.75 : 0.85) * (cmd.mul || 1)) - guard) * hpK));
+        const guard = spell ? ((t.int || 0) + (t.pie || 0)) * 0.12 : this._evit(t, actor) * 0.25;
+        let dmg = Math.max(1, Math.round((variance(this._eatk(actor, t) * (spell ? 0.75 : 0.85) * (cmd.mul || 1)) - guard) * hpK));
         if (em !== 1) dmg = Math.max(1, Math.round(dmg * em));
         if (t._defending) dmg = Math.ceil(dmg * 0.5);
         { const pt = this._perkSum(t, "take", { tgt: actor, el: actor.element || "none", on: [spell ? "spell" : "breath"] }); if (pt) dmg = Math.max(1, Math.floor(dmg * Math.max(0.2, 1 - pt))); } // 固有パッシブ (take)
@@ -2791,9 +2800,9 @@ export class Battle {
 
   // バフ込みの実効STR・VIT
   // 攻撃力: 武器が参照する能力だけを、強化・弱体込みで係数に掛ける。素手・敵はSTR。
-  _eatk(a) {
-    const atk = a.atk * this._bm(a, "atk");
-    const power = a.wScale ? scaleBonus(a.wScale, (k) => (a[k] || 0) * this._bm(a, k)) : atk;
+  _eatk(a, opponent = null) {
+    const atk = a.atk * this._bm(a, "atk", opponent);
+    const power = a.wScale ? scaleBonus(a.wScale, (k) => (a[k] || 0) * this._bm(a, k, opponent)) : atk;
     return Math.max(1, Math.round(power));
   }
   // 二刀流の左手の攻撃力 (左手の武器の参照能力 × 係数 × 二刀流の割合。強化・弱体込み)。二刀流でなければ 0
@@ -2803,13 +2812,13 @@ export class Battle {
     return Math.max(1, Math.round(raw * a.dualRate));
   }
   // 物理の攻撃力: 左手の一撃は左手の攻撃力、物理技は右手 + 左手の DUAL_SKILL_SHARE (半分)、それ以外は右手
-  _physAtk(a, opt = {}) {
-    if (a.side !== "party" || !(a.dualRate > 0)) return this._eatk(a);
+  _physAtk(a, opt = {}, opponent = null) {
+    if (a.side !== "party" || !(a.dualRate > 0)) return this._eatk(a, opponent);
     if (opt.offhand) return this._offAtk(a);
-    if (opt.skill) return this._eatk(a) + Math.round(this._offAtk(a) * DUAL_SKILL_SHARE);
-    return this._eatk(a);
+    if (opt.skill) return this._eatk(a, opponent) + Math.round(this._offAtk(a) * DUAL_SKILL_SHARE);
+    return this._eatk(a, opponent);
   }
-  _evit(t) { return Math.round((t.vit || 0) * ((t.buffs && t.buffs.vit) || 1)); }
+  _evit(t, opponent = null) { return Math.round((t.vit || 0) * this._bm(t, "vit", opponent)); }
 
   // 低HP系パッシブ (闘魂/荒行の果て) の与ダメージ倍率
   _lowHpMul(a) {
@@ -2913,7 +2922,7 @@ export class Battle {
       this._proc(defender, "反撃");
       const mul = Math.max(stance ? stanceK : 0, COUNTER_K[cLv] || 0);
       // 反撃も物理なので隊列補正を受ける
-      let dmg = Math.max(1, Math.round((variance(Math.round(this._eatk(defender) * mul)) - Math.floor(this._evit(attacker) * 0.5)) * this._rowMul(defender, attacker)));
+      let dmg = Math.max(1, Math.round((variance(Math.round(this._eatk(defender) * mul)) - Math.floor(this._evit(attacker, defender) * 0.5)) * this._rowMul(defender, attacker)));
       let crit = false;
       if (cLv >= 3 && random() < Math.min(1, Math.max(0, 0.06 + (defender.critBonus || 0)))) { crit = true; dmg = Math.floor(dmg * 1.85 * physicalCritMul(defender)); }
       // 反撃の会心も通常の物理と同じ耐性軽減を使う。
@@ -3020,7 +3029,7 @@ export class Battle {
     // 二刀の理: 30%でINT×0.6の追撃呪文
     if (pv(actor, "twinArts") && random() < 0.30) {
       this._proc(actor, "二刀の理");
-      const mr = this._resistCut(tgt, Math.max(1, Math.round(variance((actor.int || 1) * 0.6) - this._evit(tgt) * 0.2)), "magResist");
+      const mr = this._resistCut(tgt, Math.max(1, Math.round(variance((actor.int || 1) * 0.6) - this._evit(tgt, actor) * 0.2)), "magResist");
       if (mr.immune) {
         this.log(`二刀の理！ ${tgt.name}：魔法無効`, "hit");
         res.hits.push({ target: tgt, dmg: 0, immune: true, died: false });
@@ -3178,11 +3187,11 @@ export class Battle {
     // 背水 (desperate): 自分のHPが減るほど威力が上がる (最大2倍)
     const despMul = opt.desperate && actor.maxhp ? 1 + Math.max(0, 1 - actor.hp / actor.maxhp) : 1;
     // VITによる防御は、会心・物理貫通でも通常どおり受ける。
-    const defCut = Math.floor(this._evit(tgt) * 0.5);
+    const defCut = Math.floor(this._evit(tgt, actor) * 0.5);
     // 魔刃一体 (魔法剣士のランク): 物理技に INT の 10/20/30/50% を上乗せ
     const mjAdd = opt.skill && actor.side === "party" ? Math.round((actor.int || 0) * this._bm(actor, "int") * this._rk(actor, "spellbladeMajin", [0.10, 0.20, 0.30, 0.50])) : 0;
     // ダメージ = STR×倍率×低HP補正 − VIT/2 (VITが被ダメージ軽減を担う)
-    let dmg = Math.round((variance(Math.round(this._physAtk(actor, opt) * power * this._lowHpMul(actor))) + sbAdd + ibAdd + stAdd + mjAdd) * despMul * (opt.chargeMul || 1)) - defCut;
+    let dmg = Math.round((variance(Math.round(this._physAtk(actor, opt, tgt) * power * this._lowHpMul(actor))) + sbAdd + ibAdd + stAdd + mjAdd) * despMul * (opt.chargeMul || 1)) - defCut;
     if (tgt._defending) dmg = Math.floor(dmg * 0.5);
     // 城壁の構え: 防御中の持ち主がいれば隊の全員の被ダメ-10%
     if (tgt.side === "party") {
@@ -3410,10 +3419,10 @@ export class Battle {
     const ibAdd = opt.intScale ? (actor.int || 0) * opt.intScale * power : 0;
     const stAdd = ((opt.agiScale || 0) * (actor.agi || 0) + (opt.vitScale || 0) * (actor.vit || 0) + (opt.pieScale || 0) * (actor.pie || 0)) * power;
     const despMul = opt.desperate && actor.maxhp ? 1 + Math.max(0, 1 - actor.hp / actor.maxhp) : 1;
-    const defCut = Math.floor(this._evit(tgt) * 0.5);
+    const defCut = Math.floor(this._evit(tgt, actor) * 0.5);
     const mjAdd = opt.skill && actor.side === "party" ? (actor.int || 0) * this._bm(actor, "int") * this._rk(actor, "spellbladeMajin", [0.10, 0.20, 0.30, 0.50]) : 0;
     const ch = actor.effects && actor.effects.find((e) => e.stat === "charge"); // 溜めは覗くだけ
-    let dmg = (varianceMean(this._physAtk(actor, opt) * power * this._lowHpMul(actor)) + sbAdd + ibAdd + stAdd + mjAdd) * despMul * (opt.offhand ? 1 : ch ? ch.mult : 1) - defCut;
+    let dmg = (varianceMean(this._physAtk(actor, opt, tgt) * power * this._lowHpMul(actor)) + sbAdd + ibAdd + stAdd + mjAdd) * despMul * (opt.offhand ? 1 : ch ? ch.mult : 1) - defCut;
     if (tgt._defending) dmg *= 0.5;
     const aE = opt.element || (actor.elemAtk && actor.elemAtk.el) || actor.element || "none";
     const aLv = (actor.elemAtk && actor.elemAtk.el === aE) ? Math.max(1, actor.elemAtk.lv) : 1;
@@ -3480,7 +3489,7 @@ export class Battle {
       let em = opt.actual || elemSeen(t, actor) ? elemDmgMult(sp.element || "none", aLv, t.element || "none", edefOf(t), eaffOf(t)) : 1;
       if (em < 1 && pv(actor, "elemFloor")) em = 1;
       em *= this._vulnMul(t, sp.element);
-      dmg = Math.max(1, varianceMean(attackSpellPower(sp, intv, this.lvOf(actor)) * soulPowerMul(actor, sp)) * this._lowHpMul(actor) - Math.floor(this._evit(t) * 0.2)) * em;
+      dmg = Math.max(1, varianceMean(attackSpellPower(sp, intv, this.lvOf(actor)) * soulPowerMul(actor, sp)) * this._lowHpMul(actor) - Math.floor(this._evit(t, actor) * 0.2)) * em;
       if (t.magWeak > 1) dmg *= t.magWeak;
       if (sp.prey && sp.prey.races.includes(enemyRace(t))) dmg *= sp.prey.mul;
     }
@@ -3663,7 +3672,7 @@ export class Battle {
           em *= this._vulnMul(t, sp.element); // 属性耐性ダウン
           // 攻撃呪文の威力は術者の INT で伸びる。低HP補正 (荒行の果て) も乗る
           const power = attackSpellPower(sp, intv, this.lvOf(actor)) * soulPowerMul(actor, sp); // 魂の格
-          dmg = Math.max(1, Math.round(variance(power) * this._lowHpMul(actor)) - Math.floor(this._evit(t) * 0.2));
+          dmg = Math.max(1, Math.round(variance(power) * this._lowHpMul(actor)) - Math.floor(this._evit(t, actor) * 0.2));
           if (em !== 1) dmg = Math.max(1, Math.round(dmg * em));
           // 魔法弱点: 攻撃呪文の被ダメが増える (「魔法に弱い」)
           if (t.magWeak && t.magWeak > 1) { dmg = Math.round(dmg * t.magWeak); magWeak = true; }
@@ -3929,7 +3938,7 @@ export class Battle {
         if (!t.alive) continue;
         let em = elemDmgMult(b.el || "none", 1, t.element || "none", edefOf(t), eaffOf(t));
         em *= this._vulnMul(t, b.el);
-        let dmg = Math.max(1, variance(b.power * throwMul) - Math.floor(this._evit(t) * 0.2));
+        let dmg = Math.max(1, variance(b.power * throwMul) - Math.floor(this._evit(t, actor) * 0.2));
         if (em !== 1) dmg = Math.max(1, Math.round(dmg * em));
         const weak = !!(t.magWeak && t.magWeak > 1);
         if (weak) dmg = Math.round(dmg * t.magWeak);
@@ -4050,7 +4059,7 @@ export class Battle {
     // 聖光の追撃 (聖戦士): 10/15/20/30% で光の追撃 (STR×0.5)
     if (tgt.alive && tgt.hp > 0 && random() < this._rk(actor, "crusaderTsuigeki", [0.10, 0.15, 0.20, 0.30])) {
       const em = elemDmgMult("light", 1, tgt.element || "none", edefOf(tgt), eaffOf(tgt)) * this._vulnMul(tgt, "light");
-      const raw = Math.max(1, Math.round(variance(this._eatk(actor) * 0.5) * em) - Math.floor(this._evit(tgt) * 0.25));
+      const raw = Math.max(1, Math.round(variance(this._eatk(actor) * 0.5) * em) - Math.floor(this._evit(tgt, actor) * 0.25));
       const pr = metalHit ? { dmg: 1, immune: false } : this._resistCut(tgt, raw, "physResist");
       if (!pr.immune) {
         tgt.hp -= pr.dmg;
