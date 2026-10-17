@@ -335,6 +335,8 @@ Six elements + `none`, defined in `schema.js`. Advantage cycle is **火→風→
 
 **Enemy resistance individuality:** `dungeons/temperaments.js` explicitly authors all 606 enemy IDs (597 bestiary entries + 9 original sprites, including mimics and metals). Each row records all nine ailment tiers and elemental `affinity`, with a short reason based on that enemy's body, habits and abilities. `schema.js` applies the row before calculating resistance; `sprites.js` applies the original entries; legacy rank remapping recalculates resistance too. Fully authored tiers bypass race/text/hash inference in `resistance.js`. Boss death/flinch immunity and metal immunity remain combat rules. Partial definitions and synthetic enemies may still use the fallback tendencies. New enemies must have a row (the registry rejects omissions); explicit def fields can override the row. Verify with `node tools/balance/monster-temperaments.mjs`, `resistance.mjs` and `auto-resistance.mjs`. Tavern tip: `t_ail_resist_identity`.
 
+魂融合で吸収した魂1個ごとの能力上昇は、コモン1%・レア4%・エピック10%・レジェンド50%（基礎値に加算、`souls.js` の `SOUL_STAT_UP`）。既存の融合数にも同じ率を適用し、能力計算・融合結果・職業図鑑で共通の値を使う。心得 `t_fusion`。
+
 偉大なる死体から入手する魂はエピック80%・レジェンド20% (`souls.js` の `rollGreatJobClass`、本編・無限迷宮で共通)。通常の死体の抽選は従来どおり。心得 `t_great_corpse`。
 
 死体の魂の残火は第1〜9章（第1〜11層）であたたかい死体1個・偉大なる死体5個、第10章以降（第12層〜）で2個・10個。風化した死体は50%で1個／2個。敵Lv・隊のLvでは増やさず、無限迷宮も対応する本編の層を使う (`emberMul(layer)`)。極光の書きつけによる倍増と、依頼・出来事の固定報酬は従来どおり。心得 `t_ember`・`t_corpse`・`t_inf16`。

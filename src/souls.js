@@ -202,7 +202,7 @@ export const RANKUP_NEED = {
   unique: [1, 1, 1, 1], // 固有 (セラ): 物語の節目ごとに1つ (count = ランク)
 };
 // 同じ魂1個ごとの全ステータス上昇 (基礎値に対する%)。1個目は基礎値そのもの
-export const SOUL_STAT_UP = { common: 0.01, rare: 0.04, epic: 0.10, legend: 1.00, unique: 0.20 };
+export const SOUL_STAT_UP = { common: 0.01, rare: 0.04, epic: 0.10, legend: 0.50, unique: 0.20 };
 
 // 累計しきい値: [rank1, rank2, …, rank5] に到達する累計所持数 (1個目で rank1)
 export function rankThresholds(rarity) {
