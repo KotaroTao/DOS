@@ -302,7 +302,7 @@ export function itemAtQuality(it, q = it && it.q) {
   const tmpl = it && ITEMS[it.id];
   if (!tmpl) return it ? { ...it } : null;
   const out = { ...it };
-  for (const k of [...QUALITY_KEYS, "price", "mult", "scale", "weaponRating", "aRes", "bRes", "resists"]) {
+  for (const k of [...QUALITY_KEYS, "price", "mult", "scale", "weaponRating", "aRes", "bRes", "resists", "eff", "eAtk", "eDef", "onHit"]) {
     if (tmpl[k] !== undefined) out[k] = tmpl[k]; else delete out[k];
   }
   delete out.equipPts;
