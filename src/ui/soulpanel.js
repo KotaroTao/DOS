@@ -243,11 +243,9 @@ function mainCard(d, pe, town) {
   const levelRow = el("div", "sp-level-row sp-head-actions");
   if (town) {
     if (soulChangeVisible()) {
-      const fixed = d.vessel === "sera";
-      const change = button({ label: "魂を交換", kind: "secondary", size: "sm", disabled: fixed,
+      const change = button({ label: "魂を交換", kind: "secondary", size: "sm",
         onTap: (e) => { e?.stopPropagation(); openSoulPicker(d, "primary"); } });
       change.classList.add("sp-change");
-      if (fixed) change.title = "セラのメイン魂は付け替え不可";
       levelRow.appendChild(change);
     } else levelRow.appendChild(lockedControl());
   }
@@ -647,7 +645,7 @@ function pickerBody(root, d, slotId, h) {
   const si = isSub ? +slotId.slice(3) : -1;
   const curUid = isSub ? ((d.subs || [])[si] || {}).uid : d.primary;
   soulSortControl(root, h);
-  const souls = G.souls.filter((s) => !(SOUL_CLASSES[s.clsKey] || {}).unique).sort(compareSoulList); // 灯守 (セラだけの魂) は貸さない
+  const souls = [...G.souls].sort(compareSoulList);
   const list = el("div", "pt-list sp-plist");
   for (const s of souls) {
     const cl = SOUL_CLASSES[s.clsKey]; if (!cl) continue;
@@ -949,8 +947,6 @@ function openHostSheet(uid, onDone = null) {
         const here = curUid === uid;
         let why = "";
         if (here) why = "宿している";
-        else if ((SOUL_CLASSES[soulByUid(uid)?.clsKey] || {}).unique) why = "セラだけの魂";
-        else if (slotId === "primary" && d.vessel === "sera") why = "灯守に固定";
         else if (slotId === "primary" && !isRep) why = "余った魂は融合へ";
         else if (game.soulSlotConflict(d, uid, slotId)) why = "職業が重なる";
         else if (slotId !== "primary" && d.primary == null) why = "メイン魂が無い";

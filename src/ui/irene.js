@@ -106,8 +106,7 @@ function trainable(c) {
 }
 // Lv上限に届いたセラの魂 (灯守は融合で伸びないので、残火で上限を上げる — souls.js EMBER_STAT_UP)
 function seraCapped(c) {
-  const d = c.dolls.find((x) => x.vessel === "sera");
-  const s = d && d.primary != null ? soulByUid(d.primary) : null;
+  const s = (c.G.souls || []).find(x => x.clsKey === "sera");
   return s && s.level >= safe(() => soulLevelCapOf(s), Infinity) ? s : null;
 }
 function fusable(c) {

@@ -109,7 +109,6 @@ function portraitEl(d, { size = 44, sel = false, tag = "button", cls = "", minim
   const cl = d.jobKey && SOUL_CLASSES[d.jobKey];
   if (cl) p.style.setProperty("--glow", cl.glow);
   if (d.primary == null) p.classList.add("hollow"); // 魂の宿らない器
-  if (d.vessel === "sera") { p.classList.add("vessel-sera"); p.appendChild(el("span", "pt-port-vessel", "灯")); } // 師の作った器
   const fr = el("span", "pt-port-fr");
   try { fr.appendChild(partyPortraitCanvas(d, size - 6)); } catch (e) { /* 絵が無くても動く */ }
   p.appendChild(fr);
@@ -2032,7 +2031,7 @@ function dollHeader(d, mode) {
   const p = portraitEl(d, { size: 44, tag: "div" });
   if (town) longPress(p, () => openRename(d));
   // 面影の写し (第三章の入口で解放): 肖像を押すと、魂が覚えている姿から顔を選べる
-  if (town && d.primary != null && d.vessel !== "sera" && game.omokageUnlocked && game.omokageUnlocked()) {
+  if (town && d.primary != null && game.omokageUnlocked && game.omokageUnlocked()) {
     p.classList.add("pt-face-on");
     p.setAttribute("role", "button");
     p.tabIndex = 0;

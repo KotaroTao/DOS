@@ -7115,83 +7115,67 @@ function restockElixirs() {
   for (const id of ELIXIR_STOCK) if (ITEMS[id]) G.shopStock[id] = Math.max(G.shopStock[id] || 0, 5);
 }
 
-// ===== セラ (師の作った人業) =====
-// 腕・頭・胴・脚がそろい、館の語り「セラの目覚め」(IRENE_BEATS effect: seraJoin) を聞くと仲間になる。
-// メイン魂はセラだけの専用職「灯守」(souls.js SOUL_CLASSES.sera) に固定 (外せない・付け替えられない)。サブ魂は自由。
-// 肖像は灯守の絵に固定 (面影の写しも効かない)。器 (doll.vessel = "sera") も魂の安定度を消費する。
-// 灯守のランク = 魂の count。物語の節目で上がる (seraRankTarget)。Lv は ✦Soul で上げる (ほかの魂と同じ)
-function seraDoll() { return allDolls().find((d) => d && d.vessel === "sera") || null; }
+// ===== 灯守の魂 (セラの目覚めで入手。専用の人業は追加しない) =====
 function seraSoul() { return G.souls.find((s) => s && s.clsKey === "sera") || null; }
-// セラまわりの差し口の制限 (soulSlotConflict から)
-function seraSlotBlocked(d, soul, slotId) {
-  if (isUniqueJob(soul.clsKey)) return !(d && d.vessel === "sera" && slotId === "primary");
-  return !!(d && d.vessel === "sera" && slotId === "primary");
-}
-// 灯守のランクの目標: 目覚め 1 / 継ぎ目の締め直し (焼かれた人業の殻) 2 / 奈落を前にした館の語り 3 (第六章から先で 4・5)
+// 灯守のランクは魂を宿す人業によらず、館の語りの進みで決まる。
 const SERA_RANK_BEATS = ["irene_husks", "irene_abyss", "irene_crest"];
 function seraRankTarget() {
   const b = worldState().beats;
   return Math.min(5, 1 + SERA_RANK_BEATS.filter((id) => b[id]).length);
 }
-// 灯守の魂を物語の進みに合わせる (読み込み時・館の語りの後)。上がったら true
 function syncSeraSoul() {
-  const d = seraDoll();
-  if (!d) return false;
-  let s = soulByUid(d.primary);
-  // 旧版 (どの魂でも宿せた頃) のセラ: 灯守の魂へ宿し直し、前の魂は手元に戻す
-  let moved = false;
-  if (!s || s.clsKey !== "sera") {
-    s = seraSoul() || addSoulInstance("sera", 1, seraStartLevel());
-    d.primary = s.uid;
-    moved = true;
-  }
-  const want = seraRankTarget();
-  const up = (s.count || 1) < want;
-  if (up) { s.count = want; settleSoulExp(s); } // ランクで伸びた上限まで、蓄積していた exp を注ぐ
-  s.locked = true;
-  if (up || moved) { recalcDoll(d); if (moved) { d.hp = d.maxhp; d.mp = d.maxmp; } }
+  let s = seraSoul();
+  if (!s && worldState().beats.irene_sera_wake) s = addSoulInstance("sera", seraRankTarget(), seraStartLevel());
+  if (!s) return false;
+  const up = (s.count || 1) < seraRankTarget();
+  if (up) { s.count = seraRankTarget(); settleSoulExp(s); recalcAllDolls({ levelUp: true }); }
   return up;
 }
-// 目覚めた時の灯守の Lv: 隊のメイン魂の平均 (ランク1の上限まで)
+// 旧記録の専用キャラは街へ戻ってから除く。戦闘中の隊や行動順は崩さない。
+// 装備・育てた魂・サブ魂はすべて手元へ残す。袋が満杯でも品を捨てない。
+function migrateSeraVessel() {
+  if (G.state !== "town" || G.abyss?.started) return;
+  const old = allDolls().filter(d => d.vessel === "sera");
+  if (!old.length) return;
+  if (!seraSoul()) addSoulInstance("sera", seraRankTarget(), seraStartLevel());
+  const ids = new Set(old.map(d => d.uid));
+  for (const d of old) for (const it of Object.values(d.equip || {}).filter(Boolean)) {
+    if (!G.inventory.includes(it)) G.inventory.push(it);
+  }
+  G.party = G.party.filter(d => !ids.has(d.uid));
+  G.reserve = G.reserve.filter(d => !ids.has(d.uid));
+  for (const preset of G.formations || []) if (preset?.members) preset.members = preset.members.filter(m => !ids.has(m.uid));
+  formations.syncFormationItems(G);
+  log("セラの灯守は、所持魂から人業に宿せる。以前の器の装備と魂は手元に戻った。", "sys");
+}
+// 入手時のLvは隊のメイン魂の平均 (ランク1の上限まで)。
 function seraStartLevel() {
   const lv = G.party.map((p) => soulByUid(p.primary)).filter(Boolean).map((x) => x.level || 1);
   const avg = lv.length ? Math.round(lv.reduce((a, b) => a + b, 0) / lv.length) : 1;
   return Math.max(1, Math.min(soulLevelCap("sera", 1), avg));
 }
 function seraJoin() {
-  let d = seraDoll();
-  if (!d) {
-    d = makeDoll("セラ");
-    d.vessel = "sera";
-    const s = seraSoul() || addSoulInstance("sera", seraRankTarget(), seraStartLevel());
-    s.locked = true;
-    d.primary = s.uid;
-    recalcDoll(d);
-    d.hp = d.maxhp; d.mp = d.maxmp;
-    if (G.party.length < 6) G.party.push(d);
-    else { G.reserve.push(d); log("セラは控えで待機する。館で隊と入れ替えられる。", "sys"); }
-    if (!G.codex.job) G.codex.job = {};
+  let s = seraSoul();
+  if (!s) {
+    s = addSoulInstance("sera", seraRankTarget(), seraStartLevel());
     codexSweepJobs();
-    log(`人業「セラ」が目を覚ました。灯守 Lv${s.level}。師の作った器も、魂の安定度を消費する。`, "win");
-    showToast("セラが仲間に加わった", { noLog: true, tone: "good" });
+    log(`灯守の魂を手に入れた。Lv${s.level}。人業の館で宿すことができる。`, "win");
+    showToast("灯守の魂を手に入れた", { noLog: true, tone: "good" });
     SFX.itemget(); buzz([0, 30, 60, 30]);
   }
   syncSeraSoul();
   autosave(true);
-  return d;
+  return s;
 }
-// 館の語りで灯守のランクが上がる (IRENE_BEATS effect: seraRank)
+// 館の語りで灯守のランクが上がる (宿していなくても育つ)。
 function seraRankUp() {
-  const d = seraDoll();
-  if (!d) return;
-  const before = d.jobRank || 1;
-  const s0 = soulByUid(d.primary);
-  const fromCap = s0 ? soulLevelCapOf(s0) : 0;
+  const s = seraSoul();
+  if (!s) return;
+  const before = soulRankOf(s), fromCap = soulLevelCapOf(s);
   if (!syncSeraSoul()) return;
-  recalcAllDolls({ levelUp: true });
-  const s1 = soulByUid(d.primary);
-  log(`セラの魂がランク${d.jobRank}になった (${d.cls})。`, "win");
-  if ((d.jobRank || 1) > before) showRankUp({ clsKey: "sera", fromRank: before, toRank: d.jobRank, toCount: s1.count, fromCap, toCap: soulLevelCapOf(s1) });
+  const rank = soulRankOf(s);
+  log(`灯守の魂がランク${rank}になった。`, "win");
+  if (rank > before) showRankUp({ clsKey: "sera", fromRank: before, toRank: rank, toCount: s.count, fromCap, toCap: soulLevelCapOf(s) });
 }
 // 赤い魂1つで回復する安定度
 function stabilityPerRed() { return 5; }
@@ -12691,6 +12675,7 @@ const applyFormation = index => formationAction("applyFormation", index, formati
 // 街を描き直す (名前と約225の呼び出し元はそのまま)。中身の描き替え・スクロール位置の保持・
 // タブバーの点灯・遷移の演出は街シェル (townshell.refresh) が受け持つ
 function renderTown() {
+  migrateSeraVessel();
   formations.syncFormationItems(G);
   // 迷宮の中 (無限迷宮の風だまりで魂を鍛えた・品を売った時など) は街を描かず、見出しと隊の札だけ描き直す
   if (inDungeon()) { updateTopbar(); renderParty(); autosave(); return; }
@@ -12888,8 +12873,7 @@ function soulRepresentatives() {
     || (b.count || 1) - (a.count || 1) || (b.level || 1) - (a.level || 1)
     || (b.capBonus || 0) - (a.capBonus || 0) || a.uid - b.uid);
   const seen = new Set();
-  // セラの灯守 (固有の職) は代表にしない: 人業の仕立て・メイン魂の付け替え・融合・控えの結社の対象から外れる
-  return sorted.filter((s) => { if (isUniqueJob(s.clsKey) || seen.has(s.clsKey)) return false; seen.add(s.clsKey); return true; });
+  return sorted.filter((s) => { if (seen.has(s.clsKey)) return false; seen.add(s.clsKey); return true; });
 }
 // メイン魂の職業だけは隊に1つ。別個のサブ魂は同職でも宿せる。
 function partySoulConflict(party = G.party) {
@@ -12904,8 +12888,6 @@ function partySoulConflict(party = G.party) {
 // サブ魂の職業は仲間と重複できる。同じ人業のメイン・サブには同職を重ねない。
 function soulSlotConflict(d, uid, slotId = "primary") {
   const soul = soulByUid(uid); if (!soul) return false;
-  // セラ: メイン魂は灯守に固定。灯守の魂はセラのメイン魂にしか宿らない (サブ魂として貸さない)
-  if (seraSlotBlocked(d, soul, slotId)) return true;
   // 同じ人業の別の差し口にある魂 = 入れ替え (メイン⇄サブ・サブ⇄サブ、ユーザーの指示 2026-10)。
   // 人業の中の職業の組は変わらないので、隊のメイン魂の重複だけを見る
   const from = ownSoulSlot(d, uid);
@@ -12913,7 +12895,7 @@ function soulSlotConflict(d, uid, slotId = "primary") {
     const cur = slotSoul(d, slotId);
     if (from === "primary") {
       if (!cur) return true; // メイン魂を空のサブ魂の枠へは移せない (メイン魂が空になる)
-      if (seraSlotBlocked(d, cur, "primary") || !soulRepresentatives().some((x) => x.uid === cur.uid)) return true;
+      if (!soulRepresentatives().some((x) => x.uid === cur.uid)) return true;
       return partyMainClash(d, cur);
     }
     return slotId === "primary" ? partyMainClash(d, soul) : false;
@@ -13109,8 +13091,6 @@ function equipSoulToSlot(d, uid, slotId = "primary", done = null) {
   if (si >= 0 && (!Number.isInteger(si) || si < 0 || si >= unlockedSubSlots())) return fin(false);
   // 別の差し口へ宿す (=付け替え) 場合のみ装備可否を判定する。外す操作は対象外
   const isNewEquip = !(slotId === "primary" && d.primary === uid) && !(si >= 0 && ((d.subs || [])[si] || {}).uid === uid);
-  if (d && d.vessel === "sera" && si < 0) { SFX.ng(); showToast("セラのメイン魂は灯守のまま。サブ魂は自由に付け替えられる", { tone: "info" }); return fin(false); }
-  if (isUniqueJob(s.clsKey)) { SFX.ng(); showToast("灯守の魂は、セラにしか宿らない", { tone: "bad" }); return fin(false); }
   if (isNewEquip && si < 0 && !soulRepresentatives().some((x) => x.uid === uid)) { SFX.ng(); showToast("同じ職業の余った魂は、人業の館で魂融合する", { tone: "bad" }); return fin(false); }
   if (isNewEquip && soulSlotConflict(d, uid, slotId)) { SFX.ng(); showToast("メイン魂の職業は隊で重複不可。同じ人業のメイン・サブにも同じ職業は宿せない", { tone: "bad" }); return fin(false); }
   // 同じuidの魂は、メイン・サブを問わず他の人業と共有しない。他の人業が宿している魂を選んだら、その人業から移す
@@ -17982,7 +17962,6 @@ function rankUnlockHint(rank, clsKey) {
   if (perk && rank === 2) lines.push(`${head} — パッシブ「${perk.name}」に目覚めた`, perk.desc);
   else if (perk) lines.push(head, `パッシブ「${perk.name}」に強まった`, perk.desc);
   else lines.push(head);
-  if (isUniqueJob(clsKey)) return lines; // 灯守 (セラだけの魂) はサブ魂・結社に出さない
   if (featureUnlocked("sub1")) {
     const pc = subPickCapOfRank(rank), pp = subPickCapOfRank(rank - 1);
     if (pc > pp) lines.push(`宿し魂として、技・パッシブを${pc}つまで貸せるようになった。`);
@@ -18805,7 +18784,8 @@ function loadGame(cloudSnapshot = null) {
   delete G.codex.soul; // 魂図鑑は廃止 (スキルが職業帰属になったため)
   codexSweepJobs();
   syncClueBoons(); // 手がかりの恵み (回避率・霊薬の棚)
-  syncSeraSoul(); // セラの灯守の魂 (旧版のセラの宿し直し・物語で上がるランク)
+  migrateSeraVessel();
+  syncSeraSoul(); // 灯守は所持魂として、宿し先によらず物語で育つ
   if (infRun) infSwapBackAfterLoad(infRun);
   enforceDungeonRestrictions(); // 戦闘中の再開でも、旧版で出た帰還魔法陣を残さない
   return true;
@@ -19503,7 +19483,7 @@ function resetAllData() { if (cloudEnabled() && !testPlayActive) return; if (!te
 bindGame({
   // いまの目標・勅命・物語
   STABILITY_MAX, STABILITY_ENTRY_COST, STABILITY_RECOVERY_MS, refreshStability, stabilityStatus, restoreStability,
-  stabilityMinutes, stabilityPerRed, stabilityCost, clueBoon, seraDoll,
+  stabilityMinutes, stabilityPerRed, stabilityCost, clueBoon,
   objectiveInfo, decreeInfo, replayDecree, palaceRecords, sharePalaceRecord, departTo, goMakeDoll, audienceTutorial,
   landOnHub, legacyToPage, townBgm,
   // 勲章・宝物庫・図鑑
@@ -19614,7 +19594,7 @@ async function init() {
     // 迷宮の台帳・物語の進みの検証用
     world: { prologuePhase, preparePrologueDoll, completePrologueTutorial, prologueAudience, preparePrologueAppraisal, audienceTutorial, clearDungeonNoBoss, reportMissingClue, worldState, refreshWorldUnlocks, reportMainQuest, lateClue, tellLateClue, reportTutorialQuest, grantTutorialGift, commitDungeonClear, showDungeonClearedPopup, askGate, departNow, storyGoal, objectiveInfo, decreeInfo,
       playIreneBeat, pendingIreneBeat, storyNewFloor, runStoryCell, resumeFromState, startFloorsOf, foeLevelHere, claimTreasury, partyLevel, leaveDungeon, DUNGEONS, finalizeBuyDoll, totalDonatedKinds, treasuryState,
-      clueBoon, syncClueBoons, seraJoin, seraDoll, seraRankUp, syncSeraSoul, repairCostOf, restoreStability, stabilityStatus, revealByCartography } };
+      clueBoon, syncClueBoons, seraJoin, seraSoul, migrateSeraVessel, seraRankUp, syncSeraSoul, repairCostOf, restoreStability, stabilityStatus, revealByCartography } };
 
   if (testPlayActive) {
     const floor = setupTestPlay();

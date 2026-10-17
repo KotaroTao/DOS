@@ -61,11 +61,11 @@ export const SOUL_CLASSES = {
   cardinal:    { label: "枢機卿",   rarity: "legend",  color: "#c04080", glow: "#f060a0", stat: { hp: 6.0, mp: 3.3, atk: 1.0, vit: 1.2, agi: 1.0, int: 1.5, pie: 4.4, luk: 1.0 } },
   archmage:    { label: "大魔導",   rarity: "legend",  color: "#6040e0", glow: "#9070ff", stat: { hp: 4.5, mp: 3.4, atk: 0.8, vit: 0.6, agi: 1.4, int: 2.7, pie: 0.8, luk: 1.0 } },
   chaplain:    { label: "護教官",   rarity: "legend",  color: "#d0c0f0", glow: "#f0e8ff", stat: { hp: 10.0, mp: 2.5, atk: 2.6, vit: 2.8, agi: 0.8, int: 0.8, pie: 2.8, luk: 0.8 } },
-  // ===== 固有 (人業セラだけの専用職。迷宮では拾えず、ほかの人業には宿せず、サブ魂にも貸さない) =====
+  // ===== 固有 (セラの目覚めで入手する灯守の魂。人業に宿せるが、迷宮では拾えない) =====
   // ランクは物語の節目で上がる (game.js seraRankTarget: count = ランク)。レア度 unique の数値は下の表
   sera:        { label: "灯守",     rarity: "unique",  unique: true, color: "#6fb8c8", glow: "#bfeaf4", stat: { hp: 8.0, mp: 1.8, atk: 2.0, vit: 2.6, agi: 1.4, int: 0.6, pie: 1.8, luk: 1.2 } },
 };
-// 固有の職 (セラの灯守) か。魂の抽選・融合・サブ魂・結社・人業の仕立ての対象から外す
+// 固有の職 (セラの灯守) か。魂の抽選・融合の対象から外す
 export function isUniqueJob(clsKey) { return !!(SOUL_CLASSES[clsKey] && SOUL_CLASSES[clsKey].unique); }
 
 export const SOUL_KEYS = Object.keys(SOUL_CLASSES);
@@ -585,7 +585,7 @@ export const JOB_LORE = {
   cardinal:    { desc: "教団の頂から全ての命を見守る枢機卿の魂。その祈りは仲間全員に注がれる。", tips: "教皇の祈りで自分の戦闘後回復を全員に広げる。大聖祈祷で回復と浄化を同時に行う。" },
   archmage:    { desc: "深淵の知識に到達した大魔導の魂。その波動は破壊の理そのもの。", tips: "深淵の理で燃費と弱点看破を両立した呪文砲台。深淵の波動で単体を粉砕する。" },
   chaplain:    { desc: "教えを守るために武装した護教官の魂。法障壁が全ての攻撃を防ぐ。", tips: "命の肩代わりで、倒れかけた仲間に自分のHPを分け与えて踏みとどまらせる。聖盾でブレスや呪文まで肩代わりでき、法障壁で隊の全員に魔障壁を配る守護聖職者。" },
-  sera:        { desc: "師オルドが一度で仕上げた人業、セラの魂。師を庇って裂かれ、ばらばらになっても、胸の灯は消えなかった。", tips: "庇い立てと灯の加護で隊の傷を浅くする守り手。胸の魂火が戦いの初めに隊を障壁で包む。セラだけの職で、ランクは物語の節目で上がる。" },
+  sera:        { desc: "師オルドが一度で仕上げた人業、セラの魂。師を庇って裂かれ、ばらばらになっても、胸の灯は消えなかった。", tips: "庇い立てと灯の加護で隊の傷を浅くする守り手。胸の魂火が戦いの初めに隊を障壁で包む。人業のメイン魂・サブ魂に宿せる。ランクは物語の節目で上がる。" },
 };
 
 // 職業×ランクの説明文・活用法を返す (ランク別が無ければ系列共通の JOB_LORE にフォールバック)
@@ -601,7 +601,7 @@ export function jobRankCondText(jobKey, rank) {
   const cls = SOUL_CLASSES[jobKey];
   if (!cls) return "";
   const t = rankThresholds(cls.rarity);
-  if (cls.unique) return rank <= 1 ? "人業セラが目を覚ます" : "物語の節目で、セラの魂が強まる";
+  if (cls.unique) return rank <= 1 ? "館でセラが目を覚ますと、灯守の魂を入手" : "物語の節目で、セラの魂が強まる";
   if (rank <= 1) return `${cls.label}の魂を1つ吸収する`;
   return `${cls.label}の魂を累計 ${t[rank - 1]}個 吸収する`;
 }
@@ -796,7 +796,7 @@ export function kindleSubIndex(doll) {
   let best = -1, br = -1;
   (doll.subs || []).forEach((sub, i) => {
     const se = sub ? soulByUid(sub.uid) : null;
-    if (!se || isUniqueJob(se.clsKey)) return;
+    if (!se) return;
     const r = soulRankFromCount(se.clsKey, se.count);
     if (r > br) { br = r; best = i; }
   });
@@ -2130,7 +2130,7 @@ export function dollFace(d) {
   return rank >= 1 && rank <= 5 ? { job: f.job, rank } : null;
 }
 function dollLook(d) {
-  const f = d && d.vessel === "sera" ? null : dollFace(d); // セラの肖像は灯守に固定 (面影の写しは効かない)
+  const f = dollFace(d);
   if (f) return f;
   return { job: d.jobKey || (d.dominant && d.dominant.clsKey) || d.clsKey || "fighter", rank: d.jobRank || 1 };
 }
