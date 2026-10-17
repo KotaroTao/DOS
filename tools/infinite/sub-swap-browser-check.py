@@ -26,11 +26,16 @@ with sync_playwright() as p:
       inf.recalcAllDolls();
       const left=JSON.stringify(a.subs[0]),right=JSON.stringify(b.subs[0]);
       a.hp=1;a.mp=0;b.hp=1;b.mp=0;
+      const snap=JSON.stringify(G.party);
       const pv=inf.infSubPreview(a,0,y.uid);
+      check(JSON.stringify(G.party)===snap,'候補の見積もりで器全体を変えない');
       check(JSON.stringify(a.subs[0])===left&&JSON.stringify(b.subs[0])===right,'見積もりで借用設定を変えない');
       check(!inf.infSubBlock(a,0,y.uid)&&inf.infSetSub(a,0,y.uid),'他の器のサブ魂を交換');
       check(JSON.stringify(a.subs[0])===right&&JSON.stringify(b.subs[0])===left,'技と空の選択・選択済み印を両方向に保持');
-      check(a.maxhp===pv.maxhp&&a.maxmp===pv.maxmp,'借用設定を含む見積もりと実能力が一致');
+      for(const key of ['maxhp','maxmp','atk','vit','agi','int','pie','luk']) {
+        check(a[key]===pv[key], '交換元の見積もりと実能力が一致:'+key);
+        check(b[key]===pv.other.to[key], '交換先の見積もりと実能力が一致:'+key);
+      }
       check(a.hp===1&&b.hp===1&&a.mp===0&&b.mp===0,'交換しても両者を回復しない');
       check(!!inf.infSubBlock(a,0,b.primary),'他の器のメイン魂は選べない');
       b.alive=false;check(!!inf.infSubBlock(a,0,x.uid),'砕けた器からは交換不可');b.alive=true;
@@ -69,12 +74,21 @@ with sync_playwright() as p:
         }
       }
     }''')
+    page.evaluate('''()=>{
+      const row=[...[...document.querySelectorAll('.ui-sheet')].at(-1).querySelectorAll('.inf-swap-row')].find(e=>e.classList.contains('inf-sub-taken'));
+      if(!row.querySelector('.inf-stat-preview')||row.querySelectorAll('.inf-stat-head').length!==2)throw Error('両者の比較が無い');
+      if(!row.querySelector('.inf-stat-delta'))throw Error('増減が無い');
+      const sheet=[...document.querySelectorAll('.ui-sheet')].at(-1);
+      if(sheet.scrollWidth>sheet.clientWidth+1)throw Error('比較が横にはみ出している');
+    }''')
     page.screenshot(path='/tmp/dos-infinite-sub-holder.png')
     assert page.evaluate('swapBefore===JSON.stringify([__game.G.party[0].subs,__game.G.party[1].subs])')
     page.evaluate('''()=>{const row=[...[...document.querySelectorAll('.ui-sheet')].at(-1).querySelectorAll('.inf-swap-row')].find(e=>e.textContent.replace(/\\u200b/g,'').includes('交換先のサブ魂1'));if(!row)throw Error('相手の表示が無い');row.querySelector('.inf-swap-b').click();}''')
     page.wait_for_timeout(200)
     text=page.inner_text('body').replace('\u200b','')
     assert 'サブ魂が交換される' in text and 'そのまま維持される' in text
+    assert page.locator('.ui-confirm .inf-stat-head').count()==2
+    page.screenshot(path='/tmp/dos-infinite-soul-compare.png')
     click('やめる')
     assert page.evaluate('swapBefore===JSON.stringify([__game.G.party[0].subs,__game.G.party[1].subs])')
     page.evaluate('''()=>{const row=[...[...document.querySelectorAll('.ui-sheet')].at(-1).querySelectorAll('.inf-swap-row')].find(e=>e.textContent.replace(/\\u200b/g,'').includes('交換先のサブ魂1'));row.querySelector('.inf-swap-b').click();}''')
@@ -92,6 +106,34 @@ with sync_playwright() as p:
         if(!row)throw Error('メイン魂の候補に宿主が無い:'+home);
         if(row.textContent.replace(/\\u200b/g,'').includes('宿していない'))throw Error('宿した魂が未使用扱い:'+home);
       }
+    }''')
+    page.evaluate('''()=>{
+      const rows=[...[...document.querySelectorAll('.ui-sheet')].at(-1).querySelectorAll('.inf-swap-row')];
+      const row=rows.find(e=>e.querySelector('.inf-stat-preview'));
+      if(!row)throw Error('メイン魂の候補に能力比較が無い');
+      row.querySelector('.inf-swap-b').click();
+    }''')
+    page.wait_for_timeout(200)
+    assert page.locator('.ui-confirm .inf-stat-preview').count()==1
+    click('やめる')
+    # メイン魂の候補閲覧でHP/MPが減らず、確定後の全能力と見積もりが一致する。
+    page.evaluate('''async()=>{
+      const {game}=await import('/src/ui/ctx.js');
+      const {ITEMS,equipLevelOf}=await import('/src/items.js');
+      const d=__game.G.party[1], s=__game.G.souls.find(x=>x.uid===d.subs[0].uid);
+      const main=__game.G.souls.find(x=>x.uid===d.primary);
+      main.level=100;main.capBonus=100;
+      const armor=__game.inf.cloneItem(Object.keys(ITEMS).find(k=>ITEMS[k].slot==='body'));
+      armor.r20=20;armor.hp=1000;d.equip.body=armor;
+      if(equipLevelOf(armor)<=s.level)throw Error('装備できるLvの検証条件が不正');
+      __game.inf.recalcAllDolls();
+      d.hp=d.maxhp;d.mp=d.maxmp;
+      const before=JSON.stringify(d);
+      const pv=game.infSoulChangePreview(d,s.uid);
+      if(JSON.stringify(d)!==before)throw Error('メイン魂の見積もりが器を変えた');
+      if(!game.infSwapSoul(d,s.uid))throw Error('メイン魂を変更できない');
+      if(d.equip.body)throw Error('Lv不足の装備が外れていない');
+      for(const k of ['maxhp','maxmp','atk','vit','agi','int','pie','luk','hp','mp'])if(d[k]!==pv[k])throw Error('メイン魂の見積もり不一致:'+k);
     }''')
     print('別キャラのメイン魂・サブ魂の候補に宿主と枠を表示 OK')
     # 全魂を宿している場合、他の器から移せる魂を未使用の候補に数えない。
