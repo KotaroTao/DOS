@@ -7,7 +7,7 @@
 //   第二章: roll = 守備隊の当直簿・軍議の卓 / cell = 牢壁の名 / head = 独房の人業の頭 / banner = 焼けた軍旗 (大手門) / hole = 本丸の大穴
 //   第三章: rope = 根に結ばれた綱 (縦穴) / hut = ヴェルナーの小屋 / torso = 根に抱かれたセラの胴 / tree = 魂喰らいの大樹
 //   第六章: coat = 師の外套 (奈落の氷棚) / frozen = 氷柱の中の十一人 / aurora = 極光の書きつけ / frostking = 凍王の記憶
-//   第七章: splint = 師の添え木 (沼の岸) / crest = 一門の印の器 (器の捨て場) / reeds = 毒消しの書きつけ (葦原) / swamplord = よどみの主の記憶
+//   第七章: splint = 添え木を替えた跡 (沼の岸) / crest = 一門の印の器 (器の捨て場) / reeds = 毒消しの書きつけ (葦原) / swamplord = よどみの主の記憶
 //   第八章: stick = 焼け焦げた杖 (螺旋階段の踊り場) / bell = 一門の鐘 (鐘楼) / rod = 雷よけの書きつけ (回廊の手すり) / stormlord = 嵐の主の記憶
 //   第九章: glove = 焦げた手袋 (雲を渡る石橋の欄干) / lamps = 灯籠の棚 (闘獣の檻) / nook = 灯番の子の寝床 (観客席の下) / arenalord = 闘技場の支配者の記憶
 //   第十章: polished = 磨かれた灯籠 (灯籠の吹き溜まり) / tags = 名を書いた札 (黒い灯の地底湖) / eyes = 暗がりの目 (名を刻む石窟) / moldern = 宰相モルデンの記憶
@@ -2326,8 +2326,8 @@ function crestMask(hand, flame, cx, cy, s) {
   flame.poly(P([-2, -0.6, 0.2, -0.6, 0, -2.6, -0.9, -5.8, -1.8, -2.8]));                     // 掌に載せた灯
 }
 
-// 29. 師の添え木 (奈落の底の沼の岸。上の闇から雪解けの滝が落ちる。手前の泥に、溶けかけた氷の添え木のかけらと、
-//     縄で束ねた人業の腕の木が二本。結び目に師の書きつけ。片脚を引きずる足跡が葦の奥 (谷のほう) へ続く)
+// 29. 添え木を替えた跡 (奈落の底の沼の岸。雪解けの滝、溶けかけた氷、木の削りくずと縄の切れ端。
+//     書きつけは平たい石で押さえる。腕の木は師が脚に当てて持ち去り、片脚を引きずる足跡だけが谷へ続く)
 function sceneSplint() {
   const W = ART_W, H = ART_H, L = new Layer(W, H);
   const FX = 58, SY = 60;                                              // 滝の位置・沼の奥の水際
@@ -2391,13 +2391,12 @@ function sceneSplint() {
     if (y - shoreY(x) < 1.2) return [70, 84, 56];                                        // 水際のぬめり
     return wet ? mix([24, 30, 24], [44, 52, 40], n) : mix(ALB_MUD_D, ALB_MUD, n);
   }, lights, { ny: () => -0.85, amb: [0.14, 0.14, 0.1] });
-  // 足跡: 右足の靴跡と、引きずった左脚の筋。杖の穴が並び、葦の奥 (右) へ続く
+  // 足跡: 右足の靴跡と、引きずった左脚の筋が葦の奥 (右) へ続く (杖は次の章で作る)
   const prints = new Mask(W, H);
   for (let k = 0; k < 4; k++) {
     const x = 132 + k * 13, y = 100 - k * 4.6;
     prints.ellipse(x, y, 2.6 - k * 0.3, 1.2 - k * 0.12);
     prints.line(x - 7 - k, y + 2.6, x + 6, y + 1.2 - k * 0.1, 1.4 - k * 0.15);               // 引きずる脚の筋
-    prints.ellipse(x + 5, y - 4.4, 0.8, 0.6);                                                 // 杖の穴
   }
   L.paint(prints, (x, y) => lit(prints.at(x, y - 1) ? [14, 14, 10] : [30, 32, 22], lightAt(x, y, lights), [0.1, 0.1, 0.08]));
   for (let y = 0; y < H; y++) for (let x = 120; x < W; x++) if (prints.at(x, y) && !prints.at(x, y + 1)) L.add(x, y + 1, [90, 104, 50], 1);   // 足跡の縁の照り (毒溜まりの光を受ける)
@@ -2418,32 +2417,28 @@ function sceneSplint() {
     const c = lit(hi ? [228, 240, 236] : groove ? [96, 130, 126] : mix([120, 156, 150], [180, 206, 202], vnoise(x * 0.5, y * 0.5, 327 + i)), lightAt(x, y, lights), [0.36, 0.4, 0.4]);
     return [c[0], c[1], c[2], hi ? 0.95 : 0.72];
   });
-  // 縄で束ねた人業の腕の木 (二本。肘の球関節と、指を開いた手)
-  const arms = new Mask(W, H), jn = new Mask(W, H);
-  for (const [dx, dy] of [[0, 0], [-3, 4.4]]) {
-    const sx = 88 + dx, sy = 97 + dy, ex = 107 + dx, ey = 93.6 + dy, hx = 126 + dx, hy = 90.4 + dy;
-    arms.line(sx, sy, ex, ey, 4.2, 1, 3.8); arms.line(ex, ey, hx - 2, hy + 0.3, 3.6, 1, 3);
-    arms.ellipse(hx, hy, 2.6, 2.2);
-    for (let f = 0; f < 4; f++) arms.line(hx + 1.6, hy - 1.6 + f * 1.1, hx + 5 - Math.abs(f - 1.4) * 0.6, hy - 2.2 + f * 1.5, 1);   // 四本の指
-    arms.line(hx - 0.6, hy - 1.6, hx + 0.8, hy - 3.8, 1);                                                                           // 親指
-    jn.ellipse(sx - 1, sy + 0.2, 2.2, 2.4); jn.ellipse(ex, ey, 2.2, 2.2);
+  // 木を削って脚に当てた跡。持ち去った腕そのものは描かない。
+  const shavings = new Mask(W, H);
+  for (let i = 0; i < 12; i++) {
+    const x = 86 + h2(i, 1, 329) * 38, y = 95 + h2(i, 2, 329) * 10;
+    shavings.line(x, y, x + 2, y - 1, 1);
+    shavings.line(x + 2, y - 1, x + 3, y, 1);
   }
-  paintLit(L, arms, (x, y) => mix(ALB_DOLL, ALB_DOLL_D, vnoise(x * 0.6, y * 0.6, 9) * 0.5 + (Math.sin(x * 0.7) * 0.5 + 0.5) * 0.2), lights, { ny: (x, y) => vNormal(arms, x, y, 3) * 0.6, nxMax: 3, amb: [0.26, 0.24, 0.22] });
-  paintLit(L, jn, (x, y) => (jn.at(x, y - 1) ? [80, 84, 96] : [170, 176, 190]), lights, { amb: [0.24, 0.24, 0.28] });
-  rimLight(L, arms, lights, [120, 100, 70], 0.4);
-  const rope = new Mask(W, H);
-  for (const rx of [96, 114]) { rope.line(rx, 91.6 - (rx - 96) * 0.17, rx - 1.4, 101.6 - (rx - 96) * 0.17, 1.6); rope.line(rx + 1.6, 91.4 - (rx - 96) * 0.17, rx + 0.2, 101.4 - (rx - 96) * 0.17, 1); }
-  rope.ellipse(115, 91.4, 1.8, 1.4);                                                          // 結び目
-  rope.line(115, 92, 119, 96, 1); rope.line(115, 92, 120, 88.6, 1);                           // 縄の端
-  paintLit(L, rope, (x, y) => (h2(x, y, 331) > 0.5 ? [200, 180, 130] : [150, 130, 90]), lights, { amb: [0.3, 0.28, 0.24] });
-  // 結び目にはさんだ書きつけ (折りたたんだ紙が一枚、斜めに立つ)
-  const note = new Mask(W, H); note.poly([111, 91, 109, 81, 116, 79.6, 118, 90]);
+  paintLit(L, shavings, () => [164, 126, 78], lights, { amb: [0.26, 0.24, 0.22] });
+  const ropeEnds = new Mask(W, H);
+  for (const [x, y] of [[95, 100], [116, 103]]) {
+    ropeEnds.line(x, y, x + 3, y - 1, 1);
+    ropeEnds.line(x + 3, y - 1, x + 6, y, 1);
+  }
+  paintLit(L, ropeEnds, () => [150, 130, 90], lights, { amb: [0.3, 0.28, 0.24] });
+  // 泥の上に残した一枚の書きつけ。風で飛ばぬよう、平たい石で押さえる。
+  const note = new Mask(W, H); note.poly([107, 95, 106, 86, 119, 84, 121, 93]);
   L.paint(note, (x, y) => {
-    const v = (y - 80) / 11;
-    const ink = (Math.round(y - x * 0.2) % 2 === 0) && v > 0.15 && v < 0.85 && x > 110 && x < 116 && h2(x, y, 333) > 0.3;
-    const fold = Math.abs(y - 85.4 + (x - 113) * 0.15) < 0.5;                                  // 折り目
-    return lit(ink ? [70, 56, 50] : fold ? [170, 156, 120] : ALB_PAPER, lightAt(x, y, lights), [0.4, 0.38, 0.34]);
+    const ink = (Math.round(y - x * 0.15) % 2 === 0) && y > 87 && y < 93 && x > 109 && x < 118 && h2(x, y, 333) > 0.3;
+    return lit(ink ? [70, 56, 50] : ALB_PAPER, lightAt(x, y, lights), [0.4, 0.38, 0.34]);
   });
+  const stone = new Mask(W, H); stone.ellipse(108, 87, 4, 2.2);
+  paintLit(L, stone, () => [94, 100, 94], lights, { ny: (x, y) => vNormal(stone, x, y, 2), amb: [0.14, 0.16, 0.14] });
   // 手前の葦 (右の端。足跡はこの奥へ消える)
   for (let i = 0; i < 16; i++) reedStalk(L, lights, 170 + h2(i, 3, 335) * 24, 104 + h2(i, 4, 335) * 6, 40 + h2(i, 5, 335) * 34, -6 + h2(i, 6, 335) * 8, 337 + i, { amb: [0.16, 0.18, 0.12] });
   for (let i = 0; i < 6; i++) reedStalk(L, lights, h2(i, 7, 335) * 10, 108, 30 + h2(i, 8, 335) * 24, 2 + h2(i, 9, 335) * 5, 351 + i, { amb: [0.06, 0.06, 0.05] });
@@ -2891,7 +2886,7 @@ function charAlb(x, y, seed, keep = null) {
 }
 
 // 33. 焼け焦げた杖 (塔の中の螺旋階段の踊り場。向こうの壁を巡る階段が闇の上へ続き、手すりの鎖が上へ張られている。
-//     踊り場の石に、雷に打たれて黒く焦げ、半ばで折れた木の杖。人業の腕の木を削った杖で、握りに肘の球関節と黒鉄の帯が残る。
+//     踊り場の石に、雷に打たれて黒く焦げ、半ばで折れた木の杖。脚に短い添え木を残し、切り詰めた腕の木をつないだ杖で、握りに継ぎ目と黒鉄の帯が残る。
 //     そばに石で押さえた書きつけ。右の吹き抜けの底から風が吹き上げる)
 function sceneStick() {
   const W = ART_W, H = ART_H, L = new Layer(W, H);

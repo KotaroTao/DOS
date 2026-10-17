@@ -6,7 +6,7 @@
 |---|---|---|---|
 | ordo-a.png | 師オルド案A。角張った厳しい顔、高い襟のまっすぐな黒外套、裾の金糸の印、腰の人業師道具、革手袋。印は確定前の形。 | `art/story-review/chapter3/report_w13.png`、`art/story-review/chapter4/w14_lamp.png` (画風のみ) | 承認済み (人物案A) |
 | ordo.png | 採用したAの顔・髪・衣装を保ち、外套の裾と印のアップを承認済みの幾何学印へ差し替えた基準。 | `ordo-a.png`、`sigil.png` | 承認済み (人物A・印Cの採用を反映) |
-| ordo-states.png | 第五章の煤と傷・刃なし、第六章の外套なし・氷の固定、第七章の木の腕2本の添え木、第八章の杖。負傷は左脚で統一。 | `ordo.png`、`sigil.png` | 承認済み |
+| ordo-states.png | 第五章の煤と傷・刃なし、第六章の外套なし・氷の固定、第七章の木の腕2本の添え木、第八章の杖と短い添え木 (脚を支える分を残し、切り詰めた木をつないで杖にした)。負傷は左脚で統一。 | `ordo.png`、`sigil.png` | 承認済み |
 | apprentice.png | 弟子の4方向の全身、正面と斜めの顔、外套の金の刺しゅう、左腰の斜めがけの革鞄、温かい橙の手提げ灯。 | `art/story-review/chapter3/report_w13.png`、`art/story-review/chapter4/w14_lamp.png` | 承認済み |
 | irene.png | イレーヌの4方向の全身、顔2方向、金と紫の髪飾り、手首を隠すレースの袖口。 | `art/story-review/chapter2/irene_roots.png`、`art/story-review/chapter1/irene_familiar.png` | 承認済み |
 | sera.png | 目覚めたセラの4方向の全身と顔、本物の濃い茶色の波打つ髪、木の顔、白い布と茶の帯、胸の青白い魂火、承認済みの金の印、黒鉄と金の縁の継ぎ目。 | `docs/art/sera/sera-r1-final.png`、`sigil.png`、`irene.png` (画風とシート配置のみ) | 承認済み |
