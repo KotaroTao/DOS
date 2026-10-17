@@ -18432,7 +18432,7 @@ const testScenes = [
     photo: storyImage(({ intro: "arrival", three: "three", finale: "departure" })[id]),
   })),
   ...[["cell", "師の手がかり", STORY_CELLS], ["memory", "主の記憶", BOSS_MEMORIES], ["report", "踏破の報告", REPORTS], ["chapter", "章の結び", CHAPTER_END], ["unlock", "機能の解放", UNLOCKS], ["late", "手がかりの追加報告", LATE_CLUES], ["rematch", "再戦の記憶", REMATCH_MEMORIES]].flatMap(([group, label, defs]) =>
-    Object.entries(defs).map(([id, def]) => ({ ...def, id: group + ":" + id, kind: "story", group: label, name: label + "・" + def.title, who: ["cell", "memory", "rematch"].includes(group) ? "none" : "king",
+    Object.entries(defs).map(([id, def]) => ({ ...def, id: group + ":" + id, kind: "story", tutorialPreview: group === "unlock" && !!def.lines?.length, group: label, name: label + "・" + def.title, who: ["cell", "memory", "rematch"].includes(group) ? "none" : "king",
       photo: storyImage(({ cell: id, late: id, memory: "mem_" + id, report: "report_" + id, chapter: "ch" + id + "_end" })[group]) }))),
   ...Object.entries(BOSS_PRELUDES).flatMap(([id, pre]) => ["first", "retry"].filter((k) => pre[k]).map((k) => ({ ...pre[k], id: `prelude:${id}_${k}`, kind: "story", group: "主との対面",
     name: `主との対面・${pre[k].title}`, who: "none", photo: storyImage("pre_" + id + (k === "retry" ? "_retry" : "")) }))),

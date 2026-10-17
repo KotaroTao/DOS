@@ -264,6 +264,8 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
   const infLv = document.createElement("input");
   infLv.type = "number"; infLv.min = "1"; infLv.max = "300"; infLv.placeholder = "その階の推奨Lv";
   const infRows = [field("開始する階", infFloor), field("隊のLv", infLv)];
+  // 解放時の説明もチュートリアルから探せる。場面の種類・URLは保ち、会話として再生する。
+  const scenesForMode = () => testScenes.filter(d => d.kind === (mode.value === "flow" ? "prologue" : mode.value) || (mode.value === "tutorial" && d.tutorialPreview));
   const updateMode = () => {
     const isDungeon = mode.value === "dungeon", isArt = mode.value === "art", isInf = mode.value === "inf";
     for (const row of dungeonRows) row.hidden = !isDungeon;
@@ -274,7 +276,7 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
     testStart.querySelector(".ttl-btn-t").textContent = isArt ? "一覧を開く" : "テスト開始";
     sceneGroupRow.hidden = sceneSearchRow.hidden = sceneSelectRow.hidden;
     sceneGroup.replaceChildren();
-    for (const label of ["", ...new Set(testScenes.filter(d => d.kind === (mode.value === "flow" ? "prologue" : mode.value)).map(d => d.group || "その他"))]) {
+    for (const label of ["", ...new Set(scenesForMode().map(d => d.group || "その他"))]) {
       const o = document.createElement("option"); o.value = label; o.textContent = label || "すべて"; sceneGroup.appendChild(o);
     }
     sceneSearch.value = "";
@@ -284,7 +286,7 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
     const previous = sceneSelect.value;
     const query = sceneSearch.value.trim().toLocaleLowerCase();
     sceneSelect.replaceChildren();
-    for (const d of testScenes.filter(d => d.kind === (mode.value === "flow" ? "prologue" : mode.value) && (!sceneGroup.value || (d.group || "その他") === sceneGroup.value) && `${d.name} ${d.id}`.toLocaleLowerCase().includes(query))) {
+    for (const d of scenesForMode().filter(d => (!sceneGroup.value || (d.group || "その他") === sceneGroup.value) && `${d.name} ${d.id}`.toLocaleLowerCase().includes(query))) {
       const o = document.createElement("option"); o.value = d.id; o.textContent = `${d.name}（${d.id}）`; sceneSelect.appendChild(o);
     }
     if ([...sceneSelect.options].some(o => o.value === previous)) sceneSelect.value = previous;
