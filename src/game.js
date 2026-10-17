@@ -13,7 +13,7 @@ import { monsterResists } from "./resistance.js";
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
 import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, setEnemyLvTag, scaleFoeAgi, scaleStrongFoeHp, scaleFoeStats, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setEquipSwap, setModSink, setElemKnown, setPartyEvadeBonus, setPartyBreathBonus, setPartyHitBonus, setPartyAilBonus, partyBreathRes, perkVictory, cureAil, canSpellCure, cureBySpell, spellCureKinds, chishioState } from "./combat.js";
-import { decideAuto, tacticOf, setResistKnown } from "./autotactics.js";
+import { decideAuto, tacticOf, setResistKnown, autoCombatStalled, resetAutoProgress } from "./autotactics.js";
 import { STAGED, effectStage, stageOf, stageMul, stageLabel, isBattleLong, ENEMY_STAT_LABEL } from "./buffstage.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
 import { spriteCanvas, crispCanvas, drawPhoto, photoReady, whenPhoto, setSpriteResolver } from "./sprites.js";
@@ -10616,6 +10616,8 @@ combatMenu.addEventListener("pointerdown", (e) => {
 function stopAutoCombat() {
   if (!G.autoCombat) return;
   G.autoCombat = false;
+  resetAutoProgress(G.battle);
+  if (G.battle) G.battle._autoIdle = 0;
   if (G._autoTimer) { clearTimeout(G._autoTimer); G._autoTimer = null; }
   showToast("オート戦闘を解除した", { tone: "info" });
   if (G.animating) renderActingPlate(null); // 演出が終わると通常メニューに戻る
@@ -10833,12 +10835,17 @@ function renderCombatMenu() {
           // 人業ごとの作戦 (autotactics.js) で一手を決める。誰も何も通せない (物理無効の敵ばかりで、役に立つ技も無い)
           // 手番が隊の人数ぶん続いたら、殴り続けても終わらないのでオートを止めて手動に戻す
           const cur = b2.current;
+          if (autoCombatStalled(b2)) {
+            stopAutoCombat();
+            showToast("敵をほとんど削れないため、オートを止めた。技や装備を見直そう", { tone: "info" });
+            return;
+          }
           const plan = decideAuto(b2, cur);
           b2._autoIdle = plan.idle ? (b2._autoIdle || 0) + 1 : 0;
-          if (plan.idle && b2._autoIdle > b2.livingParty().length) {
+          if (plan.idle && b2._autoIdle >= b2.livingParty().length) {
             b2._autoIdle = 0;
             stopAutoCombat();
-            showToast(cur && cur.wMagic ? "攻撃が効かない敵がいる — 術で戦おう" : "物理が効かない敵がいる — 術で戦おう", { tone: "bad" });
+            showToast("有効な行動がないため、オートを止めた。技や装備を見直そう", { tone: "info" });
             return;
           }
           const r = b2.chooseAction(plan.action, plan.spellKey);
@@ -12131,6 +12138,8 @@ function gameOver() {
   log(G.run && G.run.abandoned ? "迷宮を断念（全滅扱い）" : "全滅…", "dmg");
   imprintFallen(); // 記憶を刻む (器は迷宮に残り、街へ戻ってから連れ帰りの時を数える)
   G.autoCombat = false;
+  resetAutoProgress(G.battle);
+  if (G.battle) G.battle._autoIdle = 0;
   if (G._autoTimer) { clearTimeout(G._autoTimer); G._autoTimer = null; }
 
   combatMenu.classList.add("hidden");
@@ -16897,6 +16906,8 @@ function beginRematch(t, stabilityAd = false) {
 function endRematch(b) {
   const rm = G.rematch;
   G.autoCombat = false;
+  resetAutoProgress(G.battle);
+  if (G.battle) G.battle._autoIdle = 0;
   if (G._autoTimer) { clearTimeout(G._autoTimer); G._autoTimer = null; }
   renderCombat();
   const win = b.result === "win";

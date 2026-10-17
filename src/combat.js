@@ -3295,15 +3295,15 @@ export class Battle {
     if (tgt._defending) dmg *= 0.5;
     const aE = opt.element || (actor.elemAtk && actor.elemAtk.el) || actor.element || "none";
     const aLv = (actor.elemAtk && actor.elemAtk.el === aE) ? Math.max(1, actor.elemAtk.lv) : 1;
-    // 属性相性は、図鑑で属性が明かされた敵にだけ見込む (setElemKnown)。打ち込んだ属性耐性ダウンは見えているので数える
-    dmg *= (elemSeen(tgt, actor) ? elemDmgMult(aE, aLv, tgt.element || "none", edefOf(tgt), eaffOf(tgt)) : 1) * this._vulnMul(tgt, aE);
+    // 属性相性は開示済みだけ見込む。actual はオートの無効・低威力確認用。耐性ダウンは常に見える
+    dmg *= (opt.actual || elemSeen(tgt, actor) ? elemDmgMult(aE, aLv, tgt.element || "none", edefOf(tgt), eaffOf(tgt)) : 1) * this._vulnMul(tgt, aE);
     if (opt.execute && tgt.maxhp && tgt.hp <= tgt.maxhp * 0.3) dmg *= opt.execute;
     if (opt.prey && opt.prey.races.includes(enemyRace(tgt))) dmg *= opt.prey.mul;
     if (pv(actor, "smite") && HOLY_PREY.includes(enemyRace(tgt))) dmg *= 1.3;
     if (pv(actor, "gokudoku") && tgt.ailment === "poison") dmg *= 1.3;
     const pOn = opt.basic ? ["phys", "basic"] : opt.skill ? ["phys", "skill"] : ["phys"];
     const perkFoe = actor.side === "party" && tgt.side === "enemy";
-    const tv = elemMask(tgt, actor);
+    const tv = opt.actual ? tgt : elemMask(tgt, actor);
     if (perkFoe) dmg *= 1 + this._perkSum(actor, "deal", { tgt: tv, el: aE, on: pOn });
     if (actor.side === "party") dmg *= evDealMul(actor, tgt);
     const luckCrit = luckCritBonus(actor.luk);
@@ -3331,11 +3331,11 @@ export class Battle {
     return hitP * (critP * Math.max(1, crit * m) + (1 - critP) * Math.max(1, plain * m));
   }
   // 通常攻撃 1 手の期待ダメージ (連撃の回数 + 二刀流の左手の一撃。左手の射程で届かなければ左手は数えない)
-  estBasic(actor, tgt) {
+  estBasic(actor, tgt, opt = {}) {
     if (!actor || !tgt || !tgt.alive) return 0;
     const strikes = actor.multistrike > 1 ? Math.min(4, actor.multistrike) : 1;
-    let v = this.estPhys(actor, tgt, { basic: true }) * strikes;
-    if (actor.side === "party" && actor.dualRate > 0 && this.attackableEnemies(actor, true).includes(tgt)) v += this.estPhys(actor, tgt, { basic: true, offhand: true });
+    let v = this.estPhys(actor, tgt, { ...opt, basic: true }) * strikes;
+    if (actor.side === "party" && actor.dualRate > 0 && this.attackableEnemies(actor, true).includes(tgt)) v += this.estPhys(actor, tgt, { ...opt, basic: true, offhand: true });
     return v;
   }
   // 物理会心とは独立した、技・職業・装備の魔法会心率。
@@ -3347,7 +3347,7 @@ export class Battle {
       + this._rk(actor, "arcanistShinen", [0.05, 0.08, 0.12, 0.20]) + (gm(actor).sae ? 0.15 : 0)));
   }
   // 攻撃呪文1発の期待ダメージ。魔法無効・金属は0、重力は会心しない。
-  estSpell(actor, sp, t) {
+  estSpell(actor, sp, t, opt = {}) {
     if (!actor || !sp || !t || !t.alive) return 0;
     if (isMetal(t)) return 0;
     let dmg;
@@ -3355,7 +3355,7 @@ export class Battle {
     else {
       const intv = Math.max((actor.int || 0) * this._bm(actor, "int"), isFaithSpell(sp) ? (actor.pie || 0) * this._bm(actor, "pie") : 0);
       const aLv = (actor.elemAtk && actor.elemAtk.el === sp.element) ? Math.max(1, actor.elemAtk.lv) : 1;
-      let em = elemSeen(t, actor) ? elemDmgMult(sp.element || "none", aLv, t.element || "none", edefOf(t), eaffOf(t)) : 1;
+      let em = opt.actual || elemSeen(t, actor) ? elemDmgMult(sp.element || "none", aLv, t.element || "none", edefOf(t), eaffOf(t)) : 1;
       if (em < 1 && pv(actor, "elemFloor")) em = 1;
       em *= this._vulnMul(t, sp.element);
       dmg = Math.max(1, varianceMean(attackSpellPower(sp, intv, this.lvOf(actor)) * soulPowerMul(actor, sp)) * this._lowHpMul(actor) - Math.floor(this._evit(t) * 0.2)) * em;
@@ -3366,7 +3366,7 @@ export class Battle {
     if (r >= 100) return 0;
     if (r > 0) dmg *= 1 - resistRate(r) * (1 - this._rk(actor, "archmageShinen", [0.25, 0.50, 0.75, 1]));
     if (pv(actor, "gokudoku") && t.ailment === "poison") dmg *= 1.3;
-    dmg *= evDealMul(actor, t) * (1 + this._perkSum(actor, "deal", { tgt: elemMask(t, actor), el: sp.element || "none", on: ["spell"] }));
+    dmg *= evDealMul(actor, t) * (1 + this._perkSum(actor, "deal", { tgt: opt.actual ? t : elemMask(t, actor), el: sp.element || "none", on: ["spell"] }));
     const critP = this._spellCritChance(actor, sp);
     const critMul = 1.5 * (gm(actor).sae ? 1.3 : 1) * gearCritMul(actor, true);
     dmg *= 1 + critP * (critMul - 1);

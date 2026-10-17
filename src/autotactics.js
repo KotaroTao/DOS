@@ -40,16 +40,57 @@ const KILL_W = 1.5;          // 倒した敵の脅威 (1手番ぶんの与ダメ
 const CHARMED_TGT_MUL = 0.3; // 魅了した敵は殴ると正気に戻りやすいので後回し
 const NO_AUTO = new Set(["field", "escape"]);
 
-// 図鑑の抵抗値が開放済みか。未登録・未開放なら隠れた抵抗値を判断に使わない。
+// 図鑑の抵抗値が開放済みか。未開放の部分耐性は伏せ、完全無効だけを避ける。
 let _resistKnown = null;
 export function setResistKnown(fn) { _resistKnown = typeof fn === "function" ? fn : null; }
 // 極「慧眼の」の持ち主が考える間 (decideAuto) は、明かしていない敵の抵抗値も見積もりに使う
 let _seer = false;
 const resistKnown = t => _seer || !!(_resistKnown && _resistKnown(t));
-const autoRate = (b, actor, t, base, kind) => b.estRate(actor, t, base, kind, resistKnown(t));
+// 無効だけは未開示でも避ける。部分的な抵抗値・有利属性を先読みすることはしない。
+const autoRate = (b, actor, t, base, kind) => b.estRate(actor, t, base, kind) <= 0 ? 0 : b.estRate(actor, t, base, kind, resistKnown(t));
+function autoStatusChances(b, actor, sp, t) {
+  const actual = b.spellStatusChances(actor, sp, t);
+  if (resistKnown(t)) return actual;
+  return b.spellStatusChances(actor, sp, t, false).map(r => actual.find(a => a.kind === r.kind)?.rate === 0 ? { ...r, rate: 0 } : r);
+}
+export const AUTO_LOW_DAMAGE = 2;
+export const AUTO_STALL_ROUNDS = 3;
+// 1手の合計期待値で見る。とどめ・金属への打撃・連撃/会心で削れる手は残す。
+const lowDamage = (d, t) => d <= 0 || (!isMetal(t) && d <= AUTO_LOW_DAMAGE && d < t.hp * 0.1);
+function autoDamage(known, actual, t) {
+  return actual <= 0 || lowDamage(actual, t) ? actual : known;
+}
+const autoBasic = (b, a, t) => autoDamage(b.estBasic(a, t), b.estBasic(a, t, { actual: true }), t);
+const autoPhys = (b, a, t, opt) => autoDamage(b.estPhys(a, t, opt), b.estPhys(a, t, { ...opt, actual: true }), t);
+const autoSpell = (b, a, sp, t) => autoDamage(b.estSpell(a, sp, t), b.estSpell(a, sp, t, { actual: true }), t);
+
+// オート中だけの観測。セーブやクラウドの戦闘結果には混ぜない。
+const autoProgress = new WeakMap();
+export function resetAutoProgress(b) { if (b) autoProgress.delete(b); }
+export function autoCombatStalled(b) {
+  if (!b || b.result) return false;
+  const foes = b.livingEnemies();
+  const now = { round: b._roundNo, foes: foes.map(e => ({ uid: e.uid, hp: e.hp, maxhp: e.maxhp })) };
+  const old = autoProgress.get(b);
+  if (!old || now.round < old.round) { autoProgress.set(b, { ...now, weak: 0 }); return false; }
+  if (now.round === old.round) return false;
+  const killed = old.foes.some(e => !foes.some(t => t.uid === e.uid));
+  const changed = foes.some(e => !old.foes.some(t => t.uid === e.uid));
+  const loss = old.foes.reduce((n, e) => n + e.hp - (foes.find(t => t.uid === e.uid)?.hp || 0), 0);
+  const limit = Math.min(b.livingParty().length * AUTO_LOW_DAMAGE, old.foes.reduce((n, e) => n + e.maxhp, 0) * 0.01);
+  const weak = killed || changed || loss > limit ? 0 : old.weak + 1;
+  autoProgress.set(b, { ...now, weak });
+  if (weak < AUTO_STALL_ROUNDS) return false;
+  // 有効な攻撃を選べるなら、数回のミスや会心待ちだけで止めない。
+  if (b.livingParty().some(p => decideAuto(b, p)?.effectiveAttack)) {
+    autoProgress.set(b, { ...now, weak: 0 }); return false;
+  }
+  return true;
+}
 
 // (dbg に配列を渡すと、比べた候補をすべて積む — 模擬戦での検証用)
-// 手番の者 actor の一手を決める。{ action: "attack"|"spell"|"defend", spellKey?, target?, idle? }。
+// 手番の者 actor の一手を決める。{ action, spellKey?, target?, idle?, effectiveAttack? }。
+// effectiveAttack は停滞判定用。有効な攻撃・即死を選ぶなら、ミスが続いても待つ。
 // 何も通らない (届く敵がみな物理無効で、役に立つ技も無い) 時は idle: true の防御を返す (game.js が隊の全員分続いたらオートを止める)
 export function decideAuto(b, actor, dbg = null) {
   if (!b || !actor || !actor.alive) return null;
@@ -63,16 +104,16 @@ function decideAutoInner(b, actor, dbg) {
   // 通常攻撃 (射程内の敵ごと)
   for (const t of b.attackableEnemies(actor)) {
     if (!t.alive) continue;
-    const per = b.estBasic(actor, t); // 連撃・二刀流の左手の一撃まで
+    const per = autoBasic(b, actor, t); // 連撃・二刀流の左手の一撃まで
     if (per <= 0) continue;
     const v = dmgValue(ctx, t, per) * (t.mind === "charm" ? CHARMED_TGT_MUL : 1);
-    cands.push({ action: "attack", target: t, dmg: v, raw: per, score: 0 });
+    cands.push({ action: "attack", target: t, dmg: v, raw: per, lowDamage: lowDamage(per, t), score: 0 });
   }
   if (tac !== "blade") {
     for (const key of autoSkills(actor)) {
       const sp = SPELLS[key];
       if (!sp || NO_AUTO.has(sp.kind)) continue;
-      if (actor.mp < spellCost(actor, sp)) continue;
+      if (actor.mp < b.costOf(actor, sp, key)) continue;
       for (const c of skillCands(b, ctx, actor, key, sp)) cands.push(c);
     }
   }
@@ -81,7 +122,9 @@ function decideAutoInner(b, actor, dbg) {
   for (const c of cands) {
     if (!W) c.score = c.raw || 0; // 刃のみ: 通常攻撃の与ダメだけで比べる
     else {
-      const cost = c.spellKey ? spellCost(actor, SPELLS[c.spellKey]) : 0;
+      const cost = c.spellKey ? b.costOf(actor, SPELLS[c.spellKey], c.spellKey) : 0;
+      // 全力でも、ほぼ削れない攻撃だけにMPを使わない。有効な追加効果は別に残す。
+      if (cost > 0 && c.lowDamage && !(c.death > 0 || c.heal > 0 || c.stat > 0 || c.guard > 0 || c.edge > 0 || c.revive > 0)) { c.score = -Infinity; continue; }
       c.score = ((c.dmg || 0) + (c.death || 0)) * W.dmg + (c.heal || 0) + (c.revive || 0) * W.revive + (c.guard || 0) * W.guard
         + (c.edge || 0) * W.edge + (c.stat || 0) * W.stat - (c.pen || 0) - cost * ctx.mpPrice(actor, W.mpK) - cost * 1e-3;
     }
@@ -89,7 +132,7 @@ function decideAutoInner(b, actor, dbg) {
     if (!best || c.score > best.score) best = c;
   }
   if (dbg) dbg.push(...cands);
-  if (best && best.score > 0.01) return { action: best.action, spellKey: best.spellKey || null, target: best.target || null };
+  if (best && best.score > 0.01) return { action: best.action, spellKey: best.spellKey || null, target: best.target || null, effectiveAttack: !!((best.raw > 0 && !best.lowDamage) || best.death > 0) };
   return { action: "defend", idle: true };
 }
 
@@ -119,7 +162,7 @@ function makeCtx(b, actor) {
     basic: (a) => once("b" + (a.uid != null ? a.uid : a.name), () => {
       const reach = b.attackableEnemies(a).filter((e) => e.alive);
       if (!reach.length) return 0;
-      return reach.reduce((s, e) => s + b.estBasic(a, e), 0) / reach.length;
+      return reach.reduce((s, e) => s + autoBasic(b, a, e), 0) / reach.length;
     }),
   };
   ctx.ourDps = once("dps", () => allies.reduce((s, p) => s + ctx.basic(p), 0));
@@ -196,7 +239,7 @@ function modGain(b, t, stat, mult) {
 function skillCands(b, ctx, actor, key, sp) {
   const W = WEIGHTS[tacticOf(actor).key];
   const out = [];
-  const mk = (target) => ({ action: "spell", spellKey: key, target, dmg: 0, heal: 0, revive: 0, guard: 0, edge: 0, stat: 0, pen: 0 });
+  const mk = (target) => ({ action: "spell", spellKey: key, target, dmg: 0, raw: 0, lowDamage: true, heal: 0, revive: 0, guard: 0, edge: 0, stat: 0, pen: 0 });
   // 捨身 (hpCost): 削る身の分を差し引く。深手に落ちるなら重く
   const hpPen = (c) => {
     if (!sp.hpCost) return;
@@ -217,14 +260,16 @@ function skillCands(b, ctx, actor, key, sp) {
         if (sp.kind === "phys") {
           const popt = { power: sp.power * soulPowerMul(actor, sp), critBonus: sp.critBonus, element: sp.element, intScale: sp.intScale, agiScale: sp.agiScale,
             vitScale: sp.vitScale, pieScale: sp.pieScale, acc: sp.acc, pierce: sp.pierce, desperate: sp.desperate, execute: sp.execute, prey: sp.prey, skill: true };
-          const per = b.estPhys(actor, t, popt);
+          const per = autoPhys(b, actor, t, popt);
           d = sp.scatter ? per * sp.scatter / tgts.length : per * (sp.hits || 1);
-        } else if (sp.kind === "atk") d = b.estSpell(actor, sp, t);
+        } else if (sp.kind === "atk") d = autoSpell(b, actor, sp, t);
+        c.raw += Math.min(d, t.hp);
+        if (!lowDamage(d, t)) c.lowDamage = false;
         dSum += Math.min(d, t.hp);
         const v = dmgValue(ctx, t, d) * (t.mind === "charm" ? CHARMED_TGT_MUL : 1);
         // 即死: 主には効かない。当たれば残りのHPぶんの傷と同じ
         if (sp.instakill && !t.boss && !isMetal(t) && d < t.hp && (!sp.instakill.races || sp.instakill.races.includes(t.mon && t.mon.race))) {
-          const p = b.spellStatusChances(actor, sp, t, resistKnown(t)).find(r => r.kind === "death")?.rate || 0;
+          const p = autoStatusChances(b, actor, sp, t).find(r => r.kind === "death")?.rate || 0;
           c.death = (c.death || 0) + p * ((t.hp - d) * ctx.dmgK + ctx.threat(t) * KILL_W);
         }
         c.dmg += v;
@@ -264,7 +309,7 @@ function skillCands(b, ctx, actor, key, sp) {
 function foeEffects(b, ctx, actor, sp, t) {
   if (!t.alive || isMetal(t) || (sp.kind === "phys" && t.physResist >= 100) || (sp.kind === "atk" && t.magResist >= 100)) return 0;
   const th = ctx.threat(t);
-  const rates = b.spellStatusChances(actor, sp, t, resistKnown(t));
+  const rates = autoStatusChances(b, actor, sp, t);
   const rate = (x, kind) => rates.find(r => r.kind === kind)?.rate || 0;
   let v = 0;
   if (sp.poison && !t.ailment) v += rate(sp.poison.chance, "poison") * Math.min(t.hp, (t.boss ? Math.max(0.05, sp.poison.pct * 0.5) : sp.poison.pct) * t.maxhp * ctx.left(3)) * ctx.dmgK;
