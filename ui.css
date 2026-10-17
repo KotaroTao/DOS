@@ -642,11 +642,14 @@ canvas.tw-vig-hd { image-rendering: auto !important; }
 .ui-soul-art > svg { position: absolute; width: 0; height: 0; overflow: hidden; }
 .ui-soul-art canvas.spr { width: 132px; height: 132px; margin: 22px; }
 
-/* 画像取得の合図。燭台は動かさず、火の範囲だけを揺らす。操作は遮らない。 */
+/* 画像取得の合図。燭台は動かさず、火の範囲だけを揺らす。準備が整うまで黒い幕で画面を覆う。 */
+body.screen-loading::before, body.booting::before {
+  content: ""; position: fixed; inset: 0; z-index: 2147483647; background: #000;
+}
 .image-loading {
   position: fixed; left: calc(env(safe-area-inset-left, 0px) + 10px);
   bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
-  width: 42px; height: 63px; z-index: 10000; pointer-events: none;
+  width: 42px; height: 63px; z-index: 2147483647; pointer-events: none;
   opacity: 0; visibility: hidden; transition: opacity 180ms ease, visibility 180ms;
   filter: drop-shadow(0 2px 4px #000);
 }

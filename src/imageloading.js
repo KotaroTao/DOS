@@ -2,7 +2,7 @@
 import { CANDLE_IMAGE } from "./loadingcandle.js";
 
 const entries = new Map(), imagePromises = new WeakMap();
-let lamp = null, timer = 0;
+let lamp = null, timer = 0, scheduled = false;
 function visible(node) {
   if (!node?.isConnected || !node.getClientRects?.().length) return false;
   const rect = node.getBoundingClientRect();
@@ -11,6 +11,8 @@ function visible(node) {
 }
 function ensureLamp() {
   if (lamp || !document.body) return;
+  lamp = document.querySelector(".image-loading");
+  if (lamp) return;
   lamp = document.createElement("div");
   lamp.className = "image-loading";
   lamp.dataset.state = "idle";
@@ -29,11 +31,13 @@ function ensureLamp() {
   document.body.appendChild(lamp);
 }
 function schedule() {
-  if (!entries.size && (!lamp || lamp.dataset.state === "idle")) return;
-  if (!timer && typeof document !== "undefined") timer = setTimeout(update, 120);
+  if (scheduled || typeof document === "undefined") return;
+  scheduled = true;
+  // 次の描画より先に幕を掛け、途中の画面が一瞬見えるのを防ぐ。
+  queueMicrotask(() => { scheduled = false; update(); });
 }
 function update() {
-  timer = 0;
+  clearTimeout(timer); timer = 0;
   let pending = false, failed = false;
   const now = Date.now();
   for (const [key, entry] of entries) {
@@ -46,21 +50,24 @@ function update() {
       if (visible(node)) { shown = true; entry.owners.set(node, true); }
       else if (!node.isConnected && (seen || now - entry.created > 1000)) entry.owners.delete(node);
     }
-    if (entry.state === "ready" || !entry.owners.size && !entry.liveOwners.size && now - entry.used >= 1000) {
+    // 到着後のCanvas更新が次の描画へ反映されるまで幕を保つ（待機描画は最低15fps）。
+    if (entry.state === "ready" && now - entry.settled >= 120 || !entry.owners.size && !entry.liveOwners.size && now - entry.used >= 1000) {
       entries.delete(key); continue;
     }
     if (shown) {
-      pending ||= entry.state === "pending";
+      pending ||= entry.state === "pending" || entry.state === "ready";
       failed ||= entry.state === "error";
     }
   }
-  const state = document.hidden ? "idle" : pending ? "loading" : failed ? "error" : "idle";
+  const loading = pending || document.body.classList.contains("booting");
+  document.body.classList.toggle("screen-loading", loading);
+  const state = loading ? "loading" : failed ? "error" : "idle";
   if (state !== "idle") ensureLamp();
   if (lamp && lamp.dataset.state !== state) {
     lamp.dataset.state = state;
-    lamp.lastElementChild.textContent = state === "loading" ? "画像を読み込んでいます" : state === "error" ? "画像を読み込めませんでした" : "";
+    lamp.lastElementChild.textContent = state === "loading" ? "画面を読み込んでいます" : state === "error" ? "画像を読み込めませんでした" : "";
   }
-  if (!document.hidden && (pending || [...entries.values()].some(entry => entry.liveOwners.size || now - entry.used < 1000))) schedule();
+  if (!document.hidden && (pending || [...entries.values()].some(entry => entry.liveOwners.size || now - entry.used < 1000))) timer = setTimeout(update, 120);
 }
 // owner は表示する Canvas/要素。毎フレーム描く画像は省略して、その間だけ灯を出す。
 export function watchIllustration(key, ready, owner = null, live = false) {
@@ -69,7 +76,7 @@ export function watchIllustration(key, ready, owner = null, live = false) {
   if (!entry || entry.ready !== ready) {
     entry = { ready, state: "pending", owners: entry?.owners || new Map(), liveOwners: entry?.liveOwners || new Map(), used: 0, created: Date.now() };
     entries.set(key, entry);
-    Promise.resolve(ready).then(ok => { entry.state = ok === false ? "error" : "ready"; schedule(); },
+    Promise.resolve(ready).then(ok => { entry.state = ok === false ? "error" : "ready"; entry.settled = Date.now(); schedule(); },
       () => { entry.state = "error"; schedule(); });
   }
   if (owner && live) entry.liveOwners.set(owner, Date.now());
@@ -79,10 +86,7 @@ export function watchIllustration(key, ready, owner = null, live = false) {
 }
 export function watchImage(image, owner = null, live = false) {
   if (!image || !image.addEventListener) return;
-  if (image.complete && image.naturalWidth > 0) {
-    if (entries.delete(image)) schedule();
-    return;
-  }
+  if (image.complete && image.naturalWidth > 0) return;
   let ready = imagePromises.get(image);
   if (!ready) {
     ready = new Promise(resolve => {
@@ -119,5 +123,11 @@ if (typeof document !== "undefined" && typeof MutationObserver !== "undefined") 
   document.addEventListener("visibilitychange", schedule);
   document.addEventListener("scroll", schedule, { capture: true, passive: true });
   window.addEventListener("resize", schedule, { passive: true });
+  document.addEventListener("keydown", event => {
+    if (!document.body.classList.contains("screen-loading") && !document.body.classList.contains("booting")) return;
+    if (document.getElementById("boot-notice")) return;
+    event.preventDefault(); event.stopImmediatePropagation();
+  }, true);
   scan(document.documentElement);
+  schedule();
 }
