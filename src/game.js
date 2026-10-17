@@ -19212,6 +19212,7 @@ function setupTestPlay() {
       G.party[0].items.push(it); G.tut.appraisePending = true;
     }
     if (key === "fusion") G.tut.fusionPending = true;
+    if (key === "enchant") G.testUnlock.push("enchant");
     if (key === "soulChange") { addSoulInstance("monk"); G.tut.jobVisit = true; }
     if (key === "repairSoul") { G.party[0].alive = false; G.party[0].hp = 0; G.tut.repairPending = true; }
     if (key === "firstDive" || key === "buyEquipment") {

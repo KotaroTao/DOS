@@ -3,7 +3,7 @@ from playwright.sync_api import sync_playwright
 
 with sync_playwright() as p:
     browser = p.chromium.launch(executable_path='/usr/bin/chromium', args=['--no-sandbox'])
-    for key in ['buyEquipment', 'shopAppraise']:
+    for key in ['buyEquipment', 'shopAppraise', 'enchant']:
         page = browser.new_page(viewport={'width': 390, 'height': 600}, is_mobile=True, has_touch=True)
         errors = []
         page.on('pageerror', lambda e: errors.append(str(e)))
