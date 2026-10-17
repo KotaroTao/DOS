@@ -1006,8 +1006,8 @@ export class Battle {
       }
     }
     if (t.side === "party" && this.party) {
-      // 伝説の勇者: 勇者が生きている間、味方全員の STR・VIT・AGI・INT・PIE +3/5/8/15% (一番高いLv)
-      const hd = this._rkParty("heroDensetsu", [0.03, 0.05, 0.08, 0.15]);
+      // 伝説の勇者: 勇者が生きている間、味方全員の STR・VIT・AGI・INT・PIE +3/6/9/12% (一番高いLv)
+      const hd = this._rkParty("heroDensetsu", [0.03, 0.06, 0.09, 0.12]);
       if (hd) for (const k of ["atk", "vit", "agi", "int", "pie"]) b[k] = (b[k] || 1) * (1 + hd);
       // 狂奔: 敵か仲間が倒れるたび STR +5% (3/5/7/10段まで)
       const ky = Math.min(t._kyouhon || 0, this._rk(t, "berserkerKyouhon", [3, 5, 7, 10]));

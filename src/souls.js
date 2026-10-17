@@ -325,7 +325,7 @@ export const PASSIVES = {
   exorcistJouka:  { label: "浄化の光", scope: "party", lv: ["毎ターンの終わりに20%で、味方1人の状態異常と弱体を治す", "毎ターンの終わりに40%で、味方1人の状態異常と弱体を治す", "毎ターンの終わりに60%で、味方1人の状態異常と弱体を治す", "毎ターンの終わりに80%で、味方1人の状態異常と弱体を治す"] },
   wardenKekkai:   { label: "護法の結界", scope: "party", lv: ["隊の全員が受ける呪文・ブレスのダメージ-5%", "隊の全員が受ける呪文・ブレスのダメージ-8%", "隊の全員が受ける呪文・ブレスのダメージ-12%", "隊の全員が受ける呪文・ブレスのダメージ-20%"] },
   arcanistShinen: { label: "深淵の知", scope: "self", lv: ["攻撃呪文の会心率+5%", "攻撃呪文の会心率+8%", "攻撃呪文の会心率+12%", "攻撃呪文の会心率+20%"] },
-  heroDensetsu:   { label: "伝説の勇者", scope: "party", lv: ["勇者が生きている間、味方全員のSTR・VIT・AGI・INT・PIE+3%", "勇者が生きている間、味方全員のSTR・VIT・AGI・INT・PIE+5%", "勇者が生きている間、味方全員のSTR・VIT・AGI・INT・PIE+8%", "勇者が生きている間、味方全員のSTR・VIT・AGI・INT・PIE+15%"] },
+  heroDensetsu:   { label: "伝説の勇者", scope: "party", lv: ["勇者が生きている間、味方全員のSTR・VIT・AGI・INT・PIE+3%", "勇者が生きている間、味方全員のSTR・VIT・AGI・INT・PIE+6%", "勇者が生きている間、味方全員のSTR・VIT・AGI・INT・PIE+9%", "勇者が生きている間、味方全員のSTR・VIT・AGI・INT・PIE+12%"] },
   asuraNitou:     { label: "二刀流", scope: "self", lv: ["盾の欄に片手武器を持てる (左手)。通常攻撃の後に左手で一撃 (左手の攻撃力40%)。物理技にはその半分 (20%) を上乗せ", "左手の攻撃力60%。物理技には30%を上乗せ", "左手の攻撃力80%。物理技には40%を上乗せ", "左手の攻撃力100%。物理技には50%を上乗せ"] },
   dragonknightIbuki: { label: "竜の息吹", scope: "self", lv: ["毎ターンの初めに15%で、敵全体へ火のブレス (STR×0.5)", "毎ターンの初めに20%で、敵全体へ火のブレス (STR×0.6)", "毎ターンの初めに25%で、敵全体へ火のブレス (STR×0.8)", "毎ターンの初めに40%で、敵全体へ火のブレス (STR×1.2)"] },
   necroSenkoku:   { label: "死の宣告", scope: "party", lv: ["戦闘開始時、主以外の敵それぞれが3%で即死 (金属の魔物には効かない)", "戦闘開始時、主以外の敵それぞれが5%で即死 (金属の魔物には効かない)", "戦闘開始時、主以外の敵それぞれが8%で即死 (金属の魔物には効かない)", "戦闘開始時、主以外の敵それぞれが15%で即死 (金属の魔物には効かない)"] },
@@ -1135,7 +1135,6 @@ export function recalcDoll(doll) {
   doll.soulMp = st.mp || 0;
 
   const spells = [];
-  const passives = [];
   const passiveMap = {};
   doll.jobRank = rank;
   doll.hybrid = null;
@@ -1156,14 +1155,10 @@ export function recalcDoll(doll) {
     const lpm = jobLevelPassives(clsKey, effLv);
     for (const k in lpm) {
       passiveMap[k] = Math.max(passiveMap[k] || 0, lpm[k]);
-      const nm = passiveName(k, lpm[k]);
-      if (!passives.includes(nm)) passives.push(nm);
     }
-    // 旧仕様のランク別パッシブ (戦士以外。戦士は上のレベル表に統合済み)
+    // ランクのパッシブも同じキーごとの最高Lvへまとめる
     const pmap = passivesUpTo(clsKey, rank);
     for (const k in pmap) passiveMap[k] = Math.max(passiveMap[k] || 0, pmap[k]);
-    const tbl = JOB_PASSIVES[clsKey] || [];
-    for (let r = 2; r <= rank; r++) if (tbl[r - 2]) passives.push(tbl[r - 2].name);
   } else {
     doll.jobKey = null;
     doll.clsKey = "fighter";
@@ -1201,8 +1196,6 @@ export function recalcDoll(doll) {
       if (p.passive && learnedPassives[p.passive]) {
         const plv = learnedPassives[p.passive];
         passiveMap[p.passive] = Math.max(passiveMap[p.passive] || 0, plv);
-        const nm = passiveName(p.passive, plv);
-        if (!passives.includes(nm)) passives.push(nm);
         used.push({ passive: p.passive });
       } else if (p.skill && learned.includes(p.skill)) {
         if (!spells.includes(p.skill)) spells.push(p.skill);
@@ -1248,7 +1241,8 @@ export function recalcDoll(doll) {
     crit: traits.crit + (pe ? (permanent.crit || 0) : 0), resists: traits.resists,
   };
   doll.spells = spells;
-  doll.passives = passives;
+  // 表示と効果は同じ集計結果を使い、メイン・サブの出所やLvが重なっても一度だけ載せる。
+  doll.passives = Object.entries(passiveMap).map(([key, lv]) => passiveName(key, lv));
   delete doll.attrs;
   delete doll.parts; delete doll.souls; delete doll.soulCls; // 旧フィールドの残骸を除去
   recalc(doll);
