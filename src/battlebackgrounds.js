@@ -1,3 +1,4 @@
+import { watchImage } from "./imageloading.js";
 // 迷宮ごとの戦闘背景。出撃画面のドット絵とは別に管理する。
 export const BATTLE_BACKGROUNDS = Object.freeze({
   "w01": "art/battle/w01.webp",
@@ -83,7 +84,7 @@ export const BATTLE_BACKGROUNDS = Object.freeze({
 // 読み込み中・失敗時は暗い幕にし、次のフレームで再確認する。
 const images = new Map();
 const MAX_IMAGES = 6;
-function backgroundImage(id) {
+function backgroundImage(id, owner) {
   const path = BATTLE_BACKGROUNDS[id];
   if (!path || typeof Image === "undefined") return null;
   let entry = images.get(id);
@@ -100,6 +101,7 @@ function backgroundImage(id) {
   }
   images.delete(id); images.set(id, entry);
   while (images.size > MAX_IMAGES) images.delete(images.keys().next().value);
+  watchImage(entry.img, owner, true);
   return entry.ready ? entry.img : null;
 }
 
@@ -107,7 +109,7 @@ export function drawIllustratedBattleBackdrop(ctx, w, h, opts = {}) {
   // 迷宮IDがない呼び出し (記録欄など) は従来の情景を使う。
   if (!opts.dungeonId) return false;
   const id = Object.hasOwn(BATTLE_BACKGROUNDS, opts.dungeonId) ? opts.dungeonId : "abyss";
-  const img = backgroundImage(id);
+  const img = backgroundImage(id, ctx.canvas);
   if (!img) {
     ctx.save(); ctx.globalAlpha = 1; ctx.fillStyle = "#080a10";
     ctx.fillRect(0, 0, w, h); ctx.restore();

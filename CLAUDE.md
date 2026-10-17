@@ -26,7 +26,7 @@ There is no external test framework. Regression checks live under `tools/` (Node
 
 スマホの継続プレイ時の負荷: 盤面の待機描画は経過時間で最大30fps（操作直後は60fps、描画が重い時は20fps）に抑え、120Hzなどの画面でも回数を増やさない。音楽・効果音の終了時は声部の配列・サンプル参照・フィルタ・ヴィブラートを解放し、曲停止時も先読みした声部を残さない。`python3 tools/performance/browser-check.py` で描画頻度と繰り返し再生・曲停止・オフライン試聴を確認する（localhost:8000が必要）。遊びの速度・戦闘結果・音色は変えない。
 
-画像の初回取得 (2026-10-16): `src/photoload.js` が魔物・装備・奉納品・未鑑定の伏せ絵を種類横断で最大6枚ずつ取得する。起動時の全件取得・待ち合わせは行わない。魔物は `registerMonsterPhotos` で取得口だけ登録し、共通描画が必要になった時に取得する。遅い回線でも4秒で諦めず、取得中・失敗時は旧イラストを一切描かず、姿のない共通の待機印を表示。届いた原画で同じCanvasを更新し、通信失敗後は30秒以降の再表示で取り直す。画像・待ち行列・取得関数はセーブへ含めず、クラウド応答後は魔物の取得口を端末の台帳へ結び直す。SWの全画像の裏取り寄せも止め、現在の章の物語だけ先読みする。未取得の絵はオフラインでも待機印。新しい原画がある街・タイトル・オープニング・戦闘背景・出撃・依頼人・魂の入手・探索素材も、取得失敗時に旧絵へ戻さない（背景は暗い幕、探索は無地の床・壁と待機印で操作を保つ）。制作確認用の `load*Photos` の一括取得は残す。検証: `node tools/performance/photo-loading-check.mjs` / `node tools/performance/media-warm-check.mjs` / `python3 tools/performance/startup-photos-browser.py`。心得 `t_photo_wait`。
+画像の初回取得 (2026-10-16): `src/photoload.js` が魔物・装備・奉納品・未鑑定の伏せ絵を種類横断で最大6枚ずつ取得する。起動時の全件取得・待ち合わせは行わない。魔物は `registerMonsterPhotos` で取得口だけ登録し、共通描画が必要になった時に取得する。遅い回線でも4秒で諦めず、取得中・失敗時は旧イラストを一切描かず、画像枠を空に保ち、画面左下の館の燭台で表示に必要な画像の取得状況をまとめて示す。届いた原画で同じCanvasを更新し、通信失敗後は30秒以降の再表示で取り直す。画像・待ち行列・取得関数はセーブへ含めず、クラウド応答後は魔物の取得口を端末の台帳へ結び直す。SWの全画像の裏取り寄せも止め、現在の章の物語だけ先読みする。未取得の絵はオフラインでも旧絵に戻さない。新しい原画がある街・タイトル・オープニング・戦闘背景・出撃・依頼人・魂の入手・探索素材も、取得失敗時に旧絵へ戻さない（背景は暗い幕、探索は無地の床・壁と待機印で操作を保つ）。制作確認用の `load*Photos` の一括取得は残す。検証: `node tools/performance/photo-loading-check.mjs` / `node tools/performance/media-warm-check.mjs` / `python3 tools/performance/startup-photos-browser.py`。心得 `t_photo_wait`。
 
 ### Service Worker cache — the version is stamped at deploy (don't bump it by hand)
 クラウド有効時の配置では `dos-<commit sha 12桁>-cloud-<GitHub run ID>` にする。同じコミットで公開接続設定が変わっても新しいコードキャッシュへ切り替わり、ローカル保存版の設定を端末へ残さない。公開確認ツールはこの末尾を含む版からコミットを読み取る。
@@ -362,6 +362,8 @@ Six elements + `none`, defined in `schema.js`. Advantage cycle is **火→風→
 - Saving uses **`refSerialize`/ref-hydrate**: a custom serializer that encodes shared/circular object references as `{$r: index}` so object **identity is preserved** on load (a single soul object referenced from multiple places stays the same instance). When adding state that relies on shared references, keep it inside this graph rather than re-cloning.
 
 ### UI 構造 (`src/ui/`) — 縦スクロール無し・少ないタップ
+
+画像取得の待機印は `src/imageloading.js` の画面左下の館の燭台に統一する。燭台本体は静止、取得中は火の部分だけCSSで揺らし、すべて届けば薄く消す。表示中の画像だけを対象にし、先読みや閉じた画面の画像では出さない。失敗時は火を静止し、動きを減らす設定でも静止する。操作・画面レイアウトを遮らず、読み上げには状態を伝える。専用原画は `docs/art/loading-candle/master.png`（形の基準はオープニングの館の灯）、縮小WebPを `src/loadingcandle.js` へ埋め込み、待機印自身の追加通信を避ける。検証 `python3 tools/performance/candle-loading-browser.py`。心得 `t_photo_wait`。
 
 戦闘の隊のHP/MPは現在値のみと残量バーを一行で表示する。1万未満は整数、1万以上は万・億・兆・京で切り捨て表示（単位あたり10未満のみ小数1桁）。命令待ちに札をタップ、または長押しで正確な現在値/最大値を確認でき、対象選択中のタップは従来どおり対象を選ぶ。数値の桁数で札・戦場の高さを変えず、基本の命令ボタンの領域を確保する（技・対象の一覧は箱の内側でスクロール）。幅600px以下・高さ760px以下は隊を一列にし、高さ640px以下は隊の余白と記録も詰める（記録は最低32px、履歴はタップで開く）。極端に低い画面は既存の画面内スクロールを保つ。心得 `t_peek`・`t_battle_vitals`。
 

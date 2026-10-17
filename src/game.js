@@ -16,7 +16,7 @@ import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spaw
 import { decideAuto, tacticOf, setResistKnown } from "./autotactics.js";
 import { STAGED, effectStage, stageOf, stageMul, stageLabel, isBattleLong, ENEMY_STAT_LABEL } from "./buffstage.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
-import { spriteCanvas, crispCanvas, drawPhoto, drawPhotoPlaceholder, photoReady, whenPhoto, setSpriteResolver } from "./sprites.js";
+import { spriteCanvas, crispCanvas, drawPhoto, photoReady, whenPhoto, setSpriteResolver } from "./sprites.js";
 import { makeItemSpriteResolver } from "./itemart/index.js";
 import { registerMonsterPhotos, restoreMonsterPhotos } from "./monsterphotos.js";
 import { bagCount, isFormationItem,
@@ -3215,8 +3215,8 @@ function heroPos() {
 }
 // 旧素材を一瞬出さず、床と共通素材が揃ってから盤面を描く。
 function boardArtPending() {
-  const floor = cryptPaintingPending(activeCfg().id);
-  const actors = cryptActorsPending();
+  const floor = cryptPaintingPending(activeCfg().id, view);
+  const actors = cryptActorsPending(view);
   return floor || actors;
 }
 function drawBoardFrame() {
@@ -3227,10 +3227,6 @@ function drawBoardFrame() {
     vctx.globalCompositeOperation = "copy"; vctx.globalAlpha = 1;
     vctx.fillStyle = "#080a10"; vctx.fillRect(0, 0, view.width, view.height);
     vctx.globalCompositeOperation = "source-over";
-    viewTransform();
-    vctx.fillStyle = "#b9b2a4"; vctx.font = "12px serif";
-    vctx.textAlign = "center"; vctx.textBaseline = "middle";
-    vctx.fillText("景色を読み込んでいます…", VW / 2, VH / 2);
     vctx.restore();
     return;
   }
@@ -3955,12 +3951,11 @@ function drawWalker(hx, hy, now) {
   const box = drawBmpFit(b, x, feet + 1 - lift, hi ? CARD_W * 1.1 : maxH, maxH);
   drawHandLantern(x - box.W * (hi ? 0.36 : 0.42) - 2, box.y + box.H * (hi ? 0.5 : 0.56), now);
 }
-// 取得失敗時の小物も、旧スプライトを使わず共通の待機印で示す。
+// 小物の取得失敗時は空の枠を保ち、読み込みの合図は画面左下へまとめる。
 let pendingBitmap = null;
 function pendingArtBitmap() {
   if (!pendingBitmap) {
     const c = document.createElement("canvas"); c.width = c.height = 96;
-    drawPhotoPlaceholder(c.getContext("2d"), 0, 0, 96, 96);
     pendingBitmap = { c, w: 96, h: 96, pad: 0 };
   }
   return pendingBitmap;
@@ -3968,8 +3963,7 @@ function pendingArtBitmap() {
 function drawHoodedWalker(wk, hx, hy, now) {
   const painted = cryptWalkerBitmap(G._facing, PREFS.walkerLook);
   if (painted) { drawPaintedWalker(painted, hx, hy, now); return; }
-  // 人物の原画が使えない時も、位置だけを待機印で示す。
-  drawPhotoPlaceholder(vctx, hx - CARD_W * 0.38, hy - CARD_H * 0.5, CARD_W * 0.76, CARD_H * 0.98);
+  // 人物の原画が使えない時も旧人物へ戻さない。
 }
 // 原画の人物も同じ足元・向き・浮遊状態に従い、カメラの論理座標で描く。
 function drawPaintedWalker(b, hx, hy, now) {
@@ -10156,10 +10150,9 @@ function photoMonsterBitmap(mon) {
   c.width = (w + pad * 2) * R; c.height = (h + pad * 2) * R;
   const b = { c, w, h, pad };
   if (!photoReady(p)) {
-    whenPhoto(mon, () => {});
-    drawPhotoPlaceholder(c.getContext("2d"), pad * R, pad * R, w * R, h * R);
+    whenPhoto(mon, () => {}, view, true);
     return b;
-  } // 届くまでは待機印を使い、この写しは覚えない
+  } // 届くまでは空の写しを返し、この写しは覚えない
   const body = document.createElement("canvas");
   body.width = w * R; body.height = h * R;
   const bg = body.getContext("2d");

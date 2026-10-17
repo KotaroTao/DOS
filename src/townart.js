@@ -1,3 +1,4 @@
+import { watchIllustration } from "./imageloading.js";
 // 街の絵 — ダークファンタジーのドット絵と、施設の情景・人物の描き下ろし原画
 //
 // ・Relief: 画素ごとに「材質 / 法線 / 奥行き / 遮蔽」を持つ浮彫りラスタ。形 (楕円体・管・多角形) を
@@ -1580,7 +1581,9 @@ function paintedStill(src, width, height, className, contain = false) {
       im.src = src;
     }));
   }
-  _paintedImages.get(src).then((im) => {
+  const ready = _paintedImages.get(src);
+  watchIllustration(ready, ready, c);
+  ready.then((im) => {
     if (!im) return;
     const fit = contain ? Math.min : Math.max;
     const s = fit(c.width / im.naturalWidth, c.height / im.naturalHeight);

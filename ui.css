@@ -641,3 +641,29 @@ canvas.tw-vig-hd { image-rendering: auto !important; }
 .ui-soul-art img { display: block; width: 100%; height: 100%; object-fit: contain; image-rendering: auto; }
 .ui-soul-art > svg { position: absolute; width: 0; height: 0; overflow: hidden; }
 .ui-soul-art canvas.spr { width: 132px; height: 132px; margin: 22px; }
+
+/* 画像取得の合図。燭台は動かさず、火の範囲だけを揺らす。操作は遮らない。 */
+.image-loading {
+  position: fixed; left: calc(env(safe-area-inset-left, 0px) + 10px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
+  width: 42px; height: 63px; z-index: 10000; pointer-events: none;
+  opacity: 0; visibility: hidden; transition: opacity 180ms ease, visibility 180ms;
+  filter: drop-shadow(0 2px 4px #000);
+}
+.image-loading[data-state="loading"], .image-loading[data-state="error"] { opacity: 1; visibility: visible; }
+.image-loading img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.image-loading-body { clip-path: inset(26% 0 0); }
+.image-loading-flame { clip-path: inset(0 0 74%); transform-origin: 50% 26%; }
+.image-loading[data-state="loading"] .image-loading-flame { animation: image-loading-flame 1200ms ease-in-out infinite alternate; }
+.image-loading[data-state="error"] { opacity: .65; }
+.image-loading-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@keyframes image-loading-flame {
+  0% { transform: scale(.94, 1) skewX(-3deg); opacity: .85; }
+  35% { transform: scale(1.03, .96) skewX(2deg); opacity: 1; }
+  65% { transform: scale(.97, 1.04) skewX(-1deg); opacity: .9; }
+  100% { transform: scale(1.02, .98) skewX(3deg); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .image-loading { transition: none; }
+  .image-loading[data-state="loading"] .image-loading-flame { animation: none; }
+}

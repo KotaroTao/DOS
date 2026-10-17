@@ -105,7 +105,7 @@ async def main():
             before = await page.evaluate("""()=>{
               const r=review; r.canvases=r.sprite.map(s=>r.spriteCanvas(s,4,24));
               r.canvases.push(r.crispCanvas(r.sprite[0],64));document.body.replaceChildren(...r.canvases);
-              return r.canvases.map(c=>{if(!c.getContext('2d').getImageData(0,0,c.width,c.height).data.some((v,i)=>i%4===3&&v))throw Error('待機中の絵が空');return c.toDataURL()});
+              return r.canvases.map(c=>{if(c.getContext('2d').getImageData(0,0,c.width,c.height).data.some((v,i)=>i%4===3&&v))throw Error('画像枠に待機印が残っている');return c.toDataURL()});
             }""")
             if mode == "slow":
                 await page.wait_for_timeout(4500)
@@ -146,7 +146,7 @@ async def main():
               const r=reviewBattle,m=r.MONSTERS.bs_wickmummy;
               Object.defineProperty(m,'fallback',{get(){throw Error('戦闘で旧イラストを参照した')}});
               const bitmap=r.monsterBitmap(m),unknown=r.monsterUnknownBitmap(m);
-              if(!bitmap.c.getContext('2d').getImageData(0,0,bitmap.c.width,bitmap.c.height).data.some((v,i)=>i%4===3&&v))throw Error('戦闘の待機画像が空');
+              if(bitmap.c.getContext('2d').getImageData(0,0,bitmap.c.width,bitmap.c.height).data.some((v,i)=>i%4===3&&v))throw Error('戦闘の画像枠に待機印が残っている');
               return [bitmap.c.toDataURL(),unknown.c.toDataURL()];
             }""")
             release.set()
@@ -158,7 +158,7 @@ async def main():
             }""")
             assert (before == after) if failure else (before != after)
             await ctx.close()
-            print("戦闘の待機印・正体不明の影:", "通信失敗でも維持" if failure else "原画へ切替", flush=True)
+            print("戦闘の空枠・正体不明の影:", "通信失敗でも維持" if failure else "原画へ切替", flush=True)
         await browser.close()
 
 asyncio.run(main())

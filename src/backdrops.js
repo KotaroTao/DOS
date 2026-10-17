@@ -1,3 +1,4 @@
+import { watchImage } from "./imageloading.js";
 import { drawIllustratedBattleBackdrop } from "./battlebackgrounds.js";
 
 // ===== 迷宮ごとのWebP戦闘背景と、読み込み中のピクセルアート情景 =====
@@ -3333,6 +3334,7 @@ function drawForestVista(ctx, w, h, dn, now) {
     };
     image.src = new URL("../art/dungeon/w00_forest-entrance.webp", import.meta.url).href;
   }
+  watchImage(state.image, ctx.canvas);
   if (!state.ready) {
     if (!state.failed) state.waiting.set(ctx, [w, h, dn, now]);
     ctx.save(); ctx.globalAlpha = 1; ctx.fillStyle = "#080a10";
