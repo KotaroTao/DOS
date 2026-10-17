@@ -3,6 +3,7 @@ import { rarityOrder } from "./rarity.js";
 import { random } from "./rng.js";
 import { applyItemDepth } from "./itemdepth.js";
 import { equipPrice, equipScore, priceForScore } from "./pricing.js";
+import { applyNativeCritical, CRITICAL_KEYS, clampItemCritical } from "./equipmentcrit.js";
 import { prepareWeapon } from "./weaponpower.js";
 import { zeroResists, clampResist } from "./resistance.js";
 // 武器・防具・アクセサリ・消耗品のカタログ (基本品)
@@ -258,7 +259,7 @@ export const QUALITY_SPREAD = 0.2;
 export const QUALITY_MID = 50;
 export const QUALITY_MAX = 100;
 const QUALITY_SLOTS = new Set(["weapon", "shield", "body", "head", "hands", "feet", "acc"]);
-const QUALITY_KEYS = ["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp", "crit"];
+const QUALITY_KEYS = ["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp", ...CRITICAL_KEYS];
 // 品質を持つ品か (装備品)
 export function hasQuality(it) { return !!it && QUALITY_SLOTS.has(it.slot); }
 // 品質を引く (0〜100 の整数、どれも同じ確率)
@@ -285,8 +286,9 @@ export function applyQuality(it) {
   for (const k of QUALITY_KEYS) {
     const v = it[k];
     if (typeof v !== "number" || v <= 0) continue;
-    it[k] = k === "crit" ? q3(v * m) : Math.max(1, Math.round(v * m));
+    it[k] = CRITICAL_KEYS.includes(k) ? q3(v * m) : Math.max(1, Math.round(v * m));
   }
+  clampItemCritical(it);
   if (it.mult) it.mult = Object.fromEntries(Object.entries(it.mult).map(([k, v]) => [k, typeof v === "number" && v > 0 ? q3(v * m) : v]));
   if (it.scale) it.scale = Object.fromEntries(Object.entries(it.scale).map(([k, v]) => [k, Math.round(v * m * 10000) / 10000]));
   if (it.weaponRating) it.weaponRating = Math.round(it.weaponRating * m * 100) / 100;
@@ -300,10 +302,11 @@ export function itemAtQuality(it, q = it && it.q) {
   const tmpl = it && ITEMS[it.id];
   if (!tmpl) return it ? { ...it } : null;
   const out = { ...it };
-  for (const k of [...QUALITY_KEYS, "critDamage", "spellCrit", "spellCritDamage", "price", "mult", "scale", "weaponRating", "aRes", "bRes", "resists"]) {
+  for (const k of [...QUALITY_KEYS, "price", "mult", "scale", "weaponRating", "aRes", "bRes", "resists"]) {
     if (tmpl[k] !== undefined) out[k] = tmpl[k]; else delete out[k];
   }
   delete out.equipPts;
+  delete out.afxCritBase;
   out.q = q;
   applyQuality(out);
   applyItemDepth(out);
@@ -1588,9 +1591,9 @@ export function recalc(member) {
   member.pie = Math.max(0, withEquip(base.pie, flatPie, mul.pie));
   member.luk = Math.max(0, withEquip(base.luk, flatLuk, mul.luk));
   member.critBonus = crit;
-  member.critDamageBonus = Math.max(0, Math.min(1, critDamage));
-  member.spellCritBonus = Math.max(0, Math.min(0.4, spellCrit));
-  member.spellCritDamageBonus = Math.max(0, Math.min(1, spellCritDamage));
+  member.critDamageBonus = Math.max(0, critDamage);
+  member.spellCritBonus = Math.max(0, spellCrit);
+  member.spellCritDamageBonus = Math.max(0, spellCritDamage);
   member.maxhp = withEquip(base.hp, flatHp, mul.hp);
   member.maxmp = withEquip(base.mp, flatMp, mul.mp);
   if (member.hp > member.maxhp) member.hp = member.maxhp;
@@ -1936,5 +1939,6 @@ export const SLOT_ICONS = {
 // 基本品も大量カタログと同じ参照仕様に整える。
 for (const it of Object.values(ITEMS)) {
   prepareWeapon(it);
+  applyNativeCritical(it);
   it.number = itemNumber(it.id);
 }

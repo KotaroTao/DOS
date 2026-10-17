@@ -52,7 +52,7 @@ const PROFILES = [
   { key: 'fast', agiMul: 3, passiveMap: { parry: 2 } },
   { key: 'phys75', physResist: 75 },
   { key: 'magic75', magResist: 75 },
-  { key: 'crit', crit: 0.85 }, // 会心装備・強化が揃い、会心加算が上限へ届く場合
+  { key: 'crit', crit: 1 }, // 会心装備・強化が揃い、会心加算が上限へ届く場合
   { key: 'metal', metal: 1 },
 ];
 const samples = new Map();

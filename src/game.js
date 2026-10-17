@@ -18526,6 +18526,7 @@ function resyncItem(it) {
   if (!tmpl) return;
   delete it.pct;
   delete it.equipPts;
+  delete it.afxCritBase;
   for (const k of ITEM_STAT_KEYS) { if (tmpl[k] != null) it[k] = tmpl[k]; else delete it[k]; }
   for (const k of ITEM_TMPL_KEYS) { if (tmpl[k] !== undefined) it[k] = tmpl[k]; else delete it[k]; }
   if (hasQuality(it)) { if (it.q == null) it.q = QUALITY_MID; applyQuality(it); } else delete it.q; // 品質を入れる前の品は並品 (50)
@@ -18536,17 +18537,21 @@ function resyncItem(it) {
   if (it.afx) applyAffixes(it); // 無限迷宮の追加の能力・特性は品質の後 (src/infaffix.js)
   if (it.forge) applyForge(it); // ＋N の段は品質の後に掛け直す
 }
-function reflattenItemStats() {
+function reflattenItemStats(extra = null) {
   const visited = new Set();
   function refresh(it) {
     if (!it || visited.has(it)) return;
     visited.add(it);
     resyncItem(it);
   }
-  for (const it of formations.formationItems(G.formations)) refresh(it);
-  for (const m of [...(G.party || []), ...(G.reserve || [])]) {
-    for (const it of (m.items || [])) refresh(it);
-    for (const k of Object.keys(m.equip || {})) refresh(m.equip[k]);
+  const snapshots = [G, extra, G.abyss?.home, ...Object.values(G.abyssRec?.memories || {})].filter(Boolean);
+  for (const snapshot of snapshots) {
+    for (const it of snapshot.inventory || []) refresh(it);
+    for (const it of formations.formationItems(snapshot.formations)) refresh(it);
+    for (const m of [...(snapshot.party || []), ...(snapshot.reserve || [])]) {
+      for (const it of m.items || []) refresh(it);
+      for (const it of Object.values(m.equip || {})) refresh(it);
+    }
   }
 }
 
@@ -18707,7 +18712,7 @@ function loadGame(cloudSnapshot = null) {
   // 旧ステータス体系のセーブを六大ステ (STR/VIT/AGI/INT/PIE/LUK) へ移行
   // (battle の敵の mon はこの後 MONSTERS の生定義に差し替えられるため触れても無害)
   migrateLegacyStats(snap);
-  reflattenItemStats();
+  reflattenItemStats(infRun);
   fixHandsAndShields(false); // 左手の武器 (二刀流) は魂の能力が出そろってから下で見る
   // 一時状態はリセット
   G.anim = null; G.flipAnim = null; G.heroAnim = null; G.walking = false; G.prompt = false;

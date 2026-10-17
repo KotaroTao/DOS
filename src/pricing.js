@@ -84,7 +84,10 @@ function featureMul(it) {
 // 装備の性能点
 export function equipScore(it) {
   const s = statScore(it) + scaleScore(it);
-  return (s > 0 ? s * featureMul(it) : s) + (effScore(it) + 100 * ((it.crit || 0) + (it.spellCrit || 0)) + 20 * ((it.critDamage || 0) + (it.spellCritDamage || 0))) * itemDepthMul(it);
+  const rank = Math.max(1, Math.min(20, Math.ceil((it.lv || 1) / 10)));
+  const critical = 100 * ((it.crit || 0) + (it.spellCrit || 0)) + 20 * ((it.critDamage || 0) + (it.spellCritDamage || 0));
+  const criticalBase = Math.max(3, 1.2 * rank + 0.13 * rank * rank) / 25;
+  return (s > 0 ? s * featureMul(it) : s) + (effScore(it) + critical * criticalBase) * itemDepthMul(it);
 }
 
 // 性能点 → 値段。標準品の二次式を逆算し、深度の上限を設けず priceOf(lv) を返す

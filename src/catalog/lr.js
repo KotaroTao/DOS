@@ -124,7 +124,7 @@ export const LR_ITEMS = [
   lr(R("lr_gold", "黄金の指輪", "ring", 90, { eff: { goldUp: 0.5 }, luk: 6, tint: "#e8c24a",
     desc: "富を呼ぶと評判の純金の指輪。はめた者の手には自然と財が集まり、迷宮で得る金貨が五割増しになるという。" }), 5),
   // LR10
-  lr(R("lr_hawkeye", "鷹の目", "ring", 140, { crit: 0.25, agi: 8, tint: "#d0a040",
+  lr(R("lr_hawkeye", "鷹の目", "ring", 140, { crit: 0.20, agi: 8, tint: "#d0a040",
     desc: "獲物を見逃さぬ鷹の眼を封じた指輪。はめた者の視界が研ぎ澄まされ、相手の急所がはっきりと見えて会心を量産する。" }), 10),
   lr(R("lr_soulamulet", "魂導の護符", "amulet", 140, { eff: { soulUp: 0.5 }, mp: 24, tint: "#b070f0",
     desc: "魂を導く紫紺の護符。倒した者の魂をより多く己へ手繰り寄せ、得られる ✦Soul を五割も増やして成長を早める。" }), 10),

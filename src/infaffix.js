@@ -9,6 +9,7 @@
 // このモジュールは純粋なデータ/ロジックのみ (game.js・ui を import しない)。
 
 import { random } from "./rng.js";
+import { CRITICAL_KEYS, ITEM_CRITICAL_CAP, clampItemCritical } from "./equipmentcrit.js";
 import { itemDepthMul } from "./itemdepth.js";
 import { equipScore, priceForScore } from "./pricing.js";
 import { MON_RACES } from "./dungeons/schema.js";
@@ -52,7 +53,7 @@ for (const [id, name, s] of ONE) def({ id, name, tier: "c", kind: "B", r: [0.15,
 def({ id: "A09", name: "鋭い", tier: "u", kind: "abs", r: [0.01, 0.05], step: 0.001, pts: (v) => v * 100,
   apply: (it, v) => { it.crit = Math.round(((it.crit || 0) + v) * 1000) / 1000; }, text: (v) => `会心率+${pct(v)}` });
 
-// 会心時の最終ダメージを増やす。物理・魔法は別々に、装備合計は各+100%まで。
+// 会心時の最終ダメージを増やす。物理・魔法は別々に、装備合計の上限なし。
 def({ id: "A10", name: "痛撃の", tier: "r", kind: "abs", r: [0.10, 0.30], step: 0.01, pts: (v) => v * 20,
   apply: (it, v) => { it.critDamage = Math.round(((it.critDamage || 0) + v) * 1000) / 1000; }, text: (v) => `会心ダメージ+${pct(v)}` });
 
@@ -306,15 +307,31 @@ export function rollAffixes(it, floor, rng = random) {
   return null;
 }
 
+// 品1点の上限に届いた会心は効果・評価に二重加算しない。保存する抽選値は変えない。
+const CRITICAL_AFFIX_STAT = { A09: "crit", K07: "crit", A10: "critDamage", A11: "spellCrit", A12: "spellCritDamage" };
+function affixValues(it, afx) {
+  const base = it?.afxCritBase || it || {};
+  const used = Object.fromEntries(CRITICAL_KEYS.map(k => [k, base[k] || 0]));
+  return (afx || []).map(a => {
+    const stat = CRITICAL_AFFIX_STAT[a.k];
+    if (!stat) return a;
+    const v = Math.round(Math.max(0, Math.min(a.v, ITEM_CRITICAL_CAP[stat] - used[stat])) * 1000) / 1000;
+    used[stat] += v;
+    return { ...a, v };
+  });
+}
+
 // 目録から写し直した品 it に、追加 it.afx を掛ける (品質の後・＋N の段の前に1回だけ)。名前の前置き・印・説明・値段も付け直す
 export function applyAffixes(it) {
+  delete it.afxCritBase;
   delete it.afxFx; delete it.afxMisc; delete it.afxPre; delete it.afxMark; delete it.afxText; delete it.afxTier;
   if (!it || !Array.isArray(it.afx) || !it.afx.length) return it;
   const B = afxBase(it);
   const basePts = equipScore(it);
+  it.afxCritBase = Object.fromEntries(CRITICAL_KEYS.map(k => [k, it[k] || 0]));
   let pts = 0, top = null;
   const fx = [], misc = {}, text = [];
-  for (const a of it.afx) {
+  for (const a of affixValues(it, it.afx)) {
     const d = AFX_MAP[a.k];
     if (!d) continue;
     if (d.apply) d.apply(it, a.v, B);
@@ -324,6 +341,7 @@ export function applyAffixes(it) {
     text.push({ k: d.id, name: d.name, tier: d.tier, text: d.text(a.v, B) });
     if (!top || AFX_TIERS[d.tier].rank > AFX_TIERS[top.tier].rank) top = d;
   }
+  clampItemCritical(it);
   if (fx.length) it.afxFx = fx;
   if (Object.keys(misc).length) it.afxMisc = misc;
   it.afxText = text;
@@ -341,7 +359,7 @@ export function applyAffixes(it) {
 export function affixPower(it, afx) {
   if (!afx || !afx.length) return 0;
   const B = afxBase(it);
-  return afx.reduce((s, a) => { const d = AFX_MAP[a.k]; return s + (d ? afxPts(d, a.v, B) : 0); }, 0);
+  return affixValues(it, afx).reduce((s, a) => { const d = AFX_MAP[a.k]; return s + (d ? afxPts(d, a.v, B) : 0); }, 0);
 }
 // 棚へ残す組を選んだ時に失う極特性。同じ特性を同じ値以上で残せるなら警告しない。
 export function lostExtremeAffixes(sets, keepIndex) {
@@ -360,7 +378,7 @@ export function lostExtremeAffixes(sets, keepIndex) {
 // 組の説明 (品を作らずに)
 export function affixLines(it, afx) {
   const B = afxBase(it);
-  return (afx || []).map((a) => { const d = AFX_MAP[a.k]; return d ? `${AFX_TIERS[d.tier].mark}${d.name.replace(/の$/, "")} ― ${d.text(a.v, B)}` : ""; }).filter(Boolean);
+  return affixValues(it, afx).map((a) => { const d = AFX_MAP[a.k]; return d ? `${AFX_TIERS[d.tier].mark}${d.name.replace(/の$/, "")} ― ${d.text(a.v, B)}` : ""; }).filter(Boolean);
 }
 
 // 隊の1人が装備全体から受ける上限 (種類ごと、docs 1-4): 与ダメ +40% / 被ダメ −30% / 会心 +10% / 回避 +6% / 消費MP −20% / 回復量 +20%
@@ -422,7 +440,10 @@ export function pageFitsSlot(page, it) { const d = pageDef(page); return !!(d &&
 export function pageText(page, it = null) {
   const d = pageDef(page);
   if (!d) return "";
-  if (it) { const B = afxBase(it); return d.text(pageValue(page, it), B); }
+  if (it) {
+    const B = afxBase(it), values = affixValues(it, [...(it.afx || []), { k: page.k, v: pageValue(page, it) }]);
+    return d.text(values[values.length - 1].v, B);
+  }
   if (d.kind === "B") { const ref = { lv: page.lv || 1, depth: page.depth || 0 }; const B = afxBase(ref); return d.text(pageValue(page, ref), B); }
   return d.text(page.v != null ? page.v : d.r[0], afxBase({ lv: page.lv || 1, depth: page.depth || 0 }));
 }
@@ -448,6 +469,10 @@ export function enchantBlock(it, page, rk, tmpl = null) {
   if (afx.length >= room.slots) return `書ける数 ${room.slots}つがいっぱい`;
   if (afx.some((a) => a.k === d.id)) return "同じ特性がもう書いてある";
   const has = (fn) => afx.some((a) => { const x = AFX_MAP[a.k]; return x && fn(x); });
+  if (CRITICAL_AFFIX_STAT[d.id]) {
+    const values = affixValues(it, [...afx, { k: d.id, v: pageValue(page, it) }]);
+    if (values[values.length - 1].v <= 0) return "この品の会心性能は上限に達している";
+  }
   if (d.tier === "x" && has((x) => x.tier === "x")) return "極は1つの品に1つまで";
   if (d.group && has((x) => x.group === d.group)) return d.group === "J" ? "発動する特性は1つの品に1つまで" : d.group === "eAtk" ? "属攻は1つまで" : d.group === "eDef" ? "属防は1つまで" : "追加効果は1つまで";
   const base = tmpl || {};

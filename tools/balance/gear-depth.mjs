@@ -25,8 +25,8 @@ for(const d of [201,250,500,1000,10000,1000000]){
  for(const slot of new Set(SLOTS.map(k=>k.startsWith('acc')?'acc':k))){
   const tmpl=Object.values(ITEMS).find(it=>it.slot===slot&&it.lv>=190&&!it.cursed&&it.price>0);
   const it=specimen(tmpl.id,d,[{k:'A03',v:B*.2},{k:'A09',v:.037},{k:'A10',v:.23},{k:'A11',v:.019},{k:'A12',v:.17}]);
-  assert(Number.isFinite(it.price)&&it.price>0);assert.equal(it.price,equipPrice(it));assert.equal(it.critDamage,(tmpl.critDamage||0)+.23);
-  near(it.spellCrit,.019);near(it.spellCritDamage,.17);
+  assert(Number.isFinite(it.price)&&it.price>0);assert.equal(it.price,equipPrice(it));near(it.critDamage,Math.min(1,(tmpl.critDamage||0)+.23));
+  near(it.spellCrit,Math.min(.2,(tmpl.spellCrit||0)+.019));near(it.spellCritDamage,Math.min(1,(tmpl.spellCritDamage||0)+.17));
   const again=itemAtQuality(JSON.parse(JSON.stringify(it)),50);
   for(const k of ['atk','vit','agi','hp','mp','crit','critDamage','spellCrit','spellCritDamage','price','equipPts'])assert.equal(again[k],it[k],`${slot}/${d}/${k}`);
   const noAfx=specimen(tmpl.id,d);assert(it.price>noAfx.price);
@@ -78,7 +78,7 @@ for(const slot of ['weapon','body','head','feet','hands','shield','acc']){
 const doll=makeDoll('会心検査');doll.equip.weapon={crit:.037,critDamage:.3,spellCrit:.019,spellCritDamage:.2};doll.equip.shield=doll.equip.weapon;recalc(doll);
 near(doll.critBonus,.037);near(doll.critDamageBonus,.3);near(doll.spellCritBonus,.019);near(doll.spellCritDamageBonus,.2);
 for(const s of SLOTS)doll.equip[s]={critDamage:.3,spellCrit:.1,spellCritDamage:.3};recalc(doll);
-assert.equal(doll.critDamageBonus,1);assert.equal(doll.spellCritBonus,.4);assert.equal(doll.spellCritDamageBonus,1);
+near(doll.critDamageBonus,2.4);near(doll.spellCritBonus,.8);near(doll.spellCritDamageBonus,2.4);
 for(const s of SLOTS)doll.equip[s]=null;recalc(doll);assert.equal(doll.critDamageBonus,0);assert.equal(doll.spellCritBonus,0);
 // 実戦ダメージ・確率・オート予測。物理と魔法を混同しない。
 const actor=()=>Object.assign(makeDoll('術者'),{level:50,atk:200,int:200,pie:100,agi:100,luk:20,hp:1e9,maxhp:1e9,mp:1e9,maxmp:1e9,critBonus:0});
@@ -91,7 +91,7 @@ const foe=()=>({uid:9999,name:'敵',key:'bs_ghoul',mon:MONSTERS.bs_ghoul,side:'e
  a.critDamageBonus=0;a.spellCritDamageBonus=.3;assert.equal(b._physical(a,t,{acc:1,critBonus:1}).dmg,plain);
  a.spellCritDamageBonus=0;
  const key=Object.keys(SPELLS).find(k=>SPELLS[k].kind==='atk'&&SPELLS[k].target==='enemy'&&!SPELLS[k].gravity&&!SPELLS[k].hits),sp=SPELLS[key];
- a.spellCritBonus=.5;assert.equal(b._spellCritChance(a,sp),.5);a.spellCritBonus=100;assert.equal(b._spellCritChance(a,sp),.85);
+ a.spellCritBonus=.5;assert.equal(b._spellCritChance(a,sp),.5);a.spellCritBonus=100;assert.equal(b._spellCritChance(a,sp),1);
  assert.equal(b._spellCritChance(a,{...sp,gravity:true}),0);assert.equal(b._spellCritChance(a,{...sp,critBonus:1}),1);
  const spell=()=>b._exec({actor:a,action:'spell',spellKey:key,target:t}).hits.reduce((s,h)=>s+(h.dmg||0),0);
  const sd=spell();a.spellCritDamageBonus=.3;near(spell()/sd,1.3,.02);
