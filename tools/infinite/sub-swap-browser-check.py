@@ -47,20 +47,45 @@ with sync_playwright() as p:
     }'''))
     def click(text):
         page.evaluate('''text=>{const el=[...document.querySelectorAll('button,[role="button"]')].reverse().find(e=>e.textContent.replace(/\\u200b/g,'').trim().startsWith(text));if(!el)throw Error('操作が無い:'+text);el.click();}''', text)
-        page.wait_for_timeout(150)
+        page.wait_for_timeout(350)
     click('灯番')
     # 最初の器のサブ魂を開く。
     page.evaluate('''()=>{const b=[...document.querySelectorAll('button')].find(e=>e.textContent.replace(/\\u200b/g,'').trim()==='サブ魂');if(!b)throw Error('サブ魂ボタンが無い');b.click();}''')
     click('替える')
-    page.evaluate('''()=>{const row=[...document.querySelectorAll('.inf-swap-row')].find(e=>e.textContent.replace(/\\u200b/g,'').includes('交換先がサブ魂として宿している'));if(!row)throw Error('相手の表示が無い');row.querySelector('.inf-swap-b').click();}''')
+    # 他の器のサブ魂は、宿主と枠を表示する。選択不可の魂にも宿主を残す。
+    page.evaluate('''()=>{
+      const {party,souls}=__game.G;
+      const other=party[1];
+      const rows=[...document.querySelectorAll('.ui-sheet')].at(-1).querySelectorAll('.inf-swap-row');
+      for(const [uid,home] of [[other.primary,'交換先のメイン魂'],[other.subs[0].uid,'交換先のサブ魂1']]){
+        const soul=souls.find(s=>s.uid===uid);
+        const row=[...rows].find(e=>e.querySelector('.ui-row-title')?.textContent.replace(/\\u200b/g,'').includes('Lv'+soul.level+'/')&&e.textContent.replace(/\\u200b/g,'').includes(home));
+        if(!row)throw Error('宿主と枠の表示が無い:'+home);
+      }
+    }''')
+    assert page.evaluate('swapBefore===JSON.stringify([__game.G.party[0].subs,__game.G.party[1].subs])')
+    page.evaluate('''()=>{const row=[...[...document.querySelectorAll('.ui-sheet')].at(-1).querySelectorAll('.inf-swap-row')].find(e=>e.textContent.replace(/\\u200b/g,'').includes('交換先のサブ魂1'));if(!row)throw Error('相手の表示が無い');row.querySelector('.inf-swap-b').click();}''')
     page.wait_for_timeout(200)
     text=page.inner_text('body').replace('\u200b','')
     assert 'サブ魂が交換される' in text and 'そのまま維持される' in text
     click('やめる')
     assert page.evaluate('swapBefore===JSON.stringify([__game.G.party[0].subs,__game.G.party[1].subs])')
-    page.evaluate('''()=>{const row=[...document.querySelectorAll('.inf-swap-row')].find(e=>e.textContent.replace(/\\u200b/g,'').includes('交換先がサブ魂として宿している'));row.querySelector('.inf-swap-b').click();}''')
+    page.evaluate('''()=>{const row=[...[...document.querySelectorAll('.ui-sheet')].at(-1).querySelectorAll('.inf-swap-row')].find(e=>e.textContent.replace(/\\u200b/g,'').includes('交換先のサブ魂1'));row.querySelector('.inf-swap-b').click();}''')
     click('交換して宿す')
     assert page.evaluate('''()=>{const [a,b]=__game.G.party;const [oldA,oldB]=JSON.parse(swapBefore);return JSON.stringify(a.subs[0])===JSON.stringify(oldB[0])&&JSON.stringify(b.subs[0])===JSON.stringify(oldA[0]);}''')
     print('交換警告の表示・キャンセルで変更なし・確定後に両者の設定を交換 OK')
+    # キャラを切り替えたメイン魂の候補にも、他の器・自分のサブ魂の宿主を出す。
+    page.evaluate('''async()=>{const {sheet}=await import('/src/ui/kit.js');sheet.closeAll();__game.inf.openInfRest();}''')
+    click('灯番')
+    page.evaluate('''()=>{const card=document.querySelectorAll('.inf-vessel')[1];[...card.querySelectorAll('button')].find(e=>e.textContent.replace(/\\u200b/g,'').trim()==='魂を替える').click();}''')
+    page.evaluate('''()=>{
+      const rows=[...[...document.querySelectorAll('.ui-sheet')].at(-1).querySelectorAll('.inf-swap-row')];
+      for(const home of ['交換元のサブ魂1','交換先のサブ魂1']){
+        const row=rows.find(e=>e.textContent.replace(/\\u200b/g,'').includes(home));
+        if(!row)throw Error('メイン魂の候補に宿主が無い:'+home);
+        if(row.textContent.replace(/\\u200b/g,'').includes('宿していない'))throw Error('宿した魂が未使用扱い:'+home);
+      }
+    }''')
+    print('別キャラのメイン魂・サブ魂の候補に宿主と枠を表示 OK')
     assert not errors, errors
     browser.close()

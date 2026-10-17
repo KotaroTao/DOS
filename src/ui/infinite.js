@@ -528,7 +528,8 @@ function openSubPick(d, si, onChange) {
         const pv = !why && game.infSubPreview ? game.infSubPreview(d, si, s.uid) : null;
         const oi = (d.subs || []).findIndex((x) => x && x.uid === s.uid); // この器のもう一つのサブ魂 = 枠どうしを入れ替える
         const holder = (g.party || []).find((x) => x !== d && (x.subs || []).some((sb) => sb && sb.uid === s.uid));
-        const sub = why || (holder ? `${holder.name}がサブ魂として宿している ・ ` : "") + (oi >= 0 ? `いまサブ魂${oi + 1} ・ ` : "") + pvText(d, pv);
+        // 選択不可の理由や能力の見積もりとは別に、宿主と枠を必ず表示する。
+        const sub = [soulHomeText(s.uid), why || pvText(d, pv)].filter(Boolean).join(" ・ ");
         const before = soulByUid(cur);
         const note = holder ? `${soulLabel(s)}は${holder.name}がサブ魂として宿している。${before ? `${d.name}の${soulLabel(before)}が${holder.name}に移り、サブ魂が交換される。` : `${d.name}の空き枠へ移り、${holder.name}のサブ魂は空きになる。`}借りる技の設定は魂と一緒に移り、そのまま維持される。` : oi >= 0 ? (cur != null ? `サブ魂${oi + 1}とサブ魂${si + 1}を入れ替える (借りる技もそのまま)。` : "") : cur != null ? "元のサブ魂は「宿していない魂」に戻る。" : "";
         const on = button({ label: "宿す", kind: "secondary", size: "sm", disabled: !!why, onTap: async () => {
@@ -556,8 +557,8 @@ function openSwap(d, onChange) {
       if (!list.length) { b.appendChild(el("div", "inf-note dim", "付け替えられる魂が無い。")); return; }
       for (const s of list) {
         const why = game.infSoulChangeBlock ? game.infSoulChangeBlock(d, s.uid) : null;
-        const pv = game.infSoulChangePreview ? game.infSoulChangePreview(d, s.uid) : null;
-        const sub = why ? why : pv ? `付け替え後 HP ${pv.hp}/${pv.maxhp} ・ MP ${pv.mp}/${pv.maxmp}${pv.hp < d.hp || pv.mp < d.mp ? " (減る)" : ""}` : "";
+        const pv = !why && game.infSoulChangePreview ? game.infSoulChangePreview(d, s.uid) : null;
+        const sub = [soulHomeText(s.uid), why || pvText(d, pv)].filter(Boolean).join(" ・ ");
         // 行を押すとその職業の図鑑 (詳細) を開き、右の「付け替える」で宿す (2026-10 ユーザーの指示)
         const line = el("div", "inf-swap-row");
         line.appendChild(row({ icon: bust(s.clsKey, 32), title: `${soulLabel(s)} ・ Lv${s.level}`, sub, tone: why ? "dim" : null,
