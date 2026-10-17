@@ -39,10 +39,11 @@ with sync_playwright() as p:
           }
           const desktop = getComputedStyle(document.getElementById('app')).display === 'grid';
           const overlap = desktop ? hud.top < party.bottom : log.bottom > party.top;
-          if (log.height < 94 || log.bottom > hud.bottom || overlap)
+          const mobile = innerWidth <= 600;
+          if ((mobile ? Math.abs(log.height - 2.5 * parseFloat(getComputedStyle(document.getElementById('log')).fontSize)) > 0.1 : log.height < 94) || log.bottom > hud.bottom || overlap)
             throw Error('記録の高さ不足・隊との重なり');
           if (rect('hint').bottom > rect('app').bottom + 1) throw Error('操作欄が画面外');
-          const rows = [...document.querySelectorAll('#log > div')].slice(-4);
+          const rows = [...document.querySelectorAll('#log > div')].slice(innerWidth <= 600 ? -1 : -4);
           for (const row of rows) {
             const r = row.getBoundingClientRect();
             if (r.top < log.top || r.bottom > log.bottom) throw Error('最新4行が欠けている');
@@ -54,7 +55,7 @@ with sync_playwright() as p:
               throw Error(id + 'が操作できない');
           }
         }''')
-        print(f'{width}x{height}: 記録4行・盤面・操作欄 OK')
+        print(f'{width}x{height}: 記録の高さ・最新行・盤面・操作欄 OK')
     page.locator('#board-camera-tools button').first.click()
     page.wait_for_timeout(300)
     page.evaluate('''() => {
@@ -82,8 +83,7 @@ with sync_playwright() as p:
           const log = document.getElementById('log').getBoundingClientRect();
           const party = document.getElementById('party').getBoundingClientRect();
           const controls = document.getElementById('controls').getBoundingClientRect();
-          const minLog = innerWidth <= 600 && innerHeight <= 640 ? 38.5 : 54;
-          if (log.height < minLog || log.bottom > party.top) throw Error('戦闘中の記録が重なる');
+          if (Math.abs(log.height - 32.5) > 0.1 || log.bottom > party.top) throw Error('戦闘中の記録が重なる');
           const app = document.getElementById('app');
           if (controls.bottom > app.getBoundingClientRect().top + app.scrollHeight + 1)
             throw Error('戦闘の操作欄がスクロール範囲外');

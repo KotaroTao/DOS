@@ -2598,7 +2598,7 @@ function viewTransform(ctx = vctx) { ctx.setTransform(VSX, 0, 0, VSY, 0, 0); }
 const h01 = (a, b = 0) => { let h = Math.imul(a | 0, 374761393) ^ Math.imul(b | 0, 668265263); h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
 
 // ===== キャンバスの寸法合わせ =====
-// 探索中: 上下の帯と記録4行分を先に確保し、残りの高さを盤面に回す。
+// 探索中: 上下の帯と記録を先に確保し、残りの高さを盤面に回す。スマホは文字2.5個分。
 // 戦闘中: コマンド板の高さを見込んで戦場を決め、戦闘の間は固定する (メニューの出し入れで揺れないように)。
 const appEl = document.getElementById("app");
 const screenEl = document.getElementById("screen");
@@ -2627,8 +2627,14 @@ function fitView(force = false) {
   let used = (parseFloat(csS.paddingTop) || 0) + (parseFloat(csS.paddingBottom) || 0)
     + outerH(topbarEl) + outerH(partyEl) + outerH(hintEl)
     + (csH ? (parseFloat(csH.paddingTop) || 0) + (parseFloat(csH.paddingBottom) || 0) : 0);
-  if (combat) used += MENU_RESERVE + LOG_MIN_COMBAT + TURN_ORDER_H;
-  else used += outerH(runbarEl) + outerH(ctrlEl) + LOG_MIN_BOARD;
+  const mobile = window.innerWidth <= 600;
+  const logH = mobile ? parseFloat(getComputedStyle(document.getElementById("log")).height) : 0;
+  // スマホは記録を固定し、枠と敵名の帯も引いた残りをすべて絵に使う。
+  const csV = getComputedStyle(view);
+  if (mobile) used += (parseFloat(csV.borderTopWidth) || 0) + (parseFloat(csV.borderBottomWidth) || 0);
+  if (combat) used += (mobile ? parseFloat(getComputedStyle(ctrlEl).minHeight) + 4 : MENU_RESERVE)
+    + (mobile ? logH + 33.5 : LOG_MIN_COMBAT) + TURN_ORDER_H;
+  else used += outerH(runbarEl) + outerH(ctrlEl) + (mobile ? logH : LOG_MIN_BOARD);
   // 盤面の幅から最低高を決めると、スマホのブラウザバー表示時に記録がつぶれる。
   // 探索は低い盤面も許し、拡大表示とドラッグでマスの操作性を保つ。
   const minVH = combat ? 180 : 96;
@@ -2636,7 +2642,7 @@ function fitView(force = false) {
   const desktop = csA.display === "grid";
   const available = desktop ? screenEl.clientHeight
     - (parseFloat(csS.paddingTop) || 0) - (parseFloat(csS.paddingBottom) || 0) : appH - used;
-  const h = Math.max(cssW * minVH / VW, desktop ? available : Math.min(cssW * (combat ? 0.98 : 1.32), available));
+  const h = Math.max(cssW * minVH / VW, desktop || mobile ? available : Math.min(cssW * (combat ? 0.98 : 1.32), available));
   const vh = Math.max(minVH, Math.floor((VW * h) / cssW));
   const cssH = (vh * cssW) / VW;
   const dpr = Math.max(1, window.devicePixelRatio || 1);
@@ -9546,12 +9552,15 @@ function renderCombatCanvas() {
   // 絵の下は同種の呼び分け記号と属性・HP・効果だけを残す。
   const sizeOf = (e, distant, n) => {
     let sz = (e.boss ? 14 : (e.mon && e.mon.elite ? 1.15 : 1) * 9) * k;
-    const maxHalfH = Math.max(8, Math.min((stageH - plateReserve) * (twoRows ? 0.32 : 0.5), (stageH - plateReserve - toolsBottom) / 2));
+    const edgeReserve = wideBattle ? 0 : 6; // 浮遊する敵の上下動が枠で切れない余白
+    const maxHalfH = Math.max(8, Math.min((stageH - plateReserve - edgeReserve * 2) * (twoRows ? 0.32 : 0.5), (stageH - plateReserve - toolsBottom) / 2));
     const rowW = distant ? distantW : VW;
     if (e.mon && (e.mon.art || e.mon.photo)) {
       const bm = monsterBitmap(e.mon);
       const unit = Math.max(12, bm.w, bm.h) / 12;
-      sz = Math.min(sz, ((rowW / n - 24) / (bm.w + bm.pad * 2)) * unit);
+      const widthSize = ((rowW / n - 24) / (bm.w + bm.pad * 2)) * unit;
+      // スマホは固定倍率で頭打ちにせず、列の幅と高さに収まる最大の姿にする。
+      sz = wideBattle ? Math.min(sz, widthSize) : widthSize;
     }
     sz = Math.min(sz, sz * maxHalfH / monsterHalfH(e.mon, sz));
     return sz * (distant ? 0.58 : 1);

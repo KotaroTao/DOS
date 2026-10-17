@@ -702,17 +702,21 @@ canvas.unk-sil { filter: brightness(0) drop-shadow(0 0 1px rgba(185,172,217,0.85
     padding: 1px 4px; gap: 1px; align-content: center; font-size: 10px; line-height: 1.2;
   }
   .enemy-name-row { gap: 4px; }
-  /* 二列の時だけ記録の文字半分 (13px / 2) を名前の上の余白へ回す。 */
-  #app.in-combat.enemy-names-two-rows #enemy-names { min-height: 33.5px; padding-top: 7.5px; }
-  #app.in-combat.enemy-names-two-rows #hud { min-height: 86.5px; }
-  #app.in-combat.enemy-names-two-rows #log { min-height: 47.5px; }
+  /* 一列・二列で戦場や記録の高さを変えず、名前の上にも余白を残す。 */
+  #app.in-combat #enemy-names { height: 33.5px; min-height: 33.5px; padding-top: 7.5px; }
 }
-/* 戦場と命令板を優先し、短いスマホでは記録の箱だけを縮める。履歴はタップで開ける。 */
+/* 短いスマホでは隊の札と命令板の余白も詰める。 */
 @media (max-width: 600px) and (max-height: 640px) {
   #app.in-combat #party .pc { row-gap: 0; padding-block: 0; }
   #app.in-combat #controls { padding-bottom: 2px; }
-  #app.in-combat #hud { flex-shrink: 1; min-height: 77.5px; }
-  #app.in-combat #log { min-height: 38.5px; }
-  #app.in-combat.enemy-names-two-rows #hud { min-height: 71px; }
-  #app.in-combat.enemy-names-two-rows #log { min-height: 32px; }
+}
+
+/* スマホの記録は探索・戦闘とも文字2.5個分。空いた高さは盤面へ渡す。 */
+@media (max-width: 600px) {
+  #app:is(.board-camera-active, .in-combat) #hud { flex: 0 0 auto; min-height: 0; }
+  #app:is(.board-camera-active, .in-combat) #log {
+    flex: 0 0 auto; height: 2.5em; min-height: 2.5em; max-height: 2.5em;
+    padding-block: 2px;
+  }
+  #app.in-combat #controls { flex: 1 1 0; }
 }

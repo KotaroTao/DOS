@@ -54,10 +54,16 @@ with sync_playwright() as p:
                 const p=__game.G.enemyPos[e.uid];
                 if (!p || p.cx-p.hw < -1 || p.cx+p.hw > VW+1 || p.cy-p.hh < -1 || p.cy+p.hh > VH)
                   throw Error('敵の絵が戦場からはみ出す');
+                if (innerWidth <= 600 && __game.G.battle.enemies.length <= 3) {
+                  const widthLimit = VW / __game.G.battle.enemies.length - 24;
+                  const heightLimit = VH - 44 - 12;
+                  if (p.hw * 2 < widthLimit - 1 && p.hh * 2 < heightLimit - 1)
+                    throw Error('敵の姿が列の幅・高さを使い切らず小さい');
+                }
               }
               const app = document.getElementById('app');
-              const short = innerWidth <= 600 && innerHeight <= 640;
-              const minLog = (short ? 38.5 : 54) - (innerWidth <= 600 && __game.G.battle.enemies.length > 3 ? 6.5 : 0);
+              const minLog = innerWidth <= 600 ? 32.5 : 54;
+              if (innerWidth <= 600 && Math.abs(log.height - minLog) > 0.1) throw Error('探索と戦闘の記録の高さが違う');
               const desktop = getComputedStyle(document.getElementById('app')).display === 'grid';
               const overlap = desktop ? rect('hud').top < party.bottom : log.bottom > party.top+1;
               if (log.height < minLog || overlap || controls.bottom > rect('app').top+app.scrollHeight+1)
@@ -66,7 +72,7 @@ with sync_playwright() as p:
             }''')
             if baseline is None:
                 baseline = geometry
-            extra = 6.5 if width <= 600 and count > 3 else 0
+            extra = 0
             expected = [baseline[0], baseline[1]+extra, baseline[2]-extra, baseline[3], baseline[4]]
             assert all(abs(a-b) < 1 for a,b in zip(expected, geometry)), (width,height,count,expected,geometry)
             names = page.locator('#enemy-names')
