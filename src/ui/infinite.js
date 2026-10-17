@@ -524,7 +524,7 @@ function openSubPick(d, si, onChange) {
     kind: "info", banner: `サブ魂${si + 1}`, title: `${d.name}に宿す魂`, accent: "#7fd0ff", className: "inf-sheet",
     body: (b) => {
       if (!list.length) { b.appendChild(el("div", "inf-note dim", "宿せる魂が無い。迷宮で魂を拾うと、ここに並ぶ。")); return; }
-      b.appendChild(el("div", "inf-note dim", "Lvは現在／上限。魂を押すと職業図鑑を開く。"));
+      b.appendChild(el("div", "inf-note dim", "Lvは現在／上限。青い行は、ほかの器がサブ魂として宿している。魂を押すと職業図鑑を開く。"));
       // 宿せる魂を先に並べる
       const rows = list.map((s) => ({ s, why: game.infSubBlock ? game.infSubBlock(d, si, s.uid) : null })).sort((a, b) => (a.why ? 1 : 0) - (b.why ? 1 : 0));
       for (const { s, why } of rows) {
@@ -540,7 +540,9 @@ function openSubPick(d, si, onChange) {
           if (!ok) return;
           if (game.infSetSub && game.infSetSub(d, si, s.uid)) { toast(`${d.name} ― サブ魂${si + 1} ${soulLabel(s)}`, { tone: "good" }); if (hh) hh.close(); if (onChange) onChange(); }
         } });
-        b.appendChild(soulLine(s, sub, why, [on]));
+        const line = soulLine(s, sub, why, [on]);
+        if (holder) line.classList.add("inf-sub-taken");
+        b.appendChild(line);
       }
     },
     footer: [{ label: "戻る", kind: "ghost", onTap: (x) => x.close() }],

@@ -61,8 +61,15 @@ with sync_playwright() as p:
         const soul=souls.find(s=>s.uid===uid);
         const row=[...rows].find(e=>e.querySelector('.ui-row-title')?.textContent.replace(/\\u200b/g,'').includes('Lv'+soul.level+'/')&&e.textContent.replace(/\\u200b/g,'').includes(home));
         if(!row)throw Error('宿主と枠の表示が無い:'+home);
+        const taken=uid===other.subs[0].uid;
+        if(row.classList.contains('inf-sub-taken')!==taken)throw Error('他の器のサブ魂だけを着色していない:'+home);
+        if(taken){
+          const card=row.querySelector('.ui-row'), sub=row.querySelector('.ui-row-sub');
+          if(getComputedStyle(card).borderTopColor!=='rgb(113, 196, 237)'||getComputedStyle(sub).color!=='rgb(166, 217, 242)')throw Error('サブ魂の青い表示が反映されていない');
+        }
       }
     }''')
+    page.screenshot(path='/tmp/dos-infinite-sub-holder.png')
     assert page.evaluate('swapBefore===JSON.stringify([__game.G.party[0].subs,__game.G.party[1].subs])')
     page.evaluate('''()=>{const row=[...[...document.querySelectorAll('.ui-sheet')].at(-1).querySelectorAll('.inf-swap-row')].find(e=>e.textContent.replace(/\\u200b/g,'').includes('交換先のサブ魂1'));if(!row)throw Error('相手の表示が無い');row.querySelector('.inf-swap-b').click();}''')
     page.wait_for_timeout(200)
