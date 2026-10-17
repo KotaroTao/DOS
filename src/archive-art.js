@@ -360,7 +360,10 @@ function paintScene(scene) {
     // ---- 第七章「毒沼」 ----
     case "splint": rect(66,0,9,74,[150,190,186]);line(68,0,68,74,C.snow,1,false);line(72,4,73,74,[200,226,222],1,false);ellipse(71,74,15,3,C.snow,false);glow(71,72,24,[140,200,190],0.4);
       poly([[0,86],[60,82],[120,84],[192,80],[192,108],[0,108]],C.mud);ellipse(82,96,22,4,[40,56,52]);poly([[66,95],[74,91],[88,92],[82,96]],C.ice);poly([[82,99],[92,96],[100,98],[94,101]],C.ice);
-      for(const d of [0,4]){line(100-d,98+d,118-d,95+d,C.wood,3);line(118-d,95+d,132-d,93+d,C.wood,3);ellipse(134-d,92.6+d,2.4,2,C.wood);ring(118-d,95+d,2,C.iron);}for(const q of [108,124])line(q,92,q-1,102,C.paper,1);paper(120,82,9,9);
+      // 腕は師が持ち去った。岸には削りくず・縄の切れ端・石で押さえた紙だけ。
+      for(let i=0;i<10;i++){const x=104+h2(i,1,seed)*28,y=95+h2(i,2,seed)*10;line(x,y,x+2,y-1,C.wood);line(x+2,y-1,x+3,y,C.wood);}
+      for(const [x,y] of [[108,101],[128,103]]){line(x,y,x+3,y-1,C.paper);line(x+3,y-1,x+5,y,C.paper);}
+      paper(114,85,15,9);ellipse(116,87,3,2,C.edge);
       for(let i=0;i<4;i++){ellipse(140+i*13,99-i*4,2,1,C.black);line(133+i*13,101-i*4,141+i*13,100-i*4,C.black);}break;
     case "dollPile": { const crest=(q,yy,sz)=>{ellipse(q,yy,2.6*sz,1.4*sz,C.gold,false);for(let k=0;k<4;k++)line(q+0.6*sz+k*0.9*sz,yy-0.6*sz,q+1.2*sz+k*1.1*sz,yy-2.6*sz,C.gold,1,false);line(q-2.2*sz,yy,q-3*sz,yy-1.8*sz,C.gold,1,false);ellipse(q-0.6*sz,yy-2.6*sz,0.9*sz,1.6*sz,[255,190,90],false);};
       poly([[30,108],[76,52],[100,46],[128,54],[170,108]],[46,40,30]);for(let i=0;i<60;i++){const xx=40+h2(i,2,seed)*120,yy=58+h2(i,3,seed)*48;line(xx,yy,xx+4+h2(i,4,seed)*6,yy+(h2(i,5,seed)-0.5)*5,C.wood,2);}

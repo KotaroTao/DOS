@@ -165,7 +165,7 @@ Sky continuity: In present-day scenes from report_w33 (the hundredth-year blue s
 | 第五章 | 玉座の間が暑く、額をぬぐう (w18)。杯を床に置く (w20)。釜の火が消えて指先が冷える (w21) | 重い雲 | 傷だらけ・煤だらけ。刃は w18 の扉に残して、もう無い |
 | 第六章 | 膝掛けを掛け、寒そうに手を組む | 重い雲 | 奈落へ落ち、脚を折る。外套は氷棚に残したので外套が無い (シャツだけ)。凍王に氷で脚を固めてもらう |
 | 第七章 | 膝掛け。考えこむ | 重い雲 | 氷の添え木が溶け、捨てられた人業の腕の木2本を縄で束ねて脚を固め直す。片脚を引きずる |
-| 第八章 | 膝掛け。窓の外の雲を見る | 重い雷雲・稲妻 (この百年、王都の空はいつも重かった) | 添え木を削った杖をつく → 杖は雷に焼かれて踊り場に残す → 杖なしで手すりの鎖をつかんで頂へ這い上がる |
+| 第八章 | 膝掛け。窓の外の雲を見る | 重い雷雲・稲妻 (この百年、王都の空はいつも重かった) | 脚には短い添え木を残し、切り詰めた木をつないだ杖をつく → 杖は雷に焼かれて踊り場に残す → 杖なしで手すりの鎖をつかんで頂へ這い上がる |
 | 第八章 report_w33 以降 | 窓辺で空を見上げる | **百年で初めての青空** (朝) | ― |
 | 第九章 | 膝掛け。自分の手を見る | 晴れた空 (昼は青空、夕方は茜) | 杖なし。指先の焼けた手 (手袋は石橋の輪に結んで残した)。片脚を引きずる |
 | 第十章 | 膝掛け。玉座の肘掛けを強く握る (report_w41) | 晴れた空 | 第九章と同じ (手袋なし・焼けた指・片脚を引きずる)。**記憶の中だけに出る** (mem_w41)。悪人にも聖人にも見せない — 静かで、決意の固い顔 |
@@ -192,7 +192,7 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 | シート | 中身 (2-1・2-2 の正典の文を英語の指示に入れる) | 元にする絵 (参照として渡す) |
 |---|---|---|
 | ordo.png | 師オルド (いつもの姿)。アップ = 外套の裾の金糸の印・腰の道具 (のみ・きり・小槌)・革の手袋 | なし (正典の文から作る) |
-| ordo-states.png | 師オルドの章ごとの姿を横に4つ: 第五章 (煤と傷・刃なし) / 第六章 (外套なし・シャツ・氷で固めた脚) / 第七章 (人業の腕の木2本を縄で束ねた添え木・片脚を引きずる) / 第八章 (添え木を削った杖) | ordo.png (承認後) |
+| ordo-states.png | 師オルドの章ごとの姿を横に4つ: 第五章 (煤と傷・刃なし) / 第六章 (外套なし・シャツ・氷で固めた脚) / 第七章 (人業の腕の木2本を縄で束ねた添え木・片脚を引きずる) / 第八章 (短い添え木を脚に残し、切り詰めた木をつないだ杖) | ordo.png (承認後) |
 | apprentice.png | 弟子。顔は前髪の陰で目元を出しすぎない。アップ = 外套の金の刺しゅう・斜めがけの革鞄・温かい橙の手提げ灯 | `art/story-review/chapter3/report_w13.png`、`art/story-review/chapter4/w14_lamp.png` |
 | irene.png | イレーヌ。**手首はレースの袖口で隠し、継ぎ目を見せない** (継ぎ目は irene_reveal 以後の場面の指示で描く)。アップ = 金と紫の髪飾り | `art/story-review/chapter2/irene_roots.png`、`art/story-review/chapter1/irene_familiar.png` |
 | sera.png | 目覚めた後のセラ (白い布・茶の帯・胸の青白い魂火)。アップ = 額の金の印・本物の髪・継ぎ目の黒鉄と金の縁 | `docs/art/sera/sera-r1-final.png` (必ず) |
@@ -218,6 +218,12 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 既存の画像を参照画像として渡し、指示した所だけを直す (`prompt.mjs <場面ID>` が直す元の絵を最初の参照に入れる)。直し終えた項目は、見出し (A) か行 (B) の末尾に「(済)」を付ける — `prompt.mjs --chapter` と確認ページが、残りの修正だけを数える。各項目の「保つもの」は変えない。英語の指示は、1-1 の前置きを付けたうえで、`Edit the attached illustration. Keep the composition, characters, lighting and style unchanged except:` に続けて書く。
 
 ### A. 必須 (物語の筋や正典と食い違う)
+
+**A-45. 第七章 w26_splint「腕の木の添え木」持ち去った腕を岸から除く** `art/story-review/chapter7/w26_splint.png` (済)
+- 腕の添え木は師が脚に当てて持ち去った。手前の縄で束ねた木の腕二本と、その結び目の紙を除き、木の削りくずと短い縄の切れ端に替える。紙は一枚だけ、平たい石で押さえて泥の上に残す。弟子が手に持つ紙をその一枚として地面へ移し、弟子はその紙に手を伸ばす。氷のかけら・人物・背景・光・画風は保つ。
+```text
+...except: correct ONLY the evidence on the muddy shore. The master took the two wooden doll arms away strapped to his injured leg; no abandoned wooden arms or intact bundled wooden splint should remain here. Remove the two thick parallel wooden rods with black iron joint rings, their binding rope and the little note tucked into that rope in the lower foreground. Replace those rods with just a small scattering of fine curled wood shavings and a few short cut-off rope ends lying naturally on the wet mud. Remove the folded paper held in the apprentice's raised hand and place that same single paper on the newly exposed muddy ground, partly held down by a small flat grey stone; adapt only that hand so it reaches toward the paper rather than holding another sheet. Keep ONE note total, bearing only illegible scribbles. Preserve the apprentice's face, hair, cloak, pose except that hand, all four party dolls, the orange lantern, ALL half-melted ice fragments, footprints, swamp, waterfall, architecture, framing, fine pixel texture and warm/cool lighting exactly. No Ordo, no wooden arms, no bundled rods, no extra notes, no readable text.
+```
 
 **A-44. 第六章 report_w23「済まされていなかった処刑」王宮の凍結を除去** `art/story-review/chapter6/report_w23.png` (済)
 - ユーザー指示 (2026-10-17): 王宮を通常の玉座の間へ戻す。氷窟から帰っての報告であり、王宮は凍っていない。
@@ -826,9 +832,9 @@ Inside the Abyss shaft, the great ice dam is melting and cracking apart; thousan
 ### 第七章「毒沼」 ― 便3
 
 **w26_splint「腕の木の添え木」** (手がかり / 迷宮「腐れ水の岸」)
-- 要点: 雪解けの水が滝になって落ちる岸の泥。脚の形に削られた、溶けかけた氷のかけら (凍王の添え木)。人業の腕の木2本が縄で束ねて捨てられ、結び目に書きつけ。片足を引きずる足跡が谷へ続く。
+- 要点: 雪解けの水が滝になって落ちる岸の泥。脚の形に削られた、溶けかけた氷のかけら (凍王の添え木)。腕の木で固定し直した跡として、木の削りくずと切り落とした縄の端、平たい石で押さえた書きつけ。腕の木は師が脚に付けて持ち去ったので描かない。片足を引きずる足跡が谷へ続く。
 ```text
-The bottom of the Abyss: a meltwater waterfall plunges into a black, sickly-green miasmic swamp. On the muddy shore lie half-melted ice fragments carved in the shape of a leg splint, and beside them two wooden doll forearms with black iron joint rings, bound together with rope, discarded; a folded note is tucked into the knot. Uneven footprints — one dragging — lead away toward a valley. The apprentice kneels to take the note; party dolls behind. Poison mist, reeds, dim green glow.
+The bottom of the Abyss: a meltwater waterfall plunges into a black, sickly-green miasmic swamp. On the muddy shore lie half-melted ice fragments carved in the shape of a leg splint, and beside them a few curled wood shavings and short cut-off rope ends; a folded note is held down by a flat stone. The wooden doll arms have been taken away by Ordo as his new leg splint: do not show any abandoned wooden arms, intact wooden splint, bundled rods or spare note tucked into a knot. Uneven footprints — one dragging — lead away toward a valley. The apprentice kneels to take the note; party dolls behind. Poison mist, reeds, dim green glow.
 ```
 
 **report_w26「杯を満たしたもの」** (報告)
@@ -897,9 +903,9 @@ The poison swamp now calm and still, faint soul-lights settling softly into the 
 ### 第八章「嵐の尖塔」 ― 便3
 
 **w30_stick「雷にくれてやった杖」** (手がかり / 迷宮「風鳴りの螺旋」)
-- 要点: 螺旋階段の踊り場の床が雷で黒く焦げる。焦げ跡のまん中に、半ばで折れた木の杖 (握りの下に人業の腕の継ぎ目)。石で押さえた書きつけ。手すりの鎖に、手でつかんだ跡が上へ続く。吹き抜けを下から風が鳴りながら昇る。
+- 要点: 螺旋階段の踊り場の床が雷で黒く焦げる。焦げ跡のまん中に、半ばで折れた木の杖 (握りの下に人業の腕の継ぎ目。脚には短い添え木を残し、切り詰めた木をつないだもの)。石で押さえた書きつけ。手すりの鎖に、手でつかんだ跡が上へ続く。吹き抜けを下から風が鳴りながら昇る。
 ```text
-Inside a colossal stone tower: a spiral staircase winds up around a hollow central shaft through which wind roars upward. On a landing, the stone floor is blackened by a lightning strike; in the middle of the scorch lies a wooden walking staff snapped in half, a black-iron doll-joint ring visible below its grip. A note is weighted by a stone. Along the iron chain handrail, dark handprints continue upward. The apprentice kneels by the broken staff. Rain-wet stone, distant lightning glow from above.
+Inside a colossal stone tower: a spiral staircase winds up around a hollow central shaft through which wind roars upward. On a landing, the stone floor is blackened by a lightning strike; in the middle of the scorch lies a wooden walking staff snapped in half, made by joining the trimmed-off lengths of a doll-arm splint, with a black-iron doll-joint ring visible below its grip. Short supports still brace the master's injured leg later; do not imply the entire splint was discarded. A note is weighted by a stone. Along the iron chain handrail, dark handprints continue upward. The apprentice kneels by the broken staff. Rain-wet stone, distant lightning glow from above.
 ```
 
 **report_w30「鳴りやまぬ雷」** (報告)
@@ -940,10 +946,10 @@ The same throne room. The very old king, lap blanket over his knees, gazes out t
 
 **mem_w33「縛られた魂」** (主の記憶 / 嵐の主)
 - 要点: 頂の、火のない大きな灯台。そのまわりに鎖の腕をもつ像 (魂縛りの像) が輪になり、昇る魂を縛って塔のまわりで渦巻かせ、嵐にしている。一年前、杖を失った男 (オルド) が手すりの鎖を頼りに這い上がり、像のひとつを拾った石で叩き割る。縛られていた魂がひとつ雲の上へ抜ける。雷雲の切れ間に長い石の橋、その向こうにすり鉢の形の古い観客席が黒く沈む。
-- 描くもの: 火のない灯台 / 鎖の腕の像の輪と渦巻く魂の嵐 / 像を石で割るオルド (腕の木で固めた脚、杖なし) / 抜けていく一つの魂 / 雲の切れ間の石の橋と観客席。
+- 描くもの: 火のない灯台 / 鎖の腕の像の輪と渦巻く魂の嵐 / 像を石で割るオルド (腕の木を切り詰めた短い添え木で固めた脚、杖なし) / 抜けていく一つの魂 / 雲の切れ間の石の橋と観客席。
 - 描かないもの: 弟子。灯台に火を入れたモルデンの姿 (この絵では描かない)。
 ```text
-A memory scene with storm-grey hazed edges. The summit of the storm tower: a huge dark lighthouse with no fire. Around it stands a ring of stone statues whose long chain-arms reach out and bind countless rising soul-lights, forcing them to swirl around the tower in a churning vortex of storm, lightning and rain. In the foreground, master Ordo (short grey hair, grey beard, gaunt, leg splinted with two wooden doll arms bound by rope, no staff) has crawled up and smashes one statue's chain-arm with a stone; a single freed soul-light streaks upward through the clouds. Through a break in the storm clouds, a long stone bridge leads away toward a sunken bowl-shaped ancient amphitheatre. No apprentice.
+A memory scene with storm-grey hazed edges. The summit of the storm tower: a huge dark lighthouse with no fire. Around it stands a ring of stone statues whose long chain-arms reach out and bind countless rising soul-lights, forcing them to swirl around the tower in a churning vortex of storm, lightning and rain. In the foreground, master Ordo (short grey hair, grey beard, gaunt, injured leg still braced with two SHORT wooden supports cut from the doll arms and bound by rope; the trimmed-off lengths became the staff he has already lost, no staff) has crawled up and smashes one statue's chain-arm with a stone; a single freed soul-light streaks upward through the clouds. Through a break in the storm clouds, a long stone bridge leads away toward a sunken bowl-shaped ancient amphitheatre. No apprentice.
 ```
 
 **report_w33「百年目の青空」** (報告)
