@@ -100,3 +100,30 @@ for (let lv=1;lv<=3;lv++) {
   assert.equal(a.hp,1000+[400,800,1200][lv-1],'倒れた者は回復しない');
 }
 console.log('希望の陽だまり: 3職の習得Lv維持、旧形式と旧キーの借用互換、4/8/12%、同一人業/隊内の最高Lvのみ、1ターン目・死亡を確認');
+
+// 死の宣告: 各Lvの即死率の境界と、主・金属への無効を実戦の開幕で確かめる。
+{
+  const { useMathRandom } = await import('../../src/rng.js');
+  const originalRandom = Math.random;
+  useMathRandom();
+  try {
+    for (const [i, rate] of [0.03, 0.05, 0.08, 0.12].entries()) {
+      for (const roll of [rate - 0.000001, rate]) {
+        Math.random = () => roll;
+        const d = makeDoll('宣告の検証');
+        d.passiveMap = { necroSenkoku: i + 1 };
+        const enemy = (uid, extra = {}) => ({ uid, side: 'enemy', name: '宣告の相手', alive: true,
+          hp: 100, maxhp: 100, atk: 1, vit: 1, agi: 1, int: 1, pie: 1, luk: 1, ...extra });
+        const foes = [enemy(999991), enemy(999992, { boss: true }), enemy(999993, { metal: true })];
+        new Battle([d], foes, () => {});
+        assert.equal(foes[0].alive, roll >= rate, `死の宣告Lv${i + 1}の即死率`);
+        assert(foes[1].alive && foes[2].alive, '主と金属の魔物には効かない');
+        assert(passiveDesc('necroSenkoku', i + 1).includes(`${Math.round(rate * 100)}%`));
+      }
+    }
+  } finally {
+    Math.random = originalRandom;
+    useMathRandom(false);
+  }
+  console.log('死の宣告: 3/5/8/12%の境界・主と金属への無効・表記を確認');
+}

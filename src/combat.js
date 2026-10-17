@@ -872,10 +872,10 @@ export class Battle {
       this.log(`狩りの采配！ 敵全体の${modText("agi", hs, true)}、3ターン`, "hit");
       this._proc(this._bestHolder("hunterSaihai"), "狩りの采配");
     }
-    // 死の宣告 (ランク): 主・金属の魔物以外の敵が、それぞれ 3/5/8/15% で即死
+    // 死の宣告 (ランク): 主・金属の魔物以外の敵が、それぞれ 3/5/8/12% で即死
     // 倒した敵は開幕の演出 (openingResults の先頭) で見せる — game.js playOpeningStrikes が大鎌の演出で刈り取る
     this._senkoku = null;
-    const ns = this._rkParty("necroSenkoku", [0.03, 0.05, 0.08, 0.15]);
+    const ns = this._rkParty("necroSenkoku", [0.03, 0.05, 0.08, 0.12]);
     if (ns) for (const e of this.livingEnemies()) {
       if (e.boss || isMetal(e) || random() >= ns) continue;
       this.log(`死の宣告！ ${e.name}は即死`, "hit");
