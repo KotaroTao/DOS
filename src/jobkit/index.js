@@ -105,7 +105,8 @@ const FX_FIELDS = {
   round: "chance when party hp mp buff dur", kill: "chance hp mp buff dur", hurt: "chance on when buff dur ret mp hp",
   hit: "chance on ail pct turns mul el", cast: "chance on refund hp mp party", fall: "chance buff dur hp", win: "hp mp party",
 };
-const WHEN = new Set(("race tgtElem tgtAil tgtDebuffed tgtLow tgtHigh boss noBoss selfLow selfHigh selfAil buffed defending mpHigh " +
+// tgtUnacted = そのターン、まだ手番を消化していない敵 (先の太刀)。
+const WHEN = new Set(("race tgtUnacted tgtElem tgtAil tgtDebuffed tgtLow tgtHigh boss noBoss selfLow selfHigh selfAil buffed defending mpHigh " +
   "round1 roundGE preempt front back crowd lastFoe allyDown alone elem tgtWeak tgtWeakened taunting strong").split(" "));
 const AILS = new Set(["poison", "para", "sleep", "confuse", "charm", "seal", "flinch", "strip", "atk", "vit", "agi", "vuln"]);
 // 戦闘に勝った後のMP回復 (win の mp と、共通パッシブの魔力回路): 魂1つあたり最大MPの4%まで。
