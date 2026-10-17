@@ -540,6 +540,13 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 ...except: restore ONLY the floor and the throne dais steps to ordinary intact dark polished stone masonry with normal non-glowing tile joints. Remove ALL red-orange glowing fissures, lava, molten seams, fiery light from under the floor or steps, red reflections caused by those fissures, and ALL steam or smoke rising from the floor. The room is merely unusually hot, not visibly volcanic or structurally damaged. Normal warm candle reflections on the stone are allowed. Keep the king wiping his brow, the kneeling soot-covered apprentice, their faces, hands, clothes and crests, the empty chancellor chair, the red carpet, candles, gothic architecture, cloudy sky, camera composition, and fine-grained pixel-textured style unchanged. Do not add people or objects.
 ```
 
+**A-39. 第五章 report_w19「燃やされる器」の床の修正** `art/story-review/chapter5/report_w19.png` (済)
+- 直す (2026-10-17 ユーザーの指示): report_w18 と同様に、床と階段を通常の石造りに戻す。赤く光る亀裂・溶岩・床からの蒸気と赤い反射光を取り除く。
+- 保つもの: 怒りに肘掛けを握る王、弟子と手に持った焼けた顔の木片、空いた宰相の席、机上の地図・巻物・杯、人物の顔・手・衣装・印、構図・画風・蝋燭・重い雲。修正前は `art/story-review/fixes/report_w19-before.png` に保存。
+```text
+...except: restore ONLY the floor and ALL stone stairs, including the background steps on BOTH sides of the king, to ordinary intact dark polished stone masonry with normal non-glowing joints. Remove ALL red-orange glowing cracks, lava, molten seams, fire from under the floor or stairs, their red reflected light, and ALL steam or smoke rising from the floor or stairs. This is an unusually hot ordinary throne room, not a volcanic chamber. Normal warm candlelight reflections are allowed. Preserve exactly the angry seated king gripping the armrests, the apprentice holding the charred wooden face fragment, their faces, hands, costumes and crests, the empty chancellor chair, the map, scrolls and goblets on the foreground table, the red textiles, lit candles, gothic architecture, heavy clouds, original composition and fine-grained pixel-textured style. Do not add people or objects.
+```
+
 ### B. 任意 (余力があれば。読者が気づきやすい順)
 
 | 場面 | 直すこと |
@@ -683,9 +690,9 @@ The same mansion workshop at night. Irene sits beside the workbench, holding a s
 
 **report_w19「燃やされる器」** (報告)
 - 要点: 王は、人業は死者に与えられた二度目の生だと言ったのに、それを釜にくべる者がいることを責める。玉座の間の熱は日ごとに強い。
-- 描くもの: 怒りに肘掛けを握る王 / 弟子が差し出す、焼けた殻から外した小さな顔の木片 (モルデンに似た顔) / 空いた宰相の席 / 熱気。
+- 描くもの: 怒りに肘掛けを握る王 / 弟子が差し出す、焼けた殻から外した小さな顔の木片 (モルデンに似た顔) / 空いた宰相の席 / 通常の石床と階段 (赤い亀裂・発光・蒸気なし)。
 ```text
-The same throne room, hotter than before: heat haze, a red glow from the floor cracks. The very old king grips the armrest in grim anger, staring at a small charred wooden face fragment that the apprentice holds up — a carved face resembling the gaunt chancellor. The chancellor's chair beside the throne stands empty. Heavy clouds outside.
+The same throne room, hotter than before, but with ordinary intact dark stone floors and stairs, non-glowing joints, no molten cracks, no red light from below, and no steam or smoke rising from the floor or stairs. The very old king grips the armrest in grim anger, staring at a small charred wooden face fragment that the apprentice holds up — a carved face resembling the gaunt chancellor. The chancellor's chair beside the throne stands empty. Heavy clouds outside.
 ```
 
 **w20_cup「三百年分の一行」** (手がかり / 迷宮「魂を煮る釜場」)
