@@ -1114,6 +1114,16 @@ export function openSkillStep(d, subRef) {
       const n = usedCount();
       const note = cap >= 3 ? `借りている ${n}/${cap}` : `借りている ${n}/${cap} ・ 魂のランクを上げると借りられる数が増える (R3:2 / R5:3)`;
       scroll.appendChild(el("div", "pt-note", note));
+      scroll.appendChild(el("div", "pt-note", "「所持済み」はメイン魂や別のサブ魂から使える技。同じ技を重ねて借りても、使える技は増えない。"));
+      // この枠だけから借りている技は含めない。非表示・手動専用にした技も所持済み。
+      const mainSkills = new Set(soulLearnedSkills(soulByUid(d.primary)));
+      const otherSources = new Map();
+      for (const info of d.subInfo || []) {
+        if (info.uid === subRef.uid) continue;
+        const si = (d.subs || []).findIndex((sub) => sub && sub.uid === info.uid);
+        if (si < 0) continue;
+        for (const p of info.picks) if (p.skill) otherSources.set(p.skill, `サブ魂${si + 1}`);
+      }
       const list = el("div", "pt-list");
       for (const sk of learned) {
         const sp = SPELLS[sk];
@@ -1124,6 +1134,8 @@ export function openSkillStep(d, subRef) {
         const tg = sp && tagRow(spellTagKinds(sp, d), "sp-pick-tags");
         const tt = tg && r.querySelector(".ui-row-title");
         if (tt) tt.appendChild(tg);
+        const sources = [mainSkills.has(sk) ? "メイン魂" : null, otherSources.get(sk)].filter(Boolean);
+        if (sources.length) r.querySelector(".ui-row-title").appendChild(el("span", "sp-pick-owned", `所持済み：${sources.join("・")}`));
         longPress(r, () => showSkillPopup(sk));
         list.appendChild(r);
       }
