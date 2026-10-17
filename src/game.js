@@ -11570,6 +11570,15 @@ function applyImpact(res) {
     else { SFX.hit(); buzz(25); }
   }
 
+  // 死の宣告で死亡が確定した敵は、着弾と同時に本体・HPゲージの表示対象から外す。
+  // 座標が無い敵や、多数同時撃破で崩れ落ちの予約時刻が演出の尺を超える敵も残さない。
+  if (res.opening === "senkoku") for (const h of res.hits) {
+    if (h.died && h.target?.side === "enemy" && !h.target.alive) {
+      delete h.target._openDeath;
+      _deadShown.add(h.target);
+    }
+  }
+
   let partyHit = false, anyDeath = false;
   // 隊の複数人を打つ物理 (溜めた猛威など) は数字を各人の札の上に分けて出す
   const partyDmgN = res.hits.filter((x) => x.target && x.target.side !== "enemy" && x.dmg != null && !x.miss).length;
