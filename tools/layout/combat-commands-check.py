@@ -43,9 +43,20 @@ with sync_playwright() as p:
                       const app=document.getElementById('app'),r=app.getBoundingClientRect();
                       if(app.scrollHeight>app.clientHeight+1) throw Error('画面スクロールが必要 '+JSON.stringify({h:app.clientHeight,scroll:app.scrollHeight,parts:[...app.children].map(e=>[e.id,e.getBoundingClientRect().height])}));
                       const buttons=[...document.querySelectorAll('.cmd-main button,.cmd-sub button')];
+                      const controls=document.getElementById('controls');
+                      const compact=buttons.map(e=>e.getBoundingClientRect().height);
+                      controls.classList.add('measure-commands');
+                      const original=buttons.map(e=>e.getBoundingClientRect().height);
+                      controls.classList.remove('measure-commands');
+                      for(let i=0;i<buttons.length;i++)
+                        if(Math.abs(compact[i]-original[i]*0.9)>0.1) throw Error('ボタンが0.9倍ではない');
+                      const main=document.querySelector('.cmd-main').getBoundingClientRect().height;
+                      const sub=document.querySelector('.cmd-sub').getBoundingClientRect().height;
+                      const log=document.getElementById('log').getBoundingClientRect().height;
+                      if(Math.abs(log-32.5-(main+sub)/9)>0.1) throw Error('縮めたボタンの高さが記録へ渡っていない');
                       for(const button of buttons) {
                         const b=button.getBoundingClientRect();
-                        if(b.height<44 || b.bottom>r.bottom+1 || b.left<r.left || b.right>r.right+1)
+                        if(b.height<39.5 || b.bottom>r.bottom+1 || b.left<r.left || b.right>r.right+1)
                           throw Error('操作ボタンが小さい・画面外');
                         if(!button.contains(document.elementFromPoint(b.x+b.width/2,b.y+b.height/2)))
                           throw Error('操作ボタンが隠れている');
