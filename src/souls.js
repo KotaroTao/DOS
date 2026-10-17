@@ -1,3 +1,4 @@
+import { canonicalPassiveKey } from "./jobkit/common.js";
 import { random } from "./rng.js";
 import { zeroResists } from "./resistance.js";
 // 魂(Soul)と人業(Doll)のデータモデル — 新仕様 (36職業・ランク1-5・レア度・融合)
@@ -408,6 +409,7 @@ for (const key in JOBKIT_PERKS) {
 {
   const seen = {};
   for (const key in PASSIVES) {
+    if (canonicalPassiveKey(key) !== key) continue; // 旧キーは同じ加護の別名
     const nm = PASSIVES[key].label;
     if (seen[nm]) console.warn(`souls: パッシブの名前「${nm}」が ${seen[nm]} と ${key} で重複`);
     seen[nm] = key;
@@ -415,11 +417,11 @@ for (const key in JOBKIT_PERKS) {
 }
 
 export function passiveName(key, lv = 1) {
-  const def = PASSIVES[key]; if (!def) return key;
+  const def = PASSIVES[canonicalPassiveKey(key)]; if (!def) return key;
   return def.lv.length > 1 ? `${def.label}Lv${lv}` : def.label;
 }
 export function passiveDesc(key, lv = 1) {
-  const def = PASSIVES[key]; if (!def) return "";
+  const def = PASSIVES[canonicalPassiveKey(key)]; if (!def) return "";
   return def.lv[Math.min(lv, def.lv.length) - 1] || "";
 }
 // 表示名 (「戦闘後回復Lv1」など) から {key, lv} を引く。見つからなければ null
@@ -427,7 +429,8 @@ let PASSIVE_BY_NAME = null;
 export function passiveByName(name) {
   if (!PASSIVE_BY_NAME) {
     PASSIVE_BY_NAME = {};
-    for (const key in PASSIVES) for (let lv = 1; lv <= PASSIVES[key].lv.length; lv++) PASSIVE_BY_NAME[passiveName(key, lv)] = { key, lv };
+    for (const key in PASSIVES) for (let lv = 1; lv <= PASSIVES[key].lv.length; lv++) PASSIVE_BY_NAME[passiveName(key, lv)] = { key: canonicalPassiveKey(key), lv };
+    for (const label of ["水底の祈り", "慈しみの光環"]) for (let lv = 1; lv <= 4; lv++) PASSIVE_BY_NAME[`${label}Lv${lv}`] = { key: "heroKibouHidamari", lv: Math.min(3, lv) };
   }
   return PASSIVE_BY_NAME[name] || null;
 }
@@ -814,16 +817,19 @@ export function subPicks(sub) {
     sub.picks = sub.passive ? [{ passive: sub.passive }] : sub.skill ? [{ skill: sub.skill }] : [];
   }
   delete sub.skill; delete sub.passive;
+  for (const p of sub.picks) if (p && p.passive) p.passive = canonicalPassiveKey(p.passive);
   // 壊れた要素はその場で取り除く (配列の同一性を保つ: 呼び出し側が手元の参照を使い続けられる)
   for (let i = sub.picks.length - 1; i >= 0; i--) { const p = sub.picks[i]; if (!p || !(p.skill || p.passive)) sub.picks.splice(i, 1); }
   return sub.picks;
 }
 export function subPickIndex(sub, kind, key) {
+  if (kind === "passive") key = canonicalPassiveKey(key);
   return subPicks(sub).findIndex((p) => (kind === "passive" ? p.passive === key : p.skill === key));
 }
 // 借用を入れ替える。外す → true / 足す → true / 枠がいっぱいで足せない → false。
 // 枠が1つの魂は、選び直すと入れ替える (旧来の「1つだけ借りる」と同じ手触り)。
 export function toggleSubPick(sub, kind, key, doll = null) {
+  if (kind === "passive") key = canonicalPassiveKey(key);
   const picks = subPicks(sub);
   sub.picked = true; // 一度でも選び直したら、空にしても既定の技で埋めない
   const i = subPickIndex(sub, kind, key);

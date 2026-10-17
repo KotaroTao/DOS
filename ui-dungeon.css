@@ -853,3 +853,9 @@ button.dp-rule:active, .dp-rule-b:active { filter: brightness(1.25); }
   .inf-sheet .ui-sheet-foot { gap: 4px; padding-top: 6px; padding-bottom: max(6px,env(safe-area-inset-bottom)); }
   .inf-memory-sheet .ui-sheet-foot .ui-btn { min-height: 44px; padding-top: 6px; padding-bottom: 6px; }
 }
+
+/* 技の付与成功率。長い名前や複合技も札の内側で折り返す。 */
+.sp-status-rates { display: flex; flex-direction: column; gap: 2px; min-width: 0; max-width: 100%; font-size: 10px; line-height: 1.4; color: #c5b5db; white-space: normal; overflow-wrap: anywhere; }
+.sp-status-label { color: #a99c87; font-size: 9px; }
+#combat-menu .tgt > .sp-status-rates { grid-column: 1 / -1; }
+.ui-skill .sp-status-rates { margin-top: 12px; font-size: 12px; }

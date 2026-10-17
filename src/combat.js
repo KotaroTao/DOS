@@ -1,3 +1,4 @@
+import { canonicalPassiveKey } from "./jobkit/common.js";
 import { random } from "./rng.js";
 import { lvPow } from "./levelcurve.js";
 import { monsterResists } from "./resistance.js";
@@ -331,10 +332,15 @@ function perksOfPassives(a) {
   let list = _perkCache.get(pm);
   if (list) return list;
   list = [];
+  const levels = {};
   for (const k in pm) {
-    const pk = JOBKIT_PERKS[k];
-    if (!pk || !pm[k]) continue;
-    for (const c of pk.fx) list.push({ c, lv: pm[k], label: pk.label, key: k });
+    const key = canonicalPassiveKey(k);
+    levels[key] = Math.max(levels[key] || 0, pm[k]);
+  }
+  for (const key in levels) {
+    const pk = JOBKIT_PERKS[key];
+    if (!pk || !levels[key]) continue;
+    for (const c of pk.fx) list.push({ c, lv: levels[key], label: pk.label, key });
   }
   _perkCache.set(pm, list);
   return list;
@@ -536,10 +542,10 @@ export const BREATH_RES_CAP = 0.5;
 export function isFaithSpell(sp) { return !!sp && sp.kind === "atk" && (!!sp.faith || sp.element === "light"); }
 // ===== 状態異常・即死の成功率はLv差で決まる =====
 // 率 = 基礎の率 × 2^((仕掛ける側のLv − 受ける側のLv) ÷ LV_HALF) を 5%〜95% に収める。
-// 4Lv 上の相手には半分、8Lv 上なら 1/4 … 格上の強敵を眠り・即死で倒してLvを稼ぐ抜け道を塞ぐ (逆に格上の敵の術は隊によく効く)。
+// 12Lv 上の相手には半分、24Lv 上なら 1/4。少し格上の相手にも異常を使え、格上の敵の術も急には強まらない。
 // 味方のLv = 宿した魂のLv (jobLv)、敵のLv = その迷宮・階の基準Lv (game.js が e.lv / opts.foeLv で渡す)。
 // 隊の耐性 (異常耐性・装備) は、この率に掛けて差し引く (耐性100% なら効かない)
-export const LV_HALF = 4;
+export const LV_HALF = 12;
 export const LV_RATE_MIN = 0.05, LV_RATE_MAX = 0.95;
 export function lvRate(base, atkLv, defLv) {
   if (!(base > 0)) return 0;
@@ -555,6 +561,18 @@ export function statusText(tags) {
   const t = [...new Set((tags || []).map((k) => STATUS_TEXT[k]).filter(Boolean))];
   return t.length ? t.join("・") + "!" : "";
 }
+// 技の状態異常の判定を、オートと成功率表示でも共用する。
+export function spellAilments(sp) {
+  if (!sp) return [];
+  return [
+    ["poison", "毒", sp.poison?.chance], ["paralyze", "麻痺", sp.para],
+    ["sleep", "眠り", sp.kind === "sleep" ? 0.6 : sp.sleepChance],
+    ["charm", "魅了", sp.charm], ["confuse", "混乱", sp.confuse],
+    ["seal", "封印", sp.seal?.chance], ["flinch", "怯み", sp.flinchChance],
+    ["death", "即死", sp.instakill?.chance],
+  ].filter(([, , base]) => base > 0).map(([kind, label, base]) => ({ kind, label, base }));
+}
+
 // 状態異常の種類 (装備の耐性 ailRes のキー): 毒・麻痺・眠り・魅了・混乱・石化
 export const AIL_KINDS = ["poison", "paralyze", "sleep", "charm", "confuse", "stone"];
 // pi/ei = 当たったが無効にされた物理 (抵抗値100・加護の祈り・金剛の守り)。命中には数え、別に数える
@@ -1228,9 +1246,15 @@ export class Battle {
   }
   // 2ターン目以降の毎ターン初め (round)
   _perkRound() {
+    // 希望の陽だまり: 旧キー・サブ魂を含め、生存者の最高Lvの持ち主だけが一度発動する。
+    let hopeHolder = null, hopeLv = 0;
+    for (const p of this.livingParty()) for (const pr of perksOf(p)) {
+      if (pr.key === "heroKibouHidamari" && pr.lv > hopeLv) { hopeHolder = p; hopeLv = pr.lv; }
+    }
     for (const p of this.party) {
       if (!p.alive) continue;
-      for (const { c, lv, label } of perksOf(p)) {
+      for (const { c, lv, label, key } of perksOf(p)) {
+        if (key === "heroKibouHidamari" && p !== hopeHolder) continue;
         if (c.t !== "round" || (c.when && !this._perkWhen(p, c.when, {})) || !this._perkRoll(c, lv)) continue;
         let hp = 0, mp = 0;
         for (const t of (c.party ? this.livingParty() : [p])) {
@@ -1380,13 +1404,13 @@ export class Battle {
     return a.jobLv || a.level || 1;
   }
   // Lv差を織り込んだ成功率 (5〜95%)。actor が無い時 (持続効果など) は隊の平均Lvで見る
-  _rate(actor, t, base, kind) {
+  _rate(actor, t, base, kind, known = true) {
     if (actor && actor.side === "party") base += this._rk(actor, "hexerSae", [0.05, 0.10, 0.15, 0.25]); // 呪いの冴え (呪術師のランク)
     let al = actor ? this.lvOf(actor) : null;
     if (al == null) { const ps = this.party.filter((p) => p.alive); al = ps.length ? ps.reduce((a, p) => a + this.lvOf(p), 0) / ps.length : 1; }
     // 極「縛り目の」: 自分が掛ける状態異常は Lv差で成功率が下がらない (即死は除く)
     if (kind !== "death" && gm(actor).binder) al = Math.max(al, this.lvOf(t));
-    return lvRate(base, al, this.lvOf(t)) * (kind ? 1 - (["stone", "death"].includes(kind) ? this._hardRes(t, kind) : this._ailRes(t, kind)) : 1);
+    return lvRate(base, al, this.lvOf(t)) * (kind && known ? 1 - (["stone", "death"].includes(kind) ? this._hardRes(t, kind) : this._ailRes(t, kind)) : 1);
   }
   // 命中した敵へ付く効果 (物理技・攻撃呪文・弱体の共通): 毒/麻痺/封印/属性耐性ダウン/打ち消し/眠り/怯み/即死。
   // 毒・麻痺・封印・眠り・魅了・混乱・即死の成功率は Lv差で決まる (lvRate)
@@ -3374,7 +3398,33 @@ export class Battle {
     return varianceMean((power + (actor.pie || 0) * this._bm(actor, "pie") * 0.3) * (1 + this._perkSum(actor, "heal")));
   }
   // 状態異常・即死の成功率 (Lv差・主の補正込み)。_inflict と同じ係数
-  estRate(actor, t, base, kind) { return base > 0 ? this._rate(actor, t, base, kind) : 0; }
+  estRate(actor, t, base, kind, known = true) { return base > 0 ? this._rate(actor, t, base, kind, known) : 0; }
+
+  // 1回の付与判定の成功率。命中・生存後の判定で、多段技全体の確率ではない。
+  // 未判明の抵抗値は known=false で伏せる。乱数・状態は一切変えない。
+  spellStatusChances(actor, sp, t, known = true) {
+    let poisonRate = 0, charmRate = 0;
+    return spellAilments(sp).map(({ kind, label, base }) => {
+      let blocked = !t || !t.alive || t.side !== "enemy" || isMetal(t)
+        || (sp.kind === "phys" && t.physResist >= 100) || (sp.kind === "atk" && t.magResist >= 100);
+      if (!blocked) {
+        if (kind === "poison") blocked = !!t.ailment && (t.ailment !== "poison" || (t._poisonPct || 0.05) >= sp.poison.pct);
+        if (kind === "paralyze") blocked = !!t.ailment;
+        if (kind === "sleep") blocked = sp.kind !== "sleep" && !!t.asleep;
+        if (kind === "charm" || kind === "confuse") blocked = !!t.mind;
+        if (kind === "flinch") blocked = !!(t.boss || t._flinch);
+        if (kind === "death") blocked = !!t.boss || !!(sp.instakill.races && !sp.instakill.races.includes(enemyRace(t)));
+      }
+      let rate = blocked ? 0 : kind === "flinch" ? base * (known ? 1 - this._ailRes(t, kind) : 1) : this.estRate(actor, t, base, kind, known);
+      // 毒と麻痺、魅了と混乱は同じ枠。先に付く効果が成功した分は後の効果から引く。
+      // 抵抗が未判明なら先の効果が防がれる可能性もあるため、後の効果も上限を出す。
+      if (kind === "poison") poisonRate = rate;
+      if (kind === "paralyze" && known) rate *= 1 - poisonRate;
+      if (kind === "charm") charmRate = rate;
+      if (kind === "confuse" && known) rate *= 1 - charmRate;
+      return { kind, label, rate, known: known || blocked };
+    });
+  }
 
   _cast(actor, cmd, res) {
     const sp = SPELLS[cmd.spellKey];
