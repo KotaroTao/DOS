@@ -2815,7 +2815,7 @@ export class Battle {
         res.hits.push(this._physical(actor, t2, { name: "連なる刃" }));
       }
     }
-    // 崩拳 (魔闘士のランク): 通常攻撃が 10/15/20/30% で敵を怯ませる (主・金属の魔物には効かない)
+    // 崩拳 (魔闘士のレベル習得): 通常攻撃が 10/15/20/30% で敵を怯ませる (主・金属の魔物には効かない)
     if (h && !h.miss && !h.immune && tgt.alive && tgt.side === "enemy" && !tgt.boss && !isMetal(tgt) && !tgt._flinch
       && random() < this._rk(actor, "bmHouken", [0.10, 0.15, 0.20, 0.30])) {
       tgt._flinch = true;
@@ -2835,12 +2835,12 @@ export class Battle {
       res.hits.push({ target: tgt, dmg: extra, died });
       if (died) h = { ...h, died: true };
     }
-    // 魔力循環 (魔闘士): 通常攻撃で与えたダメージの 10/15/20% だけ MP を回復 (1回で最大MPの 2/3/4% まで)
+    // 魔力循環 (魔闘士): 通常攻撃で与えたダメージの 1/2/3/4% だけ MP を回復 (1回で最大MPの 2/3/4/5% まで)
     const mc = pv(actor, "bmManaCycle");
     const dealt = ((h && !h.miss && h.dmg) || 0) + extra;
     if (mc && dealt > 0 && actor.maxmp && actor.mp < actor.maxmp) {
-      const lv = Math.min(3, mc);
-      const gain = Math.max(1, Math.min(Math.ceil(actor.maxmp * [0, 0.02, 0.03, 0.04][lv]), Math.round(dealt * ([0, 0.10, 0.15, 0.20][lv] || 0))));
+      const lv = Math.min(4, mc);
+      const gain = Math.max(1, Math.min(Math.ceil(actor.maxmp * [0, 0.02, 0.03, 0.04, 0.05][lv]), Math.round(dealt * ([0, 0.01, 0.02, 0.03, 0.04][lv] || 0))));
       actor.mp = Math.min(actor.maxmp, actor.mp + gain);
       this.log(`${actor.name}の魔力循環：MP+${gain}`, "heal");
       this._proc(actor, "魔力循環");

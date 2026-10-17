@@ -1,7 +1,7 @@
 // 共通戦闘計算の回帰確認。乱数を固定して実ダメージとオートの期待値も比較する。
 import assert from 'node:assert/strict';
 import { Battle, SPELLS, setPartyHitBonus, luckCritBonus, attackSpellPower, spellGrowth, healingPower, setElemKnown, spellCost, soulCostAdd, soulPowerMul, soulTierRate, spellMpLabel, SOUL_POWER_K, healsHp, BLADE_HEAL_CAP, MP_DRAIN_CAP, COUNTER_K, DIVINE_COUNTER_K, KAESHI_K, REFLECT_K, PASSIVE_RET_MIN, PASSIVE_RET_MAX, stanceCtrK, reflectPow } from '../../src/combat.js';
-import { makeDoll, JOB_SKILLS, battleSkills } from '../../src/souls.js';
+import { makeDoll, JOB_SKILLS, battleSkills, jobLevelPassives, passivesUpTo } from '../../src/souls.js';
 import { MONSTERS } from '../../src/sprites.js';
 import { DUNGEON_MONSTERS } from '../../src/dungeons/index.js';
 import { EVENTS } from '../../src/events.js';
@@ -351,9 +351,32 @@ console.log(`全${count}技を実行。会心・耐性・命中・攻撃/回復�
    const a=actor(),t=foe();a.int=5000;a.atk=5000;a.soulMp=300;const b=new Battle([a],[t],()=>{});const cost=spellCost(a,sp),cap=Math.floor(cost*MP_DRAIN_CAP);let top=0;
    for(let i=0;i<50;i++){a.mp=1000;t.hp=t.maxhp;t.alive=true;b._exec({actor:a,action:'spell',spellKey:key,target:t});const net=a.mp-1000;assert(net<=cap-cost,`${sp.name}: 吸収が1.1倍を超えた (${net + cost} > ${cap})`);top=Math.max(top,net);}
    assert(top===cap-cost,`${sp.name}: 上限まで吸えていない (${top + cost} / ${cap})`); }
- // 魔力循環は1回で最大MPの 2/3/4% まで
- for(const lv of [1,2,3]){ const a=actor(),t=foe();a.atk=5000;a.maxmp=1000;a.passiveMap={bmManaCycle:lv};const b=new Battle([a],[t],()=>{});
-   for(let i=0;i<30;i++){a.mp=0;t.hp=t.maxhp;t.alive=true;b._exec({actor:a,action:'attack',target:t});assert(a.mp<=[0,20,30,40][lv],`魔力循環Lv${lv}: ${a.mp}`);} }
+ // 魔力循環はランク2〜5、崩拳は従来の魔力循環の習得Lvへ移す。
+ for(const rank of [1,2,3,4,5]){
+   const learned=passivesUpTo('battlemage',rank);
+   assert.equal(learned.bmManaCycle||0,Math.max(0,rank-1));
+   assert(!learned.bmHouken);
+ }
+ for(const [level,houken] of [[1,0],[14,0],[15,1],[49,1],[50,2],[99,2],[100,3],[200,3]]){
+   const learned=jobLevelPassives('battlemage',level);
+   assert.equal(learned.bmHouken||0,houken);
+   assert(!learned.bmManaCycle);
+ }
+ // 実際の通常攻撃で与ダメ比例・最大MPの上限・残りMPの空き容量を確認する。
+ for(const lv of [1,2,3,4])for(const atk of [100,5000]){
+   const a=actor(),t=foe();a.atk=atk;a.maxmp=1000;a.passiveMap={bmManaCycle:lv};const b=new Battle([a],[t],()=>{});
+   let capped=false,proportional=false;
+   for(let i=0;i<30;i++){
+     a.mp=i%2?999:0;t.hp=t.maxhp;t.alive=true;
+     const before=a.mp,res=b._exec({actor:a,action:'attack',target:t});
+     const dealt=res.hits.filter(h=>h.target===t&&!h.miss).reduce((sum,h)=>sum+(h.dmg||0),0);
+     const raw=Math.round(dealt*lv/100),cap=(lv+1)*10;
+     const gain=dealt>0?Math.max(1,Math.min(cap,raw)):0;
+     assert.equal(a.mp,Math.min(a.maxmp,before+gain),`魔力循環Lv${lv}: 与ダメ${dealt}`);
+     if(dealt>0){capped ||= raw>=cap;proportional ||= raw<cap;}
+   }
+   assert(atk===5000?capped:proportional,`魔力循環Lv${lv}: 比例/上限の条件を満たす`);
+ }
  console.log(`魂の格: 物理${kinds.phys}・攻撃呪文${kinds.atk}・回復${kinds.heal}技の消費/威力/表記、実測と見積もり、MP吸収・魔力循環の上限を確認`);
 }
 // 回復の作り直し (2026-10): ヒールの頭打ち・割合回復・体の手当て (使い手の最大HP)・刃の癒し (与ダメ)
