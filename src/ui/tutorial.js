@@ -862,7 +862,7 @@ export function install() {
 export const _TUTS = TUTS;
 
 // 試遊では選択した手ほどきだけを、実際の操作で確かめる。
-export const testTutorials = TUTS.map(({ key, name }) => ({ id: "tutorial:" + key, kind: "tutorial", name }));
+export const testTutorials = TUTS.map(({ key, name }) => ({ id: "tutorial:" + key, kind: "tutorial", group: "操作の手ほどき", name }));
 export function startTestTutorial(key) {
   if (!G_()?.testPlay || !TUT_MAP[key]) return false;
   G_().testTutorial = key;
