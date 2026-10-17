@@ -1,3 +1,4 @@
+// 全職見直し: 不浄の強化を祓い、隊の光の攻めを通す。ランクパッシブは維持。
 // 祓魔師 (exorcist) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 import { UNHOLY } from "./common.js";
@@ -6,24 +7,23 @@ export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
   awaken: "exorcistJouka",
   table: `
-    1 EXORCIST_HARAIBA 2 SUIGETSU 3 HOLYRAY 5 exorcistTaima/1 5 DIOS 7 KIYOMEMIZU 10 CURE 12 KOUJIN
-    15 EXORCIST_HAMANOYA 15 exorcistTaisan/1 20 HARAI 20 AWAKE 22 UZUSHIO 25 exorcistSakibarai/1 25 AWAKEALL
-    30 EXORCIST_KEGAREDACHI 30 DIOSALL 35 exorcistMisogi/1 40 HAJANOTACHI 40 DIAL 45 exorcistSeikon/1
-    50 TAIMA 50 exorcistTaisan/2 50 STONECURE 55 EXORCIST_KOUU 57 HYOUJIN 60 exorcistMisogi/2
-    65 EXORCIST_KIYOBARAI 70 exorcistSakibarai/2 75 exorcistHama/1 80 EXORCIST_SANKO 82 SEIGEKI
-    90 exorcistTaima/2 95 EXORCIST_INDOU 100 EXORCIST_SEISA 100 exorcistTaisan/3 105 exorcistSeikon/2
-    107 EXORCIST_REISUI 110 EXORCIST_KEKKAIFUDA 115 exorcistSakibarai/3 120 EXORCIST_HAMAYA
-    125 exorcistMisogi/3 130 EXORCIST_SEISUINAGI 135 exorcistSeikon/3 140 EXORCIST_KOURIN 145 exorcistHama/2
-    150 EXORCIST_JINRAI 155 resistAilment/1 160 EXORCIST_CHOUBUKU 162 EXORCIST_MISOGI 165 exorcistTaima/3
-    170 TAIMAJIN 175 resistAilment/2 180 EXORCIST_ROKKON 185 exorcistSeikon/4 190 EXORCIST_OOHARAE
-    195 EXORCIST_GOUMA 200 EXORCIST_KENSHOU`,
+    1 EXORCIST_HARAIBA 2 SUIGETSU 3 HOLYRAY 5 exorcistTaima/1 5 DIOS 7 KIYOMEMIZU
+    10 CURE 12 KOUJIN 12 EXORCIST_HAMANOYA 15 exorcistTaisan/1 18 HARAI 20 AWAKE
+    20 exorcistSeikon/1 22 UZUSHIO 25 exorcistSakibarai/1 25 AWAKEALL 25 EXORCIST_KEGAREDACHI 30 DIOSALL
+    35 exorcistMisogi/1 35 EXORCIST_KIYOBARAI 35 exorcistHama/1 40 HAJANOTACHI 40 DIAL 45 EXORCIST_KOUU
+    50 exorcistTaisan/2 50 STONECURE 57 HYOUJIN 60 TAIMA 60 exorcistMisogi/2 65 exorcistSeikon/2
+    70 exorcistSakibarai/2 75 EXORCIST_SANKO 82 SEIGEKI 90 exorcistTaima/2 90 EXORCIST_INDOU 100 exorcistTaisan/3
+    105 EXORCIST_SEISA 105 exorcistHama/2 107 EXORCIST_REISUI 110 exorcistSeikon/3 115 exorcistSakibarai/3 120 EXORCIST_HAMAYA
+    125 EXORCIST_KEKKAIFUDA 125 exorcistMisogi/3 130 EXORCIST_SEISUINAGI 140 EXORCIST_KOURIN 150 EXORCIST_JINRAI 155 resistAilment/1
+    160 EXORCIST_CHOUBUKU 162 EXORCIST_MISOGI 165 exorcistTaima/3 165 exorcistSeikon/4 170 TAIMAJIN 175 resistAilment/2
+    180 EXORCIST_ROKKON 190 EXORCIST_OOHARAE 195 EXORCIST_GOUMA 200 EXORCIST_KENSHOU`,
   skills: {
-    // Lv15 の固有技: 破魔の矢。不浄の者に深く刺さる光の呪文
-    EXORCIST_HAMANOYA: { name: "破魔矢", mp: 5, kind: "atk", power: 18, element: "light", prey: { races: UNHOLY, mul: 1.4 }, target: "enemy", desc: "破魔の矢を放つ。不浄の者に大きく効く（光）" },
+    // 序盤の固有技: 破魔の矢。不浄の者に深く刺さる光の呪文
+    EXORCIST_HAMANOYA: {name: "破魔矢", mp: 5, kind: "atk", power: 15, element: "light", prey: {races: ["undead", "specter", "demon"], mul: 1.4}, target: "enemy", desc: "強化を祓う光の矢。不死・幽鬼・悪魔には1.4倍", dur: 3, strip: true},
     EXORCIST_HARAIBA:     { name: "祓い刃", mp: 4, kind: "phys", power: 1.1, pieScale: 0.3, element: "light", prey: { races: UNHOLY, mul: 1.8 }, target: "enemy", desc: "祈りを込めた刃。不浄の者に大ダメージ（光）" },
     EXORCIST_KEGAREDACHI: { name: "穢れ断ち", mp: 5, kind: "phys", power: 1.2, critBonus: 0.35, strip: true, target: "enemy", desc: "穢れごと強化を断ち切る（会心UP）" },
     EXORCIST_KOUU:        { name: "祓いの光雨", mp: 9, kind: "atk", power: 22, element: "light", debuff: { hit: 0.9 }, target: "all-enemy", desc: "光の雨が敵陣を打ち、目を眩ませる（光）" },
-    EXORCIST_KIYOBARAI:   { name: "清め払い", mp: 10, kind: "phys", power: 0.9, pieScale: 0.15, critBonus: 0.1, element: "water", target: "all-enemy", desc: "清めの水をまとい敵陣を払う（水）" },
+    EXORCIST_KIYOBARAI:   {name: "清め払い", mp: 10, kind: "phys", power: 1.15, pieScale: 0.15, critBonus: 0.1, element: "water", target: "all-enemy", desc: "清めの刃で強化を祓い、光への守りを緩める", dur: 3, strip: true, vuln: {light: 0.8}},
     EXORCIST_SANKO:       { name: "三鈷剣", mp: 14, kind: "phys", power: 0.9, hits: 3, agiScale: 0.35, critBonus: 0.2, element: "light", flinchChance: 0.2, target: "enemy", desc: "三鈷の聖剣で三度斬り、怯ませる（光）" },
     EXORCIST_INDOU:       { name: "引導", mp: 16, kind: "phys", power: 2.6, execute: 2.5, instakill: { chance: 0.3, races: UNHOLY }, target: "enemy", desc: "弱った魔に引導を渡す。不浄は即死も" },
     EXORCIST_SEISA:       { name: "聖鎖", mp: 22, kind: "atk", power: 60, element: "light", seal: { chance: 0.5, turns: 3 }, debuff: { agi: 0.85 }, target: "enemy", desc: "光の鎖で縛り、特技と足を封じる（光）" },
@@ -80,9 +80,10 @@ export default {
     // 水の禊で身を清め、竜の息を和らげる
     exorcistMisogi: {
       label: "禊の加護",
-      lv: ["ブレスの被ダメ−10%", "ブレスの被ダメ−15%", "ブレスの被ダメ−20%"],
+      lv: ["不死・幽鬼・悪魔から受けるブレス・全体呪文の被ダメージ-12%", "不死・幽鬼・悪魔から受けるブレス・全体呪文の被ダメージ-18%", "不死・幽鬼・悪魔から受けるブレス・全体呪文の被ダメージ-24%"],
       fx: [
-        { t: "take", v: [0.1, 0.15, 0.2], on: "breath" },
+        {t: "take", on: "breath", when: {race: ["undead", "specter", "demon"]}, v: [0.12, 0.18, 0.24]},
+        {t: "take", on: "spell", when: {race: ["undead", "specter", "demon"]}, v: [0.12, 0.18, 0.24]},
       ],
     },
   },

@@ -52,6 +52,11 @@ for (const [key,sp] of Object.entries(SPELLS)) {
 // 標準の回復・治療 (2026-10 作り直し) の効果と、どの職でも決まった習得Lvの幅に収まること
 const STD_RANGE={DIOS:[1,5],DIAL:[25,40],MADIOS:[60,80],DIOSALL:[20,30],DIALALL:[40,60],MADIOSALL:[80,120],REVIVE:[40,60],RESURRECT:[80,100],
   CURE:[3,10],RECOVER:[10,20],AWAKE:[20,30],STONECURE:[30,50],PURIFY:[60,100],CUREALL:[3,10],RECOVERALL:[10,20],AWAKEALL:[20,30],STONECUREALL:[30,50],PURIFYALL:[60,100]};
+// 専門職の入口と蘇生の役割を分けた習得Lv。共通の許容幅は広げない。
+const ROLE_LEVELS={
+  priest:{DIOSALL:18,PURIFY:55}, archbishop:{PURIFY:55},
+  cardinal:{REVIVE:25,RESURRECT:60}, hero:{REVIVE:65}, hermit:{REVIVE:65}, paladin:{REVIVE:65},
+};
 const STD_KINDS={CURE:['poison'],RECOVER:['paralyze'],AWAKE:['sleep','confuse','charm'],STONECURE:['stone'],PURIFY:AIL_KINDS};
 for(const [k,kinds] of Object.entries(STD_KINDS)){
   assert.deepEqual([...spellCureKinds(SPELLS[k])].sort(),[...kinds].sort(),k);
@@ -61,6 +66,7 @@ for(const [k,kinds] of Object.entries(STD_KINDS)){
 let stdRows=0;
 for(const job of SOUL_KEYS) for(const row of jobSkillTable(job)) {
   const r=STD_RANGE[row.skill]; if(!r)continue;
+  if(ROLE_LEVELS[job]?.[row.skill]!=null){assert.equal(row.lvl,ROLE_LEVELS[job][row.skill],`${job} ${row.skill}`);stdRows++;continue;}
   assert(row.lvl>=r[0]&&row.lvl<=r[1],`${job} ${SPELLS[row.skill].name} Lv${row.lvl} (幅 ${r[0]}〜${r[1]})`);stdRows++;
 }
 assert(stdRows>80,'標準の技の習得が少なすぎる');

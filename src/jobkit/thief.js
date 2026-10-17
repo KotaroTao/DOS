@@ -1,21 +1,22 @@
+// 全職見直し: 盗み・強化解除・道具で探索と開幕を支える。ランクパッシブは維持。
 // 盗賊 (thief) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
   awaken: "thiefNukeme",
   table: `
-    1 thiefSuki/1 2 STEAL 3 POISONSTAB 5 ambushCrit/1 7 FUYUU 10 KEMURIDAMA
-    12 SUNAKAKE 15 THIEF_SURINUKE 15 trapEye/1 20 KASUMEGIRI 22 SHIBIREBARI 25 thiefTsukekomi/1 30 ASSASSINATE
-    35 thiefKasume/1 40 OBORO 45 thiefNigegoshi/1 50 THIEF_TAKARASAGASHI 50 trapEye/2 55 MAKIBISHI 57 FUUGA
-    60 venomBlade/1 65 TSUJIKAZE 70 sleepKill/1 75 thiefShikake/1 80 ZETSUEI 85 SHIPPUTSUKI
-    90 thiefKasume/2 95 ENGETSUJIN 100 MOUDOKUSASHI 100 trapEye/3 105 thiefTsukekomi/2 107 KAMIKAZE 110 KAGEUCHI
-    115 venomBlade/2 120 KUBIHANE 125 thiefNigegoshi/2 130 RANBUTSUKI 135 thiefKasume/3 140 SHUNSATSU
-    145 thiefAsari/1 150 TSUMUJIKAZE 155 thiefShikake/2 160 ZANKOU 162 TENRAN 165 thiefShikake/3
-    170 ANSATSU 175 thiefTsukekomi/3 180 SENKOUZAN 185 thiefNigegoshi/3 190 HISSATSU 195 MUGEN
-    200 ZANSEI`,
+    1 thiefSuki/1 2 STEAL 3 POISONSTAB 5 ambushCrit/1 7 FUYUU 8 THIEF_SURINUKE
+    10 KEMURIDAMA 12 SUNAKAKE 15 trapEye/1 18 thiefKasume/1 20 KASUMEGIRI 25 SHIBIREBARI
+    25 thiefTsukekomi/1 25 ASSASSINATE 35 thiefNigegoshi/1 40 OBORO 45 THIEF_TAKARASAGASHI 50 trapEye/2
+    50 MAKIBISHI 50 thiefKasume/2 57 FUUGA 60 venomBlade/1 60 TSUJIKAZE 70 sleepKill/1
+    75 thiefShikake/1 75 ZETSUEI 80 SHIPPUTSUKI 85 thiefNigegoshi/2 95 ENGETSUJIN 95 MOUDOKUSASHI
+    95 thiefKasume/3 100 trapEye/3 105 thiefTsukekomi/2 107 KAMIKAZE 110 KAGEUCHI 115 venomBlade/2
+    120 KUBIHANE 130 RANBUTSUKI 140 SHUNSATSU 145 thiefAsari/1 150 TSUMUJIKAZE 150 thiefNigegoshi/3
+    155 thiefShikake/2 160 ZANKOU 162 TENRAN 165 thiefShikake/3 170 ANSATSU 175 thiefTsukekomi/3
+    180 SENKOUZAN 190 HISSATSU 195 MUGEN 200 ZANSEI`,
   skills: {
-    // Lv15 の固有技: 脇をすり抜けざまに二度斬り、懐をかすめる (素早さで伸びる)
-    THIEF_SURINUKE: { name: "すり抜け斬り", mp: 4, kind: "phys", power: 0.8, hits: 2, agiScale: 0.4, steal: 0.3, target: "enemy", desc: "敵の脇をすり抜けざまに二度斬り、懐の金品をかすめ取る（AGIで伸びる）" },
+    // 序盤の固有技: 脇をすり抜けざまに二度斬り、懐をかすめる (素早さで伸びる)
+    THIEF_SURINUKE: {name: "すり抜け斬り", mp: 4, kind: "phys", power: 0.8, hits: 2, agiScale: 0.4, steal: 0.3, target: "enemy", desc: "二度斬って金品と強化をかすめ取る。AGIで伸びる・命中率+16%", dur: 3, acc: 0.16, strip: true},
     // 迷宮で唱える術: 盗人の鼻で、この階の宝箱の在りかを青い光として嗅ぎ当てる
     THIEF_TAKARASAGASHI: { name: "宝探し", mpPct: 0.3, mp: 5, kind: "field", sense: "chest", target: "all-ally", desc: "この階の宝箱の在りかが、伏せたカードの青い光として浮かび上がる。中身や罠、ミミックかどうかまでは分からない（迷宮で唱える。効くのはこの階だけ）" },
   },
@@ -49,11 +50,10 @@ export default {
     // 殴られたら逃げ腰で素早くなる
     thiefNigegoshi: {
       label: "逃げ腰の身軽さ",
-      lv: ["敵の物理を5%でかわす。物理を受けると25%でAGI×1.15 (2ターン)", "敵の物理を8%でかわす。物理を受けると30%でAGI×1.15",
-        "敵の物理を11%でかわす。物理を受けると35%でAGI×1.2"],
+      lv: ["物理を5%でかわす。物理を受けると30%でAGIを1段上げる（2ターン）", "物理を8%でかわす。物理を受けると30%でAGIを1段上げる（3ターン）", "物理を11%でかわす。物理を受けると30%でAGIを1段上げる（4ターン）"],
       fx: [
-        { t: "evade", v: [0.05, 0.08, 0.11] },
-        { t: "hurt", chance: [0.25, 0.3, 0.35], buff: { agi: [1.15, 1.15, 1.2] }, dur: 2 },
+        {t: "evade", v: [0.05, 0.08, 0.11]},
+        {t: "hurt", chance: 0.3, buff: {agi: [1.25, 1.25, 1.25]}, dur: [2, 3, 4]},
       ],
     },
     // 道具を使っても袋を空にしない手口

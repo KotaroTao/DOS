@@ -263,7 +263,8 @@ for(const c of [
  {hp:976,expected:225}, {hp:400,expected:120},
  {hp:2301,boss:true,expected:207}, {hp:3810,boss:true,expected:225},
  {hp:10000,intStage:2,expected:338}, {hp:10000,intStage:-1,expected:180},
- {hp:10000,perks:true,expected:270}, {hp:10000,magResist:50,expected:113},
+ // 呪蝕の理は低HP時の会心へ変更。確定の与ダメ加算は血の触媒の12%だけ。
+ {hp:10000,perks:true,expected:252}, {hp:10000,magResist:50,expected:113},
  {hp:10000,guard:.5,expected:113}, {hp:10000,magResist:100,expected:0},
  {hp:10000,int:0,expected:1}, {hp:10000,int:151,expected:227},
 ]){

@@ -1,3 +1,4 @@
+// 全職見直し: HPを代償にINTを乗せた闇剣を振るい、魔法で返す。ランクパッシブは維持。
 // 魔騎士 (darkknight) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 持ち味: 闇の剣と魔障壁。身を削る暗黒剣で斬り、手負いになるほど凶暴に (闇/火)
@@ -6,17 +7,17 @@ export default {
   awaken: "dkKeiyaku",
   table: `
     1 SHIELDBASH 2 YAMIBA 3 NERAIUCHI 5 darkknightYaminoShouheki/1 7 ANKOKU 10 SHADOWBOLT
-    12 CHOUHATSU 15 DARKKNIGHT_CHIYAMI 15 dkEnchant/1 20 KYUUKETSU 22 KOKUEINAGI 25 darkknightKaeshiba/1 30 YAMINOKOROMO
-    32 DARKBLAST 35 darkknightKurokiBanpei/1 40 MAGUINOTACHI 45 darkknightYaminoShouheki/2 50 DARKKNIGHT_KOKUSHOU 50 dkEnchant/2 55 JUBAKU
-    57 MEIJIN 60 darkknightShikobami/1 65 DARKKNIGHT_MAKOKU 70 darkknightTeoiMashou/1 75 resistAilment/1 80 HANGEKI
-    85 DARKKNIGHT_KETSURUI 90 darkknightKaeshiba/2 95 DARKKNIGHT_KUROGANE 100 DARKKNIGHT_GOKUENMAKEN 100 dkEnchant/3 105 darkknightKurokiBanpei/2 107 DARKKNIGHT_YAMIKURAI
-    110 DARKKNIGHT_NARAKUSOU 115 darkknightTeoiMashou/2 120 DARKKNIGHT_SHUKUMEI 125 darkknightShikobami/2 130 DARKKNIGHT_KUROJOUSAI 135 darkknightTeoiMashou/3
-    140 DARKKNIGHT_MEIOUKUSARI 145 resistAilment/2 150 DARKKNIGHT_GOUMADAN 155 darkknightKaeshiba/3 160 ANKOKUSHUUEN 162 DARKKNIGHT_KOKUUZUGIRI
-    165 darkknightYaminoShouheki/3 170 DARKKNIGHT_RENGOKU 175 darkknightKurokiBanpei/3 180 DARKKNIGHT_ZANSHU 185 darkknightTeoiMashou/4 190 DARKKNIGHT_TOKOYO
-    195 DARKKNIGHT_MAJUN 200 DARKKNIGHT_KOKUTEN`,
+    12 CHOUHATSU 12 DARKKNIGHT_CHIYAMI 15 dkEnchant/1 18 KYUUKETSU 20 darkknightKaeshiba/1 22 KOKUEINAGI
+    25 YAMINOKOROMO 30 darkknightKurokiBanpei/1 32 DARKBLAST 35 DARKKNIGHT_MAKOKU 40 MAGUINOTACHI 45 darkknightYaminoShouheki/2
+    45 DARKKNIGHT_KOKUSHOU 50 dkEnchant/2 55 JUBAKU 57 MEIJIN 60 darkknightShikobami/1 60 DARKKNIGHT_KETSURUI
+    70 darkknightTeoiMashou/1 75 resistAilment/1 75 darkknightKaeshiba/2 75 DARKKNIGHT_KUROGANE 80 HANGEKI 90 DARKKNIGHT_GOKUENMAKEN
+    90 darkknightKurokiBanpei/2 100 dkEnchant/3 105 DARKKNIGHT_NARAKUSOU 107 DARKKNIGHT_YAMIKURAI 115 darkknightTeoiMashou/2 125 DARKKNIGHT_SHUKUMEI
+    125 darkknightShikobami/2 130 DARKKNIGHT_KUROJOUSAI 135 darkknightTeoiMashou/3 135 darkknightKaeshiba/3 140 DARKKNIGHT_MEIOUKUSARI 145 resistAilment/2
+    150 DARKKNIGHT_GOUMADAN 150 darkknightKurokiBanpei/3 160 ANKOKUSHUUEN 162 DARKKNIGHT_KOKUUZUGIRI 165 darkknightYaminoShouheki/3 170 DARKKNIGHT_RENGOKU
+    180 DARKKNIGHT_ZANSHU 185 darkknightTeoiMashou/4 190 DARKKNIGHT_TOKOYO 195 DARKKNIGHT_MAJUN 200 DARKKNIGHT_KOKUTEN`,
   skills: {
-    // Lv15 の固有技: 身を削って闇をまとい、斬った血で傷を塞ぐ
-    DARKKNIGHT_CHIYAMI: { name: "血闇の剣", mp: 5, kind: "phys", power: 1.5, intScale: 0.4, element: "dark", hpCost: 0.06, drain: 0.2, target: "enemy", desc: "身を削って闇をまとい斬りつけ、その血で傷を塞ぐ" },
+    // 序盤の固有技: 身を削って闇をまとい、斬った血で傷を塞ぐ
+    DARKKNIGHT_CHIYAMI: {name: "血闇の剣", mp: 5, kind: "phys", power: 1.4, intScale: 0.5, element: "dark", hpCost: 0.06, drain: 0.15, target: "enemy", desc: "HP6%を代償にINTを乗せた闇剣を振るい、与えた傷の15%を吸収する", dur: 3},
     DARKKNIGHT_KOKUSHOU: { name: "黒瘴の威圧", mp: 6, kind: "debuff", debuff: { atk: 0.85, hit: 0.9 }, target: "all-enemy", tech: true, desc: "黒い瘴気をまとい、敵全体の力と狙いを鈍らせる" },
     DARKKNIGHT_MAKOKU: { name: "魔刻の黒剣", mp: 14, kind: "phys", power: 3.2, intScale: 0.5, element: "dark", acc: 0.21, hpCost: 0.06, target: "enemy", desc: "刃に魔術を刻み、身を削って闇の剛剣を振るう（命中率+21%）" },
     DARKKNIGHT_KETSURUI: { name: "血涙の闇波", mp: 12, kind: "atk", power: 42, element: "dark", hpCost: 0.06, target: "all-enemy", desc: "HPを代償に、闇の波で敵全体を呑む" },
@@ -40,8 +41,13 @@ export default {
       fx: [{ t: "start", barrier: [1, 2, 3] }] },
     darkknightKurokiBanpei: { label: "黒き番兵", lv: ["戦闘開始時に敵を引き付け (2ターン)、物理の被ダメ−5%", "開幕に引き付け、物理の被ダメ−8%", "開幕に引き付け、物理の被ダメ−11%", "開幕に引き付け、物理の被ダメ−14%"],
       fx: [{ t: "start", taunt: true, dur: 2 }, { t: "take", on: "phys", v: [0.05, 0.08, 0.11, 0.14] }] },
-    darkknightKaeshiba: { label: "恨みの返し刃", lv: ["物理を受けるたび、攻撃力×0.2でやり返す", "物理を受けるたび、攻撃力×0.3でやり返す", "物理を受けるたび、攻撃力×0.4でやり返す"],
-      fx: [{ t: "hurt", ret: { stat: "atk", k: [0.2, 0.3, 0.4] } }] },
+    darkknightKaeshiba: {
+      label: "恨みの返し刃",
+      lv: ["物理を受けるたび、INT×0.3の魔法の一撃で返す", "物理を受けるたび、INT×0.45の魔法の一撃で返す", "物理を受けるたび、INT×0.6の魔法の一撃で返す"],
+      fx: [
+        {t: "hurt", ret: {stat: "int", k: [0.3, 0.45, 0.6], magic: true}},
+      ],
+    },
     darkknightShikobami: { label: "死拒みの闇", lv: ["戦闘開始時50%で不屈 (致死をHP1で耐える) を得る。敵を倒すとHP5%回復", "戦闘開始時に必ず不屈を得る。敵を倒すとHP8%回復"],
       fx: [{ t: "start", chance: [0.5, 1], endure: true }, { t: "kill", hp: [0.05, 0.08] }] },
     darkknightTeoiMashou: { label: "手負いの魔性", lv: ["HP50%以下の時、STR+12%", "HP50%以下の時、STR+18%", "HP50%以下の時、STR+24%", "HP50%以下の時、STR+30%"],

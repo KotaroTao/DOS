@@ -1,3 +1,4 @@
+// 全職見直し: 特技を封じ、結界で呪文とブレスを受ける。ランクパッシブは維持。
 // 神殿騎士 (templar) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 持ち味: 封魔と結界の門番 — 特技を封じ、強化を剥ぎ、魔障壁を重ねて呪文とブレスを門の外に留める
@@ -7,24 +8,22 @@ export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
   awaken: "templarIkou",
   table: `
-    1 SHIELDBASH 2 KOUJIN 3 DIOS 5 templarMonshu/1 7 CHOUHATSU 10 PROTECT 12 NERAIUCHI 15 TEMPLAR_MONKEKKAI
-    15 templarShinsei/1 17 HOLYLIGHT 20 FUUMANOTATE 20 RECOVER 25 templarFuumakusabi/1 25 AWAKE 30 NIOUDACHI
-    30 DIOSALL 35 templarKairitsu/1 40 SEIIKINOKANE 40 DIAL 45 templarMonkekkai/1 50 STONECURE
-    50 templarShinsei/2 55 TEMPLAR_KUSARIUCHI 57 TEMPLAR_SEIINUCHI 30 templarMayoke/1
-    65 TEMPLAR_MONZENNOHARAI 70 resistAilment/1 75 templarFuumakusabi/2 80 TEMPLAR_MISOGI
-    82 TEMPLAR_HAKAINOISHIZUCHI 85 TEMPLAR_HAMANOKOUSA 90 templarMonkekkai/2 95 TEMPLAR_MONBANNOKAMAE
-    100 TEMPLAR_HAMANOOOZUCHI 100 templarShinsei/3 105 templarFuumakusabi/3 110 TEMPLAR_SEIIKIKEKKAI
-    115 templarMonshu/2 120 TEMPLAR_DANZAINOFUUIN 125 templarMonkekkai/3 130 TEMPLAR_OOTOBIRA
-    135 resistAilment/2 140 TEMPLAR_SEIKANOHARAI 145 templarMonshu/3 150 TEMPLAR_SANJUUKEKKAI
-    155 templarFuumakusabi/4 160 TEMPLAR_FUUMANOOOGANE 162 TEMPLAR_KOUSANAGI 165 templarMayoke/2
-    170 TEMPLAR_SHUMONNOJIN 175 templarKairitsu/2 180 TEMPLAR_SEIDOUKISHI 185 templarMonkekkai/4
-    190 TEMPLAR_SHINDENNOSHINPAN 195 TEMPLAR_SAIRINNOSEIMON 200 TEMPLAR_ZETTAIKEKKAI`,
+    1 SHIELDBASH 2 KOUJIN 3 DIOS 5 templarMonshu/1 7 CHOUHATSU 10 PROTECT
+    12 NERAIUCHI 12 TEMPLAR_MONKEKKAI 15 templarShinsei/1 17 HOLYLIGHT 18 FUUMANOTATE 20 RECOVER
+    20 templarFuumakusabi/1 25 AWAKE 25 TEMPLAR_KUSARIUCHI 25 templarMayoke/1 30 NIOUDACHI 30 DIOSALL
+    35 templarKairitsu/1 35 TEMPLAR_MONZENNOHARAI 40 SEIIKINOKANE 40 DIAL 45 templarMonkekkai/1 45 TEMPLAR_SEIINUCHI
+    50 STONECURE 50 templarShinsei/2 60 TEMPLAR_MISOGI 65 templarFuumakusabi/2 70 resistAilment/1 75 TEMPLAR_HAMANOKOUSA
+    82 TEMPLAR_HAKAINOISHIZUCHI 90 templarMonkekkai/2 90 TEMPLAR_MONBANNOKAMAE 100 templarShinsei/3 105 TEMPLAR_HAMANOOOZUCHI 110 templarFuumakusabi/3
+    115 templarMonshu/2 120 TEMPLAR_DANZAINOFUUIN 125 TEMPLAR_SEIIKIKEKKAI 125 templarMonkekkai/3 125 templarMayoke/2 130 TEMPLAR_OOTOBIRA
+    135 resistAilment/2 140 TEMPLAR_SEIKANOHARAI 145 templarMonshu/3 150 TEMPLAR_SANJUUKEKKAI 155 templarFuumakusabi/4 160 TEMPLAR_FUUMANOOOGANE
+    162 TEMPLAR_KOUSANAGI 170 TEMPLAR_SHUMONNOJIN 175 templarKairitsu/2 180 TEMPLAR_SEIDOUKISHI 185 templarMonkekkai/4 190 TEMPLAR_SHINDENNOSHINPAN
+    195 TEMPLAR_SAIRINNOSEIMON 200 TEMPLAR_ZETTAIKEKKAI`,
   skills: {
-    // Lv15 の固有技: 門に立ち塞がって敵を引き付け、魔障壁を張る
-    TEMPLAR_MONKEKKAI: { name: "門の結界", mp: 5, kind: "buff", taunt: true, grantBarrier: 1, target: "self", desc: "門に立ち塞がって敵を引き付け、魔障壁を張る" },
+    // 序盤の固有技: 門に立ち塞がって敵を引き付け、魔障壁を張る
+    TEMPLAR_MONKEKKAI: {name: "門の結界", mp: 5, kind: "buff", taunt: true, grantBarrier: 1, target: "self", desc: "敵を引き付ける門の結界。自分に魔障壁1回・挑発4ターン", dur: 4},
     TEMPLAR_KUSARIUCHI: { name: "鎖打ち", mp: 7, kind: "phys", power: 1.3, acc: 0.21, seal: { chance: 0.35, turns: 2 }, target: "enemy", desc: "聖鎖を絡めて打ち、特技を封じる" },
     TEMPLAR_SEIINUCHI: { name: "聖印打ち", mp: 12, kind: "phys", power: 2.0, pieScale: 0.5, element: "light", acc: 0.16, mpDrain: 0.15, target: "enemy", desc: "聖印を刻んで打ち、魔力を吸い上げる" },
-    TEMPLAR_MONZENNOHARAI: { name: "門前の祓い", mp: 7, kind: "buff", buff: { vit: 1.2 }, purge: true, target: "all-ally", desc: "味方全員の守りを固め、弱体を祓う" },
+    TEMPLAR_MONZENNOHARAI: {name: "門前の祓い", mp: 10, kind: "buff", buff: {vit: 1.25}, purge: true, target: "all-ally", desc: "味方全員の毒・麻痺と弱体を祓い、VITを1段上げる（2ターン）", dur: 2, cure: ["poison", "paralyze"]},
     TEMPLAR_MISOGI: { name: "禊の聖水", mp: 9, kind: "buff", cure: ["poison", "paralyze", "sleep"], purge: true, regen: { pct: 0.03, turns: 2 }, target: "all-ally", desc: "全員の毒・猛毒・麻痺・眠りと弱体を流し、わずかに癒し続ける" },
     TEMPLAR_HAKAINOISHIZUCHI: { name: "破戒の石槌", mp: 12, kind: "phys", power: 2.4, element: "earth", acc: 0.13, strip: true, target: "enemy", desc: "石槌で打ち、敵の強化を打ち砕く" },
     TEMPLAR_HAMANOKOUSA: { name: "破魔の光鎖", mp: 10, kind: "atk", power: 20, element: "light", seal: { chance: 0.25, turns: 2 }, target: "all-enemy", desc: "光の鎖が敵陣を縛り、特技を封じる" },

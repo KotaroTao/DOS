@@ -1,3 +1,4 @@
+// 全職見直し: 先制と後衛の射撃で、獲物の足と行動を止める。ランクパッシブは維持。
 // 狩人 (hunter) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 import { BEASTS } from "./common.js";
@@ -6,22 +7,23 @@ export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
   awaken: "hunterSaihai",
   table: `
-    1 DOKUYA 2 SUIGETSU 3 ASHIDOME 5 hunterKemono/1 7 SOGEKI 10 YANOAME 10 dynamicVision/1
-    12 ABURA 15 HUNTER_NINOYA 15 senseEnemy/1 20 SHIBIREYA 22 HUNTER_KEHAIYOMI 25 hunterAshinerai/1 30 KEMONOGARI
-    35 hunterKemono/2 40 KUBIKARI 40 dynamicVision/2 45 hunterAshinerai/2 50 TSURANUKI 50 senseEnemy/2 55 HUNTER_HAYATEYA 57 FUUGA
-    60 hunterKoei/1 65 HUNTER_KABURAYA 70 hunterKazeyomi/1 75 fleetFoot/1 80 HYOUJIN 82 RENSHA
-    85 HUNTER_TORABASAMI 90 hunterAshinerai/3 95 SENNYA 100 HUNTER_ITEYA 100 senseEnemy/3 100 dynamicVision/3 105 hunterKemono/3 110 HUNTER_TAKAOTOSHI
-    115 hunterKoei/2 120 HUNTER_KAZEKIRI 125 vigilance/1 130 HUNTER_HIYA 135 hunterAshinerai/4 140 HUNTER_SHINZOU
-    145 fleetFoot/2 150 HUNTER_SAMIDARE 155 vigilance/2 160 RYUUSEISHA 162 HUNTER_ARASHIYUZURU 165 resistAilment/1
-    170 HUNTER_TOMEYA 175 hunterKemono/4 180 HUNTER_AMIUCHI 185 hunterKazeyomi/2 190 HUNTER_KARIGAMI 195 HUNTER_BAKUFU
+    1 DOKUYA 2 SUIGETSU 3 ASHIDOME 5 hunterKemono/1 7 SOGEKI 10 YANOAME
+    10 dynamicVision/1 12 ABURA 12 HUNTER_NINOYA 15 senseEnemy/1 18 SHIBIREYA 20 hunterKoei/1
+    22 HUNTER_KEHAIYOMI 25 hunterAshinerai/1 25 KEMONOGARI 35 hunterKemono/2 35 HUNTER_KABURAYA 35 hunterKazeyomi/1
+    40 KUBIKARI 40 dynamicVision/2 45 hunterAshinerai/2 45 TSURANUKI 50 senseEnemy/2 55 HUNTER_HAYATEYA
+    57 FUUGA 70 RENSHA 75 fleetFoot/1 80 HYOUJIN 80 hunterKoei/2 85 HUNTER_TORABASAMI
+    90 hunterAshinerai/3 95 SENNYA 100 senseEnemy/3 100 dynamicVision/3 105 hunterKemono/3 110 HUNTER_ITEYA
+    110 HUNTER_TAKAOTOSHI 120 HUNTER_KAZEKIRI 125 vigilance/1 125 hunterKazeyomi/2 130 HUNTER_HIYA 135 hunterAshinerai/4
+    140 HUNTER_SHINZOU 145 fleetFoot/2 150 HUNTER_SAMIDARE 155 vigilance/2 160 RYUUSEISHA 162 HUNTER_ARASHIYUZURU
+    165 resistAilment/1 170 HUNTER_TOMEYA 175 hunterKemono/4 180 HUNTER_AMIUCHI 190 HUNTER_KARIGAMI 195 HUNTER_BAKUFU
     200 HUNTER_HOSHIOTOSHI`,
   skills: {
-    // Lv15 の固有技: 間を置かず二の矢を継ぐ確実な連射
-    HUNTER_NINOYA: { name: "二の矢", mp: 5, kind: "phys", power: 0.85, hits: 2, acc: 0.16, agiScale: 0.3, target: "enemy", desc: "間を置かずに二の矢を継ぎ、確実に射抜く（AGIで伸びる）" },
+    // 序盤の固有技: 間を置かず二の矢を継ぐ確実な連射
+    HUNTER_NINOYA: {name: "二の矢", mp: 5, kind: "phys", power: 0.8, hits: 2, acc: 0.22, agiScale: 0.35, target: "enemy", desc: "後衛から二の矢を継ぐ。AGIで伸びる二連射・命中率+22%", dur: 3},
     // Lv22 の風の射撃。既存セーブの習得・宿し技を保つため、旧「気配読み」のキーを維持する
     HUNTER_KEHAIYOMI:    { name: "追い風の矢", mp: 6, kind: "phys", power: 1.4, agiScale: 0.5, acc: 0.2, element: "wind", target: "enemy", desc: "追い風に乗せた矢で敵一体を射抜く（風・AGIで伸びる・命中率+20%）" },
     HUNTER_HAYATEYA:     { name: "疾風の一矢", mp: 9, kind: "phys", power: 1.65, agiScale: 0.9, acc: 0.1, element: "wind", target: "enemy", desc: "風に乗せた速射（風・命中率+10%）" },
-    HUNTER_KABURAYA:     { name: "鏑矢三連", mp: 14, kind: "phys", power: 0.95, hits: 3, agiScale: 0.35, flinchChance: 0.35, target: "enemy", desc: "鳴り響く三矢で射抜き、怯ませる" },
+    HUNTER_KABURAYA:     {name: "鏑矢三連", mp: 14, kind: "phys", power: 1.2, hits: 3, agiScale: 0.35, flinchChance: 0.35, target: "enemy", desc: "音を鳴らす矢で攻撃を1段下げ、30%で特技を2ターン封じる", dur: 3, debuff: {atk: 0.8}, seal: {chance: 0.3, turns: 2}},
     HUNTER_TORABASAMI:   { name: "虎挟み", mp: 16, kind: "phys", power: 2.6, acc: 0.13, para: 0.35, debuff: { agi: 0.75 }, target: "enemy", desc: "鋼の罠で脚を噛み、痺れさせる" },
     HUNTER_ITEYA:        { name: "凍て矢", mp: 20, kind: "phys", power: 4.5, acc: 0.1, element: "water", vuln: { water: 0.8 }, target: "enemy", desc: "芯まで凍らせ、水への守りを崩す（水）" },
     HUNTER_TAKAOTOSHI:   { name: "鷹落とし", mp: 22, kind: "phys", power: 4.0, agiScale: 1.4, critBonus: 0.3, prey: { races: ["wing", "avian"], mul: 2 }, target: "enemy", desc: "飛ぶものを撃ち落とす速射（飛行に2倍）" },
@@ -69,10 +71,10 @@ export default {
     // 風の流れを読んで身をかわし、機を待つ
     hunterKazeyomi: {
       label: "風読み",
-      lv: ["敵の物理を4%でかわす。2ターン目から毎ターン30%でAGI×1.15 (2ターン)", "敵の物理を7%でかわす。毎ターン45%でAGI×1.15"],
+      lv: ["後衛にいる間、物理を5%でかわす。先制した戦闘の物理与ダメージ+5%", "後衛にいる間、物理を8%でかわす。先制した戦闘の物理与ダメージ+8%"],
       fx: [
-        { t: "evade", v: [0.04, 0.07] },
-        { t: "round", chance: [0.3, 0.45], buff: { agi: [1.15, 1.15] }, dur: 2 },
+        {t: "evade", when: {back: true}, v: [0.05, 0.08]},
+        {t: "deal", on: "phys", when: {preempt: true}, v: [0.05, 0.08]},
       ],
     },
   },

@@ -1,3 +1,4 @@
+// 全職見直し: 隊の結界を維持し、弱体と封印で被害を減らす。ランクパッシブは維持。
 // 護法師 (warden) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 持ち味: 結界と封印の術者。土と水の守りで隊を囲い、敵の特技を封じ、封じた敵の牙を鈍らせる。
@@ -6,17 +7,17 @@ export default {
   awaken: "wardenKekkai",
   table: `
     1 PROTECT 2 ISHITSUBUTE 3 SEAL 5 wardenHouheki/1 7 WARDEN_FUUGAN 10 ICENEEDLE
-    12 AQUAWAVE 15 WARDEN_SHIZUMEISHI 15 spellGuard/1 20 MAYOKE 22 EARTHQUAKE 25 wardenGohoujin/1 30 WARDEN_SEKIRUI
-    35 wardenFuujite/1 40 KOUSHUNOHOUJIN 45 wardenHouheki/2 47 ICELANCE 50 WARDEN_FUUMAKEKKAI 50 spellGuard/2 55 WARDEN_CHINJUU
-    60 wardenGohoujin/2 62 LANDSLIDE 65 MADALT 70 wardenJusogaeshi/1 75 resistAilment/1 80 WARDEN_MIZUKAGAMI
-    85 ELEMBREAK 90 wardenSeihitsu/1 95 WARDEN_HAJA 100 WARDEN_SHIHOU 100 spellGuard/3 102 WARDEN_JIBAKU 105 wardenFuujite/2
-    110 WARDEN_SUIROU 115 wardenGohoujin/3 117 WARDEN_UTSUSHIGAESHI 120 WARDEN_FUDOU 125 wardenSeihitsu/2 130 WARDEN_TAIZAN 135 wardenJusogaeshi/2
-    140 WARDEN_GANKAI 145 wardenHouheki/3 150 WARDEN_KONGOU 155 resistAilment/2 160 WARDEN_BAKUFU 165 wardenFuujite/3
-    170 DAIKEKKAI 172 WARDEN_KANAME 175 wardenJusogaeshi/3 180 WARDEN_CHIMYAKU 185 wardenGohoujin/4 190 WARDEN_HYOUFUU
-    195 WARDEN_SEISHIN 200 WARDEN_BANSHOU`,
+    12 AQUAWAVE 12 WARDEN_SHIZUMEISHI 15 spellGuard/1 18 MAYOKE 20 wardenFuujite/1 22 EARTHQUAKE
+    25 wardenGohoujin/1 25 WARDEN_SEKIRUI 35 WARDEN_FUUMAKEKKAI 35 wardenJusogaeshi/1 40 KOUSHUNOHOUJIN 45 wardenHouheki/2
+    45 WARDEN_MIZUKAGAMI 47 ICELANCE 50 spellGuard/2 60 WARDEN_CHINJUU 60 wardenGohoujin/2 62 LANDSLIDE
+    65 MADALT 75 resistAilment/1 75 WARDEN_HAJA 75 wardenFuujite/2 85 ELEMBREAK 90 wardenSeihitsu/1
+    90 WARDEN_SHIHOU 100 spellGuard/3 100 wardenJusogaeshi/2 102 WARDEN_JIBAKU 105 WARDEN_UTSUSHIGAESHI 110 WARDEN_SUIROU
+    115 wardenGohoujin/3 125 WARDEN_FUDOU 125 wardenSeihitsu/2 130 WARDEN_TAIZAN 135 wardenFuujite/3 140 WARDEN_GANKAI
+    145 wardenHouheki/3 150 WARDEN_KONGOU 155 resistAilment/2 160 WARDEN_BAKUFU 165 wardenJusogaeshi/3 170 DAIKEKKAI
+    172 WARDEN_KANAME 180 WARDEN_CHIMYAKU 185 wardenGohoujin/4 190 WARDEN_HYOUFUU 195 WARDEN_SEISHIN 200 WARDEN_BANSHOU`,
   skills: {
-    // Lv15 の固有技: 鎮め石を巡らせ、敵全体の特技と力を鎮める
-    WARDEN_SHIZUMEISHI: { name: "鎮め石", mp: 6, kind: "debuff", seal: { chance: 0.35, turns: 2 }, debuff: { atk: 0.9 }, target: "all-enemy", desc: "鎮め石を巡らせ、敵全体の特技を封じて力を鈍らせる" },
+    // 序盤の固有技: 鎮め石を巡らせ、敵全体の特技と力を鎮める
+    WARDEN_SHIZUMEISHI: {name: "鎮め石", mp: 6, kind: "debuff", seal: {chance: 0.3, turns: 2}, debuff: {atk: 0.8}, target: "all-enemy", desc: "敵全体の攻撃を1段下げ、30%で特技を2ターン封じる。攻撃低下は4ターン", dur: 4},
     WARDEN_FUUGAN:      { name: "封眼の符", mp: 4, kind: "debuff", debuff: { hit: 0.75 }, seal: { chance: 0.3, turns: 2 }, target: "enemy", desc: "符で目を塞ぎ、狙いを乱し特技を封じる" },
     WARDEN_SEKIRUI:     { name: "石塁の礫", mp: 8, kind: "atk", power: 24, element: "earth", debuffAll: { atk: 0.9 }, target: "all-enemy", desc: "石塁の礫で敵全体を撃ち、勢いを削ぐ" },
     WARDEN_FUUMAKEKKAI: { name: "封魔結界", mp: 10, kind: "debuff", seal: { chance: 0.55, turns: 3 }, debuff: { agi: 0.9 }, target: "all-enemy", desc: "結界で敵全体の特技を封じ、足を鈍らせる" },
@@ -28,7 +29,7 @@ export default {
     WARDEN_SUIROU:      { name: "水牢", mp: 14, kind: "atk", power: 34, element: "water", debuff: { atk: 0.85 }, target: "enemy", desc: "水の牢で締め上げ、力を奪う" },
     // 味方全体に反射 (2026-10-15 ユーザーの指示): 受けた呪文・ブレスを、唱えた護法師の魔力 (INT・PIE の高い方) × 0.8 で返す
     WARDEN_UTSUSHIGAESHI: { name: "映し返しの陣", mp: 24, kind: "buff", reflect: 0.8, dur: 3, target: "all-ally", desc: "鏡の結界で味方全員を包み、受けた呪文・ブレスを返す（唱えた者のINT・PIEの高い方×0.8の魔法の一撃）" },
-    WARDEN_FUDOU:       { name: "不動の陣", mp: 16, kind: "buff", buff: { vit: 1.4 }, dur: 5, target: "all-ally", tech: true, desc: "味方全員の守りを長く固める (5ターン)" },
+    WARDEN_FUDOU:       {name: "不動の陣", mp: 16, kind: "buff", buff: {vit: 1.25}, dur: 4, target: "all-ally", tech: true, desc: "味方全員のVITを1段上げ、ブレスと全体呪文を20%軽減（4ターン）", ward: {breath: 0.2, spell: 0.2}},
     WARDEN_TAIZAN:      { name: "泰山の重圧", mp: 18, kind: "atk", gravity: 0.25, debuff: { atk: 0.85 }, target: "all-enemy", desc: "敵全体の今のHPの25%を圧し、力を奪う" },
     WARDEN_GANKAI:      { name: "岩戒の陣", mp: 27, kind: "atk", power: 70, element: "earth", flinchChance: 0.3, target: "all-enemy", desc: "岩の戒めが敵全体を打ち、怯ませる" },
     WARDEN_KONGOU:      { name: "金剛の陣", mp: 20, kind: "buff", buff: { vit: 1.5 }, debuffAll: { agi: 0.85 }, target: "all-ally", tech: true, desc: "味方の守りを固め、敵全体の足を縛る" },
@@ -42,8 +43,10 @@ export default {
   perks: {
     wardenHouheki: {
       label: "法壁の加護",
-      lv: ["戦闘開始時、自分に魔障壁を1枚張る (ブレス・呪文の被ダメ半減)", "戦闘開始時、自分に魔障壁を2枚張る", "戦闘開始時、自分に魔障壁を3枚張る"],
-      fx: [{ t: "start", barrier: [1, 2, 3] }],
+      lv: ["戦闘開始時、HP50%以下なら味方全員に魔障壁1回", "戦闘開始時、HP50%以下なら味方全員に魔障壁2回", "戦闘開始時、HP50%以下なら味方全員に魔障壁3回"],
+      fx: [
+        {t: "start", when: {selfLow: 0.5}, party: true, barrier: [1, 2, 3]},
+      ],
     },
     wardenSeihitsu: {
       label: "静謐の循環",

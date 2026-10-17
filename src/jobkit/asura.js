@@ -1,3 +1,4 @@
+// 全職見直し: 二刀の連撃を引き継ぎ、長い戦いほど攻めを増す。ランクパッシブは維持。
 // 修羅 (asura) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 修羅 = 止まらない連撃と殺気。六臂の多段斬り、殺気で敵を竦ませ (弱体)、戦いが長引くほど昂ぶる
@@ -6,22 +7,23 @@ export default {
   awaken: "asuraNitou",
   table: `
     1 KYOUGEKI 2 KAENGIRI 3 DOUBLE 5 asuraTakaburi/1 7 SHIPPUUGIRI 10 ASURA_KIKI
-    12 ASURA_SOUGA 15 ASURA_SANKAZAN 15 asuraChishio/1 20 ASURA_SAKKI 22 KAENNAGI 25 asuraMe/1 30 SHURADOU 30 dynamicVision/1
-    35 asuraTakaburi/2 40 ASHURAZAN 45 asuraSakki/1 50 ASURA_SANMEN 50 asuraChishio/2 55 ASURA_KOKYUU 57 GURENZAN
-    60 asuraShisen/1 65 ASURA_KYUUSHO 70 asuraMe/2 75 asuraSogi/1 80 ASURA_SHIZAN 80 dynamicVision/2 82 FUUGA
-    85 ASURA_ROPPI 90 asuraTakaburi/3 95 ASURA_SOU 100 ASURA_KEKKA 100 asuraChishio/3 105 asuraShisen/2 107 ASURA_KARIN
-    110 ASURA_MUKEN 115 asuraSakki/2 120 ASURA_RASETSU 125 asuraSogi/2 130 ASURA_HYAKKI 135 asuraShisen/3
-    140 ASURA_GOUFUU 145 resistAilment/1 150 ASURA_SETSUNA 155 asuraMe/3 160 ASURA_ABI 160 dynamicVision/3 162 ASURA_GOUKA
-    165 asuraSakki/3 170 ASURA_SENPUU 175 asuraTakaburi/4 180 ASURA_RENGOKU 185 asuraSogi/3 190 ASURA_SHURAOU
+    12 ASURA_SANKAZAN 15 asuraChishio/1 18 ASURA_SOUGA 20 ASURA_SAKKI 22 KAENNAGI 25 asuraMe/1
+    25 ASURA_KOKYUU 25 asuraSogi/1 30 SHURADOU 30 dynamicVision/1 35 asuraTakaburi/2 35 asuraShisen/1
+    35 ASURA_KYUUSHO 40 ASHURAZAN 45 asuraSakki/1 45 ASURA_SANMEN 50 asuraChishio/2 57 GURENZAN
+    60 ASURA_SHIZAN 70 asuraMe/2 75 ASURA_ROPPI 80 dynamicVision/2 82 FUUGA 85 asuraSogi/2
+    90 asuraTakaburi/3 90 ASURA_SOU 95 asuraShisen/2 100 asuraChishio/3 105 ASURA_KEKKA 107 ASURA_KARIN
+    110 ASURA_MUKEN 115 asuraSakki/2 125 ASURA_RASETSU 130 ASURA_HYAKKI 140 ASURA_GOUFUU 145 resistAilment/1
+    145 asuraSogi/3 150 ASURA_SETSUNA 155 asuraShisen/3 155 asuraMe/3 160 ASURA_ABI 160 dynamicVision/3
+    162 ASURA_GOUKA 165 asuraSakki/3 170 ASURA_SENPUU 175 asuraTakaburi/4 180 ASURA_RENGOKU 190 ASURA_SHURAOU
     195 ASURA_KYOUHYOU 200 RINNE`,
   skills: {
-    // Lv15 の固有技: 三面六臂のごとく炎刃を三度振るう
-    ASURA_SANKAZAN: { name: "三火斬", mp: 6, kind: "phys", power: 0.7, hits: 3, acc: 0.1, element: "fire", target: "enemy", desc: "三面六臂のごとく炎の刃を三度振るう（火）" },
+    // 序盤の固有技: 三面六臂のごとく炎刃を三度振るう
+    ASURA_SANKAZAN: {name: "三火斬", mp: 6, kind: "phys", power: 0.65, hits: 3, acc: 0.16, element: "fire", target: "enemy", desc: "火の刃を三度重ねる。命中率+16%・二刀流の技の上乗せも受ける", dur: 3},
     ASURA_KIKI: { name: "鬼気斬り", mp: 6, kind: "phys", power: 1.4, acc: 0.08, debuff: { atk: 0.85 }, target: "enemy", desc: "鬼気をまとう斬撃。敵の力を削ぐ" },
     ASURA_SOUGA: { name: "双牙", mp: 5, kind: "phys", power: 1.1, hits: 2, critBonus: 0.35, target: "enemy", desc: "二本の牙のごとく急所を二度突く" },
     ASURA_SAKKI: { name: "殺気", mp: 6, kind: "debuff", debuff: { agi: 0.8 }, target: "all-enemy", tech: true, desc: "殺気で敵全体を竦ませ、素早さを下げる" },
     ASURA_SANMEN: { name: "三面斬り", mp: 10, kind: "phys", power: 0.95, hits: 3, acc: 0.08, critBonus: 0.15, target: "enemy", desc: "三面の修羅が三方から斬りつける" },
-    ASURA_KOKYUU: { name: "修羅の呼吸", mp: 3, kind: "buff", charge: 1.6, buff: { agi: 1.25 }, target: "self", tech: true, desc: "息を整え次の物理を1.6倍、素早さも上げる" },
+    ASURA_KOKYUU: {name: "修羅の呼吸", mp: 5, kind: "buff", charge: 1.5, buff: {agi: 1.25}, target: "self", tech: true, desc: "次の物理を1.5倍に溜め、AGIを1段上げる。構えは4ターン", dur: 4},
     ASURA_KYUUSHO: { name: "急所断ち", mp: 8, kind: "phys", power: 1.4, critBonus: 1, execute: 1.3, target: "enemy", desc: "必ず会心。弱った敵には更に深く" },
     ASURA_SHIZAN: { name: "屍山", mp: 16, kind: "phys", power: 1.0, hits: 3, execute: 2.2, target: "enemy", desc: "弱った敵を三度斬り刻む（とどめ）" },
     ASURA_ROPPI: { name: "六臂乱撃", mp: 16, kind: "phys", power: 0.8, hits: 6, acc: 0.1, critBonus: 0.2, target: "enemy", desc: "六本の腕で六度打ち込む" },

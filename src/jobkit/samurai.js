@@ -1,3 +1,4 @@
+// 全職見直し: 未行動の敵と最後の一体を、鋭い一刀で斬る。ランクパッシブは維持。
 // 侍 (samurai) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 侍 = 居合と見切り・一太刀。抜き打ち (AGI・会心)、鎬の受け、介錯 (とどめ)、乱れ斬り (scatter)
@@ -5,21 +6,21 @@ export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
   awaken: "samuraiZantetsu",
   table: `
-    1 KYOUGEKI 2 SUIGETSU 3 GONOSEN 5 iai/1 7 DOUBLE 10 SAMURAI_SAYABASHIRI
-    12 SHIPPUUGIRI 15 SAMURAI_ZANGETSUGAESHI 15 samuraiIchibun/1 20 ISSEN 22 UZUSHIO 25 samuraiNukimi/1 30 MEIKYOU
-    35 initiative/1 40 TSUBAMEGAESHI 45 samuraiChiburi/1 50 SAMURAI_OBOROZUKI 50 samuraiIchibun/2 55 SAMURAI_SHINOGI 57 HYOUJIN
-    60 zanshin/1 65 SAMURAI_RYUUSUI 70 samuraiShingan/1 75 samuraiNukimi/2 80 SAMURAI_ITTOU 82 FUUGA
-    85 SAMURAI_SAMIDARE 90 samuraiMinegaeshi/1 95 SAMURAI_KAISHAKU 100 SAMURAI_ZANGETSU 100 samuraiIchibun/3 105 samuraiIkkiuchi/1 107 TOUGADAN
-    110 SAMURAI_SHIDEN 115 samuraiChiburi/2 120 SAMURAI_MUNEN 125 samuraiMinegaeshi/2 130 SAMURAI_HANAFUBUKI 135 samuraiIkkiuchi/2
-    140 SAMURAI_GUFUU 145 samuraiShingan/2 150 SAMURAI_UNYOU 155 samuraiChiburi/3 160 SAMURAI_HAPPOU 162 DAIKAISHOU
-    165 resistAilment/1 170 SAMURAI_NOWAKI 175 samuraiIkkiuchi/3 180 SAMURAI_RIKKA 185 samuraiNukimi/3 190 SAMURAI_GEKKA
-    195 SAMURAI_KOCHOU 200 SAMURAI_MUKYUU`,
+    1 KYOUGEKI 2 SUIGETSU 3 GONOSEN 5 iai/1 7 DOUBLE 8 SAMURAI_ZANGETSUGAESHI
+    10 SAMURAI_SAYABASHIRI 12 SHIPPUUGIRI 15 samuraiIchibun/1 18 ISSEN 20 initiative/1 22 UZUSHIO
+    25 samuraiNukimi/1 25 MEIKYOU 35 SAMURAI_SHINOGI 35 samuraiIkkiuchi/1 40 TSUBAMEGAESHI 45 samuraiChiburi/1
+    45 SAMURAI_OBOROZUKI 50 samuraiIchibun/2 55 samuraiShingan/1 57 HYOUJIN 60 zanshin/1 60 SAMURAI_RYUUSUI
+    75 samuraiNukimi/2 75 SAMURAI_ITTOU 82 FUUGA 85 SAMURAI_SAMIDARE 90 samuraiMinegaeshi/1 90 SAMURAI_KAISHAKU
+    90 samuraiIkkiuchi/2 100 samuraiIchibun/3 105 SAMURAI_ZANGETSU 107 TOUGADAN 110 SAMURAI_SHIDEN 115 samuraiChiburi/2
+    120 SAMURAI_MUNEN 125 samuraiMinegaeshi/2 125 samuraiShingan/2 130 SAMURAI_HANAFUBUKI 140 SAMURAI_GUFUU 150 SAMURAI_UNYOU
+    150 samuraiIkkiuchi/3 155 samuraiChiburi/3 160 SAMURAI_HAPPOU 162 DAIKAISHOU 165 resistAilment/1 170 SAMURAI_NOWAKI
+    180 SAMURAI_RIKKA 185 samuraiNukimi/3 190 SAMURAI_GEKKA 195 SAMURAI_KOCHOU 200 SAMURAI_MUKYUU`,
   skills: {
-    // Lv15 の固有技: 月を描く返し刃。会心と足止めを兼ねる
-    SAMURAI_ZANGETSUGAESHI: { name: "月返し", mp: 5, kind: "phys", power: 1.2, critBonus: 0.25, agiScale: 0.3, debuff: { agi: 0.85 }, target: "enemy", desc: "月を描く返し刃。会心しやすく、敵の足を鈍らせる" },
+    // 序盤の固有技: 月を描く返し刃。会心と足止めを兼ねる
+    SAMURAI_ZANGETSUGAESHI: {name: "月返し", mp: 5, kind: "phys", power: 1.15, critBonus: 0.2, agiScale: 0.3, debuff: {agi: 0.85}, target: "enemy", desc: "会心を狙う返し刃。命中率+15%・AGIで伸び、敵の素早さを1段下げる", dur: 3, acc: 0.15},
     SAMURAI_SAYABASHIRI: { name: "鞘走り", mp: 4, kind: "phys", power: 1.7, agiScale: 0.45, critBonus: 0.15, target: "enemy", desc: "鞘走る抜き打ち。素早さで伸び会心しやすい" },
     SAMURAI_OBOROZUKI: { name: "朧月", mp: 10, kind: "phys", power: 0.85, agiScale: 0.25, debuff: { agi: 0.85 }, target: "all-enemy", desc: "朧の弧を描く抜刀で敵陣の足を鈍らせる" },
-    SAMURAI_SHINOGI: { name: "鎬削り", mp: 4, kind: "phys", power: 1.15, acc: 0.1, debuff: { hit: 0.8 }, target: "enemy", desc: "鎬で刃を受け流し、敵の狙いを乱す" },
+    SAMURAI_SHINOGI: {name: "鎬削り", mp: 4, kind: "phys", power: 1.05, acc: 0.1, debuff: {hit: 0.8}, target: "enemy", desc: "鎧の隙間を斬り、命中率を20%下げる（4ターン）。物理貫通25%", dur: 4, pierce: 0.25},
     SAMURAI_RYUUSUI: { name: "流水三段", mp: 14, kind: "phys", power: 0.95, hits: 3, agiScale: 0.4, acc: 0.08, critBonus: 0.15, target: "enemy", desc: "流れる水のごとく三度斬る（命中率+8%）" },
     SAMURAI_ITTOU: { name: "一刀両断", mp: 16, kind: "phys", power: 3.6, pierce: 0.5, acc: 0.16, critBonus: 0.2, target: "enemy", desc: "抜き打ちの一刀で鎧ごと両断する（物理貫通50%）" },
     SAMURAI_SAMIDARE: { name: "五月雨斬り", mp: 10, kind: "phys", power: 0.75, scatter: 4, acc: 0.1, target: "all-enemy", desc: "五月雨のごとく、敵へ4度斬りかかる" },
@@ -53,8 +54,10 @@ export default {
     // 心眼で太刀筋を読み、刃をかわす
     samuraiShingan: {
       label: "心眼の見切り",
-      lv: ["敵の物理を6%でかわす", "敵の物理を10%でかわす", "敵の物理を14%でかわす"],
-      fx: [{ t: "evade", v: [0.06, 0.1, 0.14] }],
+      lv: ["敵が残り1体の時、物理を8%でかわす", "敵が残り1体の時、物理を14%でかわす", "敵が残り1体の時、物理を20%でかわす"],
+      fx: [
+        {t: "evade", when: {lastFoe: true}, v: [0.08, 0.14, 0.2]},
+      ],
     },
     // 鞘から抜いた最初の刃が最も鋭い
     samuraiNukimi: {

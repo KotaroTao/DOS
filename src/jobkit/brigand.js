@@ -1,3 +1,4 @@
+// 全職見直し: 強者を弱め、仲間が傷ついた時に救援する。ランクパッシブは維持。
 // 義賊 (brigand) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 export default {
@@ -5,21 +6,21 @@ export default {
   awaken: "brigandGi",
   table: `
     1 KYOUGEKI 2 STEAL 3 SUIGETSU 5 goldLuck/1 7 BRIGAND_ZENITSUBUTE 10 BRIGAND_TEBIKI
-    12 YAMIBA 15 BRIGAND_MINEUCHI 15 senseTreasure/1 20 ASHIBARAI 22 UZUSHIO 25 brigandGifun/1 30 BRIGAND_HAIKAGURA
-    35 brigandUdekujiki/1 40 OIHAGI 45 brigandKabau/1 50 BRIGAND_KUJIKI 50 senseTreasure/2 55 BRIGAND_AIKUCHI 57 HYOUJIN
-    60 goldLuck/2 65 BRIGAND_TACHIMAWARI 70 brigandUdekujiki/2 75 brigandHodokoshi/1 80 BRIGAND_HODOKOSHI 85 BRIGAND_MIZUZEME
-    90 brigandGifun/2 95 BRIGAND_KAGEFUMI 100 BRIGAND_AKUDAIKAN 100 senseTreasure/3 100 brigandMeguri/1 105 brigandKabau/2 107 BRIGAND_HISAME 110 BRIGAND_JINGI
-    115 brigandUdekujiki/3 120 BRIGAND_TSUKIYO 125 brigandGifun/3 130 BRIGAND_HANAMICHI 135 brigandHodokoshi/2 140 BRIGAND_SEIBAI
-    145 brigandUdekujiki/4 150 BRIGAND_NAGESEN 155 brigandGifun/4 160 BRIGAND_SHIRANAMI 160 brigandMeguri/2 162 BRIGAND_DOTOU 165 resistAilment/1
-    170 BRIGAND_TENCHUU 175 brigandKabau/3 180 BRIGAND_SENRYOU 185 brigandHodokoshi/3 190 TENKAGOMEN 195 BRIGAND_YATOU
-    200 BRIGAND_HONKAI`,
+    12 YAMIBA 12 BRIGAND_MINEUCHI 15 senseTreasure/1 18 ASHIBARAI 20 brigandUdekujiki/1 22 UZUSHIO
+    25 brigandGifun/1 25 BRIGAND_KUJIKI 30 BRIGAND_HAIKAGURA 35 brigandKabau/1 35 BRIGAND_TACHIMAWARI 40 OIHAGI
+    50 senseTreasure/2 50 BRIGAND_HODOKOSHI 57 HYOUJIN 60 BRIGAND_AIKUCHI 60 goldLuck/2 60 brigandUdekujiki/2
+    75 brigandHodokoshi/1 75 BRIGAND_MIZUZEME 85 brigandKabau/2 90 brigandGifun/2 90 BRIGAND_KAGEFUMI 100 senseTreasure/3
+    100 brigandMeguri/1 105 BRIGAND_AKUDAIKAN 107 BRIGAND_HISAME 110 brigandUdekujiki/3 120 BRIGAND_TSUKIYO 125 BRIGAND_JINGI
+    125 brigandGifun/3 130 BRIGAND_HANAMICHI 135 brigandHodokoshi/2 140 BRIGAND_SEIBAI 145 brigandKabau/3 150 BRIGAND_NAGESEN
+    155 brigandUdekujiki/4 155 brigandGifun/4 160 BRIGAND_SHIRANAMI 160 brigandMeguri/2 162 BRIGAND_DOTOU 165 resistAilment/1
+    170 BRIGAND_TENCHUU 180 BRIGAND_SENRYOU 185 brigandHodokoshi/3 190 TENKAGOMEN 195 BRIGAND_YATOU 200 BRIGAND_HONKAI`,
   skills: {
-    // Lv15 の固有技: 峰で打って怯ませ、懐から抜き取る
-    BRIGAND_MINEUCHI: { name: "峰打ち", mp: 4, kind: "phys", power: 1.0, flinchChance: 0.3, steal: 0.5, target: "enemy", desc: "峰で打ち据えて怯ませ、懐から金品を抜き取る" },
+    // 序盤の固有技: 峰で打って怯ませ、懐から抜き取る
+    BRIGAND_MINEUCHI: {name: "峰打ち", mp: 4, kind: "phys", power: 0.9, flinchChance: 0.2, steal: 0.5, target: "enemy", desc: "峰打ちで金品を奪い、敵の攻撃を1段下げる。20%で怯ませる", dur: 3, debuff: {atk: 0.8}},
     BRIGAND_ZENITSUBUTE: { name: "銭つぶて", mp: 3, kind: "phys", power: 0.55, acc: 0.21, flinchChance: 0.4, target: "enemy", desc: "銭を投げつけて怯ませる" },
     BRIGAND_TEBIKI:      { name: "義の手引き", mp: 3, kind: "buff", buff: { agi: 1.3 }, target: "ally", tech: true, desc: "仲間の手を引き、素早さを上げる" },
     BRIGAND_HAIKAGURA:   { name: "灰神楽", mp: 7, kind: "debuff", debuff: { hit: 0.8 }, target: "all-enemy", tech: true, desc: "灰を巻き上げ、敵全体の狙いを乱す" },
-    BRIGAND_KUJIKI:      { name: "挫き打ち", mp: 5, kind: "phys", power: 1.3, critBonus: 0.25, debuff: { atk: 0.85 }, target: "enemy", desc: "強者の腕を打ち、STRを削ぐ" },
+    BRIGAND_KUJIKI:      {name: "挫き打ち", mp: 5, kind: "phys", power: 1.3, critBonus: 0.25, debuff: {atk: 0.65}, target: "enemy", desc: "強者の腕を挫き、攻撃を2段下げる（2ターン・主と強敵では短縮）", dur: 2},
     BRIGAND_AIKUCHI:     { name: "闇匕首", mp: 3, kind: "phys", power: 0.9, element: "dark", poison: { chance: 0.65, pct: 0.05 }, target: "enemy", desc: "闇に紛れ毒の匕首を突き立てる（闇）" },
     BRIGAND_TACHIMAWARI: { name: "大立ち回り", mp: 10, kind: "phys", power: 0.85, flinchChance: 0.2, target: "all-enemy", desc: "敵陣を駆け抜け、怯ませる" },
     BRIGAND_HODOKOSHI:   { name: "施しの刃", mp: 9, kind: "phys", power: 1.15, agiScale: 0.8, bladeHeal: 0.07, healCap: 0.12, target: "enemy", desc: "斬った隙に薬を撒き、味方を癒す" },
@@ -63,8 +64,10 @@ export default {
     // 後ろに控える弱き者を庇う
     brigandKabau: {
       label: "弱きを庇う",
-      lv: ["持ち主が生きている間、後衛の味方が受ける物理・ブレスの被ダメ−5%", "後衛の味方の被ダメ−9%", "後衛の味方の被ダメ−13%"],
-      fx: [{ t: "take", v: [0.05, 0.09, 0.13], when: { back: true }, aura: true }],
+      lv: ["生存中、HP50%以下の味方全員の被ダメージ-5%", "生存中、HP50%以下の味方全員の被ダメージ-9%", "生存中、HP50%以下の味方全員の被ダメージ-13%"],
+      fx: [
+        {t: "take", aura: true, when: {selfLow: 0.5}, v: [0.05, 0.09, 0.13]},
+      ],
     },
     // 強者ほど容赦なく腕を挫く
     brigandUdekujiki: {

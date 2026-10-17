@@ -1,3 +1,4 @@
+// 全職見直し: 通常攻撃で魔力を戻し、崩した敵へ拳と呪文を使う。ランクパッシブは維持。
 // 魔闘士 (battlemage) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 魔闘士 = 拳と呪文を織り交ぜる剛の魔法 (土/火)。拳で魔力を巡らせ、怯ませ・焼き印を刻み、そこへ呪文を叩き込む
@@ -6,20 +7,20 @@ export default {
   awaken: "bmManaCycle",
   table: `
     1 KYOUGEKI 2 KAENGIRI 3 HALITO 5 battlemageJunkan/1 7 NERAIUCHI 8 ISHITSUBUTE
-    10 BAKUENKEN 12 IWAKUDAKI 15 BATTLEMAGE_GANKEN 15 bmHouken/1 20 BATTLEMAGE_GOUMA 22 KAENNAGI 25 battlemageGoutai/1
-    30 MAHALITO 32 EARTHQUAKE 35 battlemageYakiin/1 40 HAMANOKEN 45 battlemageKuzushi/1 50 ELEMBREAK 50 bmHouken/2
-    55 SAIKEN 57 BATTLEMAGE_KASHA 60 battlemageJunkan/2 65 BATTLEMAGE_GANKENDAN 70 battlemageKutsuu/1 75 resistAilment/1
-    80 BATTLEMAGE_HAPPA 82 BATTLEMAGE_JINARI 85 BATTLEMAGE_ENDAN 90 battlemageGoutai/2 95 BATTLEMAGE_MACHIRASHI 100 MAJINKEN 100 bmHouken/3
-    105 battlemageYakiin/2 110 BATTLEMAGE_DAICHIKEN 115 battlemageKuzushi/2 120 BATTLEMAGE_KONGOU 122 BATTLEMAGE_GANSAISHOU 125 reflect/1
-    130 BATTLEMAGE_HIBASHIRA 135 battlemageYakiin/3 140 BATTLEMAGE_SHOUMA 145 battlemageKutsuu/2 150 BATTLEMAGE_GURENMASHOU 155 resistAilment/2
-    160 BATTLEMAGE_INTETSU 165 battlemageYakiin/4 170 GANSAI 175 battlemageJunkan/3 180 BATTLEMAGE_BAKUENRANDA 185 battlemageKuzushi/3
-    190 BATTLEMAGE_SHAKUNETSU 195 TOUSHINHAGEKI 200 BATTLEMAGE_TENPOU`,
+    10 BAKUENKEN 12 IWAKUDAKI 12 BATTLEMAGE_GANKEN 15 bmHouken/1 18 BATTLEMAGE_GOUMA 20 battlemageYakiin/1
+    22 KAENNAGI 25 battlemageGoutai/1 25 SAIKEN 30 MAHALITO 30 battlemageKuzushi/1 32 EARTHQUAKE
+    35 BATTLEMAGE_GANKENDAN 40 HAMANOKEN 45 BATTLEMAGE_HAPPA 50 ELEMBREAK 50 bmHouken/2 57 BATTLEMAGE_KASHA
+    60 battlemageJunkan/2 60 BATTLEMAGE_JINARI 65 battlemageYakiin/2 70 battlemageKutsuu/1 75 resistAilment/1 75 BATTLEMAGE_ENDAN
+    90 battlemageGoutai/2 90 BATTLEMAGE_MACHIRASHI 90 battlemageKuzushi/2 100 bmHouken/3 105 MAJINKEN 110 battlemageYakiin/3
+    120 BATTLEMAGE_KONGOU 122 BATTLEMAGE_GANSAISHOU 125 BATTLEMAGE_DAICHIKEN 125 reflect/1 130 BATTLEMAGE_HIBASHIRA 140 BATTLEMAGE_SHOUMA
+    145 battlemageKutsuu/2 150 BATTLEMAGE_GURENMASHOU 150 battlemageKuzushi/3 155 resistAilment/2 160 BATTLEMAGE_INTETSU 160 battlemageYakiin/4
+    170 GANSAI 175 battlemageJunkan/3 180 BATTLEMAGE_BAKUENRANDA 190 BATTLEMAGE_SHAKUNETSU 195 TOUSHINHAGEKI 200 BATTLEMAGE_TENPOU`,
   skills: {
-    // Lv15 の固有技: 魔力で岩をまとった拳。INT で伸び、守りを砕く
-    BATTLEMAGE_GANKEN: { name: "岩拳", mp: 5, kind: "phys", power: 1.2, intScale: 0.4, acc: 0.13, element: "earth", debuff: { vit: 0.85 }, target: "enemy", desc: "魔力で岩をまとった拳。守りを砕く（INTでも伸びる・土）" },
+    // 序盤の固有技: 魔力で岩をまとった拳。INT で伸び、守りを砕く
+    BATTLEMAGE_GANKEN: {name: "岩拳", mp: 5, kind: "phys", power: 1.1, intScale: 0.5, acc: 0.13, element: "earth", debuff: {vit: 0.8}, target: "enemy", desc: "INTを乗せた土の拳で防御を1段下げ、次の攻めにつなぐ", dur: 3},
     BATTLEMAGE_GOUMA: { name: "剛魔の構え", mp: 4, kind: "buff", buff: { int: 1.3, vit: 1.2 }, target: "self", tech: true, desc: "魔力を練り、身を岩のように固める" },
     BATTLEMAGE_KASHA: { name: "火車拳", mp: 11, kind: "phys", power: 1.2, hits: 2, intScale: 0.4, element: "fire", acc: 0.1, target: "enemy", desc: "炎の車輪のごとく二度打ち込む" },
-    BATTLEMAGE_GANKENDAN: { name: "岩拳弾", mp: 8, kind: "atk", power: 28, element: "earth", debuff: { vit: 0.85 }, target: "enemy", desc: "岩の拳を撃ち出し、守りを砕く" },
+    BATTLEMAGE_GANKENDAN: {name: "岩拳弾", mp: 8, kind: "atk", power: 24, element: "earth", debuff: {agi: 0.8}, target: "enemy", desc: "土の岩拳を撃ち、素早さを1段下げる。15%で怯ませる", dur: 3, flinchChance: 0.15},
     BATTLEMAGE_HAPPA: { name: "発破掌", mp: 16, kind: "phys", power: 2.4, intScale: 0.7, pierce: 0.6, acc: 0.21, target: "enemy", desc: "掌から魔力を炸裂させ、鎧の内を打つ（物理貫通60%）" },
     BATTLEMAGE_JINARI: { name: "地鳴り踏み", mp: 12, kind: "phys", power: 1.0, element: "earth", acc: 0.13, debuff: { agi: 0.85 }, target: "all-enemy", desc: "大地を踏み鳴らし、敵陣の足を鈍らせる" },
     BATTLEMAGE_ENDAN: { name: "焔弾", mp: 11, kind: "atk", power: 34, element: "fire", flinchChance: 0.25, target: "enemy", desc: "拳大の焔の弾を撃ち、怯ませる" },

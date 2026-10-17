@@ -1,3 +1,4 @@
+// 全職見直し: 毒・眠り・封印を使い分け、弱体を敵に残す。ランクパッシブは維持。
 // 呪術師 (hexer) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 持ち味: 毒と呪いで蝕み、魅了と混乱で崩す (闇/水)。弱った・呪われた敵ほど呪文が深く刺さる
@@ -6,19 +7,19 @@ export default {
   awaken: "hexerSae",
   table: `
     1 BLIND 2 SHADOWBOLT 3 NOROI 5 hexerShokuso/1 7 MARK_WATER 10 HEXER_MUMAKOU
-    12 AQUAWAVE 15 HEXER_SHOKUJU 15 hexerGosun/1 20 MIWAKU 22 DARKMIST 25 hexerJusui/1 30 KYOURAN
-    32 DARKBLAST 35 hexerMaganoKizashi/1 40 DOKUGIRI 45 hexerTatari/1 50 KEISEI 50 hexerGosun/2 55 FUDOKU
-    60 hexerShokuso/2 62 ICELANCE 65 ELEMBREAK 70 flinch/1 72 DARKNESS 75 hexerJusui/2
-    80 DEATH 85 HEXER_SHIKUGI 90 hexerTatari/2 95 BLINDALL 100 MADALT 100 hexerGosun/3 105 resistAilment/1
-    110 HEXER_OBOREJU 115 hexerMaganoKizashi/2 120 GRAVITY 122 MEIKOKU 125 hexerJusoMamori/1 130 HEXER_KUROSHIO
-    135 hexerJusui/3 140 DEATHALL 145 hexerTatari/3 150 HEXER_KODOKU 155 soulEater/1 160 GRAVIGA
-    165 resistAilment/2 170 HEXER_HYOUKAN 175 soulLure/1 180 MEIANRAN 185 hexerJusoMamori/2 190 HEXER_HYAKKI
-    195 MAGATSU 200 HEXER_BANJU`,
+    12 AQUAWAVE 12 HEXER_SHOKUJU 15 hexerGosun/1 18 MIWAKU 20 hexerJusui/1 22 DARKMIST
+    25 KYOURAN 32 DARKBLAST 35 hexerMaganoKizashi/1 35 hexerTatari/1 35 FUDOKU 45 DOKUGIRI
+    50 hexerGosun/2 55 HEXER_SHIKUGI 60 hexerShokuso/2 62 ICELANCE 65 KEISEI 65 ELEMBREAK
+    65 hexerJusui/2 70 flinch/1 72 DARKNESS 75 BLINDALL 85 hexerTatari/2 90 DEATH
+    100 MADALT 100 hexerGosun/3 105 resistAilment/1 105 HEXER_OBOREJU 115 hexerMaganoKizashi/2 120 GRAVITY
+    120 hexerJusui/3 122 MEIKOKU 125 hexerJusoMamori/1 130 HEXER_KUROSHIO 135 hexerTatari/3 140 DEATHALL
+    150 HEXER_KODOKU 155 soulEater/1 160 GRAVIGA 165 resistAilment/2 170 HEXER_HYOUKAN 175 soulLure/1
+    180 MEIANRAN 185 hexerJusoMamori/2 190 HEXER_HYAKKI 195 MAGATSU 200 HEXER_BANJU`,
   skills: {
-    // Lv15 の固有技: 呪いを吹き込み、毒と守りの綻びで蝕む
-    HEXER_SHOKUJU: { name: "蝕みの呪い", mp: 4, kind: "debuff", poison: { chance: 0.8, pct: 0.05 }, debuff: { vit: 0.85 }, target: "enemy", desc: "呪いを吹き込み、毒で蝕んで守りを削ぐ（毎ターン5%）" },
+    // 序盤の固有技: 呪いを吹き込み、毒と守りの綻びで蝕む
+    HEXER_SHOKUJU: {name: "蝕みの呪い", mp: 4, kind: "debuff", poison: {chance: 0.7, pct: 0.05}, debuff: {vit: 0.8}, target: "enemy", desc: "70%で毒を与え、防御を1段下げる。弱体は4ターン持続", dur: 4},
     HEXER_MUMAKOU: { name: "夢魔の香", mp: 4, kind: "debuff", sleepChance: 0.45, poison: { chance: 0.3, pct: 0.05 }, target: "all-enemy", desc: "甘い香で敵全体を眠らせ、毒を回す" },
-    HEXER_SHIKUGI: { name: "黙し釘の呪", mp: 11, kind: "debuff", seal: { chance: 0.5, turns: 3 }, vuln: { dark: 0.85 }, target: "all-enemy", desc: "呪い釘で敵全体の特技を封じ、闇に脆くする" },
+    HEXER_SHIKUGI: {name: "黙し釘の呪", mp: 11, kind: "debuff", seal: {chance: 0.5, turns: 3}, vuln: {dark: 0.85}, target: "all-enemy", desc: "敵全体の闇への守りを4ターン緩め、50%で特技を3ターン封じる", dur: 4},
     HEXER_OBOREJU: { name: "溺れ呪い", mp: 14, kind: "atk", power: 36, element: "water", confuse: 0.3, target: "enemy", desc: "水底の呪いで溺れさせ、正気を奪う（混乱）" },
     HEXER_KUROSHIO: { name: "黒潮の呪滴", mp: 20, kind: "atk", power: 50, element: "water", debuff: { atk: 0.88 }, target: "all-enemy", desc: "呪いの潮が敵全体を呑み、力を奪う" },
     HEXER_KODOKU: { name: "蠱毒の壺", mp: 30, kind: "atk", power: 88, element: "dark", poison: { chance: 0.7, pct: 0.1 }, target: "enemy", desc: "壺の蠱毒を浴びせ、猛毒で蝕む" },
