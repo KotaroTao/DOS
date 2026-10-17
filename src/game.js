@@ -7,7 +7,7 @@ import { random, fxRandom, bindRngState, rngState } from "./rng.js";
 import { refSerialize, refDeserialize, applySavePatch } from "./savegraph.js";
 import { cloudEnabled, cloudReady, cloudBusy, connectCloud, cloudSave, cloudBattle, cloudFlush, cloudFatal } from "./cloud-save.js";
 import { LocalSaveSession, showLocalSaveBlocked, showLocalSaveRecovery, saveSlotFromURL, localSaveKey, selectSaveSlot } from "./local-save.js";
-import { syncEnemyUids } from "./combat.js";
+import { syncEnemyUids, enemySoulRewardMul } from "./combat.js";
 import { monsterResists } from "./resistance.js";
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
@@ -10861,7 +10861,7 @@ function renderCombatMenu() {
     }
     const mpTxt = actor.maxmp > 0 ? `MP ${actor.mp}/${actor.maxmp}` : "技なし";
     if (battleSkills(actor).length) main.appendChild(cmdBtn("skill", "技", mpTxt, () => showSpells(actor)));
-    else if (actor.spells.length) main.appendChild(cmdBtn("skill", "技", "すべてオフ", () => showToast("技はすべて非表示 ― 隊の「能力」で表示を戻せる", { noLog: true, tone: "info" }), "muted"));
+    else if (actor.spells.length) main.appendChild(cmdBtn("skill", "技", "すべてオフ", () => showToast("技はすべて非表示 ― 「作戦」で表示を戻せる", { noLog: true, tone: "info" }), "muted"));
     else main.appendChild(cmdBtn("skill", "技", "使えない", () => log("技を使えない", "sys"), "muted"));
     combatMenu.appendChild(main);
     const sub = el("div", "cmd-sub");
@@ -10882,7 +10882,12 @@ function renderCombatMenu() {
     sub.appendChild(cmdBtn("run", "逃走", b.noFlee ? "不可" : `${Math.round(b.fleeChance(actor) * 100)}%`, () => act("run")));
     // オート: 人業ごとの作戦 (隊の「能力」で選ぶ) に従って動く。長押しで隊の作戦をまとめて見る・変える
     const autoB = cmdBtn("auto", "オート", uiDungeonHud.getPref("autoKeep") ? "継続" : "長押しで作戦", () => { G.autoCombat = true; SFX.select(); renderCombatMenu(); });
-    if (UI.openPartyTactics) attachLongPress(autoB, () => { SFX.select(); UI.openPartyTactics(G.party.filter((p) => p), { onDone: () => { if (G.state === "combat" && !G.autoCombat) renderCombatMenu(); } }); });
+    if (UI.openPartyTactics) {
+      const tactics = () => { SFX.select(); UI.openPartyTactics(G.party.filter(Boolean), { onDone: () => { if (G.state === "combat" && !G.autoCombat) renderCombatMenu(); } }); };
+      attachLongPress(autoB, tactics);
+      sub.appendChild(cmdBtn("skill", "作戦", "技の設定", tactics));
+      sub.classList.add("has-tactics");
+    }
     sub.appendChild(autoB);
     sub.appendChild(cmdBtn("fast", "倍速", G.fastAnim ? "ON" : "OFF", () => { G.fastAnim = !G.fastAnim; autosave(); renderCombatMenu(); }, G.fastAnim ? "on" : ""));
     combatMenu.appendChild(sub);
@@ -16732,7 +16737,7 @@ function departAbyss(picks, memoryFloor = null) {
 //    その Lv の伸び (lvPow) に写して REMATCH_MUL 倍し、生前に無かった特色を1つ足す (REMATCH_TRAITS から、魔物ごとに決まる)
 //  ・記憶との手合わせなので、終われば隊の HP・MP・状態は挑む前に戻る (倒れても砕けない。負け・逃走でも失うものは無い)。
 //    入る時に迷宮と同じだけ魂の安定度を使う
-//  ・勝てば ✦Soul・金貨 (その Lv の普通の1戦 × REMATCH_SPOILS)。名のある強敵は首級を ＋1 (最大 ＋REMATCH_FORGE_MAX) に鍛え、
+//  ・勝てば ✦Soul・金貨 (その Lv の普通の1戦 × REMATCH_SPOILS、✦Soul はさらに強敵2倍・主3倍)。名のある強敵は首級を ＋1 (最大 ＋REMATCH_FORGE_MAX) に鍛え、
 //    主は初めて勝った時に記憶のかけら (story.js REMATCH_MEMORIES) を語る。土地・迷宮の掟と異変は効かない
 //  ・戦いの間だけ G.dungeonIdx / G.floor を縄張りの迷宮の最下階に付け替え (背景・属性・状態異常の Lv がそれを読む)、終われば戻す
 const REMATCH_MUL = 1.15;
@@ -16880,7 +16885,7 @@ function endRematch(b) {
   const mult = REMATCH_SPOILS[rm.kind] || 4;
   const soulOut = {};
   const goldGot = runGainGold(Math.round(refGold(lv) * mult) * 2, "rm");
-  const soulGot = runGainSoulPts(Math.round(refSoul(lv) * mult), "rm", null, 1, soulOut);
+  const soulGot = runGainSoulPts(Math.round(refSoul(lv) * mult * enemySoulRewardMul({ boss: rm.kind === "boss", mon: { named: rm.kind === "named" } })), "rm", null, 1, soulOut);
   applyVictoryPassives();
   const progress = distributeBattleSoulExp(soulOut.raw ?? soulGot);
   restore();

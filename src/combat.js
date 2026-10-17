@@ -12,6 +12,11 @@ export { VICTORY_MP_PER };
 import { STAGED, STAGE_MAX, STRONG_MIN, BATTLE_LONG, isBattleLong, stageMul, stageOf, effectStage, stageLabel, ENEMY_STAT_LABEL } from "./buffstage.js";
 export { SPELLS };
 
+// 討伐した本人の✦Soulだけを増やす。主を強敵より先に判定する。
+export function enemySoulRewardMul(e) {
+  return e.boss || e.mon?.boss ? 3 : e.mon?.elite || e.mon?.named ? 2 : 1;
+}
+
 // 敵が使う自己強化 (enemyAct の WARCRY 相当) の既定持続ターン数
 export const ENEMY_BUFF_DUR = 3;
 // 大技の予兆 (溜め): 主・精鋭が手番に溜めを始める確率と、放つ大技の倍率
@@ -4040,7 +4045,7 @@ export class Battle {
   // 戦闘後の報酬計算。Soul が経験値の役割を兼ねる (魂の成長は館の「魂の強化」で行う)。
   // 旧セーブの戦闘中データは soul を持たないため exp を引き継ぐ
   rewards() {
-    const soul = this.enemies.reduce((s, e) => s + (e.alive || e._fled ? 0 : ((e.soul != null ? e.soul : e.exp) || 0)), 0);
+    const soul = this.enemies.reduce((s, e) => s + (e.alive || e._fled ? 0 : ((e.soul != null ? e.soul : e.exp) || 0) * enemySoulRewardMul(e)), 0);
     const gold = this.enemies.reduce((s, e) => s + (e.alive || e._fled ? 0 : e.gold), 0); // 盗んだ金 (bonusGold) は game.js が別に足す
     return { soul, gold };
   }

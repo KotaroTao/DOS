@@ -642,20 +642,21 @@ button.pt-cur-ic { width: 44px; height: 44px; cursor: pointer; }
   flex: 0 0 auto; min-height: 44px; min-width: 44px; padding: 0 10px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em;
   color: #e7c873; background: rgba(10,8,11,0.6); border: 1px solid #7a5f2a; border-radius: 2px; cursor: pointer;
 }
-/* 技の整理 (シート): [表示/非表示] [技名・札・MP] [▲] [▼] の1行 */
+/* 技の整理: 技名は上段、切り替えと並べ替えは下段。狭い画面でも名前を読める。 */
 .pt-skm { display: flex; flex-direction: column; gap: 4px; }
 .pt-skm-sum { font-size: 11.5px; color: #a99a80; padding: 0 2px 2px; }
-.pt-skm-row { display: flex; align-items: stretch; gap: 4px; min-width: 0; }
+.pt-skm-row { display: grid; grid-template-columns: minmax(64px, 1fr) minmax(64px, 1fr) 44px 44px; gap: 4px; min-width: 0; padding: 6px 0; }
+.pt-skm-settings .pt-skm-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .pt-skm-tg {
   flex: 0 0 64px; min-height: 44px; font-size: 12px; font-weight: 700; border-radius: 2px; cursor: pointer;
   color: #8f8372; background: rgba(10,8,11,0.55); border: 1px dashed #4a3d36;
 }
 .pt-skm-tg.on { color: #10161a; background: linear-gradient(#e7c873, #b8912f); border: 1px solid #e7c873; }
 .pt-skm-n {
-  flex: 1 1 auto; min-width: 0; min-height: 44px; display: flex; align-items: center; gap: 6px; padding: 0 8px; text-align: left;
+  grid-column: 1 / -1; grid-row: 1; min-width: 0; min-height: 44px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px; text-align: left;
   font-size: 13px; font-weight: 700; color: #e6dbc2; background: var(--grain), var(--plate-hi); border: 1px solid #4a3d36; border-radius: 2px; cursor: pointer;
 }
-.pt-skm-nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pt-skm-nm { flex: 1 0 100%; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
 .pt-skm-n .pt-skill-c { margin-left: auto; flex: 0 0 auto; }
 .pt-skm-n .pt-skill-c.two { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; white-space: nowrap; }
 .pt-skill-ct { font-size: 9.5px; color: #7f9fd6; }
@@ -1390,3 +1391,15 @@ button.sp-lu-next { cursor: pointer; }
 .gf-sheet .ui-sheet-foot { flex-wrap: wrap; }
 .gf-sheet .ui-sheet-foot .ui-btn { min-width: 80px; }
 .pt-bagwrap > .gf-open { align-self: flex-start; }
+
+/* 作戦と技の設定は一つの縦スクロール領域に収める。 */
+.pt-tac-settings { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.pt-tac-skills-head { margin: 10px 0 0; font-size: 15px; color: #e7c873; }
+.pt-tac-top { flex-wrap: wrap; }
+
+/* サブ魂は本体で詳細を開き、交換・借用技は下段のボタンで操作する。 */
+.sp-sub { flex-direction: column; }
+.sp-sub-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.sp-sub-actions .sp-tile-sk { min-width: 44px; border-top: 1px solid #3a3029; }
+.sp-sub-actions .sp-tile-sk:first-child { border-left: 0; }
+.sp-sub .sp-tile-n { white-space: normal; overflow-wrap: anywhere; }

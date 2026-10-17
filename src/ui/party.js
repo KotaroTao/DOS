@@ -2672,65 +2672,68 @@ function statsSeg(root, d, { showStability = true } = {}) {
 // ---- 技の整理: 戦闘での表示のオン/オフ・オートで使うか・並べ替え ----
 // オフの技は戦闘のスキル一覧 (と「最後に使った技」) に出ない。並びは戦闘の一覧とこの画面の札に効く。
 // 「オート」を切った技はオート戦闘では使わない (手動では使える)。出さない技・迷宮で唱える技はオートも使わない
-function openSkillManager(d) {
+function skillSettings(d, save, redraw, reorder = true) {
+  const list = orderedSkills(d);
+  const wrap = el("div", "pt-skm" + (reorder ? "" : " pt-skm-settings"));
+  const shown = list.filter((k) => !isSkillOff(d, k)).length;
+  const autoN = list.filter((k) => !isSkillOff(d, k) && !isAutoOff(d, k) && !(SPELLS[k] && SPELLS[k].kind === "field")).length;
+  wrap.appendChild(el("div", "pt-skm-sum", `戦闘で出す技 ${shown} / ${list.length}　オートで使う技 ${autoN}`));
+  list.forEach((key, i) => {
+    const sp = SPELLS[key];
+    const off = isSkillOff(d, key);
+    const r = el("div", "pt-skm-row" + (off ? " off" : ""));
+    const tg = el("button", "pt-skm-tg" + (off ? "" : " on"), off ? "非表示" : "表示");
+    tg.type = "button";
+    tg.setAttribute("aria-pressed", off ? "false" : "true");
+    tg.setAttribute("aria-label", `${sp ? sp.name : key}を戦闘で${off ? "表示する" : "出さない"}`);
+    tg.addEventListener("click", () => { setSkillOff(d, key, !off); sfx("select"); save(); redraw(); });
+    r.appendChild(tg);
+    // オートで使うか (出さない技・迷宮で唱える技はオートも使わないので押せない)
+    const field = !!(sp && sp.kind === "field");
+    const aOff = isAutoOff(d, key);
+    const at = el("button", "pt-skm-tg pt-skm-auto" + (off || field ? " na" : aOff ? "" : " on"), off || field ? "―" : aOff ? "手動" : "オート");
+    at.type = "button";
+    at.disabled = off || field;
+    at.setAttribute("aria-pressed", !off && !field && !aOff ? "true" : "false");
+    at.setAttribute("aria-label", field ? `${sp.name}は迷宮で唱える技` : `${sp ? sp.name : key}をオートで${aOff ? "使う" : "使わない"}`);
+    at.addEventListener("click", () => { if (off || field) return; setAutoOff(d, key, !aOff); sfx("select"); save(); redraw(); });
+    r.appendChild(at);
+    const nm = el("button", "pt-skm-n");
+    nm.type = "button";
+    nm.appendChild(el("span", "pt-skm-nm", sp ? sp.name : key));
+    const tgs = sp && tagRow(spellTagKinds(sp, d), "pt-skill-tags");
+    if (tgs) nm.appendChild(tgs);
+    if (sp) {
+      // 「MP 16」と「＋魂のMP×6%」を2行に分け、技名を削らない
+      const [base, tier] = spellMpLabel(sp).split("＋");
+      const mc = el("span", "pt-skill-c two", base);
+      if (tier) mc.appendChild(el("span", "pt-skill-ct", `＋${tier}`));
+      nm.appendChild(mc);
+    }
+    nm.addEventListener("click", () => showSkillPopup(key));
+    r.appendChild(nm);
+    const mv = (dir, label, glyph, dis) => {
+      const b = el("button", "pt-skm-mv", glyph);
+      b.type = "button";
+      b.disabled = dis;
+      b.setAttribute("aria-label", `${sp ? sp.name : key}を${label}`);
+      b.addEventListener("click", () => { if (moveSkill(d, key, dir)) { sfx("select"); save(); redraw(); } });
+      return b;
+    };
+    if (reorder) {
+      r.appendChild(mv(-1, "前へ", "▲", i === 0));
+      r.appendChild(mv(1, "後ろへ", "▼", i === list.length - 1));
+    }
+    wrap.appendChild(r);
+  });
+  return wrap;
+}
+function openSkillManager(d, { onDone = null } = {}) {
   if (!d || !(d.spells && d.spells.length)) return null;
   const save = () => { if (game.autosave) game.autosave(true); };
   let box = null;
-  const build = () => {
-    const list = orderedSkills(d);
-    const wrap = el("div", "pt-skm");
-    const shown = list.filter((k) => !isSkillOff(d, k)).length;
-    const autoN = list.filter((k) => !isSkillOff(d, k) && !isAutoOff(d, k) && !(SPELLS[k] && SPELLS[k].kind === "field")).length;
-    wrap.appendChild(el("div", "pt-skm-sum", `戦闘で出す技 ${shown} / ${list.length}　オートで使う技 ${autoN}`));
-    list.forEach((key, i) => {
-      const sp = SPELLS[key];
-      const off = isSkillOff(d, key);
-      const r = el("div", "pt-skm-row" + (off ? " off" : ""));
-      const tg = el("button", "pt-skm-tg" + (off ? "" : " on"), off ? "非表示" : "表示");
-      tg.type = "button";
-      tg.setAttribute("aria-pressed", off ? "false" : "true");
-      tg.setAttribute("aria-label", `${sp ? sp.name : key}を戦闘で${off ? "表示する" : "出さない"}`);
-      tg.addEventListener("click", () => { setSkillOff(d, key, !off); sfx("select"); save(); redraw(); });
-      r.appendChild(tg);
-      // オートで使うか (出さない技・迷宮で唱える技はオートも使わないので押せない)
-      const field = !!(sp && sp.kind === "field");
-      const aOff = isAutoOff(d, key);
-      const at = el("button", "pt-skm-tg pt-skm-auto" + (off || field ? " na" : aOff ? "" : " on"), off || field ? "―" : aOff ? "手動" : "オート");
-      at.type = "button";
-      at.disabled = off || field;
-      at.setAttribute("aria-pressed", !off && !field && !aOff ? "true" : "false");
-      at.setAttribute("aria-label", field ? `${sp.name}は迷宮で唱える技` : `${sp ? sp.name : key}をオートで${aOff ? "使う" : "使わない"}`);
-      at.addEventListener("click", () => { if (off || field) return; setAutoOff(d, key, !aOff); sfx("select"); save(); redraw(); });
-      r.appendChild(at);
-      const nm = el("button", "pt-skm-n");
-      nm.type = "button";
-      nm.appendChild(el("span", "pt-skm-nm", sp ? sp.name : key));
-      const tgs = sp && tagRow(spellTagKinds(sp, d), "pt-skill-tags");
-      if (tgs) nm.appendChild(tgs);
-      if (sp) {
-        // 「MP 16」と「＋魂のMP×6%」を2行に分け、技名を削らない
-        const [base, tier] = spellMpLabel(sp).split("＋");
-        const mc = el("span", "pt-skill-c two", base);
-        if (tier) mc.appendChild(el("span", "pt-skill-ct", `＋${tier}`));
-        nm.appendChild(mc);
-      }
-      nm.addEventListener("click", () => showSkillPopup(key));
-      r.appendChild(nm);
-      const mv = (dir, label, glyph, dis) => {
-        const b = el("button", "pt-skm-mv", glyph);
-        b.type = "button";
-        b.disabled = dis;
-        b.setAttribute("aria-label", `${sp ? sp.name : key}を${label}`);
-        b.addEventListener("click", () => { if (moveSkill(d, key, dir)) { sfx("select"); save(); redraw(); } });
-        return b;
-      };
-      r.appendChild(mv(-1, "前へ", "▲", i === 0));
-      r.appendChild(mv(1, "後ろへ", "▼", i === list.length - 1));
-      wrap.appendChild(r);
-    });
-    return wrap;
-  };
-  // 描き直しは箱ごと差し替える (シートのページ割りが差し替えを拾って割り直し、いまのページを保つ)
+  const build = () => skillSettings(d, save, redraw);
+  // 設定変更後は一覧を描き直す。
   const redraw = () => { if (!box) return; const nb = build(); box.replaceWith(nb); box = nb; };
   return sheet.open({
     kind: "info", className: "pt-skm-sheet", banner: "技の整理", title: `${d.name}の技`,
@@ -2740,7 +2743,7 @@ function openSkillManager(d) {
       { label: "初期に戻す", kind: "ghost", onTap: () => { resetSkillPrefs(d); sfx("select"); save(); redraw(); } },
       { label: "閉じる", kind: "primary", onTap: (h) => h.close() },
     ],
-    onClose: () => rerender(),
+    onClose: () => { if (onDone) onDone(); else rerender(); },
   });
 }
 
@@ -2763,16 +2766,26 @@ export function openTacticSheet(d, { onDone = null } = {}) {
   if (!d) return null;
   const save = () => { if (game.autosave) game.autosave(true); };
   let box = null, picked = false;
-  const redraw = () => { if (!box) return; const nb = tacticList(d, pick); box.replaceWith(nb); box = nb; };
+  const build = () => {
+    const wrap = el("div", "pt-tac-settings");
+    wrap.appendChild(tacticList(d, pick));
+    if (d.spells?.length) {
+      wrap.appendChild(el("h3", "pt-tac-skills-head", "技の設定"));
+      wrap.appendChild(el("div", "pt-tac-d", "非表示の技は、手動の一覧にもオートにも出ません。表示したままオートだけ不使用にもできます。"));
+      wrap.appendChild(skillSettings(d, save, redraw, false));
+    }
+    return wrap;
+  };
+  const redraw = () => { if (!box) return; const nb = build(); box.replaceWith(nb); box = nb; };
   function pick(key) {
     setTactic(d, key); picked = true; sfx("select"); save(); redraw();
   }
   return sheet.open({
     kind: "info", className: "pt-tac-sheet", banner: "作戦", title: `${d.name}への命令`,
-    lines: ["オート戦闘でどう動くか。オートで使う技は「技の整理」で選べる。"],
-    body: (scroll) => { box = tacticList(d, pick); scroll.appendChild(box); },
+    lines: ["作戦と、技の表示・オートでの使用を選べます。設定は次の行動から反映されます。"],
+    body: (scroll) => { box = build(); scroll.appendChild(box); },
     footer: [
-      ...(d.spells && d.spells.length ? [{ label: "技の整理", kind: "ghost", onTap: () => openSkillManager(d) }] : []),
+      ...(d.spells && d.spells.length ? [{ label: "技の整理", kind: "ghost", onTap: () => openSkillManager(d, { onDone: redraw }) }] : []),
       { label: "閉じる", kind: "primary", onTap: (h) => h.close() },
     ],
     onClose: () => { if (onDone) onDone(picked); else rerender(); },
@@ -2802,7 +2815,7 @@ export function openPartyTactics(list, { onDone = null } = {}) {
   const redraw = () => { if (!box) return; const nb = build(); box.replaceWith(nb); box = nb; };
   return sheet.open({
     kind: "info", className: "pt-tac-sheet", banner: "作戦", title: "隊への命令",
-    lines: ["オート戦闘での振る舞いを人業ごとに決める。人業をタップで選び直す。"],
+    lines: ["人業を選び、作戦と技の表示・オートでの使用を設定できます。"],
     body: (scroll) => { box = build(); scroll.appendChild(box); },
     footer: [{ label: "閉じる", kind: "primary", onTap: (h) => h.close() }],
     onClose: () => { if (onDone) onDone(); },

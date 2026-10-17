@@ -715,3 +715,11 @@ canvas.unk-sil { filter: brightness(0) drop-shadow(0 0 1px rgba(185,172,217,0.85
   #app.in-combat.enemy-names-two-rows #hud { min-height: 71px; }
   #app.in-combat.enemy-names-two-rows #log { min-height: 32px; }
 }
+
+/* 作戦を含む命令は、スマホで1行に詰めず折り返す。 */
+#combat-menu .cmd-sub.has-tactics { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+#combat-menu .cmd-sub.has-tactics.has-swap { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+@media (max-width: 600px) {
+  #combat-menu .cmd-sub.has-tactics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  #combat-menu .cmd-sub.has-tactics.has-swap { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
