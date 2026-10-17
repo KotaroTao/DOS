@@ -6,7 +6,7 @@
 // game.js は import しない (ctx.js の UI / game を通す)。
 
 import { UI, game, registerUI } from "./ctx.js";
-import { el, button, sheet, toast, setText, glyph } from "./kit.js";
+import { el, button, sheet, toast, setText, glyph, DELTA_LABEL } from "./kit.js";
 import { statLines, qualityTone } from "./itemview.js";
 import { nameSpan, deltaEl, goldEl, dollIcon } from "./loot.js";
 import { SLOTS, SLOT_LABEL, AIL_LABEL, hasQuality, qualityOf, qualityMatters, itemAtQuality, QUALITY_SPREAD, itemName } from "../items.js";
@@ -68,7 +68,7 @@ function diffRows(a, b) {
   for (const k of ["atk", "vit", "agi", "int", "pie", "luk"]) push(ATTR_LABEL[k], a[k], b[k]);
   push("HP", a.hp, b.hp);
   push("MP", a.mp, b.mp);
-  push("会心", a.crit, b.crit, pct);
+  for (const k of ["crit", "critDamage", "spellCrit", "spellCritDamage"]) push(DELTA_LABEL[k], a[k], b[k], pct);
   for (const k of Object.keys({ ...(a.scale || {}), ...(b.scale || {}) })) push(`攻撃の係数 ${ATTR_LABEL[k] || k}`, (a.scale || {})[k], (b.scale || {})[k], (v) => `×${Math.round(v * 1000) / 1000}`);
   for (const k of Object.keys({ ...(a.mult || {}), ...(b.mult || {}) })) push(`${ATTR_LABEL[k] || k.toUpperCase()}の補正`, (a.mult || {})[k], (b.mult || {})[k], (v) => `+${Math.round(v * 1000) / 10}%`);
   for (const k of Object.keys({ ...(a.aRes || {}), ...(b.aRes || {}) })) push(`${AIL_LABEL[k] || k}耐性`, (a.aRes || {})[k], (b.aRes || {})[k], pct);
