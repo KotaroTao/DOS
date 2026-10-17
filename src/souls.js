@@ -271,10 +271,10 @@ export function rollJobClass() {
   else                  pool = rarityPool("common");
   return pool[Math.floor(random() * pool.length)];
 }
-// 偉大なる死体: レア30% / エピック50% / レジェンド20% (コモンは出ない)
+// 偉大なる死体: エピック80% / レジェンド20%
 export function rollGreatJobClass() {
   const r = random();
-  const pool = r < 0.20 ? rarityPool("legend") : r < 0.70 ? rarityPool("epic") : rarityPool("rare");
+  const pool = r < 0.20 ? rarityPool("legend") : rarityPool("epic");
   return pool[Math.floor(random() * pool.length)];
 }
 
