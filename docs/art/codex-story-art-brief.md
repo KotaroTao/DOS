@@ -547,6 +547,13 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 ...except: restore ONLY the floor and ALL stone stairs, including the background steps on BOTH sides of the king, to ordinary intact dark polished stone masonry with normal non-glowing joints. Remove ALL red-orange glowing cracks, lava, molten seams, fire from under the floor or stairs, their red reflected light, and ALL steam or smoke rising from the floor or stairs. This is an unusually hot ordinary throne room, not a volcanic chamber. Normal warm candlelight reflections are allowed. Preserve exactly the angry seated king gripping the armrests, the apprentice holding the charred wooden face fragment, their faces, hands, costumes and crests, the empty chancellor chair, the map, scrolls and goblets on the foreground table, the red textiles, lit candles, gothic architecture, heavy clouds, original composition and fine-grained pixel-textured style. Do not add people or objects.
 ```
 
+**A-42. 第五章 w20_cup「三百年分の一行」備品の一門の印を除去** `art/story-review/chapter5/w20_cup.png` (済)
+- 直す (2026-10-17 ユーザーの指示): 釜やテーブルクロスに表示された一門の印をすべて削除。右上の大釜・左側の大小の釜・遠景の釜、右手前のテーブルクロス、左下の箱にある印も含め、背景・備品に付いた手と炎の印を残さず消す。金属・布・木の質感で自然に埋める。
+- 保つもの: 弟子の顔・髪・手・衣装と衣装の一門の印、帳面・筆記・図、金の杯、釜の形と湯気、鎖・足場、構図・画風・光。修正前は `art/story-review/fixes/w20_cup-before.png` に保存。
+```text
+...except: REMOVE EVERY gold hand-and-flame family crest / palm-and-teardrop emblem from ALL ENVIRONMENTAL OBJECTS in this scene. Remove the large crest from the huge upper-right cauldron, the crests from ALL left-side and distant cauldrons (including the far upper-left cauldron and the mid-left cauldron), the large crest from the dark tablecloth at the lower-right, and ALL such crests from the stacked chests/boxes in the lower-left corner, including the partially cropped bottom one. Inspect the entire image for remaining palm-and-flame motifs on cauldrons, cloth, boxes or any other background object and remove them all. Fill each removed emblem locally with continuous matching unmarked material: dark riveted iron on cauldrons, naturally folded dark fabric on the tablecloth, and worn box panels on chests, preserving existing texture, perspective, edge details, ornamental borders, and amber lighting. Do not replace the crests with other symbols. The apprentice's clothing and the small crests ON HIS CLOTHING must remain exactly unchanged. Preserve the apprentice's face, hair, hands and tracing gesture, the open ledger and its writing and recipe sketch, golden goblet, all object shapes, molten amber sap, steam, chains, cavern, camera composition, fine pixel texture and warm/cool lighting. No other changes, no new people or objects.
+```
+
 ### B. 任意 (余力があれば。読者が気づきやすい順)
 
 | 場面 | 直すこと |
@@ -697,9 +704,9 @@ The same throne room, hotter than before, but with ordinary intact dark stone fl
 
 **w20_cup「三百年分の一行」** (手がかり / 迷宮「魂を煮る釜場」)
 - 要点: いちばん大きな釜の脇の作業台に、金の杯と、開いたままの分厚い帳面。同じ一行が頁という頁に三百年分。最後の頁に師の字の調合の書きつけ。
-- 描くもの: 並ぶ大釜と湯気 / 作業台の金の杯 / 開いた分厚い帳面 (同じ行がびっしり、最後の頁だけ別の筆跡) / 読む弟子。
+- 描くもの: 並ぶ大釜と湯気 / 作業台の金の杯 / 開いた分厚い帳面 (同じ行がびっしり、最後の頁だけ別の筆跡) / 読む弟子。釜・テーブルクロス・箱などの備品に一門の印を描かない。
 ```text
-A vast cavern of soul-boiling cauldrons: rows of enormous iron cauldrons bubbling with glowing amber sap and steam. Beside the largest one stands a worktable holding a single golden goblet and a huge, thick open ledger whose pages are filled with endless identical lines of tiny writing; the last page carries a different, hurried handwriting with a small recipe sketch. The apprentice bends over the ledger, one gloved finger tracing the final page. Warm infernal light, steam, intricate metal and paper detail.
+A vast cavern of soul-boiling cauldrons: rows of enormous iron cauldrons bubbling with glowing amber sap and steam. Beside the largest one stands a worktable holding a single golden goblet and a huge, thick open ledger whose pages are filled with endless identical lines of tiny writing; the last page carries a different, hurried handwriting with a small recipe sketch. The apprentice bends over the ledger, one gloved finger tracing the final page. Warm infernal light, steam, intricate metal and paper detail. Do not place any palm-and-flame family crests on cauldrons, tablecloths, boxes, or other environmental objects; the apprentice clothing retains its own crests.
 ```
 
 **report_w20「床に置かれた杯」** (報告)
