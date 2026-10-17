@@ -58,7 +58,6 @@ export function planFormation(g, index, { subSlots = 2, soulChange = true } = {}
     if (m.primary !== d.primary && !soulChange) return fail("メイン魂の交換はまだ解放されていません。");
     const main = souls.get(m.primary);
     if (m.primary != null && !main) return fail(`${d.name}のメイン魂を所持していません。`);
-    if (d.vessel === "sera" ? m.primary !== d.primary : main?.clsKey === "sera") return fail("セラのメイン魂は灯守に固定されています。");
     if (main && jobs.has(main.clsKey)) return fail("隊のメイン魂に同じ職業を重ねられません。");
     if (main) jobs.add(main.clsKey);
     const local = new Set(main ? [main.clsKey] : []);
@@ -68,7 +67,7 @@ export function planFormation(g, index, { subSlots = 2, soulChange = true } = {}
     for (const sub of subs.filter(Boolean)) {
       const s = souls.get(sub.uid);
       if (!s) return fail(`${d.name}のサブ魂を所持していません。`);
-      if (s.clsKey === "sera" || local.has(s.clsKey)) return fail(`${d.name}に同じ職業の魂は重ねられません。`);
+      if (local.has(s.clsKey)) return fail(`${d.name}に同じ職業の魂は重ねられません。`);
       local.add(s.clsKey);
       const skills = soulLearnedSkills(s), passives = soulLearnedPassives(s);
       const keys = sub.picks.map(p => `${p.skill ? "s" : "p"}:${p.skill || p.passive}`);
