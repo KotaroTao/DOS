@@ -1,3 +1,4 @@
+// 全職見直し: 荒行で自分を追い込み、低HPから拳と祈りで立つ。ランクパッシブは維持。
 // 修験者 (ascetic) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 持ち味: 山岳の荒行。滝行・火渡りで己を鍛え、身を削って打ち・癒し、護摩の炎と山の土で敵を焼き崩す (土・火)
@@ -5,26 +6,25 @@ export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
   awaken: "asceticHatate",
   table: `
-    1 KYOUGEKI 2 IWAKUDAKI 3 DIOS 5 asceticAragyou/1 7 NERAIUCHI 8 ASCETIC_TSUBUTE 10 ASCETIC_TAKIGYOU
-    10 CURE 12 ASCETIC_FUDOUBI 15 ASCETIC_GENRIKISHOU 15 asceticShintou/1 20 KUJI 22 CHIRETSU
-    25 asceticAragyou/2 30 ASCETIC_HIWATARI 30 DIOSALL 32 ASCETIC_JISHIN 35 asceticNyuubu/1 40 SHASHINNOGYOU
-    40 DIAL 45 asceticDoukou/1 50 GOMA 50 asceticShintou/2 50 STONECURE 55 SHINGANGEKI 57 GANOTOSHI
-    60 asceticNyuubu/2 65 ASCETIC_SHAKUJOU 70 asceticYoujou/1 75 asceticMoeagari/1 80 ASCETIC_SARASHIMI
-    82 ASCETIC_KAENSHAKUJOU 90 asceticAragyou/3 95 ASCETIC_IWAOTOOSHI 100 ASCETIC_ZAOU 100 asceticShintou/3
-    105 asceticNyuubu/3 107 ASCETIC_REIHOU 110 ASCETIC_MIGAWARIGOMA 115 asceticYoujou/2 120 ASCETIC_SANKO
-    125 resistAilment/1 130 ASCETIC_GOMANOKEMURI 135 asceticMoeagari/2 140 ASCETIC_NYUUBU
-    145 asceticDoukou/2 150 ASCETIC_YAMANARI 155 asceticMoeagari/3 160 ASCETIC_KASHOUZANMAI
-    165 asceticAragyou/4 170 ASCETIC_SHAKUJOURANBU 175 resistAilment/2 180 ASCETIC_SHASHINKUYOU
-    185 asceticYoujou/3 190 ASCETIC_SHASHINJOUBUTSU 195 ASCETIC_FUDOUKAEN 200 GONGENOROSHI`,
+    1 KYOUGEKI 2 IWAKUDAKI 3 DIOS 5 asceticAragyou/1 7 NERAIUCHI 8 ASCETIC_TSUBUTE
+    10 ASCETIC_TAKIGYOU 10 CURE 12 ASCETIC_FUDOUBI 12 ASCETIC_GENRIKISHOU 15 asceticShintou/1 18 ASCETIC_HIWATARI
+    20 KUJI 22 CHIRETSU 25 asceticAragyou/2 25 asceticNyuubu/1 25 ASCETIC_SHAKUJOU 30 DIOSALL
+    32 ASCETIC_JISHIN 35 asceticMoeagari/1 35 ASCETIC_SARASHIMI 40 SHASHINNOGYOU 40 DIAL 45 asceticDoukou/1
+    45 GOMA 50 asceticShintou/2 50 STONECURE 55 SHINGANGEKI 57 GANOTOSHI 60 ASCETIC_KAENSHAKUJOU
+    70 asceticYoujou/1 75 asceticNyuubu/2 75 ASCETIC_IWAOTOOSHI 90 asceticAragyou/3 90 ASCETIC_ZAOU 95 asceticMoeagari/2
+    100 asceticShintou/3 105 ASCETIC_MIGAWARIGOMA 107 ASCETIC_REIHOU 115 asceticYoujou/2 125 asceticNyuubu/3 125 ASCETIC_SANKO
+    125 resistAilment/1 130 ASCETIC_GOMANOKEMURI 140 ASCETIC_NYUUBU 145 asceticDoukou/2 150 ASCETIC_YAMANARI 155 asceticMoeagari/3
+    160 ASCETIC_KASHOUZANMAI 165 asceticAragyou/4 170 ASCETIC_SHAKUJOURANBU 175 resistAilment/2 180 ASCETIC_SHASHINKUYOU 185 asceticYoujou/3
+    190 ASCETIC_SHASHINJOUBUTSU 195 ASCETIC_FUDOUKAEN 200 GONGENOROSHI`,
   skills: {
-    // Lv15 の固有技: 験力を込めた掌打 (土)。PIE でも伸びる
-    ASCETIC_GENRIKISHOU: { name: "験力の掌", mp: 5, kind: "phys", power: 1.2, pieScale: 0.4, element: "earth", flinchChance: 0.25, target: "enemy", desc: "験力を込めた掌打で打ち、怯ませる（PIEでも伸びる・土）" },
+    // 序盤の固有技: 験力を込めた掌打 (土)。PIE でも伸びる
+    ASCETIC_GENRIKISHOU: {name: "験力の掌", mp: 5, kind: "phys", power: 1.1, pieScale: 0.5, element: "earth", flinchChance: 0.25, target: "enemy", desc: "HP4%を払い、PIEを乗せた土の掌打を放つ。25%で怯ませる", dur: 3, hpCost: 0.04},
     // 験力の術 (faith)。共通の呪文は INT 依存で修験者 (PIE型) に合わないので置き換える
     ASCETIC_TSUBUTE:  { name: "験力の礫", mp: 3, kind: "atk", power: 12, element: "earth", faith: true, target: "enemy", desc: "念を込めた礫を打つ（PIEでも伸びる）" },
     ASCETIC_FUDOUBI:  { name: "不動の火焔", mp: 2, kind: "atk", power: 10, element: "fire", faith: true, target: "enemy", desc: "不動明王の火焔で焼く（PIEでも伸びる）" },
     ASCETIC_JISHIN: { name: "山鳴りの法", mp: 7, kind: "atk", power: 22, element: "earth", faith: true, target: "all-enemy", desc: "霊山を鳴動させ敵全体を打つ（PIEでも伸びる）" },
     ASCETIC_TAKIGYOU: { name: "滝行", mp: 3, kind: "buff", charge: 1.7, cure: ["confuse"], target: "self", tech: true, desc: "自分の混乱を治し、次の一撃に力を溜める" },
-    ASCETIC_HIWATARI: { name: "火渡りの行", mp: 6, kind: "heal", healMul: 1.3, cure: ["poison"], regen: { pct: 0.04, turns: 3 }, target: "self", tech: true, desc: "自分の毒・猛毒を治し、傷を癒して癒しを残す" },
+    ASCETIC_HIWATARI: {name: "火渡りの行", mp: 6, kind: "heal", healMul: 1.1, cure: ["poison"], regen: {pct: 0.03, turns: 4}, target: "self", tech: true, desc: "自分の毒・猛毒と傷を癒し、最大HP3%の癒しを4ターン残す", dur: 3},
     ASCETIC_SHAKUJOU: { name: "錫杖打ち", mp: 6, kind: "phys", power: 1.3, acc: 0.18, flinchChance: 0.3, target: "enemy", desc: "錫杖を鳴らして打ち、怯ませる" },
     ASCETIC_SARASHIMI: { name: "晒し身の行", mp: 8, kind: "buff", buff: { vit: 1.4 }, taunt: true, target: "self", tech: true, desc: "鍛えた身を晒し、守りを固めて敵を引き付ける" },
     ASCETIC_KAENSHAKUJOU: { name: "火炎錫杖", mp: 11, kind: "phys", power: 2.6, element: "fire", acc: 0.1, debuff: { atk: 0.85 }, target: "enemy", desc: "炎をまとう錫杖で打ち、力を削ぐ" },
@@ -57,7 +57,12 @@ export default {
       fx: [{ t: "start", charge: [1.3, 1.45, 1.6] }] },
     asceticDoukou: { label: "同行の憤り", lv: ["味方が倒れると、HP10%回復・STR×1.2 (3ターン)", "味方が倒れると、HP15%回復・STR×1.3 (3ターン)"],
       fx: [{ t: "fall", hp: [0.1, 0.15], buff: { atk: [1.2, 1.3] } }] },
-    asceticMoeagari: { label: "燃え上がる行者", lv: ["物理を受けた時30%で、STR×1.1 (2ターン)", "物理を受けた時40%で、STR×1.15 (2ターン)", "物理を受けた時50%で、STR×1.2 (2ターン)"],
-      fx: [{ t: "hurt", chance: [0.3, 0.4, 0.5], buff: { atk: [1.1, 1.15, 1.2] }, dur: 2 }] },
+    asceticMoeagari: {
+      label: "燃え上がる行者",
+      lv: ["物理を受けると30%でPIEを1段上げる（2ターン）", "物理を受けると40%でPIEを1段上げる（3ターン）", "物理を受けると50%でPIEを1段上げる（4ターン）"],
+      fx: [
+        {t: "hurt", chance: [0.3, 0.4, 0.5], buff: {pie: [1.25, 1.25, 1.25]}, dur: [2, 3, 4]},
+      ],
+    },
   },
 };

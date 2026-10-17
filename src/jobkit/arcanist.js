@@ -1,3 +1,4 @@
+// 全職見直し: 血を代償に呪文の会心と闇の威力を引き出す。ランクパッシブは維持。
 // 秘術師 (arcanist) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 持ち味: 禁じられた闇の秘術。己の血 (HP) を代償に威力を買い、重力で圧し潰し、呪いで蝕んだ敵を仕留める。
@@ -6,20 +7,20 @@ export default {
   awaken: "arcanistShinen",
   table: `
     1 SHADOWBOLT 2 HALITO 3 MARK_FIRE 5 arcanistChikei/1 7 ICENEEDLE 10 ARCANIST_KOJUU
-    15 ARCANIST_CHIIN 15 cartography/1 20 ARCANIST_KOKUMU 22 MAHALITO 25 arcanistJushoku/1 30 ELEMBREAK 35 arcanistTsuuren/1
-    40 KINJUKAICHOU 45 arcanistChikei/2 47 DARKBLAST 50 ARCANIST_KETSUIN 50 cartography/2 55 MAYOKE 60 arcanistSeiyaku/1
-    65 MADALT 70 arcanistTsuuren/2 72 ARCANIST_YAMITOBARI 75 arcanistJushoku/2 80 ARCANIST_KINSEI 85 MARYOKUBOUSOU
-    90 arcanistChoushuu/1 95 ARCANIST_HYOUJU 100 ARCANIST_JUEN 100 cartography/3 105 arcanistChikei/3 110 ARCANIST_JUUATSU 112 ARCANIST_KONSAKI
-    115 resistAilment/1 120 ARCANIST_JURAI 125 arcanistTsuuren/3 130 ARCANIST_KYOKOU 135 arcanistSeiyaku/2 140 ARCANIST_KINIKI
-    145 arcanistJushoku/3 150 ARCANIST_KENKA 155 resistAilment/2 160 ARCANIST_RAKUSEI 165 arcanistChoushuu/2 170 ARCANIST_TOUKON
-    172 ARCANIST_MEIJU 175 arcanistChikei/4 180 ARCANIST_GOUKASHO 185 arcanistSeiyaku/3 190 KYOMU 195 ARCANIST_KAIKAI
-    200 ARCANIST_SHUUENSHO`,
+    12 ARCANIST_CHIIN 15 cartography/1 18 ARCANIST_KOKUMU 20 arcanistJushoku/1 22 MAHALITO 25 ARCANIST_KETSUIN
+    30 ELEMBREAK 30 arcanistTsuuren/1 35 ARCANIST_YAMITOBARI 40 KINJUKAICHOU 45 arcanistChikei/2 45 ARCANIST_KINSEI
+    47 DARKBLAST 50 cartography/2 55 MAYOKE 60 arcanistSeiyaku/1 60 MARYOKUBOUSOU 65 MADALT
+    65 arcanistJushoku/2 75 ARCANIST_HYOUJU 85 arcanistTsuuren/2 90 arcanistChoushuu/1 90 ARCANIST_JUEN 100 cartography/3
+    105 arcanistChikei/3 105 ARCANIST_JUUATSU 112 ARCANIST_KONSAKI 115 resistAilment/1 120 ARCANIST_JURAI 120 arcanistJushoku/3
+    125 ARCANIST_KYOKOU 135 arcanistSeiyaku/2 140 arcanistTsuuren/3 140 ARCANIST_KINIKI 150 ARCANIST_KENKA 155 resistAilment/2
+    160 ARCANIST_RAKUSEI 165 arcanistChoushuu/2 170 ARCANIST_TOUKON 172 ARCANIST_MEIJU 175 arcanistChikei/4 180 ARCANIST_GOUKASHO
+    185 arcanistSeiyaku/3 190 KYOMU 195 ARCANIST_KAIKAI 200 ARCANIST_SHUUENSHO`,
   skills: {
-    // Lv15 の固有技: 己の血で印を描き、重い闇の呪弾を撃つ
-    ARCANIST_CHIIN: { name: "血印の呪弾", mp: 5, kind: "atk", power: 22, element: "dark", hpCost: 0.06, target: "enemy", desc: "己の血で印を描き、重い闇の呪弾を撃つ（HPを代償）" },
+    // 序盤の固有技: 己の血で印を描き、重い闇の呪弾を撃つ
+    ARCANIST_CHIIN: {name: "血印の呪弾", mp: 5, kind: "atk", power: 20, element: "dark", hpCost: 0.08, target: "enemy", desc: "HP8%を払い、闇の呪弾を撃つ。魔法会心率+15%", dur: 3, critBonus: 0.15},
     ARCANIST_KOJUU:      { name: "虚重の秘法", mp: 6, kind: "atk", gravity: 0.3, gravityIntCap: 1.5, hpCost: 0.04, target: "enemy", desc: "身を削り、敵の今のHPの30%を潰す（基本ダメージの上限はINT×1.5）" },
     ARCANIST_KOKUMU:     { name: "魔喰いの黒霧", mp: 6, kind: "atk", power: 16, element: "dark", mpDrain: 0.1, target: "all-enemy", desc: "黒い霧が敵全体を撃ち、魔力を啜る" },
-    ARCANIST_KETSUIN:    { name: "血の契約", mp: 3, kind: "buff", buff: { int: 1.6 }, hpCost: 0.1, target: "self", desc: "血を捧げ、自分のINTを大きく高める" },
+    ARCANIST_KETSUIN:    {name: "血の契約", mp: 5, kind: "buff", buff: {int: 1.5, agi: 0.8}, hpCost: 0.1, target: "self", desc: "HP10%を払い、INTを2段上げ、AGIを1段下げる（4ターン）", dur: 4},
     ARCANIST_YAMITOBARI: { name: "闇蝕の帳", mp: 12, kind: "atk", power: 34, element: "dark", vuln: { dark: 0.85 }, target: "all-enemy", desc: "闇の帳が敵全体を蝕み、闇に弱らせる" },
     ARCANIST_KINSEI:     { name: "禁星の招来", mp: 22, kind: "atk", power: 60, flinchChance: 0.25, target: "all-enemy", desc: "禁じられた星を呼び、敵を怯ませる（無属性）" },
     ARCANIST_HYOUJU:     { name: "氷呪の棘", mp: 14, kind: "atk", power: 34, element: "water", confuse: 0.25, target: "enemy", desc: "呪いの氷棘が刺さり、心を惑わす" },
@@ -51,8 +52,10 @@ export default {
     },
     arcanistJushoku: {
       label: "呪蝕の理",
-      lv: ["弱体中の敵への攻撃呪文の与ダメージ+8%", "弱体中の敵への攻撃呪文の与ダメージ+14%", "弱体中の敵への攻撃呪文の与ダメージ+20%"],
-      fx: [{ t: "deal", on: "spell", when: { tgtDebuffed: true }, v: [0.08, 0.14, 0.2] }],
+      lv: ["HP50%以下の時、攻撃呪文の会心率+6%", "HP50%以下の時、攻撃呪文の会心率+10%", "HP50%以下の時、攻撃呪文の会心率+14%"],
+      fx: [
+        {t: "crit", on: "spell", when: {selfLow: 0.5}, v: [0.06, 0.1, 0.14]},
+      ],
     },
     arcanistTsuuren: {
       label: "痛みの錬成",

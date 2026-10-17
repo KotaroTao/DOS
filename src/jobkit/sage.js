@@ -1,3 +1,4 @@
+// 全職見直し: 攻撃と回復を使い分け、追加の手番で隊を支える。ランクパッシブは維持。
 // 賢者 (sage) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 持ち味: 水と風の叡智。攻めの呪文の余光で隊を癒し、癒しと守りを同じ手で編む。品の真贋を見抜く鑑定の目も持つ (鑑定Lv2)。
@@ -5,18 +6,20 @@ export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
   awaken: "sageJikan",
   table: `
-    1 kantei/2 3 DIOS 5 sageJunkan/1 7 ICENEEDLE 10 CURE 15 SAGE_SEIRYUU 15 sageZoufuku/1 20 MAHALITO
-    20 RECOVER 22 AQUAWAVE 25 sageIzumi/1 27 WINDSTORM 30 SAGE_CHIE 30 DIOSALL 30 AWAKE 35 sageSuifuu/1
-    40 SHINRANOSABAKI 40 DIAL 45 sageJunkan/2 47 ICELANCE 50 STONECURE 50 sageZoufuku/2 55 MAYOKE
-    60 sageJihi/1 60 REVIVE 60 DIALALL 65 SAGE_SHINRI 70 sageChouwa/1 72 SAGE_SEIFUU 75 sageIzumi/2
-    80 MADIOS 85 SAGE_NAGI 90 sageSuifuu/2 90 RESURRECT 92 SAGE_JINRAI 95 SAGE_FUUU 100 SAGE_HAYATE
-    100 sageZoufuku/3 100 PURIFY 105 sageJunkan/3 110 SAGE_SUIKYOU 115 resistAilment/1 120 SAGE_DAICHI
-    120 MADIOSALL 125 sageJihi/2 130 SAGE_KANRO 135 sageSuifuu/3 140 SAGE_EICHIEN 142 SAGE_TENRAI
-    145 sageChouwa/2 150 SAGE_HANGON 155 sageIzumi/3 160 SAGE_REIHYOU 165 resistAilment/2 170 SAGE_CHOUWA
-    175 sageJunkan/4 180 SAGE_HOMURA 185 sageJihi/3 190 SAGE_SHINEN 195 SAGE_SHINRA 200 SAGE_SHUUKYOKU`,
+    1 kantei/2 3 DIOS 5 sageJunkan/1 7 ICENEEDLE 10 CURE 12 SAGE_SEIRYUU
+    15 sageZoufuku/1 18 SAGE_CHIE 20 MAHALITO 20 RECOVER 20 sageChouwa/1 22 AQUAWAVE
+    25 sageIzumi/1 25 SAGE_SHINRI 27 WINDSTORM 30 DIOSALL 30 AWAKE 35 sageSuifuu/1
+    35 sageJihi/1 35 SAGE_FUUU 40 SHINRANOSABAKI 40 DIAL 45 sageJunkan/2 45 SAGE_NAGI
+    47 ICELANCE 50 STONECURE 50 sageZoufuku/2 55 MAYOKE 60 REVIVE 60 DIALALL
+    60 SAGE_SEIFUU 75 sageIzumi/2 75 SAGE_HAYATE 80 MADIOS 80 sageChouwa/2 90 sageSuifuu/2
+    90 RESURRECT 90 SAGE_SUIKYOU 92 SAGE_JINRAI 100 sageZoufuku/3 100 PURIFY 100 sageJihi/2
+    105 sageJunkan/3 105 SAGE_KANRO 115 resistAilment/1 120 MADIOSALL 125 SAGE_DAICHI 135 sageSuifuu/3
+    140 SAGE_EICHIEN 142 SAGE_TENRAI 150 SAGE_HANGON 155 sageIzumi/3 160 SAGE_REIHYOU 165 resistAilment/2
+    165 sageJihi/3 170 SAGE_CHOUWA 175 sageJunkan/4 180 SAGE_HOMURA 190 SAGE_SHINEN 195 SAGE_SHINRA
+    200 SAGE_SHUUKYOKU`,
   skills: {
-    // Lv15 の固有技: 清流の調べで群れを打ち、余韻で隊を癒す
-    SAGE_SEIRYUU: { name: "清流の調べ", mp: 7, kind: "atk", power: 13, element: "water", partyHeal: 5, target: "all-enemy", desc: "清流の調べが敵全体を打ち、その余韻で味方全員を癒す" },
+    // 序盤の固有技: 清流の調べで群れを打ち、余韻で隊を癒す
+    SAGE_SEIRYUU: {name: "清流の調べ", mp: 7, kind: "atk", power: 11, element: "water", partyHeal: 7, target: "all-enemy", desc: "敵全体を水の調べで撃ち、その余韻で味方全員を癒す。攻めと回復を兼ねる", dur: 3},
     SAGE_CHIE:      { name: "叡智の授け", mp: 7, kind: "buff", buff: { int: 1.3 }, purge: true, target: "ally", desc: "味方のINTを高め、弱体を解く" },
     SAGE_SHINRI:    { name: "真理の暴き", mp: 9, kind: "debuff", vuln: { all: 0.8 }, strip: true, target: "enemy", desc: "強化を暴き崩し、全属性の守りを下げる" },
     SAGE_SEIFUU:    { name: "清風の渦", mp: 14, kind: "atk", power: 30, element: "wind", partyHeal: 8, target: "all-enemy", desc: "清風の渦が敵を裂き、味方を癒す" },
@@ -27,7 +30,7 @@ export default {
     SAGE_SUIKYOU:   { name: "水鏡の審判", mp: 23, kind: "atk", power: 50, element: "water", partyHeal: 14, target: "all-enemy", desc: "水鏡が敵を撃ち、映る光が味方を癒す" },
     SAGE_DAICHI:    { name: "大地の叡智", mp: 31, kind: "atk", power: 72, element: "earth", debuff: { atk: 0.9 }, target: "all-enemy", desc: "大地の理で敵全体を撃ち、力を削ぐ" },
     SAGE_KANRO:     { name: "甘露の大雨", mp: 22, kind: "heal", healMul: 1.7, purge: true, target: "all-ally", desc: "甘露の雨が味方全員を癒し、弱体を解く" },
-    SAGE_EICHIEN:   { name: "叡智の炎", mp: 20, kind: "atk", power: 60, element: "fire", strip: true, target: "enemy", desc: "叡智の炎が強化ごと一体を焼く" },
+    SAGE_EICHIEN:   {name: "叡智の炎", mp: 20, kind: "atk", power: 50, element: "fire", target: "enemy", desc: "叡智の炎で一体を焼き、その光で味方全員を癒す", dur: 3, partyHeal: 18},
     SAGE_TENRAI:    { name: "天籟の雷", mp: 24, kind: "atk", power: 70, element: "wind", confuse: 0.2, target: "enemy", desc: "天籟の雷が撃ち、心を乱す" },
     SAGE_HANGON:    { name: "反魂の叡智", mp: 100, kind: "heal", revive: true, revivePct: 1, grantEndure: true, target: "ally", desc: "HP100%で蘇らせ、致死を一度耐えさせる" },
     SAGE_REIHYOU:   { name: "霊氷の理", mp: 26, kind: "atk", power: 82, element: "water", debuff: { agi: 0.8, atk: 0.9 }, target: "enemy", desc: "霊氷が身を縛り、力と足を奪う" },
@@ -78,8 +81,10 @@ export default {
     },
     sageJihi: {
       label: "慈悲の残光",
-      lv: ["戦闘勝利後、味方全員のHPを最大の3%回復", "戦闘勝利後、味方全員のHPを最大の5%回復", "戦闘勝利後、味方全員のHPを最大の7%回復"],
-      fx: [{ t: "win", party: true, hp: [0.03, 0.05, 0.07] }],
+      lv: ["回復の技を使った後、自分のHPを最大の3%回復", "回復の技を使った後、自分のHPを最大の5%回復", "回復の技を使った後、自分のHPを最大の7%回復"],
+      fx: [
+        {t: "cast", on: "heal", hp: [0.03, 0.05, 0.07]},
+      ],
     },
   },
 };

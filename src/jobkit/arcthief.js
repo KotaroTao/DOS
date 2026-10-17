@@ -1,3 +1,4 @@
+// 全職見直し: 敵の呪文を返し、強化と魔力を奪って攻める。ランクパッシブは維持。
 // 魔盗賊 (arcthief) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 export default {
@@ -5,17 +6,17 @@ export default {
   awaken: "arcthiefKaeshi",
   table: `
     1 STEAL 2 ARCTHIEF_KASUMEBA 3 HALITO 4 SHADOWBOLT 5 openSpell/1 7 ARCTHIEF_NUSUMIMI
-    10 ARCTHIEF_YUMETORI 12 FUYUU 15 ARCTHIEF_KASUMEJUDAN 15 arcthiefGenei/1 20 SEAL 25 arcthiefSae/1 30 MAHALITO
-    32 DARKBLAST 35 arcthiefSuritoru/1 40 MARYOKUGOUDATSU 45 arcthiefTeguse/1 50 ARCTHIEF_GENTOU 50 arcthiefGenei/2 55 DISPEL
-    57 ARCTHIEF_MAREIJIN 60 arcthiefTeguse/2 65 ARCTHIEF_ENMAKU 70 arcthiefKarimono/1 72 ARCTHIEF_KAGEKUI 75 arcthiefSae/2
-    80 ARCTHIEF_TOUSEI 85 ARCTHIEF_MASHU 90 arcthiefSuritoru/2 95 ARCTHIEF_KASUMERAI 100 MADALT 100 arcthiefGenei/3 105 arcthiefSurinuke/1
-    110 ARCTHIEF_JUTSUAMI 115 arcthiefSuritoru/3 120 ARCTHIEF_MANAWA 122 ARCTHIEF_TAMANUKI 125 arcthiefKarimono/2 130 ARCTHIEF_NUSUMISHIMO
-    135 arcthiefSae/3 140 ARCTHIEF_KAGENUKE 145 arcthiefTeguse/3 150 ARCTHIEF_NUSUMIARASHI 155 resistAilment/1 160 ARCTHIEF_NUSUMIBI
-    165 arcthiefSuritoru/4 170 ARCTHIEF_TAMANUSUMI 175 arcthiefSurinuke/2 180 ARCTHIEF_TOUTENSEKI 185 arcthiefSae/4 190 ARCTHIEF_MAKUHIKI
-    195 ARCTHIEF_DATSUENRAN 200 ARCTHIEF_BANSHOU`,
+    10 ARCTHIEF_YUMETORI 12 FUYUU 12 ARCTHIEF_KASUMEJUDAN 15 arcthiefGenei/1 18 DISPEL 20 SEAL
+    20 arcthiefSurinuke/1 25 arcthiefSae/1 25 ARCTHIEF_ENMAKU 30 MAHALITO 32 DARKBLAST 35 arcthiefSuritoru/1
+    35 MARYOKUGOUDATSU 35 arcthiefKarimono/1 45 arcthiefTeguse/1 50 ARCTHIEF_GENTOU 50 arcthiefGenei/2 57 ARCTHIEF_MAREIJIN
+    60 arcthiefTeguse/2 60 ARCTHIEF_MASHU 72 ARCTHIEF_KAGEKUI 75 arcthiefSae/2 75 ARCTHIEF_JUTSUAMI 85 arcthiefSurinuke/2
+    90 ARCTHIEF_TOUSEI 90 arcthiefSuritoru/2 100 MADALT 100 arcthiefGenei/3 105 ARCTHIEF_KASUMERAI 110 arcthiefKarimono/2
+    115 arcthiefSuritoru/3 120 ARCTHIEF_MANAWA 125 ARCTHIEF_TAMANUKI 130 ARCTHIEF_NUSUMISHIMO 135 arcthiefSae/3 140 ARCTHIEF_KAGENUKE
+    145 arcthiefTeguse/3 150 ARCTHIEF_NUSUMIARASHI 155 resistAilment/1 160 ARCTHIEF_NUSUMIBI 165 arcthiefSuritoru/4 170 ARCTHIEF_TAMANUSUMI
+    180 ARCTHIEF_TOUTENSEKI 185 arcthiefSae/4 190 ARCTHIEF_MAKUHIKI 195 ARCTHIEF_DATSUENRAN 200 ARCTHIEF_BANSHOU`,
   skills: {
-    // Lv15 の固有技: 闇の呪弾で撃ち、魔力をかすめ取る
-    ARCTHIEF_KASUMEJUDAN: { name: "かすめ呪弾", mp: 5, kind: "atk", power: 16, element: "dark", mpDrain: 0.2, target: "enemy", desc: "闇の呪弾で撃ち、敵の魔力をかすめ取る" },
+    // 序盤の固有技: 闇の呪弾で撃ち、魔力をかすめ取る
+    ARCTHIEF_KASUMEJUDAN: {name: "かすめ呪弾", mp: 5, kind: "atk", power: 14, element: "dark", mpDrain: 0.15, target: "enemy", desc: "闇の呪弾で敵の強化を剥ぎ、与えた傷の15%のMPを奪う（吸収上限あり）", dur: 3, strip: true},
     // INT でも伸びる魔刃 (共通の冥刃は STR だけで伸び、INT型の魔盗賊に合わない)
     ARCTHIEF_MAREIJIN:   { name: "魔霊刃", mp: 10, kind: "phys", power: 1.7, intScale: 0.5, element: "dark", mpDrain: 0.2, target: "enemy", desc: "魔力をまとった冥い刃で斬り、魔力を奪う（INTでも伸びる）" },
     ARCTHIEF_KASUMEBA:     { name: "かすめ魔刃", mp: 4, kind: "phys", power: 1.1, intScale: 0.5, element: "dark", mpDrain: 0.2, target: "enemy", desc: "闇の刃で斬り、魔力をかすめ取る（闇）" },
@@ -27,17 +28,17 @@ export default {
     ARCTHIEF_TOUSEI:       { name: "盗星", mp: 22, kind: "atk", power: 58, strip: true, target: "all-enemy", desc: "盗んだ星を降らせ、強化を剥ぐ" },
     ARCTHIEF_MASHU:        { name: "魔手の一刺し", mp: 5, kind: "phys", power: 1.2, intScale: 0.4, critBonus: 0.4, target: "enemy", desc: "魔力を込めた指先で急所を刺す" },
     ARCTHIEF_KASUMERAI:    { name: "かすめ雷", mp: 9, kind: "atk", power: 25, element: "wind", para: 0.2, debuff: { agi: 0.85 }, target: "enemy", desc: "かすめ取った雷で撃ち、痺れさせる（風）" },
-    ARCTHIEF_JUTSUAMI:     { name: "術封じの網", mp: 11, kind: "debuff", seal: { chance: 0.5, turns: 3 }, strip: true, target: "all-enemy", desc: "術を絡め取る網で、強化と特技を奪う" },
+    ARCTHIEF_JUTSUAMI:     {name: "術封じの網", mp: 9, kind: "debuff", seal: {chance: 0.35, turns: 2}, strip: true, target: "all-enemy", desc: "敵全体の強化を奪い、35%で特技を2ターン封じる", dur: 3},
     ARCTHIEF_MANAWA:       { name: "魔縄締め", mp: 16, kind: "phys", power: 2.6, intScale: 0.4, execute: 2.5, target: "enemy", desc: "魔の縄で弱った敵を締め上げる（とどめ）" },
-    ARCTHIEF_TAMANUKI:     { name: "魂抜き", mp: 21, kind: "atk", power: 60, element: "dark", seal: { chance: 0.5, turns: 3 }, target: "enemy", desc: "魂をかすめ取り、特技を封じる（闇）" },
+    ARCTHIEF_TAMANUKI:     {name: "魂抜き", mp: 21, kind: "atk", power: 52, element: "dark", seal: {chance: 0.35, turns: 2}, target: "enemy", desc: "闇で魂を抜き、MPを吸収する。35%で特技を2ターン封じる", dur: 3, mpDrain: 0.08},
     ARCTHIEF_NUSUMISHIMO:  { name: "盗み霜", mp: 14, kind: "atk", power: 37, element: "water", sleepChance: 0.25, target: "enemy", desc: "盗んだ冷気で貫き、凍え眠らせる（水）" },
     ARCTHIEF_KAGENUKE:     { name: "影抜け", mp: 22, kind: "phys", power: 4.0, agiScale: 1.0, intScale: 0.6, critBonus: 0.3, element: "wind", target: "enemy", desc: "影を抜け、風の魔刃で刺す（風）" },
-    ARCTHIEF_NUSUMIARASHI: { name: "盗み嵐", mp: 16, kind: "atk", power: 42, element: "wind", debuff: { hit: 0.85 }, target: "all-enemy", desc: "盗んだ嵐が敵陣を裂き、狙いを乱す（風）" },
-    ARCTHIEF_NUSUMIBI:     { name: "盗み火", mp: 20, kind: "atk", power: 58, element: "fire", vuln: { fire: 0.8 }, target: "enemy", desc: "盗んだ業火で焼き、火への守りを崩す（火）" },
+    ARCTHIEF_NUSUMIARASHI: {name: "盗み嵐", mp: 16, kind: "atk", power: 36, element: "wind", debuff: {hit: 0.9}, target: "all-enemy", desc: "敵全体を風で撃ち、強化を奪い、命中率を10%下げる", dur: 3, strip: true},
+    ARCTHIEF_NUSUMIBI:     {name: "盗み火", mp: 20, kind: "atk", power: 50, element: "fire", target: "enemy", desc: "盗んだ火で一体を焼き、強化を奪う", dur: 3, strip: true},
     ARCTHIEF_TAMANUSUMI:   { name: "魂盗み", mp: 28, kind: "phys", power: 3.0, intScale: 0.5, critBonus: 0.4, mpDrain: 0.2, instakill: { chance: 0.3 }, target: "enemy", desc: "命と魔力を盗み取る。即死させることも（INTでも伸びる）" },
     ARCTHIEF_TOUTENSEKI:   { name: "盗天の隕石", mp: 26, kind: "atk", power: 74, element: "earth", flinchChance: 0.25, target: "all-enemy", desc: "盗んだ天の石を降らせ、怯ませる（土）" },
     ARCTHIEF_MAKUHIKI:     { name: "怪盗の幕引き", mp: 32, kind: "phys", power: 7.0, intScale: 0.5, critBonus: 0.4, execute: 2, element: "dark", target: "enemy", desc: "魔を帯びた刃で弱った敵を葬る（闇）" },
-    ARCTHIEF_DATSUENRAN:   { name: "奪焔嵐", mp: 30, kind: "atk", power: 84, element: "fire", debuff: { vit: 0.85 }, target: "all-enemy", desc: "奪った業火の嵐で敵陣の守りを焼く（火）" },
+    ARCTHIEF_DATSUENRAN:   {name: "奪焔嵐", mp: 30, kind: "atk", power: 72, element: "fire", target: "all-enemy", desc: "奪った炎で敵全体を焼き、MPを少しずつ吸い上げる（吸収上限あり）", dur: 3, mpDrain: 0.04},
     ARCTHIEF_BANSHOU:      { name: "万象盗り", mp: 44, kind: "atk", power: 130, mpDrain: 0.1, strip: true, target: "all-enemy", desc: "万象の理を盗み、敵陣を消し去る" },
   },
   perks: {
@@ -62,8 +63,10 @@ export default {
     // 眠り・混乱で隙だらけの相手に盗んだ術を叩き込む
     arcthiefSae: {
       label: "盗術の冴え",
-      lv: ["状態異常・怯み中の敵への攻撃呪文+12%", "状態異常・怯み中の敵への攻撃呪文+18%", "状態異常・怯み中の敵への攻撃呪文+24%", "状態異常・怯み中の敵への攻撃呪文+30%"],
-      fx: [{ t: "deal", v: [0.12, 0.18, 0.24, 0.3], on: "spell", when: { tgtAil: true } }],
+      lv: ["弱体・状態異常・怯み中の敵への攻撃呪文の与ダメージ+12%", "弱体・状態異常・怯み中の敵への攻撃呪文の与ダメージ+18%", "弱体・状態異常・怯み中の敵への攻撃呪文の与ダメージ+24%", "弱体・状態異常・怯み中の敵への攻撃呪文の与ダメージ+30%"],
+      fx: [
+        {t: "deal", on: "spell", when: {tgtWeakened: true}, v: [0.12, 0.18, 0.24, 0.3]},
+      ],
     },
     // 開戦と同時に手を伸ばす
     arcthiefTeguse: {

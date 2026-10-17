@@ -14,8 +14,8 @@ const foe = () => ({uid:100000,name:'検証の敵',side:'enemy',alive:true,
   element:'none',mon:{race:'humanoid'},spells:[],});
 assert.equal(PASSIVES.hunterSaihai.label,'待ち伏せ');
 assert.equal(PASSIVES.initiative.label,'先の太刀');
-assert(!jobLevelPassives('samurai',34).initiative);
-assert.equal(jobLevelPassives('samurai',35).initiative,1);
+assert(!jobLevelPassives('samurai',19).initiative);
+assert.equal(jobLevelPassives('samurai',20).initiative,1);
 for(let rank=1;rank<=5;rank++) {
   const lv=Math.max(0,rank-1), bonus=[0,.05,.10,.15,.20][lv];
   assert.equal(passivesUpTo('hunter',rank).hunterSaihai||0,lv);

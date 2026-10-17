@@ -1,3 +1,4 @@
+// 全職見直し: 封印と弱体で断罪の条件を作り、火と槌で裁く。ランクパッシブは維持。
 // 審問官 (inquisitor) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 持ち味: 断罪の鉄槌と浄火。罪を封じ、弱った罪人の急所を打ち据える (火/光)
@@ -5,23 +6,21 @@ export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
   awaken: "inqDanzai",
   table: `
-    1 SHIELDBASH 2 KAENGIRI 3 DIOS 5 inquisitorKokkaiTomoshibi/1 7 NERAIUCHI 10 SHINMON 10 CURE
-    12 INQUISITOR_SHOKUZAI 15 INQUISITOR_DANZAI 15 inqBrand/1 20 INQUISITOR_KASEUCHI 20 RECOVER 22 KAENNAGI
-    25 resistAilment/1 30 KAKEI 30 DIOSALL 32 INQUISITOR_HAMON 35 inquisitorShinmonNirami/1
-    40 DANZAINOTSUCHI 40 DIAL 45 inquisitorIhanShirushi/1 50 INQUISITOR_YAKIIN 50 inqBrand/2 57 GURENZAN
-    60 inquisitorKokkaiTomoshibi/2 65 SHINGANGEKI 70 inquisitorZaininKyuusho/1 75 inquisitorIhanShirushi/2
-    80 INQUISITOR_IHANHAGI 85 INQUISITOR_MANAZASHI 90 inquisitorShinmonNirami/2 95 INQUISITOR_SABAKIYARI
-    100 INQUISITOR_GOUMON 100 inqBrand/3 105 resistAilment/2 107 INQUISITOR_JOUKATSUCHI
-    110 INQUISITOR_FUNKEI 115 inquisitorJoukaKokoroe/1 120 INQUISITOR_SHINPAN 125 inquisitorZaininKyuusho/2
-    130 INQUISITOR_KOKKAI 135 inquisitorIhanShirushi/3 140 INQUISITOR_MAJOGARI 145 inquisitorJoukaKokoroe/2
-    150 INQUISITOR_HAKAI 155 inquisitorZaininKyuusho/3 160 INQUISITOR_ZAININRETSU 162 INQUISITOR_KAKEIBA
-    165 inquisitorShinmonNirami/3 170 INQUISITOR_DANTOU 175 inquisitorJoukaKokoroe/3 180 INQUISITOR_JOUZAI
-    185 inquisitorKokkaiTomoshibi/3 190 SAIGONOSHINPAN 195 INQUISITOR_YURUSHI 200 INQUISITOR_SHAMEN`,
+    1 SHIELDBASH 2 KAENGIRI 3 DIOS 5 inquisitorKokkaiTomoshibi/1 7 NERAIUCHI 10 SHINMON
+    10 CURE 12 INQUISITOR_SHOKUZAI 12 INQUISITOR_DANZAI 15 inqBrand/1 18 INQUISITOR_KASEUCHI 20 RECOVER
+    20 inquisitorIhanShirushi/1 22 KAENNAGI 25 resistAilment/1 25 INQUISITOR_YAKIIN 30 DIOSALL 35 INQUISITOR_HAMON
+    35 inquisitorShinmonNirami/1 35 inquisitorZaininKyuusho/1 40 DANZAINOTSUCHI 40 DIAL 45 KAKEI 50 inqBrand/2
+    57 GURENZAN 60 inquisitorKokkaiTomoshibi/2 60 INQUISITOR_IHANHAGI 65 SHINGANGEKI 65 inquisitorIhanShirushi/2 75 INQUISITOR_MANAZASHI
+    90 inquisitorShinmonNirami/2 90 INQUISITOR_SABAKIYARI 95 inquisitorZaininKyuusho/2 100 inqBrand/3 105 INQUISITOR_GOUMON 105 resistAilment/2
+    107 INQUISITOR_JOUKATSUCHI 115 inquisitorJoukaKokoroe/1 120 INQUISITOR_SHINPAN 120 inquisitorIhanShirushi/3 125 INQUISITOR_FUNKEI 130 INQUISITOR_KOKKAI
+    140 INQUISITOR_MAJOGARI 145 inquisitorJoukaKokoroe/2 150 INQUISITOR_HAKAI 155 inquisitorZaininKyuusho/3 160 INQUISITOR_ZAININRETSU 162 INQUISITOR_KAKEIBA
+    165 inquisitorShinmonNirami/3 170 INQUISITOR_DANTOU 175 inquisitorJoukaKokoroe/3 180 INQUISITOR_JOUZAI 185 inquisitorKokkaiTomoshibi/3 190 SAIGONOSHINPAN
+    195 INQUISITOR_YURUSHI 200 INQUISITOR_SHAMEN`,
   skills: {
-    // Lv15 の固有技: 罪人を鉄槌で打つ。弱った者に重く、特技を封じる
-    INQUISITOR_DANZAI: { name: "罪人打ち", mp: 5, kind: "phys", power: 1.3, acc: 0.13, execute: 1.6, seal: { chance: 0.3, turns: 2 }, target: "enemy", desc: "罪人を鉄槌で打ち据える。弱った敵に重く、特技を封じる" },
+    // 序盤の固有技: 罪人を鉄槌で打つ。弱った者に重く、特技を封じる
+    INQUISITOR_DANZAI: {name: "罪人打ち", mp: 5, kind: "phys", power: 1.15, acc: 0.13, execute: 1.5, seal: {chance: 0.4, turns: 2}, target: "enemy", desc: "40%で特技を封じ、断罪へつなぐ槌。HP30%以下の敵に1.5倍", dur: 3},
     // 信仰の火 (faith)。共通の炎の呪文は INT 依存で審問官 (PIE型) に合わないので置き換える
-    INQUISITOR_SHOKUZAI: { name: "贖罪の火矢", mp: 2, kind: "atk", power: 10, element: "fire", faith: true, target: "enemy", desc: "罪を贖わせる火の矢（PIEでも伸びる）" },
+    INQUISITOR_SHOKUZAI: {name: "贖罪の火矢", mp: 2, kind: "atk", power: 9, element: "fire", faith: true, target: "enemy", desc: "PIEでも伸びる火矢。20%で特技を封じ、断罪の足がかりを作る", dur: 3, seal: {chance: 0.2, turns: 2}},
     INQUISITOR_HAMON:    { name: "破門の炎", mp: 6, kind: "atk", power: 22, element: "fire", faith: true, target: "all-enemy", desc: "破門を告げる炎が敵全体を焼く（PIEでも伸びる）" },
     INQUISITOR_KASEUCHI: { name: "枷打ち", mp: 4, kind: "phys", power: 1.0, acc: 0.16, debuff: { agi: 0.8 }, target: "enemy", desc: "罪人の足に枷を打ち、素早さを奪う" },
     INQUISITOR_YAKIIN: { name: "罪の焼き印", mp: 8, kind: "phys", power: 1.5, element: "fire", acc: 0.16, seal: { chance: 0.4, turns: 2 }, target: "enemy", desc: "罪の焼き印を押し、特技を封じる" },
@@ -40,7 +39,7 @@ export default {
     INQUISITOR_DANTOU: { name: "断頭の宣告", mp: 32, kind: "phys", power: 8.0, element: "light", acc: 1, execute: 1.8, target: "enemy", desc: "必中の断頭。弱った罪人には更に重い" },
     INQUISITOR_JOUZAI: { name: "浄罪の業火", mp: 30, kind: "atk", power: 82, element: "fire", seal: { chance: 0.3, turns: 2 }, faith: true, target: "all-enemy", desc: "業火で敵全体を焼き清め、特技を封じる（PIEでも伸びる）" },
     INQUISITOR_YURUSHI: { name: "赦しの秘蹟", mp: 29, kind: "heal", healMul: 1.9, cure: true, purge: true, grantBarrier: 1, target: "all-ally", desc: "全員を癒して穢れを祓い、魔障壁を授ける" },
-    INQUISITOR_SHAMEN: { name: "終の赦免", mp: 120, kind: "heal", healPct: 1, revive: true, revivePct: 0.7, cure: true, purge: true, grantBarrier: 1, target: "all-ally", desc: "倒れた者を赦し蘇らせ (HP70%)、全員を守る" },
+    INQUISITOR_SHAMEN: {name: "終の赦免", mp: 95, kind: "heal", healPct: 1, cure: true, purge: true, target: "all-ally", desc: "生きている味方全員を全快させ、状態異常と弱体を祓い、不屈を一度授ける（蘇生はしない）", dur: 3, grantEndure: true},
   },
   perks: {
     // ランクのパッシブ: 罪に縛られた者へ、裁きは重くなる

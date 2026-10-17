@@ -1,3 +1,4 @@
+// 全職見直し: 鑑定・見破り・清めで探索と戦闘をつなぐ。ランクパッシブは維持。
 // 司教 (bishop) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 持ち味: 鑑定と聖水の祈祷師。水と光の祈りで不浄を祓い、聖水で隊を清め、倒れた者を呼び戻す (鑑定Lv2 → Lv50 で Lv3 → Lv100 で Lv4。
@@ -8,18 +9,19 @@ export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
   awaken: "bishopSeibetsu",
   table: `
-    1 kantei/2 3 DIOS 4 HOLYRAY 5 bishopSeisui/1 7 ICENEEDLE 10 CURE 15 BISHOP_SEISUIMAKI 15 bishopMiyaburi/1
-    20 SEAL 20 RECOVER 22 BISHOP_MICHISHIRUBE 25 bishopJouka/1 30 DIOSALL 30 AWAKE 35 bishopTobari/1 40 DIAL
-    45 bishopYoin/1 47 ICELANCE 50 STONECURE 50 kantei/3 50 bishopMiyaburi/2 55 BISHOP_SENREI 60 bishopSeisui/2 60 REVIVE
-    60 DIALALL 65 BISHOP_SEIHYOU 70 bishopTobari/2 75 afterBoth/1 80 MANAGIFT 80 MADIOS 85 SAINTRAY
-    90 bishopJouka/2 95 BISHOP_SEIHAI 100 BISHOP_SEISEN 100 kantei/4 100 bishopMiyaburi/3 100 PURIFY 105 bishopYoin/2
-    110 BISHOP_JIU 115 bishopSeisui/3 120 SEALALL 125 bishopTobari/3 130 BISHOP_SHUKUFUKU 132 BISHOP_SEIRYUU
-    135 bishopJouka/3 140 BISHOP_HOSHI 145 resistAilment/1 150 BISHOP_KANCHOU 155 elemFloor/1
-    160 BISHOP_SEIGAI 165 resistAilment/2 170 BISHOP_DANZAI 172 BISHOP_SEIHYOUKAN 175 bishopYoin/3
+    1 kantei/2 3 DIOS 4 HOLYRAY 5 bishopSeisui/1 7 ICENEEDLE 10 CURE
+    12 BISHOP_SEISUIMAKI 15 bishopMiyaburi/1 18 SEAL 20 RECOVER 22 BISHOP_MICHISHIRUBE 25 bishopJouka/1
+    25 DIOSALL 25 bishopYoin/1 30 AWAKE 35 bishopTobari/1 35 BISHOP_SENREI 40 DIAL
+    45 STONECURE 47 ICELANCE 50 kantei/3 50 bishopMiyaburi/2 50 DIALALL 55 REVIVE
+    60 bishopSeisui/2 60 afterBoth/1 65 BISHOP_SEIHYOU 65 bishopYoin/2 70 bishopTobari/2 75 MANAGIFT
+    80 MADIOS 85 SAINTRAY 90 bishopJouka/2 95 BISHOP_SEIHAI 95 BISHOP_SEISEN 100 kantei/4
+    100 bishopMiyaburi/3 100 PURIFY 110 BISHOP_JIU 115 bishopSeisui/3 120 SEALALL 125 bishopTobari/3
+    130 BISHOP_SHUKUFUKU 132 BISHOP_SEIRYUU 135 bishopJouka/3 135 bishopYoin/3 140 BISHOP_HOSHI 145 resistAilment/1
+    150 BISHOP_KANCHOU 155 elemFloor/1 160 BISHOP_SEIGAI 165 resistAilment/2 170 BISHOP_DANZAI 172 BISHOP_SEIHYOUKAN
     180 BISHOP_SEIKA 185 sanctuary/1 190 SEIMETSUREKKOU 195 BISHOP_SEISOU 200 BISHOP_SHINPAN`,
   skills: {
-    // Lv15 の固有技: 聖水を撒いて群れを清める祈りの呪文
-    BISHOP_SEISUIMAKI: { name: "聖水撒き", mp: 6, kind: "atk", power: 14, element: "water", faith: true, prey: { races: UNHOLY, mul: 1.3 }, target: "all-enemy", desc: "聖水を撒き、敵全体を清める。不浄の者に強い（PIEでも伸びる）" },
+    // 序盤の固有技: 聖水を撒いて群れを清める祈りの呪文
+    BISHOP_SEISUIMAKI: {name: "聖水撒き", mp: 6, kind: "atk", power: 12, element: "water", faith: true, prey: {races: ["undead", "specter", "demon"], mul: 1.3}, target: "all-enemy", desc: "聖水で敵全体の強化を祓う。不浄の者に強い水の呪文（PIEでも伸びる）", dur: 3, strip: true},
     // 迷宮で唱える術: 祈りの導きで、この階の下り階段を示す
     BISHOP_MICHISHIRUBE: { name: "道しるべ", mpPct: 0.3, mp: 6, kind: "field", sense: "stairs", target: "all-ally", desc: "この階の下り階段の在りかを示し、その周囲8マスのカードをめくる（迷宮で唱える。効くのはこの階だけ）" },
     BISHOP_SENREI:     { name: "洗礼の聖水", mp: 6, kind: "debuff", strip: true, seal: { chance: 0.25, turns: 2 }, target: "all-enemy", desc: "聖水で強化を洗い流し、特技を封じる" },
@@ -30,7 +32,7 @@ export default {
     BISHOP_SHUKUFUKU:  { name: "祝福の潮", mp: 24, kind: "heal", healMul: 1.9, regen: { pct: 0.03, turns: 3 }, target: "all-ally", desc: "祝福の潮が味方を癒し、癒しが続く" },
     BISHOP_SEIRYUU:    { name: "聖流の裁き", mp: 20, kind: "atk", power: 50, element: "water", debuff: { atk: 0.9 }, target: "all-enemy", desc: "聖なる奔流が邪な力を鎮める" },
     BISHOP_HOSHI:      { name: "星の聖別", mp: 23, kind: "atk", power: 56, vuln: { light: 0.85 }, target: "all-enemy", desc: "星明かりで敵全体を撃ち、光に弱らせる" },
-    BISHOP_KANCHOU:    { name: "聖水灌頂", mp: 9, kind: "buff", buff: { vit: 1.1 }, cure: true, purge: true, target: "all-ally", desc: "聖水を注ぎ、穢れと弱体を祓い守る" },
+    BISHOP_KANCHOU:    {name: "聖水灌頂", mp: 12, kind: "buff", buff: {vit: 1.25}, cure: true, purge: true, target: "all-ally", desc: "聖水で味方全員を清め、弱体を祓う。VITを1段上げ、魔障壁1回を授ける", dur: 3, grantBarrier: 1},
     BISHOP_SEIGAI:     { name: "聖骸の祈り", mp: 100, kind: "heal", revive: true, revivePct: 1, regen: { pct: 0.05, turns: 2 }, target: "ally", desc: "HP100%で蘇らせ、癒しの加護を宿す" },
     BISHOP_DANZAI:     { name: "聖印の断罪", mp: 22, kind: "atk", power: 62, element: "light", instakill: { chance: 0.2, races: UNHOLY }, target: "enemy", desc: "聖印の裁き。不浄の者を稀に消し去る" },
     BISHOP_SEIHYOUKAN: { name: "聖氷の棺", mp: 26, kind: "atk", power: 80, element: "water", sleepChance: 0.25, target: "enemy", desc: "聖氷の棺に封じ、眠らせる" },
