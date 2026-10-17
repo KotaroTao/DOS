@@ -46,7 +46,8 @@ with sync_playwright() as p:
     # タイトルの選択から付呪を実際に開始する。
     page.get_by_label('テストする内容', exact=True).select_option('tutorial')
     page.get_by_label('場面を探す', exact=True).fill('付呪')
-    assert ids() == ['unlock:enchant']
+    assert ids() == ['tutorial:enchant', 'unlock:enchant']
+    page.get_by_label('場面', exact=True).select_option('unlock:enchant')
     page.locator('.ttl-test button').last.click()
     page.wait_for_selector('.sc-title')
     assert '付呪' in page.locator('.sc-title').inner_text()

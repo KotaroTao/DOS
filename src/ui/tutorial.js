@@ -395,6 +395,44 @@ const TUTS = [
     }],
     outro: ["席に着けた魂の能力の一部が全員に加わる。ランクが高い魂ほど、分ける割合も大きい。"],
   },
+  {
+    key: "enchant", name: "付呪 — 特性を写して書き込む", who: "shop",
+    open: () => !!game.featureUnlocked?.("enchant"),
+    used: () => (G_().stats?.enchant?.written || 0) > 0,
+    prepare() { UI.prepareEnchantTutorial?.(); UI.openShop?.("enchant"); },
+    intro: () => [
+      "ヴォス「追加の能力や特性が付いた装備を持ち帰ったな。無限迷宮と、この先の迷宮では、こうした品が見つかる。」",
+      "「STRやHPなどを増やす追加の能力も、戦い方に関わる追加の特性も、別の装備に移せる。これを『付呪』と呼ぶ。俺がやり方を教えよう。」",
+      "「まずは、特性の付いた品から、残したい特性を一つ選ぶ。『写し取る』を押すと、その特性が『特性の巻物』になる。元の品は崩れて消え、選ばなかった特性も失われる。大事な品を使う前に、よく確かめろ。」",
+      "「次に、巻物の『書き込む』を押して、特性を付けたい装備を選ぶ。効果と費用を確かめてから書き込むんだ。巻物は一度使うとなくなって、二度と戻ってこない。」",
+      "「書ける数は、コモン一つ、アンコモン二つ、レア三つ、スーパーレア四つ、レジェンドレア五つ。部位が合わない特性や、同じ特性を重ねて書くことはできない。」",
+      "「練習には、商会のショートソードを二本使おう。『力の』特性を巻物に写し、もう一本へ書き込んでみろ。今回は金貨も、お前の品も使わない。練習の品と巻物は、終わったらこちらで引き取る。」",
+    ],
+    steps: [
+      { text: "練習用のショートソードから『力の』特性を写し取る", hint: "特性の付いた品 → 練習用のショートソード → 写し取る → 確認",
+        go: () => UI.openShop?.("enchant"), target: [".ec-srcs .wpc-srow-info"], on: "enchantExtracted" },
+      { text: "練習用の巻物を、もう一本のショートソードへ書き込む", hint: "特性の巻物 → 書き込む → 練習用のショートソード → 効果と費用を確認",
+        go: () => UI.openShop?.("enchant"), target: [".ec-prow .wpc-buy-main"], on: "enchantWritten" },
+    ],
+    outro: [
+      "ヴォス「できたな。『力の』特性が、もう一本のショートソードに移った。写す時に元の品、書く時に巻物がなくなる。この二つを忘れるな。」",
+      "「実際の付呪は、商会の『付呪』からいつでもできる。棚の特性つきの品は、買値を払えば、その場で写せる。書き込みにも金貨が要る。残す特性と、書く先を見定めて使え。」",
+      "練習の品と巻物を商会に返した。所持品と金貨は変わっていない。",
+    ],
+  },
+  {
+    key: "extremeAffix", name: "極の特性 — 星の付いた装備", who: "shop",
+    open: () => !!G_().tut?.extremeReturned,
+    used: () => false,
+    intro: () => [
+      "ヴォス「★の印が付いた装備を持ち帰ったな。これは『極』の特性だ。数字を増やすだけでなく、戦い方そのものを変える力がある。品の説明で、発動する条件と効果を確かめてみろ。」",
+      "「極の特性も、付呪で巻物に写せる。ただし、書き込めるのは極がまだ付いていない装備だけだ。極の付いた品に、もう一つ極を書き足すことはできない。」",
+      "「拾った時から極をいくつも持つ品が、ごくまれに見つかることはある。付呪でその組み合わせを作ることはできない。写し取ると元の品は消え、一つ選んだ特性以外は失われるから、すぐに写さず、品のまま使う道も考えろ。」",
+      "「商会の棚にどの特性を残すか選ぶ時は、特性の効果をよく確かめろ。滅多に見つからない強力な特性もあるからな。」",
+    ],
+    steps: [{ text: "極の特性の使い方を確認する", hint: "品の説明で発動条件と効果を確かめよう", done: () => true }],
+    outro: ["極の特性は★が目印。付呪では極の付いていない装備にだけ書き込める。商会の棚に残す特性を選ぶ際は、特性の効果を確かめよう。"],
+  },
 ];
 const TUT_MAP = Object.fromEntries(TUTS.map((t) => [t.key, t]));
 
@@ -750,6 +788,13 @@ function tutorialControls() {
   if (!d) return choose(first(document, ".hb-goal-go"));
   const st = tutState(), s = curStep();
   if (card) {
+    if (d.key === "enchant" && card.classList.contains("ui-confirm")) {
+      return choose(first(card, ".ui-sheet-foot .ui-btn.k-primary:not(:disabled), .ui-sheet-foot .ui-btn.k-danger:not(:disabled)"), [h.body, ...first(card, ".ui-sheet-foot .ui-btn.k-ghost")]);
+    }
+    if (d.key === "enchant" && card.classList.contains("ec-sheet")) {
+      const actions = first(card, st.step === 0 ? ".ec-extract:not(:disabled)" : ".ec-write:not(:disabled)");
+      return choose(actions, [h.body, ...first(card, ".ui-sheet-foot .ui-btn.k-ghost")]);
+    }
     if (d.key === "prologueFormation" && card.querySelector(".pt-sw-card")) return choose(first(card, `[data-swap-job="${formationMove().targetJob}"]`));
     if (d.key === "prologueAppraise" && card.classList.contains("ap-sheet")) return choose(first(card, ".ui-sheet-foot .ui-btn.k-primary, .ui-sheet-foot .ui-btn.k-ghost, .ap-stage"));
     // 門衛の忠告は、本文のスクロールと支度に戻る操作も受け付ける。

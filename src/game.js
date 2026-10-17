@@ -1299,9 +1299,11 @@ function infSell(owner, it, keep = null, quiet = false) {
   const ok = sellItem(owner, it, sellPrice(it), clash ? keep : null, quiet);
   if (!quiet && ok && clash && keep) log(keep === "new" ? `商会の棚の ${clash.name} は、いま売った品の追加の能力に置き換わった (前の品は通常品として並ぶ)。` : `商会の棚の ${clash.name} は、前の追加の能力のまま (いま売った品は通常品として並ぶ)。`, "sys");
   if (ok && !it.soulMemory) {
+    if (!it.unidentified) recordAffixHome(it); // 回収人へ渡した品は、この先で全滅しても持ち帰り済み。
     infSupplyRecord("sold", it.id);
     const st = infStats(); st.trades++; st.sold++; if (st.sold >= 100) infTitleGrant("trader");
     const trk = infTrk(); if (!it.unidentified) trk.sold = (trk.sold || 0) + 1; // この出撃で回収人に売った品 (全滅しても商会の棚に残る)
+    if (!quiet) autosave(true);
   }
   return ok;
 }
@@ -1731,10 +1733,9 @@ function infCloseRun(outcome) {
   infRestoreHome(ab.home);
   if (ab.savedIdx != null) G.dungeonIdx = Math.min(DUNGEONS.length - 1, Math.max(0, ab.savedIdx));
   const got = { items: [], souls: [], embers: 0 };
-  const enchantUnlocked = keep && !featureUnlocked("enchant");
-  if (keep) { G.tut ||= { done: {} }; G.tut.enchantReturned = true; }
+  const enchantBefore = featureUnlocked("enchant");
   if (keep) {
-    for (const it of items) { shopReceive(it); codexSeeItem(it.id, it); got.items.push({ id: it.id, name: itemName(it), rar: rarityKey(it), afx: !!(it.afx && it.afx.length) }); }
+    for (const it of items) { recordAffixHome(it); shopReceive(it); codexSeeItem(it.id, it); got.items.push({ id: it.id, name: itemName(it), rar: rarityKey(it), afx: !!(it.afx && it.afx.length) }); }
     for (const k of souls) { addSoulInstance(k); codexJobSee(k, 1, 1); tlSoulGot(k); got.souls.push(k); }
     if (embers) { G.embers = (G.embers || 0) + embers; got.embers = embers; }
     if (souls.length) recalcAllDolls();
@@ -1756,7 +1757,7 @@ function infCloseRun(outcome) {
   rec.recent = rec.recent.slice(0, 8);
   G.stats.abyssBest = Math.max(G.stats.abyssBest || 0, depth);
   G.abyss = null;
-  return { depth, outcome, keep, newDepth, got, enchantUnlocked, sold: trk.sold || 0, title: infTitleName(), lost: keep ? null : { items: items.length, souls: souls.length, embers } };
+  return { depth, outcome, keep, newDepth, got, enchantUnlocked: !enchantBefore && featureUnlocked("enchant"), sold: trk.sold || 0, title: infTitleName(), lost: keep ? null : { items: items.length, souls: souls.length, embers } };
 }
 // 読み込み: 無限迷宮の途中なら、いったん本編の隊・魂・通貨を G へ戻して読み込みの手当てを掛け、済んだら仮の器へ戻す
 function infSwapForLoad() {
@@ -14178,6 +14179,7 @@ function tavernHintAllowed(req) {
   if (req.startsWith("found:")) return !!w.found[req.slice(6)];         // その手がかりを見つけた後
   if (req.startsWith("open:")) return worldOpenId(req.slice(5));        // その迷宮が地図に現れた後 (依頼の迷宮)
   if (req.startsWith("ch:")) return chaptersDone(w) >= Number(req.slice(3)); // 第n章を結んだ後
+  if (req === "extremeAffix") return !!G.tut?.extremeReturned;
   if (req === "sub") return unlockedSubSlots() > 0;     // サブ魂
   if (req === "metal") return DUNGEONS.some((d) => d.layer >= 3 && worldOpenId(d.id)); // 金属の魔物 (第3層の景色の迷宮から出る)
   if (req === "metal2") return DUNGEONS.some((d) => d.layer >= 4 && worldOpenId(d.id)); // 金属の上位種 (金業・銀業の王は第4層から)
@@ -15158,7 +15160,7 @@ const FEATURES = {
   //   第八章のあたりで Lv100・ランク3〜4 に届き、本編の育ちが単調になってくるので、第十章から前倒し)
   infinite: { chapter: 8, report: "finale" },
   rematch: { chapter: 9, report: "finale" },    // 宿敵の再戦 (名のある強敵・主の強化版)
-  enchant: { chapter: 8, firstInfReturn: true },  // 付呪 (無限迷宮の品の追加の能力を写し取り、任意の装備へ書き込む — 2026-10-15 ユーザーの決定)
+  enchant: { chapter: 8, firstAffixReturn: true }, // 追加の能力・特性つき装備の初持ち帰り (回収人への売却を含む)
   order5: { chapter: 12, report: "finale" },    // 結社の席5
   rebirth: { chapter: 14, report: "finale" },   // 魂の転生
   mutPick: { chapter: 15, report: "finale" },   // 異変を選ぶ
@@ -15176,7 +15178,7 @@ function featureMet(key, w = worldState()) {
   const f = FEATURES[key === "rumor" ? "tavern" : key];
   const ch = f && CHAPTERS.find((c) => c.no === f.chapter);
   if (!ch || f.retired || f.pending) return false; // 廃止済み、その章がまだ無い、または仕組みがまだ無い
-  if (f.firstInfReturn) return !!(G.tut?.enchantReturned || G.stats?.inf?.homeRets > 0 || (G.abyssRec?.v === 2 && G.abyssRec.recent?.some(r => ["return", "saved"].includes(r.outcome))) || w.reported?.w45 || G.stats?.enchant?.pages > 0 || G.stats?.enchant?.written > 0);
+  if (f.firstAffixReturn) return !!(G.tut?.affixReturned || G.tut?.done?.enchant || G.stats?.enchant?.pages > 0 || G.stats?.enchant?.written > 0);
   if (G.tut?.midUnlockLegacy?.[key]) return true;
   if (f.soulTutorial) return !!(G.tut?.fusionPending || G.tut?.cur === "fusion" || G.tut?.done?.fusion || G.stats?.fusions > 0);
   if (key === "sub1" && (G.tut?.sub1Legacy || G.tut?.done?.sub1)) return true; // 解放済みの枠は引き継ぐ
@@ -15193,7 +15195,7 @@ function featureUnlocked(key) {
 }
 // まだ開いていない機能の条件の説明 (錠の札・案内文)
 function featureNote(key) {
-  if (key === "enchant") return "無限迷宮から初めて戦利品を持ち帰ると開く（通常帰還・保護帰還）";
+  if (key === "enchant") return "追加の能力・特性つき装備を初めて持ち帰ると開く（無限迷宮内で売った装備も含む）";
   if (key === "fusion") return "サブ魂を教わった後、次に職業の魂を持ち帰ると館で手ほどきを受けられる";
   if (key === "soulChange") return "新しい職業の魂を持ち帰り、人業の館で手ほどきを受けると開く";
   const f = FEATURES[key];
@@ -16365,7 +16367,16 @@ function setItemQuality(owner, it, q) {
   return true;
 }
 
-// ---- 付呪 (第十一章の結び — src/infaffix.js の「付呪」、docs/infinite-affixes.md 6章。2026-10-15 ユーザーの決定) ----
+// 迷宮の種類や鑑定状態にかかわらず、実際に持ち帰った追加つき装備を記録する。
+// 無限迷宮の回収人に売った時も呼ぶ。拾っただけ・捨てた品・没収品・魂の記憶は数えない。
+function recordAffixHome(it) {
+  if (!it || it.soulMemory || !hasQuality(it) || !it.afx?.some(a => afxDef(a.k))) return;
+  G.tut ||= { done: {} };
+  G.tut.affixReturned = true;
+  if (it.afx.some(a => afxDef(a.k)?.tier === "x")) G.tut.extremeReturned = true;
+}
+
+// ---- 付呪 (追加の能力・特性つき装備の初持ち帰りで開く) ----
 // 無限迷宮で拾った品の追加の能力・特性を1つ選んで「特性の巻物」(G.afxPages) に写し取り (元の品は消える)、
 // 金貨を払って任意の装備に書き込む。書いた特性は消せる (巻物は戻らない)。街の商会でだけ
 const ENCHANT_MIN_COST = 100;
@@ -17095,6 +17106,9 @@ function returnToTown(opts = {}) {
   if (!infSummary) evOnReturn(runRef, outcome); // 迷宮のイベント: 報奨金・紅玉の売却 (全滅以外)
   // 帰還の報告 (D2) は迷宮選択の巻き戻しより前に要約する (迷宮名・深さを正しく残す)
   const summary = infSummary ? null : runSummary(runRef, outcome, { forfeited: opts.forfeited || null });
+  if (!infSummary && !opts.forfeited) {
+    for (const { item } of runRef?.items || []) if (itemHolder(item)) recordAffixHome(item);
+  }
   G.state = "town";
   G.battle = null; G.battleCell = null;
   G.eliteFloor = false;
@@ -17997,12 +18011,15 @@ function showConfirm({ title, lines = [], okLabel = "実行する", onOk }) {
 function markDungeonLoot(it) {
   const tr = dungeonTrait();
   if (it && UNIDENT_SLOTS.has(it.slot) && !(tr && tr.appraised) && !abyssActive()) it.unidentified = true; // 無限迷宮の品は鑑定済みで落ちる
-  // 無限迷宮の解放後は、全迷宮のドロップに階数に応じた追加の能力・特性が付く。街で受け取る品は対象外。
+  // 無限迷宮と、その解放章より先の本編・寄り道だけが対象。以前の迷宮は再訪しても付かない。
+  const infiniteChapter = CHAPTERS.find(c => c.no === FEATURES.infinite.chapter);
+  const infiniteLayer = worldById(infiniteChapter.finale).layer;
+  const laterDungeon = inDungeon() && featureUnlocked("infinite") && curDungeon().layer > infiniteLayer;
   if (it && abyssActive() && hasQuality(it) && !it.depth && !it.afx && !it.cursed && it.price > 0) {
     it.depth = Math.max(1, Math.floor(G.floor || 1));
     resyncItem(it);
   }
-  if (it && (abyssActive() || (inDungeon() && featureUnlocked("infinite"))) && !it.afx && hasQuality(it)) {
+  if (it && (abyssActive() || laterDungeon) && !it.afx && hasQuality(it)) {
     const afx = rollAffixes(it, G.floor);
     if (afx) { it.afx = afx; applyAffixes(it); if (abyssActive()) infAfxTrack(it); }
   }
@@ -19209,6 +19226,7 @@ function setupTestPlay() {
       G.party[0].items.push(it); G.tut.appraisePending = true;
     }
     if (key === "fusion") G.tut.fusionPending = true;
+    if (key === "enchant") G.testUnlock.push("enchant");
     if (key === "soulChange") { addSoulInstance("monk"); G.tut.jobVisit = true; }
     if (key === "repairSoul") { G.party[0].alive = false; G.party[0].hp = 0; G.tut.repairPending = true; }
     if (key === "firstDive" || key === "buyEquipment") {
