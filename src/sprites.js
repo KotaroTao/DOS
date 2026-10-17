@@ -1142,11 +1142,29 @@ function normalize(art) {
 // photo.exclude = [{ x, y, w, h }] は原画上で隠す矩形 (隣の品の映り込みなど)。
 // spr.w / spr.h = ドット絵と同じ升目単位の大きさ。ドット絵と同じ関数 (drawSprite / crispCanvas /
 // spriteCanvas) で、升目の大きさに合わせて滑らかに拡大縮小して描く。
-// 原画は読み込んだら一度だけ canvas に写し取り (_photoSurf)、以後はその写しから描く。
+// 原画は必要時に canvas に写し取り (_photoSurf)、保持している間はその写しから描く。
 // 画像要素から直接描くと、iOS Safari ではメモリが苦しい時に解読済みの画像が捨てられて空で描かれることがあり、
-// 一度きりの描画 (肖像・胸像) がそのまま空の枠になった。写しは捨てられないので、いつ描いても絵が出る
-const _photoSurf = new WeakMap(); // 画像 → 写し (canvas)
+// 一度きりの描画 (肖像・胸像) がそのまま空の枠になった。写しで描く対策は保ち、
+// 原寸の写しだけを容量制限つきで保持する。描画先の肖像や端末内の画像ファイルは消さない。
+const _photoSurf = new Map(); // 画像 → 写し (canvas)、古く使った順
 const _photoWait = new WeakMap(); // 画像 → 写し終わりを待つ Promise (true = 写せた)
+const PHOTO_BUDGET = (typeof navigator !== "undefined" && navigator.deviceMemory <= 2 ? 16 : 32) * 1024 * 1024;
+let photoBytes = 0;
+function cachedPhoto(img) {
+  const c = _photoSurf.get(img);
+  if (c) { _photoSurf.delete(img); _photoSurf.set(img, c); }
+  return c;
+}
+function trimPhotos() {
+  for (const [img, c] of _photoSurf) {
+    if (photoBytes <= PHOTO_BUDGET || _photoSurf.size <= 1) break;
+    // 完了直後の通知で描くまでは保護する。単独で上限を超える原画は1枚だけ残す。
+    if (_photoWait.has(img)) continue;
+    _photoSurf.delete(img);
+    photoBytes -= c.width * c.height * 4;
+    c.width = c.height = 0; // 参照の回収を待たずに画素領域を解放する
+  }
+}
 const PHOTO_TRIES = 4;
 const waitMs = (ms) => new Promise((r) => setTimeout(r, ms));
 function photoLoaded(img) {
@@ -1162,6 +1180,7 @@ function preparePhoto(photo) {
   const ready = photo.load ? photo.load() : photo.ready;
   const img = photo.img;
   if (!img || !img.addEventListener || typeof document === "undefined") return Promise.resolve(false);
+  if (cachedPhoto(img)) return Promise.resolve(true);
   let w = _photoWait.get(img);
   if (w) return w;
   w = (async () => {
@@ -1189,12 +1208,17 @@ function preparePhoto(photo) {
       } catch (e) { seen = true; }
       if (!seen) continue;
       _photoSurf.set(img, c);
+      photoBytes += c.width * c.height * 4;
+      trimPhotos();
       return true;
     }
     _photoWait.delete(img); // 次に要った時にもう一度試す
     return false;
   })();
   _photoWait.set(img, w);
+  // whenPhoto の通知で描き終えた後に保護を外す。追い出した絵は再表示時に写し直す。
+  const release = () => queueMicrotask(() => { _photoWait.delete(img); trimPhotos(); });
+  w.then(release, release);
   return w;
 }
 export function photoReady(p) { return !!(p && p.img && _photoSurf.get(p.img)); }
@@ -1206,7 +1230,7 @@ function dims(spr) {
 // 原画の矩形を (dx,dy,dw,dh) へ描く。まだ写し終わっていなければ写しを始めて false
 export function drawPhoto(ctx, spr, dx, dy, dw, dh) {
   const p = spr.photo;
-  const src = p.img && _photoSurf.get(p.img);
+  const src = p.img && cachedPhoto(p.img);
   if (!src) {
     const ready = preparePhoto(p);
     watchIllustration(p.img, ready, ctx.canvas, true);
@@ -1236,7 +1260,7 @@ export function drawPhoto(ctx, spr, dx, dy, dw, dh) {
 // 原画を写し終えてから fn を呼ぶ (写し済みなら即座に)
 export function whenPhoto(spr, fn, owner, live = false) {
   const p = spr.photo;
-  if (photoReady(p)) { fn(); return; }
+  if (p.img && cachedPhoto(p.img)) { fn(); return; }
   const ready = preparePhoto(p);
   if (owner) watchIllustration(p.img, ready, owner, live);
   ready.then((ok) => { if (ok) fn(); });
