@@ -1,3 +1,4 @@
+// 全職見直し: 仲間を鼓舞し、崩れた戦線に再起の時間を作る。ランクパッシブは維持。
 import { HOPE_HIDAMARI } from "./common.js";
 // 勇者 (hero) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
@@ -6,19 +7,19 @@ export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
   awaken: "heroDensetsu",
   table: `
-    1 KYOUGEKI 2 SHIPPUUGIRI 3 DIOS 5 heroKyoutekiFunki/1 7 YUUSHANOICHIGEKI 10 BLESS 10 CURE 12 KOUJIN
-    15 HERO_CHIKAINOHATA 15 heroIji/1 20 KOBU 22 REPPUU 25 heroKibouHidamari/1 25 AWAKE 30 RAIKOUKEN
-    30 DIOSALL 30 dynamicVision/1 35 heroYuushaSenaka/1 37 HERO_JINRAI 40 SEIKEN 40 DIAL 45 heroKyoutekiFunki/2 50 heroIji/2
-    55 NIOUDACHI 57 FUUGA 60 heroOrenuKokoro/1 60 REVIVE 65 SEIGEKI 70 heroKyoutekiFunki/3
-    75 heroKaisenGourei/1 80 HERO_YUUKITOMOSHIBI 80 dynamicVision/2 85 HERO_SAIKI 90 resistAilment/1 95 HERO_KIBOUSENKOU
-    100 HERO_SHIPPUUTAIKEN 100 heroIji/3 105 heroYuushaSenaka/2 107 HERO_FUURAI 110 HERO_KIBOUSENPUU
-    115 heroOrenuKokoro/2 120 HERO_KOUMYOU 125 heroKibouHidamari/2 130 HERO_GEKIREI 135 heroOrenuKokoro/3
-    140 HERO_TENRAIDAN 142 HERO_HEKIREKI 145 heroKibouHidamari/3 150 HERO_HATAJIRUSHI 155 resistAilment/2
-    160 HERO_AKATSUKI 160 dynamicVision/3 165 heroKaisenGourei/2 170 HERO_KIBOUICHITOU 175 heroKyoutekiFunki/4 180 HERO_DAIKAGO
-    185 heroYuushaSenaka/3 190 RAIJINKEN 195 HERO_YOAKE 200 TENMEINOKEN`,
+    1 KYOUGEKI 2 SHIPPUUGIRI 3 DIOS 5 heroKyoutekiFunki/1 7 YUUSHANOICHIGEKI 10 BLESS
+    10 CURE 12 KOUJIN 12 HERO_CHIKAINOHATA 15 heroIji/1 18 KOBU 22 REPPUU
+    25 heroKibouHidamari/1 25 AWAKE 25 heroYuushaSenaka/1 25 HERO_JINRAI 30 RAIKOUKEN 30 DIOSALL
+    30 dynamicVision/1 35 HERO_YUUKITOMOSHIBI 40 SEIKEN 40 DIAL 45 heroKyoutekiFunki/2 45 heroOrenuKokoro/1
+    45 HERO_SAIKI 50 heroIji/2 55 NIOUDACHI 57 FUUGA 65 REVIVE 65 SEIGEKI
+    70 heroKyoutekiFunki/3 75 heroKaisenGourei/1 75 HERO_KIBOUSENKOU 80 dynamicVision/2 85 heroYuushaSenaka/2 90 resistAilment/1
+    90 HERO_SHIPPUUTAIKEN 100 heroIji/3 100 heroOrenuKokoro/2 105 HERO_KIBOUSENPUU 107 HERO_FUURAI 120 HERO_KOUMYOU
+    125 heroKibouHidamari/2 125 HERO_GEKIREI 140 HERO_TENRAIDAN 142 HERO_HEKIREKI 145 heroKibouHidamari/3 150 heroOrenuKokoro/3
+    150 HERO_HATAJIRUSHI 155 resistAilment/2 155 heroYuushaSenaka/3 160 HERO_AKATSUKI 160 dynamicVision/3 165 heroKaisenGourei/2
+    170 HERO_KIBOUICHITOU 175 heroKyoutekiFunki/4 180 HERO_DAIKAGO 190 RAIJINKEN 195 HERO_YOAKE 200 TENMEINOKEN`,
   skills: {
-    // Lv15 の固有技: 誓いを掲げて隊を奮い立たせる
-    HERO_CHIKAINOHATA: { name: "誓いの旗", mp: 7, kind: "buff", buff: { atk: 1.15, vit: 1.1 }, target: "all-ally", desc: "誓いを掲げて隊を奮い立たせ、味方全員のSTRと防御を上げる" },
+    // 序盤の固有技: 誓いを掲げて隊を奮い立たせる
+    HERO_CHIKAINOHATA: {name: "誓いの旗", mp: 7, kind: "buff", buff: {atk: 1.25}, target: "all-ally", desc: "味方全員のSTRを1段上げ、小さな癒しを3ターン残す", dur: 3, regen: {pct: 0.02, turns: 3}},
     HERO_JINRAI: { name: "迅雷", mp: 9, kind: "atk", power: 26, element: "wind", para: 0.25, flinchChance: 0.15, target: "enemy", desc: "迅き雷で撃ち、痺れさせ怯ませる" },
     HERO_YUUKITOMOSHIBI: { name: "勇気の灯", mp: 10, kind: "buff", buff: { atk: 1.1 }, cure: ["sleep", "charm", "confuse"], target: "all-ally", desc: "味方全員の眠り・魅了・混乱を治し、勇気の加護を授ける" },
     HERO_SAIKI: { name: "再起の呼び声", mp: 40, kind: "heal", revive: true, revivePct: 0.4, grantEndure: true, target: "ally", desc: "倒れた仲間を呼び起こし (HP40%)、致死を一度耐えさせる" },
@@ -27,7 +28,7 @@ export default {
     HERO_FUURAI: { name: "風雷四連", mp: 21, kind: "phys", power: 1.3, hits: 4, element: "wind", acc: 0.21, para: 0.15, target: "enemy", desc: "風と雷の四連撃。痺れさせる" },
     HERO_KIBOUSENPUU: { name: "希望の旋風", mp: 22, kind: "phys", power: 2.2, element: "wind", acc: 0.18, debuff: { agi: 0.9 }, target: "all-enemy", desc: "旋風で敵全体を斬り、足を鈍らせる" },
     HERO_KOUMYOU: { name: "光明の剣", mp: 21, kind: "phys", power: 4.4, pieScale: 0.8, element: "light", acc: 1, bladeHeal: 0.02, healCap: 0.2, target: "enemy", desc: "必中の光剣で断ち、その光で味方を癒す" },
-    HERO_GEKIREI: { name: "勇者の激励", mp: 18, kind: "heal", healMul: 1.3, buff: { agi: 1.15 }, target: "all-ally", desc: "味方全員を癒し、素早さを上げる" },
+    HERO_GEKIREI: {name: "勇者の激励", mp: 18, kind: "heal", healMul: 1.1, buff: {agi: 1.25}, target: "all-ally", desc: "味方全員を癒して眠り・混乱・魅了を治し、AGIを1段上げる", dur: 3, cure: ["sleep", "confuse", "charm"]},
     HERO_TENRAIDAN: { name: "天雷断", mp: 28, kind: "phys", power: 7.0, element: "wind", acc: 1, para: 0.25, target: "enemy", desc: "天の雷を落とす必中の一刀。痺れさせる" },
     HERO_HEKIREKI: { name: "霹靂", mp: 24, kind: "atk", power: 72, element: "wind", vuln: { wind: 0.85 }, target: "enemy", desc: "霹靂が敵を穿ち、風に脆くする" },
     HERO_HATAJIRUSHI: { name: "勇者の旗印", mp: 21, kind: "heal", healMul: 1.2, buff: { atk: 1.2, vit: 1.2 }, regen: { pct: 0.04, turns: 3 }, target: "all-ally", desc: "旗印のもと全員を癒し、攻守と再生を授ける" },

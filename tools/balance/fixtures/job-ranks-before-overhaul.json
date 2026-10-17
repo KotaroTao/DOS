@@ -1,0 +1,4142 @@
+{
+  "base": "fdff82682e325a5d89b0d79ec9cdca9952353cd4",
+  "jobs": {
+    "fighter": {
+      "key": "fighterGouken",
+      "definition": {
+        "label": "剛剣",
+        "scope": "self",
+        "lv": [
+          "物理技の与ダメージ+5%",
+          "物理技の与ダメージ+10%",
+          "物理技の与ダメージ+15%",
+          "物理技の与ダメージ+25%"
+        ]
+      },
+      "fx": {
+        "label": "剛剣",
+        "lv": [
+          "物理技の与ダメージ+5%",
+          "物理技の与ダメージ+10%",
+          "物理技の与ダメージ+15%",
+          "物理技の与ダメージ+25%"
+        ],
+        "fx": [
+          {
+            "t": "deal",
+            "on": "skill",
+            "v": [
+              0.05,
+              0.1,
+              0.15,
+              0.25
+            ]
+          }
+        ]
+      },
+      "ranks": [
+        {
+          "name": "剛剣Lv1",
+          "desc": "物理技の与ダメージ+5%",
+          "grants": {
+            "fighterGouken": 1
+          }
+        },
+        {
+          "name": "剛剣Lv2",
+          "desc": "物理技の与ダメージ+10%",
+          "grants": {
+            "fighterGouken": 2
+          }
+        },
+        {
+          "name": "剛剣Lv3",
+          "desc": "物理技の与ダメージ+15%",
+          "grants": {
+            "fighterGouken": 3
+          }
+        },
+        {
+          "name": "剛剣Lv4",
+          "desc": "物理技の与ダメージ+25%",
+          "grants": {
+            "fighterGouken": 4
+          }
+        }
+      ],
+      "traits": [
+        "crit",
+        "flinch"
+      ],
+      "entries": [
+        "KYOUGEKI",
+        "NERAIUCHI",
+        "TATEWARI",
+        "extraHit/1",
+        "KAENGIRI",
+        "WARCRY",
+        "IWAKUDAKI",
+        "FIGHTER_FUMIKOMI",
+        "toughBody/1",
+        "SHINGANGEKI",
+        "dynamicVision/1",
+        "NAGIHARAI",
+        "vitalEye/1",
+        "HAISUI",
+        "extraHit/2",
+        "KIKOKU",
+        "counter/1",
+        "GOUZAN",
+        "toughBody/2",
+        "IATSU",
+        "GURENZAN",
+        "fightSpirit/1",
+        "dynamicVision/2",
+        "TAME",
+        "counter/2",
+        "fighterKachidoki/1",
+        "ZANTETSU",
+        "GANOTOSHI",
+        "SANREN",
+        "vitalEye/2",
+        "DAISENPUU",
+        "YOROIDACHI",
+        "toughBody/3",
+        "counter/3",
+        "GOUKADAN",
+        "KISHINKA",
+        "extraHit/3",
+        "HADAN",
+        "fighterRekisen/1",
+        "RANBU",
+        "dynamicVision/3",
+        "fightSpirit/2",
+        "AMATSUKAZE",
+        "fighterFutou/1",
+        "TENCHIZAN",
+        "fighterRekisen/2",
+        "KIKOKURANBU",
+        "SHOUNETSURANBU",
+        "fighterFutou/2",
+        "ROKUREN",
+        "resistAilment/1",
+        "YAMAKUZUSHI",
+        "extraHit/4",
+        "HAOUZAN",
+        "fightSpirit/3",
+        "METSUKYAKU"
+      ]
+    },
+    "knight": {
+      "key": "knightTeppeki",
+      "definition": {
+        "label": "鉄壁の騎士",
+        "scope": "self",
+        "lv": [
+          "前衛にいる間、受ける物理ダメージ-5%",
+          "前衛にいる間、受ける物理ダメージ-10%",
+          "前衛にいる間、受ける物理ダメージ-15%",
+          "前衛にいる間、受ける物理ダメージ-20%"
+        ]
+      },
+      "fx": {
+        "label": "鉄壁の騎士",
+        "lv": [
+          "前衛にいる間、受ける物理ダメージ-5%",
+          "前衛にいる間、受ける物理ダメージ-10%",
+          "前衛にいる間、受ける物理ダメージ-15%",
+          "前衛にいる間、受ける物理ダメージ-20%"
+        ],
+        "fx": [
+          {
+            "t": "take",
+            "on": "phys",
+            "when": {
+              "front": true
+            },
+            "v": [
+              0.05,
+              0.1,
+              0.15,
+              0.2
+            ]
+          }
+        ]
+      },
+      "ranks": [
+        {
+          "name": "鉄壁の騎士Lv1",
+          "desc": "前衛にいる間、受ける物理ダメージ-5%",
+          "grants": {
+            "knightTeppeki": 1
+          }
+        },
+        {
+          "name": "鉄壁の騎士Lv2",
+          "desc": "前衛にいる間、受ける物理ダメージ-10%",
+          "grants": {
+            "knightTeppeki": 2
+          }
+        },
+        {
+          "name": "鉄壁の騎士Lv3",
+          "desc": "前衛にいる間、受ける物理ダメージ-15%",
+          "grants": {
+            "knightTeppeki": 3
+          }
+        },
+        {
+          "name": "鉄壁の騎士Lv4",
+          "desc": "前衛にいる間、受ける物理ダメージ-20%",
+          "grants": {
+            "knightTeppeki": 4
+          }
+        }
+      ],
+      "traits": [
+        "physResist",
+        "flinch"
+      ],
+      "entries": [
+        "SHIELDBASH",
+        "NERAIUCHI",
+        "taunt/1",
+        "CHOUHATSU",
+        "PROTECT",
+        "KOTE",
+        "IWAKUDAKI",
+        "KNIGHT_JINTOTSU",
+        "nightWatch/1",
+        "NIOUDACHI",
+        "KOUJIN",
+        "knightTessoku/1",
+        "KNIGHT_JINCHUUTEATE",
+        "RYUURINJIN",
+        "cover/1",
+        "JOUMON",
+        "bastion/1",
+        "knightHoujin/1",
+        "SHINGANGEKI",
+        "nightWatch/2",
+        "IRONWALL",
+        "GANOTOSHI",
+        "knightTessoku/2",
+        "KNIGHT_JINEINOTEATE",
+        "SHIELDCHARGE",
+        "parry/1",
+        "knightFutai/1",
+        "BOUJIN",
+        "KNIGHT_HAJINSOU",
+        "KNIGHT_YARIBUSUMA",
+        "resistAilment/1",
+        "SHUGOHOUKOU",
+        "JOUSAITSUKI",
+        "nightWatch/3",
+        "knightTessoku/3",
+        "KNIGHT_JINARI",
+        "TEPPEKIJIN",
+        "cover/2",
+        "KNIGHT_OUHOUJIN",
+        "KNIGHT_ITTETSU",
+        "bastion/2",
+        "knightHoujin/2",
+        "FURAKUNOTATE",
+        "parry/2",
+        "BANRAI",
+        "SHUGOKEKKAI",
+        "knightFutai/2",
+        "JOUSAIKUZUSHI",
+        "DAICHIMEIDOU",
+        "resistAilment/2",
+        "TESSAINAGI",
+        "KISHIOU",
+        "knightOath/1",
+        "FUDOUJIN",
+        "DAIGOUREI",
+        "FURAKUJOU"
+      ]
+    },
+    "priest": {
+      "key": "priestInochi",
+      "definition": {
+        "label": "生命の灯",
+        "scope": "self",
+        "lv": [
+          "蘇生した味方のHPが、さらに最大HPの10%増える",
+          "蘇生した味方のHPが、さらに最大HPの20%増える",
+          "蘇生した味方のHPが、さらに最大HPの30%増える",
+          "蘇生した味方のHPが、さらに最大HPの50%増える"
+        ]
+      },
+      "fx": null,
+      "ranks": [
+        {
+          "name": "生命の灯Lv1",
+          "desc": "蘇生した味方のHPが、さらに最大HPの10%増える",
+          "grants": {
+            "priestInochi": 1
+          }
+        },
+        {
+          "name": "生命の灯Lv2",
+          "desc": "蘇生した味方のHPが、さらに最大HPの20%増える",
+          "grants": {
+            "priestInochi": 2
+          }
+        },
+        {
+          "name": "生命の灯Lv3",
+          "desc": "蘇生した味方のHPが、さらに最大HPの30%増える",
+          "grants": {
+            "priestInochi": 3
+          }
+        },
+        {
+          "name": "生命の灯Lv4",
+          "desc": "蘇生した味方のHPが、さらに最大HPの50%増える",
+          "grants": {
+            "priestInochi": 4
+          }
+        }
+      ],
+      "traits": [
+        "death",
+        "seal"
+      ],
+      "entries": [
+        "DIOS",
+        "HOLYRAY",
+        "CURE",
+        "CUREALL",
+        "RECOVER",
+        "PRIEST_MAKURABE",
+        "fieldRegen/1",
+        "RECOVERALL",
+        "AWAKE",
+        "DIOSALL",
+        "AWAKEALL",
+        "DIAL",
+        "chant/1",
+        "STONECURE",
+        "DIALALL",
+        "purify/1",
+        "STONECUREALL",
+        "REVIVE",
+        "fieldRegen/2",
+        "afterHeal/3",
+        "MADIOS",
+        "PURIFY",
+        "resistAilment/1",
+        "priestShisso/1",
+        "PURIFYALL",
+        "PRIEST_KEGAREOTOSHI",
+        "afterHeal/4",
+        "RESURRECT",
+        "SEIBETSU",
+        "fieldRegen/3",
+        "chant/2",
+        "MADIOSALL",
+        "priestYoake/1",
+        "REGENALL",
+        "resistAilment/2",
+        "SHINBATSU",
+        "priestTeate/1",
+        "SEISUISHO",
+        "priestMitori/1",
+        "TENKEINOINORI",
+        "priestShisso/2",
+        "SEIMETSUKOU",
+        "priestYoake/2",
+        "FUKUIN",
+        "priestTeate/2",
+        "SEIKOURETSU",
+        "DAISEIKITOU",
+        "DAIFUKUIN",
+        "priestMitori/2",
+        "KAMIWAZA"
+      ]
+    },
+    "mage": {
+      "key": "mageKensan",
+      "definition": {
+        "label": "魔導の研鑽",
+        "scope": "self",
+        "lv": [
+          "攻撃呪文の与ダメージ+5%",
+          "攻撃呪文の与ダメージ+10%",
+          "攻撃呪文の与ダメージ+15%",
+          "攻撃呪文の与ダメージ+25%"
+        ]
+      },
+      "fx": {
+        "label": "魔導の研鑽",
+        "lv": [
+          "攻撃呪文の与ダメージ+5%",
+          "攻撃呪文の与ダメージ+10%",
+          "攻撃呪文の与ダメージ+15%",
+          "攻撃呪文の与ダメージ+25%"
+        ],
+        "fx": [
+          {
+            "t": "deal",
+            "on": "spell",
+            "v": [
+              0.05,
+              0.1,
+              0.15,
+              0.25
+            ]
+          }
+        ]
+      },
+      "ranks": [
+        {
+          "name": "魔導の研鑽Lv1",
+          "desc": "攻撃呪文の与ダメージ+5%",
+          "grants": {
+            "mageKensan": 1
+          }
+        },
+        {
+          "name": "魔導の研鑽Lv2",
+          "desc": "攻撃呪文の与ダメージ+10%",
+          "grants": {
+            "mageKensan": 2
+          }
+        },
+        {
+          "name": "魔導の研鑽Lv3",
+          "desc": "攻撃呪文の与ダメージ+15%",
+          "grants": {
+            "mageKensan": 3
+          }
+        },
+        {
+          "name": "魔導の研鑽Lv4",
+          "desc": "攻撃呪文の与ダメージ+25%",
+          "grants": {
+            "mageKensan": 4
+          }
+        }
+      ],
+      "traits": [
+        "magResist",
+        "seal"
+      ],
+      "entries": [
+        "HALITO",
+        "ICENEEDLE",
+        "ISHITSUBUTE",
+        "afterMp/1",
+        "KAMAITACHI",
+        "SHADOWBOLT",
+        "KATINO",
+        "MAGE_HYOUMU",
+        "manaFlow/1",
+        "MAHALITO",
+        "AQUAWAVE",
+        "spellCrit/1",
+        "WINDSTORM",
+        "ROCKBLAST",
+        "EARTHQUAKE",
+        "afterMp/2",
+        "TILTOWAIT",
+        "mageMeguri/1",
+        "MADALT",
+        "manaFlow/2",
+        "SEISHIN",
+        "MAGE_GOGYOUKUZUSHI",
+        "spellCrit/2",
+        "LAHALITO",
+        "barrier/1",
+        "TORNADO",
+        "scan/1",
+        "SEISAI",
+        "RAITEI",
+        "mageMasokurai/1",
+        "HYORETSU",
+        "ENBU",
+        "manaFlow/3",
+        "barrier/2",
+        "RAIJIN",
+        "resistAilment/1",
+        "DAICHIWARI",
+        "mageRansen/1",
+        "HYOUGA",
+        "spellCrit/3",
+        "GOKUEN",
+        "mageOkibi/1",
+        "RAIMEIRAN",
+        "resistAilment/2",
+        "METEOR",
+        "mageMeguri/2",
+        "ZETTAIREIDO",
+        "mageMasokurai/2",
+        "GOKUENRAN",
+        "mageOkibi/2",
+        "KOKUUHA",
+        "TENPENCHII",
+        "KYOKUDAI"
+      ]
+    },
+    "thief": {
+      "key": "thiefNukeme",
+      "definition": {
+        "label": "抜け目なさ",
+        "scope": "party",
+        "lv": [
+          "宝箱のランクが一段上がる確率10%",
+          "宝箱のランクが一段上がる確率15%",
+          "宝箱のランクが一段上がる確率20%",
+          "宝箱のランクが一段上がる確率30%"
+        ]
+      },
+      "fx": null,
+      "ranks": [
+        {
+          "name": "抜け目なさLv1",
+          "desc": "宝箱のランクが一段上がる確率10%",
+          "grants": {
+            "thiefNukeme": 1
+          }
+        },
+        {
+          "name": "抜け目なさLv2",
+          "desc": "宝箱のランクが一段上がる確率15%",
+          "grants": {
+            "thiefNukeme": 2
+          }
+        },
+        {
+          "name": "抜け目なさLv3",
+          "desc": "宝箱のランクが一段上がる確率20%",
+          "grants": {
+            "thiefNukeme": 3
+          }
+        },
+        {
+          "name": "抜け目なさLv4",
+          "desc": "宝箱のランクが一段上がる確率30%",
+          "grants": {
+            "thiefNukeme": 4
+          }
+        }
+      ],
+      "traits": [
+        "crit",
+        "poison"
+      ],
+      "entries": [
+        "thiefSuki/1",
+        "STEAL",
+        "POISONSTAB",
+        "ambushCrit/1",
+        "FUYUU",
+        "KEMURIDAMA",
+        "SUNAKAKE",
+        "THIEF_SURINUKE",
+        "trapEye/1",
+        "KASUMEGIRI",
+        "SHIBIREBARI",
+        "thiefTsukekomi/1",
+        "ASSASSINATE",
+        "thiefKasume/1",
+        "OBORO",
+        "thiefNigegoshi/1",
+        "THIEF_TAKARASAGASHI",
+        "trapEye/2",
+        "MAKIBISHI",
+        "FUUGA",
+        "venomBlade/1",
+        "TSUJIKAZE",
+        "sleepKill/1",
+        "thiefShikake/1",
+        "ZETSUEI",
+        "SHIPPUTSUKI",
+        "thiefKasume/2",
+        "ENGETSUJIN",
+        "MOUDOKUSASHI",
+        "trapEye/3",
+        "thiefTsukekomi/2",
+        "KAMIKAZE",
+        "KAGEUCHI",
+        "venomBlade/2",
+        "KUBIHANE",
+        "thiefNigegoshi/2",
+        "RANBUTSUKI",
+        "thiefKasume/3",
+        "SHUNSATSU",
+        "thiefAsari/1",
+        "TSUMUJIKAZE",
+        "thiefShikake/2",
+        "ZANKOU",
+        "TENRAN",
+        "thiefShikake/3",
+        "ANSATSU",
+        "thiefTsukekomi/3",
+        "SENKOUZAN",
+        "thiefNigegoshi/3",
+        "HISSATSU",
+        "MUGEN",
+        "ZANSEI"
+      ]
+    },
+    "bishop": {
+      "key": "bishopSeibetsu",
+      "definition": {
+        "label": "魂の聖別",
+        "scope": "party",
+        "lv": [
+          "戦闘で得る✦Soul+5%",
+          "戦闘で得る✦Soul+7%",
+          "戦闘で得る✦Soul+10%",
+          "戦闘で得る✦Soul+15%"
+        ]
+      },
+      "fx": null,
+      "ranks": [
+        {
+          "name": "魂の聖別Lv1",
+          "desc": "戦闘で得る✦Soul+5%",
+          "grants": {
+            "bishopSeibetsu": 1
+          }
+        },
+        {
+          "name": "魂の聖別Lv2",
+          "desc": "戦闘で得る✦Soul+7%",
+          "grants": {
+            "bishopSeibetsu": 2
+          }
+        },
+        {
+          "name": "魂の聖別Lv3",
+          "desc": "戦闘で得る✦Soul+10%",
+          "grants": {
+            "bishopSeibetsu": 3
+          }
+        },
+        {
+          "name": "魂の聖別Lv4",
+          "desc": "戦闘で得る✦Soul+15%",
+          "grants": {
+            "bishopSeibetsu": 4
+          }
+        }
+      ],
+      "traits": [
+        "magResist",
+        "death"
+      ],
+      "entries": [
+        "kantei/2",
+        "DIOS",
+        "HOLYRAY",
+        "bishopSeisui/1",
+        "ICENEEDLE",
+        "CURE",
+        "BISHOP_SEISUIMAKI",
+        "bishopMiyaburi/1",
+        "SEAL",
+        "RECOVER",
+        "BISHOP_MICHISHIRUBE",
+        "bishopJouka/1",
+        "DIOSALL",
+        "AWAKE",
+        "bishopTobari/1",
+        "DIAL",
+        "bishopYoin/1",
+        "ICELANCE",
+        "STONECURE",
+        "kantei/3",
+        "bishopMiyaburi/2",
+        "BISHOP_SENREI",
+        "bishopSeisui/2",
+        "REVIVE",
+        "DIALALL",
+        "BISHOP_SEIHYOU",
+        "bishopTobari/2",
+        "afterBoth/1",
+        "MANAGIFT",
+        "MADIOS",
+        "SAINTRAY",
+        "bishopJouka/2",
+        "BISHOP_SEIHAI",
+        "BISHOP_SEISEN",
+        "kantei/4",
+        "bishopMiyaburi/3",
+        "PURIFY",
+        "bishopYoin/2",
+        "BISHOP_JIU",
+        "bishopSeisui/3",
+        "SEALALL",
+        "bishopTobari/3",
+        "BISHOP_SHUKUFUKU",
+        "BISHOP_SEIRYUU",
+        "bishopJouka/3",
+        "BISHOP_HOSHI",
+        "resistAilment/1",
+        "BISHOP_KANCHOU",
+        "elemFloor/1",
+        "BISHOP_SEIGAI",
+        "resistAilment/2",
+        "BISHOP_DANZAI",
+        "BISHOP_SEIHYOUKAN",
+        "bishopYoin/3",
+        "BISHOP_SEIKA",
+        "sanctuary/1",
+        "SEIMETSUREKKOU",
+        "BISHOP_SEISOU",
+        "BISHOP_SHINPAN"
+      ]
+    },
+    "samurai": {
+      "key": "samuraiZantetsu",
+      "definition": {
+        "label": "斬鉄",
+        "scope": "self",
+        "lv": [
+          "物理貫通10%（防御は受け、物理無効は貫けない）",
+          "物理貫通20%（防御は受け、物理無効は貫けない）",
+          "物理貫通30%（防御は受け、物理無効は貫けない）",
+          "物理貫通40%（防御は受け、物理無効は貫けない）"
+        ]
+      },
+      "fx": null,
+      "ranks": [
+        {
+          "name": "斬鉄Lv1",
+          "desc": "物理貫通10%（防御は受け、物理無効は貫けない）",
+          "grants": {
+            "samuraiZantetsu": 1
+          }
+        },
+        {
+          "name": "斬鉄Lv2",
+          "desc": "物理貫通20%（防御は受け、物理無効は貫けない）",
+          "grants": {
+            "samuraiZantetsu": 2
+          }
+        },
+        {
+          "name": "斬鉄Lv3",
+          "desc": "物理貫通30%（防御は受け、物理無効は貫けない）",
+          "grants": {
+            "samuraiZantetsu": 3
+          }
+        },
+        {
+          "name": "斬鉄Lv4",
+          "desc": "物理貫通40%（防御は受け、物理無効は貫けない）",
+          "grants": {
+            "samuraiZantetsu": 4
+          }
+        }
+      ],
+      "traits": [
+        "crit",
+        "confuse"
+      ],
+      "entries": [
+        "KYOUGEKI",
+        "SUIGETSU",
+        "GONOSEN",
+        "iai/1",
+        "DOUBLE",
+        "SAMURAI_SAYABASHIRI",
+        "SHIPPUUGIRI",
+        "SAMURAI_ZANGETSUGAESHI",
+        "samuraiIchibun/1",
+        "ISSEN",
+        "UZUSHIO",
+        "samuraiNukimi/1",
+        "MEIKYOU",
+        "initiative/1",
+        "TSUBAMEGAESHI",
+        "samuraiChiburi/1",
+        "SAMURAI_OBOROZUKI",
+        "samuraiIchibun/2",
+        "SAMURAI_SHINOGI",
+        "HYOUJIN",
+        "zanshin/1",
+        "SAMURAI_RYUUSUI",
+        "samuraiShingan/1",
+        "samuraiNukimi/2",
+        "SAMURAI_ITTOU",
+        "FUUGA",
+        "SAMURAI_SAMIDARE",
+        "samuraiMinegaeshi/1",
+        "SAMURAI_KAISHAKU",
+        "SAMURAI_ZANGETSU",
+        "samuraiIchibun/3",
+        "samuraiIkkiuchi/1",
+        "TOUGADAN",
+        "SAMURAI_SHIDEN",
+        "samuraiChiburi/2",
+        "SAMURAI_MUNEN",
+        "samuraiMinegaeshi/2",
+        "SAMURAI_HANAFUBUKI",
+        "samuraiIkkiuchi/2",
+        "SAMURAI_GUFUU",
+        "samuraiShingan/2",
+        "SAMURAI_UNYOU",
+        "samuraiChiburi/3",
+        "SAMURAI_HAPPOU",
+        "DAIKAISHOU",
+        "resistAilment/1",
+        "SAMURAI_NOWAKI",
+        "samuraiIkkiuchi/3",
+        "SAMURAI_RIKKA",
+        "samuraiNukimi/3",
+        "SAMURAI_GEKKA",
+        "SAMURAI_KOCHOU",
+        "SAMURAI_MUKYUU"
+      ]
+    },
+    "berserker": {
+      "key": "berserkerKyouhon",
+      "definition": {
+        "label": "狂奔",
+        "scope": "self",
+        "lv": [
+          "敵か仲間が倒れるたびSTR+5% (3段まで・その戦闘中)",
+          "敵か仲間が倒れるたびSTR+5% (5段まで)",
+          "敵か仲間が倒れるたびSTR+5% (7段まで)",
+          "敵か仲間が倒れるたびSTR+5% (10段まで)"
+        ]
+      },
+      "fx": null,
+      "ranks": [
+        {
+          "name": "狂奔Lv1",
+          "desc": "敵か仲間が倒れるたびSTR+5% (3段まで・その戦闘中)",
+          "grants": {
+            "berserkerKyouhon": 1
+          }
+        },
+        {
+          "name": "狂奔Lv2",
+          "desc": "敵か仲間が倒れるたびSTR+5% (5段まで)",
+          "grants": {
+            "berserkerKyouhon": 2
+          }
+        },
+        {
+          "name": "狂奔Lv3",
+          "desc": "敵か仲間が倒れるたびSTR+5% (7段まで)",
+          "grants": {
+            "berserkerKyouhon": 3
+          }
+        },
+        {
+          "name": "狂奔Lv4",
+          "desc": "敵か仲間が倒れるたびSTR+5% (10段まで)",
+          "grants": {
+            "berserkerKyouhon": 4
+          }
+        }
+      ],
+      "traits": [
+        "crit",
+        "flinch"
+      ],
+      "entries": [
+        "KYOUGEKI",
+        "KAENGIRI",
+        "NERAIUCHI",
+        "berserkerMukui/1",
+        "SUTEMI",
+        "BERSERKER_CHIZOME",
+        "YAMIBA",
+        "BERSERKER_ABAREUCHI",
+        "berserkerChinonioi/1",
+        "BERSERKER_HOUKOU",
+        "KAENNAGI",
+        "berserkerTakeri/1",
+        "CHINOKAWAKI",
+        "berserkerFukade/1",
+        "KIJINKUDAKI",
+        "berserkerTeoi/1",
+        "BERSERKER_HONEKUDAKI",
+        "berserkerChinonioi/2",
+        "SHINGANGEKI",
+        "GURENZAN",
+        "berserkerMukui/2",
+        "BERSERKER_KUIKOMI",
+        "berserkerTakeri/2",
+        "endure/1",
+        "BERSERKER_KURAISAKI",
+        "MEIJIN",
+        "MIDARE",
+        "berserkerTeoi/2",
+        "BERSERKER_FUKKETSU",
+        "BERSERKER_TATAKIWARI",
+        "berserkerChinonioi/3",
+        "berserkerMukui/3",
+        "BERSERKER_KEKKEN",
+        "SHURAZAN",
+        "berserkerTakeri/3",
+        "BERSERKER_BOUGYAKU",
+        "berserkerFukade/2",
+        "BERSERKER_CHIKAZAGURUMA",
+        "asceticism/1",
+        "MEIFUZAN",
+        "resistAilment/1",
+        "BERSERKER_DANTOUDAI",
+        "berserkerTeoi/3",
+        "BERSERKER_KETSUEN",
+        "BERSERKER_ENGOKU",
+        "endure/2",
+        "BERSERKER_METTAUCHI",
+        "berserkerChiniyou/1",
+        "TOKOYAMI",
+        "berserkerChiniyou/2",
+        "BERSERKER_KYOUOU",
+        "BERSERKER_YATSUZAKI",
+        "BERSERKER_SENKETSU"
+      ]
+    },
+    "hunter": {
+      "key": "hunterSaihai",
+      "definition": {
+        "label": "待ち伏せ",
+        "scope": "party",
+        "lv": [
+          "先制率+5ポイント (通常戦・強敵に固定加算・主は対象外・隊の生存者の最高Lvのみ)",
+          "先制率+10ポイント (通常戦・強敵に固定加算・主は対象外・隊の生存者の最高Lvのみ)",
+          "先制率+15ポイント (通常戦・強敵に固定加算・主は対象外・隊の生存者の最高Lvのみ)",
+          "先制率+20ポイント (通常戦・強敵に固定加算・主は対象外・隊の生存者の最高Lvのみ)"
+        ]
+      },
+      "fx": null,
+      "ranks": [
+        {
+          "name": "待ち伏せLv1",
+          "desc": "先制率+5ポイント (通常戦・強敵に固定加算・主は対象外・隊の生存者の最高Lvのみ)",
+          "grants": {
+            "hunterSaihai": 1
+          }
+        },
+        {
+          "name": "待ち伏せLv2",
+          "desc": "先制率+10ポイント (通常戦・強敵に固定加算・主は対象外・隊の生存者の最高Lvのみ)",
+          "grants": {
+            "hunterSaihai": 2
+          }
+        },
+        {
+          "name": "待ち伏せLv3",
+          "desc": "先制率+15ポイント (通常戦・強敵に固定加算・主は対象外・隊の生存者の最高Lvのみ)",
+          "grants": {
+            "hunterSaihai": 3
+          }
+        },
+        {
+          "name": "待ち伏せLv4",
+          "desc": "先制率+20ポイント (通常戦・強敵に固定加算・主は対象外・隊の生存者の最高Lvのみ)",
+          "grants": {
+            "hunterSaihai": 4
+          }
+        }
+      ],
+      "traits": [
+        "crit",
+        "poison"
+      ],
+      "entries": [
+        "DOKUYA",
+        "SUIGETSU",
+        "ASHIDOME",
+        "hunterKemono/1",
+        "SOGEKI",
+        "YANOAME",
+        "dynamicVision/1",
+        "ABURA",
+        "HUNTER_NINOYA",
+        "senseEnemy/1",
+        "SHIBIREYA",
+        "HUNTER_KEHAIYOMI",
+        "hunterAshinerai/1",
+        "KEMONOGARI",
+        "hunterKemono/2",
+        "KUBIKARI",
+        "dynamicVision/2",
+        "hunterAshinerai/2",
+        "TSURANUKI",
+        "senseEnemy/2",
+        "HUNTER_HAYATEYA",
+        "FUUGA",
+        "hunterKoei/1",
+        "HUNTER_KABURAYA",
+        "hunterKazeyomi/1",
+        "fleetFoot/1",
+        "HYOUJIN",
+        "RENSHA",
+        "HUNTER_TORABASAMI",
+        "hunterAshinerai/3",
+        "SENNYA",
+        "HUNTER_ITEYA",
+        "senseEnemy/3",
+        "dynamicVision/3",
+        "hunterKemono/3",
+        "HUNTER_TAKAOTOSHI",
+        "hunterKoei/2",
+        "HUNTER_KAZEKIRI",
+        "vigilance/1",
+        "HUNTER_HIYA",
+        "hunterAshinerai/4",
+        "HUNTER_SHINZOU",
+        "fleetFoot/2",
+        "HUNTER_SAMIDARE",
+        "vigilance/2",
+        "RYUUSEISHA",
+        "HUNTER_ARASHIYUZURU",
+        "resistAilment/1",
+        "HUNTER_TOMEYA",
+        "hunterKemono/4",
+        "HUNTER_AMIUCHI",
+        "hunterKazeyomi/2",
+        "HUNTER_KARIGAMI",
+        "HUNTER_BAKUFU",
+        "HUNTER_HOSHIOTOSHI"
+      ]
+    },
+    "shadow": {
+      "key": "shadowHissatsu",
+      "definition": {
+        "label": "必殺",
+        "scope": "self",
+        "lv": [
+          "物理会心の倍率+20%",
+          "物理会心の倍率+30%",
+          "物理会心の倍率+40%",
+          "物理会心の倍率+50%"
+        ]
+      },
+      "fx": null,
+      "ranks": [
+        {
+          "name": "必殺Lv1",
+          "desc": "物理会心の倍率+20%",
+          "grants": {
+            "shadowHissatsu": 1
+          }
+        },
+        {
+          "name": "必殺Lv2",
+          "desc": "物理会心の倍率+30%",
+          "grants": {
+            "shadowHissatsu": 2
+          }
+        },
+        {
+          "name": "必殺Lv3",
+          "desc": "物理会心の倍率+40%",
+          "grants": {
+            "shadowHissatsu": 3
+          }
+        },
+        {
+          "name": "必殺Lv4",
+          "desc": "物理会心の倍率+50%",
+          "grants": {
+            "shadowHissatsu": 4
+          }
+        }
+      ],
+      "traits": [
+        "crit",
+        "sleep"
+      ],
+      "entries": [
+        "YAMIUCHI",
+        "YAMIBA",
+        "SHADOW_YADOKU",
+        "shadowIchishi/1",
+        "SHIPPUUGIRI",
+        "KAGEWATARI",
+        "dynamicVision/1",
+        "YOIYAMIUCHI",
+        "SHADOW_KUBIKARI",
+        "stealthStep/1",
+        "KAGENUI",
+        "KOKUEINAGI",
+        "shadowDokugou/1",
+        "SHADOW_SESASHI",
+        "shadowYain/1",
+        "SHINOKOKUIN",
+        "dynamicVision/2",
+        "shadowYamiTokeru/1",
+        "SHADOW_KURASASORI",
+        "stealthStep/2",
+        "SHADOW_KAGEITO",
+        "MEIJIN",
+        "shadowDokugou/2",
+        "SHADOW_SAKUYA",
+        "shadowIchishi/2",
+        "shadowShinoNioi/1",
+        "SHADOW_TODOME",
+        "SHADOW_NODOBUE",
+        "shadowYain/2",
+        "SHADOW_KAGEHAMI",
+        "SHADOW_TSUJIGIRI",
+        "stealthStep/3",
+        "dynamicVision/3",
+        "shadowYamiTokeru/2",
+        "SHADOW_TAMANUI",
+        "SHADOW_KAGEBUNSHIN",
+        "shadowYain/3",
+        "SHADOW_SHINIGAMI",
+        "shadowDokugou/3",
+        "SHADOW_KOKUSENPUU",
+        "shadowShinoNioi/2",
+        "SHADOW_OBOROZUKI",
+        "shadowYamiTokeru/3",
+        "SHADOW_GUFUU",
+        "shadowIchishi/3",
+        "SHADOW_SOUSOU",
+        "SHADOW_SHINENTOBARI",
+        "resistAilment/1",
+        "SHADOW_DOKUGIRI",
+        "shadowShinoNioi/3",
+        "SHADOW_KAGEROKUDOU",
+        "shadowDokugou/4",
+        "MEIDOU",
+        "SHADOW_MAGAKAZE",
+        "SHADOW_MUEI"
+      ]
+    },
+    "paladin": {
+      "key": "paladinIyashi",
+      "definition": {
+        "label": "癒しの剣",
+        "scope": "self",
+        "lv": [
+          "物理で与えたダメージの3%だけ味方全員を回復",
+          "物理で与えたダメージの5%だけ味方全員を回復",
+          "物理で与えたダメージの8%だけ味方全員を回復",
+          "物理で与えたダメージの12%だけ味方全員を回復"
+        ]
+      },
+      "fx": null,
+      "ranks": [
+        {
+          "name": "癒しの剣Lv1",
+          "desc": "物理で与えたダメージの3%だけ味方全員を回復",
+          "grants": {
+            "paladinIyashi": 1
+          }
+        },
+        {
+          "name": "癒しの剣Lv2",
+          "desc": "物理で与えたダメージの5%だけ味方全員を回復",
+          "grants": {
+            "paladinIyashi": 2
+          }
+        },
+        {
+          "name": "癒しの剣Lv3",
+          "desc": "物理で与えたダメージの8%だけ味方全員を回復",
+          "grants": {
+            "paladinIyashi": 3
+          }
+        },
+        {
+          "name": "癒しの剣Lv4",
+          "desc": "物理で与えたダメージの12%だけ味方全員を回復",
+          "grants": {
+            "paladinIyashi": 4
+          }
+        }
+      ],
+      "traits": [
+        "physResist",
+        "death"
+      ],
+      "entries": [
+        "SHIELDBASH",
+        "KOUJIN",
+        "DIOS",
+        "paladinGaisen/1",
+        "HAJA",
+        "NERAIUCHI",
+        "CURE",
+        "IWAKUDAKI",
+        "PALADIN_INORINOKEN",
+        "cleanseStep/1",
+        "HOLYLIGHT",
+        "CHOUHATSU",
+        "RECOVER",
+        "KOURINZAN",
+        "paladinNanori/1",
+        "SEINOTATE",
+        "DIOSALL",
+        "smite/1",
+        "SEIKOUZAN",
+        "DIAL",
+        "heroKibouHidamari/1",
+        "SHINGANGEKI",
+        "cleanseStep/2",
+        "GUARDALL",
+        "PALADIN_JIKOUZAN",
+        "paladinGaisen/2",
+        "REVIVE",
+        "PALADIN_KENNOSHUKUTOU",
+        "holyEdge/1",
+        "martyr/1",
+        "PALADIN_HIKARINOJOUHEKI",
+        "PALADIN_JOUKOURIN",
+        "resistAilment/1",
+        "PALADIN_SEIYAKUNOGI",
+        "PALADIN_SABAKINOSEIKEN",
+        "cleanseStep/3",
+        "heroKibouHidamari/2",
+        "TENKOUKEN",
+        "PALADIN_GOKOUNOJIN",
+        "paladinNanori/2",
+        "PALADIN_SHOKUZAI",
+        "divineCounter/1",
+        "PALADIN_SEIGONOTOBARI",
+        "resistAilment/2",
+        "PALADIN_SEIHAI",
+        "paladinFukutsu/1",
+        "PALADIN_GAIKA",
+        "paladinSeikenkago/1",
+        "PALADIN_TENJOUSOU",
+        "paladinNanori/3",
+        "PALADIN_JUNKYOUNOTATE",
+        "paladinFukutsu/2",
+        "PALADIN_SEIKISHIDAN",
+        "paladinSeikenkago/2",
+        "PALADIN_REIMEI",
+        "PALADIN_SEIKIGAN",
+        "PALADIN_SEIKENKOURIN"
+      ]
+    },
+    "guardian": {
+      "key": "guardianKongou",
+      "definition": {
+        "label": "金剛の守り",
+        "scope": "self",
+        "lv": [
+          "敵の物理を5%で完全に受け止める (無傷)",
+          "敵の物理を8%で完全に受け止める",
+          "敵の物理を12%で完全に受け止める",
+          "敵の物理を20%で完全に受け止める"
+        ]
+      },
+      "fx": null,
+      "ranks": [
+        {
+          "name": "金剛の守りLv1",
+          "desc": "敵の物理を5%で完全に受け止める (無傷)",
+          "grants": {
+            "guardianKongou": 1
+          }
+        },
+        {
+          "name": "金剛の守りLv2",
+          "desc": "敵の物理を8%で完全に受け止める",
+          "grants": {
+            "guardianKongou": 2
+          }
+        },
+        {
+          "name": "金剛の守りLv3",
+          "desc": "敵の物理を12%で完全に受け止める",
+          "grants": {
+            "guardianKongou": 3
+          }
+        },
+        {
+          "name": "金剛の守りLv4",
+          "desc": "敵の物理を20%で完全に受け止める",
+          "grants": {
+            "guardianKongou": 4
+          }
+        }
+      ],
+      "traits": [
+        "physResist",
+        "flinch"
+      ],
+      "entries": [
+        "SHIELDBASH",
+        "NERAIUCHI",
+        "CHOUHATSU",
+        "guardianNone/1",
+        "GUARDIAN_NEHARI",
+        "SUIGETSU",
+        "IWAKUDAKI",
+        "GUARDIAN_OOTATEOTOSHI",
+        "guardianKenrou/1",
+        "HANGEKI",
+        "CHIRETSU",
+        "guardianTatenochikai/1",
+        "GUARDIAN_TATEKAGENOTEATE",
+        "NIOUDACHI",
+        "guardianToride/1",
+        "KOUBOUITTAI",
+        "guardianNone/2",
+        "GUARDIAN_KORAEGAESHI",
+        "guardianKenrou/2",
+        "RYUURINJIN",
+        "GUARDIAN_GANBANGAESHI",
+        "guardianHoufuku/1",
+        "GUARDIAN_JOUHEKINOTEATE",
+        "GUARDIAN_SUKIUGACHI",
+        "guardianUtaregatame/1",
+        "guardianToride/2",
+        "GUARDIAN_SEKIHEKI",
+        "GUARDIAN_SOUJUN",
+        "guardianTatenochikai/2",
+        "GUARDIAN_GAJOU",
+        "GUARDIAN_OMOTATE",
+        "guardianKenrou/3",
+        "guardianHoufuku/2",
+        "GUARDIAN_JIBANSHIZUME",
+        "OUJOU",
+        "guardianToride/3",
+        "GUARDIAN_JUUGAITOOSHI",
+        "guardianUtaregatame/2",
+        "GUARDIAN_SENNENJOUHEKI",
+        "resistAilment/1",
+        "GUARDIAN_MIDARETATE",
+        "bigBarrier/1",
+        "GUARDIAN_UZUSHIO",
+        "guardianNone/3",
+        "GUARDIAN_DAIBANJAKU",
+        "GUARDIAN_JIJIKUYURASHI",
+        "resistAilment/2",
+        "GUARDIAN_TAKANAMI",
+        "holyCover/1",
+        "GUARDIAN_KINJOUTEPPEKI",
+        "bigBarrier/2",
+        "GUARDIAN_ROUJOU",
+        "GUARDIAN_TENCHIGAESHI",
+        "GUARDIAN_EIGOUJOUSAI"
+      ]
+    },
+    "spellblade": {
+      "key": "spellbladeMajin",
+      "definition": {
+        "label": "魔刃一体",
+        "scope": "self",
+        "lv": [
+          "物理技に INT の10%を上乗せ",
+          "物理技に INT の20%を上乗せ",
+          "物理技に INT の30%を上乗せ",
+          "物理技に INT の50%を上乗せ"
+        ]
+      },
+      "fx": null,
+      "ranks": [
+        {
+          "name": "魔刃一体Lv1",
+          "desc": "物理技に INT の10%を上乗せ",
+          "grants": {
+            "spellbladeMajin": 1
+          }
+        },
+        {
+          "name": "魔刃一体Lv2",
+          "desc": "物理技に INT の20%を上乗せ",
+          "grants": {
+            "spellbladeMajin": 2
+          }
+        },
+        {
+          "name": "魔刃一体Lv3",
+          "desc": "物理技に INT の30%を上乗せ",
+          "grants": {
+            "spellbladeMajin": 3
+          }
+        },
+        {
+          "name": "魔刃一体Lv4",
+          "desc": "物理技に INT の50%を上乗せ",
+          "grants": {
+            "spellbladeMajin": 4
+          }
+        }
+      ],
+      "traits": [
+        "crit",
+        "magResist"
+      ],
+      "entries": [
+        "KYOUGEKI",
+        "MAKEN_FIRE",
+        "HALITO",
+        "MAKEN_EARTH",
+        "spellBlade/1",
+        "DOUBLE",
+        "MAKEN_WIND",
+        "ICENEEDLE",
+        "MAKEN_WATER",
+        "SPELLBLADE_KENJURENKAN",
+        "spellbladeMikiwame/1",
+        "MAKEN_LIGHT",
+        "SHINGANGEKI",
+        "MAKEN_DARK",
+        "spellbladeKyoumei/1",
+        "ELEMBREAK",
+        "spellbladeRenkan/1",
+        "MAENZAN",
+        "kenma/1",
+        "SPELLBLADE_KASANE",
+        "spellbladeMikiwame/2",
+        "MAHALITO",
+        "GURENZAN",
+        "spellBlade/2",
+        "SPELLBLADE_RENSEI",
+        "spellbladeMagan/1",
+        "spellbladeKyoumei/2",
+        "SPELLBLADE_YOROIDOOSHI",
+        "HYOUJIN",
+        "SPELLBLADE_FUUJIN",
+        "spellbladeMayoroi/1",
+        "MADALT",
+        "SPELLBLADE_FUUMA",
+        "spellbladeMikiwame/3",
+        "twinArts/1",
+        "SPELLBLADE_HIEN",
+        "spellbladeEishou/1",
+        "SPELLBLADE_RAITEI",
+        "resistAilment/1",
+        "SPELLBLADE_TENSHOU",
+        "spellbladeRenkan/2",
+        "SPELLBLADE_SOURYUU",
+        "spellbladeKyoumei/3",
+        "SPELLBLADE_KOKUU",
+        "spellbladeMagan/2",
+        "ROKUDOU",
+        "spellbladeEishou/2",
+        "SPELLBLADE_ENTEI",
+        "spellbladeMayoroi/2",
+        "SPELLBLADE_KYOKKOU",
+        "spellbladeRenkan/3",
+        "SPELLBLADE_HYOUGOKU",
+        "SPELLBLADE_BANSHOU",
+        "SPELLBLADE_KENKAI"
+      ]
+    },
+    "monk": {
+      "key": "monkKikou",
+      "definition": {
+        "label": "気功",
+        "scope": "self",
+        "lv": [
+          "2ターン目から毎ターンの初めに、HPを最大の10%回復",
+          "2ターン目から毎ターンの初めに、HPを最大の15%回復",
+          "2ターン目から毎ターンの初めに、HPを最大の20%回復",
+          "2ターン目から毎ターンの初めに、HPを最大の25%回復"
+        ]
+      },
+      "fx": {
+        "label": "気功",
+        "lv": [
+          "2ターン目から毎ターンの初めに、HPを最大の10%回復",
+          "2ターン目から毎ターンの初めに、HPを最大の15%回復",
+          "2ターン目から毎ターンの初めに、HPを最大の20%回復",
+          "2ターン目から毎ターンの初めに、HPを最大の25%回復"
+        ],
+        "fx": [
+          {
+            "t": "round",
+            "hp": [
+              0.1,
+              0.15,
+              0.2,
+              0.25
+            ]
+          }
+        ]
+      },
+      "ranks": [
+        {
+          "name": "気功Lv1",
+          "desc": "2ターン目から毎ターンの初めに、HPを最大の10%回復",
+          "grants": {
+            "monkKikou": 1
+          }
+        },
+        {
+          "name": "気功Lv2",
+          "desc": "2ターン目から毎ターンの初めに、HPを最大の15%回復",
+          "grants": {
+            "monkKikou": 2
+          }
+        },
+        {
+          "name": "気功Lv3",
+          "desc": "2ターン目から毎ターンの初めに、HPを最大の20%回復",
+          "grants": {
+            "monkKikou": 3
+          }
+        },
+        {
+          "name": "気功Lv4",
+          "desc": "2ターン目から毎ターンの初めに、HPを最大の25%回復",
+          "grants": {
+            "monkKikou": 4
+          }
+        }
+      ],
+      "traits": [
+        "paralyze",
+        "confuse"
+      ],
+      "entries": [
+        "KYOUGEKI",
+        "IWAKUDAKI",
+        "DIOS",
+        "monkKudoku/1",
+        "NOUTEN",
+        "HAKKEI",
+        "CURE",
+        "FUYUU",
+        "MONK_KUDOKUSHOU",
+        "monkMeisou/1",
+        "TENKETSU",
+        "dynamicVision/1",
+        "CHIRETSU",
+        "monkRenkan/1",
+        "SHINTOU",
+        "DIOSALL",
+        "monkFue/1",
+        "KONGOURENDA",
+        "DIAL",
+        "monkKudoku/2",
+        "KONGOUTAI",
+        "monkMeisou/2",
+        "SHINGANGEKI",
+        "GANOTOSHI",
+        "monkFue/2",
+        "dynamicVision/2",
+        "monkRenkan/2",
+        "monkJuzu/1",
+        "HOUKEN",
+        "FUUGA",
+        "MONK_SEKEN",
+        "monkRenkan/3",
+        "MONK_MYOUOU",
+        "HYAKURETSU",
+        "monkMeisou/3",
+        "monkOuhou/1",
+        "MONK_CHIMYAKU",
+        "KIYOME",
+        "monkFue/3",
+        "MUSOUKEN",
+        "monkJuzu/2",
+        "MONK_NENJU",
+        "dynamicVision/3",
+        "monkRenkan/4",
+        "TENMAKEN",
+        "monkKudoku/3",
+        "MONK_SENPUUKYAKU",
+        "resistAilment/1",
+        "MONK_ROKKON",
+        "MONK_SHINKYAKU",
+        "scripture/1",
+        "MONK_HOURIN",
+        "monkOuhou/2",
+        "MONK_GASSHOU",
+        "monkKudoku/4",
+        "MONK_KUDOKUNOHIKARI",
+        "MONK_NEHAN",
+        "KONGOUMUSOU"
+      ]
+    },
+    "hexer": {
+      "key": "hexerSae",
+      "definition": {
+        "label": "呪いの冴え",
+        "scope": "self",
+        "lv": [
+          "状態異常の成功率+5%",
+          "状態異常の成功率+10%",
+          "状態異常の成功率+15%",
+          "状態異常の成功率+25%"
+        ]
+      },
+      "fx": null,
+      "ranks": [
+        {
+          "name": "呪いの冴えLv1",
+          "desc": "状態異常の成功率+5%",
+          "grants": {
+            "hexerSae": 1
+          }
+        },
+        {
+          "name": "呪いの冴えLv2",
+          "desc": "状態異常の成功率+10%",
+          "grants": {
+            "hexerSae": 2
+          }
+        },
+        {
+          "name": "呪いの冴えLv3",
+          "desc": "状態異常の成功率+15%",
+          "grants": {
+            "hexerSae": 3
+          }
+        },
+        {
+          "name": "呪いの冴えLv4",
+          "desc": "状態異常の成功率+25%",
+          "grants": {
+            "hexerSae": 4
+          }
+        }
+      ],
+      "traits": [
+        "poison",
+        "seal"
+      ],
+      "entries": [
+        "BLIND",
+        "SHADOWBOLT",
+        "NOROI",
+        "hexerShokuso/1",
+        "MARK_WATER",
+        "HEXER_MUMAKOU",
+        "AQUAWAVE",
+        "HEXER_SHOKUJU",
+        "hexerGosun/1",
+        "MIWAKU",
+        "DARKMIST",
+        "hexerJusui/1",
+        "KYOURAN",
+        "DARKBLAST",
+        "hexerMaganoKizashi/1",
+        "DOKUGIRI",
+        "hexerTatari/1",
+        "KEISEI",
+        "hexerGosun/2",
+        "FUDOKU",
+        "hexerShokuso/2",
+        "ICELANCE",
+        "ELEMBREAK",
+        "flinch/1",
+        "DARKNESS",
+        "hexerJusui/2",
+        "DEATH",
+        "HEXER_SHIKUGI",
+        "hexerTatari/2",
+        "BLINDALL",
+        "MADALT",
+        "hexerGosun/3",
+        "resistAilment/1",
+        "HEXER_OBOREJU",
+        "hexerMaganoKizashi/2",
+        "GRAVITY",
+        "MEIKOKU",
+        "hexerJusoMamori/1",
+        "HEXER_KUROSHIO",
+        "hexerJusui/3",
+        "DEATHALL",
+        "hexerTatari/3",
+        "HEXER_KODOKU",
+        "soulEater/1",
+        "GRAVIGA",
+        "resistAilment/2",
+        "HEXER_HYOUKAN",
+        "soulLure/1",
+        "MEIANRAN",
+        "hexerJusoMamori/2",
+        "HEXER_HYAKKI",
+        "MAGATSU",
+        "HEXER_BANJU"
+      ]
+    },
+    "hermit": {
+      "key": "hermitSenyaku",
+      "definition": {
+        "label": "仙薬",
+        "scope": "party",
+        "lv": [
+          "道具のHP・MP回復量+20%",
+          "道具のHP・MP回復量+30%",
+          "道具のHP・MP回復量+40%",
+          "道具のHP・MP回復量+60%"
+        ]
+      },
+      "fx": null,
+      "ranks": [
+        {
+          "name": "仙薬Lv1",
+          "desc": "道具のHP・MP回復量+20%",
+          "grants": {
+            "hermitSenyaku": 1
+          }
+        },
+        {
+          "name": "仙薬Lv2",
+          "desc": "道具のHP・MP回復量+30%",
+          "grants": {
+            "hermitSenyaku": 2
+          }
+        },
+        {
+          "name": "仙薬Lv3",
+          "desc": "道具のHP・MP回復量+40%",
+          "grants": {
+            "hermitSenyaku": 3
+          }
+        },
+        {
+          "name": "仙薬Lv4",
+          "desc": "道具のHP・MP回復量+60%",
+          "grants": {
+            "hermitSenyaku": 4
+          }
+        }
+      ],
+      "traits": [
+        "sleep",
+        "charm"
+      ],
+      "entries": [
+        "HERMIT_SEIFUU",
+        "DIOS",
+        "hermitYoujou/1",
+        "GENWAKU",
+        "KASUMIGAKURE",
+        "CURE",
+        "HERMIT_YAMANOYUUSUI",
+        "hermitZokusei/1",
+        "HOLYLIGHT",
+        "REGEN",
+        "RECOVER",
+        "HERMIT_KAZEHAFURI",
+        "hermitMinokonashi/1",
+        "HERMIT_NEMURIGASUMI",
+        "DIOSALL",
+        "AWAKE",
+        "hermitNigemizu/1",
+        "HERMIT_YAMAOROSHI",
+        "KASUMINOTOBARI",
+        "DIAL",
+        "hermitYoujou/2",
+        "STONECURE",
+        "hermitZokusei/2",
+        "HERMIT_KIRIGOME",
+        "hermitIori/1",
+        "REVIVE",
+        "DIALALL",
+        "hermitYoujou/3",
+        "HERMIT_KOGARASHI",
+        "hermitMinokonashi/2",
+        "MADIOS",
+        "HERMIT_YAKUSOUARAI",
+        "poisonFloor/1",
+        "HERMIT_ASATSUYU",
+        "PURIFY",
+        "hermitZokusei/3",
+        "hermitIori/2",
+        "HERMIT_KOMOREBI",
+        "hermitYoujou/4",
+        "HERMIT_KUNPUU",
+        "resistAilment/1",
+        "HERMIT_SHINKIROU",
+        "hermitNigemizu/2",
+        "HERMIT_YUUSUI",
+        "HERMIT_KAMINARI",
+        "hermitMinokonashi/3",
+        "HERMIT_MIYAMA",
+        "hermitIori/3",
+        "HERMIT_KANKON",
+        "resistAilment/2",
+        "HERMIT_HIYAKU",
+        "HERMIT_TENGUKAZE",
+        "mercy/1",
+        "HERMIT_OOHARAE",
+        "hermitNigemizu/3",
+        "HERMIT_GYOUKOU",
+        "HERMIT_SEISOU",
+        "HERMIT_FUKUIN"
+      ]
+    },
+    "brigand": {
+      "key": "brigandGi",
+      "definition": {
+        "label": "義の報い",
+        "scope": "party",
+        "lv": [
+          "味方のHPが50%以下になった時、1戦闘1回、その味方を最大HPの20%回復",
+          "味方のHPが50%以下になった時、1戦闘1回、その味方を最大HPの40%回復",
+          "味方のHPが50%以下になった時、1戦闘1回、その味方を最大HPの60%回復",
+          "味方のHPが50%以下になった時、1戦闘1回、その味方を最大HPの80%回復"
+        ]
+      },
+      "fx": null,
+      "ranks": [
+        {
+          "name": "義の報いLv1",
+          "desc": "味方のHPが50%以下になった時、1戦闘1回、その味方を最大HPの20%回復",
+          "grants": {
+            "brigandGi": 1
+          }
+        },
+        {
+          "name": "義の報いLv2",
+          "desc": "味方のHPが50%以下になった時、1戦闘1回、その味方を最大HPの40%回復",
+          "grants": {
+            "brigandGi": 2
+          }
+        },
+        {
+          "name": "義の報いLv3",
+          "desc": "味方のHPが50%以下になった時、1戦闘1回、その味方を最大HPの60%回復",
+          "grants": {
+            "brigandGi": 3
+          }
+        },
+        {
+          "name": "義の報いLv4",
+          "desc": "味方のHPが50%以下になった時、1戦闘1回、その味方を最大HPの80%回復",
+          "grants": {
+            "brigandGi": 4
+          }
+        }
+      ],
+      "traits": [
+        "crit",
+        "confuse"
+      ],
+      "entries": [
+        "KYOUGEKI",
+        "STEAL",
+        "SUIGETSU",
+        "goldLuck/1",
+        "BRIGAND_ZENITSUBUTE",
+        "BRIGAND_TEBIKI",
+        "YAMIBA",
+        "BRIGAND_MINEUCHI",
+        "senseTreasure/1",
+        "ASHIBARAI",
+        "UZUSHIO",
+        "brigandGifun/1",
+        "BRIGAND_HAIKAGURA",
+        "brigandUdekujiki/1",
+        "OIHAGI",
+        "brigandKabau/1",
+        "BRIGAND_KUJIKI",
+        "senseTreasure/2",
+        "BRIGAND_AIKUCHI",
+        "HYOUJIN",
+        "goldLuck/2",
+        "BRIGAND_TACHIMAWARI",
+        "brigandUdekujiki/2",
+        "brigandHodokoshi/1",
+        "BRIGAND_HODOKOSHI",
+        "BRIGAND_MIZUZEME",
+        "brigandGifun/2",
+        "BRIGAND_KAGEFUMI",
+        "BRIGAND_AKUDAIKAN",
+        "senseTreasure/3",
+        "brigandMeguri/1",
+        "brigandKabau/2",
+        "BRIGAND_HISAME",
+        "BRIGAND_JINGI",
+        "brigandUdekujiki/3",
+        "BRIGAND_TSUKIYO",
+        "brigandGifun/3",
+        "BRIGAND_HANAMICHI",
+        "brigandHodokoshi/2",
+        "BRIGAND_SEIBAI",
+        "brigandUdekujiki/4",
+        "BRIGAND_NAGESEN",
+        "brigandGifun/4",
+        "BRIGAND_SHIRANAMI",
+        "brigandMeguri/2",
+        "BRIGAND_DOTOU",
+        "resistAilment/1",
+        "BRIGAND_TENCHUU",
+        "brigandKabau/3",
+        "BRIGAND_SENRYOU",
+        "brigandHodokoshi/3",
+        "TENKAGOMEN",
+        "BRIGAND_YATOU",
+        "BRIGAND_HONKAI"
+      ]
+    },
+    "arcthief": {
+      "key": "arcthiefKaeshi",
+      "definition": {
+        "label": "呪文返し",
+        "scope": "self",
+        "lv": [
+          "敵の呪文を受けるたび、INT×0.4の魔法の一撃で返し、10%で打ち消す",
+          "敵の呪文を受けるたび、INT×0.6の魔法の一撃で返し、15%で打ち消す",
+          "敵の呪文を受けるたび、INT×0.8の魔法の一撃で返し、20%で打ち消す",
+          "敵の呪文を受けるたび、INT×1.0の魔法の一撃で返し、30%で打ち消す"
+        ]
+      },
+      "fx": null,
+      "ranks": [
+        {
+          "name": "呪文返しLv1",
+          "desc": "敵の呪文を受けるたび、INT×0.4の魔法の一撃で返し、10%で打ち消す",
+          "grants": {
+            "arcthiefKaeshi": 1
+          }
+        },
+        {
+          "name": "呪文返しLv2",
+          "desc": "敵の呪文を受けるたび、INT×0.6の魔法の一撃で返し、15%で打ち消す",
+          "grants": {
+            "arcthiefKaeshi": 2
+          }
+        },
+        {
+          "name": "呪文返しLv3",
+          "desc": "敵の呪文を受けるたび、INT×0.8の魔法の一撃で返し、20%で打ち消す",
+          "grants": {
+            "arcthiefKaeshi": 3
+          }
+        },
+        {
+          "name": "呪文返しLv4",
+          "desc": "敵の呪文を受けるたび、INT×1.0の魔法の一撃で返し、30%で打ち消す",
+          "grants": {
+            "arcthiefKaeshi": 4
+          }
+        }
+      ],
+      "traits": [
+        "crit",
+        "magResist"
+      ],
+      "entries": [
+        "STEAL",
+        "ARCTHIEF_KASUMEBA",
+        "HALITO",
+        "SHADOWBOLT",
+        "openSpell/1",
+        "ARCTHIEF_NUSUMIMI",
+        "ARCTHIEF_YUMETORI",
+        "FUYUU",
+        "ARCTHIEF_KASUMEJUDAN",
+        "arcthiefGenei/1",
+        "SEAL",
+        "arcthiefSae/1",
+        "MAHALITO",
+        "DARKBLAST",
+        "arcthiefSuritoru/1",
+        "MARYOKUGOUDATSU",
+        "arcthiefTeguse/1",
+        "ARCTHIEF_GENTOU",
+        "arcthiefGenei/2",
+        "DISPEL",
+        "ARCTHIEF_MAREIJIN",
+        "arcthiefTeguse/2",
+        "ARCTHIEF_ENMAKU",
+        "arcthiefKarimono/1",
+        "ARCTHIEF_KAGEKUI",
+        "arcthiefSae/2",
+        "ARCTHIEF_TOUSEI",
+        "ARCTHIEF_MASHU",
+        "arcthiefSuritoru/2",
+        "ARCTHIEF_KASUMERAI",
+        "MADALT",
+        "arcthiefGenei/3",
+        "arcthiefSurinuke/1",
+        "ARCTHIEF_JUTSUAMI",
+        "arcthiefSuritoru/3",
+        "ARCTHIEF_MANAWA",
+        "ARCTHIEF_TAMANUKI",
+        "arcthiefKarimono/2",
+        "ARCTHIEF_NUSUMISHIMO",
+        "arcthiefSae/3",
+        "ARCTHIEF_KAGENUKE",
+        "arcthiefTeguse/3",
+        "ARCTHIEF_NUSUMIARASHI",
+        "resistAilment/1",
+        "ARCTHIEF_NUSUMIBI",
+        "arcthiefSuritoru/4",
+        "ARCTHIEF_TAMANUSUMI",
+        "arcthiefSurinuke/2",
+        "ARCTHIEF_TOUTENSEKI",
+        "arcthiefSae/4",
+        "ARCTHIEF_MAKUHIKI",
+        "ARCTHIEF_DATSUENRAN",
+        "ARCTHIEF_BANSHOU"
+      ]
+    },
+    "crusader": {
+      "key": "crusaderTsuigeki",
+      "definition": {
+        "label": "聖光の追撃",
+        "scope": "self",
+        "lv": [
+          "物理が当たると10%で光の追撃 (STR×0.5)",
+          "物理が当たると15%で光の追撃 (STR×0.5)",
+          "物理が当たると20%で光の追撃 (STR×0.5)",
+          "物理が当たると30%で光の追撃 (STR×0.5)"
+        ]
+      },
+      "fx": null,
+      "ranks": [
+        {
+          "name": "聖光の追撃Lv1",
+          "desc": "物理が当たると10%で光の追撃 (STR×0.5)",
+          "grants": {
+            "crusaderTsuigeki": 1
+          }
+        },
+        {
+          "name": "聖光の追撃Lv2",
+          "desc": "物理が当たると15%で光の追撃 (STR×0.5)",
+          "grants": {
+            "crusaderTsuigeki": 2
+          }
+        },
+        {
+          "name": "聖光の追撃Lv3",
+          "desc": "物理が当たると20%で光の追撃 (STR×0.5)",
+          "grants": {
+            "crusaderTsuigeki": 3
+          }
+        },
+        {
+          "name": "聖光の追撃Lv4",
+          "desc": "物理が当たると30%で光の追撃 (STR×0.5)",
+          "grants": {
+            "crusaderTsuigeki": 4
+          }
+        }
+      ],
+      "traits": [
+        "crit",
+        "death"
+      ],
+      "entries": [
+        "KYOUGEKI",
+        "KOUJIN",
+        "HOLYRAY",
+        "crusaderFujouUchi/1",
+        "DIOS",
+        "NERAIUCHI",
+        "BLESS",
+        "CURE",
+        "KAENGIRI",
+        "CRUSADER_SEIKAZAN",
+        "crusaderToki/1",
+        "CRUSADER_SEIINTSUKI",
+        "dynamicVision/1",
+        "CRUSADER_JUUJISENKOU",
+        "crusaderFujouUchi/2",
+        "SEISEN",
+        "DIOSALL",
+        "crusaderTotsugekiIkioi/1",
+        "JUUJIZAN",
+        "DIAL",
+        "crusaderSeinaruKouyou/1",
+        "JOUKA",
+        "crusaderToki/2",
+        "SHINGANGEKI",
+        "SEIGEKI",
+        "crusaderSeikaKate/1",
+        "dynamicVision/2",
+        "CRUSADER_SEISHOU",
+        "crusaderJunkyoushin/1",
+        "crusaderJunkyoushin/2",
+        "CRUSADER_SEIENTOTSU",
+        "GURENZAN",
+        "resistAilment/1",
+        "CRUSADER_JUUJIBARAI",
+        "CRUSADER_KOUCHUU",
+        "crusaderToki/3",
+        "crusaderTotsugekiIkioi/2",
+        "CRUSADER_SHOKUZAI",
+        "CRUSADER_SHAKUNETSU",
+        "crusaderFujouUchi/3",
+        "CRUSADER_SEISENTOTSU",
+        "crusaderJunkyoushin/3",
+        "CRUSADER_SEIENCHIKAI",
+        "dynamicVision/3",
+        "crusaderSeikaKate/2",
+        "CRUSADER_JUUJISABAKI",
+        "resistAilment/2",
+        "CRUSADER_DAITOTSUGEKI",
+        "crusaderSeinaruKouyou/2",
+        "CRUSADER_JOUMETSU",
+        "KOUBOURANBU",
+        "crusaderJunkyoushin/4",
+        "CRUSADER_SEIRAKU",
+        "crusaderSeinaruKouyou/3",
+        "CRUSADER_GAIKA",
+        "crusaderTotsugekiIkioi/3",
+        "CRUSADER_TOTSUGEKIJIN",
+        "CRUSADER_TENSHI",
+        "CRUSADER_SEIJUUJI"
+      ]
+    },
+    "battlemage": {
+      "key": "bmManaCycle",
+      "definition": {
+        "label": "魔力循環",
+        "scope": "self",
+        "lv": [
+          "通常攻撃で与えたダメージの1%だけMPを回復 (1回で最大MPの2%まで)",
+          "通常攻撃で与えたダメージの2%だけMPを回復 (1回で最大MPの3%まで)",
+          "通常攻撃で与えたダメージの3%だけMPを回復 (1回で最大MPの4%まで)",
+          "通常攻撃で与えたダメージの4%だけMPを回復 (1回で最大MPの5%まで)"
+        ]
+      },
+      "fx": null,
+      "ranks": [
+        {
+          "name": "魔力循環Lv1",
+          "desc": "通常攻撃で与えたダメージの1%だけMPを回復 (1回で最大MPの2%まで)",
+          "grants": {
+            "bmManaCycle": 1
+          }
+        },
+        {
+          "name": "魔力循環Lv2",
+          "desc": "通常攻撃で与えたダメージの2%だけMPを回復 (1回で最大MPの3%まで)",
+          "grants": {
+            "bmManaCycle": 2
+          }
+        },
+        {
+          "name": "魔力循環Lv3",
+          "desc": "通常攻撃で与えたダメージの3%だけMPを回復 (1回で最大MPの4%まで)",
+          "grants": {
+            "bmManaCycle": 3
+          }
+        },
+        {
+          "name": "魔力循環Lv4",
+          "desc": "通常攻撃で与えたダメージの4%だけMPを回復 (1回で最大MPの5%まで)",
+          "grants": {
+            "bmManaCycle": 4
+          }
+        }
+      ],
+      "traits": [
+        "physResist",
+        "magResist"
+      ],
+      "entries": [
+        "KYOUGEKI",
+        "KAENGIRI",
+        "HALITO",
+        "battlemageJunkan/1",
+        "NERAIUCHI",
+        "ISHITSUBUTE",
+        "BAKUENKEN",
+        "IWAKUDAKI",
+        "BATTLEMAGE_GANKEN",
+        "bmHouken/1",
+        "BATTLEMAGE_GOUMA",
+        "KAENNAGI",
+        "battlemageGoutai/1",
+        "MAHALITO",
+        "EARTHQUAKE",
+        "battlemageYakiin/1",
+        "HAMANOKEN",
+        "battlemageKuzushi/1",
+        "ELEMBREAK",
+        "bmHouken/2",
+        "SAIKEN",
+        "BATTLEMAGE_KASHA",
+        "battlemageJunkan/2",
+        "BATTLEMAGE_GANKENDAN",
+        "battlemageKutsuu/1",
+        "resistAilment/1",
+        "BATTLEMAGE_HAPPA",
+        "BATTLEMAGE_JINARI",
+        "BATTLEMAGE_ENDAN",
+        "battlemageGoutai/2",
+        "BATTLEMAGE_MACHIRASHI",
+        "MAJINKEN",
+        "bmHouken/3",
+        "battlemageYakiin/2",
+        "BATTLEMAGE_DAICHIKEN",
+        "battlemageKuzushi/2",
+        "BATTLEMAGE_KONGOU",
+        "BATTLEMAGE_GANSAISHOU",
+        "reflect/1",
+        "BATTLEMAGE_HIBASHIRA",
+        "battlemageYakiin/3",
+        "BATTLEMAGE_SHOUMA",
+        "battlemageKutsuu/2",
+        "BATTLEMAGE_GURENMASHOU",
+        "resistAilment/2",
+        "BATTLEMAGE_INTETSU",
+        "battlemageYakiin/4",
+        "GANSAI",
+        "battlemageJunkan/3",
+        "BATTLEMAGE_BAKUENRANDA",
+        "battlemageKuzushi/3",
+        "BATTLEMAGE_SHAKUNETSU",
+        "TOUSHINHAGEKI",
+        "BATTLEMAGE_TENPOU"
+      ]
+    },
+    "darkknight": {
+      "key": "dkKeiyaku",
+      "definition": {
+        "label": "暗黒の契約",
+        "scope": "self",
+        "lv": [
+          "HPを払う技の代償-20%",
+          "HPを払う技の代償-35%",
+          "HPを払う技の代償-50%",
+          "HPを払う技の代償がなくなる"
+        ]
+      },
+      "fx": null,
+      "ranks": [
+        {
+          "name": "暗黒の契約Lv1",
+          "desc": "HPを払う技の代償-20%",
+          "grants": {
+            "dkKeiyaku": 1
+          }
+        },
+        {
+          "name": "暗黒の契約Lv2",
+          "desc": "HPを払う技の代償-35%",
+          "grants": {
+            "dkKeiyaku": 2
+          }
+        },
+        {
+          "name": "暗黒の契約Lv3",
+          "desc": "HPを払う技の代償-50%",
+          "grants": {
+            "dkKeiyaku": 3
+          }
+        },
+        {
+          "name": "暗黒の契約Lv4",
+          "desc": "HPを払う技の代償がなくなる",
+          "grants": {
+            "dkKeiyaku": 4
+          }
+        }
+      ],
+      "traits": [
+        "magResist",
+        "death"
+      ],
+      "entries": [
+        "SHIELDBASH",
+        "YAMIBA",
+        "NERAIUCHI",
+        "darkknightYaminoShouheki/1",
+        "ANKOKU",
+        "SHADOWBOLT",
+        "CHOUHATSU",
+        "DARKKNIGHT_CHIYAMI",
+        "dkEnchant/1",
+        "KYUUKETSU",
+        "KOKUEINAGI",
+        "darkknightKaeshiba/1",
+        "YAMINOKOROMO",
+        "DARKBLAST",
+        "darkknightKurokiBanpei/1",
+        "MAGUINOTACHI",
+        "darkknightYaminoShouheki/2",
+        "DARKKNIGHT_KOKUSHOU",
+        "dkEnchant/2",
+        "JUBAKU",
+        "MEIJIN",
+        "darkknightShikobami/1",
+        "DARKKNIGHT_MAKOKU",
+        "darkknightTeoiMashou/1",
+        "resistAilment/1",
+        "HANGEKI",
+        "DARKKNIGHT_KETSURUI",
+        "darkknightKaeshiba/2",
+        "DARKKNIGHT_KUROGANE",
+        "DARKKNIGHT_GOKUENMAKEN",
+        "dkEnchant/3",
+        "darkknightKurokiBanpei/2",
+        "DARKKNIGHT_YAMIKURAI",
+        "DARKKNIGHT_NARAKUSOU",
+        "darkknightTeoiMashou/2",
+        "DARKKNIGHT_SHUKUMEI",
+        "darkknightShikobami/2",
+        "DARKKNIGHT_KUROJOUSAI",
+        "darkknightTeoiMashou/3",
+        "DARKKNIGHT_MEIOUKUSARI",
+        "resistAilment/2",
+        "DARKKNIGHT_GOUMADAN",
+        "darkknightKaeshiba/3",
+        "ANKOKUSHUUEN",
+        "DARKKNIGHT_KOKUUZUGIRI",
+        "darkknightYaminoShouheki/3",
+        "DARKKNIGHT_RENGOKU",
+        "darkknightKurokiBanpei/3",
+        "DARKKNIGHT_ZANSHU",
+        "darkknightTeoiMashou/4",
+        "DARKKNIGHT_TOKOYO",
+        "DARKKNIGHT_MAJUN",
+        "DARKKNIGHT_KOKUTEN"
+      ]
+    },
+    "templar": {
+      "key": "templarIkou",
+      "definition": {
+        "label": "封魔の威光",
+        "scope": "party",
+        "lv": [
+          "敵が特技を使う確率-10%",
+          "敵が特技を使う確率-15%",
+          "敵が特技を使う確率-20%",
+          "敵が特技を使う確率-30%"
+        ]
+      },
+      "fx": null,
+      "ranks": [
+        {
+          "name": "封魔の威光Lv1",
+          "desc": "敵が特技を使う確率-10%",
+          "grants": {
+            "templarIkou": 1
+          }
+        },
+        {
+          "name": "封魔の威光Lv2",
+          "desc": "敵が特技を使う確率-15%",
+          "grants": {
+            "templarIkou": 2
+          }
+        },
+        {
+          "name": "封魔の威光Lv3",
+          "desc": "敵が特技を使う確率-20%",
+          "grants": {
+            "templarIkou": 3
+          }
+        },
+        {
+          "name": "封魔の威光Lv4",
+          "desc": "敵が特技を使う確率-30%",
+          "grants": {
+            "templarIkou": 4
+          }
+        }
+      ],
+      "traits": [
+        "physResist",
+        "seal"
+      ],
+      "entries": [
+        "SHIELDBASH",
+        "KOUJIN",
+        "DIOS",
+        "templarMonshu/1",
+        "CHOUHATSU",
+        "PROTECT",
+        "NERAIUCHI",
+        "TEMPLAR_MONKEKKAI",
+        "templarShinsei/1",
+        "HOLYLIGHT",
+        "FUUMANOTATE",
+        "RECOVER",
+        "templarFuumakusabi/1",
+        "AWAKE",
+        "NIOUDACHI",
+        "DIOSALL",
+        "templarKairitsu/1",
+        "SEIIKINOKANE",
+        "DIAL",
+        "templarMonkekkai/1",
+        "STONECURE",
+        "templarShinsei/2",
+        "TEMPLAR_KUSARIUCHI",
+        "TEMPLAR_SEIINUCHI",
+        "templarMayoke/1",
+        "TEMPLAR_MONZENNOHARAI",
+        "resistAilment/1",
+        "templarFuumakusabi/2",
+        "TEMPLAR_MISOGI",
+        "TEMPLAR_HAKAINOISHIZUCHI",
+        "TEMPLAR_HAMANOKOUSA",
+        "templarMonkekkai/2",
+        "TEMPLAR_MONBANNOKAMAE",
+        "TEMPLAR_HAMANOOOZUCHI",
+        "templarShinsei/3",
+        "templarFuumakusabi/3",
+        "TEMPLAR_SEIIKIKEKKAI",
+        "templarMonshu/2",
+        "TEMPLAR_DANZAINOFUUIN",
+        "templarMonkekkai/3",
+        "TEMPLAR_OOTOBIRA",
+        "resistAilment/2",
+        "TEMPLAR_SEIKANOHARAI",
+        "templarMonshu/3",
+        "TEMPLAR_SANJUUKEKKAI",
+        "templarFuumakusabi/4",
+        "TEMPLAR_FUUMANOOOGANE",
+        "TEMPLAR_KOUSANAGI",
+        "templarMayoke/2",
+        "TEMPLAR_SHUMONNOJIN",
+        "templarKairitsu/2",
+        "TEMPLAR_SEIDOUKISHI",
+        "templarMonkekkai/4",
+        "TEMPLAR_SHINDENNOSHINPAN",
+        "TEMPLAR_SAIRINNOSEIMON",
+        "TEMPLAR_ZETTAIKEKKAI"
+      ]
+    },
+    "exorcist": {
+      "key": "exorcistJouka",
+      "definition": {
+        "label": "破魔の祝詞",
+        "scope": "party",
+        "lv": [
+          "自分が生きている間、味方全員の不死・幽鬼・悪魔への与ダメージ+10% (同じ加護は最高Lvのみ・闇を照らす灯と重複可)",
+          "自分が生きている間、味方全員の不死・幽鬼・悪魔への与ダメージ+15% (同じ加護は最高Lvのみ・闇を照らす灯と重複可)",
+          "自分が生きている間、味方全員の不死・幽鬼・悪魔への与ダメージ+20% (同じ加護は最高Lvのみ・闇を照らす灯と重複可)",
+          "自分が生きている間、味方全員の不死・幽鬼・悪魔への与ダメージ+25% (同じ加護は最高Lvのみ・闇を照らす灯と重複可)"
+        ]
+      },
+      "fx": null,
+      "ranks": [
+        {
+          "name": "破魔の祝詞Lv1",
+          "desc": "自分が生きている間、味方全員の不死・幽鬼・悪魔への与ダメージ+10% (同じ加護は最高Lvのみ・闇を照らす灯と重複可)",
+          "grants": {
+            "exorcistJouka": 1
+          }
+        },
+        {
+          "name": "破魔の祝詞Lv2",
+          "desc": "自分が生きている間、味方全員の不死・幽鬼・悪魔への与ダメージ+15% (同じ加護は最高Lvのみ・闇を照らす灯と重複可)",
+          "grants": {
+            "exorcistJouka": 2
+          }
+        },
+        {
+          "name": "破魔の祝詞Lv3",
+          "desc": "自分が生きている間、味方全員の不死・幽鬼・悪魔への与ダメージ+20% (同じ加護は最高Lvのみ・闇を照らす灯と重複可)",
+          "grants": {
+            "exorcistJouka": 3
+          }
+        },
+        {
+          "name": "破魔の祝詞Lv4",
+          "desc": "自分が生きている間、味方全員の不死・幽鬼・悪魔への与ダメージ+25% (同じ加護は最高Lvのみ・闇を照らす灯と重複可)",
+          "grants": {
+            "exorcistJouka": 4
+          }
+        }
+      ],
+      "traits": [
+        "crit",
+        "death"
+      ],
+      "entries": [
+        "EXORCIST_HARAIBA",
+        "SUIGETSU",
+        "HOLYRAY",
+        "exorcistTaima/1",
+        "DIOS",
+        "KIYOMEMIZU",
+        "CURE",
+        "KOUJIN",
+        "EXORCIST_HAMANOYA",
+        "exorcistTaisan/1",
+        "HARAI",
+        "AWAKE",
+        "UZUSHIO",
+        "exorcistSakibarai/1",
+        "AWAKEALL",
+        "EXORCIST_KEGAREDACHI",
+        "DIOSALL",
+        "exorcistMisogi/1",
+        "HAJANOTACHI",
+        "DIAL",
+        "exorcistSeikon/1",
+        "TAIMA",
+        "exorcistTaisan/2",
+        "STONECURE",
+        "EXORCIST_KOUU",
+        "HYOUJIN",
+        "exorcistMisogi/2",
+        "EXORCIST_KIYOBARAI",
+        "exorcistSakibarai/2",
+        "exorcistHama/1",
+        "EXORCIST_SANKO",
+        "SEIGEKI",
+        "exorcistTaima/2",
+        "EXORCIST_INDOU",
+        "EXORCIST_SEISA",
+        "exorcistTaisan/3",
+        "exorcistSeikon/2",
+        "EXORCIST_REISUI",
+        "EXORCIST_KEKKAIFUDA",
+        "exorcistSakibarai/3",
+        "EXORCIST_HAMAYA",
+        "exorcistMisogi/3",
+        "EXORCIST_SEISUINAGI",
+        "exorcistSeikon/3",
+        "EXORCIST_KOURIN",
+        "exorcistHama/2",
+        "EXORCIST_JINRAI",
+        "resistAilment/1",
+        "EXORCIST_CHOUBUKU",
+        "EXORCIST_MISOGI",
+        "exorcistTaima/3",
+        "TAIMAJIN",
+        "resistAilment/2",
+        "EXORCIST_ROKKON",
+        "exorcistSeikon/4",
+        "EXORCIST_OOHARAE",
+        "EXORCIST_GOUMA",
+        "EXORCIST_KENSHOU"
+      ]
+    },
+    "warden": {
+      "key": "wardenKekkai",
+      "definition": {
+        "label": "護法の結界",
+        "scope": "party",
+        "lv": [
+          "隊の全員が受ける呪文・ブレスのダメージ-5%",
+          "隊の全員が受ける呪文・ブレスのダメージ-8%",
+          "隊の全員が受ける呪文・ブレスのダメージ-12%",
+          "隊の全員が受ける呪文・ブレスのダメージ-20%"
+        ]
+      },
+      "fx": null,
+      "ranks": [
+        {
+          "name": "護法の結界Lv1",
+          "desc": "隊の全員が受ける呪文・ブレスのダメージ-5%",
+          "grants": {
+            "wardenKekkai": 1
+          }
+        },
+        {
+          "name": "護法の結界Lv2",
+          "desc": "隊の全員が受ける呪文・ブレスのダメージ-8%",
+          "grants": {
+            "wardenKekkai": 2
+          }
+        },
+        {
+          "name": "護法の結界Lv3",
+          "desc": "隊の全員が受ける呪文・ブレスのダメージ-12%",
+          "grants": {
+            "wardenKekkai": 3
+          }
+        },
+        {
+          "name": "護法の結界Lv4",
+          "desc": "隊の全員が受ける呪文・ブレスのダメージ-20%",
+          "grants": {
+            "wardenKekkai": 4
+          }
+        }
+      ],
+      "traits": [
+        "magResist",
+        "seal"
+      ],
+      "entries": [
+        "PROTECT",
+        "ISHITSUBUTE",
+        "SEAL",
+        "wardenHouheki/1",
+        "WARDEN_FUUGAN",
+        "ICENEEDLE",
+        "AQUAWAVE",
+        "WARDEN_SHIZUMEISHI",
+        "spellGuard/1",
+        "MAYOKE",
+        "EARTHQUAKE",
+        "wardenGohoujin/1",
+        "WARDEN_SEKIRUI",
+        "wardenFuujite/1",
+        "KOUSHUNOHOUJIN",
+        "wardenHouheki/2",
+        "ICELANCE",
+        "WARDEN_FUUMAKEKKAI",
+        "spellGuard/2",
+        "WARDEN_CHINJUU",
+        "wardenGohoujin/2",
+        "LANDSLIDE",
+        "MADALT",
+        "wardenJusogaeshi/1",
+        "resistAilment/1",
+        "WARDEN_MIZUKAGAMI",
+        "ELEMBREAK",
+        "wardenSeihitsu/1",
+        "WARDEN_HAJA",
+        "WARDEN_SHIHOU",
+        "spellGuard/3",
+        "WARDEN_JIBAKU",
+        "wardenFuujite/2",
+        "WARDEN_SUIROU",
+        "wardenGohoujin/3",
+        "WARDEN_UTSUSHIGAESHI",
+        "WARDEN_FUDOU",
+        "wardenSeihitsu/2",
+        "WARDEN_TAIZAN",
+        "wardenJusogaeshi/2",
+        "WARDEN_GANKAI",
+        "wardenHouheki/3",
+        "WARDEN_KONGOU",
+        "resistAilment/2",
+        "WARDEN_BAKUFU",
+        "wardenFuujite/3",
+        "DAIKEKKAI",
+        "WARDEN_KANAME",
+        "wardenJusogaeshi/3",
+        "WARDEN_CHIMYAKU",
+        "wardenGohoujin/4",
+        "WARDEN_HYOUFUU",
+        "WARDEN_SEISHIN",
+        "WARDEN_BANSHOU"
+      ]
+    },
+    "arcanist": {
+      "key": "arcanistShinen",
+      "definition": {
+        "label": "深淵の知",
+        "scope": "self",
+        "lv": [
+          "攻撃呪文の会心率+5%",
+          "攻撃呪文の会心率+8%",
+          "攻撃呪文の会心率+12%",
+          "攻撃呪文の会心率+20%"
+        ]
+      },
+      "fx": null,
+      "ranks": [
+        {
+          "name": "深淵の知Lv1",
+          "desc": "攻撃呪文の会心率+5%",
+          "grants": {
+            "arcanistShinen": 1
+          }
+        },
+        {
+          "name": "深淵の知Lv2",
+          "desc": "攻撃呪文の会心率+8%",
+          "grants": {
+            "arcanistShinen": 2
+          }
+        },
+        {
+          "name": "深淵の知Lv3",
+          "desc": "攻撃呪文の会心率+12%",
+          "grants": {
+            "arcanistShinen": 3
+          }
+        },
+        {
+          "name": "深淵の知Lv4",
+          "desc": "攻撃呪文の会心率+20%",
+          "grants": {
+            "arcanistShinen": 4
+          }
+        }
+      ],
+      "traits": [
+        "magResist",
+        "seal"
+      ],
+      "entries": [
+        "SHADOWBOLT",
+        "HALITO",
+        "MARK_FIRE",
+        "arcanistChikei/1",
+        "ICENEEDLE",
+        "ARCANIST_KOJUU",
+        "ARCANIST_CHIIN",
+        "cartography/1",
+        "ARCANIST_KOKUMU",
+        "MAHALITO",
+        "arcanistJushoku/1",
+        "ELEMBREAK",
+        "arcanistTsuuren/1",
+        "KINJUKAICHOU",
+        "arcanistChikei/2",
+        "DARKBLAST",
+        "ARCANIST_KETSUIN",
+        "cartography/2",
+        "MAYOKE",
+        "arcanistSeiyaku/1",
+        "MADALT",
+        "arcanistTsuuren/2",
+        "ARCANIST_YAMITOBARI",
+        "arcanistJushoku/2",
+        "ARCANIST_KINSEI",
+        "MARYOKUBOUSOU",
+        "arcanistChoushuu/1",
+        "ARCANIST_HYOUJU",
+        "ARCANIST_JUEN",
+        "cartography/3",
+        "arcanistChikei/3",
+        "ARCANIST_JUUATSU",
+        "ARCANIST_KONSAKI",
+        "resistAilment/1",
+        "ARCANIST_JURAI",
+        "arcanistTsuuren/3",
+        "ARCANIST_KYOKOU",
+        "arcanistSeiyaku/2",
+        "ARCANIST_KINIKI",
+        "arcanistJushoku/3",
+        "ARCANIST_KENKA",
+        "resistAilment/2",
+        "ARCANIST_RAKUSEI",
+        "arcanistChoushuu/2",
+        "ARCANIST_TOUKON",
+        "ARCANIST_MEIJU",
+        "arcanistChikei/4",
+        "ARCANIST_GOUKASHO",
+        "arcanistSeiyaku/3",
+        "KYOMU",
+        "ARCANIST_KAIKAI",
+        "ARCANIST_SHUUENSHO"
+      ]
+    },
+    "inquisitor": {
+      "key": "inqDanzai",
+      "definition": {
+        "label": "断罪",
+        "scope": "self",
+        "lv": [
+          "状態異常・弱体中の敵への与ダメージ+10%",
+          "状態異常・弱体中の敵への与ダメージ+15%",
+          "状態異常・弱体中の敵への与ダメージ+20%",
+          "状態異常・弱体中の敵への与ダメージ+30%"
+        ]
+      },
+      "fx": {
+        "label": "断罪",
+        "lv": [
+          "状態異常・弱体中の敵への与ダメージ+10%",
+          "状態異常・弱体中の敵への与ダメージ+15%",
+          "状態異常・弱体中の敵への与ダメージ+20%",
+          "状態異常・弱体中の敵への与ダメージ+30%"
+        ],
+        "fx": [
+          {
+            "t": "deal",
+            "when": {
+              "tgtWeakened": true
+            },
+            "v": [
+              0.1,
+              0.15,
+              0.2,
+              0.3
+            ]
+          }
+        ]
+      },
+      "ranks": [
+        {
+          "name": "断罪Lv1",
+          "desc": "状態異常・弱体中の敵への与ダメージ+10%",
+          "grants": {
+            "inqDanzai": 1
+          }
+        },
+        {
+          "name": "断罪Lv2",
+          "desc": "状態異常・弱体中の敵への与ダメージ+15%",
+          "grants": {
+            "inqDanzai": 2
+          }
+        },
+        {
+          "name": "断罪Lv3",
+          "desc": "状態異常・弱体中の敵への与ダメージ+20%",
+          "grants": {
+            "inqDanzai": 3
+          }
+        },
+        {
+          "name": "断罪Lv4",
+          "desc": "状態異常・弱体中の敵への与ダメージ+30%",
+          "grants": {
+            "inqDanzai": 4
+          }
+        }
+      ],
+      "traits": [
+        "charm",
+        "confuse"
+      ],
+      "entries": [
+        "SHIELDBASH",
+        "KAENGIRI",
+        "DIOS",
+        "inquisitorKokkaiTomoshibi/1",
+        "NERAIUCHI",
+        "SHINMON",
+        "CURE",
+        "INQUISITOR_SHOKUZAI",
+        "INQUISITOR_DANZAI",
+        "inqBrand/1",
+        "INQUISITOR_KASEUCHI",
+        "RECOVER",
+        "KAENNAGI",
+        "resistAilment/1",
+        "KAKEI",
+        "DIOSALL",
+        "INQUISITOR_HAMON",
+        "inquisitorShinmonNirami/1",
+        "DANZAINOTSUCHI",
+        "DIAL",
+        "inquisitorIhanShirushi/1",
+        "INQUISITOR_YAKIIN",
+        "inqBrand/2",
+        "GURENZAN",
+        "inquisitorKokkaiTomoshibi/2",
+        "SHINGANGEKI",
+        "inquisitorZaininKyuusho/1",
+        "inquisitorIhanShirushi/2",
+        "INQUISITOR_IHANHAGI",
+        "INQUISITOR_MANAZASHI",
+        "inquisitorShinmonNirami/2",
+        "INQUISITOR_SABAKIYARI",
+        "INQUISITOR_GOUMON",
+        "inqBrand/3",
+        "resistAilment/2",
+        "INQUISITOR_JOUKATSUCHI",
+        "INQUISITOR_FUNKEI",
+        "inquisitorJoukaKokoroe/1",
+        "INQUISITOR_SHINPAN",
+        "inquisitorZaininKyuusho/2",
+        "INQUISITOR_KOKKAI",
+        "inquisitorIhanShirushi/3",
+        "INQUISITOR_MAJOGARI",
+        "inquisitorJoukaKokoroe/2",
+        "INQUISITOR_HAKAI",
+        "inquisitorZaininKyuusho/3",
+        "INQUISITOR_ZAININRETSU",
+        "INQUISITOR_KAKEIBA",
+        "inquisitorShinmonNirami/3",
+        "INQUISITOR_DANTOU",
+        "inquisitorJoukaKokoroe/3",
+        "INQUISITOR_JOUZAI",
+        "inquisitorKokkaiTomoshibi/3",
+        "SAIGONOSHINPAN",
+        "INQUISITOR_YURUSHI",
+        "INQUISITOR_SHAMEN"
+      ]
+    },
+    "archbishop": {
+      "key": "archbishopShukufuku",
+      "definition": {
+        "label": "大いなる祝福",
+        "scope": "self",
+        "lv": [
+          "回復呪文の効果+20%",
+          "回復呪文の効果+40%",
+          "回復呪文の効果+60%",
+          "回復呪文の効果+100%"
+        ]
+      },
+      "fx": {
+        "label": "大いなる祝福",
+        "lv": [
+          "回復呪文の効果+20%",
+          "回復呪文の効果+40%",
+          "回復呪文の効果+60%",
+          "回復呪文の効果+100%"
+        ],
+        "fx": [
+          {
+            "t": "heal",
+            "v": [
+              0.2,
+              0.4,
+              0.6,
+              1
+            ]
+          }
+        ]
+      },
+      "ranks": [
+        {
+          "name": "大いなる祝福Lv1",
+          "desc": "回復呪文の効果+20%",
+          "grants": {
+            "archbishopShukufuku": 1
+          }
+        },
+        {
+          "name": "大いなる祝福Lv2",
+          "desc": "回復呪文の効果+40%",
+          "grants": {
+            "archbishopShukufuku": 2
+          }
+        },
+        {
+          "name": "大いなる祝福Lv3",
+          "desc": "回復呪文の効果+60%",
+          "grants": {
+            "archbishopShukufuku": 3
+          }
+        },
+        {
+          "name": "大いなる祝福Lv4",
+          "desc": "回復呪文の効果+100%",
+          "grants": {
+            "archbishopShukufuku": 4
+          }
+        }
+      ],
+      "traits": [
+        "death",
+        "seal"
+      ],
+      "entries": [
+        "HOLYRAY",
+        "DIOS",
+        "kantei/2",
+        "CURE",
+        "CUREALL",
+        "BLESS",
+        "RECOVER",
+        "ICENEEDLE",
+        "ARCHBISHOP_MAMORISEIKU",
+        "riseAgain/1",
+        "REGEN",
+        "RECOVERALL",
+        "DIOSALL",
+        "AWAKE",
+        "archbishopChinka/1",
+        "AWAKEALL",
+        "DIAL",
+        "archbishopMamori/1",
+        "STONECURE",
+        "SEIKUNOKAGO",
+        "heroKibouHidamari/1",
+        "STONECUREALL",
+        "REVIVE",
+        "riseAgain/2",
+        "ARCHBISHOP_SENREI",
+        "DIALALL",
+        "archbishopMamori/2",
+        "MADIOS",
+        "ARCHBISHOP_SEISUINOYARI",
+        "PURIFY",
+        "archbishopChinka/2",
+        "archbishopSeiten/1",
+        "PURIFYALL",
+        "ARCHBISHOP_NORITO",
+        "heroKibouHidamari/2",
+        "RESURRECT",
+        "ARCHBISHOP_FUKADE",
+        "ARCHBISHOP_MEGUMI",
+        "riseAgain/3",
+        "archbishopMamori/3",
+        "ARCHBISHOP_SEITENNOMAMORI",
+        "resistAilment/1",
+        "MADIOSALL",
+        "ARCHBISHOP_MICHISHIO",
+        "popePrayer/1",
+        "ARCHBISHOP_FUUJI",
+        "archbishopChinka/3",
+        "ARCHBISHOP_ROUSHOU",
+        "heroKibouHidamari/3",
+        "ARCHBISHOP_SHOUKU",
+        "archbishopSeiten/2",
+        "ARCHBISHOP_DAISENREI",
+        "resistAilment/2",
+        "ARCHBISHOP_KOURIN",
+        "archbishopChinka/4",
+        "ARCHBISHOP_TAIKAI",
+        "archbishopMamori/4",
+        "ARCHBISHOP_SABAKI",
+        "ARCHBISHOP_BAKUFU",
+        "ARCHBISHOP_SHUUSHOU"
+      ]
+    },
+    "ascetic": {
+      "key": "asceticHatate",
+      "definition": {
+        "label": "荒行の果て",
+        "scope": "self",
+        "lv": [
+          "HP30%以下の間、STR・VIT・AGI・INT・PIE+15%",
+          "HP30%以下の間、STR・VIT・AGI・INT・PIE+30%",
+          "HP30%以下の間、STR・VIT・AGI・INT・PIE+50%",
+          "HP30%以下の間、STR・VIT・AGI・INT・PIE+80%"
+        ]
+      },
+      "fx": {
+        "label": "荒行の果て",
+        "lv": [
+          "HP30%以下の間、STR・VIT・AGI・INT・PIE+15%",
+          "HP30%以下の間、STR・VIT・AGI・INT・PIE+30%",
+          "HP30%以下の間、STR・VIT・AGI・INT・PIE+50%",
+          "HP30%以下の間、STR・VIT・AGI・INT・PIE+80%"
+        ],
+        "fx": [
+          {
+            "t": "stat",
+            "when": {
+              "selfLow": 0.3
+            },
+            "mul": {
+              "atk": [
+                0.15,
+                0.3,
+                0.5,
+                0.8
+              ],
+              "vit": [
+                0.15,
+                0.3,
+                0.5,
+                0.8
+              ],
+              "agi": [
+                0.15,
+                0.3,
+                0.5,
+                0.8
+              ],
+              "int": [
+                0.15,
+                0.3,
+                0.5,
+                0.8
+              ],
+              "pie": [
+                0.15,
+                0.3,
+                0.5,
+                0.8
+              ]
+            }
+          }
+        ]
+      },
+      "ranks": [
+        {
+          "name": "荒行の果てLv1",
+          "desc": "HP30%以下の間、STR・VIT・AGI・INT・PIE+15%",
+          "grants": {
+            "asceticHatate": 1
+          }
+        },
+        {
+          "name": "荒行の果てLv2",
+          "desc": "HP30%以下の間、STR・VIT・AGI・INT・PIE+30%",
+          "grants": {
+            "asceticHatate": 2
+          }
+        },
+        {
+          "name": "荒行の果てLv3",
+          "desc": "HP30%以下の間、STR・VIT・AGI・INT・PIE+50%",
+          "grants": {
+            "asceticHatate": 3
+          }
+        },
+        {
+          "name": "荒行の果てLv4",
+          "desc": "HP30%以下の間、STR・VIT・AGI・INT・PIE+80%",
+          "grants": {
+            "asceticHatate": 4
+          }
+        }
+      ],
+      "traits": [
+        "paralyze",
+        "stone"
+      ],
+      "entries": [
+        "KYOUGEKI",
+        "IWAKUDAKI",
+        "DIOS",
+        "asceticAragyou/1",
+        "NERAIUCHI",
+        "ASCETIC_TSUBUTE",
+        "ASCETIC_TAKIGYOU",
+        "CURE",
+        "ASCETIC_FUDOUBI",
+        "ASCETIC_GENRIKISHOU",
+        "asceticShintou/1",
+        "KUJI",
+        "CHIRETSU",
+        "asceticAragyou/2",
+        "ASCETIC_HIWATARI",
+        "DIOSALL",
+        "ASCETIC_JISHIN",
+        "asceticNyuubu/1",
+        "SHASHINNOGYOU",
+        "DIAL",
+        "asceticDoukou/1",
+        "GOMA",
+        "asceticShintou/2",
+        "STONECURE",
+        "SHINGANGEKI",
+        "GANOTOSHI",
+        "asceticNyuubu/2",
+        "ASCETIC_SHAKUJOU",
+        "asceticYoujou/1",
+        "asceticMoeagari/1",
+        "ASCETIC_SARASHIMI",
+        "ASCETIC_KAENSHAKUJOU",
+        "asceticAragyou/3",
+        "ASCETIC_IWAOTOOSHI",
+        "ASCETIC_ZAOU",
+        "asceticShintou/3",
+        "asceticNyuubu/3",
+        "ASCETIC_REIHOU",
+        "ASCETIC_MIGAWARIGOMA",
+        "asceticYoujou/2",
+        "ASCETIC_SANKO",
+        "resistAilment/1",
+        "ASCETIC_GOMANOKEMURI",
+        "asceticMoeagari/2",
+        "ASCETIC_NYUUBU",
+        "asceticDoukou/2",
+        "ASCETIC_YAMANARI",
+        "asceticMoeagari/3",
+        "ASCETIC_KASHOUZANMAI",
+        "asceticAragyou/4",
+        "ASCETIC_SHAKUJOURANBU",
+        "resistAilment/2",
+        "ASCETIC_SHASHINKUYOU",
+        "asceticYoujou/3",
+        "ASCETIC_SHASHINJOUBUTSU",
+        "ASCETIC_FUDOUKAEN",
+        "GONGENOROSHI"
+      ]
+    },
+    "hero": {
+      "key": "heroDensetsu",
+      "definition": {
+        "label": "伝説の勇者",
+        "scope": "party",
+        "lv": [
+          "勇者が生きている間、味方全員のSTR・VIT・AGI・INT・PIE+3%",
+          "勇者が生きている間、味方全員のSTR・VIT・AGI・INT・PIE+6%",
+          "勇者が生きている間、味方全員のSTR・VIT・AGI・INT・PIE+9%",
+          "勇者が生きている間、味方全員のSTR・VIT・AGI・INT・PIE+12%"
+        ]
+      },
+      "fx": null,
+      "ranks": [
+        {
+          "name": "伝説の勇者Lv1",
+          "desc": "勇者が生きている間、味方全員のSTR・VIT・AGI・INT・PIE+3%",
+          "grants": {
+            "heroDensetsu": 1
+          }
+        },
+        {
+          "name": "伝説の勇者Lv2",
+          "desc": "勇者が生きている間、味方全員のSTR・VIT・AGI・INT・PIE+6%",
+          "grants": {
+            "heroDensetsu": 2
+          }
+        },
+        {
+          "name": "伝説の勇者Lv3",
+          "desc": "勇者が生きている間、味方全員のSTR・VIT・AGI・INT・PIE+9%",
+          "grants": {
+            "heroDensetsu": 3
+          }
+        },
+        {
+          "name": "伝説の勇者Lv4",
+          "desc": "勇者が生きている間、味方全員のSTR・VIT・AGI・INT・PIE+12%",
+          "grants": {
+            "heroDensetsu": 4
+          }
+        }
+      ],
+      "traits": [
+        "crit",
+        "confuse"
+      ],
+      "entries": [
+        "KYOUGEKI",
+        "SHIPPUUGIRI",
+        "DIOS",
+        "heroKyoutekiFunki/1",
+        "YUUSHANOICHIGEKI",
+        "BLESS",
+        "CURE",
+        "KOUJIN",
+        "HERO_CHIKAINOHATA",
+        "heroIji/1",
+        "KOBU",
+        "REPPUU",
+        "heroKibouHidamari/1",
+        "AWAKE",
+        "RAIKOUKEN",
+        "DIOSALL",
+        "dynamicVision/1",
+        "heroYuushaSenaka/1",
+        "HERO_JINRAI",
+        "SEIKEN",
+        "DIAL",
+        "heroKyoutekiFunki/2",
+        "heroIji/2",
+        "NIOUDACHI",
+        "FUUGA",
+        "heroOrenuKokoro/1",
+        "REVIVE",
+        "SEIGEKI",
+        "heroKyoutekiFunki/3",
+        "heroKaisenGourei/1",
+        "HERO_YUUKITOMOSHIBI",
+        "dynamicVision/2",
+        "HERO_SAIKI",
+        "resistAilment/1",
+        "HERO_KIBOUSENKOU",
+        "HERO_SHIPPUUTAIKEN",
+        "heroIji/3",
+        "heroYuushaSenaka/2",
+        "HERO_FUURAI",
+        "HERO_KIBOUSENPUU",
+        "heroOrenuKokoro/2",
+        "HERO_KOUMYOU",
+        "heroKibouHidamari/2",
+        "HERO_GEKIREI",
+        "heroOrenuKokoro/3",
+        "HERO_TENRAIDAN",
+        "HERO_HEKIREKI",
+        "heroKibouHidamari/3",
+        "HERO_HATAJIRUSHI",
+        "resistAilment/2",
+        "HERO_AKATSUKI",
+        "dynamicVision/3",
+        "heroKaisenGourei/2",
+        "HERO_KIBOUICHITOU",
+        "heroKyoutekiFunki/4",
+        "HERO_DAIKAGO",
+        "heroYuushaSenaka/3",
+        "RAIJINKEN",
+        "HERO_YOAKE",
+        "TENMEINOKEN"
+      ]
+    },
+    "asura": {
+      "key": "asuraNitou",
+      "definition": {
+        "label": "二刀流",
+        "scope": "self",
+        "lv": [
+          "盾の欄に片手武器を持てる (左手)。通常攻撃の後に左手で一撃 (左手の攻撃力40%)。物理技にはその半分 (20%) を上乗せ",
+          "左手の攻撃力60%。物理技には30%を上乗せ",
+          "左手の攻撃力80%。物理技には40%を上乗せ",
+          "左手の攻撃力100%。物理技には50%を上乗せ"
+        ]
+      },
+      "fx": null,
+      "ranks": [
+        {
+          "name": "二刀流Lv1",
+          "desc": "盾の欄に片手武器を持てる (左手)。通常攻撃の後に左手で一撃 (左手の攻撃力40%)。物理技にはその半分 (20%) を上乗せ",
+          "grants": {
+            "asuraNitou": 1
+          }
+        },
+        {
+          "name": "二刀流Lv2",
+          "desc": "左手の攻撃力60%。物理技には30%を上乗せ",
+          "grants": {
+            "asuraNitou": 2
+          }
+        },
+        {
+          "name": "二刀流Lv3",
+          "desc": "左手の攻撃力80%。物理技には40%を上乗せ",
+          "grants": {
+            "asuraNitou": 3
+          }
+        },
+        {
+          "name": "二刀流Lv4",
+          "desc": "左手の攻撃力100%。物理技には50%を上乗せ",
+          "grants": {
+            "asuraNitou": 4
+          }
+        }
+      ],
+      "traits": [
+        "crit",
+        "flinch"
+      ],
+      "entries": [
+        "KYOUGEKI",
+        "KAENGIRI",
+        "DOUBLE",
+        "asuraTakaburi/1",
+        "SHIPPUUGIRI",
+        "ASURA_KIKI",
+        "ASURA_SOUGA",
+        "ASURA_SANKAZAN",
+        "asuraChishio/1",
+        "ASURA_SAKKI",
+        "KAENNAGI",
+        "asuraMe/1",
+        "SHURADOU",
+        "dynamicVision/1",
+        "asuraTakaburi/2",
+        "ASHURAZAN",
+        "asuraSakki/1",
+        "ASURA_SANMEN",
+        "asuraChishio/2",
+        "ASURA_KOKYUU",
+        "GURENZAN",
+        "asuraShisen/1",
+        "ASURA_KYUUSHO",
+        "asuraMe/2",
+        "asuraSogi/1",
+        "ASURA_SHIZAN",
+        "dynamicVision/2",
+        "FUUGA",
+        "ASURA_ROPPI",
+        "asuraTakaburi/3",
+        "ASURA_SOU",
+        "ASURA_KEKKA",
+        "asuraChishio/3",
+        "asuraShisen/2",
+        "ASURA_KARIN",
+        "ASURA_MUKEN",
+        "asuraSakki/2",
+        "ASURA_RASETSU",
+        "asuraSogi/2",
+        "ASURA_HYAKKI",
+        "asuraShisen/3",
+        "ASURA_GOUFUU",
+        "resistAilment/1",
+        "ASURA_SETSUNA",
+        "asuraMe/3",
+        "ASURA_ABI",
+        "dynamicVision/3",
+        "ASURA_GOUKA",
+        "asuraSakki/3",
+        "ASURA_SENPUU",
+        "asuraTakaburi/4",
+        "ASURA_RENGOKU",
+        "asuraSogi/3",
+        "ASURA_SHURAOU",
+        "ASURA_KYOUHYOU",
+        "RINNE"
+      ]
+    },
+    "dragonknight": {
+      "key": "dragonknightIbuki",
+      "definition": {
+        "label": "竜の息吹",
+        "scope": "self",
+        "lv": [
+          "毎ターンの初めに15%で、敵全体へ火のブレス (STR×0.5)",
+          "毎ターンの初めに20%で、敵全体へ火のブレス (STR×0.6)",
+          "毎ターンの初めに25%で、敵全体へ火のブレス (STR×0.8)",
+          "毎ターンの初めに40%で、敵全体へ火のブレス (STR×1.2)"
+        ]
+      },
+      "fx": null,
+      "ranks": [
+        {
+          "name": "竜の息吹Lv1",
+          "desc": "毎ターンの初めに15%で、敵全体へ火のブレス (STR×0.5)",
+          "grants": {
+            "dragonknightIbuki": 1
+          }
+        },
+        {
+          "name": "竜の息吹Lv2",
+          "desc": "毎ターンの初めに20%で、敵全体へ火のブレス (STR×0.6)",
+          "grants": {
+            "dragonknightIbuki": 2
+          }
+        },
+        {
+          "name": "竜の息吹Lv3",
+          "desc": "毎ターンの初めに25%で、敵全体へ火のブレス (STR×0.8)",
+          "grants": {
+            "dragonknightIbuki": 3
+          }
+        },
+        {
+          "name": "竜の息吹Lv4",
+          "desc": "毎ターンの初めに40%で、敵全体へ火のブレス (STR×1.2)",
+          "grants": {
+            "dragonknightIbuki": 4
+          }
+        }
+      ],
+      "traits": [
+        "physResist",
+        "paralyze"
+      ],
+      "entries": [
+        "SHIELDBASH",
+        "SHIPPUUGIRI",
+        "NERAIUCHI",
+        "dragonknightHishou/1",
+        "TENSHOU",
+        "CHOUHATSU",
+        "KAENGIRI",
+        "DRAGONKNIGHT_RYUUSOUTSUKI",
+        "dragonknightGekirin/1",
+        "RYUURIN",
+        "REPPUU",
+        "dragonknightIkari/1",
+        "RYUUKOU",
+        "dynamicVision/1",
+        "dragonknightRyuuketsu/1",
+        "RYUZETSU",
+        "dragonknightRyuuketsu/2",
+        "RYUURINJIN",
+        "dragonknightGekirin/2",
+        "RYUUEN",
+        "FUUGA",
+        "dragonknightHishou/2",
+        "NIOUDACHI",
+        "dragonknightRyuurin/1",
+        "dragonknightRyuugan/1",
+        "DRAGONKNIGHT_RYUUSOU",
+        "dynamicVision/2",
+        "GURENZAN",
+        "DRAGONKNIGHT_RYUUYOKU",
+        "resistAilment/1",
+        "DRAGONKNIGHT_RYUUGA",
+        "DRAGONKNIGHT_KOURYUUGEKI",
+        "dragonknightGekirin/3",
+        "dragonknightIkari/2",
+        "DRAGONKNIGHT_FUURYUU",
+        "DRAGONKNIGHT_TENKUU",
+        "dragonknightRyuuketsu/3",
+        "DRAGONKNIGHT_RYUUKOTSU",
+        "dragonknightRyuugan/2",
+        "DRAGONKNIGHT_RYUUBI",
+        "dragonknightRyuuketsu/4",
+        "RYUUJINKOURIN",
+        "resistAilment/2",
+        "DRAGONKNIGHT_GEKIRIN",
+        "dragonknightRyuurin/2",
+        "DRAGONKNIGHT_TATSUMAKI",
+        "dynamicVision/3",
+        "DRAGONKNIGHT_ARASHIRYUU",
+        "dragonknightIkari/3",
+        "DRAGONKNIGHT_RYUUOUDAN",
+        "dragonknightRyuugan/3",
+        "DRAGONKNIGHT_RYUUSEIRAKU",
+        "dragonknightHishou/3",
+        "DRAGONKNIGHT_GOUKA",
+        "DRAGONKNIGHT_RYUURINJIN",
+        "RYUUTEIGEKI"
+      ]
+    },
+    "necromancer": {
+      "key": "necroSenkoku",
+      "definition": {
+        "label": "死の宣告",
+        "scope": "party",
+        "lv": [
+          "戦闘開始時、主以外の敵それぞれが3%で即死 (金属の魔物には効かない)",
+          "戦闘開始時、主以外の敵それぞれが5%で即死 (金属の魔物には効かない)",
+          "戦闘開始時、主以外の敵それぞれが8%で即死 (金属の魔物には効かない)",
+          "戦闘開始時、主以外の敵それぞれが15%で即死 (金属の魔物には効かない)"
+        ]
+      },
+      "fx": null,
+      "ranks": [
+        {
+          "name": "死の宣告Lv1",
+          "desc": "戦闘開始時、主以外の敵それぞれが3%で即死 (金属の魔物には効かない)",
+          "grants": {
+            "necroSenkoku": 1
+          }
+        },
+        {
+          "name": "死の宣告Lv2",
+          "desc": "戦闘開始時、主以外の敵それぞれが5%で即死 (金属の魔物には効かない)",
+          "grants": {
+            "necroSenkoku": 2
+          }
+        },
+        {
+          "name": "死の宣告Lv3",
+          "desc": "戦闘開始時、主以外の敵それぞれが8%で即死 (金属の魔物には効かない)",
+          "grants": {
+            "necroSenkoku": 3
+          }
+        },
+        {
+          "name": "死の宣告Lv4",
+          "desc": "戦闘開始時、主以外の敵それぞれが15%で即死 (金属の魔物には効かない)",
+          "grants": {
+            "necroSenkoku": 4
+          }
+        }
+      ],
+      "traits": [
+        "poison",
+        "death"
+      ],
+      "entries": [
+        "NECROMANCER_MOUJANOTE",
+        "SHADOWBOLT",
+        "NECROMANCER_SHISOU",
+        "necromancerShikuirai/1",
+        "NECROMANCER_KOMORIUTA",
+        "NECROMANCER_SEIKISUI",
+        "NECROMANCER_SHIREIMANEKI",
+        "necroLegion/1",
+        "KUGUTSU",
+        "NECROMANCER_ONRYOU",
+        "necromancerShishaSasayaki/1",
+        "NECROMANCER_HAKAMORI",
+        "DARKBLAST",
+        "necromancerShinigamiMe/1",
+        "MEIKONGURAI",
+        "necromancerShikabaneKate/1",
+        "NECROMANCER_SHIMEI",
+        "necroLegion/2",
+        "NECROMANCER_SHIDOKU",
+        "necromancerShikuirai/2",
+        "REVIVE",
+        "necromancerShinigamiMe/2",
+        "NECROMANCER_KOUSHIN",
+        "necromancerShishaSasayaki/2",
+        "NECROMANCER_KONBAKU",
+        "NECROMANCER_INOCHISOGI",
+        "necromancerMeifuIzumi/1",
+        "NECROMANCER_SEIJANETAMI",
+        "NECROMANCER_KUSARESHOUKI",
+        "necroLegion/3",
+        "RESURRECT",
+        "resistAilment/1",
+        "MADALT",
+        "necromancerShikabaneKate/2",
+        "NECROMANCER_DOUKOKU",
+        "NECROMANCER_MANEKI",
+        "necromancerShinigamiMe/3",
+        "NECROMANCER_BOSHOHOURAKU",
+        "necromancerShikuirai/3",
+        "NECROMANCER_JUUATSU",
+        "necromancerShishaSasayaki/3",
+        "NECROMANCER_KASOU",
+        "necromancerShinigamiMe/4",
+        "resistAilment/2",
+        "NECROMANCER_YOMIGAERI",
+        "NECROMANCER_TAMAGARI",
+        "necromancerMeifuIzumi/2",
+        "MEIFUNOMON",
+        "necromancerShikabaneKate/3",
+        "NECROMANCER_SANZU",
+        "NECROMANCER_MEIGA",
+        "NECROMANCER_SOUSOU"
+      ]
+    },
+    "sage": {
+      "key": "sageJikan",
+      "definition": {
+        "label": "時間跳躍",
+        "scope": "self",
+        "lv": [
+          "自分の手番の後、10%でもう一度行動 (1ターン1回)",
+          "自分の手番の後、15%でもう一度行動",
+          "自分の手番の後、20%でもう一度行動",
+          "自分の手番の後、30%でもう一度行動"
+        ]
+      },
+      "fx": null,
+      "ranks": [
+        {
+          "name": "時間跳躍Lv1",
+          "desc": "自分の手番の後、10%でもう一度行動 (1ターン1回)",
+          "grants": {
+            "sageJikan": 1
+          }
+        },
+        {
+          "name": "時間跳躍Lv2",
+          "desc": "自分の手番の後、15%でもう一度行動",
+          "grants": {
+            "sageJikan": 2
+          }
+        },
+        {
+          "name": "時間跳躍Lv3",
+          "desc": "自分の手番の後、20%でもう一度行動",
+          "grants": {
+            "sageJikan": 3
+          }
+        },
+        {
+          "name": "時間跳躍Lv4",
+          "desc": "自分の手番の後、30%でもう一度行動",
+          "grants": {
+            "sageJikan": 4
+          }
+        }
+      ],
+      "traits": [
+        "magResist",
+        "confuse"
+      ],
+      "entries": [
+        "kantei/2",
+        "DIOS",
+        "sageJunkan/1",
+        "ICENEEDLE",
+        "CURE",
+        "SAGE_SEIRYUU",
+        "sageZoufuku/1",
+        "MAHALITO",
+        "RECOVER",
+        "AQUAWAVE",
+        "sageIzumi/1",
+        "WINDSTORM",
+        "SAGE_CHIE",
+        "DIOSALL",
+        "AWAKE",
+        "sageSuifuu/1",
+        "SHINRANOSABAKI",
+        "DIAL",
+        "sageJunkan/2",
+        "ICELANCE",
+        "STONECURE",
+        "sageZoufuku/2",
+        "MAYOKE",
+        "sageJihi/1",
+        "REVIVE",
+        "DIALALL",
+        "SAGE_SHINRI",
+        "sageChouwa/1",
+        "SAGE_SEIFUU",
+        "sageIzumi/2",
+        "MADIOS",
+        "SAGE_NAGI",
+        "sageSuifuu/2",
+        "RESURRECT",
+        "SAGE_JINRAI",
+        "SAGE_FUUU",
+        "SAGE_HAYATE",
+        "sageZoufuku/3",
+        "PURIFY",
+        "sageJunkan/3",
+        "SAGE_SUIKYOU",
+        "resistAilment/1",
+        "SAGE_DAICHI",
+        "MADIOSALL",
+        "sageJihi/2",
+        "SAGE_KANRO",
+        "sageSuifuu/3",
+        "SAGE_EICHIEN",
+        "SAGE_TENRAI",
+        "sageChouwa/2",
+        "SAGE_HANGON",
+        "sageIzumi/3",
+        "SAGE_REIHYOU",
+        "resistAilment/2",
+        "SAGE_CHOUWA",
+        "sageJunkan/4",
+        "SAGE_HOMURA",
+        "sageJihi/3",
+        "SAGE_SHINEN",
+        "SAGE_SHINRA",
+        "SAGE_SHUUKYOKU"
+      ]
+    },
+    "cardinal": {
+      "key": "cardinalKiseki",
+      "definition": {
+        "label": "聖座の奇跡",
+        "scope": "party",
+        "lv": [
+          "戦闘中1回、最後の1人が倒れる時、全員をHP10%で蘇らせる",
+          "戦闘中1回、最後の1人が倒れる時、全員をHP20%で蘇らせる",
+          "戦闘中1回、最後の1人が倒れる時、全員をHP30%で蘇らせる",
+          "戦闘中1回、最後の1人が倒れる時、全員をHP50%で蘇らせる"
+        ]
+      },
+      "fx": null,
+      "ranks": [
+        {
+          "name": "聖座の奇跡Lv1",
+          "desc": "戦闘中1回、最後の1人が倒れる時、全員をHP10%で蘇らせる",
+          "grants": {
+            "cardinalKiseki": 1
+          }
+        },
+        {
+          "name": "聖座の奇跡Lv2",
+          "desc": "戦闘中1回、最後の1人が倒れる時、全員をHP20%で蘇らせる",
+          "grants": {
+            "cardinalKiseki": 2
+          }
+        },
+        {
+          "name": "聖座の奇跡Lv3",
+          "desc": "戦闘中1回、最後の1人が倒れる時、全員をHP30%で蘇らせる",
+          "grants": {
+            "cardinalKiseki": 3
+          }
+        },
+        {
+          "name": "聖座の奇跡Lv4",
+          "desc": "戦闘中1回、最後の1人が倒れる時、全員をHP50%で蘇らせる",
+          "grants": {
+            "cardinalKiseki": 4
+          }
+        }
+      ],
+      "traits": [
+        "charm",
+        "death"
+      ],
+      "entries": [
+        "HOLYRAY",
+        "DIOS",
+        "cardinalShiboku/1",
+        "CURE",
+        "CUREALL",
+        "PROTECT",
+        "RECOVER",
+        "CARDINAL_HAMONNOCHOKU",
+        "soulTutor/1",
+        "REGEN",
+        "RECOVERALL",
+        "DIOSALL",
+        "AWAKE",
+        "cardinalMeisou/1",
+        "AWAKEALL",
+        "DIAL",
+        "cardinalKekkai/1",
+        "STONECURE",
+        "CARDINAL_SEIYU",
+        "cardinalShiboku/2",
+        "STONECUREALL",
+        "REVIVE",
+        "soulTutor/2",
+        "DIALALL",
+        "cardinalMeisou/2",
+        "MADIOS",
+        "PURIFY",
+        "cardinalMeisou/3",
+        "cardinalIgen/1",
+        "CARDINAL_SHOUROU",
+        "RESURRECT",
+        "cardinalShiboku/3",
+        "PURIFYALL",
+        "CARDINAL_SEIIBUTSU",
+        "CARDINAL_SHIEI",
+        "soulTutor/3",
+        "cardinalKekkai/2",
+        "MADIOSALL",
+        "CARDINAL_HAMON",
+        "cardinalIshi/1",
+        "CARDINAL_TAIKAN",
+        "cardinalIshi/2",
+        "CARDINAL_SEIZANORAI",
+        "resistAilment/1",
+        "CARDINAL_BANKON",
+        "cardinalShiboku/4",
+        "CARDINAL_SEITOU",
+        "cardinalIgen/2",
+        "CARDINAL_IKOU",
+        "resistAilment/2",
+        "CARDINAL_SHUKUSEI",
+        "cardinalIshi/3",
+        "CARDINAL_TENJOU",
+        "cardinalKekkai/3",
+        "CARDINAL_KOUCHUU",
+        "KYOUKOUNOSHUKUFUKU",
+        "CARDINAL_SEIZA"
+      ]
+    },
+    "archmage": {
+      "key": "archmageShinen",
+      "definition": {
+        "label": "魔導の深淵",
+        "scope": "self",
+        "lv": [
+          "攻撃呪文が敵の魔法抵抗による軽減を25%無視 (魔法無効には効かない)",
+          "攻撃呪文が敵の魔法抵抗による軽減を50%無視",
+          "攻撃呪文が敵の魔法抵抗による軽減を75%無視",
+          "攻撃呪文が敵の魔法抵抗による軽減を100%無視 (魔法無効には効かない)"
+        ]
+      },
+      "fx": null,
+      "ranks": [
+        {
+          "name": "魔導の深淵Lv1",
+          "desc": "攻撃呪文が敵の魔法抵抗による軽減を25%無視 (魔法無効には効かない)",
+          "grants": {
+            "archmageShinen": 1
+          }
+        },
+        {
+          "name": "魔導の深淵Lv2",
+          "desc": "攻撃呪文が敵の魔法抵抗による軽減を50%無視",
+          "grants": {
+            "archmageShinen": 2
+          }
+        },
+        {
+          "name": "魔導の深淵Lv3",
+          "desc": "攻撃呪文が敵の魔法抵抗による軽減を75%無視",
+          "grants": {
+            "archmageShinen": 3
+          }
+        },
+        {
+          "name": "魔導の深淵Lv4",
+          "desc": "攻撃呪文が敵の魔法抵抗による軽減を100%無視 (魔法無効には効かない)",
+          "grants": {
+            "archmageShinen": 4
+          }
+        }
+      ],
+      "traits": [
+        "magResist",
+        "seal"
+      ],
+      "entries": [
+        "HALITO",
+        "SHADOWBOLT",
+        "ISHITSUBUTE",
+        "archmageJuushou/1",
+        "ICENEEDLE",
+        "KAMAITACHI",
+        "ARCHMAGE_JUUEI",
+        "ARCHMAGE_KOKUYOU",
+        "archmageChoei/1",
+        "MAHALITO",
+        "EARTHQUAKE",
+        "archmageUtsuwa/1",
+        "ARCHMAGE_GANSOU",
+        "archmageMasen/1",
+        "SHINENNOHADOU",
+        "archmageJuushou/2",
+        "DARKBLAST",
+        "MADALT",
+        "archmageChoei/2",
+        "ELEMBREAK",
+        "archmageUtsuwa/2",
+        "ARCHMAGE_DOSEKIRYUU",
+        "ARCHMAGE_GOUKARIN",
+        "archmageMakaku/1",
+        "archmageMeido/1",
+        "ARCHMAGE_TENKYUU",
+        "ARCHMAGE_NIJUUIN",
+        "archmageMasen/2",
+        "ARCHMAGE_SOUCHUU",
+        "ARCHMAGE_YOUGAN",
+        "archmageChoei/3",
+        "archmageJuushou/3",
+        "ARCHMAGE_TENMEI",
+        "ARCHMAGE_MEIOU",
+        "archmageMakaku/2",
+        "ARCHMAGE_NARAKU",
+        "resistAilment/1",
+        "ARCHMAGE_GOKKAN",
+        "archmageUtsuwa/3",
+        "ARCHMAGE_SHOUKON",
+        "archmageMeido/2",
+        "ARCHMAGE_RAIGOU",
+        "archmageMasen/3",
+        "ARCHMAGE_INTETSU",
+        "resistAilment/2",
+        "ARCHMAGE_EIKYUU",
+        "ARCHMAGE_AGITO",
+        "archmageMakaku/3",
+        "ARCHMAGE_TOKOYAMI",
+        "ARCHMAGE_SHUUEN",
+        "archmageJuushou/4",
+        "ARCHMAGE_SHINENKOU",
+        "ARCHMAGE_SOUSEI",
+        "ARCHMAGE_BANSHOU"
+      ]
+    },
+    "chaplain": {
+      "key": "chaplainSeitate",
+      "definition": {
+        "label": "聖なる盾",
+        "scope": "party",
+        "lv": [
+          "護教官が生きている間、味方全員の受けるダメージ-3%",
+          "護教官が生きている間、味方全員の受けるダメージ-5%",
+          "護教官が生きている間、味方全員の受けるダメージ-8%",
+          "護教官が生きている間、味方全員の受けるダメージ-12%"
+        ]
+      },
+      "fx": {
+        "label": "聖なる盾",
+        "lv": [
+          "護教官が生きている間、味方全員の受けるダメージ-3%",
+          "護教官が生きている間、味方全員の受けるダメージ-5%",
+          "護教官が生きている間、味方全員の受けるダメージ-8%",
+          "護教官が生きている間、味方全員の受けるダメージ-12%"
+        ],
+        "fx": [
+          {
+            "t": "take",
+            "aura": true,
+            "v": [
+              0.03,
+              0.05,
+              0.08,
+              0.12
+            ]
+          }
+        ]
+      },
+      "ranks": [
+        {
+          "name": "聖なる盾Lv1",
+          "desc": "護教官が生きている間、味方全員の受けるダメージ-3%",
+          "grants": {
+            "chaplainSeitate": 1
+          }
+        },
+        {
+          "name": "聖なる盾Lv2",
+          "desc": "護教官が生きている間、味方全員の受けるダメージ-5%",
+          "grants": {
+            "chaplainSeitate": 2
+          }
+        },
+        {
+          "name": "聖なる盾Lv3",
+          "desc": "護教官が生きている間、味方全員の受けるダメージ-8%",
+          "grants": {
+            "chaplainSeitate": 3
+          }
+        },
+        {
+          "name": "聖なる盾Lv4",
+          "desc": "護教官が生きている間、味方全員の受けるダメージ-12%",
+          "grants": {
+            "chaplainSeitate": 4
+          }
+        }
+      ],
+      "traits": [
+        "physResist",
+        "death"
+      ],
+      "entries": [
+        "SHIELDBASH",
+        "KOUJIN",
+        "DIOS",
+        "chaplainJungo/1",
+        "CHOUHATSU",
+        "PROTECT",
+        "CURE",
+        "SUIGETSU",
+        "CHAPLAIN_INORINOTATE",
+        "firstGuard/1",
+        "HOLYLIGHT",
+        "NIOUDACHI",
+        "RECOVER",
+        "chaplainNamida/1",
+        "GUARDALL",
+        "DIOSALL",
+        "AWAKE",
+        "chaplainZankyou/1",
+        "HOUSHOUHEKI",
+        "DIAL",
+        "chaplainJungo/2",
+        "CHAPLAIN_INORINOTATEUCHI",
+        "firstGuard/2",
+        "STONECURE",
+        "REVIVE",
+        "CHAPLAIN_MABAYUKISEITSUI",
+        "chaplainKatagawari/1",
+        "resistAilment/1",
+        "DIALALL",
+        "CHAPLAIN_MIGAWARI",
+        "chaplainSeiku/1",
+        "chaplainKouei/1",
+        "CHAPLAIN_MIZUKAGAMI",
+        "MADIOS",
+        "CHAPLAIN_NAGI",
+        "CHAPLAIN_INORINOKOUHA",
+        "chaplainJungo/3",
+        "chaplainKatagawari/2",
+        "CHAPLAIN_SHUGONOSEIIN",
+        "CHAPLAIN_JUNREI",
+        "firstGuard/3",
+        "PURIFY",
+        "RESURRECT",
+        "chaplainZankyou/2",
+        "CHAPLAIN_MAMORINOKOUKEN",
+        "CHAPLAIN_MIZUGAKI",
+        "chaplainSeiku/2",
+        "CHAPLAIN_INORINOSABAKI",
+        "MADIOSALL",
+        "chaplainKouei/2",
+        "CHAPLAIN_RENTOU",
+        "resistAilment/2",
+        "CHAPLAIN_INOCHIZUNA",
+        "chaplainJungo/4",
+        "CHAPLAIN_SEISUIKEKKAI",
+        "chaplainKatagawari/3",
+        "chaplainSeiku/3",
+        "CHAPLAIN_DAIKITOU",
+        "chaplainNamida/2",
+        "CHAPLAIN_JUNKYOUSHA",
+        "chaplainZankyou/3",
+        "CHAPLAIN_SEIDAN",
+        "chaplainNamida/3",
+        "CHAPLAIN_SEIRYUUKOU",
+        "CHAPLAIN_YOMIGAERI",
+        "CHAPLAIN_SEIGOJOU"
+      ]
+    },
+    "sera": {
+      "key": "seraMunebi",
+      "definition": {
+        "label": "胸の魂火",
+        "scope": "party",
+        "lv": [
+          "戦闘開始時、味方全員に魔障壁 (1回)",
+          "戦闘開始時、味方全員に魔障壁 (1回) とリジェネ (最大HPの2%)",
+          "戦闘開始時、味方全員に魔障壁 (1回) とリジェネ (最大HPの3%)",
+          "戦闘開始時、味方全員に魔障壁 (2回) とリジェネ (最大HPの4%)"
+        ]
+      },
+      "fx": {
+        "label": "胸の魂火",
+        "lv": [
+          "戦闘開始時、味方全員に魔障壁 (1回)",
+          "戦闘開始時、味方全員に魔障壁 (1回) とリジェネ (最大HPの2%)",
+          "戦闘開始時、味方全員に魔障壁 (1回) とリジェネ (最大HPの3%)",
+          "戦闘開始時、味方全員に魔障壁 (2回) とリジェネ (最大HPの4%)"
+        ],
+        "fx": [
+          {
+            "t": "start",
+            "party": true,
+            "barrier": [
+              1,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "t": "start",
+            "chance": [
+              0,
+              1,
+              1,
+              1
+            ],
+            "party": true,
+            "regen": [
+              0,
+              0.02,
+              0.03,
+              0.04
+            ]
+          }
+        ]
+      },
+      "ranks": [
+        {
+          "name": "胸の魂火Lv1",
+          "desc": "戦闘開始時、味方全員に魔障壁 (1回)",
+          "grants": {
+            "seraMunebi": 1
+          }
+        },
+        {
+          "name": "胸の魂火Lv2",
+          "desc": "戦闘開始時、味方全員に魔障壁 (1回) とリジェネ (最大HPの2%)",
+          "grants": {
+            "seraMunebi": 2
+          }
+        },
+        {
+          "name": "胸の魂火Lv3",
+          "desc": "戦闘開始時、味方全員に魔障壁 (1回) とリジェネ (最大HPの3%)",
+          "grants": {
+            "seraMunebi": 3
+          }
+        },
+        {
+          "name": "胸の魂火Lv4",
+          "desc": "戦闘開始時、味方全員に魔障壁 (2回) とリジェネ (最大HPの4%)",
+          "grants": {
+            "seraMunebi": 4
+          }
+        }
+      ],
+      "traits": [
+        "physResist",
+        "charm"
+      ],
+      "entries": [
+        "SHIELDBASH",
+        "SERA_TOMOSHIBIUCHI",
+        "DIOS",
+        "seraIchido/1",
+        "SERA_KABAIDACHI",
+        "CURE",
+        "SERA_MIZUKAGAMI",
+        "SERA_TOUROUOTOSHI",
+        "seraKago/1",
+        "SERA_YOTOMOSHI",
+        "CHOUHATSU",
+        "RECOVER",
+        "SERA_SAZANAMI",
+        "DIOSALL",
+        "seraKotae/1",
+        "NIOUDACHI",
+        "DIAL",
+        "seraNegai/1",
+        "SERA_AKARINOTATE",
+        "seraIchido/2",
+        "SERA_MUNEBIUCHI",
+        "seraKago/2",
+        "SERA_TOMOSHIBINOTOBARI",
+        "SERA_NAGAREBI",
+        "seraMichibiki/1",
+        "SERA_TSUGIMENOTEATE",
+        "SERA_MIGAWARIBI",
+        "seraKotae/2",
+        "seraNegai/2",
+        "SERA_TOUROUNOJIN",
+        "SERA_KAMINAMI",
+        "resistAilment/1",
+        "SERA_SEITOUGEKI",
+        "SERA_TAMASHIIMORI",
+        "seraKago/3",
+        "seraIchido/3",
+        "SERA_ARASHIBI",
+        "SERA_SHIZUKUNOIYASHI",
+        "seraMichibiki/2",
+        "SERA_HIKARIGAESHI",
+        "seraKotae/3",
+        "SERA_UNABARANOTATE",
+        "resistAilment/2",
+        "SERA_TOUKOURENGEKI",
+        "seraNegai/3",
+        "SERA_MAMORIBINOJIN",
+        "seraMichibiki/3",
+        "SERA_SHINKAIOTOSHI",
+        "SERA_SEIRYUUZAN",
+        "SERA_TOMOSHIBINOTSUBASA",
+        "seraTerasu/1",
+        "SERA_HOSHIZUKIYO",
+        "seraTerasu/2",
+        "SERA_KIENUHI",
+        "SERA_DAIKAISHOU",
+        "SERA_SHINOTOMOSHIBI"
+      ]
+    }
+  }
+}

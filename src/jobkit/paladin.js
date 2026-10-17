@@ -1,3 +1,4 @@
+// 全職見直し: 光の剣で攻めながら、隊の傷を埋める。ランクパッシブは維持。
 // 聖騎士 (paladin) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 持ち味: 聖なる剣と癒しの両立 — 斬れば光が隊を癒し、癒せば剣に力が宿る。勝利と討伐が次の癒しになる
@@ -7,22 +8,21 @@ export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
   awaken: "paladinIyashi",
   table: `
-    1 SHIELDBASH 2 KOUJIN 3 DIOS 5 paladinGaisen/1 7 HAJA 10 NERAIUCHI 10 CURE 12 IWAKUDAKI
-    15 PALADIN_INORINOKEN 15 cleanseStep/1 17 HOLYLIGHT 20 CHOUHATSU 20 RECOVER 22 KOURINZAN
-    25 paladinNanori/1 30 SEINOTATE 30 DIOSALL 35 smite/1 40 SEIKOUZAN 40 DIAL 45 heroKibouHidamari/1
-    50 SHINGANGEKI 50 cleanseStep/2 55 GUARDALL 57 PALADIN_JIKOUZAN 60 paladinGaisen/2 60 REVIVE
-    65 PALADIN_KENNOSHUKUTOU 70 holyEdge/1 75 martyr/1 80 PALADIN_HIKARINOJOUHEKI 85 PALADIN_JOUKOURIN
-    90 resistAilment/1 95 PALADIN_SEIYAKUNOGI 100 PALADIN_SABAKINOSEIKEN 100 cleanseStep/3
-    105 heroKibouHidamari/2 107 TENKOUKEN 110 PALADIN_GOKOUNOJIN 115 paladinNanori/2 120 PALADIN_SHOKUZAI
-    125 divineCounter/1 130 PALADIN_SEIGONOTOBARI 135 resistAilment/2 140 PALADIN_SEIHAI
-    145 paladinFukutsu/1 150 PALADIN_GAIKA 155 paladinSeikenkago/1 160 PALADIN_TENJOUSOU 165 paladinNanori/3
-    170 PALADIN_JUNKYOUNOTATE 175 paladinFukutsu/2 180 PALADIN_SEIKISHIDAN 185 paladinSeikenkago/2
+    1 SHIELDBASH 2 KOUJIN 3 DIOS 5 paladinGaisen/1 7 HAJA 10 NERAIUCHI
+    10 CURE 12 IWAKUDAKI 12 PALADIN_INORINOKEN 15 cleanseStep/1 17 HOLYLIGHT 18 CHOUHATSU
+    20 RECOVER 20 paladinNanori/1 22 KOURINZAN 25 SEINOTATE 30 DIOSALL 35 smite/1
+    35 PALADIN_KENNOSHUKUTOU 40 SEIKOUZAN 40 DIAL 45 heroKibouHidamari/1 50 SHINGANGEKI 50 cleanseStep/2
+    50 GUARDALL 57 PALADIN_JIKOUZAN 60 paladinGaisen/2 65 REVIVE 70 holyEdge/1 70 paladinSeikenkago/1
+    75 martyr/1 75 PALADIN_HIKARINOJOUHEKI 80 paladinNanori/2 85 PALADIN_JOUKOURIN 90 resistAilment/1 90 PALADIN_SEIYAKUNOGI
+    100 cleanseStep/3 105 PALADIN_SABAKINOSEIKEN 105 heroKibouHidamari/2 107 TENKOUKEN 120 PALADIN_SHOKUZAI 125 PALADIN_GOKOUNOJIN
+    125 divineCounter/1 130 PALADIN_SEIGONOTOBARI 135 resistAilment/2 140 PALADIN_SEIHAI 145 paladinFukutsu/1 145 paladinNanori/3
+    150 PALADIN_GAIKA 150 paladinSeikenkago/2 160 PALADIN_TENJOUSOU 170 PALADIN_JUNKYOUNOTATE 175 paladinFukutsu/2 180 PALADIN_SEIKISHIDAN
     190 PALADIN_REIMEI 195 PALADIN_SEIKIGAN 200 PALADIN_SEIKENKOURIN`,
   skills: {
-    // Lv15 の固有技: 祈りを込めた一太刀。返す光が隊を癒す
-    PALADIN_INORINOKEN: { name: "祈りの剣", mp: 6, kind: "phys", power: 1.2, element: "light", bladeHeal: 0.15, healCap: 0.1, target: "enemy", desc: "祈りを込めて斬り、返す光で味方全員を癒す" },
+    // 序盤の固有技: 祈りを込めた一太刀。返す光が隊を癒す
+    PALADIN_INORINOKEN: {name: "祈りの剣", mp: 6, kind: "phys", power: 1.1, element: "light", bladeHeal: 0.12, healCap: 0.1, target: "enemy", desc: "PIEを乗せた光の剣。与えた傷の12%で味方全員を癒す（各最大HP10%まで）", dur: 3, pieScale: 0.2},
     PALADIN_JIKOUZAN: { name: "慈光斬", mp: 12, kind: "phys", power: 2.0, pieScale: 0.5, element: "light", acc: 0.16, bladeHeal: 0.11, healCap: 0.12, target: "enemy", desc: "祈りを込めて斬り、光の余韻が隊を癒す" },
-    PALADIN_KENNOSHUKUTOU: { name: "剣の祝祷", mp: 15, kind: "heal", healMul: 1, healCap: 0.5, buff: { atk: 1.1 }, target: "all-ally", desc: "剣を掲げて祈り、味方全員を癒し攻撃を少し上げる" },
+    PALADIN_KENNOSHUKUTOU: {name: "剣の祝祷", mp: 15, kind: "heal", healMul: 0.85, healCap: 0.5, buff: {atk: 1.25}, target: "all-ally", desc: "味方全員を癒し、STRを1段上げて剣の攻めを支える（2ターン）", dur: 2},
     PALADIN_HIKARINOJOUHEKI: { name: "光の城壁", mp: 10, kind: "buff", buff: { vit: 1.3 }, cure: ["charm", "confuse"], target: "all-ally", desc: "味方全員を光の壁で守り、魅了・混乱を治す" },
     PALADIN_JOUKOURIN: { name: "浄めの光輪", mp: 10, kind: "atk", power: 21, element: "light", partyHeal: 6, target: "all-enemy", desc: "光輪が敵全体を灼き、返す光が隊を癒す" },
     PALADIN_SEIYAKUNOGI: { name: "聖約の儀", mp: 16, kind: "buff", buff: { atk: 1.2 }, cure: ["poison", "paralyze", "sleep"], purge: true, target: "all-ally", desc: "味方全員の毒・猛毒・麻痺・眠りと弱体を祓い、STRを上げる" },

@@ -1,3 +1,4 @@
+// 全職見直し: 前衛で引き付け、敵の攻めを削ぐ。ランクパッシブは維持。
 // 騎士 (knight) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 持ち味: 規律と槍突きの忠義 — 隊列を守る前衛の鉄則、強化を剥ぎ力を削ぐ槍、倒れた仲間に報いる誓い
@@ -5,21 +6,22 @@ export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
   awaken: "knightTeppeki",
   table: `
-    1 SHIELDBASH 2 NERAIUCHI 3 taunt/1 5 CHOUHATSU 7 PROTECT 10 KOTE 12 IWAKUDAKI 15 KNIGHT_JINTOTSU
-    15 nightWatch/1 20 NIOUDACHI 22 KOUJIN 25 knightTessoku/1 25 KNIGHT_JINCHUUTEATE 30 RYUURINJIN
-    35 cover/1 40 JOUMON 45 bastion/1 45 knightHoujin/1 50 SHINGANGEKI 50 nightWatch/2 55 IRONWALL 57 GANOTOSHI
-    60 knightTessoku/2 60 KNIGHT_JINEINOTEATE 65 SHIELDCHARGE 70 parry/1 75 knightFutai/1 80 BOUJIN
-    82 KNIGHT_HAJINSOU 85 KNIGHT_YARIBUSUMA 90 resistAilment/1 95 SHUGOHOUKOU 100 JOUSAITSUKI
-    100 nightWatch/3 105 knightTessoku/3 107 KNIGHT_JINARI 110 TEPPEKIJIN 115 cover/2 117 KNIGHT_OUHOUJIN 120 KNIGHT_ITTETSU
-    125 bastion/2 125 knightHoujin/2 130 FURAKUNOTATE 135 parry/2 140 BANRAI 150 SHUGOKEKKAI
-    155 knightFutai/2 160 JOUSAIKUZUSHI 162 DAICHIMEIDOU 165 resistAilment/2 170 TESSAINAGI
-    180 KISHIOU 185 knightOath/1 190 FUDOUJIN 195 DAIGOUREI 200 FURAKUJOU`,
+    1 SHIELDBASH 2 NERAIUCHI 3 taunt/1 5 CHOUHATSU 7 PROTECT 8 KNIGHT_JINTOTSU
+    10 KOTE 12 IWAKUDAKI 12 NIOUDACHI 15 nightWatch/1 18 knightTessoku/1 18 KNIGHT_JINCHUUTEATE
+    22 KOUJIN 25 RYUURINJIN 35 cover/1 35 knightHoujin/1 35 KNIGHT_JINEINOTEATE 40 JOUMON
+    45 bastion/1 50 SHINGANGEKI 50 nightWatch/2 57 GANOTOSHI 60 IRONWALL 60 knightTessoku/2
+    65 SHIELDCHARGE 65 knightFutai/1 70 parry/1 75 BOUJIN 82 KNIGHT_HAJINSOU 85 KNIGHT_YARIBUSUMA
+    90 resistAilment/1 90 SHUGOHOUKOU 100 JOUSAITSUKI 100 nightWatch/3 105 knightTessoku/3 107 KNIGHT_JINARI
+    110 TEPPEKIJIN 110 knightHoujin/2 115 cover/2 120 KNIGHT_OUHOUJIN 120 KNIGHT_ITTETSU 125 bastion/2
+    130 FURAKUNOTATE 135 parry/2 140 BANRAI 150 SHUGOKEKKAI 155 knightFutai/2 160 JOUSAIKUZUSHI
+    162 DAICHIMEIDOU 165 resistAilment/2 170 TESSAINAGI 180 KISHIOU 185 knightOath/1 190 FUDOUJIN
+    195 DAIGOUREI 200 FURAKUJOU`,
   skills: {
     // 体の手当て (2026-10): 回復量は使い手の最大HPで決まる。少ないMPで癒せるが、最大HPの小さい魔法職が借りても弱い
     KNIGHT_JINCHUUTEATE: { name: "陣中の手当て", mp: 4, kind: "heal", bodyHeal: 0.2, healCap: 0.35, tech: true, target: "ally", desc: "戦の合間に手早く傷を縛る（騎士の最大HPで伸びる）" },
-    KNIGHT_JINEINOTEATE: { name: "陣営の手当て", mp: 10, kind: "heal", bodyHeal: 0.1, healCap: 0.2, tech: true, target: "all-ally", desc: "陣を固め、味方全員の傷を手当てする（騎士の最大HPで伸びる）" },
-    // Lv15 の固有技: 隊列を崩さず槍を突き入れ、強化を剥いで力を削ぐ
-    KNIGHT_JINTOTSU: { name: "陣突き", mp: 5, kind: "phys", power: 1.2, acc: 0.16, strip: true, debuff: { atk: 0.85 }, target: "enemy", desc: "隊列を崩さず槍を突き入れ、敵の強化を剥いで力を削ぐ" },
+    KNIGHT_JINEINOTEATE: {name: "陣営の手当て", mp: 10, kind: "heal", bodyHeal: 0.1, healCap: 0.2, tech: true, target: "all-ally", desc: "味方全員を手当てし、麻痺を治す。使い手の最大HP10%基準・各対象の20%まで", dur: 3, cure: ["paralyze"]},
+    // 序盤の固有技: 隊列を崩さず槍を突き入れ、強化を剥いで力を削ぐ
+    KNIGHT_JINTOTSU: {name: "陣突き", mp: 5, kind: "phys", power: 1.1, acc: 0.16, debuff: {atk: 0.85}, target: "enemy", desc: "隊列を守る槍の一突き。VITを乗せ、敵の攻撃を1段下げる", dur: 3, vitScale: 0.2},
     KNIGHT_HAJINSOU: { name: "破陣の聖槍", mp: 12, kind: "phys", power: 2.0, pieScale: 0.3, element: "light", acc: 0.18, strip: true, target: "enemy", desc: "光の槍で突き、敵の強化を剥ぐ" },
     KNIGHT_YARIBUSUMA: { name: "槍衾", mp: 6, kind: "buff", stance: "counter", ctrMul: 1.4, buff: { vit: 1.15 }, dur: 2, tech: true, target: "self", desc: "穂先を揃えて待ち、物理に必ず突き返す（攻撃力×1.4）" },
     KNIGHT_JINARI: { name: "地鳴りの槍", mp: 20, kind: "phys", power: 4.6, element: "earth", acc: 0.21, pierce: 0.3, debuff: { atk: 0.8 }, target: "enemy", desc: "踏み込みの突きで鎧を穿ち、力を削ぐ（物理貫通30%）" },

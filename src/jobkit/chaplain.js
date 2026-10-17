@@ -1,3 +1,4 @@
+// 全職見直し: 後衛と瀕死の仲間を、庇いと救命で守る。ランクパッシブは維持。
 // 護教官 (chaplain) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 持ち味: 味方を守る祈りの盾 — 身代わりに立ち、死を一度だけ退ける加護を配り、敵の狙いと牙を鈍らせる。光と静かな水
@@ -7,25 +8,23 @@ export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
   awaken: "chaplainSeitate",
   table: `
-    1 SHIELDBASH 2 KOUJIN 3 DIOS 5 chaplainJungo/1 7 CHOUHATSU 10 PROTECT 10 CURE 12 SUIGETSU
-    15 CHAPLAIN_INORINOTATE 15 firstGuard/1 17 HOLYLIGHT 20 NIOUDACHI 20 RECOVER 25 chaplainNamida/1
-    30 GUARDALL 30 DIOSALL 30 AWAKE 35 chaplainZankyou/1 40 HOUSHOUHEKI 40 DIAL 45 chaplainJungo/2
-    50 CHAPLAIN_INORINOTATEUCHI 50 firstGuard/2 50 STONECURE 55 REVIVE 57 CHAPLAIN_MABAYUKISEITSUI
-    20 chaplainKatagawari/1 60 resistAilment/1 60 DIALALL 65 CHAPLAIN_MIGAWARI 70 chaplainSeiku/1 35 chaplainKouei/1
-    80 CHAPLAIN_MIZUKAGAMI 80 MADIOS 82 CHAPLAIN_NAGI 85 CHAPLAIN_INORINOKOUHA 90 chaplainJungo/3 60 chaplainKatagawari/2
-    95 CHAPLAIN_SHUGONOSEIIN 100 CHAPLAIN_JUNREI 100 firstGuard/3 100 PURIFY 100 RESURRECT
-    105 chaplainZankyou/2 107 CHAPLAIN_MAMORINOKOUKEN 110 CHAPLAIN_MIZUGAKI 115 chaplainSeiku/2
-    120 CHAPLAIN_INORINOSABAKI 120 MADIOSALL 125 chaplainKouei/2 130 CHAPLAIN_RENTOU 135 resistAilment/2
-    140 CHAPLAIN_INOCHIZUNA 145 chaplainJungo/4 150 CHAPLAIN_SEISUIKEKKAI 110 chaplainKatagawari/3 155 chaplainSeiku/3
-    160 CHAPLAIN_DAIKITOU 165 chaplainNamida/2 170 CHAPLAIN_JUNKYOUSHA 175 chaplainZankyou/3
-    180 CHAPLAIN_SEIDAN 185 chaplainNamida/3 190 CHAPLAIN_SEIRYUUKOU 195 CHAPLAIN_YOMIGAERI
-    200 CHAPLAIN_SEIGOJOU`,
+    1 SHIELDBASH 2 KOUJIN 3 DIOS 5 chaplainJungo/1 7 CHOUHATSU 10 PROTECT
+    10 CURE 12 SUIGETSU 12 CHAPLAIN_INORINOTATE 15 firstGuard/1 17 HOLYLIGHT 18 CHAPLAIN_MIGAWARI
+    20 NIOUDACHI 20 RECOVER 20 chaplainKatagawari/1 25 chaplainNamida/1 25 chaplainKouei/1 25 CHAPLAIN_SHUGONOSEIIN
+    30 GUARDALL 30 DIOSALL 30 AWAKE 35 chaplainZankyou/1 35 chaplainSeiku/1 35 CHAPLAIN_MIZUKAGAMI
+    40 HOUSHOUHEKI 40 DIAL 45 chaplainJungo/2 45 CHAPLAIN_INORINOTATEUCHI 50 firstGuard/2 50 STONECURE
+    55 REVIVE 57 CHAPLAIN_MABAYUKISEITSUI 60 resistAilment/1 60 DIALALL 60 CHAPLAIN_INORINOKOUHA 60 chaplainKatagawari/2
+    75 CHAPLAIN_INOCHIZUNA 80 MADIOS 82 CHAPLAIN_NAGI 85 chaplainKouei/2 90 chaplainJungo/3 90 CHAPLAIN_JUNREI
+    95 chaplainSeiku/2 100 firstGuard/3 100 PURIFY 100 RESURRECT 105 chaplainZankyou/2 105 CHAPLAIN_MIZUGAKI
+    107 CHAPLAIN_MAMORINOKOUKEN 110 chaplainKatagawari/3 120 CHAPLAIN_INORINOSABAKI 120 MADIOSALL 125 CHAPLAIN_DAIKITOU 130 CHAPLAIN_RENTOU
+    135 resistAilment/2 145 chaplainJungo/4 150 CHAPLAIN_SEISUIKEKKAI 155 chaplainSeiku/3 165 chaplainNamida/2 170 CHAPLAIN_JUNKYOUSHA
+    175 chaplainZankyou/3 180 CHAPLAIN_SEIDAN 185 chaplainNamida/3 190 CHAPLAIN_SEIRYUUKOU 195 CHAPLAIN_YOMIGAERI 200 CHAPLAIN_SEIGOJOU`,
   skills: {
-    // Lv15 の固有技: 祈りの盾で味方を包む
-    CHAPLAIN_INORINOTATE: { name: "祈りの盾", mp: 5, kind: "buff", buff: { vit: 1.25 }, grantBarrier: 1, target: "ally", desc: "祈りの盾で味方を包み、防御を上げて魔障壁を張る" },
+    // 序盤の固有技: 祈りの盾で味方を包む
+    CHAPLAIN_INORINOTATE: {name: "祈りの盾", mp: 5, kind: "buff", buff: {vit: 1.25}, grantBarrier: 1, target: "ally", desc: "味方一人のVITを1段上げ、魔障壁1回を授ける。防御強化は4ターン", dur: 4},
     CHAPLAIN_INORINOTATEUCHI: { name: "祈りの盾打ち", mp: 6, kind: "phys", power: 1.3, vitScale: 0.3, acc: 0.23, flinchChance: 0.25, target: "enemy", desc: "祈りを込めた盾で打ち、怯ませる（命中率+23%）" },
     CHAPLAIN_MABAYUKISEITSUI: { name: "眩き聖槌", mp: 12, kind: "phys", power: 2.0, pieScale: 0.5, element: "light", acc: 0.16, debuff: { hit: 0.85 }, target: "enemy", desc: "眩い聖槌で打ち、敵の狙いを乱す" },
-    CHAPLAIN_MIGAWARI: { name: "身代わりの祈り", mp: 6, kind: "buff", shield: true, buff: { vit: 1.2 }, dur: 2, tech: true, target: "self", desc: "祈りと共に、仲間への単体攻撃を代わりに受ける" },
+    CHAPLAIN_MIGAWARI: {name: "身代わりの祈り", mp: 7, kind: "buff", shield: true, buff: {vit: 1.25}, dur: 2, tech: true, target: "self", desc: "味方への単体攻撃を庇う。自分のVITを1段上げ、ブレスと全体呪文を20%軽減（2ターン）", ward: {breath: 0.2, spell: 0.2}},
     CHAPLAIN_MIZUKAGAMI: { name: "水鏡の帳", mp: 11, kind: "buff", buff: { vit: 1.3 }, debuffAll: { hit: 0.9 }, target: "all-ally", desc: "水鏡の帳で味方を守り、敵の狙いを乱す" },
     CHAPLAIN_NAGI: { name: "凪の一打", mp: 11, kind: "phys", power: 2.4, element: "water", acc: 0.13, sleepChance: 0.2, target: "enemy", desc: "静かな波の一打で、眠りに誘う" },
     CHAPLAIN_INORINOKOUHA: { name: "祈りの光波", mp: 10, kind: "atk", power: 20, element: "light", debuff: { atk: 0.9 }, target: "all-enemy", desc: "光波が敵全体を灼き、力を鈍らせる" },

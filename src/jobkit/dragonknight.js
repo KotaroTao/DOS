@@ -1,3 +1,4 @@
+// 全職見直し: 火と風の槍、ブレスへの耐性で重い一撃を通す。ランクパッシブは維持。
 // 竜騎士 (dragonknight) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 持ち味: 竜の跳躍と竜鱗 — 天から降る一撃、敵陣をなぐ竜の息 (風・火の全体物理)、ブレスを弾く鱗と、傷つくほど滾る竜の血
@@ -8,19 +9,20 @@ export default {
   awaken: "dragonknightIbuki",
   table: `
     1 SHIELDBASH 2 SHIPPUUGIRI 3 NERAIUCHI 5 dragonknightHishou/1 7 TENSHOU 10 CHOUHATSU
-    12 KAENGIRI 15 DRAGONKNIGHT_RYUUSOUTSUKI 15 dragonknightGekirin/1 20 RYUURIN 22 REPPUU 25 dragonknightIkari/1 30 RYUUKOU 30 dynamicVision/1
-    35 dragonknightRyuuketsu/1 40 RYUZETSU 45 dragonknightRyuuketsu/2 50 RYUURINJIN 50 dragonknightGekirin/2 55 RYUUEN 57 FUUGA
-    60 dragonknightHishou/2 65 NIOUDACHI 70 dragonknightRyuurin/1 75 dragonknightRyuugan/1 80 DRAGONKNIGHT_RYUUSOU 80 dynamicVision/2 82 GURENZAN
-    85 DRAGONKNIGHT_RYUUYOKU 90 resistAilment/1 95 DRAGONKNIGHT_RYUUGA 100 DRAGONKNIGHT_KOURYUUGEKI 100 dragonknightGekirin/3 105 dragonknightIkari/2 107 DRAGONKNIGHT_FUURYUU
-    110 DRAGONKNIGHT_TENKUU 115 dragonknightRyuuketsu/3 120 DRAGONKNIGHT_RYUUKOTSU 125 dragonknightRyuugan/2 130 DRAGONKNIGHT_RYUUBI 135 dragonknightRyuuketsu/4
-    140 RYUUJINKOURIN 145 resistAilment/2 150 DRAGONKNIGHT_GEKIRIN 155 dragonknightRyuurin/2 160 DRAGONKNIGHT_TATSUMAKI 160 dynamicVision/3 162 DRAGONKNIGHT_ARASHIRYUU
-    165 dragonknightIkari/3 170 DRAGONKNIGHT_RYUUOUDAN 175 dragonknightRyuugan/3 180 DRAGONKNIGHT_RYUUSEIRAKU 185 dragonknightHishou/3 190 DRAGONKNIGHT_GOUKA
+    12 KAENGIRI 12 DRAGONKNIGHT_RYUUSOUTSUKI 15 dragonknightGekirin/1 18 RYUURIN 20 dragonknightRyuurin/1 22 REPPUU
+    25 dragonknightIkari/1 25 RYUUEN 25 dragonknightRyuugan/1 30 RYUUKOU 30 dynamicVision/1 35 dragonknightRyuuketsu/1
+    35 DRAGONKNIGHT_RYUUSOU 40 RYUZETSU 45 dragonknightRyuuketsu/2 45 DRAGONKNIGHT_RYUUYOKU 50 RYUURINJIN 50 dragonknightGekirin/2
+    57 FUUGA 60 dragonknightHishou/2 60 DRAGONKNIGHT_RYUUGA 65 NIOUDACHI 75 DRAGONKNIGHT_KOURYUUGEKI 80 dynamicVision/2
+    82 GURENZAN 85 dragonknightRyuugan/2 90 resistAilment/1 90 DRAGONKNIGHT_TENKUU 90 dragonknightRyuurin/2 100 dragonknightGekirin/3
+    105 dragonknightIkari/2 105 DRAGONKNIGHT_RYUUKOTSU 107 DRAGONKNIGHT_FUURYUU 115 dragonknightRyuuketsu/3 125 DRAGONKNIGHT_RYUUBI 135 dragonknightRyuuketsu/4
+    140 RYUUJINKOURIN 145 resistAilment/2 145 dragonknightRyuugan/3 150 DRAGONKNIGHT_GEKIRIN 160 DRAGONKNIGHT_TATSUMAKI 160 dynamicVision/3
+    162 DRAGONKNIGHT_ARASHIRYUU 165 dragonknightIkari/3 170 DRAGONKNIGHT_RYUUOUDAN 180 DRAGONKNIGHT_RYUUSEIRAKU 185 dragonknightHishou/3 190 DRAGONKNIGHT_GOUKA
     195 DRAGONKNIGHT_RYUURINJIN 200 RYUUTEIGEKI`,
   skills: {
-    // Lv15 の固有技: 竜をも貫く槍の一突き
-    DRAGONKNIGHT_RYUUSOUTSUKI: { name: "竜槍突き", mp: 5, kind: "phys", power: 1.4, acc: 0.16, pierce: 0.3, prey: { races: DRAGONS, mul: 1.3 }, target: "enemy", desc: "竜をも貫く槍の一突き。物理貫通30%、竜に強い" },
+    // 序盤の固有技: 竜をも貫く槍の一突き
+    DRAGONKNIGHT_RYUUSOUTSUKI: {name: "竜槍突き", mp: 5, kind: "phys", power: 1.3, acc: 0.16, pierce: 0.4, prey: {races: ["dragon", "reptile", "wing"], mul: 1.3}, target: "enemy", desc: "風をまとう槍。物理貫通40%・竜、爬虫、飛獣に1.3倍", dur: 3, element: "wind"},
     DRAGONKNIGHT_RYUUSOU: { name: "竜爪裂き", mp: 16, kind: "phys", power: 2.0, hits: 2, pierce: 0.4, acc: 0.18, target: "enemy", desc: "竜の爪のごとく二度裂く（物理貫通40%）" },
-    DRAGONKNIGHT_RYUUYOKU: { name: "竜翼の庇い", mp: 10, kind: "buff", buff: { vit: 1.3, agi: 1.1 }, tech: true, target: "all-ally", desc: "竜の翼を広げ、味方全員の守りと身のこなしを上げる" },
+    DRAGONKNIGHT_RYUUYOKU: {name: "竜翼の庇い", mp: 14, kind: "buff", buff: {vit: 1.25}, tech: true, target: "all-ally", desc: "味方全員のVITを1段上げ、ブレスを30%軽減する竜翼（3ターン）", dur: 3, ward: {breath: 0.3}},
     DRAGONKNIGHT_RYUUGA: { name: "竜牙穿ち", mp: 14, kind: "phys", power: 2.3, acc: 0.18, debuff: { vit: 0.8 }, flinchChance: 0.25, target: "enemy", desc: "竜の牙で鎧を穿ち、怯ませる" },
     DRAGONKNIGHT_KOURYUUGEKI: { name: "降竜撃", mp: 18, kind: "phys", power: 5.2, agiScale: 0.6, acc: 1, flinchChance: 0.3, target: "enemy", desc: "跳躍から降る必中の一撃。怯ませる（AGIで伸びる）" },
     DRAGONKNIGHT_FUURYUU: { name: "風竜の吐息", mp: 21, kind: "phys", power: 1.6, agiScale: 0.3, critBonus: 0.1, element: "wind", flinchChance: 0.15, target: "all-enemy", desc: "風竜の息吹が敵陣を切り裂く" },
@@ -54,8 +56,10 @@ export default {
     },
     dragonknightIkari: {
       label: "竜の怒り",
-      lv: ["物理を受けると20%でSTR×1.15 (2ターン)", "物理を受けると27%でSTR×1.2 (2ターン)", "物理を受けると35%でSTR×1.25 (2ターン)"],
-      fx: [{ t: "hurt", chance: [0.20, 0.27, 0.35], buff: { atk: [1.15, 1.2, 1.25] }, dur: 2 }],
+      lv: ["ブレスを受けるとSTRを1段上げる（2ターン）", "ブレスを受けるとSTRを1段上げる（3ターン）", "ブレスを受けるとSTRを1段上げる（4ターン）"],
+      fx: [
+        {t: "hurt", on: "breath", buff: {atk: [1.25, 1.25, 1.25]}, dur: [2, 3, 4]},
+      ],
     },
     dragonknightRyuuketsu: {
       label: "竜血の昂り",

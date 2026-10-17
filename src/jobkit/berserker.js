@@ -1,3 +1,4 @@
+// 全職見直し: 傷と討ち取りを力に変え、余剰の一撃を次の敵へ流す。ランクパッシブは維持。
 // 狂戦士 (berserker) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 狂戦士 = 捨て身と血。己の血を代償 (hpCost) に重い一撃、斬って啜る (drain)、傷が深いほど猛る
@@ -6,19 +7,19 @@ export default {
   awaken: "berserkerKyouhon",
   table: `
     1 KYOUGEKI 2 KAENGIRI 3 NERAIUCHI 5 berserkerMukui/1 7 SUTEMI 10 BERSERKER_CHIZOME
-    12 YAMIBA 15 BERSERKER_ABAREUCHI 15 berserkerChinonioi/1 20 BERSERKER_HOUKOU 22 KAENNAGI 25 berserkerTakeri/1 30 CHINOKAWAKI
-    35 berserkerFukade/1 40 KIJINKUDAKI 45 berserkerTeoi/1 50 BERSERKER_HONEKUDAKI 50 berserkerChinonioi/2 55 SHINGANGEKI 57 GURENZAN
-    60 berserkerMukui/2 65 BERSERKER_KUIKOMI 70 berserkerTakeri/2 75 endure/1 80 BERSERKER_KURAISAKI 82 MEIJIN
-    85 MIDARE 90 berserkerTeoi/2 95 BERSERKER_FUKKETSU 100 BERSERKER_TATAKIWARI 100 berserkerChinonioi/3 105 berserkerMukui/3 107 BERSERKER_KEKKEN
-    110 SHURAZAN 115 berserkerTakeri/3 120 BERSERKER_BOUGYAKU 125 berserkerFukade/2 130 BERSERKER_CHIKAZAGURUMA 135 asceticism/1
-    140 MEIFUZAN 145 resistAilment/1 150 BERSERKER_DANTOUDAI 155 berserkerTeoi/3 160 BERSERKER_KETSUEN 162 BERSERKER_ENGOKU
-    165 endure/2 170 BERSERKER_METTAUCHI 175 berserkerChiniyou/1 180 TOKOYAMI 185 berserkerChiniyou/2 190 BERSERKER_KYOUOU
-    195 BERSERKER_YATSUZAKI 200 BERSERKER_SENKETSU`,
+    12 YAMIBA 12 BERSERKER_ABAREUCHI 15 berserkerChinonioi/1 18 BERSERKER_HOUKOU 22 KAENNAGI 25 berserkerTakeri/1
+    25 CHINOKAWAKI 25 berserkerTeoi/1 35 berserkerFukade/1 35 BERSERKER_HONEKUDAKI 45 berserkerChiniyou/1 50 KIJINKUDAKI
+    50 berserkerChinonioi/2 55 SHINGANGEKI 57 GURENZAN 60 berserkerMukui/2 60 BERSERKER_KUIKOMI 65 berserkerTeoi/2
+    70 berserkerTakeri/2 75 endure/1 75 BERSERKER_KURAISAKI 82 MEIJIN 85 MIDARE 90 BERSERKER_FUKKETSU
+    100 berserkerChinonioi/3 105 BERSERKER_TATAKIWARI 105 berserkerMukui/3 107 BERSERKER_KEKKEN 115 berserkerTakeri/3 120 BERSERKER_BOUGYAKU
+    125 SHURAZAN 125 berserkerFukade/2 125 berserkerTeoi/3 130 BERSERKER_CHIKAZAGURUMA 130 berserkerChiniyou/2 135 asceticism/1
+    140 MEIFUZAN 145 resistAilment/1 150 BERSERKER_DANTOUDAI 160 BERSERKER_KETSUEN 162 BERSERKER_ENGOKU 165 endure/2
+    170 BERSERKER_METTAUCHI 180 TOKOYAMI 190 BERSERKER_KYOUOU 195 BERSERKER_YATSUZAKI 200 BERSERKER_SENKETSU`,
   skills: {
-    // Lv15 の固有技: 狂ったように三度打ち据える。傷が深いほど重い
-    BERSERKER_ABAREUCHI: { name: "暴れ打ち", mp: 6, kind: "phys", power: 0.7, hits: 3, acc: 0.05, desperate: true, target: "enemy", desc: "狂ったように三度打ち据える。傷が深いほど重い" },
+    // 序盤の固有技: 狂ったように三度打ち据える。傷が深いほど重い
+    BERSERKER_ABAREUCHI: {name: "暴れ打ち", mp: 6, kind: "phys", power: 0.65, hits: 3, acc: 0.1, desperate: true, target: "enemy", desc: "HP4%を払い、三度打ち据える。命中率+10%・傷が深いほど重い", dur: 3, hpCost: 0.04},
     BERSERKER_CHIZOME: { name: "血染めの斧", mp: 6, kind: "phys", power: 1.9, hpCost: 0.06, acc: 0.08, target: "enemy", desc: "己の血を代償に重く叩きつける" },
-    BERSERKER_HOUKOU: { name: "血の咆哮", mp: 6, kind: "debuff", debuff: { vit: 0.85 }, flinchChance: 0.25, target: "all-enemy", tech: true, desc: "血走った咆哮で敵陣を竦ませ、守りを崩す" },
+    BERSERKER_HOUKOU: {name: "血の咆哮", mp: 8, kind: "debuff", debuff: {vit: 0.65}, flinchChance: 0.15, target: "all-enemy", tech: true, desc: "敵全体の防御を2段下げ、15%で怯ませる血の咆哮（2ターン）", dur: 2},
     BERSERKER_HONEKUDAKI: { name: "骨砕き", mp: 10, kind: "phys", power: 2.5, pierce: 0.2, acc: 0.1, flinchChance: 0.3, target: "enemy", desc: "骨ごと叩き砕き、怯ませる（物理貫通20%）" },
     BERSERKER_KUIKOMI: { name: "狂気の食い縛り", mp: 3, kind: "buff", charge: 2.3, hpCost: 0.08, target: "self", tech: true, desc: "己の肉を噛み、次の物理を2.3倍にする" },
     BERSERKER_KURAISAKI: { name: "喰らい裂き", mp: 16, kind: "phys", power: 3.5, pierce: 0.4, acc: 0.18, drain: 0.25, target: "enemy", desc: "鎧ごと噛み裂き、血を啜る（物理貫通40%）" },

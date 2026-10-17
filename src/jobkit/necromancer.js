@@ -1,3 +1,4 @@
+// 全職見直し: 死の宣告と死霊で敵を減らし、討ち取りを次へつなぐ。ランクパッシブは維持。
 // 死霊術師 (necromancer) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 持ち味: 死者の力を借り、命と魂を吸い、即死で刈り取る (闇)。死に近い者ほど深く刺さる
@@ -6,22 +7,18 @@ export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
   awaken: "necroSenkoku",
   table: `
-    1 NECROMANCER_MOUJANOTE 2 SHADOWBOLT 3 NECROMANCER_SHISOU 5 necromancerShikuirai/1
-    7 NECROMANCER_KOMORIUTA 10 NECROMANCER_SEIKISUI 15 NECROMANCER_SHIREIMANEKI 15 necroLegion/1 20 KUGUTSU
-    22 NECROMANCER_ONRYOU 25 necromancerShishaSasayaki/1 30 NECROMANCER_HAKAMORI 32 DARKBLAST
-    35 necromancerShinigamiMe/1 40 MEIKONGURAI 45 necromancerShikabaneKate/1 50 NECROMANCER_SHIMEI
-    50 necroLegion/2 55 NECROMANCER_SHIDOKU 60 necromancerShikuirai/2 60 REVIVE 70 necromancerShinigamiMe/2
-    72 NECROMANCER_KOUSHIN 75 necromancerShishaSasayaki/2 80 NECROMANCER_KONBAKU 85 NECROMANCER_INOCHISOGI
-    90 necromancerMeifuIzumi/1 95 NECROMANCER_SEIJANETAMI 100 NECROMANCER_KUSARESHOUKI 100 necroLegion/3
-    100 RESURRECT 105 resistAilment/1 110 MADALT 115 necromancerShikabaneKate/2 117 NECROMANCER_DOUKOKU
-    120 NECROMANCER_MANEKI 125 necromancerShinigamiMe/3 130 NECROMANCER_BOSHOHOURAKU
-    135 necromancerShikuirai/3 140 NECROMANCER_JUUATSU 145 necromancerShishaSasayaki/3 150 NECROMANCER_KASOU
-    155 necromancerShinigamiMe/4 165 resistAilment/2 170 NECROMANCER_YOMIGAERI 172 NECROMANCER_TAMAGARI
-    175 necromancerMeifuIzumi/2 180 MEIFUNOMON 185 necromancerShikabaneKate/3 190 NECROMANCER_SANZU
-    195 NECROMANCER_MEIGA 200 NECROMANCER_SOUSOU`,
+    1 NECROMANCER_MOUJANOTE 2 SHADOWBOLT 3 NECROMANCER_SHISOU 5 necromancerShikuirai/1 7 NECROMANCER_KOMORIUTA 10 NECROMANCER_SEIKISUI
+    12 NECROMANCER_SHIREIMANEKI 15 necroLegion/1 18 NECROMANCER_KONBAKU 20 KUGUTSU 20 necromancerShinigamiMe/1 22 NECROMANCER_ONRYOU
+    25 necromancerShishaSasayaki/1 25 NECROMANCER_SHIDOKU 30 NECROMANCER_HAKAMORI 32 DARKBLAST 35 NECROMANCER_KOUSHIN 40 MEIKONGURAI
+    45 necromancerShikabaneKate/1 45 NECROMANCER_SHIMEI 45 necromancerMeifuIzumi/1 50 necroLegion/2 60 necromancerShikuirai/2 60 REVIVE
+    60 NECROMANCER_INOCHISOGI 65 necromancerShinigamiMe/2 75 necromancerShishaSasayaki/2 75 NECROMANCER_SEIJANETAMI 90 NECROMANCER_KUSARESHOUKI 100 necroLegion/3
+    100 RESURRECT 105 resistAilment/1 105 NECROMANCER_DOUKOKU 110 MADALT 110 necromancerShinigamiMe/3 115 necromancerShikabaneKate/2
+    125 NECROMANCER_MANEKI 125 necromancerMeifuIzumi/2 130 NECROMANCER_BOSHOHOURAKU 135 necromancerShikuirai/3 140 NECROMANCER_JUUATSU 145 necromancerShishaSasayaki/3
+    150 NECROMANCER_KASOU 165 necromancerShinigamiMe/4 165 resistAilment/2 170 NECROMANCER_YOMIGAERI 172 NECROMANCER_TAMAGARI 180 MEIFUNOMON
+    185 necromancerShikabaneKate/3 190 NECROMANCER_SANZU 195 NECROMANCER_MEIGA 200 NECROMANCER_SOUSOU`,
   skills: {
-    // Lv15 の固有技: 死霊を招いて撃ち、まれに魂を刈る
-    NECROMANCER_SHIREIMANEKI: { name: "死霊招き", mp: 5, kind: "atk", power: 16, element: "dark", instakill: { chance: 0.08 }, target: "enemy", desc: "死霊を招いて撃つ。まれに魂を刈り取る（即死・主には効かない）" },
+    // 序盤の固有技: 死霊を招いて撃ち、まれに魂を刈る
+    NECROMANCER_SHIREIMANEKI: {name: "死霊招き", mp: 5, kind: "atk", power: 14, element: "dark", instakill: {chance: 0.06}, target: "enemy", desc: "死霊が闇で撃ち、与えた傷の15%を吸う。6%で即死（主を除く）", dur: 3, drain: 0.15},
     // 死霊術師は PIE が低く癒しの祈りに向かない: 傷は敵から吸って塞ぐ
     NECROMANCER_SEIKISUI: { name: "生気吸い", mp: 3, kind: "atk", power: 12, element: "dark", drain: 0.5, target: "enemy", desc: "闇で敵の生気を吸い、己の傷を塞ぐ" },
     NECROMANCER_MOUJANOTE: { name: "亡者の手", mp: 3, kind: "debuff", debuff: { agi: 0.8, hit: 0.85 }, target: "enemy", desc: "地から亡者の手が伸び、足と狙いを鈍らせる" },
@@ -32,7 +29,7 @@ export default {
     NECROMANCER_SHIMEI: { name: "死神の指名", mp: 10, kind: "debuff", instakill: { chance: 0.3 }, debuff: { vit: 0.8 }, target: "enemy", desc: "死神が名を呼び即死させる。逃れても守りが落ちる" },
     NECROMANCER_SHIDOKU: { name: "屍毒の接吻", mp: 8, kind: "debuff", poison: { chance: 0.85, pct: 0.1 }, debuff: { atk: 0.9 }, target: "enemy", desc: "屍の毒で猛毒にし、力を萎えさせる" },
     NECROMANCER_KOUSHIN: { name: "死霊の行進", mp: 14, kind: "atk", power: 32, element: "dark", flinchChance: 0.25, target: "all-enemy", desc: "死霊の群れが敵全体を踏みしだき、怯ませる" },
-    NECROMANCER_KONBAKU: { name: "魂縛りの陣", mp: 10, kind: "debuff", seal: { chance: 0.5, turns: 3 }, strip: true, target: "all-enemy", desc: "魂を縛り、敵全体の特技と強化を奪う" },
+    NECROMANCER_KONBAKU: {name: "魂縛りの陣", mp: 10, kind: "debuff", seal: {chance: 0.55, turns: 3}, target: "all-enemy", desc: "魂を縛り、敵全体の素早さを1段下げ、55%で特技を3ターン封じる", dur: 3, debuff: {agi: 0.8}},
     NECROMANCER_INOCHISOGI: { name: "命削ぎ", mp: 7, kind: "atk", gravity: 0.22, drain: 0.3, target: "enemy", desc: "今の命の22%を削ぎ取り、己に移す（主には弱い）" },
     NECROMANCER_SEIJANETAMI: { name: "生者への妬み", mp: 30, kind: "atk", power: 86, element: "dark", prey: { races: LIVING, mul: 1.3 }, target: "enemy", desc: "生ある者を妬む闇。亜人・巨人・獣・鳥人に強い" },
     NECROMANCER_KUSARESHOUKI: { name: "腐れ瘴気", mp: 10, kind: "atk", power: 12, poison: { chance: 0.6, pct: 0.05 }, debuff: { vit: 0.85 }, target: "all-enemy", desc: "腐臭の瘴気で敵全体を毒し、守りを腐らせる" },
@@ -50,8 +47,13 @@ export default {
   perks: {
     necromancerShikuirai: { label: "屍喰らい", lv: ["敵を倒すとHP4%・MP1%回復", "敵を倒すとHP6%・MP1.5%回復", "敵を倒すとHP8%・MP2%回復"],
       fx: [{ t: "kill", hp: [0.04, 0.06, 0.08], mp: [0.01, 0.015, 0.02] }] },
-    necromancerMeifuIzumi: { label: "冥府の泉", lv: ["2ターン目から毎ターン最大MPの2%回復", "毎ターン最大MPの3%回復", "毎ターン最大MPの4%回復"],
-      fx: [{ t: "round", mp: [0.02, 0.03, 0.04] }] },
+    necromancerMeifuIzumi: {
+      label: "冥府の泉",
+      lv: ["2ターン目から、敵が残り1体なら毎ターン最大MPの2%回復", "2ターン目から、敵が残り1体なら毎ターン最大MPの3%回復", "2ターン目から、敵が残り1体なら毎ターン最大MPの4%回復"],
+      fx: [
+        {t: "round", when: {lastFoe: true}, mp: [0.02, 0.03, 0.04]},
+      ],
+    },
     necromancerShishaSasayaki: { label: "死者の囁き", lv: ["攻撃呪文の後15%で消費MPが戻る", "攻撃呪文の後22%で消費MPが戻る", "攻撃呪文の後30%で消費MPが戻る"],
       fx: [{ t: "cast", on: "atk", chance: [0.15, 0.22, 0.3], refund: true }] },
     necromancerShinigamiMe: { label: "死神の眼", lv: ["HP50%以下の敵への与ダメ+10%", "HP50%以下の敵への与ダメ+16%", "HP50%以下の敵への与ダメ+22%", "HP50%以下の敵への与ダメ+28%"],

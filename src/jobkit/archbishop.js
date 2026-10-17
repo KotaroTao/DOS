@@ -1,3 +1,4 @@
+// 全職見直し: 深い傷を癒し、継続回復と治療で戦線を保つ。ランクパッシブは維持。
 import { HOPE_HIDAMARI } from "./common.js";
 // 巡礼者 (archbishop) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
@@ -6,27 +7,25 @@ export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
   awaken: "archbishopShukufuku",
   table: `
-    1 HOLYRAY 3 DIOS 5 kantei/2 5 CURE 7 CUREALL 10 BLESS 10 RECOVER 12 ICENEEDLE
-    15 ARCHBISHOP_MAMORISEIKU 15 riseAgain/1 17 REGEN 17 RECOVERALL 20 DIOSALL 20 AWAKE
-    25 archbishopChinka/1 25 AWAKEALL 30 DIAL 35 archbishopMamori/1 35 STONECURE 40 SEIKUNOKAGO
-    45 heroKibouHidamari/1 45 STONECUREALL 50 REVIVE 50 riseAgain/2 55 ARCHBISHOP_SENREI 55 DIALALL
-    60 archbishopMamori/2 60 MADIOS 62 ARCHBISHOP_SEISUINOYARI 65 PURIFY 70 archbishopChinka/2
-    75 archbishopSeiten/1 80 PURIFYALL 85 ARCHBISHOP_NORITO 90 heroKibouHidamari/2 90 RESURRECT
-    95 ARCHBISHOP_FUKADE 100 ARCHBISHOP_MEGUMI 100 riseAgain/3 105 archbishopMamori/3
-    110 ARCHBISHOP_SEITENNOMAMORI 115 resistAilment/1 115 MADIOSALL 120 ARCHBISHOP_MICHISHIO
-    125 popePrayer/1 130 ARCHBISHOP_FUUJI 135 archbishopChinka/3 140 ARCHBISHOP_ROUSHOU
-    145 heroKibouHidamari/3 150 ARCHBISHOP_SHOUKU 155 archbishopSeiten/2 160 ARCHBISHOP_DAISENREI
-    165 resistAilment/2 170 ARCHBISHOP_KOURIN 175 archbishopChinka/4 180 ARCHBISHOP_TAIKAI
-    185 archbishopMamori/4 190 ARCHBISHOP_SABAKI 195 ARCHBISHOP_BAKUFU 200 ARCHBISHOP_SHUUSHOU`,
+    1 HOLYRAY 3 DIOS 5 kantei/2 5 CURE 7 CUREALL 10 BLESS
+    10 RECOVER 12 ICENEEDLE 12 ARCHBISHOP_MAMORISEIKU 15 riseAgain/1 17 RECOVERALL 18 REGEN
+    20 DIOSALL 20 AWAKE 20 archbishopMamori/1 25 archbishopChinka/1 25 AWAKEALL 25 SEIKUNOKAGO
+    30 DIAL 35 STONECURE 35 ARCHBISHOP_SENREI 35 archbishopSeiten/1 45 heroKibouHidamari/1 45 STONECUREALL
+    45 DIALALL 50 REVIVE 50 riseAgain/2 55 PURIFY 60 MADIOS 62 ARCHBISHOP_SEISUINOYARI
+    65 archbishopMamori/2 65 ARCHBISHOP_FUKADE 70 archbishopChinka/2 75 ARCHBISHOP_NORITO 80 PURIFYALL 90 heroKibouHidamari/2
+    90 RESURRECT 90 ARCHBISHOP_MEGUMI 100 riseAgain/3 105 MADIOSALL 110 archbishopMamori/3 110 ARCHBISHOP_SEITENNOMAMORI
+    115 resistAilment/1 120 ARCHBISHOP_MICHISHIO 125 popePrayer/1 125 archbishopSeiten/2 130 ARCHBISHOP_FUUJI 135 archbishopChinka/3
+    140 ARCHBISHOP_ROUSHOU 145 heroKibouHidamari/3 150 ARCHBISHOP_SHOUKU 160 ARCHBISHOP_DAISENREI 165 resistAilment/2 165 archbishopMamori/4
+    170 ARCHBISHOP_KOURIN 175 archbishopChinka/4 180 ARCHBISHOP_TAIKAI 190 ARCHBISHOP_SABAKI 195 ARCHBISHOP_BAKUFU 200 ARCHBISHOP_SHUUSHOU`,
   skills: {
-    // Lv15 の固有技: 聖句を唱えて癒し、致死を一度耐える加護を授ける
-    ARCHBISHOP_MAMORISEIKU: { name: "護りの聖句", mp: 4, kind: "heal", healMul: 1, healCap: 0.5, grantEndure: true, target: "ally", desc: "聖句を唱えて癒し、致死を一度だけ耐える加護を授ける" },
+    // 序盤の固有技: 聖句を唱えて癒し、致死を一度耐える加護を授ける
+    ARCHBISHOP_MAMORISEIKU: {name: "護りの聖句", mp: 5, kind: "heal", healMul: 0.9, healCap: 0.5, grantEndure: true, target: "ally", desc: "一人を癒し、不屈を一度授ける。最大HP2%の癒しが3ターン続く", dur: 3, regen: {pct: 0.02, turns: 3}},
     ARCHBISHOP_SENREI: { name: "洗礼の儀", mp: 9, kind: "buff", buff: { vit: 1.1 }, cure: ["sleep", "charm", "confuse"], target: "ally", desc: "一人の眠り・魅了・混乱を治し、守りを固める" },
     ARCHBISHOP_SEISUINOYARI: { name: "聖水の槍", mp: 9, kind: "atk", power: 27, element: "water", debuff: { atk: 0.85 }, target: "enemy", desc: "聖水の槍で貫き、敵の力を削ぐ" },
     ARCHBISHOP_NORITO: { name: "泉の祝詞", mp: 19, kind: "heal", healMul: 1.4, cure: ["poison", "paralyze", "sleep"], target: "all-ally", desc: "全員を癒し、毒・猛毒・麻痺・眠りを治す" },
     ARCHBISHOP_FUKADE: { name: "深淵の湧水", mp: 7, kind: "heal", healMul: 2.2, purge: true, target: "ally", desc: "深手を塞ぎ、弱体も洗い流す" },
     ARCHBISHOP_MEGUMI: { name: "恵みの雨", mp: 12, kind: "buff", regen: { pct: 0.06, turns: 4 }, buff: { vit: 1.1 }, target: "all-ally", desc: "恵みの雨が全員を癒し続け、守りを固める" },
-    ARCHBISHOP_SEITENNOMAMORI: { name: "聖典の守り", mp: 16, kind: "buff", buff: { vit: 1.25 }, grantBarrier: 1, target: "all-ally", desc: "全員の守りを上げ、魔障壁を授ける" },
+    ARCHBISHOP_SEITENNOMAMORI: {name: "聖典の守り", mp: 16, kind: "buff", buff: {vit: 1.25}, grantBarrier: 1, target: "all-ally", desc: "味方全員のVITを1段上げ、魔障壁1回と最大HP4%の癒しを3ターン授ける", dur: 3, regen: {pct: 0.04, turns: 3}},
     ARCHBISHOP_MICHISHIO: { name: "満ち潮の祈り", mp: 23, kind: "heal", healMul: 1.8, regen: { pct: 0.03, turns: 3 }, target: "all-ally", desc: "満ちる潮が全員を癒し、癒しを残す" },
     ARCHBISHOP_FUUJI: { name: "封じの聖句", mp: 22, kind: "atk", power: 58, element: "light", seal: { chance: 0.5, turns: 3 }, debuff: { atk: 0.9 }, target: "enemy", desc: "聖句の光が特技を封じ、力を削ぐ" },
     ARCHBISHOP_ROUSHOU: { name: "聖典の朗唱", mp: 20, kind: "heal", healMul: 1.5, buff: { vit: 1.15 }, debuffAll: { atk: 0.9 }, target: "all-ally", desc: "全員を癒し守り、敵の気勢を削ぐ" },
@@ -46,8 +45,14 @@ export default {
       fx: [{ t: "heal", v: [0.20, 0.40, 0.60, 1.00] }],
     },
     archbishopMinasoko: HOPE_HIDAMARI, // 旧セーブの別名
-    archbishopSeiten: { label: "聖典の護り", scope: "party", lv: ["戦闘開始時35%で、味方全員に魔障壁1回", "戦闘開始時55%で、味方全員に魔障壁1回", "戦闘開始時75%で、味方全員に魔障壁1回"],
-      fx: [{ t: "start", chance: [0.35, 0.55, 0.75], party: true, barrier: 1 }] },
+    archbishopSeiten: {
+      label: "聖典の護り",
+      scope: "party",
+      lv: ["戦闘開始時、40%で味方全員に魔障壁1回", "戦闘開始時、65%で味方全員に魔障壁1回", "戦闘開始時、85%で味方全員に魔障壁1回"],
+      fx: [
+        {t: "start", party: true, chance: [0.4, 0.65, 0.85], barrier: [1, 1, 1]},
+      ],
+    },
     archbishopChinka: { label: "鎮火の聖句", scope: "party", lv: ["火の敵への呪文ダメージ+12%・味方全員の火の敵からの被ダメージ−4%", "火の敵への呪文ダメージ+18%・味方全員の火の敵からの被ダメージ−6%", "火の敵への呪文ダメージ+24%・味方全員の火の敵からの被ダメージ−8%", "火の敵への呪文ダメージ+30%・味方全員の火の敵からの被ダメージ−10%"],
       fx: [{ t: "deal", on: "spell", when: { tgtElem: "fire" }, v: [0.12, 0.18, 0.24, 0.3] }, { t: "take", aura: true, when: { tgtElem: "fire" }, v: [0.04, 0.06, 0.08, 0.1] }] },
     archbishopMamori: { label: "傷を覆う祈り", scope: "party", lv: ["HP50%以下の味方の被ダメージ−5%", "HP50%以下の味方の被ダメージ−8%", "HP50%以下の味方の被ダメージ−11%", "HP50%以下の味方の被ダメージ−14%"],
