@@ -1,5 +1,5 @@
 // 全迷宮で共用する人物と小物。透過原画を保持し、ゲーム側の状態に応じて差分を選ぶ。
-import { drawPhotoPlaceholder } from "./sprites.js";
+import { watchIllustration } from "./imageloading.js";
 import { normalizeLook, WALKER_CLOAKS, WALKER_TRIMS } from "./walkerart.js";
 
 import { CORPSE_FAMILIES, CORPSE_STATES, corpseArtKey } from "./corpseart.js";
@@ -20,8 +20,11 @@ function sheet(key) {
   return state.ready ? state.image : null;
 }
 export function prewarmCryptActors() { for (const key of Object.keys(assets)) sheet(key); }
-export function cryptActorsPending() {
+export function cryptActorsPending(owner) {
   prewarmCryptActors();
+  if (owner) for (const state of sheets.values()) {
+    if (!state.ready) watchIllustration(state, state.done, owner, true);
+  }
   return [...sheets.values()].some(state => state.pending);
 }
 
@@ -160,15 +163,12 @@ export function cryptPropSprite(key) {
   if (propSprites.has(key)) return propSprites.get(key);
   sheet(frame[0]);
   const w = frame[3], h = frame[4], k = 12 / Math.max(w, h), img = new Image();
-  const spr = { w: w * k, h: h * k, photo: { img, sx: 0, sy: 0, sw: w, sh: h } };
+  const spr = { w: w * k, h: h * k, photo: { img, ready: sheets.get(frame[0]).done, sx: 0, sy: 0, sw: w, sh: h } };
   propSprites.set(key, spr);
-  sheets.get(frame[0]).done.then(() => {
+  sheets.get(frame[0]).done.then(ok => {
+    if (!ok) return;
     const b = cryptPropBitmap(key);
-    if (b) { img.src = b.c.toDataURL(); return; }
-    // 原画を取れない時は、共通の待機印だけを表示する。
-    const c = document.createElement("canvas"); c.width = w; c.height = h;
-    drawPhotoPlaceholder(c.getContext("2d"), 0, 0, w, h);
-    img.src = c.toDataURL();
+    if (b) img.src = b.c.toDataURL();
   });
   return spr;
 }

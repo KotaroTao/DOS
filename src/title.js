@@ -1,3 +1,4 @@
+import { watchIllustration } from "./imageloading.js";
 import { showPlaytestRecords } from "./playtest.js";
 // タイトル画面 — 起動のたびに最初に出る「顔」
 //
@@ -340,7 +341,11 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
     const token = ++building;
     // 縦横の向きが変わった時だけ原画を選び直す (同じ原画なら配置だけ直す)
     let next = scene && scene.pick === pick ? scene : null;
-    if (!next) { next = await PaintedTitle.create(vw, vh, REDUCED); next.pick = pick; }
+    if (!next) {
+      const ready = PaintedTitle.create(vw, vh, REDUCED);
+      watchIllustration(wrap, ready, wrap);
+      next = await ready; next.pick = pick;
+    }
     if (token !== building || closed) return;
     const wasAwake = scene && scene.awakeAt >= 0;
     scene = next;

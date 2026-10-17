@@ -1,4 +1,5 @@
 // 六幕を物語と同じ原画で映す。画像が使えない時も暗い幕を保つ。
+import { watchImage } from "./imageloading.js";
 import { SCENES as ORIGINAL_SCENES, setReduced } from "./openingart.js";
 
 export { setReduced };
@@ -25,6 +26,7 @@ function illustratedShot(index, W, H) {
   const { focus } = OPENING_IMAGES[index];
   return {
     draw(g, t, cam, prog) {
+      watchImage(image);
       // 取得中・失敗時とも旧イラストは使わない。
       if (!image?.complete || !image.naturalWidth) {
         g.save(); g.globalAlpha = 1; g.fillStyle = "#020104";

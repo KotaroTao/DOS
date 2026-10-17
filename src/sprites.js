@@ -2,6 +2,7 @@
 // 各モンスターは art(文字グリッド) + palette(文字->色) で定義。
 // '.' は透明。グリッドは行ごとに任意長でよく、最大幅に右側を透明で揃える。
 import { MONSTER_TEMPERAMENTS } from "./dungeons/temperaments.js";
+import { watchIllustration } from "./imageloading.js";
 import { monsterResists } from "./resistance.js";
 
 export const MONSTERS = {
@@ -1150,7 +1151,7 @@ const PHOTO_TRIES = 4;
 const waitMs = (ms) => new Promise((r) => setTimeout(r, ms));
 function photoLoaded(img) {
   return new Promise((resolve) => {
-    if (img.complete && img.naturalWidth > 0) { resolve(true); return; }
+    if (img.complete && img.src) { resolve(img.naturalWidth > 0); return; }
     const done = (ok) => { img.removeEventListener("load", onLoad); img.removeEventListener("error", onErr); resolve(ok); };
     const onLoad = () => done(true), onErr = () => done(false);
     img.addEventListener("load", onLoad);
@@ -1202,24 +1203,13 @@ function dims(spr) {
   if (spr.photo) return { w: spr.w, h: spr.h, rows: null };
   return normalize(spr.art);
 }
-// 取得中・失敗時も旧イラストを描かず、姿を持たない共通の待機印で位置を示す。
-export function drawPhotoPlaceholder(ctx, dx, dy, dw, dh) {
-  const r = Math.min(dw, dh) * 0.16, x = dx + dw / 2, y = dy + dh / 2;
-  ctx.save();
-  ctx.strokeStyle = "#9b9488";
-  ctx.lineWidth = Math.max(1, r / 12);
-  ctx.beginPath();
-  ctx.moveTo(x, y - r); ctx.lineTo(x + r, y); ctx.lineTo(x, y + r);
-  ctx.lineTo(x - r, y); ctx.closePath(); ctx.stroke();
-  ctx.restore();
-}
 // 原画の矩形を (dx,dy,dw,dh) へ描く。まだ写し終わっていなければ写しを始めて false
 export function drawPhoto(ctx, spr, dx, dy, dw, dh) {
   const p = spr.photo;
   const src = p.img && _photoSurf.get(p.img);
   if (!src) {
-    preparePhoto(p);
-    drawPhotoPlaceholder(ctx, dx, dy, dw, dh);
+    const ready = preparePhoto(p);
+    watchIllustration(p.img, ready, ctx.canvas, true);
     return false;
   }
   const iw = src.width, ih = src.height;
@@ -1244,10 +1234,12 @@ export function drawPhoto(ctx, spr, dx, dy, dw, dh) {
   return true;
 }
 // 原画を写し終えてから fn を呼ぶ (写し済みなら即座に)
-export function whenPhoto(spr, fn) {
+export function whenPhoto(spr, fn, owner, live = false) {
   const p = spr.photo;
   if (photoReady(p)) { fn(); return; }
-  preparePhoto(p).then((ok) => { if (ok) fn(); });
+  const ready = preparePhoto(p);
+  if (owner) watchIllustration(p.img, ready, owner, live);
+  ready.then((ok) => { if (ok) fn(); });
 }
 // 原画版の絵を canvas に描く (読み込み待ちなら読み込み後に描き直す)。滑らかに縮める絵なので pixelated にしない
 function photoInto(c, spr, dx, dy, dw, dh) {
@@ -1258,7 +1250,7 @@ function photoInto(c, spr, dx, dy, dw, dh) {
     if (!g) return;
     g.clearRect(0, 0, c.width, c.height);
     drawPhoto(g, spr, dx, dy, dw, dh);
-  });
+  }, c);
 }
 
 // Canvasコンテキストにドット絵を描く
