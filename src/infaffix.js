@@ -330,6 +330,20 @@ export function affixPower(it, afx) {
   const B = afxBase(it);
   return afx.reduce((s, a) => { const d = AFX_MAP[a.k]; return s + (d ? afxPts(d, a.v, B) : 0); }, 0);
 }
+// 棚へ残す組を選んだ時に失う極特性。同じ特性を同じ値以上で残せるなら警告しない。
+export function lostExtremeAffixes(sets, keepIndex) {
+  const kept = sets?.[keepIndex]?.afx;
+  if (!Array.isArray(kept)) return [];
+  const lost = new Map();
+  for (const [i, set] of sets.entries()) {
+    if (i === keepIndex) continue;
+    for (const a of set.afx || []) {
+      if (afxDef(a.k)?.tier !== "x" || kept.some(b => b.k === a.k && b.v >= a.v)) continue;
+      if (!lost.has(a.k) || a.v > lost.get(a.k).v) lost.set(a.k, { ...a });
+    }
+  }
+  return [...lost.values()];
+}
 // 組の説明 (品を作らずに)
 export function affixLines(it, afx) {
   const B = afxBase(it);
