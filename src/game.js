@@ -12305,6 +12305,16 @@ function highlightActor(actor) {
 
 const AIL_SEAL = { poison: ["毒", "poison"], paralyze: ["痺", "paralyze"], stone: ["石", "stone"] };
 const PARTY_MIND_SEAL = { charm: ["魅", "charm"], confuse: ["乱", "confuse"] };
+// 戦闘の札は現在値だけを一行に。切り捨てで残量を多く見せず、1万未満は正確に残す。
+function partyVitalText(value) {
+  for (const [unit, label] of [[1e16, "京"], [1e12, "兆"], [1e8, "億"], [1e4, "万"]]) {
+    if (value >= unit) {
+      const n = value / unit;
+      return (n < 10 ? Math.floor(n * 10) / 10 : Math.floor(n)) + label;
+    }
+  }
+  return String(value);
+}
 let _partyKey = "";
 function partyCallKey(p, st) {
   const c = st === "combat" && G.partyCall && G.partyCall.get(p);
@@ -12337,7 +12347,7 @@ function renderParty() {
     card.className = cls;
     card.dataset.idx = idx;
     // 盤面: タップ = 隊のシート (迷宮の型) / 長押し = 持ち上げて隊列を並べ替える (動かさず離せば覗く)
-    // 戦闘: 長押し = その場で覗く
+    // 戦闘: 命令待ちのタップ・長押し = その場で覗く (対象選択中のタップは対象を選ぶ)
     if (G.state === "board") {
       card.style.cursor = "pointer";
       card.setAttribute("role", "button");
@@ -12354,7 +12364,12 @@ function renderParty() {
     // 戦闘: 味方を対象に選ぶ場面では、隊の札をタップしても選べる (回復・支援の対象)
     if (G.state === "combat") card.addEventListener("click", () => {
       const b = G.battle;
-      if (!b || b.phase !== "target" || G.animating || uiBlocked()) return;
+      if (!b || G.animating || uiBlocked()) return;
+      if (b.phase === "input") {
+        SFX.select(); buzz(10); uiDungeonHud.peekDoll(p, { idx, combat: true });
+        return;
+      }
+      if (b.phase !== "target") return;
       if (!b.targetOptions().includes(p)) { SFX.ng(); return; }
       SFX.select(); buzz(10);
       b.chooseTarget(p);
@@ -12398,8 +12413,12 @@ function renderParty() {
       const fill = el("i");
       fill.style.width = (m > 0 ? Math.max(0, Math.min(100, (v / m) * 100)) : 0) + "%";
       d.appendChild(fill);
-      const n = el("span", "pc-num", m > 0 ? String(v) : "—");
-      if (m > 0) n.appendChild(el("small", null, "/" + m));
+      const combat = st === "combat" || (st === "over" && !!G.battle);
+      const n = el("span", "pc-num no-phrase", m > 0 ? (combat ? partyVitalText(v) : String(v)) : "—");
+      if (m > 0 && !combat) n.appendChild(el("small", null, "/" + m));
+      const exact = `${kind.toUpperCase()} ${v}/${m}`;
+      d.title = exact;
+      d.setAttribute("aria-label", exact);
       d.appendChild(n);
       return d;
     };

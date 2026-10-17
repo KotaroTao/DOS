@@ -82,7 +82,8 @@ with sync_playwright() as p:
           const log = document.getElementById('log').getBoundingClientRect();
           const party = document.getElementById('party').getBoundingClientRect();
           const controls = document.getElementById('controls').getBoundingClientRect();
-          if (log.height < 54 || log.bottom > party.top) throw Error('戦闘中の記録が重なる');
+          const minLog = innerWidth <= 600 && innerHeight <= 640 ? 38.5 : 54;
+          if (log.height < minLog || log.bottom > party.top) throw Error('戦闘中の記録が重なる');
           const app = document.getElementById('app');
           if (controls.bottom > app.getBoundingClientRect().top + app.scrollHeight + 1)
             throw Error('戦闘の操作欄がスクロール範囲外');

@@ -24,6 +24,7 @@
 #app.in-combat { overflow-y: auto; overscroll-behavior-y: contain; }
 #app.in-combat #hud { flex-shrink: 0; min-height: 93px; }
 #app.in-combat #log { min-height: 54px; }
+#app.in-combat #controls:has(#combat-menu[data-mode="input"]) { flex-shrink: 0; }
 #controls { flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; padding: 2px 6px 6px; }
 
 /* ===== 見出し (#topbar) ===== */
@@ -293,6 +294,8 @@
 }
 .pc-vial.mp .pc-num { font-size: 8.5px; color: #e6f6ff; }
 .pc-num small { font-size: 0.82em; opacity: 0.72; margin-left: 1px; }
+/* 桁数で札の高さを変えず、敵と操作欄に使う高さを守る。正確な値は札の詳細へ。 */
+#app.in-combat .pc-num { flex-wrap: nowrap; white-space: nowrap; overflow-wrap: normal; line-height: 1.4; }
 .pc .buffs { grid-area: bf; display: flex; flex-wrap: wrap; gap: 2px; margin-top: 0; }
 /* 戦闘中は種類数の札を1行に固定。効果が増えても技の一覧の高さを保つ。 */
 #app.in-combat .pc .buffs {
@@ -426,7 +429,7 @@
 /* 隣の札の上まで幅を取り、技名を一行で読ませる。画面端では内側へ広げる。 */
 .pc-call { width: max-content; max-width: min(240px, calc((100vw - 32px) / 2)); right: auto; }
 .pc:nth-child(3n) .pc-call, .pc:last-child .pc-call { left: auto; right: 0; align-items: flex-end; }
-@media (max-width: 600px) and (max-height: 700px) {
+@media (max-width: 600px) and (max-height: 760px) {
   .pc:nth-child(n+4) .pc-call { left: auto; right: 0; align-items: flex-end; }
 }
 .pc-cl.k-skill { color: #f3d58b; }   /* 技・呪文 */
@@ -635,7 +638,7 @@ canvas.unk-sil { filter: brightness(0) drop-shadow(0 0 1px rgba(185,172,217,0.85
 }
 
 /* 戦闘では行動順と命令板もあるため、少し早めに隊の表示を詰める。 */
-@media (max-width: 600px) and (max-height: 700px) {
+@media (max-width: 600px) and (max-height: 760px) {
   #app.in-combat #party { flex-wrap: nowrap; gap: 3px; }
   #app.in-combat #party .pc {
     flex: 1 1 0; max-width: none; min-height: 44px;
@@ -702,4 +705,13 @@ canvas.unk-sil { filter: brightness(0) drop-shadow(0 0 1px rgba(185,172,217,0.85
   #app.in-combat.enemy-names-two-rows #enemy-names { min-height: 33.5px; padding-top: 7.5px; }
   #app.in-combat.enemy-names-two-rows #hud { min-height: 86.5px; }
   #app.in-combat.enemy-names-two-rows #log { min-height: 47.5px; }
+}
+/* 戦場と命令板を優先し、短いスマホでは記録の箱だけを縮める。履歴はタップで開ける。 */
+@media (max-width: 600px) and (max-height: 640px) {
+  #app.in-combat #party .pc { row-gap: 0; padding-block: 0; }
+  #app.in-combat #controls { padding-bottom: 2px; }
+  #app.in-combat #hud { flex-shrink: 1; min-height: 77.5px; }
+  #app.in-combat #log { min-height: 38.5px; }
+  #app.in-combat.enemy-names-two-rows #hud { min-height: 71px; }
+  #app.in-combat.enemy-names-two-rows #log { min-height: 32px; }
 }
