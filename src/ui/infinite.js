@@ -179,11 +179,14 @@ function subChances() {
   const g = G();
   if (!g || !game.infSubBlock) return [];
   const out = [];
+  // 他の器から移せるサブ魂は、宿し忘れではないので知らせない。
+  const worn = new Set((g.party || []).flatMap((d) => [d.primary, ...(d.subs || []).filter(Boolean).map((s) => s.uid)]));
+  const unused = (g.souls || []).filter((s) => s && !worn.has(s.uid));
   for (const d of g.party || []) {
     if (!d || !d.alive || !d.primary) continue;
     const si = (d.subs || []).length; // 空いた枠のうち最初の枠 (外すと詰めて並ぶ)
     if (si >= MAX_SUBS) continue;
-    const n = (g.souls || []).filter((s) => s && s.uid !== d.primary && !game.infSubBlock(d, si, s.uid)).length;
+    const n = unused.filter((s) => !game.infSubBlock(d, si, s.uid)).length;
     if (n) out.push({ d, si, n });
   }
   return out;

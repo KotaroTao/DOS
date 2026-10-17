@@ -87,5 +87,35 @@ with sync_playwright() as p:
       }
     }''')
     print('別キャラのメイン魂・サブ魂の候補に宿主と枠を表示 OK')
+    # 全魂を宿している場合、他の器から移せる魂を未使用の候補に数えない。
+    def reopen_rest():
+        page.evaluate("""async()=>{const {sheet}=await import('/src/ui/kit.js');sheet.closeAll();__game.inf.openInfRest();}""")
+        page.wait_for_timeout(350)
+
+    def alert_visible():
+        return page.evaluate("""()=>[...document.querySelectorAll('.ui-sheet')].at(-1)?.textContent.replace(/\\u200b/g,'').includes('サブ魂に宿せる魂がある')||false""")
+
+    reopen_rest()
+    click('灯番')
+    click('戻る')
+    assert not alert_visible(), '全魂を宿しているのに灯番で警告が出た'
+    click('まだ探索する')
+    assert not alert_visible(), '全魂を宿しているのに風だまりで警告が出た'
+
+    page.evaluate("""async()=>{const {SOUL_CLASSES}=await import('/src/souls.js');window.alertSoul=__game.inf.addSoulInstance(Object.keys(SOUL_CLASSES)[8],1,30).uid;}""")
+    reopen_rest()
+    click('灯番')
+    click('戻る')
+    assert alert_visible(), '未使用で宿せる魂があるのに警告が出ない'
+    text=page.evaluate("""()=>[...document.querySelectorAll('.ui-sheet')].at(-1).textContent.replace(/\\u200b/g,'')""")
+    assert '宿せる魂 1つ' in text and '宿せる魂 2つ' not in text, text
+    click('サブ魂を選ぶ')
+    page.evaluate("""()=>{if(!__game.inf.infSetSub(__game.G.party[2],0,alertSoul))throw Error('警告対象の魂を宿せない');}""")
+    click('戻る')
+    assert not alert_visible(), '未使用の魂を宿した後も警告が出た'
+    reopen_rest()
+    click('まだ探索する')
+    assert not alert_visible(), '全魂を宿した後も風だまりで警告が出た'
+    print('全魂使用中は警告なし・未使用の魂だけ候補に数える・宿した後は警告なし OK')
     assert not errors, errors
     browser.close()
