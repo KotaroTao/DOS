@@ -43,6 +43,7 @@ with sync_playwright() as p:
     for width, height in [(320, 480), (375, 550), (390, 664), (390, 844), (430, 932), (600, 700), (601, 700), (768, 1024), (1280, 900)]:
         page.set_viewport_size({'width': width, 'height': height})
         baseline = None
+        normal_size = None
         for count in [1, 2, 3, 4, 5, 6]:
             page.evaluate('(n) => setEnemies(n)', count)
             page.wait_for_timeout(180)
@@ -55,7 +56,7 @@ with sync_playwright() as p:
                 if (!p || p.cx-p.hw < -1 || p.cx+p.hw > VW+1 || p.cy-p.hh < -1 || p.cy+p.hh > VH)
                   throw Error('敵の絵が戦場からはみ出す');
                 if (innerWidth <= 600 && __game.G.battle.enemies.length <= 3) {
-                  const widthLimit = VW / __game.G.battle.enemies.length - 24;
+                  const widthLimit = VW / 3 - 24;
                   const heightLimit = VH - 44 - 12;
                   if (p.hw * 2 < widthLimit - 1 && p.hh * 2 < heightLimit - 1)
                     throw Error('敵の姿が列の幅・高さを使い切らず小さい');
@@ -69,6 +70,11 @@ with sync_playwright() as p:
                 throw Error('記録・操作欄の重なり');
               return [view.height,log.y,log.height,party.y,controls.y];
             }''')
+            size = page.evaluate('__game.G.enemyPos[9000].size')
+            if count == 1:
+                normal_size = size
+            elif count <= 3:
+                assert abs(size-normal_size) < 0.01, ('通常敵1〜3体の大きさ',width,height,count,normal_size,size)
             if baseline is None:
                 baseline = geometry
             extra = 0
@@ -130,6 +136,21 @@ with sync_playwright() as p:
                 }''')
                 assert page.evaluate('!__game.G.enemyPos[9003].distant && __game.G.enemyPos[9000].distant')
                 button.click()
+        for strong in ['boss', 'elite']:
+            page.evaluate('''kind=>{
+              setEnemies(1);
+              const e=__game.G.battle.enemies[0];
+              if(kind==='boss')e.boss=true;else e.mon={...e.mon,elite:true};
+            }''', strong)
+            page.wait_for_timeout(180)
+            assert page.evaluate('__game.G.enemyPos[9000].size') > normal_size, (width,height,strong)
+            page.evaluate('''()=>{
+              const p=__game.G.enemyPos[9000],{VW,VH}=__game.autoMove.viewSize();
+              if(p.cx-p.hw < -1 || p.cx+p.hw > VW+1 || p.cy-p.hh < -1 || p.cy+p.hh > VH)
+                throw Error('強敵・主の絵がはみ出す');
+            }''')
+        page.evaluate('setEnemies(6)')
+        page.wait_for_timeout(180)
         print(f'{width}x{height}: 1〜6体の外側の配置が一致・前後切替・射程と乱数維持 OK')
         page.locator('#controls .cmd-main button').first.scroll_into_view_if_needed()
         page.evaluate('''() => {

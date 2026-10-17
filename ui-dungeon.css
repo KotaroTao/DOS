@@ -407,7 +407,7 @@ button.rs-line { cursor: pointer; touch-action: manipulation; }
 #combat-menu .btn.cmd-quick .cmd-ic { color: var(--sp-col, #c9a24a); }
 #combat-menu .btn.cmd-quick .cmd-l { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 #combat-menu .btn.cmd-quick.locked { opacity: 0.45; filter: grayscale(0.6); }
-#combat-menu .btn.spell.last { box-shadow: inset 0 0 0 1px rgba(201,162,74,0.45), 0 2px 0 #070507; }
+:is(#combat-menu, .battle-skill-picker) .btn.spell.last { box-shadow: inset 0 0 0 1px rgba(201,162,74,0.45), 0 2px 0 #070507; }
 #combat-menu .cmd-autorow { display: grid; grid-template-columns: minmax(0, 1fr) 104px; gap: 6px; }
 #combat-menu .btn.cmd-keep { flex-direction: column; gap: 2px; min-height: 46px; padding: 4px; text-align: center; }
 #combat-menu .btn.cmd-keep .cmd-t { align-items: center; }
@@ -497,25 +497,25 @@ button.rs-line { cursor: pointer; touch-action: manipulation; }
 .rr-card { padding-bottom: 10px; }
 
 /* スキルの種別・属性の札 (戦闘のスキル一覧・早出しボタン) */
-#combat-menu .sp-tags { margin-left: auto; }
-#combat-menu .sp-tags .ui-tag { font-size: 9.5px; }
+:is(#combat-menu, .battle-skill-picker) .sp-tags { margin-left: auto; }
+:is(#combat-menu, .battle-skill-picker) .sp-tags .ui-tag { font-size: 9.5px; }
 /* 技名・札・説明を別の段にし、2列の狭い札でも名前を読めるようにする。 */
-#combat-menu .btn.spell-skill { height: max-content; min-width: 0; grid-auto-rows: max-content; }
-#combat-menu .spell-skill .sp-top { align-items: flex-start; }
-#combat-menu .spell-skill .sp-n { flex: 1 1 auto; min-width: 0; white-space: normal; overflow: visible; }
-#combat-menu .sp-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 6px; min-width: 0; }
-#combat-menu .sp-meta .sp-tags { margin-left: 0; flex-shrink: 1; flex-wrap: wrap; white-space: normal; }
+:is(#combat-menu, .battle-skill-picker) .btn.spell-skill { height: max-content; min-width: 0; grid-auto-rows: max-content; }
+:is(#combat-menu, .battle-skill-picker) .spell-skill .sp-top { align-items: flex-start; }
+:is(#combat-menu, .battle-skill-picker) .spell-skill .sp-n { flex: 1 1 auto; min-width: 0; white-space: normal; overflow: visible; }
+:is(#combat-menu, .battle-skill-picker) .sp-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 6px; min-width: 0; }
+:is(#combat-menu, .battle-skill-picker) .sp-meta .sp-tags { margin-left: 0; flex-shrink: 1; flex-wrap: wrap; white-space: normal; }
 
-#combat-menu .cmd-s .sp-tags { margin-left: 4px; }
-#combat-menu .cmd-s .sp-tags .ui-tag { font-size: 8.5px; }
+:is(#combat-menu, .battle-skill-picker) .cmd-s .sp-tags { margin-left: 4px; }
+:is(#combat-menu, .battle-skill-picker) .cmd-s .sp-tags .ui-tag { font-size: 8.5px; }
 /* 技の属性の有利・不利 (属性の明かされた敵に対して)。対象選択では「弱点」「耐性」 */
-#combat-menu .sp-edges { display: inline-flex; gap: 2px; flex: 0 0 auto; }
-#combat-menu .sp-edges.lead { margin-left: auto; }
-#combat-menu .cmd-s .sp-edges { margin-left: 4px; vertical-align: middle; }
-#combat-menu .sp-edge { display: inline-block; font-size: 8.5px; font-weight: 800; line-height: 1; padding: 2px; border-radius: 2px; letter-spacing: 0; }
-#combat-menu .sp-edge.good { color: #b8f5c0; background: rgba(30,96,46,0.55); border: 1px solid #4fbf68; }
-#combat-menu .sp-edge.bad { color: #ffc2bc; background: rgba(110,32,30,0.55); border: 1px solid #d0564c; }
-#combat-menu .tgt-hp .sp-edge { margin-right: 4px; }
+:is(#combat-menu, .battle-skill-picker) .sp-edges { display: inline-flex; gap: 2px; flex: 0 0 auto; }
+:is(#combat-menu, .battle-skill-picker) .sp-edges.lead { margin-left: auto; }
+:is(#combat-menu, .battle-skill-picker) .cmd-s .sp-edges { margin-left: 4px; vertical-align: middle; }
+:is(#combat-menu, .battle-skill-picker) .sp-edge { display: inline-block; font-size: 8.5px; font-weight: 800; line-height: 1; padding: 2px; border-radius: 2px; letter-spacing: 0; }
+:is(#combat-menu, .battle-skill-picker) .sp-edge.good { color: #b8f5c0; background: rgba(30,96,46,0.55); border: 1px solid #4fbf68; }
+:is(#combat-menu, .battle-skill-picker) .sp-edge.bad { color: #ffc2bc; background: rgba(110,32,30,0.55); border: 1px solid #d0564c; }
+:is(#combat-menu, .battle-skill-picker) .tgt-hp .sp-edge { margin-right: 4px; }
 .dg-en-kills { margin: -2px 0 6px; font-size: 12.5px; color: #b2a68f; letter-spacing: 0.12em; font-variant-numeric: tabular-nums; }
 
 /* ---- 迷宮の地図 (台帳): 新しく現れた迷宮・危うさの札・潜り始める階 ---- */
@@ -857,5 +857,14 @@ button.dp-rule:active, .dp-rule-b:active { filter: brightness(1.25); }
 /* 技の付与成功率。長い名前や複合技も札の内側で折り返す。 */
 .sp-status-rates { display: flex; flex-direction: column; gap: 2px; min-width: 0; max-width: 100%; font-size: 10px; line-height: 1.4; color: #c5b5db; white-space: normal; overflow-wrap: anywhere; }
 .sp-status-label { color: #a99c87; font-size: 9px; }
-#combat-menu .tgt > .sp-status-rates { grid-column: 1 / -1; }
+:is(#combat-menu, .battle-skill-picker) .tgt > .sp-status-rates { grid-column: 1 / -1; }
 .ui-skill .sp-status-rates { margin-top: 12px; font-size: 12px; }
+
+/* スマホの技選択は画面の約8割を使い、見出しと戻るを残して一覧だけを巻く。 */
+.battle-skill-picker.ui-sheet { height: 78vh; height: 78dvh; max-height: 80vh; max-height: 80dvh; }
+.battle-skill-picker .ui-sheet-banner { white-space: normal; letter-spacing: 0.03em; line-height: 1.5; }
+.battle-skill-picker .ui-sheet-body { min-height: 0; text-align: left; }
+:is(#combat-menu, .battle-skill-picker).battle-skill-picker .target-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; overflow: visible; }
+:is(#combat-menu, .battle-skill-picker).battle-skill-picker .btn.spell { min-height: 56px; width: 100%; padding: 8px 10px; font-size: 14px; gap: 4px; }
+.battle-skill-picker .btn.spell.locked { opacity: 0.5; }
+.battle-skill-picker .ui-sheet-foot { flex: 0 0 auto; }

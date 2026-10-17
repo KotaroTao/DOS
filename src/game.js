@@ -9605,9 +9605,11 @@ function renderCombatCanvas() {
     if (e.mon && (e.mon.art || e.mon.photo)) {
       const bm = monsterBitmap(e.mon);
       const unit = Math.max(12, bm.w, bm.h) / 12;
-      const widthSize = ((rowW / n - 24) / (bm.w + bm.pad * 2)) * unit;
-      // スマホは固定倍率で頭打ちにせず、列の幅と高さに収まる最大の姿にする。
-      sz = wideBattle ? Math.min(sz, widthSize) : widthSize;
+      const strong = e.boss || e.mon?.elite;
+      // 通常の敵は1〜2体でも三体分の幅を基準にし、強敵と主だけ実際の空き幅まで広げる。
+      const slots = strong ? n : Math.max(3, n);
+      const widthSize = ((rowW / slots - 24) / (bm.w + bm.pad * 2)) * unit;
+      sz = strong || !wideBattle ? widthSize : Math.min(sz, widthSize);
     }
     sz = Math.min(sz, sz * maxHalfH / monsterHalfH(e.mon, sz));
     return sz * (distant ? 0.58 : 1);
@@ -11037,13 +11039,18 @@ function skillEdgeTags(actor, sp) {
 }
 
 function showSpells(actor) {
-  combatMenu.innerHTML = "";
-  combatMenu.dataset.mode = "spells";
-  combatMenu.appendChild(turnPlate(actor.name, "の技", [`MP ${actor.mp}`, "長押しで詳細"]));
+  const mobile = window.innerWidth <= 600;
+  const battle = G.battle;
+  let picker = null;
+  if (!mobile) {
+    combatMenu.innerHTML = "";
+    combatMenu.dataset.mode = "spells";
+    combatMenu.appendChild(turnPlate(actor.name, "の技", [`MP ${actor.mp}`, "長押しで詳細"]));
+  }
   // 並べた順に、オフにした技を除いて出す (隊の「能力」画面で整理)。
-  // 呪文が多い職は2列に並べて縦に伸びすぎないようにする
+  // スマホは大きな選択パネルの1列一覧。広い画面のフッターは従来どおり2列も使う。
   const skills = battleSkills(actor);
-  const list = el("div", "target-list" + (skills.length > 4 ? " cols2" : ""));
+  const list = el("div", "target-list" + (!mobile && skills.length > 4 ? " cols2" : ""));
   const quick = lastSkillOf(actor);
   for (const key of skills) {
     const sp = SPELLS[key];
@@ -11051,7 +11058,12 @@ function showSpells(actor) {
     // 使えない技も長押しで詳細を見られるよう、native disabled ではなく soft-lock にする
     // (disabled だと pointer イベントが飛ばず長押しを拾えない)
     const locked = skillLocked(actor, key);
-    const b = btn("", () => { if (locked) { SFX.ng(); return; } act("spell", key); });
+    const b = btn("", () => {
+      if (G.battle !== battle || battle.current !== actor || battle.phase !== "input" || G.animating) { picker?.close(); return; }
+      if (locked) { SFX.ng(); return; }
+      picker?.close("select");
+      act("spell", key);
+    });
     b.className = "btn spell spell-skill spell-" + (sp.kind || "atk") + (key === quick ? " last" : "");
     const top = el("span", "sp-top");
     top.appendChild(el("span", "sp-n", sp.name));
@@ -11064,18 +11076,28 @@ function showSpells(actor) {
     if (edge) meta.appendChild(edge);
     if (meta.childElementCount) b.appendChild(meta);
     b.appendChild(el("span", "sp-d", skillDescription(sp)));
-    const battle = G.battle;
     const targets = sp.kind === "phys" && sp.target !== "all-enemy" && !sp.scatter ? battle.attackableEnemies(actor) : battle.livingEnemies();
     const rates = spellStatusPreview(battle, actor, sp, targets, true);
     if (rates) b.appendChild(rates);
     b.style.setProperty("--sp-col", SPELL_KIND_COLOR[sp.kind] || "#c9a24a");
-    if (locked) b.classList.add("locked");
+    if (locked) { b.classList.add("locked"); b.setAttribute("aria-disabled", "true"); }
     // 長押しでスキル詳細を表示 (MP不足などで押せない技でも内容は確認できる)
     attachLongPress(b, () => { SFX.select(); showSkillPopup(key); });
     list.appendChild(b);
   }
-  combatMenu.appendChild(list);
-  combatMenu.appendChild(cmdBtn("back", "戻る", "", () => renderCombatMenu(), "cmd-wide cmd-backb"));
+  if (mobile) {
+    picker = sheet.open({
+      className: "battle-skill-picker",
+      banner: `${actor.name}の技　MP ${actor.mp}/${actor.maxmp}`,
+      body: list,
+      footer: [{ label: "戻る", kind: "ghost", onTap: (h) => h.close("back") }],
+      onClose: () => { if (G.battle === battle && battle.current === actor && battle.phase === "input") renderCombatMenu(); },
+    });
+    picker.el.setAttribute("aria-label", `${actor.name}の技を選択`);
+  } else {
+    combatMenu.appendChild(list);
+    combatMenu.appendChild(cmdBtn("back", "戻る", "", () => renderCombatMenu(), "cmd-wide cmd-backb"));
+  }
 }
 // ---- 戦闘中の道具 ----
 function itemsBanned() { return false; } // 旧仕様の奈落の誓い「無頼の誓」は廃止 (呼び出し側のために残す)

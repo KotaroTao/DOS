@@ -34,7 +34,7 @@ with sync_playwright() as p:
         for row in page.locator('.spell-skill').all():
             row.scroll_into_view_if_needed()
             assert row.evaluate('''e=>{const r=e.getBoundingClientRect();return r.width>=44&&r.height>=44&&r.left>=0&&r.right<=innerWidth+1&&e.scrollWidth<=e.clientWidth+1;}'''),f'技一覧 {width}'
-        assert page.locator('#combat-menu .sp-status-rates').count()==3
+        assert page.locator('.battle-skill-picker .sp-status-rates').count()==3
     page.set_viewport_size({'width':390,'height':844})
     page.locator('.spell-skill').first.scroll_into_view_if_needed()
     page.screenshot(path='/tmp/dos-status-skills-mobile.png')
