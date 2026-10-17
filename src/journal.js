@@ -124,7 +124,9 @@ export function helpEntries(g, featureUnlocked = () => false) {
 }
 export function storyEntries(g) {
   const w = g.world || {};
-  const lore = WORLD.filter(d => w.cleared?.[d.id]).map(d => {
+  // 迷宮の台帳では後ろにある序章を、読物の一覧では第一章より前に置く。
+  const lore = WORLD.filter(d => w.cleared?.[d.id])
+    .sort((a, b) => Number(!!b.tutorial) - Number(!!a.tutorial)).map(d => {
     const chapter = CHAPTERS.find(ch => ch.dungeons.includes(d.id));
     const image = DUNGEON_LORE_IMAGES[d.id];
     // 専用の原画が無い寄り道の迷宮は、ほかの迷宮の手がかりの絵を借りず、出撃画面と同じその迷宮の情景 (backdrops.js) を掲げる
