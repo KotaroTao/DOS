@@ -24,7 +24,8 @@
   -webkit-tap-highlight-color: transparent; touch-action: manipulation;
   transition: transform var(--t-tap) ease-out, filter var(--t-tap) ease-out;
 }
-.dk-btn:active { transform: translateY(2px); box-shadow: inset 0 2px 6px rgba(0,0,0,0.85), 0 1px 0 #070507; }
+.dk-btn.dk-down:disabled { opacity: 0.4; cursor: default; animation: none; }
+.dk-btn:not(:disabled):active { transform: translateY(2px); box-shadow: inset 0 2px 6px rgba(0,0,0,0.85), 0 1px 0 #070507; }
 .dk-ic { flex: 0 0 auto; width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round; stroke-linecap: round; filter: drop-shadow(0 1px 0 #000); }
 .dk-t { display: flex; flex-direction: column; min-width: 0; line-height: 1.15; }
 .dk-l { font-size: 15.5px; font-weight: 800; letter-spacing: 0.12em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 0 #000; }
