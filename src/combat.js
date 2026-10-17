@@ -53,6 +53,10 @@ let _enemyLvTag = () => "";
 export function setEnemyLvTag(fn) { _enemyLvTag = typeof fn === "function" ? fn : () => ""; }
 // 敵の群れは最大6体 (前衛3+後衛3)
 export const MAX_ENEMIES = 6;
+// 会心倍率の装備補正は物理・魔法を別々に合算し、各+100%まで。
+export function gearCritMul(actor, spell = false) {
+  return 1 + Math.max(0, Math.min(1, actor[spell ? "spellCritDamageBonus" : "critDamageBonus"] || 0));
+}
 
 // カードでめくったモンスター: 階層が深いほど群れが膨らむ (最大6体)。scale で迷宮ごとの強さ調整。
 // 「もう1体」を確率 p で繰り返す幾何分布 — 1階 p≈0.26 (平均1.4体) → 5階以深 p≈0.6 (平均2.4体、まれに6体)。
@@ -1686,7 +1690,9 @@ export class Battle {
     const crit = Math.min(0.85, Math.max(0, 0.06 + (a.critBonus || 0) + luckCritBonus(a.luk) + (a._evCrit || 0)));
     const qi = this.queue.indexOf(a);
     const order = this.current === a ? "now" : qi >= 0 ? this.queue.slice(0, qi).filter((x) => x.alive).length : null;
-    return { stats, power: this._eatk(a), hit, crit, evade, flee: this.fleeChance(a), order, back: this.isBackRow(a), reach: reach.length, foes: foes.length, range: this.attackRange(a) };
+    return { stats, power: this._eatk(a), hit, crit, spellCrit: this._spellCritChance(a, {}),
+      critMul: 1.85 * gearCritMul(a) * [1, 1.25, 1.45][Math.min(pv(a, "vitalEye"), 2)],
+      spellCritMul: 1.5 * (gm(a).sae ? 1.3 : 1) * gearCritMul(a, true), evade, flee: this.fleeChance(a), order, back: this.isBackRow(a), reach: reach.length, foes: foes.length, range: this.attackRange(a) };
   }
 
   // テスト記録の集計 (中断セーブから戻った古い戦闘にも器を用意する)
@@ -2772,7 +2778,7 @@ export class Battle {
       // 反撃も物理なので隊列補正を受ける
       let dmg = Math.max(1, Math.round((variance(Math.round(this._eatk(defender) * mul)) - Math.floor(this._evit(attacker) * 0.5)) * this._rowMul(defender, attacker)));
       let crit = false;
-      if (cLv >= 3 && random() < 0.06 + (defender.critBonus || 0)) { crit = true; dmg = Math.floor(dmg * 1.85); }
+      if (cLv >= 3 && random() < Math.min(0.85, Math.max(0, 0.06 + (defender.critBonus || 0)))) { crit = true; dmg = Math.floor(dmg * 1.85 * gearCritMul(defender)); }
       // 反撃の会心も通常の物理と同じ耐性軽減を使う。
       const pr = this._resistCut(attacker, dmg, "physResist", this._physPierce(defender));
       if (pr.immune) this.log(`${defender.name}の反撃！ ${attacker.name}：物理無効`, "hit");
@@ -3105,7 +3111,7 @@ export class Battle {
     critChance = (opt.critBonus || 0) >= 1 ? 1 : Math.min(0.85, Math.max(0, critChance));
     const crit = sureCrit || random() < critChance;
     if (crit && actor.side === "party" && tgt.side === "enemy" && this.show) this.show.cr++; // 観客の注文 (会心を見せろ)
-    if (crit) dmg = Math.floor(dmg * 1.85 * [1, 1.25, 1.45][Math.min(pv(actor, "vitalEye"), 2)]); // 急所読み: 会心強化
+    if (crit) dmg = Math.floor(dmg * 1.85 * gearCritMul(actor) * [1, 1.25, 1.45][Math.min(pv(actor, "vitalEye"), 2)]); // 急所読み: 会心強化
     // 隊列補正: 後衛は物理の与ダメ・被ダメが半減
     const rm = this._rowMul(actor, tgt);
     if (rm !== 1) dmg = Math.round(dmg * rm);
@@ -3287,7 +3293,7 @@ export class Battle {
     critP = sureCrit ? 1 : Math.min(0.85, Math.max(0, critP));
     dmg *= this._rowMul(actor, tgt);
     if (magHit && !metal && tgt.magWeak > 1) dmg *= tgt.magWeak;
-    let crit = dmg * 1.85 * [1, 1.25, 1.45][Math.min(pv(actor, "vitalEye"), 2)];
+    let crit = dmg * 1.85 * gearCritMul(actor) * [1, 1.25, 1.45][Math.min(pv(actor, "vitalEye"), 2)];
     let plain = dmg;
     if (metal) plain = 1;
     else if (r > 0) {
@@ -3308,7 +3314,15 @@ export class Battle {
     if (actor.side === "party" && actor.dualRate > 0 && this.attackableEnemies(actor, true).includes(tgt)) v += this.estPhys(actor, tgt, { basic: true, offhand: true });
     return v;
   }
-  // 攻撃呪文 1 発の期待ダメージ (重力は今のHPの割合)。魔法無効・金属は 0
+  // 物理会心とは独立した、技・職業・装備の魔法会心率。
+  _spellCritChance(actor, sp) {
+    if (sp.gravity) return 0;
+    if ((sp.critBonus || 0) >= 1) return 1;
+    return Math.min(0.85, Math.max(0, ([0, 0.10, 0.18, 0.26][Math.min(pv(actor, "spellCrit"), 3)] || 0)
+      + (sp.critBonus || 0) + (actor.spellCritBonus || 0)
+      + this._rk(actor, "arcanistShinen", [0.05, 0.08, 0.12, 0.20]) + (gm(actor).sae ? 0.15 : 0)));
+  }
+  // 攻撃呪文1発の期待ダメージ。魔法無効・金属は0、重力は会心しない。
   estSpell(actor, sp, t) {
     if (!actor || !sp || !t || !t.alive) return 0;
     if (isMetal(t)) return 0;
@@ -3329,9 +3343,9 @@ export class Battle {
     if (r > 0) dmg *= 1 - resistRate(r) * (1 - this._rk(actor, "archmageShinen", [0.25, 0.50, 0.75, 1]));
     if (pv(actor, "gokudoku") && t.ailment === "poison") dmg *= 1.3;
     dmg *= evDealMul(actor, t) * (1 + this._perkSum(actor, "deal", { tgt: elemMask(t, actor), el: sp.element || "none", on: ["spell"] }));
-    const critP = sp.gravity ? 0 : Math.min(1, ([0, 0.10, 0.18, 0.26][Math.min(pv(actor, "spellCrit"), 3)] || 0) + (sp.critBonus || 0)
-      + this._rk(actor, "arcanistShinen", [0.05, 0.08, 0.12, 0.20]));
-    dmg *= 1 + critP * 0.5;
+    const critP = this._spellCritChance(actor, sp);
+    const critMul = 1.5 * (gm(actor).sae ? 1.3 : 1) * gearCritMul(actor, true);
+    dmg *= 1 + critP * (critMul - 1);
     if (t.guard) dmg *= 1 - t.guard;
     return Math.max(1, dmg);
   }
@@ -3452,7 +3466,6 @@ export class Battle {
       }
     } else if (sp.kind === "atk") {
       const targets = sp.target === "all-enemy" ? this.livingEnemies() : [cmd.target].filter(Boolean);
-      const scLv = pv(actor, "spellCrit"); // 呪文会心
       // 精神統一: INT強化。光の呪文と祈りの呪文 (faith) は INT と PIE の高い方で伸びる (聖職の術者は祈りで撃つ)
       const intv = Math.max((actor.int || 0) * this._bm(actor, "int"), isFaithSpell(sp) ? (actor.pie || 0) * this._bm(actor, "pie") : 0);
       for (const t of targets) {
@@ -3496,9 +3509,8 @@ export class Battle {
         { const pd = this._perkSum(actor, "deal", { tgt: t, el: sp.element || "none", on: ["spell"] }); if (pd) dmg = Math.max(1, Math.round(dmg * (1 + pd))); } // 固有パッシブ (deal)
         // 会心: 呪文会心パッシブ + 技固有の会心補正 (禁呪開帳など)。重力は会心しない
         const sae = !!gm(actor).sae; // 極「冴えの」: 呪文の会心率 +15%・会心の威力 ×1.3
-        const crit = !sp.gravity && random() < (([0, 0.10, 0.18, 0.26][Math.min(scLv, 3)] || 0) + (sp.critBonus || 0)
-          + this._rk(actor, "arcanistShinen", [0.05, 0.08, 0.12, 0.20]) + (sae ? 0.15 : 0)); // 深淵の知 (秘術師のランク)
-        if (crit) dmg = Math.floor(dmg * 1.5 * (sae ? 1.3 : 1));
+        const crit = !sp.gravity && random() < this._spellCritChance(actor, sp);
+        if (crit) dmg = Math.floor(dmg * 1.5 * (sae ? 1.3 : 1) * gearCritMul(actor, true));
         if (crit && actor.side === "party" && this.show) this.show.cr++; // 観客の注文 (会心を見せろ)
         if (t.guard) dmg = Math.max(1, Math.ceil(dmg * (1 - t.guard))); // 金剛の護符: 呪文・ブレスの被ダメもカット
         t.hp -= dmg;

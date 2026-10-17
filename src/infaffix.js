@@ -9,16 +9,17 @@
 // このモジュールは純粋なデータ/ロジックのみ (game.js・ui を import しない)。
 
 import { random } from "./rng.js";
+import { itemDepthMul } from "./itemdepth.js";
 import { equipScore, priceForScore } from "./pricing.js";
 import { MON_RACES } from "./dungeons/schema.js";
 
 // 格: c 常 / u 稀 (◇) / r 秘 (◆) / x 極 (★)
 export const AFX_TIERS = { c: { name: "常", mark: "", rank: 0 }, u: { name: "稀", mark: "◇", rank: 1 }, r: { name: "秘", mark: "◆", rank: 2 }, x: { name: "極", mark: "★", rank: 3 } };
 
-// 同じランクの標準品の性能点の目安 B(R) (R10 ≈ 28 / R15 ≈ 49 / R20 ≈ 76)
+// 同じランクの標準品の性能点 B(R) (R10 = 25 / R20 = 76)。深度で数値の容量も成長する。
 export function afxBase(it) {
   const R = Math.max(1, Math.min(20, Math.ceil((it && it.lv || 1) / 10)));
-  return Math.max(3, 1.2 * R + 0.13 * R * R);
+  return Math.max(3, 1.2 * R + 0.13 * R * R) * itemDepthMul(it);
 }
 
 // 部位: all = すべて / w = 武器 / a = 防具 (体・頭・足・小手・盾) / acc = 装飾 / 個別の部位 (shield / body / head / feet / hands)
@@ -48,8 +49,17 @@ function def(o) {
 const ONE = [["A01", "頑丈な", "hp"], ["A02", "澄んだ", "mp"], ["A03", "力の", "atk"], ["A04", "堅い", "vit"], ["A05", "軽い", "agi"], ["A06", "賢い", "int"], ["A07", "敬虔な", "pie"], ["A08", "幸運の", "luk"]];
 for (const [id, name, s] of ONE) def({ id, name, tier: "c", kind: "B", r: [0.15, 0.25],
   apply: (it, v) => { it[s] = (it[s] || 0) + pt(v / STAT_W[s]); }, text: (v) => `${STAT_JA[s]}+${pt(v / STAT_W[s])}` });
-def({ id: "A09", name: "鋭い", tier: "u", kind: "abs", r: [0.01, 0.03], pts: (v) => v * 100,
+def({ id: "A09", name: "鋭い", tier: "u", kind: "abs", r: [0.01, 0.05], step: 0.001, pts: (v) => v * 100,
   apply: (it, v) => { it.crit = Math.round(((it.crit || 0) + v) * 1000) / 1000; }, text: (v) => `会心率+${pct(v)}` });
+
+// 会心時の最終ダメージを増やす。物理・魔法は別々に、装備合計は各+100%まで。
+def({ id: "A10", name: "痛撃の", tier: "r", kind: "abs", r: [0.10, 0.30], step: 0.01, pts: (v) => v * 20,
+  apply: (it, v) => { it.critDamage = Math.round(((it.critDamage || 0) + v) * 1000) / 1000; }, text: (v) => `会心ダメージ+${pct(v)}` });
+
+def({ id: "A11", name: "魔眼の", tier: "u", kind: "abs", r: [0.01, 0.05], step: 0.001, pts: (v) => v * 100,
+  apply: (it, v) => { it.spellCrit = Math.round(((it.spellCrit || 0) + v) * 1000) / 1000; }, text: (v) => `魔法会心率+${pct(v)}` });
+def({ id: "A12", name: "魔撃の", tier: "r", kind: "abs", r: [0.10, 0.30], step: 0.01, pts: (v) => v * 20,
+  apply: (it, v) => { it.spellCritDamage = Math.round(((it.spellCritDamage || 0) + v) * 1000) / 1000; }, text: (v) => `魔法会心ダメージ+${pct(v)}` });
 
 // ---- B. 能力値ふたつ (稀・全、半分ずつ) ----
 const TWO = [["B01", "剛健の", "atk", "vit"], ["B02", "疾風の", "atk", "agi"], ["B03", "博徒の", "atk", "luk"], ["B04", "城壁の", "vit", "hp"], ["B05", "猫の", "agi", "luk"], ["B06", "学徒の", "int", "mp"],
@@ -169,7 +179,7 @@ def({ id: "J20", name: "鏡鎧の", tier: "x", kind: "abs", r: [0.4, 0.7], slots
 
 // ---- K. 諸刃 (大きな得と小さな損。点は得 − 損) ----
 const EDGE = [["K01", "狂刃の", "atk", "vit"], ["K02", "砂時計の", "agi", "hp"], ["K03", "血盟の", "hp", "mp"], ["K04", "禁書の", "int", "pie"], ["K05", "苦行の", "pie", "luk"], ["K06", "鉛の", "vit", "agi"]];
-for (const [id, name, up, down] of EDGE) def({ id, name, tier: "u", kind: "B", r: [0.3, 0.3], ptsMul: 0.3,
+for (const [id, name, up, down] of EDGE) def({ id, name, tier: "u", kind: "B", r: [0.3, 0.3],
   apply: (it, v, B) => { it[up] = (it[up] || 0) + pt(B * 0.5 / STAT_W[up]); it[down] = (it[down] || 0) - pt(B * 0.2 / STAT_W[down]); },
   text: (v, B) => `${STAT_JA[up]}+${pt(B * 0.5 / STAT_W[up])} ${STAT_JA[down]}−${pt(B * 0.2 / STAT_W[down])}` });
 def({ id: "K07", name: "博打の", tier: "r", kind: "abs", r: [0.04, 0.06], pts: (v) => v * 100 - 5,
@@ -239,7 +249,7 @@ export function afxDef(k) { return AFX_MAP[k] || null; }
 function afxPts(d, v, B) {
   if (d.kind === "B") return v * (d.ptsMul || 1);
   if (d.kind === "fixB") return B * d.r[0];
-  return d.pts ? d.pts(v, B) : 0;
+  return d.pts ? d.pts(v, B) * B / 25 : 0;
 }
 
 // ===== 深さで変わる付く数と格の出やすさ (docs 1-3) =====
@@ -282,7 +292,9 @@ export function rollAffixes(it, floor, rng = random) {
       // 幅の中の値: 深い階ほど上の方が出やすい
       const r = Math.min(1, rng() * (1 - 0.4 * deep) + 0.4 * deep * rng() + 0.3 * deep * rng());
       const lo = d.kind === "B" ? d.r[0] * B : d.r[0], hi = d.kind === "B" ? d.r[1] * B : d.r[1];
-      const v = d.kind === "B" ? lo + (hi - lo) * r : Math.round((lo + (hi - lo) * r) * 1000) / 1000;
+      const steps = d.step ? Math.round((hi - lo) / d.step) : 0;
+      const v = d.step ? Math.round((lo + Math.min(steps, Math.floor(r * (steps + 1))) * d.step) * 1000) / 1000
+        : d.kind === "B" ? lo + (hi - lo) * r : Math.round((lo + (hi - lo) * r) * 1000) / 1000;
       out.push({ k: d.id, v });
       if (d.kind === "B" || d.kind === "fixB") sum += afxPts(d, v, B);
       if (d.group) groups.add(d.group);
@@ -316,10 +328,11 @@ export function applyAffixes(it) {
   if (Object.keys(misc).length) it.afxMisc = misc;
   it.afxText = text;
   if (top) { it.afxPre = top.name; it.afxMark = AFX_TIERS[top.tier].mark; it.afxTier = top.tier; }
+  it.equipPts = Math.max(0, basePts + pts);
   // 値段: 性能点に追加の点を足す (元の値段 0 の品は付け直さない)
   if (it.price > 0) {
-    const p = priceForScore(it.slot, Math.max(0, basePts) + Math.max(0, pts));
-    if (p != null) it.price = Math.max(it.price, p);
+    const p = priceForScore(it.slot, it.equipPts);
+    if (p != null) it.price = p;
   }
   it.afxPts = Math.round(pts * 10) / 10;
   return it;
@@ -391,7 +404,7 @@ export const ENCHANT_TIER_COST = { c: 0.5, u: 1, r: 2, x: 4 };
 export function pageFromAffix(it, a) {
   const d = AFX_MAP[a && a.k];
   if (!d) return null;
-  const src = { from: it.name, lv: it.lv || 1 };
+  const src = { from: it.name, lv: it.lv || 1, depth: it.depth || 0 };
   if (d.kind === "B") return { k: d.id, r: Math.round((a.v / afxBase(it)) * 10000) / 10000, ...src };
   return { k: d.id, v: a.v, ...src };
 }
@@ -399,7 +412,7 @@ export function pageFromAffix(it, a) {
 export function pageValue(page, it) {
   const d = AFX_MAP[page && page.k];
   if (!d) return 0;
-  if (d.kind === "B") return Math.round((page.r != null ? page.r : 0) * afxBase(it) * 100) / 100;
+  if (d.kind === "B") return Math.round((page.r != null ? page.r : 0) * afxBase({ ...it, depth: Math.min(page.depth || 0, it.depth || 0) }) * 100) / 100;
   return page.v != null ? page.v : d.r[0];
 }
 export function pageDef(page) { return AFX_MAP[page && page.k] || null; }
@@ -410,8 +423,8 @@ export function pageText(page, it = null) {
   const d = pageDef(page);
   if (!d) return "";
   if (it) { const B = afxBase(it); return d.text(pageValue(page, it), B); }
-  if (d.kind === "B") { const ref = { lv: page.lv || 1 }; const B = afxBase(ref); return d.text(pageValue(page, ref), B); }
-  return d.text(page.v != null ? page.v : d.r[0], 1);
+  if (d.kind === "B") { const ref = { lv: page.lv || 1, depth: page.depth || 0 }; const B = afxBase(ref); return d.text(pageValue(page, ref), B); }
+  return d.text(page.v != null ? page.v : d.r[0], afxBase({ lv: page.lv || 1, depth: page.depth || 0 }));
 }
 // 品の「能力値の追加」の点 (容量に数える分)
 function capPts(it, afx) {
@@ -429,6 +442,7 @@ export function enchantBlock(it, page, rk, tmpl = null) {
   if (!d) return "読めない巻物";
   if (!it || !AFX_SLOTS.has(it.slot)) return "装備品にだけ書ける";
   if (!fitsSlot(d, it)) return "この部位には書けない特性";
+  if (/^K0[1-6]$/.test(d.id) && itemDepthMul(page) < itemDepthMul(it)) return "この深度の品には、同じ深度以上の巻物が必要";
   const afx = it.afx || [];
   const room = enchantRoom(it, rk);
   if (afx.length >= room.slots) return `書ける数 ${room.slots}つがいっぱい`;
@@ -447,8 +461,8 @@ export function enchantBlock(it, page, rk, tmpl = null) {
   return null;
 }
 
-// 検査 (読み込み時): 173種そろっているか (2026-10-15 に極「鏡鎧の」と、部位ごとの極35種を足した)
-if (AFX.length !== 173) throw new Error(`infaffix: 追加の種類は173のはず (いま ${AFX.length})`);
+// 検査 (読み込み時): 176種そろっているか (2026-10-15 に極「鏡鎧の」と、部位ごとの極35種を足した)
+if (AFX.length !== 176) throw new Error(`infaffix: 追加の種類は176のはず (いま ${AFX.length})`);
 // 極の数 (部位ごと。号令の・一番手の・不屈の は 2026-10-16 にユーザーの指示で極に戻した)
 for (const [g, want] of [["w", 6], ["body", 6], ["head", 6], ["hands", 6], ["feet", 7], ["acc", 9]]) {
   const n = AFX.filter((d) => d.tier === "x" && !d.retired && d.slots.includes(g)).length;

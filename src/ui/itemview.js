@@ -607,7 +607,11 @@ export function statLines(it) {
   f("STR", it.atk); f("VIT", it.vit); f("AGI", it.agi);
   f("INT", it.int); f("PIE", it.pie); f("LUK", it.luk);
   f("HP", it.hp); f("MP", it.mp);
-  if (it.crit) parts.push(`会心 +${Math.round(it.crit * 100)}%`);
+  if (it.crit) parts.push(`会心 +${Math.round(it.crit * 1000) / 10}%`);
+  if (it.critDamage) parts.push(`会心ダメージ +${Math.round(it.critDamage * 1000) / 10}%`);
+  if (it.spellCrit) parts.push(`魔法会心 +${Math.round(it.spellCrit * 1000) / 10}%`);
+  if (it.spellCritDamage) parts.push(`魔法会心ダメージ +${Math.round(it.spellCritDamage * 1000) / 10}%`);
+  if (it.depth) parts.push(`無限迷宮 B${it.depth}F`);
   if (it.scale) parts.push(`参照 ${Object.keys(it.scale).map(k => ATTR_LABEL[k]).join("・")}`);
   if (it.magic) parts.push("魔法属性");
   const ea = elemStatText("攻撃", it.eAtk);
@@ -656,7 +660,10 @@ export function equipPreviewDelta(p, cand, slotKey = null) {
     luk: fake.luk - p.luk,
     hp: fake.maxhp - p.maxhp,
     mp: fake.maxmp - p.maxmp,
-    crit: Math.round(((fake.critBonus || 0) - (p.critBonus || 0)) * 100),
+    crit: Math.round(((fake.critBonus || 0) - (p.critBonus || 0)) * 1000) / 10,
+    critDamage: Math.round(((fake.critDamageBonus || 0) - (p.critDamageBonus || 0)) * 1000) / 10,
+    spellCrit: Math.round(((fake.spellCritBonus || 0) - (p.spellCritBonus || 0)) * 1000) / 10,
+    spellCritDamage: Math.round(((fake.spellCritDamageBonus || 0) - (p.spellCritDamageBonus || 0)) * 1000) / 10,
     elemAtk: { from: p.elemAtk, to: fake.elemAtk },
     elemDef: { from: p.elemDef, to: fake.elemDef },
     physResist: (fake.physResist || 0) - (p.physResist || 0),
@@ -688,9 +695,10 @@ export function equipCompareEl(p, cand) {
       row.appendChild(el("span", "eq-cd-seg " + (v > 0 ? "up" : "down"), `${label} ${v > 0 ? "▲+" + v : "▼" + v}`));
     }
     // 会心率 (%)
-    if (d.crit) {
+    for (const [key, label] of [["crit", "会心"], ["critDamage", "会心ダメージ"], ["spellCrit", "魔法会心"], ["spellCritDamage", "魔法会心ダメージ"]]) {
+      if (!d[key]) continue;
       any = true;
-      row.appendChild(el("span", "eq-cd-seg " + (d.crit > 0 ? "up" : "down"), `会心 ${d.crit > 0 ? "▲+" + d.crit : "▼" + d.crit}%`));
+      row.appendChild(el("span", "eq-cd-seg " + (d[key] > 0 ? "up" : "down"), `${label} ${d[key] > 0 ? "▲+" + d[key] : "▼" + d[key]}%`));
     }
     // 属性攻撃/防御の変化 (—→火◯ のように現状→装備後で表示)
     for (const [label, ch] of [["属攻", d.elemAtk], ["属防", d.elemDef]]) {
@@ -828,7 +836,8 @@ export function gearScore(doll, delta) {
     if (delta.handSwap) s = s * (1 + f * (WEAPON_POWER_W / Math.max(0.35, W.atk || 1) - 1));
     else s += (power || 0) * WEAPON_POWER_W * f;
   }
-  s += (delta.crit || 0) * 0.5;
+  s += ((delta.crit || 0) + (delta.spellCrit || 0)) * 0.5;
+  s += ((delta.critDamage || 0) + (delta.spellCritDamage || 0)) * 0.1;
   const lv = (e) => (e && e.el ? Math.min(2, e.lv || 1) : 0);
   for (const ch of [delta.elemAtk, delta.elemDef]) if (ch) s += (lv(ch.to) - lv(ch.from)) * 4;
   // 状態異常耐性 (合計10%ごとに1点) / 追加効果 (確率10%ごとに1.5点)
@@ -939,7 +948,11 @@ export function detailLines(it) {
     f("STR", it.atk); f("VIT", it.vit); f("AGI", it.agi);
     f("INT", it.int); f("PIE", it.pie); f("LUK", it.luk);
     f("HP", it.hp); f("MP", it.mp);
-    if (it.crit) mod.push(`会心+${Math.round(it.crit * 100)}%`);
+    if (it.crit) mod.push(`会心+${Math.round(it.crit * 1000) / 10}%`);
+    if (it.critDamage) mod.push(`会心ダメージ+${Math.round(it.critDamage * 1000) / 10}%`);
+    if (it.spellCrit) mod.push(`魔法会心+${Math.round(it.spellCrit * 1000) / 10}%`);
+    if (it.spellCritDamage) mod.push(`魔法会心ダメージ+${Math.round(it.spellCritDamage * 1000) / 10}%`);
+    if (it.depth) L.push(`無限迷宮 B${it.depth}Fで得た品`);
     if (mod.length) L.push(mod.join(" / "));
     for (const ln of effDetailLines(it)) L.push(ln);
     for (const ln of weaponTraitLines(it)) L.push(ln);

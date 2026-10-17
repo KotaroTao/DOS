@@ -2584,7 +2584,10 @@ function statsSeg(root, d, { showStability = true } = {}) {
     if (d.dualWield > 0) fact("左手", d.offPower ? `攻撃力 ${d.offPower}（${Math.round(d.dualWield * 100)}%）` : `空き（二刀流 ${Math.round(d.dualWield * 100)}%）`);
     fact("参照", d.wScale ? Object.keys(d.wScale).map(k => ATTR_LABEL[k]).join("＋") : "STR（素手）");
     fact("状態", ail, ail === "正常" ? "" : "bad");
-    fact("会心", `+${Math.round((d.critBonus || 0) * 100)}%`);
+    fact("会心", `+${Math.round((d.critBonus || 0) * 1000) / 10}%`);
+    fact("会心ダメージ", `+${Math.round((d.critDamageBonus || 0) * 1000) / 10}%`);
+    fact("魔法会心", `+${Math.round((d.spellCritBonus || 0) * 1000) / 10}%`);
+    fact("魔法会心ダメージ", `+${Math.round((d.spellCritDamageBonus || 0) * 1000) / 10}%`);
     fact("属攻", elemStatShort(d.elemAtk));
     fact("属防", elemStatShort(d.elemDef));
     // 装備の状態異常耐性 / 武器の追加効果 (持っている時だけ)
