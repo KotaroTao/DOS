@@ -1,3 +1,4 @@
+import { preserveScene } from "../imageloading.js";
 import { isDesktopLayout, onDesktopLayoutChange } from "../desktop.js";
 // ===== 街シェル: 見出し + 中身 + 下のタブバー (§3.1) =====
 //   [見出し: ⚙/‹ ・ 題 ・ 通貨]   (header:false のタブ/ページは自前の見出しを持つ)
@@ -201,6 +202,7 @@ export function refresh() {
   api.screenEntered = api.entered || !same;
   shell.classList.remove("hidden");
   content.classList.remove("hidden");
+  const reveal = !same || content.querySelector(".scene-hold") ? preserveScene(content) : () => {};
   parkKept();
   content.innerHTML = "";
   content.classList.remove("shop-mode"); // 商会専用レイアウトを解除 (商会なら再付与)
@@ -215,10 +217,11 @@ export function refresh() {
     showHeader(def.header === false ? null : { left: "gear", title: def.title || TAB_TITLE[tab] || "", onGear: () => game.openSettings && game.openSettings() });
     def.render(content, api);
   } else showHeader(null);
+  reveal();
   updateBar(tab);
   updateDesktopShortcuts();
   content.scrollTop = keepScroll;
-  if (!same && lastKey) {
+  if (!same && lastKey && !content.querySelector(".scene-hold")) {
     if (tab !== lastTab) tabTransition(content, (TAB_INDEX[tab] || 0) - (TAB_INDEX[lastTab] || 0));
     else if (depth > lastDepth) pageTransition(content, "push");
     else if (depth < lastDepth) pageTransition(content, "pop");

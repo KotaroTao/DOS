@@ -101,8 +101,14 @@ function backgroundImage(id, owner) {
   }
   images.delete(id); images.set(id, entry);
   while (images.size > MAX_IMAGES) images.delete(images.keys().next().value);
-  watchImage(entry.img, owner, true);
+  if (owner) watchImage(entry.img, owner, true);
   return entry.ready ? entry.img : null;
+}
+
+// 今いる迷宮の背景だけを探索開始時に先読みする。燭台の対象にはしない。
+export function preloadBattleBackground(dungeonId) {
+  const id = Object.hasOwn(BATTLE_BACKGROUNDS, dungeonId) ? dungeonId : "abyss";
+  backgroundImage(id);
 }
 
 export function drawIllustratedBattleBackdrop(ctx, w, h, opts = {}) {

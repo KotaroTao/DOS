@@ -1,3 +1,4 @@
+import { preloadBattleBackground } from "./battlebackgrounds.js";
 import "./desktop.js";
 import * as formations from "./formations.js";
 import { soulAcquisitionArt } from "./ui/soulart.js";
@@ -2461,6 +2462,7 @@ function newFloor() {
   applyInfMightyFloor();
   // ダンジョンが自前で持つ出現プール (pool=浅階 / deepPool=深階) を使う
   const cfg = activeCfg();
+  if (!PREFS.classicBattle) preloadBattleBackground(cfg.id);
   G.board = makeBoard(G.floor, cfg);
   G.px = G.board.start.x;
   G.py = G.board.start.y;
@@ -3303,12 +3305,7 @@ function boardArtPending() {
 function drawBoardFrame() {
   if (!G.board) return;
   if (boardArtPending()) {
-    vctx.save();
-    vctx.setTransform(1, 0, 0, 1, 0, 0);
-    vctx.globalCompositeOperation = "copy"; vctx.globalAlpha = 1;
-    vctx.fillStyle = "#080a10"; vctx.fillRect(0, 0, view.width, view.height);
-    vctx.globalCompositeOperation = "source-over";
-    vctx.restore();
+    // 次の階の素材が届くまでは、描画済みの盤面を残す。
     return;
   }
   const now = performance.now();

@@ -361,6 +361,7 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
     wrap.style.setProperty("--gate-x", (gp.x / vw * 100).toFixed(1) + "%");
     wrap.style.setProperty("--gate-y", (gp.y / vh * 100).toFixed(1) + "%");
     scene.draw(g, performance.now(), 16);
+    wrap.dataset.sceneReady = "true";
   };
   const layoutScene = async () => {
     const vw = Math.max(1, wrap.clientWidth || innerWidth), vh = Math.max(1, wrap.clientHeight || innerHeight);
@@ -401,6 +402,7 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
     wrap.style.setProperty("--gate-x", gx.toFixed(1) + "%");
     wrap.style.setProperty("--gate-y", gy.toFixed(1) + "%");
     scene.draw(g, performance.now(), 16);
+    wrap.dataset.sceneReady = "true";
   };
   const g = cv.getContext("2d");
   let closed = false;
