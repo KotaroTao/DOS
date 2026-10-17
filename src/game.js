@@ -17874,8 +17874,11 @@ function showConfirm({ title, lines = [], okLabel = "実行する", onOk }) {
 function markDungeonLoot(it) {
   const tr = dungeonTrait();
   if (it && UNIDENT_SLOTS.has(it.slot) && !(tr && tr.appraised) && !abyssActive()) it.unidentified = true; // 無限迷宮の品は鑑定済みで落ちる
-  // 無限迷宮で拾った装備には、深さに応じた追加の能力・特性が付く (本編の迷宮で拾った品には付かない)
-  if (it && abyssActive() && !it.afx && hasQuality(it)) { const afx = rollAffixes(it, G.floor); if (afx) { it.afx = afx; applyAffixes(it); infAfxTrack(it); } }
+  // 無限迷宮の解放後は、全迷宮のドロップに階数に応じた追加の能力・特性が付く。街で受け取る品は対象外。
+  if (it && (abyssActive() || (inDungeon() && featureUnlocked("infinite"))) && !it.afx && hasQuality(it)) {
+    const afx = rollAffixes(it, G.floor);
+    if (afx) { it.afx = afx; applyAffixes(it); if (abyssActive()) infAfxTrack(it); }
+  }
   return it;
 }
 

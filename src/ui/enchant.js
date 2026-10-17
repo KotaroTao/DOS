@@ -19,7 +19,7 @@ const sfx = (k, ...a) => { try { if (game.SFX && game.SFX[k]) game.SFX[k](...a);
 const shortN = (n) => (n >= 100000 ? `${Math.round(n / 1000)}k` : String(n));
 const tierOf = (k) => { const d = afxDef(k); return d ? AFX_TIERS[d.tier] : AFX_TIERS.c; };
 const afxName = (k) => { const d = afxDef(k); return d ? d.name.replace(/の$/, "") : "？"; };
-export const ENCHANT_NOTE = `無限迷宮で拾った品の追加の能力・特性を1つ選んで「特性の巻物」に写し取り (元の品は消える)、好きな装備に書き込める。書ける数はレア度で決まる: ${Object.entries(ENCHANT_SLOTS).map(([k, n]) => `${RARITIES[k] ? RARITIES[k].label : k}${n}`).join("・")}。`;
+export const ENCHANT_NOTE = `迷宮で拾った品の追加の能力・特性を1つ選んで「特性の巻物」に写し取り (元の品は消える)、好きな装備に書き込める。書ける数はレア度で決まる: ${Object.entries(ENCHANT_SLOTS).map(([k, n]) => `${RARITIES[k] ? RARITIES[k].label : k}${n}`).join("・")}。`;
 
 // 特性の名の札 (格の印と名。格で色を分ける)
 function afxTag(k, cls = "") {
