@@ -36,6 +36,8 @@ There is no external test framework. Regression checks live under `tools/` (Node
 
 第四章「王都の地下」のストーリー全10場面は `art/story/chapter4/` の専用原画（1536×1024）を表示する。第二章・第三章の既存原画を直接参照して人物と画風をそろえ、`storyImage` とSWにも登録済み。制作記録と本文・画像一覧は `art/story-review/chapter4/`、再作成は `node tools/storyart/chapter4.mjs`。
 
+戦闘のオート開始・解除ボタン (2026-10-17 ユーザー指定): 敵の行動・開幕演出中の開始ボタンと、味方の命令選択時の開始ボタンは「オート」のみ表示し、下の補足文 (継続・敵の手番から速める・長押しで作戦) を出さない。オート解除ボタンの補足文も出さない。操作と長押しの作戦設定は維持。心得 `t_auto`。
+
 ## Architecture
 
 ### Module layout (`src/`)
