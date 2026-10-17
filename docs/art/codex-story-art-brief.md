@@ -219,6 +219,13 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 
 ### A. 必須 (物語の筋や正典と食い違う)
 
+**A-47. 第七章 w26_splint「腕の木の添え木」戦士の足を体の下へ戻す** `art/story-review/chapter7/w26_splint.png` (済)
+- ユーザーの追加指示: 戦士の人業の足の位置を修正。ランタン右奥に残る横向きの脚・靴のような塊を消し、腰から下りたすねのすぐ下に、小さな接地した足を描き直す。足が横に長く伸びる形を残さない。
+- 戦士以外の人業・弟子・小道具・背景・光は保つ。修正前は `art/story-review/fixes/w26_splint-warrior-before.png` に保存。
+```text
+...except: edit ONLY the small patch x=165-310,y=440-555 around the far-left red-cloaked warrior's lower shin and foot behind the orange lantern. Remove the long horizontal armored calf/boot lying across that patch. Replace it with ordinary wet mud, sparse reeds and ONE compact armored foot directly beneath the warrior's vertical shin near x=205,y=465. The foot occupies only x=195-240,y=480-510, planted flat on the bank, pointing slightly toward the viewer. Connect this small foot naturally to that shin; do not extend it sideways toward the priest. Preserve the other leg where the lantern hides it. If TWO scene references are attached: the FIRST is the base image and must be preserved; the SECOND shows the correctly placed compact foot and cleared muddy patch to copy ONLY into that small region of the FIRST. Do not copy any other part of the second image. Everything outside x=165-310,y=440-555 MUST remain exactly as in the FIRST image. In particular, keep ALL the original ice shards and their reflections across the diagonal foreground band x=190-650,y=560-820. Do not remove, move or simplify that ice. Preserve every person, the apprentice's face and cape, all other dolls, the lantern, shavings, rope ends, single note, stone, footprints, background, camera and lighting unchanged. No extra feet, no horizontal armor, no new objects. Return the FIRST image with just this localized foot correction.
+```
+
 **A-46. 第七章 w26_splint「腕の木の添え木」後列の人業の脚を整理** `art/story-review/chapter7/w26_splint.png` (済)
 - ユーザー指示: 後ろにいる人業の足の位置と本数を修正。四体それぞれの腰から左右一本ずつ、腿・膝・すね・足首・足が自然につながるようにする。弟子や衣装の陰に隠れた脚は隠し、離れた場所に足だけを描かない。
 - 保つもの: 四体の顔のない丸い木の頭・上半身・衣装・武器、弟子、ランタン、氷、削りくず、縄の切れ端、石で押さえた一枚の紙、足跡、背景、構図と光。修正前は `art/story-review/fixes/w26_splint-legs-before.png` に保存。
