@@ -1,7 +1,7 @@
 // 聖騎士 (paladin) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 持ち味: 聖なる剣と癒しの両立 — 斬れば光が隊を癒し、癒せば剣に力が宿る。勝利と討伐が次の癒しになる
-import { UNHOLY } from "./common.js";
+import { HOPE_HIDAMARI, UNHOLY } from "./common.js";
 
 export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
@@ -9,11 +9,11 @@ export default {
   table: `
     1 SHIELDBASH 2 KOUJIN 3 DIOS 5 paladinGaisen/1 7 HAJA 10 NERAIUCHI 10 CURE 12 IWAKUDAKI
     15 PALADIN_INORINOKEN 15 cleanseStep/1 17 HOLYLIGHT 20 CHOUHATSU 20 RECOVER 22 KOURINZAN
-    25 paladinNanori/1 30 SEINOTATE 30 DIOSALL 35 smite/1 40 SEIKOUZAN 40 DIAL 45 paladinKoukan/1
+    25 paladinNanori/1 30 SEINOTATE 30 DIOSALL 35 smite/1 40 SEIKOUZAN 40 DIAL 45 heroKibouHidamari/1
     50 SHINGANGEKI 50 cleanseStep/2 55 GUARDALL 57 PALADIN_JIKOUZAN 60 paladinGaisen/2 60 REVIVE
     65 PALADIN_KENNOSHUKUTOU 70 holyEdge/1 75 martyr/1 80 PALADIN_HIKARINOJOUHEKI 85 PALADIN_JOUKOURIN
     90 resistAilment/1 95 PALADIN_SEIYAKUNOGI 100 PALADIN_SABAKINOSEIKEN 100 cleanseStep/3
-    105 paladinKoukan/2 107 TENKOUKEN 110 PALADIN_GOKOUNOJIN 115 paladinNanori/2 120 PALADIN_SHOKUZAI
+    105 heroKibouHidamari/2 107 TENKOUKEN 110 PALADIN_GOKOUNOJIN 115 paladinNanori/2 120 PALADIN_SHOKUZAI
     125 divineCounter/1 130 PALADIN_SEIGONOTOBARI 135 resistAilment/2 140 PALADIN_SEIHAI
     145 paladinFukutsu/1 150 PALADIN_GAIKA 155 paladinSeikenkago/1 160 PALADIN_TENJOUSOU 165 paladinNanori/3
     170 PALADIN_JUNKYOUNOTATE 175 paladinFukutsu/2 180 PALADIN_SEIKISHIDAN 185 paladinSeikenkago/2
@@ -45,11 +45,7 @@ export default {
       lv: ["戦闘に勝つと味方全員のHPを最大の3%回復", "戦闘に勝つと味方全員のHPを最大の6%回復"],
       fx: [{ t: "win", party: true, hp: [0.03, 0.06] }],
     },
-    paladinKoukan: {
-      label: "慈しみの光環",
-      lv: ["2ターン目から毎ターン、味方全員のHPを最大の5%回復", "2ターン目から毎ターン、味方全員のHPを最大の10%回復", "2ターン目から毎ターン、味方全員のHPを最大の3.5%回復"],
-      fx: [{ t: "round", party: true, hp: [0.05, 0.1, 0.035] }],
-    },
+    paladinKoukan: HOPE_HIDAMARI, // 旧セーブの別名
     paladinNanori: {
       label: "白銀の名乗り",
       lv: ["戦闘開始時、敵を引き付け、自分にリジェネ (最大HPの4%・3ターン)。引き付けている間、受けるダメージ-18%・主・強敵への味方全員の与ダメージ+8% (盾役どうしでは一番強いものだけ)",

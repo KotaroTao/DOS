@@ -1,3 +1,4 @@
+import { HOPE_HIDAMARI } from "./common.js";
 // 巡礼者 (archbishop) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 持ち味: 聖典を携えて泉を巡る祈り。聖水・泉・潮で癒し、聖句の加護 (不屈・魔障壁・守り) で隊を護る
@@ -8,13 +9,13 @@ export default {
     1 HOLYRAY 3 DIOS 5 kantei/2 5 CURE 7 CUREALL 10 BLESS 10 RECOVER 12 ICENEEDLE
     15 ARCHBISHOP_MAMORISEIKU 15 riseAgain/1 17 REGEN 17 RECOVERALL 20 DIOSALL 20 AWAKE
     25 archbishopChinka/1 25 AWAKEALL 30 DIAL 35 archbishopMamori/1 35 STONECURE 40 SEIKUNOKAGO
-    45 archbishopMinasoko/1 45 STONECUREALL 50 REVIVE 50 riseAgain/2 55 ARCHBISHOP_SENREI 55 DIALALL
+    45 heroKibouHidamari/1 45 STONECUREALL 50 REVIVE 50 riseAgain/2 55 ARCHBISHOP_SENREI 55 DIALALL
     60 archbishopMamori/2 60 MADIOS 62 ARCHBISHOP_SEISUINOYARI 65 PURIFY 70 archbishopChinka/2
-    75 archbishopSeiten/1 80 PURIFYALL 85 ARCHBISHOP_NORITO 90 archbishopMinasoko/2 90 RESURRECT
+    75 archbishopSeiten/1 80 PURIFYALL 85 ARCHBISHOP_NORITO 90 heroKibouHidamari/2 90 RESURRECT
     95 ARCHBISHOP_FUKADE 100 ARCHBISHOP_MEGUMI 100 riseAgain/3 105 archbishopMamori/3
     110 ARCHBISHOP_SEITENNOMAMORI 115 resistAilment/1 115 MADIOSALL 120 ARCHBISHOP_MICHISHIO
     125 popePrayer/1 130 ARCHBISHOP_FUUJI 135 archbishopChinka/3 140 ARCHBISHOP_ROUSHOU
-    145 archbishopMinasoko/3 150 ARCHBISHOP_SHOUKU 155 archbishopSeiten/2 160 ARCHBISHOP_DAISENREI
+    145 heroKibouHidamari/3 150 ARCHBISHOP_SHOUKU 155 archbishopSeiten/2 160 ARCHBISHOP_DAISENREI
     165 resistAilment/2 170 ARCHBISHOP_KOURIN 175 archbishopChinka/4 180 ARCHBISHOP_TAIKAI
     185 archbishopMamori/4 190 ARCHBISHOP_SABAKI 195 ARCHBISHOP_BAKUFU 200 ARCHBISHOP_SHUUSHOU`,
   skills: {
@@ -44,8 +45,7 @@ export default {
       lv: ["回復呪文の効果+20%", "回復呪文の効果+40%", "回復呪文の効果+60%", "回復呪文の効果+100%"],
       fx: [{ t: "heal", v: [0.20, 0.40, 0.60, 1.00] }],
     },
-    archbishopMinasoko: { label: "水底の祈り", scope: "party", lv: ["2ターン目から毎ターン、味方全員のHP4%回復", "2ターン目から毎ターン、味方全員のHP8%回復", "2ターン目から毎ターン、味方全員のHP12%回復", "2ターン目から毎ターン、味方全員のHP2.5%回復"],
-      fx: [{ t: "round", party: true, hp: [0.04, 0.08, 0.12, 0.025] }] },
+    archbishopMinasoko: HOPE_HIDAMARI, // 旧セーブの別名
     archbishopSeiten: { label: "聖典の護り", scope: "party", lv: ["戦闘開始時35%で、味方全員に魔障壁1回", "戦闘開始時55%で、味方全員に魔障壁1回", "戦闘開始時75%で、味方全員に魔障壁1回"],
       fx: [{ t: "start", chance: [0.35, 0.55, 0.75], party: true, barrier: 1 }] },
     archbishopChinka: { label: "鎮火の聖句", scope: "party", lv: ["火の敵への呪文ダメージ+12%・味方全員の火の敵からの被ダメージ−4%", "火の敵への呪文ダメージ+18%・味方全員の火の敵からの被ダメージ−6%", "火の敵への呪文ダメージ+24%・味方全員の火の敵からの被ダメージ−8%", "火の敵への呪文ダメージ+30%・味方全員の火の敵からの被ダメージ−10%"],

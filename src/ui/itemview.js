@@ -9,7 +9,7 @@ import { RESIST_LABEL } from "../resistance.js";
 import { game } from "./ctx.js";
 import { el, sheet, setText, statDelta } from "./kit.js";
 import { ELEMENTS, elementAffinity, RACE_LABEL, unknownLabel, UNK_OPEN, UNK_CLOSE } from "../dungeons/index.js";
-import { SPELLS, spellMpLabel, spellCureKinds, soulTierRate, healsHp, MP_DRAIN_CAP, stanceMulOf } from "../combat.js";
+import { SPELLS, spellMpLabel, spellCureKinds, soulTierRate, healsHp, MP_DRAIN_CAP, stanceMulOf, spellAilments, LV_HALF } from "../combat.js";
 import { STAGED, stageOf, stageMul, stageLabel, ENEMY_STAT_LABEL, effectStage, isBattleLong } from "../buffstage.js";
 import { ATTR_LABEL, SOUL_CLASSES, dollBust, PASSIVES, passiveName, passiveByName } from "../souls.js";
 import { WEAPON_CAT_LABEL, SHIELD_KIND_LABEL, HAND_LABEL, handOf, shieldKind, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip, equipLevelOf, AIL_LABEL, attackPower, fightPower, useLines, itemName, hasQuality, qualityOf, QUALITY_MID, QUALITY_SPREAD } from "../items.js";
@@ -328,7 +328,7 @@ export function skillDetailLines(sp) {
   if (sp.charm) lines.push(`${pct(sp.charm)}で魅了する（その敵が仲間に襲いかかる・傷を受けると解けやすい・主には効きにくい）`);
   if (sp.confuse) lines.push(`${pct(sp.confuse)}で混乱させる（敵味方を問わず殴る・ふらつく・抵抗値で成功率が下がる）`);
   if (sp.flinchChance) lines.push(`${pct(sp.flinchChance)}で怯ませる（主には効かない）`);
-  if (sp.poison || sp.para || sp.seal || sp.instakill || sp.sleepChance || sp.charm || sp.confuse || sp.kind === "sleep") lines.push("※ 表示は抵抗値0・同じLvでの基本確率。魂のLvと迷宮の推奨Lvの差で5〜95%に調整した後、成功率×（1−抵抗値/100）で判定。抵抗値100は無効");
+  if (sp.poison || sp.para || sp.seal || sp.instakill || sp.sleepChance || sp.charm || sp.confuse || sp.kind === "sleep") lines.push(`※ 表示は抵抗値0・同じLvでの基本確率。魂のLvと迷宮の推奨Lvの差${LV_HALF}ごとに倍・半分（5〜95%）に調整し、抵抗値で軽減。抵抗値100は無効`);
   if (sp.plunder) lines.push("この技で倒した敵は、落とす金貨が2倍になる");
   if (sp.partyHeal) lines.push(`攻撃の後、味方全員のHPを ${sp.partyHeal} 回復（術者のPIEで伸びる）`);
   if (sp.bladeHeal) lines.push(`与えたダメージの${pct(sp.bladeHeal)}だけ味方全員のHPを回復（1人あたり最大HPの${pct(sp.healCap || 0.25)}まで）`);
@@ -350,6 +350,31 @@ export function skillDetailLines(sp) {
   return lines;
 }
 
+// 戦闘中の付与成功率。抵抗値が未判明なら上限の目安だけを出す。
+// 単体の対象選択・全体技の一覧・長押しの詳細で、同じ戦闘ロジックを参照する。
+export function spellStatusPreview(b, actor, sp, targets, compact = false) {
+  if (!b || !actor || !spellAilments(sp).length || !targets.length) return null;
+  const rows = targets.map(t => ({ t, rates: b.spellStatusChances(actor, sp, t, !!actor.gearMisc?.insight || enemyReveal(t).lore) }));
+  const pct = rate => rate > 0 && rate < 0.001 ? "0.1未満" : String(Math.round(rate * 1000) / 10);
+  const box = el("span", "sp-status-rates");
+  const label = sp.kind === "phys" || sp.kind === "atk" ? "命中・生存後の付与（1回）" : "付与成功率";
+  box.appendChild(el("span", "sp-status-label", label));
+  if (compact) {
+    for (const { kind, label } of spellAilments(sp)) {
+      const rs = rows.flatMap(r => r.rates.filter(v => v.kind === kind));
+      const lo = Math.min(...rs.map(v => v.rate)), hi = Math.max(...rs.map(v => v.rate));
+      const value = lo === hi ? pct(lo) : `${pct(lo)}〜${pct(hi)}`;
+      box.appendChild(el("span", "sp-status-line", `${label} ${value}%${rs.some(v => !v.known) ? "（目安・抵抗未判明）" : ""}`));
+    }
+  } else {
+    for (const { t, rates } of rows) {
+      const text = rates.map(v => `${v.label} ${v.known ? "" : "最大"}${pct(v.rate)}%${v.known ? "" : "（抵抗未判明）"}`).join("・");
+      box.appendChild(el("span", "sp-status-line", `${enemyLabel(t)}：${text}`));
+    }
+  }
+  return box;
+}
+
 // スキル名タップで開く詳細 (キットのシート)
 export function showSkillPopup(key) {
   const sp = SPELLS[key];
@@ -364,6 +389,13 @@ export function showSkillPopup(key) {
   const box = el("div", "sk-lines");
   for (const ln of skillDetailLines(sp)) box.appendChild(el("div", "sk-line", ln));
   body.appendChild(box);
+  const b = game.G?.state === "combat" ? game.G.battle : null;
+  const actor = b?.current;
+  if (actor?.side === "party") {
+    const targets = sp.kind === "phys" && sp.target !== "all-enemy" && !sp.scatter ? b.attackableEnemies(actor) : b.livingEnemies();
+    const rates = spellStatusPreview(b, actor, sp, targets);
+    if (rates) body.appendChild(rates);
+  }
   return sheet.open({
     kind: "info", banner: "技", accent, title: sp.name, titleColor: accent, body,
     className: "ui-skill-sheet",

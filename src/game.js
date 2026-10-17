@@ -70,7 +70,7 @@ import { el, svgIcon, btn, button as kitButton, longPress as attachLongPress, ui
 import { nav } from "./ui/nav.js";
 import { installPhraseWrap, phrase, ZWSP } from "./ui/phrase.js";
 import * as townshell from "./ui/townshell.js";
-import { skillDescription, showSkillPopup,
+import { skillDescription, showSkillPopup, spellStatusPreview,
   SPELL_KIND_COLOR, BUFF_NAME, tagRow, spellTagKinds, isEquippable, equipPreviewDelta, equipCompareEl, detailLines,
   equipClassText, equipPartyChips, gearScore, enemyReveal, enemyLabel, enemyUnknown, enemyCodexComplete, UNKNOWN_COLOR, setLogText,
 } from "./ui/itemview.js";
@@ -10930,6 +10930,8 @@ function renderCombatMenu() {
       const edge = isEn && sp ? skillEdgeOn(b.current, sp, t) : 0;
       if (edge) hpEl.prepend(el("span", "sp-edge " + (edge > 0 ? "good" : "bad"), edge > 0 ? "弱点" : "耐性"));
       tb.appendChild(hpEl);
+      const rates = isEn && sp ? spellStatusPreview(b, b.current, sp, [t]) : null;
+      if (rates) tb.appendChild(rates);
       list.appendChild(tb);
     }
     combatMenu.appendChild(list);
@@ -10997,6 +10999,10 @@ function showSpells(actor) {
     if (edge) meta.appendChild(edge);
     if (meta.childElementCount) b.appendChild(meta);
     b.appendChild(el("span", "sp-d", skillDescription(sp)));
+    const battle = G.battle;
+    const targets = sp.kind === "phys" && sp.target !== "all-enemy" && !sp.scatter ? battle.attackableEnemies(actor) : battle.livingEnemies();
+    const rates = spellStatusPreview(battle, actor, sp, targets, true);
+    if (rates) b.appendChild(rates);
     b.style.setProperty("--sp-col", SPELL_KIND_COLOR[sp.kind] || "#c9a24a");
     if (locked) b.classList.add("locked");
     // 長押しでスキル詳細を表示 (MP不足などで押せない技でも内容は確認できる)
