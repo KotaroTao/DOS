@@ -62,8 +62,7 @@ with sync_playwright() as p:
                 }
               }
               const app = document.getElementById('app');
-              const minLog = innerWidth <= 600 ? 32.5 : 54;
-              if (innerWidth <= 600 && Math.abs(log.height - minLog) > 0.1) throw Error('探索と戦闘の記録の高さが違う');
+              const minLog = innerWidth <= 600 ? 41 : 54;
               const desktop = getComputedStyle(document.getElementById('app')).display === 'grid';
               const overlap = desktop ? rect('hud').top < party.bottom : log.bottom > party.top+1;
               if (log.height < minLog || overlap || controls.bottom > rect('app').top+app.scrollHeight+1)
@@ -135,7 +134,7 @@ with sync_playwright() as p:
         page.locator('#controls .cmd-main button').first.scroll_into_view_if_needed()
         page.evaluate('''() => {
           const b = document.querySelector('#controls .cmd-main button'), r = b.getBoundingClientRect();
-          if (r.height < 44 || r.top < 0 || r.bottom > innerHeight || !b.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)))
+          if (r.height < 39.5 || r.top < 0 || r.bottom > innerHeight || !b.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)))
             throw Error('戦闘の操作ボタンに触れない');
           document.getElementById('app').scrollTop = 0;
         }''')

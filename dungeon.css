@@ -711,12 +711,36 @@ canvas.unk-sil { filter: brightness(0) drop-shadow(0 0 1px rgba(185,172,217,0.85
   #app.in-combat #controls { padding-bottom: 2px; }
 }
 
-/* スマホの記録は探索・戦闘とも文字2.5個分。空いた高さは盤面へ渡す。 */
+/* スマホでは札と命令ボタンを詰めた分だけ記録を広げ、盤面の高さを保つ。 */
 @media (max-width: 600px) {
   #app:is(.board-camera-active, .in-combat) #hud { flex: 0 0 auto; min-height: 0; }
   #app:is(.board-camera-active, .in-combat) #log {
-    flex: 0 0 auto; height: 2.5em; min-height: 2.5em; max-height: 2.5em;
+    flex: 0 0 auto; height: calc(2.5em + var(--log-extra, 0px));
+    min-height: calc(2.5em + var(--log-extra, 0px)); max-height: calc(2.5em + var(--log-extra, 0px));
     padding-block: 2px;
   }
   #app.in-combat #controls { flex: 1 1 0; }
+}
+
+.pc-current-short { display: none; }
+@media (max-width: 600px) {
+  #app.board-camera-active { --log-extra: var(--party-log-extra, 0px); }
+  #app.board-camera-active #party:not(.measure-vitals) .pc-num {
+    flex-wrap: nowrap; white-space: nowrap; overflow-wrap: normal;
+  }
+  #app.board-camera-active #party:not(.measure-vitals) .pc-current,
+  #app.board-camera-active #party:not(.measure-vitals) .pc-num small { display: none; }
+  #app.board-camera-active #party:not(.measure-vitals) .pc-current-short { display: inline; }
+  #app.in-combat {
+    --log-extra: var(--command-log-extra, 11.05px);
+    --command-reserve: 150px;
+  }
+  #app.in-combat #controls:not(.measure-commands) { min-height: calc(var(--command-reserve) - var(--log-extra)); }
+  #app.in-combat #controls:not(.measure-commands) .cmd-main { height: var(--command-main-height, 50.4px); flex: 0 0 auto; }
+  #app.in-combat #controls:not(.measure-commands) .cmd-sub { height: var(--command-sub-height, 49.05px); flex: 0 0 auto; }
+  #app.in-combat #controls:not(.measure-commands) .cmd-main .btn.cmd { min-height: 0; height: 100%; padding-block: 3px; }
+  #app.in-combat #controls:not(.measure-commands) .cmd-sub .btn.cmd { min-height: 0; height: 100%; padding-block: 1.7px; }
+}
+@media (max-width: 560px) and (max-height: 640px) {
+  #app.in-combat { --command-reserve: 120px; }
 }

@@ -64,7 +64,7 @@ with sync_playwright() as p:
                       if(app.scrollHeight>app.clientHeight+1) throw Error('画面全体のスクロールが必要');
                       for(const button of document.querySelectorAll('.cmd-sub button')) {
                         const b=button.getBoundingClientRect();
-                        if(b.height<44 || b.bottom>r.bottom+1) throw Error('操作ボタンが小さい・画面外');
+                        if(b.height<39.5 || b.bottom>r.bottom+1) throw Error('操作ボタンが小さい・画面外');
                       }
                     }''')
                 print(f'{w}x{h} banner={banner} 敵{enemies}体: 桁数による寸法変化なし', flush=True)

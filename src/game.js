@@ -2607,6 +2607,33 @@ const topbarEl = document.getElementById("topbar");
 const LOG_MIN_BOARD = 94, LOG_MIN_COMBAT = 94, MENU_RESERVE = 166;
 const TURN_ORDER_H = 31; // 戦闘の行動順の帯 (#turn-order) の高さ + 下の余白。記録欄を削らず戦場の側で詰める
 let _fitKey = "";
+let _partyLogKey = "", _commandSizeKey = "", _commandSizeRow = null;
+// 元の札との差を測るのは内容・画面サイズが変わった時だけ。毎フレームの再配置を避ける。
+function updatePartyLogSpace() {
+  const key = `${_partyKey}|${view.clientWidth}|${window.innerHeight}`;
+  if (key === _partyLogKey) return;
+  _partyLogKey = key;
+  const compact = outerH(partyEl);
+  partyEl.classList.add("measure-vitals");
+  const full = outerH(partyEl);
+  partyEl.classList.remove("measure-vitals");
+  appEl.style.setProperty("--party-log-extra", Math.max(0, full - compact) + "px");
+}
+function updateCommandLogSpace() {
+  if (window.innerWidth > 600) return;
+  const main = combatMenu.querySelector(".cmd-main"), sub = combatMenu.querySelector(".cmd-sub");
+  if (!main || !sub) return; // 敵の手番・対象選択でも直前の高さ配分を保つ。
+  const key = `${view.clientWidth}|${window.innerHeight}`;
+  if (key === _commandSizeKey && main === _commandSizeRow) return;
+  _commandSizeKey = key; _commandSizeRow = main;
+  const controls = document.getElementById("controls");
+  controls.classList.add("measure-commands");
+  const mainH = main.getBoundingClientRect().height, subH = sub.getBoundingClientRect().height;
+  controls.classList.remove("measure-commands");
+  appEl.style.setProperty("--command-main-height", mainH * 0.9 + "px");
+  appEl.style.setProperty("--command-sub-height", subH * 0.9 + "px");
+  appEl.style.setProperty("--command-log-extra", (mainH + subH) * 0.1 + "px");
+}
 function outerH(e) {
   if (!e || e.classList.contains("hidden")) return 0;
   const cs = getComputedStyle(e);
@@ -2628,8 +2655,9 @@ function fitView(force = false) {
     + outerH(topbarEl) + outerH(partyEl) + outerH(hintEl)
     + (csH ? (parseFloat(csH.paddingTop) || 0) + (parseFloat(csH.paddingBottom) || 0) : 0);
   const mobile = window.innerWidth <= 600;
+  if (mobile) { if (combat) updateCommandLogSpace(); else if (G.state === "board") updatePartyLogSpace(); }
   const logH = mobile ? parseFloat(getComputedStyle(document.getElementById("log")).height) : 0;
-  // スマホは記録を固定し、枠と敵名の帯も引いた残りをすべて絵に使う。
+  // スマホは札と命令板を詰めた分の記録を確保し、枠と敵名の帯も引いた残りを絵に使う。
   const csV = getComputedStyle(view);
   if (mobile) used += (parseFloat(csV.borderTopWidth) || 0) + (parseFloat(csV.borderBottomWidth) || 0);
   if (combat) used += (mobile ? parseFloat(getComputedStyle(ctrlEl).minHeight) + 4 : MENU_RESERVE)
@@ -2670,7 +2698,7 @@ function refitAndRedraw() {
 window.addEventListener("resize", () => requestAnimationFrame(refitAndRedraw));
 if (typeof ResizeObserver !== "undefined" && appEl) {
   const observer = new ResizeObserver(() => requestAnimationFrame(refitAndRedraw));
-  for (const id of ["app", "screen", "topbar", "party", "hint", "runbar", "board-camera-tools"]) {
+  for (const id of ["app", "screen", "topbar", "party", "hint", "runbar", "board-camera-tools", "controls"]) {
     const e = document.getElementById(id);
     if (e) observer.observe(e);
   }
@@ -10914,6 +10942,7 @@ function renderCombatMenu() {
     sub.appendChild(autoB);
     sub.appendChild(cmdBtn("fast", "倍速", G.fastAnim ? "ON" : "OFF", () => { G.fastAnim = !G.fastAnim; autosave(); renderCombatMenu(); }, G.fastAnim ? "on" : ""));
     combatMenu.appendChild(sub);
+    updateCommandLogSpace();
   } else if (b.phase === "target") {
     combatMenu.dataset.mode = "target";
     const p = b.pending;
@@ -12478,8 +12507,12 @@ function renderParty() {
       fill.style.width = (m > 0 ? Math.max(0, Math.min(100, (v / m) * 100)) : 0) + "%";
       d.appendChild(fill);
       const combat = st === "combat" || (st === "over" && !!G.battle);
-      const n = el("span", "pc-num no-phrase", m > 0 ? (combat ? partyVitalText(v) : String(v)) : "—");
-      if (m > 0 && !combat) n.appendChild(el("small", null, "/" + m));
+      const n = el("span", "pc-num no-phrase", m > 0 && combat ? partyVitalText(v) : m > 0 ? "" : "—");
+      if (m > 0 && !combat) {
+        n.appendChild(el("span", "pc-current", String(v)));
+        n.appendChild(el("span", "pc-current-short", partyVitalText(v)));
+        n.appendChild(el("small", null, "/" + m));
+      }
       const exact = `${kind.toUpperCase()} ${v}/${m}`;
       d.title = exact;
       d.setAttribute("aria-label", exact);
@@ -12504,6 +12537,7 @@ function renderParty() {
     }
     partyEl.appendChild(card);
   });
+  if (st === "board" && window.innerWidth <= 600) requestAnimationFrame(refitAndRedraw);
 }
 
 // 迷宮の中の隊列の並べ替え (ユーザーの指示、2026-10): 隊の札を長押しで持ち上げ、指を動かして別の札の上で離すと入れ替える。
