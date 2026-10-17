@@ -10762,7 +10762,7 @@ function renderActingPlate(actor) {
 function appendAutoStart() {
   if (G.autoCombat || !G.battle || G.battle.result) return;
   const keep = !!uiDungeonHud.getPref("autoKeep");
-  combatMenu.appendChild(cmdBtn("auto", "オート", keep ? "継続" : "敵の手番から速める", () => {
+  combatMenu.appendChild(cmdBtn("auto", "オート", keep ? "継続" : "", () => {
     if (G.autoCombat || G.state !== "combat" || !G.battle || G.battle.result) return;
     G.autoCombat = true;
     SFX.select();
