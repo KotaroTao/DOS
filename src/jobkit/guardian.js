@@ -63,8 +63,8 @@ export default {
     },
     guardianHoufuku: {
       label: "報復の楯",
-      lv: ["物理を受けるたび、VIT×0.3の盾打ちでやり返す", "物理を受けるたび、VIT×0.5の盾打ちでやり返す", "物理を受けるたび、VIT×0.6の盾打ちでやり返す"],
-      fx: [{ t: "hurt", ret: { stat: "vit", k: [0.3, 0.5, 0.6] } }],
+      lv: ["物理を受けるたび、VIT×0.3の盾打ちでやり返す", "物理を受けるたび、VIT×0.5の盾打ちでやり返す", "物理を受けるたび、VIT×0.7の盾打ちでやり返す"],
+      fx: [{ t: "hurt", ret: { stat: "vit", k: [0.3, 0.5, 0.7] } }],
     },
     guardianTatenochikai: {
       label: "楯の誓い",
