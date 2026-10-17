@@ -474,6 +474,12 @@ const STAT_KEYS = [["atk", "STR"], ["vit", "VIT"], ["agi", "AGI"], ["int", "INT"
 const AIL = { poison: "毒", paralyze: "麻痺", stone: "石化" };
 const RANGE_NAME = { near: "近", mid: "中", long: "長" };
 const pctTx = (v) => (v == null ? "—" : `${Math.round(v * 1000) / 10}%`);
+function peekVitalValue(value, max) {
+  const v = el("span", "dg-peek-bv");
+  v.appendChild(el("span", "dg-peek-current", String(value)));
+  v.appendChild(el("span", "dg-peek-max", "/" + max));
+  return v;
+}
 function peekTile(label, value, sub, cls) {
   const c = el("div", "dg-stat dg-num" + (cls ? " " + cls : ""));
   const l = el("div", "dg-num-h");
@@ -500,13 +506,13 @@ export function peekDoll(d, { idx = 0, combat = false } = {}) {
       const hp = el("div", "dg-peek-bar");
       hp.appendChild(el("span", "dg-peek-bl", "HP"));
       hp.appendChild(bar(d.hp, d.maxhp, { tone: "hp" }));
-      hp.appendChild(el("span", "dg-peek-bv", `${d.hp}/${d.maxhp}`));
+      hp.appendChild(peekVitalValue(d.hp, d.maxhp));
       tx.appendChild(hp);
       if (d.maxmp > 0) {
         const mp = el("div", "dg-peek-bar");
         mp.appendChild(el("span", "dg-peek-bl", "MP"));
         mp.appendChild(bar(d.mp, d.maxmp, { tone: "mp" }));
-        mp.appendChild(el("span", "dg-peek-bv", `${d.mp}/${d.maxmp}`));
+        mp.appendChild(peekVitalValue(d.mp, d.maxmp));
         tx.appendChild(mp);
       }
       top.appendChild(tx);
@@ -554,7 +560,7 @@ export function peekDoll(d, { idx = 0, combat = false } = {}) {
         const c = el("div", "dg-stat" + tone);
         c.appendChild(el("span", "dg-stat-l", lb));
         const v = el("span", "dg-stat-v", now != null ? String(now) : "—");
-        if (tone) v.appendChild(el("small", "dg-stat-b", `素${base}`));
+        if (tone) v.appendChild(el("small", "dg-stat-b", `元の値 ${base}`));
         c.appendChild(v);
         grid.appendChild(c);
       }

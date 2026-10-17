@@ -75,10 +75,10 @@ with sync_playwright() as p:
     page.screenshot(path='work/battle-vitals-mobile.png')
     page.locator('#party .pc').first.tap()
     page.locator('.dg-peek').wait_for(state='visible')
-    assert page.locator('.dg-peek-bv').first.inner_text().replace('\u200b','') == '1234567/2345678'
+    assert page.locator('.dg-peek-bv').first.text_content().replace('\u200b','') == '1234567/2345678'
     page.evaluate("import('/src/ui/kit.js').then(({sheet})=>sheet.closeAll())")
     page.locator('.dg-peek').wait_for(state='detached')
-    # 技の一覧は操作領域の内側でスクロールし、戻るボタンも画面内に残す。
+    # 技の一覧は専用パネルでスクロールし、戻るボタンも画面内に残す。
     page.evaluate('''async () => {
       const {battleSkills}=await import('/src/souls.js');
       const b=__game.G.battle;
@@ -87,13 +87,15 @@ with sync_playwright() as p:
     }''')
     page.wait_for_timeout(100)
     page.locator('.cmd-skill').tap()
-    page.wait_for_function('document.getElementById("combat-menu").dataset.mode === "spells"')
+    page.locator('.battle-skill-picker').wait_for(state='visible')
+    page.wait_for_timeout(300)  # シートが下から現れる演出を待つ
     page.evaluate('''() => {
-      const app=document.getElementById('app'),menu=document.getElementById('combat-menu');
-      if(menu.getBoundingClientRect().bottom>app.getBoundingClientRect().bottom+1)
+      const menu=document.querySelector('.battle-skill-picker');
+      if(menu.getBoundingClientRect().bottom>innerHeight+1)
         throw Error('技の一覧の戻るボタンが画面外');
     }''')
-    page.locator('#combat-menu > button').last.tap()
+    page.locator('.battle-skill-picker .ui-sheet-foot button').tap()
+    page.locator('.battle-skill-picker').wait_for(state='detached')
     # 単体回復の対象選択では詳細を開かず、仲間へのタップを対象選択へ渡す。
     page.evaluate('''async () => {
       const {SPELLS}=await import('/src/combat.js');
