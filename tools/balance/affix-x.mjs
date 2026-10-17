@@ -7,7 +7,7 @@ import { makeDoll, subPickCap, subPickCapFor, kindleSubIndex, setSharedSouls, ma
 import { decideAuto } from "../../src/autotactics.js";
 import { MONSTERS } from "../../src/sprites.js";
 import { DUNGEON_MONSTERS } from "../../src/dungeons/index.js";
-import { AFX, afxDef, rollAffixes, applyAffixes } from "../../src/infaffix.js";
+import { AFX, afxDef, rollAffixes, applyAffixes, enchantBlock } from "../../src/infaffix.js";
 import { recalc, ITEMS, registerAffixes } from "../../src/items.js";
 import { applyAffixes as aa, gearPerks } from "../../src/infaffix.js";
 import { useMathRandom } from "../../src/rng.js";
@@ -28,6 +28,35 @@ for (const [g, want] of [["w", 6], ["body", 6], ["head", 6], ["hands", 6], ["fee
 }
 for (const id of ["J02", "J10", "J11"]) assert.ok(!afxDef(id).retired && afxDef(id).tier === "x", `${id} は極として拾える`);
 for (let i = 1; i <= 35; i++) { const d = afxDef(`X${String(i).padStart(2, "0")}`); assert.ok(d && d.tier === "x" && d.text(1, 1).length > 8, `X${i} の説明`); }
+// 入手時は複数の極を保持し、付呪時は極を追加できない。稀な抽選結果を固定して確認する。
+const forcedAffixes = (it, floor, counts, n) => {
+  const draws = [...counts, ...Array.from({ length: n }, () => [0.999999, 0, 0, 0, 0]).flat()];
+  return rollAffixes(it, floor, () => { assert.ok(draws.length, "想定外の引き直しが無い"); return draws.shift(); });
+};
+for (const slot of ["weapon", "body", "head", "hands", "feet", "acc"]) {
+  const tmpl = Object.values(ITEMS).find((it) => it.rar === "lr" && it.slot === slot && it.price > 0 && !it.cursed);
+  assert.ok(tmpl, `${slot} のレジェンド装備がある`);
+  for (const floor of [81, 150]) {
+    const afx = forcedAffixes(tmpl, floor, [0, 0], 5);
+    assert.equal(afx.length, 5, "レジェンドには5枠付く");
+    assert.ok(afx.every((a) => afxDef(a.k).tier === "x"), "5枠すべてに極が付く");
+    assert.equal(new Set(afx.map((a) => a.k)).size, 5, "同じ特性は重複しない");
+    assert.ok(afx.filter((a) => afxDef(a.k).group === "J").length <= 1, "発動する特性の制限を守る");
+    const it = applyAffixes({ ...structuredClone(tmpl), afx: JSON.parse(JSON.stringify(afx)) });
+    assert.equal(it.afxText.filter((a) => a.tier === "x").length, 5, "保存後の再適用でも5つの極を表示する");
+    const page = { k: afx[1].k, v: afx[1].v };
+    assert.equal(enchantBlock({ ...tmpl, afx: [afx[0]] }, page, "lr"), "極は1つの品に1つまで", "拾った極への極の付呪は不可");
+    assert.equal(enchantBlock({ ...tmpl, afx: afx.slice(0, 2) }, { k: afx[2].k, v: afx[2].v }, "lr"), "極は1つの品に1つまで", "複数の極を拾った装備にも極を追加できない");
+    assert.equal(enchantBlock({ ...tmpl, afx: [] }, page, "lr"), null, "極の無い装備には付呪できる");
+  }
+}
+const ordinary = { slot: "weapon", lv: 100, price: 1000, rar: "c" };
+assert.equal(forcedAffixes(ordinary, 150, [0], 4).length, 4, "レジェンド以外の最大数は従来どおり");
+assert.equal(forcedAffixes({ ...ordinary, rar: "lr" }, 150, [0, 0.99], 4).length, 4, "5枠目の抽選に外れれば4枠に留まる");
+assert.equal(forcedAffixes({ ...ordinary, rar: "lr" }, 150, [0.99], 3).length, 3, "4枠目の抽選に外れれば3枠に留まる");
+assert.equal(forcedAffixes(ordinary, 41, [0.99], 2).filter((a) => afxDef(a.k).tier === "x").length, 2, "浅い階でも極が2つ付く");
+assert.equal(forcedAffixes({ ...ordinary, rar: "lr" }, 80, [0], 3).length, 3, "80階までは5枠目を抽選しない");
+
 // 品に付けると afxMisc / afxFx になる
 const itemWith = (slot, k) => {
   const tmpl = Object.values(ITEMS).find((it) => it.slot === slot && it.price > 0 && !it.cursed && !it.forJob && !it.cls);
