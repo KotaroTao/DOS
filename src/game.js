@@ -10763,8 +10763,7 @@ function renderActingPlate(actor) {
 // 演出の間の「オート」: 手番を待たずにオートへ切り替える。オートの速さ (spdMul) は次の手番から効く
 function appendAutoStart() {
   if (G.autoCombat || !G.battle || G.battle.result) return;
-  const keep = !!uiDungeonHud.getPref("autoKeep");
-  combatMenu.appendChild(cmdBtn("auto", "オート", keep ? "継続" : "", () => {
+  combatMenu.appendChild(cmdBtn("auto", "オート", "", () => {
     if (G.autoCombat || G.state !== "combat" || !G.battle || G.battle.result) return;
     G.autoCombat = true;
     SFX.select();
@@ -10797,7 +10796,7 @@ function renderAutoBanner(actor) {
   combatMenu.dataset.mode = "auto";
   combatMenu.appendChild(plate);
   const row = el("div", "cmd-autorow");
-  row.appendChild(cmdBtn("stop", "オート解除", "画面のタップでも解除", stopAutoCombat, "cmd-wide"));
+  row.appendChild(cmdBtn("stop", "オート解除", "", stopAutoCombat, "cmd-wide"));
   row.appendChild(cmdBtn("keep", "次も続ける", keep ? "ON" : "OFF", () => {
     uiDungeonHud.setPref("autoKeep", !uiDungeonHud.getPref("autoKeep"));
     SFX.select();
@@ -10955,7 +10954,7 @@ function renderCombatMenu() {
     // 逃走: 手番の者の AGI で決まる成功率を添える (退路を断たれていれば「不可」)
     sub.appendChild(cmdBtn("run", "逃走", b.noFlee ? "不可" : `${Math.round(b.fleeChance(actor) * 100)}%`, () => act("run")));
     // オート: 人業ごとの作戦 (隊の「能力」で選ぶ) に従って動く。長押しで隊の作戦をまとめて見る・変える
-    const autoB = cmdBtn("auto", "オート", uiDungeonHud.getPref("autoKeep") ? "継続" : "長押しで作戦", () => { G.autoCombat = true; SFX.select(); renderCombatMenu(); });
+    const autoB = cmdBtn("auto", "オート", "", () => { G.autoCombat = true; SFX.select(); renderCombatMenu(); });
     if (UI.openPartyTactics) {
       const tactics = () => { SFX.select(); UI.openPartyTactics(G.party.filter(Boolean), { onDone: () => { if (G.state === "combat" && !G.autoCombat) renderCombatMenu(); } }); };
       attachLongPress(autoB, tactics);
