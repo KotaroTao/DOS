@@ -525,6 +525,13 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 ...except: replace ONLY the incorrect chalk hand-and-flame crest inside the town square circle with the approved geometric crest in docs/art/story-refs/sigil.png, supplied as the second reference. Use its exact silhouette: an angular cupped palm, ONE thumb projection on the LEFT, THREE parallel slanted finger projections on the RIGHT, a short wrist below, and ONE separate solid teardrop flame above. Do not add a fourth finger on the right. Do not use a symmetrical cup, a hollow flame, extra flames, or a realistic hand. Render the approved silhouette in warm off-white chalk on the cobblestones, matching the existing crest's scale and the perspective of the ground plane. Preserve the circular chalk border and every other part of the original image exactly, including all people, buildings, lanterns and lighting.
 ```
 
+**A-37. 絵本の閲覧室の脚の局所修正 lore_ws23** `art/story-review/dungeons/lore_ws23.png` (済)
+- 根拠と判定: 中央手前でクッションに座る小さな人業の脚のつながりが不自然だった。左右それぞれの太もも・膝・すね・足首・足が自然につながる座り姿へ修正。
+- 保つもの: 中央の人業の頭・上半身・読書のしぐさ、左右の人業、絵本、閲覧室の構図・画風・光。修正前は `art/story-review/fixes/lore_ws23-before.png` に保存。
+```text
+...except: correct ONLY the legs of the small wooden articulated doll seated on the cushion in the center foreground. Give it exactly two naturally connected legs, each with a short wooden thigh, a black-iron knee joint, a wooden shin, a distinct ankle joint and a wooden foot resting on the rug. Preserve its leaning upper body and reading gesture, the other dolls, the book, the room, composition, style and lighting.
+```
+
 ### B. 任意 (余力があれば。読者が気づきやすい順)
 
 | 場面 | 直すこと |
