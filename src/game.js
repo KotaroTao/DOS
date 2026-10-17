@@ -18011,12 +18011,15 @@ function showConfirm({ title, lines = [], okLabel = "実行する", onOk }) {
 function markDungeonLoot(it) {
   const tr = dungeonTrait();
   if (it && UNIDENT_SLOTS.has(it.slot) && !(tr && tr.appraised) && !abyssActive()) it.unidentified = true; // 無限迷宮の品は鑑定済みで落ちる
-  // 無限迷宮の解放後は、全迷宮のドロップに階数に応じた追加の能力・特性が付く。街で受け取る品は対象外。
+  // 無限迷宮と、その解放章より先の本編・寄り道だけが対象。以前の迷宮は再訪しても付かない。
+  const infiniteChapter = CHAPTERS.find(c => c.no === FEATURES.infinite.chapter);
+  const infiniteLayer = worldById(infiniteChapter.finale).layer;
+  const laterDungeon = inDungeon() && featureUnlocked("infinite") && curDungeon().layer > infiniteLayer;
   if (it && abyssActive() && hasQuality(it) && !it.depth && !it.afx && !it.cursed && it.price > 0) {
     it.depth = Math.max(1, Math.floor(G.floor || 1));
     resyncItem(it);
   }
-  if (it && (abyssActive() || (inDungeon() && featureUnlocked("infinite"))) && !it.afx && hasQuality(it)) {
+  if (it && (abyssActive() || laterDungeon) && !it.afx && hasQuality(it)) {
     const afx = rollAffixes(it, G.floor);
     if (afx) { it.afx = afx; applyAffixes(it); if (abyssActive()) infAfxTrack(it); }
   }

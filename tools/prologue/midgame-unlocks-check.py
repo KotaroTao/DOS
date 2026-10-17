@@ -35,7 +35,7 @@ with sync_playwright() as p:
       G.world.reported.w17=1;check(game.featureUnlocked('order3'),'第四章の結びで三の席');
       check(!game.featureUnlocked('order4'),'第六章の結びの前は四の席は未解放');
       G.world.reported.w25=1;check(game.featureUnlocked('order4')&&!G.world.reported.w33,'第六章の結びで四の席、第八章の報告は不要');
-      // 解放後の全迷宮ドロップと、実際の持ち帰りを区別する。
+      // 無限迷宮より先の迷宮のドロップと、実際の持ち帰りを区別する。
       const {applyAffixes}=await import('/src/infaffix.js');
       const {ITEMS}=await import('/src/items.js');
       const picks=['fighter','priest','thief','mage','knight','bishop'];
@@ -52,7 +52,15 @@ with sync_playwright() as p:
       reset(); G.testUnlock=[];normal();
       check(Array.from({length:100},()=>game.markDungeonLoot(game.cloneItem('shortSword',50))).every(i=>!i.afx?.length),'無限迷宮解放前の本編では追加なし');
       G.testUnlock=['infinite'];
-      check(Array.from({length:300},()=>game.markDungeonLoot(game.cloneItem('shortSword',50))).some(i=>i.afx?.length),'解放後は以前の本編迷宮でも追加つき装備が落ちる');
+      const originalIdx=G.dungeonIdx;
+      for (const [idx,d] of inf.DUNGEONS.entries()) {
+        G.dungeonIdx=idx;
+        if(d.layer<=10) check(Array.from({length:10},()=>game.markDungeonLoot(game.cloneItem('shortSword',50))).every(i=>!i.afx?.length),d.name+'は解放後の再訪でも追加なし');
+        else check(Array.from({length:150},()=>game.markDungeonLoot(game.cloneItem('shortSword',50))).some(i=>i.afx?.length),d.name+'は解放後の追加つきドロップ対象');
+      }
+      G.dungeonIdx=inf.DUNGEONS.findIndex(d=>d.id==='w34');G.testUnlock=[];
+      check(Array.from({length:20},()=>game.markDungeonLoot(game.cloneItem('shortSword',50))).every(i=>!i.afx?.length),'第九章でも無限迷宮が未解放なら追加なし');
+      G.testUnlock=['infinite'];G.dungeonIdx=originalIdx;
       inf.returnToTown();
       check(!game.featureUnlocked('enchant'),'空帰還では付呪未解放');
       depart();await home('return');check(!game.featureUnlocked('enchant'),'無限迷宮の初回空帰還でも未解放');
