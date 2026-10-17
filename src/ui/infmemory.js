@@ -54,7 +54,7 @@ function subContent(memory, sub) {
   if (!soul) { body.appendChild(el("span", "inf-memory-muted", "空き")); return body; }
   body.appendChild(el("div", "inf-memory-value-title", soulLabel(soul)));
   body.appendChild(el("div", "inf-memory-small", `Lv${soul.level || 1} / 上限${soulLevelCapOf(soul)} ・ R${soulRankOf(soul)}`));
-  body.appendChild(el("div", "inf-memory-small", `経験値 ${soul.exp || 0}`));
+  body.appendChild(el("div", "inf-memory-small", `融合数 ${Math.max(0, (soul.count || 1) - 1)} ・ 経験値 ${soul.exp || 0}`));
   body.appendChild(el("div", "inf-memory-small", `借用: ${borrowedText(sub)}`));
   return body;
 }
@@ -139,10 +139,10 @@ export function memoryComparison(b, previous, candidate) {
       buttons.forEach((btn, i) => { btn.classList.toggle("on", i === Number(all));btn.setAttribute("aria-pressed", String(i === Number(all))); });
       empty.hidden = all || !!diff.count;
     } });
-    choice.classList.add("ui-seg-b");choice.classList.toggle("on", all === !diff.count);
-    choice.setAttribute("aria-pressed", String(all === !diff.count));buttons.push(choice);filters.appendChild(choice);
+    choice.classList.add("ui-seg-b");choice.classList.toggle("on", all);
+    choice.setAttribute("aria-pressed", String(all));buttons.push(choice);filters.appendChild(choice);
   }
-  root.classList.toggle("show-all", !diff.count);toolbar.appendChild(filters);
+  root.classList.add("show-all");toolbar.appendChild(filters);
   toolbar.appendChild(el("div", "inf-memory-legend", "以前の記憶　→　今回の状態"));root.appendChild(toolbar);
   const empty = el("div", "inf-note dim", "変更された項目はありません。「すべて」で保存内容を確認できます。");empty.hidden = true;root.appendChild(empty);
   for (const [i, member] of diff.members.entries()) {
@@ -160,7 +160,7 @@ export function memoryComparison(b, previous, candidate) {
       // 異なる職業の育成値は優劣を示さず、変更として表示する。
       rows.push(comparisonRow(label, a, z, a !== z, mainBefore?.clsKey === mainAfter?.clsKey ? z - a : null));
     }
-    if (old.name !== current.name) rows.unshift(comparisonRow("器の名", old.name, current.name, true));
+    rows.unshift(comparisonRow("器の名", old.name, current.name, old.name !== current.name));
     card.appendChild(group("メイン魂", rows));
     card.appendChild(group("サブ魂と借りる技", [0, 1].map(si => comparisonRow(`サブ魂${si + 1}`,
       subContent(previous, old.subs?.[si]), subContent(candidate, current.subs?.[si]), member.subs[si]))));
@@ -179,7 +179,7 @@ export function memoryComparison(b, previous, candidate) {
       comparisonRow("非表示の技", skillList(old.skillOff), skillList(current.skillOff), !equal(sorted(old.skillOff), sorted(current.skillOff))),
       comparisonRow("オート除外", skillList(old.autoOff), skillList(current.autoOff), !equal(sorted(old.autoOff), sorted(current.autoOff)))];
     const faceText = f => f ? `${SOUL_CLASSES[f.job]?.label || "魂"} ・ R${f.rank}` : "魂の姿";
-    if (!equal(old.face || null, current.face || null)) settings.push(comparisonRow("面影", faceText(old.face), faceText(current.face), true));
+    settings.push(comparisonRow("面影", faceText(old.face), faceText(current.face), !equal(old.face || null, current.face || null)));
     card.appendChild(group("作戦と技の設定", settings));root.appendChild(card);
   }
   b.appendChild(root);
