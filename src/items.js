@@ -31,7 +31,7 @@ export const SLOT_LABEL = {
   weapon: "武器", body: "防具", shield: "盾", head: "頭", hands: "小手", feet: "足", acc1: "装飾1", acc2: "装飾2",
 };
 export const MAX_ITEMS = 50;
-// 登録装備は袋で見られるが、通常の50枠には数えない。参照の実体は保存編成と共有する。
+// 登録装備は通常の50枠に数えず、隊の持ち物一覧にも出さない。参照の実体は保存編成と共有する。
 export const isFormationItem = it => !!it?.formationNames?.length;
 export const bagCount = items => (items || []).reduce((n, it) => n + (it && !isFormationItem(it) ? 1 : 0), 0);
 

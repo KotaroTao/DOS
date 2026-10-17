@@ -2262,16 +2262,16 @@ function equipSeg(root, d) {
   const list = el("div", "pt-slots");
   for (const k of SLOTS) list.appendChild(slotCell(d, k));
   root.appendChild(list);
+  // 保存編成だけが使う登録装備は実物を保持し、現在の隊の持ち物一覧には出さない。
+  const bag = d.items.filter(it => !isFormationItem(it));
   // 所持品の見出し
   const h = el("div", "pt-bagbar");
   const t = el("span", "pt-bagbar-t");
   t.appendChild(el("span", "pt-bagbar-k", "隊の持ち物"));
-  t.appendChild(el("b", null, `${bagCount(d.items)}/${MAX_ITEMS}`));
-  const unid = d.items.filter((it) => it && it.unidentified).length;
+  t.appendChild(el("b", null, `${bagCount(bag)}/${MAX_ITEMS}`));
+  const unid = bag.filter((it) => it && it.unidentified).length;
   if (unid) t.appendChild(el("span", "pt-bagbar-x", `未鑑定${unid}`));
   h.appendChild(t);
-  const registered = d.items.filter(isFormationItem).length;
-  if (registered) h.appendChild(el("span", "pt-note", `登録装備${registered}点は別枠`));
   // 見出しと所持の札は1つの箱に入れる (狭い画面では左右に並べて高さを詰める: ui-party.css)
   const wrap = el("div", "pt-bagwrap");
   wrap.appendChild(h);
@@ -2280,16 +2280,16 @@ function equipSeg(root, d) {
   t.appendChild(shownCount);
   const drawBag = () => {
     grid.replaceChildren();
-    const shown = bagItems(d.items).filter(it => matchesGearFilter(it));
+    const shown = bagItems(bag).filter(it => matchesGearFilter(it));
     for (const it of shown) grid.appendChild(bagCell(d, it));
-    if (!d.items.length) grid.appendChild(el("div", "pt-note", "隊の持ち物は空だ。"));
+    if (!bag.length) grid.appendChild(el("div", "pt-note", "隊の持ち物は空だ。"));
     else if (!shown.length) grid.appendChild(el("div", "pt-note", "条件に合う品はない。絞り込みの条件を外してください。"));
     setText(shownCount, gearFilterCount() ? `表示 ${shown.length}点` : "");
     grid.scrollTop = 0;
   };
   wrap.appendChild(bagSortControl(drawBag));
-  wrap.appendChild(gearFilterButton(d.items, rerender));
-  wrap.appendChild(gearFilterSummary(d.items, rerender));
+  wrap.appendChild(gearFilterButton(bag, rerender));
+  wrap.appendChild(gearFilterSummary(bag, rerender));
   drawBag();
   wrap.appendChild(grid);
   root.appendChild(wrap);

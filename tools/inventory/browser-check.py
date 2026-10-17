@@ -16,6 +16,8 @@ with sync_playwright() as p:
       const {sheet} = await import('/src/ui/kit.js');
       const {refSerialize, refDeserialize} = await import('/src/savegraph.js');
       const G=__game.G, out=[];
+      // 留守居は廃止済みなので、共通袋の検査に使う控えを明示的に用意する。
+      if(!G.reserve.length){const {makeDoll}=await import('/src/souls.js');G.reserve.push(makeDoll('検査の控え'));}
       const check=(ok,msg)=>{if(!ok)throw Error(msg);out.push(msg);};
       check([...G.party,...G.reserve].every(d=>d.items===G.inventory), '隊・控えの共通袋');
       G.inventory.length=0; G.gold=1000000;
@@ -81,16 +83,21 @@ with sync_playwright() as p:
     for width,height in [(320,740),(390,844),(768,1024),(1024,768),(1440,900),(844,390)]:
         page.set_viewport_size({'width':width,'height':height})
         page.wait_for_timeout(120)
-        layout=page.evaluate('''() => {
+        layout=page.evaluate('''async () => {
+          const {isDesktopLayout}=await import('/src/desktop.js');
           const bag=document.querySelector('.pt-bag');
           const cells=[...bag.querySelectorAll('button')];
-          return {count:cells.length,cols:getComputedStyle(bag).gridTemplateColumns.split(' ').length,
+          return {desktop:isDesktopLayout(),count:cells.length,cols:getComputedStyle(bag).gridTemplateColumns.split(' ').length,
             overflow:document.documentElement.scrollWidth>innerWidth,
             scroll:bag.scrollHeight>bag.clientHeight,
             min:Math.min(...cells.map(x=>Math.min(x.clientWidth,x.clientHeight)))};
         }''')
         assert layout['count']==50 and not layout['overflow'] and layout['scroll'],layout
-        assert layout['cols']==(8 if width>=1000 else 6 if width>=600 else 4),layout
+        # PCは固定列数ではなく、品の幅を保って自動で列を増減する。
+        if layout['desktop']:
+            assert layout['cols']>=4,layout
+        else:
+            assert layout['cols']==(8 if width>=1000 else 6 if width>=600 else 4),layout
         assert layout['min']>=44,layout
         page.locator('.pt-bag').evaluate('(bag)=>bag.scrollTop=bag.scrollHeight')
         page.locator('.pt-bag button').last.click()
