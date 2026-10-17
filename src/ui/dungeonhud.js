@@ -469,7 +469,7 @@ export function openDungeonMenu() {
 const STAT_KEYS = [["atk", "STR"], ["vit", "VIT"], ["agi", "AGI"], ["int", "INT"], ["pie", "PIE"], ["luk", "LUK"]];
 const AIL = { poison: "毒", paralyze: "麻痺", stone: "石化" };
 const RANGE_NAME = { near: "近", mid: "中", long: "長" };
-const pctTx = (v) => (v == null ? "—" : `${Math.round(v * 100)}%`);
+const pctTx = (v) => (v == null ? "—" : `${Math.round(v * 1000) / 10}%`);
 function peekTile(label, value, sub, cls) {
   const c = el("div", "dg-stat dg-num" + (cls ? " " + cls : ""));
   const l = el("div", "dg-num-h");
@@ -530,6 +530,9 @@ export function peekDoll(d, { idx = 0, combat = false } = {}) {
         nums.appendChild(peekTile("攻撃力", String(ps.power), d.wScale ? Object.keys(d.wScale).map((k) => ATTR_LABEL[k]).join("＋") + " 参照" : "STR 参照"));
         nums.appendChild(peekTile("命中", pctTx(ps.hit), ps.reach ? `届く敵 ${ps.reach}/${ps.foes}体` : "届く敵がいない", ps.reach ? "" : "warn"));
         nums.appendChild(peekTile("会心", pctTx(ps.crit), "通常攻撃"));
+        nums.appendChild(peekTile("会心倍率", `×${Math.round(ps.critMul * 1000) / 1000}`, "物理の会心"));
+        nums.appendChild(peekTile("魔法会心", pctTx(ps.spellCrit), "技の補正は別"));
+        nums.appendChild(peekTile("魔法会心倍率", `×${Math.round(ps.spellCritMul * 1000) / 1000}`, "攻撃呪文の会心"));
         nums.appendChild(peekTile("回避", pctTx(ps.evade), "敵の打撃を"));
         nums.appendChild(peekTile("逃走", pctTx(ps.flee), "この者が逃げると"));
         const ord = ps.order === "now" ? "いま" : ps.order == null ? "次の巡り" : ps.order === 0 ? "次" : `${ps.order}手後`;

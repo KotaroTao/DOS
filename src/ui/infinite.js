@@ -1,4 +1,5 @@
 import { UNLOCKS } from "../story.js";
+import { lostExtremeAffixes, affixLines } from "../infaffix.js";
 import { bagItems, bagSortControl } from "./bagsort.js";
 import { bagCount, bagOwners, MAX_ITEMS } from "../items.js";
 // ===== 無限迷宮の画面 — 入口の魂の3択・風だまり (回収人・灯番・主)・全滅・帰ってきた時の結果 =====
@@ -745,6 +746,18 @@ export function openInfTitles(onDone) {
   });
 }
 
+// 単品売却・回収人の一括売却・街の一括売却後の比較で共通の最終確認。
+async function confirmExtremeLoss(conflicts, choice) {
+  const lines = conflicts.flatMap(c => {
+    const lost = lostExtremeAffixes(c.sets, choice[c.id] ?? c.best);
+    return lost.length ? [`${c.name}：`, ...affixLines(ITEMS[c.id], lost)] : [];
+  });
+  if (!lines.length) return true;
+  return kitConfirm({ banner: "極特性の消失", title: "極特性を保存せずに進めますか？",
+    lines: ["選ばなかった品の次の極特性は失われます。元に戻せません。", ...lines, "棚に残す品を選び直せば、極特性を保存できます。"],
+    okLabel: "保存せずに続ける", cancelLabel: "戻って選び直す", danger: true });
+}
+
 // ================= 商会の棚: 追加の能力つきの品が重なった (docs/infinite-labyrinth.md 17-1) =================
 // 商会の棚には、追加の能力つきの品を1つの品につき1点だけ置いておける。重なった品を一覧で並べ、棚に置く方を選ぶ
 // (強い方を最初から選んでおく)。選ばなかった方は追加の能力が消え、通常品として在庫に入る
@@ -769,7 +782,7 @@ export function openAfxConflicts() {
         const r = el("button", "inf-afx-opt" + (on ? " on" : ""));
         r.type = "button";
         r.setAttribute("aria-pressed", on ? "true" : "false");
-        r.appendChild(el("span", "inf-afx-tag", `${set.current ? "いま棚にある品" : "新しく届いた品"} ・ 強さ ${set.power}${i === c.best ? " ・ 強い方" : ""}`));
+        r.appendChild(el("span", "inf-afx-tag", `${set.current ? "いま棚にある品" : "新しく届いた品"} ・ 総合の強さ ${set.power}${i === c.best ? " ・ 強い方" : ""}`));
         for (const ln of set.lines) r.appendChild(el("span", "inf-afx-ln", ln));
         r.addEventListener("click", () => { choice[c.id] = i; sfx("select"); h.update({ body: fill }); });
         box.appendChild(r);
@@ -780,7 +793,7 @@ export function openAfxConflicts() {
   let h = null;
   afxOpen = true;
   h = sheet.open({ kind: "info", banner: "商会の棚", title: "追加の能力つきの品が重なった", accent: "#c9a227", className: "inf-sheet", body: fill, dismissible: false,
-    footer: [{ label: "選んだ方を棚に置いておく", kind: "primary", size: "lg", onTap: (x) => { x.close("ok", { silent: true }); afxOpen = null; if (game.resolveAfxConflicts) game.resolveAfxConflicts(choice); } }],
+    footer: [{ label: "選んだ方を棚に置いておく", kind: "primary", size: "lg", onTap: async (x) => { if (!await confirmExtremeLoss(list, choice) || x.closed) return; x.close("ok", { silent: true }); afxOpen = null; if (game.resolveAfxConflicts) game.resolveAfxConflicts(choice); } }],
     onClose: () => { afxOpen = null; } });
   return h;
 }
@@ -790,8 +803,8 @@ function openInfBulkSell(onDone) {
   const plan = game.infSellPlan();
   if (!plan.list.length) return;
   const choice = Object.fromEntries(plan.conflicts.map((c) => [c.id, c.best]));
-  const sell = (h) => {
-    if (h.closed) return;
+  const sell = async (h) => {
+    if (h.closed || !await confirmExtremeLoss(plan.conflicts, choice) || h.closed) return;
     const ok = game.infSellAll(plan, choice);
     h.close("ok");
     if (!ok) toast("持ち物か商会の棚が変わった。一覧を開き直してほしい。");
@@ -800,7 +813,7 @@ function openInfBulkSell(onDone) {
   let h = null;
   const fill = (b) => {
     b.appendChild(el("div", "inf-note", `${plan.list.length}点を売却して 💰${plan.gold} を受け取る。残すのは商会の棚の追加の能力・特性。選ばなかった品も通常品として棚に並ぶ。`));
-    b.appendChild(el("div", "inf-note dim", "記憶した装備・ロック中・装備中・未鑑定・呪い・LR・未奉納の収集品・道具は売らない。強さは追加の能力・特性の評価値で比べ、同じなら棚の品を優先する。"));
+    b.appendChild(el("div", "inf-note dim", "記憶した装備・ロック中・装備中・未鑑定・呪い・LR・未奉納の収集品・道具は売らない。強さは並品の装備本体・深度・追加の能力・特性の合計評価値で比べ、同じなら棚の品を優先する。"));
     for (const c of plan.conflicts) {
       const box = el("div", "inf-afx-c");
       box.appendChild(el("div", "inf-h", c.name));
@@ -846,7 +859,7 @@ export function openSellClash(c) {
       const r = el("button", "inf-afx-opt" + (on ? " on" : ""));
       r.type = "button";
       r.setAttribute("aria-pressed", on ? "true" : "false");
-      r.appendChild(el("span", "inf-afx-tag", `${set.current ? "いま棚にある品" : "いま売る品"} ・ 強さ ${set.power}${i === c.best ? " ・ 強い方" : ""}`));
+      r.appendChild(el("span", "inf-afx-tag", `${set.current ? "いま棚にある品" : "いま売る品"} ・ 総合の強さ ${set.power}${i === c.best ? " ・ 強い方" : ""}`));
       for (const ln of set.lines) r.appendChild(el("span", "inf-afx-ln", ln));
       r.addEventListener("click", () => { pick = i; sfx("select"); h.update({ body: fill }); });
       b.appendChild(r);
@@ -854,7 +867,7 @@ export function openSellClash(c) {
   };
   h = sheet.open({ kind: "info", banner: "商会の棚", title: "棚に残す追加の能力を選ぶ", accent: "#c9a227", className: "inf-sheet", body: fill,
     footer: [
-      { label: "売って、選んだ方を棚に置く", kind: "primary", size: "lg", onTap: (x) => { finish(pick === 1 ? "new" : "shelf"); x.close("ok", { silent: true }); } },
+      { label: "売って、選んだ方を棚に置く", kind: "primary", size: "lg", onTap: async (x) => { if (!await confirmExtremeLoss([c], { [c.id]: pick }) || x.closed) return; finish(pick === 1 ? "new" : "shelf"); x.close("ok", { silent: true }); } },
       { label: "売らない", kind: "ghost", onTap: (x) => x.close() },
     ], onClose: () => finish(null) });
   return result;

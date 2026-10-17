@@ -1,6 +1,8 @@
 import { itemNumber } from "./itemnumbers.js";
 import { rarityOrder } from "./rarity.js";
 import { random } from "./rng.js";
+import { applyItemDepth } from "./itemdepth.js";
+import { equipPrice, equipScore, priceForScore } from "./pricing.js";
 import { prepareWeapon } from "./weaponpower.js";
 import { zeroResists, clampResist } from "./resistance.js";
 // 武器・防具・アクセサリ・消耗品のカタログ (基本品)
@@ -233,12 +235,15 @@ export function registerAffixes(apply, perks) { if (typeof apply === "function")
 export const FORGE_KEYS = ["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp"];
 export function applyForge(it) {
   if (!it || !it.forge) return it;
+  const before = equipScore(it), score = it.equipPts ?? before;
   for (const k of FORGE_KEYS) {
     const v = it[k];
     if (typeof v === "number" && v > 0) it[k] = v + Math.max(it.forge, Math.round(v * 0.1 * it.forge));
   }
   if (it.weaponRating) it.weaponRating *= 1 + 0.1 * it.forge;
   if (it.scale) it.scale = Object.fromEntries(Object.entries(it.scale).map(([k, v]) => [k, Math.round(v * (1 + 0.1 * it.forge) * 10000) / 10000]));
+  it.equipPts = score + equipScore(it) - before;
+  if (it.price > 0) it.price = priceForScore(it.slot, it.equipPts) ?? it.price;
   return it;
 }
 
@@ -295,11 +300,16 @@ export function itemAtQuality(it, q = it && it.q) {
   const tmpl = it && ITEMS[it.id];
   if (!tmpl) return it ? { ...it } : null;
   const out = { ...it };
-  for (const k of [...QUALITY_KEYS, "mult", "scale", "weaponRating", "aRes", "bRes", "resists"]) {
+  for (const k of [...QUALITY_KEYS, "critDamage", "spellCrit", "spellCritDamage", "price", "mult", "scale", "weaponRating", "aRes", "bRes", "resists"]) {
     if (tmpl[k] !== undefined) out[k] = tmpl[k]; else delete out[k];
   }
+  delete out.equipPts;
   out.q = q;
   applyQuality(out);
+  applyItemDepth(out);
+  const price = equipPrice(out);
+  if (price != null) out.price = price;
+  out.equipPts = equipScore(out);
   if (out.afx) _afxApply(out); // 追加の能力・特性は品質の後
   if (out.forge) applyForge(out);
   return out;
@@ -1518,7 +1528,7 @@ export function useLines(it, short = false) {
 export function recalc(member) {
   const base = member.base;
   let flatAtk = 0, flatVit = 0, flatAgi = 0, flatInt = 0, flatPie = 0, flatLuk = 0;
-  let flatHp = 0, flatMp = 0, crit = base.crit || 0;
+  let flatHp = 0, flatMp = 0, crit = base.crit || 0, critDamage = 0, spellCrit = 0, spellCritDamage = 0;
   // %補正 (LR装飾品など)。同種は加算合算 (+20%×2 = +40%)、フラット加算の後に乗算で効く
   const mul = { atk: 0, vit: 0, agi: 0, int: 0, pie: 0, luk: 0, hp: 0, mp: 0 };
   const eff = {}; // 戦闘効果 (LR装飾品): actFirst/multistrike/lifesteal/autoRevive/guard/spellCostMul
@@ -1542,6 +1552,9 @@ export function recalc(member) {
     flatHp  += it.hp || 0;
     flatMp  += it.mp || 0;
     crit += it.crit || 0;
+    critDamage += it.critDamage || 0;
+    spellCrit += it.spellCrit || 0;
+    spellCritDamage += it.spellCritDamage || 0;
     if (it.mult) for (const k in mul) mul[k] += it.mult[k] || 0;
     if (it.eff) for (const k in it.eff) {
       const v = it.eff[k];
@@ -1575,6 +1588,9 @@ export function recalc(member) {
   member.pie = Math.max(0, withEquip(base.pie, flatPie, mul.pie));
   member.luk = Math.max(0, withEquip(base.luk, flatLuk, mul.luk));
   member.critBonus = crit;
+  member.critDamageBonus = Math.max(0, Math.min(1, critDamage));
+  member.spellCritBonus = Math.max(0, Math.min(0.4, spellCrit));
+  member.spellCritDamageBonus = Math.max(0, Math.min(1, spellCritDamage));
   member.maxhp = withEquip(base.hp, flatHp, mul.hp);
   member.maxmp = withEquip(base.mp, flatMp, mul.mp);
   if (member.hp > member.maxhp) member.hp = member.maxhp;

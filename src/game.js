@@ -25,6 +25,7 @@ import { bagCount, isFormationItem,
   UNIDENT_SLOTS, itemName, applyForge, hasQuality, applyQuality, rollQuality, qualityMatters, itemAtQuality, QUALITY_MID, useWhere, useTarget, useHelps, useLines, useCureKinds, compareUse,
 } from "./items.js";
 import { equipLevelFor, LR_UNLOCK, LOOT_R_HEADROOM } from "./equiplevel.js";
+import { applyItemDepth } from "./itemdepth.js";
 import { rollAffixes, applyAffixes, gearPerks, affixPower, affixLines, AFX_TIERS, afxDef, pageFromAffix, pageValue, pageText, enchantRoom, enchantBlock, ENCHANT_TIER_COST } from "./infaffix.js";
 import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, permanentEventStats, eligibleEvents, pickEvent, onceKey, runEvent, eventFightWon } from "./events.js";
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
@@ -106,7 +107,7 @@ import { refSoul, refGold, trainCost, lvPow, emberMul, partyAgi, LOCK_K, TRAP_K,
 import { STABILITY_MAX, STABILITY_ENTRY_COST, STABILITY_FLOOR_COST, STABILITY_RECOVERY_MS, recoverStability, stabilityWaitMs, stabilityRecoveryMs } from "./stability.js";
 import { startPlaytest, playtestEvent, finishPlaytest, showPlaytestRecords } from "./playtest.js";
 import { tlStability, tlStabilityTick, tlRedGain, tlOn, tlMeasure, tlWatchBattle, tlRunBegin, tlRunEnd, tlSnapshot, tlBattleBegin, tlHits, tlBattleEnd, tlLoot, tlLost, tlGain, tlTownGain, tlPlayTick, tlSoul, tlInfAttempt, tlInfFloor, tlInfSoul, tlInfEmbers, tlInfWipe } from "./telemetry.js";
-import { repriceEquipment } from "./pricing.js";
+import { equipScore, equipPrice, repriceEquipment } from "./pricing.js";
 import { spawnFx, drawBattleFx, weaponFxStyle, statusFxKind, skillProfile, ELEM_FX_COL, SIG_FX } from "./battlefx.js";
 import "./battlefx-sig.js"; // 各職の看板技の専用演出を SIG_FX に登録する
 import { enemyLvTag, fleeScaleOf } from "./enemylevel.js";
@@ -529,6 +530,7 @@ const G = {
   reserve: [],        // 酒場で待機中の人業
   // 魂は1体ごとに固有のインスタンス (本体は魂、人業は器)。同職でも個別に Lv/ランクを持つ。
   souls: [],          // 所持魂 一覧: [{ uid, clsKey, count(吸収数→ランク), level, exp }]
+  shopAfxDepth: null, // 商会に残す深度品の入手階 (追加の組は shopAfx)
   shopStock: null,    // 商会の在庫 { itemId: 個数 } (初回 setupNewGame で初期化)
   run: null,          // 今回の出撃で得た戦利品 { gold, soulPts, items:[{owner,item}], souls:[] }
   town: { facility: null, sub: null, tab: "hub", page: null }, // 街UIの現在地 (tab: 下のタブ / page: タブの1段下 / facility・sub: 旧画面アダプタ用)
@@ -1314,19 +1316,19 @@ function infSellPlan() {
   }
   const by = new Map(), shelf = shopAfxState();
   for (const { item } of list) {
-    if (!item.afx?.length || !ITEMS[item.id]) continue;
-    if (!by.has(item.id)) by.set(item.id, shelf[item.id]?.length ? [{ afx: shelf[item.id], current: true }] : []);
-    by.get(item.id).push({ afx: item.afx, item, current: false });
+    if ((!item.afx?.length && !(item.depth > 200)) || !ITEMS[item.id]) continue;
+    if (!by.has(item.id)) by.set(item.id, shelf[item.id] ? [{ afx: shelf[item.id], depth: G.shopAfxDepth[item.id] || 0, current: true }] : []);
+    by.get(item.id).push({ afx: item.afx || [], depth: item.depth || 0, item, current: false });
   }
   const conflicts = [...by].filter(([, sets]) => sets.length > 1).map(([id, sets]) => {
-    const powers = sets.map((s) => affixPower(ITEMS[id], s.afx));
+    const powers = sets.map((s) => shelfPower(ITEMS[id], s));
     return { id, name: ITEMS[id].name, best: powers.indexOf(Math.max(...powers)),
-      sets: sets.map((s, i) => ({ ...s, afx: s.afx.map((a) => ({ ...a })), lines: affixLines(ITEMS[id], s.afx), power: Math.round(powers[i] * 10) / 10 })) };
+      sets: sets.map((s, i) => ({ ...s, afx: s.afx.map((a) => ({ ...a })), lines: shelfLines(ITEMS[id], s), power: powers[i] })) };
   });
   // 比較相手がない品も含め、確認した時点の品質・追加の能力・棚を値として残す。
   // item は実体への参照なので、conflicts の比較だけでは後からの変更を見逃す。
   const snapshot = JSON.stringify(list.map(({ item }) => ({ id: item.id, q: item.q,
-    afx: item.afx || [], shelf: shelf[item.id] || [] })));
+    depth: item.depth || 0, shelfDepth: G.shopAfxDepth[item.id] || 0, afx: item.afx || [], shelf: shelf[item.id] || [] })));
   return { list, conflicts, snapshot, gold: list.reduce((n, x) => n + x.price, 0) };
 }
 function infSellAll(plan, choice = {}) {
@@ -6857,6 +6859,9 @@ function evShadow(p, ratio) {
   e._statWall = { atk: 1, hp: 1 }; // 写した能力のまま (章の能力ごとの段を掛けない)
   const ef = p.eff || {};
   e.critBonus = p.critBonus || 0;
+  e.critDamageBonus = p.critDamageBonus || 0;
+  e.spellCritBonus = p.spellCritBonus || 0;
+  e.spellCritDamageBonus = p.spellCritDamageBonus || 0;
   e.multistrike = ef.multistrike || 0;
   e.lifesteal = ef.lifesteal || 0;
   e.guard = ef.guard || 0;
@@ -16025,6 +16030,7 @@ function shopStockAdd(id) {
 // 残さなかった組の品は通常品として在庫に入る (在庫の数は売った時点で数えてある)
 function shopAfxState() {
   if (!G.shopAfx || typeof G.shopAfx !== "object") G.shopAfx = {};
+  if (!G.shopAfxDepth || typeof G.shopAfxDepth !== "object") G.shopAfxDepth = {};
   if (!Array.isArray(G.shopAfxPending)) G.shopAfxPending = [];
   return G.shopAfx;
 }
@@ -16034,19 +16040,27 @@ function shopAfxState() {
 function shopReceive(it, keep = null) {
   if (!it || !it.id || it.unidentified || it.soulMemory) return;
   shopStockAdd(it.id);
-  if (!Array.isArray(it.afx) || !it.afx.length) return;
-  const st = shopAfxState();
-  const afx = it.afx.map((a) => ({ ...a }));
-  if (!st[it.id]?.length || keep === "new") st[it.id] = afx;
-  else if (keep !== "shelf") G.shopAfxPending.push({ id: it.id, afx });
+  if (!it.afx?.length && !(it.depth > 200)) return;
+  const st = shopAfxState(), depth = it.depth || 0;
+  const afx = (it.afx || []).map((a) => ({ ...a }));
+  if (!st[it.id] || keep === "new") { st[it.id] = afx; G.shopAfxDepth[it.id] = depth; }
+  else if (keep !== "shelf") G.shopAfxPending.push({ id: it.id, afx, depth });
 }
 // 売ろうとしている品と、商会の棚の追加つきの1点がぶつかるか (同じ品に別の組)。ぶつかれば両方の組を返す (afxConflicts と同じ形)
+function shelfPower(tmpl, set) {
+  const it = itemAtQuality({ ...tmpl, depth: set.depth || 0, q: QUALITY_MID, afx: [] }, QUALITY_MID);
+  return Math.round((equipScore(it) + affixPower(it, set.afx)) * 10) / 10;
+}
+function shelfLines(tmpl, set) {
+  return [...(set.depth ? [`無限迷宮 B${set.depth}Fの品`] : []), ...affixLines({ ...tmpl, depth: set.depth || 0 }, set.afx)];
+}
 function shopAfxClash(it) {
-  if (!it || !it.id || it.unidentified || it.soulMemory || !Array.isArray(it.afx) || !it.afx.length || !ITEMS[it.id]) return null;
+  if (!it || !it.id || it.unidentified || it.soulMemory || (!it.afx?.length && !(it.depth > 200)) || !ITEMS[it.id]) return null;
   const cur = shopAfxState()[it.id];
-  if (!cur || !cur.length) return null;
+  if (!cur) return null;
   const tmpl = ITEMS[it.id];
-  const sets = [cur, it.afx].map((a, i) => ({ afx: a, lines: affixLines(tmpl, a), power: Math.round(affixPower(tmpl, a) * 10) / 10, current: i === 0 }));
+  const sets = [{ afx: cur, depth: G.shopAfxDepth[it.id] || 0 }, { afx: it.afx || [], depth: it.depth || 0 }].map((s, i) => ({ ...s,
+    lines: shelfLines(tmpl, s), power: shelfPower(tmpl, s), current: i === 0 }));
   return { id: it.id, name: tmpl.name, sets, best: sets[1].power > sets[0].power ? 1 : 0 };
 }
 // 棚の追加つきの品 (並品 50 で作った見本。買うとこれが届く)。無ければ null
@@ -16056,6 +16070,7 @@ function shopAfxItem(id) {
   const it = cloneItem(id, QUALITY_MID);
   if (!it) return null;
   it.afx = afx.map((a) => ({ ...a }));
+  it.depth = G.shopAfxDepth[id] || 0;
   resyncItem(it);
   return it;
 }
@@ -16072,6 +16087,7 @@ function buyAffixed(id, who) {
   G.gold -= price;
   G.shopStock[id]--;
   delete G.shopAfx[id];
+  delete G.shopAfxDepth[id];
   who.items.push(it);
   codexSeeItem(id, it);
   SFX.itemget(); buzz(10);
@@ -16085,14 +16101,14 @@ function afxConflicts() {
   const by = new Map();
   for (const p of G.shopAfxPending) {
     if (!ITEMS[p.id]) continue;
-    if (!by.has(p.id)) by.set(p.id, [G.shopAfx[p.id] || []]);
-    by.get(p.id).push(p.afx);
+    if (!by.has(p.id)) by.set(p.id, [{ afx: G.shopAfx[p.id] || [], depth: G.shopAfxDepth[p.id] || 0 }]);
+    by.get(p.id).push({ afx: p.afx, depth: p.depth || 0 });
   }
   return [...by.entries()].map(([id, sets]) => {
     const tmpl = ITEMS[id];
-    const power = sets.map((a) => affixPower(tmpl, a));
+    const power = sets.map((s) => shelfPower(tmpl, s));
     const best = power.indexOf(Math.max(...power));
-    return { id, name: tmpl.name, sets: sets.map((a, i) => ({ afx: a, lines: affixLines(tmpl, a), power: Math.round(power[i] * 10) / 10, current: i === 0 })), best };
+    return { id, name: tmpl.name, sets: sets.map((s, i) => ({ ...s, lines: shelfLines(tmpl, s), power: power[i], current: i === 0 })), best };
   });
 }
 // 選んだ組を残す: choice = { id: 残す組の番号 } (0 = いまの組)。ほかの組の品は通常品のまま在庫に残る
@@ -16100,7 +16116,7 @@ function resolveAfxConflicts(choice = {}) {
   for (const c of afxConflicts()) {
     const i = choice[c.id] != null ? choice[c.id] : c.best;
     const pick = c.sets[i];
-    if (pick && pick.afx && pick.afx.length) G.shopAfx[c.id] = pick.afx.map((a) => ({ ...a }));
+    if (pick?.afx) { G.shopAfx[c.id] = pick.afx.map((a) => ({ ...a })); G.shopAfxDepth[c.id] = pick.depth || 0; }
   }
   G.shopAfxPending = [];
   autosave(true);
@@ -16296,6 +16312,7 @@ function extractAffix(src, idx) {
     G.gold -= price;
     G.shopStock[it.id] = Math.max(0, (G.shopStock[it.id] || 0) - 1);
     delete shopAfxState()[it.id];
+    delete G.shopAfxDepth[it.id];
     log(`商会の棚の ${itemName(it)} を買い取り (−💰${price})、特性を写し取った。`, "sys");
   } else {
     const bag = G.inventory || [];
@@ -16332,7 +16349,7 @@ function enchantCost(it, page) {
   const d = afxDef(page && page.k);
   if (!it || !d) return 0;
   const n = (it.afx || []).length;
-  const base = Math.round(buyPrice(ITEMS[it.id] || it) * (ENCHANT_TIER_COST[d.tier] || 1) * (1 + 0.5 * n));
+  const base = Math.round(buyPrice(itemAtQuality({ ...it, afx: [], forge: 0 }, QUALITY_MID)) * (ENCHANT_TIER_COST[d.tier] || 1) * (1 + 0.5 * n));
   const rise = Math.max(0, buyPrice(enchantPreview(it, page)) - buyPrice(it));
   return Math.max(ENCHANT_MIN_COST, base, rise);
 }
@@ -17875,6 +17892,10 @@ function markDungeonLoot(it) {
   const tr = dungeonTrait();
   if (it && UNIDENT_SLOTS.has(it.slot) && !(tr && tr.appraised) && !abyssActive()) it.unidentified = true; // 無限迷宮の品は鑑定済みで落ちる
   // 無限迷宮の解放後は、全迷宮のドロップに階数に応じた追加の能力・特性が付く。街で受け取る品は対象外。
+  if (it && abyssActive() && hasQuality(it) && !it.depth && !it.afx && !it.cursed && it.price > 0) {
+    it.depth = Math.max(1, Math.floor(G.floor || 1));
+    resyncItem(it);
+  }
   if (it && (abyssActive() || (inDungeon() && featureUnlocked("infinite"))) && !it.afx && hasQuality(it)) {
     const afx = rollAffixes(it, G.floor);
     if (afx) { it.afx = afx; applyAffixes(it); if (abyssActive()) infAfxTrack(it); }
@@ -18396,7 +18417,7 @@ const SAVE_KEY = localSaveKey(SAVE_SLOT); // v7 = 迷宮の台帳 (選んで潜�
 const SAVE_FIELDS = [
   "apprenticeName",
   "rng", "_townMutator", "pendingPickups", "pendingDanger", "pendingResults", "pendingTreasury", "pendingCursedChest",
-  "shopAfx", "shopAfxPending", "afxPages",
+  "shopAfx", "shopAfxDepth", "shopAfxPending", "afxPages",
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound", "abyss", "abyssRec",
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "stabilityBriefed", "pendingDoll",
   "formations", "inventory", "party", "reserve", "souls", "shopStock", "run", "town",
@@ -18496,7 +18517,7 @@ function clearSave() {
 // refSerialize の参照共有を壊さないよう、saved item オブジェクトを in-place で変更する。
 // 所持品をカタログの最新定義に合わせ直す (レア度・能力値・絵・説明など、品そのものの性質)。
 // 個体ごとの状態 (未鑑定・鑑定失敗の印など) は残す。旧セーブの装備も新しいレア度と絵になる
-const ITEM_STAT_KEYS = ["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp", "crit"];
+const ITEM_STAT_KEYS = ["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp", "crit", "critDamage", "spellCrit", "spellCritDamage"];
 const ITEM_TMPL_KEYS = ["name", "desc", "slot", "lv", "rank", "r20", "rar", "lr", "forJob", "exclusive", "classes", "cat",
   "twoHanded", "sk", "weight", "price", "art", "palette", "eAtk", "eDef", "aRes", "bRes", "resists", "onHit", "scale", "weaponProfile", "weaponRating", "magic", "mult", "eff", "align", "cursed", "hit", "dice", "swings"];
 // 品1つを目録の値に写し直し、品質と＋N の段を掛け直す (読み込み・鍛え直しで品質を変えた時)
@@ -18504,9 +18525,14 @@ function resyncItem(it) {
   const tmpl = it && ITEMS[it.id];
   if (!tmpl) return;
   delete it.pct;
+  delete it.equipPts;
   for (const k of ITEM_STAT_KEYS) { if (tmpl[k] != null) it[k] = tmpl[k]; else delete it[k]; }
   for (const k of ITEM_TMPL_KEYS) { if (tmpl[k] !== undefined) it[k] = tmpl[k]; else delete it[k]; }
   if (hasQuality(it)) { if (it.q == null) it.q = QUALITY_MID; applyQuality(it); } else delete it.q; // 品質を入れる前の品は並品 (50)
+  applyItemDepth(it);
+  const price = equipPrice(it);
+  if (price != null) it.price = price;
+  it.equipPts = equipScore(it);
   if (it.afx) applyAffixes(it); // 無限迷宮の追加の能力・特性は品質の後 (src/infaffix.js)
   if (it.forge) applyForge(it); // ＋N の段は品質の後に掛け直す
 }
@@ -18619,6 +18645,7 @@ function loadGame(cloudSnapshot = null) {
   try { snap = refDeserialize(JSON.parse(raw)); } catch (e) { return false; }
   if (!snap || !Array.isArray(snap.party) || (!cloudEnabled() && !snap.party.length && !snap.msq?.granted && !normalizeName(snap.apprenticeName))) return false;
   for (const k of SAVE_FIELDS) if (k in snap) G[k] = snap[k];
+  if (!("shopAfxDepth" in snap)) G.shopAfxDepth = {}; // 深度のない旧記録は補正なし
   // 旧序盤の探索中の記録は、その出撃だけ元の階数で続ける。
   const loadedDungeon = DUNGEONS[G.dungeonIdx];
   if (inDungeon() && !G.abyss && !G.rematch && EARLY_LEGACY[loadedDungeon?.id] && !G.run?.earlyLayout) {
@@ -18946,6 +18973,7 @@ function setupNewGame() {
   G.unlockedDungeons = 0; // 第0章を果たすまで、迷宮の場所は明かされない
   G.world = {}; worldState();
   G.shopStock = { ...SHOP_INIT_STOCK };
+  G.shopAfxDepth = {};
   G.quest = null; questState();
   // 序章: 王から三職の魂 → イレーヌの依頼から三体ずつ段階的に仲間を迎える
   G.msq = { n: 0, state: "active", granted: false };

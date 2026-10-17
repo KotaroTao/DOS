@@ -9,10 +9,12 @@
 //   ・性能が全く同じ品は同じ値段
 //   ・同じ部位で、どの能力も同等以上 (かつどこかが上) の品は必ず高い
 // が成り立つ。値段はレア度では上乗せしない (レアは性能が高いぶん高くなる)。
-// % 補正 (mult) と戦闘効果 (eff) は効き目の大きさに応じた固定の点を足す (lv には依らない)。
+// % 補正・戦闘効果は固定の基準点に深度倍率を掛ける。効果の割合自体は伸ばさない。
 
 // 能力値 1 あたりの性能点。部位をまたいで共通 (どの部位でも ATK+1 と VIT+1 は同じ重み)
-const STAT_W = { atk: 1, vit: 1, agi: 1, int: 0.7, pie: 0.7, luk: 0.6, hp: 0.15, mp: 0.25, crit: 100 };
+import { itemDepthMul } from "./itemdepth.js";
+
+const STAT_W = { atk: 1, vit: 1, agi: 1, int: 0.7, pie: 0.7, luk: 0.6, hp: 0.15, mp: 0.25 };
 
 // 従来の価格曲線 (catalog/defs.js の priceOf と同じ)
 const priceOfLv = (lv) => 10 + lv * lv * 0.30 + lv * 5;
@@ -27,7 +29,6 @@ const REF = {
   hands: (lv) => (0.8 + lv * 0.16 + lv * lv * 0.0006) + lv * 0.05,                   // 籠手の ATK + VIT
   acc: (lv) => 0.17 * (2 + lv * 0.82 + lv * lv * 0.0026),                            // 標準の腕輪・護符
 };
-const LV_MAX = 260;
 
 // % 補正・戦闘効果の点 (装飾品の物差し)。部位ごとの標準品の大きさに合わせて SLOT_SCALE 倍する
 const EFF_PTS = {
@@ -83,28 +84,25 @@ function featureMul(it) {
 // 装備の性能点
 export function equipScore(it) {
   const s = statScore(it) + scaleScore(it);
-  return (s > 0 ? s * featureMul(it) : s) + effScore(it);
+  return (s > 0 ? s * featureMul(it) : s) + (effScore(it) + 100 * ((it.crit || 0) + (it.spellCrit || 0)) + 20 * ((it.critDamage || 0) + (it.spellCritDamage || 0))) * itemDepthMul(it);
 }
 
-// 性能点 → 値段。標準品の曲線を lv について逆算し (二分法)、priceOf(lv) を返す
+// 性能点 → 値段。標準品の二次式を逆算し、深度の上限を設けず priceOf(lv) を返す
 export function priceForScore(slot, score) {
   const ref = REF[slot];
   if (!ref) return null;
   const r0 = ref(0);
   if (score <= r0) return Math.max(1, Math.round(priceOfLv(0) * Math.max(0, score) / r0));
-  let lo = 0, hi = LV_MAX;
-  if (ref(hi) <= score) return Math.round(priceOfLv(hi) * score / ref(hi));
-  for (let i = 0; i < 40; i++) {
-    const mid = (lo + hi) / 2;
-    if (ref(mid) < score) lo = mid; else hi = mid;
-  }
-  return Math.round(priceOfLv((lo + hi) / 2));
+  const c = ref(0), a = (ref(2) - 2 * ref(1) + c) / 2, b = ref(1) - c - a;
+  // 二次式の正の解。差の引き算を避け、深い品でも桁落ちを抑える。
+  const lv = 2 * (score - c) / (Math.sqrt(b * b + 4 * a * (score - c)) + b);
+  return Math.max(1, Math.round(priceOfLv(lv)));
 }
 
 // 装備の値段。装備でない品・値段 0 の品 (呪いの品など) は null (= 変更しない)
 export function equipPrice(it) {
   if (!it || !REF[it.slot] || it.price === 0) return null;
-  const p = priceForScore(it.slot, equipScore(it));
+  const p = priceForScore(it.slot, it.equipPts ?? equipScore(it));
   return p == null ? null : Math.max(1, p);
 }
 

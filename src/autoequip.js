@@ -45,6 +45,7 @@ export function previewStats(doll, equip, recalcFn = recalcDefault) {
   return {
     atk: fake.atk, vit: fake.vit, agi: fake.agi, int: fake.int, pie: fake.pie, luk: fake.luk,
     maxhp: fake.maxhp, maxmp: fake.maxmp, critBonus: fake.critBonus || 0,
+    critDamageBonus: fake.critDamageBonus || 0, spellCritBonus: fake.spellCritBonus || 0, spellCritDamageBonus: fake.spellCritDamageBonus || 0,
     elemAtk: fake.elemAtk || null, elemDef: fake.elemDef || null, breathRes: fake.breathRes || 0,
     ailRes: fake.ailRes || null, onHit: fake.onHit || null, // 状態異常耐性・追加効果 (itemview の gearScore が数える)
     power: attackPower(fake), weapon: equip.weapon || null, shield: equip.shield || null, // 攻撃力 (参照能力 × 武器の係数) と武器・盾
@@ -62,7 +63,10 @@ export function statsDelta(from, to) {
     atk: to.atk - from.atk, vit: to.vit - from.vit, agi: to.agi - from.agi,
     int: to.int - from.int, pie: to.pie - from.pie, luk: to.luk - from.luk,
     hp: to.maxhp - from.maxhp, mp: to.maxmp - from.maxmp,
-    crit: Math.round(((to.critBonus || 0) - (from.critBonus || 0)) * 100),
+    crit: Math.round(((to.critBonus || 0) - (from.critBonus || 0)) * 1000) / 10,
+    critDamage: Math.round(((to.critDamageBonus || 0) - (from.critDamageBonus || 0)) * 1000) / 10,
+    spellCrit: Math.round(((to.spellCritBonus || 0) - (from.spellCritBonus || 0)) * 1000) / 10,
+    spellCritDamage: Math.round(((to.spellCritDamageBonus || 0) - (from.spellCritDamageBonus || 0)) * 1000) / 10,
     elemAtk: { from: from.elemAtk, to: to.elemAtk },
     elemDef: { from: from.elemDef, to: to.elemDef },
     breathRes: Math.round(((to.breathRes || 0) - (from.breathRes || 0)) * 100), // ブレス耐性 (%)
@@ -374,7 +378,8 @@ function defaultScore(doll, delta) {
     if (delta.handSwap) s = s * 50 / W.atk; // 片手+盾 ⇄ 両手: 盾の能力も攻撃力に換算して比べる
     else s += (delta.power || 0) * 50; // 武器は攻撃力の高い順
   }
-  return s + (delta.crit || 0) * 0.5;
+  return s + ((delta.crit || 0) + (delta.spellCrit || 0)) * 0.5
+    + ((delta.critDamage || 0) + (delta.spellCritDamage || 0)) * 0.1;
 }
 
 export function install() {}

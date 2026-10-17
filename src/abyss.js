@@ -53,13 +53,7 @@ export function infGrowthMul(f) {
 // 通し試験を踏まえた強さ補正。本編の強さの素とは分け、Lv1開始の育成・補給に合わせる。
 // 20階まで0.70、50階0.80、100階0.95。推奨Lvによる敵の成長は別に掛かる。
 // 100階以降も1階につき0.006を足し、育ち切った隊にも奥ほど圧力が増す。
-export function infEnemyMul(f) {
-  f = Math.max(1, Number(f) || 1);
-  if (f <= 20) return 0.70;
-  if (f <= 50) return 0.70 + (f - 20) * (0.10 / 30);
-  if (f <= 100) return 0.80 + (f - 50) * 0.003;
-  return 0.95 + (f - 100) * 0.006;
-}
+export { infEnemyMul } from "./itemdepth.js";
 // 全滅時の保護帰還は深さによらず赤い魂20。広告視聴でも持ち帰れる。
 export function infRedCost() { return INF_RED_MAX; }
 // その階が風だまり (主の階) か

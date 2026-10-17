@@ -2872,6 +2872,7 @@ const ASSETS = [
   "./src/abyss.js",
   "./src/infsupplies.js",
   "./src/infaffix.js",
+  "./src/itemdepth.js",
   "./src/infevents.js",
   "./src/inftitles.js",
   "./src/title.js",
