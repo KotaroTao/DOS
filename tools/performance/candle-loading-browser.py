@@ -233,7 +233,7 @@ async def main():
         release_module.set()
         await page.wait_for_function("!document.body.classList.contains('booting')")
         await page.wait_for_selector('.ttl-overlay')
-        assert await page.evaluate("document.body.classList.contains('screen-loading')")
+        await page.wait_for_function("document.body.classList.contains('screen-loading')")
         release_title.set()
         await page.wait_for_function("!document.body.classList.contains('screen-loading')")
         assert await page.locator('.image-loading').count()==1
