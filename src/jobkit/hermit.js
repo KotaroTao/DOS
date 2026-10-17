@@ -42,8 +42,8 @@ export default {
     HERMIT_FUKUIN: { name: "仙境の福音", mp: 75, kind: "heal", healMul: 1.4, revive: true, revivePct: 0.5, buff: { agi: 1.15 }, target: "all-ally", desc: "倒れた者をHP50%で呼び、全員を軽くする" },
   },
   perks: {
-    hermitYoujou: { label: "草庵の養生", lv: ["2ターン目から毎ターンHP2%・MP1%回復", "2ターン目から毎ターンHP3%・MP1.5%回復", "2ターン目から毎ターンHP4%・MP2%回復", "2ターン目から毎ターンHP5%・MP2.5%回復"],
-      fx: [{ t: "round", hp: [0.02, 0.03, 0.04, 0.05], mp: [0.01, 0.015, 0.02, 0.025] }] },
+    hermitYoujou: { label: "草庵の養生", lv: ["2ターン目から毎ターンHP5%・MP1%回復", "2ターン目から毎ターンHP7%・MP1.3%回復", "2ターン目から毎ターンHP10%・MP1.6%回復", "2ターン目から毎ターンHP13%・MP2%回復"],
+      fx: [{ t: "round", hp: [0.05, 0.07, 0.1, 0.13], mp: [0.01, 0.013, 0.016, 0.02] }] },
     hermitMinokonashi: { label: "霞の身ごなし", lv: ["敵の物理を4%でかわす", "敵の物理を7%でかわす", "敵の物理を10%でかわす"],
       fx: [{ t: "evade", v: [0.04, 0.07, 0.1] }] },
     hermitNigemizu: { label: "逃げ水", lv: ["物理を受けた時30%で、AGI×1.15 (2ターン)", "物理を受けた時40%で、AGI×1.2 (2ターン)", "物理を受けた時50%で、AGI×1.25 (2ターン)"],
