@@ -219,6 +219,14 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 
 ### A. 必須 (物語の筋や正典と食い違う)
 
+**A-44. 第六章 report_w23「済まされていなかった処刑」王宮の凍結を除去** `art/story-review/chapter6/report_w23.png` (済)
+- ユーザー指示 (2026-10-17): 王宮を通常の玉座の間へ戻す。氷窟から帰っての報告であり、王宮は凍っていない。
+- 直すもの: 床・段・柱・窓枠・彫像・椅子・備品に積もる雪や氷、つらら、白い霜を取り除く。濡れて凍った床は磨かれた濃色の石床へ、窓は霜のない透明なガラスへ戻す。窓の外の王都にも雪や氷を描かない。通常の灰色の石造、黒鉄と金、深紅の織物、暖かな蝋燭の光にそろえる。
+- 保つもの: 老王の顔・白い髪とひげ・王冠・赤と白の衣装・灰色の膝掛け、手と羊皮紙、弟子の姿と礼、宰相の空の椅子、画面の構図と細かな画風。第六章なので窓の外は従来の曇った空のまま。修正前は `art/story-review/fixes/report_w23-before.png` に保存。
+```text
+...except: remove ALL ice, frost, snow and icicles from the throne room, including the floor, steps, columns, statues, window mullions, chair edges and furnishings. This is an ordinary inhabited royal palace, NOT the frozen dungeon the apprentice has just returned from. Restore clean dry grey carved stone, polished dark stone flooring with restrained candle reflections, unfrosted clear glass, black iron and gold details, and deep red textiles. Remove snowy or icy coatings from the city architecture visible outside. Give the room its normal warm amber candlelit atmosphere, retaining subtle cool light from the overcast windows. This chapter takes place before the blue sky returns: preserve the overcast sky rather than adding sunshine. Preserve the king's exact identity, white hair and beard, crown, red and white robes, grey lap blanket, both hands and the parchment; the apprentice's exact identity, costume, bowed pose and hands; the empty chancellor's chair, all furniture locations and the entire composition. Keep the same detailed fine-grained pixel-textured style. The king's white fur and grey blanket are cloth and fur: retain them unchanged. Do not add people, text or new objects.
+```
+
 **A-43. 第六章 irene_coat「師の外套」外套の形と印の向き** `art/story-review/chapter6/irene_coat.png` (済)
 - ユーザー承認の修正方針 (2026-10-17): 承認済み `docs/art/story-refs/ordo.png` の高い襟・左右の袖・長い身頃がつながる黒外套へ整える。肩と胴を卓上に横たえ、袖を自然に折り、イレーヌが裾を持ち上げる。重なった別の衣や腰帯に見える形を整理する。
 - 裾の小さな金糸の印は一つだけ。`docs/art/story-refs/sigil.png` の形を保ち、手首を裾の端へ、炎の先を襟・肩側へ向け、布の傾き・折れに沿わせる。画面の上下を基準に直立させない。
@@ -770,7 +778,7 @@ A vast ice hall. Twelve thick pillars of clear ice stand in a CIRCLE. Inside ele
 **report_w23「済まされていなかった処刑」** (報告)
 - 要点: 王は長く黙る。十二人を牢に入れたのは自分。宰相は「処刑は済ませました」と報告していた。実際は奈落へ投げこまれていた。
 ```text
-The same cold throne room. The very old king, lap blanket over his knees, sits in long silence holding a parchment listing eleven names; his eyes are closed in grief. The chancellor's chair beside him stands empty, a reminder of the lie. The apprentice waits, head bowed. Frost on windows, heavy clouds.
+The same ordinary inhabited gothic throne room, with dry carved grey stone, polished dark stone floors, black iron and gold furnishings, deep red textiles, and warm amber candlelight. No ice, frost, snow or icicles anywhere in the palace or on the city buildings outside. The very old king, lap blanket over his knees, sits in long silence holding a parchment listing eleven names; his eyes are closed in grief. The chancellor's chair beside him stands empty, a reminder of the lie. The apprentice waits, head bowed. Clear unfrosted windows, overcast sky.
 ```
 
 **w24_aurora「天井の星」** (手がかり / 迷宮「極光の氷窟」)
