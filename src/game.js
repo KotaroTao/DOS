@@ -103,7 +103,7 @@ const CANVAS_SERIF = '"Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho",
 const REDUCED_MOTION = (() => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; } })();
 import { pickTrap, CHEST_RANKS, rollChestRank } from "./traps.js";
 import { refSoul, refGold, trainCost, lvPow, emberMul, partyAgi, LOCK_K, TRAP_K, lockPow } from "./levelcurve.js";
-import { STABILITY_MAX, STABILITY_ENTRY_COST, STABILITY_RECOVERY_MS, recoverStability, stabilityWaitMs, stabilityRecoveryMs } from "./stability.js";
+import { STABILITY_MAX, STABILITY_ENTRY_COST, STABILITY_FLOOR_COST, STABILITY_RECOVERY_MS, recoverStability, stabilityWaitMs, stabilityRecoveryMs } from "./stability.js";
 import { startPlaytest, playtestEvent, finishPlaytest, showPlaytestRecords } from "./playtest.js";
 import { tlStability, tlStabilityTick, tlRedGain, tlOn, tlMeasure, tlWatchBattle, tlRunBegin, tlRunEnd, tlSnapshot, tlBattleBegin, tlHits, tlBattleEnd, tlLoot, tlLost, tlGain, tlTownGain, tlPlayTick, tlSoul, tlInfAttempt, tlInfFloor, tlInfSoul, tlInfEmbers, tlInfWipe } from "./telemetry.js";
 import { repriceEquipment } from "./pricing.js";
@@ -8720,7 +8720,7 @@ function descend(...args) { return tlGameMeasure("floor", () => descendMeasured(
 function descendMeasured({ fall = false, skip = 0, stabilityAd = false } = {}) {
   // 出来事で2階進む場合も、5階の区切りを越える前に支払う。
   if (stabilityApplies(activeCfg()) && Math.floor((G.floor + skip) / 5) > Math.floor((G.floor - 1) / 5)) {
-    if (!stabilityAd && !stabilityReady(ad => descend({fall, skip, stabilityAd:!!ad}))) return;
+    if (!stabilityAd && !stabilityReady(ad => descend({fall, skip, stabilityAd:!!ad}), abyssActive(), STABILITY_FLOOR_COST)) return;
     if (!consumeEntryStability(activeCfg().id, "floor", abyssActive(), stabilityAd)) return;
   }
   evOnDescend(); // 迷宮のイベント: 誓いの破約など
@@ -12832,52 +12832,53 @@ function refreshStability(now = Date.now()) {
   return changes;
 }
 function stabilityApplies(cfg = curDungeon()) { return abyssActive() || !cfg?.stabilityFree; }
-function stabilityStatus(infinite = abyssActive()) {
+function stabilityStatus(infinite = abyssActive(), cost = STABILITY_ENTRY_COST) {
   const dolls = stabilityDolls(infinite), now = Date.now();
   refreshStability(now);
   return dolls.map(d=>{ recoverStability(d, now); return { uid:d.uid, name:d.name, value:d.stability,
-    after:Math.max(0,d.stability-STABILITY_ENTRY_COST), waitMs:stabilityWaitMs(d, now) }; });
+    after:Math.max(0,d.stability-cost), waitMs:stabilityWaitMs(d, now, cost) }; });
 }
-function stabilityReady(retry, infinite = abyssActive()) {
-  const low = stabilityStatus(infinite).filter(d=>d.value < STABILITY_ENTRY_COST);
+function stabilityReady(retry, infinite = abyssActive(), cost = STABILITY_ENTRY_COST) {
+  const low = stabilityStatus(infinite, cost).filter(d=>d.value < cost);
   if (!low.length) return true;
   if (!retry) return false;
-  const missing = low.reduce((n,d)=>n+STABILITY_ENTRY_COST-d.value,0);
-  const cost = stabilityCost(missing);
+  const missing = low.reduce((n,d)=>n+cost-d.value,0);
+  const redCost = stabilityCost(missing);
   const options = [];
-  if (G.redSoul >= cost) options.push({label:`赤い魂${cost}で不足分を購入して進む`, primary:true, fn:()=>{
+  if (G.redSoul >= redCost) options.push({label:`赤い魂${redCost}で不足分を購入して進む`, primary:true, fn:()=>{
     // 確認中の自然回復を差し引き、隊全員の不足分だけを一度に買う。
     const dolls = stabilityDolls(infinite);
     refreshStability();
-    const changes = dolls.map(doll=>({doll,amount:Math.max(0,STABILITY_ENTRY_COST-doll.stability)})).filter(c=>c.amount);
+    const changes = dolls.map(doll=>({doll,amount:Math.max(0,cost-doll.stability)})).filter(c=>c.amount);
     const pay = stabilityCost(changes.reduce((n,c)=>n+c.amount,0));
-    if (G.redSoul < pay) { stabilityReady(retry, infinite); return; }
+    if (G.redSoul < pay) { stabilityReady(retry, infinite, cost); return; }
     G.redSoul -= pay;
     for (const c of changes) c.doll.stability += c.amount;
     tlStability("red", changes, {redSpent:pay});
     autosave(true); retry();
   }});
   // 本番の広告連携までは即時成功。この一回だけ消費を免除し、残量と回復時計を保つ。
-  options.push({label:"広告視聴で1回分進む", primary:G.redSoul < cost, fn:()=>{
+  options.push({label:"広告視聴で1回分進む", primary:G.redSoul < redCost, fn:()=>{
     refreshStability();
     retry(true);
   }});
   options.push({label:"回復を待つ", fn:()=>{ autosave(true); }});
   showChoice("魂の安定度が足りない", options, null, {banner:"魂の安定度", onDismiss:()=>{},
-    lines:[...low.map(d=>`${d.name}: ${d.value}/${STABILITY_ENTRY_COST}`), `不足分は合計${missing}。赤い魂1で安定度${stabilityPerRed()}を購入できます (端数は切り上げ) (所持${G.redSoul})。広告視聴なら、隊全員の安定度を消費せず1回分進めます。残っている安定度はそのままです。`,
+    lines:[...low.map(d=>`${d.name}: ${d.value}/${cost}`), `不足分は合計${missing}。赤い魂1で安定度${stabilityPerRed()}を購入できます (端数は切り上げ) (所持${G.redSoul})。広告視聴なら、隊全員の安定度を消費せず1回分進めます。残っている安定度はそのままです。`,
       `3分で1回復します。全員が進めるまで約${Math.ceil(Math.max(...low.map(d=>d.waitMs))/60000)}分。回復後にもう一度進んでください。`]});
   return false;
 }
 function consumeEntryStability(where, kind = "entry", infinite = abyssActive(), ad = false) {
   if (!infinite && worldById(where)?.stabilityFree) return true;
+  const cost = kind === "floor" ? STABILITY_FLOOR_COST : STABILITY_ENTRY_COST;
   refreshStability();
   const dolls = stabilityDolls(infinite);
   if (ad && dolls.length) {
     tlStability("ad", dolls.map(doll=>({doll,amount:0})), {dungeon:where, pass:true, entry:kind === "entry"});
     return true;
   }
-  if (!dolls.length || !stabilityReady(null, infinite)) return false;
-  const changes = dolls.map(doll => { doll.stability -= STABILITY_ENTRY_COST; return {doll,amount:STABILITY_ENTRY_COST}; });
+  if (!dolls.length || !stabilityReady(null, infinite, cost)) return false;
+  const changes = dolls.map(doll => { doll.stability -= cost; return {doll,amount:cost}; });
   tlStability(kind, changes, { dungeon:where });
   refreshStability();
   return true;
@@ -19529,7 +19530,7 @@ async function returnToTitle() {
 function resetAllData() { if (cloudEnabled() && !testPlayActive) return; if (!testPlayActive && !clearSave()) return; _resetting = true; location.reload(); }
 bindGame({
   // いまの目標・勅命・物語
-  STABILITY_MAX, STABILITY_ENTRY_COST, STABILITY_RECOVERY_MS, refreshStability, stabilityStatus, restoreStability,
+  STABILITY_MAX, STABILITY_ENTRY_COST, STABILITY_FLOOR_COST, STABILITY_RECOVERY_MS, refreshStability, stabilityStatus, restoreStability,
   stabilityMinutes, stabilityPerRed, stabilityCost, clueBoon,
   objectiveInfo, decreeInfo, replayDecree, palaceRecords, sharePalaceRecord, departTo, goMakeDoll, audienceTutorial,
   landOnHub, legacyToPage, townBgm,

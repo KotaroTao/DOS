@@ -14,6 +14,7 @@ with sync_playwright() as p:
       const G=__game.G, inf=__game.inf, out=[];
       const check=(ok,msg)=>{if(!ok)throw Error(msg);out.push(msg);};
       window.stabCheck=check;window.stabOut=out;
+      check(game.STABILITY_ENTRY_COST===20&&game.STABILITY_FLOOR_COST===10,'入場20・区切り10を個別に定義');
       check(game.stabilityPerRed()===5&&game.stabilityCost(6)===2,'赤い魂1で安定度5、端数は切り上げ');
       const doll=G.party[0];doll.stability=90;doll.stabilityAt=Date.now();G.redSoul=1;
       let restored=game.restoreStability(doll,10);
@@ -28,11 +29,12 @@ with sync_playwright() as p:
       check(inf.enterAbyss(picks),'無限迷宮へ入場');
       check(game.stabilityStatus().every(d=>d.value===80),'全6体の入場消費20');
       G.floor=4;inf.descend();check(game.stabilityStatus().every(d=>d.value===80),'4→5階は消費なし');
-      inf.descend();check(G.floor===6&&game.stabilityStatus().every(d=>d.value===60),'5→6階で20消費');
-      G.floor=10;inf.descend();check(game.stabilityStatus().every(d=>d.value===40),'10→11階で20消費');
-      for(const d of [...G.abyss.home.party,...(G.stats.inf.stability||[])].filter(Boolean)){d.stability=10;d.stabilityAt=Date.now();}
+      inf.descend();check(G.floor===6&&game.stabilityStatus().every(d=>d.value===70),'5→6階で10消費');
+      G.floor=10;inf.descend();check(game.stabilityStatus().every(d=>d.value===60),'10→11階で10消費');
+      for(const d of [...G.abyss.home.party,...(G.stats.inf.stability||[])].filter(Boolean)){d.stability=0;d.stabilityAt=Date.now();}
       G.floor=15;G.redSoul=500;inf.descend();
       check(G.floor===15&&G.redSoul===500&&G.prompt,'不足時は移動も支払いもしない');
+      check(game.stabilityStatus(true,10).every(d=>d.waitMs>29*60000&&d.waitMs<=30*60000),'区切りの回復待ちは0から10まで30分');
       return out;
     }'''))
     # 連続呼び出しで重なる階移動の演出に左右されず、確認ボタンの処理を検証する。
@@ -53,8 +55,8 @@ with sync_playwright() as p:
     page.get_by_role('button',name='回復を待つ',exact=True).last.evaluate("b=>b.click()")
     print(page.evaluate('''async()=>{
       const {game}=await import('/src/ui/ctx.js');const G=__game.G;
-      for(const d of [...G.abyss.home.party,...G.abyss.home.reserve,...(G.stats.inf.stability||[])].filter(Boolean)){d.stabilityAt=Date.now()-20*180000;}
-      __game.inf.descend();stabCheck(G.floor===21&&game.stabilityStatus().every(d=>d.value===0),'3分×20の自然回復で購入せず進行');
+      for(const d of [...G.abyss.home.party,...G.abyss.home.reserve,...(G.stats.inf.stability||[])].filter(Boolean)){d.stabilityAt=Date.now()-10*180000;}
+      __game.inf.descend();stabCheck(G.floor===21&&game.stabilityStatus().every(d=>d.value===0),'3分×10の自然回復で購入せず進行');
       const home=G.abyss.home;for(const [k,v] of Object.entries(home))G[k]=v;G.abyss=null;G.state='town';G.prompt=false;
       stabCheck(!__game.inf.enterAbyss(stabPicks),'再入場で安定度はリセットされない');return stabOut;
     }'''))
@@ -69,25 +71,25 @@ with sync_playwright() as p:
     print(page.evaluate('''async()=>{
       const {game}=await import('/src/ui/ctx.js');const G=__game.G;
       stabCheck(game.stabilityStatus().every(d=>d.value===80),'本編も入場時20');
-      G.floor=5;__game.inf.descend();stabCheck(game.stabilityStatus().every(d=>d.value===60),'本編も5→6階で20');
-      G.floor=9;__game.inf.descend({skip:1});stabCheck(G.floor===11&&game.stabilityStatus().every(d=>d.value===40),'2階進む出来事も区切りで20');
-      for(const d of G.party){d.stability=10;d.stabilityAt=Date.now();}
+      G.floor=5;__game.inf.descend();stabCheck(game.stabilityStatus().every(d=>d.value===70),'本編も5→6階で10');
+      G.floor=9;__game.inf.descend({skip:1});stabCheck(G.floor===11&&game.stabilityStatus().every(d=>d.value===60),'2階進む出来事も区切りで10');
+      for(const d of G.party){d.stability=0;d.stabilityAt=Date.now();}
       G.floor=14;__game.inf.descend({skip:1});stabCheck(G.floor===14,'不足時は出来事でも階を書き換えない');return stabOut;
     }'''))
 
     page.get_by_role('button',name='回復を待つ',exact=True).last.evaluate("b=>b.click()")
     print(page.evaluate('''async()=>{
       const G=__game.G;
-      for(const d of G.party){d.stability=20;d.stabilityAt=Date.now();}
-      G.party[0].stability=19;G.party[1].stability=19;G.floor=15;G.redSoul=1;
+      for(const d of G.party){d.stability=10;d.stabilityAt=Date.now();}
+      G.party[0].stability=9;G.party[1].stability=9;G.floor=15;G.redSoul=1;
       __game.inf.descend();stabCheck(G.floor===15&&G.prompt,'不足2の購入を確認');return stabOut;
     }'''))
     page.get_by_role('button',name='赤い魂1で不足分を購入して進む',exact=True).last.evaluate("b=>b.click()")
     print(page.evaluate('''async()=>{
       const {game}=await import('/src/ui/ctx.js');const G=__game.G;
       stabCheck(G.floor===16&&G.redSoul===0&&game.stabilityStatus().every(d=>d.value===0),'隊全員の端数を合算し不足2を赤い魂1で購入');
-      for(const d of G.party){d.stability=20;d.stabilityAt=Date.now();}
-      G.party[0].stability=14;G.floor=20;G.redSoul=2;__game.inf.descend();
+      for(const d of G.party){d.stability=10;d.stabilityAt=Date.now();}
+      G.party[0].stability=4;G.floor=20;G.redSoul=2;__game.inf.descend();
       G.party[0].stabilityAt=Date.now()-180000;return stabOut;
     }'''))
     page.get_by_role('button',name='赤い魂2で不足分を購入して進む',exact=True).last.evaluate("b=>b.click()")
