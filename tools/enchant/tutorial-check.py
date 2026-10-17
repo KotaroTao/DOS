@@ -52,7 +52,7 @@ with sync_playwright() as p:
     result = page.evaluate('''async()=>{
       const {UI,game}=await import('/src/ui/ctx.js');
       const G=__game.G;
-      G.testPlay=false; G.testUnlock=[]; G.tut.enchantReturned=true;
+      G.testPlay=false; G.testUnlock=[]; G.tut.affixReturned=true;
       delete G.tut.done.enchant; G.stats.enchant={written:0};
       const fresh=UI.tutorialPending()?.key;
       G.stats.enchant.written=1;
@@ -60,6 +60,16 @@ with sync_playwright() as p:
       return {fresh,used,done:G.tut.done.enchant};
     }''')
     assert result == {'fresh':'enchant','used':None,'done':True}, result
+    page.goto('http://localhost:8000/?testScene=tutorial:extremeAffix')
+    page.wait_for_function('window.__game?.G.testTutorial === "extremeAffix"')
+    page.add_style_tag(content='.test-play-banner{display:none!important}')
+    page.locator('.ui-tab[data-key="shop"].tut-glow').click()
+    intro = page.locator('.tut-intro')
+    text = intro.inner_text().replace('\u200b', '')
+    assert '拾った時から極をいくつも持つ品' in text
+    assert '極がまだ付いていない装備だけ' in text
+    intro.locator('.ui-sheet-foot button').click()
+    page.wait_for_function('__game.G.tut.done.extremeAffix === true')
     assert not errors, errors
     print('OK: 写し取り・書き込み・確認の取消・途中保存再開・金貨0/袋満杯・通常資産保全・既存記録の案内')
     browser.close()

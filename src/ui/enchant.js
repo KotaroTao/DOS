@@ -1,4 +1,4 @@
-// ===== 付呪 — 無限迷宮からの初回帰還で開く。手ほどきは商会の練習用の品で行う =====
+// ===== 付呪 — 追加つき装備の初持ち帰りで開く。手ほどきは商会の練習用の品で行う =====
 // 仕組みは src/infaffix.js の「付呪」と game.js の enchant* / extractAffix / writeAffix / eraseAffix。
 //   商会の区分「付呪」: 特性の巻物 (写し取った特性) と、特性の付いた品 (手元・商会の棚) を並べる
 //   ・特性の付いた品を押す → 特性を1つ選んで「写し取る」(元の品は消える。棚の品は買値を払う) か「消す」(手元の品だけ。巻物は戻らない)
@@ -216,7 +216,9 @@ export function renderEnchantList(wrap) {
   const intro = el("section", "rf-intro");
   intro.appendChild(setText(el("div", "rf-intro-t"), ENCHANT_NOTE));
   if (enchantPracticeState()) intro.appendChild(setText(el("div", "rf-intro-s"), "手ほどき中：商会の練習用の品を使います。所持品と金貨は変わりません。"));
-  intro.appendChild(setText(el("div", "rf-intro-s"), "特性の値の上限は、書く品のレア度で決まる。極・発動する特性・属攻・属防・追加効果は、1つの品にそれぞれ1つまで。費用は書く品の買値と術の格・何枠目かで決まる。"));
+  intro.appendChild(setText(el("div", "rf-intro-s"), enchantPracticeState()
+    ? "特性の値の上限は、書く品のレア度で決まる。実際の費用は、書く品の買値と術の格・何枠目かで決まる。"
+    : "特性の値の上限は、書く品のレア度で決まる。極・発動する特性・属攻・属防・追加効果は、付呪では1つの品にそれぞれ1つまで。費用は書く品の買値と術の格・何枠目かで決まる。"));
   wrap.appendChild(intro);
   const head = el("div", "wpc-lhead");
   head.appendChild(el("span", "wpc-lhead-t", "付呪"));
