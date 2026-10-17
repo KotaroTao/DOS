@@ -35,6 +35,8 @@
 //               自分 (party なら味方全員) のHPを最大の割合だけ回復 / MPを最大の割合だけ回復
 //  { t:"fall",  chance?, buff?:{stat:[…]}, dur?, hp?:[…] }  味方が倒れた時、生きている自分に
 //  { t:"win",   hp?:[…], mp?:[…], party? }  戦闘に勝った後、HP/MP を最大の割合だけ回復 (party なら味方全員)
+//  { t:"rallyStop"|"mindPardon", v:[…], party:true } 仲間の戦闘不能時に敵の残り行動を止める/魅了・混乱の強制行動を通常行動に戻す。隊の最高Lv。
+//  { t:"chainCarry", v:[…] } 多段物理技の残りを別の敵へ向ける時の威力。
 //  { t:"itemSave"|"overflow"|"curseLock"|"noRevive", v:[…] } 戦闘の道具節約/物理の余剰/弱体解除の阻止/復活阻止。
 //  { t:"dispelLock"|"healJudge", v:[…], party:true } 隊の最高Lvのみ。敵の全体強化解除も1回/敵のHP回復にPIE比例の魔法打撃。
 //  on (与/被ダメ・会心・命中時): "phys" = 物理全般 / "basic" = 通常攻撃 / "skill" = 物理技 / "spell" = 攻撃呪文 (受ける側では敵の全体呪文) / "breath" = ブレス
@@ -103,6 +105,7 @@ const ELS = new Set(["fire", "water", "wind", "earth", "light", "dark"]);
 const STATS = new Set(["atk", "vit", "agi", "int", "pie", "hit"]);
 const FX_FIELDS = {
   deal: "v on when aura best holder", take: "v on when aura best holder", crit: "v on when aura", evade: "v when aura", heal: "v", cost: "v on",
+  rallyStop: "v party", chainCarry: "v", mindPardon: "v party",
   itemSave: "v", overflow: "v", curseLock: "v", noRevive: "v", dispelLock: "v party", healJudge: "v party",
   stat: "mul when", start: "chance when party dur buff foe barrier wall regen mp endure taunt charge",
   round: "chance when party hp mp buff dur", kill: "chance hp mp buff dur", hurt: "chance on when buff dur ret mp hp",
@@ -159,10 +162,10 @@ function checkPerk(job, key, pk) {
     }
     if (c.t === "win" && c.mp != null && [].concat(c.mp).some(v => !(v >= 0 && v <= VICTORY_MP_PER + 1e-9))) fail(job, key, `勝利後のMP回復は1つ${VICTORY_MP_PER * 100}%まで`);
     if (["deal", "take", "crit", "evade", "heal", "cost"].includes(c.t) && c.v == null) fail(job, key, `fx ${c.t} に v が必要`);
-    if (["itemSave", "overflow", "curseLock", "noRevive", "dispelLock", "healJudge"].includes(c.t)) {
+    if (["rallyStop", "chainCarry", "mindPardon", "itemSave", "overflow", "curseLock", "noRevive", "dispelLock", "healJudge"].includes(c.t)) {
       if (!Array.isArray(c.v) || c.v.length !== pk.lv.length || c.v.some(v => !Number.isFinite(v) || v <= 0)) fail(job, key, "固有の発動値は全Lvの正の数が必要");
-      if (["itemSave", "overflow"].includes(c.t) && c.v.some(v => v > 1)) fail(job, key, "割合は1以下");
-      if (["curseLock", "noRevive", "dispelLock"].includes(c.t) && c.v.some(v => !Number.isInteger(v))) fail(job, key, "回数は整数");
+      if (["chainCarry", "itemSave", "overflow"].includes(c.t) && c.v.some(v => v > 1)) fail(job, key, "割合は1以下");
+      if (["rallyStop", "mindPardon", "curseLock", "noRevive", "dispelLock"].includes(c.t) && c.v.some(v => !Number.isInteger(v))) fail(job, key, "回数は整数");
     }
     for (const o of ["buff", "foe"]) if (c[o]) for (const s in c[o]) if (!STATS.has(s)) fail(job, key, `${o}.${s}`);
     // mul は stat では能力ごとの表、hit では弱体の倍率 (数か Lv ごとの配列)

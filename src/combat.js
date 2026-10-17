@@ -809,6 +809,7 @@ export class Battle {
     this.foeLv = opts.foeLv || 1; // 敵のLv の既定 (個体の e.lv が無い時。戦闘中に呼ばれた手下など)
     this._roundNo = 0;
     this._bigBarrierUsed = 0;
+    this._rallyStopUsed = 0; this._enemyStopRound = -1; this._mindPardonUsed = 0;
     this._dispelLockUsed = 0; this._dispelLockSeq = -1; this._procHits = [];
     this.bonusGold = 0; // 「盗む」で手に入れた金 (勝っても逃げても持ち帰る)
     this.tally = newTally(); // テスト記録用の集計 (命中・手番・逃走)。判定には使わない
@@ -1669,6 +1670,7 @@ export class Battle {
       // 極「警鐘の」: 奇襲を受けても、1ターン目に自分だけは動ける
       for (const p of this.party) if (p.alive && gm(p).alarm) { pool.push(p); this.log(`${p.name}の警鐘：奇襲に気づいた`, "heal"); this._proc(p, "警鐘"); }
     }
+    if (this._enemyStopRound === this._roundNo) pool = pool.filter(a => a.side !== "enemy");
     const eagi = (a) => (a.agi || 1) * ((a.buffs && a.buffs.agi) || 1);
     // 一番に動く者: 加速装置 (actFirst、毎ターン) と、極「一番手の」(戦闘の1ターン目だけ)
     const first = (a) => !!(a.actFirst || (this._roundNo === 1 && gm(a).firstTurn));
@@ -1802,6 +1804,7 @@ export class Battle {
       if (this.result) { this.phase = "done"; return; }
       const actor = this.queue.shift();
       if (!actor || !actor.alive) continue;
+      if (actor.side === "enemy" && this._enemyStopRound === this._roundNo) continue;
       this.current = actor;
       for (const p of this.party) p._hpPre = p.hp; // 勇者の意地: この手番の初めの HP を覚える
       if (actor.side === "party") {
@@ -1859,6 +1862,18 @@ export class Battle {
     if (kind === "confuse" && random() < CONFUSE_FREE) {
       this.log(`${actor.name}は混乱中も行動`, "sys");
       return "free";
+    }
+    // 赦しの勅令: 自然回復や、混乱中も動ける判定で手番を救えた時は回数を使わない。
+    if (actor.side === "party") {
+      const p = this._bestPerk("mindPardon"), cap = this._perkValue(p, "mindPardon");
+      if (cap && (this._mindPardonUsed || 0) < cap) {
+        this._mindPardonUsed = (this._mindPardonUsed || 0) + 1;
+        actor.mind = null;
+        if (actor._ailN) actor._ailN.mind = 0;
+        this.log(`${p.name}の赦しの勅令！ ${actor.name}は正気に戻り、行動できる`, "heal");
+        this._proc(p, "赦しの勅令");
+        return "free";
+      }
     }
     return "auto";
   }
@@ -2061,6 +2076,11 @@ export class Battle {
     const actor = this.current;
     actor._actedRound = this._roundNo; // 行動不能で手番を失う時も、このターンは行動済み
     let cmd;
+    if (this._enemyStopRound === this._roundNo) {
+      this.log(`${actor.name}は立て直しの旗で行動不可`, "sys");
+      this._checkEnd();
+      return { actor, action: "stunned", side: actor.side, hits: [] };
+    }
     // 大技の予兆: 眠り・麻痺・石化・心の乱れ・怯み・特技封じを受けていれば、溜めた力は霧散する
     if (this._omenOf(actor) && this._omenBroken(actor)) this._breakOmen(actor);
     if (actor._chargeCd > 0) actor._chargeCd--;
@@ -3584,12 +3604,21 @@ export class Battle {
       else for (const t of (sp.target === "all-enemy" ? this.livingEnemies() : [cmd.target].filter(Boolean))) plan.push(t);
       const connected = new Set(); // 1発でも命中した敵 (命中後の付与効果の条件)
       for (const t0 of plan) {
-        const t = t0 || this._randAlive(this.enemies);
+        let t = t0 || this._randAlive(this.enemies);
         if (!t) break;
         const hits = sp.scatter ? 1 : (sp.hits || 1);
+        const carry = hits > 1 ? this._perkValue(actor, "chainCarry") : 0;
+        let inherited = false;
         for (let h = 0; h < hits; h++) {
-          if (!t.alive) break;
-          const hit = this._physical(actor, t, popt);
+          if (!t.alive) {
+            if (!carry || h === 0) break;
+            t = this._randAlive(this.attackableEnemies(actor));
+            if (!t) break;
+            inherited = true;
+            this.log(`${actor.name}の刃の引き継ぎ！ 残り${hits - h}撃を${t.name}へ（威力${Math.round(carry * 100)}%）`, "hit");
+            this._proc(actor, "刃の引き継ぎ");
+          }
+          const hit = this._physical(actor, t, inherited ? { ...popt, power: popt.power * carry } : popt);
           res.hits.push(hit);
           dealt += hit.dmg || 0;
           const tt = hit.target || t; // 敵の護り手に肩代わりされることがある
@@ -4148,6 +4177,16 @@ export class Battle {
         return false;
       }
       t.hp = 0; t.alive = false; t.asleep = false; t.mind = null; t._ailN = null;
+      // 立て直しの旗: 実際の戦闘不能にだけ反応する。進行中の一撃/技は解決し、以降の敵の手番を全て除く。
+      if (t.side === "party") {
+        const p = this._bestPerk("rallyStop"), cap = this._perkValue(p, "rallyStop");
+        if (cap && this._enemyStopRound !== this._roundNo && (this._rallyStopUsed || 0) < cap) {
+          this._rallyStopUsed = (this._rallyStopUsed || 0) + 1; this._enemyStopRound = this._roundNo;
+          this.queue = this.queue.filter(a => a.side !== "enemy");
+          this.log(`${p.name}の立て直しの旗！ 敵全体のこのターンの残り行動を打ち切った`, "heal");
+          this._proc(p, "立て直しの旗");
+        }
+      }
       if (t.side === "party" && this.show) this.show.dd++; // 観客の注文 (誰も倒れずに勝て)
       // 狂奔 (狂戦士のランク): 敵か仲間が倒れるたび STR +5% (段数の上限は _recalcBuffs)
       for (const p of this.party) if (p.alive && pv(p, "berserkerKyouhon")) { p._kyouhon = (p._kyouhon || 0) + 1; this._recalcBuffs(p); }

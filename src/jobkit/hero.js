@@ -39,8 +39,8 @@ export default {
   perks: {
     heroKyoutekiFunki: { label: "強敵への奮起", lv: ["主への与ダメ+5%・会心+6%", "主への与ダメ+8%・会心+9%", "主への与ダメ+11%・会心+12%", "主への与ダメ+14%・会心+15%"],
       fx: [{ t: "deal", v: [0.05, 0.08, 0.11, 0.14], when: { boss: true } }, { t: "crit", v: [0.06, 0.09, 0.12, 0.15], when: { boss: true } }] },
-    heroKaisenGourei: { label: "開戦の号令", lv: ["戦闘開始時、味方全員のVIT×1.1 (3ターン)", "戦闘開始時、味方全員のVIT×1.15", "戦闘開始時、味方全員のVIT×1.2"],
-      fx: [{ t: "start", party: true, buff: { vit: [1.1, 1.15, 1.2] }, dur: 3 }] },
+    heroKaisenGourei: { label: "立て直しの旗", lv: ["仲間が倒れると敵全体のそのターンの残り行動を打ち切る（本人の生存中・隊で1戦闘1回）", "仲間が倒れると敵全体のそのターンの残り行動を打ち切る（本人の生存中・隊で1戦闘2回）"],
+      fx: [{ t: "rallyStop", v: [1, 2], party: true }] },
     heroKibouHidamari: HOPE_HIDAMARI,
     heroYuushaSenaka: { label: "勇者の背中", lv: ["生きている間、味方全員の与ダメ+3%", "味方全員の与ダメ+5%", "味方全員の与ダメ+7%"],
       fx: [{ t: "deal", v: [0.03, 0.05, 0.07], aura: true }] },
