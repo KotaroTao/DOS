@@ -540,9 +540,9 @@ canvas.unk-sil { filter: brightness(0) drop-shadow(0 0 1px rgba(185,172,217,0.85
 }
 
 /* 対象選択・スキル一覧 (巻物のように中を巻く) */
-#combat-menu .target-list { display: grid; gap: 5px; flex: 0 1 auto; min-height: 0; max-height: none; overflow-y: auto; padding: 1px; }
-#combat-menu .target-list.cols2 { grid-template-columns: 1fr 1fr; }
-#combat-menu .btn.tgt, #combat-menu .btn.spell {
+:is(#combat-menu, .battle-skill-picker) .target-list { display: grid; gap: 5px; flex: 0 1 auto; min-height: 0; max-height: none; overflow-y: auto; padding: 1px; }
+:is(#combat-menu, .battle-skill-picker) .target-list.cols2 { grid-template-columns: 1fr 1fr; }
+:is(#combat-menu, .battle-skill-picker) .btn.tgt, :is(#combat-menu, .battle-skill-picker) .btn.spell {
   min-height: 44px; padding: 6px 9px; display: grid; gap: 3px; align-content: center; justify-items: stretch; text-align: left;
   font-size: 13px; letter-spacing: 0.5px; line-height: 1.2;
   background: var(--grain), linear-gradient(180deg, #261e23 0%, #171216 100%);
@@ -559,20 +559,20 @@ canvas.unk-sil { filter: brightness(0) drop-shadow(0 0 1px rgba(185,172,217,0.85
 #combat-menu .tgt-ally .tgt-bar > i { background: linear-gradient(180deg, #9ff0b0, #3c9a5a 60%, #1c4a2a); }
 #combat-menu .tgt-down { opacity: 0.6; }
 /* .btn 共通の justify-content: center がグリッドの列を中身の幅に縮めて中央へ寄せるので、列を札いっぱいに広げる */
-#combat-menu .btn.spell { border-left: 3px solid var(--sp-col, #c9a24a); grid-template-columns: minmax(0, 1fr); justify-content: stretch; }
-#combat-menu .sp-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-width: 0; }
-#combat-menu .sp-n { font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #f0e4cc; }
+:is(#combat-menu, .battle-skill-picker) .btn.spell { border-left: 3px solid var(--sp-col, #c9a24a); grid-template-columns: minmax(0, 1fr); justify-content: stretch; }
+:is(#combat-menu, .battle-skill-picker) .sp-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-width: 0; }
+:is(#combat-menu, .battle-skill-picker) .sp-n { font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #f0e4cc; }
 /* 道具の一覧: 品の絵を名前の前に添え、名前は残りの幅で切る */
-#combat-menu .spell-item .sp-top { justify-content: flex-start; }
-#combat-menu .spell-item .sp-n { flex: 1 1 auto; min-width: 0; }
-#combat-menu .sp-ic { flex: 0 0 auto; width: 20px; height: 20px; display: inline-flex; }
-#combat-menu .sp-ic canvas { width: 20px; height: 20px; image-rendering: pixelated; }
-#combat-menu .sp-mp { flex: 0 0 auto; font-size: 9.5px; font-weight: 800; color: #b4e6ff; padding: 1px 4px; border: 1px solid #2c5a7a; border-radius: 2px; background: rgba(20,50,80,0.4); }
-#combat-menu .sp-d { font-size: 10px; color: #9a8e78; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-#combat-menu .btn.spell.locked { opacity: 0.38; filter: grayscale(0.6); }
-#combat-menu .target-list.cols2 .btn { min-height: 44px; font-size: 12px; padding: 5px 7px; }
+:is(#combat-menu, .battle-skill-picker) .spell-item .sp-top { justify-content: flex-start; }
+:is(#combat-menu, .battle-skill-picker) .spell-item .sp-n { flex: 1 1 auto; min-width: 0; }
+:is(#combat-menu, .battle-skill-picker) .sp-ic { flex: 0 0 auto; width: 20px; height: 20px; display: inline-flex; }
+:is(#combat-menu, .battle-skill-picker) .sp-ic canvas { width: 20px; height: 20px; image-rendering: pixelated; }
+:is(#combat-menu, .battle-skill-picker) .sp-mp { flex: 0 0 auto; font-size: 9.5px; font-weight: 800; color: #b4e6ff; padding: 1px 4px; border: 1px solid #2c5a7a; border-radius: 2px; background: rgba(20,50,80,0.4); }
+:is(#combat-menu, .battle-skill-picker) .sp-d { font-size: 10px; color: #9a8e78; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+:is(#combat-menu, .battle-skill-picker) .btn.spell.locked { opacity: 0.38; filter: grayscale(0.6); }
+:is(#combat-menu, .battle-skill-picker) .target-list.cols2 .btn { min-height: 44px; font-size: 12px; padding: 5px 7px; }
 /* 2列のときは説明を1行に収める (長い説明が技名に重ならないように) */
-#combat-menu .target-list.cols2 .sp-d { -webkit-line-clamp: 1; line-clamp: 1; }
+:is(#combat-menu, .battle-skill-picker) .target-list.cols2 .sp-d { -webkit-line-clamp: 1; line-clamp: 1; }
 
 /* ===== 操作のヒント ===== */
 #hint { font-size: 10px; padding: 3px 8px 4px; color: #6e6457; letter-spacing: 1px; border-top: 1px solid #1a1517; }
