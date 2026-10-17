@@ -9030,11 +9030,9 @@ function startBattleMeasured(enemies, cell, { visibleEnemy = cell?.type === "mon
     const rawAmb = isElite || visibleEnemy || (spFloor && spFloor.noAmbush) ? 0 : 0.08 * mutNum("ambushMul", 1) * (vig >= 2 ? 0 : vig === 1 ? 0.5 : 1) * evBoon("mistEye", "ambush", 1) * nw;
     // 追い風の階 (preempt100) では必ず先制できる。
     // 待ち伏せ (hunterSaihai) は +5/10/15/20ポイント。周囲警戒Lv3 でさらに +10%
-    // 忍び足 (stealthStep) +10/15/20%
-    const iniBonus = ([0, 0.10, 0.15, 0.20][Math.min(3, partyPassiveLv("stealthStep"))] || 0);
     // 極の恵み「守備隊の敬礼」は先手 +8%
     // 見えていた敵は奇襲0%、先制に固定の20ポイント加算 (倍率ではない)。
-    const basePre = isElite ? 0 : (spFloor && spFloor.preempt100) ? 1 : 0.08 + iniBonus + (vig >= 3 ? 0.10 : 0) + evBoon("salute", "preempt", 0);
+    const basePre = isElite ? 0 : (spFloor && spFloor.preempt100) ? 1 : 0.08 + (vig >= 3 ? 0.10 : 0) + evBoon("salute", "preempt", 0);
     const { pre, amb } = openingRates(basePre + (visibleEnemy ? 0.20 : 0), rawAmb, hunterLv);
     const r = random();
     if (r < amb) opening = "ambush";

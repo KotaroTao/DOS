@@ -57,6 +57,8 @@ with sync_playwright() as p:
       }
       reset();G.party[0].passiveMap={initiative:1};
       check(fight(.30,cell())===null,'先の太刀は先制率を上げない');
+      reset();G.party[0].passiveMap={stealthStep:3};
+      check(fight(.30,cell())===null,'気配断ちは先制率を上げない');
       reset();G.party[0].passiveMap={hunterSaihai:4};G.party[1].passiveMap={hunterSaihai:2};
       check(fight(.49,cell())===null,'同じ待ち伏せは最高Lvのみ (可視48%)');
       reset();G.party[0].passiveMap={hunterSaihai:4};G.party[0].alive=false;

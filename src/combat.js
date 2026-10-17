@@ -2279,6 +2279,12 @@ export class Battle {
     }
     return best;
   }
+  // 気配断ち: 本人の標的選択の重みだけを20/35/50%減らす。隊列・挑発の補正に乗算。
+  _targetWeight(p) {
+    const base = (this.isBackRow(p) ? 1 : 3) * (pv(p, "taunt") ? 3 : 1) * Math.round(this._bm(p, "taunt"));
+    const conceal = [1, 0.80, 0.65, 0.50][Math.min(3, pv(p, "stealthStep"))];
+    return base * conceal;
+  }
   _pickPartyTarget() {
     const list = this.livingParty();
     if (!list.length) return null;
@@ -2286,12 +2292,14 @@ export class Battle {
     // 引き剥がされていつもどおりに狙い、切れたら次に狙った者に定める (常に効くパッシブの挑発は、最初の狙いの重みにだけ効く)
     const taunting = this.focus && list.some((p) => this._bm(p, "taunt") > 1);
     if (this.focus && !taunting && this._focusT && list.includes(this._focusT)) return this._focusT;
-    const pool = [];
-    for (const p of list) {
-      const w = (this.isBackRow(p) ? 1 : 3) * (pv(p, "taunt") ? 3 : 1) * Math.round(this._bm(p, "taunt"));
-      for (let i = 0; i < w; i++) pool.push(p);
+    // 気配断ちの端数を保つ重み付き抽選。整数の人数分だけ並べる方式では20/35%を表せない。
+    const weights = list.map((p) => this._targetWeight(p));
+    let pick = random() * weights.reduce((sum, w) => sum + w, 0);
+    let t = list[list.length - 1];
+    for (let i = 0; i < list.length; i++) {
+      pick -= weights[i];
+      if (pick < 0) { t = list[i]; break; }
     }
-    const t = pool[rand(pool.length)];
     if (this.focus) this._focusT = taunting ? null : t;
     return t;
   }
