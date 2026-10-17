@@ -155,8 +155,8 @@ const samples=12000;
  assert.equal(fixedHit(75,{pierce:1,critBonus:1}),critical,'貫通と会心の併用');
  assert.equal(fixedHit(0,{pierce:1}),base,'物理貫通はVITを無視しない');
  assert.equal(fixedHit(0,{},4),base,'斬鉄はVITを無視しない');
- assert.equal(fixedHit(75,{},4),Math.round(base*.625),'斬鉄は物理耐性に効く');
- assert.equal(fixedHit(75,{pierce:.5},4),Math.round(base*.8125),'技50%と斬鉄50%で75%貫通');
+ assert.equal(fixedHit(75,{},4),Math.round(base*.55),'斬鉄は物理耐性に効く');
+ assert.equal(fixedHit(75,{pierce:.5},4),Math.round(base*.775),'技50%と斬鉄40%で70%貫通');
  for(const critBonus of [0,1])for(const rank of [0,4])assert.equal(fixedHit(100,{pierce:1,critBonus},rank),0,'物理無効は貫けない');
  assert.equal(fixedHit(75,{pierce:1},4,true),fixedHit(75,{},0,true),'魔法武器に物理貫通は効かない');
  const counterHit=(resist,rank,critical)=>{
@@ -169,7 +169,7 @@ const samples=12000;
  for(const critical of [false,true]){
   const raw=counterHit(0,0,critical);
   assert.equal(counterHit(75,0,critical),Math.round(raw*.25),'反撃の会心も耐性を受ける');
-  assert.equal(counterHit(75,4,critical),Math.round(raw*.625),'反撃に斬鉄が効く');
+  assert.equal(counterHit(75,4,critical),Math.round(raw*.55),'反撃に斬鉄が効く');
   assert.equal(counterHit(100,4,critical),0,'反撃も物理無効には効かない');
  }
  console.log('会心・物理貫通・VIT・斬鉄の重ね合わせ・反撃・魔法武器・物理無効を確認');
@@ -391,7 +391,9 @@ console.log(`全${count}技を実行。会心・耐性・命中・攻撃/回復�
  // 体の手当て: 使い手の最大HPで決まる (最大HPの小さい魔法職が借りても弱い)・対象の35%まで
  {const big=Object.assign(actor(),{maxhp:400,hp:400,pie:999}),small=Object.assign(actor(),{maxhp:100,hp:100,pie:999});
   const tA=Object.assign(actor(),{maxhp:1000}),tB=Object.assign(actor(),{maxhp:1000});
+  const originalRandom=Math.random;Math.random=()=>.5;
   const hb=heal(big,'KNIGHT_JINCHUUTEATE',tA),hs=heal(small,'KNIGHT_JINCHUUTEATE',tB);
+  Math.random=originalRandom;
   assert(hb>hs*3,`体の手当ては使い手の最大HPで伸びる (${hb} / ${hs})`);
   const tC=Object.assign(actor(),{maxhp:100});assert(heal(Object.assign(actor(),{maxhp:5000,hp:5000}),'KNIGHT_JINCHUUTEATE',tC)<=35,'手当ての頭打ち');}
  // 刃の癒し: 与えたダメージの割合を全員へ、1人あたり healCap まで。PIE は関係しない
