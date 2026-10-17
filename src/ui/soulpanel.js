@@ -380,8 +380,13 @@ function subTiles(more, d, town) {
     const sub = (d.subs || [])[i] || null;
     const se = sub ? soulByUid(sub.uid) : null;
     const tile = el("div", "sp-tile sp-sub" + (se ? "" : " empty"));
-    const main = el(town ? "button" : "div", "sp-tile-main");
-    if (town) main.type = "button";
+    const detail = !!(se && game.featureUnlocked?.("codex") && game.showCodexJobDetail);
+    const main = el(detail || town && !se ? "button" : "div", "sp-tile-main");
+    if (main.tagName === "BUTTON") main.type = "button";
+    if (detail) {
+      main.setAttribute("aria-label", `サブ魂${i + 1} ${(SOUL_CLASSES[se.clsKey] || {}).label || ""}の職業図鑑を見る`);
+      main.addEventListener("click", () => game.showCodexJobDetail(se.clsKey, soulRankOf(se)));
+    }
     const bw = se ? borrowList(sub, se, d) : null;
     const hd = el("span", "sp-tile-hd");
     hd.appendChild(el("span", "sp-tile-k", `サブ魂${i + 1}`));
@@ -407,14 +412,21 @@ function subTiles(more, d, town) {
     } else {
       main.appendChild(el("span", "sp-tile-s", town ? "＋ 魂を宿す" : "空き"));
     }
-    if (town) main.addEventListener("click", () => openSoulPicker(d, "sub" + i));
+    if (town && !se) main.addEventListener("click", () => openSoulPicker(d, "sub" + i));
     tile.appendChild(main);
     if (se && town) {
+      const actions = el("div", "sp-sub-actions");
+      const change = el("button", "sp-tile-sk", "交換");
+      change.type = "button";
+      change.setAttribute("aria-label", `サブ魂${i + 1}を交換`);
+      change.addEventListener("click", () => openSoulPicker(d, "sub" + i));
+      actions.appendChild(change);
       const sk = el("button", "sp-tile-sk", "技");
       sk.type = "button";
       sk.setAttribute("aria-label", "借りる技を選ぶ");
       sk.addEventListener("click", () => openSkillStep(d, sub));
-      tile.appendChild(sk);
+      actions.appendChild(sk);
+      tile.appendChild(actions);
     }
     more.appendChild(tile);
   }

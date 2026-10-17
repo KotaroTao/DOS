@@ -1396,3 +1396,10 @@ button.sp-lu-next { cursor: pointer; }
 .pt-tac-settings { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
 .pt-tac-skills-head { margin: 10px 0 0; font-size: 15px; color: #e7c873; }
 .pt-tac-top { flex-wrap: wrap; }
+
+/* サブ魂は本体で詳細を開き、交換・借用技は下段のボタンで操作する。 */
+.sp-sub { flex-direction: column; }
+.sp-sub-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.sp-sub-actions .sp-tile-sk { min-width: 44px; border-top: 1px solid #3a3029; }
+.sp-sub-actions .sp-tile-sk:first-child { border-left: 0; }
+.sp-sub .sp-tile-n { white-space: normal; overflow-wrap: anywhere; }
