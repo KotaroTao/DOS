@@ -50,6 +50,7 @@ function refsFor({ text, kind = "", id = "", chapter = 0, master = null }) {
   text = text.replace(/[^.]*\b(no|without|not)\b[^.]*\b(apprentice|party|dolls?|sera|irene|ordo|king|chancellor|morden)\b[^.]*\./gi, "");
   for (const [name, re] of CAST) {
     if (!re.test(text)) continue;
+    if (name === "morden-chest" && chapter < 5) continue; // 胸の秘密は第五章以降だけ
     if (name === "ordo" && chapter >= 5) for (const p of sheetRefs("ordo-states")) add(p, "師オルドの章ごとの姿");
     const refs = sheetRefs(name);
     if (!refs.length) note.push(`基準シート ${name}.png はまだ無く、元にする絵もない (正典の文だけで描く)`);
