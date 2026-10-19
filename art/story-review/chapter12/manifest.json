@@ -1,0 +1,243 @@
+{
+  "date": "2026-10-19",
+  "chapter": 12,
+  "source": "node tools/storyart/prompt.mjs --chapter 12",
+  "note": "promptは指示書の原文。廟の主と今の王の区別、既存の玉座の連続性、師の服装はREADME.md記載の補足指定を加えた。修正は対象原画1枚を参照して実施。",
+  "scenes": [
+    {
+      "id": "w46_bar",
+      "prompt": "Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge, no panels, no borders, no labels, no typography, no readable text anywhere (all writing is illegible scribbles). Match the attached Dungeon of Souls artwork exactly: lavish high-quality fine-grained pixel-textured dark fantasy illustration, sophisticated natural adult proportions, meticulously detailed gothic carved stone, embroidered cloth, black iron, carved wood, crisp tiny highlights, rich controlled cool moonlit/cyan light against warm amber candlelight. Believable hands with a thumb and four fingers, exactly two arms and two legs per character. Preserve the reference characters' identity and costumes exactly. Keep the narrative focal object readable when the image is shrunk to 384x256. Do not copy the reference composition; depict the new scene below.\nSky continuity: In present-day scenes from report_w33 (the hundredth-year blue sky) onward, including Roadal, depict bright skies: blue daylight or luminous sunset if the text specifies evening. Do not restore the old dark storm sky. Keep explicitly night-time scenes and historical memories faithful to their stated time.\nAt the bottom of a long underground processional road whose walls are lined floor-to-ceiling with small niches, each holding a lit candle that never burns down — thousands of warm amber flames receding upward into darkness. Ahead rises a towering ancient stone gate of a royal mausoleum, with a single line of archaic carved letters above the lintel (illegible). Beside the gate, the small remains of a camp: a burnt-out brass hand lamp and a folded handwritten note held down by a flat stone. The apprentice kneels to pick up the note, a warm orange hand-lamp at their side. Faint pale ghost-like mourners in a procession fade away behind. Sweet oily haze, solemn, hushed, golden-dark.",
+      "references": [
+        "docs/art/story-refs/apprentice.png"
+      ],
+      "master": "art/story-review/chapter12/w46_bar.png",
+      "shipped": "art/story/chapter12/w46_bar.webp",
+      "generator": "image_gen",
+      "status": "制作済み・ユーザー確認待ち",
+      "correction_before": null,
+      "master_sha256": "3ba905b556dc0efa9b4e950de7ddbebcce91e879482f0ed0fb5c650a7bb2e97f",
+      "shipped_sha256": "37de8d0b37049ef18b0a578867f99d11de447ae3b9020facfd7c33972274f2f1"
+    },
+    {
+      "id": "report_w46",
+      "prompt": "Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge, no panels, no borders, no labels, no typography, no readable text anywhere (all writing is illegible scribbles). Match the attached Dungeon of Souls artwork exactly: lavish high-quality fine-grained pixel-textured dark fantasy illustration, sophisticated natural adult proportions, meticulously detailed gothic carved stone, embroidered cloth, black iron, carved wood, crisp tiny highlights, rich controlled cool moonlit/cyan light against warm amber candlelight. Believable hands with a thumb and four fingers, exactly two arms and two legs per character. Preserve the reference characters' identity and costumes exactly. Keep the narrative focal object readable when the image is shrunk to 384x256. Do not copy the reference composition; depict the new scene below.\nSky continuity: In present-day scenes from report_w33 (the hundredth-year blue sky) onward, including Roadal, depict bright skies: blue daylight or luminous sunset if the text specifies evening. Do not restore the old dark storm sky. Keep explicitly night-time scenes and historical memories faithful to their stated time.\nThe same throne room in daylight, clear sky outside the tall windows. The very old king (lap blanket over his knees) sits looking at the crown resting in his hands as if reading something written inside its rim, remembering his coronation. The chancellor's chair beside the throne stands empty. The apprentice stands below the dais. Quiet, troubled.",
+      "references": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/king.png",
+        "docs/art/story-refs/morden.png",
+        "art/story-review/chapter3/report_w12.png"
+      ],
+      "master": "art/story-review/chapter12/report_w46.png",
+      "shipped": "art/story/chapter12/report_w46.webp",
+      "generator": "image_gen",
+      "status": "制作済み・ユーザー確認待ち",
+      "correction_before": null,
+      "master_sha256": "30255476772ab9684582adbfa6e94de9fff6d5eb9dc42dd06fce31a2953568fa",
+      "shipped_sha256": "6596feb0302ad879dcf927b2e31443f2f1020131e5c32f6be26b0c7981e076ae"
+    },
+    {
+      "id": "w47_ledger",
+      "prompt": "Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge, no panels, no borders, no labels, no typography, no readable text anywhere (all writing is illegible scribbles). Match the attached Dungeon of Souls artwork exactly: lavish high-quality fine-grained pixel-textured dark fantasy illustration, sophisticated natural adult proportions, meticulously detailed gothic carved stone, embroidered cloth, black iron, carved wood, crisp tiny highlights, rich controlled cool moonlit/cyan light against warm amber candlelight. Believable hands with a thumb and four fingers, exactly two arms and two legs per character. Preserve the reference characters' identity and costumes exactly. Keep the narrative focal object readable when the image is shrunk to 384x256. Do not copy the reference composition; depict the new scene below.\nSky continuity: In present-day scenes from report_w33 (the hundredth-year blue sky) onward, including Roadal, depict bright skies: blue daylight or luminous sunset if the text specifies evening. Do not restore the old dark storm sky. Keep explicitly night-time scenes and historical memories faithful to their stated time.\nAn ancient underground embalming workshop: hundreds of worn stone slabs in rows, some with sheet-covered shapes, shelves of sealed oil jars and fine brushes, golden candlelight, a sweet oily haze. At the far end, by the oldest, deeply worn slab, a heavy ledger is chained to a lectern, open to its very first page of faded archaic script (illegible); a small newer handwritten note is tucked in the margin. The apprentice leans over the ledger with a warm orange hand-lamp. Reverent, unsettling, tender.",
+      "references": [
+        "docs/art/story-refs/apprentice.png"
+      ],
+      "master": "art/story-review/chapter12/w47_ledger.png",
+      "shipped": "art/story/chapter12/w47_ledger.webp",
+      "generator": "image_gen",
+      "status": "制作済み・ユーザー確認待ち",
+      "correction_before": "art/story-review/fixes/w47_ledger-before.png",
+      "master_sha256": "2b7fbd3fa9d5e357b03f2a0222768c8c4f243889d7323f44596d579b55596c14",
+      "shipped_sha256": "a9eb23e96e25f1c28887324dfd014b634f78da3610daff8e1be4111835eb0e90"
+    },
+    {
+      "id": "irene_vessel",
+      "prompt": "Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge, no panels, no borders, no labels, no typography, no readable text anywhere (all writing is illegible scribbles). Match the attached Dungeon of Souls artwork exactly: lavish high-quality fine-grained pixel-textured dark fantasy illustration, sophisticated natural adult proportions, meticulously detailed gothic carved stone, embroidered cloth, black iron, carved wood, crisp tiny highlights, rich controlled cool moonlit/cyan light against warm amber candlelight. Believable hands with a thumb and four fingers, exactly two arms and two legs per character. Preserve the reference characters' identity and costumes exactly. Keep the narrative focal object readable when the image is shrunk to 384x256. Do not copy the reference composition; depict the new scene below.\nSky continuity: In present-day scenes from report_w33 (the hundredth-year blue sky) onward, including Roadal, depict bright skies: blue daylight or luminous sunset if the text specifies evening. Do not restore the old dark storm sky. Keep explicitly night-time scenes and historical memories faithful to their stated time.\nThe same mansion workshop at night, the single white candle burning steady on its brass candlestick. Irene sits at the worktable looking down at her own open wooden palm, the fine black-iron joint at her wrist visible, thoughtful and gentle. Sera (as in the Sera reference) sits beside her and places her own wooden hand flat next to Irene's, smiling softly. Warm, intimate.",
+      "references": [
+        "art/story-review/opening/flame.png",
+        "docs/art/story-refs/irene.png",
+        "docs/art/story-refs/sera.png",
+        "docs/art/sera/sera-r1-final.png",
+        "art/story-review/chapter2/irene_roots.png"
+      ],
+      "master": "art/story-review/chapter12/irene_vessel.png",
+      "shipped": "art/story/chapter12/irene_vessel.webp",
+      "generator": "image_gen",
+      "status": "制作済み・ユーザー確認待ち",
+      "correction_before": "art/story-review/fixes/irene_vessel-before.png",
+      "master_sha256": "4bfca78865625ec67e2a7f603e121134bdc4742dfef714bd55528c3b483b1221",
+      "shipped_sha256": "3e344aee5ad06319bfb96e26e02187bc23cd115ad48afd7570f7d96060d1b75f"
+    },
+    {
+      "id": "report_w47",
+      "prompt": "Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge, no panels, no borders, no labels, no typography, no readable text anywhere (all writing is illegible scribbles). Match the attached Dungeon of Souls artwork exactly: lavish high-quality fine-grained pixel-textured dark fantasy illustration, sophisticated natural adult proportions, meticulously detailed gothic carved stone, embroidered cloth, black iron, carved wood, crisp tiny highlights, rich controlled cool moonlit/cyan light against warm amber candlelight. Believable hands with a thumb and four fingers, exactly two arms and two legs per character. Preserve the reference characters' identity and costumes exactly. Keep the narrative focal object readable when the image is shrunk to 384x256. Do not copy the reference composition; depict the new scene below.\nSky continuity: In present-day scenes from report_w33 (the hundredth-year blue sky) onward, including Roadal, depict bright skies: blue daylight or luminous sunset if the text specifies evening. Do not restore the old dark storm sky. Keep explicitly night-time scenes and historical memories faithful to their stated time.\nThe same throne room in late-afternoon light, clear sky outside. The very old king grips the armrests of his throne, gazing at the gold cup that sits on the floor beside the throne (he no longer drinks from it). The chancellor's chair stands empty. The apprentice stands below. Heavy, self-reflective.",
+      "references": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/king.png",
+        "docs/art/story-refs/morden.png",
+        "art/story-review/chapter3/report_w12.png"
+      ],
+      "master": "art/story-review/chapter12/report_w47.png",
+      "shipped": "art/story/chapter12/report_w47.webp",
+      "generator": "image_gen",
+      "status": "制作済み・ユーザー確認待ち",
+      "correction_before": null,
+      "master_sha256": "0821822bd59642fb29a5c21acddb900cc102136425af344f1fe09a3a2ddd1d6e",
+      "shipped_sha256": "9aa86268155870e9ad41faaaea0f1977c993ba79fe299599ebc77b367c558d94"
+    },
+    {
+      "id": "w48_masks",
+      "prompt": "Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge, no panels, no borders, no labels, no typography, no readable text anywhere (all writing is illegible scribbles). Match the attached Dungeon of Souls artwork exactly: lavish high-quality fine-grained pixel-textured dark fantasy illustration, sophisticated natural adult proportions, meticulously detailed gothic carved stone, embroidered cloth, black iron, carved wood, crisp tiny highlights, rich controlled cool moonlit/cyan light against warm amber candlelight. Believable hands with a thumb and four fingers, exactly two arms and two legs per character. Preserve the reference characters' identity and costumes exactly. Keep the narrative focal object readable when the image is shrunk to 384x256. Do not copy the reference composition; depict the new scene below.\nSky continuity: In present-day scenes from report_w33 (the hundredth-year blue sky) onward, including Roadal, depict bright skies: blue daylight or luminous sunset if the text specifies evening. Do not restore the old dark storm sky. Keep explicitly night-time scenes and historical memories faithful to their stated time.\nA small vaulted chamber at the end of a long mausoleum corridor guarded by statue-still royal guards. The entire wall is covered with golden death masks of past kings, hung in rows from oldest to newest, every face calm with eyes closed, each face different. The three newest masks at the end of the last row show the same man at three different ages — young, middle-aged, old — matching the very old king's face (long features, later a long beard). On a stand below lies an open register with three blank lines. The apprentice looks up at the three masks, holding a warm orange hand-lamp. Golden candlelight, stunned silence.",
+      "references": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/king.png"
+      ],
+      "master": "art/story-review/chapter12/w48_masks.png",
+      "shipped": "art/story/chapter12/w48_masks.webp",
+      "generator": "image_gen",
+      "status": "制作済み・ユーザー確認待ち",
+      "correction_before": "art/story-review/fixes/w48_masks-before.png",
+      "master_sha256": "616a9ea45addc53d45c89d4c46a37dd712a0568f82a9a308df6546f030536e88",
+      "shipped_sha256": "adaea8fc5ffaf4f6992cda89532ca4b7b143fff538c38fe1bc4d930d21e46952"
+    },
+    {
+      "id": "irene_masks",
+      "prompt": "Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge, no panels, no borders, no labels, no typography, no readable text anywhere (all writing is illegible scribbles). Match the attached Dungeon of Souls artwork exactly: lavish high-quality fine-grained pixel-textured dark fantasy illustration, sophisticated natural adult proportions, meticulously detailed gothic carved stone, embroidered cloth, black iron, carved wood, crisp tiny highlights, rich controlled cool moonlit/cyan light against warm amber candlelight. Believable hands with a thumb and four fingers, exactly two arms and two legs per character. Preserve the reference characters' identity and costumes exactly. Keep the narrative focal object readable when the image is shrunk to 384x256. Do not copy the reference composition; depict the new scene below.\nSky continuity: In present-day scenes from report_w33 (the hundredth-year blue sky) onward, including Roadal, depict bright skies: blue daylight or luminous sunset if the text specifies evening. Do not restore the old dark storm sky. Keep explicitly night-time scenes and historical memories faithful to their stated time.\nThe same mansion workshop at night. Irene sits by the single white candle with an old leather notebook open on her lap, every page filled with the same short line repeated, her finger resting on the latest entry. Sera (as in the Sera reference) leans in to look at the page with a small hopeful face. Soft, melancholy candlelight.",
+      "references": [
+        "art/story-review/opening/flame.png",
+        "docs/art/story-refs/irene.png",
+        "docs/art/story-refs/sera.png",
+        "docs/art/sera/sera-r1-final.png",
+        "art/story-review/chapter2/irene_roots.png"
+      ],
+      "master": "art/story-review/chapter12/irene_masks.png",
+      "shipped": "art/story/chapter12/irene_masks.webp",
+      "generator": "image_gen",
+      "status": "制作済み・ユーザー確認待ち",
+      "correction_before": null,
+      "master_sha256": "deb651e3f40f5c28b018e3834869f8fc019786cc3675526f7527ba8471ef9eed",
+      "shipped_sha256": "baefc4e1aaead6da5a931a7a50b4bacd385a1815f9ae49b3aca57cbe17644c45"
+    },
+    {
+      "id": "report_w48",
+      "prompt": "Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge, no panels, no borders, no labels, no typography, no readable text anywhere (all writing is illegible scribbles). Match the attached Dungeon of Souls artwork exactly: lavish high-quality fine-grained pixel-textured dark fantasy illustration, sophisticated natural adult proportions, meticulously detailed gothic carved stone, embroidered cloth, black iron, carved wood, crisp tiny highlights, rich controlled cool moonlit/cyan light against warm amber candlelight. Believable hands with a thumb and four fingers, exactly two arms and two legs per character. Preserve the reference characters' identity and costumes exactly. Keep the narrative focal object readable when the image is shrunk to 384x256. Do not copy the reference composition; depict the new scene below.\nSky continuity: In present-day scenes from report_w33 (the hundredth-year blue sky) onward, including Roadal, depict bright skies: blue daylight or luminous sunset if the text specifies evening. Do not restore the old dark storm sky. Keep explicitly night-time scenes and historical memories faithful to their stated time.\nThe same throne room at dusk, a clear amber sky outside. The very old king sits with his eyes closed and one hand over his face, the other hand open on the armrest, deeply ashamed. On a small table beside the throne lies a stack of old hospice registers. The chancellor's chair stands empty. The apprentice stands below, silent. Grave.",
+      "references": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/king.png",
+        "docs/art/story-refs/morden.png",
+        "art/story-review/chapter3/report_w12.png"
+      ],
+      "master": "art/story-review/chapter12/report_w48.png",
+      "shipped": "art/story/chapter12/report_w48.webp",
+      "generator": "image_gen",
+      "status": "制作済み・ユーザー確認待ち",
+      "correction_before": null,
+      "master_sha256": "2db26be61d673d245fc0946d66fbef4c0713a614c231df847820a7c095661e84",
+      "shipped_sha256": "1528867aa96b4c68862613dfa893cf09672d3b1a2660a3b12e675b31f5952fee"
+    },
+    {
+      "id": "pre_w49",
+      "prompt": "Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge, no panels, no borders, no labels, no typography, no readable text anywhere (all writing is illegible scribbles). Match the attached Dungeon of Souls artwork exactly: lavish high-quality fine-grained pixel-textured dark fantasy illustration, sophisticated natural adult proportions, meticulously detailed gothic carved stone, embroidered cloth, black iron, carved wood, crisp tiny highlights, rich controlled cool moonlit/cyan light against warm amber candlelight. Believable hands with a thumb and four fingers, exactly two arms and two legs per character. Preserve the reference characters' identity and costumes exactly. Keep the narrative focal object readable when the image is shrunk to 384x256. Do not copy the reference composition; depict the new scene below.\nSky continuity: In present-day scenes from report_w33 (the hundredth-year blue sky) onward, including Roadal, depict bright skies: blue daylight or luminous sunset if the text specifies evening. Do not restore the old dark storm sky. Keep explicitly night-time scenes and historical memories faithful to their stated time.\nThe deepest hall of an underground royal mausoleum: tier upon tier of ancient coffins rising like steps, and at the top a throne. On it sits a thousand-year-old king entirely encased in pale wax, embalming oil and gold, his crown melted into his brow, his hands fused with the ornate armrests — more pitiful than monstrous. Translucent ghostly embalmers with oil jars and fine brushes hurry around him, smoothing cracks on his cheeks. His clouded eyes have just opened and his lips part as if to say something. Royal guards encased in wax lower their spears. Beside the throne stands one new, empty coffin. In the foreground, the apprentice and a party of wooden dolls seen from behind. Thousands of candles flare up. Tragic, solemn.",
+      "references": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/king.png",
+        "docs/art/story-refs/dolls.png",
+        "art/monsters/bs_cryptking.webp",
+        "art/story/dungeons/lore_w49.webp"
+      ],
+      "master": "art/story-review/chapter12/pre_w49.png",
+      "shipped": "art/story/chapter12/pre_w49.webp",
+      "generator": "image_gen",
+      "status": "制作済み・ユーザー確認待ち",
+      "correction_before": null,
+      "master_sha256": "6356205b7193fe5824b58301ab910a1183a71fdb06bbb188a371f17017d0b0c6",
+      "shipped_sha256": "21c9916d72205d6060c0722c2050a1894bc094adf5b74d1f1155dc672c46ec9a"
+    },
+    {
+      "id": "pre_w49_retry",
+      "prompt": "Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge, no panels, no borders, no labels, no typography, no readable text anywhere (all writing is illegible scribbles). Match the attached Dungeon of Souls artwork exactly: lavish high-quality fine-grained pixel-textured dark fantasy illustration, sophisticated natural adult proportions, meticulously detailed gothic carved stone, embroidered cloth, black iron, carved wood, crisp tiny highlights, rich controlled cool moonlit/cyan light against warm amber candlelight. Believable hands with a thumb and four fingers, exactly two arms and two legs per character. Preserve the reference characters' identity and costumes exactly. Keep the narrative focal object readable when the image is shrunk to 384x256. Do not copy the reference composition; depict the new scene below.\nSky continuity: In present-day scenes from report_w33 (the hundredth-year blue sky) onward, including Roadal, depict bright skies: blue daylight or luminous sunset if the text specifies evening. Do not restore the old dark storm sky. Keep explicitly night-time scenes and historical memories faithful to their stated time.\nReturn to the same mausoleum throne hall as the first-encounter illustration, in a NEW closer composition for a SECOND encounter. The wax-and-gold encased ancient king on his throne, lips half-parted again as if about to speak; the ghostly embalmers brush oil onto his face more hurriedly than before. In the near foreground the apprentice is seen from behind with just two repaired wooden party dolls (red-cloaked warrior and white-robed priest, smooth blank round heads, black iron joint bands), intact. Quiet weight of returning after defeat — both the party and the king have been \"brought back\" again.",
+      "references": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/king.png",
+        "docs/art/story-refs/dolls.png",
+        "art/story-review/chapter12/pre_w49.png",
+        "art/monsters/bs_cryptking.webp"
+      ],
+      "master": "art/story-review/chapter12/pre_w49_retry.png",
+      "shipped": "art/story/chapter12/pre_w49_retry.webp",
+      "generator": "image_gen",
+      "status": "制作済み・ユーザー確認待ち",
+      "correction_before": null,
+      "master_sha256": "2b04d097bf6454bd3fe64e77e9ddf7e26671e268fd8db652034986560d7760dd",
+      "shipped_sha256": "82b7b0306dd1bb8bd13852a3ddc3bbaba4a9eb203631ec0066eccdde224543c1"
+    },
+    {
+      "id": "mem_w49",
+      "prompt": "Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge, no panels, no borders, no labels, no typography, no readable text anywhere (all writing is illegible scribbles). Match the attached Dungeon of Souls artwork exactly: lavish high-quality fine-grained pixel-textured dark fantasy illustration, sophisticated natural adult proportions, meticulously detailed gothic carved stone, embroidered cloth, black iron, carved wood, crisp tiny highlights, rich controlled cool moonlit/cyan light against warm amber candlelight. Believable hands with a thumb and four fingers, exactly two arms and two legs per character. Preserve the reference characters' identity and costumes exactly. Keep the narrative focal object readable when the image is shrunk to 384x256. Do not copy the reference composition; depict the new scene below.\nSky continuity: In present-day scenes from report_w33 (the hundredth-year blue sky) onward, including Roadal, depict bright skies: blue daylight or luminous sunset if the text specifies evening. Do not restore the old dark storm sky. Keep explicitly night-time scenes and historical memories faithful to their stated time.\nA memory scene with faint amber-hazed edges, two moments blending across one wide image. On the left, over a thousand years ago: a feverish young king lies on a canopied bed while his mother, the queen dowager in a black mourning veil, grips his hand and weeps; court practitioners wait with oil jars. On the right, three months ago: the same king now a wax-and-gold encased figure on a throne, lips parted in a plea; before him stands Ordo (as in the Ordo reference: tall lean man about 55, short grey hair, grey beard), no coat — a torn worn dark grey shirt — gloveless with burnt fingertips, leaning on one leg, looking at the king with quiet sorrow and resolve, not answering. Behind the throne, a dark stairway descends, a faint red heat glowing from below. Melancholy, unresolved.",
+      "references": [
+        "docs/art/story-refs/king.png",
+        "docs/art/story-refs/ordo-states.png",
+        "docs/art/story-refs/ordo.png",
+        "art/story-review/chapter12/pre_w49.png",
+        "art/monsters/bs_cryptking.webp"
+      ],
+      "master": "art/story-review/chapter12/mem_w49.png",
+      "shipped": "art/story/chapter12/mem_w49.webp",
+      "generator": "image_gen",
+      "status": "制作済み・ユーザー確認待ち",
+      "correction_before": null,
+      "master_sha256": "c0fe80b33679b9ec9e303dfb900c4932d04a32f5fc69ad32175aa4673c16d040",
+      "shipped_sha256": "f6d80fa839615bb3bfaf3b9b1fd2c030d719501633cf8b39ebb4ca72d4e39d07"
+    },
+    {
+      "id": "report_w49",
+      "prompt": "Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge, no panels, no borders, no labels, no typography, no readable text anywhere (all writing is illegible scribbles). Match the attached Dungeon of Souls artwork exactly: lavish high-quality fine-grained pixel-textured dark fantasy illustration, sophisticated natural adult proportions, meticulously detailed gothic carved stone, embroidered cloth, black iron, carved wood, crisp tiny highlights, rich controlled cool moonlit/cyan light against warm amber candlelight. Believable hands with a thumb and four fingers, exactly two arms and two legs per character. Preserve the reference characters' identity and costumes exactly. Keep the narrative focal object readable when the image is shrunk to 384x256. Do not copy the reference composition; depict the new scene below.\nSky continuity: In present-day scenes from report_w33 (the hundredth-year blue sky) onward, including Roadal, depict bright skies: blue daylight or luminous sunset if the text specifies evening. Do not restore the old dark storm sky. Keep explicitly night-time scenes and historical memories faithful to their stated time.\nThe same throne room in clear morning light, blue sky outside the tall windows. The very old king sits upright, looking at his own open hands with a calm, almost peaceful faint smile, as if he has made a private decision. The chancellor's chair stands empty. The apprentice stands below. Serene, resolute.",
+      "references": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/king.png",
+        "docs/art/story-refs/morden.png",
+        "art/story-review/chapter3/report_w12.png"
+      ],
+      "master": "art/story-review/chapter12/report_w49.png",
+      "shipped": "art/story/chapter12/report_w49.webp",
+      "generator": "image_gen",
+      "status": "制作済み・ユーザー確認待ち",
+      "correction_before": "art/story-review/fixes/report_w49-before.png",
+      "master_sha256": "153914a205d0e2319542c95541f57ac5e9fdda286127afc50c356737a43217ca",
+      "shipped_sha256": "4c44dfb7ac67deeb5bf7943eb89b7211fe5836d2487839f874b0c90cf3e22d1d"
+    },
+    {
+      "id": "irene_enough",
+      "prompt": "Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge, no panels, no borders, no labels, no typography, no readable text anywhere (all writing is illegible scribbles). Match the attached Dungeon of Souls artwork exactly: lavish high-quality fine-grained pixel-textured dark fantasy illustration, sophisticated natural adult proportions, meticulously detailed gothic carved stone, embroidered cloth, black iron, carved wood, crisp tiny highlights, rich controlled cool moonlit/cyan light against warm amber candlelight. Believable hands with a thumb and four fingers, exactly two arms and two legs per character. Preserve the reference characters' identity and costumes exactly. Keep the narrative focal object readable when the image is shrunk to 384x256. Do not copy the reference composition; depict the new scene below.\nSky continuity: In present-day scenes from report_w33 (the hundredth-year blue sky) onward, including Roadal, depict bright skies: blue daylight or luminous sunset if the text specifies evening. Do not restore the old dark storm sky. Keep explicitly night-time scenes and historical memories faithful to their stated time.\nThe same mansion workshop late at night. Irene trims the single white candle, laughing softly despite herself; Sera (as in the Sera reference) stands beside her with fists raised in a lively, indignant \"not yet!\" gesture. The apprentice sits nearby, smiling. Warm candlelight, tender and light-hearted after sorrow.",
+      "references": [
+        "art/story-review/opening/flame.png",
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/irene.png",
+        "docs/art/story-refs/sera.png",
+        "docs/art/sera/sera-r1-final.png"
+      ],
+      "master": "art/story-review/chapter12/irene_enough.png",
+      "shipped": "art/story/chapter12/irene_enough.webp",
+      "generator": "image_gen",
+      "status": "制作済み・ユーザー確認待ち",
+      "correction_before": null,
+      "master_sha256": "d84986a95f9507bd303eac6c46364edae3d4af29b6cab37fb21a4199e247da18",
+      "shipped_sha256": "72ad66607227ef577dc58b1eab9d20f5a74a7e68e6b584e62790d1362ba2d974"
+    },
+    {
+      "id": "ch12_end",
+      "prompt": "Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge, no panels, no borders, no labels, no typography, no readable text anywhere (all writing is illegible scribbles). Match the attached Dungeon of Souls artwork exactly: lavish high-quality fine-grained pixel-textured dark fantasy illustration, sophisticated natural adult proportions, meticulously detailed gothic carved stone, embroidered cloth, black iron, carved wood, crisp tiny highlights, rich controlled cool moonlit/cyan light against warm amber candlelight. Believable hands with a thumb and four fingers, exactly two arms and two legs per character. Preserve the reference characters' identity and costumes exactly. Keep the narrative focal object readable when the image is shrunk to 384x256. Do not copy the reference composition; depict the new scene below.\nSky continuity: In present-day scenes from report_w33 (the hundredth-year blue sky) onward, including Roadal, depict bright skies: blue daylight or luminous sunset if the text specifies evening. Do not restore the old dark storm sky. Keep explicitly night-time scenes and historical memories faithful to their stated time.\nThe deepest hall of the royal mausoleum after the battle, quiet. The throne at the top of the coffin tiers is empty, a heap of broken wax and gold fragments on its seat. A single small soul-light rises slowly from it into the dark vaulted ceiling. Translucent embalmers have lowered their brushes and stand still, watching. Some of the candles along the walls have gone out for the first time. Beside the throne, one new empty coffin. Behind the throne, a dark stairway descends with a faint red glow and heat shimmer rising from below. The apprentice and the party of wooden dolls look up at the rising light. Release, sorrow, an open question.",
+      "references": [
+        "docs/art/story-refs/apprentice.png",
+        "docs/art/story-refs/dolls.png",
+        "art/story-review/chapter12/pre_w49.png"
+      ],
+      "master": "art/story-review/chapter12/ch12_end.png",
+      "shipped": "art/story/chapter12/ch12_end.webp",
+      "generator": "image_gen",
+      "status": "制作済み・ユーザー確認待ち",
+      "correction_before": null,
+      "master_sha256": "b768688e7d8a30aae7df41f8cc1935bcc6fe586f0b29747071a67758fa7087cc",
+      "shipped_sha256": "be51bb51fa2feb7fced267fbb2c590f7999856b1f4d9b3a9e266b0ef070e0090"
+    }
+  ]
+}
