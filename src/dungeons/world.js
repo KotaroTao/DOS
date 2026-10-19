@@ -1172,6 +1172,384 @@ const WORLD_DEF = [
     unlock: { all: ["w47", "w48"] },
     hint: "「香油の仕立て場」と「眠らずの近衛廊」の両方を踏破して王に報告し、探索の記録を照らし合わせて廟の最奥への道筋を地図に記す",
   },
+  // ---- 第十三章「溶鉄炉」・本筋4と寄り道2（絵は別途制作） ----
+  {
+    id: "w50",
+    name: "鉄くずの搬入路",
+    short: "搬入路",
+    lv: 149,
+    lvTo: 152,
+    floors: 10,
+    power: {
+      "1": 0.0745,
+      "5": 0.0801,
+      "10": 0.0868
+    },
+    floorHaz: {
+      fall: "forgechute",
+      harm: "scorch"
+    },
+    about: "玉座の裏の階段が行き着く、鉄くずと壊れた器の搬入路。鎖につられた荷箱が、誰もいない工房へ下っていく",
+    bands: [
+      [
+        "bs_slagbeast",
+        "bs_dollhusk",
+        "bs_emberfly",
+        "bs_forgehound",
+        "bs_sparkswarm",
+        "bs_moltensmith"
+      ],
+      [
+        "bs_anvilhorror",
+        "bs_moltenwraith",
+        "bs_smithghost"
+      ]
+    ],
+    elites: [
+      "el_moltengiant"
+    ],
+    unlock: {
+      reported: "w49"
+    },
+    hint: "「終わらずの玉座」の踏破を王に報告し、玉座の裏の階段を地図に記す",
+    trait: {
+      id: "scrapconvoy",
+      name: "鉄くずの行列",
+      sym: "⚒",
+      accent: "#cc8050",
+      lines: [
+        "荷を守る魔物が列になって襲う。魔物の札の戦闘は4体以上の群れになる。",
+        "荷に残った魂の気配で、得る ✦Soul は1.25倍。"
+      ],
+      mods: {
+        packMin: 4,
+        soulMul: 1.25
+      }
+    },
+    layer: 15,
+    tune: {
+      enemyMul: 0.95,
+      deepMul: 0.84,
+      soloMul: 1.0
+    }
+  },
+  {
+    id: "w51",
+    name: "千型の鋳造場",
+    short: "鋳造場",
+    lv: 152,
+    lvTo: 155,
+    floors: 10,
+    power: {
+      "1": 0.0726,
+      "5": 0.0784,
+      "10": 0.0849
+    },
+    floorHaz: {
+      fall: "forgechute",
+      harm: "scorch"
+    },
+    about: "鉄の腕、脚、胸の鋳型が天井まで並ぶ工房。どの型にも持ち主の名の代わりに、仕事の名が打たれている",
+    bands: [
+      [
+        "bs_moltensmith",
+        "bs_dollhusk",
+        "bs_soulingot",
+        "bs_ironmaiden",
+        "bs_anvilhorror",
+        "bs_smithghost"
+      ],
+      [
+        "bs_forgegolem",
+        "bs_cruciblehorror",
+        "bs_moltenknight"
+      ]
+    ],
+    elites: [
+      "el_geargod"
+    ],
+    unlock: {
+      story: "w50_orders"
+    },
+    hint: "「鉄くずの搬入路」の底に、工房の行き先を示す記録があるという",
+    trait: {
+      id: "hungrymoulds",
+      name: "型を満たす火",
+      sym: "♨",
+      accent: "#d89460",
+      lines: [
+        "型へ流れる熱が、戦闘の開幕に隊の全員のMPを最大MPの5%ずつ奪う。",
+        "器に残った古い仕事の記憶で、得る ✦Soul は1.35倍。"
+      ],
+      mods: {
+        soulMul: 1.35
+      },
+      mpDrain: 0.05,
+      say: "空の鋳型が、胸の灯から魔力を吸い寄せる"
+    },
+    layer: 15,
+    tune: {
+      enemyMul: 0.95,
+      deepMul: 0.84,
+      soloMul: 1.0
+    }
+  },
+  {
+    id: "w52",
+    name: "焼き入れの水路",
+    short: "焼き入れ",
+    lv: 155,
+    lvTo: 158,
+    floors: 10,
+    power: {
+      "1": 0.0718,
+      "5": 0.0774,
+      "10": 0.084
+    },
+    floorHaz: {
+      fall: null,
+      harm: "quenchwater"
+    },
+    about: "熱した器を冷ます水槽が、段々に連なる水路。蒸気の向こうで、交代を知らせない鐘だけが揺れている",
+    bands: [
+      [
+        "bs_quenchserpent",
+        "bs_moltenwraith",
+        "bs_forgehound",
+        "bs_cindergeist",
+        "bs_emberfly",
+        "bs_flamehammer"
+      ],
+      [
+        "bs_moltencore",
+        "bs_forgewyrm",
+        "bs_moltenknight"
+      ]
+    ],
+    elites: [
+      "el_moltengiant"
+    ],
+    unlock: {
+      reported: "w50"
+    },
+    hint: "「鉄くずの搬入路」の踏破を王に報告し、水音のする分かれ道を地図に記す",
+    trait: {
+      id: "quenchmist",
+      name: "白い焼き入れ霧",
+      sym: "≋",
+      accent: "#b4b8b0",
+      lines: [
+        "熱した鉄を冷ます蒸気で、戦闘の開幕に隊の全員の命中が下がる（物理が外れる率 +15%・3ターン）。",
+        "水底に沈んだ工房の賃金で、得る金貨は1.35倍。"
+      ],
+      mods: {
+        goldMul: 1.35
+      },
+      gloom: 0.15,
+      say: "焼き入れの蒸気が、敵の輪郭を白く隠す"
+    },
+    layer: 15,
+    tune: {
+      enemyMul: 0.95,
+      deepMul: 0.84,
+      soloMul: 1.0
+    }
+  },
+  {
+    id: "w53",
+    name: "休まぬ大炉",
+    short: "大炉",
+    lv: 158,
+    lvTo: 162,
+    floors: 15,
+    power: {
+      "1": 0.0701,
+      "5": 0.0734,
+      "10": 0.0772,
+      "15": 0.0806
+    },
+    floorHaz: {
+      fall: "forgechute",
+      harm: "scorch"
+    },
+    about: "工房すべてへ鉄を送り続ける大炉。炉の前には、器を求める古い注文が、鉄板の束になって積み上がっている",
+    bands: [
+      [
+        "bs_moltensmith",
+        "bs_smithghost",
+        "bs_forgegolem",
+        "bs_soulingot",
+        "bs_bellowsfiend",
+        "bs_cruciblehorror"
+      ],
+      [
+        "bs_flamehammer",
+        "bs_moltencore",
+        "bs_cindergeist"
+      ],
+      [
+        "bs_forgewyrm",
+        "bs_moltenknight",
+        "bs_anvilhorror"
+      ]
+    ],
+    elites: [
+      "el_geargod",
+      "el_moltengiant"
+    ],
+    unlock: {
+      all: [
+        "w51",
+        "w52"
+      ]
+    },
+    hint: "「千型の鋳造場」と「焼き入れの水路」の両方を踏破して王に報告し、大炉への道を地図に記す",
+    boss: "bs_forgemaster",
+    bossRank: 10,
+    trait: {
+      id: "workingheat",
+      name: "打ち直す炉火",
+      sym: "♜",
+      accent: "#e89050",
+      lines: [
+        "炉火が鉄の傷を埋め、敵は毎ターン最大HPの3%を回復する。",
+        "打ち直される器の記憶が濃く、得る ✦Soul は1.4倍。"
+      ],
+      mods: {
+        soulMul: 1.4
+      },
+      foeRegen: 0.03
+    },
+    layer: 15,
+    tune: {
+      enemyMul: 0.94,
+      deepMul: 0.86,
+      soloMul: 1.1,
+      bossMul: 0.85
+    }
+  },
+  {
+    id: "ws28",
+    name: "継ぎ手の置き場",
+    short: "継ぎ手",
+    lv: 154,
+    lvTo: 158,
+    floors: 10,
+    power: {
+      "1": 0.073,
+      "5": 0.079,
+      "10": 0.085
+    },
+    floorHaz: {
+      fall: "forgechute",
+      harm: null
+    },
+    side: true,
+    about: "鋳造場から外れた、寸法の合わない継ぎ手の保管庫。仕事の型から外れた手足が、捨てられずに積まれている",
+    bands: [
+      [
+        "bs_dollhusk",
+        "bs_anvilhorror",
+        "bs_moltensmith",
+        "bs_slagbeast",
+        "bs_ironmaiden",
+        "bs_forgehound"
+      ],
+      [
+        "bs_forgegolem",
+        "bs_smithghost",
+        "bs_soulingot"
+      ]
+    ],
+    elites: [
+      "el_geargod"
+    ],
+    unlock: {
+      quest: "fq_joint"
+    },
+    hint: "酒場の工房の修繕師の依頼「左手に合うもの」を受けると、道が示される",
+    trait: {
+      id: "partsentry",
+      name: "部品蔵の見張り",
+      sym: "⚒",
+      accent: "#b8a080",
+      lines: [
+        "部品を守る見張りが集まる。各階は30%の確率で強敵の階になる。",
+        "選び分けられた材料が残り、落ちている装備の質が上がる。"
+      ],
+      mods: {
+        lootBonusLv: 4
+      },
+      eliteRate: 0.3
+    },
+    layer: 15,
+    tune: {
+      enemyMul: 0.95,
+      deepMul: 0.84,
+      soloMul: 1.0
+    }
+  },
+  {
+    id: "ws29",
+    name: "鐘のない休憩所",
+    short: "休憩所",
+    lv: 156,
+    lvTo: 160,
+    floors: 10,
+    power: {
+      "1": 0.072,
+      "5": 0.078,
+      "10": 0.084
+    },
+    floorHaz: {
+      fall: null,
+      harm: "quenchwater"
+    },
+    side: true,
+    about: "水路の脇に残った、働き手のための食堂と寝床。休みを告げる鐘は外され、冷たい湯飲みだけが席を待っている",
+    bands: [
+      [
+        "bs_cindergeist",
+        "bs_smithghost",
+        "bs_moltenwraith",
+        "bs_dollhusk",
+        "bs_emberfly",
+        "bs_sparkswarm"
+      ],
+      [
+        "bs_bellowsfiend",
+        "bs_quenchserpent",
+        "bs_cruciblehorror"
+      ]
+    ],
+    elites: [
+      "el_moltengiant"
+    ],
+    unlock: {
+      quest: "fq_restbell"
+    },
+    hint: "酒場の工房の炊事番の依頼「休みの鐘を返して」を受けると、道が示される",
+    trait: {
+      id: "sleeplessbreak",
+      name: "眠れぬひと休み",
+      sym: "☽",
+      accent: "#b4a890",
+      lines: [
+        "残された子守歌で、戦闘の開幕に隊の一人が50%の確率で眠る（眠りの抵抗で防げる）。",
+        "休みを願った働き手の灯で、勝つたびに隊のHP・MPが8%回復する。"
+      ],
+      mods: {},
+      lull: 0.5,
+      victoryHeal: 0.08,
+      say: "空の寝床から子守歌が聞こえ、まぶたが重くなる"
+    },
+    layer: 15,
+    tune: {
+      enemyMul: 0.95,
+      deepMul: 0.84,
+      soloMul: 1.0
+    }
+  },
   // ---- 依頼の迷宮 (酒場の固定クエストを受けると地図に現れる) ----
   {
     id: "ws1", lv: 20, lvTo: 23, layer: 2, floors: 10, side: true,
