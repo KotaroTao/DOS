@@ -36,7 +36,8 @@ with sync_playwright() as p:
         assert effect.count()==1
         assert '2' in effect.inner_text()
         effect.click()
-        panel.get_by_role('button',name='2点を表示',exact=True).click()
+        assert page.locator('.wpc-srow').count()==2
+        panel.get_by_role('button',name='閉じる',exact=True).click()
         page.wait_for_timeout(650)
         assert page.locator('.wpc-srow').count()==2
         assert '魔法属性' in page.locator('.wpc-shop > .gf-summary').inner_text()
@@ -61,7 +62,8 @@ with sync_playwright() as p:
         panel=page.locator('.gf-sheet')
         panel.locator('.gf-search').fill('吸血')
         panel.locator('[data-filter-key="eff:lifesteal"]').click()
-        panel.get_by_role('button',name='1点を表示',exact=True).click()
+        assert page.locator('.wpc-srow').count()==1
+        panel.get_by_role('button',name='閉じる',exact=True).click()
         page.wait_for_timeout(650)
         assert page.locator('.wpc-srow').count()==1
         assert page.locator('.wpc-srow.afx').count()==1

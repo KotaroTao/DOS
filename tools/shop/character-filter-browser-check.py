@@ -104,14 +104,14 @@ with sync_playwright() as p:
         assert panel.locator('[data-filter-key="eff:lifesteal"]').count()==1
         assert search.evaluate('(e)=>document.activeElement===e')
         panel.locator('[data-filter-key="eff:lifesteal"]').click()
-        panel.get_by_role('button',name='2点を表示',exact=True).click()
+        panel.get_by_role('button',name='閉じる',exact=True).click()
         page.wait_for_timeout(650)
         assert page.locator('.pt-bag .pt-bcell').count()==2
         assert '絞り込み' in page.locator('.pt-bagwrap > .gf-open').inner_text()
         page.locator('.pt-bagwrap > .gf-open').click()
         panel=page.locator('.gf-sheet')
         panel.locator('[data-filter-key="eAtk:fire"]').click()
-        panel.get_by_role('button',name='1点を表示',exact=True).click()
+        panel.get_by_role('button',name='閉じる',exact=True).click()
         page.wait_for_timeout(650)
         assert page.locator('.pt-bag .pt-bcell').count()==1
         # 部位候補にも同じ条件が効き、現在装備は比較用に残る。
@@ -127,7 +127,7 @@ with sync_playwright() as p:
         panel.locator('.gf-search').fill('再生')
         panel.locator('[data-filter-key="eff:regen"]').click()
         panel.locator('.gf-mode input').check()
-        panel.get_by_role('button',name='0点を表示',exact=True).click()
+        panel.get_by_role('button',name='閉じる',exact=True).click()
         page.wait_for_timeout(650)
         assert page.locator('.pt-bag .pt-bcell').count()==0
         assert page.locator('.gf-summary').get_by_role('button',name='すべて解除',exact=True).is_visible()
