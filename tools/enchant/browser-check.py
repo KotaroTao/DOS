@@ -1,4 +1,4 @@
-"""付呪 (第十一章の結び) の写し取り (特性の巻物)・書き込み・消す・数の決まり・保存・商会の画面を実処理で検証 (localhost:8000)。"""
+"""付呪の写し取り・書き込み・上書き確認/低下警告・消去・保存を実処理で検証 (localhost:8000)。"""
 import os
 from playwright.sync_api import sync_playwright
 
@@ -64,7 +64,7 @@ with sync_playwright() as p:
       const same2={k:'A05',r:0.2};
       check(/同じ特性/.test(X.enchantBlock(tl,same2,'lr')||'x')===false,'別の品には同じ術も書ける');
       tl.afx=[{k:'A05',v:5}];X.applyAffixes(tl);
-      check(/同じ特性/.test(X.enchantBlock(tl,same2,'lr')),'同じ品に同じ種類は書けない');
+      check(!X.enchantBlock(tl,same2,'lr'),'同じ品の同じ特性は上書きできる');
       check(/部位/.test(X.enchantBlock(tl,{k:'J10',v:1},'lr')),'一番手は武器に書けない');
       const acc=mk(Object.values(ITEMS).find(x=>x.rar==='lr'&&x.slot==='acc').id);
       acc.afx=[{k:'J11',v:0.1}];X.applyAffixes(acc);
@@ -113,5 +113,109 @@ with sync_playwright() as p:
     assert '容量' not in text and '能力値 ' not in text, '廃止した容量表示が残っている'
     if os.environ.get('SHOT'): page.screenshot(path=os.environ['SHOT'])
     print('商会の「付呪」の区分と書き込み先の一覧 OK')
+    # 実画面で、満杯の装備への上書き・取消・低下警告・保存を確認する。
+    page.evaluate('''async()=>{
+      const {game,UI}=await import('/src/ui/ctx.js'),{sheet}=await import('/src/ui/kit.js');
+      const X=await import('/src/infaffix.js'),{ITEMS,itemAtQuality}=await import('/src/items.js');
+      sheet.closeAll();
+      const G=__game.G;
+      const tmpl=Object.values(ITEMS).find(it=>it.rar==='c'&&it.slot==='weapon'&&it.lv>=100&&!it.cursed&&it.price>0);
+      const it=itemAtQuality({...tmpl,q:50,afx:[{k:'A03',v:X.afxBase(tmpl)*.2}]});
+      G.inventory.length=0;G.inventory.push(it);G.afxPages=[];G.gold=1e9;
+      for(const d of [...G.party,...G.reserve])d.equip={};
+      const pg={k:'A03',r:.25};G.afxPages.push(pg);
+      const info=game.enchantInfo(it,pg);
+      if(info.why||!info.overwrite||info.lower)throw Error('満杯の品の上書き情報');
+      // 上書きには確認済みの内容が必要。未確認・変更後の確認は受け付けない。
+      if(game.writeAffix(it,pg))throw Error('確認なしで上書きされた');
+      pg.r=.24;
+      if(game.writeAffix(it,pg,info.confirmation))throw Error('変更前の確認で上書きされた');
+      pg.r=.25;
+      window.overwriteTest={it,pg,gold:G.gold,afx:JSON.stringify(it.afx),info:game.enchantInfo(it,pg)};
+      UI.openShop('enchant');
+    }''')
+
+    def open_overwrite():
+        page.locator('.ec-prow .wpc-buy-main').first.click()
+        page.locator('.ec-write').filter(has_text='上書きする').first.click()
+        dialog = page.locator('.ui-confirm').last
+        dialog.wait_for(state='visible')
+        text = dialog.inner_text().replace('​', '')
+        assert '上書きしますか？' in text and '変更前:' in text and '変更後:' in text, text
+        return dialog, text
+
+    dialog, text = open_overwrite()
+    assert '低下します' not in text, text
+    dialog.get_by_role('button', name='やめる', exact=True).click()
+    assert page.evaluate('''()=>{const t=overwriteTest,G=__game.G;return G.gold===t.gold&&G.afxPages.includes(t.pg)&&JSON.stringify(t.it.afx)===t.afx}'''), '取消で資源・特性が変化'
+    # 再確認して強い巻物を承認。
+    page.locator('.ec-write').filter(has_text='上書きする').first.click()
+    page.locator('.ui-confirm').last.get_by_role('button', name='上書きする', exact=True).click()
+    page.wait_for_function('!__game.G.afxPages.includes(overwriteTest.pg)')
+    assert page.evaluate('''()=>{const t=overwriteTest,G=__game.G;return t.it.afx.length===1&&t.it.afx[0].v>JSON.parse(t.afx)[0].v&&G.gold===t.gold-t.info.cost}'''), '上書きの置換・消費'
+    print('OK 満杯のコモンへの上書き確認・取消で消費なし・承認で巻物と金貨を1回だけ消費')
+    page.evaluate('''async()=>{
+      const {game,UI}=await import('/src/ui/ctx.js');
+      const t=overwriteTest;t.pg={k:'A03',r:.15};__game.G.afxPages.push(t.pg);
+      __game.G.party[0].equip.weapon=t.it;__game.inf.recalcAllDolls();t.atk=__game.G.party[0].atk;
+      t.gold=__game.G.gold;t.afx=JSON.stringify(t.it.afx);t.info=game.enchantInfo(t.it,t.pg);
+      if(!t.info.lower)throw Error('能力低下の判定がない');
+      UI.openShop('enchant');
+    }''')
+    dialog, text = open_overwrite()
+    assert '上書きすると能力・効果が低下します' in text, text
+    assert dialog.locator('.k-danger').count() > 0, '低下時の確認ボタンを警告色にする'
+    page.wait_for_timeout(400)  # 確認画面の開く演出が終わってから見本を撮る。
+    if os.environ.get('SHOT'): page.screenshot(path=os.environ['SHOT'])
+    dialog.get_by_role('button', name='上書きする', exact=True).click()
+    page.wait_for_function('!__game.G.afxPages.includes(overwriteTest.pg)')
+    assert page.evaluate('''async()=>{
+      const {refDeserialize}=await import('/src/savegraph.js');
+      const t=overwriteTest,G=__game.G,snap=refDeserialize(JSON.parse(__game.inf.saveJSON()));
+      const saved=snap.inventory.find(it=>it.id===t.it.id);
+      return t.it.afx.length===1&&t.it.afx[0].v<JSON.parse(t.afx)[0].v&&G.party[0].atk<t.atk&&G.gold===t.gold-t.info.cost&&JSON.stringify(saved.afx)===JSON.stringify(t.it.afx);
+    }'''), '低下の承認・保存'
+    print('OK 能力低下の警告・承認した低下の反映・上書きした特性の保存')
+    page.evaluate('''async()=>{
+      const {game,UI}=await import('/src/ui/ctx.js'),{sheet}=await import('/src/ui/kit.js');
+      const {ITEMS,itemAtQuality}=await import('/src/items.js'),X=await import('/src/infaffix.js');
+      const G=__game.G;sheet.closeAll();
+      for(const d of [...G.party,...G.reserve])d.equip={};
+      const tmpl=Object.values(ITEMS).find(it=>it.slot==='weapon'&&it.rar==='lr'&&it.onHit&&!it.cursed);
+      if(!tmpl)throw Error('固有の追加効果を持つ武器がない');
+      const it=itemAtQuality({...tmpl,q:50,afx:[]});G.inventory.length=0;G.inventory.push(it);G.afxPages=[];G.gold=1e9;
+      for(const k of ['F01','F02','F03','F04']){
+        const pg={k,v:X.affixRange(k,it)[1],rar:'lr'};G.afxPages.push(pg);
+        if(!game.writeAffix(it,pg))throw Error('複数状態異常の書き込みに失敗 '+k);
+      }
+      const pg={k:'F05',v:X.affixRange('F05',it)[1],rar:'lr'};G.afxPages.push(pg);
+      window.statusTest={it,pg};UI.openShop('enchant');
+    }''')
+    page.locator('.ec-prow .wpc-buy-main').first.click()
+    page.locator('.ec-write').first.click()
+    page.locator('.ui-confirm').last.get_by_role('button', name='書き込む', exact=True).click()
+    page.wait_for_function('statusTest.it.afx.length===5')
+    snapshot = page.evaluate('''async()=>{
+      const {itemDetailEl,equipPreviewDelta}=await import('/src/ui/itemview.js');
+      const {makeDoll}=await import('/src/souls.js');
+      const {onHitEffects}=await import('/src/resistance.js');
+      const {sheet}=await import('/src/ui/kit.js');
+      const {it}=statusTest;
+      if(onHitEffects(it.onHit).length!==5)throw Error('5種類が反映されない');
+      if(equipPreviewDelta(makeDoll('比較'),it).onHit.to.length!==5)throw Error('装備比較から追加効果が欠落');
+      sheet.closeAll();document.body.appendChild(itemDetailEl(it));
+      for(const name of ['毒','麻痺','眠り','混乱','魅了'])if(!document.body.textContent.includes(name))throw Error('品の詳細にない '+name);
+      return {raw:__game.inf.saveJSON(),id:it.id,effects:JSON.stringify(onHitEffects(it.onHit))};
+    }''')
+    page.evaluate('(raw)=>localStorage.setItem("dos-save-v7",raw)', snapshot['raw'])
+    page.goto('http://localhost:8000/', wait_until='domcontentloaded')
+    page.wait_for_function('window.__game?.loadGame')
+    assert page.evaluate('''async expected=>{
+      const {onHitEffects}=await import('/src/resistance.js');
+      if(!__game.loadGame())throw Error('通常の保存読込に失敗');
+      const it=__game.G.inventory.find(it=>it.id===expected.id&&it.afx?.length===5);
+      return it&&JSON.stringify(onHitEffects(it.onHit))===expected.effects;
+    }''', snapshot), '通常の読込で5種類の追加効果を保持'
+    print('OK 固有の追加効果を持つ武器への5種類の付呪・実画面の5枠目・品の詳細/装備比較・通常の保存読込')
     assert not errors, errors
     browser.close()

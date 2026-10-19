@@ -27,7 +27,7 @@ import { bagCount, isFormationItem,
 } from "./items.js";
 import { equipLevelFor, LR_UNLOCK, LOOT_R_HEADROOM } from "./equiplevel.js";
 import { applyItemDepth } from "./itemdepth.js";
-import { rollAffixes, applyAffixes, gearPerks, affixPower, affixLines, AFX_TIERS, afxDef, pageFromAffix, pageValue, pageText, enchantRoom, enchantBlock, ENCHANT_TIER_COST } from "./infaffix.js";
+import { rollAffixes, applyAffixes, gearPerks, affixPower, affixLines, AFX_TIERS, afxDef, pageFromAffix, pageValue, pageText, enchantAffixes, enchantChange, enchantRoom, enchantBlock, ENCHANT_TIER_COST } from "./infaffix.js";
 import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, permanentEventStats, eligibleEvents, pickEvent, onceKey, runEvent, eventFightWon } from "./events.js";
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { pickTavernCrowd, TALK_MAP } from "./tavern.js";
@@ -16471,7 +16471,7 @@ function enchantTargets() {
 // 品に巻物を書いた後の写し (値段・説明を見るため。品そのものは変えない)
 function enchantPreview(it, page) {
   const copy = JSON.parse(JSON.stringify(it));
-  copy.afx = [...(copy.afx || []), { k: page.k, v: pageValue(page, it) }];
+  copy.afx = enchantAffixes(it, page);
   resyncItem(copy);
   return copy;
 }
@@ -16480,7 +16480,7 @@ function enchantPreview(it, page) {
 function enchantCost(it, page) {
   const d = afxDef(page && page.k);
   if (!it || !d) return 0;
-  const n = (it.afx || []).length;
+  const n = (it.afx || []).filter(a => a.k !== page.k).length;
   const base = Math.round(buyPrice(itemAtQuality({ ...it, afx: [], forge: 0 }, QUALITY_MID)) * (ENCHANT_TIER_COST[d.tier] || 1) * (1 + 0.5 * n));
   const rise = Math.max(0, buyPrice(enchantPreview(it, page)) - buyPrice(it));
   return Math.max(ENCHANT_MIN_COST, base, rise);
@@ -16497,23 +16497,27 @@ function writeBlock(it, page, { gold = true } = {}) {
   return null;
 }
 function enchantInfo(it, page) {
-  return { block: writeBlock(it, page), why: writeBlock(it, page, { gold: false }), cost: enchantCost(it, page), room: enchantRoom(it, rarityKey(it) || "c"), text: pageText(page, it) };
+  return { block: writeBlock(it, page), why: writeBlock(it, page, { gold: false }), cost: enchantCost(it, page), room: enchantRoom(it, rarityKey(it) || "c"), ...enchantChange(it, page), confirmation: JSON.stringify({ it, page }) };
 }
 function refreshHolder(it) {
   const h = itemHolder(it);
   if (h && h.doll) { recalcDoll(h.doll); h.doll.hp = Math.min(h.doll.hp, h.doll.maxhp); h.doll.mp = Math.min(h.doll.mp, h.doll.maxmp); }
 }
 // 巻物を品に書く (巻物は使い切り)
-function writeAffix(it, page) {
+function writeAffix(it, page, confirmation = null) {
   const why = writeBlock(it, page);
   if (why) { SFX.ng(); showToast(why, { tone: "bad", noLog: true }); return false; }
+  const overwrite = (it.afx || []).some(a => a.k === page.k);
+  if ((overwrite || confirmation !== null) && confirmation !== JSON.stringify({ it, page })) {
+    showToast("上書きする内容をもう一度確認してください。", { tone: "bad", noLog: true }); return false;
+  }
   const pages = afxPagesState();
   const pi = pages.indexOf(page);
   if (pi < 0) return false;
   const cost = enchantCost(it, page);
   G.gold -= cost;
   pages.splice(pi, 1);
-  it.afx = [...(it.afx || []), { k: page.k, v: pageValue(page, it) }];
+  it.afx = enchantAffixes(it, page);
   resyncItem(it);
   refreshHolder(it);
   enchantStats().written++;

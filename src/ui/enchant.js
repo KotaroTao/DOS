@@ -198,7 +198,7 @@ function openWriteSheet(page, onDone) {
         const main = el("button", "wpc-buy-main ec-write" + (info.block ? " short" : ""));
         main.type = "button";
         main.appendChild(goldEl(shortN(info.cost), "wpc-buy-p"));
-        main.appendChild(el("span", "wpc-buy-l", "書き込む"));
+        main.appendChild(el("span", "wpc-buy-l", info.overwrite ? "上書きする" : "書き込む"));
         main.addEventListener("click", () => doWrite(x, info));
         right.appendChild(main);
       }
@@ -210,9 +210,14 @@ function openWriteSheet(page, onDone) {
     b.appendChild(box);
   };
   async function doWrite(x, info) {
+    if (!x.practice) info = game.enchantInfo(x.it, page);
     if (info.block) { sfx("ng"); toast(info.block, { tone: "bad", noLog: true }); return; }
-    const lines = [`${itemName(x.it)} に書き込む: ${info.text}`, x.practice ? "練習のため費用はかからない。所持品と金貨は変わらない。" : `費用 💰${shortN(info.cost)} (所持 💰${shortN(G().gold || 0)})`, "書いた特性は消せるが、巻物は戻らない。"];
-    const ok = await confirm({ banner: "付呪", title: `「${afxName(page.k)}」を書き込む`, lines, okLabel: "書き込む", danger: false });
+    const lines = info.overwrite
+      ? [itemName(x.it), `変更前: ${info.beforeText}`, `変更後: ${info.text}`, "元の特性は失われ、巻物は使い切りになる。"]
+      : [`${itemName(x.it)} に書き込む: ${info.text}`, "書いた特性は消せるが、巻物は戻らない。"];
+    if (info.lower) lines.unshift("注意：上書きすると能力・効果が低下します。");
+    lines.push(x.practice ? "練習のため費用はかからない。所持品と金貨は変わらない。" : `費用 💰${shortN(info.cost)} (所持 💰${shortN(G().gold || 0)})`);
+    const ok = await confirm({ banner: "付呪", title: info.overwrite ? `同じ特性「${afxName(page.k)}」があります。上書きしますか？` : `「${afxName(page.k)}」を書き込む`, lines, okLabel: info.overwrite ? "上書きする" : "書き込む", danger: !!info.lower });
     if (!ok) return;
     let written = false;
     if (x.practice) {
@@ -221,7 +226,7 @@ function openWriteSheet(page, onDone) {
       x.it.afx = [{ k: page.k, v: pageValue(page, x.it) }]; applyAffixes(x.it);
       p.page = null; p.written = true; written = true;
       UI.tutorialEvent?.("enchantWritten"); game.autosave?.(true);
-    } else written = !!game.writeAffix?.(x.it, page);
+    } else written = !!game.writeAffix?.(x.it, page, info.confirmation);
     if (written) {
       if (h && !h.closed) h.close("done", { silent: true });
       if (onDone) onDone();
@@ -239,7 +244,7 @@ export function renderEnchantList(wrap) {
   if (enchantPracticeState()) intro.appendChild(setText(el("div", "rf-intro-s"), "手ほどき中：商会の練習用の品を使います。所持品と金貨は変わりません。"));
   intro.appendChild(setText(el("div", "rf-intro-s"), enchantPracticeState()
     ? "特性の値の上限は、書く品のレア度で決まる。実際の費用は、書く品の買値と術の格・何枠目かで決まる。"
-    : "特性の値の上限は、書く品のレア度で決まる。極・発動する特性・属攻・属防・追加効果は、付呪では1つの品にそれぞれ1つまで。費用は書く品の買値と術の格・何枠目かで決まる。"));
+    : "特性の値の上限は、書く品のレア度で決まる。極・発動する特性・属攻・属防は、付呪では1つの品にそれぞれ1つまで。状態異常の追加効果は、枠の範囲で自由に組み合わせられる。費用は書く品の買値と術の格・何枠目かで決まる。"));
   wrap.appendChild(intro);
   const head = el("div", "wpc-lhead");
   head.appendChild(el("span", "wpc-lhead-t", "付呪"));

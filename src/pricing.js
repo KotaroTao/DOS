@@ -13,6 +13,7 @@
 
 // 能力値 1 あたりの性能点。部位をまたいで共通 (どの部位でも ATK+1 と VIT+1 は同じ重み)
 import { itemDepthMul } from "./itemdepth.js";
+import { onHitEffects } from "./resistance.js";
 
 const STAT_W = { atk: 1, vit: 1, agi: 1, int: 0.7, pie: 0.7, luk: 0.6, hp: 0.15, mp: 0.25 };
 
@@ -77,7 +78,7 @@ function featureMul(it) {
   if (it.eDef) m += 0.10 * (it.eDef.lv || 1);
   if (it.aRes) for (const k in it.aRes) m += 0.6 * (it.aRes[k] || 0);
   if (it.bRes) m += 0.8 * it.bRes; // ブレス耐性
-  if (it.onHit) m += (it.onHit.chance || 0) * (it.onHit.pct ? 1.5 : 1);
+  for (const o of onHitEffects(it.onHit)) m += (o.chance || 0) * (o.pct ? 1.5 : 1);
   return m;
 }
 

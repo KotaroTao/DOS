@@ -3,7 +3,7 @@ import { el, button, sheet } from "./kit.js";
 import { getPref, setPref } from "./prefs.js";
 import { EFF_INFO, isEquippable, elemName } from "./itemview.js";
 import { ATTR_LABEL } from "../souls.js";
-import { RESIST_LABEL } from "../resistance.js";
+import { RESIST_LABEL, onHitEffects } from "../resistance.js";
 
 const ELEMENT_KEYS = ["fire", "water", "wind", "earth", "light", "dark"];
 const GROUPS = [["all", "すべて"], ["attack", "攻撃"], ["defense", "防御・抵抗"], ["heal", "回復"], ["ability", "能力"], ["other", "探索・その他"]];
@@ -37,7 +37,7 @@ export function gearEffectOptions(it) {
   for (const k of new Set([...Object.keys(it.resists || {}), ...Object.keys(it.aRes || {})])) {
     if ((it.resists?.[k] || 0) > 0 || (it.aRes?.[k] || 0) > 0) add(`res:${k}`, `${RESIST_LABEL[k] || k}の抵抗`, "defense");
   }
-  if (it.onHit) add(`hit:${it.onHit.k}`, `${RESIST_LABEL[it.onHit.k] || it.onHit.k}の追加効果`, "attack");
+  for (const o of onHitEffects(it.onHit)) add(`hit:${o.k}`, `${RESIST_LABEL[o.k] || o.k}の追加効果`, "attack");
   if (it.bRes > 0) add("breath", "ブレス耐性", "defense");
   if (it.magic) add("magic", "魔法属性（通常攻撃）", "attack", "通常攻撃で魔法ダメージを与える。魔法攻撃として敵の魔法耐性・魔法弱点で判定する。物理技は物理のまま。");
   if (it.crit > 0) add("crit", "会心率", "attack", "会心率（クリティカル）を上げる");
