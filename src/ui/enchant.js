@@ -6,6 +6,7 @@
 // 提供する契約: UI.renderEnchantList(wrap) → 描く関数
 // game.js は import しない (ctx.js の UI / game を通す)。
 
+import { gearFilter, matchesGearFilter, gearFilterButton, gearFilterSummary } from "./gearfilter.js";
 import { UI, game, registerUI } from "./ctx.js";
 import { el, sheet, toast, setText, glyph, confirm, button } from "./kit.js";
 import { nameSpan, goldEl, dollIcon } from "./loot.js";
@@ -71,7 +72,12 @@ function itemRow(it, sub, onTap, right = null) {
 }
 function afxSummary(it) {
   const l = el("span", "wpc-srow-l3 ec-tags");
-  for (const a of (it.afx || [])) l.appendChild(afxTag(a.k));
+  for (const a of (it.afx || [])) {
+    const effect = el("span", "ec-effect");
+    effect.appendChild(afxTag(a.k));
+    effect.appendChild(setText(el("span", "ec-val"), it.afxText?.find(t => t.k === a.k)?.text || ""));
+    l.appendChild(effect);
+  }
   return l;
 }
 
@@ -239,7 +245,9 @@ function openWriteSheet(page, onDone) {
 
 // ---------------------------------------------------------------- 商会の区分「付呪」
 export function renderEnchantList(wrap) {
-  const intro = el("section", "rf-intro");
+  const intro = el("details", "rf-intro ec-guide");
+  intro.open = !!enchantPracticeState();
+  intro.appendChild(el("summary", null, "付呪の手引き（写し取り・書き込み）"));
   intro.appendChild(setText(el("div", "rf-intro-t"), ENCHANT_NOTE));
   if (enchantPracticeState()) intro.appendChild(setText(el("div", "rf-intro-s"), "手ほどき中：商会の練習用の品を使います。所持品と金貨は変わりません。"));
   intro.appendChild(setText(el("div", "rf-intro-s"), enchantPracticeState()
@@ -256,14 +264,34 @@ export function renderEnchantList(wrap) {
   const box = el("div", "wpc-list ec-list");
   wrap.appendChild(box);
   const redo = () => { if (game.renderTown) game.renderTown(); };
-  return () => {
+  const filterBar = el("div", "ec-filter");
+  head.appendChild(filterBar);
+  const summary = el("div", "ec-filter-summary");
+  wrap.insertBefore(summary, box);
+  // 基礎性能を含めず、巻物と装備に付いた特性だけを共通の候補にする。
+  const filterItem = texts => ({ slot: "weapon", afxText: texts });
+  const pageItem = page => filterItem([{ k: page.k, name: afxDef(page.k)?.name || "？", text: pageText(page) }]);
+  const sourceItem = x => filterItem(x.it.afxText || []);
+  const prefKey = "enchantFilter";
+  const fill = () => {
     box.textContent = "";
     const practice = enchantPracticeState();
     const pages = practice ? (practice.page ? [practice.page] : []) : game.afxPagesState ? game.afxPagesState() : [];
+    const srcs = practice ? (practice.source ? [{ it: practice.source, practice: true }] : []) : game.enchantSources ? game.enchantSources() : [];
+    const items = [...pages.map(pageItem), ...srcs.map(sourceItem)];
+    // 手ほどきの練習用の品は、記憶した条件で隠さない。
+    const f = practice ? { elements: [], effects: [] } : gearFilter(prefKey);
+    filterBar.replaceChildren(); summary.replaceChildren();
+    if (!practice) {
+      filterBar.appendChild(gearFilterButton(items, fill, prefKey, { affixOnly: true }));
+      summary.appendChild(gearFilterSummary(items, fill, prefKey));
+    }
+    const shownPages = pages.filter(p => matchesGearFilter(pageItem(p), f));
+    const shownSources = srcs.filter(x => matchesGearFilter(sourceItem(x), f));
     const pg = el("section", "rf-grp ec-pages");
-    pg.appendChild(el("div", "wpc-drow-h ec-h", `特性の巻物 ${pages.length}本`));
-    if (!pages.length) pg.appendChild(el("div", "wpc-empty", "まだ巻物が無い。下の「特性の付いた品」から写し取る。"));
-    for (const page of pages) {
+    pg.appendChild(el("div", "wpc-drow-h ec-h", `特性の巻物 ${shownPages.length}本`));
+    if (!shownPages.length) pg.appendChild(el("div", "wpc-empty", pages.length ? "条件に合う巻物はない。絞り込みの条件を外してください。" : "まだ巻物が無い。下の「特性の付いた品」から写し取る。"));
+    for (const page of shownPages) {
       const row = el("div", "wpc-srow ec-prow");
       const info = el("button", "wpc-srow-info");
       info.type = "button";
@@ -286,17 +314,17 @@ export function renderEnchantList(wrap) {
       pg.appendChild(row);
     }
     box.appendChild(pg);
-    const srcs = practice ? (practice.source ? [{ it: practice.source, practice: true }] : []) : game.enchantSources ? game.enchantSources() : [];
     const sg = el("section", "rf-grp ec-srcs");
-    sg.appendChild(el("div", "wpc-drow-h ec-h", `特性の付いた品 ${srcs.length}点`));
-    if (!srcs.length) sg.appendChild(el("div", "wpc-empty", "特性の付いた品が無い。無限迷宮で拾った品は、持ち帰ると商会の棚に並ぶ。"));
-    for (const x of srcs) {
+    sg.appendChild(el("div", "wpc-drow-h ec-h", `特性の付いた品 ${shownSources.length}点`));
+    if (!shownSources.length) sg.appendChild(el("div", "wpc-empty", srcs.length ? "条件に合う品はない。絞り込みの条件を外してください。" : "特性の付いた品が無い。無限迷宮で拾った品は、持ち帰ると商会の棚に並ぶ。"));
+    for (const x of shownSources) {
       const sub = afxSummary(x.it);
       sub.appendChild(el("span", "wpc-srow-kind", whereText(x) + (x.shelf ? ` 💰${shortN(game.buyPrice ? game.buyPrice(x.it) : 0)}` : "")));
       sg.appendChild(itemRow(x.it, sub, () => openSourceSheet(x, redo)));
     }
     box.appendChild(sg);
   };
+  return fill;
 }
 
 export function install() {
