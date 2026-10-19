@@ -1495,6 +1495,88 @@ The deepest hall of the royal mausoleum after the battle, quiet. The throne at t
 
 ---
 
+### 第十三章「溶鉄炉」
+
+今回の制作対象は本文・設定・ゲームデータのみ。以下は場面IDと本文に対応する引き継ぎ用の指示であり、原画・挿絵・敵・依頼人・景色は別途制作する。描画は今回実行しない。人物は既存の基準を継承し、師の記憶を描く場合は第十二章と同じ姿（三月前、外套なし、片脚を引きずる）。魂を鉄の材料として描かない。
+
+**w50_orders「器を待つ名」** (制作待ち)
+- 要点: `src/archive-stories.js` の同名場面と本文を正本とする。次章の正体・祖の名は描かない。
+```text
+Empty iron freight yard beneath the royal crypt. Chains carry crates of broken iron vessels past stacks of old metal order tags. One reversed tag shows fine personal scratch marks. No Ordo in the present scene.
+```
+
+**w51_mould「型の外の手」** (制作待ち)
+- 要点: `src/archive-stories.js` の同名場面と本文を正本とする。次章の正体・祖の名は描かない。
+```text
+At the edge of a vast iron casting workshop, a small individual hand mould lies face up among uniform industrial moulds. Its finger lengths differ. No living person inside a mould.
+```
+
+**w52_bell「今日は、休む」** (制作待ち)
+- 要点: `src/archive-stories.js` の同名場面と本文を正本とする。次章の正体・祖の名は描かない。
+```text
+A motionless shift bell without its clapper hangs above stepped quenching tanks. White steam, an old duty roster and a note on dry stone. No swamp.
+```
+
+**report_w50「王の数え方」** (制作待ち)
+- 要点: `src/archive-stories.js` の同名場面と本文を正本とする。次章の正体・祖の名は描かない。
+```text
+The established elderly king in his throne room studies a copied metal order tag, troubled, tracing the armrest with one hand. Empty chancellor chair.
+```
+
+**report_w51「誰のための器」** (制作待ち)
+- 要点: `src/archive-stories.js` の同名場面と本文を正本とする。次章の正体・祖の名は描かない。
+```text
+The established elderly king leans forward listening to an account of a hand made for one individual. Quiet throne room; empty chancellor chair.
+```
+
+**report_w52「座った侍従」** (制作待ち)
+- 要点: `src/archive-stories.js` の同名場面と本文を正本とする。次章の正体・祖の名は描かない。
+```text
+The established elderly king gestures toward a chair as an elderly attendant sits down nearby. A small ordinary pause in a formal throne room.
+```
+
+**report_w53「聞こえない声」** (制作待ち)
+- 要点: `src/archive-stories.js` の同名場面と本文を正本とする。次章の正体・祖の名は描かない。
+```text
+The established elderly king listens thoughtfully in the throne room, glancing toward an attendant seated nearby. A copied order tag rests on a table.
+```
+
+**pre_w53「注文の向こう」** (制作待ち)
+- 要点: `src/archive-stories.js` の同名場面と本文を正本とする。次章の正体・祖の名は描かない。
+```text
+An immense iron foundry master with a furnace in its chest raises a hammer before a great casting furnace. Old order-tag chains pull at its shoulders. Newly cast golems rise behind it; the small inner soul light is faint.
+```
+
+**pre_w53_retry「戻った手」** (制作待ち)
+- 要点: `src/archive-stories.js` の同名場面と本文を正本とする。次章の正体・祖の名は描かない。
+```text
+The same foundry master continues hammering before the great furnace. In the foreground, repaired wooden doll hands show their joints. Order-tag chains, iron forms, heavy fatigue.
+```
+
+**mem_w53「明日の鎚」** (制作待ち)
+- 要点: `src/archive-stories.js` の同名場面と本文を正本とする。次章の正体・祖の名は描かない。
+```text
+Present aftermath: the iron foundry master rests beside a low furnace fire, its small soul light still burning and hammer placed within reach. New-order conveyor chains are detached; cooling water continues flowing. Do not depict a human soul as smelting material.
+```
+
+**irene_hands「杯を持つ手」** (制作待ち)
+- 要点: `src/archive-stories.js` の同名場面と本文を正本とする。次章の正体・祖の名は描かない。
+```text
+The established Irene in the mansion workshop quietly examines her wooden fingers holding a cup, with a small vase of flowers nearby. Keep her established face and black iron joints.
+```
+
+**irene_tomorrow「今日は、ここまで」** (制作待ち)
+- 要点: `src/archive-stories.js` の同名場面と本文を正本とする。次章の正体・祖の名は描かない。
+```text
+The established Irene and Sera put away tools together in the mansion workshop. An unfinished vessel is covered with cloth; two tea cups wait. The single candle stays lit.
+```
+
+**ch13_end「低い火」** (制作待ち)
+- 要点: `src/archive-stories.js` の同名場面と本文を正本とする。次章の正体・祖の名は描かない。
+```text
+A great foundry at low heat, a quiet hammer within reach of a resting iron vessel, detached order chains and an open cooling channel. A dark stair beyond the furnace leads toward distant prayer. No future-chapter revelation.
+```
+
 ## 5. 便4 (任意) ― 踏破後の由来の絵
 
 迷宮を踏破すると、ストーリー一覧の「踏破した迷宮」に、その迷宮の由来と秘密 (`src/journal.js` の `DUNGEON_LORE`) が出る。専用の原画があるのは w01〜w13・w15・w17・ws1・ws2 だけ。ほかは次のとおり (Claude が今回直した)。
