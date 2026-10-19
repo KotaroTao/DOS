@@ -1,5 +1,11 @@
 # ストーリー専用イラストの制作台帳
 
+## 第十二章「王家の廟」の挿絵14枚 (2026-10-19)
+
+`node tools/storyart/prompt.mjs --chapter 12` の指示と人物の承認済み基準画像に沿って、全14場面を1536×1024のPNGで制作。原画は `art/story-review/chapter12/`。`python3 tools/storyart/build.py` でWebPへ変換し、ゲーム内の場面・ストーリー一覧・SWへ登録した。ユーザー確認待ち。
+
+「三枚の死面」の余分な王、「木の手のひら」の木目、「余が決めた日に」の杯の位置、「最初の器」の吊り灯を修正。修正前は `art/story-review/fixes/<場面ID>-before.png` に保存。本文との比較は `art/story-review/review/chapter12.md`、縮小見本は `chapter12-small.jpg`、制作記録は `art/story-review/chapter12/README.md`。
+
 ## 「階段の前の宰相」の石床の修正 (2026-10-16)
 
 ユーザー指定により `pre_w41` の地面にある二つの足形を消し、周囲に続く自然な石畳へ修正。人物・灯籠・書見台・背景・構図・光は維持し、本文は変更しない。修正前は `art/story-review/fixes/pre_w41-before.png` に保存。制作指示は A-39。
