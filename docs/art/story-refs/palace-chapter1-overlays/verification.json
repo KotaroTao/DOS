@@ -1,0 +1,42 @@
+[
+  {
+    "id": "report_w02",
+    "backgroundSha256": "895fc33f9c26d5d230fdd361dcbb3d7641364e78f7d7ed2c21797496709987de",
+    "foregroundSha256": "36d59cb237f1c31e92e0daae70d3ff43c05b30f3713df60de72633f37a2b15f5",
+    "masterSha256": "45641543dd29875d23342bf10ba7da2c82aaa6dae7f9efb12a32e7ddfe8141c4",
+    "uncoveredPixels": 1524534,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w03",
+    "backgroundSha256": "895fc33f9c26d5d230fdd361dcbb3d7641364e78f7d7ed2c21797496709987de",
+    "foregroundSha256": "fc519bfd6e7c08a65ad372ad3ab7090f2e4488d22041eac239b6f3a53078dba8",
+    "masterSha256": "1ea12f569b511920c1547cae1e27df4e4f04c4369f09cf55d0f2f5ef49e8c3ad",
+    "uncoveredPixels": 1523051,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w04",
+    "backgroundSha256": "895fc33f9c26d5d230fdd361dcbb3d7641364e78f7d7ed2c21797496709987de",
+    "foregroundSha256": "bbe6081fcb4f88722b9f4b08c6f115f690ee43666ce2fcda6a310423769b9fe4",
+    "masterSha256": "831a5ffc6d6a58c9b53941ba3aaf03959860d1ef335c73799491f1378820ac60",
+    "uncoveredPixels": 1515371,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "minePass",
+    "backgroundSha256": "895fc33f9c26d5d230fdd361dcbb3d7641364e78f7d7ed2c21797496709987de",
+    "foregroundSha256": "08c4af3894009868fe5f6e588d86060c86777e01253f8239347d37e69639ad00",
+    "masterSha256": "01a7b05d1650cec1115659240e34e914f496beb00052418df46b02ff160813b9",
+    "uncoveredPixels": 1532376,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w05",
+    "backgroundSha256": "895fc33f9c26d5d230fdd361dcbb3d7641364e78f7d7ed2c21797496709987de",
+    "foregroundSha256": "d5429bddb07a2c15ac9d27d27068f72031f1f8fb6a2d52dde6841e3d96818ebc",
+    "masterSha256": "2f1f7fd6af4d6183af3b6c96d678b1fa13e751ed2035e8a3091612e1e677855b",
+    "uncoveredPixels": 1516381,
+    "changedUncoveredPixels": 0
+  }
+]
