@@ -3295,6 +3295,8 @@ const VISTAS = {
   w34: [0, vCloudBridge], w35: [0, vBeastCages], w36: [0, vSpectreStands], w37: [11, vBloodSand], ws18: [0, vVictorsRoom], ws19: [0, vDuelRing],
   w38: [0, vLampDrift], w39: [0, vBlackLake], w40: [0, vNameGrotto], w41: [0, vGreatNave], ws20: [0, vBeastLair], ws21: [0, vFossilDragon], ws22: [12, vCrystalVein],
   w42: [0, vShelfStair], w43: [0, vRainArchive], w44: [0, vGlassWorks], w45: [0, vGreatArchive], ws23: [0, vPictureRoom], ws24: [0, vClosedStacks],
+  // 第十三章は専用イラストの制作待ち。既存の情景キーを参照する。
+  w50: [7, vChains], w51: [7, vGlassWorks], w52: [7, vFont], w53: [7, vInferno], ws28: [7, vGuardroom], ws29: [7, vCouncil],
   // 第十二章「王家の廟」: 専用の情景は描き下ろし待ち (docs/art/chapter12-art-list.md)。それまでは近い情景を借りる
   w46: [0, vNameGrotto], w47: [0, vGlassWorks], w48: [0, vGreatNave], w49: [0, vGreatNave], ws25: [0, vNameGrotto], ws26: [0, vBeastLair], ws27: [0, vGreatNave],
 };

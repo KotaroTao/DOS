@@ -1,5 +1,5 @@
 // 魔物の伝承 (src/dungeons/monlore.js) の検査: node tools/lore/check.mjs
-// ・第1〜14層の魔物 (層の出現表・強敵・主、本筋と寄り道の迷宮の出現表) に漏れなく伝承がある
+// ・第1〜15層の魔物 (層の出現表・強敵・主、本筋と寄り道の迷宮の出現表) に漏れなく伝承がある
 // ・出典と本文の長さ、難しい漢字、層ごとの出典の偏り (似た内容にしない)、章ごとのネタばれの語、伝承の形 (地の文で語るもの)
 // ・説明文・懸賞文の属性の向き (魔物の属性に有利でない属性を「効く・弱い」と書かない)
 import { MONSTER_LORE } from "../../src/dungeons/monlore.js";
@@ -8,7 +8,7 @@ import { WORLD } from "../../src/dungeons/world.js";
 import { NAMED_FOES } from "../../src/dungeons/named.js";
 import { elemBeats } from "../../src/dungeons/schema.js";
 
-const LAYERS = 14;
+const LAYERS = 15;
 const errs = [];
 const layerOf = {}, where = {};
 for (let L = 1; L <= LAYERS; L++)
@@ -28,6 +28,7 @@ for (const id of Object.keys(MONSTER_LORE)) if (!BESTIARY[id]) errs.push(`魔物
 const HARD = /[鑿刎齧頷埃纏詛蒐邂逅贄慟哭咆哮蠢蝋]/;
 // 章ごとにまだ明かされていない秘密の語 (層 → 書いてはいけない語)
 const SPOIL = {
+  15: /自ら鉄|自分で望|自ら望|まだ、待|まだ待っています|今日は、休|今日は休|責めを引き受け/, // 工房長の選択と師との問答は主の記憶で明かす
   1: /大樹|旧都|霊薬|モルデン|神官王|奈落|最初の操霊師|百年を生き/,
   2: /大樹|旧都|霊薬|モルデン|神官王|奈落|最初の操霊師|百年を生き/,
   3: /大樹|旧都|霊薬|モルデン|神官王|奈落|最初の操霊師|百年を生き/,
@@ -43,14 +44,14 @@ const SPOIL = {
   14: /もう、よい|終わらせてくれ|新しい棺|空の棺|身代わり|同じ顔|三度の葬儀|法を書く/, // 最初の王の「もう、よい」と師との問答・今の王のために用意された棺・王の葬儀の身代わりは、手がかり (近衛廊の死面) と主の記憶で明かす
   13: /終わりの頁|何度でも器|自分を器|己を器|器を替え|新しい器へ|魂の王|底に眠る|眠るもの|祖の名|扉の先/, // 大書庫の主 (司書) が自分の魂を何度も器へ戻してきたこと・師の書きつけ『終わりの頁がない』は主の記憶で明かす。底に眠るもの・祖の名・底の扉の先は第十一章でも明かさない
 };
-const BOSS_FREE = new Set(["bs_infernolord", "bs_glaciallord", "bs_swamplord", "bs_stormlord", "bs_arenalord", "bs_moldern", "bs_archivist", "bs_cryptking"]); // 主の伝承は1体討てば読める — 業火の主・凍王・よどみの主・嵐の主・闘技場の支配者・宰相モルデン・大書庫の主・王家の廟の主は、その章の主の記憶の真相に触れてよい
+const BOSS_FREE = new Set(["bs_infernolord", "bs_glaciallord", "bs_swamplord", "bs_stormlord", "bs_arenalord", "bs_moldern", "bs_archivist", "bs_cryptking", "bs_forgemaster"]); // 主の伝承は1体討てば読める — 業火の主・凍王・よどみの主・嵐の主・闘技場の支配者・宰相モルデン・大書庫の主・王家の廟の主は、その章の主の記憶の真相に触れてよい
 const SERA_OK = new Set(["w16", "w17", "w18", "w19", "w20", "w21", "ws8", "ws9", "ws10",
   "w22", "w23", "w24", "w25", "ws11", "ws12", "w26", "w27", "w28", "w29", "ws13", "ws14",
   "w30", "w31", "w32", "w33", "ws15", "ws16", "ws17",
   "w34", "w35", "w36", "w37", "ws18", "ws19",
   "w38", "w39", "w40", "w41", "ws20", "ws21", "ws22",
   "w42", "w43", "w44", "w45", "ws23", "ws24",
-  "w46", "w47", "w48", "w49", "ws25", "ws26", "ws27"]); // ws8 は脚 (w16_legs) を見つけた後、ws9〜ws27 は第五章以降の依頼で開く
+  "w46", "w47", "w48", "w49", "ws25", "ws26", "ws27", "w50", "w51", "w52", "w53", "ws28", "ws29"]); // ws8 は脚 (w16_legs) を見つけた後、ws9〜ws29 は第五章以降の依頼で開く
 const WS5_SPOIL = /モルデン|神官王|苗木|セラ/; // 古井戸 (第二章から開く) に出る魔物
 
 const byLayer = {};

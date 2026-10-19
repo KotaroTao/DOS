@@ -21,6 +21,12 @@
 //                 toxic 毒を含む (毒消しの書きつけの恵みが効く) / bog 沼 (特別な階「毒の沼」が出る土地)
 
 export const FLOOR_HAZ = {
+  forgechute: { kind: "fall", name: "搬送口の抜け蓋", desc: "冷えた鉄くずを下の作業段へ落とす口。荷重で留め金が外れる",
+    look: { shape: "trapdoor", rim: "#39312c", chip: "#706052", core: ["#000000", "#080503", "#21120a"], mote: "#c88050", glow: null },
+    line: "搬送口の蓋が外れた！ 隊は冷えた鉄くずとともに、下の作業段へ滑り落ちた…" },
+  quenchwater: { kind: "harm", name: "焼き入れ湯の流出", desc: "水槽からあふれた熱湯が、床を薄く流れている",
+    look: { stain: [[36,32,30],[86,79,65],[57,52,45],[106,94,73],[125,113,94]], glow: "120,100,80", fx: "bubble", fxCol: "#d8c8aa", mist: "180,170,150" },
+    verb: "焼き入れの熱湯を浴びた", die: "熱湯の中で倒れた", flash: "#c8b090", accent: "#c8b090" },
   // ===== 落ちる床 =====
   grate: { kind: "fall", name: "外れた格子蓋", desc: "錆びて外れた排水の格子。黒い水の音が下から響く",
     look: { shape: "grate", rim: "#2e2c28", chip: "#4a463e", core: ["#000000", "#04070a", "#10161a"], mote: "#6f8f8c", glow: null, water: true },

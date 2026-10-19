@@ -785,7 +785,7 @@ const NEW_DEFS = [
   { id: "bs_anvilhorror", name: "金床の魔", rank: 10, race: "construct", element: "fire", artKey: "anvilhorror",
     ability: "paralyze", multistrike: 2, physResist: 100, barrier: 2, desc: "幾千の器を打たれ続けた金床に宿った魔。重い鉄塊の体で獲物を押し潰し、打ち鳴らす衝撃で痺れさせる。叩かれた数だけ、こいつは硬くなった。" },
   { id: "bs_soulingot", name: "魂の鋳塊", rank: 10, race: "elemental", element: "fire", artKey: "soulingot",
-    ability: "drain", lifesteal: 0.3, physResist: 75, desc: "巡りへ還せぬ穢れた魂を鋳固めた、脈打つ灼熱の塊。中に閉じ込められた無数の魂が、外の命を求めて吸い寄せる。これがやがて、人業の核となる――器の、最初の姿だ。" },
+    ability: "drain", lifesteal: 0.3, physResist: 75, desc: "工房で傷んだ鉄の器を溶かした鋳塊。鉄を離れ損ねた仕事の記憶が脈打ち、触れた者の生命力を吸って傷を埋める。厚い鉄の殻は刃を大きく受け流す。魂そのものを材料に鋳たものではない。" },
   { id: "bs_moltenwraith", name: "溶けた霊", rank: 10, race: "specter", element: "fire", artKey: "moltenwraith",
     ability: "drain", magWeak: 1.3, evasive: true, desc: "炉に落ちて溶け、それでも消えきれなかった者の霊。灼けた手で生者の命を吸い、揺らめく陽炎となって刃をかわす。水気のない身は、皮肉にも刃より魔法でこそ崩れる。" },
   { id: "bs_forgehound", name: "炉の番犬", rank: 10, race: "beast", element: "fire", artKey: "forgehound",
@@ -795,17 +795,17 @@ const NEW_DEFS = [
   { id: "bs_bellowsfiend", name: "ふいごの鬼", rank: 10, race: "demon", element: "fire", artKey: "bellowsfiend",
     ability: "breath", enrage: true, multistrike: 2, desc: "炉に風を送り続けるふいごに棲みついた、炎を吐く鬼。大きく息を吸っては全体を焼く炎を吹き、傷つけば炉ごと火勢を増して荒れる。こいつが吹けば、炉は一段と燃え盛る。" },
   { id: "bs_quenchserpent", name: "焼き入れの大蛇", rank: 10, race: "reptile", element: "fire", artKey: "quenchserpent",
-    ability: "breath", swift: true, multistrike: 2, desc: "焼き入れの油槽に潜む、灼けた鱗の大蛇。熱した刃のような牙で素早く幾度も噛みつき、蒸気のブレスで全体を焼く。油の中を、影のように泳ぐ。" },
+    ability: "breath", swift: true, multistrike: 2, desc: "焼き入れの水槽に潜む、灼けた鱗の大蛇。熱した刃のような牙で素早く幾度も噛みつき、蒸気のブレスで全体を焼く。白い蒸気の下を、影のように泳ぐ。" },
   { id: "bs_smithghost", name: "鍛冶師の亡霊", rank: 10, race: "specter", element: "fire", artKey: "smithghost",
     role: "summoner", summonKey: "bs_soulingot", ability: "weaken", magResist: 75, desc: "器を鋳ることに生涯を捧げ、炉の前で力尽きた鍛冶師の霊。魂の鋳塊を次々と打ち出し、呪いで挑む者の力を奪う。自分が何を作っていたのか、もう問うこともない。" },
   { id: "bs_moltencore", name: "溶鉱の核", rank: 10, race: "elemental", element: "fire", artKey: "moltencore",
     multistrike: 2, enrage: true, physResist: 75, desc: "炉の中心で煮えたぎる、剥き出しの溶鉱の核。触れるものすべてを灼き、爆ぜるように熱の塊を撃ち出す。これが冷えれば、炉は止まる――が、誰も冷やせない。" },
   { id: "bs_dollhusk", name: "器の抜け殻", rank: 10, race: "construct", element: "fire", artKey: "dollhusk",
-    ability: "drain", enrage: true, lifesteal: 0.3, desc: "魂を入れられる前に弾かれた、空っぽの人業の抜け殻。失った魂を求めて起き上がり、生者の温もりに掴みかかる。縫い目の顔は、まだ誰のものでもない。" },
+    ability: "drain", enrage: true, lifesteal: 0.3, desc: "鋳造場で規格に合わないと返された鉄の器。持ち主の灯はとうに別の器へ移されたが、残った仕事の記憶だけで動いている。温もりに触れて生命力を吸い、打たれるほど荒々しく暴れる。" },
   { id: "bs_flamehammer", name: "炎槌の番人", rank: 10, race: "armored", element: "fire", artKey: "flamehammer",
     ability: "critical", multistrike: 2, physResist: 75, desc: "炉を守る、灼けた大槌を担いだ鎧の番人。振り下ろす炎の槌は鎧ごと急所を砕き、続けざまに叩きつける。火の粉を撒く一撃は、岩をも鍛え直す。" },
   { id: "bs_cruciblehorror", name: "るつぼの異形", rank: 10, race: "amorph", element: "fire", artKey: "cruciblehorror",
-    ability: "poison", physResist: 100, regen: 0.08, desc: "るつぼの底で混ざり合った、あらゆる金属と魂の毒の塊。触れたものを溶かし込み、刃を突き立てても溶湯に沈んで効かない。中で煮える顔は、鋳潰された者たちだ。" },
+    ability: "poison", physResist: 100, regen: 0.08, desc: "るつぼの底で混ざり合った、傷んだ器の鉄と有毒な鉱くずの塊。触れたものを溶かし込み、刃を突き立てても溶湯に沈んで効かない。溶けた鉄を取り込んで自らを繕い、毒の飛沫を吐く。中に浮かぶ顔は、溶かされた器の面だ。" },
   { id: "bs_sparkswarm", name: "火花の群れ", rank: 10, race: "insect", element: "fire", artKey: "sparkswarm",
     pack: true, multistrike: 2, swift: true, desc: "炉から飛び散る火花が、意思を得て群れ飛ぶもの。素早くまとわりついて何度も焼き刺し、払っても次の火花が湧く。鍛冶の音とともに、無数に弾ける。" },
   { id: "bs_forgewyrm", name: "炉の竜", rank: 10, race: "dragon", element: "fire", artKey: "forgewyrm",
@@ -818,7 +818,7 @@ const NEW_DEFS = [
     pack: true, swift: true, multistrike: 2, desc: "炉の熱気に湧いた、火屑のように赤熱した羽虫の群れ。素早く飛び回って獲物を焼き刺し、群れごと炎の渦をなす。鍛冶の煤の中で、無数に舞っている。" },
   { id: "bs_forgemaster", name: "溶鉄炉の主", rank: 10, boss: true, race: "construct", element: "fire", artKey: "forgemaster", soulClass: "fighter",
     role: "summoner", summonKey: "bs_forgegolem", ability: "breath", physResist: 75, enrage: true,
-    desc: "穢れた魂を鋳て『器』を作り続ける、溶鉄炉そのものの主。鋳造のゴーレムを次々と生み出し、全体を焼く溶鉄のブレスを吐く。人業がどう作られるかを知った今、こいつの炉の音は、もう以前と同じには聞こえない。" },
+    desc: "大炉を胸に抱き、鉄の器を打ち続ける工房長。分厚い鉄が刃を受け流し、炉から鋳造のゴーレムを呼び出す。大きく開いた炉口から炎を吐いて隊を焼き、傷を負うほど鎚を激しく振るう。肩には、古い注文札の鎖が幾重にも掛かっている。" },
   // -- 第16層「深淵の聖堂」 (rank 10・光/偽りの光) --
   { id: "bs_falseseraph", name: "偽りの熾天使", rank: 10, race: "specter", element: "light", artKey: "falseseraph",
     ability: "drain", barrier: 2, magResist: 75, desc: "聖堂の祭壇に祀られた、光を騙る堕ちた熾天使。慈悲を装って近づき、捧げられた魂ごと命を吸う。後光は本物だが、その光は他者を焼くためのものだ。" },
@@ -1820,7 +1820,7 @@ const ELITE_DEFS = [
   { id: "el_geargod", name: "歯車の神", elite: true, rank: 10, race: "construct", element: "none", artKey: "siegeballista",
     palette: tint(ARTS.siegeballista.palette, "#b8a060", 0.35),
     physResist: 75, ability: "critical", // 噛み合う鋼鉄は刃を通さず、設計図から生命を除去する一撃
-    desc: "尖塔の機構の奥で、誰にも知られず回り続けた歯車の集合体。噛み合う鋼鉄の体は刃をまるで通さず、自らを神と定義し、噛み合わぬもの——生命を、急所への一撃で設計図から除去する。" }, // 第15層
+    desc: "工房の搬送路を動かしてきた巨大な歯車の集合体。命令の札を読み、合わない部品を排除するうち、札を出す者まで部品として数え始めた。かみ合う鋼鉄の体は刃を大きく受け流し、歯車の一点へ獲物を挟み、急所を砕く。" }, // 第15層
   // -- 迷宮 81-90 (冥門帯) / 強敵ランク10 --
   { id: "el_hellwarden", name: "冥獄の大典獄", elite: true, rank: 10, race: "demon", element: "fire", artKey: "fortlord",
     palette: tint(ARTS.fortlord.palette, "#a02818", 0.4),
@@ -1882,7 +1882,7 @@ const LAYER_ELITE_DEFS = [
   { id: "el_librarian", name: "禁書の司書長", elite: true, rank: 10, race: "undead", element: "dark", artKey: "pettyrevenant", soulClass: "mage",
     ability: "spell", abRate: 0.45, magResist: 50, // 暗記した呪文を浴びせ続け、乾いた体は呪文を吸う
     desc: "禁書の棚の鍵束を腰に下げたまま干からびた、昔の司書長の亡骸。眠れなかった雨の魂がしみこんで、今も持ち場の棚を見回っている。許しなく頁を開いた者がいれば、暗記した呪文を隊の全員へ何度も浴びせる。乾ききった体は、向けられた呪文を半ば吸いこんでしまう。鍵束の鳴る音が、近づいてくる合図だ。" }, // 第13層
-  { id: "el_moltengiant", name: "熔鉄の巨人", elite: true, rank: 10, race: "giant", element: "fire", artKey: "stormgiant",
+  { id: "el_moltengiant", name: "溶鉄の巨人", elite: true, rank: 10, race: "giant", element: "fire", artKey: "stormgiant",
     palette: tint(ARTS.stormgiant.palette, "#d8602a", 0.5),
     ability: "breath", endure: true, // 溶鉄の飛沫を浴びせ、固まった体は致命の一撃を一度だけ耐える
     desc: "溶鉄炉の炉心で生まれた、溶けた鉄を血に持つ巨人。吐き出す溶鉄の飛沫は前衛後衛もろとも焼き、冷えて固まった体は致命の一撃を一度だけ耐える。歩くたびに床石が赤く溶ける。" }, // 第15層
