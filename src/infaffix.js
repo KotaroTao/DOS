@@ -33,7 +33,7 @@ const STAT_JA = { atk: "STR", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", lu
 const EL_JA = { fire: "火", water: "水", wind: "風", earth: "土", light: "光", dark: "闇" };
 const RES_JA = { poison: "毒", paralyze: "麻痺", sleep: "眠り", charm: "魅了", confuse: "混乱", stone: "石化", seal: "封印", flinch: "怯み", death: "即死", physResist: "物理", magResist: "魔法" };
 const RACE_JA = Object.fromEntries(MON_RACES.map((r) => [r.key, r.label]));
-const pct = (v) => `${Math.round(v * 1000) / 10}%`;
+const pct = (v) => `${Math.round(v * 10000) / 100}%`;
 const mulx = (v) => `×${Math.round(v * 100) / 100}`;
 const pt = (v) => Math.max(1, Math.round(v));
 
@@ -52,16 +52,16 @@ const ONE = [["A01", "頑丈な", "hp"], ["A02", "澄んだ", "mp"], ["A03", "�
 for (const [id, name, s] of ONE) def({ id, name, tier: "c", kind: "B", r: [0.15, 0.25],
   apply: (it, v) => { it[s] = (it[s] || 0) + pt(v / STAT_W[s]); }, text: (v) => `${STAT_JA[s]}+${pt(v / STAT_W[s])}` });
 def({ id: "A09", name: "鋭い", tier: "u", kind: "abs", r: [0.01, 0.05], step: 0.001, pts: (v) => v * 100,
-  apply: (it, v) => { it.crit = Math.round(((it.crit || 0) + v) * 1000) / 1000; }, text: (v) => `会心率+${pct(v)}` });
+  apply: (it, v) => { it.crit = Math.round(((it.crit || 0) + v) * 10000) / 10000; }, text: (v) => `会心率+${pct(v)}` });
 
 // 会心時の最終ダメージを増やす。物理・魔法は別々に、装備合計の上限なし。
 def({ id: "A10", name: "痛撃の", tier: "r", kind: "abs", r: [0.10, 0.30], step: 0.01, pts: (v) => v * 20,
-  apply: (it, v) => { it.critDamage = Math.round(((it.critDamage || 0) + v) * 1000) / 1000; }, text: (v) => `会心ダメージ+${pct(v)}` });
+  apply: (it, v) => { it.critDamage = Math.round(((it.critDamage || 0) + v) * 10000) / 10000; }, text: (v) => `会心ダメージ+${pct(v)}` });
 
 def({ id: "A11", name: "魔眼の", tier: "u", kind: "abs", r: [0.01, 0.05], step: 0.001, pts: (v) => v * 100,
-  apply: (it, v) => { it.spellCrit = Math.round(((it.spellCrit || 0) + v) * 1000) / 1000; }, text: (v) => `魔法会心率+${pct(v)}` });
+  apply: (it, v) => { it.spellCrit = Math.round(((it.spellCrit || 0) + v) * 10000) / 10000; }, text: (v) => `魔法会心率+${pct(v)}` });
 def({ id: "A12", name: "魔撃の", tier: "r", kind: "abs", r: [0.10, 0.30], step: 0.01, pts: (v) => v * 20,
-  apply: (it, v) => { it.spellCritDamage = Math.round(((it.spellCritDamage || 0) + v) * 1000) / 1000; }, text: (v) => `魔法会心ダメージ+${pct(v)}` });
+  apply: (it, v) => { it.spellCritDamage = Math.round(((it.spellCritDamage || 0) + v) * 10000) / 10000; }, text: (v) => `魔法会心ダメージ+${pct(v)}` });
 
 // ---- B. 能力値ふたつ (稀・全、半分ずつ) ----
 const TWO = [["B01", "剛健の", "atk", "vit"], ["B02", "疾風の", "atk", "agi"], ["B03", "博徒の", "atk", "luk"], ["B04", "城壁の", "vit", "hp"], ["B05", "猫の", "agi", "luk"], ["B06", "学徒の", "int", "mp"],
@@ -73,7 +73,7 @@ for (const [id, name, a, b] of TWO) def({ id, name, tier: "u", kind: "B", r: [0.
 // ---- C. 割合の補正 (秘・全) ----
 const MUL = [["C01", "生命の", "hp"], ["C02", "魔力の", "mp"], ["C03", "怪力の", "atk"], ["C04", "鉄壁の", "vit"], ["C05", "迅速の", "agi"], ["C06", "叡智の", "int"], ["C07", "信心の", "pie"], ["C08", "天運の", "luk"]];
 for (const [id, name, s] of MUL) def({ id, name, tier: "r", kind: "abs", r: [0.03, 0.06], pts: (v) => v * 60,
-  apply: (it, v) => { it.mult = { ...(it.mult || {}) }; it.mult[s] = Math.round(((it.mult[s] || 0) + v) * 1000) / 1000; }, text: (v) => `${STAT_JA[s]}+${pct(v)}` });
+  apply: (it, v) => { it.mult = { ...(it.mult || {}) }; it.mult[s] = Math.round(((it.mult[s] || 0) + v) * 10000) / 10000; }, text: (v) => `${STAT_JA[s]}+${pct(v)}` });
 
 // ---- D. 属性 (稀) ----
 const ATK_EL = [["D01", "灼熱の", "fire"], ["D02", "流水の", "water"], ["D03", "烈風の", "wind"], ["D04", "大地の", "earth"], ["D05", "聖光の", "light"], ["D06", "暗黒の", "dark"]];
@@ -92,12 +92,15 @@ def({ id: "E09", name: "死除けの", tier: "u", kind: "abs", r: [5, 15], slots
 def({ id: "E10", name: "鋼の", tier: "r", kind: "abs", r: [2, 5], slots: ["a"], pts: (v) => v * 3, apply: (it, v) => addRes(it, "physResist", v), text: (v) => `物理の抵抗値+${Math.round(v)}` });
 def({ id: "E11", name: "魔除けの", tier: "r", kind: "abs", r: [2, 5], slots: ["a"], pts: (v) => v * 3, apply: (it, v) => addRes(it, "magResist", v), text: (v) => `魔法の抵抗値+${Math.round(v)}` });
 def({ id: "E12", name: "竜鱗の", tier: "u", kind: "abs", r: [0.03, 0.08], slots: ["a", "acc"], pts: (v) => v * 100,
-  apply: (it, v) => { it.bRes = Math.round(((it.bRes || 0) + v) * 1000) / 1000; }, text: (v) => `ブレス耐性+${pct(v)}` });
+  apply: (it, v) => { it.bRes = Math.round(((it.bRes || 0) + v) * 10000) / 10000; }, text: (v) => `ブレス耐性+${pct(v)}` });
 
 // ---- F. 追加効果 (武) ----
 const HIT = [["F01", "毒牙の", "poison", [0.05, 0.12], "毒"], ["F02", "雷撃の", "paralyze", [0.03, 0.08], "麻痺"], ["F03", "子守唄の", "sleep", [0.03, 0.08], "眠り"], ["F04", "惑わしの", "confuse", [0.03, 0.08], "混乱"], ["F05", "魅惑の", "charm", [0.03, 0.06], "魅了"]];
 for (const [id, name, k, r, ja] of HIT) def({ id, name, tier: "u", kind: "abs", r, slots: ["w"], group: "onHit", pts: (v) => v * 60,
-  apply: (it, v) => { if (!it.onHit) it.onHit = k === "poison" ? { k, chance: Math.round(v * 100) / 100, pct: 0.05 } : { k, chance: Math.round(v * 100) / 100 }; }, text: (v) => `物理が当たると ${pct(v)} で${ja}` });
+  apply: (it, v) => {
+    const unit = affixRateScale(id, it) === 1 ? 100 : 10000;
+    if (!it.onHit) it.onHit = { k, chance: Math.round(v * unit) / unit, ...(k === "poison" ? { pct: 0.05 } : {}) };
+  }, text: (v) => `物理が当たると ${pct(v)} で${ja}` });
 def({ id: "F06", name: "封じの", tier: "r", kind: "abs", r: [0.03, 0.06], slots: ["w"], pts: (v) => v * 70,
   fx: (v) => [{ t: "hit", chance: v, ail: "seal", turns: 2 }], text: (v) => `物理が当たると ${pct(v)} で特技封じ` });
 def({ id: "F07", name: "砕きの", tier: "r", kind: "abs", r: [0.04, 0.08], slots: ["w"], pts: (v) => v * 70,
@@ -169,7 +172,7 @@ def({ id: "J09", name: "報復の", tier: "r", kind: "abs", r: [0.20, 0.30], slo
 def({ id: "J10", name: "一番手の", tier: "x", kind: "abs", r: [1, 1], slots: ["feet", "acc"], ...JMARK, pts: () => 12, misc: () => ({ firstTurn: true }), text: () => "戦闘の1ターン目に、敵味方の誰よりも先に動く (持ち主どうしは AGI 順)" });
 def({ id: "J11", name: "不屈の", tier: "x", kind: "abs", r: [0.1, 0.1], slots: ["acc"], ...JMARK, pts: () => 8, apply: (it, v) => effPut("autoRevive", () => v)(it), text: () => "1戦闘に1回、倒れた時に最大HPの10%で立ち上がる" });
 def({ id: "J12", name: "守りの気の", tier: "r", kind: "abs", r: [0.03, 0.05], slots: ["a"], ...JMARK, pts: (v) => v * 100, apply: (it, v) => effPut("guard", () => v)(it), text: (v) => `被ダメ−${pct(v)}` });
-def({ id: "J13", name: "節約の", tier: "r", kind: "abs", r: [0.05, 0.10], slots: ["acc", "w"], ...JMARK, pts: (v) => v * 60, apply: (it, v) => effPut("spellCostMul", () => Math.round((1 - v) * 100) / 100)(it), text: (v) => `消費MP−${pct(v)}` });
+def({ id: "J13", name: "節約の", tier: "r", kind: "abs", r: [0.05, 0.10], slots: ["acc", "w"], ...JMARK, pts: (v) => v * 60, apply: (it, v) => effPut("spellCostMul", () => { const unit = affixRateScale("J13", it) === 1 ? 100 : 10000; return Math.round((1 - v) * unit) / unit; })(it), text: (v) => `消費MP−${pct(v)}` });
 def({ id: "J14", name: "金運の", tier: "u", kind: "abs", r: [0.10, 0.20], slots: ["acc"], ...JMARK, pts: (v) => v * 30, apply: (it, v) => effPut("goldUp", () => v)(it), text: (v) => `金貨+${pct(v)}` });
 def({ id: "J15", name: "魂導の", tier: "u", kind: "abs", r: [0.05, 0.10], slots: ["acc"], ...JMARK, pts: (v) => v * 30, apply: (it, v) => effPut("soulUp", () => v)(it), text: (v) => `✦Soul+${pct(v)}` });
 def({ id: "J16", name: "錠外しの", tier: "u", kind: "abs", r: [0.05, 0.10], slots: ["acc", "hands"], ...JMARK, pts: (v) => v * 40, apply: (it, v) => effPut("disarmUp", () => v)(it), text: (v) => `罠を外す確率+${pct(v)}` });
@@ -185,7 +188,7 @@ for (const [id, name, up, down] of EDGE) def({ id, name, tier: "u", kind: "B", r
   apply: (it, v, B) => { it[up] = (it[up] || 0) + pt(B * 0.5 / STAT_W[up]); it[down] = (it[down] || 0) - pt(B * 0.2 / STAT_W[down]); },
   text: (v, B) => `${STAT_JA[up]}+${pt(B * 0.5 / STAT_W[up])} ${STAT_JA[down]}−${pt(B * 0.2 / STAT_W[down])}` });
 def({ id: "K07", name: "博打の", tier: "r", kind: "abs", r: [0.04, 0.06], pts: (v) => v * 100 - 5,
-  apply: (it, v) => { it.crit = Math.round(((it.crit || 0) + v) * 1000) / 1000; }, fx: () => [{ t: "take", v: -0.05 }], text: (v) => `会心率+${pct(v)}・被ダメ+5%` });
+  apply: (it, v) => { it.crit = Math.round(((it.crit || 0) + v) * 10000) / 10000; }, fx: () => [{ t: "take", v: -0.05 }], text: (v) => `会心率+${pct(v)}・被ダメ+5%` });
 def({ id: "K08", name: "背水の", tier: "r", kind: "abs", r: [0.2, 0.2], slots: ["w", "acc"], pts: () => 8,
   apply: (it) => { it.mult = { ...(it.mult || {}) }; it.mult.hp = Math.round(((it.mult.hp || 0) - 0.05) * 1000) / 1000; }, fx: (v) => [{ t: "deal", v, when: { selfLow: 0.5 } }], text: (v) => `HP50%以下で与ダメ+${pct(v)}・最大HP−5%` });
 def({ id: "K09", name: "呪われた宝の", tier: "r", kind: "abs", r: [0.3, 0.3], slots: ["acc"], pts: () => 5,
@@ -250,6 +253,14 @@ export function afxDef(k) { return AFX_MAP[k] || null; }
 // 装備のレア度と、追加特性の格 (常・稀・秘・極) は別。
 // 下限は共通。元の上限をC1倍→UC1.25倍→R1.5倍→SR1.75倍→LR2倍へ。
 export const AFFIX_RARITY_MAX = { c: 1, uc: 1.25, r: 1.5, sr: 1.75, lr: 2 };
+// 保存値・抽選幅は従来の単位を保つ。C/UCの可変の割合効果だけ、反映時に半分にする。
+// 実数・抵抗値・反撃の能力係数・固定効果・発動条件は対象外。
+export function affixRateScale(definition, it) {
+  const d = typeof definition === "string" ? afxDef(definition) : definition;
+  return d && ["c", "uc"].includes(rarityKey(it)) && d.kind === "abs"
+    && d.r[0] !== d.r[1] && d.r[1] < 1 && !["J06", "J09", "J20"].includes(d.id) ? 0.5 : 1;
+}
+// 抽選・保存に使う幅。実際の割合はこの幅に affixRateScale を掛ける。
 export function affixRange(definition, it) {
   const d = typeof definition === "string" ? afxDef(definition) : definition;
   if (!d) return [0, 0];
@@ -322,9 +333,11 @@ function affixValues(it, afx) {
   const base = it?.afxCritBase || it || {};
   const used = Object.fromEntries(CRITICAL_KEYS.map(k => [k, base[k] || 0]));
   return (afx || []).map(a => {
+    const scale = affixRateScale(a.k, it);
+    const effective = Math.round(a.v * scale * 10000) / 10000;
     const stat = CRITICAL_AFFIX_STAT[a.k];
-    if (!stat) return a;
-    const v = Math.round(Math.max(0, Math.min(a.v, ITEM_CRITICAL_CAP[stat] - used[stat])) * 1000) / 1000;
+    if (!stat) return scale === 1 ? a : { ...a, v: effective };
+    const v = Math.round(Math.max(0, Math.min(effective, ITEM_CRITICAL_CAP[stat] - used[stat])) * 10000) / 10000;
     used[stat] += v;
     return { ...a, v };
   });
@@ -447,7 +460,10 @@ export function pageValue(page, it) {
     const B = afxBase({ ...it, depth: Math.min(page.depth || 0, it.depth || 0) });
     return Math.min(Math.round(Math.min(page.r != null ? page.r : 0, hi) * B * 100) / 100, hi * B);
   }
-  return Math.min(page.v != null ? page.v : d.r[0], hi);
+  // 巻物は出所のレア度で実効値を求め、書く先の保存単位へ戻す。移植で底上げしない。
+  const sourceScale = affixRateScale(d, { rar: page.rar || "lr" });
+  const targetScale = affixRateScale(d, it);
+  return Math.min((page.v != null ? page.v : d.r[0]) * sourceScale / targetScale, hi);
 }
 export function pageDef(page) { return AFX_MAP[page && page.k] || null; }
 // 巻物の特性をその部位の品に書けるか (書く先の一覧に出すか)
@@ -461,7 +477,7 @@ export function pageText(page, it = null) {
     return d.text(values[values.length - 1].v, B);
   }
   if (d.kind === "B") { const ref = { lv: page.lv || 1, depth: page.depth || 0, rar: page.rar || "lr" }; const B = afxBase(ref); return d.text(Math.round((page.r || 0) * B * 100) / 100, B); }
-  return d.text(page.v != null ? page.v : d.r[0], afxBase({ lv: page.lv || 1, depth: page.depth || 0 }));
+  return d.text((page.v != null ? page.v : d.r[0]) * affixRateScale(d, { rar: page.rar || "lr" }), afxBase({ lv: page.lv || 1, depth: page.depth || 0 }));
 }
 // 品の書き込みの枠: { slots, used }。rk = レア度 (c/uc/r/sr/lr)
 export function enchantRoom(it, rk) {

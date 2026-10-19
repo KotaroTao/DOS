@@ -1614,7 +1614,7 @@ export function recalc(member) {
   member.physResist = resist.physResist; member.magResist = resist.magResist;
   for (const k in resist) if (!["physResist", "magResist"].includes(k) && resist[k]) arOut[k] = resist[k] / 100;
   member.ailRes = Object.keys(arOut).length ? arOut : null;
-  member.breathRes = br > 0 ? Math.min(BREATH_RES_MAX, Math.round(br * 100) / 100) : 0;
+  member.breathRes = br > 0 ? Math.min(BREATH_RES_MAX, Math.round(br * 10000) / 10000) : 0;
   const ohOut = Object.values(oh).filter((o) => o.chance > 0);
   member.onHit = ohOut.length ? ohOut : null;
   member.gearPerks = gfx.length ? _gearPerks(gfx) : null; // 上限で切った [{c, lv, label, key}]

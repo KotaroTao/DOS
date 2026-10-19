@@ -11,7 +11,7 @@ export const CRITICAL_BANDS = {
 };
 export function clampItemCritical(it) {
   for (const k of CRITICAL_KEYS) if (typeof it[k] === "number") {
-    it[k] = Math.round(Math.max(0, Math.min(ITEM_CRITICAL_CAP[k], it[k])) * 1000) / 1000;
+    it[k] = Math.round(Math.max(0, Math.min(ITEM_CRITICAL_CAP[k], it[k])) * 10000) / 10000;
   }
   return it;
 }
