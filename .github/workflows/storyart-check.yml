@@ -40,6 +40,7 @@ jobs:
             /docs/art/codex-story-art-brief.md
             /docs/art/sera/
             /docs/art/story-refs/
+            /docs/art/town/palace.png
       - uses: actions/setup-node@v4
         with:
           node-version: 22
