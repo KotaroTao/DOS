@@ -770,6 +770,22 @@ function defaultActions(st) {
   return acts;
 }
 
+// 呼び出し元が独自の操作を渡した場合も、所持品の詳細に共通の写し取りを添える。
+function addExtractAction(specs, st) {
+  const it = st.item;
+  if (["stock", "view"].includes(st.context) || !G().tut?.done?.enchant || it.unidentified
+    || !it.afx?.length || !isEquippable(it) || !UI.openAffixExtract) return specs;
+  const holder = game.itemHolder?.(it);
+  if (!holder) return specs;
+  const why = game.extractBlock?.({ it, ...holder, shelf: false });
+  const action = { key: "extract", label: "巻物にする", kind: "secondary", disabled: !!why, sub: why || undefined,
+    onTap: (close) => UI.openAffixExtract(it, () => { close(); refreshViews(); }) };
+  const out = specs.filter(s => s.key !== "extract");
+  const sell = out.findIndex(s => s.key === "sell");
+  out.splice(sell < 0 ? out.length : sell + 1, 0, action);
+  return out;
+}
+
 function renderActions(foot, specs, st) {
   foot.textContent = "";
   // close は関数としても、シートの handle としても使える (h.close() を呼ぶ外部の操作のため)
@@ -787,8 +803,10 @@ function renderActions(foot, specs, st) {
     return b;
   };
   const isPrim = (s) => s.primary === true || (s.primary === undefined && s.kind === "primary");
-  const prim = specs.filter(isPrim);
-  const sec = specs.filter((s) => !isPrim(s));
+  const sell = specs.find(s => s.key === "sell"), extract = specs.find(s => s.key === "extract");
+  const pair = sell && extract ? [sell, extract] : [];
+  const prim = specs.filter(s => isPrim(s) && !pair.includes(s));
+  const sec = specs.filter(s => !isPrim(s) && !pair.includes(s));
   for (const p of prim) {
     const row = el("div", "wpc-act-main" + (p.menu ? " split" : ""));
     row.appendChild(mk(p, "lg", "primary"));
@@ -800,6 +818,11 @@ function renderActions(foot, specs, st) {
       m.addEventListener("click", () => p.menu());
       row.appendChild(m);
     }
+    foot.appendChild(row);
+  }
+  if (pair.length) {
+    const row = el("div", "wpc-act-sec n2");
+    for (const s of pair) row.appendChild(mk(s, "md", "secondary"));
     foot.appendChild(row);
   }
   if (sec.length) {
@@ -881,6 +904,7 @@ export function itemSheet(item, o = {}) {
     let specs = defaultActions(st);
     if (Array.isArray(o.actions)) specs = o.actions;
     else if (typeof o.actions === "function") specs = o.actions(specs, st) || specs;
+    specs = addExtractAction(specs, st);
     // 操作の無い品 (見るだけ) には「閉じる」を置く
     if (!specs.length) specs = [{ key: "close", primary: true, kind: "secondary", label: "閉じる", onTap: (close) => close() }];
     renderActions(h.foot, specs, st);
