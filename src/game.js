@@ -16418,7 +16418,12 @@ function extractBlock(src, { gold = true } = {}) {
   if (!src || !src.it || !src.it.afx || !src.it.afx.length) return "追加の能力が無い品";
   if (src.it.unidentified) return "未鑑定の品は、鑑定してから写し取る";
   if (src.it.soulMemory) return "魂の記憶の品は写し取れない";
-  if (src.shelf) return gold && G.gold < buyPrice(src.it) ? "金貨が足りない" : null;
+  if (src.shelf) {
+    const live = shopAfxItem(src.it.id);
+    if (!live) return "その追加つきの品は売り切れた";
+    if (JSON.stringify(live.afx) !== JSON.stringify(src.it.afx) || (live.depth || 0) !== (src.it.depth || 0)) return "棚の品が変わった。選び直してください";
+    return gold && G.gold < buyPrice(live) ? "金貨が足りない" : null;
+  }
   const holder = itemHolder(src.it);
   if (!holder) return "手元にない品は写し取れない";
   if (src.key || holder.key) return "装備中の品は、外してから写し取る";

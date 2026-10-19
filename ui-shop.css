@@ -178,6 +178,8 @@
 .wpc-buy-main.eq .wpc-buy-l { color: var(--accent-hi); }
 .wpc-buy-main.short .wpc-buy-p { color: #e4776f; }
 .wpc-buy-main:disabled { opacity: 0.5; filter: grayscale(0.4); cursor: default; }
+.wpc-buy.with-scroll { flex-direction: column; align-items: stretch; justify-content: center; gap: 4px; }
+.wpc-buy-scroll.ui-btn { width: 72px; min-height: 44px; padding: 5px 3px; box-sizing: border-box; font-size: 11.5px; letter-spacing: 0; }
 
 /* =====================================================================
    品シート (ItemSheet)

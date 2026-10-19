@@ -153,6 +153,17 @@ export function openAffixExtract(it, onDone) {
   return openSourceSheet(src, onDone, { extractOnly: true });
 }
 
+// 買う一覧から、棚の追加つき1点を購入と同時に巻物へ写す。
+export function openShelfAffixExtract(id, onDone) {
+  if (!G().tut?.done?.enchant) return null;
+  const it = game.shopAfxItem?.(id);
+  if (!it) { toast("その追加つきの品は売り切れた", { tone: "info", noLog: true }); return null; }
+  const src = { it, doll: null, key: null, shelf: true };
+  const why = game.extractBlock?.(src);
+  if (why) { toast(why, { tone: "info", noLog: true }); return null; }
+  return openSourceSheet(src, onDone, { extractOnly: true });
+}
+
 // ---------------------------------------------------------------- 特性の巻物 → 書き込む品を選ぶ
 function openWriteSheet(page, onDone) {
   let h = null;
@@ -284,5 +295,5 @@ export function renderEnchantList(wrap) {
 }
 
 export function install() {
-  registerUI({ renderEnchantList, prepareEnchantTutorial, enchantPracticeState, openAffixExtract });
+  registerUI({ renderEnchantList, prepareEnchantTutorial, enchantPracticeState, openAffixExtract, openShelfAffixExtract });
 }
