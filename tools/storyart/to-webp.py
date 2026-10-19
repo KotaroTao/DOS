@@ -22,6 +22,10 @@ ROOT = Path(__file__).resolve().parents[2]
 REVIEW = ROOT / "art/story-review"
 SHIP = ROOT / "art/story"
 QUALITY = 88
+# 王宮背景を画素単位で固定する第一章5場面は、出荷時の再圧縮でも画素を保つ。
+LOSSLESS_MASTERS = {f"chapter1/{scene}" for scene in (
+    "report_w02", "report_w03", "report_w04", "minePass", "report_w05",
+)}
 _LISTS = json.loads((ROOT / "tools/storyart/hold.json").read_text(encoding="utf-8"))
 HOLD = set(_LISTS["hold"])  # 直しを待つ原画
 SKIP = set(_LISTS["skip"])  # 物語の絵ではない原画
@@ -54,7 +58,8 @@ def convert(src: Path, dst: Path) -> None:
     has_alpha = im.mode in ("RGBA", "LA") or (im.mode == "P" and "transparency" in im.info)
     im = im.convert("RGBA" if has_alpha else "RGB")
     dst.parent.mkdir(parents=True, exist_ok=True)
-    im.save(dst, "WEBP", quality=QUALITY, method=6)
+    lossless = src.is_relative_to(REVIEW) and str(src.relative_to(REVIEW).with_suffix("")) in LOSSLESS_MASTERS
+    im.save(dst, "WEBP", quality=QUALITY, method=6, lossless=lossless)
     print(f"{src.relative_to(ROOT)} {src.stat().st_size // 1024}KB -> {dst.relative_to(ROOT)} {dst.stat().st_size // 1024}KB")
 
 
