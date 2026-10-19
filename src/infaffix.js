@@ -436,7 +436,7 @@ export function gearPerks(list) {
 // 無限迷宮で拾った品の追加の能力・特性を1つ選んで「特性の巻物」に写し取り (元の品は消える)、任意の装備へ書き込む。
 //  ・書ける数はレア度で決まる (コモン1 / アンコモン2 / レア3 / スーパーレア4 / レジェンド5)。格の上限は無い
 //  ・能力値の合計容量は設けない。各特性のレア度別上限と枠数で制限する
-//  ・同じ種類は1つ、属攻・属防・追加効果・発動する特性 (J) はそれぞれ1つ、付呪ではすでに極のある品に極を書けない (拾う品には極が複数付くことがある)。
+//  ・同じ種類は1つ (確認後に上書き可)、属攻・属防・追加効果・発動する特性 (J) はそれぞれ1つ。極の追加は極のない品だけ (同じ極の上書きは可)。
 //    隊の別々の人業が同じ極を付けるのはよい
 //  ・巻物の値: 能力値の追加 (kind B) は B(R) に対する割合で持ち、書き込む品のランクで値を出し直す。それ以外 (割合・固定の値) は保存値と対象レア度の上限の低い方
 export const ENCHANT_SLOTS = { c: 1, uc: 2, r: 3, sr: 4, lr: 5 };
@@ -468,13 +468,26 @@ export function pageValue(page, it) {
 export function pageDef(page) { return AFX_MAP[page && page.k] || null; }
 // 巻物の特性をその部位の品に書けるか (書く先の一覧に出すか)
 export function pageFitsSlot(page, it) { const d = pageDef(page); return !!(d && it && fitsSlot(d, it)); }
+// 同じ特性は元の位置で置き換える。ほかの特性の順と枠数は保つ。
+export function enchantAffixes(it, page) {
+  const afx = it.afx || [], entry = { k: page.k, v: pageValue(page, it) };
+  return afx.some(a => a.k === page.k) ? afx.map(a => a.k === page.k ? entry : { ...a }) : [...afx, entry];
+}
+export function enchantChange(it, page) {
+  const d = pageDef(page), index = (it.afx || []).findIndex(a => a.k === page.k);
+  if (!d) return { overwrite: false, beforeText: null, text: "", lower: false };
+  const next = enchantAffixes(it, page), after = affixValues(it, next)[index < 0 ? next.length - 1 : index];
+  const before = index < 0 ? null : affixValues(it, it.afx)[index];
+  const beforeText = before ? d.text(before.v, afxBase(it)) : null;
+  const text = d.text(after.v, afxBase(it));
+  return { overwrite: index >= 0, beforeText, text, lower: !!before && after.v < before.v && text !== beforeText };
+}
 // 巻物の説明 (品 it に書いた時の値で。it が無ければ写し取った品のランクでの値)
 export function pageText(page, it = null) {
   const d = pageDef(page);
   if (!d) return "";
   if (it) {
-    const B = afxBase(it), values = affixValues(it, [...(it.afx || []), { k: page.k, v: pageValue(page, it) }]);
-    return d.text(values[values.length - 1].v, B);
+    return enchantChange(it, page).text;
   }
   if (d.kind === "B") { const ref = { lv: page.lv || 1, depth: page.depth || 0, rar: page.rar || "lr" }; const B = afxBase(ref); return d.text(Math.round((page.r || 0) * B * 100) / 100, B); }
   return d.text((page.v != null ? page.v : d.r[0]) * affixRateScale(d, { rar: page.rar || "lr" }), afxBase({ lv: page.lv || 1, depth: page.depth || 0 }));
@@ -491,9 +504,10 @@ export function enchantBlock(it, page, rk, tmpl = null) {
   if (!fitsSlot(d, it)) return "この部位には書けない特性";
   if (/^K0[1-6]$/.test(d.id) && itemDepthMul(page) < itemDepthMul(it)) return "この深度の品には、同じ深度以上の巻物が必要";
   const afx = it.afx || [];
+  // 既存の特性の置き換えは枠を増やさない。拾った複数の極もそのまま保つ。
+  if (afx.some((a) => a.k === d.id)) return null;
   const room = enchantRoom(it, rk);
   if (afx.length >= room.slots) return `書ける数 ${room.slots}つがいっぱい`;
-  if (afx.some((a) => a.k === d.id)) return "同じ特性がもう書いてある";
   const has = (fn) => afx.some((a) => { const x = AFX_MAP[a.k]; return x && fn(x); });
   if (CRITICAL_AFFIX_STAT[d.id]) {
     const values = affixValues(it, [...afx, { k: d.id, v: pageValue(page, it) }]);
