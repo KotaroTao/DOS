@@ -385,7 +385,7 @@ A 12 + B 12 + C 8 + D 12 + E 12 + F 7 + G 17 + H 6 + I 25 + J 20 + K 10 + X 35 =
 
 - **格の上限は無い** (ユーザーの決定)。コモンにも極を書ける。
 - 能力値の合計容量は設けない。空き枠があれば、既存の追加能力値の合計にかかわらず書き込める。
-- 1つの品に、同じ種類は1つ・極は1つ・発動する特性 (J) は1つ・属攻・属防・追加効果はそれぞれ1つまで。品が元から属攻・属防・追加効果を持っていれば、その種類は書けない。部位の決まり (2章の「部位」) は拾う品と同じ。
+- 1つの品に、同じ種類は1つ・極は1つ・発動する特性 (J) は1つ・属攻・属防はそれぞれ1つまで。品が元から属攻・属防を持っていれば、その種類は書けない。付呪の状態異常の追加効果 (F01〜07) は、枠の範囲で自由に組み合わせられる。元から追加効果のある武器にも書ける。ドロップで付くF01〜05は従来どおり1種類まで。部位の決まり (2章の「部位」) は拾う品と同じ。
 - 同じ特性の上書きは空き枠不要。拾った複数の極のうち同じ極1つを上書きしても、ほかの極は残る。極や発動する特性を新しく増やす制限は変えない。
 - **隊の別々の人業が同じ極 (一番手など) を付けるのはよい** (ユーザーの決定)。その代わり極が拾えること自体をごく稀にした (1-3)。
 - 隊の1人あたりの上限は本編でも共通。従来の種類別上限（1-4）を1特性が超える場合は、最強の1特性の値まで認める。
@@ -403,4 +403,4 @@ A 12 + B 12 + C 8 + D 12 + E 12 + F 7 + G 17 + H 6 + I 25 + J 20 + K 10 + X 35 =
 - 決まりと値: `src/infaffix.js` の「付呪」(`ENCHANT_SLOTS` / `ENCHANT_TIER_COST` / `pageFromAffix` / `pageValue` / `enchantRoom` / `enchantBlock`)。
 - 操作: game.js の「付呪」(`enchantSources` / `extractAffix` / `enchantTargets` / `enchantInfo` / `enchantCost` / `writeAffix` / `eraseAffix`)。数え `G.stats.enchant`。
 - 画面: `src/ui/enchant.js` (商会の区分「付呪」)。王の解放のページ `UNLOCKS.enchant` (story.js)、ヘルプ `enchant` (journal.js)、酒場の心得 `t_enchant1`〜`t_enchant3`。
-- 検証: `node tools/balance/enchant-overwrite.mjs`、`python3 tools/enchant/browser-check.py` (localhost:8000 が必要)。
+- 検証: `node tools/balance/enchant-overwrite.mjs`、`node tools/balance/enchant-status.mjs`、`python3 tools/enchant/browser-check.py` (localhost:8000 が必要)。

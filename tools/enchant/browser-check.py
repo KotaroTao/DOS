@@ -176,5 +176,46 @@ with sync_playwright() as p:
       return t.it.afx.length===1&&t.it.afx[0].v<JSON.parse(t.afx)[0].v&&G.party[0].atk<t.atk&&G.gold===t.gold-t.info.cost&&JSON.stringify(saved.afx)===JSON.stringify(t.it.afx);
     }'''), '低下の承認・保存'
     print('OK 能力低下の警告・承認した低下の反映・上書きした特性の保存')
+    page.evaluate('''async()=>{
+      const {game,UI}=await import('/src/ui/ctx.js'),{sheet}=await import('/src/ui/kit.js');
+      const {ITEMS,itemAtQuality}=await import('/src/items.js'),X=await import('/src/infaffix.js');
+      const G=__game.G;sheet.closeAll();
+      for(const d of [...G.party,...G.reserve])d.equip={};
+      const tmpl=Object.values(ITEMS).find(it=>it.slot==='weapon'&&it.rar==='lr'&&it.onHit&&!it.cursed);
+      if(!tmpl)throw Error('固有の追加効果を持つ武器がない');
+      const it=itemAtQuality({...tmpl,q:50,afx:[]});G.inventory.length=0;G.inventory.push(it);G.afxPages=[];G.gold=1e9;
+      for(const k of ['F01','F02','F03','F04']){
+        const pg={k,v:X.affixRange(k,it)[1],rar:'lr'};G.afxPages.push(pg);
+        if(!game.writeAffix(it,pg))throw Error('複数状態異常の書き込みに失敗 '+k);
+      }
+      const pg={k:'F05',v:X.affixRange('F05',it)[1],rar:'lr'};G.afxPages.push(pg);
+      window.statusTest={it,pg};UI.openShop('enchant');
+    }''')
+    page.locator('.ec-prow .wpc-buy-main').first.click()
+    page.locator('.ec-write').first.click()
+    page.locator('.ui-confirm').last.get_by_role('button', name='書き込む', exact=True).click()
+    page.wait_for_function('statusTest.it.afx.length===5')
+    snapshot = page.evaluate('''async()=>{
+      const {itemDetailEl,equipPreviewDelta}=await import('/src/ui/itemview.js');
+      const {makeDoll}=await import('/src/souls.js');
+      const {onHitEffects}=await import('/src/resistance.js');
+      const {sheet}=await import('/src/ui/kit.js');
+      const {it}=statusTest;
+      if(onHitEffects(it.onHit).length!==5)throw Error('5種類が反映されない');
+      if(equipPreviewDelta(makeDoll('比較'),it).onHit.to.length!==5)throw Error('装備比較から追加効果が欠落');
+      sheet.closeAll();document.body.appendChild(itemDetailEl(it));
+      for(const name of ['毒','麻痺','眠り','混乱','魅了'])if(!document.body.textContent.includes(name))throw Error('品の詳細にない '+name);
+      return {raw:__game.inf.saveJSON(),id:it.id,effects:JSON.stringify(onHitEffects(it.onHit))};
+    }''')
+    page.evaluate('(raw)=>localStorage.setItem("dos-save-v7",raw)', snapshot['raw'])
+    page.goto('http://localhost:8000/', wait_until='domcontentloaded')
+    page.wait_for_function('window.__game?.loadGame')
+    assert page.evaluate('''async expected=>{
+      const {onHitEffects}=await import('/src/resistance.js');
+      if(!__game.loadGame())throw Error('通常の保存読込に失敗');
+      const it=__game.G.inventory.find(it=>it.id===expected.id&&it.afx?.length===5);
+      return it&&JSON.stringify(onHitEffects(it.onHit))===expected.effects;
+    }''', snapshot), '通常の読込で5種類の追加効果を保持'
+    print('OK 固有の追加効果を持つ武器への5種類の付呪・実画面の5枠目・品の詳細/装備比較・通常の保存読込')
     assert not errors, errors
     browser.close()

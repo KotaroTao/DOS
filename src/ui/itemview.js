@@ -1,7 +1,7 @@
 import { revealSteps } from "../monsterreveal.js";
 import { MONSTER_LORE } from "../dungeons/monlore.js";
 import { previewStats, trialEquip, equipmentTraitTexts } from "../autoequip.js";
-import { RESIST_LABEL } from "../resistance.js";
+import { RESIST_LABEL, onHitEffects } from "../resistance.js";
 // ===== 品・スキルの表示まわり (game.js から移設した純粋な表示ヘルパ) =====
 // 状態を変えない。G が要るものは引数で受け取るか、ctx の game.G を読む。
 // 呼び出し側 (game.js・各パッケージ) は同じ名前のまま import して使う。
@@ -450,7 +450,7 @@ export function onHitShort(o) { return o && o.length ? o.map((x) => `${AIL_LABEL
 // 一覧の一行用 (statLines に添える)
 function ailStatParts(it, { res = true } = {}) {
   const out = [];
-  if (it.onHit && it.onHit.k) out.push(`${AIL_LABEL[it.onHit.k]}付与 ${Math.round(it.onHit.chance * 100)}%`);
+  for (const o of onHitEffects(it.onHit)) out.push(`${AIL_LABEL[o.k]}付与 ${pct(o.chance)}`);
   if (!res) return out;
   if (it.resists) out.push(Object.entries(it.resists).map(([k, v]) => `${RESIST_LABEL[k] || k}抵抗${v}`).join("・"));
   if (it.aRes) out.push(`抵抗値 ${Object.entries(it.aRes).map(([k, v]) => `${RESIST_LABEL[k] || k}${Math.round(v * 100)}`).join("・")}`);
@@ -461,10 +461,9 @@ function ailStatParts(it, { res = true } = {}) {
 export function ailDetailLines(it) {
   const L = [];
   if (!it) return L;
-  if (it.onHit && it.onHit.k) {
-    const o = it.onHit;
+  for (const o of onHitEffects(it.onHit)) {
     const tail = o.k === "poison" ? `（毎ターン最大HPの${Math.round((o.pct || 0.05) * 100)}%）` : o.k === "charm" ? "（敵が仲間を襲う）" : o.k === "confuse" ? "（敵が見境なく殴る）" : "";
-    L.push(`追加効果: 攻撃が当たると ${Math.round(o.chance * 100)}% で敵を${AIL_LABEL[o.k]}にする${tail}（物理技も同じ・主には効きにくい）`);
+    L.push(`追加効果: 攻撃が当たると ${pct(o.chance)} で敵を${AIL_LABEL[o.k]}にする${tail}（物理技も同じ・主には効きにくい）`);
   }
   if (it.resists) L.push(Object.entries(it.resists).map(([k, v]) => `${RESIST_LABEL[k] || k}抵抗値 +${v}`).join("・"));
   if (it.aRes) L.push(`状態異常抵抗値: ${Object.entries(it.aRes).map(([k, v]) => `${RESIST_LABEL[k] || k} +${Math.round(v * 100)}`).join("・")}（かかる確率を下げる）`);

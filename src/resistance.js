@@ -4,6 +4,17 @@ export const AIL_RESIST_KINDS = Object.keys(RESIST_LABEL).filter(k => !["physRes
 export const clampResist = v => Math.max(0, Math.min(100, Math.round(Number(v) || 0)));
 export const zeroResists = () => Object.fromEntries(Object.keys(RESIST_LABEL).map(k => [k, 0]));
 
+// 装備の追加効果は旧来の1件と複数件の両方を読む。同じ異常は最も高い発動率だけ。
+export function onHitEffects(value) {
+  const effects = {};
+  for (const o of Array.isArray(value) ? value : value ? [value] : []) {
+    if (!o?.k) continue;
+    const cur = effects[o.k];
+    if (!cur || o.chance > cur.chance || (o.chance === cur.chance && (o.pct || 0) > (cur.pct || 0))) effects[o.k] = o;
+  }
+  return Object.values(effects);
+}
+
 // ===== 敵の体質 (効きやすい・効きにくい状態異常) =====
 // 強さ (ランク・主/強敵) で上がる基礎値に、個体の台帳で指定した「効きやすい / 効きにくい」を重ねる。
 // 敵が強くなっても弱点の異常は効き続けるので、相手ごとに異常を使い分ける意味が出る (2026-10、ユーザーの指示)。

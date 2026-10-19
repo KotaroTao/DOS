@@ -244,7 +244,7 @@ export function renderEnchantList(wrap) {
   if (enchantPracticeState()) intro.appendChild(setText(el("div", "rf-intro-s"), "手ほどき中：商会の練習用の品を使います。所持品と金貨は変わりません。"));
   intro.appendChild(setText(el("div", "rf-intro-s"), enchantPracticeState()
     ? "特性の値の上限は、書く品のレア度で決まる。実際の費用は、書く品の買値と術の格・何枠目かで決まる。"
-    : "特性の値の上限は、書く品のレア度で決まる。極・発動する特性・属攻・属防・追加効果は、付呪では1つの品にそれぞれ1つまで。費用は書く品の買値と術の格・何枠目かで決まる。"));
+    : "特性の値の上限は、書く品のレア度で決まる。極・発動する特性・属攻・属防は、付呪では1つの品にそれぞれ1つまで。状態異常の追加効果は、枠の範囲で自由に組み合わせられる。費用は書く品の買値と術の格・何枠目かで決まる。"));
   wrap.appendChild(intro);
   const head = el("div", "wpc-lhead");
   head.appendChild(el("span", "wpc-lhead-t", "付呪"));

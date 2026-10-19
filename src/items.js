@@ -5,7 +5,7 @@ import { applyItemDepth } from "./itemdepth.js";
 import { equipPrice, equipScore, priceForScore } from "./pricing.js";
 import { applyNativeCritical, CRITICAL_KEYS, clampItemCritical } from "./equipmentcrit.js";
 import { prepareWeapon } from "./weaponpower.js";
-import { zeroResists, clampResist } from "./resistance.js";
+import { zeroResists, clampResist, onHitEffects } from "./resistance.js";
 // 武器・防具・アクセサリ・消耗品のカタログ (基本品)
 // 大量の一点物は src/catalog/ で定義され、game.js が ITEMS に統合する。
 // 各アイテムは art(24x24) + 共有パレット P で描く (形は src/catalog/defs.js の ARTS と同じ原型)。説明文・性能・職業制限つき。
@@ -23,7 +23,7 @@ import { zeroResists, clampResist } from "./resistance.js";
 // eAtk/eDef: 属性攻撃/属性防御 { el, lv } (lv1=◯ ±50%, lv2=◎ ±100%)
 // aRes: 状態異常耐性 { poison/paralyze/sleep/charm/confuse/stone: 付与率カット (0.25 = 25%) }。同じ種類は装備どうしで足し合い、上限 AIL_RES_CAP
 // bRes: ブレス耐性 (敵のブレスから受けるダメージのカット率 0.15 = 15%)。装備どうしで足し合い、上限 BREATH_RES_CAP (combat.js)
-// onHit: 武器などの追加効果 { k: poison/paralyze/sleep/charm/confuse, chance, pct? }。当てるだけで敵に状態異常を与える
+// onHit: 武器などの追加効果 { k: poison/paralyze/sleep/charm/confuse, chance, pct? } またはその配列。命中時に各種類を判定
 // scale: 武器の能力補正 { atk/agi/int/…: 係数 }。攻撃力 = Σ(参照能力値 × 武器の係数) (attackPower)。物理の攻撃・物理技はこの攻撃力で計算する
 // magic: 魔法属性の武器。通常攻撃 (と残心・連撃などの追撃) の威力は攻撃力のまま、物理耐性ではなく魔法耐性を受け、魔法弱点が効く
 // price: 装備の値段は起動時に性能から付け直す (src/pricing.js の repriceEquipment)。ここの値は道具・収集品にだけ効く
@@ -1572,9 +1572,9 @@ export function recalc(member) {
     br += it.bRes || 0;
     if (it.afxFx) gfx.push(...it.afxFx);
     if (it.afxMisc) for (const k in it.afxMisc) { const v = it.afxMisc[k]; gmisc[k] = typeof v === "boolean" ? (gmisc[k] || v) : (gmisc[k] || 0) + v; }
-    if (it.onHit && it.onHit.k) {
-      const cur = oh[it.onHit.k];
-      if (!cur || (it.onHit.chance || 0) > cur.chance) oh[it.onHit.k] = { k: it.onHit.k, chance: it.onHit.chance || 0, ...(it.onHit.pct ? { pct: it.onHit.pct } : {}) };
+    for (const effect of onHitEffects(it.onHit)) {
+      const cur = oh[effect.k];
+      if (!cur || (effect.chance || 0) > cur.chance || (effect.chance === cur.chance && (effect.pct || 0) > (cur.pct || 0))) oh[effect.k] = { ...effect };
     }
   }
   // 装備による増減は整数化 (増は切り上げ・減は切り下げ)。基礎値はそのまま。
