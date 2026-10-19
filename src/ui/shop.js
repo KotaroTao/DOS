@@ -474,6 +474,18 @@ function stockVariants(id) {
   if (game.shopPlainStock(id) > 0) out.push({ id, item: ITEMS[id], affixed: false });
   return out;
 }
+// 手ほどき後は、購入操作の下に写し取りを置く。通常品には写せる追加特性がない。
+function appendStockExtract(act, it, { shelf = false } = {}) {
+  if (!G().tut?.done?.enchant || !isEquippable(it) || it.unidentified || !UI.openShelfAffixExtract) return;
+  const why = shelf ? game.extractBlock?.({ it, shelf: true }) : "追加の能力・特性がない品";
+  const b = button({ label: "巻物にする", kind: "secondary", size: "sm", disabled: !!why,
+    onTap: () => UI.openShelfAffixExtract(it.id) });
+  b.classList.add("wpc-buy-scroll");
+  b.dataset.act = "buy-extract";
+  b.title = why || "買値を払って特性を1つ写し取る。元の品は消える";
+  act.classList.add("with-scroll");
+  act.appendChild(b);
+}
 // おすすめ: 選択した人業に役立つ品だけ。通常品と追加つきの在庫を別々に見立てる。
 function recList() {
   const out = [];
@@ -561,6 +573,7 @@ function stockRow(id) {
   // 選択した人業へ買って装備 (元に戻せる) / 装備でなければ袋へ
   main.addEventListener("click", () => { if (upgrade) equipPick(plan.target, it, { buyId: id }); else shopBuy(id, buyer, { equip: false }); });
   act.appendChild(main);
+  appendStockExtract(act, it);
   row.appendChild(act);
   return row;
 }
@@ -835,6 +848,7 @@ function afxStockRow(id, it) {
     if (got) { floatGold(price, "dn"); toast(`${got.afxPre || ""}${got.name}${got.afxMark || ""} を買った → ${buyer.name} の袋`, { tone: "gold", icon: got }); }
   });
   act.appendChild(main);
+  appendStockExtract(act, it, { shelf: true });
   row.appendChild(act);
   return row;
 }

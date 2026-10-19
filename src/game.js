@@ -16385,7 +16385,7 @@ function recordAffixHome(it) {
 
 // ---- 付呪 (追加の能力・特性つき装備の初持ち帰りで開く) ----
 // 無限迷宮で拾った品の追加の能力・特性を1つ選んで「特性の巻物」(G.afxPages) に写し取り (元の品は消える)、
-// 金貨を払って任意の装備に書き込む。書いた特性は消せる (巻物は戻らない)。街の商会でだけ
+// 手ほどき後の手元の品は街・迷宮で巻物に写せる。書き込み・消去・棚からの写し取りは街の商会でだけ。
 const ENCHANT_MIN_COST = 100;
 function afxPagesState() { if (!Array.isArray(G.afxPages)) G.afxPages = []; return G.afxPages; }
 // 品の持ち主と置き場所 ({ doll, key } — key = 装備の欄、袋の中なら doll = null・key = null)。持っていなければ null
@@ -16412,11 +16412,21 @@ function enchantSources() {
 }
 // 写し取れない理由 (写せれば null)。棚の品は買値を払って写す
 function extractBlock(src, { gold = true } = {}) {
-  const why = enchantClosed();
+  const anywhere = !src?.shelf && G.tut?.done?.enchant;
+  const why = anywhere ? null : enchantClosed();
   if (why) return why;
   if (!src || !src.it || !src.it.afx || !src.it.afx.length) return "追加の能力が無い品";
-  if (src.shelf) return gold && G.gold < buyPrice(src.it) ? "金貨が足りない" : null;
-  if (src.key) return "装備中の品は、外してから写し取る";
+  if (src.it.unidentified) return "未鑑定の品は、鑑定してから写し取る";
+  if (src.it.soulMemory) return "魂の記憶の品は写し取れない";
+  if (src.shelf) {
+    const live = shopAfxItem(src.it.id);
+    if (!live) return "その追加つきの品は売り切れた";
+    if (JSON.stringify(live.afx) !== JSON.stringify(src.it.afx) || (live.depth || 0) !== (src.it.depth || 0)) return "棚の品が変わった。選び直してください";
+    return gold && G.gold < buyPrice(live) ? "金貨が足りない" : null;
+  }
+  const holder = itemHolder(src.it);
+  if (!holder) return "手元にない品は写し取れない";
+  if (src.key || holder.key) return "装備中の品は、外してから写し取る";
   if (src.it.locked) return "ロック中の品は写し取れない";
   if (isFormationItem(src.it)) return "保存編成に登録した品は写し取れない";
   return null;

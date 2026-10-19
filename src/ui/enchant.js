@@ -76,7 +76,7 @@ function afxSummary(it) {
 }
 
 // ---------------------------------------------------------------- 特性の付いた品のシート (写し取る / 消す)
-function openSourceSheet(src, onDone) {
+function openSourceSheet(src, onDone, { extractOnly = false } = {}) {
   let h = null;
   const it = src.it;
   const body = (b) => {
@@ -97,14 +97,14 @@ function openSourceSheet(src, onDone) {
       const why = src.practice ? null : game.extractBlock ? game.extractBlock(src) : "写し取れない";
       const extract = button({ label: src.shelf ? "買い取って写し取る" : "写し取る", kind: "primary", size: "sm", disabled: !!why, onTap: () => doExtract(i) });
       extract.classList.add("ec-extract"); acts.appendChild(extract);
-      if (!src.shelf && !src.practice) acts.appendChild(button({ label: "消す", kind: "ghost", size: "sm", onTap: () => doErase(i) }));
+      if (!src.shelf && !src.practice && !extractOnly) acts.appendChild(button({ label: "消す", kind: "ghost", size: "sm", onTap: () => doErase(i) }));
       box.appendChild(acts);
       if (why) box.appendChild(el("div", "rf-block", why));
       list.appendChild(box);
     });
     b.appendChild(list);
     b.appendChild(setText(el("div", "rf-note"), "写し取ると、この品は崩れて消える。写せるのは1つの品から1つだけ。写した特性は「特性の巻物」になり、好きな装備に書き込める。"));
-    if (!src.shelf && !src.practice) b.appendChild(setText(el("div", "rf-note"), "「消す」はこの品から特性を消すだけで、巻物にはならない。"));
+    if (!src.shelf && !src.practice && !extractOnly) b.appendChild(setText(el("div", "rf-note"), "「消す」はこの品から特性を消すだけで、巻物にはならない。"));
   };
   async function doExtract(i) {
     const name = afxName(it.afx[i].k);
@@ -139,8 +139,29 @@ function openSourceSheet(src, onDone) {
     }
   }
   sfx("select");
-  h = sheet.open({ kind: "info", banner: "特性の付いた品", art: it, artScale: 6, body, className: "ec-sheet", footer: [{ label: "閉じる", kind: "ghost", onTap: (x) => x.close() }] });
+  h = sheet.open({ kind: "info", banner: extractOnly ? "巻物にする" : "特性の付いた品", art: it, artScale: 6, body, className: "ec-sheet", footer: [{ label: "閉じる", kind: "ghost", onTap: (x) => x.close() }] });
   return h;
+}
+
+// 品の詳細からの写し取り。商会の棚や練習用の品は扱わない。
+export function openAffixExtract(it, onDone) {
+  if (!G().tut?.done?.enchant) return null;
+  const holder = game.itemHolder?.(it);
+  const src = { it, ...holder, shelf: false };
+  const why = game.extractBlock?.(src) || (!holder ? "手元にない品は写し取れない" : null);
+  if (why) { toast(why, { tone: "info", noLog: true }); return null; }
+  return openSourceSheet(src, onDone, { extractOnly: true });
+}
+
+// 買う一覧から、棚の追加つき1点を購入と同時に巻物へ写す。
+export function openShelfAffixExtract(id, onDone) {
+  if (!G().tut?.done?.enchant) return null;
+  const it = game.shopAfxItem?.(id);
+  if (!it) { toast("その追加つきの品は売り切れた", { tone: "info", noLog: true }); return null; }
+  const src = { it, doll: null, key: null, shelf: true };
+  const why = game.extractBlock?.(src);
+  if (why) { toast(why, { tone: "info", noLog: true }); return null; }
+  return openSourceSheet(src, onDone, { extractOnly: true });
 }
 
 // ---------------------------------------------------------------- 特性の巻物 → 書き込む品を選ぶ
@@ -279,5 +300,5 @@ export function renderEnchantList(wrap) {
 }
 
 export function install() {
-  registerUI({ renderEnchantList, prepareEnchantTutorial, enchantPracticeState });
+  registerUI({ renderEnchantList, prepareEnchantTutorial, enchantPracticeState, openAffixExtract, openShelfAffixExtract });
 }
