@@ -205,6 +205,28 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 
 ---
 
+
+#### 王宮内部の基準イラスト (2026-10-19 ユーザー依頼)
+
+人物のシート形式ではなく、同じ無人の玉座の間を5方向から描く。各画像は独立した1536×1024の一枚絵。制作後は王宮関連の絵の建築・材質・家具の基準として使う。本文にある人物・時刻・空・杯の位置は各場面に従い、基準画像の無人・夜景をそのまま強制しない。回廊・倉庫は別室とし、玉座や赤い通路を移植しない。
+
+| シート | 中身 (この英語の指示をそのまま使う) | 元にする絵 |
+|---|---|---|
+| palace-front.png | Camera at eye level on the central aisle, looking straight toward the throne, symmetrical wide establishing view. Show the entire dais, throne, smaller chancellor chair on the east side, paired windows and red banners, foreground carpet and side columns. | `docs/art/town/palace.png`、`art/story-review/chapter3/report_w12.png` |
+| palace-left.png | Move the camera to the southwest (entrance-left) side of the SAME room, looking northeast toward the throne in a clearly oblique three-quarter view. The west columns frame the left foreground, the carpet runs diagonally toward the distant dais. Show the throne and the smaller chair on its east side. Preserve all architecture and furniture, change only camera position. | `docs/art/story-refs/palace-front.png` |
+| palace-right.png | Move the camera to the southeast (entrance-right) side of the SAME room, looking northwest toward the throne in an opposite oblique three-quarter view. The east columns frame the right foreground. CRITICAL composition: the red carpet enters at the BOTTOM RIGHT CORNER and recedes diagonally UP AND LEFT toward the throne in the LEFT HALF of the image. View the east-facing right sides of the chairs and the east edge of the dais; the small chancellor chair on the east side is nearer the camera than the throne. The left front leg of the dais is more distant. This is the opposite camera position to an entrance-left view. Do not mirror the reference. Preserve all architecture and furniture, change only camera position. | `docs/art/story-refs/palace-front.png` |
+| palace-reverse.png | Reverse view from the north dais beside and just behind the throne, looking south along the SAME red carpet toward the closed dark oak main double doors with black iron and gold fittings. Show the carved back of the throne at the right foreground, the smaller chancellor chair on the left foreground (east), the hall stretching away, paired side colonnades and the entrance gallery. No second throne at the far end. Preserve the furniture and room geometry. | `docs/art/story-refs/palace-front.png` |
+| palace-high.png | High oblique architectural view from the southwest entrance gallery, looking down northeast into the SAME room, wide enough to understand the rectangular floor plan, central red carpet, north dais with throne and smaller chair on its east side, both colonnades, and clear circulation. This is a believable interior balcony camera, not a cutaway, not an isometric diagram. Preserve every furniture position and the room proportions. | `docs/art/story-refs/palace-front.png` |
+
+### 2-5. 王宮内部の共通指示
+
+方角は制作時の位置合わせ用。北が玉座、南が入口。原画の画面内には文字を入れない。中立の照明見本は既存王宮の夜景に揃える。既存の王宮の材質・金の彫刻・赤い布を引き継ぎ、人物を省いた空間基準にする。
+
+```text
+Environment reference illustration of ONE consistent unoccupied royal throne room in Dungeon of Souls. Not a character sheet. No people, no dolls, no human silhouettes, no text, labels, inset panels or borders. Keep the attached palace's exact lavish fine-grained pixel-textured dark fantasy style, grey gothic carved stone, clustered columns, ribbed pointed vaults, dry polished charcoal-black stone floor with restrained amber reflections, black iron and restrained intricate aged-gold ornament, deep burgundy velvet with gold embroidery. This is a maintained inhabited palace, not a ruin and not a frozen dungeon; no ice, snow, frost, overgrowth or debris. Fixed layout: rectangular hall; north end has one broad low dais reached by five shallow steps, one central tall pointed black-and-gold throne with burgundy upholstery, a single smaller lower-backed black-and-gold chancellor chair on its east side (right when facing the throne from the entrance), and one small round black-and-gold side table near the throne. No goblet or map table in this neutral reference. A single straight gold-edged burgundy runner goes from the south entrance up the center of the steps to the throne. A tall clear pointed lancet window stands on each side of the throne, with a long burgundy gold-embroidered banner outward of each window. Matching candle stands flank the dais and clustered stone columns line both side aisles. South end has one closed dark oak double entrance door with black iron and gold fittings and a modest stone gallery above it. Soft cool blue moonlit night outside and warm amber candles inside, balanced so the carvings and floor plan remain readable. Night is only the neutral reference lighting: later narrative scenes must follow their own time and sky. Keep all structural positions identical across the five camera views. No religious crosses, new royal logos, magical flames or extra thrones.
+```
+
+
 ## 3. 便1 ― 既存の絵の修正
 
 2026-10-13 序章変更に伴うユーザー指定の描き直し（4枚・済）:
@@ -702,7 +724,7 @@ At the deepest end of a quiet stone corridor, the apprentice and exactly five ad
 いまは第5〜8章の挿絵がコードで描いた小さな仮の絵なので、承認済みの章と同じ画風の原画に置き換える。
 
 - 本文は場面IDで引く: ストーリー一覧 = `src/archive-stories.js` の `scene("<場面ID>", ...)`、ゲーム内 = `src/story.js` (手がかり `STORY_CELLS.<場面ID>`、報告 `REPORTS.w18` = report_w18、主の記憶 `BOSS_MEMORIES.w21` = mem_w21、館の語り `IRENE_BEATS` の id、章の結び `CHAPTER_END[5]` = ch5_end)。**両方を読んで、両方に合う一枚にする。**
-- 参照画像: `docs/art/story-refs/` の基準シート (2-4) に加え、玉座の間は `chapter3/report_w12.png`、館は `chapter2/irene_roots.png`・`chapter1/irene_familiar.png` を渡す。
+- 参照画像: `docs/art/story-refs/` の基準シート (2-4) に加え、玉座の間は `docs/art/story-refs/palace-front.png` と必要なアングル (2-5)、館は `chapter2/irene_roots.png`・`chapter1/irene_familiar.png` を渡す。
 - 人物の背景・迷宮の場面には、弟子と隊の人業 (2〜4体) を入れてよい。セラは第五章から隊にいることがある (入れるなら正典の姿)。
 - 報告の場面 (report_*) は、玉座の間・王・空いた宰相の席・弟子 (後ろ姿) が基本。窓の外は 2-3 の時の流れに従う。
 

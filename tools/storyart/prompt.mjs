@@ -56,7 +56,10 @@ function refsFor({ text, kind = "", id = "", chapter = 0, master = null }) {
     for (const p of refs) add(p, `基準: ${name}`);
     if (name === "sera") add(SERA_REF, "セラの原画 (必ず)");
   }
-  if (/報告/.test(kind) || id.startsWith("report_")) add(THRONE, "玉座の間の造り");
+  if (/報告/.test(kind) || id.startsWith("report_") || /royal palace|throne room|audience chamber/i.test(text)) {
+    const palace = "docs/art/story-refs/palace-front.png";
+    add(exists(palace) ? palace : THRONE, "王宮内部の基準 (別室では材質・装飾だけを参照)");
+  }
   if (/館の語り/.test(kind) || /mansion/i.test(text)) for (const p of MANSION) add(p, "館の造り");
   return { refs: out, note };
 }
@@ -87,7 +90,7 @@ export function promptFor(id, { fix = null } = {}) {
     for (const p of sh.sources) r.refs.push({ path: p, why: "元にする絵", ok: exists(p) });
     return [`# 基準シート ${sh.name}.png (便0)`, `## 保存先\n- \`${sh.file}\` (出荷しない・登録しない)`,
       `## 参照画像\n${refList(r)}`, `## 中身\n${sh.content}`,
-      "## 画像生成に貼る英語の指示\n```text\n" + [brief.style, brief.sheet, "(Then describe the subject in English from 2-1 / 2-2 of the brief.)"].join("\n") + "\n```"].join("\n\n");
+      "## 画像生成に貼る英語の指示\n```text\n" + (sh.name.startsWith("palace-") ? [brief.style, brief.palace, sh.content] : [brief.style, brief.sheet, "(Then describe the subject in English from 2-1 / 2-2 of the brief.)"]).join("\n") + "\n```"].join("\n\n");
   }
   const p = scenePaths(id);
   if (!p) throw new Error(`場面「${id}」は src/archive-stories.js にも迷宮の由来にも無い`);

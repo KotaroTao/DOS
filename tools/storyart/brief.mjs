@@ -52,6 +52,7 @@ export function readBrief(src = readFileSync(ROOT + BRIEF, "utf8")) {
   const textIn = (head) => { const [a] = section(L, head); return a < 0 ? null : block(L, a + 1)?.text; };
   const brief = {
     style: textIn("### 1-1."),              // 全便共通の前置き
+    palace: textIn("### 2-5."),             // 王宮内部の共通指示
     sheet: textIn("### 2-4."),              // 基準シートの前置き
     fixLead: (L.join("\n").match(/`(Edit the attached illustration\.[^`]+)`/) || [])[1] || "",
     scenes: {}, fixes: [], sheets: {}, lore: {},
