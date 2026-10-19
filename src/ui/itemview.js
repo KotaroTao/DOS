@@ -246,7 +246,7 @@ export function revealLock(need, what, cls = "") {
 }
 
 // スキルの効果をくわしい行に展開する
-const pct = (v) => `${Math.round(v * 100)}%`;
+const pct = (v) => `${Math.round(v * 10000) / 100}%`;
 // 技名の下の短い説明。命+は命中率への直接加算を表す。
 export function skillDescription(sp) {
   if (!sp) return "";
@@ -446,7 +446,7 @@ export function skillChips(keys, label) {
 const AIL_SHORT = { poison: "毒", paralyze: "痺", sleep: "眠", charm: "魅", confuse: "乱", stone: "石" };
 // 短い表記: 「魅30・乱30」 / 「痺15%」
 export function ailResShort(r) { return r ? Object.entries(r).map(([k, v]) => `${AIL_SHORT[k] || k}${Math.round(v * 100)}`).join("・") : "—"; }
-export function onHitShort(o) { return o && o.length ? o.map((x) => `${AIL_LABEL[x.k] || x.k}${Math.round(x.chance * 1000) / 10}%${x.k === "poison" ? `（毎ターンHP${Math.round((x.pct || 0.05) * 1000) / 10}%）` : ""}`).join("・") : "—"; }
+export function onHitShort(o) { return o && o.length ? o.map((x) => `${AIL_LABEL[x.k] || x.k}${pct(x.chance)}${x.k === "poison" ? `（毎ターンHP${Math.round((x.pct || 0.05) * 1000) / 10}%）` : ""}`).join("・") : "—"; }
 // 一覧の一行用 (statLines に添える)
 function ailStatParts(it, { res = true } = {}) {
   const out = [];
@@ -639,10 +639,10 @@ export function statLines(it) {
   f("STR", it.atk); f("VIT", it.vit); f("AGI", it.agi);
   f("INT", it.int); f("PIE", it.pie); f("LUK", it.luk);
   f("HP", it.hp); f("MP", it.mp);
-  if (it.crit) parts.push(`会心 +${Math.round(it.crit * 1000) / 10}%`);
-  if (it.critDamage) parts.push(`会心ダメージ +${Math.round(it.critDamage * 1000) / 10}%`);
-  if (it.spellCrit) parts.push(`魔法会心 +${Math.round(it.spellCrit * 1000) / 10}%`);
-  if (it.spellCritDamage) parts.push(`魔法会心ダメージ +${Math.round(it.spellCritDamage * 1000) / 10}%`);
+  if (it.crit) parts.push(`会心 +${pct(it.crit)}`);
+  if (it.critDamage) parts.push(`会心ダメージ +${pct(it.critDamage)}`);
+  if (it.spellCrit) parts.push(`魔法会心 +${pct(it.spellCrit)}`);
+  if (it.spellCritDamage) parts.push(`魔法会心ダメージ +${pct(it.spellCritDamage)}`);
   if (it.depth) parts.push(`無限迷宮 B${it.depth}F`);
   if (it.scale) parts.push(`参照 ${Object.keys(it.scale).map(k => ATTR_LABEL[k]).join("・")}`);
   if (it.magic) parts.push("魔法属性");
@@ -692,16 +692,16 @@ export function equipPreviewDelta(p, cand, slotKey = null) {
     luk: fake.luk - p.luk,
     hp: fake.maxhp - p.maxhp,
     mp: fake.maxmp - p.maxmp,
-    crit: Math.round(((fake.critBonus || 0) - (p.critBonus || 0)) * 1000) / 10,
-    critDamage: Math.round(((fake.critDamageBonus || 0) - (p.critDamageBonus || 0)) * 1000) / 10,
-    spellCrit: Math.round(((fake.spellCritBonus || 0) - (p.spellCritBonus || 0)) * 1000) / 10,
-    spellCritDamage: Math.round(((fake.spellCritDamageBonus || 0) - (p.spellCritDamageBonus || 0)) * 1000) / 10,
+    crit: Math.round(((fake.critBonus || 0) - (p.critBonus || 0)) * 10000) / 100,
+    critDamage: Math.round(((fake.critDamageBonus || 0) - (p.critDamageBonus || 0)) * 10000) / 100,
+    spellCrit: Math.round(((fake.spellCritBonus || 0) - (p.spellCritBonus || 0)) * 10000) / 100,
+    spellCritDamage: Math.round(((fake.spellCritDamageBonus || 0) - (p.spellCritDamageBonus || 0)) * 10000) / 100,
     elemAtk: { from: p.elemAtk, to: fake.elemAtk },
     elemDef: { from: p.elemDef, to: fake.elemDef },
     physResist: (fake.physResist || 0) - (p.physResist || 0),
     magResist: (fake.magResist || 0) - (p.magResist || 0),
     ailRes: { from: p.ailRes || null, to: fake.ailRes || null },
-    breathRes: Math.round(((fake.breathRes || 0) - (p.breathRes || 0)) * 100),
+    breathRes: Math.round(((fake.breathRes || 0) - (p.breathRes || 0)) * 10000) / 100,
     onHit: { from: p.onHit || null, to: fake.onHit || null },
     eff: { from: p.eff || null, to: fake.eff || null },
     traits: { from: equipmentTraitTexts(p.equip), to: equipmentTraitTexts(eq) },
@@ -984,10 +984,10 @@ export function detailLines(it) {
     f("STR", it.atk); f("VIT", it.vit); f("AGI", it.agi);
     f("INT", it.int); f("PIE", it.pie); f("LUK", it.luk);
     f("HP", it.hp); f("MP", it.mp);
-    if (it.crit) mod.push(`会心+${Math.round(it.crit * 1000) / 10}%`);
-    if (it.critDamage) mod.push(`会心ダメージ+${Math.round(it.critDamage * 1000) / 10}%`);
-    if (it.spellCrit) mod.push(`魔法会心+${Math.round(it.spellCrit * 1000) / 10}%`);
-    if (it.spellCritDamage) mod.push(`魔法会心ダメージ+${Math.round(it.spellCritDamage * 1000) / 10}%`);
+    if (it.crit) mod.push(`会心+${pct(it.crit)}`);
+    if (it.critDamage) mod.push(`会心ダメージ+${pct(it.critDamage)}`);
+    if (it.spellCrit) mod.push(`魔法会心+${pct(it.spellCrit)}`);
+    if (it.spellCritDamage) mod.push(`魔法会心ダメージ+${pct(it.spellCritDamage)}`);
     if (it.depth) L.push(`無限迷宮 B${it.depth}Fで得た品`);
     if (mod.length) L.push(mod.join(" / "));
     for (const ln of effDetailLines(it)) L.push(ln);

@@ -1,6 +1,6 @@
 // 全176特性×5レア度の共通下限・段階上限、ドロップ・付呪を確認。
 import assert from 'node:assert/strict';
-import { AFX, afxDef, affixRange, AFFIX_RARITY_MAX, afxBase, rollAffixes, applyAffixes, pageFromAffix, pageValue, pageText, enchantBlock, ENCHANT_SLOTS, gearPerks } from '../../src/infaffix.js';
+import { AFX, afxDef, affixRange, affixRateScale, AFFIX_RARITY_MAX, afxBase, rollAffixes, applyAffixes, pageFromAffix, pageValue, pageText, enchantBlock, ENCHANT_SLOTS, gearPerks } from '../../src/infaffix.js';
 import { RARITY_KEYS } from '../../src/rarity.js';
 import { ITEMS, registerAffixes, itemAtQuality } from '../../src/items.js';
 import { CATALOG_ITEMS } from '../../src/catalog/index.js';
@@ -45,7 +45,7 @@ assert.equal(enchantBlock(over,{k:'A04',r:.25},'r'),null,'既存の能力値の�
 const deep={lv:200,depth:1000,rar:'lr',name:'深いLR'},shallow={lv:200,rar:'c',name:'C'};
 for(const [k,v] of [['A09',.10],['A10',.60],['J12',.10],['F01',.24]]){
  const page=pageFromAffix(deep,{k,v});near(pageValue(page,shallow),affixRange(k,shallow)[1]);
- const weak=pageFromAffix(shallow,{k,v:afxDef(k).r[0]});near(pageValue(weak,deep),afxDef(k).r[0]);
+ const weak=pageFromAffix(shallow,{k,v:afxDef(k).r[0]});near(pageValue(weak,deep),afxDef(k).r[0]*affixRateScale(k,shallow));
 }
 const strong=pageFromAffix(deep,{k:'A03',v:afxBase(deep)*.5});near(pageValue(strong,shallow),19);
 near(pageValue(strong,{...deep,rar:'c'}),Math.round(afxBase(deep)*.25*100)/100);

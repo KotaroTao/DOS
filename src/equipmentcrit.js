@@ -11,7 +11,7 @@ export const CRITICAL_BANDS = {
 };
 export function clampItemCritical(it) {
   for (const k of CRITICAL_KEYS) if (typeof it[k] === "number") {
-    it[k] = Math.round(Math.max(0, Math.min(ITEM_CRITICAL_CAP[k], it[k])) * 1000) / 1000;
+    it[k] = Math.round(Math.max(0, Math.min(ITEM_CRITICAL_CAP[k], it[k])) * 10000) / 10000;
   }
   return it;
 }
@@ -49,6 +49,8 @@ export function criticalProfile(it) {
 }
 export function applyNativeCritical(it) {
   if (!it || !["weapon", "body", "shield", "head", "hands", "feet", "acc"].includes(it.slot)) return it;
+  // 固有の会心値を持つ品も、品質・追加特性・品1点の上限は通常どおり扱う。
+  if (it.nativeCriticalFixed) return clampItemCritical(it);
   const band = CRITICAL_BANDS[rarityKey(it) || "c"];
   const progress = Math.max(0, Math.min(1, ((it.lv || 1) - 1) / 199));
   const profile = criticalProfile(it);

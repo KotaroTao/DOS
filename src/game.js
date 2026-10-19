@@ -18649,7 +18649,7 @@ function clearSave() {
 // 個体ごとの状態 (未鑑定・鑑定失敗の印など) は残す。旧セーブの装備も新しいレア度と絵になる
 const ITEM_STAT_KEYS = ["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp", "crit", "critDamage", "spellCrit", "spellCritDamage"];
 const ITEM_TMPL_KEYS = ["name", "desc", "slot", "lv", "rank", "r20", "rar", "lr", "forJob", "exclusive", "classes", "cat",
-  "twoHanded", "sk", "weight", "price", "art", "palette", "eAtk", "eDef", "aRes", "bRes", "resists", "onHit", "scale", "weaponProfile", "weaponRating", "magic", "mult", "eff", "align", "cursed", "hit", "dice", "swings"];
+  "twoHanded", "sk", "weight", "price", "art", "palette", "eAtk", "eDef", "aRes", "bRes", "resists", "onHit", "scale", "weaponProfile", "weaponRating", "nativeCriticalFixed", "magic", "mult", "eff", "align", "cursed", "hit", "dice", "swings"];
 // 品1つを目録の値に写し直し、品質と＋N の段を掛け直す (読み込み・鍛え直しで品質を変えた時)
 function resyncItem(it) {
   const tmpl = it && ITEMS[it.id];
