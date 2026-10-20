@@ -925,7 +925,10 @@ export function install() {
     renderShopInto: (root) => render(root),
   });
   if (UI.shell && UI.shell.registerTab) {
-    UI.shell.registerTab("shop", { render: (root) => { render(root); UI.tutorialShopVisited?.(); }, title: "黒鉄商会" });
+    UI.shell.registerTab("shop", { render: (root) => { render(root); UI.tutorialShopVisited?.(); }, title: "黒鉄商会", onLeave: () => {
+      setPref(SHOP_FILTER, {});
+      setPref("enchantFilter", {});
+    } });
   }
   // 画面の大きさが変わればページの切り方も変わる (商会を開いている時だけ描き直す)
   if (typeof addEventListener === "function") {
