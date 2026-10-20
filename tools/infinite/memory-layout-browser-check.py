@@ -11,7 +11,7 @@ with sync_playwright() as p:
     page = browser.new_page(viewport={'width': 390, 'height': 844})
     errors = []
     page.on('pageerror', lambda e: errors.append(str(e)))
-    page.goto('http://localhost:8000/?testDungeon=w02&testPlace=town&testUnlock=infinite,forge')
+    page.goto('http://localhost:8000/?testDungeon=w46&testPlace=town&testUnlock=infinite,forge')
     page.wait_for_function('window.__game?.G.party.length > 0')
     print(page.evaluate('''async () => {
       const {game}=await import('/src/ui/ctx.js');
@@ -22,6 +22,7 @@ with sync_playwright() as p:
       const {memoryChanges}=await import('/src/ui/infmemory.js');
       const {refSerialize,refDeserialize}=await import('/src/savegraph.js');
       const G=__game.G,inf=__game.inf,out=[];
+      G.insightNotified=Number.MAX_SAFE_INTEGER; // 比較画面の検査に見識の祝祭を挟まない。
       const check=(ok,msg)=>{if(!ok)throw Error(msg);out.push(msg);};
       sheet.closeAll();G.prompt=false;
       check(inf.enterAbyss(['fighter','knight','thief','priest','mage','hunter']),'比較用の隊で出撃');

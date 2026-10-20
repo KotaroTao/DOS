@@ -6,7 +6,7 @@ with sync_playwright() as p:
     page = browser.new_page(viewport={'width': 390, 'height': 844})
     errors = []
     page.on('pageerror', lambda e: errors.append(str(e)))
-    page.goto('http://localhost:8000/?testDungeon=w02&testPlace=town&testUnlock=infinite,forge')
+    page.goto('http://localhost:8000/?testDungeon=w46&testPlace=town&testUnlock=infinite,forge')
     page.wait_for_function('window.__game?.G.party.length > 0')
     print(page.evaluate('''async () => {
       const {game, UI}=await import('/src/ui/ctx.js');
