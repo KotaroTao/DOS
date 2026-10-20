@@ -21,7 +21,7 @@ import { UI, game, ops, registerUI } from "./ctx.js";
 import { el, sheet, button, setText, portrait, segmented, toast, confirm as kitConfirm } from "./kit.js";
 import { ELEMENTS } from "../dungeons/index.js";
 import { iconCanvas } from "../townart.js";
-import { drawDungeonVista } from "../backdrops.js";
+import { drawDungeonVista, FORGE_VISTA_IDS } from "../backdrops.js";
 import { CHAPTERS } from "../story.js";
 import { LORE_IMAGES } from "../storyimages.js";
 import { BATTLE_BACKGROUNDS } from "../battlebackgrounds.js";
@@ -97,7 +97,9 @@ function vistaIllustration(dn) {
   vistaLoop++;
   const vista = { id: dn.id, node: null };
   cur.vista = vista;
-  // 全迷宮で専用のWebP原画を使う。序章は入口の絵を保ち、由来の結末を見せない。
+  // 溶鉄炉の6迷宮は、炉火や蒸気が動く専用のドット絵。
+  if (FORGE_VISTA_IDS.includes(dn.id)) return (vista.node = vistaCanvas(dn));
+  // ほかの迷宮は専用のWebP原画。序章は入口の絵を保ち、由来の結末を見せない。
   const path = dn.id === "w00_forest" ? "art/dungeon/w00_forest-entrance.webp" : LORE_IMAGES[dn.id] || BATTLE_BACKGROUNDS[dn.id];
   if (!path) return (vista.node = vistaCanvas(dn));
   const img = document.createElement("img");
@@ -118,6 +120,8 @@ function vistaCanvas(dn) {
   const cv = document.createElement("canvas");
   cv.width = VISTA_W; cv.height = VISTA_H;
   cv.className = "dp-vista-cv";
+  cv.setAttribute("role", "img");
+  cv.setAttribute("aria-label", `${dn.name}の情景`);
   const ctx = cv.getContext("2d");
   const now = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
   const draw = () => { try { drawDungeonVista(ctx, VISTA_W, VISTA_H, dn, now()); } catch (e) { /* 演出のみ */ } };
