@@ -96,14 +96,27 @@ for(let lv=0;lv<=3;lv++) {
 // 勅令: 強制行動になる手番だけ解除し、同じ手番に通常の入力ができる。最高Lvの共有回数。
 for(let lv=1;lv<=2;lv++) {
   const c=member({cardinalIgen:lv}), lower=member({cardinalIgen:1}), a=member(), b=new Battle([c,lower,a],[foe()],()=>{});
-  for(let n=0;n<lv;n++) {
-    a.mind=n%2?'confuse':'charm'; b._holdAil(a,'mind'); b.queue=[a]; b.advance();
-    assert.equal(b.phase,'input'); assert.equal(a.mind,null); assert.equal(b._mindPardonUsed,n+1);
-    assert.equal(b._exec({actor:a,action:'defend'}).action,'defend'); assert(a._defending);
+  b._startRound();
+  for(let round=1;round<=3;round++) {
+    assert.equal(b._mindPardonUsed,0);
+    for(let n=0;n<lv;n++) {
+      a.mind=n%2?'confuse':'charm'; b._holdAil(a,'mind'); b.queue=[a]; b.advance();
+      assert.equal(b.phase,'input'); assert.equal(a.mind,null); assert.equal(b._mindPardonUsed,n+1);
+      assert.equal(b._exec({actor:a,action:'defend'}).action,'defend'); assert(a._defending);
+      // ターン途中の保存復元でも、すでに使った回数を維持する。
+      const copy=Object.assign(Object.create(Battle.prototype),refDeserialize(refSerialize(b))); copy.log=()=>{};
+      assert.equal(copy._mindPardonUsed,n+1);
+      const savedActor=copy.party[2]; savedActor.mind='charm'; copy._holdAil(savedActor,'mind');
+      assert.equal(copy._mindCheck(savedActor),n+1<lv?'free':'auto');
+      assert.equal(copy._mindPardonUsed,Math.min(n+2,lv));
+      copy._startRound(); assert.equal(copy._mindPardonUsed,0);
+      savedActor.mind='charm'; copy._holdAil(savedActor,'mind');
+      assert.equal(copy._mindCheck(savedActor),'free'); assert.equal(copy._mindPardonUsed,1);
+    }
+    a.mind='charm'; b._holdAil(a,'mind'); b.queue=[a]; b.advance();
+    assert.equal(b.phase,'stunned'); assert.equal(a.mind,'charm'); assert.equal(b._mindPardonUsed,lv);
+    b._startRound();
   }
-  a.mind='charm'; b._holdAil(a,'mind'); b.queue=[a]; b.advance(); assert.equal(b.phase,'stunned'); assert.equal(a.mind,'charm');
-  const copy=Object.assign(Object.create(Battle.prototype),refDeserialize(refSerialize(b))); copy.log=()=>{};
-  assert.equal(copy._mindPardonUsed,lv);
   // 新しい戦闘では回数を戻す。
   const d=new Battle([c,lower,a],[foe()],()=>{}); assert.equal(d._mindPardonUsed,0);
 }

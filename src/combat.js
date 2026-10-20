@@ -1656,6 +1656,7 @@ export class Battle {
   // 第1ターンは先制/奇襲なら片側のみが行動する
   _startRound() {
     this._roundNo++;
+    this._mindPardonUsed = 0; // 赦しの勅令: 隊で共有する回数を毎ターン戻す
     for (const a of [...this.party, ...this.enemies]) a._actedRound = -1; // 先の太刀: 毎ターン、未行動に戻す
     this._comboTgt = null; this._comboActor = null; // 連携の (極): ターンごとに数え直す
     if (this._roundNo > 1) this._tickEffects(); // 2ターン目以降、強化/弱体の持続を消化
