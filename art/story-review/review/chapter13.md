@@ -5,9 +5,9 @@
 
 <a name="w50_orders"></a>
 
-## w50_orders「器を待つ名」 ── 未着手 (指示あり)
+## w50_orders「器を待つ名」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter13/w50_orders.webp" width="576" alt="w50_orders">
 
 **ストーリー一覧の本文**
 
@@ -41,9 +41,9 @@ _(絵はまだ無い)_
 
 <a name="w51_mould"></a>
 
-## w51_mould「型の外の手」 ── 未着手 (指示あり)
+## w51_mould「型の外の手」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter13/w51_mould.webp" width="576" alt="w51_mould">
 
 **ストーリー一覧の本文**
 
@@ -75,9 +75,9 @@ _(絵はまだ無い)_
 
 <a name="w52_bell"></a>
 
-## w52_bell「今日は、休む」 ── 未着手 (指示あり)
+## w52_bell「今日は、休む」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter13/w52_bell.webp" width="576" alt="w52_bell">
 
 **ストーリー一覧の本文**
 
@@ -109,9 +109,9 @@ _(絵はまだ無い)_
 
 <a name="report_w50"></a>
 
-## report_w50「王の数え方」 ── 未着手 (指示あり)
+## report_w50「王の数え方」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter13/report_w50.webp" width="576" alt="report_w50">
 
 **ストーリー一覧の本文**
 
@@ -137,9 +137,9 @@ _(絵はまだ無い)_
 
 <a name="report_w51"></a>
 
-## report_w51「誰のための器」 ── 未着手 (指示あり)
+## report_w51「誰のための器」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter13/report_w51.webp" width="576" alt="report_w51">
 
 **ストーリー一覧の本文**
 
@@ -167,9 +167,9 @@ _(絵はまだ無い)_
 
 <a name="report_w52"></a>
 
-## report_w52「座った侍従」 ── 未着手 (指示あり)
+## report_w52「座った侍従」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter13/report_w52.webp" width="576" alt="report_w52">
 
 **ストーリー一覧の本文**
 
@@ -199,9 +199,9 @@ _(絵はまだ無い)_
 
 <a name="report_w53"></a>
 
-## report_w53「聞こえない声」 ── 未着手 (指示あり)
+## report_w53「聞こえない声」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter13/report_w53.webp" width="576" alt="report_w53">
 
 **ストーリー一覧の本文**
 

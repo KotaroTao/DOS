@@ -25,7 +25,7 @@ function textGroup(text) {
 export function gearEffectOptions(it) {
   if (!it || it.unidentified || !isEquippable(it)) return [];
   const out = [];
-  const add = (key, label, group, description = label) => out.push({ key, label, group, description });
+  const add = (key, label, group, description = label, detail = description) => out.push({ key, label, group, description, detail });
   for (const [k, v] of Object.entries(it.eff || {})) {
     if (!v) continue;
     const info = EFF_INFO[k];
@@ -42,7 +42,7 @@ export function gearEffectOptions(it) {
   if (it.magic) add("magic", "魔法属性（通常攻撃）", "attack", "通常攻撃で魔法ダメージを与える。魔法攻撃として敵の魔法耐性・魔法弱点で判定する。物理技は物理のまま。");
   if (it.crit > 0) add("crit", "会心率", "attack", "会心率（クリティカル）を上げる");
   // 追加特性は表示台帳と同じIDで選ぶ。値の違う同じ特性は一つの候補。
-  for (const a of it.afxText || []) add(`afx:${a.k || a.name}`, `追加：${a.name.replace(/の$/, "")}`, textGroup(a.text), `${a.name} ${a.text}`);
+  for (const a of it.afxText || []) add(`afx:${a.k || a.name}`, `追加：${a.name.replace(/の$/, "")}`, textGroup(a.text), `${a.name} ${a.text}`, a.text);
   return out;
 }
 export function matchesGearFilter(it, f = gearFilter()) {
@@ -60,12 +60,19 @@ function elementLabel(key) {
 function effectCatalog(items) {
   const map = new Map();
   for (const it of items) for (const o of gearEffectOptions(it)) {
-    const prev = map.get(o.key);
-    if (prev) prev.description += ` ${o.description}`;
-    else map.set(o.key, { ...o });
+    let entry = map.get(o.key);
+    if (!entry) { entry = { ...o, descriptions: new Set(), details: new Set() }; map.set(o.key, entry); }
+    entry.descriptions.add(o.description);
+    if (o.detail && o.detail !== o.label) entry.details.add(o.detail);
   }
-  return [...map.values()].sort((a, b) => a.label.localeCompare(b.label, "ja"));
+  return [...map.values()].map(({ descriptions, details, ...o }) => ({
+    ...o,
+    // 検索は全例を対象にし、表示は同じ説明を重ねず最大3例まで。
+    description: [...descriptions].join(" "),
+    detail: [...details].slice(0, 3).join(" ／ ") + (details.size > 3 ? `（ほか${details.size - 3}例）` : ""),
+  })).sort((a, b) => a.label.localeCompare(b.label, "ja"));
 }
+
 export function gearFilterSummary(items, onChange, prefKey = "gearFilter") {
   const f = gearFilter(prefKey), wrap = el("div", "gf-summary");
   if (!gearFilterCount(f)) return wrap;
@@ -92,7 +99,7 @@ export function openGearFilter(items, onApply, prefKey = "gearFilter", { affixOn
   const options = effectCatalog(source), labels = new Map(options.map(x => [x.key, x.label]));
   let draft = gearFilter(prefKey), group = "all", query = "";
   const body = el("div", "gf-panel");
-  body.appendChild(el("p", "gf-hint", affixOnly ? "特性名・効果で巻物と特性の付いた品を探せる。条件は選ぶたびに反映される。" : "属性と特殊効果の両方に一致する品を表示する。条件は選ぶたびに反映される。数値の違う同じ効果はまとめて探せる。未鑑定の品は鑑定してから。"));
+  body.appendChild(el("p", "gf-hint", affixOnly ? "特性名と効果を見て巻物と特性の付いた品を探せる。数値は品ごとに異なるため、効果の例を表示する。条件は選ぶたびに反映される。" : "属性と特殊効果の両方に一致する品を表示する。条件は選ぶたびに反映される。数値の違う同じ効果はまとめて探せる。未鑑定の品は鑑定してから。"));
   const picked = el("div", "gf-picked"), elements = el("div", "gf-elements"), groups = el("div", "gf-groups"), list = el("div", "gf-options");
   body.appendChild(picked);
   if (!affixOnly) body.append(el("h3", null, "属性（いずれか）"), elements);
@@ -109,10 +116,10 @@ export function openGearFilter(items, onApply, prefKey = "gearFilter", { affixOn
   const result = el("p", "gf-result"); result.setAttribute("role", "status"); body.appendChild(result);
   const toggled = (kind, key) => ({ ...draft, [kind]: draft[kind].includes(key) ? draft[kind].filter(k => k !== key) : [...draft[kind], key] });
   const toggle = (kind, key) => { draft = toggled(kind, key); apply(); };
-  const optionButton = (kind, key, label) => {
+  const optionButton = (kind, key, label, detail = "") => {
     const selected = draft[kind].includes(key);
     const n = source.filter(it => matchesGearFilter(it, selected ? draft : toggled(kind, key))).length;
-    const b = button({ label: `${label}（${n}）`, kind: selected ? "primary" : "secondary", size: "sm", disabled: !n && !selected, onTap: () => toggle(kind, key) });
+    const b = button({ label: `${label}（${n}）`, sub: detail || null, kind: selected ? "primary" : "secondary", size: "sm", disabled: !n && !selected, onTap: () => toggle(kind, key) });
     b.setAttribute("aria-pressed", String(selected)); b.dataset.filterKey = key;
     return b;
   };
@@ -133,7 +140,11 @@ export function openGearFilter(items, onApply, prefKey = "gearFilter", { affixOn
     const shown = options.filter(o => (group === "all" || o.group === group) && (!q || normalize(`${o.label} ${o.description}`).includes(q)));
     if (group === "all" && !q) list.appendChild(el("p", "gf-hint", "分類を選ぶか、効果名・説明を検索してください。"));
     else {
-      for (const o of shown) list.appendChild(optionButton("effects", o.key, o.label));
+      for (const o of shown) {
+        const b = optionButton("effects", o.key, o.label, o.detail ? `効果の例：${o.detail}` : "");
+        b.classList.add("gf-effect-option");
+        list.appendChild(b);
+      }
       if (!shown.length) list.appendChild(el("p", "gf-hint", "該当する効果はない。分類や検索語を変えてください。"));
     }
     const n = source.filter(it => matchesGearFilter(it, draft)).length;

@@ -38,3 +38,13 @@
 - `node tools/journal/check.mjs`、全264 JSファイルの `node --check`、`git diff --check`。
 
 ヘルプ `enchant` と仕様の正本 `CLAUDE.md` を更新。酒場の心得 `t_enchant_list` を追加。
+
+## 特性の絞り込みの効果表示（同日追記）
+
+候補が特性名だけで、効果の説明は検索用の内部データにしかなかったため、候補を名前と効果の2段表示に変更。能力値の増加だけでなく、号令の対象・継続ターン・発動回数などもその場で読める。数値違いは同じ特性の候補にまとめ、重複しない効果を最大3例と残りの例数で示す。省いた例も検索対象にする。館・購入でも共通の部品を使う。
+
+画面：[数値違いの例](filter-effects-390.png)・[働きの説明](filter-behavior-390.png)。
+
+`tools/enchant/filter-browser-check.py` に、説明の表示・例の集約・省略例の検索・長文の折り返しを追加。既存のAND/OR・解除・条件保持・練習とあわせて確認する。商会・館の共通部品は `tools/shop/character-filter-browser-check.py` と `tools/shop/effect-search-browser-check.py` でも確認。心得 `t_enchant_filter` を更新。
+
+共通部品の確認結果：特性検索は320/390/844/1280px、購入の効果検索は390/320/844pxで通過。館・個別比較の検査は390/320/844pxで通過し、1024pxでは「別の者のおすすめが混入」で停止する。変更前のmainの `gearfilter.js` を使っても同じ停止を再現したため、この表示修正の範囲では変更していない。
