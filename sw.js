@@ -948,6 +948,12 @@ const ASSETS = [
   "./art/battle/ws25.webp",
   "./art/battle/ws26.webp",
   "./art/battle/ws27.webp",
+  "./art/battle/w50.webp",
+  "./art/battle/w51.webp",
+  "./art/battle/w52.webp",
+  "./art/battle/w53.webp",
+  "./art/battle/ws28.webp",
+  "./art/battle/ws29.webp",
   "./art/battle/w00_forest.webp",
   "./art/battle/abyss.webp",
 
