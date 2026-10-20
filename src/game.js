@@ -11302,8 +11302,9 @@ function spdMul() { return G.autoCombat ? 0.45 : G.fastAnim ? 1 : 2; }
 // いま演じている一手は最後まで見せ、その次の手番で閉じるのを待つ
 function combatHeld() { return G.state === "combat" && (mediaBusy() || cloudBusy() || sheetDepth() > 0 || !!G.settingsOpen || !!G.statusOpen); }
 function whenCombatFree(fn, battle = G.battle) {
+  // 断念した戦闘の予約は捨て、手帳や確認を開いている間は実行しない。
   if (!battle || G.battle !== battle || G.state !== "combat") return;
-  if (combatHeld()) { setTimeout(() => whenCombatFree(fn, battle), 150); return; }
+  if (combatHeld() || _cloudResolving) { setTimeout(() => whenCombatFree(fn, battle), 150); return; }
   fn();
 }
 
@@ -11319,15 +11320,14 @@ function combatStep() {
     if (G.autoCombat) renderAutoBanner(); else renderActingPlate(b.current);
     renderCombatCanvas();
     autosave(true);
-    setTimeout(() => {
-      if (G.state !== "combat" || G.battle !== b) return; // 断念した戦闘の予約を実行しない
+    setTimeout(() => whenCombatFree(() => {
       holdActionEffects();
       if (cloudEnabled() && !testPlayActive) { resolveSavedBattle("stunned"); return; }
       const res = b.stunnedAct();
       res._modFeed = takeModFeed();
       b._acted = true; // 実行済み (演出中に閉じられても、再開時にやり直さず次の手番へ)
       animateResult(res, postResolve);
-    }, 200 * spdMul());
+    }, b), 200 * spdMul());
     return;
   }
   if (b.phase === "enemy") {
@@ -11336,15 +11336,14 @@ function combatStep() {
     renderCombatCanvas();
     autosave(true); // 敵の手番を確定 (やり直し不可)
     // 一瞬の間を置いてから敵が動く (ドラクエ風)
-    setTimeout(() => {
-      if (G.state !== "combat" || G.battle !== b) return; // 断念した戦闘の予約を実行しない
+    setTimeout(() => whenCombatFree(() => {
       holdActionEffects();
       if (cloudEnabled() && !testPlayActive) { resolveSavedBattle("enemy"); return; }
       const res = b.enemyAct();
       res._modFeed = takeModFeed();
       b._acted = true;
       animateResult(res, postResolve);
-    }, 260 * spdMul());
+    }, b), 260 * spdMul());
   }
 }
 
@@ -12365,7 +12364,7 @@ function gameOver() {
 // 迷宮を諦める (手帳から、2026-10 ユーザーの指示): 全滅と同じ扱い。
 // 隊の全員が砕け、全滅の決断 (赤い魂で全てを守る / あきらめて救出を待つ) へ進む
 function confirmAbandonDungeon() {
-  if ((G.state !== "board" && G.state !== "combat") || G.rematch || uiBlocked()) return;
+  if ((G.state !== "board" && G.state !== "combat") || G.rematch || uiBlocked() || _cloudResolving) return;
   if (G.state === "board" && (G.anim || G.walking)) return;
   const secured = !!(G.run && G.run.secured);
   showConfirm({

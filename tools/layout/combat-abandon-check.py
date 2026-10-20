@@ -98,7 +98,15 @@ with sync_playwright() as p:
         if mode=='attack':
             page.locator('#combat-menu .cmd-main button').first.evaluate('b=>b.click()')
             assert page.evaluate('!!__game.G.fx')
-        give_up(open_confirm())
+        dialog=open_confirm()
+        if mode=='enemy':
+            page.evaluate('window.heldCalls=enemyCalls;window.held=signature()')
+            page.wait_for_timeout(700)
+            assert page.evaluate('enemyCalls===heldCalls && signature()===held'), '敵の予約が確認中に実行された'
+            dialog.get_by_role('button',name='やめる',exact=True).evaluate('b=>b.click()')
+            page.wait_for_function('enemyCalls>heldCalls')
+            dialog=open_confirm()
+        give_up(dialog)
         print(f'{mode}: 演出・実行待ちの敵行動を残さず断念 OK',flush=True)
 
     setup(infinite=True)
