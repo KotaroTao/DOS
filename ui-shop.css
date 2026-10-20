@@ -606,3 +606,18 @@
   .wpc-shop.seg-enchant > .ui-whisper { display: none; }
   .ec-guide[open] { max-height: 26dvh; overflow-y: auto; }
 }
+
+/* 鑑定結果: 広い画面は横並び、狭い画面は品の説明と操作を二段に分ける。 */
+.wpc-reveal-actions { display: flex; align-items: stretch; gap: 6px; flex: 0 0 auto; padding: 6px 8px 6px 0; }
+.wpc-reveal-actions .wpc-prow-act.ui-btn { margin: 0; min-height: 44px; }
+.wpc-reveal-actions [data-act="extract"] { white-space: nowrap; }
+.ap-sum .wpc-prow-title, .wpc-reveal .wpc-prow-title { white-space: normal; overflow-wrap: anywhere; }
+.ap-sum-name { flex-wrap: wrap; gap: 3px 6px; }
+@media (min-width: 768px) {
+  .ui-sheet.wpc-revealsheet, .ui-sheet.ap-sheet { max-width: min(860px, calc(100vw - 48px)); }
+}
+@media (max-width: 767px) {
+  .ap-sum > .wpc-prow, .wpc-reveal > .wpc-prow { flex-direction: column; align-items: stretch; gap: 0; }
+  .wpc-reveal-actions { padding: 0 8px 8px; }
+  .wpc-reveal-actions .wpc-prow-act.ui-btn { flex: 1 1 0; min-width: 0; width: 0; padding-left: 6px; padding-right: 6px; }
+}

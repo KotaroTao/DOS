@@ -19,7 +19,7 @@ import { statLines, isEquippable, gearScore, itemCatText } from "./itemview.js";
 import { equipLevelOf } from "../items.js";
 import {
   itemSheet, wearPlan, deltaFor, deltaEl, nameSpan, goldEl, caretIcon, equipTo, floatGold, ownerOf, equipCandidates, shopOpen, isUpgrade,
-  openDollChooser, equipPick, dollIcon, revealSellBtn, revealSellAction, firstBadge, isFirstGet,
+  openDollChooser, equipPick, dollIcon, revealSellBtn, revealExtractBtn, revealSellAction, firstBadge, isFirstGet,
 } from "./loot.js";
 import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, MAX_ITEMS, canEquip, itemName, compareUse } from "../items.js";
 import { RARITIES, rarityKey } from "../rarity.js";
@@ -618,17 +618,22 @@ function openRevealSheet(items) {
       main.appendChild(tx);
       main.addEventListener("click", () => refreshOnClose(itemSheet(it, { owner: o.doll, context: "sell" })));
       r.appendChild(main);
+      const actions = el("div", "wpc-reveal-actions");
       if (isEquippable(it) && o.where === "bag") {
         const eb = button({ label: "装備", kind: up ? "primary" : "secondary", size: "sm", onTap: () => refreshOnClose(openDollChooser(it, { owner: o.doll })) });
         eb.classList.add("wpc-prow-act");
-        r.appendChild(eb);
+        actions.appendChild(eb);
       }
-      if (o.where === "bag" && shopOpen()) r.appendChild(revealSellBtn(o.doll, it, () => { if (h && !h.closed) h.update(view()); }));
+      const refresh = () => { if (h && !h.closed) h.update(view()); };
+      if (o.where === "bag" && shopOpen()) actions.appendChild(revealSellBtn(o.doll, it, refresh));
+      const extract = revealExtractBtn(it, refresh);
+      if (extract) actions.appendChild(extract);
+      if (actions.childElementCount) r.appendChild(actions);
       wrap.appendChild(r);
     }
     if (worn) wrap.appendChild(el("div", "ap-sum-worn", `装備した品 ${worn}点は一覧から外した。`));
     const sold = items.filter((it) => !ownerOf(it)).length;
-    if (sold) wrap.appendChild(el("div", "ap-sum-worn", `売った品 ${sold}点は一覧から外した。`));
+    if (sold) wrap.appendChild(el("div", "ap-sum-worn", `売却・巻物化した品 ${sold}点は一覧から外した。`));
     if (!wrap.childElementCount) wrap.appendChild(el("div", "wpc-empty", "正体の知れた品はない。"));
     b.appendChild(wrap);
   };
