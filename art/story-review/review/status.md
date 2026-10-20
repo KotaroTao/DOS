@@ -2,7 +2,7 @@
 
 書き出し: `node tools/storyart/review.mjs` (build.py も書き直す。手で直さない)。
 
-場面: 出荷済み 143 ・ 出荷済み (任意の修正あり) 11 ・ 未着手 (指示あり) 18
+場面: 出荷済み 148 ・ 出荷済み (任意の修正あり) 11 ・ 未着手 (指示あり) 13
 
 | 章 | 場面 | 題 | 状態 | 確認ページ |
 |---|---|---|---|---|
@@ -148,11 +148,11 @@
 | 第11章「夜明けの町」 | `report_w45` | 余の終わりの頁 | 出荷済み | [見る](chapter11.md#report_w45) |
 | 第11章「夜明けの町」 | `irene_lastpage` | 両方を持って | 出荷済み | [見る](chapter11.md#irene_lastpage) |
 | 第11章「夜明けの町」 | `ch11_end` | 同じ天井の下で | 出荷済み | [見る](chapter11.md#ch11_end) |
-| 第12章「王家の廟」 | `w46_bar` | 王を終わらせるな | 未着手 (指示あり) | [見る](chapter12.md#w46_bar) |
-| 第12章「王家の廟」 | `report_w46` | 即位の日の文句 | 未着手 (指示あり) | [見る](chapter12.md#report_w46) |
-| 第12章「王家の廟」 | `w47_ledger` | 最初の器 | 未着手 (指示あり) | [見る](chapter12.md#w47_ledger) |
-| 第12章「王家の廟」 | `irene_vessel` | 木の手のひら | 未着手 (指示あり) | [見る](chapter12.md#irene_vessel) |
-| 第12章「王家の廟」 | `report_w47` | 術の生まれた所 | 未着手 (指示あり) | [見る](chapter12.md#report_w47) |
+| 第12章「王家の廟」 | `w46_bar` | 王を終わらせるな | 出荷済み | [見る](chapter12.md#w46_bar) |
+| 第12章「王家の廟」 | `report_w46` | 即位の日の文句 | 出荷済み | [見る](chapter12.md#report_w46) |
+| 第12章「王家の廟」 | `w47_ledger` | 最初の器 | 出荷済み | [見る](chapter12.md#w47_ledger) |
+| 第12章「王家の廟」 | `irene_vessel` | 木の手のひら | 出荷済み | [見る](chapter12.md#irene_vessel) |
+| 第12章「王家の廟」 | `report_w47` | 術の生まれた所 | 出荷済み | [見る](chapter12.md#report_w47) |
 | 第12章「王家の廟」 | `w48_masks` | 三枚の死面 | 出荷済み | [見る](chapter12.md#w48_masks) |
 | 第12章「王家の廟」 | `irene_masks` | 留守の帳面 | 出荷済み | [見る](chapter12.md#irene_masks) |
 | 第12章「王家の廟」 | `report_w48` | 尋ねなかった名 | 出荷済み | [見る](chapter12.md#report_w48) |
