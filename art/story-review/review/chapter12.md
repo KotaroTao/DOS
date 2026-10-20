@@ -187,9 +187,9 @@
 
 <a name="w48_masks"></a>
 
-## w48_masks「三枚の死面」 ── 未着手 (指示あり)
+## w48_masks「三枚の死面」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter12/w48_masks.webp" width="576" alt="w48_masks">
 
 **ストーリー一覧の本文**
 
@@ -228,9 +228,9 @@ _(絵はまだ無い)_
 
 <a name="irene_masks"></a>
 
-## irene_masks「留守の帳面」 ── 未着手 (指示あり)
+## irene_masks「留守の帳面」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter12/irene_masks.webp" width="576" alt="irene_masks">
 
 **ストーリー一覧の本文**
 
@@ -264,9 +264,9 @@ _(絵はまだ無い)_
 
 <a name="report_w48"></a>
 
-## report_w48「尋ねなかった名」 ── 未着手 (指示あり)
+## report_w48「尋ねなかった名」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter12/report_w48.webp" width="576" alt="report_w48">
 
 **ストーリー一覧の本文**
 
@@ -300,9 +300,9 @@ _(絵はまだ無い)_
 
 <a name="pre_w49"></a>
 
-## pre_w49「玉座の王」 ── 未着手 (指示あり)
+## pre_w49「玉座の王」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter12/pre_w49.webp" width="576" alt="pre_w49">
 
 **ストーリー一覧の本文**
 
@@ -333,9 +333,9 @@ _(絵はまだ無い)_
 
 <a name="pre_w49_retry"></a>
 
-## pre_w49_retry「ふたたび玉座の前で」 ── 未着手 (指示あり)
+## pre_w49_retry「ふたたび玉座の前で」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter12/pre_w49_retry.webp" width="576" alt="pre_w49_retry">
 
 **ストーリー一覧の本文**
 

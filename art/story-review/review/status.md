@@ -2,7 +2,7 @@
 
 書き出し: `node tools/storyart/review.mjs` (build.py も書き直す。手で直さない)。
 
-場面: 出荷済み 156 ・ 出荷済み (任意の修正あり) 11 ・ 未着手 (指示あり) 5
+場面: 出荷済み 161 ・ 出荷済み (任意の修正あり) 11
 
 | 章 | 場面 | 題 | 状態 | 確認ページ |
 |---|---|---|---|---|
@@ -153,11 +153,11 @@
 | 第12章「王家の廟」 | `w47_ledger` | 最初の器 | 出荷済み | [見る](chapter12.md#w47_ledger) |
 | 第12章「王家の廟」 | `irene_vessel` | 木の手のひら | 出荷済み | [見る](chapter12.md#irene_vessel) |
 | 第12章「王家の廟」 | `report_w47` | 術の生まれた所 | 出荷済み | [見る](chapter12.md#report_w47) |
-| 第12章「王家の廟」 | `w48_masks` | 三枚の死面 | 未着手 (指示あり) | [見る](chapter12.md#w48_masks) |
-| 第12章「王家の廟」 | `irene_masks` | 留守の帳面 | 未着手 (指示あり) | [見る](chapter12.md#irene_masks) |
-| 第12章「王家の廟」 | `report_w48` | 尋ねなかった名 | 未着手 (指示あり) | [見る](chapter12.md#report_w48) |
-| 第12章「王家の廟」 | `pre_w49` | 玉座の王 | 未着手 (指示あり) | [見る](chapter12.md#pre_w49) |
-| 第12章「王家の廟」 | `pre_w49_retry` | ふたたび玉座の前で | 未着手 (指示あり) | [見る](chapter12.md#pre_w49_retry) |
+| 第12章「王家の廟」 | `w48_masks` | 三枚の死面 | 出荷済み | [見る](chapter12.md#w48_masks) |
+| 第12章「王家の廟」 | `irene_masks` | 留守の帳面 | 出荷済み | [見る](chapter12.md#irene_masks) |
+| 第12章「王家の廟」 | `report_w48` | 尋ねなかった名 | 出荷済み | [見る](chapter12.md#report_w48) |
+| 第12章「王家の廟」 | `pre_w49` | 玉座の王 | 出荷済み | [見る](chapter12.md#pre_w49) |
+| 第12章「王家の廟」 | `pre_w49_retry` | ふたたび玉座の前で | 出荷済み | [見る](chapter12.md#pre_w49_retry) |
 | 第12章「王家の廟」 | `mem_w49` | もう、よい | 出荷済み | [見る](chapter12.md#mem_w49) |
 | 第12章「王家の廟」 | `report_w49` | 余が決めた日に | 出荷済み | [見る](chapter12.md#report_w49) |
 | 第12章「王家の廟」 | `irene_enough` | 訊く人 | 出荷済み | [見る](chapter12.md#irene_enough) |
