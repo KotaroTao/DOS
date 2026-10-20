@@ -441,6 +441,7 @@ export function openDungeonMenu() {
       grid.appendChild(combat ? menuTile("party", "隊を見る", "戦闘中は開けない", null)
         : menuTile("party", "隊を見る", "装備・能力・道具", go(() => UI.openParty(0, { context: "dungeon" }))));
       grid.appendChild(menuTile("loot", "今回の収穫", `💰${r.gold || 0} ✦${r.soulPts || 0} 品${(r.items || []).length}`, go(openRunLoot)));
+      if (g.lastBattleReport && UI.openBattleSummary) grid.appendChild(menuTile("scroll", "直前の戦闘", "与ダメージ・被ダメージ・回復量", go(() => UI.openBattleSummary({ performance: g.lastBattleReport }))));
       grid.appendChild(menuTile("scroll", "記録を読む", "出来事の全文", go(openLog)));
       if (game.featureUnlocked?.("codex")) grid.appendChild(menuTile("book", "図鑑", "敵・品・見聞", go(() => UI.openCodexSheet && UI.openCodexSheet({ dungeonIdx: g.dungeonIdx }))));
       // ヘルプ (酒場で書き留めた話もタブで) とストーリー。街の同じボタンと同じ画面を開く

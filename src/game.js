@@ -538,6 +538,7 @@ const G = {
   shopStock: null,    // 商会の在庫 { itemId: 個数 } (初回 setupNewGame で初期化)
   run: null,          // 今回の出撃で得た戦利品 { gold, soulPts, items:[{owner,item}], souls:[] }
   town: { facility: null, sub: null, tab: "hub", page: null }, // 街UIの現在地 (tab: 下のタブ / page: タブの1段下 / facility・sub: 旧画面アダプタ用)
+  lastBattleReport: null, // 直前の戦闘の内訳 (値だけを保存)
   lastRun: null,      // 直前の出撃のまとめ (帰還の報告カード用。名前・レア度・数・砕けた人業など素のデータ)
   quest: null,        // 酒場の依頼 (掲示板・受注中のフリークエスト・固定クエスト。questState() が整える)
   msq: null,          // 第0章の進み { n: 0, state: "active", granted } → 果たした後は { n: 1, state: "world" } (物語の進みは G.world)
@@ -12044,9 +12045,23 @@ function levelUpEntries(progress) {
 }
 
 function endBattle(...args) { return tlGameMeasure("battle", () => endBattleMeasured(...args)); }
+const battleSummaryOpen = new WeakSet();
 function endBattleMeasured() {
   const b = G.battle;
   if (!b || G.state !== "combat") return;
+  // 勝利・再戦勝利は戦果に同居。逃走・全滅は状態を片付ける前に確認する。
+  const performance = b.performanceReport();
+  G.lastBattleReport = performance;
+  if (b.result !== "win" && !b.performanceSeen) {
+    if (battleSummaryOpen.has(b)) return;
+    battleSummaryOpen.add(b);
+    uiResults.openBattleSummary({ performance, onDone: () => {
+      battleSummaryOpen.delete(b); b.performanceSeen = true;
+      autosave(true);
+      if (G.battle === b) endBattle();
+    } });
+    return;
+  }
   if (!G.rematch) playtestEvent("戦闘終了", { result: b.result, rounds: b._roundNo });
   G.effShow = null; G.modFeed = null; flushModLines(null, Infinity);
   if (b.tl) tlBattleEnd(b.tl, { result: b.result, rounds: b._roundNo, tally: b.tally, party: G.party });
@@ -12185,7 +12200,7 @@ function endBattleMeasured() {
     for (const k of skills) log(`${k.name}が「${k.skill}」習得`, "win");
     G.pendingResults = {
       kind: wasBoss ? "boss" : wasElite ? "elite" : wasGuard ? "guard" : corpse ? "corpse" : "win",
-      gold: goldGot, soul: soulGot, kills, fled,
+      gold: goldGot, soul: soulGot, kills, fled, performance,
       levels, skills, souls, levelUps: [...levelUpEntries(progress), ...orderLevels], chest, after,
     };
     finishToBoard();
@@ -17122,6 +17137,7 @@ function beginRematch(t, stabilityAd = false) {
 }
 // 戦いの終わり (勝ち・負け・逃走のどれでも): 隊を挑む前に戻し、勝っていれば戦果を渡して街へ
 function endRematch(b) {
+  const performance = b.performanceReport();
   const rm = G.rematch;
   G.autoCombat = false;
   resetAutoProgress(G.battle);
@@ -17188,7 +17204,7 @@ function endRematch(b) {
   combatMenu.classList.add("hidden");
   const mem = rm.kind === "boss" && REMATCH_MEMORIES[rm.key] && !worldState().beats["rm_" + rm.key] ? REMATCH_MEMORIES[rm.key] : null;
   uiResults.openResults({
-    kind: "rematch", gold: goldGot, soul: soulGot, kills: 1, fled: 0,
+    kind: "rematch", gold: goldGot, soul: soulGot, kills: 1, fled: 0, performance,
     levels, skills, souls: [], levelUps: levelUpEntries(progress), chest: null,
     onDone: () => {
       const after = () => finish();
@@ -18681,7 +18697,7 @@ const SAVE_FIELDS = [
   "formations", "inventory", "party", "reserve", "souls", "shopStock", "run", "town",
   "quest", "msq", "ach", "fastAnim", "animTempo", "tavernCrowd", "tavernHeard", "rumor", "activeRumor", "codex", "treasury", "lrOwned", "named", "order", "rusui", "insightNotified", "irene", "journal", "tut", "events", "story", "world", "dragonSlain", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab", "rematch",
-  "lastRun",
+  "lastRun", "lastBattleReport",
 ];
 
 // 参照保持シリアライズ: 共有オブジェクト/循環参照を {$r:index} で表現し、
