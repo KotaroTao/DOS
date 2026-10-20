@@ -3,25 +3,26 @@
 // オートで使う技は、戦闘の一覧に出していて「オート」を切っていない技だけ (souls.js autoSkills)。
 //
 // 選び方: 手番の者が取れる手 (通常攻撃 × 狙い / 使える技 × 狙い / 防御) をすべて並べ、
-// それぞれの「値打ち」を「隊が受けずに済む傷 (HP)」に換算して比べる。値打ち = 与ダメ (敵の残りHPで頭打ち) × dmgK
-// + 倒した敵の脅威 + 癒し (傷の深さで重み) + 蘇生 + 治療 + 強化・弱体・状態異常 (戦いの残りの長さで重み) − 消費MP の値段。
+// 3ターンの隊の与ダメ増分を dmgK でHPの値打ちへ換算し、癒し・蘇生・守り・状態異常を加え、消費MPを引く。
+// 強化・弱体の攻撃への寄与は、段・持続・残りMP・射程・敵HPを反映した予測に含める。
 // dmgK = 敵の脅威の合計 ÷ 隊の与ダメの合計 (与ダメ 1 で戦いが縮み、その間に受けずに済む傷)。
 // ダメージの見積もりは combat.js の Battle.estPhys / estSpell (実際の式の平均。乱数も状態も触らない)。
 // 作戦はこの重みと MP の値段を変える。game.js はここを呼んで chooseAction / chooseTarget するだけ。
-// 攻撃を選ぶ時は、倒せる敵の数 → とどめまでの手数 → 値打ちの順。癒し・蘇生・支援の判断は先に残す。
+// 攻めと攻めの支援は、今のターンの残り＋次の2ターンの隊の期待ダメージで比べる。
 // (このファイルは game.js を import しない)
 
 import { SPELLS, spellCost, soulPowerMul, healsHp, isMetal, spellCureKinds, breathHpK, manaGiftAmount, tauntGuard, stanceMulOf } from "./combat.js";
 import { autoSkills } from "./souls.js";
 import { STAGED, STAGE_MAX, STRONG_MIN, stageMul, stageOf } from "./buffstage.js";
+import { forecastCandidates, AUTO_FORECAST_TURNS } from "./autoforecast.js";
 
 // 作戦。key はセーブに残る (変えない)
 export const TACTICS = [
-  { key: "all", name: "全力で討て", short: "全力", desc: "敵の数を減らす攻めを優先する。魔力を惜しまず、癒しは仲間が倒れかけた時だけ。" },
-  { key: "bal", name: "機を見て戦え", short: "機を見る", desc: "敵の数を減らす攻めを主に、傷が深まれば癒し、守りや弱体も機を見て使う。魔力が減るほど控える。" },
+  { key: "all", name: "全力で討て", short: "全力", desc: "強化・弱体も使い、3ターンの隊の傷を大きくする。魔力を惜しまず、癒しは仲間が倒れかけた時だけ。" },
+  { key: "bal", name: "機を見て戦え", short: "機を見る", desc: "強化・弱体も含め3ターンの攻めを比べる。傷が深まれば癒し、守りも使う。魔力が減るほど控える。" },
   { key: "life", name: "命を繋げ", short: "命を繋ぐ", desc: "癒し・蘇生・治療と守りを先に立てる。攻めるのは隊が無事な時。" },
   { key: "save", name: "魔力を惜しめ", short: "魔力を惜しむ", desc: "通常攻撃を主にし、技は割に合う時と危うい時だけ。長く潜る時に。" },
-  { key: "blade", name: "刃のみ振るえ", short: "刃のみ", desc: "技を使わず、通常攻撃だけで敵の数を減らす。" },
+  { key: "blade", name: "刃のみ振るえ", short: "刃のみ", desc: "技を使わず、通常攻撃だけで3ターンの攻めを比べる。" },
 ];
 export const DEFAULT_TACTIC = "bal";
 const TACTIC_BY_KEY = Object.fromEntries(TACTICS.map((t) => [t.key, t]));
@@ -108,7 +109,7 @@ function decideAutoInner(b, actor, dbg) {
     const per = autoBasic(b, actor, t); // 連撃・二刀流の左手の一撃まで
     if (per <= 0) continue;
     const v = dmgValue(ctx, t, per) * (t.mind === "charm" ? CHARMED_TGT_MUL : 1);
-    const c = { action: "attack", target: t, dmg: v, raw: per, lowDamage: lowDamage(per, t), score: 0, kills: 0, turns: Infinity };
+    const c = { action: "attack", target: t, dmg: v, raw: per, lowDamage: lowDamage(per, t), score: 0, kills: 0 };
     finishEstimate(c, t, per);
     cands.push(c);
   }
@@ -121,43 +122,48 @@ function decideAutoInner(b, actor, dbg) {
     }
   }
   const W = WEIGHTS[tac] || null;
+  forecastCandidates(b, actor, cands, {
+    basic: autoBasic, phys: autoPhys, spell: autoSpell, status: autoStatusChances, low: lowDamage,
+    price: a => ctx.mpPrice(a, WEIGHTS[tacticOf(a).key]?.mpK || 0) / ctx.dmgK,
+  });
   let best = null;
   for (const c of cands) {
-    if (!W) c.score = c.raw || 0; // 刃のみ: 通常攻撃の与ダメだけで比べる
+    if (!W) c.score = c.damageGain3; // 刃のみも、通常攻撃の3ターン分を比べる
     else {
       const cost = c.spellKey ? b.costOf(actor, SPELLS[c.spellKey], c.spellKey) : 0;
+      const sp = c.spellKey ? SPELLS[c.spellKey] : null;
+      const supportGain = c.damageGain3 > 0 && sp && (sp.buff || sp.debuff || sp.debuffAll || sp.vuln || sp.charge || sp.strip);
       // 全力でも、ほぼ削れない攻撃だけにMPを使わない。有効な追加効果は別に残す。
-      if (cost > 0 && c.lowDamage && !(c.death > 0 || c.heal > 0 || c.stat > 0 || c.guard > 0 || c.edge > 0 || c.revive > 0)) { c.score = -Infinity; continue; }
-      c.score = ((c.dmg || 0) + (c.death || 0)) * W.dmg + (c.heal || 0) + (c.revive || 0) * W.revive + (c.guard || 0) * W.guard
+      if (cost > 0 && c.lowDamage && !(supportGain || c.death > 0 || c.heal > 0 || c.stat > 0 || c.guard > 0 || c.edge > 0 || c.revive > 0)) { c.score = -Infinity; continue; }
+      c.score = c.damageGain3 * ctx.dmgK * W.dmg + (c.heal || 0) + (c.revive || 0) * W.revive + (c.guard || 0) * W.guard
         + (c.edge || 0) * W.edge + (c.stat || 0) * W.stat - (c.pen || 0) - cost * ctx.mpPrice(actor, W.mpK) - cost * 1e-3;
     }
-    c.score += (c.target && c.target.side === "enemy" ? ctx.threat(c.target) * 1e-3 : 0); // 同点なら脅威の大きい敵
+    // 同じ3ターンの成果なら、今動いて敵を減らす。過剰ダメージで加点しない。
+    c.score += Math.min(1, c.raw || 0) * 0.02 + c.kills * 0.05;
+    c.score += (c.target && c.target.side === "enemy" ? ctx.threat(c.target) * 1e-6 : 0);
     if (!best || c.score > best.score) best = c;
   }
-  // 支援が必要という判断を保ち、攻撃同士では大きな傷よりも敵を減らす手を選ぶ。
-  // MPの割に合わない手・無効な手は、従来の採点で落ちたままにする。
-  const attacks = cands.filter(c => c.score > 0.01 && ((c.raw > 0 && !c.lowDamage) || c.death > 0));
-  if (best && attacks.includes(best) && !(best.heal > 0 || best.revive > 0)) {
-    best = attacks.reduce((a, c) => {
-      if (c.kills !== a.kills) return c.kills > a.kills ? c : a;
-      if (!c.kills && c.turns !== a.turns) return c.turns < a.turns ? c : a;
-      return c.score > a.score ? c : a;
-    });
+  // 攻めの準備で深手の癒しを後回しにしない。「命を繋げ」は蘇生も先に立てる。
+  if (W) {
+    const danger = ctx.allies.some(a => a.hp < a.maxhp * W.heal[0][0] || a.hp <= ctx.maxThreat * 1.2);
+    let rescue = null, rescueValue = 0;
+    for (const c of cands) {
+      if (!(danger && c.heal > 0) && !(tac === "life" && c.revive > 0)) continue;
+      const cost = c.spellKey ? b.costOf(actor, SPELLS[c.spellKey], c.spellKey) : 0;
+      const value = (c.heal || 0) + (c.revive || 0) * W.revive - (c.pen || 0) - cost * ctx.mpPrice(actor, W.mpK);
+      if (value > rescueValue) { rescue = c; rescueValue = value; }
+    }
+    if (rescue) best = rescue;
   }
   if (dbg) dbg.push(...cands);
-  if (best && best.score > 0.01) return { action: best.action, spellKey: best.spellKey || null, target: best.target || null, effectiveAttack: !!((best.raw > 0 && !best.lowDamage) || best.death > 0) };
+  if (best && best.score > 0.01) return { action: best.action, spellKey: best.spellKey || null, target: best.target || null, effectiveAttack: !!((best.raw > 0 && !best.lowDamage) || best.death > 0 || best.damageGain3 > AUTO_LOW_DAMAGE) };
   return { action: "defend", idle: true };
 }
 
-// 期待ダメージで倒せる数と、同じ手を重ねた時に最初の1体を倒すまでの手数。
+// 3ターンの成果が同じ時の比較用に、期待ダメージで今倒せる数を数える。
 // 乱撃は対象ごとの平均を確実なとどめとして数えない (敵が1体なら通常どおり)。
 function finishEstimate(c, t, dmg, scattered = false, deathRate = 0) {
-  const kills = (!scattered && dmg >= t.hp) || deathRate >= 1;
-  c.kills += kills ? 1 : 0;
-  const progress = Math.min(1, Math.max(0, dmg) / t.hp);
-  const rate = progress + (1 - progress) * deathRate;
-  const turns = rate > 0 ? Math.ceil(1 / rate) : Infinity;
-  c.turns = Math.min(c.turns, scattered && !kills ? Math.max(2, turns) : turns);
+  if ((!scattered && dmg >= t.hp) || deathRate >= 1) c.kills++;
 }
 
 // ---- 見積もりの共通の器 (1手番の判断のあいだだけ使う覚え書き) ----
@@ -191,7 +197,7 @@ function makeCtx(b, actor) {
   };
   ctx.ourDps = once("dps", () => allies.reduce((s, p) => s + ctx.basic(p), 0));
   // 戦いの残りの長さ (隊の手番の巡り数)。強化・弱体・状態異常の値打ちはこれで伸び縮みする
-  ctx.rounds = Math.min(5, Math.max(0.5, foes.reduce((s, e) => s + e.hp, 0) / Math.max(1, ctx.ourDps)));
+  ctx.rounds = Math.min(AUTO_FORECAST_TURNS, Math.max(0.5, foes.reduce((s, e) => s + e.hp, 0) / Math.max(1, ctx.ourDps)));
   ctx.left = (dur) => Math.min(ctx.rounds, dur || 3);
   ctx.maxThreat = foes.reduce((m, e) => Math.max(m, ctx.threat(e)), 0);
   ctx.threatSum = foes.reduce((s, e) => s + ctx.threat(e), 0);
@@ -263,7 +269,7 @@ function modGain(b, t, stat, mult) {
 function skillCands(b, ctx, actor, key, sp) {
   const W = WEIGHTS[tacticOf(actor).key];
   const out = [];
-  const mk = (target) => ({ action: "spell", spellKey: key, target, dmg: 0, raw: 0, lowDamage: true, heal: 0, revive: 0, guard: 0, edge: 0, stat: 0, pen: 0, kills: 0, turns: Infinity });
+  const mk = (target) => ({ action: "spell", spellKey: key, target, dmg: 0, raw: 0, lowDamage: true, heal: 0, revive: 0, guard: 0, edge: 0, stat: 0, pen: 0, kills: 0 });
   // 捨身 (hpCost): 削る身の分を差し引く。深手に落ちるなら重く
   const hpPen = (c) => {
     if (!sp.hpCost) return;
@@ -312,7 +318,7 @@ function skillCands(b, ctx, actor, key, sp) {
       }
       hpPen(c);
       // 無効の追加効果は0点。攻撃や他の効果に価値があれば、技の候補は残す。
-      if (c.dmg > 0 || c.death > 0 || c.stat > 0 || c.heal > 0) out.push(c);
+      if (c.dmg > 0 || c.death > 0 || c.stat > 0 || c.heal > 0 || sp.debuff || sp.vuln) out.push(c);
     }
     return out;
   }
@@ -360,10 +366,7 @@ function foeEffects(b, ctx, actor, sp, t) {
     v += (1 - keep) * th * 0.5; // threat は予兆で2倍にしてある。その上乗せ分を防ぐ
   }
   if (sp.debuff) v += statMods(b, ctx, sp.debuff, sp.dur, t);
-  if (sp.vuln) for (const el in sp.vuln) {
-    if (b._bm(t, "r_" + el) < 1) continue;
-    v += (1 / sp.vuln[el] - 1) * ctx.ourDps * ctx.dmgK * 0.25 * (el === "all" ? 1 : 0.4) * ctx.left(sp.dur);
-  }
+  // 防御・素早さ・属性耐性の弱体による与ダメ増分は3ターンの予測で数える。
   return v;
 }
 // 敵の能力を下げる弱体 ({atk|vit|agi|hit|int: 倍率}) の値打ち。段の底まで下がっていれば値打ちは無い
@@ -376,7 +379,6 @@ function statMods(b, ctx, mods, dur, t) {
     const down = -modGain(b, t, k, mods[k]); // 実効の倍率が下がる幅
     if (!(down > 0)) continue;
     if (k === "atk") v += down * th * n;
-    else if (k === "vit") v += down * b._evit(t) * 0.5 * ctx.allies.filter((p) => b.estPhys(p, t, { basic: true }) > 0).length * n * 0.6 * ctx.dmgK;
     else if (k === "agi") v += down * th * 0.3 * n;
     else if (k === "hit") v += down * th * n;
     else if (k === "int" && (t.ability === "spell" || t.ability === "breath")) v += down * th * 0.5 * n;
@@ -409,12 +411,8 @@ function allyEffects(b, ctx, actor, sp, a, c, W) {
   if (sp.buff) for (const k in sp.buff) {
     const up = sp.buff[k] > 1 ? modGain(b, a, k, sp.buff[k]) : 0; // 段で重ねた時に実効の倍率が上がる幅
     if (!(up > 0)) continue;
-    // 武器が参照しない能力を上げても通常攻撃の威力は増えない。
-    const coefficient = a.wScale ? (a.wScale[k] || 0) : (k === "atk" ? 1 : 0);
-    if (coefficient) c.edge += up * (a[k] || 0) * coefficient / Math.max(1, b._eatk(a)) * ctx.basic(a) * ctx.dmgK * n * 0.7;
+    // 攻めに使う能力の強化は実際の見積もり式で3ターンの増分を計算する。
     if (k === "vit") c.guard += up * b._evit(a) * 0.5 * ctx.hitsOn(a) * n;
-    else if (k === "agi") c.edge += up * ctx.basic(a) * ctx.dmgK * 0.2 * n;
-    else if (k === "int" && (a.spells || []).some((s) => SPELLS[s] && SPELLS[s].kind === "atk")) c.edge += up * (a.int || 0) * 0.5 * ctx.dmgK * n;
   }
   const wounded = ctx.allies.some((p) => p !== a && p.maxhp && p.hp < p.maxhp * 0.5);
   const sturdy = a.maxhp && a.hp > a.maxhp * 0.5;
@@ -427,7 +425,6 @@ function allyEffects(b, ctx, actor, sp, a, c, W) {
   }
   if (sp.shield && b._bm(a, "shield") <= 1 && sturdy && wounded) c.guard += ctx.maxThreat * n * 0.6;
   if (sp.stance === "counter" && b._bm(a, "ctr") <= 1) c.edge += ctx.hitsOn(a) * ctx.basic(a) * ctx.dmgK * 0.8 * stanceMulOf(sp) * n;
-  if (sp.charge && !(a.effects || []).some((e) => e.stat === "charge") && ctx.rounds > 1) c.edge += (sp.charge - 1) * ctx.basic(a) * ctx.dmgK * 0.8;
   const casters = ctx.foes.filter((e) => e.ability === "breath" || e.ability === "spell");
   if (casters.length) {
     const th = casters.reduce((s, e) => s + ctx.threat(e), 0);
