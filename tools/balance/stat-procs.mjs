@@ -25,9 +25,11 @@ for (const level of [20,100,200]) for (const stat of [100,992]) {
     a.passiveMap = {necroLegion:lv}; const res = {hits:[]};
     assert.equal(damage(e,()=>b._necroLegion(a,res)), Math.round(stat*5)*lv);
     assert.equal(res.hits.length,lv); assert.equal(a.mp,10000);
+    assert.equal(b.performanceReport().members[0].damage,Math.round(stat*5)*lv,'軍勢も本人のダメージへ集計');
     a.passiveMap = {dkEnchant:lv}; res.hits=[];
     assert.equal(damage(e,()=>b._afterBasic(a,e,{dmg:1},res)), Math.round(stat*[0,8,12,16][lv]));
     assert.equal(res.hits.length,1); assert.equal(a.mp,10000);
+    assert.equal(b.performanceReport().members[0].damage,Math.round(stat*5)*lv+Math.round(stat*[0,8,12,16][lv]),'魔力付与も本人へ加算');
   }
   for (const [key,k,run] of [
     ['twinArts',6,(b,a,e)=>b._afterBasic(a,e,{dmg:1},{hits:[]})],
