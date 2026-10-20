@@ -75,13 +75,13 @@ const showLearn = (t) => t.passive ? showPassivePopup(t.passive, t.plv || 1) : s
 function luLearnGroups(e) {
   const ranges = [...(e.main ? [{ uid: e.uid, ...e.main, main: true }] : []), ...(e.subs || [])];
   return ranges.flatMap((r) => {
-    const soul = soulByUid(r.uid);
+    const soul = (r.main && e.soul) || soulByUid(r.uid);
     if (!soul) return [];
     const learns = jobSkillTable(soul.clsKey).filter((t) =>
       t.lvl > r.from && t.lvl <= r.to && (t.passive || SPELLS[t.skill]));
     if (!learns.length) return [];
     const job = (SOUL_CLASSES[soul.clsKey] || {}).label || soul.clsKey;
-    const role = !e.doll && !e.name ? "控えの魂" : r.main ? "メイン魂" : "サブ魂";
+    const role = e.order ? "結社の魂" : !e.doll && !e.name ? "控えの魂" : r.main ? "メイン魂" : "サブ魂";
     return [{ label: `${role} ${job}`, learns }];
   });
 }
@@ -474,6 +474,7 @@ function orderBody(root, town, again) {
   info.appendChild(el("span", "sp-order-seats", `席 ${seated.length} / ${seats}`));
   if (nextSeat && game.featureNote) info.appendChild(el("span", "pt-note", `次の席: ${game.featureNote(nextSeat)}`));
   root.appendChild(info);
+  if (game.featureUnlocked?.("orderLearning")) root.appendChild(el("div", "sp-order-learning pt-note", "結社の伝習: 迷宮の戦闘で獲得した✦Soulの10%が、各席の魂の経験値にも入る（端数切り捨て）。隊の取り分は減らない。Lv上限でも蓄積する。無限迷宮も対象。"));
   if (seated.length) root.appendChild(el("div", "sp-order-on", `全員に: ${bonusText(orderStatBonus(seated)) || "なし"}`));
   if (!benched.length) {
     root.appendChild(el("div", "pt-note", "隊に出していない魂がいない。控えの魂を席に着けると、その能力の一部が全員に加わる。"));
@@ -1497,7 +1498,7 @@ function tickNum(node, from, to, delay, ms = 520, fmt = fmtStat) {
 // 主に見せる魂の情報 (メイン魂が上がっていればそれ、なければ最初のサブ魂)
 function luSoul(e) {
   const uid = e.main ? e.uid : (e.subs[0] && e.subs[0].uid);
-  const soul = uid != null ? soulByUid(uid) : null;
+  const soul = e.soul || (uid != null ? soulByUid(uid) : null);
   const clsKey = soul ? soul.clsKey : "fighter";
   return { soul, clsKey, rank: soul ? Math.max(1, soulRankOf(soul)) : 1, cl: SOUL_CLASSES[clsKey] || SOUL_CLASSES.fighter, lv: e.main || e.subs[0] };
 }
@@ -1642,11 +1643,12 @@ export function celebrateLevelUp(entries, onClose) {
     title = e.name ? `${e.name} が成長した` : `${soulLabel(soul || { clsKey, count: 1 })} が成長した`;
     const who = el("div", "sp-lu-who");
     const label = soulLabel(soul || { clsKey, count: 1 });
-    who.appendChild(el("span", "sp-lu-soul", !e.name ? "まだ誰も宿していない魂" : e.main ? label : `サブ魂 ${label}`));
+    who.appendChild(el("span", "sp-lu-soul", e.order ? `結社の伝習 ${label}` : !e.name ? "まだ誰も宿していない魂" : e.main ? label : `サブ魂 ${label}`));
     who.lastChild.style.color = accent;
     blocks.push(who, luLvRow(lv, accent));
     const st = luStats(e, 1150);
-    blocks.push(st.grid);
+    if (e.order) blocks.push(el("div", "sp-fz-note", "結社の席で、迷宮の戦いの学びを受け取った。"));
+    else blocks.push(st.grid);
     const sk = luSkills(e, 1250 + st.n * 90);
     if (sk) blocks.push(sk);
     const subs = luSubs(e.main ? e.subs : e.subs.slice(1), accent);
