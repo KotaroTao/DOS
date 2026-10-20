@@ -451,9 +451,9 @@ export function openDungeonMenu() {
       const canHome = !combat && (game.canReturnNow ? game.canReturnNow() : false);
       grid.appendChild(menuTile("home", canHome ? "街へ帰還する" : "帰還できない", canHome ? "戦利品を持ち帰る" : combat ? "戦闘中は帰れない" : "帰還陣か主の討伐で",
         canHome ? go(() => game.confirmReturnToTown && game.confirmReturnToTown()) : null, canHome ? "gold" : null));
-      // 迷宮を諦める: 全滅と同じ扱い (確認してから。戦闘中は選べない)
-      grid.appendChild(menuTile("flag", "迷宮を諦める", combat ? "戦闘中は選べない" : "全滅と同じ扱い",
-        combat ? null : go(() => game.confirmAbandonDungeon && game.confirmAbandonDungeon()), combat ? null : "red"));
+      // 迷宮を諦める: 探索・戦闘中とも、確認してから全滅と同じ扱いにする。
+      grid.appendChild(menuTile("flag", "迷宮を諦める", g.rematch ? "再戦では選べない" : "全滅と同じ扱い",
+        g.rematch ? null : go(() => game.confirmAbandonDungeon && game.confirmAbandonDungeon()), g.rematch ? null : "red"));
       b.appendChild(grid);
       if (combat) b.appendChild(section("戦闘の速さ"));
       else b.appendChild(section("探索の手間を省く"));
