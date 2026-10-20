@@ -1403,3 +1403,8 @@ button.sp-lu-next { cursor: pointer; }
 .sp-sub-actions .sp-tile-sk { min-width: 44px; border-top: 1px solid #3a3029; }
 .sp-sub-actions .sp-tile-sk:first-child { border-left: 0; }
 .sp-sub .sp-tile-n { white-space: normal; overflow-wrap: anywhere; }
+
+/* 効果の候補は名前と説明を組にし、タッチ操作でもその場で内容を読める。 */
+.gf-options .gf-effect-option { flex: 1 1 240px; justify-content: flex-start; text-align: left; padding: 8px 10px; }
+.gf-effect-option .ui-btn-t { align-items: flex-start; width: 100%; gap: 4px; }
+.gf-effect-option .ui-btn-s { white-space: normal; overflow-wrap: anywhere; line-height: 1.6; color: var(--ink-dim); }

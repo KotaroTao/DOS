@@ -36,10 +36,32 @@ with sync_playwright() as p:
         page.locator('.ec-filter .gf-open').click()
         panel = page.locator('.gf-sheet')
         panel.locator('.gf-search').fill('PIE')
+        option = panel.locator('[data-filter-key="afx:A07"]')
+        detail = option.locator('.ui-btn-s').inner_text().replace('\u200b', '')
+        assert '効果の例：' in detail and 'PIE+2' in detail and ' ／ ' in detail, detail
+        assert detail.count('PIE+2') == 1, '同じ説明を重複して表示'
+        assert 'ほか1例' in detail, detail
+        assert option.evaluate('(e)=>e.scrollWidth<=e.clientWidth+1')
+        option.scroll_into_view_if_needed()
+        page.screenshot(path=f'/tmp/enchant-filter-effects-{width}.png')
+        panel.locator('.gf-search').fill('号令')
+        special = panel.locator('[data-filter-key="afx:J02"]')
+        text = special.locator('.ui-btn-s').inner_text().replace('\u200b','')
+        assert '味方全員' in text and '2ターン' in text and '1度だけ' in text, text
+        special.scroll_into_view_if_needed()
+        page.screenshot(path=f'/tmp/enchant-filter-behavior-{width}.png')
+        panel.locator('.gf-search').fill('PIE')
         panel.locator('[data-filter-key="afx:A07"]').click()
         assert sources.count() == 3
         assert page.locator('.ec-pages .ec-prow').count() == 1
         assert panel.locator('.gf-search').input_value() == 'PIE'
+        examples = page.evaluate('''async()=>{
+          const {pageText}=await import('/src/infaffix.js');
+          return [...api.afxPagesState().filter(p=>p.k==='A07').map(p=>pageText(p)),
+            ...api.enchantSources().flatMap(x=>(x.it.afxText||[]).filter(a=>a.k==='A07').map(a=>a.text))];
+        }''')
+        panel.locator('.gf-search').fill(next(v for v in examples if v not in detail))
+        assert panel.locator('[data-filter-key="afx:A07"]').count() == 1
         panel.locator('.gf-search').fill('STR')
         panel.locator('[data-filter-key="afx:A03"]').click()
         assert sources.count() == 4
