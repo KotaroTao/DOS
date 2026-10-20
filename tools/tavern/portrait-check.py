@@ -22,7 +22,7 @@ with sync_playwright() as p:
           const {openQuestSheet} = await import('/src/ui/questboard.js');
           const check = (ok, msg) => { if (!ok) throw Error(msg); };
           const people = [...new Map([...NPCS, ...FIXED_QUESTS.map(q=>q.giver)].map(n=>[n.name,n])).values()];
-          check(people.length === 52, '依頼者52人');
+          check(people.length === 54, '依頼者54人');
           const gallery = document.createElement('div');
           gallery.id='portrait-review';
           gallery.style='position:fixed;inset:0;z-index:99999;background:#151114;overflow:auto;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:16px';
@@ -34,12 +34,12 @@ with sync_playwright() as p:
           }
           document.body.append(gallery);
           await Promise.all([...gallery.querySelectorAll('img')].map(i=>i.decode()));
-          check(gallery.querySelectorAll('img').length===52, '全52画像を読み込める');
+          check(gallery.querySelectorAll('img').length===54, '全54画像を読み込める');
           const fallback=questPortrait({name:'未登録'},40,()=>document.createElement('canvas'));
           check(!!fallback.querySelector('canvas'),'未登録は従来の絵に戻る');
           const broken=questPortrait(people[0],40,()=>document.createElement('canvas'));
           broken.querySelector('img').dispatchEvent(new Event('error'));
-          check(!!broken.querySelector('canvas'),'画像失敗は従来の絵に戻る');
+          check(!broken.querySelector('img') && broken.querySelector('.qb-portrait-fallback')?.textContent === '◆','画像失敗は代替の印を表示する');
           window.portraitCheck={game,UI,openQuestSheet};
           return {people:people.length,assets:Object.keys(QUEST_PORTRAITS).length};
         }''')
@@ -92,8 +92,8 @@ with sync_playwright() as p:
         page.wait_for_timeout(800)
         page.locator('.sc-scene').click(position={'x':10,'y':200})
         page.screenshot(path=str(OUT / f'fixed-report-{width}.png'))
-        # 追加した五人は固有の依頼の報告でも同じ顔を表示する。
-        for quest_id, name in [('fq_proxyname', '老侍従エーリク'), ('fq_doorscratch', '扉番のカスパル'), ('fq_closedstacks', '書き写しのヨルク'), ('fq_rainjar', '雨受けのミラ'), ('fq_picturebook', '子守りのロッテ')]:
+        # 追加した七人は固有の依頼の報告でも同じ顔を表示する。
+        for quest_id, name in [('fq_proxyname', '老侍従エーリク'), ('fq_doorscratch', '扉番のカスパル'), ('fq_closedstacks', '書き写しのヨルク'), ('fq_rainjar', '雨受けのミラ'), ('fq_picturebook', '子守りのロッテ'), ('fq_joint', '修繕師のネリ'), ('fq_restbell', '炊事番のバルト')]:
             page.evaluate('''() => {
               const scene=document.querySelector('.sc-scene');
               for(let i=0;i<30 && scene?.isConnected;i++)scene.querySelector('.sc-okb').click();
@@ -111,7 +111,7 @@ with sync_playwright() as p:
             page.locator('.sc-scene').click(position={'x':10,'y':200})
             page.screenshot(path=str(OUT / f'{quest_id}-{width}.png'))
         assert not errors, errors
-        results.append({'width':width,**result,'errors':errors,'freeAndFixedReport':True,'fallback':True,'addedFixedReports':5})
+        results.append({'width':width,**result,'errors':errors,'freeAndFixedReport':True,'fallback':True,'addedFixedReports':7})
         page.close()
     browser.close()
 (OUT / 'verification.json').write_text(json.dumps(results,ensure_ascii=False,indent=2)+'\n')

@@ -52,4 +52,6 @@ export const QUEST_PORTRAITS = {
   "書き写しのヨルク": "art/quest-clients/client-49.webp",
   "雨受けのミラ": "art/quest-clients/client-50.webp",
   "子守りのロッテ": "art/quest-clients/client-51.webp",
+  "修繕師のネリ": "art/quest-clients/client-52.webp",
+  "炊事番のバルト": "art/quest-clients/client-53.webp",
 };

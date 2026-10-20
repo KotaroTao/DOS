@@ -1,0 +1,61 @@
+[
+  [
+    "a",
+    [
+      "bs_moltensmith",
+      "bs_forgegolem",
+      "bs_slagbeast",
+      "bs_anvilhorror"
+    ],
+    "TOP LEFT: molten smith automaton, hunched black cast-iron human-shaped craftsperson with leather apron, one raised glowing forging hammer and one pincer hand, thick riveted arms, molten seams. TOP RIGHT: casting golem, extremely broad squat heavy cast-iron giant, open furnace in its belly and visible small hand-shaped casting mould near the belly opening, massive empty hands, no hammer. BOTTOM LEFT: slag beast, low quadruped assembled from jagged black iron scrap and cooled slag, angular head and tail, long hot claws, cracked carapace dripping molten iron. BOTTOM RIGHT: anvil horror, a living huge horned anvil supported by four short articulated iron legs, anvil horn forms monstrous head, two heavy striking arms, battered hammer marks, squat tool-shaped body."
+  ],
+  [
+    "b",
+    [
+      "bs_soulingot",
+      "bs_moltenwraith",
+      "bs_forgehound",
+      "bs_ironmaiden"
+    ],
+    "TOP LEFT: soul ingot, single heavy trapezoid black iron ingot cast from discarded manufactured vessels, faint repeated handprint-like work marks and red heat pulsating in cracks, short molten tendrils reach outward, NO actual soul lantern or floating souls. TOP RIGHT: molten wraith, translucent red-orange heat-haze human-shaped apparition with long reaching hot hands, face dissolving in heat, tapering lower body. BOTTOM LEFT: forge hound, one low alert slender cast-iron guard dog, jointed riveted legs, incandescent teeth and narrow hot seams, distinct long tail. BOTTOM RIGHT: iron maiden, upright anthropomorphic iron restraining cabinet, two open hinged front doors showing inward metal pins and an EMPTY manufactured metal mask inside, grasping arm-shaped braces, no blood or human victims."
+  ],
+  [
+    "c",
+    [
+      "bs_bellowsfiend",
+      "bs_quenchserpent",
+      "bs_smithghost",
+      "bs_moltencore"
+    ],
+    "TOP LEFT: bellows fiend, horned soot-black demon inhabiting a large antique leather accordion bellows, inflated chest and nozzle mouth exhaling a short flame, short clawed feet and gripping hands. TOP RIGHT: quenching serpent, coiled long red-hot scaled snake with thin blade-like fangs, white localized steam curling around coils, no water tank or floor. BOTTOM LEFT: smith ghost, weary translucent blue-gray old blacksmith in apron, holding small hammer and iron ingot, wispy lower half, one tiny flower stamped on apron clasp, gentle exhausted expression, restrained warm reflected light. BOTTOM RIGHT: molten core, floating irregular bright orange mass of molten metal, branching splashing metal lobes and surrounding black cooling crust shards, central dense heat, not a face, not a planet."
+  ],
+  [
+    "d",
+    [
+      "bs_dollhusk",
+      "bs_flamehammer",
+      "bs_cruciblehorror",
+      "bs_sparkswarm"
+    ],
+    "TOP LEFT: discarded vessel husk, hollow deformed iron humanoid automaton rejected for wrong proportions, empty open chest and mismatched long arms, no occupant or soul, reaching posture. BOTTOM RIGHT: spark swarm, a compact coherent spiral cluster of many tiny orange intelligent sparks, each spark a short bright hooked needle, no literal insect bodies, clear dense curving silhouette with transparent spaces. BOTTOM LEFT: crucible horror, squat cracked black ceramic crucible overflowing with poisonous dark molten metal, two deformed MANUFACTURED iron faceplates floating in the melt, short sludge arms, faint sickly olive fumes, no human flesh. TOP RIGHT: flamehammer guardian, standing heavy armored sentry with broad flaming two-handed warhammer held diagonally over shoulder, closed helmet and sturdy boots, black metal and copper trims, readable complete hammer."
+  ],
+  [
+    "e",
+    [
+      "bs_forgewyrm",
+      "bs_moltenknight",
+      "bs_cindergeist",
+      "bs_emberfly"
+    ],
+    "TOP LEFT: forge dragon, crouched long iron-scaled drake with compact folded metallic wings, thick neck, jagged riveted cast-iron scales, mouth open with a short molten-metal breath, complete curled tail. TOP RIGHT: molten knight, tall knight in visibly flowing melted armor, hot sword pointed down diagonally, molten seams at elbows, a small riveted tally plate on chest with unreadable scratches, flared helmet, distinguishable from hammer guardian. BOTTOM LEFT: cindergeist, charred worker spirit arising as a hunched humanoid silhouette of dark ash, ember eyes and low glowing charcoal heart, reaching hands dissolve into cinders, recognizable tattered apron, darker and smokier than molten wraith. BOTTOM RIGHT: emberflies, cluster of three small distinct red-hot winged insects with visible six legs and translucent dark wings, largest insect foremost, angular ember abdomens, not abstract sparks."
+  ],
+  [
+    "f",
+    [
+      "el_geargod",
+      "el_moltengiant",
+      "bs_forgemaster"
+    ],
+    "This atlas contains THREE stronger enemies, TOP LEFT and TOP RIGHT one each, BOTTOM CENTER one larger boss in lower row; leave generous transparent horizontal separation. TOP LEFT: gear god, massive asymmetrical congregation of interlocking steel and tarnished brass gears, predatory central toothed crushing jaws and two gear-driven claw arms, small old unreadable order tags fed into a slot, NO conventional human face, no gun. TOP RIGHT: molten giant, powerful muscular giant composed of dark cooled iron with glowing molten blood in cracks, hunched and spitting a short spray of molten droplets, clenched bare hands, large head and broad shoulders, no tools. BOTTOM CENTER: foundry master boss, imposing ancient manufactured iron workshop chief, full body with legs, huge open furnace integrated INTO chest, a heavy forging hammer held low in one hand and casting tongs in other, multiple chains of ancient rectangular metal order tags draped over shoulders, thick riveted iron plates, tired solemn craftsperson face, no crown, no throne, no souls as fuel. Whole boss occupies only lower half."
+  ]
+]

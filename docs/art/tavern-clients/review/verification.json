@@ -1,20 +1,20 @@
 [
   {
     "width": 390,
-    "people": 52,
-    "assets": 52,
+    "people": 54,
+    "assets": 54,
     "errors": [],
     "freeAndFixedReport": true,
     "fallback": true,
-    "addedFixedReports": 5
+    "addedFixedReports": 7
   },
   {
     "width": 744,
-    "people": 52,
-    "assets": 52,
+    "people": 54,
+    "assets": 54,
     "errors": [],
     "freeAndFixedReport": true,
     "fallback": true,
-    "addedFixedReports": 5
+    "addedFixedReports": 7
   }
 ]

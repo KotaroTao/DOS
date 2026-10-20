@@ -312,6 +312,7 @@ The game is migrating from **10 rank-bands × 10 dungeons** to **20 layers × 5 
 - **化石竜の墓所のWebP原画** (`ws21`): 未作成の化石竜・原初の獣・原初の大蛇・大空洞の巨獣・地揺らす巨体・深淵の異形の6体を透過WebPに登録。作成済みの通常敵6種・鉱脈喰らい・共通敵は既存原画を共用する。森の古屋の3体と図鑑の説明・伝承を参照。原画・確認画像は `docs/art/fossil-tomb-enemies/`、再変換は `python3 tools/fossil-tomb/build-enemies.py`、出現対象の網羅・表示・取得失敗の確認は `node tools/fossil-tomb/verify-enemies.cjs`。能力・本文・出現条件は維持。
 - **第七章「毒沼」のWebP原画**: 本筋4迷宮（`w26`〜`w29`）と寄り道2迷宮（`ws13`・`ws14`）の未作成21体を透過WebPに登録。森の古屋の3体と図鑑の説明・伝承を参照し、作成済みの強敵2体と共通敵は既存原画を共用する。原画・対応表・確認画像は `docs/art/toxic-swamp-enemies/`、再変換は `python3 tools/toxic-swamp/build-enemies.py`、全6迷宮の網羅・表示・取得失敗の確認は `node tools/toxic-swamp/verify-enemies.cjs`。
 - **地下墓地のWebP原画** (`src/monsterphotos.js`): `w01` の通常敵6種、墓所の君主、召喚先の囚人の亡骸、ミミックの計9体は `art/monsters/<ID>.webp` の透過原画を共通の `photo` 描画口で表示する。同じIDの絵は別の迷宮でも共用。起動時は取得口だけ登録し、表示時に共通の待ち行列で取得する。取得中・通信失敗・寸法不一致では元のドット絵を表示し、原画が届けば描き直す。能力・技・伝承・出現条件は変更しない。森の小屋の3体を画風の基準に制作。原画・制作記録は `docs/art/crypt-enemies/`、変換は `python3 tools/crypt/build-enemies.py`、実画面と取得失敗時の検証は `node tools/crypt/verify-enemies.cjs`。 黒水の取水口 (`w04`) の通常敵9種と子産みヒルの女王も同じ描画口の透過WebPに更新。召喚先は吸血大ヒル、ミミックは既存原画を共用。原画・図鑑との対応・確認画像は `docs/art/blackwater-enemies/`、再生成は `python3 tools/crypt/build-blackwater-enemies.py`、検証は `node tools/crypt/verify-blackwater-enemies.cjs`。
+- **第十三章「溶鉄炉」のWebP原画**: 本筋 `w50`〜`w53` と寄り道 `ws28`・`ws29` の通常敵20体・強敵2体・主1体を透過WebPに登録。召喚先も含み、共通敵5種は既存原画を共用。鉄の器と仕事の記憶を描き、魂を鉄の材料にしない。原画・対応表は `docs/art/chapter13-enemies/`、変換・全6迷宮と28種の表示・通信失敗の検証は `tools/chapter13/build-enemies.py`・`verify-enemies.cjs`。能力・本文・出現条件は維持。
 - **第九章・闘技場跡のWebP原画**: 本筋 `w34`〜`w37` と寄り道 `ws18`・`ws19` の通常敵20種・闘技場の支配者を `src/monsterphotos.js` に登録。強敵2種と共通敵は既存原画を共用。森の小屋の3体と図鑑の説明・伝承を基準に制作し、能力・出現条件は維持。原画・確認画像は `docs/art/arena-enemies/`、再変換と実画面・取得失敗時の検証は `tools/arena/`。
 - **本丸のWebP原画**: `w09` の砦の主を `src/monsterphotos.js` に追加。ほかの敵は作成済み原画を共用し、能力・出現条件は維持。原画・制作記録は `docs/art/honmaru-enemies/`、再変換・実画面検証は `tools/honmaru/`。
 
@@ -418,6 +419,9 @@ Six elements + `none`, defined in `schema.js`. Advantage cycle is **火→風→
 
 ### UI 構造 (`src/ui/`) — 縦スクロール無し・少ないタップ
 
+装備の絞り込み (`ui/gearfilter.js`) は条件の選択・解除・すべて含むの切替を即時保存・反映する。「閉じる」は表示を閉じるだけ。商会の付呪は独立した `enchantFilter` で巻物と特性つき装備を特性名・効果から絞る（基礎性能は候補に含めない）。特性つき装備の一覧は特性名と実際の数値・効果を組にして折り返す。説明は「付呪の手引き」に折りたたみ、スマホでも一覧の高さを確保する。練習中は条件で練習用の品を隠さない。心得 `t_enchant_filter`。検証 `tools/enchant/filter-browser-check.py`。
+
+
 探索フッターの「降りる」（主の間・踏破・帰還魔法陣・無限迷宮の階段も同じ）は、発見済みの階段へ現在地から壁を越えず、めくったマスを通る道がつながる時だけ有効。術・出来事で離れた階段を公開しても、道が未接続ならボタンを無効にし、操作の実行時にも確認する。階段上にいる場合は有効。心得 `t_michi` / `t_stairs_path`。検証 `python3 tools/layout/stairs-path-check.py`。
 
 スマホ（幅600px以下）の戦闘の技選択は高さ78dvhの専用シートを開く。使い手と現在/最大MPを上部に、戻るを下部に固定し、中央の1列一覧だけを縦スクロールする。技の札は最低56px高で、技名・消費MP・短い説明・種別/属性・相性・異常率の目安を残す。MP不足や有効な対象のいない技は暗くし、長押しの詳細は開ける。選択時はシートを閉じて既存の対象選択/発動へ渡す。戻る・背景・端末の戻るではMP/手番/乱数を消費しない。広い画面の一覧は従来どおり。心得 `t_skill_picker`。
@@ -486,6 +490,7 @@ Six elements + `none`, defined in `schema.js`. Advantage cycle is **火→風→
 樹液の苗床〜洗礼の大水槽（w12〜w16、全55階）も `src/cryptpaint.js` の迷宮別素材を使う。蓋3種・壁材と連続した床を各迷宮に描き下ろし、根と樹液・魂脈の樹皮・参道の青緑石・聖歌回廊の金装飾・洗礼の青い大理石で描き分ける。足元の仕掛けは従来の描画を重ねる。原画は `docs/art/dungeons/`、比較と検査は `review-w12-w16/`。確認は `DUNGEON_REVIEW_SET=w12-w16 node tools/crypt/verify-dungeons.cjs`、心得は `t_rootwater_stonework`。
 血の砂の闘技場〜底なしの大伽藍（`w37`〜`w41`、全60階）も同じ迷宮別素材を使う。血の砂・灯籠の残骸・黒い湖岸・弔いの石床・紫灰色の伽藍をそれぞれ描き下ろし、蓋は各3種。刃の砂・黒水・魂の煤・濁り光は既存の危険表示を重ねる。原画は `docs/art/dungeons/`、比較は `docs/art/dungeons/review-w37-w41/`、確認は `tools/crypt/verify-deep-dungeons.cjs`。心得 `t_deep_stonework`。
 第十二章「王家の廟」の本筋4迷宮（w46〜w49）と寄り道3迷宮（ws25〜ws27）、全75階にも専用の床・蓋3種・壁材のWebPを適用する。参道の温かな石、仕立て場の香油、近衛廊の黒大理石、玉座の金、名の無い墓所の土、大広間の毛皮、王子の墓所の細い金飾りで描き分ける。危険な床は既存表示を重ねる。原画と制作記録は `docs/art/dungeons/chapter12.md`、確認は `tools/crypt/verify-dungeons.cjs w46 w47 w48 w49 ws25 ws26 ws27`、心得は `t_royal_tomb_stonework`。
+第十三章「溶鉄炉」の本筋4迷宮（w50〜w53）と寄り道2迷宮（ws28/29）、全65階にも専用の床・蓋3種・壁材を適用する。搬入路のさび鉄、鋳造場の青銅、水路の青灰石、大炉の焼けた鉄、継ぎ手の真ちゅう、休憩所の冷たい石を描き分ける。蓋の切り出し高は原画に合わせて w51=472・w52=496・w53=504・ws29=500px。危険な床は既存の表示を重ねる。原画と記録は `docs/art/dungeons/chapter13.md`、確認は `tools/crypt/verify-dungeons.cjs w50 w51 w52 w53 ws28 ws29`、心得は `t_forge_stonework`。
 スマホの探索盤面は1マスの短辺が約64 CSS pxになるよう現在地の周囲を拡大し、歩くと追従する。拡大中の盤面ドラッグは見渡す操作 (移動や札めくりはしない)。額の下の「全体 / 拡大」「現在地」で表示を戻せる。隊の札からのフリック移動は維持する。カメラは保存せず、戦闘の座標には適用しない。酒場の心得 `t_board_camera`。拡大時は画面全体の再拡大をせず、カメラ座標で表示先へ直接描く。床・墓石は滑らかな補間、壁は2倍解像度の合成を使い、光・枠・粒子の輪郭を保つ。
 品の詳細は `itemview.js` の `itemDetailEl` で共通化する (図鑑・所持品・装備対象選択)。絵と名・分類と品質・能力 → 装備条件と説明 → 攻撃性能 → 特殊効果の順とし、対象選択と操作だけを呼び出し側が添える。図鑑の品質は並品と品質の幅を示し、未鑑定の品は正体と性能を伏せる。スマホ（幅600px以下）の「人業の様子」はHP/MPを肖像・名前の下へ広げ、数値と残量の棒を別段にする。現在値/最大値は正確な数字を残し、必要なら区切りで折り返す。「いまの戦力」と能力は2列で項目名・数値を上下に配置し、強化前は「元の値」として別行に出す。長い名前・武器・効果・技の消費MPも枠内で折り返す（数字を省略・非表示にしない）。心得 `t_peek`。通常時の人業の詳細は `UI.openParty` の装備・魂・能力へ揃え、戦闘時だけ `peekDoll` の戦力と効果の残りを示す。敵の詳細は引き続き `codexMonSheet` を共通で使う。
 イレーヌの全画面の会話 (`irene.js` `playIreneScene`) は全文と `phraseBreaks` の折り目を最初に配置する。未表示の文字は `visibility: hidden` で場所を残し、38msごとに1字ずつ表示する。途中までの文字列を作り直さず、文字送りや全文表示の途中で改行位置・吹き出しの高さを変えない。
@@ -533,7 +538,7 @@ The UI was rebuilt into packages under `src/ui/` (plain ES modules; **they never
 
 - 職業の魂の入手ポップアップは `src/ui/soulart.js` の透過アニメーションWebP (`art/souls/acquisition.webp`) を使い、職業の `glow` 色に染める。動きを減らす設定では静止WebP、読み込み失敗時も従来の人魂アイコンへ戻さず枠を保つ。トースト・戦果の小さな魂は従来どおり。心得 `t_soul_wisp`。
 
-- 戦闘背景は `src/battlebackgrounds.js` の迷宮ID対応で `art/battle/<id>.webp` を読み込む (全77迷宮 + 無限迷宮)。中央を暗くし、主・強敵は赤い周辺光を重ねる。読み込み中・失敗時は暗い幕を表示する。出撃画面は台帳の全迷宮で専用WebPを表示する (`src/ui/departure.js`。序章は `art/dungeon/w00_forest-entrance.webp`、ほかは `LORE_IMAGES` の原画、未登録なら専用の `BATTLE_BACKGROUNDS`。取得失敗時も旧情景へ戻さず枠を保つ)。設定「漆黒」は従来どおり。心得 `t_battle_scenery`。
+- 戦闘背景は `src/battlebackgrounds.js` の迷宮ID対応で `art/battle/<id>.webp` を読み込む (全83迷宮 + 無限迷宮)。第十三章の6迷宮は専用背景を登録済み (原画 `docs/art/battle-backgrounds/atlas-10.png`、各504×336・品質88のWebP)。中央を暗くし、主・強敵は赤い周辺光を重ねる。読み込み中・失敗時は暗い幕を表示する。出撃画面の第十三章「溶鉄炉」の6迷宮（w50〜w53・ws28・ws29）は `backdrops.js` の専用ドット絵を約15fpsで描き、鎖の荷箱・炉火・水面・蒸気・灯の動きを重ねる。動きを減らす設定では静止する。それ以外の出撃画面は台帳の迷宮ごとに専用WebPを表示する (`src/ui/departure.js`。序章は `art/dungeon/w00_forest-entrance.webp`、ほかは `LORE_IMAGES` の原画、未登録なら専用の `BATTLE_BACKGROUNDS`。取得失敗時も旧情景へ戻さず枠を保つ)。設定「漆黒」は従来どおり。心得 `t_battle_scenery`。
 
 - 異変「飢えた狩場」は戦闘開始時にも最低3体を保証する (`startBattleMeasured`)。主・強敵・銀業・ミミック・出来事にも、その階の通常の魔物を不足分だけ添える。一騎打ちの掟 (`trait.duel`) がある迷宮では抽選候補から除外し、以前の候補・出撃・保存済みの異変の適用時にも対象条件を確かめる (`mutatorForDungeon`)。元の特殊敵は増やさず、強さ・戦果の異変倍率は従来どおり通常敵だけに効く。記憶への再戦は対象外。迷宮の掟の `packMin` は従来どおり通常の群れだけ。心得 `t_mut`。
 - ユーザーがPRのマージを指示した後は `python3 tools/release/merge.py <PR番号> --head <確認済みの40桁SHA> --merge` で検査から公開確認までまとめて実行する (`docs/merge-and-publish.md`)。公開の成否まで報告し、同じ許可を聞き直さない。指示前にはマージしない。

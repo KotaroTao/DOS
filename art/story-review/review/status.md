@@ -2,7 +2,7 @@
 
 書き出し: `node tools/storyart/review.mjs` (build.py も書き直す。手で直さない)。
 
-場面: 出荷済み 134 ・ 出荷済み (任意の修正あり) 11 ・ 未着手 (指示あり) 14
+場面: 出荷済み 138 ・ 出荷済み (任意の修正あり) 11 ・ 未着手 (指示あり) 23
 
 | 章 | 場面 | 題 | 状態 | 確認ページ |
 |---|---|---|---|---|
@@ -158,10 +158,23 @@
 | 第12章「王家の廟」 | `report_w48` | 尋ねなかった名 | 未着手 (指示あり) | [見る](chapter12.md#report_w48) |
 | 第12章「王家の廟」 | `pre_w49` | 玉座の王 | 未着手 (指示あり) | [見る](chapter12.md#pre_w49) |
 | 第12章「王家の廟」 | `pre_w49_retry` | ふたたび玉座の前で | 未着手 (指示あり) | [見る](chapter12.md#pre_w49_retry) |
-| 第12章「王家の廟」 | `mem_w49` | もう、よい | 未着手 (指示あり) | [見る](chapter12.md#mem_w49) |
-| 第12章「王家の廟」 | `report_w49` | 余が決めた日に | 未着手 (指示あり) | [見る](chapter12.md#report_w49) |
-| 第12章「王家の廟」 | `irene_enough` | 訊く人 | 未着手 (指示あり) | [見る](chapter12.md#irene_enough) |
-| 第12章「王家の廟」 | `ch12_end` | 答えを聞くまで | 未着手 (指示あり) | [見る](chapter12.md#ch12_end) |
+| 第12章「王家の廟」 | `mem_w49` | もう、よい | 出荷済み | [見る](chapter12.md#mem_w49) |
+| 第12章「王家の廟」 | `report_w49` | 余が決めた日に | 出荷済み | [見る](chapter12.md#report_w49) |
+| 第12章「王家の廟」 | `irene_enough` | 訊く人 | 出荷済み | [見る](chapter12.md#irene_enough) |
+| 第12章「王家の廟」 | `ch12_end` | 答えを聞くまで | 出荷済み | [見る](chapter12.md#ch12_end) |
+| 第13章「溶鉄炉」 | `w50_orders` | 器を待つ名 | 未着手 (指示あり) | [見る](chapter13.md#w50_orders) |
+| 第13章「溶鉄炉」 | `w51_mould` | 型の外の手 | 未着手 (指示あり) | [見る](chapter13.md#w51_mould) |
+| 第13章「溶鉄炉」 | `w52_bell` | 今日は、休む | 未着手 (指示あり) | [見る](chapter13.md#w52_bell) |
+| 第13章「溶鉄炉」 | `report_w50` | 王の数え方 | 未着手 (指示あり) | [見る](chapter13.md#report_w50) |
+| 第13章「溶鉄炉」 | `report_w51` | 誰のための器 | 未着手 (指示あり) | [見る](chapter13.md#report_w51) |
+| 第13章「溶鉄炉」 | `report_w52` | 座った侍従 | 未着手 (指示あり) | [見る](chapter13.md#report_w52) |
+| 第13章「溶鉄炉」 | `report_w53` | 聞こえない声 | 未着手 (指示あり) | [見る](chapter13.md#report_w53) |
+| 第13章「溶鉄炉」 | `pre_w53` | 注文の向こう | 未着手 (指示あり) | [見る](chapter13.md#pre_w53) |
+| 第13章「溶鉄炉」 | `pre_w53_retry` | 戻った手 | 未着手 (指示あり) | [見る](chapter13.md#pre_w53_retry) |
+| 第13章「溶鉄炉」 | `mem_w53` | 明日の鎚 | 未着手 (指示あり) | [見る](chapter13.md#mem_w53) |
+| 第13章「溶鉄炉」 | `irene_hands` | 杯を持つ手 | 未着手 (指示あり) | [見る](chapter13.md#irene_hands) |
+| 第13章「溶鉄炉」 | `irene_tomorrow` | 今日は、ここまで | 未着手 (指示あり) | [見る](chapter13.md#irene_tomorrow) |
+| 第13章「溶鉄炉」 | `ch13_end` | 低い火 | 未着手 (指示あり) | [見る](chapter13.md#ch13_end) |
 | 序章 | `irene_repair` | 砕けても、名は消えない | 出荷済み | [見る](chapter0.md#irene_repair) |
 | 第1章「師の灯」 | `irene_familiar` | 名で呼べる距離 | 出荷済み | [見る](chapter1.md#irene_familiar) |
 | 第3章「魂脈の根」 | `irene_trust` | 扉を開けた日のこと | 出荷済み | [見る](chapter3.md#irene_trust) |
@@ -217,6 +230,12 @@
 | 由来 | `w47` | 香油の仕立て場 | 出荷済み | [見る](dungeons.md#lore_w47) |
 | 由来 | `w48` | 眠らずの近衛廊 | 出荷済み | [見る](dungeons.md#lore_w48) |
 | 由来 | `w49` | 終わらずの玉座 | 出荷済み | [見る](dungeons.md#lore_w49) |
+| 由来 | `w50` | 鉄くずの搬入路 | 出荷済み | [見る](dungeons.md#lore_w50) |
+| 由来 | `w51` | 千型の鋳造場 | 出荷済み | [見る](dungeons.md#lore_w51) |
+| 由来 | `w52` | 焼き入れの水路 | 出荷済み | [見る](dungeons.md#lore_w52) |
+| 由来 | `w53` | 休まぬ大炉 | 出荷済み | [見る](dungeons.md#lore_w53) |
+| 由来 | `ws28` | 継ぎ手の置き場 | 出荷済み | [見る](dungeons.md#lore_ws28) |
+| 由来 | `ws29` | 鐘のない休憩所 | 出荷済み | [見る](dungeons.md#lore_ws29) |
 | 由来 | `ws1` | 沈んだ礼拝堂 | 出荷済み | [見る](dungeons.md#lore_ws1) |
 | 由来 | `ws2` | 石眠りの石切り場 | 出荷済み | [見る](dungeons.md#lore_ws2) |
 | 由来 | `ws3` | 霧の迷い森 | 出荷済み | [見る](dungeons.md#lore_ws3) |

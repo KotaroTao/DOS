@@ -3280,6 +3280,174 @@ function vClosedStacks(R, A) {
   A.part({ n: 16, col: "#c0a0f0", x0: 0.36, x1: 0.64, y0: 0.3, y1: 0.7, vy: -0.015, sway: 4, swf: 0.4, a: 0.5, tw: 1, rune: true, seed: 731 });
   A.pulse((P) => { P.m = ADD; P.glow(vx, vy - 4, 56, 36, "#4a2470", 0.5, 5); }, (t) => 0.35 + 0.3 * Math.sin(t * 0.0011));
 }
+// ---- 第十三章「溶鉄炉」: 無人の工房、仕事を続ける道具と残された暮らし ----
+export const FORGE_VISTA_IDS = Object.freeze(["w50", "w51", "w52", "w53", "ws28", "ws29"]);
+function forgeRoom(R, A, cool = false) {
+  const { w: W, h: H } = R;
+  R.amb = cool ? [0.6, 0.69, 0.75] : [0.76, 0.57, 0.45];
+  bricks(R, 0, 0, W, H * .72, cool ? "#36434a" : "#4d3830", "#161b20", 18, 9, 1501);
+  ground(R, Math.round(H * .63), "#292c30", "#514339", 1503, .12, .45);
+  perspGrid(R, H * .64, W * .52, H * .57, "#918270", .18, 8, 7);
+  // 奥へ続く梁と柱。炉火が当たる側だけに細い縁を残す。
+  for (const [x, width] of [[.05, .06], [.24, .04], [.73, .04], [.9, .06]]) {
+    R.m = SURF; R.rect(W * x, 0, W * width, H * .72, "#24272b");
+    R.rect(W * x, 0, 1, H * .72, cool ? "#7c9295" : "#ab7151");
+    for (let y = 12; y < H * .7; y += 24) R.rect(W * x + 3, y, 2, 2, "#8b7b69");
+  }
+  R.rect(0, H * .13, W, 6, "#24292c"); R.rect(0, H * .13, W, 1, "#8c7660");
+  R.light(W * .53, H * .5, W * .8, cool ? "#8ac8d0" : "#ffb36b", .7, H);
+  A.fog(cool ? "#bed3d6" : "#88766a", .61, 3, .09, cool ? -4 : 3, 75, 8);
+}
+function forgeFire(R, A, x, y, w, h) {
+  R.m = SKY;
+  R.vgrad(x, y, w, h, [[0, "#7e281b"], [.55, "#f07830"], [1, "#ffe0a0"]]);
+  R.glow(x + w / 2, y + h, w * 2.5, h * 2, "#f56b27", .8);
+  R.light(x + w / 2, y + h, w * 5, "#ff984b", 1.6, h * 4);
+  A.flick(x + w / 2, y + h * .7, Math.max(12, w * 1.5), "#ff913f", .45, 1.2);
+  A.part({ n: 24, col: "#ffc27a", x0: x / R.w, x1: (x + w) / R.w, y0: Math.max(0, (y - h) / R.h), y1: (y + h) / R.h, vy: -.07, sway: 4, swf: 1, a: .8, tw: 3, seed: 1507 });
+}
+function forgeMould(R, x, y, scale, kind) {
+  const s = scale;
+  R.m = SURF; R.rect(x, y, 14 * s, 25 * s, "#65574c");
+  R.rect(x + s, y + s, 12 * s, 23 * s, "#272c30");
+  R.rect(x + s, y + s, s, 23 * s, "#9b8170");
+  // 腕・脚・胸の型。人ではなく、溝の刻まれた空の鉄型。
+  const shapes = [
+    [[5, 4], [9, 4], [9, 13], [11, 17], [9, 20], [5, 15]],
+    [[4, 4], [10, 4], [9, 17], [11, 20], [4, 20]],
+    [[3, 5], [6, 3], [8, 3], [11, 5], [10, 16], [4, 16]],
+  ];
+  R.poly(shapes[kind % 3].map(([a, b]) => [x + a * s, y + b * s]), "#100f12");
+  R.rect(x + 3 * s, y + 22 * s, 8 * s, s, "#b78963");
+  for (let j = 0; j < 3; j++) R.px(x + (4 + j * 2) * s, y + 22 * s, "#302923");
+}
+function vScrapIntake(R, A) {
+  forgeRoom(R, A);
+  const { w: W, h: H } = R;
+  archFrame(R, W * .54, H * .2, W * .14, H * .69, 5, "#786052", "#100e12", 0, 9, "#332b28");
+  forgeFire(R, A, W * .5, H * .48, W * .08, H * .12);
+  // 入口へ収束する運搬軌道と、手前に積まれた鉄くず。
+  for (const x of [.18, .78]) { R.m = SURF; R.line(W * x, H, W * .54, H * .64, "#787578", 1, 2); }
+  const r = rnd(1511);
+  for (let i = 0; i < 55; i++) {
+    const side = i % 2, x = W * (side ? .8 + r() * .18 : r() * .21), y = H * (.69 + r() * .29);
+    R.m = SURF; R.poly([[x, y], [x + 6, y - 5], [x + 12, y - 2], [x + 8, y + 3]], i % 3 ? "#64544a" : "#8e7864");
+  }
+  // 鎖につられた荷箱がゆっくり奥へ下っていく。座標は2px単位。
+  A.special = (ctx, w, h, t) => {
+    for (let i = 0; i < 3; i++) {
+      const z = ((t / 14000 + i / 3) % 1), s = 1 - z * .58;
+      const x = Math.round((w * (.18 + z * .32)) / 2) * 2, y = Math.round(h * (.28 + z * .19) / 2) * 2;
+      ctx.fillStyle = "#79716a";
+      for (let cy = 0; cy < y; cy += 8) { ctx.fillRect(x, cy, 2, 6); ctx.fillRect(x + Math.round(38 * s / 2) * 2, cy, 2, 6); }
+      ctx.fillStyle = "#2b2c30"; ctx.fillRect(x - 6, y, Math.round(52 * s / 2) * 2, Math.round(30 * s / 2) * 2);
+      ctx.fillStyle = "#9e7660"; ctx.fillRect(x - 6, y, Math.round(52 * s / 2) * 2, 2);
+      ctx.fillStyle = "#665348"; ctx.fillRect(x, y + 8, Math.round(38 * s / 2) * 2, 4);
+    }
+  };
+}
+function vThousandMoulds(R, A) {
+  forgeRoom(R, A);
+  const { w: W, h: H } = R;
+  forgeFire(R, A, W * .44, H * .36, W * .12, H * .25);
+  for (const side of [0, 1]) for (let row = 0; row < 3; row++) for (let col = 0; col < 3; col++) {
+    forgeMould(R, W * (side ? .66 : .05) + col * 17, H * .2 + row * 25, .88, col + row);
+  }
+  R.m = SKY; R.poly([[W * .49, H * .61], [W * .53, H * .61], [W * .65, H], [W * .58, H]], "#e18d48");
+  A.pulse(P => { P.glow(W * .52, H * .74, W * .25, H * .4, "#c56129", .55); }, t => .35 + .18 * Math.sin(t * .0018));
+}
+function vQuenchCanal(R, A) {
+  forgeRoom(R, A, true);
+  const { w: W, h: H } = R;
+  for (let i = 0; i < 3; i++) {
+    const y = H * (.43 + i * .17), left = W * (.36 - i * .11), width = W * (.28 + i * .22);
+    R.m = SURF; R.rect(left - 3, y - 3, width + 6, H * .12, "#6b7473");
+    R.m = SKY; R.rect(left, y, width, H * .08, "#254951");
+    R.rect(left + 2, y + 2, width - 4, 1, "#80aca5");
+    R.rect(left + width * .7, y, 3, H * .09, "#d08e67");
+    A.fog("#d9e6df", y / H - .02, 3, .24, 5 + i, 48 + i * 14, 9);
+  }
+  chainV(R, W * .72, 0, H * .24, "#9e9290");
+  A.special = (ctx, w, h, t) => {
+    ctx.fillStyle = "#9cbfba"; ctx.globalAlpha = .45;
+    for (let i = 0; i < 16; i++) {
+      const row = i % 3, phase = (i * .173 + t * .00009) % 1;
+      const x = w * (.38 - row * .11 + phase * (.23 + row * .22));
+      ctx.fillRect(Math.round(x / 2) * 2, Math.round(h * (.46 + row * .17 + Math.sin(t * .001 + i) * .009) / 2) * 2, 6 + row * 4, 2);
+    }
+    ctx.globalAlpha = 1;
+    const x = Math.round((w * .72 + Math.sin(t * .0014) * 4) / 2) * 2, y = Math.round(h * .24 / 2) * 2;
+    ctx.fillStyle = "#a18a66"; ctx.fillRect(x - 6, y, 12, 12); ctx.fillRect(x - 10, y + 12, 20, 4);
+    ctx.fillStyle = "#2c3539"; ctx.fillRect(x, y + 16, 2, 6);
+  };
+}
+function vUnrestingFurnace(R, A) {
+  forgeRoom(R, A);
+  const { w: W, h: H } = R;
+  bricks(R, W * .28, H * .05, W * .73, H * .72, "#695347", "#292727", 16, 8, 1523);
+  archFrame(R, W * .5, H * .27, W * .15, H * .65, 7, "#a17a59", "#220f0b", 0, 11, "#45312a");
+  forgeFire(R, A, W * .39, H * .38, W * .22, H * .25);
+  R.m = SURF;
+  for (let i = 0; i < 8; i++) R.rect(W * .38 + i * W * .033, H * .36, 2, H * .29, "#352b28");
+  for (const side of [0, 1]) {
+    const x = W * (side ? .76 : .08);
+    for (let i = 0; i < 7; i++) {
+      const y = H * .76 - i * 3;
+      R.poly([[x, y], [x + 28, y - 3], [x + 35, y], [x + 7, y + 3]], i % 2 ? "#8b7260" : "#50453e");
+      R.rect(x + 10, y - 1, 11, 1, "#b69a7a");
+    }
+    R.rect(x + 4, H * .43, 22, 11, "#635047");
+    for (let i = 0; i < 5; i++) R.rect(x + 5 + i * 4, H * .43, 1, 11, "#b4845a");
+  }
+  R.m = SKY; R.poly([[W * .47, H * .66], [W * .54, H * .66], [W * .7, H], [W * .59, H]], "#e78c3b");
+  A.pulse(P => { P.glow(W * .5, H * .5, W * .5, H * .65, "#e06420", .5); }, t => .4 + .25 * Math.sin(t * .0022));
+}
+function vSpareJoints(R, A) {
+  forgeRoom(R, A, true);
+  const { w: W, h: H } = R;
+  for (const side of [0, 1]) {
+    const x = W * (side ? .65 : .06);
+    for (let row = 0; row < 3; row++) {
+      const y = H * (.24 + row * .18);
+      R.m = SURF; R.rect(x - 3, y + 17, W * .28, 3, "#796b57");
+      for (let col = 0; col < 3; col++) {
+        const xx = x + col * W * .08;
+        R.ellipse(xx + 5, y + 4, 5, 5, "#a1967e"); R.ellipse(xx + 5, y + 4, 2, 2, "#222e33");
+        R.taper(xx + 5, y + 7, xx + 10, y + 15, 5, 3, "#827d6c");
+      }
+    }
+    for (const dx of [-3, W * .26]) R.rect(x + dx, H * .19, 2, H * .63, "#727367");
+  }
+  // 合わない寸法の手足を、捨てずに作業台へ残す。
+  R.m = SURF; R.rect(W * .38, H * .62, W * .23, 4, "#9b8060");
+  for (const x of [.39, .58]) R.rect(W * x, H * .64, 3, H * .19, "#4e4c42");
+  R.ellipse(W * .5, H * .59, 10, 3, "#ada18a");
+  A.part({ n: 18, col: "#dfd9b8", x0: .1, x1: .9, y0: .2, y1: .8, vy: .006, sway: 3, a: .5, tw: 1, seed: 1531 });
+  A.flick(W * .5, H * .4, 35, "#9dc4b6", .2, .45);
+}
+function vBelllessRest(R, A) {
+  forgeRoom(R, A, true);
+  const { w: W, h: H } = R;
+  // 取り外された鐘の留め具だけ。休憩所には鐘そのものを描かない。
+  chainV(R, W * .5, 0, H * .27, "#9f9d8c");
+  R.m = SURF; R.ellipse(W * .5, H * .29, 3, 4, "#aaa18a"); R.ellipse(W * .5, H * .29, 2, 3, "#27343c");
+  for (let i = 0; i < 3; i++) {
+    const x = W * .07, y = H * (.37 + i * .14);
+    R.rect(x, y, W * .27, 4, "#7b6c56"); R.rect(x, y - 5, W * .23, 5, "#6a7774");
+    R.rect(x, y - 5, 8, 4, "#b3ac90");
+    R.rect(x, y + 4, 2, 12, "#3f4949"); R.rect(x + W * .25, y + 4, 2, 12, "#3f4949");
+  }
+  R.rect(W * .47, H * .59, W * .42, 5, "#967f60");
+  for (const x of [.5, .83]) R.rect(W * x, H * .62, 3, H * .22, "#514c41");
+  for (const x of [.55, .75]) {
+    R.rect(W * x, H * .55, 5, 6, "#bcb39a"); R.rect(W * x + 1, H * .55, 3, 1, "#2a3a40");
+    R.rect(W * x, H * .77, 13, 3, "#7c6e55"); R.rect(W * x + 1, H * .8, 2, 9, "#514c41");
+  }
+  R.m = SKY; R.rect(W * .84, H * .26, 8, 3, "#f1c38c");
+  A.flick(W * .86, H * .28, 25, "#dfb577", .3, .5);
+  A.part({ n: 14, col: "#c3d9d2", x0: .35, x1: .9, y0: .24, y1: .78, vy: -.004, sway: 4, a: .35, tw: .6, seed: 1537 });
+}
+
 const VISTAS = {
   w00_forest: [5, vForestHut],
   w01: [1, vCrypt], w02: [14, vWhispers], w03: [16, vAbbey], w04: [2, vIntake], w05: [3, vChains],
@@ -3295,8 +3463,8 @@ const VISTAS = {
   w34: [0, vCloudBridge], w35: [0, vBeastCages], w36: [0, vSpectreStands], w37: [11, vBloodSand], ws18: [0, vVictorsRoom], ws19: [0, vDuelRing],
   w38: [0, vLampDrift], w39: [0, vBlackLake], w40: [0, vNameGrotto], w41: [0, vGreatNave], ws20: [0, vBeastLair], ws21: [0, vFossilDragon], ws22: [12, vCrystalVein],
   w42: [0, vShelfStair], w43: [0, vRainArchive], w44: [0, vGlassWorks], w45: [0, vGreatArchive], ws23: [0, vPictureRoom], ws24: [0, vClosedStacks],
-  // 第十三章は専用イラストの制作待ち。既存の情景キーを参照する。
-  w50: [7, vChains], w51: [7, vGlassWorks], w52: [7, vFont], w53: [7, vInferno], ws28: [7, vGuardroom], ws29: [7, vCouncil],
+  // 第十三章: 各迷宮の道具と暮らしを専用のドット絵で描く。
+  w50: [0, vScrapIntake], w51: [0, vThousandMoulds], w52: [0, vQuenchCanal], w53: [0, vUnrestingFurnace], ws28: [0, vSpareJoints], ws29: [0, vBelllessRest],
   // 第十二章「王家の廟」: 専用の情景は描き下ろし待ち (docs/art/chapter12-art-list.md)。それまでは近い情景を借りる
   w46: [0, vNameGrotto], w47: [0, vGlassWorks], w48: [0, vGreatNave], w49: [0, vGreatNave], ws25: [0, vNameGrotto], ws26: [0, vBeastLair], ws27: [0, vGreatNave],
 };
