@@ -14,6 +14,7 @@ export const UI_PREF_DEFAULTS = {
   shopSeg: "sell",       // 商会: 売る・鑑定 | 買う | 鍛え直し
   shopDollUid: null,      // 商会で比較する人業 (隊列を替えても同じ者)
   gearFilter: {},         // 館の装備一覧・候補の属性と特殊効果
+  enchantFilter: {},      // 商会の付呪の特性 (購入・館とは別に記憶)
   shopGearFilter: {},     // 商会の棚の属性と特殊効果 (館の条件とは別に記憶)
   shopCat: "weapon",     // 商会の分類
   codexDungeon: 0,       // 図鑑で開いていた迷宮

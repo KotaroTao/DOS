@@ -585,3 +585,24 @@
   .seg-buy .wpc-bar { gap: 4px; }
   .wpc-shop.seg-buy > .gf-summary { max-height: 52px; }
 }
+
+/* 特性名と実際の効果を一組ずつ折り返し、狭い一覧でも全文を読める。 */
+.ec-filter { margin-left: auto; }
+.ec-filter-summary { flex: 0 0 auto; min-width: 0; max-height: 100px; overflow-y: auto; }
+.ec-effect { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 6px; min-width: 0; max-width: 100%; }
+.ec-effect .ec-tag { white-space: normal; }
+.ec-effect .ec-val, .ec-prow .ec-val { white-space: normal; overflow-wrap: anywhere; }
+.ec-row .ec-tags { align-items: flex-start; flex-direction: column; }
+.ec-row .wpc-srow-t, .ec-prow .wpc-srow-t { min-width: 0; }
+@media (max-width: 600px) {
+  .ec-filter-summary { max-height: 64px; }
+}
+
+.ec-guide { flex: 0 0 auto; }
+.ec-guide > summary { min-height: 44px; display: list-item; align-content: center; cursor: pointer; font-size: 12.5px; color: var(--accent-hi); }
+.ec-guide:not([open]) { padding-block: 0; margin-bottom: 0; }
+@media (max-width: 600px), (max-height: 500px) {
+  .wpc-shop.seg-enchant { gap: 4px; }
+  .wpc-shop.seg-enchant > .ui-whisper { display: none; }
+  .ec-guide[open] { max-height: 26dvh; overflow-y: auto; }
+}
