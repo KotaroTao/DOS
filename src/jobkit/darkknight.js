@@ -43,9 +43,9 @@ export default {
       fx: [{ t: "start", taunt: true, dur: 2 }, { t: "take", on: "phys", v: [0.05, 0.08, 0.11, 0.14] }] },
     darkknightKaeshiba: {
       label: "恨みの返し刃",
-      lv: ["物理を受けるたび、INT×0.3の魔法の一撃で返す", "物理を受けるたび、INT×0.45の魔法の一撃で返す", "物理を受けるたび、INT×0.6の魔法の一撃で返す"],
+      lv: ["物理を受けるたび、INT×1.5の魔法の一撃で返す", "物理を受けるたび、INT×2.25の魔法の一撃で返す", "物理を受けるたび、INT×3の魔法の一撃で返す"],
       fx: [
-        {t: "hurt", ret: {stat: "int", k: [0.3, 0.45, 0.6], magic: true}},
+        {t: "hurt", ret: {stat: "int", k: [1.5, 2.25, 3], magic: true}},
       ],
     },
     darkknightShikobami: { label: "死拒みの闇", lv: ["戦闘開始時50%で不屈 (致死をHP1で耐える) を得る。敵を倒すとHP5%回復", "戦闘開始時に必ず不屈を得る。敵を倒すとHP8%回復"],

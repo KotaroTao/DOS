@@ -27,8 +27,8 @@ export default {
     WARDEN_SHIHOU:      { name: "四方結界", mp: 20, kind: "buff", buff: { vit: 1.2 }, grantBarrier: 1, cure: true, target: "all-ally", desc: "魔障壁を張り、守りを上げ穢れを祓う" },
     WARDEN_JIBAKU:      { name: "地縛の陣", mp: 16, kind: "atk", power: 44, element: "earth", para: 0.25, target: "enemy", desc: "地に縛り付けて撃ち、痺れさせる" },
     WARDEN_SUIROU:      { name: "水牢", mp: 14, kind: "atk", power: 34, element: "water", debuff: { atk: 0.85 }, target: "enemy", desc: "水の牢で締め上げ、力を奪う" },
-    // 味方全体に反射 (2026-10-15 ユーザーの指示): 受けた呪文・ブレスを、唱えた護法師の魔力 (INT・PIE の高い方) × 0.8 で返す
-    WARDEN_UTSUSHIGAESHI: { name: "映し返しの陣", mp: 24, kind: "buff", reflect: 0.8, dur: 3, target: "all-ally", desc: "鏡の結界で味方全員を包み、受けた呪文・ブレスを返す（唱えた者のINT・PIEの高い方×0.8の魔法の一撃）" },
+    // 味方全員に反射: 受けた呪文・ブレスを、唱えた護法師の魔力 (INT・PIE の高い方) ×4で返す
+    WARDEN_UTSUSHIGAESHI: { name: "映し返しの陣", mp: 24, kind: "buff", reflect: 4, dur: 3, target: "all-ally", desc: "鏡の結界で味方全員を包み、受けた呪文・ブレスを返す（唱えた者のINT・PIEの高い方×4の魔法の一撃）" },
     WARDEN_FUDOU:       {name: "不動の陣", mp: 16, kind: "buff", buff: {vit: 1.25}, dur: 4, target: "all-ally", tech: true, desc: "味方全員のVITを1段上げ、ブレスと全体呪文を20%軽減（4ターン）", ward: {breath: 0.2, spell: 0.2}},
     WARDEN_TAIZAN:      { name: "泰山の重圧", mp: 18, kind: "atk", gravity: 0.25, debuff: { atk: 0.85 }, target: "all-enemy", desc: "敵全体の今のHPの25%を圧し、力を奪う" },
     WARDEN_GANKAI:      { name: "岩戒の陣", mp: 27, kind: "atk", power: 70, element: "earth", flinchChance: 0.3, target: "all-enemy", desc: "岩の戒めが敵全体を打ち、怯ませる" },
@@ -62,9 +62,9 @@ export default {
     },
     wardenJusogaeshi: {
       label: "呪い返し",
-      lv: ["ブレス・呪文を受けた時、INTとPIEの高い方×0.4の魔法の一撃で返す", "ブレス・呪文を受けた時、INTとPIEの高い方×0.5の魔法の一撃で返す",
-        "ブレス・呪文を受けた時、INTとPIEの高い方×0.6の魔法の一撃で返す"],
-      fx: [{ t: "hurt", on: "magic", ret: { stat: "mag", k: [0.4, 0.5, 0.6], magic: true } }],
+      lv: ["ブレス・呪文を受けた時、INTとPIEの高い方×2の魔法の一撃で返す", "ブレス・呪文を受けた時、INTとPIEの高い方×2.5の魔法の一撃で返す",
+        "ブレス・呪文を受けた時、INTとPIEの高い方×3の魔法の一撃で返す"],
+      fx: [{ t: "hurt", on: "magic", ret: { stat: "mag", k: [2, 2.5, 3], magic: true } }],
     },
   },
 };

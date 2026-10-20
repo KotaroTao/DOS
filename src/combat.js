@@ -365,15 +365,15 @@ const lvv = (v, lv) => (Array.isArray(v) ? v[Math.min(Math.max(1, lv), v.length)
 const hurtOn = (on, kind) => (on || "phys") === kind || (on === "magic" && (kind === "breath" || kind === "spell"));
 // やり返しの能力: atk = 攻撃力 (武器の参照式) / vit・int・pie = その能力 / mag = INT と PIE の高い方 (強化・弱体込み)
 export const RET_STATS = ["atk", "vit", "int", "pie", "mag"];
-// 2026-10-15 ユーザーの指示「パッシブは最低0.2〜最大1.0、発動率は100%」: やり返しのパッシブは受けるたびに必ず返す。
-// 係数は習得Lv・条件で 0.2〜1.0 (tools/balance/check.mjs が検査)。呪文返しの打ち消しだけは確率のまま (返すのは毎回)
-export const KAESHI_RATE = [0.10, 0.15, 0.20, 0.30], KAESHI_K = [0.4, 0.6, 0.8, 1.0]; // 呪文返し (魔盗賊のランク2〜5)
-export const REFLECT_K = 0.6; // 魔力反射 (魔闘士 Lv125)
+// やり返しのパッシブは受けるたびに必ず返す。攻撃力と能力依存で係数を分ける。
+// 攻撃力の係数は0.2〜1.0。2026-10-20: 武器の成長を受けない能力依存の反撃は5倍へ調整。呪文返しの打ち消しだけは確率のまま (返すのは毎回)
+export const KAESHI_RATE = [0.10, 0.15, 0.20, 0.30], KAESHI_K = [2, 3, 4, 5]; // 呪文返し (魔盗賊のランク2〜5)
+export const REFLECT_K = 3; // 魔力反射 (魔闘士 Lv125)
 // 反撃の構え (技・stance "counter") は技ごとの ctrMul (1.0〜2.0、習得Lv・消費MP・対象・付く効果で決める)。効果 ctr の倍率 = 1 + ctrMul
-export const COUNTER_K = [0, 0.3, 0.4, 0.5], DIVINE_COUNTER_K = 0.6, STANCE_CTR_DEFAULT = 1.2, STANCE_CTR_MAX = 2;
-export const PASSIVE_RET_MIN = 0.2, PASSIVE_RET_MAX = 1.0;
+export const COUNTER_K = [0, 0.3, 0.4, 0.5], DIVINE_COUNTER_K = 3, STANCE_CTR_DEFAULT = 1.2, STANCE_CTR_MAX = 2;
+export const PASSIVE_RET_MIN = 0.2, PASSIVE_RET_MAX = 1.0, STAT_RET_MAX = 5;
 // 反射の陣 (技の reflect): 効果 rfl の倍率 = 1 + 係数、効果に唱えた者の魔力 (INT と PIE の高い方) を pow として持つ
-export const REFLECT_MAX = 1.5;
+export const REFLECT_MAX = 7.5;
 // 掛かっている反射の一撃の強さ (係数 × 唱えた者の魔力。重ねがけは一番強いものだけ)。無ければ 0
 export function reflectPow(t) {
   let best = 0;
@@ -969,7 +969,7 @@ export class Battle {
     }
   }
 
-  // ターンの初め: 竜の息吹 (ランク) = 15/20/25/40% で、竜騎士が敵全体へ火のブレス (STR×0.5/0.6/0.8/1.2)
+  // ターンの初め: 竜の息吹 (ランク) = 15/20/25/40% で、竜騎士が敵全体へ火のブレス (攻撃力×0.5/0.6/0.8/1.2)
   _roundStartRank() {
     for (const p of this.livingParty()) {
       const lv = pv(p, "dragonknightIbuki");
@@ -1011,7 +1011,7 @@ export class Battle {
         const t = this._randAlive(this.enemies);
         if (t) {
           this._proc(p, "開幕呪撃");
-          const mr = this._resistCut(t, Math.max(1, Math.round(variance((p.int || 1) * 1.2) - this._evit(t, p) * 0.2)), "magResist");
+          const mr = this._resistCut(t, Math.max(1, Math.round(variance((p.int || 1) * 12) - this._evit(t, p) * 0.2)), "magResist");
           if (mr.immune) {
             this.log(`${p.name}の開幕呪撃！ ${t.name}：魔法無効`, "hit");
             this.openingResults.push({ side: "party", actor: p, action: "spell", spellKind: "atk", spellElement: "none", opening: "openSpell", hits: [{ target: t, dmg: 0, immune: true, died: false }] });
@@ -2123,7 +2123,7 @@ export class Battle {
     }
     return res;
   }
-  // 死者の軍勢 (死霊術師): 自分の手番の終わりに、ランダムな敵へ INT×0.5 の固定ダメージを 1/2/3 回 (金属の魔物には効かない)
+  // 死者の軍勢 (死霊術師): 自分の手番の終わりに、ランダムな敵へ INT×5 の固定ダメージを 1/2/3 回 (金属の魔物には効かない)
   _necroLegion(a, res) {
     const lv = a.alive ? pv(a, "necroLegion") : 0;
     if (!lv) return;
@@ -2131,7 +2131,7 @@ export class Battle {
     for (let i = 0; i < Math.min(3, lv); i++) {
       const t = this._randAlive(this.livingEnemies().filter((e) => !isMetal(e)));
       if (!t) break;
-      const dmg = Math.max(1, Math.round((a.int || 0) * 0.5));
+      const dmg = Math.max(1, Math.round((a.int || 0) * 5));
       if (!any) { this.log(`${a.name}の死者の軍勢！`, "hit"); this._proc(a, "死者の軍勢"); any = true; }
       t.hp = this._reportHp(a, t, t.hp - (dmg));
       this.log(`${t.name}に${dmg}ダメージ`, "dmg");
@@ -3002,7 +3002,7 @@ export class Battle {
         }
       }
     }
-    // 神罰の鉄槌 (聖騎士): 物理を受けるたび必ず、PIE × 0.6 の聖なる一撃 (反撃とは別に)
+    // 神罰の鉄槌 (聖騎士): 物理を受けるたび必ず、PIE × 3 の聖なる一撃 (反撃とは別に)
     if (attacker.alive && pv(defender, "divineCounter")) {
       this._proc(defender, "神罰の鉄槌");
       // 神罰は聖なる術の一撃: 魔法耐性を受ける
@@ -3046,11 +3046,11 @@ export class Battle {
       this.log(`崩拳！ ${tgt.name}に怯み`, "hit");
       this._proc(actor, "崩拳");
     }
-    // 魔力付与 (魔騎士): 当たった通常攻撃に INT×0.8/1.2/1.6 の固定ダメージを上乗せ (金属の魔物には効かない)
+    // 魔力付与 (魔騎士): 当たった通常攻撃に INT×8/12/16 の固定ダメージを上乗せ (金属の魔物には効かない)
     const dk = pv(actor, "dkEnchant");
     let extra = 0;
     if (dk && h && !h.miss && !h.immune && tgt.alive && !isMetal(tgt)) {
-      extra = Math.max(1, Math.round((actor.int || 0) * ([0, 0.8, 1.2, 1.6][Math.min(3, dk)] || 0)));
+      extra = Math.max(1, Math.round((actor.int || 0) * ([0, 8, 12, 16][Math.min(3, dk)] || 0)));
       tgt.hp = this._reportHp(actor, tgt, tgt.hp - (extra));
       this.log(`魔力付与！ ${tgt.name}に${extra}ダメージ`, "hit");
       this._proc(actor, "魔力付与");
@@ -3089,10 +3089,10 @@ export class Battle {
       res.hits.push(this._physical(actor, tgt, { power: 0.6, name: "連撃" }));
       if (!tgt.alive) return;
     }
-    // 二刀の理: 30%でINT×0.6の追撃呪文
+    // 二刀の理: 30%でINT×6の追撃呪文
     if (pv(actor, "twinArts") && random() < 0.30) {
       this._proc(actor, "二刀の理");
-      const mr = this._resistCut(tgt, Math.max(1, Math.round(variance((actor.int || 1) * 0.6) - this._evit(tgt, actor) * 0.2)), "magResist");
+      const mr = this._resistCut(tgt, Math.max(1, Math.round(variance((actor.int || 1) * 6) - this._evit(tgt, actor) * 0.2)), "magResist");
       if (mr.immune) {
         this.log(`二刀の理！ ${tgt.name}：魔法無効`, "hit");
         res.hits.push({ target: tgt, dmg: 0, immune: true, died: false });
@@ -4119,7 +4119,7 @@ export class Battle {
       for (const p of this.livingParty()) if (p.hp < p.maxhp) { p.hp = this._reportHp(actor, p, Math.min(p.maxhp, p.hp + h)); any = true; }
       if (any) { this.log(`癒しの剣！ 味方全員のHP+${h}`, "heal"); this._proc(actor, "癒しの剣"); }
     }
-    // 聖光の追撃 (聖戦士): 10/15/20/30% で光の追撃 (STR×0.5)
+    // 聖光の追撃 (聖戦士): 10/15/20/30% で光の追撃 (攻撃力×0.5)
     if (tgt.alive && tgt.hp > 0 && random() < this._rk(actor, "crusaderTsuigeki", [0.10, 0.15, 0.20, 0.30])) {
       const em = elemDmgMult("light", 1, tgt.element || "none", edefOf(tgt), eaffOf(tgt)) * this._vulnMul(tgt, "light");
       const raw = Math.max(1, Math.round(variance(this._eatk(actor) * 0.5) * em) - Math.floor(this._evit(tgt, actor) * 0.25));
