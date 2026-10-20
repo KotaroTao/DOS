@@ -621,3 +621,44 @@
   .wpc-reveal-actions { padding: 0 8px 8px; }
   .wpc-reveal-actions .wpc-prow-act.ui-btn { flex: 1 1 0; min-width: 0; width: 0; padding-left: 6px; padding-right: 6px; }
 }
+
+/* 鍛え直し: 探す操作を固定し、装備中と共有の袋を分ける。 */
+.rf-guide > summary { min-height: 44px; align-content: center; cursor: pointer; color: var(--accent-hi); font-size: 12.5px; }
+.rf-guide:not([open]) { padding-block: 0; margin-bottom: 0; }
+.rf-guide[open] { max-height: 150px; overflow-y: auto; }
+.rf-controls { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.rf-field { display: grid; gap: 3px; min-width: 0; color: var(--ink-dim); font-size: 11px; }
+.rf-select { width: 100%; min-width: 0; min-height: 44px; padding: 6px 8px; border: 1px solid #5a4a36; border-radius: 3px; background: #181319; color: var(--ink); font: inherit; font-size: 12px; }
+.rf-select:focus-visible, .rf-guide > summary:focus-visible { outline: 2px solid var(--accent-hi); outline-offset: 2px; }
+.rf-grp { min-width: 0; padding: 8px; border: 1px solid #3c3030; border-radius: 4px; background: rgba(0,0,0,.18); }
+.rf-grp.reserve { border-style: dashed; }
+.rf-grp .rf-row + .rf-row { margin-top: 6px; }
+.rf-row .wpc-srow-info { min-width: 0; }
+.rf-row .wpc-srow-l1, .rf-row .wpc-srow-nm { white-space: normal; overflow: visible; }
+.rf-row .wpc-buy { flex: 0 0 auto; max-width: 45%; }
+.rf-row .wpc-buy-main { min-height: 52px; min-width: 72px; max-width: 100%; padding-inline: 6px; }
+.rf-row .wpc-buy-p { font-variant-numeric: tabular-nums; white-space: normal; overflow-wrap: anywhere; }
+.rf-row-block { display: block; margin-top: 3px; font-size: 11px; color: #e8a090; }
+.rf-sheet .rf-head { display: grid; grid-template-columns: 48px minmax(0, 1fr); justify-content: start; gap: 2px 10px; text-align: left; }
+.rf-item-art { grid-row: span 2; line-height: 0; }
+.rf-item-art canvas { width: 48px; height: 48px; }
+.rf-sheet .rf-where { grid-column: 2; }
+.rf-funds { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; padding: 6px 0 10px; font-size: 12px; color: var(--accent-hi); font-variant-numeric: tabular-nums; }
+.rf-quality { display: grid; gap: 4px; text-align: center; }
+.rf-quality .rf-k { margin: 0; letter-spacing: .08em; }
+.rf-diff-head { color: var(--ink-dim); font-size: 10px; }
+.rf-diff-row { grid-template-columns: minmax(0, 1fr) minmax(3em, auto) 12px minmax(3em, auto); }
+.rf-diff-head > :not(:first-child) { text-align: right; }
+.rf-sheet.ui-sheet .ui-sheet-foot { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.rf-sheet .ui-sheet-foot > :nth-child(3), .rf-sheet .ui-sheet-foot > :only-child { grid-column: 1 / -1; }
+.rf-sheet .ui-sheet-foot .ui-btn { min-width: 0; padding: 8px; font-size: 13px; letter-spacing: .04em; }
+.rf-sheet .ui-sheet-foot .ui-btn-s { white-space: normal; font-size: 11px; }
+@media (max-width: 600px), (max-height: 500px) {
+  .wpc-shop.seg-forge { gap: 4px; }
+  .wpc-shop.seg-forge > .ui-whisper { display: none; }
+  .rf-grp { padding: 6px; }
+}
+.rf-diff-l, .rf-diff-head > :first-child { text-align: left; }
+html.pc-input .ui-sheet.rf-sheet { max-width: 720px; }
+.rf-sheet .ui-sheet-foot .ui-btn { flex-wrap: wrap; }
+.rf-sheet .ui-cost { min-width: 0; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }

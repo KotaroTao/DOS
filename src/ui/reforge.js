@@ -1,12 +1,12 @@
 // ===== 鍛え直し — 商会で金貨を払い、装備の品質 (0〜100) を引き直す (第五章の結びで開く。2026-10 ユーザーの指示) =====
 // 品質のしくみは items.js の「品質」、費用と判定は game.js の reforge* を見る。
-//   商会の区分「鍛え直し」: 隊と控えの全員の装備品 (装備中 → 持ち物) を並べ、押すと鍛え直しのシート
+//   商会の区分「鍛え直し」: 隊と控えの装備中の品と共有の袋 を並べ、押すと鍛え直しのシート
 //   品のシート (loot.js) の「鍛え直し」からも同じシートを開く
 // 提供する契約: UI.openReforge(item, owner, { onDone }) / UI.renderForgeList(wrap) → 描く関数
 // game.js は import しない (ctx.js の UI / game を通す)。
 
 import { UI, game, registerUI } from "./ctx.js";
-import { el, button, sheet, toast, setText, glyph, DELTA_LABEL } from "./kit.js";
+import { el, sheet, toast, setText, DELTA_LABEL } from "./kit.js";
 import { statLines, qualityTone } from "./itemview.js";
 import { nameSpan, deltaEl, goldEl, dollIcon } from "./loot.js";
 import { SLOTS, SLOT_LABEL, AIL_LABEL, hasQuality, qualityOf, qualityMatters, itemAtQuality, QUALITY_SPREAD, itemName } from "../items.js";
@@ -20,7 +20,9 @@ const G = () => game.G || {};
 const sfx = (k, ...a) => { try { if (game.SFX && game.SFX[k]) game.SFX[k](...a); } catch (e) { /* 音は演出のみ */ } };
 const allDolls = () => (game.allDolls ? game.allDolls() : [...(G().party || []), ...(G().reserve || [])]);
 const isReserve = (d) => (G().reserve || []).includes(d);
-const shortN = (n) => (n >= 100000 ? `${Math.round(n / 1000)}k` : String(n));
+const goldNumber = (n) => Number(n).toLocaleString("ja-JP");
+// 商会の再描画でも選択を保つ。セーブや抽選には触れない。
+const forgeView = { scope: "all", sort: "low" };
 // 「鍛え直し中…」の演出: 鎚を打つ回数と間 (ms)。押せば飛ばして結果へ
 const FORGE_STRIKES = 3;
 const FORGE_BEAT = 520;
@@ -32,9 +34,8 @@ export const REFORGE_NOTE = `品質は0〜100。品質50が並品で、0なら�
 function holderOf(it) {
   for (const d of allDolls()) {
     for (const k of SLOTS) if (d.equip && d.equip[k] === it) return { doll: d, key: k };
-    if ((d.items || []).includes(it)) return { doll: d, key: null };
   }
-  return null;
+  return (G().inventory || []).includes(it) ? { doll: null, key: null } : null;
 }
 
 // 品質の札 (「品質 72」。高い・低いで色を変える)
@@ -79,6 +80,9 @@ function diffRows(a, b) {
 function diffTable(rows) {
   const t = el("div", "rf-diff");
   if (!rows.length) { t.appendChild(el("div", "rf-diff-eq", "数値は変わらない")); return t; }
+  const head = el("div", "rf-diff-row rf-diff-head");
+  for (const label of ["性能", "元の値", "", "引いた値"]) head.appendChild(el("span", "", label));
+  t.appendChild(head);
   for (const r of rows) {
     const row = el("div", "rf-diff-row");
     row.appendChild(el("span", "rf-diff-l", r.label));
@@ -105,7 +109,7 @@ function dollDelta(hold, next) {
 export function openReforge(item, owner = null, o = {}) {
   if (!item || !hasQuality(item)) return null;
   // pending = { q, cost } (引いた結果。まだ品に入れていない) / forging = 結果を見せる前の演出の間
-  const st = { pending: null, last: null, forging: false };
+  const st = { pending: null, last: null, forging: false, spent: 0 };
   let timer = null, strikes = 0, msgEl = null, stageEl = null;
   const rk = rarityKey(item);
   const accent = rk ? RARITIES[rk].color : "#8a6d2e";
@@ -116,9 +120,18 @@ export function openReforge(item, owner = null, o = {}) {
     const cur = qualityOf(item);
     const where = hold();
     const head = el("div", "rf-head");
+    const art = el("span", "rf-item-art");
+    art.appendChild(spriteCanvas(item, 2));
+    head.appendChild(art);
     head.appendChild(nameSpan(item, "rf-name"));
-    if (where && where.doll) head.appendChild(el("span", "rf-where", where.key ? `${where.doll.name} が装備中（${SLOT_LABEL[where.key] || ""}）` : `${where.doll.name} の持ち物`));
+    if (where && where.doll) head.appendChild(el("span", "rf-where", where.key ? `${where.doll.name} が装備中（${SLOT_LABEL[where.key] || ""}）` : "共有の袋"));
+    else head.appendChild(el("span", "rf-where", "共有の袋"));
     b.appendChild(head);
+    const funds = el("div", "rf-funds");
+    funds.setAttribute("role", "status");
+    funds.appendChild(el("span", "", `所持金貨 ${goldNumber(G().gold || 0)}`));
+    if (st.spent) funds.appendChild(el("span", "", `今回の支払い ${goldNumber(st.spent)}`));
+    b.appendChild(funds);
     if (st.forging) {
       const stage = el("button", "rf-forge");
       stage.type = "button";
@@ -143,7 +156,7 @@ export function openReforge(item, owner = null, o = {}) {
       if (st.last) b.appendChild(el("div", "rf-last " + (!st.last.took ? "kept" : st.last.to > st.last.from ? "took" : "took dn"), st.last.took ? `品質 ${st.last.from} → ${st.last.to} にした` : `品質 ${st.last.to} は選ばず、元の ${st.last.from} のままにした`));
       b.appendChild(setText(el("div", "rf-note"), REFORGE_NOTE));
       b.appendChild(setText(el("div", "rf-note"), "鍛え直すと品質を引き直す。結果を見て、新しい品質にするか元のままにするかを選べる。金貨は引くたびにかかる。"));
-      const why = game.reforgeBlock ? game.reforgeBlock(where && where.doll, item, { gold: false }) : null;
+      const why = game.reforgeBlock ? game.reforgeBlock(where && where.doll, item) : null;
       if (why) b.appendChild(el("div", "rf-block", why));
       return;
     }
@@ -151,9 +164,15 @@ export function openReforge(item, owner = null, o = {}) {
     const next = itemAtQuality(item, nq);
     const cmp = el("section", "rf-cmp");
     const big = el("div", "rf-big");
-    big.appendChild(qualityChip(item, "big"));
+    const before = el("div", "rf-quality");
+    before.appendChild(el("span", "rf-k", "元の品質"));
+    before.appendChild(qualityChip(item, "big"));
+    big.appendChild(before);
     big.appendChild(el("span", "rf-big-arrow", "→"));
-    big.appendChild(el("span", "rf-q big " + qualityTone(nq), `品質 ${nq}`));
+    const after = el("div", "rf-quality");
+    after.appendChild(el("span", "rf-k", "引いた品質"));
+    after.appendChild(el("span", "rf-q big " + qualityTone(nq), `品質 ${nq}`));
+    big.appendChild(after);
     cmp.appendChild(big);
     cmp.appendChild(el("div", "rf-verdict " + (nq > cur ? "up" : nq < cur ? "dn" : "eq"), nq > cur ? `${nq - cur} 上がった` : nq < cur ? `${cur - nq} 下がった` : "同じ品質"));
     cmp.appendChild(diffTable(diffRows(item, next)));
@@ -166,7 +185,7 @@ export function openReforge(item, owner = null, o = {}) {
       cmp.appendChild(line);
     }
     b.appendChild(cmp);
-    b.appendChild(el("div", "rf-note", "どちらにするか選ぶ。閉じると元のままになる。"));
+    b.appendChild(el("div", "rf-note", "新しい品質にするか、元の品質を残すか選ぶ。閉じても元のまま。支払った金貨は戻らない。"));
   };
 
   const footer = () => {
@@ -178,12 +197,12 @@ export function openReforge(item, owner = null, o = {}) {
       const nq = st.pending.q;
       return [
         { label: "新しい品質にする", sub: `品質 ${nq}`, kind: nq >= qualityOf(item) ? "primary" : "secondary", onTap: () => choose(true) },
-        { label: "もう一度鍛える", sub: why || `元の品質 ${qualityOf(item)} から ・ 所持 💰${shortN(G().gold || 0)}`, cost: { kind: "gold", n: cost }, kind: "secondary", disabled: !!why, onTap: () => again() },
         { label: "元のまま", sub: `品質 ${qualityOf(item)}`, kind: nq >= qualityOf(item) ? "secondary" : "primary", onTap: () => choose(false) },
+        { label: "もう一度鍛える", sub: why || "引いた品質を捨てて、再び金貨を払う", cost: { kind: "gold", n: cost }, kind: "secondary", disabled: !!why, onTap: () => again() },
       ];
     }
     return [
-      { label: "鍛え直す", sub: why || `所持 💰${shortN(G().gold || 0)}`, cost: { kind: "gold", n: cost }, kind: "primary", disabled: !!why, onTap: () => roll() },
+      { label: "鍛え直す", sub: why || `所持 💰${goldNumber(G().gold || 0)}`, cost: { kind: "gold", n: cost }, kind: "primary", disabled: !!why, onTap: () => roll() },
       { label: "閉じる", kind: "ghost", onTap: (x) => x.close() },
     ];
   };
@@ -197,6 +216,8 @@ export function openReforge(item, owner = null, o = {}) {
     const res = game.rollReforge ? game.rollReforge(where && where.doll, item) : null;
     if (!res || !res.ok) { refresh(); return; }
     st.pending = { q: res.q, cost: res.cost };
+    st.spent += res.cost;
+    if (o.onChange) o.onChange();
     st.forging = true;
     strikes = 0;
     refresh();
@@ -228,7 +249,7 @@ export function openReforge(item, owner = null, o = {}) {
   // 引いた結果を捨て (品は元の品質のまま)、もう一度引く
   function again() {
     if (!st.pending || st.forging) return;
-    st.pending = null;
+    // 失敗したら今の候補を保つ (金貨不足などで候補だけ消さない)。
     roll();
   }
   function choose(take) {
@@ -248,7 +269,7 @@ export function openReforge(item, owner = null, o = {}) {
 
   sfx("select");
   h = sheet.open({
-    kind: "info", banner: "鍛え直し", accent, art: item, artScale: 6, ...view(), className: "rf-sheet" + (rk ? " rar-" + rk : ""),
+    kind: "info", banner: "鍛え直し", accent, ...view(), className: "rf-sheet" + (rk ? " rar-" + rk : ""),
     onClose: () => {
       clearTimeout(timer);
       st.forging = false;
@@ -261,14 +282,21 @@ export function openReforge(item, owner = null, o = {}) {
 }
 
 // ---------------------------------------------------------------- 商会の区分「鍛え直し」
-// 隊 → 控えの順に、人業ごとの装備品 (装備中 → 持ち物)。未鑑定の品は出さない
-function forgeEntries(d) {
-  const out = [];
-  for (const k of SLOTS) { const it = d.equip && d.equip[k]; if (it && hasQuality(it) && !it.unidentified) out.push({ it, key: k }); }
-  for (const it of (d.items || [])) if (it && hasQuality(it) && !it.unidentified) out.push({ it, key: null });
-  return out;
+// 共有の袋は全人業が同じ配列を参照するため、一度だけ集める。
+function forgeGroups() {
+  const seen = new Set();
+  const collect = (it, key) => {
+    if (!it || seen.has(it) || !hasQuality(it) || it.unidentified) return null;
+    seen.add(it);
+    return { it, key };
+  };
+  const groups = allDolls().filter(d => d && !d.isEmpty).map(d => ({
+    d, list: SLOTS.map(k => collect(d.equip && d.equip[k], k)).filter(Boolean),
+  }));
+  groups.push({ d: null, list: (G().inventory || []).map(it => collect(it, null)).filter(Boolean) });
+  return groups;
 }
-function forgeRow(x, d) {
+function forgeRow(x, d, refresh) {
   const it = x.it;
   const rk = rarityKey(it);
   const row = el("div", "wpc-srow rf-row" + (rk ? " rar-" + rk : ""));
@@ -285,13 +313,13 @@ function forgeRow(x, d) {
   const l3 = el("span", "wpc-srow-l3");
   const matters = qualityMatters(it);
   l3.appendChild(matters ? qualityChip(it) : el("span", "rf-q none", "品質の影響なし"));
-  l3.appendChild(el("span", "wpc-srow-kind", x.key ? `装備中 ・ ${SLOT_LABEL[x.key] || ""}` : "持ち物"));
+  l3.appendChild(el("span", "wpc-srow-kind", x.key ? `装備中 ・ ${SLOT_LABEL[x.key] || ""}` : "共有の袋"));
   tx.appendChild(l3);
   info.appendChild(tx);
-  // 品質を選んだらすぐ、この行の品質の札を描き直す (閉じるのを待たない)
-  let live = row;
-  const redo = () => { if (!live.isConnected) return; const nr = forgeRow(x, d); live.replaceWith(nr); live = nr; };
-  const open = () => openReforge(it, d, { onDone: redo });
+  const why = game.reforgeBlock ? game.reforgeBlock(d, it) : "鍛え直せない";
+  if (why) tx.appendChild(el("span", "rf-row-block", why));
+  const open = () => openReforge(it, d, { onDone: refresh, onChange: refresh });
+  info.setAttribute("aria-label", `${itemName(it)}の品質と性能を確認`);
   info.addEventListener("click", open);
   row.appendChild(info);
   const act = el("div", "wpc-buy");
@@ -299,9 +327,11 @@ function forgeRow(x, d) {
   const short = (G().gold || 0) < cost;
   const main = el("button", "wpc-buy-main" + (short ? " short" : ""));
   main.type = "button";
-  main.appendChild(goldEl(shortN(cost), "wpc-buy-p"));
-  main.appendChild(el("span", "wpc-buy-l", "鍛え直す"));
+  main.appendChild(goldEl(goldNumber(cost), "wpc-buy-p"));
+  main.appendChild(el("span", "wpc-buy-l", "確認する"));
+  // 一覧ではまだ支払わない。制限がある品も詳細で理由を読める。
   main.disabled = !matters;
+  main.setAttribute("aria-label", `${itemName(it)}を確認、1回の費用は金貨${goldNumber(cost)}`);
   main.addEventListener("click", open);
   act.appendChild(main);
   row.appendChild(act);
@@ -309,36 +339,64 @@ function forgeRow(x, d) {
 }
 // 区分の中身を wrap に描き、一覧を詰める関数を返す (shop.js の render と同じ流儀)
 export function renderForgeList(wrap) {
-  const dolls = allDolls().filter((d) => d && !d.isEmpty);
-  const groups = dolls.map((d) => ({ d, list: forgeEntries(d) })).filter((g) => g.list.length);
-  const n = groups.reduce((a, g) => a + g.list.length, 0);
-  const intro = el("section", "rf-intro");
+  const intro = el("details", "rf-intro rf-guide");
+  intro.appendChild(el("summary", "", "鍛え直しの手引き"));
   intro.appendChild(setText(el("div", "rf-intro-t"), REFORGE_NOTE));
-  intro.appendChild(setText(el("div", "rf-intro-s"), "金貨を払って品質を引き直す。結果を見てから、新しい品質か元のままかを選べる。費用は品の買値。"));
+  intro.appendChild(setText(el("div", "rf-intro-s"), "品を選び、費用と性能を確認してから鍛える。結果を見て、新しい品質か元のままかを選べる。費用は品の買値（最低100）。引くたびにかかり、元のままでも戻らない。"));
   wrap.appendChild(intro);
+  const controls = el("div", "rf-controls");
+  const select = (label, key, options) => {
+    const field = el("label", "rf-field");
+    field.appendChild(el("span", "", label));
+    const input = el("select", "rf-select");
+    input.setAttribute("aria-label", label);
+    for (const [value, name] of options) {
+      const op = el("option", "", name); op.value = value; input.appendChild(op);
+    }
+    if (!options.some(([v]) => v === forgeView[key])) forgeView[key] = options[0][0];
+    input.value = forgeView[key];
+    input.addEventListener("change", () => { forgeView[key] = input.value; fill(); box.scrollTop = 0; });
+    field.appendChild(input); controls.appendChild(field);
+  };
+  select("対象", "scope", [["all", "すべて"], ["equipped", "装備中"], ["bag", "共有の袋"],
+    ...allDolls().filter(d => d && !d.isEmpty).map(d => [`doll:${d.uid}`, `${d.name}${isReserve(d) ? "（控え）" : ""}の装備`])]);
+  select("並び順", "sort", [["low", "品質が低い順"], ["high", "品質が高い順"], ["name", "名前順"]]);
+  wrap.appendChild(controls);
   const head = el("div", "wpc-lhead");
-  head.appendChild(el("span", "wpc-lhead-t", `装備品 ${n}点`));
-  const gs = el("span", "wpc-lhead-s");
-  gs.appendChild(glyph("gold"));
-  gs.appendChild(document.createTextNode(` ${shortN(G().gold || 0)}`));
-  head.appendChild(gs);
-  wrap.appendChild(head);
+  const count = el("span", "wpc-lhead-t");
+  const gold = el("span", "wpc-lhead-s");
+  head.append(count, gold); wrap.appendChild(head);
   const box = el("div", "wpc-list rf-list");
   wrap.appendChild(box);
-  return () => {
+  function fill() {
     box.textContent = "";
-    if (!n) { box.appendChild(el("div", "wpc-empty big", "鍛え直せる装備品が無い。未鑑定の品は、先に鑑定する。")); return; }
-    for (const g of groups) {
-      const sec = el("section", "rf-grp" + (isReserve(g.d) ? " reserve" : ""));
+    const groups = forgeGroups();
+    const total = groups.reduce((n, g) => n + g.list.length, 0);
+    const visible = groups.filter(g => forgeView.scope === "all" ||
+      (forgeView.scope === "bag" ? !g.d : forgeView.scope === "equipped" ? !!g.d : `doll:${g.d?.uid}` === forgeView.scope));
+    const n = visible.reduce((a, g) => a + g.list.length, 0);
+    setText(count, `装備品 ${n} / ${total}点`);
+    setText(gold, `所持金貨 ${goldNumber(G().gold || 0)}`);
+    if (!n) {
+      box.appendChild(el("div", "wpc-empty big", total ? "この対象に鑑定済みの装備品は無い。「対象」を変えると、ほかの品を確認できる。" : "鍛え直せる装備品が無い。未鑑定の品は、先に鑑定する。"));
+      return;
+    }
+    for (const g of visible) {
+      if (!g.list.length) continue;
+      const sec = el("section", "rf-grp" + (g.d && isReserve(g.d) ? " reserve" : ""));
       const hd = el("div", "wpc-drow-h");
-      hd.appendChild(dollIcon(g.d));
-      hd.appendChild(el("span", "wpc-doll-nm", g.d.name));
-      if (isReserve(g.d)) hd.appendChild(el("span", "wpc-tag", "控え"));
+      if (g.d) hd.appendChild(dollIcon(g.d));
+      hd.appendChild(el("span", "wpc-doll-nm", g.d ? g.d.name : "共有の袋"));
+      if (g.d && isReserve(g.d)) hd.appendChild(el("span", "wpc-tag", "控え"));
+      hd.appendChild(el("span", "wpc-doll-cnt", `${g.list.length}点`));
       sec.appendChild(hd);
-      for (const x of g.list) sec.appendChild(forgeRow(x, g.d));
+      g.list.sort((a, b) => forgeView.sort === "name" ? itemName(a.it).localeCompare(itemName(b.it), "ja") :
+        (qualityOf(a.it) - qualityOf(b.it)) * (forgeView.sort === "high" ? -1 : 1));
+      for (const x of g.list) sec.appendChild(forgeRow(x, g.d, fill));
       box.appendChild(sec);
     }
-  };
+  }
+  return fill;
 }
 
 export function install() {
