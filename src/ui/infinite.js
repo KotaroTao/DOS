@@ -63,13 +63,14 @@ export function openInfMemories(onStart) {
     body: b => {
       b.appendChild(el("div", "inf-note", "記憶した職業・Lv・魂・装備で、次の階から何度でも挑める。HP・MPは全回復。全滅しても記憶は残る。"));
       b.appendChild(memoryRules());
+      b.appendChild(el("div", "inf-note", game.infDepthLimitNote()));
       const memories = game.infMemories();
       if (!memories.length) b.appendChild(el("div", "inf-note dim", "まだ魂の記憶はない。50階ごとの主を討った風だまりで記憶できる。"));
       const list = el("div", "inf-memory-list");
-      for (const memory of memories) list.appendChild(row({ icon: ICONS.portal, title: `B${memory.floor}F の記憶`, sub: `B${memory.floor + 1}F から開始 ・ 平均Lv ${Math.round(memory.party.reduce((n, d) => n + (memory.souls.find(s => s.uid === d.primary)?.level || 1), 0) / memory.party.length)}`, chevron: true,
+      for (const memory of memories) list.appendChild(row({ icon: ICONS.portal, title: `B${memory.floor}F の記憶`, sub: game.infMemoryStartBlock(memory.floor) || `B${memory.floor + 1}F から開始 ・ 平均Lv ${Math.round(memory.party.reduce((n, d) => n + (memory.souls.find(s => s.uid === d.primary)?.level || 1), 0) / memory.party.length)}`, chevron: true,
         onTap: () => sheet.open({ kind: "info", banner: "魂の記憶", title: `B${memory.floor}F の記憶`, className: "inf-sheet inf-memory-sheet",
           body: detail => memoryParty(detail, memory), footer: [
-            { label: `B${memory.floor + 1}F から始める`, kind: "primary", size: "lg", onTap: () => { sheet.closeAll(); if (onStart) onStart(); game.departAbyss(null, memory.floor); } },
+            { label: `B${memory.floor + 1}F から始める`, kind: "primary", size: "lg", disabled: !!game.infMemoryStartBlock(memory.floor), sub: game.infMemoryStartBlock(memory.floor), onTap: () => { sheet.closeAll(); if (onStart) onStart(); game.departAbyss(null, memory.floor); } },
             { label: "戻る", kind: "ghost", onTap: h => h.close() },
           ] }) }));
       b.appendChild(list);
@@ -88,7 +89,7 @@ function openInfRecord(onDone) {
   const previous = game.infMemoryAt(candidate.floor);
   return sheet.open({ kind: "info", banner: "魂の記憶", title: previous ? `B${candidate.floor}F の記憶を比較する` : `B${candidate.floor}F に魂を記憶する`, className: "inf-sheet inf-memory-sheet inf-memory-record",
     body: b => {
-      b.appendChild(el("div", "inf-memory-destination", `次の挑戦は B${candidate.floor + 1}F から`));
+      b.appendChild(el("div", "inf-memory-destination", game.infMemoryStartBlock(candidate.floor) || `次の挑戦は B${candidate.floor + 1}F から`));
       if (previous) {
         b.appendChild(el("div", "inf-note warn", "上書きすると、この階の以前の記憶は失われる。他の階の記憶は残る。"));
         memoryComparison(b, previous, candidate);
@@ -221,6 +222,10 @@ export function openInfRest(spec = {}) {
   const fill = (b) => {
     autoRecord();
     const lv = Math.round(infLevel(spec.floor || g.floor));
+    const carried = game.infReturnCurrency();
+    b.appendChild(el("div", "inf-depth-limit inf-note", game.infDepthLimitNote()));
+    b.appendChild(el("div", "inf-carry inf-note", `現在の持ち帰り額: 💰${carried.gold} ・ ✦${carried.soulPts}（育成倍率を除いて換算）。`));
+    if (carried.legacy) b.appendChild(el("div", "inf-note dim", "更新前に得たSoulは獲得階の履歴がないため、最大育成倍率で控えめに換算しています。更新後の獲得分は階ごとに記録します。"));
     b.appendChild(el("div", "inf-note", spec.guardDown
       ? "吹き上げる風が止んだ踊り場。主は討った。ここから地上へ帰るか、さらに深くへ降りるかを選ぶ。"
       : "吹き上げる風が止む踊り場。古い灯籠のそばに、商会の回収人と、名もない人業の灯番がいる。その奥で、主が待っている。"));
@@ -232,11 +237,11 @@ export function openInfRest(spec = {}) {
     if ((spec.floor || g.floor) % 50 === 0) {
       const why = game.infMemoryBlock(), previous = game.infMemoryAt(floor);
       if (autoSaved) b.appendChild(el("div", "inf-note", `B${floor}F の隊を自動で記憶した。装備や魂を替えた後は、上書きして記憶できる。`));
-      b.appendChild(button({ label: previous ? "魂の記憶を上書きする" : "魂を記憶する", sub: why || `次回は B${(spec.floor || g.floor) + 1}F から`,
+      b.appendChild(button({ label: previous ? "魂の記憶を上書きする" : "魂を記憶する", sub: why || game.infMemoryStartBlock(floor) || `次回は B${(spec.floor || g.floor) + 1}F から`,
         kind: "secondary", disabled: !!why, onTap: () => openInfRecord(() => h && !h.closed && h.update({ body: fill })) }));
     }
     if (spec.guardDown) {
-      b.appendChild(el("div", "inf-note dim", "帰れば: 今回拾った魂は ＋1 の素材として本編の魂に加わる (Lv は残らない)。品は商会の棚に並ぶ。残火は拾った数だけ本編へ。金貨・✦Soul・開始時の魂・記憶した装備は残らない。"));
+      b.appendChild(el("div", "inf-note dim", "帰れば: 今回拾った魂は ＋1 の素材として本編の魂に加わる (Lv は残らない)。品は商会の棚に並ぶ。残火は拾った数だけ本編へ。残った金貨と、育成倍率を除いた残りの✦Soulも持ち帰れる。開始時の魂・記憶した装備は残らない。"));
       const next = INF_RULES.filter((r) => r.from > (spec.floor || g.floor) && r.from <= (spec.floor || g.floor) + 5);
       if (next.length) b.appendChild(el("div", "inf-note warn", `この先、風の掟がさらに強まる (「${next.map((r) => r.name).join("」「")}」…)。`));
     }
@@ -247,11 +252,11 @@ export function openInfRest(spec = {}) {
         const run = g.run || {};
         const souls = (run.souls || []).length, embers = Math.max(0, run.embers || 0);
         const ok = await kitConfirm({ banner: "地上へ帰る", title: `B${spec.floor || g.floor}F から地上へ帰る？`,
-          lines: [`この出撃はここで終わる。保存済みの魂の記憶からは、何度でも挑み直せる。`, `持ち帰る: 今回拾った魂 ${souls}つ (＋1 の素材)・品 ${game.infReturnItems().length}点 (商会の棚へ)・残火 ${embers}。`, "金貨・✦Soul・開始時の魂・記憶した装備は残らない。"],
+          lines: [`この出撃はここで終わる。保存済みの魂の記憶からは、何度でも挑み直せる。`, `持ち帰る: 今回拾った魂 ${souls}つ (＋1 の素材)・品 ${game.infReturnItems().length}点 (商会の棚へ)・残火 ${embers}・💰${game.infReturnCurrency().gold}・✦${game.infReturnCurrency().soulPts}（育成倍率なし）。`, "残った金貨と、育成倍率を除いた残りの✦Soulも持ち帰れる。開始時の魂・記憶した装備は残らない。"],
           okLabel: "帰る", cancelLabel: "まだ帰らない", danger: false });
         if (!ok || x.closed) return;
         closing = true; x.close("ok", { silent: true }); spec.onReturn && spec.onReturn(); } },
-       { label: `続ける ― B${(spec.floor || g.floor) + 1}Fへ`, kind: "secondary", onTap: (x) => leave(x, () => { closing = true; x.close("ok", { silent: true }); spec.onContinue && spec.onContinue(); }, true) },
+       { label: `続ける ― B${(spec.floor || g.floor) + 1}Fへ`, kind: "secondary", disabled: !g.abyss?.testRun && floor >= game.infDepthLimit(), sub: !g.abyss?.testRun && floor >= game.infDepthLimit() ? game.infDepthLimitNote() : null, onTap: (x) => leave(x, () => { closing = true; x.close("ok", { silent: true }); spec.onContinue && spec.onContinue(); }, true) },
        { label: "まだ探索する", kind: "ghost", onTap: (x) => leave(x, () => x.close()) }]
     : [{ label: "主に挑む", kind: "danger", size: "lg", onTap: (x) => leave(x, () => { closing = true; x.close("ok", { silent: true }); spec.onBoss && spec.onBoss(); }) },
        { label: "まだ探索する", kind: "ghost", onTap: (x) => leave(x, () => x.close()) }];
@@ -654,8 +659,10 @@ export function openInfWipe(spec = {}) {
   loss.appendChild(cell(spec.souls || 0, "拾った魂"));
   loss.appendChild(cell(spec.items || 0, "装備・持ち物"));
   loss.appendChild(cell(spec.embers || 0, "魂の残火"));
+  loss.appendChild(cell(spec.gold || 0, "金貨"));
+  loss.appendChild(cell(spec.soulPts || 0, "✦Soul（換算後）"));
   body.appendChild(loss);
-  body.appendChild(el("div", "rs-keep", `赤い魂 ${spec.cost} または広告視聴で、拾った魂 (＋1 の素材)・装備と持ち物 (商会の棚へ)・残火を持ち帰れる。費用は深さによらず同じ。本編の人業は街で無事に待っている。`));
+  body.appendChild(el("div", "rs-keep", `赤い魂 ${spec.cost} または広告視聴で、拾った魂 (＋1 の素材)・装備と持ち物 (商会の棚へ)・残火・残った金貨・育成倍率を除いた残りの✦Soulを持ち帰れる。費用は深さによらず同じ。本編の人業は街で無事に待っている。`));
   body.appendChild(el("div", "rs-note dim", "開始時の魂と記憶した装備は持ち帰れない。保存済みの魂の記憶は、あきらめても消えず、次の挑戦でも使える。"));
   // 回収人に売った品は、売った時にもう商会の棚に並んでいる (全滅しても消えない)
   body.appendChild(el("div", spec.sold ? "rs-note gold" : "rs-note dim", spec.sold
@@ -691,10 +698,12 @@ export function openInfSummary(r = {}) {
       if (r.newDepth) b.appendChild(el("div", "inf-note gold", "★ 最深到達を更新した！"));
       if (!r.keep) {
         const l = r.lost || {};
-        b.appendChild(el("div", "inf-note", `拾った魂 ${l.souls || 0}・装備と持ち物 ${l.items || 0}・残火 ${l.embers || 0} は、迷宮の底に残された。`));
+        b.appendChild(el("div", "inf-note", `拾った魂 ${l.souls || 0}・装備と持ち物 ${l.items || 0}・残火 ${l.embers || 0}・💰${l.gold || 0}・✦${l.soulPts || 0}（換算後）は、迷宮の底に残された。`));
         if (r.sold) b.appendChild(el("div", "inf-note gold", `回収人に売った品 ${r.sold}点は、本編の商会の棚に並んでいる。`));
         return;
       }
+      b.appendChild(el("div", "inf-carry inf-note gold", `持ち帰った金貨 💰${got.gold || 0} ・ ✦Soul ✦${got.soulPts || 0}（育成倍率なし）。`));
+      if (got.legacy) b.appendChild(el("div", "inf-note dim", "更新前のSoulは獲得階の履歴がないため、最大育成倍率で控えめに換算した。"));
       b.appendChild(el("div", "inf-h", `持ち帰った魂 ${got.souls.length}`));
       if (got.souls.length) {
         const by = {};
@@ -714,7 +723,7 @@ export function openInfSummary(r = {}) {
         b.appendChild(list);
         b.appendChild(el("div", "inf-note dim", "持ち帰った品は手元には届かず、商会の棚に並ぶ。金貨で買える。"));
       }
-      b.appendChild(el("div", "inf-note dim", "金貨・✦Soul・開始時の魂・記憶した装備は、迷宮へ還った。保存済みの魂の記憶は、次の挑戦でも使える。"));
+      b.appendChild(el("div", "inf-note dim", "開始時の魂と記憶した装備は、迷宮へ還った。保存済みの魂の記憶は、次の挑戦でも使える。"));
     },
     footer: [{ label: "閉じる", kind: "primary", size: "lg", onTap: (h) => { h.close("ok"); if (game.renderTown) game.renderTown(); } }],
   });

@@ -349,7 +349,7 @@ function renderGates(b) {
     r.appendChild(gateIcon("abyss"));
     const info = el("span", "dp-gate-i");
     info.appendChild(el("span", "dp-gate-n", "無限迷宮"));
-    info.appendChild(el("span", "dp-gate-c", rec.bestDepth ? `最深 B${rec.bestDepth}F ・ Lv1 または魂の記憶から挑む` : "Lv1 の仮の器で潜り、50階ごとに魂を記憶できる。深さに果てはない。"));
+    info.appendChild(el("span", "dp-gate-c", rec.bestDepth ? `最深 B${rec.bestDepth}F ・ Lv1 または魂の記憶から挑む` : "Lv1 の仮の器で潜り、50階ごとに魂を記憶できる。本編の進行で潜れる深さが広がる。"));
     r.appendChild(info);
     r.appendChild(el("span", "dp-gate-st", "支度 ›"));
     r.addEventListener("click", () => { sfx("select"); cur.page = "abyss"; refresh(); });
@@ -578,6 +578,8 @@ function renderAbyssPage(b) {
   b.appendChild(back);
   b.appendChild(el("div", "dg-note", "口から吹き上げる風が、育って重くなった魂を吹き返す。人業はそのままでは降りられない。隊の者は魂のひとかけを土くれの仮の器6体に移し、入口に漂う「名もなき魂の欠片」を宿して Lv1 から降りる。力は置いてゆくが、記憶だけは器に残る。"));
   b.appendChild(sec("潜り方"));
+  b.appendChild(el("div", "inf-depth-limit dg-note", game.infDepthLimitNote()));
+  b.appendChild(el("div", "dg-line", "第八章100階・第十章150階・第十二章200階・第十四章250階・第十六章300階。第十八章の結びを報告すると無制限。魂の記憶からの再開も、この上限まで。"));
   for (const t of [
     `器ひとつごとに、3つの魂の欠片 (コモン・レア) から1つを選ぶ。全員 Lv1・装備なし・持ち物なし。魂の安定度は入場時に各人${game.STABILITY_ENTRY_COST}、5階ごとの次階進行時に各人${game.STABILITY_FLOOR_COST}消費する。`,
     "5の倍数の階は風だまり。回収人 (品の買い取り・回復の道具・鍛え直し) と灯番 (魂の付け替え・強化・残火) がいて、その奥に主が立つ。",
@@ -590,7 +592,7 @@ function renderAbyssPage(b) {
     "拾った魂 ― ＋1 の素材として本編の魂に加わる (Lv は残らない)。",
     "拾った品 ― 手元には届かず、商会の棚に並ぶ。",
     "拾った魂の残火 ― 拾った数だけ本編へ。",
-    "開始時の魂・記憶した装備・金貨・✦Soul は持ち帰れない。記憶した装備は売値0・鍛え直し不可で、商会にも並ばない。全滅したら、赤い魂20または広告視聴で今回の戦利品を持ち帰れる。魂の記憶は全滅しても残る。",
+    "残った金貨と✦Soulも持ち帰れる。✦Soulは獲得時の育成倍率を除いて換算し、使った分も割合に応じて差し引く。開始時の魂・記憶した装備は持ち帰れない。記憶した装備は売値0・鍛え直し不可で、商会にも並ばない。全滅したら、赤い魂20または広告視聴で今回の戦利品を持ち帰れる。魂の記憶は全滅しても残る。",
   ]) b.appendChild(el("div", "dg-line", t));
   b.appendChild(sec("そなたの記録"));
   const t = el("div", "dg-tally");

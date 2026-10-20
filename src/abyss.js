@@ -3,7 +3,7 @@
 // ・隊の人業は魂のひとかけを土くれの仮の器6体に移し (記憶だけが残る — 器の名は隊の名のまま)、入口に漂う「名もなき魂の欠片」を宿して Lv1 から降りる (本編の人業・魂は街に残る)
 // ・5の倍数の階 = 風だまり (回収人・灯番) → 主 → 「帰る / 続ける」。帰還魔法陣は無い
 // ・深さごとの推奨Lv は INF_LV の表だけで決まる (第二部の壁は乗せない)。育つ速さも表の傾きから自動で決まる
-// ・帰れば、拾った魂 (＋1 の素材)・品 (商会の棚へ)・魂の残火を本編へ持ち帰る。最初に宿した魂・金貨・✦Soul は残らない
+// ・帰れば、拾った魂 (＋1 の素材)・品 (商会の棚へ)・魂の残火を本編へ持ち帰る。残った金貨と育成倍率を除いた残りの✦Soulも持ち帰る。最初に宿した魂は残らない
 //
 // このモジュールは純粋なデータ/ロジックのみ。演出・状態管理・描画は game.js と ui/infinite.js が担う。
 // 内部の名前 (abyss・G.abyss) は旧仕様の奈落から引き継いでいる。画面の呼び名はすべて「無限迷宮」。
@@ -18,6 +18,12 @@ export const INF_HAZ_FROM = 6;     // 落ちる床・蝕む床が出始める階
 export const INF_MIN_PER_FLOOR = 3; // 1階の長さの見込み (分)。育つ速さの計算に使う
 export const INF_PARTY = 6;        // 仮の器の数
 export const INF_RED_MAX = 20;     // 全滅の時に払う赤い魂 (本編と同じ固定額)
+
+// 本編の結びを報告するごとに、潜れる深さを広げる。
+export const INF_DEPTH_LIMITS = [[8, 100], [10, 150], [12, 200], [14, 250], [16, 300], [18, Infinity]];
+export function infDepthLimitForChapter(chapter) {
+  return INF_DEPTH_LIMITS.reduce((limit, [ch, depth]) => chapter >= ch ? depth : limit, 0);
+}
 
 // ===== 深さごとの推奨Lv (仮の表 — テストプレイで直す。直すのはここだけ) =====
 // [階, 推奨Lv]。間は直線で結び、最後の行より深い階は1階ごとに +1
@@ -49,6 +55,30 @@ export function infGrowthMul(f) {
   const lv = infLevel(f);
   const perLv = INF_MIN_PER_FLOOR / infLvSlope(f);
   return Math.max(1, lvMinutes(lv) * EXP_COST_K / perLv);
+}
+
+// 倍率の異なる階で得たSoulを混ぜても、未使用残額の本編換算値を保持する。
+// 支出は所持額に対する割合で換算残額からも引く。直接授与される倍率なしSoulは等額。
+export function syncInfSoulCarry(ab, wallet) {
+  wallet = Math.max(0, Number(wallet) || 0);
+  if (!ab.soulCarry) {
+    // 旧出撃には階ごとの獲得履歴が無い。過大な持ち帰りを避ける最大倍率で移行する。
+    const maxGrowth = Math.max(infGrowthMul(ab.depth || 1), ...Array.from({ length: 100 }, (_, i) => infGrowthMul(i + 1)));
+    ab.soulCarry = { wallet, base: wallet / maxGrowth, legacy: wallet > 0 };
+  }
+  const c = ab.soulCarry;
+  if (wallet < c.wallet) c.base = c.wallet > 0 ? c.base * wallet / c.wallet : 0;
+  else if (wallet > c.wallet) c.base += wallet - c.wallet;
+  c.wallet = wallet;
+  c.base = Math.max(0, Math.min(wallet, c.base || 0));
+  if (!wallet) c.legacy = false;
+  return c;
+}
+export function creditInfSoulCarry(ab, walletBefore, gained, normalGain) {
+  const c = syncInfSoulCarry(ab, walletBefore);
+  c.wallet = Math.max(0, walletBefore + gained);
+  c.base += Math.max(0, normalGain);
+  return c;
 }
 // 通し試験を踏まえた強さ補正。本編の強さの素とは分け、Lv1開始の育成・補給に合わせる。
 // 20階まで0.70、50階0.80、100階0.95。推奨Lvによる敵の成長は別に掛かる。

@@ -43,7 +43,7 @@ import { FLOOR_HAZ, hazSkin, hazPlaced, layerFloorHaz } from "./dungeons/floorha
 import { DUNGEONS, WORLD_IDS, worldIndexOf, worldById, gateFloors, isGateFloor, dungeonLevel, dungeonLevelRaw, strengthAt, wallOf, wallStepOf, lootBand, abyssLayer, ABYSS_LAYER_FLOORS, hazardsAt, levelBand, DUNGEON_MONSTERS, ELEMENTS, elementAffinity, elemDmgMult, ELITE_ORDER, LAYER_ELITES, LAYER_BOSS, LAYER_POOLS, monsterTraits, resistHpMul, isFloating, METAL_TIERS, unknownLabel, unknownTag } from "./dungeons/index.js";
 import {
   INF_NAME, INF_REST_EVERY, INF_HAZ_FROM, INF_PARTY, INF_RULES, INF_RULE_MAP, INF_LV, infLevel, infGrowthMul, infEnemyMul, infRedCost, isRestFloor,
-  rollInfRule, rollStartSouls, VESSEL_NAMES, mulberry32,
+  rollInfRule, rollStartSouls, VESSEL_NAMES, mulberry32, INF_DEPTH_LIMITS, infDepthLimitForChapter, syncInfSoulCarry, creditInfSoulCarry,
 } from "./abyss.js";
 import { INF_TITLES, INF_TITLE_MAP, INF_DEPTH_TITLES } from "./inftitles.js";
 import {
@@ -667,8 +667,11 @@ function runGainSoulPts(s, src, pre, modifier = null, out = null) {
   // 無限迷宮: 推奨Lv の表の傾きに合わせて育つ速さを上げる (abyss.js infGrowthMul — 戦闘で魂に入る経験値もここから)
   const gm = inDungeon() && abyssActive() ? infGrowthMul(G.floor) : 1;
   const raw = s * sf * mu * eq * gm;
-  s = Math.round(raw * lm); G.soulPts += s; if (G.run && inDungeon()) G.run.soulPts += s;
-  if (out) out.raw = Math.round(raw);
+  const homeSoul = Math.round(base * sf * mu * eq * lm);
+  s = Math.round(raw * lm);
+  if (abyssActive()) creditInfSoulCarry(G.abyss, G.soulPts, s, homeSoul);
+  G.soulPts += s; if (G.run && inDungeon()) G.run.soulPts += s;
+  if (out) { out.raw = Math.round(raw); out.home = homeSoul; }
   if (tlOn() && inDungeon()) {
     const up = tlUplift(pre != null ? pre : base, base, sf, "soulMul", mu, eq);
     if (lm < 1) up.lvd = raw * (lm - 1); // Lv差で減った分 (負の数)
@@ -1088,6 +1091,36 @@ const storyLines = (l) => (typeof l === "function" ? l(storyCtx()) : l) || [];
 //  ・主と強敵は、その階の雑魚から選び、ランクを上げて組む (出来事の魔物と同じ spawnRanked)
 //  ・5階ごとの区切りに、深さで段を分けた掟が1つ (abyss.js INF_RULES)。dungeonTrait() がそれを返す
 const abyssActive = () => !!(G.abyss && G.abyss.started);
+function infDepthLimit(w = worldState()) {
+  const completed = CHAPTERS.filter(c => w.reported[c.finale]).reduce((n, c) => Math.max(n, c.no), 0);
+  const limit = infDepthLimitForChapter(completed);
+  return G.testPlay && G.testUnlock?.includes("infinite") ? Math.max(100, limit) : limit;
+}
+function infDepthLimitNote() {
+  const limit = infDepthLimit();
+  if (!Number.isFinite(limit)) return "第十八章の結びを報告済み。深さの制限はない。";
+  const next = INF_DEPTH_LIMITS.find(([, depth]) => depth > limit);
+  return `現在は B${limit}F まで。` + (next ? `第${kanjiNum(next[0])}章の結びを王に報告すると${Number.isFinite(next[1]) ? ` B${next[1]}F まで潜れる。` : "深さの制限がなくなる。"}` : "");
+}
+function infMemoryStartBlock(floor) {
+  return floor + 1 > infDepthLimit() ? `この記憶の再開階 B${floor + 1}F は、現在の上限を超えている。${infDepthLimitNote()}` : null;
+}
+function syncInfSoulWallet() { if (abyssActive()) syncInfSoulCarry(G.abyss, G.soulPts); }
+function infReturnCurrency() {
+  if (!abyssActive()) return { gold: 0, soulPts: 0 };
+  const c = syncInfSoulCarry(G.abyss, G.soulPts);
+  return { gold: Math.max(0, Math.floor(G.gold || 0)), soulPts: Math.max(0, Math.floor(c.base + 1e-9)), legacy: !!c.legacy };
+}
+// 上限より深い旧出撃は、盤面や敵を別の階へ移し替えず、戦利品を保って帰還させる。
+function enforceInfDepthLimit() {
+  if (!abyssActive() || G.abyss.testRun || G.floor <= infDepthLimit()) return false;
+  const note = infDepthLimitNote();
+  G.pendingResults = null; G.pendingDanger = null; G.pendingCursedChest = null; G.pendingPickups = [];
+  G.animating = false; G.anim = null; G.walking = false;
+  returnToTown({ outcome: "return" });
+  showToast(`本編の進行に合わせて帰還した。${note}`, { tone: "info" });
+  return true;
+}
 // 推奨Lv → それを受け持つ台帳の迷宮の階 (顔ぶれ・強さの素)。本筋と寄り道の迷宮の全階を推奨Lv の順に並べ、
 // その Lv の前後 INF_SPOT_SPAN の階の顔ぶれを混ぜる (一つの層を丸ごと混ぜると、浅い階に層の終わりの魔物が出てしまう)。
 // 格上の迷宮・敵がみな神速の迷宮は物差しにしない。台帳の一番深い Lv より先は、一番深い階の顔ぶれのまま推奨Lv だけ上がる
@@ -1544,7 +1577,7 @@ function infSaveMemory() {
   abyssRecords().memories[G.floor] = memory;
   // 保存しても今回の戦利品には制限を付けない。制限は記憶から再開した時に付く。
   SFX.levelup();
-  log(`B${G.floor}F に魂を記憶した。次の挑戦は B${G.floor + 1}F から始められる。`, "win");
+  log(`B${G.floor}F に魂を記憶した。` + (infMemoryStartBlock(G.floor) || `次の挑戦は B${G.floor + 1}F から始められる。`), "win");
   autosave(true);
   return true;
 }
@@ -1732,13 +1765,17 @@ function infCloseRun(outcome) {
   const items = infReturnItems();
   const souls = (run.souls || []).map((x) => x && x.clsKey).filter((k) => k && SOUL_CLASSES[k]);
   const embers = Math.max(0, run.embers || 0);
+  const currency = infReturnCurrency();
   const vLv = infPartyLv(), vDead = (G.party || []).some((d) => !d.alive); // 仮の器の様子 (本編を戻す前に)
   infTlPoint("end", { outcome, reason: ab.returnReason || (outcome === "return" ? "unknown" : "wipe") });
   infRestoreHome(ab.home);
   if (ab.savedIdx != null) G.dungeonIdx = Math.min(DUNGEONS.length - 1, Math.max(0, ab.savedIdx));
-  const got = { items: [], souls: [], embers: 0 };
+  const got = { items: [], souls: [], embers: 0, gold: 0, soulPts: 0, legacy: currency.legacy };
   const enchantBefore = featureUnlocked("enchant");
   if (keep) {
+    G.gold = (G.gold || 0) + currency.gold;
+    G.soulPts = (G.soulPts || 0) + currency.soulPts;
+    got.gold = currency.gold; got.soulPts = currency.soulPts;
     for (const it of items) { recordAffixHome(it); shopReceive(it); codexSeeItem(it.id, it); got.items.push({ id: it.id, name: itemName(it), rar: rarityKey(it), afx: !!(it.afx && it.afx.length) }); }
     for (const k of souls) { addSoulInstance(k); codexJobSee(k, 1, 1); tlSoulGot(k); got.souls.push(k); }
     if (embers) { G.embers = (G.embers || 0) + embers; got.embers = embers; }
@@ -1761,7 +1798,7 @@ function infCloseRun(outcome) {
   rec.recent = rec.recent.slice(0, 8);
   G.stats.abyssBest = Math.max(G.stats.abyssBest || 0, depth);
   G.abyss = null;
-  return { depth, outcome, keep, newDepth, got, enchantUnlocked: !enchantBefore && featureUnlocked("enchant"), sold: trk.sold || 0, title: infTitleName(), lost: keep ? null : { items: items.length, souls: souls.length, embers } };
+  return { depth, outcome, keep, newDepth, got, enchantUnlocked: !enchantBefore && featureUnlocked("enchant"), sold: trk.sold || 0, title: infTitleName(), lost: keep ? null : { items: items.length, souls: souls.length, embers, ...currency } };
 }
 // 読み込み: 無限迷宮の途中なら、いったん本編の隊・魂・通貨を G へ戻して読み込みの手当てを掛け、済んだら仮の器へ戻す
 function infSwapForLoad() {
@@ -1948,7 +1985,7 @@ function grantHordeReward() {
   G.board._hordeRewarded = true;
   const lv = levelHere().lv;
   const soul = Math.round(refSoul(lv) * HORDE_BATTLES), gold = Math.round(refGold(lv) * HORDE_BATTLES);
-  G.gold += gold; G.soulPts += soul;
+  G.gold += gold; G.soulPts += soul; syncInfSoulWallet();
   if (G.run && inDungeon()) { G.run.gold += gold; G.run.soulPts += soul; }
   if (tlOn() && inDungeon()) { tlGain(tlWhere(), "gold", gold, "hd"); tlGain(tlWhere(), "soul", soul, "hd"); }
   updateTopbar();
@@ -7654,7 +7691,7 @@ const evApi = {
   canPayGold: (n) => G.gold >= n,
   canPaySoul: (n) => G.soulPts >= n,
   payGold(n) { G.gold = Math.max(0, G.gold - n); if (G.run && inDungeon()) G.run.gold = Math.max(0, (G.run.gold || 0) - n); updateTopbar(); },
-  paySoul(n) { G.soulPts = Math.max(0, G.soulPts - n); if (G.run && inDungeon()) G.run.soulPts = Math.max(0, (G.run.soulPts || 0) - n); updateTopbar(); },
+  paySoul(n) { G.soulPts = Math.max(0, G.soulPts - n); syncInfSoulWallet(); if (G.run && inDungeon()) G.run.soulPts = Math.max(0, (G.run.soulPts || 0) - n); updateTopbar(); },
   embers: () => G.embers || 0,
   payEmber(n) { G.embers = Math.max(0, (G.embers || 0) - n); updateTopbar(); },
   gold(u, from, { quiet = false } = {}) {
@@ -7674,7 +7711,7 @@ const evApi = {
     return s;
   },
   giveGoldRaw(n, from) { G.gold += n; if (G.run && inDungeon()) G.run.gold += n; if (tlOn() && inDungeon()) tlGain(tlWhere(), "gold", n, "ev"); updateTopbar(); log(`${from}で 💰${n} を得た。`, "win"); showToast(`${from} ― 💰${n}`, { noLog: true, tone: "gold", icon: ICONS.gold }); },
-  giveSoulRaw(n, from) { G.soulPts += n; if (G.run && inDungeon()) G.run.soulPts += n; if (tlOn() && inDungeon()) tlGain(tlWhere(), "soul", n, "ev"); updateTopbar(); log(`${from}で ✦${n} Soul を得た。`, "win"); showToast(`${from} ― ✦${n}`, { noLog: true, tone: "gold", icon: ICONS.wisp }); },
+  giveSoulRaw(n, from) { G.soulPts += n; syncInfSoulWallet(); if (G.run && inDungeon()) G.run.soulPts += n; if (tlOn() && inDungeon()) tlGain(tlWhere(), "soul", n, "ev"); updateTopbar(); log(`${from}で ✦${n} Soul を得た。`, "win"); showToast(`${from} ― ✦${n}`, { noLog: true, tone: "gold", icon: ICONS.wisp }); },
   ember(n, from, quiet = false) {
     G.embers = (G.embers || 0) + n; runCount("embers", n); updateTopbar();
     log(`${from} ― 魂の残火を ${n}つ 得た。`, "win");
@@ -8628,7 +8665,7 @@ function applyTrapMeasured(trap, opener) {
     case "soul": {
       // 金貨と同じく進行度に応じた量: 普通の1戦の ✦Soul (refSoul) × trap.loss
       const loss = Math.min(G.soulPts, trapLoss(refSoul, trap.loss || 6));
-      G.soulPts = Math.max(0, G.soulPts - loss);
+      G.soulPts = Math.max(0, G.soulPts - loss); syncInfSoulWallet();
       updateTopbar();
       lines.push(`✦${loss} Soul を吸い取られた…`);
       brief.push(`✦-${loss}`);
@@ -8822,6 +8859,11 @@ function giveDropsFromChest(drops, i, done, sink = boardSink()) {
 // 見落としても、見出しの迷宮名を押す「階の情報」でいつでも読み返せる
 function descend(...args) { return tlGameMeasure("floor", () => descendMeasured(...args)); }
 function descendMeasured({ fall = false, skip = 0, stabilityAd = false } = {}) {
+  if (abyssActive() && !G.abyss.testRun) {
+    const limit = infDepthLimit();
+    if (G.floor >= limit) { showToast(infDepthLimitNote(), { tone: "info" }); return false; }
+    skip = Math.min(skip, limit - G.floor - 1);
+  }
   // 出来事で2階進む場合も、5階の区切りを越える前に支払う。
   if (stabilityApplies(activeCfg()) && Math.floor((G.floor + skip) / 5) > Math.floor((G.floor - 1) / 5)) {
     if (!stabilityAd && !stabilityReady(ad => descend({fall, skip, stabilityAd:!!ad}), abyssActive(), STABILITY_FLOOR_COST)) return;
@@ -11811,7 +11853,7 @@ function applyImpact(res) {
         } else {
           const s = res._persistedConsequences ? h.persistedSteal : Math.min(G.soulPts, h.stealAmt || 0);
           if (!res._persistedConsequences) {
-            G.soulPts -= s;
+            G.soulPts -= s; syncInfSoulWallet();
             if (G.run) G.run.soulPts = Math.max(0, G.run.soulPts - s);
           }
           log(`${h.target.name}は✦${s}を奪われた`, "dmg");
@@ -12099,7 +12141,7 @@ function endBattleMeasured() {
     // 入手Soulの1/3を生存メンバーの魂 (サブ魂はその1/3) に加算 → レベルアップ/スキル習得を集計
     // (Lv差の減りは魂それぞれの Lv で掛け直すので、隊のLv で減らす前の額を渡す)
     const progress = distributeBattleSoulExp(soulOut.raw ?? soulGot);
-    const orderLevels = distributeOrderLearning(soulGot);
+    const orderLevels = distributeOrderLearning(abyssActive() ? soulOut.home : soulGot);
     updateTopbar();
     log(`勝利！ 💰${goldGot}・✦${soulGot}`, "win");
     const fled = b.enemies.filter((e) => e._fled).length; // 逃げ去った金属の魔物 (戦果は倒した分だけ)
@@ -12360,7 +12402,7 @@ function gameOver() {
     };
     UI.openInfWipe({
       abandoned: !!r.abandoned, floor: G.floor, cost, red: G.redSoul, canSave: G.redSoul >= cost,
-      souls: (r.souls || []).length, items, embers: r.embers || 0, sold: (infTrk().sold || 0),
+      souls: (r.souls || []).length, items, embers: r.embers || 0, ...infReturnCurrency(), sold: (infTrk().sold || 0),
       onSave: () => saveLoot(),
       // 本番の広告連携までは即時成功。回数・待ち時間の制限は設けない。
       onAd: () => saveLoot(true),
@@ -13636,7 +13678,7 @@ function raiseSoulCap(uid, opt = {}) {
     if (!infAtRest()) return false;
     const need = raiseCapSoulCost(e);
     if ((G.soulPts || 0) < need) { SFX.ng(); showToast(`✦Soul が足りない（✦${need} 要る）`, { tone: "bad" }); return false; }
-    G.soulPts -= need;
+    G.soulPts -= need; syncInfSoulWallet();
   } else {
     const need = emberCostOf(e.clsKey);
     if ((G.embers || 0) < need) { log(`魂の残火が足りない。(${need}つ要る)`, "sys"); SFX.ng(); showToast(`魂の残火が足りない（${need}つ要る）`, { noLog: true, tone: "bad" }); return false; }
@@ -15141,6 +15183,11 @@ function reportMainQuest() {
   for (const us of scenes) {
     pages.push({ title: us.title, lines: us.lines, kicker: us.title === UNLOCKS.insight.title ? "図鑑の手引き" : "秘技の伝授",
       leave: () => { SFX.victory(); buzz([0, 40, 80, 40]); toasts.push({ text: "🔓 新たな技能を授かった", opts: { tone: "good" } }); } });
+  }
+  const nextDepth = infDepthLimit(after);
+  if (nextDepth > 100 && nextDepth > infDepthLimit(w)) {
+    pages.push({ title: "無限迷宮 ── 深まる道", kicker: "深さの解放", who: "none", art: "hole",
+      lines: [Number.isFinite(nextDepth) ? `── 無限迷宮へ B${nextDepth}F まで潜れるようになった。魂の記憶からの再開にも、新しい上限が適用される。` : "── 無限迷宮の深さの制限がなくなった。魂の記憶から、さらに奥へ挑める。"] });
   }
   // 章の最後の迷宮: 章の結び
   const ch = CHAPTERS.find((c) => c.finale === id);
@@ -16936,6 +16983,9 @@ function skipTestDungeon() {
 // picks = 仮の器6体それぞれに宿す魂の職 (入口の3択で選んだもの。ui/infinite.js)。魂の安定度は本編と同じように使う
 function enterAbyss(picks, testRun = false, stabilityAd = false, memoryFloor = null) {
   if (G.state !== "town" || G.abyss) return false;
+  if (!testRun && (memoryFloor == null ? 1 : memoryFloor + 1) > infDepthLimit()) {
+    SFX.ng(); showToast(infDepthLimitNote(), { tone: "info" }); return false;
+  }
   const memory = memoryFloor == null ? null : infMemoryAt(memoryFloor);
   const ok = memoryFloor != null ? memory && memory.party?.length === INF_PARTY && memory.party.every(d =>
     memory.souls?.some(s => s.uid === d.primary && SOUL_CLASSES[s.clsKey] && !isUniqueJob(s.clsKey)) &&
@@ -16948,6 +16998,7 @@ function enterAbyss(picks, testRun = false, stabilityAd = false, memoryFloor = n
   const seed = ((random() * 0x7fffffff) >>> 0) || 1;
   const names = infVesselNames(); // 本編の隊を退ける前に読む
   G.abyss = { v: 2, started: true, testRun, depth: memory ? memory.floor + 1 : 1, memoryFloor, seed, rule: null, guardFloor: 0, picks: [...picks], home: infStashHome(), savedIdx: G.dungeonIdx,
+    soulCarry: { wallet: 0, base: 0 },
     allCommon: !memory && picks.every((k) => SOUL_CLASSES[k].rarity === "common"), trk: { sp: 0, at: 0, broke: false, rareAfx: 0, bossMax: 0 } };
   { const st = infStats(); st.runs++; if (!memory) for (const k of picks) st.jobs[k] = 1; }
   // 本編を退け、仮の器と無限迷宮の魂・通貨に差し替える
@@ -19159,6 +19210,7 @@ function loadGame(cloudSnapshot = null) {
 
 // 復元した状態に応じて画面を再構築 (やり直し不可の再開)
 function resumeFromState() {
+  if (enforceInfDepthLimit()) return;
   refreshStability();
   if (G.pendingDanger) { presentPendingDanger(); return; }
   if (G.pendingTreasury) { showPendingTreasury(); return; }
@@ -19671,7 +19723,7 @@ const OPS = {
       if (e.level >= soulLevelCapOf(e)) break;
       const cost = Math.max(1, soulTrainCost(e.level) - (e.exp || 0));
       if (G.soulPts < cost) break;
-      G.soulPts -= cost; spent += cost;
+      G.soulPts -= cost; syncInfSoulWallet(); spent += cost;
       e.level++; e.exp = 0;
       levels++;
     }
@@ -19904,6 +19956,7 @@ bindGame({
   // 出撃
   departNow, corpseFadeShare, departAbyss, infVesselNames, rematchList, departRematch, REMATCH_FORGE_MAX, townMutatorFor, preDiveIssues, departWoes, DUNGEON_BRIEFING, STORY_CELLS, startFloorsOf, worldOpenIdx, worldOpenId, worldUnlockMet, levelBand, wallOf, wallStepOf, statWallOf, partyLevel, storyCellPending, dungeonFacts, dungeonQuests, namedHere, namedList, namedInfo,
   abyssRecords, infMemories, infMemoryAt, infMemoryBlock, infMemoryPreview, infSaveMemory, infReturnItems, infStats, infTitleList, infTitleName, setInfTitle, emptyDollCost, infRule, infAtRest, soulWorkOk, infTraderWares, infSupplyStatus, infBuyBlock, infBuy, infSell, infSellPlan, infSellAll, shopAfxClash, infSwapSoul, infSoulChangeBlock, infSoulChangePreview, infSubBlock, infSubPreview, infSetSub, infLevel, infGrowthMul,
+  infDepthLimit, infDepthLimitNote, infMemoryStartBlock, infReturnCurrency,
   // 迷宮の HUD
   specialDef, mutDef, eliteKey, dungeonObjective, abyssActive, abyssBossPending, findRevealedStairs, canReturnNow, confirmAbandonDungeon,
   dungeonTheme, eventFacts,
@@ -19953,6 +20006,7 @@ async function init() {
     // 極 (無限迷宮の追加の特性) の検証用
     affix: { resolveCell, treasureCaller, battleChestSpec, distributeBattleSoulExp },
     orderLearning: { distributeOrderLearning, orderSeatedUids, orderLearningRate, orderSeats, featureUnlocked, featureMet, settleSoulExp },
+    infiniteEconomy: { runGainSoulPts, runGainGold, infReturnCurrency, infCloseRun, infDepthLimit, infDepthLimitNote, infMemoryStartBlock, enforceInfDepthLimit, resumeFromState },
     // オート移動の検証用
     autoMove: { setAutoMove, toggleAutoMove, autoMovePlan, moveStep, cellRect, viewSize: () => ({ VW, VH }) },
     // 宿敵の再戦の検証用
