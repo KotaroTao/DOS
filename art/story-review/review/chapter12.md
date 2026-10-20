@@ -360,9 +360,9 @@ _(絵はまだ無い)_
 
 <a name="mem_w49"></a>
 
-## mem_w49「もう、よい」 ── 未着手 (指示あり)
+## mem_w49「もう、よい」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter12/mem_w49.webp" width="576" alt="mem_w49">
 
 **ストーリー一覧の本文**
 
@@ -437,9 +437,9 @@ _(絵はまだ無い)_
 
 <a name="report_w49"></a>
 
-## report_w49「余が決めた日に」 ── 未着手 (指示あり)
+## report_w49「余が決めた日に」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter12/report_w49.webp" width="576" alt="report_w49">
 
 **ストーリー一覧の本文**
 
@@ -475,9 +475,9 @@ _(絵はまだ無い)_
 
 <a name="irene_enough"></a>
 
-## irene_enough「訊く人」 ── 未着手 (指示あり)
+## irene_enough「訊く人」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter12/irene_enough.webp" width="576" alt="irene_enough">
 
 **ストーリー一覧の本文**
 
@@ -513,9 +513,9 @@ _(絵はまだ無い)_
 
 <a name="ch12_end"></a>
 
-## ch12_end「答えを聞くまで」 ── 未着手 (指示あり)
+## ch12_end「答えを聞くまで」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter12/ch12_end.webp" width="576" alt="ch12_end">
 
 **ストーリー一覧の本文**
 
