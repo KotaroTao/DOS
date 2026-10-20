@@ -48,7 +48,7 @@ export function migrateTown(t) {
   return t;
 }
 
-const tabDefs = {};   // key → { render(root, api), title, header:false=見出しを出さない }
+const tabDefs = {};   // key → { render(root, api), onLeave(), title, header:false=見出しを出さない }
 const pageDefs = {};  // key → { render(root, api), title, parentTab, header:false }
 const kept = new Map();
 let shell = null, head = null, content = null, bar = null, parking = null;
@@ -84,6 +84,7 @@ export function mount() {
     if (typeof MutationObserver === "function") {
       new MutationObserver(() => {
         const hid = content.classList.contains("hidden");
+        if (hid && !shell.classList.contains("hidden")) tabDefs[lastTab]?.onLeave?.();
         if (hid !== shell.classList.contains("hidden")) shell.classList.toggle("hidden", hid);
       }).observe(content, { attributes: true, attributeFilter: ["class"] });
     }
@@ -195,6 +196,8 @@ export function refresh() {
   const depth = currentDepth();
   const key = screenKey();
   const same = key === lastKey;
+  // 商会など、離れた時にだけ片付ける条件は同じ画面の描き直しでは保つ。
+  if (lastKey && !same && (tab !== lastTab || depth > lastDepth)) tabDefs[lastTab]?.onLeave?.();
   const keepScroll = same ? content.scrollTop : 0;
   // 他のタブ・迷宮・起動直後からこのタブへ入ってきた描画か (同じタブの描き直しでは false)。タブの render が api.entered で読む
   api.entered = !lastKey || tab !== lastTab || shell.classList.contains("hidden") || content.classList.contains("hidden");
