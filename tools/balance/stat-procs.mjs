@@ -60,6 +60,18 @@ for (const level of [20,100,200]) for (const stat of [100,992]) {
     assert.equal(damage(e,()=>b._retaliate(a,e,'int',k,'検証',true)),Math.round(Math.round(stat*k)*.5));
   }
 }
+// 強化した連続追撃で倒しても、死者を殴り続けず次の敵へ移る。
+{
+ const {a,e,b}=fixture(100);a.passiveMap={necroLegion:3};e.hp=100;
+ const e2={...e,uid:uid++,name:'次の敵',hp:100};b.enemies.push(e2);
+ const res={hits:[]};b._necroLegion(a,res);
+ assert.equal(res.hits.length,2);assert.equal(res.hits[0].target,e);assert.equal(res.hits[1].target,e2);
+ assert(res.hits.every(h=>h.died));assert.equal(b.result,'win');cases++;
+}
+{
+ const {a,e,b}=fixture();a.passiveMap={necroLegion:3};a.alive=false;
+ assert.equal(damage(e,()=>b._necroLegion(a,{hits:[]})),0,'倒れた術者からは発動しない');
+}
 for (const key of ['necroLegion','dkEnchant']) {
   const {a,e,b}=fixture(992,100,{key:'metal',mon:{metal:true},metal:true});a.passiveMap={[key]:3};
   assert.equal(damage(e,()=>key==='necroLegion'?b._necroLegion(a,{hits:[]}):b._afterBasic(a,e,{dmg:1},{hits:[]})),0);
