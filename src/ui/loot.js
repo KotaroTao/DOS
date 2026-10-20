@@ -320,6 +320,20 @@ export function revealSellBtn(doll, it, onSold) {
   b.dataset.act = "sell";
   return b;
 }
+// 鑑定結果からも、品の詳細と同じ条件・確認で特性を写し取る。
+export function revealExtractBtn(it, onDone) {
+  if (!G().tut?.done?.enchant || it.unidentified || !it.afx?.length
+    || !isEquippable(it) || !UI.openAffixExtract) return null;
+  const holder = game.itemHolder?.(it);
+  if (!holder) return null;
+  const why = game.extractBlock?.({ it, ...holder, shelf: false });
+  const b = button({ label: "巻物にする", kind: "secondary", size: "sm", disabled: !!why,
+    onTap: () => UI.openAffixExtract(it, onDone) });
+  b.classList.add("wpc-prow-act");
+  b.dataset.act = "extract";
+  if (why) { b.title = why; b.setAttribute("aria-label", `巻物にする：${why}`); }
+  return b;
+}
 // 鑑定の結果の一覧に残った品のうち、まとめて売れるもの (袋の中・呪いなし)。
 // LR・未奉納の収集品 (bulkSellBlocked) は一点ずつ「売る」で確かめるので残す (keep に数える)。SR はまとめて売る
 export function revealSellables(items) {

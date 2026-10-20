@@ -13,7 +13,7 @@ import { bagOwners } from "../items.js";
 import { UI, game, registerUI } from "./ctx.js";
 import { el, sheet, button, setText, toast, reduced, confirm } from "./kit.js";
 import { statLines, isEquippable, itemCatText } from "./itemview.js";
-import { wearPlan, deltaEl, nameSpan, openDollChooser, itemSheet, ownerOf, shopOpen, townAppraisers, revealSellBtn, revealSellAction, floatGold,
+import { wearPlan, deltaEl, nameSpan, openDollChooser, itemSheet, ownerOf, shopOpen, townAppraisers, revealSellBtn, revealExtractBtn, revealSellAction, floatGold,
   FIRST_LABEL, firstBadge, isFirstGet } from "./loot.js"; // 初ゲット！ = 鑑定で正体を初めて知った品 (game.js の revealIdentity が印をつける)
 import { spriteCanvas } from "../sprites.js";
 import { identifyChance, identifyLabel } from "../souls.js";
@@ -311,17 +311,21 @@ export function openTryIdentifyAll({ onDone } = {}) {
       main.appendChild(tx);
       main.addEventListener("click", () => refreshOnClose(itemSheet(it, { owner: o.doll, context: "bag" })));
       row.appendChild(main);
+      const actions = el("div", "wpc-reveal-actions");
       if (isEquippable(it)) {
         const eb = button({ label: "装備", kind: up ? "primary" : "secondary", size: "sm", onTap: () => refreshOnClose(openDollChooser(it, { owner: o.doll })) });
         eb.classList.add("wpc-prow-act");
-        row.appendChild(eb);
+        actions.appendChild(eb);
       }
-      if (o.where === "bag" && shopOpen()) row.appendChild(revealSellBtn(o.doll, it, refreshSummary));
+      if (o.where === "bag" && shopOpen()) actions.appendChild(revealSellBtn(o.doll, it, refreshSummary));
+      const extract = revealExtractBtn(it, refreshSummary);
+      if (extract) actions.appendChild(extract);
+      if (actions.childElementCount) row.appendChild(actions);
       wrap.appendChild(row);
     }
     if (worn) wrap.appendChild(el("div", "ap-sum-worn", `装備した品 ${worn}点は一覧から外した。`));
     const sold = results.filter((x) => x.ok && !ownerOf(x.item)).length;
-    if (sold) wrap.appendChild(el("div", "ap-sum-worn", `売った品 ${sold}点は一覧から外した。`));
+    if (sold) wrap.appendChild(el("div", "ap-sum-worn", `売却・巻物化した品 ${sold}点は一覧から外した。`));
     const fails = results.filter((x) => !x.ok);
     if (fails.length) {
       const f = el("div", "ap-sum-fail");
