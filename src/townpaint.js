@@ -5,6 +5,7 @@
 // 明かりの種類 (tone): fire 炉・松明 / lamp 吊り灯 / candle 蝋燭 / crystal 祠の紅い魂 (ゆっくり脈打つ) / moon 月光 (ほぼ動かない)
 // 原画がある鍵では、取得に失敗しても旧ドット絵へ戻さない。
 import { watchIllustration, sceneReady } from "./imageloading.js";
+import { imageResource } from "./mediaready.js";
 import { TOWN_KEYART } from "./townkeyart.js";
 
 export const PW = 1200, PH = 750; // 情景の canvas (townart の 120x75 の10倍。比率は同じ)
@@ -31,19 +32,14 @@ export const hasPaintedTownScene = (daylight = false) => !!TOWN_KEYART[panoramaK
 export const paintedTownSpots = (daylight = false) => Object.fromEntries(Object.entries(TOWN_KEYART[panoramaKey(daylight)].spots).map(([k, p]) => [k, { x: p[0], y: p[1] }]));
 
 // 読み込みは鍵ごとに一度だけ (成功した img / 失敗 = false)
-const _img = new Map();
 function loadArt(key) {
-  if (_img.has(key)) return _img.get(key);
-  const a = TOWN_KEYART[key];
-  const p = new Promise((ok) => {
-    const im = new Image();
-    im.decoding = "async";
-    im.onload = () => ok(im);
-    im.onerror = () => ok(false);
-    im.src = a.src;
-  });
-  _img.set(key, p);
-  return p;
+  const entry = imageResource(TOWN_KEYART[key].src);
+  return entry.ready.then(ok => ok ? entry.image : false);
+}
+export function warmTownArt(daylight = false) {
+  for (const key of [panoramaKey(daylight), 'tavern', 'inn', 'shop', 'shrine', 'mansion', 'palace']) {
+    if (TOWN_KEYART[key]) imageResource(TOWN_KEYART[key].src, 0);
+  }
 }
 
 // 原画を 16:10 に切り取って焼いた土台 (鍵ごとに一度)

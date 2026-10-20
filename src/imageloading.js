@@ -5,6 +5,7 @@ const entries = new Map(), imagePromises = new WeakMap();
 let lamp = null, timer = 0, scheduled = false, waitingSince = null;
 const LAMP_DELAY = 400;
 const scenes = new WeakMap();
+let redrawn = false;
 function visible(node) {
   if (!node?.isConnected || !node.getClientRects?.().length) return false;
   const rect = node.getBoundingClientRect();
@@ -36,18 +37,18 @@ function ensureLamp() {
 function schedule() {
   if (scheduled || typeof document === "undefined") return;
   scheduled = true;
-  // 同じ描画内の要求をまとめる。通常の画像待ちでは画面を覆わない。
+  // 同じ描画内の要求をまとめ、ブラウザが描く前に待機表示を決める。
   queueMicrotask(() => { scheduled = false; update(); });
 }
 function update() {
   clearTimeout(timer); timer = 0;
-  let pending = false, failed = false, initialScene = false;
+  let pending = false, failed = false;
   const now = Date.now();
   for (const [key, entry] of entries) {
     let shown = now - entry.used < 300;
     for (const [node, used] of entry.liveOwners) {
-      if (now - used < 300 && visible(node)) shown = true;
-      if (now - used >= 1000) entry.liveOwners.delete(node);
+      if (visible(node)) shown = true;
+      if (!node.isConnected) entry.liveOwners.delete(node);
     }
     for (const [node, seen] of entry.owners) {
       if (visible(node)) { shown = true; entry.owners.set(node, true); }
@@ -59,12 +60,28 @@ function update() {
     }
     if (shown) {
       pending ||= entry.state === "pending";
-      initialScene ||= entry.state === "pending" && [...entry.owners.keys()].some(node => node.classList?.contains("ttl-overlay") && !node.dataset.sceneReady);
       failed ||= entry.state === "error";
     }
   }
   const booting = document.body.classList.contains("booting");
-  document.body.classList.toggle("screen-loading", booting || initialScene);
+  if (pending || failed || booting) redrawn = false;
+  if (!redrawn && !pending && !failed && !booting && document.body.classList.contains("screen-loading")) {
+    redrawn = true;
+    document.dispatchEvent(new Event("illustrations-ready"));
+    // 描き直しで別の画像が必要になれば、次のmicrotaskで確認してから幕を開く。
+    if (scheduled) return;
+  }
+  // 未完成の絵を見せない。通常は先読みで、この待機自体が不要になる。
+  document.body.classList.toggle("screen-loading", booting || pending || failed);
+  const splash = document.getElementById("media-splash");
+  if (splash) {
+    const state = failed ? "error" : "loading";
+    if (splash.dataset.state !== state) splash.dataset.state = state;
+    const message = failed ? "画像を読み込めませんでした。接続を確かめて再試行してください。" : "画面を準備しています";
+    const label = splash.querySelector(".media-message"), retry = splash.querySelector(".media-retry");
+    if (label.textContent !== message) label.textContent = message;
+    if (retry.hidden === failed) retry.hidden = !failed;
+  }
   if (pending || booting) waitingSince ??= now;
   else waitingSince = null;
   const state = document.hidden ? "idle" : booting || pending && now - waitingSince >= LAMP_DELAY ? "loading" : failed ? "error" : "idle";
@@ -75,7 +92,12 @@ function update() {
   }
   if (!document.hidden && (pending || [...entries.values()].some(entry => entry.liveOwners.size || now - entry.used < 1000))) timer = setTimeout(update, 120);
 }
-// 背景だけを遷移の待ち合わせ対象にする。肖像や品の画像は操作を止めない。
+// 表示待ちの間は入力と自動進行を止める。
+export function mediaBusy() {
+  return typeof document !== "undefined" && (document.body?.classList.contains("screen-loading") || document.body?.classList.contains("booting"));
+}
+// 階の準備はCanvasの表示・非表示によらず待つ。完了した要求はupdateで取り除く。
+export function holdIllustrations(key, ready) { watchIllustration(key, ready, document.body); }
 export function sceneReady(owner, ready) {
   const state = { pending: true, ready: Promise.resolve(ready) };
   scenes.set(owner, state);
@@ -128,8 +150,9 @@ export function watchIllustration(key, ready, owner = null, live = false) {
   if (!entry || entry.ready !== ready) {
     entry = { ready, state: "pending", owners: entry?.owners || new Map(), liveOwners: entry?.liveOwners || new Map(), used: 0, created: Date.now() };
     entries.set(key, entry);
-    Promise.resolve(ready).then(ok => { entry.state = ok === false ? "error" : "ready"; schedule(); },
-      () => { entry.state = "error"; schedule(); });
+    const deadline = setTimeout(() => { entry.state = "error"; schedule(); }, 30000);
+    Promise.resolve(ready).then(ok => { clearTimeout(deadline); entry.state = ok === false ? "error" : "ready"; schedule(); },
+      () => { clearTimeout(deadline); entry.state = "error"; schedule(); });
   }
   if (owner && live) entry.liveOwners.set(owner, Date.now());
   else if (owner) entry.owners.set(owner, entry.owners.get(owner) || false);
@@ -138,29 +161,34 @@ export function watchIllustration(key, ready, owner = null, live = false) {
 }
 export function watchImage(image, owner = null, live = false) {
   if (!image || !image.addEventListener) return;
-  if (image.complete && image.naturalWidth > 0) return;
+  if (image.complete && image.naturalWidth > 0 && imagePromises.get(image)?.decoded) return;
   let ready = imagePromises.get(image);
   if (!ready) {
     ready = new Promise(resolve => {
-      if (image.complete && image.src) { resolve(image.naturalWidth > 0); return; }
-      const finish = ok => {
+      if (image.complete && image.src) {
+        if (!image.naturalWidth) { resolve(false); return; }
+        Promise.resolve(image.decode?.()).then(() => resolve(true), () => resolve(false)); return;
+      }
+      const finish = async ok => {
         image.removeEventListener("load", loaded); image.removeEventListener("error", failed);
+        if (ok) { try { await image.decode?.(); } catch { ok = false; } }
         resolve(ok);
       };
       const loaded = () => finish(image.naturalWidth > 0), failed = () => finish(false);
       image.addEventListener("load", loaded); image.addEventListener("error", failed);
     });
     imagePromises.set(image, ready);
+    ready.then(ok => { ready.decoded = ok; });
   }
   watchIllustration(image, ready, owner, live);
 }
 // DOM の挿絵・肖像も、表示されたものだけを対象にする。裏の先読みは対象外。
 if (typeof document !== "undefined" && typeof MutationObserver !== "undefined") {
   const scan = node => {
-    if (node.nodeType !== 1 || node.closest?.(".image-loading, .scene-hold")) return;
+    if (node.nodeType !== 1 || node.closest?.(".image-loading, .scene-hold, #media-splash")) return;
     if (node.matches("img[src]") && !node.src.startsWith("data:")) watchImage(node, node);
     for (const image of node.querySelectorAll("img[src]")) {
-      if (!image.src.startsWith("data:") && !image.closest(".image-loading, .scene-hold")) watchImage(image, image);
+      if (!image.src.startsWith("data:") && !image.closest(".image-loading, .scene-hold, #media-splash")) watchImage(image, image);
     }
   };
   const observer = new MutationObserver(records => {
@@ -177,9 +205,10 @@ if (typeof document !== "undefined" && typeof MutationObserver !== "undefined") 
   window.addEventListener("resize", schedule, { passive: true });
   document.addEventListener("keydown", event => {
     if (!document.body.classList.contains("screen-loading") && !document.body.classList.contains("booting")) return;
-    if (document.getElementById("boot-notice")) return;
+    if (document.getElementById("boot-notice") || event.target.closest?.("#media-splash, .cloud-gate, #local-save-gate")) return;
     event.preventDefault(); event.stopImmediatePropagation();
   }, true);
+  document.getElementById("media-splash")?.querySelector(".media-retry")?.addEventListener("click", () => location.reload());
   scan(document.documentElement);
   schedule();
 }

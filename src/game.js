@@ -1,3 +1,6 @@
+import { warmOpening } from "./openingillustrations.js";
+import { holdIllustrations, mediaBusy } from "./imageloading.js";
+import { warmTownArt } from "./townpaint.js";
 import { preloadBattleBackground } from "./battlebackgrounds.js";
 import "./desktop.js";
 import * as formations from "./formations.js";
@@ -17,7 +20,7 @@ import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spaw
 import { decideAuto, tacticOf, setResistKnown, autoCombatStalled, resetAutoProgress } from "./autotactics.js";
 import { STAGED, effectStage, stageOf, stageMul, stageLabel, isBattleLong, ENEMY_STAT_LABEL } from "./buffstage.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
-import { spriteCanvas, crispCanvas, drawPhoto, photoReady, whenPhoto, setSpriteResolver } from "./sprites.js";
+import { spriteCanvas, crispCanvas, drawPhoto, photoReady, whenPhoto, prepareSprite, setSpriteResolver } from "./sprites.js";
 import { makeItemSpriteResolver } from "./itemart/index.js";
 import { registerMonsterPhotos, restoreMonsterPhotos } from "./monsterphotos.js";
 import { bagCount, isFormationItem,
@@ -1132,8 +1135,7 @@ function abyssLevel(d) { return infLevel(d); }
 // 無限迷宮のあたたかい死体は本編の1.2倍 (2026-10-12 ユーザーの指示)。ほかのマス (敵・宝箱・風化した死体・泉・罠) の割合は
 // 本編のまま、空いたまま残る行き止まりにあたたかい死体を足す (board.js warmExtra)。そのぶん何もない行き止まりが減る
 const INF_WARM_MUL = 1.2;
-function abyssCfg() {
-  const d = G.abyss.depth;
+function abyssCfg(d = G.abyss.depth) {
   const lv = infLevel(d);
   const info = infSpotInfo(lv);
   const L = info.layer;
@@ -2458,6 +2460,47 @@ function enforceDungeonRestrictions() {
   }
 }
 
+// 抽選や乱数には触れず、台帳と生成済み盤面から必要な絵だけを集める。
+function preloadDungeon(cfg, floor = 1, priority = 0) {
+  if (!cfg) return Promise.resolve(true);
+  const keys = new Set(poolAt(cfg, floor));
+  if (!cfg.tutorial) {
+    keys.add("mimic");
+    if ((cfg.layer || 1) >= MASTER_MIMIC_LAYER) keys.add("master_mimic");
+    for (const key of metalKeys()) if (metalInLayer(key, cfg.layer)) keys.add(key);
+  }
+  // 死体の遭遇は別の出現表から選ぶため、同じ条件の候補を乱数なしで集める。
+  const undead = key => MONSTERS[key]?.race === "undead" && !MONSTERS[key].boss && !MONSTERS[key].elite && !MONSTERS[key].evOnly && !MONSTERS[key].metal;
+  const local = [...(cfg.pool || []), ...(cfg.deepPool || [])].filter(undead);
+  if (local.length) for (const key of local) keys.add(key);
+  else {
+    const cap = Math.max(1, ...poolAt(cfg, floor).map(key => MONSTERS[key]?.rank || 1));
+    const near = [];
+    for (let layer = Math.min(20, cfg.layer || 1); layer >= 1; layer--) for (const key of LAYER_POOLS[layer] || []) {
+      if (undead(key) && (MONSTERS[key].rank || 1) <= cap) near.push(key);
+    }
+    const rank = Math.max(0, ...near.map(key => MONSTERS[key].rank || 1));
+    for (const key of near) if ((MONSTERS[key].rank || 1) === rank) keys.add(key);
+  }
+  // 取り巻き・罠の群れ・強敵・主も出会う前に取得する。
+  for (const key of [...(cfg.elites || LAYER_ELITES[cfg.layer || 1] || []), cfg.boss]) if (key) keys.add(key);
+  if (cfg.id === activeCfg().id && floor === G.floor && G.board) for (const row of G.board.cells) for (const cell of row) if (cell.monsterKey) keys.add(cell.monsterKey);
+  const tasks = [...keys].map(key => MONSTERS[key]?.photo?.load(priority)).filter(Boolean);
+  if (!PREFS.classicBattle) tasks.push(preloadBattleBackground(cfg.id, priority));
+  return Promise.all(tasks).then(values => values.every(ok => ok !== false));
+}
+function prepareFloorMedia() {
+  const cfg = activeCfg(), floor = G.floor;
+  const ready = preloadDungeon(cfg, floor, 1);
+  holdIllustrations(G.board, ready);
+  // 次の階の先読みは今の階がそろってから始める。
+  ready.then(ok => {
+    if (ok && G.state === "board" && G.floor === floor && activeCfg().id === cfg.id && floor < (cfg.floors || floor)) {
+      preloadDungeon(abyssActive() ? abyssCfg(G.abyss.depth + 1) : cfg, floor + 1, 0);
+    }
+  });
+}
+
 function newFloor() {
   applyInfMightyFloor();
   // ダンジョンが自前で持つ出現プール (pool=浅階 / deepPool=深階) を使う
@@ -2512,6 +2555,7 @@ function newFloor() {
   enforceDungeonRestrictions();
   evNewFloor(); // 迷宮のイベント: 必須の手がかりの場所を確保してから配置する
   placeAbbeyFirstSoul();
+  prepareFloorMedia();
   G.portalFound = false; // この階の帰還魔法陣はまだ発見していない
   revealByCartography();
   passiveSensePlan(); // 敵感知・財宝感知の札は階の始めに決める (描画の時に乱数を引かない — src/rng.js)
@@ -10170,7 +10214,16 @@ function drawOpeningTag(now, preempt = false) {
 }
 
 // 戦闘開始の演出を流してから done (手番処理) へ。演出中は入力を受けない
-function playBattleIntro(done) {
+function playBattleIntro(done, prepared = false) {
+  const battle = G.battle;
+  if (!prepared && battle) {
+    const tasks = [...battle.enemies.map(e => prepareSprite(e.mon)), ...G.party.map(d => prepareSprite(dollBust(d)))];
+    if (!PREFS.classicBattle) tasks.push(preloadBattleBackground(activeCfg().id, 1));
+    const ready = Promise.all(tasks).then(values => values.every(Boolean));
+    holdIllustrations(battle, ready);
+    ready.then(ok => { if (ok && G.battle === battle && G.state === "combat") playBattleIntro(done, true); });
+    return;
+  }
   const b = G.battle;
   const boss = b.enemies.find((e) => e.boss);
   // 戦場の寸法をここで決めて、戦闘の間は固定する (盤面より横長の戦場へ)。行動ドックは命令板に場所を譲る
@@ -11238,7 +11291,7 @@ function showBattleItems(actor) {
 function spdMul() { return G.autoCombat ? 0.45 : G.fastAnim ? 1 : 2; }
 // 戦闘の一時停止: 戦闘中にシート (手帳・設定・覗き見など) が開いている間は次の一手へ進まない。
 // いま演じている一手は最後まで見せ、その次の手番で閉じるのを待つ
-function combatHeld() { return G.state === "combat" && (cloudBusy() || sheetDepth() > 0 || !!G.settingsOpen || !!G.statusOpen); }
+function combatHeld() { return G.state === "combat" && (mediaBusy() || cloudBusy() || sheetDepth() > 0 || !!G.settingsOpen || !!G.statusOpen); }
 function whenCombatFree(fn) {
   if (combatHeld()) { setTimeout(() => whenCombatFree(fn), 150); return; }
   fn();
@@ -19670,7 +19723,7 @@ function wireUI() {
     sellPrice, buyPrice, appraiseCost, innCost, sellWarnings, bulkSellBlocked, bargainMul, shopStockAdd, shopReceive, shopAfxItem, shopPlainStock, buyAffixed, afxConflicts, resolveAfxConflicts, tlTown,
     itemRankName, itemRankColor, itemGradeText, itemNameEl, logClassForItem,
     showChoice, closePrompt, showEvent, showConfirm, showToast, showItemGet, closeItemGet, showItemDetailPopup, showStoryScene,
-    openStatus, closeStatus, openSettings, closeSettings, tryEnterDungeon, enterDungeon, returnToTown, confirmReturnToTown,
+    openStatus, closeStatus, openSettings, closeSettings, tryEnterDungeon, enterDungeon, preloadDungeon, returnToTown, confirmReturnToTown,
     tutorialAllowed, palaceCallReady, currentObjective, featureUnlocked, RUSUI_EXP_RATE, rusuiSeats, rusuiSeated, toggleRusuiSeat, contentSealed, reportMainQuest, acceptMainQuest, reportPending, blockForReport, tutorialPending, blockForTutorial,
     insightSummary, worldState, worldOpenIdx, pendingIreneBeat, playIreneBeat, dungeonLevel, FEATURES, featureNote, chaptersDone, storyGoal, currentChapter, dungeonTrait, dungeonFloorHaz,
     trainSoul, raiseSoulCap, raiseCapSoulCost, capBySoulOk, soulTrainCost, soulByUid, codexSeeItem, treasuryState, heldCollectibles, donateCollectible,
@@ -19795,6 +19848,10 @@ function titleSummary() {
 
 async function init() {
   registerMonsterPhotos(MONSTERS);
+  document.addEventListener("illustrations-ready", () => {
+    if (G.state === "combat" && G.battle) renderCombatCanvas();
+    else if (G.state === "board" && G.board) renderBoard();
+  });
   // UI 基盤 (ctx の結線・戻る操作・街シェル・各パッケージ) を最初の描画より前に整える
   wireUI();
   // 早期にフックを公開 (起動失敗の誤検出/デバッグ用)
@@ -19922,6 +19979,7 @@ async function init() {
 
   // まずタイトル画面。タップで目覚め (ここで音声が解禁されタイトル曲が流れる)、
   // 「冒険をはじめる/つづける」で本編へ。再開処理 (戦闘の自動進行など) はタイトルを閉じてから行う
+  warmTownArt(!!G.world?.reported?.w33);
   titleActive = true;
   G.prompt = true;
   playBgm("title"); // 音声起動前なら初回タップ時に開始される
@@ -19961,6 +20019,7 @@ async function init() {
         url.searchParams.set("testDungeon", id); url.searchParams.set("testFloor", floor); url.searchParams.set("testPlace", place);
         location.assign(url.href);
       } });
+    if (!loaded) warmOpening();
     revealBootScreen();
   } catch (e) { start(); }
 
@@ -20002,6 +20061,7 @@ function syncStoryMedia() {
 
 // タイトルを抜けた後の本編起動: 保存状態の復元描画 → (新規なら) オープニング
 function startAfterTitle(loaded) {
+  if (loaded && G.board && inDungeon()) prepareFloorMedia();
   updateTopbar();
   // 復元描画に失敗してもセーブは絶対に消さない (データ保全優先)。
   // 失敗時は安全に街表示へフォールバックする。
@@ -20036,12 +20096,17 @@ function startAfterTitle(loaded) {
     return;
   }
   // 新規ゲーム: オープニングを流してから街へ
+  const openingReady = warmOpening(1);
+  holdIllustrations("opening", openingReady);
   G.prompt = true;
   openingActive = true;
   playBgm("opening");
-  try {
-    showOpening(() => { G.prompt = false; openingActive = false; playBgm(sceneBgm()); });
-  } catch (e) { G.prompt = false; openingActive = false; playBgm(sceneBgm()); }
+  openingReady.then(ok => {
+    if (!ok) return;
+    try {
+      showOpening(() => { G.prompt = false; openingActive = false; playBgm(sceneBgm()); });
+    } catch (e) { G.prompt = false; openingActive = false; playBgm(sceneBgm()); }
+  });
 }
 init().catch((e) => {
   console.error("ゲームの起動に失敗しました", e);

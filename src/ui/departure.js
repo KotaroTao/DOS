@@ -201,6 +201,7 @@ function renderHero(b) {
   const g = G();
   const dn = (game.DUNGEONS || [])[g.dungeonIdx];
   if (!dn) return;
+  game.preloadDungeon?.(dn, cur?.from || 1, 0);
   const hero = el("div", "dp-hero");
   const pic = el("div", "dp-vista");
   pic.appendChild(vistaIllustration(dn));
@@ -793,6 +794,7 @@ function refresh() {
   if (cur.h.el) cur.h.el.classList.toggle("dp-full", cur.page === "gates");
   refreshFooter();
   if (cur.h.body) cur.h.body.scrollTop = scroll;
+  if (cur.page === "gates") game.preloadDungeon?.(game.DUNGEONS?.[G().dungeonIdx], cur.from || 1, 0);
 }
 export function refreshStabilityDisplay() { refresh(); }
 const pageBanner = (page) => page === "abyss" ? "無限迷宮" : page === "rematch" ? "宿敵の再戦" : "出 撃";

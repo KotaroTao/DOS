@@ -17,7 +17,7 @@ const cache = {
   async put(request, response) { stored.set(urlOf(request), response.clone()); },
 };
 let requests = 0, offline = false, badStatus = false;
-function worker(version) {
+function worker(version, revisions = {}) {
   const listeners = {};
   const context = vm.createContext({
     URL, Response, Headers, Map, Set, Promise,
@@ -31,7 +31,7 @@ function worker(version) {
       return new Response(badStatus ? 'missing' : version, { status: badStatus ? 404 : 200 });
     },
   });
-  vm.runInContext(source.replace('const CACHE = "dos-dev";', `const CACHE = "${version}";`), context);
+  vm.runInContext(source.replace('const CACHE = "dos-dev";', `const CACHE = "${version}";`).replace('const MEDIA_REVISIONS = {};', `const MEDIA_REVISIONS = ${JSON.stringify(revisions)};`), context);
   return async (path = 'art/jobs/fighter_1.webp') => {
     let response;
     const background = [];
@@ -81,3 +81,20 @@ assert.equal(await result.response.text(), 'dos-next');
 await result.done;
 assert.equal(requests, 6);
 console.log('合格: 同時表示6件→通信1回、再起動→通信0回、版更新・オフライン・404後の再取得・初回取得');
+
+// 内容が同じ絵は、コードだけ更新された時にもオフラインで利用できる。
+const hashedPath = 'art/title/wide.webp', hashKey = './' + hashedPath;
+serve = worker('dos-hash-first', { [hashKey]: 'sha-image-a' });
+result = await serve(hashedPath); await result.done;
+const count = requests;
+offline = true;
+serve = worker('dos-hash-next', { [hashKey]: 'sha-image-a' });
+result = await serve(hashedPath);
+assert.equal(await result.response.text(), 'dos-hash-first');
+assert.equal(requests, count, '同じ内容の画像をコード更新で再取得した');
+serve = worker('dos-hash-new-art', { [hashKey]: 'sha-image-b' });
+await assert.rejects(serve(hashedPath), /offline/);
+offline = false;
+result = await serve(hashedPath); await result.done;
+assert.equal(await result.response.text(), 'dos-hash-new-art');
+console.log('合格: 画像別ハッシュで変更なしは更新後もオフライン表示、変更ありは再取得');

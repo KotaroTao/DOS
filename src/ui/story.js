@@ -1,3 +1,4 @@
+import { mediaBusy } from "../imageloading.js";
 import { storyText } from "../protagonist.js";
 // ===== 物語 — 報告 → 解放 → 勅命を1つの連なった語りに (playStoryChain) =====
 // 担当: WP-A。玉座の間の一幕: 上下に黒い帯 (映画の画角)、奥に玉座の間の情景、老王の肖像、台詞が墨のようににじみ出る。
@@ -245,6 +246,8 @@ export function playStoryChain(pages, done) {
   const last = () => st.i >= list.length - 1;
 
   const reveal = () => {
+    if (st.closed) return;
+    if (mediaBusy()) { st.timer = setTimeout(reveal, 150); return; }
     if (st.revealed) return;
     st.revealed = true;
     if (st.timer) { clearTimeout(st.timer); st.timer = null; }

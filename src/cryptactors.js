@@ -12,7 +12,7 @@ function sheet(key) {
     const [name, w, h] = assets[key], image = new Image(), state = { image, ready: false, pending: true };
     state.done = new Promise(resolve => { state.finish = resolve; });
     sheets.set(key, state); image.decoding = "async";
-    image.onload = () => { state.ready = image.naturalWidth === w && image.naturalHeight === h; state.pending = false; state.finish(state.ready); };
+    image.onload = async () => { try { await image.decode?.(); } catch { state.pending = false; state.finish(false); return; } state.ready = image.naturalWidth === w && image.naturalHeight === h; state.pending = false; state.finish(state.ready); };
     image.onerror = () => { state.pending = false; state.finish(false); }; // 失敗時も旧描画へ戻さない。
     image.src = new URL(`../art/dungeon/crypt-${name}.webp`, import.meta.url).href;
   }

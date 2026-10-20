@@ -14,13 +14,13 @@ globalThis.Image = class {
 const finish = (ok = true, width = 384) => {
   const image = waiting.shift(); assert(image);
   active--; image.naturalWidth = width; image.naturalHeight = 384;
-  (ok ? image.onload : image.onerror)();
+  return (ok ? image.onload : image.onerror)();
 };
 const sprites = Array.from({ length: 15 }, (_, i) => lazyPhoto("image" + i, { width: 384, height: 384 }));
 assert.equal(requests, 0);
 const promises = sprites.map(s => s.photo.load());
 assert.equal(requests, 6); assert.equal(sprites[0].photo.load(), promises[0]);
-for (let i = 0; i < 15; i++) finish();
+for (let i = 0; i < 15; i++) { await finish(); await Promise.resolve(); }
 assert.deepEqual(await Promise.all(promises), Array(15).fill(true));
 assert.equal(peak, 6); assert.equal(requests, 15);
 await sprites[0].photo.load(); assert.equal(requests, 15);
