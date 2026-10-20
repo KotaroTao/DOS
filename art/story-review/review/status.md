@@ -2,7 +2,7 @@
 
 書き出し: `node tools/storyart/review.mjs` (build.py も書き直す。手で直さない)。
 
-場面: 出荷済み 138 ・ 出荷済み (任意の修正あり) 11 ・ 未着手 (指示あり) 23
+場面: 出荷済み 144 ・ 出荷済み (任意の修正あり) 11 ・ 未着手 (指示あり) 17
 
 | 章 | 場面 | 題 | 状態 | 確認ページ |
 |---|---|---|---|---|
@@ -60,7 +60,7 @@
 | 第4章「王都の地下」 | `report_w14` | 足元に沈む都 | 出荷済み | [見る](chapter4.md#report_w14) |
 | 第4章「王都の地下」 | `w15_mural` | 老いない横顔 | 出荷済み | [見る](chapter4.md#w15_mural) |
 | 第4章「王都の地下」 | `report_w15` | 名の残らない神官 | 出荷済み | [見る](chapter4.md#report_w15) |
-| 第4章「王都の地下」 | `w16_legs` | 根の中を歩いた脚 | 出荷済み | [見る](chapter4.md#w16_legs) |
+| 第4章「王都の地下」 | `w16_legs` | 根に留められた脚 | 出荷済み | [見る](chapter4.md#w16_legs) |
 | 第4章「王都の地下」 | `report_w16` | 破られた誓いの水 | 出荷済み | [見る](chapter4.md#report_w16) |
 | 第4章「王都の地下」 | `irene_sera_wake` | 灯が移った夜明け | 出荷済み | [見る](chapter4.md#irene_sera_wake) |
 | 第4章「王都の地下」 | `mem_w17` | 水の底の戴冠 | 出荷済み | [見る](chapter4.md#mem_w17) |
@@ -169,12 +169,12 @@
 | 第13章「溶鉄炉」 | `report_w51` | 誰のための器 | 未着手 (指示あり) | [見る](chapter13.md#report_w51) |
 | 第13章「溶鉄炉」 | `report_w52` | 座った侍従 | 未着手 (指示あり) | [見る](chapter13.md#report_w52) |
 | 第13章「溶鉄炉」 | `report_w53` | 聞こえない声 | 未着手 (指示あり) | [見る](chapter13.md#report_w53) |
-| 第13章「溶鉄炉」 | `pre_w53` | 注文の向こう | 未着手 (指示あり) | [見る](chapter13.md#pre_w53) |
-| 第13章「溶鉄炉」 | `pre_w53_retry` | 戻った手 | 未着手 (指示あり) | [見る](chapter13.md#pre_w53_retry) |
-| 第13章「溶鉄炉」 | `mem_w53` | 明日の鎚 | 未着手 (指示あり) | [見る](chapter13.md#mem_w53) |
-| 第13章「溶鉄炉」 | `irene_hands` | 杯を持つ手 | 未着手 (指示あり) | [見る](chapter13.md#irene_hands) |
-| 第13章「溶鉄炉」 | `irene_tomorrow` | 今日は、ここまで | 未着手 (指示あり) | [見る](chapter13.md#irene_tomorrow) |
-| 第13章「溶鉄炉」 | `ch13_end` | 低い火 | 未着手 (指示あり) | [見る](chapter13.md#ch13_end) |
+| 第13章「溶鉄炉」 | `pre_w53` | 注文の向こう | 出荷済み | [見る](chapter13.md#pre_w53) |
+| 第13章「溶鉄炉」 | `pre_w53_retry` | 戻った手 | 出荷済み | [見る](chapter13.md#pre_w53_retry) |
+| 第13章「溶鉄炉」 | `mem_w53` | 明日の鎚 | 出荷済み | [見る](chapter13.md#mem_w53) |
+| 第13章「溶鉄炉」 | `irene_hands` | 杯を持つ手 | 出荷済み | [見る](chapter13.md#irene_hands) |
+| 第13章「溶鉄炉」 | `irene_tomorrow` | 今日は、ここまで | 出荷済み | [見る](chapter13.md#irene_tomorrow) |
+| 第13章「溶鉄炉」 | `ch13_end` | 低い火 | 出荷済み | [見る](chapter13.md#ch13_end) |
 | 序章 | `irene_repair` | 砕けても、名は消えない | 出荷済み | [見る](chapter0.md#irene_repair) |
 | 第1章「師の灯」 | `irene_familiar` | 名で呼べる距離 | 出荷済み | [見る](chapter1.md#irene_familiar) |
 | 第3章「魂脈の根」 | `irene_trust` | 扉を開けた日のこと | 出荷済み | [見る](chapter3.md#irene_trust) |
