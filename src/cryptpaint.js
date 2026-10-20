@@ -4,14 +4,14 @@ import { watchIllustration } from "./imageloading.js";
 import { makeRng, paintFloorHazards } from "./crypt.js";
 
 export const CRYPT_PAINT_SCALE = 3;
-const PAINTINGS = { w00_forest: "w00_forest", w01: "crypt", w02: "w02", w03: "w03", w04: "w04", w05: "w05", w06: "w06", w07: "w07", w08: "w08", w09: "w09", w10: "w10", w11: "w11", w12: "w12", w13: "w13", w14: "w14", w15: "w15", w16: "w16", w17: "w17", w18: "w18", w19: "w19", w20: "w20", w21: "w21", w22: "w22", w23: "w23", w24: "w24", w25: "w25", w26: "w26", w27: "w27", w28: "w28", w29: "w29", w30: "w30", w31: "w31", w32: "w32", w33: "w33", w34: "w34", w35: "w35", w36: "w36", w37: "w37", w38: "w38", w39: "w39", w40: "w40", w41: "w41", w46: "w46", w47: "w47", w48: "w48", w49: "w49", ws25: "ws25", ws26: "ws26", ws27: "ws27" };
+const PAINTINGS = { w00_forest: "w00_forest", w01: "crypt", w02: "w02", w03: "w03", w04: "w04", w05: "w05", w06: "w06", w07: "w07", w08: "w08", w09: "w09", w10: "w10", w11: "w11", w12: "w12", w13: "w13", w14: "w14", w15: "w15", w16: "w16", w17: "w17", w18: "w18", w19: "w19", w20: "w20", w21: "w21", w22: "w22", w23: "w23", w24: "w24", w25: "w25", w26: "w26", w27: "w27", w28: "w28", w29: "w29", w30: "w30", w31: "w31", w32: "w32", w33: "w33", w34: "w34", w35: "w35", w36: "w36", w37: "w37", w38: "w38", w39: "w39", w40: "w40", w41: "w41", w46: "w46", w47: "w47", w48: "w48", w49: "w49", ws25: "ws25", ws26: "ws26", ws27: "ws27", w50: "w50", w51: "w51", w52: "w52", w53: "w53", ws28: "ws28", ws29: "ws29" };
 const paintings = new Map();
 export const hasCryptPainting = id => Object.hasOwn(PAINTINGS, id);
 export function cryptPainting(id = "w01") {
   if (!Object.hasOwn(PAINTINGS, id)) return null;
   if (!paintings.has(id)) {
     // 下段の床を拾わないよう、原画ごとの蓋の実際の境界を使う。
-    const state = { textures: { slabHeight: ({ w05: 496, w07: 504, w09: 496, w30: 488 })[id] || 512, wallStyle: id === "w10" ? "root" : id === "w11" ? "moss" : "stone" }, loaded: 0, pending: 2 };
+    const state = { textures: { slabHeight: ({ w05: 496, w07: 504, w09: 496, w30: 488, w51: 472, w52: 496, w53: 504, ws29: 500 })[id] || 512, wallStyle: id === "w10" ? "root" : id === "w11" ? "moss" : "stone" }, loaded: 0, pending: 2 };
     state.done = new Promise(resolve => { state.finish = resolve; });
     const finished = () => { if (--state.pending === 0) state.finish(state.loaded === 2); };
     if (id === "w00_forest") { state.textures.wallStyle = "root"; state.textures.props = false; }
