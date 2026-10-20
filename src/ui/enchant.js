@@ -8,7 +8,7 @@
 
 import { gearFilter, matchesGearFilter, gearFilterButton, gearFilterSummary } from "./gearfilter.js";
 import { UI, game, registerUI } from "./ctx.js";
-import { el, sheet, toast, setText, glyph, confirm, button } from "./kit.js";
+import { el, sheet, toast, setText, confirm, button } from "./kit.js";
 import { nameSpan, goldEl, dollIcon } from "./loot.js";
 import { SLOT_LABEL, itemName } from "../items.js";
 import { RARITIES, rarityKey } from "../rarity.js";
@@ -17,7 +17,9 @@ import { AFX_TIERS, afxDef, pageText, pageFitsSlot, pageFromAffix, pageValue, ap
 
 const G = () => game.G || {};
 const sfx = (k, ...a) => { try { if (game.SFX && game.SFX[k]) game.SFX[k](...a); } catch (e) { /* 音は演出のみ */ } };
-const shortN = (n) => (n >= 100000 ? `${Math.round(n / 1000)}k` : String(n));
+const goldNumber = n => Number(n).toLocaleString("ja-JP");
+// 詳細を閉じた後も一覧の用途と場所を保つ。練習中の品には適用しない。
+const enchantView = { kind: "all", place: "all" };
 const tierOf = (k) => { const d = afxDef(k); return d ? AFX_TIERS[d.tier] : AFX_TIERS.c; };
 const afxName = (k) => { const d = afxDef(k); return d ? d.name.replace(/の$/, "") : "？"; };
 export const ENCHANT_NOTE = `迷宮で拾った品の追加の能力・特性を1つ選んで「特性の巻物」に写し取り (元の品は消える)、好きな装備に書き込める。書ける数はレア度で決まる: ${Object.entries(ENCHANT_SLOTS).map(([k, n]) => `${RARITIES[k] ? RARITIES[k].label : k}${n}`).join("・")}。`;
@@ -48,7 +50,29 @@ function whereText(x) {
   if (x.practice) return "商会の練習用（持ち帰り不可）";
   if (x.shelf) return "商会の棚";
   if (x.key) return `${x.doll.name} が装備中（${SLOT_LABEL[x.key] || ""}）`;
-  return "持ち物";
+  return "共有の袋";
+}
+function selectField(label, options, value, onChange) {
+  const field = el("label", "rf-field");
+  field.appendChild(el("span", "", label));
+  const input = el("select", "rf-select");
+  input.setAttribute("aria-label", label);
+  for (const [key, text] of options) {
+    const option = el("option", "", text); option.value = key; input.appendChild(option);
+  }
+  input.value = options.some(([key]) => key === value) ? value : options[0][0];
+  input.addEventListener("change", () => onChange(input.value));
+  field.appendChild(input);
+  return field;
+}
+function sourceHead(it, where) {
+  const head = el("div", "ec-item-head");
+  const art = el("span", "ec-item-art");
+  try { art.appendChild(spriteCanvas(it, 2)); } catch (e) { /* 絵は飾り */ }
+  head.appendChild(art);
+  head.appendChild(nameSpan(it, "rf-name"));
+  head.appendChild(el("span", "rf-where", where));
+  return head;
 }
 function itemRow(it, sub, onTap, right = null) {
   const rk = rarityKey(it);
@@ -86,10 +110,11 @@ function openSourceSheet(src, onDone, { extractOnly = false } = {}) {
   let h = null;
   const it = src.it;
   const body = (b) => {
-    const head = el("div", "rf-head");
-    head.appendChild(nameSpan(it, "rf-name"));
-    head.appendChild(el("span", "rf-where", whereText(src) + (src.shelf ? ` ・ 買値 💰${shortN(game.buyPrice ? game.buyPrice(it) : 0)}` : "")));
-    b.appendChild(head);
+    b.appendChild(sourceHead(it, whereText(src) + (src.shelf ? ` ・ 買値 💰${goldNumber(game.buyPrice ? game.buyPrice(it) : 0)}` : "")));
+    b.appendChild(setText(el("div", "ec-warning"), "写し取ると元の品は消え、ほかの特性も失われる。残せるのは1つの特性だけ。"));
+    if (!src.shelf && !src.practice && !extractOnly) b.appendChild(setText(el("div", "rf-note"), "「消す」は選んだ特性だけを消す。品は残るが、巻物にはならず戻せない。"));
+    const why = src.practice ? null : game.extractBlock ? game.extractBlock(src) : "写し取れない";
+    if (why) b.appendChild(el("div", "ec-why ec-source-block", why));
     const list = el("div", "ec-afx");
     const texts = it.afxText || [];
     (it.afx || []).forEach((a, i) => {
@@ -100,23 +125,19 @@ function openSourceSheet(src, onDone, { extractOnly = false } = {}) {
       top.appendChild(setText(el("span", "ec-afx-t"), t ? t.text : ""));
       box.appendChild(top);
       const acts = el("div", "ec-afx-acts");
-      const why = src.practice ? null : game.extractBlock ? game.extractBlock(src) : "写し取れない";
       const extract = button({ label: src.shelf ? "買い取って写し取る" : "写し取る", kind: "primary", size: "sm", disabled: !!why, onTap: () => doExtract(i) });
       extract.classList.add("ec-extract"); acts.appendChild(extract);
       if (!src.shelf && !src.practice && !extractOnly) acts.appendChild(button({ label: "消す", kind: "ghost", size: "sm", onTap: () => doErase(i) }));
       box.appendChild(acts);
-      if (why) box.appendChild(el("div", "rf-block", why));
       list.appendChild(box);
     });
     b.appendChild(list);
-    b.appendChild(setText(el("div", "rf-note"), "写し取ると、この品は崩れて消える。写せるのは1つの品から1つだけ。写した特性は「特性の巻物」になり、好きな装備に書き込める。"));
-    if (!src.shelf && !src.practice && !extractOnly) b.appendChild(setText(el("div", "rf-note"), "「消す」はこの品から特性を消すだけで、巻物にはならない。"));
   };
   async function doExtract(i) {
     const name = afxName(it.afx[i].k);
     const ok = await confirm({
       banner: "写し取る", title: `「${name}」を写し取る`,
-      lines: [src.shelf ? `${itemName(it)} を買値 💰${shortN(game.buyPrice ? game.buyPrice(it) : 0)} で買い取り、特性を写し取る。` : `写し取ると、${itemName(it)} は崩れて消える。`, "ほかの術は失われる。"],
+      lines: [src.shelf ? `${itemName(it)} を買値 💰${goldNumber(game.buyPrice ? game.buyPrice(it) : 0)} で買い取り、特性を写し取る。` : `写し取ると、${itemName(it)} は崩れて消える。`, "ほかの術は失われる。"],
       okLabel: "写し取る",
     });
     if (!ok) return;
@@ -145,7 +166,7 @@ function openSourceSheet(src, onDone, { extractOnly = false } = {}) {
     }
   }
   sfx("select");
-  h = sheet.open({ kind: "info", banner: extractOnly ? "巻物にする" : "特性の付いた品", art: it, artScale: 6, body, className: "ec-sheet", footer: [{ label: "閉じる", kind: "ghost", onTap: (x) => x.close() }] });
+  h = sheet.open({ kind: "info", banner: extractOnly ? "巻物にする" : "特性の付いた品", body, className: "ec-sheet ec-source-sheet", footer: [{ label: "閉じる", kind: "ghost", onTap: (x) => x.close() }] });
   return h;
 }
 
@@ -173,47 +194,68 @@ export function openShelfAffixExtract(id, onDone) {
 // ---------------------------------------------------------------- 特性の巻物 → 書き込む品を選ぶ
 function openWriteSheet(page, onDone) {
   let h = null;
+  let scope = "all", onlyReady = false;
   const body = (b) => {
     const head = el("div", "ec-page-head");
     head.appendChild(afxTag(page.k, "big"));
     head.appendChild(setText(el("span", "ec-afx-t"), pageText(page)));
     b.appendChild(head);
-    const d = afxDef(page.k);
-    if (d && d.kind === "B") b.appendChild(setText(el("div", "rf-note"), "能力値の特性は、書き込む品のランクに合わせて値が変わる (下の一覧の値)。"));
     const practice = enchantPracticeState();
-    const targets = (practice ? [{ it: practice.target, practice: true }] : game.enchantTargets ? game.enchantTargets() : []).filter((x) => pageFitsSlot(page, x.it));
-    const infos = targets.map((x) => {
-      const why = x.practice ? enchantBlock(x.it, page, rarityKey(x.it)) : null;
-      return { x, info: x.practice ? { why, block: why, cost: 0, room: enchantRoom(x.it, rarityKey(x.it)), text: pageText(page, x.it) } : game.enchantInfo(x.it, page) };
-    });
-    infos.sort((a, b2) => (a.info.why ? 1 : 0) - (b2.info.why ? 1 : 0));
-    const n = infos.filter((y) => !y.info.why).length;
-    b.appendChild(el("div", "wpc-lhead", `書き込める品 ${n}点`));
-    const box = el("div", "wpc-list ec-list");
-    if (!infos.length) box.appendChild(el("div", "wpc-empty", "この特性を書ける部位の装備品が無い。未鑑定の品は、先に鑑定する。"));
-    for (const { x, info } of infos) {
-      const sub = el("span", "wpc-srow-l3 ec-sub");
-      const r = info.room;
-      sub.appendChild(el("span", "ec-room", `特性 ${r.used}/${r.slots}`));
-      sub.appendChild(el("span", "wpc-srow-kind", whereText(x)));
-      if (!info.why) sub.appendChild(setText(el("span", "ec-val"), info.text));
-      else sub.appendChild(el("span", "ec-why", info.why));
-      let right = null;
-      if (!info.why) {
-        right = el("div", "wpc-buy");
-        const main = el("button", "wpc-buy-main ec-write" + (info.block ? " short" : ""));
-        main.type = "button";
-        main.appendChild(goldEl(shortN(info.cost), "wpc-buy-p"));
-        main.appendChild(el("span", "wpc-buy-l", info.overwrite ? "上書きする" : "書き込む"));
-        main.addEventListener("click", () => doWrite(x, info));
-        right.appendChild(main);
-      }
-      const row = itemRow(x.it, sub, info.why ? null : () => doWrite(x, info), right);
-      if (info.why) row.classList.add("off");
-      if (x.doll && x.key) { const ic = dollIcon(x.doll, 1.2); ic.classList.add("ec-holder"); row.querySelector(".wpc-srow-l1").appendChild(ic); }
-      box.appendChild(row);
+    b.appendChild(el("div", "ec-write-note", practice ? "練習用の品に書き込む。巻物と金貨は使わない。" : `所持金貨 ${goldNumber(G().gold || 0)} ・ 巻物は使い切り。書く値と費用を品ごとに確認する。`));
+    const controls = el("div", "ec-target-controls");
+    if (!practice) {
+      controls.appendChild(selectField("書き込み先", [["all", "すべて"], ["equipped", "装備中"], ["bag", "共有の袋"],
+        ...(game.allDolls ? game.allDolls() : []).filter(d => d && !d.isEmpty).map(d => [`doll:${d.uid}`, `${d.name}の装備`])], scope, value => { scope = value; fillTargets(); box.scrollTop = 0; }));
+      const field = el("label", "ec-ready");
+      const input = el("input"); input.type = "checkbox"; input.checked = onlyReady;
+      input.addEventListener("change", () => { onlyReady = input.checked; fillTargets(); box.scrollTop = 0; });
+      field.append(input, el("span", "", "書き込める品だけ")); controls.appendChild(field);
+      b.appendChild(controls);
     }
-    b.appendChild(box);
+    const count = el("div", "wpc-lhead ec-target-count"); b.appendChild(count);
+    const box = el("div", "wpc-list ec-list ec-target-list"); b.appendChild(box);
+    function fillTargets() {
+      box.textContent = "";
+      const targets = (practice ? [{ it: practice.target, practice: true }] : game.enchantTargets ? game.enchantTargets() : [])
+        .filter(x => pageFitsSlot(page, x.it))
+        .filter(x => practice || scope === "all" || (scope === "bag" ? !x.key : scope === "equipped" ? !!x.key : `doll:${x.doll?.uid}` === scope));
+      const infos = targets.map(x => {
+        const why = x.practice ? enchantBlock(x.it, page, rarityKey(x.it)) : null;
+        return { x, info: x.practice ? { why, block: why, cost: 0, room: enchantRoom(x.it, rarityKey(x.it)), text: pageText(page, x.it) } : game.enchantInfo(x.it, page) };
+      });
+      infos.sort((a, b2) => Number(!!a.info.block) - Number(!!b2.info.block));
+      const n = infos.filter(y => !y.info.block).length;
+      setText(count, `書き込める品 ${n}点 ／ 対象 ${infos.length}点`);
+      const shown = onlyReady ? infos.filter(y => !y.info.block) : infos;
+      if (!shown.length) box.appendChild(el("div", "wpc-empty", onlyReady ? "書き込める品が無い。チェックを外すと、書けない理由を確認できる。" : "この対象に、この特性を書ける部位の装備品は無い。書き込み先を変えるか、未鑑定の品を先に鑑定する。"));
+      for (const { x, info } of shown) {
+        const sub = el("span", "wpc-srow-l3 ec-sub");
+        const r = info.room;
+        sub.appendChild(el("span", "ec-room", `特性 ${r.used}/${r.slots}`));
+        sub.appendChild(el("span", "wpc-srow-kind", whereText(x)));
+        if (!info.why) {
+          if (info.overwrite) sub.appendChild(setText(el("span", "ec-before"), `変更前：${info.beforeText}`));
+          sub.appendChild(setText(el("span", "ec-val" + (info.lower ? " ec-lower" : "")), `${info.overwrite ? "変更後：" : "書き込む効果："}${info.text}`));
+          if (info.lower) sub.appendChild(el("span", "ec-why", "上書きで効果が低下する"));
+        }
+        if (info.block) sub.appendChild(el("span", "ec-why", info.block));
+        let right = null;
+        if (!info.why) {
+          right = el("div", "wpc-buy");
+          const main = el("button", "wpc-buy-main ec-write" + (info.block ? " short" : ""));
+          main.type = "button"; main.disabled = !!info.block;
+          main.setAttribute("aria-label", `${info.overwrite ? "上書きする" : "書き込む"}：${itemName(x.it)}（${whereText(x)}）`);
+          main.appendChild(goldEl(goldNumber(info.cost), "wpc-buy-p"));
+          main.appendChild(el("span", "wpc-buy-l", info.overwrite ? "上書きする" : "書き込む"));
+          main.addEventListener("click", () => doWrite(x, info)); right.appendChild(main);
+        }
+        const row = itemRow(x.it, sub, info.block ? null : () => doWrite(x, info), right);
+        if (info.block) row.classList.add("off");
+        if (x.doll && x.key) { const ic = dollIcon(x.doll, 1.2); ic.classList.add("ec-holder"); row.querySelector(".wpc-srow-l1").appendChild(ic); }
+        box.appendChild(row);
+      }
+    }
+    fillTargets();
   };
   async function doWrite(x, info) {
     if (!x.practice) info = game.enchantInfo(x.it, page);
@@ -222,7 +264,7 @@ function openWriteSheet(page, onDone) {
       ? [itemName(x.it), `変更前: ${info.beforeText}`, `変更後: ${info.text}`, "元の特性は失われ、巻物は使い切りになる。"]
       : [`${itemName(x.it)} に書き込む: ${info.text}`, "書いた特性は消せるが、巻物は戻らない。"];
     if (info.lower) lines.unshift("注意：上書きすると能力・効果が低下します。");
-    lines.push(x.practice ? "練習のため費用はかからない。所持品と金貨は変わらない。" : `費用 💰${shortN(info.cost)} (所持 💰${shortN(G().gold || 0)})`);
+    lines.push(x.practice ? "練習のため費用はかからない。所持品と金貨は変わらない。" : `費用 💰${goldNumber(info.cost)} (所持 💰${goldNumber(G().gold || 0)})`);
     const ok = await confirm({ banner: "付呪", title: info.overwrite ? `同じ特性「${afxName(page.k)}」があります。上書きしますか？` : `「${afxName(page.k)}」を書き込む`, lines, okLabel: info.overwrite ? "上書きする" : "書き込む", danger: !!info.lower });
     if (!ok) return;
     let written = false;
@@ -239,7 +281,7 @@ function openWriteSheet(page, onDone) {
     }
   }
   sfx("select");
-  h = sheet.open({ kind: "info", banner: "特性の巻物を書き込む", body, className: "ec-sheet", footer: [{ label: "閉じる", kind: "ghost", onTap: (x) => x.close() }] });
+  h = sheet.open({ kind: "info", banner: "特性の巻物を書き込む", body, className: "ec-sheet ec-write-sheet", footer: [{ label: "閉じる", kind: "ghost", onTap: (x) => x.close() }] });
   return h;
 }
 
@@ -254,11 +296,20 @@ export function renderEnchantList(wrap) {
     ? "特性の値の上限は、書く品のレア度で決まる。実際の費用は、書く品の買値と術の格・何枠目かで決まる。"
     : "特性の値の上限は、書く品のレア度で決まる。極・発動する特性・属攻・属防は、付呪では1つの品にそれぞれ1つまで。状態異常の追加効果は、枠の範囲で自由に組み合わせられる。費用は書く品の買値と術の格・何枠目かで決まる。"));
   wrap.appendChild(intro);
+  const practice = enchantPracticeState();
+  const controls = el("div", "rf-controls ec-controls");
+  const kindField = selectField("一覧", [["all", "すべて"], ["pages", "巻物を書き込む"], ["sources", "品から写し取る・消す"]], practice ? "all" : enchantView.kind, value => {
+    enchantView.kind = value; placeField.querySelector("select").disabled = value === "pages"; fill(); box.scrollTop = 0;
+  });
+  const placeField = selectField("品の場所", [["all", "すべて"], ["bag", "共有の袋"], ["equipped", "装備中"], ["shelf", "商会の棚"]], practice ? "all" : enchantView.place, value => { enchantView.place = value; fill(); box.scrollTop = 0; });
+  kindField.querySelector("select").disabled = !!practice;
+  placeField.querySelector("select").disabled = !!practice || enchantView.kind === "pages";
+  controls.append(kindField, placeField);
+  if (!practice) wrap.appendChild(controls);
   const head = el("div", "wpc-lhead");
   head.appendChild(el("span", "wpc-lhead-t", "付呪"));
   const gs = el("span", "wpc-lhead-s");
-  gs.appendChild(glyph("gold"));
-  gs.appendChild(document.createTextNode(` ${shortN(G().gold || 0)}`));
+  setText(gs, `所持金貨 ${goldNumber(G().gold || 0)}`);
   head.appendChild(gs);
   wrap.appendChild(head);
   const box = el("div", "wpc-list ec-list");
@@ -287,10 +338,12 @@ export function renderEnchantList(wrap) {
       summary.appendChild(gearFilterSummary(items, fill, prefKey));
     }
     const shownPages = pages.filter(p => matchesGearFilter(pageItem(p), f));
-    const shownSources = srcs.filter(x => matchesGearFilter(sourceItem(x), f));
+    const shownSources = srcs.filter(x => matchesGearFilter(sourceItem(x), f)).filter(x => practice || enchantView.place === "all" ||
+      (enchantView.place === "shelf" ? x.shelf : enchantView.place === "equipped" ? !!x.key : !x.key && !x.shelf));
+    setText(gs, `所持金貨 ${goldNumber(G().gold || 0)}`);
     const pg = el("section", "rf-grp ec-pages");
-    pg.appendChild(el("div", "wpc-drow-h ec-h", `特性の巻物 ${shownPages.length}本`));
-    if (!shownPages.length) pg.appendChild(el("div", "wpc-empty", pages.length ? "条件に合う巻物はない。絞り込みの条件を外してください。" : "まだ巻物が無い。下の「特性の付いた品」から写し取る。"));
+    pg.appendChild(el("div", "wpc-drow-h ec-h", `特性の巻物 ${shownPages.length} / ${pages.length}本`));
+    if (!shownPages.length) pg.appendChild(el("div", "wpc-empty", pages.length ? "条件に合う巻物はない。絞り込みの条件を外してください。" : "まだ巻物が無い。一覧を「品から写し取る・消す」にして、特性の付いた品から写し取る。"));
     for (const page of shownPages) {
       const row = el("div", "wpc-srow ec-prow");
       const info = el("button", "wpc-srow-info");
@@ -313,16 +366,23 @@ export function renderEnchantList(wrap) {
       row.appendChild(act);
       pg.appendChild(row);
     }
-    box.appendChild(pg);
+    if (practice || enchantView.kind !== "sources") box.appendChild(pg);
     const sg = el("section", "rf-grp ec-srcs");
-    sg.appendChild(el("div", "wpc-drow-h ec-h", `特性の付いた品 ${shownSources.length}点`));
-    if (!shownSources.length) sg.appendChild(el("div", "wpc-empty", srcs.length ? "条件に合う品はない。絞り込みの条件を外してください。" : "特性の付いた品が無い。無限迷宮で拾った品は、持ち帰ると商会の棚に並ぶ。"));
+    sg.appendChild(el("div", "wpc-drow-h ec-h", `特性の付いた品 ${shownSources.length} / ${srcs.length}点`));
+    if (!shownSources.length) sg.appendChild(el("div", "wpc-empty", srcs.length ? "条件に合う品はない。品の場所や絞り込みの条件を変えてください。" : "特性の付いた品が無い。無限迷宮で拾った品は、持ち帰ると商会の棚に並ぶ。"));
     for (const x of shownSources) {
       const sub = afxSummary(x.it);
-      sub.appendChild(el("span", "wpc-srow-kind", whereText(x) + (x.shelf ? ` 💰${shortN(game.buyPrice ? game.buyPrice(x.it) : 0)}` : "")));
-      sg.appendChild(itemRow(x.it, sub, () => openSourceSheet(x, redo)));
+      sub.appendChild(el("span", "wpc-srow-kind", whereText(x) + (x.shelf ? ` 💰${goldNumber(game.buyPrice ? game.buyPrice(x.it) : 0)}` : "")));
+      const why = x.practice ? null : game.extractBlock?.(x);
+      if (why) sub.appendChild(el("span", "ec-why", why));
+      const action = el("div", "wpc-buy");
+      const check = el("button", "wpc-buy-main"); check.type = "button";
+      check.appendChild(el("span", "wpc-buy-l", "特性を選ぶ"));
+      check.setAttribute("aria-label", `${itemName(x.it)}の特性を選ぶ（${whereText(x)}）`);
+      check.addEventListener("click", () => openSourceSheet(x, redo)); action.appendChild(check);
+      sg.appendChild(itemRow(x.it, sub, () => openSourceSheet(x, redo), action));
     }
-    box.appendChild(sg);
+    if (practice || enchantView.kind !== "pages") box.appendChild(sg);
   };
   return fill;
 }
