@@ -46,6 +46,56 @@ function isWorn(item) {
   return all.some((d) => d && d.equip && Object.values(d.equip).includes(item));
 }
 
+// 同じ項目の最大値を基準にする比較バー。数値は省略せず、色に頼らず見比べられる。
+export function battlePerformance(report) {
+  const box = el("section", "bp");
+  box.setAttribute("aria-label", "キャラ別の戦闘の内訳");
+  const metrics = [["damage", "与ダメージ"], ["taken", "被ダメージ"], ["healing", "回復量"]];
+  const members = report.members || [];
+  const value = (m, key) => Math.max(0, Number(m[key]) || 0);
+  const maxima = metrics.map(([key]) => Math.max(1, ...members.map((m) => value(m, key))));
+  const head = el("div", "bp-heading");
+  head.appendChild(el("h3", null, "戦闘の内訳"));
+  if (report.rounds) head.appendChild(el("span", "bp-rounds", `${report.rounds}ターン`));
+  box.appendChild(head);
+  members.forEach((m, index) => {
+    const row = el("article", "bp-member");
+    const who = el("div", "bp-who");
+    who.appendChild(el("span", "bp-index", String(index + 1).padStart(2, "0")));
+    const identity = el("div", "bp-identity");
+    identity.appendChild(el("b", "bp-name", m.name));
+    const cls = SOUL_CLASSES[m.jobKey];
+    if (cls) identity.appendChild(el("span", "bp-job", cls.label));
+    who.appendChild(identity); row.appendChild(who);
+    const cells = el("div", "bp-metrics");
+    metrics.forEach(([key, label], i) => {
+      const n = value(m, key), formatted = n.toLocaleString("ja-JP", { maximumFractionDigits: 0 });
+      const cell = el("div", "bp-metric bp-" + key);
+      cell.appendChild(el("span", "bp-label", label));
+      cell.appendChild(el("strong", "bp-number" + (formatted.length > 10 ? " small" : ""), formatted));
+      const track = el("div", "bp-track"); track.setAttribute("aria-hidden", "true");
+      const bar = el("i"); bar.style.width = (n / maxima[i] * 100) + "%";
+      track.appendChild(bar); cell.appendChild(track); cells.appendChild(cell);
+    });
+    row.appendChild(cells); box.appendChild(row);
+  });
+  box.appendChild(el("p", "bp-note", "回復量は、味方や自分に戻したHP。余剰ダメージ・余剰回復・戦闘後の回復・MPは含みません。バーは各項目で隊の最大値との比較です。"));
+  if (report.partial) box.appendChild(el("p", "bp-partial", "更新前から続いていた戦闘のため、更新後の分だけを集計しています。"));
+  return box;
+}
+
+export function openBattleSummary({ performance, onDone } = {}) {
+  if (!performance) return null;
+  const g = G(), previousPrompt = g?.prompt;
+  if (g) g.prompt = true;
+  const title = { win: "勝利", flee: "逃走", escaped: "敵が全員逃走", lose: "全滅" }[performance.outcome] || "直前の戦闘";
+  return sheet.open({
+    kind: "info", banner: title, className: "rs-sheet has-performance", body: battlePerformance(performance),
+    footer: [{ label: onDone ? "次へ" : "閉じる", kind: "primary", onTap: (h) => h.close("done") }],
+    onClose: () => { if (g) g.prompt = previousPrompt; if (onDone) onDone(); },
+  });
+}
+
 export function openResults(spec = {}) {
   const g = G();
   const k = KIND[spec.kind] || KIND.win;
@@ -77,6 +127,7 @@ export function openResults(spec = {}) {
     // 逃げ去った敵 (金属の魔物) は戦果に入らない。倒した分だけだとわかるように添える
     if (spec.fled) box.appendChild(el("div", "rs-fled", `${spec.fled}体には逃げられた（逃げた分の戦果は無い）`));
   }
+  if (spec.performance) box.appendChild(battlePerformance(spec.performance));
   // ---- 成長・技・魂 ----
   const list = el("div", "rs-list");
   // レベルアップはシートを閉じた後の祝祭カードで大きく見せる (成長はこのゲームの芯)。シートには予告の1行だけ
@@ -311,7 +362,7 @@ export function openResults(spec = {}) {
   }
 
   h = sheet.open({
-    kind: "info", banner: k.banner, accent: k.accent, title: spec.title || k.title, className: "rs-sheet k-" + (spec.kind || "win"),
+    kind: "info", banner: k.banner, accent: k.accent, title: spec.title || k.title, className: "rs-sheet k-" + (spec.kind || "win") + (spec.performance ? " has-performance" : ""),
     body: box,
     footer: footer(),
     dismissible: false,
@@ -693,5 +744,5 @@ export function openRunReport() {
 }
 
 export function install() {
-  registerUI({ renderRunReport, refreshRunReport, openLootCodex, soulChip, runReportBadge, openRunReport, openRunReportDetail, openResults, openWipe, celebrateClear });
+  registerUI({ renderRunReport, refreshRunReport, openLootCodex, soulChip, runReportBadge, openRunReport, openRunReportDetail, openResults, openBattleSummary, openWipe, celebrateClear });
 }
