@@ -12091,7 +12091,7 @@ function endBattleMeasured() {
     const gl = partyPassiveLv("goldLuck"), sl = partyPassiveLv("soulLure");
     // テスト記録の出どころ: 金属の魔物 / 主 / 精鋭等 / 通常の戦闘 (戦闘の記録の種類と同じ分け方)
     const bsrc = b.enemies.some((e) => e.metal) ? "mt" : "b" + ((b.tl && b.tl.kind) || "n");
-    const goldGot = runGainGold(Math.round(gold * 2 * (gl >= 3 ? 1.50 : gl >= 2 ? 1.30 : gl === 1 ? 1.15 : 1)), bsrc, gold * 2, battleModifierReward(b, "gold")) + takeStolenGold(b);
+    const goldGot = runGainGold(Math.round(gold * 2 * (gl >= 3 ? 1.20 : gl >= 2 ? 1.15 : gl === 1 ? 1.10 : 1)), bsrc, gold * 2, battleModifierReward(b, "gold")) + takeStolenGold(b);
     const sb = rankParty("bishopSeibetsu", [0.05, 0.07, 0.10, 0.15]); // 魂の聖別 (司教のランク)
     const soulOut = {};
     const soulGot = runGainSoulPts(Math.round(soul * ((sl >= 3 ? 1.35 : sl >= 2 ? 1.20 : sl === 1 ? 1.10 : 1) + sb)), bsrc, soul, battleModifierReward(b, "soul"), soulOut);
