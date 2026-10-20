@@ -28,6 +28,8 @@ with sync_playwright() as p:
           setPref('enchantFilter',{});setPref('shopGearFilter',{effects:['magic']});
           UI.openShop('enchant');
         }''')
+        # 街は画像の準備後に描画を切り替えるため、検査用の品が届くまで待つ。
+        page.wait_for_function("document.querySelector('.ec-srcs .ec-row .ec-val')?.textContent.replace(/\\u200b/g,'').includes('PIE+2')")
         sources = page.locator('.ec-srcs .ec-row')
         assert sources.count() == 5
         assert 'PIE+2' in sources.nth(0).inner_text().replace('\u200b', '')
