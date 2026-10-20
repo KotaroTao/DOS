@@ -11052,6 +11052,7 @@ function renderCombatMenu() {
       if (!showHp) bar.style.visibility = "hidden";
       tb.appendChild(bar);
       const hpEl = el("span", "tgt-hp", !showHp ? "HP ？" : isEn ? `HP ${t.hp}` : `HP ${t.hp}/${t.maxhp}`);
+      if (pit && !isEn) hpEl.appendChild(el("span", "tgt-mp", `MP ${t.mp || 0}/${t.maxmp || 0}`));
       // 属性を帯びた技なら、属性の明かされた敵に「弱点」「耐性」を添える
       const edge = isEn && sp ? skillEdgeOn(b.current, sp, t) : 0;
       if (edge) hpEl.prepend(el("span", "sp-edge " + (edge > 0 ? "good" : "bad"), edge > 0 ? "弱点" : "耐性"));
@@ -18050,7 +18051,7 @@ function useItemMeasured(p, index, target) {
     else {
       // 相手を選ぶ (HP・MP・状態異常を添える)
       const opts = cands.map((t) => ({
-        label: `${t.name}　${!t.alive ? "倒れている" : (u.mp || u.mpFull) && !(u.heal || u.full) ? `MP ${t.mp}/${t.maxmp}` : `HP ${t.hp}/${t.maxhp}`}${t.alive && t.ailment ? ` (${AIL_NAME[t.ailment] || t.ailment})` : ""}`,
+        label: `${t.name}　${!t.alive ? "倒れている　" : ""}HP ${t.hp}/${t.maxhp}　MP ${t.mp || 0}/${t.maxmp || 0}${t.alive && t.ailment ? ` (${AIL_NAME[t.ailment] || t.ailment})` : ""}`,
         fn: () => { const i = p.items.indexOf(it); if (i >= 0) useItem(p, i, t); },
       }));
       opts.push({ label: "やめる", cancel: true, fn: () => {} });
