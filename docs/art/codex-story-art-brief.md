@@ -529,12 +529,13 @@ Redraw the ENTIRE first reference as a NEW standalone finished narrative illustr
 ```
 
 **A-11. 第三章 w12_torso「軽すぎる帰りの荷」** `art/story-review/chapter3/w12_torso.png` (済)
+- 現行本文への改訂 (2026-10-20): 胸に書付はない。根に絡んだ胴と、もう片方の腕を一緒に回収する。開いた胸の扉には溝・金具・内部機構だけを描く。以下の「紙を残す」は以前の制作履歴であり、今後の改訂ではこの現行指定を優先する。
 - 追加のユーザー指示: セラの胴全体を `art/story-review/chapter3/irene_torso.png` と同じ造形にそろえる。胸の膨らみを抑えた平らな木製の外殻、金縁の黒鉄の肩・腰の継ぎ目、短い首の受け口、胸中央の丸みのある縦長の扉と内部機構を合わせる。胸の紙は残す。
 - 追加のユーザー指示: セラの胴の乳首を消し、胸の面は滑らかな木目にする。胸の扉と中の紙は保つ。
 - 追加のユーザー指示: 腹の低い位置の四角い開口を、`chapter3/irene_torso.png` の胸中央の縦長で角の丸い扉へ合わせる。首の下から胸骨に沿う位置とし、腹は滑らかな木肌に戻す。扉の中の折り畳んだ紙は残す。
 - 直す: 胴の胸に星形の紋 → 外す。本文は「背に彫られた、灯を掌に載せた手」なので、胴を少し回して背の印 (掌に炎) が見えるようにするか、胸は無地に。胸の扉と中の紙は保つ。
 ```text
-...except: replace ONLY Sera's detached wooden torso with the EXACT SAME torso design seen on the workbench in the attached art/story-review/chapter3/irene_torso.png reference. Match its flat, gently curved continuous pale wooden chest shell WITHOUT sculpted breasts, compact proportions, short neck socket, panel seams and tiny rivets, black iron shoulder and hip joint sockets with gold rims, and central vertically elongated rounded chest hatch with dark rim and brass hardware. The torso must look like the SAME physical object carried from this discovery to that workshop. Match the reference hatch location and broader rounded-rectangular opening, with its door swung toward the viewer’s left and visible delicate internal brass clockwork, bars and circular fittings. Replace the old narrow hatch and empty dark cavity entirely. Keep ONE folded paper inside the chest cavity, no soul-fire before awakening. Keep the existing orientation and perspective in the apprentice's hands, adapting the reference design to that view. Keep the apprentice, hands, roots, background, composition, fine texture, colors and lighting exactly. No nipples, sculpted breasts, front crest, extra parts or readable writing. Use irene_torso.png as the authoritative torso reference, taking precedence over other character sheets for this object.
+...except: replace ONLY Sera's detached wooden torso with the EXACT SAME torso design seen on the workbench in the attached art/story-review/chapter3/irene_torso.png reference. Match its flat, gently curved continuous pale wooden chest shell WITHOUT sculpted breasts, compact proportions, short neck socket, panel seams and tiny rivets, black iron shoulder and hip joint sockets with gold rims, and central vertically elongated rounded chest hatch with dark rim and brass hardware. The torso must look like the SAME physical object carried from this discovery to that workshop. Match the reference hatch location and broader rounded-rectangular opening, with its door swung toward the viewer’s left and visible delicate internal brass clockwork, bars and circular fittings. Replace the old narrow hatch and empty dark cavity entirely. Show only fine grooves and brass mechanisms inside the chest cavity: NO paper or note, and no soul-fire before awakening. Include the other detached arm recovered from the same roots beside the torso. Keep the existing orientation and perspective in the apprentice's hands, adapting the reference design to that view. Keep the apprentice, hands, roots, background, composition, fine texture, colors and lighting exactly. No nipples, sculpted breasts, front crest, extra parts or readable writing. Use irene_torso.png as the authoritative torso reference, taking precedence over other character sheets for this object.
 ```
 
 **A-12. 第三章 mem_w13「魂の流れを登る師」** `art/story-review/chapter3/mem_w13.png` (済)
@@ -996,9 +997,9 @@ Inside the Abyss shaft, the great ice dam is melting and cracking apart; thousan
 ### 第七章「毒沼」 ― 便3
 
 **w26_splint「腕の木の添え木」** (手がかり / 迷宮「腐れ水の岸」)
-- 要点: 雪解けの水が滝になって落ちる岸の泥。脚の形に削られた、溶けかけた氷のかけら (凍王の添え木)。腕の木で固定し直した跡として、木の削りくずと切り落とした縄の端、平たい石で押さえた書きつけ。腕の木は師が脚に付けて持ち去ったので描かない。片足を引きずる足跡が谷へ続く。
+- 要点: 雪解けの水が滝になって落ちる岸の泥。氷の添え木は一年前に溶けており、残っていない。岸の岩陰に木の削りくずと短い縄の端、平たい石で保護された古い書きつけが残る。腕の木は師が脚に付けて持ち去ったので描かない。現在の水辺に新しい足跡を描かない。
 ```text
-The bottom of the Abyss: a meltwater waterfall plunges into a black, sickly-green miasmic swamp. On the muddy shore lie half-melted ice fragments carved in the shape of a leg splint, and beside them a few curled wood shavings and short cut-off rope ends; a folded note is held down by a flat stone. The wooden doll arms have been taken away by Ordo as his new leg splint: do not show any abandoned wooden arms, intact wooden splint, bundled rods or spare note tucked into a knot. Uneven footprints — one dragging — lead away toward a valley. The apprentice kneels to take the note; party dolls behind. Poison mist, reeds, dim green glow.
+The bottom of the Abyss: a meltwater waterfall plunges into a black, sickly-green miasmic swamp. In a sheltered rock recess beside the muddy shore lie a few old curled wood shavings and short cut-off rope ends; an aged folded note is protected beneath a flat stone. The ice splint melted a year ago: show no remaining ice splint or ice fragments. The wooden doll arms have been taken away by Ordo as his new leg splint: do not show any abandoned wooden arms, intact wooden splint, bundled rods or spare note tucked into a knot. Do not show fresh footprints: this trace was left a year ago. The apprentice kneels to take the note; party dolls behind. Poison mist, reeds, dim green glow.
 ```
 
 **report_w26「杯を満たしたもの」** (報告)
@@ -1620,7 +1621,7 @@ A great foundry at low heat, a quiet hammer within reach of a resting iron vesse
 | 2 | ws22 水晶の鉱脈 | 大空洞の壁を割って走る青白い水晶の鉱脈、闇の中の灯を拾って昼のように明るい奥 (済) |
 | 2 | ws25 名の無い墓所 | 灯も届かない小さな墓所。王の名を刻んだ墓碑が並び、そのひとつの下に震える字で別の名が書き足されている。名を探して泣く貴人の霊 (第十二章) |
 | 2 | ws26 剥製の大広間 | 天井の高い広間に、香油とろうで固められ牙をむいたまま並ぶ何百もの獣 (王たちの狩りの獲物)。奥に剥製師の作業机 (第十二章) |
-| 2 | ws27 王子の墓所 | 小さな墓所の奥で、金の針金の小さな王冠をかぶった若い骸と従者たち。一度も読み上げられなかった即位の誓いの巻物 (第十二章) |
+| 2 | ws27 王子の墓所 | 小さな墓所の奥で、金の針金の小さな王冠をかぶった老いた王子の骸と従者たち。一度も読み上げられなかった即位の誓いの巻物 (第十二章) |
 | 3 | w18〜w33 本筋の16迷宮 | 各迷宮の情景 (`about` と本文)。手がかりの場面と構図を変える |
 
 ---

@@ -81,7 +81,7 @@ import * as uiFacilities from "./ui/facilities.js";
 import * as uiSettings from "./ui/settings.js";
 import * as uiJournal from "./ui/journal.js";
 import { seedJournal, storyMediaUrls } from "./journal.js";
-import { ARCHIVE_STORIES, storyImage } from "./archive-stories.js";
+import { ARCHIVE_STORIES, archiveSceneLines, storyImage } from "./archive-stories.js";
 import * as uiStory from "./ui/story.js";
 import * as uiParty from "./ui/party.js";
 import * as uiSoulPanel from "./ui/soulpanel.js";
@@ -7197,7 +7197,7 @@ function restockElixirs() {
 // ===== 灯守の魂 (セラの目覚めで入手。専用の人業は追加しない) =====
 function seraSoul() { return G.souls.find((s) => s && s.clsKey === "sera") || null; }
 // 灯守のランクは魂を宿す人業によらず、館の語りの進みで決まる。
-const SERA_RANK_BEATS = ["irene_husks", "irene_abyss", "irene_crest"];
+const SERA_RANK_BEATS = IRENE_BEATS.filter(b => b.effect === "seraRank").map(b => b.id);
 function seraRankTarget() {
   const b = worldState().beats;
   return Math.min(5, 1 + SERA_RANK_BEATS.filter((id) => b[id]).length);
@@ -18609,7 +18609,7 @@ const testScenes = [
   { ...MINE_PASS, id: "minePass", kind: "story", name: MINE_PASS.title, photo: storyImage("minePass") },
 ];
 // 読み物も台帳から取り込み、新規場面の選択肢への転記を不要にする。
-testScenes.push(...ARCHIVE_STORIES.map(s => ({ id: "archive:" + s.id, kind: "archive", group: s.group, name: s.title, title: s.title, lines: s.lines, photo: s.image, who: "none" })));
+testScenes.push(...ARCHIVE_STORIES.map(s => ({ id: "archive:" + s.id, kind: "archive", group: s.group, name: s.title, title: s.title, lines: () => archiveSceneLines(s, G), photo: s.image, who: "none" })));
 const testScene = testScenes.find((s) => s.id === testParams.get("testScene"));
 // 無限迷宮の試遊 (docs/infinite-labyrinth.md 16-4): URL の testInf=階 (testInfLv=隊Lv、無ければその階の推奨Lv)
 const testInfFloor = Math.max(0, Math.min(999, Math.floor(Number(testParams.get("testInf"))) || 0));

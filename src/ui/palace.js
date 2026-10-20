@@ -25,7 +25,7 @@ import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, SHIELD_KINDS, SHIELD_K
 import { RANK_COLOR, RANK_NAME } from "../content.js";
 import { CHAPTERS } from "../story.js";
 import { poolAt } from "../dungeons/world.js";
-import { MONSTER_LORE } from "../dungeons/monlore.js";
+import { MONSTER_LORE, monsterLoreFor, monsterLoreReady } from "../dungeons/monlore.js";
 import { DUNGEONS, ELEMENTS, RACE_LABEL, monsterTraits, isFloating, resistHpMul, METAL_TIERS } from "../dungeons/index.js";
 import { SPELLS, spellMpLabel } from "../combat.js";
 import { enemyBaseSample, enemyDisplayLevel } from "../enemylevel.js";
@@ -669,8 +669,9 @@ export function codexMonSheet(key, o = {}) {
   // 伝承: 説明文と同じ段 (通常敵・強敵10体、主1体) で開く、世界の側から見たその魔物。出典を添える
   // 無限迷宮で倒しただけでは開かない: 本編の迷宮で1体以上倒した魔物だけ (docs/infinite-labyrinth.md 7章)
   const mainKills = rec === true ? 1 : Math.max(0, Number(e.main ?? e.kills) || 0);
-  const lore = loreOpen && (allData() || mainKills > 0) ? MONSTER_LORE[key] : null;
-  if (loreOpen && !lore && MONSTER_LORE[key]) body.appendChild(el("div", "pl-lore pl-lore-lock", "伝承 ― 本編の迷宮でこの魔物を1体倒すと開く"));
+  const lore = loreOpen && (allData() || mainKills > 0) ? (allData() ? MONSTER_LORE[key] : monsterLoreFor(key, game.G)) : null;
+  if (loreOpen && !lore && MONSTER_LORE[key]) body.appendChild(el("div", "pl-lore pl-lore-lock",
+    mainKills > 0 && !monsterLoreReady(key, game.G) ? "伝承 ― 語り手が目を覚ますと読める" : "伝承 ― 本編の迷宮でこの魔物を1体倒すと開く"));
   if (lore) {
     const box = el("div", "pl-lore");
     box.appendChild(el("div", "pl-lore-h", "伝承"));

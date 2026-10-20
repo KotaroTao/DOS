@@ -441,3 +441,12 @@ export const MONSTER_LORE = {
   },
 
 };
+
+// 語り手がまだ目を覚ましていない間は、その人の体験談を明かさない。
+export function monsterLoreReady(id, g) {
+  const lore = MONSTER_LORE[id];
+  return !!lore && (!lore.by.startsWith("セラ") || !!g?.world?.beats?.irene_sera_wake);
+}
+export function monsterLoreFor(id, g) {
+  return monsterLoreReady(id, g) ? MONSTER_LORE[id] : null;
+}
