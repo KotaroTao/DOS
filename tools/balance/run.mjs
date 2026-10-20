@@ -1,6 +1,6 @@
 import { monsterResists } from "../../src/resistance.js";
 // 全36職の比較用。裸・同じ魂ランク・サブ魂なしで、攻撃指標と6人隊の模擬戦を測る。
-// node tools/balance/run.mjs --out /tmp/balance.json [--sim] [--seeds 2] [--levels 20,40,80,120,200]
+// node tools/balance/run.mjs --out /tmp/balance.json [--sim] [--seeds 2] [--levels 20,40,80,120,200] [--rounds 30]
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import { Battle, SPELLS, spellCost, setElemKnown } from '../../src/combat.js';
@@ -18,6 +18,8 @@ const arg = (key, fallback) => args.includes(key) ? args[args.indexOf(key) + 1] 
 const levels = arg('--levels', '20,40,80,120,200').split(',').map(Number);
 const seeds = Number(arg('--seeds', '2'));
 const ranks = arg('--ranks', '2').split(',').map(Number);
+const maxRounds = Number(arg('--rounds', '30'));
+assert(Number.isInteger(maxRounds) && maxRounds > 0, '模擬戦のターン数は正の整数');
 assert(ranks.every(r=>Number.isInteger(r)&&r>=1&&r<=5),'魂ランクは1〜5');
 let rng = 1;
 const seed = (s) => { rng = s >>> 0; };
@@ -87,7 +89,7 @@ function simulate(job, level, tactic, scenario, runSeed) {
   const b = new Battle(party,foes,()=>{}, {foeLv:level,fleeK:1/0.3});
   let turns=0, damage=0, healing=0, spent=0; const choices={};
   b.advance();
-  while (!b.result && turns++<600 && b._roundNo<=30) {
+  while (!b.result && turns++<600 && b._roundNo<=maxRounds) {
     let res;
     if (b.phase==='input') {
       const a=b.current; const c=decideAuto(b,a); const before=a.mp;

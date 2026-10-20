@@ -2874,6 +2874,7 @@ const ASSETS = [
   "./src/combat.js",
   "./src/resistance.js",
   "./src/autotactics.js",
+  "./src/autoforecast.js",
   "./src/buffstage.js",
   "./src/enemylevel.js",
   "./src/skilldefs.js",
