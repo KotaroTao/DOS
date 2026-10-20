@@ -28,6 +28,11 @@ export function cryptPainting(id = "w01") {
   return state.loaded === 2 ? state.textures : null;
 }
 
+export function prepareCryptPainting(id) {
+  cryptPainting(id);
+  return paintings.get(id)?.done || Promise.resolve(true);
+}
+
 export function cryptPaintingPending(id, owner) {
   cryptPainting(id);
   const state = paintings.get(id);

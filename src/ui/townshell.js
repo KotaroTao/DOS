@@ -205,7 +205,7 @@ export function refresh() {
   api.screenEntered = api.entered || !same;
   shell.classList.remove("hidden");
   content.classList.remove("hidden");
-  const reveal = !same || content.querySelector(".scene-hold") ? preserveScene(content) : () => {};
+  const reveal = preserveScene(content);
   parkKept();
   content.innerHTML = "";
   content.classList.remove("shop-mode"); // 商会専用レイアウトを解除 (商会なら再付与)

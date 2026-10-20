@@ -68,12 +68,12 @@ async def main():
             assert info['shown']==shown, info
             if shown:
                 assert info['background']=='rgb(0, 0, 0)' and info['position']=='fixed' and info['covered'], info
-        await curtain(True)
-        # 未準備の画像がある間は、キーボードもポインターも次へ通さない。
+        await curtain(False)
+        # 小さな画像待ちでは画面も通常操作も遮らない。
         await page.locator('#action').focus()
         await page.keyboard.press('Enter')
         await page.mouse.click(50,60)
-        assert await page.evaluate('review.clicked')==0
+        assert await page.evaluate('review.clicked')==2
         await page.screenshot(path='/tmp/dos-candle-loading.png')
         await page.emulate_media(reduced_motion='reduce')
         assert await lamp.locator('.image-loading-flame').evaluate('el=>getComputedStyle(el).animationName')=='none'
@@ -81,14 +81,14 @@ async def main():
         gates['1'].set()
         await page.wait_for_function('review.items[0].sprite.photo.img.complete')
         assert await lamp.get_attribute('data-state')=='loading'
-        await curtain(True)
+        await curtain(False)
         gates['2'].set()
         await page.wait_for_selector('.image-loading[data-state="error"]')
         assert await lamp.locator('.image-loading-flame').evaluate('el=>getComputedStyle(el).animationName')=='none'
-        assert await lamp.inner_text()=='画像を読み込めませんでした'
-        await curtain(True)
+        assert await lamp.locator('.image-loading-label').inner_text()=='画像を読み込めませんでした'
+        await curtain(False)
         await page.mouse.click(50,60)
-        assert await page.evaluate('review.clicked')==0
+        assert await page.evaluate('review.clicked')==3
         # 失敗した画像枠を閉じ、再表示で取り直す。古い失敗を灯に残さない。
         fail.clear()
         await page.evaluate('review.items[1].canvas.remove();review.make(3)')
@@ -122,7 +122,7 @@ async def main():
         await page.wait_for_function("document.querySelector('.image-loading').dataset.state==='idle'")
         assert len(requests)==8, requests
         assert not errors, errors
-        print('左下の館の燭台・火だけの揺らぎ・複数画像の待機・通信失敗/再取得・閉じた画面/先読みの除外・動きを減らす設定・通常待機で未完成の画面を隠す・操作停止・挿絵: OK')
+        print('左下の館の燭台・火だけの揺らぎ・複数画像の待機・通信失敗/再取得・閉じた画面/先読みの除外・動きを減らす設定・通常待機で全画面待機なし・操作継続・挿絵: OK')
         await ctx.close()
         # 街の背景待ち: 前画面のCanvasを保ち、到着・失敗・別画面への移動で解除する。
         ctx = await browser.new_context(viewport={'width':390,'height':844}, service_workers='block')
@@ -155,12 +155,14 @@ async def main():
         await page.wait_for_function("!document.querySelector('.scene-hold')")
         assert await page.locator('.scene-next').count()==0
         await page.evaluate('sceneTest.go();sceneTest.done(false)')
-        await page.wait_for_function("!document.querySelector('.scene-hold')")
-        # 肖像など背景以外の待機では、画面を覆わない。
+        await page.wait_for_timeout(150)
+        assert await page.locator('.scene-hold').count()==1
+        # 背景だけでなく肖像待ちでも前の画面を保ち、全画面には戻らない。
         await page.evaluate('sceneTest.go(false)')
-        assert await page.locator('.scene-hold').count()==0
+        assert await page.locator('.scene-hold').count()==1
+        assert not await page.evaluate("document.body.classList.contains('screen-loading')")
         await page.evaluate('sceneTest.done(true)')
-        print('街の背景待ち: 直前のCanvas保持・二重操作抑止・到着/失敗で解除・連続遷移・肖像待ちの除外: OK')
+        print('街の背景待ち: 直前のCanvas保持・二重操作抑止・到着で切り替え・失敗は前画面を保持・連続遷移・肖像待ちも前画面を保持: OK')
         await ctx.close()
         # 実際の街でも、控え室へ移す夜景のCanvasが写しから消えない。
         ctx = await browser.new_context(viewport={'width':390,'height':844}, service_workers='block')
@@ -181,11 +183,11 @@ async def main():
           return a.some((v,i)=>i%4===3&&v>0);
         }''')
         await page.wait_for_selector('.image-loading[data-state="loading"]')
-        assert await page.evaluate("document.body.classList.contains('screen-loading')")
+        assert not await page.evaluate("document.body.classList.contains('screen-loading')")
         await page.screenshot(path='/tmp/dos-town-loading.png')
         release_shrine.set()
         await page.wait_for_function('!document.querySelector(".scene-hold")')
-        print('実際の街→祠: 夜景の画素を保持・燭台・未完成の画面を隠し背景到着後に切り替え: OK')
+        print('実際の街→祠: 夜景の画素を保持・燭台・全画面待機なしで背景到着後に切り替え: OK')
         await ctx.close()
         # 実際の迷宮画面でも、中央の待機印を出さずに左下へまとめる。
         ctx = await browser.new_context(viewport={'width':390,'height':844}, service_workers='block')

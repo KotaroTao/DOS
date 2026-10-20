@@ -19,7 +19,11 @@ function sheet(key) {
   const state = sheets.get(key);
   return state.ready ? state.image : null;
 }
-export function prewarmCryptActors() { for (const key of Object.keys(assets)) sheet(key); }
+let actorsReady = null;
+export function prewarmCryptActors() {
+  for (const key of Object.keys(assets)) sheet(key);
+  return actorsReady ||= Promise.all([...sheets.values()].map(state => state.done)).then(values => values.every(Boolean));
+}
 export function cryptActorsPending(owner) {
   prewarmCryptActors();
   if (owner) for (const state of sheets.values()) {
