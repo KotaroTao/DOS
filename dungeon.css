@@ -552,6 +552,7 @@ canvas.unk-sil { filter: brightness(0) drop-shadow(0 0 1px rgba(185,172,217,0.85
 #combat-menu .btn.tgt { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "n hp" "bar bar"; }
 #combat-menu .tgt-n { grid-area: n; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #combat-menu .tgt-hp { grid-area: hp; font-size: 10px; color: #b4a286; font-variant-numeric: tabular-nums; }
+#combat-menu .tgt-mp { display: block; color: #aabbe0; }
 #combat-menu .tgt-bar { grid-area: bar; position: relative; height: 5px; border-radius: 3px; background: #0a0607; box-shadow: inset 0 1px 1px #000, 0 0 0 1px #2c2226; overflow: hidden; }
 #combat-menu .tgt-bar > i { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(180deg, #ff7a60, #a8231c 60%, #5a0806); }
 #combat-menu .tgt-enemy { border-left: 3px solid #8a1a12; }
