@@ -8,6 +8,7 @@
 // dmgK = 敵の脅威の合計 ÷ 隊の与ダメの合計 (与ダメ 1 で戦いが縮み、その間に受けずに済む傷)。
 // ダメージの見積もりは combat.js の Battle.estPhys / estSpell (実際の式の平均。乱数も状態も触らない)。
 // 作戦はこの重みと MP の値段を変える。game.js はここを呼んで chooseAction / chooseTarget するだけ。
+// 攻撃を選ぶ時は、倒せる敵の数 → とどめまでの手数 → 値打ちの順。癒し・蘇生・支援の判断は先に残す。
 // (このファイルは game.js を import しない)
 
 import { SPELLS, spellCost, soulPowerMul, healsHp, isMetal, spellCureKinds, breathHpK, manaGiftAmount, tauntGuard, stanceMulOf } from "./combat.js";
@@ -16,11 +17,11 @@ import { STAGED, STAGE_MAX, STRONG_MIN, stageMul, stageOf } from "./buffstage.js
 
 // 作戦。key はセーブに残る (変えない)
 export const TACTICS = [
-  { key: "all", name: "全力で討て", short: "全力", desc: "与える傷が最も大きい手を選ぶ。魔力を惜しまず、癒しは仲間が倒れかけた時だけ。" },
-  { key: "bal", name: "機を見て戦え", short: "機を見る", desc: "攻めを主に、傷が深まれば癒し、守りや弱体も機を見て使う。魔力が減るほど控える。" },
+  { key: "all", name: "全力で討て", short: "全力", desc: "敵の数を減らす攻めを優先する。魔力を惜しまず、癒しは仲間が倒れかけた時だけ。" },
+  { key: "bal", name: "機を見て戦え", short: "機を見る", desc: "敵の数を減らす攻めを主に、傷が深まれば癒し、守りや弱体も機を見て使う。魔力が減るほど控える。" },
   { key: "life", name: "命を繋げ", short: "命を繋ぐ", desc: "癒し・蘇生・治療と守りを先に立てる。攻めるのは隊が無事な時。" },
   { key: "save", name: "魔力を惜しめ", short: "魔力を惜しむ", desc: "通常攻撃を主にし、技は割に合う時と危うい時だけ。長く潜る時に。" },
-  { key: "blade", name: "刃のみ振るえ", short: "刃のみ", desc: "技を使わず、通常攻撃だけで戦う。" },
+  { key: "blade", name: "刃のみ振るえ", short: "刃のみ", desc: "技を使わず、通常攻撃だけで敵の数を減らす。" },
 ];
 export const DEFAULT_TACTIC = "bal";
 const TACTIC_BY_KEY = Object.fromEntries(TACTICS.map((t) => [t.key, t]));
@@ -107,7 +108,9 @@ function decideAutoInner(b, actor, dbg) {
     const per = autoBasic(b, actor, t); // 連撃・二刀流の左手の一撃まで
     if (per <= 0) continue;
     const v = dmgValue(ctx, t, per) * (t.mind === "charm" ? CHARMED_TGT_MUL : 1);
-    cands.push({ action: "attack", target: t, dmg: v, raw: per, lowDamage: lowDamage(per, t), score: 0 });
+    const c = { action: "attack", target: t, dmg: v, raw: per, lowDamage: lowDamage(per, t), score: 0, kills: 0, turns: Infinity };
+    finishEstimate(c, t, per);
+    cands.push(c);
   }
   if (tac !== "blade") {
     for (const key of autoSkills(actor)) {
@@ -131,9 +134,30 @@ function decideAutoInner(b, actor, dbg) {
     c.score += (c.target && c.target.side === "enemy" ? ctx.threat(c.target) * 1e-3 : 0); // 同点なら脅威の大きい敵
     if (!best || c.score > best.score) best = c;
   }
+  // 支援が必要という判断を保ち、攻撃同士では大きな傷よりも敵を減らす手を選ぶ。
+  // MPの割に合わない手・無効な手は、従来の採点で落ちたままにする。
+  const attacks = cands.filter(c => c.score > 0.01 && ((c.raw > 0 && !c.lowDamage) || c.death > 0));
+  if (best && attacks.includes(best) && !(best.heal > 0 || best.revive > 0)) {
+    best = attacks.reduce((a, c) => {
+      if (c.kills !== a.kills) return c.kills > a.kills ? c : a;
+      if (!c.kills && c.turns !== a.turns) return c.turns < a.turns ? c : a;
+      return c.score > a.score ? c : a;
+    });
+  }
   if (dbg) dbg.push(...cands);
   if (best && best.score > 0.01) return { action: best.action, spellKey: best.spellKey || null, target: best.target || null, effectiveAttack: !!((best.raw > 0 && !best.lowDamage) || best.death > 0) };
   return { action: "defend", idle: true };
+}
+
+// 期待ダメージで倒せる数と、同じ手を重ねた時に最初の1体を倒すまでの手数。
+// 乱撃は対象ごとの平均を確実なとどめとして数えない (敵が1体なら通常どおり)。
+function finishEstimate(c, t, dmg, scattered = false, deathRate = 0) {
+  const kills = (!scattered && dmg >= t.hp) || deathRate >= 1;
+  c.kills += kills ? 1 : 0;
+  const progress = Math.min(1, Math.max(0, dmg) / t.hp);
+  const rate = progress + (1 - progress) * deathRate;
+  const turns = rate > 0 ? Math.ceil(1 / rate) : Infinity;
+  c.turns = Math.min(c.turns, scattered && !kills ? Math.max(2, turns) : turns);
 }
 
 // ---- 見積もりの共通の器 (1手番の判断のあいだだけ使う覚え書き) ----
@@ -239,7 +263,7 @@ function modGain(b, t, stat, mult) {
 function skillCands(b, ctx, actor, key, sp) {
   const W = WEIGHTS[tacticOf(actor).key];
   const out = [];
-  const mk = (target) => ({ action: "spell", spellKey: key, target, dmg: 0, raw: 0, lowDamage: true, heal: 0, revive: 0, guard: 0, edge: 0, stat: 0, pen: 0 });
+  const mk = (target) => ({ action: "spell", spellKey: key, target, dmg: 0, raw: 0, lowDamage: true, heal: 0, revive: 0, guard: 0, edge: 0, stat: 0, pen: 0, kills: 0, turns: Infinity });
   // 捨身 (hpCost): 削る身の分を差し引く。深手に落ちるなら重く
   const hpPen = (c) => {
     if (!sp.hpCost) return;
@@ -268,10 +292,13 @@ function skillCands(b, ctx, actor, key, sp) {
         dSum += Math.min(d, t.hp);
         const v = dmgValue(ctx, t, d) * (t.mind === "charm" ? CHARMED_TGT_MUL : 1);
         // 即死: 主には効かない。当たれば残りのHPぶんの傷と同じ
+        let deathRate = 0;
         if (sp.instakill && !t.boss && !isMetal(t) && d < t.hp && (!sp.instakill.races || sp.instakill.races.includes(t.mon && t.mon.race))) {
           const p = autoStatusChances(b, actor, sp, t).find(r => r.kind === "death")?.rate || 0;
+          deathRate = p;
           c.death = (c.death || 0) + p * ((t.hp - d) * ctx.dmgK + ctx.threat(t) * KILL_W);
         }
+        finishEstimate(c, t, d, !!sp.scatter && tgts.length > 1, deathRate);
         c.dmg += v;
         if (d < t.hp * 0.9) c.stat += foeEffects(b, ctx, actor, sp, t);
         if (sp.drain) c.heal += Math.min(d * sp.drain, actor.maxhp - actor.hp) * healUrg(ctx, actor, W);
