@@ -13,6 +13,10 @@ with sync_playwright() as p:
         response = route.fetch()
         route.fulfill(response=response, body=response.text().replace('}, 5000);', '}, 60000);'))
     page.route('http://localhost:8000/?testDungeon=*', boot_page)
+    def combat_module(route):
+        response = route.fetch()
+        route.fulfill(response=response, body=response.text() + '\nwindow.__renderCombatCanvas=renderCombatCanvas;')
+    page.route('http://localhost:8000/src/game.js', combat_module)
     page.goto('http://localhost:8000/?testDungeon=w02')
     page.wait_for_function('window.__game?.G.party.length > 0')
     page.wait_for_timeout(2000)
@@ -84,6 +88,34 @@ with sync_playwright() as p:
             assert names.is_visible()
             assert names.locator('.enemy-name').count() == count
             assert '？' in names.inner_text(), '未判明の敵名が明かされた'
+            # 単体被弾と後衛の被弾を、拡大直後から消える直前まで実描画で確かめる。
+            page.evaluate('''async () => {
+              const ctx=document.getElementById('view').getContext('2d');
+              const original=ctx.fillText, G=__game.G, saved=G.fx;
+              let drawn=0;
+              ctx.fillText=function(text,x,y,...args) {
+                if(text==='98765') {
+                  const v=document.getElementById('view').getBoundingClientRect();
+                  const names=document.getElementById('enemy-names').getBoundingClientRect();
+                  const m=this.getTransform(), metrics=this.measureText(text);
+                  // 縁取りと影も名前欄より上に収める。
+                  const bottom=v.top+(m.d*(y+metrics.actualBoundingBoxDescent+4)+m.f)*v.height/this.canvas.height;
+                  if(bottom>names.top-1) throw Error('被ダメージの数字と敵名が重なる');
+                  drawn++;
+                }
+                return original.call(this,text,x,y,...args);
+              };
+              try {
+                const {VW,VH}=__game.autoMove.viewSize();
+                for(const age of [0,380,650]) {
+                  G.fx={slashes:[],skill:[],floats:[18,26].map((offset,i)=>({
+                    x:VW*(i+1)/3,y:VH-offset,text:'98765',kind:'pdmg',t0:performance.now()-age
+                  }))};
+                  window.__renderCombatCanvas();
+                }
+                if(drawn<6) throw Error('被ダメージの描画を確認できない');
+              } finally {ctx.fillText=original;G.fx=saved;}
+            }''')
             page.evaluate('''() => {
               const bar=document.getElementById('enemy-names'), r=bar.getBoundingClientRect();
               for (const name of bar.querySelectorAll('.enemy-name')) {
