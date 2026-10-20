@@ -243,6 +243,13 @@ Environment reference illustration of ONE consistent unoccupied royal throne roo
 
 ### A. 必須 (物語の筋や正典と食い違う)
 
+**A-66. 第十二章 irene_vessel「木の手のひら」セラの額の印を修正** `art/story-review/chapter12/irene_vessel.png` (済)
+- 直す (2026-10-20 ユーザーの指示): セラの額の金の印を、承認済み `docs/art/story-refs/sigil.png` の形へ統一。左の親指1本、右の平行な指3本、短い手首、掌の上の独立した涙形の炎を保つ。
+- 保つもの: イレーヌとセラの顔・髪・衣装・手と姿勢、胸の魂火、館の燭台、背景・構図・光。修正前は `art/story-review/fixes/irene_vessel-before.png`。
+```text
+Edit the attached illustration. Keep the composition, characters, lighting and style unchanged except: replace only Sera's small gold forehead emblem with the exact approved geometric crest in sigil.png: an angular cupped palm with one thumb on the left, three parallel finger projections on the right, a short wrist below, and one separate teardrop flame above. Preserve four digit projections in the abstract symbol. Match the forehead perspective and gold inlay material. Do not change either character's face, real hair, costume, wooden hands, pose, chest soul-fire, candle, candlestick or mansion background.
+```
+
 **A-60. 第一章 report_w01「倉庫の作業台で人業を受け取る」背景を比較させない新構図** `art/story-review/chapter1/report_w01.png` (済)
 - 最新のユーザー依頼により全面描き直し。旧構図・背景固定より本項を優先し、本文は変更しない。
 - 描くもの・描かないものと画角は下記の生成指示に従う。修正前は `art/story-review/fixes/report_w01-composition-before.png`。

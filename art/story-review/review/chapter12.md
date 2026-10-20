@@ -5,9 +5,9 @@
 
 <a name="w46_bar"></a>
 
-## w46_bar「王を終わらせるな」 ── 未着手 (指示あり)
+## w46_bar「王を終わらせるな」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter12/w46_bar.webp" width="576" alt="w46_bar">
 
 **ストーリー一覧の本文**
 
@@ -44,9 +44,9 @@ _(絵はまだ無い)_
 
 <a name="report_w46"></a>
 
-## report_w46「即位の日の文句」 ── 未着手 (指示あり)
+## report_w46「即位の日の文句」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter12/report_w46.webp" width="576" alt="report_w46">
 
 **ストーリー一覧の本文**
 
@@ -78,9 +78,9 @@ _(絵はまだ無い)_
 
 <a name="w47_ledger"></a>
 
-## w47_ledger「最初の器」 ── 未着手 (指示あり)
+## w47_ledger「最初の器」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter12/w47_ledger.webp" width="576" alt="w47_ledger">
 
 **ストーリー一覧の本文**
 
@@ -121,9 +121,9 @@ _(絵はまだ無い)_
 
 <a name="irene_vessel"></a>
 
-## irene_vessel「木の手のひら」 ── 未着手 (指示あり)
+## irene_vessel「木の手のひら」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter12/irene_vessel.webp" width="576" alt="irene_vessel">
 
 **ストーリー一覧の本文**
 
@@ -155,9 +155,9 @@ _(絵はまだ無い)_
 
 <a name="report_w47"></a>
 
-## report_w47「術の生まれた所」 ── 未着手 (指示あり)
+## report_w47「術の生まれた所」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter12/report_w47.webp" width="576" alt="report_w47">
 
 **ストーリー一覧の本文**
 
