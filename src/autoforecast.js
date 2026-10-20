@@ -1,5 +1,5 @@
-// 現在の手番から3ターンの隊の与ダメを予測する。戦闘の複製だけを動かし、乱数・実行系・通知は使わない。
-// 最初の一手を候補ごとに変え、以降は使える攻撃の期待値で継続する近似。未来の全行動を総当たりはしない。
+// 支援が今のターンの残り＋次の2ターンで増やす攻めを予測する。
+// 今の攻撃は別に採点する。未来の味方が倒せることを理由に、今の攻撃の価値を消さない。
 import { SPELLS, soulPowerMul, isMetal } from "./combat.js";
 import { autoSkills } from "./souls.js";
 import { STAGED, STAGE_MAX, STRONG_MIN, effectStage, stageOf, stageMul } from "./buffstage.js";
@@ -45,7 +45,7 @@ function mod(b, source, t, stat, mult, duration) {
 }
 
 // 乱撃は各対象への命中回数の分布で頭打ちを掛ける。平均ダメージだけで全滅させない。
-function scatterDamage(per, count, targets, hp) {
+export function scatterDamage(per, count, targets, hp) {
   if (targets <= 1) return Math.min(hp, per * count);
   const p = 1 / targets;
   let probability = (1 - p) ** count, sum = 0;
@@ -75,11 +75,10 @@ function damage(b, a, cmd, est) {
   });
 }
 
-function attacks(b, a, profiles = null) {
+function attacks(b, a) {
   const out = b.attackableEnemies(a).map(target => ({ action: "attack", target }));
   if (a.tactic === "blade") return out;
   for (const key of autoSkills(a)) {
-    if (profiles && !profiles.get(a.uid)?.has(key)) continue;
     const sp = SPELLS[key];
     if (!sp || !(sp.kind === "phys" || sp.kind === "atk" || sp.instakill) || a.mp < b.costOf(a, sp, key)) continue;
     if (sp.target !== "enemy" && sp.target !== "all-enemy") continue;
@@ -89,36 +88,7 @@ function attacks(b, a, profiles = null) {
   return out;
 }
 
-// 続きの攻撃は物理/呪文×単体/全体ごとの上位2技と最安の技を残す。
-// 最初の候補は全て比べるが、未来の分岐を広げ続けず端末の待ち時間を抑える。
-function attackProfiles(b, est) {
-  const profiles = new Map();
-  for (const a of b.party) {
-    const groups = new Map();
-    for (const cmd of attacks(b, a)) {
-      if (!cmd.spellKey) continue;
-      const sp = SPELLS[cmd.spellKey], key = sp.kind + ":" + sp.target;
-      const hits = damage(b, a, cmd, est);
-      if (hits.every(h => est.low(h.d, h.t))) continue;
-      const raw = hits.reduce((n, h) => n + h.d, 0), cost = b.costOf(a, sp, cmd.spellKey);
-      const group = groups.get(key) || new Map();
-      const row = { key: cmd.spellKey, value: raw - cost * est.price(a), cost };
-      if (!group.has(row.key) || row.value > group.get(row.key).value) group.set(row.key, row);
-      groups.set(key, group);
-    }
-    const keys = new Set();
-    for (const group of groups.values()) {
-      const rows = [...group.values()].sort((x, y) => y.value - x.value || x.cost - y.cost);
-      for (const row of rows.slice(0, 2)) keys.add(row.key);
-      rows.sort((x, y) => x.cost - y.cost || y.value - x.value);
-      if (rows.length) keys.add(rows[0].key);
-    }
-    profiles.set(a.uid, keys);
-  }
-  return profiles;
-}
-
-function apply(b, a, cmd, est) {
+function apply(b, a, cmd, est, support = true) {
   const sp = cmd.spellKey ? SPELLS[cmd.spellKey] : null;
   if (sp) a.mp -= b.costOf(a, sp, cmd.spellKey);
   let total = 0;
@@ -126,7 +96,7 @@ function apply(b, a, cmd, est) {
     for (const { t, d } of damage(b, a, cmd, est)) {
       total += d; t.hp = Math.max(0, t.hp - d);
       if (t.hp <= 1e-8) { t.hp = 0; t.alive = false; continue; }
-      if (sp && !(sp.kind === "phys" && t.physResist >= 100) && !(sp.kind === "atk" && t.magResist >= 100)) {
+      if (support && sp && !(sp.kind === "phys" && t.physResist >= 100) && !(sp.kind === "atk" && t.magResist >= 100)) {
         if (sp.kind !== "phys") for (const k in sp.debuff) mod(b, a, t, k, sp.debuff[k], sp.dur);
         for (const el in sp.vuln) mod(b, a, t, "r_" + el, sp.vuln[el], sp.dur);
         if (sp.strip) { t.effects = t.effects.filter(e => e.mult <= 1); b._recalcBuffs(t); }
@@ -137,7 +107,7 @@ function apply(b, a, cmd, est) {
       a.effects = a.effects.filter(e => e.stat !== "charge"); b._recalcBuffs(a);
     }
   }
-  if (sp) {
+  if (sp && support) {
     const allies = sp.target === "all-ally" ? b.livingParty() : sp.target === "self" ? [a] : sp.target === "ally" ? [cmd.target || a] : [];
     for (const t of allies) {
       for (const k in sp.buff) mod(b, a, t, k, sp.buff[k], sp.dur);
@@ -149,10 +119,10 @@ function apply(b, a, cmd, est) {
   return total;
 }
 
-function rollout(b, actor, first, est) {
+function rollout(b, actor, first, est, support = true) {
   const { sim, map } = copyBattle(b), a = map.get(actor);
   const command = { ...first, target: map.get(first.target) || null };
-  let total = first.action === "defend" ? 0 : apply(sim, a, command, est);
+  let total = first.action === "defend" ? 0 : apply(sim, a, command, est, support);
   // 既に動いた味方へ、今のターンの行動をもう一度与えない。
   let order = b.current === actor ? b.queue.filter(p => p.side === "party" && p !== actor).map(p => map.get(p))
     : sim.party.filter(p => p !== a && p._actedRound !== b._roundNo);
@@ -167,7 +137,7 @@ function rollout(b, actor, first, est) {
       if (!p?.alive || p.asleep || p.ailment === "stone" || p.ailment === "paralyze" || p.mind === "charm") continue;
       if (!sim.livingEnemies().length) return total;
       let best = null, value = 0;
-      for (const cmd of attacks(sim, p, est.profiles)) {
+      for (const cmd of attacks(sim, p)) {
         const hits = damage(sim, p, cmd, est), raw = hits.reduce((s, h) => s + h.d, 0);
         // MPを使ってもほぼ削れない手は、続きの予測でも使わない。
         if (cmd.spellKey && hits.every(h => est.low(h.d, h.t))) continue;
@@ -175,17 +145,23 @@ function rollout(b, actor, first, est) {
         const v = raw - cost * est.price(p);
         if (v > value + 1e-8) { best = cmd; value = v; }
       }
-      if (best) total += apply(sim, p, best, est);
+      // 早く通る傷を重く見る。同じ3ターン内で倒せても、前倒しする支援には意味がある。
+      if (best) total += apply(sim, p, best, est) * (0.8 ** round);
     }
   }
   return total;
 }
 
+// 支援のある手だけ、同じ攻撃・MP消費で支援を外した場合と比較する。
+// 通常攻撃や単純な攻撃技に重い3ターン予測を繰り返さず、今の価値を必ず残す。
 export function forecastCandidates(b, actor, candidates, est) {
-  est.profiles = attackProfiles(b, est);
-  const baseline = rollout(b, actor, { action: "defend" }, est);
+  let baseline;
   for (const c of candidates) {
-    c.damage3 = rollout(b, actor, c, est);
-    c.damageGain3 = c.damage3 - baseline;
+    c.supportGain3 = 0;
+    const sp = c.spellKey ? SPELLS[c.spellKey] : null;
+    if (!sp || !(sp.buff || sp.debuff || sp.debuffAll || sp.vuln || sp.charge || sp.strip)) continue;
+    if (baseline === undefined) baseline = rollout(b, actor, { action: "defend" }, est);
+    const without = c.raw > 0 || sp.instakill ? rollout(b, actor, c, est, false) : baseline;
+    c.supportGain3 = Math.max(0, rollout(b, actor, c, est) - without);
   }
 }

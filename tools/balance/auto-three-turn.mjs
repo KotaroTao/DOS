@@ -39,7 +39,7 @@ try {
     assert.equal(plan.spellKey, "PLAN_BUFF", tactic);
     assert(plan.effectiveAttack, "有効な攻めを増やす準備だけで停滞扱いにしない");
     const buff = dbg.find(c => c.spellKey === "PLAN_BUFF"), hit = dbg.find(c => c.action === "attack");
-    assert.equal(buff.raw, 0); assert(buff.damage3 > hit.damage3);
+    assert.equal(buff.raw, 0); assert(buff.score > hit.score);
   }
   // 刃のみは将来も通常攻撃だけ。選ばれていない技を隊の予測へ混ぜない。
   assert.equal(pick(setup(["PLAN_BUFF"], { actor: { tactic: "blade" } })).plan.action, "attack");
@@ -58,7 +58,7 @@ try {
     const x = setup(["PLAN_SHORT", "PLAN_BUFF"]); x.b.current = x.a; x.b.queue = [];
     const { plan, dbg } = pick(x);
     assert.equal(plan.spellKey, "PLAN_BUFF");
-    assert(dbg.find(c => c.spellKey === "PLAN_BUFF").damage3 > dbg.find(c => c.spellKey === "PLAN_SHORT").damage3);
+    assert(dbg.find(c => c.spellKey === "PLAN_BUFF").supportGain3 > dbg.find(c => c.spellKey === "PLAN_SHORT").supportGain3);
   }
   // もう終わる戦いに強化を掛けず、段の上限へも無駄に重ねない。
   assert.equal(pick(setup(["PLAN_BUFF"], { enemies: [foe({ hp: 1 })] })).plan.action, "attack");
@@ -80,18 +80,17 @@ try {
     const x = setup([], { actor: { tactic: "blade" }, allies: [], enemies: [foe(), foe(), foe(), foe({ hp: 1 })] });
     assert.notEqual(pick(x).plan.target, x.b.enemies[3], "届かない敵へ狙いを飛ばさない");
   }
-  // 敵全員に傷を広げた方が3ターンで増えるなら、今の一体へのとどめを強制しない。
+  // 後で倒せるという予測だけで、今とどめを刺して敵の手番を減らす価値を消さない。
   {
-    const x = setup([], { actor: { tactic: "blade", atk: 100 }, allies: [], enemies: [foe({ hp: 1, vit: 0 }), foe({ vit: 0 })] });
-    assert.equal(pick(x).plan.target, x.b.enemies[1]);
+    const x = setup([], { actor: { tactic: "blade", atk: 100 }, allies: [], enemies: [foe({ hp: 40, vit: 0 }), foe({ vit: 0 })] });
+    assert.equal(pick(x).plan.target, x.b.enemies[0]);
   }
-  // 残りMPによる未来の技の使用可否と、敵HPを超えない予測。
+  // 残りMPで強化後の攻撃を継続できない時、その支援を過大評価しない。
   {
-    const x = setup(["PLAN_FIRE"], { actor: { mp: 1, int: 500 }, allies: [], enemies: [foe({ vit: 0 })] });
-    const { dbg } = pick(x), c = dbg.find(c => c.spellKey === "PLAN_FIRE");
-    const one = x.b.estSpell(x.a, SPELLS.PLAN_FIRE, x.b.enemies[0]);
-    const basic = x.b.estBasic(x.a, x.b.enemies[0]);
-    assert(Math.abs(c.damage3 - one - basic * 2) < 1e-6, "MP1で同じ呪文を3回撃てると見積もらない");
+    const rich = setup(["PLAN_INT"], { allies: casters() });
+    const poor = setup(["PLAN_INT"], { allies: casters().map(a => Object.assign(a, { mp: 0 })) });
+    assert(pick(rich).dbg.find(c => c.spellKey === "PLAN_INT").supportGain3 >
+      pick(poor).dbg.find(c => c.spellKey === "PLAN_INT").supportGain3);
   }
   // 実戦のバフ通知・ログ・保存データ・乱数の位置に触れない。
   {
