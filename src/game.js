@@ -11301,8 +11301,10 @@ function spdMul() { return G.autoCombat ? 0.45 : G.fastAnim ? 1 : 2; }
 // 戦闘の一時停止: 戦闘中にシート (手帳・設定・覗き見など) が開いている間は次の一手へ進まない。
 // いま演じている一手は最後まで見せ、その次の手番で閉じるのを待つ
 function combatHeld() { return G.state === "combat" && (mediaBusy() || cloudBusy() || sheetDepth() > 0 || !!G.settingsOpen || !!G.statusOpen); }
-function whenCombatFree(fn) {
-  if (combatHeld()) { setTimeout(() => whenCombatFree(fn), 150); return; }
+function whenCombatFree(fn, battle = G.battle) {
+  // 断念した戦闘の予約は捨て、手帳や確認を開いている間は実行しない。
+  if (!battle || G.battle !== battle || G.state !== "combat") return;
+  if (combatHeld() || _cloudResolving) { setTimeout(() => whenCombatFree(fn, battle), 150); return; }
   fn();
 }
 
@@ -11318,14 +11320,14 @@ function combatStep() {
     if (G.autoCombat) renderAutoBanner(); else renderActingPlate(b.current);
     renderCombatCanvas();
     autosave(true);
-    setTimeout(() => {
+    setTimeout(() => whenCombatFree(() => {
       holdActionEffects();
       if (cloudEnabled() && !testPlayActive) { resolveSavedBattle("stunned"); return; }
       const res = b.stunnedAct();
       res._modFeed = takeModFeed();
       b._acted = true; // 実行済み (演出中に閉じられても、再開時にやり直さず次の手番へ)
       animateResult(res, postResolve);
-    }, 200 * spdMul());
+    }, b), 200 * spdMul());
     return;
   }
   if (b.phase === "enemy") {
@@ -11334,14 +11336,14 @@ function combatStep() {
     renderCombatCanvas();
     autosave(true); // 敵の手番を確定 (やり直し不可)
     // 一瞬の間を置いてから敵が動く (ドラクエ風)
-    setTimeout(() => {
+    setTimeout(() => whenCombatFree(() => {
       holdActionEffects();
       if (cloudEnabled() && !testPlayActive) { resolveSavedBattle("enemy"); return; }
       const res = b.enemyAct();
       res._modFeed = takeModFeed();
       b._acted = true;
       animateResult(res, postResolve);
-    }, 260 * spdMul());
+    }, b), 260 * spdMul());
   }
 }
 
@@ -11402,13 +11404,14 @@ async function resolveSavedBattle(action) {
 // 行動の結果を演出し、終わったら次へ
 function postResolve() {
   const b = G.battle;
+  if (!b || G.state !== "combat") return;
   // ボスの発狂を派手に知らせる
   if (b._enrageFx) {
     b._enrageFx = false;
     shakeScreen(true); buzz([0, 60, 50, 60]);
     showToast("⚠ 敵が怒り狂っている！");
   }
-  if (b.result) { G.animating = false; setTimeout(() => whenCombatFree(endBattle), 300); return; }
+  if (b.result) { G.animating = false; setTimeout(() => whenCombatFree(endBattle, b), 300); return; }
   if (!cloudEnabled() || testPlayActive) b._acted = false;
   // ターンの初めのパッシブ・激昂などで掛かった強化・弱体は、1拍ずつ見せてから次の手番へ
   const watch = beginModWatch(true);
@@ -11442,6 +11445,9 @@ const HIT_STAGGER = 165;
 
 // 結果オブジェクトを演出 (踏み込み → 着弾 → 余韻)
 function animateResult(res, done) {
+  const battle = G.battle;
+  if (!battle || G.state !== "combat") return;
+  const finish = () => { if (G.battle === battle && G.state === "combat") done(); };
   if (G.battle && G.battle.tl) tlHits(G.battle.tl, res); // テスト記録: 与ダメ/被ダメ
   callPartyAction(res); // 札の肖像に使った技の名 (手番の初めから)
   if (setPlateCall(res)) { if (G.autoCombat) renderAutoBanner(); else renderActingPlate(res.actor); } // 命令板にも「誰の何の技か」
@@ -11450,7 +11456,7 @@ function animateResult(res, done) {
     G.effShow = null;
     renderParty();
     renderCombat();
-    setTimeout(done, 200 * spdMul());
+    setTimeout(finish, 200 * spdMul());
     return;
   }
   const t0 = performance.now();
@@ -11484,6 +11490,7 @@ function animateResult(res, done) {
   }
   let impacted = false;
   const tick = () => {
+    if (G.battle !== battle || G.state !== "combat" || !G.fx) return;
     const t = performance.now() - t0;
     if (G.fx.lunge) G.fx.lunge.p = Math.sin(Math.min(1, t / WIND) * Math.PI);
     if (!impacted && t >= WIND) {
@@ -11499,7 +11506,7 @@ function animateResult(res, done) {
       G.partyFx.clear();
       if (G.partyFxV) G.partyFxV.clear();
       renderCombat();
-      done();
+      finish();
     } else {
       requestAnimationFrame(tick);
     }
@@ -12013,6 +12020,7 @@ function levelUpEntries(progress) {
 function endBattle(...args) { return tlGameMeasure("battle", () => endBattleMeasured(...args)); }
 function endBattleMeasured() {
   const b = G.battle;
+  if (!b || G.state !== "combat") return;
   if (!G.rematch) playtestEvent("戦闘終了", { result: b.result, rounds: b._roundNo });
   G.effShow = null; G.modFeed = null; flushModLines(null, Infinity);
   if (b.tl) tlBattleEnd(b.tl, { result: b.result, rounds: b._roundNo, tally: b.tally, party: G.party });
@@ -12356,7 +12364,8 @@ function gameOver() {
 // 迷宮を諦める (手帳から、2026-10 ユーザーの指示): 全滅と同じ扱い。
 // 隊の全員が砕け、全滅の決断 (赤い魂で全てを守る / あきらめて救出を待つ) へ進む
 function confirmAbandonDungeon() {
-  if (G.state !== "board" || G.anim || G.walking || uiBlocked()) return;
+  if ((G.state !== "board" && G.state !== "combat") || G.rematch || uiBlocked() || _cloudResolving) return;
+  if (G.state === "board" && (G.anim || G.walking)) return;
   const secured = !!(G.run && G.run.secured);
   showConfirm({
     title: "迷宮を諦める？",
@@ -12373,8 +12382,18 @@ function confirmAbandonDungeon() {
   });
 }
 function abandonDungeon() {
-  if (G.state !== "board") return;
+  if ((G.state !== "board" && G.state !== "combat") || G.rematch) return;
   setAutoMove(false);
+  // 古い戦闘への参照を切り、予約済みの行動・演出が全滅後に続かないようにする。
+  if (G.state === "combat") {
+    resetAutoProgress(G.battle);
+    G.battle = null; G.battleCell = null; G.battleIntro = null;
+    G.animating = false; G.fx = null; G.partyShow = null;
+    G.effShow = null; G.modFeed = null;
+    if (G.partyFx) G.partyFx.clear();
+    if (G.partyFxV) G.partyFxV.clear();
+    clearPartyCalls();
+  }
   if (!G.run) G.run = newRun();
   G.run.abandoned = true;
   for (const p of G.party) {
