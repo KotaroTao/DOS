@@ -466,5 +466,41 @@
     "atlas": 9,
     "tile": 7,
     "bytes": 50324
+  },
+  {
+    "id": "w50",
+    "atlas": 10,
+    "tile": 1,
+    "bytes": 63626
+  },
+  {
+    "id": "w51",
+    "atlas": 10,
+    "tile": 2,
+    "bytes": 66810
+  },
+  {
+    "id": "w52",
+    "atlas": 10,
+    "tile": 3,
+    "bytes": 63024
+  },
+  {
+    "id": "w53",
+    "atlas": 10,
+    "tile": 4,
+    "bytes": 60366
+  },
+  {
+    "id": "ws28",
+    "atlas": 10,
+    "tile": 5,
+    "bytes": 58218
+  },
+  {
+    "id": "ws29",
+    "atlas": 10,
+    "tile": 6,
+    "bytes": 51632
   }
 ]
