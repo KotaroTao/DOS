@@ -676,3 +676,7 @@ body.screen-loading::before, body.booting::before {
 #town-screen:has(> .scene-hold) { position: relative; }
 .scene-hold { position: absolute; inset: 0; z-index: 20; overflow: hidden; background: #121018; }
 .scene-next { visibility: hidden; }
+
+/* 場面を保ったまま画像取得に失敗した時の、画面を覆わない再試行。 */
+.image-loading-retry { display:none; position:absolute; left:0; bottom:72px; white-space:nowrap; padding:8px 12px; color:#e8dfcc; background:#292635; border:1px solid #9a8657; font:inherit; font-size:12px; pointer-events:auto; cursor:pointer; }
+.image-loading[data-state="error"] .image-loading-retry { display:block; }

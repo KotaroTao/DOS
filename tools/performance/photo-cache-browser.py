@@ -22,7 +22,7 @@ with sync_playwright() as p:
         page.goto('http://localhost:8000/photo-cache-review.html')
         page.evaluate('''async () => {
           const {itemPhoto, ITEM_PHOTOS} = await import('/src/itemphotos.js');
-          const {whenPhoto, drawPhoto, photoReady} = await import('/src/sprites.js');
+          const {whenPhoto, drawPhoto, photoReady, spriteCanvas} = await import('/src/sprites.js');
           const icon = document.createElement('canvas'); icon.width = icon.height = 48;
           document.body.append(icon);
           const ctx = icon.getContext('2d');
@@ -35,6 +35,8 @@ with sync_playwright() as p:
           await render(sprites[0]);
           const pixels = () => Array.from(ctx.getImageData(0, 0, 48, 48).data).join(',');
           const before = pixels();
+          await new Promise(resolve => whenPhoto(sprites[1], resolve));
+          const thumbnail = spriteCanvas(sprites[1], 4, 12).toDataURL();
           if (!ctx.getImageData(0, 0, 48, 48).data.some(v => v)) throw Error('肖像が空白');
           const active = document.createElement('canvas'); active.width = active.height = 48;
           const activeCtx = active.getContext('2d');
@@ -46,6 +48,7 @@ with sync_playwright() as p:
           }
           if (photoReady(sprites[1].photo)) throw Error('古い原画が残る');
           if (pixels() !== before) throw Error('描画済みの肖像が変わった');
+          if (spriteCanvas(sprites[1], 4, 12).toDataURL() !== thumbnail) throw Error('原寸の写しを解放すると同じ肖像の再描画が空になる');
           window.review = {sprites, render, whenPhoto, drawPhoto, photoReady, pixels, before};
         }''')
         cdp = context.new_cdp_session(page)
@@ -70,6 +73,6 @@ with sync_playwright() as p:
         assert retained() <= budget, retained()
         assert len(requests) == request_count, '再表示時に通信が発生'
         assert not errors, errors
-        print(f'上限{budget}MiB: 200種表示後 {used:.3f}MiB・使用中の原画を優先・肖像保持・オフライン復元・120種同時描画 OK', flush=True)
+        print(f'上限{budget}MiB: 200種表示後 {used:.3f}MiB・使用中の原画を優先・肖像保持・原寸解放後も同じ肖像を即描画・オフライン復元・120種同時描画 OK', flush=True)
         context.close()
     browser.close()

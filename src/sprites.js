@@ -1267,14 +1267,52 @@ export function whenPhoto(spr, fn, owner, live = false) {
   ready.then((ok) => { if (ok) fn(); });
 }
 // 原画版の絵を canvas に描く (読み込み待ちなら読み込み後に描き直す)。滑らかに縮める絵なので pixelated にしない
+// 繰り返す肖像は表示サイズの写しを再利用する。原寸の写しの追い出しで再表示を待たせない。
+const _photoThumbs = new Map();
+const THUMB_BUDGET = PHOTO_BUDGET / 4;
+let thumbBytes = 0;
+function thumbKey(c, spr, dx, dy, dw, dh) {
+  const p = spr.photo;
+  return [c.width, c.height, p.sx, p.sy, p.sw, p.sh, dx, dy, dw, dh].join('/');
+}
 function photoInto(c, spr, dx, dy, dw, dh) {
   c.style.imageRendering = "auto";
-  drawPhoto(c.getContext("2d"), spr, dx, dy, dw, dh);
+  const p = spr.photo, key = thumbKey(c, spr, dx, dy, dw, dh);
+  const existing = _photoThumbs.get(p)?.get(key);
+  if (existing) {
+    // 画像の取得し直しで元画像が変わった場合は以前の写しを使わない。
+    if (existing.image === p.img) {
+      const group = _photoThumbs.get(p); _photoThumbs.delete(p); _photoThumbs.set(p, group);
+      c.getContext("2d").drawImage(existing.canvas, 0, 0);
+      return;
+    }
+    _photoThumbs.get(p).delete(key); thumbBytes -= existing.bytes;
+    existing.canvas.width = existing.canvas.height = 0;
+  }
+  const remember = () => {
+    const bytes = c.width * c.height * 4;
+    if (!bytes || bytes > THUMB_BUDGET / 2) return;
+    const group = _photoThumbs.get(p) || new Map(), id = thumbKey(c, spr, dx, dy, dw, dh);
+    if (group.has(id)) return;
+    const copy = document.createElement("canvas"); copy.width = c.width; copy.height = c.height;
+    copy.getContext("2d").drawImage(c, 0, 0);
+    group.set(id, { canvas: copy, image: p.img, bytes }); thumbBytes += bytes;
+    _photoThumbs.delete(p); _photoThumbs.set(p, group);
+    for (const [photo, copies] of _photoThumbs) {
+      for (const [key, entry] of copies) {
+        if (thumbBytes <= THUMB_BUDGET) return;
+        copies.delete(key); thumbBytes -= entry.bytes;
+        entry.canvas.width = entry.canvas.height = 0;
+      }
+      if (!copies.size) _photoThumbs.delete(photo);
+    }
+  };
+  if (drawPhoto(c.getContext("2d"), spr, dx, dy, dw, dh)) { remember(); return; }
   whenPhoto(spr, () => {
     const g = c.getContext("2d");
     if (!g) return;
     g.clearRect(0, 0, c.width, c.height);
-    drawPhoto(g, spr, dx, dy, dw, dh);
+    if (drawPhoto(g, spr, dx, dy, dw, dh)) remember();
   }, c);
 }
 

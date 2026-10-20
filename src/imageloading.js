@@ -5,7 +5,8 @@ const entries = new Map(), imagePromises = new WeakMap();
 let lamp = null, timer = 0, scheduled = false, waitingSince = null;
 const LAMP_DELAY = 400;
 const scenes = new WeakMap();
-let redrawn = false;
+let redrawn = false, blockingNow = false, screenSince = null;
+const SCREEN_DELAY = 200;
 function visible(node) {
   if (!node?.isConnected || !node.getClientRects?.().length) return false;
   const rect = node.getBoundingClientRect();
@@ -42,13 +43,13 @@ function schedule() {
 }
 function update() {
   clearTimeout(timer); timer = 0;
-  let pending = false, failed = false;
+  let pending = false, failed = false, blocking = false, screenPending = false, screenFailed = false;
   const now = Date.now();
   for (const [key, entry] of entries) {
     let shown = now - entry.used < 300;
     for (const [node, used] of entry.liveOwners) {
-      if (visible(node)) shown = true;
-      if (!node.isConnected) entry.liveOwners.delete(node);
+      if (now - used < 300 && visible(node)) shown = true;
+      if (!node.isConnected || now - used >= 1000) entry.liveOwners.delete(node);
     }
     for (const [node, seen] of entry.owners) {
       if (visible(node)) { shown = true; entry.owners.set(node, true); }
@@ -61,26 +62,36 @@ function update() {
     if (shown) {
       pending ||= entry.state === "pending";
       failed ||= entry.state === "error";
+      const title = [...entry.owners.keys()].some(node => node.classList?.contains("ttl-overlay") && !node.dataset.sceneReady);
+      if (entry.blocking || title) blocking ||= entry.state !== "ready";
+      if (entry.screen || title) {
+        screenPending ||= entry.state === "pending";
+        screenFailed ||= entry.state === "error";
+      }
     }
   }
   const booting = document.body.classList.contains("booting");
-  if (pending || failed || booting) redrawn = false;
-  if (!redrawn && !pending && !failed && !booting && document.body.classList.contains("screen-loading")) {
+  const wasBlocking = blockingNow;
+  blockingNow = blocking || booting;
+  if (blockingNow) redrawn = false;
+  if (!redrawn && !blockingNow && wasBlocking) {
     redrawn = true;
     document.dispatchEvent(new Event("illustrations-ready"));
     // 描き直しで別の画像が必要になれば、次のmicrotaskで確認してから幕を開く。
-    if (scheduled) return;
+    if (scheduled) { blockingNow = wasBlocking; return; }
   }
-  // 未完成の絵を見せない。通常は先読みで、この待機自体が不要になる。
-  document.body.classList.toggle("screen-loading", booting || pending || failed);
+  // 小さな画像待ちは全画面を覆わない。区切りの短い待機も画面を明滅させない。
+  if (screenPending) screenSince ??= now;
+  else screenSince = null;
+  document.body.classList.toggle("screen-loading", booting || screenFailed || screenPending && now - screenSince >= SCREEN_DELAY);
   const splash = document.getElementById("media-splash");
   if (splash) {
-    const state = failed ? "error" : "loading";
+    const state = screenFailed ? "error" : "loading";
     if (splash.dataset.state !== state) splash.dataset.state = state;
-    const message = failed ? "画像を読み込めませんでした。接続を確かめて再試行してください。" : "画面を準備しています";
+    const message = screenFailed ? "画像を読み込めませんでした。接続を確かめて再試行してください。" : "画面を準備しています";
     const label = splash.querySelector(".media-message"), retry = splash.querySelector(".media-retry");
     if (label.textContent !== message) label.textContent = message;
-    if (retry.hidden === failed) retry.hidden = !failed;
+    if (retry.hidden === screenFailed) retry.hidden = !screenFailed;
   }
   if (pending || booting) waitingSince ??= now;
   else waitingSince = null;
@@ -88,16 +99,28 @@ function update() {
   if (state !== "idle") ensureLamp();
   if (lamp && lamp.dataset.state !== state) {
     lamp.dataset.state = state;
-    lamp.lastElementChild.textContent = state === "loading" ? "画像を読み込んでいます" : state === "error" ? "画像を読み込めませんでした" : "";
+    lamp.querySelector(".image-loading-label").textContent = state === "loading" ? "画像を読み込んでいます" : state === "error" ? "画像を読み込めませんでした" : "";
+  }
+  if (failed) {
+    ensureLamp();
+    if (lamp && !lamp.querySelector(".image-loading-retry")) {
+      const retry = document.createElement("button");
+      retry.type = "button"; retry.className = "image-loading-retry";
+      retry.textContent = "画像を再読み込み";
+      retry.addEventListener("click", () => location.reload());
+      lamp.insertBefore(retry, lamp.querySelector(".image-loading-label"));
+    }
   }
   if (!document.hidden && (pending || [...entries.values()].some(entry => entry.liveOwners.size || now - entry.used < 1000))) timer = setTimeout(update, 120);
 }
 // 表示待ちの間は入力と自動進行を止める。
 export function mediaBusy() {
-  return typeof document !== "undefined" && (document.body?.classList.contains("screen-loading") || document.body?.classList.contains("booting"));
+  return typeof document !== "undefined" && (blockingNow || document.body?.classList.contains("booting"));
 }
 // 階の準備はCanvasの表示・非表示によらず待つ。完了した要求はupdateで取り除く。
-export function holdIllustrations(key, ready) { watchIllustration(key, ready, document.body); }
+export function holdIllustrations(key, ready, { screen = true } = {}) {
+  watchIllustration(key, ready, document.body, false, { blocking: true, screen });
+}
 export function sceneReady(owner, ready) {
   const state = { pending: true, ready: Promise.resolve(ready) };
   scenes.set(owner, state);
@@ -112,7 +135,8 @@ export function preserveScene(root) {
   const originals = previous.querySelectorAll("canvas"), copies = snapshot.querySelectorAll("canvas");
   const oldScroll = previous.scrollTop;
   return () => {
-    const waits = [...root.querySelectorAll("canvas")].map(node => scenes.get(node)).filter(state => state?.pending);
+    for (const image of root.querySelectorAll("img[src]")) watchImage(image, image);
+    const waits = [...root.querySelectorAll("canvas, img")].filter(visible).map(node => scenes.get(node)).filter(state => state?.pending);
     if (!waits.length || !root.isConnected) return;
     // 画素のコピーは背景を待つ時だけ行う。
     originals.forEach((canvas, i) => {
@@ -130,30 +154,32 @@ export function preserveScene(root) {
     content.inert = true;
     root.append(content, snapshot);
     snapshot.scrollTop = oldScroll;
-    let timeout;
     const release = () => {
-      clearTimeout(timeout);
       if (snapshot.parentNode !== root) return;
       snapshot.remove();
       content.inert = false;
       content.replaceWith(...content.childNodes);
     };
-    // 回線が途切れても画面を閉じ込めない。失敗時はすぐに操作へ戻す。
-    timeout = setTimeout(release, 8000);
-    Promise.allSettled(waits.map(state => state.ready)).then(() => requestAnimationFrame(release));
+    // 遅延や失敗だけで空の次画面へ進めない。タブ移動と左下の再試行は利用できる。
+    Promise.allSettled(waits.map(state => state.ready)).then(results => {
+      if (results.every(result => result.status === "fulfilled" && result.value !== false)) requestAnimationFrame(release);
+    });
   };
 }
 // owner は表示する Canvas/要素。毎フレーム描く画像は省略して、その間だけ灯を出す。
-export function watchIllustration(key, ready, owner = null, live = false) {
+export function watchIllustration(key, ready, owner = null, live = false, { blocking = false, screen = false } = {}) {
   if (!key || !ready || typeof document === "undefined") return;
   let entry = entries.get(key);
   if (!entry || entry.ready !== ready) {
     entry = { ready, state: "pending", owners: entry?.owners || new Map(), liveOwners: entry?.liveOwners || new Map(), used: 0, created: Date.now() };
     entries.set(key, entry);
+
     const deadline = setTimeout(() => { entry.state = "error"; schedule(); }, 30000);
     Promise.resolve(ready).then(ok => { clearTimeout(deadline); entry.state = ok === false ? "error" : "ready"; schedule(); },
       () => { clearTimeout(deadline); entry.state = "error"; schedule(); });
   }
+  if (owner && !live && owner !== document.body && scenes.get(owner)?.ready !== ready) sceneReady(owner, ready);
+  entry.blocking ||= blocking; entry.screen ||= screen;
   if (owner && live) entry.liveOwners.set(owner, Date.now());
   else if (owner) entry.owners.set(owner, entry.owners.get(owner) || false);
   else entry.used = Date.now();
@@ -204,8 +230,8 @@ if (typeof document !== "undefined" && typeof MutationObserver !== "undefined") 
   document.addEventListener("scroll", schedule, { capture: true, passive: true });
   window.addEventListener("resize", schedule, { passive: true });
   document.addEventListener("keydown", event => {
-    if (!document.body.classList.contains("screen-loading") && !document.body.classList.contains("booting")) return;
-    if (document.getElementById("boot-notice") || event.target.closest?.("#media-splash, .cloud-gate, #local-save-gate")) return;
+    if (!mediaBusy()) return;
+    if (document.getElementById("boot-notice") || event.target.closest?.("#media-splash, .image-loading-retry, .cloud-gate, #local-save-gate")) return;
     event.preventDefault(); event.stopImmediatePropagation();
   }, true);
   document.getElementById("media-splash")?.querySelector(".media-retry")?.addEventListener("click", () => location.reload());

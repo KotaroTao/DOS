@@ -49,6 +49,27 @@ async def main():
             await ctx.close()
             print('タイトルの' + mode + '・入力抑止・再試行: OK', flush=True)
 
+        ctx = await browser.new_context(service_workers='block', reduced_motion='reduce')
+        await ctx.route('https://**', lambda r: r.abort())
+        page = await ctx.new_page()
+        await page.goto(BASE + '?testDungeon=w01&testPlace=town', wait_until='domcontentloaded')
+        await page.wait_for_selector('.town-scene[data-art="painted"]')
+        await page.wait_for_function("!document.body.classList.contains('booting')")
+        await page.evaluate("""() => {
+          window.splashCount=0;
+          new MutationObserver(() => {
+            if(document.body.classList.contains('screen-loading')) splashCount++;
+          }).observe(document.body,{attributes:true,attributeFilter:['class']});
+        }""")
+        for tab in ['party', 'shop', 'hub', 'party', 'hub']:
+            await page.evaluate("key=>__game.townshell.setTab(key)", tab)
+            await page.wait_for_function("!document.querySelector('#town-screen > .scene-hold')")
+            await page.evaluate("__game.renderTown()")
+            await page.wait_for_function("!document.querySelector('#town-screen > .scene-hold')")
+        assert await page.evaluate('splashCount') == 0
+        await ctx.close()
+        print('街・隊・商会の往復と同じ画面の再描画: 全画面待機0回', flush=True)
+
         ctx = await browser.new_context(service_workers='block', reduced_motion='no-preference')
         await ctx.route('https://**', lambda r: r.abort())
         release = asyncio.Event()
@@ -68,6 +89,22 @@ async def main():
         assert before == after, (before, after)
         release.set()
         await page.wait_for_function("!document.body.classList.contains('screen-loading')", timeout=30000)
+        # 肖像・装備などの待機や失敗で、起動用の幕と操作抑止を復活させない。
+        await page.evaluate("""async () => {
+          const {watchIllustration,mediaBusy}=await import('/src/imageloading.js');
+          const owner=document.createElement('canvas');owner.width=32;owner.height=32;
+          owner.style.cssText='position:fixed;top:0;left:0;width:32px;height:32px';document.body.append(owner);
+          window.decoration={owner,mediaBusy};
+          watchIllustration('decoration',new Promise(resolve=>decoration.done=resolve),owner);
+        }""")
+        await page.wait_for_timeout(550)
+        assert not await page.locator('#media-splash').is_visible()
+        assert not await page.evaluate('decoration.mediaBusy()')
+        await page.evaluate('decoration.done(false)')
+        await page.wait_for_selector('.image-loading[data-state="error"]')
+        assert not await page.locator('#media-splash').is_visible()
+        assert not await page.evaluate('decoration.mediaBusy()')
+        await page.evaluate('decoration.owner.remove()')
         # 先読みの対象外だった特殊な敵も、登場演出を始める前に待つ。
         key = await page.evaluate("""async () => {
           const {MONSTERS}=await import('/src/sprites.js');
@@ -81,14 +118,17 @@ async def main():
         await page.evaluate("""key => {
           const g=__game; g.startBattle(g.spawnCardEnemies(key,g.G.floor,1),null);
         }""", key)
-        await page.wait_for_function("__game.G.state === 'combat' && document.body.classList.contains('screen-loading')")
+        await page.wait_for_function("__game.G.state === 'combat'")
+        await page.wait_for_timeout(450)
+        assert not await page.locator('#media-splash').is_visible()
+        assert await page.evaluate('decoration.mediaBusy()')
         assert await page.evaluate('!__game.G.battleIntro')
         special.set()
         await page.wait_for_function("__game.G.battleIntro && !document.body.classList.contains('screen-loading')")
         assert not errors, errors
         assert await page.evaluate('__game.G.battle.enemies.every(e=>!e.mon.photo || e.mon.photo.img.naturalWidth>0)')
         await ctx.close()
-        print('階の敵を表示前に取得・待機中の移動と乱数停止・戦闘の画像準備: OK', flush=True)
+        print('階の準備待ち・装備や肖像の待機/失敗は全画面待機なし・戦闘は盤面を保持: OK', flush=True)
         await browser.close()
 
 asyncio.run(main())

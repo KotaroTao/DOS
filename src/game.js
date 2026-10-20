@@ -62,7 +62,7 @@ import { kingCanvas, prewarmTown } from "./townart.js";
 import { prewarmStoryArt } from "./storyart.js";
 import { drawBattleBackdrop } from "./backdrops.js";
 import { paintCryptFloor, paintCryptSlabs, paintCryptWalls, CATACOMB, genericMaterial, boardSeed, hexRgb } from "./crypt.js";
-import { cryptPaintingPending, hasCryptPainting, cryptPainting, paintCryptMaterials, paintCryptMasonry } from "./cryptpaint.js";
+import { prepareCryptPainting, cryptPaintingPending, hasCryptPainting, cryptPainting, paintCryptMaterials, paintCryptMasonry } from "./cryptpaint.js";
 import { CORPSE_FAMILIES, CORPSE_STATES, corpseArtKey } from "./corpseart.js";
 import { cryptActorsPending, prewarmCryptActors, cryptPropKey, cryptPropBitmap, cryptWalkerBitmap, cryptPropSprite } from "./cryptactors.js";
 import { normalizeName, storyText } from "./protagonist.js";
@@ -2491,7 +2491,7 @@ function preloadDungeon(cfg, floor = 1, priority = 0) {
 }
 function prepareFloorMedia() {
   const cfg = activeCfg(), floor = G.floor;
-  const ready = preloadDungeon(cfg, floor, 1);
+  const ready = Promise.all([preloadDungeon(cfg, floor, 1), prepareCryptPainting(cfg.id), prewarmCryptActors()]).then(values => values.every(Boolean));
   holdIllustrations(G.board, ready);
   // 次の階の先読みは今の階がそろってから始める。
   ready.then(ok => {
@@ -10217,10 +10217,10 @@ function drawOpeningTag(now, preempt = false) {
 function playBattleIntro(done, prepared = false) {
   const battle = G.battle;
   if (!prepared && battle) {
-    const tasks = [...battle.enemies.map(e => prepareSprite(e.mon)), ...G.party.map(d => prepareSprite(dollBust(d)))];
+    const tasks = battle.enemies.map(e => _monBmp.has(e.mon) ? Promise.resolve(true) : prepareSprite(e.mon));
     if (!PREFS.classicBattle) tasks.push(preloadBattleBackground(activeCfg().id, 1));
     const ready = Promise.all(tasks).then(values => values.every(Boolean));
-    holdIllustrations(battle, ready);
+    holdIllustrations(battle, ready, { screen: false });
     ready.then(ok => { if (ok && G.battle === battle && G.state === "combat") playBattleIntro(done, true); });
     return;
   }
