@@ -32,6 +32,21 @@ with sync_playwright() as p:
       api.distributeOrderLearning(109);
       check(a.exp===10 && b.exp===10, '各席に10%、端数切捨て、人数割りなし');
       check(G.soulPts===purse, '隊の所持Soulを減らさない');
+      w.cleared.w41=1;
+      check(api.orderLearningRate()===.10, '第十章は踏破のみでは10%のまま');
+      w.reported.w41=true;
+      check(api.orderLearningRate()===.15, '第十章の結びの報告で15%');
+      api.distributeOrderLearning(109);
+      check(a.exp===26 && b.exp===26, '15%も各席に付与し、端数を切り捨てる');
+      delete w.reported.w41; a.exp=b.exp=10;
+      check(api.orderSeats()===4, '第十一章の結びまでは4席');
+      w.cleared.w45=1;
+      check(api.orderSeats()===4, '第十一章は踏破のみでは4席');
+      w.reported.w49=true;
+      check(api.orderSeats()===4, '旧条件の第十二章報告だけでは開かない');
+      delete w.reported.w49; w.reported.w45=true;
+      check(api.orderSeats()===5, '第十一章の結びの報告で5席');
+      delete w.reported.w45;
       const main=game.soulByUid(G.party[0].primary), before=main.exp;
       const sub=g.inf.addSoulInstance('shadow'); G.party[0].subs=[{uid:sub.uid,picks:[]}];
       G.order.picks=[main.uid,sub.uid,a.uid,a.uid,999999,b.uid];
@@ -52,7 +67,9 @@ with sync_playwright() as p:
       // 無限迷宮の魂と本編の魂のuidが重なっても、館に退けた魂だけを育てる。
       const home={party:G.party,reserve:G.reserve,souls:G.souls};
       G.abyss={started:true,home}; G.party=[]; G.souls=[{...a,exp:0}];
-      const fake=G.souls[0]; a.level=1; a.exp=trainCost(1)-10;
+      const fake=G.souls[0]; a.level=1; a.exp=0;
+      api.distributeOrderLearning(100); check(a.exp===10, '無限迷宮でも第十章報告前は10%');
+      w.reported.w41=true; a.exp=trainCost(1)-15;
       const infLevels=api.distributeOrderLearning(100);
       check(a.level===2 && fake.exp===0, '無限迷宮では本編の席の魂へ付与');
       check(api.orderSeatedUids().length===0, '仮の器へ能力を加算しない');
@@ -76,30 +93,31 @@ with sync_playwright() as p:
     visit('')
     assert page.evaluate("""()=>{
       const g=__game, G=g.G;
-      return {open:g.orderLearning.featureUnlocked('orderLearning'),exp:G.souls.find(s=>s.uid===G.order.picks[0]).exp};
-    }""") == {'open': True, 'exp': before}
+      return {open:g.orderLearning.featureUnlocked('orderLearning'),rate:g.orderLearning.orderLearningRate(),exp:G.souls.find(s=>s.uid===G.order.picks[0]).exp};
+    }""") == {'open': True, 'rate': .15, 'exp': before}
     assert page.evaluate('async()=>{const {UI}=await import("/src/ui/ctx.js");return UI.tutorialPending()?.key}') == 'orderLearning'
 
 
-    # 実際の勝利処理: 戦果画面に表示される獲得Soulの10%になる。
-    visit('?testDungeon=w30&testPlace=board')
-    page.evaluate('''async()=>{
-      const {sheet}=await import('/src/ui/kit.js');
-      const g=__game,G=g.G;sheet.closeAll();G.prompt=false;G._evOpening='preempt';
-      const s=g.inf.addSoulInstance('monk');G.order={picks:[s.uid]};window.seated=s;
-      window.purse=G.soulPts;
-      g.startBattle(g.spawnCardEnemies('bs_drainrat',1),null);
-    }''')
-    page.wait_for_function('__game.G.battle?.phase === "input" && !__game.G.animating')
-    result=page.evaluate('''async()=>{
-      const {trainCost}=await import('/src/levelcurve.js');
-      const g=__game,G=g.G;
-      G.battle.enemies.forEach(e=>{e.hp=0;e.alive=false;});
-      G.battle.result='win';G.battle.rewards=()=>({soul:1000,gold:0});g.rematch.endBattle();
-      let exp=seated.exp;for(let lv=1;lv<seated.level;lv++)exp+=trainCost(lv);
-      return {got:G.soulPts-purse,exp};
-    }''')
-    assert result['got'] > 0 and result['exp'] == int(result['got']*.1), result
+    # 実際の勝利処理: 第十章の前後で、獲得額の10% / 15%になる。
+    for dungeon, rate in [("w30", .1), ("w42", .15)]:
+        visit(f'?testDungeon={dungeon}&testPlace=board')
+        page.evaluate('''async()=>{
+          const {sheet}=await import('/src/ui/kit.js');
+          const g=__game,G=g.G;sheet.closeAll();G.prompt=false;G._evOpening='preempt';
+          const s=g.inf.addSoulInstance('monk');G.order={picks:[s.uid]};window.seated=s;
+          window.purse=G.soulPts;
+          g.startBattle(g.spawnCardEnemies('bs_drainrat',1),null);
+        }''')
+        page.wait_for_function('__game.G.battle?.phase === "input" && !__game.G.animating')
+        result=page.evaluate('''async()=>{
+          const {trainCost}=await import('/src/levelcurve.js');
+          const g=__game,G=g.G;
+          G.battle.enemies.forEach(e=>{e.hp=0;e.alive=false;});
+          G.battle.result='win';G.battle.rewards=()=>({soul:1000,gold:0});g.rematch.endBattle();
+          let exp=seated.exp;for(let lv=1;lv<seated.level;lv++)exp+=trainCost(lv);
+          return {got:G.soulPts-purse,exp};
+        }''')
+        assert result['got'] > 0 and result['exp'] == int(result['got']*rate), result
 
     # 手ほどきは結社を開く実操作で完了し、受講状態は保存対象に残る。
     visit('?testScene=tutorial:orderLearning')
@@ -113,7 +131,8 @@ with sync_playwright() as p:
     assert '10%' in ''.join(pages) and '無限迷宮' in ''.join(pages)
     page.wait_for_selector('.iv-scene', state='detached')
     page.locator('.pt-order.tut-glow').click()
-    assert '10%' in page.locator('.sp-order-learning').inner_text()
+    percent=page.evaluate('Math.round(__game.orderLearning.orderLearningRate()*100)')
+    assert f'{percent}%' in page.locator('.sp-order-learning').inner_text()
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'), 'スマホの幅に収まる'
     page.locator('.tut-next').click()
     page.wait_for_function('__game.G.tut.done.orderLearning === true')
@@ -121,5 +140,5 @@ with sync_playwright() as p:
     visit('')
     assert page.evaluate('__game.G.tut.done.orderLearning === true'), '受講済みを保存・復元'
     assert not errors, errors
-    print('OK: 第七章報告前後・各席10%・無効席/重複除外・上限蓄積・無限迷宮・実戦の獲得額・祝祭・手ほどき完了')
+    print('OK: 第七・十章報告前後の10%/15%・第十一章の5席目・無効席/重複除外・上限蓄積・無限迷宮・実戦の獲得額・祝祭・手ほどき完了')
     browser.close()

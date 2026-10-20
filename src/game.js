@@ -11906,11 +11906,14 @@ const SUB_EXP_RATE = 1 / 3;
 // 無限迷宮で得た分は入れない (rusuiSeated が無限迷宮の間は空)。
 // 控えの魂それぞれの Lv で減らす (soulLvMul)。砕けた人業・魂の宿らない器は除く。レベルアップの画面は出さず、帰還の報告に載せる
 const RUSUI_EXP_RATE = 0.10;
-// 結社の伝習: 実際に獲得した戦闘の✦Soulの10%を、各席の魂へ直接経験値として加える。
-const ORDER_LEARNING_RATE = 0.10;
+// 結社の伝習: 第七章で10%、第十章の結びの報告で15%へ強化する。
+function orderLearningRate() {
+  if (!featureUnlocked("orderLearning")) return 0;
+  return featureUnlocked("orderLearning2") ? 0.15 : 0.10;
+}
 function distributeOrderLearning(soulGot) {
   if (!featureUnlocked("orderLearning") || G.rematch) return [];
-  const gain = Math.floor(Math.max(0, soulGot || 0) * ORDER_LEARNING_RATE);
+  const gain = Math.floor(Math.max(0, soulGot || 0) * orderLearningRate());
   if (!gain) return [];
   // 無限迷宮では館に残した本編の魂を育てる。仮の器へ結社の能力は加えない。
   const home = abyssActive() ? G.abyss.home : G;
@@ -15288,12 +15291,13 @@ const FEATURES = {
   rusui3: { retired: true, chapter: 10, report: "finale" },    // 留守居の修練の席3
   order4: { chapter: 6, report: "finale" },     // 結社の席4
   orderLearning: { chapter: 7, report: "finale" }, // 結社の伝習: 各席の魂へ戦闘の✦Soulの10%
+  orderLearning2: { chapter: 10, report: "finale" }, // 結社の伝習を15%へ強化
   // 無限迷宮 (入るたびに Lv1 の仮の器で潜るローグライク — docs/infinite-labyrinth.md)。第八章の結び (2026-10-11 ユーザーの指示:
   //   第八章のあたりで Lv100・ランク3〜4 に届き、本編の育ちが単調になってくるので、第十章から前倒し)
   infinite: { chapter: 8, report: "finale" },
   rematch: { chapter: 9, report: "finale" },    // 宿敵の再戦 (名のある強敵・主の強化版)
   enchant: { chapter: 8, firstAffixReturn: true }, // 追加の能力・特性つき装備の初持ち帰り (回収人への売却を含む)
-  order5: { chapter: 12, report: "finale" },    // 結社の席5
+  order5: { chapter: 11, report: "finale" },    // 結社の席5
   rebirth: { chapter: 14, report: "finale" },   // 魂の転生
   mutPick: { chapter: 15, report: "finale" },   // 異変を選ぶ
   vow: { chapter: 16, report: "finale" },       // 誓約
@@ -19877,7 +19881,7 @@ bindGame({
   prologuePhase, prologueActive, prologueJob, prologueCreateSouls, preparePrologueDoll, completePrologueTutorial, prologueAppraisalItem, preparePrologueAppraisal, prologueAudience, stabilityApplies,
   emptyDollCost, grantRedSoul, randomDollName, finalizeBuyDoll, soulRepresentatives, partySoulConflict, soulSlotConflict, soulTakePlan, placeSoulInDoll, ownSoulSlot, blockSoulResonance, soulSortCmp, soulRankOf, soulWorn, soulWornByOther,
   equipSoulToSlot, fuseCandidates, fuseSubWorn, fuseSoul, fuseSouls, toggleSoulLock, openFusePicker, openSubSkillPicker, slotSoul,
-  unlockedSubSlots, orderSeats, orderSeatedUids, toggleOrderSeat, showCodexJobDetail, addSoulInstance, codexSweepJobs,
+  unlockedSubSlots, orderSeats, orderSeatedUids, orderLearningRate, toggleOrderSeat, showCodexJobDetail, addSoulInstance, codexSweepJobs,
   canIdentify, identifyChance, openIdentifyChooser, doIdentifySkill, itemKnown, isFirstGet,
   showRankUp, announceJobChange, showNameInput,
   omokageUnlocked, omokageRanks, setDollFace,
@@ -19948,7 +19952,7 @@ async function init() {
     rusui: { distributeBattleSoulExp, RUSUI_EXP_RATE, soulByUid, rusuiSeats, rusuiSeated, toggleRusuiSeat },
     // 極 (無限迷宮の追加の特性) の検証用
     affix: { resolveCell, treasureCaller, battleChestSpec, distributeBattleSoulExp },
-    orderLearning: { distributeOrderLearning, orderSeatedUids, featureUnlocked, featureMet, settleSoulExp },
+    orderLearning: { distributeOrderLearning, orderSeatedUids, orderLearningRate, orderSeats, featureUnlocked, featureMet, settleSoulExp },
     // オート移動の検証用
     autoMove: { setAutoMove, toggleAutoMove, autoMovePlan, moveStep, cellRect, viewSize: () => ({ VW, VH }) },
     // 宿敵の再戦の検証用
