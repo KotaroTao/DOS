@@ -892,3 +892,33 @@ button.dp-rule:active, .dp-rule-b:active { filter: brightness(1.25); }
   .dg-peek .dg-num-s { margin-top: 3px; }
   .dg-peek .dg-skill { min-height: 44px; }
 }
+
+/* 戦闘の内訳: 小さい画面は名前の下に三項目、広い画面は同じ行に並べる。 */
+.bp { --bp-damage:#f0c671; --bp-taken:#f1948b; --bp-healing:#93d7b3; margin:14px 0; text-align:left; }
+.bp-heading { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:10px; }
+.bp-heading h3 { margin:0; color:var(--gold,#d9bd80); font-size:16px; letter-spacing:.08em; }
+.bp-rounds,.bp-job { font-size:11px; color:#b5ada1; }
+.bp-member { padding:12px; margin:0 0 8px; border:1px solid #ae91502e; border-radius:10px; background:linear-gradient(110deg,#c9a24a0c,#0002); min-width:0; }
+.bp-who { display:flex; align-items:center; gap:10px; min-width:0; margin-bottom:10px; }
+.bp-index { color:#ab9571; font:12px monospace; flex:none; }
+.bp-identity { display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 10px; min-width:0; }
+.bp-name { font-size:14px; color:#f1e8d8; overflow-wrap:anywhere; min-width:0; }
+.bp-metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; min-width:0; }
+.bp-metric { min-width:0; color:var(--bp-damage); }
+.bp-taken { color:var(--bp-taken); } .bp-healing { color:var(--bp-healing); }
+.bp-label { display:block; font-size:11px; line-height:1.5; color:#c3b9a9; }
+.bp-number { display:block; font-size:20px; font-variant-numeric:tabular-nums; line-height:1.6; overflow-wrap:anywhere; }
+.bp-number.small { font-size:14px; }
+.bp-track { height:4px; overflow:hidden; border-radius:3px; background:#ffffff0d; }
+.bp-track i { display:block; height:100%; border-radius:inherit; background:currentColor; }
+.bp-note,.bp-partial { font-size:11px; line-height:1.8; color:#b5ada1; margin:10px 2px 0; }
+.bp-partial { color:#ecc984; }
+@media (min-width:700px) {
+  .rs-sheet.has-performance { max-width:800px; }
+  .bp-member { display:grid; grid-template-columns:minmax(130px,1fr) minmax(0,2fr); align-items:center; gap:16px; padding:14px 16px; }
+  .bp-who { margin:0; } .bp-identity { display:block; } .bp-job { display:block; margin-top:4px; }
+  .bp-number { font-size:23px; }
+}
+@media (max-width:359px) {
+  .bp-member { padding:10px; } .bp-metrics { gap:8px; } .bp-number { font-size:17px; } .bp-number.small { font-size:12px; }
+}
