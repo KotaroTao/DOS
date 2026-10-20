@@ -157,8 +157,9 @@ function checkPerk(job, key, pk) {
     if (c.ret) {
       for (const k in c.ret) if (!["stat", "k", "magic"].includes(k)) fail(job, key, `ret.${k}`);
       if (!["atk", "vit", "int", "pie", "mag"].includes(c.ret.stat)) fail(job, key, `ret.stat ${c.ret.stat}`);
-      // 2026-10-15 ユーザーの指示: やり返しのパッシブは係数 0.2〜1.0、発動率は100% (chance を付けない)
-      if (![].concat(c.ret.k).every((v) => v >= 0.2 && v <= 1)) fail(job, key, "ret.k は 0.2〜1.0");
+      // 攻撃力は0.2〜1.0、武器の成長を受けない能力依存は5まで。発動率は100% (chance を付けない)
+      const max = c.ret.stat === "atk" ? 1 : 5;
+      if (![].concat(c.ret.k).every((v) => v >= 0.2 && v <= max)) fail(job, key, `ret.k は 0.2〜${max}`);
       if (c.chance != null) fail(job, key, "やり返し (ret) に chance は付けない (必ず発動)");
     }
     if (c.t === "win" && c.mp != null && [].concat(c.mp).some(v => !(v >= 0 && v <= VICTORY_MP_PER + 1e-9))) fail(job, key, `勝利後のMP回復は1つ${VICTORY_MP_PER * 100}%まで`);

@@ -124,17 +124,17 @@ for(let lv=1;lv<=3;lv++) {
   for(const e of es) {
     e.hp=5000; const before=e.hp;
     const r1=b._exec({actor:es[0],action:'eheal',target:e});
-    assert.equal(e.hp,before+r1.hits[0].heal-[0,50,80,120][lv]);
-    const r2=b._exec({actor:es[0],action:'eheal',target:e}); assert.equal(e.hp,before+r1.hits[0].heal+r2.hits[0].heal-[0,50,80,120][lv]);
+    assert.equal(e.hp,before+r1.hits[0].heal-[0,500,800,1200][lv]);
+    const r2=b._exec({actor:es[0],action:'eheal',target:e}); assert.equal(e.hp,before+r1.hits[0].heal+r2.hits[0].heal-[0,500,800,1200][lv]);
   }
   b._roundNo++; const e=es[0]; e.hp=5000; e.magResist=50;
-  const r=b._exec({actor:e,action:'eheal',target:e}); assert.equal(r.hits.find(h=>h.proc).dmg,Math.round([0,50,80,120][lv]*.5));
+  const r=b._exec({actor:e,action:'eheal',target:e}); assert.equal(r.hits.find(h=>h.proc).dmg,Math.round([0,500,800,1200][lv]*.5));
   b._roundNo++; e.hp=e.maxhp; b._exec({actor:e,action:'eheal',target:e}); assert.equal(e._healJudgeRound,b._roundNo-1);
   a.alive=other.alive=false; b._roundNo++; e.hp=5000; const r3=b._exec({actor:e,action:'eheal',target:e}); assert.equal(e.hp,5000+r3.hits[0].heal);
 }
 {
   const a=member({inquisitorShinmonNirami:3}), e=foe({regen:.1}), b=new Battle([a],[e],()=>{});
-  e.hp=5000; b._roundNo=1; b._startRound(); assert.equal(e.hp,5880);
+  e.hp=5000; b._roundNo=1; b._startRound(); assert.equal(e.hp,4800);
   b._roundNo=4; e.lifesteal=.5; e.hp=5000;
   b._exec({actor:e,action:'attack',target:a}); assert.equal(e._healJudgeRound,4);
 }
@@ -144,6 +144,6 @@ for(let lv=1;lv<=3;lv++) {
   e.hp=5000; e.mp=1000;
   const r=b._exec({actor:e,action:'mimic',spellKey:'DIOS'});
   const heal=r.hits.find(h=>h.heal>0), judge=r.hits.find(h=>h.proc==='祝福への異議');
-  assert(heal); assert(judge); assert.equal(judge.dmg,120); assert.equal(e.hp,5000+heal.heal-120);
+  assert(heal); assert(judge); assert.equal(judge.dmg,1200); assert.equal(e.hp,5000+heal.heal-1200);
 }
 console.log('独自パッシブ6職: 習得段・本人/隊・確率境界・余剰・解除・復活・敵回復反応 OK');
