@@ -9623,7 +9623,10 @@ function renderCombatCanvas() {
   const viewRect = view.getBoundingClientRect();
   const rowBtnRect = !enemyRowBtn.hidden ? enemyRowBtn.getBoundingClientRect() : null;
   const viewScale = VW / (viewRect.width || VW);
-  const stageH = VH - (wideBattle ? enemyNamesEl.getBoundingClientRect().height * viewScale : 0);
+  const namesRect = enemyNamesEl.getBoundingClientRect();
+  // 名前の帯がCanvasへ重なる範囲を実寸で除く。スマホの帯はCanvasの外にある。
+  const namesTop = namesRect.height ? (namesRect.top - viewRect.top - view.clientTop) * VH / (view.clientHeight || VH) : VH;
+  const stageH = Math.max(0, Math.min(VH, namesTop));
   const toolsBottom = rowBtnRect ? (rowBtnRect.bottom - viewRect.top + 6) * viewScale : 0;
   const distantW = rowBtnRect ? Math.max(VW / 2, (rowBtnRect.left - viewRect.left - 8) * viewScale) : VW;
   const intro = G.battleIntro && G.battleIntro.battle === b ? G.battleIntro : null;
@@ -10626,7 +10629,7 @@ function drawEffects(fx, now, stageH) {
     const t = (now - f.t0) / 760;
     if (t < 0 || t > 1) continue; // t0 が未来 (多段の2撃目以降) のものはまだ描かない
     // 味方の被ダメージは、敵名の帯を除いた戦場の下端から浮かべる。
-    drawFloatText(f.kind === "pdmg" ? { ...f, y: f.y - (VH - stageH) } : f, t);
+    drawFloatText(f.kind === "pdmg" ? { ...f, y: f.y - (VH - stageH) } : f, t, stageH);
   }
 }
 function hexA(hex, a) {
@@ -10645,7 +10648,7 @@ const FLOAT_STYLE = {
   buff:  { px: 16, top: null, bot: null, glow: null },
   info:  { px: 18, top: null, bot: null, glow: null },
 };
-function drawFloatText(f, t) {
+function drawFloatText(f, t, stageH = VH) {
   const kind = f.kind || (f.big ? "crit" : f.small ? "label" : f.color === "#fff" ? "dmg" : f.color === "#7CFC7C" ? "heal" : "info");
   const st = FLOAT_STYLE[kind] || FLOAT_STYLE.info;
   vctx.save();
@@ -10656,7 +10659,13 @@ function drawFloatText(f, t) {
   vctx.textAlign = "center";
   vctx.textBaseline = "alphabetic";
   if (st.spacing && "letterSpacing" in vctx) vctx.letterSpacing = st.spacing + "px";
-  const yy = f.y - Math.sin(Math.min(1, t * 1.5) * Math.PI / 2) * 24;
+  const metrics = vctx.measureText(f.text);
+  const ascent = metrics.actualBoundingBoxAscent || px;
+  const descent = metrics.actualBoundingBoxDescent || 0;
+  const margin = st.glow ? (kind === "crit" ? 14 : 8) : 6;
+  const animatedY = f.y - Math.sin(Math.min(1, t * 1.5) * Math.PI / 2) * 24;
+  // 会心の拡大・縁取り・光も含め、すべての浮き文字を名前の帯より上に収める。
+  const yy = Math.max(ascent + margin, Math.min(animatedY, stageH - descent - margin));
   // 黒い縁取り + 下への落ち影
   vctx.lineJoin = "round";
   vctx.strokeStyle = "rgba(0,0,0,0.9)";

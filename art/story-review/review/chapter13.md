@@ -1,7 +1,7 @@
 # 第13章「溶鉄炉」 の絵
 
 書き出し: `node tools/storyart/review.mjs` (手で直さない)。絵は出荷する WebP、まだ無ければ原画。
-
+ゲームで小さく出た時の見え方 (384×256): [chapter13-small.jpg](chapter13-small.jpg)
 
 <a name="w50_orders"></a>
 
@@ -233,9 +233,9 @@
 
 <a name="pre_w53"></a>
 
-## pre_w53「注文の向こう」 ── 未着手 (指示あり)
+## pre_w53「注文の向こう」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter13/pre_w53.webp" width="576" alt="pre_w53">
 
 **ストーリー一覧の本文**
 
@@ -261,9 +261,9 @@ _(絵はまだ無い)_
 
 <a name="pre_w53_retry"></a>
 
-## pre_w53_retry「戻った手」 ── 未着手 (指示あり)
+## pre_w53_retry「戻った手」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter13/pre_w53_retry.webp" width="576" alt="pre_w53_retry">
 
 **ストーリー一覧の本文**
 
@@ -287,9 +287,9 @@ _(絵はまだ無い)_
 
 <a name="mem_w53"></a>
 
-## mem_w53「明日の鎚」 ── 未着手 (指示あり)
+## mem_w53「明日の鎚」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter13/mem_w53.webp" width="576" alt="mem_w53">
 
 **ストーリー一覧の本文**
 
@@ -343,9 +343,9 @@ _(絵はまだ無い)_
 
 <a name="irene_hands"></a>
 
-## irene_hands「杯を持つ手」 ── 未着手 (指示あり)
+## irene_hands「杯を持つ手」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter13/irene_hands.webp" width="576" alt="irene_hands">
 
 **ストーリー一覧の本文**
 
@@ -375,9 +375,9 @@ _(絵はまだ無い)_
 
 <a name="irene_tomorrow"></a>
 
-## irene_tomorrow「今日は、ここまで」 ── 未着手 (指示あり)
+## irene_tomorrow「今日は、ここまで」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter13/irene_tomorrow.webp" width="576" alt="irene_tomorrow">
 
 **ストーリー一覧の本文**
 
@@ -411,9 +411,9 @@ _(絵はまだ無い)_
 
 <a name="ch13_end"></a>
 
-## ch13_end「低い火」 ── 未着手 (指示あり)
+## ch13_end「低い火」 ── 出荷済み
 
-_(絵はまだ無い)_
+<img src="../../../art/story/chapter13/ch13_end.webp" width="576" alt="ch13_end">
 
 **ストーリー一覧の本文**
 
