@@ -2,7 +2,7 @@
 
 書き出し: `node tools/storyart/review.mjs` (build.py も書き直す。手で直さない)。
 
-場面: 出荷済み 138 ・ 出荷済み (任意の修正あり) 11 ・ 未着手 (指示あり) 23
+場面: 出荷済み 145 ・ 出荷済み (任意の修正あり) 11 ・ 未着手 (指示あり) 16
 
 | 章 | 場面 | 題 | 状態 | 確認ページ |
 |---|---|---|---|---|
@@ -60,7 +60,7 @@
 | 第4章「王都の地下」 | `report_w14` | 足元に沈む都 | 出荷済み | [見る](chapter4.md#report_w14) |
 | 第4章「王都の地下」 | `w15_mural` | 老いない横顔 | 出荷済み | [見る](chapter4.md#w15_mural) |
 | 第4章「王都の地下」 | `report_w15` | 名の残らない神官 | 出荷済み | [見る](chapter4.md#report_w15) |
-| 第4章「王都の地下」 | `w16_legs` | 根の中を歩いた脚 | 出荷済み | [見る](chapter4.md#w16_legs) |
+| 第4章「王都の地下」 | `w16_legs` | 根に留められた脚 | 出荷済み | [見る](chapter4.md#w16_legs) |
 | 第4章「王都の地下」 | `report_w16` | 破られた誓いの水 | 出荷済み | [見る](chapter4.md#report_w16) |
 | 第4章「王都の地下」 | `irene_sera_wake` | 灯が移った夜明け | 出荷済み | [見る](chapter4.md#irene_sera_wake) |
 | 第4章「王都の地下」 | `mem_w17` | 水の底の戴冠 | 出荷済み | [見る](chapter4.md#mem_w17) |
@@ -162,13 +162,13 @@
 | 第12章「王家の廟」 | `report_w49` | 余が決めた日に | 出荷済み | [見る](chapter12.md#report_w49) |
 | 第12章「王家の廟」 | `irene_enough` | 訊く人 | 出荷済み | [見る](chapter12.md#irene_enough) |
 | 第12章「王家の廟」 | `ch12_end` | 答えを聞くまで | 出荷済み | [見る](chapter12.md#ch12_end) |
-| 第13章「溶鉄炉」 | `w50_orders` | 器を待つ名 | 未着手 (指示あり) | [見る](chapter13.md#w50_orders) |
-| 第13章「溶鉄炉」 | `w51_mould` | 型の外の手 | 未着手 (指示あり) | [見る](chapter13.md#w51_mould) |
-| 第13章「溶鉄炉」 | `w52_bell` | 今日は、休む | 未着手 (指示あり) | [見る](chapter13.md#w52_bell) |
-| 第13章「溶鉄炉」 | `report_w50` | 王の数え方 | 未着手 (指示あり) | [見る](chapter13.md#report_w50) |
-| 第13章「溶鉄炉」 | `report_w51` | 誰のための器 | 未着手 (指示あり) | [見る](chapter13.md#report_w51) |
-| 第13章「溶鉄炉」 | `report_w52` | 座った侍従 | 未着手 (指示あり) | [見る](chapter13.md#report_w52) |
-| 第13章「溶鉄炉」 | `report_w53` | 聞こえない声 | 未着手 (指示あり) | [見る](chapter13.md#report_w53) |
+| 第13章「溶鉄炉」 | `w50_orders` | 器を待つ名 | 出荷済み | [見る](chapter13.md#w50_orders) |
+| 第13章「溶鉄炉」 | `w51_mould` | 型の外の手 | 出荷済み | [見る](chapter13.md#w51_mould) |
+| 第13章「溶鉄炉」 | `w52_bell` | 今日は、休む | 出荷済み | [見る](chapter13.md#w52_bell) |
+| 第13章「溶鉄炉」 | `report_w50` | 王の数え方 | 出荷済み | [見る](chapter13.md#report_w50) |
+| 第13章「溶鉄炉」 | `report_w51` | 誰のための器 | 出荷済み | [見る](chapter13.md#report_w51) |
+| 第13章「溶鉄炉」 | `report_w52` | 座った侍従 | 出荷済み | [見る](chapter13.md#report_w52) |
+| 第13章「溶鉄炉」 | `report_w53` | 聞こえない声 | 出荷済み | [見る](chapter13.md#report_w53) |
 | 第13章「溶鉄炉」 | `pre_w53` | 注文の向こう | 未着手 (指示あり) | [見る](chapter13.md#pre_w53) |
 | 第13章「溶鉄炉」 | `pre_w53_retry` | 戻った手 | 未着手 (指示あり) | [見る](chapter13.md#pre_w53_retry) |
 | 第13章「溶鉄炉」 | `mem_w53` | 明日の鎚 | 未着手 (指示あり) | [見る](chapter13.md#mem_w53) |
