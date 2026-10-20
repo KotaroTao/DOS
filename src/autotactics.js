@@ -3,7 +3,7 @@
 // オートで使う技は、戦闘の一覧に出していて「オート」を切っていない技だけ (souls.js autoSkills)。
 //
 // 選び方: 手番の者が取れる手 (通常攻撃 × 狙い / 使える技 × 狙い / 防御) をすべて並べ、
-// 3ターンの隊の与ダメ増分を dmgK でHPの値打ちへ換算し、癒し・蘇生・守り・状態異常を加え、消費MPを引く。
+// 今の有効な与ダメと討伐、3ターンの支援の増分を評価し、癒し・蘇生・守り・状態異常を加え、消費MPを引く。
 // 強化・弱体の攻撃への寄与は、段・持続・残りMP・射程・敵HPを反映した予測に含める。
 // dmgK = 敵の脅威の合計 ÷ 隊の与ダメの合計 (与ダメ 1 で戦いが縮み、その間に受けずに済む傷)。
 // ダメージの見積もりは combat.js の Battle.estPhys / estSpell (実際の式の平均。乱数も状態も触らない)。
@@ -14,15 +14,15 @@
 import { SPELLS, spellCost, soulPowerMul, healsHp, isMetal, spellCureKinds, breathHpK, manaGiftAmount, tauntGuard, stanceMulOf } from "./combat.js";
 import { autoSkills } from "./souls.js";
 import { STAGED, STAGE_MAX, STRONG_MIN, stageMul, stageOf } from "./buffstage.js";
-import { forecastCandidates, AUTO_FORECAST_TURNS } from "./autoforecast.js";
+import { forecastCandidates, AUTO_FORECAST_TURNS, scatterDamage } from "./autoforecast.js";
 
 // 作戦。key はセーブに残る (変えない)
 export const TACTICS = [
-  { key: "all", name: "全力で討て", short: "全力", desc: "強化・弱体も使い、3ターンの隊の傷を大きくする。魔力を惜しまず、癒しは仲間が倒れかけた時だけ。" },
-  { key: "bal", name: "機を見て戦え", short: "機を見る", desc: "強化・弱体も含め3ターンの攻めを比べる。傷が深まれば癒し、守りも使う。魔力が減るほど控える。" },
+  { key: "all", name: "全力で討て", short: "全力", desc: "今の有効打と、強化・弱体で3ターンの攻めを増やす手を比べる。魔力を惜しまず、癒しは仲間が倒れかけた時だけ。" },
+  { key: "bal", name: "機を見て戦え", short: "機を見る", desc: "今の有効打と、強化・弱体で続く3ターンの攻めを比べる。傷が深まれば癒し、守りも使う。魔力が減るほど控える。" },
   { key: "life", name: "命を繋げ", short: "命を繋ぐ", desc: "癒し・蘇生・治療と守りを先に立てる。攻めるのは隊が無事な時。" },
   { key: "save", name: "魔力を惜しめ", short: "魔力を惜しむ", desc: "通常攻撃を主にし、技は割に合う時と危うい時だけ。長く潜る時に。" },
-  { key: "blade", name: "刃のみ振るえ", short: "刃のみ", desc: "技を使わず、通常攻撃だけで3ターンの攻めを比べる。" },
+  { key: "blade", name: "刃のみ振るえ", short: "刃のみ", desc: "技を使わず、通常攻撃で通る傷と敵を倒す機会を比べる。" },
 ];
 export const DEFAULT_TACTIC = "bal";
 const TACTIC_BY_KEY = Object.fromEntries(TACTICS.map((t) => [t.key, t]));
@@ -62,9 +62,9 @@ const lowDamage = (d, t) => d <= 0 || (!isMetal(t) && d <= AUTO_LOW_DAMAGE && d 
 function autoDamage(known, actual, t) {
   return actual <= 0 || lowDamage(actual, t) ? actual : known;
 }
-const autoBasic = (b, a, t) => autoDamage(b.estBasic(a, t), b.estBasic(a, t, { actual: true }), t);
-const autoPhys = (b, a, t, opt) => autoDamage(b.estPhys(a, t, opt), b.estPhys(a, t, { ...opt, actual: true }), t);
-const autoSpell = (b, a, sp, t) => autoDamage(b.estSpell(a, sp, t), b.estSpell(a, sp, t, { actual: true }), t);
+const autoBasic = (b, a, t) => autoDamage(b.estBasic(a, t, { resistKnown: resistKnown(t) }), b.estBasic(a, t, { actual: true }), t);
+const autoPhys = (b, a, t, opt) => autoDamage(b.estPhys(a, t, { ...opt, resistKnown: resistKnown(t) }), b.estPhys(a, t, { ...opt, actual: true }), t);
+const autoSpell = (b, a, sp, t) => autoDamage(b.estSpell(a, sp, t, { resistKnown: resistKnown(t) }), b.estSpell(a, sp, t, { actual: true }), t);
 
 // オート中だけの観測。セーブやクラウドの戦闘結果には混ぜない。
 const autoProgress = new WeakMap();
@@ -128,17 +128,16 @@ function decideAutoInner(b, actor, dbg) {
   });
   let best = null;
   for (const c of cands) {
-    if (!W) c.score = c.damageGain3; // 刃のみも、通常攻撃の3ターン分を比べる
+    if (!W) c.score = c.dmg; // 今通る傷と討伐の値打ちは、未来の味方の攻撃で打ち消さない
     else {
       const cost = c.spellKey ? b.costOf(actor, SPELLS[c.spellKey], c.spellKey) : 0;
-      const sp = c.spellKey ? SPELLS[c.spellKey] : null;
-      const supportGain = c.damageGain3 > 0 && sp && (sp.buff || sp.debuff || sp.debuffAll || sp.vuln || sp.charge || sp.strip);
+      const supportGain = c.supportGain3 > 0;
       // 全力でも、ほぼ削れない攻撃だけにMPを使わない。有効な追加効果は別に残す。
-      if (cost > 0 && c.lowDamage && !(supportGain || c.death > 0 || c.heal > 0 || c.stat > 0 || c.guard > 0 || c.edge > 0 || c.revive > 0)) { c.score = -Infinity; continue; }
-      c.score = c.damageGain3 * ctx.dmgK * W.dmg + (c.heal || 0) + (c.revive || 0) * W.revive + (c.guard || 0) * W.guard
+      if (cost > 0 && c.lowDamage && !(supportGain || c.death > 0 || c.poisonDamage > 0 || c.heal > 0 || c.stat > 0 || c.guard > 0 || c.edge > 0 || c.revive > 0)) { c.score = -Infinity; continue; }
+      c.score = (c.dmg + (c.death || 0) + (c.poisonDamage || 0) + c.supportGain3 * ctx.dmgK) * W.dmg + (c.heal || 0) + (c.revive || 0) * W.revive + (c.guard || 0) * W.guard
         + (c.edge || 0) * W.edge + (c.stat || 0) * W.stat - (c.pen || 0) - cost * ctx.mpPrice(actor, W.mpK) - cost * 1e-3;
     }
-    // 同じ3ターンの成果なら、今動いて敵を減らす。過剰ダメージで加点しない。
+    // 同点では確実なとどめを優先する。過剰ダメージで加点しない。
     c.score += Math.min(1, c.raw || 0) * 0.02 + c.kills * 0.05;
     c.score += (c.target && c.target.side === "enemy" ? ctx.threat(c.target) * 1e-6 : 0);
     if (!best || c.score > best.score) best = c;
@@ -153,14 +152,14 @@ function decideAutoInner(b, actor, dbg) {
       const value = (c.heal || 0) + (c.revive || 0) * W.revive - (c.pen || 0) - cost * ctx.mpPrice(actor, W.mpK);
       if (value > rescueValue) { rescue = c; rescueValue = value; }
     }
-    if (rescue) best = rescue;
+    if (rescue) { rescue.score = Math.max(rescue.score, rescueValue); best = rescue; }
   }
   if (dbg) dbg.push(...cands);
-  if (best && best.score > 0.01) return { action: best.action, spellKey: best.spellKey || null, target: best.target || null, effectiveAttack: !!((best.raw > 0 && !best.lowDamage) || best.death > 0 || best.damageGain3 > AUTO_LOW_DAMAGE) };
+  if (best && best.score > 0.01) return { action: best.action, spellKey: best.spellKey || null, target: best.target || null, effectiveAttack: !!((best.raw > 0 && !best.lowDamage) || best.death > 0 || best.poisonDamage > 0 || best.supportGain3 > AUTO_LOW_DAMAGE) };
   return { action: "defend", idle: true };
 }
 
-// 3ターンの成果が同じ時の比較用に、期待ダメージで今倒せる数を数える。
+// 同点の比較用に、期待ダメージで今倒せる数を数える。
 // 乱撃は対象ごとの平均を確実なとどめとして数えない (敵が1体なら通常どおり)。
 function finishEstimate(c, t, dmg, scattered = false, deathRate = 0) {
   if ((!scattered && dmg >= t.hp) || deathRate >= 1) c.kills++;
@@ -220,10 +219,10 @@ function makeCtx(b, actor) {
 }
 
 // 敵 t へ見積もり dmg の傷を負わせる値打ち (HP 換算): 残りHPで頭打ち + 倒せるなら脅威を足す
-function dmgValue(ctx, t, dmg) {
+function dmgValue(ctx, t, dmg, scattered = false) {
   if (!(dmg > 0)) return 0;
   const eff = Math.min(dmg, t.hp);
-  return eff * ctx.dmgK + (dmg >= t.hp * 0.95 ? ctx.threat(t) * KILL_W : 0);
+  return eff * ctx.dmgK + (!scattered && dmg >= t.hp * 0.95 ? ctx.threat(t) * KILL_W : 0);
 }
 
 // 癒しの重み (傷の深さ)。いまの敵の一撃で倒れうる者は深手と見なす
@@ -291,12 +290,12 @@ function skillCands(b, ctx, actor, key, sp) {
           const popt = { power: sp.power * soulPowerMul(actor, sp), critBonus: sp.critBonus, element: sp.element, intScale: sp.intScale, agiScale: sp.agiScale,
             vitScale: sp.vitScale, pieScale: sp.pieScale, acc: sp.acc, pierce: sp.pierce, desperate: sp.desperate, execute: sp.execute, prey: sp.prey, skill: true };
           const per = autoPhys(b, actor, t, popt);
-          d = sp.scatter ? per * sp.scatter / tgts.length : per * (sp.hits || 1);
+          d = sp.scatter ? scatterDamage(per, sp.scatter, tgts.length, t.hp) : per * (sp.hits || 1);
         } else if (sp.kind === "atk") d = autoSpell(b, actor, sp, t);
         c.raw += Math.min(d, t.hp);
         if (!lowDamage(d, t)) c.lowDamage = false;
         dSum += Math.min(d, t.hp);
-        const v = dmgValue(ctx, t, d) * (t.mind === "charm" ? CHARMED_TGT_MUL : 1);
+        const v = dmgValue(ctx, t, d, !!sp.scatter && tgts.length > 1) * (t.mind === "charm" ? CHARMED_TGT_MUL : 1);
         // 即死: 主には効かない。当たれば残りのHPぶんの傷と同じ
         let deathRate = 0;
         if (sp.instakill && !t.boss && !isMetal(t) && d < t.hp && (!sp.instakill.races || sp.instakill.races.includes(t.mon && t.mon.race))) {
@@ -306,7 +305,13 @@ function skillCands(b, ctx, actor, key, sp) {
         }
         finishEstimate(c, t, d, !!sp.scatter && tgts.length > 1, deathRate);
         c.dmg += v;
-        if (d < t.hp * 0.9) c.stat += foeEffects(b, ctx, actor, sp, t);
+        if (d < t.hp * 0.9) {
+          c.stat += foeEffects(b, ctx, actor, sp, t);
+          if (sp.poison && !t.ailment && !isMetal(t)) {
+            const rate = autoStatusChances(b, actor, sp, t).find(r => r.kind === "poison")?.rate || 0;
+            c.poisonDamage = (c.poisonDamage || 0) + rate * Math.min(t.hp - d, (t.boss ? Math.max(0.05, sp.poison.pct * 0.5) : sp.poison.pct) * t.maxhp * ctx.left(3)) * ctx.dmgK;
+          }
+        }
         if (sp.drain) c.heal += Math.min(d * sp.drain, actor.maxhp - actor.hp) * healUrg(ctx, actor, W);
       }
       if (sp.partyHeal) for (const a of ctx.allies) c.heal += Math.min(b.estPartyHeal(actor, sp.partyHeal), a.maxhp - a.hp) * healUrg(ctx, a, W);
@@ -318,7 +323,7 @@ function skillCands(b, ctx, actor, key, sp) {
       }
       hpPen(c);
       // 無効の追加効果は0点。攻撃や他の効果に価値があれば、技の候補は残す。
-      if (c.dmg > 0 || c.death > 0 || c.stat > 0 || c.heal > 0 || sp.debuff || sp.vuln) out.push(c);
+      if (c.dmg > 0 || c.death > 0 || c.poisonDamage > 0 || c.stat > 0 || c.heal > 0 || sp.debuff || sp.vuln) out.push(c);
     }
     return out;
   }
@@ -345,7 +350,6 @@ function foeEffects(b, ctx, actor, sp, t) {
   const rates = autoStatusChances(b, actor, sp, t);
   const rate = (x, kind) => rates.find(r => r.kind === kind)?.rate || 0;
   let v = 0;
-  if (sp.poison && !t.ailment) v += rate(sp.poison.chance, "poison") * Math.min(t.hp, (t.boss ? Math.max(0.05, sp.poison.pct * 0.5) : sp.poison.pct) * t.maxhp * ctx.left(3)) * ctx.dmgK;
   if (sp.para && !t.ailment) v += rate(sp.para, "paralyze") * th * Math.min(2, ctx.rounds) * 0.6;
   if (sp.sleepChance && !t.asleep) v += rate(sp.sleepChance, "sleep") * th * Math.min(2, ctx.rounds) * 0.5;
   if (sp.charm && !t.mind) v += rate(sp.charm, "charm") * th * Math.min(2, ctx.rounds) * 1.2;

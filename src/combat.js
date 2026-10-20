@@ -3471,6 +3471,7 @@ export class Battle {
     if (!actor || !tgt || !tgt.alive) return 0;
     const magHit = actor.side === "party" && !opt.skill && (opt.offhand ? !!actor.oMagic : !!actor.wMagic);
     let r = tgt[magHit ? "magResist" : "physResist"] || 0;
+    if (opt.resistKnown === false && r < 100) r = 0; // 図鑑で未開示の部分抵抗は予測へ入れない
     const metal = isMetal(tgt);
     if (r >= 100 && !metal) return 0; // 無効は会心でも通らない
     const missP = this._missP(tgt, actor, opt);
@@ -3510,7 +3511,7 @@ export class Battle {
       || (pv(actor, "sleepKill") && tgt.side === "enemy" && (tgt.ailment === "paralyze" || tgt.mind));
     critP = sureCrit ? 1 : Math.min(1, Math.max(0, critP));
     dmg *= this._rowMul(actor, tgt);
-    if (magHit && !metal && tgt.magWeak > 1) dmg *= tgt.magWeak;
+    if (magHit && !metal && tgt.magWeak > 1 && opt.resistKnown !== false) dmg *= tgt.magWeak;
     let crit = dmg * 1.85 * physicalCritMul(actor) * [1, 1.25, 1.45][Math.min(pv(actor, "vitalEye"), 2)];
     let plain = dmg;
     if (metal) plain = 1;
@@ -3553,10 +3554,11 @@ export class Battle {
       if (em < 1 && pv(actor, "elemFloor")) em = 1;
       em *= this._vulnMul(t, sp.element);
       dmg = Math.max(1, varianceMean(attackSpellPower(sp, intv, this.lvOf(actor)) * soulPowerMul(actor, sp)) * this._lowHpMul(actor) - Math.floor(this._evit(t, actor) * 0.2)) * em;
-      if (t.magWeak > 1) dmg *= t.magWeak;
+      if (t.magWeak > 1 && opt.resistKnown !== false) dmg *= t.magWeak;
       if (sp.prey && sp.prey.races.includes(enemyRace(t))) dmg *= sp.prey.mul;
     }
     let r = t.magResist || 0;
+    if (opt.resistKnown === false && r < 100) r = 0;
     if (r >= 100) return 0;
     if (r > 0) dmg *= 1 - resistRate(r) * (1 - this._rk(actor, "archmageShinen", [0.25, 0.50, 0.75, 1]));
     if (pv(actor, "gokudoku") && t.ailment === "poison") dmg *= 1.3;
