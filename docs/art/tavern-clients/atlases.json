@@ -22,5 +22,11 @@
     "cols": 3,
     "rows": 2,
     "count": 5
+  },
+  {
+    "file": "atlas-5.png",
+    "cols": 2,
+    "rows": 1,
+    "count": 2
   }
 ]

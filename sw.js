@@ -1513,6 +1513,8 @@ const ASSETS = [
   "./art/quest-clients/client-49.webp",
   "./art/quest-clients/client-50.webp",
   "./art/quest-clients/client-51.webp",
+  "./art/quest-clients/client-52.webp",
+  "./art/quest-clients/client-53.webp",
   // <</QUEST_PORTRAITS>>
   "./src/insight.js",
   "./src/monsterreveal.js",
