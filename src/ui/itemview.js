@@ -1,5 +1,5 @@
 import { revealSteps } from "../monsterreveal.js";
-import { MONSTER_LORE } from "../dungeons/monlore.js";
+import { MONSTER_LORE, monsterLoreReady } from "../dungeons/monlore.js";
 import { previewStats, trialEquip, equipmentTraitTexts } from "../autoequip.js";
 import { RESIST_LABEL, onHitEffects } from "../resistance.js";
 // ===== 品・スキルの表示まわり (game.js から移設した純粋な表示ヘルパ) =====
@@ -212,7 +212,7 @@ export function enemyCodexComplete(e) {
   if (rv.special || !rv.name || !rv.stats || !rv.lore) return false;
   const rec = game.G?.codex?.mon?.[e.key];
   const mainKills = rec === true ? 1 : Math.max(0, Number(rec?.main ?? rec?.kills) || 0);
-  return !MONSTER_LORE[e.key] || mainKills > 0;
+  return !MONSTER_LORE[e.key] || (mainKills > 0 && monsterLoreReady(e.key, game.G));
 }
 // 名前のまだわからない魔物の絵: 闇色の影に不確定名の色の淡い縁 (CSS の .unk-sil。戦闘の game.js monsterUnknownBitmap と揃える)
 export function unknownArt(m, scale = 2) {
