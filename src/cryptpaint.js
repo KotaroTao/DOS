@@ -19,7 +19,7 @@ export function cryptPainting(id = "w01") {
     for (const [key, suffix] of [["atlas", "materials"], ["floor", "floor"]]) {
       const image = new Image();
       state.textures[key] = image; image.decoding = "async";
-      image.onload = () => { if (image.naturalWidth === 1536 && image.naturalHeight === 1024) state.loaded++; finished(); };
+      image.onload = async () => { try { await image.decode?.(); } catch { finished(); return; } if (image.naturalWidth === 1536 && image.naturalHeight === 1024) state.loaded++; finished(); };
       image.onerror = finished;
       image.src = new URL(`../art/dungeon/${PAINTINGS[id]}-${suffix}.webp`, import.meta.url).href;
     }

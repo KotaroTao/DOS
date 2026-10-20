@@ -1,3 +1,4 @@
+import { mediaBusy } from "./imageloading.js";
 import { playtestEvent } from "./playtest.js";
 // オープニング — 新規ゲーム開始時に一度だけ流れる導入
 //
@@ -184,7 +185,13 @@ export function showOpening(onDone) {
     pipEls.forEach((p, i) => { p.classList.toggle("on", i === idx); p.classList.toggle("done", i < idx); });
   };
 
-  const elapsed = () => performance.now() - t0;
+  let mediaPausedAt = null, mediaPauseTotal = 0;
+  const elapsed = () => {
+    const now = performance.now();
+    if (mediaBusy()) mediaPausedAt ??= now;
+    else if (mediaPausedAt !== null) { mediaPauseTotal += now - mediaPausedAt; mediaPausedAt = null; }
+    return (mediaPausedAt ?? now) - t0 - mediaPauseTotal;
+  };
   const progress = () => {
     if (typedAll) return 1;
     const e = elapsed() - textStart;
@@ -196,7 +203,7 @@ export function showOpening(onDone) {
     wrap.classList.remove("op-typed");
     cap.classList.remove("show");
     ensureShot();
-    sequenceActive = true; readyAt = 0;
+    sequenceActive = true; readyAt = 0; mediaPausedAt = null; mediaPauseTotal = 0;
     renderText();
     t0 = performance.now();
     typedAll = false;
@@ -218,7 +225,7 @@ export function showOpening(onDone) {
     const autoAdvance = () => {
       if (phase !== "play" || SCENES[idx].last) return;
       const speaking = voice.busy();
-      if (!typedAll || sequenceActive || speaking) { readyAt = 0; autoT = setTimeout(autoAdvance, 250); return; }
+      if (mediaBusy() || !typedAll || sequenceActive || speaking) { readyAt = 0; autoT = setTimeout(autoAdvance, 250); return; }
       if (!readyAt) readyAt = performance.now();
       if (performance.now() - readyAt < hold) { autoT = setTimeout(autoAdvance, 250); return; }
       advance(true);

@@ -1,3 +1,4 @@
+import { imageResource } from "./mediaready.js";
 // タイトル画面の一枚絵 (描き下ろしの原画版) — ドットではなく、画面の解像度のまま滑らかに描く
 //
 // 原画 (art/title/keyart-*.webp、titlekeyart.js が台帳) を画面いっぱいに敷き、その上に
@@ -27,13 +28,11 @@ function pickArt(vw, vh) {
   return best;
 }
 
-const loadImage = (src) => new Promise((ok, ng) => {
-  const im = new Image();
-  im.decoding = "async";
-  im.onload = () => (im.decode ? im.decode().catch(() => {}) : Promise.resolve()).then(() => ok(im));
-  im.onerror = () => ng(new Error("タイトルの原画を読めません: " + src));
-  im.src = src;
-});
+const loadImage = async src => {
+  const entry = imageResource(src);
+  if (!await entry.ready) throw new Error("タイトルの原画を読めません: " + src);
+  return entry.image;
+};
 
 // 色つきのやわらかい光の玉 (加算で重ねる)
 function glow(size, rgb, core = 0.25) {

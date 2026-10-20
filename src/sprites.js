@@ -1221,6 +1221,7 @@ function preparePhoto(photo) {
   w.then(release, release);
   return w;
 }
+export function prepareSprite(spr) { return spr?.photo ? preparePhoto(spr.photo) : Promise.resolve(true); }
 export function photoReady(p) { return !!(p && p.img && _photoSurf.get(p.img)); }
 // 絵の升目の大きさ (ドット絵は文字グリッド、原画版は w/h)
 function dims(spr) {

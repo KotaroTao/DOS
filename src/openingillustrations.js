@@ -1,5 +1,6 @@
 // 六幕を物語と同じ原画で映す。画像が使えない時も暗い幕を保つ。
-import { watchImage } from "./imageloading.js";
+import { watchIllustration } from "./imageloading.js";
+import { imageResource } from "./mediaready.js";
 import { SCENES as ORIGINAL_SCENES, setReduced } from "./openingart.js";
 
 export { setReduced };
@@ -13,22 +14,19 @@ export const OPENING_IMAGES = [
   { src: "art/opening/flame.webp", focus: [0.54, 0.53] },
 ];
 
-const images = OPENING_IMAGES.map(({ src }) => {
-  if (typeof Image !== "function") return null;
-  const image = new Image();
-  image.decoding = "async";
-  image.src = new URL("../" + src, import.meta.url).href;
-  return image;
-});
+export function warmOpening(priority = 0) {
+  return Promise.all(OPENING_IMAGES.map(({ src }) => imageResource(src, priority).ready)).then(values => values.every(Boolean));
+}
 
 function illustratedShot(index, W, H) {
-  const image = images[index];
+  const entry = imageResource(OPENING_IMAGES[index].src);
+  const image = entry.image;
   const { focus } = OPENING_IMAGES[index];
   return {
     draw(g, t, cam, prog) {
-      watchImage(image);
+      if (entry.state !== "ready") watchIllustration(image, entry.ready, g.canvas, true);
       // 取得中・失敗時とも旧イラストは使わない。
-      if (!image?.complete || !image.naturalWidth) {
+      if (entry.state !== "ready") {
         g.save(); g.globalAlpha = 1; g.fillStyle = "#020104";
         g.fillRect(0, 0, W, H); g.restore();
         return;

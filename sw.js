@@ -1,6 +1,6 @@
 // オフライン対応キャッシュ (PWA / アプリ化用)
 // 戦略: バージョン一括キャッシュ (atomic versioned cache)。
-// install 時に全アセットを同一バージョンで先読みし、fetch は同バージョンの
+// install 時にコードを同一バージョンで先読みし、fetch は同バージョンの
 // キャッシュから返す。これにより「新しい game.js + 古い souls.js」のような
 // モジュール混在 (export 不一致で白画面) が構造的に起きない。
 // 新デプロイは CACHE 名の変更で検出され、ページ側が自動リロードする。
@@ -1485,6 +1485,7 @@ const ASSETS = [
   "./icon.svg",
   "./src/game.js",
   "./src/imageloading.js",
+  "./src/mediaready.js",
   "./src/loadingcandle.js",
   "./src/formations.js",
   // <<QUEST_PORTRAITS>>
@@ -3632,7 +3633,7 @@ const ASSETS = [
 // 版のたびに全部を先読みしていた頃は、1つでも取りこぼすと新しい版へ切り替わらず、
 // 端末に古い版が残り続けた。絵は版をまたいで残す MEDIA に置き、
 //   - install では JS/CSS/HTML (約10MB) だけを先読みして版を切り替える
-//   - 絵は現在の版で確認済みのキャッシュだけ返す。版が違えば取得完了を待つ
+//   - 絵は内容ハッシュが一致する保存済み画像を返す。変わった絵だけ取得完了を待つ
 //   - 未表示の全画像は先読みしない。使った絵はオフラインでも利用できるよう保存する
 //   - 物語・由来の絵 (art/story/) だけは、ページが伝えてきた分 (進めている章まで —
 //     journal.js storyMediaUrls) だけを集める。まだ着いていない章の絵は、開いた時に取りに行く
@@ -3641,6 +3642,14 @@ const isMedia = (u) => /\.(png|webp|jpe?g|gif)$/i.test(new URL(u, self.location.
 const CORE = ASSETS.filter((u) => !isMedia(u));
 const MEDIA_ASSETS = ASSETS.filter(isMedia);
 const abs = (u) => new URL(u, self.location.href).href;
+// 公開時に .github/scripts/stamp-media.py が画像ごとの内容ハッシュを入れる。
+const MEDIA_REVISIONS = {};
+function mediaVersion(value) {
+  const url = new URL(typeof value === "string" ? value : value.url, self.location.href);
+  const base = new URL("./", self.location.href).pathname;
+  const path = "./" + url.pathname.slice(base.length);
+  return MEDIA_REVISIONS[path] || CACHE;
+}
 const MEDIA_VERSION = "X-DOS-Media-Version";
 const mediaRequests = new Map();
 // 表示と裏の先読みが重なっても、同じ絵の通信は1回にまとめる。
@@ -3653,7 +3662,7 @@ function fetchMedia(request) {
       const res = await fetch(request, { cache: "no-cache" });
       if (res.ok) {
         const headers = new Headers(res.headers);
-        headers.set(MEDIA_VERSION, CACHE);
+        headers.set(MEDIA_VERSION, mediaVersion(key));
         const saved = new Response(res.clone().body, { status: res.status, statusText: res.statusText, headers });
         try { await (await caches.open(MEDIA)).put(key, saved); }
         catch (err) { /* 容量不足でも表示は続ける */ }
@@ -3707,14 +3716,14 @@ function warmMedia(again = false) {
     const todo = [];
     for (const u of MEDIA_ASSETS) {
       if (!isStory(u) || !allow.has(abs(u))) continue; // 未表示の全画像を初回に集めない
-      if ((await media.match(u))?.headers.get(MEDIA_VERSION) !== CACHE) todo.push(u);
+      if ((await media.match(u))?.headers.get(MEDIA_VERSION) !== mediaVersion(u)) todo.push(u);
     }
     let i = 0;
     const worker = async () => {
       while (i < todo.length) {
         const u = todo[i++];
         try {
-          if ((await media.match(u))?.headers.get(MEDIA_VERSION) === CACHE) continue; // 順番待ちの間に画面の表示で保存された絵は取り直さない
+          if ((await media.match(u))?.headers.get(MEDIA_VERSION) === mediaVersion(u)) continue; // 順番待ちの間に画面の表示で保存された絵は取り直さない
           await fetchMedia(u);
         }
         catch (err) { /* 通信が切れても次の機会に取り直す */ }
@@ -3768,12 +3777,12 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   if (url.origin !== self.location.origin) return; // 他オリジンは介入しない
 
-  // 絵: 現在の版で確認済みのものだけ返す。旧版の絵は通信失敗時も表示しない。
+  // 絵: 内容が一致するものだけ返す。変更前の絵は通信失敗時も表示しない。
   if (isMedia(url.href)) {
     e.respondWith((async () => {
       const media = await caches.open(MEDIA);
       const hit = await media.match(e.request, { ignoreSearch: true });
-      if (hit?.headers.get(MEDIA_VERSION) === CACHE) return hit;
+      if (hit?.headers.get(MEDIA_VERSION) === mediaVersion(e.request)) return hit;
       return fetchMedia(e.request);
     })());
     return;

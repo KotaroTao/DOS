@@ -58,6 +58,8 @@ jobs:
           npm exec --yes --package=esbuild@0.25.12 -- esbuild supabase/functions/game-save/index.js --bundle --format=esm --platform=neutral --target=es2022 --minify --allow-overwrite --outfile=supabase/functions/game-save/index.js
           supabase functions deploy game-save --project-ref "$SUPABASE_PROJECT_REF" --use-docker
           node supabase/deploy.mjs --config
+      - name: Stamp image content revisions
+        run: python3 .github/scripts/stamp-media.py
       # sw.js のキャッシュ版をデプロイのたびにコミットのハッシュで付け直す
       # (リポジトリでは "dos-dev" のまま。手で版を上げる運用は廃止)
       - name: Stamp Service Worker cache version

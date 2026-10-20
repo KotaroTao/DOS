@@ -1,3 +1,4 @@
+import { mediaBusy } from "../imageloading.js";
 // ===== UI キット (§5 部品) =====
 // 黒鉄の板・くすぶした金の縁・明朝の見出し。押せる場所は最低 44×44。絵文字はボタンに置かず、
 // 通貨は小さな硬貨/魂玉の印 (.ui-g-*) に、その他の絵文字は取り除く (glyphText)。
@@ -141,7 +142,7 @@ export function svgIcon(kind, cls = "ui-ic") {
 // 選択肢・シート・ステータス・設定のいずれかが開いている間は、盤面の入力と待機アニメを止める
 export function uiBlocked() {
   const G = game.G;
-  return cloudBusy() || !!(G && (G.prompt || G.statusOpen || G.settingsOpen)) || stack.length > 0;
+  return mediaBusy() || cloudBusy() || !!(G && (G.prompt || G.statusOpen || G.settingsOpen)) || stack.length > 0;
 }
 
 // ---- 揺れ ----

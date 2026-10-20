@@ -642,7 +642,8 @@ canvas.tw-vig-hd { image-rendering: auto !important; }
 .ui-soul-art > svg { position: absolute; width: 0; height: 0; overflow: hidden; }
 .ui-soul-art canvas.spr { width: 132px; height: 132px; margin: 22px; }
 
-/* 画像取得の合図。燭台は動かさず、火の範囲だけを揺らす。通常の画像待ちでは操作を遮らない。初回起動だけ黒い幕で覆う。 */
+/* 先読みで間に合わなかった絵は待機画面で準備し、欠けた場面を見せない。 */
+body.screen-loading .sc-scene *, body.screen-loading .op-overlay * { animation-play-state: paused !important; }
 body.screen-loading::before, body.booting::before {
   content: ""; position: fixed; inset: 0; z-index: 2147483647; background: #000;
 }

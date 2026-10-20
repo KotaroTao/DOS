@@ -1,3 +1,4 @@
+import { imageResource } from "./mediaready.js";
 import { watchImage } from "./imageloading.js";
 // 迷宮ごとの戦闘背景。出撃画面のドット絵とは別に管理する。
 export const BATTLE_BACKGROUNDS = Object.freeze({
@@ -88,33 +89,17 @@ export const BATTLE_BACKGROUNDS = Object.freeze({
 });
 
 // 読み込み中・失敗時は暗い幕にし、次のフレームで再確認する。
-const images = new Map();
-const MAX_IMAGES = 6;
-function backgroundImage(id, owner) {
-  const path = BATTLE_BACKGROUNDS[id];
-  if (!path || typeof Image === "undefined") return null;
-  let entry = images.get(id);
-  if (entry && entry.retryAt && Date.now() >= entry.retryAt) {
-    images.delete(id); entry = null;
-  }
-  if (!entry) {
-    const img = new Image();
-    entry = { img, ready: false, retryAt: 0 };
-    img.onload = () => { entry.ready = img.naturalWidth > 0; };
-    img.onerror = () => { entry.retryAt = Date.now() + 30000; };
-    images.set(id, entry);
-    img.src = new URL("../" + path, import.meta.url).href;
-  }
-  images.delete(id); images.set(id, entry);
-  while (images.size > MAX_IMAGES) images.delete(images.keys().next().value);
-  if (owner) watchImage(entry.img, owner, true);
-  return entry.ready ? entry.img : null;
-}
-
-// 今いる迷宮の背景だけを探索開始時に先読みする。燭台の対象にはしない。
-export function preloadBattleBackground(dungeonId) {
+function backgroundEntry(dungeonId, priority = 1) {
   const id = Object.hasOwn(BATTLE_BACKGROUNDS, dungeonId) ? dungeonId : "abyss";
-  backgroundImage(id);
+  return imageResource(BATTLE_BACKGROUNDS[id], priority);
+}
+function backgroundImage(id, owner) {
+  const entry = backgroundEntry(id);
+  if (owner && entry.state !== 'ready') watchImage(entry.image, owner, true);
+  return entry.state === 'ready' ? entry.image : null;
+}
+export function preloadBattleBackground(dungeonId, priority = 0) {
+  return backgroundEntry(dungeonId, priority).ready;
 }
 
 export function drawIllustratedBattleBackdrop(ctx, w, h, opts = {}) {
