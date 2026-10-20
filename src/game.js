@@ -11904,6 +11904,31 @@ const SUB_EXP_RATE = 1 / 3;
 // 無限迷宮で得た分は入れない (rusuiSeated が無限迷宮の間は空)。
 // 控えの魂それぞれの Lv で減らす (soulLvMul)。砕けた人業・魂の宿らない器は除く。レベルアップの画面は出さず、帰還の報告に載せる
 const RUSUI_EXP_RATE = 0.10;
+// 結社の伝習: 実際に獲得した戦闘の✦Soulの10%を、各席の魂へ直接経験値として加える。
+const ORDER_LEARNING_RATE = 0.10;
+function distributeOrderLearning(soulGot) {
+  if (!featureUnlocked("orderLearning") || G.rematch) return [];
+  const gain = Math.floor(Math.max(0, soulGot || 0) * ORDER_LEARNING_RATE);
+  if (!gain) return [];
+  // 無限迷宮では館に残した本編の魂を育てる。仮の器へ結社の能力は加えない。
+  const home = abyssActive() ? G.abyss.home : G;
+  if (!home) return [];
+  const entries = [];
+  for (const uid of orderSeatUidsFor(home)) {
+    const soul = home.souls.find((s) => s.uid === uid);
+    const from = soul.level;
+    soul.exp = (soul.exp || 0) + gain;
+    settleSoulExp(soul);
+    if (soul.level > from) {
+      const label = SOUL_CLASSES[soul.clsKey].label;
+      log(`結社の伝習: ${label}の魂 Lv${from} → Lv${soul.level}`, "win");
+      entries.push({ name: `${label}の魂（結社）`, uid, soul, order: true,
+        main: { from, to: soul.level }, subs: [], skills: [] });
+    }
+  }
+  if (!abyssActive()) recalcAllDolls({ levelUp: true });
+  return entries;
+}
 function distributeBattleSoulExp(...args) { return tlGameMeasure("growth", () => distributeBattleSoulExpMeasured(...args)); }
 function distributeBattleSoulExpMeasured(soulGot) {
   const queue = [];
@@ -12055,6 +12080,7 @@ function endBattleMeasured() {
     // 入手Soulの1/3を生存メンバーの魂 (サブ魂はその1/3) に加算 → レベルアップ/スキル習得を集計
     // (Lv差の減りは魂それぞれの Lv で掛け直すので、隊のLv で減らす前の額を渡す)
     const progress = distributeBattleSoulExp(soulOut.raw ?? soulGot);
+    const orderLevels = distributeOrderLearning(soulGot);
     updateTopbar();
     log(`勝利！ 💰${goldGot}・✦${soulGot}`, "win");
     const fled = b.enemies.filter((e) => e._fled).length; // 逃げ去った金属の魔物 (戦果は倒した分だけ)
@@ -12159,7 +12185,7 @@ function endBattleMeasured() {
     G.pendingResults = {
       kind: wasBoss ? "boss" : wasElite ? "elite" : wasGuard ? "guard" : corpse ? "corpse" : "win",
       gold: goldGot, soul: soulGot, kills, fled,
-      levels, skills, souls, levelUps: levelUpEntries(progress), chest, after,
+      levels, skills, souls, levelUps: [...levelUpEntries(progress), ...orderLevels], chest, after,
     };
     finishToBoard();
     showPendingResults();
@@ -15245,6 +15271,7 @@ const FEATURES = {
   rusui2: { retired: true, chapter: 7, report: "finale" },     // 留守居の修練の席2
   rusui3: { retired: true, chapter: 10, report: "finale" },    // 留守居の修練の席3
   order4: { chapter: 6, report: "finale" },     // 結社の席4
+  orderLearning: { chapter: 7, report: "finale" }, // 結社の伝習: 各席の魂へ戦闘の✦Soulの10%
   // 無限迷宮 (入るたびに Lv1 の仮の器で潜るローグライク — docs/infinite-labyrinth.md)。第八章の結び (2026-10-11 ユーザーの指示:
   //   第八章のあたりで Lv100・ランク3〜4 に届き、本編の育ちが単調になってくるので、第十章から前倒し)
   infinite: { chapter: 8, report: "finale" },
@@ -15312,16 +15339,20 @@ function orderSeats() {
 // G.order.picks の順を尊重しつつ、無効になった指定 (編成入り/消失) は除外する。
 function orderSeatedUids() {
   if (abyssActive() || !featureUnlocked("order")) return []; // 無限迷宮の仮の器には結社の分け前を乗せない
+  return orderSeatUidsFor(G);
+}
+// 無限迷宮の伝習では、退けてある本編の隊・魂を基準に同じ席を検証する。
+function orderSeatUidsFor(source) {
   const seats = orderSeats();
   if (seats <= 0) return [];
   const fielded = new Set();
-  for (const dd of G.party) { if (dd.primary != null) fielded.add(dd.primary); for (const s of (dd.subs || [])) if (s) fielded.add(s.uid); }
+  for (const dd of source.party || []) { if (dd.primary != null) fielded.add(dd.primary); for (const s of (dd.subs || [])) if (s) fielded.add(s.uid); }
   const picks = (G.order && Array.isArray(G.order.picks)) ? G.order.picks : [];
   const out = [];
   for (const uid of picks) {
     if (out.length >= seats) break;
     if (out.includes(uid) || fielded.has(uid)) continue;
-    if (!soulByUid(uid)) continue;
+    if (!(source.souls || []).some((s) => s.uid === uid)) continue;
     out.push(uid);
   }
   return out;
@@ -19330,6 +19361,11 @@ function setupTestPlay() {
     }
     if (key === "fusion") G.tut.fusionPending = true;
     if (key === "enchant") G.testUnlock.push("enchant");
+    if (key === "orderLearning") {
+      G.testUnlock.push("order", "orderLearning");
+      const soul = addSoulInstance("monk");
+      G.order = { picks: [soul.uid] };
+    }
     if (key === "soulChange") { addSoulInstance("monk"); G.tut.jobVisit = true; }
     if (key === "repairSoul") { G.party[0].alive = false; G.party[0].hp = 0; G.tut.repairPending = true; }
     if (key === "firstDive" || key === "buyEquipment") {
@@ -19895,6 +19931,7 @@ async function init() {
     rusui: { distributeBattleSoulExp, RUSUI_EXP_RATE, soulByUid, rusuiSeats, rusuiSeated, toggleRusuiSeat },
     // 極 (無限迷宮の追加の特性) の検証用
     affix: { resolveCell, treasureCaller, battleChestSpec, distributeBattleSoulExp },
+    orderLearning: { distributeOrderLearning, orderSeatedUids, featureUnlocked, featureMet, settleSoulExp },
     // オート移動の検証用
     autoMove: { setAutoMove, toggleAutoMove, autoMovePlan, moveStep, cellRect, viewSize: () => ({ VW, VH }) },
     // 宿敵の再戦の検証用
