@@ -9743,7 +9743,7 @@ function renderCombatCanvas() {
     });
   }
 
-  if (fx) drawEffects(fx, now);
+  if (fx) drawEffects(fx, now, stageH);
   if (intro) drawBattleIntro(intro, now);
   renderTurnOrder();
 }
@@ -10479,7 +10479,7 @@ function drawEnemyBadges(e, baseX, yTop, opt = {}) {
 // 攻撃/魔法/被弾エフェクトの描画
 // 斬撃 = 三日月の閃光と血の飛沫 / 魔法 = 属性色の閃光と環 / 撃破 = 魔物が白く焼けて灰と残り火に崩れる
 // 数字 = 重い明朝の数字 (会心は金で大きく、味方の被弾は紅)
-function drawEffects(fx, now) {
+function drawEffects(fx, now, stageH) {
   const spd = spdMul();
   // 撃破: 白く焼け、上へ崩れながら灰となって消える
   for (const d of fx.deaths || []) {
@@ -10572,7 +10572,8 @@ function drawEffects(fx, now) {
   for (const f of fx.floats) {
     const t = (now - f.t0) / 760;
     if (t < 0 || t > 1) continue; // t0 が未来 (多段の2撃目以降) のものはまだ描かない
-    drawFloatText(f, t);
+    // 味方の被ダメージは、敵名の帯を除いた戦場の下端から浮かべる。
+    drawFloatText(f.kind === "pdmg" ? { ...f, y: f.y - (VH - stageH) } : f, t);
   }
 }
 function hexA(hex, a) {
