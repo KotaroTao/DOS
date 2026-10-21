@@ -32,7 +32,7 @@ with sync_playwright() as p:
         for(let i=0;i<100;i++) {await new Promise(r=>setTimeout(r,10));if(draw(g,480,320,{dungeonId:id})){ok=true;break;}}
         if(!ok) failures.push('draw:'+id);
       }
-      const examples=[['w50',480,320,{}],['w51',480,320,{}],['w52',360,480,{elite:true}],['w53',360,480,{boss:true}],['ws28',480,320,{}],['ws29',480,320,{}]];
+      const examples=[['w54',480,320,{}],['w55',480,320,{}],['w56',360,480,{elite:true}],['w57',360,480,{boss:true}],['ws30',480,320,{}],['ws31',480,320,{}]];
       const box=document.createElement('div');box.style='display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap';document.body.replaceChildren(box);
       for(const [id,w,h,opts] of examples){const cv=document.createElement('canvas');cv.width=w;cv.height=h;box.append(cv);const ctx=cv.getContext('2d');draw(ctx,w,h,{dungeonId:id,...opts});await new Promise(r=>setTimeout(r,100));drawBattleBackdrop(ctx,w,h,1,0,{dungeonId:id,...opts});}
       return {count:Object.keys(BATTLE_BACKGROUNDS).length,world:WORLD.length,missing,failures,sizes};
@@ -42,13 +42,13 @@ with sync_playwright() as p:
     blocked=browser.new_page()
     blocked.route('**/art/battle/**',lambda route:route.abort())
     blocked.goto('http://127.0.0.1:8765/docs/art/battle-backgrounds/review.html')
-    result['fallback']=blocked.evaluate('''async()=>{const {drawIllustratedBattleBackdrop:draw}=await import('/src/battlebackgrounds.js');const c=document.createElement('canvas');c.width=480;c.height=320;const g=c.getContext('2d');draw(g,480,320,{dungeonId:'w50'});await new Promise(r=>setTimeout(r,100));draw(g,480,320,{dungeonId:'w50'});return g.getImageData(0,0,480,320).data.every((v,i)=>v===[8,10,16,255][i%4]);}''')
+    result['fallback']=blocked.evaluate('''async()=>{const {drawIllustratedBattleBackdrop:draw}=await import('/src/battlebackgrounds.js');const c=document.createElement('canvas');c.width=480;c.height=320;const g=c.getContext('2d');draw(g,480,320,{dungeonId:'w54'});await new Promise(r=>setTimeout(r,100));draw(g,480,320,{dungeonId:'w54'});return g.getImageData(0,0,480,320).data.every((v,i)=>v===[8,10,16,255][i%4]);}''')
     result['pageErrors']=errors
     result['battles']=[]
     battle_context=browser.new_context(service_workers='block')
     # 大量の原画を初回取得する検査環境では起動監視だけ待ち時間を延ばす。
     battle_context.add_init_script("const originalTimeout=window.setTimeout;window.setTimeout=(fn,ms,...args)=>originalTimeout(fn,ms===5000 && String(fn).includes('起動がタイムアウト') ? 60000 : ms,...args);")
-    for id,width,height in [('w50',390,844),('w51',1280,900),('w52',390,844),('w53',390,844),('ws28',1280,900),('ws29',390,844)]:
+    for id,width,height in [('w54',390,844),('w55',1280,900),('w56',390,844),('w57',390,844),('ws30',1280,900),('ws31',390,844)]:
         battle=battle_context.new_page()
         battle.set_viewport_size({'width':width,'height':height})
         battle.add_init_script('performance.setResourceTimingBufferSize(10000)')
