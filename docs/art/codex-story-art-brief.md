@@ -1578,6 +1578,40 @@ The established Irene and Sera put away tools together in the mansion workshop. 
 A great foundry at low heat, a quiet hammer within reach of a resting iron vessel, detached order chains and an open cooling channel. A dark stair beyond the furnace leads toward distant prayer. No future-chapter revelation.
 ```
 
+### 第十四章「深淵の聖堂」
+
+今回の5場面は本文（一覧・ゲーム内）に合わせて制作する。現在の発見の場面であり、師をその場に登場させない。聖堂の人業は木の体と黒鉄の継ぎ目を持つ。後の章の秘密を描かない。
+
+**w54_shoes「二足の木靴」** (手がかり)
+- 描くもの: 石段の下の白布の市 / 木の靴職人と木の足 / 作業台の大小二足の木靴と削りくず / 隅の師の書きつけ（読めない）。描かないもの: 現在の師、地上の娘、屋外の空。
+```text
+Under massive underground cathedral stone stairs, a modest market sheltered by white cloth awnings. Focus on a seated wooden articulated shoemaker with black iron joint bands, plain work apron and visible wooden feet, carefully shaving a wooden clog. On the central bench are exactly two individual wooden clogs, one adult-sized and one much smaller for his daughter; wood shavings and a small carving knife. His posture conveys quiet happiness at working again. A handwritten note and a little hand-drawn route lie at the corner, all marks illegible. A few wooden residents repair a cup and measure an arm in the distant market. Warm task light against cool subterranean stone. No Ordo, no daughter physically present, no sky.
+```
+
+**w55_reply「返事のある祈り」** (手がかり)
+- 描くもの: 石の回廊の鏡窓 / 老いた姿の人業 / 鏡の中だけの白髪の女とほつれた婚礼の布、祈りの皿 / 直された留め具と書きつけ。描かないもの: 現在の師、鏡を通り抜ける人、普通の鏡像。
+```text
+A quiet underground gothic stone corridor with small recessed mirror windows. An elderly-looking articulated wooden resident with black iron joint bands leans toward one antique mirror, sharing a tender everyday conversation. Inside the mirror alone appears a white-haired elderly human woman in a modest home, holding frayed wedding cloth beside a prayer dish with a small flame; a flowering garden tree is glimpsed behind her in bright daylight. This is a magical conversation with a distant home, not the doll's reflection. The mirror's repaired metal fastening and a tucked repair note with illegible scribbles are clearly visible. Warm light from the mirror meets cool blue cathedral shadows. No Ordo, no physical crossing through the mirror.
+```
+
+**w56_prayer「消されなかった願い」** (手がかり)
+- 描くもの: 灰の積もる鐘楼の最上段 / 胸を押さえた小さな人業 / 祈りの紙の炉と外れた細い鎖 / 古い祈りと弔い印の名札、師の紙（読めない）。描かないもの: 師、死体、人業の破壊、戦闘。
+```text
+At the top landing of an underground cathedral bell tower, paper ash lies on worn stone steps. A small intact wooden articulated resident sits with one hand gently against its chest door, shoulders finally relaxed in relief. Beside it is a small prayer-paper brazier with old papers and an aged name tag bearing only an abstract mourning mark. A fine chain leading from this one brazier toward the bell mechanism has been unhooked and lies visibly slack on the stone. Other distant bells and braziers recede below. An old note behind the brazier has illegible lines, one crossed out. Quiet blue soul-light and low amber embers, compassionate rest rather than death. No Ordo, no corpse, no combat, no damaged doll.
+```
+
+**ws30_patterns「縫い直された袖」** (寄り道の発見)
+- 描くもの: 倒れた棚の下の開いた箱 / 線を引き直した袖・すその型紙 / 留め具、針と糸、縫い直された袖 / 底の手紙と返事（読めない）。描かないもの: 人物、服を着た幽霊、師。
+```text
+An intimate still life discovered in an underground cathedral tailoring room: beneath a fallen wooden shelf sits an open box of old garment patterns. Large sleeve and hem patterns have several visibly redrawn contour lines, a fastening position moved to the left. A carefully resewn cloth sleeve rests over the box edge beside thread spools, a needle and different individual clasps. At the bottom lies one letter with a short reply underneath, both entirely illegible scribbles. Cool stone shadows and a warm portable exploration light reveal cloth texture, paper and patient individual adjustments. No people, no ghosts, no Ordo. Make the altered sleeve and patterns readable at small size.
+```
+
+**ws31_letters「読まれなかった返事」** (寄り道の発見)
+- 描くもの: 納骨室の石の台 / 開いた名簿と間に残った返事 / 隣り合う二通の手紙、古い名札と品。描かないもの: 魂を呼ぶ炎、幽霊、師、読める文字。
+```text
+A quiet underground cathedral ossuary, close still life on a worn stone ledge. An open old register with thick pages holds a long-undelivered reply between its leaves. Exactly two separate personal letters are laid side by side in the central foreground, one older and one the reply, their sender and recipient marks subtly reversed but entirely illegible scribbles. A small keepsake and an old name tag rest nearby; sealed burial niches recede softly into cool blue darkness. Warm portable exploration light grazes the paper edges. Tender absence and acceptance, no summoning flame, no ghosts, no Ordo, no readable text. The two adjacent letters are the unmistakable focal point.
+```
+
 ## 5. 便4 (任意) ― 踏破後の由来の絵
 
 迷宮を踏破すると、ストーリー一覧の「踏破した迷宮」に、その迷宮の由来と秘密 (`src/journal.js` の `DUNGEON_LORE`) が出る。専用の原画があるのは w01〜w13・w15・w17・ws1・ws2 だけ。ほかは次のとおり (Claude が今回直した)。
