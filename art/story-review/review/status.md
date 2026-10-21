@@ -2,7 +2,7 @@
 
 書き出し: `node tools/storyart/review.mjs` (build.py も書き直す。手で直さない)。
 
-場面: 出荷済み 171 ・ 出荷済み (任意の修正あり) 11 ・ 未着手 5
+場面: 出荷済み 176 ・ 出荷済み (任意の修正あり) 11
 
 | 章 | 場面 | 題 | 状態 | 確認ページ |
 |---|---|---|---|---|
@@ -188,11 +188,11 @@
 | 第14章「深淵の聖堂」 | `report_w56` | 願いだけが残る | 出荷済み | [見る](chapter14.md#report_w56) |
 | 第14章「深淵の聖堂」 | `report_w57` | 待つ場所 | 出荷済み | [見る](chapter14.md#report_w57) |
 | 第14章「深淵の聖堂」 | `pre_w57` | 届いた祈り | 出荷済み | [見る](chapter14.md#pre_w57) |
-| 第14章「深淵の聖堂」 | `pre_w57_retry` | まだ鳴る鐘 | 未着手 | [見る](chapter14.md#pre_w57_retry) |
-| 第14章「深淵の聖堂」 | `mem_w57` | 最初の返事 | 未着手 | [見る](chapter14.md#mem_w57) |
-| 第14章「深淵の聖堂」 | `irene_returned` | 帰ってきてくれて | 未着手 | [見る](chapter14.md#irene_returned) |
-| 第14章「深淵の聖堂」 | `irene_after_sleep` | 眠ったあと | 未着手 | [見る](chapter14.md#irene_after_sleep) |
-| 第14章「深淵の聖堂」 | `ch14_end` | 小さな鈴 | 未着手 | [見る](chapter14.md#ch14_end) |
+| 第14章「深淵の聖堂」 | `pre_w57_retry` | まだ鳴る鐘 | 出荷済み | [見る](chapter14.md#pre_w57_retry) |
+| 第14章「深淵の聖堂」 | `mem_w57` | 最初の返事 | 出荷済み | [見る](chapter14.md#mem_w57) |
+| 第14章「深淵の聖堂」 | `irene_returned` | 帰ってきてくれて | 出荷済み | [見る](chapter14.md#irene_returned) |
+| 第14章「深淵の聖堂」 | `irene_after_sleep` | 眠ったあと | 出荷済み | [見る](chapter14.md#irene_after_sleep) |
+| 第14章「深淵の聖堂」 | `ch14_end` | 小さな鈴 | 出荷済み | [見る](chapter14.md#ch14_end) |
 
 | 由来 | 迷宮 | 名前 | 状態 | |
 |---|---|---|---|---|
