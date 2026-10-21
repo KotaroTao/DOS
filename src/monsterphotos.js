@@ -2,6 +2,31 @@ import { lazyPhoto } from "./photoload.js";
 // 迷宮の透過原画。通常敵・強敵・主・召喚先・共通の敵で共用する。
 // 能力値や文字グリッドは保ち、原画の取得は表示に必要になってから始める。
 export const MONSTER_PHOTOS = {
+  // <<CHAPTER14_ART>>
+  // 第十四章「深淵の聖堂」。共通の敵は作成済み原画を共用。
+  bs_falseseraph: [520, 421],
+  bs_censerfiend: [520, 352],
+  bs_lightidol: [360, 506],
+  bs_choirofthelost: [520, 472],
+  bs_flagellant: [520, 355],
+  bs_radiantwraith: [458, 520],
+  bs_crusaderghost: [520, 337],
+  bs_saintbeast: [520, 326],
+  bs_blindingorb: [520, 364],
+  bs_martyrwraith: [348, 520],
+  bs_holygolem: [520, 420],
+  bs_confessor: [520, 448],
+  bs_lightlance: [520, 466],
+  bs_wingedjudge: [520, 466],
+  bs_pyreofsouls: [502, 520],
+  bs_cathedralguard: [520, 434],
+  bs_hymncaster: [512, 520],
+  bs_lightmoth: [482, 520],
+  bs_seraphwraith: [520, 431],
+  el_sorrowsaint: [471, 520],
+  el_huntsmanwraith: [487, 520],
+  bs_highpontiff: [441, 520],
+  // <</CHAPTER14_ART>>
   // <<CHAPTER13_ART>>
   // 第十三章「溶鉄炉」。共通の敵は作成済み原画を共用。
   bs_moltensmith: [520, 484],
