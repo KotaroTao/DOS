@@ -136,7 +136,10 @@ export function briefProblems() {
   const out = [];
   for (const s of SCENES) {
     const p = scenePaths(s.id);
-    if (!exists(p.shipped) && !brief.scenes[s.id]) out.push(`場面「${s.id}」(第${s.chapter}章) に絵も指示も無い — 指示書 4章に指示を足す`);
+    // 本文・遊びを先に実装し、専用イラストを後日制作する場面は理由を台帳に明記する。
+    // 既存の指示の整合性や、出荷済み画像の登録・原画の検査は引き続き行う。
+    const deferred = typeof s.illustration?.deferred === "string" && s.illustration.deferred.trim();
+    if (!exists(p.shipped) && !brief.scenes[s.id] && !deferred) out.push(`場面「${s.id}」(第${s.chapter}章) に絵も指示も無い — 指示書 4章に指示を足す`);
   }
   for (const [id, sp] of Object.entries(brief.scenes)) {
     const s = sceneById(id);

@@ -2155,6 +2155,384 @@ const WORLD_DEF = [
     hint: "三体の人業に魂を宿すと、イレーヌから依頼を受ける",
     about: "街の近くの森。二階の古屋に、イレーヌが長く使っていない人業が残っている。",
   },
+  {
+  "id": "w54",
+  "name": "祈りの石段",
+  "short": "石段",
+  "lv": 162,
+  "lvTo": 165,
+  "floors": 10,
+  "power": {
+    "1": 0.06705,
+    "5": 0.07209,
+    "10": 0.07812
+  },
+  "floorHaz": {
+    "fall": "stairwell",
+    "harm": "waxdrip"
+  },
+  "about": "大炉の下へ降りる石段。白い布を張った市で、戻った人業たちが新しい暮らしの支度をしている",
+  "bands": [
+    [
+      "bs_lightmoth",
+      "bs_confessor",
+      "bs_choirofthelost",
+      "bs_censerfiend",
+      "bs_crusaderghost",
+      "bs_radiantwraith"
+    ],
+    [
+      "bs_lightidol",
+      "bs_holygolem",
+      "bs_saintbeast"
+    ]
+  ],
+  "elites": [
+    "el_sorrowsaint"
+  ],
+  "layer": 16,
+  "trait": {
+    "id": "prayerconvoy",
+    "name": "祈りを運ぶ列",
+    "sym": "♧",
+    "accent": "#d8c898",
+    "lines": [
+      "祈りを運ぶ魔物が集まり、魔物の札の戦闘は4体以上の群れになる。",
+      "祈りに残る記憶で、得る ✦Soul は1.25倍。"
+    ],
+    "mods": {
+      "packMin": 4,
+      "soulMul": 1.25
+    }
+  },
+  "tune": {
+    "enemyMul": 0.95,
+    "deepMul": 0.84,
+    "soloMul": 1
+  },
+  "unlock": {
+    "reported": "w53"
+  },
+  "hint": "「休まぬ大炉」の踏破を王に報告し、鐘の聞こえる石段を地図に記す"
+},
+  {
+  "id": "w55",
+  "name": "再会の回廊",
+  "short": "再会廊",
+  "lv": 165,
+  "lvTo": 168,
+  "floors": 10,
+  "power": {
+    "1": 0.06534,
+    "5": 0.07056,
+    "10": 0.07641
+  },
+  "floorHaz": {
+    "fall": null,
+    "harm": "cullet"
+  },
+  "about": "地上の祈りの皿を映す鏡が並ぶ回廊。離れた家族の声を、小さな窓越しに交わしている",
+  "bands": [
+    [
+      "bs_radiantwraith",
+      "bs_blindingorb",
+      "bs_lightidol",
+      "bs_confessor",
+      "bs_martyrwraith",
+      "bs_hymncaster"
+    ],
+    [
+      "bs_wingedjudge",
+      "bs_lightlance",
+      "bs_holygolem"
+    ]
+  ],
+  "elites": [
+    "el_huntsmanwraith"
+  ],
+  "layer": 16,
+  "trait": {
+    "id": "mirrorglare",
+    "name": "重なる鏡の光",
+    "sym": "♧",
+    "accent": "#d8c898",
+    "lines": [
+      "鏡の反射で、戦闘の開幕に隊の全員の命中が下がる（物理が外れる率 +15%・3ターン）。",
+      "鏡に残る記憶で、得る ✦Soul は1.35倍。"
+    ],
+    "gloom": 0.15,
+    "say": "重なる鏡の光が、敵の輪郭を隠す",
+    "mods": {
+      "soulMul": 1.35
+    }
+  },
+  "tune": {
+    "enemyMul": 0.95,
+    "deepMul": 0.84,
+    "soloMul": 1
+  },
+  "unlock": {
+    "story": "w54_shoes"
+  },
+  "hint": "「祈りの石段」で師の筆跡と、回廊への道を見つける"
+},
+  {
+  "id": "w56",
+  "name": "呼び声の鐘楼",
+  "short": "鐘楼",
+  "lv": 168,
+  "lvTo": 171,
+  "floors": 10,
+  "power": {
+    "1": 0.06462,
+    "5": 0.06966,
+    "10": 0.0756
+  },
+  "floorHaz": {
+    "fall": "stairwell",
+    "harm": "waxdrip"
+  },
+  "about": "祈りの紙を焼き、その名を下へ運ぶ鐘楼。呼ぶ者がいなくなっても、鐘だけは鳴り続けている",
+  "bands": [
+    [
+      "bs_choirofthelost",
+      "bs_censerfiend",
+      "bs_flagellant",
+      "bs_pyreofsouls",
+      "bs_lightmoth",
+      "bs_blindingorb"
+    ],
+    [
+      "bs_crusaderghost",
+      "bs_hymncaster",
+      "bs_lightlance"
+    ]
+  ],
+  "elites": [
+    "el_sorrowsaint"
+  ],
+  "layer": 16,
+  "trait": {
+    "id": "callingbells",
+    "name": "呼び続ける鐘",
+    "sym": "♧",
+    "accent": "#d8c898",
+    "lines": [
+      "鐘の響きで、戦闘の開幕に隊の一人が50%の確率で混乱する（混乱の抵抗で防げる）。",
+      "祈りとともに納められた金貨で、得る金貨は1.35倍。"
+    ],
+    "whisper": 0.5,
+    "say": "呼び続ける鐘が、胸の灯を惑わせる",
+    "mods": {
+      "goldMul": 1.35
+    }
+  },
+  "tune": {
+    "enemyMul": 0.95,
+    "deepMul": 0.84,
+    "soloMul": 1
+  },
+  "unlock": {
+    "reported": "w54"
+  },
+  "hint": "「祈りの石段」の踏破を王に報告し、鐘楼への道を地図に記す"
+},
+  {
+  "id": "w57",
+  "name": "祈り果てぬ大聖堂",
+  "short": "大聖堂",
+  "lv": 171,
+  "lvTo": 175,
+  "floors": 15,
+  "power": {
+    "1": 0.06309,
+    "5": 0.06606,
+    "10": 0.06948,
+    "15": 0.07254
+  },
+  "floorHaz": {
+    "fall": null,
+    "harm": "waxdrip"
+  },
+  "about": "無数の祈りの紙を預かる大聖堂。祭壇の奥では、大司教が返事を聞かぬまま器を呼び起こす",
+  "bands": [
+    [
+      "bs_hymncaster",
+      "bs_cathedralguard",
+      "bs_martyrwraith",
+      "bs_holygolem",
+      "bs_confessor",
+      "bs_falseseraph"
+    ],
+    [
+      "bs_wingedjudge",
+      "bs_lightlance",
+      "bs_seraphwraith"
+    ],
+    [
+      "bs_crusaderghost",
+      "bs_saintbeast",
+      "bs_lightidol"
+    ]
+  ],
+  "elites": [
+    "el_sorrowsaint",
+    "el_huntsmanwraith"
+  ],
+  "layer": 16,
+  "trait": {
+    "id": "unceasingprayer",
+    "name": "取り消されぬ祈り",
+    "sym": "♧",
+    "accent": "#d8c898",
+    "lines": [
+      "祈りの衣が傷を包み、敵は毎ターン最大HPの3%を回復する。",
+      "積もり続けた祈りで、得る ✦Soul は1.4倍。"
+    ],
+    "foeRegen": 0.03,
+    "mods": {
+      "soulMul": 1.4
+    }
+  },
+  "tune": {
+    "enemyMul": 0.94,
+    "deepMul": 0.86,
+    "soloMul": 1.1,
+    "bossMul": 0.85
+  },
+  "unlock": {
+    "all": [
+      "w55",
+      "w56"
+    ]
+  },
+  "hint": "「再会の回廊」と「呼び声の鐘楼」の両方を踏破して王に報告する",
+  "boss": "bs_highpontiff",
+  "bossRank": 10
+},
+  {
+  "id": "ws30",
+  "name": "針と糸の支度部屋",
+  "short": "支度部屋",
+  "lv": 166,
+  "lvTo": 170,
+  "floors": 10,
+  "power": {
+    "1": 0.0657,
+    "5": 0.0711,
+    "10": 0.0765
+  },
+  "floorHaz": {
+    "fall": null,
+    "harm": "cullet"
+  },
+  "about": "戻った人業の寸法に合わせて衣を直す支度部屋。荒れた棚の奥に、書き直された型紙が残る",
+  "bands": [
+    [
+      "bs_lightmoth",
+      "bs_flagellant",
+      "bs_confessor",
+      "bs_radiantwraith",
+      "bs_crusaderghost",
+      "bs_lightidol"
+    ],
+    [
+      "bs_holygolem",
+      "bs_saintbeast",
+      "bs_censerfiend"
+    ]
+  ],
+  "elites": [
+    "el_sorrowsaint"
+  ],
+  "layer": 16,
+  "trait": {
+    "id": "patternwatch",
+    "name": "型紙を守る影",
+    "sym": "♧",
+    "accent": "#d8c898",
+    "lines": [
+      "型紙を守る魔物が集まり、各階は30%の確率で強敵の階になる。",
+      "仕立てに使う品が残り、落ちている装備の質が上がる。"
+    ],
+    "eliteRate": 0.3,
+    "mods": {
+      "lootBonusLv": 4
+    }
+  },
+  "tune": {
+    "enemyMul": 0.95,
+    "deepMul": 0.84,
+    "soloMul": 1
+  },
+  "unlock": {
+    "quest": "fq_patterns"
+  },
+  "hint": "酒場で依頼「袖を通す日」を受ける",
+  "side": true
+},
+  {
+  "id": "ws31",
+  "name": "返らぬ手紙の納骨室",
+  "short": "納骨室",
+  "lv": 169,
+  "lvTo": 173,
+  "floors": 10,
+  "power": {
+    "1": 0.0648,
+    "5": 0.0702,
+    "10": 0.0756
+  },
+  "floorHaz": {
+    "fall": null,
+    "harm": "waxdrip"
+  },
+  "about": "会えなかった者の手紙と名簿を預かる納骨室。返らなかったことと、返事がなかったことは違う",
+  "bands": [
+    [
+      "bs_martyrwraith",
+      "bs_radiantwraith",
+      "bs_confessor",
+      "bs_choirofthelost",
+      "bs_censerfiend",
+      "bs_blindingorb"
+    ],
+    [
+      "bs_hymncaster",
+      "bs_pyreofsouls",
+      "bs_cathedralguard"
+    ]
+  ],
+  "elites": [
+    "el_huntsmanwraith"
+  ],
+  "layer": 16,
+  "trait": {
+    "id": "unreadlullaby",
+    "name": "返事を待つ子守歌",
+    "sym": "♧",
+    "accent": "#d8c898",
+    "lines": [
+      "古い歌で、戦闘の開幕に隊の一人が50%の確率で眠る（眠りの抵抗で防げる）。",
+      "静かな安らぎで、勝つたびに隊のHP・MPが8%回復する。"
+    ],
+    "lull": 0.5,
+    "say": "手紙の間から、古い子守歌が聞こえる",
+    "mods": {},
+    "victoryHeal": 0.08
+  },
+  "tune": {
+    "enemyMul": 0.95,
+    "deepMul": 0.84,
+    "soloMul": 1
+  },
+  "unlock": {
+    "quest": "fq_letters"
+  },
+  "hint": "酒場で依頼「渡せなかったもの」を受ける",
+  "side": true
+},
+
 ];
 
 // 敵の種類: 3種 + 5階ごとに3種 (全5階 = 6種 / 全10階 = 9種 / 全15階 = 12種)。ミミック・銀業などの共通の敵と
