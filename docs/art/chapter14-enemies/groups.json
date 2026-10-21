@@ -1,0 +1,60 @@
+[
+  [
+    "a",
+    [
+      "bs_falseseraph",
+      "bs_censerfiend",
+      "bs_lightidol",
+      "bs_choirofthelost"
+    ],
+    "TOP LEFT: False Seraph, ominous six-winged ivory angel apparition, face hidden behind small golden halo, outstretched hands drawing thin soul light inward. TOP RIGHT: Censer Fiend, stocky horned bronze incense-burner demon with chain arms swinging two censers, white-gold holy flames and curling smoke. BOTTOM LEFT: Light Idol, rigid golden devotional statue with triangular crown, vertical blade-like rays and hollow mask, small low plinth integral to body. BOTTOM RIGHT: Choir of the Lost, a compact group of three ash-grey ghost choristers with pale tattered choir robes, open mouths and a shared open songbook; gold-white embers, sorrow rather than gore."
+  ],
+  [
+    "b",
+    [
+      "bs_flagellant",
+      "bs_radiantwraith",
+      "bs_crusaderghost",
+      "bs_saintbeast"
+    ],
+    "TOP LEFT: Flagellant ghost, gaunt hooded penitent in aged cream wraps carrying a coiled hooked scourge, stooped posture, old dark-red stains on cloth, no exposed wounds. TOP RIGHT: Radiant Wraith, floating luminous fragmented veil with a barely discernible face, a broken off-center ring of gold light, lower body dissolving into angular white wisps. BOTTOM LEFT: Dead Crusader, full armored ghost knight with tarnished silver-gold heavy armor, straight consecrated sword and broad heraldic shield, dark hollow visor. BOTTOM RIGHT: Sacred Beast, a stalking ivory lion-like beast with a gold mane, narrow fierce eyes, torn ceremonial collar and short broken chain; quadruped, broad side-facing silhouette."
+  ],
+  [
+    "c",
+    [
+      "bs_blindingorb",
+      "bs_martyrwraith",
+      "bs_holygolem",
+      "bs_confessor"
+    ],
+    "TOP LEFT: Blinding Orb, a brilliant pale gold-white floating orb surrounded by angular spear-like rays and two bright flying light arrows, compact circular silhouette. TOP RIGHT: Martyr Wraith, slender charred-robed human ghost with hands crossed over chest, soft white-gold flame rising from torn hem, somber exhausted face, no gore. BOTTOM LEFT: Holy Armor Colossus, squat massively built hollow giant formed of many layers of tarnished golden plate armor, huge rounded pauldrons and an empty black helmet; no weapon, thick gauntlets. BOTTOM RIGHT: Confessor, hunched spectral priest in deep violet and ivory stole, face shadowed under hood, one hand cupped to ear and another finger raised by mouth, heavy scrolls folded against chest; grey-gold whisper ribbons."
+  ],
+  [
+    "d",
+    [
+      "bs_lightlance",
+      "bs_wingedjudge",
+      "bs_pyreofsouls",
+      "bs_cathedralguard"
+    ],
+    "TOP LEFT: Light Lance Sentinel, tall slender spectral gate guard with narrow conical helmet, long luminous gold spear held diagonally within cell, split cream tabard and ethereal legs. TOP RIGHT: Winged Judge, hovering stern masked spirit with two broad asymmetric ivory wings and a downward hooked light sword; severe vertical silhouette, judicial blindfold-like face plate. BOTTOM LEFT: Pyre of Souls, compact rising swirl of white and amber holy flame around a black upright stake, faint sorrowful faces formed only from light, no bodies, no gore; broad low base narrowing into flame. BOTTOM RIGHT: Cathedral Guardian, huge dark grey stone guardian with a cathedral-shaped shoulder silhouette, engraved golden holy signs and two heavy stone fists, gold light inside cracks; distinct from golden armor colossus."
+  ],
+  [
+    "e",
+    [
+      "bs_hymncaster",
+      "bs_lightmoth",
+      "bs_seraphwraith",
+      "el_sorrowsaint"
+    ],
+    "TOP LEFT: Hymn Priest, floating ghost conductor in layered ivory vestments with dark wine stole, one hand holding a thin baton and the other holding a closed hymnbook, mouth open, narrow golden music-like light ribbons without readable glyphs. TOP RIGHT: Moths Drawn to Light, exactly one compact cluster of three golden moths, one large moth with broad patterned eye-like ivory wings in front and two small companions, sparse gold pollen. BOTTOM LEFT: Apostle of the End, solitary quiet white shrouded ghost with smooth shadowed face and two long empty sleeves, leaning forward swiftly, no trumpet and no weapon; cold pale light, long tapering wispy silhouette. BOTTOM RIGHT: Saint of Sorrow, grieving woman ghost with aged cream veil, hands joined in prayer, tear-bright face, a few tiny white wildflowers by the hem, soft faded golden halo; compassionate and exhausted, no crown."
+  ],
+  [
+    "f",
+    [
+      "el_huntsmanwraith",
+      "bs_highpontiff"
+    ],
+    "LEFT HALF: Wraith of the Hunter King, tall spectral male hunter with a small antler crown and faded green cloak, bow drawn low across his body, closed hunting horn hanging at belt, wind-torn cloak and angular boots. RIGHT HALF: High Pontiff of the Abyss Cathedral, elderly solemn archbishop ghost in MANY layers of aged white robes, many little prayer paper slips sewn across the cloth (only indistinct marks), worn gold mitre, one hand ringing a small bronze handbell and the other reaching toward viewer at chest height, a small warm lamp visible within chest; grave benevolent expression turned rigid by duty, no evil grin, no skull face. This boss is a dignified person carrying prayers to reunite the dead, not a demon."
+  ]
+]
