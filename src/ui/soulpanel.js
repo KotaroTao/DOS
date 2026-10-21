@@ -14,7 +14,7 @@ import {
   SOUL_CLASSES, jobSprite, jobBust, soulByUid, soulRankOf, soulLevelCapOf, emberCostOf, nextRankThreshold, jobRankName, soulSeriesName,
   soulLearnedSkills, soulLearnedPassives, soulLabel, soulRankLeft, passiveName, passiveDesc, orderStatBonus, orderStatRateOfRank, ORDER_STAT_RATES,
   jobSkillTable, recalcDoll, subPicks, subPickCap, subPickCapFor, toggleSubPick, subPickIndex, jobStatsOf, subStatRateOfRank,
-  EMBER_STAT_UP, emberStatSteps,
+  EMBER_STAT_UP, emberStatSteps, rebirthCount, soulRebirthReason,
 } from "../souls.js";
 import { SPELLS, spellMpLabel } from "../combat.js";
 import { RESIST_LABEL } from "../resistance.js";
@@ -286,6 +286,11 @@ function mainCard(d, pe, town) {
       acts.appendChild(em);
     } else acts.appendChild(lockedControl());
     card.appendChild(acts);
+    if (game.featureUnlocked?.("rebirth")) {
+      const reason = game.soulRebirthPlan?.(pe.uid).reason || soulRebirthReason(pe);
+      card.appendChild(button({ label: "魂の転生", sub: reason || `Lv1へ・能力 +${(rebirthCount(pe) + 1) * 5}%`, kind: "secondary", disabled: !!reason,
+        onTap: () => confirmRebirth(pe.uid) }));
+    }
     appendSubTiles(card, d, town);
     if (extra) { const row = el("div", "sp-row2"); row.appendChild(extra); card.appendChild(row); }
   }
@@ -732,7 +737,23 @@ function pickerBody(root, d, slotId, h) {
   root.appendChild(list);
 }
 
-// 一覧と付け替えで、同じ三つの操作を同じ順に並べる。
+// 転生の不利益と外す装備を示してから実行する。
+async function confirmRebirth(uid, onChange = null) {
+  const s = soulByUid(uid);
+  const plan = game.soulRebirthPlan?.(uid);
+  if (!s || plan?.reason || soulRebirthReason(s) || !game.featureUnlocked?.("rebirth")) return;
+  const yes = await confirm({ title: `${soulLabel(s)}を転生させますか？`,
+    lines: [`Lv${s.level} → Lv1。蓄積した✦Soulは0になります。`,
+      `同じLv・融合数での魂の能力への上乗せは +${rebirthCount(s) * 5}% → +${(rebirthCount(s) + 1) * 5}%。転生は5回までです。`,
+      "ランク・融合数・残火で伸ばしたLv上限は残ります。技とパッシブはLvに応じて覚え直します。",
+      "この魂を宿す人業の能力も下がります。Lvが足りなくなる装備は外して持ち物へ戻します。転生を取り消すことはできません。",
+      ...(plan?.equipment || []).map(b => `${b.doll.name}から外す装備：${b.item.name}`)],
+    okLabel: "Lv1から育て直す" });
+  if (yes && game.reincarnateSoul?.(uid)) {
+    toast("魂が転生した。新たな力とともに、Lv1から育て直せる。", { tone: "win" });
+    onChange?.();
+  }
+}
 function soulRowActions(s, onChange) {
   const side = el("div", "sp-srow-side");
   const tb = button({ label: "強化", kind: "secondary", size: "sm", title: "✦SoulでLvを上げ、残火でLv上限を上げる",
@@ -747,6 +768,11 @@ function soulRowActions(s, onChange) {
     onTap: () => openFusePicker(s.uid, onChange) });
   fb.classList.add("sp-pick-fuse");
   side.appendChild(fb);
+  if (game.featureUnlocked?.("rebirth")) {
+    const reason = game.soulRebirthPlan?.(s.uid).reason || soulRebirthReason(s);
+    side.appendChild(button({ label: "魂の転生", kind: "secondary", size: "sm", disabled: !!reason,
+      title: reason || "Lv1から育て直し、魂の能力を強める", onTap: () => confirmRebirth(s.uid, onChange) }));
+  }
   const lk = button({ icon: s.locked ? "unlock" : "lock", label: s.locked ? "ロック解除" : "ロック",
     kind: s.locked ? "secondary" : "ghost", size: "sm", disabled: !game.toggleSoulLock,
     title: s.locked ? "ロックを外す" : "魂融合の素材にできないようにする",

@@ -718,7 +718,7 @@ export function jobRankName(jobKey, rank) {
 export function soulLabel(s) {
   if (!s) return "";
   const n = isUniqueJob(s.clsKey) ? 0 : Math.max(0, (s.count || 1) - 1); // 固有 (灯守) は物語でランクが上がるだけで、魂を重ねない
-  return `${soulSeriesName(s.clsKey)}の魂${n > 0 ? `+${n}` : ""}`;
+  return `${soulSeriesName(s.clsKey)}の魂${n > 0 ? `+${n}` : ""}${"★".repeat(rebirthCount(s))}`;
 }
 // 次のランクまでの残り「（ランク2まであと4）」。最高ランクなら空
 export function soulRankLeft(s) {
@@ -858,6 +858,26 @@ export function makeSoulInstance(clsKey, count = 1, level = 1) {
   return { uid: ++_soulInstUid, clsKey, count: Math.max(1, count), level: Math.max(1, level), exp: 0 };
 }
 export function soulRankOf(s) { return s ? soulRankFromCount(s.clsKey, s.count) : 0; }
+// 転生はプレイヤーが選ぶ育成。魂のランク・融合数・残火による上限は保つ。
+export const REBIRTH_MAX = 5;
+export const REBIRTH_RATE = 0.05;
+export function rebirthCount(s) {
+  return Number.isFinite(s?.rebirth) ? Math.max(0, Math.min(REBIRTH_MAX, Math.floor(s.rebirth))) : 0;
+}
+export function soulRebirthReason(s) {
+  if (!s) return "魂が見つからない";
+  if (rebirthCount(s) >= REBIRTH_MAX) return "転生は5回まで";
+  if (soulRankOf(s) < 5) return "ランク5の魂が必要";
+  if ((s.level || 1) < soulLevelCapOf(s)) return "現在のLv上限まで育てると転生できる";
+  return "";
+}
+export function rebirthSoul(s) {
+  if (soulRebirthReason(s)) return false;
+  s.rebirth = rebirthCount(s) + 1;
+  s.level = 1;
+  s.exp = 0;
+  return true;
+}
 // 魂インスタンスが習得済みのスキル一覧 (自身の Lv とランクで決まる)
 export function soulLearnedSkills(s) {
   if (!s) return [];
@@ -997,7 +1017,7 @@ export function jobStatsOf(clsKey, entry) {
   const rarityMul = RARITY_MUL[cls.rarity] || 1.0;
   const up = SOUL_STAT_UP[cls.rarity] || 0.01;
   const ember = emberStatSteps(clsKey, entry) * (EMBER_STAT_UP[cls.rarity] || 0);
-  const f = BASE_FACTOR * lvlFactor(level) * rarityMul * (1 + Math.max(0, count - 1) * up + ember);
+  const f = BASE_FACTOR * lvlFactor(level) * rarityMul * (1 + Math.max(0, count - 1) * up + ember) * (1 + rebirthCount(entry) * REBIRTH_RATE);
   const r1 = (v) => Math.round((v || 0) * f * 10) / 10;
   return {
     hp: Math.round(st.hp * f), mp: Math.round(st.mp * f),

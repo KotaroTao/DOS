@@ -48,7 +48,7 @@ import {
 import { INF_TITLES, INF_TITLE_MAP, INF_DEPTH_TITLES } from "./inftitles.js";
 import {
   SOUL_CLASSES, SOUL_KEYS, makeDoll, jobSprite, dollSprite, jobBust, dollBust, dollLookKey, soulIcon,
-  recalcDoll, setPermanentStatSource, isUniqueJob, soulLevelCap, soulLevelCapOf, emberCostOf, setSharedSouls, syncDollUids, MAX_SUBS, subPicks,
+  recalcDoll, setPermanentStatSource, isUniqueJob, soulLevelCap, soulLevelCapOf, emberCostOf, setSharedSouls, syncDollUids, MAX_SUBS, subPicks, rebirthSoul, rebirthCount, soulRebirthReason,
   soulByUid, makeSoulInstance, soulRankOf, soulLearnedSkills, soulLearnedPassives, soulLabel, subPickCap, jobStatsOf,
   awakenPerkOf, subPickCapOfRank, subStatRateOfRank, setOrderSource, orderStatRateOfRank, setSkillGate, skillUsable,
   PASSIVES,
@@ -13522,6 +13522,33 @@ function toggleSoulLock(uid) {
   renderTown();
   return !!s.locked;
 }
+// 確認画面を開いた後でも、実行時に町・解放・育成条件を確かめ直す。
+function soulRebirthPlan(uid) {
+  const s = soulByUid(uid);
+  const plan = { reason: soulRebirthReason(s), equipment: [] };
+  if (G.state !== "town" || abyssActive() || !featureUnlocked("rebirth")) plan.reason = "第十四章の報告後、街で転生できます";
+  if (plan.reason) return plan;
+  for (const d of allDolls().filter(d => d.primary === uid)) {
+    const bad = unequippableUnder(d, { ...s, level: 1 });
+    if (bagCount(bad.map(b => b.item)) > MAX_ITEMS - bagCount(d.items)) plan.reason = `${d.name}の持ち物に、外す装備を入れる空きがありません`;
+    for (const b of bad) plan.equipment.push({ doll: d, ...b });
+  }
+  return plan;
+}
+function reincarnateSoul(uid) {
+  const plan = soulRebirthPlan(uid);
+  if (plan.reason) return false;
+  const s = soulByUid(uid);
+  if (!rebirthSoul(s)) return false;
+  for (const b of plan.equipment) { b.doll.equip[b.key] = null; b.doll.items.push(b.item); }
+  s.locked = true;
+  s.fuseLk = true;
+  recalcAllDolls();
+  log(`${soulLabel(s)}が転生した。Lv1から育て直し、魂の能力に恒久の上乗せ +${rebirthCount(s) * 5}%。`, "win");
+  autosave(true);
+  renderTown();
+  return true;
+}
 // 融合させる魂を選ぶ (src/ui/soulpanel.js のシート)
 function openFusePicker(targetUid) { return uiSoulPanel.openFusePicker(targetUid); }
 // 実際の融合: consume を消し、その魂数を target に加える。
@@ -13551,6 +13578,9 @@ function fuseSouls(targetUid, consumeUids, onResultClose = null, opts = {}) {
   const total = materials.reduce((sum, c) => sum + soulTotalExp(c.level, c.exp), soulTotalExp(t.level, t.exp));
   t.count += materials.reduce((sum, c) => sum + c.count, 0);
   t.capBonus = materials.reduce((sum, c) => sum + (c.capBonus || 0), t.capBonus || 0);
+  // 転生の力は多い方を受け継ぐ。足し合わせて育て直しを飛ばすことはできない。
+  const rebirth = Math.max(rebirthCount(t), ...materials.map(rebirthCount));
+  if (rebirth) t.rebirth = rebirth;
   const newCap = soulLevelCapOf(t);
   const le = levelExpFromTotal(total, newCap);
   t.level = le.level; t.exp = le.exp;
@@ -14139,7 +14169,7 @@ function questProgress(type, key, n = 1) {
     if (goal.type !== type) return null;
     if (type === "kill" && !(goal.keys || []).includes(key)) return null;
     if (type === "floor") return goal.dungeon && goal.dungeon !== here ? null : Math.max(prog, key || 0);
-    if (type === "clear") return goal.dungeon === key ? 1 : null;
+    if (type === "clear") return goal.dungeon === key && (!goal.need || worldState().found[goal.need]) ? 1 : null;
     // 魂・宝箱: 迷宮を指す依頼 (フリークエスト) はその迷宮の中でだけ進む。指さない依頼 (固定・古いセーブの依頼) はどこでも
     if ((type === "soul" || type === "chest") && goal.dungeon && !(inDungeon() && goal.dungeon === here)) return null;
     // 共通の魂・宝箱の依頼 (minLv あり) は、推奨Lv がその下限以上の迷宮・奈落の中でだけ進む
@@ -19882,7 +19912,7 @@ bindGame({
   equipAt, equipFromWearer, moveItem, campCast, campSpellsOf, healAll, healAllNeed, repairCostOf, repairCostAll, repairDoll, setReviveTimers, hastenCostOf, tryHastenRescue, awaitingRescue, RESCUE_SHORTEN_MS,
   prologuePhase, prologueActive, prologueJob, prologueCreateSouls, preparePrologueDoll, completePrologueTutorial, prologueAppraisalItem, preparePrologueAppraisal, prologueAudience, stabilityApplies,
   emptyDollCost, grantRedSoul, randomDollName, finalizeBuyDoll, soulRepresentatives, partySoulConflict, soulSlotConflict, soulTakePlan, placeSoulInDoll, ownSoulSlot, blockSoulResonance, soulSortCmp, soulRankOf, soulWorn, soulWornByOther,
-  equipSoulToSlot, fuseCandidates, fuseSubWorn, fuseSoul, fuseSouls, toggleSoulLock, openFusePicker, openSubSkillPicker, slotSoul,
+  equipSoulToSlot, fuseCandidates, fuseSubWorn, fuseSoul, fuseSouls, toggleSoulLock, reincarnateSoul, soulRebirthPlan, openFusePicker, openSubSkillPicker, slotSoul,
   unlockedSubSlots, orderSeats, orderSeatedUids, orderLearningRate, toggleOrderSeat, showCodexJobDetail, addSoulInstance, codexSweepJobs,
   canIdentify, identifyChance, openIdentifyChooser, doIdentifySkill, itemKnown, isFirstGet,
   showRankUp, announceJobChange, showNameInput,

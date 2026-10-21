@@ -860,7 +860,7 @@ const NEW_DEFS = [
     ability: "paralyze", pack: true, swift: true, desc: "聖堂の偽りの光に引き寄せられ、群がる黄金の蛾。鱗粉を撒いて獲物を痺れさせ、光を求めて素早く乱舞する。光に焼かれてもなお、次の蛾が集まってくる。" },
   { id: "bs_highpontiff", name: "深淵の聖堂の主", rank: 10, boss: true, race: "specter", element: "light", artKey: "highpontiff", soulClass: "cardinal",
     role: "summoner", summonKey: "bs_falseseraph", ability: "drain", magResist: 75, enrage: true,
-    desc: "偽りの光の名のもとに、数えきれぬ魂を聖堂で焼き続けた大司教の霊。堕ちた熾天使を従え、捧げられた魂ごと生者の命を吸い上げる。光も闇も魂を喰らうことに変わりはない――ただ、光のほうが言い訳が美しいだけだ。" },
+    desc: "再会を願う祈りを預かり、死者を器へ呼び戻し続ける大司教の霊。幾重もの白い衣に祈りの紙を縫いつけ、戻りたい声も休みたい声も聞き分けずに鐘を鳴らす。光の使いを呼び、胸の灯へ手を伸ばす。" },
   // -- 第17層「凍てつく王墓」 (rank 10・水/氷の王墓。若さの代償) --
   { id: "bs_frozenking", name: "氷漬けの王", rank: 10, race: "undead", element: "water", artKey: "frozenking",
     ability: "drain", physResist: 100, enrage: true, desc: "老いて天寿を迎え、氷の下へ納められた古い代の王。氷漬けのまま玉座を求めて起き上がり、生者の命と若さを吸い上げる。冠を譲った相手を、いまも氷の中から捜している。" },
