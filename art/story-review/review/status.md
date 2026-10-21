@@ -2,7 +2,7 @@
 
 書き出し: `node tools/storyart/review.mjs` (build.py も書き直す。手で直さない)。
 
-場面: 出荷済み 161 ・ 出荷済み (任意の修正あり) 11
+場面: 出荷済み 166 ・ 出荷済み (任意の修正あり) 11 ・ 未着手 10
 
 | 章 | 場面 | 題 | 状態 | 確認ページ |
 |---|---|---|---|---|
@@ -178,6 +178,21 @@
 | 序章 | `irene_repair` | 砕けても、名は消えない | 出荷済み | [見る](chapter0.md#irene_repair) |
 | 第1章「師の灯」 | `irene_familiar` | 名で呼べる距離 | 出荷済み | [見る](chapter1.md#irene_familiar) |
 | 第3章「魂脈の根」 | `irene_trust` | 扉を開けた日のこと | 出荷済み | [見る](chapter3.md#irene_trust) |
+| 第14章「深淵の聖堂」 | `w54_shoes` | 二足の木靴 | 未着手 | [見る](chapter14.md#w54_shoes) |
+| 第14章「深淵の聖堂」 | `w55_reply` | 返事のある祈り | 未着手 | [見る](chapter14.md#w55_reply) |
+| 第14章「深淵の聖堂」 | `w56_prayer` | 消されなかった願い | 未着手 | [見る](chapter14.md#w56_prayer) |
+| 第14章「深淵の聖堂」 | `ws30_patterns` | 縫い直された袖 | 未着手 | [見る](chapter14.md#ws30_patterns) |
+| 第14章「深淵の聖堂」 | `ws31_letters` | 読まれなかった返事 | 未着手 | [見る](chapter14.md#ws31_letters) |
+| 第14章「深淵の聖堂」 | `report_w54` | 帰りたい者 | 未着手 | [見る](chapter14.md#report_w54) |
+| 第14章「深淵の聖堂」 | `report_w55` | 同じ日を生きる | 未着手 | [見る](chapter14.md#report_w55) |
+| 第14章「深淵の聖堂」 | `report_w56` | 願いだけが残る | 未着手 | [見る](chapter14.md#report_w56) |
+| 第14章「深淵の聖堂」 | `report_w57` | 待つ場所 | 未着手 | [見る](chapter14.md#report_w57) |
+| 第14章「深淵の聖堂」 | `pre_w57` | 届いた祈り | 未着手 | [見る](chapter14.md#pre_w57) |
+| 第14章「深淵の聖堂」 | `pre_w57_retry` | まだ鳴る鐘 | 出荷済み | [見る](chapter14.md#pre_w57_retry) |
+| 第14章「深淵の聖堂」 | `mem_w57` | 最初の返事 | 出荷済み | [見る](chapter14.md#mem_w57) |
+| 第14章「深淵の聖堂」 | `irene_returned` | 帰ってきてくれて | 出荷済み | [見る](chapter14.md#irene_returned) |
+| 第14章「深淵の聖堂」 | `irene_after_sleep` | 眠ったあと | 出荷済み | [見る](chapter14.md#irene_after_sleep) |
+| 第14章「深淵の聖堂」 | `ch14_end` | 小さな鈴 | 出荷済み | [見る](chapter14.md#ch14_end) |
 
 | 由来 | 迷宮 | 名前 | 状態 | |
 |---|---|---|---|---|
@@ -264,3 +279,9 @@
 | 由来 | `ws26` | 剥製の大広間 | 出荷済み | [見る](dungeons.md#lore_ws26) |
 | 由来 | `ws27` | 王子の墓所 | 出荷済み | [見る](dungeons.md#lore_ws27) |
 | 由来 | `w00_forest` | 近くの森の古屋 | 出荷済み | [見る](dungeons.md#lore_w00_forest) |
+| 由来 | `w54` | 祈りの石段 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_w54) |
+| 由来 | `w55` | 再会の回廊 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_w55) |
+| 由来 | `w56` | 呼び声の鐘楼 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_w56) |
+| 由来 | `w57` | 祈り果てぬ大聖堂 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_w57) |
+| 由来 | `ws30` | 針と糸の支度部屋 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_ws30) |
+| 由来 | `ws31` | 返らぬ手紙の納骨室 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_ws31) |

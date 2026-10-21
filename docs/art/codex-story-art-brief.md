@@ -1578,6 +1578,50 @@ The established Irene and Sera put away tools together in the mansion workshop. 
 A great foundry at low heat, a quiet hammer within reach of a resting iron vessel, detached order chains and an open cooling channel. A dark stair beyond the furnace leads toward distant prayer. No future-chapter revelation.
 ```
 
+### 第十四章「深淵の聖堂」
+
+以下の五場面は `src/archive-stories.js`・`src/story.js` と承認済みの `docs/story-finale-text.md` を正本とする。再会に救われた人の喜びも、眠りたい灯の願いも否定しない。大司教は安らかな顔の霊と幾重もの白い衣、祈りの紙で統一し、異端大司教や職業「巡礼者」の衣装へ置き換えない。館の灯は `art/story-review/opening/flame.png` の幅広い台座・短い支柱・一本の白い蝋燭を守る。
+
+**pre_w57_retry「まだ鳴る鐘」** (第14章 / 主への再挑戦)
+- 要点: 器を直した隊が、なお鐘の鳴る祭壇へ戻る。大司教は祈りが届いたと思って安らかに迎えるが、灯はまだ眠れない。
+- 描くもの: 手前に弟子と修復済みの人業二体 / 奥の祭壇に安らかな顔の大司教の霊、幾重もの白い衣と裾へ縫いつけた祈りの紙 / 鐘と魂を引く鎖、空の器の中で休めずに揺れる小さな灯。修復は木の継ぎ目や当て木で示し、全員が立って進める姿。
+- 描かないもの: 壊れた隊の残骸、血、凶悪な笑い、勝利後の切断済みの鎖、師、次章の秘密、読める文字。
+```text
+The returning encounter at the altar of the deep underground cathedral, bells still swinging high above. In the near foreground the apprentice, seen from behind in the established charcoal cloak with restrained all-over gold embroidery and brown crossbody satchel, advances beside two intact repaired party dolls: a red-cloaked warrior with round shield and a white-robed priest with staff, blank smooth round wooden heads and black iron joint bands. Subtle fresh wooden repair patches at their joints. Beyond them stands the archbishop's spirit, a serene human face within many layers of flowing white vestments, scraps of prayer paper sewn to the hems, every mark illegible. He welcomes their return with quiet certainty rather than malice. Bell chains remain connected above small vessels near the altar; one faint pale soul-light trembles inside an open vessel, unable to rest. The party moves toward that light. Cool soul-fire against the apprentice's modest warm orange hand lantern. Keep the weary small light and the welcoming archbishop readable in the central band. No destruction of the bells, no blood or broken party bodies, no readable writing, no future-chapter imagery.
+```
+
+**mem_w57「最初の返事」** (第14章 / 主の記憶)
+- 要点: 聖堂が始まった頃、最初に帰ってきた子が父を呼び、父が小さな器を抱きしめた。その再会の喜びは本物。
+- 描くもの: まだ鐘がひとつだけの聖堂 / ひざをついて子の小さな木の器を抱く父親 / 父を見上げ、小さな口を開いた子 / 静かに見守る白い衣の大司教。父と子の抱擁を主題にする。
+- 描かないもの: 弟子と隊、師、三月前の名札、現在の戦闘後の場面との合成、多数の鐘、子の遺体、恐怖や邪悪さの演出、文字。
+```text
+One single historical memory from the beginning of the underground cathedral, gently softened amber edges. Only ONE modest bronze bell hangs above a simple stone altar. In the center a grieving human father kneels and embraces the small articulated wooden vessel that now holds his child's returned soul. The child has a delicately carved wooden face and a small mouth just opened in reply, looking up toward the father; a quiet pale soul-light glows within its chest. The father's relief and tenderness are real, his face close to the child's head, his two hands supporting the little back and shoulder naturally. Nearby the archbishop, a serene human-faced spirit in simple layered white vestments, quietly witnesses the first reunion. Warm, restrained joy amid solemn gothic stone, not horror and not triumph over death. The embrace must remain clear when reduced to 384x256. Depict this early memory alone, no montage, no later altar aftermath, no rows of bells, no corpses, no readable writing.
+```
+
+**irene_returned「帰ってきてくれて」** (第14章 / 館の語り)
+- 要点: イレーヌが祈りの写しを燭台から離れた所へ置き、指を折ったり開いたりするセラの今の願いを聞く。戻ってきて嬉しい気持ちと、相手の望みを分けて考える静かな会話。
+- 描くもの: 館の作業机 / イレーヌとセラ / 机の片側へ置かれる祈りの写し / 正本どおりの燭台と一本の白い蝋燭 / セラが自分の木の指を見る仕草。
+- 描かないもの: 別人の顔、セラの人工の髪・花飾り・背中の魂火、長い支柱の燭台、写しを燃やす行為、明確な文字、悲嘆や対立の誇張。
+```text
+An intimate conversation at the established mansion workshop table at night. Irene, with long black hair with a purple sheen, purple eyes, gold-and-purple jeweled hair ornament and purple-and-black off-shoulder lace gothic gown, gently sets a copied prayer sheet down well away from the candlestick and listens to Sera across the table. All marks on the paper are illegible. Sera has long wavy near-black REAL hair, a wooden face with visible grain, brown eyes, the approved small gold lamp-on-palm crest at the center of her forehead, black iron joint bands edged with gold, white draped cloth and a brown sash, and a small pale blue soul-fire in her CHEST. She looks at her own wooden fingers, slowly opening one hand, thoughtful and earnest. Between them stands the exact mansion candlestick from the opening flame reference: broad stepped circular brass base, SHORT ornamental stem, broad wax dish and ONE thick white candle with dripped wax, yellow-white and orange flame. Its compact silhouette must match the reference. Gentle listening and mutual trust; the prayer sheet is neither burned nor condemned. Cool room shadows and warm candlelight. Preserve the characters' established identities and natural adult proportions. No readable writing, no extra characters.
+```
+
+**irene_after_sleep「眠ったあと」** (第14章 / 館の語り)
+- 要点: 明日と百年先で願いが同じかは分からない。セラが燭台の火を見つめ、イレーヌは答えを決めつけず冷めたお茶を替える。
+- 描くもの: 夜の同じ館 / 火を見つめるセラ / 茶を替えるイレーヌ / 二人の茶器 / 正本の短い燭台と一本の白い蝋燭。茶を替える具体的な手つきで前の会話と構図を分ける。
+- 描かないもの: セラが眠る姿、魂が器から抜ける演出、未来の老化や百年後の館、師の現身、別の形の燭台、文字。
+```text
+Later at night in the same established mansion workshop, a NEW closer composition centered on a small act of care. Sera sits quietly on one side of the table, gazing at the flame of ONE thick white candle rather than at the viewer. Preserve Sera's long wavy near-black real hair, brown eyes, carved wooden face with visible grain, small approved gold lamp-on-palm forehead crest, white draped cloth and brown sash, black iron joints with gold rims, and pale blue soul-fire within her chest. Across the table Irene, in her established purple-and-black off-shoulder lace gown with gold-and-purple hair ornament and long purple-sheened black hair, replaces the cooled tea, carefully pouring fresh tea into one of their two cups. Natural two-handed pouring posture and modest steam from the cup. The mansion candlestick exactly matches the opening flame reference: a broad stepped circular brass base, short decorative support and wide wax dish, one thick dripping white candle, warm yellow-white and orange flame. Keep the candlestick low and compact. Irene's expression is gentle, thoughtful, leaving the question open. Quiet present-night companionship, not a dream or a vision of a hundred years later. No sleeping or disembodied Sera, no readable text, no extra people.
+```
+
+**ch14_end「小さな鈴」** (第14章 / 章の結び)
+- 要点: 鐘の鳴らない時間が生まれた聖堂。返事を待つ小さな鈴と、休める灯を残した。冷気の流れる奥の扉は次章への入口にとどめる。
+- 描くもの: 中央手前の祭壇に小さな鈴 / 切り離された魂を引く鎖、壊されず静まった大きな鐘 / 紙を縫いつけていない白い衣の間で休む大司教の小さな灯 / 脇で木靴を削る者、鏡の前で待つ者、眠る灯の布を替える者 / 奥の開いた扉とわずかな冷気。主題は鈴と静かな灯、営みは小さく添える。
+- 描かないもの: 全ての灯が鈴へ集まる図、魂の消滅、破壊された鐘、地上の家族の実体、奥の王墓の正体、読める敷居の言葉、館との分割画面。
+```text
+A quiet closing view inside the deep underground cathedral after the forced summoning has stopped. A SMALL simple bronze handbell rests on the near stone altar, its loose little ribbon stirred by a slight breeze; make this small bell the clear central focal object. Larger bells remain intact and motionless overhead, with the chains that forcibly pulled souls now visibly detached and slack. Beside the altar a tiny pale soul-light, the archbishop at rest, glows among folded white vestments with NO prayer papers sewn onto them. Some other small lights remain at rest rather than all responding. In the middle distance, unobtrusive adult wooden inhabitants resume individual acts of care: one waits before an old mirror, another pares a wooden shoe, another changes a cloth beside a sleeping soul-light. Do not reflect visible living relatives in the mirror. Far behind, an opened stone doorway releases only a faint breath of cold mist; nothing of the next tomb is visible. Solemn relief and patient ordinary care, cool blue shadows and a few restrained warm lights. Keep the small bell and resting light readable at 384x256. No shattered bells, no departing or extinguished souls, no inset scene, no readable writing anywhere.
+```
+
 ## 5. 便4 (任意) ― 踏破後の由来の絵
 
 迷宮を踏破すると、ストーリー一覧の「踏破した迷宮」に、その迷宮の由来と秘密 (`src/journal.js` の `DUNGEON_LORE`) が出る。専用の原画があるのは w01〜w13・w15・w17・ws1・ws2 だけ。ほかは次のとおり (Claude が今回直した)。

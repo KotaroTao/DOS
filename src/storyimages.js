@@ -173,6 +173,11 @@ export const STORY_IMAGES = {
   irene_repair: "art/story/irene-repair.webp",
   irene_familiar: "art/story/chapter1/irene_familiar.webp",
   irene_trust: "art/story/chapter3/irene_trust.webp",
+  pre_w57_retry: "art/story/chapter14/pre_w57_retry.webp",
+  mem_w57: "art/story/chapter14/mem_w57.webp",
+  irene_returned: "art/story/chapter14/irene_returned.webp",
+  irene_after_sleep: "art/story/chapter14/irene_after_sleep.webp",
+  ch14_end: "art/story/chapter14/ch14_end.webp",
 };
 // 踏破した迷宮の由来の絵 (迷宮ID → 絵)
 export const LORE_IMAGES = {
