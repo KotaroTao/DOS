@@ -84,6 +84,12 @@ export const BATTLE_BACKGROUNDS = Object.freeze({
   "w53": "art/battle/w53.webp",
   "ws28": "art/battle/ws28.webp",
   "ws29": "art/battle/ws29.webp",
+  "w54": "art/battle/w54.webp",
+  "w55": "art/battle/w55.webp",
+  "w56": "art/battle/w56.webp",
+  "w57": "art/battle/w57.webp",
+  "ws30": "art/battle/ws30.webp",
+  "ws31": "art/battle/ws31.webp",
   "w00_forest": "art/battle/w00_forest.webp",
   "abyss": "art/battle/abyss.webp",
 });
