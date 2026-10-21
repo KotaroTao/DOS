@@ -2,7 +2,7 @@
 
 書き出し: `node tools/storyart/review.mjs` (build.py も書き直す。手で直さない)。
 
-場面: 出荷済み 166 ・ 出荷済み (任意の修正あり) 11 ・ 未着手 10
+場面: 出荷済み 171 ・ 出荷済み (任意の修正あり) 11 ・ 未着手 5
 
 | 章 | 場面 | 題 | 状態 | 確認ページ |
 |---|---|---|---|---|
@@ -183,11 +183,11 @@
 | 第14章「深淵の聖堂」 | `w56_prayer` | 消されなかった願い | 出荷済み | [見る](chapter14.md#w56_prayer) |
 | 第14章「深淵の聖堂」 | `ws30_patterns` | 縫い直された袖 | 出荷済み | [見る](chapter14.md#ws30_patterns) |
 | 第14章「深淵の聖堂」 | `ws31_letters` | 読まれなかった返事 | 出荷済み | [見る](chapter14.md#ws31_letters) |
-| 第14章「深淵の聖堂」 | `report_w54` | 帰りたい者 | 未着手 | [見る](chapter14.md#report_w54) |
-| 第14章「深淵の聖堂」 | `report_w55` | 同じ日を生きる | 未着手 | [見る](chapter14.md#report_w55) |
-| 第14章「深淵の聖堂」 | `report_w56` | 願いだけが残る | 未着手 | [見る](chapter14.md#report_w56) |
-| 第14章「深淵の聖堂」 | `report_w57` | 待つ場所 | 未着手 | [見る](chapter14.md#report_w57) |
-| 第14章「深淵の聖堂」 | `pre_w57` | 届いた祈り | 未着手 | [見る](chapter14.md#pre_w57) |
+| 第14章「深淵の聖堂」 | `report_w54` | 帰りたい者 | 出荷済み | [見る](chapter14.md#report_w54) |
+| 第14章「深淵の聖堂」 | `report_w55` | 同じ日を生きる | 出荷済み | [見る](chapter14.md#report_w55) |
+| 第14章「深淵の聖堂」 | `report_w56` | 願いだけが残る | 出荷済み | [見る](chapter14.md#report_w56) |
+| 第14章「深淵の聖堂」 | `report_w57` | 待つ場所 | 出荷済み | [見る](chapter14.md#report_w57) |
+| 第14章「深淵の聖堂」 | `pre_w57` | 届いた祈り | 出荷済み | [見る](chapter14.md#pre_w57) |
 | 第14章「深淵の聖堂」 | `pre_w57_retry` | まだ鳴る鐘 | 未着手 | [見る](chapter14.md#pre_w57_retry) |
 | 第14章「深淵の聖堂」 | `mem_w57` | 最初の返事 | 未着手 | [見る](chapter14.md#mem_w57) |
 | 第14章「深淵の聖堂」 | `irene_returned` | 帰ってきてくれて | 未着手 | [見る](chapter14.md#irene_returned) |
