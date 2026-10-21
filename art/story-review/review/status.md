@@ -2,7 +2,7 @@
 
 書き出し: `node tools/storyart/review.mjs` (build.py も書き直す。手で直さない)。
 
-場面: 出荷済み 166 ・ 出荷済み (任意の修正あり) 11 ・ 未着手 10
+場面: 出荷済み 171 ・ 出荷済み (任意の修正あり) 11 ・ 未着手 5
 
 | 章 | 場面 | 題 | 状態 | 確認ページ |
 |---|---|---|---|---|
@@ -178,11 +178,11 @@
 | 序章 | `irene_repair` | 砕けても、名は消えない | 出荷済み | [見る](chapter0.md#irene_repair) |
 | 第1章「師の灯」 | `irene_familiar` | 名で呼べる距離 | 出荷済み | [見る](chapter1.md#irene_familiar) |
 | 第3章「魂脈の根」 | `irene_trust` | 扉を開けた日のこと | 出荷済み | [見る](chapter3.md#irene_trust) |
-| 第14章「深淵の聖堂」 | `w54_shoes` | 二足の木靴 | 未着手 | [見る](chapter14.md#w54_shoes) |
-| 第14章「深淵の聖堂」 | `w55_reply` | 返事のある祈り | 未着手 | [見る](chapter14.md#w55_reply) |
-| 第14章「深淵の聖堂」 | `w56_prayer` | 消されなかった願い | 未着手 | [見る](chapter14.md#w56_prayer) |
-| 第14章「深淵の聖堂」 | `ws30_patterns` | 縫い直された袖 | 未着手 | [見る](chapter14.md#ws30_patterns) |
-| 第14章「深淵の聖堂」 | `ws31_letters` | 読まれなかった返事 | 未着手 | [見る](chapter14.md#ws31_letters) |
+| 第14章「深淵の聖堂」 | `w54_shoes` | 二足の木靴 | 出荷済み | [見る](chapter14.md#w54_shoes) |
+| 第14章「深淵の聖堂」 | `w55_reply` | 返事のある祈り | 出荷済み | [見る](chapter14.md#w55_reply) |
+| 第14章「深淵の聖堂」 | `w56_prayer` | 消されなかった願い | 出荷済み | [見る](chapter14.md#w56_prayer) |
+| 第14章「深淵の聖堂」 | `ws30_patterns` | 縫い直された袖 | 出荷済み | [見る](chapter14.md#ws30_patterns) |
+| 第14章「深淵の聖堂」 | `ws31_letters` | 読まれなかった返事 | 出荷済み | [見る](chapter14.md#ws31_letters) |
 | 第14章「深淵の聖堂」 | `report_w54` | 帰りたい者 | 出荷済み | [見る](chapter14.md#report_w54) |
 | 第14章「深淵の聖堂」 | `report_w55` | 同じ日を生きる | 出荷済み | [見る](chapter14.md#report_w55) |
 | 第14章「深淵の聖堂」 | `report_w56` | 願いだけが残る | 出荷済み | [見る](chapter14.md#report_w56) |
