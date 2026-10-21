@@ -2911,8 +2911,10 @@ function dockSpec() {
   const dead = G.party.filter((t) => !t.alive).length;
   const hurt = G.party.some((t) => t.alive && (t.hp < t.maxhp || t.ailment));
   const heal = { label: "全員を回復", sub: dead ? `倒れた者 ${dead}` : hurt ? "傷ついた者がいる" : "皆 無事", hot: healAllNeed() && (healAllCasters().length > 0 || healAllRevivers().length > 0) };
-  // 迷宮で唱える技 (浮遊・宝探し・道しるべ)。覚えた者が隊にいる時だけ、技ごとにボタンを出す
-  const fields = knownFieldSkills().map((k) => {
+  // 羽で浮いている時も、術の習得や使用可否にかかわらず残りの階数を示す。
+  const fieldKeys = knownFieldSkills();
+  if (floatLeft() > 0 && !fieldKeys.some((k) => SPELLS[k].float)) fieldKeys.unshift("FUYUU");
+  const fields = fieldKeys.map((k) => {
     const sp = SPELLS[k], c = fieldCaster(k, true), on = fieldActive(sp);
     // tag = 札に詰めた時の短い名。浮遊は残りの階数を添える (「浮遊 残1」、ユーザーの指示)
     return { key: k, kind: sp.float ? "float" : sp.sense, label: sp.name, sub: on ? fieldStateText(sp) : `MP${c.cost}`, on, tag: on && sp.float ? `${sp.name} 残${floatLeft()}` : null };
@@ -3002,12 +3004,12 @@ function castFieldMeasured(key, confirmed = false, caster = null) {
   if (G.state !== "board" || !inDungeon()) return;
   const sp = SPELLS[key];
   if (!sp) return;
-  if (!skillUsable(key)) { SFX.ng(); showToast("呪文を封じる霧が言葉を吸いこむ ― ここでは唱えられない", { tone: "bad" }); return; }
   if (fieldActive(sp)) {
     SFX.select();
     showToast(sp.float ? `浮遊中 ― 残り${floatLeft()}階 (${floatGuardText()})` : `${sp.name}の効果はこの階のあいだ続いている`, { tone: "info" });
     return;
   }
+  if (!skillUsable(key)) { SFX.ng(); showToast("呪文を封じる霧が言葉を吸いこむ ― ここでは唱えられない", { tone: "bad" }); return; }
   if (sp.sense === "stairs" && findRevealedStairs()) { SFX.ng(); showToast("この階の階段はもう見つけている", { tone: "info" }); return; }
   // 選んだ者を確認画面の先まで保ち、実行時にも在隊・状態・MPを確かめる。
   const candidates = fieldCasters().filter((p) => (p.spells || []).includes(key))
