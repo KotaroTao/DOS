@@ -1655,6 +1655,45 @@ Later at night in the same established mansion workshop, a NEW closer compositio
 A quiet closing view inside the deep underground cathedral after the forced summoning has stopped. A SMALL simple bronze handbell rests on the near stone altar, its loose little ribbon stirred by a slight breeze; make this small bell the clear central focal object. Larger bells remain intact and motionless overhead, with the chains that forcibly pulled souls now visibly detached and slack. Beside the altar a tiny pale soul-light, the archbishop at rest, glows among folded white vestments with NO prayer papers sewn onto them. Some other small lights remain at rest rather than all responding. In the middle distance, unobtrusive adult wooden inhabitants resume individual acts of care: one waits before an old mirror, another pares a wooden shoe, another changes a cloth beside a sleeping soul-light. Do not reflect visible living relatives in the mirror. Far behind, an opened stone doorway releases only a faint breath of cold mist; nothing of the next tomb is visible. Solemn relief and patient ordinary care, cool blue shadows and a few restrained warm lights. Keep the small bell and resting light readable at 384x256. No shattered bells, no departing or extinguished souls, no inset scene, no readable writing anywhere.
 ```
 
+#### 王への報告と主との対面
+
+2026-10-22、ユーザー指定の5場面を制作する。本文は `src/story.js` と `src/archive-stories.js` の実装済みの文を正本とし、変更しない。報告は地上の王宮、主との対面は地下の聖堂。現在の師オルドや先の章の秘密は描かない。
+
+**report_w54「帰りたい者」** (報告)
+- 要点: 娘の木靴を作るため戻った職人の話を聞いた王が、自分の足元を見る。師も再会の喜びを知っていたと受け止める。
+- 描くもの: 膝掛けを掛けた老王、足元へ落とした視線、聞き手の弟子。描かないもの: 王宮へ運ばれた木靴、靴職人や娘の実体、師、宰相。
+```text
+The established royal throne room in clear daylight. A medium three-quarter composition, close enough that most of the room architecture stays outside the frame. The very old king, long white hair and beard, pointed gold crown, red robes and white ermine cape, sits on the established carved gold-and-red throne with a grey lap blanket. Having heard about a returned shoemaker making shoes for his daughter, he lowers his gaze toward his own ordinary shod feet just visible below the blanket. His lined face is thoughtful, touched by another person's joy. The apprentice with tousled brown hair, black cloak with restrained geometric gold embroidery and brown leather satchel is seen in profile at the edge of the foreground, quietly reporting. Warm candle highlights against gentle blue daylight, clear blue sky if a narrow window is visible. No wooden shoes or shoemaker in the palace, no Ordo, no chancellor. Other furnishings remain outside the crop. One quiet present-day moment, no memory overlay.
+```
+
+**report_w55「同じ日を生きる」** (報告)
+- 要点: 生き返れという願いだけでなく、花が咲いたと知らせる祈りもあると知り、王は窓の外へ目を向ける。
+- 描くもの: 窓を見つめる老王の横顔、明るい青空、報告する弟子。描かないもの: 王宮の魔法の鏡、窓に映る死者、師、宰相。
+```text
+The established very old king sits on his gold-and-red throne in the royal palace and turns his face toward a tall gothic window, reflecting on two people who still share news of a flowering garden while living apart. A close side-profile composition with the king's weathered face and flowing white hair at the centre, the pointed gold crown, white ermine and red robe, grey lap blanket partly visible. Beyond the window is luminous clear blue daytime sky and a small glimpse of sunlit green branches, never a storm sky. The apprentice in the established black gold-embroidered cloak stands quietly at the opposite edge, softly out of focus. Preserve the palace's dark carved stone, gold details and red cloth; keep the wide room layout outside the crop. Gentle blue daylight and warm amber candle accents. No magic mirror, no ghost in the window, no Ordo, no chancellor. Tender, contemplative, one present-day scene.
+```
+
+**report_w56「願いだけが残る」** (報告)
+- 要点: 呼んだ者はもう死んだと聞き、王の指がひじ掛けを握る。隊が眠りたい声を聞いて鎖を外したことを受け止める。
+- 描くもの: 玉座のひじ掛けを握る老いた手、王の重い表情、報告する弟子。描かないもの: 王を縛る鎖、王宮に置かれた鐘、眠る人業の実体、師、宰相。
+```text
+An intimate diagonal close view of the established very old king on his carved gold-and-red throne in the royal palace, reacting to news that the person who kept calling a soul back has already died. His aged right hand grips the ornate armrest firmly, the thumb and four fingers anatomically clear; this hand and his troubled white-bearded face form the visual focus. His other hand rests naturally on the grey blanket over his knees. Pointed gold crown, red embroidered robe, white ermine cape with black spots. At the left edge a partial rear three-quarter view of the apprentice in his black gold-embroidered cloak, reporting that the party unfastened the chains and let the wooden vessel sleep. Clear blue daylight from an off-frame window, warm amber highlights on the gold carving. Crop out most palace architecture. No literal chains binding the king, no bell or sleeping doll in the palace, no Ordo, no chancellor, no ghostly memory overlay. Sober concern and attentive listening.
+```
+
+**report_w57「待つ場所」** (報告)
+- 要点: 戻ってほしいという願いを否定せず、返事をする時を待つ場所を残した報告。王にも帰ってほしいという願いがある。
+- 描くもの: 王と弟子の静かな対話、力を抜いて開いた王の手、穏やかな表情。描かないもの: 聖堂から持ち出された鈴や大司教の灯、師、宰相。
+```text
+A quiet present-day conversation in the established royal throne room, framed as a balanced medium two-shot rather than a wide architectural view. The very old king sits at the right on the carved gold-and-red throne, grey blanket over his knees, pointed gold crown, long white hair and beard, red robes and white ermine cape. He looks directly toward the apprentice with a restrained, gentle, vulnerable expression, one relaxed hand open above the armrest as he acknowledges his own wish for someone's return and the need to wait for an answer. The apprentice stands at the left in three-quarter rear view, tousled brown hair, black cloak with restrained geometric gold embroidery and brown leather satchel, listening. A calm interval of space between them is central to the composition. Soft clear daytime blue light and warm candlelight, a narrow blue-sky window glimpse only if visible. No bell or archbishop soul-light brought into the palace, no Ordo, no chancellor, no invented props or memory vignette. Patient, humane, unresolved but peaceful.
+```
+
+**pre_w57「届いた祈り」** (主との対面)
+- 要点: 祭壇の大司教の霊が、戻りたくないという器の声を聞かず、次の祈りを掲げる。帰らせねばという善意と、聞かれない返事を同じ場面に描く。
+- 描くもの: 幾重もの白い衣とすそに縫われた祈りの紙、大司教の霊、起き上がる木の器、胸の灯をかばう隊の人業、弟子の後ろ姿。描かないもの: 戦闘の閃光、倒された主、切断済みの鎖、祭壇の小さな鈴、師、地上の空。
+```text
+Deep underground in the prayer-laden cathedral, before battle. Gothic stone pillars and an ancient altar disappear upward into darkness; no exterior sky or inhabited city. Behind the altar stands the ghost of an elderly archbishop, his translucent calm sorrow-worn face above many layered white ceremonial robes. Numerous small aged prayer papers are sewn onto the robe hems, all marks illegible. He raises the next prayer sheet with a serene, unwavering sense of duty, looking toward the party's soul-light instead of listening to a newly awakened vessel. At his feet, one plain adult-sized articulated wooden vessel with a smooth blank round head and black iron joints struggles to rise from a seated position, one palm raised weakly in refusal. In the near foreground the apprentice, tousled brown hair, black gold-embroidered cloak and leather satchel, is seen from behind beside two adult-sized party dolls from the reference: red-cloaked warrior and white-robed priest, blank smooth wooden heads and black iron joint bands. The warrior turns partly sideways and cups a protective wooden hand over the small blue-white soul-fire inside its open CHEST door, so the chest light and guarding hand are visible, never on its back. Unbroken bell chains descend in the distant upper darkness. Faint pale soul-fire and restrained warm votive candlelight illuminate white cloth, paper, wood and ancient stone. The archbishop, rising vessel and protected chest-light must remain readable at 384x256. Tragic earnestness, no sinister grin or demonic corruption. No battle flashes, no defeated archbishop, no cut chains, no little altar bell yet, no Ordo, no readable text.
+```
+
 ## 5. 便4 (任意) ― 踏破後の由来の絵
 
 迷宮を踏破すると、ストーリー一覧の「踏破した迷宮」に、その迷宮の由来と秘密 (`src/journal.js` の `DUNGEON_LORE`) が出る。専用の原画があるのは w01〜w13・w15・w17・ws1・ws2 だけ。ほかは次のとおり (Claude が今回直した)。
