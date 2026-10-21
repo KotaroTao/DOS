@@ -264,4 +264,10 @@ export const LORE_IMAGES = {
   ws26: "art/story/dungeons/lore_ws26.webp",
   ws27: "art/story/dungeons/lore_ws27.webp",
   w00_forest: "art/story/dungeons/lore_w00_forest.webp",
+  w54: "art/story/dungeons/lore_w54.webp",
+  w55: "art/story/dungeons/lore_w55.webp",
+  w56: "art/story/dungeons/lore_w56.webp",
+  w57: "art/story/dungeons/lore_w57.webp",
+  ws30: "art/story/dungeons/lore_ws30.webp",
+  ws31: "art/story/dungeons/lore_ws31.webp",
 };

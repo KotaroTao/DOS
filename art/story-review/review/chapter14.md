@@ -1,7 +1,7 @@
 # 第14章「深淵の聖堂」 の絵
 
 書き出し: `node tools/storyart/review.mjs` (手で直さない)。絵は出荷する WebP、まだ無ければ原画。
-
+ゲームで小さく出た時の見え方 (384×256): [chapter14-small.jpg](chapter14-small.jpg)
 
 <a name="w54_shoes"></a>
 
