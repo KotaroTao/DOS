@@ -19587,6 +19587,8 @@ const OPS = {
       showToast(`${n}点を売却 (+💰${gold})`);
     }
     renderTown();
+    // 売却後の選択は、帰還の報告などのシートを閉じるまで後回しにしない。
+    if (n && UI.openAfxConflicts) UI.openAfxConflicts();
     return { ok: n > 0, n, gold };
   },
 
