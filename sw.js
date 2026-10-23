@@ -3,7 +3,7 @@
 // install 時にコードを同一バージョンで先読みし、fetch は同バージョンの
 // キャッシュから返す。これにより「新しい game.js + 古い souls.js」のような
 // モジュール混在 (export 不一致で白画面) が構造的に起きない。
-// 新デプロイは CACHE 名の変更で検出され、ページ側が自動リロードする。
+// 新デプロイは CACHE 名の変更で検出され、ページ側が更新を案内する。
 // 版は手で上げない: リポジトリでは "dos-dev" のままにしておき、デプロイ時に
 // .github/workflows/pages.yml がコミットのハッシュ ("dos-<sha 12桁>") へ書き換える
 // (並行するブランチが同じ行を書き換えて衝突しないように)。
@@ -13,6 +13,7 @@ const DEV = CACHE === "dos-dev";
 const ASSETS = [
   "./src/photoload.js",
   "./src/local-save.js",
+  "./src/game-update.js",
   "./art/unidentified/ls.webp",
   "./art/unidentified/dg.webp",
   "./art/unidentified/kt.webp",

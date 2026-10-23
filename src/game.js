@@ -11,6 +11,7 @@ import { random, fxRandom, bindRngState, rngState } from "./rng.js";
 import { refSerialize, refDeserialize, applySavePatch } from "./savegraph.js";
 import { cloudEnabled, cloudReady, cloudBusy, connectCloud, cloudSave, cloudBattle, cloudFlush, cloudFatal } from "./cloud-save.js";
 import { LocalSaveSession, showLocalSaveBlocked, showLocalSaveRecovery, saveSlotFromURL, localSaveKey, selectSaveSlot } from "./local-save.js";
+import { watchGameUpdates } from "./game-update.js";
 import { syncEnemyUids, enemySoulRewardMul, openingRates } from "./combat.js";
 import { monsterResists } from "./resistance.js";
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
@@ -19879,8 +19880,13 @@ function wireUI() {
 // 読み込み時に一度 bindGame で結ぶ (wireUI の bindGame と同じ窓口に足し込む。名前は重ねない)
 async function returnToTitle() {
   if (!testPlayActive) {
+    // 接続前・サーバーの結果反映中には、現在の画面を捨てない。
+    if (cloudEnabled() && (!cloudReady() || _cloudResolving)) return;
     const saved = autosave(true);
-    if (cloudEnabled()) { await saved; await cloudFlush(); }
+    if (cloudEnabled()) {
+      if (!saved) return;
+      await saved; await cloudFlush();
+    }
     else if (saved !== true || !localSaveSession?.owned || !localSaveSession.unchanged()) return;
   }
   _resetting = true;
@@ -20010,6 +20016,7 @@ async function init() {
 
   if (testPlayActive) {
     const floor = setupTestPlay();
+    watchGameUpdates({ serviceWorker: navigator.serviceWorker, testPlay: true, applyUpdate: returnToTitle });
     titleActive = false; G.prompt = false;
     const recording = G.testStoryFlow && !testScene?.phase;
     if (recording) startPlaytest(playtestContext, { skippedDungeon: !!G.testSkipDungeon });
@@ -20143,27 +20150,7 @@ async function init() {
     revealBootScreen();
   } catch (e) { start(); }
 
-  if ("serviceWorker" in navigator) {
-    // 新しい SW が制御を奪った瞬間に1度だけ確実にリロード (古いJS混在を防ぐ)。
-    // 初回インストール (それまで SW の制御下になかった) の claim では読み直さない
-    // (同じ版を読み込み済みのため不要。オープニング途中で画面が飛ぶのを防ぐ)
-    const hadController = !!navigator.serviceWorker.controller;
-    let reloaded = false;
-    navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if (!hadController || reloaded) return; reloaded = true; location.reload();
-    });
-    navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((reg) => {
-      reg.addEventListener("updatefound", () => {
-        const sw = reg.installing;
-        if (!sw) return;
-        sw.addEventListener("statechange", () => {
-          if (sw.state === "activated" && hadController && navigator.serviceWorker.controller && !reloaded) {
-            reloaded = true; location.reload();
-          }
-        });
-      });
-    }).catch(() => {});
-  }
+  watchGameUpdates({ serviceWorker: navigator.serviceWorker, testPlay: testPlayActive, applyUpdate: returnToTitle });
 }
 
 // 物語・由来の絵のうち、端末へ裏で集めておく分 (進めている章まで) を Service Worker へ伝える。
