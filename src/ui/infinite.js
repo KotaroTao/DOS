@@ -762,15 +762,26 @@ async function confirmExtremeLoss(conflicts, choice) {
 // 商会の棚には、追加の能力つきの品を1つの品につき1点だけ置いておける。重なった品を一覧で並べ、棚に置く方を選ぶ
 // (強い方を最初から選んでおく)。選ばなかった方は追加の能力が消え、通常品として在庫に入る
 let afxOpen = null;
+let afxTimer = null;
 export function queueAfxConflicts() {
+  if (afxTimer !== null) return;
   const g = G();
-  if (!g || g.state !== "town" || afxOpen || uiBlocked() || g.prompt) return;
+  if (!g || g.state !== "town" || afxOpen) return;
   if (!(g.shopAfxPending || []).length) return;
-  setTimeout(() => { if (!afxOpen && !uiBlocked() && G().state === "town") openAfxConflicts(); }, 500);
+  // 画像の準備や別のシートで見送っても、次の街の描き直しを待たずに再確認する。
+  afxTimer = setTimeout(() => {
+    afxTimer = null;
+    const g = G();
+    if (!g || g.state !== "town" || afxOpen || !(g.shopAfxPending || []).length) return;
+    if (uiBlocked()) queueAfxConflicts();
+    else openAfxConflicts();
+  }, 100);
 }
 export function openAfxConflicts() {
+  if (afxOpen) return null;
   const list = game.afxConflicts ? game.afxConflicts() : [];
   if (!list.length) return null;
+  if (afxTimer !== null) { clearTimeout(afxTimer); afxTimer = null; }
   const choice = Object.fromEntries(list.map((c) => [c.id, c.best]));
   const fill = (b) => {
     b.appendChild(el("div", "inf-note", "商会の棚には、追加の能力・特性が付いた品を、1つの品につき1点だけ置いておける。同じ品が、別の追加の能力つきでもう1点届いた。どちらを棚に置いておくか選んでほしい。選ばなかった方は追加の能力が消え、通常品として棚に並ぶ。"));

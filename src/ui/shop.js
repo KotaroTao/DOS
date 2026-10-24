@@ -154,6 +154,8 @@ function sellSubset(list) {
     toast(`${n}点を売却 (+💰${gold})`);
   }
   if (game.renderTown) game.renderTown();
+  // 売却の続きとして開く。帰還の報告・鑑定結果のシートが残っていても待たせない。
+  if (n && UI.openAfxConflicts) UI.openAfxConflicts();
   return { ok: n > 0, n, gold };
 }
 // 所持金で鑑定できる数 (安い順。ops.identifyAll と同じ順序)
