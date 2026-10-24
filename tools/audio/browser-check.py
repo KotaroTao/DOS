@@ -46,6 +46,7 @@ with sync_playwright() as p:
                 document.addEventListener(ev, e => e.stopImmediatePropagation(), true);
             ''')
         page.goto('http://localhost:8000/?testDungeon=w02')
+        page.bring_to_front()
         page.wait_for_function('window.__game?.G.party.length > 0')
         # 個々の画面が伝播を止めても、初期化・復帰が操作中に実行される必要がある。
         page.evaluate('''() => {
