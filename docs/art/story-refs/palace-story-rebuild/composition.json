@@ -1,0 +1,3200 @@
+[
+  {
+    "id": "arrival",
+    "background": "docs/art/story-refs/palace-3d/finished/front.png",
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "master": "art/story-review/prologue/royal-audience.png",
+    "parts": [
+      {
+        "source": "sources/arrival.png",
+        "height": 240,
+        "position": [
+          625,
+          370
+        ],
+        "mask": "parts/arrival-1-mask.png"
+      },
+      {
+        "source": "sources/arrival.png",
+        "height": 620,
+        "position": [
+          296,
+          350
+        ],
+        "mask": "parts/arrival-0-mask.png"
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          340,
+          960,
+          540,
+          980
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          619,
+          600,
+          841,
+          620
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w02",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "master": "art/story-review/chapter1/report_w02.png",
+    "parts": [
+      {
+        "source": "sources/report_w02.png",
+        "height": 710,
+        "position": [
+          401,
+          275
+        ],
+        "mask": "parts/report_w02-1-mask.png"
+      },
+      {
+        "source": "sources/report_w02.png",
+        "height": 930,
+        "position": [
+          -22,
+          105
+        ],
+        "mask": "parts/report_w02-0-mask.png"
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          491,
+          975,
+          909,
+          995
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w03",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "master": "art/story-review/chapter1/report_w03.png",
+    "parts": [
+      {
+        "source": "sources/report_w03.png",
+        "height": 710,
+        "position": [
+          408,
+          275
+        ],
+        "mask": "parts/report_w03-1-mask.png"
+      },
+      {
+        "source": "sources/report_w03.png",
+        "height": 620,
+        "position": [
+          978,
+          360
+        ],
+        "mask": "parts/report_w03-2-mask.png"
+      },
+      {
+        "source": "sources/report_w03.png",
+        "height": 930,
+        "position": [
+          40,
+          105
+        ],
+        "mask": "parts/report_w03-0-mask.png"
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          496,
+          975,
+          904,
+          995
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          1021,
+          970,
+          1219,
+          990
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w04",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "crop": [
+      0,
+      150,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter1/report_w04.png",
+    "parts": [
+      {
+        "source": "sources/report_w04.png",
+        "polygon": [
+          [
+            0,
+            0
+          ],
+          [
+            1050,
+            0
+          ],
+          [
+            1050,
+            580
+          ],
+          [
+            1070,
+            800
+          ],
+          [
+            1130,
+            1000
+          ],
+          [
+            0,
+            1024
+          ]
+        ],
+        "scale": 1.05,
+        "position": [
+          165,
+          257
+        ]
+      },
+      {
+        "source": "sources/report_w04.png",
+        "polygon": [
+          [
+            1051,
+            0
+          ],
+          [
+            1536,
+            0
+          ],
+          [
+            1536,
+            1024
+          ],
+          [
+            1131,
+            1024
+          ],
+          [
+            1071,
+            800
+          ],
+          [
+            1051,
+            580
+          ]
+        ],
+        "height": 850,
+        "position": [
+          1220,
+          275
+        ]
+      }
+    ],
+    "shadows": [],
+    "occlusion": []
+  },
+  {
+    "id": "report_w05",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "master": "art/story-review/chapter1/report_w05.png",
+    "parts": [
+      {
+        "source": "sources/report_w05.png",
+        "height": 710,
+        "position": [
+          384,
+          275
+        ],
+        "mask": "parts/report_w05-1-mask.png"
+      },
+      {
+        "source": "sources/report_w05.png",
+        "height": 850,
+        "position": [
+          1070,
+          170
+        ],
+        "mask": "parts/report_w05-2-mask.png"
+      },
+      {
+        "source": "sources/report_w05.png",
+        "height": 930,
+        "position": [
+          42,
+          105
+        ],
+        "mask": "parts/report_w05-0-mask.png"
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          478,
+          975,
+          922,
+          995
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w06",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "master": "art/story-review/chapter2/report_w06.png",
+    "parts": [
+      {
+        "source": "sources/report_w06.png",
+        "polygon": [
+          [
+            455,
+            100
+          ],
+          [
+            1100,
+            100
+          ],
+          [
+            1100,
+            780
+          ],
+          [
+            1155,
+            990
+          ],
+          [
+            471,
+            990
+          ],
+          [
+            469,
+            810
+          ],
+          [
+            445,
+            620
+          ],
+          [
+            453,
+            490
+          ]
+        ],
+        "height": 700,
+        "position": [
+          385,
+          270
+        ]
+      },
+      {
+        "source": "sources/report_w06.png",
+        "polygon": [
+          [
+            1100,
+            0
+          ],
+          [
+            1536,
+            0
+          ],
+          [
+            1536,
+            1024
+          ],
+          [
+            1156,
+            1024
+          ],
+          [
+            1155,
+            970
+          ],
+          [
+            1100,
+            780
+          ]
+        ],
+        "height": 580,
+        "position": [
+          968,
+          400
+        ]
+      },
+      {
+        "source": "sources/report_w06.png",
+        "polygon": [
+          [
+            0,
+            0
+          ],
+          [
+            453,
+            0
+          ],
+          [
+            453,
+            490
+          ],
+          [
+            445,
+            620
+          ],
+          [
+            468,
+            810
+          ],
+          [
+            472,
+            1024
+          ],
+          [
+            0,
+            1024
+          ]
+        ],
+        "height": 930,
+        "position": [
+          0,
+          94
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          530,
+          938,
+          990,
+          990
+        ],
+        "alpha": 110,
+        "blur": 10
+      },
+      {
+        "box": [
+          1030,
+          943,
+          1240,
+          981
+        ],
+        "alpha": 100,
+        "blur": 8
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w07",
+    "background": "docs/art/story-refs/palace-3d/finished/left.png",
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter2/report_w07.png",
+    "parts": [
+      {
+        "source": "sources/report_w07.png",
+        "height": 325,
+        "position": [
+          524,
+          289
+        ],
+        "mask": "parts/report_w07-1-mask.png"
+      },
+      {
+        "source": "sources/report_w07.png",
+        "height": 310,
+        "position": [
+          784,
+          307
+        ],
+        "mask": "parts/report_w07-2-mask.png"
+      },
+      {
+        "source": "sources/report_w07.png",
+        "height": 630,
+        "position": [
+          150,
+          340
+        ],
+        "mask": "parts/report_w07-0-mask.png"
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          186,
+          960,
+          354,
+          980
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          561,
+          604,
+          731,
+          624
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          807,
+          607,
+          913,
+          627
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w08",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "master": "art/story-review/chapter2/report_w08.png",
+    "parts": [
+      {
+        "source": "sources/report_w08.png",
+        "height": 710,
+        "position": [
+          405,
+          275
+        ],
+        "mask": "parts/report_w08-1-mask.png"
+      },
+      {
+        "source": "sources/report_w08.png",
+        "height": 620,
+        "position": [
+          984,
+          360
+        ],
+        "mask": "parts/report_w08-2-mask.png"
+      },
+      {
+        "source": "sources/report_w08.png",
+        "height": 930,
+        "position": [
+          8,
+          105
+        ],
+        "mask": "parts/report_w08-0-mask.png"
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          494,
+          975,
+          906,
+          995
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          1025,
+          970,
+          1215,
+          990
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w09",
+    "background": "docs/art/story-refs/palace-3d/finished/right.png",
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter2/report_w09.png",
+    "parts": [
+      {
+        "source": "sources/report_w09.png",
+        "height": 345,
+        "position": [
+          646,
+          282
+        ],
+        "mask": "parts/report_w09-1-mask.png"
+      },
+      {
+        "source": "sources/report_w09.png",
+        "height": 650,
+        "position": [
+          239,
+          320
+        ],
+        "mask": "parts/report_w09-0-mask.png"
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          272,
+          960,
+          428,
+          980
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          690,
+          617,
+          898,
+          637
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w10",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "master": "art/story-review/chapter3/report_w10.png",
+    "parts": [
+      {
+        "source": "sources/report_w10.png",
+        "height": 710,
+        "position": [
+          406,
+          275
+        ],
+        "mask": "parts/report_w10-1-mask.png"
+      },
+      {
+        "source": "sources/report_w10.png",
+        "height": 930,
+        "position": [
+          37,
+          105
+        ],
+        "mask": "parts/report_w10-0-mask.png"
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          494,
+          975,
+          906,
+          995
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w11",
+    "background": "docs/art/story-refs/palace-3d/finished/high.png",
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter3/report_w11.png",
+    "parts": [
+      {
+        "source": "sources/report_w11.png",
+        "height": 280,
+        "position": [
+          528,
+          130
+        ],
+        "mask": "parts/report_w11-1-mask.png"
+      },
+      {
+        "source": "sources/report_w11.png",
+        "height": 450,
+        "position": [
+          302,
+          400
+        ],
+        "mask": "parts/report_w11-0-mask.png"
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          331,
+          840,
+          469,
+          860
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          558,
+          400,
+          696,
+          420
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w12",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "master": "art/story-review/chapter3/report_w12.png",
+    "parts": [
+      {
+        "source": "sources/report_w12.png",
+        "height": 710,
+        "position": [
+          371,
+          275
+        ],
+        "mask": "parts/report_w12-1-mask.png"
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 85,
+        "position": [
+          873,
+          531
+        ]
+      },
+      {
+        "source": "sources/report_w12.png",
+        "height": 930,
+        "position": [
+          39,
+          105
+        ],
+        "mask": "parts/report_w12-0-mask.png"
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          470,
+          975,
+          930,
+          995
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w13",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "master": "art/story-review/chapter3/report_w13.png",
+    "parts": [
+      {
+        "source": "sources/report_w13.png",
+        "mask": "parts/report_w13-1-mask.png",
+        "height": 710,
+        "position": [
+          372,
+          275
+        ]
+      },
+      {
+        "source": "sources/report_w13.png",
+        "mask": "parts/report_w13-2-mask.png",
+        "height": 850,
+        "position": [
+          1104,
+          170
+        ]
+      },
+      {
+        "source": "sources/report_w13.png",
+        "mask": "parts/report_w13-0-mask.png",
+        "height": 930,
+        "position": [
+          41,
+          105
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          471,
+          975,
+          929,
+          995
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w14",
+    "background": "docs/art/story-refs/palace-3d/finished/high.png",
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter4/report_w14.png",
+    "parts": [
+      {
+        "source": "sources/report_w14.png",
+        "mask": "parts/report_w14-1-mask.png",
+        "height": 280,
+        "position": [
+          528,
+          130
+        ]
+      },
+      {
+        "source": "sources/report_w14.png",
+        "mask": "parts/report_w14-0-mask.png",
+        "height": 450,
+        "position": [
+          323,
+          400
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          346,
+          840,
+          454,
+          860
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          557,
+          400,
+          697,
+          420
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w15",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "crop": [
+      100,
+      150,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter4/report_w15.png",
+    "parts": [
+      {
+        "source": "sources/report_w15.png",
+        "height": 909,
+        "position": [
+          369,
+          160
+        ],
+        "mask": "parts/report_w15-1-mask.png"
+      },
+      {
+        "source": "sources/report_w15.png",
+        "height": 1190,
+        "position": [
+          -90,
+          -58
+        ],
+        "mask": "parts/report_w15-0-mask.png"
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          489,
+          1056,
+          1047,
+          1082
+        ],
+        "alpha": 100,
+        "blur": 8.96
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w16",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "master": "art/story-review/chapter4/report_w16.png",
+    "parts": [
+      {
+        "source": "sources/report_w16.png",
+        "height": 710,
+        "position": [
+          421,
+          275
+        ],
+        "mask": "parts/report_w16-1-mask.png"
+      },
+      {
+        "source": "sources/report_w16.png",
+        "height": 930,
+        "position": [
+          31,
+          105
+        ],
+        "mask": "parts/report_w16-0-mask.png"
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          505,
+          975,
+          895,
+          995
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w17",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "crop": [
+      100,
+      150,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter4/report_w17.png",
+    "parts": [
+      {
+        "source": "sources/report_w17.png",
+        "height": 909,
+        "position": [
+          312,
+          160
+        ],
+        "mask": "parts/report_w17-1-mask.png"
+      },
+      {
+        "source": "sources/report_w17.png",
+        "height": 1190,
+        "position": [
+          -86,
+          -58
+        ],
+        "mask": "parts/report_w17-0-mask.png"
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          449,
+          1056,
+          1087,
+          1082
+        ],
+        "alpha": 100,
+        "blur": 8.96
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w18",
+    "background": "docs/art/story-refs/palace-3d/finished/right.png",
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter5/report_w18.png",
+    "parts": [
+      {
+        "source": "sources/report_w18.png",
+        "mask": "parts/report_w18-1-mask.png",
+        "height": 345,
+        "position": [
+          646,
+          282
+        ]
+      },
+      {
+        "source": "sources/report_w18.png",
+        "mask": "parts/report_w18-0-mask.png",
+        "height": 650,
+        "position": [
+          234,
+          320
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          269,
+          960,
+          431,
+          980
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          690,
+          617,
+          898,
+          637
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w19",
+    "background": "docs/art/story-refs/palace-3d/finished/left.png",
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter5/report_w19.png",
+    "parts": [
+      {
+        "source": "sources/report_w19.png",
+        "mask": "parts/report_w19-1-mask.png",
+        "height": 325,
+        "position": [
+          498,
+          289
+        ]
+      },
+      {
+        "source": "sources/report_w19.png",
+        "mask": "parts/report_w19-0-mask.png",
+        "height": 630,
+        "position": [
+          148,
+          340
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          184,
+          960,
+          356,
+          980
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          542,
+          604,
+          750,
+          624
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w20",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "master": "art/story-review/chapter5/report_w20.png",
+    "parts": [
+      {
+        "source": "sources/report_w20.png",
+        "mask": "parts/report_w20-1-mask.png",
+        "height": 710,
+        "position": [
+          360,
+          275
+        ]
+      },
+      {
+        "source": "sources/report_w20.png",
+        "mask": "parts/report_w20-0-mask.png",
+        "height": 930,
+        "position": [
+          44,
+          105
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          462,
+          975,
+          938,
+          995
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w21",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "master": "art/story-review/chapter5/report_w21.png",
+    "parts": [
+      {
+        "source": "sources/report_w21.png",
+        "mask": "parts/report_w21-1-mask.png",
+        "height": 710,
+        "position": [
+          374,
+          275
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 60,
+        "position": [
+          398,
+          924
+        ]
+      },
+      {
+        "source": "sources/report_w21.png",
+        "mask": "parts/report_w21-0-mask.png",
+        "height": 930,
+        "position": [
+          25,
+          105
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          472,
+          975,
+          928,
+          995
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w22",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "crop": [
+      100,
+      150,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter6/report_w22.png",
+    "parts": [
+      {
+        "source": "sources/report_w22.png",
+        "mask": "parts/report_w22-1-mask.png",
+        "height": 909,
+        "position": [
+          333,
+          160
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 77,
+        "position": [
+          381,
+          991
+        ]
+      },
+      {
+        "source": "sources/report_w22.png",
+        "mask": "parts/report_w22-0-mask.png",
+        "height": 1190,
+        "position": [
+          -88,
+          -58
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          463,
+          1056,
+          1073,
+          1082
+        ],
+        "alpha": 100,
+        "blur": 8.96
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w23",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "crop": [
+      100,
+      150,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter6/report_w23.png",
+    "parts": [
+      {
+        "source": "sources/report_w23.png",
+        "mask": "parts/report_w23-1-mask.png",
+        "height": 909,
+        "position": [
+          330,
+          160
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 77,
+        "position": [
+          381,
+          991
+        ]
+      },
+      {
+        "source": "sources/report_w23.png",
+        "mask": "parts/report_w23-0-mask.png",
+        "height": 1190,
+        "position": [
+          -82,
+          -58
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          462,
+          1056,
+          1074,
+          1082
+        ],
+        "alpha": 100,
+        "blur": 8.96
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w24",
+    "background": "docs/art/story-refs/palace-3d/finished/right.png",
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter6/report_w24.png",
+    "parts": [
+      {
+        "source": "sources/report_w24.png",
+        "mask": "parts/report_w24-1-mask.png",
+        "height": 345,
+        "position": [
+          596,
+          282
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 38,
+        "position": [
+          655,
+          590
+        ]
+      },
+      {
+        "source": "sources/report_w24.png",
+        "mask": "parts/report_w24-0-mask.png",
+        "height": 650,
+        "position": [
+          230,
+          320
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          266,
+          960,
+          434,
+          980
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          655,
+          617,
+          933,
+          637
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w26",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "crop": [
+      100,
+      150,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter7/report_w26.png",
+    "parts": [
+      {
+        "source": "sources/report_w26.png",
+        "mask": "parts/report_w26-1-mask.png",
+        "height": 909,
+        "position": [
+          349,
+          160
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 77,
+        "position": [
+          381,
+          991
+        ]
+      },
+      {
+        "source": "sources/report_w26.png",
+        "mask": "parts/report_w26-0-mask.png",
+        "height": 1190,
+        "position": [
+          -74,
+          -58
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          475,
+          1056,
+          1061,
+          1082
+        ],
+        "alpha": 100,
+        "blur": 8.96
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w27",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "crop": [
+      100,
+      150,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter7/report_w27.png",
+    "parts": [
+      {
+        "source": "sources/report_w27.png",
+        "mask": "parts/report_w27-1-mask.png",
+        "height": 909,
+        "position": [
+          338,
+          160
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 77,
+        "position": [
+          381,
+          991
+        ]
+      },
+      {
+        "source": "sources/report_w27.png",
+        "mask": "parts/report_w27-0-mask.png",
+        "height": 1190,
+        "position": [
+          -67,
+          -58
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          467,
+          1056,
+          1069,
+          1082
+        ],
+        "alpha": 100,
+        "blur": 8.96
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w28",
+    "background": "docs/art/story-refs/palace-3d/finished/left.png",
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter7/report_w28.png",
+    "parts": [
+      {
+        "source": "sources/report_w28.png",
+        "mask": "parts/report_w28-1-mask.png",
+        "height": 325,
+        "position": [
+          486,
+          289
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 38,
+        "position": [
+          502,
+          575
+        ]
+      },
+      {
+        "source": "sources/report_w28.png",
+        "mask": "parts/report_w28-0-mask.png",
+        "height": 630,
+        "position": [
+          134,
+          340
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          174,
+          960,
+          366,
+          980
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          534,
+          604,
+          758,
+          624
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w29",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "master": "art/story-review/chapter7/report_w29.png",
+    "parts": [
+      {
+        "source": "sources/report_w29.png",
+        "mask": "parts/report_w29-1-mask.png",
+        "height": 710,
+        "position": [
+          380,
+          275
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 60,
+        "position": [
+          398,
+          924
+        ]
+      },
+      {
+        "source": "sources/report_w29.png",
+        "mask": "parts/report_w29-0-mask.png",
+        "height": 930,
+        "position": [
+          42,
+          105
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          476,
+          975,
+          924,
+          995
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w30",
+    "background": "docs/art/story-refs/palace-3d/finished/right.png",
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter8/report_w30.png",
+    "parts": [
+      {
+        "source": "sources/report_w30.png",
+        "mask": "parts/report_w30-1-mask.png",
+        "height": 345,
+        "position": [
+          608,
+          282
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 38,
+        "position": [
+          655,
+          590
+        ]
+      },
+      {
+        "source": "sources/report_w30.png",
+        "mask": "parts/report_w30-0-mask.png",
+        "height": 650,
+        "position": [
+          223,
+          320
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          261,
+          960,
+          439,
+          980
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          664,
+          617,
+          924,
+          637
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w31",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "master": "art/story-review/chapter8/report_w31.png",
+    "parts": [
+      {
+        "source": "sources/report_w31.png",
+        "mask": "parts/report_w31-1-mask.png",
+        "height": 710,
+        "position": [
+          361,
+          275
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 60,
+        "position": [
+          398,
+          924
+        ]
+      },
+      {
+        "source": "sources/report_w31.png",
+        "mask": "parts/report_w31-0-mask.png",
+        "height": 930,
+        "position": [
+          50,
+          105
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          463,
+          975,
+          937,
+          995
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w32",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "master": "art/story-review/chapter8/report_w32.png",
+    "parts": [
+      {
+        "source": "sources/report_w32.png",
+        "mask": "parts/report_w32-1-mask.png",
+        "height": 840,
+        "position": [
+          652,
+          160
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 60,
+        "position": [
+          398,
+          924
+        ]
+      },
+      {
+        "source": "sources/report_w32.png",
+        "mask": "parts/report_w32-0-mask.png",
+        "height": 880,
+        "position": [
+          70,
+          160
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          964,
+          990,
+          1346,
+          1010
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w33",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/audience-day.png",
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "master": "art/story-review/chapter8/report_w33.png",
+    "parts": [
+      {
+        "source": "sources/report_w33.png",
+        "height": 840,
+        "position": [
+          628,
+          160
+        ],
+        "mask": "parts/report_w33-1-mask.png"
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 60,
+        "position": [
+          398,
+          924
+        ]
+      },
+      {
+        "source": "sources/report_w33.png",
+        "height": 880,
+        "position": [
+          78,
+          160
+        ],
+        "mask": "parts/report_w33-0-mask.png"
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          947,
+          990,
+          1363,
+          1010
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w34",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/left-day.png",
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter9/report_w34.png",
+    "parts": [
+      {
+        "source": "sources/report_w34.png",
+        "mask": "parts/report_w34-1-mask.png",
+        "height": 325,
+        "position": [
+          498,
+          289
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 38,
+        "position": [
+          502,
+          575
+        ]
+      },
+      {
+        "source": "sources/report_w34.png",
+        "mask": "parts/report_w34-0-mask.png",
+        "height": 630,
+        "position": [
+          149,
+          340
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          185,
+          960,
+          355,
+          980
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          543,
+          604,
+          749,
+          624
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w35",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/audience-day.png",
+    "crop": [
+      100,
+      150,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter9/report_w35.png",
+    "parts": [
+      {
+        "source": "sources/report_w35.png",
+        "mask": "parts/report_w35-1-mask.png",
+        "height": 909,
+        "position": [
+          374,
+          160
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 77,
+        "position": [
+          381,
+          991
+        ]
+      },
+      {
+        "source": "sources/report_w35.png",
+        "mask": "parts/report_w35-0-mask.png",
+        "height": 1190,
+        "position": [
+          -88,
+          -58
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          492,
+          1056,
+          1044,
+          1082
+        ],
+        "alpha": 100,
+        "blur": 8.96
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w36",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/right-day.png",
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter9/report_w36.png",
+    "parts": [
+      {
+        "source": "sources/report_w36.png",
+        "mask": "parts/report_w36-1-mask.png",
+        "height": 345,
+        "position": [
+          601,
+          282
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 38,
+        "position": [
+          655,
+          590
+        ]
+      },
+      {
+        "source": "sources/report_w36.png",
+        "mask": "parts/report_w36-0-mask.png",
+        "height": 650,
+        "position": [
+          230,
+          320
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          266,
+          960,
+          434,
+          980
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          659,
+          617,
+          929,
+          637
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w37",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/audience-evening.png",
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "master": "art/story-review/chapter9/report_w37.png",
+    "parts": [
+      {
+        "source": "sources/report_w37.png",
+        "mask": "parts/report_w37-1-mask.png",
+        "height": 710,
+        "position": [
+          370,
+          275
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 60,
+        "position": [
+          398,
+          924
+        ]
+      },
+      {
+        "source": "sources/report_w37.png",
+        "mask": "parts/report_w37-0-mask.png",
+        "height": 930,
+        "position": [
+          38,
+          105
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          469,
+          975,
+          931,
+          995
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w38",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/audience-day.png",
+    "crop": [
+      100,
+      150,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter10/report_w38.png",
+    "parts": [
+      {
+        "source": "sources/report_w38.png",
+        "mask": "parts/report_w38-1-mask.png",
+        "height": 909,
+        "position": [
+          328,
+          160
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 77,
+        "position": [
+          381,
+          991
+        ]
+      },
+      {
+        "source": "sources/report_w38.png",
+        "mask": "parts/report_w38-0-mask.png",
+        "height": 1190,
+        "position": [
+          -74,
+          -58
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          460,
+          1056,
+          1076,
+          1082
+        ],
+        "alpha": 100,
+        "blur": 8.96
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w39",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/right-day.png",
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter10/report_w39.png",
+    "parts": [
+      {
+        "source": "sources/report_w39.png",
+        "mask": "parts/report_w39-1-mask.png",
+        "height": 345,
+        "position": [
+          634,
+          282
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 38,
+        "position": [
+          655,
+          590
+        ]
+      },
+      {
+        "source": "sources/report_w39.png",
+        "mask": "parts/report_w39-0-mask.png",
+        "height": 650,
+        "position": [
+          248,
+          320
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          278,
+          960,
+          422,
+          980
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          682,
+          617,
+          906,
+          637
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w40",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/audience-evening.png",
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "master": "art/story-review/chapter10/report_w40.png",
+    "parts": [
+      {
+        "source": "sources/report_w40.png",
+        "mask": "parts/report_w40-1-mask.png",
+        "height": 710,
+        "position": [
+          304,
+          275
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 60,
+        "position": [
+          398,
+          924
+        ]
+      },
+      {
+        "source": "sources/report_w40.png",
+        "mask": "parts/report_w40-0-mask.png",
+        "height": 930,
+        "position": [
+          42,
+          105
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          423,
+          975,
+          977,
+          995
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w41",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/audience-day.png",
+    "crop": [
+      100,
+      150,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter10/report_w41.png",
+    "parts": [
+      {
+        "source": "sources/report_w41.png",
+        "mask": "parts/report_w41-1-mask.png",
+        "height": 909,
+        "position": [
+          314,
+          160
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 77,
+        "position": [
+          381,
+          991
+        ]
+      },
+      {
+        "source": "sources/report_w41.png",
+        "mask": "parts/report_w41-0-mask.png",
+        "height": 1190,
+        "position": [
+          -77,
+          -58
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          451,
+          1056,
+          1085,
+          1082
+        ],
+        "alpha": 100,
+        "blur": 8.96
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w42",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/right-day.png",
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter11/report_w42.png",
+    "parts": [
+      {
+        "source": "sources/report_w42.png",
+        "mask": "parts/report_w42-1-mask.png",
+        "height": 345,
+        "position": [
+          620,
+          282
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 38,
+        "position": [
+          655,
+          590
+        ]
+      },
+      {
+        "source": "sources/report_w42.png",
+        "mask": "parts/report_w42-0-mask.png",
+        "height": 650,
+        "position": [
+          228,
+          320
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          264,
+          960,
+          436,
+          980
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          673,
+          617,
+          915,
+          637
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w43",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/audience-day.png",
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "master": "art/story-review/chapter11/report_w43.png",
+    "parts": [
+      {
+        "source": "sources/report_w43.png",
+        "mask": "parts/report_w43-1-mask.png",
+        "height": 840,
+        "position": [
+          601,
+          160
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 60,
+        "position": [
+          398,
+          924
+        ]
+      },
+      {
+        "source": "sources/report_w43.png",
+        "mask": "parts/report_w43-0-mask.png",
+        "height": 880,
+        "position": [
+          76,
+          160
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          928,
+          990,
+          1382,
+          1010
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w44",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/audience-day.png",
+    "crop": [
+      100,
+      150,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter11/report_w44.png",
+    "parts": [
+      {
+        "source": "sources/report_w44.png",
+        "mask": "parts/report_w44-1-mask.png",
+        "height": 909,
+        "position": [
+          349,
+          160
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 77,
+        "position": [
+          381,
+          991
+        ]
+      },
+      {
+        "source": "sources/report_w44.png",
+        "mask": "parts/report_w44-0-mask.png",
+        "height": 1190,
+        "position": [
+          -64,
+          -58
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          475,
+          1056,
+          1061,
+          1082
+        ],
+        "alpha": 100,
+        "blur": 8.96
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w45",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/audience-evening.png",
+    "crop": [
+      100,
+      150,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter11/report_w45.png",
+    "parts": [
+      {
+        "source": "sources/report_w45.png",
+        "mask": "parts/report_w45-1-mask.png",
+        "height": 909,
+        "position": [
+          351,
+          160
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 77,
+        "position": [
+          381,
+          991
+        ]
+      },
+      {
+        "source": "sources/report_w45.png",
+        "mask": "parts/report_w45-0-mask.png",
+        "height": 1190,
+        "position": [
+          -74,
+          -58
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          476,
+          1056,
+          1060,
+          1082
+        ],
+        "alpha": 100,
+        "blur": 8.96
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w46",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/left-day.png",
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter12/report_w46.png",
+    "parts": [
+      {
+        "source": "sources/report_w46.png",
+        "mask": "parts/report_w46-1-mask.png",
+        "height": 325,
+        "position": [
+          450,
+          289
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 38,
+        "position": [
+          502,
+          575
+        ]
+      },
+      {
+        "source": "sources/report_w46.png",
+        "mask": "parts/report_w46-0-mask.png",
+        "height": 630,
+        "position": [
+          158,
+          340
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          191,
+          960,
+          349,
+          980
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          509,
+          604,
+          783,
+          624
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w47",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/audience-day.png",
+    "crop": [
+      100,
+      150,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter12/report_w47.png",
+    "parts": [
+      {
+        "source": "sources/report_w47.png",
+        "mask": "parts/report_w47-1-mask.png",
+        "height": 909,
+        "position": [
+          314,
+          185
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 77,
+        "position": [
+          381,
+          991
+        ]
+      },
+      {
+        "source": "sources/report_w47.png",
+        "mask": "parts/report_w47-0-mask.png",
+        "height": 1190,
+        "position": [
+          -76,
+          -58
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          451,
+          1056,
+          1085,
+          1082
+        ],
+        "alpha": 100,
+        "blur": 8.96
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w48",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/audience-evening.png",
+    "crop": [
+      100,
+      150,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter12/report_w48.png",
+    "parts": [
+      {
+        "source": "sources/report_w48.png",
+        "mask": "parts/report_w48-1-mask.png",
+        "height": 909,
+        "position": [
+          356,
+          160
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 77,
+        "position": [
+          381,
+          991
+        ]
+      },
+      {
+        "source": "sources/report_w48.png",
+        "mask": "parts/report_w48-0-mask.png",
+        "height": 1190,
+        "position": [
+          -67,
+          -58
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          480,
+          1056,
+          1056,
+          1082
+        ],
+        "alpha": 100,
+        "blur": 8.96
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w49",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/left-day.png",
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter12/report_w49.png",
+    "parts": [
+      {
+        "source": "sources/report_w49.png",
+        "mask": "parts/report_w49-1-mask.png",
+        "height": 325,
+        "position": [
+          494,
+          289
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 38,
+        "position": [
+          502,
+          575
+        ]
+      },
+      {
+        "source": "sources/report_w49.png",
+        "mask": "parts/report_w49-0-mask.png",
+        "height": 630,
+        "position": [
+          166,
+          340
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          197,
+          960,
+          343,
+          980
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          540,
+          604,
+          752,
+          624
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w50",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/high-day.png",
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter13/report_w50.png",
+    "parts": [
+      {
+        "source": "sources/report_w50.png",
+        "mask": "parts/report_w50-1-mask.png",
+        "height": 280,
+        "position": [
+          518,
+          130
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 32,
+        "position": [
+          520,
+          366
+        ]
+      },
+      {
+        "source": "sources/report_w50.png",
+        "mask": "parts/report_w50-0-mask.png",
+        "height": 450,
+        "position": [
+          318,
+          400
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          343,
+          840,
+          457,
+          860
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          551,
+          400,
+          703,
+          420
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w51",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/audience-day.png",
+    "crop": [
+      100,
+      150,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter13/report_w51.png",
+    "parts": [
+      {
+        "source": "sources/report_w51.png",
+        "mask": "parts/report_w51-1-mask.png",
+        "height": 909,
+        "position": [
+          287,
+          160
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 77,
+        "position": [
+          381,
+          991
+        ]
+      },
+      {
+        "source": "sources/report_w51.png",
+        "mask": "parts/report_w51-0-mask.png",
+        "height": 1190,
+        "position": [
+          -125,
+          -58
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          431,
+          1056,
+          1105,
+          1082
+        ],
+        "alpha": 100,
+        "blur": 8.96
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w52",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/left-day.png",
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter13/report_w52.png",
+    "parts": [
+      {
+        "source": "sources/report_w52.png",
+        "mask": "parts/report_w52-1-mask.png",
+        "height": 325,
+        "position": [
+          496,
+          289
+        ]
+      },
+      {
+        "source": "sources/report_w52.png",
+        "mask": "parts/report_w52-2-mask.png",
+        "height": 430,
+        "position": [
+          1038,
+          470
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 38,
+        "position": [
+          502,
+          575
+        ]
+      },
+      {
+        "source": "sources/report_w52.png",
+        "mask": "parts/report_w52-0-mask.png",
+        "height": 630,
+        "position": [
+          144,
+          340
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          182,
+          960,
+          358,
+          980
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          541,
+          604,
+          751,
+          624
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          1071,
+          890,
+          1229,
+          910
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w53",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/audience-day.png",
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "master": "art/story-review/chapter13/report_w53.png",
+    "parts": [
+      {
+        "source": "sources/report_w53.png",
+        "mask": "parts/report_w53-1-mask.png",
+        "height": 710,
+        "position": [
+          372,
+          275
+        ]
+      },
+      {
+        "source": "sources/report_w53.png",
+        "mask": "parts/report_w53-2-mask.png",
+        "height": 540,
+        "position": [
+          1170,
+          470
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 60,
+        "position": [
+          398,
+          924
+        ]
+      },
+      {
+        "source": "sources/report_w53.png",
+        "mask": "parts/report_w53-0-mask.png",
+        "height": 930,
+        "position": [
+          5,
+          105
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          470,
+          975,
+          930,
+          995
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          1215,
+          1000,
+          1425,
+          1020
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w54",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/audience-day.png",
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "master": "art/story-review/chapter14/report_w54.png",
+    "parts": [
+      {
+        "source": "sources/report_w54.png",
+        "mask": "parts/report_w54-1-mask.png",
+        "height": 710,
+        "position": [
+          362,
+          275
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 60,
+        "position": [
+          398,
+          924
+        ]
+      },
+      {
+        "source": "sources/report_w54.png",
+        "mask": "parts/report_w54-0-mask.png",
+        "height": 930,
+        "position": [
+          20,
+          105
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          464,
+          975,
+          936,
+          995
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w55",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/audience-day.png",
+    "crop": [
+      100,
+      150,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter14/report_w55.png",
+    "parts": [
+      {
+        "source": "sources/report_w55.png",
+        "mask": "parts/report_w55-1-mask.png",
+        "height": 909,
+        "position": [
+          376,
+          160
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 77,
+        "position": [
+          381,
+          991
+        ]
+      },
+      {
+        "source": "sources/report_w55.png",
+        "mask": "parts/report_w55-0-mask.png",
+        "height": 1190,
+        "position": [
+          -81,
+          -58
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          493,
+          1056,
+          1043,
+          1082
+        ],
+        "alpha": 100,
+        "blur": 8.96
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w56",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/audience-day.png",
+    "crop": [
+      100,
+      150,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter14/report_w56.png",
+    "parts": [
+      {
+        "source": "sources/report_w56.png",
+        "mask": "parts/report_w56-1-mask.png",
+        "height": 909,
+        "position": [
+          379,
+          160
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 77,
+        "position": [
+          381,
+          991
+        ]
+      },
+      {
+        "source": "sources/report_w56.png",
+        "mask": "parts/report_w56-0-mask.png",
+        "height": 1190,
+        "position": [
+          -81,
+          -58
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          495,
+          1056,
+          1041,
+          1082
+        ],
+        "alpha": 100,
+        "blur": 8.96
+      }
+    ],
+    "occlusion": []
+  },
+  {
+    "id": "report_w57",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/audience-day.png",
+    "crop": [
+      100,
+      150,
+      1200,
+      800
+    ],
+    "master": "art/story-review/chapter14/report_w57.png",
+    "parts": [
+      {
+        "source": "sources/report_w57.png",
+        "mask": "parts/report_w57-1-mask.png",
+        "height": 909,
+        "position": [
+          376,
+          160
+        ]
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 77,
+        "position": [
+          381,
+          991
+        ]
+      },
+      {
+        "source": "sources/report_w57.png",
+        "mask": "parts/report_w57-0-mask.png",
+        "height": 1190,
+        "position": [
+          -82,
+          -58
+        ]
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          494,
+          1056,
+          1042,
+          1082
+        ],
+        "alpha": 100,
+        "blur": 8.96
+      }
+    ],
+    "occlusion": []
+  }
+]

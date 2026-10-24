@@ -1,0 +1,5130 @@
+[
+  {
+    "id": "report_w06",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "backgroundSha256": "159b34b262ac7f309203926946e0d59c5715c5b209860002abe0f2b039adb521",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "backgroundScale": 1.0,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w06.png",
+        "polygon": [
+          [
+            455,
+            100
+          ],
+          [
+            1100,
+            100
+          ],
+          [
+            1100,
+            780
+          ],
+          [
+            1155,
+            990
+          ],
+          [
+            471,
+            990
+          ],
+          [
+            469,
+            810
+          ],
+          [
+            445,
+            620
+          ],
+          [
+            453,
+            490
+          ]
+        ],
+        "height": 700,
+        "position": [
+          385,
+          270
+        ],
+        "sourceSha256": "b8de1a5d657b80707e87c846851ad041eb6aa71801ef90e62cee1bd9c8b33f12",
+        "sourceBounds": [
+          453,
+          168,
+          1151,
+          991
+        ],
+        "scale": 0.850546780072904
+      },
+      {
+        "source": "sources/report_w06.png",
+        "polygon": [
+          [
+            1100,
+            0
+          ],
+          [
+            1536,
+            0
+          ],
+          [
+            1536,
+            1024
+          ],
+          [
+            1156,
+            1024
+          ],
+          [
+            1155,
+            970
+          ],
+          [
+            1100,
+            780
+          ]
+        ],
+        "height": 580,
+        "position": [
+          968,
+          400
+        ],
+        "sourceSha256": "b8de1a5d657b80707e87c846851ad041eb6aa71801ef90e62cee1bd9c8b33f12",
+        "sourceBounds": [
+          1108,
+          191,
+          1536,
+          984
+        ],
+        "scale": 0.7313997477931904
+      },
+      {
+        "source": "sources/report_w06.png",
+        "polygon": [
+          [
+            0,
+            0
+          ],
+          [
+            453,
+            0
+          ],
+          [
+            453,
+            490
+          ],
+          [
+            445,
+            620
+          ],
+          [
+            468,
+            810
+          ],
+          [
+            472,
+            1024
+          ],
+          [
+            0,
+            1024
+          ]
+        ],
+        "height": 930,
+        "position": [
+          0,
+          94
+        ],
+        "sourceSha256": "b8de1a5d657b80707e87c846851ad041eb6aa71801ef90e62cee1bd9c8b33f12",
+        "sourceBounds": [
+          0,
+          57,
+          473,
+          1024
+        ],
+        "scale": 0.9617373319544984
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          530,
+          938,
+          990,
+          990
+        ],
+        "alpha": 110,
+        "blur": 10
+      },
+      {
+        "box": [
+          1030,
+          943,
+          1240,
+          981
+        ],
+        "alpha": 100,
+        "blur": 8
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "2bc8fbaf864b563f8659cb4a03ad1595d12556457c8201a2b48fee5c6e7e7c24",
+    "masterSha256": "1a586a6ec029ee0eebe1022d7949898d525439d068c559c1c2152c9c73fddcd2",
+    "uncoveredPixels": 822635,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w04",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "backgroundSha256": "159b34b262ac7f309203926946e0d59c5715c5b209860002abe0f2b039adb521",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      0,
+      150,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w04.png",
+        "polygon": [
+          [
+            0,
+            0
+          ],
+          [
+            1050,
+            0
+          ],
+          [
+            1050,
+            580
+          ],
+          [
+            1070,
+            800
+          ],
+          [
+            1130,
+            1000
+          ],
+          [
+            0,
+            1024
+          ]
+        ],
+        "scale": 1.05,
+        "position": [
+          165,
+          257
+        ],
+        "sourceSha256": "935e662c0d748acf6713fca4ac7b47293bb735e792dbfea3f9ed3baa83dcd709",
+        "sourceBounds": [
+          83,
+          114,
+          1112,
+          970
+        ]
+      },
+      {
+        "source": "sources/report_w04.png",
+        "polygon": [
+          [
+            1051,
+            0
+          ],
+          [
+            1536,
+            0
+          ],
+          [
+            1536,
+            1024
+          ],
+          [
+            1131,
+            1024
+          ],
+          [
+            1071,
+            800
+          ],
+          [
+            1051,
+            580
+          ]
+        ],
+        "height": 850,
+        "position": [
+          1220,
+          275
+        ],
+        "sourceSha256": "935e662c0d748acf6713fca4ac7b47293bb735e792dbfea3f9ed3baa83dcd709",
+        "sourceBounds": [
+          1076,
+          21,
+          1510,
+          973
+        ],
+        "scale": 0.8928571428571429
+      }
+    ],
+    "shadows": [],
+    "occlusion": [],
+    "beforeSha256": "e2ede7a90a479f140bb90d45eb7f726354cc237fd00a1bd2fa830403e3fb3294",
+    "masterSha256": "9f6b3ab1255a8271dfaa0ddb80467ffb926aec150d4a8ea7714efb4df763d3c2",
+    "uncoveredPixels": 912099,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "arrival",
+    "background": "docs/art/story-refs/palace-3d/finished/front.png",
+    "backgroundSha256": "48c2a074ff7907f9802dfe3f5567c76ad45fcb1ae7c119584fb2eaf5e84d04ad",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/arrival.png",
+        "height": 240,
+        "position": [
+          625,
+          370
+        ],
+        "mask": "parts/arrival-1-mask.png",
+        "sourceSha256": "f04c6986124d95f56f1b4dd7c8100b61769aebe6c38c458d5dd7e57e92d9bd37",
+        "maskSha256": "3a5ce73a6b5394aee370b5d41c331125f22dea0bab4a14697f0cef52ecb75632",
+        "sourceBounds": [
+          429,
+          78,
+          1223,
+          952
+        ],
+        "scale": 0.2745995423340961
+      },
+      {
+        "source": "sources/arrival.png",
+        "height": 620,
+        "position": [
+          296,
+          350
+        ],
+        "mask": "parts/arrival-0-mask.png",
+        "sourceSha256": "f04c6986124d95f56f1b4dd7c8100b61769aebe6c38c458d5dd7e57e92d9bd37",
+        "maskSha256": "9c979556c34463d65284c39c60152bf3fd8f4f9b24015e64549d9275ce145852",
+        "sourceBounds": [
+          59,
+          22,
+          499,
+          973
+        ],
+        "scale": 0.6519453207150369
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          340,
+          960,
+          540,
+          980
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          619,
+          600,
+          841,
+          620
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "6489b1889398ac64c081cf4a565694c2842b24675d0a77ca151c722ef0b6e881",
+    "masterSha256": "dd73f2a25e613c199882718f76755aaf7c93a3459d4c4c8bbdbd9938d8fb6a57",
+    "uncoveredPixels": 1428088,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w02",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "backgroundSha256": "159b34b262ac7f309203926946e0d59c5715c5b209860002abe0f2b039adb521",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "backgroundScale": 1.0,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w02.png",
+        "height": 710,
+        "position": [
+          401,
+          275
+        ],
+        "mask": "parts/report_w02-1-mask.png",
+        "sourceSha256": "6fbb087b2e44f0af8271e1f7884e9cbf94543ed3025c4cbc59a53dd376e3c59d",
+        "maskSha256": "97b35a7bc1d91ab0d1d7cbb88c2ed97a58ffb5d963c53743b5f305d153d75c59",
+        "sourceBounds": [
+          558,
+          133,
+          1245,
+          948
+        ],
+        "scale": 0.8711656441717791
+      },
+      {
+        "source": "sources/report_w02.png",
+        "height": 930,
+        "position": [
+          -22,
+          105
+        ],
+        "mask": "parts/report_w02-0-mask.png",
+        "sourceSha256": "6fbb087b2e44f0af8271e1f7884e9cbf94543ed3025c4cbc59a53dd376e3c59d",
+        "maskSha256": "47dfd9acf730443082c46c9386aa4005c489e5caabe50e1a802f5faf096de33a",
+        "sourceBounds": [
+          66,
+          9,
+          558,
+          992
+        ],
+        "scale": 0.9460834181078331
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          491,
+          975,
+          909,
+          995
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "30a8b3f8ff504e9084abdb45417d6bb49b9e718a6f1c83f6aa5f7f699baa0f4c",
+    "masterSha256": "ed4eeff77f008f5e62afabc1ccd283d2bd4d44bbcf21032ba959943b95c72527",
+    "uncoveredPixels": 1066155,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w03",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "backgroundSha256": "159b34b262ac7f309203926946e0d59c5715c5b209860002abe0f2b039adb521",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "backgroundScale": 1.0,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w03.png",
+        "height": 710,
+        "position": [
+          408,
+          275
+        ],
+        "mask": "parts/report_w03-1-mask.png",
+        "sourceSha256": "941fac7216da5d385378c6c6e89c04356c67a80066ab10198e16715e246c358f",
+        "maskSha256": "809951a440313c73684446ac5fc6cf309d3ec7116290e9d3eddbd196329920d5",
+        "sourceBounds": [
+          410,
+          107,
+          1126,
+          978
+        ],
+        "scale": 0.8151549942594719
+      },
+      {
+        "source": "sources/report_w03.png",
+        "height": 620,
+        "position": [
+          978,
+          360
+        ],
+        "mask": "parts/report_w03-2-mask.png",
+        "sourceSha256": "941fac7216da5d385378c6c6e89c04356c67a80066ab10198e16715e246c358f",
+        "maskSha256": "7e3c9ec0e56ace1a186ffeabbddc34c69ca99d17f769b35040fb919c717bdbf2",
+        "sourceBounds": [
+          1093,
+          57,
+          1515,
+          977
+        ],
+        "scale": 0.6739130434782609
+      },
+      {
+        "source": "sources/report_w03.png",
+        "height": 930,
+        "position": [
+          40,
+          105
+        ],
+        "mask": "parts/report_w03-0-mask.png",
+        "sourceSha256": "941fac7216da5d385378c6c6e89c04356c67a80066ab10198e16715e246c358f",
+        "maskSha256": "c845ab7097effabb15d98b47a97318249ec3d85334fa1617057b70c18088468b",
+        "sourceBounds": [
+          56,
+          13,
+          409,
+          980
+        ],
+        "scale": 0.9617373319544984
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          496,
+          975,
+          904,
+          995
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          1021,
+          970,
+          1219,
+          990
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "0d7ca902ed8e9b5e07d191b7e6e3a4264bc0dc76f251e89c10b4dd6782f57a9b",
+    "masterSha256": "9d9f4c44a85bf2bec5bfea768b3d60a9eeb21ae2ce9ea4b80167e89dbe40e3fb",
+    "uncoveredPixels": 960160,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w05",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "backgroundSha256": "159b34b262ac7f309203926946e0d59c5715c5b209860002abe0f2b039adb521",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "backgroundScale": 1.0,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w05.png",
+        "height": 710,
+        "position": [
+          384,
+          275
+        ],
+        "mask": "parts/report_w05-1-mask.png",
+        "sourceSha256": "dc3952783429de746a5098422f123b3d79070203e94b9895c85b44f0dd86b7f7",
+        "maskSha256": "a987321e76353260d0b8b9ce774a22d504d6cf21362f93cc4068d4843a47a9c1",
+        "sourceBounds": [
+          435,
+          217,
+          1111,
+          975
+        ],
+        "scale": 0.9366754617414248
+      },
+      {
+        "source": "sources/report_w05.png",
+        "height": 850,
+        "position": [
+          1070,
+          170
+        ],
+        "mask": "parts/report_w05-2-mask.png",
+        "sourceSha256": "dc3952783429de746a5098422f123b3d79070203e94b9895c85b44f0dd86b7f7",
+        "maskSha256": "dbe32aab1ec68667aa49495af15aa0f66deb7ba674596f853866bf41e9d586bf",
+        "sourceBounds": [
+          1037,
+          4,
+          1519,
+          977
+        ],
+        "scale": 0.8735868448098664
+      },
+      {
+        "source": "sources/report_w05.png",
+        "height": 930,
+        "position": [
+          42,
+          105
+        ],
+        "mask": "parts/report_w05-0-mask.png",
+        "sourceSha256": "dc3952783429de746a5098422f123b3d79070203e94b9895c85b44f0dd86b7f7",
+        "maskSha256": "054d0e6921312a22f868a2d8eece93e03a4ea7b22508fe1b3d3e605672246e79",
+        "sourceBounds": [
+          69,
+          19,
+          416,
+          983
+        ],
+        "scale": 0.9647302904564315
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          478,
+          975,
+          922,
+          995
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "d3d8e76bc30345460d0e53a538e3b1561b3d3bf1b3760d49fd507a241e497723",
+    "masterSha256": "eb21a1788e50789278b280b636b0cade38b2992c2dd6b0f902a424525d4cefa7",
+    "uncoveredPixels": 843168,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w09",
+    "background": "docs/art/story-refs/palace-3d/finished/right.png",
+    "backgroundSha256": "a644f1b66e5c81cccda1d83e31d9b8fc03144ac211d3af3977c46236f59d41e8",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w09.png",
+        "height": 345,
+        "position": [
+          646,
+          282
+        ],
+        "mask": "parts/report_w09-1-mask.png",
+        "sourceSha256": "0e596dd4a4db760d758f2f3ec066b7ea5fdd26ad150f0e118df46b76905f9a21",
+        "maskSha256": "51be1b465350d206159063813f6853f70409e72d2c5a53c574ddd989463bf28b",
+        "sourceBounds": [
+          445,
+          171,
+          1132,
+          971
+        ],
+        "scale": 0.43125
+      },
+      {
+        "source": "sources/report_w09.png",
+        "height": 650,
+        "position": [
+          239,
+          320
+        ],
+        "mask": "parts/report_w09-0-mask.png",
+        "sourceSha256": "0e596dd4a4db760d758f2f3ec066b7ea5fdd26ad150f0e118df46b76905f9a21",
+        "maskSha256": "124139947ef46881b687df61836faed24bfa69e54389acf82c615ed1ff6a5930",
+        "sourceBounds": [
+          85,
+          23,
+          413,
+          982
+        ],
+        "scale": 0.6777893639207507
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          272,
+          960,
+          428,
+          980
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          690,
+          617,
+          898,
+          637
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "96f50d87c6087fef063d182257bac548283d6360aea8099e29f889abe37b173a",
+    "masterSha256": "b1b9d0c09bbba7528b8177829dc29e25c5fd5eeb031d11608595bc872dda057f",
+    "uncoveredPixels": 1399440,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w07",
+    "background": "docs/art/story-refs/palace-3d/finished/left.png",
+    "backgroundSha256": "7ff24eb1c0a0774859eb5407032520a22e43f679f8b24364d9c977d2ce89c2f6",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w07.png",
+        "height": 325,
+        "position": [
+          524,
+          289
+        ],
+        "mask": "parts/report_w07-1-mask.png",
+        "sourceSha256": "d88d20fadf658a79b14549fd72cfaa8c746856dfddc5180099ae3ff5ee2f95a6",
+        "maskSha256": "61f0c085e7a1f5d43a902d08fbf4133252ea7111157344a6e211000defd7fb9c",
+        "sourceBounds": [
+          426,
+          123,
+          1063,
+          974
+        ],
+        "scale": 0.381903642773208
+      },
+      {
+        "source": "sources/report_w07.png",
+        "height": 310,
+        "position": [
+          784,
+          307
+        ],
+        "mask": "parts/report_w07-2-mask.png",
+        "sourceSha256": "d88d20fadf658a79b14549fd72cfaa8c746856dfddc5180099ae3ff5ee2f95a6",
+        "maskSha256": "1a3fa375e664d81a0afcdfd011bea807bdc3ba93c178bb41f632424bad804111",
+        "sourceBounds": [
+          1075,
+          58,
+          1525,
+          980
+        ],
+        "scale": 0.3362255965292842
+      },
+      {
+        "source": "sources/report_w07.png",
+        "height": 630,
+        "position": [
+          150,
+          340
+        ],
+        "mask": "parts/report_w07-0-mask.png",
+        "sourceSha256": "d88d20fadf658a79b14549fd72cfaa8c746856dfddc5180099ae3ff5ee2f95a6",
+        "maskSha256": "172e89d4e5a47da78b31327246fa917148dd567e68e6372cbcb62d61f5b89102",
+        "sourceBounds": [
+          19,
+          6,
+          396,
+          1000
+        ],
+        "scale": 0.6338028169014085
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          186,
+          960,
+          354,
+          980
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          561,
+          604,
+          731,
+          624
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          807,
+          607,
+          913,
+          627
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "59a5a24b487b40b4467914af39f0ec7f0e774055922513b2e98e28de4187d544",
+    "masterSha256": "e8273981671171e1086b24181ed731d65abf08c264d6fb51d812717f232de00f",
+    "uncoveredPixels": 1370348,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w10",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "backgroundSha256": "159b34b262ac7f309203926946e0d59c5715c5b209860002abe0f2b039adb521",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "backgroundScale": 1.0,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w10.png",
+        "height": 710,
+        "position": [
+          406,
+          275
+        ],
+        "mask": "parts/report_w10-1-mask.png",
+        "sourceSha256": "e0bd1870ffc86e1e7b9800bd48351b386199f943441cb828cc8068c290cb1c81",
+        "maskSha256": "4a6f957a6bb638eb2e6ba9559c6762ff42a9c318063197b055379a3675e1a9a7",
+        "sourceBounds": [
+          413,
+          123,
+          1128,
+          986
+        ],
+        "scale": 0.8227114716106605
+      },
+      {
+        "source": "sources/report_w10.png",
+        "height": 930,
+        "position": [
+          37,
+          105
+        ],
+        "mask": "parts/report_w10-0-mask.png",
+        "sourceSha256": "e0bd1870ffc86e1e7b9800bd48351b386199f943441cb828cc8068c290cb1c81",
+        "maskSha256": "aea45052a1397b5b2d7314920c6a1cc8049278076d6fcc9e93766bd985a561ce",
+        "sourceBounds": [
+          51,
+          24,
+          411,
+          991
+        ],
+        "scale": 0.9617373319544984
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          494,
+          975,
+          906,
+          995
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "1830ac75fbfd3ebcf11a2ca6512c2543f688d05af8e8656a448648a62d012aa3",
+    "masterSha256": "3285e5afd20c42031c1a82904a88910f3b4a346eaa1618a96c29715f166f7e22",
+    "uncoveredPixels": 1086219,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w08",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "backgroundSha256": "159b34b262ac7f309203926946e0d59c5715c5b209860002abe0f2b039adb521",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "backgroundScale": 1.0,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w08.png",
+        "height": 710,
+        "position": [
+          405,
+          275
+        ],
+        "mask": "parts/report_w08-1-mask.png",
+        "sourceSha256": "c16221caa1ccdb73fba47bf6c6926376f44f9be3cccaba84c93b5934f8b7f5ef",
+        "maskSha256": "246afac7048e60256b0c5e13d8d6879416d389a279a1192d13c1a5d9a8cc81a1",
+        "sourceBounds": [
+          411,
+          120,
+          1117,
+          969
+        ],
+        "scale": 0.8362779740871613
+      },
+      {
+        "source": "sources/report_w08.png",
+        "height": 620,
+        "position": [
+          984,
+          360
+        ],
+        "mask": "parts/report_w08-2-mask.png",
+        "sourceSha256": "c16221caa1ccdb73fba47bf6c6926376f44f9be3cccaba84c93b5934f8b7f5ef",
+        "maskSha256": "ad0d0effb143e2aa4d99452bfd8c64d7fbad778f49204cd0612c4c7cc97452d0",
+        "sourceBounds": [
+          1128,
+          70,
+          1525,
+          976
+        ],
+        "scale": 0.6843267108167771
+      },
+      {
+        "source": "sources/report_w08.png",
+        "height": 930,
+        "position": [
+          8,
+          105
+        ],
+        "mask": "parts/report_w08-0-mask.png",
+        "sourceSha256": "c16221caa1ccdb73fba47bf6c6926376f44f9be3cccaba84c93b5934f8b7f5ef",
+        "maskSha256": "7139174b768c33615f6d23c4d26e9d57cb90aee67b6829a0845233197fef7b63",
+        "sourceBounds": [
+          12,
+          14,
+          431,
+          975
+        ],
+        "scale": 0.967741935483871
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          494,
+          975,
+          906,
+          995
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          1025,
+          970,
+          1215,
+          990
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "a4365c1d72f1582844a50e8fb82356e2046987a22664216014d7b120e27e021e",
+    "masterSha256": "ee398b3c2acab2e320b2aecde10afc2367ba3feb85f4a3d192fb524fdcbb6781",
+    "uncoveredPixels": 933113,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w11",
+    "background": "docs/art/story-refs/palace-3d/finished/high.png",
+    "backgroundSha256": "f8a9873eabb4c4785fd1749b7621b0cee4ce33029a78392559c21d4172ce22d8",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w11.png",
+        "height": 280,
+        "position": [
+          528,
+          130
+        ],
+        "mask": "parts/report_w11-1-mask.png",
+        "sourceSha256": "6f98402fba3a234db935dcc9909bc7b525ae0334796349e0de38910d788c71cf",
+        "maskSha256": "237ea0fb7c3d61489163efcebbfacf0e5be6f9e5da73d150138b585e1fc18503",
+        "sourceBounds": [
+          534,
+          75,
+          1112,
+          893
+        ],
+        "scale": 0.3422982885085575
+      },
+      {
+        "source": "sources/report_w11.png",
+        "height": 450,
+        "position": [
+          302,
+          400
+        ],
+        "mask": "parts/report_w11-0-mask.png",
+        "sourceSha256": "6f98402fba3a234db935dcc9909bc7b525ae0334796349e0de38910d788c71cf",
+        "maskSha256": "5c527a49a76909e32728e3e917ee56e82c2d6a5845a52b87f42593b571671e40",
+        "sourceBounds": [
+          119,
+          20,
+          543,
+          992
+        ],
+        "scale": 0.46296296296296297
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          331,
+          840,
+          469,
+          860
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          558,
+          400,
+          696,
+          420
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "da6831c529ebb62b6ee45ab171d7376286559f3393ffacbb5f603d4e751e44d7",
+    "masterSha256": "7a5ac8aec7a5e93f72d1227e4af5550a40f57972ba32a4f6cc371a7e453e0751",
+    "uncoveredPixels": 1475954,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w12",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "backgroundSha256": "159b34b262ac7f309203926946e0d59c5715c5b209860002abe0f2b039adb521",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "backgroundScale": 1.0,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w12.png",
+        "height": 710,
+        "position": [
+          371,
+          275
+        ],
+        "mask": "parts/report_w12-1-mask.png",
+        "sourceSha256": "1eb3665c40e6a6d389f656b3a2496829325ccabad96d0a415140765dc6907c68",
+        "maskSha256": "d3e4631fd7122a27a3df449b04beedbddd404c91035b5a8e266f82861f164ed5",
+        "sourceBounds": [
+          446,
+          164,
+          1213,
+          994
+        ],
+        "scale": 0.8554216867469879
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 85,
+        "position": [
+          873,
+          531
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.07596067917783736
+      },
+      {
+        "source": "sources/report_w12.png",
+        "height": 930,
+        "position": [
+          39,
+          105
+        ],
+        "mask": "parts/report_w12-0-mask.png",
+        "sourceSha256": "1eb3665c40e6a6d389f656b3a2496829325ccabad96d0a415140765dc6907c68",
+        "maskSha256": "3f86ef97dd194e3603aa4926e7430aa721c535fda059e41299acfddb9a989461",
+        "sourceBounds": [
+          72,
+          11,
+          439,
+          1005
+        ],
+        "scale": 0.9356136820925554
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          470,
+          975,
+          930,
+          995
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "b78de38be4920cb89b2bd79c59e1a34431365b9e963b621e15611fb5f0fa6517",
+    "masterSha256": "e30997d747ab17e35608cc40f4ba3d403e900d84c70a505402b71c95088db277",
+    "uncoveredPixels": 1062811,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w15",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "backgroundSha256": "159b34b262ac7f309203926946e0d59c5715c5b209860002abe0f2b039adb521",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      100,
+      150,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w15.png",
+        "height": 909,
+        "position": [
+          369,
+          160
+        ],
+        "mask": "parts/report_w15-1-mask.png",
+        "sourceSha256": "bd71721561ef331d8eca571047cb113b0d99b472dc4e64478ac66406dd9f2153",
+        "maskSha256": "b57483acbca09e6fd5afc88e9351d48559a5a9a7bb4e70292a298305aae35759",
+        "sourceBounds": [
+          426,
+          142,
+          1147,
+          964
+        ],
+        "scale": 1.1058394160583942
+      },
+      {
+        "source": "sources/report_w15.png",
+        "height": 1190,
+        "position": [
+          -90,
+          -58
+        ],
+        "mask": "parts/report_w15-0-mask.png",
+        "sourceSha256": "bd71721561ef331d8eca571047cb113b0d99b472dc4e64478ac66406dd9f2153",
+        "maskSha256": "dc5106570280a9e76bfb0ee54668fa27c4f53f742b9d2de55ad6b1f72d4df46e",
+        "sourceBounds": [
+          57,
+          11,
+          438,
+          997
+        ],
+        "scale": 1.206896551724138
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          489,
+          1056,
+          1047,
+          1082
+        ],
+        "alpha": 100,
+        "blur": 8.96
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "af7988eebb31af1b14aa8fc71bd0caa67e8e17236aa51fa19eac9a9e888fd295",
+    "masterSha256": "659b28ee6c5c36b2b7a371ab71e67bb4d394f5ed066ad34b0fa7b663076ee432",
+    "uncoveredPixels": 866162,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w16",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "backgroundSha256": "159b34b262ac7f309203926946e0d59c5715c5b209860002abe0f2b039adb521",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "backgroundScale": 1.0,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w16.png",
+        "height": 710,
+        "position": [
+          421,
+          275
+        ],
+        "mask": "parts/report_w16-1-mask.png",
+        "sourceSha256": "4d2ad135078ab825eb17d82fd91f1384f0e2bfdd490b270b6c92efc877ac87cd",
+        "maskSha256": "45f8d48c1de01148869ed850800143470bca695abb06067afe9b6321928ba3e4",
+        "sourceBounds": [
+          484,
+          90,
+          1169,
+          962
+        ],
+        "scale": 0.8142201834862385
+      },
+      {
+        "source": "sources/report_w16.png",
+        "height": 930,
+        "position": [
+          31,
+          105
+        ],
+        "mask": "parts/report_w16-0-mask.png",
+        "sourceSha256": "4d2ad135078ab825eb17d82fd91f1384f0e2bfdd490b270b6c92efc877ac87cd",
+        "maskSha256": "42cc7cb3c843f4cb1ffdb4327cbfeeb1a8b321762f9d116585eb473e0a2dbf9a",
+        "sourceBounds": [
+          66,
+          10,
+          441,
+          983
+        ],
+        "scale": 0.9558067831449126
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          505,
+          975,
+          895,
+          995
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "183393d8157f316095e1f9da44d97f4f0dece299a7f4bbca72abf57bab20d347",
+    "masterSha256": "fe51d70674274ad1acd4d69b18aca890ae690f35f772e5eb5d0f9bcc0f0a1a56",
+    "uncoveredPixels": 1097544,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w17",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "backgroundSha256": "159b34b262ac7f309203926946e0d59c5715c5b209860002abe0f2b039adb521",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      100,
+      150,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w17.png",
+        "height": 909,
+        "position": [
+          312,
+          160
+        ],
+        "mask": "parts/report_w17-1-mask.png",
+        "sourceSha256": "5a28ddec04b1424282722edad538424c04dd9005b1a807d693bb419b3e2bd2b4",
+        "maskSha256": "576b236ce27c29942b27c479bce7c8ecb1bb812a75946839bbe442c1b5e473d3",
+        "sourceBounds": [
+          452,
+          149,
+          1289,
+          985
+        ],
+        "scale": 1.0873205741626795
+      },
+      {
+        "source": "sources/report_w17.png",
+        "height": 1190,
+        "position": [
+          -86,
+          -58
+        ],
+        "mask": "parts/report_w17-0-mask.png",
+        "sourceSha256": "5a28ddec04b1424282722edad538424c04dd9005b1a807d693bb419b3e2bd2b4",
+        "maskSha256": "0a5dca768ca7a326d4e10f4803327088d52cec35e8c3ed2022ebfaf84abfdaff",
+        "sourceBounds": [
+          82,
+          11,
+          455,
+          992
+        ],
+        "scale": 1.2130479102956166
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          449,
+          1056,
+          1087,
+          1082
+        ],
+        "alpha": 100,
+        "blur": 8.96
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "5524ca5d90d8ff30a0764b1d392b08442f1b6bcb48c777de58ec4fdca5d2ea6b",
+    "masterSha256": "41907001e6e4f971868707a1d2e8fb90633a56343dd98c78ac04067f88176f77",
+    "uncoveredPixels": 787377,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w33",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/audience-day.png",
+    "backgroundSha256": "4532c4a2584a03614ff5c505fbac4f3f37286194044a1b89e5f16fa2747f0d29",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "backgroundScale": 1.0,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w33.png",
+        "height": 840,
+        "position": [
+          628,
+          160
+        ],
+        "mask": "parts/report_w33-1-mask.png",
+        "sourceSha256": "de55c4f5f909a5f0fd7210fea6482a93e4ba7c173215e9b5f8d09067a148a923",
+        "maskSha256": "11f1cacd5a06941f09d828242b0b3e22dc5cd6acdc6a93e7754eff4c36d878d3",
+        "sourceBounds": [
+          447,
+          24,
+          1128,
+          985
+        ],
+        "scale": 0.8740894901144641
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 60,
+        "position": [
+          398,
+          924
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.05361930294906166
+      },
+      {
+        "source": "sources/report_w33.png",
+        "height": 880,
+        "position": [
+          78,
+          160
+        ],
+        "mask": "parts/report_w33-0-mask.png",
+        "sourceSha256": "de55c4f5f909a5f0fd7210fea6482a93e4ba7c173215e9b5f8d09067a148a923",
+        "maskSha256": "435d2f8ae1a861260da1e4f5d754ca773996d77b8ac4c70d01e1c7c5af5626f6",
+        "sourceBounds": [
+          90,
+          41,
+          435,
+          982
+        ],
+        "scale": 0.9351753453772582
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          947,
+          990,
+          1363,
+          1010
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "0e0fc7857e2ce1286dfb8f18d64e8293521d19a8f8e7ad15694fffcd1a19ea67",
+    "masterSha256": "ec7808df663e4c7f7d4c98595609e1e86c8e088f2e38a619d59026deefc1ea4f",
+    "uncoveredPixels": 1089360,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w13",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "backgroundSha256": "159b34b262ac7f309203926946e0d59c5715c5b209860002abe0f2b039adb521",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "backgroundScale": 1.0,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w13.png",
+        "mask": "parts/report_w13-1-mask.png",
+        "height": 710,
+        "position": [
+          372,
+          275
+        ],
+        "sourceSha256": "e8dcc6a87f1d6edf267b9ca7cbfc9ee88ffa70e1029ba2f4884df31eb9cab58e",
+        "maskSha256": "808f3f0ca1747318965c5658aa97d2ba0bbc6158ff5e77ab217cd032c9ac58b6",
+        "sourceBounds": [
+          423,
+          216,
+          1118,
+          969
+        ],
+        "scale": 0.9428950863213812
+      },
+      {
+        "source": "sources/report_w13.png",
+        "mask": "parts/report_w13-2-mask.png",
+        "height": 850,
+        "position": [
+          1104,
+          170
+        ],
+        "sourceSha256": "e8dcc6a87f1d6edf267b9ca7cbfc9ee88ffa70e1029ba2f4884df31eb9cab58e",
+        "maskSha256": "de805a9bcdb0e85bf70012ecd7096e41e117554e42565413321545d20ecad8de",
+        "sourceBounds": [
+          1107,
+          24,
+          1506,
+          991
+        ],
+        "scale": 0.8790072388831437
+      },
+      {
+        "source": "sources/report_w13.png",
+        "mask": "parts/report_w13-0-mask.png",
+        "height": 930,
+        "position": [
+          41,
+          105
+        ],
+        "sourceSha256": "e8dcc6a87f1d6edf267b9ca7cbfc9ee88ffa70e1029ba2f4884df31eb9cab58e",
+        "maskSha256": "3bcac43276f6011939b2ab96fc1e93214826dfcf4796081351ce57f6607460e2",
+        "sourceBounds": [
+          75,
+          46,
+          416,
+          985
+        ],
+        "scale": 0.9904153354632588
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          471,
+          975,
+          929,
+          995
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "45fd6c80fd2a0f17bef55f158277c8af6f719dd56ef20728ee3fde2ef37c138e",
+    "masterSha256": "215c870f618774f64d16605aa7f8cae24db76ce046e6dd49e58b9d953ed9e490",
+    "uncoveredPixels": 861965,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w14",
+    "background": "docs/art/story-refs/palace-3d/finished/high.png",
+    "backgroundSha256": "f8a9873eabb4c4785fd1749b7621b0cee4ce33029a78392559c21d4172ce22d8",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w14.png",
+        "mask": "parts/report_w14-1-mask.png",
+        "height": 280,
+        "position": [
+          528,
+          130
+        ],
+        "sourceSha256": "50d4a349e9734f11e130e9dfdc10b767255a95ab9a1e38860d507f0397f243d5",
+        "maskSha256": "1e3cd4311cd9e136c42701895d255455da7696b78fafd7741b84c1d05541f76e",
+        "sourceBounds": [
+          517,
+          56,
+          1144,
+          937
+        ],
+        "scale": 0.3178206583427923
+      },
+      {
+        "source": "sources/report_w14.png",
+        "mask": "parts/report_w14-0-mask.png",
+        "height": 450,
+        "position": [
+          323,
+          400
+        ],
+        "sourceSha256": "50d4a349e9734f11e130e9dfdc10b767255a95ab9a1e38860d507f0397f243d5",
+        "maskSha256": "45790200243614b3df6d2888dcbed6e10c17aa9464a804f379eab04c08129c6c",
+        "sourceBounds": [
+          113,
+          27,
+          442,
+          989
+        ],
+        "scale": 0.4677754677754678
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          346,
+          840,
+          454,
+          860
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          557,
+          400,
+          697,
+          420
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "f40f37111228cb7268caaf0beeaf4881909305519f3de6552d369ff80d25323c",
+    "masterSha256": "bf81709b82bb249ac206b344c02f06def0a17c168eeaef48b62e0d0da73cabd4",
+    "uncoveredPixels": 1476493,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w18",
+    "background": "docs/art/story-refs/palace-3d/finished/right.png",
+    "backgroundSha256": "a644f1b66e5c81cccda1d83e31d9b8fc03144ac211d3af3977c46236f59d41e8",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w18.png",
+        "mask": "parts/report_w18-1-mask.png",
+        "height": 345,
+        "position": [
+          646,
+          282
+        ],
+        "sourceSha256": "701717053ede0078e75f4c427bfdece84aa545302228f0ece59286f087665207",
+        "maskSha256": "d6c205746f3ad714345d51248982672c566283904c3b4d451089bc2b84d3a792",
+        "sourceBounds": [
+          473,
+          183,
+          1158,
+          981
+        ],
+        "scale": 0.4323308270676692
+      },
+      {
+        "source": "sources/report_w18.png",
+        "mask": "parts/report_w18-0-mask.png",
+        "height": 650,
+        "position": [
+          234,
+          320
+        ],
+        "sourceSha256": "701717053ede0078e75f4c427bfdece84aa545302228f0ece59286f087665207",
+        "maskSha256": "3f1cfa29f9fc1898016942fd2ff09e46d71636757d91c16a3ea51b228968bf38",
+        "sourceBounds": [
+          101,
+          10,
+          447,
+          985
+        ],
+        "scale": 0.6666666666666666
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          269,
+          960,
+          431,
+          980
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          690,
+          617,
+          898,
+          637
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "28648ca95c1b6111dc979d0166c1955a2f023972083a3a164c7ad461bacd2672",
+    "masterSha256": "f804b03ce71e10342c16f73ee3a32a060f51f911ef187f96b85986d52cffdb1d",
+    "uncoveredPixels": 1396193,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w19",
+    "background": "docs/art/story-refs/palace-3d/finished/left.png",
+    "backgroundSha256": "7ff24eb1c0a0774859eb5407032520a22e43f679f8b24364d9c977d2ce89c2f6",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w19.png",
+        "mask": "parts/report_w19-1-mask.png",
+        "height": 325,
+        "position": [
+          498,
+          289
+        ],
+        "sourceSha256": "9925f2f0e29485686409aaebdc09e26c7d75bdb0a873088342623fdf88a98b7f",
+        "maskSha256": "0323715cee0e07dcf18cd2ac9f9d307c16393058e1ed9c743fb6fc4f3c561e95",
+        "sourceBounds": [
+          491,
+          177,
+          1208,
+          964
+        ],
+        "scale": 0.41296060991105465
+      },
+      {
+        "source": "sources/report_w19.png",
+        "mask": "parts/report_w19-0-mask.png",
+        "height": 630,
+        "position": [
+          148,
+          340
+        ],
+        "sourceSha256": "9925f2f0e29485686409aaebdc09e26c7d75bdb0a873088342623fdf88a98b7f",
+        "maskSha256": "1fc507712408c56e6f5681d3166d84d263d8dbd63bf4a6b20754191ee360cc9f",
+        "sourceBounds": [
+          58,
+          18,
+          436,
+          990
+        ],
+        "scale": 0.6481481481481481
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          184,
+          960,
+          356,
+          980
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          542,
+          604,
+          750,
+          624
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "5c36c938a8f4858761862ed9eb86b93424acc6ada7b54629decc8aff3866f02f",
+    "masterSha256": "9b661965c55fb979480426f99587c6b76232f1b7f18e750cf9b7053ca28d6594",
+    "uncoveredPixels": 1395250,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w20",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "backgroundSha256": "159b34b262ac7f309203926946e0d59c5715c5b209860002abe0f2b039adb521",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "backgroundScale": 1.0,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w20.png",
+        "mask": "parts/report_w20-1-mask.png",
+        "height": 710,
+        "position": [
+          360,
+          275
+        ],
+        "sourceSha256": "0b006ab4472e86e606f427916a6a3a8ca864d03290ec8329131adf97572bb850",
+        "maskSha256": "09a4078825fb61d89a7fb353bae7b9d14f3d32730483f96d5db637c9692e7cb1",
+        "sourceBounds": [
+          447,
+          225,
+          1143,
+          952
+        ],
+        "scale": 0.9766162310866575
+      },
+      {
+        "source": "sources/report_w20.png",
+        "mask": "parts/report_w20-0-mask.png",
+        "height": 930,
+        "position": [
+          44,
+          105
+        ],
+        "sourceSha256": "0b006ab4472e86e606f427916a6a3a8ca864d03290ec8329131adf97572bb850",
+        "maskSha256": "b1a93db93d9c7b41383277cab17f5ec2c7c7d943953c2f5100ff0390f7ad4408",
+        "sourceBounds": [
+          88,
+          12,
+          435,
+          987
+        ],
+        "scale": 0.9538461538461539
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          462,
+          975,
+          938,
+          995
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "2b104b41ec6a12bb37aee3b1d6886db6db9a137a6642fd8a5e0438999d3ac429",
+    "masterSha256": "9e90d01cb5d356ead535d715f912b345799c0edca6f62ad20b91e77260e6abd8",
+    "uncoveredPixels": 1024514,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w21",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "backgroundSha256": "159b34b262ac7f309203926946e0d59c5715c5b209860002abe0f2b039adb521",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "backgroundScale": 1.0,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w21.png",
+        "mask": "parts/report_w21-1-mask.png",
+        "height": 710,
+        "position": [
+          374,
+          275
+        ],
+        "sourceSha256": "c985dd2ad23a319cc82470046cdb057ed33dc15f35433b10fc9d45517d076429",
+        "maskSha256": "a74dc536976c6c388d55c9dd2811a5a556d1e2a7f615f7cb0d51d54ee2af5645",
+        "sourceBounds": [
+          471,
+          170,
+          1194,
+          957
+        ],
+        "scale": 0.9021601016518425
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 60,
+        "position": [
+          398,
+          924
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.05361930294906166
+      },
+      {
+        "source": "sources/report_w21.png",
+        "mask": "parts/report_w21-0-mask.png",
+        "height": 930,
+        "position": [
+          25,
+          105
+        ],
+        "sourceSha256": "c985dd2ad23a319cc82470046cdb057ed33dc15f35433b10fc9d45517d076429",
+        "maskSha256": "71bbb6a87260c723a427e56fbf33bc3c44996afb63c01e6d62c2c154050c2fbc",
+        "sourceBounds": [
+          101,
+          9,
+          490,
+          986
+        ],
+        "scale": 0.9518935516888434
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          472,
+          975,
+          928,
+          995
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "868999ad53085dba7593b5ac861328622dfbb009f02e42063b83fa27653f2ade",
+    "masterSha256": "471c0a057cd62dd474fb29b833d3de7cb01b60d57b2f9e6d3d70c03c1e1a292f",
+    "uncoveredPixels": 1070809,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w23",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "backgroundSha256": "159b34b262ac7f309203926946e0d59c5715c5b209860002abe0f2b039adb521",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      100,
+      150,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w23.png",
+        "mask": "parts/report_w23-1-mask.png",
+        "height": 909,
+        "position": [
+          330,
+          160
+        ],
+        "sourceSha256": "ed9fd0027fbeb1bbf5d063293bae33f2b7331327aede1facafc23f0d687bf54a",
+        "maskSha256": "983b554ec518bb442f8a1a21979c51c199c83d1e780b30ba5cdbead9ce8460b8",
+        "sourceBounds": [
+          453,
+          151,
+          1238,
+          967
+        ],
+        "scale": 1.1139705882352942
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 77,
+        "position": [
+          381,
+          991
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.06881143878462913
+      },
+      {
+        "source": "sources/report_w23.png",
+        "mask": "parts/report_w23-0-mask.png",
+        "height": 1190,
+        "position": [
+          -82,
+          -58
+        ],
+        "sourceSha256": "ed9fd0027fbeb1bbf5d063293bae33f2b7331327aede1facafc23f0d687bf54a",
+        "maskSha256": "d3a1bab0f46c37f5745f676709a568e48671ba1d54e91a5ae97accbc6fccf4f3",
+        "sourceBounds": [
+          82,
+          9,
+          438,
+          959
+        ],
+        "scale": 1.2526315789473683
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          462,
+          1056,
+          1074,
+          1082
+        ],
+        "alpha": 100,
+        "blur": 8.96
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "8a3fab813c863584e397308a592469c53cc777bc4f9e9871f30c9c2484b2d325",
+    "masterSha256": "97dbab7b97a749866c185feeff2b5583861b8f18f4d7eb0b8b05c6dd55f958bb",
+    "uncoveredPixels": 875877,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w24",
+    "background": "docs/art/story-refs/palace-3d/finished/right.png",
+    "backgroundSha256": "a644f1b66e5c81cccda1d83e31d9b8fc03144ac211d3af3977c46236f59d41e8",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w24.png",
+        "mask": "parts/report_w24-1-mask.png",
+        "height": 345,
+        "position": [
+          596,
+          282
+        ],
+        "sourceSha256": "121b70bc8154ec12f98dede28a85932f5d0a96d72f54dc7a49aabc7af63f82cf",
+        "maskSha256": "ab18985173fb99bc6e8671898119899ae851f8dd37f673ff5e9f8741d7f4af7f",
+        "sourceBounds": [
+          543,
+          176,
+          1476,
+          988
+        ],
+        "scale": 0.4248768472906404
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 38,
+        "position": [
+          655,
+          590
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.03395889186773905
+      },
+      {
+        "source": "sources/report_w24.png",
+        "mask": "parts/report_w24-0-mask.png",
+        "height": 650,
+        "position": [
+          230,
+          320
+        ],
+        "sourceSha256": "121b70bc8154ec12f98dede28a85932f5d0a96d72f54dc7a49aabc7af63f82cf",
+        "maskSha256": "a1443c6ccbe83b925d3ed634c604ae1992ff0ef77f2d42fc562ee4accb2772f2",
+        "sourceBounds": [
+          156,
+          13,
+          513,
+          982
+        ],
+        "scale": 0.6707946336429309
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          266,
+          960,
+          434,
+          980
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          655,
+          617,
+          933,
+          637
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "5f5525bd780152f54ff7e9fe32a65b859db9f4597952d850d793c9760f8f7bc3",
+    "masterSha256": "60bea1c9428347a78ed5d576a5d81cc1f085e1cb1ad256717e726637859c8f51",
+    "uncoveredPixels": 1387394,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w26",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "backgroundSha256": "159b34b262ac7f309203926946e0d59c5715c5b209860002abe0f2b039adb521",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      100,
+      150,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w26.png",
+        "mask": "parts/report_w26-1-mask.png",
+        "height": 909,
+        "position": [
+          349,
+          160
+        ],
+        "sourceSha256": "3e766a28927d48229845ba2e9916fe543dcf5c7789494072e23e66d9c224fdc6",
+        "maskSha256": "93b1f2c8e777a10f4abde94e254a71c9c8c5ee8050b43463fc01953c0e9cd1b9",
+        "sourceBounds": [
+          417,
+          201,
+          1132,
+          977
+        ],
+        "scale": 1.1713917525773196
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 77,
+        "position": [
+          381,
+          991
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.06881143878462913
+      },
+      {
+        "source": "sources/report_w26.png",
+        "mask": "parts/report_w26-0-mask.png",
+        "height": 1190,
+        "position": [
+          -74,
+          -58
+        ],
+        "sourceSha256": "3e766a28927d48229845ba2e9916fe543dcf5c7789494072e23e66d9c224fdc6",
+        "maskSha256": "80e15c439cd02b265d35a0f8d956b0e2fb31d723b1a911ef393641018977986a",
+        "sourceBounds": [
+          33,
+          12,
+          390,
+          997
+        ],
+        "scale": 1.2081218274111676
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          475,
+          1056,
+          1061,
+          1082
+        ],
+        "alpha": 100,
+        "blur": 8.96
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "b63e111a41a72ece2393535a2a1d147ad4800ce97810887c1f9f96b9136d1282",
+    "masterSha256": "6703bca037382644b9f7800d205f55a6209bcde412a9137dbb8ac99b79dad9db",
+    "uncoveredPixels": 858137,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w27",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "backgroundSha256": "159b34b262ac7f309203926946e0d59c5715c5b209860002abe0f2b039adb521",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      100,
+      150,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w27.png",
+        "mask": "parts/report_w27-1-mask.png",
+        "height": 909,
+        "position": [
+          338,
+          160
+        ],
+        "sourceSha256": "0449436e5c18aa37a0764c753673e59a9c8cfedefa93d451dbea5bcdc10e040b",
+        "maskSha256": "ebe472d3afe170c02d6c459f5470b327b2617793e9e32f2b25adb26cafd1875c",
+        "sourceBounds": [
+          479,
+          181,
+          1224,
+          969
+        ],
+        "scale": 1.1535532994923858
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 77,
+        "position": [
+          381,
+          991
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.06881143878462913
+      },
+      {
+        "source": "sources/report_w27.png",
+        "mask": "parts/report_w27-0-mask.png",
+        "height": 1190,
+        "position": [
+          -67,
+          -58
+        ],
+        "sourceSha256": "0449436e5c18aa37a0764c753673e59a9c8cfedefa93d451dbea5bcdc10e040b",
+        "maskSha256": "de03311517463674bb1f72d115e7a503c80b5650779ef7aa132b0ba4540e75da",
+        "sourceBounds": [
+          128,
+          26,
+          463,
+          987
+        ],
+        "scale": 1.238293444328824
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          467,
+          1056,
+          1069,
+          1082
+        ],
+        "alpha": 100,
+        "blur": 8.96
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "fb2a240cc7bcbaad1aab41924dec20438db01d9a50adb5d1c30a07cccc182c8b",
+    "masterSha256": "14f32f9f6b4d4dd716cc777f86ebd87e3fe039e25f7ccbec4f81ed1e266927c3",
+    "uncoveredPixels": 856472,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w28",
+    "background": "docs/art/story-refs/palace-3d/finished/left.png",
+    "backgroundSha256": "7ff24eb1c0a0774859eb5407032520a22e43f679f8b24364d9c977d2ce89c2f6",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w28.png",
+        "mask": "parts/report_w28-1-mask.png",
+        "height": 325,
+        "position": [
+          486,
+          289
+        ],
+        "sourceSha256": "fdadbedb5071f1878468c98074307082ca5a36143a9783fb080fac1d93812156",
+        "maskSha256": "1a0ff0bdaf58dbee08489aed9629535cfea4121e3772f336ff643e3c2f510c19",
+        "sourceBounds": [
+          459,
+          181,
+          1248,
+          981
+        ],
+        "scale": 0.40625
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 38,
+        "position": [
+          502,
+          575
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.03395889186773905
+      },
+      {
+        "source": "sources/report_w28.png",
+        "mask": "parts/report_w28-0-mask.png",
+        "height": 630,
+        "position": [
+          134,
+          340
+        ],
+        "sourceSha256": "fdadbedb5071f1878468c98074307082ca5a36143a9783fb080fac1d93812156",
+        "maskSha256": "d43421f51266f4fa26a1dfbf69cfc67be142c6d201d145056b016df57fe251c5",
+        "sourceBounds": [
+          90,
+          16,
+          516,
+          1000
+        ],
+        "scale": 0.6402439024390244
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          174,
+          960,
+          366,
+          980
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          534,
+          604,
+          758,
+          624
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "bd6128a0c4f274715c0ee901a97f168024c2d1f9d4648c525ef527a5fee1ce65",
+    "masterSha256": "d84ae9cbda7c0d1691504964ad36b256c7ec4a0d1adab85924e3e20220f7b539",
+    "uncoveredPixels": 1405614,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w34",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/left-day.png",
+    "backgroundSha256": "4cfd5187d44d8c35ca9a01d1fe7696f9bfeb8baae51e171ce88119281a39e61a",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w34.png",
+        "mask": "parts/report_w34-1-mask.png",
+        "height": 325,
+        "position": [
+          498,
+          289
+        ],
+        "sourceSha256": "83170051af1eaf5401c3d74c4c3c7d6c3d8d9cd8d1d85af5458e81a33dd6262e",
+        "maskSha256": "7c4caa2ad56d53930846478b563ecd913a3688980c24aa1ec904583c500ed0ea",
+        "sourceBounds": [
+          426,
+          169,
+          1167,
+          985
+        ],
+        "scale": 0.39828431372549017
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 38,
+        "position": [
+          502,
+          575
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.03395889186773905
+      },
+      {
+        "source": "sources/report_w34.png",
+        "mask": "parts/report_w34-0-mask.png",
+        "height": 630,
+        "position": [
+          149,
+          340
+        ],
+        "sourceSha256": "83170051af1eaf5401c3d74c4c3c7d6c3d8d9cd8d1d85af5458e81a33dd6262e",
+        "maskSha256": "a749f98c1de80b7a77384f3978ed2e2e11a84e5f35201f0e3a180c41a1420c07",
+        "sourceBounds": [
+          46,
+          16,
+          417,
+          981
+        ],
+        "scale": 0.6528497409326425
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          185,
+          960,
+          355,
+          980
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          543,
+          604,
+          749,
+          624
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "9135e23e99fb42adc251f48a65c02e6548f2161ce80a315b3e711efd1cac3163",
+    "masterSha256": "ec1037762a0091a6d56a80ba43bdb487edc305b81f6162931adec795887fe0cc",
+    "uncoveredPixels": 1406223,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w35",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/audience-day.png",
+    "backgroundSha256": "4532c4a2584a03614ff5c505fbac4f3f37286194044a1b89e5f16fa2747f0d29",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      100,
+      150,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w35.png",
+        "mask": "parts/report_w35-1-mask.png",
+        "height": 909,
+        "position": [
+          374,
+          160
+        ],
+        "sourceSha256": "2cb19e7b7622c57248967c4e3b4fd5d678bfe47965a108ddc8bd3c2e92114d54",
+        "maskSha256": "112a4b3b0c878e0864942d40d33fc8253b061e65e315e3ffa570d452be3108fb",
+        "sourceBounds": [
+          462,
+          165,
+          1165,
+          974
+        ],
+        "scale": 1.1236093943139678
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 77,
+        "position": [
+          381,
+          991
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.06881143878462913
+      },
+      {
+        "source": "sources/report_w35.png",
+        "mask": "parts/report_w35-0-mask.png",
+        "height": 1190,
+        "position": [
+          -88,
+          -58
+        ],
+        "sourceSha256": "2cb19e7b7622c57248967c4e3b4fd5d678bfe47965a108ddc8bd3c2e92114d54",
+        "maskSha256": "5019b66cdf2b6f475f7660424de2fa02eb921cf437a54ce40c346d7ecaf8c73e",
+        "sourceBounds": [
+          78,
+          15,
+          450,
+          981
+        ],
+        "scale": 1.2318840579710144
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          492,
+          1056,
+          1044,
+          1082
+        ],
+        "alpha": 100,
+        "blur": 8.96
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "1ec33d194df49cfc730dc0403eb69bcd768d2b387c8a849f2efdc7489e5930a9",
+    "masterSha256": "6330efbf8d74f41ebd356771d03a982c8de84a0ca769a5bb7146af4150fc13ee",
+    "uncoveredPixels": 858973,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w36",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/right-day.png",
+    "backgroundSha256": "c41eb83ca2f8e0be4297b4e7f68d498e99daf9bf2d8387188d08f715b5267a3a",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w36.png",
+        "mask": "parts/report_w36-1-mask.png",
+        "height": 345,
+        "position": [
+          601,
+          282
+        ],
+        "sourceSha256": "97df20e4fef8777e8c9b9768282fe60e151008c6f5ca795e6e15ee67744a5509",
+        "maskSha256": "864c8ceb577aa02ab00e33f4d25279aaad842ecef155c0da5dd0939f0ab93768",
+        "sourceBounds": [
+          430,
+          173,
+          1325,
+          973
+        ],
+        "scale": 0.43125
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 38,
+        "position": [
+          655,
+          590
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.03395889186773905
+      },
+      {
+        "source": "sources/report_w36.png",
+        "mask": "parts/report_w36-0-mask.png",
+        "height": 650,
+        "position": [
+          230,
+          320
+        ],
+        "sourceSha256": "97df20e4fef8777e8c9b9768282fe60e151008c6f5ca795e6e15ee67744a5509",
+        "maskSha256": "384ebec036ff234331633037e0a1945b73555aa988481ad0d1f545f234e44e5d",
+        "sourceBounds": [
+          88,
+          8,
+          451,
+          996
+        ],
+        "scale": 0.6578947368421053
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          266,
+          960,
+          434,
+          980
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          659,
+          617,
+          929,
+          637
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "81668b69e0c168701a412d01b7914adc83ca7e3489fde8c386f9f495828bb29f",
+    "masterSha256": "2df9fbc605479790b97ff16032162e92df2db730a3116981e5b6ce59286cdae5",
+    "uncoveredPixels": 1383238,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w37",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/audience-evening.png",
+    "backgroundSha256": "6b29b884487a91b63fd537364fec2f364be0fc2c8bd5f53c2b720e70d71ff588",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "backgroundScale": 1.0,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w37.png",
+        "mask": "parts/report_w37-1-mask.png",
+        "height": 710,
+        "position": [
+          370,
+          275
+        ],
+        "sourceSha256": "5aabf8b09a06bed1a2a252fc3906692e4585356a0c8e07f464c165ed079fe80a",
+        "maskSha256": "ab3cb23e335d63fb9a34581522665dcd1d95e42216c2dcd72b380f5363bdbd88",
+        "sourceBounds": [
+          453,
+          151,
+          1215,
+          972
+        ],
+        "scale": 0.8647990255785627
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 60,
+        "position": [
+          398,
+          924
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.05361930294906166
+      },
+      {
+        "source": "sources/report_w37.png",
+        "mask": "parts/report_w37-0-mask.png",
+        "height": 930,
+        "position": [
+          38,
+          105
+        ],
+        "sourceSha256": "5aabf8b09a06bed1a2a252fc3906692e4585356a0c8e07f464c165ed079fe80a",
+        "maskSha256": "fe0f880a38152d967ceee8a57979b9a7fa6fb39dcba0bc8c834235a51654ee5f",
+        "sourceBounds": [
+          80,
+          17,
+          442,
+          996
+        ],
+        "scale": 0.9499489274770173
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          469,
+          975,
+          931,
+          995
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "3d1ee1f0b6ae205855be2b4f8a713a3a0d31dcb7d9b93942d445e0cfb33c2288",
+    "masterSha256": "bfaf07c121925df89aaf970ebe0156c9cfd0ac5292bd09f0e8690ba54a6e66ce",
+    "uncoveredPixels": 1081200,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w42",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/right-day.png",
+    "backgroundSha256": "c41eb83ca2f8e0be4297b4e7f68d498e99daf9bf2d8387188d08f715b5267a3a",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w42.png",
+        "mask": "parts/report_w42-1-mask.png",
+        "height": 345,
+        "position": [
+          620,
+          282
+        ],
+        "sourceSha256": "6e64d11aabed18fcfd86b828571b75962fb3d5ca3a0d70b01912ccb6efb59187",
+        "maskSha256": "f965dd7da2e963a3bacc8932279a8fe305ab61028d07b173eecaa6ee0bd31ff3",
+        "sourceBounds": [
+          398,
+          196,
+          1184,
+          977
+        ],
+        "scale": 0.44174135723431496
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 38,
+        "position": [
+          655,
+          590
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.03395889186773905
+      },
+      {
+        "source": "sources/report_w42.png",
+        "mask": "parts/report_w42-0-mask.png",
+        "height": 650,
+        "position": [
+          228,
+          320
+        ],
+        "sourceSha256": "6e64d11aabed18fcfd86b828571b75962fb3d5ca3a0d70b01912ccb6efb59187",
+        "maskSha256": "b10a0900bd644d0ba9255d5c1ffe7a59bcfddb3f4406278a47396ed5a577f87e",
+        "sourceBounds": [
+          67,
+          20,
+          433,
+          992
+        ],
+        "scale": 0.668724279835391
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          264,
+          960,
+          436,
+          980
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          673,
+          617,
+          915,
+          637
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "2351afe323c7be7e251f239882d605942e324d26ac5805c3472bfee6a2bc967a",
+    "masterSha256": "96c695cbff663558d3194529579ea41d6eb690c4748c119be7c3a25a392a3157",
+    "uncoveredPixels": 1388713,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w43",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/audience-day.png",
+    "backgroundSha256": "4532c4a2584a03614ff5c505fbac4f3f37286194044a1b89e5f16fa2747f0d29",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "backgroundScale": 1.0,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w43.png",
+        "mask": "parts/report_w43-1-mask.png",
+        "height": 840,
+        "position": [
+          601,
+          160
+        ],
+        "sourceSha256": "00691fdc836fdf79833314f5c1e094014dcdff19e7ec38e660317db8970e372d",
+        "maskSha256": "1ce6501dcf218997e1608851fe34e2ecba14572a88e85955a832d61958b5d13e",
+        "sourceBounds": [
+          580,
+          15,
+          1344,
+          1006
+        ],
+        "scale": 0.8476286579212916
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 60,
+        "position": [
+          398,
+          924
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.05361930294906166
+      },
+      {
+        "source": "sources/report_w43.png",
+        "mask": "parts/report_w43-0-mask.png",
+        "height": 880,
+        "position": [
+          76,
+          160
+        ],
+        "sourceSha256": "00691fdc836fdf79833314f5c1e094014dcdff19e7ec38e660317db8970e372d",
+        "maskSha256": "abfa587ee2c078e7b8e834dcd1f2ab56ef766c143331e802dbbeb769a5053175",
+        "sourceBounds": [
+          248,
+          18,
+          616,
+          1003
+        ],
+        "scale": 0.8934010152284264
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          928,
+          990,
+          1382,
+          1010
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "b2f8dabdc0df8dceec88c3a020c800061d4221f0447d7a6f98ec073635ef862b",
+    "masterSha256": "850698f54351553fb371138b58ea243f3d2dec1be6c1e1e89626fdf3b9c098cd",
+    "uncoveredPixels": 1039335,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w44",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/audience-day.png",
+    "backgroundSha256": "4532c4a2584a03614ff5c505fbac4f3f37286194044a1b89e5f16fa2747f0d29",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      100,
+      150,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w44.png",
+        "mask": "parts/report_w44-1-mask.png",
+        "height": 909,
+        "position": [
+          349,
+          160
+        ],
+        "sourceSha256": "6885495955d23e484eefb73d935305dfec5ef34c778215edaf2159d05334b443",
+        "maskSha256": "84f0fd93bb02cbd70840a21dc72d1681008b27aca9a38fd06ec2e5dedcdb6c04",
+        "sourceBounds": [
+          445,
+          169,
+          1194,
+          982
+        ],
+        "scale": 1.118081180811808
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 77,
+        "position": [
+          381,
+          991
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.06881143878462913
+      },
+      {
+        "source": "sources/report_w44.png",
+        "mask": "parts/report_w44-0-mask.png",
+        "height": 1190,
+        "position": [
+          -64,
+          -58
+        ],
+        "sourceSha256": "6885495955d23e484eefb73d935305dfec5ef34c778215edaf2159d05334b443",
+        "maskSha256": "82baad2f4e79e782add943e8e5cd4c8f1d0d31115b2d50fe9cf220d585b56f91",
+        "sourceBounds": [
+          97,
+          12,
+          437,
+          997
+        ],
+        "scale": 1.2081218274111676
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          475,
+          1056,
+          1061,
+          1082
+        ],
+        "alpha": 100,
+        "blur": 8.96
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "81fb95043a545c9f4dd23c02a1414af4d01d3281c24c5d3fd6e1ee68feccdfaf",
+    "masterSha256": "d38b6dcedd730ea3d318f9dba375d6da624d0a0888d40b64c3c877041944e4fc",
+    "uncoveredPixels": 894018,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w45",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/audience-evening.png",
+    "backgroundSha256": "6b29b884487a91b63fd537364fec2f364be0fc2c8bd5f53c2b720e70d71ff588",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      100,
+      150,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w45.png",
+        "mask": "parts/report_w45-1-mask.png",
+        "height": 909,
+        "position": [
+          351,
+          160
+        ],
+        "sourceSha256": "720d3d2b7cf641856a38a215b562425132606c206961bf82d1c49702a4065258",
+        "maskSha256": "1f146a45016daece8d98143c0632e044c2dc9bb78534cc1becbea7d6f0674599",
+        "sourceBounds": [
+          476,
+          187,
+          1212,
+          988
+        ],
+        "scale": 1.1348314606741574
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 77,
+        "position": [
+          381,
+          991
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.06881143878462913
+      },
+      {
+        "source": "sources/report_w45.png",
+        "mask": "parts/report_w45-0-mask.png",
+        "height": 1190,
+        "position": [
+          -74,
+          -58
+        ],
+        "sourceSha256": "720d3d2b7cf641856a38a215b562425132606c206961bf82d1c49702a4065258",
+        "maskSha256": "f51b9b725e078b0005ee2a46380916b5161dbdd399fecc9ee30c3aefae90af05",
+        "sourceBounds": [
+          75,
+          19,
+          423,
+          983
+        ],
+        "scale": 1.2344398340248963
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          476,
+          1056,
+          1060,
+          1082
+        ],
+        "alpha": 100,
+        "blur": 8.96
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "c08d8cb98549071a171693b46fc8e4316f84912ec1f46fc8abe1e3734f1a8c15",
+    "masterSha256": "43973f5690e0e0721f4f8ebc5564229092d526151c46b3eafad0f67fced3064c",
+    "uncoveredPixels": 862720,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w46",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/left-day.png",
+    "backgroundSha256": "4cfd5187d44d8c35ca9a01d1fe7696f9bfeb8baae51e171ce88119281a39e61a",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w46.png",
+        "mask": "parts/report_w46-1-mask.png",
+        "height": 325,
+        "position": [
+          450,
+          289
+        ],
+        "sourceSha256": "869fbcbb8ab2eec78b56f6013d7eea2a697af42119e11e927890ce5bb1a0afd4",
+        "maskSha256": "48c7efb4a00346cb5a0f7881cd533cf5eac9f43d7bda1093d21c4e581e771212",
+        "sourceBounds": [
+          457,
+          256,
+          1319,
+          973
+        ],
+        "scale": 0.45327754532775455
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 38,
+        "position": [
+          502,
+          575
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.03395889186773905
+      },
+      {
+        "source": "sources/report_w46.png",
+        "mask": "parts/report_w46-0-mask.png",
+        "height": 630,
+        "position": [
+          158,
+          340
+        ],
+        "sourceSha256": "869fbcbb8ab2eec78b56f6013d7eea2a697af42119e11e927890ce5bb1a0afd4",
+        "maskSha256": "3ff509ad609f5809e14aa59bee9aa8af8c954be94ab225ec461dfc16afa43068",
+        "sourceBounds": [
+          128,
+          20,
+          480,
+          1007
+        ],
+        "scale": 0.6382978723404256
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          191,
+          960,
+          349,
+          980
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          509,
+          604,
+          783,
+          624
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "bcca7b35d4989450379736c04b76394899ab7b230e6387efccaa831386a5270b",
+    "masterSha256": "196f76550a8947ea983aeee44df00a5aef8d2945647c3578be6d08474da82242",
+    "uncoveredPixels": 1397197,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w48",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/audience-evening.png",
+    "backgroundSha256": "6b29b884487a91b63fd537364fec2f364be0fc2c8bd5f53c2b720e70d71ff588",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      100,
+      150,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w48.png",
+        "mask": "parts/report_w48-1-mask.png",
+        "height": 909,
+        "position": [
+          356,
+          160
+        ],
+        "sourceSha256": "0ae757dab0e20055aa9e5c8922e23b8275f20f576fce9d344d8db7a577a3bd87",
+        "maskSha256": "5fe9f6361e3893c8c50943c5f042f8ab0cdc2c95974603a0b1511d83edee46f3",
+        "sourceBounds": [
+          482,
+          153,
+          1227,
+          975
+        ],
+        "scale": 1.1058394160583942
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 77,
+        "position": [
+          381,
+          991
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.06881143878462913
+      },
+      {
+        "source": "sources/report_w48.png",
+        "mask": "parts/report_w48-0-mask.png",
+        "height": 1190,
+        "position": [
+          -67,
+          -58
+        ],
+        "sourceSha256": "0ae757dab0e20055aa9e5c8922e23b8275f20f576fce9d344d8db7a577a3bd87",
+        "maskSha256": "13c595c4cffa5850b7daf81b2c9c5b2830328dac36962a6a9c59091f6f7ce07b",
+        "sourceBounds": [
+          116,
+          17,
+          449,
+          975
+        ],
+        "scale": 1.2421711899791232
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          480,
+          1056,
+          1056,
+          1082
+        ],
+        "alpha": 100,
+        "blur": 8.96
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "4e4e63fe3c5287d630a4cb79e9487c37dd130eadbafb386b3383678ebef7c3c5",
+    "masterSha256": "03028cf8e5afa72d05f305f05177cef0c11c6514b08065bd4cbcf71d9b447bae",
+    "uncoveredPixels": 863995,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w50",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/high-day.png",
+    "backgroundSha256": "78bb2f28722e943d44f70507ea208aab875311b03f2aa3baada3e4b09f0e2a4a",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w50.png",
+        "mask": "parts/report_w50-1-mask.png",
+        "height": 280,
+        "position": [
+          518,
+          130
+        ],
+        "sourceSha256": "3d9f5f2eed0fc6d70d8c114990a772eedd3bafd70acc82f8a720c4168528fe1b",
+        "maskSha256": "d631a197951daf65e424dd35866c0304ca692a0a758a8e3045f5d2460f83f412",
+        "sourceBounds": [
+          547,
+          90,
+          1201,
+          934
+        ],
+        "scale": 0.33175355450236965
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 32,
+        "position": [
+          520,
+          366
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.028596961572832886
+      },
+      {
+        "source": "sources/report_w50.png",
+        "mask": "parts/report_w50-0-mask.png",
+        "height": 450,
+        "position": [
+          318,
+          400
+        ],
+        "sourceSha256": "3d9f5f2eed0fc6d70d8c114990a772eedd3bafd70acc82f8a720c4168528fe1b",
+        "maskSha256": "8b9bfac009e3649c3bd1fe75f2aae57ce62c07dfbc61b7f05bee095b90ca1513",
+        "sourceBounds": [
+          111,
+          19,
+          459,
+          977
+        ],
+        "scale": 0.4697286012526096
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          343,
+          840,
+          457,
+          860
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          551,
+          400,
+          703,
+          420
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "b1aebe7804388183d88bccd621809c193f1e7cc77ea88f728487d2d6f838e616",
+    "masterSha256": "75905fa31359ce793b862ce02ed0d60ac6b463861a38929b8d3d65ef3f88b5e4",
+    "uncoveredPixels": 1474186,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w51",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/audience-day.png",
+    "backgroundSha256": "4532c4a2584a03614ff5c505fbac4f3f37286194044a1b89e5f16fa2747f0d29",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      100,
+      150,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w51.png",
+        "mask": "parts/report_w51-1-mask.png",
+        "height": 909,
+        "position": [
+          287,
+          160
+        ],
+        "sourceSha256": "0999370852a4fa9a82d43131dd79d33d2b04af6380057c09cc6ae070f63d6a38",
+        "maskSha256": "69ad0ce30dd24bdcac177672aa8010fa643686c56eb7c5672e214ad3f7ebc8b6",
+        "sourceBounds": [
+          520,
+          193,
+          1330,
+          958
+        ],
+        "scale": 1.188235294117647
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 77,
+        "position": [
+          381,
+          991
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.06881143878462913
+      },
+      {
+        "source": "sources/report_w51.png",
+        "mask": "parts/report_w51-0-mask.png",
+        "height": 1190,
+        "position": [
+          -125,
+          -58
+        ],
+        "sourceSha256": "0999370852a4fa9a82d43131dd79d33d2b04af6380057c09cc6ae070f63d6a38",
+        "maskSha256": "e44263c61c8c06d5e9b6ef5a245df49aaaa5f628e3229ad03941613c5a2b359a",
+        "sourceBounds": [
+          194,
+          9,
+          634,
+          990
+        ],
+        "scale": 1.2130479102956166
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          431,
+          1056,
+          1105,
+          1082
+        ],
+        "alpha": 100,
+        "blur": 8.96
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "2d04ae068d27f10a2758b4d0fe078520b134debc0ef91ea1bdae58695802f913",
+    "masterSha256": "8625c202d82a538579f250dde228d1a6eb741cf3770c780a3794f0a41955585f",
+    "uncoveredPixels": 882554,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w52",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/left-day.png",
+    "backgroundSha256": "4cfd5187d44d8c35ca9a01d1fe7696f9bfeb8baae51e171ce88119281a39e61a",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w52.png",
+        "mask": "parts/report_w52-1-mask.png",
+        "height": 325,
+        "position": [
+          496,
+          289
+        ],
+        "sourceSha256": "71e48f79f4d7d6c1a6e24fe31d8a60de9135e7fc099a1d17a532c0895ae443a3",
+        "maskSha256": "7e507aba4964eb0c452cdb31ccff327f034f2edfe580b8e59a1e5acb304f1272",
+        "sourceBounds": [
+          397,
+          142,
+          1167,
+          979
+        ],
+        "scale": 0.38829151732377537
+      },
+      {
+        "source": "sources/report_w52.png",
+        "mask": "parts/report_w52-2-mask.png",
+        "height": 430,
+        "position": [
+          1038,
+          470
+        ],
+        "sourceSha256": "71e48f79f4d7d6c1a6e24fe31d8a60de9135e7fc099a1d17a532c0895ae443a3",
+        "maskSha256": "db4ea34dc8bc2789a2d2c371a946cc3d3d7eda206885a752a855f5ed1d7602b5",
+        "sourceBounds": [
+          1160,
+          291,
+          1506,
+          953
+        ],
+        "scale": 0.649546827794562
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 38,
+        "position": [
+          502,
+          575
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.03395889186773905
+      },
+      {
+        "source": "sources/report_w52.png",
+        "mask": "parts/report_w52-0-mask.png",
+        "height": 630,
+        "position": [
+          144,
+          340
+        ],
+        "sourceSha256": "71e48f79f4d7d6c1a6e24fe31d8a60de9135e7fc099a1d17a532c0895ae443a3",
+        "maskSha256": "bbb9cbd74b280bcfdd13fb75477e8dc9ecca01e1cd4c9b0650a454572f521d33",
+        "sourceBounds": [
+          32,
+          14,
+          419,
+          983
+        ],
+        "scale": 0.6501547987616099
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          182,
+          960,
+          358,
+          980
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          541,
+          604,
+          751,
+          624
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          1071,
+          890,
+          1229,
+          910
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "173ffc2cd3f0046962fbae1fe907a4207060562e3f69a7ce109b5a49e2a42bd6",
+    "masterSha256": "98e24be6603d8d28e602f21f11487f8832e8789ef3319c5c18e1fca330f82c34",
+    "uncoveredPixels": 1332064,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w53",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/audience-day.png",
+    "backgroundSha256": "4532c4a2584a03614ff5c505fbac4f3f37286194044a1b89e5f16fa2747f0d29",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "backgroundScale": 1.0,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w53.png",
+        "mask": "parts/report_w53-1-mask.png",
+        "height": 710,
+        "position": [
+          372,
+          275
+        ],
+        "sourceSha256": "3821d3cff0e765c0433656c4afe618ac26838dc77fcbab1dc84d50003f476049",
+        "maskSha256": "c77501b9cd7fa534082d4e6b401c8879cd25b3cf460e150cb7817ed8c1033363",
+        "sourceBounds": [
+          426,
+          193,
+          1128,
+          952
+        ],
+        "scale": 0.9354413702239789
+      },
+      {
+        "source": "sources/report_w53.png",
+        "mask": "parts/report_w53-2-mask.png",
+        "height": 540,
+        "position": [
+          1170,
+          470
+        ],
+        "sourceSha256": "3821d3cff0e765c0433656c4afe618ac26838dc77fcbab1dc84d50003f476049",
+        "maskSha256": "0c978ef6c75f591b4b32762b9ee003916a29f780bb9b4736c1051cc4ead4c59b",
+        "sourceBounds": [
+          1104,
+          262,
+          1496,
+          969
+        ],
+        "scale": 0.7637906647807637
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 60,
+        "position": [
+          398,
+          924
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.05361930294906166
+      },
+      {
+        "source": "sources/report_w53.png",
+        "mask": "parts/report_w53-0-mask.png",
+        "height": 930,
+        "position": [
+          5,
+          105
+        ],
+        "sourceSha256": "3821d3cff0e765c0433656c4afe618ac26838dc77fcbab1dc84d50003f476049",
+        "maskSha256": "16556c5134644ffd783f5d5dd6ff27563d3d2614102b5517946d20c2d3eeb6a0",
+        "sourceBounds": [
+          60,
+          12,
+          489,
+          985
+        ],
+        "scale": 0.9558067831449126
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          470,
+          975,
+          930,
+          995
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          1215,
+          1000,
+          1425,
+          1020
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "9a3730066dd366cca552515d1acb7439ac8866ed461720e58d195f9afd83f994",
+    "masterSha256": "a523d509012863941c7677c378bbd3cc523b3bf719e0c20c2f957599a3edc4f5",
+    "uncoveredPixels": 969799,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w54",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/audience-day.png",
+    "backgroundSha256": "4532c4a2584a03614ff5c505fbac4f3f37286194044a1b89e5f16fa2747f0d29",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "backgroundScale": 1.0,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w54.png",
+        "mask": "parts/report_w54-1-mask.png",
+        "height": 710,
+        "position": [
+          362,
+          275
+        ],
+        "sourceSha256": "ceaa1662043dc79a3e894f47ba2347cae1be53f3aba4c80f34c0a12d44de9a1b",
+        "maskSha256": "e0dc667fe530879241c965702726a70cdf61d5d7d1d8aab6d64494453cc577ad",
+        "sourceBounds": [
+          426,
+          123,
+          1238,
+          977
+        ],
+        "scale": 0.8313817330210773
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 60,
+        "position": [
+          398,
+          924
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.05361930294906166
+      },
+      {
+        "source": "sources/report_w54.png",
+        "mask": "parts/report_w54-0-mask.png",
+        "height": 930,
+        "position": [
+          20,
+          105
+        ],
+        "sourceSha256": "ceaa1662043dc79a3e894f47ba2347cae1be53f3aba4c80f34c0a12d44de9a1b",
+        "maskSha256": "6b4e229f8d19d75331b333227e496bf09edce8f0c41a4151720e25e6ae1061c7",
+        "sourceBounds": [
+          30,
+          9,
+          430,
+          990
+        ],
+        "scale": 0.9480122324159022
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          464,
+          975,
+          936,
+          995
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "222eb8deab2e918ec0490bd21d6940aa0752337c13a5991b09afbec5e7936618",
+    "masterSha256": "35723f6e0fc6952c043cd8dcdda931bf78ac8387fb3628db08f87225ac18fb11",
+    "uncoveredPixels": 1068852,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w56",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/audience-day.png",
+    "backgroundSha256": "4532c4a2584a03614ff5c505fbac4f3f37286194044a1b89e5f16fa2747f0d29",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      100,
+      150,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w56.png",
+        "mask": "parts/report_w56-1-mask.png",
+        "height": 909,
+        "position": [
+          379,
+          160
+        ],
+        "sourceSha256": "03c9c04fb46d1c6d374bc4af46ab2672daece9e7d5bb8581d5b4b908ffb15916",
+        "maskSha256": "e49953b05566ad35595df319b0458a53ca0df052f88b634d450a59e29f526363",
+        "sourceBounds": [
+          500,
+          116,
+          1240,
+          974
+        ],
+        "scale": 1.0594405594405594
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 77,
+        "position": [
+          381,
+          991
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.06881143878462913
+      },
+      {
+        "source": "sources/report_w56.png",
+        "mask": "parts/report_w56-0-mask.png",
+        "height": 1190,
+        "position": [
+          -81,
+          -58
+        ],
+        "sourceSha256": "03c9c04fb46d1c6d374bc4af46ab2672daece9e7d5bb8581d5b4b908ffb15916",
+        "maskSha256": "df4123b9201d75e47c1635f6bd3edd07bfdf039023fa64d1e238037580269d88",
+        "sourceBounds": [
+          105,
+          14,
+          472,
+          995
+        ],
+        "scale": 1.2130479102956166
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          495,
+          1056,
+          1041,
+          1082
+        ],
+        "alpha": 100,
+        "blur": 8.96
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "9bed85ad23750605d6034d82b52b2b7c12676416234fe7c54c2eefc0ff887936",
+    "masterSha256": "04f45d7ff910e9a046e4096605bdead91e5ce203b4c86f6190e6e0ddb2bb45c9",
+    "uncoveredPixels": 867699,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w57",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/audience-day.png",
+    "backgroundSha256": "4532c4a2584a03614ff5c505fbac4f3f37286194044a1b89e5f16fa2747f0d29",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      100,
+      150,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w57.png",
+        "mask": "parts/report_w57-1-mask.png",
+        "height": 909,
+        "position": [
+          376,
+          160
+        ],
+        "sourceSha256": "4b0caec19c7ebcb14336335db61bf5e53bc25f0f82f3ccad87826e37f5ebbc40",
+        "maskSha256": "cd121d362d48820ccd41abb1d3b21db94e867681875c9b44b3342de0c735f49c",
+        "sourceBounds": [
+          473,
+          135,
+          1208,
+          987
+        ],
+        "scale": 1.0669014084507042
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 77,
+        "position": [
+          381,
+          991
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.06881143878462913
+      },
+      {
+        "source": "sources/report_w57.png",
+        "mask": "parts/report_w57-0-mask.png",
+        "height": 1190,
+        "position": [
+          -82,
+          -58
+        ],
+        "sourceSha256": "4b0caec19c7ebcb14336335db61bf5e53bc25f0f82f3ccad87826e37f5ebbc40",
+        "maskSha256": "8dbaf0e9a1eb70c8cabe1d11c570b88dd2a8c8bc15319c345e36c18c35b322af",
+        "sourceBounds": [
+          85,
+          12,
+          456,
+          1002
+        ],
+        "scale": 1.202020202020202
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          494,
+          1056,
+          1042,
+          1082
+        ],
+        "alpha": 100,
+        "blur": 8.96
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "e31a35dcf8ce34be60517791c115fc3b05cc923f4e5cb46854a77fac09d42a7c",
+    "masterSha256": "3870a002360534abd9a600a2c7320126e1bb756374c7e99d947e8c5d5ff547c5",
+    "uncoveredPixels": 879927,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w22",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "backgroundSha256": "159b34b262ac7f309203926946e0d59c5715c5b209860002abe0f2b039adb521",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      100,
+      150,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w22.png",
+        "mask": "parts/report_w22-1-mask.png",
+        "height": 909,
+        "position": [
+          333,
+          160
+        ],
+        "sourceSha256": "6aa9eff8ca202698576b785718f6dbdc2a3acbb26e7f53d7490da6983754d556",
+        "maskSha256": "752d43687d91b45780c45919614c06a64ef90fbf8474f951a0f779c1c04782f0",
+        "sourceBounds": [
+          512,
+          198,
+          1244,
+          961
+        ],
+        "scale": 1.1913499344692005
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 77,
+        "position": [
+          381,
+          991
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.06881143878462913
+      },
+      {
+        "source": "sources/report_w22.png",
+        "mask": "parts/report_w22-0-mask.png",
+        "height": 1190,
+        "position": [
+          -88,
+          -58
+        ],
+        "sourceSha256": "6aa9eff8ca202698576b785718f6dbdc2a3acbb26e7f53d7490da6983754d556",
+        "maskSha256": "844b51575933374d7e99663cb551fce48140899d978d532e1770d09c960bc83a",
+        "sourceBounds": [
+          110,
+          7,
+          486,
+          984
+        ],
+        "scale": 1.218014329580348
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          463,
+          1056,
+          1073,
+          1082
+        ],
+        "alpha": 100,
+        "blur": 8.96
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "1d0616f523416d1fcf2a9b742ca011aa531c0e5242f479cba8e17a488ec250ff",
+    "masterSha256": "a517fc02668ea66d0d8da41acb2b30547803d22cde5705700f8b491ae13ac697",
+    "uncoveredPixels": 811099,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w29",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "backgroundSha256": "159b34b262ac7f309203926946e0d59c5715c5b209860002abe0f2b039adb521",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "backgroundScale": 1.0,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w29.png",
+        "mask": "parts/report_w29-1-mask.png",
+        "height": 710,
+        "position": [
+          380,
+          275
+        ],
+        "sourceSha256": "f6ced8c9ab179b86478c63b87c5ceb796261a446f484b7fb44a5de4e22c79f5a",
+        "maskSha256": "5bca2a01ea3609d3bd62462d2c955c0c935dd4009082912b20f8ffb919fbedfb",
+        "sourceBounds": [
+          498,
+          187,
+          1218,
+          984
+        ],
+        "scale": 0.890840652446675
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 60,
+        "position": [
+          398,
+          924
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.05361930294906166
+      },
+      {
+        "source": "sources/report_w29.png",
+        "mask": "parts/report_w29-0-mask.png",
+        "height": 930,
+        "position": [
+          42,
+          105
+        ],
+        "sourceSha256": "f6ced8c9ab179b86478c63b87c5ceb796261a446f484b7fb44a5de4e22c79f5a",
+        "maskSha256": "181886a70ca9bd37b5ef568ce98bd1372a8a707edcc35bd3d427c35bb3688315",
+        "sourceBounds": [
+          102,
+          19,
+          458,
+          1000
+        ],
+        "scale": 0.9480122324159022
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          476,
+          975,
+          924,
+          995
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "5ac52853ba08ac7824a946b431a94306da654148adaea2dd1b0b592f50aba4d2",
+    "masterSha256": "1345237a254a41dcd3c38a8469f422ffad9934bc7a0f0eec63ba1076aa2e6921",
+    "uncoveredPixels": 1072658,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w30",
+    "background": "docs/art/story-refs/palace-3d/finished/right.png",
+    "backgroundSha256": "a644f1b66e5c81cccda1d83e31d9b8fc03144ac211d3af3977c46236f59d41e8",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w30.png",
+        "mask": "parts/report_w30-1-mask.png",
+        "height": 345,
+        "position": [
+          608,
+          282
+        ],
+        "sourceSha256": "7ee312ed3101f011b57b8d64f21dde7b1c95d19769aec73b770f185ccbd665fa",
+        "maskSha256": "88a19ca86a4847ec0af559fe7156fd5dee91b763665ec47bdd9e92c52999b554",
+        "sourceBounds": [
+          481,
+          207,
+          1338,
+          1002
+        ],
+        "scale": 0.4339622641509434
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 38,
+        "position": [
+          655,
+          590
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.03395889186773905
+      },
+      {
+        "source": "sources/report_w30.png",
+        "mask": "parts/report_w30-0-mask.png",
+        "height": 650,
+        "position": [
+          223,
+          320
+        ],
+        "sourceSha256": "7ee312ed3101f011b57b8d64f21dde7b1c95d19769aec73b770f185ccbd665fa",
+        "maskSha256": "86935e75e2c16a97d48d0d8464a7633f3f57b3476cebe023d6a5a3ea4f89a85b",
+        "sourceBounds": [
+          69,
+          10,
+          456,
+          1000
+        ],
+        "scale": 0.6565656565656566
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          261,
+          960,
+          439,
+          980
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          664,
+          617,
+          924,
+          637
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "c256bc4ab46d706816a80f6a0e0f319c044bc8a0d9591558107e4797a30dbebf",
+    "masterSha256": "11156d834eb6a0ee8f8c6586aa5af9b3f89b7476153f0fb50141505473d6f92a",
+    "uncoveredPixels": 1379562,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w31",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "backgroundSha256": "159b34b262ac7f309203926946e0d59c5715c5b209860002abe0f2b039adb521",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "backgroundScale": 1.0,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w31.png",
+        "mask": "parts/report_w31-1-mask.png",
+        "height": 710,
+        "position": [
+          361,
+          275
+        ],
+        "sourceSha256": "1269b9c31e9efcaac0e9c46dca87473bc9f058c37aef695649305a75c8546181",
+        "maskSha256": "259cdcc881174a83843a90fe9f4e32059f733fa51a35ca2236a9fabe191313a3",
+        "sourceBounds": [
+          442,
+          136,
+          1270,
+          1003
+        ],
+        "scale": 0.8189158016147635
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 60,
+        "position": [
+          398,
+          924
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.05361930294906166
+      },
+      {
+        "source": "sources/report_w31.png",
+        "mask": "parts/report_w31-0-mask.png",
+        "height": 930,
+        "position": [
+          50,
+          105
+        ],
+        "sourceSha256": "1269b9c31e9efcaac0e9c46dca87473bc9f058c37aef695649305a75c8546181",
+        "maskSha256": "6429e2ef1482905489d4e3c92d27458c86ad049d7b4f8fa72d90bfba9518f230",
+        "sourceBounds": [
+          86,
+          10,
+          425,
+          995
+        ],
+        "scale": 0.9441624365482234
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          463,
+          975,
+          937,
+          995
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "ae9740aa2df6cebe5e0041cd7094be74ada9fad86e1963f80188e8f111da5fba",
+    "masterSha256": "694aa2f7878bfb58a63b34f8002bb9cb830515e13fe3d93f9f7c8a1e09f37d9b",
+    "uncoveredPixels": 1090220,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w32",
+    "background": "docs/art/story-refs/palace-3d/finished/audience.png",
+    "backgroundSha256": "159b34b262ac7f309203926946e0d59c5715c5b209860002abe0f2b039adb521",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "backgroundScale": 1.0,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w32.png",
+        "mask": "parts/report_w32-1-mask.png",
+        "height": 840,
+        "position": [
+          652,
+          160
+        ],
+        "sourceSha256": "a61022eb15c9d877c05802f02921965f322f7cc52fc94e6c6d7678e2b73304ea",
+        "maskSha256": "392fc91c9e49c905ef9c7113bd46740d531f52d3f6d91425184871af9650e09d",
+        "sourceBounds": [
+          435,
+          6,
+          1089,
+          1010
+        ],
+        "scale": 0.8366533864541833
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 60,
+        "position": [
+          398,
+          924
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.05361930294906166
+      },
+      {
+        "source": "sources/report_w32.png",
+        "mask": "parts/report_w32-0-mask.png",
+        "height": 880,
+        "position": [
+          70,
+          160
+        ],
+        "sourceSha256": "a61022eb15c9d877c05802f02921965f322f7cc52fc94e6c6d7678e2b73304ea",
+        "maskSha256": "3343085352b8e36187457618b9d4a3003afde514aba086305cd9a1a0d4685790",
+        "sourceBounds": [
+          89,
+          25,
+          468,
+          1002
+        ],
+        "scale": 0.9007164790174002
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          964,
+          990,
+          1346,
+          1010
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "a4e7817b01ee1700b38b5de657bd2d31740d8828e0eb7d016b1a47d6d469dad3",
+    "masterSha256": "2caa6a130270d014d09d4e9ba86ed2549b6bd79ec0ed690ad93fb1abef5c939f",
+    "uncoveredPixels": 1105609,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w38",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/audience-day.png",
+    "backgroundSha256": "4532c4a2584a03614ff5c505fbac4f3f37286194044a1b89e5f16fa2747f0d29",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      100,
+      150,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w38.png",
+        "mask": "parts/report_w38-1-mask.png",
+        "height": 909,
+        "position": [
+          328,
+          160
+        ],
+        "sourceSha256": "6838d67c5f79661d0b5e5f576ecaa466f88ec524cd78d3efda0e96eec778f75d",
+        "maskSha256": "59926bc3165794a11efa606b670baf773610946cc15a6720fdd4bd80bd41d7f4",
+        "sourceBounds": [
+          449,
+          151,
+          1247,
+          974
+        ],
+        "scale": 1.1044957472660997
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 77,
+        "position": [
+          381,
+          991
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.06881143878462913
+      },
+      {
+        "source": "sources/report_w38.png",
+        "mask": "parts/report_w38-0-mask.png",
+        "height": 1190,
+        "position": [
+          -74,
+          -58
+        ],
+        "sourceSha256": "6838d67c5f79661d0b5e5f576ecaa466f88ec524cd78d3efda0e96eec778f75d",
+        "maskSha256": "e237ed3d9b38747785568a8765d773d4bbfae561ae5e2ca32f60f0f147c82a78",
+        "sourceBounds": [
+          76,
+          27,
+          428,
+          998
+        ],
+        "scale": 1.2255406797116375
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          460,
+          1056,
+          1076,
+          1082
+        ],
+        "alpha": 100,
+        "blur": 8.96
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "688a5f8d1999a72604c46fb0d650f8567efb00c00158526cf538f59e16224f67",
+    "masterSha256": "955619a54387a7f375a3e0f82b3f7d7c3449efdfac4dbff37158a8886922bd94",
+    "uncoveredPixels": 860688,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w39",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/right-day.png",
+    "backgroundSha256": "c41eb83ca2f8e0be4297b4e7f68d498e99daf9bf2d8387188d08f715b5267a3a",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w39.png",
+        "mask": "parts/report_w39-1-mask.png",
+        "height": 345,
+        "position": [
+          634,
+          282
+        ],
+        "sourceSha256": "aa737840a8b266cf6d0784dbbc0f5cc2dc3e907cddfa7b0f09d5662445b612ff",
+        "maskSha256": "92a3694e37db1abfc2b4070264ef2c348fe09ae787d932506e8e2c4d48ac420e",
+        "sourceBounds": [
+          428,
+          167,
+          1177,
+          972
+        ],
+        "scale": 0.42857142857142855
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 38,
+        "position": [
+          655,
+          590
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.03395889186773905
+      },
+      {
+        "source": "sources/report_w39.png",
+        "mask": "parts/report_w39-0-mask.png",
+        "height": 650,
+        "position": [
+          248,
+          320
+        ],
+        "sourceSha256": "aa737840a8b266cf6d0784dbbc0f5cc2dc3e907cddfa7b0f09d5662445b612ff",
+        "maskSha256": "3c28d7e122c1a5e717592d958c35a0e88faf97480b2007ae8c4bac99e7c6a9c0",
+        "sourceBounds": [
+          74,
+          9,
+          384,
+          991
+        ],
+        "scale": 0.6619144602851323
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          278,
+          960,
+          422,
+          980
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          682,
+          617,
+          906,
+          637
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "d370cd45caf0879232693eaae0a6e6d88a1d29b5ff04c802399393d97cc8b88b",
+    "masterSha256": "2ab79c6471b812227fc3aceb158cdbd471fe0690f000dccde4461ac41a1c2038",
+    "uncoveredPixels": 1404746,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w40",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/audience-evening.png",
+    "backgroundSha256": "6b29b884487a91b63fd537364fec2f364be0fc2c8bd5f53c2b720e70d71ff588",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      0,
+      0,
+      1536,
+      1024
+    ],
+    "backgroundScale": 1.0,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w40.png",
+        "mask": "parts/report_w40-1-mask.png",
+        "height": 710,
+        "position": [
+          304,
+          275
+        ],
+        "sourceSha256": "0d3e0b952a500f50ba3d69770802070d069c396aee4c8cadd12921386c09d961",
+        "maskSha256": "2b8a13547c1b23177c7c0f6f6cdc75505a545c63ed489c8d33e6f35a98b5d883",
+        "sourceBounds": [
+          368,
+          154,
+          1292,
+          982
+        ],
+        "scale": 0.857487922705314
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 60,
+        "position": [
+          398,
+          924
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.05361930294906166
+      },
+      {
+        "source": "sources/report_w40.png",
+        "mask": "parts/report_w40-0-mask.png",
+        "height": 930,
+        "position": [
+          42,
+          105
+        ],
+        "sourceSha256": "0d3e0b952a500f50ba3d69770802070d069c396aee4c8cadd12921386c09d961",
+        "maskSha256": "dfe45ab7bb573708f532f8bfdd7f10efb3acd26c12383fee02dd2a552394bf6e",
+        "sourceBounds": [
+          49,
+          20,
+          398,
+          983
+        ],
+        "scale": 0.9657320872274143
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          423,
+          975,
+          977,
+          995
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "2dd4ca58f91b7071b68a4df1448062a2dd5c86e89958e3c4788463139fe1f1d3",
+    "masterSha256": "48f8ec0e2bde36227a75cc48c81be7c956e589f8952ea168f957ce0c4c110bd7",
+    "uncoveredPixels": 1063738,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w41",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/audience-day.png",
+    "backgroundSha256": "4532c4a2584a03614ff5c505fbac4f3f37286194044a1b89e5f16fa2747f0d29",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      100,
+      150,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w41.png",
+        "mask": "parts/report_w41-1-mask.png",
+        "height": 909,
+        "position": [
+          314,
+          160
+        ],
+        "sourceSha256": "dc533ee2fff9b9d9278d61c043c3a04ba962269818035c2bc2c825027996661a",
+        "maskSha256": "f3bdc4e419e75a32f44d803253184ea8a11107c6aea691c3b417628415db8b09",
+        "sourceBounds": [
+          557,
+          198,
+          1348,
+          989
+        ],
+        "scale": 1.1491782553729457
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 77,
+        "position": [
+          381,
+          991
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.06881143878462913
+      },
+      {
+        "source": "sources/report_w41.png",
+        "mask": "parts/report_w41-0-mask.png",
+        "height": 1190,
+        "position": [
+          -77,
+          -58
+        ],
+        "sourceSha256": "dc533ee2fff9b9d9278d61c043c3a04ba962269818035c2bc2c825027996661a",
+        "maskSha256": "655f605a8c353e0c8082f914b2d46143961613b7857e7548b744b7f017fa9cfe",
+        "sourceBounds": [
+          162,
+          13,
+          520,
+          989
+        ],
+        "scale": 1.2192622950819672
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          451,
+          1056,
+          1085,
+          1082
+        ],
+        "alpha": 100,
+        "blur": 8.96
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "2c379c4930ba630b30bdd25c1d1ab16960524afa5170d7a2d783395ab78dc729",
+    "masterSha256": "b2e63e8fffa7431f5b8731ba24d811b10da526aa0cb060fb0302e1fc4879dd7d",
+    "uncoveredPixels": 803257,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w47",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/audience-day.png",
+    "backgroundSha256": "4532c4a2584a03614ff5c505fbac4f3f37286194044a1b89e5f16fa2747f0d29",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      100,
+      150,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w47.png",
+        "mask": "parts/report_w47-1-mask.png",
+        "height": 909,
+        "position": [
+          314,
+          185
+        ],
+        "sourceSha256": "1eb20c57238e3f84c3a6ebf49f4aef209e78f28889fa693298c421a8ece83729",
+        "maskSha256": "a73dc388cfd0bf9faa5b5d2bbbd0c409addd60779096d92fb273401f036dcc70",
+        "sourceBounds": [
+          441,
+          167,
+          1229,
+          955
+        ],
+        "scale": 1.1535532994923858
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 77,
+        "position": [
+          381,
+          991
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.06881143878462913
+      },
+      {
+        "source": "sources/report_w47.png",
+        "mask": "parts/report_w47-0-mask.png",
+        "height": 1190,
+        "position": [
+          -76,
+          -58
+        ],
+        "sourceSha256": "1eb20c57238e3f84c3a6ebf49f4aef209e78f28889fa693298c421a8ece83729",
+        "maskSha256": "e394722af78bb975564f91c5599ee82bfa19614215c53c904e5713f12ed65415",
+        "sourceBounds": [
+          79,
+          24,
+          429,
+          987
+        ],
+        "scale": 1.2357217030114227
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          451,
+          1056,
+          1085,
+          1082
+        ],
+        "alpha": 100,
+        "blur": 8.96
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "66a9f4e0f67bdcd02eaefcfa888331b9be7b77b451019db36f327cc36c42bc7a",
+    "masterSha256": "92eec298efc3c6a4515750b7af36b6d270bb5cc576a5072350c4c60867f56d84",
+    "uncoveredPixels": 856022,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w49",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/left-day.png",
+    "backgroundSha256": "4cfd5187d44d8c35ca9a01d1fe7696f9bfeb8baae51e171ce88119281a39e61a",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      200,
+      200,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w49.png",
+        "mask": "parts/report_w49-1-mask.png",
+        "height": 325,
+        "position": [
+          494,
+          289
+        ],
+        "sourceSha256": "53f01e6ba965dc2f186cba9e9960f6b8d6ec5c7bc79d1662f6e51a6e41380f57",
+        "maskSha256": "8b5eee87f14f54a7645c6ce12c2649a6542673c3b21116d02ba89dcccfe060ee",
+        "sourceBounds": [
+          439,
+          176,
+          1173,
+          961
+        ],
+        "scale": 0.4140127388535032
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 38,
+        "position": [
+          502,
+          575
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.03395889186773905
+      },
+      {
+        "source": "sources/report_w49.png",
+        "mask": "parts/report_w49-0-mask.png",
+        "height": 630,
+        "position": [
+          166,
+          340
+        ],
+        "sourceSha256": "53f01e6ba965dc2f186cba9e9960f6b8d6ec5c7bc79d1662f6e51a6e41380f57",
+        "maskSha256": "196cbcca27b6693d4d8a49a489d222fe0010ff10dbb7e9b6751615b6787d99d4",
+        "sourceBounds": [
+          102,
+          20,
+          418,
+          972
+        ],
+        "scale": 0.6617647058823529
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          197,
+          960,
+          343,
+          980
+        ],
+        "alpha": 100,
+        "blur": 7
+      },
+      {
+        "box": [
+          540,
+          604,
+          752,
+          624
+        ],
+        "alpha": 100,
+        "blur": 7
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "a7f023b870a4b7b0aa8469ee02b63c730e16a0914852f0c34afa33bc31536882",
+    "masterSha256": "804b9ccc9422ca638627748fb3ece72e075633f3a424e3802405b79d04e31f42",
+    "uncoveredPixels": 1418308,
+    "changedUncoveredPixels": 0
+  },
+  {
+    "id": "report_w55",
+    "background": "docs/art/story-refs/palace-3d/finished/variants/audience-day.png",
+    "backgroundSha256": "4532c4a2584a03614ff5c505fbac4f3f37286194044a1b89e5f16fa2747f0d29",
+    "backgroundSize": [
+      1536,
+      1024
+    ],
+    "crop": [
+      100,
+      150,
+      1200,
+      800
+    ],
+    "backgroundScale": 1.28,
+    "mirror": false,
+    "parts": [
+      {
+        "source": "sources/report_w55.png",
+        "mask": "parts/report_w55-1-mask.png",
+        "height": 909,
+        "position": [
+          376,
+          160
+        ],
+        "sourceSha256": "4b15023150ad8eef7a12fb99f0bc11dd0f4acfbf7f5f6edf53e8e21d713629a2",
+        "maskSha256": "27d995a58d3a464c7166d4d6640b6bbc4a9ae7984989749759785429fe70d931",
+        "sourceBounds": [
+          494,
+          108,
+          1255,
+          989
+        ],
+        "scale": 1.0317820658342793
+      },
+      {
+        "source": "sources/floor-cup.png",
+        "height": 77,
+        "position": [
+          381,
+          991
+        ],
+        "sourceSha256": "f741628b687de3b7f51ed290f06f9de66a3be656f7c1137ac83d393854a224c1",
+        "sourceBounds": [
+          313,
+          43,
+          997,
+          1162
+        ],
+        "scale": 0.06881143878462913
+      },
+      {
+        "source": "sources/report_w55.png",
+        "mask": "parts/report_w55-0-mask.png",
+        "height": 1190,
+        "position": [
+          -81,
+          -58
+        ],
+        "sourceSha256": "4b15023150ad8eef7a12fb99f0bc11dd0f4acfbf7f5f6edf53e8e21d713629a2",
+        "maskSha256": "383a17dcf986e2f0fdc7fdf8d994f814f400d6693263702f9cc5203478413256",
+        "sourceBounds": [
+          87,
+          9,
+          453,
+          992
+        ],
+        "scale": 1.2105798575788402
+      }
+    ],
+    "shadows": [
+      {
+        "box": [
+          493,
+          1056,
+          1043,
+          1082
+        ],
+        "alpha": 100,
+        "blur": 8.96
+      }
+    ],
+    "occlusion": [],
+    "beforeSha256": "2703fd161b897058eae3df4bcd335bc27c7d620d4834f644e38f6b408fe8e3ca",
+    "masterSha256": "e51f8e8c234cd6b404e28d8b0d46ef63487bc72fcb3abd84504e9e1680a52724",
+    "uncoveredPixels": 856209,
+    "changedUncoveredPixels": 0
+  }
+]
