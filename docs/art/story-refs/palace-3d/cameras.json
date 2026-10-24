@@ -1,0 +1,107 @@
+{
+  "coordinate_system": "X=east, Y=north/throne, Z=up; metres",
+  "views": {
+    "front": {
+      "position": [
+        0,
+        -8.7,
+        2.4
+      ],
+      "target": [
+        0,
+        7.0,
+        3.3
+      ],
+      "lens_mm": 27
+    },
+    "left": {
+      "position": [
+        -4.8,
+        -3.7,
+        2.8
+      ],
+      "target": [
+        0.4,
+        7.1,
+        3.0
+      ],
+      "lens_mm": 25
+    },
+    "right": {
+      "position": [
+        4.8,
+        -3.7,
+        2.8
+      ],
+      "target": [
+        -0.4,
+        7.1,
+        3.0
+      ],
+      "lens_mm": 25
+    },
+    "reverse": {
+      "position": [
+        -2.1,
+        8.6,
+        3.2
+      ],
+      "target": [
+        0,
+        -7,
+        3.6
+      ],
+      "lens_mm": 23
+    },
+    "high": {
+      "position": [
+        -4.8,
+        -7.0,
+        7.7
+      ],
+      "target": [
+        0.2,
+        5.2,
+        1.8
+      ],
+      "lens_mm": 24
+    },
+    "audience": {
+      "position": [
+        -2.5,
+        3.3,
+        2.25
+      ],
+      "target": [
+        0.1,
+        7.7,
+        2.85
+      ],
+      "lens_mm": 32
+    }
+  },
+  "furniture": {
+    "throne": [
+      0,
+      8,
+      1
+    ],
+    "chancellor_chair": [
+      2.05,
+      7.85,
+      1
+    ],
+    "side_table": [
+      -1.85,
+      7.7,
+      1
+    ]
+  },
+  "room": {
+    "width_m": 14.2,
+    "length_m": 20.3,
+    "dais_height_m": 1,
+    "step_count": 5
+  },
+  "note": "All views share the same geometry. This is a new 3D interpretation of palace-front.png."
+}
