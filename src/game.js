@@ -6704,7 +6704,7 @@ function resolveCellMeasured(cell, { visibleEnemy = cell.type === "monster" && !
       break;
     }
     case "pit": {
-      // 落ちる床 (その土地の穴 — floorhaz.js): ダメージは無いが、1階下へ強制的に落とされる (最下階には無い)。浮遊していれば落ちない
+      // 落ちる床 (その土地の穴 — floorhaz.js): 最大HPの20%のダメージを受け、1階下へ強制的に落とされる (最下階には無い)。浮遊していれば落ちない
       const hz = fallHaz();
       if (floatLeft() > 0) {
         log(`${hz.name}だ。だが隊は宙に浮いたまま、その上を渡った。`, "sys");
@@ -6717,7 +6717,32 @@ function resolveCellMeasured(cell, { visibleEnemy = cell.type === "monster" && !
       runCount("pits");
       G._walkAbort = true;            // 歩いている途中なら、前の階の経路をここで捨てる
       G.anim = { busy: true };        // 落ちきるまで操作を受けない
-      setTimeout(() => { G.anim = null; if (G.state === "board" && inDungeon()) descend({ fall: true }); }, 420);
+      const hurt = [], fallen = [];
+      for (const p of G.party) {
+        if (!p.alive) continue;
+        const dmg = Math.max(1, Math.ceil(p.maxhp * 0.2));
+        p.hp = Math.max(0, p.hp - dmg);
+        hurt.push(p);
+        log(`${p.name}は落下で${dmg}のダメージを受けた。`, "dmg");
+        if (p.hp === 0) { p.alive = false; fallen.push(p.name); log(`${p.name}は落下で倒れた…`, "dmg"); }
+      }
+      flashPartyCards(hurt, "hit");
+      renderParty();
+      setTimeout(() => {
+        G.anim = null;
+        if (G.state !== "board" || !inDungeon()) return;
+        const proceed = () => {
+          if (!G.party.some((p) => p.alive)) { gameOver(); return; }
+          descend({ fall: true });
+        };
+        if (!fallen.length) { proceed(); return; }
+        SFX.die(); imprintFallen();
+        showEvent({
+          sprite: ICONS.trap, title: `${hz.name}！`, banner: "⚠ 危険 ⚠",
+          lines: ["隊の全員が落下で最大HPの20%のダメージを受けた。", ...fallen.map((name) => `${name}は落下で倒れた…`)],
+          btnLabel: "進む", onClose: proceed,
+        });
+      }, 420);
       break;
     }
     case "poison": {
