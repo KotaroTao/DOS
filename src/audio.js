@@ -192,6 +192,7 @@ function hookLifecycle() {
 let kickPending = false;
 function isTextInput(t) {
   if (!t || !t.tagName) return false;
+  if (t.readOnly || t.disabled) return false;
   if (t.isContentEditable || t.tagName === "TEXTAREA") return true;
   return t.tagName === "INPUT" && !/^(button|submit|reset|checkbox|radio|range|color|file|image|hidden)$/i.test(t.type || "");
 }
