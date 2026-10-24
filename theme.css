@@ -342,3 +342,19 @@ summary.tw-bandh::before { color: var(--accent); }
 
 /* ステータスの見出し: 区切りの塊ごとに折り返す */
 
+.game-update-notice {
+  position: fixed;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 9000;
+  width: min(320px, calc(100vw - 24px));
+  padding: 12px;
+  box-sizing: border-box;
+  background: #17151f;
+  color: #e7e3d4;
+  border: 1px solid #a38b54;
+  border-radius: 8px;
+  font-size: 13px;
+}
+.game-update-notice p { margin: 0 0 8px; }
+.game-update-notice button { min-height: 44px; padding: 8px 14px; }
