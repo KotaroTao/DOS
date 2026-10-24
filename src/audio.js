@@ -28,6 +28,12 @@ let current = null;        // 再生中の Player
 let token = 0;
 let timer = null;
 let hooked = false;
+let audioError = null;
+
+function playbackSession() {
+  // iOSではWeb Audio用の出力が動画の出力とは別になる。音楽再生用を明示する。
+  try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch {}
+}
 
 const JINGLES = ["j_victory", "j_levelup", "j_item", "j_gameover"];
 // 曲のつながり (次に流れそうな曲を先に用意しておく)
@@ -44,21 +50,32 @@ function getSong(name) {
 export function initAudio() {
   if (!actx) {
     const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return;
-    try { actx = new AC({ latencyHint: "balanced" }); } catch { actx = new AC(); }
-    // 楽器・残響の準備より先に、操作中の権限で音声の出口を開く。
-    resumeAudio();
-    bank.setContext(actx);
-    // 非力な端末では同時発音数と声部フィルタを控えめに
-    let lite = false;
-    try { lite = (navigator.deviceMemory && navigator.deviceMemory <= 2) || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4); } catch {}
-    engine = new Engine(actx, bank, { realtime: true, maxVoices: lite ? 40 : 64, lite });
-    engine.setVolumes(bgmVol, sfxVol);
-    if (muted) engine.setMasterGain(0, 0.01);
-    hookLifecycle();
-    startTimer();
-    // ジングルの楽器を早めに用意
-    for (const j of JINGLES) { const s = newSong(j); if (s) bank.ensure(songKeys(s), "high"); }
+    if (!AC) { audioError = "このブラウザは音声再生に対応していません"; return false; }
+    playbackSession();
+    try {
+      try { actx = new AC({ latencyHint: "balanced" }); } catch { actx = new AC(); }
+      // 楽器・残響の準備より先に、操作中の権限で音声の出口を開く。
+      resumeAudio();
+      bank.setContext(actx);
+      // 非力な端末では同時発音数と声部フィルタを控えめに
+      let lite = false;
+      try { lite = (navigator.deviceMemory && navigator.deviceMemory <= 2) || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4); } catch {}
+      engine = new Engine(actx, bank, { realtime: true, maxVoices: lite ? 40 : 64, lite });
+      engine.setVolumes(bgmVol, sfxVol);
+      if (muted) { engine.setMasterGain(0, 0.01); actx.suspend().catch(() => {}); }
+      hookLifecycle();
+      startTimer();
+      // ジングルの楽器を早めに用意
+      for (const j of JINGLES) { const s = newSong(j); if (s) bank.ensure(songKeys(s), "high"); }
+      audioError = null;
+    } catch (e) {
+      audioError = String(e && e.message || e);
+      console.warn("[audio] 音声の起動に失敗", e);
+      stopTimer();
+      try { actx?.close().catch(() => {}); } catch {}
+      actx = null; engine = null;
+      return false;
+    }
   }
   if (actx.state !== "running") resumeAudio();
   if (pendingBgm) {
@@ -66,13 +83,39 @@ export function initAudio() {
     pendingBgm = null;
     playBgm(n);
   }
+  return !!engine;
+}
+
+// iPhoneでstateがrunningのまま無音になった場合も、出力を新しく作り直す。
+// 曲名・音量・ミュートを保ち、冒険の状態には触れない。
+export function restartAudio() {
+  const next = want ?? pendingBgm;
+  stopTimer();
+  ++token;
+  if (engine) for (const player of [...engine.players]) player.kill();
+  const old = actx;
+  actx = null; engine = null; current = null; want = undefined;
+  pendingBgm = next;
+  kickPending = false;
+  // closeの完了を待つとタップの権限を失うため、同じ操作の中で作り直す。
+  try { old?.close().catch(() => {}); } catch {}
+  // Safari側の出力が失われた場合、同じtypeの再代入だけでは設定し直されない。
+  try { if (navigator.audioSession) navigator.audioSession.type = "auto"; } catch {}
+  bank.setPaused(false);
+  return initAudio();
 }
 
 // iPhoneでは resume だけでなく、タップの処理中に音源を start する必要がある。
 // 実際の曲は楽器の生成を待つため、ここでは無音1フレームで出口だけを起こす。
 function resumeAudio() {
   if (!actx || muted || document.hidden) return;
-  try { actx.resume().catch(() => {}); } catch {}
+  playbackSession();
+  const context = actx;
+  try {
+    actx.resume().then(() => {
+      if (actx === context && context.state === "running") audioError = null;
+    }, (e) => { if (actx === context) audioError = String(e && e.message || e); });
+  } catch (e) { audioError = String(e && e.message || e); }
   try {
     const src = actx.createBufferSource();
     src.buffer = actx.createBuffer(1, 1, actx.sampleRate);
@@ -112,6 +155,8 @@ function stopTimer() { if (timer) clearInterval(timer); timer = null; }
 
 // タブが隠れたら止め、戻ったら再開する (電池とCPUの節約)
 function hookLifecycle() {
+  const context = actx;
+  context.addEventListener("statechange", () => { if (actx === context && context.state === "interrupted") kickPending = true; });
   if (hooked) return;
   hooked = true;
   document.addEventListener("visibilitychange", () => {
@@ -143,7 +188,6 @@ function hookLifecycle() {
     kickPending = true;
     setTimeout(() => { if (kickPending && !isTextInput(document.activeElement)) kick(true); }, 400);
   });
-  if ("onstatechange" in actx) actx.addEventListener("statechange", () => { if (actx.state === "interrupted") kickPending = true; });
 }
 let kickPending = false;
 function isTextInput(t) {
@@ -311,8 +355,12 @@ export async function renderOffline(o = {}) {
 export const TRACKS = NEW_SONGS;
 // 診断用 (開発時の確認): 現在の状態
 export function audioDebug() {
+  let session = null;
+  try { session = navigator.audioSession && { type: navigator.audioSession.type, state: navigator.audioSession.state }; } catch {}
   return {
     state: actx && actx.state, worker: bank.workerOk, bytes: bank.bytes, samples: bank.bufs.size,
     playing: current && current._name, want, voices: engine ? engine.allVoices.length : 0, players: engine ? engine.players.length : 0,
+    ready: !!engine, muted, bgmVol, sfxVol, time: actx && actx.currentTime, sampleRate: actx && actx.sampleRate,
+    session, error: audioError,
   };
 }

@@ -20,7 +20,7 @@ import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
 import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, setEnemyLvTag, scaleFoeAgi, scaleStrongFoeHp, scaleFoeStats, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setEquipSwap, setModSink, setElemKnown, setPartyEvadeBonus, setPartyBreathBonus, setPartyHitBonus, setPartyAilBonus, partyBreathRes, perkVictory, cureAil, canSpellCure, cureBySpell, spellCureKinds, chishioState } from "./combat.js";
 import { decideAuto, tacticOf, setResistKnown, autoCombatStalled, resetAutoProgress } from "./autotactics.js";
 import { STAGED, effectStage, stageOf, stageMul, stageLabel, isBattleLong, ENEMY_STAT_LABEL } from "./buffstage.js";
-import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
+import { initAudio, restartAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
 import { spriteCanvas, crispCanvas, drawPhoto, photoReady, whenPhoto, prepareSprite, setSpriteResolver } from "./sprites.js";
 import { makeItemSpriteResolver } from "./itemart/index.js";
 import { registerMonsterPhotos, restoreMonsterPhotos } from "./monsterphotos.js";
@@ -18431,12 +18431,17 @@ function sceneBgm() {
 }
 function ensureAudio() {
   if (audioReady) return;
-  audioReady = true;
-  initAudio();
+  audioReady = initAudio();
+  if (!audioReady) return;
   playBgm(sceneBgm());
 }
+function restartGameAudio() {
+  audioReady = restartAudio();
+  if (audioReady) playBgm(sceneBgm());
+  return audioReady;
+}
 for (const ev of ["pointerdown", "pointerup", "touchend", "click", "keydown"]) {
-  document.addEventListener(ev, ensureAudio, { once: true, passive: true, capture: true });
+  document.addEventListener(ev, ensureAudio, { passive: true, capture: true });
 }
 
 // ---- ズーム禁止 (ゲーム画面の拡大縮小を防ぐ) ----
@@ -19909,7 +19914,7 @@ bindGame({
   questState, questLists, questByUid, questsHere, ensureQuestBoard, rollQuestBoard, acceptQuest, abandonQuest, claimQuest, questReadyCount, FREE_CAP, questHereNote, questHereCount, questsTargeting,
   adCooldownLeft, watchShrineAd, RED_PACKS, buyRedPack, GUARDIAN_COST, guardianCost, RESCUE_SHORTEN_MS,
   // 設定 (端末の好み)
-  PREFS, savePrefs, setWalkerLook, setVolumes, isMuted, toggleMute, ensureAudio, updateMuteBtn, resetAllData, confirmReset, returnToTitle, saveSlot: SAVE_SLOT,
+  PREFS, savePrefs, setWalkerLook, setVolumes, isMuted, toggleMute, ensureAudio, restartGameAudio, updateMuteBtn, resetAllData, confirmReset, returnToTitle, saveSlot: SAVE_SLOT,
   // 他のパッケージも使える街の部品 (肖像・図鑑の詳細)
   showCodexMonDetail, showCodexItemDetail, showCodexJobDetail,
 });

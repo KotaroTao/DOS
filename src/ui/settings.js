@@ -16,7 +16,7 @@ import { isDesktopLayout } from "../desktop.js";
 import { el, button, setText, sheet, segmented, toast } from "./kit.js";
 import { tlOn, tlSetOn, tlClear, tlHasData, tlSummary, tlStabilitySummary, tlExportText, tlPastCount, tlPastSummary } from "../telemetry.js";
 import { getPref, setPref, remember, autoMoveAvoid, setAutoMoveAvoid } from "./prefs.js";
-import { SFX } from "../audio.js";
+import { SFX, audioDebug } from "../audio.js";
 import { walkerLook, normalizeLook, WALKER_CLOAKS, WALKER_TRIMS } from "../walkerart.js";
 import { cloudEnabled, cloudAccount, cloudSignOut } from "../cloud-save.js";
 
@@ -108,6 +108,34 @@ function fillSound(box) {
   } }));
   box.appendChild(volumeRow("BGM", "bgm"));
   box.appendChild(volumeRow("効果音", "sfx"));
+  const status = el("p", "stg-row-d");
+  status.setAttribute("role", "status");
+  const describe = () => {
+    const d = audioDebug();
+    setText(status, d.error ? "音声を起動できませんでした。再起動を試してください。"
+      : d.muted ? "サウンドは切になっています。"
+      : !d.ready ? "音声はまだ起動していません。"
+      : d.state !== "running" ? "音声が停止しています。再起動を試してください。"
+      : "音声の再生処理は動作中です。聞こえない場合は再起動を試してください。");
+  };
+  describe();
+  box.appendChild(status);
+  box.appendChild(button({ label: "音声を再起動", kind: "secondary", onTap: () => {
+    game.restartGameAudio?.();
+    describe();
+    setTimeout(() => { if (status.isConnected) { sfx("select"); describe(); } }, 500);
+  } }));
+  box.appendChild(button({ label: "音声の診断情報を表示", kind: "ghost", onTap: () => {
+    const info = { ...audioDebug(), browser: navigator.userAgent,
+      standalone: !!navigator.standalone || !!window.matchMedia?.("(display-mode: standalone)").matches };
+    sheet.open({ title: "音声の診断情報", lines: ["音が出ない時は、この情報をお知らせください。"], body: body => {
+      const text = el("textarea", "stg-audio-info");
+      text.readOnly = true; text.rows = 12; text.style.width = "100%";
+      text.setAttribute("aria-label", "音声の診断情報");
+      text.value = JSON.stringify(info, null, 2);
+      body.appendChild(text);
+    }, footer: [{ label: "閉じる", onTap: h => h.close() }] });
+  } }));
 
   box.appendChild(sec("戦闘・移動"));
   box.appendChild(toggleRow({ name: "振動", desc: "被弾・宝箱などで端末を震わせる (対応端末のみ)", on: !!P.vibrate, onChange: (v) => {
