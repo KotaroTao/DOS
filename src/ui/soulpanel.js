@@ -474,12 +474,10 @@ function orderBody(root, town, again) {
   const seated = game.orderSeatedUids ? game.orderSeatedUids() : [];
   const seatedSet = new Set(seated);
   const full = seated.length >= seats;
-  const nextSeat = [null, "order2", "order3", "order4", "order5"][seats] || (seats ? null : "order");
   const info = el("div", "sp-order-info");
   info.appendChild(el("span", "sp-order-seats", `席 ${seated.length} / ${seats}`));
-  if (nextSeat && game.featureNote) info.appendChild(el("span", "pt-note", `次の席: ${game.featureNote(nextSeat)}`));
   root.appendChild(info);
-  if (game.featureUnlocked?.("orderLearning")) root.appendChild(el("div", "sp-order-learning pt-note", `結社の伝習: 迷宮の戦闘で獲得した✦Soulの${Math.round(game.orderLearningRate() * 100)}%が、各席の魂の経験値にも入る（端数切り捨て）。隊の取り分は減らない。Lv上限でも蓄積する。無限迷宮も対象。`));
+  if (game.featureUnlocked?.("orderLearning")) root.appendChild(el("div", "sp-order-learning pt-note", `結社の伝習: 迷宮の戦闘で獲得した✦Soulの${Math.round(game.orderLearningRate() * 100)}%が、各席の魂の経験値にも入る（端数切り捨て）。隊の取り分は減らない。Lv上限でも蓄積する。`));
   if (seated.length) root.appendChild(el("div", "sp-order-on", `全員に: ${bonusText(orderStatBonus(seated)) || "なし"}`));
   if (!benched.length) {
     root.appendChild(el("div", "pt-note", "隊に出していない魂がいない。控えの魂を席に着けると、その能力の一部が全員に加わる。"));
