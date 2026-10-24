@@ -220,6 +220,8 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 
 ### 2-5. 王宮内部の共通指示
 
+**今回のユーザー指示（王宮挿絵の独自性改善・最初の10枚）**: `arrival`、`report_w02`〜`report_w10` は固定背景合成から独立した一枚絵に描き直す。各場面の本文に沿い、魂の手渡し・地図と鍵・視線・金貨・手記・告白・空席などを主題に、画角と人物の動きを変える。この10枚は以下のA-66より今回の指示を優先する。人物正典と王宮の材質は保ち、本文は変えない。制作記録: `docs/art/palace-story-ten.md`。
+
 **今回のユーザー指示（2026-10-25）**: 玉座の間の既存挿絵56枚を `docs/art/story-refs/palace-3d/finished/` の完成背景に統一する。完成背景をそのまま土台とし、新規の人物・小道具・影だけを前景として合成する。背景の拡縮・切り抜きは記録し、反転・家具移動・全画面の再生成や再仕上げをしない。昼夕の不足分は共通差分を一度制作して固定保存する。本文・人物正典を守り、倉庫・回廊・宝物庫・地下の廟は対象にしない。以下の旧制作指示より今回の指示を優先する。制作記録は `docs/art/story-refs/palace-story-rebuild/README.md`。
 
 **第一章の旧訂正 (2026-10-19)**: 王宮関連6枚をすべて新しい一枚絵に描き直す。同じ背景の再生成・透明人物の固定合成をやめ、倉庫の作業台・地図の寄り・人物の表情・褒美の金貨・宝物庫の手渡し・手記と制止の手に構図を分散する。玉座の間を描く時も建築や家具配置を画角の外へ出し、背景の不一致を見比べられない構図にする。本文と人物の正典は保つ。旧A-49〜A-59よりA-60〜A-65を優先。`palace-fixed.mjs` と旧透明素材は過去の制作記録で、現行6枚には使わない。
@@ -771,6 +773,36 @@ Redraw the ENTIRE first reference as a NEW standalone finished narrative illustr
 | 踏破後 lore_w01 | ランタンの形を `w01_lantern.png` に合わせる (横倒しの筒にしない) |
 
 ---
+
+**A-67. arrival「三つの魂を受け取る手」** `art/story-review/prologue/royal-audience.png` (済)
+- 今回の独自性改善指示を優先し、固定合成を独立した一枚絵に置き換える。主題は「三つの魂を受け取る手」。人物正典・本文・場面IDは保つ。制作と比較は `docs/art/palace-story-ten.md`。
+
+**A-68. report_w02「地下の道をたどる地図と鍵」** `art/story-review/chapter1/report_w02.png` (済)
+- 今回の独自性改善指示を優先し、固定合成を独立した一枚絵に置き換える。主題は「地下の道をたどる地図と鍵」。人物正典・本文・場面IDは保つ。制作と比較は `docs/art/palace-story-ten.md`。
+
+**A-69. report_w03「王がそらした視線」** `art/story-review/chapter1/report_w03.png` (済)
+- 今回の独自性改善指示を優先し、固定合成を独立した一枚絵に置き換える。主題は「王がそらした視線」。人物正典・本文・場面IDは保つ。制作と比較は `docs/art/palace-story-ten.md`。
+
+**A-70. report_w04「金貨で閉じられた問い」** `art/story-review/chapter1/report_w04.png` (済)
+- 今回の独自性改善指示を優先し、固定合成を独立した一枚絵に置き換える。主題は「金貨で閉じられた問い」。人物正典・本文・場面IDは保つ。制作と比較は `docs/art/palace-story-ten.md`。
+
+**A-71. report_w05「手記を守り、宰相を制する王」** `art/story-review/chapter1/report_w05.png` (済)
+- 今回の独自性改善指示を優先し、固定合成を独立した一枚絵に置き換える。主題は「手記を守り、宰相を制する王」。人物正典・本文・場面IDは保つ。制作と比較は `docs/art/palace-story-ten.md`。
+
+**A-72. report_w06「守れと命じた空の手」** `art/story-review/chapter2/report_w06.png` (済)
+- 今回の独自性改善指示を優先し、固定合成を独立した一枚絵に置き換える。主題は「守れと命じた空の手」。人物正典・本文・場面IDは保つ。制作と比較は `docs/art/palace-story-ten.md`。
+
+**A-73. report_w07「老王と歳を取らない宰相」** `art/story-review/chapter2/report_w07.png` (済)
+- 今回の独自性改善指示を優先し、固定合成を独立した一枚絵に置き換える。主題は「老王と歳を取らない宰相」。人物正典・本文・場面IDは保つ。制作と比較は `docs/art/palace-story-ten.md`。
+
+**A-74. report_w08「止まぬ雷雨を見つめる王」** `art/story-review/chapter2/report_w08.png` (済)
+- 今回の独自性改善指示を優先し、固定合成を独立した一枚絵に置き換える。主題は「止まぬ雷雨を見つめる王」。人物正典・本文・場面IDは保つ。制作と比較は `docs/art/palace-story-ten.md`。
+
+**A-75. report_w09「二つの封印と王の告白」** `art/story-review/chapter2/report_w09.png` (済)
+- 今回の独自性改善指示を優先し、固定合成を独立した一枚絵に置き換える。主題は「二つの封印と王の告白」。人物正典・本文・場面IDは保つ。制作と比較は `docs/art/palace-story-ten.md`。
+
+**A-76. report_w10「空席の向こうの囚われた王」** `art/story-review/chapter3/report_w10.png` (済)
+- 今回の独自性改善指示を優先し、固定合成を独立した一枚絵に置き換える。主題は「空席の向こうの囚われた王」。人物正典・本文・場面IDは保つ。制作と比較は `docs/art/palace-story-ten.md`。
 
 ## 4. 便2・便3 ― 第5〜8章の新規 42場面
 
