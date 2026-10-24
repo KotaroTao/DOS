@@ -128,11 +128,15 @@ with sync_playwright() as p:
     for _ in range(4):
         pages.append(page.locator('.iv-scene .pt-kp-text').inner_text().replace('\u200b',''))
         page.keyboard.press('Enter')
-    assert '10%' in ''.join(pages) and '無限迷宮' in ''.join(pages)
+    percent=page.evaluate('Math.round(__game.orderLearning.orderLearningRate()*100)')
+    assert f'{percent}%' in ''.join(pages)
+    assert not any(word in ''.join(pages) for word in ['無限迷宮', '第十章', '第十一章']), '手ほどきで未解放の内容を予告しない'
     page.wait_for_selector('.iv-scene', state='detached')
     page.locator('.pt-order.tut-glow').click()
     percent=page.evaluate('Math.round(__game.orderLearning.orderLearningRate()*100)')
     assert f'{percent}%' in page.locator('.sp-order-learning').inner_text()
+    order_text = page.locator('.sp-pick-sheet').inner_text()
+    assert not any(word in order_text for word in ['無限迷宮', '次の席', '第十章', '第十一章']), '結社画面で先の内容を明かさない'
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'), 'スマホの幅に収まる'
     page.locator('.tut-next').click()
     page.wait_for_function('__game.G.tut.done.orderLearning === true')
