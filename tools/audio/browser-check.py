@@ -52,7 +52,9 @@ with sync_playwright() as p:
         page.evaluate('''() => {
           const b = document.createElement('button');
           b.id = 'audio-test'; b.textContent = '音声検査';
-          b.style.cssText = 'position:fixed;inset:10px auto auto 10px;z-index:2147483647';
+          // 画像待ちの入力制限とは独立に、音声用のキー入力を検証する。
+          b.className = 'image-loading-retry';
+          b.style.cssText = 'display:block;visibility:visible;opacity:1;position:fixed;inset:10px auto auto 10px;z-index:2147483647';
           for (const ev of ['pointerdown','pointerup','touchend','click','keydown'])
             b.addEventListener(ev, e => e.stopPropagation());
           document.body.append(b);
