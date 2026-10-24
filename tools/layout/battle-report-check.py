@@ -29,6 +29,13 @@ with sync_playwright() as p:
         }
         if(card.querySelectorAll('.bp-member').length!==6) throw Error('人数');
         if(card.querySelectorAll('.bp-number').length!==18) throw Error('項目数');
+        // 入手品までが初期表示に入り、内訳は報酬と成長情報の後に続く。
+        for (const selector of ['.rs-gain', '.rs-item']) {
+          const r=card.querySelector(selector).getBoundingClientRect(), visible=body.getBoundingClientRect();
+          if(r.top<visible.top-1 || r.bottom>visible.bottom+1) throw Error('報酬が初期表示にない '+selector);
+        }
+        if(card.querySelector('.rs-chest').compareDocumentPosition(card.querySelector('.rs-list'))!==Node.DOCUMENT_POSITION_FOLLOWING) throw Error('品より先に成長情報');
+        if(card.querySelector('.rs-list').compareDocumentPosition(card.querySelector('.bp'))!==Node.DOCUMENT_POSITION_FOLLOWING) throw Error('内訳が報酬より前');
         body.scrollTop=body.scrollHeight;
         const b=card.querySelector('.ui-sheet-foot button').getBoundingClientRect();
         if(b.bottom>innerHeight || b.top<0) throw Error('操作ボタンが画面外');
@@ -42,7 +49,9 @@ with sync_playwright() as p:
               reportKit.sheet.closeAll();
               const r=structuredClone(report);
               if(edge) r.members.forEach((m,i)=>{m.name='夜明けの町から旅を続ける同じ名前の人業';m.damage=i?999999999999:0;m.healing=0;m.taken=0;});
-              reportUI.openResults({performance:r,gold:1234,soul:567,levels:[],skills:[],souls:[]});
+              const chest={state:'done',name:'宝箱',outputs:[{kind:'loot',item:{id:'potion'},who:null}]};
+              reportUI.openResults({performance:r,gold:1234,soul:567,chest,levels:r.members.map(m=>({name:m.name,from:1,to:2})),skills:[],souls:[]});
+
             }''',edge)
             page.wait_for_timeout(160)
             page.evaluate('checkReport()')

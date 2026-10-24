@@ -127,7 +127,6 @@ export function openResults(spec = {}) {
     // 逃げ去った敵 (金属の魔物) は戦果に入らない。倒した分だけだとわかるように添える
     if (spec.fled) box.appendChild(el("div", "rs-fled", `${spec.fled}体には逃げられた（逃げた分の戦果は無い）`));
   }
-  if (spec.performance) box.appendChild(battlePerformance(spec.performance));
   // ---- 成長・技・魂 ----
   const list = el("div", "rs-list");
   // レベルアップはシートを閉じた後の祝祭カードで大きく見せる (成長はこのゲームの芯)。シートには予告の1行だけ
@@ -183,7 +182,6 @@ export function openResults(spec = {}) {
     list.appendChild(r);
     if (game.celebrateSoul) celebrations.push((next) => game.celebrateSoul(s, next));
   }
-  if (list.childElementCount) box.appendChild(list);
 
   // ---- 宝箱 ----
   const chestBox = el("div", "rs-chest");
@@ -219,13 +217,17 @@ export function openResults(spec = {}) {
     }
     chestBox.appendChild(chestOut);
   };
+  // 報酬を先に見せる。長い成長情報と戦闘の内訳は、その下をスクロールして読む。
   if (spec.chest) { renderChest(); box.appendChild(chestBox); }
+  if (list.childElementCount) box.appendChild(list);
+  if (spec.performance) box.appendChild(battlePerformance(spec.performance));
 
   // ---- 出し先 (宝箱の罠・中身をシートの行に足す) ----
+  let restoringOutputs = false;
   const addOut = (node) => {
     chestOut.appendChild(node);
     animate(node, [{ opacity: 0, transform: "translateY(4px)" }, { opacity: 1, transform: "none" }], { duration: 180, easing: "ease-out" });
-    try { node.scrollIntoView({ block: "nearest", behavior: reduced() ? "auto" : "smooth" }); } catch (e) { /* noop */ }
+    try { if (!restoringOutputs) node.scrollIntoView({ block: "nearest", behavior: reduced() ? "auto" : "smooth" }); } catch (e) { /* noop */ }
   };
   const sinkSheet = {
     mode: "sheet",
@@ -371,12 +373,14 @@ export function openResults(spec = {}) {
     onBackdrop: () => { if (chestState !== "closed" && chestState !== "busy") close(); },
   });
   // 再開した戦果でも、保存した罠・金貨・品・放棄の結果を同じ行で示す。
+  restoringOutputs = true;
   for (const out of spec.chest?.outputs || []) {
     if (out.kind === "note") sinkSheet.note(out.text, out.tone);
     else if (out.kind === "gold") sinkSheet.gold(out.n, out.from);
     else if (out.kind === "loot") sinkSheet.loot(out.item, out.who);
     else if (out.kind === "lost") sinkSheet.lost(out.name);
   }
+  restoringOutputs = false;
   // 本文に触れたら自動で進むのを止める (読みたい時はそのまま留まれる)
   if (h && h.body) h.body.addEventListener("pointerdown", () => { if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; refreshFooter(false); } });
   if (spec.kind === "boss" || spec.kind === "elite" || spec.kind === "guard") goldFlash(k.accent);

@@ -438,7 +438,7 @@ Six elements + `none`, defined in `schema.js`. Advantage cycle is **火→風→
 
 風切りの羽による浮遊中も、術の習得・使用可否にかかわらず探索フッターへ浮遊の印と残り階数を表示する。術の札と重複させず、押すと現在の効果を知らせ、効果が切れれば未習得の札は消える。心得 `t_float`。検証 `python3 tools/layout/feather-float-check.py`。
 
-戦闘の内訳 (2026-10-20): `Battle.performance` に各人の実効与ダメージ・被ダメージ・供給したHP回復を記録する。回復・蘇生・吸収・再生・毒・追撃・反撃も対象、余剰分・HP消費の費用・MP・勝利後の回復は除外。勝利の戦果に三項目の数値と項目別の比較バーを同居させ、逃走・全滅・再戦でも内訳を出す。`lastBattleReport` に直前の小さな集計だけを保存し、迷宮の手帳から再表示する。戦闘中の記録はbattle内なのでクラウド・保存復帰でも継続し、更新前の戦闘は部分集計と明示する。スマホは名前の下に三列、iPad・PCは横一行、本文を縦スクロールして操作欄を残す。心得 `t_battle_report`。検証: `node tools/balance/battle-report-check.mjs` / `python3 tools/layout/battle-report-check.py`。
+戦闘の内訳 (2026-10-20): `Battle.performance` に各人の実効与ダメージ・被ダメージ・供給したHP回復を記録する。回復・蘇生・吸収・再生・毒・追撃・反撃も対象、余剰分・HP消費の費用・MP・勝利後の回復は除外。勝利の戦果は金貨・✦Soul、宝箱と入手品、成長情報の順に並べ、その下をスクロールすると三項目の数値と項目別の比較バーを読める。逃走・全滅・再戦でも内訳を出す。`lastBattleReport` に直前の小さな集計だけを保存し、迷宮の手帳から再表示する。戦闘中の記録はbattle内なのでクラウド・保存復帰でも継続し、更新前の戦闘は部分集計と明示する。スマホは名前の下に三列、iPad・PCは横一行、本文を縦スクロールして操作欄を残す。心得 `t_battle_report`。検証: `node tools/balance/battle-report-check.mjs` / `python3 tools/layout/battle-report-check.py`。
 
 特性・装備の絞り込みの候補は、名前の下に実際の効果の例を表示する。同じ種類は1候補にまとめ、同じ説明は重ねず最大3例と残りの例数を表示。検索は表示を省いた例も含める。数値は品ごとに異なり、候補の表示だけでは所持品・費用・条件を変えない。心得 `t_enchant_filter`。
 
