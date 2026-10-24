@@ -1,0 +1,112 @@
+[
+  {
+    "id": "report_w02",
+    "master": "art/story-review/chapter1/report_w02.png",
+    "before": "docs/art/palace-story-ten/before/report_w02.png",
+    "beforeSha256": "ed4eeff77f008f5e62afabc1ccd283d2bd4d44bbcf21032ba959943b95c72527",
+    "afterSha256": "325409185c8267c76079777925ee6cec9be77c8b7ae62f8993c967014154c166",
+    "size": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "report_w03",
+    "master": "art/story-review/chapter1/report_w03.png",
+    "before": "docs/art/palace-story-ten/before/report_w03.png",
+    "beforeSha256": "9d9f4c44a85bf2bec5bfea768b3d60a9eeb21ae2ce9ea4b80167e89dbe40e3fb",
+    "afterSha256": "c50213d86356a4bf8ce2021f8c505afa68146425272e76990fc343390780b923",
+    "size": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "report_w04",
+    "master": "art/story-review/chapter1/report_w04.png",
+    "before": "docs/art/palace-story-ten/before/report_w04.png",
+    "beforeSha256": "9f6b3ab1255a8271dfaa0ddb80467ffb926aec150d4a8ea7714efb4df763d3c2",
+    "afterSha256": "386b9ae908218b5596f20de919f2eb4f6e028ab85ab066bb6d26f3ff9834bcef",
+    "size": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "report_w05",
+    "master": "art/story-review/chapter1/report_w05.png",
+    "before": "docs/art/palace-story-ten/before/report_w05.png",
+    "beforeSha256": "eb21a1788e50789278b280b636b0cade38b2992c2dd6b0f902a424525d4cefa7",
+    "afterSha256": "34af0ef980a1e7f96377fdc85220d3a82bcf2c6d961a8cd35ce1d3e693eb724c",
+    "size": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "report_w06",
+    "master": "art/story-review/chapter2/report_w06.png",
+    "before": "docs/art/palace-story-ten/before/report_w06.png",
+    "beforeSha256": "1a586a6ec029ee0eebe1022d7949898d525439d068c559c1c2152c9c73fddcd2",
+    "afterSha256": "28ca1971d9ac3b091b486f64f362b9c64ad64d1ecbe36e1291a1e7c1556e4aab",
+    "size": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "report_w07",
+    "master": "art/story-review/chapter2/report_w07.png",
+    "before": "docs/art/palace-story-ten/before/report_w07.png",
+    "beforeSha256": "e8273981671171e1086b24181ed731d65abf08c264d6fb51d812717f232de00f",
+    "afterSha256": "18d9cb6c55369959127ae04b7bb7617a7fb41cd1775abe5887e911e449bde7eb",
+    "size": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "report_w08",
+    "master": "art/story-review/chapter2/report_w08.png",
+    "before": "docs/art/palace-story-ten/before/report_w08.png",
+    "beforeSha256": "ee398b3c2acab2e320b2aecde10afc2367ba3feb85f4a3d192fb524fdcbb6781",
+    "afterSha256": "22d3238db2ababba5d21b202c1f93d7a3b86a87f09572dde7693bddb066ccba2",
+    "size": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "report_w09",
+    "master": "art/story-review/chapter2/report_w09.png",
+    "before": "docs/art/palace-story-ten/before/report_w09.png",
+    "beforeSha256": "b1b9d0c09bbba7528b8177829dc29e25c5fd5eeb031d11608595bc872dda057f",
+    "afterSha256": "62370b4a61c966682c2ed7d9174f8e27ef858ac6f0c56d808cbbdc3277d13b30",
+    "size": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "report_w10",
+    "master": "art/story-review/chapter3/report_w10.png",
+    "before": "docs/art/palace-story-ten/before/report_w10.png",
+    "beforeSha256": "3285e5afd20c42031c1a82904a88910f3b4a346eaa1618a96c29715f166f7e22",
+    "afterSha256": "e64510859120dc72dc202d788d19ff9c5c65431c199d26d5cfe459322cfc9693",
+    "size": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "arrival",
+    "master": "art/story-review/prologue/royal-audience.png",
+    "before": "docs/art/palace-story-ten/before/arrival.png",
+    "beforeSha256": "dd73f2a25e613c199882718f76755aaf7c93a3459d4c4c8bbdbd9938d8fb6a57",
+    "afterSha256": "94a3292b9b681bf3830dd8bede376046afd41788d74e0fbe7859fa26cc9337fc",
+    "size": [
+      1536,
+      1024
+    ]
+  }
+]
