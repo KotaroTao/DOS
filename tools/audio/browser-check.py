@@ -57,6 +57,10 @@ with sync_playwright() as p:
             b.addEventListener(ev, e => e.stopPropagation());
           document.body.append(b);
         }''')
+        # 画像待ちの間はゲームがキー入力を止めるため、画面の準備完了を待つ。
+        page.wait_for_function('''async () => {
+          return !(await import('/src/imageloading.js')).mediaBusy();
+        }''')
         button = page.locator('#audio-test')
         if mode == 'tap':
             button.tap()
