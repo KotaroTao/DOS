@@ -18435,7 +18435,9 @@ function ensureAudio() {
   initAudio();
   playBgm(sceneBgm());
 }
-document.addEventListener("pointerdown", ensureAudio, { once: true });
+for (const ev of ["pointerdown", "pointerup", "touchend", "click", "keydown"]) {
+  document.addEventListener(ev, ensureAudio, { once: true, passive: true, capture: true });
+}
 
 // ---- ズーム禁止 (ゲーム画面の拡大縮小を防ぐ) ----
 // iOS Safari のピンチズーム
