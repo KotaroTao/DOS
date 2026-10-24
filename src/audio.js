@@ -46,6 +46,8 @@ export function initAudio() {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     try { actx = new AC({ latencyHint: "balanced" }); } catch { actx = new AC(); }
+    // 楽器・残響の準備より先に、操作中の権限で音声の出口を開く。
+    resumeAudio();
     bank.setContext(actx);
     // 非力な端末では同時発音数と声部フィルタを控えめに
     let lite = false;
@@ -58,12 +60,26 @@ export function initAudio() {
     // ジングルの楽器を早めに用意
     for (const j of JINGLES) { const s = newSong(j); if (s) bank.ensure(songKeys(s), "high"); }
   }
-  if (actx.state !== "running" && !muted && !document.hidden) { try { actx.resume().catch(() => {}); } catch {} }
+  if (actx.state !== "running") resumeAudio();
   if (pendingBgm) {
     const n = pendingBgm;
     pendingBgm = null;
     playBgm(n);
   }
+}
+
+// iPhoneでは resume だけでなく、タップの処理中に音源を start する必要がある。
+// 実際の曲は楽器の生成を待つため、ここでは無音1フレームで出口だけを起こす。
+function resumeAudio() {
+  if (!actx || muted || document.hidden) return;
+  try { actx.resume().catch(() => {}); } catch {}
+  try {
+    const src = actx.createBufferSource();
+    src.buffer = actx.createBuffer(1, 1, actx.sampleRate);
+    src.connect(actx.destination);
+    src.onended = () => { src.disconnect(); src.buffer = null; src.onended = null; };
+    src.start(0);
+  } catch {}
 }
 
 // 音量 (0-1)。BGM と効果音を別々に絞れる (設定画面)。0 ならその系統は鳴らさない
@@ -79,7 +95,7 @@ export function toggleMute() {
   if (engine) {
     engine.setMasterGain(muted ? 0 : 1, muted ? 0.03 : 0.08);
     if (muted) setTimeout(() => { if (muted && actx && actx.state === "running") actx.suspend().catch(() => {}); }, 250);
-    else if (!document.hidden && actx.state !== "running") actx.resume().catch(() => {});
+    else if (actx.state !== "running") resumeAudio();
   }
   return muted;
 }
@@ -106,7 +122,7 @@ function hookLifecycle() {
       actx.suspend().catch(() => {});
     } else {
       bank.setPaused(false);
-      if (!muted) actx.resume().catch(() => {});
+      resumeAudio();
       startTimer();
     }
   });
@@ -114,9 +130,11 @@ function hookLifecycle() {
   const wake = () => {
     if (!actx || muted || document.hidden) return;
     if (kickPending) { kick(); return; }
-    if (actx.state !== "running") actx.resume().catch(() => {});
+    if (actx.state !== "running") resumeAudio();
   };
-  for (const ev of ["pointerdown", "touchend", "keydown"]) document.addEventListener(ev, wake, { passive: true });
+  // タッチの pointerdown では起動できないSafariにも、操作完了時に再試行する。
+  // 画面側がイベントの伝播を止めても、音声の再開には必ず届かせる。
+  for (const ev of ["pointerdown", "pointerup", "touchend", "click", "keydown"]) document.addEventListener(ev, wake, { passive: true, capture: true });
   // 文字入力 (人業の名付けなど) でソフトキーボードが出ると、iOS は音声セッションを奪い、
   // 閉じた後も state は "running" のまま無音になることがある。入力欄を離れたら一度止めて起こし直す
   // (キーボードが閉じるのを待ってすぐ試し、次のタップでもう一度 = 操作の中でないと起きない端末向け)
@@ -137,7 +155,7 @@ function isTextInput(t) {
 function kick(keep = false) {
   if (!actx || muted || document.hidden) return;
   if (!keep) kickPending = false;
-  const up = () => actx.resume().catch(() => {});
+  const up = () => resumeAudio();
   if (actx.state === "running") actx.suspend().then(up, up);
   else up();
 }
