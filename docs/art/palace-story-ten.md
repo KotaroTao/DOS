@@ -19,6 +19,8 @@
 
 各場面で `node tools/storyart/prompt.mjs <ID>` を実行し、一覧本文とゲーム内の王への報告を照合した。出力は [prompts](palace-story-ten/prompts/) に保存。今回のユーザー指示が構図維持と固定背景の旧指示に優先する。画像生成で既存原画と king / apprentice / morden の基準シートを参照して描き直した。序章は王と弟子の基準シートのみ。
 
+後続訂正: `report_w09` は書状の裏面がこちらを向くため、封蝋・紋章・組紐を取り除いた。[訂正記録](palace-story-eleven-twenty.md)。
+
 序章の魂は赤・金・緑の3つ。`report_w09`・`report_w10` に宰相は描かない。`report_w08` の窓には暗い雷雨の空を描く。地下の修道院を地上の窓外に描かず、地下の根や砦の亡兵を現在の玉座の間へ実体として持ち込まない。
 
 原画は1536×1024。`python3 tools/storyart/build.py` で品質88のWebP・台帳・確認ページと各章の384×256見本を生成する。

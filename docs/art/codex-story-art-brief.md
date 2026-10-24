@@ -220,6 +220,8 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 
 ### 2-5. 王宮内部の共通指示
 
+**追加のユーザー指示（11〜20枚目）**: `report_w11`〜`report_w20` も独立した一枚絵に描き直す。本文に沿って手記・杯・王の衰え・指先・汗・焼けた木片へ構図を分散する。固定合成A-66より今回の指示を優先。`report_w09` は書状の裏面を見せているため、旧A-38の封蝋を横並びにする指示より、封蝋・紋章・組紐を描かない今回の指示を優先する。制作記録: `docs/art/palace-story-eleven-twenty.md`。
+
 **今回のユーザー指示（王宮挿絵の独自性改善・最初の10枚）**: `arrival`、`report_w02`〜`report_w10` は固定背景合成から独立した一枚絵に描き直す。各場面の本文に沿い、魂の手渡し・地図と鍵・視線・金貨・手記・告白・空席などを主題に、画角と人物の動きを変える。この10枚は以下のA-66より今回の指示を優先する。人物正典と王宮の材質は保ち、本文は変えない。制作記録: `docs/art/palace-story-ten.md`。
 
 **今回のユーザー指示（2026-10-25）**: 玉座の間の既存挿絵56枚を `docs/art/story-refs/palace-3d/finished/` の完成背景に統一する。完成背景をそのまま土台とし、新規の人物・小道具・影だけを前景として合成する。背景の拡縮・切り抜きは記録し、反転・家具移動・全画面の再生成や再仕上げをしない。昼夕の不足分は共通差分を一度制作して固定保存する。本文・人物正典を守り、倉庫・回廊・宝物庫・地下の廟は対象にしない。以下の旧制作指示より今回の指示を優先する。制作記録は `docs/art/story-refs/palace-story-rebuild/README.md`。
@@ -803,6 +805,39 @@ Redraw the ENTIRE first reference as a NEW standalone finished narrative illustr
 
 **A-76. report_w10「空席の向こうの囚われた王」** `art/story-review/chapter3/report_w10.png` (済)
 - 今回の独自性改善指示を優先し、固定合成を独立した一枚絵に置き換える。主題は「空席の向こうの囚われた王」。人物正典・本文・場面IDは保つ。制作と比較は `docs/art/palace-story-ten.md`。
+
+**A-77. report_w09「書状の裏面」** `art/story-review/chapter2/report_w09.png` (済)
+- 最新のユーザー訂正: 弟子が持つ書状はこちらに裏面を向けている。封蝋・紋章・組紐を消し、折り目のある無地の古い羊皮紙にする。人物・手・構図・光は保つ。A-38の印の位置合わせ指示より今回の指示を優先する。
+
+**A-78. report_w11「偽りの報告を崩す手記」** `art/story-review/chapter3/report_w11.png` (済)
+- 独自性改善の追加依頼により固定合成から一枚絵へ描き直す。主題は「偽りの報告を崩す手記」。本文・人物正典を守る。杯の位置と人物の在不在は場面別に合わせる。詳細: `docs/art/palace-story-eleven-twenty.md`。
+
+**A-79. report_w12「手を伸ばさない杯」** `art/story-review/chapter3/report_w12.png` (済)
+- 独自性改善の追加依頼により固定合成から一枚絵へ描き直す。主題は「手を伸ばさない杯」。本文・人物正典を守る。杯の位置と人物の在不在は場面別に合わせる。詳細: `docs/art/palace-story-eleven-twenty.md`。
+
+**A-80. report_w13「咳き込む王と微笑む宰相」** `art/story-review/chapter3/report_w13.png` (済)
+- 独自性改善の追加依頼により固定合成から一枚絵へ描き直す。主題は「咳き込む王と微笑む宰相」。本文・人物正典を守る。杯の位置と人物の在不在は場面別に合わせる。詳細: `docs/art/palace-story-eleven-twenty.md`。
+
+**A-81. report_w14「足元の石と重なる都の記録」** `art/story-review/chapter4/report_w14.png` (済)
+- 独自性改善の追加依頼により固定合成から一枚絵へ描き直す。主題は「足元の石と重なる都の記録」。本文・人物正典を守る。杯の位置と人物の在不在は場面別に合わせる。詳細: `docs/art/palace-story-eleven-twenty.md`。
+
+**A-82. report_w15「肘掛けを握る指と途切れた言葉」** `art/story-review/chapter4/report_w15.png` (済)
+- 独自性改善の追加依頼により固定合成から一枚絵へ描き直す。主題は「肘掛けを握る指と途切れた言葉」。本文・人物正典を守る。杯の位置と人物の在不在は場面別に合わせる。詳細: `docs/art/palace-story-eleven-twenty.md`。
+
+**A-83. report_w16「破った誓いと胸に置く手」** `art/story-review/chapter4/report_w16.png` (済)
+- 独自性改善の追加依頼により固定合成から一枚絵へ描き直す。主題は「破った誓いと胸に置く手」。本文・人物正典を守る。杯の位置と人物の在不在は場面別に合わせる。詳細: `docs/art/palace-story-eleven-twenty.md`。
+
+**A-84. report_w17「咳をしながら杯を押し遠ざける」** `art/story-review/chapter4/report_w17.png` (済)
+- 独自性改善の追加依頼により固定合成から一枚絵へ描き直す。主題は「咳をしながら杯を押し遠ざける」。本文・人物正典を守る。杯の位置と人物の在不在は場面別に合わせる。詳細: `docs/art/palace-story-eleven-twenty.md`。
+
+**A-85. report_w18「すすの弟子と汗をぬぐう王」** `art/story-review/chapter5/report_w18.png` (済)
+- 独自性改善の追加依頼により固定合成から一枚絵へ描き直す。主題は「すすの弟子と汗をぬぐう王」。本文・人物正典を守る。杯の位置と人物の在不在は場面別に合わせる。詳細: `docs/art/palace-story-eleven-twenty.md`。
+
+**A-86. report_w19「焼けた木の顔の欠片」** `art/story-review/chapter5/report_w19.png` (済)
+- 独自性改善の追加依頼により固定合成から一枚絵へ描き直す。主題は「焼けた木の顔の欠片」。本文・人物正典を守る。杯の位置と人物の在不在は場面別に合わせる。詳細: `docs/art/palace-story-eleven-twenty.md`。
+
+**A-87. report_w20「床に置く杯と震える手」** `art/story-review/chapter5/report_w20.png` (済)
+- 独自性改善の追加依頼により固定合成から一枚絵へ描き直す。主題は「床に置く杯と震える手」。本文・人物正典を守る。杯の位置と人物の在不在は場面別に合わせる。詳細: `docs/art/palace-story-eleven-twenty.md`。
 
 ## 4. 便2・便3 ― 第5〜8章の新規 42場面
 

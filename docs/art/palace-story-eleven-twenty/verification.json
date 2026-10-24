@@ -1,0 +1,123 @@
+[
+  {
+    "id": "report_w09",
+    "master": "art/story-review/chapter2/report_w09.png",
+    "before": "docs/art/palace-story-eleven-twenty/before/report_w09.png",
+    "beforeSha256": "62370b4a61c966682c2ed7d9174f8e27ef858ac6f0c56d808cbbdc3277d13b30",
+    "afterSha256": "9d0dd52517569a0b3dfbc28b4d2bbbeb1843da260960ab639230e2c12abc2d6d",
+    "size": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "report_w11",
+    "master": "art/story-review/chapter3/report_w11.png",
+    "before": "docs/art/palace-story-eleven-twenty/before/report_w11.png",
+    "beforeSha256": "7a5ac8aec7a5e93f72d1227e4af5550a40f57972ba32a4f6cc371a7e453e0751",
+    "afterSha256": "ef04fb01e10ca760b15a50b629069e5f71a0f33d6081b6a09d8a0352a2734549",
+    "size": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "report_w12",
+    "master": "art/story-review/chapter3/report_w12.png",
+    "before": "docs/art/palace-story-eleven-twenty/before/report_w12.png",
+    "beforeSha256": "e30997d747ab17e35608cc40f4ba3d403e900d84c70a505402b71c95088db277",
+    "afterSha256": "8672b415d26ca59b524c9491d6ace37f17089d5f3776457cac4fcf4958fa7363",
+    "size": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "report_w13",
+    "master": "art/story-review/chapter3/report_w13.png",
+    "before": "docs/art/palace-story-eleven-twenty/before/report_w13.png",
+    "beforeSha256": "215c870f618774f64d16605aa7f8cae24db76ce046e6dd49e58b9d953ed9e490",
+    "afterSha256": "72f91fc19efdfb91e1676ebe6d36238a2ac396b5226a4a68391d25e075df3c49",
+    "size": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "report_w14",
+    "master": "art/story-review/chapter4/report_w14.png",
+    "before": "docs/art/palace-story-eleven-twenty/before/report_w14.png",
+    "beforeSha256": "bf81709b82bb249ac206b344c02f06def0a17c168eeaef48b62e0d0da73cabd4",
+    "afterSha256": "274dc376aebab135004861f3f4e59962f30b30d5f5a4a2b15f1608d1415bf2ac",
+    "size": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "report_w15",
+    "master": "art/story-review/chapter4/report_w15.png",
+    "before": "docs/art/palace-story-eleven-twenty/before/report_w15.png",
+    "beforeSha256": "659b28ee6c5c36b2b7a371ab71e67bb4d394f5ed066ad34b0fa7b663076ee432",
+    "afterSha256": "09d2e6702dc6201a9056a63f9712ed0136353ccaa99a161f7ed4d45395700d06",
+    "size": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "report_w16",
+    "master": "art/story-review/chapter4/report_w16.png",
+    "before": "docs/art/palace-story-eleven-twenty/before/report_w16.png",
+    "beforeSha256": "fe51d70674274ad1acd4d69b18aca890ae690f35f772e5eb5d0f9bcc0f0a1a56",
+    "afterSha256": "2960f1233b72cf1c0aaf02b888bce5036648b7a4ce8c0ee604d24862dc95de3d",
+    "size": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "report_w17",
+    "master": "art/story-review/chapter4/report_w17.png",
+    "before": "docs/art/palace-story-eleven-twenty/before/report_w17.png",
+    "beforeSha256": "41907001e6e4f971868707a1d2e8fb90633a56343dd98c78ac04067f88176f77",
+    "afterSha256": "7bcef2a845bdc6ad08dffc0aed4398e09872ea395ffda9b0936829f0b49cc610",
+    "size": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "report_w18",
+    "master": "art/story-review/chapter5/report_w18.png",
+    "before": "docs/art/palace-story-eleven-twenty/before/report_w18.png",
+    "beforeSha256": "f804b03ce71e10342c16f73ee3a32a060f51f911ef187f96b85986d52cffdb1d",
+    "afterSha256": "9a04a3ab1b6968efad6aa521eeabe09549a4fde84e5884b814dee20411b55eaa",
+    "size": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "report_w19",
+    "master": "art/story-review/chapter5/report_w19.png",
+    "before": "docs/art/palace-story-eleven-twenty/before/report_w19.png",
+    "beforeSha256": "9b661965c55fb979480426f99587c6b76232f1b7f18e750cf9b7053ca28d6594",
+    "afterSha256": "97133a5471c430defb1422692cd6d5dd00084bbadff0e8d62b414511807c73a0",
+    "size": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "report_w20",
+    "master": "art/story-review/chapter5/report_w20.png",
+    "before": "docs/art/palace-story-eleven-twenty/before/report_w20.png",
+    "beforeSha256": "9e90d01cb5d356ead535d715f912b345799c0edca6f62ad20b91e77260e6abd8",
+    "afterSha256": "0f4f9a4f9e58ea5edd465932e30e1e77736bd0113327e0e4b4d4dbc36ef43f0e",
+    "size": [
+      1536,
+      1024
+    ]
+  }
+]
