@@ -30,4 +30,3 @@ Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge
 Sky continuity: In present-day scenes from report_w33 (the hundredth-year blue sky) onward, including Roadal, depict bright skies: blue daylight or luminous sunset if the text specifies evening. Do not restore the old dark storm sky. Keep explicitly night-time scenes and historical memories faithful to their stated time.
 The same ordinary inhabited gothic throne room, with dry carved grey stone, polished dark stone floors, black iron and gold furnishings, deep red textiles, and warm amber candlelight. No ice, frost, snow or icicles anywhere in the palace or on the city buildings outside. The very old king, lap blanket over his knees, sits in long silence holding a parchment listing eleven names; his eyes are closed in grief. The chancellor's chair beside him stands empty, a reminder of the lie. The apprentice waits, head bowed. Clear unfrosted windows, overcast sky.
 ```
-

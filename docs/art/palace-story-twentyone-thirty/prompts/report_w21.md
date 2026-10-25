@@ -34,4 +34,3 @@ Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge
 Sky continuity: In present-day scenes from report_w33 (the hundredth-year blue sky) onward, including Roadal, depict bright skies: blue daylight or luminous sunset if the text specifies evening. Do not restore the old dark storm sky. Keep explicitly night-time scenes and historical memories faithful to their stated time.
 The same throne room, now cold and dim: the heat is gone, embers in braziers have died to grey ash. The very old king, frailer, stares at his pale fingertips and rubs his cold hands together, silent and shaken. The chancellor's chair beside him stands empty, a draft stirring its cushion's tassels. The apprentice kneels, reporting. Heavy clouds outside.
 ```
-
