@@ -1,0 +1,272 @@
+[
+  {
+    "id": "report_w21",
+    "before": {
+      "path": "docs/art/palace-story-twentyone-thirty/before/report_w21.png",
+      "sha256": "471c0a057cd62dd474fb29b833d3de7cb01b60d57b2f9e6d3d70c03c1e1a292f",
+      "size": [
+        1536,
+        1024
+      ]
+    },
+    "after": {
+      "path": "art/story-review/chapter5/report_w21.png",
+      "sha256": "17b12524b2a5e6ab041b8b6188cbab5f68b45375f52189251a1e2b08eb701279",
+      "size": [
+        1536,
+        1024
+      ]
+    },
+    "webp": {
+      "path": "art/story/chapter5/report_w21.webp",
+      "sha256": "99f23ff4b035148f3baf36c31b481ec2d14a9898b943919c9f45a118077c40e3",
+      "size": [
+        1536,
+        1024
+      ]
+    }
+  },
+  {
+    "id": "report_w22",
+    "before": {
+      "path": "docs/art/palace-story-twentyone-thirty/before/report_w22.png",
+      "sha256": "a517fc02668ea66d0d8da41acb2b30547803d22cde5705700f8b491ae13ac697",
+      "size": [
+        1536,
+        1024
+      ]
+    },
+    "after": {
+      "path": "art/story-review/chapter6/report_w22.png",
+      "sha256": "30089c1088873a7248c139837c13325fd63595abd107c5e6c2049b9942ee3190",
+      "size": [
+        1536,
+        1024
+      ]
+    },
+    "webp": {
+      "path": "art/story/chapter6/report_w22.webp",
+      "sha256": "48698b0d724971e136b20c163436155187b021a2d52a81a1011b8e2cf703ca07",
+      "size": [
+        1536,
+        1024
+      ]
+    }
+  },
+  {
+    "id": "report_w23",
+    "before": {
+      "path": "docs/art/palace-story-twentyone-thirty/before/report_w23.png",
+      "sha256": "97dbab7b97a749866c185feeff2b5583861b8f18f4d7eb0b8b05c6dd55f958bb",
+      "size": [
+        1536,
+        1024
+      ]
+    },
+    "after": {
+      "path": "art/story-review/chapter6/report_w23.png",
+      "sha256": "984ee4096daa88699b7516709e6ed82ae0d1f2a1afc263a2ade35d1a3e329f18",
+      "size": [
+        1536,
+        1024
+      ]
+    },
+    "webp": {
+      "path": "art/story/chapter6/report_w23.webp",
+      "sha256": "96897a2ba5addea0e009894aad423097ae860f6b49a9f3ed23f4377efdbd9cad",
+      "size": [
+        1536,
+        1024
+      ]
+    }
+  },
+  {
+    "id": "report_w24",
+    "before": {
+      "path": "docs/art/palace-story-twentyone-thirty/before/report_w24.png",
+      "sha256": "60bea1c9428347a78ed5d576a5d81cc1f085e1cb1ad256717e726637859c8f51",
+      "size": [
+        1536,
+        1024
+      ]
+    },
+    "after": {
+      "path": "art/story-review/chapter6/report_w24.png",
+      "sha256": "f8218acd697215bbcceecbdbc5d8c9ac92607ec4c4c486132e41cd469ab18c0f",
+      "size": [
+        1536,
+        1024
+      ]
+    },
+    "webp": {
+      "path": "art/story/chapter6/report_w24.webp",
+      "sha256": "b8d43608e453dfa702df98d11a6315921285730ccfda344f414b7b55a3a102a7",
+      "size": [
+        1536,
+        1024
+      ]
+    }
+  },
+  {
+    "id": "report_w25",
+    "before": {
+      "path": "docs/art/palace-story-twentyone-thirty/before/report_w25.png",
+      "sha256": "eb0483285372b612ab65e22ce5e586daf868609d75ccc231bf2a403e72a992f1",
+      "size": [
+        1536,
+        1024
+      ]
+    },
+    "after": {
+      "path": "art/story-review/chapter6/report_w25.png",
+      "sha256": "8565dea787c8628b1db2051ca4df44db627b9b63c38dd6f3c321898a747259b0",
+      "size": [
+        1536,
+        1024
+      ]
+    },
+    "webp": {
+      "path": "art/story/chapter6/report_w25.webp",
+      "sha256": "81e21ded04d37b3ac5d104033ee178d7043b8f56c23ffa6883164bb9b73fc952",
+      "size": [
+        1536,
+        1024
+      ]
+    }
+  },
+  {
+    "id": "report_w26",
+    "before": {
+      "path": "docs/art/palace-story-twentyone-thirty/before/report_w26.png",
+      "sha256": "6703bca037382644b9f7800d205f55a6209bcde412a9137dbb8ac99b79dad9db",
+      "size": [
+        1536,
+        1024
+      ]
+    },
+    "after": {
+      "path": "art/story-review/chapter7/report_w26.png",
+      "sha256": "4af26c86023b82162bd8687694a228bd164ad7b67b76f858a7994506e7f91451",
+      "size": [
+        1536,
+        1024
+      ]
+    },
+    "webp": {
+      "path": "art/story/chapter7/report_w26.webp",
+      "sha256": "5db74ed074f3e943d276935b5804535ead0deb00917098167276f954a62836f4",
+      "size": [
+        1536,
+        1024
+      ]
+    }
+  },
+  {
+    "id": "report_w27",
+    "before": {
+      "path": "docs/art/palace-story-twentyone-thirty/before/report_w27.png",
+      "sha256": "14f32f9f6b4d4dd716cc777f86ebd87e3fe039e25f7ccbec4f81ed1e266927c3",
+      "size": [
+        1536,
+        1024
+      ]
+    },
+    "after": {
+      "path": "art/story-review/chapter7/report_w27.png",
+      "sha256": "f3617bd6edb6279bfc3021c88e24a94d8f6c5aece6203e7808e917c0421c5b93",
+      "size": [
+        1536,
+        1024
+      ]
+    },
+    "webp": {
+      "path": "art/story/chapter7/report_w27.webp",
+      "sha256": "3817b176ee6f5e688232b809fab52f04c75bb4151f85a24c36c3e4a88fa4b1b7",
+      "size": [
+        1536,
+        1024
+      ]
+    }
+  },
+  {
+    "id": "report_w28",
+    "before": {
+      "path": "docs/art/palace-story-twentyone-thirty/before/report_w28.png",
+      "sha256": "d84ae9cbda7c0d1691504964ad36b256c7ec4a0d1adab85924e3e20220f7b539",
+      "size": [
+        1536,
+        1024
+      ]
+    },
+    "after": {
+      "path": "art/story-review/chapter7/report_w28.png",
+      "sha256": "23374afa5a8b37dbb9419443e68a64b244319f4d445071cdb1dd6f54a169269f",
+      "size": [
+        1536,
+        1024
+      ]
+    },
+    "webp": {
+      "path": "art/story/chapter7/report_w28.webp",
+      "sha256": "92e88af6e8798f3fab8f370c62f9101f172107b5db256deae04ca4b2f535ff54",
+      "size": [
+        1536,
+        1024
+      ]
+    }
+  },
+  {
+    "id": "report_w29",
+    "before": {
+      "path": "docs/art/palace-story-twentyone-thirty/before/report_w29.png",
+      "sha256": "1345237a254a41dcd3c38a8469f422ffad9934bc7a0f0eec63ba1076aa2e6921",
+      "size": [
+        1536,
+        1024
+      ]
+    },
+    "after": {
+      "path": "art/story-review/chapter7/report_w29.png",
+      "sha256": "85daf56037e04b23bbae11215776b5d13680b86884a7705e7b86e13403154daa",
+      "size": [
+        1536,
+        1024
+      ]
+    },
+    "webp": {
+      "path": "art/story/chapter7/report_w29.webp",
+      "sha256": "63a984158c012e9110840fd99b9f5c89bc1ee395692116cd1ce6e2b53efbcf02",
+      "size": [
+        1536,
+        1024
+      ]
+    }
+  },
+  {
+    "id": "report_w30",
+    "before": {
+      "path": "docs/art/palace-story-twentyone-thirty/before/report_w30.png",
+      "sha256": "11156d834eb6a0ee8f8c6586aa5af9b3f89b7476153f0fb50141505473d6f92a",
+      "size": [
+        1536,
+        1024
+      ]
+    },
+    "after": {
+      "path": "art/story-review/chapter8/report_w30.png",
+      "sha256": "7cc6aa3b7fa9631ff5ff4714531d40dd38223b32492ac538d86dd78d0c33fcf8",
+      "size": [
+        1536,
+        1024
+      ]
+    },
+    "webp": {
+      "path": "art/story/chapter8/report_w30.webp",
+      "sha256": "a078d0938fcabf8cb510d45b704fc10924dc3f5997c2e3b6623a5fb1c0568fa1",
+      "size": [
+        1536,
+        1024
+      ]
+    }
+  }
+]
