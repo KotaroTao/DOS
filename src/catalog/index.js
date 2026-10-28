@@ -1,3 +1,4 @@
+import { retuneEquipment } from "../equipmentbalance.js";
 import { itemNumber } from "../itemnumbers.js";
 import { prepareWeapon } from "../weaponpower.js";
 // アイテムカタログの集約窓口。
@@ -182,6 +183,7 @@ export const CATALOG_ITEMS = {};
 for (const list of [WEAPONS, SHIELDS, ARMORS, HEADS, FEET, HANDS, ACCS, MISC, USABLES, LEGENDS, EXCLUSIVES, LR_ITEMS, LAYER1_ITEMS, LAYER2_ITEMS, LAYER3_ITEMS, LAYER4_ITEMS, LAYER5_ITEMS, LAYER6_ITEMS, LAYER7_ITEMS, LAYER8_ITEMS, LAYER9_ITEMS, LAYER10_ITEMS, LAYER11_ITEMS, LAYER12_ITEMS, NAMED_ITEMS, LOCKPICK_ITEMS, RANK1_ITEMS, RANK2_ITEMS, RANK3_ITEMS, RANK4_ITEMS, RANK5_ITEMS, RANK6_ITEMS, RANK7_ITEMS, RANK8_ITEMS, RANK9_ITEMS, RANK10_ITEMS, RANK11_ITEMS, RANK12_ITEMS, RANK13_ITEMS, RANK14_ITEMS, RANK15_ITEMS, RANK16_ITEMS, RANK17_ITEMS, RANK18_ITEMS, RANK19_ITEMS, RANK20_ITEMS]) {
   for (const it of list) {
     if (CATALOG_ITEMS[it.id]) throw new Error("duplicate item id: " + it.id);
+    retuneEquipment(it);
     prepareWeapon(it);
     applyNativeCritical(it);
     it.number = itemNumber(it.id);

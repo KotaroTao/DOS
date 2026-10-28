@@ -4,10 +4,10 @@ export const CRITICAL_KEYS = ["crit", "critDamage", "spellCrit", "spellCritDamag
 export const ITEM_CRITICAL_CAP = { crit: 0.20, critDamage: 1, spellCrit: 0.20, spellCritDamage: 1 };
 export const CRITICAL_BANDS = {
   c: { rate: [0.01, 0.02], damage: [0.05, 0.10] },
-  uc: { rate: [0.02, 0.04], damage: [0.10, 0.20] },
-  r: { rate: [0.04, 0.07], damage: [0.20, 0.35] },
-  sr: { rate: [0.07, 0.12], damage: [0.35, 0.60] },
-  lr: { rate: [0.12, 0.20], damage: [0.60, 1] },
+  uc: { rate: [0.02, 0.03], damage: [0.10, 0.15] },
+  r: { rate: [0.03, 0.05], damage: [0.15, 0.25] },
+  sr: { rate: [0.05, 0.07], damage: [0.25, 0.40] },
+  lr: { rate: [0.07, 0.10], damage: [0.40, .60] },
 };
 export function clampItemCritical(it) {
   for (const k of CRITICAL_KEYS) if (typeof it[k] === "number") {
@@ -58,7 +58,7 @@ export function applyNativeCritical(it) {
     const [lo, hi] = band[key.endsWith("Damage") ? "damage" : "rate"];
     // 両方の会心率を持つ複合武器は同じ格の下限側に抑える。
     const v = lo + (hi - lo) * progress * (profile.length > 1 ? 0.5 : 1);
-    const unit = key.endsWith("Damage") ? 100 : 1000;
+    const unit = key.endsWith("Damage") ? 20 : 100;
     it[key] = Math.max(it[key] || 0, Math.round(v * unit) / unit);
   }
   return clampItemCritical(it);

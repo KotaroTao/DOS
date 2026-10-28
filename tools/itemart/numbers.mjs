@@ -1,5 +1,6 @@
 // 全品の固定通し番号と制作台帳を検査する。--update は新しい品を末尾へ追加する。
 import fs from "node:fs";
+import { execFileSync } from "node:child_process";
 import { ITEMS } from "../../src/items.js";
 import { CATALOG_ITEMS } from "../../src/catalog/index.js";
 import { NUMBERED_ITEM_IDS } from "../../src/itemnumbers.js";
@@ -24,10 +25,13 @@ const source = fs.readFileSync(sourcePath, "utf8").replace(
 const cell = value => '"' + String(value ?? "").replaceAll('"', '""') + '"';
 const rows = [["制作番号", "担当範囲", "既存ID", "名前", "部位", "レア度", "説明", "既存WebP"]];
 const photoDirs = ["art/items/", "art/collectibles/", "art/offerings/", "art/misc/", "art/treasury/"];
+// 疎なチェックアウトでも、Gitに残っている出荷画像の対応を落とさない。
+const trackedPhotos = new Set(execFileSync("git", ["ls-files", "-z", ...photoDirs], {cwd:root}).toString().split("\0"));
+for (const path of execFileSync("git", ["ls-files", "--deleted", "-z", ...photoDirs], {cwd:root}).toString().split("\0")) trackedPhotos.delete(path);
 ids.forEach((id, i) => {
   const it = all[id], number = i + 1, start = Math.floor(i / 100) * 100 + 1;
   if (!update && it.number !== number) fail("品の制作番号が一致しません: " + id);
-  const photo = photoDirs.map(dir => dir + id + ".webp").find(path => fs.existsSync(new URL(path, root))) || "";
+  const photo = photoDirs.map(dir => dir + id + ".webp").find(path => (fs.existsSync(new URL(path, root)) || trackedPhotos.has(path))) || "";
   rows.push([number, `${start}-${Math.min(start + 99, ids.length)}`, id, it.name, it.slot,
     it.rar || (["use", "misc"].includes(it.slot) ? "" : it.lr ? "lr" : "c"), it.desc, photo]);
 });
@@ -35,6 +39,7 @@ const csv = "\uFEFF" + rows.map(row => row.map(cell).join(",")).join("\n") + "\n
 const csvPath = new URL("docs/art/item-number-ledger.csv", root);
 if (update) {
   fs.writeFileSync(sourcePath, source);
+  fs.mkdirSync(new URL("docs/art/",root), {recursive:true});
   fs.writeFileSync(csvPath, csv);
 } else if (fs.readFileSync(csvPath, "utf8") !== csv) {
   fail("制作台帳が古くなっています。--update で更新してください");

@@ -1,5 +1,5 @@
 import { applyChallengeEnemies } from "./progression.js";
-import { procChance, hitChance, elementValues, elementStat, elementAttack, elementMultiplier, elementWeakness, elementResistance, elementalReduction, permanentMultiplier } from "./combatrules.js";
+import { luckCritBonus, procChance, hitChance, elementValues, elementStat, elementAttack, elementMultiplier, elementWeakness, elementResistance, elementalReduction, permanentMultiplier } from "./combatrules.js";
 import { canonicalPassiveKey, UNHOLY } from "./jobkit/common.js";
 import { random } from "./rng.js";
 import { lvPow } from "./levelcurve.js";
@@ -265,7 +265,7 @@ const variance = (base) => { const b = Math.round(base); return Math.max(1, b + 
 // 揺らぎは上側が広く、平均は基準値より約10%高い。オートも同じ平均を読む。
 const varianceMean = (base) => { const b = Math.max(1, Math.round(base)); return b + (Math.ceil(b * 0.4) - Math.ceil(b * 0.2)) * 0.5; };
 // LUKの成長を会心確定へ直結させない。低い値では従来に近く、加算は最大25%。
-export const luckCritBonus = (luk) => 0.25 * (1 - Math.exp(-Math.max(0, (luk || 0) - 8) / 50));
+export { luckCritBonus };
 // 上位呪文ほどINT/PIEの伸びを受ける。全体呪文は単体より係数を抑える。
 // 呪文の伸び (2026-10-16、ユーザーの指摘「物理に比べて魔法が弱過ぎる」): 物理技は 攻撃力 (武器で STR の約1.5〜2.5倍。
 // 武器の Lv とともに育つ) × 技の倍率で伸びるのに、呪文は INT × 係数だけで、Lv40 から同じレア度の物理職の 1/4〜1/6 しか出なかった。

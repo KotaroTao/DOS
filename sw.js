@@ -2993,6 +2993,8 @@ const ASSETS = [
   "./src/bukon.js",
   "./src/itemdepth.js",
   "./src/equipmentcrit.js",
+  "./src/equipmentbalance.js",
+  "./src/equipmentscore.js",
   "./src/infevents.js",
   "./src/inftitles.js",
   "./src/title.js",

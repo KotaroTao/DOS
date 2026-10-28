@@ -29,3 +29,6 @@ export function elementMultiplier(element, attack = 100, defense = null, affinit
   if (!element || element === 'none') return 1;
   return Math.max(0, attack) / 100 * elementWeakness(element, affinity) * (1 - elementalReduction(elementResistance(element, defense, affinity, scale)));
 }
+
+// 会心の幸運加算を実戦と装備評価で共用する。
+export const luckCritBonus = luk => .25 * (1 - Math.exp(-Math.max(0,(luk || 0)-8)/50));

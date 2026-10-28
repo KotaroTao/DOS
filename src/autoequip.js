@@ -1,3 +1,5 @@
+import { equipmentCombatState } from "./equipmentscore.js";
+import { bukonText } from "./bukon.js";
 // ===== 最適装備の計画 (純粋な計算・DOM なし) =====
 // 担当: WP-B。
 // planBestEquip(dolls, { pool, canEquip, slotKeyFor, recalcPreview, score })
@@ -20,9 +22,9 @@ import { bagCount, isFormationItem, SLOTS, MAX_ITEMS, canEquip as canEquipDefaul
 
 // 条件つき・探索用の追加特性は、能力値だけでは変化がわからないため説明も比較する。
 export function equipmentTraitTexts(equip) {
-  return [...new Set(Object.values(equip || {}))].filter(it => it && !it.unidentified).flatMap(it => (it.afxText || []).filter(a => {
+  return [...new Set(Object.values(equip || {}))].filter(it => it && !it.unidentified).flatMap(it => [...(it.bukon || []).map(b=>`武魂 ${bukonText(b)}`), ...(it.afxText || []).filter(a => {
     const d = afxDef(a.k); return d && (d.fx || d.misc);
-  }).map(a => `${a.name.replace(/の$/, "")}：${a.text}`));
+  }).map(a => `${a.name.replace(/の$/, "")}：${a.text}`)]);
 }
 
 const EPS = 0.05;          // これ未満の伸びは「同じ」とみなす (同格の品を入れ替え続けない)
@@ -51,6 +53,7 @@ export function previewStats(doll, equip, recalcFn = recalcDefault) {
   const fake = { base: doll.base, equip, hp: doll.hp, mp: doll.mp, dualWield: doll.dualWield || 0 };
   recalcFn(fake);
   return {
+    combat: equipmentCombatState({...fake,primaryPower:attackPower(fake),power:fightPower(fake)},doll),
     atk: fake.atk, vit: fake.vit, agi: fake.agi, int: fake.int, pie: fake.pie, luk: fake.luk,
     maxhp: fake.maxhp, maxmp: fake.maxmp, critBonus: fake.critBonus || 0,
     critDamageBonus: fake.critDamageBonus || 0, spellCritBonus: fake.spellCritBonus || 0, spellCritDamageBonus: fake.spellCritDamageBonus || 0,
@@ -68,6 +71,7 @@ export function previewStats(doll, equip, recalcFn = recalcDefault) {
 export function statsDelta(from, to) {
   return {
     // 戦闘効果の付け替え前後と、付け替え後の攻撃力・最大HP/MP (効果の値打ちはこの人業の強さで測る)
+    combat: {from:from.combat,to:to.combat},
     eff: { from: from.eff || null, to: to.eff || null },
     traits: { from: from.traits || [], to: to.traits || [] },
     weaponMode: { from: from.weapon || null, to: to.weapon || null },

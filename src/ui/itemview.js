@@ -1,3 +1,4 @@
+import { equipmentCombatState, equipmentPercentScore } from "../equipmentscore.js";
 import { elementValues, elementalReduction } from "../combatrules.js";
 import { bukonText } from "../bukon.js";
 import { revealSteps } from "../monsterreveal.js";
@@ -435,15 +436,15 @@ export function skillChips(keys, label) {
 // ===== 状態異常の耐性・追加効果 (装備の aRes / onHit) =====
 const AIL_SHORT = { poison: "毒", paralyze: "痺", sleep: "眠", charm: "魅", confuse: "乱", stone: "石" };
 // 短い表記: 「魅30・乱30」 / 「痺15%」
-export function ailResShort(r) { return r ? Object.entries(r).map(([k, v]) => `${AIL_SHORT[k] || k}${Math.round(v * 100)}`).join("・") : "—"; }
+export function ailResShort(r) { return r ? Object.entries(r).map(([k, v]) => `${AIL_SHORT[k] || k}${Math.round(v * 100)}%`).join("・") : "—"; }
 export function onHitShort(o) { return o && o.length ? o.map((x) => `${AIL_LABEL[x.k] || x.k}${pct(x.chance)}${x.k === "poison" ? `（毎ターンHP${Math.round((x.pct || 0.05) * 1000) / 10}%）` : ""}`).join("・") : "—"; }
 // 一覧の一行用 (statLines に添える)
 function ailStatParts(it, { res = true } = {}) {
   const out = [];
-  for (const o of onHitEffects(it.onHit)) out.push(`${AIL_LABEL[o.k]}付与 ${pct(o.chance)}`);
+  for (const o of onHitEffects(it.onHit)) out.push(`${AIL_LABEL[o.k]}付与力 ${pct(o.chance)}`);
   if (!res) return out;
-  if (it.resists) out.push(Object.entries(it.resists).map(([k, v]) => `${RESIST_LABEL[k] || k}抵抗${v}`).join("・"));
-  if (it.aRes) out.push(`抵抗値 ${Object.entries(it.aRes).map(([k, v]) => `${RESIST_LABEL[k] || k}${Math.round(v * 100)}`).join("・")}`);
+  if (it.resists) out.push(Object.entries(it.resists).map(([k, v]) => `${RESIST_LABEL[k] || k}耐性${v}%`).join("・"));
+  if (it.aRes) out.push(`耐性 ${Object.entries(it.aRes).map(([k, v]) => `${RESIST_LABEL[k] || k}${Math.round(v * 100)}%`).join("・")}`);
   if (it.bRes) out.push(`ブレス耐性 ${Math.round(it.bRes * 100)}%`);
   return out;
 }
@@ -453,10 +454,10 @@ export function ailDetailLines(it) {
   if (!it) return L;
   for (const o of onHitEffects(it.onHit)) {
     const tail = o.k === "poison" ? `（毎ターン最大HPの${Math.round((o.pct || 0.05) * 100)}%）` : o.k === "charm" ? "（敵が仲間を襲う）" : o.k === "confuse" ? "（敵が見境なく殴る）" : "";
-    L.push(`追加効果: 攻撃が当たると ${pct(o.chance)} で敵を${AIL_LABEL[o.k]}にする${tail}（物理技も同じ・主には効きにくい）`);
+    L.push(`追加付与力: ${pct(o.chance)}。物理命中後に${AIL_LABEL[o.k]}の付与を試みる${tail}（同じ種類の付与力は加算。耐性を掛けて最後に最大95%、一手につき一回判定）`);
   }
-  if (it.resists) L.push(Object.entries(it.resists).map(([k, v]) => `${RESIST_LABEL[k] || k}抵抗値 +${v}`).join("・"));
-  if (it.aRes) L.push(`状態異常抵抗値: ${Object.entries(it.aRes).map(([k, v]) => `${RESIST_LABEL[k] || k} +${Math.round(v * 100)}`).join("・")}（かかる確率を下げる）`);
+  if (it.resists) L.push(Object.entries(it.resists).map(([k, v]) => `${RESIST_LABEL[k] || k}耐性 +${v}%`).join("・"));
+  if (it.aRes) L.push(`状態異常耐性: ${Object.entries(it.aRes).map(([k, v]) => `${RESIST_LABEL[k] || k} +${Math.round(v * 100)}%`).join("・")}（付与力を軽減、各95%まで）`);
   if (it.bRes) L.push(`ブレス耐性: 敵のブレスから受けるダメージ −${Math.round(it.bRes * 100)}%（装備どうしで足し合い、上限50%）`);
   return L;
 }
@@ -471,7 +472,7 @@ export const EFF_INFO = {
   actFirst: { short: () => "一番手", line: () => "一番手: どのターンも、敵味方の誰よりも先に行動する" },
   multistrike: { short: (v) => `${Math.min(4, v)}連撃`, line: (v) => `連撃: 通常攻撃が一手で${Math.min(4, v)}回の攻撃になる（標的が倒れたら次の敵へ。技は1回のまま。連撃の装備は回数を足し合い、最大4回）` },
   lifesteal: { short: (v) => `吸血${pct(v)}`, line: (v) => `吸血: 物理攻撃（通常攻撃・物理技）で与えたダメージの${pct(v)}だけ、自分のHPを回復する` },
-  guard: { short: (v) => `被ダメ−${pct(v)}`, line: (v) => `守り: 受けるダメージを常に${pct(v)}減らす（物理・呪文・ブレスのすべて）` },
+  guard: { short: (v) => `被ダメ−${pct(v)}`, line: (v) => `守り: 受けるダメージを常に${pct(v)}減らす（物理・呪文・ブレス。ほかの恒常軽減と合わせて90%まで）` },
   autoRevive: { short: (v) => `自動蘇生${pct(v)}`, line: (v) => `蘇生: 戦闘不能になった時、1戦闘に1回だけ最大HPの${pct(v)}で立ち上がる` },
   regen: { short: (v) => `再生${pct(v)}`, line: (v) => `再生: 2ターン目から毎ターン、最大HPの${pct(v)}だけHPを回復する` },
   counter: { short: (v) => `報復×${Math.round(v * 100) / 100}`, line: (v) => `報復: 敵の物理攻撃を受けるたび、攻撃力×${Math.round(v * 100) / 100}のダメージでやり返す (物理の抵抗値で減る)` },
@@ -576,7 +577,9 @@ export function specialLines(it) {
 export function weaponTraitLines(it) {
   const L = [];
   if (!it || it.slot !== "weapon") return L;
-  if (it.magic) L.push("攻撃属性: 魔法（通常攻撃の威力は攻撃力のまま、物理耐性ではなく魔法耐性で判定され、魔法弱点を突く。物理技は物理のまま）");
+  const assigned = it.element || it.eAtk?.el || "none";
+  L.push(`付与属性: ${assigned === "none" ? "無" : elemName(assigned)}（通常攻撃と、属性指定のない物理技に使う）`);
+  if (it.magic) L.push("ダメージ種別: 魔法（通常攻撃の威力は攻撃力のまま、物理耐性ではなく魔法耐性で判定され、魔法弱点を突く。物理技は物理のまま）");
   return L;
 }
 
@@ -669,6 +672,7 @@ export function equipPreviewDelta(p, cand, slotKey = null) {
   const offW = (e) => (e.shield && e.shield.slot === "weapon" ? e.shield : null);
   const wChanged = (eq.weapon || null) !== (p.equip.weapon || null) || offW(eq) !== offW(p.equip);
   return {
+    combat: {from:equipmentCombatState({...p,primaryPower:attackPower(p),power:fightPower(p)},p),to:equipmentCombatState({...fake,primaryPower:attackPower(fake),power:fightPower(fake)},p)},
     power: fightPower(fake) - fightPower(p), // 攻撃力 (参照能力 × 武器の係数。二刀流なら左手も DUAL_VALUE_SHARE で)
     weapon: wChanged,
     // 持ち方の付け替え (両手武器に持ち替えて盾が外れる / 盾 ⇄ 左手の武器)。武器の良し悪しを攻撃力だけでなく盾の能力とも比べる
@@ -825,7 +829,7 @@ export function effScore(doll, delta, W = gearWeights(doll)) {
   const off = (e, pw) => (e ? pw * ((effStrikes(e) - 1) * EFF_K.strike + (e.counter || 0) * EFF_K.counter + (e.actFirst ? EFF_K.first : 0)) * share : 0);
   const hpEq = (e, pw) => {
     if (!e) return 0;
-    const g = Math.min(0.9, e.guard || 0);
+    const g = delta.combat?.from && delta.combat?.to ? 0 : Math.min(0.9, e.guard || 0);
     return (e.lifesteal || 0) * pw * EFF_K.steal * share
       + hp * (g / (1 - g)) * EFF_K.guard
       + hp * (e.regen || 0) * EFF_K.regen
@@ -835,7 +839,7 @@ export function effScore(doll, delta, W = gearWeights(doll)) {
   const flat = (e) => {
     if (!e) return 0;
     const m = e.spellCostMul > 0 && e.spellCostMul < 1 ? e.spellCostMul : 1;
-    return (e.ailmentImmune ? EFF_K.immune : 0)
+    return (e.ailmentImmune && !delta.combat?.from ? EFF_K.immune : 0)
       + (1 / m - 1) * EFF_K.thrift * Math.max(0.3, 1 - weaponShare(W))
       + ((e.goldUp || 0) + (e.soulUp || 0)) * EFF_K.fortune
       + (e.disarmUp || 0) * EFF_K.disarm;
@@ -850,30 +854,33 @@ export function gearScore(doll, delta) {
   if (!delta) return 0;
   const W = gearWeights(doll);
   const fx = effScore(doll, delta, W);
+  const px = equipmentPercentScore(delta.combat?.from,delta.combat?.to,{weaponShare:weaponShare(W),hpWeight:W.hp || .25,magicWeight:Math.max(W.int || 0,W.pie || 0)});
   // 攻撃に効く戦闘効果は攻撃力の増減に足して、武器の付け替えでも同じ物差しで比べる
-  const power = delta.power != null ? delta.power + fx.offense : null;
+  const power = delta.power != null ? delta.power + fx.offense + px.offense : null;
   let s = 0;
   for (const k in W) s += (k === "atk" && power != null ? power : (delta[k] || 0)) * W[k];
-  if (power == null) s += fx.offense * (W.atk || 1);
-  s += fx.points;
+  if (power == null) s += (fx.offense+px.offense) * (W.atk || 1);
+  s += fx.points + px.points;
   if (delta.weapon) {
     const f = weaponShare(W);
     if (delta.handSwap) s = s * (1 + f * (WEAPON_POWER_W / Math.max(0.35, W.atk || 1) - 1));
     else s += (power || 0) * WEAPON_POWER_W * f;
   }
-  s += ((delta.crit || 0) + (delta.spellCrit || 0)) * 0.5;
-  s += ((delta.critDamage || 0) + (delta.spellCritDamage || 0)) * 0.1;
-  const lv = (e) => Object.values(elementValues(e, e?.kind)).reduce((n, v) => n + v / (e?.kind === "defense" ? 100 : 50), 0);
-  for (const ch of [delta.elemAtk, delta.elemDef]) if (ch) s += (lv(ch.to) - lv(ch.from)) * 4;
-  // 状態異常耐性 (合計10%ごとに1点) / 追加効果 (確率10%ごとに1.5点)
-  const resSum = (r) => (r ? Object.values(r).reduce((a, v) => a + v, 0) : 0);
-  const ohSum = (o) => (o ? o.reduce((a, x) => a + (x.chance || 0), 0) : 0);
-  if (delta.ailRes) s += (resSum(delta.ailRes.to) - resSum(delta.ailRes.from)) * 10;
-  s += ((delta.physResist || 0) + (delta.magResist || 0)) * 0.1;
-  if (delta.onHit) s += (ohSum(delta.onHit.to) - ohSum(delta.onHit.from)) * 15;
-  // ブレス耐性 (10%ごとに1点 = 状態異常耐性と同じ)。以前は10%ごとに8点で、ブレス耐性つきの小盾が
-  // AGI −4 の付け替えでも「伸び」と見なされ、最適装備が弱い品を選んでいた
-  if (delta.breathRes) s += delta.breathRes * 0.1;
+  if (!delta.combat?.from || !delta.combat?.to) {
+    s += ((delta.crit || 0) + (delta.spellCrit || 0)) * 0.5;
+    s += ((delta.critDamage || 0) + (delta.spellCritDamage || 0)) * 0.1;
+    const lv = (e) => Object.values(elementValues(e, e?.kind)).reduce((n, v) => n + v / (e?.kind === "defense" ? 100 : 50), 0);
+    for (const ch of [delta.elemAtk, delta.elemDef]) if (ch) s += (lv(ch.to) - lv(ch.from)) * 4;
+    // 状態異常耐性 (合計10%ごとに1点) / 追加効果 (確率10%ごとに1.5点)
+    const resSum = (r) => (r ? Object.values(r).reduce((a, v) => a + v, 0) : 0);
+    const ohSum = (o) => (o ? o.reduce((a, x) => a + (x.chance || 0), 0) : 0);
+    if (delta.ailRes) s += (resSum(delta.ailRes.to) - resSum(delta.ailRes.from)) * 10;
+    s += ((delta.physResist || 0) + (delta.magResist || 0)) * 0.1;
+    if (delta.onHit) s += (ohSum(delta.onHit.to) - ohSum(delta.onHit.from)) * 15;
+    // ブレス耐性 (10%ごとに1点 = 状態異常耐性と同じ)。以前は10%ごとに8点で、ブレス耐性つきの小盾が
+    // AGI −4 の付け替えでも「伸び」と見なされ、最適装備が弱い品を選んでいた
+    if (delta.breathRes) s += delta.breathRes * 0.1;
+  }
   return Math.round(s * 10) / 10;
 }
 
