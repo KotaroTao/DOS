@@ -707,8 +707,8 @@ export function codexMonSheet(key, o = {}) {
     }
     body.appendChild(grid);
     fact("HP", mt ? (mt.hpRank ? "多め" : mt.hp) : Math.max(1, Math.round(st.hp)));
-    fact("属攻", elemStatShort({ el: elKey || "none", lv: 1 }));
-    fact("属防", elemStatShort(m.elemDef));
+    fact("属攻", elemStatShort((foe || m).elemAtk) + (elKey && elKey !== "none" ? `（攻撃属性${ELEMENTS[elKey]?.label || elKey}・基準100%）` : ""));
+    fact("属防", elemStatShort({ ...((foe || m).elemDef || {}), kind: "defense" }));
   } else body.appendChild(revealLock(R.stats, "能力・属性・HP"));
   // 抵抗値: 体質で効きやすい異常は緑、効きにくい異常は橙、効かない異常は暗く (戦闘中はその敵の実際の値)
   const resV = (foe && foe.resists) || m.resists || {};

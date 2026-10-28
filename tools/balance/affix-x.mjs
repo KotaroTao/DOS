@@ -114,7 +114,7 @@ const hasLog = (logs, s) => logs.some((l) => String(l).includes(s));
   const a = misc(doll(), { witness: true }), t = foe(), u = foe();
   const b = battle([a], [t, u]);
   b.queue = [t, u];
-  withRand(0, () => b._physical(a, t, { acc: 1, critBonus: 1 }));
+  withRand(0, () => b._physical(a, t, { sureHit:true, critBonus: 1 }));
   assert.equal(b.queue[b.queue.length - 1], t, "見届け: 会心でその敵の手番を最後へ");
 }
 // X06 剥がしの
@@ -132,7 +132,7 @@ const bigFoe = (o) => foe({ atk: 9000, ...o });
 {
   const p = misc(doll(), { fortress: 0.5 }), e = bigFoe();
   const b = battle([p], [e]);
-  const h = withRand(0.99, () => b._physical(e, p, { acc: 1, power: 3 }));
+  const h = withRand(0.99, () => b._physical(e, p, { sureHit:true, power: 3 }));
   assert.ok(h.dmg <= 2500, `金城: 最大HPの50%まで (${h.dmg})`);
 }
 // X08 痛み分けの
@@ -190,7 +190,7 @@ const bigFoe = (o) => foe({ atk: 9000, ...o });
   const p = doll();
   p.equip.head = itemWith("head", "X13");
   recalc(p);
-  const t = foe({ element: "earth" });
+  const t = foe({ element: "earth", affinity: {weak:["wind"],resist:[]} });
   const b = battle([p], [t]);
   assert.equal(b._perkSum(p, "deal", { tgt: t, el: "wind", on: ["phys"] }), 0.3, "見抜き: 弱点の属性で +30%");
   assert.equal(b._perkSum(p, "deal", { tgt: t, el: "fire", on: ["phys"] }), 0, "見抜き: 弱点でなければ 0");
@@ -354,7 +354,7 @@ const bigFoe = (o) => foe({ atk: 9000, ...o });
 }
 // X17 慧眼の: オートの判断が例外なく回る (見積もりの窓口だけ変わる)
 {
-  const p = misc(doll(), { insight: true }), t = foe({ element: "earth" });
+  const p = misc(doll(), { insight: true }), t = foe({ element: "earth", affinity: {weak:["wind"],resist:[]} });
   const b = battle([p], [t]);
   b.current = p;
   assert.ok(decideAuto(b, p), "慧眼: オートが手を選ぶ");
@@ -370,7 +370,7 @@ const bigFoe = (o) => foe({ atk: 9000, ...o });
 {
   const p = Object.assign(misc(doll(), { binder: true }), { jobLv: 10 }), t = foe({ lv: 60 });
   const b = battle([p], [t]);
-  assert.equal(Math.round(b._rate(p, t, 0.5) * 100), 50, "縛り目: Lv差で下がらない");
+  assert.equal(Math.round(b._rate(p, t, 0.5) * 100), 75, "縛り目: 付与力1.5倍");
   assert.ok(b._rate(p, t, 0.5, "death") < 0.5, "縛り目: 即死は除く");
 }
 // X33 裏返しの

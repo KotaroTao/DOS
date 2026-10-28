@@ -4,13 +4,13 @@ export const AIL_RESIST_KINDS = Object.keys(RESIST_LABEL).filter(k => !["physRes
 export const clampResist = v => Math.max(0, Math.min(100, Math.round(Number(v) || 0)));
 export const zeroResists = () => Object.fromEntries(Object.keys(RESIST_LABEL).map(k => [k, 0]));
 
-// 装備の追加効果は旧来の1件と複数件の両方を読む。同じ異常は最も高い発動率だけ。
+// 装備の追加効果は旧来の1件と複数件の両方を読む。同じ異常の付与力は加算する。
 export function onHitEffects(value) {
   const effects = {};
   for (const o of Array.isArray(value) ? value : value ? [value] : []) {
     if (!o?.k) continue;
     const cur = effects[o.k];
-    if (!cur || o.chance > cur.chance || (o.chance === cur.chance && (o.pct || 0) > (cur.pct || 0))) effects[o.k] = o;
+    effects[o.k] = { ...o, chance: (cur?.chance || 0) + (o.chance || 0), pct: Math.max(cur?.pct || 0, o.pct || 0) };
   }
   return Object.values(effects);
 }
@@ -125,7 +125,7 @@ export function resistTiers(m) {
   return t;
 }
 // 強さの基礎値 (0〜60)
-export const resistBase = m => Math.min(60, Math.max(0, (m.rank || 1) - 1) * 6 + (m.boss ? 40 : m.elite ? 25 : 0));
+export const resistBase = m => ["bs_dustroach", "bs_littlecentipede", "bs_woodbee"].includes(m.id) ? 0 : (m.boss ? 40 : m.elite ? 25 : 20);
 export function tierValue(tier, m) {
   const b = resistBase(m);
   if (tier === "imm") return 100;

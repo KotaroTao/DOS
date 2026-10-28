@@ -1,3 +1,4 @@
+import { elementMultiplier } from "../combatrules.js";
 import { monsterResists } from "../resistance.js";
 import { MONSTER_TEMPERAMENTS } from "./temperaments.js";
 // モンスター共通スキーマ + 種族定義 + 共有ドット絵ライブラリ
@@ -54,18 +55,15 @@ const ELEM_BEATS = {
 };
 export function elemBeats(a, b) { return !!(ELEM_BEATS[a] && ELEM_BEATS[a].includes(b)); }
 export function elementAffinity(element) {
-  const weak = [], resist = [];
-  if (!element || element === "none" || !ELEMENTS[element]) return { weak, resist };
-  for (const k of Object.keys(ELEMENTS)) {
-    if (k === "none") continue;
-    if (elemBeats(k, element)) weak.push(k);
-    else if (elemBeats(element, k)) resist.push(k);
-  }
-  return { weak, resist };
+  // 属性名だけでは弱点・耐性を決めない。個体のaffinityが唯一の指定元。
+  return { weak: [], resist: [] };
 }
+
 export function normalizeAffinity(affinity, fallbackElement = "none", id = "monster") {
-  const src = affinity || elementAffinity(fallbackElement);
+  const src = affinity || { weak: [], resist: [] };
   const out = { weak: [], resist: [] };
+  for (const k of ["resistance", "weakness"]) if (src[k]) out[k] = { ...src[k] };
+  for (const k of ["immune", "absorb"]) if (src[k]) out[k] = [...src[k]];
   const seen = new Set();
   const put = (side, k) => {
     if (!k || k === "none" || !ELEMENTS[k]) throw new Error(`属性相性が不正: ${id} ${side} ${k}`);
@@ -85,16 +83,9 @@ export function elemMult(atk, def) {
   return 1;
 }
 
-// ===== 属性攻撃 / 属性防御 (装備で得るレベル付きステータス) =====
-// 属性攻撃 Lv1=◯: 有利属性へのダメージ+50% / 不利属性へ-50%。Lv2=◎: ±100%。
-//   aE/aLv  : 攻撃側の属性と属性攻撃レベル (呪文・モンスター固有属性は Lv1 扱い)
-//   tgtElem : 対象の固有属性。個別相性がない対象の互換用
-//   tgtAffinity : 対象の個別相性 {weak, resist}。攻撃側の有利不利はこれを優先する
-//   tgtDef  : 対象の属性防御 {el, lv} (装備由来)。攻撃属性に有利な時のみ被ダメージを軽減
-// 属性防御は「軽減のみ」: 有利属性で受けると減るが、不利属性で受けても増えない
-//   (装備した属性防具が裏目に出てダメージが増えることはない)。
-//   軽減量は Lv1=◯ 25% / Lv2=◎ 50% (Lv2 が上限)。
-// 光↔闇は相互有利の例外: 攻撃側は常に「有利」、防御側は常に「軽減」扱いになる。
+// ===== 属性攻撃力 / 属性耐性力 =====
+// 属攻は100%が基準。耐性力RはR/(100+R)を軽減、単独の軽減上限80%。
+// 装備は同属性を加算し、異属性も同時保持。固有属性から相性を推測しない。
 // ===== 物理・魔法抵抗値 (physResist / magResist は0〜100) =====
 // 値と同じ割合を軽減し、100で無効。会心・貫通でも無効は貫けない。
 export function resistRate(value) { return Math.max(0, Math.min(100, value || 0)) / 100; }
@@ -122,20 +113,9 @@ export const METAL_TIERS = {
   2: { hp: 12, evade: 0.40, flee: 0.30, agiMul: 1.8, soulMul: 25, goldMul: 2.5, max: 2, layer: 4, w: [17, 27, 35] },
   3: { hp: 30, hpRank: 0.5, evade: 0.25, flee: 0.30, agiMul: 1.6, soulMul: 60, goldMul: 4, max: 1, layer: 4, w: [3, 8, 15] },
 };
-export function elemDmgMult(aE, aLv, tgtElem, tgtDef, tgtAffinity = null) {
-  if (!aE || aE === "none") return 1;
-  let m = 1;
-  if (aLv > 0) {
-    const k = 0.5 * Math.min(2, aLv);
-    const aff = tgtAffinity || (tgtElem && tgtElem !== "none" ? elementAffinity(tgtElem) : null);
-    if (aff && (aff.weak || []).includes(aE)) m *= 1 + k;
-    else if (aff && (aff.resist || []).includes(aE)) m *= Math.max(0, 1 - k);
-  }
-  if (tgtDef && tgtDef.lv > 0 && tgtDef.el && tgtDef.el !== "none") {
-    const k = 0.25 * Math.min(2, tgtDef.lv); // Lv1→25% / Lv2→50% 軽減
-    if (elemBeats(tgtDef.el, aE)) m *= Math.max(0, 1 - k); // 防御側が有利 → 軽減 (不利でも増加はしない)
-  }
-  return m;
+export function elemDmgMult(aE, attack, tgtElem, tgtDef, tgtAffinity = null) {
+  // 旧呼び出しの1/2も読み取る。固有属性だけから相性を推測しない。
+  return elementMultiplier(aE, attack <= 2 ? 100 : attack, tgtDef, tgtAffinity);
 }
 
 // ===== 色ユーティリティ (パレットの部分差し替え用) =====
@@ -33859,6 +33839,7 @@ export function defMonster(def) {
   //   (ability に "warcry"=鼓舞 / "weaken"=弱体 / "sleep"=眠り / "charm"=魅了 / "confuse"=混乱 も指定可)
   //   (ability に "charge"=溜め (予兆の後に大技) / "sunder"=守り崩し (VIT −1段) / "dispel"=打ち消し (隊の強化を剥ぐ) も指定可)
   //   resistTiers : 状態異常の効きやすさを個体ごとに上書きする。値は weak/slight/base/strong/imm。
+  for (const key of ["elemAtk", "elemDef", "accuracyPower", "hitBonus"]) if (def[key] != null) m[key] = def[key];
   if (def.magResist) m.magResist = def.magResist;
   if (def.enrage) m.enrage = true;
   if (def.endure) m.endure = true;

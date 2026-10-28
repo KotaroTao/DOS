@@ -79,11 +79,11 @@ for (const [id, name, s] of MUL) def({ id, name, tier: "r", kind: "abs", r: [0.0
 // ---- D. 属性 (稀) ----
 const ATK_EL = [["D01", "灼熱の", "fire"], ["D02", "流水の", "water"], ["D03", "烈風の", "wind"], ["D04", "大地の", "earth"], ["D05", "聖光の", "light"], ["D06", "暗黒の", "dark"]];
 for (const [id, name, el] of ATK_EL) def({ id, name, tier: "u", kind: "fixB", r: [0.25, 0.25], slots: ["w", "acc"], group: "eAtk",
-  apply: (it) => { if (!it.eAtk) it.eAtk = { el, lv: 1 }; }, text: () => `属攻 ${EL_JA[el]}◯` });
+  apply: (it) => { if (!it.eAtk) it.eAtk = { el, lv: 1 }; }, text: () => `属攻 ${EL_JA[el]}+50%` });
 // 属防は攻撃の属性に勝つ属性でないと効かない: 火の攻撃 → 水 / 水 → 土 / 風 → 火 / 土 → 風 / 闇 → 光 / 光 → 闇
 const DEF_EL = [["D07", "耐火の", "water", "火"], ["D08", "耐水の", "earth", "水"], ["D09", "耐風の", "fire", "風"], ["D10", "耐地の", "wind", "土"], ["D11", "退魔の", "light", "闇"], ["D12", "光除けの", "dark", "光"]];
 for (const [id, name, el, from] of DEF_EL) def({ id, name, tier: "u", kind: "fixB", r: [0.2, 0.2], slots: ["a", "acc"], group: "eDef",
-  apply: (it) => { if (!it.eDef) it.eDef = { el, lv: 1 }; }, text: () => `${from}の攻撃を和らげる (属防 ${EL_JA[el]}◯)` });
+  apply: (it) => { if (!it.eDef) it.eDef = { el, lv: 1 }; }, text: () => `${EL_JA[el]}耐性力+100%（単体で50%軽減）` });
 
 // ---- E. 抵抗 ----
 const RES = [["E01", "毒除けの", "poison"], ["E02", "しびれ除けの", "paralyze"], ["E03", "眠らずの", "sleep"], ["E04", "惑わずの", "charm"], ["E05", "正気の", "confuse"], ["E06", "石除けの", "stone"], ["E07", "封じ除けの", "seal"], ["E08", "怯まずの", "flinch"]];
@@ -240,7 +240,7 @@ const X = [
   // 装飾
   ["X30", "宿り火の", ["acc"], 16, XM("kindle"), "サブ魂から借りられる技・パッシブが1つ増える (ランクの高い方のサブ魂。同じならサブ魂1)"],
   ["X31", "時告げの", ["acc"], 12, XM("timeKeeper"), "自分が掛ける強化・弱体の持続+1ターン"],
-  ["X32", "縛り目の", ["acc"], 12, XM("binder"), "自分が掛ける状態異常は、Lv差で成功率が下がらない (即死は除く)"],
+  ["X32", "縛り目の", ["acc"], 12, XM("binder"), "自分が掛ける状態異常の付与力×1.5 (即死は除く)"],
   ["X33", "裏返しの", ["acc"], 10, XM("flip"), "1つの能力が−3段 (底) まで下がると、1戦闘に1度 +3段の強化に裏返す"],
   ["X34", "宝呼びの", ["acc"], 8, XM("treasure"), "戦闘後の宝箱が出る率+20%・宝箱のランク+1 (隊で重ならない)"],
   ["X35", "語り部の", ["acc"], 8, XM("teller"), "戦闘で入る魂の経験値が隊の全員+10% (隊で重ならない)"],

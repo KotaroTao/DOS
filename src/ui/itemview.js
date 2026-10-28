@@ -1,3 +1,4 @@
+import { elementValues, elementalReduction } from "../combatrules.js";
 import { bukonText } from "../bukon.js";
 import { revealSteps } from "../monsterreveal.js";
 import { MONSTER_LORE, monsterLoreReady } from "../dungeons/monlore.js";
@@ -9,8 +10,8 @@ import { RESIST_LABEL, onHitEffects } from "../resistance.js";
 
 import { game } from "./ctx.js";
 import { el, sheet, setText, statDelta } from "./kit.js";
-import { ELEMENTS, elementAffinity, RACE_LABEL, unknownLabel, UNK_OPEN, UNK_CLOSE } from "../dungeons/index.js";
-import { SPELLS, spellMpLabel, spellCureKinds, soulTierRate, healsHp, MP_DRAIN_CAP, stanceMulOf, spellAilments, LV_HALF } from "../combat.js";
+import { ELEMENTS, RACE_LABEL, unknownLabel, UNK_OPEN, UNK_CLOSE } from "../dungeons/index.js";
+import { SPELLS, spellMpLabel, spellCureKinds, soulTierRate, healsHp, MP_DRAIN_CAP, stanceMulOf, spellAilments } from "../combat.js";
 import { STAGED, stageOf, stageMul, stageLabel, ENEMY_STAT_LABEL, effectStage, isBattleLong } from "../buffstage.js";
 import { ATTR_LABEL, SOUL_CLASSES, dollBust, PASSIVES, passiveName, passiveByName } from "../souls.js";
 import { WEAPON_CAT_LABEL, SHIELD_KIND_LABEL, HAND_LABEL, handOf, shieldKind, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip, equipLevelOf, AIL_LABEL, attackPower, fightPower, useLines, itemName, hasQuality, qualityOf, QUALITY_MID, QUALITY_SPREAD } from "../items.js";
@@ -31,41 +32,25 @@ export const ELEM_ADV = {
   light: ["dark", null], dark: ["light", null],
 };
 export function elemName(el) { return (ELEMENTS[el] || ELEMENTS.none).label; }
-// "火属性攻撃 +1" のような短い表記 (Lv1=+1, Lv2(◎)=+2)。e = {el, lv}
+// 属攻補正・属性耐性力を百分率で表示する。旧Lv形式も共通変換で読む。
 export function elemStatText(kind, e) {
-  if (!e || !e.el) return null;
-  return `${elemName(e.el)}属性${kind}+${Math.min(2, e.lv)}`;
+  const entries = Object.entries(elementValues(e, kind === "攻撃" ? "attack" : "defense"));
+  return entries.length ? entries.map(([k, v]) => `${elemName(k)}${kind === "攻撃" ? "属攻" : "耐性力"}+${v}%`).join(" / ") : null;
 }
-// 相性のくわしい説明行 (複数行)。
-// 防御: 「水属性防御 +1」「火属性から受けるダメージ -50%」(不利属性のダメージ増加は表示・適用しない)
-// 攻撃: 「水属性攻撃 +1」「火属性に与えるダメージ +50%」「土属性に与えるダメージ -50%」
 export function elemDetailLines(kind, e) {
-  if (!e || !e.el || !ELEM_ADV[e.el]) return [];
-  const [adv, weak] = ELEM_ADV[e.el];
-  const pct = e.lv >= 2 ? 100 : 50;
-  const lines = [`${elemName(e.el)}属性${kind}　+${Math.min(2, e.lv)}`];
-  if (kind === "攻撃") {
-    lines.push(`${elemName(adv)}属性に与えるダメージ　+${pct}%`);
-    if (weak) lines.push(`${elemName(weak)}属性に与えるダメージ　-${pct}%`);
-  } else {
-    lines.push(`${elemName(adv)}属性から受けるダメージ　-${pct / 2}%`); // schema.js elemDmgMult: 防御は Lv1 25% / Lv2 50%
-    // 不利属性からのダメージ増加は適用しない (軽減のみ)
-  }
-  return lines;
+  return Object.entries(elementValues(e, kind === "攻撃" ? "attack" : "defense")).map(([k, v]) => kind === "攻撃"
+    ? `${elemName(k)}属攻+${v}%（基準100%に加算。属性の付与は武器・技で決まる）`
+    : `${elemName(k)}耐性力${v}%（単体で${Math.round(elementalReduction(v) * 1000) / 10}%軽減。同属性を加算、軽減上限80%）`);
 }
-// ステータス画面用の色付きチップ ("火◯" / "—")
-export function elemStatChip(e) {
-  if (!e || !e.el) return "<b>—</b>";
-  const d = ELEMENTS[e.el] || ELEMENTS.none;
-  return `<b style="color:${d.color}">${d.label}${e.lv >= 2 ? "◎" : "◯"}</b>`;
+export function elemStatChip(e) { return `<b>${elemStatShort(e)}</b>`; }
+export function elemStatEq(a, b) { return JSON.stringify(elementValues(a, a?.kind)) === JSON.stringify(elementValues(b, b?.kind)); }
+export function elemStatShort(e) {
+  const defense = e?.kind === "defense";
+  const values = elementValues(e, defense ? "defense" : "attack");
+  return Object.entries(values).map(([k, v]) => defense
+    ? `${elemName(k)}耐性力${v}%／${Math.round(elementalReduction(v) * 1000) / 10}%軽減`
+    : `${elemName(k)}${100 + v}%`).join(" / ") || "—";
 }
-// 属性攻撃/防御 (装備由来の {el, lv}) が等価か
-export function elemStatEq(a, b) {
-  if (!a && !b) return true;
-  if (!a || !b) return false;
-  return a.el === b.el && a.lv === b.lv;
-}
-export function elemStatShort(e) { return e && e.el ? `${elemName(e.el)}${e.lv >= 2 ? "◎" : "◯"}` : "—"; }
 
 // ===== スキル詳細 =====
 export const SPELL_KIND_LABEL = { atk: "攻撃呪文", heal: "回復呪文", phys: "物理技", buff: "支援", debuff: "弱体", sleep: "状態異常", cure: "治療", mana: "魔力譲渡", escape: "逃走", field: "迷宮の術" };
@@ -136,7 +121,7 @@ export function spellTagKinds(sp, actor) {
   if (sp.pierce > 0 && (kind === "phys" || kind === "mag")) kind += "Pierce";
   const out = [kind];
   let elk = sp.element;
-  if (!hasElem(elk) && sp.kind === "phys" && actor && actor.elemAtk) elk = actor.elemAtk.el;
+  if (!hasElem(elk) && sp.kind === "phys" && actor) elk = actor.attackElement;
   if (hasElem(elk)) out.push("el:" + elk);
   // 全体を対象にする技 (敵全体・味方全員) には「全体」の札 (ユーザーの指示、2026-10)
   if (sp.target === "all-enemy" || sp.target === "all-ally") out.push("all");
@@ -151,22 +136,25 @@ export function traitTagKinds(key, element) {
 }
 // 固有属性から見た弱点 (受けるダメージ増) と耐性 (受けるダメージ減) の属性
 export function elemAffinity(element, affinity = null) {
-  return affinity || elementAffinity(element);
+  return affinity || { weak: [], resist: [] };
 }
 // 「弱点 [土]　耐性 [火]」の行 (無属性・相性なしなら null)
 export function affinityRow(element, cls = "", affinity = null) {
-  const { weak, resist } = elemAffinity(element, affinity);
-  if (!weak.length && !resist.length) return null;
+  const aff = elemAffinity(element, affinity);
+  const weak = [...new Set([...(aff.weak || []), ...Object.keys(aff.weakness || {})])];
+  const resist = [...new Set([...(aff.resist || []), ...Object.keys(aff.resistance || {})])];
+  if (!weak.length && !resist.length && !aff.immune?.length && !aff.absorb?.length) return null;
   const r = el("div", "ui-affinity" + (cls ? " " + cls : ""));
   const part = (label, list, tone) => {
     if (!list.length) return;
     const g = el("span", "ui-aff " + tone);
     g.appendChild(el("span", "ui-aff-l", label));
-    g.appendChild(tagRow(list.map((k) => "el:" + k)));
+    for (const k of list) g.appendChild(el("span", "ui-aff-l", tone === "weak" ? `${elemName(k)}ダメージ×${aff.weakness?.[k] ?? 1.5}` : `${elemName(k)}耐性力${aff.resistance?.[k] ?? 100}%／${Math.round(elementalReduction(aff.resistance?.[k] ?? 100) * 1000) / 10}%軽減`));
     r.appendChild(g);
   };
   part("弱点", weak, "weak");
   part("耐性", resist, "resist");
+  for (const [label, values] of [["属性無効", aff.immune], ["属性吸収", aff.absorb]]) if (values?.length) r.appendChild(el("span", "ui-aff-l", `${label}：${values.map(elemName).join("・")}`));
   return r;
 }
 
@@ -254,8 +242,8 @@ export function skillDescription(sp) {
   const bonuses = [];
   if ((sp.kind === "phys" || sp.kind === "atk") && !sp.gravity && sp.critBonus > 0)
     bonuses.push(sp.critBonus >= 1 ? "必ず会心" : `会+${pct(sp.critBonus)}`);
-  if (sp.kind === "phys" && sp.acc > 0)
-    bonuses.push(sp.acc >= 1 ? "必中" : `命+${pct(sp.acc)}`);
+  if (sp.kind === "phys" && (sp.acc > 0 || sp.sureHit))
+    bonuses.push(sp.sureHit ? "必中" : `命+${pct(sp.acc)}`);
   return [bonuses.join("・"), sp.desc].filter(Boolean).join("　");
 }
 const raceList = (rs) => [...new Set((rs || []).map((r) => RACE_LABEL[r] || r))].join("・");
@@ -285,7 +273,8 @@ export function skillDetailLines(sp) {
     if (sp.agiScale) lines.push("使い手のAGIでも威力が伸びる");
     if (sp.vitScale) lines.push("使い手のVITでも威力が伸びる");
     if (sp.pieScale) lines.push("使い手のPIEでも威力が伸びる");
-    if (sp.acc) lines.push(sp.acc >= 1 ? "必中（素早さ・暗闇・見切りに関係なく当たる）" : `命中率+${pct(sp.acc)}（命+${pct(sp.acc)}：命中率に直接加算、上限95%。見切りは別判定）`);
+    if (sp.sureHit) lines.push("必中（回避・暗闇を無視。次の物理攻撃を無効化する守りは有効）");
+    else if (sp.acc) lines.push(`命中力+${pct(sp.acc)}（命中力×〈1−回避力〉、最終20〜95%）`);
     if (sp.pierce) lines.push(`物理貫通 ${pct(sp.pierce)}（物理耐性による軽減を${pct(sp.pierce)}無視。防御は受け、物理無効は貫けない）`);
     if (sp.critBonus) lines.push(sp.critBonus >= 1 ? "必ず会心になる" : `会心率 +${pct(sp.critBonus)}`);
     if (sp.desperate) lines.push("自分のHPが減っているほど威力が上がる（最大2倍）");
@@ -329,7 +318,7 @@ export function skillDetailLines(sp) {
   if (sp.charm) lines.push(`${pct(sp.charm)}で魅了する（その敵が仲間に襲いかかる・傷を受けると解けやすい・主には効きにくい）`);
   if (sp.confuse) lines.push(`${pct(sp.confuse)}で混乱させる（敵味方を問わず殴る・ふらつく・抵抗値で成功率が下がる）`);
   if (sp.flinchChance) lines.push(`${pct(sp.flinchChance)}で怯ませる（主には効かない）`);
-  if (sp.poison || sp.para || sp.seal || sp.instakill || sp.sleepChance || sp.charm || sp.confuse || sp.kind === "sleep") lines.push(`※ 表示は抵抗値0・同じLvでの基本確率。魂のLvと迷宮の推奨Lvの差${LV_HALF}ごとに倍・半分（5〜95%）に調整し、抵抗値で軽減。抵抗値100は無効`);
+  if (sp.poison || sp.para || sp.seal || sp.instakill || sp.sleepChance || sp.charm || sp.confuse || sp.kind === "sleep") lines.push("※ 数字は付与力。付与力×（1−耐性）で成功率を求め、最後に最大95%。Lv差の補正なし。同じ行動・対象・異常は一回だけ判定。主の行動妨害は最大一手番、回復後は次の手番終了まで再付与無効");
   if (sp.plunder) lines.push("この技で倒した敵は、落とす金貨が2倍になる");
   if (sp.partyHeal) lines.push(`攻撃の後、味方全員のHPを ${sp.partyHeal} 回復（術者のPIEで伸びる）`);
   if (sp.bladeHeal) lines.push(`与えたダメージの${pct(sp.bladeHeal)}だけ味方全員のHPを回復（1人あたり最大HPの${pct(sp.healCap || 0.25)}まで）`);
@@ -874,7 +863,7 @@ export function gearScore(doll, delta) {
   }
   s += ((delta.crit || 0) + (delta.spellCrit || 0)) * 0.5;
   s += ((delta.critDamage || 0) + (delta.spellCritDamage || 0)) * 0.1;
-  const lv = (e) => (e && e.el ? Math.min(2, e.lv || 1) : 0);
+  const lv = (e) => Object.values(elementValues(e, e?.kind)).reduce((n, v) => n + v / (e?.kind === "defense" ? 100 : 50), 0);
   for (const ch of [delta.elemAtk, delta.elemDef]) if (ch) s += (lv(ch.to) - lv(ch.from)) * 4;
   // 状態異常耐性 (合計10%ごとに1点) / 追加効果 (確率10%ごとに1.5点)
   const resSum = (r) => (r ? Object.values(r).reduce((a, v) => a + v, 0) : 0);

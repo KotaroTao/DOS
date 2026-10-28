@@ -30,12 +30,12 @@ const close=(actual,expected,label,tolerance=.035)=>assert(Math.abs(actual-expec
  assert.equal(a.multistrike,0);
  assert.equal(other.lifesteal,.15);
  other.hp=1;
- const hit=b._physical(other,t,{acc:1});
+ const hit=b._physical(other,t,{sureHit:true});
  assert(hit.lifesteal>0);
  assert.equal(other.hp,Math.min(other.maxhp,1+hit.lifesteal));
  assert(logs.findIndex(s=>s.includes('ダメージ'))<logs.findIndex(s=>s.includes('HP吸収')));
  logs.length=0;t.physResist=100;other.hp=1;
- assert(b._physical(other,t,{acc:1}).immune);
+ assert(b._physical(other,t,{sureHit:true}).immune);
  assert.equal(other.hp,1);
  assert(!logs.some(s=>s.includes('吸収')));
  t.physResist=0;
@@ -96,9 +96,9 @@ assert(luckCritBonus(30)>0 && luckCritBonus(100)>luckCritBonus(30));
 assert(luckCritBonus(1000000)<=.25);
 {
  const a=actor(),t=foe(),b=new Battle([a],[t],()=>{},{fleeK:10/3});
- assert.equal(b._evadeBase(t,a),.2);
+ assert.equal(b._evadeBase(t,a),.1);
  a.agi=200;assert.equal(b._evadeBase(t,a),0);
- a.agi=50;assert.equal(b._evadeBase(t,a),.4);
+ a.agi=50;assert.equal(b._evadeBase(t,a),.2);
  assert.equal(b._evadeBase(a,t),0);
  t.physResist=75;
  assert.equal(b._resistCut(t,100,'physResist',0).dmg,25);
@@ -115,14 +115,14 @@ assert(luckCritBonus(1000000)<=.25);
  try {
   for(const [attacker,target] of [[a,t],[t,a]]){
    attacker.agi=10000;target.agi=1;
-   assert.equal(b._missP(target,attacker),.06);
+   assert.equal(b._missP(target,attacker),.05);
    assert.equal(b._missP(target,attacker,{acc:.99}),.05);
    Math.random=()=>.049;
    assert(b._physical(attacker,target,{acc:.99}).miss);
    Math.random=()=>.05;
    assert(!b._physical(attacker,target,{acc:.99}).miss);
    Math.random=()=>0;
-   assert(!b._physical(attacker,target,{acc:1}).miss);
+   assert(!b._physical(attacker,target,{sureHit:true}).miss);
   }
   setPartyHitBonus(1);
   assert.equal(b._missP(t,a),.05);
@@ -144,7 +144,7 @@ const samples=12000;
   a.luk=8;a.critBonus=0;a.passiveMap=rank?{samuraiZantetsu:rank}:{};a.wMagic=magic;
   t.physResist=t.magResist=resist;
   const oldRandom=Math.random;Math.random=()=>.5;
-  try{return b._physical(a,t,{power:2,acc:1,skill:!magic,...opt}).dmg||0;}finally{Math.random=oldRandom;}
+  try{return b._physical(a,t,{power:2,sureHit:true,skill:!magic,...opt}).dmg||0;}finally{Math.random=oldRandom;}
  };
  const base=fixedHit(0),critical=fixedHit(0,{critBonus:1});
  assert.equal(critical,Math.floor(base*1.85));
@@ -180,8 +180,8 @@ const samples=12000;
  b._evadeBase=()=>.34;
  for(const [lv,bonus] of [[0,0],[1,.1],[2,.15],[3,.2]]){
   a.passiveMap={dynamicVision:lv};
-  assert(Math.abs(b._missP(t,a)-(.4-bonus))<1e-12);
-  assert(Math.abs(b._missP(t,a,{acc:.1})-(.3-bonus))<1e-12);
+  assert(Math.abs(b._missP(t,a)-(1-Math.min(.95,(1+bonus)*.66)))<1e-12);
+  assert(Math.abs(b._missP(t,a,{acc:.1})-(1-Math.min(.95,(1.1+bonus)*.66)))<1e-12);
  }
  b._evadeBase=()=>0;
  assert.equal(b._missP(t,a),.05,'素の外れも減らすが、命中率95%で止める');
@@ -190,9 +190,9 @@ const samples=12000;
  a.passiveMap={};
  assert.equal(b._missP(t,a),metalMiss,'金属の魔物は対象外');
  t.metal=0;t.side='party';a.passiveMap={dynamicVision:3};
- assert.equal(b._missP(t,a),.06,'味方への攻撃は対象外');
+ assert.equal(b._missP(t,a),.05,'味方への攻撃は対象外');
  t.side='enemy';a.side='enemy';
- assert.equal(b._missP(t,a),.06,'敵の攻撃は対象外');
+ assert.equal(b._missP(t,a),.05,'敵の攻撃は対象外');
  console.log('動体視力Lv1/2/3の命中率+10%/15%/20%、技との加算・上限・対象外を確認');
 }
 // 命中率の直接加算、上限、暗闇、必中と見切り。表示の数字も同じ定義を読む。
@@ -201,24 +201,24 @@ const samples=12000;
  const a=actor(),t=foe(),b=new Battle([a],[t],()=>{});
  b._evadeBase=()=>.34; // 素の外れ6%と合わせて命中率60%
  const near=(x,y)=>assert(Math.abs(x-y)<1e-10,`${x} != ${y}`);
- near(1-b._missP(t,a),.6);
- near(1-b._missP(t,a,{acc:.1}),.7);
- near(1-b._missP(t,a,{acc:.23}),.83);
+ near(1-b._missP(t,a),.66);
+ near(1-b._missP(t,a,{acc:.1}),.726);
+ near(1-b._missP(t,a,{acc:.23}),.8118);
  near(1-b._missP(t,a,{acc:.5}),.95);
  b._applyMod(a,'hit',.8,3,'暗闇');
- near(1-b._missP(t,a,{acc:.1}),.5);
- near(1-b._missP(t,a,{acc:1}),1);
+ near(1-b._missP(t,a,{acc:.1}),1.1*.8*.66);
+ near(1-b._missP(t,a,{sureHit:true}),1);
  t.side='party';t.passiveMap={parry:2};
  const random=Math.random;Math.random=()=>0;
  try {
   assert(b._physical(a,t,{acc:.1}).miss,'通常の命中加算では見切りが残る');
-  assert(b._physical(a,t,{acc:1}).dmg>0,'必中は暗闇・見切りを無視する');
+  assert(b._physical(a,t,{sureHit:true}).dmg>0,'必中は暗闇・見切りを無視する');
  } finally {Math.random=random;}
  assert.equal(skillDescription({kind:'phys',acc:.1,critBonus:.3,desc:'斬る'}),'会+30%・命+10%　斬る');
- assert(skillDetailLines({kind:'phys',acc:.1}).some(x=>x.includes('命中率+10%')));
+ assert(skillDetailLines({kind:'phys',acc:.1}).some(x=>x.includes('命中力+10%')));
  assert(skillDescription(SPELLS.NERAIUCHI).startsWith('命+21%'));
- assert(skillDescription({kind:'phys',acc:1}).includes('必中'));
- console.log('命中率60% + 10% = 70%、上限95%、暗闇・見切り・必中・表記を確認');
+ assert(skillDescription({kind:'phys',sureHit:true}).includes('必中'));
+ console.log('命中力110%×（1−回避力34%）=72.6%、上限95%、暗闇・見切り・必中・表記を確認');
 }
 function samplePhys(changes={},opt={}){
  const a=actor(),t=Object.assign(foe(),changes),b=new Battle([a],[t],()=>{},{fleeK:10/3});
@@ -230,15 +230,15 @@ function samplePhys(changes={},opt={}){
  return sum/samples;
 }
 for(const r of [0,20,50,75,80,100])for(const pierce of [0,.25,1])samplePhys({physResist:r},{power:1.5,acc:.1,pierce,skill:true});
-for(const rank of [1,2,3,4])for(const pierce of [0,.5,1])samplePhys({physResist:75,actor:{passiveMap:{samuraiZantetsu:rank}}},{power:1.5,acc:1,pierce,critBonus:1,skill:true});
-samplePhys({passiveMap:{parry:2},actor:{effects:[{stat:'hit',mult:.6,turns:3}]}},{power:1.5,acc:1,skill:true});
+for(const rank of [1,2,3,4])for(const pierce of [0,.5,1])samplePhys({physResist:75,actor:{passiveMap:{samuraiZantetsu:rank}}},{power:1.5,sureHit:true,pierce,critBonus:1,skill:true});
+samplePhys({passiveMap:{parry:2},actor:{effects:[{stat:'hit',mult:.6,turns:3}]}},{power:1.5,sureHit:true,skill:true});
 samplePhys({luk:8,actor:{luk:100000,critBonus:.5}},{power:1.5,skill:true});
-samplePhys({physResist:75},{power:1.5,critBonus:1,acc:1,skill:true});
-samplePhys({physResist:100},{power:1.5,critBonus:1,acc:1,skill:true});
-samplePhys({metal:1},{power:1.5,critBonus:1,acc:1,skill:true});
+samplePhys({physResist:75},{power:1.5,critBonus:1,sureHit:true,skill:true});
+samplePhys({physResist:100},{power:1.5,critBonus:1,sureHit:true,skill:true});
+samplePhys({metal:1},{power:1.5,critBonus:1,sureHit:true,skill:true});
 samplePhys({magResist:75,actor:{wMagic:true}},{basic:true});
 samplePhys({magResist:100,actor:{wMagic:true}},{basic:true});
-samplePhys({physResist:75,asleep:true},{power:1.5,acc:1,skill:true});
+samplePhys({physResist:75,asleep:true},{power:1.5,sureHit:true,skill:true});
 {
  const a=actor(),t=foe();t.side='party';t.passiveMap={parry:2,samuraiShingan:2};a.side='enemy';
  const b=new Battle([t],[a],()=>{},{fleeK:10/3});let sum=0;

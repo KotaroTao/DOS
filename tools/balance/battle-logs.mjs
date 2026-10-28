@@ -15,7 +15,7 @@ const setup = (element = 'fire', affinity = { weak: [], resist: [] }) => {
 };
 const spellKey = element => Object.keys(SPELLS).find(k => SPELLS[k].kind === 'atk' && SPELLS[k].element === element && !SPELLS[k].gravity);
 for (const element of Object.keys(ELEMENTS).filter(k => k !== 'none')) {
-  for (const [affinity, suffix] of [[{ weak: [element], resist: [] }, '弱点×1.5'], [{ weak: [], resist: [element] }, '耐性×0.5'], [{ weak: [], resist: [] }, null]]) {
+  for (const [affinity, suffix] of [[{ weak: [element], resist: [] }, '属性×1.5'], [{ weak: [], resist: [element] }, '属性×0.5'], [{ weak: [], resist: [] }, null]]) {
     for (const route of ['physical', 'spell', 'item', 'enemy-physical', 'enemy-breath', 'enemy-spell', ...(element === 'fire' ? ['dragon'] : [])]) {
       const { a, t, b, logs } = setup(element, affinity);
       if (route.startsWith('enemy-')) a.affinity = affinity;
@@ -43,7 +43,7 @@ for (const element of Object.keys(ELEMENTS).filter(k => k !== 'none')) {
   assert(!logs.some(s => s.includes('弱点')));
   logs.length = 0; t.metal = 0; t.physResist = 50;
   b._physical(a, t, { acc: 1, pierce: .5, critBonus: 1 });
-  assert(logs.some(s => s.includes('会心・火弱点×1.5・物理軽減25%')));
+  assert(logs.some(s => s.includes('会心・火属性×1.5・物理軽減25%')));
   logs.length = 0; t.physResist = 100;
   assert(b._physical(a, t, { acc: 1 }).immune);
   assert(logs.some(s => s.includes('物理無効')));

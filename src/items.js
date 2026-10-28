@@ -1,3 +1,4 @@
+import { elementValues, elementStat } from "./combatrules.js";
 import { bukonItem, LEGENDARY_MISC_KEYS } from "./bukon.js";
 import { itemNumber } from "./itemnumbers.js";
 import { rarityOrder } from "./rarity.js";
@@ -21,7 +22,7 @@ import { zeroResists, clampResist, onHitEffects } from "./resistance.js";
 // 性能キー: atk/vit/agi/int/pie/luk (六大ステ加算) / hp/mp (最大値加算) / crit (会心率加算)
 // lv: 隠しレベル (1-200)。迷宮の出現帯・出現率・表示ランクを決める
 // cat: 武器のみ。サブカテゴリ (WEAPON_CATS のキー)
-// eAtk/eDef: 属性攻撃/属性防御 { el, lv } (lv1=◯ ±50%, lv2=◎ ±100%)
+// eAtk/eDef: 属攻補正/属性耐性力 {el,pct}。旧{el,lv}も読む。
 // aRes: 状態異常耐性 { poison/paralyze/sleep/charm/confuse/stone: 付与率カット (0.25 = 25%) }。同じ種類は装備どうしで足し合い、上限 AIL_RES_CAP
 // bRes: ブレス耐性 (敵のブレスから受けるダメージのカット率 0.15 = 15%)。装備どうしで足し合い、上限 BREATH_RES_CAP (combat.js)
 // onHit: 武器などの追加効果 { k: poison/paralyze/sleep/charm/confuse, chance, pct? } またはその配列。命中時に各種類を判定
@@ -1392,14 +1393,7 @@ export const ITEMS = {
 const ELEM_ORDER = ["fire", "water", "wind", "earth", "light", "dark"];
 // 部位ごとの属性レベル合計から、発現する属性を1つ選ぶ ({el, lv} or null)
 // 同属性の装備は加算で重なる (最大Lv2=◎)。異なる属性は混ざらず、最も高いものだけが発現する。
-function topElemStat(sums) {
-  let best = null;
-  for (const el of ELEM_ORDER) {
-    const lv = sums[el] || 0;
-    if (lv > 0 && (!best || lv > best.lv)) best = { el, lv: Math.min(2, lv) };
-  }
-  return best;
-}
+
 
 // 状態異常の種類と呼び名 (装備の耐性 aRes・追加効果 onHit で使う)
 export const AIL_LABEL = { poison: "毒", paralyze: "麻痺", sleep: "眠り", charm: "魅了", confuse: "混乱", stone: "石化" };
@@ -1569,8 +1563,8 @@ export function recalc(member) {
       else if (k === "multistrike" || k === "barrier") eff[k] = (eff[k] || 0) + v; // 加算
       else eff[k] = Math.max(eff[k] || 0, v);                            // 割合は強い方
     }
-    if (it.eAtk && it.eAtk.el) ea[it.eAtk.el] = (ea[it.eAtk.el] || 0) + (it.eAtk.lv || 1);
-    if (it.eDef && it.eDef.el) ed[it.eDef.el] = (ed[it.eDef.el] || 0) + (it.eDef.lv || 1);
+    for (const [k, v] of Object.entries(elementValues(it.eAtk))) ea[k] = (ea[k] || 0) + v;
+    for (const [k, v] of Object.entries(elementValues(it.eDef, "defense"))) ed[k] = (ed[k] || 0) + v;
     if (it.aRes) for (const k in it.aRes) ar[k] = (ar[k] || 0) + (it.aRes[k] || 0);
     if (it.resists) for (const k in resist) resist[k] += it.resists[k] || 0;
     br += it.bRes || 0;
@@ -1578,7 +1572,7 @@ export function recalc(member) {
     if (it.afxMisc) for (const k in it.afxMisc) { const v = it.afxMisc[k]; gmisc[k] = typeof v === "boolean" ? (gmisc[k] || v) : LEGENDARY_MISC_KEYS.has(k) ? Math.max(gmisc[k] || 0, v) : (gmisc[k] || 0) + v; }
     for (const effect of onHitEffects(it.onHit)) {
       const cur = oh[effect.k];
-      if (!cur || (effect.chance || 0) > cur.chance || (effect.chance === cur.chance && (effect.pct || 0) > (cur.pct || 0))) oh[effect.k] = { ...effect };
+      oh[effect.k] = { ...effect, chance: (cur?.chance || 0) + (effect.chance || 0), pct: Math.max(cur?.pct || 0, effect.pct || 0) };
     }
   }
   // 装備による増減は整数化 (増は切り上げ・減は切り下げ)。基礎値はそのまま。
@@ -1595,17 +1589,22 @@ export function recalc(member) {
   member.pie = Math.max(0, withEquip(base.pie, flatPie, mul.pie));
   member.luk = Math.max(0, withEquip(base.luk, flatLuk, mul.luk));
   member.evadeBonus = Math.min(.8, evade);
-  member.critBonus = Math.min(.8, crit);
+  member.critPower = Math.max(0, crit);
+  member.critBonus = Math.min(.8, member.critPower);
   member.critDamageBonus = Math.max(0, critDamage);
-  member.spellCritBonus = Math.min(.8, Math.max(0, spellCrit));
+  member.spellCritPower = Math.max(0, spellCrit);
+  member.spellCritBonus = Math.min(.8, member.spellCritPower);
   member.spellCritDamageBonus = Math.max(0, spellCritDamage);
   member.maxhp = withEquip(base.hp, flatHp, mul.hp);
   member.maxmp = withEquip(base.mp, flatMp, mul.mp);
   if (member.hp > member.maxhp) member.hp = member.maxhp;
   if (member.mp > member.maxmp) member.mp = member.maxmp;
-  // 属性攻撃/属性防御 (装備由来。Lv1=◯, Lv2=◎)
-  member.elemAtk = topElemStat(ea);
-  member.elemDef = topElemStat(ed);
+  // 属性攻撃力と属性耐性力 (各属性を同時に保持)
+  member.elemAtk = elementStat(ea);
+  member.elemDef = elementStat(ed, "defense");
+  // 旧属性武器は属性付与を引き継ぐ。防具・装飾品の属攻だけでは無属性武器に付与しない。
+  member.attackElement = member.equip.weapon?.element || member.equip.weapon?.eAtk?.el || "none";
+  member.offAttackElement = member.equip.shield?.element || member.equip.shield?.eAtk?.el || "none";
   // 戦闘効果 (LR装飾品由来)。combat.js が戦闘開始時に actor へ展開する
   member.eff = Object.keys(eff).length ? eff : null;
   // 状態異常耐性 (装備由来・種類ごとに上限 AIL_RES_CAP) と武器の追加効果。combat.js が読む

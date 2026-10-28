@@ -9143,7 +9143,7 @@ function startBattleMeasured(enemies, cell, { visibleEnemy = cell?.type === "mon
   }
   // ランク帯ごとの戦闘テーマ (ボス・強敵は専用曲)。図鑑への記録は「倒した時」に行う (endBattle)
   playBgm(battleBgm(isBoss || isElite));
-  // 敵のLv = その迷宮・階の基準Lv (状態異常・即死の成功率はLv差で決まる — combat.js lvRate)
+  // 敵のLv = その迷宮・階の基準Lv。技の威力等で参照し、状態異常の成功率には補正しない。
   const foeLv = foeLevelHere();
   for (const e of enemies) e.lv = foeLv;
   // 開幕のパッシブ・迷宮の掟の冷気で掛かる強化・弱体は、開幕の演出の後に1拍ずつ見せる (演出の設定が出す時だけ)
