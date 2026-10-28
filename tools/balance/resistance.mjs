@@ -46,7 +46,7 @@ for (const m of Object.values(DUNGEON_MONSTERS)) {
 assert.equal(DUNGEON_MONSTERS.bs_weepangel.resists.stone,100);
 assert.equal(DUNGEON_MONSTERS.bs_mossgolem.resists.stone,100);
 assert(monsterResists({rank:10, id:'x', race:'beast'}).flinch >= monsterResists({rank:1, id:'x', race:'beast'}).flinch);
-assert(monsterResists({rank:10, id:'x', race:'beast'}).death > monsterResists({rank:1, id:'x', race:'beast'}).death);
+assert(monsterResists({rank:10, id:'x', race:'beast'}).death === monsterResists({rank:1, id:'x', race:'beast'}).death);
 assert(monsterResists({rank:4,boss:true,id:'x',race:'beast'}).poison > monsterResists({rank:4,id:'x',race:'beast'}).poison);
 // 体質: 敵ごとに効きやすい異常と効きにくい異常がある (2026-10)
 {

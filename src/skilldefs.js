@@ -422,6 +422,7 @@ for (const key in JOBKIT_SKILLS) {
 }
 for (const key in SPELLS) {
   const sp = SPELLS[key];
+  if (sp.acc === 1) { sp.sureHit = true; sp.acc = 0; } // 旧データの必中を独立した特性へ
   if (sp.dur == null) sp.dur = 3; // 強化/弱体などの持続ターン (既定3)
   if (TECHS.includes(key)) sp.tech = true;
 }

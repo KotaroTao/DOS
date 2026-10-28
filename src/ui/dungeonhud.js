@@ -595,7 +595,7 @@ export function peekDoll(d, { idx = 0, combat = false } = {}) {
       if (br) guard.push(`ブレス耐性 ${Math.round(br * 100)}%`);
       for (const [k, label] of Object.entries(RESIST_LABEL)) {
         const v = (d.resists && d.resists[k]) || 0;
-        if (v) guard.push(`${label}抵抗 ${v}`);
+        if (v) guard.push(`${label}耐性 ${v}%`);
       }
       if (guard.length) {
         box.appendChild(section("守り"));

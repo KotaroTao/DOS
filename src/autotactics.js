@@ -288,7 +288,7 @@ function skillCands(b, ctx, actor, key, sp) {
         let d = 0;
         if (sp.kind === "phys") {
           const popt = { power: sp.power * soulPowerMul(actor, sp), critBonus: sp.critBonus, element: sp.element, intScale: sp.intScale, agiScale: sp.agiScale,
-            vitScale: sp.vitScale, pieScale: sp.pieScale, acc: sp.acc, pierce: sp.pierce, desperate: sp.desperate, execute: sp.execute, prey: sp.prey, skill: true };
+            vitScale: sp.vitScale, pieScale: sp.pieScale, acc: sp.acc, sureHit: sp.sureHit, pierce: sp.pierce, desperate: sp.desperate, execute: sp.execute, prey: sp.prey, skill: true };
           const per = autoPhys(b, actor, t, popt);
           d = sp.scatter ? scatterDamage(per, sp.scatter, tgts.length, t.hp) : per * (sp.hits || 1);
         } else if (sp.kind === "atk") d = autoSpell(b, actor, sp, t);

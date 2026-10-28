@@ -10,9 +10,9 @@ const e={uid:9999,name:'検証の敵',side:'enemy',key:'ev_rate',mon:{race:'huma
 const b=new Battle([a],[e],()=>{});
 const near=(v,w)=>assert(Math.abs(v-w)<1e-10,`${v} != ${w}`);
 assert.equal(LV_HALF,12);
-for(const [diff,expected] of [[-24,.15],[-12,.3],[0,.6],[12,.95]])near(lvRate(.6,100+diff,100),expected);
+for(const [diff,expected] of [[-24,.6],[-12,.6],[0,.6],[12,.6]])near(lvRate(.6,100+diff,100),expected);
 assert(lvRate(.6,96,100)>.47,'4Lv差で半減しない');
-assert.equal(lvRate(.6,1,200),.05);assert.equal(lvRate(.6,200,1),.95);
+assert.equal(lvRate(.6,1,200),.6);assert.equal(lvRate(.6,200,1),.6);
 assert.equal(lvRate(0,200,1),0);
 const cases=[
  ['poison',{poison:{chance:.6,pct:.1}},t=>t.ailment==='poison'],
@@ -40,7 +40,7 @@ try {
   }
  }
  reset();a.jobLv=80;e.resists={...zeroResists(),sleep:100};a.gearMisc={binder:true};
- near(b.spellStatusChances(a,{sleepChance:.6},e,false)[0].rate,.6);
+ near(b.spellStatusChances(a,{sleepChance:.6},e,false)[0].rate,.9);
  assert.equal(b.spellStatusChances(a,{sleepChance:.6},e)[0].rate,0,'縛り目も無効耐性は抜けない');
  near(b.spellStatusChances(a,{instakill:{chance:.6}},e)[0].rate,lvRate(.6,80,100));
  reset();e.boss=true;
@@ -73,4 +73,4 @@ try {
  }
  assert.equal(JSON.stringify([a,e]),before);
 } finally {Math.random=savedRandom;}
-console.log('Lv差12で半減・下限/上限、8種×Lv差×抵抗値の予測と実判定、主/金属/付与済み/種族制限/縛り目、全技の読み取り専用予測を確認');
+console.log('Lv差補正なし・付与力と最終上限、8種×Lv差×抵抗値の予測と実判定、主/金属/付与済み/種族制限/縛り目、全技の読み取り専用予測を確認');

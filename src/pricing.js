@@ -1,3 +1,4 @@
+import { elementValues } from "./combatrules.js";
 // 装備の値段 = 性能で決める
 //
 // 以前は値段が隠しレベル lv だけで決まっていた (カタログの priceOf(lv)、items.js の基本装備は手書き)。
@@ -74,8 +75,8 @@ function scaleScore(it) {
 function featureMul(it) {
   let m = 1;
   if (it.magic) m += 0.15; // 魔法属性の武器 (物理耐性の敵に通る)
-  if (it.eAtk) m += 0.15 * (it.eAtk.lv || 1);
-  if (it.eDef) m += 0.10 * (it.eDef.lv || 1);
+  if (it.eAtk) m += 0.15 * Object.values(elementValues(it.eAtk)).reduce((n,v)=>n+v/50,0);
+  if (it.eDef) m += 0.10 * Object.values(elementValues(it.eDef,"defense")).reduce((n,v)=>n+v/100,0);
   if (it.aRes) for (const k in it.aRes) m += 0.6 * (it.aRes[k] || 0);
   if (it.bRes) m += 0.8 * it.bRes; // ブレス耐性
   for (const o of onHitEffects(it.onHit)) m += (o.chance || 0) * (o.pct ? 1.5 : 1);
