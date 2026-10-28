@@ -91,12 +91,12 @@ for (const k in RESIST_LABEL) assert.equal(a.resists[k],0);
 a.equip.acc1 = { aRes:{poison:.6}, resists:{magResist:80,stone:100,seal:50} };
 a.equip.acc2 = { aRes:{poison:.6}, resists:{magResist:30,seal:50} };
 recalc(a);
-assert.equal(a.resists.poison,100); assert.equal(a.resists.magResist,100);
-assert.equal(a.resists.stone,100); assert.equal(a.resists.seal,100);
-assert.equal(b._resistCut(a,100,'magResist').dmg,0);
-assert.equal(b.estRate(t,a,.5,'poison'),0);
-assert.equal(b.estRate(t,a,.5,'stone'),0);
-assert.equal(b.estRate(t,a,.5,'seal'),0);
+assert.equal(a.resists.poison,95); assert.equal(a.resists.magResist,80);
+assert.equal(a.resists.stone,95); assert.equal(a.resists.seal,95);
+assert.equal(b._resistCut(a,100,'magResist').dmg,20);
+assert(b.estRate(t,a,.5,'poison')>0);
+assert(b.estRate(t,a,.5,'stone')>0);
+assert(b.estRate(t,a,.5,'seal')>0);
 a.equip.acc1 = a.equip.acc2 = null; recalc(a);
 assert.deepEqual(a.resists,zeroResists());
 console.log(`抵抗値0/80/100・全${Object.keys(DUNGEON_MONSTERS).length}敵・図鑑開放・装備集計・完全無効を確認`);
@@ -126,10 +126,10 @@ for (const job of SOUL_KEYS) for (const rank of [1,2,3,4,5]) {
   assert.equal(d.critBonus, 0);
 }
 {
-  const p = Object.assign(makeDoll('呪文抵抗検証'),{hp:1000,maxhp:1000,magResist:100});
+  const p = Object.assign(makeDoll('呪文抵抗検証'),{hp:1000,maxhp:1000,magResist:80});
   const enemy = {...t, atk:100, element:'fire', alive:true, hp:1000};
   const battle = new Battle([p],[enemy],()=>{});
   const hit = battle._exec({actor:enemy,action:'breath',kind:'spell'}).hits[0];
-  assert.equal(hit.dmg,0); assert(hit.immune); assert.equal(p.hp,1000);
+  assert(hit.dmg>0); assert(!hit.immune); assert(p.hp<1000);
 }
-console.log('全職業・全5ランクの基礎特性・装備加算・倍率独立・主魂解除、敵の全体呪文への魔法抵抗100を確認');
+console.log('全職業・全5ランクの基礎特性・装備加算・倍率独立・主魂解除、敵の全体呪文にも味方の魔法耐性80%上限を確認');

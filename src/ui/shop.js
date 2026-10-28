@@ -274,7 +274,7 @@ function keeperLine(seg) {
   if (seg === "sell" && unidCount() > 0) line = "未鑑定の品か。正体を知るのは、金を払ってからだ。";
   else if (seg === "buy") line = "黒鉄は嘘をつかん。値札もな。";
   else if (seg === "forge") line = "同じ品でも、打ちの出来はまちまちだ。金を積めば、何度でも炉に入れてやる。";
-  else if (seg === "enchant") line = "持ち帰った品の力を、別の装備へ移す術だ。巻物に写すと元の品は崩れる。書く先はよく選べ。";
+  else if (seg === "enchant") line = "武魂を装備に宿すぞ。外すのも合成も無料だ。同じ力は一つの品に一つまでだ。";
   return whisper("merchant", line, { who: shell.who || "黒鉄商会 ヴォス" });
 }
 
@@ -884,7 +884,7 @@ function render(root) {
   const bar = el("div", "wpc-bar");
   const unid = unidCount();
   bar.appendChild(segmented(
-    [{ key: "sell", label: "売る・鑑定", badge: unid || null }, { key: "buy", label: "買う" }, ...(forgeOpen() ? [{ key: "forge", label: "鍛え直し" }] : []), ...(enchantOpen() ? [{ key: "enchant", label: "付呪" }] : [])],
+    [{ key: "sell", label: "売る・鑑定", badge: unid || null }, { key: "buy", label: "買う" }, ...(forgeOpen() ? [{ key: "forge", label: "鍛え直し" }] : []), ...(enchantOpen() ? [{ key: "enchant", label: "武魂" }] : [])],
     seg, (k) => { setPref("shopSeg", k); sfx("select"); rerender({ top: true }); },
   ));
   if (seg === "buy") {

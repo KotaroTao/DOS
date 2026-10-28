@@ -1,3 +1,4 @@
+import { bukonText } from "../bukon.js";
 import { revealSteps } from "../monsterreveal.js";
 import { MONSTER_LORE, monsterLoreReady } from "../dungeons/monlore.js";
 import { previewStats, trialEquip, equipmentTraitTexts } from "../autoequip.js";
@@ -486,7 +487,7 @@ export const EFF_INFO = {
   regen: { short: (v) => `再生${pct(v)}`, line: (v) => `再生: 2ターン目から毎ターン、最大HPの${pct(v)}だけHPを回復する` },
   counter: { short: (v) => `報復×${Math.round(v * 100) / 100}`, line: (v) => `報復: 敵の物理攻撃を受けるたび、攻撃力×${Math.round(v * 100) / 100}のダメージでやり返す (物理の抵抗値で減る)` },
   spellCostMul: { short: (v) => `消費MP−${pct(1 - v)}`, line: (v) => `節約: 技・呪文の消費MPが${pct(1 - v)}減る` },
-  ailmentImmune: { short: () => "状態異常無効", line: () => "状態異常無効: 毒・麻痺・眠り・魅了・混乱・石化・即死を受けつけない（罠の状態異常も）" },
+  ailmentImmune: { short: () => "状態異常耐性95%", line: () => "状態異常耐性95%: 戦闘中の状態異常の付与率を95%軽減する（罠は無効）" },
   goldUp: { short: (v) => `金貨+${pct(v)}`, line: (v) => `金運: 迷宮で得る金貨が${pct(v)}増える（隊の中で一番高いものだけ効く）` },
   soulUp: { short: (v) => `✦Soul+${pct(v)}`, line: (v) => `魂導: 迷宮で得る✦Soulが${pct(v)}増える（隊の中で一番高いものだけ効く）` },
   disarmUp: { short: (v) => `解除+${pct(v)}`, line: (v) => `罠外し: この人業が宝箱・床の罠を外す時の解除率が${pct(v)}上がる（得意職でない者の頭打ちも越えて、最大95%。装飾どうしは強い方だけ）` },
@@ -539,7 +540,7 @@ export function specialShort(it) {
 // res: false = 抵抗値・ブレス耐性を除く (付け替えの比較では resistAmounts で種類ごとに差し引きする)
 export function specialParts(it, { res = true } = {}) {
   if (!it || it.unidentified) return [];
-  const parts = [...effStatParts(it)];
+  const parts = [...effStatParts(it), ...(it.bukon || []).map(b => `武魂 ${bukonText(b)}`)];
   // 無限迷宮の追加の能力・特性 (src/infaffix.js): 格の印と名で (くわしくは specialLines)
   for (const a of it.afxText || []) parts.push(`${a.tier === "x" ? "★" : a.tier === "r" ? "◆" : a.tier === "u" ? "◇" : "＋"}${a.name.replace(/の$/, "")}：${a.text}`);
   if (it.magic) parts.push("魔法属性");
@@ -579,7 +580,7 @@ export function resistDeltaParts(before, after) {
 export function specialLines(it) {
   if (!it || it.unidentified) return [];
   const afx = (it.afxText || []).map((a) => `追加${a.tier === "x" ? "★" : a.tier === "r" ? "◆" : a.tier === "u" ? "◇" : ""}「${a.name.replace(/の$/, "")}」 ― ${a.text}`);
-  return [...afx, ...effDetailLines(it), ...weaponTraitLines(it), ...elemDetailLines("攻撃", it.eAtk), ...elemDetailLines("防御", it.eDef), ...ailDetailLines(it)];
+  return [...(it.bukon || []).map(b => `武魂 ${bukonText(b)}`), ...afx, ...effDetailLines(it), ...weaponTraitLines(it), ...elemDetailLines("攻撃", it.eAtk), ...elemDetailLines("防御", it.eDef), ...ailDetailLines(it)];
 }
 
 // 武器の能力補正 (scale) と魔法属性 (magic) のくわしい表記

@@ -31,7 +31,8 @@ import { bagCount, isFormationItem,
 } from "./items.js";
 import { equipLevelFor, LR_UNLOCK, LOOT_R_HEADROOM } from "./equiplevel.js";
 import { applyItemDepth } from "./itemdepth.js";
-import { rollAffixes, applyAffixes, gearPerks, affixPower, affixLines, AFX_TIERS, afxDef, pageFromAffix, pageValue, pageText, enchantAffixes, enchantChange, enchantRoom, enchantBlock, ENCHANT_TIER_COST } from "./infaffix.js";
+import * as bukon from "./bukon.js";
+import { applyAffixes, gearPerks, affixPower, affixLines, AFX_TIERS, afxDef, pageFromAffix, pageValue, pageText, enchantAffixes, enchantChange, enchantRoom, enchantBlock, ENCHANT_TIER_COST } from "./infaffix.js";
 import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, permanentEventStats, eligibleEvents, pickEvent, onceKey, runEvent, eventFightWon } from "./events.js";
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { pickTavernCrowd, TALK_MAP } from "./tavern.js";
@@ -1656,11 +1657,11 @@ function infTlArrive() {
 }
 // 品を拾った (無限迷宮の追加の能力): 秘・極の数え
 function infAfxTrack(it) {
-  if (!it || !it.afxTier) return;
-  if (it.afxTier !== "r" && it.afxTier !== "x") return;
+  const rank=Math.max(-1,...(it?.bukon || []).map(b=>bukon.bukonDef(b.k)?.rarity ?? -1));
+  if (rank < 2) return;
   const s = infStats(), trk = infTrk();
   s.rareAfx++; trk.rareAfx++;
-  if (it.afxTier === "x") infTitleGrant("star");
+  if (rank >= 4) infTitleGrant("star");
   if (trk.rareAfx >= 5) infTitleGrant("hoard");
 }
 
@@ -15354,7 +15355,8 @@ const FEATURES = {
   //   第八章のあたりで Lv100・ランク3〜4 に届き、本編の育ちが単調になってくるので、第十章から前倒し)
   infinite: { chapter: 8, report: "finale" },
   rematch: { chapter: 9, report: "finale" },    // 宿敵の再戦 (名のある強敵・主の強化版)
-  enchant: { chapter: 8, firstAffixReturn: true }, // 追加の能力・特性つき装備の初持ち帰り (回収人への売却を含む)
+  enchant: { chapter: 5, report: "finale" },
+  bukonFusion: { chapter: 6, report: "finale" }, // 武魂合成
   order5: { chapter: 11, report: "finale" },    // 結社の席5
   rebirth: { chapter: 14, report: "finale" },   // 魂の転生
   mutPick: { chapter: 15, report: "finale" },   // 異変を選ぶ
@@ -15389,7 +15391,7 @@ function featureUnlocked(key) {
 }
 // まだ開いていない機能の条件の説明 (錠の札・案内文)
 function featureNote(key) {
-  if (key === "enchant") return "追加の能力・特性つき装備を初めて持ち帰ると開く（無限迷宮内で売った装備も含む）";
+  if (key === "enchant") return "第五章の結びを王に報告すると武魂が開く";
   if (key === "fusion") return "サブ魂を教わった後、次に職業の魂を持ち帰ると館で手ほどきを受けられる";
   if (key === "soulChange") return "新しい職業の魂を持ち帰り、人業の館で手ほどきを受けると開く";
   const f = FEATURES[key];
@@ -16342,6 +16344,7 @@ function shopAfxState() {
 // keep = すでに棚に追加つきの1点がある時、どちらの組を残すかをその場で選んだ答え ("shelf" = 棚の組 / "new" = この品の組)。
 // 無ければ組を G.shopAfxPending に積み、街でまとめて選ぶ
 function shopReceive(it, keep = null) {
+  if (it && !it.soulMemory) bukon.recoverBukon(G, it);
   if (!it || !it.id || it.unidentified || it.soulMemory) return;
   shopStockAdd(it.id);
   if (!it.afx?.length && !(it.depth > 200)) return;
@@ -16476,6 +16479,7 @@ function bulkSellBlocked(it) {
 }
 
 function sellItem(owner, it, price, afxKeep = null, quiet = false) {
+  const recoveredBukon = it?.soulMemory ? 0 : it?.bukon?.length || 0;
   if (isFormationItem(it)) { showToast("保存編成に登録した装備は売れません", { tone: "info" }); return false; }
   const idx = owner.items.indexOf(it);
   if (idx < 0) return false;
@@ -16486,14 +16490,14 @@ function sellItem(owner, it, price, afxKeep = null, quiet = false) {
   G.gold += price;
   tlTown("gold", price, "sell");
   // 在庫に積む (ボルタック方式)。未鑑定品は並ばない
-  if (it.id && !it.unidentified) shopReceive(it, afxKeep); // 追加つきの品は、その組を商会が覚える (17-1)
+  if (it.id) shopReceive(it, afxKeep); // 追加つきの品は、その組を商会が覚える (17-1)
   codexSeeItem(it.id, it);
   if (quiet) return true;
   SFX.select(); buzz(10);
   const shown = itemName(it);
   // 無限迷宮の回収人に売った品は、その場で本編の商会の棚に並ぶ (この先で全滅しても消えない)
   const inInf = abyssActive();
-  log(`${shown} を売った (+💰${price})。${it.soulMemory ? "記憶した装備は商会には並ばない。" : it.unidentified ? "" : inInf ? "本編の商会の棚に並んだ ― 全滅しても残る。" : "商会に並んだ。"}`, "win");
+  log(`${shown} を売った (+💰${price})。${recoveredBukon ? `武魂${recoveredBukon}個を商会に保管した。` : ""}${it.soulMemory ? "記憶した装備は商会には並ばない。" : it.unidentified ? "" : inInf ? "本編の商会の棚に並んだ ― 全滅しても残る。" : "商会に並んだ。"}`, "win");
   showToast(it.soulMemory ? `${shown} を売却 ― 記憶した装備は金貨にも商会の在庫にもならない` : inInf && !it.unidentified ? `💰+${price} ${shown} を売却 ― 商会の棚へ (全滅しても残る)` : `💰+${price} ${shown} を売却`, { noLog: true });
   renderTown();
   return true;
@@ -16574,6 +16578,39 @@ function recordAffixHome(it) {
   if (it.afx.some(a => afxDef(a.k)?.tier === "x")) G.tut.extremeReturned = true;
 }
 
+// 武魂は街の商会のみ。対象は実物への参照を毎回照合する。
+function bukonTargets() {
+  return [...new Set([...(G.inventory || []), ...allDolls().flatMap(d => Object.values(d.equip || {}).filter(Boolean))])].filter(it => hasQuality(it) && !it.unidentified && !it.soulMemory);
+}
+function bukonRows() {
+  if (featureUnlocked("enchant") && !G.bukonGift) { bukon.stockAdd(G,{k:"flat_hp",lv:1}); G.bukonGift=true; autosave(true); }
+  return bukon.stockRows(G);
+}
+function bukonAction(action, it, b) {
+  if (enchantClosed()) return false;
+  if (action === "fuse" || action === "bulk") {
+    if (!featureUnlocked("bukonFusion")) return false;
+    if (action === "fuse" && !bukon.fuseBukon(G,b.k,b.lv)) return false;
+    if (action === "bulk") {
+      if (!bukon.bulkFuseBukon(G,b.k,b.keep ?? 1)) return false;
+    }
+  } else if (action === "protect") {
+    if (!bukon.validBukon(b)) return false;
+    G.bukonProtected ||= {}; const key=bukon.bukonKey(b); G.bukonProtected[key]=!G.bukonProtected[key];
+  } else {
+    if (!bukonTargets().includes(it)) return false;
+    if (action === "transfer") {
+      const source=b?.source;
+      if (!bukonTargets().includes(source) || source===it || source.locked || source.cursed || it.locked || it.cursed) return false;
+      const souls=(source.bukon || []).map(x=>({...x}));
+      bukon.recoverBukon(G,source);
+      for(const soul of souls)bukon.attachBukon(G,it,soul);
+    } else if (action === "attach" ? !bukon.attachBukon(G,it,b) : action === "detach" ? !bukon.detachBukon(G,it,b) : true) return false;
+    for (const d of allDolls()) recalcDoll(d);
+  }
+  autosave(true); renderParty(); renderStatus(); return true;
+}
+
 // ---- 付呪 (追加の能力・特性つき装備の初持ち帰りで開く) ----
 // 無限迷宮で拾った品の追加の能力・特性を1つ選んで「特性の巻物」(G.afxPages) に写し取り (元の品は消える)、
 // 手ほどき後の手元の品は街・迷宮で巻物に写せる。書き込み・消去・棚からの写し取りは街の商会でだけ。
@@ -16589,7 +16626,7 @@ const enchantable = (it) => !!(it && ITEMS[it.id] && hasQuality(it) && !it.unide
 // 付呪の画面を使えない理由 (使えれば null)
 function enchantClosed() {
   if (!featureUnlocked("enchant")) return featureNote("enchant");
-  if (G.state !== "town" || abyssActive()) return "付呪は街の商会でだけ";
+  if (G.state !== "town" || abyssActive()) return "武魂の装着・合成は街の商会でだけ";
   if (!opsFacilityOpen("shop")) return "商会が開いていない";
   return null;
 }
@@ -18170,11 +18207,11 @@ function dropItem(p, index) {
   if (it.locked) { SFX.ng(); showToast(`${it.name}はロック中 ― 捨てるにはロックを外す`, { tone: "info" }); return; }
   showConfirm({
     title: `${it.name} を捨てる？`,
-    lines: ["捨てたアイテムは二度と戻らない。"],
+    lines: ["捨てたアイテムは二度と戻らない。", ...(it.bukon?.length ? [`武魂${it.bukon.length}個は商会へ自動で戻る。`] : [])],
     okLabel: "捨てる",
     onOk: () => {
       const i = p.items.indexOf(it);
-      if (i >= 0 && !isFormationItem(it)) { p.items.splice(i, 1); infSupplyRecord("discarded", it.id); } else return;
+      if (i >= 0 && !isFormationItem(it)) { bukon.recoverBukon(G, it); p.items.splice(i, 1); infSupplyRecord("discarded", it.id); } else return;
       log(`${it.name}を捨てた`, "sys");
       showToast(`${it.name}を捨てた`, { noLog: true, tone: "info" });
       renderStatus();
@@ -18224,17 +18261,15 @@ function showConfirm({ title, lines = [], okLabel = "実行する", onOk }) {
 function markDungeonLoot(it) {
   const tr = dungeonTrait();
   if (it && UNIDENT_SLOTS.has(it.slot) && !(tr && tr.appraised) && !abyssActive()) it.unidentified = true; // 無限迷宮の品は鑑定済みで落ちる
-  // 無限迷宮と、その解放章より先の本編・寄り道だけが対象。以前の迷宮は再訪しても付かない。
-  const infiniteChapter = CHAPTERS.find(c => c.no === FEATURES.infinite.chapter);
-  const infiniteLayer = worldById(infiniteChapter.finale).layer;
-  const laterDungeon = inDungeon() && featureUnlocked("infinite") && curDungeon().layer > infiniteLayer;
-  if (it && abyssActive() && hasQuality(it) && !it.depth && !it.afx && !it.cursed && it.price > 0) {
-    it.depth = Math.max(1, Math.floor(G.floor || 1));
-    resyncItem(it);
+  const chapter5 = CHAPTERS.find(c => c.no === 5);
+  const laterDungeon = inDungeon() && curDungeon().layer > worldById(chapter5.finale).layer;
+  if (it && abyssActive() && hasQuality(it) && !it.depth && !it.cursed && it.price > 0) {
+    it.depth = Math.max(1, Math.floor(G.floor || 1)); resyncItem(it);
   }
-  if (it && (abyssActive() || laterDungeon) && !it.afx && hasQuality(it)) {
-    const afx = rollAffixes(it, G.floor);
-    if (afx) { it.afx = afx; applyAffixes(it); if (abyssActive()) infAfxTrack(it); }
+  if (it && (abyssActive() || laterDungeon) && !it.bukon && hasQuality(it)) {
+    const progress = abyssActive() ? 6 + Math.floor((G.floor || 1)/20) : CHAPTERS.find(c => c.dungeons.includes(curDungeon().id))?.no || curDungeon().layer;
+    const soul = bukon.rollBukon(it, progress);
+    if (soul) { it.bukon = [soul]; if (abyssActive()) infAfxTrack(it); }
   }
   return it;
 }
@@ -18246,7 +18281,7 @@ function dropFromBag(owner, it) {
   if (!owner || !it || it.locked || isFormationItem(it)) return false;
   const i = (owner.items || []).indexOf(it);
   if (i < 0) return false;
-  owner.items.splice(i, 1); infSupplyRecord("discarded", it.id);
+  bukon.recoverBukon(G, it); owner.items.splice(i, 1); infSupplyRecord("discarded", it.id);
   log(`${itemName(it)}を捨てた`, "sys");
   renderParty(); updateTopbar(); autosave(true);
   return true;
@@ -18760,7 +18795,7 @@ const SAVE_KEY = localSaveKey(SAVE_SLOT); // v7 = 迷宮の台帳 (選んで潜�
 const SAVE_FIELDS = [
   "apprenticeName",
   "rng", "_townMutator", "pendingPickups", "pendingDanger", "pendingResults", "pendingTreasury", "pendingCursedChest",
-  "shopAfx", "shopAfxDepth", "shopAfxPending", "afxPages",
+  "shopAfx", "shopAfxDepth", "shopAfxPending", "afxPages", "bukonStock", "bukonProtected", "bukonGift",
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound", "abyss", "abyssRec",
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "stabilityBriefed", "pendingDoll",
   "formations", "inventory", "party", "reserve", "souls", "shopStock", "run", "town",
@@ -19308,6 +19343,7 @@ window.addEventListener("beforeunload", () => autosave(true));
 
 // 新規プレイの初期化: 人業ロスター・魂ストック・初期装備を整える
 function setupNewGame() {
+  G.bukonStock = {}; G.bukonProtected = {}; G.bukonGift = false;
   G.formations = [];
   // 金貨も赤い魂も持たずに着任する。まず王宮で三職の魂を拝受する。
   G.party = [];
@@ -19882,7 +19918,7 @@ function wireUI() {
     claimAchievement, claimTreasury, treasuryRewardReady, deliveryHolder, deliveryStatus, deliverQuest,
     repairDoll, repairAllDolls, repairCostOf, awaitingRepairRescue, tryHastenRescue, reviveTimerEl, fmtRemain, awaitingRescue, hastenCostOf, canHastenRescue,
     doEquip, doUnequip, toggleItemLock, equipFromAnywhere, reforgeCost, reforgeBlock, rollReforge, setItemQuality,
-    afxPagesState, enchantClosed, enchantSources, extractBlock, extractAffix, enchantTargets, enchantInfo, writeAffix, eraseAffix, itemHolder, openEquipChooser, useItem, dropItem, dropFromBag, askRoomFor, transferItem,
+    bukonTargets, bukonRows, bukonAction, afxPagesState, enchantClosed, enchantSources, extractBlock, extractAffix, enchantTargets, enchantInfo, writeAffix, eraseAffix, itemHolder, openEquipChooser, useItem, dropItem, dropFromBag, askRoomFor, transferItem,
     stopAutoCombat, sceneBgm, playBgm, SFX,
     ACH_SERIES, FACILITIES, FAC_SHELL, CONTENT_LIMIT, DUNGEONS, LAYER_VISUALS,
     isTitleActive: () => titleActive,
