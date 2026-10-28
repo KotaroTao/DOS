@@ -68,7 +68,7 @@ export function itemArt(tmpl) {
   let art = base.art, palette = { ...base.palette };
   if (isRelic(tmpl)) {
     art = withGlow(art);
-    const el = (tmpl.eAtk && tmpl.eAtk.el) || (tmpl.eDef && tmpl.eDef.el) || null;
+    const el = tmpl.elementTint || (tmpl.eAtk && tmpl.eAtk.el) || (tmpl.eDef && tmpl.eDef.el) || null;
     palette["*"] = rgba(el ? ELEM_COL[el] : GLOW_DEFAULT, GLOW_ALPHA);
   }
   a = { art, palette };

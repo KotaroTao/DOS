@@ -1,3 +1,4 @@
+import { retuneEquipment } from "./equipmentbalance.js";
 import { elementValues, elementStat } from "./combatrules.js";
 import { bukonItem, LEGENDARY_MISC_KEYS } from "./bukon.js";
 import { itemNumber } from "./itemnumbers.js";
@@ -304,7 +305,7 @@ export function itemAtQuality(it, q = it && it.q) {
   const tmpl = it && ITEMS[it.id];
   if (!tmpl) return it ? { ...it } : null;
   const out = { ...it };
-  for (const k of [...QUALITY_KEYS, "price", "mult", "scale", "weaponRating", "nativeCriticalFixed", "aRes", "bRes", "resists", "eff", "eAtk", "eDef", "onHit"]) {
+  for (const k of [...QUALITY_KEYS, "price", "mult", "scale", "weaponRating", "nativeCriticalFixed", "aRes", "bRes", "resists", "eff", "eAtk", "eDef", "onHit", "elementTint", "element", "equipmentBalanceVersion", "desc"]) {
     if (tmpl[k] !== undefined) out[k] = tmpl[k]; else delete out[k];
   }
   delete out.equipPts;
@@ -1389,16 +1390,10 @@ export const ITEMS = {
 // 旧%型 (.pct) は廃止 — 旧セーブの .pct はロード時にテンプレートのフラット値へ
 // 戻される (game.js の reflattenItemStats)。
 
-// 属性集計の優先順 (同レベルなら先のものが発現)
-const ELEM_ORDER = ["fire", "water", "wind", "earth", "light", "dark"];
-// 部位ごとの属性レベル合計から、発現する属性を1つ選ぶ ({el, lv} or null)
-// 同属性の装備は加算で重なる (最大Lv2=◎)。異なる属性は混ざらず、最も高いものだけが発現する。
-
-
 // 状態異常の種類と呼び名 (装備の耐性 aRes・追加効果 onHit で使う)
 export const AIL_LABEL = { poison: "毒", paralyze: "麻痺", sleep: "眠り", charm: "魅了", confuse: "混乱", stone: "石化" };
-// 装備だけで積める状態異常耐性の上限 (パッシブ「異常耐性」と合わせても上限100%)
-export const AIL_RES_CAP = 1;
+// 装備だけで積める状態異常耐性の上限 (パッシブ「異常耐性」と合わせても上限95%)
+export const AIL_RES_CAP = .95;
 // 装備だけで積めるブレス耐性の上限 (combat.js の BREATH_RES_CAP と同じ)
 export const BREATH_RES_MAX = 0.5;
 
@@ -1942,6 +1937,7 @@ export const SLOT_ICONS = {
 
 // 基本品も大量カタログと同じ参照仕様に整える。
 for (const it of Object.values(ITEMS)) {
+  retuneEquipment(it);
   prepareWeapon(it);
   applyNativeCritical(it);
   it.number = itemNumber(it.id);

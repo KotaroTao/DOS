@@ -80,10 +80,12 @@ assert(plan.moves.some(m => m.item === bow), "最適装備が弓を選ぶ");
 SPELLS.CHECK_STR = { name: "検証STR", kind: "buff", mp: 0, buff: { atk: 1.5 }, dur: 3, target: "self" };
 SPELLS.CHECK_AGI = { name: "検証AGI", kind: "buff", mp: 0, buff: { agi: 1.5 }, dur: 3, target: "self" };
 archer.equip.weapon = bow; recalc(archer); archer.spells = ["CHECK_STR", "CHECK_AGI"]; archer.tactic = "all";
-const buffBattle = new Battle([archer], spawnRanked("bs_ghoul", 8), () => {}), candidates = [];
+// 既に一撃で倒せる相手では強化不要になるため、強化の差が残るHPで比較する。
+const buffFoes=spawnRanked("bs_ghoul",8);for(const e of buffFoes)e.hp=e.maxhp=1e8;
+const buffBattle = new Battle([archer], buffFoes, () => {}), candidates = [];
 decideAuto(buffBattle, archer, candidates);
-assert.equal(candidates.find(c => c.spellKey === "CHECK_STR").edge, 0);
-assert(candidates.find(c => c.spellKey === "CHECK_AGI").edge > 0);
+assert.equal(candidates.find(c => c.spellKey === "CHECK_STR").supportGain3, 0);
+assert(candidates.find(c => c.spellKey === "CHECK_AGI").supportGain3 > 0);
 delete SPELLS.CHECK_STR; delete SPELLS.CHECK_AGI;
 // 実際のロード用関数を使い、古いSTR/scaleを消して新しい係数を復元する。
 const source = readFileSync(new URL("../../src/game.js", import.meta.url), "utf8");

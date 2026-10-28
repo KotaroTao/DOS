@@ -62,7 +62,7 @@ const ORN = { c: 0, uc: 1, r: 2, sr: 3, lr: 4 };
 export function themeOf(it, salt = 0) {
   const name = String(it.name || "");
   const r = rng(hashStr(String(it.id) + "#" + salt));
-  const el = (it.eAtk && it.eAtk.el) || (it.eDef && it.eDef.el) || null;
+  const el = it.elementTint || (it.eAtk && it.eAtk.el) || (it.eDef && it.eDef.el) || null;
   const orn = ORN[it.rar] != null ? ORN[it.rar] : 0;
   const motifs = new Set();
   for (const [k, re] of MOTIF_WORDS) if (re.test(name)) motifs.add(k);

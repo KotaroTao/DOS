@@ -7,8 +7,8 @@
 //  - id は append-only (セーブ/図鑑が参照するため、改名・削除は禁止。増やすのみ)
 //  - lv: 隠しレベル (1-200)。出現する迷宮帯・出現率・性能・価格の自動算出に使う
 //    (lv1-20=粗末な品 / 165-200=神話級。全100迷宮の lootLv 帯に対応する)
-//  - eAtk/eDef: 属性攻撃/属性防御 ["fire",1] 形式 → {el,lv} に変換される
-//    Lv1=◯ (有利+50%/不利-50%), Lv2=◎ (有利+100%/不利-100%)
+//  - eAtk/eDef: 属攻補正/属性耐性力 {el,pct} または {values:{fire:50,...}}。
+//    旧["fire",1]は既存品の互換入力。最終目録で来歴別の百分率へ調整する。
 //  - 絵は形の原型 (ARTS) × 色 (属性色 or tint指定) で描き分ける。
 //    原型は 24x24 の高解像度ドット絵。武器8種は各3型、盾・鎧・頭・足・小手・装飾は各2型を持ち、
 //    同じ形キーでも item id の安定ハッシュで型を選ぶ (pickArt) ので、同系統の装備でも見た目が散らばる
@@ -1980,8 +1980,16 @@ function base(id, name, slot, lv, artKey, opt) {
   };
   // 絵の形の原型 (src/itemart が品ごとの絵を描くときの手がかり。保存はしない)
   Object.defineProperty(it, "shape", { value: artKey, enumerable: false, writable: true });
-  if (opt.eAtk) { chk(ELEM_KEYS.includes(opt.eAtk[0]), "bad eAtk element: " + id); it.eAtk = { el: opt.eAtk[0], lv: opt.eAtk[1] || 1 }; }
-  if (opt.eDef) { chk(ELEM_KEYS.includes(opt.eDef[0]), "bad eDef element: " + id); it.eDef = { el: opt.eDef[0], lv: opt.eDef[1] || 1 }; }
+  for (const key of ["eAtk", "eDef"]) if (opt[key]) {
+    const e = opt[key];
+    if (Array.isArray(e)) { chk(ELEM_KEYS.includes(e[0]), "bad element: " + id); it[key]={el:e[0],lv:e[1] || 1}; }
+    else {
+      const values = e.values || {[e.el]:e.pct};
+      for (const [k,v] of Object.entries(values)) chk(ELEM_KEYS.includes(k) && Number.isFinite(v) && v>0,"bad element percent: " + id);
+      it[key]=e.values ? {values:{...values}} : {el:e.el,pct:e.pct};
+    }
+  }
+  if (opt.element) { chk(ELEM_KEYS.includes(opt.element),"bad attack element: " + id); it.element=opt.element; }
   // 状態異常耐性 aRes: { charm: 0.25, ... } (種類ごとの付与率カット) / 追加効果 onHit: ["paralyze", 0.15] or ["poison", 0.2, 0.05]
   if (opt.resists) {
     for (const [k, v] of Object.entries(opt.resists)) chk(["physResist", "magResist", ...AIL_KEYS].includes(k) && Number.isInteger(v) && v >= 0 && v <= 100, "bad resists: " + id);
@@ -2032,7 +2040,7 @@ function base(id, name, slot, lv, artKey, opt) {
   if (opt.forJob) it.forJob = opt.forJob;
   if (opt.exclusive) it.exclusive = true;
   // 絵: 原型 × 染め色 (属性があれば属性色が既定)
-  const el = (opt.eAtk && opt.eAtk[0]) || (opt.eDef && opt.eDef[0]) || null;
+  const el = it.eAtk?.el || it.eDef?.el || null;
   const tc = opt.tint || (el ? ELEM_TINT[el] : null);
   // 秘宝 (LR・職業専用・神話級 lv165+) は輪郭の外に淡い燐光をまとう。色は属性色、無属性は青白い燐光
   const relic = !!(opt.lr || opt.exclusive || lv >= 165);

@@ -9,7 +9,7 @@ import { CX, lit, clampT, shape, layered } from "./front.js";
 
 function mats(g, th, it) {
   let metal = MAT[th.metal] || MAT.steel;
-  if (it.eDef) metal = tintRamp(metal, ELEM_COL[it.eDef.el], 0.14);
+  if (it.eDef) metal = tintRamp(metal, ELEM_COL[it.elementTint || it.eDef.el], 0.14);
   g.def("M", metal);
   g.def("T", MAT[th.trim] || MAT.gold);
   g.def("W", MAT[th.wood] || MAT.wood);

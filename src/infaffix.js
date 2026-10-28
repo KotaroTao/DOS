@@ -79,11 +79,11 @@ for (const [id, name, s] of MUL) def({ id, name, tier: "r", kind: "abs", r: [0.0
 // ---- D. 属性 (稀) ----
 const ATK_EL = [["D01", "灼熱の", "fire"], ["D02", "流水の", "water"], ["D03", "烈風の", "wind"], ["D04", "大地の", "earth"], ["D05", "聖光の", "light"], ["D06", "暗黒の", "dark"]];
 for (const [id, name, el] of ATK_EL) def({ id, name, tier: "u", kind: "fixB", r: [0.25, 0.25], slots: ["w", "acc"], group: "eAtk",
-  apply: (it) => { if (!it.eAtk) it.eAtk = { el, lv: 1 }; }, text: () => `属攻 ${EL_JA[el]}+50%` });
-// 属防は攻撃の属性に勝つ属性でないと効かない: 火の攻撃 → 水 / 水 → 土 / 風 → 火 / 土 → 風 / 闇 → 光 / 光 → 闇
-const DEF_EL = [["D07", "耐火の", "water", "火"], ["D08", "耐水の", "earth", "水"], ["D09", "耐風の", "fire", "風"], ["D10", "耐地の", "wind", "土"], ["D11", "退魔の", "light", "闇"], ["D12", "光除けの", "dark", "光"]];
+  apply: (it) => { if (!it.eAtk) it.eAtk = { el, pct: 20 }; }, text: () => `属攻 ${EL_JA[el]}+20%` });
+// 旧追加特性も名称どおりの防御対象へ。耐火は火、退魔は闇を防ぐ。
+const DEF_EL = [["D07", "耐火の", "fire", "火"], ["D08", "耐水の", "water", "水"], ["D09", "耐風の", "wind", "風"], ["D10", "耐地の", "earth", "土"], ["D11", "退魔の", "dark", "闇"], ["D12", "光除けの", "light", "光"]];
 for (const [id, name, el, from] of DEF_EL) def({ id, name, tier: "u", kind: "fixB", r: [0.2, 0.2], slots: ["a", "acc"], group: "eDef",
-  apply: (it) => { if (!it.eDef) it.eDef = { el, lv: 1 }; }, text: () => `${EL_JA[el]}耐性力+100%（単体で50%軽減）` });
+  apply: (it) => { if (!it.eDef) it.eDef = { el, pct: 50, kind: "defense" }; }, text: () => `${EL_JA[el]}耐性力+50%（単体で33.3%軽減）` });
 
 // ---- E. 抵抗 ----
 const RES = [["E01", "毒除けの", "poison"], ["E02", "しびれ除けの", "paralyze"], ["E03", "眠らずの", "sleep"], ["E04", "惑わずの", "charm"], ["E05", "正気の", "confuse"], ["E06", "石除けの", "stone"], ["E07", "封じ除けの", "seal"], ["E08", "怯まずの", "flinch"]];
