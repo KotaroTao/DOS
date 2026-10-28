@@ -47,7 +47,7 @@ for(const [key,k] of [['crit','A09'],['critDamage','A10'],['spellCrit','A11'],['
 }
 const d=makeDoll('会心の集計');
 for(const s of SLOTS)d.equip[s]={crit:.2,critDamage:1,spellCrit:.2,spellCritDamage:1};recalc(d);
-near(d.critBonus,1.6);near(d.spellCritBonus,1.6);near(d.critDamageBonus,8);near(d.spellCritDamageBonus,8);
+near(d.critBonus,.8);near(d.spellCritBonus,.8);near(d.critDamageBonus,8);near(d.spellCritDamageBonus,8);
 near(gearCritMul(d),9);near(gearCritMul(d,true),9);
 // 同じ実物を複数部位へ参照しても1つだけ数える。外すと補正が残らない。
 d.equip.shield=d.equip.weapon;recalc(d);near(d.critDamageBonus,7);
@@ -55,16 +55,17 @@ for(const s of SLOTS)d.equip[s]=null;recalc(d);assert.equal(d.spellCritBonus,0);
 const a=Object.assign(makeDoll('会心検査'),{level:50,atk:200,int:200,pie:100,agi:100,luk:20,hp:1e9,maxhp:1e9,mp:1e9,maxmp:1e9,critBonus:2,spellCritBonus:2});
 const t={uid:999,name:'敵',key:'bs_ghoul',mon:MONSTERS.bs_ghoul,side:'enemy',alive:true,hp:1e12,maxhp:1e12,atk:80,vit:60,agi:30,int:40,pie:40,luk:8,lv:40,element:'none',spells:[]};
 const b=new Battle([a],[t],()=>{});Math.random=()=>.999;
-assert.equal(b.peekStats(a).crit,1);assert.equal(b.peekStats(a).spellCrit,1);
+assert.equal(b.peekStats(a).crit,.8);assert.equal(b.peekStats(a).spellCrit,.8);
 const key=Object.keys(SPELLS).find(k=>SPELLS[k].kind==='atk'&&SPELLS[k].target==='enemy'&&!SPELLS[k].gravity&&!SPELLS[k].hits),sp=SPELLS[key];
-assert.equal(b._spellCritChance(a,sp),1);assert.equal(b._spellCritChance(a,{...sp,gravity:true}),0);
-for(let i=0;i<100;i++)assert(b._physical(a,t,{acc:1}).crit,'上限100%なら乱数がほぼ1でも会心');
+assert.equal(b._spellCritChance(a,sp),.8);assert.equal(b._spellCritChance(a,{...sp,gravity:true}),0);
+for(let i=0;i<100;i++)assert(!b._physical(a,t,{acc:1}).crit,'上限80%なら乱数がほぼ1では会心しない');
+for(let i=0;i<10;i++)assert(b._physical(a,t,{acc:1,critBonus:1}).crit,'確定会心の技は例外');
 Math.random=()=>.5;
-const physical=()=>b._physical(a,t,{acc:1}).dmg;
+const physical=()=>b._physical(a,t,{acc:1,critBonus:1}).dmg;
 const spell=()=>b._exec({actor:a,action:'spell',spellKey:key,target:t}).hits.reduce((s,h)=>s+(h.dmg||0),0);
 const plain=physical(),plainSpell=spell();
 a.critDamageBonus=3;a.spellCritDamageBonus=4;
 near(physical()/plain,4,.02);near(spell()/plainSpell,5,.02);
 const ps=b.peekStats(a);near(ps.critMul,1.85*4);near(ps.spellCritMul,1.5*5);
-near(b.estSpell(a,sp,t)/b.estSpell({...a,spellCritDamageBonus:0},sp,t),5);
-console.log(`全${equipment}装備、会心つき${affected}品 ${JSON.stringify(totals)}：レア度別の両端・品質・上限・価格・付呪・8品の加算・100%の実会心・無制限の倍率 OK`);
+near(b.estSpell(a,sp,t)/b.estSpell({...a,spellCritDamageBonus:0},sp,t),(1+.8*(1.5*5-1))/(1+.8*(1.5-1)));
+console.log(`全${equipment}装備、会心つき${affected}品 ${JSON.stringify(totals)}：レア度別の両端・品質・上限・価格・付呪・8品の加算・80%上限と確定会心・無制限の倍率 OK`);

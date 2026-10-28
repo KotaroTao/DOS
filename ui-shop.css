@@ -706,3 +706,12 @@ html.pc-input .ui-sheet.ec-source-sheet { max-width: 720px; }
 @media (max-height: 500px) {
   .ec-target-controls .rf-field { grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 6px; }
 }
+
+/* 武魂の操作欄を残し、在庫だけを縦にスクロールする。 */
+.bk-panel { display:flex; flex-direction:column; flex:1 1 0; min-height:0; gap:6px; min-width:0; }
+.bk-panel .ec-afx-row { overflow-wrap:anywhere; padding:10px; border:1px solid var(--line); flex-shrink:0; }
+.bk-panel .ec-afx-acts { display:flex; gap:6px; flex-wrap:wrap; }
+.bk-panel .ec-afx-acts > * { flex:1; }
+.bk-panel .ec-list { overflow-y:auto !important; min-height:80px; }
+.bk-panel .rf-select, .ec-sheet .rf-select { width:100%; max-width:100%; min-height:44px; }
+.bk-panel details { flex:0 0 auto; max-height:30vh; overflow:auto; }

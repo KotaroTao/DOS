@@ -47,10 +47,10 @@ with sync_playwright() as p:
       const {G}=__game,{Battle}=await import('/src/combat.js'),{peekDoll}=await import('/src/ui/dungeonhud.js');
       const a=G.party[0];a.critBonus=1.6;a.spellCritBonus=1.6;a.critDamageBonus=2.5;a.spellCritDamageBonus=3;
       G.battle=new Battle([a],[],()=>{});G.state='combat';
-      const ps=G.battle.peekStats(a);if(ps.crit!==1||ps.spellCrit!==1||Math.abs(ps.critMul-6.475)>1e-9||ps.spellCritMul!==6)throw Error('会心100%と倍率');
+      const ps=G.battle.peekStats(a);if(ps.crit!==.8||ps.spellCrit!==.8||Math.abs(ps.critMul-6.475)>1e-9||ps.spellCritMul!==6)throw Error('会心100%と倍率');
       peekDoll(a,{combat:true});
-      const text=document.body.textContent.replaceAll("\u200b", "");if(!text.includes('魔法会心倍率')||!text.includes('6.475')||!text.includes('100%'))throw Error('戦闘中の様子に会心性能が無い');
-      return 'OK 戦闘中の様子：物理/魔法会心100%、物理倍率6.475倍・魔法倍率6倍';
+      const text=document.body.textContent.replaceAll("\u200b", "");if(!text.includes('魔法会心倍率')||!text.includes('6.475')||!text.includes('80%'))throw Error('戦闘中の様子に会心性能が無い');
+      return 'OK 戦闘中の様子：物理/魔法会心80%、物理倍率6.475倍・魔法倍率6倍';
     }'''),flush=True)
     assert not errors,errors
     browser.close()

@@ -1,3 +1,4 @@
+import { bukonItem } from "./bukon.js";
 import { itemNumber } from "./itemnumbers.js";
 import { rarityOrder } from "./rarity.js";
 import { random } from "./rng.js";
@@ -1539,13 +1540,15 @@ export function recalc(member) {
   const resist = zeroResists();
   for (const k in resist) resist[k] = (base.resists && base.resists[k]) || 0;
   const ar = {}, oh = {}; // 状態異常耐性 (種類→合計) / 追加効果 (種類→最も強いもの)
+  let evade = 0;
   let br = 0; // ブレス耐性 (合計)
   const gfx = [], gmisc = {}; // 無限迷宮の追加の特性: 戦闘の条件つきの効果 (combat.js perksOf が読む) と、迷宮での効果 (game.js が読む)
   const counted = new Set();
   for (const slot of SLOTS) {
-    const it = member.equip[slot];
-    if (!it || counted.has(it)) continue;
-    counted.add(it);
+    const original = member.equip[slot];
+    const it = bukonItem(original);
+    if (!it || counted.has(original)) continue;
+    counted.add(original);
     flatAtk += it.atk || 0;
     flatVit += (it.vit != null ? it.vit : it.def) || 0; // def は旧セーブ互換
     flatAgi += (it.agi != null ? it.agi : it.spd) || 0; // spd は旧セーブ互換
@@ -1554,6 +1557,7 @@ export function recalc(member) {
     flatLuk += it.luk || 0;
     flatHp  += it.hp || 0;
     flatMp  += it.mp || 0;
+    evade += it.evade || 0;
     crit += it.crit || 0;
     critDamage += it.critDamage || 0;
     spellCrit += it.spellCrit || 0;
@@ -1590,9 +1594,10 @@ export function recalc(member) {
   member.int = Math.max(0, withEquip(base.int, flatInt, mul.int));
   member.pie = Math.max(0, withEquip(base.pie, flatPie, mul.pie));
   member.luk = Math.max(0, withEquip(base.luk, flatLuk, mul.luk));
-  member.critBonus = crit;
+  member.evadeBonus = Math.min(.8, evade);
+  member.critBonus = Math.min(.8, crit);
   member.critDamageBonus = Math.max(0, critDamage);
-  member.spellCritBonus = Math.max(0, spellCrit);
+  member.spellCritBonus = Math.min(.8, Math.max(0, spellCrit));
   member.spellCritDamageBonus = Math.max(0, spellCritDamage);
   member.maxhp = withEquip(base.hp, flatHp, mul.hp);
   member.maxmp = withEquip(base.mp, flatMp, mul.mp);
@@ -1609,7 +1614,7 @@ export function recalc(member) {
   for (const k in arOut) if (k in resist) resist[k] += arOut[k] * 100;
   // 極「不動心の」: 魅了・混乱・特技封じが効かない (抵抗値100)
   if (gmisc.steadMind) for (const k of ["charm", "confuse", "seal"]) if (k in resist) resist[k] = 100;
-  for (const k in resist) resist[k] = clampResist(resist[k]);
+  for (const k in resist) resist[k] = Math.min(["physResist", "magResist"].includes(k) ? 80 : 95, clampResist(resist[k]));
   member.resists = resist;
   member.physResist = resist.physResist; member.magResist = resist.magResist;
   for (const k in resist) if (!["physResist", "magResist"].includes(k) && resist[k]) arOut[k] = resist[k] / 100;

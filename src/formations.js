@@ -1,3 +1,4 @@
+import { recoverBukon, stockAdd } from "./bukon.js";
 // 保存編成。人業は uid、装備は実物への参照を残す。成長や体調は保存しない。
 import { SLOTS, MAX_ITEMS, canEquip, canOffhand, itemName, isFormationItem } from "./items.js";
 import { recalcDoll, subPicks, subPickCap, kindleSubIndex, soulLearnedSkills, soulLearnedPassives } from "./souls.js";
@@ -28,7 +29,7 @@ export function saveFormation(g, index, name = null, remove = false) {
   const presets = Array.from({ length: FORMATION_COUNT }, (_, i) => g.formations?.[i] || null);
   const old = presets[index];
   const title = String(name ?? old?.name ?? `編成${index + 1}`).trim().slice(0, 24) || `編成${index + 1}`;
-  presets[index] = remove ? null : { name: title, members: g.party.map(d => ({ uid: d.uid, primary: d.primary ?? null, subs: copySubs(d.subs).map(s => s ? { ...s, picked: true } : null), equip: Object.fromEntries(SLOTS.map(k => [k, d.equip?.[k] || null])) })) };
+  presets[index] = remove ? null : { name: title, members: g.party.map(d => ({ uid: d.uid, primary: d.primary ?? null, subs: copySubs(d.subs).map(s => s ? { ...s, picked: true } : null), bukon: Object.fromEntries(SLOTS.map(k => [k, (d.equip?.[k]?.bukon || []).map(b => ({...b}))])), equip: Object.fromEntries(SLOTS.map(k => [k, d.equip?.[k] || null])) })) };
   const reserved = formationItems(presets);
   const used = (g.inventory || []).filter(it => !reserved.has(it)).length;
   if (used > MAX_ITEMS && used > (g.inventory || []).filter(it => !isFormationItem(it)).length) return { ok: false, msg: `持ち物袋にあと${used - MAX_ITEMS}枠の空きが必要です。` };
@@ -115,6 +116,12 @@ export function planFormation(g, index, { subSlots = 2, soulChange = true } = {}
 export function applyFormation(g, index, options) {
   const plan = planFormation(g, index, options);
   if (!plan.ok) return plan;
+  let missing=0;
+  const targets=plan.preset.members.filter(m=>m.bukon).flatMap(m=>SLOTS.filter(k=>m.equip?.[k]).map(k=>({it:m.equip[k], desired:m.bukon[k] || []})));
+  for(const {it} of targets)recoverBukon(g,it);
+  for(const {it,desired} of targets)for(const b of desired) {
+    if(stockAdd(g,b,-1n))(it.bukon ||= []).push({...b}); else missing++;
+  }
   for (let i = 0; i < plan.dolls.length; i++) {
     const d = plan.dolls[i], p = plan.probes[i];
     // 現在値を上限内に収めるだけ。体調・安定度・回復待ちは戻さない。
@@ -126,5 +133,5 @@ export function applyFormation(g, index, options) {
   g.party = plan.party;
   g.reserve = plan.dolls.filter(d => !g.party.includes(d));
   syncFormationItems(g);
-  return { ok: true, msg: `${plan.preset.name}を適用した。` };
+  return { ok: true, msg: `${plan.preset.name}を適用した。${missing ? `武魂${missing}個が不足し、その枠は空きのままです。` : ""}` };
 }
