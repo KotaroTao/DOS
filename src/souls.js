@@ -1,3 +1,4 @@
+import { bukonItem } from "./bukon.js";
 import { canonicalPassiveKey } from "./jobkit/common.js";
 import { random } from "./rng.js";
 import { zeroResists } from "./resistance.js";
@@ -796,7 +797,7 @@ export function subPickCap(soul) { return subPickCapOfRank(soul ? soulRankFromCo
 // 極「宿り火の」(無限迷宮の追加の特性): 装備に付いていれば、ランクの高い方のサブ魂 (同じならサブ魂1) の借りる数 +1。
 // 装備の品の afxMisc (infaffix.js applyAffixes) を見る — items.js の recalc より先に recalcDoll が借用を数えるため
 export function kindleSubIndex(doll) {
-  if (!doll || !doll.equip || !Object.values(doll.equip).some((it) => it && it.afxMisc && it.afxMisc.kindle)) return -1;
+  if (!doll || !doll.equip || !Object.values(doll.equip).some((it) => bukonItem(it)?.afxMisc?.kindle)) return -1;
   let best = -1, br = -1;
   (doll.subs || []).forEach((sub, i) => {
     const se = sub ? soulByUid(sub.uid) : null;
