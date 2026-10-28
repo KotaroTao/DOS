@@ -44,10 +44,11 @@ export function elemDetailLines(kind, e) {
     : `${elemName(k)}耐性力${v}%（単体で${Math.round(elementalReduction(v) * 1000) / 10}%軽減。同属性を加算、軽減上限80%）`);
 }
 export function elemStatChip(e) { return `<b>${elemStatShort(e)}</b>`; }
-export function elemStatEq(a, b) { return JSON.stringify(elementValues(a, a?.kind)) === JSON.stringify(elementValues(b, b?.kind)); }
+export function elemStatEq(a, b) { return JSON.stringify([elementValues(a,a?.kind),a?.reductions])===JSON.stringify([elementValues(b,b?.kind),b?.reductions]); }
 export function elemStatShort(e) {
   const defense = e?.kind === "defense";
   const values = elementValues(e, defense ? "defense" : "attack");
+  if(defense&&e?.reductions){const keys=new Set([...Object.keys(values),...Object.keys(e.reductions)]);return [...keys].map(k=>`${elemName(k)}${Math.round(Math.min(.8,elementalReduction(values[k]||0)+(e.reductions[k]||0))*1000)/10}%軽減`).join(" / ")||"—";}
   return Object.entries(values).map(([k, v]) => defense
     ? `${elemName(k)}耐性力${v}%／${Math.round(elementalReduction(v) * 1000) / 10}%軽減`
     : `${elemName(k)}${100 + v}%`).join(" / ") || "—";

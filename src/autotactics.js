@@ -96,7 +96,7 @@ export function autoCombatStalled(b) {
 // 何も通らない (届く敵がみな物理無効で、役に立つ技も無い) 時は idle: true の防御を返す (game.js が隊の全員分続いたらオートを止める)
 export function decideAuto(b, actor, dbg = null) {
   if (!b || !actor || !actor.alive) return null;
-  _seer = !!(actor.gearMisc && actor.gearMisc.insight);
+  _seer = !!(actor.gearMisc && (actor.gearMisc.insight || actor._bkInsight));
   try { return decideAutoInner(b, actor, dbg); } finally { _seer = false; }
 }
 function decideAutoInner(b, actor, dbg) {

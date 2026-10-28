@@ -6580,7 +6580,7 @@ function autoMovePlan() {
   const avoid = autoMoveAvoid();
   const floating = floatLeft() > 0;
   // 隊の全員が極「浮き足の」の持ち主なら、蝕む床は傷にならない (かえって癒える)
-  const allFloat = G.party.some((p) => p.alive) && G.party.every((p) => !p.alive || (p.gearMisc && p.gearMisc.floatStep));
+  const allFloat = G.party.some((p) => p.alive) && G.party.every((p) => !p.alive || (p.gearMisc && (p.gearMisc.floatStep || p.gearMisc.bk_floatStep)));
   const poisonSafe = floating || partyPassiveLv("poisonFloor") >= 2 || allFloat;
   // 敵感知の光で見えている、まだめくっていない魔物 (選ばれた数だけ)
   const sensed = new Set();
@@ -6766,10 +6766,10 @@ function resolveCellMeasured(cell, { visibleEnemy = cell.type === "monster" && !
         break;
       }
       // 極「浮き足の」: 持ち主は傷の代わりに HP が最大の5%回復する。隊の全員が持ち主なら誰も傷つかない
-      const floaters = G.party.filter((p) => p.alive && p.gearMisc && p.gearMisc.floatStep);
+      const floaters = G.party.filter((p) => p.alive && p.gearMisc && (p.gearMisc.floatStep || p.gearMisc.bk_floatStep));
       const floatHeal = () => {
         let any = false;
-        for (const p of floaters) { const h = Math.max(1, Math.ceil(p.maxhp * Math.min(1, p.gearMisc.floatStep))); if (p.hp < p.maxhp) { p.hp = Math.min(p.maxhp, p.hp + h); any = true; } }
+        for (const p of floaters) { const h = Math.max(1, Math.ceil(p.maxhp * Math.min(1,Math.max(p.gearMisc.floatStep||0,p.gearMisc.bk_floatStep||0)))); if (p.hp < p.maxhp) { p.hp = Math.min(p.maxhp, p.hp + h); any = true; } }
         return any;
       };
       if (floaters.length && floaters.length === G.party.filter((p) => p.alive).length) {
@@ -8807,9 +8807,11 @@ function askCursedChest(done) {
 // 敵がアイテムを落としていれば中身はそれ。なければダンジョンレベル準拠の抽選。
 // exclude: 出さない罠 (踏破演出など続きがある時は戦闘になる警報を出さない)。lvBonus: ミミック撃破宝箱などの中身底上げ
 // 極「宝呼びの」: 生きている持ち主がいれば、戦闘後の宝箱が出る率 +20%・宝箱のランク +1 (隊で重ならない)
-const treasureCaller = () => G.party.some((p) => p && p.alive && p.gearMisc && p.gearMisc.treasure);
+const partyBukon=(key,native=0)=>Math.max(0,...G.party.filter(p=>p?.alive).map(p=>Math.max(p.gearMisc?.[key]?native:0,p.gearMisc?.[`bk_${key}`]||0)));
+const treasureCaller = () => partyBukon("treasure",.2);
+const treasureRank=()=>{if(G.party.some(p=>p?.alive&&p.gearMisc?.treasure))return 1;const chance=partyBukon("treasureRank");return chance>0&&random()<chance?1:0;};
 function battleChestSpec(drops, lvBonus = 0, noGold = false, exclude = null, saved = null) {
-  const data = saved || { cRank: Math.min(5, chestRankOf(null) + (treasureCaller() ? 1 : 0)), drops, lvBonus, noGold, exclude, state: "closed" };
+  const data = saved || { cRank: Math.min(5, chestRankOf(null) + treasureRank()), drops, lvBonus, noGold, exclude, state: "closed" };
   data.outputs ||= [];
   const alive = G.party.filter((p) => p.alive);
   data.name = `${CHEST_RANKS[data.cRank]}宝箱`;
@@ -11973,7 +11975,7 @@ function distributeBattleSoulExpMeasured(soulGot) {
   if (share <= 0) return queue;
   // 魂の薫陶 (soulTutor): その人業が宿す魂 (メイン・サブ) の得るEXP +10/20/30%
   // 極「語り部の」: 生きている持ち主がいれば隊の全員の魂の EXP +10% (隊で重ならない)
-  const teller = G.party.some((p) => p && p.alive && p.gearMisc && p.gearMisc.teller) ? 0.10 : 0;
+  const teller = partyBukon("teller",.1);
   const tutorMul = (m) => 1 + ([0, 0.10, 0.20, 0.30][Math.min(3, pLv(m, "soulTutor"))] || 0) + teller;
   // 経験値は「編成中に宿している魂」(メイン魂・サブ魂とも) ごとに1回ずつ入る。
   // 魂インスタンスごとに1回だけ加算する (旧セーブの重複装着でも二重加算しない)。
@@ -12223,7 +12225,7 @@ function endBattleMeasured() {
     const wasMasterMimic = b.enemies.some((e) => e.isMasterMimic);
     // 戦果の後に続くもの: 主討伐の踏破の祝祭 → なければ「餓えた群れ」殲滅報酬
     const after = { clearInfo, wasGuard, horde: hordeRewardPending(), evCell };
-    const hasChest = !activeCfg().noChests && !corpse && (trophies.length || !(evCell && evCell.evFight && evCell.evFight.noChest)) && (drop || trophies.length || wasElite || wasGuard || wasMimic || (specialDef() || {}).sureChest || random() < 0.5 + (treasureCaller() ? 0.2 : 0));
+    const hasChest = !activeCfg().noChests && !corpse && (trophies.length || !(evCell && evCell.evFight && evCell.evFight.noChest)) && (drop || trophies.length || wasElite || wasGuard || wasMimic || (specialDef() || {}).sureChest || random() < 0.5 + treasureCaller());
     const chest = hasChest
       ? battleChestSpec([...trophies, ...(drop ? [drop] : [])], wasMasterMimic ? 30 : wasMimic ? 15 : 0, wasMimic || wasMasterMimic, clearInfo || wasGuard || after.horde ? ["alarm"] : null)
       : null;
@@ -16601,6 +16603,7 @@ function prepareBukonFusionTutorial() {
   if (!G.tut.bukonFusionGift) { bukon.stockAdd(G, { k: "flat_hp", lv: 1 }, 3); G.tut.bukonFusionGift = true; autosave(true); }
 }
 function bukonRows() {
+  if(bukon.migrateBukon(G,bukonTargets())){for(const d of allDolls())recalcDoll(d);autosave(true);}
   if (featureUnlocked("enchant") && !G.bukonGift) { bukon.stockAdd(G,{k:"flat_hp",lv:1}); G.bukonGift=true; autosave(true); }
   return bukon.stockRows(G);
 }
@@ -18292,7 +18295,7 @@ function markDungeonLoot(it) {
   if (it && (abyssActive() || laterDungeon) && !it.bukon && hasQuality(it)) {
     const progress = abyssActive() ? 6 + Math.floor((G.floor || 1)/20) : CHAPTERS.find(c => c.dungeons.includes(curDungeon().id))?.no || curDungeon().layer;
     const soul = bukon.rollBukon(it, progress);
-    if (soul) { it.bukon = [soul]; if (abyssActive()) infAfxTrack(it); }
+    if (soul) { if(bukon.bukonFits(it,soul))it.bukon=[soul];else {bukon.stockAdd(G,soul);it.bukon=[];log(`${bukon.bukonText(soul)}を商会に保管した。`,"win");} if (abyssActive()) infAfxTrack(it); }
   }
   return it;
 }
@@ -18947,6 +18950,8 @@ function reflattenItemStats(extra = null) {
   }
   const snapshots = [G, extra, G.abyss?.home, ...Object.values(G.abyssRec?.memories || {})].filter(Boolean);
   for (const snapshot of snapshots) {
+    const members=[...(snapshot.party||[]),...(snapshot.reserve||[])];
+    bukon.migrateBukon(snapshot,[...(snapshot.inventory||[]),...formations.formationItems(snapshot.formations),...members.flatMap(d=>[...(d.items||[]),...Object.values(d.equip||{})])]);
     for (const it of snapshot.inventory || []) refresh(it);
     for (const it of formations.formationItems(snapshot.formations)) refresh(it);
     for (const m of [...(snapshot.party || []), ...(snapshot.reserve || [])]) {

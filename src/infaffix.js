@@ -416,7 +416,7 @@ const retKey = (c) => (c.t === "hurt" && c.ret ? `${c.on || "phys"}:${c.ret.stat
 export function gearPerks(list) {
   const sums = {}, strongest = {}, rets = {}, top = {};
   for (const { c } of list) {
-    if (GEAR_FX_CAP[c.t] != null && c.v > 0) {
+    if (!c.bukon && GEAR_FX_CAP[c.t] != null && c.v > 0) {
       sums[c.t] = (sums[c.t] || 0) + c.v;
       strongest[c.t] = Math.max(strongest[c.t] || 0, c.v);
     }
@@ -425,7 +425,7 @@ export function gearPerks(list) {
   }
   return list.map(({ c, label }, i) => {
     const cap = GEAR_FX_CAP[c.t] == null ? null : Math.max(GEAR_FX_CAP[c.t], strongest[c.t] || 0);
-    const k = cap != null && c.v > 0 && sums[c.t] > cap ? cap / sums[c.t] : 1;
+    const k = !c.bukon && cap != null && c.v > 0 && sums[c.t] > cap ? cap / sums[c.t] : 1;
     let out = k === 1 ? c : { ...c, v: Math.round(c.v * k * 1000) / 1000 };
     const rk = retKey(c);
     const rcap = rk ? Math.max(GEAR_RET_CAP, top[rk]) : 0;
