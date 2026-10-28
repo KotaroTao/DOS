@@ -1,4 +1,4 @@
-import { bukonItem } from "./bukon.js";
+import { bukonItem, LEGENDARY_MISC_KEYS } from "./bukon.js";
 import { itemNumber } from "./itemnumbers.js";
 import { rarityOrder } from "./rarity.js";
 import { random } from "./rng.js";
@@ -1543,10 +1543,10 @@ export function recalc(member) {
   let evade = 0;
   let br = 0; // ブレス耐性 (合計)
   const gfx = [], gmisc = {}; // 無限迷宮の追加の特性: 戦闘の条件つきの効果 (combat.js perksOf が読む) と、迷宮での効果 (game.js が読む)
-  const counted = new Set();
+  const counted = new Set(), legendarySeen = new Set();
   for (const slot of SLOTS) {
     const original = member.equip[slot];
-    const it = bukonItem(original);
+    const it = bukonItem(original, { legendarySeen });
     if (!it || counted.has(original)) continue;
     counted.add(original);
     flatAtk += it.atk || 0;
@@ -1575,7 +1575,7 @@ export function recalc(member) {
     if (it.resists) for (const k in resist) resist[k] += it.resists[k] || 0;
     br += it.bRes || 0;
     if (it.afxFx) gfx.push(...it.afxFx);
-    if (it.afxMisc) for (const k in it.afxMisc) { const v = it.afxMisc[k]; gmisc[k] = typeof v === "boolean" ? (gmisc[k] || v) : (gmisc[k] || 0) + v; }
+    if (it.afxMisc) for (const k in it.afxMisc) { const v = it.afxMisc[k]; gmisc[k] = typeof v === "boolean" ? (gmisc[k] || v) : LEGENDARY_MISC_KEYS.has(k) ? Math.max(gmisc[k] || 0, v) : (gmisc[k] || 0) + v; }
     for (const effect of onHitEffects(it.onHit)) {
       const cur = oh[effect.k];
       if (!cur || (effect.chance || 0) > cur.chance || (effect.chance === cur.chance && (effect.pct || 0) > (cur.pct || 0))) oh[effect.k] = { ...effect };

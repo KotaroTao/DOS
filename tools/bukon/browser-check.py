@@ -77,6 +77,28 @@ with sync_playwright() as p:
       const orphan={...target};if(game.bukonAction('detach',orphan,0))throw Error('所有しない写しの回収');
       return 'OK 章解放・6章の新規ドロップ・二重抽選防止・売却/廃棄回収・武魂なしの棚・編成復元・一括移植・所有検査';
     }'''),flush=True)
+    print(page.evaluate('''async()=>{
+      const {game,b,UI}=bukonTest,{G}=game;
+      b.stockAdd(G,{k:'J11',lv:1},2);b.stockAdd(G,{k:'X30',lv:1});
+      UI.openShop('enchant');
+      return '激レアの在庫を追加';
+    }'''),flush=True)
+    # 再描画後は現在の「保管中」の一覧で名前と合成対象外表示を確認。
+    page.wait_for_function('document.querySelector(".bk-panel")?.textContent.includes("不屈")')
+    legend=page.locator('.bk-panel .ec-afx-row').filter(has_text='不屈')
+    assert legend.count()==1
+    assert legend.get_by_role('button',name='合成',exact=True).count()==0
+    assert '合成対象外' in legend.inner_text().replace('\u200b','')
+    print(page.evaluate('''()=>{
+      const {game,b}=bukonTest,{G}=game;const it=game.bukonTargets().find(it=>!it.bukon?.length && !it.locked && !it.cursed);
+      if(!it)throw Error('装着先');
+      const before=G.gold;
+      if(!game.bukonAction('attach',it,{k:'J11',lv:1}))throw Error('不屈を宿せない');
+      if(game.bukonAction('attach',it,{k:'J11',lv:1}))throw Error('同じ装備に二重装着');
+      if(!game.bukonAction('detach',it,it.bukon.findIndex(b=>b.k==='J11')))throw Error('不屈を外せない');
+      if(G.bukonStock['J11:1']!=='2'||G.gold!==before)throw Error('回収・無料');
+      return 'OK 激レアの名前表示・合成対象外・無料装着/回収・同効果重複禁止';
+    }'''),flush=True)
     for width in [320,390,768]:
         page.set_viewport_size({'width':width,'height':844})
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'),width

@@ -21,6 +21,11 @@ for (const [s, name] of [["critDamage", "会心ダメージ"], ["spellCritDamage
 // 従来の付呪から、条件つき攻防・種族特効・命中時効果を引き継ぐ。全装備で使用可能。
 for (const d of AFX.filter(d => /^[GHI]\d/.test(d.id) && d.id !== "I19" || /^F0[1-7]$/.test(d.id)))
   add({ id: d.id, name: d.name.replace(/の$/, ""), kind: "legacy", legacy: d, base: 5, max: 4, rarity: d.tier === "r" ? 2 : 1 });
+// 従来の最上位「極」全39種。固定機能はLv1のまま、元の係数と挙動を使う。
+export const LEGENDARY_BUKON = AFX.filter(d => d.tier === "x" && !d.retired);
+for (const d of LEGENDARY_BUKON)
+  add({ id: d.id, name: d.name.replace(/の$/, ""), kind: "legendary", legacy: d, value: d.r[0], base: 1, max: 1, rarity: 4 });
+export const LEGENDARY_MISC_KEYS = new Set(LEGENDARY_BUKON.flatMap(d => Object.keys(d.misc?.(d.r[0],25) || {})));
 export const bukonDef = id => BUKON.find(d => d.id === id);
 export const validBukon = b => !!(b && bukonDef(b.k) && Number.isSafeInteger(b.lv) && b.lv >= 1 && (!bukonDef(b.k).max || b.lv <= bukonDef(b.k).max));
 export const bukonSlots = it => BUKON_SLOTS[rarityKey(it)] || 1;
@@ -29,8 +34,8 @@ export function bukonText(b) {
   if (!validBukon(b)) return "不明な武魂";
   const d = bukonDef(b.k), value = bukonExact(b), n = value.toString();
   const shown = n.length > 18 ? `${n.slice(0, 1)}.${n.slice(1, 5)}×10^${n.length - 1}` : value.toLocaleString("ja-JP");
-  const effect = d.kind === "legacy" ? d.legacy.text(Number(value) / 100, 25) : `${d.name}+${shown}${d.kind === "flat" ? "" : "%"}`;
-  return `${d.rarity >= 4 ? "★激レア " : ""}Lv${b.lv} ${effect}`;
+  const effect = d.kind === "legendary" ? (d.id === "X12" ? "魅了・混乱・封印耐性95%、敵の打ち消しで自分の強化が消えない" : d.legacy.text(d.value,25)) : d.kind === "legacy" ? d.legacy.text(Number(value) / 100, 25) : `${d.name}+${shown}${d.kind === "flat" ? "" : "%"}`;
+  return `${d.rarity >= 4 ? "★激レア " : ""}Lv${b.lv} ${d.kind === "legendary" ? `【${d.name}】` : ""}${effect}`;
 }
 export function bukonStock(g) { return g.bukonStock ||= {}; }
 export const bukonKey = b => `${b.k}:${b.lv}`;
@@ -114,18 +119,28 @@ export function rollBukon(it, progress = 6, rnd = random) {
   return { k:d.id,lv };
 }
 // 効果は本体の価格・品質・鍛造を変えず、能力集計時の作業用の写しにだけ適用する。
-export function bukonItem(it) {
+export function bukonItem(it, { legendarySeen = new Set() } = {}) {
   if (!it?.bukon?.length) return it;
-  const out = {...it, mult:{...it.mult}, resists:{...it.resists}, afxFx:[...(it.afxFx || [])]};
+  const out = {...it, mult:{...it.mult}, resists:{...it.resists}, afxFx:[...(it.afxFx || [])], afxMisc:{...it.afxMisc}, eff:{...it.eff}};
   for (const b of it.bukon.filter(validBukon)) {
     const d=bukonDef(b.k), v=Number(bukonExact(b));
     if(d.kind === "flat") out[d.stat]=(out[d.stat] || 0)+v;
     if(d.kind === "pct") out.mult[d.stat]=(out.mult[d.stat] || 0)+v/100;
     if(d.kind === "rate") out[d.stat]=(out[d.stat] || 0)+v/100;
     if(d.kind === "res") out.resists[d.stat]=(out.resists[d.stat] || 0)+v;
-    if(d.kind === "legacy") {
-      if(d.legacy.apply) d.legacy.apply(out,v/100,25);
-      if(d.legacy.fx) out.afxFx.push(...d.legacy.fx(v/100,25).map(c=>({c,label:d.name})));
+    if(d.kind === "legacy" || d.kind === "legendary") {
+      if(d.kind === "legendary") {
+        if(legendarySeen.has(d.id)) continue;
+        legendarySeen.add(d.id);
+      }
+      const value=d.kind === "legendary" ? d.value : v/100;
+      const previousEff={...out.eff};
+      if(d.legacy.apply) d.legacy.apply(out,value,25);
+      // 不屈の武魂が、装備固有のより強い自動蘇生を弱めない。
+      if(d.kind === "legendary") for(const [key,n] of Object.entries(previousEff))
+        out.eff[key]=typeof n === "boolean" ? n || out.eff[key] : Math.max(n,out.eff[key] || 0);
+      if(d.legacy.fx) out.afxFx.push(...d.legacy.fx(value,25).map(c=>({c,label:d.name})));
+      if(d.legacy.misc) Object.assign(out.afxMisc,d.legacy.misc(value,25));
     }
   }
   return out;

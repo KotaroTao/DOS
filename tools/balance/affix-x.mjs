@@ -177,7 +177,7 @@ const bigFoe = (o) => foe({ atk: 9000, ...o });
   const p = doll();
   p.equip.head = itemWith("head", "X12");
   recalc(p);
-  assert.ok(p.resists.charm === 100 && p.resists.confuse === 100 && p.resists.seal === 100, "不動心: 魅了・混乱・封印の抵抗値100");
+  assert.ok(p.resists.charm === 95 && p.resists.confuse === 95 && p.resists.seal === 95, "不動心: 魅了・混乱・封印の抵抗値95");
   const e = foe({ ability: "dispel" }), logs = [];
   const b = battle([p], [e], logs);
   b._applyMod(p, "atk", 1.5, 3, "鼓舞");

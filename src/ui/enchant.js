@@ -3,7 +3,7 @@ import { UI, game, registerUI } from "./ctx.js";
 import { el, button, sheet, confirm as askConfirm, toast } from "./kit.js";
 import { itemName, recalc } from "../items.js";
 import { bukonText, bukonSlots, bukonDef, bukonItem, attachBlock, fusionPlan } from "../bukon.js";
-export const ENCHANT_NOTE = "武魂は商会で無料で宿し、外せる。枠はコモン1・アンコモン2・レア3・SR4・LR5。同じ効果は一つの装備に一つまで。売却・廃棄・素材化した装備の武魂は自動で商会へ戻る。";
+export const ENCHANT_NOTE = "武魂は商会で無料で宿し、外せる。枠はコモン1・アンコモン2・レア3・SR4・LR5。同じ効果は一つの装備に一つまで。売却・廃棄・素材化した装備の武魂は自動で商会へ戻る。従来の極に当たる激レア39種は効果固定のLv1で、合成対象外。同じ固定特性は複数部位でも一度だけ働く。";
 export const enchantPracticeState = () => null;
 export function prepareEnchantTutorial() {}
 // 旧付呪の破壊的な写し取り窓口は公開しない。
@@ -101,7 +101,8 @@ export function renderEnchantList(parent) {
       }
       if(mode==="stock")for(const b of rows.filter(b=>norm(bukonText(b)).includes(q))) {
         const row=el("div","ec-afx-row");row.append(el("div","",`${bukonText(b)} ×${b.count}`),button({label:b.protected?"合成保護を解除":"合成素材から保護",kind:"ghost",onTap:()=>action("protect",null,b,draw)}));
-        if(game.featureUnlocked("bukonFusion"))row.append(button({label:"合成",kind:"primary",onTap:()=>openFusion(b.k,draw)}));
+        if(bukonDef(b.k).max === 1) row.append(el("p","rf-note","効果固定・合成対象外。同じ特性は全装備で一度だけ有効。"));
+        else if(game.featureUnlocked("bukonFusion"))row.append(button({label:"合成",kind:"primary",onTap:()=>openFusion(b.k,draw)}));
         list.append(row);
       }
       if(!list.children.length)list.append(el("p","rf-note","該当する品はない。"));
