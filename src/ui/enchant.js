@@ -3,7 +3,7 @@ import { UI, game, registerUI } from "./ctx.js";
 import { el, button, sheet, confirm as askConfirm, toast } from "./kit.js";
 import { itemName, recalc } from "../items.js";
 import { bukonText, bukonSlots, bukonDef, bukonItem, attachBlock, fusionPlan } from "../bukon.js";
-export const ENCHANT_NOTE = "武魂は商会で無料で宿し、外せる。枠はコモン1・アンコモン2・レア3・SR4・LR5。同じ効果は一つの装備に一つまで。売却・廃棄・素材化した装備の武魂は自動で商会へ戻る。従来の極に当たる激レア39種は効果固定のLv1で、合成対象外。同じ固定特性は複数部位でも一度だけ働く。";
+export const ENCHANT_NOTE = "武魂とは、装備を使っていた者の魂の一部が、長い年月をかけて少しずつ装備に宿り、凝縮したもの。誰がどのように使っていたかによって、同じ装備でも宿る武魂は千差万別となる。達人が生涯使い続けた業物には、人知を超えた力を秘めた武魂が宿ることもある。商会では、すでに宿った武魂を取り出して別の装備へ移せる。武魂は商会で無料で宿し、外せる。枠はコモン1・アンコモン2・レア3・SR4・LR5。同じ効果は一つの装備に一つまで。売却・廃棄・素材化した装備の武魂は自動で商会へ戻る。従来の極に当たる激レア39種は効果固定のLv1で、合成対象外。同じ固定特性は複数部位でも一度だけ働く。";
 export const enchantPracticeState = () => null;
 export function prepareEnchantTutorial() {}
 // 旧付呪の破壊的な写し取り窓口は公開しない。
