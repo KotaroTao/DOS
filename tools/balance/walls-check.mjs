@@ -87,7 +87,7 @@ assert.deepEqual(strongHpWallOf(at("w38")), { boss: 5, elite: 1 });
 near(wallOf(at("w41")), 10 * 1.5 ** 3);
 near(agiWallOf(at("w41")), 3 * 1.1 ** 3);
 assert.deepEqual(strongHpWallOf(at("w41")), { boss: 5, elite: 1 });
-for (const [id, main] of [["ws20", "w38"], ["ws22", "w39"], ["ws21", "w41"], ["ws23", "w42"], ["ws24", "w45"], ["ws25", "w48"], ["ws26", "w46"], ["ws27", "w47"], ["ws7", "w18"], ["ws13", "w35"], ["ws5", "w15"], ["ws4", "w10"], ["ws3", "w01"], ["ws6", "w01"]]) {
+for (const [id, main] of [["ws20", "w38"], ["ws22", "w39"], ["ws21", "w41"], ["ws23", "w42"], ["ws24", "w45"], ["ws25", "w48"], ["ws26", "w49"], ["ws27", "w47"], ["ws7", "w18"], ["ws13", "w35"], ["ws5", "w15"], ["ws4", "w10"], ["ws3", "w01"], ["ws6", "w01"]]) {
   assert.equal(dungeonProgressOf(at(id)), Math.max(0, MAIN.findIndex(d => d.id === main)), id);
 }
 for (let i = 1; i < MAIN.length; i++) {

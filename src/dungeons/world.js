@@ -1992,7 +1992,7 @@ const WORLD_DEF = [
     floorHaz: { fall: "fossilcrack", harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.136, 5: 0.142, 15: 0.149 },
     name: "化石竜の墓所", short: "化石竜の墓所",
-    about: "岩盤の中に、山のように大きな竜の骨が埋まっている。骨のすき間をたどる道は、行き着くところまで行かなければ、入った者を外へ返さない",
+    about: "岩盤の中に、山のように大きな竜の骨が埋まっている。骨のすき間の道には、太古の魂で巨大に育った魔物が一体ずつ立ちはだかる",
     bands: [
       ["bs_fossildragon", "bs_primalbeast", "bs_obsidianbeast", "bs_rocktitan", "bs_primalserpent", "bs_crystaldrake"],
       ["bs_cavebehemoth", "bs_earthshaker", "bs_abysshorror"],
@@ -2062,7 +2062,7 @@ const WORLD_DEF = [
     floorHaz: { fall: null, harm: "inkpool" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.124, 5: 0.130, 15: 0.137 },
     name: "閉架の書庫", short: "閉架",
-    about: "大書庫の脇に、鍵で閉ざされた書架の迷路がある。読み手を選ぶ本ばかりを集めた閉架で、入った者は奥まで読み終えなければ外へ出られない",
+    about: "大書庫の脇に、鍵で閉ざされた書架の迷路がある。読み手を選ぶ本ばかりを集めた閉架で、刃を拒み、術の力だけを強く響かせる",
     bands: [
       ["bs_tomeguardian", "bs_runegolem", "bs_forbiddenspirit", "bs_mindeater", "bs_spellwraith", "bs_cosmicwraith"],
       ["bs_inkdragon", "bs_elderlich", "bs_arcanesentinel"],
@@ -2637,6 +2637,34 @@ function build(def) {
   return cfg;
 }
 
+
+// 2026-10 採用: 高難度の寄り道は全15階・最下階に主。
+const CHALLENGE_UPDATES = {
+  ws7: { rule: { id: "commonprison", name: "名もなき者の牢", commonOnly: true, lines: ["メイン魂がコモン職の隊だけが入れる。サブ魂・結社・魂のランクは自由。", "宝箱が増え、中身は1ランク上等。"], board: "offering", mods: { chestRankUp: 1 } } },
+  ws13: { boss: "bs_plaguelich", rule: { id: "risingplague", name: "起き上がる疫病", foeRise: 0.5, lines: ["主・金属を除く魔物は、倒れても一度だけHP半分で蘇る。", "死体が多く残り、魂と魂の残火を探せる。"], board: "prison", mods: {} } },
+  ws21: { lv: 150, rule: { id: "giantbones", name: "巨竜の骨", giant: true, lines: ["敵は必ず一体。主も含め、HP・MPと基本能力がすべて5倍。", "敵一体の✦Soul・金貨も5倍。"], mods: {} } },
+  ws24: { lv: 180, rule: { id: "spellstacks", name: "刃を拒む書庫", challengeRule: "magic", lines: ["敵への物理ダメージは無効。魔法ダメージは2倍。主にも適用。", "落ちている装備の質が上がる。"], mods: { lootBonusLv: 4 } } },
+  ws26: { lv: 196, boss: "bs_primalbeast", rule: { id: "bladegallery", name: "術を拒む剥製", challengeRule: "physical", lines: ["敵への魔法ダメージは無効。物理ダメージは2倍。主にも適用。", "宝箱は1ランク上等。"], mods: { chestRankUp: 1 } } },
+  ws29: { lv: 225, boss: "bs_bellowsfiend", rule: { id: "sleeplesshaste", name: "休まぬ者の夜", allHaste: true, lines: ["主も含め、敵はすべて神速。一巡に二度動く。", "勝つたびに隊のHP・MPが8%回復する。"], victoryHeal: 0.08, mods: {} } },
+  ws31: { lv: 253, boss: "bs_hymncaster", rule: { id: "endlesscrowd", name: "押し寄せる祈り", fullPack: true, lines: ["通常戦闘の敵は常に最大の六体。主・強敵は一体。", "敵が多い分、一戦の総報酬も多い。"], mods: { packMin: 6 } } },
+};
+for (const [id, update] of Object.entries(CHALLENGE_UPDATES)) {
+  const d = WORLD_DEF.find(d => d.id === id);
+  const oldFloors = d.floors;
+  const start = d.power[1], end = d.power[oldFloors];
+  d.challenge = true; d.floors = 15;
+  if (update.lv) { d.lv = update.lv; d.lvTo = update.lv + 4; }
+  d.power = { 1: start, 8: (start + end) / 2, 15: end };
+  d.boss ||= update.boss;
+  d.bossRank ||= d.layer + 2;
+  d.trait = { sym: "◆", accent: "#c09060", ...update.rule };
+  if (d.bands.length < 3) {
+    const used = new Set(d.bands.flat());
+    const extra = WORLD_DEF.filter(x => x.layer === d.layer).flatMap(x => x.bands.flat()).filter(k => !used.has(k));
+    d.bands.push([...new Set(extra)].slice(0, 3));
+  }
+}
+
 export const WORLD = WORLD_DEF.map(build);
 export const WORLD_IDS = WORLD.map((d) => d.id);
 export function worldIndexOf(id) { return WORLD_IDS.indexOf(id); }
@@ -2846,7 +2874,7 @@ export function strengthAt(cfg, floor = 1) { return powerAt(cfg, floor) * lvPow(
     if (d.trait) {
       const t = d.trait;
       if (!t.id || !t.name || !Array.isArray(t.lines)) throw new Error(`world: ${d.id} trait needs id/name/lines`);
-      for (const k of Object.keys(t)) if (!["id", "name", "sym", "accent", "lines", "mods", "eliteRate", "board", "specialRate", "victoryHeal", "foeRegen", "mpDrain", "hpDrain", "metalRate", "metalMax", "chill", "physOnly", "alwaysAmbush", "poisonStart", "boltStart", "allHaste", "say", "audience", "gloom", "foeRally", "fervor", "duel", "foeRise", "whisper", "lull", "jolt", "allure", "focus", "shell", "soulFeast", "oneChest", "sealedGate", "appraised", "corpseFade"].includes(k)) throw new Error(`world: ${d.id} trait has unknown field ${k}`);
+      for (const k of Object.keys(t)) if (!["id", "name", "sym", "accent", "lines", "mods", "eliteRate", "board", "specialRate", "victoryHeal", "foeRegen", "mpDrain", "hpDrain", "metalRate", "metalMax", "chill", "physOnly", "alwaysAmbush", "poisonStart", "boltStart", "allHaste", "say", "audience", "gloom", "foeRally", "fervor", "duel", "foeRise", "whisper", "lull", "jolt", "allure", "focus", "shell", "soulFeast", "oneChest", "sealedGate", "appraised", "corpseFade", "commonOnly", "giant", "challengeRule", "fullPack"].includes(k)) throw new Error(`world: ${d.id} trait has unknown field ${k}`);
     }
     if (d.realm != null) throw new Error(`world: ${d.id} の realm は廃止 (土地の掟は迷宮の掟に統合した)`);
     if (d.trait && d.trait.say && typeof d.trait.say === "object") {

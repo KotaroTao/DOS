@@ -895,7 +895,7 @@ export const FIXED_QUESTS = [
     id: "fq_liese2", name: "鍵束の持ち主", giver: { name: "牢番の娘リーゼ", title: "鍵束を継いだ娘" },
     appear: { reported: "w07", claimed: "fq_liese" },
     goal: { type: "clear", dungeon: "ws7" }, desc: "「獄吏の詰所」B15Fの主を倒して踏破する",
-    ref: "ws7", reward: { gold: 40, soul: 40, red: 20, embers: 4, souls: [["legend", 1], ["epic", 1]] }, // 格上の迷宮 (推奨Lv62〜66) の分だけ厚く
+    ref: "ws7", reward: { gold: 40, soul: 40, red: 20, embers: 4, souls: [["legend", 1], ["legend", 1]] }, // 格上の迷宮 (推奨Lv62〜66) の分だけ厚く
     opens: ["ws7"],
     lines: [
       "リーゼが、捨てたはずの古い鍵束を、また腰に下げていた。",
@@ -1041,7 +1041,7 @@ export const FIXED_QUESTS = [
     id: "fq_rochus", name: "塚の底の鐘", giver: { name: "くちばし面のロッホス", title: "疫病の医者" },
     appear: { reported: "w26" },
     goal: { type: "clear", dungeon: "ws13" }, desc: "「疫病塚の底」を踏破する",
-    ref: "ws13", reward: { gold: 48, soul: 48, red: 20, embers: 5, souls: [["legend", 1], ["epic", 1]] }, // 格上の迷宮 (推奨Lv100〜104) の分だけ厚く
+    ref: "ws13", reward: { gold: 48, soul: 48, red: 20, embers: 5, souls: [["legend", 1], ["legend", 1]] }, // 格上の迷宮 (推奨Lv100〜104) の分だけ厚く
     opens: ["ws13"],
     lines: [
       "鳥のくちばしの形をした仮面の男が、酒も頼まずに隅の席に座っていた。",
@@ -1290,7 +1290,7 @@ export const FIXED_QUESTS = [
     id: "fq_fossil", name: "竜の骨の歌", giver: { name: "骨読みのテオ", title: "古い骨を調べる学者" },
     appear: { reported: "w38" },
     goal: { type: "clear", dungeon: "ws21" }, desc: "「化石竜の墓所」のB15Fで主を討ち、踏破する (格上の迷宮・帰還魔法陣なし)",
-    ref: "ws21", reward: { gold: 64, soul: 60, red: 24, embers: 5, souls: [["epic", 2], ["legend", 1]] },
+    ref: "ws21", reward: { gold: 64, soul: 60, red: 24, embers: 5, souls: [["legend", 2], ["legend", 1]] },
     opens: ["ws21"],
     lines: [
       "眼鏡を額に押し上げた痩せた男が、石のかけらを並べて、何かの形を組み立てていた。",
@@ -1379,7 +1379,7 @@ export const FIXED_QUESTS = [
     id: "fq_closedstacks", name: "閉架の綴じ本", giver: { name: "書き写しのヨルク", title: "夜明けの町の書き写し屋" },
     appear: { reported: "w42" },
     goal: { type: "clear", dungeon: "ws24" }, desc: "「閉架の書庫」のB15Fで主を討ち、踏破する (格上の迷宮・帰還魔法陣なし)",
-    ref: "ws24", reward: { gold: 66, soul: 62, red: 24, embers: 5, souls: [["epic", 2], ["legend", 1]] },
+    ref: "ws24", reward: { gold: 66, soul: 62, red: 24, embers: 5, souls: [["legend", 2], ["legend", 1]] },
     opens: ["ws24"],
     lines: [
       "インクのしみた指の人業が、写し終えた紙の束を卓に広げていた。どの紙にも、灯籠の吹き方が細かく書き写されている。",
@@ -1416,7 +1416,7 @@ export const FIXED_QUESTS = [
     id: "fq_doorscratch", name: "扉を引っかく音", giver: { name: "扉番のカスパル", title: "夜明けの町の底の扉の番" },
     appear: { reported: "w46" },
     goal: { type: "clear", dungeon: "ws26" }, desc: "「剥製の大広間」を踏破する",
-    ref: "ws26", reward: { gold: 50, soul: 48, red: 14, embers: 3, souls: [["epic", 1], ["rare", 1]] },
+    ref: "ws26", reward: { gold: 50, soul: 48, red: 14, embers: 3, souls: [["legend", 1], ["legend", 1]] },
     opens: ["ws26"],
     lines: [
       "腕の太い人業が、酒場の戸口で、窮屈そうに背を丸めて立っていた。夜明けの町の扉番だという。",
@@ -1521,11 +1521,11 @@ export const FIXED_QUESTS = [
       embers: 4,
       souls: [
         [
-          "epic",
+          "legend",
           1
         ],
         [
-          "rare",
+          "legend",
           1
         ]
       ]
@@ -1620,11 +1620,11 @@ export const FIXED_QUESTS = [
     "embers": 4,
     "souls": [
       [
-        "epic",
+        "legend",
         1
       ],
       [
-        "rare",
+        "legend",
         2
       ]
     ]

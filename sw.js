@@ -1513,6 +1513,7 @@ const ASSETS = [
   // <</ITEM_1501_1600_ART>>
   "./icon.svg",
   "./src/game.js",
+  "./src/progression.js",
   "./src/imageloading.js",
   "./src/mediaready.js",
   "./src/loadingcandle.js",

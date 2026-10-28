@@ -1,3 +1,4 @@
+import { depthLimit, mutatorEligible, challengeEntryBlock, applyChallengeEnemies } from "./progression.js";
 import { warmOpening } from "./openingillustrations.js";
 import { holdIllustrations, mediaBusy } from "./imageloading.js";
 import { warmTownArt } from "./townpaint.js";
@@ -1217,7 +1218,7 @@ function openInfRest(cell = null) {
   if (!cell) cell = findRevealedStairs();
   setAutoMove(false);
   UI.openInfRest({
-    floor: G.floor, guardDown: !abyssBossPending(),
+    floor: G.floor, guardDown: !abyssBossPending(), depthLocked: G.floor >= infDepthLimit(),
     onBoss: () => fightAbyssGuard(cell),
     onReturn: () => infReturn(),
     onContinue: () => descend(),
@@ -2071,7 +2072,7 @@ function mutatorForDungeon(id, cfg) {
   return m && (!m.cond || m.cond(cfg)) ? m : null;
 }
 // 以前の記録で一騎打ちと飢えた狩場が重なっていても、対象外の異変は効かせない。
-function mutDef() { return G.mutator ? mutatorForDungeon(G.mutator, activeCfg()) : null; }
+function mutDef() { return (abyssActive() || !mutatorAllowed(activeCfg())) ? null : G.mutator ? mutatorForDungeon(G.mutator, activeCfg()) : null; }
 
 // 効果キーごとの合成方式: 倍率は積算 / 加算値は合算 / 確率系は最大 / 真偽は論理和。
 // これにより「迷宮の異変」「迷宮の掟」「無限迷宮の風の掟」が同一フックでそのまま効く。
@@ -6678,7 +6679,7 @@ function resolveCellMeasured(cell, { visibleEnemy = cell.type === "monster" && !
           } else {
             log("⚔ 石札の下から、魔物が這い出してきた！", "dmg");
             // 迷宮の異変 (飢えた狩場): 敵が常に群れで現れる
-            startBattle(spawnCardEnemies(cell.monsterKey, G.floor, enemyScale(), { min: mutNum("packMin", 0), pool: sfMonsterPool() }), cell, { visibleEnemy });
+            startBattle(spawnCardEnemies(cell.monsterKey, G.floor, enemyScale(), { min: Math.max(mutNum("packMin", 0), dungeonTrait()?.fullPack ? 6 : 0), pool: sfMonsterPool() }), cell, { visibleEnemy });
           }
         }
       }
@@ -8851,6 +8852,7 @@ function giveDropsFromChest(drops, i, done, sink = boardSink()) {
 // 見落としても、見出しの迷宮名を押す「階の情報」でいつでも読み返せる
 function descend(...args) { return tlGameMeasure("floor", () => descendMeasured(...args)); }
 function descendMeasured({ fall = false, skip = 0, stabilityAd = false } = {}) {
+  if (abyssActive() && G.floor + skip + 1 > infDepthLimit()) { showToast("この先の道は、まだ開いていない", { tone: "info" }); return; }
   // 出来事で2階進む場合も、5階の区切りを越える前に支払う。
   if (stabilityApplies(activeCfg()) && Math.floor((G.floor + skip) / 5) > Math.floor((G.floor - 1) / 5)) {
     if (!stabilityAd && !stabilityReady(ad => descend({fall, skip, stabilityAd:!!ad}), abyssActive(), STABILITY_FLOOR_COST)) return;
@@ -9018,6 +9020,7 @@ function startBattleMeasured(enemies, cell, { visibleEnemy = cell?.type === "mon
   // 迷宮の属性気配: 属性持ち迷宮では雑魚敵が迷宮属性を帯びやすい (主・強敵は固有属性のまま)
   const cfg = activeCfg();
   const spFloor = specialDef();
+  if (!G.rematch) enemies = applyChallengeEnemies(enemies, cfg.trait);
   for (const e of enemies) { scaleFoeStats(e, statWallOf(cfg)); scaleStrongFoeHp(e, strongHpWallOf(cfg)); }
   const isElite = enemies.some((e) => e.mon && e.mon.elite);
   if (cfg.element) {
@@ -9071,7 +9074,7 @@ function startBattleMeasured(enemies, cell, { visibleEnemy = cell?.type === "mon
     if (burnt) { log(`${r.name || r.head}：隊合計HP-${burnt}`, "dmg"); trOpen.steps.push({ kind: "heat", head: r.head, accent: r.accent, label: r.name, hits }); }
   }
   // 迷宮の掟: 疾風の巣 (trait.allHaste) — 敵はみな神速 (ターンの頭に動き、後半にもう一度動く)。主と金属の魔物は除く
-  if (trB && trB.allHaste) for (const e of enemies) if (!e.boss && !e.metal && !e.haste) { e.haste = true; e.agi += 8; }
+  if (trB && trB.allHaste) for (const e of enemies) if ((!e.boss || activeCfg().challenge) && !e.metal && !e.haste) { e.haste = true; e.agi += 8; }
   // 迷宮の主に遭遇した: 討つ前でも図鑑に名だけ載せる (遭遇するまでは「？？？」のまま)
   for (const e of enemies) if (e.boss && e.key && MONSTERS[e.key]) { if (!G.codex.met) G.codex.met = {}; G.codex.met[e.key] = 1; }
   G.state = "combat";
@@ -9148,7 +9151,7 @@ function startBattleMeasured(enemies, cell, { visibleEnemy = cell?.type === "mon
   for (const e of enemies) e.lv = foeLv;
   // 開幕のパッシブ・迷宮の掟の冷気で掛かる強化・弱体は、開幕の演出の後に1拍ずつ見せる (演出の設定が出す時だけ)
   const modW = beginModWatch(true);
-  G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot"), fleeK: fleeScale(), agiWall: agiWallOf(activeCfg()), statWall: statWallOf(activeCfg()), strongHpWall: strongHpWallOf(activeCfg()), baseAgi: partyAgi(levelHere().lv), foeLv, fervor: !!(trB && trB.fervor), foeRise: (trB && trB.foeRise) || 0, soulFeast: (trB && trB.soulFeast) || 0, focus: !!(trB && trB.focus) });
+  G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot"), fleeK: fleeScale(), agiWall: agiWallOf(activeCfg()), statWall: statWallOf(activeCfg()), strongHpWall: strongHpWallOf(activeCfg()), baseAgi: partyAgi(levelHere().lv), foeLv, fervor: !!(trB && trB.fervor), foeRise: (trB && trB.foeRise) || 0, challengeRule: trB?.challengeRule || null, soulFeast: (trB && trB.soulFeast) || 0, focus: !!(trB && trB.focus) });
   tlWatchBattle(G.battle, tlWhere(), id => infSupplyRecord("used", id));
   // 迷宮の掟の開幕の効果: 寒さに身がすくむ (chill) — 隊の全員の AGI を段数ぶん下げる (3ターン)
   for (const r of ruleOpens) if (r.chill) {
@@ -11935,10 +11938,10 @@ const SUB_EXP_RATE = 1 / 3;
 // 無限迷宮で得た分は入れない (rusuiSeated が無限迷宮の間は空)。
 // 控えの魂それぞれの Lv で減らす (soulLvMul)。砕けた人業・魂の宿らない器は除く。レベルアップの画面は出さず、帰還の報告に載せる
 const RUSUI_EXP_RATE = 0.10;
-// 結社の伝習: 第七章で10%、第十章の結びの報告で15%へ強化する。
+// 結社の伝習: 第五章本筋2報告で10%、第八章で15%、第九章で20%。
 function orderLearningRate() {
   if (!featureUnlocked("orderLearning")) return 0;
-  return featureUnlocked("orderLearning2") ? 0.15 : 0.10;
+  return featureUnlocked("orderLearning3") ? 0.20 : featureUnlocked("orderLearning2") ? 0.15 : 0.10;
 }
 function distributeOrderLearning(soulGot) {
   if (!featureUnlocked("orderLearning") || G.rematch) return [];
@@ -15333,6 +15336,17 @@ function reportTutorialQuest() { return prologueAudience(); }
 //   通常は報告後に開く。cleared 指定の機能だけは、その迷宮を踏破した時点で開く。
 //   まだ無い章の分 (第四章のサブ魂2枠・第五章の奈落) は、その章が台帳に載るまで開かない
 const FEATURES = {
+  mutators: { chapter: 6, report: "finale" },
+  orderLearning3: { chapter: 9, report: 2 },
+  order6: { chapter: 13, report: "finale" },
+  order7: { chapter: 15, report: "finale" },
+  order8: { chapter: 17, report: "finale" },
+  infinite100: { chapter: 7, report: "finale" },
+  infinite150: { chapter: 10, report: "finale" },
+  infinite200: { chapter: 12, report: "finale" },
+  infinite250: { chapter: 14, report: "finale" },
+  infinite300: { chapter: 16, report: "finale" },
+  infiniteDeep: { chapter: 18, report: "finale" },
   tavern: { chapter: 1, report: 2 },        // 第一章の本筋2か所の報告で、依頼と情報屋の噂が一緒に開く
   soulChange: { chapter: 1, dungeon: "w02" }, // 旧解放条件の記録。現在は新職業の魂を持ち帰り、館の手ほどきで解放
   fusion: { chapter: 1, soulTutorial: true }, // 魂融合の手ほどきの案内と同時に解放
@@ -15340,28 +15354,27 @@ const FEATURES = {
   rumor: { chapter: 1, report: 2 },           // 情報屋の噂 (酒場の掲示板)
   order: { chapter: 1, report: "finale" },    // 控えの結社 (席1)
   order2: { chapter: 2, report: "finale" },          // 結社の席2
-  order3: { chapter: 4, report: "finale" },          // 結社の席3
+  order3: { chapter: 7, report: 2 },          // 結社の席3
   sub2: { chapter: 3, report: 2 },     // サブ魂 2枠
-  forge: { chapter: 5, report: "finale" },    // 鍛え直し (商会で金貨を払い、装備の品質を引き直す — 2026-10 ユーザーの指示)
+  forge: { chapter: 4, report: "finale" },    // 鍛え直し (商会で金貨を払い、装備の品質を引き直す — 2026-10 ユーザーの指示)
   insight: { chapter: 1, cleared: "w02" }, // 操霊師の見識: 亡骸の囁く回廊を踏破した直後
   // ── 第六章から (docs/unlocks.md の年表。ユーザーの了解済み)。章がまだ無いので開かない。仕組みはその章を作る時に足す ──
   rusui: { retired: true, chapter: 6, report: "finale" },      // 留守居の修練 (席1。席の控えのメイン魂にも、戦闘で魂に入る経験値の一部が入る — 遠征の差し替え)
   rusui2: { retired: true, chapter: 7, report: "finale" },     // 留守居の修練の席2
   rusui3: { retired: true, chapter: 10, report: "finale" },    // 留守居の修練の席3
-  order4: { chapter: 6, report: "finale" },     // 結社の席4
-  orderLearning: { chapter: 7, report: "finale" }, // 結社の伝習: 各席の魂へ戦闘の✦Soulの10%
-  orderLearning2: { chapter: 10, report: "finale" }, // 結社の伝習を15%へ強化
-  // 無限迷宮 (入るたびに Lv1 の仮の器で潜るローグライク — docs/infinite-labyrinth.md)。第八章の結び (2026-10-11 ユーザーの指示:
-  //   第八章のあたりで Lv100・ランク3〜4 に届き、本編の育ちが単調になってくるので、第十章から前倒し)
-  infinite: { chapter: 8, report: "finale" },
+  order4: { chapter: 8, report: "finale" },     // 結社の席4
+  orderLearning: { chapter: 5, report: 2 }, // 結社の伝習: 各席の魂へ戦闘の✦Soulの10%
+  orderLearning2: { chapter: 8, report: 2 }, // 結社の伝習を15%へ強化
+  // 無限迷宮は第五章の結びで開き、先の章の報告で深部への道が開く。
+  infinite: { chapter: 5, report: "finale" },
   rematch: { chapter: 9, report: "finale" },    // 宿敵の再戦 (名のある強敵・主の強化版)
-  enchant: { chapter: 5, report: "finale" },
-  bukonFusion: { chapter: 6, report: "finale" }, // 武魂合成
+  enchant: { chapter: 3, report: "finale" },
+  bukonFusion: { chapter: 4, report: 2 }, // 武魂合成
   order5: { chapter: 11, report: "finale" },    // 結社の席5
-  rebirth: { chapter: 14, report: "finale" },   // 魂の転生
+  rebirth: { retired: true, chapter: 14, report: "finale" },   // 魂の転生
   mutPick: { chapter: 15, report: "finale" },   // 異変を選ぶ
-  vow: { chapter: 16, report: "finale" },       // 誓約
-  sub3: { chapter: 17, report: "finale" },      // サブ魂 3枠
+  vow: { retired: true, chapter: 16, report: "finale" },       // 誓約
+  sub3: { retired: true, chapter: 17, report: "finale" },      // サブ魂 3枠
 };
 const FEATURE_KEYS = Object.keys(FEATURES).filter((key) => key !== "rumor" && key !== "soulChange" && key !== "sub1" && !FEATURES[key].retired); // 噂は酒場に統合、魂の付け替えは館で案内 (旧キーは互換用に残す)
 const chapterLabel = (no) => `第${kanjiNum(no)}章`;
@@ -15391,7 +15404,7 @@ function featureUnlocked(key) {
 }
 // まだ開いていない機能の条件の説明 (錠の札・案内文)
 function featureNote(key) {
-  if (key === "enchant") return "第五章の結びを王に報告すると武魂が開く";
+  if (key === "enchant") return "第三章の結びを王に報告すると武魂が開く";
   if (key === "fusion") return "サブ魂を教わった後、次に職業の魂を持ち帰ると館で手ほどきを受けられる";
   if (key === "soulChange") return "新しい職業の魂を持ち帰り、人業の館で手ほどきを受けると開く";
   const f = FEATURES[key];
@@ -15411,9 +15424,9 @@ function featureNote(key) {
 function unlockedSubSlots() {
   return Math.min(MAX_SUBS, featureUnlocked("sub2") ? 2 : featureUnlocked("sub1") ? 1 : 0);
 }
-// 控えの結社の席数 (0〜5)
+// 控えの結社の席数 (0〜8)
 function orderSeats() {
-  return ["order5", "order4", "order3", "order2", "order"].reduce((n, k, i) => n || (featureUnlocked(k) ? 5 - i : 0), 0);
+  return ["order8", "order7", "order6", "order5", "order4", "order3", "order2", "order"].reduce((n, k, i) => n || (featureUnlocked(k) ? 8 - i : 0), 0);
 }
 // 結社の席に実際に着いている魂uid (編成外・席数上限でクリーン)。
 // G.order.picks の順を尊重しつつ、無効になった指定 (編成入り/消失) は除外する。
@@ -16582,6 +16595,11 @@ function recordAffixHome(it) {
 function bukonTargets() {
   return [...new Set([...(G.inventory || []), ...allDolls().flatMap(d => Object.values(d.equip || {}).filter(Boolean))])].filter(it => hasQuality(it) && !it.unidentified && !it.soulMemory);
 }
+function prepareBukonFusionTutorial() {
+  if (!featureUnlocked("bukonFusion") || G.tut?.done?.bukonFusion) return;
+  G.tut ||= { done: {} };
+  if (!G.tut.bukonFusionGift) { bukon.stockAdd(G, { k: "flat_hp", lv: 1 }, 3); G.tut.bukonFusionGift = true; autosave(true); }
+}
 function bukonRows() {
   if (featureUnlocked("enchant") && !G.bukonGift) { bukon.stockAdd(G,{k:"flat_hp",lv:1}); G.bukonGift=true; autosave(true); }
   return bukon.stockRows(G);
@@ -16608,6 +16626,7 @@ function bukonAction(action, it, b) {
     } else if (action === "attach" ? !bukon.attachBukon(G,it,b) : action === "detach" ? !bukon.detachBukon(G,it,b) : true) return false;
     for (const d of allDolls()) recalcDoll(d);
   }
+  if (action === "fuse" || action === "bulk") UI.tutorialEvent?.("bukonFused");
   autosave(true); renderParty(); renderStatus(); return true;
 }
 
@@ -16854,6 +16873,8 @@ function departNow({ idx = G.dungeonIdx, accept = false, from = 1, stabilityAd =
     if (!expected || G.party.length !== expected || G.party.some(d => !d.alive || d.primary == null)) { showToast("依頼に必要な人業をそろえ、手ほどきを終えてください", { tone: "info" }); return { ok:false, reason:"prologue" }; }
   }
   if (!stabilityAd && stabilityApplies(DUNGEONS[idx]) && !stabilityReady(ad => departNow({idx, accept, from, stabilityAd:!!ad}))) return { ok:false, reason:"stability" };
+  const entryBlock = challengeEntryBlock(DUNGEONS[idx], G.party, G.souls);
+  if (entryBlock) { showToast(entryBlock, { tone: "info" }); return { ok: false, reason: "challenge" }; }
   G.dungeonIdx = idx;
   const mut = townMutatorFor(idx);
   const mutId = accept && mut ? mut.id : null;
@@ -16866,8 +16887,10 @@ function departNow({ idx = G.dungeonIdx, accept = false, from = 1, stabilityAd =
 
 // §7 M1 迷宮の異変: 街に戻るたび、出撃シートを初めて開いた時に迷宮ごとに一度だけ抽選する (D3以降・45%・同じ候補)。
 // シートを開き直しても引き直さない (G._townMutator は街にいる間だけの一時記録。出撃・帰還で消える)
+function mutatorAllowed(cfg) { return mutatorEligible(cfg, featureUnlocked("mutators")); }
+function infDepthLimit() { return depthLimit(featureUnlocked); }
 function townMutatorFor(idx) {
-  if (DUNGEONS[idx]?.noSpecial || DUNGEONS[idx]?.id === "w01") return null; // 第1の迷宮には異変を出さない
+  if (!mutatorAllowed(DUNGEONS[idx])) return null; // 第1の迷宮には異変を出さない
   if (!G._townMutator) G._townMutator = {};
   if (!(idx in G._townMutator)) {
     let id = null;
@@ -16960,7 +16983,7 @@ function enterDungeon(mutatorId, startFloor = 1, stabilityAd = false) {
     prologue().phase = "done";
     refreshWorldUnlocks();
   }
-  G.mutator = curDungeon().noSpecial || curDungeon().id === "w01" ? null : mutatorForDungeon(mutatorId, curDungeon())?.id || null;
+  G.mutator = !mutatorAllowed(curDungeon()) ? null : mutatorForDungeon(mutatorId, curDungeon())?.id || null;
   G.bossDown = false; // 帰還制限: 魔法陣を見つけるか主を討つまで帰れない
   SFX.stairs();
   sheet.closeAll();
@@ -17030,13 +17053,13 @@ function skipTestDungeon() {
 // ===== 無限迷宮への出撃 =====
 // picks = 仮の器6体それぞれに宿す魂の職 (入口の3択で選んだもの。ui/infinite.js)。魂の安定度は本編と同じように使う
 function enterAbyss(picks, testRun = false, stabilityAd = false, memoryFloor = null) {
-  if (G.state !== "town" || G.abyss) return false;
+  if (G.state !== "town" || G.abyss || (!testRun && !featureUnlocked("infinite"))) return false;
   const memory = memoryFloor == null ? null : infMemoryAt(memoryFloor);
   const ok = memoryFloor != null ? memory && memory.party?.length === INF_PARTY && memory.party.every(d =>
     memory.souls?.some(s => s.uid === d.primary && SOUL_CLASSES[s.clsKey] && !isUniqueJob(s.clsKey)) &&
     (d.subs || []).every(sub => memory.souls.some(s => s.uid === sub.uid && SOUL_CLASSES[s.clsKey] && !isUniqueJob(s.clsKey)))) :
     Array.isArray(picks) && picks.length === INF_PARTY && picks.every((k) => SOUL_CLASSES[k] && !isUniqueJob(k)) && new Set(picks).size === picks.length;
-  if (!ok) { SFX.ng(); return false; }
+  if (!ok || (memory && memory.floor >= infDepthLimit())) { SFX.ng(); return false; }
   if (!stabilityAd && !stabilityReady(ad => enterAbyss(picks, testRun, !!ad, memoryFloor), true)) return false;
   if (!consumeEntryStability("infinite", "entry", true, stabilityAd)) return false;
   if (memory) picks = memory.party.map(d => memory.souls.find(s => s.uid === d.primary).clsKey);
@@ -18261,7 +18284,7 @@ function showConfirm({ title, lines = [], okLabel = "実行する", onOk }) {
 function markDungeonLoot(it) {
   const tr = dungeonTrait();
   if (it && UNIDENT_SLOTS.has(it.slot) && !(tr && tr.appraised) && !abyssActive()) it.unidentified = true; // 無限迷宮の品は鑑定済みで落ちる
-  const chapter5 = CHAPTERS.find(c => c.no === 5);
+  const chapter5 = CHAPTERS.find(c => c.no === 3);
   const laterDungeon = inDungeon() && curDungeon().layer > worldById(chapter5.finale).layer;
   if (it && abyssActive() && hasQuality(it) && !it.depth && !it.cursed && it.price > 0) {
     it.depth = Math.max(1, Math.floor(G.floor || 1)); resyncItem(it);
@@ -19483,6 +19506,7 @@ function setupTestPlay() {
     }
     if (key === "fusion") G.tut.fusionPending = true;
     if (key === "enchant") G.testUnlock.push("enchant");
+    if (key === "bukonFusion") G.testUnlock.push("enchant", "bukonFusion");
     if (key === "orderLearning") {
       G.testUnlock.push("order", "orderLearning");
       const soul = addSoulInstance("monk");
@@ -19918,7 +19942,7 @@ function wireUI() {
     claimAchievement, claimTreasury, treasuryRewardReady, deliveryHolder, deliveryStatus, deliverQuest,
     repairDoll, repairAllDolls, repairCostOf, awaitingRepairRescue, tryHastenRescue, reviveTimerEl, fmtRemain, awaitingRescue, hastenCostOf, canHastenRescue,
     doEquip, doUnequip, toggleItemLock, equipFromAnywhere, reforgeCost, reforgeBlock, rollReforge, setItemQuality,
-    bukonTargets, bukonRows, bukonAction, afxPagesState, enchantClosed, enchantSources, extractBlock, extractAffix, enchantTargets, enchantInfo, writeAffix, eraseAffix, itemHolder, openEquipChooser, useItem, dropItem, dropFromBag, askRoomFor, transferItem,
+    prepareBukonFusionTutorial, bukonTargets, bukonRows, bukonAction, afxPagesState, enchantClosed, enchantSources, extractBlock, extractAffix, enchantTargets, enchantInfo, writeAffix, eraseAffix, itemHolder, openEquipChooser, useItem, dropItem, dropFromBag, askRoomFor, transferItem,
     stopAutoCombat, sceneBgm, playBgm, SFX,
     ACH_SERIES, FACILITIES, FAC_SHELL, CONTENT_LIMIT, DUNGEONS, LAYER_VISUALS,
     isTitleActive: () => titleActive,
@@ -20011,7 +20035,7 @@ bindGame({
 bindGame({
   // 出撃
   departNow, corpseFadeShare, departAbyss, infVesselNames, rematchList, departRematch, REMATCH_FORGE_MAX, townMutatorFor, preDiveIssues, departWoes, DUNGEON_BRIEFING, STORY_CELLS, startFloorsOf, worldOpenIdx, worldOpenId, worldUnlockMet, levelBand, wallOf, wallStepOf, statWallOf, partyLevel, storyCellPending, dungeonFacts, dungeonQuests, namedHere, namedList, namedInfo,
-  abyssRecords, infMemories, infMemoryAt, infMemoryBlock, infMemoryPreview, infSaveMemory, infReturnItems, infStats, infTitleList, infTitleName, setInfTitle, emptyDollCost, infRule, infAtRest, soulWorkOk, infTraderWares, infSupplyStatus, infBuyBlock, infBuy, infSell, infSellPlan, infSellAll, shopAfxClash, infSwapSoul, infSoulChangeBlock, infSoulChangePreview, infSubBlock, infSubPreview, infSetSub, infLevel, infGrowthMul,
+  infDepthLimit, abyssRecords, infMemories, infMemoryAt, infMemoryBlock, infMemoryPreview, infSaveMemory, infReturnItems, infStats, infTitleList, infTitleName, setInfTitle, emptyDollCost, infRule, infAtRest, soulWorkOk, infTraderWares, infSupplyStatus, infBuyBlock, infBuy, infSell, infSellPlan, infSellAll, shopAfxClash, infSwapSoul, infSoulChangeBlock, infSoulChangePreview, infSubBlock, infSubPreview, infSetSub, infLevel, infGrowthMul,
   // 迷宮の HUD
   specialDef, mutDef, eliteKey, dungeonObjective, abyssActive, abyssBossPending, findRevealedStairs, canReturnNow, confirmAbandonDungeon,
   dungeonTheme, eventFacts,
@@ -20060,6 +20084,7 @@ async function init() {
     rusui: { distributeBattleSoulExp, RUSUI_EXP_RATE, soulByUid, rusuiSeats, rusuiSeated, toggleRusuiSeat },
     // 極 (無限迷宮の追加の特性) の検証用
     affix: { resolveCell, treasureCaller, battleChestSpec, distributeBattleSoulExp },
+    progression: { featureUnlocked, featureMet, infDepthLimit, mutatorAllowed, townMutatorFor, markDungeonLoot, orderSeats, orderLearningRate },
     orderLearning: { distributeOrderLearning, orderSeatedUids, orderLearningRate, orderSeats, featureUnlocked, featureMet, settleSoulExp },
     // オート移動の検証用
     autoMove: { setAutoMove, toggleAutoMove, autoMovePlan, moveStep, cellRect, viewSize: () => ({ VW, VH }) },
