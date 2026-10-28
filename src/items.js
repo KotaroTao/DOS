@@ -1,6 +1,6 @@
 import { retuneEquipment } from "./equipmentbalance.js";
 import { elementValues, elementStat } from "./combatrules.js";
-import { bukonItem, LEGENDARY_MISC_KEYS } from "./bukon.js";
+import { bukonItem, bukonDef, bukonFits, LEGENDARY_MISC_KEYS } from "./bukon.js";
 import { itemNumber } from "./itemnumbers.js";
 import { rarityOrder } from "./rarity.js";
 import { random } from "./rng.js";
@@ -1525,17 +1525,18 @@ export function recalc(member) {
   // %補正 (LR装飾品など)。同種は加算合算 (+20%×2 = +40%)、フラット加算の後に乗算で効く
   const mul = { atk: 0, vit: 0, agi: 0, int: 0, pie: 0, luk: 0, hp: 0, mp: 0 };
   const eff = {}; // 戦闘効果 (LR装飾品): actFirst/multistrike/lifesteal/autoRevive/guard/spellCostMul
-  const ea = {}, ed = {};
+  const ea = {}, ed = {}, bukonED = {};
   const resist = zeroResists();
   for (const k in resist) resist[k] = (base.resists && base.resists[k]) || 0;
   const ar = {}, oh = {}; // 状態異常耐性 (種類→合計) / 追加効果 (種類→最も強いもの)
   let evade = 0;
   let br = 0; // ブレス耐性 (合計)
   const gfx = [], gmisc = {}; // 無限迷宮の追加の特性: 戦闘の条件つきの効果 (combat.js perksOf が読む) と、迷宮での効果 (game.js が読む)
-  const counted = new Set(), legendarySeen = new Set();
+  const counted = new Set(), legendarySeen = new Set(), specialLevels=new Map();
+  for(const it of new Set(Object.values(member.equip)))for(const b of it?.bukon||[])if(bukonDef(b.k)?.kind==="special"&&bukonFits(it,b))specialLevels.set(b.k,Math.max(specialLevels.get(b.k)||0,b.lv));
   for (const slot of SLOTS) {
     const original = member.equip[slot];
-    const it = bukonItem(original, { legendarySeen });
+    const it = bukonItem(original, { legendarySeen, specialLevels });
     if (!it || counted.has(original)) continue;
     counted.add(original);
     flatAtk += it.atk || 0;
@@ -1560,11 +1561,12 @@ export function recalc(member) {
     }
     for (const [k, v] of Object.entries(elementValues(it.eAtk))) ea[k] = (ea[k] || 0) + v;
     for (const [k, v] of Object.entries(elementValues(it.eDef, "defense"))) ed[k] = (ed[k] || 0) + v;
+    for(const [k,v] of Object.entries(it.bukonElementDef||{}))bukonED[k]=(bukonED[k]||0)+v;
     if (it.aRes) for (const k in it.aRes) ar[k] = (ar[k] || 0) + (it.aRes[k] || 0);
     if (it.resists) for (const k in resist) resist[k] += it.resists[k] || 0;
     br += it.bRes || 0;
     if (it.afxFx) gfx.push(...it.afxFx);
-    if (it.afxMisc) for (const k in it.afxMisc) { const v = it.afxMisc[k]; gmisc[k] = typeof v === "boolean" ? (gmisc[k] || v) : LEGENDARY_MISC_KEYS.has(k) ? Math.max(gmisc[k] || 0, v) : (gmisc[k] || 0) + v; }
+    if (it.afxMisc) for (const k in it.afxMisc) { const v = it.afxMisc[k]; gmisc[k] = typeof v === "boolean" ? (gmisc[k] || v) : (k.startsWith("bk_") || LEGENDARY_MISC_KEYS.has(k)) ? (k==="bk_fortress"?Math.min(gmisc[k]??1,v):Math.max(gmisc[k] || 0, v)) : (gmisc[k] || 0) + v; }
     for (const effect of onHitEffects(it.onHit)) {
       const cur = oh[effect.k];
       oh[effect.k] = { ...effect, chance: (cur?.chance || 0) + (effect.chance || 0), pct: Math.max(cur?.pct || 0, effect.pct || 0) };
@@ -1597,6 +1599,7 @@ export function recalc(member) {
   // 属性攻撃力と属性耐性力 (各属性を同時に保持)
   member.elemAtk = elementStat(ea);
   member.elemDef = elementStat(ed, "defense");
+  if(Object.keys(bukonED).length)member.elemDef={...(member.elemDef||{}),kind:"defense",reductions:Object.fromEntries(Object.entries(bukonED).map(([k,v])=>[k,Math.min(.8,v)]))};
   // 旧属性武器は属性付与を引き継ぐ。防具・装飾品の属攻だけでは無属性武器に付与しない。
   member.attackElement = member.equip.weapon?.element || member.equip.weapon?.eAtk?.el || "none";
   member.offAttackElement = member.equip.shield?.element || member.equip.shield?.eAtk?.el || "none";

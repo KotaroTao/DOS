@@ -1,0 +1,30 @@
+"""武魂の実画面、金貨課金、部位制限、色、旧記録の保管を確認。localhost:8000。"""
+from playwright.sync_api import sync_playwright
+with sync_playwright() as p:
+    browser=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox'])
+    for width in [320,390,768]:
+        page=browser.new_page(viewport={'width':width,'height':844},service_workers='block',reduced_motion='reduce')
+        errors=[]
+        page.on('pageerror',lambda e:errors.append(str(e)))
+        page.goto('http://localhost:8000/?testDungeon=w54&testPlace=town')
+        page.wait_for_function('window.__game?.G.party.length>0')
+        print(width,page.evaluate('''async()=>{
+          const {game,UI}=await import('/src/ui/ctx.js');const b=await import('/src/bukon.js');
+          const clean=x=>x.replaceAll('\u200b','');const G=game.G;const check=(v,m)=>{if(!v)throw Error(m)};
+          G.testPlay=true;G.state='town';G.testUnlock=['enchant','bukonFusion'];G.tut={done:{enchant:1,bukonFusion:1},midUnlockVersion:1};G.gold=10000;G.bukonStock={};G.bukonGift=true;
+          b.stockAdd(G,{k:'flat_hp',lv:1},9);b.stockAdd(G,{k:'res_allElements',lv:10});b.stockAdd(G,{k:'J11',lv:10});
+          const holder=document.createElement('div');holder.id='bukon-test';document.body.append(holder);
+          const {renderEnchantList}=await import('/src/ui/enchant.js');renderEnchantList(holder);
+          const tab=[...holder.querySelectorAll('button')].find(x=>clean(x.textContent)==='保管中の武魂');check(!!tab,'タブがない: '+holder.textContent+' / '+game.enchantClosed());tab.click();
+          check(clean(holder.textContent).includes('全属性耐性'),'全属性の表示');
+          const red=[...holder.querySelectorAll('span')].find(x=>clean(x.textContent).includes('全属性耐性'));check(getComputedStyle(red).color==='rgb(255, 98, 98)','LRの赤');
+          [...holder.querySelectorAll('button')].find(x=>clean(x.textContent)==='合成').click();
+          check(document.body.textContent.includes('100'),'金貨表示');check(clean(document.body.textContent).includes('違うLv')||clean(document.body.textContent).includes('異なるLv'),'混合素材説明');
+          check(game.bukonAction('fuse',null,{k:'flat_hp',lv:2}),'実操作窓口の合成');check(G.gold===9900,'100金貨課金');
+          G.gold=0;const stock=JSON.stringify(G.bukonStock);check(!game.bukonAction('fuse',null,{k:'flat_hp',lv:2}),'金貨不足');check(JSON.stringify(G.bukonStock)===stock,'不足時素材不変');
+          check(b.attachBlock({slot:'head',rar:'lr'},{k:'crit',lv:10}),'頭へ会心を宿せない');
+          return '表示・赤色・混合素材説明・合成課金・金貨不足・部位制限 OK';
+        }'''))
+        assert not errors,errors
+        page.close()
+    browser.close()

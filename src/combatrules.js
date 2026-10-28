@@ -27,7 +27,8 @@ export function elementResistance(element, defense, affinity, scale = 1) {
 export const elementWeakness = (element, affinity) => affinity?.weakness?.[element] ?? ((affinity?.weak || []).includes(element) ? 1.5 : 1);
 export function elementMultiplier(element, attack = 100, defense = null, affinity = null, scale = 1) {
   if (!element || element === 'none') return 1;
-  return Math.max(0, attack) / 100 * elementWeakness(element, affinity) * (1 - elementalReduction(elementResistance(element, defense, affinity, scale)));
+  const reduction=Math.min(.8,elementalReduction(elementResistance(element, defense, affinity, scale)) + Math.max(0,defense?.reductions?.[element]||0)*Math.max(0,scale));
+  return Math.max(0, attack) / 100 * elementWeakness(element, affinity) * (1 - reduction);
 }
 
 // 会心の幸運加算を実戦と装備評価で共用する。
