@@ -39,19 +39,20 @@ with sync_playwright() as p:
       const {DUNGEONS}=__game.inf;
       // 実際の章判定（試遊の強制解放を外す）。
       const unlock=G.testUnlock;G.testUnlock=[];
-      const five=CHAPTERS.find(c=>c.no===5),six=CHAPTERS.find(c=>c.no===6);
-      const before5=G.world.reported[five.finale],before6=G.world.reported[six.finale];
-      delete G.world.reported[five.finale];delete G.world.reported[six.finale];
+      const three=CHAPTERS.find(c=>c.no===3),six=CHAPTERS.find(c=>c.no===4);
+      const reported=G.world.reported;G.world.reported={};
       if(game.featureUnlocked('enchant') || game.featureUnlocked('bukonFusion'))throw Error('解放前');
-      G.world.reported[five.finale]=1;if(!game.featureUnlocked('enchant') || game.featureUnlocked('bukonFusion'))throw Error('5章');
-      G.world.reported[six.finale]=1;if(!game.featureUnlocked('bukonFusion'))throw Error('6章');
+      G.world.reported[three.finale]=1;if(!game.featureUnlocked('enchant') || game.featureUnlocked('bukonFusion'))throw Error('3章');
+      for(const id of six.dungeons.slice(0,2))G.world.reported[id]=1;
+      if(!game.featureUnlocked('bukonFusion'))throw Error('4章');
+      G.world.reported=reported;
       G.testUnlock=unlock;
       // ドロップと在庫分離。
       const idx=G.dungeonIdx,state=G.state;G.state='board';
       G.dungeonIdx=DUNGEONS.findIndex(d=>d.id==='w01');
       const early=game.cloneItem(it.id,50);game.markDungeonLoot(early);if(early.bukon)throw Error('過去迷宮に付与');
       G.dungeonIdx=DUNGEONS.findIndex(d=>d.id===six.dungeons[0]);
-      const late=game.cloneItem(it.id,50);game.markDungeonLoot(late);if(late.bukon?.length!==1)throw Error('6章ドロップ');
+      const late=game.cloneItem(it.id,50);game.markDungeonLoot(late);if(late.bukon?.length!==1)throw Error('4章ドロップ');
       game.markDungeonLoot(late);if(late.bukon.length!==1)throw Error('二重抽選');
       const soul={...late.bukon[0]},old=BigInt(G.bukonStock[b.bukonKey(soul)] || 0);
       delete late.unidentified;game.shopReceive(late);
@@ -75,7 +76,7 @@ with sync_playwright() as p:
       source.bukon=[{k:'flat_hp',lv:2},{k:'pct_hp',lv:3}];G.inventory.push(source,target);
       if(!game.bukonAction('transfer',target,{source}) || source.bukon || target.bukon?.length!==2)throw Error('一括移植');
       const orphan={...target};if(game.bukonAction('detach',orphan,0))throw Error('所有しない写しの回収');
-      return 'OK 章解放・6章の新規ドロップ・二重抽選防止・売却/廃棄回収・武魂なしの棚・編成復元・一括移植・所有検査';
+      return 'OK 章解放・4章の新規ドロップ・二重抽選防止・売却/廃棄回収・武魂なしの棚・編成復元・一括移植・所有検査';
     }'''),flush=True)
     print(page.evaluate('''async()=>{
       const {game,b,UI}=bukonTest,{G}=game;

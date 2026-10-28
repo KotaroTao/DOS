@@ -1,3 +1,4 @@
+import { applyChallengeEnemies } from "./progression.js";
 import { procChance, hitChance, elementValues, elementStat, elementAttack, elementMultiplier, elementWeakness, elementResistance, elementalReduction, permanentMultiplier } from "./combatrules.js";
 import { canonicalPassiveKey, UNHOLY } from "./jobkit/common.js";
 import { random } from "./rng.js";
@@ -803,6 +804,7 @@ export class Battle {
   constructor(party, enemies, log, opts = {}) {
     this.party = party;
     this.enemies = enemies;
+    this.challengeRule = opts.challengeRule || null;
     this.log = log;
     this.queue = [];          // このターンの行動順 (AGI順)
     this.current = null;      // 手番のキャラ
@@ -1534,7 +1536,8 @@ export class Battle {
       if (gm(t).adversity && t.maxhp) factors.push(t.hp / t.maxhp <= .25 ? .6 : t.hp / t.maxhp <= .5 ? .8 : 1);
     }
     const product = factors.reduce((n, x) => n * x, 1);
-    return product > 0 ? permanentMultiplier(factors) / product : 1;
+    const ruleMul = t.side === "enemy" && ((this.challengeRule === "magic" && kind === "magic") || (this.challengeRule === "physical" && kind === "phys")) ? 2 : this.challengeRule === "doubleDamage" ? 2 : 1;
+    return ruleMul * (product > 0 ? permanentMultiplier(factors) / product : 1);
   }
   // 強化 (倍率>1) を打ち消す
   _stripUp(t) {
@@ -1894,6 +1897,7 @@ export class Battle {
   // 物理が外れる確率 (見切り・必中は別): 素の命中漏れ + 対象の敏捷(AGI)による回避 + 回避持ちの追加回避。
   // 技の命中補正 (acc) は命中率に直接加算する (0.1 = +10%、1 = 必中)。目つぶしは外れる確率を足す
   _missP(tgt, actor, opt = {}) {
+    if (this.challengeRule === "sureHit") return 0;
     const evade = (isMetal(tgt) ? metalEvade(tgt) : this._evadeBase(tgt, actor)) + (tgt.evasive ? .15 : 0) + (tgt.evadeBonus || 0) + this._parryP(tgt)
       + (tgt.side === "party" && actor.side === "enemy" ? this._perkSum(tgt, "evade", { tgt: actor }) + _partyEvadeBonus : 0);
     const accuracy = (actor.accuracyPower ?? 1) + (opt.acc || 0) + (actor.hitBonus || 0) + visionHitBonus(actor, tgt)
@@ -2737,8 +2741,9 @@ export class Battle {
       // 敵の呼び手: 仲間を1体呼び寄せる (最大6体)
       res.action = "spell"; res.spellKind = "summon"; res.spellName = "召喚";
       const key = actor.summonKey;
-      if (key && MONSTERS[key] && this.livingEnemies().length < MAX_ENEMIES) {
+      if (!actor._challengeGiant && key && MONSTERS[key] && this.livingEnemies().length < MAX_ENEMIES) {
         const e = makeEnemy(key, actor._scale || 1);
+        applyChallengeEnemies([e], { challengeRule: this.challengeRule });
         // 戦果の写し (game.js startBattle が推奨Lv の基準に合わせた比) を引き継ぐ
         if (actor._rk) { e._rk = actor._rk; e.soul = Math.max(1, Math.round(e.soul * actor._rk[0])); e.gold = Math.max(1, Math.round(e.gold * actor._rk[1])); }
         if (actor._agiMul) { e._agiMul = actor._agiMul; e.agi = Math.max(1, Math.round(e.agi * actor._agiMul)); }

@@ -89,7 +89,7 @@ export function renderEnchantList(parent) {
     wrap.replaceChildren();
     const why=game.enchantClosed?.(); if(why){wrap.append(el("p","rf-note",why));return;}
     const rows=game.bukonRows();
-    const details=el("details","rf-intro");details.append(el("summary","","武魂の手引き"),el("p","rf-note",ENCHANT_NOTE),el("p","rf-note","第五章の結びで解放。第六章以降の迷宮のレア以上の新しいドロップには必ず一つ宿る。SR・LRほど高レベル・希少効果が出やすい。物理・魔法耐性は合計80%、各状態異常耐性95%、会心率・回避率80%まで。基本能力の割合武魂は単体Lv9（+256%）、合計上限なし。固定値は際限なく合成できる。"));wrap.append(details);
+    const details=el("details","rf-intro");details.append(el("summary","","武魂の手引き"),el("p","rf-note",ENCHANT_NOTE),el("p","rf-note","第三章の結びで解放。第四章以降の迷宮のレア以上の新しいドロップには必ず一つ宿る。SR・LRほど高レベル・希少効果が出やすい。物理・魔法耐性は合計80%、各状態異常耐性95%、会心率・回避率80%まで。基本能力の割合武魂は単体Lv9（+256%）、合計上限なし。固定値は際限なく合成できる。"));wrap.append(details);
     const tabs=el("div","ec-afx-acts");
     for(const [key,label] of [["gear","装備に宿す・外す"],["stock","保管中の武魂"]])tabs.append(button({label,kind:mode===key?"primary":"ghost",onTap:()=>{mode=key;draw();}}));wrap.append(tabs);
     const search=el("input","rf-select");search.type="search";search.placeholder="装備名・武魂の効果で検索";search.setAttribute("aria-label","武魂の検索");search.value=query;wrap.append(search);
@@ -102,11 +102,11 @@ export function renderEnchantList(parent) {
       if(mode==="stock")for(const b of rows.filter(b=>norm(bukonText(b)).includes(q))) {
         const row=el("div","ec-afx-row");row.append(el("div","",`${bukonText(b)} ×${b.count}`),button({label:b.protected?"合成保護を解除":"合成素材から保護",kind:"ghost",onTap:()=>action("protect",null,b,draw)}));
         if(bukonDef(b.k).max === 1) row.append(el("p","rf-note","効果固定・合成対象外。同じ特性は全装備で一度だけ有効。"));
-        else if(game.featureUnlocked("bukonFusion"))row.append(button({label:"合成",kind:"primary",onTap:()=>openFusion(b.k,draw)}));
+        else if(game.featureUnlocked("bukonFusion"))row.append(button({label:"合成",className:"bukon-tutorial-fuse",kind:"primary",onTap:()=>openFusion(b.k,draw)}));
         list.append(row);
       }
       if(!list.children.length)list.append(el("p","rf-note","該当する品はない。"));
-      if(mode==="stock"&&!game.featureUnlocked("bukonFusion"))list.append(el("p","rf-note","武魂合成は第六章の結びを王に報告すると開く。"));
+      if(mode==="stock"&&!game.featureUnlocked("bukonFusion"))list.append(el("p","rf-note","武魂合成は第四章の本筋2か所を王に報告すると開く。"));
     };
     search.oninput=()=>{query=search.value;fill();};fill();
   };draw();return draw;
