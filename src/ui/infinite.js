@@ -69,7 +69,7 @@ export function openInfMemories(onStart) {
       for (const memory of memories) list.appendChild(row({ icon: ICONS.portal, title: `B${memory.floor}F の記憶`, sub: `B${memory.floor + 1}F から開始 ・ 平均Lv ${Math.round(memory.party.reduce((n, d) => n + (memory.souls.find(s => s.uid === d.primary)?.level || 1), 0) / memory.party.length)}`, chevron: true,
         onTap: () => sheet.open({ kind: "info", banner: "魂の記憶", title: `B${memory.floor}F の記憶`, className: "inf-sheet inf-memory-sheet",
           body: detail => memoryParty(detail, memory), footer: [
-            { label: `B${memory.floor + 1}F から始める`, kind: "primary", size: "lg", onTap: () => { sheet.closeAll(); if (onStart) onStart(); game.departAbyss(null, memory.floor); } },
+            { label: memory.floor >= game.infDepthLimit() ? "この先の道は、まだ開いていない" : `B${memory.floor + 1}F から始める`, disabled: memory.floor >= game.infDepthLimit(), kind: "primary", size: "lg", onTap: () => { sheet.closeAll(); if (onStart) onStart(); game.departAbyss(null, memory.floor); } },
             { label: "戻る", kind: "ghost", onTap: h => h.close() },
           ] }) }));
       b.appendChild(list);
@@ -251,7 +251,7 @@ export function openInfRest(spec = {}) {
           okLabel: "帰る", cancelLabel: "まだ帰らない", danger: false });
         if (!ok || x.closed) return;
         closing = true; x.close("ok", { silent: true }); spec.onReturn && spec.onReturn(); } },
-       { label: `続ける ― B${(spec.floor || g.floor) + 1}Fへ`, kind: "secondary", onTap: (x) => leave(x, () => { closing = true; x.close("ok", { silent: true }); spec.onContinue && spec.onContinue(); }, true) },
+       { label: spec.depthLocked ? "この先の道は、まだ開いていない" : `続ける ― B${(spec.floor || g.floor) + 1}Fへ`, disabled: !!spec.depthLocked, kind: "secondary", onTap: (x) => leave(x, () => { closing = true; x.close("ok", { silent: true }); spec.onContinue && spec.onContinue(); }, true) },
        { label: "まだ探索する", kind: "ghost", onTap: (x) => leave(x, () => x.close()) }]
     : [{ label: "主に挑む", kind: "danger", size: "lg", onTap: (x) => leave(x, () => { closing = true; x.close("ok", { silent: true }); spec.onBoss && spec.onBoss(); }) },
        { label: "まだ探索する", kind: "ghost", onTap: (x) => leave(x, () => x.close()) }];

@@ -420,10 +420,18 @@ const TUTS = [
       "「商会では、すでに宿った武魂を取り出し、別の装備へ移せる。手始めにHP+10の武魂を一つ預かっている。」",
       "「武魂は商会で自由に宿し、外せる。金貨はいらん。装備を売ったり捨てたり、素材にしても、武魂はすべて商会へ戻る。」",
       "「枠はコモン1・アンコモン2・レア3・SR4・LR5。同じ効果は一つの品に一つまでだ。品が元から持つ効果とは重ねられる。」",
-      "「第六章以降の迷宮で、新しく拾うレア以上の装備には武魂が一つ宿る。第六章の結びを報告すれば合成もできるぞ。」",
+      "「第四章以降の迷宮で、新しく拾うレア以上の装備には武魂が一つ宿る。第四章の本筋2か所を報告すれば合成もできるぞ。」",
     ],
     steps: [{ text: "商会の武魂の手引きを確認する", hint: "商会 → 武魂", done: () => true }],
     outro: ["商会の『武魂』から装備を選んで宿そう。不要な武魂も合成用に残しておこう。"],
+  },
+  {
+    key: "bukonFusion", name: "武魂合成", who: "shop",
+    open: () => !!game.featureUnlocked?.("bukonFusion"), used: () => false,
+    prepare() { game.prepareBukonFusionTutorial?.(); UI.openShop?.("enchant"); },
+    intro: () => ["ヴォス「武魂合成を教えよう。練習用にHP+10の武魂を三つ預けた。保管中の一覧から、HPの武魂の『合成』を選んでくれ。」", "「Lv1を三つ使うとLv2になり、効果は二倍。必ず成功し、金貨もいらない。素材にした武魂はなくなるぞ。」"],
+    steps: [{ text: "保管中のHPの武魂を合成する", hint: "商会 → 武魂 → 保管中 → HPの合成 → Lv2", go: () => UI.openShop?.("enchant"), target: [".bk-panel button:not(:disabled)", ".bk-panel input", ".ec-sheet button", ".ui-confirm button", ".ec-sheet select"], on: "bukonFused" }],
+    outro: ["同じ効果の武魂を合成すると効果が育つ。装着中・保護中の武魂は素材にならない。"],
   },
   {
     key: "extremeAffix", name: "極の特性 — 星の付いた装備", who: "shop",
@@ -793,10 +801,11 @@ function tutorialControls() {
   if (!d) return choose(first(document, ".hb-goal-go"));
   const st = tutState(), s = curStep();
   if (card) {
-    if (d.key === "enchant" && card.classList.contains("ui-confirm")) {
+    if (d.key === "bukonFusion" && !busy) { const nodes = [...card.querySelectorAll("button:not(:disabled), select, input")]; return choose(nodes, [h.body, ...nodes]); }
+    if (["enchant", "bukonFusion"].includes(d.key) && card.classList.contains("ui-confirm")) {
       return choose(first(card, ".ui-sheet-foot .ui-btn.k-primary:not(:disabled), .ui-sheet-foot .ui-btn.k-danger:not(:disabled)"), [h.body, ...first(card, ".ui-sheet-foot .ui-btn.k-ghost")]);
     }
-    if (d.key === "enchant" && card.classList.contains("ec-sheet")) {
+    if (["enchant", "bukonFusion"].includes(d.key) && card.classList.contains("ec-sheet")) {
       const actions = first(card, st.step === 0 ? ".ec-extract:not(:disabled)" : ".ec-write:not(:disabled)");
       return choose(actions, [h.body, ...first(card, ".ui-sheet-foot .ui-btn.k-ghost")]);
     }
@@ -850,6 +859,7 @@ function tutorialControls() {
     const count = allDolls().length;
     return choose(first(document, count ? `.pt-form [data-drop="e${count}"]` : ".pt-empty button"));
   }
+  if (d.key === "bukonFusion") { const nodes = [...document.querySelectorAll(".bk-panel button:not(:disabled), .bk-panel input")]; return choose(nodes, nodes); }
   const selectors = d.key === "buyEquipment" ? [".wpc-buy-main:not(:disabled)"] : s?.target || [];
   return choose(selectors.flatMap((selector) => first(document, selector)));
 }
