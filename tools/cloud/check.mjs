@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { recoverStability, STABILITY_RECOVERY_MS } from "../../src/stability.js";
-import { refSerialize, refDeserialize, applySavePatch } from "../../src/savegraph.js";
+import { refSerialize, refDeserialize, applySavePatch, acknowledgedSave } from "../../src/savegraph.js";
 import { CloudSaveClient } from "../../src/cloud-save.js";
 import { resolveCloudBattle } from "../../src/cloud-battle.js";
 import { Battle } from "../../src/combat.js";
@@ -156,7 +156,7 @@ for (const ability of ["goldSteal", "soulSteal", "drain"]) {
   } });
   c.auth = auth; c.sessionId = "session";
   await Promise.all([c.save({ first: true }), c.save({ second: true }), c.battle("enemy")]);
-  assert.deepEqual(revisions, [0, 1, 2]); assert.equal(c.revision, 3);
+  assert.deepEqual(revisions, [0, 1]); assert.equal(c.revision, 2);
 }
 // 記録1の旧形式の送信待ちを同じ要求で回収できる。
 {
@@ -183,3 +183,47 @@ for (const ability of ["goldSteal", "soulSteal", "drain"]) {
   }
 }
 console.log("クラウド保存: 共有参照・30種の再開・死亡・再送・送信待ち回収・直列更新 OK");
+
+// 低速保存中も操作を待たせず、未送信の連続保存は最新にまとめる。
+// 戦闘をまたぐ保存はまとめず、戦闘待ちだけ入力を封じる。
+{
+  const bodies = [], releases = [];
+  const c = new CloudSaveClient(config, { storage: storage(), fetcher: async (url, opts) => {
+    const body = JSON.parse(opts.body); bodies.push(body);
+    await new Promise(resolve => releases.push(resolve));
+    return Response.json({ revision: body.revision + 1 });
+  } });
+  c.auth = auth; c.sessionId = "session";
+  const first = c.save({ step: 1 });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(c.blocking, 0); assert(c.busy);
+  const second = c.save({ step: 2 });
+  const latest = c.save({ step: 3 });
+  assert.equal(second, latest);
+  const battle = c.battle("commit");
+  const after = c.save({ step: 4 });
+  assert.equal(c.blocking, 1);
+  for (let i = 0; i < 4; i++) {
+    assert.equal(bodies.length, i + 1);
+    releases.shift()();
+    await new Promise(resolve => setImmediate(resolve));
+  }
+  await Promise.all([first, second, latest, battle, after, c.flush()]);
+  assert.deepEqual(bodies.map(b => [b.op, b.snapshot?.step]), [["save",1],["save",3],["battle",undefined],["save",4]]);
+  assert.deepEqual(bodies.map(b => b.revision), [0,1,2,3]);
+  assert.equal(c.blocking, 0); assert.equal(c.busy, false);
+}
+console.log("低速保存の集約・戦闘境界・入力待機の分離 OK");
+
+// 戦闘応答で確定した状態の再送を省き、端末の未送信の変更は省かない。
+{
+  const saved = battleState();
+  saved.battle.chooseAction("attack"); saved.battle.chooseTarget(saved.battle.enemies[0]);
+  const raw = JSON.stringify(refSerialize(saved));
+  const packet = refSerialize(resolveCloudBattle(clone(saved), "commit"));
+  applySavePatch(saved, refDeserialize(packet));
+  assert.equal(acknowledgedSave(raw, packet), JSON.stringify(refSerialize(saved)));
+  saved.gold++;
+  assert.notEqual(acknowledgedSave(raw, packet), JSON.stringify(refSerialize(saved)));
+}
+console.log("戦闘確定済み記録の重複送信抑止 OK");

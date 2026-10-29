@@ -9,7 +9,7 @@ import { soulAcquisitionArt } from "./ui/soulart.js";
 import { insightTotals, insightTitle } from "./insight.js";
 import { INF_BUY_CAP, infRecovery, infUseCount, infSupplyLeft, infSpendSupply } from "./infsupplies.js";
 import { random, fxRandom, bindRngState, rngState } from "./rng.js";
-import { refSerialize, refDeserialize, applySavePatch } from "./savegraph.js";
+import { refSerialize, refDeserialize, applySavePatch, acknowledgedSave } from "./savegraph.js";
 import { cloudEnabled, cloudHasSession, cloudReady, cloudBusy, connectCloud, cloudRegisterPrompt, cloudSave, cloudBattle, cloudFlush, cloudFatal } from "./cloud-save.js";
 import { LocalSaveSession, showLocalSaveBlocked, showLocalSaveRecovery, saveSlotFromURL, localSaveKey } from "./local-save.js";
 import { watchGameUpdates } from "./game-update.js";
@@ -6550,7 +6550,7 @@ function autoMoveTick() {
   if (!inDungeon() || (G.state !== "board" && G.state !== "combat")) { setAutoMove(false); return; } // 街へ帰った・全滅
   // 戦闘・選択 (シート・決断の問い) が挟まったら、それが済んだところでオート移動を切る (ユーザーの指示)
   if (G.state === "combat") autoMoveBreak = "battle";
-  else if (uiBlocked() && !autoMoveBreak) autoMoveBreak = "choice";
+  else if ((G.prompt || G.statusOpen || G.settingsOpen || sheetDepth() > 0) && !autoMoveBreak) autoMoveBreak = "choice";
   if (G.state !== "board" || G.anim || G.walking || uiBlocked() || boardArtPending()) { autoMoveSchedule(150); return; }
   if (autoMoveBreak) {
     setAutoMove(false);
@@ -11429,7 +11429,7 @@ async function resolveSavedBattle(action) {
     G.rng = bindRngState(G.rng); setSharedSouls(G.souls);
     syncEnemyUids(G.battle.enemies);
     G.battle.log = log;
-    _cloudResolving = false; _lastCloudSave = null;
+    _cloudResolving = false; _lastCloudSave = acknowledgedSave(_lastCloudSave, response.packet);
     refreshStability();
     for (const l of packet.logs) log(l.msg, l.cls);
     packet.result._modFeed = packet.modFeed;
@@ -11467,7 +11467,7 @@ async function advanceSavedBattle(watch) {
     const packet = applySavePatch(G, refDeserialize(response.packet));
     restoreMonsterPhotos(G.battle.enemies, MONSTERS);
     G.rng = bindRngState(G.rng); setSharedSouls(G.souls); G.battle.log = log;
-    _cloudResolving = false; _lastCloudSave = null;
+    _cloudResolving = false; _lastCloudSave = acknowledgedSave(_lastCloudSave, response.packet);
     refreshStability();
     for (const l of packet.logs) log(l.msg, l.cls);
     if (watch) G.modFeed = packet.modFeed;

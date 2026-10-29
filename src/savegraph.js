@@ -76,3 +76,11 @@ export function applySavePatch(game, packet) {
   for (const [d, value] of recovery) Object.assign(d, value);
   return { result: copy(packet.result), logs: packet.logs || [], modFeed: copy(packet.modFeed || []) };
 }
+
+// サーバー確定済みの記録だけへ差分を反映する。端末での未送信の変更は混ぜない。
+export function acknowledgedSave(raw, packet) {
+  if (!raw) return null;
+  const saved = refDeserialize(JSON.parse(raw));
+  applySavePatch(saved, refDeserialize(packet));
+  return JSON.stringify(refSerialize(saved));
+}
