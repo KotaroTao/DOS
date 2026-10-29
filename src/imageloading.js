@@ -99,7 +99,7 @@ function update() {
   if (splash) {
     const state = screenFailed ? "error" : "loading";
     if (splash.dataset.state !== state) splash.dataset.state = state;
-    const message = screenFailed ? "画像を読み込めませんでした。接続を確かめて再試行してください。" : "画面を準備しています";
+    const message = screenFailed ? "画像を読み込めませんでした。接続を確かめて再試行してください。" : "";
     const label = splash.querySelector(".media-message"), retry = splash.querySelector(".media-retry");
     if (label.textContent !== message) label.textContent = message;
     if (retry.hidden === screenFailed) retry.hidden = !screenFailed;
