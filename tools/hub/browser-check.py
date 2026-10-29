@@ -94,6 +94,7 @@ with sync_playwright() as p:
       const {UI} = await import('/src/ui/ctx.js');
       UI.shell.setTab('party');
     }''')
+    page.wait_for_function("!document.querySelector('.scene-hold')")
     assert not page.locator('.hb').count()
     print('宿泊による全員の回復・人業の館への移動 OK')
     assert not errors, errors

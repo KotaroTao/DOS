@@ -1,4 +1,5 @@
 // Edge Function で実行する戦闘。ブラウザの戦闘と同じ式・乱数を使う。
+import { refSerialize } from "./savegraph.js";
 import { Battle, syncEnemyUids, setOnEnemyKilled, setEquipSwap, setModSink, setElemKnown, setPartyEvadeBonus, setPartyBreathBonus, setPartyHitBonus, setEnemyLvTag } from "./combat.js";
 import { bindRngState } from "./rng.js";
 import { MONSTERS } from "./sprites.js";
@@ -119,4 +120,12 @@ export function resolveCloudBattle(s, operation) {
   const patch = {};
   for (const k of ["battle", "party", "reserve", "souls", "rng", "codex", "gold", "soulPts", "run"]) patch[k] = s[k];
   return { snapshot: patch, result, logs, modFeed };
+}
+
+// 一手の結果と次の手番を一度に確定する。演出用の結果は次の手番で書き換えない。
+export function resolveCloudTurn(snapshot, action) {
+  if (!["commit", "enemy", "stunned"].includes(action)) throw new Error("行動が一致しません");
+  const packet = refSerialize(resolveCloudBattle(snapshot, action));
+  const nextPacket = snapshot.battle.result ? null : refSerialize(resolveCloudBattle(snapshot, "advance"));
+  return { packet, nextPacket };
 }
