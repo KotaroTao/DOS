@@ -12,6 +12,7 @@
 //                                           例 holder:{taunting:true} = 持ち主が敵を引き付けている間だけ隊に効く)
 //  { t:"take",  v:[…], on?, when?, aura?, best?, holder? }   被ダメージ −v (0.15 = −15%。下限は ×0.2)。best = 隊で重ならない (持ち主が何人いても一番強いものだけ)
 //  { t:"crit",  v:[…], on?, when?, aura? }   物理の会心率 +v
+//  { t:"critDamage", v:[…], on?, when? }    会心ダメージ補正（装備補正に加算）
 //  { t:"evade", v:[…], when?, aura? }        敵の物理をかわす確率 +v
 //  { t:"heal",  v:[…] }                      回復呪文・技の回復量 +v
 //  { t:"cost",  v:[…], on? }                 技・呪文の消費MP −v (on = 技の種別 phys/atk/heal/buff/debuff/cure…。合計の上限 50%)
@@ -105,7 +106,7 @@ const TARGETS = new Set(["enemy", "all-enemy", "ally", "all-ally", "self"]);
 const ELS = new Set(["fire", "water", "wind", "earth", "light", "dark"]);
 const STATS = new Set(["atk", "vit", "agi", "int", "pie", "hit"]);
 const FX_FIELDS = {
-  deal: "v on when aura best holder", take: "v on when aura best holder", crit: "v on when aura", evade: "v when aura", heal: "v", cost: "v on",
+  deal: "v on when aura best holder", take: "v on when aura best holder", crit: "v on when aura", critDamage: "v on when", evade: "v when aura", heal: "v", cost: "v on",
   ignoreStage: "v", rallyStop: "v party", chainCarry: "v", mindPardon: "v party",
   itemSave: "v", overflow: "v", curseLock: "v", noRevive: "v", dispelLock: "v party", healJudge: "v party",
   stat: "mul when", start: "chance when party dur buff foe barrier wall regen mp endure taunt charge",
@@ -157,13 +158,13 @@ function checkPerk(job, key, pk) {
     if (c.ret) {
       for (const k in c.ret) if (!["stat", "k", "magic"].includes(k)) fail(job, key, `ret.${k}`);
       if (!["atk", "vit", "int", "pie", "mag"].includes(c.ret.stat)) fail(job, key, `ret.stat ${c.ret.stat}`);
-      // 攻撃力は0.2〜1.0、武器の成長を受けない能力依存は5まで。発動率は100% (chance を付けない)
-      const max = c.ret.stat === "atk" ? 1 : 5;
+      // 攻撃力は0.2〜1.0、武器の成長を受けない能力依存は15まで。発動率は100% (chance を付けない)
+      const max = c.ret.stat === "atk" ? 1 : 15;
       if (![].concat(c.ret.k).every((v) => v >= 0.2 && v <= max)) fail(job, key, `ret.k は 0.2〜${max}`);
       if (c.chance != null) fail(job, key, "やり返し (ret) に chance は付けない (必ず発動)");
     }
     if (c.t === "win" && c.mp != null && [].concat(c.mp).some(v => !(v >= 0 && v <= VICTORY_MP_PER + 1e-9))) fail(job, key, `勝利後のMP回復は1つ${VICTORY_MP_PER * 100}%まで`);
-    if (["deal", "take", "crit", "evade", "heal", "cost"].includes(c.t) && c.v == null) fail(job, key, `fx ${c.t} に v が必要`);
+    if (["deal", "take", "crit", "critDamage", "evade", "heal", "cost"].includes(c.t) && c.v == null) fail(job, key, `fx ${c.t} に v が必要`);
     if (["ignoreStage", "rallyStop", "chainCarry", "mindPardon", "itemSave", "overflow", "curseLock", "noRevive", "dispelLock", "healJudge"].includes(c.t)) {
       if (!Array.isArray(c.v) || c.v.length !== pk.lv.length || c.v.some(v => !Number.isFinite(v) || v <= 0)) fail(job, key, "固有の発動値は全Lvの正の数が必要");
       if (["chainCarry", "itemSave", "overflow"].includes(c.t) && c.v.some(v => v > 1)) fail(job, key, "割合は1以下");

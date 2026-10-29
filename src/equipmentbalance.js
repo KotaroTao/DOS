@@ -1,6 +1,5 @@
 // 全装備の割合効果の調整。数値の基準はレア度・入手時期・部位、属性は個別の来歴で決める。
 import { rarityKey } from "./rarity.js";
-import { elementStat } from "./combatrules.js";
 
 // 防具の加護の色ではなく、実際に防ぐ属性。本文の防御対象・素材・舞台を確認した台帳。
 export const EQUIPMENT_DEFENSE_TARGETS = {
@@ -280,10 +279,40 @@ export const EQUIPMENT_DEFENSE_TARGETS = {
   "s_r20_omniscripture": ["dark"], // 万象の経典
 };
 
-export const EQUIPMENT_BALANCE_VERSION = 1;
+// 確定首級24点の指定済み性能。再調整の自動帯へ含めない。
+const FIXED_TROPHIES = {
+  "w_nm_palebutcher": {"onHit":{"k":"paralyze","chance":0.2}},
+  "r_nm_cryptlord": {"eDef":{"el":"dark","pct":40,"values":{"dark":40},"kind":"defense"},"elementTint":"light","eff":{"soulUp":0.1}},
+  "g_nm_bloatqueen": {"eff":{"lifesteal":0.05}},
+  "s_nm_drownedpaladin": {"eDef":{"el":"water","pct":50,"values":{"water":50},"kind":"defense"},"elementTint":"earth","eff":{"guard":0.05}},
+  "w_nm_chainoverseer": {"eff":{"multistrike":2}},
+  "w_nm_crystalseer": {"eAtk":{"el":"wind","pct":25},"element":"wind","elementTint":"wind","aRes":{"stone":0.4},"eff":{"spellCostMul":0.9}},
+  "w_nm_warbanner": {"eAtk":{"el":"fire","pct":35},"element":"fire","elementTint":"fire"},
+  "w_nm_headsman": {},
+  "s_nm_eldertreant": {"eDef":{"el":"earth","pct":80,"values":{"earth":80},"kind":"defense"},"elementTint":"wind","bRes":0.25,"eff":{"regen":0.03}},
+  "a_nm_mistmother": {"eDef":{"el":"water","pct":70,"values":{"water":70,"wind":40},"kind":"defense"},"elementTint":"wind","aRes":{"paralyze":0.3,"sleep":0.3}},
+  "w_nm_heresiarch": {"eAtk":{"el":"light","pct":30},"element":"light","elementTint":"light","eff":{"lifesteal":0.05}},
+  "h_nm_fallenidol": {"eDef":{"el":"light","pct":50,"values":{"light":50},"kind":"defense"},"elementTint":"dark"},
+  "r_nm_cinderking": {"eDef":{"el":"fire","pct":60,"values":{"fire":60},"kind":"defense"},"elementTint":"water","bRes":0.2,"eff":{"regen":0.03}},
+  "a_nm_magmawyrm": {"eDef":{"el":"fire","pct":90,"values":{"fire":90},"kind":"defense"},"elementTint":"water","bRes":0.3},
+  "w_nm_frostsovereign": {"eAtk":{"el":"earth","pct":30},"element":"earth","elementTint":"earth","onHit":{"k":"paralyze","chance":0.2}},
+  "s_nm_glacialmaw": {"eDef":{"el":"water","pct":70,"values":{"water":70},"kind":"defense"},"elementTint":"earth","bRes":0.3,"eff":{"guard":0.05}},
+  "r_nm_offeringslime": {"eDef":{"el":"dark","pct":60,"values":{"dark":60},"kind":"defense"},"elementTint":"light","aRes":{"poison":0.3},"eff":{"goldUp":0.1}},
+  "w_nm_bogfrogking": {"eAtk":{"el":"wind","pct":30},"element":"wind","elementTint":"wind","onHit":{"k":"paralyze","chance":0.2}},
+  "w_nm_blizzardwitch": {"eAtk":{"el":"fire","pct":30},"element":"fire","elementTint":"fire","aRes":{"sleep":0.3},"eff":{"spellCostMul":0.9}},
+  "w_nm_stareater": {"eAtk":{"el":"light","pct":30},"element":"light","elementTint":"light","eff":{"lifesteal":0.05}},
+  "w_nm_ashshogun": {"eff":{"regen":0.03}},
+  "a_nm_dragonslayer": {"bRes":0.3},
+  "s_nm_oremaw": {"eDef":{"el":"earth","pct":100,"values":{"earth":100},"kind":"defense"},"elementTint":"wind","aRes":{"stone":0.3}},
+  "h_nm_tunnelking": {"aRes":{"confuse":0.3},"eff":{"soulUp":0.1}},
+};
+
+export const EQUIPMENT_BALANCE_VERSION = 2;
 const SLOTS = new Set(["weapon", "shield", "body", "head", "hands", "feet", "acc"]);
-const ATTACK_BANDS = { c:[5,15], uc:[10,20], r:[15,30], sr:[20,40], lr:[25,60] };
-const DEFENSE_BANDS = { c:[15,30], uc:[20,40], r:[30,60], sr:[40,90], lr:[60,150] };
+const ATTACK_BANDS = { c:[10,20], uc:[20,30], r:[30,50], sr:[40,80], lr:[60,100] };
+// 武魂Lv1の5%軽減を1段として、装備だけで上限を埋めない。
+const DEFENSE_BANDS = { c:[5,10], uc:[5,15], r:[10,20], sr:[15,25], lr:[20,30] };
+const AILMENT_BANDS = { c:[5,15], uc:[10,20], r:[15,25], sr:[20,35], lr:[25,45] };
 const DEFENSE_SLOT = { body:1.2, shield:1.1, head:.8, hands:.7, feet:.7, acc:.9, weapon:.7 };
 const roundStep = (v, step) => Math.round(v / step) * step;
 const pct5 = v => Math.max(.05, Math.min(.95, roundStep(v * 100, 5) / 100));
@@ -301,11 +330,11 @@ const SPECIAL = {
   w_r4_flameknife: {desc:"刃が常にほのかな熱を帯びた魔法の小刀。突き立てた傷口を焼き、抜き去った後にも灼熱の痛みを残す。"},
   w_r4_frostspear: {desc:"長い柄の穂先が白い霜をまとう魔法の槍。両手で突き込めば冷えが傷口を走り、抜いた刃にも霜の縁が残る。"},
   w_r7_frostspear: {desc:"長い柄の穂先が常に凍気を帯びた魔法の槍。両手で突き立てれば傷口が凍りつき、冷たい水の力が一撃に重なる。"},
-  lr_l1_shroudofstillness: { aRes:{sleep:.6,charm:.6,confuse:.6,death:.4}, removeImmune:true,
+  lr_l1_shroudofstillness: { aRes:{sleep:.4,charm:.4,confuse:.4,death:.3}, removeImmune:true,
     desc:"千年眠り続けた聖女の亡骸を包んでいた布。眠りと心の乱れ、死を誘う呪いを和らげるが、あらゆる毒を防ぐ布ではない。" },
-  lr_l3_silentcanary: { aRes:{poison:.75,paralyze:.6,stone:.6}, removeImmune:true,
+  lr_l3_silentcanary: { aRes:{poison:.45,paralyze:.3,stone:.3}, removeImmune:true,
     desc:"毒気の満ちた坑で最後まで生き延びたカナリアを、金に封じた指輪。坑の毒、痺れ、石の呪いに備えるための守りで、心を奪う声までは防げない。" },
-  lr_l8_frostcrown: { aRes:{paralyze:.75,confuse:.75,charm:.6,stone:.5,sleep:.5}, removeImmune:true,
+  lr_l8_frostcrown: { aRes:{paralyze:.45,confuse:.45,charm:.3,stone:.25,sleep:.25}, removeImmune:true,
     desc:"凍王が回廊の入口に残した最初の冠。かぶる者の心と身を氷のように静め、痺れや惑わしを和らげる。毒を洗い流す力は持たない。" },
   lr_l1_requiemblade: { desc:"百の迷宮が口を開けた夜、最初の墓守が振るったと伝わる剣。刃は二度歌って傷を重ね、眠りの力は一振りの終わりに一度だけ敵を誘う。" },
   g_frostbite_gauntlets: { desc:"氷河に千年埋もれていた籠手。中の手はとうに無く、霜だけが形を保つ。まとう冷気が業火の熱を奪い、握る手を炎から守る。" },
@@ -314,14 +343,16 @@ const SPECIAL = {
 };
 export function retuneEquipment(it) {
   if (!it || !SLOTS.has(it.slot) || it.equipmentBalanceVersion === EQUIPMENT_BALANCE_VERSION) return it;
+  // 指定済みの確定首級は数値・重複の仕方まで保持する。
+  if (it.trophy && FIXED_TROPHIES[it.id]) { Object.assign(it, structuredClone(FIXED_TROPHIES[it.id])); it.equipmentBalanceVersion = EQUIPMENT_BALANCE_VERSION; return it; }
   const rar = rarityKey(it) || "c";
   // 加護の色は来歴の一部なので、防御対象を変えても絵の色は変えない。
-  it.elementTint = it.elementTint || it.eAtk?.el || it.eDef?.el || it.element || Object.keys(it.eAtk?.values || it.eDef?.values || {})[0];
+  it.elementTint = it.elementTint || it.eAtk?.el || it.eDef?.el || it.element || Object.keys(it.eAtk?.values || it.eDef?.values || it.eDef?.reductions || {})[0];
   if (it.eAtk) {
     const old = it.eAtk;
     if (old.lv != null) {
       const slotMul = it.slot === "weapon" ? 1 : .6;
-      const amount = Math.max(5, roundStep((valueAt(ATTACK_BANDS[rar],it) + (old.lv >= 2 ? 10 : 0)) * slotMul,5));
+      const amount = Math.max(10, roundStep((valueAt(ATTACK_BANDS[rar],it) + (old.lv >= 2 ? 20 : 0)) * slotMul,10));
       it.eAtk = {el:old.el,pct:amount};
     }
     // 属性を持つ武器だけが属性を付与する。防具や護符の属攻は増幅のみ。
@@ -330,10 +361,13 @@ export function retuneEquipment(it) {
   if (it.eDef?.lv != null) {
     const targets = EQUIPMENT_DEFENSE_TARGETS[it.id];
     if (!targets) throw new Error("防ぐ属性の確認が必要: " + it.id);
-    const amount = Math.max(10,roundStep(valueAt(DEFENSE_BANDS[rar],it) * DEFENSE_SLOT[it.slot] * (it.eDef.lv >= 2 ? 1.25 : 1),10));
-    it.eDef = elementStat(Object.fromEntries(targets.map((k,i)=>[k,i ? Math.max(10,roundStep(amount*.5,10)) : amount])),"defense");
+    const amount = Math.min(35,Math.max(5,roundStep(valueAt(DEFENSE_BANDS[rar],it) * DEFENSE_SLOT[it.slot] + (it.eDef.lv >= 2 ? 5 : 0),5)));
+    it.eDef = {kind:"defense",reductions:Object.fromEntries(targets.map((k,i)=>[k,(i ? Math.max(5,roundStep(amount*.5,5)) : amount)/100]))};
   }
-  if (it.aRes) it.aRes = Object.fromEntries(Object.entries(it.aRes).map(([k,v])=>[k,pct5(v)]));
+  if (it.aRes) {
+    const [lo,hi]=AILMENT_BANDS[rar], stage=valueAt([0,1],it);
+    it.aRes = Object.fromEntries(Object.entries(it.aRes).map(([k,v])=>[k,roundStep(lo+(hi-lo)*Math.min(1,v*.75+stage*.25),5)/100]));
+  }
   if (it.bRes) it.bRes = Math.min(.4,pct5(it.bRes));
   if (it.onHit) {
     const list = Array.isArray(it.onHit) ? it.onHit : [it.onHit];

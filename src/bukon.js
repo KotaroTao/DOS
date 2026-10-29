@@ -3,7 +3,7 @@ import { AFX } from "./infaffix.js";
 import { rarityKey } from "./rarity.js";
 import { random } from "./rng.js";
 import { ELEMENT_KEYS, elementValues } from "./combatrules.js";
-export const BUKON_SLOTS = { c:1, uc:2, r:3, sr:4, lr:5 };
+export const BUKON_SLOTS = { c:1, uc:1, r:2, sr:2, lr:3 };
 export const BUKON_RARITIES = [
   {key:"c",name:"コモン",color:"#ddd",weight:80}, {key:"uc",name:"アンコモン",color:"#75c76b",weight:12.5},
   {key:"r",name:"レア",color:"#69aaff",weight:5}, {key:"sr",name:"スーパーレア",color:"#ff9a4a",weight:2}, {key:"lr",name:"レジェンドレア",color:"#ff6262",weight:.5}
@@ -35,7 +35,8 @@ for(const d of AFX.filter(d=>/^[GHI]\d/.test(d.id)&&d.id!=="I19"||/^F0[1-7]$/.te
 // 特殊武魂は既存付呪と別の値で成長する。固定機能3種だけはLvを持たない。
 const special=[
  ["J02","戦闘開始時全体STR強化","acc",3,"order",10], ["J10","初手最優先行動","feet",4,"firstTurn",10],
- ["J11","戦闘不能時復活","acc",4,"reviveChance",5], ["J20","魔法被弾時VIT反撃","body",4,"mirror",5],
+ ["bukon_physRet","物理被弾時VIT反撃","body",4,"physRet",500],
+ ["J11","戦闘不能時復活","acc",4,"reviveChance",5], ["J20","魔法被弾時VIT反撃","body",4,"mirror",500],
  ["X01","撃破時追加攻撃","weapon",4,"chain",10],["X02","低い抵抗値で物理攻撃","weapon",4,"twinSoul",10],
  ["X03","状態異常を隣へ伝播","weapon",4,"contagion",10],["X04","命中時物理耐性低下","weapon",3,"physDown",5],
  ["bukon_magDown","命中時魔法耐性低下","weapon",3,"magDown",5],["X05","会心時敵行動遅延","weapon",3,"witness",10],
@@ -76,7 +77,7 @@ export function bukonText(b){
 }
 function specialText(d,v,lv){
  const n=v.toLocaleString("ja-JP");
- const text={reviveChance:`戦闘不能のたび${n}%でHP10%復活（合計50%まで）`,physDown:`命中時に物理耐性−${n}ポイント（重複せず最大50）`,magDown:`命中時に魔法耐性−${n}ポイント（重複せず最大50）`,fortress:`物理1発を最大HPの${100-v}%までに制限`,split:`被ダメージの${n}%を後払い`,sendoff:`戦闘不能時、味方全員HP${n}%回復・異常1つ治療`,adversity:`HP50%以下で${n}%、25%以下で${v*2}%軽減`,steadMind:`魅了・混乱・封印耐性+${lv*5}、${n}%で強化解除防止`,weakDamage:`弱点属性で与ダメージ+${n}%`,memory:`同じ技の連続使用で消費MP${n}%軽減（回復・蘇生除く）`,mirror:`ブレス・呪文を受けるとVIT×${v/100}の魔法反撃`,contagion:`隣へ元の付与力の${n}%で状態異常を移す`,throw:`攻撃道具の威力${1+v/100}倍・推奨Lvで成長`,combo:`連携時与ダメージ+${n}%`,mercy:`過剰回復の${n}%を全員へ分配（再分配なし）`,pilfer:`物理命中時${n}%で金貨奪取（敵1体1回）`,stepIn:`後列近接の威力${50+v}%`,afterImage:`回避後の次の物理ダメージ+${n}%`,dash:`追加行動${n}%、AGI条件達成時${v*2}%（1ターン1回）`,chaser:`金属の魔物の逃走率${n}%低下`,floatStep:`蝕む床でHP${n}%回復`,kindle:"サブ魂借用枠+1（常時）",timeKeeper:"強化・弱体の持続+1ターン（必ず）",flip:"−3段を+3段へ反転（1戦闘1回、必ず）",treasure:`宝箱出現率+${n}%、${lv*10}%でランク+1（隊で最高Lv）`,teller:`隊全員の魂経験値+${n}%（隊で最高Lv）`};
+ const text={reviveChance:`戦闘不能のたび${n}%でHP10%復活（合計50%まで）`,physDown:`命中時に物理耐性−${n}ポイント（重複せず最大50）`,magDown:`命中時に魔法耐性−${n}ポイント（重複せず最大50）`,fortress:`物理1発を最大HPの${100-v}%までに制限`,split:`被ダメージの${n}%を後払い`,sendoff:`戦闘不能時、味方全員HP${n}%回復・異常1つ治療`,adversity:`HP50%以下で${n}%、25%以下で${v*2}%軽減`,steadMind:`魅了・混乱・封印耐性+${lv*5}、${n}%で強化解除防止`,weakDamage:`弱点属性で与ダメージ+${n}%`,memory:`同じ技の連続使用で消費MP${n}%軽減（回復・蘇生除く）`,physRet:`物理を受けるとVIT×${v/100}の物理反撃`,mirror:`ブレス・呪文を受けるとVIT×${v/100}の魔法反撃`,contagion:`隣へ元の付与力の${n}%で状態異常を移す`,throw:`攻撃道具の威力${1+v/100}倍・推奨Lvで成長`,combo:`連携時与ダメージ+${n}%`,mercy:`過剰回復の${n}%を全員へ分配（再分配なし）`,pilfer:`物理命中時${n}%で金貨奪取（敵1体1回）`,stepIn:`後列近接の威力${50+v}%`,afterImage:`回避後の次の物理ダメージ+${n}%`,dash:`追加行動${n}%、AGI条件達成時${v*2}%（1ターン1回）`,chaser:`金属の魔物の逃走率${n}%低下`,floatStep:`蝕む床でHP${n}%回復`,kindle:"サブ魂借用枠+1（常時）",timeKeeper:"強化・弱体の持続+1ターン（必ず）",flip:"−3段を+3段へ反転（1戦闘1回、必ず）",treasure:`宝箱出現率+${n}%、${lv*10}%でランク+1（隊で最高Lv）`,teller:`隊全員の魂経験値+${n}%（隊で最高Lv）`};
  return text[d.stat]||`${n}%で発動${["chain","quick","cover"].includes(d.stat)?"（追加攻撃は1ターン1回、道具・肩代わりは1戦闘1回）":""}`;
 }
 export function bukonFits(it,b){const d=bukonDef(b?.k);return !!d&&!d.retired&&d.slots.includes(it?.slot);}
@@ -159,7 +160,7 @@ export function fuseBukon(g, k, target, keep = 0) {
 }
 function payFusion(g,cost){if(cost==null||!Number.isSafeInteger(g.gold)||g.gold<0||cost>BigInt(g.gold))return false;g.gold-=Number(cost);return true;}
 export function bulkFuseBukon(g,k,keep=1){const plan=bulkFusionPlan(g,k,keep);if(!plan||!payFusion(g,plan.cost))return false;g.bukonStock=plan.stock;return true;}
-export function rollBukon(it,progress=6,rnd=random){
+export function rollBukon(it,recommendedLv=1,rnd=random){
  const gear={r:0,sr:1,lr:2}[rarityKey(it)];if(gear==null)return null;
  let x=rnd()*100,rarity=0;for(let i=0;i<BUKON_RARITIES.length;i++){if((x-=BUKON_RARITIES[i].weight)<0){rarity=i;break;}}
  // 先に格を抽選するため、装備部位で格の確率は変わらない。装着可能な種類だけ選ぶ。
@@ -167,13 +168,17 @@ export function rollBukon(it,progress=6,rnd=random){
  const choices=fits.length?fits:pool;
  if(!choices.length)return null;
  const d=choices[Math.min(choices.length-1,Math.floor(rnd()*choices.length))];
- const max=Math.min(d.max||Infinity,2+Math.floor(Math.max(0,progress-6)/3)+gear);
- let lv=1;while(lv<max&&rnd()<.18+gear*.14)lv++;return {k:d.id,lv};
+ // 推奨Lvの100ごとに上位の確率が10ポイント増える。加算系だけは成長を続ける。
+ const step=Math.floor(Math.max(0,recommendedLv)/100),base=1+Math.floor(step/10);
+ const max=d.kind==="flat"?Infinity:Math.min(d.max,3);
+ const lv=base>=max?max:base+(step%10>0&&rnd()<(step%10)/10?1:0);
+ return {k:d.id,lv};
 }
+export const activeBukon=it=>(it?.bukon||[]).filter(b=>validBukon(b)&&bukonFits(it,b)).slice(0,bukonSlots(it));
 export function bukonItem(it,{legendarySeen=new Set(),specialLevels=null}={}){
  if(!it?.bukon?.length)return it;
  const out={...it,mult:{...it.mult},resists:{...it.resists},afxFx:[...(it.afxFx||[])],afxMisc:{...it.afxMisc},eff:{...it.eff},bukonElementDef:{...it.bukonElementDef}};
- for(const b of it.bukon.filter(validBukon)){
+ for(const b of activeBukon(it)){
   const d=bukonDef(b.k);if(!bukonFits(it,b))continue;const v=amount(b);
   if(d.kind==="flat")out[d.stat]=(out[d.stat]||0)+Number(bukonExact(b));
   if(d.kind==="pct")out.mult[d.stat]=(out.mult[d.stat]||0)+v/100;
@@ -190,6 +195,7 @@ export function bukonItem(it,{legendarySeen=new Set(),specialLevels=null}={}){
    const m=out.afxMisc,key=d.stat;
    if(["kindle","timeKeeper","flip"].includes(key))m[key]=true;
    else if(key==="order")out.afxFx.push({c:{t:"start",chance:v/100,once:"bukonOrder",party:true,buff:{atk:1.25},dur:2},label:d.name});
+   else if(key==="physRet")out.afxFx.push({c:{t:"hurt",on:"phys",ret:{stat:"vit",k:v/100,magic:false}},label:d.name});
    else if(key==="mirror")out.afxFx.push({c:{t:"hurt",on:"magic",ret:{stat:"vit",k:v/100,magic:true}},label:d.name});
    else if(key==="weakDamage"||key==="combo")out.afxFx.push({c:{t:"deal",v:v/100,bukon:true,uncapped:key==="weakDamage",when:key==="combo"?{combo:true}:{tgtWeak:true}},label:d.name});
    else if(key==="steadMind"){for(const k of ["charm","confuse","seal"])out.resists[k]=(out.resists[k]||0)+b.lv*5;m.bk_steadMind=v/100;}
@@ -206,6 +212,6 @@ export function migrateBukon(g,items){
  let changed=false;
  const normalize=b=>{const d=bukonDef(b?.k);if(!d)return b;return {k:d.replacement||b.k,lv:Math.min(b.lv,bukonDef(d.replacement||b.k).max||b.lv)};};
  for(const [key,n] of Object.entries(g.bukonStock||{})){const [k,l]=key.split(":"),b=normalize({k,lv:Number(l)});if(b.k!==k||b.lv!==Number(l)){delete g.bukonStock[key];stockAdd(g,b,BigInt(n));if(g.bukonProtected?.[key]){delete g.bukonProtected[key];g.bukonProtected[bukonKey(b)]=true;}changed=true;}}
- for(const it of new Set(items.filter(Boolean))){if(it.soulMemory||!it.bukon)continue;const keep=[];for(const old of it.bukon){const b=normalize(old);if(b.k!==old.k||b.lv!==old.lv)changed=true;if(bukonFits(it,b))keep.push(b);else{stockAdd(g,b);changed=true;}}it.bukon=keep;}
+ for(const it of new Set(items.filter(Boolean))){if(it.soulMemory||!it.bukon)continue;const keep=[];for(const old of it.bukon){const b=normalize(old);if(b.k!==old.k||b.lv!==old.lv)changed=true;if(bukonFits(it,b)&&keep.length<bukonSlots(it))keep.push(b);else{stockAdd(g,b);changed=true;}}it.bukon=keep;}
  return changed;
 }

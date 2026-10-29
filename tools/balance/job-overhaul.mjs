@@ -14,7 +14,8 @@ let boundaries = 0, borrowed = 0;
 for (const job of SOUL_KEYS) {
   const old = before.jobs[job], kit = JOBKIT[job], table = JOB_SKILLS[job];
   assert.equal(kit.awaken, old.key, `${job}: ランクのキー`);
-  assert.deepEqual(PASSIVES[old.key], old.definition, `${job}: ランクの説明・効果Lv`);
+  const definition = job === 'arcanist' ? {...old.definition,lv:["魔法会心率+5%・会心ダメージ+10%", "魔法会心率+8%・会心ダメージ+15%", "魔法会心率+12%・会心ダメージ+20%", "魔法会心率+20%・会心ダメージ+30%"]} : old.definition;
+  assert.deepEqual(PASSIVES[old.key], definition, `${job}: ランクの説明・効果Lv（深淵の知は2026-10-29採用値）`);
   assert.deepEqual(kit.perks[old.key] || null, old.fx || null, `${job}: ランクのfx`);
   assert.deepEqual(JOB_PASSIVES[job], old.ranks, `${job}: ランクの習得条件`);
   assert.deepEqual(JOB_BASE_TRAITS[job] || null, old.traits || null, `${job}: 基礎特性`);
