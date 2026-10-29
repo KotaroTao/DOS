@@ -265,6 +265,11 @@ export function cloudGuest() { return !!client?.auth?.user?.is_anonymous; }
 export function cloudAccount() { return cloudGuest() ? "ゲストで冒険中" : client?.auth?.user?.email || ""; }
 export function cloudSave(snapshot) { return client.save(snapshot); }
 export function cloudBattle(action) { return client.battle(action); }
+// 通常保存と同じ順序・再送保護で現在の記録だけを削除する。
+export async function cloudReset() {
+  localStorage.setItem("dos-cloud-deleted", "1");
+  await client.enqueue("reset");
+}
 export function cloudFlush() { return client?.flush() || Promise.resolve(); }
 export async function cloudSignOut() {
   if (cloudGuest()) { await cloudManageAccount(); return; }
@@ -347,7 +352,7 @@ export async function connectCloud(localSave, slot = 1, mode = "start") {
   showGate("記録を読み込んでいます…");
   let snapshot = await client.retry(() => client.claim());
   if (pending) { await client.recover(); snapshot = await client.retry(() => client.claim()); }
-  if (!snapshot && localSave && !localStorage.getItem("dos-cloud-deleted")) {
+  if (mode !== "reset" && !snapshot && localSave && !localStorage.getItem("dos-cloud-deleted")) {
     const useLocal = await new Promise((resolve) => {
       showGate("このアカウントには冒険の記録がありません。この端末の記録を引き継ぎますか？");
       button("端末の記録を引き継ぐ", () => resolve(true)); button("新しい冒険を始める", () => resolve(false));
