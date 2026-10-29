@@ -92,7 +92,7 @@ const score=(p,from,to)=>gearScore(p,statsDelta(previewStats(p,from),previewStat
  const buffSoul=slot=>({slot,rar:'lr',bukon:[{k:'I17',lv:10}]});
  const cappedDeal={weapon:buffSoul('weapon'),acc1:buffSoul('acc')};
  near(score(p,cappedDeal,{...cappedDeal,acc2:buffSoul('acc')}),0,'同じ強化中条件の武魂は成立後に与ダメ上限');
- const direct=W('direct_input','軽減率の検査剣','ls',20,{eDef:{reductions:{fire:.15}},desc:'直接軽減の入力形式を検証するための一本。炎の害を弱める守りが、刃の中に静かに宿っている。'});near(direct.eDef.reductions.fire,.15);
+ const direct=W('direct_input','軽減率の検査剣','ls',20,{eDef:{reductions:{fire:.15}},desc:'直接軽減の入力形式を検証するための一本。炎の害を弱める守りが、刃の中に静かに宿っている。'});near(direct.eDef.reductions.fire,.15);assert.equal(themeOf(direct).el,'fire','直接軽減の新規品も属性色を持つ');
 }
 assert(ailDetailLines({onHit:{k:'poison',chance:3,pct:.05}}).some(t=>t.includes('300%')&&t.includes('一回')),'付与力として表示');
 assert(specialLines(ITEMS.a_sr1_wardenmail).some(t=>t.includes('闇ダメージ')));

@@ -19,7 +19,7 @@ with sync_playwright() as p:
           if(!body.eDef.reductions.dark)throw Error('墓守の守り');
           d.equip.body=body;recalc(d);UI.openParty(0,{inPlace:true,seg:'stats'});
           if(!Number.isFinite(gearScore(d,statsDelta(previewStats(d,d.equip),previewStats(d,{...d.equip,body:ITEMS.lr_l1_shroudofstillness})))))throw Error('装備比較');
-          window.gearRetune={UI,ITEMS,body};
+          window.gearRetune={UI,ITEMS,body,d};
         }''')
         page.wait_for_function('document.body.innerText.replaceAll("\\u200b", "").includes("闇40%軽減")')
         assert not page.evaluate('document.scrollingElement.scrollWidth > innerWidth+1')
@@ -29,6 +29,8 @@ with sync_playwright() as p:
         assert '60' in text and '万能耐性' not in text
         assert not page.evaluate('document.scrollingElement.scrollWidth > innerWidth+1')
         if width==320:page.screenshot(path='/tmp/equipment-retune-320.png')
+        page.evaluate("gearRetune.UI.peekDoll(gearRetune.d,{combat:true})")
+        assert '属防 闇40%軽減' in page.locator('.dg-peek').inner_text().replace('\u200b','')
         assert not errors,errors
         page.close()
     browser.close()

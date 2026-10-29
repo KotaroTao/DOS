@@ -1989,6 +1989,7 @@ function base(id, name, slot, lv, artKey, opt) {
       if(e.reductions) {
         chk(key==="eDef" && Object.values(values).every(v=>v<=.8),"bad element reduction: " + id);
         it[key]={kind:"defense",reductions:{...values}};
+        it.elementTint=Object.keys(values)[0];
       } else it[key]=e.values ? {values:{...values}} : {el:e.el,pct:e.pct};
     }
   }
@@ -2043,7 +2044,7 @@ function base(id, name, slot, lv, artKey, opt) {
   if (opt.forJob) it.forJob = opt.forJob;
   if (opt.exclusive) it.exclusive = true;
   // 絵: 原型 × 染め色 (属性があれば属性色が既定)
-  const el = it.eAtk?.el || it.eDef?.el || null;
+  const el = it.eAtk?.el || it.eDef?.el || it.elementTint || null;
   const tc = opt.tint || (el ? ELEM_TINT[el] : null);
   // 秘宝 (LR・職業専用・神話級 lv165+) は輪郭の外に淡い燐光をまとう。色は属性色、無属性は青白い燐光
   const relic = !!(opt.lr || opt.exclusive || lv >= 165);

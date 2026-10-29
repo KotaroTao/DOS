@@ -347,7 +347,7 @@ export function retuneEquipment(it) {
   if (it.trophy && FIXED_TROPHIES[it.id]) { Object.assign(it, structuredClone(FIXED_TROPHIES[it.id])); it.equipmentBalanceVersion = EQUIPMENT_BALANCE_VERSION; return it; }
   const rar = rarityKey(it) || "c";
   // 加護の色は来歴の一部なので、防御対象を変えても絵の色は変えない。
-  it.elementTint = it.elementTint || it.eAtk?.el || it.eDef?.el || it.element || Object.keys(it.eAtk?.values || it.eDef?.values || {})[0];
+  it.elementTint = it.elementTint || it.eAtk?.el || it.eDef?.el || it.element || Object.keys(it.eAtk?.values || it.eDef?.values || it.eDef?.reductions || {})[0];
   if (it.eAtk) {
     const old = it.eAtk;
     if (old.lv != null) {
