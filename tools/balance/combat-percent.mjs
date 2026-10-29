@@ -76,12 +76,12 @@ try {
  const damage=(kind,protectedGear=false,defending=false)=>{
   const p=doll(),e=foe();e.element='fire';
   const battle=new Battle([p],[e],()=>{});p._defending=defending;
-  if(protectedGear){p.physResist=p.magResist=80;p.elemDef={el:'fire',pct:400};}
+  if(protectedGear){p.physResist=p.magResist=80;p.elemDef=protectedGear==='direct'?{kind:'defense',reductions:{fire:.8}}:{el:'fire',pct:400};}
   if(kind==='phys')return battle._physical(e,p,{sureHit:true}).dmg;
   return battle._exec({actor:e,action:'breath',kind:'spell'}).hits.find(h=>h.target===p).dmg;
  };
- for(const kind of ['phys','magic']){
-  const baseline=damage(kind),reduced=damage(kind,true),guarded=damage(kind,true,true);
+ for(const kind of ['phys','magic'])for(const form of [true,'direct']){
+  const baseline=damage(kind),reduced=damage(kind,form),guarded=damage(kind,form,true);
   assert(Math.abs(reduced-baseline*.1)<=2,`${kind} 常時90%: ${baseline} -> ${reduced}`);
   assert(Math.abs(guarded-reduced*.5)<=2,`${kind} 防御は別: ${reduced} -> ${guarded}`);
  }
