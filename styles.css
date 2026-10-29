@@ -796,3 +796,13 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 @media (prefers-reduced-motion: reduce) {
   #rotate-guard .rg-phone { animation: none; }
 }
+
+/* 規約は本文だけスクロールでき、狭い画面でも操作を隠さない。 */
+.legal-dialog { color: #e4e1d5; background: #171d19; border: 1px solid #798574; border-radius: 8px; width: min(640px, 90vw); max-height: 80dvh; padding: 24px; overflow-y: auto; line-height: 1.8; }
+.legal-dialog::backdrop { background: #000b; }
+.legal-dialog a { color: #c3d6bf; text-decoration: underline; }
+.legal-dialog button { position: sticky; bottom: 0; padding: 12px 24px; background: #344b3b; color: #fff; border: 1px solid #8da08e; border-radius: 6px; }
+.cloud-controls .cloud-consent { display: flex; align-items: start; gap: 12px; line-height: 1.6; }
+.cloud-controls .cloud-consent input { width: 22px; min-width: 22px; height: 22px; margin: 3px 0; }
+.cloud-controls form { display: grid; gap: 12px; }
+.cloud-panel { max-height: 90dvh; overflow-y: auto; }

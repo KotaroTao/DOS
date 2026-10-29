@@ -14,6 +14,7 @@ await db.exec(`create schema auth; create table auth.users(id uuid primary key);
   insert into auth.users values ('11111111-1111-4111-8111-111111111111'), ('22222222-2222-4222-8222-222222222222');`);
 await db.exec(await readFile(new URL("../../supabase/migrations/202610120001_cloud_save.sql", import.meta.url), "utf8"));
 await db.exec(await readFile(new URL("../../supabase/migrations/202610160001_save_slots.sql", import.meta.url), "utf8"));
+await db.exec(await readFile(new URL("../../supabase/migrations/202610300001_guest_onboarding.sql", import.meta.url), "utf8"));
 const user = "11111111-1111-4111-8111-111111111111", otherUser = "22222222-2222-4222-8222-222222222222";
 const session = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", otherSession = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const command = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
@@ -41,14 +42,8 @@ for (const role of ["anon", "authenticated"]) {
   await db.exec("reset role");
 }
 
-// 枠ごとの占有・更新番号・再送は独立し、範囲外をDBでも拒否する。
-for (const slot of [2, 3]) {
-  assert.equal((await claim(user, session, slot)).revision, 0);
-  await commit(user, session, 0, command, { slot }, { gold: slot * 100 }, {}, slot);
-  assert.equal((await claim(user, session, slot)).snapshot.gold, slot * 100);
-  await assert.rejects(claim(user, otherSession, slot), /cloud_session_busy/);
-}
-for (const slot of [0, 4, null]) await assert.rejects(claim(user, session, slot), /cloud_invalid_slot/);
+// 記録2・3はサーバーでも閉じる。旧APIは記録1のまま。
+for (const slot of [0, 2, 3, 4, null]) await assert.rejects(claim(user, session, slot), /cloud_invalid_slot/);
 assert.equal((await db.query("select public.cloud_claim($1::uuid,$2::uuid) as v", [user, otherSession])).rows[0].v.slot, 1);
 
 // 実際のEdge Functionを起動し、AuthとRPCだけをこのDBへ接続する。
@@ -62,7 +57,8 @@ globalThis.fetch = async (url, opts) => {
   const b = JSON.parse(opts.body);
   try {
     let value;
-    if (url.endsWith("/cloud_claim_slot")) value = await claim(b.p_user, b.p_session, b.p_slot);
+    if (url.endsWith("/cloud_accept_terms")) value = (await db.query("select public.cloud_accept_terms($1::uuid,$2::text) as value", [b.p_user, b.p_version])).rows[0].value;
+    else if (url.endsWith("/cloud_claim_slot")) value = await claim(b.p_user, b.p_session, b.p_slot);
     else if (url.endsWith("/cloud_commit_slot")) value = await commit(b.p_user, b.p_session, b.p_revision, b.p_command, b.p_request, b.p_snapshot, b.p_response, b.p_slot);
     else throw new Error("不明なRPC");
     return Response.json(value);
@@ -73,6 +69,13 @@ const request = (body, token = "valid-token", origin = "https://game.invalid") =
   method: "POST", headers: { Authorization: "Bearer " + token, Origin: origin, "Content-Type": "application/json" }, body: JSON.stringify(body),
 }));
 const base = { protocol: 1, sessionId: otherSession };
+assert.equal((await request({ ...base, op: "claim" })).status, 409);
+assert.equal((await request({ protocol: 1, op: "consent", version: "old" })).status, 409);
+assert.equal((await request({ protocol: 1, op: "consent", version: "2026-10-30" })).status, 200);
+const accepted = (await db.query("select terms_accepted_at from public.cloud_saves where user_id = $1::uuid", [otherUser])).rows[0].terms_accepted_at;
+await request({ protocol: 1, op: "consent", version: "2026-10-30" });
+assert.deepEqual((await db.query("select terms_accepted_at from public.cloud_saves where user_id = $1::uuid", [otherUser])).rows[0].terms_accepted_at, accepted);
+
 assert.equal((await request({ ...base, op: "claim" }, "invalid-token")).status, 401);
 assert.equal((await request({ ...base, op: "claim" }, "valid-token", "https://bad.invalid")).status, 403);
 assert.equal((await request({ ...base, op: "claim", protocol: 99 })).status, 409);
@@ -85,14 +88,7 @@ assert.equal((await request({ ...save, snapshot: refSerialize({ state: "over", p
 const read = await request({ ...base, op: "claim" }); assert.equal(read.status, 200);
 assert.deepEqual((await read.json()).snapshot, save.snapshot);
 assert.equal((await request({ ...base, op: "renew", revision: 1 })).status, 200);
-for (const slot of [2, 3]) {
-  const body = { ...save, slot, snapshot: refSerialize({ state: "town", party: [], souls: [], gold: slot * 100 }) };
-  const r = await request(body); assert.equal(r.status, 200); assert.equal((await r.json()).revision, 1);
-  const savedSlot = await (await request({ ...base, slot, op: "claim" })).json();
-  assert.equal(refDeserialize(savedSlot.snapshot).gold, slot * 100);
-  assert.deepEqual((await (await request({ ...base, op: "claim" })).json()).snapshot, save.snapshot);
-}
-for (const slot of [0, 4, null, "2", 1.5]) assert.equal((await request({ ...base, slot, op: "claim" })).status, 400);
+for (const slot of [0, 2, 3, 4, null, "2", 1.5]) assert.equal((await request({ ...base, slot, op: "claim" })).status, 400);
 // 戦闘の保存・実行・再送・次の手番も、実際のAPIとDBで確認する。
 reseedRng(7);
 const p = Object.assign(makeDoll("検証の人業"), { hp: 100, maxhp: 100, atk: 30, vit: 10, agi: 1000 });

@@ -20,6 +20,7 @@ import { TitleScene } from "./titleart.js";
 import { PaintedTitle, hasPaintedTitle } from "./titlepaint.js";
 import { glyphText } from "./ui/kit.js";
 import { showJobGallery } from "./ui/jobgallery.js";
+import { showLegal } from "./legal.js";
 import { cloudEnabled } from "./cloud-save.js";
 
 const REDUCED = (() => {
@@ -34,7 +35,7 @@ function div(cls, text) {
 }
 const sfx = (k) => { try { SFX[k] && SFX[k](); } catch {} };
 
-export function showTitle({ hasSave = false, summary = null, onStart, onNewGame = null, saveSlot = 1, onSelectSlot = null, startName = "", testDungeons = [], testScenes = [], onTestPlay = null } = {}) {
+export function showTitle({ hasSave = false, summary = null, onStart, entry = false, autoStart = false, onLogin = null, onNewGame = null, startName = "", testDungeons = [], testScenes = [], onTestPlay = null } = {}) {
   const readyName = hasSave ? "" : normalizeName(startName);
   const wrap = div("ttl-overlay");
   if (REDUCED) wrap.classList.add("ttl-still");
@@ -69,27 +70,9 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
   low.appendChild(tap);
 
   const menu = div("ttl-menu " + (hasSave && summary ? "has-save" : "no-save"));
-  if (onSelectSlot) {
-    const slots = div("ttl-slots");
-    slots.setAttribute("role", "group");
-    slots.setAttribute("aria-label", "冒険の記録を選ぶ");
-    for (let slot = 1; slot <= 3; slot++) {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "ttl-slot";
-      b.textContent = `記録${slot}`;
-      b.setAttribute("aria-pressed", String(slot === saveSlot));
-      b.addEventListener("click", e => {
-        e.stopPropagation();
-        if (slot !== saveSlot) onSelectSlot(slot);
-      });
-      slots.appendChild(b);
-    }
-    menu.appendChild(slots);
-  }
   if (hasSave && summary) {
     const sc = div("ttl-save");
-    sc.appendChild(div("ttl-save-k", `冒険の記録${saveSlot}`));
+    sc.appendChild(div("ttl-save-k", "冒険の記録"));
     if (summary.head) sc.appendChild(div("ttl-save-h", summary.head));
     if (summary.sprites && summary.sprites.length) {
       const row = div("ttl-party");
@@ -125,11 +108,16 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
       btns.appendChild(newBtn);
     }
   } else {
-    goBtn = mkBtn(readyName ? "物語を始める" : "はじめから", "NEW GAME", "primary");
+    goBtn = mkBtn(entry ? "冒険をはじめる" : readyName ? "物語を始める" : "はじめから", "NEW GAME", "primary");
     btns.appendChild(goBtn);
     const dis = mkBtn("つづきから", "記録なし", "off");
     dis.disabled = true;
-    btns.appendChild(dis);
+    if (!entry) btns.appendChild(dis);
+  }
+  if (onLogin) {
+    const login = mkBtn("ログイン", "登録済みの方", "");
+    login.onclick = e => { e.stopPropagation(); close(onLogin); };
+    btns.appendChild(login);
   }
   let testBtn = null;
   if (typeof onTestPlay === "function") {
@@ -137,17 +125,24 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
     btns.appendChild(testBtn);
   }
   menu.appendChild(btns);
-  menu.appendChild(div("ttl-note", cloudEnabled() ? "冒険の記録に接続済み" : hasSave ? "進行は自動で保存されています" : "ホーム画面に追加すると、オフラインでも遊べます"));
+  menu.appendChild(div("ttl-note", cloudEnabled() ? (entry ? "メール登録なしでも遊べます。オンライン接続が必要です" : "冒険の記録に接続済み") : hasSave ? "進行は自動で保存されています" : "ホーム画面に追加すると、オフラインでも遊べます"));
+  const legalLinks = div("ttl-legal");
+  for (const kind of ["terms", "privacy"]) {
+    const legal = mkBtn(kind === "terms" ? "利用規約" : "プライバシーポリシー", null, "");
+    legal.onclick = e => { e.stopPropagation(); showLegal(kind); };
+    legalLinks.appendChild(legal);
+  }
+  menu.appendChild(legalLinks);
   const records = mkBtn("試遊の記録", null, "");
   records.addEventListener("click", e => { e.stopPropagation(); showPlaytestRecords(); });
-  menu.appendChild(records);
+  if (onTestPlay) menu.appendChild(records);
   low.appendChild(menu);
   ui.appendChild(low);
   wrap.appendChild(ui);
 
   // 「はじめから」(セーブあり) の確認
   const confirmBox = div("ttl-confirm hidden");
-  confirmBox.append(div("ttl-confirm-t", "この記録を消して、最初から始めますか？"), div("ttl-confirm-s", "ほかの記録は残ります。消した記録は二度と戻りません。"));
+  confirmBox.append(div("ttl-confirm-t", "この記録を消して、最初から始めますか？"), div("ttl-confirm-s", "消した記録は二度と戻りません。"));
   const cRow = div("ttl-confirm-row");
   const cYes = mkBtn("消して始める", null, "danger");
   const cNo = mkBtn("やめる", null, "");
@@ -431,6 +426,7 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
     setTimeout(() => wrap.remove(), REDUCED ? 400 : 1500);
   };
   const start = () => {
+    if (entry) { sfx("stairs"); close(onStart); return; }
     // 記録消去後は名前を引き継ぎ、この操作の中で語りを始める。
     if (readyName) { sfx("stairs"); close(() => onStart(readyName), true); return; }
     if (!hasSave) { askName(); return; }
@@ -456,6 +452,7 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
   confirmBox.addEventListener("click", (e) => e.stopPropagation());
   wrap.addEventListener("click", () => { if (!awake) wake(); });
   const onKey = (e) => {
+    if (document.querySelector(".legal-dialog[open]")) return;
     if (closed) return;
     if (!nameBox.classList.contains("hidden")) {
       e.stopPropagation();
@@ -483,7 +480,7 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
       e.preventDefault(); e.stopPropagation();
       if (!confirmBox.classList.contains("hidden")) return;
       const a = document.activeElement;
-      if (a && a.classList && (a.classList.contains("ttl-btn") || a.classList.contains("ttl-slot")) && wrap.contains(a)) { a.click(); return; }
+      if (a && a.classList && a.classList.contains("ttl-btn") && wrap.contains(a)) { a.click(); return; }
       start();
     } else e.stopPropagation(); // タイトル表示中はゲームへの入力を通さない
   };
@@ -491,6 +488,7 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
   addEventListener("resize", onResize);
 
   document.body.appendChild(wrap);
+  if (autoStart) queueMicrotask(start);
   // 一枚絵は数百 ms かかることがあるので、ロゴの入りを先に見せてから描く
   requestAnimationFrame(() => setTimeout(async () => {
     if (closed) return;

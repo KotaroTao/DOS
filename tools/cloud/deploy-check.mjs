@@ -14,13 +14,15 @@ assert.throws(() => authSettings({ site_url: "https://another-app.invalid" }));
 const settings = authSettings({ site_url: "http://localhost:3000", uri_allow_list: "https://existing.invalid" });
 assert(settings.uri_allow_list.includes("https://existing.invalid")); assert(settings.uri_allow_list.includes(SITE));
 assert.equal(settings.mailer_autoconfirm, false);
+assert.equal(settings.external_anonymous_users_enabled, true);
+assert.equal(settings.rate_limit_anonymous_users, 10);
 assert.throws(() => configSource("bad-project", "public"));
 await assert.rejects(run("--prepare", { env: {} }), /Project ID/);
 await assert.rejects(run("--prepare", { env: { SUPABASE_PROJECT_REF: ref } }), /アクセストークン/);
 
-function fixture({ smtp = true, cors = true, authenticated = false, permission = true } = {}) {
+function fixture({ smtp = true, cors = true, authenticated = false, permission = true, captcha = false, anonymous = true } = {}) {
   const calls = [], writes = [];
-  const auth = { ...settings, smtp_host: smtp ? "smtp.example.invalid" : "", smtp_admin_email: smtp ? "sender@example.invalid" : "" };
+  const auth = { ...settings, external_anonymous_users_enabled: anonymous, security_captcha_enabled: captcha, security_captcha_provider: "turnstile", smtp_host: smtp ? "smtp.example.invalid" : "", smtp_admin_email: smtp ? "sender@example.invalid" : "" };
   const fetcher = async (url, opts) => {
     calls.push({ url, opts });
     if (url.endsWith("/config/auth")) return Response.json(auth);
@@ -45,7 +47,7 @@ function fixture({ smtp = true, cors = true, authenticated = false, permission =
   assert(f.writes[0].content.includes(jwt("anon"))); assert(!f.writes[0].content.includes(jwt("service_role")));
   assert(!f.writes[0].content.includes(env.SUPABASE_ACCESS_TOKEN));
 }
-for (const [condition, message] of [[{ smtp: false }, /SMTP/], [{ cors: false }, /接続元/], [{ authenticated: true }, /認証/], [{ permission: false }, /権限/]]) {
+for (const [condition, message] of [[{ smtp: false }, /SMTP/], [{ cors: false }, /接続元/], [{ authenticated: true }, /認証/], [{ permission: false }, /権限/], [{ captcha: true }, /サイトキー/], [{ anonymous: false }, /ゲスト認証/]]) {
   const f = fixture(condition); await assert.rejects(run("--config", { env, fetcher: f.fetcher, writer: f.writer }), message);
   assert.equal(f.writes.length, 0);
 }
@@ -71,6 +73,18 @@ if (process.argv[2]) {
   await db.exec(migrationQuery(slotsSQL, "202610160001"));
   const old = (await db.query("select slot, revision, snapshot from public.cloud_saves")).rows[0];
   assert.equal(old.slot, 1); assert.equal(old.revision, 7); assert.deepEqual(old.snapshot, { progress: true });
+  const guestSQL = await readFile(new URL("../../supabase/migrations/202610300001_guest_onboarding.sql", import.meta.url), "utf8");
+  // 旧テスト枠を残したまま、本番の一枠へ移行する。
+  await db.exec("insert into public.cloud_saves(user_id,slot,revision,snapshot) values ('11111111-1111-4111-8111-111111111111', 2, 9, '{\"test\":true}');");
+  await db.exec(migrationQuery(guestSQL, "202610300001"));
+  await db.exec(migrationQuery(guestSQL, "202610300001"));
+  const preserved = (await db.query("select slot,revision from public.cloud_saves order by slot")).rows;
+  assert.deepEqual(preserved, [{ slot: 1, revision: 7 }, { slot: 2, revision: 9 }]);
+  await db.exec("set role service_role");
+  await assert.rejects(db.query("select public.cloud_claim_slot_internal('11111111-1111-4111-8111-111111111111','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',2)"), /permission denied/);
+  await assert.rejects(db.query("select public.cloud_claim_slot('11111111-1111-4111-8111-111111111111','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',2)"), /cloud_invalid_slot/);
+  await db.query("select public.cloud_claim_slot('11111111-1111-4111-8111-111111111111','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',1)");
+  await db.exec("reset role");
   await db.close();
 }
 console.log("自動セットアップ: 管理キー非公開・既存設定保護・SMTP/認証/権限確認・再実行と記録保持 OK");

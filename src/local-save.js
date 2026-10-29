@@ -1,22 +1,13 @@
 // ローカルの記録は一つの画面だけが扱う。ロックは画面を閉じるまで保つ。
 export const LOCAL_SAVE_KEY = "dos-save-v7";
 export const LOCAL_RECOVERY_KEY = LOCAL_SAVE_KEY + "-recovery";
-export const SAVE_SLOT_COUNT = 3;
-export function saveSlotFromURL(href = location.href) {
-  const slot = Number(new URL(href).searchParams.get("saveSlot") || 1);
-  return Number.isInteger(slot) && slot >= 1 && slot <= SAVE_SLOT_COUNT ? slot : 1;
-}
+export const SAVE_SLOT_COUNT = 1;
+// 旧URLの記録指定は無視し、本番の記録1だけを使う。旧テスト記録は削除しない。
+export function saveSlotFromURL() { return 1; }
 export function localSaveKey(slot = 1) {
   if (!Number.isInteger(slot) || slot < 1 || slot > SAVE_SLOT_COUNT) throw new Error("記録の番号が不正です。");
-  return slot === 1 ? LOCAL_SAVE_KEY : `${LOCAL_SAVE_KEY}-slot-${slot}`;
+  return LOCAL_SAVE_KEY;
 }
-export function selectSaveSlot(slot) {
-  localSaveKey(slot);
-  const url = new URL(location.href);
-  url.searchParams.set("saveSlot", slot);
-  location.assign(url.href);
-}
-
 export class LocalSaveSession {
   constructor({ storage = localStorage, locks = navigator.locks, slot = 1, onConflict = () => {} } = {}) {
     this.key = localSaveKey(slot);

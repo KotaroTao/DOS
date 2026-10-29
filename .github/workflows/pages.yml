@@ -42,6 +42,7 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+          TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
         run: node supabase/deploy.mjs --prepare
       - uses: supabase/setup-cli@v1
         if: vars.CLOUD_SAVE_ENABLED == 'true'
@@ -52,6 +53,7 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+          TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
         run: |
           supabase secrets set GAME_ALLOWED_ORIGINS=https://kotarotao.github.io --project-ref "$SUPABASE_PROJECT_REF"
           docker info > /dev/null

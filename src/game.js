@@ -10,8 +10,8 @@ import { insightTotals, insightTitle } from "./insight.js";
 import { INF_BUY_CAP, infRecovery, infUseCount, infSupplyLeft, infSpendSupply } from "./infsupplies.js";
 import { random, fxRandom, bindRngState, rngState } from "./rng.js";
 import { refSerialize, refDeserialize, applySavePatch } from "./savegraph.js";
-import { cloudEnabled, cloudReady, cloudBusy, connectCloud, cloudSave, cloudBattle, cloudFlush, cloudFatal } from "./cloud-save.js";
-import { LocalSaveSession, showLocalSaveBlocked, showLocalSaveRecovery, saveSlotFromURL, localSaveKey, selectSaveSlot } from "./local-save.js";
+import { cloudEnabled, cloudHasSession, cloudReady, cloudBusy, connectCloud, cloudRegisterPrompt, cloudSave, cloudBattle, cloudFlush, cloudFatal } from "./cloud-save.js";
+import { LocalSaveSession, showLocalSaveBlocked, showLocalSaveRecovery, saveSlotFromURL, localSaveKey } from "./local-save.js";
 import { watchGameUpdates } from "./game-update.js";
 import { syncEnemyUids, enemySoulRewardMul, openingRates } from "./combat.js";
 import { monsterResists } from "./resistance.js";
@@ -14371,6 +14371,7 @@ function questMarkCanvas(q, jobs = []) {
 // req を持つ話は、その機能・場所・物語が開くまで出さない (未解放の仕組みや先の章を匂わせない)。
 function tavernHintAllowed(req) {
   if (!req) return true;
+  if (req === "cloud") return cloudEnabled() && !testPlayActive;
   const w = worldState();
   if (req.startsWith("rep:")) return !!w.reported[req.slice(4)];       // その迷宮を王に報告した後
   if (req.startsWith("beat:")) return !!w.beats[req.slice(5)];         // その館の語りを聞いた後
@@ -15276,6 +15277,7 @@ function completePrologueTutorial(key) {
   announceNewDungeons(refreshWorldUnlocks());
   if (key === "createThree") G.dungeonIdx = worldIndexOf("w00_forest");
   autosave(true);
+  if (key === "createFourth" && cloudEnabled() && !testPlayActive) cloudRegisterPrompt();
 }
 function prologueAudience() {
   const p = prologue(), phase = p?.phase;
@@ -19353,10 +19355,14 @@ function resumeCombat() {
 
 // アプリが裏に回る/閉じられる瞬間に確実に保存
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") autosave(true); });
-// 街の持ち替え・シート内の選択も、処理が終わった同じフレームで保存する。
-for (const type of ["click", "change", "keydown", "pointerup", "touchend"]) {
+// 街の持ち替え・シート内の選択も、イベントの処理が完了してから保存する。
+// pointerup/touchendでは保存幕を出さない。直後のclickを幕が奪うため、確定したclick/changeで保存する。
+for (const type of ["click", "change", "keydown"]) {
   window.addEventListener(type, () => {
-    if (cloudEnabled() && cloudReady() && !cloudBusy() && !titleActive) queueMicrotask(() => autosave(true));
+    if (cloudEnabled() && cloudReady() && !cloudBusy() && !titleActive) {
+      // capture中のmicrotaskでは、対象ボタンより先に保存幕が入力を奪ってしまう。
+      setTimeout(() => { if (!titleActive) autosave(true); }, 0);
+    }
   }, { capture: true });
 }
 window.addEventListener("pagehide", () => {
@@ -20155,7 +20161,12 @@ async function init() {
   if (cloudEnabled()) {
     let localSave = null;
     try { localSave = localStorage.getItem(SAVE_KEY); } catch {}
-    const snapshot = await connectCloud(localSave, SAVE_SLOT);
+    titleActive = true; G.prompt = true;
+    const entryMode = await new Promise(resolve => {
+      showTitle({ entry: true, hasSave: cloudHasSession(), onStart: () => resolve("start"), onLogin: () => resolve("login") });
+      revealBootScreen();
+    });
+    const snapshot = await connectCloud(localSave, 1, entryMode);
     loaded = loadGame(snapshot);
     if (snapshot && !loaded) throw new Error("クラウドの記録を読み込めません");
   } else {
@@ -20226,8 +20237,8 @@ async function init() {
   let freshStart = false, freshName = "";
   try { freshStart = sessionStorage.getItem("dos-newgame") === "1"; sessionStorage.removeItem("dos-newgame"); freshName = normalizeName(sessionStorage.getItem("dos-newgame-name")); sessionStorage.removeItem("dos-newgame-name"); } catch (e) {}
   try {
-    showTitle({ saveSlot: SAVE_SLOT, onSelectSlot: selectSaveSlot, hasSave: loaded, startName: freshStart ? freshName : "", summary: loaded ? titleSummary() : null, onStart: start, onNewGame: loaded && !cloudEnabled() ? newGameFromTitle : null,
-      testDungeons: DUNGEONS, testScenes, onTestPlay: ({ id, floor, place, scene, inf, infLv, skipDungeon }) => {
+    showTitle({ autoStart: cloudEnabled(), hasSave: loaded, startName: freshStart ? freshName : "", summary: loaded ? titleSummary() : null, onStart: start, onNewGame: loaded && !cloudEnabled() ? newGameFromTitle : null,
+      testDungeons: DUNGEONS, testScenes, onTestPlay: cloudEnabled() ? null : ({ id, floor, place, scene, inf, infLv, skipDungeon }) => {
         _resetting = true;
         const url = new URL(location.href);
         if (skipDungeon) url.searchParams.set("testSkipDungeon", "1"); else url.searchParams.delete("testSkipDungeon");
