@@ -136,8 +136,11 @@ function ensureGate() {
     }, { capture: true, passive: false });
   }
 }
-function showGate(text) {
-  ensureGate(); gate.hidden = false; message.textContent = text; controls.replaceChildren();
+function showGate(text = null) {
+  ensureGate(); gate.hidden = false;
+  // 通常の待機は見出しも文も出さず、操作が必要な時だけパネルを見せる。
+  gate.querySelector(".cloud-panel").hidden = text === null;
+  message.textContent = text || ""; controls.replaceChildren();
 }
 function button(text, fn) {
   const b = make("button", text); b.type = "button"; b.addEventListener("click", fn); controls.append(b);
@@ -164,7 +167,7 @@ function failure(e) {
     } else {
       showGate(e.message === "cloud_session_busy" ? "別の端末か画面で冒険中です。そちらを閉じて、しばらくしてから再接続してください。"
         : "記録を保存できません。接続を確かめてください。冒険はここで待っています。");
-      button("再接続", () => { showGate("記録を確かめています…"); resolve(); });
+      button("再接続", () => { showGate(); resolve(); });
     }
   });
 }
@@ -282,7 +285,7 @@ export function cloudFlush() { return client?.flush() || Promise.resolve(); }
 export async function cloudPrepareReload(save) {
   if (leaving || managing || !client || !ready || terminal) return false;
   leaving = true;
-  showGate("記録を保存しています…");
+  showGate();
   try {
     const saved = save();
     if (!saved) { leaving = false; gate.hidden = true; return false; }
@@ -306,7 +309,7 @@ export function cloudFatal() {
 }
 
 export async function connectCloud(localSave, slot = 1, mode = "start") {
-  ensureGate(); showGate("記録に接続しています…");
+  ensureGate(); showGate();
   if (!CLOUD_CONFIG.url || !CLOUD_CONFIG.anonKey || !/^https:\/\//.test(CLOUD_CONFIG.url)) {
     showGate("クラウド保存の接続先が設定されていません。"); throw new Error("クラウド設定が未完了です");
   }
@@ -373,7 +376,7 @@ export async function connectCloud(localSave, slot = 1, mode = "start") {
   const sessionKey = "dos-cloud-session:" + client.auth.user.id + slotSuffix(slot);
   client.sessionId = pending?.sessionId || localStorage.getItem(sessionKey) || crypto.randomUUID();
   localStorage.setItem(sessionKey, client.sessionId);
-  showGate("記録を読み込んでいます…");
+  showGate();
   let snapshot = await client.retry(() => client.claim());
   if (pending) { await client.recover(); snapshot = await client.retry(() => client.claim()); }
   if (mode !== "reset" && !snapshot && localSave && !localStorage.getItem("dos-cloud-deleted")) {
@@ -453,7 +456,7 @@ async function captchaBody() {
 export async function cloudManageAccount() {
   if (managing || leaving || !client || !ready) return;
   managing = true;
-  showGate("記録を確かめています…");
+  showGate();
   try {
     await cloudFlush();
     await new Promise(resolve => {

@@ -430,6 +430,8 @@ The goal (per design direction): **every enemy is individually distinctive**, bo
 
 ### State & persistence
 
+**通常待機の文字を表示しない (2026-10-30 ユーザー指定)**: クラウドの接続・読み込み・保存・確認中は `showGate()` でパネルを隠し、「冒険の記録」の見出しと進行状況の文を出さない。起動・画像準備の通常メッセージも空にする。入力制限と保存順序は維持し、ログイン・同意・選択・通信エラーなど操作が必要なパネルは表示する。心得 `t_save_slots`。
+
 **クラウド戦闘のテンポ (2026-10-29)**: claim応答の `battleTurn` がある時は `turn` 要求で選択の保存・行動結果・次手番を1回で確定する。結果 `packet` と次手番 `nextPacket` は独立した参照グラフにし、画面は行動の演出後に次手番を反映する。その間は途中の状態を保存せず、終了／再接続では確定済みの次手番から再開する。次手番の演出片付けだけで再保存しない。旧サーバーは保存→行動→advanceへ戻し、旧クライアントのbattle要求も維持する。オートの作戦決定後・次の手番の追加待機は0ms、戦闘終了の間は100ms。クラウドの敵／行動不能は通信開始前の予備待機を足さない。攻撃・多段・被弾・強化弱体の演出と結果の式は維持。心得 `t_auto`。確認: `node tools/cloud/check.mjs`、`node tools/cloud/database-check.mjs <PGliteの絶対パス>`、`python3 tools/cloud/tempo-browser.py`（実API・SQLの検証用サーバーが必要）。
 
 **通常クラウド保存中の操作 (2026-10-29)**
