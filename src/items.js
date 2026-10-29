@@ -23,7 +23,7 @@ import { zeroResists, clampResist, onHitEffects } from "./resistance.js";
 // 性能キー: atk/vit/agi/int/pie/luk (六大ステ加算) / hp/mp (最大値加算) / crit (会心率加算)
 // lv: 隠しレベル (1-200)。迷宮の出現帯・出現率・表示ランクを決める
 // cat: 武器のみ。サブカテゴリ (WEAPON_CATS のキー)
-// eAtk/eDef: 属攻補正/属性耐性力 {el,pct}。旧{el,lv}も読む。
+// eAtk: 属攻補正 {el,pct}。eDef: 直接軽減 {reductions}、旧耐性力 {el,pct}/{el,lv} も読む。
 // aRes: 状態異常耐性 { poison/paralyze/sleep/charm/confuse/stone: 付与率カット (0.25 = 25%) }。同じ種類は装備どうしで足し合い、上限 AIL_RES_CAP
 // bRes: ブレス耐性 (敵のブレスから受けるダメージのカット率 0.15 = 15%)。装備どうしで足し合い、上限 BREATH_RES_CAP (combat.js)
 // onHit: 武器などの追加効果 { k: poison/paralyze/sleep/charm/confuse, chance, pct? } またはその配列。命中時に各種類を判定
@@ -1561,7 +1561,7 @@ export function recalc(member) {
     }
     for (const [k, v] of Object.entries(elementValues(it.eAtk))) ea[k] = (ea[k] || 0) + v;
     for (const [k, v] of Object.entries(elementValues(it.eDef, "defense"))) ed[k] = (ed[k] || 0) + v;
-    for(const [k,v] of Object.entries(it.bukonElementDef||{}))bukonED[k]=(bukonED[k]||0)+v;
+    for(const source of [it.eDef?.reductions,it.bukonElementDef])for(const [k,v] of Object.entries(source||{}))bukonED[k]=(bukonED[k]||0)+v;
     if (it.aRes) for (const k in it.aRes) ar[k] = (ar[k] || 0) + (it.aRes[k] || 0);
     if (it.resists) for (const k in resist) resist[k] += it.resists[k] || 0;
     br += it.bRes || 0;

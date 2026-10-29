@@ -1,5 +1,5 @@
 import { applyChallengeEnemies } from "./progression.js";
-import { luckCritBonus, procChance, hitChance, elementValues, elementStat, elementAttack, elementMultiplier, elementWeakness, elementResistance, elementalReduction, permanentMultiplier } from "./combatrules.js";
+import { luckCritBonus, procChance, hitChance, elementValues, elementStat, elementAttack, elementMultiplier, elementWeakness, elementDefenseReduction, permanentMultiplier } from "./combatrules.js";
 import { canonicalPassiveKey, UNHOLY } from "./jobkit/common.js";
 import { random } from "./rng.js";
 import { lvPow } from "./levelcurve.js";
@@ -1533,7 +1533,7 @@ export class Battle {
     const mode = r >= 100 && t.side !== "party" ? 0 : 1 - Math.min(.8, Math.max(0, r) / 100) * (1 - ignore);
     if (!mode) return 1; // 固有の完全無効は別
     const scale = this._bm(t, "r_" + el) * this._bm(t, "r_all");
-    let elem = !el || el === "none" ? 1 : 1-Math.min(.8,elementalReduction(elementResistance(el,edefOf(t),eaffOf(t),scale))+(t.elemDef?.reductions?.[el]||0)*scale);
+    let elem = !el || el === "none" ? 1 : 1-elementDefenseReduction(el,edefOf(t),eaffOf(t),scale);
     if (elementFloor && el && el !== "none") elem = Math.max(elem, Math.min(1, 100 / elementAttack(actor, el) / elementWeakness(el, eaffOf(t))));
     const factors = [elem, mode, 1 - (t.guard || 0)];
     if (actor?.side === "enemy" && t.side === "party") {

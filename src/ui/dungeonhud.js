@@ -590,7 +590,7 @@ export function peekDoll(d, { idx = 0, combat = false } = {}) {
 
       // 守り: 属性防御・ブレス耐性・状態異常への抵抗 (値のあるものだけ)
       const guard = [];
-      if (d.elemDef && d.elemDef.el) guard.push(`属防 ${elemStatShort(d.elemDef)}`);
+      if (d.elemDef && elemStatShort(d.elemDef) !== "—") guard.push(`属防 ${elemStatShort(d.elemDef)}`);
       const br = partyBreathRes(d);
       if (br) guard.push(`ブレス耐性 ${Math.round(br * 100)}%`);
       for (const [k, label] of Object.entries(RESIST_LABEL)) {

@@ -1,5 +1,5 @@
 import { equipmentCombatState, equipmentPercentScore } from "../equipmentscore.js";
-import { elementValues, elementalReduction } from "../combatrules.js";
+import { ELEMENT_KEYS, elementValues, elementalReduction, elementDefenseReduction } from "../combatrules.js";
 import { bukonText } from "../bukon.js";
 import { revealSteps } from "../monsterreveal.js";
 import { MONSTER_LORE, monsterLoreReady } from "../dungeons/monlore.js";
@@ -36,9 +36,11 @@ export function elemName(el) { return (ELEMENTS[el] || ELEMENTS.none).label; }
 // 属攻補正・属性耐性力を百分率で表示する。旧Lv形式も共通変換で読む。
 export function elemStatText(kind, e) {
   const entries = Object.entries(elementValues(e, kind === "攻撃" ? "attack" : "defense"));
+  if(kind!=="攻撃" && e?.reductions) return ELEMENT_KEYS.filter(k=>elementDefenseReduction(k,e)>0).map(k=>`${elemName(k)}${Math.round(elementDefenseReduction(k,e)*1000)/10}%軽減`).join(" / ") || null;
   return entries.length ? entries.map(([k, v]) => `${elemName(k)}${kind === "攻撃" ? "属攻" : "耐性力"}+${v}%`).join(" / ") : null;
 }
 export function elemDetailLines(kind, e) {
+  if(kind!=="攻撃" && e?.reductions) return ELEMENT_KEYS.filter(k=>elementDefenseReduction(k,e)>0).map(k=>`${elemName(k)}ダメージ${Math.round(elementDefenseReduction(k,e)*1000)/10}%軽減（武魂・同属性の軽減と加算。合計80%まで）`);
   return Object.entries(elementValues(e, kind === "攻撃" ? "attack" : "defense")).map(([k, v]) => kind === "攻撃"
     ? `${elemName(k)}属攻+${v}%（基準100%に加算。属性の付与は武器・技で決まる）`
     : `${elemName(k)}耐性力${v}%（単体で${Math.round(elementalReduction(v) * 1000) / 10}%軽減。同属性を加算、軽減上限80%）`);
@@ -48,7 +50,7 @@ export function elemStatEq(a, b) { return JSON.stringify([elementValues(a,a?.kin
 export function elemStatShort(e) {
   const defense = e?.kind === "defense";
   const values = elementValues(e, defense ? "defense" : "attack");
-  if(defense&&e?.reductions){const keys=new Set([...Object.keys(values),...Object.keys(e.reductions)]);return [...keys].map(k=>`${elemName(k)}${Math.round(Math.min(.8,elementalReduction(values[k]||0)+(e.reductions[k]||0))*1000)/10}%軽減`).join(" / ")||"—";}
+  if(defense&&e?.reductions){const keys=new Set([...Object.keys(values),...Object.keys(e.reductions)]);return [...keys].map(k=>`${elemName(k)}${Math.round(elementDefenseReduction(k,e)*1000)/10}%軽減`).join(" / ")||"—";}
   return Object.entries(values).map(([k, v]) => defense
     ? `${elemName(k)}耐性力${v}%／${Math.round(elementalReduction(v) * 1000) / 10}%軽減`
     : `${elemName(k)}${100 + v}%`).join(" / ") || "—";
