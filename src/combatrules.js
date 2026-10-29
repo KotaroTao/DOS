@@ -25,10 +25,13 @@ export function elementResistance(element, defense, affinity, scale = 1) {
   return Math.max(0, (values[element] || 0) + intrinsic) * Math.max(0, scale);
 }
 export const elementWeakness = (element, affinity) => affinity?.weakness?.[element] ?? ((affinity?.weak || []).includes(element) ? 1.5 : 1);
+// 装備の直接軽減と旧耐性力は、戦闘・表示・最適装備で同じ合計上限を使う。
+export function elementDefenseReduction(element, defense, affinity = null, scale = 1) {
+  return Math.min(.8,elementalReduction(elementResistance(element,defense,affinity,scale)) + Math.max(0,defense?.reductions?.[element] || 0)*Math.max(0,scale));
+}
 export function elementMultiplier(element, attack = 100, defense = null, affinity = null, scale = 1) {
   if (!element || element === 'none') return 1;
-  const reduction=Math.min(.8,elementalReduction(elementResistance(element, defense, affinity, scale)) + Math.max(0,defense?.reductions?.[element]||0)*Math.max(0,scale));
-  return Math.max(0, attack) / 100 * elementWeakness(element, affinity) * (1 - reduction);
+  return Math.max(0, attack) / 100 * elementWeakness(element, affinity) * (1 - elementDefenseReduction(element,defense,affinity,scale));
 }
 
 // 会心の幸運加算を実戦と装備評価で共用する。

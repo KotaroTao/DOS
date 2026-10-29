@@ -7,7 +7,7 @@
 //  - id は append-only (セーブ/図鑑が参照するため、改名・削除は禁止。増やすのみ)
 //  - lv: 隠しレベル (1-200)。出現する迷宮帯・出現率・性能・価格の自動算出に使う
 //    (lv1-20=粗末な品 / 165-200=神話級。全100迷宮の lootLv 帯に対応する)
-//  - eAtk/eDef: 属攻補正/属性耐性力 {el,pct} または {values:{fire:50,...}}。
+//  - eAtk: 属攻補正 {el,pct} / {values}。eDef: 直接軽減 {reductions:{fire:0.2}}、旧耐性力 {el,pct} / {values} も可。
 //    旧["fire",1]は既存品の互換入力。最終目録で来歴別の百分率へ調整する。
 //  - 絵は形の原型 (ARTS) × 色 (属性色 or tint指定) で描き分ける。
 //    原型は 24x24 の高解像度ドット絵。武器8種は各3型、盾・鎧・頭・足・小手・装飾は各2型を持ち、
@@ -1984,9 +1984,12 @@ function base(id, name, slot, lv, artKey, opt) {
     const e = opt[key];
     if (Array.isArray(e)) { chk(ELEM_KEYS.includes(e[0]), "bad element: " + id); it[key]={el:e[0],lv:e[1] || 1}; }
     else {
-      const values = e.values || {[e.el]:e.pct};
+      const values = e.reductions || e.values || {[e.el]:e.pct};
       for (const [k,v] of Object.entries(values)) chk(ELEM_KEYS.includes(k) && Number.isFinite(v) && v>0,"bad element percent: " + id);
-      it[key]=e.values ? {values:{...values}} : {el:e.el,pct:e.pct};
+      if(e.reductions) {
+        chk(key==="eDef" && Object.values(values).every(v=>v<=.8),"bad element reduction: " + id);
+        it[key]={kind:"defense",reductions:{...values}};
+      } else it[key]=e.values ? {values:{...values}} : {el:e.el,pct:e.pct};
     }
   }
   if (opt.element) { chk(ELEM_KEYS.includes(opt.element),"bad attack element: " + id); it.element=opt.element; }

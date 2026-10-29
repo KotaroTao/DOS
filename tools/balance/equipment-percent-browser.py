@@ -15,13 +15,13 @@ with sync_playwright() as p:
           const {game,UI}=await import('/src/ui/ctx.js'),{ITEMS,itemAtQuality,recalc}=await import('/src/items.js');
           const {previewStats,statsDelta}=await import('/src/autoequip.js'),{gearScore}=await import('/src/ui/itemview.js');
           game.G.tut.cur=null;const d=game.G.party[0];
-          const body=itemAtQuality({...ITEMS.a_sr1_wardenmail,q:50,bukon:[{k:'res_poison',lv:7},{k:'crit',lv:7}]});
-          if(body.eDef.el!=='dark')throw Error('墓守の守り');
+          const body=itemAtQuality({...ITEMS.a_sr1_wardenmail,q:50,bukon:[{k:'res_poison',lv:7},{k:'elem_def_dark',lv:4}]});
+          if(!body.eDef.reductions.dark)throw Error('墓守の守り');
           d.equip.body=body;recalc(d);UI.openParty(0,{inPlace:true,seg:'stats'});
           if(!Number.isFinite(gearScore(d,statsDelta(previewStats(d,d.equip),previewStats(d,{...d.equip,body:ITEMS.lr_l1_shroudofstillness})))))throw Error('装備比較');
           window.gearRetune={UI,ITEMS,body};
         }''')
-        page.wait_for_function('document.body.innerText.replaceAll("\\u200b", "").includes("闇耐性力50%／33.3%軽減")')
+        page.wait_for_function('document.body.innerText.replaceAll("\\u200b", "").includes("闇40%軽減")')
         assert not page.evaluate('document.scrollingElement.scrollWidth > innerWidth+1')
         page.evaluate('gearRetune.sheet=gearRetune.UI.itemSheet(gearRetune.ITEMS.lr_l1_shroudofstillness,{context:"view"})')
         page.wait_for_function('document.body.innerText.replaceAll("\\u200b", "").includes("あらゆる毒を防ぐ布ではない")')

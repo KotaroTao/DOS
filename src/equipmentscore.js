@@ -1,11 +1,21 @@
 // 最適装備用の戦闘効果の見積もり。特定の敵を想定せず、同じ条件で付け替え前後を比べる。
-import { ELEMENT_KEYS, elementValues, elementalReduction, permanentMultiplier, procChance, luckCritBonus } from "./combatrules.js";
+import { ELEMENT_KEYS, elementValues, elementDefenseReduction, hitChance, permanentMultiplier, procChance, luckCritBonus } from "./combatrules.js";
 import { SPELLS } from "./skilldefs.js";
 import { AIL_RESIST_KINDS } from "./resistance.js";
 const cap = (v,n) => Math.min(n,Math.max(0,v || 0));
 const value = (v,lv) => Array.isArray(v) ? v[Math.min(v.length,lv)-1] || 0 : v || 0;
 const average = a => a.reduce((s,v)=>s+v,0) / Math.max(1,a.length);
-const effect = (m,type,on) => (m.gearPerks || []).reduce((s,{c,lv}) => s + (c.t===type && (!c.on || c.on===on) ? value(c.v,lv) * (c.when || c.holder ? .5 : 1) : 0),0);
+// 条件なし/条件成立の2通りを平均。武魂の合計上限は成立した効果だけへ適用する。
+const effect = (m,type,on) => average([false,true].map(active=>{
+  let normal=0,best=0,bukon=0,uncapped=0;
+  for(const {c,lv} of m.gearPerks || []) {
+    if(c.t!==type || c.on && c.on!==on || (c.when || c.holder) && !active)continue;
+    const v=value(c.v,lv);
+    if(c.bukon){if(c.uncapped)uncapped+=v;else bukon+=v;}
+    else if(c.best)best=Math.max(best,v);else normal+=v;
+  }
+  return normal+best+uncapped+Math.min(({deal:1,take:.8,crit:.8,heal:1})[type]??Infinity,bukon);
+}));
 export function equipmentCombatState(m, source=m) {
   const passive=source.passiveMap || {};
   const spellCrit=[0,.10,.18,.26][Math.min(3,passive.spellCrit || 0)] || 0;
@@ -35,7 +45,8 @@ export function equipmentCombatState(m, source=m) {
     primaryPower:m.primaryPower ?? m.power ?? m.atk ?? 0,
     hp:m.maxhp || 0, spellPower:Math.max(m.int || 0,m.pie || 0), power:m.fight ?? m.power ?? m.atk ?? 0,
     attackElement:m.attackElement || 'none',offAttackElement:m.offAttackElement || 'none',
-    elements:elementValues(m.elemAtk),defense:elementValues(m.elemDef,'defense'),res,proc,spellElements,
+    elements:elementValues(m.elemAtk),defense:elementValues(m.elemDef,'defense'),reductions:{...m.elemDef?.reductions},res,proc,spellElements,
+    evade:cap(.1+(m.evadeBonus || 0)+(passive.parry>=2 ? .15 : passive.parry ? .1 : 0)+effect(m,'evade'),.8),
     guard:m.eff?.guard || 0,breath:m.breathRes || 0,physicalCrit,
     spellCrit:cap(spellCrit+arc+(m.spellCritBonus || 0)+(m.gearMisc?.sae ? .15 : 0),.8),
     critDamage:m.critDamageBonus || 0,spellCritDamage:m.spellCritDamageBonus || 0,
@@ -49,9 +60,9 @@ export function equipmentIncoming(s) {
   if(!s) return 1;
   // 物理40%・呪文40%・ブレス20%、無属性を含む7属性を均等に想定。回数制の壁は別評価。
   return average(['none',...ELEMENT_KEYS].map(el => {
-    const er=el==='none'?0:elementalReduction(s.defense[el] || 0);
+    const er=el==='none'?0:elementDefenseReduction(el,{values:s.defense,reductions:s.reductions});
     const mode=(key,on,breath=false)=>permanentMultiplier([1-cap(s.res[key]/100,.8),1-er,1-cap(s.guard,.9),Math.max(.2,1-(s.take[on] || 0)),breath?1-cap(s.breath,.5):1]);
-    return .4*mode('physResist','phys')+.4*mode('magResist','magic')+.2*mode('magResist','breath',true);
+    return .4*hitChance(1,s.evade ?? .1)/.9*mode('physResist','phys')+.4*mode('magResist','magic')+.2*mode('magResist','breath',true);
   }));
 }
 const procValue = s => Object.entries(s.proc).reduce((total,[k,power])=>total+average([0,.5,.8,.95].map(r=>procChance(power,r)))*(k==='poison'?.8:1),0);

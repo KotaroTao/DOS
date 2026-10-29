@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { ITEMS, recalc, itemAtQuality, SLOTS, registerAffixes, fightPower } from '../../src/items.js';
 import { CATALOG_ITEMS } from '../../src/catalog/index.js';
 import { EQUIPMENT_DEFENSE_TARGETS, retuneEquipment } from '../../src/equipmentbalance.js';
-import { elementValues, elementalReduction, elementAttack } from '../../src/combatrules.js';
+import { elementValues, elementalReduction, elementAttack, elementDefenseReduction, elementMultiplier } from '../../src/combatrules.js';
 import { equipmentCombatState, equipmentIncoming } from '../../src/equipmentscore.js';
 import { applyAffixes, gearPerks } from '../../src/infaffix.js';
 import { makeDoll } from '../../src/souls.js';
@@ -20,9 +20,9 @@ assert.equal(equipment.length,2050);assert.equal(Object.keys(EQUIPMENT_DEFENSE_T
 let attack=0,defense=0;
 for(const it of equipment){
  const before=JSON.stringify(it);retuneEquipment(it);assert.equal(JSON.stringify(it),before,it.id+' 二重適用なし');
- assert.equal(it.equipmentBalanceVersion,1,it.id);
+ assert.equal(it.equipmentBalanceVersion,2,it.id);
  if(it.eAtk){attack++;assert.equal(it.eAtk.lv,undefined);for(const v of Object.values(elementValues(it.eAtk)))assert(v>0&&v%5===0,it.id+' 属攻');if(it.slot==='weapon')assert(it.element,it.id+' 付与属性');}
- if(it.eDef){defense++;assert.equal(it.eDef.lv,undefined);for(const v of Object.values(elementValues(it.eDef,'defense')))assert(v>0&&v%10===0,it.id+' 耐性力');}
+ if(it.eDef){defense++;assert.equal(it.eDef.lv,undefined);for(const v of Object.values(it.eDef.reductions || {}))assert(v>0&&v<=.35&&Math.abs(v*20-Math.round(v*20))<1e-8,it.id+' 軽減率5%刻み');}
  for(const q of [0,50,100]){
   const copy=itemAtQuality({...structuredClone(it),q,bukon:[{k:'flat_hp',lv:7}]});
   assert.equal(copy.q,q);assert.equal(copy.bukon[0].lv,7);assert.deepEqual(copy.eDef,it.eDef);assert.deepEqual(copy.eAtk,it.eAtk);assert.equal(copy.element,it.element);
@@ -32,7 +32,7 @@ for(const it of equipment){
  assert(!/[◯◎]/.test(it.desc || ''),it.id+' 旧段階表記なし');
 }
 assert.equal(attack,469);assert.equal(defense,274);
-for(const [id,k] of [['a_sr1_wardenmail','dark'],['s_tidewall','fire'],['a_sr8_wardenplate','water'],['lr_l10_rodplate','wind'],['s_r8_dragonemperorshield','fire'],['g_dragonscale_grips','fire']])assert(elementValues(ITEMS[id].eDef,'defense')[k]>0,id+' 由来に合う守り');
+for(const [id,k] of [['a_sr1_wardenmail','dark'],['s_tidewall','fire'],['a_sr8_wardenplate','water'],['lr_l10_rodplate','wind'],['s_r8_dragonemperorshield','fire'],['g_dragonscale_grips','fire']])assert(elementDefenseReduction(k,ITEMS[id].eDef)>0,id+' 由来に合う守り');
 for(const id of ['lr_l1_shroudofstillness','lr_l3_silentcanary','lr_l8_frostcrown'])assert(!ITEMS[id].eff?.ailmentImmune,id+' 専門耐性');
 assert(ITEMS.lr_cleanse.eff.ailmentImmune,'最終帯の万能耐性を維持');
 assert.equal(themeOf(ITEMS.a_sr1_wardenmail).el,'light','闇を防ぐ墓守の加護の色は元の聖光を保つ');
@@ -69,12 +69,31 @@ const score=(p,from,to)=>gearScore(p,statsDelta(previewStats(p,from),previewStat
  const plan=planBestEquip([p],{canEquip:()=>true,score:gearScore});assert(plan.moves.some(m=>m.item===right));assert(!plan.moves.some(m=>m.item===wrong),'数字だけ大きい未使用属性を選ばない');
 }
 {
- const p=make();for(const slot of SLOTS)p.equip[slot]={slot:slot.startsWith('acc')?'acc':slot,rar:'lr',resists:{physResist:40,magResist:40},eDef:{values:Object.fromEntries(['fire','water','wind','earth','light','dark'].map(k=>[k,400]))},bukon:[{k:'res_physResist',lv:4},{k:'res_poison',lv:7},{k:'crit',lv:7}]};
+ const p=make();for(const slot of SLOTS)p.equip[slot]={slot:slot.startsWith('acc')?'acc':slot,rar:'lr',resists:{physResist:40,magResist:40},eDef:{values:Object.fromEntries(['fire','water','wind','earth','light','dark'].map(k=>[k,400]))},bukon:[{k:'res_physResist',lv:4},{k:'res_poison',lv:7},{k:'crit',lv:10}]};
  p.equip.body.eff={guard:.6};recalc(p);const b=new Battle([p],[],()=>{});assert.equal(p.physResist,80);assert.equal(p.resists.poison,95);assert.equal(b.peekStats(p).crit,.8);
- near(equipmentIncoming(equipmentCombatState(p)),.1,'固有効果と武魂を重ねても恒常90%');
+ assert(equipmentIncoming(equipmentCombatState(p))<=.1,'恒常90%と会心・回避の武魂を反映');
  assert(equipmentTraitTexts(p.equip).some(t=>t.includes('武魂')),'付け替えで失う武魂の説明');
  const before=JSON.stringify(p.equip);previewStats(p,p.equip);assert.equal(JSON.stringify(p.equip),before,'プレビューで実物を変えない');
 }
+{
+ const p=make();const base={slot:'body',rar:'lr',eDef:{kind:'defense',reductions:{fire:.2}}};
+ const soul={...base,bukon:[{k:'elem_def_fire',lv:10}]};
+ const all={...base,bukon:[{k:'res_allElements',lv:10}]};
+ const state=eq=>{const f={base:p.base,equip:eq};recalc(f);return equipmentCombatState(f,p);};
+ const fire=state({body:soul});near(fire.reductions.fire,.7,'固有20%と武魂50%を加算');
+ const f={base:p.base,equip:{body:soul}};recalc(f);near(elementMultiplier('fire',100,f.elemDef),.3,'実戦の軽減と一致');
+ assert(score(p,{body:base},{body:soul})>0,'直接軽減の武魂を評価');
+ assert(score(p,{body:soul},{body:all})>0,'全属性の守りを評価');
+ const capped={...base,eDef:{kind:'defense',reductions:{fire:.8}}};near(score(p,{body:capped},{body:{...capped,bukon:[{k:'elem_def_fire',lv:10}]}}),0,'直接軽減80%の超過を加点しない');
+ const old={...base,eDef:{el:'fire',pct:100}};const mixed={base:p.base,equip:{body:old,head:{slot:'head',bukon:[{k:'elem_def_fire',lv:10}]}}};recalc(mixed);
+ near(elementMultiplier('fire',100,mixed.elemDef),.2,'旧耐性力と新武魂も80%');
+ const boots={slot:'feet',rar:'lr',bukon:[{k:'evade',lv:10}]};assert(score(p,{}, {feet:boots})>0,'靴だけの回避武魂を評価');
+ const cappedBoots={slot:'feet',evade:.8};near(score(p,{feet:cappedBoots},{feet:{...cappedBoots,bukon:[{k:'evade',lv:10}]}}),0,'回避80%超を加点しない');
+ const buffSoul=slot=>({slot,rar:'lr',bukon:[{k:'I17',lv:10}]});
+ const cappedDeal={weapon:buffSoul('weapon'),acc1:buffSoul('acc')};
+ near(score(p,cappedDeal,{...cappedDeal,acc2:buffSoul('acc')}),0,'同じ強化中条件の武魂は成立後に与ダメ上限');
+ const direct=W('direct_input','軽減率の検査剣','ls',20,{eDef:{reductions:{fire:.15}},desc:'直接軽減の入力形式を検証するための一本。炎の害を弱める守りが、刃の中に静かに宿っている。'});near(direct.eDef.reductions.fire,.15);
+}
 assert(ailDetailLines({onHit:{k:'poison',chance:3,pct:.05}}).some(t=>t.includes('300%')&&t.includes('一回')),'付与力として表示');
-assert(specialLines(ITEMS.a_sr1_wardenmail).some(t=>t.includes('闇耐性力')));
-console.log(`OK 全${equipment.length}装備・属攻${attack}/属防${defense}点の来歴別調整・5/10%刻み・既存品/品質/武魂・最適装備の属性選択と実上限・比較一致`);
+assert(specialLines(ITEMS.a_sr1_wardenmail).some(t=>t.includes('闇ダメージ')));
+console.log(`OK 全${equipment.length}装備・属攻${attack}/属防${defense}点の来歴別調整・武魂に合わせた数値帯・既存品/品質/武魂・最適装備の属性選択と実上限・比較一致`);
