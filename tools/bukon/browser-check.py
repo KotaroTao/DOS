@@ -26,6 +26,7 @@ with sync_playwright() as p:
     page.locator('.ec-sheet .ui-sheet-foot button').last.click()
     page.wait_for_function('!document.querySelector(".ec-sheet")')
     page.get_by_role('button',name='保管中の武魂').click()
+    assert not re.search(r'コモン|アンコモン|レア|レジェンド', page.locator('.bk-panel .ec-list').inner_text())
     page.locator('.bk-panel .ec-afx-row').filter(has_text=re.compile(r'Lv1 HP')).get_by_role('button',name='合成',exact=True).click()
     page.get_by_role('button',name='内容を確認して合成').click()
     page.locator('.ui-confirm .ui-sheet-foot button').first.click()

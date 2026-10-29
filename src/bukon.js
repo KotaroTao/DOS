@@ -65,7 +65,7 @@ export const validBukon=b=>!!(b&&bukonDef(b.k)&&Number.isSafeInteger(b.lv)&&b.lv
 export const bukonSlots=it=>BUKON_SLOTS[rarityKey(it)]||1;
 export function bukonExact(b){const d=bukonDef(b?.k);return validBukon(b)?BigInt(Math.round(d.base*100))*BigInt(b.lv)/100n:0n;}
 const amount=b=>bukonDef(b.k).base*b.lv;
-export function bukonText(b){
+export function bukonText(b, { showRarity = true } = {}){
  if(!validBukon(b))return "不明な武魂";
  const d=bukonDef(b.k),v=amount(b),n=v.toLocaleString("ja-JP"),r=BUKON_RARITIES[d.rarity];
  let effect=d.kind==="flat"?`+${n}`:`+${n}%`;
@@ -73,7 +73,7 @@ export function bukonText(b){
  if(d.kind==="elementAttack")effect=`属性ダメージ${100+v}%`;
  if(d.kind==="elementDefense")effect=`${n}%軽減（同属性合計80%まで）`;
  if(d.kind==="special")effect=specialText(d,v,b.lv);
- return `${r.name} ${d.max===1?"":`Lv${b.lv} `}${d.name}の武魂：${effect}`;
+ return `${showRarity ? r.name+" " : ""}${d.max===1?"":`Lv${b.lv} `}${d.name}の武魂：${effect}`;
 }
 function specialText(d,v,lv){
  const n=v.toLocaleString("ja-JP");
