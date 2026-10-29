@@ -26,6 +26,8 @@ async def main():
   async with page.expect_navigation(wait_until='domcontentloaded'):
    await page.get_by_role('button',name='消して始める',exact=True).click()
   await page.wait_for_function('window.__game && localStorage.getItem("dos-save-v7")===null')
+  await page.wait_for_function("document.querySelector('.ttl-overlay:not(.ttl-out) .ttl-btn-t')?.textContent === 'さいしょから'")
+  assert await page.get_by_role('button',name='つづきから',exact=False).count()==0
   await page.locator('.ttl-overlay:not(.ttl-out) .ttl-menu .ttl-btn.primary').click()
   await page.get_by_role('dialog',name='弟子の名前').get_by_role('textbox').fill('新たな弟子')
   await page.get_by_role('button',name='旅を始める',exact=True).click()
