@@ -67,9 +67,27 @@ console.log('追加行動100%の一回制限・金貨奪取一回・実軽減表
  const choices=BUKON.filter(d=>!d.retired&&d.rarity===4&&d.slots.includes('body'));
  const at=choices.findIndex(d=>d.id===key);let calls=0;
  assert.equal(rollBukon({slot:'body',rar:'lr'},6,()=>[.999,(at+.5)/choices.length,.999][calls++]).k,key);
- const both=actor([{k:key,lv:10},{k:'J20',lv:10}],'body');assert.equal(both.gearPerks.find(x=>x.c.on==='phys').c.ret.k,50);assert.equal(both.gearPerks.find(x=>x.c.on==='magic').c.ret.k,.5);
+ const both=actor([{k:key,lv:10},{k:'J20',lv:10}],'body');assert.equal(both.gearPerks.find(x=>x.c.on==='phys').c.ret.k,50);assert.equal(both.gearPerks.find(x=>x.c.on==='magic').c.ret.k,50);
  // 同系の旧付呪と併用しても合計は最強1特性の係数50まで。
  const capped=gearPerks([{c:{t:'hurt',on:'phys',ret:{stat:'vit',k:50}},label:'武魂'},{c:{t:'hurt',ret:{stat:'vit',k:.3}},label:'茨'}]);
  assert(Math.abs(capped.reduce((v,x)=>v+x.c.ret.k,0)-50)<.002);
 }
 console.log('物理被弾時VIT反撃：Lv1/5/10の実ダメージ・部位・抽選・発動条件・耐性・魔法反撃との共存 OK');
+// 魔法側もLv×5倍。物理被弾では発動せず、呪文・ブレスを受けた時に魔法反撃する。
+{
+ const {bukonText,bukonDef}=await import('../../src/bukon.js');const {useMathRandom}=await import('../../src/rng.js');
+ assert.equal(bukonDef('J20').rarity,4);assert.deepEqual(bukonDef('J20').slots,['body']);
+ for(const lv of [1,5,10]){
+  const x=actor([{k:'J20',lv}],'body'),y=enemy();y.physResist=100;y.magResist=0;const battle=new Battle([x],[y],()=>{});x.vit=100;
+  const perk=x.gearPerks.find(p=>p.c.on==='magic');assert.equal(perk.c.ret.k,lv*5);assert.equal(perk.c.ret.magic,true);assert(bukonText({k:'J20',lv}).includes(`VIT×${lv*5}`));
+  const expected=Math.round(battle._evit(x)*lv*5),before=y.hp,oldRandom=Math.random;useMathRandom(true);Math.random=()=>0;
+  try{
+   battle._perkHurt(x,y,1,'phys');assert.equal(y.hp,before,'物理被弾には反応しない');
+   battle._perkHurt(x,y,1,'spell');assert.equal(before-y.hp,expected,'呪文に指定倍率で魔法反撃');
+   battle._perkHurt(x,y,1,'breath');assert.equal(before-y.hp,expected*2,'ブレスにも指定倍率で魔法反撃');
+   y.magResist=100;const immune=y.hp;battle._perkHurt(x,y,1,'spell');assert.equal(y.hp,immune,'魔法無効は貫通しない');
+   x.alive=false;y.magResist=0;battle._perkHurt(x,y,1,'spell');assert.equal(y.hp,immune,'倒れた持ち主は反撃しない');
+  }finally{Math.random=oldRandom;useMathRandom(false);}
+ }
+}
+console.log('魔法被弾時VIT反撃：Lv1/5/10の実ダメージ・呪文/ブレス・物理非発動・魔法無効 OK');

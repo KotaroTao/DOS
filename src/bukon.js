@@ -36,7 +36,7 @@ for(const d of AFX.filter(d=>/^[GHI]\d/.test(d.id)&&d.id!=="I19"||/^F0[1-7]$/.te
 const special=[
  ["J02","戦闘開始時全体STR強化","acc",3,"order",10], ["J10","初手最優先行動","feet",4,"firstTurn",10],
  ["bukon_physRet","物理被弾時VIT反撃","body",4,"physRet",500],
- ["J11","戦闘不能時復活","acc",4,"reviveChance",5], ["J20","魔法被弾時VIT反撃","body",4,"mirror",5],
+ ["J11","戦闘不能時復活","acc",4,"reviveChance",5], ["J20","魔法被弾時VIT反撃","body",4,"mirror",500],
  ["X01","撃破時追加攻撃","weapon",4,"chain",10],["X02","低い抵抗値で物理攻撃","weapon",4,"twinSoul",10],
  ["X03","状態異常を隣へ伝播","weapon",4,"contagion",10],["X04","命中時物理耐性低下","weapon",3,"physDown",5],
  ["bukon_magDown","命中時魔法耐性低下","weapon",3,"magDown",5],["X05","会心時敵行動遅延","weapon",3,"witness",10],
