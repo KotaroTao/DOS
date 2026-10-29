@@ -1,6 +1,6 @@
 import { retuneEquipment } from "./equipmentbalance.js";
 import { elementValues, elementStat } from "./combatrules.js";
-import { bukonItem, bukonDef, bukonFits, LEGENDARY_MISC_KEYS } from "./bukon.js";
+import { bukonItem, bukonDef, bukonFits, activeBukon, LEGENDARY_MISC_KEYS } from "./bukon.js";
 import { itemNumber } from "./itemnumbers.js";
 import { rarityOrder } from "./rarity.js";
 import { random } from "./rng.js";
@@ -1533,7 +1533,7 @@ export function recalc(member) {
   let br = 0; // ブレス耐性 (合計)
   const gfx = [], gmisc = {}; // 無限迷宮の追加の特性: 戦闘の条件つきの効果 (combat.js perksOf が読む) と、迷宮での効果 (game.js が読む)
   const counted = new Set(), legendarySeen = new Set(), specialLevels=new Map();
-  for(const it of new Set(Object.values(member.equip)))for(const b of it?.bukon||[])if(bukonDef(b.k)?.kind==="special"&&bukonFits(it,b))specialLevels.set(b.k,Math.max(specialLevels.get(b.k)||0,b.lv));
+  for(const it of new Set(Object.values(member.equip)))for(const b of activeBukon(it))if(bukonDef(b.k)?.kind==="special"&&bukonFits(it,b))specialLevels.set(b.k,Math.max(specialLevels.get(b.k)||0,b.lv));
   for (const slot of SLOTS) {
     const original = member.equip[slot];
     const it = bukonItem(original, { legendarySeen, specialLevels });
