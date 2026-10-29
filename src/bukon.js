@@ -35,6 +35,7 @@ for(const d of AFX.filter(d=>/^[GHI]\d/.test(d.id)&&d.id!=="I19"||/^F0[1-7]$/.te
 // 特殊武魂は既存付呪と別の値で成長する。固定機能3種だけはLvを持たない。
 const special=[
  ["J02","戦闘開始時全体STR強化","acc",3,"order",10], ["J10","初手最優先行動","feet",4,"firstTurn",10],
+ ["bukon_physRet","物理被弾時VIT反撃","body",4,"physRet",500],
  ["J11","戦闘不能時復活","acc",4,"reviveChance",5], ["J20","魔法被弾時VIT反撃","body",4,"mirror",5],
  ["X01","撃破時追加攻撃","weapon",4,"chain",10],["X02","低い抵抗値で物理攻撃","weapon",4,"twinSoul",10],
  ["X03","状態異常を隣へ伝播","weapon",4,"contagion",10],["X04","命中時物理耐性低下","weapon",3,"physDown",5],
@@ -76,7 +77,7 @@ export function bukonText(b){
 }
 function specialText(d,v,lv){
  const n=v.toLocaleString("ja-JP");
- const text={reviveChance:`戦闘不能のたび${n}%でHP10%復活（合計50%まで）`,physDown:`命中時に物理耐性−${n}ポイント（重複せず最大50）`,magDown:`命中時に魔法耐性−${n}ポイント（重複せず最大50）`,fortress:`物理1発を最大HPの${100-v}%までに制限`,split:`被ダメージの${n}%を後払い`,sendoff:`戦闘不能時、味方全員HP${n}%回復・異常1つ治療`,adversity:`HP50%以下で${n}%、25%以下で${v*2}%軽減`,steadMind:`魅了・混乱・封印耐性+${lv*5}、${n}%で強化解除防止`,weakDamage:`弱点属性で与ダメージ+${n}%`,memory:`同じ技の連続使用で消費MP${n}%軽減（回復・蘇生除く）`,mirror:`ブレス・呪文を受けるとVIT×${v/100}の魔法反撃`,contagion:`隣へ元の付与力の${n}%で状態異常を移す`,throw:`攻撃道具の威力${1+v/100}倍・推奨Lvで成長`,combo:`連携時与ダメージ+${n}%`,mercy:`過剰回復の${n}%を全員へ分配（再分配なし）`,pilfer:`物理命中時${n}%で金貨奪取（敵1体1回）`,stepIn:`後列近接の威力${50+v}%`,afterImage:`回避後の次の物理ダメージ+${n}%`,dash:`追加行動${n}%、AGI条件達成時${v*2}%（1ターン1回）`,chaser:`金属の魔物の逃走率${n}%低下`,floatStep:`蝕む床でHP${n}%回復`,kindle:"サブ魂借用枠+1（常時）",timeKeeper:"強化・弱体の持続+1ターン（必ず）",flip:"−3段を+3段へ反転（1戦闘1回、必ず）",treasure:`宝箱出現率+${n}%、${lv*10}%でランク+1（隊で最高Lv）`,teller:`隊全員の魂経験値+${n}%（隊で最高Lv）`};
+ const text={reviveChance:`戦闘不能のたび${n}%でHP10%復活（合計50%まで）`,physDown:`命中時に物理耐性−${n}ポイント（重複せず最大50）`,magDown:`命中時に魔法耐性−${n}ポイント（重複せず最大50）`,fortress:`物理1発を最大HPの${100-v}%までに制限`,split:`被ダメージの${n}%を後払い`,sendoff:`戦闘不能時、味方全員HP${n}%回復・異常1つ治療`,adversity:`HP50%以下で${n}%、25%以下で${v*2}%軽減`,steadMind:`魅了・混乱・封印耐性+${lv*5}、${n}%で強化解除防止`,weakDamage:`弱点属性で与ダメージ+${n}%`,memory:`同じ技の連続使用で消費MP${n}%軽減（回復・蘇生除く）`,physRet:`物理を受けるとVIT×${v/100}の物理反撃`,mirror:`ブレス・呪文を受けるとVIT×${v/100}の魔法反撃`,contagion:`隣へ元の付与力の${n}%で状態異常を移す`,throw:`攻撃道具の威力${1+v/100}倍・推奨Lvで成長`,combo:`連携時与ダメージ+${n}%`,mercy:`過剰回復の${n}%を全員へ分配（再分配なし）`,pilfer:`物理命中時${n}%で金貨奪取（敵1体1回）`,stepIn:`後列近接の威力${50+v}%`,afterImage:`回避後の次の物理ダメージ+${n}%`,dash:`追加行動${n}%、AGI条件達成時${v*2}%（1ターン1回）`,chaser:`金属の魔物の逃走率${n}%低下`,floatStep:`蝕む床でHP${n}%回復`,kindle:"サブ魂借用枠+1（常時）",timeKeeper:"強化・弱体の持続+1ターン（必ず）",flip:"−3段を+3段へ反転（1戦闘1回、必ず）",treasure:`宝箱出現率+${n}%、${lv*10}%でランク+1（隊で最高Lv）`,teller:`隊全員の魂経験値+${n}%（隊で最高Lv）`};
  return text[d.stat]||`${n}%で発動${["chain","quick","cover"].includes(d.stat)?"（追加攻撃は1ターン1回、道具・肩代わりは1戦闘1回）":""}`;
 }
 export function bukonFits(it,b){const d=bukonDef(b?.k);return !!d&&!d.retired&&d.slots.includes(it?.slot);}
@@ -190,6 +191,7 @@ export function bukonItem(it,{legendarySeen=new Set(),specialLevels=null}={}){
    const m=out.afxMisc,key=d.stat;
    if(["kindle","timeKeeper","flip"].includes(key))m[key]=true;
    else if(key==="order")out.afxFx.push({c:{t:"start",chance:v/100,once:"bukonOrder",party:true,buff:{atk:1.25},dur:2},label:d.name});
+   else if(key==="physRet")out.afxFx.push({c:{t:"hurt",on:"phys",ret:{stat:"vit",k:v/100,magic:false}},label:d.name});
    else if(key==="mirror")out.afxFx.push({c:{t:"hurt",on:"magic",ret:{stat:"vit",k:v/100,magic:true}},label:d.name});
    else if(key==="weakDamage"||key==="combo")out.afxFx.push({c:{t:"deal",v:v/100,bukon:true,uncapped:key==="weakDamage",when:key==="combo"?{combo:true}:{tgtWeak:true}},label:d.name});
    else if(key==="steadMind"){for(const k of ["charm","confuse","seal"])out.resists[k]=(out.resists[k]||0)+b.lv*5;m.bk_steadMind=v/100;}
