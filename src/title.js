@@ -108,11 +108,8 @@ export function showTitle({ hasSave = false, summary = null, onStart, entry = fa
       btns.appendChild(newBtn);
     }
   } else {
-    goBtn = mkBtn(entry ? "冒険をはじめる" : readyName ? "物語を始める" : "はじめから", "NEW GAME", "primary");
+    goBtn = mkBtn(readyName ? "物語を始める" : "さいしょから", "NEW GAME", "primary");
     btns.appendChild(goBtn);
-    const dis = mkBtn("つづきから", "記録なし", "off");
-    dis.disabled = true;
-    if (!entry) btns.appendChild(dis);
   }
   if (onLogin) {
     const login = mkBtn("ログイン", "登録済みの方", "");

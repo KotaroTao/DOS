@@ -10,7 +10,7 @@ import { insightTotals, insightTitle } from "./insight.js";
 import { INF_BUY_CAP, infRecovery, infUseCount, infSupplyLeft, infSpendSupply } from "./infsupplies.js";
 import { random, fxRandom, bindRngState, rngState } from "./rng.js";
 import { refSerialize, refDeserialize, applySavePatch, acknowledgedSave } from "./savegraph.js";
-import { cloudEnabled, cloudHasSession, cloudReady, cloudBusy, connectCloud, cloudRegisterPrompt, cloudSave, cloudBattle, cloudFlush, cloudReset, cloudFatal, cloudPrepareReload } from "./cloud-save.js";
+import { cloudEnabled, cloudHasRecord, cloudReady, cloudBusy, connectCloud, cloudRegisterPrompt, cloudSave, cloudBattle, cloudFlush, cloudReset, cloudFatal, cloudPrepareReload } from "./cloud-save.js";
 import { LocalSaveSession, showLocalSaveBlocked, showLocalSaveRecovery, saveSlotFromURL, localSaveKey } from "./local-save.js";
 import { watchGameUpdates } from "./game-update.js";
 import { syncEnemyUids, enemySoulRewardMul, openingRates } from "./combat.js";
@@ -20177,7 +20177,7 @@ async function init() {
     try { localSave = localStorage.getItem(SAVE_KEY); } catch {}
     titleActive = true; G.prompt = true;
     const entryMode = await new Promise(resolve => {
-      showTitle({ entry: true, hasSave: cloudHasSession(), onStart: () => resolve("start"), onLogin: () => resolve("login"), onNewGame: cloudHasSession() ? () => resolve("reset") : null });
+      showTitle({ entry: true, hasSave: cloudHasRecord(), onStart: () => resolve("start"), onLogin: () => resolve("login"), onNewGame: cloudHasRecord() ? () => resolve("reset") : null });
       revealBootScreen();
     });
     const snapshot = await connectCloud(localSave, 1, entryMode);

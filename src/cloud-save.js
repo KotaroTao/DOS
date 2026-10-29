@@ -269,16 +269,27 @@ async function recoveryLogin(c) {
 
 export function cloudEnabled() { return CLOUD_CONFIG.enabled; }
 export function cloudHasSession() { return !!getJSON(AUTH_KEY)?.access_token; }
+// 接続情報は削除後も残す。タイトルの記録の有無とは分けて扱う。
+const emptyRecordKey = id => "dos-cloud-empty:" + id;
+export function cloudHasRecord() {
+  const auth = getJSON(AUTH_KEY);
+  return !!auth?.access_token && !getJSON(emptyRecordKey(auth.user.id));
+}
 export function cloudReady() { return ready; }
 export function cloudBusy() { return !!client?.blocking || !!client?.waiting || (!!gate && !gate.hidden); }
 export function cloudGuest() { return !!client?.auth?.user?.is_anonymous; }
 export function cloudAccount() { return cloudGuest() ? "ゲストで冒険中" : client?.auth?.user?.email || ""; }
-export function cloudSave(snapshot) { return client.save(snapshot); }
+export async function cloudSave(snapshot) {
+  const result = await client.save(snapshot);
+  localStorage.removeItem(emptyRecordKey(client.auth.user.id));
+  return result;
+}
 export function cloudBattle(action, snapshot = null) { return client.battle(action, snapshot); }
 // 通常保存と同じ順序・再送保護で現在の記録だけを削除する。
 export async function cloudReset() {
   localStorage.setItem("dos-cloud-deleted", "1");
   await client.enqueue("reset");
+  putJSON(emptyRecordKey(client.auth.user.id), true);
 }
 export function cloudFlush() { return client?.flush() || Promise.resolve(); }
 // 終了・更新では、最後の保存を作る前に入力を止める。通常保存は裏で続ける。
@@ -386,6 +397,8 @@ export async function connectCloud(localSave, slot = 1, mode = "start") {
     });
     if (useLocal) { snapshot = JSON.parse(localSave); await client.save(snapshot); }
   }
+  if (snapshot) localStorage.removeItem(emptyRecordKey(client.auth.user.id));
+  else putJSON(emptyRecordKey(client.auth.user.id), true);
   const heartbeat = async () => {
     if (!client.busy && !managing && !leaving && document.visibilityState === "visible") {
       client.count++; client.setBusy();
