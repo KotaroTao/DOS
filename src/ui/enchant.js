@@ -2,7 +2,8 @@
 import { UI, game, registerUI } from "./ctx.js";
 import { el, button, sheet, confirm as askConfirm, toast } from "./kit.js";
 import { itemName, recalc } from "../items.js";
-import { bukonText, bukonSlots, bukonDef, bukonItem, attachBlock, fusionPlan, fusionGold, bulkFusionPlan, maxFusionLevel, BUKON_RARITIES } from "../bukon.js";
+import { bukonText as fullBukonText, bukonSlots, bukonDef, bukonItem, attachBlock, fusionPlan, fusionGold, bulkFusionPlan, maxFusionLevel, BUKON_RARITIES } from "../bukon.js";
+const bukonText = b => fullBukonText(b, { showRarity: false });
 export const ENCHANT_NOTE = "武魂は装備を使った者の魂が宿ったもの。対応部位だけに無料で宿し、外せる。枠はコモン・アンコモン1、レア・SR2、LR3。同効果は1装備に1つ。売却・廃棄・素材化で商会へ戻る。加算系はLv上限なし、他はLv10まで。借用枠追加・持続延長・能力低下反転はレベルなし。特殊効果は人業ごとに同種の最高Lvだけが働く。";
 export const enchantPracticeState = () => null;
 export function prepareEnchantTutorial() {}
@@ -34,6 +35,12 @@ function action(type,it,b,done) {
   done?.();
 }
 function bukonLabel(b){const node=el("span","",bukonText(b));node.style.color=BUKON_RARITIES[bukonDef(b.k)?.rarity||0].color;return node;}
+function gearBukonLabels(it) {
+  const labels=el("div","rf-note");
+  for(const b of it.bukon || []){const line=el("div","");line.append(bukonLabel(b));labels.append(line);}
+  if(!it.bukon?.length)labels.textContent="武魂なし";
+  return labels;
+}
 function openGear(it, done) {
   let h;
   const refresh = () => { const top=h.body.scrollTop; h.update({}); h.body.scrollTop=top; done(); };
@@ -130,7 +137,7 @@ export function renderEnchantList(parent) {
     const fill=()=>{
       list.replaceChildren();const q=norm(query);
       if(mode==="gear")for(const it of game.bukonTargets().filter(it=>(part==="all"||it.slot===part)&&matchesPlace(it)&&norm(itemName(it)+locationOf(it)+(it.bukon || []).map(bukonText).join(" ")).includes(q))) {
-        const row=el("div","ec-afx-row");row.append(el("p","bk-meta",`${locationOf(it)} · ${PARTS[it.slot]}${it.locked?" · 保護中":""}${it.cursed?" · 呪い":""}`),el("div","bk-title",`${itemName(it)} ${(it.bukon || []).length}/${bukonSlots(it)}枠`),el("p","rf-note",(it.bukon || []).map(bukonText).join(" ／ ") || "武魂なし"),button({label:"宿す・外す",kind:"ghost",onTap:()=>openGear(it,draw)}));list.append(row);
+        const row=el("div","ec-afx-row");row.append(el("p","bk-meta",`${locationOf(it)} · ${PARTS[it.slot]}${it.locked?" · 保護中":""}${it.cursed?" · 呪い":""}`),el("div","bk-title",`${itemName(it)} ${(it.bukon || []).length}/${bukonSlots(it)}枠`),gearBukonLabels(it),button({label:"宿す・外す",kind:"ghost",onTap:()=>openGear(it,draw)}));list.append(row);
       }
       if(mode==="stock")for(const b of rows.filter(b=>(part==="all"||bukonDef(b.k).slots.includes(part))&&norm(bukonText(b)).includes(q))) {
         const row=el("div","ec-afx-row");row.append(bukonLabel(b),el("p","bk-meta",`×${BigInt(b.count).toLocaleString()} · 対応：${bukonDef(b.k).slots.map(x=>PARTS[x]).join("・")}${b.protected?" · 合成保護中":""}`),button({label:b.protected?"合成保護を解除":"合成素材から保護",kind:"ghost",onTap:()=>action("protect",null,b,draw)}));
