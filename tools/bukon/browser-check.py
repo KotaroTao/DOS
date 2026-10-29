@@ -1,5 +1,5 @@
 from playwright.sync_api import sync_playwright
-import base64
+import base64, re
 # 未取得の絵は仮画像に置き換え、操作・配置・状態変化を検査する。
 PIXEL=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aL1sAAAAASUVORK5CYII=')
 with sync_playwright() as p:
@@ -19,7 +19,6 @@ with sync_playwright() as p:
     }'''),flush=True)
     page.locator('.bk-panel .ec-afx-row button').first.click()
     page.get_by_role('button',name='選んだ武魂を宿す（無料）').click()
-    page.locator('.ui-confirm .ui-sheet-foot button').first.click()
     page.wait_for_function('bukonTest.it.bukon?.length === 1')
     assert page.evaluate('bukonTest.it.bukon[0].k')=='flat_hp'
     page.get_by_role('button',name='外して保管').click()
@@ -27,12 +26,50 @@ with sync_playwright() as p:
     page.locator('.ec-sheet .ui-sheet-foot button').last.click()
     page.wait_for_function('!document.querySelector(".ec-sheet")')
     page.get_by_role('button',name='保管中の武魂').click()
-    page.locator('.bk-panel .ec-afx-row').filter(has_text='HP+10').get_by_role('button',name='合成',exact=True).click()
+    page.locator('.bk-panel .ec-afx-row').filter(has_text=re.compile(r'Lv1 HP')).get_by_role('button',name='合成',exact=True).click()
     page.get_by_role('button',name='内容を確認して合成').click()
     page.locator('.ui-confirm .ui-sheet-foot button').first.click()
     page.wait_for_function('bukonTest.game.G.bukonStock["flat_hp:2"] === "1"')
     assert page.evaluate('bukonTest.game.G.bukonStock["flat_hp:1"]')=='6'
     assert page.evaluate('bukonTest.game.G.gold')>0
+    # 金貨不足・保護中の素材は実行前に無効。残す数を変えると一括結果が更新される。
+    page.evaluate('bukonTest.savedGold=bukonTest.game.G.gold; bukonTest.game.G.gold=0')
+    page.locator('.bk-panel .ec-afx-row').filter(has_text=re.compile(r'Lv1 HP')).get_by_role('button',name='合成',exact=True).click()
+    assert page.get_by_role('button',name='内容を確認して合成').is_disabled()
+    assert page.get_by_role('button',name='余剰分を一括合成').is_disabled()
+    page.locator('.ec-sheet .ui-sheet-foot button').last.click()
+    page.wait_for_function('!document.querySelector(".ec-sheet")')
+    page.evaluate('bukonTest.game.G.gold=bukonTest.savedGold')
+    page.locator('.bk-panel .ec-afx-row').filter(has_text=re.compile(r'Lv1 HP')).get_by_role('button',name='合成素材から保護',exact=True).click()
+    page.locator('.bk-panel .ec-afx-row').filter(has_text=re.compile(r'Lv1 HP')).get_by_role('button',name='合成',exact=True).click()
+    assert page.get_by_role('button',name='内容を確認して合成').is_disabled()
+    page.locator('.ec-sheet .ui-sheet-foot button').last.click()
+    page.wait_for_function('!document.querySelector(".ec-sheet")')
+    page.locator('.bk-panel .ec-afx-row').filter(has_text=re.compile(r'Lv1 HP')).get_by_role('button',name='合成保護を解除',exact=True).click()
+    page.locator('.bk-panel .ec-afx-row').filter(has_text=re.compile(r'Lv1 HP')).get_by_role('button',name='合成',exact=True).click()
+    page.get_by_role('spinbutton',name='各レベルに残す個数').fill('100')
+    assert page.get_by_role('button',name='余剰分を一括合成').is_disabled()
+    page.get_by_role('spinbutton',name='各レベルに残す個数').fill('0')
+    assert page.get_by_role('button',name='余剰分を一括合成').is_enabled()
+    page.get_by_role('button',name='余剰分を一括合成').click()
+    page.locator('.ui-confirm').get_by_role('button',name='やめる').click()
+    assert page.evaluate('bukonTest.game.G.bukonStock["flat_hp:1"]')=='6'
+    page.locator('.ec-sheet .ui-sheet-foot button').last.click()
+    page.wait_for_function('!document.querySelector(".ec-sheet")')
+    page.get_by_role('button',name='装備に宿す・外す',exact=True).click()
+    page.get_by_label('装備の場所',exact=True).select_option('equipped')
+    assert page.evaluate('''()=>[...document.querySelectorAll('.bk-panel .ec-afx-row')].every(e=>!e.textContent.includes('共有の袋'))''')
+    page.get_by_label('装備の場所',exact=True).select_option('all')
+    page.get_by_label('対応部位',exact=True).select_option('body')
+    assert page.locator('.bk-panel .ec-afx-row').count()>0
+    for width,height in [(320,568),(390,844),(768,1024),(1024,768),(1440,900)]:
+        page.set_viewport_size({'width':width,'height':height})
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'),width
+        page.wait_for_function('''()=>{const e=document.querySelector('.bk-panel .ec-list');return e.clientHeight>=80 && e.getBoundingClientRect().bottom<=innerHeight}''')
+        page.screenshot(path=f'/tmp/dos-bukon-{width}.png')
+    page.get_by_label('対応部位',exact=True).select_option('all')
+    page.get_by_role('button',name='保管中の武魂',exact=True).click()
+    print('OK 金貨不足・保護・一括結果・取消・持ち主/部位フィルター・5画面幅',flush=True)
     print(page.evaluate('''async()=>{
       const {game,b,it}=bukonTest,{G}=game;
       const {CHAPTERS}=await import('/src/story.js');
@@ -80,30 +117,31 @@ with sync_playwright() as p:
     }'''),flush=True)
     print(page.evaluate('''async()=>{
       const {game,b,UI}=bukonTest,{G}=game;
-      b.stockAdd(G,{k:'J11',lv:1},2);b.stockAdd(G,{k:'X30',lv:1});
+      b.stockAdd(G,{k:'X30',lv:1},2);b.stockAdd(G,{k:'X30',lv:1});
       UI.openShop('enchant');
       return '激レアの在庫を追加';
     }'''),flush=True)
     # 再描画後は現在の「保管中」の一覧で名前と合成対象外表示を確認。
-    page.wait_for_function('document.querySelector(".bk-panel")?.textContent.includes("不屈")')
-    legend=page.locator('.bk-panel .ec-afx-row').filter(has_text='不屈')
+    page.wait_for_function('document.querySelector(".bk-panel")?.textContent.replaceAll("\u200b", "").includes("サブ魂借用枠追加")')
+    legend=page.locator('.bk-panel .ec-afx-row').filter(has_text=re.compile('サブ.*借用'))
     assert legend.count()==1
     assert legend.get_by_role('button',name='合成',exact=True).count()==0
     assert '合成対象外' in legend.inner_text().replace('\u200b','')
-    print(page.evaluate('''()=>{
-      const {game,b}=bukonTest,{G}=game;const it=game.bukonTargets().find(it=>!it.bukon?.length && !it.locked && !it.cursed);
+    print(page.evaluate('''async()=>{
+      const {game,b}=bukonTest,{G}=game;const {ITEMS}=await import('/src/items.js');
+      const it=game.cloneItem(Object.values(ITEMS).find(it=>it.slot==='acc').id,50);G.inventory.push(it);
       if(!it)throw Error('装着先');
       const before=G.gold;
-      if(!game.bukonAction('attach',it,{k:'J11',lv:1}))throw Error('不屈を宿せない');
-      if(game.bukonAction('attach',it,{k:'J11',lv:1}))throw Error('同じ装備に二重装着');
-      if(!game.bukonAction('detach',it,it.bukon.findIndex(b=>b.k==='J11')))throw Error('不屈を外せない');
-      if(G.bukonStock['J11:1']!=='2'||G.gold!==before)throw Error('回収・無料');
+      if(!game.bukonAction('attach',it,{k:'X30',lv:1}))throw Error('借用枠追加を宿せない');
+      if(game.bukonAction('attach',it,{k:'X30',lv:1}))throw Error('同じ装備に二重装着');
+      if(!game.bukonAction('detach',it,it.bukon.findIndex(b=>b.k==='X30')))throw Error('借用枠追加を外せない');
+      if(G.bukonStock['X30:1']!=='3'||G.gold!==before)throw Error('回収・無料');
       return 'OK 激レアの名前表示・合成対象外・無料装着/回収・同効果重複禁止';
     }'''),flush=True)
-    for width in [320,390,768]:
+    for width in [320,390,768,1024,1440]:
         page.set_viewport_size({'width':width,'height':844})
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'),width
-    print('OK 実ブラウザ：商会タブ・装着・取り外し・確認して合成・320/390/768px',flush=True)
+    print('OK 実ブラウザ：商会タブ・装着・取り外し・確認して合成・320/390/768/1024/1440px',flush=True)
     assert not errors,errors
     page.screenshot(path='/tmp/dos-bukon-mobile.png')
     browser.close()
