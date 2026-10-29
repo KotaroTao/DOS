@@ -274,7 +274,7 @@ function keeperLine(seg) {
   if (seg === "sell" && unidCount() > 0) line = "未鑑定の品か。正体を知るのは、金を払ってからだ。";
   else if (seg === "buy") line = "黒鉄は嘘をつかん。値札もな。";
   else if (seg === "forge") line = "同じ品でも、打ちの出来はまちまちだ。金を積めば、何度でも炉に入れてやる。";
-  else if (seg === "enchant") line = "武魂を装備に宿すぞ。外すのも合成も無料だ。同じ力は一つの品に一つまでだ。";
+  else if (seg === "enchant") line = "武魂を装備に宿すぞ。外すのも無料だ。合成には金貨が要る。同じ力は一つの品に一つまでだ。";
   return whisper("merchant", line, { who: shell.who || "黒鉄商会 ヴォス" });
 }
 

@@ -715,3 +715,25 @@ html.pc-input .ui-sheet.ec-source-sheet { max-width: 720px; }
 .bk-panel .ec-list { overflow-y:auto !important; min-height:80px; }
 .bk-panel .rf-select, .ec-sheet .rf-select { width:100%; max-width:100%; min-height:44px; }
 .bk-panel details { flex:0 0 auto; max-height:30vh; overflow:auto; }
+
+/* 武魂：操作欄を残し、候補だけを画面内でスクロールする。 */
+.bk-panel > * { flex-shrink: 0; }
+.bk-panel .ec-list { flex: 1 1 0 !important; display: grid !important; grid-template-columns: repeat(auto-fit,minmax(min(100%,280px),1fr)); align-content: start; gap: 8px; min-height: 80px; }
+.bk-panel .ec-afx-row { display: flex; flex-direction: column; gap: 8px; min-width: 0; margin: 0; background: linear-gradient(135deg,rgba(201,162,92,.08),rgba(0,0,0,.24)); }
+.bk-panel .ec-afx-row > .ui-btn { width: 100%; min-height: 44px; }
+.bk-panel .ec-afx-row > .ui-btn:last-child { margin-top: auto; }
+.bk-meta { margin: 0; font-size: 12px; line-height: 1.6; color: var(--muted,#b2a699); overflow-wrap: anywhere; }
+.bk-title { font-weight: bold; color: var(--gold,#c9a25c); }
+.bk-filters { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 6px; }
+.bk-panel .rf-select, .bk-sheet .rf-select { min-width: 0; box-sizing: border-box; }
+.bk-sheet .ec-afx-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.bk-sheet .ec-afx-row > span { min-width: 0; flex: 1; }
+.bk-sheet .ui-sheet-body > .ui-btn { width: 100%; min-height: 44px; margin: 8px 0; }
+.bk-sheet .ui-sheet-body { overflow-x: hidden; }
+.bk-sheet p { overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  .bk-panel .ec-afx-acts > .ui-btn { font-size: 12px; min-height: 44px; padding-inline: 6px; }
+  .bk-panel .ec-list { grid-template-columns: minmax(0,1fr); }
+  .bk-sheet .ec-afx-row { flex-wrap: wrap; }
+  .bk-sheet .ec-afx-row > .ui-btn { min-height: 44px; }
+}
