@@ -18,7 +18,7 @@ import { tlOn, tlSetOn, tlClear, tlHasData, tlSummary, tlStabilitySummary, tlExp
 import { getPref, setPref, remember, autoMoveAvoid, setAutoMoveAvoid } from "./prefs.js";
 import { SFX, audioDebug } from "../audio.js";
 import { walkerLook, normalizeLook, WALKER_CLOAKS, WALKER_TRIMS } from "../walkerart.js";
-import { cloudEnabled, cloudAccount, cloudSignOut } from "../cloud-save.js";
+import { cloudEnabled, cloudAccount, cloudGuest, cloudManageAccount } from "../cloud-save.js";
 
 const sfx = (k) => { try { if (SFX[k]) SFX[k](); } catch (e) { /* noop */ } };
 
@@ -255,9 +255,9 @@ function fillAuto(box) {
   box.appendChild(sec("データ"));
   const title = el("button", "stg-row");
   title.type = "button";
-  title.setAttribute("aria-label", `記録${game.saveSlot || 1}を保存してタイトルへ`);
-  title.appendChild(setText(el("span", "stg-row-n"), `記録${game.saveSlot || 1}を保存してタイトルへ`));
-  title.appendChild(setText(el("span", "stg-row-d"), "タイトルで3つの冒険の記録を選べる"));
+  title.setAttribute("aria-label", "記録を保存してタイトルへ");
+  title.appendChild(setText(el("span", "stg-row-n"), "記録を保存してタイトルへ"));
+  title.appendChild(setText(el("span", "stg-row-d"), "冒険の記録を保存してタイトルへ戻る"));
   title.addEventListener("click", () => game.returnToTitle?.());
   box.appendChild(title);
   const reset = el("button", "stg-row stg-danger");
@@ -271,8 +271,8 @@ function fillAuto(box) {
   if (cloudEnabled()) {
     const account = el("button", "stg-row stg-cloud-account"); account.type = "button";
     account.appendChild(setText(el("span", "stg-row-n"), cloudAccount()));
-    account.appendChild(setText(el("span", "stg-row-d"), "ログアウト"));
-    account.addEventListener("click", () => cloudSignOut());
+    account.appendChild(setText(el("span", "stg-row-d"), cloudGuest() ? "アカウント登録・記録の引き継ぎ" : "アカウント管理・ログアウト・退会"));
+    account.addEventListener("click", () => cloudManageAccount());
     box.appendChild(account);
   } else box.appendChild(reset);
 }

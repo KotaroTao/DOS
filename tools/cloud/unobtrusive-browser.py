@@ -11,12 +11,15 @@ with sync_playwright() as p:
       localStorage.setItem('dos-cloud-auth', JSON.stringify({access_token:'test',expires_at:Date.now()/1000+3600,user:{id:'test'}}));
       window.ops=[]; window.slow=false; window.offline=false;
       window.fetch=async (url, init) => {
+        if(url.endsWith('/auth/v1/user')) return Response.json({id:'test'});
         const body=JSON.parse(init.body); ops.push(body.op);
         if(slow) await new Promise(r=>setTimeout(r,600));
         if(offline) throw new Error('通信失敗');
         return Response.json({revision:ops.length,snapshot:null});
       };
       window.cloud=await import('/src/cloud-save.js');
+      const {LEGAL_VERSION}=await import('/src/legal.js');
+      localStorage.setItem('dos-legal-version:test',LEGAL_VERSION);
       await cloud.connectCloud(null);
       window.flashes=0;
       new MutationObserver(()=>{if(!document.querySelector('.cloud-gate').hidden) flashes++})

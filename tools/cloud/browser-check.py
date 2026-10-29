@@ -5,6 +5,11 @@ from playwright.sync_api import sync_playwright
 GAME = "http://127.0.0.1:8001/"
 CONFIG = 'export const CLOUD_CONFIG = Object.freeze({ enabled: true, url: "https://cloud.test", anonKey: "test-public-key", protocol: 1 });'
 
+def connect_existing(page):
+    page.locator(".ttl-overlay:not(.ttl-out) .ttl-menu .ttl-btn.primary").click()
+    page.wait_for_function("!!window.__game && document.querySelector('.cloud-gate')?.hidden")
+    page.wait_for_function("!document.querySelector('.ttl-overlay.ttl-out')")
+
 with sync_playwright() as p:
     browser = p.chromium.launch(executable_path="/usr/bin/chromium", args=["--no-sandbox"])
     context = browser.new_context(viewport={"width": 1280, "height": 800}, reduced_motion="reduce")
@@ -23,12 +28,16 @@ with sync_playwright() as p:
     page = context.new_page()
     page.on("pageerror", lambda e: errors.append(str(e)))
     page.goto(GAME)
+    page.locator(".ttl-overlay .ttl-menu .ttl-btn.primary").click()
+    page.get_by_role("checkbox").check()
+    page.get_by_role("button", name="同意して進む", exact=True).click()
+    page.get_by_role("button", name="登録済みの方はこちら", exact=True).click()
     page.get_by_label("メールアドレス", exact=True).fill("player@example.invalid")
     page.get_by_label("パスワード", exact=True).fill("test-password")
     page.get_by_role("button", name="ログイン", exact=True).click()
-    page.wait_for_selector(".ttl-overlay")
+    page.wait_for_function("!!window.__game && document.querySelector('.cloud-gate').hidden")
+    page.wait_for_function("!document.querySelector('.ttl-overlay.ttl-out')")
     page.screenshot(path="/tmp/dos-cloud-login-desktop.png")
-    page.locator(".ttl-menu .ttl-btn.primary").click()
     page.get_by_role("dialog", name="弟子の名前", exact=True).get_by_role("textbox").fill("リュカ")
     page.get_by_role("button", name="旅を始める", exact=True).click()
     page.wait_for_function("!document.querySelector('.cloud-gate') || document.querySelector('.cloud-gate').hidden")
@@ -37,30 +46,17 @@ with sync_playwright() as p:
       window.__game.G.gold = 4321;
       await window.__game.autosave(true);
     }""")
-    page.reload(); page.wait_for_selector(".ttl-overlay")
-    # 三つの枠を切り替えて、それぞれの記録と名前を再開する。
-    for slot in [2, 3]:
-        page.get_by_role("button", name=f"記録{slot}", exact=True).click()
-        page.wait_for_url(f"**saveSlot={slot}")
-        page.wait_for_selector(".ttl-overlay")
-        assert page.locator(".ttl-save").count() == 0
-        page.evaluate(f"async()=>{{__game.G.apprenticeName='旅人{slot}';__game.G.gold={slot*100};await __game.autosave(true)}}")
-        page.reload(); page.wait_for_selector(".ttl-overlay")
-        assert page.evaluate("__game.G.gold") == slot*100
-        assert page.evaluate("__game.G.apprenticeName") == f"旅人{slot}"
-    page.get_by_role("button", name="記録1", exact=True).click()
-    page.wait_for_url("**saveSlot=1"); page.wait_for_selector(".ttl-overlay")
+    page.reload(); connect_existing(page)
+    assert page.locator(".ttl-slot").count() == 0
     assert page.evaluate("__game.G.gold") == 4321
-    assert page.evaluate("__game.G.apprenticeName") == "リュカ"
     # 再読み込みしても端末の古い記録を使わず、クラウドの金貨を読み込む。
     page.evaluate("localStorage.setItem('dos-save-v7', JSON.stringify({root:{$r:0},heap:[{o:{gold:999999}}]}))")
     page.reload()
-    page.wait_for_selector(".ttl-overlay")
+    connect_existing(page)
     assert page.evaluate("window.__game.G.gold") == 4321
     assert page.evaluate("window.__game.G.apprenticeName") == "リュカ"
-    page.locator(".ttl-menu .ttl-btn.primary").click()
     page.wait_for_function("document.querySelector('.cloud-gate').hidden")
-    page.locator(".ttl-overlay").wait_for(state="detached")
+    page.wait_for_function("!document.querySelector('.ttl-overlay')")
     page.evaluate("__game.UI.settingsSheet()")
     page.get_by_role("button", name="プレイヤー名を編集", exact=True).click()
     page.get_by_label("プレイヤー名", exact=True).fill("セイン")
@@ -71,6 +67,7 @@ with sync_playwright() as p:
     # 同一端末での別タブはロックされる。
     second = context.new_page()
     second.goto(GAME)
+    second.locator(".ttl-overlay .ttl-menu .ttl-btn.primary").click()
     second.locator(".cloud-gate").get_by_role("button", name="再接続", exact=True).wait_for()
     second.close()
     # 接続を失った時には進行を止め、再接続後に送信待ちを保存する。
@@ -82,14 +79,14 @@ with sync_playwright() as p:
     page.get_by_role("button", name="再接続", exact=True).click()
     page.wait_for_function("document.querySelector('.cloud-gate').hidden")
     page.reload()
-    page.wait_for_selector(".ttl-overlay")
+    connect_existing(page)
     assert page.evaluate("window.__game.G.gold") == 4320
     assert page.evaluate("window.__game.G.apprenticeName") == "セイン"
     page.set_viewport_size({"width": 390, "height": 844})
     page.screenshot(path="/tmp/dos-cloud-title-mobile.png")
     # 実際のゲームの戦闘画面から、防御→敵の攻撃→全滅をサーバー経由で進める。
-    page.locator(".ttl-menu .ttl-btn.primary").click()
     page.wait_for_function("document.querySelector('.cloud-gate').hidden")
+    page.wait_for_function("!document.querySelector('.ttl-overlay')")
     page.evaluate("""async () => {
       const api = window.__game, g = api.G;
       const rng = await import('./src/rng.js'); rng.reseedRng(7); g.rng = rng.rngState();
@@ -103,25 +100,43 @@ with sync_playwright() as p:
       foe.hp = foe.maxhp = 1000000; foe.atk = 1000000; foe.ability = null;
       api.startBattle([foe],null);
     }""")
-    page.locator("#combat-menu .cmd-defend").wait_for(timeout=15000)
-    page.locator("#combat-menu .cmd-defend").click()
     try:
-        page.wait_for_function("window.__game.G.state === 'over' && document.querySelector('.cloud-gate').hidden", timeout=20000)
+        page.locator("#combat-menu .cmd-attack").wait_for(timeout=15000)
+    except Exception:
+        print(errors, page.evaluate("({state:__game.G.state,prompt:__game.G.prompt,phase:__game.G.battle?.phase,gate:document.querySelector('.cloud-gate').innerText})"), flush=True)
+        page.screenshot(path="/tmp/dos-cloud-failure.png")
+        raise
+    attack = page.locator("#combat-menu .cmd-attack").bounding_box()
+    page.mouse.move(attack["x"]+attack["width"]/2, attack["y"]+attack["height"]/2)
+    page.mouse.down(); page.wait_for_timeout(700); page.mouse.up()
+    try:
+        page.wait_for_function("window.__game.G.party[0].hp === 0 && document.querySelector('.cloud-gate').hidden", timeout=20000)
     except Exception:
         print(page.evaluate("({state:__game.G.state,phase:__game.G.battle?.phase,acted:__game.G.battle?._acted,hp:__game.G.party[0].hp,gate:document.querySelector('.cloud-gate').innerText})"))
         print(errors)
         raise
     assert page.evaluate("window.__game.G.party[0].alive") is False
-    page.reload(); page.wait_for_selector(".ttl-overlay")
+    page.reload(); connect_existing(page)
     assert page.evaluate("window.__game.G.party[0].alive") is False
-    assert page.evaluate("window.__game.G.state") == "over"
+    page.locator(".has-performance").get_by_role("button", name="次へ", exact=True).click()
+    try:
+        page.wait_for_function("window.__game.G.state === 'over'", timeout=20000)
+    except Exception:
+        print(page.evaluate("({state:__game.G.state,result:__game.G.battle?.result,seen:__game.G.battle?.performanceSeen,prompt:__game.G.prompt})"), errors, flush=True)
+        page.screenshot(path="/tmp/dos-cloud-end-failure.png")
+        raise
     assert not errors, errors
+    context.unroute_all(behavior="ignoreErrors")
     context.close()
 
     # 未ログインのモバイル画面で入力・ボタンのはみ出しを確認する。
     mobile = browser.new_context(viewport={"width": 390, "height": 844})
     mobile.route("**/src/cloud-config.js", lambda r: r.fulfill(content_type="text/javascript", body=CONFIG))
     m = mobile.new_page(); m.goto(GAME)
+    m.locator(".ttl-overlay .ttl-menu .ttl-btn.primary").click()
+    m.get_by_role("checkbox").check()
+    m.get_by_role("button", name="同意して進む", exact=True).click()
+    m.get_by_role("button", name="登録済みの方はこちら", exact=True).click()
     m.get_by_label("メールアドレス", exact=True).wait_for()
     m.screenshot(path="/tmp/dos-cloud-login-mobile.png")
     assert m.evaluate("document.documentElement.scrollWidth <= innerWidth")

@@ -1,3 +1,4 @@
+import { LEGAL_VERSION, showLegal } from "./legal.js";
 import { localSaveKey } from "./local-save.js";
 import { CLOUD_CONFIG } from "./cloud-config.js";
 
@@ -95,6 +96,7 @@ export class CloudSaveClient {
   }
 }
 
+let managing = false;
 let gate = null, message = null, controls = null, client = null, ready = false, terminal = false;
 function make(tag, text, cls) {
   const e = document.createElement(tag); if (text) e.textContent = text; if (cls) e.className = cls; return e;
@@ -109,7 +111,7 @@ function ensureGate() {
   controls = make("div", null, "cloud-controls"); box.append(message, controls); gate.append(box); document.body.append(gate);
   for (const name of ["click", "pointerdown", "pointerup", "touchstart", "touchend", "keydown", "keyup", "wheel"]) {
     window.addEventListener(name, (e) => {
-      if (!gate.hidden && !gate.contains(e.target)) { e.preventDefault(); e.stopImmediatePropagation(); }
+      if (!gate.hidden && !gate.contains(e.target) && !e.target.closest?.(".legal-dialog")) { e.preventDefault(); e.stopImmediatePropagation(); }
     }, { capture: true, passive: false });
   }
 }
@@ -125,7 +127,14 @@ function failure(e) {
   return new Promise((resolve) => {
     if (e.status === 401 || (e.status === 400 && /refresh|token/i.test(e.message))) {
       showGate("ログインの有効期限が切れました。ログインし直してください。");
-      button("ログインし直す", () => { localStorage.removeItem(AUTH_KEY); location.reload(); });
+      if (cloudGuest()) {
+        message.textContent = "ゲストの接続を確認できません。接続情報は保管しています。メール登録済みの場合はログインし直せます。";
+        button("再接続", () => location.reload());
+      }
+      button("ログインし直す", () => {
+        if (cloudGuest()) putJSON("dos-cloud-guest-backup", client.auth);
+        localStorage.removeItem(AUTH_KEY); location.reload();
+      });
     } else if (e.status === 409 && e.message !== "cloud_session_busy") {
       showGate("記録が別の画面で更新されたか、ゲームの版が変わりました。最新の記録から再開してください。");
       button("最新の記録から再開", () => {
@@ -139,9 +148,9 @@ function failure(e) {
   });
 }
 
-function login(c) {
+function login(c, { registration = false, linking = false } = {}) {
   return new Promise((resolve) => {
-    showGate("ログイン");
+    showGate(linking ? "この冒険の記録を守る — メールアドレスを登録" : registration ? "アカウントを作成" : "ログイン");
     const form = make("form");
     const field = (label, type, autocomplete) => {
       const row = make("label", label), input = make("input");
@@ -149,42 +158,72 @@ function login(c) {
       row.append(input); form.append(row); return input;
     };
     const email = field("メールアドレス", "email", "username");
-    const password = field("パスワード", "password", "current-password"); password.minLength = 8;
+    const password = field("パスワード", "password", registration ? "new-password" : "current-password"); password.minLength = 8;
     const submit = make("button", "ログイン"); submit.type = "submit"; form.append(submit); controls.append(form);
+    if (registration) submit.textContent = "アカウントを作成";
     let working = false;
     const perform = async (signup) => {
       if (working || !form.reportValidity()) return;
       working = true; submit.disabled = true; signupButton.disabled = true;
       try {
-        const a = await c.authRequest(signup ? "signup" : "token?grant_type=password", { email: email.value.trim(), password: password.value });
+        if (linking) {
+          await updateUser(c, { email: email.value.trim(), password: password.value, ...await captchaBody() });
+          showGate("確認メールを送りました。メール内のリンクを開くと登録が完了します。確認前もこの端末で冒険を続けられます。");
+          button("冒険へ戻る", () => resolve());
+          return;
+        }
+        const a = await c.authRequest(signup ? "signup" : "token?grant_type=password", { email: email.value.trim(), password: password.value, ...await captchaBody() });
         if (!a.access_token) { message.textContent = "確認メールを送りました。メール内のリンクで確認してからログインしてください。"; return; }
         c.auth = session(a); putJSON(AUTH_KEY, c.auth); resolve();
       } catch { message.textContent = signup ? "登録できませんでした。入力内容と接続を確かめてください。" : "ログインできませんでした。入力内容・メールの確認・接続を確かめてください。"; }
       finally { working = false; submit.disabled = false; signupButton.disabled = false; }
     };
-    form.addEventListener("submit", (e) => { e.preventDefault(); perform(false); });
-    const signupButton = button("アカウントを作成", () => perform(true));
-    button("パスワードを忘れた", async () => {
+    form.addEventListener("submit", (e) => { e.preventDefault(); perform(registration); });
+    const signupButton = button(registration ? "ログインへ" : "アカウントを作成", () => {
+      if (linking || working) return;
+      registration = !registration;
+      submit.textContent = registration ? "アカウントを作成" : "ログイン";
+      signupButton.textContent = registration ? "ログインへ" : "アカウントを作成";
+      password.autocomplete = registration ? "new-password" : "current-password";
+      forgotButton.hidden = registration;
+    });
+    signupButton.hidden = linking;
+    button(linking ? "あとで" : "タイトルへ戻る", () => {
+      if (working) return;
+      if (linking) resolve(); else location.reload();
+    });
+    const forgotButton = button("パスワードを忘れた", async () => {
       if (working || !email.reportValidity()) return;
       working = true;
       try {
-        await c.authRequest("recover?redirect_to=" + encodeURIComponent(location.origin + location.pathname), { email: email.value.trim() });
+        await c.authRequest("recover?redirect_to=" + encodeURIComponent(location.origin + location.pathname), { email: email.value.trim(), ...await captchaBody() });
         message.textContent = "登録済みの場合、パスワード再設定のメールが届きます。";
       } catch { message.textContent = "メールを送信できませんでした。接続を確かめてください。"; }
       finally { working = false; }
     });
+    forgotButton.hidden = registration || linking;
     email.focus();
   });
 }
 
 async function recoveryLogin(c) {
   const hash = new URLSearchParams(location.hash.slice(1));
-  if (hash.get("type") !== "recovery" || !hash.get("access_token")) return false;
+  if (!hash.get("access_token")) return false;
   c.auth = { access_token: hash.get("access_token"), refresh_token: hash.get("refresh_token"),
     expires_at: Math.floor(Date.now() / 1000) + Number(hash.get("expires_in") || 3600) };
   history.replaceState(null, "", location.pathname + location.search);
   const user = await c.fetchJSON("/auth/v1/user", { headers: { apikey: c.config.anonKey, Authorization: `Bearer ${c.auth.access_token}` } });
+  const previous = getJSON(AUTH_KEY);
+  if (previous?.user?.is_anonymous && previous.user.id !== user.id) {
+    putJSON("dos-cloud-guest-backup", previous);
+    await new Promise(resolve => {
+      showGate("確認リンクのアカウントを開きます。今のゲストの記録は端末へ保管し、合成・上書きしません。");
+      button("確認したアカウントを開く", resolve);
+      button("ゲストの冒険へ戻る", () => { putJSON(AUTH_KEY, previous); location.reload(); });
+    });
+  }
   c.auth.user = user;
+  if (hash.get("type") !== "recovery") { putJSON(AUTH_KEY, c.auth); return true; }
   await new Promise((resolve) => {
     showGate("新しいパスワード");
     const form = make("form"), row = make("label", "パスワード"), p = make("input");
@@ -205,13 +244,16 @@ async function recoveryLogin(c) {
 }
 
 export function cloudEnabled() { return CLOUD_CONFIG.enabled; }
+export function cloudHasSession() { return !!getJSON(AUTH_KEY)?.access_token; }
 export function cloudReady() { return ready; }
 export function cloudBusy() { return !!client?.busy || (!!gate && !gate.hidden); }
-export function cloudAccount() { return client?.auth?.user?.email || ""; }
+export function cloudGuest() { return !!client?.auth?.user?.is_anonymous; }
+export function cloudAccount() { return cloudGuest() ? "ゲストで冒険中" : client?.auth?.user?.email || ""; }
 export function cloudSave(snapshot) { return client.save(snapshot); }
 export function cloudBattle(action) { return client.battle(action); }
 export function cloudFlush() { return client?.flush() || Promise.resolve(); }
 export async function cloudSignOut() {
+  if (cloudGuest()) { await cloudManageAccount(); return; }
   await cloudFlush(); localStorage.removeItem(AUTH_KEY); location.reload();
 }
 export function cloudFatal() {
@@ -220,25 +262,61 @@ export function cloudFatal() {
   button("再接続", () => location.reload());
 }
 
-export async function connectCloud(localSave, slot = 1) {
+export async function connectCloud(localSave, slot = 1, mode = "start") {
   ensureGate(); showGate("記録に接続しています…");
   if (!CLOUD_CONFIG.url || !CLOUD_CONFIG.anonKey || !/^https:\/\//.test(CLOUD_CONFIG.url)) {
     showGate("クラウド保存の接続先が設定されていません。"); throw new Error("クラウド設定が未完了です");
   }
   client = new CloudSaveClient(CLOUD_CONFIG, { slot, onBusy: (busy) => {
-    if (terminal || client.waiting) return;
+    if (terminal || client.waiting || managing) return;
     // 通常の保存・戦闘・占有延長では画面を覆わず、直前の景色と演出を保つ。
     // 通信順序とcloudBusyによる二重操作防止は表示から独立して維持する。
     if (!busy) gate.hidden = true;
   }, onFailure: failure });
+  const agreedThisVisit = await agreeToTerms(getJSON(AUTH_KEY)?.user?.id);
   if (!await recoveryLogin(client)) {
     client.auth = getJSON(AUTH_KEY);
     if (client.auth) {
-      try { await client.token(); }
-      catch { client.auth = null; localStorage.removeItem(AUTH_KEY); }
+      // 更新失敗で匿名の接続情報を捨てると、ゲストの記録を失う。再接続で保持する。
+      await client.retry(async () => {
+        await client.token();
+        client.auth.user = await currentUser(client);
+        putJSON(AUTH_KEY, client.auth);
+      });
     }
-    if (!client.auth) await login(client);
+    if (mode === "login" && client.auth) {
+      showGate(cloudGuest() ? "ゲストの冒険はこの端末に保管してログインします。記録は合成・上書きしません。" : "別のアカウントへログインしますか？");
+      await new Promise(resolve => {
+        button("今の冒険を続ける", () => resolve());
+        button("別のアカウントにログイン", async () => {
+          if (cloudGuest()) putJSON("dos-cloud-guest-backup", client.auth);
+          await login(client); resolve();
+        });
+      });
+    }
+    if (!client.auth) {
+      if (mode === "login") await login(client);
+      else {
+        const choice = await new Promise(resolve => {
+          showGate("メール登録なしで遊べます。進行は自動保存されます。ブラウザのデータを削除すると、未登録の記録は復旧できなくなる場合があります。あとから登録して引き継げます。オンライン接続が必要です。");
+          button("ゲストではじめる", () => resolve("guest"));
+          button("アカウントを作成", () => resolve("register"));
+          button("登録済みの方はこちら", () => resolve("login"));
+          if (getJSON("dos-cloud-guest-backup")) button("保管したゲストの冒険に戻る", () => resolve("restore"));
+          button("タイトルへ戻る", () => location.reload());
+        });
+        if (choice === "restore") { client.auth = getJSON("dos-cloud-guest-backup"); await client.token(); putJSON(AUTH_KEY, client.auth); }
+        else if (choice === "guest") {
+          // 自動再送で匿名ユーザーを大量作成しない。失敗時も手動の再接続だけで試す。
+          client.auth = session(await client.retry(async () => client.authRequest("signup", { data: { terms_version: LEGAL_VERSION }, ...await captchaBody() })));
+          putJSON(AUTH_KEY, client.auth);
+        } else await login(client, { registration: choice === "register" });
+      }
+    }
   }
+  if (agreedThisVisit) localStorage.setItem("dos-legal-version:" + client.auth.user.id, LEGAL_VERSION);
+  else await agreeToTerms(client.auth.user.id);
+  await client.retry(() => client.request({ protocol: client.config.protocol, op: "consent", version: LEGAL_VERSION }));
   // タブの複製で同じ送信待ちIDが使われても、1画面だけが進められる。
   if (navigator.locks) {
     await new Promise((resolve) => {
@@ -255,15 +333,15 @@ export async function connectCloud(localSave, slot = 1) {
   showGate("記録を読み込んでいます…");
   let snapshot = await client.retry(() => client.claim());
   if (pending) { await client.recover(); snapshot = await client.retry(() => client.claim()); }
-  if (!snapshot && localSave) {
+  if (!snapshot && localSave && !localStorage.getItem("dos-cloud-deleted")) {
     const useLocal = await new Promise((resolve) => {
-      showGate("このアカウントの選んだ枠には冒険の記録がありません。この端末の記録を引き継ぎますか？");
+      showGate("このアカウントには冒険の記録がありません。この端末の記録を引き継ぎますか？");
       button("端末の記録を引き継ぐ", () => resolve(true)); button("新しい冒険を始める", () => resolve(false));
     });
     if (useLocal) { snapshot = JSON.parse(localSave); await client.save(snapshot); }
   }
   const heartbeat = async () => {
-    if (!client.busy && document.visibilityState === "visible") {
+    if (!client.busy && !managing && document.visibilityState === "visible") {
       client.count++; client.setBusy();
       try { await client.retry(() => client.renew()); }
       finally { client.count--; client.setBusy(); }
@@ -275,4 +353,98 @@ export async function connectCloud(localSave, slot = 1) {
   gate.hidden = true;
   ready = true;
   return snapshot;
+}
+
+function legalButtons() {
+  button("利用規約を読む", () => showLegal("terms"));
+  button("プライバシーポリシーを読む", () => showLegal("privacy"));
+}
+async function agreeToTerms(userId = null) {
+  const key = userId ? "dos-legal-version:" + userId : null;
+  if (key && localStorage.getItem(key) === LEGAL_VERSION) return false;
+  await new Promise(resolve => {
+    showGate("冒険を始める前に、利用規約とプライバシーポリシーをご確認ください。");
+    legalButtons();
+    const label = make("label", null, "cloud-consent"), check = make("input"); check.type = "checkbox";
+    label.append(check, document.createTextNode("利用規約に同意し、プライバシーポリシーを確認しました")); controls.append(label);
+    const next = button("同意して進む", () => {
+      if (!check.checked) return;
+      if (key) localStorage.setItem(key, LEGAL_VERSION); resolve();
+    });
+    next.disabled = true; check.onchange = () => { next.disabled = !check.checked; };
+    button("タイトルへ戻る", () => location.reload());
+  });
+  return true;
+}
+async function currentUser(c) {
+  return c.fetchJSON("/auth/v1/user", { headers: { apikey: c.config.anonKey, Authorization: `Bearer ${await c.token()}` } });
+}
+async function updateUser(c, body) {
+  const user = await c.fetchJSON("/auth/v1/user", { method: "PUT", headers: { apikey: c.config.anonKey,
+    Authorization: `Bearer ${await c.token()}`, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (user.id !== c.auth.user.id) throw new Error("アカウントが一致しません");
+  c.auth.user = user; putJSON(AUTH_KEY, c.auth);
+}
+// Supabase側でCAPTCHAを有効にする場合は、公開サイトキーも配置する。
+async function captchaBody() {
+  if (!CLOUD_CONFIG.turnstileSiteKey) return {};
+  message.textContent = "安全確認をお願いします。";
+  if (!window.turnstile) await new Promise((resolve, reject) => {
+    const script = document.createElement("script"); script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+    script.onload = resolve; script.onerror = () => reject(new Error("安全確認を読み込めません")); document.head.append(script);
+  });
+  const target = make("div"); controls.append(target);
+  let widget;
+  let token;
+  try {
+    token = await new Promise((resolve, reject) => {
+      widget = window.turnstile.render(target, { sitekey: CLOUD_CONFIG.turnstileSiteKey, callback: resolve,
+        "error-callback": () => reject(new Error("安全確認に失敗しました")), "expired-callback": () => reject(new Error("安全確認が期限切れです")) });
+    });
+  } finally {
+    if (widget !== undefined) window.turnstile.remove(widget);
+    target.remove();
+  }
+  return { gotrue_meta_security: { captcha_token: token } };
+}
+export async function cloudManageAccount() {
+  if (managing || !client || !ready) return;
+  managing = true;
+  try {
+    await cloudFlush();
+    await new Promise(resolve => {
+      const draw = () => {
+        showGate(cloudGuest() ? "ゲストの記録をメールアドレスに結び付けると、別の端末でも冒険を続けられます。" : cloudAccount());
+        if (cloudGuest()) button("アカウント登録・記録の引き継ぎ", async () => {
+          await login(client, { registration: true, linking: true }); resolve();
+        });
+        else button("ログアウト", () => { localStorage.removeItem(AUTH_KEY); location.reload(); });
+        legalButtons();
+        button("退会・記録を削除", () => {
+          showGate("アカウントと冒険の記録を削除します。復旧できません。削除する場合は「削除」と入力してください。");
+          const input = make("input"); input.setAttribute("aria-label", "削除の確認"); controls.append(input);
+          const remove = button("アカウントと記録を完全に削除", async () => {
+            if (input.value !== "削除" || remove.disabled) return;
+            remove.disabled = true;
+            try {
+              await client.request({ protocol: client.config.protocol, sessionId: client.sessionId, op: "delete-account" });
+              // 旧端末記録を次の冒険へ誤って再移行しないよう、削除済みユーザーを覚える。
+              localStorage.setItem("dos-cloud-deleted", "1");
+              localStorage.removeItem(pendingKey(client.auth.user.id));
+              localStorage.removeItem("dos-cloud-session:" + client.auth.user.id);
+              localStorage.removeItem(AUTH_KEY); localStorage.removeItem("dos-cloud-guest-backup"); location.reload();
+            } catch { message.textContent = "削除の完了を確認できませんでした。接続を確かめて再試行してください。"; remove.disabled = false; }
+          });
+          button("やめる", draw);
+        });
+        button("冒険へ戻る", resolve);
+      }; draw();
+    });
+  } finally { managing = false; if (!terminal) gate.hidden = true; }
+}
+export async function cloudRegisterPrompt() {
+  if (!cloudGuest() || localStorage.getItem("dos-cloud-register-hint:" + client.auth.user.id)) return;
+  await cloudFlush();
+  localStorage.setItem("dos-cloud-register-hint:" + client.auth.user.id, "1");
+  return cloudManageAccount();
 }

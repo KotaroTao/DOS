@@ -31,7 +31,7 @@ export function authSettings(current) {
   const redirects = new Set((current.uri_allow_list || "").split(",").map((s) => s.trim()).filter(Boolean));
   redirects.add(SITE);
   return { site_url: SITE, uri_allow_list: [...redirects].join(","), external_email_enabled: true,
-    disable_signup: false, mailer_autoconfirm: false };
+    disable_signup: false, mailer_autoconfirm: false, external_anonymous_users_enabled: true, rate_limit_anonymous_users: 10 };
 }
 
 export function publicKey(keys) {
@@ -46,10 +46,10 @@ export function publicKey(keys) {
   throw new Error("公開用APIキーが見つかりません。SupabaseのAPI Keys設定を確認してください。");
 }
 
-export function configSource(ref, key) {
+export function configSource(ref, key, turnstileSiteKey = "") {
   if (!/^[a-z0-9]{20}$/.test(ref)) throw new Error("Project IDが不正です");
   return "// 公開用の接続情報。GitHub Pagesの配置時に生成する。\nexport const CLOUD_CONFIG = Object.freeze(" +
-    JSON.stringify({ enabled: true, url: `https://${ref}.supabase.co`, anonKey: key, protocol: 1 }, null, 2) + ");\n";
+    JSON.stringify({ enabled: true, url: `https://${ref}.supabase.co`, anonKey: key, protocol: 1, turnstileSiteKey }, null, 2) + ");\n";
 }
 
 export async function run(mode, { env = process.env, fetcher = fetch, writer = writeFile, reader = readFile } = {}) {
@@ -75,6 +75,8 @@ export async function run(mode, { env = process.env, fetcher = fetch, writer = w
     await management("/database/query", "POST", { query: migrationQuery(sql) });
     const slotsSQL = await reader(new URL("./migrations/202610160001_save_slots.sql", import.meta.url), "utf8");
     await management("/database/query", "POST", { query: migrationQuery(slotsSQL, "202610160001") });
+    const guestSQL = await reader(new URL("./migrations/202610300001_guest_onboarding.sql", import.meta.url), "utf8");
+    await management("/database/query", "POST", { query: migrationQuery(guestSQL, "202610300001") });
     await management("/config/auth", "PATCH", settings);
     console.log("保存テーブル・更新関数・メールログイン・確認メール・ログイン先URLを設定しました。");
     return;
@@ -97,7 +99,10 @@ export async function run(mode, { env = process.env, fetcher = fetch, writer = w
   if (mode === "--config") {
     if (!auth.smtp_host || !auth.smtp_admin_email) throw new Error("一般公開にはSupabaseのCustom SMTP設定が必要です。設定してからCLOUD_SAVE_ENABLEDを有効にしてください。");
     if (auth.mailer_autoconfirm !== false || auth.disable_signup || !auth.external_email_enabled || auth.site_url.replace(/\/$/, "") !== SITE.replace(/\/$/, "")) throw new Error("ログイン設定が一致しません。セットアップを先に実行してください。");
-    await writer(new URL("../src/cloud-config.js", import.meta.url), configSource(ref, key));
+    if (!auth.external_anonymous_users_enabled) throw new Error("ゲスト認証が無効です。セットアップを実行してください。");
+    if (auth.security_captcha_enabled && auth.security_captcha_provider !== "turnstile") throw new Error("CAPTCHAはTurnstileを設定してください。");
+    if (auth.security_captcha_enabled && !env.TURNSTILE_SITE_KEY) throw new Error("CAPTCHAの公開サイトキーをVariable TURNSTILE_SITE_KEYに登録してください。");
+    await writer(new URL("../src/cloud-config.js", import.meta.url), configSource(ref, key, env.TURNSTILE_SITE_KEY || ""));
     console.log("公開用のクラウド接続設定を生成しました。秘密のキーは含みません。");
   } else console.log(auth.smtp_host ? "メール配信の接続先は設定済みです。実際の確認メールも試してください。" : "次はCustom SMTPの設定が必要です。ゲーム側のクラウド保存はまだ無効です。");
 }
