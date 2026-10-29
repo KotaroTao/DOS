@@ -886,6 +886,8 @@ function skipControls() {
       unphrase(node.getAttribute("aria-label") || node.textContent || "").includes("スキップ")));
 }
 function restrictTutorialInput(event) {
+  // 保存・通信復旧・画像再取得などの操作は、手ほどきの指定先より優先する。
+  if (event.target?.closest?.(".cloud-gate, .legal-dialog, #local-save-gate, #media-splash, .image-loading, .game-update-notice, #boot-notice")) return;
   if (G_()?.testPlay && event.target?.closest?.(".test-play-banner, .playtest-records")) return;
   const skips = skipControls();
   if (skips.some((node) => node === event.target || node.contains(event.target))) return;

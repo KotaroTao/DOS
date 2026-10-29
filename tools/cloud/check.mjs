@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { recoverStability, STABILITY_RECOVERY_MS } from "../../src/stability.js";
 import { refSerialize, refDeserialize, applySavePatch, acknowledgedSave } from "../../src/savegraph.js";
 import { CloudSaveClient } from "../../src/cloud-save.js";
-import { resolveCloudBattle } from "../../src/cloud-battle.js";
+import { resolveCloudBattle, resolveCloudTurn } from "../../src/cloud-battle.js";
 import { Battle } from "../../src/combat.js";
 import { makeDoll, makeSoulInstance } from "../../src/souls.js";
 import { bindRngState, rngState, reseedRng } from "../../src/rng.js";
@@ -227,3 +227,46 @@ console.log("低速保存の集約・戦闘境界・入力待機の分離 OK");
   assert.notEqual(acknowledgedSave(raw, packet), JSON.stringify(refSerialize(saved)));
 }
 console.log("戦闘確定済み記録の重複送信抑止 OK");
+
+// 一括確定でも、従来の一手→手番更新と結果・乱数・共有参照が一致する。
+for (let seed = 1; seed <= 100; seed++) for (const mode of ["commit", "enemy", "stunned"]) {
+  const initial = battleState(seed, mode === "enemy");
+  if (mode === "commit") {
+    initial.battle.chooseAction("attack"); initial.battle.chooseTarget(initial.battle.enemies[0]);
+    if (seed % 2 === 0) initial.battle.enemies[0].hp = 1;
+  } else if (mode === "stunned") {
+    initial.battle.phase = "stunned"; initial.party[0].asleep = true;
+  }
+  const sequential = clone(initial), batched = clone(initial);
+  const expectedAction = refSerialize(resolveCloudBattle(sequential, mode));
+  const expectedNext = sequential.battle.result ? null : refSerialize(resolveCloudBattle(sequential, "advance"));
+  const response = resolveCloudTurn(batched, mode);
+  assert.deepEqual(response.packet, expectedAction);
+  assert.deepEqual(response.nextPacket, expectedNext);
+  assert.deepEqual(refSerialize(batched), refSerialize(sequential));
+  const client = clone(initial), actor = client.party[0];
+  applySavePatch(client, refDeserialize(response.packet));
+  assert.equal(client.party[0], actor);
+  assert.equal(client.battle._acted, true);
+  if (response.nextPacket) {
+    applySavePatch(client, refDeserialize(response.nextPacket));
+    assert.equal(client.party[0], actor); assert.equal(client.battle._acted, false);
+  }
+  assert.deepEqual(client.rng, batched.rng);
+}
+// 新サーバーは1通信、旧サーバーは従来の保存→行動へ戻す。
+for (const supported of [true, false]) {
+  const bodies = [];
+  const c = new CloudSaveClient(config, { storage: storage(), fetcher: async (url, opts) => {
+    const body = JSON.parse(opts.body); bodies.push(body);
+    return Response.json({ revision: bodies.length, battleTurn: supported, snapshot: null });
+  } });
+  c.auth = auth; c.sessionId = "session";
+  await c.claim();
+  const snapshot = { state: "combat" };
+  await c.battle("commit", snapshot);
+  assert.deepEqual(bodies.map(b=>b.op), supported ? ["claim","turn"] : ["claim","save","battle"]);
+  assert.deepEqual(bodies[1].snapshot, snapshot);
+  assert.equal(c.blocking, 0);
+}
+console.log("300種の一括戦闘: 結果・次手番・乱数一致、1通信と旧サーバー互換 OK");

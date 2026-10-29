@@ -4,6 +4,17 @@ import { CANDLE_IMAGE } from "./loadingcandle.js";
 const entries = new Map(), imagePromises = new WeakMap();
 let lamp = null, timer = 0, scheduled = false, waitingSince = null;
 const LAMP_DELAY = 400;
+let reloadHandler = () => location.reload();
+let reloading = false;
+export function setIllustrationReload(handler) { reloadHandler = handler; }
+async function reloadIllustrations(event) {
+  if (reloading) return;
+  reloading = true;
+  const button = event.currentTarget;
+  button.disabled = true;
+  try { await reloadHandler(); }
+  finally { reloading = false; button.disabled = false; }
+}
 const scenes = new WeakMap();
 let redrawn = false, blockingNow = false, screenSince = null;
 const SCREEN_DELAY = 200;
@@ -107,7 +118,7 @@ function update() {
       const retry = document.createElement("button");
       retry.type = "button"; retry.className = "image-loading-retry";
       retry.textContent = "画像を再読み込み";
-      retry.addEventListener("click", () => location.reload());
+      retry.addEventListener("click", reloadIllustrations);
       lamp.insertBefore(retry, lamp.querySelector(".image-loading-label"));
     }
   }
@@ -234,7 +245,7 @@ if (typeof document !== "undefined" && typeof MutationObserver !== "undefined") 
     if (document.getElementById("boot-notice") || event.target.closest?.("#media-splash, .image-loading-retry, .cloud-gate, #local-save-gate")) return;
     event.preventDefault(); event.stopImmediatePropagation();
   }, true);
-  document.getElementById("media-splash")?.querySelector(".media-retry")?.addEventListener("click", () => location.reload());
+  document.getElementById("media-splash")?.querySelector(".media-retry")?.addEventListener("click", reloadIllustrations);
   scan(document.documentElement);
   schedule();
 }

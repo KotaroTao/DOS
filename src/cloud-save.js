@@ -18,7 +18,7 @@ export class CloudSaveClient {
     this.auth = null; this.sessionId = null; this.revision = 0;
     this.tail = Promise.resolve(); this.count = 0; this.busy = false;
     this.refreshing = null; this.waiting = false;
-    this.blocking = 0; this.queuedSave = null;
+    this.blocking = 0; this.queuedSave = null; this.battleTurn = false;
   }
   async fetchJSON(path, options = {}) {
     const ctrl = new AbortController(), timer = setTimeout(() => ctrl.abort(), 15000);
@@ -58,7 +58,7 @@ export class CloudSaveClient {
     }
     const entry = { data, promise: null };
     this.queuedSave = op === "save" ? entry : null;
-    if (op === "battle") this.blocking++;
+    if (op === "battle" || op === "turn") this.blocking++;
     this.count++; this.setBusy();
     const task = this.tail.then(async () => {
       if (this.queuedSave === entry) this.queuedSave = null;
@@ -75,7 +75,7 @@ export class CloudSaveClient {
     });
     this.tail = task;
     entry.promise = task.finally(() => {
-      if (op === "battle") this.blocking--;
+      if (op === "battle" || op === "turn") this.blocking--;
       this.count--; this.setBusy();
     });
     return entry.promise;
@@ -91,12 +91,18 @@ export class CloudSaveClient {
     }
   }
   save(snapshot) { return this.enqueue("save", { snapshot }); }
-  battle(action) { return this.enqueue("battle", { action }); }
+  battle(action, snapshot = null) {
+    if (snapshot && this.battleTurn) return this.enqueue("turn", { action, snapshot });
+    // 旧サーバーにも接続できる。選択保存→行動の順を崩さない。
+    if (snapshot) this.save(snapshot);
+    return this.enqueue("battle", { action });
+  }
   renew() { return this.enqueue("renew"); }
   flush() { return this.tail; }
   async claim() {
     const data = await this.request({ protocol: this.config.protocol, sessionId: this.sessionId, op: "claim" });
     this.revision = data.revision;
+    this.battleTurn = data.battleTurn === true;
     return data.snapshot;
   }
   async recover() {
@@ -110,6 +116,7 @@ export class CloudSaveClient {
   }
 }
 
+let leaving = false;
 let managing = false;
 let gate = null, message = null, controls = null, client = null, ready = false, terminal = false;
 function make(tag, text, cls) {
@@ -264,13 +271,30 @@ export function cloudBusy() { return !!client?.blocking || !!client?.waiting || 
 export function cloudGuest() { return !!client?.auth?.user?.is_anonymous; }
 export function cloudAccount() { return cloudGuest() ? "ゲストで冒険中" : client?.auth?.user?.email || ""; }
 export function cloudSave(snapshot) { return client.save(snapshot); }
-export function cloudBattle(action) { return client.battle(action); }
+export function cloudBattle(action, snapshot = null) { return client.battle(action, snapshot); }
 // 通常保存と同じ順序・再送保護で現在の記録だけを削除する。
 export async function cloudReset() {
   localStorage.setItem("dos-cloud-deleted", "1");
   await client.enqueue("reset");
 }
 export function cloudFlush() { return client?.flush() || Promise.resolve(); }
+// 終了・更新では、最後の保存を作る前に入力を止める。通常保存は裏で続ける。
+export async function cloudPrepareReload(save) {
+  if (leaving || managing || !client || !ready || terminal) return false;
+  leaving = true;
+  showGate("記録を保存しています…");
+  try {
+    const saved = save();
+    if (!saved) { leaving = false; gate.hidden = true; return false; }
+    await saved;
+    await cloudFlush();
+    return true;
+  } catch {
+    leaving = false;
+    cloudFatal();
+    return false;
+  }
+}
 export async function cloudSignOut() {
   if (cloudGuest()) { await cloudManageAccount(); return; }
   await cloudFlush(); localStorage.removeItem(AUTH_KEY); location.reload();
@@ -287,7 +311,7 @@ export async function connectCloud(localSave, slot = 1, mode = "start") {
     showGate("クラウド保存の接続先が設定されていません。"); throw new Error("クラウド設定が未完了です");
   }
   client = new CloudSaveClient(CLOUD_CONFIG, { slot, onBusy: (busy) => {
-    if (terminal || client.waiting || managing) return;
+    if (terminal || client.waiting || managing || leaving) return;
     // 通常の保存・戦闘・占有延長では画面を覆わず、直前の景色と演出を保つ。
     // 通常保存は裏で続け、戦闘結果待ちと復旧操作だけ入力を止める。
     if (!busy) gate.hidden = true;
@@ -360,7 +384,7 @@ export async function connectCloud(localSave, slot = 1, mode = "start") {
     if (useLocal) { snapshot = JSON.parse(localSave); await client.save(snapshot); }
   }
   const heartbeat = async () => {
-    if (!client.busy && !managing && document.visibilityState === "visible") {
+    if (!client.busy && !managing && !leaving && document.visibilityState === "visible") {
       client.count++; client.setBusy();
       try { await client.retry(() => client.renew()); }
       finally { client.count--; client.setBusy(); }
@@ -427,8 +451,9 @@ async function captchaBody() {
   return { gotrue_meta_security: { captcha_token: token } };
 }
 export async function cloudManageAccount() {
-  if (managing || !client || !ready) return;
+  if (managing || leaving || !client || !ready) return;
   managing = true;
+  showGate("記録を確かめています…");
   try {
     await cloudFlush();
     await new Promise(resolve => {

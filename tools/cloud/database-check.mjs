@@ -110,4 +110,19 @@ assert.equal(current.battle.enemies[0].hp, packet.snapshot.battle.enemies[0].hp)
 const advanced = await request({ ...base, op: "battle", action: "advance", revision: 3, commandId: crypto.randomUUID() });
 assert.equal(advanced.status, 200); assert.equal((await advanced.json()).revision, 4);
 console.log("DB・Edge Function: 最新1件・再送・競合・占有期限・権限・認証・CORS・版番号 OK");
+// 一括戦闘の返答喪失でも同じ要求は一度だけ確定する。次手番まで再開できる。
+const turn = { ...base, op: "turn", action: "commit", revision: 4, commandId: crypto.randomUUID(), snapshot: refSerialize(state) };
+const tr = await request(turn); assert.equal(tr.status, 200);
+const tp = await tr.json(); assert.equal(tp.revision, 5);
+assert.equal(refDeserialize(tp.packet).snapshot.battle._acted, true);
+assert.equal(refDeserialize(tp.nextPacket).snapshot.battle._acted, false);
+const repeated = await request(turn); assert.equal(repeated.status, 200); assert.deepEqual(await repeated.json(), tp);
+const claimTurn = await (await request({ ...base, op: "claim" })).json();
+assert.equal(claimTurn.battleTurn, true);
+const afterTurn = refDeserialize(claimTurn.snapshot);
+assert.equal(afterTurn.battle._acted, false);
+assert.deepEqual(afterTurn.rng, refDeserialize(tp.nextPacket).snapshot.rng);
+const badTurn = await request({ ...turn, commandId:crypto.randomUUID(), revision:5, action:"advance" });
+assert.equal(badTurn.status,400);
+console.log("DB・Edge Function: 一括戦闘の保存・次手番・同じIDの再送・不正操作拒否 OK");
 await db.close();

@@ -1,6 +1,6 @@
 import { LEGAL_VERSION } from "../../../src/legal.js";
 import { refSerialize, refDeserialize } from "../../../src/savegraph.js";
-import { resolveCloudBattle } from "../../../src/cloud-battle.js";
+import { resolveCloudBattle, resolveCloudTurn } from "../../../src/cloud-battle.js";
 
 const url = Deno.env.get("SUPABASE_URL");
 const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -37,7 +37,7 @@ async function command(user, body) {
     if (!r.ok) throw Object.assign(new Error("アカウントを削除できません"), { status: 503 });
     return { deleted: true };
   }
-  if (body.op === "claim") return { revision: s.revision, snapshot: s.snapshot };
+  if (body.op === "claim") return { revision: s.revision, snapshot: s.snapshot, battleTurn: true };
   if (body.op === "renew") {
     if (s.revision !== body.revision) throw Object.assign(new Error("cloud_revision_conflict"), { status: 409 });
     return { revision: s.revision };
@@ -53,12 +53,19 @@ async function command(user, body) {
   }
   if (s.revision !== body.revision) throw Object.assign(new Error("cloud_revision_conflict"), { status: 409 });
   let snapshot = s.snapshot, response = {};
-  if (body.op === "save") {
+  if (body.op === "save" || body.op === "turn") {
     const next = refDeserialize(body.snapshot);
     if (!next || !["town", "board", "combat", "over"].includes(next.state) || !Array.isArray(next.party) || !Array.isArray(next.souls)) {
       throw Object.assign(new Error("記録の形式が不正です"), { status: 400 });
     }
     snapshot = body.snapshot;
+    if (body.op === "turn") {
+      if (next.state !== "combat" || !next.battle || !["commit", "enemy", "stunned"].includes(body.action)) {
+        throw Object.assign(new Error("戦闘の形式が不正です"), { status: 400 });
+      }
+      response = resolveCloudTurn(next, body.action);
+      snapshot = refSerialize(next);
+    }
   } else if (body.op === "reset") {
     snapshot = null;
   } else if (body.op === "battle") {

@@ -430,8 +430,12 @@ The goal (per design direction): **every enemy is individually distinctive**, bo
 
 ### State & persistence
 
+**クラウド戦闘のテンポ (2026-10-29)**: claim応答の `battleTurn` がある時は `turn` 要求で選択の保存・行動結果・次手番を1回で確定する。結果 `packet` と次手番 `nextPacket` は独立した参照グラフにし、画面は行動の演出後に次手番を反映する。その間は途中の状態を保存せず、終了／再接続では確定済みの次手番から再開する。次手番の演出片付けだけで再保存しない。旧サーバーは保存→行動→advanceへ戻し、旧クライアントのbattle要求も維持する。オートの作戦決定後・次の手番の追加待機は0ms、戦闘終了の間は100ms。クラウドの敵／行動不能は通信開始前の予備待機を足さない。攻撃・多段・被弾・強化弱体の演出と結果の式は維持。心得 `t_auto`。確認: `node tools/cloud/check.mjs`、`node tools/cloud/database-check.mjs <PGliteの絶対パス>`、`python3 tools/cloud/tempo-browser.py`（実API・SQLの検証用サーバーが必要）。
+
 **通常クラウド保存中の操作 (2026-10-29)**
 通常の保存・占有延長は入力や自動進行を封じない。戦闘の結果待ち・通信失敗からの復旧は封じる。未送信の連続保存だけを最新へ集約し、送信済み要求の再送IDと戦闘を挟む順序は維持する。オート移動の選択中断は問い・シート・設定など実際の選択だけで判定し、画像や通信待ちを選択とみなさない。戦闘の応答差分は送信済みの記録にも反映し、同じ確定状態の保存を繰り返さない。心得 `t_cloud_record`。
+
+**街・設定からの保存後の遷移 (2026-10-29)**: タイトル復帰・公開更新は `cloudPrepareReload` で最後の保存を作る前から入力を封じ、保存と送信待ちの完了後に再読込する。アカウント管理も送信待ちの間は遷移中の画面を示す。通常保存の操作は封じない。画像失敗時の再読み込みも起動前を除いて同じ保存処理を使い、二重押しは受けない。心得 `t_photo_wait`・`t_game_update`。検証 `python3 tools/cloud/town-screens-browser.py`、`python3 tools/save-protection/update-browser-check.py`。
 
 武魂は `bukonStock`・`bukonProtected`・`bukonGift` をSAVE_FIELDSに保存する。個数・合成価値・加算系の効果・素材価値・金貨費用はBigIntで計算し、保存は十進文字列とLv。戦闘側への能力集計は既存のNumber演算を使う。極端なLvでNumberの表現範囲を超える戦闘は別途数値基盤の対応が必要（合成・保存にはレベル上限を置かない）。
 - **公開更新時の進行保護 (2026-10-23)**: `src/game-update.js` は新しいService Workerの有効化を案内するだけで、自動再読み込みしない。「保存して更新」は通常のタイトル復帰と同じ保存処理を使い、クラウド送信完了まで待つ。試遊では進行が保存されない旨を表示し、終了確認後だけ更新する。「あとで」で案内を閉じ、プレイを続けられる。心得 `t_game_update`。確認: `python3 tools/save-protection/update-browser-check.py`。

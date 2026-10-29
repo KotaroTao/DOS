@@ -43,6 +43,7 @@ async def main():
         page = await c.new_page()
         await visit(page, "?testDungeon=w05&testPlace=town")
         seed = await page.evaluate("__game.inf.saveJSON()")
+        legal = await page.evaluate("async()=>(await import('/src/legal.js')).LEGAL_VERSION")
         await page.evaluate("__game.G.gold=76543; window.notifyUpdate(); window.notifyUpdate()")
         notice = page.locator(".game-update-notice")
         await expect(notice).to_have_count(1)
@@ -88,7 +89,7 @@ async def main():
 
         # 実際のCloudSaveClientを使い、APIの保存応答だけを遅らせる。
         auth = {"access_token":"test", "refresh_token":"test", "expires_at":9999999999,"user":{"id":"update-test","email":"test@example.invalid"}}
-        c = await context("localStorage.setItem('dos-cloud-auth'," + json.dumps(json.dumps(auth)) + ");")
+        c = await context("localStorage.setItem('dos-cloud-auth'," + json.dumps(json.dumps(auth)) + ");localStorage.setItem('dos-legal-version:update-test'," + json.dumps(legal) + ");")
         await c.route("**/src/cloud-config.js", lambda r: r.fulfill(content_type="text/javascript", body=CONFIG))
         snapshot = json.loads(seed)
         revision = 0
@@ -96,6 +97,8 @@ async def main():
         release = asyncio.Event()
         async def api(route):
             nonlocal snapshot, revision
+            if route.request.url.endswith("/auth/v1/user"):
+                await route.fulfill(json=auth["user"]); return
             body = route.request.post_data_json
             if body["op"] == "save":
                 received.set()
@@ -106,6 +109,8 @@ async def main():
         await c.route("https://cloud.test/**", api)
         page = await c.new_page()
         await visit(page)
+        await page.locator(".ttl-overlay:not(.ttl-out) .ttl-menu .ttl-btn.primary").click()
+        await page.wait_for_function("!document.querySelector('.ttl-overlay:not(.ttl-out)') && __game.G.party.length")
         await page.evaluate("__game.G.gold=98765; notifyUpdate()")
         await page.get_by_role("button", name="保存して更新", exact=True).click()
         await asyncio.wait_for(received.wait(), timeout=10)
@@ -115,6 +120,8 @@ async def main():
         async with page.expect_navigation(wait_until="domcontentloaded"):
             release.set()
         await page.wait_for_function("window.__game && !document.body.classList.contains('booting')")
+        await page.locator(".ttl-overlay:not(.ttl-out) .ttl-menu .ttl-btn.primary").click()
+        await page.wait_for_function("!document.querySelector('.ttl-overlay:not(.ttl-out)') && __game.G.party.length")
         assert await page.evaluate("__game.G.gold") == 98765
         print("クラウド保存の応答待ちでは再読込せず、保存完了後に最新記録から再開: OK", flush=True)
         assert not errors, errors
