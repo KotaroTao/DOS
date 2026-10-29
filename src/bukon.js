@@ -3,7 +3,7 @@ import { AFX } from "./infaffix.js";
 import { rarityKey } from "./rarity.js";
 import { random } from "./rng.js";
 import { ELEMENT_KEYS, elementValues } from "./combatrules.js";
-export const BUKON_SLOTS = { c:1, uc:2, r:3, sr:4, lr:5 };
+export const BUKON_SLOTS = { c:1, uc:1, r:2, sr:2, lr:3 };
 export const BUKON_RARITIES = [
   {key:"c",name:"コモン",color:"#ddd",weight:80}, {key:"uc",name:"アンコモン",color:"#75c76b",weight:12.5},
   {key:"r",name:"レア",color:"#69aaff",weight:5}, {key:"sr",name:"スーパーレア",color:"#ff9a4a",weight:2}, {key:"lr",name:"レジェンドレア",color:"#ff6262",weight:.5}
@@ -171,10 +171,11 @@ export function rollBukon(it,progress=6,rnd=random){
  const max=Math.min(d.max||Infinity,2+Math.floor(Math.max(0,progress-6)/3)+gear);
  let lv=1;while(lv<max&&rnd()<.18+gear*.14)lv++;return {k:d.id,lv};
 }
+export const activeBukon=it=>(it?.bukon||[]).filter(b=>validBukon(b)&&bukonFits(it,b)).slice(0,bukonSlots(it));
 export function bukonItem(it,{legendarySeen=new Set(),specialLevels=null}={}){
  if(!it?.bukon?.length)return it;
  const out={...it,mult:{...it.mult},resists:{...it.resists},afxFx:[...(it.afxFx||[])],afxMisc:{...it.afxMisc},eff:{...it.eff},bukonElementDef:{...it.bukonElementDef}};
- for(const b of it.bukon.filter(validBukon)){
+ for(const b of activeBukon(it)){
   const d=bukonDef(b.k);if(!bukonFits(it,b))continue;const v=amount(b);
   if(d.kind==="flat")out[d.stat]=(out[d.stat]||0)+Number(bukonExact(b));
   if(d.kind==="pct")out.mult[d.stat]=(out.mult[d.stat]||0)+v/100;
@@ -208,6 +209,6 @@ export function migrateBukon(g,items){
  let changed=false;
  const normalize=b=>{const d=bukonDef(b?.k);if(!d)return b;return {k:d.replacement||b.k,lv:Math.min(b.lv,bukonDef(d.replacement||b.k).max||b.lv)};};
  for(const [key,n] of Object.entries(g.bukonStock||{})){const [k,l]=key.split(":"),b=normalize({k,lv:Number(l)});if(b.k!==k||b.lv!==Number(l)){delete g.bukonStock[key];stockAdd(g,b,BigInt(n));if(g.bukonProtected?.[key]){delete g.bukonProtected[key];g.bukonProtected[bukonKey(b)]=true;}changed=true;}}
- for(const it of new Set(items.filter(Boolean))){if(it.soulMemory||!it.bukon)continue;const keep=[];for(const old of it.bukon){const b=normalize(old);if(b.k!==old.k||b.lv!==old.lv)changed=true;if(bukonFits(it,b))keep.push(b);else{stockAdd(g,b);changed=true;}}it.bukon=keep;}
+ for(const it of new Set(items.filter(Boolean))){if(it.soulMemory||!it.bukon)continue;const keep=[];for(const old of it.bukon){const b=normalize(old);if(b.k!==old.k||b.lv!==old.lv)changed=true;if(bukonFits(it,b)&&keep.length<bukonSlots(it))keep.push(b);else{stockAdd(g,b);changed=true;}}it.bukon=keep;}
  return changed;
 }
