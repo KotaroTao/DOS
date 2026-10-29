@@ -18,6 +18,7 @@ export class CloudSaveClient {
     this.auth = null; this.sessionId = null; this.revision = 0;
     this.tail = Promise.resolve(); this.count = 0; this.busy = false;
     this.refreshing = null; this.waiting = false;
+    this.blocking = 0; this.queuedSave = null;
   }
   async fetchJSON(path, options = {}) {
     const ctrl = new AbortController(), timer = setTimeout(() => ctrl.abort(), 15000);
@@ -50,10 +51,19 @@ export class CloudSaveClient {
   }
   setBusy() { this.busy = this.count > 0; this.onBusy(this.busy); }
   enqueue(op, data = {}) {
+    // まだ送っていない連続した保存だけを最新化。送信済みの要求と戦闘の境界は変えない。
+    if (op === "save" && this.queuedSave) {
+      this.queuedSave.data = data;
+      return this.queuedSave.promise;
+    }
+    const entry = { data, promise: null };
+    this.queuedSave = op === "save" ? entry : null;
+    if (op === "battle") this.blocking++;
     this.count++; this.setBusy();
     const task = this.tail.then(async () => {
+      if (this.queuedSave === entry) this.queuedSave = null;
       const body = { protocol: this.config.protocol, sessionId: this.sessionId,
-        commandId: crypto.randomUUID(), revision: this.revision, op, ...data };
+        commandId: crypto.randomUUID(), revision: this.revision, op, ...entry.data };
       // 送信前に記録する。結果の返答を失っても同じID・同じ内容で再送する。
       const result = await this.retry(async () => {
         this.storage.setItem(pendingKey(this.auth.user.id, this.slot), JSON.stringify(body));
@@ -64,7 +74,11 @@ export class CloudSaveClient {
       return result;
     });
     this.tail = task;
-    return task.finally(() => { this.count--; this.setBusy(); });
+    entry.promise = task.finally(() => {
+      if (op === "battle") this.blocking--;
+      this.count--; this.setBusy();
+    });
+    return entry.promise;
   }
   async retry(fn) {
     for (;;) {
@@ -246,7 +260,7 @@ async function recoveryLogin(c) {
 export function cloudEnabled() { return CLOUD_CONFIG.enabled; }
 export function cloudHasSession() { return !!getJSON(AUTH_KEY)?.access_token; }
 export function cloudReady() { return ready; }
-export function cloudBusy() { return !!client?.busy || (!!gate && !gate.hidden); }
+export function cloudBusy() { return !!client?.blocking || !!client?.waiting || (!!gate && !gate.hidden); }
 export function cloudGuest() { return !!client?.auth?.user?.is_anonymous; }
 export function cloudAccount() { return cloudGuest() ? "ゲストで冒険中" : client?.auth?.user?.email || ""; }
 export function cloudSave(snapshot) { return client.save(snapshot); }
@@ -270,7 +284,7 @@ export async function connectCloud(localSave, slot = 1, mode = "start") {
   client = new CloudSaveClient(CLOUD_CONFIG, { slot, onBusy: (busy) => {
     if (terminal || client.waiting || managing) return;
     // 通常の保存・戦闘・占有延長では画面を覆わず、直前の景色と演出を保つ。
-    // 通信順序とcloudBusyによる二重操作防止は表示から独立して維持する。
+    // 通常保存は裏で続け、戦闘結果待ちと復旧操作だけ入力を止める。
     if (!busy) gate.hidden = true;
   }, onFailure: failure });
   const agreedThisVisit = await agreeToTerms(getJSON(AUTH_KEY)?.user?.id);
