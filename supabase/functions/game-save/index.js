@@ -1,3 +1,4 @@
+import { LEGAL_VERSION } from "../../../src/legal.js";
 import { refSerialize, refDeserialize } from "../../../src/savegraph.js";
 import { resolveCloudBattle } from "../../../src/cloud-battle.js";
 
@@ -21,10 +22,21 @@ async function rpc(name, body) {
 
 async function command(user, body) {
   if (body.protocol !== 1) throw Object.assign(new Error("cloud_version_mismatch"), { status: 409 });
+  if (body.op === "consent") {
+    if (body.version !== LEGAL_VERSION) throw Object.assign(new Error("cloud_version_mismatch"), { status: 409 });
+    return rpc("cloud_accept_terms", { p_user: user.id, p_version: LEGAL_VERSION });
+  }
   if (!uuid.test(body.sessionId)) throw Object.assign(new Error("通信の形式が不正です"), { status: 400 });
   const slot = body.slot === undefined ? 1 : body.slot;
-  if (!Number.isInteger(slot) || slot < 1 || slot > 3) throw Object.assign(new Error("記録の番号が不正です"), { status: 400 });
+  if (slot !== 1) throw Object.assign(new Error("記録の番号が不正です"), { status: 400 });
   const s = await rpc("cloud_claim_slot", { p_user: user.id, p_session: body.sessionId, p_slot: slot });
+  if (s.terms_version !== LEGAL_VERSION) throw Object.assign(new Error("cloud_version_mismatch"), { status: 409 });
+  if (body.op === "delete-account") {
+    const r = await fetch(`${url}/auth/v1/admin/users/${user.id}`, { method: "DELETE",
+      headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } });
+    if (!r.ok) throw Object.assign(new Error("アカウントを削除できません"), { status: 503 });
+    return { deleted: true };
+  }
   if (body.op === "claim") return { revision: s.revision, snapshot: s.snapshot };
   if (body.op === "renew") {
     if (s.revision !== body.revision) throw Object.assign(new Error("cloud_revision_conflict"), { status: 409 });

@@ -4,4 +4,5 @@ export const CLOUD_CONFIG = Object.freeze({
   url: "",
   anonKey: "",
   protocol: 1,
+  turnstileSiteKey: "",
 });

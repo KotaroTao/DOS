@@ -158,10 +158,10 @@ for (const ability of ["goldSteal", "soulSteal", "drain"]) {
   await Promise.all([c.save({ first: true }), c.save({ second: true }), c.battle("enemy")]);
   assert.deepEqual(revisions, [0, 1, 2]); assert.equal(c.revision, 3);
 }
-// 別の枠の送信待ちを残したまま、それぞれ同じ要求を回収できる。
+// 記録1の旧形式の送信待ちを同じ要求で回収できる。
 {
   const disk = storage(), sent = new Map();
-  for (const slot of [1, 2, 3]) {
+  for (const slot of [1]) {
     const c = new CloudSaveClient(config, { storage: disk, slot, fetcher: async (url, opts) => {
       const body = JSON.parse(opts.body);
       assert.equal(body.slot ?? 1, slot);
@@ -170,7 +170,7 @@ for (const ability of ["goldSteal", "soulSteal", "drain"]) {
     c.auth = auth; c.sessionId = "session";
     await assert.rejects(c.save({ slot }));
   }
-  for (const slot of [3, 2, 1]) {
+  for (const slot of [1]) {
     const c = new CloudSaveClient(config, { storage: disk, slot, fetcher: async (url, opts) => {
       assert.deepEqual(JSON.parse(opts.body), sent.get(slot));
       return Response.json({ revision: 1 });
