@@ -66,6 +66,8 @@ async function command(user, body) {
       response = resolveCloudTurn(next, body.action);
       snapshot = refSerialize(next);
     }
+  } else if (body.op === "reset") {
+    snapshot = null;
   } else if (body.op === "battle") {
     const current = refDeserialize(snapshot);
     // 乱数・フックを結線して計算し終えるまでawaitを挟まず、別の要求と混ざらないようにする。

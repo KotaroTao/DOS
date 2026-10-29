@@ -81,6 +81,22 @@ with sync_playwright() as p:
     assert page.evaluate("JSON.parse(localStorage.getItem('dos-cloud-auth')).user.id")==uid
     assert page.evaluate("__game.G.gold")==4321
     # 退会では本人のアカウントとクラウド記録を削除する。
+    page.reload()
+    page.get_by_role("button",name="データ削除",exact=True).click()
+    page.get_by_role("alertdialog",name="データ削除の確認").wait_for()
+    page.get_by_role("button",name="やめる",exact=True).click()
+    assert not [x for x in sent if x[1] and '"op":"reset"' in x[1]]
+    page.get_by_role("button",name="データ削除",exact=True).click()
+    page.get_by_role("button",name="消して始める",exact=True).click()
+    page.locator(".ttl-overlay:not(.ttl-out) .ttl-menu .ttl-btn.primary").wait_for()
+    page.locator(".ttl-overlay:not(.ttl-out) .ttl-menu .ttl-btn.primary").click()
+    page.get_by_role("dialog",name="弟子の名前").wait_for()
+    assert page.evaluate("__game.G.gold")==0
+    assert page.evaluate("__game.G.party.length")==0
+    assert page.evaluate("JSON.parse(localStorage.getItem('dos-cloud-auth')).user.id")==uid
+    assert [x for x in sent if x[1] and '"op":"reset"' in x[1]]
+    page.get_by_role("dialog",name="弟子の名前").get_by_role("textbox").fill("新たな弟子")
+    page.get_by_role("button",name="旅を始める",exact=True).click()
     page.evaluate("() => import('./src/cloud-save.js').then(m => {m.cloudManageAccount();})")
     page.get_by_role("button",name="退会・記録を削除",exact=True).click()
     page.get_by_label("削除の確認",exact=True).fill("削除")

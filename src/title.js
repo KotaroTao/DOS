@@ -11,7 +11,7 @@ import { showPlaytestRecords } from "./playtest.js";
 //   目覚めの鐘: 門が脈打ち、巨像の眼が灯り、鴉が飛び立つ
 // showTitle({ hasSave, summary, onStart, onNewGame? })
 //   summary: { head, lines[], sprites[] } — つづきからのカードに出す
-//   onNewGame (任意): セーブがあっても「はじめから」を選べるようにする。渡されなければ隠す
+//   onNewGame (任意): セーブがある時に「データ削除」を選べるようにする。渡されなければ隠す
 import { normalizeName, NAME_LIMIT } from "./protagonist.js";
 import { spriteCanvas } from "./sprites.js";
 import { SFX } from "./audio.js";
@@ -104,7 +104,7 @@ export function showTitle({ hasSave = false, summary = null, onStart, entry = fa
     goBtn = mkBtn("つづきから", "CONTINUE", "primary");
     btns.appendChild(goBtn);
     if (typeof onNewGame === "function") {
-      newBtn = mkBtn("はじめから", "NEW GAME", "");
+      newBtn = mkBtn("データ削除", "", "danger");
       btns.appendChild(newBtn);
     }
   } else {
@@ -140,8 +140,11 @@ export function showTitle({ hasSave = false, summary = null, onStart, entry = fa
   ui.appendChild(low);
   wrap.appendChild(ui);
 
-  // 「はじめから」(セーブあり) の確認
+  // データ削除は名前入力を挟まず、取消を既定とする確認を表示する。
   const confirmBox = div("ttl-confirm hidden");
+  confirmBox.setAttribute("role", "alertdialog");
+  confirmBox.setAttribute("aria-modal", "true");
+  confirmBox.setAttribute("aria-label", "データ削除の確認");
   confirmBox.append(div("ttl-confirm-t", "この記録を消して、最初から始めますか？"), div("ttl-confirm-s", "消した記録は二度と戻りません。"));
   const cRow = div("ttl-confirm-row");
   const cYes = mkBtn("消して始める", null, "danger");
@@ -150,7 +153,7 @@ export function showTitle({ hasSave = false, summary = null, onStart, entry = fa
   confirmBox.appendChild(cRow);
   wrap.appendChild(confirmBox);
 
-  // 記録を消す前に名前を決める。取消なら現在の冒険には触れない。
+  // 新しい冒険の名前を決める。
   let pendingName = "";
   const nameBox = document.createElement("form");
   nameBox.className = "ttl-confirm ttl-name hidden";
@@ -445,9 +448,9 @@ export function showTitle({ hasSave = false, summary = null, onStart, entry = fa
   if (newBtn) newBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     sfx("select");
-    askName();
+    confirmBox.classList.remove("hidden"); wrap.classList.add("ttl-confirming"); cNo.focus();
   });
-  cNo.addEventListener("click", (e) => { e.stopPropagation(); sfx("select"); confirmBox.classList.add("hidden"); wrap.classList.remove("ttl-confirming"); });
+  cNo.addEventListener("click", (e) => { e.stopPropagation(); sfx("select"); confirmBox.classList.add("hidden"); wrap.classList.remove("ttl-confirming"); newBtn?.focus(); });
   cYes.addEventListener("click", (e) => { e.stopPropagation(); sfx("stairs"); close(() => onNewGame(pendingName)); });
   confirmBox.addEventListener("click", (e) => e.stopPropagation());
   wrap.addEventListener("click", () => { if (!awake) wake(); });
@@ -474,6 +477,12 @@ export function showTitle({ hasSave = false, summary = null, onStart, entry = fa
     if (!testBox.classList.contains("hidden")) {
       e.stopPropagation();
       if (e.key === "Escape") { e.preventDefault(); hideTest(); }
+      return;
+    }
+    if (!confirmBox.classList.contains("hidden")) {
+      e.stopPropagation();
+      if (e.key === "Escape") { e.preventDefault(); cNo.click(); }
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (document.activeElement === cYes) cYes.click(); else cNo.click(); }
       return;
     }
     if (e.key === "Enter" || e.key === " ") {
