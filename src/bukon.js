@@ -160,7 +160,7 @@ export function fuseBukon(g, k, target, keep = 0) {
 }
 function payFusion(g,cost){if(cost==null||!Number.isSafeInteger(g.gold)||g.gold<0||cost>BigInt(g.gold))return false;g.gold-=Number(cost);return true;}
 export function bulkFuseBukon(g,k,keep=1){const plan=bulkFusionPlan(g,k,keep);if(!plan||!payFusion(g,plan.cost))return false;g.bukonStock=plan.stock;return true;}
-export function rollBukon(it,progress=6,rnd=random){
+export function rollBukon(it,recommendedLv=1,rnd=random){
  const gear={r:0,sr:1,lr:2}[rarityKey(it)];if(gear==null)return null;
  let x=rnd()*100,rarity=0;for(let i=0;i<BUKON_RARITIES.length;i++){if((x-=BUKON_RARITIES[i].weight)<0){rarity=i;break;}}
  // 先に格を抽選するため、装備部位で格の確率は変わらない。装着可能な種類だけ選ぶ。
@@ -168,8 +168,11 @@ export function rollBukon(it,progress=6,rnd=random){
  const choices=fits.length?fits:pool;
  if(!choices.length)return null;
  const d=choices[Math.min(choices.length-1,Math.floor(rnd()*choices.length))];
- const max=Math.min(d.max||Infinity,2+Math.floor(Math.max(0,progress-6)/3)+gear);
- let lv=1;while(lv<max&&rnd()<.18+gear*.14)lv++;return {k:d.id,lv};
+ // 推奨Lvの100ごとに上位の確率が10ポイント増える。加算系だけは成長を続ける。
+ const step=Math.floor(Math.max(0,recommendedLv)/100),base=1+Math.floor(step/10);
+ const max=d.kind==="flat"?Infinity:Math.min(d.max,3);
+ const lv=base>=max?max:base+(step%10>0&&rnd()<(step%10)/10?1:0);
+ return {k:d.id,lv};
 }
 export const activeBukon=it=>(it?.bukon||[]).filter(b=>validBukon(b)&&bukonFits(it,b)).slice(0,bukonSlots(it));
 export function bukonItem(it,{legendarySeen=new Set(),specialLevels=null}={}){

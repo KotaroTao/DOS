@@ -43,3 +43,24 @@ console.log('武魂枠C/UC1・R/SR2・LR3：装着境界・素材不変・超過
 
 const overfull={slot:'body',rar:'c',bukon:[{k:'flat_hp',lv:1},{k:'flat_mp',lv:1}]};
 assert.equal(b.bukonItem(overfull).hp,10);assert.equal(b.bukonItem(overfull).mp,undefined,'旧品も枠内だけ有効');
+
+// 乱数を100分割し、全種類・装備レア度で境界と上位Lvの配分を確かめる。
+for(const d of active){
+ const slot=d.slots[0],pool=active.filter(x=>x.rarity===d.rarity&&x.slots.includes(slot));
+ const rarityRoll=(b.BUKON_RARITIES.slice(0,d.rarity).reduce((n,x)=>n+x.weight,0)+.1)/100;
+ for(const rar of ['r','sr','lr'])for(const lv of [0,99,100,199,200,900,999,1000,1099,1100,1900,1999,2000,2099,2100,2900,3000,3100,3900,4000,4900,5000,100000]){
+  const actual=new Map();
+  for(let i=0;i<100;i++){
+   const rolls=[rarityRoll,(pool.indexOf(d)+.5)/pool.length,(i+.5)/100];
+   const soul=b.rollBukon({slot,rar},lv,()=>{assert(rolls.length);return rolls.shift();});
+   assert.equal(soul.k,d.id);assert(b.validBukon(soul));actual.set(soul.lv,(actual.get(soul.lv)||0)+1);
+  }
+  const base=1+Math.floor(lv/1000),chance=Math.floor(lv%1000/100)*10;
+  const cap=d.kind==='flat'?Infinity:Math.min(3,d.max),expected=new Map();
+  for(const [value,count] of [[Math.min(base,cap),100-chance],[Math.min(base+1,cap),chance]])if(count)expected.set(value,(expected.get(value)||0)+count);
+  assert.deepEqual(actual,expected,`${d.id} ${rar} 推奨Lv${lv}`);
+ }
+}
+assert.equal(b.rollBukon({slot:'weapon',rar:'c'},5000),null);
+assert.equal(b.rollBukon({slot:'weapon',rar:'uc'},5000),null);
+console.log('武魂ドロップ：全種類・R/SR/LRの配分、100/1000境界、加算系の継続成長、他Lv3・固定Lv1上限を確認');
