@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import * as b from '../../src/bukon.js';
 import {elementMultiplier} from '../../src/combatrules.js';
 const active=b.BUKON.filter(d=>!d.retired);
-assert.equal(active.length,137);assert.equal(new Set(active.map(d=>d.id)).size,137);
+assert.equal(active.length,138);assert.equal(new Set(active.map(d=>d.id)).size,138);
 for(const d of active){for(const lv of [1,d.max||1000]){
  const soul={k:d.id,lv};assert(b.validBukon(soul));assert(b.bukonText(soul).includes(d.name));
  for(const slot of ['weapon','shield','body','head','hands','feet','acc']){
@@ -23,7 +23,23 @@ assert.equal(b.fusionGold('crit',10),25600n);assert.equal(b.fusionGold('flat_hp'
 const bulk={gold:10000};b.stockAdd(bulk,{k:'flat_hp',lv:1},9);assert.equal(b.bulkFusionPlan(bulk,'flat_hp',0).cost,410n);assert(b.bulkFuseBukon(bulk,'flat_hp',0));assert.equal(bulk.gold,9590);assert.equal(bulk.bukonStock['flat_hp:3'],'1');
 const protectedStock={gold:10000,bukonProtected:{'crit:1':true}};b.stockAdd(protectedStock,{k:'crit',lv:1},30);assert.equal(b.fusionPlan(protectedStock,'crit',2),null);
 const migration={bukonStock:{'X14:1':'2','X32:1':'3'}},it={slot:'body',bukon:[{k:'F01',lv:3}]};assert(b.migrateBukon(migration,[it]));assert.equal(it.bukon.length,0);assert.equal(migration.bukonStock['F01:3'],'1');assert.equal(migration.bukonStock['spellCrit:1'],'2');assert(!b.migrateBukon(migration,[it]));
-const all=b.bukonItem({slot:'body',bukon:[{k:'res_allElements',lv:10},{k:'elem_def_fire',lv:10}]});assert.equal(all.bukonElementDef.fire,1);assert.equal(all.bukonElementDef.water,.5);
+const all=b.bukonItem({slot:'body',rar:'lr',bukon:[{k:'res_allElements',lv:10},{k:'elem_def_fire',lv:10}]});assert.equal(all.bukonElementDef.fire,1);assert.equal(all.bukonElementDef.water,.5);
 assert.equal(elementMultiplier('fire',100,{reductions:all.bukonElementDef}),.19999999999999996);
 const counts=Array(5).fill(0);for(let i=0;i<10000;i++){let n=0;const soul=b.rollBukon({slot:'weapon',rar:'lr'},100,()=>n++===0?(i+.5)/10000:.999);assert(soul);counts[b.bukonDef(soul.k).rarity]++;}assert.deepEqual(counts,[8000,1250,500,200,50]);
-console.log('武魂137種：成長・部位・抽選比率・異Lv素材・金貨・保護・旧セーブ移行を確認');
+console.log('武魂138種：成長・部位・抽選比率・異Lv素材・金貨・保護・旧セーブ移行を確認');
+// 枠縮小：境界で装着を拒否し、旧品の超過分は個数を失わず商会へ戻す。
+for(const [rar,slots] of Object.entries({c:1,uc:1,r:2,sr:2,lr:3})){
+ const state={},gear={slot:'body',rar,bukon:[]};assert.equal(b.bukonSlots(gear),slots);
+ const souls=['flat_hp','flat_mp','flat_atk','flat_vit','flat_int'].map(k=>({k,lv:1}));
+ for(const soul of souls)b.stockAdd(state,soul);
+ for(const soul of souls.slice(0,slots))assert(b.attachBukon(state,gear,soul));
+ const blocked=souls[slots],before=JSON.stringify(state);assert.equal(b.attachBlock(gear,blocked),'武魂の枠がいっぱい');assert(!b.attachBukon(state,gear,blocked));assert.equal(JSON.stringify(state),before);
+ const old={slot:'body',rar,bukon:souls.map(x=>({...x}))},legacy={};
+ assert(b.migrateBukon(legacy,[old,old]));assert.deepEqual(old.bukon,souls.slice(0,slots));
+ assert.equal(b.stockRows(legacy).reduce((n,x)=>n+Number(x.count),0),5-slots);
+ assert(!b.migrateBukon(legacy,[old]),'再読込で二重回収しない');
+}
+console.log('武魂枠C/UC1・R/SR2・LR3：装着境界・素材不変・超過回収・共有参照・再読込 OK');
+
+const overfull={slot:'body',rar:'c',bukon:[{k:'flat_hp',lv:1},{k:'flat_mp',lv:1}]};
+assert.equal(b.bukonItem(overfull).hp,10);assert.equal(b.bukonItem(overfull).mp,undefined,'旧品も枠内だけ有効');

@@ -3,7 +3,7 @@ import { UI, game, registerUI } from "./ctx.js";
 import { el, button, sheet, confirm as askConfirm, toast } from "./kit.js";
 import { itemName, recalc } from "../items.js";
 import { bukonText, bukonSlots, bukonDef, bukonItem, attachBlock, fusionPlan, fusionGold, bulkFusionPlan, maxFusionLevel, BUKON_RARITIES } from "../bukon.js";
-export const ENCHANT_NOTE = "武魂は装備を使った者の魂が宿ったもの。対応部位だけに無料で宿し、外せる。枠はコモン1・アンコモン2・レア3・SR4・LR5。同効果は1装備に1つ。売却・廃棄・素材化で商会へ戻る。加算系はLv上限なし、他はLv10まで。借用枠追加・持続延長・能力低下反転はレベルなし。特殊効果は人業ごとに同種の最高Lvだけが働く。";
+export const ENCHANT_NOTE = "武魂は装備を使った者の魂が宿ったもの。対応部位だけに無料で宿し、外せる。枠はコモン・アンコモン1、レア・SR2、LR3。同効果は1装備に1つ。売却・廃棄・素材化で商会へ戻る。加算系はLv上限なし、他はLv10まで。借用枠追加・持続延長・能力低下反転はレベルなし。特殊効果は人業ごとに同種の最高Lvだけが働く。";
 export const enchantPracticeState = () => null;
 export function prepareEnchantTutorial() {}
 // 旧付呪の破壊的な写し取り窓口は公開しない。
