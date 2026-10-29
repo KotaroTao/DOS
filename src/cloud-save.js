@@ -269,7 +269,9 @@ export async function connectCloud(localSave, slot = 1, mode = "start") {
   }
   client = new CloudSaveClient(CLOUD_CONFIG, { slot, onBusy: (busy) => {
     if (terminal || client.waiting || managing) return;
-    if (busy) showGate("記録を保存しています…"); else gate.hidden = true;
+    // 通常の保存・戦闘・占有延長では画面を覆わず、直前の景色と演出を保つ。
+    // 通信順序とcloudBusyによる二重操作防止は表示から独立して維持する。
+    if (!busy) gate.hidden = true;
   }, onFailure: failure });
   const agreedThisVisit = await agreeToTerms(getJSON(AUTH_KEY)?.user?.id);
   if (!await recoveryLogin(client)) {
