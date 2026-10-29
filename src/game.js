@@ -10,7 +10,7 @@ import { insightTotals, insightTitle } from "./insight.js";
 import { INF_BUY_CAP, infRecovery, infUseCount, infSupplyLeft, infSpendSupply } from "./infsupplies.js";
 import { random, fxRandom, bindRngState, rngState } from "./rng.js";
 import { refSerialize, refDeserialize, applySavePatch, acknowledgedSave } from "./savegraph.js";
-import { cloudEnabled, cloudHasSession, cloudReady, cloudBusy, connectCloud, cloudRegisterPrompt, cloudSave, cloudBattle, cloudFlush, cloudFatal } from "./cloud-save.js";
+import { cloudEnabled, cloudHasSession, cloudReady, cloudBusy, connectCloud, cloudRegisterPrompt, cloudSave, cloudBattle, cloudFlush, cloudReset, cloudFatal } from "./cloud-save.js";
 import { LocalSaveSession, showLocalSaveBlocked, showLocalSaveRecovery, saveSlotFromURL, localSaveKey } from "./local-save.js";
 import { watchGameUpdates } from "./game-update.js";
 import { syncEnemyUids, enemySoulRewardMul, openingRates } from "./combat.js";
@@ -20163,10 +20163,16 @@ async function init() {
     try { localSave = localStorage.getItem(SAVE_KEY); } catch {}
     titleActive = true; G.prompt = true;
     const entryMode = await new Promise(resolve => {
-      showTitle({ entry: true, hasSave: cloudHasSession(), onStart: () => resolve("start"), onLogin: () => resolve("login") });
+      showTitle({ entry: true, hasSave: cloudHasSession(), onStart: () => resolve("start"), onLogin: () => resolve("login"), onNewGame: cloudHasSession() ? () => resolve("reset") : null });
       revealBootScreen();
     });
     const snapshot = await connectCloud(localSave, 1, entryMode);
+    if (entryMode === "reset") {
+      _resetting = true;
+      await cloudReset();
+      location.reload();
+      return;
+    }
     loaded = loadGame(snapshot);
     if (snapshot && !loaded) throw new Error("クラウドの記録を読み込めません");
   } else {
@@ -20227,7 +20233,7 @@ async function init() {
     G.prompt = false;
     startAfterTitle(loaded);
   };
-  // タイトルの「はじめから」(記録あり): 確認ののち記録を消して読み直し、開始ボタンの操作で音声を解禁する
+  // タイトルの「データ削除」(記録あり): 確認ののち記録を消して読み直し、開始ボタンの操作で音声を解禁する
   const newGameFromTitle = (name) => {
     if (!clearSave()) return;
     _resetting = true;

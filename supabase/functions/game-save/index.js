@@ -59,6 +59,8 @@ async function command(user, body) {
       throw Object.assign(new Error("記録の形式が不正です"), { status: 400 });
     }
     snapshot = body.snapshot;
+  } else if (body.op === "reset") {
+    snapshot = null;
   } else if (body.op === "battle") {
     const current = refDeserialize(snapshot);
     // 乱数・フックを結線して計算し終えるまでawaitを挟まず、別の要求と混ざらないようにする。
