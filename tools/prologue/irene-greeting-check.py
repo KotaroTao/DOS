@@ -35,6 +35,13 @@ with sync_playwright() as p:
             page.locator('.tut-glow:visible').first.click()
             page.wait_for_timeout(350)
         assert page.evaluate('__game.G.tut.done.createThree && __game.G.party.length === 3')
+        page.wait_for_selector('.iv-scene:not(.out)')
+        for expected in ['三体とも、目を開けましたね。', '近くの森の古屋に', '古屋は二階建てです。']:
+            assert expected in page.locator('.iv-say').inner_text()
+            page.locator('.iv-say').click()
+        page.wait_for_selector('.iv-scene', state='detached')
+        assert page.evaluate('__game.G.msq.prologue.phase === "forest" && __game.G.world.open.w00_forest')
+        assert not page.locator('.ui-celebrate:visible').count()
         assert not errors, errors
         print(f'{width}px 挨拶済み={greeted} スキップ={skip}: 会話から三体の仕立てまで成功', flush=True)
         page.close()

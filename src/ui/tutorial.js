@@ -4,7 +4,7 @@ import { playtestEvent } from "../playtest.js";
 // 語りを閉じた直後に、その要素の手ほどきが始まる。手ほどきを終えるまで迷宮の門は開かない
 // (game.js blockForTutorial ← 出撃シート・departNow・奈落)。
 //   流れ: 導入 (館の主イレーヌ / 酒場の情報屋の語り) → 手順 (実際に操作する。イレーヌの台詞で今の手順を案内し、
-//         押す所が光る) → 完了のカード。手順の完了は状態 (done) か、UI から届く合図 (on = tutorialEvent) で判定する。
+//         押す所が光る) → 完了の会話。手順の完了は状態 (done) か、UI から届く合図 (on = tutorialEvent) で判定する。
 //   練習用の素材は導入で預ける (詰まないように): 魂融合は戦士の魂を必ず2つ (2つどうしでも融合できる)、
 //   サブ魂は宿す魂が無ければ1つ。
 //   どうしても行えない手順 (素材を使い切った等) は skip で飛ばし、手ほどき自体は必ず終えられる。
@@ -17,6 +17,7 @@ import { UI, game, registerUI } from "./ctx.js";
 import { el, setText, button, sheet, toast, celebrate, sheetDepth } from "./kit.js";
 import { unphrase } from "./phrase.js";
 import { playIreneScene, sceneActive, isGreeted, greetingPages } from "./irene.js";
+import { playStoryChain } from "./story.js";
 import { keeperCanvas, vignetteCanvas } from "../townart.js";
 import { SOUL_CLASSES, soulByUid } from "../souls.js";
 
@@ -153,7 +154,7 @@ function gateVisited() {
 // ---- 手ほどきの定義 (解放の順) ----
 //   at = 解放の踏破報告数 / open() = 解放済みか / used() = もう使ったことがある (旧セーブは済み扱い)
 //   prepare() = 始める時 (練習用の素材を預ける。導入に添える一言を返す)
-//   intro(note) = 導入 / steps = [{ text, hint, go(), target[], done?(), on?, skip?() }] / outro = 完了のカードの行
+//   intro(note) = 導入 / steps = [{ text, hint, go(), target[], done?(), on?, skip?() }] / outro = 完了時の台詞
 const TUTS = [
   {
     key: "repairSoul", name: "砕けた魂の修復", who: "irene",
@@ -163,11 +164,11 @@ const TUTS = [
       ...(anyBroken()
         ? [["……お帰りなさい。魂の灯が、途切れてしまったのですね。", "けれど、あの子たちとの別れを決めるには、まだ早いのです。"]]
         : [["……お帰りなさい。迷宮で、魂の灯が途切れかけたのですね。", "皆さまがこうして立っていてくださって、ほっとしました。次のために、お話ししておきます。"]]),
-      ["器が砕けると、宿っていた魂も砕け、深い眠りに落ちます。", "街へ戻るだけでも、宿で休むだけでも、その灯は戻りません。"],
+      ["人業が砕けると、宿っていた魂も砕け、深い眠りに落ちます。", "街へ戻るだけでも、宿で休むだけでも、その灯は戻りません。"],
       ["この館なら、わたしが砕けた魂をつなぎ直せます。", anyBroken()
-        ? "その子を選び、『魂を修復』を押してください。修復の費用は、その子の状態と一緒にお確かめください。魂も器も、力を取り戻して立ち上がります。"
-        : "砕けた子がいたら、館でその子を選び、『魂を修復』を押してください。修復の費用は、その子の状態と一緒にお確かめください。魂も器も、力を取り戻して立ち上がります。"],
-      ["皆が倒れた時は、器が迷宮に残されます。ほかの冒険者が連れ帰るまで、お待ちください。", "深い階ほど時がかかります。『連れ帰る』で必要な赤い魂の数を確かめられます。費用がかからない場合は、そのまま連れ帰れます。修復は器が届いてからです。"],
+        ? "その子を選び、『魂を修復』を押してください。修復の費用は、その子の状態と一緒にお確かめください。魂も人業も、力を取り戻して立ち上がります。"
+        : "砕けた子がいたら、館でその子を選び、『魂を修復』を押してください。修復の費用は、その子の状態と一緒にお確かめください。魂も人業も、力を取り戻して立ち上がります。"],
+      ["皆が倒れた時は、人業が迷宮に残されます。ほかの冒険者が連れ帰るまで、お待ちください。", "深い階ほど時がかかります。『連れ帰る』で必要な赤い魂の数を確かめられます。費用がかからない場合は、そのまま連れ帰れます。修復は人業が届いてからです。"],
       anyBroken()
         ? ["金貨が必要な時も、足りなければ、お待ちします。", "あの子たちの名を、忘れずにいてください。もう一度呼びかける日まで、わたしがお預かりします。"]
         : ["金貨が必要な時も、足りなければ、お待ちします。", "砕けた子は、もう一度呼びかける日まで、わたしがお預かりします。"],
@@ -177,20 +178,20 @@ const TUTS = [
       if (d && UI.openParty) UI.openParty(d, { context: "town" });
     },
     // 連れ帰り待ち・金貨不足でも、説明を聞けば手ほどきを終えられる。
-    steps: [{ text: "砕けた人業の状態を確認する", hint: "器が届いたら、費用を確かめて『魂を修復』", done: () => true }],
-    outro: ["砕けた魂は、人業の館で修復できる。必要な金貨は、修復する人業を選んで確かめよう。全滅で残された器は、連れ帰りを待とう。"],
+    steps: [{ text: "砕けた人業の状態を確認する", hint: "人業が届いたら、費用を確かめて『魂を修復』", done: () => true }],
+    outro: ["砕けた魂は、この館でわたしが修復いたします。必要な金貨は、その子を選んでお確かめください。", "全滅で迷宮に残された人業は、連れ帰りを待ちましょう。人業が届いたら、またその子の名を呼んであげてください。"],
   },
   {
     key: "createThree", name: "三体に魂を宿す", who: "irene",
     open: () => game.prologuePhase?.() === "three", used: () => false,
     intro: () => [["では、王さまから授かった魂を宿して、この子たちを目覚めさせましょう。", "戦士・僧侶・盗賊の魂を一つずつ選び、名前を与えてください。"]],
     steps: [{ text: "戦士・僧侶・盗賊の魂を宿す", hint: "人業を仕立てる → 魂 → 名前", go: () => game.goMakeDoll(), target: [".pt-empty button", ".pt-form .pt-empty-slot"], done: () => initialJobsReady(["fighter", "priest", "thief"]) }],
-    outro: ["三体の人業が目覚めた。", "イレーヌ「近くの森の古屋に、しばらく使っていない人業があるのです。三体と一緒に、連れ帰っていただけますか。」", "森の古屋は全二階。二階で人業を探し、館へ戻ろう。"],
+    outro: ["三体とも、目を開けましたね。あなたが与えた名を、これから何度も呼んであげてください。", "近くの森の古屋に、しばらく使っていない人業があるのです。三体と一緒に、連れ帰っていただけますか。", "古屋は二階建てです。二階でその子を探し、この館へお連れください。お待ちしています。"],
   },
   ...[
-    { key: "createFourth", phase: "fourth", count: 4, job: "mage", body: "ほこりをかぶった人業", intro: "連れ帰ってくださって、ありがとうございます。ほこりを払えば、この子はまだ働けます。", next: "四体の隊がそろった。王宮で依頼を受けよう。" },
-    { key: "createFifth", phase: "fifth", count: 5, job: "knight", body: "王宮から受け取った人業", intro: "王宮の倉庫に、この子が眠っていたのですね。この魂を宿してみてください……。", next: "五体の隊がそろった。続いて、前衛と後衛の並べ方を覚えよう。" },
-    { key: "createSixth", phase: "sixth", count: 6, job: "bishop", body: "壊れた人業", intro: "どこかの操霊師が使っていた人業ですね。継ぎ目を直せば、まだ使えます。館に残っていた司教の魂をお渡しします。", next: "六体の隊がそろった。続いて司教の鑑定を試そう。" },
+    { key: "createFourth", phase: "fourth", count: 4, job: "mage", body: "ほこりをかぶった人業", intro: "連れ帰ってくださって、ありがとうございます。ほこりを払えば、この子はまだ働けます。", next: "四体の隊がそろいましたね。王宮へ向かい、依頼をお受けください。" },
+    { key: "createFifth", phase: "fifth", count: 5, job: "knight", body: "王宮から受け取った人業", intro: "王宮の倉庫に、この子が眠っていたのですね。この魂を宿してみてください……。", next: "五体の隊がそろいましたね。続いて、前衛と後衛の並べ方をお教えします。" },
+    { key: "createSixth", phase: "sixth", count: 6, job: "bishop", body: "壊れた人業", intro: "どこかの操霊師が使っていた人業ですね。継ぎ目を直せば、まだ使えます。館に残っていた司教の魂をお渡しします。", next: "これで六体がそろいましたね。続いて、この司教の力で品を鑑定してみましょう。" },
   ].map(({ key, phase, count, job, body, intro, next }) => ({
     key, get name() { return `${count}体目に${jobLabel(game.prologueJob?.(phase) || job)}の魂を宿す`; }, who: "irene",
     open: () => game.prologuePhase?.() === phase, used: () => false,
@@ -211,7 +212,7 @@ const TUTS = [
       { text: "前衛へ移す人業の『編成』を開く", hint: "光っている隊列", go: () => UI.openParty?.(formationMove().mover, { context: "town" }), target: [".pt-mansion-manage"], on: "formationPickerOpened", done: formationReady },
       { text: "術を使う人業を後衛に置く", hint: "光っている入れ替え相手", go: () => UI.openFormationSheet?.(formationMove().mover), target: ['.pt-sw-card[data-swap-job="priest"]'], done: formationReady },
     ],
-    outro: ["前衛は戦士・騎士・盗賊、後衛は魔導士・僧侶。隊列が整った。", "館では『編成』で二体を選べば、いつでも並べ直せる。隊列の顔を長押しして、替えたい相手へ動かしてもよい。", "王宮で次の依頼を受けよう。"],
+    outro: ["隊列が整いましたね。前衛は戦士・騎士・盗賊、後衛は魔導士・僧侶です。", "館の『編成』で二体を選べば、いつでも並べ直せます。隊列の顔を長押しして、替えたい相手へ動かしてもよいのですよ。", "支度が済んだら、王宮で次の依頼をお受けください。"],
   },
   {
     key: "prologueAppraise", name: "司教の鑑定", who: "irene", facility: "shop",
@@ -219,7 +220,7 @@ const TUTS = [
     prepare: () => game.preparePrologueAppraisal?.(),
     intro: () => [["司教は鑑定の技を持っています。迷宮で手に入れた品を、街で無料で鑑定できます。", "試しに、この『杖？』を鑑定してみてください。"], ["この商会で『鑑定を試みる』をお選びください。", "表示される成功率を確かめてから、始めましょう。"]],
     steps: [{ text: "商会で『杖？』の鑑定を試みる", hint: "商会 → 売る → 鑑定を試みる", go: () => UI.openShop?.("sell"), target: [".prologue-appraise"], done: () => !!G_().msq?.prologue?.appraised }],
-    outro: ["『杖？』は、魔法の杖（品質50）だった。", "王宮で回廊の報告をし、次の依頼を受けよう。"],
+    outro: ["正体がわかりましたね。『杖？』は、品質50の魔法の杖でした。", "王宮で回廊の報告をして、次の依頼をお受けください。この子たちと、ご無事で戻られますように。"],
   },
   {
     key: "buyEquipment", name: "商会で装備を整える", who: "shop",
@@ -232,7 +233,7 @@ const TUTS = [
       ...(UI.tutorialPurchaseBlock?.() ? [`ヴォス「${UI.tutorialPurchaseBlock()}買い方は覚えたな。今回はこのまま向かうといい。」`] : []),
     ],
     steps: [{ text: "おすすめの装備を一品購入する", hint: "商会 → 買う → おすすめ → 買って装備", go: () => UI.openShop?.("buy", { cat: "rec" }), target: [".wpc-buy-main:not(:disabled)"], on: "equipmentBought", skip: () => !!UI.tutorialPurchaseBlock?.() }],
-    outro: ["ヴォス「支度はできたな。棚にない品は、迷宮で探してくれ。生きて持ち帰れば、次の備えになる。」", "地下墓地へ進めるようになった。"],
+    outro: ["買い方はつかめたな。棚にない品は、迷宮で探してくれ。生きて持ち帰れば、次の備えになる。", "地下墓地へ向かう支度が済んだら、迷宮の門へ行くといい。"],
   },
   {
     key: "shopAppraise", name: "持ち帰った品の鑑定", who: "shop",
@@ -245,7 +246,7 @@ const TUTS = [
       "「今は金貨が足りなければ、袋に入れたまま持っていていい。鑑定が済んだら、装備を見直してみるんだな。」",
     ],
     steps: [{ text: "商会で鑑定の説明を聞く", hint: "商会 → 売る → 鑑定", done: () => true }],
-    outro: ["未鑑定の品は、鑑定してから装備しよう。鑑定料と売値は同額、買値は売値の二倍。売った品は商会で買い直せる。"],
+    outro: ["未鑑定の品は、正体を確かめてから装備するんだ。鑑定料と売値は同じ額、買値は売値の二倍だ。", "売った品は商会で買い直せる。ただし通常の品は並の品質になる。大事な品は、手放す前によく考えろよ。"],
   },
   {
     key: "trainSoul", name: "魂を強化", who: "irene",
@@ -261,7 +262,7 @@ const TUTS = [
       target: [".sp-acts .ui-btn.k-primary:not(:disabled)"], on: "soulTrained",
       skip: () => !(UI.trainableList?.().length > 0),
     }],
-    outro: ["✦Soulがたまったら、館の『魂を強化』で育てよう。強化する魂と費用は、いつでも確認できる。"],
+    outro: ["✦Soulがたまったら、また館の『魂を強化』で育ててあげてください。", "強化する魂と必要な数は、いつでも確かめられます。どの子に力を分けるか、ゆっくりお考えくださいね。"],
   },
   {
     key: "firstDive", name: "初めて迷宮に入る", who: "gate", manual: true,
@@ -280,7 +281,7 @@ const TUTS = [
       ["新しい職業で使えない装備は外れます。同じ職業の魂は、隊に一つだけです。"],
     ],
     steps: [{ text: "魂の一覧で持ち帰った魂を確かめる", hint: "人業の館 → 魂を交換 → 魂を選んで宿す、または閉じる", go: () => goSoulSeg(), target: [".sp-change"], on: "soulChangeViewed" }],
-    outro: ["魂の付け替えが解放された。魂の見出しの『魂を交換』から、いつでも変更できる。"],
+    outro: ["魂の付け替えは、魂の見出しの『魂を交換』から、いつでも行えます。", "新しい魂を迎えたら、その子にどんな役目を任せたいか、考えてみてください。"],
   },
   {
     key: "fusion", name: "魂融合", who: "irene",
@@ -307,7 +308,7 @@ const TUTS = [
       on: "soulFused:fighter",
       skip: () => !anyFusable(),
     }],
-    outro: ["魂を融合すると、魂の強さとLv上限が上がる。一定数以上の魂を融合すると魂がランクアップ。"],
+    outro: ["魂を融合すると、魂の強さとLv上限が上がります。", "一定数以上の魂を融合すれば、魂がランクアップします。これからの旅で出会う魂も、大切にお連れくださいね。"],
   },
   {
     key: "sub1", name: "サブ魂", who: "irene",
@@ -323,7 +324,7 @@ const TUTS = [
     intro: (gift) => [
       ["持ち帰った魂には、もうひとつ使い道があります。", "職業を変えるメイン魂とは別に、サブ魂として宿すこともできます。"],
       ["本来の魂 (メイン魂) のほかに、もうひとつ。", "これを『サブ魂』と呼びます。"],
-      ["サブ魂は、覚えた技やパッシブを貸してくれます。", "それに、その魂の能力の一部が器に足されます。魂のランクが高いほど多くなります。"],
+      ["サブ魂は、覚えた技やパッシブを貸してくれます。", "それに、その魂の能力の一部が人業に足されます。魂のランクが高いほど多くなります。"],
       ["貸してくれる数は、魂のランクで決まります。", "R1-2はひとつ、R3-4はふたつ、R5なら三つです。"],
       gift ? [`練習に、${gift}お預けします。`, "空いている魂を、サブ魂の枠に宿してみてください。"]
         : ["隊に出していない魂を、", "サブ魂の枠に宿してみてください。"],
@@ -343,7 +344,7 @@ const TUTS = [
         skip: () => !dollWithSub(),
       },
     ],
-    outro: ["メイン魂と別の職の魂を宿せば、職の垣根を越えた一手になる。", "借りる技は、サブ魂の札の『技』からいつでも選び直せる。"],
+    outro: ["メイン魂と別の職の魂を宿せば、職の垣根を越えた一手になります。", "借りる技は、サブ魂の札の『技』から、いつでも選び直せます。その子に合う技を探してあげてください。"],
   },
   {
     key: "tavern", name: "酒場の依頼と噂", who: "tavern",
@@ -359,7 +360,7 @@ const TUTS = [
       text: "酒場の掲示板を見る", hint: "酒場 →『掲示板』",
       go: () => UI.openTavern?.("board"), target: [".fc-qarea"], on: "tavernBoard",
     }],
-    outro: ["掲示板の依頼は、札を選ぶと詳しく読める。次の探索で果たせそうな依頼を探そう。", "情報屋の噂は、酒場に入ると無料で読める。迷宮から帰還するたびに新しい話に変わり、酒場の出入りだけでは変わらない。"],
+    outro: ["掲示板の依頼は、札を選べば詳しく読める。次の探索で果たせそうな頼みを探してみな。", "俺の噂も、酒場に来れば無料で聞けるぞ。迷宮から帰るたびに新しい話を仕入れておく。酒場を出入りするだけじゃ、話は変わらんがな。"],
   },
   {
     key: "rumor", name: "情報屋の噂", who: "tavern",
@@ -376,7 +377,7 @@ const TUTS = [
       go: goTavern, target: [".fc-rumor"],
       done: () => { const G = G_(); return !!(G.rumor || G.activeRumor); },
     }],
-    outro: ["情報屋が読むのは、隊の力に見合う迷宮が多い。噂の迷宮は出撃の地図に「噂」の印で示される。迷宮から戻ったら、新しい噂を確かめよう。"],
+    outro: ["俺が読むのは、あんたの隊の力に見合う迷宮が多い。噂の迷宮には、出撃の地図に『噂』の印が付く。", "迷宮から戻ったら、また顔を出しな。新しい噂を用意しておくよ。"],
   },
   {
     key: "order", name: "控えの結社", who: "irene",
@@ -393,7 +394,7 @@ const TUTS = [
       go: () => goSoulSeg(null), target: [".pt-order"],
       on: "order",
     }],
-    outro: ["席に着けた魂の能力の一部が全員に加わる。ランクが高い魂ほど、分ける割合も大きい。"],
+    outro: ["席に着いた魂の能力の一部が、隊の皆さまに加わります。", "ランクの高い魂ほど、分けられる力も大きくなります。館に残る子たちの力も、旅のお供にしてくださいね。"],
   },
   {
     key: "orderLearning", name: "結社の伝習", who: "irene",
@@ -407,7 +408,7 @@ const TUTS = [
     ],
     steps: [{ text: "結社を開き、伝習の説明と席の魂を確認する", hint: "人業の館 →『結社』",
       go: () => goSoulSeg(null), target: [".pt-order"], on: "order" }],
-    outro: ["結社の各席の魂が、迷宮の戦闘で得た✦Soulの一定の割合を経験値として得る。空席には入らない。育てたい魂を席に着け、次の迷宮へ向かおう。"],
+    outro: ["結社の各席の魂には、迷宮の戦闘で得た✦Soulの一定の割合が、経験値として届きます。", "空席には学びが届きません。育てたい魂を席に着けてから、次の迷宮へお向かいください。"],
   },
   {
     key: "enchant", name: "武魂 — 装備に魂を宿す", who: "shop",
@@ -423,7 +424,7 @@ const TUTS = [
       "「第四章以降の迷宮で、新しく拾うレア以上の装備には武魂が一つ宿る。第六章の結びを報告すれば合成もできるぞ。」",
     ],
     steps: [{ text: "商会の武魂の手引きを確認する", hint: "商会 → 武魂", done: () => true }],
-    outro: ["商会の『武魂』から装備を選んで宿そう。不要な武魂も合成用に残しておこう。"],
+    outro: ["装備に魂を宿す時は、商会の『武魂』から品を選んでくれ。", "今は使わない武魂も、合成の素材になる。先の備えに残しておくといい。"],
   },
   {
     key: "bukonFusion", name: "武魂合成", who: "shop",
@@ -431,7 +432,7 @@ const TUTS = [
     prepare() { game.prepareBukonFusionTutorial?.(); UI.openShop?.("enchant"); },
     intro: () => ["ヴォス「武魂合成を教えよう。練習用にHP+10の武魂を三つ預けた。保管中の一覧から、HPの武魂の『合成』を選んでくれ。」", "「Lv1を三つ使うとLv2になる。必ず成功し、最初の合成は100金貨だ。違うLvも素材に混ぜられる。素材にした武魂はなくなるぞ。」"],
     steps: [{ text: "保管中のHPの武魂を合成する", hint: "商会 → 武魂 → 保管中 → HPの合成 → Lv2", go: () => UI.openShop?.("enchant"), target: [".bk-panel button:not(:disabled)", ".bk-panel input", ".ec-sheet button", ".ui-confirm button", ".ec-sheet select"], on: "bukonFused" }],
-    outro: ["同じ効果の武魂を合成すると効果が育つ。装着中・保護中の武魂は素材にならない。"],
+    outro: ["同じ効果の武魂を合成すれば、その効果を育てられる。", "装着中や保護中の武魂は素材にならん。残したいものには保護をかけておけよ。"],
   },
   {
     key: "extremeAffix", name: "極の特性 — 星の付いた装備", who: "shop",
@@ -444,7 +445,7 @@ const TUTS = [
       "「商会の棚にどの特性を残すか選ぶ時は、特性の効果をよく確かめろ。滅多に見つからない強力な特性もあるからな。」",
     ],
     steps: [{ text: "極の特性の使い方を確認する", hint: "品の説明で発動条件と効果を確かめよう", done: () => true }],
-    outro: ["極の特性は★が目印。付呪では極の付いていない装備にだけ書き込める。商会の棚に残す特性を選ぶ際は、特性の効果を確かめよう。"],
+    outro: ["極の特性は★が目印だ。付呪で書き込めるのは、極がまだ付いていない装備だけだぞ。", "商会の棚にどの特性を残すか選ぶ時も、効果をよく確かめろ。貴重な品だ。急いで決めることはない。"],
   },
 ];
 const TUT_MAP = Object.fromEntries(TUTS.map((t) => [t.key, t]));
@@ -505,7 +506,7 @@ function pending() {
 function isFree(key) { const st = tutState(); return !!st && st.cur === key && !st.done[key]; }
 
 // ---- 始める・続ける ----
-let busy = false; // 導入の語り・完了のカードの最中
+let busy = false; // 導入・完了の会話の最中
 function inTown() { const G = G_(); return !!G && G.state === "town"; }
 
 // UI.tutorialResume(): 済ませていない手ほどきを始める (始めていれば今の手順へ案内する)
@@ -547,18 +548,23 @@ function start(d, { prefix = [], onIntroEnd } = {}) {
   else introSheet(d, after);
   return true;
 }
-// 酒場の手ほどきの導入 (情報屋の札)
+// 商会と酒場も、導入から締めくくりまで教え手の会話として進める。
+function playTutorialScene(d, lines, done) {
+  const shop = d.who === "shop";
+  const name = shop ? "ヴォス" : "情報屋";
+  const art = () => shop ? keeperCanvas("merchant") : vignetteCanvas("tavern");
+  playStoryChain(lines.flat().map(line => ({
+    title: d.name, kicker: shop ? "黒鉄商会" : "沈まぬ灯", place: shop ? "shop" : "tavern",
+    who: { name, art }, lines: [/^(?:ヴォス)?「/.test(line) ? line : `「${line}」`], btnLabel: "心得た",
+  })), done);
+}
 function introSheet(d, done) {
-  let art = null;
-  try { art = d.who === "shop" ? keeperCanvas("merchant") : vignetteCanvas(d.who === "gate" ? "palace" : "tavern"); } catch (e) { art = null; }
-  let fired = false;
-  const go = () => { if (fired) return; fired = true; done(); };
+  if (d.who !== "gate") { playTutorialScene(d, d.intro(), done); return; }
   const h = sheet.open({
-    kind: "choice", className: "tut-intro", banner: "手ほどき", title: d.name, art, lines: d.intro(),
-    footer: [{ label: "心得た", kind: "primary", size: "lg", onTap: (s) => s.close("ok") }],
-    onClose: go,
+    kind: "choice", banner: "手ほどき", title: d.name, lines: d.intro(),
+    footer: [{ label: "心得た", kind: "primary", onTap: s => s.close("ok") }], onClose: done,
   });
-  if (!h || !h.el) go();
+  if (!h?.el) done();
 }
 
 // 今の手順へ: 必要なら行き先を開き、イレーヌの台詞と押す所の光を更新する
@@ -611,6 +617,15 @@ function finish(d) {
     if (pending() && !TUT_MAP[pending().key]?.manual) setTimeout(() => resume(), 240);
   };
   sfx("victory");
+  // 出撃後は探索を止めず、それ以外は教え手との会話で締める。
+  if (d.who === "irene") {
+    playIreneScene(d.outro.map(line => [line]), after);
+    return;
+  }
+  if (d.who !== "gate") {
+    playTutorialScene(d, d.outro, after);
+    return;
+  }
   const more = dueKeys().some((key) => !TUT_MAP[key].manual);
   const h = celebrate({
     banner: "手ほどき完了", title: d.name,
@@ -749,7 +764,7 @@ function ireneGuidance() {
     ["サブ魂の札の『技』を開いてください。", "借りる技を選んだら、閉じてください。"] :
     ["サブ魂の枠を開き、魂をお選びください。", "隊に出していない魂を、宿してみてください。"];
   if (p.key === "order") return ["名前の右の『結社』で、控えの結社を開いてみてください。", "席に着けた魂は、みなに力を分けてくれます。"];
-  if (p.key === "repairSoul") return ["砕けた人業を選び、状態を確かめてください。", "器が届いたら、わたしが金貨で魂をつなぎ直します。"];
+  if (p.key === "repairSoul") return ["砕けた人業を選び、状態を確かめてください。", "人業が届いたら、わたしが金貨で魂をつなぎ直します。"];
   return null;
 }
 function updateGuidance() {
