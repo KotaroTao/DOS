@@ -70,7 +70,7 @@ function openPlayerName(onClose) {
 // 記録済みの累計を分単位で表示する。
 export function formatPlayTime(ms) {
   const minutes = Math.floor(Math.max(0, Number(ms) || 0) / 60000);
-  return `プレイ時間 ${minutes.toLocaleString("ja-JP")}分`;
+  return `プレイ時間 : ${Math.floor(minutes / 60)}h ${minutes % 60}m`;
 }
 export function refreshPlayTime() {
   for (const node of document.querySelectorAll(".player-name-play-time")) node.textContent = formatPlayTime(game.G?.stats?.playMs);
