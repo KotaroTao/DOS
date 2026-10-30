@@ -512,6 +512,7 @@ export function openSoulPicker(d, slotId = "primary") {
   const si = isSub ? +slotId.slice(3) : -1;
   if (!isSub && !soulChangeVisible()) return null;
   if (isSub && (!Number.isInteger(si) || si < 0 || si >= (game.unlockedSubSlots?.() || 0))) return null;
+  UI.tutorialEvent?.(isSub ? "subPickerOpened" : "soulPickerOpened");
   sfx("select");
   return sheet.open({
     kind: "info", className: "sp-pick-sheet", // 魂の選択は縦スクロールで1ページに
@@ -570,6 +571,7 @@ function previewSoul(d, slotId, uid) {
 }
 // 魂を宿す前に、この人業の能力・耐性の変化と、その魂が覚えている技を見せる (メイン・サブとも。ユーザーの指示、2026-10)
 function confirmSoulEquip(d, slotId, s, cur) {
+  if (slotId === "primary") UI.tutorialEvent?.("soulPreviewed");
   const isSub = slotId !== "primary";
   const si = isSub ? +slotId.slice(3) : -1;
   const where = isSub ? `サブ魂${si + 1}` : "メイン魂";
@@ -1338,6 +1340,7 @@ export function openFusePicker(targetUid, onDone) {
     r.classList.add("sp-fuse-material");
     return r;
   };
+  UI.tutorialEvent?.("fusionOpened");
   h = sheet.open({ kind: "info", className: "sp-pick-sheet sp-fuse-sheet", banner: "魂融合", accent: cl.glow,
     footer: [{ label: "とじる", kind: "secondary", onTap: (h) => h.close() }], ...view() });
   return h;
