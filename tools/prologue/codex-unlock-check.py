@@ -46,7 +46,8 @@ with sync_playwright() as p:
           check(!!UI.openCodexSheet({all:true}),'試遊専用の全データは確認できる');close();
           check(!game.featureUnlocked('codex')&&JSON.stringify(G.codex)===recorded,'開発用図鑑で通常の解放と記録を変えない');
           W.commitDungeonClear(false);
-          check(game.featureUnlocked('codex')&&game.featureUnlocked('insight'),'実際の回廊踏破処理で図鑑と見識を同時解放');
+          check(!game.featureUnlocked('codex')&&game.featureUnlocked('insight'),'回廊踏破後も図鑑は手ほどき開始まで伏せる');
+          G.tut.done.insight=true;
           check(!G.world.reported.w02&&game.insightSummary().total===score,'報告前から開き、解放前の発見をすべて評価');
           __game.ev.renderBoard();await new Promise(r=>setTimeout(r,150));
           if(innerWidth>=1000)check(unphrase(document.getElementById('pc-explore-tools')?.textContent||'').includes('敵の図鑑'),'PCの探索メニューは踏破後すぐに図鑑の入口を追加する');
@@ -63,7 +64,7 @@ with sync_playwright() as p:
           check(pagesSeen.some(p=>p.title===UNLOCKS.insight.title)&&pagesSeen.some(p=>p.title===UNLOCKS.tavern.title),'同じ回廊報告で図鑑の手引きと酒場の案内を両方表示');
           check(!game.featureUnlocked('fusion'),'二報告だけでは魂融合を先に解放しない');
           const guide=UNLOCKS.insight.lines.join('');
-          check(['魔物・品・職業・見聞','王宮','手帳','新着','図鑑がどれほど充実','操霊師としての格','称号'].every(t=>guide.includes(t)),'図鑑の使い方を主に、見識が充実度と格を示すことを説明');
+          check(['魔物','品','職業','見聞','設定','王宮','手帳','新着','図鑑がどれほど充実','操霊師としての格','称号'].every(t=>guide.includes(t)),'図鑑の使い方を主に、見識が充実度と格を示すことを説明');
           close();return checks;
         }'''), flush=True)
         # cleared を持たない旧形式でも、回廊報告と発見記録を通常ロードで引き継ぐ。
@@ -75,7 +76,7 @@ with sync_playwright() as p:
         page.goto('http://localhost:8000/?testScene=prologue:start', wait_until='domcontentloaded')
         page.wait_for_selector('.test-play-banner')
         assert not page.get_by_role('button', name='図鑑・全データ', exact=True).is_visible()
-        page.evaluate('__game.G.world.cleared.w02=1')
+        page.evaluate('__game.G.world.cleared.w02=1;__game.G.tut.done.insight=true')
         page.get_by_role('button', name='図鑑・全データ', exact=True).wait_for(state='visible')
         assert not errors, errors
         context.close()
