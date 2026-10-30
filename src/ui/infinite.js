@@ -684,7 +684,7 @@ export function openInfSummary(r = {}) {
     sparkle: !!r.newDepth,
     body: (b) => {
       if (r.enchantUnlocked) {
-        b.appendChild(el("div", "inf-h gold", "付呪が解放された"));
+        b.appendChild(el("div", "inf-h gold", "武魂が解放された"));
         for (const line of UNLOCKS.enchant.lines) b.appendChild(el("div", "inf-note", line));
       }
       if (r.title) b.appendChild(el("div", "inf-note", `称号「${r.title}」の隊`));

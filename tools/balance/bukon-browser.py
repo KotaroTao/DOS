@@ -18,6 +18,17 @@ with sync_playwright() as p:
           const tab=[...holder.querySelectorAll('button')].find(x=>clean(x.textContent)==='保管中の武魂');check(!!tab,'タブがない: '+holder.textContent+' / '+game.enchantClosed());tab.click();
           check(clean(holder.textContent).includes('全属性耐性'),'全属性の表示');
           const red=[...holder.querySelectorAll('span')].find(x=>clean(x.textContent).includes('全属性耐性'));check(getComputedStyle(red).color==='rgb(255, 98, 98)','LRの赤');
+          for(const row of holder.querySelectorAll('.bk-stock-row')) {
+            const main=row.querySelector('.bk-stock-main'),icon=main.querySelector('.bk-gem');
+            check(clean(main.textContent)===b.bukonDef(main.textContent.includes('HP')?'flat_hp':main.textContent.includes('全属性')?'res_allElements':'J11').name,'名称だけを表示');
+            check(getComputedStyle(icon).backgroundColor===getComputedStyle(main).color,'宝石も格の色');
+            check(row.getBoundingClientRect().right<=window.innerWidth,'行が画面内');
+            check(row.getBoundingClientRect().height<90,'一行表示');
+          }
+          holder.querySelector('.bk-stock-main').click();
+          check(clean(document.body.textContent).includes('個数：'),'詳細に個数');
+          check(clean(document.body.textContent).includes('対応：'),'詳細に部位');
+          [...document.querySelectorAll('.ui-sheet button')].find(x=>clean(x.textContent)==='閉じる')?.click();
           [...holder.querySelectorAll('button')].find(x=>clean(x.textContent)==='合成').click();
           check(document.body.textContent.includes('100'),'金貨表示');check(clean(document.body.textContent).includes('違うLv')||clean(document.body.textContent).includes('異なるLv'),'混合素材説明');
           check(game.bukonAction('fuse',null,{k:'flat_hp',lv:2}),'実操作窓口の合成');check(G.gold===9900,'100金貨課金');

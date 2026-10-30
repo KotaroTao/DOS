@@ -35,6 +35,14 @@ function action(type,it,b,done) {
   done?.();
 }
 function bukonLabel(b){const node=el("span","",bukonText(b));node.style.color=BUKON_RARITIES[bukonDef(b.k)?.rarity||0].color;return node;}
+function openStockDetail(b) {
+  const def=bukonDef(b.k);
+  let h;
+  h=sheet.open({title:def.name,className:"ec-sheet bk-sheet",body:body=>{
+    body.append(bukonLabel(b),el("p","bk-meta",`個数：${BigInt(b.count).toLocaleString()} · 対応：${def.slots.map(x=>PARTS[x]).join("・")}`),el("p","rf-note",b.protected?"合成保護中":"合成保護なし"));
+    if(def.max===1)body.append(el("p","rf-note","レベルなし・合成対象外。同じ機能は重複しない。"));
+  },footer:[{label:"閉じる",kind:"ghost",onTap:()=>h.close()}]});
+}
 function gearBukonLabels(it) {
   const labels=el("div","rf-note");
   for(const b of it.bukon || []){const line=el("div","");line.append(bukonLabel(b));labels.append(line);}
@@ -133,16 +141,21 @@ export function renderEnchantList(parent) {
     filters.append(picker("対応部位",[["all","すべての部位"],...Object.entries(PARTS)],part,v=>{part=v;fill();}));
     if(mode==="gear")filters.append(picker("装備の場所",[["all","すべての場所"],["equipped","装備中"],["bag","共有の袋"],...game.allDolls().map((d,i)=>[String(i),d.name])],place,v=>{place=v;fill();}));
     const count=el("p","bk-meta");count.setAttribute("aria-live","polite");wrap.append(filters,count);
-    const list=el("div","ec-list wpc-list");wrap.append(list);
+    const list=el("div","ec-list wpc-list"+(mode==="stock"?" bk-stock-list":""));wrap.append(list);
     const fill=()=>{
       list.replaceChildren();const q=norm(query);
       if(mode==="gear")for(const it of game.bukonTargets().filter(it=>(part==="all"||it.slot===part)&&matchesPlace(it)&&norm(itemName(it)+locationOf(it)+(it.bukon || []).map(bukonText).join(" ")).includes(q))) {
         const row=el("div","ec-afx-row");row.append(el("p","bk-meta",`${locationOf(it)} · ${PARTS[it.slot]}${it.locked?" · 保護中":""}${it.cursed?" · 呪い":""}`),el("div","bk-title",`${itemName(it)} ${(it.bukon || []).length}/${bukonSlots(it)}枠`),gearBukonLabels(it),button({label:"宿す・外す",kind:"ghost",onTap:()=>openGear(it,draw)}));list.append(row);
       }
       if(mode==="stock")for(const b of rows.filter(b=>(part==="all"||bukonDef(b.k).slots.includes(part))&&norm(bukonText(b)).includes(q))) {
-        const row=el("div","ec-afx-row");row.append(bukonLabel(b),el("p","bk-meta",`×${BigInt(b.count).toLocaleString()} · 対応：${bukonDef(b.k).slots.map(x=>PARTS[x]).join("・")}${b.protected?" · 合成保護中":""}`),button({label:b.protected?"合成保護を解除":"合成素材から保護",kind:"ghost",onTap:()=>action("protect",null,b,draw)}));
-        if(bukonDef(b.k).max === 1) row.append(el("p","rf-note","レベルなし・合成対象外。同じ機能は重複しない。"));
-        else if(game.featureUnlocked("bukonFusion"))row.append(button({label:"合成",className:"bukon-tutorial-fuse",kind:"primary",onTap:()=>openFusion(b.k,draw)}));
+        const def=bukonDef(b.k),row=el("div","bk-stock-row");
+        const main=button({label:def.name,kind:"ghost",className:"bk-stock-main",onTap:()=>openStockDetail(b)});
+        main.classList.add("bk-stock-main");
+        const gem=el("i","bk-gem");gem.setAttribute("aria-hidden","true");main.prepend(gem);main.style.color=BUKON_RARITIES[def.rarity].color;
+        row.append(main);
+        if(def.max!==1 && game.featureUnlocked("bukonFusion")){const fuse=button({label:"合成",kind:"primary",onTap:()=>openFusion(b.k,draw)});fuse.classList.add("bukon-tutorial-fuse");row.append(fuse);}
+        const protect=button({label:b.protected?"保護中":"保護",kind:"ghost",onTap:()=>action("protect",null,b,draw)});
+        protect.setAttribute("aria-pressed",String(!!b.protected));row.append(protect);
         list.append(row);
       }
       count.textContent=`${list.children.length}件${query||part!=="all"||mode==="gear"&&place!=="all"?"（絞り込み中）":""}`;

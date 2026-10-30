@@ -99,7 +99,7 @@ export function openGearFilter(items, onApply, prefKey = "gearFilter", { affixOn
   const options = effectCatalog(source), labels = new Map(options.map(x => [x.key, x.label]));
   let draft = gearFilter(prefKey), group = "all", query = "";
   const body = el("div", "gf-panel");
-  body.appendChild(el("p", "gf-hint", affixOnly ? "特性名と効果を見て巻物と特性の付いた品を探せる。数値は品ごとに異なるため、効果の例を表示する。条件は選ぶたびに反映される。" : "属性と特殊効果の両方に一致する品を表示する。条件は選ぶたびに反映される。数値の違う同じ効果はまとめて探せる。未鑑定の品は鑑定してから。"));
+  body.appendChild(el("p", "gf-hint", affixOnly ? "特性名と効果を見て特性の付いた品を探せる。数値は品ごとに異なるため、効果の例を表示する。条件は選ぶたびに反映される。" : "属性と特殊効果の両方に一致する品を表示する。条件は選ぶたびに反映される。数値の違う同じ効果はまとめて探せる。未鑑定の品は鑑定してから。"));
   const picked = el("div", "gf-picked"), elements = el("div", "gf-elements"), groups = el("div", "gf-groups"), list = el("div", "gf-options");
   body.appendChild(picked);
   if (!affixOnly) body.append(el("h3", null, "属性（いずれか）"), elements);

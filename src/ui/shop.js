@@ -274,7 +274,10 @@ function keeperLine(seg) {
   else if (seg === "buy") line = "黒鉄は嘘をつかん。値札もな。";
   else if (seg === "forge") line = "同じ品でも、打ちの出来はまちまちだ。金を積めば、何度でも炉に入れてやる。";
   else if (seg === "enchant") line = "武魂を装備に宿すぞ。外すのも無料だ。合成には金貨が要る。同じ力は一つの品に一つまでだ。";
-  return whisper("merchant", line, { who: shell.who || "黒鉄商会 ヴォス" });
+  const who=shell.who || "黒鉄商会 ヴォス";
+  return whisper("merchant", line, { who, onTap:()=>{
+    let h;h=sheet.open({title:who,lines:[`「${line}」`],footer:[{label:"閉じる",kind:"ghost",onTap:()=>h.close()}]});
+  } });
 }
 
 // ---------------------------------------------------------------- 一括の確認
@@ -475,18 +478,6 @@ function stockVariants(id) {
   if (game.shopPlainStock(id) > 0) out.push({ id, item: ITEMS[id], affixed: false });
   return out;
 }
-// 手ほどき後は、購入操作の下に写し取りを置く。通常品には写せる追加特性がない。
-function appendStockExtract(act, it, { shelf = false } = {}) {
-  if (!G().tut?.done?.enchant || !isEquippable(it) || it.unidentified || !UI.openShelfAffixExtract) return;
-  const why = shelf ? game.extractBlock?.({ it, shelf: true }) : "追加の能力・特性がない品";
-  const b = button({ label: "巻物にする", kind: "secondary", size: "sm", disabled: !!why,
-    onTap: () => UI.openShelfAffixExtract(it.id) });
-  b.classList.add("wpc-buy-scroll");
-  b.dataset.act = "buy-extract";
-  b.title = why || "買値を払って特性を1つ写し取る。元の品は消える";
-  act.classList.add("with-scroll");
-  act.appendChild(b);
-}
 // おすすめ: 選択した人業に役立つ品だけ。通常品と追加つきの在庫を別々に見立てる。
 function recList() {
   const out = [];
@@ -574,7 +565,6 @@ function stockRow(id) {
   // 選択した人業へ買って装備 (元に戻せる) / 装備でなければ袋へ
   main.addEventListener("click", () => { if (upgrade) equipPick(plan.target, it, { buyId: id }); else shopBuy(id, buyer, { equip: false }); });
   act.appendChild(main);
-  appendStockExtract(act, it);
   row.appendChild(act);
   return row;
 }
@@ -634,7 +624,7 @@ function openRevealSheet(items) {
     }
     if (worn) wrap.appendChild(el("div", "ap-sum-worn", `装備した品 ${worn}点は一覧から外した。`));
     const sold = items.filter((it) => !ownerOf(it)).length;
-    if (sold) wrap.appendChild(el("div", "ap-sum-worn", `売却・巻物化した品 ${sold}点は一覧から外した。`));
+    if (sold) wrap.appendChild(el("div", "ap-sum-worn", `売却した品 ${sold}点は一覧から外した。`));
     if (!wrap.childElementCount) wrap.appendChild(el("div", "wpc-empty", "正体の知れた品はない。"));
     b.appendChild(wrap);
   };
@@ -854,7 +844,6 @@ function afxStockRow(id, it) {
     if (got) { floatGold(price, "dn"); toast(`${got.afxPre || ""}${got.name}${got.afxMark || ""} を買った → ${buyer.name} の袋`, { tone: "gold", icon: got }); }
   });
   act.appendChild(main);
-  appendStockExtract(act, it, { shelf: true });
   row.appendChild(act);
   return row;
 }
