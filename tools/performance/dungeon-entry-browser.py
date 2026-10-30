@@ -16,14 +16,18 @@ async def main():
                 await page.evaluate('''async immediate=>{
                   const {sceneTransition}=await import('/src/ui/motion.js');
                   window.leaks=[];window.pending=false;window.done=false;
+                  const front=document.createElement('div');
+                  front.style.cssText='position:fixed;inset:0;z-index:9000;background:red';
+                  document.body.appendChild(front);
                   const sample=()=>{
                     const veil=document.querySelector('.ui-scene-veil');
                     if(pending && (!veil || getComputedStyle(veil).opacity!=='1')) leaks.push(performance.now());
+                    if(immediate && veil && (getComputedStyle(veil).opacity!=='1' || document.elementFromPoint(10,10)!==veil)) leaks.push('前面の露出');
                     if(!done) requestAnimationFrame(sample);
                   };requestAnimationFrame(sample);
                   window.transition=sceneTransition(()=>{
                     pending=true;return new Promise(resolve=>window.release=resolve);
-                  },{immediate,embers:false}).then(()=>done=true);
+                  },{immediate,embers:false}).then(()=>{done=true;front.remove();});
                   if(immediate && getComputedStyle(document.querySelector('.ui-scene-veil')).opacity!=='1') throw Error('開始直後の幕が透明');
                 }''', immediate)
                 await page.wait_for_function('pending')
@@ -36,6 +40,7 @@ async def main():
                 await page.evaluate('pending=false;release(true)')
                 await page.wait_for_function('done')
                 assert await page.locator('.ui-scene-veil').count() == 0
+                assert await page.evaluate('leaks') == []
             result=await page.evaluate("""async()=>{
               const {sceneTransition}=await import('/src/ui/motion.js');
               return sceneTransition(()=>false,{immediate:true,embers:false});
