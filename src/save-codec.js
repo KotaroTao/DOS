@@ -18,7 +18,15 @@ function work(op, value, packet, compact) {
   return new Promise((resolve, reject) => {
     const id = ++sequence; pending.set(id, { resolve, reject });
     try { worker.postMessage({ id, op, value, packet, compact }); }
-    catch (e) { pending.delete(id); reject(e); }
+    catch (e) {
+      // 戦果の宝箱などは画面を開く際に操作関数を付ける。従来の保存同様に
+      // 関数だけを除外し、個体・共有参照・循環を保った写しで再送する。
+      if (op === "encode" && e.name === "DataCloneError") {
+        try { worker.postMessage({ id, op, value: cloneSaveData(value), packet, compact }); return; }
+        catch (retryError) { e = retryError; }
+      }
+      pending.delete(id); reject(e);
+    }
   });
 }
 export function encodeCloudSave(snapshot, compact) {
@@ -31,3 +39,21 @@ export function encodeCloudSave(snapshot, compact) {
   return work("encode", value, null, compact);
 }
 export const acknowledgeCloudSave = (raw, packet) => work("ack", raw, packet);
+
+// structured cloneで扱えない操作関数がある時だけ使う。通常の行動は写し直さない。
+export function cloneSaveData(root) {
+  const seen = new Map();
+  const copy = value => {
+    if (typeof value === "function") return null;
+    if (!value || typeof value !== "object") return value;
+    if (seen.has(value)) return seen.get(value);
+    const out = Array.isArray(value) ? [] : {};
+    seen.set(value, out);
+    if (Array.isArray(value)) for (const entry of value) out.push(copy(entry));
+    else for (const key of Object.keys(value)) if (typeof value[key] !== "function") {
+      Object.defineProperty(out, key, { value: copy(value[key]), enumerable: true, writable: true, configurable: true });
+    }
+    return out;
+  };
+  return copy(root);
+}

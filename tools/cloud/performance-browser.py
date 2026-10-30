@@ -106,7 +106,9 @@ with sync_playwright() as p:
             page.wait_for_function('autoTimes.length>=13',timeout=20000)
             samples=page.evaluate('autoTimes.slice(1).map((t,i)=>t-autoTimes[i])')
             print('auto_action_ms',samples,flush=True)
-            assert max(samples)<500,samples
+            # オートは速すぎない400msの間隔を設ける。CPU4倍低速の描画分は別に許容。
+            # 手動の対象選択→次入力の500ms制限は上で引き続き検査する。
+            assert min(samples)>300 and max(samples)<650,samples
             page.evaluate("async()=>{await (await import('/src/cloud-save.js')).cloudFlush()}")
         result=page.evaluate("""async()=>{
           const g=__game.G;g.state='board';g.battle=null;g.animating=false;
