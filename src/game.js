@@ -2,7 +2,7 @@ import { resetAutomationPrefs } from "./ui/prefs.js";
 import { encodeCloudSave, acknowledgeCloudSave } from "./save-codec.js";
 import { depthLimit, mutatorEligible, challengeEntryBlock, applyChallengeEnemies } from "./progression.js";
 import { warmOpening } from "./openingillustrations.js";
-import { holdIllustrations, mediaBusy, setIllustrationReload } from "./imageloading.js";
+import { holdIllustrations, waitForScene, mediaBusy, setIllustrationReload } from "./imageloading.js";
 import { warmTownArt } from "./townpaint.js";
 import { preloadBattleBackground } from "./battlebackgrounds.js";
 import "./desktop.js";
@@ -2445,6 +2445,7 @@ function prepareFloorMedia() {
       preloadDungeon(abyssActive() ? abyssCfg(G.abyss.depth + 1) : cfg, floor + 1, 0);
     }
   });
+  return ready;
 }
 
 function newFloor() {
@@ -20264,7 +20265,7 @@ async function init() {
     started = true;
     titleActive = false;
     G.prompt = false;
-    startAfterTitle(loaded);
+    return startAfterTitle(loaded);
   };
   // タイトルの「データ削除」(記録あり): 確認ののち記録を消して読み直し、開始ボタンの操作で音声を解禁する
   const newGameFromTitle = (name) => {
@@ -20315,7 +20316,7 @@ function syncStoryMedia() {
 
 // タイトルを抜けた後の本編起動: 保存状態の復元描画 → (新規なら) オープニング
 function startAfterTitle(loaded) {
-  if (loaded && G.board && inDungeon()) prepareFloorMedia();
+  const floorReady = loaded && G.board && inDungeon() ? prepareFloorMedia() : Promise.resolve(true);
   updateTopbar();
   // 復元描画に失敗してもセーブは絶対に消さない (データ保全優先)。
   // 失敗時は安全に街表示へフォールバックする。
@@ -20333,8 +20334,9 @@ function startAfterTitle(loaded) {
   autosave(true);
 
   if (loaded) {
+    const sceneReady = Promise.all([floorReady, waitForScene(document.getElementById("app"))]).then(values => values.every(ok => ok !== false));
     playBgm(sceneBgm());
-    if (G.pendingTreasury || G.pendingDanger || G.pendingPickups?.length || pickupBusy || G.pendingResults || G.pendingCursedChest) return;
+    if (G.pendingTreasury || G.pendingDanger || G.pendingPickups?.length || pickupBusy || G.pendingResults || G.pendingCursedChest) return sceneReady;
     // 勝利は確定済みだが、魂の記憶を読む途中で閉じた場合は再表示する。
     if (G.state === "board" && !G.pendingResults && !G.pendingPickups?.length && !G.pendingDanger && G.bossDown && !abyssActive()) {
       const dn = curDungeon();
@@ -20347,7 +20349,7 @@ function startAfterTitle(loaded) {
       if (id) playBossMemory(id, renderTown);
     }
     setTimeout(() => { try { showToast("💾 冒険を再開しました"); } catch {} }, 400);
-    return;
+    return sceneReady;
   }
   // 新規ゲーム: オープニングを流してから街へ
   const openingReady = warmOpening(1);
@@ -20355,8 +20357,8 @@ function startAfterTitle(loaded) {
   G.prompt = true;
   openingActive = true;
   playBgm("opening");
-  openingReady.then(ok => {
-    if (!ok) return;
+  return openingReady.then(ok => {
+    if (!ok) return false;
     try {
       showOpening(() => { G.prompt = false; openingActive = false; playBgm(sceneBgm()); });
     } catch (e) { G.prompt = false; openingActive = false; playBgm(sceneBgm()); }

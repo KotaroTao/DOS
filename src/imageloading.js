@@ -94,6 +94,7 @@ function update() {
   // 小さな画像待ちは全画面を覆わない。区切りの短い待機も画面を明滅させない。
   if (screenPending) screenSince ??= now;
   else screenSince = null;
+  document.body.classList.toggle("scene-preparing", screenPending || screenFailed);
   document.body.classList.toggle("screen-loading", booting || screenFailed || screenPending && now - screenSince >= SCREEN_DELAY);
   const splash = document.getElementById("media-splash");
   if (splash) {
@@ -138,6 +139,16 @@ export function sceneReady(owner, ready) {
   const state = { pending: true, ready: Promise.resolve(ready) };
   scenes.set(owner, state);
   state.ready.then(() => { state.pending = false; }, () => { state.pending = false; });
+}
+// タイトルを消す前に、復元先の表示範囲の画像と描画を待つ。
+export async function waitForScene(root) {
+  for (const image of root.querySelectorAll("img[src]")) watchImage(image, image);
+  const waits = [...root.querySelectorAll("canvas, img")].filter(visible)
+    .map(node => scenes.get(node)).filter(state => state?.pending);
+  const results = await Promise.all(waits.map(state => state.ready));
+  if (results.some(ok => ok === false)) return false;
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  return true;
 }
 // 描き替える前の画面を一時的に保持する。Canvasの画素も写し、待機中の二重操作を防ぐ。
 export function preserveScene(root) {

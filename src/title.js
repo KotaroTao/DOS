@@ -419,11 +419,16 @@ export function showTitle({ hasSave = false, summary = null, onStart, entry = fa
     closed = true;
     removeEventListener("keydown", onKey, true);
     removeEventListener("resize", onResize);
-    wrap.classList.add("ttl-out");
-    if (immediate && cb) cb();
+    wrap.classList.add("ttl-depart");
+    const ready = immediate && cb ? cb() : null;
     // 新規開始は音声の再生許可を保つため同期で渡し、再開は暗転を待つ。
-    setTimeout(() => { cancelAnimationFrame(raf); if (!immediate && cb) cb(); }, REDUCED ? 60 : 520);
-    setTimeout(() => wrap.remove(), REDUCED ? 400 : 1500);
+    setTimeout(async () => {
+      const ok = await (immediate ? ready : cb?.());
+      if (ok === false) return;
+      cancelAnimationFrame(raf);
+      wrap.classList.add("ttl-out");
+      setTimeout(() => wrap.remove(), REDUCED ? 400 : 1500);
+    }, REDUCED ? 60 : 520);
   };
   const start = () => {
     if (entry) { sfx("stairs"); close(onStart); return; }
