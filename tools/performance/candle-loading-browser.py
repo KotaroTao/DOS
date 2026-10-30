@@ -27,9 +27,11 @@ async def main():
         await ctx.route('**/art/**', art)
         await ctx.route('**/loading-review.html', lambda r: r.fulfill(content_type='text/html', body='''
           <html><head><meta charset="UTF-8"><link rel="stylesheet" href="/ui.css"></head>
-          <body style="background:#121018;color:#c9bda7;font-family:serif"><p>魂の迷宮</p><button id="action">探索を続ける</button></body></html>'''))
+          <body style="background:#121018;color:#c9bda7;font-family:serif"><p>魂の迷宮</p><button id="action">探索を続ける</button><div class="image-loading" data-state="loading"><img class="image-loading-body"><img class="image-loading-flame"><span class="image-loading-label"></span></div></body></html>'''))
         await page.goto(BASE+'loading-review.html')
         await page.evaluate('''async()=>{
+          const {CANDLE_IMAGE}=await import('/src/loadingcandle.js');
+          document.querySelectorAll('.image-loading img').forEach(i=>i.src=CANDLE_IMAGE);
           const {lazyPhoto}=await import('/src/photoload.js');
           const {spriteCanvas}=await import('/src/sprites.js');
           window.review={items:[],clicked:0};document.querySelector('#action').onclick=()=>review.clicked++;
@@ -43,7 +45,7 @@ async def main():
           const fast=document.createElement('div');document.body.appendChild(fast);
           let done;watchIllustration('fast',new Promise(r=>done=r),fast);done(true);
           await new Promise(r=>setTimeout(r,200));
-          if(document.querySelector('.image-loading')?.dataset.state==='loading')throw Error('短い待機で燭台を表示');
+          if(document.querySelector('.image-loading')?.dataset.state!=='idle')throw Error('起動用の燭台が残った');
           review.make(1);review.make(2);
         }''')
         lamp = page.locator('.image-loading')
@@ -84,7 +86,8 @@ async def main():
         await curtain(False)
         gates['2'].set()
         await page.wait_for_selector('.image-loading[data-state="error"]')
-        assert await lamp.locator('.image-loading-flame').evaluate('el=>getComputedStyle(el).animationName')=='none'
+        assert not await lamp.locator('.image-loading-flame').is_visible()
+        assert await lamp.locator('.image-loading-retry').is_visible()
         assert await lamp.locator('.image-loading-label').inner_text()=='画像を読み込めませんでした'
         await curtain(False)
         await page.mouse.click(50,60)

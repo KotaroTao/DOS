@@ -659,7 +659,7 @@ body.screen-loading::before, body.booting::before {
 .image-loading-body { clip-path: inset(26% 0 0); }
 .image-loading-flame { clip-path: inset(0 0 74%); transform-origin: 50% 26%; }
 .image-loading[data-state="loading"] .image-loading-flame { animation: image-loading-flame 1200ms ease-in-out infinite alternate; }
-.image-loading[data-state="error"] { opacity: .65; }
+.image-loading[data-state="error"] img { display: none; }
 .image-loading-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 @keyframes image-loading-flame {
   0% { transform: scale(.94, 1) skewX(-3deg); opacity: .85; }
