@@ -1,27 +1,43 @@
-"""武魂合成の手ほどきを導入から実操作まで確認。localhost:8000 が必要。"""
+"""武魂合成の手ほどきと、説明どおりの素材・金貨・結果を実操作で確認。localhost:8000。"""
 from playwright.sync_api import sync_playwright
 with sync_playwright() as p:
  b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox'])
- page=b.new_page(viewport={'width':390,'height':844});errors=[]
- page.on('pageerror',lambda e:errors.append(str(e)))
- page.goto('http://localhost:8000/?testScene=tutorial:bukonFusion&testDungeon=w18&testPlace=town')
- page.wait_for_function('window.__game?.G.party.length>0')
- for i in range(24):
-  if page.evaluate('!!__game.G.tut.bukonFusionGift'):break
-  btn=page.locator('button.tut-next, .tut-glow').filter(visible=True).first
-  if btn.count():btn.click(timeout=3000)
-  page.wait_for_timeout(250)
- for i in range(12):
-  btn=page.locator('button.tut-next, button.tut-glow').filter(visible=True).first
-  if page.locator('.ui-story').count()==0 and not page.get_by_role('button',name='心得た',exact=True).count(): break
-  if btn.count():btn.click()
-  page.wait_for_timeout(250)
- page.get_by_role('button',name=__import__('re').compile('保管中')).click()
- page.locator('.bk-panel .ec-afx-row').filter(has_text='HP+10').get_by_role('button',name='合成',exact=True).click()
- page.get_by_role('button',name='内容を確認して合成',exact=True).click()
- page.get_by_role('button',name='無料で合成',exact=True).click()
- page.wait_for_function('__game.G.tut.done.bukonFusion')
- print('OK 武魂合成チュートリアル実操作完了')
- assert not errors, errors
-
+ for width in [390,937]:
+  page=b.new_page(viewport={'width':width,'height':844},service_workers='block',reduced_motion='reduce');errors=[]
+  page.on('pageerror',lambda e:errors.append(str(e)))
+  page.goto('http://localhost:8000/?testScene=tutorial:bukonFusion&testDungeon=w18&testPlace=town')
+  page.wait_for_function('window.__game?.G.party.length>0')
+  page.locator('#studio-splash').wait_for(state='detached')
+  page.locator('.ui-tab[data-key="shop"]').click()
+  lines=[]
+  for i in range(100):
+   scene=page.locator('.sc-scene:not(.out)')
+   if scene.count():
+    lines.append(scene.inner_text().replace('\u200b',''))
+    ok=scene.locator('.sc-okb:visible')
+    if ok.count():ok.click()
+    else:scene.locator('.sc-lines').click()
+   elif page.evaluate('!!__game.G.tut.bukonFusionGift') and page.locator('.bk-panel').count():break
+   page.wait_for_timeout(200)
+  else:raise AssertionError('合成の導入が終わらない')
+  text=''.join(lines)
+  for expected in ['HP加算 +10','HP加算 +20','金貨100枚','保管中の武魂','内容を確認して合成','金貨を払って合成']:
+   assert expected in text,expected
+  assert 'Lv1' not in text and 'Lv2' not in text
+  page.get_by_role('button',name='保管中の武魂',exact=True).click()
+  row=page.locator('.bk-panel .bk-stock-row').filter(has=page.get_by_role('button',name='HP加算 +10',exact=True)).first
+  assert 'HP加算 +10' in row.text_content().replace('\u200b','')
+  row.get_by_role('button',name='合成',exact=True).click()
+  assert 'HP加算 +20' in page.locator('.ec-sheet select option:checked').inner_text().replace('\u200b','')
+  before=page.evaluate('({gold:__game.G.gold,count:Number(__game.G.bukonStock["flat_hp:1"])})')
+  page.get_by_role('button',name='内容を確認して合成',exact=True).click()
+  page.get_by_role('button',name='金貨を払って合成',exact=True).click()
+  page.wait_for_function('__game.G.tut.done.bukonFusion')
+  after=page.evaluate('({gold:__game.G.gold,count:Number(__game.G.bukonStock["flat_hp:1"]||0),result:__game.G.bukonStock["flat_hp:2"]})')
+  assert before['gold']-after['gold']==100
+  assert before['count']-after['count']==3
+  assert after['result']=='1'
+  assert not errors,errors
+  print(width,'OK 表示名での案内・HP加算 +10三つ→+20一つ・100金貨・手ほどき完了')
+  page.close()
  b.close()
