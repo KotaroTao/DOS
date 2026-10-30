@@ -55,7 +55,7 @@ for (const [id, name, s] of ONE) def({ id, name, tier: "c", kind: "B", r: [0.15,
 def({ id: "A09", name: "鋭い", tier: "u", kind: "abs", r: [0.01, 0.05], step: 0.001, pts: (v) => v * 100,
   apply: (it, v) => { it.crit = Math.round(((it.crit || 0) + v) * 10000) / 10000; }, text: (v) => `会心率+${pct(v)}` });
 
-// 会心時の最終ダメージを増やす。物理・魔法は別々に、装備合計の上限なし。
+// 会心時の最終ダメージを増やす。会心ダメージは物理・魔法共通、魔法専用補正はさらに加算。装備合計の上限なし。
 def({ id: "A10", name: "痛撃の", tier: "r", kind: "abs", r: [0.10, 0.30], step: 0.01, pts: (v) => v * 20,
   apply: (it, v) => { it.critDamage = Math.round(((it.critDamage || 0) + v) * 10000) / 10000; }, text: (v) => `会心ダメージ+${pct(v)}` });
 

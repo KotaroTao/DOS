@@ -8790,12 +8790,12 @@ function giveDropsFromChest(drops, i, done, sink = boardSink()) {
 // 強敵階・特別な階・奈落の変異の知らせは帳の中に2〜3行で添える (後から別の札は出さない)。
 // 見落としても、見出しの迷宮名を押す「階の情報」でいつでも読み返せる
 function descend(...args) { return descendMeasured(...args); }
-function descendMeasured({ fall = false, skip = 0, stabilityAd = false } = {}) {
+function descendMeasured({ fall = false, skip = 0 } = {}) {
   if (abyssActive() && G.floor + skip + 1 > infDepthLimit()) { showToast("この先の道は、まだ開いていない", { tone: "info" }); return; }
   // 出来事で2階進む場合も、5階の区切りを越える前に支払う。
   if (stabilityApplies(activeCfg()) && Math.floor((G.floor + skip) / 5) > Math.floor((G.floor - 1) / 5)) {
-    if (!stabilityAd && !stabilityReady(ad => descend({fall, skip, stabilityAd:!!ad}), abyssActive(), STABILITY_FLOOR_COST)) return;
-    if (!consumeEntryStability(activeCfg().id, "floor", abyssActive(), stabilityAd)) return;
+    if (!stabilityReady(() => descend({fall, skip}), abyssActive(), STABILITY_FLOOR_COST)) return;
+    if (!consumeEntryStability(activeCfg().id, "floor", abyssActive())) return;
   }
   evOnDescend(); // 迷宮のイベント: 誓いの破約など
   if (!fall) { SFX.stairs(); buzz([0, 20, 80, 20]); }
@@ -13162,32 +13162,28 @@ function stabilityReady(retry, infinite = abyssActive(), cost = STABILITY_ENTRY_
 
     autosave(true); retry();
   }});
-  // 本番の広告連携までは即時成功。この一回だけ消費を免除し、進行時に隊全員を回復する。
+  // 本番の広告連携までは即時成功。回復後も通常の安定度判定と消費を通す。
   options.push({label:"広告視聴で全員20回復して進む", primary:G.redSoul < redCost, fn:()=>{
     refreshStability();
-    retry(true);
+    const now = Date.now();
+    for (const doll of stabilityDolls(infinite)) {
+      doll.stability = Math.min(STABILITY_MAX, doll.stability + STABILITY_AD_RECOVERY);
+      if (doll.stability === STABILITY_MAX) doll.stabilityAt = now;
+    }
+    refreshStability(now);
+    autosave(true); retry();
   }});
   options.push({label:"回復を待つ", fn:()=>{ autosave(true); }});
   showChoice("魂の安定度が足りない", options, null, {banner:"魂の安定度", onDismiss:()=>{},
-    lines:[...low.map(d=>`${d.name}: ${d.value}/${cost}`), `不足分は合計${missing}。赤い魂1で安定度${stabilityPerRed()}を購入できます (端数は切り上げ) (所持${G.redSoul})。広告視聴なら、隊全員の安定度を消費せず1回分進めます。さらに全員の安定度が20回復します (上限100)。`,
+    lines:[...low.map(d=>`${d.name}: ${d.value}/${cost}`), `不足分は合計${missing}。赤い魂1で安定度${stabilityPerRed()}を購入できます (端数は切り上げ) (所持${G.redSoul})。広告視聴なら、隊全員の安定度が20回復します (上限100)。進む時には通常どおり安定度を消費します。`,
       `3分で1回復します。全員が進めるまで約${Math.ceil(Math.max(...low.map(d=>d.waitMs))/60000)}分。回復後にもう一度進んでください。`]});
   return false;
 }
-function consumeEntryStability(where, kind = "entry", infinite = abyssActive(), ad = false) {
+function consumeEntryStability(where, kind = "entry", infinite = abyssActive()) {
   if (!infinite && worldById(where)?.stabilityFree) return true;
   const cost = kind === "floor" ? STABILITY_FLOOR_COST : STABILITY_ENTRY_COST;
   refreshStability();
   const dolls = stabilityDolls(infinite);
-  if (ad && dolls.length) {
-    const now = Date.now();
-    for (const doll of dolls) {
-      doll.stability = Math.min(STABILITY_MAX, doll.stability + STABILITY_AD_RECOVERY);
-      if (doll.stability === STABILITY_MAX) doll.stabilityAt = now;
-    }
-    refreshStability(now); // 無限迷宮の元の人業・仮の器にも反映する。
-    autosave(true);
-    return true;
-  }
   if (!dolls.length || !stabilityReady(null, infinite, cost)) return false;
   const changes = dolls.map(doll => { doll.stability -= cost; return {doll,amount:cost}; });
 
@@ -16894,7 +16890,7 @@ function blockForTutorial() {
 // 門をくぐる (出撃シートの決め手)。idx = 迷宮の番号 (0始まり) / accept = 迷宮の異変ごと潜るか。
 // 闇に溶けて (sceneTransition) その底で出撃する。潜れない時は理由を返す
 // from = 潜り始める階 (1 か、到達した帰還魔法陣の次の階)
-function departNow({ idx = G.dungeonIdx, accept = false, from = 1, stabilityAd = false } = {}) {
+function departNow({ idx = G.dungeonIdx, accept = false, from = 1 } = {}) {
   if (G.state !== "town" || G.prompt) return { ok: false, reason: "state" };
   if (worldOpenCount() < 1) return { ok: false, reason: "locked" };
   if (blockForReport()) return { ok: false, reason: "report" };
@@ -16905,7 +16901,7 @@ function departNow({ idx = G.dungeonIdx, accept = false, from = 1, stabilityAd =
     const expected = { forest: 3, crypt: 4, corridor: 5, abbeyQuest: 6, abbey: 6 }[prologuePhase()];
     if (!expected || G.party.length !== expected || G.party.some(d => !d.alive || d.primary == null)) { showToast("依頼に必要な人業をそろえ、手ほどきを終えてください", { tone: "info" }); return { ok:false, reason:"prologue" }; }
   }
-  if (!stabilityAd && stabilityApplies(DUNGEONS[idx]) && !stabilityReady(ad => departNow({idx, accept, from, stabilityAd:!!ad}))) return { ok:false, reason:"stability" };
+  if (stabilityApplies(DUNGEONS[idx]) && !stabilityReady(() => departNow({idx, accept, from}))) return { ok:false, reason:"stability" };
   const entryBlock = challengeEntryBlock(DUNGEONS[idx], G.party, G.souls);
   if (entryBlock) { showToast(entryBlock, { tone: "info" }); return { ok: false, reason: "challenge" }; }
   G.dungeonIdx = idx;
@@ -16914,7 +16910,7 @@ function departNow({ idx = G.dungeonIdx, accept = false, from = 1, stabilityAd =
   G.dungeonBriefed = true; // 初回の注意は出撃前のポップアップで案内した
   G.prompt = true;
   const start = startFloorsOf(DUNGEONS[idx]).includes(from) ? from : 1;
-  uiDungeonHud.sceneTransition(() => { G.prompt = false; if (enterDungeon(mutId, start, stabilityAd) === false) return; return readyDungeonEntry(); }, { immediate: true, embers: false });
+  uiDungeonHud.sceneTransition(() => { G.prompt = false; if (enterDungeon(mutId, start) === false) return; return readyDungeonEntry(); }, { immediate: true, embers: false });
   return { ok: true };
 }
 
@@ -17009,8 +17005,8 @@ const DUNGEON_BRIEFING = [
   "■ 踏破前に全滅すると、今回の探索で得た金貨・品・魂を失います。✦Soulは残ります。必要な数の赤い魂を使えば、戦利品を守って帰還できます。",
 ];
 // 出撃の実体。mutatorId を渡すと「迷宮の異変」を受け入れた状態で潜る
-function enterDungeon(mutatorId, startFloor = 1, stabilityAd = false) {
-  if (G.state !== "town" || !consumeEntryStability(curDungeon().id, "entry", false, stabilityAd)) return false;
+function enterDungeon(mutatorId, startFloor = 1) {
+  if (G.state !== "town" || !consumeEntryStability(curDungeon().id, "entry", false)) return false;
   if (stabilityApplies()) G.stabilityBriefed = true;
   if (prologuePhase() === "abbey" && curDungeon().id === "w03") {
     prologue().phase = "done";
@@ -17084,7 +17080,7 @@ function skipTestDungeon() {
 
 // ===== 無限迷宮への出撃 =====
 // picks = 仮の器6体それぞれに宿す魂の職 (入口の3択で選んだもの。ui/infinite.js)。魂の安定度は本編と同じように使う
-function enterAbyss(picks, testRun = false, stabilityAd = false, memoryFloor = null) {
+function enterAbyss(picks, testRun = false, memoryFloor = null) {
   if (G.state !== "town" || G.abyss || (!testRun && !featureUnlocked("infinite"))) return false;
   const memory = memoryFloor == null ? null : infMemoryAt(memoryFloor);
   const ok = memoryFloor != null ? memory && memory.party?.length === INF_PARTY && memory.party.every(d =>
@@ -17092,8 +17088,8 @@ function enterAbyss(picks, testRun = false, stabilityAd = false, memoryFloor = n
     (d.subs || []).every(sub => memory.souls.some(s => s.uid === sub.uid && SOUL_CLASSES[s.clsKey] && !isUniqueJob(s.clsKey)))) :
     Array.isArray(picks) && picks.length === INF_PARTY && picks.every((k) => SOUL_CLASSES[k] && !isUniqueJob(k)) && new Set(picks).size === picks.length;
   if (!ok || (memory && memory.floor >= infDepthLimit())) { SFX.ng(); return false; }
-  if (!stabilityAd && !stabilityReady(ad => enterAbyss(picks, testRun, !!ad, memoryFloor), true)) return false;
-  if (!consumeEntryStability("infinite", "entry", true, stabilityAd)) return false;
+  if (!stabilityReady(() => enterAbyss(picks, testRun, memoryFloor), true)) return false;
+  if (!consumeEntryStability("infinite", "entry", true)) return false;
   if (memory) picks = memory.party.map(d => memory.souls.find(s => s.uid === d.primary).clsKey);
   const seed = ((random() * 0x7fffffff) >>> 0) || 1;
   const names = infVesselNames(); // 本編の隊を退ける前に読む
@@ -17163,7 +17159,7 @@ function departAbyss(picks, memoryFloor = null) {
   if (!featureUnlocked("infinite")) { SFX.ng(); return; }
   if (blockForReport() || blockForTutorial()) return;
   G.prompt = true;
-  uiDungeonHud.sceneTransition(() => { G.prompt = false; if (!enterAbyss(picks, false, false, memoryFloor)) return; return readyDungeonEntry(); }, { immediate: true, embers: false });
+  uiDungeonHud.sceneTransition(() => { G.prompt = false; if (!enterAbyss(picks, false, memoryFloor)) return; return readyDungeonEntry(); }, { immediate: true, embers: false });
 }
 
 // ===== 宿敵の再戦 (第九章の結び = FEATURES.rematch、docs/unlocks.md) =====
@@ -17233,19 +17229,19 @@ function heldTrophy(id) {
   return best;
 }
 // 出撃画面から: 確かめて、闇に溶けて闘技場跡へ
-function departRematch(key, stabilityAd = false) {
+function departRematch(key) {
   if (G.state !== "town" || G.prompt) return;
   if (!featureUnlocked("rematch")) { SFX.ng(); return; }
   if (blockForReport() || blockForTutorial()) return;
   const t = rematchList().find((x) => x.key === key);
   if (!t) { SFX.ng(); return; }
   if (!G.party.some((p) => p.alive)) { log("動ける人業がいない。", "sys"); SFX.ng(); return; }
-  if (!stabilityAd && !stabilityReady(ad => departRematch(key, !!ad))) return;
+  if (!stabilityReady(() => departRematch(key))) return;
   G.prompt = true;
-  uiDungeonHud.sceneTransition(() => { G.prompt = false; beginRematch(t, stabilityAd); });
+  uiDungeonHud.sceneTransition(() => { G.prompt = false; beginRematch(t); });
 }
-function beginRematch(t, stabilityAd = false) {
-  if (G.state !== "town" || !consumeEntryStability("rematch", "entry", false, stabilityAd)) return false;
+function beginRematch(t) {
+  if (G.state !== "town" || !consumeEntryStability("rematch", "entry", false)) return false;
   G.stabilityBriefed = true;
   const home = DUNGEONS[t.homeIdx];
   const snap = G.party.map((p) => ({ p, hp: p.hp, mp: p.mp, alive: p.alive, ailment: p.ailment || null, pct: p._poisonPct || null }));
