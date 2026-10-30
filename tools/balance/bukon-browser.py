@@ -15,6 +15,31 @@ with sync_playwright() as p:
           b.stockAdd(G,{k:'flat_hp',lv:1},9);b.stockAdd(G,{k:'res_allElements',lv:10});b.stockAdd(G,{k:'J11',lv:10});
           UI.openShop('enchant');
           const holder=document.querySelector('.bk-panel');
+          check(!clean(holder.textContent).includes('武魂の手引き'),'手引きを削除');
+          check(document.querySelectorAll('.wpc-character').length>=6,'共通のキャラ選択');
+          check(holder.querySelectorAll('.pt-slot').length===8,'館と同じ8部位');
+          for(const cell of holder.querySelectorAll('.pt-slot')) {
+            check(cell.getBoundingClientRect().right<=holder.getBoundingClientRect().right+1,'装備欄が枠内');
+            if(cell.querySelector('.bk-sockets'))check(cell.querySelectorAll('.bk-socket').length>=1&&cell.querySelectorAll('.bk-socket').length<=3,'丸い枠1〜3');
+          }
+          const selected=game.allDolls().find(d=>String(d.uid)===document.querySelector('.wpc-character.selected').dataset.dollUid);
+          const {ITEMS}=await import('/src/items.js');
+          const target=selected.equip.weapon={...Object.values(ITEMS).find(it=>it.slot==='weapon'),rar:'lr',bukon:[]};
+          check(!!target,'着脱を試す装備');target.bukon=[];
+          let gearTab=[...holder.querySelectorAll('button')].find(x=>clean(x.textContent)==='装備に宿す・外す');gearTab.click();
+          const targetCell=[...holder.querySelectorAll('.pt-slot')].find(x=>selected.equip[x.dataset.slot]===target);
+          check(targetCell.querySelectorAll('.bk-socket').length===b.bukonSlots(target),'レア度に一致する穴');
+          targetCell.click();
+          let row=[...document.querySelectorAll('.bk-sheet .bk-stock-row')].find(x=>clean(x.querySelector('.bk-stock-main').textContent)==='HP加算');
+          check(!!row,'宿せる武魂一覧');
+          for(const button of row.querySelectorAll('button'))check(button.getBoundingClientRect().right<=row.getBoundingClientRect().right+1,'候補の操作が枠内');
+          [...row.querySelectorAll('button')].find(x=>clean(x.textContent)==='宿す').click();
+          check(target.bukon.some(x=>x.k==='flat_hp'),'一覧から装着');
+          const filled=holder.querySelector('.bk-socket.bk-gem');
+          check(!!filled,'装着枠の宝石');check(getComputedStyle(filled).backgroundColor===getComputedStyle(filled).color,'装着枠も格の色');
+          [...document.querySelectorAll('.bk-sheet button')].find(x=>clean(x.textContent)==='外す').click();
+          check(!target.bukon.length,'一覧から取り外し');
+          [...document.querySelectorAll('.bk-sheet button')].find(x=>clean(x.textContent)==='閉じる').click();
           const tab=[...holder.querySelectorAll('button')].find(x=>clean(x.textContent)==='保管中の武魂');check(!!tab,'タブがない: '+holder.textContent+' / '+game.enchantClosed());tab.click();
           check(clean(holder.textContent).includes('全属性耐性'),'全属性の表示');
           const red=[...holder.querySelectorAll('span')].find(x=>clean(x.textContent).includes('全属性耐性'));check(getComputedStyle(red).color==='rgb(255, 98, 98)','LRの赤');
