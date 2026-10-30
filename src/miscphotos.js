@@ -71,17 +71,10 @@ const sources = new Map([
   ...MISC_PHOTOS.map(id => [id, `../art/misc/${id}.webp`]),
 ]);
 const photos = new Map();
-// 原画の下段から混入した品だけを隠し、本体の大きさと位置は保つ。
-const PHOTO_EXCLUDES = {
-  m_mourning_moon_orb: [{ x: 0, y: 290, w: 320, h: 30 }],
-  m_rusted_shackle_pin: [{ x: 0, y: 280, w: 320, h: 40 }],
-  m_prisoners_dice: [{ x: 0, y: 280, w: 320, h: 40 }],
-  m_centipede_husk: [{ x: 0, y: 290, w: 320, h: 30 }],
-};
 export function miscPhoto(spr) {
   if (!spr || spr.slot !== "misc" || spr.unidentified || !sources.has(spr.id)) return null;
   if (!photos.has(spr.id)) photos.set(spr.id, lazyPhoto(new URL(sources.get(spr.id), import.meta.url).href,
-    { width: 320, height: 320, exclude: PHOTO_EXCLUDES[spr.id] }));
+    { width: 320, height: 320 }));
   return photos.get(spr.id);
 }
 // 制作確認用。通常は表示時に取得する。
