@@ -430,6 +430,8 @@ The goal (per design direction): **every enemy is individually distinctive**, bo
 
 ### State & persistence
 
+**送信待ちの回収停止 (2026-10-30)**: 起動時の`recover`は自動再試行で待機を延ばさず、最初の15秒タイムアウトで通常の復旧画面へ移る。再接続または未送信要求を退避して保存済み記録から再開できる。段階表示の「再読み込み」だけを出す処理には包まない。通常保存の一時障害には従来どおり自動再試行する。検証`tools/cloud/pending-timeout-browser.py`。心得`t_cloud_record`。
+
 **起動接続の長時間待機 (2026-10-30)**: 通常の短い待機は無表示を保つが、接続の各段階が15秒以上止まれば段階名と再読み込みを表示する。Web Locksの失敗は起動側へ伝播する。通信はAbortControllerに加えPromiseの期限でも終了を保証する（fetch・本文の読み取りが中止を返さない場合も対象）。心得`t_cloud_record`。
 
 **クラウド戦闘と共通の袋 (2026-10-30)**: 戦闘の差分は`inventory`と`formations`も同じ参照グラフに含め、`party/reserve.items`・装備・戦利品との共有参照を保つ。これを省くと`shareInventory`が複製された袋を別物として合成し、各手で品が増殖する。旧サーバーの応答は全人業が共有する袋を`inventory`として反映する。既に増えた品は自動削除しない。確認: `node tools/cloud/check.mjs`（24行動×新旧応答）、`python3 tools/cloud/inventory-browser.py`。心得`t_cloud_record`。
