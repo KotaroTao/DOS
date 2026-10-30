@@ -15,7 +15,7 @@ with sync_playwright() as p:
           for(const [key,expected]of [['HANGEKI','攻撃力×2'],['GONOSEN','攻撃力×1.8'],['FUDOUJIN','攻撃力×3'],['SEAL','120%'],['GENWAKU','110%']]){
             const h=showSkillPopup(key);check(text().includes(expected),key+'表示');h.close();
           }
-          for(const [key,lv,expected]of [['samuraiIchibun',3,'会心ダメージ+30%'],['samuraiNukimi',3,'会心ダメージ+40%'],['shadowIchishi',3,'HP90%以上'],['arcanistShinen',4,'会心ダメージ+30%'],['spellCrit',3,'会心ダメージ+30%'],['guardianHoufuku',3,'VIT×15'],['reflect',1,'INT×8']]){
+          for(const [key,lv,expected]of [['samuraiIchibun',3,'会心ダメージ+30%'],['samuraiNukimi',3,'会心ダメージ+40%'],['shadowIchishi',3,'HP90%以上'],['arcanistShinen',4,'魔法会心ダメージ+150%'],['spellCrit',3,'会心ダメージ+30%'],['guardianHoufuku',3,'VIT×15'],['reflect',1,'INT×8']]){
             const h=showPassivePopup(key,lv);check(text().includes(expected),key+'表示');h.close();
           }
           return '反撃・会心威力・条件・付与力の新表示 OK';

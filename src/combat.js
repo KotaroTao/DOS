@@ -3615,7 +3615,7 @@ export class Battle {
     return physicalCritMul(actor, this._perkSum(actor, "critDamage", ctx));
   }
   _spellCritMul(actor) {
-    const bonus=actor?.side==="party" ? ([0,.1,.2,.3][Math.min(pv(actor,"spellCrit"),3)]||0)+this._rk(actor,"arcanistShinen",[.5,1,2,3]) : 0;
+    const bonus=actor?.side==="party" ? ([0,.1,.2,.3][Math.min(pv(actor,"spellCrit"),3)]||0)+this._rk(actor,"arcanistShinen",[.3,.6,1,1.5]) : 0;
     return 1.5*(gm(actor).sae?1.3:1)*(gearCritMul(actor,true)+bonus);
   }
   // 物理会心とは独立した、技・職業・装備の魔法会心率。

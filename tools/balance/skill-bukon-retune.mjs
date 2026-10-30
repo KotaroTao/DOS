@@ -22,7 +22,7 @@ for(const [key,values] of [['samuraiIchibun',[.1,.2,.3]],['samuraiNukimi',[.15,.
  if(key==='shadowIchishi'){t.hp=t.maxhp*.89;near(b._physicalCritMul(a,{tgt:t,on:['phys']}),1+gear);t.hp=t.maxhp*.9;near(b._physicalCritMul(a,{tgt:t,on:['phys']}),1+gear+bonus);}
  if(key==='samuraiIchibun')near(b.peekStats(a).critMul,1.85*(1+gear+bonus));
 }
-for(const [key,values] of [['spellCrit',[.1,.2,.3]],['arcanistShinen',[.5,1,2,3]]])for(let lv=1;lv<=values.length;lv++)for(const gear of [0,.5,2]){
+for(const [key,values] of [['spellCrit',[.1,.2,.3]],['arcanistShinen',[.3,.6,1,1.5]]])for(let lv=1;lv<=values.length;lv++)for(const gear of [0,.5,2]){
  const {a,t,b}=fixture({[key]:lv},gear),base=fixture({},gear),bonus=values[lv-1],sp=SPELLS.SHADOWBOLT;
  near(b._spellCritChance(a,sp),.8);near(b._spellCritMul(a),1.5*(1+gear+bonus));near(b.peekStats(a).spellCritMul,b._spellCritMul(a));
  const expected=(1+.8*(1.5*(1+gear+bonus)-1))/(1+.8*(1.5*(1+gear)-1));
@@ -31,7 +31,7 @@ for(const [key,values] of [['spellCrit',[.1,.2,.3]],['arcanistShinen',[.5,1,2,3]
  assert(Math.abs((hp-t.hp)-(bhp-base.t.hp)*(1+gear+bonus)/(1+gear))<=2,'呪文実測も同じ倍率');
 }
 {
- const {a,b}=fixture({spellCrit:3,arcanistShinen:4},2);near(b._spellCritMul(a),1.5*6.3);
+ const {a,b}=fixture({spellCrit:3,arcanistShinen:4},2);near(b._spellCritMul(a),1.5*4.8);
 }
 assert.deepEqual(COUNTER_K,[0,.5,.75,1]);assert.equal(REFLECT_K,8);
 assert.deepEqual(JOBKIT_PERKS.guardianHoufuku.fx[0].ret.k,[5,10,15]);
