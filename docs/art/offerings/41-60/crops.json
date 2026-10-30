@@ -1,0 +1,182 @@
+[
+  {
+    "id": "m_oath_rib",
+    "box": [
+      25,
+      25,
+      275,
+      265
+    ]
+  },
+  {
+    "id": "m_ash_woven_vestment",
+    "box": [
+      300,
+      5,
+      530,
+      278
+    ]
+  },
+  {
+    "id": "m_ferrymans_fee",
+    "box": [
+      570,
+      20,
+      825,
+      268
+    ]
+  },
+  {
+    "id": "m_gold_seared_eye",
+    "box": [
+      855,
+      20,
+      1115,
+      270
+    ]
+  },
+  {
+    "id": "m_challenger_blood",
+    "box": [
+      1190,
+      5,
+      1350,
+      275
+    ]
+  },
+  {
+    "id": "m_dragon_tear_stone",
+    "box": [
+      35,
+      280,
+      225,
+      540
+    ]
+  },
+  {
+    "id": "m_hoard_flake_pouch",
+    "box": [
+      280,
+      282,
+      550,
+      542
+    ]
+  },
+  {
+    "id": "m_mourning_moon_orb",
+    "box": [
+      570,
+      295,
+      825,
+      530
+    ]
+  },
+  {
+    "id": "m_elder_horn_shard",
+    "box": [
+      850,
+      280,
+      1110,
+      540
+    ]
+  },
+  {
+    "id": "m_crown_fused_skull",
+    "box": [
+      1135,
+      280,
+      1390,
+      540
+    ]
+  },
+  {
+    "id": "m_rusted_shackle_pin",
+    "box": [
+      10,
+      555,
+      275,
+      798
+    ]
+  },
+  {
+    "id": "m_prisoners_dice",
+    "box": [
+      310,
+      560,
+      535,
+      795
+    ]
+  },
+  {
+    "id": "m_warden_signet",
+    "box": [
+      580,
+      540,
+      815,
+      800
+    ]
+  },
+  {
+    "id": "m_centipede_husk",
+    "box": [
+      840,
+      550,
+      1130,
+      800
+    ]
+  },
+  {
+    "id": "m_phosphor_moss_jar",
+    "box": [
+      1170,
+      545,
+      1370,
+      805
+    ]
+  },
+  {
+    "id": "m_siege_arrowhead",
+    "box": [
+      10,
+      808,
+      290,
+      1090
+    ]
+  },
+  {
+    "id": "m_chatelaine_brooch",
+    "box": [
+      295,
+      808,
+      548,
+      1090
+    ]
+  },
+  {
+    "id": "m_mercenary_tag",
+    "box": [
+      580,
+      808,
+      790,
+      1090
+    ]
+  },
+  {
+    "id": "m_battlements_keystone",
+    "box": [
+      840,
+      808,
+      1120,
+      1090
+    ]
+  },
+  {
+    "id": "m_gargoyle_chip",
+    "box": [
+      1135,
+      815,
+      1390,
+      1090
+    ]
+  }
+]

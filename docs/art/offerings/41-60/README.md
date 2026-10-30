@@ -24,3 +24,11 @@ src/catalog/misc.js の収集品の並び（1始まり）。原画は5列×4行�
 60. 石像鬼の欠け爪 — `m_gargoyle_chip`
 
 ![原画](master.png)
+
+## 切り出し位置の修正
+
+原画は見た目が5列×4行でも、各品は等間隔ではない。等分した範囲では矢じりなどの上端が欠け、次の行の品が混入していた。`crops.json` に原画上の品ごとの範囲（左・上・右・下）を保存し、余白を付けて320×320の中央へ配置する。元の背景は維持する。
+
+再生成: `python3 tools/miscart/build-41-60.py`（Pillow）。表示検証: HTTPサーバーを8000番で起動し `node tools/miscart/verify-41-60.cjs`。
+
+![修正後の一覧](preview.jpg)
