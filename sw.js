@@ -2889,6 +2889,7 @@ const ASSETS = [
   "./src/playtest.js",
   "./src/stability.js",
   "./art/tutorial/gatekeeper.png",
+  "./art/tutorial/olden.webp",
   "./src/levelcurve.js",
   "./src/baseline.js",
   "./src/pricing.js",

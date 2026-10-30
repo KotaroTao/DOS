@@ -15911,7 +15911,10 @@ function claimNextTreasury() {
 // 手ほどきの開始時だけ、空の図鑑に練習用の討伐記録を用意する。報酬・戦果は増やさない。
 function prepareCodexTutorial() {
   if (Object.keys(G.codex.mon).some(k => MONSTERS[k] && codexKills(k) > 0)) return;
+  const before = insightSummary().total;
   recordMonsterKill("bs_dustroach", DUNGEONS.findIndex(d => d.id === "w00_forest"), 1);
+  // 練習用の記録で、会話の途中に見識増加の通知を挟まない。
+  if (G.insightNotified != null) G.insightNotified = (Number(G.insightNotified) || 0) + insightSummary().total - before;
 }
 function codexMonEntry(key) {
   let e = G.codex.mon[key];
@@ -18811,7 +18814,6 @@ function openSettings() {
   G.settingsOpen = true;
   settingsSheet = UI.settingsSheet({ onClose: () => { G.settingsOpen = false; settingsSheet = null; } });
   if (!settingsSheet) G.settingsOpen = false;
-  else setTimeout(() => { UI.tutorialSettingsVisited?.(); renderSettings(); }, 0);
 }
 function closeSettings() {
   G.settingsOpen = false;

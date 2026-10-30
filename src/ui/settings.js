@@ -254,15 +254,7 @@ function fillAuto(box) {
     box.appendChild(account);
   } else box.appendChild(reset);
 }
-function codexButton(root) {
-  if (!game.featureUnlocked?.("codex")) return;
-  const b = button({ label: "図鑑", kind: "secondary", onTap: () => {
-    UI.openCodexSheet?.(); UI.tutorialEvent?.("codexOpened");
-  } });
-  b.classList.add("stg-codex"); root.appendChild(b);
-}
 function fill(root) {
-  codexButton(root);
   if (isDesktopLayout()) return fillDesktop(root);
   root.appendChild(playerNameCard());
   const saved = remember("seg", "settings");

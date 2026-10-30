@@ -64,7 +64,7 @@ with sync_playwright() as p:
           check(pagesSeen.some(p=>p.title===UNLOCKS.insight.title)&&pagesSeen.some(p=>p.title===UNLOCKS.tavern.title),'同じ回廊報告で図鑑の手引きと酒場の案内を両方表示');
           check(!game.featureUnlocked('fusion'),'二報告だけでは魂融合を先に解放しない');
           const guide=UNLOCKS.insight.lines.join('');
-          check(['魔物','品','職業','見聞','設定','王宮','手帳','新着','図鑑がどれほど充実','操霊師としての格'].every(t=>guide.includes(t)),'図鑑の使い方を主に、見識が充実度と格を示すことを説明');
+          check(guide.includes('王宮のオルデン')&&guide.includes('図鑑の読み方')&&!guide.includes('設定'),'王の解放説明はオルデンへの案内だけに絞る');
           close();return checks;
         }'''), flush=True)
         # cleared を持たない旧形式でも、回廊報告と発見記録を通常ロードで引き継ぐ。
