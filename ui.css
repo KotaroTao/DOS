@@ -644,7 +644,7 @@ canvas.tw-vig-hd { image-rendering: auto !important; }
 
 /* 先読みで間に合わなかった絵は待機画面で準備し、欠けた場面を見せない。 */
 body.screen-loading .sc-scene *, body.screen-loading .op-overlay * { animation-play-state: paused !important; }
-body.screen-loading::before, body.booting::before {
+body.scene-preparing::before, body.screen-loading::before, body.booting::before {
   content: ""; position: fixed; inset: 0; z-index: 2147483647; background: #000;
 }
 .image-loading {
