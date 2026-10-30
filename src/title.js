@@ -108,7 +108,7 @@ export function showTitle({ hasSave = false, summary = null, onStart, entry = fa
       btns.appendChild(newBtn);
     }
   } else {
-    goBtn = mkBtn(readyName ? "物語を始める" : "さいしょから", "NEW GAME", "primary");
+    goBtn = mkBtn(readyName ? "物語を始める" : "冒険を始める", "NEW GAME", "primary");
     btns.appendChild(goBtn);
   }
   if (onLogin) {
