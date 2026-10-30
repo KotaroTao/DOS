@@ -21,11 +21,13 @@ export class CloudSaveClient {
     this.blocking = 0; this.queuedSave = null; this.battleTurn = false;
   }
   async fetchJSON(path, options = {}) {
+    // 大きな記録の戦闘応答は15秒を超える。認証と保存APIの期限を分ける。
+    const timeoutMs = path.startsWith("/functions/") ? 60000 : 15000;
     const ctrl = new AbortController();
     let timer;
     const timeout = new Promise((_, reject) => { timer = setTimeout(() => {
       ctrl.abort(); reject(new DOMException("通信が時間内に終わりませんでした", "AbortError"));
-    }, 15000); });
+    }, timeoutMs); });
     const work = async () => {
       const r = await this.fetcher(this.config.url.replace(/\/$/, "") + path, { ...options, signal: ctrl.signal });
       const data = await r.json().catch(() => null);
@@ -94,7 +96,7 @@ export class CloudSaveClient {
       try { return await fn(); }
       catch (e) {
         if (!this.onFailure) throw e;
-        const temporary = e.name === "AbortError" || e instanceof TypeError || [408, 429, 500, 502, 503, 504].includes(e.status);
+        const temporary = e.name !== "AbortError" && (e instanceof TypeError || [408, 429, 500, 502, 503, 504].includes(e.status));
         if (automatic && temporary && attempts < this.retryDelays.length) {
           await new Promise(resolve => setTimeout(resolve, this.retryDelays[attempts++]));
           continue;
@@ -388,7 +390,7 @@ async function connectionStep(label, work) {
   const timer = setTimeout(() => {
     if (gate.hidden || !gate.querySelector(".cloud-panel").hidden) return;
     shown = true;
-    showGate(`${label}に時間がかかっています。記録はそのまま保管しています。待っても進まない場合は再読み込みしてください。`);
+    showGate(`${label}に時間がかかっています。記録はそのまま保管しています。大きな記録の通信は一分まで待ちます。待っても進まない場合は再読み込みしてください。`);
     button("再読み込み", () => location.reload());
   }, 15000);
   try { return await work(); }

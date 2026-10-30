@@ -15,6 +15,7 @@ await db.exec(`create schema auth; create table auth.users(id uuid primary key);
 await db.exec(await readFile(new URL("../../supabase/migrations/202610120001_cloud_save.sql", import.meta.url), "utf8"));
 await db.exec(await readFile(new URL("../../supabase/migrations/202610160001_save_slots.sql", import.meta.url), "utf8"));
 await db.exec(await readFile(new URL("../../supabase/migrations/202610300001_guest_onboarding.sql", import.meta.url), "utf8"));
+await db.exec(await readFile(new URL("../../supabase/migrations/202610300002_large_save_transport.sql", import.meta.url), "utf8"));
 const user = "11111111-1111-4111-8111-111111111111", otherUser = "22222222-2222-4222-8222-222222222222";
 const session = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", otherSession = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const command = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
@@ -57,7 +58,9 @@ globalThis.fetch = async (url, opts) => {
   const b = JSON.parse(opts.body);
   try {
     let value;
-    if (url.endsWith("/cloud_accept_terms")) value = (await db.query("select public.cloud_accept_terms($1::uuid,$2::text) as value", [b.p_user, b.p_version])).rows[0].value;
+    if (url.endsWith("/cloud_claim_text")) value = (await db.query("select public.cloud_claim_text($1::uuid,$2::uuid,$3::integer) as value", [b.p_user,b.p_session,b.p_slot])).rows[0].value;
+    else if (url.endsWith("/cloud_commit_text")) value = (await db.query("select public.cloud_commit_text($1::text) as value", [b.p_payload])).rows[0].value;
+    else if (url.endsWith("/cloud_accept_terms")) value = (await db.query("select public.cloud_accept_terms($1::uuid,$2::text) as value", [b.p_user, b.p_version])).rows[0].value;
     else if (url.endsWith("/cloud_claim_slot")) value = await claim(b.p_user, b.p_session, b.p_slot);
     else if (url.endsWith("/cloud_commit_slot")) value = await commit(b.p_user, b.p_session, b.p_revision, b.p_command, b.p_request, b.p_snapshot, b.p_response, b.p_slot);
     else throw new Error("不明なRPC");

@@ -80,6 +80,17 @@ if (process.argv[2]) {
   await db.exec(migrationQuery(guestSQL, "202610300001"));
   const preserved = (await db.query("select slot,revision from public.cloud_saves order by slot")).rows;
   assert.deepEqual(preserved, [{ slot: 1, revision: 7 }, { slot: 2, revision: 9 }]);
+  const transportSQL = await readFile(new URL("../../supabase/migrations/202610300002_large_save_transport.sql", import.meta.url), "utf8");
+  await db.exec(migrationQuery(transportSQL, "202610300002"));
+  await db.exec(migrationQuery(transportSQL, "202610300002"));
+  assert.deepEqual((await db.query("select slot,revision from public.cloud_saves order by slot")).rows, preserved);
+  const methods=(await db.query("select proname from pg_proc where pronamespace='public'::regnamespace and proname in ('cloud_claim_text','cloud_commit_text')")).rows;
+  assert.equal(methods.length,2);
+  for(const role of ['anon','authenticated']){
+    await db.exec('set role '+role);
+    await assert.rejects(db.query("select public.cloud_commit_text('{}')"),/permission denied/);
+    await db.exec('reset role');
+  }
   await db.exec("set role service_role");
   await assert.rejects(db.query("select public.cloud_claim_slot_internal('11111111-1111-4111-8111-111111111111','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',2)"), /permission denied/);
   await assert.rejects(db.query("select public.cloud_claim_slot('11111111-1111-4111-8111-111111111111','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',2)"), /cloud_invalid_slot/);

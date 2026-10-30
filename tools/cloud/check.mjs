@@ -354,12 +354,31 @@ console.log('共通の袋: 24行動×新旧応答で個数一定・所持品/戦
 // AbortSignalを無視する通信でも、応答本文を含めて待機期限を守る。
 {
   const original = globalThis.setTimeout;
-  globalThis.setTimeout = (fn,ms,...args) => original(fn,ms===15000?5:ms,...args);
+  globalThis.setTimeout = (fn,ms,...args) => original(fn,[15000,60000].includes(ms)?5:ms,...args);
   try {
     for (const fetcher of [()=>new Promise(()=>{}), async()=>({ok:true,json:()=>new Promise(()=>{})})]) {
       const c = new CloudSaveClient(config,{storage:storage(),fetcher});
       await assert.rejects(c.fetchJSON('/test'), e=>e.name==='AbortError');
+      await assert.rejects(c.fetchJSON('/functions/v1/game-save'), e=>e.name==='AbortError');
     }
   } finally { globalThis.setTimeout=original; }
 }
 console.log('通信待機: 中止されないfetch・応答本文も期限で復旧へ移行 OK');
+
+// 15秒を超える保存応答を途中で捨てず、時間切れは多重に再送しない。
+{
+  const original = globalThis.setTimeout;
+  const deadlines=[];
+  globalThis.setTimeout=(fn,ms,...args)=>{deadlines.push(ms);return original(fn,ms/1000,...args)};
+  try {
+    const c=new CloudSaveClient(config,{storage:storage(),fetcher:()=>new Promise(resolve=>original(()=>resolve(Response.json({revision:1})),25))});
+    assert.equal((await c.fetchJSON('/functions/v1/game-save')).revision,1);
+    assert.deepEqual(deadlines,[60000]);
+  } finally {globalThis.setTimeout=original;}
+  let calls=0, failures=0;
+  const stop=new Error('復旧画面で停止');
+  const c=new CloudSaveClient(config,{storage:storage(),onFailure:async()=>{failures++;throw stop;}});
+  await assert.rejects(c.retry(async()=>{calls++;throw new DOMException('期限','AbortError')}),e=>e===stop);
+  assert.equal(calls,1);assert.equal(failures,1);
+}
+console.log('大容量通信: 15秒超の完了・60秒期限・時間切れの自動再送抑止 OK');

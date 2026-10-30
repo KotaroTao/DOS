@@ -11,6 +11,7 @@ await db.exec(`create schema auth; create table auth.users(id uuid primary key);
 await db.exec(await readFile(new URL("../../supabase/migrations/202610120001_cloud_save.sql", import.meta.url), "utf8"));
 await db.exec(await readFile(new URL("../../supabase/migrations/202610160001_save_slots.sql", import.meta.url), "utf8"));
 await db.exec(await readFile(new URL("../../supabase/migrations/202610300001_guest_onboarding.sql", import.meta.url), "utf8"));
+await db.exec(await readFile(new URL("../../supabase/migrations/202610300002_large_save_transport.sql", import.meta.url), "utf8"));
 let handler;
 globalThis.Deno = { env: { get: (k) => ({ SUPABASE_URL: "https://db.invalid", SUPABASE_SERVICE_ROLE_KEY: "test-key",
   GAME_ALLOWED_ORIGINS: "http://127.0.0.1:8001" })[k] }, serve: (fn) => { handler = fn; } };
@@ -20,7 +21,9 @@ globalThis.fetch = async (url, opts) => {
   const b = JSON.parse(opts.body);
   try {
     let r;
-    if (url.endsWith("/cloud_accept_terms")) r = await db.query("select public.cloud_accept_terms($1::uuid,$2::text) as value", [b.p_user, b.p_version]);
+    if (url.endsWith("/cloud_claim_text")) r = await db.query("select public.cloud_claim_text($1::uuid,$2::uuid,$3::integer) as value", [b.p_user,b.p_session,b.p_slot]);
+    else if (url.endsWith("/cloud_commit_text")) r = await db.query("select public.cloud_commit_text($1::text) as value", [b.p_payload]);
+    else if (url.endsWith("/cloud_accept_terms")) r = await db.query("select public.cloud_accept_terms($1::uuid,$2::text) as value", [b.p_user, b.p_version]);
     else if (url.endsWith("/cloud_claim_slot")) r = await db.query("select public.cloud_claim_slot($1::uuid,$2::uuid,$3::integer) as value", [b.p_user, b.p_session, b.p_slot]);
     else r = await db.query("select public.cloud_commit_slot($1::uuid,$2::uuid,$3::bigint,$4::uuid,$5::jsonb,$6::jsonb,$7::jsonb,$8::integer) as value",
       [b.p_user, b.p_session, b.p_revision, b.p_command, JSON.stringify(b.p_request), JSON.stringify(b.p_snapshot), JSON.stringify(b.p_response), b.p_slot]);
