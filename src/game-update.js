@@ -1,11 +1,14 @@
+// 公開時にService Workerと同じ版を入れ、通知前に切り替わった更新も検出する。
+export const APP_VERSION = "dos-dev";
+
 // 公開更新は知らせるだけにし、遊んでいる画面を勝手に読み直さない。
 export function watchGameUpdates({ serviceWorker, testPlay = false, applyUpdate }) {
   if (!serviceWorker) return;
   const hadController = !!serviceWorker.controller;
   let notice = null;
-  const notify = () => {
+  const notify = (differentVersion = false) => {
     // 初回導入では、既に読み込んだ版のまま続けられる。
-    if (!hadController || notice) return;
+    if ((!hadController && !differentVersion) || notice) return;
     notice = document.createElement("aside");
     notice.className = "game-update-notice";
     notice.setAttribute("aria-label", "ゲームの更新");
@@ -35,14 +38,40 @@ export function watchGameUpdates({ serviceWorker, testPlay = false, applyUpdate 
     later.addEventListener("click", () => { notice.hidden = true; });
     notice.append(message, button, later); document.body.append(notice);
   };
-  serviceWorker.addEventListener("controllerchange", notify);
+  const checkVersion = () => {
+    const controller = serviceWorker.controller;
+    if (APP_VERSION === "dos-dev" || !controller?.postMessage) return;
+    const channel = new MessageChannel();
+    const close = () => { channel.port1.close(); channel.port2.close(); };
+    const timer = setTimeout(close, 5000);
+    channel.port1.onmessage = e => {
+      clearTimeout(timer); close();
+      if (e.data?.type === "game-version" && typeof e.data.version === "string" && e.data.version !== APP_VERSION) notify(true);
+    };
+    controller.postMessage({ type: "game-version" }, [channel.port2]);
+  };
+  serviceWorker.addEventListener("controllerchange", () => { notify(); checkVersion(); });
   serviceWorker.register("sw.js", { updateViaCache: "none" }).then(reg => {
-    reg.addEventListener("updatefound", () => {
-      const sw = reg.installing;
+    const observe = sw => {
       if (!sw) return;
-      sw.addEventListener("statechange", () => {
-        if (sw.state === "activated" && serviceWorker.controller) notify();
-      });
-    });
+      const changed = () => {
+        if (sw.state === "activated" && serviceWorker.controller) { notify(); checkVersion(); }
+      };
+      sw.addEventListener("statechange", changed);
+      changed();
+    };
+    // registerの返答より前に導入が始まった場合も監視する。
+    observe(reg.installing); observe(reg.waiting);
+    reg.addEventListener("updatefound", () => observe(reg.installing));
+    const check = () => {
+      if (document.visibilityState === "hidden") return;
+      checkVersion();
+      reg.update?.().catch(() => {});
+    };
+    check();
+    window.addEventListener("focus", check);
+    document.addEventListener("visibilitychange", check);
+    const timer = setInterval(check, 60000);
+    window.addEventListener("pagehide", () => clearInterval(timer), { once: true });
   }).catch(() => {});
 }

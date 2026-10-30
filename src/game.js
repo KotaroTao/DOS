@@ -2817,7 +2817,7 @@ function renderRunbar() {
 function dockSpec() {
   if (G.state !== "board" || !G.board) return null;
   const st = findRevealedStairs();
-  let down = null;
+  let down = { key: "unknown", label: "階段未発見", sub: "", disabled: true, kind: "secondary", icon: "stairs" };
   if (st) {
     if (abyssActive()) {
       down = abyssBossPending()
@@ -2837,7 +2837,7 @@ function dockSpec() {
       }
     }
   }
-  if (down && !canReachStairs(st)) { down.disabled = true; down.sub = "階段までの道がつながっていない"; }
+  if (st && down && !canReachStairs(st)) { down.disabled = true; down.sub = "階段までの道がつながっていない"; }
   const home = abyssActive()
     ? (G.bossDown ? { label: "帰る", sub: "主を討った", icon: "home" } : null)
     : (G.portalFound || G.bossDown) ? { label: "帰還", sub: G.bossDown && !G.portalFound ? "主を討った" : "帰還陣から", icon: "home" } : null;
