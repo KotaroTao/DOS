@@ -99,11 +99,16 @@ export class CloudSaveClient {
     }
   }
   // 復旧を明示的に選んだ時だけ退避する。退避に失敗したら元の要求を残す。
-  archivePending() {
+  async archivePending() {
     const key = pendingKey(this.auth.user.id, this.slot);
     const raw = this.storage.getItem(key);
     if (raw) {
-      this.storage.setItem(key + ":recovery", raw);
+      try { this.storage.setItem(key + ":recovery", raw); }
+      catch {
+        // localStorageの容量を使い切った時は、別の保存領域へ退避する。
+        // 書き込みトランザクションの完了前に元の要求を消さない。
+        await archiveInDatabase(key, raw);
+      }
       this.storage.removeItem(key);
     }
   }
@@ -131,6 +136,23 @@ export class CloudSaveClient {
     this.revision = result.revision;
     this.storage.removeItem(pendingKey(this.auth.user.id, this.slot));
   }
+}
+
+function archiveInDatabase(key, raw) {
+  return new Promise((resolve, reject) => {
+    const open = indexedDB.open("dos-cloud-recovery", 1);
+    open.onupgradeneeded = () => open.result.createObjectStore("requests");
+    open.onerror = () => reject(open.error);
+    open.onblocked = () => reject(new Error("記録の保管先を開けません"));
+    open.onsuccess = () => {
+      const db = open.result;
+      const tx = db.transaction("requests", "readwrite");
+      tx.oncomplete = () => { db.close(); resolve(); };
+      tx.onabort = () => { db.close(); reject(tx.error || new Error("記録を保管できません")); };
+      tx.onerror = () => {};
+      tx.objectStore("requests").put(raw, key);
+    };
+  });
 }
 
 let leaving = false;
@@ -164,9 +186,18 @@ function button(text, fn) {
   if (controls.children.length === 1) b.focus();
   return b;
 }
-function resumeSavedRecord() {
-  try { client.archivePending(); location.reload(); }
-  catch { message.textContent = "未送信の操作を保管できませんでした。端末の空き容量を確かめてから再接続してください。"; }
+let resumingRecord = false;
+async function resumeSavedRecord() {
+  if (resumingRecord) return;
+  resumingRecord = true;
+  const buttons = [...controls.querySelectorAll("button")];
+  for (const b of buttons) b.disabled = true;
+  try { await client.archivePending(); location.reload(); }
+  catch {
+    message.textContent = "未送信の操作を保管できませんでした。ブラウザーの保存領域が不足しているか、利用できません。元の操作は残しています。再接続をお試しください。";
+    resumingRecord = false;
+    for (const b of buttons) b.disabled = false;
+  }
 }
 function failure(e) {
   return new Promise((resolve) => {

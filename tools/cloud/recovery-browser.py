@@ -40,10 +40,28 @@ with sync_playwright() as p:
       window.connected=cloud.connectCloud(null);
     }""")
     page.get_by_role('button',name='保存済みの記録から再開',exact=True).wait_for()
+    # localStorageが満杯でも、IndexedDBへ退避完了してから再開する。
+    page.evaluate("""() => {
+      const original=Storage.prototype.setItem;
+      Storage.prototype.setItem=function(key,value){
+        if(key.endsWith(':recovery'))throw new DOMException('容量不足','QuotaExceededError');
+        return original.call(this,key,value);
+      };
+    }""")
     with page.expect_navigation():
         page.get_by_role('button',name='保存済みの記録から再開',exact=True).click()
     assert page.evaluate("localStorage.getItem('dos-cloud-pending:test')") is None
-    assert page.evaluate("localStorage.getItem('dos-cloud-pending:test:recovery')") == raw
+    archived = page.evaluate("""() => new Promise((resolve,reject)=>{
+      const open=indexedDB.open('dos-cloud-recovery',1);
+      open.onerror=()=>reject(open.error);
+      open.onsuccess=()=>{
+        const db=open.result,tx=db.transaction('requests');
+        const get=tx.objectStore('requests').get('dos-cloud-pending:test');
+        get.onsuccess=()=>resolve(get.result);
+        tx.oncomplete=()=>db.close();
+      };
+    })""")
+    assert archived == raw
     page.evaluate("""async()=>{
       window.ops=[];
       window.fetch=async(url,init)=>{if(url.endsWith('/auth/v1/user'))return Response.json({id:'test'});ops.push(JSON.parse(init.body).op);return Response.json({revision:1,snapshot:{saved:true},battleTurn:true});};
