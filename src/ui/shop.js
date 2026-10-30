@@ -52,7 +52,7 @@ function buyerPlan(it) {
   if (sw) { plan.delta = sw.delta; plan.score = gearScore(d, sw.delta); }
   return plan;
 }
-function buyerStrip() {
+function buyerStrip({ bukon = false } = {}) {
   const selected = selectedBuyer();
   const box = el("section", "wpc-characters");
   box.setAttribute("aria-label", "比較する人業");
@@ -67,7 +67,7 @@ function buyerStrip() {
     b.addEventListener("click", () => { setPref("shopDollUid", d.uid); sfx("select"); rerender(); });
     strip.appendChild(b);
   }
-  box.append(strip, el("div", "wpc-comparison-label", selected ? `${selected.name}の現在装備と比較${isReserve(selected) ? "（控え）" : ""}` : "比較する人業がいない"));
+  box.append(strip, el("div", "wpc-comparison-label", selected ? `${selected.name}の現在の装備${bukon ? "" : "と比較"}${isReserve(selected) ? "（控え）" : ""}` : "比較する人業がいない"));
   requestAnimationFrame(() => strip.querySelector(".selected")?.scrollIntoView({ block: "nearest", inline: "nearest" }));
   return box;
 }
@@ -868,7 +868,7 @@ function render(root) {
   const seg = segOf();
   const wrap = el("div", "wpc-shop seg-" + seg);
   wrap.appendChild(keeperLine(seg));
-  if (seg === "buy") wrap.appendChild(buyerStrip());
+  if (seg === "buy" || seg === "enchant") wrap.appendChild(buyerStrip({bukon:seg==="enchant"}));
   const bar = el("div", "wpc-bar");
   const unid = unidCount();
   bar.appendChild(segmented(
@@ -884,7 +884,7 @@ function render(root) {
     bar.appendChild(cc);
   }
   wrap.appendChild(bar);
-  const fill = seg === "buy" ? renderBuy(wrap) : seg === "forge" && UI.renderForgeList ? UI.renderForgeList(wrap) : seg === "enchant" && UI.renderEnchantList ? UI.renderEnchantList(wrap) : renderSell(wrap);
+  const fill = seg === "buy" ? renderBuy(wrap) : seg === "forge" && UI.renderForgeList ? UI.renderForgeList(wrap) : seg === "enchant" && UI.renderEnchantList ? UI.renderEnchantList(wrap, { doll:selectedBuyer() }) : renderSell(wrap);
   root.appendChild(wrap);
   // 置いてから高さを測ってページを切る
   try { fill(); } catch (e) { setTimeout(() => { throw e; }); }

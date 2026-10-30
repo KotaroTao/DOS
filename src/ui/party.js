@@ -2315,9 +2315,9 @@ function slotLabelOf(d, k) {
   if (k === "shield" && d && (d.dualWield > 0 || (d.equip && d.equip.shield && d.equip.shield.slot === "weapon"))) return "左手";
   return SLOT_LABEL[k];
 }
-function slotCell(d, k) {
+export function slotCell(d, k, { onPick = null } = {}) {
   const it = d.equip[k];
-  const info = d.primary != null ? slotInfo(d, k) : { count: 0, better: false };
+  const info = !onPick && d.primary != null ? slotInfo(d, k) : { count: 0, better: false };
   const r = el("button", "pt-slot" + (it ? "" : " empty") + (it && it.cursed ? " cursed" : "") + (it && it.locked ? " locked" : "") + (info.better ? " better" : ""));
   r.type = "button";
   r.dataset.slot = k;
@@ -2348,7 +2348,7 @@ function slotCell(d, k) {
   }
   r.appendChild(tx);
   r.setAttribute("aria-label", `${slotLabelOf(d, k)}: ${it ? itemName(it) : "空き"}${info.better ? " (もっと良い品がある)" : ""}`);
-  r.addEventListener("click", () => { sfx("select"); openCandidates(d, k); });
+  r.addEventListener("click", () => { sfx("select"); if(onPick)onPick(it);else openCandidates(d, k); });
   if (it) longPress(r, () => openItemDetail(it));
   return r;
 }

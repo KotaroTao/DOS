@@ -1,8 +1,9 @@
 // 武魂の装着・取り外し・合成。実物の所有確認と変更はgameの窓口で行う。
 import { UI, game, registerUI } from "./ctx.js";
 import { el, button, sheet, confirm as askConfirm, toast } from "./kit.js";
-import { itemName, recalc } from "../items.js";
-import { bukonText as fullBukonText, bukonSlots, bukonDef, bukonItem, attachBlock, fusionPlan, fusionGold, bulkFusionPlan, maxFusionLevel, BUKON_RARITIES } from "../bukon.js";
+import { itemName, SLOTS } from "../items.js";
+import { bukonText as fullBukonText, bukonSlots, bukonDef, attachBlock, fusionPlan, fusionGold, bulkFusionPlan, maxFusionLevel, BUKON_RARITIES } from "../bukon.js";
+import { slotCell } from "./party.js";
 const bukonText = b => fullBukonText(b, { showRarity: false });
 export const ENCHANT_NOTE = "武魂は装備を使った者の魂が宿ったもの。対応部位だけに無料で宿し、外せる。珍しい装備ほど多くの武魂を宿せる。同効果は1装備に1つ。売却・廃棄・素材化で商会へ戻る。加算系はLv上限なし、他はLv10まで。借用枠追加・持続延長・能力低下反転はレベルなし。特殊効果は人業ごとに同種の最高Lvだけが働く。";
 export const enchantPracticeState = () => null;
@@ -11,18 +12,11 @@ export function prepareEnchantTutorial() {}
 export function openAffixExtract() { return false; }
 export function openShelfAffixExtract() { return false; }
 const confirm = async ({onOk, ...options}) => { if (await askConfirm(options)) onOk?.(); };
-let mode = "gear", query = "", place = "all", part = "all";
+let mode = "gear", query = "", part = "all";
 const PARTS = {weapon:"武器",shield:"盾",body:"胴",head:"頭",hands:"手",feet:"足",acc:"装飾"};
 const ownerOf = it => game.allDolls().find(d => Object.values(d.equip || {}).includes(it));
 const locationOf = it => ownerOf(it)?.name || "共有の袋";
 const affordable = plan => !!plan && Number.isSafeInteger(G().gold) && G().gold >= 0 && BigInt(G().gold) >= plan.cost;
-function matchesPlace(it) {
-  const owner=ownerOf(it);
-  if(place==="all")return true;
-  if(place==="bag")return !owner;
-  if(place==="equipped")return !!owner;
-  return /^\d+$/.test(place) && !!owner && owner===game.allDolls()[Number(place)];
-}
 function picker(label, options, value, change) {
   const select=el("select","rf-select");select.setAttribute("aria-label",label);
   for(const [key,text] of options){const option=el("option","",text);option.value=key;select.append(option);}
@@ -43,11 +37,16 @@ function openStockDetail(b) {
     if(def.max===1)body.append(el("p","rf-note","レベルなし・合成対象外。同じ機能は重複しない。"));
   },footer:[{label:"閉じる",kind:"ghost",onTap:()=>h.close()}]});
 }
-function gearBukonLabels(it) {
-  const labels=el("div","rf-note");
-  for(const b of it.bukon || []){const line=el("div","");line.append(bukonLabel(b));labels.append(line);}
-  if(!it.bukon?.length)labels.textContent="武魂なし";
-  return labels;
+function stockRow(b, done, { it = null, installed = null } = {}) {
+  const def=bukonDef(b.k),row=el("div","bk-stock-row");
+  const main=button({label:def.name,kind:"ghost",onTap:()=>openStockDetail({...b,count:b.count||1})});
+  main.classList.add("bk-stock-main");
+  const gem=el("i","bk-gem");gem.setAttribute("aria-hidden","true");main.prepend(gem);main.style.color=BUKON_RARITIES[def.rarity].color;row.append(main);
+  if(installed!==null){row.append(button({label:"外す",kind:"ghost",disabled:!!(it.locked||it.cursed),onTap:()=>action("detach",it,installed,done)}));return row;}
+  if(it)row.append(button({label:"宿す",kind:"primary",onTap:()=>action("attach",it,b,done)}));
+  if(def.max!==1 && game.featureUnlocked("bukonFusion")){const fuse=button({label:"合成",kind:"primary",onTap:()=>openFusion(b.k,done)});fuse.classList.add("bukon-tutorial-fuse");row.append(fuse);}
+  const protect=button({label:b.protected?"保護中":"保護",kind:"ghost",onTap:()=>action("protect",null,b,done)});
+  protect.setAttribute("aria-pressed",String(!!b.protected));row.append(protect);return row;
 }
 function openGear(it, done) {
   let h;
@@ -56,32 +55,10 @@ function openGear(it, done) {
     body.append(el("p","bk-meta",`${locationOf(it)} · ${PARTS[it.slot]}`));
     if(it.locked || it.cursed)body.append(el("p","rf-note","保護中・呪いの装備は変更できない。装備の保護を解除してから操作しよう。"));
     body.append(el("p","rf-note",`${(it.bukon || []).length}/${bukonSlots(it)}枠。装備固有の効果とも重複する。取り外し・装着は無料。`));
-    for (const [i,b] of (it.bukon || []).entries()) {
-      const row=el("div","ec-afx-row"); row.append(bukonLabel(b));
-      row.append(button({label:"外して保管",kind:"ghost",disabled:!!(it.locked || it.cursed),onTap:()=>{ action("detach",it,i,refresh); }})); body.append(row);
-    }
-    body.append(el("h3","","宿す武魂"));
-    const select=el("select","rf-select");select.setAttribute("aria-label","宿す武魂");
-    const rows=game.bukonRows();
-    const choices=rows.filter(b=>!attachBlock(it,b));
-    for(const [i,b] of choices.entries()) { const op=el("option","",`${bukonText(b)} ×${b.count}`);op.value=String(i);op.style.color=BUKON_RARITIES[bukonDef(b.k).rarity].color;select.append(op); }
-    const preview=el("p","rf-note");
-    const updatePreview=()=>{
-      const b=choices[Number(select.value)];
-      const owners=game.allDolls().filter(d=>Object.values(d.equip || {}).includes(it));
-      if(!b || !owners.length){preview.textContent="装備中の品は、装着後の能力と耐性の合計を表示する。";return;}
-      const owner=owners[0],fake={...owner,equip:{...owner.equip}};
-      const after={...it,bukon:[...(it.bukon || []),b]};
-      for(const slot of Object.keys(fake.equip))if(fake.equip[slot]===it)fake.equip[slot]=after;
-      recalc(fake);
-      const raw=Object.values(fake.equip).reduce((r,x)=>{const v=bukonItem(x);return r+(v?.resists?.physResist || 0);},0);
-      preview.textContent=`${owner.name}：HP ${owner.maxhp.toLocaleString()} → ${fake.maxhp.toLocaleString()}、MP ${owner.maxmp.toLocaleString()} → ${fake.maxmp.toLocaleString()}。物理耐性 ${fake.physResist}%、魔法耐性 ${fake.magResist}%。${raw>80?`物理耐性は装備合計${raw}%のうち${raw-80}ポイントが上限を超える。`:""} 会心補正 ${Math.round(fake.critBonus*100)}%（最終会心率80%まで）。`;
-    };
-    select.onchange=updatePreview;updatePreview();body.append(select,preview);
-    body.append(button({label:"選んだ武魂を宿す（無料）",kind:"primary",disabled:!choices.length,onTap:()=>{
-      const b=choices[Number(select.value)]; if(!b)return;
-      action("attach",it,b,refresh);
-    }}));
+    for (const [i,b] of (it.bukon || []).entries())body.append(stockRow(b,refresh,{it,installed:i}));
+    body.append(el("h3","","宿すことができる武魂"));
+    const choices=game.bukonRows().filter(b=>!attachBlock(it,b));
+    for(const b of choices)body.append(stockRow(b,refresh,{it}));
     const sources=game.bukonTargets().filter(x=>x!==it && x.bukon?.length && !x.locked && !x.cursed);
     if(sources.length && !it.locked && !it.cursed) {
       const transfer=el("select","rf-select");transfer.setAttribute("aria-label","武魂の移植元");
@@ -126,43 +103,50 @@ function openFusion(k,done) {
     };keep.oninput=updateBulk;updateBulk();body.append(bulkPreview,bulkButton);
   },footer:[{label:"閉じる",kind:"ghost",onTap:()=>h.close()}]});
 }
-export function renderEnchantList(parent) {
+export function renderEnchantList(parent, { doll = null } = {}) {
   const wrap=el("div","bk-panel");parent.append(wrap);
   const draw=()=>{
     wrap.replaceChildren();
-    const why=game.enchantClosed?.(); if(why){wrap.append(el("p","rf-note",why));return;}
+    const why=game.enchantClosed?.();if(why){wrap.append(el("p","rf-note",why));return;}
     const rows=game.bukonRows();
-    const details=el("details","rf-intro");details.append(el("summary","","武魂の手引き"),el("p","rf-note",ENCHANT_NOTE),el("p","rf-note","第三章の結びで解放。第四章以降の迷宮の青・橙・赤い名の新しい装備から武魂が一つ見つかる。対応部位が合わない場合は商会に保管する。ドロップLvは拾った階の推奨Lvで決まり、装備のレア度には依存しない。武魂の格は白80%・緑12.5%・青5%・橙2%・赤0.5%。物理・魔法耐性は合計80%、各状態異常耐性95%、会心率・回避率80%まで。加算系だけLv上限なし。属性軽減は同属性合計80%。復活は毎回判定、確率50%まで、HP10%で戻る。"));wrap.append(details);
-    wrap.append(el("p","bk-meta",`着脱は無料 · 保管 ${rows.reduce((n,b)=>n+BigInt(b.count),0n).toLocaleString()}個 · 所持金貨 ${G().gold.toLocaleString()}`));
+    const selected=doll || game.allDolls().find(d=>!d.isEmpty);
+    const equipment=SLOTS.map(k=>selected?.equip?.[k]).filter(Boolean);
+    const matches=it=>(part==="all"||it.slot===part)&&norm(itemName(it)+(it.bukon||[]).map(bukonText).join(" ")).includes(norm(query));
+    const stock=rows.filter(b=>(part==="all"||bukonDef(b.k).slots.includes(part))&&norm(bukonText(b)).includes(norm(query)));
+    const head=el("div","wpc-lhead");
+    head.append(el("span","wpc-lhead-t",`武魂 ${mode==="gear"?equipment.filter(matches).length:stock.length}点`),button({label:"絞り込み",kind:"ghost",size:"sm",onTap:()=>{
+      let h;h=sheet.open({title:"武魂の絞り込み",body:body=>{
+        const search=el("input","rf-select");search.type="search";search.placeholder="装備名・武魂の効果で検索";search.setAttribute("aria-label","武魂の検索");search.value=query;search.oninput=()=>{query=search.value;draw();};
+        body.append(search,picker("対応部位",[["all","すべての部位"],...Object.entries(PARTS)],part,v=>{part=v;draw();}));
+      },footer:[{label:"解除",kind:"ghost",onTap:()=>{query="";part="all";h.close();draw();}},{label:"閉じる",kind:"ghost",onTap:()=>h.close()}]});
+    }}));wrap.append(head);
     const tabs=el("div","ec-afx-acts");
     for(const [key,label] of [["gear","装備に宿す・外す"],["stock","保管中の武魂"]]){const tab=button({label,kind:mode===key?"primary":"ghost",onTap:()=>{mode=key;draw();}});tab.setAttribute("aria-pressed",String(mode===key));tabs.append(tab);}wrap.append(tabs);
-    const search=el("input","rf-select");search.type="search";search.placeholder="装備名・武魂の効果で検索";search.setAttribute("aria-label","武魂の検索");search.value=query;wrap.append(search);
-    const filters=el("div","bk-filters");
-    filters.append(picker("対応部位",[["all","すべての部位"],...Object.entries(PARTS)],part,v=>{part=v;fill();}));
-    if(mode==="gear")filters.append(picker("装備の場所",[["all","すべての場所"],["equipped","装備中"],["bag","共有の袋"],...game.allDolls().map((d,i)=>[String(i),d.name])],place,v=>{place=v;fill();}));
-    const count=el("p","bk-meta");count.setAttribute("aria-live","polite");wrap.append(filters,count);
-    const list=el("div","ec-list wpc-list"+(mode==="stock"?" bk-stock-list":""));wrap.append(list);
-    const fill=()=>{
-      list.replaceChildren();const q=norm(query);
-      if(mode==="gear")for(const it of game.bukonTargets().filter(it=>(part==="all"||it.slot===part)&&matchesPlace(it)&&norm(itemName(it)+locationOf(it)+(it.bukon || []).map(bukonText).join(" ")).includes(q))) {
-        const row=el("div","ec-afx-row");row.append(el("p","bk-meta",`${locationOf(it)} · ${PARTS[it.slot]}${it.locked?" · 保護中":""}${it.cursed?" · 呪い":""}`),el("div","bk-title",`${itemName(it)} ${(it.bukon || []).length}/${bukonSlots(it)}枠`),gearBukonLabels(it),button({label:"宿す・外す",kind:"ghost",onTap:()=>openGear(it,draw)}));list.append(row);
+    if(mode==="gear"){
+      const list=el("div","pt-slots bk-equipment");
+      if(selected)for(const k of SLOTS){
+        const it=selected.equip?.[k];if(it&&!matches(it)||!it&&(query||part!=="all"))continue;
+        const cell=slotCell(selected,k,{onPick:it=>{if(it)openGear(it,draw);}});
+        cell.disabled=!it;
+        if(it){
+          const icon=cell.querySelector(".pt-slot-ic"),column=el("span","bk-slot-icon"),sockets=el("span","bk-sockets");
+          sockets.setAttribute("aria-label",`武魂 ${(it.bukon||[]).length}/${bukonSlots(it)}枠`);
+          for(let i=0;i<bukonSlots(it);i++){
+            const b=it.bukon?.[i],socket=el("i",b?"bk-socket bk-gem":"bk-socket");
+            if(b)socket.style.color=BUKON_RARITIES[bukonDef(b.k).rarity].color;
+            sockets.append(socket);
+          }
+          icon.replaceWith(column);column.append(icon,sockets);
+        }
+        list.append(cell);
       }
-      if(mode==="stock")for(const b of rows.filter(b=>(part==="all"||bukonDef(b.k).slots.includes(part))&&norm(bukonText(b)).includes(q))) {
-        const def=bukonDef(b.k),row=el("div","bk-stock-row");
-        const main=button({label:def.name,kind:"ghost",className:"bk-stock-main",onTap:()=>openStockDetail(b)});
-        main.classList.add("bk-stock-main");
-        const gem=el("i","bk-gem");gem.setAttribute("aria-hidden","true");main.prepend(gem);main.style.color=BUKON_RARITIES[def.rarity].color;
-        row.append(main);
-        if(def.max!==1 && game.featureUnlocked("bukonFusion")){const fuse=button({label:"合成",kind:"primary",onTap:()=>openFusion(b.k,draw)});fuse.classList.add("bukon-tutorial-fuse");row.append(fuse);}
-        const protect=button({label:b.protected?"保護中":"保護",kind:"ghost",onTap:()=>action("protect",null,b,draw)});
-        protect.setAttribute("aria-pressed",String(!!b.protected));row.append(protect);
-        list.append(row);
-      }
-      count.textContent=`${list.children.length}件${query||part!=="all"||mode==="gear"&&place!=="all"?"（絞り込み中）":""}`;
-      if(!list.children.length)list.append(el("p","rf-note","該当する品はない。"));
-      if(mode==="stock"&&!game.featureUnlocked("bukonFusion"))list.append(el("p","rf-note","武魂合成は第四章の本筋2か所を王に報告すると開く。"));
-    };
-    search.oninput=()=>{query=search.value;fill();};fill();
+      wrap.append(list);return;
+    }
+    const list=el("div","ec-list wpc-list bk-stock-list");
+    for(const b of stock)list.append(stockRow(b,draw));
+    if(!stock.length)list.append(el("p","rf-note","該当する武魂はない。"));
+    if(!game.featureUnlocked("bukonFusion"))list.append(el("p","rf-note","武魂合成は第四章の本筋2か所を王に報告すると開く。"));
+    wrap.append(list);
   };draw();return draw;
 }
 export function install() { registerUI({renderEnchantList,prepareEnchantTutorial,enchantPracticeState,openAffixExtract,openShelfAffixExtract}); }
