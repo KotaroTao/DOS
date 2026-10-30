@@ -29,6 +29,13 @@ let token = 0;
 let timer = null;
 let hooked = false;
 let audioError = null;
+let rebuildOnReturn = false, unlockOnReturn = false;
+
+function isIOSAudio() {
+  // iPadのデスクトップ表示ではMacとして報告される。
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+}
 
 function playbackSession() {
   // iOSではWeb Audio用の出力が動画の出力とは別になる。音楽再生用を明示する。
@@ -97,6 +104,7 @@ export function restartAudio() {
   actx = null; engine = null; current = null; want = undefined;
   pendingBgm = next;
   kickPending = false;
+  rebuildOnReturn = false;
   // closeの完了を待つとタップの権限を失うため、同じ操作の中で作り直す。
   try { old?.close().catch(() => {}); } catch {}
   // Safari側の出力が失われた場合、同じtypeの再代入だけでは設定し直されない。
@@ -159,21 +167,37 @@ function hookLifecycle() {
   context.addEventListener("statechange", () => { if (actx === context && context.state === "interrupted") kickPending = true; });
   if (hooked) return;
   hooked = true;
+  const restore = () => {
+    if (!actx || document.hidden) return;
+    bank.setPaused(false);
+    // iOSはタブ移動でrunningのまま出口だけを失う。resumeだけでは戻らない。
+    if (rebuildOnReturn || actx.state === "closed") {
+      rebuildOnReturn = false;
+      unlockOnReturn = true;
+      restartAudio();
+    } else resumeAudio();
+    startTimer();
+  };
   document.addEventListener("visibilitychange", () => {
     if (!actx) return;
     if (document.hidden) {
+      rebuildOnReturn ||= isIOSAudio();
       stopTimer();
       bank.setPaused(true);
       actx.suspend().catch(() => {});
-    } else {
-      bank.setPaused(false);
-      resumeAudio();
-      startTimer();
-    }
+    } else restore();
   });
+  window.addEventListener("pageshow", restore);
+  window.addEventListener("focus", restore);
   // iOS は着信などで "interrupted" になる。次の操作で起こす
-  const wake = () => {
+  const wake = (event) => {
     if (!actx || muted || document.hidden) return;
+    if (unlockOnReturn) {
+      // 自動復帰が許可されない端末では、runningでも操作中に出口を開き直す。
+      resumeAudio();
+      if (["pointerup", "touchend", "click", "keydown"].includes(event.type)) unlockOnReturn = false;
+      return;
+    }
     if (kickPending) { kick(); return; }
     if (actx.state !== "running") resumeAudio();
   };
