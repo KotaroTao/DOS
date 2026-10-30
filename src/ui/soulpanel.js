@@ -308,7 +308,7 @@ function appendSubTiles(card, d, town) {
 // 残火の段の説明。灯守 (セラだけの魂) は残火1つで上限 +1、その上限に Lv が届くたび能力が伸びる (souls.js EMBER_STAT_UP)
 function emberStatPct(pe) { return Math.round(emberStatSteps(pe.clsKey, pe) * (EMBER_STAT_UP.unique || 0) * 1000) / 10; }
 function emberCapLines(pe) {
-  if (!(SOUL_CLASSES[pe.clsKey] || {}).unique) return ["要る残火は職業のレア度で変わる (コモン1・レア2・エピック3・レジェンド5)。"];
+  if (!(SOUL_CLASSES[pe.clsKey] || {}).unique) return ["珍しい職業の魂ほど、多くの残火が要る。必要な数は強化の前に確かめられる。"];
   const pct = Math.round((EMBER_STAT_UP.unique || 0) * 1000) / 10;
   return [`灯守の魂は残火1つで上限 +1。伸ばした上限に Lv が届くたび、能力が +${pct}% 伸びる（いま +${emberStatPct(pe)}%）。`];
 }

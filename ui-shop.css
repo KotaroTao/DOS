@@ -737,3 +737,5 @@ html.pc-input .ui-sheet.ec-source-sheet { max-width: 720px; }
   .bk-sheet .ec-afx-row { flex-wrap: wrap; }
   .bk-sheet .ec-afx-row > .ui-btn { min-height: 44px; }
 }
+
+.rf-note, .bk-sheet p { font-family: var(--font); word-break: keep-all; overflow-wrap: break-word; line-break: strict; text-wrap: pretty; }
