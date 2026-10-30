@@ -1,5 +1,5 @@
 """図鑑開始前の非表示・討伐保持・空記録の補完と設定からの実操作。"""
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, TimeoutError
 with sync_playwright() as p:
  b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox','--disable-dev-shm-usage'])
  for width in [390,1280]:
@@ -24,7 +24,9 @@ with sync_playwright() as p:
     skip=page.locator('.iv-scene:not(.out) .iv-skip:visible,.sc-scene:not(.out) .sc-skip:visible')
     if skip.count():skip.first.click();continue
     glow=page.locator('.tut-glow:visible')
-    if glow.count():glow.first.click()
+    if glow.count():
+     try:glow.first.click(timeout=1500)
+     except TimeoutError:continue # 閉じる演出で消えた強調先は、次の周回で取り直す。
    else:raise AssertionError(page.evaluate('({t:__game.G.tut,text:document.body.innerText.slice(-1800)})'))
    assert page.evaluate('__game.G.codex.mon.bs_dustroach.kills')==(3 if recorded else 1)
    assert page.evaluate('!!__game.G.tut.done.insight')
