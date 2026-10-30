@@ -1,4 +1,4 @@
-"""戦果・逃走・全滅と、320px〜PCでの内訳の見やすさ・手帳再表示を検査する。"""
+"""戦果・逃走・全滅と、320px〜PCでの内訳の見やすさ・手帳の項目と移動速度を検査する。"""
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 root=Path(__file__).resolve().parents[2]
@@ -85,14 +85,11 @@ with sync_playwright() as p:
       reportKit.sheet.closeAll();g.prompt=false;g.pendingResults=null;
       const {UI}=await import('/src/ui/ctx.js');UI.openDungeonMenu();
     }''')
-    page.get_by_text('直前の戦闘',exact=True).click()
-    page.wait_for_selector('.ui-sheet.has-performance .bp-member',state='attached')
-    assert not page.locator('details.bp').get_attribute('open')
-    page.locator('details.bp > summary').click()
-    assert page.locator('.bp-member').first.is_visible()
-    page.locator('details.bp > summary').click()
-    assert not page.locator('.bp-member').first.is_visible()
-    page.get_by_role('button',name='閉じる',exact=True).last.click()
+    assert page.get_by_text('直前の戦闘',exact=True).count()==0
+    speed=page.locator('.dg-menu .stg-row').filter(has_text='移動の速さ')
+    speed.get_by_role('tab',name='4倍',exact=True).click()
+    assert page.evaluate("JSON.parse(localStorage.getItem('dos-prefs')).walkSpeed")==4
+    page.evaluate("reportKit.sheet.closeAll()")
     for outcome in ['flee','lose','escaped']:
         page.evaluate('''()=>{reportKit.sheet.closeAll();const g=__game.G;g.prompt=false;g.state='board';__game.startBattle(__game.spawnCardEnemies('bs_drainrat',1),null);}''')
         page.wait_for_function("__game.G.state==='combat' && __game.G.battle && !__game.G.anim")

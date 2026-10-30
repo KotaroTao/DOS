@@ -14,7 +14,7 @@ import { isDesktopLayout, onDesktopLayoutChange } from "../desktop.js";
 
 import { playerNameCard } from "./playername.js";
 import { UI, game, registerUI } from "./ctx.js";
-import { el, sheet, row, setText, glyph, itemTile, portrait, bar, reduced, uiBlocked } from "./kit.js";
+import { el, sheet, row, setText, glyph, itemTile, portrait, bar, reduced, uiBlocked, segmented } from "./kit.js";
 import { getPref, setPref, remember, autoMoveAvoid } from "./prefs.js";
 import { sceneTransition } from "./motion.js";
 import { MONSTERS, ICONS, spriteCanvas, crispCanvas } from "../sprites.js";
@@ -441,7 +441,6 @@ export function openDungeonMenu() {
       grid.appendChild(combat ? menuTile("party", "隊を見る", "戦闘中は開けない", null)
         : menuTile("party", "隊を見る", "装備・能力・道具", go(() => UI.openParty(0, { context: "dungeon" }))));
       grid.appendChild(menuTile("loot", "今回の収穫", `💰${r.gold || 0} ✦${r.soulPts || 0} 品${(r.items || []).length}`, go(openRunLoot)));
-      if (g.lastBattleReport && UI.openBattleSummary) grid.appendChild(menuTile("scroll", "直前の戦闘", "与ダメージ・被ダメージ・回復量", go(() => UI.openBattleSummary({ performance: g.lastBattleReport }))));
       grid.appendChild(menuTile("scroll", "記録を読む", "出来事の全文", go(openLog)));
       if (game.featureUnlocked?.("codex")) grid.appendChild(menuTile("book", "図鑑", "敵・品・見聞", go(() => UI.openCodexSheet && UI.openCodexSheet({ dungeonIdx: g.dungeonIdx }))));
       // ヘルプ (酒場で書き留めた話もタブで) とストーリー。街の同じボタンと同じ画面を開く
@@ -456,6 +455,16 @@ export function openDungeonMenu() {
       grid.appendChild(menuTile("flag", "迷宮を諦める", g.rematch ? "再戦では選べない" : "全滅と同じ扱い",
         g.rematch ? null : go(() => game.confirmAbandonDungeon && game.confirmAbandonDungeon()), g.rematch ? null : "red"));
       b.appendChild(grid);
+      const speed = el("div", "stg-row stg-segrow stg-stack");
+      const label = el("span", "stg-row-t");
+      label.appendChild(el("span", "stg-row-n", "移動の速さ"));
+      label.appendChild(el("span", "stg-row-d", "迷宮内の歩み・カードめくりの速さ"));
+      speed.appendChild(label);
+      const prefs = game.PREFS || {};
+      speed.appendChild(segmented([1, 2, 3, 4].map(n => ({ key: String(n), label: `${n}倍` })), String(prefs.walkSpeed || 2), k => {
+        prefs.walkSpeed = Number(k); game.savePrefs?.(); sfx("select");
+      }));
+      b.appendChild(speed);
       if (combat) b.appendChild(section("戦闘の速さ"));
       else b.appendChild(section("探索の手間を省く"));
       const tg = el("div", "dg-toggles grid");
