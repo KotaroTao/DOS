@@ -430,6 +430,8 @@ The goal (per design direction): **every enemy is individually distinctive**, bo
 
 ### State & persistence
 
+**起動接続の長時間待機 (2026-10-30)**: 通常の短い待機は無表示を保つが、接続の各段階が15秒以上止まれば段階名と再読み込みを表示する。Web Locksの失敗は起動側へ伝播する。通信はAbortControllerに加えPromiseの期限でも終了を保証する（fetch・本文の読み取りが中止を返さない場合も対象）。心得`t_cloud_record`。
+
 **クラウド戦闘と共通の袋 (2026-10-30)**: 戦闘の差分は`inventory`と`formations`も同じ参照グラフに含め、`party/reserve.items`・装備・戦利品との共有参照を保つ。これを省くと`shareInventory`が複製された袋を別物として合成し、各手で品が増殖する。旧サーバーの応答は全人業が共有する袋を`inventory`として反映する。既に増えた品は自動削除しない。確認: `node tools/cloud/check.mjs`（24行動×新旧応答）、`python3 tools/cloud/inventory-browser.py`。心得`t_cloud_record`。
 
 **クラウド要求の容量 (2026-10-30)**: 保存・戦闘の要求はUTF-8で16MiBまで。2MiB制限では成長した記録が413になり再送でも復旧しなかったため拡張。本文をストリームで数え、超過時は解析・DB更新前に拒否する。既存の送信待ち要求も内容とIDを変えず再送できる。共有参照・デシリアライズの10万ノード制限は維持。心得`t_cloud_record`。
