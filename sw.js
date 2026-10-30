@@ -3821,6 +3821,10 @@ function warmMedia(again = false) {
 // ページ (game.js syncStoryMedia) から、集めてよい物語の絵の一覧が届く
 self.addEventListener("message", (e) => {
   const d = e.data;
+  if (d?.type === "game-version") {
+    e.ports[0]?.postMessage({ type: "game-version", version: CACHE });
+    return;
+  }
   if (DEV || !d || d.type !== "story-media" || !Array.isArray(d.urls)) return;
   const urls = d.urls.filter((u) => typeof u === "string" && isStory(u));
   e.waitUntil(caches.open(MEDIA)
