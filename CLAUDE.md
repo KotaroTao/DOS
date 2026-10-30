@@ -430,7 +430,7 @@ The goal (per design direction): **every enemy is individually distinctive**, bo
 
 ### State & persistence
 
-**大きな記録の通信 (2026-10-30)**: 6561個の袋を含む2.6MBのヒール要求は本番の旧RPCで約33秒後にDB時間切れ（57014）。`cloud_claim_text` / `cloud_commit_text`でRPC境界をJSON文字列にし、PostgRESTが大きな参照グラフを引数展開・返却で処理する負荷を減らす（移行202610300002）。JSONB保存形式・既存関数の構造比較・占有と再送の検査は維持。新RPCの実行はservice_roleだけ。新方式で同じ要求のヒール・再送・読み戻し成功、約13秒を確認。保存APIは応答本文まで60秒待つ（認証15秒）。時間切れは自動再送せず復旧画面へ移す。品は削除しない。検証`DOS_TURN_DELAY=20 python3 tools/cloud/inventory-browser.py`（ヒール対象選択→20秒遅延→次手番→再起動）。心得`t_cloud_record`。
+**大きな記録の通信 (2026-10-30)**: 6561個の袋を含む2.6MBのヒール要求は本番の旧RPCで約33秒後にDB時間切れ（57014）。`cloud_claim_text` / `cloud_commit_text`でRPC境界をJSON文字列にし、PostgRESTが大きな参照グラフを引数展開・返却で処理する負荷を減らす（移行202610300002）。JSONB保存形式・既存関数の構造比較・占有と再送の検査は維持。新RPCの実行はservice_roleだけ。公開Edge経由でもDB時間切れが残ったため、この2関数だけPostgRESTの関数別期限を45秒へ設定する（移行202610300003）。新方式で同じ要求のヒール・再送・読み戻し成功、約13秒を確認。保存APIは応答本文まで60秒待つ（認証15秒）。時間切れは自動再送せず復旧画面へ移す。品は削除しない。検証`DOS_TURN_DELAY=20 python3 tools/cloud/inventory-browser.py`（ヒール対象選択→20秒遅延→次手番→再起動）。心得`t_cloud_record`。
 
 **送信待ちの回収停止 (2026-10-30)**: 起動時の`recover`は自動再試行で待機を延ばさず、最初の通信タイムアウトで通常の復旧画面へ移る。再接続または未送信要求を退避して保存済み記録から再開できる。段階表示の「再読み込み」だけを出す処理には包まない。通常保存の一時障害には従来どおり自動再試行する。検証`tools/cloud/pending-timeout-browser.py`。心得`t_cloud_record`。
 

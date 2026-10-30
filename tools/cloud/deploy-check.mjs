@@ -84,6 +84,13 @@ if (process.argv[2]) {
   await db.exec(migrationQuery(transportSQL, "202610300002"));
   await db.exec(migrationQuery(transportSQL, "202610300002"));
   assert.deepEqual((await db.query("select slot,revision from public.cloud_saves order by slot")).rows, preserved);
+  const deadlineSQL = await readFile(new URL("../../supabase/migrations/202610300003_save_rpc_deadline.sql", import.meta.url), "utf8");
+  await db.exec(migrationQuery(deadlineSQL,"202610300003"));
+  await db.exec(migrationQuery(deadlineSQL,"202610300003"));
+  const settings=(await db.query("select proconfig from pg_proc where pronamespace='public'::regnamespace and proname in ('cloud_claim_text','cloud_commit_text')")).rows;
+  assert.equal(settings.length,2);
+  for(const row of settings)assert(row.proconfig.includes('statement_timeout=45s'));
+  assert.deepEqual((await db.query("select slot,revision from public.cloud_saves order by slot")).rows,preserved);
   const methods=(await db.query("select proname from pg_proc where pronamespace='public'::regnamespace and proname in ('cloud_claim_text','cloud_commit_text')")).rows;
   assert.equal(methods.length,2);
   for(const role of ['anon','authenticated']){

@@ -79,6 +79,8 @@ export async function run(mode, { env = process.env, fetcher = fetch, writer = w
     await management("/database/query", "POST", { query: migrationQuery(guestSQL, "202610300001") });
     const transportSQL = await reader(new URL("./migrations/202610300002_large_save_transport.sql", import.meta.url), "utf8");
     await management("/database/query", "POST", { query: migrationQuery(transportSQL, "202610300002") });
+    const deadlineSQL = await reader(new URL("./migrations/202610300003_save_rpc_deadline.sql", import.meta.url), "utf8");
+    await management("/database/query", "POST", { query: migrationQuery(deadlineSQL, "202610300003") });
     await management("/config/auth", "PATCH", settings);
     console.log("保存テーブル・更新関数・メールログイン・確認メール・ログイン先URLを設定しました。");
     return;
