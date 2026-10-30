@@ -12,11 +12,9 @@ with sync_playwright() as p:
       const {ITEMS}=await import('/src/items.js');
       const {rollStartSouls}=await import('/src/abyss.js');
       const {refSerialize,refDeserialize}=await import('/src/savegraph.js');
-      const T=await import('/src/telemetry.js');
       const {sheet}=await import('/src/ui/kit.js');
       const G=__game.G, inf=__game.inf, out=[];
       const check=(ok,msg)=>{if(!ok)throw Error(msg);out.push(msg);};
-      T.tlClear();T.tlSetOn(true);
       const picks=[],used=new Set();for(let i=0;i<6;i++){const k=rollStartSouls(used)[0];picks.push(k);used.add(k);}
       const home=G.inventory;check(inf.enterAbyss(picks),'通常の1階開始');
       G.floor=5;G.abyss.depth=5;G.gold=1000000;inf.newFloor();
@@ -51,25 +49,29 @@ with sync_playwright() as p:
       const mpItem=inf.infBuy(id);G.party[0].mp=0;
       game.useItem(G.party[0],G.inventory.indexOf(mpItem),G.party[0]);
       check(G.abyss.trk.supply.used===1,'個別使用を記録');
-      inf.infTlPoint('floor');
-      check(T.tlExportText().includes('道具内訳(購入/使用/拾得/売却/廃棄)'),'コピー用の補給記録');
-      check(T.tlRawData().inf.attempts[0].complete,'開始から記録した出撃');
+      const {MONSTERS}=await import('/src/sprites.js');
+      const battleItem=inf.infBuy(id);G.party[0].mp=0;
+      G.state='board';G.prompt=false;
+      __game.startBattle(inf.spawnCardEnemies(Object.keys(MONSTERS).find(k=>k.startsWith('bs_')),1),{type:'enemy'});
+      const battle=G.battle,res={hits:[]};
+      battle._useItem(G.party[0],{item:battleItem,owner:G.party[0],target:G.party[0]},res);
+      check(res.hits.length>0 && G.abyss.trk.supply.used===2,'戦闘中の回復と消費を記録');
+      battle._useItem(G.party[0],{item:battleItem,owner:G.party[0],target:G.party[0]},{hits:[]});
+      check(G.abyss.trk.supply.used===2,'道具なしの再使用は数えない');
+      G.battle=null;G.state='board';G.prompt=false;
       check(home!==G.inventory,'本編の袋を分離');
       return out.filter(x=>!x.startsWith('道具の拾得'));
     }'''))
     page.evaluate("__game.G.abyss.guardFloor=__game.G.floor; __game.inf.openInfRest()")
     page.screenshot(path='/tmp/dos-infinite-supplies.png')
-    # 帰還の確認と理由選択を実際に押し、街へ戻った結果を確かめる。
+    # 帰還の確認を実際に押し、街へ戻った結果を確かめる。
     def click_text(text):
         page.evaluate("""text=>{const b=[...document.querySelectorAll('button')].reverse().find(b=>b.textContent.replace(/\\u200b/g,'').trim().startsWith(text));if(!b)throw Error('ボタンが無い:'+text);b.click();}""",text)
     click_text('帰る')
     page.wait_for_timeout(200)
     click_text('帰る')
     page.wait_for_timeout(200)
-    click_text('HP・MP・道具が足りない')
     page.wait_for_function('__game.G.state === "town" && !__game.G.abyss')
-    result=page.evaluate("""async()=>{const T=await import('/src/telemetry.js');return T.tlRawData().inf.attemptTotals;}""")
-    assert result['n']==1, result
-    print('帰還理由の実操作と終了集計 OK')
+    print('帰還の実操作 OK')
     assert not errors, errors
     browser.close()

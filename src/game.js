@@ -1,3 +1,4 @@
+import { resetAutomationPrefs } from "./ui/prefs.js";
 import { encodeCloudSave, acknowledgeCloudSave } from "./save-codec.js";
 import { depthLimit, mutatorEligible, challengeEntryBlock, applyChallengeEnemies } from "./progression.js";
 import { warmOpening } from "./openingillustrations.js";
@@ -114,7 +115,7 @@ import { pickTrap, CHEST_RANKS, rollChestRank } from "./traps.js";
 import { refSoul, refGold, trainCost, lvPow, emberMul, partyAgi, LOCK_K, TRAP_K, lockPow } from "./levelcurve.js";
 import { STABILITY_MAX, STABILITY_ENTRY_COST, STABILITY_FLOOR_COST, STABILITY_RECOVERY_MS, recoverStability, stabilityWaitMs, stabilityRecoveryMs } from "./stability.js";
 import { startPlaytest, playtestEvent, finishPlaytest, showPlaytestRecords } from "./playtest.js";
-import { tlStability, tlStabilityTick, tlRedGain, tlOn, tlMeasure, tlWatchBattle, tlRunBegin, tlRunEnd, tlSnapshot, tlBattleBegin, tlHits, tlBattleEnd, tlLoot, tlLost, tlGain, tlTownGain, tlPlayTick, tlSoul, tlInfAttempt, tlInfFloor, tlInfSoul, tlInfEmbers, tlInfWipe } from "./telemetry.js";
+
 import { equipScore, equipPrice, repriceEquipment } from "./pricing.js";
 import { spawnFx, drawBattleFx, weaponFxStyle, statusFxKind, skillProfile, ELEM_FX_COL, SIG_FX } from "./battlefx.js";
 import "./battlefx-sig.js"; // 各職の看板技の専用演出を SIG_FX に登録する
@@ -409,9 +410,9 @@ setInterval(() => {
   }
   const activeAuto = inDungeon() && (G.autoCombat || G.autoMove) && !G.prompt && !uiBlocked();
   if (titleActive || openingActive || document.visibilityState !== "visible" || (Date.now() - _lastInputAt > 120000 && !activeAuto)) return;
-  tlStabilityTick(stabilityDolls(), 5000);
+
   G.stats.playMs = (G.stats.playMs || 0) + 5000; // 戦績: 総プレイ時間
-  if (tlOn()) { tlPlayTick(inDungeon() ? tlWhere() : null, 5000); infTlPoint(); } // テスト記録: 迷宮/町の実プレイ時間
+
 }, 5000);
 
 // ===== レジェンドレアの品選び =====
@@ -548,7 +549,7 @@ const G = {
   msq: null,          // 第0章の進み { n: 0, state: "active", granted } → 果たした後は { n: 1, state: "world" } (物語の進みは G.world)
   world: null,        // 迷宮の地図と物語の進み (worldState() が整える)
   ach: {},            // 受領済みの勲章 (実績) { id: true }
-  fastAnim: true,     // 戦闘演出の倍速設定 (永続)。ON = 標準の速さ、OFF = その 1/2 の速さ
+  fastAnim: false,     // 戦闘演出の倍速設定 (永続)。ON = 標準の速さ、OFF = その 1/2 の速さ
   animTempo: 2,       // 倍速の意味を改めた版 (2 = ON が旧来の標準)。この印の無い旧セーブは読み込み時に倍速 ON へ
   autoCombat: false,  // オート戦闘中 (セッション内のみ)
   tavernCrowd: null,  // 酒場に居合わせる者たち (帰還ごとに3〜5名を選び直す) [{type,icon,name,line,kind,id}]
@@ -615,12 +616,12 @@ function buzz(p) {
 // 端末ごとの好み (音量・振動)。セーブデータとは別に保存し、「はじめから」でも消えない
 const PREFS_KEY = "dos-prefs";
 const PREFS = (() => {
-  const d = { bgm: 0.8, sfx: 1, vibrate: true, classicBattle: false, buffFx: true, walkSpeed: 2, walkerLook: { ...WALKER_LOOK_DEFAULT } };
+  const d = { bgm: 0.8, sfx: 1, vibrate: true, classicBattle: false, buffFx: true, walkSpeed: 1, walkerLook: { ...WALKER_LOOK_DEFAULT } };
   let p;
   try { p = { ...d, ...(JSON.parse(localStorage.getItem(PREFS_KEY)) || {}) }; } catch { p = { ...d }; }
   // 旧来の「移動 倍速」(fastWalk: ON = 2倍 / OFF = 1倍) を移動の速さ (1〜4倍) へ引き継ぐ
   if (typeof p.fastWalk === "boolean") { p.walkSpeed = p.fastWalk ? 2 : 1; delete p.fastWalk; }
-  if (![1, 2, 3, 4].includes(p.walkSpeed)) p.walkSpeed = 2;
+  if (![1, 2, 3, 4].includes(p.walkSpeed)) p.walkSpeed = 1;
   p.walkerLook = normalizeLook(p.walkerLook);
   return p;
 })();
@@ -635,7 +636,7 @@ function setWalkerLook(look) {
 uiDungeonHud.setWalkerArt(walkerLook(PREFS.walkerLook));
 // 迷宮内の移動 (めくり・1歩のスライド・自動歩行の間) の時間。ms は2倍速の値。設定「移動の速さ」(PREFS.walkSpeed)
 // 1倍 = ms × 2 / 2倍 = ms / 3倍 = ms × 2/3 / 4倍 = ms × 1/2
-const walkMs = (ms) => Math.round(ms * 2 / (PREFS.walkSpeed || 2));
+const walkMs = (ms) => Math.round(ms * 2 / (PREFS.walkSpeed || 1));
 setVolumes(PREFS.bgm, PREFS.sfx);
 
 // ---- 出撃中の戦利品トラッキング (全滅ペナルティ / Red Soul帰還で使う) ----
@@ -650,13 +651,13 @@ function takeStolenGold(b) {
   if (!g) return 0;
   b.bonusGold = 0;
   G.gold += g; if (G.run && inDungeon()) G.run.gold += g;
-  if (tlOn() && inDungeon()) tlGain(tlWhere(), "gold", g, (b.tl && b.tl.kind) === "m" ? "mt" : "b" + ((b.tl && b.tl.kind) || "n"));
+
   return g;
 }
 function runGainGold(g, src, pre, modifier = null) {
-  const base = g * 0.5, sf = sfNum("goldMul", 1), mu = modifier ?? mutNum("goldMul", 1), eq = 1 + partyEffMax("goldUp");
+  const sf = sfNum("goldMul", 1), mu = modifier ?? mutNum("goldMul", 1), eq = 1 + partyEffMax("goldUp");
   g = Math.round(g * 0.5 * sf * mu * eq); G.gold += g; if (G.run && inDungeon()) G.run.gold += g;
-  if (tlOn() && inDungeon()) tlGain(tlWhere(), "gold", g, src, tlUplift(pre != null ? pre * 0.5 : base, base, sf, "goldMul", mu, eq));
+
   return g;
 }
 // 魂導の護符 (LR装飾品) の soulUp があれば ✦Soul の獲得量を割合で増やす。
@@ -666,18 +667,14 @@ setPermanentStatSource(() => permanentEventStats(G.events?.once)); // 極の永�
 function evBoon(k, field, dflt) { return G.events && G.events.flags && G.events.flags[k] ? EV_BOONS[k][field] : dflt; } // 旧仕様の極の恵み。無限迷宮でも効く (2026-10-11 ユーザーの指示)
 // out を渡すと out.raw に「Lv差で減らす前の額」を入れる (戦闘の魂の経験値は魂ごとの Lv差で減らすため)
 function runGainSoulPts(s, src, pre, modifier = null, out = null) {
-  const base = s, sf = sfNum("soulMul", 1), mu = modifier ?? mutNum("soulMul", 1), eq = 1 + partyEffMax("soulUp") + evBoon("will", "soulMul", 0);
+  const sf = sfNum("soulMul", 1), mu = modifier ?? mutNum("soulMul", 1), eq = 1 + partyEffMax("soulUp") + evBoon("will", "soulMul", 0);
   const lm = inDungeon() ? partySoulLvMul() : 1;
   // 無限迷宮: 推奨Lv の表の傾きに合わせて育つ速さを上げる (abyss.js infGrowthMul — 戦闘で魂に入る経験値もここから)
   const gm = inDungeon() && abyssActive() ? infGrowthMul(G.floor) : 1;
   const raw = s * sf * mu * eq * gm;
   s = Math.round(raw * lm); G.soulPts += s; if (G.run && inDungeon()) G.run.soulPts += s;
   if (out) out.raw = Math.round(raw);
-  if (tlOn() && inDungeon()) {
-    const up = tlUplift(pre != null ? pre : base, base, sf, "soulMul", mu, eq);
-    if (lm < 1) up.lvd = raw * (lm - 1); // Lv差で減った分 (負の数)
-    tlGain(tlWhere(), "soul", s, src, up);
-  }
+
   return s;
 }
 // ===== Lv差による ✦Soul の減り (2026-10 テスト記録: 魂融合・残火を集める周回や寄り道の迷宮で ✦ が余り、推奨Lv を大きく超えた) =====
@@ -707,31 +704,11 @@ function partySoulLvMul() {
   if (!ds.length) return 1;
   return soulLvMul(ds.reduce((a, d) => a + (d.jobLv || 1), 0) / ds.length);
 }
-// テスト記録: 得た額のうち、倍率で増えた分の内訳 (順に掛けて、それぞれの倍率で増えた分)。
-// pre = パッシブ (金運・魂寄せ・魂の聖別) を掛ける前の額 / base = 倍率を掛ける前の額 / mu = 異変・掟・出来事の効果・奈落を合わせた倍率
-// 戦闘の戦果は倍率が通常敵の分だけに掛かる (battleModifierReward) ので、mu は全体の倍率 full より小さい。
-// そのときは異変・掟の倍率も同じ割合 (対数の比) だけ効いたものとして分ける (主だけの戦い = 0 → 掟の上乗せも 0)
-function tlUplift(pre, base, sf, key, mu, eq) {
-  const md = mutDef(), tr = dungeonTrait();
-  let mm = (md && md[key]) || 1, tm = (tr && tr.mods && tr.mods[key]) || 1;
-  const full = mutNum(key, 1);
-  if (mu !== full && full > 0 && mu > 0 && Math.abs(Math.log(full)) > 1e-9) {
-    const share = Math.log(mu) / Math.log(full);
-    mm = mm ** share; tm = tm ** share;
-  }
-  const om = mu / (mm * tm);
-  const up = { psv: base - pre };
-  let v = base;
-  for (const [k, m] of [["sf", sf], ["mut", mm], ["trait", tm], ["oth", om], ["eq", eq]]) { up[k] = v * (m - 1); v *= m; }
-  return up;
-}
-// テスト記録: 町で得た ✦ / 金貨 (src: q 依頼 / tip 心付け / bond なじみ / fq 頼み / r 王への報告 / a 勲章 / t 宝物庫 / sell 売却)
-function tlTown(kind, n, src) { if (tlOn() && !inDungeon()) tlTownGain(kind, n, src); }
+
 function runGainItem(owner, item) {
   infSupplyRecord("found", item?.id);
   if (item) item.isNew = true; // NEW 印 (品シートで見れば消える。セーブには追加の印として残る)
-  // テスト記録: 迷宮で手に入れた品 (図鑑の記録は呼び出し側がこの後で行うので、ここで見れば新種かがわかる)
-  if (item && tlOn() && inDungeon()) tlLoot(tlWhere(), item, !item.unidentified && !(G.codex && G.codex.item && G.codex.item[item.id]));
+
   owner.items.push(item);
   if (G.run && inDungeon()) G.run.items.push({ owner, item });
   if (item && item.rar === "lr") { if (!G.lrOwned) G.lrOwned = {}; G.lrOwned[item.id] = true; } // 手にしたLRの記録
@@ -751,21 +728,21 @@ function playtestContext() {
       subs: (d.subs || []).filter(Boolean).map(x => ({ clsKey: soulByUid(x.uid)?.clsKey, picks: x.picks })),
       equip: Object.fromEntries(Object.entries(d.equip || {}).map(([k, v]) => [k, v?.id || null])) })) };
 }
-// 戦闘集計と序盤の到達点は、それぞれの記録先へ送る。
-function tlSoulGot(clsKey) {
-  if (tlOn()) tlSoul(inDungeon() ? tlWhere() : null, (SOUL_CLASSES[clsKey] || {}).rarity);
-  if (SOUL_CLASSES[clsKey]?.rarity === "rare") playtestEvent("到達", { clsKey }, "rareFound");
-}
+
+
 // 今回の出撃の記録 (D1): 戦利品に加え、倒した数・魂の成長・持ちきれず置いてきた品・到達階を数える。
 // 旧セーブの G.run はこれらを持たないので、読む側は必ず || の既定値で受ける
+function noteSoulFound(clsKey) {
+  if (SOUL_CLASSES[clsKey]?.rarity === "rare") playtestEvent("到達", { clsKey }, "rareFound");
+}
 function newRun() {
   return { earlyLayout: 1, gold: 0, soulPts: 0, items: [], souls: [], kills: 0, levels: [], lost: [], floors: 1, embers: 0, at: Date.now() };
 }
 function runCount(key, n = 1) {
   if (G.run && inDungeon()) G.run[key] = (G.run[key] || 0) + n;
-  if (key === "embers" && inDungeon() && abyssActive()) tlInfEmbers(n); // テスト記録の無限迷宮の欄
+
 }
-function runLost(name) { if (G.run && inDungeon() && name) (G.run.lost || (G.run.lost = [])).push(name); if (name && tlOn() && inDungeon()) tlLost(tlWhere()); }
+function runLost(name) { if (G.run && inDungeon() && name) (G.run.lost || (G.run.lost = [])).push(name); }
 // 魂の成長 (Lv a→b) を人業ごとに1行へまとめる
 function runLevel(d, from, to) {
   if (!G.run || !d) return;
@@ -1239,33 +1216,8 @@ function infSupplyRecord(kind, id, n = 1) {
   const row = supply.items[id] || (supply.items[id] = {});
   row[kind] = (row[kind] || 0) + n;
 }
-function infTlPoint(event = "point", extra = {}) {
-  if (!abyssActive() || !tlOn()) return;
-  const ab = G.abyss;
-  if (!ab.telemetryId) ab.telemetryId = `${Date.now()}-${ab.seed}`;
-  const sum = fn => G.party.reduce((n, d) => n + (fn(d) || 0), 0);
-  const bag = G.inventory || [];
-  tlInfAttempt({ id: ab.telemetryId, f: G.floor, test: !!ab.testRun,
-    boons: permanentEventStats(G.events?.once),
-    hp: Math.round(100 * sum(d => d.alive ? d.hp : 0) / Math.max(1, sum(d => d.maxhp))),
-    mp: Math.round(100 * sum(d => d.alive ? d.mp : 0) / Math.max(1, sum(d => d.maxmp))),
-    lv: Math.round(infPartyLv() * 10) / 10, dead: G.party.filter(d => !d.alive).length,
-    held: infUseCount(bag), mpItems: bag.filter(it => it.use?.mp || it.use?.mpFull).length,
-    reviveItems: bag.filter(it => it.use?.revive).length, left: infSupplyLeft(ab, G.floor),
-    supply: JSON.parse(JSON.stringify(infTrk().supply || {})),
-    party: G.party.map(d => ({ name: d.name, job: d.jobKey, lv: d.jobLv, tactic: d.tactic,
-      stats: { hp: d.maxhp, mp: d.maxmp, atk: d.atk, vit: d.vit, agi: d.agi, int: d.int, pie: d.pie },
-      borrowed: (d.subs || []).map(x => ({ uid: x.uid, picks: (Array.isArray(x.picks) ? x.picks : x.passive ? [{ passive: x.passive }] : x.skill ? [{ skill: x.skill }] : []).map(p => ({ ...p })) })),
-      equip: Object.fromEntries(Object.entries(d.equip || {}).map(([k, it]) => [k, it?.id || null])),
-      souls: [d.primary, ...(d.subs || []).map(x => x.uid)].filter(uid => uid != null).map(uid => { const x = soulByUid(uid); return { job: x?.clsKey, lv: x?.level, count: x?.count }; }) })), ...extra }, event);
-}
-function infReturn() {
-  if (!tlOn()) { leaveDungeon({ outcome: "return" }); return; }
-  showChoice("帰還の理由を記録する", [
-    ...[["resources", "HP・MP・道具が足りない"], ["danger", "この先は戦力が足りない"], ["reward", "戦利品を確保したい"], ["personal", "時間などの都合で終える"], ["unknown", "理由を記録せず帰る"]].map(([reason, label]) => ({ label, fn: () => { G.abyss.returnReason = reason; leaveDungeon({ outcome: "return" }); } })),
-    { label: "戻る", cancel: true, fn: () => openInfRest() },
-  ], null, { banner: "テスト記録" });
-}
+
+function infReturn() { leaveDungeon({ outcome: "return" }); }
 function infSupplyStatus() { return { held: infUseCount(G.inventory), left: infSupplyLeft(G.abyss, G.floor), limit: INF_BUY_CAP }; }
 function infBuyBlock(id) {
   if (INF_RECOVERY(ITEMS[id]?.use) && infSupplyLeft(G.abyss, G.floor) < 1) return "この階の回復・蘇生の補給は使い切った";
@@ -1643,20 +1595,9 @@ function infBattleTrack(b, guard) {
   }
   infCheckRun();
 }
-// テスト記録の無限迷宮の欄 (docs/infinite-labyrinth.md 16-4): 階に着いた時の隊の様子
+// 無限迷宮の隊の平均Lv。
 function infPartyLv() { const ps = (G.party || []).filter((d) => d.primary != null); return ps.length ? ps.reduce((a, d) => a + (d.jobLv || 1), 0) / ps.length : 1; }
-function infTlArrive() {
-  if (!abyssActive() || !tlOn()) return;
-  if (G.floor === 1 || G.floor % 5 === 0) infTlPoint("floor");
-  else infTlPoint();
-  const trk = infTrk(), now = G.stats.playMs || 0;
-  const alive = G.party.filter((d) => d.alive);
-  const sum = (f) => G.party.reduce((a, d) => a + (f(d) || 0), 0);
-  tlInfFloor({ f: G.floor, lv: infPartyLv(), rec: infLevel(G.floor), ms: trk.floorT != null ? now - trk.floorT : 0, n: trk.fb || 0,
-    hp: sum((d) => d.maxhp) ? sum((d) => d.alive ? d.hp : 0) / sum((d) => d.maxhp) : 0, mp: sum((d) => d.maxmp) ? sum((d) => d.alive ? d.mp : 0) / sum((d) => d.maxmp) : 0,
-    broke: G.party.length - alive.length, capped: (G.souls || []).filter((x) => x && (x.level || 1) >= soulLevelCapOf(x)).length, embers: G.embers || 0 });
-  trk.floorT = now; trk.fb = 0;
-}
+
 // 品を拾った (無限迷宮の追加の能力): 秘・極の数え
 function infAfxTrack(it) {
   const rank=Math.max(-1,...(it?.bukon || []).map(b=>bukon.bukonDef(b.k)?.rarity ?? -1));
@@ -1713,7 +1654,7 @@ function makeVessel(i, clsKey, who) {
 // 持ち帰りは「拾った数」(G.run.souls) で数える
 function infGainSoul(clsKey) {
   const rar = (SOUL_CLASSES[clsKey] || {}).rarity;
-  tlInfSoul(rar);
+
   if (rar === "epic" || rar === "legend") infStats().rareSouls++;
   if (rar === "legend") infTitleGrant("legend");
   const have = G.souls.find((s) => s && s.clsKey === clsKey);
@@ -1737,20 +1678,20 @@ function infCloseRun(outcome) {
   const souls = (run.souls || []).map((x) => x && x.clsKey).filter((k) => k && SOUL_CLASSES[k]);
   const embers = Math.max(0, run.embers || 0);
   const vLv = infPartyLv(), vDead = (G.party || []).some((d) => !d.alive); // 仮の器の様子 (本編を戻す前に)
-  infTlPoint("end", { outcome, reason: ab.returnReason || (outcome === "return" ? "unknown" : "wipe") });
+
   infRestoreHome(ab.home);
   if (ab.savedIdx != null) G.dungeonIdx = Math.min(DUNGEONS.length - 1, Math.max(0, ab.savedIdx));
   const got = { items: [], souls: [], embers: 0 };
   const enchantBefore = featureUnlocked("enchant");
   if (keep) {
     for (const it of items) { recordAffixHome(it); shopReceive(it); codexSeeItem(it.id, it); got.items.push({ id: it.id, name: itemName(it), rar: rarityKey(it), afx: !!(it.afx && it.afx.length) }); }
-    for (const k of souls) { addSoulInstance(k); codexJobSee(k, 1, 1); tlSoulGot(k); got.souls.push(k); }
+    for (const k of souls) { addSoulInstance(k); codexJobSee(k, 1, 1); noteSoulFound(k); got.souls.push(k); }
     if (embers) { G.embers = (G.embers || 0) + embers; got.embers = embers; }
     if (souls.length) recalcAllDolls();
   }
   // 勲章・称号の数え (帰る = 主の後に帰還を選んだ)
   const st = infStats(), trk = ab.trk || {};
-  if (outcome !== "return") tlInfWipe({ f: depth, lv: vLv, rec: infLevel(depth), outcome });
+
   st.deepest = Math.max(st.deepest, depth);
   if (keep) st.soulsHome += souls.length;
   if (outcome === "return") {
@@ -1954,7 +1895,7 @@ function grantHordeReward() {
   const soul = Math.round(refSoul(lv) * HORDE_BATTLES), gold = Math.round(refGold(lv) * HORDE_BATTLES);
   G.gold += gold; G.soulPts += soul;
   if (G.run && inDungeon()) { G.run.gold += gold; G.run.soulPts += soul; }
-  if (tlOn() && inDungeon()) { tlGain(tlWhere(), "gold", gold, "hd"); tlGain(tlWhere(), "soul", soul, "hd"); }
+
   updateTopbar();
   log(`この辺りの敵をすべて葬った！ 💰${gold} と ✦${soul} Soul を得た。`, "win");
   SFX.victory(); flashScreen("#d4504e");
@@ -2567,13 +2508,10 @@ function newFloor() {
   if (G.run) G.run.floors = Math.max(G.run.floors || 1, G.floor);
   updateTopbar();
   log(`B${G.floor}F。伏せられた石札をめくり、下り階段を探せ。`, "sys");
-  if (tlOn()) tlSnapshot("floor", tlWhere(), G.party);
+
 }
 
 // 同期処理の実HP/MP収支だけを観測する。町での補給は迷宮の回復に混ぜない。
-function tlGameMeasure(source, fn) {
-  return tlMeasure(tlOn() && inDungeon() ? tlWhere() : null, G.party, source, fn);
-}
 
 // 逃走判定の追跡の物差し (Battle.fleeK): 敵の AGI は味方よりずっと小さい規模なので、
 // 「この迷宮・階の基準AGI (baseline.js) ÷ この迷宮の雑魚の標準AGI (出現表の素のAGIの中央値)」を掛けて揃える。
@@ -2586,16 +2524,6 @@ function fleeScale() {
 // この迷宮・階の敵のLv (台帳の迷宮は world.js dungeonLevel。奈落は素体の難度 n の1階相当)
 function foeLevelHere() {
   return Math.max(1, Math.round(levelHere().lv));
-}
-// テスト記録 (telemetry.js): いまの迷宮の欄 (台帳の迷宮は id、奈落は深度ごと)。lv は推奨Lv (基準AGI の算出に使う)
-function tlWhere() {
-  const cfg = activeCfg();
-  const lv = levelHere().lv;
-  if (abyssActive()) {
-    const d = G.abyss.depth, sec = Math.ceil(d / INF_REST_EVERY);
-    return { key: `I${sec}`, name: `${INF_NAME} B${(sec - 1) * INF_REST_EVERY + 1}〜${sec * INF_REST_EVERY}F`, lv, floor: G.floor, floors: 1 };
-  }
-  return { key: cfg.id || "?", name: cfg.name || "", lv, floor: G.floor, floors: cfg.floors || 1 };
 }
 
 // ---- ボード描画 ----
@@ -3003,7 +2931,7 @@ function revealAroundStairs() {
     }
   }
 }
-function castField(...args) { return tlGameMeasure("camp", () => castFieldMeasured(...args)); }
+function castField(...args) { return castFieldMeasured(...args); }
 // 押し間違えやすい探りの術 (道しるべ・宝探し) は唱える前に確かめる (MP 30% を使うため。ユーザーの指示 2026-10)
 const FIELD_CONFIRM = new Set(["stairs", "chest"]);
 function castFieldMeasured(key, confirmed = false, caster = null) {
@@ -3685,7 +3613,7 @@ function drawSenseGlow(r, rgb, now, x, y, k = 1) {
 
 // 敵感知 (魔物 = ぼんやりした赤い光) / 宝探し (宝箱 = ぼんやりした青い光)。種類・強さは分からない。歩いている間も灯したまま
 // 清めの歩み (聖騎士): まだめくっていないカードをめくるたび、全員の HP を 2/4/6 回復 (隊で一番高いLv)
-function cleanseStepHeal(...args) { return tlGameMeasure("explore", () => cleanseStepHealMeasured(...args)); }
+function cleanseStepHeal(...args) { return cleanseStepHealMeasured(...args); }
 function cleanseStepHealMeasured() {
   const lv = Math.min(3, partyPassiveLv("cleanseStep"));
   if (!lv) return;
@@ -6657,7 +6585,7 @@ function dirName(d) { return d[0] === 1 ? "e" : d[0] === -1 ? "w" : d[1] === 1 ?
 // 決断 (宝箱・あたたかい死体・泉・黒い泉・階段・帰還陣) だけをシートで問い、
 // 褒美・罠の解除・軽い痛手・風化した死体はトースト (札の明滅) で知らせて歩みを止めない。
 // 札 (カード) で止めるのは、倒れた者が出た時・飛ばされた時・呼び寄せた時・戦闘が始まる時だけ。
-function resolveCell(...args) { return tlGameMeasure("terrain", () => resolveCellMeasured(...args)); }
+function resolveCell(...args) { return resolveCellMeasured(...args); }
 function resolveCellMeasured(cell, { visibleEnemy = cell.type === "monster" && !!cell.revealed } = {}) {
   switch (cell.type) {
     case "monster":
@@ -7409,7 +7337,7 @@ function evOnReturn(runRef, outcome) {
   if (rv.ruby && rv.rubyGold) { pay += rv.rubyGold; notes.push(`紅玉の売却 💰${rv.rubyGold}`); rv.ruby = null; rv.rubyGold = 0; }
   if (!pay) return;
   G.gold += pay; runRef.gold = (runRef.gold || 0) + pay;
-  if (tlOn()) { if (inDungeon()) tlGain(tlWhere(), "gold", pay, "ev"); else tlTownGain("gold", pay, "ev"); } // 帰還の時に払われる
+   // 帰還の時に払われる
   log(notes.join(" / "), "win");
   setTimeout(() => showToast(notes.join(" ・ "), { noLog: true, tone: "gold", icon: ICONS.gold }), 900);
 }
@@ -7706,8 +7634,8 @@ const evApi = {
     showToast(`${from}から ✦${s} Soul`, { noLog: true, tone: "gold", icon: ICONS.wisp });
     return s;
   },
-  giveGoldRaw(n, from) { G.gold += n; if (G.run && inDungeon()) G.run.gold += n; if (tlOn() && inDungeon()) tlGain(tlWhere(), "gold", n, "ev"); updateTopbar(); log(`${from}で 💰${n} を得た。`, "win"); showToast(`${from} ― 💰${n}`, { noLog: true, tone: "gold", icon: ICONS.gold }); },
-  giveSoulRaw(n, from) { G.soulPts += n; if (G.run && inDungeon()) G.run.soulPts += n; if (tlOn() && inDungeon()) tlGain(tlWhere(), "soul", n, "ev"); updateTopbar(); log(`${from}で ✦${n} Soul を得た。`, "win"); showToast(`${from} ― ✦${n}`, { noLog: true, tone: "gold", icon: ICONS.wisp }); },
+  giveGoldRaw(n, from) { G.gold += n; if (G.run && inDungeon()) G.run.gold += n;  updateTopbar(); log(`${from}で 💰${n} を得た。`, "win"); showToast(`${from} ― 💰${n}`, { noLog: true, tone: "gold", icon: ICONS.gold }); },
+  giveSoulRaw(n, from) { G.soulPts += n; if (G.run && inDungeon()) G.run.soulPts += n;  updateTopbar(); log(`${from}で ✦${n} Soul を得た。`, "win"); showToast(`${from} ― ✦${n}`, { noLog: true, tone: "gold", icon: ICONS.wisp }); },
   ember(n, from, quiet = false) {
     G.embers = (G.embers || 0) + n; runCount("embers", n); updateTopbar();
     log(`${from} ― 魂の残火を ${n}つ 得た。`, "win");
@@ -7849,10 +7777,6 @@ const evApi = {
 };
 
 // 隊の札を一瞬だけ光らせる (被弾 = 赤 / 回復 = 緑)。盤面でも戦闘と同じ明滅を使う
-for (const key of ["healAll", "hurtAll", "hurtAllCur", "hurtOne", "mpAll", "revive"]) {
-  const original = evApi[key];
-  evApi[key] = (...args) => tlGameMeasure("event", () => original(...args));
-}
 
 function flashPartyCards(list, kind = "hit") {
   if (!list || !list.length) return;
@@ -7867,7 +7791,7 @@ function flashPartyCards(list, kind = "hit") {
 }
 
 // 泉を利用: HP/MP回復・毒浄化。利用したら消える。
-function useFountain(...args) { return tlGameMeasure("fountain", () => useFountainMeasured(...args)); }
+function useFountain(...args) { return useFountainMeasured(...args); }
 function useFountainMeasured(cell) {
   cell.cleared = true;
   SFX.heal();
@@ -7888,7 +7812,7 @@ function useFountainMeasured(cell) {
 }
 
 // 黒い泉: 50% で全回復+Soulの恵み、50% で呪い (HP半減+毒)。一度きりの賭け
-function useDarkFountain(...args) { return tlGameMeasure("darkFountain", () => useDarkFountainMeasured(...args)); }
+function useDarkFountain(...args) { return useDarkFountainMeasured(...args); }
 function useDarkFountainMeasured(cell) {
   cell.cleared = true;
   if (random() < 0.5) {
@@ -7920,7 +7844,7 @@ function fountainCurse(line, title) {
 }
 // 雲間の泉 (雲上の庭の掟): 見た目は癒しの泉。VEILED_CURSE (3つに1つ) で呪い、それ以外は癒しの泉と同じ
 const VEILED_CURSE = 1 / 3;
-function useVeiledFountain(...args) { return tlGameMeasure("fountain", () => useVeiledFountainMeasured(...args)); }
+function useVeiledFountain(...args) { return useVeiledFountainMeasured(...args); }
 function useVeiledFountainMeasured(cell) {
   if (random() < VEILED_CURSE) { cell.cleared = true; fountainCurse("泉の水は雷雲の澱みで濁っていた…！ 全員の生気が吸われた。", "澱んだ泉"); return; }
   useFountainMeasured(cell);
@@ -8135,8 +8059,8 @@ function grantSoulQuiet(clsKey, sourceLine = "", emberCount = 0) {
   if (abyssActive() && inDungeon()) {
     G.stats.soulsFound++;
     const r = infGainSoul(clsKey);
-    runTrackSoul(clsKey, "bag");
-    tlSoulGot(clsKey);
+    runTrackSoul(clsKey, "bag"); noteSoulFound(clsKey);
+
     codexJobSee(clsKey, 1, 1);
     if (emberCount > 0) { G.embers = (G.embers || 0) + emberCount; runCount("embers", emberCount); }
     infCheckRun();
@@ -8149,8 +8073,8 @@ function grantSoulQuiet(clsKey, sourceLine = "", emberCount = 0) {
   questProgress("soul", null, 1);
   const receivedSoul = addSoulInstance(clsKey);
   if (firstAbbeySoul && G.run) G.run.abbeyRareSoul = receivedSoul.uid;
-  runTrackSoul(clsKey, "bag");
-  tlSoulGot(clsKey);
+  runTrackSoul(clsKey, "bag"); noteSoulFound(clsKey);
+
   codexJobSee(clsKey, 1, 1);
   if (emberCount > 0) { G.embers = (G.embers || 0) + emberCount; runCount("embers", emberCount); }
   // セラの囁き (手がかりの恵み soulEcho): 迷宮で拾った時、まれにもう一つ
@@ -8159,8 +8083,8 @@ function grantSoulQuiet(clsKey, sourceLine = "", emberCount = 0) {
     G.stats.soulsFound++;
     questProgress("soul", null, 1);
     addSoulInstance(clsKey);
-    runTrackSoul(clsKey, "bag");
-    tlSoulGot(clsKey);
+    runTrackSoul(clsKey, "bag"); noteSoulFound(clsKey);
+
   }
   updateTopbar();
   log(`${cls.label}の魂 を${echo ? "2つ" : ""}持ち帰った。(所持魂 一覧に追加)${echo ? " セラの囁きが、もう一つの魂を呼び寄せた。" : ""}${emberCount > 0 ? ` 魂の残火 ×${emberCount}` : ""}`, "win");
@@ -8227,7 +8151,7 @@ function showChoice(title, options, icon, { banner = "✦ 発見 ✦", accent = 
   const spec = (o) => ({
     label: o.label,
     kind: o.danger ? "danger" : isCancelOption(o) ? "ghost" : (o.primary || (acts.length === 1 && acts[0] === o)) ? "primary" : "secondary",
-    onTap: () => { closePrompt(); tlGameMeasure("event", () => o.fn()); },
+    onTap: () => { closePrompt(); o.fn(); },
   });
   // 選択肢が多い (魂の一覧など) ときは本文側に並べてスクロールさせる
   const many = options.length > 4;
@@ -8553,7 +8477,7 @@ function trapLoss(ref, n) {
 // 罠の効果を適用し、何が起きたかを返す (知らせ方は presentTrap が決める)。
 // opener: 開けた者/先頭の解除役 (opener型の罠が狙う)。
 // 返り値 kind: "teleport" (飛ばされる・中身を失う) | "alarm" (戦闘・中身を失う) | "harm" (痛手/吸収。fallen/wiped を伴う)
-function applyTrap(...args) { return tlGameMeasure("trap", () => applyTrapMeasured(...args)); }
+function applyTrap(...args) { return applyTrapMeasured(...args); }
 function applyTrapMeasured(trap, opener) {
   SFX.trap(); buzz([0, 60, 40, 60]);
   G.stats.trapsSprung++; // 戦績: 発動させてしまった罠 (勲章用)
@@ -8850,12 +8774,10 @@ function giveDropsFromChest(drops, i, done, sink = boardSink()) {
   afterPickups(done);
 }
 
-
-
 // 階段を降りる: 墨の帳 (約1.3秒・400ms 後はタップで飛ばせる) の暗転のうちに次の階へ。
 // 強敵階・特別な階・奈落の変異の知らせは帳の中に2〜3行で添える (後から別の札は出さない)。
 // 見落としても、見出しの迷宮名を押す「階の情報」でいつでも読み返せる
-function descend(...args) { return tlGameMeasure("floor", () => descendMeasured(...args)); }
+function descend(...args) { return descendMeasured(...args); }
 function descendMeasured({ fall = false, skip = 0, stabilityAd = false } = {}) {
   if (abyssActive() && G.floor + skip + 1 > infDepthLimit()) { showToast("この先の道は、まだ開いていない", { tone: "info" }); return; }
   // 出来事で2階進む場合も、5階の区切りを越える前に支払う。
@@ -8879,7 +8801,7 @@ function descendMeasured({ fall = false, skip = 0, stabilityAd = false } = {}) {
   if (abyssActive()) {
     G.abyss.depth = G.floor;
     infCheckRun();
-    infTlArrive();
+
     G.bossDown = false; // 主を討った階を離れたら、次の主を討つまで帰れない
     if ((G.floor - 1) % INF_REST_EVERY === 0) {
       const rng = mulberry32(((G.abyss.seed || 1) ^ Math.imul(G.floor, 374761393)) >>> 0);
@@ -9007,7 +8929,7 @@ function randomElement() {
   const els = Object.keys(ELEMENTS).filter((k) => k !== "none");
   return els[Math.floor(random() * els.length)];
 }
-function startBattle(...args) { return tlGameMeasure("battle", () => startBattleMeasured(...args)); }
+function startBattle(...args) { return startBattleMeasured(...args); }
 function startBattleMeasured(enemies, cell, { visibleEnemy = cell?.type === "monster" && !!cell.revealed && !cell.cleared } = {}) {
   // 飢えた狩場はすべての遭遇で3体以上。単体の主・強敵・銀業・ミミックにも、この階の魔物を添える。
   // 掟の packMin は従来どおり通常の群れだけに効かせ、記憶への再戦には異変を持ち込まない。
@@ -9101,7 +9023,7 @@ function startBattleMeasured(enemies, cell, { visibleEnemy = cell?.type === "mon
     setTimeout(() => showToast(`${why} ― オートを止めた`, { tone: "info" }), 350);
   }
   let opening = null;
-  let openSrc = null, ambRate = 0; // テスト記録: 開幕の出どころ (rand/event/smuggler/candle) と、抽選の奇襲率
+
   const hunterLv = partyPassiveLv("hunterSaihai");
   if (!isBoss && (!isElite || visibleEnemy || hunterLv)) {
     const vig = partyPassiveLv("vigilance");
@@ -9119,8 +9041,6 @@ function startBattleMeasured(enemies, cell, { visibleEnemy = cell?.type === "mon
     const r = random();
     if (r < amb) opening = "ambush";
     else if (r < amb + pre) opening = "preempt";
-    ambRate = amb;
-    if (opening) openSrc = "rand";
   }
   // 迷宮のイベント: 出来事が決めた開幕 (寝首/奇襲) ・ 密輸人の待ち伏せ ・ 祈りの蝋燭
   // 出来事が選択肢の文で約束した開幕 (寝込みを襲う・見つかる) は強敵の戦いにも効かせる (主の戦いは除く)
@@ -9128,16 +9048,15 @@ function startBattleMeasured(enemies, cell, { visibleEnemy = cell?.type === "mon
   // 必ず奇襲になる掟は、見えていた敵への備えや出来事が決めた先制より優先する。先制の備えは使わずに取っておく
   const trA = dungeonTrait();
   const forceAmb = !!(trA && trA.alwaysAmbush && !isBoss);
-  if (!isBoss && G._evOpening) { opening = G._evOpening; openSrc = "event"; }
+  if (!isBoss && G._evOpening) { opening = G._evOpening; }
   else if (!isBoss && !forceAmb) {
     const rv = G.run && G.run.ev && inDungeon() ? G.run.ev : null;
     const inf = abyssActive();
-    if (rv && rv.ambushNext > 0 && !isElite) { rv.ambushNext--; opening = "ambush"; openSrc = "smuggler"; log(inf ? "魔物の待ち伏せ" : "密輸人の待ち伏せ", "dmg"); }
-    else if (rv && rv.preempt > 0) { rv.preempt--; opening = "preempt"; openSrc = "candle"; log(inf ? "出来事の備え：先制確定" : "祈りの蝋燭：先制確定", "win"); } // 「次の戦闘は必ず先制」— 強敵の戦いにも効く
+    if (rv && rv.ambushNext > 0 && !isElite) { rv.ambushNext--; opening = "ambush"; log(inf ? "魔物の待ち伏せ" : "密輸人の待ち伏せ", "dmg"); }
+    else if (rv && rv.preempt > 0) { rv.preempt--; opening = "preempt"; log(inf ? "出来事の備え：先制確定" : "祈りの蝋燭：先制確定", "win"); } // 「次の戦闘は必ず先制」— 強敵の戦いにも効く
   }
   G._evOpening = null;
   if (forceAmb) { opening = "ambush"; openSrc = "trait"; }
-  if (abyssActive()) { const trk = infTrk(); trk.fb = (trk.fb || 0) + 1; } // テスト記録の無限迷宮の欄: 階ごとの戦闘数
   evBattleStart(enemies, isBoss);
   if (opening === "preempt") {
     log("先制した！", "win"); showToast("⚡ 先制した！ 隊が先に動く", { noLog: true, tone: "good" });
@@ -9157,7 +9076,7 @@ function startBattleMeasured(enemies, cell, { visibleEnemy = cell?.type === "mon
   // 開幕のパッシブ・迷宮の掟の冷気で掛かる強化・弱体は、開幕の演出の後に1拍ずつ見せる (演出の設定が出す時だけ)
   const modW = beginModWatch(true);
   G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot"), fleeK: fleeScale(), agiWall: agiWallOf(activeCfg()), statWall: statWallOf(activeCfg()), strongHpWall: strongHpWallOf(activeCfg()), baseAgi: partyAgi(levelHere().lv), foeLv, fervor: !!(trB && trB.fervor), foeRise: (trB && trB.foeRise) || 0, challengeRule: trB?.challengeRule || null, soulFeast: (trB && trB.soulFeast) || 0, focus: !!(trB && trB.focus) });
-  tlWatchBattle(G.battle, tlWhere(), id => infSupplyRecord("used", id));
+  watchBattleSupply(G.battle);
   // 迷宮の掟の開幕の効果: 寒さに身がすくむ (chill) — 隊の全員の AGI を段数ぶん下げる (3ターン)
   for (const r of ruleOpens) if (r.chill) {
     const hits = [];
@@ -9251,17 +9170,14 @@ function startBattleMeasured(enemies, cell, { visibleEnemy = cell?.type === "mon
   }
   if (physOnlyHere()) log("魔封じ：物理技・道具のみ使用可", "sys");
   if (foeLv - partyLevel() >= 4) log(`格上の迷宮（推奨Lv${foeLv}）：味方の異常・即死は効きにくく、敵の術は効きやすい`, "sys");
-  // テスト記録: 戦闘の種類 (主 / 金属の魔物 / 精鋭・ミミック・出来事の戦い / 通常) と開始時の様子。
+
   // 金属の魔物は素早さに依らない回避を持つので、精鋭等の命中に混ぜない
   if (!G.rematch) {
     playtestEvent("到達", { boss: isBoss }, "firstBattle");
     playtestEvent("戦闘開始", { boss: isBoss, enemies: enemies.map(e => e.key) });
     if (G.party.some(d => d.subs?.some(Boolean))) playtestEvent("到達", {}, "subBattle");
   }
-  if (tlOn() && inDungeon() && !G.rematch) {
-    const kind = isBoss ? "b" : enemies.some((e) => e.metal) ? "m" : (isElite || enemies.some((e) => e.isMimic) || (cell && cell.evFight)) ? "e" : "n";
-    G.battle.tl = tlBattleBegin({ where: tlWhere(), kind, opening, openSrc, ambRate, party: G.party, enemies });
-  }
+
   _maskEnemies = null;
   G.fx = null;
   G.animating = false;
@@ -11528,7 +11444,7 @@ function animateResult(res, done) {
   const battle = G.battle;
   if (!battle || G.state !== "combat") return;
   const finish = () => { if (G.battle === battle && G.state === "combat") done(); };
-  if (G.battle && G.battle.tl) tlHits(G.battle.tl, res); // テスト記録: 与ダメ/被ダメ
+
   callPartyAction(res); // 札の肖像に使った技の名 (手番の初めから)
   if (setPlateCall(res) && !cloudBackgroundBattle()) { if (G.autoCombat) renderAutoBanner(); else renderActingPlate(res.actor); } // 命令板にも「誰の何の技か」
   if (cloudBackgroundBattle()) {
@@ -12046,7 +11962,7 @@ function distributeOrderLearning(soulGot) {
   if (!abyssActive()) recalcAllDolls({ levelUp: true });
   return entries;
 }
-function distributeBattleSoulExp(...args) { return tlGameMeasure("growth", () => distributeBattleSoulExpMeasured(...args)); }
+function distributeBattleSoulExp(...args) { return distributeBattleSoulExpMeasured(...args); }
 function distributeBattleSoulExpMeasured(soulGot) {
   const queue = [];
   const share = Math.floor((soulGot || 0) / 3);
@@ -12173,7 +12089,7 @@ function endBattle(...args) {
       return;
     }
   }
-  return tlGameMeasure("battle", () => endBattleMeasured(...args));
+  return endBattleMeasured(...args);
 }
 const battleSummaryOpen = new WeakSet();
 function endBattleMeasured() {
@@ -12194,7 +12110,7 @@ function endBattleMeasured() {
   }
   if (!G.rematch) playtestEvent("戦闘終了", { result: b.result, rounds: b._roundNo });
   G.effShow = null; G.modFeed = null; flushModLines(null, Infinity);
-  if (b.tl) tlBattleEnd(b.tl, { result: b.result, rounds: b._roundNo, tally: b.tally, party: G.party });
+
   if (G.rematch) return endRematch(b); // 宿敵の再戦: 終われば隊を戻して街へ (迷宮の戦果・踏破・全滅の扱いには入らない)
   // オートは戦闘ごとに解除。ただし設定「オートを次の戦闘も続ける」(§7 M2) なら勝利の後も持ち越す
   if (!(b.result === "win" && G.autoCombat && uiDungeonHud.getPref("autoKeep"))) G.autoCombat = false;
@@ -12217,7 +12133,7 @@ function endBattleMeasured() {
     { const am = audienceJudge(b); if (am !== 1) { soul = Math.round(soul * am); gold = Math.round(gold * am); } }
     const gl = partyPassiveLv("goldLuck"), sl = partyPassiveLv("soulLure");
     // テスト記録の出どころ: 金属の魔物 / 主 / 精鋭等 / 通常の戦闘 (戦闘の記録の種類と同じ分け方)
-    const bsrc = b.enemies.some((e) => e.metal) ? "mt" : "b" + ((b.tl && b.tl.kind) || "n");
+    const bsrc = null;
     const goldGot = runGainGold(Math.round(gold * 2 * (gl >= 3 ? 1.20 : gl >= 2 ? 1.15 : gl === 1 ? 1.10 : 1)), bsrc, gold * 2, battleModifierReward(b, "gold")) + takeStolenGold(b);
     const sb = rankParty("bishopSeibetsu", [0.05, 0.07, 0.10, 0.15]); // 魂の聖別 (司教のランク)
     const soulOut = {};
@@ -12276,7 +12192,7 @@ function endBattleMeasured() {
     // soulClass を持つ敵 (人型・騎士など) はまれに魂を落とす (レアドロップ)。
     // 落とした魂はこの場で所持魂に加え (保存に乗せる)、戦果シートの一行で知らせる。レア以上はシートの後に祝う
     const souls = [];
-    for (const e of b.enemies) {
+    for (const e of (abyssActive() || !["w00_forest", "w01", "w02"].includes(curDungeon()?.id) ? b.enemies : [])) {
       const sc = e.alive || e._fled ? null : (e.mon && e.mon.soulClass) || (MONSTERS[e.key] && MONSTERS[e.key].soulClass);
       if (!sc) continue;
       const soulChance = wasElite ? 0.40 : 0.08; // 強敵は魂ドロップ率が大幅上昇
@@ -12361,7 +12277,7 @@ function endBattleMeasured() {
 }
 // 戦闘勝利後の常時効果: 戦闘後回復/魔力回路/法力の灯 (隊の全員の状態異常をすべて治す)/浄化/慈悲の祈り。MP回復は魂1つあたり5%まで。
 // Lv付きは最高Lvのみ。教皇の祈り (popePrayer) は持ち主の戦闘後回復を隊の全員へ広げる
-function applyVictoryPassives(...args) { return tlGameMeasure("victory", () => applyVictoryPassivesMeasured(...args)); }
+function applyVictoryPassives(...args) { return applyVictoryPassivesMeasured(...args); }
 function applyVictoryPassivesMeasured() {
   let pope = 0;
   for (const p of G.party) if (p.alive && pLv(p, "popePrayer")) pope = Math.max(pope, pLv(p, "afterHeal"));
@@ -12383,7 +12299,7 @@ function applyVictoryPassivesMeasured() {
   if (healed) log(`勝利後の加護：隊合計HP+${hpGain}・MP+${mpGain}`, "heal");
   // 特別階 (癒しの霊気)・迷宮の掟 (癒しの樹液): 戦闘勝利のたび隊の全員のHP・MPが回復する
   const fh = Math.max(sfNum("victoryHeal", 0), (dungeonTrait() && dungeonTrait().victoryHeal) || 0);
-  tlGameMeasure("victoryTerrain", () => {
+  (() => {
   if (fh > 0) {
     let mist = false, hpGain = 0, mpGain = 0;
     for (const p of G.party) {
@@ -12395,7 +12311,7 @@ function applyVictoryPassivesMeasured() {
     }
     if (mist) log(`${sfNum("victoryHeal", 0) > 0 ? "癒しの霊気" : "樹液の香り"}：隊合計HP+${hpGain}・MP+${mpGain}`, "heal");
   }
-  });
+  })();
   // 法力の灯 (隊の全員): 生きている味方の状態異常をすべて治す (毒・麻痺・石化も。2026-10 ユーザーの指示)
   if (G.party.some((p) => p.alive && pLv(p, "afterBoth"))) {
     let lit = false;
@@ -12597,7 +12513,7 @@ function commitDungeonClear(countBoss = true) {
   // クリア = 戦利品確定。記録 (帰還の報告に使う) は残し、全滅しても何も失わない印を付ける
   if (G.run) G.run.secured = true;
   G.bossDown = true; // 主を討ったので、どこからでも帰還できる
-  if (tlOn()) tlSnapshot("clear", tlWhere(), G.party);
+
   return { idx, isStoryTarget };
 }
 
@@ -13203,7 +13119,7 @@ function refreshStability(now = Date.now()) {
     recoverStability(d, now);
     G.party[i].stability = d.stability; G.party[i].stabilityAt = d.stabilityAt;
   });
-  tlStability("natural", changes, { state:G.state, partyUids:G.party.map(d=>d.uid) });
+
   if (changes.length) autosave(true);
   return changes;
 }
@@ -13230,7 +13146,7 @@ function stabilityReady(retry, infinite = abyssActive(), cost = STABILITY_ENTRY_
     if (G.redSoul < pay) { stabilityReady(retry, infinite, cost); return; }
     G.redSoul -= pay;
     for (const c of changes) c.doll.stability += c.amount;
-    tlStability("red", changes, {redSpent:pay});
+
     autosave(true); retry();
   }});
   // 本番の広告連携までは即時成功。この一回だけ消費を免除し、残量と回復時計を保つ。
@@ -13250,12 +13166,12 @@ function consumeEntryStability(where, kind = "entry", infinite = abyssActive(), 
   refreshStability();
   const dolls = stabilityDolls(infinite);
   if (ad && dolls.length) {
-    tlStability("ad", dolls.map(doll=>({doll,amount:0})), {dungeon:where, pass:true, entry:kind === "entry"});
+
     return true;
   }
   if (!dolls.length || !stabilityReady(null, infinite, cost)) return false;
   const changes = dolls.map(doll => { doll.stability -= cost; return {doll,amount:cost}; });
-  tlStability(kind, changes, { dungeon:where });
+
   refreshStability();
   return true;
 }
@@ -13269,13 +13185,13 @@ function restoreStability(d, requested = 1) {
   const cost = Math.ceil(n / per);
   d.stability += n; G.redSoul -= cost;
   if (d.stability === STABILITY_MAX) d.stabilityAt = Date.now();
-  tlStability("red", [{doll:d,amount:n}], {redSpent:cost});
+
   SFX.heal(); autosave(true); renderTown();
   return {ok:true,n,cost};
 }
 function stabilityCost(n) { return Math.ceil(Math.max(0, n) / stabilityPerRed()); }
 function grantRedSoul(n, source) {
-  G.redSoul += n || 0; tlRedGain(n || 0, source);
+  G.redSoul += n || 0;
 }
 
 // 旧呼び出し口との互換。人業の仕立てに赤い魂は使わない。
@@ -14323,7 +14239,7 @@ function questProgress(type, key, n = 1) {
 // 報酬の魂を抽選して受け取る: [[魂のレア度, 体数]] → 職の鍵の配列
 function grantRewardSouls(list) {
   const got = [];
-  for (const [rar, cnt] of (list || [])) for (let k = 0; k < cnt; k++) { const ck = rollClassOfRarity(rar); addSoulInstance(ck); tlSoulGot(ck); got.push(ck); }
+  for (const [rar, cnt] of (list || [])) for (let k = 0; k < cnt; k++) { const ck = rollClassOfRarity(rar); addSoulInstance(ck); noteSoulFound(ck); got.push(ck); }
   if (got.length) recalcAllDolls();
   return got;
 }
@@ -14356,11 +14272,11 @@ function grantRewardItems(r) {
     }
   }
 }
-// src = テスト記録の出どころ (tlTown)
+
 function grantCurrencies(r, src) {
   G.gold += r.gold || 0;
   G.soulPts += r.soulPts || 0;
-  tlTown("gold", r.gold || 0, src); tlTown("soul", r.soulPts || 0, src);
+
   grantRedSoul(r.red || 0, src || "reward");
   G.embers = (G.embers || 0) + (r.embers || 0);
 }
@@ -15136,9 +15052,9 @@ function claimAchievement(a) {
   if (G.ach[a.id] || !a.cond()) return;
   G.ach[a.id] = true;
   let msg = [];
-  if (a.reward.gold) { G.gold += a.reward.gold; tlTown("gold", a.reward.gold, "a"); msg.push(`💰${a.reward.gold}`); }
+  if (a.reward.gold) { G.gold += a.reward.gold; msg.push(`💰${a.reward.gold}`); }
   if (a.reward.redSoul) { grantRedSoul(a.reward.redSoul, "achievement"); msg.push(`🔴${a.reward.redSoul}`); }
-  if (a.reward.soulPts) { G.soulPts += a.reward.soulPts; tlTown("soul", a.reward.soulPts, "a"); msg.push(`✦${a.reward.soulPts}`); }
+  if (a.reward.soulPts) { G.soulPts += a.reward.soulPts; msg.push(`✦${a.reward.soulPts}`); }
   SFX.levelup(); buzz([0, 30, 60, 30]);
   flashScreen("#c9a22744");
   log(`勲章「${a.name}」を授かった！ (${msg.join(" + ")})`, "win");
@@ -15277,7 +15193,7 @@ function reportMainQuest() {
       if (w.reported[id]) return;
       G.gold += r.gold;
       G.soulPts += r.soulPts;
-      tlTown("gold", r.gold, "r"); tlTown("soul", r.soulPts, "r");
+
       grantRedSoul(r.redSoul || 0, "report");
       w.reported[id] = 1;
       if (prologueActive() && id === "w01") prologue().phase = "fifth";
@@ -15385,7 +15301,7 @@ function prologueAudience() {
     leave: () => {
       if (p.phase !== phase) return;
       p.phase = crypt ? "shop" : "corridor";
-      if (crypt) { G.gold += 500; tlTown("gold", 500, "r"); if (G.tut?.done) delete G.tut.done.buyEquipment; }
+      if (crypt) { G.gold += 500;  if (G.tut?.done) delete G.tut.done.buyEquipment; }
       announceNewDungeons(refreshWorldUnlocks());
       G.dungeonIdx = worldIndexOf(crypt ? "w01" : "w02");
       autosave(true);
@@ -15858,7 +15774,7 @@ function donateCollectible(doll, it) {
   if (it.id && !ts.donated[it.id]) { ts.donated[it.id] = true; ts.fresh[it.id] = true; codexSeeItem(it.id); return { kind: "new", gold: 0 }; }
   const gold = sellPrice(it);
   G.gold += gold;
-  tlTown("gold", gold, "t");
+
   return { kind: "dup", gold };
 }
 
@@ -15892,7 +15808,7 @@ function grantTreasuryLR(m) {
   const who = it && treasuryReceiver(it.forJob);
   if (!who) {
     const gold = it ? Math.max(1, sellPrice(it)) : 100;
-    G.gold += gold; tlTown("gold", gold, "t");
+    G.gold += gold;
     log(`所持枠が満杯のため、宝物庫の褒賞は 💰${gold} に換えられた。`, "win");
     queuePickup({ kind: "notice", notice: { icon: "gold", title: "褒賞を換金した", accent: "#e8c24a", banner: "✦ 宝物庫の褒賞 ✦", lines: [`持ちきれぬため、褒賞は 💰${gold} に換えられた。`] } });
     return;
@@ -16597,7 +16513,7 @@ function sellItem(owner, it, price, afxKeep = null, quiet = false) {
   if (it.unidentified || it.soulMemory) price = 0;
   owner.items.splice(idx, 1);
   G.gold += price;
-  tlTown("gold", price, "sell");
+
   // 在庫に積む (ボルタック方式)。未鑑定品は並ばない
   if (it.id) shopReceive(it, afxKeep); // 追加つきの品は、その組を商会が覚える (17-1)
   codexSeeItem(it.id, it);
@@ -17096,8 +17012,7 @@ function enterDungeon(mutatorId, startFloor = 1, stabilityAd = false) {
   G.run = newRun();
   playtestEvent("出撃");
   G.run.startFloor = G.floor; // 潜り始めの階 (そこから降りずに何もせず戻ったら、帰還で酒場を貼り替えない)
-  tlRunBegin(tlWhere(), G.party, { mutator:G.mutator, loadout:G.party.map(p=>({ name:p.name, tactic:p.tactic, equip:Object.fromEntries(Object.entries(p.equip || {}).map(([k, it])=>[k, it ? it.id : null])), passives:p.passiveMap,
-    souls:[p.primary, ...(p.subs || []).map(x=>x.uid)].filter(x=>x!=null).map(uid=>{ const soul=soulByUid(uid); return soul ? { uid, clsKey:soul.clsKey, level:soul.level, count:soul.count } : { uid }; }) })) });
+
   G.lastRun = null;
   G._townMutator = null; G._departPre = false;
   G._lastTargetUid = null;
@@ -17187,7 +17102,7 @@ function enterAbyss(picks, testRun = false, stabilityAd = false, memoryFloor = n
   G.stats.runs++;
   G.run = newRun();
   G.run.startFloor = G.floor;
-  tlRunBegin(tlWhere(), G.party, { mode: "infinite" });
+
   G.lastRun = null;
   G._townMutator = null; G._departPre = false;
   G.activeRumor = null; // 噂は地図の迷宮のもの。無限迷宮では現実にならない (帰還時に更新する)
@@ -17195,7 +17110,7 @@ function enterAbyss(picks, testRun = false, stabilityAd = false, memoryFloor = n
   playBgm(fieldBgm());
   if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; }
   newFloor();
-  if (!testRun) { infTlPoint("start"); infTlArrive(); }
+
   log(memory ? `✺ B${memory.floor}F の魂の記憶を呼び戻し、隊は B${G.floor}F へ降りていく。記憶した装備と魂は持ち帰れない。` : `✺ 隊は魂のひとかけを仮の器に移し、名もなき魂の欠片を宿して「${INF_NAME}」へ降りていく。力は風に吹き返されても、記憶は器に残る。`, "win");
   renderBoard();
   autosave(true);
@@ -17216,9 +17131,8 @@ function infTestStart(f, lv) {
   G.gold = Math.round(refGold(L) * 20);
   G.floor = Math.max(1, f); G.abyss.depth = G.floor;
   G.abyss.rule = G.floor > 5 ? rollInfRule(null, G.floor) : null;
-  G.abyss.trk.floorT = G.stats.playMs || 0;
   newFloor();
-  infTlPoint("start");
+
   log(`(試遊) ${INF_NAME} B${G.floor}F から、隊Lv${L}で始める。`, "sys");
   renderBoard(); updateTopbar(); renderParty();
   playBgm(fieldBgm());
@@ -17469,8 +17383,7 @@ function openAbyssSetup() {
 function returnToTown(opts = {}) {
   const runRef = opts.run !== undefined ? opts.run : G.run;
   const outcome = opts.outcome || (runRef && runRef.secured ? "clear" : "return");
-  if (inDungeon()) tlRunEnd(tlWhere(), G.party, outcome);
-  // 無限迷宮: 本編の隊・魂・通貨を戻し、持ち帰るもの (拾った魂・品・残火) を本編へ渡す。帰還の報告は無限迷宮の結果のシートが代わる
+
   const infSummary = G.abyss ? infCloseRun(outcome) : null;
   restockElixirs(); // 霊薬の帳面 (手がかりの恵み)
   if (!infSummary) evOnReturn(runRef, outcome); // 迷宮のイベント: 報奨金・紅玉の売却 (全滅以外)
@@ -17669,7 +17582,7 @@ function campHealPower(caster, sp, t = null) {
 // 生きている1体へ回復呪文の効果 (状態異常の治療・HP回復) を与える。何か起きたら true
 // 戦闘外の回復で、最後に唱えた回復量 (満タンで上限に切られた分も含む素の値)。結果の表示に使う
 const CAMP_HEAL = new WeakMap();
-function campApplyAlive(...args) { return tlGameMeasure("camp", () => campApplyAliveMeasured(...args)); }
+function campApplyAlive(...args) { return campApplyAliveMeasured(...args); }
 function campApplyAliveMeasured(caster, sp, t) {
   let did = false;
   if (canSpellCure(sp, t) && cureBySpell(sp, t)) { log(`${sp.name}！ ${t.name}の状態異常が治った`, "heal"); did = true; }
@@ -17714,7 +17627,7 @@ function healAllRevivers() {
   return out;
 }
 // 倒れた1体を呪文で起こす (campCast と同じ蘇生量)
-function campRevive(...args) { return tlGameMeasure("camp", () => campReviveMeasured(...args)); }
+function campRevive(...args) { return campReviveMeasured(...args); }
 function campReviveMeasured(caster, sp, t) {
   const heal = (sp.revivePct ? Math.round(t.maxhp * sp.revivePct) : Math.max(1, campHealPower(caster, sp, t)))
     + Math.round(t.maxhp * rankVal(caster, "priestInochi", [0.10, 0.20, 0.30, 0.50])); // 生命の灯 (僧侶のランク)
@@ -17861,7 +17774,7 @@ function planHealAllGreedy(def0, ail0, casters) {
   }
   return done() ? out : null;
 }
-function healAll(...args) { return tlGameMeasure("camp", () => healAllMeasured(...args)); }
+function healAll(...args) { return healAllMeasured(...args); }
 function healAllMeasured() {
   const fail = (msg, tone = "info") => { log(msg, "sys"); showToast(msg, { noLog: true, tone }); SFX.miss(); };
   if (!healAllNeed()) {
@@ -18006,7 +17919,7 @@ function campCast(caster, spellKey) {
     }
     return campApplyAlive(caster, sp, t);
   };
-  const finish = () => { tlGameMeasure("camp", () => { caster.mp -= cost; }); SFX.heal(); buzz(15); renderStatus(); renderParty(); };
+  const finish = () => { caster.mp -= cost; SFX.heal(); buzz(15); renderStatus(); renderParty(); };
   // 1人ぶんの結果 (蘇生 / 満タン / 回復量)
   // 回復量は満タンでも素の値で見せる (戦闘中の「+N」と同じ)
   const healLineFor = (t, before, wasDead) => {
@@ -18237,7 +18150,7 @@ function doUnequip(p, key) {
 }
 // 道具を戦闘の外で使う (隊の画面・戦利品のシート)。p = 袋の持ち主。target = 使う相手 (省略時: 効く相手が1人ならその人、
 // 複数なら選ばせる)。効き目は品で決まる (combat.js _useItem と同じ量)。戦闘でしか使えない品は使えない
-function useItem(...args) { return tlGameMeasure("item", () => useItemMeasured(...args)); }
+function useItem(...args) { return useItemMeasured(...args); }
 function useItemMeasured(p, index, target) {
   const it = p.items[index];
   if (!it || it.slot !== "use" || !it.use) return;
@@ -18545,7 +18458,7 @@ function rankUnlockHint(rank, clsKey) {
 }
 
 // 毒のダメージ (盤面を1歩進むごと)
-function tickPoison(...args) { return tlGameMeasure("poison", () => tickPoisonMeasured(...args)); }
+function tickPoison(...args) { return tickPoisonMeasured(...args); }
 function tickPoisonMeasured() {
   let any = false;
   for (const p of G.party) {
@@ -19226,9 +19139,10 @@ function loadGame(cloudSnapshot = null) {
   G.statusOpen = false; G.settingsOpen = false;
   // クラス/参照の再リンク (Battleのメソッド・敵のmon・派生値)
   if (G.battle) {
+    delete G.battle.tally; delete G.battle.tl;
     Object.setPrototypeOf(G.battle, Battle.prototype);
     syncEnemyUids(G.battle.enemies);
-    tlWatchBattle(G.battle, tlWhere(), id => infSupplyRecord("used", id));
+    watchBattleSupply(G.battle);
     G.battle.log = log;
     if (G.battle.fleeK == null) G.battle.fleeK = fleeScale(); // 逃走の物差しを持たない古い戦闘
     if (G.battle.statWall === undefined) G.battle.statWall = statWallOf(activeCfg()); // 能力ごとの段を持たない古い戦闘
@@ -19474,6 +19388,10 @@ window.addEventListener("beforeunload", () => autosave(true));
 
 // 新規プレイの初期化: 人業ロスター・魂ストック・初期装備を整える
 function setupNewGame() {
+  resetAutomationPrefs();
+  G.fastAnim = false;
+  PREFS.walkSpeed = 1;
+  savePrefs();
   G.bukonStock = {}; G.bukonProtected = {}; G.bukonGift = false;
   G.formations = [];
   // 金貨も赤い魂も持たずに着任する。まず王宮で三職の魂を拝受する。
@@ -19777,7 +19695,7 @@ const OPS = {
       if (idx < 0) continue;
       doll.items.splice(idx, 1);
       G.gold += price; gold += price;
-      tlTown("gold", price, "sell");
+
       if (item.id) shopReceive(item);
       codexSeeItem(item.id, item);
       n++;
@@ -19827,9 +19745,9 @@ const OPS = {
       for (const a of ready) {
         if (G.ach[a.id] || !a.cond()) continue;
         G.ach[a.id] = true;
-        if (a.reward.gold) { G.gold += a.reward.gold; gold += a.reward.gold; tlTown("gold", a.reward.gold, "a"); }
+        if (a.reward.gold) { G.gold += a.reward.gold; gold += a.reward.gold; }
         if (a.reward.redSoul) { grantRedSoul(a.reward.redSoul, "achievement"); red += a.reward.redSoul; }
-        if (a.reward.soulPts) { G.soulPts += a.reward.soulPts; soul += a.reward.soulPts; tlTown("soul", a.reward.soulPts, "a"); }
+        if (a.reward.soulPts) { G.soulPts += a.reward.soulPts; soul += a.reward.soulPts; }
         log(`勲章「${a.name}」を授かった！`, "win");
         n++;
       }
@@ -20040,7 +19958,7 @@ function wireUI() {
     saveFormation, renameFormation, checkFormation, applyFormation,
     renderTown, renderBoard, renderParty, renderRunbar, updateTopbar, renderStatus,
     allDolls, recalcAllDolls, inDungeon, curDungeon, activeCfg, clearedDungeonCount, reportedDungeonCount,
-    sellPrice, buyPrice, appraiseCost, innCost, sellWarnings, bulkSellBlocked, bargainMul, shopStockAdd, shopReceive, shopAfxItem, shopPlainStock, buyAffixed, afxConflicts, resolveAfxConflicts, tlTown,
+    sellPrice, buyPrice, appraiseCost, innCost, sellWarnings, bulkSellBlocked, bargainMul, shopStockAdd, shopReceive, shopAfxItem, shopPlainStock, buyAffixed, afxConflicts, resolveAfxConflicts,
     itemRankName, itemRankColor, itemGradeText, itemNameEl, logClassForItem,
     showChoice, closePrompt, showEvent, showConfirm, showToast, showItemGet, closeItemGet, showItemDetailPopup, showStoryScene,
     openStatus, closeStatus, openSettings, closeSettings, tryEnterDungeon, enterDungeon, preloadDungeon, returnToTown, confirmReturnToTown,
@@ -20172,6 +20090,8 @@ function titleSummary() {
 }
 
 async function init() {
+  // 廃止したテスト集計だけを片付け、冒険の記録は保つ。
+  try { localStorage.removeItem("dos-testlog"); } catch {}
   registerMonsterPhotos(MONSTERS);
   document.addEventListener("illustrations-ready", () => {
     if (G.state === "combat" && G.battle) renderCombatCanvas();
@@ -20204,7 +20124,7 @@ async function init() {
     // 宿敵の再戦の検証用
     rematch: { rematchList, departRematch, endBattle },
     // 無限迷宮の検証用
-    inf: { infStats, infTitleList, infTitleGrant, infCheckRun, doUnequip, giveItemAsk, giveItem, pickLoot, cloneItem, markDungeonLoot, shopAfxItem, buyAffixed, afxConflicts, resolveAfxConflicts, shopReceive, saveJSON: () => { const snap = {}; for (const k of SAVE_FIELDS) snap[k] = G[k]; return JSON.stringify(refSerialize(snap)); }, DUNGEONS, spawnBossEnemies, baseEnemyScale, soloScale, infBossFoes, infEliteFoes, infFoeKey, infSpotInfo, spawnCardEnemies, enemyScale, mimicRef, addSoulInstance, recalcAllDolls, enterAbyss, departAbyss, descend, openInfRest, fightAbyssGuard, abyssCfg, grantSoulQuiet, infSwapSoul, infSetSub, infSubBlock, infSubPreview, infBuy, infSell, infTraderWares, infSupplyStatus, infBuyBlock, infTlPoint, returnToTown, gameOver, leaveDungeon, abyssRecords, newFloor, renderBoard, finishToBoard },
+    inf: { infStats, infTitleList, infTitleGrant, infCheckRun, doUnequip, giveItemAsk, giveItem, pickLoot, cloneItem, markDungeonLoot, shopAfxItem, buyAffixed, afxConflicts, resolveAfxConflicts, shopReceive, saveJSON: () => { const snap = {}; for (const k of SAVE_FIELDS) snap[k] = G[k]; return JSON.stringify(refSerialize(snap)); }, DUNGEONS, spawnBossEnemies, baseEnemyScale, soloScale, infBossFoes, infEliteFoes, infFoeKey, infSpotInfo, spawnCardEnemies, enemyScale, mimicRef, addSoulInstance, recalcAllDolls, enterAbyss, departAbyss, descend, openInfRest, fightAbyssGuard, abyssCfg, grantSoulQuiet, infSwapSoul, infSetSub, infSubBlock, infSubPreview, infBuy, infSell, infTraderWares, infSupplyStatus, infBuyBlock, returnToTown, gameOver, leaveDungeon, abyssRecords, newFloor, renderBoard, finishToBoard },
     // 迷宮の掟の代償 (雲間の泉・開幕の眠り/麻痺・宝箱の罠) の検証用
     ruleCost: { TRAIT_BOARD, mutNum, useVeiledFountain, VEILED_CURSE, RULE_ONE_AIL, disarmNeed, dungeonTrait },
     // 第九章の掟 (一騎打ち・観客の注文) の検証用
@@ -20437,3 +20357,16 @@ init().catch((e) => {
   if (cloudEnabled()) { revealBootScreen(); cloudFatal(); }
   else window.dosBoot?.fail("ゲームを起動できませんでした。冒険の記録は消さずに、再読み込みしてください。");
 });
+
+// 無限迷宮で消費した道具を補給の帳面へ残す。
+function watchBattleSupply(b) {
+  const use = b._useItem;
+  Object.defineProperty(b, "_useItem", { configurable: true, writable: true, value(...args) {
+    const [actor, cmd] = args;
+    const owner = cmd?.owner || actor;
+    const before = [...(owner.items || [])];
+    const result = use.apply(this, args);
+    for (const it of before) if (!owner.items.includes(it)) infSupplyRecord("used", it.id);
+    return result;
+  } });
+}

@@ -14,7 +14,6 @@ with sync_playwright() as p:
         page.evaluate('''async(values)=>{
           window.ctx=await import('/src/ui/ctx.js');
           window.partyUI=await import('/src/ui/party.js');
-          window.T=await import('/src/telemetry.js');T.tlClear();T.tlSetOn(true);
           const G=__game.G;G.dungeonBriefed=true;G.stabilityBriefed=true;G.redSoul=0;
           window.check=(ok,msg)=>{if(!ok)throw Error(msg);};
           window.setValues=ds=>ds.forEach((d,i)=>{d.stability=values[i];d.stabilityAt=Date.now()-120000;});
@@ -31,8 +30,6 @@ with sync_playwright() as p:
     page.wait_for_function('__game.G.state === "board"')
     assert page.evaluate('__game.G.party.map(d=>d.stability)') == VALUES
     assert page.evaluate('__game.G.party.slice(0,5).every((d,i)=>d.stabilityAt===before[i].stabilityAt)')
-    assert page.evaluate('T.tlRawData().stability.adPasses') == 1
-    assert page.evaluate('T.tlRawData().stability.spent') == 0
     page.evaluate('__game.G.floor=5;__game.inf.descend()')
     assert page.evaluate('__game.G.floor') == 5
     advertisement()

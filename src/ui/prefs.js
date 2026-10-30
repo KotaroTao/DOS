@@ -21,7 +21,7 @@ export const UI_PREF_DEFAULTS = {
   lastSkill: {},         // 人業uid → 最後に使ったスキル
   autoKeep: false,       // オートを次の戦闘も続ける
   chestAuto: false,      // 宝箱は最良の解除役で開ける (確認なし)
-  autoCorpse: true,      // 朽ちた死体は自動で調べる
+  autoCorpse: false,      // 朽ちた死体は自動で調べる
   autoCloseResults: false, // 戦果を自動で閉じる
   autoRest: false,       // 帰還時に宿で休む
   sellUse: false,        // まとめて売るに道具 (消耗品) も含める
@@ -77,16 +77,24 @@ export function resetUiPrefs() {
 }
 
 // オート移動で避けるもの (設定「オート移動で避けるもの」)。4つそれぞれ true = 避ける / false = 避けない。
-// 未設定なら旧設定 autoMoveFoes (avoid / weak / all) から読み替え、出来事は避けない・宝箱は避けるを既定にする
+// 未設定なら旧設定 autoMoveFoes (avoid / weak / all) から読み替え、出来事・宝箱・死体は避けないを既定にする
 export const AUTO_MOVE_AVOID_KEYS = ["foe", "elite", "event", "chest"];
 export function autoMoveAvoid() {
   const v = uiPrefs.autoMoveAvoid;
   const old = uiPrefs.autoMoveFoes;
-  const base = { foe: old !== "weak" && old !== "all", elite: old !== "all", event: false, chest: true };
+  const base = { foe: old !== "weak" && old !== "all", elite: old !== "all", event: false, chest: false };
   if (v && typeof v === "object") for (const k of AUTO_MOVE_AVOID_KEYS) if (typeof v[k] === "boolean") base[k] = v[k];
   return base;
 }
 export function setAutoMoveAvoid(key, on) {
   if (!AUTO_MOVE_AVOID_KEYS.includes(key)) return;
   setPref("autoMoveAvoid", { ...autoMoveAvoid(), [key]: !!on });
+}
+
+// 新しい冒険では、自動化の好みだけを初期値へ戻す。
+export function resetAutomationPrefs() {
+  for (const k of ["autoKeep", "chestAuto", "autoCorpse", "autoCloseResults", "autoRest", "sellUse", "autoMoveFoes", "autoMoveAvoid"]) {
+    uiPrefs[k] = structuredCloneSafe({ value: UI_PREF_DEFAULTS[k] }).value;
+  }
+  persist();
 }
