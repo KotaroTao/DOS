@@ -42,8 +42,25 @@ with sync_playwright() as p:
     page.wait_for_function("document.querySelector('.cloud-gate').hidden")
     page.evaluate("() => { __game.G.gold=4321; __game.autosave(true); }")
     page.wait_for_function("document.querySelector('.cloud-gate').hidden")
+    # 旧版で案内済みでも、修道院の踏破帰還後に新しい案内が出る。
+    page.evaluate("""() => {
+      localStorage.setItem('dos-cloud-register-hint:' + JSON.parse(localStorage.getItem('dos-cloud-auth')).user.id, '1');
+      const g = __game.G;
+      g.dungeonIdx = __game.inf.DUNGEONS.findIndex(d => d.id === 'w03');
+      __game.inf.returnToTown({outcome:'return'});
+    }""")
+    page.wait_for_timeout(700)
+    assert page.locator('.cloud-gate').evaluate('(e) => e.hidden')
+    page.evaluate("() => { __game.inf.returnToTown({outcome:'clear'}); }")
+    page.get_by_role("button",name="記録を守る・引き継ぎの準備",exact=True).wait_for()
+    assert "端末を買い替えた時" in page.locator(".cloud-panel").inner_text().replace("\u200b", "")
+    assert "メールアドレスを登録" not in page.locator(".cloud-panel").inner_text().replace("\u200b", "")
+    page.get_by_role("button",name="冒険へ戻る",exact=True).click()
+    page.evaluate("() => { __game.inf.returnToTown({outcome:'clear'}); }")
+    page.wait_for_timeout(700)
+    assert page.locator('.cloud-gate').evaluate('(e) => e.hidden')
     page.evaluate("() => import('./src/cloud-save.js').then(m => {m.cloudManageAccount();})")
-    page.get_by_role("button",name="アカウント登録・記録の引き継ぎ",exact=True).click()
+    page.get_by_role("button",name="記録を守る・引き継ぎの準備",exact=True).click()
     page.get_by_label("メールアドレス",exact=True).fill("player@example.invalid")
     page.get_by_label("パスワード",exact=True).fill("test-password")
     failing["registration"]=True
@@ -88,10 +105,10 @@ with sync_playwright() as p:
     assert not [x for x in sent if x[1] and '"op":"reset"' in x[1]]
     page.get_by_role("button",name="データ削除",exact=True).click()
     page.get_by_role("button",name="消して始める",exact=True).click()
-    page.wait_for_function("document.querySelector('.ttl-overlay:not(.ttl-out) .ttl-btn-t')?.textContent === '冒険を始める'")
+    page.wait_for_function("document.querySelector('.ttl-overlay:not(.ttl-out) .ttl-btn-t')?.textContent.replaceAll('\\u200b', '') === '冒険を始める'")
     assert page.get_by_role("button",name="つづきから",exact=False).count()==0
     page.reload()
-    page.wait_for_function("document.querySelector('.ttl-overlay:not(.ttl-out) .ttl-btn-t')?.textContent === '冒険を始める'")
+    page.wait_for_function("document.querySelector('.ttl-overlay:not(.ttl-out) .ttl-btn-t')?.textContent.replaceAll('\\u200b', '') === '冒険を始める'")
     page.locator(".ttl-overlay:not(.ttl-out) .ttl-menu .ttl-btn.primary").wait_for()
     page.locator(".ttl-overlay:not(.ttl-out) .ttl-menu .ttl-btn.primary").click()
     page.get_by_role("dialog",name="弟子の名前").wait_for()
@@ -103,7 +120,7 @@ with sync_playwright() as p:
     page.get_by_role("button",name="旅を始める",exact=True).click()
     page.evaluate("async () => { __game.G.gold=7; await __game.autosave(true); }")
     page.reload()
-    page.wait_for_function("document.querySelector('.ttl-overlay:not(.ttl-out) .ttl-btn-t')?.textContent === 'つづきから'")
+    page.wait_for_function("document.querySelector('.ttl-overlay:not(.ttl-out) .ttl-btn-t')?.textContent.replaceAll('\\u200b', '') === 'つづきから'")
     page.locator(".ttl-overlay:not(.ttl-out) .ttl-menu .ttl-btn.primary").click()
     page.wait_for_function("!!window.__game && document.querySelector('.cloud-gate')?.hidden")
     assert page.evaluate("__game.G.gold")==7
@@ -115,6 +132,7 @@ with sync_playwright() as p:
     state=context.request.get("http://127.0.0.1:8002/test/state").json()
     assert state=={"saves":0,"users":0},state
     assert not errors,errors
+    page.wait_for_load_state("domcontentloaded")
     page.screenshot(path="/tmp/dos-onboarding-resume.png")
     context.unroute_all(behavior="ignoreErrors")
     context.close(); browser.close()

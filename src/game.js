@@ -15370,7 +15370,6 @@ function completePrologueTutorial(key) {
   announceNewDungeons(refreshWorldUnlocks());
   if (key === "createThree") G.dungeonIdx = worldIndexOf("w00_forest");
   autosave(true);
-  if (key === "createFourth" && cloudEnabled() && !testPlayActive) cloudRegisterPrompt();
 }
 function prologueAudience() {
   const p = prologue(), phase = p?.phase;
@@ -17520,6 +17519,8 @@ function returnToTown(opts = {}) {
   renderTown();
   autosave(true);
   const repairTutorial = infSummary ? false : (UI.tutorialAfterReturn?.() || false);
+  // 修道院の踏破後、持ち帰った記録を保存してから引き継ぎを案内する。
+  if (summary?.dungeon.id === "w03" && outcome === "clear" && cloudEnabled() && !testPlayActive) cloudRegisterPrompt();
   if (infSummary) { if (UI.openInfSummary) setTimeout(() => UI.openInfSummary(infSummary), 300); }
   // 帰還の報告は街の広場 (WP-A) が夜景の右下に札 (.hb-rr、押すとシート) として置く。まだ置かれていなければ、シートで見せる
   else if (!repairTutorial) setTimeout(() => {
