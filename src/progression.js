@@ -15,7 +15,7 @@ export function challengeEntryBlock(cfg, party, souls) {
     const soul = souls.find(s => s.uid === d.primary);
     return !soul || SOUL_CLASSES[soul.clsKey]?.rarity !== "common";
   });
-  return wrong.length ? `メイン魂をコモン職にしてください：${wrong.map(d => d.name).join("・")}` : "";
+  return wrong.length ? `メイン魂を戦士・騎士・僧侶・魔導士・盗賊・司教のいずれかにしてください：${wrong.map(d => d.name).join("・")}` : "";
 }
 export function applyChallengeEnemies(enemies, trait) {
   for (const e of enemies) {

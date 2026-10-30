@@ -9,7 +9,7 @@
   --danger: #d4504e;
   --good: #4caf50;
   --border: #2c2c3d;
-  --font: "Courier New", "MS Gothic", monospace;
+  --font: "Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", "Noto Serif CJK JP", "Source Han Serif JP", serif;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --game-width: 520px;

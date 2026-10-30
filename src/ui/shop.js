@@ -116,7 +116,7 @@ function baseJunk(opts) {
   const base = typeof ops.junkList === "function" ? ops.junkList(opts) : [];
   return base.filter((j) => j && j.item && !j.item.cursed && !j.item.locked && !isFormationItem(j.item) && !j.item.unidentified && !wornByAnyone(j.item));
 }
-// 売却候補: ops と同じ集合 (呪い・未鑑定・装備中・LR・未奉納の収集品、設定で含めない限り道具も除く) から、
+// 売却候補: ops と同じ集合 (呪い・未鑑定・装備中・赤い名の品・未奉納の収集品、設定で含めない限り道具も除く) から、
 // さらに「誰かの今の装備に勝る品」(装備の候補) を既定で残す。{ keepUpgrades: false } で ops と同じ集合
 export function junkList(opts = {}) {
   const base = baseJunk(opts);
@@ -580,7 +580,7 @@ function stockRow(id) {
 }
 
 // 鑑定の結果 (まとめて鑑定のあと): 正体が知れた品。押せば品シート / 「装備」で人業を選ぶ / 「売る」でその場で売る /
-// 下の「残りをまとめて売る」で残った品を一度に売る (技の鑑定の結果と同じ。LR・未奉納の収集品は残す)。
+// 下の「残りをまとめて売る」で残った品を一度に売る (技の鑑定の結果と同じ。赤い名の品・未奉納の収集品は残す)。
 // 品シート・装備の選択を閉じたら一覧を描き直す (装備した品は一覧から消す)
 function openRevealSheet(items) {
   let h = null;
@@ -740,7 +740,7 @@ function renderSell(wrap) {
   const short = { upgrade: "装備候補▲", rare: "LR", misc: "未奉納", locked: "ロック", cursed: "呪い", unid: "未鑑定", use: "道具" };
   exl.appendChild(document.createTextNode(kept.length
     ? `残す: ${kept.map(([e, n]) => `${short[e.key]}${n}`).join("・")}`
-    : `LR・未奉納・呪い・未鑑定・${sellUse() ? "" : "道具・"}装備中は売らない`));
+    : `赤い名の品・未奉納・呪い・未鑑定・${sellUse() ? "" : "道具・"}装備中は売らない`));
   exb.appendChild(exl);
   exb.appendChild(el("span", "wpc-exbtn-more", "内訳"));
   exb.addEventListener("click", () => { sfx("select"); openExclusions(); });

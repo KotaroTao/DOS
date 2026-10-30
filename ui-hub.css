@@ -916,3 +916,12 @@
 /* 敵図鑑の迷宮は章ごとのドロップダウンで選ぶ。 */
 .pl-mon-picker { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; font-size: 12px; color: var(--ink-dim); }
 .pl-mon-select { flex: 1; min-width: 0; width: 100%; min-height: 44px; padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--ink); font: inherit; }
+
+/* チュートリアルと解放説明の語りは同じ明朝体で文節ごとに折る。 */
+.sc-scene, .sc-line {
+  font-family: var(--font);
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  line-break: strict;
+}
+.sc-line { min-width: 0; max-width: 100%; text-wrap: pretty; }

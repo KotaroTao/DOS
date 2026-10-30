@@ -335,7 +335,7 @@ export function revealExtractBtn(it, onDone) {
   return b;
 }
 // 鑑定の結果の一覧に残った品のうち、まとめて売れるもの (袋の中・呪いなし)。
-// LR・未奉納の収集品 (bulkSellBlocked) は一点ずつ「売る」で確かめるので残す (keep に数える)。SR はまとめて売る
+// 赤い名の品・未奉納の収集品 (bulkSellBlocked) は一点ずつ「売る」で確かめるので残す (keep に数える)。SR はまとめて売る
 export function revealSellables(items) {
   const list = [];
   let keep = 0;
@@ -359,7 +359,7 @@ export function revealSellAction(items, onSold) {
     const ok = await confirm({
       banner: "まとめて売る", title: `${list.length}点を売る (+💰${gold})`,
       lines: [list.map((j) => itemName(j.item)).join("・"),
-        keep ? `スーパーレア・レジェンドレア・未奉納の収集品 ${keep}点は残す (一点ずつ「売る」で売れる)。` : "売った品は商会の棚に並ぶ (買い戻せる)。"],
+        keep ? `橙・赤い名の品・未奉納の収集品 ${keep}点は残す (一点ずつ「売る」で売れる)。` : "売った品は商会の棚に並ぶ (買い戻せる)。"],
       okLabel: "まとめて売る",
     });
     if (!ok) return;

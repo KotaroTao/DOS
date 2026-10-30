@@ -294,7 +294,8 @@
   margin: 0 auto; width: min(640px, calc(100% - 44px));
   font-size: clamp(15px, 4.1vw, 19px); line-height: 2.0; letter-spacing: 0.08em; text-align: left;
   color: var(--ink); pointer-events: none;
-  line-break: strict; word-break: auto-phrase; /* 日本語の文節で折り返す (対応ブラウザのみ) */
+  font-family: var(--font);
+  line-break: strict; word-break: keep-all; overflow-wrap: break-word; /* phraseBreaks の文節位置で折る */
 }
 .op-portrait .op-text { font-size: clamp(15px, 4.2vw, 18px); line-height: 2.05; }
 .op-ln { margin: 0 0 0.25em; }

@@ -824,7 +824,7 @@ function openInfBulkSell(onDone) {
   let h = null;
   const fill = (b) => {
     b.appendChild(el("div", "inf-note", `${plan.list.length}点を売却して 💰${plan.gold} を受け取る。残すのは商会の棚の追加の能力・特性。選ばなかった品も通常品として棚に並ぶ。`));
-    b.appendChild(el("div", "inf-note dim", "記憶した装備・ロック中・装備中・未鑑定・呪い・LR・未奉納の収集品・道具は売らない。強さは並品の装備本体・深度・追加の能力・特性の合計評価値で比べ、同じなら棚の品を優先する。"));
+    b.appendChild(el("div", "inf-note dim", "記憶した装備・ロック中・装備中・未鑑定・呪い・赤い名の品・未奉納の収集品・道具は売らない。強さは並品の装備本体・深度・追加の能力・特性の合計評価値で比べ、同じなら棚の品を優先する。"));
     for (const c of plan.conflicts) {
       const box = el("div", "inf-afx-c");
       box.appendChild(el("div", "inf-h", c.name));

@@ -486,7 +486,7 @@ function deadDolls() {
 function confirmSell(c) {
   return kitConfirm({
     banner: "まとめて売る", danger: false, title: `${c.junk}点を売る (+💰${c.junkGold})`,
-    lines: [`LR・未奉納の収集品・呪われた品・未鑑定・装備中の品${getPref("sellUse") ? "" : "・道具"}は売らない。`, "売った品は商会の棚に並ぶ (買い戻せる)。"],
+    lines: [`赤い名の品・未奉納の収集品・呪われた品・未鑑定・装備中の品${getPref("sellUse") ? "" : "・道具"}は売らない。`, "売った品は商会の棚に並ぶ (買い戻せる)。"],
     okLabel: "まとめて売る",
   });
 }

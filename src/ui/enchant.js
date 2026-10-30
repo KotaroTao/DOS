@@ -4,7 +4,7 @@ import { el, button, sheet, confirm as askConfirm, toast } from "./kit.js";
 import { itemName, recalc } from "../items.js";
 import { bukonText as fullBukonText, bukonSlots, bukonDef, bukonItem, attachBlock, fusionPlan, fusionGold, bulkFusionPlan, maxFusionLevel, BUKON_RARITIES } from "../bukon.js";
 const bukonText = b => fullBukonText(b, { showRarity: false });
-export const ENCHANT_NOTE = "武魂は装備を使った者の魂が宿ったもの。対応部位だけに無料で宿し、外せる。枠はコモン・アンコモン1、レア・SR2、LR3。同効果は1装備に1つ。売却・廃棄・素材化で商会へ戻る。加算系はLv上限なし、他はLv10まで。借用枠追加・持続延長・能力低下反転はレベルなし。特殊効果は人業ごとに同種の最高Lvだけが働く。";
+export const ENCHANT_NOTE = "武魂は装備を使った者の魂が宿ったもの。対応部位だけに無料で宿し、外せる。珍しい装備ほど多くの武魂を宿せる。同効果は1装備に1つ。売却・廃棄・素材化で商会へ戻る。加算系はLv上限なし、他はLv10まで。借用枠追加・持続延長・能力低下反転はレベルなし。特殊効果は人業ごとに同種の最高Lvだけが働く。";
 export const enchantPracticeState = () => null;
 export function prepareEnchantTutorial() {}
 // 旧付呪の破壊的な写し取り窓口は公開しない。
@@ -124,7 +124,7 @@ export function renderEnchantList(parent) {
     wrap.replaceChildren();
     const why=game.enchantClosed?.(); if(why){wrap.append(el("p","rf-note",why));return;}
     const rows=game.bukonRows();
-    const details=el("details","rf-intro");details.append(el("summary","","武魂の手引き"),el("p","rf-note",ENCHANT_NOTE),el("p","rf-note","第三章の結びで解放。第四章以降の迷宮のレア以上の新しいドロップから武魂が一つ見つかる。対応部位が合わない場合は商会に保管する。ドロップLvは拾った階の推奨Lvで決まり、装備のレア度には依存しない。武魂の格は白80%・緑12.5%・青5%・橙2%・赤0.5%。物理・魔法耐性は合計80%、各状態異常耐性95%、会心率・回避率80%まで。加算系だけLv上限なし。属性軽減は同属性合計80%。復活は毎回判定、確率50%まで、HP10%で戻る。"));wrap.append(details);
+    const details=el("details","rf-intro");details.append(el("summary","","武魂の手引き"),el("p","rf-note",ENCHANT_NOTE),el("p","rf-note","第三章の結びで解放。第四章以降の迷宮の青・橙・赤い名の新しい装備から武魂が一つ見つかる。対応部位が合わない場合は商会に保管する。ドロップLvは拾った階の推奨Lvで決まり、装備のレア度には依存しない。武魂の格は白80%・緑12.5%・青5%・橙2%・赤0.5%。物理・魔法耐性は合計80%、各状態異常耐性95%、会心率・回避率80%まで。加算系だけLv上限なし。属性軽減は同属性合計80%。復活は毎回判定、確率50%まで、HP10%で戻る。"));wrap.append(details);
     wrap.append(el("p","bk-meta",`着脱は無料 · 保管 ${rows.reduce((n,b)=>n+BigInt(b.count),0n).toLocaleString()}個 · 所持金貨 ${G().gold.toLocaleString()}`));
     const tabs=el("div","ec-afx-acts");
     for(const [key,label] of [["gear","装備に宿す・外す"],["stock","保管中の武魂"]]){const tab=button({label,kind:mode===key?"primary":"ghost",onTap:()=>{mode=key;draw();}});tab.setAttribute("aria-pressed",String(mode===key));tabs.append(tab);}wrap.append(tabs);
