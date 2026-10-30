@@ -2435,6 +2435,7 @@ function preloadDungeon(cfg, floor = 1, priority = 0) {
   if (!PREFS.classicBattle) tasks.push(preloadBattleBackground(cfg.id, priority));
   return Promise.all(tasks).then(values => values.every(ok => ok !== false));
 }
+let floorMediaReady = Promise.resolve(true);
 function prepareFloorMedia() {
   const cfg = activeCfg(), floor = G.floor;
   const ready = Promise.all([preloadDungeon(cfg, floor, 1), prepareCryptPainting(cfg.id), prewarmCryptActors()]).then(values => values.every(Boolean));
@@ -2445,7 +2446,13 @@ function prepareFloorMedia() {
       preloadDungeon(abyssActive() ? abyssCfg(G.abyss.depth + 1) : cfg, floor + 1, 0);
     }
   });
-  return ready;
+  return floorMediaReady = ready;
+}
+// 入場の幕は、素材の到着だけでなく迷宮を描き終えるまで保つ。
+async function readyDungeonEntry() {
+  if (!await floorMediaReady) return false;
+  renderBoard();
+  return waitForScene(appEl);
 }
 
 function newFloor() {
@@ -16895,7 +16902,7 @@ function departNow({ idx = G.dungeonIdx, accept = false, from = 1, stabilityAd =
   G.dungeonBriefed = true; // 初回の注意は出撃前のポップアップで案内した
   G.prompt = true;
   const start = startFloorsOf(DUNGEONS[idx]).includes(from) ? from : 1;
-  uiDungeonHud.sceneTransition(() => { G.prompt = false; enterDungeon(mutId, start, stabilityAd); });
+  uiDungeonHud.sceneTransition(() => { G.prompt = false; if (enterDungeon(mutId, start, stabilityAd) === false) return; return readyDungeonEntry(); }, { immediate: true, embers: false });
   return { ok: true };
 }
 
@@ -17144,7 +17151,7 @@ function departAbyss(picks, memoryFloor = null) {
   if (!featureUnlocked("infinite")) { SFX.ng(); return; }
   if (blockForReport() || blockForTutorial()) return;
   G.prompt = true;
-  uiDungeonHud.sceneTransition(() => { G.prompt = false; enterAbyss(picks, false, false, memoryFloor); });
+  uiDungeonHud.sceneTransition(() => { G.prompt = false; if (!enterAbyss(picks, false, false, memoryFloor)) return; return readyDungeonEntry(); }, { immediate: true, embers: false });
 }
 
 // ===== 宿敵の再戦 (第九章の結び = FEATURES.rematch、docs/unlocks.md) =====
