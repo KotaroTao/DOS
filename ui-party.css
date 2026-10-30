@@ -11,7 +11,7 @@
 .pt-root { display: flex; flex-direction: column; gap: 8px; text-align: left; color: var(--ink); }
 .pt-root > * { flex-shrink: 0; }
 .pt-root.m-town { overflow: hidden; margin: 0 -4px; }
-.pt-root.m-town > .pt-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
+.pt-root.m-town > .pt-body { flex: 1 1 auto; min-height: 0; overflow-x: hidden; overflow-y: auto; touch-action: pan-y; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
 .pt-root button { font-family: var(--font); -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .pt-px { display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
 .pt-body { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
