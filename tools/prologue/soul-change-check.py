@@ -40,7 +40,7 @@ with sync_playwright() as p:
  b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox']);page=b.new_page()
  page.goto('http://localhost:8000/?testScene=prologue:abbey');page.wait_for_function('window.__game?.G.msq')
  result=page.evaluate('''async()=>{const {UI,game}=await import('/src/ui/ctx.js');const {STORY_CELLS}=await import('/src/story.js');const G=game.G,w=game.worldState();G.msq.prologue.phase='abbeyQuest';w.report='w02';w.reported={w01:1};w.cleared.w02=1;w.beats.mem_w02=1;for(const k of Object.keys(STORY_CELLS))w.found[k]=1;
- let pages=[];UI.playStoryChain=(ps)=>{pages.push(...ps);for(const p of ps)p.leave?.();};game.reportMainQuest();return {titles:pages.map(p=>p.title),explanations:pages.filter(p=>p.kicker==='秘技の伝授'&&!['操霊師の見識','図鑑と操霊師の見識'].includes(p.title)).length,reported:w.reported.w02,phase:G.msq.prologue.phase};}''')
+ let pages=[];UI.playStoryChain=(ps)=>{pages.push(...ps);for(const p of ps)p.leave?.();};game.reportMainQuest();return {titles:pages.map(p=>p.title),explanations:pages.filter(p=>p.kicker==='秘技の伝授'&&['魂の付け替え','魂融合'].includes(p.title)).length,reported:w.reported.w02,phase:G.msq.prologue.phase};}''')
  assert result['reported'] and result['phase']=='abbey' and result['explanations']==0,result
  print('回廊報告から修道院へ、王の魂付け替え・融合の説明なし:',result)
  b.close()
