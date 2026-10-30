@@ -1,3 +1,4 @@
+import { showSaveMetrics } from "./save-metrics.js";
 // 序盤の試遊記録。通常のセーブ・戦闘集計とは別に、この端末だけに保存する。
 export const TEST_BUILD = "dos-dev";
 const KEY = "dos-playtests-v1";
@@ -121,7 +122,7 @@ export function showPlaytestRecords() {
     const blob = new Blob([json ? JSON.stringify(s, null, 2) : playtestText(s)], { type: json ? "application/json" : "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob), a = node("a"); a.href = url; a.download = `dos-playtest-${s.id}.${json ? "json" : "txt"}`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
-  controls.append(button("テキスト保存", () => download(false)), button("JSON保存", () => download(true)), button("閉じる", () => dialog.close()));
+  controls.append(button("保存と通信の計測", showSaveMetrics), button("テキスト保存", () => download(false)), button("JSON保存", () => download(true)), button("閉じる", () => dialog.close()));
   dialog.prepend(title, status, select); dialog.append(output, controls);
   dialog.addEventListener("close", () => { tick(); inspecting = false; dialog.remove(); save(); });
   dialog.addEventListener("keydown", e => e.stopPropagation());

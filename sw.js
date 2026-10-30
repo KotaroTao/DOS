@@ -11,6 +11,7 @@
 const CACHE = "dos-dev";
 const DEV = CACHE === "dos-dev";
 const ASSETS = [
+  "./src/save-metrics.js",
   "./src/branding.js",
   "./art/branding/dead-sea-games.webp",
   "./src/photoload.js",
