@@ -20,11 +20,28 @@ with sync_playwright() as p:
         splash = page.locator('#studio-splash')
         splash.wait_for(state='visible')
         page.wait_for_function('document.querySelector("#studio-splash img").naturalWidth > 0')
+        page.locator('.image-loading').first.wait_for(state='attached')
+        assert page.evaluate("""() => {
+          const booting = document.body.classList.contains('booting');
+          document.body.classList.add('booting');
+          const hidden = getComputedStyle(document.querySelector('.image-loading')).display === 'none';
+          if (!booting) document.body.classList.remove('booting');
+          return hidden;
+        }""")
         assert page.evaluate('document.elementFromPoint(innerWidth/2,innerHeight/2).closest("#studio-splash") !== null')
         page.wait_for_function('document.querySelector("#studio-splash")?.classList.contains("studio-fading")', timeout=15000)
+        assert page.locator('.image-loading').first.is_hidden()
         assert page.locator('.ttl-overlay').count() == 1
         assert page.evaluate('brandTimes.fade - brandTimes.loaded >= 4900')
         splash.wait_for(state='detached')
+        assert page.evaluate("""() => {
+          const lamp = document.querySelector('.image-loading');
+          const state = lamp.dataset.state;
+          lamp.dataset.state = 'loading';
+          const restored = getComputedStyle(lamp).display !== 'none';
+          lamp.dataset.state = state;
+          return restored;
+        }""")
         assert not errors, errors
         page.reload(wait_until='commit')
         page.wait_for_function('document.querySelector(".ttl-overlay") && !document.body.matches(".booting,.screen-loading,.scene-preparing")')
