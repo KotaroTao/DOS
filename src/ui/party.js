@@ -2587,15 +2587,15 @@ function statsSeg(root, d, { showStability = true } = {}) {
     if (d.dualWield > 0) fact("左手", d.offPower ? `攻撃力 ${d.offPower}（${Math.round(d.dualWield * 100)}%）` : `空き（二刀流 ${Math.round(d.dualWield * 100)}%）`);
     fact("参照", d.wScale ? Object.keys(d.wScale).map(k => ATTR_LABEL[k]).join("＋") : "STR（素手）");
     fact("状態", ail, ail === "正常" ? "" : "bad");
-    fact("会心補正", `+${Math.round((d.critPower ?? d.critBonus ?? 0) * 1000) / 10}%（通常の最終会心率は80%まで）`);
+    fact("会心補正", `+${Math.round((d.critPower ?? d.critBonus ?? 0) * 1000) / 10}%`, (d.critPower ?? d.critBonus ?? 0) >= 0.8 ? "cap" : "");
     fact("会心ダメージ", `+${Math.round((d.critDamageBonus || 0) * 1000) / 10}%`);
-    fact("魔法会心補正", `+${Math.round((d.spellCritPower ?? d.spellCritBonus ?? 0) * 1000) / 10}%（最終80%まで）`);
+    fact("魔法会心補正", `+${Math.round((d.spellCritPower ?? d.spellCritBonus ?? 0) * 1000) / 10}%`, (d.spellCritPower ?? d.spellCritBonus ?? 0) >= 0.8 ? "cap" : "");
     fact("魔法会心ダメージ", `+${Math.round((d.spellCritDamageBonus || 0) * 1000) / 10}%`);
     fact("属攻", elemStatShort(d.elemAtk));
     fact("属防", elemStatShort(d.elemDef));
     // 装備の状態異常耐性 / 武器の追加効果 (持っている時だけ)
     const AIL_SHORT = { poison: "毒", paralyze: "痺", sleep: "眠", charm: "魅", confuse: "乱", stone: "石" };
-    for (const [k, label] of Object.entries(RESIST_LABEL)) fact(`${label}耐性`, `${(d.resists && d.resists[k]) || 0}%`);
+    for (const [k, label] of Object.entries(RESIST_LABEL)) fact(`${label}耐性`, `${(d.resists && d.resists[k]) || 0}%`, (d.resists?.[k] || 0) >= 100 ? "cap" : "");
     if (d.breathRes) fact("ブレス耐性", `${Math.round(d.breathRes * 100)}%`);
     if (d.onHit) fact("追加付与力", d.onHit.map((o) => `${AIL_SHORT[o.k] || o.k}${Math.round(o.chance * 100)}%`).join(" "));
   };
