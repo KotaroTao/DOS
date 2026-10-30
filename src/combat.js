@@ -1030,9 +1030,11 @@ export class Battle {
           this.openingResults.push({ side: "party", actor: p, action: "attack", opening: "iai", hits: [hit, ...(hit.overflowHit ? [hit.overflowHit] : [])] });
         }
       }
-      if (pv(p, "openSpell")) {
+      const openSpellCost = Math.max(1, Math.ceil((p.maxmp || 0) * 0.05));
+      if (pv(p, "openSpell") && p.mp >= openSpellCost) {
         const t = this._randAlive(this.enemies);
         if (t) {
+          p.mp -= openSpellCost; // 最大MPの5%（切り上げ）。軽減・返還の対象外
           this._proc(p, "開幕呪撃");
           const mr = this._resistCut(t, Math.max(1, Math.round(variance((p.int || 1) * 12) - this._evit(t, p) * 0.2)), "magResist");
           if (mr.immune) {
