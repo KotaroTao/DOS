@@ -84,3 +84,5 @@ SMTPの設定を終え、確認メールが届くことを確認してから進�
 Supabase Authentication の URL Configuration で Site URL を `https://kotarotao.github.io/DOS/` にし、Redirect URLs にも同じURLを登録する。`Set up Cloud Save` の再実行でもこの設定を反映する（同じGitHub PagesのルートURLの誤設定も修復する）。メールテンプレートを独自に変更した場合は、リンク先に `{{ .ConfirmationURL }}` を使用し、ドメイン直下への固定リンクを置かない。
 
 `otp_expired` はリンクが無効または期限切れという認証側の応答。URL設定だけでは古いリンクは復活しないため、登録した端末でメール登録をやり直し、最新メールで確認する。ゲストの端末データを削除したりログアウトしたりせずに行う。
+
+認証メール（登録確認・メール変更・パスワード再設定・ログインリンク・招待）の件名と本文は日本語／英語を併記する。`Set up Cloud Save` 実行時にテンプレートを反映する。
