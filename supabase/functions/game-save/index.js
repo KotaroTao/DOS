@@ -5,6 +5,27 @@ import { resolveCloudBattle, resolveCloudTurn } from "../../../src/cloud-battle.
 const url = Deno.env.get("SUPABASE_URL");
 const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const origins = (Deno.env.get("GAME_ALLOWED_ORIGINS") || "").split(",").map((s) => s.trim()).filter(Boolean);
+// 進行した記録や戦闘中の参照グラフは2MiBを超える。上限はUTF-8の実バイト数。
+const MAX_REQUEST_BYTES = 16 * 1024 * 1024;
+async function readSaveRequest(req) {
+  if (!req.body) return "";
+  const reader = req.body.getReader(), decoder = new TextDecoder(), parts = [];
+  let bytes = 0;
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      bytes += value.byteLength;
+      if (bytes > MAX_REQUEST_BYTES) {
+        await reader.cancel();
+        throw Object.assign(new Error("記録が送信できる大きさを超えています"), { status: 413, bytes });
+      }
+      parts.push(decoder.decode(value, { stream: true }));
+    }
+    parts.push(decoder.decode());
+    return parts.join("");
+  } finally { reader.releaseLock(); }
+}
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 async function rpc(name, body) {
@@ -96,14 +117,13 @@ Deno.serve(async (req) => {
     if (!auth.ok) return new Response(JSON.stringify({ error: "ログインし直してください" }), { status: 401, headers });
     const user = await auth.json();
     if (!user.id) return new Response(null, { status: 401, headers });
-    const raw = await req.text();
-    if (new TextEncoder().encode(raw).length > 2 * 1024 * 1024) return new Response(JSON.stringify({ error: "記録が送信できる大きさを超えています", requestId }), { status: 413, headers });
+    const raw = await readSaveRequest(req);
     const body = JSON.parse(raw);
     const result = await command(user, body);
     return new Response(JSON.stringify(result), { headers });
   } catch (e) {
     // 認証情報・冒険の中身は記録しない。利用者の問い合わせ番号と結び付ける。
-    console.error(JSON.stringify({ requestId, status: e.status || 503, name: e.name, message: e.message }));
+    console.error(JSON.stringify({ requestId, status: e.status || 503, name: e.name, message: e.message, bytes: e.bytes }));
     return new Response(JSON.stringify({ error: e.status ? e.message : "記録の処理に失敗しました", requestId }), { status: e.status || 503, headers });
   }
 });

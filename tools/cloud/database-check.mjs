@@ -125,4 +125,40 @@ assert.deepEqual(afterTurn.rng, refDeserialize(tp.nextPacket).snapshot.rng);
 const badTurn = await request({ ...turn, commandId:crypto.randomUUID(), revision:5, action:"advance" });
 assert.equal(badTurn.status,400);
 console.log("DB・Edge Function: 一括戦闘の保存・次手番・同じIDの再送・不正操作拒否 OK");
+// 通常の日本語を含む2MiB超の記録が保存・戦闘・再送・再起動で失われない。
+const largeState = { ...state, journal: { text: "冒険の記録。".repeat(150000) } };
+const largeSave = { ...base, op: "save", revision: 5, commandId: crypto.randomUUID(), snapshot: refSerialize(largeState) };
+assert(new TextEncoder().encode(JSON.stringify(largeSave)).length > 2 * 1024 * 1024);
+const largeSaved = await request(largeSave); assert.equal(largeSaved.status, 200);
+assert.equal((await largeSaved.json()).revision, 6);
+const largeTurn = { ...largeSave, op: "turn", action: "commit", revision: 6, commandId: crypto.randomUUID() };
+const largeResult = await request(largeTurn); assert.equal(largeResult.status, 200);
+const largePayload = await largeResult.json(); assert.equal(largePayload.revision, 7);
+const retryLarge = await request(largeTurn); assert.equal(retryLarge.status, 200);
+assert.deepEqual(await retryLarge.json(), largePayload);
+const largeClaim = await (await request({ ...base, op: "claim" })).json();
+assert.equal(largeClaim.revision, 7);
+const loaded = refDeserialize(largeClaim.snapshot);
+assert.equal(loaded.journal.text, largeState.journal.text);
+assert.deepEqual(loaded.rng, refDeserialize(largePayload.nextPacket).snapshot.rng);
+// 上限は文字数でなくUTF-8バイト数。超過時はDBを更新しない。
+const tooLarge = { ...largeSave, revision: 7, commandId: crypto.randomUUID(), snapshot: refSerialize({ ...largeState, journal: "魂".repeat(6 * 1024 * 1024) }) };
+const rejected = await request(tooLarge); assert.equal(rejected.status, 413);
+assert((await rejected.json()).requestId);
+assert.equal((await (await request({ ...base, op: "claim" })).json()).revision, 7);
+// UTF-8の文字の途中で分割されるストリームでも記録を壊さない。
+const streamBytes = new TextEncoder().encode(JSON.stringify({ ...largeSave, revision: 7, commandId: crypto.randomUUID() }));
+let offset = 0;
+const streamed = await handler(new Request("https://db.invalid/functions/v1/game-save", {
+  method: "POST", headers: { Authorization: "Bearer valid-token", Origin: "https://game.invalid" }, duplex: "half",
+  body: new ReadableStream({ pull(controller) {
+    if (offset >= streamBytes.length) { controller.close(); return; }
+    controller.enqueue(streamBytes.slice(offset, offset + 65536)); offset += 65536;
+  } }),
+}));
+assert.equal(streamed.status, 200);
+const streamClaim = await (await request({ ...base, op: "claim" })).json();
+assert.equal(streamClaim.revision, 8);
+assert.equal(refDeserialize(streamClaim.snapshot).journal.text, largeState.journal.text);
+console.log("大きな記録: 2MiB超の保存・戦闘・同一ID再送・再開、16MiB超の拒否と記録保持 OK");
 await db.close();
