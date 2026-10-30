@@ -29,16 +29,19 @@ async function readSaveRequest(req) {
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 async function rpc(name, body) {
-  const r = await fetch(`${url}/rest/v1/rpc/${name}`, {
+  const textRPC = name === "cloud_claim_slot" || name === "cloud_commit_slot";
+  const endpoint = name === "cloud_claim_slot" ? "cloud_claim_text" : name === "cloud_commit_slot" ? "cloud_commit_text" : name;
+  if (name === "cloud_commit_slot") body = { p_payload: JSON.stringify(body) };
+  const r = await fetch(`${url}/rest/v1/rpc/${endpoint}`, {
     method: "POST", headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
   const value = await r.json();
   if (!r.ok) {
     const code = String(value.message || "").match(/cloud_[a-z_]+/)?.[0];
-    throw Object.assign(new Error(code || "保存先に接続できません"), { status: code ? 409 : 503 });
+    throw Object.assign(new Error(code || "保存先に接続できません"), { status: code ? 409 : 503, databaseCode: value.code });
   }
-  return value;
+  return textRPC ? JSON.parse(value) : value;
 }
 
 async function command(user, body) {
@@ -123,7 +126,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify(result), { headers });
   } catch (e) {
     // 認証情報・冒険の中身は記録しない。利用者の問い合わせ番号と結び付ける。
-    console.error(JSON.stringify({ requestId, status: e.status || 503, name: e.name, message: e.message, bytes: e.bytes }));
+    console.error(JSON.stringify({ requestId, status: e.status || 503, name: e.name, message: e.message, bytes: e.bytes, databaseCode: e.databaseCode }));
     return new Response(JSON.stringify({ error: e.status ? e.message : "記録の処理に失敗しました", requestId }), { status: e.status || 503, headers });
   }
 });

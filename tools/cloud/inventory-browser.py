@@ -1,5 +1,6 @@
 """大きな共通の袋を持つ戦闘の対象選択・行動・再起動で個数と操作を保つ。検証用APIが必要。"""
 """実Edge Function/SQLに250msの通信遅延を加え、従来方式と一括戦闘を比較する。"""
+import os
 import base64
 import json
 import re
@@ -24,7 +25,7 @@ with sync_playwright() as p:
             u=urlparse(route.request.url)
             body=route.request.post_data_json if route.request.method=='POST' else None
             if measuring['on'] and body:
-                time.sleep(.25)
+                time.sleep(float(os.environ.get('DOS_TURN_DELAY', '.25')) if body.get('op')=='turn' else .25)
                 commands.append(body)
                 if body['op']=='turn' or body['op']=='battle' and body['action']!='advance':actions.append(time.monotonic())
             response=route.fetch(url='http://127.0.0.1:8002'+u.path+('?' + u.query if u.query else ''))
@@ -41,12 +42,12 @@ with sync_playwright() as p:
           const g=__game.G;
           g.party=g.party.slice(0,4);g.reserve=[];
           g.inventory=Array.from({length:6561},()=>({...ITEMS.u_styptic_salve}));
-          for(const p of g.party){p.items=g.inventory;p.hp=p.maxhp=100000;p.agi=1000;}
+          for(const p of g.party){p.items=g.inventory;p.hp=50000;p.maxhp=100000;p.mp=100;p.agi=1000;}
           g.run={gold:0,soulPts:0,items:[{owner:g.party[0],item:g.inventory[0]}],souls:[],ev:{}};
           const foe=__game.spawnCardEnemies('bs_bonepile',1,1)[0];
           Object.assign(foe,{hp:100000,maxhp:100000,atk:1,agi:1,ability:null});
           g.state='combat';g.battle=new Battle(g.party,[foe],()=>{});
-          g.battle.chooseAction('attack');
+          g.battle.chooseAction('spell','DIOS');
           return JSON.parse(__game.inf.saveJSON());
         }""")
         page.evaluate("""async snap=>{
@@ -61,8 +62,10 @@ with sync_playwright() as p:
         page.wait_for_timeout(6000)
         print('loaded',page.evaluate("({state:__game.G.state,phase:__game.G.battle?.phase,animating:__game.G.animating,inventory:__game.G.inventory.length,booting:document.body.className,gate:document.querySelector('.cloud-gate')?.hidden,buttons:document.querySelectorAll('#combat-menu button').length})"),errors,flush=True)
 
+        measuring['on']=True
         page.evaluate("()=>{const b=__game.G.battle;if(b.phase==='target')b.chooseTarget(b.targetOptions()[0]);__game.world.resumeFromState();}")
-        page.wait_for_timeout(10000)
+        page.wait_for_function("__game.G.battle.phase==='input' && !__game.G.animating", timeout=55000)
+        assert len(actions)==1, len(actions)
         print('acted',page.evaluate("({state:__game.G.state,phase:__game.G.battle?.phase,animating:__game.G.animating,inventory:__game.G.inventory.length,booting:document.body.className,gate:document.querySelector('.cloud-gate')?.hidden,buttons:document.querySelectorAll('#combat-menu button').length})"),errors,flush=True)
 
         page.evaluate("async()=>{await __game.autosave(true);await (await import('/src/cloud-save.js')).cloudFlush()}")

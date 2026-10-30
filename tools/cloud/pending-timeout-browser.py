@@ -6,7 +6,7 @@ with sync_playwright() as p:
     page = browser.new_page()
     page.route("**/cloud-config.js", lambda r: r.fulfill(content_type="text/javascript", body='export const CLOUD_CONFIG={enabled:true,url:"https://cloud.test",anonKey:"test",protocol:1}'))
     page.route("**/harness", lambda r: r.fulfill(content_type="text/html", body='<button>ゲーム画面</button>'))
-    page.add_init_script("const original=setTimeout;window.setTimeout=(fn,ms,...args)=>original(fn,ms===15000?100:ms,...args);")
+    page.add_init_script("const original=setTimeout;window.setTimeout=(fn,ms,...args)=>original(fn,[15000,60000].includes(ms)?100:ms,...args);")
     page.goto("http://127.0.0.1:8001/harness")
     page.evaluate("""async () => {
       localStorage.setItem('dos-cloud-auth',JSON.stringify({access_token:'test',expires_at:Date.now()/1000+3600,user:{id:'test'}}));
