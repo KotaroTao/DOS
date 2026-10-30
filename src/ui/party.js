@@ -879,8 +879,8 @@ function openAutoEquipResult(plan, before, { apply, groups }) {
     const pct = (v) => Math.round((v || 0) * 100);
     const resRows = [["ブレス耐性", pct(r.b.breathRes), pct(r.a.breathRes), "%"]];
     for (const [key, stat] of [["crit", "critBonus"], ["critDamage", "critDamageBonus"], ["spellCrit", "spellCritBonus"], ["spellCritDamage", "spellCritDamageBonus"]]) resRows.push([DLABEL[key], Math.round((r.b[stat] || 0) * 1000) / 10, Math.round((r.a[stat] || 0) * 1000) / 10, "%"]);
-    for (const key of ["physResist", "magResist"]) resRows.push([DELTA_LABEL[key], r.b[key] || 0, r.a[key] || 0, ""]);
-    for (const k of Object.keys(AIL_LABEL)) resRows.push([`${AIL_LABEL[k]}抵抗値`, pct((r.b.ailRes || {})[k]), pct((r.a.ailRes || {})[k]), ""]);
+    for (const key of ["physResist", "magResist"]) resRows.push([DELTA_LABEL[key], r.b[key] || 0, r.a[key] || 0, "%"]);
+    for (const k of Object.keys(AIL_LABEL)) resRows.push([`${AIL_LABEL[k]}耐性`, pct((r.b.ailRes || {})[k]), pct((r.a.ailRes || {})[k]), "%"]);
     for (const [lab, v0, v1, unit] of resRows) {
       if (v0 === v1) continue;
       const chip = el("span", "pt-ae-s " + (v1 > v0 ? "up" : "dn"));

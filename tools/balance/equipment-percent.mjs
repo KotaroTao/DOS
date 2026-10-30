@@ -8,7 +8,7 @@ import { equipmentCombatState, equipmentIncoming } from '../../src/equipmentscor
 import { applyAffixes, gearPerks } from '../../src/infaffix.js';
 import { makeDoll } from '../../src/souls.js';
 import { previewStats, statsDelta, equipmentTraitTexts, planBestEquip } from '../../src/autoequip.js';
-import { gearScore, specialLines, equipPreviewDelta, ailDetailLines } from '../../src/ui/itemview.js';
+import { gearScore, specialLines, equipPreviewDelta, ailDetailLines, resistDeltaParts, equipEffectDeltaParts } from '../../src/ui/itemview.js';
 import { Battle, SPELLS, setElemKnown } from '../../src/combat.js';
 import { equipPrice } from '../../src/pricing.js';
 import { W } from '../../src/catalog/defs.js';
@@ -30,6 +30,7 @@ for(const it of equipment){
  }
  for(const o of Array.isArray(it.onHit)?it.onHit:it.onHit?[it.onHit]:[]) near(o.chance*20,Math.round(o.chance*20),it.id+' 付与力5%刻み');
  assert(!/[◯◎]/.test(it.desc || ''),it.id+' 旧段階表記なし');
+ assert(!specialLines(it).join('／').includes('抵抗値'),it.id+' 装備の説明は現在の耐性表記');
 }
 assert.equal(attack,469);assert.equal(defense,274);
 for(const [id,k] of [['a_sr1_wardenmail','dark'],['s_tidewall','fire'],['a_sr8_wardenplate','water'],['lr_l10_rodplate','wind'],['s_r8_dragonemperorshield','fire'],['g_dragonscale_grips','fire']])assert(elementDefenseReduction(k,ITEMS[id].eDef)>0,id+' 由来に合う守り');
@@ -97,3 +98,8 @@ const score=(p,from,to)=>gearScore(p,statsDelta(previewStats(p,from),previewStat
 assert(ailDetailLines({onHit:{k:'poison',chance:3,pct:.05}}).some(t=>t.includes('300%')&&t.includes('一回')),'付与力として表示');
 assert(specialLines(ITEMS.a_sr1_wardenmail).some(t=>t.includes('闇ダメージ')));
 console.log(`OK 全${equipment.length}装備・属攻${attack}/属防${defense}点の来歴別調整・武魂に合わせた数値帯・既存品/品質/武魂・最適装備の属性選択と実上限・比較一致`);
+
+assert.equal(resistDeltaParts([], [{resists:{charm:12,physResist:6}}]).map(x=>x.text).join('／'),'魅了耐性+12%／物理耐性+6%');
+assert(equipEffectDeltaParts({ailRes:{from:{charm:.12},to:{charm:.25}}}).some(x=>x.text==='魅了耐性+13%'));
+assert(ailDetailLines({resists:{physResist:12,charm:12}}).join('／').includes('最大80%'));
+assert(ailDetailLines({resists:{physResist:12,charm:12}}).join('／').includes('最大95%'));

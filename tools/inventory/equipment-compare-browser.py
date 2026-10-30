@@ -23,7 +23,7 @@ with sync_playwright() as p:
       for(const d of G.party){for(const k of SLOTS)d.equip[k]=null;recalc(d);}
       const d=G.party[0],old=game.cloneItem('dagger',50),cand=game.cloneItem('dagger',50);
       Object.assign(old,{crit:0,critDamage:0,spellCrit:0,spellCritDamage:0,afx:[{k:'I01',v:.08}]});applyAffixes(old);
-      Object.assign(cand,{magic:true,crit:.047,critDamage:.23,spellCrit:.019,spellCritDamage:.17,resists:{physResist:6,magResist:7},aRes:{poison:.10},bRes:.14,eff:{guard:.10,spellCostMul:.8},onHit:{k:'poison',chance:.24,pct:.08},afx:[{k:'I01',v:.30}]});applyAffixes(cand);
+      Object.assign(cand,{magic:true,crit:.047,critDamage:.23,spellCrit:.019,spellCritDamage:.17,resists:{physResist:6,magResist:7},aRes:{poison:.10},bRes:.14,eff:{guard:.10,spellCostMul:.8},onHit:{k:'poison',chance:.24,pct:.08},afx:[{k:'I01',v:.15}]});applyAffixes(cand);
       d.equip.weapon=old;recalc(d);G.inventory.push(cand);
       const before=previewStats(d,d.equip),after=previewStats(d,{...d.equip,weapon:cand}),delta=statsDelta(before,after);
       const expected=['会心率+4.7%','会心ダメージ+23%','魔法会心率+1.9%','魔法会心ダメージ+17%'];
@@ -32,11 +32,11 @@ with sync_playwright() as p:
         for(const text of expected)check(clean(node.textContent).includes(text),label+'：'+text);
       }
       const full=clean(deltaEl(equipPreviewDelta(d,cand)).textContent);
-      for(const text of ['物理抵抗値+6','魔法抵抗値+7','ブレス耐性+14%','毒抵抗値+10','24%','被ダメ−10%','消費MP−20%','窮地：','通常攻撃物理→魔法'])check(full.includes(text),'比較の効果：'+text);
+      for(const text of ['物理耐性+6%','魔法耐性+7%','ブレス耐性+14%','毒耐性+10%','24%','被ダメ−10%','消費MP−20%','窮地：','通常攻撃物理→魔法'])check(full.includes(text),'比較の効果：'+text);
       check(!full.includes('変化なし'),'効果が変わる場合に変化なしを出さない');
       const cost= equipEffectDeltaEl({eff:{from:null,to:{spellCostMul:.8}}});
       check(cost.querySelector('.up')?.textContent.includes('20%'),'消費MPの軽減を改善として表示');
-      check(specialParts(cand).some(x=>x.includes('30%'))&&specialParts(old).some(x=>x.includes('8%')),'同じ追加特性の効果量を区別');
+      check(specialParts(cand).some(x=>x.includes('7.5%'))&&specialParts(old).some(x=>x.includes('4%')),'同じ追加特性の効果量を区別');
       const countLoss=clean(equipEffectDeltaEl({traits:{from:['窮地：与ダメ+30%','窮地：与ダメ+30%'],to:['窮地：与ダメ+30%']}}).textContent);
       check(countLoss==='失う窮地：与ダメ+30%','同じ特性を別部位にも持つ場合は減った個数だけ比較');
       const same=deltaEl(statsDelta(before,before));check(same.textContent==='変化なし','同じ能力と効果は差分なし');
@@ -49,7 +49,7 @@ with sync_playwright() as p:
       for(const text of expected)check(clean(document.querySelector('.pt-cand .ui-delta').textContent).includes(text),'装備候補一覧：'+text);
       sheet.closeAll();check(UI.autoEquip(d).ok,'最適装備の確認を開く');
       const summary=clean(document.querySelector('.pt-ae-st').textContent);
-      for(const text of [`会心率${Math.round(before.critBonus*1000)/10}→${Math.round(after.critBonus*1000)/10}%`,'会心ダメージ0→23%','魔法会心率0→1.9%','魔法会心ダメージ0→17%','物理抵抗値0→6','魔法抵抗値0→7','消費MP−20%'])check(summary.includes(text),'最適装備の前後：'+text);
+      for(const text of [`会心率${Math.round(before.critBonus*1000)/10}→${Math.round(after.critBonus*1000)/10}%`,'会心ダメージ0→23%','魔法会心率0→1.9%','魔法会心ダメージ0→17%','物理耐性0→6%','魔法耐性0→7%','消費MP−20%'])check(summary.includes(text),'最適装備の前後：'+text);
       check(equipSignature(G.party)===sig,'比較・確認で装備と袋を変更しない');
       sheet.closeAll();await new Promise(r=>setTimeout(r,650));
       const {openReforge}=await import('/src/ui/reforge.js');
