@@ -97,3 +97,36 @@ const score=(p,from,to)=>gearScore(p,statsDelta(previewStats(p,from),previewStat
 assert(ailDetailLines({onHit:{k:'poison',chance:3,pct:.05}}).some(t=>t.includes('300%')&&t.includes('一回')),'付与力として表示');
 assert(specialLines(ITEMS.a_sr1_wardenmail).some(t=>t.includes('闇ダメージ')));
 console.log(`OK 全${equipment.length}装備・属攻${attack}/属防${defense}点の来歴別調整・武魂に合わせた数値帯・既存品/品質/武魂・最適装備の属性選択と実上限・比較一致`);
+
+// 後衛の射程と術者の能力優先。表示用の差分は採点で書き換えない。
+{
+ const {game}=await import('../../src/ui/ctx.js');
+ const saved=game.G;
+ try {
+  const p=make();p.jobKey='warrior';
+  const bow={slot:'weapon',cat:'bw',scale:{atk:1}},dagger={slot:'weapon',cat:'dg',scale:{atk:1.01}};
+  const front=[{alive:true},{alive:true},{alive:true}];game.G={party:[...front,p]};
+  const delta=statsDelta(previewStats(p,{weapon:bow}),previewStats(p,{weapon:dagger}));
+  assert.equal(delta.power,1);
+  assert(gearScore(p,delta)<0,'後衛では攻撃力+1の短剣に替えない');
+  assert.equal(delta.power,1,'表示用の攻撃力差を保つ');
+  assert(score(p,{weapon:dagger},{weapon:bow})>0,'後衛は弓への交換を評価');
+  const spear={...bow,cat:'sp'};
+  near(score(p,{weapon:bow},{weapon:spear}),0,'槍も後衛の威力を保つ');
+  const boots={slot:'feet',afxMisc:{stepIn:true}};
+  assert(score(p,{weapon:bow,feet:boots},{weapon:dagger,feet:boots})>0,'踏み込みで半減を解消');
+  assert(score(p,{weapon:dagger},{weapon:dagger,feet:boots})>0,'踏み込みの取得を評価');
+  game.G={party:[p,...front]};assert(gearScore(p,delta)>0,'前衛は短剣の攻撃力増を評価');
+  game.G={party:front};assert(gearScore(p,delta)>0,'控えには後衛を仮定しない');
+  game.G={party:[{alive:false},{alive:false},{alive:false},p]};assert(gearScore(p,delta)>0,'前衛全滅時は繰り上がる');
+  p.jobKey='mage';game.G={party:[...front,p]};
+  const staff={slot:'weapon',cat:'st',scale:{atk:.5},int:20};
+  assert(score(p,{weapon:bow},{weapon:staff})>0,'術者はINT増を優先して近距離の杖を選べる');
+  assert(score(p,{weapon:staff},{weapon:dagger})<0,'術者にINTを失う短剣を勧めない');
+  p.jobKey='priest';const holy={...staff,int:0,pie:20};
+  assert(score(p,{weapon:bow},{weapon:holy})>0,'祈りの職はPIE増を優先');
+  p.jobKey='warrior';p.equip={weapon:bow};p.items=[dagger];recalc(p);
+  assert.equal(planBestEquip([p],{canEquip:()=>true,score:gearScore}).moves.length,0,'最適装備も後衛の短剣を避ける');
+ } finally {game.G=saved;}
+ console.log('OK 隊列・弓/槍/短剣・踏み込み・前衛繰り上がり・控え・術者のINT優先');
+}

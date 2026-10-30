@@ -856,12 +856,22 @@ export function effScore(doll, delta, W = gearWeights(doll)) {
 export function gearScore(doll, delta) {
   if (!delta) return 0;
   const W = gearWeights(doll);
+  // 表示用の攻撃力差は保ち、採点だけ後衛の実効威力で比較する。
+  // 控えには隊列を仮定しない。前衛が全滅している場合も実戦同様に繰り上げる。
+  const party = game.G?.party || [];
+  const back = party.indexOf(doll) >= 3 && party.slice(0, 3).some(d => d?.alive);
+  if (back && delta.combat?.from && delta.combat?.to) {
+    const adjust = s => ({ ...s, power: s.power * (s.backRowMul ?? 1), primaryPower: s.primaryPower * (s.backRowMul ?? 1) });
+    const from = adjust(delta.combat.from), to = adjust(delta.combat.to);
+    delta = { ...delta, combat: { from, to }, power: to.power - from.power,
+      abs: { ...delta.abs, power: to.power } };
+  }
   const fx = effScore(doll, delta, W);
   const px = equipmentPercentScore(delta.combat?.from,delta.combat?.to,{weaponShare:weaponShare(W),hpWeight:W.hp || .25,magicWeight:Math.max(W.int || 0,W.pie || 0)});
   // 攻撃に効く戦闘効果は攻撃力の増減に足して、武器の付け替えでも同じ物差しで比べる
   const power = delta.power != null ? delta.power + fx.offense + px.offense : null;
   let s = 0;
-  for (const k in W) s += (k === "atk" && power != null ? power : (delta[k] || 0)) * W[k];
+  for (const k in W) s += (k === "atk" && power != null ? power * Math.max(0.15, weaponShare(W)) : (delta[k] || 0)) * W[k];
   if (power == null) s += (fx.offense+px.offense) * (W.atk || 1);
   s += fx.points + px.points;
   if (delta.weapon) {

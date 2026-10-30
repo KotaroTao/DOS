@@ -1,3 +1,4 @@
+import { weaponRange } from "./items.js";
 // 最適装備用の戦闘効果の見積もり。特定の敵を想定せず、同じ条件で付け替え前後を比べる。
 import { ELEMENT_KEYS, elementValues, elementDefenseReduction, hitChance, permanentMultiplier, procChance, luckCritBonus } from "./combatrules.js";
 import { SPELLS } from "./skilldefs.js";
@@ -42,6 +43,8 @@ export function equipmentCombatState(m, source=m) {
   }
   const physicalCrit=cap(.06+luckCritBonus(m.luk)+(m.critBonus || 0)+effect(m,'crit','phys'),.8);
   return {
+    // 隊列は採点時に現在の編成から決める。踏み込みは付け替え前後それぞれの装備を見る。
+    backRowMul: weaponRange(m.equip?.weapon) !== "near" || m.gearMisc?.stepIn ? 1 : Math.min(1, .5 + (m.gearMisc?.bk_stepIn || 0)),
     primaryPower:m.primaryPower ?? m.power ?? m.atk ?? 0,
     hp:m.maxhp || 0, spellPower:Math.max(m.int || 0,m.pie || 0), power:m.fight ?? m.power ?? m.atk ?? 0,
     attackElement:m.attackElement || 'none',offAttackElement:m.offAttackElement || 'none',
