@@ -843,8 +843,10 @@ function tutorialControls() {
     }
     if (h.opts.banner === "魂融合") return choose(first(card, ".sp-fuse-material"), first(card, ".sp-fuse-all"));
     if (h.opts.banner === "宿し技をえらぶ") {
-      if (st.ev.subPick) return forward();
-      return choose(first(card, ".ui-row"));
+      const rows = first(card, ".ui-row");
+      const close = forward();
+      return choose(st.ev.subPick ? [close.target, ...rows] : [...rows, close.target],
+        [h.body, ...rows, ...close.allowed, ...first(card, ".ui-sheet-foot .ui-btn:not(:disabled)")]);
     }
     if (d.key === "soulChange" && card.classList.contains("sp-pick-sheet")) {
       // 持ち帰った魂を選び、能力を見比べて宿せる。一覧を閉じるだけでも完了できる。
@@ -853,6 +855,13 @@ function tutorialControls() {
       const fresh = rows.filter((node) => jobs.has(node.closest(".sp-srow").dataset.job));
       const close = forward();
       return choose([...fresh, ...rows, close.target], [h.body, ...rows, ...close.allowed]);
+    }
+    if (d.key === "sub1" && card.classList.contains("sp-pick-sheet")) {
+      // 魂は一つに決め打ちせず、一覧を動かして好きな候補を選べる。
+      const rows = first(card, ".sp-srow:not(.cur) .sp-srow-main:not(:disabled)");
+      const spare = rows.filter(node => !node.closest(".sp-srow").classList.contains("taken"));
+      const close = forward();
+      return choose([...spare, ...rows, close.target], [h.body, ...rows, ...close.allowed, ...first(card, ".ui-sheet-foot .ui-btn:not(:disabled)")]);
     }
     if (card.querySelector(".sp-srow")) {
       if (d.key === "fusion") return choose(first(card, '.sp-srow[data-job="fighter"] .sp-pick-fuse'));
