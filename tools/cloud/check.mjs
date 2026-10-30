@@ -313,3 +313,40 @@ for (const status of [400, 413, 503]) {
   disk.setItem = setItem;
 }
 console.log('通信復旧: 自動再試行・空のHTTPエラー・恒久エラー・送信待ち退避・確定済み再開 OK');
+
+// 共通の袋は戦闘応答・次手番・通常保存・再開でも一つのまま。装備と編成も共有する。
+for (const legacy of [false, true]) {
+  const game = battleState();
+  game.party[0].hp = game.party[0].maxhp = 1000000;
+  game.battle.enemies[0].hp = game.battle.enemies[0].maxhp = 1000000;
+  const salve = { id:'u_styptic_salve', slot:'use', name:'検証の道具' };
+  const gear = { id:'w_test', slot:'weapon' };
+  game.inventory = [salve, { ...salve }, { ...salve }];
+  game.party[0].items = game.inventory;
+  game.party[0].equip = {weapon: gear};
+  game.formations = [{ dolls:[{ equip:{weapon:gear} }] }];
+  game.run.items = [{item:salve,owner:game.party[0]}];
+  let raw = JSON.stringify(refSerialize(game));
+  for (let n=0;n<24;n++) {
+    if(game.battle.phase==='input') game.battle.chooseAction('defend');
+    const server=clone(game);
+    const result=resolveCloudTurn(server,server.battle.phase==='enemy'?'enemy':'commit');
+    for (const key of ['packet','nextPacket']) {
+      const packet=refDeserialize(result[key]);
+      if(legacy) delete packet.snapshot.inventory;
+      const wire=refSerialize(packet);
+      applySavePatch(game,refDeserialize(wire));
+      raw=acknowledgedSave(raw,wire);
+      const {shareInventory}=await import('../../src/items.js');
+      shareInventory(game);shareInventory(game);
+      assert.equal(game.inventory.length,3);
+      assert.equal(game.party[0].items,game.inventory);
+      assert.equal(game.run.items[0].item,game.inventory[0]);
+      assert.equal(game.formations[0].dolls[0].equip.weapon,game.party[0].equip.weapon);
+      const saved=refDeserialize(JSON.parse(raw));
+      assert.equal(saved.party[0].items,saved.inventory);
+      assert.equal(saved.inventory.length,3);
+    }
+  }
+}
+console.log('共通の袋: 24行動×新旧応答で個数一定・所持品/戦利品/装備/編成の参照維持 OK');

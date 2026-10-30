@@ -52,6 +52,13 @@ export function applySavePatch(game, packet) {
     .filter(d => Number.isFinite(d.stability) && Number.isFinite(d.stabilityAt))
     .map(d => [d, {stability:d.stability, stabilityAt:d.stabilityAt}]));
   const snap = packet.snapshot;
+  // 旧サーバーは共通の袋をparty/reserve経由でだけ返す。その袋も同時に反映する。
+  // 元のinventoryと複製された人業の袋をshareInventoryで合成すると品が増殖する。
+  if (!Array.isArray(snap.inventory)) {
+    const dolls = [...(snap.party || []), ...(snap.reserve || [])];
+    const bag = dolls[0]?.items;
+    if (Array.isArray(bag) && dolls.every(d => d.items === bag)) snap.inventory = bag;
+  }
   const link = (xs, ys) => {
     for (const x of xs || []) {
       const y = (ys || []).find((y) => y.uid === x.uid && y.side === x.side);

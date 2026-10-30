@@ -430,6 +430,8 @@ The goal (per design direction): **every enemy is individually distinctive**, bo
 
 ### State & persistence
 
+**クラウド戦闘と共通の袋 (2026-10-30)**: 戦闘の差分は`inventory`と`formations`も同じ参照グラフに含め、`party/reserve.items`・装備・戦利品との共有参照を保つ。これを省くと`shareInventory`が複製された袋を別物として合成し、各手で品が増殖する。旧サーバーの応答は全人業が共有する袋を`inventory`として反映する。既に増えた品は自動削除しない。確認: `node tools/cloud/check.mjs`（24行動×新旧応答）、`python3 tools/cloud/inventory-browser.py`。心得`t_cloud_record`。
+
 **クラウド要求の容量 (2026-10-30)**: 保存・戦闘の要求はUTF-8で16MiBまで。2MiB制限では成長した記録が413になり再送でも復旧しなかったため拡張。本文をストリームで数え、超過時は解析・DB更新前に拒否する。既存の送信待ち要求も内容とIDを変えず再送できる。共有参照・デシリアライズの10万ノード制限は維持。心得`t_cloud_record`。
 
 **通信失敗と再起動の復旧 (2026-10-30)**: 一時的な回線エラー・タイムアウト・408/429/500/502/503/504は同じ要求ID・内容で最大3回自動再試行。失敗画面はHTTP状態と問い合わせ番号を表示。未送信要求が繰り返し失敗する場合は「保存済みの記録から再開」で元要求を端末の`:recovery`へ退避し、localStorageの容量不足時はIndexedDB `dos-cloud-recovery`へ保管完了してから再起動し、クラウドの確定済み記録を取得する。退避失敗時は元要求を消さない。自動で送信待ちを捨てたり端末の古いセーブへ戻したりしない。心得`t_cloud_record`。

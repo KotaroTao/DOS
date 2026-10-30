@@ -6,7 +6,7 @@ import { MONSTERS } from "./sprites.js";
 import { DUNGEON_MONSTERS } from "./dungeons/index.js";
 import { NAMED_IDS } from "./dungeons/named.js";
 import { STORY_CELLS, CHAPTERS } from "./story.js";
-import { bagCount, isFormationItem, ITEMS, SLOTS, MAX_ITEMS, canEquip, equipFailMsg, registerEquipLevel, registerAffixes } from "./items.js";
+import { bagCount, isFormationItem, shareInventory, ITEMS, SLOTS, MAX_ITEMS, canEquip, equipFailMsg, registerEquipLevel, registerAffixes } from "./items.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { equipLevelFor } from "./equiplevel.js";
 import { applyAffixes, gearPerks } from "./infaffix.js";
@@ -22,6 +22,7 @@ registerEquipLevel(equipLevelFor);
 registerAffixes(applyAffixes, gearPerks);
 
 export function resolveCloudBattle(s, operation) {
+  shareInventory(s);
   const b = s.battle;
   if (s.state !== "combat" || !b) throw new Error("戦闘の記録がありません");
   Object.setPrototypeOf(b, Battle.prototype);
@@ -118,7 +119,8 @@ export function resolveCloudBattle(s, operation) {
     result._persistedConsequences = true;
   }
   const patch = {};
-  for (const k of ["battle", "party", "reserve", "souls", "rng", "codex", "gold", "soulPts", "run"]) patch[k] = s[k];
+  for (const k of ["battle", "party", "reserve", "souls", "rng", "codex", "gold", "soulPts", "run", "inventory"]) patch[k] = s[k];
+  if (Array.isArray(s.formations)) patch.formations = s.formations;
   return { snapshot: patch, result, logs, modFeed };
 }
 
