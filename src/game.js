@@ -11346,12 +11346,23 @@ function spdMul() {
   if (cloudBackgroundBattle()) return G.autoCombat || G.fastAnim ? 0.1 : 0.2;
   return G.autoCombat ? 0.45 : G.fastAnim ? 1 : 2;
 }
+// 自動行動の結果を示す間隔。通信は待たず、一手を見分ける間だけ置く。
+const battleActionTimes = new WeakMap();
+function battleTempoWait(battle) {
+  if (!cloudBackgroundBattle() || !battleActionTimes.has(battle)) return 0;
+  return Math.max(0, (G.fastAnim ? 400 : 500) - (performance.now() - battleActionTimes.get(battle)));
+}
 function serverBattle() { return cloudEnabled() && !testPlayActive && !cloudBackgroundBattle(); }
 async function resolveLocalBattle(action, battle = G.battle) {
   try {
     if (cloudBackgroundBattle()) _cloudResolving = true;
     if (cloudEnabled() && !testPlayActive) await cloudCheckpoint();
     if (G.battle !== battle || G.state !== "combat") return;
+    // 端末記録の準備時間は間隔に含める。結果の計算前に待ち、HPやログも先走らせない。
+    const wait = G.autoCombat || action !== "commit" ? battleTempoWait(battle) : 0;
+    if (wait > 0) await new Promise(resolve => setTimeout(resolve, wait));
+    if (G.battle !== battle || G.state !== "combat") return;
+    if (cloudBackgroundBattle()) battleActionTimes.set(battle, performance.now());
     const res = action === "commit" ? battle.commit() : action === "enemy" ? battle.enemyAct() : battle.stunnedAct();
     res._modFeed = takeModFeed(); battle._acted = true;
     animateResult(res, postResolve);
@@ -11529,7 +11540,7 @@ function animateResult(res, done) {
     const started = performance.now();
     const tick = () => {
       if (G.fx !== fx || G.battle !== battle || G.state !== "combat") return;
-      if (performance.now() - started >= 150) {
+      if (performance.now() - started >= (G.fastAnim ? 250 : 350)) {
         G.fx = null; G.partyFx.clear(); G.partyFxV.clear(); renderParty(); return;
       }
       renderCombatCanvas(); requestAnimationFrame(tick);
