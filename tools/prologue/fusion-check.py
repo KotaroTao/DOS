@@ -1,5 +1,5 @@
 """魂融合の手ほどきが戦士の魂を案内・完了することを実画面で確認。localhost:8000。"""
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, TimeoutError
 
 with sync_playwright() as p:
     browser = p.chromium.launch(executable_path='/usr/bin/chromium', args=['--no-sandbox'])
@@ -63,7 +63,12 @@ with sync_playwright() as p:
             page.wait_for_timeout(200)
             if page.evaluate('__game.G.tut.done.fusion'): break
             glow = page.locator('.tut-glow:visible')
-            if glow.count(): glow.first.tap()
+            if glow.count():
+                try: glow.first.tap(timeout=1500)
+                except TimeoutError:
+                    # 完了直後の描き直しで消えた「次へ」だけは再取得する。
+                    if page.evaluate('__game.G.tut.done.fusion'): break
+                    raise
         assert page.evaluate('__game.G.tut.done.fusion'), case
         assert page.evaluate('__game.G.souls.filter(s=>s.clsKey!=="fighter").map(s=>({uid:s.uid,count:s.count}))') == before
         assert not errors, errors

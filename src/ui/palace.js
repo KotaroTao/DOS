@@ -202,6 +202,7 @@ function unknownCard() {
 function codexCard(sprite, name, { color = null, onTap = null, sub = null, price = null, kills = null, fresh = false } = {}) {
   const c = el("button", "pl-card" + (fresh ? " fresh" : ""));
   c.type = "button";
+  if (kills > 0) c.dataset.tutorialMon = "1";
   if (color) c.style.setProperty("--edge", color);
   const a = el("span", "pl-card-art");
   try { a.appendChild(spriteCanvas(sprite, 4)); } catch (e) { /* 演出のみ */ }
@@ -296,6 +297,13 @@ export function dungeonMonSheet(dungeonIdx) {
 const dunOpen = (i) => { try { return allData() || (game.worldOpenIdx ? game.worldOpenIdx(i) : i < Math.max(1, G().unlockedDungeons || 1)); } catch (e) { return i === 0; } };
 function renderCodexMon(box) {
   const g = G();
+  if (g.tut?.cur === "insight") {
+    box.appendChild(el("div", "pl-codex-cap", "倒した魔物 — 札を選んで情報を読もう"));
+    const area = fillArea(box);
+    scrollGrid(area, Object.keys(g.codex.mon).filter(k => MONSTERS[k] && monKills(k) > 0), key => monCard(key),
+      { cols: 3, cellH: MON_CARD_H, key: "mon:tutorial" });
+    return;
+  }
   const opened = DUNGEONS.map((d, i) => i).filter((i) => DUNGEONS[i].tutorial || dunOpen(i));
   if (!opened.length) opened.push(0);
   let idx = Number(remember("codex", "dungeon"));
@@ -622,6 +630,7 @@ export function codexMonSheet(key, o = {}) {
   const m = MONSTERS[key] || (foe && foe.mon);
   if (!m) return null;
   // 記録は読むだけ (開いただけで討伐の記録を作らない — まだ討っていない主も開ける)
+  if (!o.enemy) UI.tutorialEvent?.("codexMonViewed");
   const rec = G() && G().codex && G().codex.mon ? G().codex.mon[key] : null;
   const e = rec && typeof rec === "object" ? rec : { kills: 0, dungeons: {} };
   const rc = m.rank ? RANK_COLOR[m.rank] : null;

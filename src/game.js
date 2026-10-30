@@ -15420,7 +15420,7 @@ function featureMet(key, w = worldState()) {
 function featureUnlocked(key) {
   if (FEATURES[key]?.retired) return false;
   if (G.testPlay && Array.isArray(G.testUnlock) && G.testUnlock.includes(key)) return true; // 試遊の開発用 (URL の testUnlock=rusui など)
-  if (key === "codex") return featureUnlocked("insight"); // 図鑑と見識は回廊の踏破で同時に開く
+  if (key === "codex") return featureUnlocked("insight") && !!(G.tut?.cur === "insight" || G.tut?.done?.insight); // 討伐は先に記録し、図鑑の入口は手ほどき開始時に開く
   if (key === "soulChange") return !!G.tut?.done?.soulChange;
   return featureMet(key);
 }
@@ -15908,6 +15908,11 @@ function claimNextTreasury() {
 // ---- 図鑑 (王宮書庫) ----
 // モンスター図鑑の記録単位: { kills, normal, rare, dungeons:{idx:true} }
 // 記録されるのは「倒した時」のみ (迷宮の主だけは、遭遇した時に G.codex.met へ印を付け、図鑑に名だけ出す)。落としたドロップ(通常/レア)も実際に落として初めて開示。
+// 手ほどきの開始時だけ、空の図鑑に練習用の討伐記録を用意する。報酬・戦果は増やさない。
+function prepareCodexTutorial() {
+  if (Object.keys(G.codex.mon).some(k => MONSTERS[k] && codexKills(k) > 0)) return;
+  recordMonsterKill("bs_dustroach", DUNGEONS.findIndex(d => d.id === "w00_forest"), 1);
+}
 function codexMonEntry(key) {
   let e = G.codex.mon[key];
   if (e == null) codexFresh().mon[key] = 1; // 初めての記録は新着
@@ -18806,6 +18811,7 @@ function openSettings() {
   G.settingsOpen = true;
   settingsSheet = UI.settingsSheet({ onClose: () => { G.settingsOpen = false; settingsSheet = null; } });
   if (!settingsSheet) G.settingsOpen = false;
+  else setTimeout(() => { UI.tutorialSettingsVisited?.(); renderSettings(); }, 0);
 }
 function closeSettings() {
   G.settingsOpen = false;
@@ -19976,7 +19982,7 @@ function wireUI() {
     showChoice, closePrompt, showEvent, showConfirm, showToast, showItemGet, closeItemGet, showItemDetailPopup, showStoryScene,
     openStatus, closeStatus, openSettings, closeSettings, tryEnterDungeon, enterDungeon, preloadDungeon, returnToTown, confirmReturnToTown,
     tutorialAllowed, palaceCallReady, currentObjective, featureUnlocked, RUSUI_EXP_RATE, rusuiSeats, rusuiSeated, toggleRusuiSeat, contentSealed, reportMainQuest, acceptMainQuest, reportPending, blockForReport, tutorialPending, blockForTutorial,
-    insightSummary, worldState, worldOpenIdx, pendingIreneBeat, playIreneBeat, dungeonLevel, FEATURES, featureNote, chaptersDone, storyGoal, currentChapter, dungeonTrait, dungeonFloorHaz,
+    prepareCodexTutorial, insightSummary, worldState, worldOpenIdx, pendingIreneBeat, playIreneBeat, dungeonLevel, FEATURES, featureNote, chaptersDone, storyGoal, currentChapter, dungeonTrait, dungeonFloorHaz,
     trainSoul, raiseSoulCap, raiseCapSoulCost, capBySoulOk, soulTrainCost, soulByUid, codexSeeItem, treasuryState, heldCollectibles, donateCollectible,
     claimAchievement, claimTreasury, treasuryRewardReady, deliveryHolder, deliveryStatus, deliverQuest,
     repairDoll, repairAllDolls, repairCostOf, awaitingRepairRescue, tryHastenRescue, reviveTimerEl, fmtRemain, awaitingRescue, hastenCostOf, canHastenRescue,
