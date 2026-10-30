@@ -270,3 +270,46 @@ for (const supported of [true, false]) {
   assert.equal(c.blocking, 0);
 }
 console.log("300種の一括戦闘: 結果・次手番・乱数一致、1通信と旧サーバー互換 OK");
+
+// 一時障害は同じIDで自動再送。空のHTTPエラーも状態番号を失わない。
+{
+  const disk = storage(), bodies = []; let failures = 0;
+  const c = new CloudSaveClient(config, { storage: disk, retryDelays: [0, 0, 0],
+    fetcher: async (url, opts) => {
+      bodies.push(JSON.parse(opts.body));
+      if (bodies.length <= 3) return new Response('', { status: 503 });
+      return Response.json({ revision: 1 });
+    }, onFailure: async () => { failures++; } });
+  c.auth = auth; c.sessionId = 'session';
+  await c.save({ test: true });
+  assert.equal(failures, 0); assert.equal(bodies.length, 4);
+  for (const b of bodies) assert.deepEqual(b, bodies[0]);
+  assert.equal(disk.getItem('dos-cloud-pending:test-user'), null);
+}
+// 恒久エラーは自動再試行しない。上限後は利用者の復旧操作を待つ。
+for (const status of [400, 413, 503]) {
+  let calls = 0, failures = 0;
+  const c = new CloudSaveClient(config, { storage: storage(), retryDelays: [0, 0, 0],
+    fetcher: async () => { calls++; return new Response('', { status }); },
+    onFailure: async e => { failures++; assert.equal(e.status, status); throw e; } });
+  c.auth = auth; c.sessionId = 'session';
+  await assert.rejects(c.battle('enemy'));
+  assert.equal(calls, status === 503 ? 4 : 1); assert.equal(failures, 1);
+  assert.equal(c.waiting, false); assert.equal(c.blocking, 0);
+}
+// 再起動でも失敗する要求は、明示復旧で退避してから確定済み記録を取得できる。
+{
+  const disk = storage(), key = 'dos-cloud-pending:test-user', raw = '{"op":"turn","sessionId":"session"}';
+  disk.setItem(key, raw);
+  const c = new CloudSaveClient(config, { storage: disk, fetcher: async () => Response.json({revision: 9, snapshot: {saved: true}}) });
+  c.auth = auth; c.sessionId = 'session';
+  c.archivePending();
+  assert.equal(disk.getItem(key), null); assert.equal(disk.getItem(key + ':recovery'), raw);
+  assert.deepEqual(await c.claim(), {saved: true});
+  disk.setItem(key, raw);
+  const setItem = disk.setItem;
+  disk.setItem = () => { throw new Error('容量不足'); };
+  assert.throws(() => c.archivePending()); assert.equal(disk.getItem(key), raw);
+  disk.setItem = setItem;
+}
+console.log('通信復旧: 自動再試行・空のHTTPエラー・恒久エラー・送信待ち退避・確定済み再開 OK');

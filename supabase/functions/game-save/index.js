@@ -89,6 +89,7 @@ Deno.serve(async (req) => {
   } else if (origin) return new Response(JSON.stringify({ error: "接続元が許可されていません" }), { status: 403, headers });
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers });
   if (req.method !== "POST") return new Response(null, { status: 405, headers });
+  const requestId = crypto.randomUUID();
   try {
     const authorization = req.headers.get("Authorization") || "";
     const auth = await fetch(`${url}/auth/v1/user`, { headers: { apikey: serviceKey, Authorization: authorization } });
@@ -96,11 +97,13 @@ Deno.serve(async (req) => {
     const user = await auth.json();
     if (!user.id) return new Response(null, { status: 401, headers });
     const raw = await req.text();
-    if (new TextEncoder().encode(raw).length > 2 * 1024 * 1024) return new Response(null, { status: 413, headers });
+    if (new TextEncoder().encode(raw).length > 2 * 1024 * 1024) return new Response(JSON.stringify({ error: "記録が送信できる大きさを超えています", requestId }), { status: 413, headers });
     const body = JSON.parse(raw);
     const result = await command(user, body);
     return new Response(JSON.stringify(result), { headers });
   } catch (e) {
-    return new Response(JSON.stringify({ error: e.status ? e.message : "記録の処理に失敗しました" }), { status: e.status || 503, headers });
+    // 認証情報・冒険の中身は記録しない。利用者の問い合わせ番号と結び付ける。
+    console.error(JSON.stringify({ requestId, status: e.status || 503, name: e.name, message: e.message }));
+    return new Response(JSON.stringify({ error: e.status ? e.message : "記録の処理に失敗しました", requestId }), { status: e.status || 503, headers });
   }
 });

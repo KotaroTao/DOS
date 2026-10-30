@@ -11,10 +11,10 @@ const pendingKey = (id, slot = 1) => "dos-cloud-pending:" + id + slotSuffix(slot
 const session = (a) => ({ ...a, expires_at: a.expires_at || Math.floor(Date.now() / 1000) + (a.expires_in || 3600) });
 
 export class CloudSaveClient {
-  constructor(config, { fetcher = (input, init) => fetch(input, init), storage = localStorage, slot = 1, onBusy = () => {}, onFailure = null } = {}) {
+  constructor(config, { fetcher = (input, init) => fetch(input, init), storage = localStorage, slot = 1, onBusy = () => {}, onFailure = null, retryDelays = [250, 750, 1500] } = {}) {
     localSaveKey(slot); this.slot = slot;
     this.config = config; this.fetcher = fetcher; this.storage = storage;
-    this.onBusy = onBusy; this.onFailure = onFailure;
+    this.onBusy = onBusy; this.onFailure = onFailure; this.retryDelays = retryDelays;
     this.auth = null; this.sessionId = null; this.revision = 0;
     this.tail = Promise.resolve(); this.count = 0; this.busy = false;
     this.refreshing = null; this.waiting = false;
@@ -24,8 +24,9 @@ export class CloudSaveClient {
     const ctrl = new AbortController(), timer = setTimeout(() => ctrl.abort(), 15000);
     try {
       const r = await this.fetcher(this.config.url.replace(/\/$/, "") + path, { ...options, signal: ctrl.signal });
-      const data = await r.json();
-      if (!r.ok) throw Object.assign(new Error(data.error_description || data.msg || data.error || "通信に失敗しました"), { status: r.status });
+      const data = await r.json().catch(() => null);
+      if (!r.ok) throw Object.assign(new Error(data?.error_description || data?.msg || data?.error || "通信に失敗しました"), { status: r.status, requestId: data?.requestId });
+      if (!data) throw Object.assign(new Error("返答を読み取れません"), { status: 502 });
       return data;
     } finally { clearTimeout(timer); }
   }
@@ -81,13 +82,29 @@ export class CloudSaveClient {
     return entry.promise;
   }
   async retry(fn) {
+    let attempts = 0;
     for (;;) {
       try { return await fn(); }
       catch (e) {
         if (!this.onFailure) throw e;
+        const temporary = e.name === "AbortError" || e instanceof TypeError || [408, 429, 500, 502, 503, 504].includes(e.status);
+        if (temporary && attempts < this.retryDelays.length) {
+          await new Promise(resolve => setTimeout(resolve, this.retryDelays[attempts++]));
+          continue;
+        }
+        attempts = 0;
         this.waiting = true;
         try { await this.onFailure(e); } finally { this.waiting = false; }
       }
+    }
+  }
+  // 復旧を明示的に選んだ時だけ退避する。退避に失敗したら元の要求を残す。
+  archivePending() {
+    const key = pendingKey(this.auth.user.id, this.slot);
+    const raw = this.storage.getItem(key);
+    if (raw) {
+      this.storage.setItem(key + ":recovery", raw);
+      this.storage.removeItem(key);
     }
   }
   save(snapshot) { return this.enqueue("save", { snapshot }); }
@@ -147,6 +164,10 @@ function button(text, fn) {
   if (controls.children.length === 1) b.focus();
   return b;
 }
+function resumeSavedRecord() {
+  try { client.archivePending(); location.reload(); }
+  catch { message.textContent = "未送信の操作を保管できませんでした。端末の空き容量を確かめてから再接続してください。"; }
+}
 function failure(e) {
   return new Promise((resolve) => {
     if (e.status === 401 || (e.status === 400 && /refresh|token/i.test(e.message))) {
@@ -161,13 +182,17 @@ function failure(e) {
       });
     } else if (e.status === 409 && e.message !== "cloud_session_busy") {
       showGate("記録が別の画面で更新されたか、ゲームの版が変わりました。最新の記録から再開してください。");
-      button("最新の記録から再開", () => {
-        localStorage.removeItem(pendingKey(client.auth.user.id, client.slot)); location.reload();
-      });
+      button("最新の記録から再開", resumeSavedRecord);
     } else {
       showGate(e.message === "cloud_session_busy" ? "別の端末か画面で冒険中です。そちらを閉じて、しばらくしてから再接続してください。"
         : "記録を保存できません。接続を確かめてください。冒険はここで待っています。");
+      const detail = e.name === "AbortError" ? "通信が時間内に終わりませんでした。" : e.status ? `通信エラー: HTTP ${e.status}。` : "通信または端末への保存に失敗しました。";
+      message.textContent += ` ${detail}${e.requestId ? ` 問い合わせ番号: ${e.requestId}` : ""}`;
       button("再接続", () => { showGate(); resolve(); });
+      if (getJSON(pendingKey(client.auth.user.id, client.slot)) && e.message !== "cloud_session_busy") {
+        message.textContent += " 再接続しても戻れない場合は、未送信の操作を退避し、保存済みの記録から再開できます。未確定の操作は反映されない場合があります。";
+        button("保存済みの記録から再開", resumeSavedRecord);
+      }
     }
   });
 }
