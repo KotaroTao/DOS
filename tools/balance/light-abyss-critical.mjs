@@ -1,4 +1,4 @@
-// 聖光の追撃4段階と、深淵の知・会心ダメージの物理/魔法共通適用を実測する。
+// 聖光の追撃4段階と、深淵の知・会心ダメージの物理/魔法別計算を実測する。
 import assert from 'node:assert/strict';
 import {Battle, SPELLS, gearCritMul, physicalCritMul, perkVictory, setElemKnown} from '../../src/combat.js';
 import {makeDoll} from '../../src/souls.js';
@@ -17,10 +17,10 @@ Math.random=()=>.5;
 const key=Object.keys(SPELLS).find(k=>SPELLS[k].kind==='atk'&&SPELLS[k].target==='enemy'&&!SPELLS[k].gravity&&!SPELLS[k].hits&&!SPELLS[k].scatter&&!SPELLS[k].drain&&!SPELLS[k].execute&&!SPELLS[k].critBonus);
 for(const [i,bonus] of [.5,1,2,3].entries()){
  const a=actor({arcanistShinen:i+1}),t=foe(),b=new Battle([a],[t],()=>{});
- near(b._spellCritChance(a,SPELLS[key]),[.05,.10,.15,.20][i]);near(physicalCritMul(a),1+bonus);near(b._spellCritMul(a),1.5*(1+bonus));
- // 確定会心の実ダメージにも両方の威力加算が効く。
+ near(b._spellCritChance(a,SPELLS[key]),[.05,.10,.15,.20][i]);near(physicalCritMul(a),1);near(b._spellCritMul(a),1.5*(1+bonus));
+ // 深淵の知は魔法会心の実ダメージだけを増やす。
  a.passiveMap={};const plain=b._physical(a,t,{acc:1,critBonus:1}).dmg;
- a.passiveMap={arcanistShinen:i+1};const dmg=b._physical(a,t,{acc:1,critBonus:1}).dmg;assert(Math.abs(dmg/plain-(1+bonus))<.01);
+ a.passiveMap={arcanistShinen:i+1};const dmg=b._physical(a,t,{acc:1,critBonus:1}).dmg;assert.equal(dmg,plain);
  const sp={...SPELLS[key],critBonus:1},sk='__critical_test';SPELLS[sk]=sp;
  a.passiveMap={};const raw=b._exec({actor:a,action:'spell',spellKey:sk,target:t}).hits.reduce((s,h)=>s+(h.dmg||0),0);
  a.passiveMap={arcanistShinen:i+1};const magic=b._exec({actor:a,action:'spell',spellKey:sk,target:t}).hits.reduce((s,h)=>s+(h.dmg||0),0);
@@ -29,11 +29,18 @@ for(const [i,bonus] of [.5,1,2,3].entries()){
 {
  const a=actor({arcanistShinen:4,spellCrit:3,samuraiIchibun:3}),t=foe(),b=new Battle([a],[t],()=>{});
  a.critDamageBonus=.5;a.spellCritDamageBonus=.7;
- near(gearCritMul(a),1.5);near(gearCritMul(a,true),2.2);
- near(b._physicalCritMul(a),1+.5+3+.3+.3);near(b._spellCritMul(a),1.5*(1+.5+.7+3+.3+.3));
- a.passiveMap={shadowIchishi:3};near(b._spellCritMul(a,{tgt:t,on:['spell']}),1.5*(2.2+.4));t.hp=t.maxhp*.8;near(b._spellCritMul(a,{tgt:t,on:['spell']}),1.5*2.2);
+ near(gearCritMul(a),1.5);near(gearCritMul(a,true),1.7);
+ near(b._physicalCritMul(a),1+.5+.3);near(b._spellCritMul(a),1.5*(1+.7+3+.3));
+ for(const pm of [{samuraiIchibun:3},{samuraiNukimi:3},{shadowIchishi:3}]){
+  a.passiveMap=pm;near(b._spellCritMul(a),1.5*1.7);
+ }
+ a.passiveMap={shadowIchishi:3};near(b._physicalCritMul(a,{tgt:t,on:['phys']}),1.5+.4);
+ t.hp=t.maxhp*.8;near(b._physicalCritMul(a,{tgt:t,on:['phys']}),1.5);
+ a.passiveMap={samuraiNukimi:3};b._roundNo=1;near(b._physicalCritMul(a),1.5+.4);
+ b._roundNo=2;near(b._physicalCritMul(a),1.5);
+ a.passiveMap={spellCrit:3};near(b._physicalCritMul(a),1.5);near(b._spellCritMul(a),1.5*(1.7+.3));
 }
-console.log('聖光の追撃: 4段階・必ず発動・未習得は不発、深淵の知: 4段階の率と物理/魔法の実ダメージ、装備/呪文会心/条件付きパッシブの共通加算 OK');
+console.log('聖光の追撃: 4段階・必ず発動・未習得は不発、深淵の知: 4段階の率と物理/魔法の実ダメージ、装備/呪文会心/条件付きパッシブの物理・魔法分離 OK');
 
 for (const [i, rate] of [.1,.2,.3].entries()) {
  const a=actor({templarKairitsu:i+1}),b=new Battle([a],[foe()],()=>{});

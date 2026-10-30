@@ -56,17 +56,15 @@ let _enemyLvTag = () => "";
 export function setEnemyLvTag(fn) { _enemyLvTag = typeof fn === "function" ? fn : () => ""; }
 // 敵の群れは最大6体 (前衛3+後衛3)
 export const MAX_ENEMIES = 6;
-// 会心ダメージは物理・魔法共通。魔法専用の補正はさらに加算する。
+// 会心倍率の装備補正は物理・魔法を別々に合算し、合計の上限は設けない。
 export function gearCritMul(actor, spell = false) {
-  return 1 + Math.max(0, actor.critDamageBonus || 0) + (spell ? Math.max(0, actor.spellCritDamageBonus || 0) : 0);
+  return 1 + Math.max(0, actor[spell ? "spellCritDamageBonus" : "critDamageBonus"] || 0);
 }
-
-const commonPassiveCritDamage = a => a?.side === "party" ? ([0, .5, 1, 2, 3][Math.min(4, pv(a, "arcanistShinen"))] || 0) + ([0, .1, .2, .3][Math.min(3, pv(a, "spellCrit"))] || 0) : 0;
 
 // 必殺 (暗殺者のランク): 物理会心の倍率を20/30/40/50%増やす。装備の補正とも重なる。
 export function physicalCritMul(actor, bonus = 0) {
   const lv = actor?.side === "party" ? pv(actor, "shadowHissatsu") : 0;
-  return (gearCritMul(actor) + bonus + commonPassiveCritDamage(actor)) * (1 + (lv ? [0.20, 0.30, 0.40, 0.50][Math.min(4, lv) - 1] : 0));
+  return (gearCritMul(actor) + bonus) * (1 + (lv ? [0.20, 0.30, 0.40, 0.50][Math.min(4, lv) - 1] : 0));
 }
 
 // 待ち伏せは先制率への固定加算。奇襲率が高くても、増えた先制の枠を削らない。
@@ -3616,8 +3614,8 @@ export class Battle {
   _physicalCritMul(actor, ctx = { on: ["phys"] }) {
     return physicalCritMul(actor, this._perkSum(actor, "critDamage", ctx));
   }
-  _spellCritMul(actor, ctx = { on: ["spell"] }) {
-    const bonus=actor?.side==="party" ? commonPassiveCritDamage(actor) + this._perkSum(actor,"critDamage",ctx) : 0;
+  _spellCritMul(actor) {
+    const bonus=actor?.side==="party" ? ([0,.1,.2,.3][Math.min(pv(actor,"spellCrit"),3)]||0)+this._rk(actor,"arcanistShinen",[.5,1,2,3]) : 0;
     return 1.5*(gm(actor).sae?1.3:1)*(gearCritMul(actor,true)+bonus);
   }
   // 物理会心とは独立した、技・職業・装備の魔法会心率。
@@ -3651,7 +3649,7 @@ export class Battle {
     if (pv(actor, "gokudoku") && t.ailment === "poison") dmg *= 1.3;
     dmg *= evDealMul(actor, t) * (1 + this._perkSum(actor, "deal", { tgt: opt.actual ? t : elemMask(t, actor), el: sp.element || "none", on: ["spell"] }));
     const critP = this._spellCritChance(actor, sp);
-    const critMul = this._spellCritMul(actor, { tgt: opt.actual ? t : elemMask(t, actor), el: sp.element || "none", on: ["spell"] });
+    const critMul = this._spellCritMul(actor);
     dmg *= 1 + critP * (critMul - 1);
     if (t.guard) dmg *= 1 - t.guard;
     dmg *= this._passiveCorrection(Object.create(opt.actual ? t : elemMask(t, actor), {magResist:{value:r}}), actor, sp.gravity ? "none" : sp.element, "magic", this._rk(actor, "archmageShinen", [.25, .5, .75, 1]), !!pv(actor, "elemFloor"));
@@ -3858,7 +3856,7 @@ export class Battle {
         { const pd = this._perkSum(actor, "deal", { tgt: t, el: sp.element || "none", on: ["spell"] }); if (pd) dmg = Math.max(1, Math.round(dmg * (1 + pd))); } // 固有パッシブ (deal)
         // 会心: 呪文会心パッシブ + 技固有の会心補正 (禁呪開帳など)。重力は会心しない
         const crit = !sp.gravity && random() < this._spellCritChance(actor, sp);
-        if (crit) dmg = Math.floor(dmg * this._spellCritMul(actor, { tgt: t, el: sp.element || "none", on: ["spell"] }));
+        if (crit) dmg = Math.floor(dmg * this._spellCritMul(actor));
         if (crit && actor.side === "party" && this.show) this.show.cr++; // 観客の注文 (会心を見せろ)
         if (t.guard) dmg = Math.max(1, Math.ceil(dmg * (1 - t.guard))); // 金剛の護符: 呪文・ブレスの被ダメもカット
         t.hp = this._reportHp(actor, t, t.hp - (dmg));
