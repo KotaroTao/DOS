@@ -350,3 +350,16 @@ for (const legacy of [false, true]) {
   }
 }
 console.log('共通の袋: 24行動×新旧応答で個数一定・所持品/戦利品/装備/編成の参照維持 OK');
+
+// AbortSignalを無視する通信でも、応答本文を含めて待機期限を守る。
+{
+  const original = globalThis.setTimeout;
+  globalThis.setTimeout = (fn,ms,...args) => original(fn,ms===15000?5:ms,...args);
+  try {
+    for (const fetcher of [()=>new Promise(()=>{}), async()=>({ok:true,json:()=>new Promise(()=>{})})]) {
+      const c = new CloudSaveClient(config,{storage:storage(),fetcher});
+      await assert.rejects(c.fetchJSON('/test'), e=>e.name==='AbortError');
+    }
+  } finally { globalThis.setTimeout=original; }
+}
+console.log('通信待機: 中止されないfetch・応答本文も期限で復旧へ移行 OK');

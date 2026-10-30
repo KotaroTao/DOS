@@ -21,15 +21,22 @@ export class CloudSaveClient {
     this.blocking = 0; this.queuedSave = null; this.battleTurn = false;
   }
   async fetchJSON(path, options = {}) {
-    const ctrl = new AbortController(), timer = setTimeout(() => ctrl.abort(), 15000);
-    try {
+    const ctrl = new AbortController();
+    let timer;
+    const timeout = new Promise((_, reject) => { timer = setTimeout(() => {
+      ctrl.abort(); reject(new DOMException("通信が時間内に終わりませんでした", "AbortError"));
+    }, 15000); });
+    const work = async () => {
       const r = await this.fetcher(this.config.url.replace(/\/$/, "") + path, { ...options, signal: ctrl.signal });
       const data = await r.json().catch(() => null);
       if (!r.ok) throw Object.assign(new Error(data?.error_description || data?.msg || data?.error || "通信に失敗しました"), { status: r.status, requestId: data?.requestId });
       if (!data) throw Object.assign(new Error("返答を読み取れません"), { status: 502 });
       return data;
-    } finally { clearTimeout(timer); }
+    };
+    try { return await Promise.race([work(), timeout]); }
+    finally { clearTimeout(timer); }
   }
+
   async authRequest(path, body) {
     return this.fetchJSON("/auth/v1/" + path, { method: "POST",
       headers: { apikey: this.config.anonKey, "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -375,6 +382,19 @@ export function cloudFatal() {
   button("再接続", () => location.reload());
 }
 
+// 通常の短い待機は無表示。長引く接続は段階を示し、空の幕から復旧できるようにする。
+async function connectionStep(label, work) {
+  let shown = false;
+  const timer = setTimeout(() => {
+    if (gate.hidden || !gate.querySelector(".cloud-panel").hidden) return;
+    shown = true;
+    showGate(`${label}に時間がかかっています。記録はそのまま保管しています。待っても進まない場合は再読み込みしてください。`);
+    button("再読み込み", () => location.reload());
+  }, 15000);
+  try { return await work(); }
+  finally { clearTimeout(timer); if (shown && !client?.waiting) showGate(); }
+}
+
 export async function connectCloud(localSave, slot = 1, mode = "start") {
   ensureGate(); showGate();
   if (!CLOUD_CONFIG.url || !CLOUD_CONFIG.anonKey || !/^https:\/\//.test(CLOUD_CONFIG.url)) {
@@ -391,11 +411,11 @@ export async function connectCloud(localSave, slot = 1, mode = "start") {
     client.auth = getJSON(AUTH_KEY);
     if (client.auth) {
       // 更新失敗で匿名の接続情報を捨てると、ゲストの記録を失う。再接続で保持する。
-      await client.retry(async () => {
+      await connectionStep("ログインの確認", () => client.retry(async () => {
         await client.token();
         client.auth.user = await currentUser(client);
         putJSON(AUTH_KEY, client.auth);
-      });
+      }));
     }
     if (mode === "login" && client.auth) {
       showGate(cloudGuest() ? "ゲストの冒険はこの端末に保管してログインします。記録は合成・上書きしません。" : "別のアカウントへログインしますか？");
@@ -429,23 +449,23 @@ export async function connectCloud(localSave, slot = 1, mode = "start") {
   }
   if (agreedThisVisit) localStorage.setItem("dos-legal-version:" + client.auth.user.id, LEGAL_VERSION);
   else await agreeToTerms(client.auth.user.id);
-  await client.retry(() => client.request({ protocol: client.config.protocol, op: "consent", version: LEGAL_VERSION }));
+  await connectionStep("利用規約の確認", () => client.retry(() => client.request({ protocol: client.config.protocol, op: "consent", version: LEGAL_VERSION })));
   // タブの複製で同じ送信待ちIDが使われても、1画面だけが進められる。
   if (navigator.locks) {
-    await new Promise((resolve) => {
+    await connectionStep("この端末の使用確認", () => new Promise((resolve, reject) => {
       navigator.locks.request("dos-cloud:" + client.auth.user.id + slotSuffix(slot), { ifAvailable: true }, async (lock) => {
         if (!lock) { showGate("このアカウントは別の画面で開かれています。"); button("再接続", () => location.reload()); return; }
         resolve(); await new Promise(() => {});
-      });
-    });
+      }).catch(reject);
+    }));
   }
   const pending = getJSON(pendingKey(client.auth.user.id, client.slot));
   const sessionKey = "dos-cloud-session:" + client.auth.user.id + slotSuffix(slot);
   client.sessionId = pending?.sessionId || localStorage.getItem(sessionKey) || crypto.randomUUID();
   localStorage.setItem(sessionKey, client.sessionId);
   showGate();
-  let snapshot = await client.retry(() => client.claim());
-  if (pending) { await client.recover(); snapshot = await client.retry(() => client.claim()); }
+  let snapshot = await connectionStep("冒険の記録の読み込み", () => client.retry(() => client.claim()));
+  if (pending) { await connectionStep("未送信の操作の確認", () => client.recover()); snapshot = await connectionStep("冒険の記録の読み込み", () => client.retry(() => client.claim())); }
   if (mode !== "reset" && !snapshot && localSave && !localStorage.getItem("dos-cloud-deleted")) {
     const useLocal = await new Promise((resolve) => {
       showGate("このアカウントには冒険の記録がありません。この端末の記録を引き継ぎますか？");
