@@ -2021,7 +2021,7 @@ function openMansionManage(d) {
 function stabilityButton(d, town) {
   game.refreshStability?.();
   const b = button({ label: `魂の安定度 ${d.stability}/${game.STABILITY_MAX}`, kind: "ghost", size: "sm",
-      onTap: town ? () => openStability(d) : () => toast(`入場時に${game.STABILITY_ENTRY_COST}消費・${game.stabilityMinutes ? game.stabilityMinutes() : 4}分で1回復。5階ごとの次階進行時も${game.STABILITY_ENTRY_COST}消費。不足分は赤い魂1で安定度${game.stabilityPerRed()}を購入できる。広告なら安定度を消費せず1回分進める`, { tone: "info", noLog: true }) });
+      onTap: town ? () => openStability(d) : () => toast(`入場時に${game.STABILITY_ENTRY_COST}消費・${game.stabilityMinutes ? game.stabilityMinutes() : 4}分で1回復。5階ごとの次階進行時は${game.STABILITY_FLOOR_COST}消費。不足分は赤い魂1で安定度${game.stabilityPerRed()}を購入できる。広告なら隊全員の安定度を20回復し、消費せず1回分進める`, { tone: "info", noLog: true }) });
   b.classList.add("pt-stability");
   return b;
 }

@@ -2,6 +2,7 @@
 export const STABILITY_MAX = 100;
 export const STABILITY_ENTRY_COST = 20;
 export const STABILITY_FLOOR_COST = 10;
+export const STABILITY_AD_RECOVERY = 20;
 export const STABILITY_RECOVERY_MS = 3 * 60 * 1000;
 export function stabilityRecoveryMs() { return STABILITY_RECOVERY_MS; }
 
