@@ -122,15 +122,15 @@ export function shake(el) {
 }
 
 // 場所の移動: 闇へ溶けて (420ms) → 闇に留まり (120ms) 描き替え → 闇から現れる (360ms)。
-// 燐光 (embers) が 600ms 漂う。fn は闇の底で同期的に呼ぶ (描き替え・状態遷移)。完了で resolve
-export function sceneTransition(fn, { color = "#000", embers = true } = {}) {
+// fn の描き替えと非同期の準備を待つ。入場の immediate は最初から不透明にする。
+export function sceneTransition(fn, { color = "#000", embers = true, immediate = false } = {}) {
   if (typeof document === "undefined" || !document.body) {
-    if (typeof fn === "function") fn();
-    return Promise.resolve();
+    return Promise.resolve(typeof fn === "function" ? fn() : undefined);
   }
   const veil = document.createElement("div");
   veil.className = "ui-scene-veil";
   veil.style.background = color;
+  if (immediate) veil.style.opacity = "1";
   if (embers && !_reduced) {
     for (let i = 0; i < 14; i++) {
       const s = document.createElement("i");
@@ -145,11 +145,19 @@ export function sceneTransition(fn, { color = "#000", embers = true } = {}) {
   const out = _reduced ? T.reduced : T.sceneOut;
   const hold = _reduced ? 0 : T.sceneHold;
   const inn = _reduced ? T.reduced : T.sceneIn;
-  return animate(veil, [{ opacity: 0 }, { opacity: 1 }], { duration: out, easing: EASE.inout })
-    .then(() => { try { if (typeof fn === "function") fn(); } catch (e) { setTimeout(() => { throw e; }); } })
-    .then(() => new Promise((r) => setTimeout(r, hold)))
-    .then(() => animate(veil, [{ opacity: 1 }, { opacity: 0 }], { duration: inn, easing: EASE.inout }))
-    .then(() => { veil.remove(); });
+  const dark = immediate ? Promise.resolve() : animate(veil, [{ opacity: 0 }, { opacity: 1 }], { duration: out, easing: EASE.inout });
+  return dark.then(async () => {
+    // animate は完了時に効果を外すため、待機中の不透明度を明示的に保つ。
+    veil.style.opacity = "1";
+    const ok = typeof fn === "function" ? await fn() : undefined;
+    if (ok === false) return false; // 準備失敗でも途中の場面を開かない。
+    await new Promise(r => setTimeout(r, hold));
+    // 演出が外れた後の透明度も先に決め、最後に幕が戻るのを防ぐ。
+    veil.style.opacity = "0";
+    await animate(veil, [{ opacity: 1 }, { opacity: 0 }], { duration: inn, easing: EASE.inout });
+    veil.remove();
+    return true;
+  });
 }
 
 // 金の閃き (褒美)。視差を減らす設定では 15% まで
