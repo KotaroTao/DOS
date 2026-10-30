@@ -550,8 +550,8 @@ export function portrait(d, o = {}) {
 
 // statDelta({atk:+4, agi:-1, …}) → 「STR+4 AGI-1」(▲緑 / ▼赤)
 // power = 攻撃力 (参照能力 × 武器の係数)。STR は攻撃力と増減が同じなら省く (同じ数字が2つ並ばないように)
-export const DELTA_LABEL = { power: "攻撃力", atk: "STR", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK", hp: "HP", mp: "MP", crit: "会心率", critDamage: "会心ダメージ", spellCrit: "魔法会心率", spellCritDamage: "魔法会心ダメージ", physResist: "物理抵抗値", magResist: "魔法抵抗値", breathRes: "ブレス耐性" };
-export const DELTA_PERCENT = new Set(["crit", "critDamage", "spellCrit", "spellCritDamage", "breathRes"]);
+export const DELTA_LABEL = { power: "攻撃力", atk: "STR", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK", hp: "HP", mp: "MP", crit: "会心率", critDamage: "会心ダメージ", spellCrit: "魔法会心率", spellCritDamage: "魔法会心ダメージ", physResist: "物理耐性", magResist: "魔法耐性", breathRes: "ブレス耐性" };
+export const DELTA_PERCENT = new Set(["crit", "critDamage", "spellCrit", "spellCritDamage", "physResist", "magResist", "breathRes"]);
 export function statDelta(d = {}, { compact = true } = {}) {
   const w = el("span", "ui-delta");
   let any = false;

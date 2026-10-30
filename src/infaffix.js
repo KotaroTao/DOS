@@ -88,10 +88,10 @@ for (const [id, name, el, from] of DEF_EL) def({ id, name, tier: "u", kind: "fix
 // ---- E. 抵抗 ----
 const RES = [["E01", "毒除けの", "poison"], ["E02", "しびれ除けの", "paralyze"], ["E03", "眠らずの", "sleep"], ["E04", "惑わずの", "charm"], ["E05", "正気の", "confuse"], ["E06", "石除けの", "stone"], ["E07", "封じ除けの", "seal"], ["E08", "怯まずの", "flinch"]];
 const addRes = (it, k, v) => { it.resists = { ...(it.resists || {}) }; it.resists[k] = Math.min(100, (it.resists[k] || 0) + Math.round(v)); };
-for (const [id, name, k] of RES) def({ id, name, tier: "c", kind: "abs", r: [5, 15], slots: ["a", "acc"], pts: (v) => v * 0.25, apply: (it, v) => addRes(it, k, v), text: (v) => `${RES_JA[k]}の抵抗値+${Math.round(v)}` });
-def({ id: "E09", name: "死除けの", tier: "u", kind: "abs", r: [5, 15], slots: ["a", "acc"], pts: (v) => v * 0.35, apply: (it, v) => addRes(it, "death", v), text: (v) => `即死の抵抗値+${Math.round(v)}` });
-def({ id: "E10", name: "鋼の", tier: "r", kind: "abs", r: [2, 5], slots: ["a"], pts: (v) => v * 3, apply: (it, v) => addRes(it, "physResist", v), text: (v) => `物理の抵抗値+${Math.round(v)}` });
-def({ id: "E11", name: "魔除けの", tier: "r", kind: "abs", r: [2, 5], slots: ["a"], pts: (v) => v * 3, apply: (it, v) => addRes(it, "magResist", v), text: (v) => `魔法の抵抗値+${Math.round(v)}` });
+for (const [id, name, k] of RES) def({ id, name, tier: "c", kind: "abs", r: [5, 15], slots: ["a", "acc"], pts: (v) => v * 0.25, apply: (it, v) => addRes(it, k, v), text: (v) => `${RES_JA[k]}耐性+${Math.round(v)}%` });
+def({ id: "E09", name: "死除けの", tier: "u", kind: "abs", r: [5, 15], slots: ["a", "acc"], pts: (v) => v * 0.35, apply: (it, v) => addRes(it, "death", v), text: (v) => `即死耐性+${Math.round(v)}%` });
+def({ id: "E10", name: "鋼の", tier: "r", kind: "abs", r: [2, 5], slots: ["a"], pts: (v) => v * 3, apply: (it, v) => addRes(it, "physResist", v), text: (v) => `物理耐性+${Math.round(v)}%` });
+def({ id: "E11", name: "魔除けの", tier: "r", kind: "abs", r: [2, 5], slots: ["a"], pts: (v) => v * 3, apply: (it, v) => addRes(it, "magResist", v), text: (v) => `魔法耐性+${Math.round(v)}%` });
 def({ id: "E12", name: "竜鱗の", tier: "u", kind: "abs", r: [0.03, 0.08], slots: ["a", "acc"], pts: (v) => v * 100,
   apply: (it, v) => { it.bRes = Math.round(((it.bRes || 0) + v) * 10000) / 10000; }, text: (v) => `ブレス耐性+${pct(v)}` });
 
@@ -205,9 +205,9 @@ const XM = (key, val = true) => () => ({ [key]: val });
 const X = [
   // 武器
   ["X01", "連なる刃の", ["w"], 12, XM("chain"), "通常攻撃で敵を倒すと、別の敵へもう一撃 (1ターンに1度)"],
-  ["X02", "双魂の", ["w"], 14, XM("twinSoul"), "物理の一撃を、敵の物理と魔法の抵抗値のうち低い方で計算する (抵抗値100でも)"],
-  ["X03", "伝染の", ["w"], 12, XM("contagion"), "敵に新しく掛けた状態異常を、並びの隣の敵にも同じ確率で移す (Lv差の判定あり)"],
-  ["X04", "くさびの", ["w"], 12, XM("wedge"), "物理を当てるたび、敵の物理の抵抗値−10 (最大−30、主・強敵は−20まで。抵抗値100・金属の魔物には効かない)"],
+  ["X02", "双魂の", ["w"], 14, XM("twinSoul"), "物理の一撃を、敵の物理耐性と魔法耐性のうち低い方で計算する（固有の物理無効にも有効）"],
+  ["X03", "伝染の", ["w"], 12, XM("contagion"), "敵に新しく掛けた状態異常を、並びの隣の敵にも同じ確率で移す （移す先の耐性で判定、Lv差の補正なし）"],
+  ["X04", "くさびの", ["w"], 12, XM("wedge"), "物理を当てるたび、敵の物理耐性を10ポイント下げる（最大30ポイント、主・強敵は20ポイントまで。物理無効・金属の魔物には効かない）"],
   ["X05", "見届けの", ["w"], 10, XM("witness"), "会心が出ると、その敵のこのターンの手番を一番最後に回す"],
   ["X06", "剥がしの", ["w"], 10, XM("peel"), "通常攻撃が当たると、敵の強化を1つ消す (溜めは消さない)"],
   // 胴
@@ -215,7 +215,7 @@ const X = [
   ["X08", "痛み分けの", ["body"], 12, XM("split", 0.5), "受けるダメージの50%を、次とその次のターンの初めに分けて受ける (戦闘が終われば残りは消える)"],
   ["X09", "肩代わりの", ["body"], 12, XM("cover"), "味方が倒れるほどの一撃を、1戦闘に1度だけ代わりに受ける (受けるダメージは減らない。かばう・仁王立ちが先)"],
   ["X10", "送り火の", ["body"], 10, XM("sendoff", 0.2), "自分が倒れた時、味方全員のHPを最大の20%回復し、状態異常を1つずつ治す"],
-  ["X11", "逆境の", ["body"], 12, XM("adversity"), "HP50%以下で受けるダメージ−20%、25%以下で−40% (装備の軽減の上限とは別)"],
+  ["X11", "逆境の", ["body"], 12, XM("adversity"), "HP50%以下で受けるダメージ−20%、25%以下で−40% （ほかの恒常軽減と合わせて90%まで）"],
   // 頭
   ["X12", "不動心の", ["head"], 14, XM("steadMind"), "魅了・混乱・特技封じが効かず、敵の打ち消しで自分の強化が剥がれない"],
   ["X13", "見抜きの", ["head"], 12, null, "弱点の属性で攻めた時 与ダメ+30%"],
