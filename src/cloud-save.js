@@ -303,7 +303,7 @@ function failure(e) {
 
 function login(c, { registration = false, linking = false } = {}) {
   return new Promise((resolve) => {
-    showGate(linking ? "この冒険の記録を守る — メールアドレスを登録" : registration ? "アカウントを作成" : "ログイン");
+    showGate(linking ? "冒険の記録を守り、別の端末でも続ける" : registration ? "アカウントを作成" : "ログイン");
     const form = make("form");
     const field = (label, type, autocomplete) => {
       const row = make("label", label), input = make("input");
@@ -618,8 +618,8 @@ export async function cloudManageAccount() {
     await cloudFlush();
     await new Promise(resolve => {
       const draw = () => {
-        showGate(cloudGuest() ? "ゲストの記録をメールアドレスに結び付けると、別の端末でも冒険を続けられます。" : cloudAccount());
-        if (cloudGuest()) button("アカウント登録・記録の引き継ぎ", async () => {
+        showGate(cloudGuest() ? "大切な冒険の記録を守りましょう。引き継ぎの準備をしておくと、端末を買い替えた時やブラウザのデータを消した後も、同じ冒険を続けられます。ゲストのままでも記録は自動保存されます。" : cloudAccount());
+        if (cloudGuest()) button("記録を守る・引き継ぎの準備", async () => {
           await login(client, { registration: true, linking: true }); resolve();
         });
         else button("ログアウト", () => { localStorage.removeItem(AUTH_KEY); location.reload(); });
@@ -648,9 +648,9 @@ export async function cloudManageAccount() {
   } finally { managing = false; if (!terminal) gate.hidden = true; }
 }
 export async function cloudRegisterPrompt() {
-  if (!cloudGuest() || localStorage.getItem("dos-cloud-register-hint:" + client.auth.user.id)) return;
+  if (!cloudGuest() || localStorage.getItem("dos-cloud-abbey-register-hint:" + client.auth.user.id)) return;
   await cloudFlush();
-  localStorage.setItem("dos-cloud-register-hint:" + client.auth.user.id, "1");
+  localStorage.setItem("dos-cloud-abbey-register-hint:" + client.auth.user.id, "1");
   return cloudManageAccount();
 }
 
