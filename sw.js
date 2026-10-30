@@ -2884,7 +2884,6 @@ const ASSETS = [
   "./src/weaponpower.js",
   "./src/board.js",
   "./src/traps.js",
-  "./src/telemetry.js",
   "./src/playtest.js",
   "./src/stability.js",
   "./art/tutorial/gatekeeper.png",

@@ -461,9 +461,6 @@ export function perkVictory(p, party, ownMp = {}) {
   for (const m of bySoul.values()) for (const j in m) mp += Math.min(VICTORY_MP_PER, m[j]);
   return { hp, mp };
 }
-// テスト記録用の集計の器 (telemetry.js が読む)。pa/pe/pp = 味方の物理 試行/かわされた/見切られた、
-// ea/ee/ep = 敵の物理 同、of/op = 手番で味方が先だった組/総組、ft/fo/fs = 逃走 試行/成功/封じられた、
-// fp = 逃走を試みた時の成功率の合計 (×1000。実際の成功数と見比べる)
 // 逃走率の式の定数 (Battle.fleeChance)。主のいる戦いは追跡AGI を ×1.3 して逃げにくくする
 const FLEE_BASE = 0.55, FLEE_SLOPE = 0.35, FLEE_MIN = 0.05, FLEE_MAX = 0.95, FLEE_BOSS_MUL = 1.3;
 // 敵の物理を味方がかわす率 (AGI の相対値): 20% + 20% × log2(味方の実効AGI ÷ (敵の実効AGI × fleeK)) → 0〜40%。
@@ -580,7 +577,6 @@ export function spellAilments(sp) {
 // 状態異常の種類 (装備の耐性 ailRes のキー): 毒・麻痺・眠り・魅了・混乱・石化
 export const AIL_KINDS = ["poison", "paralyze", "sleep", "charm", "confuse", "stone"];
 // pi/ei = 当たったが無効にされた物理 (抵抗値100・加護の祈り・金剛の守り)。命中には数え、別に数える
-const newTally = () => ({ pa: 0, pe: 0, pp: 0, pi: 0, ea: 0, ee: 0, ep: 0, ei: 0, of: 0, op: 0, ft: 0, fo: 0, fs: 0, fp: 0 });
 // 破邪・聖刃の対象種族
 const HOLY_PREY = ["undead", "specter", "demon"];
 const VULN_LABEL = { fire: "火", water: "水", wind: "風", earth: "土", light: "光", dark: "闇", all: "全属性" };
@@ -837,7 +833,6 @@ export class Battle {
     this._dispelLockUsed = 0; this._dispelLockSeq = -1; this._procHits = [];
     this.bonusGold = 0; // 「盗む」で手に入れた金 (勝っても逃げても持ち帰る)
     this.performance = this._newPerformance();
-    this.tally = newTally(); // テスト記録用の集計 (命中・手番・逃走)。判定には使わない
     this.fervor = !!opts.fervor; // 迷宮の掟「高まる戦意」: 2ターン目から毎ターン、敵味方とも攻撃 +1段 (+3段まで)
     this.foeRise = +opts.foeRise || 0;     // 迷宮の掟「起き上がる濁り魂」: 倒れた敵 (主・金属を除く) は一度だけ最大HPのこの割合で起き上がる
     this.soulFeast = +opts.soulFeast || 0; // 迷宮の掟「魂喰らいの闇」: 人業を倒した敵は攻撃がこの段数だけ上がる (3ターン)
@@ -1850,15 +1845,6 @@ export class Battle {
       this.log(`${p.name}の二度駆け：このターン2回動く`, "hit");
       this._proc(p, "二度駆け");
     }
-    // テスト記録: 味方と敵の組のうち、味方が先に動く組の数 (先制・奇襲の1ターン目は片側だけなので数えない)
-    const T = this._tally();
-    let seenP = 0;
-    for (const a of this.queue) {
-      if (a.side === "party") seenP++;
-      else { T.of += seenP; }
-    }
-    const np = this.queue.filter((a) => a.side === "party").length;
-    T.op += np * (this.queue.length - np);
   }
 
   // 奇襲の1ターン目に動く敵: 生きている敵それぞれが AMBUSH_ACT_RATE (50%) で動く。誰も当たらなければ1体を選んで動かす
@@ -1942,8 +1928,6 @@ export class Battle {
       spellCritMul: this._spellCritMul(a), evade, flee: this.fleeChance(a), order, back: this.isBackRow(a), reach: reach.length, foes: foes.length, range: this.attackRange(a) };
   }
 
-  // テスト記録の集計 (中断セーブから戻った古い戦闘にも器を用意する)
-  _tally() { return this.tally || (this.tally = newTally()); }
 
   // 次の手番へ。味方なら input (行動不能なら stunned)、敵なら enemy フェーズで止まる
   advance() {
@@ -2627,17 +2611,13 @@ export class Battle {
     }
     if (action === "run") {
       // 迷宮の異変「閉ざされた退路」: 逃走そのものが封じられている
-      const T = this._tally();
-      T.ft++;
       if (this.noFlee) {
-        T.fs++;
         this.log("逃走不可（退路封鎖）", "dmg");
         res.fledFail = true;
         return res;
       }
       const chance = this.fleeChance(actor);
-      T.fp = (T.fp || 0) + Math.round(chance * 1000);
-      if (random() < chance) { this.result = "flee"; T.fo++; this.log("逃走成功", "sys"); res.fled = true; }
+      if (random() < chance) { this.result = "flee"; this.log("逃走成功", "sys"); res.fled = true; }
       else { this.log(`${actor.name}は逃走失敗`, "dmg"); res.fledFail = true; }
       return res;
     }
@@ -3304,20 +3284,12 @@ export class Battle {
         tgt = g;
       }
     }
-    // テスト記録: 物理の試行 / 見切られた / かわされた (攻撃側ごと。味方 = p*、敵 = e*)
-    // 魅了・混乱で同じ側を殴った分は数えない (捨てる器へ)
-    const T = actor.side !== tgt.side ? this._tally() : newTally(), tk = actor.side === "party" ? "p" : "e";
-    T[tk + "a"]++;
-    // 職ごとの味方の物理 [試行, かわされた, 見切られた] (テスト記録「職ごとの命中」)
-    const J = tk === "p" ? ((T.pj || (T.pj = {}))[actor.jobKey || "?"] || (T.pj[actor.jobKey || "?"] = [0, 0, 0])) : null;
-    if (J) J[0]++;
     // 必中技と麻痺・眠り中の敵への物理は、見切り・回避・目つぶしを無視
     const sureHit = opt.sureHit || (tgt.side === "enemy" && (tgt.asleep || tgt.ailment === "paralyze"));
     // 極「受け流しの」: 防御した手番から次の自分の手番まで、敵の物理を1回かわす
     const enemyHit = actor.side === "enemy" && tgt.side === "party";
     if (enemyHit && tgt._parryHold && tgt._defending) {
       tgt._parryHold = false;
-      T[tk + "p"]++;
       this.log(`${tgt.name}は受け流した`, "heal");
       this._proc(tgt, "受け流し");
       if (bkValue(tgt,"afterImage")) tgt._afterImg = true;
@@ -3327,7 +3299,7 @@ export class Battle {
     // 技の命中補正 (acc) は命中率に直接加算する (0.1 = +10%、1 = 必中)。目つぶしは外れる確率を足す
     const missP = this._missP(tgt, actor, opt);
     if (!sureHit && random() < missP) {
-      T[tk + "e"]++; if (J) J[1]++;
+
       this.log(`${tgt.name}は回避`, "sys");
       if (enemyHit && bkValue(tgt,"afterImage")) tgt._afterImg = true; // 残影の (極): 次の自分の物理が強まる
       return { target: tgt, miss: true, evaded: true };
@@ -3445,7 +3417,6 @@ export class Battle {
     if (pr.immune) {
       // 無効: 傷ひとつ付かない (障壁も削れず、毒刃・怯ませ等の命中時効果も乗らない)
       this.log(`${actor.name}の${opt.name || "攻撃"}！ ${tgt.name}：${rKey === "magResist" ? "魔法" : "物理"}無効`, tgt.side === "party" ? "dmg" : "hit");
-      T[tk + "i"]++;
       return { target: tgt, dmg: 0, crit: false, died: false, immune: true, magic: magHit, offhand: !!opt.offhand };
     }
     dmg = Math.max(1, Math.round(pr.dmg * this._passiveCorrection(tgt, actor, aE, rKey === "physResist" ? "phys" : "magic", resistIgnore)));
@@ -3455,12 +3426,11 @@ export class Battle {
     // 金剛の護符 (guard): 被ダメを常に割合カット (LR装飾品)
     if (tgt.guard) dmg = Math.ceil(dmg * (1 - tgt.guard));
     dmg = Math.max(1, dmg);
-    if (actor.side === "enemy" && this._onceGuard(tgt, "firstGuard", "_fgUsed", "加護の祈り")) { T[tk + "i"]++; return { target: tgt, dmg: 0, crit: false, died: false, immune: true, magic: magHit, offhand: !!opt.offhand }; }
+    if (actor.side === "enemy" && this._onceGuard(tgt, "firstGuard", "_fgUsed", "加護の祈り")) { return { target: tgt, dmg: 0, crit: false, died: false, immune: true, magic: magHit, offhand: !!opt.offhand }; }
     // 金剛の守り (守護騎士のランク): 敵の物理を 5/8/12/20% で完全に受け止める
     if (actor.side === "enemy" && tgt.side === "party" && random() < this._rk(tgt, "guardianKongou", [0.05, 0.08, 0.12, 0.20])) {
       this.log(`${tgt.name}の金剛の守り：無傷`, "heal");
       this._proc(tgt, "金剛の守り");
-      T[tk + "i"]++;
       return { target: tgt, dmg: 0, crit: false, died: false, immune: true, magic: magHit, offhand: !!opt.offhand };
     }
     if (enemyHit) dmg = this._gearGuard(tgt, dmg, "phys"); // 逆境の・金城の (極)
@@ -3768,14 +3738,10 @@ export class Battle {
     let dealt = 0; // この技で与えた総ダメージ (drain / mpDrain の吸収量の基準)
     if (sp.kind === "escape") {
       // 確実な逃走 (煙玉など): 迷宮の異変で退路が閉ざされている時だけ失敗する
-      const T = this._tally();
-      T.ft++;
       if (this.noFlee) {
-        T.fs++;
         this.log("逃走不可（退路封鎖）", "dmg");
         res.fledFail = true;
       } else {
-        T.fo++;
         this.result = "flee";
         this.log("逃走成功", "sys");
         res.fled = true;
@@ -4104,10 +4070,8 @@ export class Battle {
     this.log(`${actor.name}は${it.name}を使用${owner !== actor ? `（${owner.name}の袋）` : ""}`, "hit");
     if (u.escape) {
       res.spellKind = "escape";
-      const T = this._tally();
-      T.ft++;
-      if (this.noFlee) { T.fs++; this.log("逃走不可（退路封鎖）", "dmg"); res.fledFail = true; }
-      else { T.fo++; this.result = "flee"; this.log("逃走成功", "sys"); res.fled = true; }
+      if (this.noFlee) { this.log("逃走不可（退路封鎖）", "dmg"); res.fledFail = true; }
+      else { this.result = "flee"; this.log("逃走成功", "sys"); res.fled = true; }
       return;
     }
     const tk = useTarget(it);

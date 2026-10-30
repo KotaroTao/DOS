@@ -5,7 +5,6 @@
 //   装い    … 迷宮を歩く操霊師の外套・縁取りの色 (端末の好み PREFS.walkerLook。game.setWalkerLook で盤面の駒も塗り直す)
 //   自動化  … オート継続・オート移動と見えている敵・宝箱は最良の解除役で開ける・朽ちた死体を自動で調べる・戦果を自動で閉じる・帰還時に宿で休む・まとめて売るに道具を含める
 //              UI の好み (prefs.js = dos-ui)。読むのは各パッケージ (WP-D の戦闘/盤面/帰還、街の宿)
-//   テスト記録 … 戦闘バランス調整用の記録 (telemetry.js) の ON/OFF・要約の閲覧・書き出し (コピー)・消去
 //   データ  … 保存してタイトルへ / 選んだ記録だけを削除してはじめから。決断は二段で、どちらも「やめておく」に手が掛かる並び
 // 提供: UI.openSettings() / UI.settingsSheet({onClose}) (game.js の openSettings が使う) / UI.confirmReset()
 // game.js は import しない (ctx.js の UI / game を通す)。
@@ -14,10 +13,10 @@ import { playerNameCard } from "./playername.js";
 import { UI, game, registerUI } from "./ctx.js";
 import { isDesktopLayout } from "../desktop.js";
 import { el, button, setText, sheet, segmented, toast } from "./kit.js";
-import { tlOn, tlSetOn, tlClear, tlHasData, tlSummary, tlStabilitySummary, tlExportText, tlPastCount, tlPastSummary } from "../telemetry.js";
 import { getPref, setPref, remember, autoMoveAvoid, setAutoMoveAvoid } from "./prefs.js";
 import { SFX, audioDebug } from "../audio.js";
-import { walkerLook, normalizeLook, WALKER_CLOAKS, WALKER_TRIMS } from "../walkerart.js";
+import { normalizeLook, WALKER_CLOAKS, WALKER_TRIMS } from "../walkerart.js";
+import { cryptWalkerBitmap, prewarmCryptActors } from "../cryptactors.js";
 import { cloudEnabled, cloudAccount, cloudGuest, cloudManageAccount } from "../cloud-save.js";
 
 const sfx = (k) => { try { if (SFX[k]) SFX[k](); } catch (e) { /* noop */ } };
@@ -153,19 +152,11 @@ function fillSound(box) {
   box.appendChild(toggleRow({ name: "強化・弱体の演出", desc: "技・パッシブ・迷宮の掟で強化・弱体が掛かった時に光と文字を出し、その時に札を出す (切ると戦闘のテンポが上がる)", on: P.buffFx !== false, onChange: (v) => {
     P.buffFx = v; if (game.savePrefs) game.savePrefs(); sfx("select");
   } }));
-  box.appendChild(toggleRow({ name: "戦闘演出 倍速", desc: "戦闘のアニメーションを速める (切ると速さ 1/2)", on: !!G.fastAnim, onChange: (v) => {
+  box.appendChild(toggleRow({ name: "戦闘演出 倍速", desc: "戦闘のアニメーションを速める", on: !!G.fastAnim, onChange: (v) => {
     G.fastAnim = v; sfx("select"); if (game.autosave) game.autosave();
   } }));
 }
 // 区分「装い」: 迷宮を歩く操霊師の色。4方向の見本と、外套・縁取りの色見本 (押すとすぐ変わる)
-function walkerCanvas(fr, k) {
-  const rows = fr.art, h = rows.length, w = rows.reduce((m, r) => Math.max(m, r.length), 0);
-  const c = el("canvas", "stg-wk-c");
-  c.width = w * k; c.height = h * k;
-  const g = c.getContext("2d");
-  rows.forEach((r, y) => { for (let x = 0; x < r.length; x++) { const col = fr.palette[r[x]]; if (!col) continue; g.fillStyle = col; g.fillRect(x * k, y * k, k, k); } });
-  return c;
-}
 function fillLook(box) {
   const P = game.PREFS || {};
   box.appendChild(sec("操霊師の装い"));
@@ -174,9 +165,17 @@ function fillLook(box) {
   const rows = [];
   const draw = () => {
     const look = normalizeLook(P.walkerLook);
-    const W = walkerLook(look);
     prev.textContent = "";
-    for (const d of ["down", "left", "up", "right"]) prev.appendChild(walkerCanvas(W[d], 3));
+    for (const d of ["down", "left", "up", "right"]) {
+      const frame = cryptWalkerBitmap(d, look);
+      if (!frame) continue;
+      const c = document.createElement("canvas");
+      c.width = frame.w; c.height = frame.h;
+      c.style.cssText = "width:calc((100% - 42px)/4);height:auto;image-rendering:auto";
+      c.getContext("2d").drawImage(frame.c, 0, 0);
+      c.setAttribute("aria-label", {down:"正面",left:"左向き",up:"背面",right:"右向き"}[d]);
+      prev.appendChild(c);
+    }
     for (const r of rows) r.sync(look);
   };
   const pickRow = (name, desc, list, key) => {
@@ -208,6 +207,7 @@ function fillLook(box) {
   pickRow("外套", "迷宮を歩く姿の外套の色", WALKER_CLOAKS, "cloak");
   pickRow("縁取り", "外套の刺繍と、頭巾の奥の目の光", WALKER_TRIMS, "trim");
   draw();
+  prewarmCryptActors().then(() => { if (prev.isConnected) draw(); });
 }
 function fillAuto(box) {
   box.appendChild(sec("自動化"));
@@ -230,19 +230,6 @@ function fillAuto(box) {
     amRow.appendChild(line);
   }
   box.appendChild(amRow);
-  box.appendChild(sec("テスト記録"));
-  const logRow = el("button", "stg-row stg-danger stg-log");
-  logRow.type = "button";
-  const lt = el("span", "stg-row-t");
-  lt.appendChild(setText(el("span", "stg-row-n"), "記録を見る・書き出す"));
-  logRow.appendChild(lt);
-  logRow.appendChild(el("span", "stg-danger-b stg-log-b", "開く"));
-  logRow.addEventListener("click", () => { sfx("select"); openTestLog(); });
-  box.appendChild(toggleRow({ name: "テスト記録", desc: "戦闘・安定度・赤い魂の集計 (端末内のみ・送信しない)", on: tlOn(), onChange: (v) => {
-    tlSetOn(v); sfx("select"); logRow.classList.toggle("hidden", !v && !tlHasData());
-  } }));
-  logRow.classList.toggle("hidden", !tlOn() && !tlHasData());
-  box.appendChild(logRow);
   box.appendChild(sec("データ"));
   const title = el("button", "stg-row");
   title.type = "button";
@@ -296,94 +283,6 @@ export function settingsSheet({ onClose } = {}) {
     };
   }
   return h;
-}
-
-// ---- テスト記録 (telemetry.js) ----
-// 文字列をクリップボードへ。navigator.clipboard → 隠し textarea + execCommand の順に試す
-function copyText(text) {
-  const legacy = () => {
-    try {
-      const ta = document.createElement("textarea");
-      ta.value = text;
-      ta.setAttribute("readonly", "");
-      ta.style.cssText = "position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;";
-      document.body.appendChild(ta);
-      ta.select();
-      ta.setSelectionRange(0, text.length);
-      const ok = document.execCommand("copy");
-      ta.remove();
-      return ok;
-    } catch (e) { return false; }
-  };
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    return navigator.clipboard.writeText(text).then(() => true, () => legacy());
-  }
-  return Promise.resolve(legacy());
-}
-
-// コピーできなかった時: 全文を選べる枠で見せる (長押し → すべて選択 → コピー)
-function showExportText(text) {
-  sheet.open({
-    kind: "info", banner: "テスト記録", title: "この文字をすべて選んでコピーしてください", className: "stg-sheet stg-log-sheet",
-    body: (root) => {
-      const ta = document.createElement("textarea");
-      ta.className = "stg-log-ta";
-      ta.readOnly = true;
-      ta.value = text;
-      root.appendChild(ta);
-      setTimeout(() => { try { ta.focus(); ta.select(); } catch (e) { /* noop */ } }, 50);
-    },
-    footer: [{ label: "閉じる", kind: "secondary", onTap: (s) => { sfx("select"); s.close(); } }],
-  });
-}
-
-function openTestLog() {
-  const sum = tlSummary();
-  const stability = tlStabilitySummary();
-  if (stability.length) sum.unshift({ head:stability[0], lines:stability.slice(1) });
-  sheet.open({
-    kind: "info", banner: "テスト記録", className: "stg-sheet stg-log-sheet",
-    title: tlOn() ? "記録中" : "記録は止まっている",
-    body: (root) => {
-      if (!sum.length && !tlPastCount()) { root.appendChild(setText(el("p", "stg-log-empty"), "まだ記録がない。迷宮に潜ると、階ごと・戦闘ごとに集まっていく。")); return; }
-      const block = (d) => {
-        const b = el("div", "stg-log-d");
-        b.appendChild(setText(el("div", "stg-log-h"), d.head));
-        for (const l of d.lines) b.appendChild(setText(el("div", "stg-log-l"), l));
-        root.appendChild(b);
-      };
-      for (const d of sum) block(d);
-      // 過去版 (デプロイで版が変わる前の記録) も同じ形で下に並べる
-      for (const h of tlPastSummary()) {
-        block({ head: `【${h.head}】`, lines: h.stability.length ? h.stability : [] });
-        for (const d of h.dungeons) block(d);
-      }
-    },
-    footer: [
-      { label: "書き出す (コピー)", kind: "primary", onTap: () => {
-        sfx("select");
-        const text = tlExportText();
-        copyText(text).then((ok) => {
-          if (ok) toast("テスト記録をコピーした ― そのまま貼り付けて送れる", { tone: "good" });
-          else showExportText(text);
-        });
-      } },
-      ...(tlPastCount() ? [{ label: `過去版も書き出す (${tlPastCount()}件)`, kind: "secondary", onTap: () => {
-        sfx("select");
-        const text = tlExportText({ past: true });
-        copyText(text).then((ok) => {
-          if (ok) toast("過去版を含めてコピーした ― そのまま貼り付けて送れる", { tone: "good" });
-          else showExportText(text);
-        });
-      } }] : []),
-      { label: "記録を消す", kind: "secondary", onTap: (s) => {
-        sfx("select");
-        dangerConfirm({ banner: "テスト記録", title: "テスト記録を消しますか？", lines: ["集計した能力値と戦闘の記録がすべて消える。", "(セーブデータには影響しない)"], okLabel: "消す" })
-          .then((ok) => { if (ok) { tlClear(); s.close(); toast("テスト記録を消した", { tone: "info" }); } });
-      } },
-      { label: "閉じる", kind: "secondary", onTap: (s) => { sfx("select"); s.close(); } },
-    ],
-  });
 }
 
 // 取り消しが既定の決断 (「やめておく」が先頭でフォーカスを持つ)。Promise<boolean>

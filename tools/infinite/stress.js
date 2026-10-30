@@ -8,9 +8,8 @@ window.runInfStress = async ({seed, endFloor, rank=3, limit=3}) => {
   const {planBestEquip,applyPlan}=await import('/src/autoequip.js');
   const {infLevel,rollInfRule}=await import('/src/abyss.js');
   const {reseedRng,random}=await import('/src/rng.js');
-  const {tlSetOn}=await import('/src/telemetry.js');
   const G=__game.G, inf=__game.inf, sim=window.__stress;
-  tlSetOn(false);reseedRng(seed);setResistKnown(()=>true);
+  reseedRng(seed);setResistKnown(()=>true);
   G.state='town';G.abyss=null;G.party=[];G.reserve=[];G.inventory=[];G.souls=[];setSharedSouls(G.souls);
   G.events={once:{},flags:{}};
   const jobs=['fighter','knight','samurai','priest','mage','thief'];

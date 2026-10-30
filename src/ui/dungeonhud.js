@@ -4,7 +4,7 @@ import { isDesktopLayout, onDesktopLayoutChange } from "../desktop.js";
 // 提供する契約: UI.openDungeonMenu() (手帳 = 迷宮の一時停止シート)
 //
 //   行動ドック   … #hint を置き換える画面下の 52px。いま取れる行動だけを大きく (▼ 降りる / ⌂ 帰還)
-//   手帳         … 階の情報・迷宮の異変・隊を見る・記録を読む・図鑑・ヘルプ・酒場の噂話・ストーリー・今回の収穫・帰還・探索の手間・設定
+//   手帳         … 階の情報・迷宮の異変・隊を見る・図鑑・ヘルプ・酒場の噂話・ストーリー・今回の収穫・帰還・探索の手間・設定
 //   階の情報     … 見出しの迷宮名を押すと開く。特別な階・強敵・異変・無限迷宮の風の掟の説明を読み返せる
 //   今回の収穫   … 記録の上の「今回の収穫」ボタンを押すと開く。得た品 (鑑定済みは押せば図鑑・未鑑定は品の詳細)・魂 (押せば職業の図鑑)・成長・倒した数
 //   覗き見       … 隊の札を長押し (戦闘中。迷宮では長押しで持ち上げて隊列を並べ替え、動かさず離せば覗く) / 敵を長押し (特徴・スキル)
@@ -360,7 +360,7 @@ const TOGGLES = [
 ];
 // 戦闘中の手帳に並べる切り替え (倍速はセーブの G.fastAnim、ほかは端末の好み)
 const COMBAT_TOGGLES = [
-  { key: "fastAnim", label: "戦闘演出 倍速", sub: "切ると演出が 1/2 の速さに",
+  { key: "fastAnim", label: "戦闘演出 倍速", sub: "戦闘のアニメーションを速める",
     get: () => { const g = G(); return !!(g && g.fastAnim); },
     set: (v) => { const g = G(); if (!g) return; g.fastAnim = v; if (game.autosave) game.autosave(); } },
   { key: "autoKeep", label: "オートを続ける", sub: "次の戦闘も。主・強敵で止まる" },
@@ -441,7 +441,6 @@ export function openDungeonMenu() {
       grid.appendChild(combat ? menuTile("party", "隊を見る", "戦闘中は開けない", null)
         : menuTile("party", "隊を見る", "装備・能力・道具", go(() => UI.openParty(0, { context: "dungeon" }))));
       grid.appendChild(menuTile("loot", "今回の収穫", `💰${r.gold || 0} ✦${r.soulPts || 0} 品${(r.items || []).length}`, go(openRunLoot)));
-      grid.appendChild(menuTile("scroll", "記録を読む", "出来事の全文", go(openLog)));
       if (game.featureUnlocked?.("codex")) grid.appendChild(menuTile("book", "図鑑", "敵・品・見聞", go(() => UI.openCodexSheet && UI.openCodexSheet({ dungeonIdx: g.dungeonIdx }))));
       // ヘルプ (酒場で書き留めた話もタブで) とストーリー。街の同じボタンと同じ画面を開く
       grid.appendChild(menuTile("help", "ヘルプ・酒場の噂話", "機能の手引き・聞いた話", go(() => UI.openHelp && UI.openHelp())));
@@ -461,7 +460,7 @@ export function openDungeonMenu() {
       label.appendChild(el("span", "stg-row-d", "迷宮内の歩み・カードめくりの速さ"));
       speed.appendChild(label);
       const prefs = game.PREFS || {};
-      speed.appendChild(segmented([1, 2, 3, 4].map(n => ({ key: String(n), label: `${n}倍` })), String(prefs.walkSpeed || 2), k => {
+      speed.appendChild(segmented([1, 2, 3, 4].map(n => ({ key: String(n), label: `${n}倍` })), String(prefs.walkSpeed || 1), k => {
         prefs.walkSpeed = Number(k); game.savePrefs?.(); sfx("select");
       }));
       b.appendChild(speed);

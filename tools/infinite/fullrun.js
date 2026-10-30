@@ -5,7 +5,6 @@ window.runFull=async({seed,end=100,profile="chapter8"})=>{
  const {EVENT_MAP}=await import('/src/events.js');
  const {rollStartSouls}=await import('/src/abyss.js');
  const {reseedRng}=await import('/src/rng.js');
- const {tlSetOn}=await import('/src/telemetry.js');
  const {planBestEquip,applyPlan}=await import('/src/autoequip.js');
  const {SOUL_CLASSES,jobStatsOf,soulLearnedPassives,subPickCap,toggleSubPick}=await import('/src/souls.js');
  const {ITEMS,useHelps}=await import('/src/items.js');
@@ -26,7 +25,7 @@ window.runFull=async({seed,end=100,profile="chapter8"})=>{
  const sink={mode:'board',note(){},gold(){},lost(){},interrupt(){},loot(it,who,next){if(next)__fullQueue.push(next);}};
  window.__fullResults=spec=>{const next=()=>{G.prompt=false;spec.onDone?.();};if(spec.chest?.openers.length)spec.chest.open(spec.chest.openers[0].uid,sink,next);else next();};
  const drain=()=>{for(let n=0;__fullQueue.length&&n<100;n++){if(G.state==='combat'||G.state==='simLost')break;__fullQueue.shift()();}if(__fullQueue.length>100)throw Error('画面の連鎖が多すぎる');};
- tlSetOn(false);G.events={once:{},flags:{},seen:{},picks:{},fresh:[]};for(const e of Object.values(EVENT_MAP))if(e.gift&&(profile==='all'||(profile==='chapter8'&&/^w[0-9]+$/.test(e.dungeonId)&&Number(e.dungeonId.slice(1))<=33)))G.events.once[e.id]=true;reseedRng(seed);
+ G.events={once:{},flags:{},seen:{},picks:{},fresh:[]};for(const e of Object.values(EVENT_MAP))if(e.gift&&(profile==='all'||(profile==='chapter8'&&/^w[0-9]+$/.test(e.dungeonId)&&Number(e.dungeonId.slice(1))<=33)))G.events.once[e.id]=true;reseedRng(seed);
  const priority=['priest','samurai','knight','mage','thief','fighter','monk','bishop','sage','ranger','paladin'];
  const picks=[];
  for(let i=0;i<6;i++){const opts=rollStartSouls(picks);opts.sort((a,b)=>(priority.indexOf(a)<0?99:priority.indexOf(a))-(priority.indexOf(b)<0?99:priority.indexOf(b)));picks.push(opts[0]);}

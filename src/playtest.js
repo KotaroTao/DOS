@@ -1,5 +1,5 @@
 // 序盤の試遊記録。通常のセーブ・戦闘集計とは別に、この端末だけに保存する。
-import { TEST_BUILD } from "./telemetry.js";
+export const TEST_BUILD = "dos-dev";
 const KEY = "dos-playtests-v1";
 const LIMIT = 600;
 let session = null, context = () => ({}), timer = null, last = 0, inputAt = 0, visible = true;

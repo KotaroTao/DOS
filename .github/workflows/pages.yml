@@ -71,9 +71,9 @@ jobs:
           v="dos-${GITHUB_SHA::12}"
           if [ "$CLOUD_SAVE_ENABLED" = true ]; then v="${v}-cloud-${GITHUB_RUN_ID}"; fi
           sed -i "s/^const CACHE = \"dos-dev\";/const CACHE = \"$v\";/" sw.js
-          sed -i "s/^export const TEST_BUILD = \"dos-dev\";/export const TEST_BUILD = \"$v\";/" src/telemetry.js
+          sed -i "s/^export const TEST_BUILD = \"dos-dev\";/export const TEST_BUILD = \"$v\";/" src/playtest.js
           grep -q "^const CACHE = \"$v\";" sw.js || { echo "sw.js の CACHE を書き換えられませんでした"; exit 1; }
-          grep -q "^export const TEST_BUILD = \"$v\";" src/telemetry.js || { echo "テスト記録の版を書き換えられませんでした"; exit 1; }
+          grep -q "^export const TEST_BUILD = \"$v\";" src/playtest.js || { echo "試遊の版を書き換えられませんでした"; exit 1; }
           grep -n "^const CACHE" sw.js
       # ゲームが読まないもの (制作記録・原画・道具・確認用の画像) を公開物から外す。
       # GitHub Pages の公開サイトは 1GB まで。リポジトリ全体は 949MB あり、
