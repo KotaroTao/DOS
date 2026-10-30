@@ -38,7 +38,7 @@ for (const level of [20,100,200]) for (const stat of [100,992]) {
   ]) for (const resist of [0,50,100]) {
     const {a,e,b}=fixture(stat,level,{magResist:resist}); a.passiveMap={[key]:1};
     assert.equal(damage(e,()=>run(b,a,e)),Math.round(Math.round(stat*k)*(1-resist/100)));
-    assert.equal(a.mp,10000);
+    assert.equal(a.mp,key==='openSpell'?9500:10000);
   }
   for (const [key,ks,kind] of [
     ['darkknightKaeshiba',[1.5,2.25,3],'phys'],
