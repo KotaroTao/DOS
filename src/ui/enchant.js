@@ -2,7 +2,7 @@
 import { UI, game, registerUI } from "./ctx.js";
 import { el, button, sheet, confirm as askConfirm, toast } from "./kit.js";
 import { itemName, SLOTS } from "../items.js";
-import { bukonText as fullBukonText, bukonSlots, bukonDef, attachBlock, fusionPlan, fusionGold, bulkFusionPlan, maxFusionLevel, BUKON_RARITIES } from "../bukon.js";
+import { bukonText as fullBukonText, bukonName, bukonDescription, bukonSlots, bukonDef, attachBlock, fusionPlan, fusionGold, bulkFusionPlan, maxFusionLevel, BUKON_RARITIES } from "../bukon.js";
 import { slotCell } from "./party.js";
 const bukonText = b => fullBukonText(b, { showRarity: false });
 export const ENCHANT_NOTE = "武魂は装備を使った者の魂が宿ったもの。対応部位だけに無料で宿し、外せる。珍しい装備ほど多くの武魂を宿せる。同効果は1装備に1つ。売却・廃棄・素材化で商会へ戻る。加算系はLv上限なし、他はLv10まで。借用枠追加・持続延長・能力低下反転はレベルなし。特殊効果は人業ごとに同種の最高Lvだけが働く。";
@@ -28,19 +28,21 @@ function action(type,it,b,done) {
   if (!game.bukonAction(type,it,b)) { toast("操作できません。条件と所持数を確認してください。"); return; }
   done?.();
 }
-function bukonLabel(b){const node=el("span","",bukonText(b));node.style.color=BUKON_RARITIES[bukonDef(b.k)?.rarity||0].color;return node;}
+function bukonLabel(b){const node=el("span","",bukonDescription(b));node.style.color=BUKON_RARITIES[bukonDef(b.k)?.rarity||0].color;return node;}
 function openStockDetail(b) {
   const def=bukonDef(b.k);
   let h;
-  h=sheet.open({title:def.name,className:"ec-sheet bk-sheet",body:body=>{
-    body.append(bukonLabel(b),el("p","bk-meta",`個数：${BigInt(b.count).toLocaleString()} · 対応：${def.slots.map(x=>PARTS[x]).join("・")}`),el("p","rf-note",b.protected?"合成保護中":"合成保護なし"));
-    if(def.max===1)body.append(el("p","rf-note","レベルなし・合成対象外。同じ機能は重複しない。"));
+  h=sheet.open({title:bukonName(b),className:"ec-sheet bk-sheet",body:body=>{
+    body.append(bukonLabel(b),el("p","bk-meta",`対応：${def.slots.map(x=>PARTS[x]).join("・")}`),el("p","rf-note",b.protected?"合成保護中":"合成保護なし"));
+    if(def.max===1)body.append(el("p","rf-note","合成対象外。同じ機能は重複しない。"));
   },footer:[{label:"閉じる",kind:"ghost",onTap:()=>h.close()}]});
 }
 function stockRow(b, done, { it = null, installed = null } = {}) {
   const def=bukonDef(b.k),row=el("div","bk-stock-row");
-  const main=button({label:def.name,kind:"ghost",onTap:()=>openStockDetail({...b,count:b.count||1})});
+  const main=button({label:bukonName(b),kind:"ghost",onTap:()=>openStockDetail(b)});
   main.classList.add("bk-stock-main");
+  const name=bukonName(b);
+  main.querySelector(".ui-btn-l").replaceChildren(el("span","bk-name-label",def.name),el("span","bk-name-value",name.slice(def.name.length)));
   const gem=el("i","bk-gem");gem.setAttribute("aria-hidden","true");main.prepend(gem);main.style.color=BUKON_RARITIES[def.rarity].color;row.append(main);
   if(installed!==null){row.append(button({label:"外す",kind:"ghost",disabled:!!(it.locked||it.cursed),onTap:()=>action("detach",it,installed,done)}));return row;}
   if(it)row.append(button({label:"宿す",kind:"primary",onTap:()=>action("attach",it,b,done)}));
@@ -128,16 +130,6 @@ export function renderEnchantList(parent, { doll = null } = {}) {
         const it=selected.equip?.[k];if(it&&!matches(it)||!it&&(query||part!=="all"))continue;
         const cell=slotCell(selected,k,{onPick:it=>{if(it)openGear(it,draw);}});
         cell.disabled=!it;
-        if(it){
-          const icon=cell.querySelector(".pt-slot-ic"),column=el("span","bk-slot-icon"),sockets=el("span","bk-sockets");
-          sockets.setAttribute("aria-label",`武魂 ${(it.bukon||[]).length}/${bukonSlots(it)}枠`);
-          for(let i=0;i<bukonSlots(it);i++){
-            const b=it.bukon?.[i],socket=el("i",b?"bk-socket bk-gem":"bk-socket");
-            if(b)socket.style.color=BUKON_RARITIES[bukonDef(b.k).rarity].color;
-            sockets.append(socket);
-          }
-          icon.replaceWith(column);column.append(icon,sockets);
-        }
         list.append(cell);
       }
       wrap.append(list);return;

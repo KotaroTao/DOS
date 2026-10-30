@@ -759,3 +759,9 @@ html.pc-input .ui-sheet.ec-source-sheet { max-width: 720px; }
 .bk-sheet .bk-stock-row { margin-bottom:6px; }
 @media(max-width:400px){ .bk-sheet .bk-stock-row>.ui-btn { padding-inline:5px; font-size:12px; } }
 .bk-panel .wpc-lhead > .ui-btn { margin-left:auto; }
+
+/* 長い名前でも、末尾の加算値・割合は残す。 */
+.bk-stock-main .ui-btn-t { flex:1; align-items:stretch; }
+.bk-stock-main .ui-btn-l { display:flex; }
+.bk-name-label { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.bk-name-value { flex:none; white-space:pre; }

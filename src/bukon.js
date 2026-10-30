@@ -65,15 +65,29 @@ export const validBukon=b=>!!(b&&bukonDef(b.k)&&Number.isSafeInteger(b.lv)&&b.lv
 export const bukonSlots=it=>BUKON_SLOTS[rarityKey(it)]||1;
 export function bukonExact(b){const d=bukonDef(b?.k);return validBukon(b)?BigInt(Math.round(d.base*100))*BigInt(b.lv)/100n:0n;}
 const amount=b=>bukonDef(b.k).base*b.lv;
+// 一覧の名前と、詳細の効果説明は同じ値から作る。加算値は大きなLvでも丸めない。
+export function bukonName(b) {
+ if(!validBukon(b))return "不明な武魂";
+ const d=bukonDef(b.k);
+ if(d.kind==="flat")return `${d.name} +${bukonExact(b).toLocaleString("ja-JP")}`;
+ if(d.max===1)return d.name;
+ const v=amount(b),shown=d.stat==="fortress"?100-v:d.stat==="throw"?100+v:d.stat==="stepIn"?50+v:v;
+ return `${d.name} ${shown.toLocaleString("ja-JP")}%`;
+}
+export function bukonDescription(b) {
+ if(!validBukon(b))return "不明な武魂";
+ const d=bukonDef(b.k),v=amount(b),n=v.toLocaleString("ja-JP");
+ if(d.kind==="flat")return `${d.name.replace(/加算$/, "")}が${bukonExact(b).toLocaleString("ja-JP")}上昇`;
+ if(d.kind==="legacy")return d.legacy.text(v/100,25);
+ if(d.kind==="elementAttack")return `${d.name.replace(/上昇$/, "")}が${n}%上昇`;
+ if(d.kind==="elementDefense")return `${d.stat==="all"?"全属性ダメージ":d.name.replace(/軽減$/, "")}を${n}%軽減`;
+ if(d.kind==="special")return specialText(d,v,b.lv).replaceAll("最高Lv", "最も強い効果").replaceAll("推奨Lvで成長", "迷宮の推奨レベルに応じて成長");
+ return `${d.name.replace(/上昇$/, "")}が${n}%上昇`;
+}
 export function bukonText(b, { showRarity = true } = {}){
  if(!validBukon(b))return "不明な武魂";
- const d=bukonDef(b.k),v=amount(b),n=v.toLocaleString("ja-JP"),r=BUKON_RARITIES[d.rarity];
- let effect=d.kind==="flat"?`+${n}`:`+${n}%`;
- if(d.kind==="legacy")effect=d.legacy.text(v/100,25);
- if(d.kind==="elementAttack")effect=`属性ダメージ${100+v}%`;
- if(d.kind==="elementDefense")effect=`${n}%軽減（同属性合計80%まで）`;
- if(d.kind==="special")effect=specialText(d,v,b.lv);
- return `${showRarity ? r.name+" " : ""}${d.max===1?"":`Lv${b.lv} `}${d.name}の武魂：${effect}`;
+ const d=bukonDef(b.k),r=BUKON_RARITIES[d.rarity];
+ return `${showRarity ? r.name+" " : ""}${bukonName(b)}：${bukonDescription(b)}`;
 }
 function specialText(d,v,lv){
  const n=v.toLocaleString("ja-JP");
