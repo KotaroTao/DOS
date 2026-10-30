@@ -1,7 +1,7 @@
 // 公開時にService Workerと同じ版を入れ、通知前に切り替わった更新も検出する。
 export const APP_VERSION = "dos-dev";
 
-// 公開更新は知らせるだけにし、遊んでいる画面を勝手に読み直さない。
+// 通常の冒険は保存を終えてから公開済みの版へ切り替える。試遊は確認を残す。
 export function watchGameUpdates({ serviceWorker, testPlay = false, applyUpdate }) {
   if (!serviceWorker) return;
   const hadController = !!serviceWorker.controller;
@@ -16,19 +16,23 @@ export function watchGameUpdates({ serviceWorker, testPlay = false, applyUpdate 
     message.setAttribute("role", "status");
     message.textContent = testPlay
       ? "新しい版があります。このまま試遊を続けられます。更新すると試遊の進行は失われ、開始時点に戻ります。"
-      : "新しい版があります。このまま冒険を続けられます。更新する時は記録の保存を待ってタイトルへ戻ります。";
+      : "新しい版があります。記録の保存を待って、自動で更新します。";
     const button = document.createElement("button");
     button.type = "button";
     button.textContent = testPlay ? "試遊を終了して更新" : "保存して更新";
     let applying = false;
-    button.addEventListener("click", async () => {
+    const apply = async () => {
       if (applying) return;
       if (testPlay && !confirm("試遊の進行は保存されません。試遊を終了して更新しますか？")) return;
       applying = true; button.disabled = true;
-      try { await applyUpdate(); }
+      try {
+        const result = await applyUpdate();
+        if (result === false) message.textContent = "保存を確認できるまで更新を待っています。保存できたら自動で更新します。";
+      }
       catch { message.textContent = "更新できませんでした。接続と記録の保存を確かめてから、もう一度お試しください。"; }
       finally { applying = false; button.disabled = false; }
-    });
+    };
+    button.addEventListener("click", apply);
     // 操作を冒険側のショートカットへ渡さない。自動進行は止めない。
     for (const type of ["click", "keydown", "keyup", "pointerdown", "pointerup", "touchstart", "touchend"]) {
       notice.addEventListener(type, e => e.stopPropagation());
@@ -36,7 +40,15 @@ export function watchGameUpdates({ serviceWorker, testPlay = false, applyUpdate 
     const later = document.createElement("button");
     later.type = "button"; later.textContent = "あとで";
     later.addEventListener("click", () => { notice.hidden = true; });
-    notice.append(message, button, later); document.body.append(notice);
+    if (testPlay) notice.append(message, button, later);
+    else notice.append(message, button);
+    document.body.append(notice);
+    if (!testPlay) {
+      // 接続準備中・保存失敗では画面を保ち、送信の完了後に再試行する。
+      apply();
+      const retry = setInterval(() => { if (document.visibilityState !== "hidden") apply(); }, 3000);
+      window.addEventListener("pagehide", () => clearInterval(retry), { once: true });
+    }
   };
   const checkVersion = () => {
     const controller = serviceWorker.controller;
@@ -71,7 +83,7 @@ export function watchGameUpdates({ serviceWorker, testPlay = false, applyUpdate 
     check();
     window.addEventListener("focus", check);
     document.addEventListener("visibilitychange", check);
-    const timer = setInterval(check, 60000);
+    const timer = setInterval(check, 15000);
     window.addEventListener("pagehide", () => clearInterval(timer), { once: true });
   }).catch(() => {});
 }
