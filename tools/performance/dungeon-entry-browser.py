@@ -70,9 +70,24 @@ async def main():
             await page.wait_for_function("__game.G.state==='board'")
             await page.wait_for_timeout(1000)
             assert await page.locator('.ui-scene-veil').evaluate('n=>getComputedStyle(n).opacity') == '1'
+            # 実際のindex.htmlの待機画面も調べる。遷移幕より上に出るゲーム名の再表示を防ぐ。
+            assert await page.locator('body').evaluate('n=>n.classList.contains("screen-loading")')
+            splash = page.locator('#media-splash')
+            assert await splash.is_visible()
+            assert (await splash.inner_text()).strip() == ''
+            assert await splash.evaluate('n=>getComputedStyle(n).backgroundColor') == 'rgb(0, 0, 0)'
+            assert await splash.locator('.media-brand, .media-pulse').count() == 0
             release.set()
             await page.wait_for_selector('.ui-scene-veil',state='detached',timeout=60000)
             assert await page.evaluate("__game.G.state==='board' && !document.body.classList.contains('scene-preparing')")
+            # ゲーム名を外しても取得失敗の説明と再試行は隠さない。
+            await page.evaluate('''async()=>{
+              const {holdIllustrations}=await import('/src/imageloading.js');
+              holdIllustrations('entry-failure',Promise.resolve(false));
+            }''')
+            await page.wait_for_function("document.querySelector('#media-splash').dataset.state==='error'")
+            assert '画像を読み込めませんでした' in await splash.inner_text()
+            assert await splash.locator('.media-retry').is_visible()
             print(motion+': 実際の迷宮入場で素材到着・盤面描画まで黒い幕を維持 OK',flush=True)
             await ctx.close()
         await browser.close()
