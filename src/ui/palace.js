@@ -1072,6 +1072,7 @@ function renderTreasury(body) {
 function renderPalace(root, api) {
   const g = G();
   if (!g) return;
+  UI.tutorialFacilityVisited?.("palace");
   // 他のタブ・街から入ってきた: 区分の指定が無ければ勅命から
   if (api && api.entered && !pendingSeg) { remember("seg", "palace", "decree"); resetCodexView(); resetPages(); }
   pendingSeg = false;
@@ -1101,7 +1102,7 @@ function renderPalace(root, api) {
     else if (k === "treasury") renderTreasury(body);
     else renderDecree(body);
   };
-  if (isDesktopLayout() && !game.tutorialAllowed?.()) {
+  if (isDesktopLayout() && !game.tutorialAllowed?.() && g.tut?.cur !== "insight") {
     wrap.classList.add("pc-palace");
     const menu = el("nav", "pc-palace-nav");menu.setAttribute("aria-label", "王宮での用事");
     const sub = remember("seg", "codex") || "mon";
@@ -1122,8 +1123,10 @@ function renderPalace(root, api) {
     if (k === "codex") resetCodexView(); // 図鑑を押したら 敵 / 最初の迷宮 から
     draw(k);
     softFade(body);
+    if (k === "codex") UI.tutorialEvent?.("codexOpened");
   }, { prefKey: "palace" });
   const codexIndex = segs.findIndex(s => s.key === "codex");
+  if (codexIndex >= 0) segBtn(segEl, codexIndex)?.classList.add("pl-codex-tab");
   refresh.top = () => { if (codexIndex >= 0) setBadge(segBtn(segEl, codexIndex), freshCounts().total || null); };
   segEl.classList.add("pl-seg");
   wrap.appendChild(segEl);

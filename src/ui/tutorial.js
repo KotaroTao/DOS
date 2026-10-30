@@ -38,6 +38,11 @@ export function tutState() {
   if (!t.base || typeof t.base !== "object") t.base = {};
   if (typeof t.step !== "number") t.step = 0;
   if (t.cur === undefined) t.cur = null;
+  // 設定から案内していた途中記録は、オルデンの挨拶から受け直す。
+  if (t.insightGuide !== 2) {
+    if (t.cur === "insight") { t.cur = null; t.step = 0; t.ev = {}; t.base = {}; }
+    t.insightGuide = 2;
+  }
   // 旧セーブで途中だった新職業の案内も、魂の付け替えへ引き継ぐ。
   if (["changeJob", "newJobParty"].includes(t.cur)) {
     t.cur = t.done.soulChange ? null : "soulChange";
@@ -115,7 +120,7 @@ function newJobSouls() {
 const anyBroken = () => allDolls().some((d) => d.isDoll && !d.alive);
 function atMansion() { return atFacility("party"); }
 const FACILITIES = {
-  settings: { name: "設定", target: '.hb-gear, .ui-header .ui-hbtn, #settingsBtn', hint: "歯車の『設定』を選ぶと、図鑑の手ほどきが始まります" },
+  palace: { name: "王宮", target: '.ui-tab[data-key="palace"]', hint: "『王宮』を選ぶと、オルデンが図鑑をご案内します" },
   party: { name: "人業の館", target: '.ui-tab[data-key="party"]', hint: "画面下の『人業の館』を選ぶと、イレーヌがご案内します" },
   shop: { name: "商会", target: '.ui-tab[data-key="shop"]', hint: "画面下の『商会』を選ぶと、手ほどきが始まります" },
   tavern: { name: "酒場", target: '.hb-tile-tavern', hint: "街の『酒場』を選ぶと、手ほどきが始まります" },
@@ -124,7 +129,6 @@ const FACILITIES = {
 const facilityOf = d => d.facility || (d.who === "irene" ? "party" : d.who);
 function atFacility(key) {
   if (!inTown()) return false;
-  if (key === "settings") return !!G_().settingsOpen || tutState()?.cur === "insight";
   const town = G_().town;
   if (key === "tavern") return town?.page === "tavern";
   // 門はタブではなく出撃シート。入口を押した時に gateVisited で開始する。
@@ -159,16 +163,15 @@ function gateVisited() {
 //   intro(note) = 導入 / steps = [{ text, hint, go(), target[], done?(), on?, skip?() }] / outro = 完了時の台詞
 const TUTS = [
   {
-    key: "insight", name: "図鑑と操霊師の見識", who: "irene", facility: "settings",
+    key: "insight", name: "図鑑と操霊師の見識", who: "olden", facility: "palace",
     open: () => !!game.featureUnlocked?.("insight"), used: () => false,
-    prepare() { game.prepareCodexTutorial?.(); },
-    intro: () => [["これまで倒した魔物は、図鑑に記録されています。設定の『図鑑』を押して、一体の情報を見てみましょう。"],
-      ["討伐を重ねると能力や生態も分かります。図鑑の充実ぶりを表すのが『操霊師の見識』です。"]],
+    prepare() { game.prepareCodexTutorial?.(); UI.openPalace?.("decree"); },
+    intro: () => ["ようこそ。王宮の書庫を預かるオルデンです。", "ここでは図鑑を読めます。まず『図鑑』を選んでみてください。"],
     steps: [
-      { text: "設定の『図鑑』を選ぶ", hint: "設定 → 図鑑", go: () => UI.openSettings?.(), target: [".stg-codex"], on: "codexOpened" },
-      { text: "倒した魔物の札を選び、情報を読む", hint: "光っている魔物の札 → 情報を読む → 閉じる", go: () => UI.openCodexSheet?.(), target: [".pl-card[data-tutorial-mon]"], on: "codexMonViewed" },
+      { text: "王宮の『図鑑』を選ぶ", hint: "王宮 → 図鑑", go: () => UI.openPalace?.("decree"), target: [".pl-codex-tab"], on: "codexOpened" },
+      { text: "魔物の札を選び、情報を読む", hint: "光っている魔物の札 → 閉じる", go: () => UI.openPalace?.("codex:mon"), target: [".pl-card[data-tutorial-mon]"], on: "codexMonViewed" },
     ],
-    outro: ["倒した魔物の記録は、図鑑が開く前から残っています。", "図鑑は設定からいつでも読めます。まだ伏せられた項目も、討伐を重ねると明らかになります。"],
+    outro: ["討伐を重ねると、能力や生態も明らかになります。図鑑の充実ぶりを表すのが『操霊師の見識』です。"],
   },
   {
     key: "repairSoul", name: "砕けた魂の修復", who: "irene",
@@ -564,8 +567,14 @@ function start(d, { prefix = [], onIntroEnd } = {}) {
   else introSheet(d, after);
   return true;
 }
-// 商会と酒場も、導入から締めくくりまで教え手の会話として進める。
+// 施設の案内は、導入から締めくくりまで教え手との会話で進める。
 function playTutorialScene(d, lines, done) {
+  if (d.who === "olden") {
+    playStoryChain(lines.flat().map(line => ({ title: d.name, kicker: "王宮の書庫番 オルデン", place: "palace",
+      who: { name: "オルデン", sub: "王宮の書庫番" }, photo: "art/tutorial/olden.webp",
+      lines: [`「${line}」`], btnLabel: "次へ" })), done);
+    return;
+  }
   const shop = d.who === "shop";
   const name = shop ? "ヴォス" : "情報屋";
   const art = () => shop ? keeperCanvas("merchant") : vignetteCanvas("tavern");
@@ -602,6 +611,10 @@ function advance(quiet = false) {
   st.step++;
   if (st.step >= d.steps.length) { finish(d); return false; }
   if (game.autosave) game.autosave(true);
+  if (d.key === "insight" && st.step === 1) {
+    busy = true;
+    playTutorialScene(d, ["魔物の札を選ぶと、詳しい情報を読めます。一体、調べてみましょう。"], () => { busy = false; schedule(); });
+  }
   if (!quiet) {
     sfx("select");
   }
@@ -832,7 +845,7 @@ function tutorialControls() {
   if (!d) return choose(first(document, ".hb-goal-go"));
   const st = tutState(), s = curStep();
   if (card) {
-    if (["insight", "soulChange", "sub1", "fusion"].includes(d.key) && h.body) {
+    if (["soulChange", "sub1", "fusion"].includes(d.key) && h.body) {
       let note = h.body.querySelector(":scope > .tut-step-note");
       if (!note) { note = el("div", "pt-note tut-step-note"); h.body.prepend(note); }
       const message = `手ほどき ${st.step + 1}/${d.steps.length}：${s.text}。${s.hint}`;
@@ -864,11 +877,7 @@ function tutorialControls() {
       return choose(rows);
     }
     if (h.opts.banner === "魂融合") return choose(first(card, ".sp-fuse-material"), first(card, ".sp-fuse-all"));
-    if (d.key === "insight") {
-      if (card.classList.contains("stg-sheet")) return st.step === 0 ? choose(first(card, ".stg-codex"), [h.body]) : forward(true);
-      if (card.classList.contains("cx-sheet") && !st.ev.codexMonViewed) return choose(first(card, ".pl-card[data-tutorial-mon]"), [h.body]);
-      return forward(true);
-    }
+    if (d.key === "insight") return forward(true);
     if (h.opts.banner === "宿し技をえらぶ") {
       const rows = first(card, ".ui-row");
       const close = forward();
@@ -954,7 +963,6 @@ export function install() {
     tutorialActive: () => busy || !!curDef(),
     tutorialPending: pending,
     tutorialResume: resume,
-    tutorialSettingsVisited: resume,
     tutorialAfterReport: afterReport,
     tutorialAfterReturn: afterReturn,
     tutorialEvent: onEvent,
