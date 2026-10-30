@@ -325,7 +325,7 @@ export function openTryIdentifyAll({ onDone } = {}) {
     }
     if (worn) wrap.appendChild(el("div", "ap-sum-worn", `装備した品 ${worn}点は一覧から外した。`));
     const sold = results.filter((x) => x.ok && !ownerOf(x.item)).length;
-    if (sold) wrap.appendChild(el("div", "ap-sum-worn", `売却・巻物化した品 ${sold}点は一覧から外した。`));
+    if (sold) wrap.appendChild(el("div", "ap-sum-worn", `売却した品 ${sold}点は一覧から外した。`));
     const fails = results.filter((x) => !x.ok);
     if (fails.length) {
       const f = el("div", "ap-sum-fail");

@@ -739,3 +739,13 @@ html.pc-input .ui-sheet.ec-source-sheet { max-width: 720px; }
 }
 
 .rf-note, .bk-sheet p { font-family: var(--font); word-break: keep-all; overflow-wrap: break-word; line-break: strict; text-wrap: pretty; }
+
+/* 保管中の武魂は一つにつき一行。詳しい数値は詳細で読む。 */
+.bk-panel .ec-list.bk-stock-list { grid-template-columns: minmax(0,1fr); }
+.bk-stock-row { display:flex; align-items:center; gap:6px; min-width:0; border-bottom:1px solid var(--line); }
+.bk-stock-row > .ui-btn { flex:none; min-height:44px; padding-inline:8px; }
+.bk-stock-row > .bk-stock-main { flex:1; min-width:0; text-align:left; justify-content:flex-start; }
+/* 色を受け継ぐ丸い宝石。白い光と暗い縁で立体感を付ける。 */
+.bk-gem { display:inline-block; flex:none; width:14px; height:14px; margin-right:7px; border-radius:50%; background:radial-gradient(circle at 30% 25%,#fff 0%,transparent 40%),radial-gradient(circle at 40% 35%,transparent 30%,#0009 100%),currentColor; box-shadow:inset 0 0 0 1px #ffffff55,0 0 5px currentColor; }
+.bk-stock-main .ui-btn-t { min-width:0; overflow:hidden; }
+.bk-stock-main .ui-btn-l { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
