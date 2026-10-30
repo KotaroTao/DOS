@@ -1,3 +1,4 @@
+import { showSaveMetrics } from "../save-metrics.js";
 // ===== 設定 — キットのシート (音量の目盛り・切り替え・自動化の好み・データ削除) =====
 // 担当: WP-A。⚙ (タブの見出し・盤面のトップバー) から開く。戻る操作 / 背景タップ / 下へ引く で閉じる。
 //   音      … サウンド ON/OFF・BGM と効果音の目盛り (指で引ける 0〜100)。端末の好み (dos-prefs)
@@ -253,6 +254,10 @@ function fillAuto(box) {
     account.addEventListener("click", () => cloudManageAccount());
     box.appendChild(account);
   } else box.appendChild(reset);
+  const metrics = el("button", "stg-row"); metrics.type = "button";
+  metrics.appendChild(setText(el("span", "stg-row-n"), "保存と通信の計測"));
+  metrics.appendChild(setText(el("span", "stg-row-d"), "この端末の計測結果を確認・書き出す"));
+  metrics.addEventListener("click", showSaveMetrics); box.appendChild(metrics);
 }
 function fill(root) {
   if (isDesktopLayout()) return fillDesktop(root);

@@ -1,3 +1,4 @@
+import { saveMetrics } from "./save-metrics.js";
 import { refreshPlayTime } from "./ui/playername.js";
 import { resetAutomationPrefs } from "./ui/prefs.js";
 import { encodeCloudSave, acknowledgeCloudSave } from "./save-codec.js";
@@ -18898,6 +18899,8 @@ const testScene = testScenes.find((s) => s.id === testParams.get("testScene"));
 // 無限迷宮の試遊 (docs/infinite-labyrinth.md 16-4): URL の testInf=階 (testInfLv=隊Lv、無ければその階の推奨Lv)
 const testInfFloor = Math.max(0, Math.min(999, Math.floor(Number(testParams.get("testInf"))) || 0));
 const testPlayActive = testDungeonIdx >= 0 || !!testScene || testInfFloor > 0;
+let _lastTrialSample = -Infinity;
+let _trialSampling = false;
 let _lastSave = 0;
 let _saveWarned = false;
 let _resetting = false; // データ削除→リロードの間に autosave が書き戻すのを防ぐ
@@ -18907,7 +18910,16 @@ let localSaveSession = null;
 let localSaveReady = false;
 function autosave(force = false) {
   if (_resetting) return;
-  if (testPlayActive) { codexSweepJobs(); notifyInsight(); return; }
+  if (testPlayActive) {
+    codexSweepJobs(); notifyInsight();
+    saveMetrics.trialTrigger();
+    if (!_trialSampling && performance.now() - _lastTrialSample >= 5000) {
+      _lastTrialSample = performance.now(); _trialSampling = true;
+      const snap = {}; for (const k of SAVE_FIELDS) snap[k] = G[k];
+      Promise.resolve().then(() => encodeCloudSave(snap, true)).then(raw => saveMetrics.trialSample(raw)).catch(() => {}).finally(() => { _trialSampling = false; });
+    }
+    return;
+  }
   if (!cloudEnabled() && (!localSaveReady || !localSaveSession?.owned)) return;
   if (cloudEnabled() && (!cloudReady() || _cloudResolving)) return;
   if (!G.party || (!cloudEnabled() && !G.party.length && !G.apprenticeName)) return;

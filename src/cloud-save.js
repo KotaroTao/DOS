@@ -1,3 +1,4 @@
+import { saveMetrics, utf8Bytes } from "./save-metrics.js";
 import { LEGAL_VERSION, showLegal } from "./legal.js";
 import { localSaveKey } from "./local-save.js";
 import { CLOUD_CONFIG } from "./cloud-config.js";
@@ -29,7 +30,10 @@ export class CloudSaveClient {
     this.blocking = 0; this.queuedSave = null; this.battleTurn = false; this.compactGraph = false; this.backgroundBattle = false;
     this.checkpointGeneration = 0; this.checkpointPersistedGeneration = 0; this.latestCheckpointId = null; this.checkpointTail = Promise.resolve();
   }
-  async fetchJSON(path, options = {}) {
+  async fetchJSON(path, options = {}, metricOp = null) {
+    const started = performance.now();
+    let received = 0, status = 0, ok = false;
+    const sent = metricOp ? utf8Bytes(options.body) : 0;
     // 大きな記録の戦闘応答は15秒を超える。認証と保存APIの期限を分ける。
     const timeoutMs = path.startsWith("/functions/") ? 60000 : 15000;
     const ctrl = new AbortController();
@@ -39,13 +43,21 @@ export class CloudSaveClient {
     }, timeoutMs); });
     const work = async () => {
       const r = await this.fetcher(this.config.url.replace(/\/$/, "") + path, { ...options, signal: ctrl.signal });
-      const data = await r.json().catch(() => null);
+      status = r.status;
+      let data = null;
+      if (metricOp) {
+        const raw = await r.text(); received = utf8Bytes(raw);
+        try { data = JSON.parse(raw); } catch { /* 既存と同じ失敗処理へ */ }
+      } else data = await r.json().catch(() => null);
       if (!r.ok) throw Object.assign(new Error(data?.error_description || data?.msg || data?.error || "通信に失敗しました"), { status: r.status, requestId: data?.requestId });
       if (!data) throw Object.assign(new Error("返答を読み取れません"), { status: 502 });
       return data;
     };
-    try { return await Promise.race([work(), timeout]); }
-    finally { clearTimeout(timer); }
+    try { const result = await Promise.race([work(), timeout]); ok = true; return result; }
+    finally {
+      clearTimeout(timer);
+      if (metricOp) { try { saveMetrics.record(metricOp, { sent, received, status, ok, ms: performance.now() - started }); } catch { /* 計測は保存の成否に影響させない */ } }
+    }
   }
 
   async authRequest(path, body) {
@@ -65,7 +77,7 @@ export class CloudSaveClient {
     const raw = requestJSON(body);
     const send = async (token) => this.fetchJSON("/functions/v1/game-save", { method: "POST",
       headers: { apikey: this.config.anonKey, Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: raw });
+      body: raw }, body.op);
     try { return await send(await this.token()); }
     catch (e) { if (e.status === 401) return send(await this.token(true)); throw e; }
   }
@@ -404,7 +416,7 @@ async function recoveryLogin(c) {
     form.addEventListener("submit", async (e) => {
       e.preventDefault(); if (!form.reportValidity() || b.disabled) return; b.disabled = true;
       try {
-        await c.fetchJSON("/auth/v1/user" + (body.email ? "?redirect_to=" + encodeURIComponent(location.origin + location.pathname) : ""), { method: "PUT", headers: { apikey: c.config.anonKey,
+        await c.fetchJSON("/auth/v1/user", { method: "PUT", headers: { apikey: c.config.anonKey,
           Authorization: `Bearer ${c.auth.access_token}`, "Content-Type": "application/json" }, body: JSON.stringify({ password: p.value }) });
         putJSON(AUTH_KEY, c.auth); resolve();
       } catch { message.textContent = "更新できませんでした。接続を確かめてください。"; }
