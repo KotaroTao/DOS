@@ -123,7 +123,7 @@ with sync_playwright() as p:
     before = page.evaluate('''()=>{const c=T.cell();c.type='monster';c.monsterKey='bs_ghoul';const {G}=__game;
       const foes=__game.spawnCardEnemies('bs_ghoul',1).slice(0,1);__game.startBattle(foes,c);
       for(const e of G.battle.enemies){e.hp=0;e.alive=false;e.mon={...e.mon,elite:true};}
-      G.battle.result='win';__game.ev.endBattle();return T.summary();}''')
+      G.battle.result='win';reloadCheck.endBattleMeasured();return T.summary();}''')
     assert before['results']['chest']['state']=='closed'
     reload(page)
     after = page.evaluate('T.summary()')
