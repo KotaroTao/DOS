@@ -2,7 +2,7 @@
 from playwright.sync_api import sync_playwright
 with sync_playwright() as p:
     browser=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox'])
-    for width in [320,390,768]:
+    for width in [320,390,768,937]:
         page=browser.new_page(viewport={'width':width,'height':844},service_workers='block',reduced_motion='reduce')
         errors=[]
         page.on('pageerror',lambda e:errors.append(str(e)))
@@ -13,8 +13,8 @@ with sync_playwright() as p:
           const clean=x=>x.replaceAll('\u200b','');const G=game.G;const check=(v,m)=>{if(!v)throw Error(m)};
           G.testPlay=true;G.state='town';G.testUnlock=['enchant','bukonFusion'];G.tut={done:{enchant:1,bukonFusion:1},midUnlockVersion:1};G.gold=10000;G.bukonStock={};G.bukonGift=true;
           b.stockAdd(G,{k:'flat_hp',lv:1},9);b.stockAdd(G,{k:'res_allElements',lv:10});b.stockAdd(G,{k:'J11',lv:10});
-          const holder=document.createElement('div');holder.id='bukon-test';document.body.append(holder);
-          const {renderEnchantList}=await import('/src/ui/enchant.js');renderEnchantList(holder);
+          UI.openShop('enchant');
+          const holder=document.querySelector('.bk-panel');
           const tab=[...holder.querySelectorAll('button')].find(x=>clean(x.textContent)==='保管中の武魂');check(!!tab,'タブがない: '+holder.textContent+' / '+game.enchantClosed());tab.click();
           check(clean(holder.textContent).includes('全属性耐性'),'全属性の表示');
           const red=[...holder.querySelectorAll('span')].find(x=>clean(x.textContent).includes('全属性耐性'));check(getComputedStyle(red).color==='rgb(255, 98, 98)','LRの赤');
@@ -24,7 +24,21 @@ with sync_playwright() as p:
             check(getComputedStyle(icon).backgroundColor===getComputedStyle(main).color,'宝石も格の色');
             check(row.getBoundingClientRect().right<=window.innerWidth,'行が画面内');
             check(row.getBoundingClientRect().height<90,'一行表示');
+            const label=main.querySelector('.ui-btn-l');
+            check(label.getBoundingClientRect().width>40,'名称がつぶれない');
+            for(const control of row.querySelectorAll('button'))check(control.getBoundingClientRect().right<=row.getBoundingClientRect().right+1,'操作が行内に収まる');
+            check(row.lastElementChild.getBoundingClientRect().width<100,'保護が行幅を占有しない');
           }
+          const featureUnlocked=game.featureUnlocked;
+          game.featureUnlocked=key=>key==='bukonFusion'?false:featureUnlocked(key);
+          tab.click();
+          check(!holder.querySelector('.bukon-tutorial-fuse'),'解放前に合成を隠す');
+          for(const row of holder.querySelectorAll('.bk-stock-row')) {
+            check(row.querySelector('.ui-btn-l').getBoundingClientRect().width>40,'解放前も名称が見える');
+            check(row.lastElementChild.getBoundingClientRect().right<=row.getBoundingClientRect().right+1,'解放前も保護が行内');
+          }
+          game.featureUnlocked=featureUnlocked;
+          [...holder.querySelectorAll('button')].find(x=>clean(x.textContent)==='保管中の武魂').click();
           holder.querySelector('.bk-stock-main').click();
           check(clean(document.body.textContent).includes('個数：'),'詳細に個数');
           check(clean(document.body.textContent).includes('対応：'),'詳細に部位');
