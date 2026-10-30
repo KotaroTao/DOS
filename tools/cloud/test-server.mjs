@@ -34,6 +34,7 @@ await import("../../supabase/functions/game-save/index.js");
 const server = createServer(async (req, res) => {
   let body = ""; for await (const part of req) body += part;
   let response;
+  const path = new URL(req.url, "http://127.0.0.1:8002").pathname;
   if (req.url === "/test/reset") {
     await db.exec(`delete from public.cloud_saves; insert into auth.users values ('${user.id}') on conflict do nothing;`);
     user.is_anonymous = true; user.email = ""; response = Response.json({});
@@ -41,9 +42,9 @@ const server = createServer(async (req, res) => {
   else if (req.url === "/test/confirm") { user.is_anonymous = false; response = Response.json({}); }
   else if (req.url === "/test/state") response = Response.json({ saves: (await db.query("select count(*)::int as n from public.cloud_saves")).rows[0].n, users: (await db.query("select count(*)::int as n from auth.users")).rows[0].n });
   else if (req.url.startsWith("/auth/v1/token")) { if (req.url.includes("grant_type=password")) user.is_anonymous = false; response = Response.json({ access_token: "test-token", refresh_token: "test-refresh", expires_in: 3600, user }); }
-  else if (req.url === "/auth/v1/signup") response = JSON.parse(body).email ? Response.json({ user }) : Response.json({ access_token: "test-token", refresh_token: "test-refresh", expires_in: 3600, user });
-  else if (req.url === "/auth/v1/recover") response = Response.json({});
-  else if (req.url === "/auth/v1/user") {
+  else if (path === "/auth/v1/signup") response = JSON.parse(body).email ? Response.json({ user }) : Response.json({ access_token: "test-token", refresh_token: "test-refresh", expires_in: 3600, user });
+  else if (path === "/auth/v1/recover") response = Response.json({});
+  else if (path === "/auth/v1/user") {
     if (req.method === "PUT") { const update = JSON.parse(body); user.email = update.email || user.email; }
     response = Response.json(user);
   }
