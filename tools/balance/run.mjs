@@ -1,6 +1,6 @@
 import { monsterResists } from "../../src/resistance.js";
 // 全36職の比較用。裸・同じ魂ランク・サブ魂なしで、攻撃指標と6人隊の模擬戦を測る。
-// node tools/balance/run.mjs --out /tmp/balance.json [--sim] [--seeds 2] [--levels 20,40,80,120,200] [--rounds 30]
+// node tools/balance/run.mjs --out /tmp/balance.json [--sim] [--seeds 2] [--levels 20,40,80,120,200] [--rounds 30] [--jobs crusader,arcanist,templar]
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import { Battle, SPELLS, spellCost, setElemKnown } from '../../src/combat.js';
@@ -19,6 +19,8 @@ const levels = arg('--levels', '20,40,80,120,200').split(',').map(Number);
 const seeds = Number(arg('--seeds', '2'));
 const ranks = arg('--ranks', '2').split(',').map(Number);
 const maxRounds = Number(arg('--rounds', '30'));
+const jobs = arg('--jobs', SOUL_KEYS.join(',')).split(',');
+assert(jobs.every(job=>SOUL_KEYS.includes(job)), '未定義の職業は指定できない');
 assert(Number.isInteger(maxRounds) && maxRounds > 0, '模擬戦のターン数は正の整数');
 assert(ranks.every(r=>Number.isInteger(r)&&r>=1&&r<=5),'魂ランクは1〜5');
 let rng = 1;
@@ -108,9 +110,9 @@ function simulate(job, level, tactic, scenario, runSeed) {
   return {job,level,tactic,scenario,seed:runSeed,result:b.result||'timeout',rounds:b._roundNo,damage,healing,spent,hp:party.reduce((s,a)=>s+Math.max(0,a.hp),0)/party.reduce((s,a)=>s+a.maxhp,0),choices};
 }
 const audits=[];
-for(const rank of ranks)for(const level of levels)for(const job of SOUL_KEYS)audits.push(audit(job,level,rank));
+for(const rank of ranks)for(const level of levels)for(const job of jobs)audits.push(audit(job,level,rank));
 const sims=[];
-if(args.includes('--sim'))for(const level of levels)for(const job of SOUL_KEYS)for(const tactic of TACTICS)for(const scenario of scenarios)for(let i=0;i<seeds;i++)sims.push(simulate(job,level,tactic.key,scenario,12345+i));
+if(args.includes('--sim'))for(const level of levels)for(const job of jobs)for(const tactic of TACTICS)for(const scenario of scenarios)for(let i=0;i<seeds;i++)sims.push(simulate(job,level,tactic.key,scenario,12345+i));
 const data={conditions:'裸・サブ魂なし・魂ランク2・残火でLv上限を拡張。職業のレア度差と融合補正は残す。模擬戦の隊構成は物理/術職で異なるため、勝率だけで全職を順位付けしない。',audits,sims};
 const output=arg('--out','/tmp/dos-balance.json');fs.writeFileSync(output,JSON.stringify(data));
 console.log(`${audits.length}職業条件・${sims.length}模擬戦を確認 → ${output}`);

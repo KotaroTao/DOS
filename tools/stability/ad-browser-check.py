@@ -1,8 +1,9 @@
-"""広告進行の全員20回復・上限・回復時計・一回限りの免除と、自然回復の表示更新を確認。localhost:8000。"""
+"""広告進行の全員20回復・通常消費・上限・回復時計と、自然回復の表示更新を確認。localhost:8000。"""
 from playwright.sync_api import sync_playwright
 
 VALUES = [0, 3, 19, 20, 80, 100]
-RECOVERED = [20, 23, 39, 40, 100, 100]
+ENTRY = [0, 3, 19, 20, 80, 80]
+FLOOR = [10, 13, 29, 30, 90, 90]
 with sync_playwright() as p:
     browser = p.chromium.launch(executable_path='/usr/bin/chromium', args=['--no-sandbox'])
     page = browser.new_page(viewport={'width': 390, 'height': 844}, service_workers='block')
@@ -24,27 +25,27 @@ with sync_playwright() as p:
     def advertisement():
         page.get_by_role('button', name='広告視聴で全員20回復して進む', exact=True).last.evaluate('b=>b.click()')
 
-    # 残量が混在する隊も全員20回復し100で止まる。通常の次回進行には免除を持ち越さない。
+    # 残量が混在する隊も全員20回復し100で止まる。回復直後にも入場20・階移動10を消費する。
     setup()
     page.evaluate("ctx.game.departNow({idx:__game.world.DUNGEONS.findIndex(d=>d.id==='w03')})")
     advertisement()
     page.wait_for_function('__game.G.state === "board"')
-    assert page.evaluate('__game.G.party.map(d=>d.stability)') == RECOVERED
+    assert page.evaluate('__game.G.party.map(d=>d.stability)') == ENTRY
     assert page.evaluate('__game.G.party.slice(0,4).every((d,i)=>d.stabilityAt===before[i].stabilityAt)')
     assert page.evaluate('__game.G.party[4].stabilityAt>before[4].stabilityAt')
     page.evaluate('setValues(__game.G.party);__game.G.floor=5;__game.inf.descend()')
     assert page.evaluate('__game.G.floor') == 5
     advertisement()
     assert page.evaluate('__game.G.floor') == 6
-    assert page.evaluate('__game.G.party.map(d=>d.stability)') == RECOVERED
+    assert page.evaluate('__game.G.party.map(d=>d.stability)') == FLOOR
     page.evaluate('__game.G.floor=10;__game.inf.descend()')
     assert page.evaluate('__game.G.floor') == 11
-    assert page.evaluate('__game.G.party.map(d=>d.stability)') == [v-10 for v in RECOVERED]
+    assert page.evaluate('__game.G.party.map(d=>d.stability)') == [v-10 for v in FLOOR]
     assert page.evaluate('__game.G.redSoul') == 0
     page.evaluate('setValues(__game.G.party);__game.G.floor=15;__game.inf.descend()')
     assert page.evaluate('__game.G.floor') == 15
     page.get_by_role('button', name='回復を待つ', exact=True).last.evaluate('b=>b.click()')
-    print('本編: 広告入場・5階ごとの広告進行は全員20回復・100上限、次回は通常10消費・不足時は再確認')
+    print('本編: 広告で20回復後に入場20・階移動10を消費、100上限、次回も10消費・不足時は再確認')
 
     # 開いたままの隊シートが、5秒ごとの自然回復処理で表示も更新する。
     page.evaluate('''()=>{
@@ -98,8 +99,8 @@ with sync_playwright() as p:
       __game.inf.enterAbyss(picks);
     }''')
     advertisement()
-    assert page.evaluate('ctx.game.stabilityStatus().map(d=>d.value)') == RECOVERED
-    assert page.evaluate('__game.G.party.map(d=>d.stability)') == RECOVERED
+    assert page.evaluate('ctx.game.stabilityStatus().map(d=>d.value)') == ENTRY
+    assert page.evaluate('__game.G.party.map(d=>d.stability)') == ENTRY
     assert page.evaluate('[...__game.G.abyss.home.party,...__game.G.stats.inf.stability.filter(Boolean)].slice(0,4).every((d,i)=>d.stabilityAt===before[i].stabilityAt)')
     page.evaluate('''()=>{
       setValues([...__game.G.abyss.home.party,...__game.G.stats.inf.stability.filter(Boolean)]);
@@ -108,19 +109,19 @@ with sync_playwright() as p:
     assert page.evaluate('__game.G.floor') == 5
     advertisement()
     assert page.evaluate('__game.G.floor') == 6
-    assert page.evaluate('ctx.game.stabilityStatus().map(d=>d.value)') == RECOVERED
+    assert page.evaluate('ctx.game.stabilityStatus().map(d=>d.value)') == FLOOR
     page.evaluate('__game.G.floor=10;__game.inf.descend()')
     assert page.evaluate('__game.G.floor') == 11
-    assert page.evaluate('ctx.game.stabilityStatus().map(d=>d.value)') == [v-10 for v in RECOVERED]
+    assert page.evaluate('ctx.game.stabilityStatus().map(d=>d.value)') == [v-10 for v in FLOOR]
     page.evaluate('''()=>{
       setValues([...__game.G.abyss.home.party,...__game.G.stats.inf.stability.filter(Boolean)]);
       ctx.game.refreshStability();__game.G.floor=15;__game.inf.descend();
     }''')
     assert page.evaluate('__game.G.floor') == 15
     page.get_by_role('button', name='回復を待つ', exact=True).last.evaluate('b=>b.click()')
-    print('無限迷宮: 元の人業・名のない器を20回復、次回は通常消費')
+    print('無限迷宮: 元の人業・名のない器を20回復後に入場20・階移動10を消費')
 
-    # 宿敵の再戦にも同じ免除を適用する。
+    # 宿敵の再戦にも同じ回復と通常消費を適用する。
     setup()
     page.evaluate('''()=>{
       const d=__game.world.DUNGEONS.find(d=>d.id==='w03');__game.G.stats.bossIds[d.boss]=true;
@@ -128,8 +129,8 @@ with sync_playwright() as p:
     }''')
     advertisement()
     page.wait_for_function('!!__game.G.rematch')
-    assert page.evaluate('__game.G.party.map(d=>d.stability)') == RECOVERED
+    assert page.evaluate('__game.G.party.map(d=>d.stability)') == ENTRY
     assert page.evaluate('__game.G.party.slice(0,4).every((d,i)=>d.stabilityAt===before[i].stabilityAt)')
-    print('宿敵の再戦: 広告入場でも全員20回復・上限100・満タン未満の時計を保持')
+    print('宿敵の再戦: 広告で全員20回復後に入場20消費・上限100・満タン未満の時計を保持')
     assert not errors, errors
     browser.close()

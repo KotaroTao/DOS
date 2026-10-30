@@ -49,7 +49,7 @@ export default {
     samuraiIchibun: {
       label: "武士の一分",
       lv: ["物理会心率+5%・会心ダメージ+10%", "物理会心率+10%・会心ダメージ+20%", "物理会心率+15%・会心ダメージ+30%"],
-      fx: [{ t: "crit", v: [0.05, 0.10, 0.15] }, { t: "critDamage", on: "phys", v: [0.10, 0.20, 0.30] }],
+      fx: [{ t: "crit", v: [0.05, 0.10, 0.15] }, { t: "critDamage", v: [0.10, 0.20, 0.30] }],
     },
     // 心眼で太刀筋を読み、刃をかわす
     samuraiShingan: {
@@ -63,7 +63,7 @@ export default {
     samuraiNukimi: {
       label: "抜き身の心得",
       lv: ["1ターン目の物理会心率+15%・会心ダメージ+15%", "1ターン目の物理会心率+22%・会心ダメージ+25%", "1ターン目の物理会心率+30%・会心ダメージ+40%"],
-      fx: [{ t: "crit", v: [0.15, 0.22, 0.3], on: "phys", when: { round1: true } }, { t: "critDamage", on: "phys", v: [0.15, 0.25, 0.40], when: { round1: true } }],
+      fx: [{ t: "crit", v: [0.15, 0.22, 0.3], on: "phys", when: { round1: true } }, { t: "critDamage", v: [0.15, 0.25, 0.40], when: { round1: true } }],
     },
     // 敵を斬り捨てるたび、血を振って刃と気息を整える
     samuraiChiburi: {
