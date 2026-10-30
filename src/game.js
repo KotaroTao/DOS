@@ -114,7 +114,7 @@ const CANVAS_SERIF = '"Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho",
 const REDUCED_MOTION = (() => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; } })();
 import { pickTrap, CHEST_RANKS, rollChestRank } from "./traps.js";
 import { refSoul, refGold, trainCost, lvPow, emberMul, partyAgi, LOCK_K, TRAP_K, lockPow } from "./levelcurve.js";
-import { STABILITY_MAX, STABILITY_ENTRY_COST, STABILITY_FLOOR_COST, STABILITY_RECOVERY_MS, recoverStability, stabilityWaitMs, stabilityRecoveryMs } from "./stability.js";
+import { STABILITY_MAX, STABILITY_ENTRY_COST, STABILITY_FLOOR_COST, STABILITY_AD_RECOVERY, STABILITY_RECOVERY_MS, recoverStability, stabilityWaitMs, stabilityRecoveryMs } from "./stability.js";
 import { startPlaytest, playtestEvent, finishPlaytest, showPlaytestRecords } from "./playtest.js";
 
 import { equipScore, equipPrice, repriceEquipment } from "./pricing.js";
@@ -13162,14 +13162,14 @@ function stabilityReady(retry, infinite = abyssActive(), cost = STABILITY_ENTRY_
 
     autosave(true); retry();
   }});
-  // 本番の広告連携までは即時成功。この一回だけ消費を免除し、残量と回復時計を保つ。
-  options.push({label:"広告視聴で1回分進む", primary:G.redSoul < redCost, fn:()=>{
+  // 本番の広告連携までは即時成功。この一回だけ消費を免除し、進行時に隊全員を回復する。
+  options.push({label:"広告視聴で全員20回復して進む", primary:G.redSoul < redCost, fn:()=>{
     refreshStability();
     retry(true);
   }});
   options.push({label:"回復を待つ", fn:()=>{ autosave(true); }});
   showChoice("魂の安定度が足りない", options, null, {banner:"魂の安定度", onDismiss:()=>{},
-    lines:[...low.map(d=>`${d.name}: ${d.value}/${cost}`), `不足分は合計${missing}。赤い魂1で安定度${stabilityPerRed()}を購入できます (端数は切り上げ) (所持${G.redSoul})。広告視聴なら、隊全員の安定度を消費せず1回分進めます。残っている安定度はそのままです。`,
+    lines:[...low.map(d=>`${d.name}: ${d.value}/${cost}`), `不足分は合計${missing}。赤い魂1で安定度${stabilityPerRed()}を購入できます (端数は切り上げ) (所持${G.redSoul})。広告視聴なら、隊全員の安定度を消費せず1回分進めます。さらに全員の安定度が20回復します (上限100)。`,
       `3分で1回復します。全員が進めるまで約${Math.ceil(Math.max(...low.map(d=>d.waitMs))/60000)}分。回復後にもう一度進んでください。`]});
   return false;
 }
@@ -13179,7 +13179,13 @@ function consumeEntryStability(where, kind = "entry", infinite = abyssActive(), 
   refreshStability();
   const dolls = stabilityDolls(infinite);
   if (ad && dolls.length) {
-
+    const now = Date.now();
+    for (const doll of dolls) {
+      doll.stability = Math.min(STABILITY_MAX, doll.stability + STABILITY_AD_RECOVERY);
+      if (doll.stability === STABILITY_MAX) doll.stabilityAt = now;
+    }
+    refreshStability(now); // 無限迷宮の元の人業・仮の器にも反映する。
+    autosave(true);
     return true;
   }
   if (!dolls.length || !stabilityReady(null, infinite, cost)) return false;
@@ -20039,7 +20045,7 @@ async function returnToTitle() {
 function resetAllData() { if (cloudEnabled() && !testPlayActive) return; if (!testPlayActive && !clearSave()) return; _resetting = true; location.reload(); }
 bindGame({
   // いまの目標・勅命・物語
-  STABILITY_MAX, STABILITY_ENTRY_COST, STABILITY_FLOOR_COST, STABILITY_RECOVERY_MS, refreshStability, stabilityStatus, restoreStability,
+  STABILITY_MAX, STABILITY_ENTRY_COST, STABILITY_FLOOR_COST, STABILITY_AD_RECOVERY, STABILITY_RECOVERY_MS, refreshStability, stabilityStatus, restoreStability,
   stabilityMinutes, stabilityPerRed, stabilityCost, clueBoon,
   objectiveInfo, decreeInfo, replayDecree, palaceRecords, sharePalaceRecord, departTo, goMakeDoll, audienceTutorial,
   landOnHub, legacyToPage, townBgm,
