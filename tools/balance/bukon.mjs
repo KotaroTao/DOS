@@ -64,3 +64,14 @@ for(const d of active){
 assert.equal(b.rollBukon({slot:'weapon',rar:'c'},5000),null);
 assert.equal(b.rollBukon({slot:'weapon',rar:'uc'},5000),null);
 console.log('武魂ドロップ：全種類・R/SR/LRの配分、100/1000境界、加算系の継続成長、他Lv3・固定Lv1上限を確認');
+
+// 表示は内部Lvではなく実効量を使い、巨大な加算値も十進数で保つ。
+assert.equal(b.bukonName({k:'flat_atk',lv:1}),'STR加算 +1');
+assert.equal(b.bukonDescription({k:'flat_atk',lv:1}),'STRが1上昇');
+assert.equal(b.bukonName({k:'elem_def_water',lv:1}),'水属性ダメージ軽減 5%');
+assert.equal(b.bukonDescription({k:'elem_def_water',lv:1}),'水属性ダメージを5%軽減');
+assert.equal(b.bukonName({k:'flat_hp',lv:Number.MAX_SAFE_INTEGER}),`HP加算 +${(BigInt(Number.MAX_SAFE_INTEGER)*10n).toLocaleString('ja-JP')}`);
+for(const d of active)for(const lv of [1,d.max||10000]){
+ const soul={k:d.id,lv};assert(!/Lv|個数/.test(b.bukonName(soul)));assert(!/Lv|個数/.test(b.bukonDescription(soul)));
+}
+console.log('武魂表示：加算量・割合・詳細文・巨大な加算値を確認');

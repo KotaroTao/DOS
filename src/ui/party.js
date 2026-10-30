@@ -1,3 +1,4 @@
+import { bukonSlots, bukonDef, BUKON_RARITIES } from "../bukon.js";
 import { isDesktopLayout } from "../desktop.js";
 import { pcPanel } from "./pc.js";
 import { storyText } from "../protagonist.js";
@@ -2330,7 +2331,16 @@ export function slotCell(d, k, { onPick = null } = {}) {
     ic.classList.add("ghost");
     ic.appendChild(spriteCanvas(SLOT_ICONS[k], 2));
   }
-  r.appendChild(ic);
+  if(it && game.featureUnlocked?.("enchant")) {
+    const column=el("span","bk-slot-icon"),sockets=el("span","bk-sockets");
+    sockets.setAttribute("aria-label",`武魂 ${(it.bukon||[]).length}/${bukonSlots(it)}枠`);
+    for(let i=0;i<bukonSlots(it);i++){
+      const b=it.bukon?.[i],socket=el("i",b?"bk-socket bk-gem":"bk-socket");
+      if(b)socket.style.color=BUKON_RARITIES[bukonDef(b.k)?.rarity||0].color;
+      sockets.append(socket);
+    }
+    column.append(ic,sockets);r.append(column);
+  } else r.appendChild(ic);
   const tx = el("span", "pt-slot-t");
   const top = el("span", "pt-slot-top");
   top.appendChild(el("span", "pt-slot-k", slotLabelOf(d, k)));
