@@ -1,5 +1,7 @@
-"""次画面の準備が遅れてもタイトル越しに途中の画面を見せない。"""
+"""次画面の準備が遅れても開始後にタイトルや途中の画面を見せない。"""
 import asyncio
+from io import BytesIO
+from PIL import Image
 from playwright.async_api import async_playwright
 
 async def main():
@@ -19,12 +21,30 @@ async def main():
                   }});
                 }''', saved)
                 await page.wait_for_selector('.ttl-overlay[data-scene-ready="true"]')
+                await page.evaluate("""() => {
+                  window.titleLeaks=[];
+                  const sample=()=>{
+                    const title=document.querySelector('.ttl-depart');
+                    if(title && [...title.querySelectorAll('*')].some(n=>getComputedStyle(n).visibility!=='hidden')) titleLeaks.push(performance.now());
+                    requestAnimationFrame(sample);
+                  };requestAnimationFrame(sample);
+                }""")
                 await page.locator('.ttl-btn.primary').first.click()
+                # クリック直後から画像・ロゴ・メニューを描かない。
+                assert not await page.locator('.ttl-scene').is_visible()
+                assert not await page.locator('.ttl-ui').is_visible()
                 await page.wait_for_function('started===1')
                 await page.wait_for_timeout(1700)
                 assert await page.locator('.ttl-overlay').count() == 1
                 assert await page.locator('.ttl-overlay').evaluate('n=>getComputedStyle(n).opacity') == '1'
-                assert not await page.locator('.ttl-out').count()
+                assert await page.locator('.ttl-overlay').evaluate('n=>getComputedStyle(n).backgroundColor') == 'rgb(0, 0, 0)'
+                # 読み込みの幕が先に消えてもタイトルへ戻らず、画面全体が黒い。
+                await page.evaluate("document.body.classList.add('scene-preparing','screen-loading')")
+                await page.wait_for_timeout(50)
+                await page.evaluate("document.body.classList.remove('scene-preparing','screen-loading')")
+                pixels = Image.open(BytesIO(await page.screenshot())).convert('RGB')
+                assert pixels.getextrema() == ((0, 0), (0, 0), (0, 0)), pixels.getextrema()
+                assert await page.evaluate('titleLeaks') == []
                 await page.evaluate('release(true)')
                 await page.wait_for_selector('.ttl-overlay', state='detached')
                 assert await page.evaluate('started') == 1
@@ -37,7 +57,7 @@ async def main():
                 assert await page.locator('body').evaluate('n=>getComputedStyle(n,"::before").backgroundColor') == 'rgb(0, 0, 0)'
                 await page.evaluate('floorDone(true)')
                 await page.wait_for_function('!document.body.classList.contains("scene-preparing")')
-                print(f'{motion} / {"再開" if saved else "新規"}: 準備完了まで不透明・完了後に解除 OK', flush=True)
+                print(f'{motion} / {"再開" if saved else "新規"}: 開始直後からタイトル非表示・読み込み幕の解除後も黒・準備後に直接解除 OK', flush=True)
                 await ctx.close()
         await browser.close()
 

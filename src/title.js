@@ -420,14 +420,14 @@ export function showTitle({ hasSave = false, summary = null, onStart, entry = fa
     removeEventListener("keydown", onKey, true);
     removeEventListener("resize", onResize);
     wrap.classList.add("ttl-depart");
+    cancelAnimationFrame(raf);
     const ready = immediate && cb ? cb() : null;
     // 新規開始は音声の再生許可を保つため同期で渡し、再開は暗転を待つ。
     setTimeout(async () => {
       const ok = await (immediate ? ready : cb?.());
       if (ok === false) return;
-      cancelAnimationFrame(raf);
-      wrap.classList.add("ttl-out");
-      setTimeout(() => wrap.remove(), REDUCED ? 400 : 1500);
+      // 準備後は幕を直接外す。タイトルを透かしたり描き直したりしない。
+      wrap.remove();
     }, REDUCED ? 60 : 520);
   };
   const start = () => {
