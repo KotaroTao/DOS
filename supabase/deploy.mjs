@@ -25,7 +25,7 @@ commit;`;
 
 export function authSettings(current) {
   const site = (current.site_url || "").replace(/\/$/, "");
-  if (site && site !== "http://localhost:3000" && site !== SITE.replace(/\/$/, "")) {
+  if (site && site !== "http://localhost:3000" && site !== new URL(SITE).origin && site !== SITE.replace(/\/$/, "")) {
     throw new Error("別のアプリのログインURLが設定されています。DOS専用プロジェクトを選んでください。");
   }
   const redirects = new Set((current.uri_allow_list || "").split(",").map((s) => s.trim()).filter(Boolean));

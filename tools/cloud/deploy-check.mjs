@@ -11,6 +11,8 @@ assert.throws(() => publicKey([{ name: "anon", api_key: jwt("service_role") }]))
 assert.throws(() => publicKey([{ type: "publishable", api_key: "sb_secret_test" }]));
 assert.equal(publicKey([{ type: "publishable", api_key: "sb_publishable_test" }]), "sb_publishable_test");
 assert.throws(() => authSettings({ site_url: "https://another-app.invalid" }));
+assert.equal(authSettings({ site_url: new URL(SITE).origin }).site_url, SITE);
+assert.throws(() => authSettings({ site_url: new URL("/another-app/", SITE).href }));
 const settings = authSettings({ site_url: "http://localhost:3000", uri_allow_list: "https://existing.invalid" });
 assert(settings.uri_allow_list.includes("https://existing.invalid")); assert(settings.uri_allow_list.includes(SITE));
 assert.equal(settings.mailer_autoconfirm, false);

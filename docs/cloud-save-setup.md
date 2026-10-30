@@ -78,3 +78,9 @@ SMTPの設定を終え、確認メールが届くことを確認してから進�
 一般公開時はSupabase AuthenticationのBot and Abuse ProtectionでCloudflare Turnstileを設定する。Turnstile側には公開ホスト`kotarotao.github.io`を登録する。秘密キーはSupabaseへ、公開サイトキーはGitHub Variable `TURNSTILE_SITE_KEY`へ登録する。匿名作成の上限も設定される。既存のCAPTCHAを別方式で使っていた場合はTurnstileへ統一する。
 
 公開後、タイトル表示だけでは登録・ログインを要求しないこと、未同意では開始しないこと、ゲストの再開、登録確認メール、同じ記録の別端末再開、退会を確認する。規約とプライバシーの本文は`src/legal.js`。
+
+### 確認メールから404になる場合
+
+Supabase Authentication の URL Configuration で Site URL を `https://kotarotao.github.io/DOS/` にし、Redirect URLs にも同じURLを登録する。`Set up Cloud Save` の再実行でもこの設定を反映する（同じGitHub PagesのルートURLの誤設定も修復する）。メールテンプレートを独自に変更した場合は、リンク先に `{{ .ConfirmationURL }}` を使用し、ドメイン直下への固定リンクを置かない。
+
+`otp_expired` はリンクが無効または期限切れという認証側の応答。URL設定だけでは古いリンクは復活しないため、登録した端末でメール登録をやり直し、最新メールで確認する。ゲストの端末データを削除したりログアウトしたりせずに行う。
