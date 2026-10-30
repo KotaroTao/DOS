@@ -132,6 +132,7 @@ with sync_playwright() as p:
     state=context.request.get("http://127.0.0.1:8002/test/state").json()
     assert state=={"saves":0,"users":0},state
     assert not errors,errors
+    page.wait_for_load_state("domcontentloaded")
     page.screenshot(path="/tmp/dos-onboarding-resume.png")
     context.unroute_all(behavior="ignoreErrors")
     context.close(); browser.close()
