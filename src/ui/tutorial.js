@@ -166,7 +166,7 @@ const TUTS = [
       ["討伐を重ねると能力や生態も分かります。図鑑の充実ぶりを表すのが『操霊師の見識』です。"]],
     steps: [
       { text: "設定の『図鑑』を選ぶ", hint: "設定 → 図鑑", go: () => UI.openSettings?.(), target: [".stg-codex"], on: "codexOpened" },
-      { text: "倒した魔物の札を選び、情報を読む", hint: "光っている魔物の札 → 情報を読む → 閉じる", target: [".pl-card[data-tutorial-mon]"], on: "codexMonViewed" },
+      { text: "倒した魔物の札を選び、情報を読む", hint: "光っている魔物の札 → 情報を読む → 閉じる", go: () => UI.openCodexSheet?.(), target: [".pl-card[data-tutorial-mon]"], on: "codexMonViewed" },
     ],
     outro: ["倒した魔物の記録は、図鑑が開く前から残っています。", "図鑑は設定からいつでも読めます。まだ伏せられた項目も、討伐を重ねると明らかになります。"],
   },

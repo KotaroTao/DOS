@@ -14,9 +14,13 @@ with sync_playwright() as p:
     G.world.cleared.w02=1; G.codex.mon=known?{bs_dustroach:{kills:3,main:3,dungeons:{0:true}}}:{};
     game.renderTown(); if(game.featureUnlocked('codex'))throw Error('開始前に図鑑が見える');
    }''',recorded)
+   resumed=False
    for n in range(90):
     page.wait_for_timeout(180)
     if page.evaluate('!!__game.G.tut.done.insight'):break
+    if not resumed and page.evaluate('__game.G.tut.step===1 && !__game.G.tut.ev.codexMonViewed'):
+     page.evaluate('''async()=>{const {sheet}=await import('/src/ui/kit.js');const {UI}=await import('/src/ui/ctx.js');sheet.closeAll();UI.tutorialResume();}''')
+     page.locator('.cx-sheet').last.wait_for();page.wait_for_timeout(300);resumed=True
     skip=page.locator('.iv-scene:not(.out) .iv-skip:visible,.sc-scene:not(.out) .sc-skip:visible')
     if skip.count():skip.first.click();continue
     glow=page.locator('.tut-glow:visible')
