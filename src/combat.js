@@ -814,6 +814,7 @@ export class Battle {
     this.pending = null;      // 対象選択待ちの行動
     this.result = null;       // "win" | "lose" | "flee"
     this.opening = opts.opening || null;
+    this.noRun = !!opts.noRun; // 警報の罠: 通常の逃走だけを封じる
     this.noFlee = !!opts.noFlee; // 迷宮の異変「閉ざされた退路」: 逃走不可
     this.orderFleet = opts.orderFleet || 0; // 隊の誰かが持つ逃げ足のLv (0-3): 隊の全員の逃走率に上乗せ
     // 追跡の物差し: 敵の AGI をこの倍率で味方の AGI と同じ規模に直してから逃走率を出す
@@ -1867,7 +1868,7 @@ export class Battle {
   //   追跡AGI = 敵の実効AGI (基準の隊の規模 — _foeAgiBase) の平均 (主がいれば ×FLEE_BOSS_MUL)。互角で55%、本人が2倍速ければ90%、半分なら20%
   //   実効AGI はバフ/デバフ込み (水技の鈍足・影縫い・激昂・先駆けの号令が効く)
   fleeChance(actor) {
-    if (this.noFlee) return 0;
+    if (this.noFlee || this.noRun) return 0;
     const foes = this.livingEnemies();
     if (!foes.length) return FLEE_MAX;
     const agiOf = (a) => Math.max(1, (a.agi || 1) * ((a.buffs && a.buffs.agi) || 1));
@@ -2610,6 +2611,11 @@ export class Battle {
       return res;
     }
     if (action === "run") {
+      if (this.noRun) {
+        this.log("警報で集まった敵に囲まれている！ 通常の逃走はできない", "dmg");
+        res.fledFail = true;
+        return res;
+      }
       // 迷宮の異変「閉ざされた退路」: 逃走そのものが封じられている
       if (this.noFlee) {
         this.log("逃走不可（退路封鎖）", "dmg");
