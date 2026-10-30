@@ -88,14 +88,14 @@ export class CloudSaveClient {
     });
     return entry.promise;
   }
-  async retry(fn) {
+  async retry(fn, { automatic = true } = {}) {
     let attempts = 0;
     for (;;) {
       try { return await fn(); }
       catch (e) {
         if (!this.onFailure) throw e;
         const temporary = e.name === "AbortError" || e instanceof TypeError || [408, 429, 500, 502, 503, 504].includes(e.status);
-        if (temporary && attempts < this.retryDelays.length) {
+        if (automatic && temporary && attempts < this.retryDelays.length) {
           await new Promise(resolve => setTimeout(resolve, this.retryDelays[attempts++]));
           continue;
         }
@@ -139,7 +139,7 @@ export class CloudSaveClient {
     if (!raw) return;
     const body = JSON.parse(raw);
     if (body.sessionId !== this.sessionId) throw new Error("記録の接続が一致しません");
-    const result = await this.retry(() => this.request(body));
+    const result = await this.retry(() => this.request(body), { automatic: false });
     this.revision = result.revision;
     this.storage.removeItem(pendingKey(this.auth.user.id, this.slot));
   }
@@ -465,7 +465,7 @@ export async function connectCloud(localSave, slot = 1, mode = "start") {
   localStorage.setItem(sessionKey, client.sessionId);
   showGate();
   let snapshot = await connectionStep("冒険の記録の読み込み", () => client.retry(() => client.claim()));
-  if (pending) { await connectionStep("未送信の操作の確認", () => client.recover()); snapshot = await connectionStep("冒険の記録の読み込み", () => client.retry(() => client.claim())); }
+  if (pending) { await client.recover(); snapshot = await connectionStep("冒険の記録の読み込み", () => client.retry(() => client.claim())); }
   if (mode !== "reset" && !snapshot && localSave && !localStorage.getItem("dos-cloud-deleted")) {
     const useLocal = await new Promise((resolve) => {
       showGate("このアカウントには冒険の記録がありません。この端末の記録を引き継ぎますか？");
