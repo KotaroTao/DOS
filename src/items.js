@@ -47,9 +47,11 @@ export function setBagSource(source) { bagSource = source; }
 export function newDollBag() { return bagSource ? bagSource() : []; }
 export function shareInventory(state) {
   if (!Array.isArray(state.inventory)) state.inventory = [];
+  const members = [...(state.party || []), ...(state.reserve || [])];
+  if (members.every(d => !d || d.items === state.inventory)) return state.inventory;
   const seenBags = new Set([state.inventory]);
   const seenItems = new Set(state.inventory);
-  for (const d of [...(state.party || []), ...(state.reserve || [])]) {
+  for (const d of members) {
     if (!d) continue;
     if (Array.isArray(d.items) && !seenBags.has(d.items)) {
       seenBags.add(d.items);

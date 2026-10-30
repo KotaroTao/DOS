@@ -164,4 +164,15 @@ const streamClaim = await (await request({ ...base, op: "claim" })).json();
 assert.equal(streamClaim.revision, 8);
 assert.equal(refDeserialize(streamClaim.snapshot).journal.text, largeState.journal.text);
 console.log("大きな記録: 2MiB超の保存・戦闘・同一ID再送・再開、16MiB超の拒否と記録保持 OK");
+// 圧縮形式も再送は一度だけ。旧クライアントのclaimは従来形式に戻して渡す。
+const compactTurn={...base,op:'turn',action:'commit',revision:8,commandId:crypto.randomUUID(),snapshot:refSerialize(state,{compact:true})};
+const compactResult=await (await request(compactTurn)).json();
+assert.equal(compactResult.revision,9);assert.equal(compactResult.packet.format,2);
+assert.deepEqual(await (await request(compactTurn)).json(),compactResult);
+const compactClaim=await (await request({...base,op:'claim',compactGraph:true})).json();
+const legacyClaim=await (await request({...base,op:'claim'})).json();
+assert.equal(compactClaim.snapshot.format,2);assert.equal(legacyClaim.snapshot.format,undefined);
+assert.deepEqual(refDeserialize(compactClaim.snapshot),refDeserialize(legacyClaim.snapshot));
+assert.equal(compactClaim.compactGraph,true);
+console.log('圧縮保存API: 確定・再送・次手番・旧クライアントへの読み戻し OK');
 await db.close();
