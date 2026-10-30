@@ -765,3 +765,9 @@ html.pc-input .ui-sheet.ec-source-sheet { max-width: 720px; }
 .bk-stock-main .ui-btn-l { display:flex; }
 .bk-name-label { min-width:0; overflow:hidden; text-overflow:ellipsis; }
 .bk-name-value { flex:none; white-space:pre; }
+
+.bk-filter-field { display:flex; flex-direction:column; gap:5px; margin-bottom:12px; color:var(--ink); }
+.bk-filter-sheet .rf-select { width:100%; min-height:44px; min-width:0; }
+.bk-practice .tut-step-note { margin-block:12px; padding:12px; border:1px solid var(--accent); }
+.bk-practice .pt-slots { margin-block:10px; }
+.bk-sheet .wpc-lhead { justify-content:space-between; flex-wrap:wrap; }

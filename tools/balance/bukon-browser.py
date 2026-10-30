@@ -74,7 +74,7 @@ with sync_playwright() as p:
             [...detail.querySelectorAll('button')].find(x=>clean(x.textContent)==='閉じる').click();
           }
           [...holder.querySelectorAll('button')].find(x=>clean(x.textContent)==='合成').click();
-          check(document.body.textContent.includes('100'),'金貨表示');check(clean(document.body.textContent).includes('違うLv')||clean(document.body.textContent).includes('異なるLv'),'混合素材説明');
+          check(document.body.textContent.includes('100'),'金貨表示');check(clean(document.body.textContent).includes('強さの違う武魂'),'混合素材説明');
           check(game.bukonAction('fuse',null,{k:'flat_hp',lv:2}),'実操作窓口の合成');check(G.gold===9900,'100金貨課金');
           G.gold=0;const stock=JSON.stringify(G.bukonStock);check(!game.bukonAction('fuse',null,{k:'flat_hp',lv:2}),'金貨不足');check(JSON.stringify(G.bukonStock)===stock,'不足時素材不変');
           check(b.attachBlock({slot:'head',rar:'lr'},{k:'crit',lv:10}),'頭へ会心を宿せない');
