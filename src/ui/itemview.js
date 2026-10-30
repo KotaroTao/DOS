@@ -459,7 +459,7 @@ export function ailDetailLines(it) {
     const tail = o.k === "poison" ? `（毎ターン最大HPの${Math.round((o.pct || 0.05) * 100)}%）` : o.k === "charm" ? "（敵が仲間を襲う）" : o.k === "confuse" ? "（敵が見境なく殴る）" : "";
     L.push(`追加付与力: ${pct(o.chance)}。物理命中後に${AIL_LABEL[o.k]}の付与を試みる${tail}（同じ種類の付与力は加算。耐性を掛けて最後に最大95%、一手につき一回判定）`);
   }
-  if (it.resists) L.push(Object.entries(it.resists).map(([k, v]) => `${RESIST_LABEL[k] || k}耐性 +${v}%`).join("・"));
+  if (it.resists) L.push(Object.entries(it.resists).map(([k, v]) => `${RESIST_LABEL[k] || k}耐性 +${v}%（${["physResist", "magResist"].includes(k) ? "被ダメージを軽減、最大80%" : "付与力を軽減、最大95%"}）`).join("・"));
   if (it.aRes) L.push(`状態異常耐性: ${Object.entries(it.aRes).map(([k, v]) => `${RESIST_LABEL[k] || k} +${Math.round(v * 100)}%`).join("・")}（付与力を軽減、各95%まで）`);
   if (it.bRes) L.push(`ブレス耐性: 敵のブレスから受けるダメージ −${Math.round(it.bRes * 100)}%（装備どうしで足し合い、上限50%）`);
   return L;
@@ -478,7 +478,7 @@ export const EFF_INFO = {
   guard: { short: (v) => `被ダメ−${pct(v)}`, line: (v) => `守り: 受けるダメージを常に${pct(v)}減らす（物理・呪文・ブレス。ほかの恒常軽減と合わせて90%まで）` },
   autoRevive: { short: (v) => `自動蘇生${pct(v)}`, line: (v) => `蘇生: 戦闘不能になった時、1戦闘に1回だけ最大HPの${pct(v)}で立ち上がる` },
   regen: { short: (v) => `再生${pct(v)}`, line: (v) => `再生: 2ターン目から毎ターン、最大HPの${pct(v)}だけHPを回復する` },
-  counter: { short: (v) => `報復×${Math.round(v * 100) / 100}`, line: (v) => `報復: 敵の物理攻撃を受けるたび、攻撃力×${Math.round(v * 100) / 100}のダメージでやり返す (物理の抵抗値で減る)` },
+  counter: { short: (v) => `報復×${Math.round(v * 100) / 100}`, line: (v) => `報復: 敵の物理攻撃を受けるたび、攻撃力×${Math.round(v * 100) / 100}のダメージでやり返す (物理耐性で軽減)` },
   spellCostMul: { short: (v) => `消費MP−${pct(1 - v)}`, line: (v) => `節約: 技・呪文の消費MPが${pct(1 - v)}減る` },
   ailmentImmune: { short: () => "状態異常耐性95%", line: () => "状態異常耐性95%: 戦闘中の状態異常の付与率を95%軽減する（罠は無効）" },
   goldUp: { short: (v) => `金貨+${pct(v)}`, line: (v) => `金運: 迷宮で得る金貨が${pct(v)}増える（隊の中で一番高いものだけ効く）` },
@@ -565,7 +565,7 @@ export function resistDeltaParts(before, after) {
     const d = (b[k] || 0) - (a[k] || 0);
     if (!d) continue;
     const n = `${d > 0 ? "+" : ""}${d}`;
-    out.push({ d, text: k === "breath" ? `ブレス耐性${n}%` : `抵抗値 ${RESIST_LABEL[k] || k}${n}` });
+    out.push({ d, text: k === "breath" ? `ブレス耐性${n}%` : `${RESIST_LABEL[k] || k}耐性${n}%` });
   }
   return out;
 }
@@ -722,7 +722,7 @@ export function equipEffectDeltaParts(delta) {
   const ar = delta.ailRes;
   if (ar) for (const k of new Set([...Object.keys(ar.from || {}), ...Object.keys(ar.to || {})])) {
     const v = Math.round((((ar.to || {})[k] || 0) - ((ar.from || {})[k] || 0)) * 1000) / 10;
-    if (v) out.push({ text: `${RESIST_LABEL[k] || AIL_LABEL[k] || k}抵抗値${v > 0 ? "+" : ""}${v}`, d: v });
+    if (v) out.push({ text: `${RESIST_LABEL[k] || AIL_LABEL[k] || k}耐性${v > 0 ? "+" : ""}${v}%`, d: v });
   }
   if (delta.onHit && onHitShort(delta.onHit.from) !== onHitShort(delta.onHit.to)) out.push({ text: `追加効果 ${onHitShort(delta.onHit.from)}→${onHitShort(delta.onHit.to)}`, d: 0 });
   const eff = delta.eff;

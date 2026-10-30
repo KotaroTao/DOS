@@ -1,4 +1,4 @@
-"""戦果・逃走・全滅と、320px〜PCでの内訳の見やすさ・手帳再表示を検査する。"""
+"""戦果・逃走・全滅と、320px〜PCでの内訳の見やすさ・手帳の項目と移動速度を検査する。"""
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 root=Path(__file__).resolve().parents[2]
@@ -18,8 +18,12 @@ with sync_playwright() as p:
       window.reportUI=await import('/src/ui/results.js');
       window.report={outcome:'win',rounds:12,members:__game.G.party.map((m,i)=>({uid:m.uid,name:m.name,jobKey:m.jobKey,damage:i*1205,taken:100+i*105,healing:i===2?4300:0}))};
       window.checkReport=()=>{
-        const card=document.querySelector('.ui-sheet.has-performance');
+        const card=[...document.querySelectorAll('.ui-sheet.has-performance')].find(n=>!n.closest('.closing'));
         if(!card) throw Error('内訳がない');
+        const details=card.querySelector('details.bp');
+        if(!details || details.open)throw Error('内訳の初期状態は閉じる');
+        details.querySelector('summary').click();
+        if(!details.open)throw Error('クリックで開く');
         const body=card.querySelector('.ui-sheet-body'), foot=card.querySelector('.ui-sheet-foot');
         const rect=card.getBoundingClientRect();
         if(rect.left < -1 || rect.right>innerWidth+1 || rect.top < -1 || rect.bottom>innerHeight+1) throw Error('画面外 '+JSON.stringify(rect));
@@ -61,8 +65,12 @@ with sync_playwright() as p:
     page.wait_for_function("__game.G.state==='combat' && __game.G.battle && !__game.G.anim")
     page.evaluate('''()=>{
       const g=__game.G,b=g.battle,a=b.party[0],e=b.enemies[0];
-      const before=e.hp; e.hp=b._reportHp(a,e,0); e.alive=false;b.result='win';
+      const before=e.hp;window.expectedDamage=before;e.hp=b._reportHp(a,e,0); e.alive=false;b.result='win';
       b._checkEnd(); __game.reportTest.endBattle();
+    }''')
+    page.wait_for_function('__game.G.pendingResults?.performance')
+    page.evaluate('''()=>{
+      const g=__game.G, before=window.expectedDamage;
       if(g.lastBattleReport.members[0].damage!==before) throw Error('実戦集計');
       if(g.pendingResults.performance.members[0].damage!==before) throw Error('戦果の保存');
       if(!document.querySelector('.bp-member')) throw Error('勝利時の表示');
@@ -77,9 +85,11 @@ with sync_playwright() as p:
       reportKit.sheet.closeAll();g.prompt=false;g.pendingResults=null;
       const {UI}=await import('/src/ui/ctx.js');UI.openDungeonMenu();
     }''')
-    page.get_by_text('直前の戦闘',exact=True).click()
-    page.wait_for_selector('.ui-sheet.has-performance .bp-member')
-    page.get_by_role('button',name='閉じる',exact=True).last.click()
+    assert page.get_by_text('直前の戦闘',exact=True).count()==0
+    speed=page.locator('.dg-menu .stg-row').filter(has_text='移動の速さ')
+    speed.get_by_role('tab',name='4倍',exact=True).click()
+    assert page.evaluate("JSON.parse(localStorage.getItem('dos-prefs')).walkSpeed")==4
+    page.evaluate("reportKit.sheet.closeAll()")
     for outcome in ['flee','lose','escaped']:
         page.evaluate('''()=>{reportKit.sheet.closeAll();const g=__game.G;g.prompt=false;g.state='board';__game.startBattle(__game.spawnCardEnemies('bs_drainrat',1),null);}''')
         page.wait_for_function("__game.G.state==='combat' && __game.G.battle && !__game.G.anim")
@@ -96,6 +106,9 @@ with sync_playwright() as p:
       const g=__game.G,b=g.battle;
       g.rematch={kind:'elite',key:'bs_drainrat',lv:5,snap:[],savedIdx:g.dungeonIdx,savedFloor:1};
       b.result='win';__game.reportTest.endBattle();
+    }''')
+    page.wait_for_selector('.ui-sheet.k-rematch')
+    page.evaluate('''()=>{
       const cards=[...document.querySelectorAll('.ui-sheet.has-performance')].filter(n=>!n.closest('.closing'));
       if(cards.length!==1 || !cards[0].classList.contains('k-rematch')) throw Error('再戦は戦果と一枚にする');
     }''')

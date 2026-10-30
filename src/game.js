@@ -9560,7 +9560,7 @@ function releaseActionEffects(res, feed) {
   if (!feed || !feed.length || !G.fx) return;
   const shown = new Set((res.hits || []).filter((h) => h && h.target && (h.buff || h.debuff || (h.mods && Object.keys(h.mods).length))).map((h) => h.target));
   const own = res.spellName || "";
-  const spd = spdMul(), now = performance.now();
+  const spd = effectSpeed(), now = performance.now();
   const steps = [];
   for (const ev of feed) {
     if (shown.has(ev.t) || (own && ev.src === own)) continue;
@@ -10580,7 +10580,7 @@ function drawEnemyBadges(e, baseX, yTop, opt = {}) {
 // 斬撃 = 三日月の閃光と血の飛沫 / 魔法 = 属性色の閃光と環 / 撃破 = 魔物が白く焼けて灰と残り火に崩れる
 // 数字 = 重い明朝の数字 (会心は金で大きく、味方の被弾は紅)
 function drawEffects(fx, now, stageH) {
-  const spd = spdMul();
+  const spd = effectSpeed();
   // 撃破: 白く焼け、上へ崩れながら灰となって消える
   for (const d of fx.deaths || []) {
     const dur = 360 * spd;
@@ -10624,7 +10624,7 @@ function drawEffects(fx, now, stageH) {
     vctx.translate(s.x, s.y);
     vctx.scale(dir, 1);
     vctx.rotate(-0.75 + (s.rot || 0));
-    const R = 34 * (s.big ? 1.25 : 1);
+    const R = 34 * (s.big ? 1.25 : 1) * (s.normal ? 1.22 : 1);
     const a0 = -1.4, a1 = a0 + 2.6 * sweep;
     vctx.globalCompositeOperation = "lighter";
     vctx.globalAlpha = fade * 0.55;
@@ -11352,6 +11352,8 @@ function battleTempoWait(battle) {
   if (!cloudBackgroundBattle() || !battleActionTimes.has(battle)) return 0;
   return Math.max(0, (G.fastAnim ? 400 : 500) - (performance.now() - battleActionTimes.get(battle)));
 }
+// 自動進行の待ち時間から独立させ、数フレームで効果を消さない。
+function effectSpeed() { return cloudBackgroundBattle() ? (G.fastAnim ? 0.85 : 1) : spdMul(); }
 function serverBattle() { return cloudEnabled() && !testPlayActive && !cloudBackgroundBattle(); }
 async function resolveLocalBattle(action, battle = G.battle) {
   try {
@@ -11536,11 +11538,14 @@ function animateResult(res, done) {
     if ((res.action !== "sleep" && res.action !== "stunned") || (res.hits || []).length) applyImpact(res);
     if (res._modFeed !== undefined) releaseActionEffects(res, res._modFeed);
     drainPartyProcs();
+    partyEl.style.setProperty("--fxd", G.fastAnim ? "0.32s" : "0.4s");
     finish();
     const started = performance.now();
+    let firstFrame = true;
     const tick = () => {
       if (G.fx !== fx || G.battle !== battle || G.state !== "combat") return;
-      if (performance.now() - started >= (G.fastAnim ? 250 : 350)) {
+      if (firstFrame) { firstFrame = false; renderParty(); }
+      if (performance.now() - started >= (G.fastAnim ? 360 : 430)) {
         G.fx = null; G.partyFx.clear(); G.partyFxV.clear(); renderParty(); return;
       }
       renderCombatCanvas(); requestAnimationFrame(tick);
@@ -11619,7 +11624,10 @@ function fxProfile(res) {
 // 技の演出を置く所: 単体の敵 → その敵 / 全体の敵 → 敵の列の中央 / 味方 → 戦場の下端
 function fxAnchor(res, prof) {
   const foes = (res.hits || []).filter((h) => h && h.target && h.target.side === "enemy").map((h) => G.enemyPos[h.target.uid]).filter(Boolean);
-  if (prof.ally || !foes.length) return { x: VW / 2, y: VH - 30, w: prof.all ? VW * 0.9 : 0 };
+  if (prof.ally || !foes.length) {
+    const target = (res.hits || []).find(h => h.target?.side !== "enemy")?.target;
+    return { x: prof.all || !target ? VW / 2 : partyFxX(target), y: VH - 30, w: prof.all ? VW * 0.9 : 0 };
+  }
   if (prof.all || foes.length > 1) {
     const xs = foes.map((p) => p.cx), ys = foes.map((p) => p.cy);
     return { x: (Math.min(...xs) + Math.max(...xs)) / 2, y: ys.reduce((a, b) => a + b, 0) / ys.length, w: Math.max(VW * 0.6, Math.max(...xs) - Math.min(...xs) + 120) };
@@ -11692,12 +11700,13 @@ function drainPartyProcs() {
 function applyImpact(res) {
   const fx = G.fx;
   const now = performance.now();
+  if (G.battle?.result === "win" && !battleVictoryAt.has(G.battle)) battleVictoryAt.set(G.battle, now);
   if (res.action === "defend" || res.action === "swap") { SFX.select(); return; }
   if (res.action === "sleep" || res.action === "run" || res.action === "stunned") { SFX.miss(); return; }
   if (res.action === "eflee") {
     // 敵が逃げ出した (金属の魔物): 横へ駆け去る (描画は renderCombatCanvas の fleeFx)
     SFX.flee();
-    fx.fleeAway = { uid: res.actor.uid, t0: now, dur: 340 * spdMul() };
+    fx.fleeAway = { uid: res.actor.uid, t0: now, dur: 340 * effectSpeed() };
     const pos = G.enemyPos[res.actor.uid];
     if (pos) fx.floats.push({ x: pos.cx, y: pos.cy - 34, text: "逃げ出した！", color: "#cfd8e6", t0: now, small: true, kind: "label" });
     return;
@@ -11716,7 +11725,7 @@ function applyImpact(res) {
   } else if (res.opening === "senkoku") {
     // 死の宣告: 不穏な音・画面が闇に沈む (描画は下の reap)
     SFX.ambush(); buzz([0, 40, 60, 90]);
-    fx.screen = { color: "dark", t0: now, dur: 760 * spdMul() };
+    fx.screen = { color: "dark", t0: now, dur: 760 * effectSpeed() };
   } else if (res.action === "spell" && res.spellKind !== "phys") {
     if (res.spellKind === "heal" || res.spellKind === "cure" || res.spellKind === "buff") SFX.heal();
     else if (res.spellElement === "fire") SFX.fire();
@@ -11743,26 +11752,27 @@ function applyImpact(res) {
   }
 
   let partyHit = false, anyDeath = false;
-  // 隊の複数人を打つ物理 (溜めた猛威など) は数字を各人の札の上に分けて出す
-  const partyDmgN = res.hits.filter((x) => x.target && x.target.side !== "enemy" && x.dmg != null && !x.miss).length;
   // 多段ヒット (二段斬り等) は同じ対象・同座標に重なって1回に見えてしまうため、
   // 対象ごとにヒット順で時間差(stagger)と位置差(横ずらし)を付けて、回数分はっきり見せる
-  const spd = spdMul();
+  const spd = effectSpeed();
   const stag = cloudBackgroundBattle() ? Math.min(HIT_STAGGER * spd, 90 / Math.max(1, res.hits.length)) : HIT_STAGGER * spd;
   const stackIdx = {};
   // 技ごとの組み立て: 描き分け (v)・角度 (rot)・回る向き (spin)・格 (scale)・付く効果の印 (riders)
   const prof = fxProfile(res);
   const pv0 = prof ? { v: prof.v, rot: prof.rot, spin: prof.spin, s: prof.scale * (prof.all ? 0.8 : 1) } : {};
   // 各職の看板技 (Lv40) は専用の演出に差し替える (battlefx-sig.js)
-  const sig = prof ? SIG_FX[res.spellKey] || null : null;
+  const configuredSig = prof ? SIG_FX[res.spellKey] || null : null;
+  const sig = configuredSig && (prof.all || !["field", "party"].includes(configuredSig.mode)) ? configuredSig : null;
   // 全体回復は対象全員が同じ中央下に重なって1人分にしか見えないため、
   // 回復対象ごとに横位置をずらし、わずかな時間差を付けて全員ぶんはっきり見せる
-  const partyHeals = res.hits.filter((h) => h.target.side !== "enemy" && h.heal != null);
   let partyHealIdx = 0;
   // 味方への強化/弱体フロートも複数人ぶん横に散らす
-  const partyModHits = res.hits.filter((h) => h.target.side !== "enemy" && (h.buff || h.debuff));
   let partyModIdx = 0;
   for (const h of res.hits) {
+    // 味方/敵とも、作用した対象の位置へ同じ意味の印を置く。
+    const mark = h.heal != null ? "healmark" : h.cured ? "curemark" : h.debuff ? "debuffmark" : h.buff ? "buffmark" : null;
+    const posMark = h.target.side === "enemy" ? G.enemyPos[h.target.uid] : { cx: partyFxX(h.target), cy: VH - 30 };
+    if (mark && !h.miss && posMark) spawnFx(fx.skill, mark, posMark.cx, posMark.cy, now, spd, { s: 0.8 });
     // 吸血 (吸命の装飾品・吸血する魔物): 打った側に回復量を浮かべる (満タンでも素の値)
     if (h.lifesteal && h.stealer && !h.miss) {
       if (h.stealer.side === "enemy") {
@@ -11802,15 +11812,17 @@ function applyImpact(res) {
         // 物理: 味方は武器ごと (長剣=三日月 / 短剣=×字 / 刀=一閃 / 槍=突き / 斧・槌=衝撃 / 弓=矢 / 杖・素手=打撃)。
         // 属性の技・属性武器は刃がその色になり、属性の名残を小さく重ねる
         const mine = res.side === "party" && res.actor && res.actor.equip;
-        const style = mine ? weaponFxStyle(res.actor.equip.weapon) : "slash";
+        const weapon = mine ? (h.offhand ? res.actor.equip.shield : res.actor.equip.weapon) : null;
+        const magic = res.action === "attack" && (h.magic ?? (h.offhand ? res.actor.oMagic : res.actor.wMagic));
+        const style = magic ? "arcane" : mine ? weaponFxStyle(weapon) : "slash";
         const el = res.spellKind === "phys" ? res.spellElement : mine && res.actor.elemAtk ? res.actor.elemAtk.el : null;
         const rot = prof ? prof.rot * (idx % 2 ? -1 : 1) : 0, big = !!h.crit || (prof && prof.tier >= 3);
         const flip = (idx % 2 === 1) !== (prof ? prof.spin < 0 : false);
         if (sig && sig.mode === "hit") spawnFx(fx.skill, sig.type, pos.cx, pos.cy, ht0, spd, { seed, v: idx, crit: !!h.crit });
         else if (style === "slash") {
-          fx.slashes.push({ x: pos.cx + dx * 0.5, y: pos.cy, t0: ht0, crit: !!h.crit, big, flip, seed, el, rot });
+          fx.slashes.push({ x: pos.cx + dx * 0.5, y: pos.cy, t0: ht0, crit: !!h.crit, big, flip, seed, el, rot, normal: res.action === "attack" });
           if (el && el !== "none" && ELEM_FX_COL[el]) spawnFx(fx.skill, el, pos.cx, pos.cy, ht0, spd, { seed, s: 0.55, trace: true });
-        } else spawnFx(fx.skill, style, pos.cx + dx * 0.5, pos.cy, ht0, spd, { seed, crit: !!h.crit, flip, el, rot, s: prof ? prof.scale : 1 });
+        } else spawnFx(fx.skill, style, pos.cx + dx * 0.5, pos.cy, ht0, spd, { seed, crit: !!h.crit, flip, el, rot, s: prof ? prof.scale : res.action === "attack" ? 1.25 : 1 });
         // 上級の物理技: 残像の二の太刀 (逆向き・一回り大きく) を少し遅れて重ねる
         if (prof && prof.tier >= 3 && idx === 0 && !sig) {
           if (style === "slash") fx.slashes.push({ x: pos.cx, y: pos.cy, t0: ht0 + 70 * spd, crit: !!h.crit, big: true, flip: !flip, seed: seed + 5, el, rot: -rot });
@@ -11864,8 +11876,8 @@ function applyImpact(res) {
         const mt = buffFloatText(h);
         G.partyFx.set(h.target, h.buff ? "heal" : "hit");
         setPartyFxV(h.target, h.buff ? "buff" : "debuff");
-        const n = partyModHits.length, mi = partyModIdx++;
-        const fx0 = n > 1 ? VW * (mi + 1) / (n + 1) : VW / 2;
+        const mi = partyModIdx++;
+        const fx0 = partyFxX(h.target);
         const fy0 = VH - 26 - (mi % 2) * 16;
         fx.floats.push({ x: fx0, y: fy0, text: mt.text, color: mt.color, t0: now + mi * stag, kind: "buff" });
       } else if (h.cured != null) {
@@ -11873,19 +11885,18 @@ function applyImpact(res) {
         if (h.cured) {
           G.partyFx.set(h.target, "heal");
           setPartyFxV(h.target, "cure");
-          fx.floats.push({ x: VW / 2, y: VH - 26, text: "治癒✚", color: "#9be8ff", t0: now });
+          fx.floats.push({ x: partyFxX(h.target), y: VH - 26, text: "治癒✚", color: "#9be8ff", t0: now });
         }
       } else if (h.mpHeal != null) {
         // 魔力の譲渡
         G.partyFx.set(h.target, "heal");
         setPartyFxV(h.target, "mana");
-        fx.floats.push({ x: VW / 2, y: VH - 26, text: "MP+" + h.mpHeal, color: "#7fb8ff", t0: now, kind: "heal" });
+        fx.floats.push({ x: partyFxX(h.target), y: VH - 26, text: "MP+" + h.mpHeal, color: "#7fb8ff", t0: now, kind: "heal" });
       } else if (h.heal != null) {
         G.partyFx.set(h.target, "heal");
         // 複数人を回復する時は横に散らし、順に弾ませて全員の回復を見せる
-        const n = partyHeals.length;
         const i = partyHealIdx++;
-        const fx0 = n > 1 ? VW * (i + 1) / (n + 1) : VW / 2;
+        const fx0 = partyFxX(h.target);
         const fy0 = VH - 26 - (i % 2) * 16; // 重なり回避に上下も少しずらす
         fx.floats.push({ x: fx0, y: fy0, text: "+" + h.heal, color: "#7CFC7C", t0: now + i * stag, kind: "heal" });
         setPartyFxV(h.target, "heal");
@@ -11934,7 +11945,7 @@ function applyImpact(res) {
           setPartyFxV(h.target, h.crit ? "claw crit" : "claw");
           spawnFx(fx.skill, "pclaw", partyFxX(h.target), VH - 6, now, spd, { crit: !!h.crit });
         }
-        fx.floats.push({ x: partyDmgN > 1 ? partyFxX(h.target) : VW / 2, y: VH - 26, text: String(h.dmg) + (h.fatal ? " 即死!" : ""), color: h.fatal ? "#ff2a2a" : "#ff6b6b", t0: now, kind: "pdmg" });
+        fx.floats.push({ x: partyFxX(h.target), y: VH - 26, text: String(h.dmg) + (h.fatal ? " 即死!" : ""), color: h.fatal ? "#ff2a2a" : "#ff6b6b", t0: now, kind: "pdmg" });
         if (h.died) anyDeath = true;
         // レベルドレイン: 宿しているメイン魂のレベルを永続的に1下げる
         if (!res._persistedConsequences && h.drain && h.target.isDoll && h.target.primary != null) {
@@ -11987,7 +11998,13 @@ function applyImpact(res) {
       });
     }
   }
-  if (partyHit) { fx.screen = { color: "#d4504e", t0: now }; buzz([0, 50, 50, 50]); shakeScreen(true); }
+  if (partyHit) {
+    // 単体への被弾では全画面を染めず、被弾した札と爪痕で知らせる。
+    if (new Set(res.hits.filter(h => h.target?.side !== "enemy" && !h.miss).map(h => h.target)).size > 1) {
+      fx.screen = { color: "#d4504e", t0: now }; shakeScreen(true);
+    }
+    buzz([0, 50, 50, 50]);
+  }
   if (anyDeath) setTimeout(() => SFX.die(), 200);
 }
 
@@ -12142,7 +12159,22 @@ function levelUpEntries(progress) {
   return [...byMember.values()].filter((e) => e.main || e.subs.length);
 }
 
-function endBattle(...args) { return tlGameMeasure("battle", () => endBattleMeasured(...args)); }
+const battleVictoryAt = new WeakMap(), battleVictoryTimers = new WeakMap();
+function endBattle(...args) {
+  const b = G.battle;
+  if (b?.result === "win") {
+    if (!battleVictoryAt.has(b)) battleVictoryAt.set(b, performance.now());
+    const remaining = 1000 - (performance.now() - battleVictoryAt.get(b));
+    if (remaining > 0) {
+      if (!battleVictoryTimers.has(b)) battleVictoryTimers.set(b, setTimeout(() => {
+        battleVictoryTimers.delete(b);
+        if (G.battle === b && G.state === "combat") endBattle(...args);
+      }, remaining));
+      return;
+    }
+  }
+  return tlGameMeasure("battle", () => endBattleMeasured(...args));
+}
 const battleSummaryOpen = new WeakSet();
 function endBattleMeasured() {
   const b = G.battle;

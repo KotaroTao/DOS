@@ -107,6 +107,8 @@ function update() {
   if (pending || booting) waitingSince ??= now;
   else waitingSince = null;
   const state = document.hidden ? "idle" : booting || pending && now - waitingSince >= LAMP_DELAY ? "loading" : failed ? "error" : "idle";
+  // 起動用の灯も引き継ぐ。画像が即座に届いた場合でも消し忘れない。
+  if (!lamp) lamp = document.querySelector(".image-loading");
   if (state !== "idle") ensureLamp();
   if (lamp && lamp.dataset.state !== state) {
     lamp.dataset.state = state;

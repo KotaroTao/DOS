@@ -3446,7 +3446,7 @@ export class Battle {
       // 無効: 傷ひとつ付かない (障壁も削れず、毒刃・怯ませ等の命中時効果も乗らない)
       this.log(`${actor.name}の${opt.name || "攻撃"}！ ${tgt.name}：${rKey === "magResist" ? "魔法" : "物理"}無効`, tgt.side === "party" ? "dmg" : "hit");
       T[tk + "i"]++;
-      return { target: tgt, dmg: 0, crit: false, died: false, immune: true };
+      return { target: tgt, dmg: 0, crit: false, died: false, immune: true, magic: magHit, offhand: !!opt.offhand };
     }
     dmg = Math.max(1, Math.round(pr.dmg * this._passiveCorrection(tgt, actor, aE, rKey === "physResist" ? "phys" : "magic", resistIgnore)));
     // 障壁: 数回だけ被ダメを半減する敵 (回数制)
@@ -3455,13 +3455,13 @@ export class Battle {
     // 金剛の護符 (guard): 被ダメを常に割合カット (LR装飾品)
     if (tgt.guard) dmg = Math.ceil(dmg * (1 - tgt.guard));
     dmg = Math.max(1, dmg);
-    if (actor.side === "enemy" && this._onceGuard(tgt, "firstGuard", "_fgUsed", "加護の祈り")) { T[tk + "i"]++; return { target: tgt, dmg: 0, crit: false, died: false, immune: true }; }
+    if (actor.side === "enemy" && this._onceGuard(tgt, "firstGuard", "_fgUsed", "加護の祈り")) { T[tk + "i"]++; return { target: tgt, dmg: 0, crit: false, died: false, immune: true, magic: magHit, offhand: !!opt.offhand }; }
     // 金剛の守り (守護騎士のランク): 敵の物理を 5/8/12/20% で完全に受け止める
     if (actor.side === "enemy" && tgt.side === "party" && random() < this._rk(tgt, "guardianKongou", [0.05, 0.08, 0.12, 0.20])) {
       this.log(`${tgt.name}の金剛の守り：無傷`, "heal");
       this._proc(tgt, "金剛の守り");
       T[tk + "i"]++;
-      return { target: tgt, dmg: 0, crit: false, died: false, immune: true };
+      return { target: tgt, dmg: 0, crit: false, died: false, immune: true, magic: magHit, offhand: !!opt.offhand };
     }
     if (enemyHit) dmg = this._gearGuard(tgt, dmg, "phys"); // 逆境の・金城の (極)
     dmg = this._wallCut(tgt, dmg);
@@ -3553,6 +3553,8 @@ export class Battle {
       if (actor.side === "enemy") { this._perkHurt(tgt, actor, dmg, "phys"); this._tryCounter(tgt, actor); }
     }
     const out = status ? { target: tgt, dmg, crit, died, status } : { target: tgt, dmg, crit, died };
+    // 描画用。右手/左手の実際のダメージ種別を渡し、物理技を魔法に見せない。
+    out.magic = magHit; out.offhand = !!opt.offhand;
     if (overflowHit) out.overflowHit = overflowHit;
     if (stolen) { out.lifesteal = stolen; out.stealer = actor; }
     return out;

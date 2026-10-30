@@ -74,7 +74,7 @@ function diffRows(a, b) {
   for (const k of Object.keys({ ...(a.mult || {}), ...(b.mult || {}) })) push(`${ATTR_LABEL[k] || k.toUpperCase()}の補正`, (a.mult || {})[k], (b.mult || {})[k], (v) => `+${Math.round(v * 1000) / 10}%`);
   for (const k of Object.keys({ ...(a.aRes || {}), ...(b.aRes || {}) })) push(`${AIL_LABEL[k] || k}耐性`, (a.aRes || {})[k], (b.aRes || {})[k], pct);
   push("ブレス耐性", a.bRes, b.bRes, pct);
-  for (const k of Object.keys({ ...(a.resists || {}), ...(b.resists || {}) })) push(`${RESIST_LABEL[k] || k}の抵抗値`, (a.resists || {})[k], (b.resists || {})[k]);
+  for (const k of Object.keys({ ...(a.resists || {}), ...(b.resists || {}) })) push(`${RESIST_LABEL[k] || k}耐性`, (a.resists || {})[k], (b.resists || {})[k], (v) => `${v}%`);
   return rows;
 }
 function diffTable(rows) {
