@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
-import { authSettings, publicKey, configSource, migrationQuery, run, SITE } from "../../supabase/deploy.mjs";
+import { authSettings, publicKey, configSource, migrationQuery, run, SITE, emailTemplates } from "../../supabase/deploy.mjs";
 
 const ref = "abcdefghijklmnopqrst", env = { SUPABASE_PROJECT_REF: ref, SUPABASE_ACCESS_TOKEN: "test-only-token" };
 const jwt = (role) => "test." + Buffer.from(JSON.stringify({ role })).toString("base64url") + ".test";
@@ -11,8 +11,19 @@ assert.throws(() => publicKey([{ name: "anon", api_key: jwt("service_role") }]))
 assert.throws(() => publicKey([{ type: "publishable", api_key: "sb_secret_test" }]));
 assert.equal(publicKey([{ type: "publishable", api_key: "sb_publishable_test" }]), "sb_publishable_test");
 assert.throws(() => authSettings({ site_url: "https://another-app.invalid" }));
+assert.equal(authSettings({ site_url: new URL(SITE).origin }).site_url, SITE);
+assert.throws(() => authSettings({ site_url: new URL("/another-app/", SITE).href }));
 const settings = authSettings({ site_url: "http://localhost:3000", uri_allow_list: "https://existing.invalid" });
 assert(settings.uri_allow_list.includes("https://existing.invalid")); assert(settings.uri_allow_list.includes(SITE));
+for (const type of ["confirmation", "email_change", "recovery", "magic_link", "invite"]) {
+  const templates = emailTemplates();
+  assert.match(templates["mailer_subjects_" + type], /[ぁ-んァ-ヶ一-龠]/);
+  assert.match(templates["mailer_subjects_" + type], /[A-Za-z]/);
+  const body = templates["mailer_templates_" + type + "_content"];
+  assert(body.includes('lang="ja"')); assert(body.includes('lang="en"'));
+  assert(body.includes('href="{{ .ConfirmationURL }}"'));
+  assert.equal(settings["mailer_templates_" + type + "_content"], body);
+}
 assert.equal(settings.mailer_autoconfirm, false);
 assert.equal(settings.external_anonymous_users_enabled, true);
 assert.equal(settings.rate_limit_anonymous_users, 10);

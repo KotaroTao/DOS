@@ -161,17 +161,27 @@ export function preserveScene(root) {
     snapshot.inert = true;
     snapshot.setAttribute("aria-hidden", "true");
     // 古い画面は見せるだけ。新しい画面のボタンへ入力を通さない。
+    // DOMの移し替えで内側の一覧が先頭へ戻るブラウザでも、表示位置を保つ。
+    const keepScroll = () => {
+      const positions = [...root.querySelectorAll("*")].filter(node => node.scrollTop || node.scrollLeft)
+        .map(node => [node, node.scrollTop, node.scrollLeft]);
+      return () => { for (const [node, top, left] of positions) { node.scrollTop = top; node.scrollLeft = left; } };
+    };
+    const restoreScroll = keepScroll();
     const content = document.createElement("div");
     content.className = "scene-next";
     while (root.firstChild) content.appendChild(root.firstChild);
     content.inert = true;
     root.append(content, snapshot);
+    restoreScroll();
     snapshot.scrollTop = oldScroll;
     const release = () => {
       if (snapshot.parentNode !== root) return;
+      const restore = keepScroll();
       snapshot.remove();
       content.inert = false;
       content.replaceWith(...content.childNodes);
+      restore();
     };
     // 遅延や失敗だけで空の次画面へ進めない。タブ移動と左下の再試行は利用できる。
     Promise.allSettled(waits.map(state => state.ready)).then(results => {
