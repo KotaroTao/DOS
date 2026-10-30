@@ -2,7 +2,7 @@
 import { game } from "./ctx.js";
 import { el, button, sheet } from "./kit.js";
 import { NAME_LIMIT, normalizeName } from "../protagonist.js";
-import { insightTitle } from "../insight.js";
+
 
 export function playerNameCard() {
   const card = el("section", "player-name-card");
@@ -10,18 +10,18 @@ export function playerNameCard() {
   const name = el("div", "player-name-value");
   const insight = el("div", "player-name-insight");
   const points = el("span", "player-name-points");
-  const title = el("span", "player-name-title");
-  insight.append(points, title);
+  const playTime = el("span", "player-name-play-time");
+  insight.append(playTime, points);
   const refresh = () => {
     name.textContent = normalizeName(game.G?.apprenticeName) || "名前未設定";
     const unlocked = !!game.featureUnlocked?.("insight");
-    insight.hidden = !unlocked;
+    playTime.textContent = formatPlayTime(game.G?.stats?.playMs);
+    points.hidden = !unlocked;
     const total = unlocked ? game.insightSummary().total : 0;
     points.textContent = unlocked ? `見識 ${total.toLocaleString("ja-JP")}` : "";
-    title.textContent = unlocked ? insightTitle(total).title : "";
   };
   refresh();
-  text.append(el("div", "player-name-label", "プレイヤー名"), name, insight);
+  text.append(name, insight);
   const edit = button({ label: "編集", onTap: () => openPlayerName(() => { refresh(); edit.focus(); }) });
   edit.setAttribute("aria-label", "プレイヤー名を編集");
   card.append(text, edit);
@@ -65,4 +65,13 @@ function openPlayerName(onClose) {
     e.preventDefault(); e.stopPropagation(); save();
   });
   input.focus(); input.select();
+}
+
+// 記録済みの累計を分単位で表示する。
+export function formatPlayTime(ms) {
+  const minutes = Math.floor(Math.max(0, Number(ms) || 0) / 60000);
+  return `プレイ時間 ${minutes.toLocaleString("ja-JP")}分`;
+}
+export function refreshPlayTime() {
+  for (const node of document.querySelectorAll(".player-name-play-time")) node.textContent = formatPlayTime(game.G?.stats?.playMs);
 }

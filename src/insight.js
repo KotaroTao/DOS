@@ -4,26 +4,6 @@ import { revealSteps } from "./monsterreveal.js";
 export const INSIGHT_JOB = { common: 10, rare: 15, epic: 20, legend: 30, unique: 20 };
 export const INSIGHT_EVENT = { common: 1, uncommon: 2, rare: 5, mythic: 10 };
 const positive = (n) => Number.isFinite(Number(n)) ? Math.max(0, Math.floor(Number(n))) : 0;
-// 見識は消費せず、現在の合計から称号を決める。物語上の「魂の王」は使わない。
-export const INSIGHT_TITLES = [
-  { min: 0, title: "かけ出し操霊師" },
-  { min: 100, title: "修練の操霊師" },
-  { min: 300, title: "一人前の操霊師" },
-  { min: 600, title: "熟練の操霊師" },
-  { min: 1000, title: "名高き操霊師" },
-  { min: 1500, title: "魂の探究者" },
-  { min: 2200, title: "迷宮の識者" },
-  { min: 3000, title: "魂の賢者" },
-  { min: 4000, title: "深淵の賢者" },
-  { min: 5500, title: "魂の大賢者" },
-  { min: 7000, title: "万霊の導師" },
-  { min: 9000, title: "万霊の大導師" },
-  { min: 11000, title: "伝説の大操霊師" },
-];
-export function insightTitle(total) {
-  const points = positive(total);
-  return INSIGHT_TITLES.findLast(rank => points >= rank.min);
-}
 export function insightTotals(state, { monsters, items, jobs, events }) {
   const codex = state.codex || {};
   const result = { mon: 0, item: 0, job: 0, ev: 0, total: 0 };
