@@ -1,3 +1,4 @@
+import { refreshPlayTime } from "./ui/playername.js";
 import { resetAutomationPrefs } from "./ui/prefs.js";
 import { encodeCloudSave, acknowledgeCloudSave } from "./save-codec.js";
 import { depthLimit, mutatorEligible, challengeEntryBlock, applyChallengeEnemies } from "./progression.js";
@@ -8,7 +9,7 @@ import { preloadBattleBackground } from "./battlebackgrounds.js";
 import "./desktop.js";
 import * as formations from "./formations.js";
 import { soulAcquisitionArt } from "./ui/soulart.js";
-import { insightTotals, insightTitle } from "./insight.js";
+import { insightTotals } from "./insight.js";
 import { INF_BUY_CAP, infRecovery, infUseCount, infSupplyLeft, infSpendSupply } from "./infsupplies.js";
 import { random, fxRandom, bindRngState, rngState } from "./rng.js";
 import { refSerialize, refDeserialize, applySavePatch } from "./savegraph.js";
@@ -412,6 +413,7 @@ setInterval(() => {
   if (titleActive || openingActive || document.visibilityState !== "visible" || (Date.now() - _lastInputAt > 120000 && !activeAuto)) return;
 
   G.stats.playMs = (G.stats.playMs || 0) + 5000; // 戦績: 総プレイ時間
+  refreshPlayTime();
 
 }, 5000);
 
@@ -16020,7 +16022,6 @@ function codexFresh() {
 function insightSummary() { return insightTotals(G, { monsters: MONSTERS, items: ITEMS, jobs: SOUL_CLASSES, events: EVENT_MAP }); }
 let insightAlertTimer = null;
 let insightAlertGain = 0;
-let insightAlertFrom = null;
 let insightResultsPending = false;
 function notifyInsight() {
   if (!featureUnlocked("insight")) return;
@@ -16031,7 +16032,6 @@ function notifyInsight() {
     const gain = score.total - previous;
     log(`見識 ＋${gain}　操霊師の見識 ${score.total.toLocaleString("ja-JP")}`, "sys");
     if (inDungeon()) setAutoMove(false);
-    if (insightAlertFrom === null) insightAlertFrom = Number(previous) || 0;
     insightAlertGain += gain;
   }
   queueInsightAlert();
@@ -16044,15 +16044,10 @@ function queueInsightAlert() {
     insightAlertTimer = null;
     if (G.state === "combat" || insightResultsPending) return;
     const gain = insightAlertGain;
-    const from = insightTitle(insightAlertFrom);
-    const rank = insightTitle(G.insightNotified);
-    const promoted = rank.min > from.min;
     insightAlertGain = 0;
-    insightAlertFrom = null;
     sheet.open({
-      kind: "celebrate", banner: "✦ 操霊師の見識 ✦", title: promoted ? "称号ランクアップ" : `見識 ＋${gain}`,
+      kind: "celebrate", banner: "✦ 操霊師の見識 ✦", title: `見識 ＋${gain}`,
       lines: [
-        ...(promoted ? [`「${from.title}」から「${rank.title}」へ昇格した。`, `見識 ＋${gain}`] : []),
         `操霊師の見識が ${G.insightNotified.toLocaleString("ja-JP")} になった。`,
       ],
       footer: [{ label: "確認", kind: "primary", size: "lg", onTap: (s) => s.close() }],
