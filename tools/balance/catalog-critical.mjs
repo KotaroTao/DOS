@@ -48,7 +48,7 @@ for(const [key,k] of [['crit','A09'],['critDamage','A10'],['spellCrit','A11'],['
 const d=makeDoll('会心の集計');
 for(const s of SLOTS)d.equip[s]={crit:.2,critDamage:1,spellCrit:.2,spellCritDamage:1};recalc(d);
 near(d.critBonus,.8);near(d.spellCritBonus,.8);near(d.critDamageBonus,8);near(d.spellCritDamageBonus,8);
-near(gearCritMul(d),9);near(gearCritMul(d,true),17);
+near(gearCritMul(d),9);near(gearCritMul(d,true),9);
 // 同じ実物を複数部位へ参照しても1つだけ数える。外すと補正が残らない。
 d.equip.shield=d.equip.weapon;recalc(d);near(d.critDamageBonus,7);
 for(const s of SLOTS)d.equip[s]=null;recalc(d);assert.equal(d.spellCritBonus,0);assert.equal(gearCritMul(d),1);
@@ -65,7 +65,7 @@ const physical=()=>b._physical(a,t,{acc:1,critBonus:1}).dmg;
 const spell=()=>b._exec({actor:a,action:'spell',spellKey:key,target:t}).hits.reduce((s,h)=>s+(h.dmg||0),0);
 const plain=physical(),plainSpell=spell();
 a.critDamageBonus=3;a.spellCritDamageBonus=4;
-near(physical()/plain,4,.02);near(spell()/plainSpell,8,.02);
-const ps=b.peekStats(a);near(ps.critMul,1.85*4);near(ps.spellCritMul,1.5*8);
-near(b.estSpell(a,sp,t)/b.estSpell({...a,spellCritDamageBonus:0},sp,t),(1+.8*(1.5*8-1))/(1+.8*(1.5*4-1)));
+near(physical()/plain,4,.02);near(spell()/plainSpell,5,.02);
+const ps=b.peekStats(a);near(ps.critMul,1.85*4);near(ps.spellCritMul,1.5*5);
+near(b.estSpell(a,sp,t)/b.estSpell({...a,spellCritDamageBonus:0},sp,t),(1+.8*(1.5*5-1))/(1+.8*(1.5-1)));
 console.log(`全${equipment}装備、会心つき${affected}品 ${JSON.stringify(totals)}：レア度別の両端・品質・上限・価格・付呪・8品の加算・80%上限と確定会心・無制限の倍率 OK`);

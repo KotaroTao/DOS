@@ -45,7 +45,7 @@ export default {
     shadowIchishi: {
       label: "闇よりの一刺",
       lv: ["HP90%以上の敵への物理会心率+15%・会心ダメージ+15%", "HP90%以上の敵への物理会心率+22%・会心ダメージ+25%", "HP90%以上の敵への物理会心率+30%・会心ダメージ+40%"],
-      fx: [{ t: "crit", v: [0.15, 0.22, 0.3], when: { tgtHigh: 0.9 } }, { t: "critDamage", v: [0.15, 0.25, 0.40], when: { tgtHigh: 0.9 } }],
+      fx: [{ t: "crit", v: [0.15, 0.22, 0.3], when: { tgtHigh: 0.9 } }, { t: "critDamage", on: "phys", v: [0.15, 0.25, 0.40], when: { tgtHigh: 0.9 } }],
     },
     // 刃に毒を仕込み、毒に侵された敵をさらに追い詰める
     shadowDokugou: {
