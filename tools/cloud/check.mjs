@@ -303,13 +303,13 @@ for (const status of [400, 413, 503]) {
   disk.setItem(key, raw);
   const c = new CloudSaveClient(config, { storage: disk, fetcher: async () => Response.json({revision: 9, snapshot: {saved: true}}) });
   c.auth = auth; c.sessionId = 'session';
-  c.archivePending();
+  await c.archivePending();
   assert.equal(disk.getItem(key), null); assert.equal(disk.getItem(key + ':recovery'), raw);
   assert.deepEqual(await c.claim(), {saved: true});
   disk.setItem(key, raw);
   const setItem = disk.setItem;
   disk.setItem = () => { throw new Error('容量不足'); };
-  assert.throws(() => c.archivePending()); assert.equal(disk.getItem(key), raw);
+  await assert.rejects(c.archivePending()); assert.equal(disk.getItem(key), raw);
   disk.setItem = setItem;
 }
 console.log('通信復旧: 自動再試行・空のHTTPエラー・恒久エラー・送信待ち退避・確定済み再開 OK');
