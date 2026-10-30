@@ -21,9 +21,9 @@ with sync_playwright() as p:
    page.wait_for_timeout(200)
   else:raise AssertionError('合成の導入が終わらない')
   text=''.join(lines)
-  for expected in ['HP加算 +10','HP加算 +20','金貨100枚','保管中の武魂','内容を確認して合成','金貨を払って合成']:
+  for expected in ['同じ武魂を3つ合成すると、より強い武魂に生まれ変わる','保管中の武魂','内容を確認して合成','金貨を払って合成']:
    assert expected in text,expected
-  assert 'Lv1' not in text and 'Lv2' not in text
+  assert not __import__('re').search(r'HP加算|Lv\d|金貨\d|[+＋]\d|二倍|2倍',text)
   page.get_by_role('button',name='保管中の武魂',exact=True).click()
   row=page.locator('.bk-panel .bk-stock-row').filter(has=page.get_by_role('button',name='HP加算 +10',exact=True)).first
   assert 'HP加算 +10' in row.text_content().replace('\u200b','')
@@ -38,6 +38,6 @@ with sync_playwright() as p:
   assert before['count']-after['count']==3
   assert after['result']=='1'
   assert not errors,errors
-  print(width,'OK 表示名での案内・HP加算 +10三つ→+20一つ・100金貨・手ほどき完了')
+  print(width,'OK 具体的な効果量・費用を出さない案内・素材と金貨の消費・手ほどき完了')
   page.close()
  b.close()
