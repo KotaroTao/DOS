@@ -48,6 +48,10 @@ export function tutState() {
     t.cur = t.done.soulChange ? null : "soulChange";
     t.step = 0; t.ev = {}; t.base = {};
   }
+  // 古い付呪の操作待ちや、画面変更前の途中記録は新しい練習から続ける。
+  if (["enchant","bukonFusion"].includes(t.cur) && t.bukonPracticeVersion!==1) {
+    t.step=0;t.ev={};t.base={};t.bukonPracticeVersion=1;
+  }
   return t;
 }
 
@@ -433,29 +437,24 @@ const TUTS = [
     key: "enchant", name: "武魂 — 装備に魂を宿す", who: "shop",
     open: () => !!game.featureUnlocked?.("enchant"),
     used: () => false,
-    prepare() { UI.openShop?.("enchant"); },
+    prepare() { UI.prepareEnchantTutorial?.(); UI.openShop?.("enchant"); },
     intro: () => [
-      "ヴォス「武魂は、かつての使い手の魂の一部だ。長い年月をかけて少しずつ装備に宿り、凝縮したものなんだ。」",
-      "「誰がどう使ったかで、同じ品でも宿る武魂は千差万別だ。達人が生涯使った業物には、人知を超えた力が眠ることもある。」",
-      "「商会では、すでに宿った武魂を取り出し、別の装備へ移せる。手始めに練習用の武魂を預かっている。」",
-      "「武魂は商会で自由に宿し、外せる。金貨はいらん。装備を売ったり捨てたり、素材にしても、武魂はすべて商会へ戻る。」",
-      "「珍しい装備ほど多くの武魂を宿せる。同じ効果は一つの品に一つまでだ。品が元から持つ効果とは重ねられる。」",
-      "「第四章以降の迷宮で、新しく拾う青・橙・赤い名の装備には武魂が一つ宿る。第四章の本筋を二か所報告すれば合成もできるぞ。」",
+      "ヴォス「武魂は、かつて装備を使っていた者の魂の一部だ。商会では、装備に宿った武魂を取り出し、別の装備へ移せる。」",
+      "「まずは練習用の装備で、宿す・外すを試そう。今の装備や持ち物、金貨は変わらん。画面の案内に沿って押してくれ。」",
     ],
-    steps: [{ text: "商会で武魂を宿す場所を確認する", hint: "商会 → 武魂 → 人業を選ぶ → 装備を選ぶ", done: () => true }],
-    outro: ["装備に魂を宿す時は、商会の『武魂』から品を選んでくれ。", "今は使わない武魂も、合成の素材になる。先の備えに残しておくといい。"],
+    steps: [{ text: "練習用の装備に武魂を宿し、外してみる", hint: "練習画面の案内に従おう。閉じた時は『武魂の練習を再開』から続けられる", go: () => UI.openBukonPractice?.("enchant"), on: "bukonPracticeDone" }],
+    outro: ["装着した武魂は、装備の下の丸い穴に宝石で示される。宿すのも外すのも無料だ。装備を売ったり捨てたりしても、武魂は商会へ戻る。", "普段は商会の『武魂』で上に並ぶ顔を選び、装備を押してくれ。珍しい装備ほど多くの武魂を宿せる。同じ効果は一つの装備に一つまでだ。"],
   },
   {
     key: "bukonFusion", name: "武魂合成", who: "shop",
     open: () => !!game.featureUnlocked?.("bukonFusion"), used: () => false,
-    prepare() { game.prepareBukonFusionTutorial?.(); UI.openShop?.("enchant"); },
+    prepare() { UI.prepareEnchantTutorial?.(); UI.openShop?.("enchant"); },
     intro: () => [
-      "ヴォス「同じ武魂を3つ合成すると、より強い武魂に生まれ変わる。練習用の武魂を商会に預けてある。まずは『保管中の武魂』を選んでくれ。」",
-      "「合成したい武魂の行の『合成』を押すと、素材と生まれ変わる武魂、必要な金貨が表示される。内容を確かめて『内容を確認して合成』を選び、最後に『金貨を払って合成』だ。」",
-      "「合成は必ず成功する。素材にした武魂はなくなり、元には戻せない。使う武魂と金貨をよく確かめるんだぞ。」",
+      "ヴォス「同じ武魂を3つ合成すると、より強い武魂に生まれ変わる。練習用の武魂で、合成を試してみよう。」",
+      "「練習では、あなたの武魂や金貨は減らない。『合成』を押し、素材と生まれ変わる武魂を確かめてから合成してくれ。」",
     ],
-    steps: [{ text: "保管中の武魂を合成して、より強い武魂にする", hint: "商会 → 武魂 → 保管中の武魂 → 合成", go: () => UI.openShop?.("enchant"), target: [".bk-panel button:not(:disabled)", ".bk-panel input", ".ec-sheet button", ".ui-confirm button", ".ec-sheet select"], on: "bukonFused" }],
-    outro: ["同じ武魂を3つ合成すると、より強い武魂に生まれ変わる。使わない武魂も残しておくといい。", "装着中や保護中の武魂は素材にならん。残したいものには保護をかけておけよ。"],
+    steps: [{ text: "練習用の武魂を合成する", hint: "練習画面の案内に従おう。閉じた時は『武魂の練習を再開』から続けられる", go: () => UI.openBukonPractice?.("bukonFusion"), on: "bukonFusionPracticeDone" }],
+    outro: ["同じ武魂を3つ合成すると、より強い武魂に生まれ変わる。普段は『保管中の武魂』の行で『合成』を選んでくれ。", "実際の合成には金貨が必要で、素材にした武魂はなくなる。装着中や保護中の武魂は素材にならん。使う武魂と金貨を確かめてから合成しよう。"],
   },
   {
     key: "extremeAffix", name: "極の特性 — 星の付いた装備", who: "shop",
@@ -853,13 +852,11 @@ function tutorialControls() {
       const message = `手ほどき ${st.step + 1}/${d.steps.length}：${s.text}。${s.hint}`;
       if (unphrase(note.textContent) !== message) setText(note, message);
     }
-    if (d.key === "bukonFusion" && !busy) { const nodes = [...card.querySelectorAll("button:not(:disabled), select, input")]; return choose(nodes, [h.body, ...nodes]); }
-    if (["enchant", "bukonFusion"].includes(d.key) && card.classList.contains("ui-confirm")) {
-      return choose(first(card, ".ui-sheet-foot .ui-btn.k-primary:not(:disabled), .ui-sheet-foot .ui-btn.k-danger:not(:disabled)"), [h.body, ...first(card, ".ui-sheet-foot .ui-btn.k-ghost")]);
-    }
-    if (["enchant", "bukonFusion"].includes(d.key) && card.classList.contains("ec-sheet")) {
-      const actions = first(card, st.step === 0 ? ".ec-extract:not(:disabled)" : ".ec-write:not(:disabled)");
-      return choose(actions, [h.body, ...first(card, ".ui-sheet-foot .ui-btn.k-ghost")]);
+    // 武魂の練習・詳細・絞り込みは、本文の操作と閉じる／再開をすべて許可する。
+    // 廃止した付呪の .ec-extract / .ec-write を待って操作不能にしない。
+    if (["enchant", "bukonFusion"].includes(d.key)) {
+      const nodes=first(card,"button:not(:disabled), select, input");
+      return choose([...first(card,".bk-practice-next:not(:disabled), .ui-sheet-foot .ui-btn.k-primary:not(:disabled)"),...nodes],[h.body,...nodes]);
     }
     if (d.key === "prologueFormation" && card.querySelector(".pt-sw-card")) return choose(first(card, `[data-swap-job="${formationMove().targetJob}"]`));
     if (d.key === "prologueAppraise" && card.classList.contains("ap-sheet")) return choose(first(card, ".ui-sheet-foot .ui-btn.k-primary, .ui-sheet-foot .ui-btn.k-ghost, .ap-stage"));
@@ -921,7 +918,10 @@ function tutorialControls() {
     const count = allDolls().length;
     return choose(first(document, count ? `.pt-form [data-drop="e${count}"]` : ".pt-empty button"));
   }
-  if (d.key === "bukonFusion") { const nodes = [...document.querySelectorAll(".bk-panel button:not(:disabled), .bk-panel input")]; return choose(nodes, nodes); }
+  if (["enchant", "bukonFusion"].includes(d.key)) {
+    const nodes=first(document,".bk-panel button:not(:disabled), .bk-panel select, .wpc-character");
+    return choose([...first(document,".bk-practice-start"),...nodes],nodes);
+  }
   const selectors = d.key === "buyEquipment" ? [".wpc-buy-main:not(:disabled)"] : s?.target || [];
   return choose(selectors.flatMap((selector) => first(document, selector)));
 }
@@ -936,6 +936,8 @@ function restrictTutorialInput(event) {
   // 保存・通信復旧・画像再取得などの操作は、手ほどきの指定先より優先する。
   if (event.target?.closest?.(".cloud-gate, .legal-dialog, #local-save-gate, #media-splash, .image-loading, .game-update-notice, #boot-notice")) return;
   if (G_()?.testPlay && event.target?.closest?.(".test-play-banner, .playtest-records")) return;
+  // 武魂の練習・絞り込みは閉じて再開できる。Escape／端末の戻るを封じない。
+  if (["enchant","bukonFusion"].includes(curDef()?.key) && event.type==="keydown" && event.key==="Escape") return;
   const skips = skipControls();
   if (skips.some((node) => node === event.target || node.contains(event.target))) return;
   const guide = tutorialControls();
