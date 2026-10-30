@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[2]
 # 内部の入口を確認用に公開するだけで、ゲームの処理は差し替えない。
 SOURCE = (ROOT / 'src/game.js').read_text() + '''
 window.reloadCheck = { G, openChest, chestContents, presentTrap, applyTrap, claimTreasury,
-  processPickups, showPendingResults, collectWarmCorpse, askCursedChest };
+  processPickups, showPendingResults, collectWarmCorpse, askCursedChest, endBattleMeasured };
 '''
 HELPER = '''async () => {
  const {sheet}=await import('/src/ui/kit.js');
@@ -34,7 +34,6 @@ with sync_playwright() as p:
     def context():
         c = browser.new_context(service_workers='block', reduced_motion='reduce')
         c.route('**/src/game.js', lambda r: r.fulfill(status=200, content_type='text/javascript', body=SOURCE))
-        c.route('**/art/**', lambda r: r.abort())
         c.on('page', lambda pg: pg.on('pageerror', lambda e: errors.append(str(e))))
         return c
     c = context()
@@ -124,7 +123,7 @@ with sync_playwright() as p:
     before = page.evaluate('''()=>{const c=T.cell();c.type='monster';c.monsterKey='bs_ghoul';const {G}=__game;
       const foes=__game.spawnCardEnemies('bs_ghoul',1).slice(0,1);__game.startBattle(foes,c);
       for(const e of G.battle.enemies){e.hp=0;e.alive=false;e.mon={...e.mon,elite:true};}
-      G.battle.result='win';__game.ev.endBattle();return T.summary();}''')
+      G.battle.result='win';reloadCheck.endBattleMeasured();return T.summary();}''')
     assert before['results']['chest']['state']=='closed'
     reload(page)
     after = page.evaluate('T.summary()')
@@ -162,6 +161,7 @@ with sync_playwright() as p:
     for kind in ['alarm','teleport']:
         c, page = fresh()
         before = page.evaluate('''async kind=>{const {TRAPS}=await import('/src/traps.js');const c=T.cell();c.type='trap';c.cleared=true;
+          if(kind==='alarm')__game.G.pendingResults={gold:123,soul:456};
           const spot=__game.G.board.cells.flat().find(x=>x!==c);spot.type='empty';spot.cleared=true;
           reloadCheck.presentTrap(reloadCheck.applyTrap(TRAPS.find(t=>t.kind===kind),__game.G.party[0]),{proceed:()=>{}});
           return T.summary();}''',kind)
@@ -171,6 +171,15 @@ with sync_playwright() as p:
         if kind=='alarm':
             page.evaluate("()=>T.click('戦う')")
             assert page.evaluate("__game.G.state==='combat'")
+            assert page.evaluate("__game.G.battle.noRun && __game.G.battle.alarmRewards.gold===123 && __game.G.battle.alarmRewards.soul===456")
+            page.evaluate("__game.autosave(true)")
+            reload(page)
+            assert page.evaluate("__game.G.battle.noRun && __game.G.battle.alarmRewards.gold===123")
+            totals = page.evaluate("""()=>{T.sheet.closeAll();const {G}=__game;G.prompt=false;G.battle.result='win';
+              for(const e of G.battle.enemies){e.alive=false;e.hp=0;}
+              const gold=G.gold,soul=G.soulPts;reloadCheck.endBattleMeasured();
+              return {gold:G.pendingResults.gold,soul:G.pendingResults.soul,dg:G.gold-gold,ds:G.soulPts-soul};}""")
+            assert totals['gold']==totals['dg']+123 and totals['soul']==totals['ds']+456, totals
         check(kind + ' 罠の効果を回避させない')
         c.close()
     # 黒い宝箱の問いも開封済みのマスに紐づけて再開。

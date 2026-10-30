@@ -7442,7 +7442,7 @@ function presentPendingDanger() {
       // 警報で中断した戦果の続きは、次の戦闘へ持ち越さない。
       if (!d.cell) G.pendingResults = null;
       G._evOpening = d.opening || null;
-      startBattle(d.enemies, d.cell);
+      startBattle(d.enemies, d.cell, { alarm: !!d.alarm, alarmRewards: d.alarmRewards });
     } else if (d.kind === "wipe") gameOver();
     else { autosave(true); processPickups(resumeFromState); }
   } });
@@ -8643,7 +8643,9 @@ function presentTrap(res, fin, sink = boardSink()) {
     sink.interrupt();
     if (chest) notice.lines.push("宝箱を検める暇はない！");
     notice.btnLabel = "戦う";
-    queueDanger({ kind: "battle", enemies: spawnCardEnemies(res.key, G.floor, res.scale, res.opts), cell: null, notice });
+    queueDanger({ kind: "battle", enemies: spawnCardEnemies(res.key, G.floor, res.scale, res.opts), cell: null, notice, alarm: true,
+      // 元の戦果は取得済み。次の勝利では表示だけ合算し、二重に加算しない。
+      alarmRewards: G.pendingResults ? { gold: G.pendingResults.gold || 0, soul: G.pendingResults.soul || 0 } : null });
     return;
   }
   flashPartyCards(res.hurt, "hit");
@@ -8940,7 +8942,7 @@ function randomElement() {
   return els[Math.floor(random() * els.length)];
 }
 function startBattle(...args) { return startBattleMeasured(...args); }
-function startBattleMeasured(enemies, cell, { visibleEnemy = cell?.type === "monster" && !!cell.revealed && !cell.cleared } = {}) {
+function startBattleMeasured(enemies, cell, { alarm = false, alarmRewards = null, visibleEnemy = cell?.type === "monster" && !!cell.revealed && !cell.cleared } = {}) {
   // 飢えた狩場はすべての遭遇で3体以上。単体の主・強敵・銀業・ミミックにも、この階の魔物を添える。
   // 掟の packMin は従来どおり通常の群れだけに効かせ、記憶への再戦には異変を持ち込まない。
   const packMin = inDungeon() && !G.rematch ? mutDef()?.packMin || 0 : 0;
@@ -9085,7 +9087,8 @@ function startBattleMeasured(enemies, cell, { visibleEnemy = cell?.type === "mon
   for (const e of enemies) e.lv = foeLv;
   // 開幕のパッシブ・迷宮の掟の冷気で掛かる強化・弱体は、開幕の演出の後に1拍ずつ見せる (演出の設定が出す時だけ)
   const modW = beginModWatch(true);
-  G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot"), fleeK: fleeScale(), agiWall: agiWallOf(activeCfg()), statWall: statWallOf(activeCfg()), strongHpWall: strongHpWallOf(activeCfg()), baseAgi: partyAgi(levelHere().lv), foeLv, fervor: !!(trB && trB.fervor), foeRise: (trB && trB.foeRise) || 0, challengeRule: trB?.challengeRule || null, soulFeast: (trB && trB.soulFeast) || 0, focus: !!(trB && trB.focus) });
+  G.battle = new Battle(G.party, enemies, log, { opening, noRun: alarm, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot"), fleeK: fleeScale(), agiWall: agiWallOf(activeCfg()), statWall: statWallOf(activeCfg()), strongHpWall: strongHpWallOf(activeCfg()), baseAgi: partyAgi(levelHere().lv), foeLv, fervor: !!(trB && trB.fervor), foeRise: (trB && trB.foeRise) || 0, challengeRule: trB?.challengeRule || null, soulFeast: (trB && trB.soulFeast) || 0, focus: !!(trB && trB.focus) });
+  G.battle.alarmRewards = alarmRewards;
   watchBattleSupply(G.battle);
   // 迷宮の掟の開幕の効果: 寒さに身がすくむ (chill) — 隊の全員の AGI を段数ぶん下げる (3ターン)
   for (const r of ruleOpens) if (r.chill) {
@@ -10982,7 +10985,7 @@ function renderCombatMenu() {
       sub.appendChild(cmdBtn("swap", "持ち替え", `${swaps.length}点`, () => { SFX.select(); showBattleSwap(actor); }));
     }
     // 逃走: 手番の者の AGI で決まる成功率を添える (退路を断たれていれば「不可」)
-    sub.appendChild(cmdBtn("run", "逃走", b.noFlee ? "不可" : `${Math.round(b.fleeChance(actor) * 100)}%`, () => act("run")));
+    sub.appendChild(cmdBtn("run", "逃走", (b.noFlee || b.noRun) ? "不可" : `${Math.round(b.fleeChance(actor) * 100)}%`, () => act("run")));
     // オート: 人業ごとの作戦 (隊の「能力」で選ぶ) に従って動く。長押しで隊の作戦をまとめて見る・変える
     const autoB = cmdBtn("auto", "オート", "", () => { G.autoCombat = true; SFX.select(); renderCombatMenu(); });
     if (UI.openPartyTactics) {
@@ -12256,7 +12259,7 @@ function endBattleMeasured() {
     for (const k of skills) log(`${k.name}が「${k.skill}」習得`, "win");
     G.pendingResults = {
       kind: wasBoss ? "boss" : wasElite ? "elite" : wasGuard ? "guard" : corpse ? "corpse" : "win",
-      gold: goldGot, soul: soulGot, kills, fled, performance,
+      gold: goldGot + (b.alarmRewards?.gold || 0), soul: soulGot + (b.alarmRewards?.soul || 0), kills, fled, performance,
       levels, skills, souls, levelUps: [...levelUpEntries(progress), ...orderLevels], chest, after,
     };
     finishToBoard();
