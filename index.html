@@ -10,6 +10,14 @@
   <!-- モジュールとCSSの到着前も、途中の画面を見せない。 -->
   <style>
     html { background: #000; }
+    #studio-splash { isolation:isolate; position:fixed; inset:0; z-index:2147483647; display:flex; align-items:center; justify-content:center; background:#000; opacity:1; transition:opacity .6s ease; cursor:pointer; touch-action:manipulation; }
+    #studio-splash img { width:min(88vw,1000px); height:auto; max-height:75dvh; object-fit:contain; }
+    #studio-splash span { display:none; color:#e8dfcc; font:clamp(24px,6vw,56px) Georgia,serif; }
+    #studio-splash img[hidden] + span { display:block; }
+    #studio-splash.studio-fading { opacity:0; }
+    body.studio-branding > .image-loading { visibility:hidden; }
+    body.studio-branding::before, body.studio-branding #media-splash { z-index:2147483646; }
+    @media(prefers-reduced-motion:reduce) { #studio-splash { transition-duration:.01s; } }
     body.booting::before, body.screen-loading::before {
       content: ""; position: fixed; inset: 0; background: #000; z-index: 2147483647;
     }
@@ -45,7 +53,12 @@
   <link rel="stylesheet" href="cloud.css" />
   <link rel="stylesheet" href="desktop.css" />
 </head>
-<body class="booting">
+<body class="booting studio-branding">
+  <div id="studio-splash" role="img" aria-label="Dead Sea Games。クリックでタイトルへ">
+    <img src="art/branding/dead-sea-games.webp" alt="" width="2048" height="683" fetchpriority="high" />
+    <span>Dead Sea Games</span>
+  </div>
+  <script src="src/branding.js"></script>
   <!-- 正式なロゴはこのブランド欄へ差し替える。外部素材なしで最初から表示する。 -->
   <div id="media-splash" class="no-phrase" role="status" aria-live="polite" data-state="loading">
     <div class="media-brand">百の迷宮と 魂の王</div>
