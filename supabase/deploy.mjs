@@ -23,14 +23,35 @@ end $dos_schema$;
 commit;`;
 }
 
+// 認証用リンクはSupabaseが生成したものをそのまま使う。
+export function emailTemplates() {
+  const templates = {
+    confirmation: ["メールアドレスの確認 / Confirm your email", "メールアドレスを確認し、登録を完了するには、次のリンクを開いてください。", "Open the link below to confirm your email address and complete registration.", "メールアドレスを確認 / Confirm email"],
+    email_change: ["新しいメールアドレスの確認 / Confirm your new email address", "新しいメールアドレスを確認するには、次のリンクを開いてください。", "Open the link below to confirm your new email address.", "新しいメールアドレスを確認 / Confirm new email"],
+    recovery: ["パスワードの再設定 / Reset your password", "パスワードを再設定するには、次のリンクを開いてください。", "Open the link below to reset your password.", "パスワードを再設定 / Reset password"],
+    magic_link: ["ログイン用リンク / Your sign-in link", "ログインするには、次のリンクを開いてください。", "Open the link below to sign in.", "ログイン / Sign in"],
+    invite: ["魂の迷宮への招待 / Invitation to Dungeon of Souls", "魂の迷宮に招待されました。次のリンクから登録を完了してください。", "You have been invited to Dungeon of Souls. Open the link below to complete registration.", "招待を確認 / Accept invitation"],
+  };
+  const settings = {};
+  for (const [type, [subject, ja, en, action]] of Object.entries(templates)) {
+    settings["mailer_subjects_" + type] = subject;
+    settings["mailer_templates_" + type + "_content"] = `<h2>魂の迷宮 / Dungeon of Souls</h2>
+<p lang="ja">${ja}</p><p lang="en">${en}</p>
+<p><a href="{{ .ConfirmationURL }}">${action}</a></p>
+<p lang="ja">心当たりがない場合は、このメールを無視してください。</p>
+<p lang="en">If you did not request this, you can safely ignore this email.</p>`;
+  }
+  return settings;
+}
+
 export function authSettings(current) {
   const site = (current.site_url || "").replace(/\/$/, "");
-  if (site && site !== "http://localhost:3000" && site !== SITE.replace(/\/$/, "")) {
+  if (site && site !== "http://localhost:3000" && site !== new URL(SITE).origin && site !== SITE.replace(/\/$/, "")) {
     throw new Error("別のアプリのログインURLが設定されています。DOS専用プロジェクトを選んでください。");
   }
   const redirects = new Set((current.uri_allow_list || "").split(",").map((s) => s.trim()).filter(Boolean));
   redirects.add(SITE);
-  return { site_url: SITE, uri_allow_list: [...redirects].join(","), external_email_enabled: true,
+  return { ...emailTemplates(), site_url: SITE, uri_allow_list: [...redirects].join(","), external_email_enabled: true,
     disable_signup: false, mailer_autoconfirm: false, external_anonymous_users_enabled: true, rate_limit_anonymous_users: 10 };
 }
 

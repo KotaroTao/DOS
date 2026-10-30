@@ -325,7 +325,7 @@ function login(c, { registration = false, linking = false } = {}) {
           button("冒険へ戻る", () => resolve());
           return;
         }
-        const a = await c.authRequest(signup ? "signup" : "token?grant_type=password", { email: email.value.trim(), password: password.value, ...await captchaBody() });
+        const a = await c.authRequest(signup ? "signup?redirect_to=" + encodeURIComponent(location.origin + location.pathname) : "token?grant_type=password", { email: email.value.trim(), password: password.value, ...await captchaBody() });
         if (!a.access_token) { message.textContent = "確認メールを送りました。メール内のリンクで確認してからログインしてください。"; return; }
         c.auth = session(a); putJSON(AUTH_KEY, c.auth); resolve();
       } catch { message.textContent = signup ? "登録できませんでした。入力内容と接続を確かめてください。" : "ログインできませんでした。入力内容・メールの確認・接続を確かめてください。"; }
@@ -361,6 +361,16 @@ function login(c, { registration = false, linking = false } = {}) {
 
 async function recoveryLogin(c) {
   const hash = new URLSearchParams(location.hash.slice(1));
+  if (hash.has("error") || hash.has("error_code")) {
+    history.replaceState(null, "", location.pathname + location.search);
+    await new Promise(resolve => {
+      showGate(hash.get("error_code") === "otp_expired"
+        ? "確認リンクが無効か、有効期限が切れています。登録した端末の設定からメール登録をやり直し、最新の確認メールを開いてください。パスワード再設定の場合は、ログイン画面からメールを送り直してください。"
+        : "メールの確認を完了できませんでした。登録した端末から確認メールを送り直してください。");
+      button("続ける", resolve);
+    });
+    return false;
+  }
   if (!hash.get("access_token")) return false;
   c.auth = { access_token: hash.get("access_token"), refresh_token: hash.get("refresh_token"),
     expires_at: Math.floor(Date.now() / 1000) + Number(hash.get("expires_in") || 3600) };
@@ -385,7 +395,7 @@ async function recoveryLogin(c) {
     form.addEventListener("submit", async (e) => {
       e.preventDefault(); if (!form.reportValidity() || b.disabled) return; b.disabled = true;
       try {
-        await c.fetchJSON("/auth/v1/user", { method: "PUT", headers: { apikey: c.config.anonKey,
+        await c.fetchJSON("/auth/v1/user" + (body.email ? "?redirect_to=" + encodeURIComponent(location.origin + location.pathname) : ""), { method: "PUT", headers: { apikey: c.config.anonKey,
           Authorization: `Bearer ${c.auth.access_token}`, "Content-Type": "application/json" }, body: JSON.stringify({ password: p.value }) });
         putJSON(AUTH_KEY, c.auth); resolve();
       } catch { message.textContent = "更新できませんでした。接続を確かめてください。"; }
@@ -583,7 +593,7 @@ async function currentUser(c) {
   return c.fetchJSON("/auth/v1/user", { headers: { apikey: c.config.anonKey, Authorization: `Bearer ${await c.token()}` } });
 }
 async function updateUser(c, body) {
-  const user = await c.fetchJSON("/auth/v1/user", { method: "PUT", headers: { apikey: c.config.anonKey,
+  const user = await c.fetchJSON("/auth/v1/user" + (body.email ? "?redirect_to=" + encodeURIComponent(location.origin + location.pathname) : ""), { method: "PUT", headers: { apikey: c.config.anonKey,
     Authorization: `Bearer ${await c.token()}`, "Content-Type": "application/json" }, body: JSON.stringify(body) });
   if (user.id !== c.auth.user.id) throw new Error("アカウントが一致しません");
   c.auth.user = user; putJSON(AUTH_KEY, c.auth);
