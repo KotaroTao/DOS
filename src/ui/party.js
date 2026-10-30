@@ -1838,10 +1838,23 @@ export function openStability(d, onChange) {
   return h;
 }
 
+// 館の新しい見出しでも、語りを聞いた直後から面影の入口を出す。
+function mansionFaceButton(d) {
+  if (d.primary == null || !game.omokageUnlocked?.()) return null;
+  const face = portraitEl(d, { size: 44, tag: "button", cls: " pt-face-on" });
+  face.setAttribute("aria-label", `${d.name}の面影を写す`);
+  face.title = "面影の写し";
+  face.appendChild(el("span", "pt-face-mark", "面"));
+  face.addEventListener("click", () => openOmokage(d));
+  return face;
+}
+
 // 館では選択と育成を中心に置き、編成や人物の操作は管理のシートへまとめる。
 function mansionHeader(d) {
   const head = el("section", "pt-mansion-head");
   head.dataset.job = soulByUid(d.primary)?.clsKey || "";
+  const face = mansionFaceButton(d);
+  if (face) head.appendChild(face);
   const tx = el("div", "pt-mansion-title");
   tx.appendChild(el("span", "pt-head-name", d.name));
   const rename = el("button", "pt-mansion-rename pt-head-edit");
@@ -3078,6 +3091,8 @@ function renderDesktopMansion(root, d) {
   }}));
   root.appendChild(roster);
   const head = el("header", "pc-mansion-head");
+  const face = mansionFaceButton(d);
+  if (face) head.appendChild(face);
   head.append(el("h1", null, d.name), el("span", "pc-muted", `${SOUL_CLASSES[d.clsKey]?.name || "魂なし"} Lv${d.jobLv || 1}`));
   const actions = el("div", "pc-actions");
   actions.appendChild(button({label:"名前を変える",kind:"secondary",onTap:()=>openRename(d)}));
