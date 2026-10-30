@@ -48,13 +48,13 @@ function isWorn(item) {
 
 // 同じ項目の最大値を基準にする比較バー。数値は省略せず、色に頼らず見比べられる。
 export function battlePerformance(report) {
-  const box = el("section", "bp");
+  const box = el("details", "bp");
   box.setAttribute("aria-label", "キャラ別の戦闘の内訳");
   const metrics = [["damage", "与ダメージ"], ["taken", "被ダメージ"], ["healing", "回復量"]];
   const members = report.members || [];
   const value = (m, key) => Math.max(0, Number(m[key]) || 0);
   const maxima = metrics.map(([key]) => Math.max(1, ...members.map((m) => value(m, key))));
-  const head = el("div", "bp-heading");
+  const head = el("summary", "bp-heading");
   head.appendChild(el("h3", null, "戦闘の内訳"));
   if (report.rounds) head.appendChild(el("span", "bp-rounds", `${report.rounds}ターン`));
   box.appendChild(head);
