@@ -26,13 +26,13 @@ with sync_playwright() as p:
             page.evaluate("installing.state='activated';installing.dispatchEvent(new Event('statechange'))")
         if scenario in ['missed','installing']:
             page.locator('.game-update-notice').wait_for()
-            assert page.evaluate('reloads')==0
-            page.get_by_role('button',name='保存して更新',exact=True).click()
+            page.wait_for_function('reloads===1')
+            page.evaluate("worker.dispatchEvent(new Event('controllerchange'))")
             assert page.evaluate('reloads')==1
         else:
             assert page.locator('.game-update-notice').count()==0
         before=page.evaluate('updates');page.evaluate("window.dispatchEvent(new Event('focus'))")
         page.wait_for_function('updates > '+str(before))
-        print(scenario+': 通知・保存前の再読込なし・復帰時の更新確認 OK')
+        print(scenario+': 重複更新なし・自動切替・復帰時の更新確認 OK')
         c.close()
     b.close()

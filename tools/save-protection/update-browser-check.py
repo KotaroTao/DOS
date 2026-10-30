@@ -62,20 +62,19 @@ async def main():
 
         await page.evaluate("s=>localStorage.setItem('dos-save-v7',s)", seed)
         await visit(page)
-        await page.evaluate("__game.G.gold=87654; notifyUpdate()")
-        await expect(page.locator(".game-update-notice")).to_be_visible()
+        await page.evaluate("__game.G.gold=87654")
         assert await page.evaluate("__game.G.gold") == 87654
         await page.evaluate("""() => { window.restoreStorage=Storage.prototype.setItem;
           Storage.prototype.setItem=function(k,v){if(k==='dos-save-v7')throw new Error('保存先が満杯');return restoreStorage.call(this,k,v)}; }""")
-        await page.get_by_role("button", name="保存して更新", exact=True).click()
+        await page.evaluate("notifyUpdate()")
         assert await page.evaluate("__game.G.gold") == 87654
         await expect(page.locator(".game-update-notice")).to_be_visible()
         await page.evaluate("() => { Storage.prototype.setItem=restoreStorage; }")
         async with page.expect_navigation(wait_until="domcontentloaded"):
-            await page.get_by_role("button", name="保存して更新", exact=True).click()
+            pass
         await page.wait_for_function("window.__game && !document.body.classList.contains('booting')")
         assert await page.evaluate("__game.G.gold") == 87654
-        print("端末保存は自動再読込せず、保存失敗時も留まり、明示更新後に最新の金貨で再開: OK", flush=True)
+        print("端末保存の失敗時は留まり、保存復旧後に自動更新して最新の金貨で再開: OK", flush=True)
         await c.close()
 
         # 初回のService Worker導入では更新案内を出さない。
@@ -86,6 +85,17 @@ async def main():
         await expect(page.locator(".game-update-notice")).to_have_count(0)
         await c.close()
         print("初回導入では案内も再起動も発生しない: OK", flush=True)
+
+        # 記録をまだ作っていないタイトルでも、自動更新の保存待ちで止まらない。
+        c = await context()
+        page = await c.new_page()
+        await visit(page)
+        async with page.expect_navigation(wait_until="domcontentloaded"):
+            await page.evaluate("notifyUpdate()")
+        await page.wait_for_function("window.__game && !document.body.classList.contains('booting')")
+        assert await page.evaluate("localStorage.getItem('dos-save-v7')") is None
+        print("新規タイトルも空の記録を作らず自動更新: OK", flush=True)
+        await c.close()
 
         # 実際のCloudSaveClientを使い、APIの保存応答だけを遅らせる。
         auth = {"access_token":"test", "refresh_token":"test", "expires_at":9999999999,"user":{"id":"update-test","email":"test@example.invalid"}}
@@ -112,7 +122,6 @@ async def main():
         await page.locator(".ttl-overlay:not(.ttl-out) .ttl-menu .ttl-btn.primary").click()
         await page.wait_for_function("!document.querySelector('.ttl-overlay:not(.ttl-out)') && __game.G.party.length")
         await page.evaluate("__game.G.gold=98765; notifyUpdate()")
-        await page.get_by_role("button", name="保存して更新", exact=True).click()
         await asyncio.wait_for(received.wait(), timeout=10)
         await expect(page.get_by_role("button", name="保存して更新", exact=True)).to_be_disabled()
         assert await page.evaluate("__game.G.gold") == 98765

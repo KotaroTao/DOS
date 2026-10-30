@@ -20010,12 +20010,14 @@ function wireUI() {
 async function returnToTitle() {
   if (!testPlayActive) {
     // 接続前・サーバーの結果反映中には、現在の画面を捨てない。
-    if (cloudEnabled() && (!cloudReady() || _cloudResolving)) return;
+    if (cloudEnabled() && (!cloudReady() || _cloudResolving)) return false;
     if (cloudEnabled()) {
-      if (!await cloudPrepareReload(() => autosave(true))) return;
+      if (!await cloudPrepareReload(() => autosave(true))) return false;
     } else {
-      const saved = autosave(true);
-      if (saved !== true || !localSaveSession?.owned || !localSaveSession.unchanged()) return;
+      // まだ記録のない初回タイトルでは、空の記録を作らずに更新できる。
+      const freshTitle = titleActive && !G.party?.length && !G.apprenticeName && localSaveSession?.raw === null;
+      const saved = freshTitle ? true : autosave(true);
+      if (saved !== true || !localSaveSession?.owned || !localSaveSession.unchanged()) return false;
     }
   }
   _resetting = true;
