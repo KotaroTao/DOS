@@ -11,15 +11,15 @@ with sync_playwright() as p:
       const {game} = await import('/src/ui/ctx.js');
       const {playerNameCard, formatPlayTime, refreshPlayTime} = await import('/src/ui/playername.js');
       const check = (ok, msg) => {if (!ok) throw Error(msg)};
-      for (const [ms, text] of [[undefined,'0'],[59999,'0'],[60000,'1'],[119999,'1'],[7200000,'120']])
-        check(formatPlayTime(ms) === `プレイ時間 ${text}分`, '分境界');
+      for (const [ms, text] of [[undefined,'0h 0m'],[59999,'0h 0m'],[60000,'0h 1m'],[119999,'0h 1m'],[3599999,'0h 59m'],[3600000,'1h 0m'],[7200000,'2h 0m'],[9900000,'2h 45m']])
+        check(formatPlayTime(ms) === `プレイ時間 : ${text}`, '分境界');
       const G = game.G; G.stats.playMs = 119999;
       const card = playerNameCard(); document.body.append(card);
       check(!card.querySelector('.player-name-label'), '上部ラベル削除');
       check(!card.querySelector('.player-name-title'), '称号削除');
-      check(card.querySelector('.player-name-insight').firstChild.textContent === 'プレイ時間 1分', '見識の左');
+      check(card.querySelector('.player-name-insight').firstChild.textContent === 'プレイ時間 : 0h 1m', '見識の左');
       G.stats.playMs = 120000; refreshPlayTime();
-      check(card.querySelector('.player-name-play-time').textContent === 'プレイ時間 2分', '表示更新');
+      check(card.querySelector('.player-name-play-time').textContent === 'プレイ時間 : 0h 2m', '表示更新');
       G.world.cleared.w02 = 1;
       const unlocked = playerNameCard();
       check(!unlocked.querySelector('.player-name-points').hidden, '見識表示');
