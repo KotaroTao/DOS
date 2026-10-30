@@ -31,7 +31,7 @@ import {
 import { mansionControlUnlocked, lockedControl, renderSoulSummary, renderSoulSeg, openSoulPicker, openSoulList, openOrderSheet } from "./soulpanel.js";
 import { IRENE_WHO, IRENE_ART, ireneState, isGreeted, nextLine, lineOpen, noteVisit, greetingPages, playIreneScene, sceneActive } from "./irene.js";
 import {
-  planBestEquip, equipApprovalGroups, applyEquipApprovals, restoreEquip, equipSignature, trialEquip, slotKeysFor, previewStats, statsDelta, snapshotEquip, isAutoCandidate, swapBackFor,
+  planBestEquip, equipApprovalGroups, applyEquipApprovals, restoreEquip, equipSignature, equipHintSignature, trialEquip, slotKeysFor, previewStats, statsDelta, snapshotEquip, isAutoCandidate, swapBackFor,
 } from "../autoequip.js";
 import { SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, canEquip, equipLevelOf, equipLvShort, recalc, weaponRange, RANGE_LABEL, itemName, attackPower, useWhere, compareUse, AIL_LABEL, hasQuality, qualityOf, qualityMatters } from "../items.js";
 import {
@@ -661,7 +661,7 @@ function betterGearCount() {
   const G = G_();
   if (!G || !G.party) return 0;
   // 魂の付け替え・融合・サブ魂・結社でも能力が変わるので、能力そのものも鍵に入れる (古い見積りで印を点けない)
-  const key = equipSignature(allDolls()) + JSON.stringify([bagOwners(itemsPool()).map(o => o.items), G.party.map(d => d && [d.base, d.equip, d.jobLv, d.dualWield])]) + "|" + G.party.map((d) => d ? `${d.jobKey}:${d.level}:${d.maxhp},${d.maxmp},${d.atk},${d.vit},${d.agi},${d.int},${d.pie},${d.luk}:${G.party.indexOf(d)}` : "-").join(",");
+  const key = equipHintSignature(itemsPool()) + JSON.stringify([G.party.map(d => d && [d.base, d.equip, d.jobLv, d.dualWield])]) + "|" + G.party.map((d) => d ? `${d.jobKey}:${d.level}:${d.maxhp},${d.maxmp},${d.atk},${d.vit},${d.agi},${d.int},${d.pie},${d.luk}:${G.party.indexOf(d)}` : "-").join(",");
   if (bgcMemo.key === key) return bgcMemo.n;
   memoClear();
   let n = 0;
@@ -679,10 +679,9 @@ const gearHintMemo = new WeakMap();
 export function hasBetterGear(d) {
   if (!d || !d.alive || d.primary == null) return false;
   const pool = itemsPool();
-  const key = equipSignature(pool) + JSON.stringify([
+  const key = equipHintSignature(pool) + JSON.stringify([
     d.base, d.equip, d.jobLv, d.jobKey, d.clsKey, d.align, d.dualWield,
     d.atk, d.vit, d.agi, d.int, d.pie, d.luk, d.maxhp, d.maxmp,
-    bagOwners(pool).map((o) => o.items),
   ]);
   const old = gearHintMemo.get(d);
   if (old && old.key === key) return old.value;

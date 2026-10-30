@@ -1580,6 +1580,8 @@ const ASSETS = [
   "./src/monsterreveal.js",
   "./cloud.css",
   "./src/savegraph.js",
+  "./src/save-codec.js",
+  "./src/save-codec-worker.js",
   "./src/cloud-config.js",
   "./src/cloud-save.js",
   "./src/legal.js",

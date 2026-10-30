@@ -1,3 +1,4 @@
+import { encodeCloudSave, acknowledgeCloudSave } from "./save-codec.js";
 import { depthLimit, mutatorEligible, challengeEntryBlock, applyChallengeEnemies } from "./progression.js";
 import { warmOpening } from "./openingillustrations.js";
 import { holdIllustrations, mediaBusy, setIllustrationReload } from "./imageloading.js";
@@ -9,8 +10,8 @@ import { soulAcquisitionArt } from "./ui/soulart.js";
 import { insightTotals, insightTitle } from "./insight.js";
 import { INF_BUY_CAP, infRecovery, infUseCount, infSupplyLeft, infSpendSupply } from "./infsupplies.js";
 import { random, fxRandom, bindRngState, rngState } from "./rng.js";
-import { refSerialize, refDeserialize, applySavePatch, acknowledgedSave } from "./savegraph.js";
-import { cloudEnabled, cloudHasRecord, cloudReady, cloudBusy, connectCloud, cloudRegisterPrompt, cloudSave, cloudBattle, cloudFlush, cloudReset, cloudFatal, cloudPrepareReload } from "./cloud-save.js";
+import { refSerialize, refDeserialize, applySavePatch } from "./savegraph.js";
+import { cloudEnabled, cloudHasRecord, cloudReady, cloudBusy, connectCloud, cloudRegisterPrompt, cloudSave, cloudSavePrepared, cloudCompactGraph, cloudBackgroundBattle, cloudCheckpoint, cloudBattle, cloudBattlePrepared, cloudFlush, cloudReset, cloudFatal, cloudPrepareReload } from "./cloud-save.js";
 import { LocalSaveSession, showLocalSaveBlocked, showLocalSaveRecovery, saveSlotFromURL, localSaveKey } from "./local-save.js";
 import { watchGameUpdates } from "./game-update.js";
 import { syncEnemyUids, enemySoulRewardMul, openingRates } from "./combat.js";
@@ -2658,7 +2659,7 @@ const topbarEl = document.getElementById("topbar");
 const LOG_MIN_BOARD = 94, LOG_MIN_COMBAT = 94, MENU_RESERVE = 166;
 const TURN_ORDER_H = 31; // 戦闘の行動順の帯 (#turn-order) の高さ + 下の余白。記録欄を削らず戦場の側で詰める
 let _fitKey = "";
-let _partyLogKey = "", _commandSizeKey = "", _commandSizeRow = null, _exploreButtonKey = "";
+let _partyLogKey = "", _commandSizeKey = "", _exploreButtonKey = "";
 // 元の札との差を測るのは内容・画面サイズが変わった時だけ。毎フレームの再配置を避ける。
 function updatePartyLogSpace() {
   const key = `${_partyKey}|${view.clientWidth}|${window.innerHeight}`;
@@ -2690,9 +2691,11 @@ function updateCommandLogSpace() {
   if (window.innerWidth > 600) return;
   const main = combatMenu.querySelector(".cmd-main"), sub = combatMenu.querySelector(".cmd-sub");
   if (!main || !sub) return; // 敵の手番・対象選択でも直前の高さ配分を保つ。
-  const key = `${view.clientWidth}|${window.innerHeight}`;
-  if (key === _commandSizeKey && main === _commandSizeRow) return;
-  _commandSizeKey = key; _commandSizeRow = main;
+  // 同じ命令板を手番ごとに作り直しても、数値だけなら高さは変わらない。
+  // DOM の同一性で判定すると毎行動で強制レイアウトが走る。
+  const key = `${window.innerWidth}|${window.innerHeight}|${main.className}|${sub.className}|${(main.textContent + sub.textContent).replace(/\d+/g, "0")}`;
+  if (key === _commandSizeKey) return;
+  _commandSizeKey = key;
   const controls = document.getElementById("controls");
   controls.classList.add("measure-commands");
   const mainH = main.getBoundingClientRect().height, subH = sub.getBoundingClientRect().height;
@@ -9481,13 +9484,19 @@ function spawnModFx(tg, now, spd, i, label) {
 // 戦闘の始まり・ターンの初めの強化・弱体を、掛けた技・パッシブ・掟ごとに1拍ずつ見せる
 function playModReveal(mw, done) {
   if (!mw) { done(); return; }
+  if (cloudBackgroundBattle()) {
+    flushModLines(mw, Infinity); G.effShow = null;
+    for (const step of mw.steps) for (const proc of step.procs || []) G.battle?.procs?.push(proc);
+    drainPartyProcs(); done(); return;
+  }
   const b = G.battle;
   let i = 0;
+  const steps = mw.steps;
   const finish = () => { flushModLines(mw, Infinity); G.effShow = null; renderParty(); };
   const next = () => {
     if (G.battle !== b || G.state !== "combat") { finish(); return; }
-    if (i >= mw.steps.length) { finish(); done(); return; }
-    playModStep(mw, mw.steps[i++], next);
+    if (i >= steps.length) { finish(); done(); return; }
+    playModStep(mw, steps[i++], next);
   };
   next();
 }
@@ -11333,7 +11342,21 @@ function showBattleItems(actor) {
 }
 // ---- 戦闘ループ駆動 (1手ずつ・演出付き) ----
 // 戦闘テンポ (演出時間の倍率): 倍速 ON = 標準 (1) / OFF = その 1/2 の速さ (2)。オート中は倍速の設定によらず短縮する
-function spdMul() { return G.autoCombat ? 0.45 : G.fastAnim ? 1 : 2; }
+function spdMul() {
+  if (cloudBackgroundBattle()) return G.autoCombat || G.fastAnim ? 0.1 : 0.2;
+  return G.autoCombat ? 0.45 : G.fastAnim ? 1 : 2;
+}
+function serverBattle() { return cloudEnabled() && !testPlayActive && !cloudBackgroundBattle(); }
+async function resolveLocalBattle(action, battle = G.battle) {
+  try {
+    if (cloudBackgroundBattle()) _cloudResolving = true;
+    if (cloudEnabled() && !testPlayActive) await cloudCheckpoint();
+    if (G.battle !== battle || G.state !== "combat") return;
+    const res = action === "commit" ? battle.commit() : action === "enemy" ? battle.enemyAct() : battle.stunnedAct();
+    res._modFeed = takeModFeed(); battle._acted = true;
+    animateResult(res, postResolve);
+  } catch (e) { cloudFatal(); }
+}
 // 戦闘の一時停止: 戦闘中にシート (手帳・設定・覗き見など) が開いている間は次の一手へ進まない。
 // いま演じている一手は最後まで見せ、その次の手番で閉じるのを待つ
 function combatHeld() { return G.state === "combat" && (mediaBusy() || cloudBusy() || sheetDepth() > 0 || !!G.settingsOpen || !!G.statusOpen); }
@@ -11349,20 +11372,17 @@ function combatStep() {
   if (!b) return;
   if (combatHeld()) { setTimeout(combatStep, 150); return; }
   if (b.result) { endBattle(); return; }
-  if (b.phase === "input") { G.animating = false; renderCombat(); return; }
+  if (b.phase === "input") { G.animating = false; combatMenu.inert = false; renderCombat(); return; }
   if (b.phase === "stunned") {
     // 行動不能の味方 (睡眠/麻痺/石化) の手番を自動消化
     G.animating = true;
     if (G.autoCombat) renderAutoBanner(); else renderActingPlate(b.current);
     renderCombatCanvas();
-    if (!cloudEnabled() || testPlayActive) autosave(true);
+    if (!serverBattle()) autosave(true);
     setTimeout(() => whenCombatFree(() => {
       holdActionEffects();
-      if (cloudEnabled() && !testPlayActive) { resolveSavedBattle("stunned"); return; }
-      const res = b.stunnedAct();
-      res._modFeed = takeModFeed();
-      b._acted = true; // 実行済み (演出中に閉じられても、再開時にやり直さず次の手番へ)
-      animateResult(res, postResolve);
+      if (serverBattle()) { resolveSavedBattle("stunned"); return; }
+      resolveLocalBattle("stunned", b);
     }, b), cloudEnabled() && !testPlayActive ? 0 : 200 * spdMul());
     return;
   }
@@ -11370,15 +11390,12 @@ function combatStep() {
     G.animating = true;
     if (G.autoCombat) renderAutoBanner(); else renderActingPlate(b.current);
     renderCombatCanvas();
-    if (!cloudEnabled() || testPlayActive) autosave(true); // ローカルでは敵の手番を先に保存
+    if (!serverBattle()) autosave(true); // ローカルでは敵の手番を先に保存
     // クラウドは通信待ちに加えて予備待機を足さず、登場・踏み込みは結果の演出で見せる
     setTimeout(() => whenCombatFree(() => {
       holdActionEffects();
-      if (cloudEnabled() && !testPlayActive) { resolveSavedBattle("enemy"); return; }
-      const res = b.enemyAct();
-      res._modFeed = takeModFeed();
-      b._acted = true;
-      animateResult(res, postResolve);
+      if (serverBattle()) { resolveSavedBattle("enemy"); return; }
+      resolveLocalBattle("enemy", b);
     }, b), cloudEnabled() && !testPlayActive ? 0 : 260 * spdMul());
   }
 }
@@ -11407,15 +11424,14 @@ function act(action, spellKey, extra) {
 
 // 予約済みの味方行動を実行 → 演出 → 次の手番
 function runCommitted() {
-  if (!cloudEnabled() || testPlayActive) autosave(true); // クラウドでは行動と同じ要求で保存
+  if (!serverBattle()) autosave(true); // 選択と乱数位置を行動前に端末へ保管
   G.animating = true;
-  if (G.autoCombat) renderAutoBanner(); else renderActingPlate((G.battle.pending && G.battle.pending.actor) || G.battle.current);
+  if (G.autoCombat) renderAutoBanner();
+  else if (cloudBackgroundBattle()) combatMenu.inert = true;
+  else renderActingPlate((G.battle.pending && G.battle.pending.actor) || G.battle.current);
   holdActionEffects();
-  if (cloudEnabled() && !testPlayActive) { resolveSavedBattle("commit"); return; }
-  const res = G.battle.commit();
-  res._modFeed = takeModFeed();
-  G.battle._acted = true;
-  animateResult(res, postResolve);
+  if (serverBattle()) { resolveSavedBattle("commit"); return; }
+  resolveLocalBattle("commit");
 }
 
 // 確定した選択を保存し、サーバーに一手を実行させる。返答前は結果を描かない。
@@ -11426,16 +11442,20 @@ async function resolveSavedBattle(action) {
     codexSweepJobs(); notifyInsight();
     const snap = {};
     for (const k of SAVE_FIELDS) snap[k] = G[k];
-    const data = refSerialize(snap);
-    _lastCloudSave = JSON.stringify(data);
-    const response = await cloudBattle(action, data);
+    const prepared = encodeCloudSave(snap, cloudCompactGraph());
+    prepared.catch(() => {});
+    let raw;
+    const response = await cloudBattlePrepared(action, async () => {
+      raw = await prepared; return JSON.parse(raw);
+    });
     savedBattleAdvance = response.nextPacket ? { battle: G.battle, packet: response.nextPacket } : null;
     const packet = applySavePatch(G, refDeserialize(response.packet));
     restoreMonsterPhotos(G.battle.enemies, MONSTERS);
     G.rng = bindRngState(G.rng); setSharedSouls(G.souls);
     syncEnemyUids(G.battle.enemies);
     G.battle.log = log;
-    _cloudResolving = !!savedBattleAdvance; _lastCloudSave = acknowledgedSave(_lastCloudSave, response.packet);
+    _lastCloudSave = await acknowledgeCloudSave(raw, response.packet);
+    _cloudResolving = !!savedBattleAdvance;
     refreshStability();
     for (const l of packet.logs) log(l.msg, l.cls);
     packet.result._modFeed = packet.modFeed;
@@ -11445,6 +11465,7 @@ async function resolveSavedBattle(action) {
 
 // 行動の結果を演出し、終わったら次へ
 function postResolve() {
+  if (cloudBackgroundBattle()) _cloudResolving = false;
   const b = G.battle;
   if (!b || G.state !== "combat") return;
   // ボスの発狂を派手に知らせる
@@ -11453,16 +11474,16 @@ function postResolve() {
     shakeScreen(true); buzz([0, 60, 50, 60]);
     showToast("⚠ 敵が怒り狂っている！");
   }
-  if (b.result) { G.animating = false; setTimeout(() => whenCombatFree(endBattle, b), G.autoCombat ? 100 : 300); return; }
-  if (!cloudEnabled() || testPlayActive) b._acted = false;
+  if (b.result) { G.animating = false; setTimeout(() => whenCombatFree(endBattle, b), cloudBackgroundBattle() ? 0 : G.autoCombat ? 100 : 300); return; }
+  if (!serverBattle()) b._acted = false;
   // ターンの初めのパッシブ・激昂などで掛かった強化・弱体は、1拍ずつ見せてから次の手番へ
   const watch = beginModWatch(true);
-  if (cloudEnabled() && !testPlayActive) { advanceSavedBattle(watch); return; }
+  if (serverBattle()) { advanceSavedBattle(watch); return; }
   b.advance();
   const mw = watch ? endModWatch() : null;
   playModReveal(mw, () => {
     autosave(true);
-    setTimeout(combatStep, G.autoCombat ? 0 : 150 * spdMul());
+    setTimeout(combatStep, cloudBackgroundBattle() || G.autoCombat ? 0 : 150 * spdMul());
   });
 }
 
@@ -11475,13 +11496,14 @@ async function advanceSavedBattle(watch) {
     const packet = applySavePatch(G, refDeserialize(response.packet));
     restoreMonsterPhotos(G.battle.enemies, MONSTERS);
     G.rng = bindRngState(G.rng); setSharedSouls(G.souls); G.battle.log = log;
-    _cloudResolving = false; _lastCloudSave = acknowledgedSave(_lastCloudSave, response.packet);
+    _lastCloudSave = await acknowledgeCloudSave(_lastCloudSave, response.packet);
+    _cloudResolving = false;
     refreshStability();
     for (const l of packet.logs) log(l.msg, l.cls);
     if (watch) G.modFeed = packet.modFeed;
     const mw = watch ? endModWatch() : null;
     // 次の手番もサーバーに確定済み。演出の片付けだけで全記録を送り直さない。
-    playModReveal(mw, () => { setTimeout(combatStep, G.autoCombat ? 0 : 150 * spdMul()); });
+    playModReveal(mw, () => { setTimeout(combatStep, cloudBackgroundBattle() || G.autoCombat ? 0 : 150 * spdMul()); });
   } catch (e) { cloudFatal(); }
 }
 
@@ -11495,7 +11517,26 @@ function animateResult(res, done) {
   const finish = () => { if (G.battle === battle && G.state === "combat") done(); };
   if (G.battle && G.battle.tl) tlHits(G.battle.tl, res); // テスト記録: 与ダメ/被ダメ
   callPartyAction(res); // 札の肖像に使った技の名 (手番の初めから)
-  if (setPlateCall(res)) { if (G.autoCombat) renderAutoBanner(); else renderActingPlate(res.actor); } // 命令板にも「誰の何の技か」
+  if (setPlateCall(res) && !cloudBackgroundBattle()) { if (G.autoCombat) renderAutoBanner(); else renderActingPlate(res.actor); } // 命令板にも「誰の何の技か」
+  if (cloudBackgroundBattle()) {
+    // 結果と次の命令板を先に示す。短い視覚効果は入力を封じず描く。
+    const fx = G.fx = { lunge: null, slashes: [], skill: [], floats: [], screen: null, flash: {}, deaths: [] };
+    G.partyFx = new Map(); G.partyFxV = new Map();
+    if ((res.action !== "sleep" && res.action !== "stunned") || (res.hits || []).length) applyImpact(res);
+    if (res._modFeed !== undefined) releaseActionEffects(res, res._modFeed);
+    drainPartyProcs();
+    finish();
+    const started = performance.now();
+    const tick = () => {
+      if (G.fx !== fx || G.battle !== battle || G.state !== "combat") return;
+      if (performance.now() - started >= 150) {
+        G.fx = null; G.partyFx.clear(); G.partyFxV.clear(); renderParty(); return;
+      }
+      renderCombatCanvas(); requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+    return;
+  }
   // 眠り・行動不能で何もしなかった手番には、踏み込みや空振り音を出さない
   if ((res.action === "sleep" || res.action === "stunned") && !(res.hits || []).length) {
     G.effShow = null;
@@ -11696,7 +11737,7 @@ function applyImpact(res) {
   // 多段ヒット (二段斬り等) は同じ対象・同座標に重なって1回に見えてしまうため、
   // 対象ごとにヒット順で時間差(stagger)と位置差(横ずらし)を付けて、回数分はっきり見せる
   const spd = spdMul();
-  const stag = HIT_STAGGER * spd;
+  const stag = cloudBackgroundBattle() ? Math.min(HIT_STAGGER * spd, 90 / Math.max(1, res.hits.length)) : HIT_STAGGER * spd;
   const stackIdx = {};
   // 技ごとの組み立て: 描き分け (v)・角度 (rot)・回る向き (spin)・格 (scale)・付く効果の印 (riders)
   const prof = fxProfile(res);
@@ -18904,14 +18945,18 @@ function autosave(force = false) {
     notifyInsight();
     const snap = {};
     for (const k of SAVE_FIELDS) snap[k] = G[k];
-    const data = refSerialize(snap);
     if (cloudEnabled()) {
-      const raw = JSON.stringify(data);
-      if (raw === _lastCloudSave) return cloudFlush();
-      _lastCloudSave = raw;
-      return cloudSave(data);
+      const prepared = encodeCloudSave(snap, cloudCompactGraph());
+      // 準備失敗も送信列が受け取るまで未処理の拒否にしない。
+      prepared.catch(() => {});
+      return cloudSavePrepared(async () => {
+        const raw = await prepared;
+        if (raw === _lastCloudSave) return null;
+        _lastCloudSave = raw;
+        return raw;
+      });
     }
-    return localSaveSession.write(JSON.stringify(data));
+    return localSaveSession.write(JSON.stringify(refSerialize(snap)));
   } catch (e) {
     // localStorage が使えない (プライベートブラウズ等) と保存できない → 一度だけ警告
     if (!_saveWarned) {
@@ -19337,7 +19382,7 @@ function resumeFromState() {
 function resumeCombat() {
   const b = G.battle;
   if (!b) { finishToBoard(); return; }
-  G.animating = false; G.fx = null; G.partyFx = new Map(); G.partyFxV = null; G.partyShow = null; G.enemyPos = {};
+  G.animating = false; combatMenu.inert = false; G.fx = null; G.partyFx = new Map(); G.partyFxV = null; G.partyShow = null; G.enemyPos = {};
   G.effShow = null; G.modFeed = null; flushModLines(null, Infinity);
   clearPartyCalls();
   if (b.procs) b.procs.length = 0; // 中断前の発動の印は出し直さない
@@ -19349,7 +19394,7 @@ function resumeCombat() {
   // 行動を実行し終え、その演出の途中で閉じられた (次の手番へ進む前に保存された) →
   // 同じ行動をやり直さず、次の手番へ進める。旧セーブでは「resolve なのに予約が空」がその印
   if (b._acted || (b.phase === "resolve" && !b.pending)) {
-    if (cloudEnabled() && !testPlayActive) { advanceSavedBattle(false); return; }
+    if (serverBattle()) { advanceSavedBattle(false); return; }
     b._acted = false;
     b.advance();
     autosave(true);

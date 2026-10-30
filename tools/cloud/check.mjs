@@ -241,6 +241,9 @@ for (let seed = 1; seed <= 100; seed++) for (const mode of ["commit", "enemy", "
   const expectedAction = refSerialize(resolveCloudBattle(sequential, mode));
   const expectedNext = sequential.battle.result ? null : refSerialize(resolveCloudBattle(sequential, "advance"));
   const response = resolveCloudTurn(batched, mode);
+  const packed = resolveCloudTurn(clone(initial), mode, {compact:true});
+  assert.deepEqual(refDeserialize(packed.packet),refDeserialize(expectedAction));
+  assert.deepEqual(packed.nextPacket && refDeserialize(packed.nextPacket),expectedNext && refDeserialize(expectedNext));
   assert.deepEqual(response.packet, expectedAction);
   assert.deepEqual(response.nextPacket, expectedNext);
   assert.deepEqual(refSerialize(batched), refSerialize(sequential));
@@ -382,3 +385,89 @@ console.log('通信待機: 中止されないfetch・応答本文も期限で復
   assert.equal(calls,1);assert.equal(failures,1);
 }
 console.log('大容量通信: 15秒超の完了・60秒期限・時間切れの自動再送抑止 OK');
+
+// 非同期の記録準備もflushと後続の戦闘が追い越さない。
+{
+  const events=[];let release;
+  const prepared=new Promise(r=>release=r);
+  const c=new CloudSaveClient(config,{storage:storage()});
+  c.auth={user:{id:'prepared'}};c.sessionId='s';c.request=async body=>{events.push(body.op);return{revision:body.revision+1};};
+  const saved=c.enqueue('save',async()=>{await prepared;return{snapshot:{gold:7}};});
+  const battle=c.enqueue('battle',{action:'enemy'});
+  await Promise.resolve();assert.deepEqual(events,[]);
+  release();await c.flush();await saved;await battle;assert.deepEqual(events,['save','battle']);
+}
+console.log('非同期保存準備: 終了待ち・戦闘との順序保持 OK');
+
+for(const supported of [true,false]) {
+  const events=[];let release;
+  const ready=new Promise(r=>release=r);
+  const c=new CloudSaveClient(config,{storage:storage()});
+  c.auth={user:{id:'prepared-battle'}};c.sessionId='s';c.battleTurn=supported;
+  c.request=async body=>{events.push(body.op);return{revision:body.revision+1};};
+  const result=c.battlePrepared('commit',async()=>{await ready;return{gold:1};});
+  assert.equal(c.blocking,1);let flushed=false;c.flush().then(()=>flushed=true);
+  await Promise.resolve();assert.equal(flushed,false);assert.deepEqual(events,[]);
+  release();await result;assert.deepEqual(events,supported?['turn']:['save','battle']);
+}
+console.log('非同期戦闘準備: 入力制限・終了待ち・旧サーバー互換 OK');
+
+// 通信が止まっていても端末へ最新地点を保管し、再起動では旧要求の後に復旧する。
+{
+  const memory=storage(), snapshots=[], seen=new Map();let revision=0, release, started;
+  const began=new Promise(r=>started=r), held=new Promise(r=>release=r);
+  const server=async body=>{
+    if(seen.has(body.commandId))return seen.get(body.commandId);
+    assert.equal(body.revision,revision);snapshots.push(body.snapshot);const result={revision:++revision};seen.set(body.commandId,result);return result;
+  };
+  const c=new CloudSaveClient(config,{storage:memory});c.auth=auth;c.sessionId='background';
+  c.request=async body=>{const result=await server(body);started();await held;return result;};
+  const first=c.savePrepared(async()=>({gold:1}));await began;
+  const second=c.savePrepared(async()=>({gold:2}));
+  const third=c.savePrepared(async()=>({gold:3}));
+  await c.checkpoint();
+  const key='dos-cloud-checkpoint:'+auth.user.id;
+  assert.equal(JSON.parse(memory.getItem(key)).snapshot.gold,3);
+  assert.equal(snapshots.length,1);
+  // 旧ページは終了したものとし、回収処理だけを新しい接続で行う。
+  const restored=new CloudSaveClient(config,{storage:memory});restored.auth=auth;restored.sessionId='background';restored.request=server;
+  await restored.recover();
+  assert.deepEqual(snapshots,[{gold:1},{gold:3}]);assert.equal(memory.getItem(key),null);
+  // 終了済みページの後続送信は検証のため取り消し、保留したPromiseだけを閉じる。
+  c.request=async()=>({revision});release();await Promise.all([first,second,third]);
+}
+console.log('背景保存: 通信中の最新地点保持・再起動での順次回収・同じ要求の一度だけ確定 OK');
+
+{
+  const memory=storage(), sent=[];
+  const c=new CloudSaveClient(config,{storage:memory});c.auth=auth;c.sessionId='same';c.backgroundBattle=true;
+  c.request=async b=>{sent.push(b.snapshot);return{revision:b.revision+1};};
+  const first=c.savePrepared(async()=>({gold:8}));await c.checkpoint();
+  const duplicate=c.savePrepared(async()=>null);await c.flush();await Promise.all([first,duplicate]);
+  assert.deepEqual(sent,[{gold:8}]);assert.equal(memory.getItem('dos-cloud-checkpoint:'+auth.user.id),null);
+}
+console.log('背景保存: 同じ地点の保存依頼で送信待ちを消さない OK');
+
+{
+  const memory=storage(),key='dos-cloud-checkpoint:'+auth.user.id;
+  let releaseFirst,firstStarted,releaseSecond,secondStarted;
+  const heldFirst=new Promise(r=>releaseFirst=r),beganFirst=new Promise(r=>firstStarted=r);
+  const heldSecond=new Promise(r=>releaseSecond=r),beganSecond=new Promise(r=>secondStarted=r);
+  const c=new CloudSaveClient(config,{storage:memory});c.auth=auth;c.sessionId='ack';
+  let n=0;c.request=async b=>{if(++n===1){firstStarted();await heldFirst;}else{secondStarted();await heldSecond;}return{revision:b.revision+1};};
+  const first=c.savePrepared(async()=>({gold:1}));await beganFirst;
+  const second=c.savePrepared(async()=>({gold:2}));await c.checkpoint();
+  releaseFirst();await beganSecond;
+  assert.equal(JSON.parse(memory.getItem(key)).snapshot.gold,2,'古い確定で最新地点を消さない');
+  releaseSecond();await Promise.all([first,second]);assert.equal(memory.getItem(key),null);
+}
+{
+  const memory=storage();let allow,failed;const resume=new Promise(r=>allow=r),failure=new Promise(r=>failed=r);
+  const write=memory.setItem.bind(memory);let full=true;
+  memory.setItem=(k,v)=>{if(full&&k.startsWith('dos-cloud-checkpoint:'))throw new Error('quota');write(k,v);};
+  const c=new CloudSaveClient(config,{storage:memory,onFailure:()=>{failed();return resume;}});c.auth=auth;c.sessionId='quota';
+  c.request=async b=>({revision:b.revision+1});
+  const saving=c.savePrepared(async()=>({gold:7}));let safe=false;const ready=c.checkpoint().then(()=>safe=true);
+  await failure;assert.equal(safe,false,'端末記録の失敗時は行動を始めない');full=false;allow();await ready;await saving;assert.equal(safe,true);
+}
+console.log('背景保存: 古い確定による最新地点の削除防止・端末保管失敗中の行動停止 OK');

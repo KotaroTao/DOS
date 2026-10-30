@@ -1,5 +1,4 @@
 """大きな共通の袋を持つ戦闘の対象選択・行動・再起動で個数と操作を保つ。検証用APIが必要。"""
-"""実Edge Function/SQLに250msの通信遅延を加え、従来方式と一括戦闘を比較する。"""
 import os
 import base64
 import json
@@ -20,13 +19,16 @@ with sync_playwright() as p:
         c.route('**/src/cloud-config.js',lambda r:r.fulfill(content_type='text/javascript',body=CONFIG))
         
         actions,commands,errors=[],[],[]
-        measuring={'on':False}
+        measuring={'on':False,'hold':bool(os.environ.get('DOS_CRASH_RECOVERY'))}
+        held=[]
         def api(route):
             u=urlparse(route.request.url)
             body=route.request.post_data_json if route.request.method=='POST' else None
             if measuring['on'] and body:
                 time.sleep(float(os.environ.get('DOS_TURN_DELAY', '.25')) if body.get('op')=='turn' else .25)
                 commands.append(body)
+                if measuring['hold'] and body.get('op')=='save':
+                    held.append(route);return
                 if body['op']=='turn' or body['op']=='battle' and body['action']!='advance':actions.append(time.monotonic())
             response=route.fetch(url='http://127.0.0.1:8002'+u.path+('?' + u.query if u.query else ''))
             if legacy and body and body.get('op')=='claim':
@@ -62,19 +64,35 @@ with sync_playwright() as p:
         page.wait_for_timeout(6000)
         print('loaded',page.evaluate("({state:__game.G.state,phase:__game.G.battle?.phase,animating:__game.G.animating,inventory:__game.G.inventory.length,booting:document.body.className,gate:document.querySelector('.cloud-gate')?.hidden,buttons:document.querySelectorAll('#combat-menu button').length})"),errors,flush=True)
 
+        page.evaluate("""()=>{for(const p of __game.G.party){p.hp=Math.max(1,Math.floor(p.maxhp/2));p.mp=p.maxmp;}__game.world.resumeFromState();}""")
         measuring['on']=True
-        page.evaluate("()=>{const b=__game.G.battle;if(b.phase==='target')b.chooseTarget(b.targetOptions()[0]);__game.world.resumeFromState();}")
+        page.evaluate("""()=>{const b=__game.G.battle;window.target=b.targetOptions()[0];if(!target)throw Error('ヒール対象なし');window.beforeHP=target.hp;document.querySelector('#combat-menu button').click();}""")
         page.wait_for_function("__game.G.battle.phase==='input' && !__game.G.animating", timeout=55000)
-        assert len(actions)==1, len(actions)
+        assert len(actions)==0, len(actions)
+        assert page.evaluate('target.hp>beforeHP')
         print('acted',page.evaluate("({state:__game.G.state,phase:__game.G.battle?.phase,animating:__game.G.animating,inventory:__game.G.inventory.length,booting:document.body.className,gate:document.querySelector('.cloud-gate')?.hidden,buttons:document.querySelectorAll('#combat-menu button').length})"),errors,flush=True)
 
-        page.evaluate("async()=>{await __game.autosave(true);await (await import('/src/cloud-save.js')).cloudFlush()}")
+        if measuring['hold']:
+            page.evaluate("async()=>{await (await import('/src/cloud-save.js')).cloudCheckpoint()}")
+            expected=page.evaluate("({hp:__game.G.party.map(p=>p.hp),rng:__game.G.rng})")
+            page.wait_for_timeout(800)
+            assert held,'送信中の記録がない'
+            assert page.evaluate("Object.keys(localStorage).some(k=>k.startsWith('dos-cloud-checkpoint:'))")
+            measuring['hold']=False
+        else:
+            page.evaluate("async()=>{await __game.autosave(true);await (await import('/src/cloud-save.js')).cloudFlush()}")
         page.reload()
         page.locator('.ttl-overlay:not(.ttl-out) .ttl-menu .ttl-btn.primary').click()
         page.wait_for_timeout(15000)
         print('reloaded',page.evaluate("({state:__game.G.state,phase:__game.G.battle?.phase,anim:__game.G.animating,n:__game.G.inventory.length,cls:document.body.className,gate:document.querySelector('.cloud-gate')?.hidden,detail:document.querySelector('.cloud-gate')?.innerText})"),errors,flush=True)
         assert page.evaluate("__game.G.state==='combat' && __game.G.battle.phase==='input' && !__game.G.animating && __game.G.inventory.length===6561")
+        if os.environ.get('DOS_CRASH_RECOVERY'):
+            assert page.evaluate("({hp:__game.G.party.map(p=>p.hp),rng:__game.G.rng})")==expected
+            print('通信未完了で再起動: 最新のHP・乱数・次手番を復旧 OK',flush=True)
         assert not errors,errors
         print('大きな既存記録: 行動後の再起動から再開 OK',flush=True)
+        for route in held:
+            try:route.abort()
+            except Exception:pass
         c.unroute_all(behavior='ignoreErrors');c.close()
     browser.close()

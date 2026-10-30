@@ -125,9 +125,9 @@ export function resolveCloudBattle(s, operation) {
 }
 
 // 一手の結果と次の手番を一度に確定する。演出用の結果は次の手番で書き換えない。
-export function resolveCloudTurn(snapshot, action) {
+export function resolveCloudTurn(snapshot, action, options = {}) {
   if (!["commit", "enemy", "stunned"].includes(action)) throw new Error("行動が一致しません");
-  const packet = refSerialize(resolveCloudBattle(snapshot, action));
-  const nextPacket = snapshot.battle.result ? null : refSerialize(resolveCloudBattle(snapshot, "advance"));
+  const packet = refSerialize(resolveCloudBattle(snapshot, action), options);
+  const nextPacket = snapshot.battle.result ? null : refSerialize(resolveCloudBattle(snapshot, "advance"), options);
   return { packet, nextPacket };
 }

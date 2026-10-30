@@ -8,7 +8,15 @@ const putJSON = (key, value) => localStorage.setItem(key, JSON.stringify(value))
 // 記録1のキーは旧版の送信待ちもそのまま回収する。
 const slotSuffix = slot => slot === 1 ? "" : ":slot:" + slot;
 const pendingKey = (id, slot = 1) => "dos-cloud-pending:" + id + slotSuffix(slot);
+const checkpointKey = (id, slot = 1) => "dos-cloud-checkpoint:" + id + slotSuffix(slot);
 const session = (a) => ({ ...a, expires_at: a.expires_at || Math.floor(Date.now() / 1000) + (a.expires_in || 3600) });
+
+// Workerが作った記録本文を再び解析・文字列化せず、要求へそのまま包む。
+function requestJSON(value) {
+  if (typeof value.snapshotRaw !== "string") return JSON.stringify(value);
+  const { snapshotRaw, ...header } = value;
+  return JSON.stringify(header).slice(0, -1) + ',"snapshot":' + snapshotRaw + '}';
+}
 
 export class CloudSaveClient {
   constructor(config, { fetcher = (input, init) => fetch(input, init), storage = localStorage, slot = 1, onBusy = () => {}, onFailure = null, retryDelays = [250, 750, 1500] } = {}) {
@@ -17,8 +25,9 @@ export class CloudSaveClient {
     this.onBusy = onBusy; this.onFailure = onFailure; this.retryDelays = retryDelays;
     this.auth = null; this.sessionId = null; this.revision = 0;
     this.tail = Promise.resolve(); this.count = 0; this.busy = false;
-    this.refreshing = null; this.waiting = false;
-    this.blocking = 0; this.queuedSave = null; this.battleTurn = false;
+    this.refreshing = null; this.waiting = false; this.failureWait = null;
+    this.blocking = 0; this.queuedSave = null; this.battleTurn = false; this.compactGraph = false; this.backgroundBattle = false;
+    this.checkpointGeneration = 0; this.checkpointPersistedGeneration = 0; this.latestCheckpointId = null; this.checkpointTail = Promise.resolve();
   }
   async fetchJSON(path, options = {}) {
     // 大きな記録の戦闘応答は15秒を超える。認証と保存APIの期限を分ける。
@@ -53,9 +62,10 @@ export class CloudSaveClient {
   }
   async request(body) {
     if (this.slot !== 1) body = { ...body, slot: this.slot };
+    const raw = requestJSON(body);
     const send = async (token) => this.fetchJSON("/functions/v1/game-save", { method: "POST",
       headers: { apikey: this.config.anonKey, Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(body) });
+      body: raw });
     try { return await send(await this.token()); }
     catch (e) { if (e.status === 401) return send(await this.token(true)); throw e; }
   }
@@ -71,16 +81,25 @@ export class CloudSaveClient {
     if (op === "battle" || op === "turn") this.blocking++;
     this.count++; this.setBusy();
     const task = this.tail.then(async () => {
+      // 端末の復旧記録は既に別経路で保管する。連続する操作は半秒単位で束ねる。
+      if (op === "save" && this.backgroundBattle) await new Promise(resolve => setTimeout(resolve, 500));
       if (this.queuedSave === entry) this.queuedSave = null;
+      const data = typeof entry.data === "function" ? await this.retry(entry.data) : entry.data;
+      if (data === null) return;
+      const { checkpointId, ...requestData } = data;
       const body = { protocol: this.config.protocol, sessionId: this.sessionId,
-        commandId: crypto.randomUUID(), revision: this.revision, op, ...entry.data };
+        commandId: crypto.randomUUID(), revision: this.revision, op, ...requestData };
       // 送信前に記録する。結果の返答を失っても同じID・同じ内容で再送する。
       const result = await this.retry(async () => {
-        this.storage.setItem(pendingKey(this.auth.user.id, this.slot), JSON.stringify(body));
+        this.storage.setItem(pendingKey(this.auth.user.id, this.slot), requestJSON(body));
         return this.request(body);
       });
       this.revision = result.revision;
       this.storage.removeItem(pendingKey(this.auth.user.id, this.slot));
+      if (checkpointId) {
+        const key = checkpointKey(this.auth.user.id, this.slot);
+        if (this.latestCheckpointId === checkpointId) { this.storage.removeItem(key); this.latestCheckpointId = null; }
+      }
       return result;
     });
     this.tail = task;
@@ -102,25 +121,54 @@ export class CloudSaveClient {
           continue;
         }
         attempts = 0;
-        this.waiting = true;
-        try { await this.onFailure(e); } finally { this.waiting = false; }
+        if (!this.failureWait) {
+          this.waiting = true;
+          this.failureWait = Promise.resolve().then(() => this.onFailure(e)).finally(() => {
+            this.waiting = false; this.failureWait = null;
+          });
+        }
+        await this.failureWait;
       }
     }
   }
   // 復旧を明示的に選んだ時だけ退避する。退避に失敗したら元の要求を残す。
   async archivePending() {
-    const key = pendingKey(this.auth.user.id, this.slot);
-    const raw = this.storage.getItem(key);
-    if (raw) {
+    const entries = [pendingKey(this.auth.user.id, this.slot), checkpointKey(this.auth.user.id, this.slot)]
+      .map(key => [key, this.storage.getItem(key)]).filter(([,raw]) => raw);
+    for (const [key, raw] of entries) {
       try { this.storage.setItem(key + ":recovery", raw); }
-      catch {
-        // localStorageの容量を使い切った時は、別の保存領域へ退避する。
-        // 書き込みトランザクションの完了前に元の要求を消さない。
-        await archiveInDatabase(key, raw);
-      }
-      this.storage.removeItem(key);
+      catch { await archiveInDatabase(key, raw); }
     }
+    for (const [key] of entries) this.storage.removeItem(key);
+    this.latestCheckpointId = null;
   }
+  savePrepared(prepare) {
+    const generation = ++this.checkpointGeneration;
+    const previous = this.checkpointTail;
+    const prepared = Promise.resolve().then(prepare).then(async snapshot => {
+      if (!snapshot) {
+        const prior = await previous;
+        return prior && this.latestCheckpointId === prior.checkpointId ? prior : null;
+      }
+      const id = crypto.randomUUID();
+      const data = typeof snapshot === "string" ? { snapshotRaw: snapshot } : { snapshot };
+      await this.retry(() => {
+        if (generation >= this.checkpointPersistedGeneration) {
+          this.storage.setItem(checkpointKey(this.auth.user.id, this.slot), requestJSON({ id, sessionId: this.sessionId, ...data }));
+          this.latestCheckpointId = id;
+          this.checkpointPersistedGeneration = generation;
+        }
+      });
+      return { ...data, checkpointId: id };
+    });
+    this.checkpointTail = prepared;
+    prepared.catch(() => {});
+    return this.enqueue("save", () => prepared);
+  }
+  async checkpoint() {
+    for (;;) { const tail = this.checkpointTail; await tail; if (tail === this.checkpointTail) return; }
+  }
+
   save(snapshot) { return this.enqueue("save", { snapshot }); }
   battle(action, snapshot = null) {
     if (snapshot && this.battleTurn) return this.enqueue("turn", { action, snapshot });
@@ -128,22 +176,38 @@ export class CloudSaveClient {
     if (snapshot) this.save(snapshot);
     return this.enqueue("battle", { action });
   }
+  battlePrepared(action, prepare) {
+    const data = async () => ({ action, snapshot: await prepare() });
+    if (this.battleTurn) return this.enqueue("turn", data);
+    this.enqueue("save", async () => ({ snapshot: await prepare() }));
+    return this.enqueue("battle", { action });
+  }
   renew() { return this.enqueue("renew"); }
   flush() { return this.tail; }
   async claim() {
-    const data = await this.request({ protocol: this.config.protocol, sessionId: this.sessionId, op: "claim" });
+    const data = await this.request({ protocol: this.config.protocol, sessionId: this.sessionId, op: "claim", compactGraph: true });
     this.revision = data.revision;
     this.battleTurn = data.battleTurn === true;
+    this.compactGraph = data.compactGraph === true;
+    this.backgroundBattle = data.backgroundBattle === true;
     return data.snapshot;
   }
   async recover() {
-    const raw = this.storage.getItem(pendingKey(this.auth.user.id, this.slot));
-    if (!raw) return;
-    const body = JSON.parse(raw);
-    if (body.sessionId !== this.sessionId) throw new Error("記録の接続が一致しません");
-    const result = await this.retry(() => this.request(body), { automatic: false });
-    this.revision = result.revision;
-    this.storage.removeItem(pendingKey(this.auth.user.id, this.slot));
+    const pending = this.storage.getItem(pendingKey(this.auth.user.id, this.slot));
+    if (pending) {
+      const body = JSON.parse(pending);
+      if (body.sessionId !== this.sessionId) throw new Error("記録の接続が一致しません");
+      const result = await this.retry(() => this.request(body), { automatic: false });
+      this.revision = result.revision;
+      this.storage.removeItem(pendingKey(this.auth.user.id, this.slot));
+    }
+    // 通信中に進めた最新地点は、以前の要求を確定してから同じ列に保存する。
+    const checkpoint = JSON.parse(this.storage.getItem(checkpointKey(this.auth.user.id, this.slot)) || "null");
+    if (checkpoint) {
+      if (checkpoint.sessionId !== this.sessionId) throw new Error("記録の接続が一致しません");
+      this.latestCheckpointId = checkpoint.id;
+      await this.enqueue("save", { snapshot: checkpoint.snapshot, checkpointId: checkpoint.id });
+    }
   }
 }
 
@@ -229,7 +293,7 @@ function failure(e) {
       const detail = e.name === "AbortError" ? "通信が時間内に終わりませんでした。" : e.status ? `通信エラー: HTTP ${e.status}。` : "通信または端末への保存に失敗しました。";
       message.textContent += ` ${detail}${e.requestId ? ` 問い合わせ番号: ${e.requestId}` : ""}`;
       button("再接続", () => { showGate(); resolve(); });
-      if (getJSON(pendingKey(client.auth.user.id, client.slot)) && e.message !== "cloud_session_busy") {
+      if ((getJSON(pendingKey(client.auth.user.id, client.slot)) || getJSON(checkpointKey(client.auth.user.id, client.slot))) && e.message !== "cloud_session_busy") {
         message.textContent += " 再接続しても戻れない場合は、未送信の操作を退避し、保存済みの記録から再開できます。未確定の操作は反映されない場合があります。";
         button("保存済みの記録から再開", resumeSavedRecord);
       }
@@ -338,7 +402,7 @@ export function cloudHasSession() { return !!getJSON(AUTH_KEY)?.access_token; }
 const emptyRecordKey = id => "dos-cloud-empty:" + id;
 export function cloudHasRecord() {
   const auth = getJSON(AUTH_KEY);
-  return !!auth?.access_token && !getJSON(emptyRecordKey(auth.user.id));
+  return !!auth?.access_token && (!getJSON(emptyRecordKey(auth.user.id)) || !!getJSON(pendingKey(auth.user.id)) || !!getJSON(checkpointKey(auth.user.id)));
 }
 export function cloudReady() { return ready; }
 export function cloudBusy() { return !!client?.blocking || !!client?.waiting || (!!gate && !gate.hidden); }
@@ -350,6 +414,7 @@ export async function cloudSave(snapshot) {
   return result;
 }
 export function cloudBattle(action, snapshot = null) { return client.battle(action, snapshot); }
+export const cloudBattlePrepared = (action, prepare) => client.battlePrepared(action, prepare);
 // 通常保存と同じ順序・再送保護で現在の記録だけを削除する。
 export async function cloudReset() {
   localStorage.setItem("dos-cloud-deleted", "1");
@@ -462,12 +527,13 @@ export async function connectCloud(localSave, slot = 1, mode = "start") {
     }));
   }
   const pending = getJSON(pendingKey(client.auth.user.id, client.slot));
+  const checkpoint = getJSON(checkpointKey(client.auth.user.id, client.slot));
   const sessionKey = "dos-cloud-session:" + client.auth.user.id + slotSuffix(slot);
-  client.sessionId = pending?.sessionId || localStorage.getItem(sessionKey) || crypto.randomUUID();
+  client.sessionId = pending?.sessionId || checkpoint?.sessionId || localStorage.getItem(sessionKey) || crypto.randomUUID();
   localStorage.setItem(sessionKey, client.sessionId);
   showGate();
   let snapshot = await connectionStep("冒険の記録の読み込み", () => client.retry(() => client.claim()));
-  if (pending) { await client.recover(); snapshot = await connectionStep("冒険の記録の読み込み", () => client.retry(() => client.claim())); }
+  if (pending || checkpoint) { await client.recover(); snapshot = await connectionStep("冒険の記録の読み込み", () => client.retry(() => client.claim())); }
   if (mode !== "reset" && !snapshot && localSave && !localStorage.getItem("dos-cloud-deleted")) {
     const useLocal = await new Promise((resolve) => {
       showGate("このアカウントには冒険の記録がありません。この端末の記録を引き継ぎますか？");
@@ -569,6 +635,7 @@ export async function cloudManageAccount() {
               // 旧端末記録を次の冒険へ誤って再移行しないよう、削除済みユーザーを覚える。
               localStorage.setItem("dos-cloud-deleted", "1");
               localStorage.removeItem(pendingKey(client.auth.user.id));
+              localStorage.removeItem(checkpointKey(client.auth.user.id));
               localStorage.removeItem("dos-cloud-session:" + client.auth.user.id);
               localStorage.removeItem(AUTH_KEY); localStorage.removeItem("dos-cloud-guest-backup"); location.reload();
             } catch { message.textContent = "削除の完了を確認できませんでした。接続を確かめて再試行してください。"; remove.disabled = false; }
@@ -585,4 +652,14 @@ export async function cloudRegisterPrompt() {
   await cloudFlush();
   localStorage.setItem("dos-cloud-register-hint:" + client.auth.user.id, "1");
   return cloudManageAccount();
+}
+
+// 準備中も送信列に予約し、終了・戦闘が保存を追い越さないようにする。
+export const cloudCompactGraph = () => !!client?.compactGraph;
+export const cloudBackgroundBattle = () => !!client?.backgroundBattle;
+export const cloudCheckpoint = () => client.checkpoint();
+export async function cloudSavePrepared(prepare) {
+  const result = await client.savePrepared(prepare);
+  localStorage.removeItem(emptyRecordKey(client.auth.user.id));
+  return result;
 }

@@ -61,7 +61,10 @@ async function command(user, body) {
     if (!r.ok) throw Object.assign(new Error("アカウントを削除できません"), { status: 503 });
     return { deleted: true };
   }
-  if (body.op === "claim") return { revision: s.revision, snapshot: s.snapshot, battleTurn: true };
+  if (body.op === "claim") {
+    const snapshot = s.snapshot?.format === 2 && !body.compactGraph ? refSerialize(refDeserialize(s.snapshot)) : s.snapshot;
+    return { revision: s.revision, snapshot, battleTurn: true, compactGraph: true, backgroundBattle: true };
+  }
   if (body.op === "renew") {
     if (s.revision !== body.revision) throw Object.assign(new Error("cloud_revision_conflict"), { status: 409 });
     return { revision: s.revision };
@@ -87,8 +90,8 @@ async function command(user, body) {
       if (next.state !== "combat" || !next.battle || !["commit", "enemy", "stunned"].includes(body.action)) {
         throw Object.assign(new Error("戦闘の形式が不正です"), { status: 400 });
       }
-      response = resolveCloudTurn(next, body.action);
-      snapshot = refSerialize(next);
+      response = resolveCloudTurn(next, body.action, { compact: body.snapshot?.format === 2 });
+      snapshot = refSerialize(next, { compact: body.snapshot?.format === 2 });
     }
   } else if (body.op === "reset") {
     snapshot = null;

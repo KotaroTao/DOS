@@ -187,6 +187,25 @@ export function equipSignature(dolls) {
   }).join(";");
 }
 
+// 肖像の装備候補の印は、道具の説明・性能を読まない。袋の空き枠は判定に残す。
+export function equipHintSignature(dolls) {
+  const bags = new Map();
+  for (const d of dolls || []) {
+    const bag = d.items || [];
+    if (bags.has(bag)) continue;
+    let count = 0; const candidates = [];
+    for (const it of bag) {
+      if (it && !isFormationItem(it)) count++;
+      if (isAutoCandidate(it)) candidates.push([oid(it), it]);
+    }
+    bags.set(bag, [oid(bag), count, candidates]);
+  }
+  return JSON.stringify([
+    (dolls || []).map(d => [oid(d), SLOTS.map(k => oid(d.equip?.[k]))]),
+    [...bags.values()],
+  ]);
+}
+
 // ---- 計画 ----
 export function planBestEquip(dolls, opts = {}) {
   const targets = (dolls || []).filter(Boolean);
