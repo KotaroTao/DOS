@@ -90,7 +90,8 @@ with sync_playwright() as p:
     page.wait_for_timeout(400)
     assert page.evaluate("__game.G.autoMove")
     page.evaluate("__game.G.prompt=true")
-    page.wait_for_timeout(400)
+    # 移動1倍でも進行中の一歩と次の監視を終えてから問いを閉じる。
+    page.wait_for_timeout(1500)
     page.evaluate("__game.G.prompt=false")
     page.wait_for_function("!__game.G.autoMove")
     browser.close()

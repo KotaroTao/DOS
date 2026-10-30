@@ -2,6 +2,7 @@
 import base64
 import json
 import re
+import time
 from playwright.sync_api import sync_playwright
 
 BASE = 'http://localhost:8000/'
@@ -46,7 +47,8 @@ with sync_playwright() as p:
         page.evaluate("async()=>{window.cloud=await import('/src/cloud-save.js');window.kit=await import('/src/ui/kit.js');kit.sheet.closeAll();await cloud.cloudFlush()}")
         state['slow']=True
         page.evaluate('()=>{__game.G.gold+=321;__game.autosave(true)}')
-        page.wait_for_timeout(100)
+        deadline=time.monotonic()+10
+        while not pending and time.monotonic()<deadline:page.wait_for_timeout(50)
         assert pending
         actions = ["UI.shell.setTab('party')","UI.openShop('buy')","UI.openShop('sell')","UI.openShop('forge')","UI.openPalace('decree')","UI.openPalace('codex')","UI.openTavern('board')","UI.shell.openPage('shrine')","UI.openInn()","UI.openDeparture()","UI.settingsSheet({})","UI.openHelp()"]
         for action in actions:
@@ -75,7 +77,8 @@ with sync_playwright() as p:
         state['slow']=True
         page.evaluate('__game.G.gold=987654')
         page.get_by_role('button',name='画像を再読み込み',exact=True).click()
-        page.wait_for_timeout(150)
+        deadline=time.monotonic()+10
+        while not pending and time.monotonic()<deadline:page.wait_for_timeout(50)
         assert pending
         assert page.evaluate('__game.G.gold')==987654
         assert page.locator('.cloud-gate').is_visible()

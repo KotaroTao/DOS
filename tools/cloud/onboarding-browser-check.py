@@ -127,12 +127,13 @@ with sync_playwright() as p:
     page.evaluate("() => import('./src/cloud-save.js').then(m => {m.cloudManageAccount();})")
     page.get_by_role("button",name="退会・記録を削除",exact=True).click()
     page.get_by_label("削除の確認",exact=True).fill("削除")
-    page.get_by_role("button",name="アカウントと記録を完全に削除",exact=True).click()
+    with page.expect_navigation(wait_until="domcontentloaded"):
+        page.get_by_role("button",name="アカウントと記録を完全に削除",exact=True).click()
     page.wait_for_function("!localStorage.getItem('dos-cloud-auth')")
     state=context.request.get("http://127.0.0.1:8002/test/state").json()
     assert state=={"saves":0,"users":0},state
     assert not errors,errors
-    page.wait_for_load_state("domcontentloaded")
+    page.locator(".ttl-overlay:not(.ttl-out) .ttl-menu .ttl-btn.primary").wait_for()
     page.screenshot(path="/tmp/dos-onboarding-resume.png")
     context.unroute_all(behavior="ignoreErrors")
     context.close(); browser.close()

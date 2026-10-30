@@ -165,6 +165,15 @@ export class CloudSaveClient {
     prepared.catch(() => {});
     return this.enqueue("save", () => prepared);
   }
+  // 画面を閉じる時はWorkerや通信の完了を待てないため、その場で最新地点を保管する。
+  checkpointNow(snapshot) {
+    const id = crypto.randomUUID();
+    const data = typeof snapshot === "string" ? { snapshotRaw: snapshot } : { snapshot };
+    this.storage.setItem(checkpointKey(this.auth.user.id, this.slot), requestJSON({ id, sessionId: this.sessionId, ...data }));
+    this.latestCheckpointId = id;
+    this.checkpointPersistedGeneration = ++this.checkpointGeneration;
+    return id;
+  }
   async checkpoint() {
     for (;;) { const tail = this.checkpointTail; await tail; if (tail === this.checkpointTail) return; }
   }
@@ -431,6 +440,9 @@ export async function cloudReset() {
   await client.enqueue("reset");
   putJSON(emptyRecordKey(client.auth.user.id), true);
 }
+export function cloudCheckpointNow(snapshot) {
+  if (client && ready && !terminal) return client.checkpointNow(snapshot);
+}
 export function cloudFlush() { return client?.flush() || Promise.resolve(); }
 // 終了・更新では、最後の保存を作る前に入力を止める。通常保存は裏で続ける。
 export async function cloudPrepareReload(save) {
@@ -473,12 +485,13 @@ async function connectionStep(label, work) {
 }
 
 export async function connectCloud(localSave, slot = 1, mode = "start") {
+  ready = false;
   ensureGate(); showGate();
   if (!CLOUD_CONFIG.url || !CLOUD_CONFIG.anonKey || !/^https:\/\//.test(CLOUD_CONFIG.url)) {
     showGate("クラウド保存の接続先が設定されていません。"); throw new Error("クラウド設定が未完了です");
   }
   client = new CloudSaveClient(CLOUD_CONFIG, { slot, onBusy: (busy) => {
-    if (terminal || client.waiting || managing || leaving) return;
+    if (!ready || terminal || client.waiting || managing || leaving) return;
     // 通常の保存・戦闘・占有延長では画面を覆わず、直前の景色と演出を保つ。
     // 通常保存は裏で続け、戦闘結果待ちと復旧操作だけ入力を止める。
     if (!busy) gate.hidden = true;

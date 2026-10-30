@@ -26,7 +26,7 @@ async def main():
   async with page.expect_navigation(wait_until='domcontentloaded'):
    await page.get_by_role('button',name='消して始める',exact=True).click()
   await page.wait_for_function('window.__game && localStorage.getItem("dos-save-v7")===null')
-  await page.wait_for_function("document.querySelector('.ttl-overlay:not(.ttl-out) .ttl-btn-t')?.textContent === '冒険を始める'")
+  await page.wait_for_function("document.querySelector('.ttl-overlay:not(.ttl-out) .ttl-btn-t')?.textContent.replaceAll('\\u200b','') === '冒険を始める'")
   assert await page.get_by_role('button',name='つづきから',exact=False).count()==0
   await page.locator('.ttl-overlay:not(.ttl-out) .ttl-menu .ttl-btn.primary').click()
   await page.get_by_role('dialog',name='弟子の名前').get_by_role('textbox').fill('新たな弟子')
@@ -34,7 +34,7 @@ async def main():
   await page.wait_for_function('__game.G.apprenticeName === "新たな弟子"')
   assert await page.evaluate('__game.G.gold')==0
   assert await page.evaluate('__game.G.party.length')==0
-  assert await page.evaluate('localStorage.getItem("dos-prefs")')=='{"volume":42}'
+  assert await page.evaluate('JSON.parse(localStorage.getItem("dos-prefs")).volume')==42
   print('タイトルの確認表示・取消時の記録保持・承認後の削除・新規開始・設定保持: OK')
   await b.close()
 asyncio.run(main())

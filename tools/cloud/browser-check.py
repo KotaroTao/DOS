@@ -53,7 +53,7 @@ with sync_playwright() as p:
     page.evaluate("localStorage.setItem('dos-save-v7', JSON.stringify({root:{$r:0},heap:[{o:{gold:999999}}]}))")
     page.reload()
     connect_existing(page)
-    assert page.evaluate("window.__game.G.gold") == 4321
+    assert page.evaluate("window.__game.G.gold") == 4321, page.evaluate("({gold:__game.G.gold, name:__game.G.apprenticeName, state:__game.G.state, tut:__game.G.tut, msq:__game.G.msq})")
     assert page.evaluate("window.__game.G.apprenticeName") == "リュカ"
     page.wait_for_function("document.querySelector('.cloud-gate').hidden")
     page.wait_for_function("!document.querySelector('.ttl-overlay')")
