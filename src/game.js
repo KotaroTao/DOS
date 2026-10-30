@@ -12,7 +12,7 @@ import { insightTotals, insightTitle } from "./insight.js";
 import { INF_BUY_CAP, infRecovery, infUseCount, infSupplyLeft, infSpendSupply } from "./infsupplies.js";
 import { random, fxRandom, bindRngState, rngState } from "./rng.js";
 import { refSerialize, refDeserialize, applySavePatch } from "./savegraph.js";
-import { cloudEnabled, cloudHasRecord, cloudReady, cloudBusy, connectCloud, cloudRegisterPrompt, cloudSave, cloudSavePrepared, cloudCompactGraph, cloudBackgroundBattle, cloudCheckpoint, cloudBattle, cloudBattlePrepared, cloudFlush, cloudReset, cloudFatal, cloudPrepareReload } from "./cloud-save.js";
+import { cloudEnabled, cloudHasRecord, cloudReady, cloudBusy, connectCloud, cloudRegisterPrompt, cloudSave, cloudSavePrepared, cloudCompactGraph, cloudBackgroundBattle, cloudCheckpoint, cloudCheckpointNow, cloudBattle, cloudBattlePrepared, cloudFlush, cloudReset, cloudFatal, cloudPrepareReload } from "./cloud-save.js";
 import { LocalSaveSession, showLocalSaveBlocked, showLocalSaveRecovery, saveSlotFromURL, localSaveKey } from "./local-save.js";
 import { watchGameUpdates } from "./game-update.js";
 import { syncEnemyUids, enemySoulRewardMul, openingRates } from "./combat.js";
@@ -19365,8 +19365,18 @@ function resumeCombat() {
   // input / target = まだ選択中 → メニュー/対象選択を再表示 (renderCombat 済み)
 }
 
-// アプリが裏に回る/閉じられる瞬間に確実に保存
-document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") autosave(true); });
+// 終了時はWorkerの返答より先に画面が破棄されるため、端末の復旧記録を同期で残す。
+function saveBeforeLeaving() {
+  if (cloudEnabled() && !testPlayActive && cloudReady() && !_resetting && !_cloudResolving) {
+    try {
+      const snap = {};
+      for (const k of SAVE_FIELDS) snap[k] = G[k];
+      cloudCheckpointNow(JSON.stringify(refSerialize(snap, { compact: cloudCompactGraph() })));
+    } catch { cloudFatal(); }
+  }
+  autosave(true);
+}
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") saveBeforeLeaving(); });
 // 街の持ち替え・シート内の選択も、イベントの処理が完了してから保存する。
 // pointerup/touchendでは保存幕を出さない。直後のclickを幕が奪うため、確定したclick/changeで保存する。
 for (const type of ["click", "change", "keydown"]) {
@@ -19378,13 +19388,13 @@ for (const type of ["click", "change", "keydown"]) {
   }, { capture: true });
 }
 window.addEventListener("pagehide", () => {
-  autosave(true);
+  saveBeforeLeaving();
   localSaveReady = false;
   localSaveSession?.release?.();
 });
 // 履歴から戻った画面は、占有を取り直して最新の記録を読み直す。
 window.addEventListener("pageshow", e => { if (e.persisted && !testPlayActive && !cloudEnabled()) location.reload(); });
-window.addEventListener("beforeunload", () => autosave(true));
+window.addEventListener("beforeunload", saveBeforeLeaving);
 
 // 新規プレイの初期化: 人業ロスター・魂ストック・初期装備を整える
 function setupNewGame() {

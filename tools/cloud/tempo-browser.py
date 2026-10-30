@@ -27,8 +27,10 @@ with sync_playwright() as p:
                 commands.append(body)
                 if body['op']=='turn' or body['op']=='battle' and body['action']!='advance':actions.append(time.monotonic())
             response=route.fetch(url='http://127.0.0.1:8002'+u.path+('?' + u.query if u.query else ''))
-            if legacy and body and body.get('op')=='claim':
-                value=response.json();value.pop('battleTurn',None);route.fulfill(json=value)
+            if body and body.get('op')=='claim':
+                value=response.json();value.pop('backgroundBattle',None)
+                if legacy:value.pop('battleTurn',None)
+                route.fulfill(json=value)
             else:route.fulfill(response=response)
         c.route('https://cloud.test/**',api)
         page=c.new_page();page.on('pageerror',lambda e:errors.append(str(e)))

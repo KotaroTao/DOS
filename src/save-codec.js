@@ -4,7 +4,11 @@ const pending = new Map();
 function work(op, value, packet, compact) {
   if (typeof Worker === "undefined") return Promise.resolve(op === "encode" ? JSON.stringify(refSerialize(value, { compact })) : acknowledgedSave(value, packet));
   if (!worker) {
-    worker = new Worker(new URL("./save-codec-worker.js", import.meta.url), { type: "module" });
+    try { worker = new Worker(new URL("./save-codec-worker.js", import.meta.url), { type: "module" }); }
+    catch {
+      // Workerの生成が制限された端末でも、従来の同期処理で記録を保つ。
+      return Promise.resolve(op === "encode" ? JSON.stringify(refSerialize(value, { compact })) : acknowledgedSave(value, packet));
+    }
     worker.onmessage = ({ data }) => {
       const job = pending.get(data.id); if (!job) return;
       pending.delete(data.id);

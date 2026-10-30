@@ -1,0 +1,39 @@
+name: Cloud save regression checks
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'supabase/**'
+      - 'tools/cloud/**'
+      - 'tools/save-protection/**'
+      - '.github/workflows/cloud-save-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github
+            src
+            supabase
+            tools
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install isolated database checker
+        run: npm install --prefix /tmp/dos-cloud-check --no-audit --no-fund @electric-sql/pglite@0.5.13
+      - name: Check JavaScript syntax
+        run: |
+          for f in $(git ls-files 'src/*.js'); do node --check "$f" || exit 1; done
+      - name: Check save, retry, recovery and database contracts
+        run: python3 tools/cloud/audit.py --node-only --pglite /tmp/dos-cloud-check/node_modules/@electric-sql/pglite/dist/index.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cloud-save-checks
+          path: /tmp/dos-cloud-audit

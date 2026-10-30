@@ -1,13 +1,12 @@
 """localhost:8000で起動遅延・複数画面・破損記録の退避/復旧を実操作で確認。"""
 import asyncio
+import base64
 import os
 from playwright.async_api import async_playwright, expect
 
 BASE = os.environ.get("DOS_TEST_URL", "http://localhost:8000/")
 # 原画の通信と音の解禁を省き、保存とUIは本番の処理を使う。
-QUIET = """Object.defineProperty(HTMLImageElement.prototype,'src',{
- set(v){queueMicrotask(()=>this.onerror?.(new Event('error')))},get(){return ''}});
- window.requestAnimationFrame=f=>setTimeout(()=>f(performance.now()),80);
+QUIET = """window.requestAnimationFrame=f=>setTimeout(()=>f(performance.now()),80);
  window.cancelAnimationFrame=clearTimeout;"""
 
 async def main():
@@ -19,6 +18,9 @@ async def main():
             c = await browser.new_context(service_workers="block", reduced_motion="reduce", accept_downloads=True)
             await c.add_init_script(QUIET)
             await c.route("https://**/*", lambda r: r.abort())
+            pixel=base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aF3sAAAAASUVORK5CYII=")
+            await c.route("**/art/title/**", lambda r: r.fulfill(content_type="image/png", body=pixel))
+            await c.route("**/art/opening/**", lambda r: r.fulfill(content_type="image/png", body=pixel))
             c.on("page", lambda pg: pg.on("pageerror", lambda e: errors.append(str(e))))
             return c
 
@@ -46,13 +48,15 @@ async def main():
             await route.continue_()
         await page.route("**/src/game.js", delay)
         navigation = asyncio.create_task(page.goto(BASE + "?testDungeon=w05&testPlace=town", wait_until="domcontentloaded"))
-        await expect(page.locator("#boot-notice")).to_have_text("読み込み中です回線の速さによって時間がかかることがあります。そのままお待ちください。再読み込み", timeout=15000)
+        await page.wait_for_timeout(5500)
+        await expect(page.locator("#media-splash")).to_be_visible()
+        await expect(page.locator("#boot-notice")).to_have_count(0)
         await expect(page.get_by_text("キャッシュを消して再読み込み", exact=True)).to_have_count(0)
         release.set()
         await navigation
         await page.wait_for_function("window.__game?.G.party.length>0 && !document.body.classList.contains('booting')")
         await expect(page.locator("#boot-notice")).to_have_count(0)
-        print("5秒超の起動待ちから正常復帰し、案内が残らない: OK", flush=True)
+        print("5秒超の起動待ちは通常の幕を維持し、正常復帰: OK", flush=True)
         await c.close()
 
         c = await context()
@@ -126,11 +130,13 @@ async def main():
         await page.get_by_role("button", name="元の記録を退避して、はじめから", exact=True).click()
         assert await page.evaluate("localStorage.getItem('dos-save-v7')") == "broken-no-backup"
         page.once("dialog", lambda d: d.accept())
-        await page.get_by_role("button", name="元の記録を退避して、はじめから", exact=True).click()
+        async with page.expect_navigation(wait_until="domcontentloaded"):
+            await page.get_by_role("button", name="元の記録を退避して、はじめから", exact=True).click()
+        await page.wait_for_function('window.__game && !document.body.classList.contains("booting")')
         await expect(page.locator(".ttl-overlay")).to_be_visible()
         assert await page.evaluate("localStorage.getItem('dos-save-v7')") is None
         assert await page.evaluate("Object.keys(localStorage).some(k=>k.startsWith('dos-save-v7-damaged-') && localStorage[k]==='broken-no-backup')")
-        await page.get_by_role("button", name="はじめから", exact=False).click()
+        await page.locator(".ttl-overlay:not(.ttl-out) .ttl-menu .ttl-btn.primary").click()
         await page.get_by_role("dialog", name="弟子の名前").get_by_role("textbox").fill("新しい弟子")
         await page.get_by_role("button", name="旅を始める", exact=False).click()
         await page.wait_for_function("localStorage.getItem('dos-save-v7')!==null")
