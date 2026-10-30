@@ -762,3 +762,12 @@ canvas.unk-sil { filter: brightness(0) drop-shadow(0 0 1px rgba(185,172,217,0.85
   }
   #app.board-camera-active:not(.measure-explore-buttons) #hint .dk-idle { min-height: 0; }
 }
+
+/* 色だけでなく形でも作用を示す。対象の札だけに重ねる。 */
+.pc-fx.v-heal::after, .pc-fx.v-cure::after, .pc-fx.v-buff::after, .pc-fx.v-debuff::after {
+  position:absolute; right:10px; top:8px; font:700 28px/1 sans-serif; text-shadow:0 0 8px currentColor;
+}
+.pc-fx.v-heal::after { content:"＋"; color:#7cfc7c; }
+.pc-fx.v-cure::after { content:"✦"; color:#9be8ff; }
+.pc-fx.v-buff::after { content:"↑"; color:#ffd84a; }
+.pc-fx.v-debuff::after { content:"↓"; color:#c58aff; }

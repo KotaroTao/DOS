@@ -922,3 +922,12 @@ button.dp-rule:active, .dp-rule-b:active { filter: brightness(1.25); }
 @media (max-width:359px) {
   .bp-member { padding:10px; } .bp-metrics { gap:8px; } .bp-number { font-size:17px; } .bp-number.small { font-size:12px; }
 }
+
+/* 戦闘の内訳は初期状態を閉じ、見出しから必要な時だけ開く。 */
+.bp > summary { cursor:pointer; list-style:none; min-height:44px; align-items:center; }
+.bp > summary::-webkit-details-marker { display:none; }
+.bp > summary::before { content:"▸"; color:var(--gold,#d9bd80); }
+.bp[open] > summary::before { content:"▾"; }
+.bp > summary h3 { flex:1; }
+.bp > summary:focus-visible { outline:2px solid var(--gold,#d9bd80); outline-offset:3px; }
+.bp:not([open]) > summary { margin-bottom:0; }

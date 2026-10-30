@@ -1,6 +1,6 @@
 // 戦闘の演出 (武器・属性・状態異常ごとのエフェクト)。描画だけを受け持ち、戦闘の進行・時間配分には関わらない。
 // game.js の applyImpact が着弾の瞬間に spawn* で積み、drawEffects が毎フレーム drawBattleFx を呼ぶ。
-// テンポの約束: どのエフェクトも animateResult の余韻 (360ms × spdMul) の内に収まる長さ (base × spd) で描き切る —
+// テンポの約束: 効果はbase × 表示倍率で描く。背景保存の戦闘は進行速度と表示倍率を分け、オートでも目で追える長さにする —
 // 演出を足しても一手の時間は延ばさない。粒子は fillRect 中心・一つの効果につき数十粒までに抑える。
 
 // 属性ごとの3色 (芯の白み / 本色 / 影色)
@@ -45,13 +45,14 @@ export function spawnFx(list, type, x, y, t0, spd, o = {}) {
     v: o.v || 0, rot: o.rot || 0, spin: o.spin || 1, tx: o.tx || 0, ty: o.ty || 0, w: o.w || 0, pts: o.pts || null });
 }
 const BASE_DUR = {
-  cross: 260, iai: 280, thrust: 260, smash: 320, arrow: 300, blunt: 240,
+  arcane: 340, cross: 300, iai: 280, thrust: 260, smash: 320, arrow: 300, blunt: 240,
   fire: 340, water: 340, wind: 340, earth: 340, light: 340, dark: 340, none: 320,
   crit: 260, hex: 320, sleep: 300, charm: 300, confuse: 300, para: 280, poison: 300,
   rise: 340, breath: 340, pclaw: 260,
   // 技の組み立て (付く効果の印・全体技・上級の魔法陣)
   drain: 340, pierce: 240, execute: 300, stun: 280, vuln: 320, strip: 320, seal: 320, gravity: 320, steal: 340, doom: 340,
   reap: 760, // 死の宣告 (死霊術師のランクのパッシブ): 開幕だけ・一手より長い余韻 (game.js animateResult の hold)
+  healmark: 340, curemark: 340, buffmark: 340, debuffmark: 340,
   field: 360, fieldslash: 300, blessing: 360, fieldhex: 340, circle: 300,
 };
 // 技の角度の揺らぎ (rot) で回してよい効果 (地面に立つもの・画面全体のものは回さない)
@@ -63,12 +64,30 @@ export function drawBattleFx(ctx, list, now, VW, VH, reduced) {
   for (const e of list) {
     const t = (now - e.t0) / e.dur;
     if (t < 0 || t > 1) continue;
-    const fn = DRAW[e.type];
+    const fn = ["healmark", "curemark", "buffmark", "debuffmark"].includes(e.type) ? drawEffectMark : DRAW[e.type];
     if (!fn) continue;
     ctx.save();
     if (e.rot && ROTATABLE.has(e.type)) { ctx.translate(e.x, e.y); ctx.rotate(e.rot); ctx.translate(-e.x, -e.y); }
     fn(ctx, e, t, VW, VH, reduced);
     ctx.restore();
+  }
+}
+
+// 同じ色でも意味を区別できる印。回復は＋、治療は星、強化/弱体は上下の矢印。
+function drawEffectMark(ctx, e, t) {
+  const color = { healmark: "#7CFC7C", curemark: "#9be8ff", buffmark: "#ffd84a", debuffmark: "#c58aff" }[e.type];
+  const x = e.x, y = e.y - t * 10, r = 11 * e.s;
+  ctx.globalAlpha = Math.sin(Math.PI * t);
+  ctx.lineWidth = 3; ctx.strokeStyle = color; ctx.fillStyle = color;
+  ctx.beginPath();ctx.arc(x, y, r * 1.65, 0, Math.PI * 2);ctx.stroke();
+  if (e.type === "healmark") {
+    ctx.fillRect(x - r, y - 2, r * 2, 4);ctx.fillRect(x - 2, y - r, 4, r * 2);
+  } else if (e.type === "curemark") {
+    star4(ctx, x, y, r, color, Math.sin(Math.PI * t));
+  } else {
+    const dir = e.type === "buffmark" ? -1 : 1;
+    ctx.beginPath();ctx.moveTo(x - r, y);ctx.lineTo(x, y + dir * r);ctx.lineTo(x + r, y);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x, y - dir * r);ctx.lineTo(x, y + dir * r);ctx.stroke();
   }
 }
 
@@ -111,6 +130,20 @@ function elemTrace(ctx, e, t, VW, VH, reduced) {
 }
 
 const DRAW = {
+  // 魔法ダメージの通常攻撃。刃ではなく光弾と二重の魔法環で知らせる。
+  arcane(ctx, e, t) {
+    const col = e.el && e.el !== "none" ? elCol(e.el)[1] : "#bd91ff";
+    const p = easeOut(Math.min(1, t / .3)), y = e.y + (1 - p) * 65 * e.s;
+    ctx.globalCompositeOperation = "lighter";
+    glow(ctx, e.x, y, 24 * e.s, col, 1 - t);
+    star4(ctx, e.x, y, 9 * e.s, "#ffffff", 1 - t);
+    if(t >= .2) {
+      const q = (t - .2) / .8;
+      ctx.strokeStyle = col;ctx.globalAlpha = 1 - q;ctx.lineWidth = 2.5;
+      for(const r of [18,30]) {ctx.beginPath();ctx.ellipse(e.x,e.y,r * e.s * (.6 + q),r * e.s * (.6 + q),q * 2,0,Math.PI*2);ctx.stroke();}
+      for(let i=0;i<6;i++){const a=i*Math.PI/3+q;star4(ctx,e.x+Math.cos(a)*32*e.s,e.y+Math.sin(a)*32*e.s,3,col,1-q);}
+    }
+  },
   // ===== 武器 =====
   // 短剣: 二筋の細い刃が×字に走る
   cross(ctx, e, t, VW, VH, reduced) {
@@ -223,7 +256,9 @@ const DRAW = {
     const col = bladeCol(e), s = e.s * (e.crit ? 1.25 : 1);
     const pop = t < 0.15 ? 0.6 + 0.4 * (t / 0.15) : 1;
     ctx.globalCompositeOperation = "lighter";
-    glow(ctx, e.x, e.y, 30 * s, col, Math.max(0, 1 - t * 2.6));
+    glow(ctx, e.x, e.y, 40 * s, col, Math.max(0, 1 - t * 2.6));
+    ctx.globalAlpha=1-t;ctx.strokeStyle=col;ctx.lineWidth=3*(1-t)+1;
+    ctx.beginPath();ctx.arc(e.x,e.y,(10+t*30)*s,0,Math.PI*2);ctx.stroke();
     ctx.globalAlpha = 1 - t;
     ctx.fillStyle = col;
     ctx.beginPath();
@@ -589,7 +624,7 @@ export function skillProfile(key, sp) {
   if (sp.debuff && sp.kind === "phys") riders.push({ type: "hex", s: 0.7 });
   p = {
     tier, el: sp.element || null, kind: sp.kind,
-    all: /all/.test(sp.target || ""), ally: /ally|self/.test(sp.target || ""),
+    all: sp.target === "all-enemy" || sp.target === "all-ally", ally: ["ally", "all-ally", "self"].includes(sp.target),
     hits: sp.hits || 1, riders,
     v: h % 3, rot: ((h >>> 3) % 1000 / 1000 - 0.5) * 0.9, spin: (h >>> 13) & 1 ? 1 : -1, seed: (h >>> 7) % 997,
     scale: tier === 3 ? 1.3 : tier === 2 ? 1.08 : 0.88,
