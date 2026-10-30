@@ -88,10 +88,10 @@ with sync_playwright() as p:
     assert not [x for x in sent if x[1] and '"op":"reset"' in x[1]]
     page.get_by_role("button",name="データ削除",exact=True).click()
     page.get_by_role("button",name="消して始める",exact=True).click()
-    page.wait_for_function("document.querySelector('.ttl-overlay:not(.ttl-out) .ttl-btn-t')?.textContent === 'さいしょから'")
+    page.wait_for_function("document.querySelector('.ttl-overlay:not(.ttl-out) .ttl-btn-t')?.textContent === '冒険を始める'")
     assert page.get_by_role("button",name="つづきから",exact=False).count()==0
     page.reload()
-    page.wait_for_function("document.querySelector('.ttl-overlay:not(.ttl-out) .ttl-btn-t')?.textContent === 'さいしょから'")
+    page.wait_for_function("document.querySelector('.ttl-overlay:not(.ttl-out) .ttl-btn-t')?.textContent === '冒険を始める'")
     page.locator(".ttl-overlay:not(.ttl-out) .ttl-menu .ttl-btn.primary").wait_for()
     page.locator(".ttl-overlay:not(.ttl-out) .ttl-menu .ttl-btn.primary").click()
     page.get_by_role("dialog",name="弟子の名前").wait_for()
