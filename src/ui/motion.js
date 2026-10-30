@@ -130,7 +130,11 @@ export function sceneTransition(fn, { color = "#000", embers = true, immediate =
   const veil = document.createElement("div");
   veil.className = "ui-scene-veil";
   veil.style.background = color;
-  if (immediate) veil.style.opacity = "1";
+  if (immediate) {
+    veil.style.opacity = "1";
+    // 入場はシートや前面の演出も覆う。画像待ちの案内だけは上に残す。
+    veil.style.zIndex = "2147483646";
+  }
   if (embers && !_reduced) {
     for (let i = 0; i < 14; i++) {
       const s = document.createElement("i");
@@ -152,6 +156,8 @@ export function sceneTransition(fn, { color = "#000", embers = true, immediate =
     const ok = typeof fn === "function" ? await fn() : undefined;
     if (ok === false) return false; // 準備失敗でも途中の場面を開かない。
     await new Promise(r => setTimeout(r, hold));
+    // 入場は半透明の幕越しに旧画面を見せず、準備済みの迷宮へ直接切り替える。
+    if (immediate) { veil.remove(); return true; }
     // 演出が外れた後の透明度も先に決め、最後に幕が戻るのを防ぐ。
     veil.style.opacity = "0";
     await animate(veil, [{ opacity: 1 }, { opacity: 0 }], { duration: inn, easing: EASE.inout });
