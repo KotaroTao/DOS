@@ -11671,9 +11671,10 @@ function applyImpact(res) {
     else { SFX.hit(); buzz(25); }
   }
 
-  // 死の宣告で死亡が確定した敵は、着弾と同時に本体・HPゲージの表示対象から外す。
-  // 座標が無い敵や、多数同時撃破で崩れ落ちの予約時刻が演出の尺を超える敵も残さない。
-  if (res.opening === "senkoku") for (const h of res.hits) {
+  // 開幕スキルで死亡が確定した敵は、各着弾時に本体・HPゲージの表示を終える。
+  // 次の開幕演出が描画より先に始まる場合や、座標が無い場合も死体を残さない。
+  // 未着弾の開幕スキルの対象は、その着弾まで _openDeath のまま表示する。
+  if (res.opening) for (const h of res.hits) {
     if (h.died && h.target?.side === "enemy" && !h.target.alive) {
       delete h.target._openDeath;
       _deadShown.add(h.target);

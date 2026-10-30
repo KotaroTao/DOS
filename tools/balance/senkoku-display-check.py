@@ -1,4 +1,4 @@
-"""死の宣告の着弾直後・演出終了後の死亡表示と、生存/復活した敵の表示を確認。localhost:8000。"""
+"""開幕3種の複数撃破・描画前の演出切替・座標不在・生存/復活した敵の表示を確認。localhost:8000。"""
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
@@ -16,6 +16,7 @@ with sync_playwright() as p:
     print('\n'.join(page.evaluate('''async()=>{
       const {G}=__game,H=__senkokuDisplay;
       const {Battle,spawnCardEnemies}=await import('/src/combat.js');
+      const {makeDoll}=await import('/src/souls.js');
       const {useMathRandom}=await import('/src/rng.js');
       const {sheet}=await import('/src/ui/kit.js');
       const out=[],check=(ok,msg)=>{if(!ok)throw Error(msg);out.push('OK '+msg)};
@@ -58,6 +59,34 @@ with sync_playwright() as p:
         try {await new Promise(done=>H.animateResult(res,done));}
         finally {window.requestAnimationFrame=originalRAF;}
         check(foes.every(e=>!G.enemyPos[e.uid]&&!e._openDeath),mode+'の6体同時死亡でも演出後に残らない');
+      }
+      // 開幕は戦闘生成時に全員の結果が確定する。後続の着弾まで敵を早消ししない。
+      for(const kind of ['iai','openSpell','mixed'])for(const missing of [false,true]) {
+        sheet.closeAll();G.state='combat';G.animating=true;G.fx=null;G.autoCombat=false;G.battleIntro=null;
+        G.party=Array.from({length:3},(_,i)=>Object.assign(makeDoll('開幕'+i),{
+          atk:100000,int:100000,agi:1000,luk:100,maxmp:100,mp:100,
+          passiveMap:{[kind==='mixed'?(i%2?'openSpell':'iai'):kind]:1}
+        }));
+        const foes=Array.from({length:4},()=>spawnCardEnemies('bs_mournshade',1,1,{min:1})[0]);
+        for(const e of foes){e.hp=e.maxhp=1;e.vit=0;e.agi=0;e.physResist=e.magResist=0;}
+        const original=Math.random;useMathRandom(true);Math.random=()=>0.5;
+        try{G.battle=new Battle(G.party,foes,()=>{});}finally{Math.random=original;useMathRandom(false);}
+        const list=G.battle.openingResults,dead=foes.filter(e=>!e.alive),alive=foes.filter(e=>e.alive);
+        check(dead.length===3&&list.length===3,kind+'で本物の開幕スキルが3体撃破');
+        H.renderCombatCanvas();
+        check(foes.every(e=>G.enemyPos[e.uid]),'着弾前は後続の撃破対象も表示');
+        // バックグラウンド戦闘では次の演出が前の描画より先に始まる。
+        for(const [i,res]of list.entries()) {
+          if(missing)G.enemyPos={};
+          G.fx={lunge:null,slashes:[],skill:[],floats:[],screen:null,flash:{},deaths:[]};
+          H.applyImpact(res);
+          check(list.slice(i+1).every(r=>r.hits.every(h=>!h.died||h.target._openDeath)),'未着弾の敵の表示待ちを維持');
+        }
+        G.fx=null;H.renderCombatCanvas();
+        check(dead.every(e=>!G.enemyPos[e.uid]&&!e._openDeath),kind+'の連続撃破後に画像・HPゲージが残らない（座標なし='+missing+'）');
+        check(alive.every(e=>G.enemyPos[e.uid]),'生存している敵は消さない');
+        G.fx={deaths:[],skill:[],floats:[],slashes:[],flash:{}};H.renderCombatCanvas();
+        check(dead.every(e=>!G.enemyPos[e.uid]),'次の演出でも死体が戻らない');
       }
       return out;
     }''')))
