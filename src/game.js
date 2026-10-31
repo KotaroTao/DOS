@@ -1,3 +1,5 @@
+import { battleCommand } from "./cloud-battle.js";
+import { cloudCommandMode, cloudActionCommand } from "./cloud-save.js";
 import { saveMetrics } from "./save-metrics.js";
 import { refreshPlayTime } from "./ui/playername.js";
 import { resetAutomationPrefs } from "./ui/prefs.js";
@@ -9424,7 +9426,7 @@ function spawnModFx(tg, now, spd, i, label) {
 // 戦闘の始まり・ターンの初めの強化・弱体を、掛けた技・パッシブ・掟ごとに1拍ずつ見せる
 function playModReveal(mw, done) {
   if (!mw) { done(); return; }
-  if (cloudBackgroundBattle()) {
+  if (quickBattlePresentation()) {
     flushModLines(mw, Infinity); G.effShow = null;
     for (const step of mw.steps) for (const proc of step.procs || []) G.battle?.procs?.push(proc);
     drainPartyProcs(); done(); return;
@@ -11282,18 +11284,19 @@ function showBattleItems(actor) {
 }
 // ---- 戦闘ループ駆動 (1手ずつ・演出付き) ----
 // 戦闘テンポ (演出時間の倍率): 倍速 ON = 標準 (1) / OFF = その 1/2 の速さ (2)。オート中は倍速の設定によらず短縮する
+function quickBattlePresentation() { return cloudBackgroundBattle() || cloudCommandMode(); }
 function spdMul() {
-  if (cloudBackgroundBattle()) return G.autoCombat || G.fastAnim ? 0.1 : 0.2;
+  if (quickBattlePresentation()) return G.autoCombat || G.fastAnim ? 0.1 : 0.2;
   return G.autoCombat ? 0.45 : G.fastAnim ? 1 : 2;
 }
 // 自動行動の結果を示す間隔。通信は待たず、一手を見分ける間だけ置く。
 const battleActionTimes = new WeakMap();
 function battleTempoWait(battle) {
-  if (!cloudBackgroundBattle() || !battleActionTimes.has(battle)) return 0;
+  if (!quickBattlePresentation() || !battleActionTimes.has(battle)) return 0;
   return Math.max(0, (G.fastAnim ? 400 : 500) - (performance.now() - battleActionTimes.get(battle)));
 }
 // 自動進行の待ち時間から独立させ、数フレームで効果を消さない。
-function effectSpeed() { return cloudBackgroundBattle() ? (G.fastAnim ? 0.85 : 1) : spdMul(); }
+function effectSpeed() { return quickBattlePresentation() ? (G.fastAnim ? 0.85 : 1) : spdMul(); }
 function serverBattle() { return cloudEnabled() && !testPlayActive && !cloudBackgroundBattle(); }
 async function resolveLocalBattle(action, battle = G.battle) {
   try {
@@ -11390,17 +11393,29 @@ function runCommitted() {
 // 確定した選択を保存し、サーバーに一手を実行させる。返答前は結果を描かない。
 let savedBattleAdvance = null;
 async function resolveSavedBattle(action) {
+  if (_cloudResolving) return;
   _cloudResolving = true;
   try {
     codexSweepJobs(); notifyInsight();
     const snap = {};
     for (const k of SAVE_FIELDS) snap[k] = G[k];
+    const commandResult = cloudCommandMode() ? cloudActionCommand(battleCommand(G.battle, action)) : null;
+    commandResult?.catch(() => {});
     const prepared = encodeCloudSave(snap, cloudCompactGraph());
     prepared.catch(() => {});
     let raw;
-    const response = await cloudBattlePrepared(action, async () => {
+    let response;
+    if (commandResult) {
+      raw = await prepared;
+      response = await commandResult;
+    } else response = await cloudBattlePrepared(action, async () => {
       raw = await prepared; return JSON.parse(raw);
     });
+    if (cloudCommandMode()) {
+      const wait = G.autoCombat || action !== "commit" ? battleTempoWait(G.battle) : 0;
+      if (wait > 0) await new Promise(resolve => setTimeout(resolve, wait));
+      battleActionTimes.set(G.battle, performance.now());
+    }
     savedBattleAdvance = response.nextPacket ? { battle: G.battle, packet: response.nextPacket } : null;
     const packet = applySavePatch(G, refDeserialize(response.packet));
     restoreMonsterPhotos(G.battle.enemies, MONSTERS);
@@ -11427,7 +11442,7 @@ function postResolve() {
     shakeScreen(true); buzz([0, 60, 50, 60]);
     showToast("⚠ 敵が怒り狂っている！");
   }
-  if (b.result) { G.animating = false; setTimeout(() => whenCombatFree(endBattle, b), cloudBackgroundBattle() ? 0 : G.autoCombat ? 100 : 300); return; }
+  if (b.result) { G.animating = false; setTimeout(() => whenCombatFree(endBattle, b), quickBattlePresentation() ? 0 : G.autoCombat ? 100 : 300); return; }
   if (!serverBattle()) b._acted = false;
   // ターンの初めのパッシブ・激昂などで掛かった強化・弱体は、1拍ずつ見せてから次の手番へ
   const watch = beginModWatch(true);
@@ -11436,7 +11451,7 @@ function postResolve() {
   const mw = watch ? endModWatch() : null;
   playModReveal(mw, () => {
     autosave(true);
-    setTimeout(combatStep, cloudBackgroundBattle() || G.autoCombat ? 0 : 150 * spdMul());
+    setTimeout(combatStep, quickBattlePresentation() || G.autoCombat ? 0 : 150 * spdMul());
   });
 }
 
@@ -11456,7 +11471,7 @@ async function advanceSavedBattle(watch) {
     if (watch) G.modFeed = packet.modFeed;
     const mw = watch ? endModWatch() : null;
     // 次の手番もサーバーに確定済み。演出の片付けだけで全記録を送り直さない。
-    playModReveal(mw, () => { setTimeout(combatStep, cloudBackgroundBattle() || G.autoCombat ? 0 : 150 * spdMul()); });
+    playModReveal(mw, () => { setTimeout(combatStep, quickBattlePresentation() || G.autoCombat ? 0 : 150 * spdMul()); });
   } catch (e) { cloudFatal(); }
 }
 
@@ -11470,8 +11485,8 @@ function animateResult(res, done) {
   const finish = () => { if (G.battle === battle && G.state === "combat") done(); };
 
   callPartyAction(res); // 札の肖像に使った技の名 (手番の初めから)
-  if (setPlateCall(res) && !cloudBackgroundBattle()) { if (G.autoCombat) renderAutoBanner(); else renderActingPlate(res.actor); } // 命令板にも「誰の何の技か」
-  if (cloudBackgroundBattle()) {
+  if (setPlateCall(res) && !quickBattlePresentation()) { if (G.autoCombat) renderAutoBanner(); else renderActingPlate(res.actor); } // 命令板にも「誰の何の技か」
+  if (quickBattlePresentation()) {
     // 結果と次の命令板を先に示す。短い視覚効果は入力を封じず描く。
     const fx = G.fx = { lunge: null, slashes: [], skill: [], floats: [], screen: null, flash: {}, deaths: [] };
     G.partyFx = new Map(); G.partyFxV = new Map();
@@ -11696,7 +11711,7 @@ function applyImpact(res) {
   // 多段ヒット (二段斬り等) は同じ対象・同座標に重なって1回に見えてしまうため、
   // 対象ごとにヒット順で時間差(stagger)と位置差(横ずらし)を付けて、回数分はっきり見せる
   const spd = effectSpeed();
-  const stag = cloudBackgroundBattle() ? Math.min(HIT_STAGGER * spd, 90 / Math.max(1, res.hits.length)) : HIT_STAGGER * spd;
+  const stag = quickBattlePresentation() ? Math.min(HIT_STAGGER * spd, 90 / Math.max(1, res.hits.length)) : HIT_STAGGER * spd;
   const stackIdx = {};
   // 技ごとの組み立て: 描き分け (v)・角度 (rot)・回る向き (spin)・格 (scale)・付く効果の印 (riders)
   const prof = fxProfile(res);

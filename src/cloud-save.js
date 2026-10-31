@@ -1,3 +1,6 @@
+import { decodeCloudReply } from "./cloud-wire.js";
+import { encodeCloudChange, decodeCloudCommand } from "./save-codec.js";
+import { applyCloudChange } from "./cloud-change.js";
 import { saveMetrics, utf8Bytes } from "./save-metrics.js";
 import { LEGAL_VERSION, showLegal } from "./legal.js";
 import { localSaveKey } from "./local-save.js";
@@ -9,6 +12,7 @@ const putJSON = (key, value) => localStorage.setItem(key, JSON.stringify(value))
 // 記録1のキーは旧版の送信待ちもそのまま回収する。
 const slotSuffix = slot => slot === 1 ? "" : ":slot:" + slot;
 const pendingKey = (id, slot = 1) => "dos-cloud-pending:" + id + slotSuffix(slot);
+const choiceKey = id => "dos-cloud-choice:" + id;
 const checkpointKey = (id, slot = 1) => "dos-cloud-checkpoint:" + id + slotSuffix(slot);
 const session = (a) => ({ ...a, expires_at: a.expires_at || Math.floor(Date.now() / 1000) + (a.expires_in || 3600) });
 
@@ -24,6 +28,7 @@ export class CloudSaveClient {
     localSaveKey(slot); this.slot = slot;
     this.config = config; this.fetcher = fetcher; this.storage = storage;
     this.onBusy = onBusy; this.onFailure = onFailure; this.retryDelays = retryDelays;
+    this.confirmed = null; this.commandMode = false;
     this.auth = null; this.sessionId = null; this.revision = 0;
     this.tail = Promise.resolve(); this.count = 0; this.busy = false;
     this.refreshing = null; this.waiting = false; this.failureWait = null;
@@ -49,6 +54,7 @@ export class CloudSaveClient {
         const raw = await r.text(); received = utf8Bytes(raw);
         try { data = JSON.parse(raw); } catch { /* 既存と同じ失敗処理へ */ }
       } else data = await r.json().catch(() => null);
+      if (r.ok) data = await decodeCloudReply(data);
       if (!r.ok) throw Object.assign(new Error(data?.error_description || data?.msg || data?.error || "通信に失敗しました"), { status: r.status, requestId: data?.requestId });
       if (!data) throw Object.assign(new Error("返答を読み取れません"), { status: 502 });
       return data;
@@ -90,23 +96,39 @@ export class CloudSaveClient {
     }
     const entry = { data, promise: null };
     this.queuedSave = op === "save" ? entry : null;
-    if (op === "battle" || op === "turn") this.blocking++;
+    if (op === "battle" || op === "turn" || op === "command") this.blocking++;
     this.count++; this.setBusy();
     const task = this.tail.then(async () => {
       // 端末の復旧記録は既に別経路で保管する。連続する操作は半秒単位で束ねる。
-      if (op === "save" && this.backgroundBattle) await new Promise(resolve => setTimeout(resolve, 500));
+      if (op === "save" && (this.backgroundBattle || this.commandMode)) await new Promise(resolve => setTimeout(resolve, 500));
       if (this.queuedSave === entry) this.queuedSave = null;
       const data = typeof entry.data === "function" ? await this.retry(entry.data) : entry.data;
       if (data === null) return;
       const { checkpointId, ...requestData } = data;
+      let nextSnapshot = null;
+      let payload = requestData;
+      if (op === "save" && this.commandMode) {
+        nextSnapshot = requestData.snapshot || JSON.parse(requestData.snapshotRaw);
+        payload = await encodeCloudChange(this.confirmed, nextSnapshot);
+        if (!payload) {
+          if (checkpointId && this.latestCheckpointId === checkpointId) { this.storage.removeItem(checkpointKey(this.auth.user.id, this.slot)); this.latestCheckpointId = null; }
+          return;
+        }
+      }
       const body = { protocol: this.config.protocol, sessionId: this.sessionId,
-        commandId: crypto.randomUUID(), revision: this.revision, op, ...requestData };
+        commandId: crypto.randomUUID(), revision: this.revision, op, ...payload,
+        ...(typeof DecompressionStream !== "undefined" ? { acceptEncoding: "gzip" } : {}) };
       // 送信前に記録する。結果の返答を失っても同じID・同じ内容で再送する。
-      const result = await this.retry(async () => {
+      let result = await this.retry(async () => {
         this.storage.setItem(pendingKey(this.auth.user.id, this.slot), requestJSON(body));
         return this.request(body);
       });
+      if (op === "command") result = await decodeCloudCommand(this.confirmed, result);
+      if (op === "reset") this.confirmed = null;
+      if (nextSnapshot) this.confirmed = nextSnapshot;
+      else if (result.sync) this.confirmed = applyCloudChange(this.confirmed, result.sync);
       this.revision = result.revision;
+      if (op === "command") this.storage.removeItem(choiceKey(this.auth.user.id));
       this.storage.removeItem(pendingKey(this.auth.user.id, this.slot));
       if (checkpointId) {
         const key = checkpointKey(this.auth.user.id, this.slot);
@@ -116,7 +138,7 @@ export class CloudSaveClient {
     });
     this.tail = task;
     entry.promise = task.finally(() => {
-      if (op === "battle" || op === "turn") this.blocking--;
+      if (op === "battle" || op === "turn" || op === "command") this.blocking--;
       this.count--; this.setBusy();
     });
     return entry.promise;
@@ -206,10 +228,12 @@ export class CloudSaveClient {
   renew() { return this.enqueue("renew"); }
   flush() { return this.tail; }
   async claim() {
-    const data = await this.request({ protocol: this.config.protocol, sessionId: this.sessionId, op: "claim", compactGraph: true });
+    const data = await this.request({ protocol: this.config.protocol, sessionId: this.sessionId, op: "claim", compactGraph: true, ...(typeof DecompressionStream !== "undefined" ? { acceptEncoding: "gzip" } : {}) });
     this.revision = data.revision;
     this.battleTurn = data.battleTurn === true;
     this.compactGraph = data.compactGraph === true;
+    this.commandMode = data.actionCommands === true;
+    this.confirmed = data.snapshot;
     this.backgroundBattle = data.backgroundBattle === true;
     return data.snapshot;
   }
@@ -219,7 +243,12 @@ export class CloudSaveClient {
       const body = JSON.parse(pending);
       if (body.sessionId !== this.sessionId) throw new Error("記録の接続が一致しません");
       const result = await this.retry(() => this.request(body), { automatic: false });
+      if (this.commandMode && result.revision > this.revision) {
+        if (body.op === "save") this.confirmed = body.snapshot || applyCloudChange(this.confirmed, body.change);
+        else if (result.sync) this.confirmed = applyCloudChange(this.confirmed, result.sync);
+      }
       this.revision = result.revision;
+      if (body.op === "command") this.storage.removeItem(choiceKey(this.auth.user.id));
       this.storage.removeItem(pendingKey(this.auth.user.id, this.slot));
     }
     // 通信中に進めた最新地点は、以前の要求を確定してから同じ列に保存する。
@@ -229,6 +258,18 @@ export class CloudSaveClient {
       this.latestCheckpointId = checkpoint.id;
       await this.enqueue("save", { snapshot: checkpoint.snapshot, checkpointId: checkpoint.id });
     }
+    const choice = JSON.parse(this.storage.getItem(choiceKey(this.auth.user.id)) || "null");
+    if (choice) {
+      if (choice.sessionId !== this.sessionId) throw new Error("選択の接続が一致しません");
+      await this.enqueue("command", { command: choice.command, commandId: choice.commandId });
+    }
+  }
+  actionCommand(command) {
+    if (this.storage.getItem(choiceKey(this.auth.user.id))) throw new Error("選択済みの行動が確定待ちです");
+    const commandId = crypto.randomUUID();
+    // シリアライズや通信を待つ前に、選び直せない入力そのものを保管する。
+    this.storage.setItem(choiceKey(this.auth.user.id), JSON.stringify({ sessionId: this.sessionId, commandId, command }));
+    return this.enqueue("command", { command, commandId });
   }
 }
 
@@ -295,6 +336,12 @@ async function resumeSavedRecord() {
 }
 function failure(e) {
   return new Promise((resolve) => {
+    const chosen = !!getJSON(choiceKey(client.auth.user.id));
+    if (chosen && e.status !== 401 && !(e.status === 400 && /refresh|token/i.test(e.message))) {
+      showGate("選択した行動の確定を確認できません。選び直さず、同じ行動で再接続します。" + (e.status ? ` HTTP ${e.status}` : ""));
+      button("再接続", () => location.reload());
+      return;
+    }
     if (e.status === 401 || (e.status === 400 && /refresh|token/i.test(e.message))) {
       showGate("ログインの有効期限が切れました。ログインし直してください。");
       if (cloudGuest()) {
@@ -568,7 +615,7 @@ export async function connectCloud(localSave, slot = 1, mode = "start") {
   localStorage.setItem(sessionKey, client.sessionId);
   showGate();
   let snapshot = await connectionStep("冒険の記録の読み込み", () => client.retry(() => client.claim()));
-  if (pending || checkpoint) { await client.recover(); snapshot = await connectionStep("冒険の記録の読み込み", () => client.retry(() => client.claim())); }
+  if (pending || checkpoint || getJSON(choiceKey(client.auth.user.id))) { await client.recover(); snapshot = await connectionStep("冒険の記録の読み込み", () => client.retry(() => client.claim())); }
   if (mode !== "reset" && !snapshot && localSave && !localStorage.getItem("dos-cloud-deleted")) {
     const useLocal = await new Promise((resolve) => {
       showGate("このアカウントには冒険の記録がありません。この端末の記録を引き継ぎますか？");
@@ -698,3 +745,6 @@ export async function cloudSavePrepared(prepare) {
   localStorage.removeItem(emptyRecordKey(client.auth.user.id));
   return result;
 }
+
+export const cloudCommandMode = () => !!client?.commandMode;
+export const cloudActionCommand = command => client.actionCommand(command);

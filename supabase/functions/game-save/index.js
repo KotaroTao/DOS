@@ -1,6 +1,9 @@
+import { encodeCloudReply } from "../../../src/cloud-wire.js";
+import { commandPacketBase } from "../../../src/cloud-command-codec.js";
+import { createCloudChange, applyCloudChange } from "../../../src/cloud-change.js";
 import { LEGAL_VERSION } from "../../../src/legal.js";
 import { refSerialize, refDeserialize } from "../../../src/savegraph.js";
-import { resolveCloudBattle, resolveCloudTurn } from "../../../src/cloud-battle.js";
+import { resolveCloudBattle, resolveCloudTurn, resolveCloudCommand } from "../../../src/cloud-battle.js";
 
 const url = Deno.env.get("SUPABASE_URL");
 const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -63,7 +66,7 @@ async function command(user, body) {
   }
   if (body.op === "claim") {
     const snapshot = s.snapshot?.format === 2 && !body.compactGraph ? refSerialize(refDeserialize(s.snapshot)) : s.snapshot;
-    return { revision: s.revision, snapshot, battleTurn: true, compactGraph: true, backgroundBattle: true };
+    return { revision: s.revision, snapshot, battleTurn: true, compactGraph: true, backgroundBattle: false, actionCommands: true };
   }
   if (body.op === "renew") {
     if (s.revision !== body.revision) throw Object.assign(new Error("cloud_revision_conflict"), { status: 409 });
@@ -81,11 +84,12 @@ async function command(user, body) {
   if (s.revision !== body.revision) throw Object.assign(new Error("cloud_revision_conflict"), { status: 409 });
   let snapshot = s.snapshot, response = {};
   if (body.op === "save" || body.op === "turn") {
-    const next = refDeserialize(body.snapshot);
+    const graph = body.snapshot || applyCloudChange(s.snapshot, body.change);
+    const next = refDeserialize(graph);
     if (!next || !["town", "board", "combat", "over"].includes(next.state) || !Array.isArray(next.party) || !Array.isArray(next.souls)) {
       throw Object.assign(new Error("記録の形式が不正です"), { status: 400 });
     }
-    snapshot = body.snapshot;
+    snapshot = graph;
     if (body.op === "turn") {
       if (next.state !== "combat" || !next.battle || !["commit", "enemy", "stunned"].includes(body.action)) {
         throw Object.assign(new Error("戦闘の形式が不正です"), { status: 400 });
@@ -93,6 +97,19 @@ async function command(user, body) {
       response = resolveCloudTurn(next, body.action, { compact: body.snapshot?.format === 2 });
       snapshot = refSerialize(next, { compact: body.snapshot?.format === 2 });
     }
+  } else if (body.op === "command") {
+    const current = refDeserialize(s.snapshot);
+    response = resolveCloudCommand(current, body.command, { compact: true });
+    const basePacket = commandPacketBase(s.snapshot);
+    response.packetChange = createCloudChange(basePacket, response.packet) || { change: [] };
+    response.nextPacketChange = response.nextPacket ? createCloudChange(basePacket, response.nextPacket) || { change: [] } : null;
+    delete response.packet; delete response.nextPacket;
+    snapshot = refSerialize(current, { compact: true });
+    refDeserialize(snapshot);
+    if (new TextEncoder().encode(JSON.stringify(snapshot)).length > MAX_REQUEST_BYTES) throw Object.assign(new Error("記録が送信できる大きさを超えています"), { status: 413 });
+    response.sync = createCloudChange(s.snapshot, snapshot)?.change;
+    // syncは受信端末の確定済みグラフ更新用。全体が小さい場合も差分の形にする。
+    if (!response.sync) response.sync = [["set", [], snapshot]];
   } else if (body.op === "reset") {
     snapshot = null;
   } else if (body.op === "battle") {
@@ -126,7 +143,7 @@ Deno.serve(async (req) => {
     const raw = await readSaveRequest(req);
     const body = JSON.parse(raw);
     const result = await command(user, body);
-    return new Response(JSON.stringify(result), { headers });
+    return new Response(JSON.stringify(body.acceptEncoding === "gzip" ? await encodeCloudReply(result) : result), { headers });
   } catch (e) {
     // 認証情報・冒険の中身は記録しない。利用者の問い合わせ番号と結び付ける。
     console.error(JSON.stringify({ requestId, status: e.status || 503, name: e.name, message: e.message, bytes: e.bytes, databaseCode: e.databaseCode }));

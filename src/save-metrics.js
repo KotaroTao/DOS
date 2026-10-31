@@ -1,7 +1,7 @@
 // 保存の計測は端末内の数値だけ。認証情報・記録本文・要求IDは残さない。
 const KEY = "dos-save-metrics-v1";
 const LATENCY_BOUNDS = [100, 500, 1000, 5000, 15000];
-const OPS = ["save", "claim", "renew", "battle", "turn", "consent", "reset", "delete-account"];
+const OPS = ["command", "save", "claim", "renew", "battle", "turn", "consent", "reset", "delete-account"];
 const empty = () => ({ v: 1, startedAt: new Date().toISOString(), visibleMs: 0, operations: {}, trial: { triggers: 0, samples: 0, snapshotBytes: 0, maxSnapshotBytes: 0 } });
 export const utf8Bytes = text => new TextEncoder().encode(text || "").byteLength;
 export class SaveMetrics {

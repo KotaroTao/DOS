@@ -1,13 +1,21 @@
+import { decodeCommandResponse } from "./cloud-command-codec.js";
+import { createCloudChange } from "./cloud-change.js";
 import { refSerialize, acknowledgedSave } from "./savegraph.js";
 let worker, sequence = 0;
 const pending = new Map();
+function localWork(op, value, packet, compact) {
+  if (op === "commandReply") return decodeCommandResponse(value, packet);
+  if (op === "change") return createCloudChange(value, packet);
+  if (op === "encode") return JSON.stringify(refSerialize(value, { compact }));
+  return acknowledgedSave(value, packet);
+}
 function work(op, value, packet, compact) {
-  if (typeof Worker === "undefined") return Promise.resolve(op === "encode" ? JSON.stringify(refSerialize(value, { compact })) : acknowledgedSave(value, packet));
+  if (typeof Worker === "undefined") return Promise.resolve(localWork(op, value, packet, compact));
   if (!worker) {
     try { worker = new Worker(new URL("./save-codec-worker.js", import.meta.url), { type: "module" }); }
     catch {
       // Workerの生成が制限された端末でも、従来の同期処理で記録を保つ。
-      return Promise.resolve(op === "encode" ? JSON.stringify(refSerialize(value, { compact })) : acknowledgedSave(value, packet));
+      return Promise.resolve(localWork(op, value, packet, compact));
     }
     worker.onmessage = ({ data }) => {
       const job = pending.get(data.id); if (!job) return;
@@ -61,3 +69,7 @@ export function cloneSaveData(root) {
   };
   return copy(root);
 }
+
+export const encodeCloudChange = (base, next) => work("change", base, next);
+
+export const decodeCloudCommand = (base, response) => work("commandReply", base, response);

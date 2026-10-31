@@ -175,4 +175,30 @@ assert.equal(compactClaim.snapshot.format,2);assert.equal(legacyClaim.snapshot.f
 assert.deepEqual(refDeserialize(compactClaim.snapshot),refDeserialize(legacyClaim.snapshot));
 assert.equal(compactClaim.compactGraph,true);
 console.log('圧縮保存API: 確定・再送・次手番・旧クライアントへの読み戻し OK');
+
+// 小さな戦闘命令を実DBで確定し、結果の応答を失っても選び直さない。
+const {createCloudChange,applyCloudChange}=await import('../../src/cloud-change.js');
+const {decodeCommandResponse}=await import('../../src/cloud-command-codec.js');
+const {battleCommand}=await import('../../src/cloud-battle.js');
+const source=refDeserialize(refSerialize(state,{compact:true}));
+source.battle.pending=null;source.battle.phase='input';source.battle._acted=false;source.battle.result=null;
+const commandGraph=refSerialize(source,{compact:true});
+await request({...base,op:'save',revision:9,commandId:crypto.randomUUID(),snapshot:commandGraph});
+const choose=refDeserialize(commandGraph);Object.setPrototypeOf(choose.battle,Battle.prototype);
+choose.battle.chooseAction('attack');choose.battle.chooseTarget(choose.battle.enemies[0]);
+const cmd={...base,op:'command',revision:10,commandId:crypto.randomUUID(),command:battleCommand(choose.battle,'commit')};
+const cr=await request(cmd);assert.equal(cr.status,200);
+const wire=await cr.json();const decodedCommand=decodeCommandResponse(commandGraph,wire);
+assert(decodedCommand.packet);assert.equal(wire.revision,11);
+assert.deepEqual(await (await request(cmd)).json(),wire);
+assert.equal((await request({...cmd,command:{...cmd.command,action:'defend'}})).status,409);
+const commandClaim=await (await request({...base,op:'claim',compactGraph:true})).json();
+assert.equal(commandClaim.actionCommands,true);assert.equal(commandClaim.revision,11);
+assert.deepEqual(applyCloudChange(commandGraph,wire.sync),commandClaim.snapshot);
+const latest=structuredClone(commandClaim.snapshot);latest.templates[0].o.audit='差分';
+const patch=createCloudChange(commandClaim.snapshot,latest);
+const patchRequest={...base,op:'save',revision:11,commandId:crypto.randomUUID(),...patch};
+assert.equal((await request(patchRequest)).status,200);assert.equal((await request(patchRequest)).status,200);
+assert.deepEqual((await (await request({...base,op:'claim',compactGraph:true})).json()).snapshot,latest);
+console.log('命令・差分API: 行動をDB確定・同一ID再送・選び直し拒否・再開・差分確定 OK');
 await db.close();
