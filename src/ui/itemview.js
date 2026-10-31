@@ -48,10 +48,13 @@ export function elemDetailLines(kind, e) {
 }
 export function elemStatChip(e) { return `<b>${elemStatShort(e)}</b>`; }
 export function elemStatEq(a, b) { return JSON.stringify([elementValues(a,a?.kind),a?.reductions])===JSON.stringify([elementValues(b,b?.kind),b?.reductions]); }
-export function elemStatShort(e) {
+export function elemStatShort(e, { reductionOnly = false } = {}) {
   const defense = e?.kind === "defense";
   const values = elementValues(e, defense ? "defense" : "attack");
-  if(defense&&e?.reductions){const keys=new Set([...Object.keys(values),...Object.keys(e.reductions)]);return [...keys].map(k=>`${elemName(k)}${Math.round(elementDefenseReduction(k,e)*1000)/10}%軽減`).join(" / ")||"—";}
+  if (defense && (reductionOnly || e?.reductions)) {
+    const keys = new Set([...Object.keys(values), ...Object.keys(e.reductions || {})]);
+    return [...keys].map(k => `${elemName(k)}${Math.round(elementDefenseReduction(k, e) * 1000) / 10}%軽減`).join(" / ") || "—";
+  }
   return Object.entries(values).map(([k, v]) => defense
     ? `${elemName(k)}耐性力${v}%／${Math.round(elementalReduction(v) * 1000) / 10}%軽減`
     : `${elemName(k)}${100 + v}%`).join(" / ") || "—";
