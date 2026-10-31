@@ -66,7 +66,8 @@ async function command(user, body) {
   }
   if (body.op === "claim") {
     const snapshot = s.snapshot?.format === 2 && !body.compactGraph ? refSerialize(refDeserialize(s.snapshot)) : s.snapshot;
-    return { revision: s.revision, snapshot, battleTurn: true, compactGraph: true, backgroundBattle: false, actionCommands: true };
+    // 実回線の返答待ちを毎行動へ挟まない。端末保管後に進め、差分を背景同期する。
+    return { revision: s.revision, snapshot, battleTurn: true, compactGraph: true, backgroundBattle: true, actionCommands: true };
   }
   if (body.op === "renew") {
     if (s.revision !== body.revision) throw Object.assign(new Error("cloud_revision_conflict"), { status: 409 });

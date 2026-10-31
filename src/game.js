@@ -3104,7 +3104,8 @@ function paintOldCardBacks() {
 function ensureBoardScene() {
   const art = ensureBoardArt();
   const cells = G.board.cells, sourceScale = art.scale, sceneScale = Math.max(2, sourceScale);
-  let sig = BV.artKey + "|" + (G.flipAnim ? G.flipAnim.x + "," + G.flipAnim.y : "") + "|";
+  // 蓋の移動は別の層で描く。めくりの開始・終了だけで静止画を作り直さない。
+  let sig = BV.artKey + "|";
   for (const row of cells) for (const c of row) sig += c.revealed ? "1" : "0";
   if (sig === BV.sceneKey && BV.scene) return;
   BV.sceneKey = sig;
@@ -3958,7 +3959,8 @@ function drawFlipSlab(now) {
   vctx.fillStyle = "#000";
   vctx.fillRect(r.x + ox + 2 + lift * 5, r.y + oy + 4 + lift * 7, r.w, r.h);
   vctx.globalAlpha = a;
-  vctx.imageSmoothingEnabled = !!BV.art.painting || boardCamera.zoom > 1;
+  // 移動・拡縮する細い枠は補間し、画素境界をまたぐ時のちらつきを抑える。
+  vctx.imageSmoothingEnabled = true;
   const sourceScale = BV.art.scale;
   const W = r.w * sc, H = r.h * sc;
   vctx.drawImage(BV.art.slabs, r.x * sourceScale, r.y * sourceScale, r.w * sourceScale, r.h * sourceScale, r.x + r.w / 2 - W / 2 + ox, r.y + r.h / 2 - H / 2 + oy, W, H);
@@ -6313,7 +6315,7 @@ function moveStep(nx, ny, onDone) {
   const slide = () => {
     G.heroAnim = { fromX: G.px, fromY: G.py, toX: nx, toY: ny, t0: performance.now(), dur: walkMs(150) };
     const tick = () => {
-      renderBoard();
+      drawBoardFrame();
       if (performance.now() - G.heroAnim.t0 >= G.heroAnim.dur) {
         G.heroAnim = null;
         G.anim = null;
@@ -6339,7 +6341,7 @@ function moveStep(nx, ny, onDone) {
     cleanseStepHeal();
     G.flipAnim = { x: nx, y: ny, t0: performance.now(), dur: walkMs(240) };
     const ftick = () => {
-      renderBoard();
+      drawBoardFrame();
       if (performance.now() - G.flipAnim.t0 >= G.flipAnim.dur) {
         G.flipAnim = null;
         if (floatLeft() <= 0) SFX.step(); // 浮遊中は足音を立てない

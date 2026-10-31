@@ -193,7 +193,7 @@ assert(decodedCommand.packet);assert.equal(wire.revision,11);
 assert.deepEqual(await (await request(cmd)).json(),wire);
 assert.equal((await request({...cmd,command:{...cmd.command,action:'defend'}})).status,409);
 const commandClaim=await (await request({...base,op:'claim',compactGraph:true})).json();
-assert.equal(commandClaim.actionCommands,true);assert.equal(commandClaim.revision,11);
+assert.equal(commandClaim.backgroundBattle,true);assert.equal(commandClaim.actionCommands,true);assert.equal(commandClaim.revision,11);
 assert.deepEqual(applyCloudChange(commandGraph,wire.sync),commandClaim.snapshot);
 const latest=structuredClone(commandClaim.snapshot);latest.templates[0].o.audit='差分';
 const patch=createCloudChange(commandClaim.snapshot,latest);

@@ -1,5 +1,7 @@
 """実SQL/Edgeの命令戦闘。応答喪失・再送・途中終了と再開・通信量を確認。"""
 import json
+import base64
+import gzip
 import uuid
 from urllib.parse import urlparse
 from playwright.sync_api import sync_playwright
@@ -24,7 +26,11 @@ with sync_playwright() as p:
     drop['once']=False;r.fulfill(status=503,json={'error':'response lost'});return
   if body and body.get('op')=='command' and hold['on']:
    hold['held'].append((r,body));return
-  r.fulfill(response=response)
+  if body and body.get('op')=='claim':
+   value=response.json()
+   if value.get('wireFormat')=='gzip-base64':value=json.loads(gzip.decompress(base64.b64decode(value['payload'])))
+   value['backgroundBattle']=False;r.fulfill(json=value)
+  else:r.fulfill(response=response)
  c.route('https://cloud.test/**',api)
  page=c.new_page();page.on('pageerror',lambda e:errors.append(str(e)))
  page.goto('http://127.0.0.1:8001/?testDungeon=w01')
