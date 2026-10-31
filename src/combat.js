@@ -401,7 +401,7 @@ export function stanceCtrK(t) {
 }
 // 固有パッシブ・目玉パッシブの発動を記録欄に書く時に添える「何が起きたか」(2026-10 ユーザーの指示:
 // 「開戦の号令！」「闇の障壁！」だけでは何の効果か分からない)。定義の値から作る (段は buffstage.js の表で、実際に掛かる倍率)
-const MOD_NAME = { atk: "STR", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", hit: "命中" };
+const MOD_NAME = { allStats: "全能力", atk: "STR", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", hit: "命中" };
 function modText(stat, mult, enemy) {
   const nm = (enemy && ENEMY_STAT_LABEL[stat]) || MOD_NAME[stat] || stat.toUpperCase();
   if (STAGED.has(stat)) { const st = stageOf(mult); return `${nm}${stageLabel(st)}`; }
@@ -951,6 +951,14 @@ export class Battle {
   // 職の Lv15 の目玉パッシブのうち、戦闘の始まりに隊として一度だけ効くもの (重複不可 = 隊で一番高いLv)
   _lv15Start() {
     const best = (k) => Math.max(0, ...this.party.filter((p) => p.alive).map((p) => pv(p, k)));
+    // 仙薬: 生存する持ち主の最高Lvを一度だけ適用。段に丸めず指定の割合を保つ。
+    const senyaku = Math.min(4, best("hermitSenyaku"));
+    if (senyaku) {
+      const rate = [0, .05, .10, .15, .20][senyaku], turns = senyaku >= 3 ? 3 : 2;
+      for (const p of this.livingParty()) this._applyMod(p, "allStats", 1 + rate, turns, "仙薬");
+      this.log(`仙薬！ 味方全員の全能力+${Math.round(rate * 100)}%、${turns}ターン`, "heal");
+      this._proc(this._bestHolder("hermitSenyaku"), "仙薬");
+    }
     const ct = best("crusaderToki"); // 聖戦の雄たけび: 味方全員の STR ×1.2/1.5/1.8 (3ターン)
     if (ct) {
       const m = [1, 1.2, 1.5, 1.8][Math.min(3, ct)];
@@ -1125,6 +1133,8 @@ export class Battle {
       const ky = Math.min(t._kyouhon || 0, this._rk(t, "berserkerKyouhon", [3, 5, 7, 10]));
       if (ky) b.atk = (b.atk || 1) * (1 + 0.05 * ky);
     }
+    // 仙薬は段の強化と別枠。LUKも含む6能力にだけ掛け、HP・MPは変えない。
+    if (b.allStats) for (const k of ["atk", "vit", "agi", "int", "pie", "luk"]) b[k] = (b[k] || 1) * b.allStats;
     // 旧来の上下限 (×3 / ×0.3) を安全側で維持
     for (const k in b) b[k] = Math.max(0.3, Math.min(3, b[k]));
     t.buffs = b;
@@ -1248,7 +1258,7 @@ export class Battle {
     if (w.selfLow != null && frac(a) > w.selfLow) return false;
     if (w.selfHigh != null && frac(a) < w.selfHigh) return false;
     if (w.selfAil && !ailing(a)) return false;
-    if (w.buffed && !(a.effects || []).some((e) => e.mult > 1 && ["atk", "vit", "agi", "int"].includes(e.stat))) return false;
+    if (w.buffed && !(a.effects || []).some((e) => e.mult > 1 && ["atk", "vit", "agi", "int", "allStats"].includes(e.stat))) return false;
     if (w.defending && !a._defending) return false;
     if (w.mpHigh != null && !(a.maxmp && a.mp >= a.maxmp * w.mpHigh)) return false;
     if (w.round1 && (this._roundNo || 0) > 1) return false;
@@ -1921,13 +1931,13 @@ export class Battle {
     if (!a || a.side !== "party") return null;
     const stats = {};
     for (const k of ["atk", "vit", "agi", "int", "pie"]) stats[k] = Math.round((a[k] || 0) * this._bm(a, k));
-    stats.luk = Math.round(a.luk || 0);
+    stats.luk = Math.round((a.luk || 0) * this._bm(a, "luk"));
     const foes = this.livingEnemies();
     const reach = a.alive ? this.attackableEnemies(a) : [];
     const avg = (arr, f) => (arr.length ? arr.reduce((s, x) => s + f(x), 0) / arr.length : null);
     const hit = avg(reach, (e) => (e.asleep || e.ailment === "paralyze") ? 1 : Math.max(0, 1 - Math.min(1, this._missP(e, a, { basic: true }))));
     const evade = avg(foes, (e) => this._missP(a, e, {}));
-    const crit = Math.min(.8, Math.max(0, 0.06 + (a.critBonus || 0) + luckCritBonus(a.luk) + (a._evCrit || 0)));
+    const crit = Math.min(.8, Math.max(0, 0.06 + (a.critBonus || 0) + luckCritBonus((a.luk || 0) * this._bm(a, "luk")) + (a._evCrit || 0)));
     const qi = this.queue.indexOf(a);
     const order = this.current === a ? "now" : qi >= 0 ? this.queue.slice(0, qi).filter((x) => x.alive).length : null;
     return { stats, power: this._eatk(a), hit, crit, spellCrit: this._spellCritChance(a, {}),
@@ -3390,7 +3400,7 @@ export class Battle {
     let afterImg = false;
     if (perkFoe && actor._afterImg) { actor._afterImg = false; afterImg = true; dmg = Math.round(dmg * (1 + bkValue(actor,"afterImage"))); }
     // 会心: 基礎 + 会心パッシブ + 幸運(LUK) + 技の会心補正。確定会心系が先に立つ
-    const luckCrit = luckCritBonus(actor.luk);
+    const luckCrit = luckCritBonus((actor.luk || 0) * this._bm(actor, "luk"));
     let critChance = 0.06 + (actor.critBonus || 0) + luckCrit + (opt.critBonus || 0) + (actor._evCrit || 0);
     if (perkFoe) critChance += this._perkSum(actor, "crit", { tgt, el: aE, on: pOn }); // 固有パッシブ (crit)
     if (pv(actor, "holyEdge") && HOLY_PREY.includes(enemyRace(tgt))) critChance += 0.15;
@@ -3584,7 +3594,7 @@ export class Battle {
     const tv = opt.actual ? tgt : elemMask(tgt, actor);
     if (perkFoe) dmg *= 1 + this._perkSum(actor, "deal", { tgt: tv, el: aE, on: pOn });
     if (actor.side === "party") dmg *= evDealMul(actor, tgt);
-    const luckCrit = luckCritBonus(actor.luk);
+    const luckCrit = luckCritBonus((actor.luk || 0) * this._bm(actor, "luk"));
     let critP = 0.06 + (actor.critBonus || 0) + luckCrit + (opt.critBonus || 0) + (actor._evCrit || 0);
     if (perkFoe) critP += this._perkSum(actor, "crit", { tgt: tv, el: aE, on: pOn });
     if (pv(actor, "holyEdge") && HOLY_PREY.includes(enemyRace(tgt))) critP += 0.15;
@@ -4077,7 +4087,6 @@ export class Battle {
     const saved = save > 0 && random() < save;
     if (!saved) owner.items.splice(idx, 1);
     else { this.log(`${actor.name}の空荷の手口！ ${it.name}を消費しなかった`, "heal"); this._proc(actor, "空荷の手口"); }
-    const alc = 1 + this._rkParty("hermitSenyaku", [0.20, 0.30, 0.40, 0.60]); // 仙薬 (隠修士のランク): 道具の回復量
     res.action = "spell"; res.item = it; res.spellName = it.name; res.spellElement = null;
     this.log(`${actor.name}は${it.name}を使用${owner !== actor ? `（${owner.name}の袋）` : ""}`, "hit");
     if (u.escape) {
@@ -4150,7 +4159,7 @@ export class Battle {
       }
       if (!t.alive) continue;
       if (u.heal || u.full) {
-        const heal = u.full ? t.maxhp : Math.round(u.heal * alc);
+        const heal = u.full ? t.maxhp : Math.round(u.heal);
         const before = t.hp;
         t.hp = this._reportHp(actor, t, Math.min(t.maxhp, t.hp + heal));
         if (t.hp > before) { this.log(`${t.name}のHP+${t.hp - before}`, "heal"); any = true; }
@@ -4158,7 +4167,7 @@ export class Battle {
       }
       if ((u.mp || u.mpFull) && (t.maxmp || 0) > 0) {
         const before = t.mp;
-        t.mp = Math.min(t.maxmp, t.mp + (u.mpFull ? t.maxmp : Math.round(u.mp * alc)));
+        t.mp = Math.min(t.maxmp, t.mp + (u.mpFull ? t.maxmp : Math.round(u.mp)));
         if (t.mp > before) { this.log(`${t.name}のMP+${t.mp - before}`, "heal"); any = true; }
         res.hits.push({ target: t, mpHeal: t.mp - before });
       }

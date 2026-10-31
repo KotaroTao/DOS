@@ -60,7 +60,7 @@ export function elemStatShort(e) {
 // ===== スキル詳細 =====
 export const SPELL_KIND_LABEL = { atk: "攻撃呪文", heal: "回復呪文", phys: "物理技", buff: "支援", debuff: "弱体", sleep: "状態異常", cure: "治療", mana: "魔力譲渡", escape: "逃走", field: "迷宮の術" };
 // 能力の倍率キーの呼び名 (STR/VIT… 以外の効果)
-export const BUFF_NAME = { hit: "命中率", int: "INT", pie: "PIE", omen: "大技の予兆", taunt: "挑発", shield: "仁王立ち", ctr: "反撃の構え", rfl: "反射の陣", charge: "溜め", regen: "リジェネ", seal: "特技封じ", wardB: "ブレス避け", wardS: "呪文避け",
+export const BUFF_NAME = { allStats: "全能力", hit: "命中率", int: "INT", pie: "PIE", omen: "大技の予兆", taunt: "挑発", shield: "仁王立ち", ctr: "反撃の構え", rfl: "反射の陣", charge: "溜め", regen: "リジェネ", seal: "特技封じ", wardB: "ブレス避け", wardS: "呪文避け",
   r_fire: "火耐性", r_water: "水耐性", r_wind: "風耐性", r_earth: "土耐性", r_light: "光耐性", r_dark: "闇耐性", r_all: "全属性耐性" };
 // 掛かっている強化・弱体の1つを札に (長押しの「人業の様子」・戦闘中の「敵の姿」)。
 // 戦闘の札には残りターンを出さないので、ここで段・倍率・残りターンを確かめる (2026-10 ユーザーの指示)
@@ -69,7 +69,8 @@ export function effectChip(ef, { enemy = false } = {}) {
   const st = effectStage(ef);
   const name = (enemy && ENEMY_STAT_LABEL[ef.stat]) || ATTR_LABEL[ef.stat] || BUFF_NAME[ef.stat] || (ef.stat || "").toUpperCase();
   const mul = st && ef.mult ? ` ×${Math.round(ef.mult * 100) / 100}` : "";
-  const extra = ef.stat === "ctr" && ef.mult > 1 ? ` 攻撃力×${Math.round((ef.mult - 1) * 100) / 100}`
+  const extra = ef.stat === "allStats" ? ` +${Math.round((ef.mult - 1) * 100)}%`
+    : ef.stat === "ctr" && ef.mult > 1 ? ` 攻撃力×${Math.round((ef.mult - 1) * 100) / 100}`
     : ef.stat === "rfl" && ef.mult > 1 ? ` 魔力${ef.pow || 0}×${Math.round((ef.mult - 1) * 100) / 100}` : "";
   const turns = isBattleLong(ef.turns) ? "戦闘の終わりまで" : `残り${ef.turns}ターン`;
   return el("span", "dg-chip " + (ef.mult > 1 ? "up" : "bad"), `${name}${st ? stageLabel(st) : ef.mult > 1 ? "▲" : "▼"}${mul}${extra}・${turns}`);

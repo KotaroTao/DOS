@@ -18242,7 +18242,6 @@ function useItemMeasured(p, index, target) {
   p.items.splice(index, 1); infSupplyRecord("used", it.id);
   const kinds = useCureKinds(u);
   const notes = [];
-  const alc = 1 + rankParty("hermitSenyaku", [0.20, 0.30, 0.40, 0.60]); // 仙薬 (隠修士のランク): 道具の回復量
   for (const t of targets) {
     if (u.revive) {
       t.alive = true; t.ailment = null; t.reviveAt = null; t._dead = false;
@@ -18252,8 +18251,8 @@ function useItemMeasured(p, index, target) {
       continue;
     }
     const bits = [];
-    if (u.heal || u.full) { const b = t.hp; t.hp = Math.min(t.maxhp, t.hp + (u.full ? t.maxhp : Math.round(u.heal * alc))); if (t.hp > b) bits.push(`HP+${t.hp - b}`); }
-    if ((u.mp || u.mpFull) && (t.maxmp || 0) > 0) { const b = t.mp; t.mp = Math.min(t.maxmp, t.mp + (u.mpFull ? t.maxmp : Math.round(u.mp * alc))); if (t.mp > b) bits.push(`MP+${t.mp - b}`); }
+    if (u.heal || u.full) { const b = t.hp; t.hp = Math.min(t.maxhp, t.hp + (u.full ? t.maxhp : Math.round(u.heal))); if (t.hp > b) bits.push(`HP+${t.hp - b}`); }
+    if ((u.mp || u.mpFull) && (t.maxmp || 0) > 0) { const b = t.mp; t.mp = Math.min(t.maxmp, t.mp + (u.mpFull ? t.maxmp : Math.round(u.mp))); if (t.mp > b) bits.push(`MP+${t.mp - b}`); }
     if (kinds.length && t.ailment && kinds.includes(t.ailment)) { bits.push(`${AIL_NAME[t.ailment] || "状態異常"}が治った`); t.ailment = null; }
     if (bits.length) { notes.push(`${t.name} ${bits.join(" ")}`); log(`${p.name}は${it.name}を使った。${t.name}: ${bits.join("・")}`, "heal"); }
   }
