@@ -337,11 +337,12 @@ export function skillDetailLines(sp) {
   if (sp.dur && (sp.buff || sp.debuff || sp.debuffAll || sp.vuln || sp.taunt || sp.shield || sp.stance || sp.reflect || sp.charge)) lines.push(`効果は ${sp.dur} ターン持続`);
   if ([sp.buff, sp.debuff, sp.debuffAll].some((o) => o && Object.keys(o).some((k) => STAGED.has(k)))) lines.push("能力の段は強化と弱体で打ち消し合い、±3段で止まる（主・強敵への弱体は −2段まで・持続 −1）");
   if (sp.strip) lines.push("敵の大技の予兆（溜め）も打ち消せる");
+  if (!sp.mpPct) lines.push("レベル成長: 基本消費MPは1＋メイン魂Lv÷100倍。直接ダメージ・直接回復・MP譲渡の威力も同倍率（Lv100で2倍）。蘇生・割合効果・強化・弱体の効果は変わらない");
   const tier = soulTierRate(sp);
   // 割合で回復・蘇生する技 (フルヒール・リバイブ…) は量が変わらない (消費だけ増える)
   const tierScales = sp.kind !== "heal" || (healsHp(sp) && !sp.healPct);
   if (tier) lines.push(tierScales
-    ? `魂の格: メイン魂のMPの${pct(tier)}が消費に加わり、そのぶん威力・効果が上がる（最大で×1.8に近づく。装備などで足したMPは含まない）`
+    ? `魂の格: メイン魂のMPの${pct(tier)}が消費に加わり、そのぶん威力・効果が上がる（魂の格の倍率は最大×1.8に近づき、レベル成長は別に掛かる。装備などで足したMPは含まない）`
     : `魂の格: メイン魂のMPの${pct(tier)}が消費に加わる（割合で回復・蘇生するので効果は変わらない。装備などで足したMPは含まない）`);
   return lines;
 }

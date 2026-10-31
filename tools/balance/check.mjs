@@ -1,6 +1,6 @@
 // 共通戦闘計算の回帰確認。乱数を固定して実ダメージとオートの期待値も比較する。
 import assert from 'node:assert/strict';
-import { Battle, SPELLS, setPartyHitBonus, luckCritBonus, attackSpellPower, spellGrowth, healingPower, setElemKnown, spellCost, soulCostAdd, soulPowerMul, soulTierRate, spellMpLabel, SOUL_POWER_K, healsHp, BLADE_HEAL_CAP, MP_DRAIN_CAP, COUNTER_K, DIVINE_COUNTER_K, KAESHI_K, REFLECT_K, PASSIVE_RET_MIN, PASSIVE_RET_MAX, STAT_RET_MAX, stanceCtrK, reflectPow } from '../../src/combat.js';
+import { Battle, SPELLS, setPartyHitBonus, luckCritBonus, attackSpellPower, spellGrowth, healingPower, setElemKnown, spellCost, soulCostAdd, soulPowerMul, skillPowerMul, skillBaseCost, soulTierRate, spellMpLabel, SOUL_POWER_K, healsHp, BLADE_HEAL_CAP, MP_DRAIN_CAP, COUNTER_K, DIVINE_COUNTER_K, KAESHI_K, REFLECT_K, PASSIVE_RET_MIN, PASSIVE_RET_MAX, STAT_RET_MAX, stanceCtrK, reflectPow } from '../../src/combat.js';
 import { makeDoll, JOB_SKILLS, battleSkills, jobLevelPassives, passivesUpTo } from '../../src/souls.js';
 import { MONSTERS } from '../../src/sprites.js';
 import { DUNGEON_MONSTERS } from '../../src/dungeons/index.js';
@@ -70,7 +70,7 @@ const close=(actual,expected,label,tolerance=.035)=>assert(Math.abs(actual-expec
  const b=new Battle([a],[t],()=>{}),cost=spellCost(a,sp),before=a.mp;
  const random=Math.random;Math.random=()=>.5;
  const r=b._exec({actor:a,action:'spell',spellKey:key,target:t});Math.random=random;
- assert.equal(cost,6);assert.equal(before-a.mp,cost);
+ assert.equal(cost,9);assert.equal(before-a.mp,cost);
  assert(r.hits.some(h=>h.target===t&&h.dmg>0));
  const lo=b.estPhys(a,t,{...sp,skill:true});a.agi*=2;
  assert(b.estPhys(a,t,{...sp,skill:true})>lo);
@@ -277,7 +277,7 @@ for(const c of [
  const res=b._exec({actor:a,action:'spell',spellKey:'ARCANIST_KOJUU',target:t});
  assert.equal(res.hits[0].dmg,c.expected,`虚重 ${JSON.stringify(c)}`);
  close(res.hits[0].dmg,estimate,'虚重の見積もり');
- assert.equal(a.mp,154);assert.equal(a.hp,c.perks?67:140);
+ assert.equal(a.mp,151);assert.equal(a.hp,c.perks?67:140);
 }
 // 重詠の2発目も残りHPと同じ上限で計算し、追加の代償を払わない。
 {
@@ -285,7 +285,7 @@ for(const c of [
  const b=new Battle([a],[t],()=>{});t.hp=t.maxhp=800;
  const oldRandom=Math.random;Math.random=()=>0;
  const res=b._exec({actor:a,action:'spell',spellKey:'ARCANIST_KOJUU',target:t});Math.random=oldRandom;
- assert.deepEqual(res.hits.map(h=>h.dmg),[225,173]);assert.equal(a.hp,1);assert.equal(a.mp,154);
+ assert.deepEqual(res.hits.map(h=>h.dmg),[225,173]);assert.equal(a.hp,1);assert.equal(a.mp,151);
 }
 for(const key of ['HALITO','TILTOWAIT','KYOKUDAI','HOLYRAY','GRAVITY','ARCANIST_KOJUU']){
  if(!SPELLS[key])continue;
@@ -321,13 +321,13 @@ console.log(`全${count}技を実行。会心・耐性・命中・攻撃/回復�
   if(sp.mpPct||sp.gravity||!(sp.mp>0)||!['phys','atk','heal','mana'].includes(sp.kind)){assert.equal(r,0,key);continue;}
   const base=sp.mp<=6?.02:sp.mp<=13?.04:sp.mp<=24?.06:.08, atkK=['phys','atk'].includes(sp.kind);
   assert.equal(r,atkK?Math.max(base,sp.target==='all-enemy'?.06:.04):base,key);
-  assert.equal(spellMpLabel(sp),`MP ${sp.mp}＋魂のMP×${Math.round(r*100)}%`,key);
+  assert.equal(spellMpLabel(sp),`MP ${sp.mp}×(1＋Lv÷100)＋魂のMP×${Math.round(r*100)}%`,key);
   const a=actor();a.soulMp=500;
   const add=soulCostAdd(a,sp),mul=soulPowerMul(a,sp);
-  assert.equal(add,Math.round(500*r),key);assert.equal(spellCost(a,sp),sp.mp+add,key);
+  assert.equal(add,Math.round(500*r),key);assert.equal(spellCost(a,sp),Math.ceil(skillBaseCost(a,sp)+add),key);
   assert(mul>1&&mul<1+SOUL_POWER_K,key);assert(Math.abs(mul-(1+SOUL_POWER_K*(1-sp.mp/(sp.mp+add))))<1e-12,key);
   // 装備などで足した最大MPは消費に響かない
-  a.maxmp+=999;assert.equal(spellCost(a,sp),sp.mp+add,key);
+  a.maxmp+=999;assert.equal(spellCost(a,sp),Math.ceil(skillBaseCost(a,sp)+add),key);
   if(sp.kind in kinds)kinds[sp.kind]++;
  }
  // 実際の威力にも乗る (攻撃呪文・回復・物理技)。見積もりも同じ倍率
@@ -336,7 +336,7 @@ console.log(`全${count}技を実行。会心・耐性・命中・攻撃/回復�
   const key=pick(kind),sp=SPELLS[key];
   const run=(soulMp)=>{const a=actor(),t=foe();a.soulMp=soulMp;const b=new Battle([a],[t],()=>{});let sum=0;const n=3000;
    for(let i=0;i<n;i++){t.hp=t.maxhp;t.alive=true;a.mp=a.maxmp;sum+=b._exec({actor:a,action:'spell',spellKey:key,target:t}).hits.reduce((x,h)=>x+(h.target===t?(h.dmg||0):0),0);}
-   return {avg:sum/n,est:kind==='atk'?b.estSpell(a,sp,t):b.estPhys(a,t,{...sp,power:sp.power*soulPowerMul(a,sp),skill:true}),a};};
+   return {avg:sum/n,est:kind==='atk'?b.estSpell(a,sp,t):b.estPhys(a,t,{...sp,power:sp.power*skillPowerMul(a,sp),skill:true}),a};};
   const lo=run(0),hi=run(800);
   close(Math.round(hi.avg),Math.round(hi.est),`魂の格 ${sp.name}`);
   assert(hi.avg>lo.avg*1.1,`魂の格で ${sp.name} の威力が上がる`);

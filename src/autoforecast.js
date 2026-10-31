@@ -1,6 +1,6 @@
 // 支援が今のターンの残り＋次の2ターンで増やす攻めを予測する。
 // 今の攻撃は別に採点する。未来の味方が倒せることを理由に、今の攻撃の価値を消さない。
-import { SPELLS, soulPowerMul, isMetal } from "./combat.js";
+import { SPELLS, skillPowerMul, isMetal } from "./combat.js";
 import { autoSkills } from "./souls.js";
 import { STAGED, STAGE_MAX, STRONG_MIN, effectStage, stageOf, stageMul } from "./buffstage.js";
 
@@ -63,7 +63,7 @@ function damage(b, a, cmd, est) {
     let d = 0;
     if (!sp) d = est.basic(b, a, t);
     else if (sp.kind === "phys") {
-      const per = est.phys(b, a, t, { ...sp, power: sp.power * soulPowerMul(a, sp), skill: true });
+      const per = est.phys(b, a, t, { ...sp, power: sp.power * skillPowerMul(a, sp), skill: true });
       d = sp.scatter ? scatterDamage(per, sp.scatter, targets.length, t.hp) : per * (sp.hits || 1);
     } else if (sp.kind === "atk") d = est.spell(b, a, sp, t);
     d = Math.min(t.hp, Math.max(0, d));

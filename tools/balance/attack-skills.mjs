@@ -1,7 +1,7 @@
 // 後発技の用途と敵全体へのMP効率。node tools/balance/attack-skills.mjs
 // 裸だけでなく標準装備でも比べ、命中・耐性・会心・防御の違いを値打ちに含める。
 import assert from 'node:assert/strict';
-import { Battle, SPELLS, spellCost, setElemKnown, soulPowerMul } from '../../src/combat.js';
+import { Battle, SPELLS, spellCost, setElemKnown, skillPowerMul } from '../../src/combat.js';
 import { setResistKnown } from '../../src/autotactics.js';
 import { SOUL_CLASSES, SOUL_KEYS, JOB_SKILLS, makeDoll, makeSoulInstance, setSharedSouls, recalcDoll, rankThresholds, soulLevelCap } from '../../src/souls.js';
 import { MONSTERS } from '../../src/sprites.js';
@@ -78,7 +78,7 @@ function sample(job, level, rank = 2, geared = false) {
     for (const x of rows) {
       const sp = x.sp;
       let value = sp.kind === 'phys'
-        ? b.estPhys(a, t, { ...sp, power: sp.power * soulPowerMul(a, sp), skill: true }) * (sp.hits || sp.scatter || 1)
+        ? b.estPhys(a, t, { ...sp, power: sp.power * skillPowerMul(a, sp), skill: true }) * (sp.hits || sp.scatter || 1)
         : b.estSpell(a, sp, t);
       // scatter は敵全体に回数分を分配する。敵の数をもう一度掛けない。
       if (sp.target === 'all-enemy' && !sp.scatter) value *= 2;
