@@ -16662,7 +16662,13 @@ function bukonRows() {
 }
 function bukonAction(action, it, b) {
   if (enchantClosed()) return false;
-  if (action === "fuse" || action === "bulk") {
+  if (action === "upgrade" || action === "batch") {
+    if (!featureUnlocked("bukonFusion") || !bukon.applySnapshotFusion(G,bukonTargets(),action === "upgrade" ? b : null)) return false;
+    for (const d of allDolls()) recalcDoll(d);
+  } else if (action === "fusionLock") {
+    if (!bukonTargets().includes(it) || !it.bukon?.includes(b.soul)) return false;
+    b.soul.fusionUnlocked = b.soul.fusionUnlocked !== true;
+  } else if (action === "fuse" || action === "bulk") {
     if (!featureUnlocked("bukonFusion")) return false;
     if (action === "fuse" && !bukon.fuseBukon(G,b.k,b.lv)) return false;
     if (action === "bulk") {
@@ -16682,7 +16688,7 @@ function bukonAction(action, it, b) {
     } else if (action === "attach" ? !bukon.attachBukon(G,it,b) : action === "detach" ? !bukon.detachBukon(G,it,b) : true) return false;
     for (const d of allDolls()) recalcDoll(d);
   }
-  if (action === "fuse" || action === "bulk") UI.tutorialEvent?.("bukonFused");
+  if (["fuse","bulk","upgrade","batch"].includes(action)) UI.tutorialEvent?.("bukonFused");
   autosave(true); renderParty(); renderStatus(); return true;
 }
 

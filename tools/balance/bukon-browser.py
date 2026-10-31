@@ -40,8 +40,15 @@ with sync_playwright() as p:
           [...document.querySelectorAll('.bk-sheet button')].find(x=>clean(x.textContent)==='外す').click();
           check(!target.bukon.length,'一覧から取り外し');
           [...document.querySelectorAll('.bk-sheet button')].find(x=>clean(x.textContent)==='閉じる').click();
-          const tab=[...holder.querySelectorAll('button')].find(x=>clean(x.textContent)==='保管中の武魂');check(!!tab,'タブがない: '+holder.textContent+' / '+game.enchantClosed());tab.click();
+          const tab=[...holder.querySelectorAll('button')].find(x=>clean(x.textContent)==='武魂の合成・保護');check(!!tab,'タブがない: '+holder.textContent+' / '+game.enchantClosed());tab.click();
           check(clean(holder.textContent).includes('全属性耐性'),'全属性の表示');
+          const bulk=[...holder.querySelectorAll('button')].find(x=>clean(x.textContent)==='一括合成');
+          check(bulk&&!bulk.disabled,'一括合成が有効');
+          check(bulk.getBoundingClientRect().right<=pageWidth(),'一括合成が画面内');
+          function pageWidth(){return document.documentElement.clientWidth;}
+          const lone=[...holder.querySelectorAll('.bk-stock-row')].find(x=>clean(x.querySelector('.bk-stock-main').textContent)==='STR加算 +1');
+          check([...lone.querySelectorAll('button')].find(x=>clean(x.textContent)==='合成').disabled,'素材不足の合成は無効');
+
           const red=[...holder.querySelectorAll('span')].find(x=>clean(x.textContent).includes('全属性耐性'));check(getComputedStyle(red).color==='rgb(255, 98, 98)','LRの赤');
           for(const row of holder.querySelectorAll('.bk-stock-row')) {
             const main=row.querySelector('.bk-stock-main'),icon=main.querySelector('.bk-gem');
@@ -64,7 +71,7 @@ with sync_playwright() as p:
             check(row.lastElementChild.getBoundingClientRect().right<=row.getBoundingClientRect().right+1,'解放前も保護が行内');
           }
           game.featureUnlocked=featureUnlocked;
-          [...holder.querySelectorAll('button')].find(x=>clean(x.textContent)==='保管中の武魂').click();
+          [...holder.querySelectorAll('button')].find(x=>clean(x.textContent)==='武魂の合成・保護').click();
           for(const [name,description] of [['STR加算 +1','STRが1上昇'],['水属性ダメージ軽減 5%','水属性ダメージを5%軽減']]) {
             [...holder.querySelectorAll('.bk-stock-main')].find(x=>clean(x.textContent)===name).click();
             const detail=[...document.querySelectorAll('.bk-sheet')].at(-1);
@@ -73,8 +80,8 @@ with sync_playwright() as p:
             check(clean(detail.textContent).includes('対応：'),'詳細に部位');
             [...detail.querySelectorAll('button')].find(x=>clean(x.textContent)==='閉じる').click();
           }
-          [...holder.querySelectorAll('button')].find(x=>clean(x.textContent)==='合成').click();
-          check(document.body.textContent.includes('100'),'金貨表示');check(clean(document.body.textContent).includes('強さの違う武魂'),'混合素材説明');
+          [...holder.querySelectorAll('button')].find(x=>clean(x.textContent)==='合成'&&!x.disabled).click();
+          check(document.body.textContent.includes('100'),'金貨表示');check(clean(document.body.textContent).includes('素材に使う'),'素材説明');
           check(game.bukonAction('fuse',null,{k:'flat_hp',lv:2}),'実操作窓口の合成');check(G.gold===9900,'100金貨課金');
           G.gold=0;const stock=JSON.stringify(G.bukonStock);check(!game.bukonAction('fuse',null,{k:'flat_hp',lv:2}),'金貨不足');check(JSON.stringify(G.bukonStock)===stock,'不足時素材不変');
           check(b.attachBlock({slot:'head',rar:'lr'},{k:'crit',lv:10}),'頭へ会心を宿せない');
