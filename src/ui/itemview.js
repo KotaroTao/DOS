@@ -13,7 +13,7 @@ import { RESIST_LABEL, onHitEffects } from "../resistance.js";
 import { game } from "./ctx.js";
 import { el, sheet, setText, statDelta } from "./kit.js";
 import { ELEMENTS, RACE_LABEL, unknownLabel, UNK_OPEN, UNK_CLOSE } from "../dungeons/index.js";
-import { SPELLS, spellMpLabel, spellCureKinds, soulTierRate, healsHp, MP_DRAIN_CAP, stanceMulOf, spellAilments } from "../combat.js";
+import { magicAttackPower, SPELLS, spellMpLabel, spellCureKinds, soulTierRate, healsHp, MP_DRAIN_CAP, stanceMulOf, spellAilments } from "../combat.js";
 import { STAGED, stageOf, stageMul, stageLabel, ENEMY_STAT_LABEL, effectStage, isBattleLong } from "../buffstage.js";
 import { ATTR_LABEL, SOUL_CLASSES, dollBust, PASSIVES, passiveName, passiveByName } from "../souls.js";
 import { WEAPON_CAT_LABEL, SHIELD_KIND_LABEL, HAND_LABEL, handOf, shieldKind, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip, equipLevelOf, AIL_LABEL, attackPower, fightPower, useLines, itemName, hasQuality, qualityOf, QUALITY_MID, QUALITY_SPREAD } from "../items.js";
@@ -678,6 +678,8 @@ export function equipPreviewDelta(p, cand, slotKey = null) {
   return {
     combat: {from:equipmentCombatState({...p,primaryPower:attackPower(p),power:fightPower(p)},p),to:equipmentCombatState({...fake,primaryPower:attackPower(fake),power:fightPower(fake)},p)},
     power: fightPower(fake) - fightPower(p), // 攻撃力 (参照能力 × 武器の係数。二刀流なら左手も DUAL_VALUE_SHARE で)
+    magicInt: magicAttackPower({ ...fake, jobLv: p.jobLv, level: p.level }, "int") - magicAttackPower(p, "int"),
+    magicPie: magicAttackPower({ ...fake, jobLv: p.jobLv, level: p.level }, "pie") - magicAttackPower(p, "pie"),
     weapon: wChanged,
     // 持ち方の付け替え (両手武器に持ち替えて盾が外れる / 盾 ⇄ 左手の武器)。武器の良し悪しを攻撃力だけでなく盾の能力とも比べる
     handSwap: wChanged && (eq.shield || null) !== (p.equip.shield || null),

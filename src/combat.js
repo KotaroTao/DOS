@@ -279,6 +279,10 @@ export function spellGrowth(lv, all = false) {
   const up = g.mid * Math.min(1, Math.max(0, (L - g.from) / (g.to - g.from))) + Math.max(0, L - g.to) / g.lateLv;
   return 1 + up * (all ? g.allShare : 1);
 }
+// 装備比較用の魔攻。技固有の威力・属性・会心・敵の耐性を掛ける前の基準値。
+export function magicAttackPower(member, stat = "int") {
+  return Math.round(Math.max(0, member?.[stat] || 0) * spellGrowth(member?.jobLv || member?.level || 1));
+}
 // lv = 使い手の Lv (Battle.lvOf)。省くと伸びなし (×1)
 export function attackSpellPower(sp, stat, lv = 1) {
   const power = Math.max(0, sp.power || 0), all = sp.target === "all-enemy";

@@ -1,3 +1,4 @@
+import { magicAttackPower } from "../combat.js";
 import { withBukonSockets } from "./bukonview.js";
 import { isDesktopLayout } from "../desktop.js";
 import { pcPanel } from "./pc.js";
@@ -335,9 +336,9 @@ function bestWearer(item) {
 function deltaKeys(delta) {
   return Object.keys(DLABEL).filter((k) => delta[k] && typeof delta[k] === "number" && !(k === "atk" && delta.power === delta.atk));
 }
-// 増減の大きい順
+// 攻撃力 → 魔攻（INT）→ 魔攻（PIE）→ その他の能力の順
 function sortedDeltaKeys(delta) {
-  return deltaKeys(delta).sort((a, b) => Math.abs(delta[b]) - Math.abs(delta[a]));
+  return deltaKeys(delta);
 }
 const deltaLabel = (delta, k) => `${delta[k] > 0 ? "▲" : "▼"}${DLABEL[k]}${delta[k] > 0 ? "+" : ""}${delta[k]}${DELTA_PERCENT.has(k) ? "%" : ""}`;
 const deltaSpan = (delta, k) => el("span", delta[k] > 0 ? "up" : "dn", deltaLabel(delta, k));
@@ -864,7 +865,7 @@ function openAutoEquipResult(plan, before, { apply, groups }) {
     card.appendChild(el("div", "pt-note", "この人業の変更案をすべて承認した場合"));
     const st = el("div", "pt-ae-st");
     // 攻撃力 (参照能力 × 武器の係数) を先頭に。STR は攻撃力と同じだけ動いた時は省く
-    const pairs = [["power", "power"], ["atk", "atk"], ["vit", "vit"], ["agi", "agi"], ["int", "int"], ["pie", "pie"], ["luk", "luk"], ["hp", "maxhp"], ["mp", "maxmp"]];
+    const pairs = [["power", "power"], ["magicInt", "magicInt"], ["magicPie", "magicPie"], ["atk", "atk"], ["vit", "vit"], ["agi", "agi"], ["int", "int"], ["pie", "pie"], ["luk", "luk"], ["hp", "maxhp"], ["mp", "maxmp"]];
     for (const [lab, k] of pairs) {
       const v0 = r.b[k] || 0, v1 = r.a[k] || 0;
       if (v0 === v1) continue;
@@ -2598,6 +2599,10 @@ function statsSeg(root, d, { showStability = true } = {}) {
     fact("HP", `${d.alive ? d.hp : 0}/${d.maxhp}`);
     fact("MP", `${d.mp}/${d.maxmp}`);
     fact("攻撃力", String(attackPower(d)));
+    fact("魔攻（INT）", String(magicAttackPower(d, "int")));
+    fact("魔攻（PIE）", String(magicAttackPower(d, "pie")));
+    const magicNote = el("div", "pt-note", "魔攻はINT／PIE×魂Lvによる成長倍率。技の威力・属性・会心・敵の耐性で実際のダメージは変わる。回復量とは別の目安。");
+    info.appendChild(magicNote);
     if (d.dualWield > 0) fact("左手", d.offPower ? `攻撃力 ${d.offPower}（${Math.round(d.dualWield * 100)}%）` : `空き（二刀流 ${Math.round(d.dualWield * 100)}%）`);
     fact("参照", d.wScale ? Object.keys(d.wScale).map(k => ATTR_LABEL[k]).join("＋") : "STR（素手）");
     fact("状態", ail, ail === "正常" ? "" : "bad");

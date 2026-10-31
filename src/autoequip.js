@@ -1,3 +1,4 @@
+import { magicAttackPower } from "./combat.js";
 import { equipmentCombatState } from "./equipmentscore.js";
 import { bukonText } from "./bukon.js";
 // ===== 最適装備の計画 (純粋な計算・DOM なし) =====
@@ -54,6 +55,8 @@ export function previewStats(doll, equip, recalcFn = recalcDefault) {
   recalcFn(fake);
   return {
     combat: equipmentCombatState({...fake,primaryPower:attackPower(fake),power:fightPower(fake)},doll),
+    magicInt: magicAttackPower({ ...fake, jobLv: doll.jobLv, level: doll.level }, "int"),
+    magicPie: magicAttackPower({ ...fake, jobLv: doll.jobLv, level: doll.level }, "pie"),
     atk: fake.atk, vit: fake.vit, agi: fake.agi, int: fake.int, pie: fake.pie, luk: fake.luk,
     maxhp: fake.maxhp, maxmp: fake.maxmp, critBonus: fake.critBonus || 0,
     critDamageBonus: fake.critDamageBonus || 0, spellCritBonus: fake.spellCritBonus || 0, spellCritDamageBonus: fake.spellCritDamageBonus || 0,
@@ -77,6 +80,8 @@ export function statsDelta(from, to) {
     weaponMode: { from: from.weapon || null, to: to.weapon || null },
     offhandMode: { from: offW(from), to: offW(to) },
     abs: { power: fp(to), maxhp: to.maxhp || 0, maxmp: to.maxmp || 0 },
+    magicInt: (to.magicInt || 0) - (from.magicInt || 0),
+    magicPie: (to.magicPie || 0) - (from.magicPie || 0),
     atk: to.atk - from.atk, vit: to.vit - from.vit, agi: to.agi - from.agi,
     int: to.int - from.int, pie: to.pie - from.pie, luk: to.luk - from.luk,
     hp: to.maxhp - from.maxhp, mp: to.maxmp - from.maxmp,
