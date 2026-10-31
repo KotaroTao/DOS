@@ -19,6 +19,7 @@ with sync_playwright() as p:
                   const {UI,game}=await import('/src/ui/ctx.js');
                   const d=game.G.party[0];
                   d.critPower=.8;d.spellCritPower=.8;
+                  d.elemDef={kind:'defense', values:{water:70,wind:40,fire:100,earth:50,light:60,dark:80}};
                   d.critDamageBonus=large?123.456:.4;
                   d.hp=d.maxhp=large?123456789:141;
                   d.mp=d.maxmp=large?123456789:111;
@@ -29,6 +30,15 @@ with sync_playwright() as p:
                   const info=document.querySelector('.pt-info');
                   const facts=[...info.querySelectorAll('.pt-fact')];
                   const bounds=info.getBoundingClientRect();
+                  if(info.textContent.includes('魔攻は'))throw Error('魔攻の説明文が残っている');
+                  const defense=info.querySelector('.pt-fact-elements');
+                  const tokens=[...defense.querySelectorAll('.pt-element-reduction')];
+                  if(tokens.length!==6)throw Error('属性の欠落');
+                  const text=defense.textContent.replaceAll('\\u200b','');
+                  if(!text.includes('水41.2%軽減')||!text.includes('風28.6%軽減')||text.includes('耐性力'))throw Error(text);
+                  for(const token of tokens){
+                    if(token.getBoundingClientRect().height>22)throw Error('軽減率の途中で改行');
+                  }
                   for(const fact of facts){
                     if(fact.scrollWidth>fact.clientWidth+1)throw Error('項目のはみ出し: '+fact.textContent);
                     for(const child of fact.children){

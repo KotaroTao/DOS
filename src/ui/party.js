@@ -2601,8 +2601,6 @@ function statsSeg(root, d, { showStability = true } = {}) {
     fact("攻撃力", String(attackPower(d)));
     fact("魔攻（INT）", String(magicAttackPower(d, "int")));
     fact("魔攻（PIE）", String(magicAttackPower(d, "pie")));
-    const magicNote = el("div", "pt-note", "魔攻はINT／PIE×魂Lvによる成長倍率。技の威力・属性・会心・敵の耐性で実際のダメージは変わる。回復量とは別の目安。");
-    info.appendChild(magicNote);
     if (d.dualWield > 0) fact("左手", d.offPower ? `攻撃力 ${d.offPower}（${Math.round(d.dualWield * 100)}%）` : `空き（二刀流 ${Math.round(d.dualWield * 100)}%）`);
     fact("参照", d.wScale ? Object.keys(d.wScale).map(k => ATTR_LABEL[k]).join("＋") : "STR（素手）");
     fact("状態", ail, ail === "正常" ? "" : "bad");
@@ -2611,7 +2609,11 @@ function statsSeg(root, d, { showStability = true } = {}) {
     fact("魔法会心補正", `+${Math.round((d.spellCritPower ?? d.spellCritBonus ?? 0) * 1000) / 10}%`, (d.spellCritPower ?? d.spellCritBonus ?? 0) >= 0.8 ? "cap" : "");
     fact("魔法会心ダメージ", `+${Math.round((d.spellCritDamageBonus || 0) * 1000) / 10}%`);
     fact("属攻", elemStatShort(d.elemAtk));
-    fact("属防", elemStatShort(d.elemDef));
+    fact("属防", "", "pt-fact-elements");
+    const defenseValue = info.lastElementChild.querySelector(".pt-fact-v");
+    for (const text of elemStatShort(d.elemDef, { reductionOnly: true }).split(" / ")) {
+      defenseValue.appendChild(el("span", "pt-element-reduction", text));
+    }
     // 装備の状態異常耐性 / 武器の追加効果 (持っている時だけ)
     const AIL_SHORT = { poison: "毒", paralyze: "痺", sleep: "眠", charm: "魅", confuse: "乱", stone: "石" };
     for (const [k, label] of Object.entries(RESIST_LABEL)) fact(`${label}耐性`, `${(d.resists && d.resists[k]) || 0}%`, (d.resists?.[k] || 0) >= 100 ? "cap" : "");
