@@ -67,7 +67,7 @@ async function command(user, body) {
   }
   if (body.op === "claim") {
     const snapshot = s.snapshot?.format === 2 && !body.compactGraph ? refSerialize(refDeserialize(s.snapshot)) : s.snapshot;
-    return { revision: s.revision, snapshot, battleTurn: true, compactGraph: true, backgroundBattle: false, actionCommands: true, commandReplay: true };
+    return { revision: s.revision, snapshot, battleTurn: true, compactGraph: true, backgroundBattle: false, actionCommands: true, commandReplay: true, forcedTurns: true };
   }
   if (body.op === "renew") {
     if (s.revision !== body.revision) throw Object.assign(new Error("cloud_revision_conflict"), { status: 409 });
@@ -102,7 +102,7 @@ async function command(user, body) {
     if (!s.snapshot) throw Object.assign(new Error("cloud_revision_conflict"), { status: 409 });
     if (body.replay === true) {
       // 状態の写しは返さず、同じ計算結果のSHA-256とDB更新番号だけを確定後に返す。
-      const replay = await replayCloudCommand(s.snapshot, body.command, body.commandId);
+      const replay = await replayCloudCommand(s.snapshot, body.command, body.commandId, body.forcedTurns === true);
       snapshot = replay.snapshot;
       refDeserialize(snapshot);
       if (new TextEncoder().encode(JSON.stringify(snapshot)).length > MAX_REQUEST_BYTES) throw Object.assign(new Error("記録が送信できる大きさを超えています"), { status: 413 });

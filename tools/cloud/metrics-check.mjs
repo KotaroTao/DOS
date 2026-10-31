@@ -38,3 +38,13 @@ await client.authRequest('recover',{email:'secret-email'});
 assert.equal(saveMetrics.report().operations.save.attempts,2);
 assert(!/secret|秘密/.test(JSON.stringify(summary)));
 console.log('保存計測: UTF-8・表示時間・失敗/再送・認証と個人情報の除外・試遊サンプル・保管失敗 OK');
+
+// 通信以外の待機も数値の集計だけを残し、段階名や本文の持ち込みを拒否する。
+m.timing('commandQueue',120);m.timing('commandQueue',80);m.timing('commandCalculation',50);
+m.timing('commandResult',900,4);m.timing('confirmedPlayback',400);m.timing('秘密の名前',1);m.timing('commandQueue',NaN);
+const timing=m.report().timings;
+assert.deepEqual(timing.commandQueue,{samples:2,totalMs:200,maxMs:120,confirmedActions:0});
+assert.equal(timing.commandResult.confirmedActions,4);assert.equal(Object.keys(timing).length,4);
+m.persist();assert.deepEqual(new SaveMetrics({storage,now:()=>now}).report().timings,timing);
+console.log('体感の計測: 送信列待ち・並行計算・選択から結果表示・確定済み演出の区別と手数・数値のみの保管 OK');
+m.data.timings={commandQueue:"壊れた計測"};assert.doesNotThrow(()=>m.timing('commandQueue',10));assert.equal(m.report().timings.commandQueue.samples,1);

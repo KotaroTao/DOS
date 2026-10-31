@@ -3671,9 +3671,9 @@ function drawSenseGlows(now) {
   }
 }
 
-// めくれる墓石の霊光 (隣接=脈打つ縁取り / 遠隔=淡い縁)
+// めくれる墓石の縁取り。移動中にも残し、歩くたびに消えて光り直すことを避ける。
 function drawBoardHighlights(now) {
-  if (G.state !== "board" || G.anim || G.walking) return;
+  if (G.state !== "board") return;
   const reach = getReachableCells();
   const pulse = REDUCED_MOTION ? 0.6 : 0.5 + 0.5 * Math.sin(now * 0.0042);
   const fsS = fieldSense("stairs"); // 道しるべ (この階だけ)
@@ -3684,16 +3684,16 @@ function drawBoardHighlights(now) {
     if (reach.has(x + "," + y)) {
       vctx.save();
       if (isStep(x, y)) {
-        vctx.fillStyle = `rgba(150,200,255,${0.05 + 0.05 * pulse})`;
+        vctx.fillStyle = "rgba(150,200,255,0.08)";
         vctx.fillRect(r.x, r.y, r.w, r.h);
-        vctx.strokeStyle = `rgba(110,170,255,${0.16 + 0.12 * pulse})`;
+        vctx.strokeStyle = "rgba(110,170,255,0.23)";
         vctx.lineWidth = 5;
         vctx.strokeRect(r.x - 0.5, r.y - 0.5, r.w + 1, r.h + 1);
-        vctx.strokeStyle = `rgba(185,225,255,${0.7 + 0.3 * pulse})`;
+        vctx.strokeStyle = "rgba(185,225,255,0.88)";
         vctx.lineWidth = 1.4;
         vctx.strokeRect(r.x + 0.7, r.y + 0.7, r.w - 1.4, r.h - 1.4);
         // 角のくさび
-        vctx.fillStyle = `rgba(225,242,255,${0.75 + 0.25 * pulse})`;
+        vctx.fillStyle = "rgba(225,242,255,0.9)";
         const k = 5;
         for (const [px, py, sx, sy] of [[r.x, r.y, 1, 1], [r.x + r.w, r.y, -1, 1], [r.x, r.y + r.h, 1, -1], [r.x + r.w, r.y + r.h, -1, -1]]) {
           vctx.beginPath(); vctx.moveTo(px, py); vctx.lineTo(px + k * sx, py); vctx.lineTo(px, py + k * sy); vctx.closePath(); vctx.fill();
@@ -11375,7 +11375,8 @@ function act(action, spellKey, extra) {
       runCommitted();
       return;
     }
-    autosave(); renderCombatMenu(); return;
+    if (!cloudCommandMode()) autosave();
+    renderCombatMenu(); return;
   }
   runCommitted();
 }
@@ -11394,25 +11395,32 @@ function runCommitted() {
 
 // 確定した選択を保存し、サーバーに一手を実行させる。返答前は結果を描かない。
 let savedBattleAdvance = null;
+let savedForcedTurns = [];
+function showingConfirmedTurns() { return savedForcedTurns.some(turn => turn.battle === G.battle); }
 async function resolveSavedBattle(action) {
   if (_cloudResolving) return;
   _cloudResolving = true;
+  const resultStarted = performance.now();
   try {
-    codexSweepJobs(); notifyInsight();
-    const snap = {};
-    for (const k of SAVE_FIELDS) snap[k] = G[k];
-    const commandResult = cloudCommandMode() ? cloudActionCommand(battleCommand(G.battle, action, G.rng)) : null;
-    commandResult?.catch(() => {});
-    const prepared = encodeCloudSave(snap, cloudCompactGraph());
-    prepared.catch(() => {});
-    let raw;
-    let response;
-    if (commandResult) {
-      raw = await prepared;
-      response = await commandResult;
-    } else response = await cloudBattlePrepared(action, async () => {
-      raw = await prepared; return JSON.parse(raw);
-    });
+    let raw, response;
+    const cached = savedForcedTurns[0];
+    if (cached?.battle === G.battle && cached.operation === action) {
+      savedForcedTurns.shift();
+      raw = _lastCloudSave;
+      response = cached;
+    } else {
+      savedForcedTurns = [];
+      codexSweepJobs(); notifyInsight();
+      const snap = {};
+      for (const k of SAVE_FIELDS) snap[k] = G[k];
+      const commandResult = cloudCommandMode() ? cloudActionCommand(battleCommand(G.battle, action, G.rng)) : null;
+      commandResult?.catch(() => {});
+      const prepared = encodeCloudSave(snap, cloudCompactGraph());
+      prepared.catch(() => {});
+      if (commandResult) { raw = await prepared; response = await commandResult; }
+      else response = await cloudBattlePrepared(action, async () => { raw = await prepared; return JSON.parse(raw); });
+      savedForcedTurns = (response.forcedPackets || []).map(turn => ({ ...turn, battle: G.battle }));
+    }
     if (cloudCommandMode()) {
       const wait = G.autoCombat || action !== "commit" ? battleTempoWait(G.battle) : 0;
       if (wait > 0) await new Promise(resolve => setTimeout(resolve, wait));
@@ -11429,6 +11437,7 @@ async function resolveSavedBattle(action) {
     refreshStability();
     for (const l of packet.logs) log(l.msg, l.cls);
     packet.result._modFeed = packet.modFeed;
+    saveMetrics.timing(cached?.battle === G.battle ? "confirmedPlayback" : "commandResult", performance.now() - resultStarted, cached?.battle === G.battle ? 0 : 1 + (response.forcedPackets?.length || 0));
     animateResult(packet.result, postResolve);
   } catch (e) { cloudFatal(); }
 }
@@ -18553,6 +18562,7 @@ let titleActive = false;   // タイトル画面の表示中は専用テーマ
 function revealBootScreen() {
   window.dosBoot?.ready();
   document.body.classList.remove("booting");
+  if (testPlayActive) document.body.classList.remove("game-starting");
 }
 // 探索BGM: 層 (1-20) ごとのテーマ曲
 function fieldBgm() {
@@ -18953,7 +18963,7 @@ function autosave(force = false) {
     return;
   }
   if (!cloudEnabled() && (!localSaveReady || !localSaveSession?.owned)) return;
-  if (cloudEnabled() && (!cloudReady() || _cloudResolving)) return;
+  if (cloudEnabled() && (!cloudReady() || _cloudResolving || showingConfirmedTurns())) return;
   if (!G.party || (!cloudEnabled() && !G.party.length && !G.apprenticeName)) return;
   const now = Date.now();
   if (!cloudEnabled() && !force && now - _lastSave < 200) return;
@@ -19428,7 +19438,7 @@ function resumeCombat() {
 
 // 終了時はWorkerの返答より先に画面が破棄されるため、端末の復旧記録を同期で残す。
 function saveBeforeLeaving() {
-  if (cloudEnabled() && !testPlayActive && cloudReady() && !_resetting && !_cloudResolving) {
+  if (cloudEnabled() && !testPlayActive && cloudReady() && !_resetting && !_cloudResolving && !showingConfirmedTurns()) {
     try {
       const snap = {};
       for (const k of SAVE_FIELDS) snap[k] = G[k];
@@ -20334,7 +20344,10 @@ async function init() {
     started = true;
     titleActive = false;
     G.prompt = false;
-    return startAfterTitle(loaded);
+    return Promise.resolve(startAfterTitle(loaded)).then(ok => {
+      if (ok !== false) document.body.classList.remove("game-starting");
+      return ok;
+    });
   };
   // タイトルの「データ削除」(記録あり): 確認ののち記録を消して読み直し、開始ボタンの操作で音声を解禁する
   const newGameFromTitle = (name) => {

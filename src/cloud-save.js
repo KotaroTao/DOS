@@ -1,5 +1,5 @@
 import { decodeCloudReply } from "./cloud-wire.js";
-import { encodeCloudChange, decodeCloudCommand, replayCloudCommandPrepared } from "./save-codec.js";
+import { encodeCloudChange, decodeCloudCommand, replayCloudCommandPrepared, cloudWorkerReady } from "./save-codec.js";
 import { applyCloudChange } from "./cloud-change.js";
 import { saveMetrics, utf8Bytes } from "./save-metrics.js";
 import { LEGAL_VERSION, showLegal } from "./legal.js";
@@ -28,8 +28,9 @@ export class CloudSaveClient {
     localSaveKey(slot); this.slot = slot;
     this.config = config; this.fetcher = fetcher; this.storage = storage;
     this.onBusy = onBusy; this.onFailure = onFailure; this.retryDelays = retryDelays;
-    this.confirmed = null; this.commandMode = false; this.commandReplay = false;
+    this.confirmed = null; this.commandMode = false; this.commandReplay = false; this.forcedTurns = false;
     this.auth = null; this.sessionId = null; this.revision = 0;
+    this.saveWaiters = new Set();
     this.tail = Promise.resolve(); this.count = 0; this.busy = false;
     this.refreshing = null; this.waiting = false; this.failureWait = null;
     this.blocking = 0; this.queuedSave = null; this.battleTurn = false; this.compactGraph = false; this.backgroundBattle = false;
@@ -94,13 +95,23 @@ export class CloudSaveClient {
       this.queuedSave.data = data;
       return this.queuedSave.promise;
     }
-    const entry = { data, promise: null };
+    // 保存の順は変えず、戦闘の前に不要な集約待ちだけを解除する。
+    if (op === "command") for (const saved of this.saveWaiters) {
+      saved.urgent = true;
+      saved.wake?.();
+    }
+    const entry = { data, promise: null, queuedAt: performance.now() };
+    if (op === "save") this.saveWaiters.add(entry);
     this.queuedSave = op === "save" ? entry : null;
     if (op === "battle" || op === "turn" || op === "command") this.blocking++;
     this.count++; this.setBusy();
     const task = this.tail.then(async () => {
+      if (op === "command") saveMetrics.timing("commandQueue", performance.now() - entry.queuedAt);
       // 端末の復旧記録は既に別経路で保管する。連続する操作は半秒単位で束ねる。
-      if (op === "save" && (this.backgroundBattle || this.commandMode)) await new Promise(resolve => setTimeout(resolve, 500));
+      if (op === "save" && (this.backgroundBattle || this.commandMode)) {
+        await new Promise(resolve => { entry.wake = resolve; entry.timer = setTimeout(resolve, 500); if (entry.urgent) resolve(); });
+        clearTimeout(entry.timer); entry.wake = null;
+      }
       if (this.queuedSave === entry) this.queuedSave = null;
       const data = typeof entry.data === "function" ? await this.retry(entry.data) : entry.data;
       if (data === null) return;
@@ -115,11 +126,12 @@ export class CloudSaveClient {
           return;
         }
       }
-      const replay = op === "command" && this.commandReplay
-        ? await replayCloudCommandPrepared(this.confirmed, requestData.command, requestData.commandId).catch(() => null) : null;
+      const replayStarted = performance.now();
+      const replay = op === "command" && this.commandReplay && cloudWorkerReady()
+        ? replayCloudCommandPrepared(this.confirmed, requestData.command, requestData.commandId, this.forcedTurns).then(value => { saveMetrics.timing("commandCalculation", performance.now() - replayStarted); return value; }).catch(() => null) : null;
       const body = { protocol: this.config.protocol, sessionId: this.sessionId,
         commandId: crypto.randomUUID(), revision: this.revision, op, ...payload,
-        ...(replay ? { replay: true } : {}),
+        ...(replay ? { replay: true, ...(this.forcedTurns ? { forcedTurns: true } : {}) } : {}),
         ...(this.commandMode && ["battle", "turn"].includes(op) ? { syncGraph: true } : {}),
         ...(typeof DecompressionStream !== "undefined" ? { acceptEncoding: "gzip" } : {}) };
       // 送信前に記録する。結果の返答を失っても同じID・同じ内容で再送する。
@@ -128,13 +140,13 @@ export class CloudSaveClient {
         return this.request(body);
       });
       if (replay) {
-        const local = replay;
-        if (local.hash !== result.replayHash) {
+        const local = await replay;
+        if (!local || local.hash !== result.replayHash) {
           // 式・版・状態が食い違った結果を表示せず、確定済みの記録を読み直す。
           await this.retry(() => { throw Object.assign(new Error("cloud_replay_mismatch"), { status: 409 }); }, { automatic: false });
         }
         nextSnapshot = local.snapshot;
-        result = { ...result, packet: local.packet, nextPacket: local.nextPacket };
+        result = { ...result, packet: local.packet, nextPacket: local.nextPacket, forcedPackets: local.forcedPackets };
       } else if (op === "command") result = await decodeCloudCommand(this.confirmed, result);
       if (op === "reset") this.confirmed = null;
       if (nextSnapshot) this.confirmed = nextSnapshot;
@@ -150,6 +162,7 @@ export class CloudSaveClient {
     });
     this.tail = task;
     entry.promise = task.finally(() => {
+      this.saveWaiters.delete(entry);
       if (op === "battle" || op === "turn" || op === "command") this.blocking--;
       this.count--; this.setBusy();
     });
@@ -247,6 +260,7 @@ export class CloudSaveClient {
     this.compactGraph = data.compactGraph === true;
     this.commandMode = data.actionCommands === true;
     this.commandReplay = data.commandReplay === true && !!globalThis.crypto?.subtle;
+    this.forcedTurns = data.forcedTurns === true;
     this.confirmed = data.snapshot;
     this.backgroundBattle = data.backgroundBattle === true;
     return data.snapshot;

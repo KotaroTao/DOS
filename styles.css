@@ -54,6 +54,9 @@ body.booting #app {
   visibility: hidden;
 }
 
+/* タイトルから本編の準備完了までは、画像の準備・レイアウトを続けながら背面を隠す。 */
+body.game-starting #app { opacity: 0; pointer-events: none; }
+
 #app {
   position: relative;
   max-width: var(--game-width);
