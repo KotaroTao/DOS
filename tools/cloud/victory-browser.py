@@ -64,7 +64,7 @@ with sync_playwright() as p:
         page.wait_for_timeout(6000)
         print('loaded',page.evaluate("({state:__game.G.state,phase:__game.G.battle?.phase,animating:__game.G.animating,inventory:__game.G.inventory.length,booting:document.body.className,gate:document.querySelector('.cloud-gate')?.hidden,buttons:document.querySelectorAll('#combat-menu button').length})"),errors,flush=True)
 
-        command_mode=page.evaluate("async()=>{const c=await import('/src/cloud-save.js');return c.cloudCommandMode()&&!c.cloudBackgroundBattle()}")
+        command_mode=page.evaluate("async()=>{return (await import('/src/cloud-save.js')).cloudCommandMode()}")
         # ローカルadvanceの間隔は背景戦闘だけを測る。命令戦闘はサーバーで進む。
         for fast in ([] if command_mode else [True,False]):
             page.evaluate("""fast=>{

@@ -111,3 +111,29 @@ for(let trial=0;trial<300;trial++) {
  assert.deepEqual(delta?delta.snapshot||applyCloudChange(from,delta.change):from,to);
 }
 console.log('品の辞書: 中間挿入の通信削減・300組の挿入/削除/重複/並べ替え復元 OK');
+
+const {replayCloudCommand,orderedCloudValue}=await import('../../src/cloud-command-replay.js');
+const replayId=crypto.randomUUID();
+const localReplay=await replayCloudCommand(graph,command,replayId);
+const sortedReplay=await replayCloudCommand(sorted(graph),command,replayId);
+assert.deepEqual(localReplay,sortedReplay);
+assert.equal(localReplay.hash.length,64);
+assert.equal(refDeserialize(localReplay.snapshot).battle._commandToken,replayId);
+assert.notEqual((await replayCloudCommand(graph,command,crypto.randomUUID())).hash,localReplay.hash);
+storage.removeItem('dos-cloud-choice:test');
+const replayClient=new CloudSaveClient({protocol:1},{storage});replayClient.auth=c.auth;replayClient.sessionId='session';replayClient.commandMode=true;replayClient.commandReplay=true;replayClient.confirmed=graph;
+// Worker非対応では画面の戦闘フックを変更せず、従来の返答を使う。
+replayClient.request=async body=>{assert(!body.replay);return response;};
+await replayClient.actionCommand(command);
+console.log('短い確定通知: キー順に依存しない再現とSHA-256・要求IDに結び付く手番・Worker非対応の互換動作 OK');
+// 端末の再計算が失敗しても、命令を捨てず従来のサーバー返答へ戻す。
+globalThis.Worker=class {
+ postMessage(message){queueMicrotask(()=>this.onmessage({data:message.op==='replayCommand'
+  ? {id:message.id,error:'再計算できない'}
+  : {id:message.id,result:decodeCommandResponse(message.value,message.packet)}}));}
+};
+const failedReplay=new CloudSaveClient({protocol:1},{storage});failedReplay.auth=c.auth;failedReplay.sessionId='session';failedReplay.commandMode=true;failedReplay.commandReplay=true;failedReplay.confirmed=graph;
+failedReplay.request=async body=>{assert(!body.replay);return response;};
+await failedReplay.actionCommand(command);
+assert.equal(storage.getItem('dos-cloud-choice:test'),null);
+console.log('端末の再計算失敗時も従来のサーバー返答で確定し、選択を取りこぼさない OK');

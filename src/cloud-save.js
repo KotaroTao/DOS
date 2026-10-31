@@ -1,5 +1,5 @@
 import { decodeCloudReply } from "./cloud-wire.js";
-import { encodeCloudChange, decodeCloudCommand } from "./save-codec.js";
+import { encodeCloudChange, decodeCloudCommand, replayCloudCommandPrepared } from "./save-codec.js";
 import { applyCloudChange } from "./cloud-change.js";
 import { saveMetrics, utf8Bytes } from "./save-metrics.js";
 import { LEGAL_VERSION, showLegal } from "./legal.js";
@@ -28,7 +28,7 @@ export class CloudSaveClient {
     localSaveKey(slot); this.slot = slot;
     this.config = config; this.fetcher = fetcher; this.storage = storage;
     this.onBusy = onBusy; this.onFailure = onFailure; this.retryDelays = retryDelays;
-    this.confirmed = null; this.commandMode = false;
+    this.confirmed = null; this.commandMode = false; this.commandReplay = false;
     this.auth = null; this.sessionId = null; this.revision = 0;
     this.tail = Promise.resolve(); this.count = 0; this.busy = false;
     this.refreshing = null; this.waiting = false; this.failureWait = null;
@@ -115,8 +115,11 @@ export class CloudSaveClient {
           return;
         }
       }
+      const replay = op === "command" && this.commandReplay
+        ? await replayCloudCommandPrepared(this.confirmed, requestData.command, requestData.commandId).catch(() => null) : null;
       const body = { protocol: this.config.protocol, sessionId: this.sessionId,
         commandId: crypto.randomUUID(), revision: this.revision, op, ...payload,
+        ...(replay ? { replay: true } : {}),
         ...(this.commandMode && ["battle", "turn"].includes(op) ? { syncGraph: true } : {}),
         ...(typeof DecompressionStream !== "undefined" ? { acceptEncoding: "gzip" } : {}) };
       // 送信前に記録する。結果の返答を失っても同じID・同じ内容で再送する。
@@ -124,7 +127,15 @@ export class CloudSaveClient {
         this.storage.setItem(pendingKey(this.auth.user.id, this.slot), requestJSON(body));
         return this.request(body);
       });
-      if (op === "command") result = await decodeCloudCommand(this.confirmed, result);
+      if (replay) {
+        const local = replay;
+        if (local.hash !== result.replayHash) {
+          // 式・版・状態が食い違った結果を表示せず、確定済みの記録を読み直す。
+          await this.retry(() => { throw Object.assign(new Error("cloud_replay_mismatch"), { status: 409 }); }, { automatic: false });
+        }
+        nextSnapshot = local.snapshot;
+        result = { ...result, packet: local.packet, nextPacket: local.nextPacket };
+      } else if (op === "command") result = await decodeCloudCommand(this.confirmed, result);
       if (op === "reset") this.confirmed = null;
       if (nextSnapshot) this.confirmed = nextSnapshot;
       else if (result.sync) this.confirmed = applyCloudChange(this.confirmed, result.sync);
@@ -235,6 +246,7 @@ export class CloudSaveClient {
     this.battleTurn = data.battleTurn === true;
     this.compactGraph = data.compactGraph === true;
     this.commandMode = data.actionCommands === true;
+    this.commandReplay = data.commandReplay === true && !!globalThis.crypto?.subtle;
     this.confirmed = data.snapshot;
     this.backgroundBattle = data.backgroundBattle === true;
     return data.snapshot;
@@ -339,9 +351,9 @@ async function resumeSavedRecord() {
 function failure(e) {
   return new Promise((resolve) => {
     const chosen = !!getJSON(choiceKey(client.auth.user.id));
-    if (chosen && e.status === 409 && e.message === "cloud_revision_conflict") {
+    if (chosen && e.status === 409 && ["cloud_revision_conflict", "cloud_replay_mismatch"].includes(e.message)) {
       client.choiceConflict = true;
-      showGate("別の画面で記録が先に更新されています。この選択を新しい戦況へ適用せず、退避して最新の確定済み記録から再開できます。過去の記録へは戻りません。");
+      showGate(e.message === "cloud_replay_mismatch" ? "端末と保管先の計算が一致しません。保管先で確定した最新の記録から再開してください。" : "別の画面で記録が先に更新されています。この選択を新しい戦況へ適用せず、退避して最新の確定済み記録から再開できます。過去の記録へは戻りません。");
       button("最新の記録から再開", resumeSavedRecord);
       return;
     }
