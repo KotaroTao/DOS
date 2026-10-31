@@ -88,7 +88,7 @@ export function resolveCloudBattle(s, operation, choice = null) {
   if (choice) {
     const bad = () => { throw Object.assign(new Error("戦闘の選択が不正です"), { status: 400 }); };
     const actor = b.current;
-    if (!actor || actor.uid !== choice.actor || actor.side !== "party" || b._acted || b.result || !["input", "target", "resolve"].includes(b.phase)) bad();
+    if (!actor || actor.uid !== choice.actor || actor.side !== "party" || b._acted || b.result || !["input", "target", "resolve"].includes(b.phase)) throw Object.assign(new Error("cloud_revision_conflict"), { status: 409 });
     if (!["attack", "spell", "item", "swap", "defend", "run"].includes(choice.action)) bad();
     if (choice.action === "spell" && !battleSkills(actor).includes(choice.spellKey)) bad();
     let extra = null;
@@ -106,7 +106,8 @@ export function resolveCloudBattle(s, operation, choice = null) {
     if (b.chooseAction(choice.action, choice.spellKey, extra)?.invalid) bad();
     if (b.phase === "target") {
       const target = b.targetOptions().find(t => t.uid === choice.target?.uid && t.side === choice.target?.side);
-      if (!target) bad(); b.chooseTarget(target);
+      if (!target) throw Object.assign(new Error("cloud_revision_conflict"), { status: 409 });
+      b.chooseTarget(target);
     } else if (choice.target) bad();
   }
   let result = null;

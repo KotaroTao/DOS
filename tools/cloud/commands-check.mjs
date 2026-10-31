@@ -85,3 +85,6 @@ movedItem.party[0].hp=50;movedItem.inventory=[{...ITEMS.u_styptic_salve,q:1}];mo
 movedItem.battle.chooseAction('item',null,{owner:movedItem.party[0],item:movedItem.inventory[0]});movedItem.battle.chooseTarget(movedItem.party[0]);
 const oldItemCommand=battleCommand(movedItem.battle,'commit',movedItem.rng);movedItem.inventory[0].q=2;
 assert.throws(()=>resolveCloudCommand(movedItem,oldItemCommand),/cloud_revision_conflict/);
+
+assert.throws(()=>resolveCloudCommand(refDeserialize(graph),{...command,actor:"outdated"}),e=>e.status===409);
+assert.throws(()=>resolveCloudCommand(refDeserialize(graph),{...command,target:{side:"enemy",uid:"outdated"}}),e=>e.status===409);
