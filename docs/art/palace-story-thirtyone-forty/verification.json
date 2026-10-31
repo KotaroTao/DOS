@@ -1,0 +1,102 @@
+[
+  {
+    "id": "report_w31",
+    "master": "art/story-review/chapter8/report_w31.png",
+    "size": [
+      1536,
+      1024
+    ],
+    "sha256": "f29ef15edaa67b6eb5c89ec953c4792f571ed3783bbda5ae75c23b6d3f77bc8a",
+    "before_sha256": "694aa2f7878bfb58a63b34f8002bb9cb830515e13fe3d93f9f7c8a1e09f37d9b"
+  },
+  {
+    "id": "report_w32",
+    "master": "art/story-review/chapter8/report_w32.png",
+    "size": [
+      1536,
+      1024
+    ],
+    "sha256": "345668a4b84a39dc0cb307aea229fef07ced56e4bc770d24ed73f7c05414a45a",
+    "before_sha256": "2caa6a130270d014d09d4e9ba86ed2549b6bd79ec0ed690ad93fb1abef5c939f"
+  },
+  {
+    "id": "report_w33",
+    "master": "art/story-review/chapter8/report_w33.png",
+    "size": [
+      1536,
+      1024
+    ],
+    "sha256": "96313a92f11462f886061b2cff083363b223d9e1753b67ba8a7c010927de4365",
+    "before_sha256": "ec7808df663e4c7f7d4c98595609e1e86c8e088f2e38a619d59026deefc1ea4f"
+  },
+  {
+    "id": "report_w34",
+    "master": "art/story-review/chapter9/report_w34.png",
+    "size": [
+      1536,
+      1024
+    ],
+    "sha256": "b0341973de1f1b1c771675b6008bbbab6ace05fd86adda3abd558bce4166ae5f",
+    "before_sha256": "ec1037762a0091a6d56a80ba43bdb487edc305b81f6162931adec795887fe0cc"
+  },
+  {
+    "id": "report_w35",
+    "master": "art/story-review/chapter9/report_w35.png",
+    "size": [
+      1536,
+      1024
+    ],
+    "sha256": "31e7955e63b65f7f5a5dc2ba8a1493c4fef944a1e0d88d4b067217cf8677d554",
+    "before_sha256": "6330efbf8d74f41ebd356771d03a982c8de84a0ca769a5bb7146af4150fc13ee"
+  },
+  {
+    "id": "report_w36",
+    "master": "art/story-review/chapter9/report_w36.png",
+    "size": [
+      1536,
+      1024
+    ],
+    "sha256": "b42c681572823bb429c1ebcb6d1806af13fc5c23bca1048c3ef7165dbc82fb60",
+    "before_sha256": "2df9fbc605479790b97ff16032162e92df2db730a3116981e5b6ce59286cdae5"
+  },
+  {
+    "id": "report_w37",
+    "master": "art/story-review/chapter9/report_w37.png",
+    "size": [
+      1536,
+      1024
+    ],
+    "sha256": "87b9202d29499b95c55b0391ec56cc56d028b373df45baf98845d0857c48c8da",
+    "before_sha256": "bfaf07c121925df89aaf970ebe0156c9cfd0ac5292bd09f0e8690ba54a6e66ce"
+  },
+  {
+    "id": "report_w38",
+    "master": "art/story-review/chapter10/report_w38.png",
+    "size": [
+      1536,
+      1024
+    ],
+    "sha256": "fafb72445908e38e7283c8a0880d8dd6f972e2b7ba3e292738b05ff1af0668f2",
+    "before_sha256": "955619a54387a7f375a3e0f82b3f7d7c3449efdfac4dbff37158a8886922bd94"
+  },
+  {
+    "id": "report_w39",
+    "master": "art/story-review/chapter10/report_w39.png",
+    "size": [
+      1536,
+      1024
+    ],
+    "sha256": "a16df0b66e88d31047e4520598e9a92a2c693b135758f35ff5649ad7070183d3",
+    "before_sha256": "2ab79c6471b812227fc3aceb158cdbd471fe0690f000dccde4461ac41a1c2038"
+  },
+  {
+    "id": "report_w40",
+    "master": "art/story-review/chapter10/report_w40.png",
+    "size": [
+      1536,
+      1024
+    ],
+    "sha256": "5c708c660848ac594c9dd865df4ae1af942116c90cd88ca9f6da55617c10ea5e",
+    "before_sha256": "48f8ec0e2bde36227a75cc48c81be7c956e589f8952ea168f957ce0c4c110bd7"
+  }
+]
