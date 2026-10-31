@@ -1,3 +1,4 @@
+import { equipmentBukonPanel } from "./bukonview.js";
 import { equipmentCombatState, equipmentPercentScore } from "../equipmentscore.js";
 import { ELEMENT_KEYS, elementValues, elementalReduction, elementDefenseReduction } from "../combatrules.js";
 import { bukonText } from "../bukon.js";
@@ -570,10 +571,10 @@ export function resistDeltaParts(before, after) {
   return out;
 }
 // 特殊効果のくわしい行をまとめて (戦闘効果・武器の補正/魔法属性・属性・状態異常)。説明の文とは別に、数字で効果を言い切る
-export function specialLines(it) {
+export function specialLines(it, { bukon = true } = {}) {
   if (!it || it.unidentified) return [];
   const afx = (it.afxText || []).map((a) => `追加${a.tier === "x" ? "★" : a.tier === "r" ? "◆" : a.tier === "u" ? "◇" : ""}「${a.name.replace(/の$/, "")}」 ― ${a.text}`);
-  return [...(it.bukon || []).map(b => `武魂 ${bukonText(b)}`), ...afx, ...effDetailLines(it), ...weaponTraitLines(it), ...elemDetailLines("攻撃", it.eAtk), ...elemDetailLines("防御", it.eDef), ...ailDetailLines(it)];
+  return [...(bukon ? it.bukon || [] : []).map(b => `武魂 ${bukonText(b)}`), ...afx, ...effDetailLines(it), ...weaponTraitLines(it), ...elemDetailLines("攻撃", it.eAtk), ...elemDetailLines("防御", it.eDef), ...ailDetailLines(it)];
 }
 
 // 武器の能力補正 (scale) と魔法属性 (magic) のくわしい表記
@@ -956,13 +957,15 @@ export function itemDetailEl(it, { target = null, catalog = false, stock = false
   if (it.desc) body.appendChild(el("div", "wpc-is-lore", it.desc));
   const performance = weaponPerformanceEl(it, target);
   if (performance) body.appendChild(performance);
-  const fx = specialLines(it);
+  const bukon = equipmentBukonPanel(it);
+  const fx = specialLines(it, {bukon:!bukon});
   if (fx.length) {
     const box = el("div", "wpc-is-fx");
     box.appendChild(el("div", "wpc-is-fxh", "特殊効果"));
     for (const ln of fx) box.appendChild(setText(el("div", "wpc-is-fxl"), ln));
     body.appendChild(box);
   }
+  if(bukon)body.append(bukon);
   return body;
 }
 

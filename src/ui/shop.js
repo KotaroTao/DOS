@@ -1,3 +1,4 @@
+import { withBukonSockets } from "./bukonview.js";
 import { bagItems, bagSortControl } from "./bagsort.js";
 import { gearFilter, gearFilterCount, matchesGearFilter, gearFilterButton, gearFilterSummary } from "./gearfilter.js";
 import { bagCount, isFormationItem, bagOwners } from "../items.js";
@@ -249,7 +250,7 @@ function sellRows(list, onBack) {
     const ic = el("span", "wpc-srow-ic" + (rk ? " rar-" + rk : ""));
     if (rk) ic.style.setProperty("--edge", RARITIES[rk].color);
     ic.appendChild(spriteCanvas(it, 3));
-    main.appendChild(ic);
+    main.appendChild(withBukonSockets(ic,it));
     const tx = el("span", "wpc-prow-t");
     tx.appendChild(nameSpan(it, "wpc-prow-title"));
     tx.appendChild(setText(el("span", "wpc-prow-sub"), `${x.doll.name} の持ち物${isUp(it) ? " ・ ▲装備の候補" : ""}`));

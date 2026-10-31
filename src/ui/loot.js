@@ -1,3 +1,4 @@
+import { equipmentBukonPanel } from "./bukonview.js";
 import { bagCount, isFormationItem, bagOwners } from "../items.js";
 // ===== 品 — 入手の割り込み方針 (トースト/祝祭)・品シート (ItemSheet)・NEW 印 =====
 // 担当: WP-C。
@@ -1029,13 +1030,15 @@ function lootCelebrate(item, who, opts, next) {
         scroll.appendChild(dl);
       }
     }
-    const traits = specialLines(item);
+    const bukon=equipmentBukonPanel(item);
+    const traits = specialLines(item,{bukon:!bukon});
     if (traits.length) {
       const box = el("div", "wpc-is-fx");
       box.appendChild(el("div", "wpc-is-fxh", "特性"));
       for (const ln of traits) box.appendChild(setText(el("div", "wpc-is-fxl"), ln));
       scroll.appendChild(box);
     }
+    if(bukon)scroll.append(bukon);
     scroll.appendChild(el("div", "ig-desc", unid ? "なんだかよくわからない品だ。鑑定すれば正体がわかるだろう。" : (item.desc || "")));
     if (item.soulMemory) scroll.appendChild(el("div", "ig-stat", "魂の記憶から持ち込んだ装備。売値0・鍛え直し不可。持ち帰れず、回収人に売っても商会には並ばない。"));
     if (misc && !unid) scroll.appendChild(el("div", "ig-stat", isNewCollectible(item) ? "まだ宝物庫にない品。王宮の宝物庫に納められる。" : "すでに宝物庫に納めた品。商会で売れる。"));

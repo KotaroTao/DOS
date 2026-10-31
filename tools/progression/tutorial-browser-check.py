@@ -27,6 +27,7 @@ with sync_playwright() as p:
    snapshot='''()=>{const G=__game.G;return JSON.stringify({gold:G.gold,stock:G.bukonStock,protected:G.bukonProtected,inventory:G.inventory,equipment:G.party.map(d=>d.equip)});}'''
    before=page.evaluate(snapshot)
    practice=page.locator('.bk-practice')
+   if key=='bukonFusion':assert practice.locator('.bk-stock-row').count()==3,'練習でも同じ武魂を個数分表示'
    practice.locator('.bk-practice-next').click()
    practice.get_by_role('button',name='閉じる',exact=True).click()
    page.locator('.bk-panel').get_by_role('button',name='絞り込み・並び替え',exact=True).click()

@@ -771,3 +771,15 @@ html.pc-input .ui-sheet.ec-source-sheet { max-width: 720px; }
 .bk-practice .tut-step-note { margin-block:12px; padding:12px; border:1px solid var(--accent); }
 .bk-practice .pt-slots { margin-block:10px; }
 .bk-sheet .wpc-lhead { justify-content:space-between; flex-wrap:wrap; }
+
+.wpc-is-bukon { margin-top:12px; padding:10px; border:1px solid var(--line); text-align:left; }
+.bk-detail-slots { display:flex; flex-wrap:wrap; justify-content:flex-start; gap:8px; margin-top:8px; }
+.bk-detail-slots .bk-detail-slot { width:auto; display:inline-flex; align-items:center; gap:8px; min-height:44px; min-width:44px; max-width:100%; padding:6px 10px; box-sizing:border-box; }
+.bk-detail-slot .bk-socket { flex:none; width:14px; height:14px; }
+.bk-detail-slot .ui-btn-t { min-width:0; }
+.bk-detail-slot .ui-btn-l { overflow-wrap:anywhere; }
+.bk-detail-empty { color:var(--ink-dim); border:1px dashed var(--line); }
+
+.bk-copy-more { min-height:32px; padding:8px; text-align:center; color:var(--ink-dim); }
+
+.bk-panel .wpc-lhead-t { max-width:100%; min-width:0; overflow-wrap:anywhere; white-space:normal; }
