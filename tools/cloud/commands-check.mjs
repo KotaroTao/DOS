@@ -88,3 +88,26 @@ assert.throws(()=>resolveCloudCommand(movedItem,oldItemCommand),/cloud_revision_
 
 assert.throws(()=>resolveCloudCommand(refDeserialize(graph),{...command,actor:"outdated"}),e=>e.status===409);
 assert.throws(()=>resolveCloudCommand(refDeserialize(graph),{...command,target:{side:"enemy",uid:"outdated"}}),e=>e.status===409);
+
+// 多種類の品の辞書の途中へ挿入しても、後続の説明文を送り直さない。
+const dictionary=Array.from({length:200},(_,i)=>({id:i,text:("品の説明"+i).repeat(50)}));
+const dictionaryBase={templates:dictionary};
+const dictionaryNext={templates:[{id:"new"},...dictionary.slice(0,100),{id:"middle"},...dictionary.slice(100),{id:"last"}]};
+const dictionaryChange=createCloudChange(dictionaryBase,dictionaryNext);
+assert(dictionaryChange.change);assert(JSON.stringify(dictionaryChange).length<1000);
+assert.deepEqual(applyCloudChange(dictionaryBase,dictionaryChange.change),dictionaryNext);
+// 挿入・削除・並べ替え・重複・キー順を変えた辞書も正確に復元する。
+let seed=123;
+const pick=n=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed%n;};
+for(let trial=0;trial<300;trial++) {
+ const original=dictionary.slice(0,40), changed=structuredClone(original);
+ for(let edit=0;edit<10;edit++) {
+  const index=pick(changed.length);
+  if(pick(3)===0)changed.splice(index,1);
+  else changed.splice(index,0,pick(2)?{text:"追加".repeat(50),id:pick(100)}:{text:original[index%40].text,id:original[index%40].id});
+ }
+ if(trial%3===0)changed.reverse();
+ const from={templates:original},to={templates:changed},delta=createCloudChange(from,to);
+ assert.deepEqual(delta?delta.snapshot||applyCloudChange(from,delta.change):from,to);
+}
+console.log('品の辞書: 中間挿入の通信削減・300組の挿入/削除/重複/並べ替え復元 OK');
