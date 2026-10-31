@@ -303,13 +303,13 @@ export function healingPower(power, pie) {
 //  bodyHeal = 使い手の最大HPの割合 (物理職の「体の手当て」。魔法職が借りても最大HPが小さいので弱い)
 //  healMul  = ヒール (power 14 の式) の何倍か (ハイヒール 2.5)。無ければ旧来の power の式
 //  healCap  = 1回の回復を対象の最大HPの割合で頭打ちにする (ヒール 50%・手当て 35% など)
-// 魂の格の威力の倍率 (soulPowerMul) は healPct 以外に乗る
+// レベル成長と魂の格の威力 (skillPowerMul) は healPct 以外に乗る
 export const HEAL_BASE_POWER = 14;
 export function healsHp(sp) { return !!sp && sp.kind === "heal" && (sp.healPct > 0 || sp.bodyHeal > 0 || sp.healMul > 0 || (sp.power || 0) > 0); }
 // 揺らぎ・頭打ちの前の回復量 (pie = 強化込みの PIE)
 export function spellHealRaw(actor, sp, pie) {
   if (!sp || sp.healPct) return 0;
-  const soul = soulPowerMul(actor, sp);
+  const soul = skillPowerMul(actor, sp);
   if (sp.bodyHeal) return ((actor && actor.maxhp) || 0) * sp.bodyHeal * soul;
   return (sp.healMul ? healingPower(HEAL_BASE_POWER, pie) * sp.healMul : healingPower(sp.power, pie)) * soul;
 }
@@ -765,17 +765,32 @@ export function soulPowerMul(actor, sp) {
   const add = soulCostAdd(actor, sp);
   return add > 0 ? 1 + SOUL_POWER_K * (1 - sp.mp / (sp.mp + add)) : 1;
 }
-// 技の消費MPの表記 (図鑑・技の詳細): 「MP 13＋魂のMP×4%」。戦闘の一覧は spellCost の実際の値を出す
+// 技のレベル成長。メイン魂Lv100で基本消費・直接威力が2倍。写し身も同じ式を使う。
+export function skillLevelMul(actor) {
+  const lv = actor?.jobLv ?? actor?.level ?? actor?.lv ?? 0;
+  return 1 + Math.max(0, lv) / 100;
+}
+export function skillBaseCost(actor, sp) {
+  const lv = Math.max(0, actor?.jobLv ?? actor?.level ?? actor?.lv ?? 0);
+  return (sp.mp || 0) * (100 + lv) / 100;
+}
+// 割合効果・蘇生・補助効果は増やさず、直接威力だけを成長させる。
+export function skillPowerMul(actor, sp) {
+  const grows = !sp.gravity && !sp.mpPct && !sp.healPct &&
+    (sp.kind === "phys" || sp.kind === "atk" || sp.kind === "mana" || healsHp(sp));
+  return soulPowerMul(actor, sp) * (grows ? skillLevelMul(actor) : 1);
+}
+// 技の消費MPの表記 (図鑑・技の詳細)。戦闘の一覧は spellCost の実際の値を出す
 export function spellMpLabel(sp) {
   if (!sp) return "MP 0";
   if (sp.mpPct) return `MP 最大の${Math.round(sp.mpPct * 100)}%${sp.mpMin ? ` (最低${sp.mpMin})` : ""}`;
   const r = soulTierRate(sp);
-  return r ? `MP ${sp.mp}＋魂のMP×${Math.round(r * 100)}%` : `MP ${sp.mp || 0}`;
+  return r ? `MP ${sp.mp}×(1＋Lv÷100)＋魂のMP×${Math.round(r * 100)}%` : `MP ${sp.mp || 0}×(1＋Lv÷100)`;
 }
 export function spellCost(actor, sp) {
   // 迷宮の術 (mpPct): 唱える者の最大MPの割合を払う (軽減は効かない)
   if (sp.mpPct) return Math.max(sp.mpMin || 1, Math.ceil(((actor && actor.maxmp) || 0) * sp.mpPct));
-  let mp = sp.mp + soulCostAdd(actor, sp); // 魂の格
+  let mp = Math.ceil(skillBaseCost(actor, sp) + soulCostAdd(actor, sp)); // レベル成長＋魂の格
   const c = pv(actor, "chant");
   if (c) mp = Math.ceil(mp * (c >= 2 ? 0.7 : 0.85));
   if (actor && actor.spellCostMul) mp = Math.ceil(mp * actor.spellCostMul); // 賢者の冠: MP消費を割合カット
@@ -785,7 +800,7 @@ export function spellCost(actor, sp) {
   const sz = pv(actor, "sageZoufuku");
   if (sz && (sp.kind === "atk" || sp.kind === "heal")) mp = Math.ceil(mp * (1 + ([0, 0.10, 0.20, 0.30][Math.min(3, sz)] || 0)));
   const hasBukonCut=actor?.gearPerks?.some(x=>x.c.bukon&&x.c.t==="cost"&&(!x.c.on||x.c.on===sp.kind));
-  return Math.max(1,mp,hasBukonCut?Math.ceil((sp.mp+soulCostAdd(actor,sp))*.3):0);
+  return Math.max(1,mp,hasBukonCut?Math.ceil((skillBaseCost(actor,sp)+soulCostAdd(actor,sp))*.3):0);
 }
 
 // 戦闘の状態機械: AGI順に1人ずつ手番が回る。
@@ -2134,7 +2149,7 @@ export class Battle {
     const c = spellCost(actor, sp);
     if(!memoryHalf(actor,sp,key))return c;
     const cut=Math.max(gm(actor).memory ? .5 : 0,gm(actor).bk_memory||0);
-    return Math.max(Math.ceil(c*(10000-Math.round(cut*10000))/10000),gm(actor).bk_memory?Math.ceil((sp.mp+soulCostAdd(actor,sp))*.3):0);
+    return Math.max(Math.ceil(c*(10000-Math.round(cut*10000))/10000),gm(actor).bk_memory?Math.ceil((skillBaseCost(actor,sp)+soulCostAdd(actor,sp))*.3):0);
   }
 
   targetOptions() {
@@ -2404,7 +2419,7 @@ export class Battle {
     if (isPhys) {
       res.action = "attack";
       const popt = {
-        power: (sp.power || 1) * soulPowerMul(actor, sp), critBonus: sp.critBonus, element: sp.element,
+        power: (sp.power || 1) * skillPowerMul(actor, sp), critBonus: sp.critBonus, element: sp.element,
         intScale: sp.intScale, agiScale: sp.agiScale, vitScale: sp.vitScale, pieScale: sp.pieScale,
         acc: sp.acc, sureHit: sp.sureHit, pierce: sp.pierce, name: sp.name, skill: true, area: all,
       };
@@ -2432,7 +2447,7 @@ export class Battle {
       }
       if (this._onceGuard(t, "spellGuard", "_sgUsed", "封の結界")) { res.hits.push({ target: t, dmg: 0, immune: true, died: false }); continue; }
       const intv = Math.max((actor.int || 0) * this._bm(actor, "int", t), isFaithSpell(sp) ? (actor.pie || 0) * this._bm(actor, "pie", t) : 0);
-      const power = attackSpellPower(sp, intv, this.lvOf(actor)) * soulPowerMul(actor, sp);
+      const power = attackSpellPower(sp, intv, this.lvOf(actor)) * skillPowerMul(actor, sp);
       const em = this._elementMul(actor, t, sp.element || "none");
       let dmg = Math.max(1, Math.round(variance(power)) - Math.floor(this._evit(t, actor) * 0.2));
       const special = this._elementSpecial(actor, t, sp.element, dmg);
@@ -3654,7 +3669,7 @@ export class Battle {
       let em = opt.actual || elemSeen(t, actor) ? this._elementMul(actor, t, sp.element || "none") : 1;
       if (em < 1 && pv(actor, "elemFloor")) em = 1;
 
-      dmg = Math.max(1, varianceMean(attackSpellPower(sp, intv, this.lvOf(actor)) * soulPowerMul(actor, sp)) * this._lowHpMul(actor) - Math.floor(this._evit(t, actor) * 0.2)) * em;
+      dmg = Math.max(1, varianceMean(attackSpellPower(sp, intv, this.lvOf(actor)) * skillPowerMul(actor, sp)) * this._lowHpMul(actor) - Math.floor(this._evit(t, actor) * 0.2)) * em;
       if (t.magWeak > 1 && opt.resistKnown !== false) dmg *= t.magWeak;
       if (sp.prey && sp.prey.races.includes(enemyRace(t))) dmg *= sp.prey.mul;
     }
@@ -3774,7 +3789,7 @@ export class Battle {
       // 物理技は通常攻撃と同じ計算系 (倍率/多段/会心/弱体)。element 持ちは属性が乗る
       const chargeMul = this._takeCharge(actor); // 溜め: この技の全段に乗る
       const popt = {
-        power: sp.power * soulPowerMul(actor, sp), critBonus: sp.critBonus, debuff: sp.debuff, debuffDur: sp.dur, element: sp.element, // 魂の格
+        power: sp.power * skillPowerMul(actor, sp), critBonus: sp.critBonus, debuff: sp.debuff, debuffDur: sp.dur, element: sp.element, // 魂の格
         intScale: sp.intScale, agiScale: sp.agiScale, vitScale: sp.vitScale, pieScale: sp.pieScale,
         acc: sp.acc, sureHit: sp.sureHit, pierce: sp.pierce, desperate: sp.desperate, execute: sp.execute, prey: sp.prey,
         chargeMul, name: sp.name, skill: true,
@@ -3842,7 +3857,7 @@ export class Battle {
           if (em < 1 && pv(actor, "elemFloor")) em = 1; // 森羅の理: 属性不利が出ない
 
           // 攻撃呪文の威力は術者の INT で伸びる。低HP補正 (荒行の果て) も乗る
-          const power = attackSpellPower(sp, intv, this.lvOf(actor)) * soulPowerMul(actor, sp); // 魂の格
+          const power = attackSpellPower(sp, intv, this.lvOf(actor)) * skillPowerMul(actor, sp); // 魂の格
           dmg = Math.max(1, Math.round(variance(power) * this._lowHpMul(actor)) - Math.floor(this._evit(t, actor) * 0.2));
           const special = this._elementSpecial(actor, t, sp.element, dmg);
           if (special) { res.hits.push(special); continue; }
@@ -3974,7 +3989,7 @@ export class Battle {
     } else if (sp.kind === "mana") {
       // 魔力の譲渡: 味方の MP を回復する (術者の INT で少し伸びる)
       const t = (cmd.target && cmd.target.alive) ? cmd.target : actor;
-      const gain = Math.max(1, manaGiftAmount(actor, sp, Math.round(variance((sp.power + (actor.int || 0) * 0.25) * soulPowerMul(actor, sp))))); // 魂の格 (払った MP まで)
+      const gain = Math.max(1, manaGiftAmount(actor, sp, Math.round(variance((sp.power + (actor.int || 0) * 0.25) * skillPowerMul(actor, sp))))); // 魂の格 (払った MP まで)
       const before = t.mp;
       t.mp = Math.min(t.maxmp || 0, t.mp + gain);
       this.log(`${t.name}のMP+${t.mp - before}`, "heal");

@@ -11,7 +11,7 @@
 // 攻めと攻めの支援は、今のターンの残り＋次の2ターンの隊の期待ダメージで比べる。
 // (このファイルは game.js を import しない)
 
-import { SPELLS, spellCost, soulPowerMul, healsHp, isMetal, spellCureKinds, breathHpK, manaGiftAmount, tauntGuard, stanceMulOf } from "./combat.js";
+import { SPELLS, spellCost, skillPowerMul, healsHp, isMetal, spellCureKinds, breathHpK, manaGiftAmount, tauntGuard, stanceMulOf } from "./combat.js";
 import { autoSkills } from "./souls.js";
 import { STAGED, STAGE_MAX, STRONG_MIN, stageMul, stageOf } from "./buffstage.js";
 import { forecastCandidates, AUTO_FORECAST_TURNS, scatterDamage } from "./autoforecast.js";
@@ -287,7 +287,7 @@ function skillCands(b, ctx, actor, key, sp) {
       for (const t of tgts) {
         let d = 0;
         if (sp.kind === "phys") {
-          const popt = { power: sp.power * soulPowerMul(actor, sp), critBonus: sp.critBonus, element: sp.element, intScale: sp.intScale, agiScale: sp.agiScale,
+          const popt = { power: sp.power * skillPowerMul(actor, sp), critBonus: sp.critBonus, element: sp.element, intScale: sp.intScale, agiScale: sp.agiScale,
             vitScale: sp.vitScale, pieScale: sp.pieScale, acc: sp.acc, sureHit: sp.sureHit, pierce: sp.pierce, desperate: sp.desperate, execute: sp.execute, prey: sp.prey, skill: true };
           const per = autoPhys(b, actor, t, popt);
           d = sp.scatter ? scatterDamage(per, sp.scatter, tgts.length, t.hp) : per * (sp.hits || 1);
@@ -403,7 +403,7 @@ function allyEffects(b, ctx, actor, sp, a, c, W) {
   const n = ctx.left(sp.dur);
   if (healsHp(sp)) c.heal += Math.min(b.estHeal(actor, sp, a), a.maxhp - a.hp) * healUrg(ctx, a, W);
   if (sp.kind === "mana") {
-    const gain = Math.min(manaGiftAmount(actor, sp, (sp.power + (actor.int || 0) * 0.25) * soulPowerMul(actor, sp)), (a.maxmp || 0) - a.mp);
+    const gain = Math.min(manaGiftAmount(actor, sp, (sp.power + (actor.int || 0) * 0.25) * skillPowerMul(actor, sp)), (a.maxmp || 0) - a.mp);
     if (a !== actor && gain > 0) c.edge += gain * ctx.mpPrice(a, (W && W.mpK) || 0.06) * 0.8;
   }
   if (sp.kind === "cure" || sp.cure) c.guard += ailValue(ctx, a, sp);
