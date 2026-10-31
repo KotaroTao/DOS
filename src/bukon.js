@@ -224,8 +224,57 @@ export function bukonItem(it,{legendarySeen=new Set(),specialLevels=null}={}){
 // 部位変更・廃止効果は失わず保管へ。旧上限を超える固定機能はLv1へ正規化。
 export function migrateBukon(g,items){
  let changed=false;
- const normalize=b=>{const d=bukonDef(b?.k);if(!d)return b;return {k:d.replacement||b.k,lv:Math.min(b.lv,bukonDef(d.replacement||b.k).max||b.lv)};};
+ const normalize=b=>{const d=bukonDef(b?.k);if(!d)return b;return {...b,k:d.replacement||b.k,lv:Math.min(b.lv,bukonDef(d.replacement||b.k).max||b.lv)};};
  for(const [key,n] of Object.entries(g.bukonStock||{})){const [k,l]=key.split(":"),b=normalize({k,lv:Number(l)});if(b.k!==k||b.lv!==Number(l)){delete g.bukonStock[key];stockAdd(g,b,BigInt(n));if(g.bukonProtected?.[key]){delete g.bukonProtected[key];g.bukonProtected[bukonKey(b)]=true;}changed=true;}}
  for(const it of new Set(items.filter(Boolean))){if(it.soulMemory||!it.bukon)continue;const keep=[];for(const old of it.bukon){const b=normalize(old);if(b.k!==old.k||b.lv!==old.lv)changed=true;if(bukonFits(it,b)&&keep.length<bukonSlots(it))keep.push(b);else{stockAdd(g,b);changed=true;}}it.bukon=keep;}
  return changed;
+}
+
+// 装備中の武魂は既定でロック。解除したものだけ素材として数える。
+export function fusionRows(g, items = []) {
+  return [...new Set(items)].flatMap(it => (it.bukon || []).map(b => ({...b, it, soul:b, count:"1", protected:b.fusionUnlocked !== true}))).concat(stockRows(g));
+}
+export function sortFusionRows(rows) {
+  const highest = new Map();
+  for (const b of rows) highest.set(b.k, Math.max(highest.get(b.k)||0,b.lv));
+  return rows.slice().sort((a,b) => bukonDef(a.k).rarity-bukonDef(b.k).rarity || Number(!!b.it)-Number(!!a.it) || highest.get(b.k)-highest.get(a.k) || a.k.localeCompare(b.k) || b.lv-a.lv);
+}
+// 計画開始時の素材だけを減らす。生成した武魂を次の合成へ回さない。
+export function snapshotFusionPlan(g, items = [], target = null) {
+  const rows=sortFusionRows(fusionRows(g,items)).map(b=>({...b,left:BigInt(b.count)}));
+  let budget=Number.isSafeInteger(g.gold)&&g.gold>=0?BigInt(g.gold):0n, cost=0n;
+  const upgrades=[];
+  for(const base of rows){
+    if(target && (base.k!==target.k || base.lv!==target.lv || base.it!==target.it || base.it&&base.soul!==target.soul))continue;
+    const price=fusionGold(base.k,base.lv+1);if(price===null||price>budget||!base.left)continue;
+    const unit=3n**BigInt(base.lv-1);
+    const candidates=rows.filter(b=>b!==base&&b.k===base.k&&b.lv<=base.lv&&!b.protected).sort((a,b)=>b.lv-a.lv);
+    // 同じ保管行の残りも素材に使える。ロック中の基点は消費しない。
+    const available=candidates.reduce((n,b)=>n+b.left*3n**BigInt(b.lv-1),0n);
+    let count=base.left;
+    const byValue=base.protected?available/(2n*unit):(available+base.left*unit)/(3n*unit);
+    if(count>byValue)count=byValue;if(count>budget/price)count=budget/price;if(target&&count>1n)count=1n;
+    if(!count)continue;
+    base.left-=count;
+    let need=count*2n*unit;
+    for(const material of [...candidates,...(!base.protected?[base]:[])].sort((a,b)=>b.lv-a.lv)){
+      const value=3n**BigInt(material.lv-1),n=material.left<need/value?material.left:need/value;
+      material.left-=n;need-=n*value;
+    }
+    upgrades.push({base,count:count.toString(),k:base.k,lv:base.lv+1});cost+=price*count;budget-=price*count;
+    if(target)break;
+  }
+  return upgrades.length?{rows,upgrades,cost}:null;
+}
+export function applySnapshotFusion(g,items,target=null){
+  const plan=snapshotFusionPlan(g,items,target);if(!plan||!payFusion(g,plan.cost))return false;
+  for(const row of plan.rows){
+    if(row.it){if(!row.left)row.it.bukon.splice(row.it.bukon.indexOf(row.soul),1);}
+    else stockAdd(g,row,row.left-BigInt(row.count));
+  }
+  for(const result of plan.upgrades){
+    if(result.base.it){result.base.soul.lv=result.lv;result.base.it.bukon.push(result.base.soul);}
+    else {stockAdd(g,result,BigInt(result.count));if(result.base.protected)(g.bukonProtected ||= {})[bukonKey(result)]=true;}
+  }
+  return true;
 }
