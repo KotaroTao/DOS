@@ -211,4 +211,24 @@ assert.equal(bridgeResult.status,200);const bridgeWire=await bridgeResult.json()
 const bridgeAfter=await (await request({...base,op:'claim',compactGraph:true})).json();
 assert.deepEqual(applyCloudChange(bridgeBefore.snapshot,bridgeWire.sync),bridgeAfter.snapshot);
 console.log('旧手番の互換復旧: 確定後の差分基準とDB記録の一致 OK');
+
+// 状態を返さない命令でもDB確定・同一ID再送・独立計算の照合を保つ。
+const {replayCloudCommand}=await import('../../src/cloud-command-replay.js');
+await request({...base,op:'battle',action:'advance',revision:bridgeAfter.revision,commandId:crypto.randomUUID()});
+const replayBefore=await (await request({...base,op:'claim',compactGraph:true})).json();
+const replayGraph=replayBefore.snapshot,replayState=refDeserialize(replayGraph);
+Object.setPrototypeOf(replayState.battle,Battle.prototype);
+const replayOperation=replayState.battle.phase==='input'?'commit':replayState.battle.phase==='enemy'?'enemy':'stunned';
+if(replayOperation==='commit'){replayState.battle.chooseAction('attack');replayState.battle.chooseTarget(replayState.battle.targetOptions()[0]);}
+const replayRequest={...base,op:'command',replay:true,revision:replayBefore.revision,commandId:crypto.randomUUID(),command:battleCommand(replayState.battle,replayOperation,replayState.rng)};
+const expectedReplay=await replayCloudCommand(replayGraph,replayRequest.command,replayRequest.commandId);
+const replayResponse=await request(replayRequest);assert.equal(replayResponse.status,200);
+const replayWire=await replayResponse.json();assert.equal(replayWire.replayHash,expectedReplay.hash);
+assert(!replayWire.packet&&!replayWire.sync);assert(JSON.stringify(replayWire).length<150);
+assert.deepEqual(await (await request(replayRequest)).json(),replayWire);
+const replayClaim=await (await request({...base,op:'claim',compactGraph:true})).json();
+assert.deepEqual(replayClaim.snapshot,expectedReplay.snapshot);
+assert.equal(replayClaim.backgroundBattle,false);assert.equal(replayClaim.commandReplay,true);
+console.log('短い確定通知: DB確定・SHA-256一致・150バイト未満・同一ID再送・再開時の記録一致 OK');
+
 await db.close();

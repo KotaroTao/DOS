@@ -20,7 +20,7 @@ for name in ['commands-check.mjs','metrics-check.mjs','check.mjs','codec-check.m
  cases.append((name,cmd,{}))
 cases.append(('local-save-check',['node','tools/save-protection/check.mjs'],{}))
 if not args.node_only:
- for name in ['commands-browser.py','auth-metrics-browser.py','boot-recovery-browser.py','exit-browser.py','browser-check.py','onboarding-browser-check.py','recovery-browser.py','pending-timeout-browser.py','startup-wait-browser.py','inventory-browser.py','victory-browser.py','effects-browser.py','tempo-browser.py','town-screens-browser.py','unobtrusive-browser.py','quiet-loading-browser.py','performance-browser.py']:
+ for name in ['responsiveness-browser.py','commands-browser.py','auth-metrics-browser.py','boot-recovery-browser.py','exit-browser.py','browser-check.py','onboarding-browser-check.py','recovery-browser.py','pending-timeout-browser.py','startup-wait-browser.py','inventory-browser.py','victory-browser.py','effects-browser.py','tempo-browser.py','town-screens-browser.py','unobtrusive-browser.py','quiet-loading-browser.py','performance-browser.py']:
   cases.append((name,[sys.executable,'tools/cloud/'+name],{}))
  cases.append(('crash-inventory',[sys.executable,'tools/cloud/inventory-browser.py'],{'DOS_CRASH_RECOVERY':'1'}))
  for name in ['browser-check.py','update-browser-check.py','title-delete-browser-check.py','update-detection-browser.py']:

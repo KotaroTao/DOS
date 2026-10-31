@@ -1,3 +1,4 @@
+import { replayCloudCommand } from "../../../src/cloud-command-replay.js";
 import { encodeCloudReply } from "../../../src/cloud-wire.js";
 import { commandPacketBase } from "../../../src/cloud-command-codec.js";
 import { createCloudChange, applyCloudChange } from "../../../src/cloud-change.js";
@@ -66,7 +67,7 @@ async function command(user, body) {
   }
   if (body.op === "claim") {
     const snapshot = s.snapshot?.format === 2 && !body.compactGraph ? refSerialize(refDeserialize(s.snapshot)) : s.snapshot;
-    return { revision: s.revision, snapshot, battleTurn: true, compactGraph: true, backgroundBattle: false, actionCommands: true };
+    return { revision: s.revision, snapshot, battleTurn: true, compactGraph: true, backgroundBattle: false, actionCommands: true, commandReplay: true };
   }
   if (body.op === "renew") {
     if (s.revision !== body.revision) throw Object.assign(new Error("cloud_revision_conflict"), { status: 409 });
@@ -99,18 +100,27 @@ async function command(user, body) {
     }
   } else if (body.op === "command") {
     if (!s.snapshot) throw Object.assign(new Error("cloud_revision_conflict"), { status: 409 });
-    const current = refDeserialize(s.snapshot);
-    response = resolveCloudCommand(current, body.command, { compact: true });
-    const basePacket = commandPacketBase(s.snapshot);
-    response.packetChange = createCloudChange(basePacket, response.packet) || { change: [] };
-    response.nextPacketChange = response.nextPacket ? createCloudChange(basePacket, response.nextPacket) || { change: [] } : null;
-    delete response.packet; delete response.nextPacket;
-    snapshot = refSerialize(current, { compact: true });
-    refDeserialize(snapshot);
-    if (new TextEncoder().encode(JSON.stringify(snapshot)).length > MAX_REQUEST_BYTES) throw Object.assign(new Error("記録が送信できる大きさを超えています"), { status: 413 });
-    response.sync = createCloudChange(s.snapshot, snapshot)?.change;
-    // syncは受信端末の確定済みグラフ更新用。全体が小さい場合も差分の形にする。
-    if (!response.sync) response.sync = [["set", [], snapshot]];
+    if (body.replay === true) {
+      // 状態の写しは返さず、同じ計算結果のSHA-256とDB更新番号だけを確定後に返す。
+      const replay = await replayCloudCommand(s.snapshot, body.command, body.commandId);
+      snapshot = replay.snapshot;
+      refDeserialize(snapshot);
+      if (new TextEncoder().encode(JSON.stringify(snapshot)).length > MAX_REQUEST_BYTES) throw Object.assign(new Error("記録が送信できる大きさを超えています"), { status: 413 });
+      response = { replayHash: replay.hash };
+    } else {
+      const current = refDeserialize(s.snapshot);
+      response = resolveCloudCommand(current, body.command, { compact: true });
+      const basePacket = commandPacketBase(s.snapshot);
+      response.packetChange = createCloudChange(basePacket, response.packet) || { change: [] };
+      response.nextPacketChange = response.nextPacket ? createCloudChange(basePacket, response.nextPacket) || { change: [] } : null;
+      delete response.packet; delete response.nextPacket;
+      snapshot = refSerialize(current, { compact: true });
+      refDeserialize(snapshot);
+      if (new TextEncoder().encode(JSON.stringify(snapshot)).length > MAX_REQUEST_BYTES) throw Object.assign(new Error("記録が送信できる大きさを超えています"), { status: 413 });
+      response.sync = createCloudChange(s.snapshot, snapshot)?.change;
+      // syncは受信端末の確定済みグラフ更新用。全体が小さい場合も差分の形にする。
+      if (!response.sync) response.sync = [["set", [], snapshot]];
+    }
   } else if (body.op === "reset") {
     snapshot = null;
   } else if (body.op === "battle") {

@@ -4,6 +4,8 @@ import { refSerialize, acknowledgedSave } from "./savegraph.js";
 let worker, sequence = 0;
 const pending = new Map();
 function localWork(op, value, packet, compact) {
+  // 画面の戦闘フックを上書きしない。Workerを使えない端末は従来のサーバー返答を使う。
+  if (op === "replayCommand") return null;
   if (op === "commandReply") return decodeCommandResponse(value, packet);
   if (op === "change") return createCloudChange(value, packet);
   if (op === "encode") return JSON.stringify(refSerialize(value, { compact }));
@@ -73,3 +75,5 @@ export function cloneSaveData(root) {
 export const encodeCloudChange = (base, next) => work("change", base, next);
 
 export const decodeCloudCommand = (base, response) => work("commandReply", base, response);
+
+export const replayCloudCommandPrepared = (graph, command, commandId) => work("replayCommand", graph, { command, commandId });
