@@ -21,7 +21,7 @@ HELPER = '''async () => {
  click:prefix=>{const b=[...document.querySelectorAll('button')].reverse().find(b=>b.textContent.replaceAll('\\u200b','').startsWith(prefix));if(!b)throw Error('選択肢がない: '+prefix);b.click();},
  summary:()=>{const {G}=__game,c=G.board.cells[G.py][G.px];return {state:G.state,type:c.type,cleared:c.cleared,
    items:G.inventory.map(i=>({id:i.id,q:i.q})),souls:G.souls.map(s=>s.clsKey),gold:G.gold,rng:[...G.rng],
-   pos:[G.px,G.py],checks:Object.fromEntries(Object.entries(c.evChecks||{}).map(([k,v])=>[k,{ok:v.ok,p:v.p,who:v.who?.uid}])),
+   floor:G.floor,pos:[G.px,G.py],checks:Object.fromEntries(Object.entries(c.evChecks||{}).map(([k,v])=>[k,{ok:v.ok,p:v.p,who:v.who?.uid}])),
    pickups:(G.pendingPickups||[]).map(t=>({kind:t.kind,id:t.item?.id,q:t.item?.q})),
    danger:G.pendingDanger?{kind:G.pendingDanger.kind,enemies:G.pendingDanger.enemies?.map(e=>({key:e.key,hp:e.hp,maxhp:e.maxhp}))}:null,
    results:G.pendingResults?{chest:G.pendingResults.chest?{state:G.pendingResults.chest.state,cRank:G.pendingResults.chest.cRank,drops:G.pendingResults.chest.drops.map(d=>({id:d.id,q:d.item.q}))}:null}:null};}
@@ -165,8 +165,12 @@ with sync_playwright() as p:
           const spot=__game.G.board.cells.flat().find(x=>x!==c);spot.type='empty';spot.cleared=true;
           reloadCheck.presentTrap(reloadCheck.applyTrap(TRAPS.find(t=>t.kind===kind),__game.G.party[0]),{proceed:()=>{}});
           return T.summary();}''',kind)
+        if kind=='teleport':
+            assert before['floor']==2, before
+            assert page.evaluate("__game.G.board.cells[__game.G.py][__game.G.px].type==='empty'")
         reload(page)
         after = page.evaluate('T.summary()')
+        assert after['floor']==before['floor']
         assert after['danger']==before['danger'] and after['pos']==before['pos'] and after['rng']==before['rng']
         if kind=='alarm':
             page.evaluate("()=>T.click('戦う')")
