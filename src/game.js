@@ -8495,7 +8495,7 @@ function applyTrapMeasured(trap, opener) {
   log(`罠だ！ 「${trap.name}」が発動した！`, "dmg");
   const alive = () => G.party.filter((p) => p.alive);
 
-  // テレポーター: 同じ階の別の場所へ飛ばされる。宝箱の中身は失われる
+  // テレポーター: 次の階のランダムな空きマスへ飛ばされる。宝箱の中身は失われる
   if (trap.kind === "teleport") return { kind: "teleport", trap, lines: [trap.flavor, "隊は見知らぬ場所へ飛ばされた！"] };
 
   // 警報: 怪物を呼び寄せ戦闘になる。宝箱の中身を検める暇はない
@@ -8607,17 +8607,21 @@ function applyTrapMeasured(trap, opener) {
   return { kind: "harm", trap, lines, fallen, hurt: hurtList, wiped: !G.party.some((p) => p.alive), brief: brief.slice(0, 3).join(" ・ ") };
 }
 
-// テレポーター: 同じ階の、踏破済みの別の場所へ飛ばされる
+// テレポーター: 次の階へ強制転移。下の階がない場合だけ、現在の階で転移する。
 function teleportParty() {
+  const limit = abyssActive() ? infDepthLimit() : (activeCfg().floors || 1);
+  G._walkAbort = true; // 前の階の移動経路を捨てる
+  if (G.floor < limit) descend({ teleport: true });
   const spots = [];
   for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
     const c = G.board.cells[y][x];
-    if (c.cleared && c.type !== "stairs" && !(x === G.px && y === G.py)) spots.push({ x, y });
+    // 主・手がかり・罠などを消したり、到着だけで発動させたりしない。
+    if (c.type === "empty" && !(x === G.px && y === G.py)) spots.push({ x, y });
   }
   if (spots.length) {
     const s = spots[rand(spots.length)];
     G.px = s.x; G.py = s.y;
-    G.board.cells[s.y][s.x].revealed = true;
+    Object.assign(G.board.cells[s.y][s.x], { revealed: true, cleared: true });
   }
   flashScreen("#8a2be2");
   SFX.stairs();
@@ -8632,7 +8636,11 @@ function presentTrap(res, fin, sink = boardSink()) {
   const notice = { icon: "trap", title: `${trap.name}！`, lines: [...res.lines], accent: "#d4504e", banner: chest ? "✗ 罠解除失敗 ✗" : "⚠ 罠 ⚠", btnLabel: "進む" };
   if (res.kind === "teleport") {
     sink.interrupt();
+    const fromFloor = G.floor;
     teleportParty(); // 転送先まで確定してから知らせる。
+    const destination = fromFloor !== G.floor ? `隊は次の階、B${G.floor}Fの見知らぬ場所へ飛ばされた！` : `この下に階はなく、隊はB${G.floor}Fの別の場所へ飛ばされた！`;
+    notice.lines = [trap.flavor, destination];
+    log(destination, "dmg");
     if (chest) notice.lines.push("宝箱は闇の彼方に消えた…");
     notice.accent = "#8a2be2";
     G.pendingDanger = { kind: "notice", notice };
@@ -8791,15 +8799,15 @@ function giveDropsFromChest(drops, i, done, sink = boardSink()) {
 // 強敵階・特別な階・奈落の変異の知らせは帳の中に2〜3行で添える (後から別の札は出さない)。
 // 見落としても、見出しの迷宮名を押す「階の情報」でいつでも読み返せる
 function descend(...args) { return descendMeasured(...args); }
-function descendMeasured({ fall = false, skip = 0 } = {}) {
+function descendMeasured({ fall = false, skip = 0, teleport = false } = {}) {
   if (abyssActive() && G.floor + skip + 1 > infDepthLimit()) { showToast("この先の道は、まだ開いていない", { tone: "info" }); return; }
   // 出来事で2階進む場合も、5階の区切りを越える前に支払う。
-  if (stabilityApplies(activeCfg()) && Math.floor((G.floor + skip) / 5) > Math.floor((G.floor - 1) / 5)) {
+  if (!teleport && stabilityApplies(activeCfg()) && Math.floor((G.floor + skip) / 5) > Math.floor((G.floor - 1) / 5)) {
     if (!stabilityReady(() => descend({fall, skip}), abyssActive(), STABILITY_FLOOR_COST)) return;
     if (!consumeEntryStability(activeCfg().id, "floor", abyssActive())) return;
   }
   evOnDescend(); // 迷宮のイベント: 誓いの破約など
-  if (!fall) { SFX.stairs(); buzz([0, 20, 80, 20]); }
+  if (!fall && !teleport) { SFX.stairs(); buzz([0, 20, 80, 20]); }
   G.floor += skip + 1;
   if (G.run) G.run.descended = true;
   // 浮遊: 階を移るたびに残りの階数を減らす (唱えた階を含めて float 階のあいだ続く)
@@ -8875,7 +8883,7 @@ function descendMeasured({ fall = false, skip = 0 } = {}) {
   } else if (sp) {
     log(`…この階は何かが違う。「${sp.name}」だ。${sp.lines.join("")}`, "win");
   } else {
-    log(fall ? "…落ちた先は、ひとつ下の階だった。" : "階段を降りていく…", "sys");
+    log(teleport ? "魔法陣の力で、ひとつ下の階へ飛ばされた。" : fall ? "…落ちた先は、ひとつ下の階だった。" : "階段を降りていく…", "sys");
   }
   if (newRule) log(`風が変わった。風の掟「${newRule.name}」: ${newRule.lines.join("")}`, newRule.boon ? "win" : "dmg");
   // 帳に添える行 (2〜3行)
@@ -8895,6 +8903,8 @@ function descendMeasured({ fall = false, skip = 0 } = {}) {
     if (!tone) { tone = newRule.boon ? "special" : "elite"; color = newRule.accent; }
   }
   if (abyssActive() && isRestFloor(G.floor) && !tone) { sub = "— 風だまりの階 —"; lines = ["この階の階段の先に、回収人と灯番、そして主が待つ。"]; }
+  // 転送罠は通知・保存より先に盤面を確定する。階段の暗転待ちへ持ち越さない。
+  if (teleport) { newFloor(); return; }
   uiDungeonHud.floorTransition({
     floor: G.floor, tone, sub, color, lines,
     // 帳が完全に下りた瞬間に盤面を切り替える
