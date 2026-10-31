@@ -1,9 +1,10 @@
+import { fusionRows, sortFusionRows, snapshotFusionPlan } from "../bukon.js";
 import { openBukonDetail } from "./bukonview.js";
 // 武魂の装着・取り外し・合成。実物の所有確認と変更はgameの窓口で行う。
 import { UI, game, registerUI } from "./ctx.js";
 import { el, button, sheet, confirm as askConfirm, toast } from "./kit.js";
 import { itemName, SLOTS, ITEMS } from "../items.js";
-import { bukonText as fullBukonText, bukonName, bukonSlots, bukonDef, attachBlock, fusionPlan, fusionGold, bulkFusionPlan, maxFusionLevel, BUKON_RARITIES, BUKON, bukonFits, stockAdd, stockRows, attachBukon, detachBukon, fuseBukon } from "../bukon.js";
+import { bukonText as fullBukonText, bukonName, bukonSlots, bukonDef, attachBlock, fusionPlan, BUKON_RARITIES, BUKON, bukonFits, stockAdd, stockRows, attachBukon, detachBukon, fuseBukon } from "../bukon.js";
 import { rarityKey, RARITIES } from "../rarity.js";
 import { slotCell } from "./party.js";
 const bukonText = b => fullBukonText(b, { showRarity: false });
@@ -17,7 +18,7 @@ const confirm = async ({onOk, ...options}) => { if (await askConfirm(options)) o
 let mode = "gear", part = "all", effect = "all", group = "all", rarity = "all", protection = "all", order = "original";
 const GROUPS = {flat:"能力の加算",pct:"能力の割合上昇",rate:"会心・回避",res:"耐性",elementAttack:"属性攻撃",elementDefense:"属性軽減",status:"状態異常付与",race:"種族への効果",condition:"条件つきの効果",special:"特殊効果"};
 const groupOf = d => d.kind!=="legacy"?d.kind:d.id.startsWith("F")?"status":/^[GH]/.test(d.id)?"race":"condition";
-const SORTS = [["original","元の順"],["name","名前順"],["power-desc","効果量が高い順"],["power-asc","効果量が低い順"],["rarity","格が高い順"],["part","部位順"]];
+const SORTS = [["original","合成向けの順"],["name","名前順"],["power-desc","効果量が高い順"],["power-asc","効果量が低い順"],["rarity","格が高い順"],["part","部位順"]];
 const resetFilters = () => { part=effect=group=rarity=protection="all";order="original"; };
 const filtered = () => [part,effect,group,rarity,protection].some(x=>x!=="all");
 const matchesSoul = b => {
@@ -27,6 +28,7 @@ const matchesSoul = b => {
 const power = b => BigInt(Math.round(bukonDef(b.k).base*100))*BigInt(b.lv);
 const comparePower = (a,b) => power(a)>power(b)?1:power(a)<power(b)?-1:0;
 function sortSouls(rows) {
+  if(order==="original")return sortFusionRows(rows);
   return rows.slice().sort((a,b)=>order==="name"?bukonDef(a.k).name.localeCompare(bukonDef(b.k).name,"ja")||comparePower(b,a):order==="power-desc"?comparePower(b,a):order==="power-asc"?comparePower(a,b):order==="rarity"?bukonDef(b.k).rarity-bukonDef(a.k).rarity:order==="part"?Object.keys(PARTS).indexOf(bukonDef(a.k).slots[0])-Object.keys(PARTS).indexOf(bukonDef(b.k).slots[0]):0);
 }
 function openFilters(done) {
@@ -45,7 +47,6 @@ function openFilters(done) {
 const PARTS = {weapon:"武器",shield:"盾",body:"胴",head:"頭",hands:"手",feet:"足",acc:"装飾"};
 const ownerOf = it => game.allDolls().find(d => Object.values(d.equip || {}).includes(it));
 const locationOf = it => ownerOf(it)?.name || "共有の袋";
-const affordable = plan => !!plan && Number.isSafeInteger(G().gold) && G().gold >= 0 && BigInt(G().gold) >= plan.cost;
 function picker(label, options, value, change) {
   const select=el("select","rf-select");select.setAttribute("aria-label",label);
   for(const [key,text] of options){const option=el("option","",text);option.value=key;select.append(option);}
@@ -66,9 +67,10 @@ function stockRow(b, done, { it = null, installed = null, onAttach = null, onDet
   if(installed!==null){row.append(button({label:"外す",kind:"ghost",disabled:!!(it.locked||it.cursed),onTap:()=>onDetach?onDetach():action("detach",it,installed,done)}));return row;}
   if(it)row.append(button({label:"宿す",kind:"primary",onTap:()=>onAttach?onAttach():action("attach",it,b,done)}));
   if(!management)return row;
-  if(def.max!==1 && game.featureUnlocked("bukonFusion")){const fuse=button({label:"合成",kind:"primary",onTap:()=>openFusion(b.k,done)});fuse.classList.add("bukon-tutorial-fuse");row.append(fuse);}
-  const protect=button({label:b.protected?"保護中":"保護",kind:"ghost",onTap:()=>action("protect",null,b,done)});
-  protect.title="同じ効果・強さの武魂をまとめて保護する・解除する";
+  if(def.max!==1 && game.featureUnlocked("bukonFusion")){const fuse=button({label:"合成",kind:"primary",disabled:!snapshotFusionPlan(G(),game.bukonTargets(),b),onTap:()=>openFusion(b,done)});fuse.classList.add("bukon-tutorial-fuse");row.append(fuse);}
+  if(b.it){row.classList.add("bk-installed-row");row.append(el("span","bk-installed-note",`宿し先：${itemName(b.it)}`));}
+  const protect=button({label:b.protected?"保護中":"保護",kind:"ghost",onTap:()=>action(b.it?"fusionLock":"protect",b.it||null,b,done)});
+  protect.title=b.it?"ロックを解除すると合成素材になり、素材として使うと装備から外れる":"同じ効果・強さの武魂をまとめて保護する・解除する";
   protect.setAttribute("aria-pressed",String(!!b.protected));row.append(protect);return row;
 }
 const soulCount = rows => rows.reduce((n,b)=>n+BigInt(b.count),0n);
@@ -122,36 +124,13 @@ function openGear(it, done) {
   };
   h=sheet.open({title:itemName(it),className:"ec-sheet bk-sheet",body:fill,footer:[{label:"閉じる",kind:"ghost",onTap:()=>h.close()}]});
 }
-function openFusion(k,done) {
-  const def=bukonDef(k);
-  const max=Math.max(2,maxFusionLevel(G(),k));
-  let h;
-  h=sheet.open({title:`${def.name}の武魂合成`,className:"ec-sheet bk-sheet",body:body=>{
-    body.append(el("p","rf-note","同じ武魂を3つ合成すると、より強い武魂に生まれ変わる。強さの違う武魂も、同じ効果なら素材にできる。合成には金貨が必要で、素材はなくなる。装着中・保護中の武魂は使わない。"));
-    const select=el("select","rf-select");select.setAttribute("aria-label","生まれ変わる武魂");
-    for(let lv=2;lv<=max;lv++) {const option=el("option","",`${bukonName({k,lv})}（金貨${fusionGold(k,lv).toLocaleString()}）`);option.value=lv;select.append(option);}
-    const preview=el("p","rf-note");
-    let fuseButton;
-    const update=()=>{const plan=fusionPlan(G(),k,Number(select.value));preview.textContent=plan?`消費：${plan.consume.map(b=>`${bukonName(b)} ×${b.count}`).join("、")} → ${bukonName(plan)} ×1。金貨${plan.cost.toLocaleString()}（所持${G().gold.toLocaleString()}）` : "素材が足りないか、保護されている。";if(plan&&!affordable(plan))preview.textContent+="。金貨が足りない。";if(fuseButton)fuseButton.disabled=!affordable(plan);};
-    select.onchange=update;update();body.append(select,preview);
-    fuseButton=button({label:"内容を確認して合成",kind:"primary",onTap:()=>{
-      const lv=Number(select.value),plan=fusionPlan(G(),k,lv);if(!affordable(plan)){toast("素材か金貨が足りません。");return;}
-      confirm({title:"武魂を合成する？",lines:[preview.textContent,"素材は消費される。分解はできない。"],okLabel:"金貨を払って合成",onOk:()=>action("fuse",null,{k,lv},()=>{h.close();done();})});
-    }});body.append(fuseButton);update();
-    const keep=el("input","rf-select");keep.type="number";keep.min="0";keep.step="1";keep.value="1";keep.setAttribute("aria-label","同じ効果量ごとに残す個数");
-    body.append(el("p","rf-note","一括合成で同じ効果量ごとに残す個数（保護中は全数残す）"),keep);
-    const bulkPreview=el("p","rf-note");bulkPreview.setAttribute("aria-live","polite");
-    const bulkButton=button({label:"余剰分を一括合成",kind:"ghost",onTap:()=>{
-      if(!/^\d+$/.test(keep.value))return;
-      const plan=bulkFusionPlan(G(),k,keep.value);if(!affordable(plan)){toast("合成できる素材か金貨が足りません。");return;}
-      confirm({title:"余剰分を合成する？",lines:[bulkPreview.textContent,`同じ効果量ごとに${keep.value}個ずつ残し、三つを一つへまとめる。合成した武魂は分解できない。`],okLabel:"一括合成",onOk:()=>action("bulk",null,{k,keep:keep.value},()=>{h.close();done();})});
-    }});
-    const updateBulk=()=>{
-      const plan=bulkFusionPlan(G(),k,keep.value);
-      bulkButton.disabled=!affordable(plan);
-      bulkPreview.textContent=plan?`合成後：${Object.entries(plan.stock).filter(([key,n])=>key.startsWith(k+":")&&BigInt(n)>0n).map(([key,n])=>`${bukonName({k,lv:Number(key.split(":")[1])})} ×${n}`).join("、")}。金貨${plan.cost.toLocaleString()}（所持${G().gold.toLocaleString()}）${affordable(plan)?"":"。金貨が足りない。"}`:"合成できる余剰分がない。保護中の武魂はすべて残す。";
-    };keep.oninput=updateBulk;updateBulk();body.append(bulkPreview,bulkButton);
-  },footer:[{label:"閉じる",kind:"ghost",onTap:()=>h.close()}]});
+function openFusion(b,done) {
+  const plan=snapshotFusionPlan(G(),game.bukonTargets(),b);if(!plan)return;
+  confirm({title:"武魂を合成する？",lines:[`${bukonName(b)} → ${bukonName(plan.upgrades[0])}`,...plan.rows.filter(r=>r.left<BigInt(r.count)).map(r=>`使用：${bukonName(r)} ×${BigInt(r.count)-r.left}${r.it?`（${itemName(r.it)}）`:""}`),`金貨${plan.cost.toLocaleString()}`,"同じ効果の武魂を素材に使う。保護中は素材にしない。解除済みの装備中の素材は自動で外れる。",...(b.it?["合成する武魂は装備に宿したまま強くなる。"]:[])],okLabel:"合成する",onOk:()=>action("upgrade",null,b,done)});
+}
+function openBulkFusion(done){
+  const plan=snapshotFusionPlan(G(),game.bukonTargets());if(!plan)return;
+  confirm({title:"一括合成する？",lines:[...plan.upgrades.map(b=>`${bukonName(b)} ×${b.count}`),`金貨${plan.cost.toLocaleString()}`,"今ある武魂だけで一段ずつ合成する。合成でできた武魂は今回は使わない。保護中は素材にせず、解除済みの装備中の素材は自動で外れる。"],okLabel:"一括合成する",onOk:()=>action("batch",null,null,done)});
 }
 export function renderEnchantList(parent, { doll = null } = {}) {
   const wrap=el("div","bk-panel");parent.append(wrap);
@@ -163,16 +142,18 @@ export function renderEnchantList(parent, { doll = null } = {}) {
     const equipment=SLOTS.map(k=>selected?.equip?.[k]).filter(Boolean);
     const soulFiltered=[effect,group,rarity,protection].some(x=>x!=="all");
     const matches=it=>(part==="all"||it.slot===part)&&(!soulFiltered||[...(it.bukon||[]),...rows.filter(b=>bukonFits(it,b))].some(matchesSoul));
-    const stock=sortSouls(rows.filter(matchesSoul));
+    const stock=sortSouls(fusionRows(G(),game.bukonTargets()).filter(matchesSoul));
     const head=el("div","wpc-lhead");
-    head.append(el("span","wpc-lhead-t",`武魂 ${mode==="gear"?equipment.filter(matches).length:soulCount(stock).toLocaleString()}点`),button({label:"絞り込み・並び替え",kind:"ghost",size:"sm",onTap:()=>openFilters(draw)}));wrap.append(head);
+    head.append(el("span","wpc-lhead-t",`武魂 ${mode==="gear"?equipment.filter(matches).length:soulCount(stock).toLocaleString()}点`),button({label:"絞り込み・並び替え",kind:"ghost",size:"sm",onTap:()=>openFilters(draw)}));
+    if(game.featureUnlocked("bukonFusion"))head.append(button({label:"一括合成",kind:"primary",size:"sm",disabled:!snapshotFusionPlan(G(),game.bukonTargets()),onTap:()=>openBulkFusion(draw)}));
+    wrap.append(head);
     if(filtered())wrap.append(el("p","bk-meta","絞り込み中。条件を解除するには「絞り込み・並び替え」を開こう。"));
     const tutorial=G().tut?.cur;
     if(["enchant","bukonFusion"].includes(tutorial)&&!G().tut.done?.[tutorial]){
       const resume=button({label:"武魂の練習を再開",kind:"primary",onTap:()=>openBukonPractice(tutorial)});resume.classList.add("bk-practice-start");wrap.append(resume);
     }
     const tabs=el("div","ec-afx-acts");
-    for(const [key,label] of [["gear","装備に宿す・外す"],["stock","保管中の武魂"]]){const tab=button({label,kind:mode===key?"primary":"ghost",onTap:()=>{mode=key;draw();}});tab.setAttribute("aria-pressed",String(mode===key));tabs.append(tab);}wrap.append(tabs);
+    for(const [key,label] of [["gear","装備に宿す・外す"],["stock","武魂の合成・保護"]]){const tab=button({label,kind:mode===key?"primary":"ghost",onTap:()=>{mode=key;draw();}});tab.setAttribute("aria-pressed",String(mode===key));tabs.append(tab);}wrap.append(tabs);
     if(mode==="gear"){
       const list=el("div","pt-slots bk-equipment");
       const keys=SLOTS.slice();

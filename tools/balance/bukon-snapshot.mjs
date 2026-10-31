@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import * as b from '../../src/bukon.js';
+const soul={k:'flat_hp',lv:1};
+const state=n=>({gold:100000,bukonStock:{'flat_hp:1':String(n)}});
+let g=state(27);assert(b.applySnapshotFusion(g,[]));assert.equal(g.bukonStock['flat_hp:2'],'9');assert(!g.bukonStock['flat_hp:3']);
+let it={bukon:[{...soul}]};g=state(2);assert(b.applySnapshotFusion(g,[it],b.fusionRows(g,[it])[0]));assert.equal(it.bukon[0].lv,2);assert.equal(it.bukon.length,1);
+it={bukon:[{...soul,fusionUnlocked:true}]};g=state(2);assert(b.applySnapshotFusion(g,[it],b.stockRows(g)[0]));assert.equal(it.bukon.length,0);assert.equal(g.bukonStock['flat_hp:2'],'1');
+g=state(3);g.gold=99;assert.equal(b.snapshotFusionPlan(g),null);assert(!b.applySnapshotFusion(g,[]));assert.equal(g.bukonStock['flat_hp:1'],'3');
+g=state(3);g.bukonProtected={'flat_hp:1':true};assert.equal(b.snapshotFusionPlan(g),null);
+g=state(6);g.bukonStock['flat_hp:2']='1';assert(b.applySnapshotFusion(g,[]));assert.equal(g.bukonStock['flat_hp:3'],'1');
+it={slot:'body',rar:'c',bukon:[{...soul,fusionUnlocked:true}]};g=state(0);b.migrateBukon(g,[it]);assert.equal(it.bukon[0].fusionUnlocked,true);
+g=state(100);g.gold=200;assert(b.applySnapshotFusion(g,[]));assert.equal(g.gold,0);assert.equal(g.bukonStock['flat_hp:2'],'2');
+console.log('一括の生成物再利用なし・装備中強化・解除素材の自動取り外し・保護・金貨境界・移行 OK');

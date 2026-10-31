@@ -783,3 +783,7 @@ html.pc-input .ui-sheet.ec-source-sheet { max-width: 720px; }
 .bk-copy-more { min-height:32px; padding:8px; text-align:center; color:var(--ink-dim); }
 
 .bk-panel .wpc-lhead-t { max-width:100%; min-width:0; overflow-wrap:anywhere; white-space:normal; }
+
+/* 宿し先は操作の下へ置き、小さな画面でもボタンを押せる幅を保つ。 */
+.bk-installed-row { flex-wrap:wrap; }
+.bk-installed-note { order:4; flex-basis:100%; min-width:0; font-size:11px; color:var(--ink-faint); overflow-wrap:anywhere; padding-bottom:6px; }
