@@ -3167,12 +3167,12 @@ export class Battle {
       res.hits.push({ target: tgt, dmg: extra, died });
       if (died) h = { ...h, died: true };
     }
-    // 魔力循環 (魔闘士): 通常攻撃で与えたダメージの 1/2/3/4% だけ MP を回復 (1回で最大MPの 2/3/4/5% まで)
+    // 魔力循環 (魔闘士): 通常攻撃で与えたダメージの 1/2/3/4% だけ MP を回復 (1回で最大MPの 1/2/3/4% まで)
     const mc = pv(actor, "bmManaCycle");
     const dealt = ((h && !h.miss && h.dmg) || 0) + extra;
     if (mc && dealt > 0 && actor.maxmp && actor.mp < actor.maxmp) {
       const lv = Math.min(4, mc);
-      const gain = Math.max(1, Math.min(Math.ceil(actor.maxmp * [0, 0.02, 0.03, 0.04, 0.05][lv]), Math.round(dealt * ([0, 0.01, 0.02, 0.03, 0.04][lv] || 0))));
+      const gain = Math.max(1, Math.min(Math.ceil(actor.maxmp * [0, 0.01, 0.02, 0.03, 0.04][lv]), Math.round(dealt * ([0, 0.01, 0.02, 0.03, 0.04][lv] || 0))));
       actor.mp = Math.min(actor.maxmp, actor.mp + gain);
       this.log(`${actor.name}の魔力循環：MP+${gain}`, "heal");
       this._proc(actor, "魔力循環");

@@ -363,6 +363,13 @@ console.log(`全${count}技を実行。会心・耐性・命中・攻撃/回復�
    assert.equal(learned.bmHouken||0,houken);
    assert(!learned.bmManaCycle);
  }
+ // 闘気循環: 物理技の後だけ最大MPの1/2/3%を回復する。通常攻撃の魔力循環とは別。
+ for(const lv of [1,2,3]) for(const key of ['KYOUGEKI','HALITO']) {
+   const a=actor(),t=foe();a.maxmp=1000;a.mp=500;a.passiveMap={battlemageJunkan:lv};
+   const b=new Battle([a],[t],()=>{}),cost=spellCost(a,SPELLS[key]);
+   b._exec({actor:a,action:'spell',spellKey:key,target:t});
+   assert.equal(a.mp,500-cost+(key==='KYOUGEKI'?lv*10:0),`闘気循環Lv${lv}: ${key}`);
+ }
  // 実際の通常攻撃で与ダメ比例・最大MPの上限・残りMPの空き容量を確認する。
  for(const lv of [1,2,3,4])for(const atk of [100,5000]){
    const a=actor(),t=foe();a.atk=atk;a.maxmp=1000;a.passiveMap={bmManaCycle:lv};const b=new Battle([a],[t],()=>{});
@@ -371,7 +378,7 @@ console.log(`全${count}技を実行。会心・耐性・命中・攻撃/回復�
      a.mp=i%2?999:0;t.hp=t.maxhp;t.alive=true;
      const before=a.mp,res=b._exec({actor:a,action:'attack',target:t});
      const dealt=res.hits.filter(h=>h.target===t&&!h.miss).reduce((sum,h)=>sum+(h.dmg||0),0);
-     const raw=Math.round(dealt*lv/100),cap=(lv+1)*10;
+     const raw=Math.round(dealt*lv/100),cap=lv*10;
      const gain=dealt>0?Math.max(1,Math.min(cap,raw)):0;
      assert.equal(a.mp,Math.min(a.maxmp,before+gain),`魔力循環Lv${lv}: 与ダメ${dealt}`);
      if(dealt>0){capped ||= raw>=cap;proportional ||= raw<cap;}
