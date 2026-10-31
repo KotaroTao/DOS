@@ -63,3 +63,28 @@ for(const kind of ['defend','run','spell','item']) {
  if(kind==='spell'||kind==='item')assert(refDeserialize(result.packet).snapshot.party[0].hp>50);
 }
 console.log('戦闘命令: 攻撃・防御・逃走・習得済み回復技・道具のサーバー実行 OK');
+
+// 別端末の先行した戦況へ古い選択を適用しない。退避に成功した後だけ選択を外す。
+assert.throws(()=>resolveCloudCommand(refDeserialize(graph),{...command,round:999}),/cloud_revision_conflict/);
+assert.throws(()=>resolveCloudCommand(refDeserialize(graph),{...command,rng:[0,0,0,0]}),/cloud_revision_conflict/);
+storage.setItem('dos-cloud-choice:test',JSON.stringify({command}));
+await recovery.archivePending({includeChoice:true});
+assert.equal(storage.getItem('dos-cloud-choice:test'),null);
+assert.deepEqual(JSON.parse(storage.getItem('dos-cloud-choice:test:recovery')).command,command);
+storage.setItem('dos-cloud-choice:test','keep');
+const originalSet=storage.setItem;storage.setItem=(key,value)=>{if(key.endsWith(':recovery'))throw Error('容量不足');originalSet(key,value)};
+await assert.rejects(recovery.archivePending({includeChoice:true}));assert.equal(storage.getItem('dos-cloud-choice:test'),'keep');
+storage.setItem=originalSet;
+console.log('戦況競合: 古い手番/乱数の拒否・選択の退避後再開・退避失敗時の保全 OK');
+
+const advancedBattle=refDeserialize(graph);advancedBattle.battle._commandToken='already-advanced';
+assert.throws(()=>resolveCloudCommand(advancedBattle,{...command,token:null}),/cloud_revision_conflict/);
+console.log('戦況識別: 同じ人業・ターン・乱数でも古い命令の別手番への適用を拒否 OK');
+const movedItem=refDeserialize(graph);Object.setPrototypeOf(movedItem.battle,Battle.prototype);
+movedItem.party[0].hp=50;movedItem.inventory=[{...ITEMS.u_styptic_salve,q:1}];movedItem.party[0].items=movedItem.inventory;
+movedItem.battle.chooseAction('item',null,{owner:movedItem.party[0],item:movedItem.inventory[0]});movedItem.battle.chooseTarget(movedItem.party[0]);
+const oldItemCommand=battleCommand(movedItem.battle,'commit',movedItem.rng);movedItem.inventory[0].q=2;
+assert.throws(()=>resolveCloudCommand(movedItem,oldItemCommand),/cloud_revision_conflict/);
+
+assert.throws(()=>resolveCloudCommand(refDeserialize(graph),{...command,actor:"outdated"}),e=>e.status===409);
+assert.throws(()=>resolveCloudCommand(refDeserialize(graph),{...command,target:{side:"enemy",uid:"outdated"}}),e=>e.status===409);

@@ -88,20 +88,26 @@ export function resolveCloudBattle(s, operation, choice = null) {
   if (choice) {
     const bad = () => { throw Object.assign(new Error("戦闘の選択が不正です"), { status: 400 }); };
     const actor = b.current;
-    if (!actor || actor.uid !== choice.actor || actor.side !== "party" || b._acted || b.result || !["input", "target", "resolve"].includes(b.phase)) bad();
+    if (!actor || actor.uid !== choice.actor || actor.side !== "party" || b._acted || b.result || !["input", "target", "resolve"].includes(b.phase)) throw Object.assign(new Error("cloud_revision_conflict"), { status: 409 });
     if (!["attack", "spell", "item", "swap", "defend", "run"].includes(choice.action)) bad();
     if (choice.action === "spell" && !battleSkills(actor).includes(choice.spellKey)) bad();
     let extra = null;
     if (["item", "swap"].includes(choice.action)) {
       const owner = s.party.find(d => d.uid === choice.owner);
-      if (!owner || !Number.isSafeInteger(choice.item) || choice.item < 0 || !owner.items?.[choice.item]) bad();
-      extra = { owner, item: owner.items[choice.item] };
+      if (!owner || !Number.isSafeInteger(choice.item) || choice.item < 0 || !owner.items?.[choice.item]) {
+        if (choice.itemRef) throw Object.assign(new Error("cloud_revision_conflict"), { status: 409 });
+        bad();
+      }
+      const item = owner.items[choice.item];
+      if (choice.itemRef && JSON.stringify(choice.itemRef) !== JSON.stringify({ id: item.id, q: item.q ?? null, lv: item.lv ?? null, rar: item.rar ?? null })) throw Object.assign(new Error("cloud_revision_conflict"), { status: 409 });
+      extra = { owner, item };
     }
     b.pending = null; b.phase = "input";
     if (b.chooseAction(choice.action, choice.spellKey, extra)?.invalid) bad();
     if (b.phase === "target") {
       const target = b.targetOptions().find(t => t.uid === choice.target?.uid && t.side === choice.target?.side);
-      if (!target) bad(); b.chooseTarget(target);
+      if (!target) throw Object.assign(new Error("cloud_revision_conflict"), { status: 409 });
+      b.chooseTarget(target);
     } else if (choice.target) bad();
   }
   let result = null;
@@ -152,21 +158,30 @@ export function resolveCloudTurn(snapshot, action, options = {}) {
 }
 
 // 表示中の戦闘から選択だけを取り出す。人業・道具の中身は送らない。
-export function battleCommand(b, operation) {
-  if (operation !== "commit") return { type: "battle", operation };
+export function battleCommand(b, operation, rng = null) {
+  const expected = { token: b._commandToken || null, round: b._roundNo, ...(rng ? { rng: [...rng] } : {}) };
+  if (operation !== "commit") return { type: "battle", operation, ...expected };
   const p = b.pending;
   if (!p) throw new Error("選択した行動がありません");
-  const command = { type: "battle", operation, actor: p.actor.uid, action: p.action };
+  const command = { type: "battle", operation, ...expected, actor: p.actor.uid, action: p.action };
   if (p.spellKey) command.spellKey = p.spellKey;
   if (p.target) command.target = { side: p.target.side, uid: p.target.uid };
   if (p.item) {
     const owner = p.owner || p.actor;
     command.owner = owner.uid; command.item = owner.items.indexOf(p.item);
+    command.itemRef = { id: p.item.id, q: p.item.q ?? null, lv: p.item.lv ?? null, rar: p.item.rar ?? null };
   }
   return command;
 }
 export function resolveCloudCommand(snapshot, command, options = {}) {
   if (command?.type !== "battle" || !["commit", "enemy", "stunned"].includes(command.operation)) throw Object.assign(new Error("命令の形式が不正です"), { status: 400 });
+  if (snapshot.state !== "combat" || !snapshot.battle) throw Object.assign(new Error("cloud_revision_conflict"), { status: 409 });
+  if (Object.hasOwn(command, "token") && command.token !== (snapshot.battle?._commandToken || null)
+    || command.round !== undefined && command.round !== snapshot.battle?._roundNo
+    || command.rng && JSON.stringify(command.rng) !== JSON.stringify(snapshot.rng)) {
+    throw Object.assign(new Error("cloud_revision_conflict"), { status: 409 });
+  }
+  snapshot.battle._commandToken = crypto.randomUUID();
   const packet = refSerialize(resolveCloudBattle(snapshot, command.operation, command.operation === "commit" ? command : null), options);
   const nextPacket = snapshot.battle.result ? null : refSerialize(resolveCloudBattle(snapshot, "advance"), options);
   return { packet, nextPacket };

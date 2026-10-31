@@ -98,6 +98,7 @@ async function command(user, body) {
       snapshot = refSerialize(next, { compact: body.snapshot?.format === 2 });
     }
   } else if (body.op === "command") {
+    if (!s.snapshot) throw Object.assign(new Error("cloud_revision_conflict"), { status: 409 });
     const current = refDeserialize(s.snapshot);
     response = resolveCloudCommand(current, body.command, { compact: true });
     const basePacket = commandPacketBase(s.snapshot);
@@ -118,6 +119,7 @@ async function command(user, body) {
     response.packet = refSerialize(resolveCloudBattle(current, body.action));
     snapshot = refSerialize(current);
   } else throw Object.assign(new Error("通信の種類が不正です"), { status: 400 });
+  if (body.syncGraph && ["battle", "turn"].includes(body.op)) response.sync = createCloudChange(s.snapshot, snapshot)?.change || [["set", [], snapshot]];
   return await rpc("cloud_commit_slot", { p_user: user.id, p_session: body.sessionId, p_slot: slot,
     p_revision: body.revision, p_command: body.commandId, p_request: body,
     p_snapshot: snapshot, p_response: response });

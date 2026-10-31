@@ -11399,7 +11399,7 @@ async function resolveSavedBattle(action) {
     codexSweepJobs(); notifyInsight();
     const snap = {};
     for (const k of SAVE_FIELDS) snap[k] = G[k];
-    const commandResult = cloudCommandMode() ? cloudActionCommand(battleCommand(G.battle, action)) : null;
+    const commandResult = cloudCommandMode() ? cloudActionCommand(battleCommand(G.battle, action, G.rng)) : null;
     commandResult?.catch(() => {});
     const prepared = encodeCloudSave(snap, cloudCompactGraph());
     prepared.catch(() => {});
@@ -20269,6 +20269,13 @@ async function init() {
     }
     loaded = loadGame(snapshot);
     if (snapshot && !loaded) throw new Error("クラウドの記録を読み込めません");
+    if (loaded && cloudCommandMode()) {
+      // 読込時の補正・能力再計算を一度だけ同期し、表示とサーバーの戦況を合わせる。
+      const normalized = {}; for (const key of SAVE_FIELDS) normalized[key] = G[key];
+      const raw = await encodeCloudSave(normalized, cloudCompactGraph());
+      await cloudSavePrepared(() => raw);
+      _lastCloudSave = raw;
+    }
   } else {
     try {
       localSaveSession = new LocalSaveSession({ slot: SAVE_SLOT, onConflict: () => {
