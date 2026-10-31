@@ -16,6 +16,7 @@ with sync_playwright() as p:
       const {deltaEl}=await import('/src/ui/loot.js');
       const {equipChooserEl,openCandidates}=await import('/src/ui/party.js');
       const {previewStats,statsDelta,equipSignature}=await import('/src/autoequip.js');
+      const {magicAttackPower,spellGrowth}=await import('/src/combat.js');
       const {ITEMS,SLOTS,recalc}=await import('/src/items.js');
       const {applyAffixes}=await import('/src/infaffix.js');
       const G=__game.G,out=[],check=(v,t)=>{if(!v)throw Error(t);out.push(t)};
@@ -24,9 +25,17 @@ with sync_playwright() as p:
       const d=G.party[0],old=game.cloneItem('dagger',50),cand=game.cloneItem('dagger',50);
       Object.assign(old,{crit:0,critDamage:0,spellCrit:0,spellCritDamage:0,afx:[{k:'I01',v:.08}]});applyAffixes(old);
       Object.assign(cand,{magic:true,crit:.047,critDamage:.23,spellCrit:.019,spellCritDamage:.17,resists:{physResist:6,magResist:7},aRes:{poison:.10},bRes:.14,eff:{guard:.10,spellCostMul:.8},onHit:{k:'poison',chance:.24,pct:.08},afx:[{k:'I01',v:.15}]});applyAffixes(cand);
+      cand.int=17;cand.pie=11;
       d.equip.weapon=old;recalc(d);G.inventory.push(cand);
       const before=previewStats(d,d.equip),after=previewStats(d,{...d.equip,weapon:cand}),delta=statsDelta(before,after);
-      const expected=['会心率+4.7%','会心ダメージ+23%','魔法会心率+1.9%','魔法会心ダメージ+17%'];
+      check(magicAttackPower({int:100,jobLv:50},'int')===400,'魔攻に魂Lvの成長倍率を反映');
+      check(magicAttackPower({pie:100,level:10},'pie')===100,'PIE魔攻・levelの代替');
+      const direct=equipPreviewDelta(d,cand);
+      for(const k of ['magicInt','magicPie'])check(delta[k]===direct[k]&&delta[k]>0,'予測と装備比較の魔攻が一致：'+k);
+      check(after.magicInt===Math.round(after.int*spellGrowth(d.jobLv||d.level||1)),'装備後のINTから魔攻を計算');
+      const ordered=statDelta({power:-199,magicInt:32,magicPie:-56,int:8,pie:-14}).textContent.replace(/[\s\u200b]/g,'');
+      check(ordered.indexOf('攻撃力')<ordered.indexOf('魔攻（INT）')&&ordered.indexOf('魔攻（INT）')<ordered.indexOf('魔攻（PIE）')&&ordered.indexOf('魔攻（PIE）')<ordered.indexOf('INT+'),'攻撃力・魔攻INT・魔攻PIE・能力の順');
+      const expected=['魔攻（INT）+' + delta.magicInt,'魔攻（PIE）+' + delta.magicPie,'会心率+4.7%','会心ダメージ+23%','魔法会心率+1.9%','魔法会心ダメージ+17%'];
       const clean=s=>s.replace(/[▲▼\s\u200b]/g,'');
       for(const [label,node] of [['候補の数値部品',statDelta(delta)],['入手・商会の増減',deltaEl(delta)],['品の比較',equipCompareEl(d,cand)]]){
         for(const text of expected)check(clean(node.textContent).includes(text),label+'：'+text);
@@ -64,7 +73,12 @@ with sync_playwright() as p:
           sheet.closeAll();await new Promise(r=>setTimeout(r,650));
         }
       } finally {game.rollReforge=roll;game.reforgeBlock=block;}
-      UI.autoEquip(d);
+      sheet.closeAll();await new Promise(r=>setTimeout(r,650));
+      UI.openParty(0,{context:'town',seg:'stats'});
+      const labels=[...document.querySelectorAll('.pt-fact-k')].map(n=>n.textContent.replace(/[\s\u200b]/g,''));
+      const at=labels.indexOf('攻撃力');
+      check(at>=0&&labels[at+1]==='魔攻（INT）'&&labels[at+2]==='魔攻（PIE）','能力画面でも攻撃力の直後に魔攻2種');
+      sheet.closeAll();await new Promise(r=>setTimeout(r,650));UI.autoEquip(d);
       return out;
     }''')
     print('\n'.join('OK ' + s for s in result), flush=True)
