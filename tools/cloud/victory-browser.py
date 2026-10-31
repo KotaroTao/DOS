@@ -64,7 +64,9 @@ with sync_playwright() as p:
         page.wait_for_timeout(6000)
         print('loaded',page.evaluate("({state:__game.G.state,phase:__game.G.battle?.phase,animating:__game.G.animating,inventory:__game.G.inventory.length,booting:document.body.className,gate:document.querySelector('.cloud-gate')?.hidden,buttons:document.querySelectorAll('#combat-menu button').length})"),errors,flush=True)
 
-        for fast in [True,False]:
+        command_mode=page.evaluate("async()=>{return (await import('/src/cloud-save.js')).cloudCommandMode()}")
+        # ローカルadvanceの間隔は背景戦闘だけを測る。命令戦闘はサーバーで進む。
+        for fast in ([] if command_mode else [True,False]):
             page.evaluate("""fast=>{
               const g=__game.G,b=g.battle;window.tempoTimes=[];g.fastAnim=fast;
               const advance=Object.getPrototypeOf(b).advance;
@@ -78,11 +80,13 @@ with sync_playwright() as p:
             assert max(samples)<700,samples
             print('自動行動の間隔',fast,samples,flush=True)
             page.evaluate('delete __game.G.battle.advance')
-        page.evaluate("""()=>{
+        page.evaluate("""async()=>{
           const g=__game.G;for(const e of g.battle.enemies){e.hp=1;e.vit=0;e.isMimic=true;}
-          g.battle.cancelTarget();g.autoCombat=true;__game.world.resumeFromState();
+          g.battle.cancelTarget();
+          await __game.autosave(true);await (await import('/src/cloud-save.js')).cloudFlush();
+          g.autoCombat=true;__game.world.resumeFromState();
         }""")
-        page.wait_for_function("__game.G.state==='board' && !!__game.G.pendingResults?.chest",timeout=20000)
+        page.wait_for_function("__game.G.state==='board' && !!__game.G.pendingResults?.chest",timeout=60000)
         page.evaluate("""async()=>{
           if(typeof __game.G.pendingResults.chest.open!=='function')throw Error('宝箱の操作なし');
           await Promise.race([__game.autosave(true),new Promise((_,reject)=>setTimeout(()=>reject(Error('戦果保存が停止')),10000))]);

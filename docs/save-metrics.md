@@ -13,9 +13,9 @@
 ## JSONの読み方
 
 - `visibleMs`: 計測開始後、このページが表示されていた時間。タイトル・待機・設定閲覧も含む。非表示時間とページを閉じた時間は含まない。操作中時間やサーバー稼働時間ではない。
-- `operations`: `save`/`claim`/`renew`/`battle`/`turn`/`consent`/`reset`/`delete-account`ごとの実送信試行。再送・401後の再送も1試行ずつ数える。認証APIは除外。
+- `operations`: `command`/`save`/`claim`/`renew`/`battle`/`turn`/`consent`/`reset`/`delete-account`ごとの実送信試行。再送・401後の再送も1試行ずつ数える。認証APIは除外。
 - `attempts`/`successes`/`failures`: API試行数と結果。HTTP成功でも本文を解釈できない場合は失敗。
-- `sentBytes`/`receivedBytes`: リクエスト・レスポンス本文のUTF-8バイト合計。送信失敗・時間切れ時の送信量は送ろうとした本文、受信量は読み取りが完了した分。圧縮前の値で、転送の実バイト数ではない。
+- `sentBytes`/`receivedBytes`: リクエスト・レスポンス本文のUTF-8バイト合計。送信失敗・時間切れ時の送信量は送ろうとした本文、受信量は読み取りが完了した分。HTTPによる圧縮前の値で、転送の実バイト数ではない。命令対応APIのgzip-Base64応答は圧縮データを包んだ本文のサイズを数える。
 - `totalMs`/`maxMs`: 要求開始から本文読取完了まで（失敗なら失敗確定まで）の合計・最大。平均は`totalMs / attempts`。
 - `statuses`: HTTP状態別の件数。`0`はHTTP応答を得る前の失敗。
 - `latencyBuckets`: 100/500/1000/5000/15000ms以下、それ以上の6区間。P95がどの区間にあるかの参考にする。個別の時系列は保管しない。

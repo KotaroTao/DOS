@@ -11,6 +11,9 @@
 const CACHE = "dos-dev";
 const DEV = CACHE === "dos-dev";
 const ASSETS = [
+  "./src/cloud-wire.js",
+  "./src/cloud-command-codec.js",
+  "./src/cloud-change.js",
   "./src/save-metrics.js",
   "./src/branding.js",
   "./art/branding/dead-sea-games.webp",

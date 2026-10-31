@@ -11,7 +11,7 @@ import { CATALOG_ITEMS } from "./catalog/index.js";
 import { equipLevelFor } from "./equiplevel.js";
 import { applyAffixes, gearPerks } from "./infaffix.js";
 import { trialEquip } from "./autoequip.js";
-import { recalcDoll, setSharedSouls, setPermanentStatSource, setOrderSource, setSkillGate, soulByUid, SOUL_CLASSES, pLv } from "./souls.js";
+import { recalcDoll, setSharedSouls, setPermanentStatSource, setOrderSource, setSkillGate, soulByUid, SOUL_CLASSES, pLv, battleSkills } from "./souls.js";
 import { permanentEventStats } from "./events.js";
 import { enemyLvTag } from "./enemylevel.js";
 
@@ -21,7 +21,7 @@ Object.assign(ITEMS, CATALOG_ITEMS);
 registerEquipLevel(equipLevelFor);
 registerAffixes(applyAffixes, gearPerks);
 
-export function resolveCloudBattle(s, operation) {
+export function resolveCloudBattle(s, operation, choice = null) {
   shareInventory(s);
   const b = s.battle;
   if (s.state !== "combat" || !b) throw new Error("戦闘の記録がありません");
@@ -85,6 +85,25 @@ export function resolveCloudBattle(s, operation) {
     p.hp = Math.min(p.hp, p.maxhp); p.mp = Math.min(p.mp, p.maxmp);
     return { ok: true, msg: `${p.name}は ${it.name} を装備した`, displaced: tr.displaced };
   });
+  if (choice) {
+    const bad = () => { throw Object.assign(new Error("戦闘の選択が不正です"), { status: 400 }); };
+    const actor = b.current;
+    if (!actor || actor.uid !== choice.actor || actor.side !== "party" || b._acted || b.result || !["input", "target", "resolve"].includes(b.phase)) bad();
+    if (!["attack", "spell", "item", "swap", "defend", "run"].includes(choice.action)) bad();
+    if (choice.action === "spell" && !battleSkills(actor).includes(choice.spellKey)) bad();
+    let extra = null;
+    if (["item", "swap"].includes(choice.action)) {
+      const owner = s.party.find(d => d.uid === choice.owner);
+      if (!owner || !Number.isSafeInteger(choice.item) || choice.item < 0 || !owner.items?.[choice.item]) bad();
+      extra = { owner, item: owner.items[choice.item] };
+    }
+    b.pending = null; b.phase = "input";
+    if (b.chooseAction(choice.action, choice.spellKey, extra)?.invalid) bad();
+    if (b.phase === "target") {
+      const target = b.targetOptions().find(t => t.uid === choice.target?.uid && t.side === choice.target?.side);
+      if (!target) bad(); b.chooseTarget(target);
+    } else if (choice.target) bad();
+  }
   let result = null;
   if (operation === "advance") {
     if (!b._acted || b.result) throw new Error("手番を進められません");
@@ -128,6 +147,27 @@ export function resolveCloudBattle(s, operation) {
 export function resolveCloudTurn(snapshot, action, options = {}) {
   if (!["commit", "enemy", "stunned"].includes(action)) throw new Error("行動が一致しません");
   const packet = refSerialize(resolveCloudBattle(snapshot, action), options);
+  const nextPacket = snapshot.battle.result ? null : refSerialize(resolveCloudBattle(snapshot, "advance"), options);
+  return { packet, nextPacket };
+}
+
+// 表示中の戦闘から選択だけを取り出す。人業・道具の中身は送らない。
+export function battleCommand(b, operation) {
+  if (operation !== "commit") return { type: "battle", operation };
+  const p = b.pending;
+  if (!p) throw new Error("選択した行動がありません");
+  const command = { type: "battle", operation, actor: p.actor.uid, action: p.action };
+  if (p.spellKey) command.spellKey = p.spellKey;
+  if (p.target) command.target = { side: p.target.side, uid: p.target.uid };
+  if (p.item) {
+    const owner = p.owner || p.actor;
+    command.owner = owner.uid; command.item = owner.items.indexOf(p.item);
+  }
+  return command;
+}
+export function resolveCloudCommand(snapshot, command, options = {}) {
+  if (command?.type !== "battle" || !["commit", "enemy", "stunned"].includes(command.operation)) throw Object.assign(new Error("命令の形式が不正です"), { status: 400 });
+  const packet = refSerialize(resolveCloudBattle(snapshot, command.operation, command.operation === "commit" ? command : null), options);
   const nextPacket = snapshot.battle.result ? null : refSerialize(resolveCloudBattle(snapshot, "advance"), options);
   return { packet, nextPacket };
 }
