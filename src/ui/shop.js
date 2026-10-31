@@ -593,7 +593,7 @@ function openRevealSheet(items) {
       const ic = el("span", "wpc-srow-ic" + (rarityKey(it) ? " rar-" + rarityKey(it) : ""));
       if (rarityKey(it)) ic.style.setProperty("--edge", RARITIES[rarityKey(it)].color);
       ic.appendChild(spriteCanvas(it, 3));
-      main.appendChild(ic);
+      main.appendChild(withBukonSockets(ic, it));
       const tx = el("span", "wpc-prow-t");
       if (isFirstGet(it)) {
         const nm = el("span", "ap-sum-name");

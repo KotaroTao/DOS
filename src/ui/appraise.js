@@ -1,3 +1,4 @@
+import { withBukonSockets } from "./bukonview.js";
 import { bagOwners } from "../items.js";
 // ===== 鑑定を試みる — 隊の鑑定の心得で、未鑑定の品を一つずつ確かめる =====
 // 「まとめて鑑定」(商会・有料・確実) より先に出す、隊の技による一括鑑定。
@@ -294,7 +295,7 @@ export function openTryIdentifyAll({ onDone } = {}) {
       const ic = el("span", "wpc-srow-ic" + (rk ? " rar-" + rk : ""));
       if (rk) ic.style.setProperty("--edge", RARITIES[rk].color);
       ic.appendChild(spriteCanvas(it, 3));
-      main.appendChild(ic);
+      main.appendChild(withBukonSockets(ic, it));
       const tx = el("span", "wpc-prow-t");
       if (r.first) {
         const nm = el("span", "ap-sum-name");
