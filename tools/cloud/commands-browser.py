@@ -1,5 +1,6 @@
 """実SQL/Edgeの命令戦闘。応答喪失・再送・途中終了と再開・通信量を確認。"""
 import json
+import uuid
 from urllib.parse import urlparse
 from playwright.sync_api import sync_playwright
 CONFIG='export const CLOUD_CONFIG={enabled:true,url:"https://cloud.test",anonKey:"test",protocol:1};'
@@ -8,9 +9,14 @@ with sync_playwright() as p:
  c=b.new_context(viewport={'width':390,'height':844},service_workers='block',reduced_motion='reduce')
  c.request.post('http://127.0.0.1:8002/test/reset')
  c.route('**/src/cloud-config.js',lambda r:r.fulfill(content_type='text/javascript',body=CONFIG))
- commands=[];sizes=[];drop={'once':True};hold={'on':False,'held':[]};errors=[]
+ commands=[];sizes=[];drop={'once':True};conflict={'once':False};hold={'on':False,'held':[]};errors=[]
  def api(r):
   u=urlparse(r.request.url);body=r.request.post_data_json if r.request.method=='POST' else None
+  if body and body.get('op')=='command' and conflict['once']:
+   conflict['once']=False
+   other={**body,'op':'save','commandId':str(uuid.uuid4()),'change':[]}
+   advanced=r.fetch(url='http://127.0.0.1:8002'+u.path,post_data=json.dumps(other))
+   assert advanced.status==200
   response=r.fetch(url='http://127.0.0.1:8002'+u.path+('?' +u.query if u.query else ''))
   if body and body.get('op')=='command':
    commands.append(body);sizes.append((len(r.request.post_data.encode()),len(response.body())))
@@ -59,6 +65,7 @@ with sync_playwright() as p:
  page.wait_for_timeout(1500)
  assert hold['held'],'命令が送信されない'
  held_body=hold['held'][0][1]
+ assert page.evaluate("""async()=>{const m=await import('/src/cloud-save.js');window.unexpectedSave=false;const ok=await m.cloudPrepareReload(()=>{unexpectedSave=true;return Promise.resolve(true)});return ok===false&&!unexpectedSave;}""")
  assert page.evaluate("!!localStorage.getItem('dos-cloud-choice:11111111-1111-4111-8111-111111111111')")
  for route,_ in hold['held']: route.abort('failed')
  c.unroute_all(behavior='ignoreErrors');page.close();hold['on']=False
@@ -72,7 +79,19 @@ with sync_playwright() as p:
  assert page.evaluate('__game.G.battle.enemies[0].hp')<after
  page.wait_for_function("__game.G.battle.phase==='input' && !__game.G.animating",timeout=60000)
  page.evaluate(awaitable)
+ # 別の更新が先に確定した場合、古い選択を退避して最新記録へ戻れる。
+ before_conflict=page.evaluate('__game.G.battle.enemies[0].hp')
+ conflict['once']=True
+ page.locator('#combat-menu .cmd-main button.primary').first.click()
+ page.get_by_role('button',name='最新の記録から再開',exact=True).wait_for(timeout=60000)
+ with page.expect_navigation(wait_until='domcontentloaded'):
+  page.get_by_role('button',name='最新の記録から再開',exact=True).click()
+ page.locator('.ttl-overlay:not(.ttl-out) .ttl-menu .ttl-btn.primary').click()
+ page.wait_for_function("window.__game?.G.battle && document.querySelector('.cloud-gate')?.hidden",timeout=60000)
+ assert page.evaluate('__game.G.battle.enemies[0].hp')==before_conflict
+ assert page.evaluate("!localStorage.getItem('dos-cloud-choice:11111111-1111-4111-8111-111111111111') && !!localStorage.getItem('dos-cloud-choice:11111111-1111-4111-8111-111111111111:recovery')")
  assert not errors,errors
+ print('版競合: 選択を退避し、過去へ戻らず最新の記録から再開 OK')
  print('選択のDB確定→応答停止→画面終了→同じIDで再開 OK')
  print('命令戦闘: 応答喪失でも同じ命令を再送・再起動で確定済み結果・袋1000個の維持 OK')
  print('要求/応答本文バイト:',sizes)

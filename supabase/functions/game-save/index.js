@@ -98,6 +98,7 @@ async function command(user, body) {
       snapshot = refSerialize(next, { compact: body.snapshot?.format === 2 });
     }
   } else if (body.op === "command") {
+    if (!s.snapshot) throw Object.assign(new Error("cloud_revision_conflict"), { status: 409 });
     const current = refDeserialize(s.snapshot);
     response = resolveCloudCommand(current, body.command, { compact: true });
     const basePacket = commandPacketBase(s.snapshot);

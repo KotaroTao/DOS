@@ -11399,7 +11399,7 @@ async function resolveSavedBattle(action) {
     codexSweepJobs(); notifyInsight();
     const snap = {};
     for (const k of SAVE_FIELDS) snap[k] = G[k];
-    const commandResult = cloudCommandMode() ? cloudActionCommand(battleCommand(G.battle, action)) : null;
+    const commandResult = cloudCommandMode() ? cloudActionCommand(battleCommand(G.battle, action, G.rng)) : null;
     commandResult?.catch(() => {});
     const prepared = encodeCloudSave(snap, cloudCompactGraph());
     prepared.catch(() => {});

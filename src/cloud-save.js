@@ -166,8 +166,9 @@ export class CloudSaveClient {
     }
   }
   // 復旧を明示的に選んだ時だけ退避する。退避に失敗したら元の要求を残す。
-  async archivePending() {
-    const entries = [pendingKey(this.auth.user.id, this.slot), checkpointKey(this.auth.user.id, this.slot)]
+  async archivePending({ includeChoice = false } = {}) {
+    const entries = [pendingKey(this.auth.user.id, this.slot), checkpointKey(this.auth.user.id, this.slot),
+      ...(includeChoice ? [choiceKey(this.auth.user.id)] : [])]
       .map(key => [key, this.storage.getItem(key)]).filter(([,raw]) => raw);
     for (const [key, raw] of entries) {
       try { this.storage.setItem(key + ":recovery", raw); }
@@ -327,7 +328,7 @@ async function resumeSavedRecord() {
   resumingRecord = true;
   const buttons = [...controls.querySelectorAll("button")];
   for (const b of buttons) b.disabled = true;
-  try { await client.archivePending(); location.reload(); }
+  try { await client.archivePending({ includeChoice: client.choiceConflict === true }); location.reload(); }
   catch {
     message.textContent = "未送信の操作を保管できませんでした。ブラウザーの保存領域が不足しているか、利用できません。元の操作は残しています。再接続をお試しください。";
     resumingRecord = false;
@@ -337,6 +338,12 @@ async function resumeSavedRecord() {
 function failure(e) {
   return new Promise((resolve) => {
     const chosen = !!getJSON(choiceKey(client.auth.user.id));
+    if (chosen && e.status === 409 && e.message === "cloud_revision_conflict") {
+      client.choiceConflict = true;
+      showGate("別の画面で記録が先に更新されています。この選択を新しい戦況へ適用せず、退避して最新の確定済み記録から再開できます。過去の記録へは戻りません。");
+      button("最新の記録から再開", resumeSavedRecord);
+      return;
+    }
     if (chosen && e.status !== 401 && !(e.status === 400 && /refresh|token/i.test(e.message))) {
       showGate("選択した行動の確定を確認できません。選び直さず、同じ行動で再接続します。" + (e.status ? ` HTTP ${e.status}` : ""));
       button("再接続", () => location.reload());
@@ -505,7 +512,7 @@ export function cloudCheckpointNow(snapshot) {
 export function cloudFlush() { return client?.flush() || Promise.resolve(); }
 // 終了・更新では、最後の保存を作る前に入力を止める。通常保存は裏で続ける。
 export async function cloudPrepareReload(save) {
-  if (leaving || managing || !client || !ready || terminal) return false;
+  if (leaving || managing || !client || !ready || terminal || client.waiting || client.blocking) return false;
   leaving = true;
   showGate();
   try {
