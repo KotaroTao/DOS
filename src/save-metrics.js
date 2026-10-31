@@ -23,11 +23,24 @@ export class SaveMetrics {
     s.latencyBuckets[bucket < 0 ? 5 : bucket]++;
     this.dirty = true;
   }
+  timing(stage, ms, actions = 0) {
+    if (!["commandQueue", "commandCalculation", "commandResult", "confirmedPlayback"].includes(stage) || !Number.isFinite(ms) || ms < 0) return;
+    try {
+      this.tick();
+      if (!this.data.timings || typeof this.data.timings !== "object" || Array.isArray(this.data.timings)) this.data.timings = {};
+      let t = this.data.timings[stage];
+      if (!t || ![t.samples, t.totalMs, t.maxMs, t.confirmedActions].every(Number.isFinite)) t = this.data.timings[stage] = { samples: 0, totalMs: 0, maxMs: 0, confirmedActions: 0 };
+      t.samples++; t.totalMs += ms; t.maxMs = Math.max(t.maxMs, ms);
+      if (Number.isSafeInteger(actions) && actions > 0 && actions <= 17) t.confirmedActions += actions;
+      this.dirty = true;
+    } catch { /* 計測の破損で戦闘や保存を止めない */ }
+  }
+
   trialTrigger() { this.data.trial.triggers++; this.dirty = true; }
   trialSample(raw) { const bytes = utf8Bytes(raw); const t = this.data.trial; t.samples++; t.snapshotBytes += bytes; t.maxSnapshotBytes = Math.max(t.maxSnapshotBytes, bytes); this.dirty = true; }
   report() {
     this.tick();
-    return JSON.parse(JSON.stringify({ ...this.data, exportedAt: new Date().toISOString(), scope: "この端末・同じ公開元の累計。表示中の時間はタイトル・待機を含む。複数タブの同時計測は非対応。", units: "本文のUTF-8バイト。HTTP/TLS・圧縮・画像・認証・DB内部通信・課金転送量は対象外。失敗時の送信量は送信予定本文、受信量は読み取り完了分。", latencyBoundsMs: [100, 500, 1000, 5000, 15000, null], trialNote: "試遊は送信しない。triggersは保存契機、snapshotBytesは最大5秒に1回の圧縮セーブ容量サンプルの合計。送信回数・通信量の実測とは別。", storageError: this.storageError }));
+    return JSON.parse(JSON.stringify({ ...this.data, exportedAt: new Date().toISOString(), scope: "この端末・同じ公開元の累計。表示中の時間はタイトル・待機を含む。複数タブの同時計測は非対応。", units: "本文のUTF-8バイト。HTTP/TLS・圧縮・画像・認証・DB内部通信・課金転送量は対象外。失敗時の送信量は送信予定本文、受信量は読み取り完了分。", latencyBoundsMs: [100, 500, 1000, 5000, 15000, null], timingsNote: "timingsはms。commandQueueは送信列の待ち、commandCalculationは通信と並行する端末計算、commandResultは選択から確定結果の表示直前、confirmedPlaybackは確定済みの一手の表示待ち。並行区間があるため合算しない。confirmedActionsは表示まで到達した命令に含む確定済み手数。", trialNote: "試遊は送信しない。triggersは保存契機、snapshotBytesは最大5秒に1回の圧縮セーブ容量サンプルの合計。送信回数・通信量の実測とは別。", storageError: this.storageError }));
   }
   persist() { this.tick(); try { if (!this.storage) throw new Error("計測の保管先を利用できません"); this.storage.setItem(KEY, JSON.stringify(this.data)); this.storageError = false; this.dirty = false; } catch { this.storageError = true; } }
   clear() { this.data = empty(); this.last = this.now(); this.persist(); }

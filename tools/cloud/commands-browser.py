@@ -86,7 +86,7 @@ with sync_playwright() as p:
  page.locator('.ttl-overlay:not(.ttl-out) .ttl-menu .ttl-btn.primary').click()
  page.wait_for_function("window.__game?.G.battle && document.querySelector('.cloud-gate')?.hidden",timeout=60000)
  assert sum(x['commandId']==held_body['commandId'] for x in commands)>=2
- assert page.evaluate('__game.G.battle.enemies[0].hp')<after
+ assert page.evaluate('__game.G.battle._commandToken').startswith(held_body['commandId'])
  page.wait_for_function("__game.G.battle.phase==='input' && !__game.G.animating",timeout=60000)
  page.evaluate(awaitable)
  # 別の更新が先に確定した場合、古い選択を退避して最新記録へ戻れる。

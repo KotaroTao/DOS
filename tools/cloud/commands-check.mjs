@@ -126,6 +126,30 @@ const replayClient=new CloudSaveClient({protocol:1},{storage});replayClient.auth
 replayClient.request=async body=>{assert(!body.replay);return response;};
 await replayClient.actionCommand(command);
 console.log('短い確定通知: キー順に依存しない再現とSHA-256・要求IDに結び付く手番・Worker非対応の互換動作 OK');
+// 保存の集約待ちを戦闘命令に上乗せせず、保存→命令の順は維持する。
+const queueDisk=new Map(),queueStorage={getItem:k=>queueDisk.get(k)||null,setItem:(k,v)=>queueDisk.set(k,v),removeItem:k=>queueDisk.delete(k)};
+const urgentClient=new CloudSaveClient({protocol:1},{storage:queueStorage});urgentClient.auth=c.auth;urgentClient.sessionId='session';urgentClient.commandMode=true;urgentClient.confirmed=graph;
+const queueOps=[],queueStarted=performance.now();
+urgentClient.request=async body=>{queueOps.push([body.op,performance.now()-queueStarted]);return body.op==='command'?response:{revision:1};};
+const queueGraph=structuredClone(graph);queueGraph.templates[0].o.queueTest=1;
+const queuedSave=urgentClient.save(queueGraph);
+await new Promise(r=>setTimeout(r,20));
+await urgentClient.actionCommand(command);await queuedSave;
+assert.deepEqual(queueOps.map(x=>x[0]),['save','command']);assert(queueOps[0][1]<250,queueOps);
+console.log('戦闘命令は先行保存の500ms集約待ちを解除し、保存順を維持する OK');
+// 選択不要の手番だけをまとめ、次に選べる味方の手番で止める。
+const forcedId=crypto.randomUUID();
+const forcedResult=await replayCloudCommand(graph,command,forcedId,true);
+assert(forcedResult.forcedPackets.length>0);
+let sequential=await replayCloudCommand(graph,command,forcedId);
+for(let i=0;i<forcedResult.forcedPackets.length;i++){
+ const turn=forcedResult.forcedPackets[i],current=refDeserialize(sequential.snapshot);
+ sequential=await replayCloudCommand(sequential.snapshot,battleCommand(current.battle,turn.operation,current.rng),`${forcedId}:${i+1}`);
+}
+assert.deepEqual(refDeserialize(forcedResult.snapshot),refDeserialize(sequential.snapshot));
+const stopped=refDeserialize(forcedResult.snapshot);assert.equal(stopped.battle.phase,'input');assert.equal(stopped.battle.current.side,'party');
+console.log('敵・行動不能を一度に確定しても1手ずつと結果が一致し、次の味方の選択で止まる OK');
+
 // 端末の再計算が失敗しても、命令を捨てず従来のサーバー返答へ戻す。
 globalThis.Worker=class {
  postMessage(message){queueMicrotask(()=>this.onmessage({data:message.op==='replayCommand'
@@ -137,3 +161,15 @@ failedReplay.request=async body=>{assert(!body.replay);return response;};
 await failedReplay.actionCommand(command);
 assert.equal(storage.getItem('dos-cloud-choice:test'),null);
 console.log('端末の再計算失敗時も従来のサーバー返答で確定し、選択を取りこぼさない OK');
+// Workerの再計算を保留したままでも、先に通信を開始する。
+let heldReplay;
+globalThis.Worker.prototype.postMessage=function(message){heldReplay={message,worker:this};};
+const parallelClient=new CloudSaveClient({protocol:1},{storage});parallelClient.auth=c.auth;parallelClient.sessionId='session';parallelClient.commandMode=true;parallelClient.commandReplay=true;parallelClient.confirmed=graph;
+parallelClient.request=async body=>{
+ assert(body.replay);assert(heldReplay);
+ const local=await replayCloudCommand(graph,body.command,body.commandId);
+ heldReplay.worker.onmessage({data:{id:heldReplay.message.id,result:local}});
+ return {revision:1,replayHash:local.hash};
+};
+await Promise.race([parallelClient.actionCommand(command),new Promise((_,reject)=>setTimeout(()=>reject(Error('再計算が通信を止めた')),1500))]);
+console.log('端末の照合計算と通信を並行し、確定通知と一致してから完了する OK');

@@ -231,4 +231,18 @@ assert.deepEqual(replayClaim.snapshot,expectedReplay.snapshot);
 assert.equal(replayClaim.backgroundBattle,false);assert.equal(replayClaim.commandReplay,true);
 console.log('短い確定通知: DB確定・SHA-256一致・150バイト未満・同一ID再送・再開時の記録一致 OK');
 
+// 敵の続く手番も、短い通知1回で確定し、次の選択地点を読み戻せる。
+const batchSave=await (await request({...base,op:'save',revision:replayClaim.revision,commandId:crypto.randomUUID(),snapshot:commandGraph})).json();
+const batchState=refDeserialize(commandGraph);Object.setPrototypeOf(batchState.battle,Battle.prototype);
+batchState.battle.chooseAction('attack');batchState.battle.chooseTarget(batchState.battle.enemies[0]);
+const batchRequest={...base,op:'command',replay:true,forcedTurns:true,revision:batchSave.revision,commandId:crypto.randomUUID(),command:battleCommand(batchState.battle,'commit',batchState.rng)};
+const batchExpected=await replayCloudCommand(commandGraph,batchRequest.command,batchRequest.commandId,true);
+assert(batchExpected.forcedPackets.length>0);
+const batchResponse=await (await request(batchRequest)).json();assert.equal(batchResponse.replayHash,batchExpected.hash);assert(JSON.stringify(batchResponse).length<150);
+assert.deepEqual(await (await request(batchRequest)).json(),batchResponse);
+const batchClaim=await (await request({...base,op:'claim',compactGraph:true})).json();
+assert.equal(batchClaim.forcedTurns,true);assert.deepEqual(batchClaim.snapshot,batchExpected.snapshot);
+assert.equal(refDeserialize(batchClaim.snapshot).battle.phase,'input');
+console.log('敵の連続手番: 通信1回で確定・再送は一度だけ・次の選択地点から再開 OK');
+
 await db.close();
