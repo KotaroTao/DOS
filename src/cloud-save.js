@@ -117,6 +117,7 @@ export class CloudSaveClient {
       }
       const body = { protocol: this.config.protocol, sessionId: this.sessionId,
         commandId: crypto.randomUUID(), revision: this.revision, op, ...payload,
+        ...(this.commandMode && ["battle", "turn"].includes(op) ? { syncGraph: true } : {}),
         ...(typeof DecompressionStream !== "undefined" ? { acceptEncoding: "gzip" } : {}) };
       // 送信前に記録する。結果の返答を失っても同じID・同じ内容で再送する。
       let result = await this.retry(async () => {

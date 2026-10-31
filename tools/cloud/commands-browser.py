@@ -46,6 +46,13 @@ with sync_playwright() as p:
  page.goto('http://127.0.0.1:8001/')
  page.locator('.ttl-overlay:not(.ttl-out) .ttl-menu .ttl-btn.primary').click()
  page.locator('#combat-menu .target-list button').first.wait_for(timeout=60000)
+ # 読込時に再計算した能力と、サーバーが使う能力が一致する。
+ assert page.evaluate("""async()=>{
+  const {refDeserialize}=await import('/src/savegraph.js');
+  const sessionId=localStorage.getItem('dos-cloud-session:11111111-1111-4111-8111-111111111111');
+  const response=await fetch('https://cloud.test/functions/v1/game-save',{method:'POST',headers:{apikey:'test',Authorization:'Bearer test-token','Content-Type':'application/json'},body:JSON.stringify({protocol:1,sessionId,op:'claim',compactGraph:true})});
+  const state=refDeserialize((await response.json()).snapshot);return state.party[0].atk===__game.G.party[0].atk&&state.party[0].maxhp===__game.G.party[0].maxhp;
+ }""")
  before=page.evaluate('__game.G.battle.enemies[0].hp')
  page.locator('#combat-menu .target-list button').first.click()
  page.wait_for_function("__game.G.battle.enemies[0].hp<100000 && !__game.G.animating && __game.G.battle.phase==='input'",timeout=60000)

@@ -201,4 +201,14 @@ const patchRequest={...base,op:'save',revision:11,commandId:crypto.randomUUID(),
 assert.equal((await request(patchRequest)).status,200);assert.equal((await request(patchRequest)).status,200);
 assert.deepEqual((await (await request({...base,op:'claim',compactGraph:true})).json()).snapshot,latest);
 console.log('命令・差分API: 行動をDB確定・同一ID再送・選び直し拒否・再開・差分確定 OK');
+
+// 旧方式の未完了手番を進めた後も、新しい差分の基準を同じグラフへ合わせる。
+const bridgeBefore=await (await request({...base,op:'claim',compactGraph:true})).json();
+const bridgeState=refDeserialize(bridgeBefore.snapshot);
+const bridgeAction=bridgeState.battle.phase==='enemy'?'enemy':'stunned';
+const bridgeResult=await request({...base,op:'battle',action:bridgeAction,syncGraph:true,revision:bridgeBefore.revision,commandId:crypto.randomUUID()});
+assert.equal(bridgeResult.status,200);const bridgeWire=await bridgeResult.json();
+const bridgeAfter=await (await request({...base,op:'claim',compactGraph:true})).json();
+assert.deepEqual(applyCloudChange(bridgeBefore.snapshot,bridgeWire.sync),bridgeAfter.snapshot);
+console.log('旧手番の互換復旧: 確定後の差分基準とDB記録の一致 OK');
 await db.close();
