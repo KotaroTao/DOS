@@ -59,7 +59,11 @@ export function createTrial(mode) {
       await api.close();
     },
     async close(options = {}) { stopped = true; await ledger.close(options); },
-    finish() { output.textContent = "試遊終了・計測結果を書き出せます"; api.close().catch(() => {}); },
+    finish() {
+      output.textContent = "試遊終了・記録の片付け中…";
+      api.close({ keepalive: true }).then(() => { output.textContent = "試遊終了・計測結果を書き出せます"; })
+        .catch(() => { output.textContent = "試遊終了・計測結果を書き出せます。記録は有効期限後に片付きます。"; });
+    },
   };
   window.addEventListener("pagehide", () => { if (ledger.run && !stopped) ledger.close({ keepalive: true }).catch(() => {}); }, { once: true });
   return api;

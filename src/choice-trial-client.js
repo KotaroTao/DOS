@@ -11,7 +11,7 @@ export function trialAuth(storage = localStorage, now = Date.now(), config = CLO
 export class TrialLedger {
   constructor({ config = CLOUD_CONFIG, storage = localStorage, fetcher = (...args) => fetch(...args), token = null, now = () => performance.now(), onSample = () => {} } = {}) {
     this.config = config; this.storage = storage; this.fetcher = fetcher; this.now = now; this.onSample = onSample; this.token = token;
-    this.run = null; this.step = 0; this.pending = null; this.sending = null; this.ended = false;
+    this.run = null; this.step = 0; this.pending = null; this.sending = null; this.ended = false; this.closing = null;
   }
   async call(name, body, { keepalive = false } = {}) {
     const auth = this.token ? { access_token: this.token } : trialAuth(this.storage, Date.now(), this.config);
@@ -66,13 +66,16 @@ export class TrialLedger {
     }).finally(() => { this.sending = null; });
     return this.sending;
   }
-  async close({ keepalive = false } = {}) {
+  close({ keepalive = false } = {}) {
     this.ended = true;
-    if (!this.run) return;
-    const value = await this.call("close", { p_run: this.run }, { keepalive });
-    if (!value.closed) throw Error("試遊の終了を確認できません。");
-    try { this.storage.removeItem(this.key()); } catch {}
-    this.pending = null; this.run = null;
+    if (this.closing) return this.closing;
+    if (!this.run) return Promise.resolve();
+    this.closing = this.call("close", { p_run: this.run }, { keepalive }).then(value => {
+      if (!value.closed) throw Error("試遊の終了を確認できません。");
+      try { this.storage.removeItem(this.key()); } catch {}
+      this.pending = null; this.run = null;
+    }).finally(() => { this.closing = null; });
+    return this.closing;
   }
 }
 export function timingSummary(samples) {

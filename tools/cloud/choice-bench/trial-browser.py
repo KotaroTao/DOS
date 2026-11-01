@@ -46,7 +46,9 @@ async def main():
                     value=await response.json()
                 elif name=='begin':value={'run':str(uuid.uuid4()),'step':0}
                 elif name=='append':value=receipts.setdefault(body['p_command'],{'step':body['p_step'],'receipt':str(uuid.uuid4())})
-                else:value={'closed':True}
+                else:
+                    await asyncio.sleep(.2)
+                    value={'closed':True}
                 if name=='append' and control['hold']:held.append((route,value));return
                 await route.fulfill(json=value,headers={'access-control-allow-origin':'*'})
             await ctx.route(cloud['url']+'/**',api)
@@ -102,7 +104,7 @@ async def main():
             await page.evaluate("""()=>{const enemies=__game.G.battle.enemies;enemies.forEach((e,i)=>{e.alive=i===0;e.hp=i===0?1:0;e._barrierLeft=0;});}""")
             await page.locator('#combat-menu .cmd-attack').click()
             await page.wait_for_function("__game.G.battle.result==='win'",timeout=15000)
-            await page.wait_for_function("document.querySelector('.choice-trial-status').textContent.includes('試遊終了')")
+            await page.wait_for_function("document.querySelector('.choice-trial-status').textContent.includes('書き出せます')")
             assert await page.evaluate('JSON.stringify([__game.G.gold,__game.G.soulPts,__game.G.inventory])')==before_rewards,'試遊の勝利で報酬処理が実行された'
             assert await page.evaluate("__game.G.state==='combat' && __game.G.animating"),'試遊の勝利後に本編へ進んだ'
             await page.get_by_role('button',name='終了してホームへ').click();await page.wait_for_url('**/choice-trial.html')

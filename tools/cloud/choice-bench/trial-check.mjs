@@ -65,7 +65,7 @@ const retry=ledger.retry();assert.equal(ledger.retry(),retry);release();await re
 assert.deepEqual(requests[1].body,requests[2].body);assert.equal(ledger.step,1);assert.equal(ledger.pending,null);assert.equal(store.size,2);
 assert(!JSON.stringify(samples).includes('test-token'));assert(!JSON.stringify(samples).includes('p_command'));
 assert.equal(storage.getItem('dos-save-v7'),'unchanged');assert.equal(storage.getItem('dos-cloud-auth'),'unchanged-auth');
-await ledger.close();await assert.rejects(ledger.append({}),/開始されていません/);
+const close1=ledger.close(),close2=ledger.close();assert.equal(close1,close2);await close1;await assert.rejects(ledger.append({}),/開始されていません/);
 const blocked = new TrialLedger({config,storage:{...storage,setItem(){throw Error('禁止');}},token:'test',fetcher:async()=>{throw Error('通信禁止');}});blocked.run=run;
 await assert.rejects(blocked.append({action:'attack'}),/保管できません/);assert.equal(blocked.pending,null);
 assert.throws(()=>trialAuth(storage,Date.now(),config),/タイトル/);
