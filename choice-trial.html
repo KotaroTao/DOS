@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>B方式の通信・戦闘試遊</title><link rel="stylesheet" href="choice-trial.css">
+<main class="choice-trial-page"><h1>B方式の通信・戦闘試遊</h1>
+<p>同じ端末・回線で、選択だけを記録する時間と戦闘の手触りを確かめます。先にゲームのタイトルで接続してください。</p>
+<p>試遊専用の隊を使います。本編の進行・持ち物は変わりません。戦闘終了時の再生検証・報酬確定は、この試遊には含みません。</p>
+<button id="measure" type="button">通信を20回計測</button><div id="result" aria-live="polite"></div>
+<p><a href="./?testDungeon=w01&choiceTrial=1&trialOverlap=0">戦闘試遊：確定通知を待って着弾</a></p>
+<p><a href="./?testDungeon=w01&choiceTrial=1&trialOverlap=1">戦闘試遊：構えと通信を重ねて着弾</a></p>
+<p>どちらもHP・乱数は確定通知後に進めます。構えを先に見せても通信自体は速くなりません。同じ条件で両方をお試しください。</p>
+<p>計測JSONには時間・本文のバイト数・成功状況を含みます。認証情報や本編の記録は含みません。バイト数はHTTPヘッダー・TLSを含まない本文量です。1時間に12試遊、同時3試遊、1試遊256手まで。終了しなかった記録は1時間で無効となり、後続の開始時に順次削除します。</p>
+<a href="./">ゲームのタイトルへ</a></main><script type="module" src="src/choice-trial-page.js"></script></html>

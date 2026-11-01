@@ -258,6 +258,12 @@ function fillAuto(box) {
   metrics.appendChild(setText(el("span", "stg-row-n"), "保存と通信の計測"));
   metrics.appendChild(setText(el("span", "stg-row-d"), "この端末の計測結果を確認・書き出す"));
   metrics.addEventListener("click", showSaveMetrics); box.appendChild(metrics);
+  if (cloudEnabled()) {
+    const trial = el("a", "stg-row"); trial.href = "choice-trial.html"; trial.target = "_blank"; trial.rel = "noopener";
+    trial.appendChild(setText(el("span", "stg-row-n"), "B方式の通信・戦闘試遊"));
+    trial.appendChild(setText(el("span", "stg-row-d"), "別画面で計測する・本編の進行に影響なし"));
+    box.appendChild(trial);
+  }
 }
 function fill(root) {
   if (isDesktopLayout()) return fillDesktop(root);

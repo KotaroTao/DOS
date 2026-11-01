@@ -11,6 +11,11 @@
 const CACHE = "dos-dev";
 const DEV = CACHE === "dos-dev";
 const ASSETS = [
+  "./choice-trial.html",
+  "./choice-trial.css",
+  "./src/choice-trial-client.js",
+  "./src/choice-trial.js",
+  "./src/choice-trial-page.js",
   "./src/cloud-wire.js",
   "./src/cloud-command-codec.js",
   "./src/cloud-command-replay.js",

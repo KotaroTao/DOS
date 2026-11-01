@@ -8,10 +8,26 @@ on:
       - 'tools/save-protection/**'
       - '.github/workflows/cloud-save-check.yml'
   workflow_dispatch:
+    inputs:
+      choice_benchmark:
+        description: 'B方式の試験用リソースを作って実測し、終了時に削除する（ゲーム方式は変更しない）'
+        type: boolean
+        default: false
+      samples:
+        description: '各方式・各記録サイズの測定回数（別にウォームアップ3回）'
+        type: choice
+        options: ['20', '40']
+        default: '20'
+      edge_region:
+        description: 'Edgeの実行先（auto / DBと同じリージョンを指定）'
+        type: choice
+        options: ['auto', 'database']
+        default: 'auto'
 permissions:
   contents: read
 jobs:
   check:
+    if: inputs.choice_benchmark != true
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -30,10 +46,87 @@ jobs:
       - name: Check JavaScript syntax
         run: |
           for f in $(git ls-files 'src/*.js'); do node --check "$f" || exit 1; done
+      - name: Check choice log prototype
+        run: |
+          node --check tools/cloud/choice-bench/live.mjs
+          node --check tools/cloud/choice-bench/edge.js
+          node tools/cloud/choice-bench/check.mjs /tmp/dos-cloud-check/node_modules/@electric-sql/pglite/dist/index.js
+          node tools/cloud/choice-bench/trial-check.mjs /tmp/dos-cloud-check/node_modules/@electric-sql/pglite/dist/index.js
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 試遊ブラウザの準備
+        run: python3 -m pip install playwright
+      - name: 試遊画面の確定前不変・再送・計測を検査
+        env:
+          CHROME_BIN: /usr/bin/google-chrome
+        run: |
+          python3 -m http.server 8000 > /tmp/dos-choice-http.log 2>&1 &
+          server=$!
+          trap 'kill "$server"' EXIT
+          python3 tools/cloud/choice-bench/trial-browser.py --stub-art
       - name: Check save, retry, recovery and database contracts
         run: python3 tools/cloud/audit.py --node-only --pglite /tmp/dos-cloud-check/node_modules/@electric-sql/pglite/dist/index.js
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: cloud-save-checks
-          path: /tmp/dos-cloud-audit
+          path: |
+            /tmp/dos-cloud-audit
+            /tmp/dos-choice-trial-browser
+
+  choice-benchmark:
+    if: github.event_name == 'workflow_dispatch' && inputs.choice_benchmark == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: dos-choice-benchmark
+      cancel-in-progress: false
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      BENCH_SAMPLES: ${{ inputs.samples }}
+      BENCH_EDGE_REGION: ${{ inputs.edge_region }}
+      BENCH_OUTPUT: /tmp/dos-choice-bench-report
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github
+            src
+            supabase
+            tools
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.120.0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 試遊ブラウザの準備
+        run: python3 -m pip install playwright
+      - name: 試験用リソースの準備
+        run: node tools/cloud/choice-bench/live.mjs setup
+      - name: 試験用の関数だけを公開
+        run: supabase --workdir "$BENCH_PROJECT_DIR" functions deploy "$BENCH_FUNCTION" --project-ref "$SUPABASE_PROJECT_REF" --no-verify-jwt --use-docker
+      - name: 試遊画面から専用RPCを検査・20回計測
+        env:
+          CHROME_BIN: /usr/bin/google-chrome
+        run: |
+          python3 -m http.server 8000 > /tmp/dos-choice-http.log 2>&1 &
+          server=$!
+          trap 'kill "$server"' EXIT
+          python3 tools/cloud/choice-bench/trial-browser.py --stub-art --live-private "$RUNNER_TEMP/dos-choice-bench-private.json" --output "$BENCH_OUTPUT/browser"
+      - name: 実サーバーで3方式を比較
+        run: node tools/cloud/choice-bench/live.mjs measure
+      - name: 試験用リソースの削除
+        if: always()
+        run: node tools/cloud/choice-bench/live.mjs cleanup
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: choice-speed-benchmark
+          path: /tmp/dos-choice-bench-report
+          retention-days: 7

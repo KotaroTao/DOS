@@ -1,0 +1,988 @@
+{
+  "v": 1,
+  "startedAt": "2026-11-01T00:23:55.498Z",
+  "sourceRevision": "42805d51b524a02d280af34a65d5dc79e4fdf65f",
+  "workflowRun": "41256536277",
+  "projectRegion": "ap-northeast-1",
+  "location": "GitHub-hosted runner",
+  "scope": "選択の記録・確定通知の応答時間。Bの戦闘終了時の検証、実端末の描画、利用者の回線は測っていない。",
+  "warmups": 3,
+  "samplesPerArm": 20,
+  "fixtures": [
+    {
+      "items": 200,
+      "snapshotBytes": 87795,
+      "firstRequest": {
+        "current": {
+          "ms": 1282.2942350000003,
+          "sent": 366,
+          "received": 94,
+          "serverTiming": null,
+          "region": "us-west-1"
+        },
+        "B_auth_api": {
+          "ms": 1139.9056719999999,
+          "sent": 300,
+          "received": 59,
+          "serverTiming": "auth;dur=419.62,db;dur=373.96,total;dur=794.86",
+          "region": "us-west-1"
+        },
+        "B_db_jwt": {
+          "ms": 365.32032900000013,
+          "sent": 300,
+          "received": 62,
+          "serverTiming": null,
+          "region": null
+        }
+      },
+      "summary": {
+        "current": {
+          "samples": 20,
+          "meanMs": 764.0001556999994,
+          "medianMs": 594.0202580000005,
+          "p95Ms": 1381.2064019999998,
+          "maxMs": 1460.845132999999,
+          "meanRequestBytes": 404.55,
+          "meanResponseBytes": 94.75
+        },
+        "B_auth_api": {
+          "samples": 20,
+          "meanMs": 410.1311443500008,
+          "medianMs": 309.9993370000011,
+          "p95Ms": 598.0268790000009,
+          "maxMs": 742.4626280000011,
+          "meanRequestBytes": 338.55,
+          "meanResponseBytes": 59.7
+        },
+        "B_db_jwt": {
+          "samples": 20,
+          "meanMs": 149.95426585000004,
+          "medianMs": 123.06112699999721,
+          "p95Ms": 340.89118400000007,
+          "maxMs": 360.42163000000073,
+          "meanRequestBytes": 338.55,
+          "meanResponseBytes": 62.7
+        }
+      },
+      "raw": {
+        "current": [
+          {
+            "ms": 811.5269500000013,
+            "sent": 404,
+            "received": 94,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 594.0202580000005,
+            "sent": 403,
+            "received": 94,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 519.6203150000001,
+            "sent": 403,
+            "received": 94,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 542.319614,
+            "sent": 403,
+            "received": 94,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 789.3517369999972,
+            "sent": 404,
+            "received": 94,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 536.093700999998,
+            "sent": 400,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 721.4299109999993,
+            "sent": 406,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 514.4975969999978,
+            "sent": 404,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 501.1298319999987,
+            "sent": 405,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 566.373055,
+            "sent": 403,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 495.284343000003,
+            "sent": 405,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 569.6421730000002,
+            "sent": 406,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 550.2063629999975,
+            "sent": 406,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 1381.2064019999998,
+            "sent": 405,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 1460.845132999999,
+            "sent": 406,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 965.746948,
+            "sent": 405,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 1029.4462940000012,
+            "sent": 406,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 894.2616789999956,
+            "sent": 406,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 866.5131400000027,
+            "sent": 405,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 970.4876689999946,
+            "sent": 406,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          }
+        ],
+        "B_auth_api": [
+          {
+            "ms": 598.0268790000009,
+            "sent": 338,
+            "received": 59,
+            "serverTiming": "auth;dur=136.28,db;dur=365.52,total;dur=502.01",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 545.0102910000005,
+            "sent": 337,
+            "received": 59,
+            "serverTiming": "auth;dur=134.33,db;dur=385.82,total;dur=520.45",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 326.96824300000117,
+            "sent": 337,
+            "received": 59,
+            "serverTiming": "auth;dur=146.25,db;dur=135.18,total;dur=281.69",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 742.4626280000011,
+            "sent": 337,
+            "received": 59,
+            "serverTiming": "auth;dur=350.72,db;dur=366.20,total;dur=717.15",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 542.5875039999992,
+            "sent": 338,
+            "received": 59,
+            "serverTiming": "auth;dur=360.59,db;dur=142.19,total;dur=502.97",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 567.2617989999999,
+            "sent": 334,
+            "received": 59,
+            "serverTiming": "auth;dur=152.31,db;dur=392.24,total;dur=544.81",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 282.4699670000009,
+            "sent": 340,
+            "received": 60,
+            "serverTiming": "auth;dur=129.72,db;dur=130.58,total;dur=260.56",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 527.9124550000015,
+            "sent": 338,
+            "received": 60,
+            "serverTiming": "auth;dur=131.46,db;dur=373.07,total;dur=504.73",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 301.16318200000023,
+            "sent": 339,
+            "received": 60,
+            "serverTiming": "auth;dur=150.01,db;dur=129.45,total;dur=279.62",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 533.9653920000019,
+            "sent": 337,
+            "received": 60,
+            "serverTiming": "auth;dur=154.91,db;dur=355.79,total;dur=510.88",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 284.88134400000126,
+            "sent": 339,
+            "received": 60,
+            "serverTiming": "auth;dur=125.73,db;dur=132.16,total;dur=258.16",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 289.09500599999956,
+            "sent": 340,
+            "received": 60,
+            "serverTiming": "auth;dur=131.44,db;dur=135.74,total;dur=267.35",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 518.7911190000013,
+            "sent": 340,
+            "received": 60,
+            "serverTiming": "auth;dur=353.00,db;dur=137.34,total;dur=490.63",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 291.57632100000046,
+            "sent": 339,
+            "received": 60,
+            "serverTiming": "auth;dur=126.56,db;dur=130.59,total;dur=257.31",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 294.55941899999743,
+            "sent": 340,
+            "received": 60,
+            "serverTiming": "auth;dur=130.95,db;dur=143.90,total;dur=275.02",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 328.6063189999986,
+            "sent": 339,
+            "received": 60,
+            "serverTiming": "auth;dur=158.20,db;dur=146.91,total;dur=305.29",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 308.04213800000434,
+            "sent": 340,
+            "received": 60,
+            "serverTiming": "auth;dur=133.33,db;dur=150.61,total;dur=284.12",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 300.7208979999996,
+            "sent": 340,
+            "received": 60,
+            "serverTiming": "auth;dur=129.45,db;dur=143.66,total;dur=273.29",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 308.5226460000049,
+            "sent": 339,
+            "received": 60,
+            "serverTiming": "auth;dur=142.68,db;dur=144.03,total;dur=286.88",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 309.9993370000011,
+            "sent": 340,
+            "received": 60,
+            "serverTiming": "auth;dur=142.54,db;dur=143.01,total;dur=285.73",
+            "region": "us-west-1"
+          }
+        ],
+        "B_db_jwt": [
+          {
+            "ms": 121.78249700000015,
+            "sent": 338,
+            "received": 62,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 130.19300100000146,
+            "sent": 337,
+            "received": 62,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 159.06081900000027,
+            "sent": 337,
+            "received": 62,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 360.42163000000073,
+            "sent": 337,
+            "received": 62,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 123.06112699999721,
+            "sent": 338,
+            "received": 62,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 340.89118400000007,
+            "sent": 334,
+            "received": 62,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 128.4560440000023,
+            "sent": 340,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 120.26373599999715,
+            "sent": 338,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 119.97220300000117,
+            "sent": 339,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 116.9976029999998,
+            "sent": 337,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 140.86820699999953,
+            "sent": 339,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 119.33647099999871,
+            "sent": 340,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 120.5210279999992,
+            "sent": 340,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 143.12698600000294,
+            "sent": 339,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 140.60185099999944,
+            "sent": 340,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 127.06287000000157,
+            "sent": 339,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 121.13834100000531,
+            "sent": 340,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 120.64272599999822,
+            "sent": 340,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 123.8230029999977,
+            "sent": 339,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 120.86398999999801,
+            "sent": 340,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          }
+        ]
+      },
+      "complete": true
+    },
+    {
+      "items": 2000,
+      "snapshotBytes": 834264,
+      "firstRequest": {
+        "current": {
+          "ms": 3955.1892320000043,
+          "sent": 367,
+          "received": 95,
+          "serverTiming": null,
+          "region": "us-west-1"
+        },
+        "B_auth_api": {
+          "ms": 376.3247860000047,
+          "sent": 300,
+          "received": 59,
+          "serverTiming": "auth;dur=137.62,db;dur=174.56,total;dur=312.35",
+          "region": "us-west-1"
+        },
+        "B_db_jwt": {
+          "ms": 150.2002300000022,
+          "sent": 300,
+          "received": 62,
+          "serverTiming": null,
+          "region": null
+        }
+      },
+      "summary": {
+        "current": {
+          "samples": 20,
+          "meanMs": 1862.4038292999987,
+          "medianMs": 1639.4292229999992,
+          "p95Ms": 2822.0251690000005,
+          "maxMs": 2972.0614299999943,
+          "meanRequestBytes": 404.85,
+          "meanResponseBytes": 95
+        },
+        "B_auth_api": {
+          "samples": 20,
+          "meanMs": 363.93447674999845,
+          "medianMs": 325.4647030000051,
+          "p95Ms": 598.8097359999956,
+          "maxMs": 641.1267760000046,
+          "meanRequestBytes": 338.55,
+          "meanResponseBytes": 59.7
+        },
+        "B_db_jwt": {
+          "samples": 20,
+          "meanMs": 147.7205763999995,
+          "medianMs": 128.7557269999961,
+          "p95Ms": 279.8874199999991,
+          "maxMs": 356.03029900000547,
+          "meanRequestBytes": 338.55,
+          "meanResponseBytes": 62.7
+        }
+      },
+      "raw": {
+        "current": [
+          {
+            "ms": 1639.4292229999992,
+            "sent": 405,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 2972.0614299999943,
+            "sent": 404,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 2082.800405000002,
+            "sent": 404,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 2579.892087,
+            "sent": 404,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 2246.803800000009,
+            "sent": 405,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 1586.058727999989,
+            "sent": 401,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 1553.4268009999942,
+            "sent": 406,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 2822.0251690000005,
+            "sent": 404,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 2250.506284999996,
+            "sent": 405,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 2359.321250000008,
+            "sent": 403,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 2352.6672909999907,
+            "sent": 405,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 1742.4050019999995,
+            "sent": 406,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 1534.0550769999973,
+            "sent": 406,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 1476.9804560000048,
+            "sent": 405,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 1048.3473989999911,
+            "sent": 406,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 1620.7134090000036,
+            "sent": 405,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 1175.4708269999974,
+            "sent": 406,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 1090.219723999995,
+            "sent": 406,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 1801.2136000000028,
+            "sent": 405,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          },
+          {
+            "ms": 1313.6786229999998,
+            "sent": 406,
+            "received": 95,
+            "serverTiming": null,
+            "region": "us-west-1"
+          }
+        ],
+        "B_auth_api": [
+          {
+            "ms": 573.275228999999,
+            "sent": 338,
+            "received": 59,
+            "serverTiming": "auth;dur=130.85,db;dur=367.78,total;dur=498.81",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 327.35265100000106,
+            "sent": 337,
+            "received": 59,
+            "serverTiming": "auth;dur=140.25,db;dur=140.90,total;dur=281.32",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 308.4297890000016,
+            "sent": 337,
+            "received": 59,
+            "serverTiming": "auth;dur=135.20,db;dur=133.08,total;dur=268.45",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 362.04032699999516,
+            "sent": 337,
+            "received": 59,
+            "serverTiming": "auth;dur=149.44,db;dur=145.23,total;dur=294.86",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 328.5451999999932,
+            "sent": 338,
+            "received": 59,
+            "serverTiming": "auth;dur=161.44,db;dur=142.54,total;dur=304.13",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 320.31876999999804,
+            "sent": 334,
+            "received": 59,
+            "serverTiming": "auth;dur=136.04,db;dur=150.37,total;dur=286.58",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 282.76693699999305,
+            "sent": 340,
+            "received": 60,
+            "serverTiming": "auth;dur=125.36,db;dur=127.62,total;dur=253.16",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 325.4647030000051,
+            "sent": 338,
+            "received": 60,
+            "serverTiming": "auth;dur=138.85,db;dur=148.97,total;dur=287.99",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 305.4296969999996,
+            "sent": 339,
+            "received": 60,
+            "serverTiming": "auth;dur=131.82,db;dur=145.29,total;dur=277.27",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 354.01449400000274,
+            "sent": 337,
+            "received": 60,
+            "serverTiming": "auth;dur=142.51,db;dur=135.69,total;dur=279.49",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 598.8097359999956,
+            "sent": 339,
+            "received": 60,
+            "serverTiming": "auth;dur=379.86,db;dur=140.40,total;dur=521.54",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 641.1267760000046,
+            "sent": 340,
+            "received": 60,
+            "serverTiming": "auth;dur=413.11,db;dur=154.60,total;dur=569.00",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 342.12372299999697,
+            "sent": 340,
+            "received": 60,
+            "serverTiming": "auth;dur=143.21,db;dur=140.35,total;dur=283.86",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 379.4131669999915,
+            "sent": 339,
+            "received": 60,
+            "serverTiming": "auth;dur=153.36,db;dur=173.92,total;dur=327.53",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 284.71774500000174,
+            "sent": 340,
+            "received": 60,
+            "serverTiming": "auth;dur=131.89,db;dur=129.67,total;dur=261.76",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 299.7210979999945,
+            "sent": 339,
+            "received": 60,
+            "serverTiming": "auth;dur=123.03,db;dur=150.01,total;dur=273.33",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 339.38007699999434,
+            "sent": 340,
+            "received": 60,
+            "serverTiming": "auth;dur=167.06,db;dur=134.60,total;dur=301.90",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 291.89005099999486,
+            "sent": 340,
+            "received": 60,
+            "serverTiming": "auth;dur=117.63,db;dur=146.31,total;dur=264.16",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 315.2426290000003,
+            "sent": 339,
+            "received": 60,
+            "serverTiming": "auth;dur=144.27,db;dur=146.32,total;dur=290.79",
+            "region": "us-west-1"
+          },
+          {
+            "ms": 298.6267360000056,
+            "sent": 340,
+            "received": 60,
+            "serverTiming": "auth;dur=145.78,db;dur=129.33,total;dur=275.35",
+            "region": "us-west-1"
+          }
+        ],
+        "B_db_jwt": [
+          {
+            "ms": 122.73575300000084,
+            "sent": 338,
+            "received": 62,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 125.7945600000021,
+            "sent": 337,
+            "received": 62,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 128.7557269999961,
+            "sent": 337,
+            "received": 62,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 133.4610110000067,
+            "sent": 337,
+            "received": 62,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 122.34221999999136,
+            "sent": 338,
+            "received": 62,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 279.8874199999991,
+            "sent": 334,
+            "received": 62,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 130.09365899999102,
+            "sent": 340,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 126.81065200000012,
+            "sent": 338,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 135.07783599999675,
+            "sent": 339,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 130.84793100001116,
+            "sent": 337,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 126.65982899999653,
+            "sent": 339,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 137.47308599999815,
+            "sent": 340,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 134.6097080000036,
+            "sent": 340,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 356.03029900000547,
+            "sent": 339,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 119.49055099999532,
+            "sent": 340,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 125.26568599999882,
+            "sent": 339,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 143.90211999999883,
+            "sent": 340,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 131.74594700000307,
+            "sent": 340,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 121.66049300000304,
+            "sent": 339,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 121.76703999999154,
+            "sent": 340,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          }
+        ]
+      },
+      "complete": true
+    }
+  ],
+  "checks": {
+    "idempotentRetry": true,
+    "changedChoiceRejected": true
+  },
+  "completedAt": "2026-11-01T00:25:41.463Z"
+}

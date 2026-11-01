@@ -1,0 +1,989 @@
+{
+  "v": 1,
+  "startedAt": "2026-11-01T01:23:20.393Z",
+  "sourceRevision": "91b0cf6dbaa370d79b00852914ca501eb4617374",
+  "workflowRun": "41260803705",
+  "projectRegion": "ap-northeast-1",
+  "location": "GitHub-hosted runner",
+  "requestedEdgeRegion": "ap-northeast-1",
+  "scope": "選択の記録・確定通知の応答時間。Bの戦闘終了時の検証、実端末の描画、利用者の回線は測っていない。",
+  "warmups": 3,
+  "samplesPerArm": 20,
+  "fixtures": [
+    {
+      "items": 200,
+      "snapshotBytes": 87795,
+      "firstRequest": {
+        "current": {
+          "ms": 1243.250771,
+          "sent": 366,
+          "received": 94,
+          "serverTiming": null,
+          "region": "ap-northeast-1"
+        },
+        "B_auth_api": {
+          "ms": 1876.5747599999995,
+          "sent": 300,
+          "received": 59,
+          "serverTiming": "auth;dur=71.46,db;dur=569.25,total;dur=642.49",
+          "region": "ap-northeast-1"
+        },
+        "B_db_jwt": {
+          "ms": 891.9124279999996,
+          "sent": 300,
+          "received": 62,
+          "serverTiming": null,
+          "region": null
+        }
+      },
+      "summary": {
+        "current": {
+          "samples": 20,
+          "meanMs": 778.0080760500001,
+          "medianMs": 750.3181140000015,
+          "p95Ms": 1245.6490730000005,
+          "maxMs": 1251.4033029999991,
+          "meanRequestBytes": 404.55,
+          "meanResponseBytes": 94.75
+        },
+        "B_auth_api": {
+          "samples": 20,
+          "meanMs": 572.8984026999995,
+          "medianMs": 621.4181900000003,
+          "p95Ms": 749.516869000001,
+          "maxMs": 994.4836609999984,
+          "meanRequestBytes": 338.55,
+          "meanResponseBytes": 59.7
+        },
+        "B_db_jwt": {
+          "samples": 20,
+          "meanMs": 428.9316560499998,
+          "medianMs": 257.32698600000003,
+          "p95Ms": 652.1814809999996,
+          "maxMs": 665.7595159999983,
+          "meanRequestBytes": 338.55,
+          "meanResponseBytes": 62.7
+        }
+      },
+      "raw": {
+        "current": [
+          {
+            "ms": 757.3694240000004,
+            "sent": 404,
+            "received": 94,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 1182.638218,
+            "sent": 403,
+            "received": 94,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 902.324102999999,
+            "sent": 403,
+            "received": 94,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 356.9843729999993,
+            "sent": 403,
+            "received": 94,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 630.8772980000031,
+            "sent": 404,
+            "received": 94,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 807.7100950000022,
+            "sent": 400,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 716.1544160000012,
+            "sent": 406,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 746.5129510000006,
+            "sent": 404,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 1245.6490730000005,
+            "sent": 405,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 937.2554479999962,
+            "sent": 403,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 1139.9173479999954,
+            "sent": 405,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 750.3181140000015,
+            "sent": 406,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 889.8921560000017,
+            "sent": 406,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 338.4472469999964,
+            "sent": 405,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 1251.4033029999991,
+            "sent": 406,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 413.13693500000227,
+            "sent": 405,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 695.2720219999974,
+            "sent": 406,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 349.0228930000012,
+            "sent": 406,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 313.68600300000253,
+            "sent": 405,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 1135.5901010000016,
+            "sent": 406,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          }
+        ],
+        "B_auth_api": [
+          {
+            "ms": 749.516869000001,
+            "sent": 338,
+            "received": 59,
+            "serverTiming": "auth;dur=99.00,db;dur=41.39,total;dur=142.11",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 646.7380129999983,
+            "sent": 337,
+            "received": 59,
+            "serverTiming": "auth;dur=36.58,db;dur=50.50,total;dur=87.48",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 658.8978060000009,
+            "sent": 337,
+            "received": 59,
+            "serverTiming": "auth;dur=46.40,db;dur=32.97,total;dur=79.74",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 323.5118790000015,
+            "sent": 337,
+            "received": 59,
+            "serverTiming": "auth;dur=60.09,db;dur=59.71,total;dur=120.12",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 493.50244999999995,
+            "sent": 338,
+            "received": 59,
+            "serverTiming": "auth;dur=182.44,db;dur=50.27,total;dur=234.43",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 621.4181900000003,
+            "sent": 334,
+            "received": 59,
+            "serverTiming": "auth;dur=33.92,db;dur=24.53,total;dur=58.98",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 377.4659299999985,
+            "sent": 340,
+            "received": 60,
+            "serverTiming": "auth;dur=59.55,db;dur=49.53,total;dur=110.78",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 347.92041099999915,
+            "sent": 338,
+            "received": 60,
+            "serverTiming": "auth;dur=52.63,db;dur=36.34,total;dur=90.64",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 245.85706899999786,
+            "sent": 339,
+            "received": 60,
+            "serverTiming": "auth;dur=29.22,db;dur=28.78,total;dur=58.39",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 294.25092599999334,
+            "sent": 337,
+            "received": 60,
+            "serverTiming": "auth;dur=41.95,db;dur=48.48,total;dur=90.71",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 604.2828710000031,
+            "sent": 339,
+            "received": 60,
+            "serverTiming": "auth;dur=31.58,db;dur=42.14,total;dur=74.01",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 700.3217870000008,
+            "sent": 340,
+            "received": 60,
+            "serverTiming": "auth;dur=67.27,db;dur=33.64,total;dur=102.69",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 517.8911880000014,
+            "sent": 340,
+            "received": 60,
+            "serverTiming": "auth;dur=53.66,db;dur=49.79,total;dur=105.15",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 994.4836609999984,
+            "sent": 339,
+            "received": 60,
+            "serverTiming": "auth;dur=115.09,db;dur=49.21,total;dur=166.08",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 685.8855629999962,
+            "sent": 340,
+            "received": 60,
+            "serverTiming": "auth;dur=81.70,db;dur=27.76,total;dur=111.13",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 710.1118389999974,
+            "sent": 339,
+            "received": 60,
+            "serverTiming": "auth;dur=51.93,db;dur=32.97,total;dur=86.65",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 730.6254360000021,
+            "sent": 340,
+            "received": 60,
+            "serverTiming": "auth;dur=67.76,db;dur=29.96,total;dur=99.48",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 694.1404249999978,
+            "sent": 340,
+            "received": 60,
+            "serverTiming": "auth;dur=32.51,db;dur=27.66,total;dur=61.96",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 345.2222949999996,
+            "sent": 339,
+            "received": 60,
+            "serverTiming": "auth;dur=54.13,db;dur=44.90,total;dur=99.35",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 715.9234460000007,
+            "sent": 340,
+            "received": 60,
+            "serverTiming": "auth;dur=65.26,db;dur=34.38,total;dur=101.44",
+            "region": "ap-northeast-1"
+          }
+        ],
+        "B_db_jwt": [
+          {
+            "ms": 622.7602449999977,
+            "sent": 338,
+            "received": 62,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 585.7393879999981,
+            "sent": 337,
+            "received": 62,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 641.8849730000002,
+            "sent": 337,
+            "received": 62,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 609.3406280000017,
+            "sent": 337,
+            "received": 62,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 614.0256509999999,
+            "sent": 338,
+            "received": 62,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 652.1814809999996,
+            "sent": 334,
+            "received": 62,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 229.9075750000011,
+            "sent": 340,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 209.54519900000014,
+            "sent": 338,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 640.0369170000013,
+            "sent": 339,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 223.31106100000034,
+            "sent": 337,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 222.23941399999603,
+            "sent": 339,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 210.736834000003,
+            "sent": 340,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 222.32794999999896,
+            "sent": 340,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 230.68499700000393,
+            "sent": 339,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 624.8919069999974,
+            "sent": 340,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 257.32698600000003,
+            "sent": 339,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 665.7595159999983,
+            "sent": 340,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 223.51290300000255,
+            "sent": 340,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 651.159768999998,
+            "sent": 339,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 241.25972699999693,
+            "sent": 340,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          }
+        ]
+      },
+      "complete": true
+    },
+    {
+      "items": 2000,
+      "snapshotBytes": 834264,
+      "firstRequest": {
+        "current": {
+          "ms": 1683.498308000002,
+          "sent": 367,
+          "received": 95,
+          "serverTiming": null,
+          "region": "ap-northeast-1"
+        },
+        "B_auth_api": {
+          "ms": 681.5143030000036,
+          "sent": 300,
+          "received": 59,
+          "serverTiming": "auth;dur=43.86,db;dur=29.71,total;dur=75.32",
+          "region": "ap-northeast-1"
+        },
+        "B_db_jwt": {
+          "ms": 225.54145499999868,
+          "sent": 300,
+          "received": 62,
+          "serverTiming": null,
+          "region": null
+        }
+      },
+      "summary": {
+        "current": {
+          "samples": 20,
+          "meanMs": 1486.0547720499994,
+          "medianMs": 1162.1068839999934,
+          "p95Ms": 3424.6506640000007,
+          "maxMs": 4648.841004999995,
+          "meanRequestBytes": 404.85,
+          "meanResponseBytes": 95
+        },
+        "B_auth_api": {
+          "samples": 20,
+          "meanMs": 510.594814099999,
+          "medianMs": 397.79606299998704,
+          "p95Ms": 775.3073900000018,
+          "maxMs": 795.8971150000143,
+          "meanRequestBytes": 338.55,
+          "meanResponseBytes": 59.7
+        },
+        "B_db_jwt": {
+          "samples": 20,
+          "meanMs": 374.2238398000005,
+          "medianMs": 252.74923699999636,
+          "p95Ms": 679.5173930000019,
+          "maxMs": 680.7403840000043,
+          "meanRequestBytes": 338.55,
+          "meanResponseBytes": 62.7
+        }
+      },
+      "raw": {
+        "current": [
+          {
+            "ms": 1543.909934000003,
+            "sent": 405,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 1091.4016899999988,
+            "sent": 404,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 1162.1068839999934,
+            "sent": 404,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 809.5117380000011,
+            "sent": 404,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 661.5465800000093,
+            "sent": 405,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 733.1289019999967,
+            "sent": 401,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 1227.6871570000076,
+            "sent": 406,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 1639.445013000004,
+            "sent": 404,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 944.4420180000016,
+            "sent": 405,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 4648.841004999995,
+            "sent": 403,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 1298.8829819999955,
+            "sent": 405,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 2304.0680560000037,
+            "sent": 406,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 3424.6506640000007,
+            "sent": 406,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 791.4983990000037,
+            "sent": 405,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 1954.8061219999945,
+            "sent": 406,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 760.6885429999966,
+            "sent": 405,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 1480.282819,
+            "sent": 406,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 753.9080379999941,
+            "sent": 406,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 1483.837188999998,
+            "sent": 405,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 1006.4517079999932,
+            "sent": 406,
+            "received": 95,
+            "serverTiming": null,
+            "region": "ap-northeast-1"
+          }
+        ],
+        "B_auth_api": [
+          {
+            "ms": 659.519309999996,
+            "sent": 338,
+            "received": 59,
+            "serverTiming": "auth;dur=42.89,db;dur=30.70,total;dur=75.36",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 703.0302389999997,
+            "sent": 337,
+            "received": 59,
+            "serverTiming": "auth;dur=53.07,db;dur=42.76,total;dur=97.50",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 271.7543710000027,
+            "sent": 337,
+            "received": 59,
+            "serverTiming": "auth;dur=39.40,db;dur=31.34,total;dur=71.06",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 305.4107420000073,
+            "sent": 337,
+            "received": 59,
+            "serverTiming": "auth;dur=51.92,db;dur=45.65,total;dur=97.82",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 628.7779900000023,
+            "sent": 338,
+            "received": 59,
+            "serverTiming": "auth;dur=71.94,db;dur=27.96,total;dur=100.14",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 371.32936899999913,
+            "sent": 334,
+            "received": 59,
+            "serverTiming": "auth;dur=71.95,db;dur=43.12,total;dur=116.93",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 749.098318999997,
+            "sent": 340,
+            "received": 60,
+            "serverTiming": "auth;dur=59.69,db;dur=65.62,total;dur=127.12",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 665.8859660000016,
+            "sent": 338,
+            "received": 60,
+            "serverTiming": "auth;dur=35.98,db;dur=61.79,total;dur=97.98",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 795.8971150000143,
+            "sent": 339,
+            "received": 60,
+            "serverTiming": "auth;dur=46.57,db;dur=545.75,total;dur=592.56",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 373.07364000000234,
+            "sent": 337,
+            "received": 60,
+            "serverTiming": "auth;dur=45.61,db;dur=121.66,total;dur=167.60",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 393.8186940000014,
+            "sent": 339,
+            "received": 60,
+            "serverTiming": "auth;dur=46.06,db;dur=98.88,total;dur=146.67",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 460.1911659999896,
+            "sent": 340,
+            "received": 60,
+            "serverTiming": "auth;dur=158.56,db;dur=68.52,total;dur=228.84",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 775.3073900000018,
+            "sent": 340,
+            "received": 60,
+            "serverTiming": "auth;dur=62.02,db;dur=149.16,total;dur=211.60",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 318.71280199999455,
+            "sent": 339,
+            "received": 60,
+            "serverTiming": "auth;dur=46.72,db;dur=63.46,total;dur=110.80",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 299.90880999999354,
+            "sent": 340,
+            "received": 60,
+            "serverTiming": "auth;dur=22.89,db;dur=79.34,total;dur=102.88",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 349.1385219999938,
+            "sent": 339,
+            "received": 60,
+            "serverTiming": "auth;dur=50.70,db;dur=55.69,total;dur=106.87",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 694.727356000003,
+            "sent": 340,
+            "received": 60,
+            "serverTiming": "auth;dur=47.79,db;dur=37.86,total;dur=87.43",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 712.0390889999981,
+            "sent": 340,
+            "received": 60,
+            "serverTiming": "auth;dur=61.00,db;dur=25.20,total;dur=88.12",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 286.4793289999943,
+            "sent": 339,
+            "received": 60,
+            "serverTiming": "auth;dur=39.28,db;dur=41.00,total;dur=80.57",
+            "region": "ap-northeast-1"
+          },
+          {
+            "ms": 397.79606299998704,
+            "sent": 340,
+            "received": 60,
+            "serverTiming": "auth;dur=80.99,db;dur=38.35,total;dur=121.10",
+            "region": "ap-northeast-1"
+          }
+        ],
+        "B_db_jwt": [
+          {
+            "ms": 211.83944900000643,
+            "sent": 338,
+            "received": 62,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 634.4789299999902,
+            "sent": 337,
+            "received": 62,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 242.4444710000098,
+            "sent": 337,
+            "received": 62,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 230.2269399999932,
+            "sent": 337,
+            "received": 62,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 623.4253380000009,
+            "sent": 338,
+            "received": 62,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 245.0726319999958,
+            "sent": 334,
+            "received": 62,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 680.7403840000043,
+            "sent": 340,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 238.51836499999627,
+            "sent": 338,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 289.5556030000007,
+            "sent": 339,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 679.5173930000019,
+            "sent": 337,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 245.5535380000074,
+            "sent": 339,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 271.96627000000444,
+            "sent": 340,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 655.6058279999997,
+            "sent": 340,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 256.17227999999886,
+            "sent": 339,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 252.74923699999636,
+            "sent": 340,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 661.0294599999906,
+            "sent": 339,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 248.31872399999702,
+            "sent": 340,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 245.1906280000112,
+            "sent": 340,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 331.86806700000307,
+            "sent": 339,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          },
+          {
+            "ms": 240.2032590000017,
+            "sent": 340,
+            "received": 63,
+            "serverTiming": null,
+            "region": null
+          }
+        ]
+      },
+      "complete": true
+    }
+  ],
+  "checks": {
+    "idempotentRetry": true,
+    "changedChoiceRejected": true
+  },
+  "completedAt": "2026-11-01T01:25:12.491Z"
+}
