@@ -1,5 +1,5 @@
 // 実サーバーの計測専用。認証情報はrunnerの一時ファイルだけに置き、成果物・ログへ出さない。
-import {readFile,writeFile,mkdir,copyFile,appendFile,unlink} from 'node:fs/promises';
+import {readFile,writeFile,mkdir,appendFile,unlink} from 'node:fs/promises';
 import {join} from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {publicKey} from '../../../supabase/deploy.mjs';
@@ -70,10 +70,11 @@ async function measure(){
  const s=JSON.parse(await readFile(privatePath,'utf8')),samples=Number(env.BENCH_SAMPLES||20),warmups=3;
  if(![20,40].includes(samples))throw Error('試行数は20または40に限定します');
  const measureStarted=performance.now();
- const results={v:1,startedAt:new Date().toISOString(),sourceRevision:env.GITHUB_SHA,workflowRun:s.run,projectRegion:s.region,location:'GitHub-hosted runner',scope:'選択の記録・確定通知の応答時間。Bの戦闘終了時の検証、実端末の描画、利用者の回線は測っていない。',warmups,samplesPerArm:samples,fixtures:[],checks:{}};
+ const results={v:1,startedAt:new Date().toISOString(),sourceRevision:env.GITHUB_SHA,workflowRun:s.run,projectRegion:s.region,location:'GitHub-hosted runner',requestedEdgeRegion:env.BENCH_EDGE_REGION==='database'?s.region:'auto',scope:'選択の記録・確定通知の応答時間。Bの戦闘終了時の検証、実端末の描画、利用者の回線は測っていない。',warmups,samplesPerArm:samples,fixtures:[],checks:{}};
  async function timed(path,body,kind){
   const raw=JSON.stringify(body),start=performance.now();
   const h=headers(s.anonKey,s.accessToken);
+  if(env.BENCH_EDGE_REGION==='database'&&path.startsWith('/functions/'))h['x-region']=s.region;
   const response=await fetch(s.url+path,{method:'POST',headers:h,body:raw,signal:AbortSignal.timeout(15000)});
   const text=await response.text(),ms=performance.now()-start;
   if(!response.ok)throw Error(`${kind}: HTTP ${response.status}`);
@@ -90,7 +91,7 @@ async function measure(){
    let graph=fixture(count);
    revision=(await timed('/functions/v1/game-save',{...base,op:'save',revision,commandId:randomUUID(),snapshot:graph},'試験用記録の用意')).data.revision;
    const runA=await rpc(s,s.prefix+'_begin',{p_owner:s.userId}),runB=await rpc(s,s.prefix+'_begin',{p_owner:s.userId});
-   const rows={current:[],B_auth_api:[],B_db_jwt:[]},cold={},phases=[];
+   const rows={current:[],B_auth_api:[],B_db_jwt:[]},cold={};
    const size=Buffer.byteLength(JSON.stringify(graph));
    const fixtureResult={items:count,snapshotBytes:size,firstRequest:cold,summary:null,raw:rows};results.fixtures.push(fixtureResult);
    for(let i=0;i<samples+warmups;i++){
@@ -124,7 +125,8 @@ async function measure(){
      if(JSON.stringify(original)!==JSON.stringify(again))throw Error('Bの再送が一致しません');
      const wrong={...requests.B_db_jwt[1],p_choice:{action:'defend'}};
      const rejected=await fetch(s.url+requests.B_db_jwt[0],{method:'POST',headers:headers(s.anonKey,s.accessToken),body:JSON.stringify(wrong)});
-     if(rejected.ok)throw Error('Bで選択の変更が受理されました');
+     const rejection=await rejected.json();
+     if(rejected.status!==400||rejection.message!=='bench_choice_changed')throw Error('Bの選択変更拒否を確認できません');
      results.checks.idempotentRetry=true;results.checks.changedChoiceRejected=true;
     }
    }
