@@ -46,6 +46,11 @@ jobs:
       - name: Check JavaScript syntax
         run: |
           for f in $(git ls-files 'src/*.js'); do node --check "$f" || exit 1; done
+      - name: Check choice log prototype
+        run: |
+          node --check tools/cloud/choice-bench/live.mjs
+          node --check tools/cloud/choice-bench/edge.js
+          node tools/cloud/choice-bench/check.mjs /tmp/dos-cloud-check/node_modules/@electric-sql/pglite/dist/index.js
       - name: Check save, retry, recovery and database contracts
         run: python3 tools/cloud/audit.py --node-only --pglite /tmp/dos-cloud-check/node_modules/@electric-sql/pglite/dist/index.js
       - uses: actions/upload-artifact@v4
