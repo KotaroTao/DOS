@@ -40,7 +40,8 @@ async def main():
                 requests.append((name,body))
                 if live:
                     url=route.request.url.replace('/dos_choice_trial_','/'+live['prefix']+'_ui_')
-                    response=await route.fetch(url=url)
+                    try:response=await route.fetch(url=url)
+                    except Exception:raise RuntimeError("試遊RPCへの接続に失敗（認証ヘッダーは記録しない）") from None
                     assert response.ok, f'試遊RPC HTTP {response.status}'
                     value=await response.json()
                 elif name=='begin':value={'run':str(uuid.uuid4()),'step':0}
@@ -96,6 +97,14 @@ async def main():
             assert row['retries']==overlap
             assert 'access_token' not in path.read_text() and auth['access_token'] not in path.read_text() and 'p_command' not in path.read_text()
             await page.screenshot(path=str(output/f'battle-overlap-{overlap}.png'))
+            control['hold']=False
+            before_rewards=await page.evaluate('JSON.stringify([__game.G.gold,__game.G.soulPts,__game.G.inventory])')
+            await page.evaluate("""()=>{const enemies=__game.G.battle.enemies;enemies.forEach((e,i)=>{e.alive=i===0;e.hp=i===0?1:0;e._barrierLeft=0;});}""")
+            await page.locator('#combat-menu .cmd-attack').click()
+            await page.wait_for_function("__game.G.battle.result==='win'",timeout=15000)
+            await page.wait_for_function("document.querySelector('.choice-trial-status').textContent.includes('試遊終了')")
+            assert await page.evaluate('JSON.stringify([__game.G.gold,__game.G.soulPts,__game.G.inventory])')==before_rewards,'試遊の勝利で報酬処理が実行された'
+            assert await page.evaluate("__game.G.state==='combat' && __game.G.animating"),'試遊の勝利後に本編へ進んだ'
             await page.get_by_role('button',name='終了してホームへ').click();await page.wait_for_url('**/choice-trial.html')
             assert any(r[0]=='close' for r in requests),'終了時に試遊を閉じていない'
             # 同じ端末の通信20回。失敗時も画面から同一命令を再接続できる。
@@ -103,7 +112,7 @@ async def main():
                 control['hold']=False
                 await page.locator('#measure').click()
                 await page.wait_for_function("!document.querySelector('#measure').disabled",timeout=60000)
-                assert len([r for r in requests if r[0]=='append'])==21
+                assert len([r for r in requests if r[0]=='append'])==22
                 async with page.expect_download() as download_event:await page.get_by_role('button',name='B計測を書き出す').click()
                 download=await download_event.value;path=output/'measure.json';await download.save_as(path)
                 report=json.loads(path.read_text());assert report['summary']['network']['samples']==20

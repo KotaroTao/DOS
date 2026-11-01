@@ -2,7 +2,7 @@
 import { TrialLedger, timingSummary } from "./choice-trial-client.js";
 import { TEST_BUILD } from "./playtest.js";
 export function createTrial(mode) {
-  const report = { version: 1, build: TEST_BUILD, mode, startedAt: new Date().toISOString(), viewport: { width: innerWidth, height: innerHeight }, connection: { effectiveType: navigator.connection?.effectiveType || null, rtt: navigator.connection?.rtt ?? null }, network: [], actions: [] };
+  const report = { version: 1, scope: "B方式の選択追記・確定通知の試遊。戦闘開始・終了の検証と報酬保存は含まない。", byteScope: "UTF-8本文量。HTTPヘッダー・TLS・転送時の圧縮は含まない。失敗した要求は送信を試みた本文量。", build: TEST_BUILD, mode, startedAt: new Date().toISOString(), viewport: { width: innerWidth, height: innerHeight }, connection: { effectiveType: navigator.connection?.effectiveType || null, rtt: navigator.connection?.rtt ?? null }, network: [], actions: [] };
   const ledger = new TrialLedger({ onSample: sample => report.network.push(sample) });
   let current = null, stopped = false;
   const output = document.createElement("output"); output.className = "choice-trial-status"; output.textContent = "試遊の準備中…";
