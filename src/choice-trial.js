@@ -58,7 +58,7 @@ export function createTrial(mode) {
       output.textContent = `完了・中央値 ${Math.round(s.medianMs)}ms / p95 ${Math.round(s.p95Ms)}ms`;
       await api.close();
     },
-    async close() { stopped = true; await ledger.close(); },
+    async close(options = {}) { stopped = true; await ledger.close(options); },
     finish() { output.textContent = "試遊終了・計測結果を書き出せます"; api.close().catch(() => {}); },
   };
   window.addEventListener("pagehide", () => { if (ledger.run && !stopped) ledger.close({ keepalive: true }).catch(() => {}); }, { once: true });

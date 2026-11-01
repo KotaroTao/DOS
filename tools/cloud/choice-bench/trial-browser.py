@@ -119,6 +119,7 @@ async def main():
                 reports.append(report)
             assert not errors,errors
             print(f'B試遊 overlap={overlap}: 確定前不変・構え・既存着弾・二重入力・再送・JSON・本編不変 OK',flush=True)
+            await ctx.unroute_all(behavior="wait")
             await ctx.close()
         # 試遊を選んでいない通常のテストプレイに追記APIは入らない。
         ctx=await browser.new_context(service_workers='block');page=await ctx.new_page();unexpected=[]

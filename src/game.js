@@ -20262,7 +20262,7 @@ async function init() {
     exit.type = "button"; exit.textContent = "終了してホームへ";
     exit.addEventListener("click", () => {
       finishPlaytest();
-      if (choiceTrialRequested) { choiceTrial?.close().catch(() => {}); location.replace("choice-trial.html"); return; }
+      if (choiceTrialRequested) { choiceTrial?.close({ keepalive: true }).catch(() => {}); location.replace("choice-trial.html"); return; }
       const url = new URL(location.href);
       for (const key of ["testDungeon", "testFloor", "testPlace", "testScene", "testUnlock", "testInf", "testInfLv", "testSkipDungeon"]) url.searchParams.delete(key);
       location.replace(url.href);
