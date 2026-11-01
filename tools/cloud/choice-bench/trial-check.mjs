@@ -1,0 +1,73 @@
+// 試遊の所有者境界・再送・記録不変と、端末の確定前保管を確認する。
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { pathToFileURL } from 'node:url';
+import { TrialLedger, timingSummary, trialAuth } from '../../../src/choice-trial-client.js';
+import { migrationQuery } from '../../../supabase/deploy.mjs';
+const { PGlite } = await import(pathToFileURL(process.argv[2]));
+const db = new PGlite(), user = '11111111-1111-4111-8111-111111111111', other = '22222222-2222-4222-8222-222222222222';
+await db.exec(`create schema auth; create table auth.users(id uuid primary key); create role anon; create role authenticated;
+create function auth.uid() returns uuid language sql as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
+insert into auth.users values ('${user}'),('${other}');
+create table public.cloud_saves(user_id uuid primary key, snapshot jsonb);insert into public.cloud_saves values ('${user}','{"gold":19}');`);
+const sql = await readFile(new URL('../../../supabase/migrations/202611010001_choice_trial.sql', import.meta.url), 'utf8');
+await db.exec(migrationQuery(sql, '202611010001')); await db.exec(migrationQuery(sql, '202611010001'));
+async function as(id,role='authenticated') { await db.exec('reset role'); await db.query("select set_config('request.jwt.claim.sub',$1,false)",[id]); await db.exec('set role '+role); }
+const begin = async mode => (await db.query("select public.dos_choice_trial_begin($1,'trial-check') as v",[mode])).rows[0].v;
+const close = id => db.query('select public.dos_choice_trial_close($1)',[id]);
+await as(user);
+await assert.rejects(begin('invalid'),/choice_trial_invalid/);
+const run = (await begin('battle-overlap')).run, id = crypto.randomUUID();
+const append = async(step,command=id,choice={action:'attack'}) => (await db.query('select public.dos_choice_trial_append($1,$2,$3,$4) as v',[run,step,command,JSON.stringify(choice)])).rows[0].v;
+const first = await append(1); assert.deepEqual(await append(1), first);
+await assert.rejects(append(1,id,{action:'defend'}),/choice_changed/);
+await assert.rejects(append(1,crypto.randomUUID()),/choice_changed/);
+await assert.rejects(append(3,crypto.randomUUID()),/step_conflict/);
+await assert.rejects(append(2,id),/duplicate key/);
+assert.equal((await append(2,crypto.randomUUID())).step,2);
+await assert.rejects(append(257,crypto.randomUUID()),/invalid/);
+await assert.rejects(append(3,crypto.randomUUID(),{text:'あ'.repeat(3000)}),/invalid/);
+await assert.rejects(db.query('select * from choice_trial.choices'),/permission denied/);
+await as(other); await assert.rejects(append(3,crypto.randomUUID()),/unavailable/); await close(run);
+await as(user); assert.equal((await append(3,crypto.randomUUID())).step,3);
+await as(user,'anon'); await assert.rejects(append(4,crypto.randomUUID()),/permission denied/);
+await as(''); await assert.rejects(begin('measure'),/auth_required/);
+await as(user); await begin('measure'); await begin('measure'); await assert.rejects(begin('measure'),/too_many_runs/);
+await db.exec('reset role'); await db.query("update choice_trial.runs set expires_at=now()-interval '1 second' where id=$1",[run]);
+await as(user); await assert.rejects(append(4,crypto.randomUUID()),/unavailable/);
+const active=(await begin('measure')).run;
+await db.exec('reset role'); assert.equal((await db.query('select count(*)::int n from choice_trial.choices where run_id=$1',[run])).rows[0].n,0);
+await db.exec(`delete from choice_trial.runs where owner_id='${user}'`);
+await as(user);
+for(let i=0;i<8;i++){ const r=await begin('measure'); await close(r.run); }
+await assert.rejects(begin('measure'),/rate_limit/);
+await db.exec('reset role'); await db.exec("update choice_trial.quotas set window_start=now()-interval '2 hours'");
+await as(user); const next=await begin('measure'); await close(next.run);
+await db.exec('reset role'); assert.deepEqual((await db.query('select snapshot from public.cloud_saves')).rows[0].snapshot,{gold:19});
+await db.close();
+
+const config={enabled:true,url:'https://trial.invalid',anonKey:'public-only'}, store=new Map([['dos-save-v7','unchanged'],['dos-cloud-auth','unchanged-auth']]);
+const storage={getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)};
+let lost=true, release, requests=[], samples=[];
+const ledger=new TrialLedger({config,storage,token:'test-token-not-in-report',onSample:s=>samples.push(s),fetcher:async(url,options)=>{
+  const body=JSON.parse(options.body);requests.push({url,body});
+  if(url.endsWith('begin'))return Response.json({run,step:0});
+  if(url.endsWith('close'))return Response.json({closed:true});
+  assert.equal(JSON.parse(storage.getItem(ledger.key())).p_command,body.p_command);
+  if(lost){lost=false;throw Error('返答消失');}
+  await new Promise(resolve=>release=resolve);
+  return Response.json({step:body.p_step,receipt:id});
+}});
+await ledger.open('measure','test');const choice={action:'attack'};const sending=ledger.append(choice);choice.action='defend';
+await assert.rejects(sending,/返答消失/);assert.equal(ledger.step,0);assert.equal(ledger.pending.p_choice.action,'attack');
+await assert.rejects(ledger.append({action:'defend'}),/確定待ち/);
+const retry=ledger.retry();assert.equal(ledger.retry(),retry);release();await retry;
+assert.deepEqual(requests[1].body,requests[2].body);assert.equal(ledger.step,1);assert.equal(ledger.pending,null);assert.equal(store.size,2);
+assert(!JSON.stringify(samples).includes('test-token'));assert(!JSON.stringify(samples).includes('p_command'));
+assert.equal(storage.getItem('dos-save-v7'),'unchanged');assert.equal(storage.getItem('dos-cloud-auth'),'unchanged-auth');
+await ledger.close();await assert.rejects(ledger.append({}),/開始されていません/);
+const blocked = new TrialLedger({config,storage:{...storage,setItem(){throw Error('禁止');}},token:'test',fetcher:async()=>{throw Error('通信禁止');}});blocked.run=run;
+await assert.rejects(blocked.append({action:'attack'}),/保管できません/);assert.equal(blocked.pending,null);
+assert.throws(()=>trialAuth(storage,Date.now(),config),/タイトル/);
+assert.deepEqual(timingSummary([1,5,3,2,4,null,-1]),{samples:5,meanMs:3,medianMs:3,p95Ms:5,maxMs:5});
+console.log('B試遊: SQL再実行・所有者/権限・追記/再送・選び直し/順番拒否・上限/期限・本編不変・端末保管/返答消失/同一命令再送 OK');

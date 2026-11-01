@@ -1,0 +1,16 @@
+/* 試遊の構えだけ。着弾・HP・乱数は既存の確定後の処理で動かす。 */
+.choice-trial-page { max-width: 650px; margin: 2rem auto; padding: 1rem; font: 16px/1.7 sans-serif; background: #171719; color: #eee; }
+body:has(.choice-trial-page) { background: #171719; }
+.choice-trial-page a { color: #cdb985; }
+.choice-trial-page button { padding: .7rem; margin: .5rem; }
+.choice-trial-status { display: block; font-size: 12px; }
+.choice-windup[data-choice-index="0"] .pc[data-idx="0"] .pc-pic,
+.choice-windup[data-choice-index="1"] .pc[data-idx="1"] .pc-pic,
+.choice-windup[data-choice-index="2"] .pc[data-idx="2"] .pc-pic,
+.choice-windup[data-choice-index="3"] .pc[data-idx="3"] .pc-pic,
+.choice-windup[data-choice-index="4"] .pc[data-idx="4"] .pc-pic,
+.choice-windup[data-choice-index="5"] .pc[data-idx="5"] .pc-pic { transform: translateY(-4px); filter: brightness(1.25); transition: transform 90ms ease-out, filter 90ms; }
+@media (prefers-reduced-motion: reduce) { .choice-windup .pc .pc-pic { transform: none !important; transition: none !important; } }
+
+.test-play-banner.choice-trial-banner { flex-wrap: wrap; box-sizing: border-box; }
+.choice-trial-banner .choice-trial-status { flex-basis: 100%; text-align: center; }

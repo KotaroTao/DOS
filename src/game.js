@@ -1,3 +1,4 @@
+import { createTrial } from "./choice-trial.js";
 import { battleCommand } from "./cloud-battle.js";
 import { cloudCommandMode, cloudActionCommand } from "./cloud-save.js";
 import { saveMetrics } from "./save-metrics.js";
@@ -11286,7 +11287,7 @@ function showBattleItems(actor) {
 }
 // ---- 戦闘ループ駆動 (1手ずつ・演出付き) ----
 // 戦闘テンポ (演出時間の倍率): 倍速 ON = 標準 (1) / OFF = その 1/2 の速さ (2)。オート中は倍速の設定によらず短縮する
-function quickBattlePresentation() { return cloudBackgroundBattle() || cloudCommandMode(); }
+function quickBattlePresentation() { return !!choiceTrial || cloudBackgroundBattle() || cloudCommandMode(); }
 function spdMul() {
   if (quickBattlePresentation()) return G.autoCombat || G.fastAnim ? 0.1 : 0.2;
   return G.autoCombat ? 0.45 : G.fastAnim ? 1 : 2;
@@ -11309,11 +11310,22 @@ async function resolveLocalBattle(action, battle = G.battle) {
     const wait = G.autoCombat || action !== "commit" ? battleTempoWait(battle) : 0;
     if (wait > 0) await new Promise(resolve => setTimeout(resolve, wait));
     if (G.battle !== battle || G.state !== "combat") return;
-    if (cloudBackgroundBattle()) battleActionTimes.set(battle, performance.now());
+    let trialImpact = null;
+    if (choiceTrial && action === "commit") {
+      _cloudResolving = true;
+      trialImpact = await choiceTrial.choose(battleCommand(battle, action), partyEl, G.party.indexOf(battle.pending.actor));
+      if (G.battle !== battle || G.state !== "combat") { _cloudResolving = false; return; }
+      _cloudResolving = false;
+    }
+    if (cloudBackgroundBattle() || choiceTrial) battleActionTimes.set(battle, performance.now());
     const res = action === "commit" ? battle.commit() : action === "enemy" ? battle.enemyAct() : battle.stunnedAct();
     res._modFeed = takeModFeed(); battle._acted = true;
+    trialImpact?.();
     animateResult(res, postResolve);
-  } catch (e) { cloudFatal(); }
+  } catch (e) {
+    if (choiceTrial) { _cloudResolving = false; choiceTrial.output.textContent = e.message; G.animating = true; return; }
+    cloudFatal();
+  }
 }
 // 戦闘の一時停止: 戦闘中にシート (手帳・設定・覗き見など) が開いている間は次の一手へ進まない。
 // いま演じている一手は最後まで見せ、その次の手番で閉じるのを待つ
@@ -11453,6 +11465,7 @@ function postResolve() {
     shakeScreen(true); buzz([0, 60, 50, 60]);
     showToast("⚠ 敵が怒り狂っている！");
   }
+  if (b.result && choiceTrial) { G.animating = true; choiceTrial.finish(); return; }
   if (b.result) { G.animating = false; setTimeout(() => whenCombatFree(endBattle, b), quickBattlePresentation() ? 0 : G.autoCombat ? 100 : 300); return; }
   if (!serverBattle()) b._acted = false;
   // ターンの初めのパッシブ・激昂などで掛かった強化・弱体は、1拍ずつ見せてから次の手番へ
@@ -18940,6 +18953,8 @@ testScenes.push(...ARCHIVE_STORIES.map(s => ({ id: "archive:" + s.id, kind: "arc
 const testScene = testScenes.find((s) => s.id === testParams.get("testScene"));
 // 無限迷宮の試遊 (docs/infinite-labyrinth.md 16-4): URL の testInf=階 (testInfLv=隊Lv、無ければその階の推奨Lv)
 const testInfFloor = Math.max(0, Math.min(999, Math.floor(Number(testParams.get("testInf"))) || 0));
+let choiceTrial = null;
+const choiceTrialRequested = testParams.get("choiceTrial") === "1" && testDungeonIdx === worldIndexOf("w01") && !testScene && !testInfFloor;
 const testPlayActive = testDungeonIdx >= 0 || !!testScene || testInfFloor > 0;
 let _lastTrialSample = -Infinity;
 let _trialSampling = false;
@@ -20247,12 +20262,34 @@ async function init() {
     exit.type = "button"; exit.textContent = "終了してホームへ";
     exit.addEventListener("click", () => {
       finishPlaytest();
+      if (choiceTrialRequested) { choiceTrial?.close().catch(() => {}); location.replace("choice-trial.html"); return; }
       const url = new URL(location.href);
       for (const key of ["testDungeon", "testFloor", "testPlace", "testScene", "testUnlock", "testInf", "testInfLv", "testSkipDungeon"]) url.searchParams.delete(key);
       location.replace(url.href);
     });
     banner.appendChild(exit); document.body.appendChild(banner);
     new ResizeObserver(() => document.body.style.setProperty("--test-banner-height", `${banner.getBoundingClientRect().height}px`)).observe(banner);
+    if (choiceTrialRequested) {
+      choiceTrial = createTrial(testParams.get("trialOverlap") === "1" ? "battle-overlap" : "battle-after");
+      banner.classList.add("choice-trial-banner");
+      const modeLabel = document.createElement("span");
+      modeLabel.textContent = testParams.get("trialOverlap") === "1" ? "試遊・構え先行" : "試遊・通知待ち";
+      banner.replaceChildren(modeLabel, exit, choiceTrial.button, choiceTrial.output);
+      try { await choiceTrial.open(); }
+      catch (error) { choiceTrial.output.textContent = error.message; revealBootScreen(); return; }
+      G.rng = bindRngState([123456789, 362436069, 521288629, 88675123]);
+      G.party = [G.party[0], G.party[1], G.party[3], G.party[4]]; G.reserve = []; G.autoCombat = false;
+      for (const doll of G.party) {
+        const soul = soulByUid(doll.primary); soul.level = 20; soul.capBonus = Math.max(0, 20 - soulLevelCap(soul.clsKey, soul.count));
+        recalcDoll(doll); doll.hp = doll.maxhp = Math.max(1000, doll.maxhp); doll.mp = doll.maxmp; doll.agi = 1000;
+      }
+      const enemies = Array.from({ length: 3 }, () => spawnCardEnemies("bs_bonepile", 1, 1)[0]);
+      for (const enemy of enemies) { Object.assign(enemy, { hp: 500, maxhp: 500, atk: 3, vit: 5, agi: 1, lv: 20, ability: null, regen: 0 }); }
+      G.run = newRun(); G.state = "combat";
+      G.battle = new Battle(G.party, enemies, log, { noFlee: true });
+      watchBattleSupply(G.battle);
+      resumeFromState(); revealBootScreen(); playBgm(battleBgm(false)); return;
+    }
     resumeFromState();
     revealBootScreen();
     if (testScene?.kind === "tutorial") uiTutorial.startTestTutorial(G.testTutorial);

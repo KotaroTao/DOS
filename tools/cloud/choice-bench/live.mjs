@@ -37,6 +37,9 @@ async function setup(){
  await persist(s);await mkdir(reportDir,{recursive:true});
  const sql=(await readFile(new URL('./schema.sql',import.meta.url),'utf8')).replaceAll('__SCHEMA__',s.prefix).replaceAll('__PREFIX__',s.prefix);
  await management('/database/query',{query:sql});s.schemaCreated=true;await persist(s);
+ // 公開用の試遊RPCも、実測時は専用名に置き換え、本番APIを増やさずに検査する。
+ const trialSQL=(await readFile(new URL('../../../supabase/migrations/202611010001_choice_trial.sql',import.meta.url),'utf8')).replaceAll(/\bchoice_trial\b/g,s.prefix+'_ui').replaceAll('dos_choice_trial_',s.prefix+'_ui_');
+ await management('/database/query',{query:trialSQL});s.trialSchemaCreated=true;await persist(s);
  const user=await request(s.url+'/auth/v1/admin/users',headers(serviceKey),{email:`dos-choice-bench-${run}-${attempt}@example.invalid`,email_confirm:true,user_metadata:{purpose:'temporary-choice-benchmark'}},'POST','試験アカウント作成');
  s.userId=user.id;await persist(s);
  // generate_linkはリンクを生成するだけで、メールは送信しない。
@@ -150,6 +153,7 @@ async function cleanup(){
   if(!r.ok&&r.status!==404)throw Error('削除失敗');
  });
  if(s.userId)await remove('testAccountRemoved',()=>request(s.url+'/auth/v1/admin/users/'+s.userId,headers(s.serviceKey),undefined,'DELETE','試験アカウント削除'));
+ await remove('trialSchemaRemoved',()=>management('/database/query',{query:`drop function if exists public.${s.prefix}_ui_append(uuid,integer,uuid,jsonb);drop function if exists public.${s.prefix}_ui_begin(text,text);drop function if exists public.${s.prefix}_ui_close(uuid);drop schema if exists ${s.prefix}_ui cascade;notify pgrst,'reload schema';`}));
  await remove('testSchemaRemoved',()=>management('/database/query',{query:`drop function if exists public.${s.prefix}_append(uuid,integer,uuid,jsonb);drop function if exists public.${s.prefix}_append_service(uuid,uuid,integer,uuid,jsonb);drop function if exists public.${s.prefix}_begin(uuid);drop schema if exists ${s.prefix} cascade;notify pgrst,'reload schema';`}));
  await mkdir(reportDir,{recursive:true});await writeFile(join(reportDir,'cleanup.json'),JSON.stringify(report,null,2));
  if(report.errors.length)throw Error('試験用リソースの片付けに失敗しました: '+report.errors.join(','));

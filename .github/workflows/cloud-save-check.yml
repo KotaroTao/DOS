@@ -51,13 +51,29 @@ jobs:
           node --check tools/cloud/choice-bench/live.mjs
           node --check tools/cloud/choice-bench/edge.js
           node tools/cloud/choice-bench/check.mjs /tmp/dos-cloud-check/node_modules/@electric-sql/pglite/dist/index.js
+          node tools/cloud/choice-bench/trial-check.mjs /tmp/dos-cloud-check/node_modules/@electric-sql/pglite/dist/index.js
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 試遊ブラウザの準備
+        run: python3 -m pip install playwright
+      - name: 試遊画面の確定前不変・再送・計測を検査
+        env:
+          CHROME_BIN: /usr/bin/google-chrome
+        run: |
+          python3 -m http.server 8000 > /tmp/dos-choice-http.log 2>&1 &
+          server=$!
+          trap 'kill "$server"' EXIT
+          python3 tools/cloud/choice-bench/trial-browser.py --stub-art
       - name: Check save, retry, recovery and database contracts
         run: python3 tools/cloud/audit.py --node-only --pglite /tmp/dos-cloud-check/node_modules/@electric-sql/pglite/dist/index.js
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: cloud-save-checks
-          path: /tmp/dos-cloud-audit
+          path: |
+            /tmp/dos-cloud-audit
+            /tmp/dos-choice-trial-browser
 
   choice-benchmark:
     if: github.event_name == 'workflow_dispatch' && inputs.choice_benchmark == true
@@ -86,10 +102,23 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: 2.120.0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 試遊ブラウザの準備
+        run: python3 -m pip install playwright
       - name: 試験用リソースの準備
         run: node tools/cloud/choice-bench/live.mjs setup
       - name: 試験用の関数だけを公開
         run: supabase --workdir "$BENCH_PROJECT_DIR" functions deploy "$BENCH_FUNCTION" --project-ref "$SUPABASE_PROJECT_REF" --no-verify-jwt --use-docker
+      - name: 試遊画面から専用RPCを検査・20回計測
+        env:
+          CHROME_BIN: /usr/bin/google-chrome
+        run: |
+          python3 -m http.server 8000 > /tmp/dos-choice-http.log 2>&1 &
+          server=$!
+          trap 'kill "$server"' EXIT
+          python3 tools/cloud/choice-bench/trial-browser.py --stub-art --live-private "$RUNNER_TEMP/dos-choice-bench-private.json" --output "$BENCH_OUTPUT/browser"
       - name: 実サーバーで3方式を比較
         run: node tools/cloud/choice-bench/live.mjs measure
       - name: 試験用リソースの削除
