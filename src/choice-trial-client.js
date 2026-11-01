@@ -82,5 +82,5 @@ export function timingSummary(samples) {
   const values = samples.filter(value => Number.isFinite(value) && value >= 0).sort((a, b) => a - b);
   if (!values.length) return null;
   const at = p => values[Math.max(0, Math.ceil(values.length * p) - 1)];
-  return { samples: values.length, meanMs: values.reduce((a, b) => a + b, 0) / values.length, medianMs: at(.5), p95Ms: at(.95), maxMs: values.at(-1) };
+  return { samples: values.length, meanMs: values.reduce((a, b) => a + b, 0) / values.length, medianMs: values.length % 2 ? values[(values.length - 1) / 2] : (values[values.length / 2 - 1] + values[values.length / 2]) / 2, p95Ms: at(.95), maxMs: values.at(-1) };
 }

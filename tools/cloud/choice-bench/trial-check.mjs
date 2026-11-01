@@ -69,5 +69,6 @@ const close1=ledger.close(),close2=ledger.close();assert.equal(close1,close2);aw
 const blocked = new TrialLedger({config,storage:{...storage,setItem(){throw Error('禁止');}},token:'test',fetcher:async()=>{throw Error('通信禁止');}});blocked.run=run;
 await assert.rejects(blocked.append({action:'attack'}),/保管できません/);assert.equal(blocked.pending,null);
 assert.throws(()=>trialAuth(storage,Date.now(),config),/タイトル/);
+assert.equal(timingSummary([1,3]).medianMs,2);
 assert.deepEqual(timingSummary([1,5,3,2,4,null,-1]),{samples:5,meanMs:3,medianMs:3,p95Ms:5,maxMs:5});
 console.log('B試遊: SQL再実行・所有者/権限・追記/再送・選び直し/順番拒否・上限/期限・本編不変・端末保管/返答消失/同一命令再送 OK');
