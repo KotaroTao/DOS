@@ -8,10 +8,21 @@ on:
       - 'tools/save-protection/**'
       - '.github/workflows/cloud-save-check.yml'
   workflow_dispatch:
+    inputs:
+      choice_benchmark:
+        description: 'B方式の試験用リソースを作って実測し、終了時に削除する（ゲーム方式は変更しない）'
+        type: boolean
+        default: false
+      samples:
+        description: '各方式・各記録サイズの測定回数（別にウォームアップ3回）'
+        type: choice
+        options: ['20', '40']
+        default: '20'
 permissions:
   contents: read
 jobs:
   check:
+    if: inputs.choice_benchmark != true
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -37,3 +48,45 @@ jobs:
         with:
           name: cloud-save-checks
           path: /tmp/dos-cloud-audit
+
+  choice-benchmark:
+    if: github.event_name == 'workflow_dispatch' && inputs.choice_benchmark == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: dos-choice-benchmark
+      cancel-in-progress: false
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      BENCH_SAMPLES: ${{ inputs.samples }}
+      BENCH_OUTPUT: /tmp/dos-choice-bench-report
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github
+            src
+            supabase
+            tools
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.120.0
+      - name: 試験用リソースの準備
+        run: node tools/cloud/choice-bench/live.mjs setup
+      - name: 試験用の関数だけを公開
+        run: supabase --workdir "$BENCH_PROJECT_DIR" functions deploy "$BENCH_FUNCTION" --project-ref "$SUPABASE_PROJECT_REF" --no-verify-jwt --use-docker
+      - name: 実サーバーで3方式を比較
+        run: node tools/cloud/choice-bench/live.mjs measure
+      - name: 試験用リソースの削除
+        if: always()
+        run: node tools/cloud/choice-bench/live.mjs cleanup
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: choice-speed-benchmark
+          path: /tmp/dos-choice-bench-report
+          retention-days: 7
