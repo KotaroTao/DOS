@@ -11715,6 +11715,11 @@ function applyImpact(res) {
     return;
   }
 
+  const normalStyle = h => {
+    if (res.action !== "attack" || res.side !== "party" || !res.actor) return null;
+    const magic = h?.magic ?? (h?.offhand ? res.actor.oMagic : res.actor.wMagic);
+    return magic ? "arcane" : weaponFxStyle(h?.offhand ? res.actor.equip?.shield : res.actor.equip?.weapon);
+  };
   // 効果音 + 振動
   if (res.windup) {
     // 大技の予兆: 不穏な音と小さな揺れ (この手番は攻撃しない)
@@ -11742,7 +11747,7 @@ function applyImpact(res) {
       else SFX.miss();
     }
     else if (res.hits.some((h) => h.crit)) { SFX.crit(); buzz([0, 30, 40, 60]); shakeScreen(true); }
-    else { SFX.hit(); buzz(25); }
+    else { SFX.hit(normalStyle(res.hits.find(h => !h.miss))); buzz(25); }
   }
 
   // 開幕スキルで死亡が確定した敵は、各着弾時に本体・HPゲージの表示を終える。
@@ -11793,7 +11798,7 @@ function applyImpact(res) {
       const idx = (stackIdx[h.target.uid] = (stackIdx[h.target.uid] || 0) + 1) - 1; // 0,1,2…
       const ht0 = now + idx * stag;
       const dx = idx === 0 ? 0 : (idx % 2 ? 1 : -1) * (14 + 4 * idx); // 左右に振って重なり回避
-      if (idx > 0) setTimeout(() => SFX.hit(), idx * stag); // 2撃目以降にも手応えの効果音
+      if (idx > 0) setTimeout(() => SFX.hit(normalStyle(h)), idx * stag); // 2撃目以降にも手応えの効果音
       const seed = (h.target.uid || 1) * 31 + idx;
       if (res.opening === "senkoku") {
         // 死の宣告: 敵ごとに少しずつ遅れて、大鎌が魂を刈り取る (崩れ落ちは鎌が抜けた後)
@@ -11823,6 +11828,10 @@ function applyImpact(res) {
         const rot = prof ? prof.rot * (idx % 2 ? -1 : 1) : 0, big = !!h.crit || (prof && prof.tier >= 3);
         const flip = (idx % 2 === 1) !== (prof ? prof.spin < 0 : false);
         if (sig && sig.mode === "hit") spawnFx(fx.skill, sig.type, pos.cx, pos.cy, ht0, spd, { seed, v: idx, crit: !!h.crit });
+        else if (res.action === "attack" && mine) {
+          const kind = ["slash", "cross", "iai"].includes(style) ? "normalSlash" : ["blunt", "smash"].includes(style) ? "normalBlunt" : style === "thrust" ? "normalThrust" : style === "arrow" ? "normalArrow" : "normalArcane";
+          spawnFx(fx.skill, kind, pos.cx, pos.cy, ht0, spd, { seed, crit: !!h.crit, el, s: Math.max(.85, Math.min(1.4, (pos.size || 9) / 9)) });
+        }
         else if (style === "slash") {
           fx.slashes.push({ x: pos.cx + dx * 0.5, y: pos.cy, t0: ht0, crit: !!h.crit, big, flip, seed, el, rot, normal: res.action === "attack" });
           if (el && el !== "none" && ELEM_FX_COL[el]) spawnFx(fx.skill, el, pos.cx, pos.cy, ht0, spd, { seed, s: 0.55, trace: true });

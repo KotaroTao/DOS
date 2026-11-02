@@ -77,9 +77,9 @@ async def main():
                 assert await page.locator('.windup-name').inner_text()=='攻撃'
                 assert await page.locator('.windup-spark').count()==6
                 assert await page.locator('.windup-aim').count()==1
-                first_turn=await page.locator('.attack-trail').evaluate('n=>getComputedStyle(n).transform')
+                first_light=await page.locator('.attack-trail').evaluate('n=>getComputedStyle(n).opacity')
                 await page.wait_for_timeout(100)
-                assert await page.locator('.attack-trail').evaluate('n=>getComputedStyle(n).transform')!=first_turn,'構えの途中で輪が静止した'
+                assert await page.locator('.attack-trail').evaluate('n=>getComputedStyle(n).opacity')!=first_light,'待機中の光の変化が止まった'
                 await page.screenshot(path=str(output/'windup-pending.png'))
                 assert await page.locator('#party').evaluate('''n=>{const p=n.querySelector('.pc[data-idx="'+n.dataset.choiceIndex+'"] .pc-pic');return p && getComputedStyle(p).transform!=='none';}'''),'構えの見た目がない'
             await page.evaluate("document.querySelector('#combat-menu .cmd-attack')?.click()")
