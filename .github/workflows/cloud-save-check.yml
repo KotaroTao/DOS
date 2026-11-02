@@ -66,6 +66,7 @@ jobs:
           trap 'kill "$server"' EXIT
           python3 tools/cloud/choice-bench/trial-browser.py --stub-art
           python3 tools/cloud/windup-browser.py
+          python3 tools/cloud/normal-attack-browser.py
       - name: Check save, retry, recovery and database contracts
         run: python3 tools/cloud/audit.py --node-only --pglite /tmp/dos-cloud-check/node_modules/@electric-sql/pglite/dist/index.js
       - uses: actions/upload-artifact@v4

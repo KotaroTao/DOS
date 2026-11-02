@@ -452,7 +452,9 @@ The goal (per design direction): **every enemy is individually distinctive**, bo
 
 ### State & persistence
 
-**行動前の構え (2026-11-02)**: 本編の通信を待つ味方の確定行動とB試遊の構え先行で、`battle-windup.js` が準備音・肖像の踏み込み・光輪/粒子・敵への照準・行動名を即表示する。HP・MP・乱数・通信内容は変えない。確定通知後は構えの完了を待たず既存の着弾へ進む。通知待ち比較・確認済みの強制手番には追加しない。通信エラー・非表示・離脱で構えを外し、試遊の再接続で同じ選択の構えを再開する。準備音は既存の音量/ミュート設定に従い、停止時に短く消音する。AudioContext停止中や離脱時は即座に参照も解放する。動きを減らす設定では静止の光輪と照準。検証 `tools/cloud/windup-browser.py`・`tools/cloud/choice-bench/trial-browser.py`・`tools/cloud/commands-browser.py`。心得 `t_battle_windup`。
+**通常攻撃の可変長演出 (2026-11-02)**: 本編の通信を待つ味方の通常攻撃とB試遊の構え先行だけ、武器種別に斬撃・打撃・刺突・射撃・魔力の軌跡を描く。表示は「攻撃」のみ。通信と並行して振りかぶりを通常280ms/倍速200ms以上見せ、長い通信では溜めの動きを続ける。確定後に80msの振り抜き→既存の被弾音・点滅・数値→通常140ms/倍速120msの反応を見せて次へ。通常攻撃は旧400/500msの間隔待ちと二重に待たせない。短い通信の一手は約500/400msの表示周期、通信が長い分は延長する。HP・MP・乱数・通信内容は変えず、確定と振り抜きが終わるまで結果へ進めない。他の技・通知待ち比較・敵の確認済み手番の演出条件は維持。途中終了は完了待ちも解放する。検証 `tools/cloud/normal-attack-browser.py`・`tools/cloud/windup-browser.py`。心得 `t_normal_attack_motion`。
+
+**行動前の構え (2026-11-02)**: 本編の通信を待つ味方の確定行動とB試遊の構え先行で、`battle-windup.js` が準備音・肖像の踏み込み・光輪/粒子・敵への照準・行動名を即表示する。HP・MP・乱数・通信内容は変えない。通常攻撃以外は、確定通知後に構えの完了を待たず既存の着弾へ進む。通知待ち比較・確認済みの強制手番には追加しない。通信エラー・非表示・離脱で構えを外し、試遊の再接続で同じ選択の構えを再開する。準備音は既存の音量/ミュート設定に従い、停止時に短く消音する。AudioContext停止中や離脱時は即座に参照も解放する。動きを減らす設定では静止の光輪と照準。検証 `tools/cloud/windup-browser.py`・`tools/cloud/choice-bench/trial-browser.py`・`tools/cloud/commands-browser.py`。心得 `t_battle_windup`。
 
 **B方式の端末実測・試遊 (2026-11-01)**: 設定から別画面の `choice-trial.html` へ。通信20回と `?testDungeon=w01&choiceTrial=1&trialOverlap=0|1` の専用戦闘で比較する。本編は従来方式のまま。試遊だけ `dos_choice_trial_*` RPCで小さな選択を確定し、通知後に既存の戦闘処理・着弾へ進む。1は通知前に構えを表示するだけでHP・乱数は進めない。時間・本文量のJSONに認証情報は入れない。再生検証・戦果確定は含まない。心得 `t_choice_trial`。
 

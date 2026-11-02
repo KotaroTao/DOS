@@ -73,11 +73,13 @@ async def main():
             assert await page.locator('.battle-windup').count()==overlap
             assert await page.evaluate('windupProbe.starts')==overlap
             if overlap:
+                assert await page.locator('.normal-attack').count()==1
+                assert await page.locator('.windup-name').inner_text()=='攻撃'
                 assert await page.locator('.windup-spark').count()==6
                 assert await page.locator('.windup-aim').count()==1
-                first_turn=await page.locator('.windup-ring').evaluate('n=>getComputedStyle(n).transform')
+                first_turn=await page.locator('.attack-trail').evaluate('n=>getComputedStyle(n).transform')
                 await page.wait_for_timeout(100)
-                assert await page.locator('.windup-ring').evaluate('n=>getComputedStyle(n).transform')!=first_turn,'構えの途中で輪が静止した'
+                assert await page.locator('.attack-trail').evaluate('n=>getComputedStyle(n).transform')!=first_turn,'構えの途中で輪が静止した'
                 await page.screenshot(path=str(output/'windup-pending.png'))
                 assert await page.locator('#party').evaluate('''n=>{const p=n.querySelector('.pc[data-idx="'+n.dataset.choiceIndex+'"] .pc-pic');return p && getComputedStyle(p).transform!=='none';}'''),'構えの見た目がない'
             await page.evaluate("document.querySelector('#combat-menu .cmd-attack')?.click()")
@@ -111,7 +113,7 @@ async def main():
             download=await download_event.value;path=output/f'battle-overlap-{overlap}.json';await download.save_as(path)
             report=json.loads(path.read_text());reports.append(report)
             row=report['actions'][0];assert row['impactMs']>=row['receiptMs']>= (350 if overlap==0 else 900)
-            assert row['impactMs']-row['receiptMs']<100,'確定後に余分な待ちがある'
+            assert row['impactMs']-row['receiptMs']<(450 if overlap else 100),'確定後の振り抜き・再接続の準備が長すぎる'
             assert (row['preparationMs'] is not None)==bool(overlap)
             assert row['retries']==overlap
             assert 'access_token' not in path.read_text() and auth['access_token'] not in path.read_text() and 'p_command' not in path.read_text()
@@ -151,4 +153,5 @@ async def main():
         await browser.close()
     print('B試遊のブラウザ検査完了。保存先: '+str(output),flush=True)
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())
