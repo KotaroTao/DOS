@@ -191,3 +191,9 @@ end $$;
 revoke all on function public.cloud_battle_begin(uuid,bigint,uuid,jsonb,jsonb,text) from public,anon;
 grant execute on function public.cloud_battle_begin(uuid,bigint,uuid,jsonb,jsonb,text) to authenticated;
 notify pgrst,'reload schema';
+
+-- 大容量の移行開始・終了時だけは従来の保存と同じ期限を確保する。毎手の期限は延ばさない。
+alter function public.cloud_battle_begin_text(text) set statement_timeout = '45s';
+alter function public.cloud_battle_finish_text(text) set statement_timeout = '45s';
+alter function public.cloud_battle_begin(uuid,bigint,uuid,jsonb,jsonb,text) set statement_timeout = '45s';
+notify pgrst,'reload schema';

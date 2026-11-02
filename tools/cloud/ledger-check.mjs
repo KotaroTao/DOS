@@ -9,6 +9,7 @@ import { reseedRng,rngState } from '../../src/rng.js';
 import { replayCloudCommand } from '../../src/cloud-command-replay.js';
 import { battleCommand } from '../../src/cloud-battle.js';
 import { replayBattleLedger,battleStateHash } from '../../src/cloud-ledger-replay.js';
+const {ITEMS}=await import('../../src/items.js');
 const {PGlite}=await import(pathToFileURL(process.argv[2]));
 const db=new PGlite();
 const uid='11111111-1111-4111-8111-111111111111', sid=crypto.randomUUID(),bid=crypto.randomUUID();
@@ -99,4 +100,19 @@ await db.exec('reset role');
 await db.query('delete from auth.users where id=$1',[unclaimed]);
 await db.query('delete from auth.users where id=$1',[uid]);
 assert.equal((await db.query('select count(*)::int as n from battle_ledger.heads')).rows[0].n,0);
+// 実プレイで問題になった2MiB超の袋でも、毎手と一括再生の結果・共有参照を保つ。
+const wide=refDeserialize(initial),bag=Array.from({length:6561},(_,i)=>({...ITEMS.u_styptic_salve,probe:i}));
+wide.inventory=bag;wide.party[0].items=bag;
+const wideStart=refSerialize(wide,{compact:true});let wideGraph=wideStart;const wideChoices=[];
+assert.ok(Buffer.byteLength(JSON.stringify(wideStart))>2*1024*1024);
+for(let n=0;n<30;n++){
+ const s=refDeserialize(wideGraph);if(s.battle.result)break;
+ if(s.battle.phase==='input')s.battle.pending={actor:s.battle.current,action:'attack',target:s.battle.enemies.find(e=>e.alive)};
+ const command=battleCommand(s.battle,s.battle.phase==='input'?'commit':s.battle.phase,s.rng),commandId=crypto.randomUUID();
+ const local=await replayCloudCommand(wideGraph,command,commandId,true,true);
+ wideChoices.push({commandId,command:{...command,forcedCount:local.forcedPackets.length}});wideGraph=local.snapshot;
+}
+const wideReplay=await replayBattleLedger(wideStart,{rules:'battle-1',choices:wideChoices});
+assert.ok(wideReplay.terminal);assert.equal(wideReplay.hash,await battleStateHash(wideGraph));
+const loaded=refDeserialize(wideReplay.snapshot);assert.equal(loaded.inventory.length,6561);assert.equal(loaded.party[0].items,loaded.inventory);
 await db.close();console.log('本番B: 不変履歴・権限・再送・キャッシュなし復旧・一括再生・改ざん拒否・終了再送・退会削除を確認');
