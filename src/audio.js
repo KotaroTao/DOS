@@ -299,6 +299,11 @@ export const SFX = {
   flip() { sfx("flip"); },
   step() { sfx("step", { jit: 0.1 }); },
   swing() { sfx("swing", { jit: 0.1 }); },
+  skill(kind = "magic") {
+    if (document.hidden) return;
+    const names = {slash:"normalSlash",impact:"normalBlunt",pierce:"normalPierce",restore:"skillRestore",ward:"skillWard",shade:"skillShade",fire:"skillFire",spark:"skillSpark",magic:"skillMagic"};
+    sfx(names[kind] || "skillMagic",{jit:.035});
+  },
   hit(style = null) {
     const name = ["slash", "cross", "iai"].includes(style) ? "normalSlash" : ["blunt", "smash"].includes(style) ? "normalBlunt" : ["thrust", "arrow"].includes(style) ? "normalPierce" : "hit";
     sfx(name, { jit: name === "hit" ? 0.08 : 0.04 });

@@ -1,3 +1,4 @@
+import { setFxQuality } from "../skill-fx-budget.js";
 import { showSaveMetrics } from "../save-metrics.js";
 // ===== 設定 — キットのシート (音量の目盛り・切り替え・自動化の好み・データ削除) =====
 // 担当: WP-A。⚙ (タブの見出し・盤面のトップバー) から開く。戻る操作 / 背景タップ / 下へ引く で閉じる。
@@ -20,6 +21,7 @@ import { normalizeLook, WALKER_CLOAKS, WALKER_TRIMS } from "../walkerart.js";
 import { cryptWalkerBitmap, prewarmCryptActors } from "../cryptactors.js";
 import { cloudEnabled, cloudAccount, cloudGuest, cloudManageAccount } from "../cloud-save.js";
 
+setFxQuality(getPref("fxLite") ? "low" : "auto");
 const sfx = (k) => { try { if (SFX[k]) SFX[k](); } catch (e) { /* noop */ } };
 
 // 自動化の好み (prefs.js の既定値と同じ鍵)
@@ -141,6 +143,10 @@ function fillSound(box) {
   box.appendChild(toggleRow({ name: "振動", desc: "被弾・宝箱などで端末を震わせる (対応端末のみ)", on: !!P.vibrate, onChange: (v) => {
     P.vibrate = v; if (game.savePrefs) game.savePrefs(); sfx("select"); if (v && game.buzz) game.buzz([0, 30]);
   } }));
+  box.appendChild(toggleRow({name:"演出を軽くする",desc:"光の粒や余韻を減らす。技の速さと結果はそのまま",on:!!getPref("fxLite"),onChange:value=>{setPref("fxLite",value);setFxQuality(value?"low":"auto");}}));
+  const preview=el("a","stg-row");preview.href="effects-lab.html";preview.target="_blank";preview.rel="noopener";
+  preview.appendChild(setText(el("span","stg-row-n"),"技の演出を試す"));
+  preview.appendChild(setText(el("span","stg-row-d"),"未習得の技も含む・本編の進行には影響なし"));box.appendChild(preview);
   const bgRow = el("div", "stg-row stg-segrow");
   const bgt = el("span", "stg-row-t");
   bgt.appendChild(setText(el("span", "stg-row-n"), "戦闘の背景"));

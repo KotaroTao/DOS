@@ -19,6 +19,7 @@ export const UI_PREF_DEFAULTS = {
   shopCat: "weapon",     // 商会の分類
   codexDungeon: 0,       // 図鑑で開いていた迷宮
   lastSkill: {},         // 人業uid → 最後に使ったスキル
+  fxLite: false,         // 光の粒・余韻を少なくする。戦闘の時間・結果は変えない
   autoKeep: false,       // オートを次の戦闘も続ける
   chestAuto: false,      // 宝箱は最良の解除役で開ける (確認なし)
   autoCorpse: false,      // 朽ちた死体は自動で調べる

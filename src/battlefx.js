@@ -1,3 +1,5 @@
+import { SKILL_FX_CATALOG } from "./skill-fx-catalog.js";
+import { FX_LIMITS, recordFxFrame } from "./skill-fx-budget.js";
 // 戦闘の演出 (武器・属性・状態異常ごとのエフェクト)。描画だけを受け持ち、戦闘の進行・時間配分には関わらない。
 // game.js の applyImpact が着弾の瞬間に spawn* で積み、drawEffects が毎フレーム drawBattleFx を呼ぶ。
 // テンポの約束: 効果はbase × 表示倍率で描く。背景保存の戦闘は進行速度と表示倍率を分け、オートでも目で追える長さにする —
@@ -24,7 +26,7 @@ function rgba(hex, a) {
 const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
 const easeOut = (t) => 1 - (1 - t) * (1 - t);
 
-// 武器の分類 → 物理の演出。通常攻撃はgame.jsでnormal*へ振り分け、物理技は従来の形を使う。
+// 武器の分類 → 物理の演出。通常攻撃はgame.jsでnormal*へ振り分け、味方の技はskill-fx.jsで描く。
 export function weaponFxStyle(weapon) {
   const c = weapon && weapon.cat;
   return c === "dg" ? "cross" : c === "kt" ? "iai" : c === "sp" ? "thrust" : c === "ax" || c === "mc" ? "smash"
@@ -41,6 +43,7 @@ export function statusFxKind(status) {
 // 効果を積む: list = G.fx.skill。dur は spd を掛けた実時間 (ms)
 export function spawnFx(list, type, x, y, t0, spd, o = {}) {
   const base = BASE_DUR[type] || 300;
+  if (list.length >= FX_LIMITS.effects) return;
   list.push({ type, x, y, t0, dur: o.dur || base * Math.max(0.45, spd), s: o.s || 1, el: o.el || null, crit: !!o.crit, flip: !!o.flip, seed: o.seed || 1, col: o.col || null, trace: !!o.trace,
     v: o.v || 0, rot: o.rot || 0, spin: o.spin || 1, tx: o.tx || 0, ty: o.ty || 0, w: o.w || 0, pts: o.pts || null });
 }
@@ -62,16 +65,19 @@ const ROTATABLE = new Set(["cross", "iai", "blunt", "crit", "none", "wind", "pie
 // 毎フレームの描画。VW/VH は戦場の大きさ
 export function drawBattleFx(ctx, list, now, VW, VH, reduced) {
   if (!list || !list.length) return;
+  const started = performance.now();
+  let drawn = 0;
   for (const e of list) {
+    if (drawn >= FX_LIMITS.effects) break;
     const t = (now - e.t0) / e.dur;
     if (t < 0 || t > 1) continue;
     const fn = ["healmark", "curemark", "buffmark", "debuffmark"].includes(e.type) ? drawEffectMark : DRAW[e.type];
     if (!fn) continue;
     ctx.save();
     if (e.rot && ROTATABLE.has(e.type)) { ctx.translate(e.x, e.y); ctx.rotate(e.rot); ctx.translate(-e.x, -e.y); }
-    fn(ctx, e, t, VW, VH, reduced);
-    ctx.restore();
+    try { fn(ctx, e, t, VW, VH, reduced); drawn++; } finally { ctx.restore(); }
   }
+  recordFxFrame(performance.now() - started, drawn);
 }
 
 // 同じ色でも意味を区別できる印。回復は＋、治療は星、強化/弱体は上下の矢印。
@@ -650,20 +656,17 @@ const DRAW = {
 };
 
 // =====================================================================
-// 技ごとの組み立て (全929種の技に、その性質から決まる演出を与える)
-//   属性 → 色と基本の形 (属性ごとに3通りの描き分け v = 0/1/2) / 威力・MP → 格 (tier 1-3: 大きさ・上級は魔法陣) /
-//   単体か全体か → 全体技は戦場を覆う一枚 (field 系) を重ねる / 付く効果 → 印 (riders) /
-//   技の鍵の hash → 描き分け・角度 (rot)・回る向き (spin)・粒の配置 (seed)。同じ性質の技でも見た目がずれる
+// 技ごとの組み立て (全技に、明示した分類と実際の性質から演出を与える)
+//   系統・習得段階 → 生成済みのカタログ / 単体・全体・付く効果 → 実際の技の定義。
+//   旧描画口の互換用パラメーターは固定値とし、MP・IDのハッシュでは姿を変えない。
 // =====================================================================
 const _profiles = new Map();
-function hashStr(str) { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
 export function skillProfile(key, sp) {
   if (!key || !sp) return null;
   let p = _profiles.get(key);
   if (p) return p;
-  const h = hashStr(key);
-  const mp = sp.mp || 0;
-  const tier = sp.kind === "debuff" ? (mp >= 12 ? 3 : mp >= 7 ? 2 : 1) : mp >= 25 ? 3 : mp >= 13 ? 2 : 1;
+  const design = SKILL_FX_CATALOG[key] || {family:"arcane",tier:1,scale:.9};
+  const tier = design.tier;
   const riders = [];
   if (sp.drain) riders.push({ type: "drain", col: "#ff5a5a" });
   if (sp.mpDrain) riders.push({ type: "drain", col: "#6aa8ff" });
@@ -681,8 +684,7 @@ export function skillProfile(key, sp) {
     tier, el: sp.element || null, kind: sp.kind,
     all: sp.target === "all-enemy" || sp.target === "all-ally", ally: ["ally", "all-ally", "self"].includes(sp.target),
     hits: sp.hits || 1, riders,
-    v: h % 3, rot: ((h >>> 3) % 1000 / 1000 - 0.5) * 0.9, spin: (h >>> 13) & 1 ? 1 : -1, seed: (h >>> 7) % 997,
-    scale: tier === 3 ? 1.3 : tier === 2 ? 1.08 : 0.88,
+    ...design, v: 0, rot: 0, spin: 1, seed: 17,
   };
   _profiles.set(key, p);
   return p;

@@ -86,3 +86,9 @@ body:has(.choice-trial-page) { background: #171719; }
   .normal-attack .attack-motion { transform: translate(-50%, -50%); opacity: .7; }
   .normal-attack .attack-trail { filter: none; }
 }
+
+/* 軽量表示は構えの粒子と影も減らし、行動の間は変えない。 */
+[data-fx-lite="1"] .battle-windup .windup-spark { display:none; }
+[data-fx-lite="1"] .battle-windup .windup-ring { box-shadow:none; }
+[data-fx-lite="1"] .battle-windup .attack-trail { filter:none; }
+.skill-windup .windup-spark { height:8px; width:2px; }

@@ -21,11 +21,16 @@ function attackMotion(root, style, aim) {
   for (const d of paths[type]) { const path = document.createElementNS(svg.namespaceURI, "path"); path.setAttribute("d", d); svg.appendChild(path); }
   motion.appendChild(svg); root.appendChild(motion);
 }
-export function beginBattleWindup({ party, index, view, label = "攻撃の構え", kind = "strike", aim = null, onFrame = null, attackStyle = null, fast = false } = {}) {
+export function beginBattleWindup({ party, index, view, label = "攻撃の構え", kind = "strike", aim = null, onFrame = null, attackStyle = null, fast = false, skillFamily = null } = {}) {
   active?.stop();
   const card = party?.querySelector(`.pc[data-idx="${index}"]`);
   if (!card || !view || document.hidden) return { stop() {}, complete: () => Promise.resolve() };
   const root = document.createElement("div"); root.className = "battle-windup battle-windup-" + (kind === "cast" ? "cast" : "strike");
+  if (skillFamily) {
+    root.classList.add("skill-windup"); root.dataset.skillFamily=skillFamily;
+    const tones={heal:"130,220,160",revive:"242,218,151",purify:"156,224,232",ward:"175,211,235",fireball:"246,155,94",firePillar:"246,155,94",ice:"161,216,247",void:"179,151,208",drain:"204,146,181",poison:"170,192,117"};
+    if(tones[skillFamily])root.style.setProperty("--windup-rgb",tones[skillFamily]);
+  }
   root.setAttribute("aria-hidden", "true");
   const add = name => { const node = document.createElement("span"); node.className = name; root.appendChild(node); return node; };
   add("windup-sweep"); add("windup-ring");

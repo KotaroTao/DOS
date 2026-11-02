@@ -122,6 +122,26 @@ export const SFX_DEFS = {
   step: { vars: 4, vol: 0.28, rev: 0.12, gen(r) { return mono(footstep(r, 0.8 + r() * 0.5)); } },
   swing: { vars: 3, vol: 0.42, rev: 0.12, gen(r) { return mono(whoosh(r, 0.22, 380, 2400 + r() * 500, 800, 1.5, 0.4)); } },
   // 通常攻撃の短い手応え。斬撃は空気を裂く音、打撃は低い胴鳴りを中心にする。
+  // 技の共通音。短い一音を合成し、全体技でも対象人数分は重ねない。
+  skillRestore: {vars:2,vol:.45,rev:.16,gen(r){
+    const x=new Float32Array(len(.32));
+    for(const [i,f] of [660,880,1320].entries())mixInto(x,modal(SR,.23,[[f,1,.14],[f*2,.12,.06]]),len(i*.025),.35);
+    return mono(x);
+  }},
+  skillWard: {vars:2,vol:.45,rev:.12,gen(r){
+    const x=sweep(.28,t=>250+90*Math.exp(-t/.02),.15);
+    mixInto(x,modal(SR,.25,[[520,.4,.15],[1040,.15,.08]]),0,.4);return mono(x);
+  }},
+  skillShade: {vars:2,vol:.4,rev:.14,gen(r){return mono(whoosh(r,.25,1900,650,180,.9,.18));}},
+  skillFire: {vars:2,vol:.5,rev:.1,gen(r){
+    const x=sweep(.26,t=>60+80*Math.exp(-t/.02),.13),n=burst(r,.19,.1);applyBq(n,"lp",1300,.7,SR);mixInto(x,n,0,1.3);return mono(x);
+  }},
+  skillSpark: {vars:2,vol:.45,rev:.08,gen(r){
+    const x=new Float32Array(len(.18));mixInto(x,hp1(burst(r,.055,.022),2700,SR),0,.8);mixInto(x,modal(SR,.15,[[1100,1,.05],[2300,.3,.025]]),0,.35);return mono(x);
+  }},
+  skillMagic: {vars:2,vol:.45,rev:.12,gen(r){
+    const x=whoosh(r,.24,800,2600,600,1.2,.18);mixInto(x,modal(SR,.2,[[500,.7,.12],[1500,.3,.07]]),0,.5);return mono(x);
+  }},
   normalSlash: { vars: 3, vol: .56, rev: .08, gen(r) {
     const x = new Float32Array(len(.22));
     mixInto(x, hp1(burst(r,.15,.085),1200,SR),0,.85);

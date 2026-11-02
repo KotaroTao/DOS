@@ -12,6 +12,15 @@ const CACHE = "dos-dev";
 const DEV = CACHE === "dos-dev";
 const ASSETS = [
   "./src/battle-windup.js",
+  "./effects-lab.html",
+  "./effects-lab.css",
+  "./src/effects-lab.js",
+  "./src/skill-fx-preview.js",
+  "./src/skill-fx-field.js",
+  "./src/skill-fx.js",
+  "./src/skill-fx-catalog.js",
+  "./src/skill-fx-signatures.js",
+  "./src/skill-fx-budget.js",
   "./choice-trial.html",
   "./choice-trial.css",
   "./src/choice-trial-client.js",
