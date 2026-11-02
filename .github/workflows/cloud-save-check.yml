@@ -6,6 +6,8 @@ on:
       - 'supabase/**'
       - 'tools/cloud/**'
       - 'tools/save-protection/**'
+      - 'tools/effects/**'
+      - 'effects-lab.*'
       - '.github/workflows/cloud-save-check.yml'
   workflow_dispatch:
     inputs:
@@ -33,11 +35,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          sparse-checkout-cone-mode: false
           sparse-checkout: |
-            .github
-            src
-            supabase
-            tools
+            /*
+            !/*/
+            /.github/
+            /src/
+            /supabase/
+            /tools/
+            /docs/skill-effects-catalog.csv
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -46,6 +52,11 @@ jobs:
       - name: Check JavaScript syntax
         run: |
           for f in $(git ls-files 'src/*.js'); do node --check "$f" || exit 1; done
+      - name: 技演出の全割当・予算・乱数不変を検査
+        run: |
+          node tools/effects/build-catalog.mjs --check
+          node tools/effects/check.mjs
+          node tools/balance/effect-scope-check.mjs
       - name: Check choice log prototype
         run: |
           node --check tools/cloud/choice-bench/live.mjs
@@ -70,6 +81,8 @@ jobs:
           python3 tools/cloud/windup-browser.py
           python3 tools/cloud/normal-attack-browser.py
           python3 tools/cloud/normal-impact-browser.py
+          python3 tools/effects/browser-check.py
+          python3 tools/effects/game-browser.py
       - name: 本番B方式の実ゲーム・復旧・終了検証
         env:
           CHROME_BIN: /usr/bin/google-chrome
@@ -92,6 +105,7 @@ jobs:
           path: |
             /tmp/dos-cloud-audit
             /tmp/dos-choice-trial-browser
+            /tmp/dos-skill-fx-check
 
   choice-benchmark:
     needs: ledger-benchmark

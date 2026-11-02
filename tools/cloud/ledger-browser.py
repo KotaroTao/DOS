@@ -37,6 +37,8 @@ with sync_playwright() as p:
  page.wait_for_function("window.__game?.G.board && !document.body.classList.contains('booting')",timeout=60000)
  snap=page.evaluate('''async()=>{
   const {Battle}=await import('/src/combat.js');const g=__game.G;
+  // 応答喪失・復旧を調べる戦闘は固定の乱数から始める。初手の回避で待機条件を満たせない揺れを避ける。
+  const {reseedRng}=await import('/src/rng.js');reseedRng(42);
   const foe=__game.spawnCardEnemies('bs_bonepile',1,1)[0];Object.assign(foe,{hp:150,maxhp:150,atk:1,agi:1,ability:null});
   g.state='combat';g.battle=new Battle(g.party,[foe],()=>{});
   return JSON.parse(__game.inf.saveJSON());
@@ -55,7 +57,11 @@ with sync_playwright() as p:
  before=page.evaluate('__game.G.battle.enemies[0].hp')
  drop['on']=True
  page.locator('#combat-menu .cmd-main button.primary').first.click()
- page.wait_for_function("__game.G.battle.phase==='input' && !__game.G.animating && __game.G.battle.enemies[0].hp<150",timeout=60000)
+ try:
+  page.wait_for_function("__game.G.battle.phase==='input' && !__game.G.animating && __game.G.battle.enemies[0].hp<150",timeout=60000)
+ except Exception:
+  print('戦闘復旧の診断:',json.dumps({'state':page.evaluate("({state:__game.G.state,phase:__game.G.battle?.phase,animating:__game.G.animating,hp:__game.G.battle?.enemies.map(e=>e.hp),log:__game.G.logs?.slice(-6),gate:document.querySelector('.cloud-gate')?.textContent})"),'errors':errors,'requests':[{'path':v['path'],'status':v['status']} for v in calls[-8:]]},ensure_ascii=False))
+  raise
  duplicates=[x for x in calls if x['path'].endswith('/cloud_battle_append')]
  assert len(duplicates)>=2 and duplicates[0]['body']==duplicates[1]['body'],'応答喪失で命令を変えている'
  before=page.evaluate('__game.G.battle.enemies[0].hp')
