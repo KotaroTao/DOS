@@ -452,6 +452,8 @@ The goal (per design direction): **every enemy is individually distinctive**, bo
 
 ### State & persistence
 
+**行動前の構え (2026-11-02)**: 本編の通信を待つ味方の確定行動とB試遊の構え先行で、`battle-windup.js` が準備音・肖像の踏み込み・光輪/粒子・敵への照準・行動名を即表示する。HP・MP・乱数・通信内容は変えない。確定通知後は構えの完了を待たず既存の着弾へ進む。通知待ち比較・確認済みの強制手番には追加しない。通信エラー・非表示・離脱で構えを外し、試遊の再接続で同じ選択の構えを再開する。準備音は既存の音量/ミュート設定に従い、停止時に短く消音する。AudioContext停止中や離脱時は即座に参照も解放する。動きを減らす設定では静止の光輪と照準。検証 `tools/cloud/windup-browser.py`・`tools/cloud/choice-bench/trial-browser.py`・`tools/cloud/commands-browser.py`。心得 `t_battle_windup`。
+
 **B方式の端末実測・試遊 (2026-11-01)**: 設定から別画面の `choice-trial.html` へ。通信20回と `?testDungeon=w01&choiceTrial=1&trialOverlap=0|1` の専用戦闘で比較する。本編は従来方式のまま。試遊だけ `dos_choice_trial_*` RPCで小さな選択を確定し、通知後に既存の戦闘処理・着弾へ進む。1は通知前に構えを表示するだけでHP・乱数は進めない。時間・本文量のJSONに認証情報は入れない。再生検証・戦果確定は含まない。心得 `t_choice_trial`。
 
 **移動時の描画 (2026-10-31)**: めくり・歩行中はCanvasだけを更新し、隊・命令・歩みのUIとレイアウトは到着時に更新する。めくる蓋の移動・拡縮には画像補間を使い、細い枠のちらつきを抑える。静止盤面のキャッシュは蓋の演出開始・終了で作り直さない。 選択可能な蓋の縁取りは一定の明るさで移動中も残し、一歩ごとの一斉消灯・再点灯を避ける。起動時は`game-starting`で本編を透明にしてレイアウトと画像準備を続け、最後のタイトルの準備完了後だけ本編を見せる。

@@ -23,30 +23,32 @@ export function createTrial(mode) {
   const api = {
     output, button, report,
     async open() { await ledger.open(mode, "choice-trial-v1:" + TEST_BUILD); output.textContent = "B方式の試遊・本編の保存なし"; },
-    async choose(choice, party, index) {
+    async choose(choice, prepare = null) {
       if (stopped) throw Error("試遊は終了しています。");
       const started = performance.now();
       current = { receiptMs: null, preparationMs: null, impactMs: null, retries: 0 }; report.actions.push(current);
       const row = current;
       output.textContent = "選択を記録中…";
-      if (mode === "battle-overlap" && party) {
-        party.dataset.choiceIndex = String(index); party.classList.add("choice-windup");
-        // CSSの描画が起きた最初のフレームを数える。結果の計算や乱数は使わない。
-        requestAnimationFrame(() => { if (current === row && party.classList.contains("choice-windup")) row.preparationMs = performance.now() - started; });
-      }
+      let windup = null;
+      const start = () => {
+        if (mode !== "battle-overlap" || !prepare) return;
+        windup = prepare(() => { if (current === row && row.preparationMs === null) row.preparationMs = performance.now() - started; });
+      };
+      start();
       let sending = ledger.append(choice);
       try {
         for (;;) {
           try { await sending; break; }
           catch (error) {
             if (!ledger.pending || stopped) throw error;
-            await retry(error); row.retries++; sending = ledger.retry();
+            windup?.stop(); windup = null;
+            await retry(error); row.retries++; start(); sending = ledger.retry();
           }
         }
         row.receiptMs = performance.now() - started;
         output.textContent = `確定通知 ${Math.round(row.receiptMs)}ms・${ledger.step}手`;
         return () => { row.impactMs = performance.now() - started; current = null; };
-      } finally { party?.classList.remove("choice-windup"); }
+      } finally { windup?.stop(); }
     },
     async measure(count = 20) {
       for (let i = 0; i < count; i++) {

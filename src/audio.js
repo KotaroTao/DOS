@@ -267,7 +267,7 @@ function sfx(name, o = {}) {
   const def = sfxDef(name);
   if (!def) return;
   const buf = sfxBuffer(name, actx);
-  engine.playBuffer(buf, {
+  return engine.playBuffer(buf, {
     vol: def.vol * (o.vol ?? 1), rev: def.rev, pan: o.pan,
     rate: 1 + (Math.random() - 0.5) * (o.jit ?? 0.06),
     at: actx.currentTime + 0.005 + (o.delay || 0),
@@ -288,6 +288,12 @@ function jingle(name, fallback, duck, depth = 0.3) {
 }
 
 export const SFX = {
+  // 打撃・命中とは別の準備音。音量設定・ミュートは通常の効果音と共通。
+  prepare(kind = "strike") {
+    if (document.hidden) return () => {};
+    const voice = sfx(kind === "cast" ? "windupCast" : "windupStrike", { jit: 0 });
+    return ({ immediate = false } = {}) => { if (immediate || voice?.context?.state !== "running") voice?.stopImmediately?.(); else voice?.fadeOut?.(); };
+  },
   select() { sfx("select"); },
   thunder() { if (!document.hidden) sfx("thunder", { jit: 0.12 }); },
   flip() { sfx("flip"); },

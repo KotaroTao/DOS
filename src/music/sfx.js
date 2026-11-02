@@ -82,6 +82,22 @@ function appraiseTick(r, step) {
 }
 
 export const SFX_DEFS = {
+  // 構え: 引き抜く金属音と衣擦れ。静かな余韻は通知時に短く消せる。
+  windupStrike: { vars: 1, vol: 0.36, rev: 0.14, gen(r) {
+    const x = new Float32Array(len(2.2));
+    mixInto(x, modal(SR, 0.26, [[780, 1, 0.09], [1530, 0.55, 0.11], [2800, 0.18, 0.035]]), 0, 0.7);
+    mixInto(x, whoosh(r, 0.32, 340, 1900, 650, 1.5, 0.22), 0, 0.65);
+    mixInto(x, sweep(2.1, t => 108 + 9 * Math.min(1, t), 1.1, 0.05), 0, 0.1);
+    return mono(x);
+  } },
+  // 詠唱: 高まる和音と空気の流れ。爆発や成功を先に知らせる音は使わない。
+  windupCast: { vars: 1, vol: 0.32, rev: 0.24, gen(r) {
+    const x = new Float32Array(len(2.2));
+    mixInto(x, modal(SR, 0.45, [[660, 1, 0.3, 0.002], [990, 0.5, 0.25], [1320, 0.18, 0.18]]), 0, 0.55);
+    mixInto(x, whoosh(r, 0.42, 500, 2400, 1100, 2, 0.28), 0, 0.45);
+    mixInto(x, sweep(2.1, t => 165 + 55 * Math.min(1, t), 1.4, 0.035), 0, 0.16);
+    return mono(x);
+  } },
   // 遠雷: 低い雑音がうねり、ゆっくり消えていく。
   thunder: { vol: 0.42, rev: 0.35, vars: 2, gen(r) {
     const x = brown(len(4.2), r);

@@ -1,16 +1,47 @@
-/* 試遊の構えだけ。着弾・HP・乱数は既存の確定後の処理で動かす。 */
+/* 計測画面と、本編・試遊で共通の構え。着弾・HP・乱数は確定後に動かす。 */
 .choice-trial-page { max-width: 650px; margin: 2rem auto; padding: 1rem; font: 16px/1.7 sans-serif; background: #171719; color: #eee; }
 body:has(.choice-trial-page) { background: #171719; }
 .choice-trial-page a { color: #cdb985; }
 .choice-trial-page button { padding: .7rem; margin: .5rem; }
 .choice-trial-status { display: block; font-size: 12px; }
-.choice-windup[data-choice-index="0"] .pc[data-idx="0"] .pc-pic,
-.choice-windup[data-choice-index="1"] .pc[data-idx="1"] .pc-pic,
-.choice-windup[data-choice-index="2"] .pc[data-idx="2"] .pc-pic,
-.choice-windup[data-choice-index="3"] .pc[data-idx="3"] .pc-pic,
-.choice-windup[data-choice-index="4"] .pc[data-idx="4"] .pc-pic,
-.choice-windup[data-choice-index="5"] .pc[data-idx="5"] .pc-pic { transform: translateY(-4px); filter: brightness(1.25); transition: transform 90ms ease-out, filter 90ms; }
-@media (prefers-reduced-motion: reduce) { .choice-windup .pc .pc-pic { transform: none !important; transition: none !important; } }
 
 .test-play-banner.choice-trial-banner { flex-wrap: wrap; box-sizing: border-box; }
 .choice-trial-banner .choice-trial-status { flex-basis: 100%; text-align: center; }
+
+/* 押した瞬間に光と動きを出す。通知待ちの時間を演出の最低尺にはしない。 */
+.battle-windup {
+  --windup-rgb: 245, 192, 100;
+  position: fixed; z-index: 40; pointer-events: none; overflow: hidden;
+  contain: layout paint; color: rgb(var(--windup-rgb));
+  background: radial-gradient(ellipse at 50% 108%, rgba(var(--windup-rgb), .23), transparent 62%);
+}
+.battle-windup-cast { --windup-rgb: 140, 191, 255; }
+.windup-ring {
+  position: absolute; width: 126px; height: 126px; left: calc(50% - 63px); bottom: -34px;
+  border: 2px solid rgba(var(--windup-rgb), .85); border-radius: 50%;
+  box-shadow: 0 0 20px rgba(var(--windup-rgb), .28), inset 0 0 14px rgba(var(--windup-rgb), .2);
+  animation: windup-turn 1.5s linear infinite;
+}
+.windup-ring::before, .windup-ring::after { content: ""; position: absolute; inset: 8px; border: 2px dashed rgba(var(--windup-rgb), .7); border-radius: 50%; }
+.windup-ring::after { inset: 19px; border: 1px solid rgba(var(--windup-rgb), .5); border-radius: 0; transform: rotate(45deg); }
+.windup-sweep { position: absolute; inset: 14% 12% 0; background: linear-gradient(115deg, transparent 30%, rgba(var(--windup-rgb), .34) 48%, transparent 58%); animation: windup-draw 260ms ease-out both; }
+.windup-spark { position: absolute; bottom: 8%; left: calc(25% + var(--i) * 10%); width: 3px; height: 17px; border-radius: 50%; background: rgb(var(--windup-rgb)); animation: windup-rise 950ms linear infinite; animation-delay: calc(var(--i) * -157ms); }
+.windup-name { position: absolute; bottom: 17px; left: 8px; right: 8px; text-align: center; font-size: 13px; line-height: 1.5; font-weight: bold; letter-spacing: .06em; text-shadow: 0 2px 3px #000, 0 0 8px #000; }
+.windup-aim { position: absolute; width: 64px; height: 64px; transform: translate(-50%, -50%); animation: windup-focus 850ms ease-in-out infinite alternate; }
+.windup-aim i { position: absolute; width: 12px; height: 12px; border: 2px solid rgba(var(--windup-rgb), .85); }
+.windup-aim i:nth-child(1) { top: 0; left: 0; border-right: 0; border-bottom: 0; }
+.windup-aim i:nth-child(2) { top: 0; right: 0; border-left: 0; border-bottom: 0; }
+.windup-aim i:nth-child(3) { bottom: 0; left: 0; border-right: 0; border-top: 0; }
+.windup-aim i:nth-child(4) { bottom: 0; right: 0; border-left: 0; border-top: 0; }
+#party .battle-windup-actor { border-color: #e7be6f; box-shadow: 0 0 0 1px #e7be6f, 0 0 16px #ba8d3e66; }
+#party .battle-windup-actor .pc-pic { position: relative; z-index: 1; filter: brightness(1.35); animation: windup-ready 760ms ease-in-out infinite alternate; }
+@keyframes windup-ready { from { transform: translateY(-7px) scale(1.08); } to { transform: translateY(-10px) scale(1.1); } }
+@keyframes windup-turn { to { transform: rotate(360deg); } }
+@keyframes windup-rise { 0% { transform: translateY(15px) scaleY(.4); opacity: 0; } 18% { opacity: .85; } 100% { transform: translateY(-115px) scaleY(.1); opacity: 0; } }
+@keyframes windup-draw { from { transform: translateX(-22%); opacity: .8; } to { transform: translateX(28%); opacity: 0; } }
+@keyframes windup-focus { from { opacity: .55; } to { opacity: .95; } }
+@media (prefers-reduced-motion: reduce) {
+  .battle-windup *, #party .battle-windup-actor .pc-pic { animation: none !important; }
+  .windup-spark, .windup-sweep { display: none; }
+  #party .battle-windup-actor .pc-pic { transform: none; }
+}

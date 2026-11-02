@@ -1,3 +1,4 @@
+import { beginBattleWindup } from "./battle-windup.js";
 import { createTrial } from "./choice-trial.js";
 import { battleCommand } from "./cloud-battle.js";
 import { cloudCommandMode, cloudActionCommand } from "./cloud-save.js";
@@ -11301,6 +11302,17 @@ function battleTempoWait(battle) {
 // 自動進行の待ち時間から独立させ、数フレームで効果を消さない。
 function effectSpeed() { return quickBattlePresentation() ? (G.fastAnim ? 0.85 : 1) : spdMul(); }
 function serverBattle() { return cloudEnabled() && !testPlayActive && !cloudBackgroundBattle(); }
+function prepareBattleAction(battle, onFrame = null) {
+  const pending = battle.pending, actor = pending?.actor;
+  if (!actor || actor.side !== "party") return { stop() {} };
+  const spell = pending.spellKey && SPELLS[pending.spellKey];
+  const cast = !!spell && spell.kind !== "phys";
+  const label = pending.action === "spell" ? `${spell?.name || "技"}の${cast ? "詠唱" : "構え"}`
+    : pending.action === "defend" ? "防御の構え" : pending.action === "run" ? "退路を探る" : pending.action === "item" ? `${pending.item?.name || "道具"}を準備` : "攻撃の構え";
+  const target = pending.target?.side === "enemy" && G.enemyPos[pending.target.uid];
+  return beginBattleWindup({ party: partyEl, index: G.party.indexOf(actor), view, label: `${actor.name} — ${label}`, kind: cast ? "cast" : "strike",
+    aim: target ? { x: target.cx / VW, y: target.cy / VH } : null, onFrame });
+}
 async function resolveLocalBattle(action, battle = G.battle) {
   try {
     if (cloudBackgroundBattle()) _cloudResolving = true;
@@ -11313,7 +11325,7 @@ async function resolveLocalBattle(action, battle = G.battle) {
     let trialImpact = null;
     if (choiceTrial && action === "commit") {
       _cloudResolving = true;
-      trialImpact = await choiceTrial.choose(battleCommand(battle, action), partyEl, G.party.indexOf(battle.pending.actor));
+      trialImpact = await choiceTrial.choose(battleCommand(battle, action), onFrame => prepareBattleAction(battle, onFrame));
       if (G.battle !== battle || G.state !== "combat") { _cloudResolving = false; return; }
       _cloudResolving = false;
     }
@@ -11413,6 +11425,7 @@ async function resolveSavedBattle(action) {
   if (_cloudResolving) return;
   _cloudResolving = true;
   const resultStarted = performance.now();
+  let windup = null;
   try {
     let raw, response;
     const cached = savedForcedTurns[0];
@@ -11422,6 +11435,7 @@ async function resolveSavedBattle(action) {
       response = cached;
     } else {
       savedForcedTurns = [];
+      if (action === "commit") windup = prepareBattleAction(G.battle);
       codexSweepJobs(); notifyInsight();
       const snap = {};
       for (const k of SAVE_FIELDS) snap[k] = G[k];
@@ -11450,8 +11464,10 @@ async function resolveSavedBattle(action) {
     for (const l of packet.logs) log(l.msg, l.cls);
     packet.result._modFeed = packet.modFeed;
     saveMetrics.timing(cached?.battle === G.battle ? "confirmedPlayback" : "commandResult", performance.now() - resultStarted, cached?.battle === G.battle ? 0 : 1 + (response.forcedPackets?.length || 0));
+    windup?.stop();
     animateResult(packet.result, postResolve);
   } catch (e) { cloudFatal(); }
+  finally { windup?.stop(); }
 }
 
 // 行動の結果を演出し、終わったら次へ
