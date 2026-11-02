@@ -6,7 +6,7 @@ export function orderedCloudValue(value) {
   if (!value || typeof value !== "object") return value;
   return Object.fromEntries(Object.keys(value).sort().map(key => [key, orderedCloudValue(value[key])]));
 }
-export async function replayCloudCommand(graph, command, commandId, forcedTurns = false) {
+export async function replayCloudCommand(graph, command, commandId, forcedTurns = false, ledger = false) {
   const state = refDeserialize(orderedCloudValue(graph));
   const packets = resolveCloudCommand(state, command, { compact: true, commandToken: commandId });
   const forcedPackets = [];
@@ -21,7 +21,8 @@ export async function replayCloudCommand(graph, command, commandId, forcedTurns 
     forcedPackets.push({ operation, ...turn });
   }
   const result = { ...packets, ...(forcedTurns ? { forcedPackets } : {}), snapshot: refSerialize(state, { compact: true }) };
+  if (ledger) return { ...result, terminal: !!state.battle.result };
   const bytes = new TextEncoder().encode(JSON.stringify(orderedCloudValue(result)));
   const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
-  return { ...result, hash: [...digest].map(byte => byte.toString(16).padStart(2, "0")).join("") };
+  return { ...result, terminal: !!state.battle.result, hash: [...digest].map(byte => byte.toString(16).padStart(2, "0")).join("") };
 }

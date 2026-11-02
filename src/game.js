@@ -1,7 +1,7 @@
 import { beginBattleWindup, normalAttackTiming } from "./battle-windup.js";
 import { createTrial } from "./choice-trial.js";
 import { battleCommand } from "./cloud-battle.js";
-import { cloudCommandMode, cloudActionCommand } from "./cloud-save.js";
+import { cloudLedgerActive, cloudFinishBattle, cloudCommandMode, cloudActionCommand } from "./cloud-save.js";
 import { saveMetrics } from "./save-metrics.js";
 import { refreshPlayTime } from "./ui/playername.js";
 import { resetAutomationPrefs } from "./ui/prefs.js";
@@ -10229,8 +10229,9 @@ function playBattleIntro(done, prepared = false) {
   const introMul = G.autoCombat ? 0.6 : G.fastAnim ? 1 : 2;
   const ambush = b.opening === "ambush", preempt = b.opening === "preempt";
   let dur = (boss ? 1900 : 640 + b.enemies.length * 90) * introMul;
-  // 先制・奇襲の帯を読めるだけ留める (下限も戦闘スピードの設定に従う: オート 600 / 倍速 ON 1000 / OFF 2000ms)
-  if (ambush || preempt) dur = Math.max(dur, 1000 * introMul);
+  // オンラインの開幕は保存と並行して短く見せる。奇襲の帯を読むためだけに初撃を止めない。
+  if (cloudCommandMode() && !boss) dur = (ambush ? 180 : preempt ? 240 : 320) * (G.fastAnim || G.autoCombat ? 1 : 1.4);
+  else if (ambush || preempt) dur = Math.max(dur, 1000 * introMul);
   G.battleIntro = { battle: b, t0: performance.now(), dur, ambush, preempt, boss: boss ? (enemyReveal(boss).name ? (boss.mon && boss.mon.name) || boss.name : unknownLabel(boss.mon)) : null };
   G.animating = true;
   combatMenu.innerHTML = "";
@@ -10247,7 +10248,7 @@ function playBattleIntro(done, prepared = false) {
   const tick = () => {
     if (!G.battleIntro || G.battle !== b) return;
     renderCombatCanvas();
-    if (performance.now() - G.battleIntro.t0 >= dur) {
+    if (performance.now() - G.battleIntro.t0 >= (G.autoCombat ? Math.min(dur, 320) : dur)) {
       G.battleIntro = null;
       G.animating = false;
       done();
@@ -12163,8 +12164,21 @@ function levelUpEntries(progress) {
 }
 
 const battleVictoryAt = new WeakMap(), battleVictoryTimers = new WeakMap();
+const battleVerified = new WeakSet(), battleVerifying = new WeakSet();
 function endBattle(...args) {
   const b = G.battle;
+  // 最後の着弾の余韻と終了時検証は重ね、検証後に同じ一秒を足さない。
+  if (b?.result === "win" && !battleVictoryAt.has(b)) battleVictoryAt.set(b, performance.now());
+  if (b?.result && serverBattle() && !battleVerified.has(b)) {
+    if (!battleVerifying.has(b)) {
+      battleVerifying.add(b);
+      cloudFinishBattle().then(() => {
+        battleVerified.add(b);
+        if (G.battle === b && G.state === "combat") endBattle(...args);
+      }).catch(() => cloudFatal());
+    }
+    return;
+  }
   if (b?.result === "win") {
     if (!battleVictoryAt.has(b)) battleVictoryAt.set(b, performance.now());
     const remaining = 1000 - (performance.now() - battleVictoryAt.get(b));
@@ -19001,7 +19015,7 @@ function autosave(force = false) {
     return;
   }
   if (!cloudEnabled() && (!localSaveReady || !localSaveSession?.owned)) return;
-  if (cloudEnabled() && (!cloudReady() || _cloudResolving || showingConfirmedTurns())) return;
+  if (cloudEnabled() && (!cloudReady() || _cloudResolving || showingConfirmedTurns() || cloudLedgerActive())) return;
   if (!G.party || (!cloudEnabled() && !G.party.length && !G.apprenticeName)) return;
   const now = Date.now();
   if (!cloudEnabled() && !force && now - _lastSave < 200) return;
@@ -19020,7 +19034,7 @@ function autosave(force = false) {
         if (raw === _lastCloudSave) return null;
         _lastCloudSave = raw;
         return raw;
-      });
+      }, { urgent: G.state === "combat" });
     }
     return localSaveSession.write(JSON.stringify(refSerialize(snap)));
   } catch (e) {
@@ -19476,7 +19490,7 @@ function resumeCombat() {
 
 // 終了時はWorkerの返答より先に画面が破棄されるため、端末の復旧記録を同期で残す。
 function saveBeforeLeaving() {
-  if (cloudEnabled() && !testPlayActive && cloudReady() && !_resetting && !_cloudResolving && !showingConfirmedTurns()) {
+  if (cloudEnabled() && !testPlayActive && cloudReady() && !_resetting && !_cloudResolving && !showingConfirmedTurns() && !cloudLedgerActive()) {
     try {
       const snap = {};
       for (const k of SAVE_FIELDS) snap[k] = G[k];

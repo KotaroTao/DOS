@@ -1,3 +1,6 @@
+import { refDeserialize } from "./savegraph.js";
+import { battleCommand } from "./cloud-battle.js";
+import { BATTLE_RULES, battleStateHash, canonicalBattleGraph } from "./cloud-ledger-replay.js";
 import { decodeCloudReply } from "./cloud-wire.js";
 import { encodeCloudChange, decodeCloudCommand, replayCloudCommandPrepared, cloudWorkerReady } from "./save-codec.js";
 import { applyCloudChange } from "./cloud-change.js";
@@ -28,6 +31,7 @@ export class CloudSaveClient {
     localSaveKey(slot); this.slot = slot;
     this.config = config; this.fetcher = fetcher; this.storage = storage;
     this.onBusy = onBusy; this.onFailure = onFailure; this.retryDelays = retryDelays;
+    this.ledger = null; this.directBegin = false; this.battleLedger = false; this.useLedger = config.battleLedger !== false;
     this.confirmed = null; this.commandMode = false; this.commandReplay = false; this.forcedTurns = false;
     this.auth = null; this.sessionId = null; this.revision = 0;
     this.saveWaiters = new Set();
@@ -41,7 +45,7 @@ export class CloudSaveClient {
     let received = 0, status = 0, ok = false;
     const sent = metricOp ? utf8Bytes(options.body) : 0;
     // 大きな記録の戦闘応答は15秒を超える。認証と保存APIの期限を分ける。
-    const timeoutMs = path.startsWith("/functions/") ? 60000 : 15000;
+    const timeoutMs = path.startsWith("/functions/") || metricOp === "ledger-begin" ? 60000 : 15000;
     const ctrl = new AbortController();
     let timer;
     const timeout = new Promise((_, reject) => { timer = setTimeout(() => {
@@ -50,13 +54,17 @@ export class CloudSaveClient {
     const work = async () => {
       const r = await this.fetcher(this.config.url.replace(/\/$/, "") + path, { ...options, signal: ctrl.signal });
       status = r.status;
+      if (metricOp) for (const part of (r.headers.get("Server-Timing") || "").split(",")) {
+        const match = /^\s*([a-z]+);dur=([\d.]+)\s*$/.exec(part);
+        if (match && ["auth", "read", "write", "replay", "hash", "encode", "total"].includes(match[1])) saveMetrics.timing("server_" + match[1], Number(match[2]));
+      }
       let data = null;
       if (metricOp) {
         const raw = await r.text(); received = utf8Bytes(raw);
         try { data = JSON.parse(raw); } catch { /* 既存と同じ失敗処理へ */ }
       } else data = await r.json().catch(() => null);
       if (r.ok) data = await decodeCloudReply(data);
-      if (!r.ok) throw Object.assign(new Error(data?.error_description || data?.msg || data?.error || "通信に失敗しました"), { status: r.status, requestId: data?.requestId });
+      if (!r.ok) throw Object.assign(new Error(data?.error_description || data?.msg || data?.error || data?.message || "通信に失敗しました"), { status: /^cloud_(revision|session|command|version|battle)/.test(data?.message || "") ? 409 : r.status, requestId: data?.requestId });
       if (!data) throw Object.assign(new Error("返答を読み取れません"), { status: 502 });
       return data;
     };
@@ -81,18 +89,20 @@ export class CloudSaveClient {
   }
   async request(body) {
     if (this.slot !== 1) body = { ...body, slot: this.slot };
-    const raw = requestJSON(body);
-    const send = async (token) => this.fetchJSON("/functions/v1/game-save", { method: "POST",
-      headers: { apikey: this.config.anonKey, Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    const beginning = body.op === "ledger-begin", direct = beginning || body.op === "ledger-command";
+    const raw = beginning ? JSON.stringify({p_session:body.sessionId,p_revision:body.revision,p_command_id:body.commandId,p_change:body.change ? {change:body.change} : {snapshot:body.snapshot},p_opening:body.openingCommand || null,p_rules:BATTLE_RULES}) : direct ? JSON.stringify({p_battle:body.battleId,p_session:body.sessionId,p_revision:body.revision,p_seq:body.seq,p_command_id:body.commandId,p_command:body.command,p_rules:body.rules}) : requestJSON(body);
+    const send = async (token) => this.fetchJSON(direct ? beginning ? "/rest/v1/rpc/cloud_battle_begin" : "/rest/v1/rpc/cloud_battle_append" : "/functions/v1/game-save", { method: "POST",
+      headers: { apikey: this.config.anonKey, Authorization: `Bearer ${token}`, "Content-Type": "application/json", ...(this.config.region && !direct ? { "x-region": this.config.region } : {}) },
       body: raw }, body.op);
     try { return await send(await this.token()); }
     catch (e) { if (e.status === 401) return send(await this.token(true)); throw e; }
   }
   setBusy() { this.busy = this.count > 0; this.onBusy(this.busy); }
-  enqueue(op, data = {}) {
+  enqueue(op, data = {}, { urgent = false } = {}) {
     // まだ送っていない連続した保存だけを最新化。送信済みの要求と戦闘の境界は変えない。
     if (op === "save" && this.queuedSave) {
       this.queuedSave.data = data;
+      if (urgent) { this.queuedSave.urgent = true; this.queuedSave.wake?.(); }
       return this.queuedSave.promise;
     }
     // 保存の順は変えず、戦闘の前に不要な集約待ちだけを解除する。
@@ -100,7 +110,7 @@ export class CloudSaveClient {
       saved.urgent = true;
       saved.wake?.();
     }
-    const entry = { data, promise: null, queuedAt: performance.now() };
+    const entry = { data, promise: null, queuedAt: performance.now(), urgent };
     if (op === "save") this.saveWaiters.add(entry);
     this.queuedSave = op === "save" ? entry : null;
     if (op === "battle" || op === "turn" || op === "command") this.blocking++;
@@ -114,7 +124,7 @@ export class CloudSaveClient {
       }
       if (this.queuedSave === entry) this.queuedSave = null;
       const data = typeof entry.data === "function" ? await this.retry(entry.data) : entry.data;
-      if (data === null) return;
+      if (data === null || op === "save" && this.ledger) return;
       const { checkpointId, ...requestData } = data;
       let nextSnapshot = null;
       let payload = requestData;
@@ -126,14 +136,41 @@ export class CloudSaveClient {
           return;
         }
       }
+      if (op === "command" && this.opening) {
+        const opening = this.opening;
+        if (JSON.stringify(requestData.command) !== JSON.stringify(opening.command)) throw Object.assign(new Error("cloud_revision_conflict"),{status:409});
+        this.opening = null; this.confirmed = opening.local.snapshot;
+        this.storage.removeItem(choiceKey(this.auth.user.id));
+        return {...opening.local, revision:this.revision};
+      }
       const replayStarted = performance.now();
-      const replay = op === "command" && this.commandReplay && cloudWorkerReady()
-        ? replayCloudCommandPrepared(this.confirmed, requestData.command, requestData.commandId, this.forcedTurns).then(value => { saveMetrics.timing("commandCalculation", performance.now() - replayStarted); return value; }).catch(() => null) : null;
+      const preview = () => this.request({protocol:this.config.protocol,op:"ledger-preview",sessionId:this.sessionId,revision:this.revision,battleId:this.ledger.id,seq:this.ledger.seq,command:requestData.command,commandId:requestData.commandId,acceptEncoding:"gzip"});
+      const replay = op === "command" && this.commandReplay && (cloudWorkerReady() || this.ledger)
+        ? (cloudWorkerReady() ? replayCloudCommandPrepared(this.confirmed, requestData.command, requestData.commandId, this.forcedTurns, !!this.ledger).catch(() => this.ledger ? preview() : null) : preview())
+          .then(value => { saveMetrics.timing("commandCalculation", performance.now() - replayStarted); return value; }).catch(() => null) : null;
+      const ledgerLocal = this.ledger && op === "command" ? await replay : null;
+      if (this.ledger && op === "command" && !ledgerLocal) throw Object.assign(new Error("cloud_replay_mismatch"), {status:409});
       const body = { protocol: this.config.protocol, sessionId: this.sessionId,
         commandId: crypto.randomUUID(), revision: this.revision, op, ...payload,
+        ...(this.battleLedger ? { battleLedger: true } : {}),
         ...(replay ? { replay: true, ...(this.forcedTurns ? { forcedTurns: true } : {}) } : {}),
         ...(this.commandMode && ["battle", "turn"].includes(op) ? { syncGraph: true } : {}),
         ...(typeof DecompressionStream !== "undefined" ? { acceptEncoding: "gzip" } : {}) };
+      let opening = null;
+      if (op === "save" && this.battleLedger && cloudWorkerReady() && nextSnapshot) {
+        const state = refDeserialize(nextSnapshot);
+        if (state.state === "combat" && !state.battle?.result && ["enemy","stunned"].includes(state.battle?.phase)) {
+          const command = battleCommand(state.battle,state.battle.phase,state.rng);
+          const local = await replayCloudCommandPrepared(nextSnapshot,command,body.commandId,true,true);
+          opening = {command,local}; body.openingCommand = {...command,forcedCount:local.forcedPackets.length};
+        }
+      }
+      if (op === "save" && this.directBegin && this.battleLedger && nextSnapshot) {
+        const state = refDeserialize(nextSnapshot);
+        if (state.state === "combat" && state.battle && !state.battle.result) body.op = "ledger-begin";
+      }
+      if (this.ledger && op === "command") Object.assign(body, {op:"ledger-command",battleId:this.ledger.id,seq:this.ledger.seq,rules:BATTLE_RULES,
+        command:{...requestData.command,forcedCount:ledgerLocal.forcedPackets?.length || 0}});
       // 送信前に記録する。結果の返答を失っても同じID・同じ内容で再送する。
       let result = await this.retry(async () => {
         this.storage.setItem(pendingKey(this.auth.user.id, this.slot), requestJSON(body));
@@ -141,17 +178,19 @@ export class CloudSaveClient {
       });
       if (replay) {
         const local = await replay;
-        if (!local || local.hash !== result.replayHash) {
+        if (!local || !this.ledger && local.hash !== result.replayHash) {
           // 式・版・状態が食い違った結果を表示せず、確定済みの記録を読み直す。
           await this.retry(() => { throw Object.assign(new Error("cloud_replay_mismatch"), { status: 409 }); }, { automatic: false });
         }
         nextSnapshot = local.snapshot;
         result = { ...result, packet: local.packet, nextPacket: local.nextPacket, forcedPackets: local.forcedPackets };
       } else if (op === "command") result = await decodeCloudCommand(this.confirmed, result);
-      if (op === "reset") this.confirmed = null;
+      if (op === "reset") { this.confirmed = null; this.ledger = null; this.opening = null; }
       if (nextSnapshot) this.confirmed = nextSnapshot;
       else if (result.sync) this.confirmed = applyCloudChange(this.confirmed, result.sync);
       this.revision = result.revision;
+      if (result.ledger) { this.ledger = result.ledger; this.opening = opening; }
+      if (body.op === "ledger-command") this.ledger.seq = result.seq;
       if (op === "command") this.storage.removeItem(choiceKey(this.auth.user.id));
       this.storage.removeItem(pendingKey(this.auth.user.id, this.slot));
       if (checkpointId) {
@@ -202,7 +241,8 @@ export class CloudSaveClient {
     for (const [key] of entries) this.storage.removeItem(key);
     this.latestCheckpointId = null;
   }
-  savePrepared(prepare) {
+  savePrepared(prepare, options = {}) {
+    if (this.ledger) return Promise.resolve();
     const generation = ++this.checkpointGeneration;
     const previous = this.checkpointTail;
     const prepared = Promise.resolve().then(prepare).then(async snapshot => {
@@ -223,10 +263,11 @@ export class CloudSaveClient {
     });
     this.checkpointTail = prepared;
     prepared.catch(() => {});
-    return this.enqueue("save", () => prepared);
+    return this.enqueue("save", () => prepared, options);
   }
   // 画面を閉じる時はWorkerや通信の完了を待てないため、その場で最新地点を保管する。
   checkpointNow(snapshot) {
+    if (this.ledger) return null; // 再開はサーバーの選択履歴を使う。途中の戦況で上書きしない。
     const id = crypto.randomUUID();
     const data = typeof snapshot === "string" ? { snapshotRaw: snapshot } : { snapshot };
     this.storage.setItem(checkpointKey(this.auth.user.id, this.slot), requestJSON({ id, sessionId: this.sessionId, ...data }));
@@ -238,7 +279,7 @@ export class CloudSaveClient {
     for (;;) { const tail = this.checkpointTail; await tail; if (tail === this.checkpointTail) return; }
   }
 
-  save(snapshot) { return this.enqueue("save", { snapshot }); }
+  save(snapshot) { if (this.ledger) return Promise.resolve(); return this.enqueue("save", { snapshot }); }
   battle(action, snapshot = null) {
     if (snapshot && this.battleTurn) return this.enqueue("turn", { action, snapshot });
     // 旧サーバーにも接続できる。選択保存→行動の順を崩さない。
@@ -254,13 +295,15 @@ export class CloudSaveClient {
   renew() { return this.enqueue("renew"); }
   flush() { return this.tail; }
   async claim() {
-    const data = await this.request({ protocol: this.config.protocol, sessionId: this.sessionId, op: "claim", compactGraph: true, ...(typeof DecompressionStream !== "undefined" ? { acceptEncoding: "gzip" } : {}) });
+    const data = await this.request({ protocol: this.config.protocol, sessionId: this.sessionId, op: "claim", compactGraph: true, battleLedger: this.useLedger, ...(typeof DecompressionStream !== "undefined" ? { acceptEncoding: "gzip" } : {}) });
     this.revision = data.revision;
     this.battleTurn = data.battleTurn === true;
     this.compactGraph = data.compactGraph === true;
     this.commandMode = data.actionCommands === true;
     this.commandReplay = data.commandReplay === true && !!globalThis.crypto?.subtle;
     this.forcedTurns = data.forcedTurns === true;
+    this.directBegin = data.ledgerDirectBegin === true;
+    this.battleLedger = this.useLedger && data.battleLedger === true; this.ledger = data.ledger || null;
     this.confirmed = data.snapshot;
     this.backgroundBattle = data.backgroundBattle === true;
     return data.snapshot;
@@ -276,21 +319,44 @@ export class CloudSaveClient {
         else if (result.sync) this.confirmed = applyCloudChange(this.confirmed, result.sync);
       }
       this.revision = result.revision;
-      if (body.op === "command") this.storage.removeItem(choiceKey(this.auth.user.id));
+      if (["command","ledger-command"].includes(body.op)) this.storage.removeItem(choiceKey(this.auth.user.id));
+      if (body.op === "ledger-command") this.ledger.seq = result.seq;
+      if (body.op === "ledger-finish") this.ledger = null;
       this.storage.removeItem(pendingKey(this.auth.user.id, this.slot));
     }
     // 通信中に進めた最新地点は、以前の要求を確定してから同じ列に保存する。
     const checkpoint = JSON.parse(this.storage.getItem(checkpointKey(this.auth.user.id, this.slot)) || "null");
-    if (checkpoint) {
+    if (checkpoint && !this.ledger) {
       if (checkpoint.sessionId !== this.sessionId) throw new Error("記録の接続が一致しません");
       this.latestCheckpointId = checkpoint.id;
       await this.enqueue("save", { snapshot: checkpoint.snapshot, checkpointId: checkpoint.id });
+    }
+    if (this.ledger) {
+      this.storage.removeItem(checkpointKey(this.auth.user.id,this.slot));
+      await this.claim();
     }
     const choice = JSON.parse(this.storage.getItem(choiceKey(this.auth.user.id)) || "null");
     if (choice) {
       if (choice.sessionId !== this.sessionId) throw new Error("選択の接続が一致しません");
       await this.enqueue("command", { command: choice.command, commandId: choice.commandId });
     }
+  }
+  async finishBattle() {
+    await this.tail;
+    if (!this.ledger) return;
+    const body = {protocol:this.config.protocol,op:"ledger-finish",sessionId:this.sessionId,commandId:crypto.randomUUID(),revision:this.revision,battleId:this.ledger.id,seq:this.ledger.seq};
+    this.count++; this.blocking++; this.setBusy();
+    try {
+      const result = await this.retry(() => {
+        this.storage.setItem(pendingKey(this.auth.user.id,this.slot),requestJSON(body));
+        return this.request(body);
+      });
+      if (await battleStateHash(this.confirmed) !== result.battleHash) await this.retry(() => { throw Object.assign(new Error("cloud_replay_mismatch"),{status:409}); },{automatic:false});
+      this.confirmed = canonicalBattleGraph(this.confirmed);
+      this.revision = result.revision; this.ledger = null;
+      this.storage.removeItem(pendingKey(this.auth.user.id,this.slot));
+      this.storage.removeItem(checkpointKey(this.auth.user.id,this.slot));
+    } finally { this.count--; this.blocking--; this.setBusy(); }
   }
   actionCommand(command) {
     if (this.storage.getItem(choiceKey(this.auth.user.id))) throw new Error("選択済みの行動が確定待ちです");
@@ -365,7 +431,7 @@ async function resumeSavedRecord() {
 function failure(e) {
   return new Promise((resolve) => {
     const chosen = !!getJSON(choiceKey(client.auth.user.id));
-    if (chosen && e.status === 409 && ["cloud_revision_conflict", "cloud_replay_mismatch"].includes(e.message)) {
+    if (e.status === 409 && (e.message === "cloud_replay_mismatch" || chosen && e.message === "cloud_revision_conflict")) {
       client.choiceConflict = true;
       showGate(e.message === "cloud_replay_mismatch" ? "端末と保管先の計算が一致しません。保管先で確定した最新の記録から再開してください。" : "別の画面で記録が先に更新されています。この選択を新しい戦況へ適用せず、退避して最新の確定済み記録から再開できます。過去の記録へは戻りません。");
       button("最新の記録から再開", resumeSavedRecord);
@@ -774,11 +840,14 @@ export async function cloudRegisterPrompt() {
 export const cloudCompactGraph = () => !!client?.compactGraph;
 export const cloudBackgroundBattle = () => !!client?.backgroundBattle;
 export const cloudCheckpoint = () => client.checkpoint();
-export async function cloudSavePrepared(prepare) {
-  const result = await client.savePrepared(prepare);
+export async function cloudSavePrepared(prepare, options) {
+  const result = await client.savePrepared(prepare, options);
   localStorage.removeItem(emptyRecordKey(client.auth.user.id));
   return result;
 }
 
 export const cloudCommandMode = () => !!client?.commandMode;
 export const cloudActionCommand = command => client.actionCommand(command);
+
+export const cloudFinishBattle = () => client?.finishBattle() || Promise.resolve();
+export const cloudLedgerActive = () => !!client?.ledger;

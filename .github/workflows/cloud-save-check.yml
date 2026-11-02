@@ -51,6 +51,8 @@ jobs:
           node --check tools/cloud/choice-bench/live.mjs
           node --check tools/cloud/choice-bench/edge.js
           node tools/cloud/choice-bench/check.mjs /tmp/dos-cloud-check/node_modules/@electric-sql/pglite/dist/index.js
+          node tools/cloud/auth-check.mjs
+          node tools/cloud/ledger-check.mjs /tmp/dos-cloud-check/node_modules/@electric-sql/pglite/dist/index.js
           node tools/cloud/choice-bench/trial-check.mjs /tmp/dos-cloud-check/node_modules/@electric-sql/pglite/dist/index.js
       - uses: actions/setup-python@v5
         with:
@@ -67,6 +69,19 @@ jobs:
           python3 tools/cloud/choice-bench/trial-browser.py --stub-art
           python3 tools/cloud/windup-browser.py
           python3 tools/cloud/normal-attack-browser.py
+      - name: 本番B方式の実ゲーム・復旧・終了検証
+        env:
+          CHROME_BIN: /usr/bin/google-chrome
+        run: |
+          python3 -m http.server 8001 > /tmp/dos-ledger-http.log 2>&1 &
+          http=$!
+          node tools/cloud/test-server.mjs /tmp/dos-cloud-check/node_modules/@electric-sql/pglite/dist/index.js > /tmp/dos-ledger-api.log 2>&1 &
+          api=$!
+          trap 'kill "$http" "$api"' EXIT
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8002/test/state > /dev/null && break; sleep 1; done
+          python3 tools/cloud/ledger-opening-browser.py
+          python3 tools/cloud/ledger-browser.py
+          DOS_LEDGER_NO_WORKER=1 python3 tools/cloud/ledger-browser.py
       - name: Check save, retry, recovery and database contracts
         run: python3 tools/cloud/audit.py --node-only --pglite /tmp/dos-cloud-check/node_modules/@electric-sql/pglite/dist/index.js
       - uses: actions/upload-artifact@v4
@@ -78,6 +93,7 @@ jobs:
             /tmp/dos-choice-trial-browser
 
   choice-benchmark:
+    needs: ledger-benchmark
     if: github.event_name == 'workflow_dispatch' && inputs.choice_benchmark == true
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -131,4 +147,44 @@ jobs:
         with:
           name: choice-speed-benchmark
           path: /tmp/dos-choice-bench-report
+          retention-days: 7
+
+  ledger-benchmark:
+    if: github.event_name == 'workflow_dispatch' && inputs.choice_benchmark == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      BENCH_OUTPUT: /tmp/dos-ledger-report
+      LEDGER_BUNDLE: /tmp/dos-ledger-bundle.js
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            src
+            supabase
+            tools
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.120.0
+      - name: 本番と同じEdgeコードを束ねる
+        run: npm exec --yes --package=esbuild@0.25.12 -- esbuild supabase/functions/game-save/index.js --bundle --format=esm --platform=neutral --target=es2022 --outfile="$LEDGER_BUNDLE"
+      - name: 専用リソースを準備
+        run: node tools/cloud/ledger-live.mjs setup
+      - name: 専用関数を配置
+        run: supabase --workdir "$LEDGER_PROJECT" functions deploy "$LEDGER_FUNCTION" --project-ref "$SUPABASE_PROJECT_REF" --no-verify-jwt --use-docker
+      - name: 追記と終了時検証を実測
+        run: node tools/cloud/ledger-live.mjs measure
+      - name: 専用リソースを削除
+        if: always()
+        run: node tools/cloud/ledger-live.mjs cleanup
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: battle-ledger-speed
+          path: /tmp/dos-ledger-report
           retention-days: 7
