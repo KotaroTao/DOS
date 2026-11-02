@@ -8,7 +8,7 @@ stub_art=runpy.run_path(str(ROOT/'tools/cloud/choice-bench/trial-browser.py'))['
 async def main():
     async with async_playwright() as p:
         browser=await p.chromium.launch(executable_path=os.environ.get('CHROME_BIN','/usr/bin/chromium'),args=['--no-sandbox'])
-        for latency in [60,900]:
+        for weapon,expected,latency in [("ls","normalSlash",60),("mc","normalBlunt",60),("sp","normalThrust",60),("bw","normalArrow",60),("magic","normalArcane",60),("ls","normalSlash",900)]:
             ctx=await browser.new_context(service_workers='block',viewport={'width':390,'height':844})
             await ctx.route('**/art/**',stub_art)
             await ctx.route('**/src/cloud-config.js',lambda r:r.fulfill(content_type='text/javascript',body='export const CLOUD_CONFIG={enabled:true,url:"https://cloud.test",anonKey:"test",protocol:1};'))
@@ -24,6 +24,11 @@ async def main():
             page=await ctx.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
             await page.goto('http://localhost:8000/?testDungeon=w01&choiceTrial=1&trialOverlap=1',wait_until='domcontentloaded')
             await page.wait_for_function("window.__game?.G.battle?.phase==='input'&&!__game.G.animating&&!document.body.classList.contains('booting')")
+            await page.evaluate('''async weapon=>{
+              const {ITEMS}=await import('/src/items.js');const actor=__game.G.battle.current;
+              actor.equip.weapon=Object.values(ITEMS).find(it=>it.cat===(weapon==='magic'?'st':weapon));
+              actor.wMagic=weapon==='magic';actor.oMagic=false;
+            }''',weapon)
             await page.evaluate('''async()=>{
               const {Battle}=await import('/src/combat.js'),{SFX}=await import('/src/audio.js');
               window.pressed=null;window.impact=null;window.hitSounds=0;
@@ -46,13 +51,15 @@ async def main():
             assert elapsed>=max(latency,280)+60,(latency,elapsed)
             assert await page.locator('.normal-attack').count()==0
             assert await page.evaluate('snapshot()!==before && !!__game.G.fx && __game.G.animating'),'被弾の反応を待たず次へ進んだ'
+            assert await page.evaluate('(type)=>__game.G.fx.skill.some(e=>e.type===type)',expected),(weapon,expected)
+            assert await page.evaluate('__game.G.fx.slashes.length===0'),'通常攻撃に旧三日月が重なっている'
             await page.wait_for_function('!__game.G.animating && __game.G.battle.phase==="input"')
             assert len(sent)==1
             assert await page.evaluate("localStorage.getItem('dos-save-v7')==='unchanged'")
             await page.get_by_role('button',name='終了してホームへ').click();await page.wait_for_url('**/choice-trial.html')
             await ctx.unroute_all(behavior='wait');await ctx.close()
             assert not errors,errors
-            print(f'通常攻撃 通信{latency}ms: 動作{round(elapsed)}ms・確定/振り抜き前の状態不変・被弾の間・追加通信なし OK',flush=True)
+            print(f'通常攻撃 {weapon} 通信{latency}ms: 動作{round(elapsed)}ms・確定/振り抜き前の状態不変・被弾の間・追加通信なし OK',flush=True)
         await browser.close()
 
 asyncio.run(main())

@@ -24,7 +24,7 @@ function rgba(hex, a) {
 const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
 const easeOut = (t) => 1 - (1 - t) * (1 - t);
 
-// 武器の分類 → 物理の演出 (長剣・素手以外)。長剣は game.js 既存の三日月の斬撃
+// 武器の分類 → 物理の演出。通常攻撃はgame.jsでnormal*へ振り分け、物理技は従来の形を使う。
 export function weaponFxStyle(weapon) {
   const c = weapon && weapon.cat;
   return c === "dg" ? "cross" : c === "kt" ? "iai" : c === "sp" ? "thrust" : c === "ax" || c === "mc" ? "smash"
@@ -45,6 +45,7 @@ export function spawnFx(list, type, x, y, t0, spd, o = {}) {
     v: o.v || 0, rot: o.rot || 0, spin: o.spin || 1, tx: o.tx || 0, ty: o.ty || 0, w: o.w || 0, pts: o.pts || null });
 }
 const BASE_DUR = {
+  normalSlash: 250, normalBlunt: 280, normalThrust: 230, normalArrow: 240, normalArcane: 280,
   arcane: 340, cross: 300, iai: 280, thrust: 260, smash: 320, arrow: 300, blunt: 240,
   fire: 340, water: 340, wind: 340, earth: 340, light: 340, dark: 340, none: 320,
   crit: 260, hex: 320, sleep: 300, charm: 300, confuse: 300, para: 280, poison: 300,
@@ -129,7 +130,61 @@ function elemTrace(ctx, e, t, VW, VH, reduced) {
   ctx.restore();
 }
 
+// 通常攻撃専用。光・衝撃だけを描き、武器・手・腕の形は出さない。
+// 斬撃は必ず右上→左下。最初の約45msで走り、細い残光だけを短く残す。
+function normalAttackFx(kind, ctx, e, t, reduced) {
+  const scale = e.s * (e.crit ? 1.15 : 1), fade = Math.pow(1 - t, 1.6);
+  const col = e.el && e.el !== "none" ? elCol(e.el)[1] : kind === "blunt" ? "#d9ae70" : kind === "arcane" ? "#a9bcff" : "#b9e5f5";
+  ctx.translate(e.x, e.y); ctx.globalCompositeOperation = "lighter";
+  if (kind === "slash") {
+    const reach = 64 * scale, sweep = reduced ? 1 : Math.min(1, t / .18);
+    const tipX = reach - reach * 2 * sweep, tipY = -reach * .75 + reach * 1.5 * sweep;
+    // 平たい三角の帯に白い芯を重ねる。円弧や左右反転は使わない。
+    ctx.globalAlpha = fade * .65; ctx.fillStyle = col;
+    ctx.beginPath();ctx.moveTo(reach, -reach * .75);ctx.lineTo(tipX - 5 * scale, tipY - 6 * scale);
+    ctx.lineTo(tipX + 3 * scale, tipY + 4 * scale);ctx.closePath();ctx.fill();
+    line(ctx, reach, -reach * .75, tipX, tipY, (4 * (1 - t) + 1) * scale, "#fffdf4", fade);
+    if (!reduced) for (let i = 0; i < 7; i++) {
+      const p = r01(i, e.seed), spread = t * (10 + r01(i + 9, e.seed) * 18) * scale;
+      line(ctx, reach * (1 - 2 * p), reach * .75 * (2 * p - 1), reach * (1 - 2 * p) - spread, reach * .75 * (2 * p - 1) - spread * .3, 1.2, col, fade * .75);
+    }
+  } else if (kind === "blunt") {
+    // 中心の白い圧縮光→角張った衝撃→短い破片。地面の環にはしない。
+    const pop = reduced ? 1 : 1 - Math.pow(1 - Math.min(1, t / .12), 3);
+    ctx.globalAlpha = fade;ctx.fillStyle = "#fff8e6";
+    ctx.beginPath();ctx.ellipse(0, 0, (15 - (reduced ? 0 : t) * 8) * scale, (10 - (reduced ? 0 : t) * 4) * scale, 0, 0, Math.PI * 2);ctx.fill();
+    ctx.strokeStyle = col;ctx.lineWidth = (4 * (1 - t) + .5) * scale;
+    ctx.globalAlpha = fade * .9;ctx.beginPath();
+    for (let i = 0; i < 16; i++) {
+      const a = i * Math.PI / 8, radius = (i % 2 ? 12 : 25 + r01(i, e.seed) * 8) * scale * (.7 + pop * .5 + (reduced ? 0 : t) * .25);
+      const x = Math.cos(a) * radius, y = Math.sin(a) * radius * .8;
+      i ? ctx.lineTo(x,y) : ctx.moveTo(x,y);
+    }
+    ctx.closePath();ctx.stroke();
+    if (!reduced) for (let i = 0; i < 9; i++) {
+      const a = i * Math.PI * 2 / 9 + r01(i, e.seed) * .4, r = (14 + t * 42) * scale;
+      line(ctx, Math.cos(a)*r, Math.sin(a)*r*.8, Math.cos(a)*(r+7*scale), Math.sin(a)*(r+7*scale)*.8, 2 * scale, i % 2 ? col : "#fff3d0", fade);
+    }
+  } else if (kind === "arcane") {
+    glow(ctx, 0, 0, (27 + (reduced ? 0 : t) * 10) * scale, col, fade * .8);
+    star4(ctx, 0, 0, 18 * scale * (1 - t * .6), "#f6faff", fade);
+    ctx.strokeStyle = col;ctx.lineWidth = 2;ctx.globalAlpha = fade;
+    ctx.beginPath();ctx.arc(0,0,(10 + (reduced ? 0 : t) * 27)*scale,0,Math.PI*2);ctx.stroke();
+  } else {
+    // 突き・射撃も実物の穂先や矢は描かず、細い光の通り道と命中光だけ。
+    const x = kind === "arrow" ? 42 * scale : 0, y = 58 * scale;
+    line(ctx, x, y, 0, 0, 7 * scale * (1 - t), col, fade * .5);
+    line(ctx, x, y, 0, 0, 1.8 * scale, "#ffffff", fade);
+    star4(ctx, 0, 0, 15 * scale * (1 - t * .6), "#fffaf0", fade);
+  }
+}
+
 const DRAW = {
+  normalSlash(ctx,e,t,w,h,reduced) { normalAttackFx("slash",ctx,e,t,reduced); },
+  normalBlunt(ctx,e,t,w,h,reduced) { normalAttackFx("blunt",ctx,e,t,reduced); },
+  normalThrust(ctx,e,t,w,h,reduced) { normalAttackFx("thrust",ctx,e,t,reduced); },
+  normalArrow(ctx,e,t,w,h,reduced) { normalAttackFx("arrow",ctx,e,t,reduced); },
+  normalArcane(ctx,e,t,w,h,reduced) { normalAttackFx("arcane",ctx,e,t,reduced); },
   // 魔法ダメージの通常攻撃。刃ではなく光弾と二重の魔法環で知らせる。
   arcane(ctx, e, t) {
     const col = e.el && e.el !== "none" ? elCol(e.el)[1] : "#bd91ff";

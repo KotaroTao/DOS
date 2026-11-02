@@ -299,7 +299,10 @@ export const SFX = {
   flip() { sfx("flip"); },
   step() { sfx("step", { jit: 0.1 }); },
   swing() { sfx("swing", { jit: 0.1 }); },
-  hit() { sfx("hit", { jit: 0.08 }); },
+  hit(style = null) {
+    const name = ["slash", "cross", "iai"].includes(style) ? "normalSlash" : ["blunt", "smash"].includes(style) ? "normalBlunt" : ["thrust", "arrow"].includes(style) ? "normalPierce" : "hit";
+    sfx(name, { jit: name === "hit" ? 0.08 : 0.04 });
+  },
   crit() { sfx("crit"); },
   miss() { sfx("miss", { jit: 0.1 }); },
   evade() { sfx("evade", { jit: 0.1 }); },

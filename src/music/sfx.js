@@ -121,6 +121,27 @@ export const SFX_DEFS = {
   } },
   step: { vars: 4, vol: 0.28, rev: 0.12, gen(r) { return mono(footstep(r, 0.8 + r() * 0.5)); } },
   swing: { vars: 3, vol: 0.42, rev: 0.12, gen(r) { return mono(whoosh(r, 0.22, 380, 2400 + r() * 500, 800, 1.5, 0.4)); } },
+  // 通常攻撃の短い手応え。斬撃は空気を裂く音、打撃は低い胴鳴りを中心にする。
+  normalSlash: { vars: 3, vol: .56, rev: .08, gen(r) {
+    const x = new Float32Array(len(.22));
+    mixInto(x, hp1(burst(r,.15,.085),1200,SR),0,.85);
+    mixInto(x, whoosh(r,.12,3000,6200,900,1,.13),0,.55);
+    mixInto(x, sweep(.16,t=>75+90*Math.exp(-t/.009),.075),0,.5);
+    return mono(softClip(x,1.3));
+  } },
+  normalBlunt: { vars: 3, vol: .63, rev: .1, gen(r) {
+    const x = sweep(.27,t=>48+150*Math.exp(-t/.012),.14);
+    const body = burst(r,.11,.055);applyBq(body,"bp",520+r()*100,.7,SR);
+    mixInto(x,body,0,1.25);mixInto(x,hp1(burst(r,.008,.004),2200,SR),0,.55);
+    return mono(softClip(x,1.65));
+  } },
+  normalPierce: { vars: 3, vol: .5, rev: .08, gen(r) {
+    const x = new Float32Array(len(.18));
+    mixInto(x,whoosh(r,.1,1800,5100,1400,1.3,.12),0,.7);
+    mixInto(x,sweep(.13,t=>110+190*Math.exp(-t/.008),.065),0,.55);
+    mixInto(x,hp1(burst(r,.035,.016),1600,SR),0,.6);
+    return mono(x);
+  } },
   hit: { vars: 4, vol: 0.6, rev: 0.16, gen(r) {
     const x = sweep(0.3, (t) => 52 + 105 * Math.exp(-t / 0.03), 0.18);
     mixInto(x, hp1(burst(r, 0.012, 0.006), 2500, SR), 0, 0.8);

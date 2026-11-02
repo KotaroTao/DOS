@@ -69,6 +69,7 @@ jobs:
           python3 tools/cloud/choice-bench/trial-browser.py --stub-art
           python3 tools/cloud/windup-browser.py
           python3 tools/cloud/normal-attack-browser.py
+          python3 tools/cloud/normal-impact-browser.py
       - name: 本番B方式の実ゲーム・復旧・終了検証
         env:
           CHROME_BIN: /usr/bin/google-chrome

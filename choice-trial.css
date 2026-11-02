@@ -47,25 +47,40 @@ body:has(.choice-trial-page) { background: #171719; }
 }
 
 /* 通常攻撃だけは、振りかぶり→通信中の溜め→確定後の振り抜きを一続きにする。 */
-.normal-attack { background: radial-gradient(ellipse at var(--attack-x) var(--attack-y), rgba(var(--windup-rgb), .12), transparent 48%); }
-.normal-attack .windup-ring, .normal-attack .windup-sweep { display: none; }
-.attack-motion { position: absolute; left: var(--attack-x); top: var(--attack-y); width: clamp(120px, 38%, 210px); aspect-ratio: 1; animation: attack-prepare var(--attack-prepare) ease-out both; }
-.attack-trail { display: block; width: 100%; height: 100%; overflow: visible; fill: none; stroke: #ffe6ab; stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 7px #e5aa48); animation: attack-gather 850ms ease-in-out infinite alternate; }
-.attack-trail path:nth-child(2) { stroke: #fff9e9; stroke-width: 2; }
-.normal-attack-blunt .attack-trail { stroke-width: 12; }
-.normal-attack-thrust .attack-trail, .normal-attack-arrow .attack-trail { stroke-width: 4; }
-.normal-attack-arcane { --windup-rgb: 140, 191, 255; }
-.normal-attack-arcane .attack-trail { stroke: #b5dcff; filter: drop-shadow(0 0 8px #7caeff); }
-.attack-releasing .attack-motion { animation: attack-release var(--attack-release) ease-in both; }
-.attack-releasing .attack-trail { animation: none; opacity: 1; }
+.normal-attack { background: none; }
+.normal-attack .windup-ring, .normal-attack .windup-sweep, .normal-attack .windup-spark, .normal-attack .windup-aim { display: none; }
+.attack-motion { position: absolute; left: var(--attack-x); top: var(--attack-y); width: clamp(130px, 38%, 210px); aspect-ratio: 1; transform: translate(-50%, -50%); animation: attack-prepare var(--attack-prepare) ease-out both; }
+.attack-trail { display: block; width: 100%; height: 100%; overflow: visible; fill: none; stroke: #bfdce3; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 4px #d7f2ff); animation: attack-gather 850ms ease-in-out infinite alternate; }
+.attack-trail path:nth-child(2) { stroke: #fffaf0; stroke-width: 1.5; }
+.normal-attack-blunt .attack-trail { stroke: #dfbe83; stroke-width: 8; filter: drop-shadow(0 0 4px #d1a768); }
+.normal-attack-thrust .attack-trail, .normal-attack-arrow .attack-trail { stroke-width: 3; }
+.normal-attack-arcane .attack-trail { stroke: #b5dcff; }
+.attack-releasing .attack-motion { animation: attack-release var(--attack-release) cubic-bezier(.65,0,1,1) both; }
+.attack-releasing .attack-trail { animation: none; }
+.normal-attack-blunt.attack-releasing .attack-motion { animation-name: attack-release-blunt; }
+.normal-attack-thrust.attack-releasing .attack-motion, .normal-attack-arcane.attack-releasing .attack-motion { animation-name: attack-release-thrust; }
+.normal-attack-arrow.attack-releasing .attack-motion { animation-name: attack-release-arrow; }
 @keyframes attack-prepare {
-  from { transform: translate(-65%, -12%) scale(.6) rotate(-34deg); opacity: .4; }
-  to { transform: translate(-58%, -36%) scale(.85) rotate(-18deg); opacity: .9; }
+  from { transform: translate(-50%, -50%) scale(.85); opacity: 0; }
+  to { transform: translate(-50%, -50%) scale(1); opacity: .8; }
 }
-@keyframes attack-gather { from { opacity: .48; transform: rotate(-3deg) scale(.97); } to { opacity: .92; transform: rotate(2deg) scale(1.03); } }
+@keyframes attack-gather { from { opacity: .45; } to { opacity: .85; } }
+/* 溜めの光が中心へ流れ、確定後のCanvasの一撃へつながる。 */
 @keyframes attack-release {
-  from { transform: translate(-58%, -36%) scale(.85) rotate(-18deg); opacity: .9; }
-  to { transform: translate(-50%, -50%) scale(1.13) rotate(10deg); opacity: 1; }
+  from { transform: translate(-50%, -50%); opacity: .85; }
+  to { transform: translate(-72%, -28%); opacity: 0; }
+}
+@keyframes attack-release-blunt {
+  from { transform: translate(-50%, -50%) scale(1); opacity: .85; }
+  to { transform: translate(-50%, -20%) scale(.65); opacity: 0; }
+}
+@keyframes attack-release-thrust {
+  from { transform: translate(-50%, -50%); opacity: .85; }
+  to { transform: translate(-50%, -74%) scale(.75); opacity: 0; }
+}
+@keyframes attack-release-arrow {
+  from { transform: translate(-50%, -50%); opacity: .85; }
+  to { transform: translate(-68%, -68%) scale(.8); opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   .normal-attack .attack-motion { transform: translate(-50%, -50%); opacity: .7; }
