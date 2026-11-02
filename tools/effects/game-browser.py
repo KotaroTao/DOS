@@ -26,6 +26,7 @@ async def main():
             await page.wait_for_function("window.__game?.G.battle?.phase==='input'&&!__game.G.animating&&!document.body.classList.contains('booting')")
             await page.evaluate("""async key=>{
               const {Battle}=await import('/src/combat.js');
+              const {reseedRng}=await import('/src/rng.js');reseedRng(42);
               const actor=__game.G.battle.current;actor.mp=actor.maxmp=999;actor.spells=[key];actor.hitBonus=1;actor.atk=100;actor.hp=Math.max(1,Math.floor(actor.maxhp/2));
               // 既存の攻撃ボタンを入口にし、選択以降は実際の技の対象選択・確定・描画を通す。
               const choose=Battle.prototype.chooseAction;Battle.prototype.chooseAction=function(action,...args){return action==='attack'?choose.call(this,'spell',key):choose.call(this,action,...args);};
