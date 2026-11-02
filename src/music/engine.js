@@ -186,11 +186,23 @@ export class Engine {
     node.connect(this.sfxIn);
     if (o.rev) { const s = c.createGain(); s.gain.value = o.rev; node.connect(s); s.connect(this.sfxWet); nodes.push(s); }
     // 再生が終わった音の接続とサンプル参照を、その場で解放する。
-    src.onended = () => {
-      src.onended = null;
+    // 構えの持続音は、確定通知の時点で着弾を待たせず短く消す。
+    let fading = false;
+    src.fadeOut = (seconds = 0.035) => {
+      if (fading || !src.onended) return;
+      fading = true;
+      const now = c.currentTime, end = now + Math.max(0.005, seconds);
+      holdAt(g.gain, now); g.gain.linearRampToValueAtTime(0, end);
+      try { src.stop(end + 0.005); } catch {}
+    };
+    const release = () => {
+      src.onended = null; src.fadeOut = null; src.stopImmediately = null;
       for (const n of nodes) { try { n.disconnect(); } catch {} }
       src.buffer = null;
     };
+    // 画面非表示でAudioContextが先に止まっても、復帰まで参照を抱えない。
+    src.stopImmediately = () => { try { src.stop(); } catch {} release(); };
+    src.onended = release;
     src.start(t);
     return src;
   }

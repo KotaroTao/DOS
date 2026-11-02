@@ -56,6 +56,11 @@ async def main():
             await page.goto(args.base+f'?testDungeon=w01&choiceTrial=1&trialOverlap={overlap}',wait_until='domcontentloaded')
             await page.wait_for_function("window.__game?.G.battle?.phase==='input' && !__game.G.animating && !document.body.classList.contains('booting')",timeout=60000)
             before=await page.evaluate('JSON.stringify([__game.G.rng,__game.G.battle.enemies.map(e=>e.hp),__game.G.party.map(e=>[e.hp,e.mp])])')
+            await page.evaluate("""async()=>{
+              const {SFX}=await import('/src/audio.js'); const original=SFX.prepare;
+              window.windupProbe={starts:0,stops:0};
+              SFX.prepare=(kind)=>{windupProbe.starts++;const stop=original(kind);return options=>{windupProbe.stops++;stop(options);};};
+            }""")
             await page.locator('#combat-menu .cmd-attack').click()
             await page.locator('#combat-menu .target-list button').first.click()
             for _ in range(1500):
@@ -65,7 +70,15 @@ async def main():
             await page.wait_for_timeout(350 if overlap==0 else 900)
             assert await page.evaluate('JSON.stringify([__game.G.rng,__game.G.battle.enemies.map(e=>e.hp),__game.G.party.map(e=>[e.hp,e.mp])])')==before,'確定前にHP/MP/乱数が変化'
             assert await page.locator('#party').evaluate("n=>n.classList.contains('choice-windup')")==bool(overlap)
+            assert await page.locator('.battle-windup').count()==overlap
+            assert await page.evaluate('windupProbe.starts')==overlap
             if overlap:
+                assert await page.locator('.windup-spark').count()==6
+                assert await page.locator('.windup-aim').count()==1
+                first_turn=await page.locator('.windup-ring').evaluate('n=>getComputedStyle(n).transform')
+                await page.wait_for_timeout(100)
+                assert await page.locator('.windup-ring').evaluate('n=>getComputedStyle(n).transform')!=first_turn,'構えの途中で輪が静止した'
+                await page.screenshot(path=str(output/'windup-pending.png'))
                 assert await page.locator('#party').evaluate('''n=>{const p=n.querySelector('.pc[data-idx="'+n.dataset.choiceIndex+'"] .pc-pic');return p && getComputedStyle(p).transform!=='none';}'''),'構えの見た目がない'
             await page.evaluate("document.querySelector('#combat-menu .cmd-attack')?.click()")
             assert len([r for r in requests if r[0]=='append'])==1,'二重入力で命令が増えた'
@@ -74,6 +87,8 @@ async def main():
                 # DBでは確定済みだが返答を失った状態。HPは変えず同一IDで再送する。
                 await route.fulfill(status=503,json={'message':'response lost'},headers={'access-control-allow-origin':'*'})
                 await page.get_by_role('button',name='同じ選択で再接続').wait_for()
+                assert await page.locator('.battle-windup').count()==0
+                assert await page.evaluate('windupProbe.stops')==1
                 assert await page.evaluate('JSON.stringify([__game.G.rng,__game.G.battle.enemies.map(e=>e.hp),__game.G.party.map(e=>[e.hp,e.mp])])')==before
                 await page.get_by_role('button',name='同じ選択で再接続').click()
                 for _ in range(1500):
@@ -85,6 +100,8 @@ async def main():
             await route.fulfill(json=value,headers={'access-control-allow-origin':'*'})
             await page.wait_for_function("!__game.G.animating && __game.G.battle.phase==='input'",timeout=10000)
             assert await page.evaluate('JSON.stringify([__game.G.rng,__game.G.battle.enemies.map(e=>e.hp),__game.G.party.map(e=>[e.hp,e.mp])])')!=before
+            assert await page.locator('.battle-windup').count()==0
+            assert await page.evaluate('windupProbe.starts===windupProbe.stops')
             assert await page.evaluate('!!__game.G.fx'),'既存の着弾演出がない'
             assert not await page.locator('#party').evaluate("n=>n.classList.contains('choice-windup')")
             assert await page.evaluate("localStorage.getItem('dos-save-v7')")=='original-game-save'
