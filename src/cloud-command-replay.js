@@ -23,5 +23,5 @@ export async function replayCloudCommand(graph, command, commandId, forcedTurns 
   const result = { ...packets, ...(forcedTurns ? { forcedPackets } : {}), snapshot: refSerialize(state, { compact: true }) };
   const bytes = new TextEncoder().encode(JSON.stringify(orderedCloudValue(result)));
   const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
-  return { ...result, hash: [...digest].map(byte => byte.toString(16).padStart(2, "0")).join("") };
+  return { ...result, terminal: !!state.battle.result, hash: [...digest].map(byte => byte.toString(16).padStart(2, "0")).join("") };
 }

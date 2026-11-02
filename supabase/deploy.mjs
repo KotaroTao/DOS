@@ -67,10 +67,10 @@ export function publicKey(keys) {
   throw new Error("公開用APIキーが見つかりません。SupabaseのAPI Keys設定を確認してください。");
 }
 
-export function configSource(ref, key, turnstileSiteKey = "") {
+export function configSource(ref, key, turnstileSiteKey = "", region = "") {
   if (!/^[a-z0-9]{20}$/.test(ref)) throw new Error("Project IDが不正です");
   return "// 公開用の接続情報。GitHub Pagesの配置時に生成する。\nexport const CLOUD_CONFIG = Object.freeze(" +
-    JSON.stringify({ enabled: true, url: `https://${ref}.supabase.co`, anonKey: key, protocol: 1, turnstileSiteKey }, null, 2) + ");\n";
+    JSON.stringify({ enabled: true, url: `https://${ref}.supabase.co`, anonKey: key, protocol: 1, turnstileSiteKey, ...(region ? { region } : {}) }, null, 2) + ");\n";
 }
 
 export async function run(mode, { env = process.env, fetcher = fetch, writer = writeFile, reader = readFile } = {}) {
@@ -104,6 +104,8 @@ export async function run(mode, { env = process.env, fetcher = fetch, writer = w
     await management("/database/query", "POST", { query: migrationQuery(deadlineSQL, "202610300003") });
     const trialSQL = await reader(new URL("./migrations/202611010001_choice_trial.sql", import.meta.url), "utf8");
     await management("/database/query", "POST", { query: migrationQuery(trialSQL, "202611010001") });
+    const ledgerSQL = await reader(new URL("./migrations/202611020001_battle_ledger.sql", import.meta.url), "utf8");
+    await management("/database/query", "POST", { query: migrationQuery(ledgerSQL, "202611020001") });
     await management("/config/auth", "PATCH", settings);
     console.log("保存テーブル・更新関数・メールログイン・確認メール・ログイン先URLを設定しました。");
     return;
@@ -129,7 +131,7 @@ export async function run(mode, { env = process.env, fetcher = fetch, writer = w
     if (!auth.external_anonymous_users_enabled) throw new Error("ゲスト認証が無効です。セットアップを実行してください。");
     if (auth.security_captcha_enabled && auth.security_captcha_provider !== "turnstile") throw new Error("CAPTCHAはTurnstileを設定してください。");
     if (auth.security_captcha_enabled && !env.TURNSTILE_SITE_KEY) throw new Error("CAPTCHAの公開サイトキーをVariable TURNSTILE_SITE_KEYに登録してください。");
-    await writer(new URL("../src/cloud-config.js", import.meta.url), configSource(ref, key, env.TURNSTILE_SITE_KEY || ""));
+    await writer(new URL("../src/cloud-config.js", import.meta.url), configSource(ref, key, env.TURNSTILE_SITE_KEY || "", project.region || ""));
     console.log("公開用のクラウド接続設定を生成しました。秘密のキーは含みません。");
   } else console.log(auth.smtp_host ? "メール配信の接続先は設定済みです。実際の確認メールも試してください。" : "次はCustom SMTPの設定が必要です。ゲーム側のクラウド保存はまだ無効です。");
 }

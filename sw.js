@@ -1599,6 +1599,7 @@ const ASSETS = [
   "./src/cloud-save.js",
   "./src/legal.js",
   "./src/cloud-battle.js",
+  "./src/cloud-ledger-replay.js",
   "./src/journal.js",
   "./src/archive-stories.js",
   "./src/archive-art.js",

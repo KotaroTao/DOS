@@ -182,7 +182,8 @@ export function resolveCloudCommand(snapshot, command, options = {}) {
     throw Object.assign(new Error("cloud_revision_conflict"), { status: 409 });
   }
   snapshot.battle._commandToken = options.commandToken || crypto.randomUUID();
-  const packet = refSerialize(resolveCloudBattle(snapshot, command.operation, command.operation === "commit" ? command : null), options);
-  const nextPacket = snapshot.battle.result ? null : refSerialize(resolveCloudBattle(snapshot, "advance"), options);
+  const encode = value => options.noPackets ? null : refSerialize(value, options);
+  const packet = encode(resolveCloudBattle(snapshot, command.operation, command.operation === "commit" ? command : null));
+  const nextPacket = snapshot.battle.result ? null : encode(resolveCloudBattle(snapshot, "advance"));
   return { packet, nextPacket };
 }

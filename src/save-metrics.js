@@ -1,7 +1,7 @@
 // 保存の計測は端末内の数値だけ。認証情報・記録本文・要求IDは残さない。
 const KEY = "dos-save-metrics-v1";
 const LATENCY_BOUNDS = [100, 500, 1000, 5000, 15000];
-const OPS = ["command", "save", "claim", "renew", "battle", "turn", "consent", "reset", "delete-account"];
+const OPS = ["command", "ledger-command", "ledger-finish", "ledger-preview", "save", "claim", "renew", "battle", "turn", "consent", "reset", "delete-account"];
 const empty = () => ({ v: 1, startedAt: new Date().toISOString(), visibleMs: 0, operations: {}, trial: { triggers: 0, samples: 0, snapshotBytes: 0, maxSnapshotBytes: 0 } });
 export const utf8Bytes = text => new TextEncoder().encode(text || "").byteLength;
 export class SaveMetrics {
@@ -24,7 +24,7 @@ export class SaveMetrics {
     this.dirty = true;
   }
   timing(stage, ms, actions = 0) {
-    if (!["commandQueue", "commandCalculation", "commandResult", "confirmedPlayback"].includes(stage) || !Number.isFinite(ms) || ms < 0) return;
+    if (!["commandQueue", "commandCalculation", "commandResult", "confirmedPlayback", "server_auth", "server_read", "server_write", "server_replay", "server_hash", "server_encode", "server_total"].includes(stage) || !Number.isFinite(ms) || ms < 0) return;
     try {
       this.tick();
       if (!this.data.timings || typeof this.data.timings !== "object" || Array.isArray(this.data.timings)) this.data.timings = {};
@@ -40,7 +40,7 @@ export class SaveMetrics {
   trialSample(raw) { const bytes = utf8Bytes(raw); const t = this.data.trial; t.samples++; t.snapshotBytes += bytes; t.maxSnapshotBytes = Math.max(t.maxSnapshotBytes, bytes); this.dirty = true; }
   report() {
     this.tick();
-    return JSON.parse(JSON.stringify({ ...this.data, exportedAt: new Date().toISOString(), scope: "この端末・同じ公開元の累計。表示中の時間はタイトル・待機を含む。複数タブの同時計測は非対応。", units: "本文のUTF-8バイト。HTTP/TLS・圧縮・画像・認証・DB内部通信・課金転送量は対象外。失敗時の送信量は送信予定本文、受信量は読み取り完了分。", latencyBoundsMs: [100, 500, 1000, 5000, 15000, null], timingsNote: "timingsはms。commandQueueは送信列の待ち、commandCalculationは通信と並行する端末計算、commandResultは選択から確定結果の表示直前、confirmedPlaybackは確定済みの一手の表示待ち。並行区間があるため合算しない。confirmedActionsは表示まで到達した命令に含む確定済み手数。", trialNote: "試遊は送信しない。triggersは保存契機、snapshotBytesは最大5秒に1回の圧縮セーブ容量サンプルの合計。送信回数・通信量の実測とは別。", storageError: this.storageError }));
+    return JSON.parse(JSON.stringify({ ...this.data, exportedAt: new Date().toISOString(), scope: "この端末・同じ公開元の累計。表示中の時間はタイトル・待機を含む。複数タブの同時計測は非対応。", units: "本文のUTF-8バイト。HTTP/TLS・圧縮・画像・認証・DB内部通信・課金転送量は対象外。失敗時の送信量は送信予定本文、受信量は読み取り完了分。", latencyBoundsMs: [100, 500, 1000, 5000, 15000, null], timingsNote: "timingsはms。commandQueueは送信列の待ち、commandCalculationは通信と並行する端末計算、commandResultは選択から確定結果の表示直前、confirmedPlaybackは確定済みの一手の表示待ち。server_はEdgeの処理時間（auth=認証、read=DB読込、write=DB書込、replay=再生、hash=照合値、encode=返答準備、total=合計）。ledger-commandはDBへの直接追記でEdge計測の対象外。並行区間があるため合算しない。confirmedActionsは表示まで到達した命令に含む確定済み手数。", trialNote: "試遊は送信しない。triggersは保存契機、snapshotBytesは最大5秒に1回の圧縮セーブ容量サンプルの合計。送信回数・通信量の実測とは別。", storageError: this.storageError }));
   }
   persist() { this.tick(); try { if (!this.storage) throw new Error("計測の保管先を利用できません"); this.storage.setItem(KEY, JSON.stringify(this.data)); this.storageError = false; this.dirty = false; } catch { this.storageError = true; } }
   clear() { this.data = empty(); this.last = this.now(); this.persist(); }
