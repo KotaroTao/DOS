@@ -12,7 +12,7 @@ function attackMotion(root, style, aim) {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"); svg.setAttribute("viewBox", "0 0 160 160"); svg.classList.add("attack-trail");
   const paths = {
     slash: ["M20 130 Q18 24 142 24", "M34 128 Q34 42 135 36"],
-    blunt: ["M36 136 L112 53", "M82 29 L139 77 M91 21 L147 67"],
+    blunt: ["M36 136 Q65 85 111 51", "M89 39 Q111 18 135 42 Q150 65 124 79 Q97 82 89 39"],
     thrust: ["M33 139 L119 22", "M97 36 L122 18 L113 50"],
     arrow: ["M39 139 L111 26 M100 43 L114 20 L113 48", "M36 122 L53 126 M40 116 L58 119"],
     arcane: ["M28 135 Q78 116 105 52", "M91 32 A22 22 0 1 1 90 33"],
