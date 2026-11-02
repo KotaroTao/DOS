@@ -29,18 +29,20 @@ with sync_playwright() as p:
    const graph=JSON.parse(await encodeCloudSave(state,true));
    if(battle.phase!=='enemy')throw Error('奇襲の開始地点ではない');
    const command=battleCommand(battle,'enemy',state.rng);
-   await client.save(graph);const initialSeq=client.ledger.seq;
+   const started=performance.now(),board=refDeserialize(graph);board.state='board';board.battle=null;
+   const prior=client.savePrepared(()=>refSerialize(board,{compact:true}));await client.savePrepared(()=>graph,{urgent:true});await prior;const beginMs=performance.now()-started,initialSeq=client.ledger.seq;
    const response=await client.actionCommand(command);
    if(!response.packet)throw Error('初手の結果がない');
    const hash=await battleStateHash(client.confirmed);
    const other=new CloudSaveClient(config);other.auth=client.auth;other.sessionId=client.sessionId;
    const resumed=await other.claim();
    if(await battleStateHash(resumed)!==hash)throw Error('再開した戦況が一致しない');
-   return {initialSeq,seq:client.ledger.seq,phase:refDeserialize(resumed).battle.phase};
+   return {initialSeq,beginMs,seq:client.ledger.seq,phase:refDeserialize(resumed).battle.phase};
   }''')
   appends=[x for x in calls if x[0].endswith('/cloud_battle_append')]
   assert len(appends)==(0 if worker else 1),(worker,calls)
   assert result['initialSeq']==(1 if worker else 0),result
   assert result['seq']==1,result
+  assert result['beginMs']<450,('開始前に500msの保存集約待ちが入っている',result)
   print(json.dumps({'worker':worker,**result,'extraAppendRequests':len(appends)},ensure_ascii=False));c.close()
  b.close()

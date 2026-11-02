@@ -169,7 +169,12 @@ begin
  end if;
  if rev is distinct from p_revision or exists(select 1 from battle_ledger.heads where user_id=u and not finished) then raise exception 'cloud_revision_conflict'; end if;
  if p_command_id is null or p_change is null or jsonb_typeof(p_change)<>'object' or octet_length(p_change::text)>16777216
-  or not (p_change ? 'snapshot' or p_change ? 'change') then raise exception 'cloud_invalid_choice'; end if;
+  or (p_change ? 'snapshot') = (p_change ? 'change') then raise exception 'cloud_invalid_choice'; end if;
+ if p_change ? 'snapshot' then
+  if jsonb_typeof(p_change->'snapshot'->'heap') is distinct from 'array' or jsonb_array_length(p_change->'snapshot'->'heap')>100000 then raise exception 'cloud_invalid_choice'; end if;
+ else
+  if jsonb_typeof(p_change->'change') is distinct from 'array' or jsonb_array_length(p_change->'change')>20000 then raise exception 'cloud_invalid_choice'; end if;
+ end if;
  if p_opening is not null and p_opening<>'null'::jsonb then
   if jsonb_typeof(p_opening)<>'object' or octet_length(p_opening::text)>4096 or p_opening->>'type' is distinct from 'battle'
    or not coalesce(p_opening->>'operation' in ('enemy','stunned'),false) or not coalesce((p_opening->>'forcedCount')::integer between 0 and 16,false) then raise exception 'cloud_invalid_choice'; end if;

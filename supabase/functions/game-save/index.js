@@ -72,7 +72,7 @@ async function command(user, body, measure) {
     return { deleted: true };
   }
   const ledger = body.battleLedger === true || ["ledger-finish","ledger-preview"].includes(body.op) ? await rpc("cloud_battle_read", { p_user: user.id }) : null;
-  const startGraph = ledger?.startChange ? ledger.startChange.snapshot || applyCloudChange(s.snapshot,ledger.startChange.change) : s.snapshot;
+  const startGraph = ["claim","ledger-finish","ledger-preview"].includes(body.op) && ledger?.startChange ? ledger.startChange.snapshot || applyCloudChange(s.snapshot,ledger.startChange.change) : s.snapshot;
   if (body.op === "ledger-preview") {
     if (!ledger || ledger.id !== body.battleId || ledger.seq !== body.seq || s.revision !== body.revision || !uuid.test(body.commandId)) throw Object.assign(new Error("cloud_revision_conflict"),{status:409});
     const base = await measure("replay", () => replayBattleLedger(startGraph,ledger,{measure}));
@@ -81,7 +81,7 @@ async function command(user, body, measure) {
   if (body.op === "ledger-finish") {
     if (!uuid.test(body.commandId)) throw Object.assign(new Error("通信の形式が不正です"), {status:400});
     if (!ledger) {
-      if (s.last_command === body.commandId && s.last_request?.op === "ledger-finish") return s.last_response;
+      if (s.last_command === body.commandId && s.last_request?.op === "ledger-finish") return rpc("cloud_commit_slot",{p_user:user.id,p_session:body.sessionId,p_slot:slot,p_revision:body.revision,p_command:body.commandId,p_request:body,p_snapshot:s.snapshot,p_response:s.last_response});
       throw Object.assign(new Error("cloud_battle_missing"),{status:409});
     }
     if (ledger.id !== body.battleId || ledger.seq !== body.seq || ledger.rules !== BATTLE_RULES || s.revision !== body.revision) throw Object.assign(new Error("cloud_revision_conflict"),{status:409});
@@ -196,6 +196,7 @@ Deno.serve(async (req) => {
     const raw = await readSaveRequest(req);
     let body;
     try { body = JSON.parse(raw); } catch { throw Object.assign(new Error("通信の形式が不正です"),{status:400}); }
+    if (!body || typeof body !== "object" || Array.isArray(body)) throw Object.assign(new Error("通信の形式が不正です"),{status:400});
     const user = await measure("auth", () => authenticate(authorization, { online: ["claim", "delete-account", "reset", "consent"].includes(body.op) }));
     const result = await command(user, body, measure);
     const response = await measure("encode", async () => JSON.stringify(body.acceptEncoding === "gzip" ? await encodeCloudReply(result) : result));

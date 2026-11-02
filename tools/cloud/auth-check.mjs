@@ -25,3 +25,12 @@ await assert.rejects(auth(''),/ログイン/);
 await auth('Bearer '+encode({alg:'HS256'})+'.test.test');assert.equal(online,2);
 now+=301000;await auth('Bearer '+valid);assert.equal(jwks,2);
 console.log('JWT: 正しい署名・発行元・対象・期限・権限・改ざん拒否・鍵キャッシュ/更新・重要操作のAuth確認・HS256互換を確認');
+
+key.kid='key-2';now+=31000;await auth('Bearer '+await token({}, {kid:'key-2'}));assert.equal(jwks,3);
+const rsa=await crypto.subtle.generateKey({name:'RSASSA-PKCS1-v1_5',modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:'SHA-256'},true,['sign','verify']);
+const rsaKey={...await crypto.subtle.exportKey('jwk',rsa.publicKey),kid:'rsa',alg:'RS256'};
+const rsaAuth=createAuthenticator({url,serviceKey:'secret',now:()=>now,fetcher:async()=>Response.json({keys:[rsaKey]})});
+const raw=encode({alg:'RS256',kid:'rsa'})+'.'+encode({iss:url+'/auth/v1',aud:['authenticated'],role:'authenticated',sub,exp:now/1000+3600});
+const signature=await crypto.subtle.sign('RSASSA-PKCS1-v1_5',rsa.privateKey,new TextEncoder().encode(raw));
+assert.equal((await rsaAuth('Bearer '+raw+'.'+Buffer.from(signature).toString('base64url'))).id,sub);
+console.log('JWT: 公開鍵のローテーション追従・RS256署名も確認');

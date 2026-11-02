@@ -98,10 +98,11 @@ export class CloudSaveClient {
     catch (e) { if (e.status === 401) return send(await this.token(true)); throw e; }
   }
   setBusy() { this.busy = this.count > 0; this.onBusy(this.busy); }
-  enqueue(op, data = {}) {
+  enqueue(op, data = {}, { urgent = false } = {}) {
     // まだ送っていない連続した保存だけを最新化。送信済みの要求と戦闘の境界は変えない。
     if (op === "save" && this.queuedSave) {
       this.queuedSave.data = data;
+      if (urgent) { this.queuedSave.urgent = true; this.queuedSave.wake?.(); }
       return this.queuedSave.promise;
     }
     // 保存の順は変えず、戦闘の前に不要な集約待ちだけを解除する。
@@ -109,7 +110,7 @@ export class CloudSaveClient {
       saved.urgent = true;
       saved.wake?.();
     }
-    const entry = { data, promise: null, queuedAt: performance.now() };
+    const entry = { data, promise: null, queuedAt: performance.now(), urgent };
     if (op === "save") this.saveWaiters.add(entry);
     this.queuedSave = op === "save" ? entry : null;
     if (op === "battle" || op === "turn" || op === "command") this.blocking++;
@@ -240,7 +241,7 @@ export class CloudSaveClient {
     for (const [key] of entries) this.storage.removeItem(key);
     this.latestCheckpointId = null;
   }
-  savePrepared(prepare) {
+  savePrepared(prepare, options = {}) {
     if (this.ledger) return Promise.resolve();
     const generation = ++this.checkpointGeneration;
     const previous = this.checkpointTail;
@@ -262,7 +263,7 @@ export class CloudSaveClient {
     });
     this.checkpointTail = prepared;
     prepared.catch(() => {});
-    return this.enqueue("save", () => prepared);
+    return this.enqueue("save", () => prepared, options);
   }
   // 画面を閉じる時はWorkerや通信の完了を待てないため、その場で最新地点を保管する。
   checkpointNow(snapshot) {
@@ -350,7 +351,7 @@ export class CloudSaveClient {
         this.storage.setItem(pendingKey(this.auth.user.id,this.slot),requestJSON(body));
         return this.request(body);
       });
-      if (await battleStateHash(this.confirmed) !== result.battleHash) throw Object.assign(new Error("cloud_replay_mismatch"),{status:409});
+      if (await battleStateHash(this.confirmed) !== result.battleHash) await this.retry(() => { throw Object.assign(new Error("cloud_replay_mismatch"),{status:409}); },{automatic:false});
       this.confirmed = canonicalBattleGraph(this.confirmed);
       this.revision = result.revision; this.ledger = null;
       this.storage.removeItem(pendingKey(this.auth.user.id,this.slot));
@@ -430,7 +431,7 @@ async function resumeSavedRecord() {
 function failure(e) {
   return new Promise((resolve) => {
     const chosen = !!getJSON(choiceKey(client.auth.user.id));
-    if (chosen && e.status === 409 && ["cloud_revision_conflict", "cloud_replay_mismatch"].includes(e.message)) {
+    if (e.status === 409 && (e.message === "cloud_replay_mismatch" || chosen && e.message === "cloud_revision_conflict")) {
       client.choiceConflict = true;
       showGate(e.message === "cloud_replay_mismatch" ? "端末と保管先の計算が一致しません。保管先で確定した最新の記録から再開してください。" : "別の画面で記録が先に更新されています。この選択を新しい戦況へ適用せず、退避して最新の確定済み記録から再開できます。過去の記録へは戻りません。");
       button("最新の記録から再開", resumeSavedRecord);
@@ -839,8 +840,8 @@ export async function cloudRegisterPrompt() {
 export const cloudCompactGraph = () => !!client?.compactGraph;
 export const cloudBackgroundBattle = () => !!client?.backgroundBattle;
 export const cloudCheckpoint = () => client.checkpoint();
-export async function cloudSavePrepared(prepare) {
-  const result = await client.savePrepared(prepare);
+export async function cloudSavePrepared(prepare, options) {
+  const result = await client.savePrepared(prepare, options);
   localStorage.removeItem(emptyRecordKey(client.auth.user.id));
   return result;
 }

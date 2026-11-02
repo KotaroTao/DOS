@@ -82,6 +82,13 @@ for(const role of ['anon','authenticated']){
  await assert.rejects(db.query('select * from battle_ledger.starts'),/permission denied/);
  await db.exec('reset role');
 }
+await db.query("update public.cloud_saves set lease_until=now()-interval '1 second' where user_id=$1",[uid]);
+const renewal={p_user:uid,p_session:sid,p_revision:3,p_terms:'2026-10-30'};
+assert.equal(JSON.parse((await db.query('select public.cloud_battle_renew_text($1) as v',[JSON.stringify(renewal)])).rows[0].v).revision,3);
+await assert.rejects(db.query('select public.cloud_battle_renew_text($1)',[JSON.stringify({...renewal,p_session:crypto.randomUUID()})]),/cloud_session_lost/);
+const reset={p_user:uid,p_session:sid,p_revision:3,p_command:crypto.randomUUID(),p_request:{op:'reset'},p_snapshot:null,p_response:{}};
+assert.equal(JSON.parse((await db.query('select public.cloud_battle_reset_text($1) as v',[JSON.stringify(reset)])).rows[0].v).revision,4);
+assert.equal((await db.query('select snapshot from public.cloud_saves where user_id=$1',[uid])).rows[0].snapshot,null);
 await db.query('delete from auth.users where id=$1',[uid]);
 assert.equal((await db.query('select count(*)::int as n from battle_ledger.heads')).rows[0].n,0);
 await db.close();console.log('本番B: 不変履歴・権限・再送・キャッシュなし復旧・一括再生・改ざん拒否・終了再送・退会削除を確認');

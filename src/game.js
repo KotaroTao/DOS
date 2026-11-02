@@ -12167,6 +12167,8 @@ const battleVictoryAt = new WeakMap(), battleVictoryTimers = new WeakMap();
 const battleVerified = new WeakSet(), battleVerifying = new WeakSet();
 function endBattle(...args) {
   const b = G.battle;
+  // 最後の着弾の余韻と終了時検証は重ね、検証後に同じ一秒を足さない。
+  if (b?.result === "win" && !battleVictoryAt.has(b)) battleVictoryAt.set(b, performance.now());
   if (b?.result && serverBattle() && !battleVerified.has(b)) {
     if (!battleVerifying.has(b)) {
       battleVerifying.add(b);
@@ -19032,7 +19034,7 @@ function autosave(force = false) {
         if (raw === _lastCloudSave) return null;
         _lastCloudSave = raw;
         return raw;
-      });
+      }, { urgent: G.state === "combat" });
     }
     return localSaveSession.write(JSON.stringify(refSerialize(snap)));
   } catch (e) {
