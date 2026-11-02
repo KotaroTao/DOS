@@ -21,7 +21,7 @@ export function createTrial(mode) {
     output.textContent = "同じ選択を確認中…";
   };
   const api = {
-    output, button, report,
+    output, button, report, overlap: mode === "battle-overlap",
     async open() { await ledger.open(mode, "choice-trial-v1:" + TEST_BUILD); output.textContent = "B方式の試遊・本編の保存なし"; },
     async choose(choice, prepare = null) {
       if (stopped) throw Error("試遊は終了しています。");
@@ -47,6 +47,7 @@ export function createTrial(mode) {
         }
         row.receiptMs = performance.now() - started;
         output.textContent = `確定通知 ${Math.round(row.receiptMs)}ms・${ledger.step}手`;
+        if (choice.action === "attack") await windup?.complete?.();
         return () => { row.impactMs = performance.now() - started; current = null; };
       } finally { windup?.stop(); }
     },

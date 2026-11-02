@@ -8,7 +8,7 @@ body:has(.choice-trial-page) { background: #171719; }
 .test-play-banner.choice-trial-banner { flex-wrap: wrap; box-sizing: border-box; }
 .choice-trial-banner .choice-trial-status { flex-basis: 100%; text-align: center; }
 
-/* 押した瞬間に光と動きを出す。通知待ちの時間を演出の最低尺にはしない。 */
+/* 押した瞬間に光と動きを出す。通常攻撃以外の構えは通知時に即座に外す。 */
 .battle-windup {
   --windup-rgb: 245, 192, 100;
   position: fixed; z-index: 40; pointer-events: none; overflow: hidden;
@@ -44,4 +44,30 @@ body:has(.choice-trial-page) { background: #171719; }
   .battle-windup *, #party .battle-windup-actor .pc-pic { animation: none !important; }
   .windup-spark, .windup-sweep { display: none; }
   #party .battle-windup-actor .pc-pic { transform: none; }
+}
+
+/* 通常攻撃だけは、振りかぶり→通信中の溜め→確定後の振り抜きを一続きにする。 */
+.normal-attack { background: radial-gradient(ellipse at var(--attack-x) var(--attack-y), rgba(var(--windup-rgb), .12), transparent 48%); }
+.normal-attack .windup-ring, .normal-attack .windup-sweep { display: none; }
+.attack-motion { position: absolute; left: var(--attack-x); top: var(--attack-y); width: clamp(120px, 38%, 210px); aspect-ratio: 1; animation: attack-prepare var(--attack-prepare) ease-out both; }
+.attack-trail { display: block; width: 100%; height: 100%; overflow: visible; fill: none; stroke: #ffe6ab; stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 7px #e5aa48); animation: attack-gather 850ms ease-in-out infinite alternate; }
+.attack-trail path:nth-child(2) { stroke: #fff9e9; stroke-width: 2; }
+.normal-attack-blunt .attack-trail { stroke-width: 12; }
+.normal-attack-thrust .attack-trail, .normal-attack-arrow .attack-trail { stroke-width: 4; }
+.normal-attack-arcane { --windup-rgb: 140, 191, 255; }
+.normal-attack-arcane .attack-trail { stroke: #b5dcff; filter: drop-shadow(0 0 8px #7caeff); }
+.attack-releasing .attack-motion { animation: attack-release var(--attack-release) ease-in both; }
+.attack-releasing .attack-trail { animation: none; opacity: 1; }
+@keyframes attack-prepare {
+  from { transform: translate(-65%, -12%) scale(.6) rotate(-34deg); opacity: .4; }
+  to { transform: translate(-58%, -36%) scale(.85) rotate(-18deg); opacity: .9; }
+}
+@keyframes attack-gather { from { opacity: .48; transform: rotate(-3deg) scale(.97); } to { opacity: .92; transform: rotate(2deg) scale(1.03); } }
+@keyframes attack-release {
+  from { transform: translate(-58%, -36%) scale(.85) rotate(-18deg); opacity: .9; }
+  to { transform: translate(-50%, -50%) scale(1.13) rotate(10deg); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .normal-attack .attack-motion { transform: translate(-50%, -50%); opacity: .7; }
+  .normal-attack .attack-trail { filter: none; }
 }

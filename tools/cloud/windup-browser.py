@@ -37,6 +37,29 @@ async def main():
                 assert result['remaining']==0 and result['elapsed']<50,result
                 await page.wait_for_timeout(100)
                 assert await page.evaluate('prepared.every(v=>v.buffer===null && v.onended===null)'),'構え音が通知後も残っている'
+            # 通常攻撃だけは短い通信でも動作を保ち、遅い通信では溜めを延ばす。
+            for style,network,fast in [(s,60,False) for s in ['slash','blunt','thrust','arrow','arcane']]+[('slash',900,False),('slash',60,True)]:
+                result=await page.evaluate("""async ({style,network,fast})=>{
+                  const start=performance.now();
+                  handle=windup.beginBattleWindup({party:document.querySelector('#party'),index:0,view:document.querySelector('#view'),label:'攻撃',attackStyle:style,fast,aim:{x:.6,y:.35}});
+                  await new Promise(r=>setTimeout(r,network));
+                  const pending=!!document.querySelector('.normal-attack:not(.attack-releasing)');
+                  const type=document.querySelector('.normal-attack')?.dataset.attackStyle;
+                  await handle.complete();
+                  return {pending,type,elapsed:performance.now()-start,remaining:document.querySelectorAll('.battle-windup').length};
+                }""",{'style':style,'network':network,'fast':fast})
+                assert result['pending'] and result['type']==style,result
+                minimum=(200 if fast else 280)+80
+                assert result['elapsed']>=max(network,(200 if fast else 280))+70,result
+                assert result['elapsed']<max(network,minimum)+250,result
+                assert result['remaining']==0,result
+            # 途中終了で動作の完了待ちが残らない。
+            result=await page.evaluate("""async()=>{
+              handle=windup.beginBattleWindup({party:document.querySelector('#party'),index:0,view:document.querySelector('#view'),attackStyle:'slash'});
+              const started=performance.now(),done=handle.complete();handle.stop(true);await done;return performance.now()-started;
+            }""")
+            assert result<100,result
+            await page.wait_for_timeout(100)
             # 音量0とミュートは発音しない。構えの視覚は使える。
             await page.evaluate('audio.setVolumes(0,0);window.before=prepared.length;handle=show("cast")')
             assert await page.evaluate('prepared.length===before')

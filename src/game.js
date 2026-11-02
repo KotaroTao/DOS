@@ -1,4 +1,4 @@
-import { beginBattleWindup } from "./battle-windup.js";
+import { beginBattleWindup, normalAttackTiming } from "./battle-windup.js";
 import { createTrial } from "./choice-trial.js";
 import { battleCommand } from "./cloud-battle.js";
 import { cloudCommandMode, cloudActionCommand } from "./cloud-save.js";
@@ -11307,11 +11307,12 @@ function prepareBattleAction(battle, onFrame = null) {
   if (!actor || actor.side !== "party") return { stop() {} };
   const spell = pending.spellKey && SPELLS[pending.spellKey];
   const cast = !!spell && spell.kind !== "phys";
-  const label = pending.action === "spell" ? `${spell?.name || "技"}の${cast ? "詠唱" : "構え"}`
+  const label = pending.action === "attack" ? "攻撃" : pending.action === "spell" ? `${spell?.name || "技"}の${cast ? "詠唱" : "構え"}`
     : pending.action === "defend" ? "防御の構え" : pending.action === "run" ? "退路を探る" : pending.action === "item" ? `${pending.item?.name || "道具"}を準備` : "攻撃の構え";
   const target = pending.target?.side === "enemy" && G.enemyPos[pending.target.uid];
-  return beginBattleWindup({ party: partyEl, index: G.party.indexOf(actor), view, label: `${actor.name} — ${label}`, kind: cast ? "cast" : "strike",
-    aim: target ? { x: target.cx / VW, y: target.cy / VH } : null, onFrame });
+  return beginBattleWindup({ party: partyEl, index: G.party.indexOf(actor), view, label: pending.action === "attack" ? label : `${actor.name} — ${label}`, kind: cast ? "cast" : "strike",
+    aim: target ? { x: target.cx / VW, y: target.cy / VH } : null, onFrame,
+    attackStyle: pending.action === "attack" ? actor.wMagic ? "arcane" : weaponFxStyle(actor.equip?.weapon) : null, fast: G.fastAnim });
 }
 async function resolveLocalBattle(action, battle = G.battle) {
   try {
@@ -11319,7 +11320,8 @@ async function resolveLocalBattle(action, battle = G.battle) {
     if (cloudEnabled() && !testPlayActive) await cloudCheckpoint();
     if (G.battle !== battle || G.state !== "combat") return;
     // 端末記録の準備時間は間隔に含める。結果の計算前に待ち、HPやログも先走らせない。
-    const wait = G.autoCombat || action !== "commit" ? battleTempoWait(battle) : 0;
+    const normalTrial = choiceTrial?.overlap && action === "commit" && battle.pending?.action === "attack";
+    const wait = !normalTrial && (G.autoCombat || action !== "commit") ? battleTempoWait(battle) : 0;
     if (wait > 0) await new Promise(resolve => setTimeout(resolve, wait));
     if (G.battle !== battle || G.state !== "combat") return;
     let trialImpact = null;
@@ -11426,6 +11428,7 @@ async function resolveSavedBattle(action) {
   _cloudResolving = true;
   const resultStarted = performance.now();
   let windup = null;
+  const normalAttack = action === "commit" && G.battle?.pending?.action === "attack";
   try {
     let raw, response;
     const cached = savedForcedTurns[0];
@@ -11448,10 +11451,11 @@ async function resolveSavedBattle(action) {
       savedForcedTurns = (response.forcedPackets || []).map(turn => ({ ...turn, battle: G.battle }));
     }
     if (cloudCommandMode()) {
-      const wait = G.autoCombat || action !== "commit" ? battleTempoWait(G.battle) : 0;
+      const wait = !normalAttack && (G.autoCombat || action !== "commit") ? battleTempoWait(G.battle) : 0;
       if (wait > 0) await new Promise(resolve => setTimeout(resolve, wait));
       battleActionTimes.set(G.battle, performance.now());
     }
+    if (normalAttack) await windup?.complete();
     savedBattleAdvance = response.nextPacket ? { battle: G.battle, packet: response.nextPacket } : null;
     const packet = applySavePatch(G, refDeserialize(response.packet));
     restoreMonsterPhotos(G.battle.enemies, MONSTERS);
@@ -11465,6 +11469,7 @@ async function resolveSavedBattle(action) {
     packet.result._modFeed = packet.modFeed;
     saveMetrics.timing(cached?.battle === G.battle ? "confirmedPlayback" : "commandResult", performance.now() - resultStarted, cached?.battle === G.battle ? 0 : 1 + (response.forcedPackets?.length || 0));
     windup?.stop();
+    if (normalAttack) battleActionTimes.set(G.battle, performance.now());
     animateResult(packet.result, postResolve);
   } catch (e) { cloudFatal(); }
   finally { windup?.stop(); }
@@ -11534,7 +11539,9 @@ function animateResult(res, done) {
     if (res._modFeed !== undefined) releaseActionEffects(res, res._modFeed);
     drainPartyProcs();
     partyEl.style.setProperty("--fxd", G.fastAnim ? "0.32s" : "0.4s");
-    finish();
+    // 通常攻撃は短い被弾の反応を見せてから次の動作へ。技の進行条件は変えない。
+    const normalAttack = res.action === "attack" && res.actor?.side === "party" && (serverBattle() || choiceTrial?.overlap);
+    if (normalAttack) setTimeout(finish, normalAttackTiming(G.fastAnim).reaction); else finish();
     const started = performance.now();
     let firstFrame = true;
     const tick = () => {
