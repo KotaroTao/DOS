@@ -11,6 +11,7 @@ import {reseedRng,rngState} from '../../src/rng.js';
 import {refSerialize,refDeserialize} from '../../src/savegraph.js';
 import {battleCommand} from '../../src/cloud-battle.js';
 import {replayCloudCommand} from '../../src/cloud-command-replay.js';
+import {createCloudChange} from '../../src/cloud-change.js';
 import {battleStateHash} from '../../src/cloud-ledger-replay.js';
 const env=process.env,mode=process.argv[2],ref=env.SUPABASE_PROJECT_REF,token=env.SUPABASE_ACCESS_TOKEN;
 if(!/^[a-z0-9]{20}$/.test(ref||'')||!token)throw Error('計測用の接続設定がありません');
@@ -54,7 +55,9 @@ function fixture(count){
  const bag=Array.from({length:count},(_,i)=>({...ITEMS.u_styptic_salve,benchId:i}));p.items=bag;
  const e={uid:900000,key:'bs_ghoul',name:'計測の敵',side:'enemy',alive:true,hp:1000000,maxhp:1000000,atk:1,vit:30,agi:1,int:10,pie:10,luk:8,lv:1,element:'none'};
  const battle=new Battle([p],[e],()=>{});
- return refSerialize({state:'combat',battle,party:[p],reserve:[],souls:[],rng:rngState(),inventory:bag,codex:{mon:{},fresh:{mon:{}}},events:{},world:{},order:{picks:[]},gold:100,soulPts:100,floor:1,dungeonIdx:0},{compact:true});
+ const state={state:'board',floor:1,dungeonIdx:0,gold:100,soulPts:100,inventory:bag,party:[p],reserve:[],souls:[],rng:rngState(),codex:{mon:{},fresh:{mon:{}}},events:{},world:{},order:{picks:[]},battle:null};
+ const board=refSerialize(state,{compact:true});state.state='combat';state.battle=battle;
+ return {graph:refSerialize(state,{compact:true}),board};
 }
 const summary=rows=>{const v=rows.map(x=>x.ms).sort((a,b)=>a-b);return {samples:rows.length,medianMs:v[Math.ceil(v.length*.5)-1],p95Ms:v[Math.ceil(v.length*.95)-1],maxMs:v.at(-1),meanRequestBytes:rows.reduce((a,x)=>a+x.sent,0)/rows.length,meanReplyBytes:rows.reduce((a,x)=>a+x.received,0)/rows.length};};
 async function measure(){
@@ -70,26 +73,27 @@ async function measure(){
  try{
   await edge({op:'consent',version:LEGAL_VERSION});let revision=(await edge({op:'claim',compactGraph:true})).data.revision;
   for(const count of [200,2000]){
-   let graph=fixture(count);const rows=[],cpu=[],r={items:count,snapshotBytes:Buffer.byteLength(JSON.stringify(graph)),raw:rows,clientCalculationMs:cpu};results.fixtures.push(r);
-   const start=await edge({op:'save',revision,commandId:randomUUID(),snapshot:graph});revision=start.data.revision;const ledger=start.data.ledger;r.start={...start,data:undefined};let seq=0;
+   let {graph,board}=fixture(count);const rows=[],cpu=[],r={items:count,snapshotBytes:Buffer.byteLength(JSON.stringify(graph)),raw:rows,clientCalculationMs:cpu};results.fixtures.push(r);
+   const preparation=await edge({op:'save',revision,commandId:randomUUID(),snapshot:board});revision=preparation.data.revision;r.boardPreparation={...preparation,data:undefined};
+   const start=await timed('/rest/v1/rpc/'+s.prefix+'_battle_begin',{p_session:s.session,p_revision:revision,p_command_id:randomUUID(),p_change:createCloudChange(board,graph),p_opening:null,p_rules:'battle-1'});revision=start.data.revision;const ledger=start.data.ledger;r.start={...start,data:undefined};let seq=0;
    for(let i=0;i<23;i++){
     const state=refDeserialize(graph);state.battle.pending={actor:state.battle.current,action:'attack',target:state.battle.enemies[0]};
     const command=battleCommand(state.battle,'commit',state.rng),id=randomUUID(),begin=performance.now();
-    const local=await replayCloudCommand(graph,command,id,true);cpu.push(performance.now()-begin);
+    const local=await replayCloudCommand(graph,command,id,true,true);cpu.push(performance.now()-begin);
     const ack=await timed('/rest/v1/rpc/'+s.prefix+'_battle_append',{p_battle:ledger.id,p_session:s.session,p_revision:revision,p_seq:seq,p_command_id:id,p_command:{...command,forcedCount:local.forcedPackets.length},p_rules:'battle-1'});
     if(ack.data.seq!==++seq)throw Error('追記の順番が一致しません');graph=local.snapshot;
     if(i>=3)rows.push({...ack,data:undefined});
    }
    for(let i=0;i<20&&!refDeserialize(graph).battle.result;i++){
     const state=refDeserialize(graph);state.battle.pending={actor:state.battle.current,action:'run'};
-    const command=battleCommand(state.battle,'commit',state.rng),id=randomUUID(),local=await replayCloudCommand(graph,command,id,true);
+    const command=battleCommand(state.battle,'commit',state.rng),id=randomUUID(),local=await replayCloudCommand(graph,command,id,true,true);
     await timed('/rest/v1/rpc/'+s.prefix+'_battle_append',{p_battle:ledger.id,p_session:s.session,p_revision:revision,p_seq:seq++,p_command_id:id,p_command:{...command,forcedCount:local.forcedPackets.length},p_rules:'battle-1'});graph=local.snapshot;
    }
    if(!refDeserialize(graph).battle.result)throw Error('検証用戦闘を終了できません');
    const end=await edge({op:'ledger-finish',revision,commandId:randomUUID(),battleId:ledger.id,seq});
    if(end.data.battleHash!==await battleStateHash(graph))throw Error('一括検証と端末の結果が一致しません');
    revision=end.data.revision;r.finish={...end,data:undefined};r.summary=summary(rows);r.verified=true;
-   console.log(`${count}品 / ${r.snapshotBytes}B: 追記中央値${r.summary.medianMs.toFixed(1)}ms・p95 ${r.summary.p95Ms.toFixed(1)}ms / 終了検証${end.ms.toFixed(1)}ms`);
+   console.log(`${count}品 / ${r.snapshotBytes}B: 開始${start.ms.toFixed(1)}ms・追記中央値${r.summary.medianMs.toFixed(1)}ms・p95 ${r.summary.p95Ms.toFixed(1)}ms / 終了検証${end.ms.toFixed(1)}ms`);
   }
  }finally{await writeFile(join(out,'results.json'),JSON.stringify(results,null,2));}
 }

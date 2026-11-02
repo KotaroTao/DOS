@@ -63,6 +63,7 @@ async function command(user, body, measure) {
   if (slot !== 1) throw Object.assign(new Error("記録の番号が不正です"), { status: 400 });
   if (body.op === "renew" && body.battleLedger === true) return rpc("cloud_battle_renew_text",{p_payload:JSON.stringify({p_user:user.id,p_session:body.sessionId,p_revision:body.revision,p_terms:LEGAL_VERSION})});
   const s = await rpc("cloud_claim_slot", { p_user: user.id, p_session: body.sessionId, p_slot: slot });
+  if (s.active_battle && body.op === "claim" && body.battleLedger !== true) throw Object.assign(new Error("cloud_version_mismatch"),{status:409});
   if (s.terms_version !== LEGAL_VERSION) throw Object.assign(new Error("cloud_version_mismatch"), { status: 409 });
   if (body.op === "delete-account") {
     const r = await fetch(`${url}/auth/v1/admin/users/${user.id}`, { method: "DELETE",
@@ -71,10 +72,11 @@ async function command(user, body, measure) {
     return { deleted: true };
   }
   const ledger = body.battleLedger === true || ["ledger-finish","ledger-preview"].includes(body.op) ? await rpc("cloud_battle_read", { p_user: user.id }) : null;
+  const startGraph = ledger?.startChange ? ledger.startChange.snapshot || applyCloudChange(s.snapshot,ledger.startChange.change) : s.snapshot;
   if (body.op === "ledger-preview") {
     if (!ledger || ledger.id !== body.battleId || ledger.seq !== body.seq || s.revision !== body.revision || !uuid.test(body.commandId)) throw Object.assign(new Error("cloud_revision_conflict"),{status:409});
-    const base = await measure("replay", () => replayBattleLedger(s.snapshot,ledger,{measure}));
-    return measure("replay", () => replayCloudCommand(base.snapshot,body.command,body.commandId,true));
+    const base = await measure("replay", () => replayBattleLedger(startGraph,ledger,{measure}));
+    return measure("replay", () => replayCloudCommand(base.snapshot,body.command,body.commandId,true,true));
   }
   if (body.op === "ledger-finish") {
     if (!uuid.test(body.commandId)) throw Object.assign(new Error("通信の形式が不正です"), {status:400});
@@ -83,17 +85,17 @@ async function command(user, body, measure) {
       throw Object.assign(new Error("cloud_battle_missing"),{status:409});
     }
     if (ledger.id !== body.battleId || ledger.seq !== body.seq || ledger.rules !== BATTLE_RULES || s.revision !== body.revision) throw Object.assign(new Error("cloud_revision_conflict"),{status:409});
-    const replay = await measure("replay", () => replayBattleLedger(s.snapshot,ledger,{measure}));
+    const replay = await measure("replay", () => replayBattleLedger(startGraph,ledger,{measure}));
     if (!replay.terminal) throw Object.assign(new Error("cloud_battle_unfinished"),{status:409});
     return rpc("cloud_battle_finish_text",{p_payload:JSON.stringify({p_user:user.id,p_session:body.sessionId,p_battle:ledger.id,p_seq:ledger.seq,p_command:body.commandId,p_request:body,p_snapshot:replay.snapshot,p_response:{battleHash:replay.hash}})});
   }
   if (body.op === "claim") {
     if (ledger) {
-      const replay = await measure("replay", () => replayBattleLedger(s.snapshot,ledger,{measure}));
-      return {revision:s.revision,snapshot:replay.snapshot,battleTurn:true,compactGraph:true,backgroundBattle:false,actionCommands:true,commandReplay:true,forcedTurns:true,battleLedger:true,ledger:{id:ledger.id,seq:ledger.seq,rules:ledger.rules}};
+      const replay = await measure("replay", () => replayBattleLedger(startGraph,ledger,{measure}));
+      return {revision:s.revision,snapshot:replay.snapshot,battleTurn:true,compactGraph:true,backgroundBattle:false,actionCommands:true,commandReplay:true,forcedTurns:true,battleLedger:true,ledgerDirectBegin:true,ledger:{id:ledger.id,seq:ledger.seq,rules:ledger.rules}};
     }
     const snapshot = s.snapshot?.format === 2 && !body.compactGraph ? refSerialize(refDeserialize(s.snapshot)) : s.snapshot;
-    return { revision: s.revision, snapshot, battleTurn: true, compactGraph: true, backgroundBattle: false, actionCommands: true, commandReplay: true, forcedTurns: true, battleLedger: true };
+    return { revision: s.revision, snapshot, battleTurn: true, compactGraph: true, backgroundBattle: false, actionCommands: true, commandReplay: true, forcedTurns: true, battleLedger: true, ledgerDirectBegin: true };
   }
   if (body.op === "renew") {
     if (s.revision !== body.revision) throw Object.assign(new Error("cloud_revision_conflict"), { status: 409 });

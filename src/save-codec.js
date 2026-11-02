@@ -77,4 +77,4 @@ export const encodeCloudChange = (base, next) => work("change", base, next);
 export const decodeCloudCommand = (base, response) => work("commandReply", base, response);
 
 export const cloudWorkerReady = () => !!worker;
-export const replayCloudCommandPrepared = (graph, command, commandId, forcedTurns = false) => work("replayCommand", graph, { command, commandId, forcedTurns });
+export const replayCloudCommandPrepared = (graph, command, commandId, forcedTurns = false, ledger = false) => work("replayCommand", graph, { command, commandId, forcedTurns, ledger });

@@ -18,6 +18,7 @@ grant usage on schema auth to authenticated;grant execute on function auth.uid()
 insert into auth.users values('${uid}');`);
 for(const name of ['202610120001_cloud_save','202610160001_save_slots','202610300001_guest_onboarding','202610300002_large_save_transport','202611020001_battle_ledger']) await db.exec(await readFile(new URL(`../../supabase/migrations/${name}.sql`,import.meta.url),'utf8'));
 await db.query('select public.cloud_claim_slot($1,$2,1)',[uid,sid]);
+await db.query('select public.cloud_accept_terms($1,$2)',[uid,'2026-10-30']);
 reseedRng(123);
 const p=Object.assign(makeDoll('検証の人業'),{hp:100,maxhp:100,atk:25,vit:10,agi:1000});
 const e={uid:9,key:'bs_ghoul',name:'検証の敵',side:'enemy',alive:true,hp:70,maxhp:70,atk:1,vit:10,agi:1,int:10,pie:10,luk:8,lv:1,element:'none'};
@@ -66,6 +67,21 @@ const finish={p_user:uid,p_session:sid,p_battle:bid,p_seq:seq,p_command:crypto.r
 const close=async()=>JSON.parse((await db.query('select public.cloud_battle_finish_text($1) as v',[JSON.stringify(finish)])).rows[0].v);
 assert.equal((await close()).revision,2);assert.equal((await close()).revision,2);
 assert.equal((await db.query('select public.cloud_battle_read($1) as v',[uid])).rows[0].v,null);
+// 直接開始では既存セーブを読み書きせず、開始差分を別表へ固定する。
+const nativeId=crypto.randomUUID(),beforeNative=(await db.query('select snapshot from public.cloud_saves where user_id=$1',[uid])).rows[0].snapshot;
+const native=async(change={snapshot:initial})=>{
+ await db.exec('set role authenticated');
+ try{return (await db.query('select public.cloud_battle_begin($1,2,$2,$3,null,$4) as v',[sid,nativeId,JSON.stringify(change),'battle-1'])).rows[0].v;}finally{await db.exec('reset role');}
+};
+assert.equal((await native()).revision,3);assert.equal((await native()).revision,3);
+await assert.rejects(native({snapshot:{bad:true}}),/cloud_command_reused/);
+assert.deepEqual((await db.query('select snapshot from public.cloud_saves where user_id=$1',[uid])).rows[0].snapshot,beforeNative);
+assert.deepEqual((await db.query('select public.cloud_battle_read($1) as v',[uid])).rows[0].v.startChange,{snapshot:initial});
+for(const role of ['anon','authenticated']){
+ await db.exec('set role '+role);
+ await assert.rejects(db.query('select * from battle_ledger.starts'),/permission denied/);
+ await db.exec('reset role');
+}
 await db.query('delete from auth.users where id=$1',[uid]);
 assert.equal((await db.query('select count(*)::int as n from battle_ledger.heads')).rows[0].n,0);
 await db.close();console.log('本番B: 不変履歴・権限・再送・キャッシュなし復旧・一括再生・改ざん拒否・終了再送・退会削除を確認');

@@ -31,7 +31,7 @@ export class CloudSaveClient {
     localSaveKey(slot); this.slot = slot;
     this.config = config; this.fetcher = fetcher; this.storage = storage;
     this.onBusy = onBusy; this.onFailure = onFailure; this.retryDelays = retryDelays;
-    this.ledger = null; this.battleLedger = false; this.useLedger = config.battleLedger !== false;
+    this.ledger = null; this.directBegin = false; this.battleLedger = false; this.useLedger = config.battleLedger !== false;
     this.confirmed = null; this.commandMode = false; this.commandReplay = false; this.forcedTurns = false;
     this.auth = null; this.sessionId = null; this.revision = 0;
     this.saveWaiters = new Set();
@@ -45,7 +45,7 @@ export class CloudSaveClient {
     let received = 0, status = 0, ok = false;
     const sent = metricOp ? utf8Bytes(options.body) : 0;
     // 大きな記録の戦闘応答は15秒を超える。認証と保存APIの期限を分ける。
-    const timeoutMs = path.startsWith("/functions/") ? 60000 : 15000;
+    const timeoutMs = path.startsWith("/functions/") || metricOp === "ledger-begin" ? 60000 : 15000;
     const ctrl = new AbortController();
     let timer;
     const timeout = new Promise((_, reject) => { timer = setTimeout(() => {
@@ -89,9 +89,9 @@ export class CloudSaveClient {
   }
   async request(body) {
     if (this.slot !== 1) body = { ...body, slot: this.slot };
-    const direct = body.op === "ledger-command";
-    const raw = direct ? JSON.stringify({p_battle:body.battleId,p_session:body.sessionId,p_revision:body.revision,p_seq:body.seq,p_command_id:body.commandId,p_command:body.command,p_rules:body.rules}) : requestJSON(body);
-    const send = async (token) => this.fetchJSON(direct ? "/rest/v1/rpc/cloud_battle_append" : "/functions/v1/game-save", { method: "POST",
+    const beginning = body.op === "ledger-begin", direct = beginning || body.op === "ledger-command";
+    const raw = beginning ? JSON.stringify({p_session:body.sessionId,p_revision:body.revision,p_command_id:body.commandId,p_change:body.change ? {change:body.change} : {snapshot:body.snapshot},p_opening:body.openingCommand || null,p_rules:BATTLE_RULES}) : direct ? JSON.stringify({p_battle:body.battleId,p_session:body.sessionId,p_revision:body.revision,p_seq:body.seq,p_command_id:body.commandId,p_command:body.command,p_rules:body.rules}) : requestJSON(body);
+    const send = async (token) => this.fetchJSON(direct ? beginning ? "/rest/v1/rpc/cloud_battle_begin" : "/rest/v1/rpc/cloud_battle_append" : "/functions/v1/game-save", { method: "POST",
       headers: { apikey: this.config.anonKey, Authorization: `Bearer ${token}`, "Content-Type": "application/json", ...(this.config.region && !direct ? { "x-region": this.config.region } : {}) },
       body: raw }, body.op);
     try { return await send(await this.token()); }
@@ -145,7 +145,7 @@ export class CloudSaveClient {
       const replayStarted = performance.now();
       const preview = () => this.request({protocol:this.config.protocol,op:"ledger-preview",sessionId:this.sessionId,revision:this.revision,battleId:this.ledger.id,seq:this.ledger.seq,command:requestData.command,commandId:requestData.commandId,acceptEncoding:"gzip"});
       const replay = op === "command" && this.commandReplay && (cloudWorkerReady() || this.ledger)
-        ? (cloudWorkerReady() ? replayCloudCommandPrepared(this.confirmed, requestData.command, requestData.commandId, this.forcedTurns).catch(() => this.ledger ? preview() : null) : preview())
+        ? (cloudWorkerReady() ? replayCloudCommandPrepared(this.confirmed, requestData.command, requestData.commandId, this.forcedTurns, !!this.ledger).catch(() => this.ledger ? preview() : null) : preview())
           .then(value => { saveMetrics.timing("commandCalculation", performance.now() - replayStarted); return value; }).catch(() => null) : null;
       const ledgerLocal = this.ledger && op === "command" ? await replay : null;
       if (this.ledger && op === "command" && !ledgerLocal) throw Object.assign(new Error("cloud_replay_mismatch"), {status:409});
@@ -160,9 +160,13 @@ export class CloudSaveClient {
         const state = refDeserialize(nextSnapshot);
         if (state.state === "combat" && !state.battle?.result && ["enemy","stunned"].includes(state.battle?.phase)) {
           const command = battleCommand(state.battle,state.battle.phase,state.rng);
-          const local = await replayCloudCommandPrepared(nextSnapshot,command,body.commandId,true);
+          const local = await replayCloudCommandPrepared(nextSnapshot,command,body.commandId,true,true);
           opening = {command,local}; body.openingCommand = {...command,forcedCount:local.forcedPackets.length};
         }
+      }
+      if (op === "save" && this.directBegin && this.battleLedger && nextSnapshot) {
+        const state = refDeserialize(nextSnapshot);
+        if (state.state === "combat" && state.battle && !state.battle.result) body.op = "ledger-begin";
       }
       if (this.ledger && op === "command") Object.assign(body, {op:"ledger-command",battleId:this.ledger.id,seq:this.ledger.seq,rules:BATTLE_RULES,
         command:{...requestData.command,forcedCount:ledgerLocal.forcedPackets?.length || 0}});
@@ -297,6 +301,7 @@ export class CloudSaveClient {
     this.commandMode = data.actionCommands === true;
     this.commandReplay = data.commandReplay === true && !!globalThis.crypto?.subtle;
     this.forcedTurns = data.forcedTurns === true;
+    this.directBegin = data.ledgerDirectBegin === true;
     this.battleLedger = this.useLedger && data.battleLedger === true; this.ledger = data.ledger || null;
     this.confirmed = data.snapshot;
     this.backgroundBattle = data.backgroundBattle === true;

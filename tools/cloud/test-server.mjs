@@ -28,6 +28,10 @@ globalThis.fetch = async (url, opts) => {
     else if (url.endsWith("/cloud_battle_renew_text")) r = await db.query("select public.cloud_battle_renew_text($1::text) as value",[b.p_payload]);
     else if (url.endsWith("/cloud_battle_reset_text")) r = await db.query("select public.cloud_battle_reset_text($1::text) as value",[b.p_payload]);
     else if (url.endsWith("/cloud_battle_finish_text")) r = await db.query("select public.cloud_battle_finish_text($1::text) as value",[b.p_payload]);
+    else if (url.endsWith("/cloud_battle_begin")) {
+      await db.query("select set_config('request.jwt.claim.sub',$1,false)",[opts.headers.Authorization === "Bearer test-token" ? user.id : ""]);
+      r = await db.query("select public.cloud_battle_begin($1,$2,$3,$4,$5,$6) as value",[b.p_session,b.p_revision,b.p_command_id,JSON.stringify(b.p_change),JSON.stringify(b.p_opening),b.p_rules]);
+    }
     else if (url.endsWith("/cloud_battle_append")) {
       await db.query("select set_config('request.jwt.claim.sub',$1,false)",[opts.headers.Authorization === "Bearer test-token" ? user.id : ""]);
       r = await db.query("select public.cloud_battle_append($1,$2,$3,$4,$5,$6,$7) as value",[b.p_battle,b.p_session,b.p_revision,b.p_seq,b.p_command_id,JSON.stringify(b.p_command),b.p_rules]);
@@ -59,7 +63,7 @@ const server = createServer(async (req, res) => {
     if (req.method === "PUT") { const update = JSON.parse(body); user.email = update.email || user.email; }
     response = Response.json(user);
   }
-  else if (path === "/rest/v1/rpc/cloud_battle_append") response = await fetch("https://db.invalid"+path,{method:"POST",headers:{Authorization:req.headers.authorization},body});
+  else if (["/rest/v1/rpc/cloud_battle_append","/rest/v1/rpc/cloud_battle_begin"].includes(path)) response = await fetch("https://db.invalid"+path,{method:"POST",headers:{Authorization:req.headers.authorization},body});
   else response = await handler(new Request("https://db.invalid" + req.url, { method: req.method, headers: req.headers,
     ...(req.method === "GET" || req.method === "HEAD" ? {} : { body }) }));
   res.writeHead(response.status, Object.fromEntries(response.headers)); res.end(await response.text());
