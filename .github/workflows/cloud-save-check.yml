@@ -35,11 +35,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          sparse-checkout-cone-mode: false
           sparse-checkout: |
-            .github
-            src
-            supabase
-            tools
+            /*
+            !/*/
+            /.github/
+            /src/
+            /supabase/
+            /tools/
+            /docs/skill-effects-catalog.csv
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
