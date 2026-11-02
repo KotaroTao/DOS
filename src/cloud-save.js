@@ -144,12 +144,21 @@ export class CloudSaveClient {
         return {...opening.local, revision:this.revision};
       }
       const replayStarted = performance.now();
-      const preview = () => this.request({protocol:this.config.protocol,op:"ledger-preview",sessionId:this.sessionId,revision:this.revision,battleId:this.ledger.id,seq:this.ledger.seq,command:requestData.command,commandId:requestData.commandId,acceptEncoding:"gzip"});
+      // 計算できなかったことと、計算結果が違うことは別。補助通信も同じ選択で再試行する。
+      const preview = () => this.retry(async () => {
+        try {
+          const local = await this.request({protocol:this.config.protocol,op:"ledger-preview",sessionId:this.sessionId,revision:this.revision,battleId:this.ledger.id,seq:this.ledger.seq,command:requestData.command,commandId:requestData.commandId,acceptEncoding:"gzip"});
+          if (!local?.snapshot || !local.packet) throw Object.assign(new Error("cloud_replay_unavailable"), {status:502});
+          return local;
+        } catch (error) { saveMetrics.replayCheck("previewUnavailable"); throw error; }
+      });
       const replay = op === "command" && this.commandReplay && (cloudWorkerReady() || this.ledger)
-        ? (cloudWorkerReady() ? replayCloudCommandPrepared(this.confirmed, requestData.command, requestData.commandId, this.forcedTurns, !!this.ledger).catch(() => this.ledger ? preview() : null) : preview())
-          .then(value => { saveMetrics.timing("commandCalculation", performance.now() - replayStarted); return value; }).catch(() => null) : null;
+        ? (cloudWorkerReady() ? replayCloudCommandPrepared(this.confirmed, requestData.command, requestData.commandId, this.forcedTurns, !!this.ledger).catch(() => null) : Promise.resolve(null))
+          .then(value => { if (value || !this.ledger) return value; saveMetrics.replayCheck("workerFallback"); return preview(); })
+          .then(value => { saveMetrics.timing("commandCalculation", performance.now() - replayStarted); return value; })
+          .catch(error => { if (this.ledger) throw error; return null; }) : null;
       const ledgerLocal = this.ledger && op === "command" ? await replay : null;
-      if (this.ledger && op === "command" && !ledgerLocal) throw Object.assign(new Error("cloud_replay_mismatch"), {status:409});
+      if (this.ledger && op === "command" && !ledgerLocal) await this.retry(() => { throw Object.assign(new Error("cloud_replay_unavailable"), {status:503}); }, {automatic:false});
       const body = { protocol: this.config.protocol, sessionId: this.sessionId,
         commandId: crypto.randomUUID(), revision: this.revision, op, ...payload,
         ...(this.battleLedger ? { battleLedger: true } : {}),
@@ -178,8 +187,13 @@ export class CloudSaveClient {
       });
       if (replay) {
         const local = await replay;
-        if (!local || !this.ledger && local.hash !== result.replayHash) {
+        if (!local) {
+          saveMetrics.replayCheck("commandUnavailable");
+          await this.retry(() => { throw Object.assign(new Error("cloud_replay_unavailable"), {status:503}); }, {automatic:false});
+        }
+        if (!this.ledger && local.hash !== result.replayHash) {
           // 式・版・状態が食い違った結果を表示せず、確定済みの記録を読み直す。
+          saveMetrics.replayCheck("commandMismatch");
           await this.retry(() => { throw Object.assign(new Error("cloud_replay_mismatch"), { status: 409 }); }, { automatic: false });
         }
         nextSnapshot = local.snapshot;
@@ -351,7 +365,10 @@ export class CloudSaveClient {
         this.storage.setItem(pendingKey(this.auth.user.id,this.slot),requestJSON(body));
         return this.request(body);
       });
-      if (await battleStateHash(this.confirmed) !== result.battleHash) await this.retry(() => { throw Object.assign(new Error("cloud_replay_mismatch"),{status:409}); },{automatic:false});
+      if (await battleStateHash(this.confirmed) !== result.battleHash) {
+        saveMetrics.replayCheck("battleMismatch");
+        await this.retry(() => { throw Object.assign(new Error("cloud_replay_mismatch"),{status:409}); },{automatic:false});
+      }
       this.confirmed = canonicalBattleGraph(this.confirmed);
       this.revision = result.revision; this.ledger = null;
       this.storage.removeItem(pendingKey(this.auth.user.id,this.slot));
