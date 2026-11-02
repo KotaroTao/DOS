@@ -89,6 +89,14 @@ await assert.rejects(db.query('select public.cloud_battle_renew_text($1)',[JSON.
 const reset={p_user:uid,p_session:sid,p_revision:3,p_command:crypto.randomUUID(),p_request:{op:'reset'},p_snapshot:null,p_response:{}};
 assert.equal(JSON.parse((await db.query('select public.cloud_battle_reset_text($1) as v',[JSON.stringify(reset)])).rows[0].v).revision,4);
 assert.equal((await db.query('select snapshot from public.cloud_saves where user_id=$1',[uid])).rows[0].snapshot,null);
+const unclaimed=crypto.randomUUID();
+await db.query('insert into auth.users values($1)',[unclaimed]);
+await db.query('select public.cloud_accept_terms($1,$2)',[unclaimed,'2026-10-30']);
+await db.query("select set_config('request.jwt.claim.sub',$1,false)",[unclaimed]);
+await db.exec('set role authenticated');
+await assert.rejects(db.query('select public.cloud_battle_begin(null,0,$1,$2,null,$3)',[crypto.randomUUID(),JSON.stringify({snapshot:initial}),'battle-1']),/cloud_session_lost/);
+await db.exec('reset role');
+await db.query('delete from auth.users where id=$1',[unclaimed]);
 await db.query('delete from auth.users where id=$1',[uid]);
 assert.equal((await db.query('select count(*)::int as n from battle_ledger.heads')).rows[0].n,0);
 await db.close();console.log('本番B: 不変履歴・権限・再送・キャッシュなし復旧・一括再生・改ざん拒否・終了再送・退会削除を確認');

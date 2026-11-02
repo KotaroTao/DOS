@@ -71,10 +71,10 @@ begin
   if u is null then raise exception 'cloud_login_required'; end if;
   -- TOASTされたsnapshot/last_requestは一切読み出さない。
   select session_id,revision,lease_until into sid,rev,lease from public.cloud_saves where user_id=u and slot=1 for update;
-  if sid is distinct from p_session or lease<=now() or lease is null then raise exception 'cloud_session_lost'; end if;
+  if p_session is null or sid is distinct from p_session or lease<=now() or lease is null then raise exception 'cloud_session_lost'; end if;
   select * into h from battle_ledger.heads where id=p_battle and user_id=u for update;
   if not found then raise exception 'cloud_battle_missing'; end if;
-  if h.revision<>p_revision or rev<>p_revision then raise exception 'cloud_revision_conflict'; end if;
+  if h.revision is distinct from p_revision or rev is distinct from p_revision then raise exception 'cloud_revision_conflict'; end if;
   if h.rules is distinct from p_rules then raise exception 'cloud_version_mismatch'; end if;
   select * into c from battle_ledger.choices where battle_id=p_battle and command_id=p_command_id;
   if found then
@@ -141,7 +141,7 @@ declare p jsonb:=p_payload::jsonb; sid uuid; rev bigint; lease timestamptz; term
 begin
   select session_id,revision,lease_until,terms_version into sid,rev,lease,terms
     from public.cloud_saves where user_id=(p->>'p_user')::uuid and slot=1 for update;
-  if not found or sid is distinct from (p->>'p_session')::uuid then raise exception 'cloud_session_lost'; end if;
+  if not found or p->>'p_session' is null or sid is distinct from (p->>'p_session')::uuid then raise exception 'cloud_session_lost'; end if;
   if terms is distinct from p->>'p_terms' then raise exception 'cloud_version_mismatch'; end if;
   if rev is distinct from (p->>'p_revision')::bigint then raise exception 'cloud_revision_conflict'; end if;
   update public.cloud_saves set lease_until=now()+interval '120 seconds' where user_id=(p->>'p_user')::uuid and slot=1;
@@ -159,7 +159,7 @@ declare u uuid:=auth.uid(); sid uuid; rev bigint; lease timestamptz; terms text;
 begin
  if u is null then raise exception 'cloud_login_required'; end if;
  select session_id,revision,lease_until,terms_version into sid,rev,lease,terms from public.cloud_saves where user_id=u and slot=1 for update;
- if not found or sid is distinct from p_session or lease<=now() then raise exception 'cloud_session_lost'; end if;
+ if not found or p_session is null or sid is distinct from p_session or lease is null or lease<=now() then raise exception 'cloud_session_lost'; end if;
  if p_rules is distinct from 'battle-1' or terms is distinct from '2026-10-30' then raise exception 'cloud_version_mismatch'; end if;
  select * into h from battle_ledger.heads where id=p_command_id and user_id=u;
  if found then
