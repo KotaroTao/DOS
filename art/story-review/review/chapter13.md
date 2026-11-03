@@ -133,7 +133,7 @@
 
 **指示書 (4章)**
 
-- 要点: `src/archive-stories.js` の同名場面と本文を正本とする。次章の正体・祖の名は描かない。
+- 王宮ではなく、報告で語られた情景を描く。主題: 仕事の札の裏の願い。最新制作記録: `docs/art/palace-replacement/batch05/`。
 
 <a name="report_w51"></a>
 
@@ -163,7 +163,7 @@
 
 **指示書 (4章)**
 
-- 要点: `src/archive-stories.js` の同名場面と本文を正本とする。次章の正体・祖の名は描かない。
+- 王宮ではなく、報告で語られた情景を描く。主題: 一人のために作られた手。最新制作記録: `docs/art/palace-replacement/batch05/`。
 
 <a name="report_w52"></a>
 
@@ -229,7 +229,7 @@
 
 **指示書 (4章)**
 
-- 要点: `src/archive-stories.js` の同名場面と本文を正本とする。次章の正体・祖の名は描かない。
+- 王宮ではなく、報告で語られた情景を描く。主題: 低い火と置かれた鎚。最新制作記録: `docs/art/palace-replacement/batch05/`。
 
 <a name="pre_w53"></a>
 

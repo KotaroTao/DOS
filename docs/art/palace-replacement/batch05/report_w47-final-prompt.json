@@ -1,0 +1,7 @@
+{
+  "prompt": "Edit this image into a restrained, anonymous burial-workshop illustration, 1536x1024, retain the exact dark fantasy pixel-textured art style and warm/cool lighting. CRITICAL: remove ALL visible faces, remove ALL crowns and royal regalia, remove the glowing soul light entirely, remove the mother's hand at bottom-right. The specific identity of the deceased and the origin of resurrection must not be revealed. Reframe as a close horizontal view of elderly embalmer hands gently straightening a plain white linen shroud on an anonymous human-shaped body resting on a carved stone preparation slab; the ENTIRE body including face is covered by opaque white cloth. Two elderly embalmer forearms enter from upper frame, no faces or full figures. A small ceramic jar, a soft brush, folded extra cloth to either side. No gold/red royal sleeves, no coat of arms, no writing, no magical glow. A compassionate act of preparing a deceased person, not gore or horror. Background shadowed stone burial workshop. Keep central white fabric and working hands clear at 384x256. This picture must work even when the player has not found the ledger about the first king.",
+  "refs": [
+    "docs/art/palace-replacement/batch05/report_w47-first-draft.png"
+  ],
+  "generated": "/workspace/generated_images/exec-f0bf56c1-572d-4ec1-9ff1-a75ed66ea7c3.png"
+}
