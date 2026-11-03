@@ -19,6 +19,7 @@ const ASSETS = [
   "./src/skill-fx-preview.js",
   "./src/skill-fx-field.js",
   "./src/skill-fx.js",
+  "./src/skill-fx-ultimates.js",
   "./src/skill-fx-catalog.js",
   "./src/skill-fx-signatures.js",
   "./src/skill-fx-budget.js",

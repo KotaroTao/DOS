@@ -8,7 +8,7 @@ stub_art=runpy.run_path(str(ROOT/'tools/cloud/choice-bench/trial-browser.py'))['
 async def main():
     async with async_playwright() as p:
         browser=await p.chromium.launch(executable_path=os.environ.get('CHROME_BIN','/usr/bin/chromium'),args=['--no-sandbox'])
-        cases=[(k,f,l,'manual') for k,f,l in [('TATEWARI','cut',60),('HALITO','fireball',60),('MAHALITO','firePillar',60),('GOKUEN','firePillar',60),('GOKUENRAN','firePillar',60),('DIOS','heal',60),('CHOUHATSU','ward',60),('HALITO','fireball',900)]]+[(k,'firePillar',60,'auto') for k in ['MAHALITO','GOKUEN','GOKUENRAN']]+[('GOKUENRAN','firePillar',60,'fast')]
+        cases=[(k,f,l,'manual') for k,f,l in [('TATEWARI','cut',60),('KYOUGEKI','impact',60),('YAMAKUZUSHI','impact',60),('HALITO','fireball',60),('MAHALITO','firePillar',60),('GOKUEN','firePillar',60),('GOKUENRAN','firePillar',60),('DIOS','heal',60),('CHOUHATSU','ward',60),('HALITO','fireball',900)]]+[(k,'firePillar',60,'auto') for k in ['MAHALITO','GOKUEN','GOKUENRAN']]+[('GOKUENRAN','firePillar',60,'fast')]
         for key,expected,latency,mode in cases:
             ctx=await browser.new_context(service_workers='block',viewport={'width':390,'height':844})
             await ctx.route('**/art/**',stub_art)
@@ -66,8 +66,8 @@ async def main():
             if expected=='firePillar':
                 assert await page.evaluate('fxSeen.hitKind')=={'MAHALITO':'firePillar','GOKUEN':'firePillar2','GOKUENRAN':'firePillar3'}[key]
             assert await page.evaluate('fxSeen.slashes===0'),'技に旧三日月が重なっている'
-            if expected=='firePillar':
-                base={'MAHALITO':400,'GOKUEN':700,'GOKUENRAN':1200}[key]
+            if expected in ['firePillar','impact']:
+                base={'MAHALITO':400,'GOKUEN':700,'GOKUENRAN':1200,'KYOUGEKI':400,'YAMAKUZUSHI':950}[key]
                 duration=round(base*({'auto':.6,'fast':.8}.get(mode,1)))
                 assert await page.evaluate('fxSeen.dur')==duration
                 # 表示の途中で古い430msの片付けや次の行動に切り替わらない。
@@ -76,7 +76,7 @@ async def main():
                 if await page.evaluate('performance.now()<fxSeen.t0+fxSeen.dur-20'):
                     assert await page.evaluate('__game.G.animating && __game.G.fx?.skill.some(e=>e.type==="skillScene")')
             await page.wait_for_function('!__game.G.animating && __game.G.battle.phase==="input"')
-            if expected=='firePillar':
+            if expected in ['firePillar','impact']:
                 assert await page.evaluate('performance.now()-fxSeen.t0>=fxSeen.dur-20'),'火柱の終了前に次の手番へ進んだ'
             assert len(sent)==1
             assert await page.evaluate("localStorage.getItem('dos-save-v7')==='unchanged'")

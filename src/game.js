@@ -11544,7 +11544,7 @@ function animateResult(res, done) {
     if (res._modFeed !== undefined) releaseActionEffects(res, res._modFeed);
     drainPartyProcs();
     partyEl.style.setProperty("--fxd", G.fastAnim ? "0.32s" : "0.4s");
-    const fireDuration=fx.skill.find(e=>e.type==='skillScene'&&e.design?.family==='firePillar')?.dur||0;
+    const fireDuration=fx.skill.find(e=>e.type==='skillScene'&&['firePillar','impact'].includes(e.design?.family))?.dur||0;
     // 通常攻撃の反応は従来どおり。火柱は描画の終了と進行を同じ時計で扱う。
     const normalAttack = res.action === "attack" && res.actor?.side === "party" && (serverBattle() || choiceTrial?.overlap);
     if (normalAttack) setTimeout(finish, normalAttackTiming(G.fastAnim).reaction); else if(!fireDuration) finish();
@@ -11608,7 +11608,7 @@ function animateResult(res, done) {
     if (!impacted && t >= WIND) {
       impacted = true;
       applyImpact(res);
-      const fireDuration=G.fx.skill.find(e=>e.type==='skillScene'&&e.design?.family==='firePillar')?.dur||0;
+      const fireDuration=G.fx.skill.find(e=>e.type==='skillScene'&&['firePillar','impact'].includes(e.design?.family))?.dur||0;
       if(fireDuration) TOTAL=Math.max(TOTAL,performance.now()-t0+fireDuration);
       if (res._modFeed !== undefined) releaseActionEffects(res, res._modFeed); // 強化・弱体の札は着弾と同時に
       drainPartyProcs(); // 発動した効果の名は着弾と同時に
