@@ -14,6 +14,6 @@ export function showFieldSkillFx(view,key,spell,alive=()=>true){
  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches,controller=new AbortController();let frame=0,ended=false;
  const stop=()=>{if(ended)return;ended=true;cancelAnimationFrame(frame);controller.abort();canvas.remove();if(stopCurrent===stop)stopCurrent=null;};
  stopCurrent=stop;document.body.append(canvas);const start=performance.now();
- const tick=now=>{if(document.hidden||!alive()||now-start>350){stop();return;}ctx.clearRect(0,0,canvas.width,canvas.height);drawBattleFx(ctx,list,now-start,canvas.width,canvas.height,reduced);frame=requestAnimationFrame(tick);};
+ const tick=now=>{if(document.hidden||!alive()||now-start>Math.max(...list.map(e=>e.dur))){stop();return;}ctx.clearRect(0,0,canvas.width,canvas.height);drawBattleFx(ctx,list,now-start,canvas.width,canvas.height,reduced);frame=requestAnimationFrame(tick);};
  document.addEventListener('visibilitychange',stop,{signal:controller.signal});window.addEventListener('pagehide',stop,{signal:controller.signal});window.addEventListener('resize',stop,{signal:controller.signal});frame=requestAnimationFrame(tick);
 }
