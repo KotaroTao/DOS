@@ -1,3 +1,4 @@
+import { SKILL_FX_ULTIMATES } from '../../src/skill-fx-ultimates.js';
 import { CLEAVE_TOP, CLEAVE_COLORS } from '../../src/cleave-fx.js';
 import assert from 'node:assert/strict';
 import { SPELLS } from '../../src/skilldefs.js';
@@ -16,10 +17,10 @@ assert.deepEqual(Object.keys(SKILL_FX_CATALOG).sort(),Object.keys(SPELLS).sort()
 reseedRng(42);const before=[...rngState()];
 for(const [key,sp]of Object.entries(SPELLS)){
  const d=SKILL_FX_CATALOG[key],p=skillProfile(key,sp),scene=previewSkillFx(key);
- assert.ok(SKILL_FAMILIES[d.family],key);assert.ok(Object.isFrozen(d));assert.ok(d.tier>=1&&d.tier<=3);
+ assert.ok(SKILL_FAMILIES[d.family],key);assert.ok(Object.isFrozen(d));assert.ok(d.tier>=1&&d.tier<=(d.family==='impact'?5:3));
  assert.equal(p.family,d.family);assert.equal(p.all,['all-enemy','all-ally'].includes(sp.target));
  assert.equal(scene.length,1,key);assert.equal(scene[0].type,'skillScene');assert.ok(scene[0].pts.length>=1&&scene[0].pts.length<=6);
- assert.ok(Number.isFinite(scene[0].x)&&Number.isFinite(scene[0].y)&&scene[0].dur===(extendedSkillFx(d)?[0,400,700,1200][d.tier]:300),key);
+ assert.ok(Number.isFinite(scene[0].x)&&Number.isFinite(scene[0].y)&&scene[0].dur===skillFxDuration(d),key);
  assert.equal(scene[0].all,p.all,key);
 }
 assert.deepEqual([...rngState()],before,'演出生成でゲーム用乱数を消費');
@@ -134,3 +135,20 @@ for(const [key,design]of Object.entries(SKILL_FX_CATALOG))if(utilityFamilies.has
  const level=levels.length?Math.min(...levels):1;
  assert.equal(design.tier,level>=100?3:level>=30?2:1,key);
 }
+
+const shapes=new Set();
+for(const [job,rows] of Object.entries(JOB_SKILLS)){
+ const top=rows.filter(r=>r.skill).at(-1).skill;
+ const u=SKILL_FX_ULTIMATES[top];assert.ok(u,job);
+ const shape=JSON.stringify(u);assert.ok(!shapes.has(shape),top);shapes.add(shape);
+ assert.deepEqual(previewSkillFx(top)[0].ultimate,u);
+}
+const ranks=new Set();
+for(const [key,d] of Object.entries(SKILL_FX_CATALOG))if(d.family==='impact'){
+ ranks.add(d.tier);assert.equal(skillFxDuration(d,1,{auto:true}),Math.round(skillFxDuration(d)*.6));
+ for(const hit of [{target:enemy,miss:true},{target:enemy,immune:true}]){
+  const fx=[];emitSkillFx(fx,key,SPELLS[key],[hit],locate,0);assert.equal(fx.length,0);
+ }
+}
+assert.equal(ranks.size,5);
+console.log(`${shapes.size}職業の最終技専用構図 / 重い打撃5ランクを確認`);
