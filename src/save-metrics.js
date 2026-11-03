@@ -36,11 +36,21 @@ export class SaveMetrics {
     } catch { /* 計測の破損で戦闘や保存を止めない */ }
   }
 
+  replayCheck(kind) {
+    if (!["workerFallback", "previewUnavailable", "commandUnavailable", "commandMismatch", "battleMismatch"].includes(kind)) return;
+    try {
+      if (!this.data.replayChecks || typeof this.data.replayChecks !== "object" || Array.isArray(this.data.replayChecks)) this.data.replayChecks = {};
+      const checks = this.data.replayChecks;
+      checks[kind] = (Number.isSafeInteger(checks[kind]) && checks[kind] >= 0 ? checks[kind] : 0) + 1;
+      this.dirty = true; if (kind !== "workerFallback") this.persist();
+    } catch { /* 診断の保管失敗で冒険を止めない */ }
+  }
+
   trialTrigger() { this.data.trial.triggers++; this.dirty = true; }
   trialSample(raw) { const bytes = utf8Bytes(raw); const t = this.data.trial; t.samples++; t.snapshotBytes += bytes; t.maxSnapshotBytes = Math.max(t.maxSnapshotBytes, bytes); this.dirty = true; }
   report() {
     this.tick();
-    return JSON.parse(JSON.stringify({ ...this.data, exportedAt: new Date().toISOString(), scope: "この端末・同じ公開元の累計。表示中の時間はタイトル・待機を含む。複数タブの同時計測は非対応。", units: "本文のUTF-8バイト。HTTP/TLS・圧縮・画像・認証・DB内部通信・課金転送量は対象外。失敗時の送信量は送信予定本文、受信量は読み取り完了分。", latencyBoundsMs: [100, 500, 1000, 5000, 15000, null], timingsNote: "timingsはms。commandQueueは送信列の待ち、commandCalculationは通信と並行する端末計算、commandResultは選択から確定結果の表示直前、confirmedPlaybackは確定済みの一手の表示待ち。server_はEdgeの処理時間（auth=認証、read=DB読込、write=DB書込、replay=再生、hash=照合値、encode=返答準備、total=合計）。ledger-commandはDBへの直接追記でEdge計測の対象外。並行区間があるため合算しない。confirmedActionsは表示まで到達した命令に含む確定済み手数。", trialNote: "試遊は送信しない。triggersは保存契機、snapshotBytesは最大5秒に1回の圧縮セーブ容量サンプルの合計。送信回数・通信量の実測とは別。", storageError: this.storageError }));
+    return JSON.parse(JSON.stringify({ ...this.data, exportedAt: new Date().toISOString(), scope: "この端末・同じ公開元の累計。表示中の時間はタイトル・待機を含む。複数タブの同時計測は非対応。", replayChecksNote: "再計算の診断回数。workerFallback=サーバーでの補助計算へ移行、previewUnavailable=補助計算の失敗試行、commandUnavailable=一手の計算不可、commandMismatch=一手の照合不一致、battleMismatch=戦闘終了時の照合不一致。認証情報・選択や記録の本文は含まない。", units: "本文のUTF-8バイト。HTTP/TLS・圧縮・画像・認証・DB内部通信・課金転送量は対象外。失敗時の送信量は送信予定本文、受信量は読み取り完了分。", latencyBoundsMs: [100, 500, 1000, 5000, 15000, null], timingsNote: "timingsはms。commandQueueは送信列の待ち、commandCalculationは通信と並行する端末計算、commandResultは選択から確定結果の表示直前、confirmedPlaybackは確定済みの一手の表示待ち。server_はEdgeの処理時間（auth=認証、read=DB読込、write=DB書込、replay=再生、hash=照合値、encode=返答準備、total=合計）。ledger-commandはDBへの直接追記でEdge計測の対象外。並行区間があるため合算しない。confirmedActionsは表示まで到達した命令に含む確定済み手数。", trialNote: "試遊は送信しない。triggersは保存契機、snapshotBytesは最大5秒に1回の圧縮セーブ容量サンプルの合計。送信回数・通信量の実測とは別。", storageError: this.storageError }));
   }
   persist() { this.tick(); try { if (!this.storage) throw new Error("計測の保管先を利用できません"); this.storage.setItem(KEY, JSON.stringify(this.data)); this.storageError = false; this.dirty = false; } catch { this.storageError = true; } }
   clear() { this.data = empty(); this.last = this.now(); this.persist(); }

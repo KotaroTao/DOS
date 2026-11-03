@@ -8,7 +8,8 @@ from urllib.parse import urlparse
 from playwright.sync_api import sync_playwright
 CONFIG='export const CLOUD_CONFIG={enabled:true,url:"https://cloud.test",anonKey:"test",protocol:1};'
 with sync_playwright() as p:
- b=p.chromium.launch(executable_path=os.environ.get('CHROME_BIN','/usr/bin/chromium'),args=['--no-sandbox'])
+ engine=os.environ.get('DOS_BROWSER','chromium')
+ b=p.webkit.launch() if engine=='webkit' else p.chromium.launch(executable_path=os.environ.get('CHROME_BIN','/usr/bin/chromium'),args=['--no-sandbox'])
  c=b.new_context(viewport={'width':390,'height':844},service_workers='block',reduced_motion='reduce')
  def stub_image(r):
   key=r.request.url.rsplit('/',1)[-1].split('.')[0]
@@ -21,9 +22,13 @@ with sync_playwright() as p:
  c.request.post('http://127.0.0.1:8002/test/reset')
  if os.environ.get('DOS_LEDGER_NO_WORKER'):c.add_init_script('window.Worker=undefined')
  c.route('**/src/cloud-config.js',lambda r:r.fulfill(content_type='text/javascript',body=CONFIG))
+ preview_failures={'remaining':1 if os.environ.get('DOS_LEDGER_NO_WORKER') else 0}
  calls=[];errors=[];hold={'on':False,'routes':[]};drop={'on':False}
  def api(r):
   u=urlparse(r.request.url);body=r.request.post_data_json if r.request.method=='POST' else None
+  if body and body.get('op')=='ledger-preview' and preview_failures['remaining']:
+   preview_failures['remaining']-=1;calls.append({'path':u.path,'body':body,'status':503,'bytes':0})
+   r.fulfill(status=503,json={'message':'temporary preview failure'});return
   response=r.fetch(url='http://127.0.0.1:8002'+u.path+('?' +u.query if u.query else ''))
   calls.append({'path':u.path,'body':body,'status':response.status,'bytes':len(response.body())})
   if u.path.endswith('/cloud_battle_append') and hold['on']:
@@ -90,8 +95,9 @@ with sync_playwright() as p:
  page.evaluate("async()=>{await (await import('/src/cloud-save.js')).cloudFlush()}")
  finishes=[x for x in calls if x['body'] and x['body'].get('op')=='ledger-finish']
  assert len(finishes)==1 and finishes[0]['status']==200,finishes
+ if os.environ.get('DOS_LEDGER_NO_WORKER'):assert any(v['status']==503 and v['body'] and v['body'].get('op')=='ledger-preview' for v in calls),'補助通信の一時失敗を再現していない'
  assert not errors,errors
  appends=[x for x in calls if x['path'].endswith('/cloud_battle_append')]
  assert all(x['bytes']<100 for x in appends),appends
- print(json.dumps({'appendRequests':len(appends),'maxReplyBytes':max(x['bytes'] for x in appends),'finishRequests':len(finishes),'errors':errors},ensure_ascii=False))
+ print(json.dumps({'engine':engine,'temporaryPreviewFailureRecovered':bool(os.environ.get('DOS_LEDGER_NO_WORKER')) and preview_failures['remaining']==0,'appendRequests':len(appends),'maxReplyBytes':max(x['bytes'] for x in appends),'finishRequests':len(finishes),'errors':errors},ensure_ascii=False))
  c.close();b.close()

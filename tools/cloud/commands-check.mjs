@@ -173,3 +173,52 @@ parallelClient.request=async body=>{
 };
 await Promise.race([parallelClient.actionCommand(command),new Promise((_,reject)=>setTimeout(()=>reject(Error('再計算が通信を止めた')),1500))]);
 console.log('端末の照合計算と通信を並行し、確定通知と一致してから完了する OK');
+
+// 補助計算の通信失敗は、照合不一致と区別する。同じ命令のまま再送し、ACK前に結果を進めない。
+const replayDisk=new Map(),replayStorage={getItem:k=>replayDisk.get(k)||null,setItem:(k,v)=>replayDisk.set(k,v),removeItem:k=>replayDisk.delete(k)};
+const ledgerClient=()=>{
+ const client=new CloudSaveClient({protocol:1},{storage:replayStorage,retryDelays:[0,0],onFailure:e=>{throw e;}});
+ client.auth=c.auth;client.sessionId='session';client.commandMode=true;client.commandReplay=true;client.forcedTurns=true;
+ client.confirmed=graph;client.ledger={id:'ledger',seq:0};return client;
+};
+globalThis.Worker.prototype.postMessage=function(m){queueMicrotask(()=>this.onmessage({data:{id:m.id,error:'端末計算が中断された'}}));};
+const fallbackClient=ledgerClient(),previewBodies=[],appendBodies=[];
+fallbackClient.request=async body=>{
+ assert.equal(fallbackClient.confirmed,graph);
+ assert(replayStorage.getItem('dos-cloud-choice:test'));
+ if(body.op==='ledger-preview'){
+  previewBodies.push(body);
+  if(previewBodies.length===1)throw Object.assign(Error('補助計算の一時停止'),{status:503});
+  if(previewBodies.length===2)throw new TypeError('ネットワーク中断');
+  return replayCloudCommand(graph,body.command,body.commandId,true,true);
+ }
+ assert.equal(body.op,'ledger-command');appendBodies.push(body);return {revision:1,seq:1};
+};
+await fallbackClient.actionCommand(command);
+assert.equal(previewBodies.length,3);assert.deepEqual(previewBodies[0],previewBodies[1]);assert.deepEqual(previewBodies[1],previewBodies[2]);
+assert.equal(appendBodies.length,1);assert.equal(appendBodies[0].commandId,previewBodies[0].commandId);
+assert.equal(replayStorage.getItem('dos-cloud-choice:test'),null);assert.equal(fallbackClient.ledger.seq,1);
+// Workerが存在していても利用できなくなり、nullを返す場合も補助計算へ移る。
+const savedWorker=globalThis.Worker;delete globalThis.Worker;
+const unavailableClient=ledgerClient();let previewCount=0;
+unavailableClient.request=async body=>body.op==='ledger-preview'?(previewCount++,replayCloudCommand(graph,body.command,body.commandId,true,true)):{revision:1,seq:1};
+await unavailableClient.actionCommand(command);assert.equal(previewCount,1);globalThis.Worker=savedWorker;
+// 認証・競合・一時失敗が続いた時の元のエラーと選択を保つ。照合不一致へ変換しない。
+for(const status of [401,409,503]){
+ replayDisk.clear();const client=ledgerClient(),original=Object.assign(Error('preview failed'),{status});let appended=false;
+ client.request=async body=>{if(body.op!=='ledger-preview')appended=true;throw original;};
+ await assert.rejects(client.actionCommand(command),e=>e===original);
+ assert.equal(appended,false);assert(replayStorage.getItem('dos-cloud-choice:test'));assert.equal(client.confirmed,graph);
+}
+replayDisk.clear();
+// 本当の終了時不一致は止める。障害対応のために検証を省略しない。
+const mismatchClient=ledgerClient();mismatchClient.request=async()=>({revision:2,battleHash:'wrong'});
+await assert.rejects(mismatchClient.finishBattle(),e=>e.message==='cloud_replay_mismatch'&&e.status===409);
+assert(mismatchClient.ledger);assert(replayStorage.getItem('dos-cloud-pending:test'));
+console.log('補助計算: Worker失敗/null・503/通信断の同一命令再送・元のエラー/選択保持・ACK前不変・真の終了不一致の遮断 OK');
+
+replayDisk.clear();const legacyUnavailable=ledgerClient();legacyUnavailable.ledger=null;
+legacyUnavailable.request=async()=>({revision:1,replayHash:'not-computed'});
+await assert.rejects(legacyUnavailable.actionCommand(command),e=>e.message==='cloud_replay_unavailable'&&e.status===503);
+assert(replayStorage.getItem('dos-cloud-choice:test'));assert(replayStorage.getItem('dos-cloud-pending:test'));
+console.log('旧接続: 計算中断も不一致と誤表示せず、確定済み要求と選択を残して再接続する OK');

@@ -48,3 +48,11 @@ assert.equal(timing.commandResult.confirmedActions,4);assert.equal(Object.keys(t
 m.persist();assert.deepEqual(new SaveMetrics({storage,now:()=>now}).report().timings,timing);
 console.log('体感の計測: 送信列待ち・並行計算・選択から結果表示・確定済み演出の区別と手数・数値のみの保管 OK');
 m.data.timings={commandQueue:"壊れた計測"};assert.doesNotThrow(()=>m.timing('commandQueue',10));assert.equal(m.report().timings.commandQueue.samples,1);
+
+m.replayCheck('workerFallback');m.replayCheck('previewUnavailable');m.replayCheck('previewUnavailable');m.replayCheck('battleMismatch');m.replayCheck('秘密の本文');
+assert.deepEqual(m.report().replayChecks,{workerFallback:1,previewUnavailable:2,battleMismatch:1});
+assert.deepEqual(new SaveMetrics({storage,now:()=>now}).report().replayChecks,m.report().replayChecks);
+assert(!JSON.stringify(m.report()).includes('秘密の本文'));
+assert.doesNotThrow(()=>broken.replayCheck('previewUnavailable'));
+console.log('再計算診断: 補助計算・通信失敗・真の不一致の区別、固定種類の回数のみ、保管失敗で進行不変 OK');
+m.data.replayChecks='壊れた計測';assert.doesNotThrow(()=>m.replayCheck('workerFallback'));assert.equal(m.report().replayChecks.workerFallback,1);
