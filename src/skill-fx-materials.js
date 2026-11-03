@@ -27,6 +27,8 @@ async function cacheTone(kind,tone){
  }
  await new Promise(resolve=>setTimeout(resolve,0));
  }
+ // 変換の途中で高解像度素材が届いた場合、古い素材の結果は保持しない。
+ if(source.texture!==sourceFor(kind).texture)return;
  ctx.putImageData(pixels,0,0);
  const key=kind+tone;if(tinted.size>=6)tinted.delete(tinted.keys().next().value);
  tinted.set(key,{texture:canvas,sw:source.sw,sh:source.sh,row:0});
