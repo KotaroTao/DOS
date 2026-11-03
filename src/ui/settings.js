@@ -159,7 +159,7 @@ function fillSound(box) {
   box.appendChild(toggleRow({ name: "強化・弱体の演出", desc: "技・パッシブ・迷宮の掟で強化・弱体が掛かった時に光と文字を出し、その時に札を出す (切ると戦闘のテンポが上がる)", on: P.buffFx !== false, onChange: (v) => {
     P.buffFx = v; if (game.savePrefs) game.savePrefs(); sfx("select");
   } }));
-  const gapRow = el("div", "stg-row stg-vol");
+  const gapRow = el("div", "stg-row stg-vol stg-battle-gap");
   const gapHead = el("div", "stg-vol-h");
   gapHead.appendChild(setText(el("span", "stg-row-n"), "戦闘の行動間隔"));
   const gapValue = el("span", "stg-vol-v");
