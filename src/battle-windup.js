@@ -42,8 +42,9 @@ export function beginBattleWindup({ party, index, view, label = "攻撃の構え
   // 名前は敵のCanvasに重ねず、敵表示直下の固定枠へ置く。
   const name = document.createElement("div"); name.className = "battle-action-name";
   name.textContent = label; name.setAttribute("role", "status");
-  const dock = document.getElementById("combat-message") || view.parentElement;
-  dock.replaceChildren(name);
+  const dock = document.getElementById("combat-message");
+  if (dock) dock.replaceChildren(name);
+  else view.parentElement.appendChild(name);
   const attack = attackStyle !== null, timing = normalAttackTiming(fast), started = performance.now();
   if (attack) {
     attackMotion(root, attackStyle, aim);
