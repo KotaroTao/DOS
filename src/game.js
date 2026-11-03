@@ -11727,7 +11727,7 @@ function applyImpact(res) {
   const skillDesign = fxProfile(res);
   // 効果音 + 振動
   if (skillDesign && (res.hits.some(h => !h.miss && !h.immune) || skillDesign.family === "escape" && res.fled)) {
-    SFX.skill(skillFxSound(skillDesign.family)); buzz(20);
+    SFX.skill(skillFxSound(skillDesign.family, skillDesign.tier)); buzz(20);
   } else if (res.windup) {
     // 大技の予兆: 不穏な音と小さな揺れ (この手番は攻撃しない)
     SFX.ambush(); buzz([0, 30, 30, 30]);

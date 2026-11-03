@@ -81,6 +81,34 @@ function appraiseTick(r, step) {
   return haas(x, 8);
 }
 
+// 火柱の格に合わせて噴出・轟音・余韻を厚くする。ランク1の音は従来どおり。
+function firePillarSound(r,rank){
+    const dur=[0,.68,.9,1.15][rank], n=len(dur), x=new Float32Array(n);
+    const roar=pink(n,r), air=white(n,r);lp1(roar,1600,SR);hp1(air,900,SR);lp1(air,5500,SR);
+    for(let i=0;i<n;i++){
+      const t=i/SR, env=Math.min(1,t/.012)*Math.pow(Math.max(0,1-t/dur),1.7);
+      const pulse=.78+.14*Math.sin(t*43)+.08*Math.sin(t*91);
+      x[i]=(roar[i]*2.8+air[i]*.19)*env*pulse;
+    }
+    mixInto(x,sweep(.42,t=>48+115*Math.exp(-t/.025),.32),0,.55);
+    mixInto(x,sweep(.3,t=>115+95*Math.exp(-t/.018),.21),0,.24);
+    for(let k=0;k<9;k++){
+      const pop=burst(r,.018+r()*.025,.012);applyBq(pop,'bp',950+r()*2600,.8,SR);
+      mixInto(x,pop,len(.025+r()*.38),.12+r()*.15);
+    }
+    if(rank>1){
+      const surge=whoosh(r,dur*.85,250,rank===3?4200:2800,650,1.1,dur*.75);
+      mixInto(x,surge,0,rank===3?.65:.4);
+      // 上位は重い噴出を時間差で重ね、単に音量を上げるだけにしない。
+      for(let k=0;k<rank;k++){
+        const at=.055+k*.065;
+        mixInto(x,sweep(.38,t=>38+120*Math.exp(-t/.022),.32),len(at),rank===3?.48:.32);
+        const pressure=burst(r,.18,.09);lp1(pressure,450+k*180,SR);mixInto(x,pressure,len(at),.65);
+      }
+    }
+    dcBlock(x);softClip(x,1.25);return haas(x,8,.9);
+}
+
 export const SFX_DEFS = {
   // 構え: 引き抜く金属音と衣擦れ。静かな余韻は通知時に短く消せる。
   windupStrike: { vars: 1, vol: 0.36, rev: 0.14, gen(r) {
@@ -137,22 +165,9 @@ export const SFX_DEFS = {
     const x=sweep(.26,t=>60+80*Math.exp(-t/.02),.13),n=burst(r,.19,.1);applyBq(n,"lp",1300,.7,SR);mixInto(x,n,0,1.3);return mono(x);
   }},
   // 火柱専用: 低い噴出・中低域の轟音・細かな破裂を一つのバッファにまとめる。
-  skillFirePillar: {vars:3,vol:.64,rev:.2,gen(r){
-    const dur=.68, n=len(dur), x=new Float32Array(n);
-    const roar=pink(n,r), air=white(n,r);lp1(roar,1600,SR);hp1(air,900,SR);lp1(air,5500,SR);
-    for(let i=0;i<n;i++){
-      const t=i/SR, env=Math.min(1,t/.012)*Math.pow(Math.max(0,1-t/dur),1.7);
-      const pulse=.78+.14*Math.sin(t*43)+.08*Math.sin(t*91);
-      x[i]=(roar[i]*2.8+air[i]*.19)*env*pulse;
-    }
-    mixInto(x,sweep(.42,t=>48+115*Math.exp(-t/.025),.32),0,.55);
-    mixInto(x,sweep(.3,t=>115+95*Math.exp(-t/.018),.21),0,.24);
-    for(let k=0;k<9;k++){
-      const pop=burst(r,.018+r()*.025,.012);applyBq(pop,'bp',950+r()*2600,.8,SR);
-      mixInto(x,pop,len(.025+r()*.38),.12+r()*.15);
-    }
-    dcBlock(x);softClip(x,1.25);return haas(x,8,.9);
-  }},
+  skillFirePillar: {vars:3,vol:.64,rev:.2,gen(r){return firePillarSound(r,1);}},
+  skillFirePillar2: {vars:3,vol:.70,rev:.24,gen(r){return firePillarSound(r,2);}},
+  skillFirePillar3: {vars:3,vol:.76,rev:.28,gen(r){return firePillarSound(r,3);}},
   skillSpark: {vars:2,vol:.45,rev:.08,gen(r){
     const x=new Float32Array(len(.18));mixInto(x,hp1(burst(r,.055,.022),2700,SR),0,.8);mixInto(x,modal(SR,.15,[[1100,1,.05],[2300,.3,.025]]),0,.35);return mono(x);
   }},
