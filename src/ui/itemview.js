@@ -1,7 +1,7 @@
 import { equipmentBukonPanel } from "./bukonview.js";
 import { equipmentCombatState } from "../equipmentscore.js";
 import { ELEMENT_KEYS, elementValues, elementalReduction, elementDefenseReduction } from "../combatrules.js";
-import { bukonText } from "../bukon.js";
+import { bukonText, bukonName, bukonDef, BUKON_RARITIES } from "../bukon.js";
 import { revealSteps } from "../monsterreveal.js";
 import { MONSTER_LORE, monsterLoreReady } from "../dungeons/monlore.js";
 import { previewStats, trialEquip, equipmentTraitTexts } from "../autoequip.js";
@@ -751,9 +751,33 @@ export function equipEffectDeltaParts(delta) {
   }
   return out;
 }
-export function equipEffectDeltaEl(delta) {
+export function equipEffectDeltaEl(delta, { bukonRows = false } = {}) {
   const row = el("span", "ui-delta");
-  for (const { text, d } of equipEffectDeltaParts(delta)) row.appendChild(el("span", d > 0 ? "up" : d < 0 ? "dn" : "elem", text));
+  const structured = bukonRows && delta?.bukon;
+  const partsDelta = structured ? { ...delta, traits: { from: (delta.traits?.from || []).filter(t => !t.startsWith("武魂 ")), to: (delta.traits?.to || []).filter(t => !t.startsWith("武魂 ")) } } : delta;
+  for (const { text, d } of equipEffectDeltaParts(partsDelta)) row.appendChild(el("span", d > 0 ? "up" : d < 0 ? "dn" : "elem", text));
+  if (structured) {
+    const unmatched = (list, other) => {
+      const remaining = other.map(bukonName);
+      return list.filter(b => {
+        const i = remaining.indexOf(bukonName(b));
+        if (i < 0) return true;
+        remaining.splice(i, 1);
+        return false;
+      });
+    };
+    for (const [label, list, other, cls] of [["得る", structured.to, structured.from, "up"], ["失う", structured.from, structured.to, "dn"]]) {
+      for (const b of unmatched(list, other)) {
+        const line = el("span", `eq-bukon-change ${cls}`);
+        const icon = el("i", "bk-gem");
+        icon.setAttribute("aria-hidden", "true");
+        const name = el("span", "", bukonName(b));
+        icon.style.color = name.style.color = BUKON_RARITIES[bukonDef(b.k)?.rarity || 0].color;
+        line.append(el("span", "", label), icon, name);
+        row.appendChild(line);
+      }
+    }
+  }
   return row;
 }
 // 装備候補の増減。会心4種・抵抗値・耐性・追加効果・戦闘効果を共通の内容で示す。
