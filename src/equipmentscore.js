@@ -84,7 +84,7 @@ export function equipmentPercentScore(from,to,{weaponShare=.5,hpWeight=.25,magic
   };
   // 物理の割合効果は攻撃力へ換算し、武器の付け替えでも同じ重みで評価する。
   const offense=(to.power*(phys(to)-1)-from.power*(phys(from)-1))*weaponShare
-    +Math.max(1,to.power)*(procValue(to)-procValue(from))*.2*weaponShare;
+    +(Math.max(1,to.power)*procValue(to)-Math.max(1,from.power)*procValue(from))*.2*weaponShare;
   const magic=(to.spellPower*(mag(to)-1)-from.spellPower*(mag(from)-1))*(1-weaponShare)*magicWeight;
   const defense=(to.hp*(1/equipmentIncoming(to)-1)-from.hp*(1/equipmentIncoming(from)-1))*.35*hpWeight;
   return {offense,points:magic+defense+(ailValue(to)-ailValue(from))*10};
