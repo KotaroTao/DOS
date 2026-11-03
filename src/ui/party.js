@@ -1,3 +1,4 @@
+import { ELEMENT_KEYS, elementValues, elementDefenseReduction } from "../combatrules.js";
 import { magicAttackPower } from "../combat.js";
 import { withBukonSockets } from "./bukonview.js";
 import { isDesktopLayout } from "../desktop.js";
@@ -6,7 +7,7 @@ import { storyText } from "../protagonist.js";
 import { bagItems, bagSortControl } from "./bagsort.js";
 import { gearFilterCount, matchesGearFilter, gearFilterButton, gearFilterSummary } from "./gearfilter.js";
 import { bagCount, isFormationItem, bagOwners } from "../items.js";
-import { RESIST_LABEL } from "../resistance.js";
+import { RESIST_LABEL, AIL_RESIST_KINDS } from "../resistance.js";
 // ===== 隊 (統合された人業の画面) — 隊列ストリップ・控え/仕立て・装備/魂/能力・迷宮内のシート =====
 // 担当: WP-B。
 //   街: 「隊」タブ (街シェルの中身)。迷宮: 盤面の隊の札から開く全高のシート (魂の付け替え・鍛錬はできない)。
@@ -28,7 +29,7 @@ import {
 import { deltaFloat } from "./motion.js";
 import { remember, setPref, getPref } from "./prefs.js";
 import {
-  itemDetailEl, statLines, isEquippable, gearScore, elemStatShort, showSkillPopup, showPassivePopup, itemCatText, tagRow, spellTagKinds, specialLines, specialShort, specialParts, resistDeltaParts, weaponPerformanceEl, weaponPowerPreview, equipEffectDeltaEl,
+  itemDetailEl, statLines, isEquippable, gearScore, elemName, showSkillPopup, showPassivePopup, itemCatText, tagRow, spellTagKinds, specialLines, specialShort, specialParts, resistDeltaParts, weaponPerformanceEl, weaponPowerPreview, equipEffectDeltaEl,
 } from "./itemview.js";
 import { mansionControlUnlocked, lockedControl, renderSoulSummary, renderSoulSeg, openSoulPicker, openSoulList, openOrderSheet } from "./soulpanel.js";
 import { IRENE_WHO, IRENE_ART, ireneState, isGreeted, nextLine, lineOpen, noteVisit, greetingPages, playIreneScene, sceneActive } from "./irene.js";
@@ -2604,20 +2605,22 @@ function statsSeg(root, d, { showStability = true } = {}) {
     fact("信仰", String(magicAttackPower(d, "pie")));
     if (d.dualWield > 0) fact("左手", d.offPower ? `攻撃力 ${d.offPower}（${Math.round(d.dualWield * 100)}%）` : `空き（二刀流 ${Math.round(d.dualWield * 100)}%）`);
     fact("会心率", `+${Math.round((d.critPower ?? d.critBonus ?? 0) * 1000) / 10}%`, (d.critPower ?? d.critBonus ?? 0) >= 0.8 ? "cap" : "");
-    fact("会心ダメージ", `${Math.round(1.5 * (1 + (d.critDamageBonus || 0)) * 1000) / 1000}倍`);
+    fact("会心ダメージ", `${Math.round(1.5 * (1 + (d.critDamageBonus || 0)) * 1000) / 10}%`);
     fact("魔法会心率", `+${Math.round((d.spellCritPower ?? d.spellCritBonus ?? 0) * 1000) / 10}%`, (d.spellCritPower ?? d.spellCritBonus ?? 0) >= 0.8 ? "cap" : "");
-    fact("魔法会心ダメージ", `${Math.round(1.5 * (1 + (d.spellCritDamageBonus || 0)) * 1000) / 1000}倍`);
-    for (const [label, values, reductionOnly] of [["属攻", d.elemAtk, false], ["属防", d.elemDef, true]]) {
-      fact(label, "", "pt-fact-elements");
-      const value = info.lastElementChild.querySelector(".pt-fact-v");
-      for (const text of elemStatShort(values, { reductionOnly, allElements: true }).split(" / ")) {
-        value.appendChild(el("span", "pt-element-reduction", text));
-      }
-    }
+    fact("魔法会心ダメージ", `${Math.round(1.5 * (1 + (d.spellCritDamageBonus || 0)) * 1000) / 10}%`);
+    const resistance = key => fact(`${RESIST_LABEL[key]}耐性`, `${d.resists?.[key] || 0}%`, (d.resists?.[key] || 0) >= 100 ? "cap" : "");
+    for (const key of ["physResist", "magResist"]) resistance(key);
+    if (d.breathRes) fact("ブレス耐性", `${Math.round(d.breathRes * 100)}%`);
+    const section = label => info.appendChild(el("div", "pt-stat-section", label));
+    section("属性攻撃");
+    const attacks = elementValues(d.elemAtk, "attack");
+    for (const key of ELEMENT_KEYS) fact(`${elemName(key)}属攻`, `${100 + (attacks[key] || 0)}%`);
+    section("属性防御");
+    for (const key of ELEMENT_KEYS) fact(`${elemName(key)}属防`, `${Math.round(elementDefenseReduction(key, d.elemDef) * 1000) / 10}%軽減`);
+    section("状態異常耐性");
     // 装備の状態異常耐性 / 武器の追加効果 (持っている時だけ)
     const AIL_SHORT = { poison: "毒", paralyze: "痺", sleep: "眠", charm: "魅", confuse: "乱", stone: "石" };
-    for (const [k, label] of Object.entries(RESIST_LABEL)) fact(`${label}耐性`, `${(d.resists && d.resists[k]) || 0}%`, (d.resists?.[k] || 0) >= 100 ? "cap" : "");
-    if (d.breathRes) fact("ブレス耐性", `${Math.round(d.breathRes * 100)}%`);
+    for (const key of AIL_RESIST_KINDS) resistance(key);
     if (d.onHit) fact("追加付与力", d.onHit.map((o) => `${AIL_SHORT[o.k] || o.k}${Math.round(o.chance * 100)}%`).join(" "));
   };
   for (const k of ATTR_KEYS) {
