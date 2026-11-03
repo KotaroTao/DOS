@@ -48,7 +48,7 @@ assert.equal(b.bukonItem(overfull).hp,10);assert.equal(b.bukonItem(overfull).mp,
 for(const d of active){
  const slot=d.slots[0],pool=active.filter(x=>x.rarity===d.rarity&&x.slots.includes(slot));
  const rarityRoll=(b.BUKON_RARITIES.slice(0,d.rarity).reduce((n,x)=>n+x.weight,0)+.1)/100;
- for(const rar of ['r','sr','lr'])for(const lv of [0,99,100,199,200,900,999,1000,1099,1100,1900,1999,2000,2099,2100,2900,3000,3100,3900,4000,4900,5000,100000]){
+ for(const rar of ['c','uc','r','sr','lr'])for(const lv of [0,99,100,199,200,900,999,1000,1099,1100,1900,1999,2000,2099,2100,2900,3000,3100,3900,4000,4900,5000,100000]){
   const actual=new Map();
   for(let i=0;i<100;i++){
    const rolls=[rarityRoll,(pool.indexOf(d)+.5)/pool.length,(i+.5)/100];
@@ -61,9 +61,15 @@ for(const d of active){
   assert.deepEqual(actual,expected,`${d.id} ${rar} 推奨Lv${lv}`);
  }
 }
-assert.equal(b.rollBukon({slot:'weapon',rar:'c'},5000),null);
-assert.equal(b.rollBukon({slot:'weapon',rar:'uc'},5000),null);
-console.log('武魂ドロップ：全種類・R/SR/LRの配分、100/1000境界、加算系の継続成長、他Lv3・固定Lv1上限を確認');
+for(const rar of ['c','uc','r','sr','lr'])for(const slot of ['weapon','shield','body','head','hands','feet','acc']){
+ const gear={slot,rar,bukon:[]};
+ for(let i=0;i<b.bukonSlots(gear);i++){
+  const soul=b.rollBukon(gear,5000,()=>0);
+  assert(soul);assert(b.bukonFits(gear,soul));gear.bukon.push(soul);
+ }
+ assert.equal(new Set(gear.bukon.map(x=>x.k)).size,b.bukonSlots(gear),'同種を重複させず全枠に宿す');
+}
+console.log('武魂ドロップ：全種類・C/UC/R/SR/LRの配分、100/1000境界、加算系の継続成長、他Lv3・固定Lv1上限を確認');
 
 // 表示は内部Lvではなく実効量を使い、巨大な加算値も十進数で保つ。
 assert.equal(b.bukonName({k:'flat_atk',lv:1}),'STR加算 +1');
@@ -75,3 +81,19 @@ for(const d of active)for(const lv of [1,d.max||10000]){
  const soul={k:d.id,lv};assert(!/Lv|個数/.test(b.bukonName(soul)));assert(!/Lv|個数/.test(b.bukonDescription(soul)));
 }
 console.log('武魂表示：加算量・割合・詳細文・巨大な加算値を確認');
+
+// 実際の入手処理で通常迷宮・無限迷宮の数と再入手時の二重抽選防止を確かめる。
+const {readFileSync}=await import('node:fs');
+const source=readFileSync(new URL('../../src/game.js',import.meta.url),'utf8');
+const lootBody=source.match(/function markDungeonLoot\(it\) \{([\s\S]*?)\n\}/)[1];
+for(const infinite of [false,true])for(const layer of [1,4]){
+ const state={floor:1};
+ const mark=new Function('bukon','G','dungeonTrait','UNIDENT_SLOTS','abyssActive','CHAPTERS','inDungeon','curDungeon','worldById','hasQuality','resyncItem','levelHere','infAfxTrack','log',`return function(it){${lootBody}}`)(b,state,()=>null,new Set(['body']),()=>infinite,[{no:3,finale:'end'}],()=>true,()=>({layer}),()=>({layer:3}),()=>true,()=>{},()=>({lv:100}),()=>{},()=>{});
+ for(const [rar,count] of Object.entries({c:1,uc:1,r:2,sr:2,lr:3}))for(let i=0;i<100;i++){
+  const item={slot:'body',rar,price:1};mark(item);
+  if(!infinite&&layer===1){assert.equal(item.bukon,undefined);continue;}
+  assert.equal(item.bukon.length,count);assert.equal(new Set(item.bukon.map(x=>x.k)).size,count);
+  const before=JSON.stringify(item);mark(item);assert.equal(JSON.stringify(item),before);
+ }
+}
+console.log('実入手処理：全レア度の武魂数・重複防止・二重抽選防止・通常迷宮の章境界・無限迷宮 OK');
