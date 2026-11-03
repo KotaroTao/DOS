@@ -787,3 +787,8 @@ html.pc-input .ui-sheet.ec-source-sheet { max-width: 720px; }
 /* 宿し先は操作の下へ置き、小さな画面でもボタンを押せる幅を保つ。 */
 .bk-installed-row { flex-wrap:wrap; }
 .bk-installed-note { order:4; flex-basis:100%; min-width:0; font-size:11px; color:var(--ink-faint); overflow-wrap:anywhere; padding-bottom:6px; }
+
+/* 一覧の武魂は宝石と効果量付きの名前を一組にする。 */
+.bk-name-line { flex-wrap:nowrap; gap:6px; }
+.bk-name-line > .bk-gem { margin:0; }
+.bk-name-line > span { min-width:0; overflow-wrap:anywhere; }
