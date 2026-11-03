@@ -307,7 +307,7 @@ export function openTryIdentifyAll({ onDone } = {}) {
       const sub = el("span", "wpc-prow-sub");
       const plan = isEquippable(it) ? wearPlan(it, { owner: o.doll }) : null;
       const up = plan && plan.target && plan.delta && plan.score > 0;
-      if (up) { sub.appendChild(deltaEl(plan.delta)); sub.appendChild(el("span", "wpc-srow-who", plan.target.name)); }
+      if (up) { sub.appendChild(deltaEl(plan.delta, { bukonRows: true })); sub.appendChild(el("span", "wpc-srow-who", plan.target.name)); }
       else sub.appendChild(document.createTextNode(`${statLines(it) || itemCatText(it)}`));
       tx.appendChild(sub);
       main.appendChild(tx);

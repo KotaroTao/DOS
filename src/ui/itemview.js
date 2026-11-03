@@ -709,6 +709,10 @@ export function equipPreviewDelta(p, cand, slotKey = null) {
     onHit: { from: p.onHit || null, to: fake.onHit || null },
     eff: { from: p.eff || null, to: fake.eff || null },
     traits: { from: equipmentTraitTexts(p.equip), to: equipmentTraitTexts(eq) },
+    bukon: {
+      from: [...new Set(Object.values(p.equip))].filter(it => it && !it.unidentified).flatMap(it => it.bukon || []),
+      to: [...new Set(Object.values(eq))].filter(it => it && !it.unidentified).flatMap(it => it.bukon || []),
+    },
     weaponMode: { from: p.equip.weapon || null, to: eq.weapon || null },
     offhandMode: { from: offW(p.equip), to: offW(eq) },
     abs: { power: fightPower(fake), maxhp: fake.maxhp || 0, maxmp: fake.maxmp || 0 },

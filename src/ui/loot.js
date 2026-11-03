@@ -190,10 +190,10 @@ export function nameSpan(it, cls = "wpc-nm") {
   return s;
 }
 // 増減の短い表記 (▲緑/▼赤)。属性の変化も添える
-export function deltaEl(delta, { empty = "変化なし" } = {}) {
+export function deltaEl(delta, { empty = "変化なし", bukonRows = false } = {}) {
   const w = el("span", "ui-delta wpc-delta");
   if (!delta) { w.appendChild(el("span", "eq", empty)); return w; }
-  const stats = statDelta(delta, { compact: false }), effects = equipEffectDeltaEl(delta);
+  const stats = statDelta(delta, { compact: false }), effects = equipEffectDeltaEl(delta, { bukonRows });
   const same = stats.querySelector(".eq");
   if (same) { if (effects.childElementCount) same.remove(); else same.textContent = empty; }
   w.append(stats, effects);
