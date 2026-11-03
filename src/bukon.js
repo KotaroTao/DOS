@@ -226,7 +226,7 @@ export function bukonItem(it,{legendarySeen=new Set(),specialLevels=null}={}){
 // 部位変更・廃止効果は失わず保管へ。旧上限を超える固定機能はLv1へ正規化。
 export function migrateBukon(g,items){
  let changed=false;
- const normalize=b=>{const d=bukonDef(b?.k);if(!d)return b;return {...b,k:d.replacement||b.k,lv:Math.min(b.lv,bukonDef(d.replacement||b.k).max||b.lv)};};
+ const normalize=b=>{const d=bukonDef(b?.k);if(!d)return b;const k=d.replacement||b.k,lv=Math.min(b.lv,bukonDef(k).max||b.lv);return k===b.k&&lv===b.lv?b:{...b,k,lv};};
  for(const [key,n] of Object.entries(g.bukonStock||{})){const [k,l]=key.split(":"),b=normalize({k,lv:Number(l)});if(b.k!==k||b.lv!==Number(l)){delete g.bukonStock[key];stockAdd(g,b,BigInt(n));if(g.bukonProtected?.[key]){delete g.bukonProtected[key];g.bukonProtected[bukonKey(b)]=true;}changed=true;}}
  for(const it of new Set(items.filter(Boolean))){if(it.soulMemory||!it.bukon)continue;const keep=[];for(const old of it.bukon){const b=normalize(old);if(b.k!==old.k||b.lv!==old.lv)changed=true;if(bukonFits(it,b)&&keep.length<bukonSlots(it))keep.push(b);else{stockAdd(g,b);changed=true;}}it.bukon=keep;}
  return changed;

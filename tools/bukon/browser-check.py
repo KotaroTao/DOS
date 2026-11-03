@@ -112,9 +112,9 @@ with sync_playwright() as p:
       }
       const source=game.cloneItem(it.id,50),target=game.cloneItem(it.id,50);
       source.bukon=[{k:'flat_hp',lv:2},{k:'pct_hp',lv:3}];G.inventory.push(source,target);
-      if(!game.bukonAction('transfer',target,{source}) || source.bukon || target.bukon?.length!==2)throw Error('一括移植');
+      if(!game.bukonAction('move',target,{it:source,soul:source.bukon[0]}) || source.bukon.length!==1 || target.bukon?.length!==1)throw Error('個別付け替え');
       const orphan={...target};if(game.bukonAction('detach',orphan,0))throw Error('所有しない写しの回収');
-      return 'OK 章解放・4章の新規ドロップ・二重抽選防止・売却/廃棄回収・武魂なしの棚・編成復元・一括移植・所有検査';
+      return 'OK 章解放・4章の新規ドロップ・二重抽選防止・売却/廃棄回収・武魂なしの棚・編成復元・個別付け替え・所有検査';
     }'''),flush=True)
     print(page.evaluate('''async()=>{
       const {game,b,UI}=bukonTest,{G}=game;
