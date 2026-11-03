@@ -1,0 +1,198 @@
+[
+  {
+    "id": "report_w02",
+    "generated": "/workspace/generated_images/exec-86ac7fe5-980b-47f8-a8d6-25d5f1f631b2.png",
+    "master": "art/story-review/chapter1/report_w02.png",
+    "references": [
+      "art/story-review/chapter1/report_w02.png (before)",
+      "art/story-review/chapter1/w02_sigil.png",
+      "docs/art/story-refs/sigil.png"
+    ],
+    "review": "1536×1024。人物を除き、壁際の紋章と地下回廊へ全面変更。紋章は親指1・指3・離れた炎を確認。読める文字なし。",
+    "subject": "壁際から望む一門の印と地下回廊",
+    "refs": [
+      "art/story-review/chapter1/report_w02.png (before)",
+      "art/story-review/chapter1/w02_sigil.png",
+      "docs/art/story-refs/sigil.png"
+    ],
+    "prompt": "Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge, no panels, no borders, no labels, no typography, no readable text anywhere. Match attached Dungeon of Souls artwork: lavish fine-grained pixel-textured dark fantasy illustration, detailed gothic carved stone, crisp tiny highlights, controlled cool cyan light versus warm amber hand-lantern light. This is a complete new illustration replacing a royal report image, depicting the journey being discussed, NOT the palace or map or king. New composition: extreme raking perspective almost flush along a damp underground corridor wall. In the central foreground, a hand-sized weathered geometric open-palm-and-single-flame crest is carved into stone, exactly matching reference 3: angular cupped palm with one thumb left, three finger projections right, short wrist, separate teardrop flame above. A warm light from OUTSIDE FRAME grazes the carving. No human figure, no hands, no installed lit lamps. Beyond the wall's edge the long empty vaulted underground passage recedes diagonally into cold blue darkness and a far monastery doorway, a mystery rather than a recognizable palace. Carving sharply readable at 384x256. Do not repeat reference 2's frontal apprentice-discovery composition. No star or cross. Use reference 1 for artwork surface quality only and reference 2 for corridor atmosphere only.",
+    "scene": "壁際から見る灯を掌に載せた印と、奥へ続く地下回廊",
+    "sha256": "4bb620e5f08c3c5c1e4374fa3b0856511b9adf16b280fcea14b93894f000a5ae",
+    "dimensions": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "report_w03",
+    "chapter": 1,
+    "refs": [
+      "/workspace/DOS/docs/art/palace-replacement/batch01/before/report_w03.png",
+      "/workspace/DOS/docs/art/story-refs/apprentice.png"
+    ],
+    "scene": "A giant ancient sealed mine portal embedded in raw underground rock, rough timber and black iron bracing under carved stone arch, with heavy chained gate and old blank wax seals on locked crossbars, no readable marks or heraldry. Wide almost symmetrical establishing view from low ground, entire mighty closed gate dominates the center. A TINY young adult apprentice stands far below at the bottom left, seen from behind with tousled brown hair, black cloak with fine gold geometric embroidery and brown crossbody satchel, holding warm amber hand-lantern. Closed iron bars offer only a very thin dark gap. Deep underground, no sky, no lit fixtures or settlement. This is a recalled sealed threshold from the king's account, not the prior monastery ghost scene. No spectral monk, no Sera, no other characters.",
+    "prompt": "Create ONE standalone 1536x1024 landscape dark fantasy illustration, aspect 3:2, edge-to-edge, no panels borders typography or readable writing. Match attached Dungeon of Souls style: lavish fine-grained pixel-textured art, crisp intricate gothic stone and wood, natural adult proportions, controlled cool cyan against amber light, sophisticated dark palette. Keep main subject readable at 384x256. Completely replace the royal-report illustration with a scene being described in the report: NO palace, throne or king. A giant ancient sealed mine portal embedded in raw underground rock, rough timber and black iron bracing under carved stone arch, with heavy chained gate and old blank wax seals on locked crossbars, no readable marks or heraldry. Wide almost symmetrical establishing view from low ground, entire mighty closed gate dominates the center. A TINY young adult apprentice stands far below at the bottom left, seen from behind with tousled brown hair, black cloak with fine gold geometric embroidery and brown crossbody satchel, holding warm amber hand-lantern. Closed iron bars offer only a very thin dark gap. Deep underground, no sky, no lit fixtures or settlement. This is a recalled sealed threshold from the king's account, not the prior monastery ghost scene. No spectral monk, no Sera, no other characters.",
+    "path": "/workspace/generated_images/exec-ce4177c5-8697-46ef-90ba-8e73cbd92ef9.png",
+    "master": "art/story-review/chapter1/report_w03.png",
+    "review": "原寸目視済み。王宮なし、主題明瞭、読める文字なし。",
+    "subject": "王家が封じた巨大な坑口（王が語る過去の封鎖）",
+    "sha256": "f392a56f7ffef1492937214d506d3e852a07afe4775f27746fc2c3daf029c4f8",
+    "dimensions": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "report_w04",
+    "chapter": 1,
+    "refs": [
+      "/workspace/DOS/docs/art/palace-replacement/batch01/before/report_w04.png",
+      "/workspace/DOS/art/story-review/chapter1/w04_arm.png"
+    ],
+    "scene": "Nearly water-level camera looking through enormous corroded iron sluice bars in a forgotten underground aqueduct. Black water rushes away from the viewer beneath immense worn gothic masonry arches toward an almost invisible distant conduit. Foreground water carries subtle reflected warm amber glints from the apprentice's lantern outside frame, distant water lit in desaturated cold blue. Focus on the mysterious one-directional current and countless layers of underwater depth, NOT a picturesque inhabited waterworks. Empty place, no people, no dolls or limbs, no bones, no installed lit lamps, no buildings with lit windows, no moon or sky. Very low off-center composition with strong diagonal black-water flow. Do not reproduce reference 2's rescue scene.",
+    "prompt": "Create ONE standalone 1536x1024 landscape dark fantasy illustration, aspect 3:2, edge-to-edge, no panels borders typography or readable writing. Match attached Dungeon of Souls style: lavish fine-grained pixel-textured art, crisp intricate gothic stone and wood, natural adult proportions, controlled cool cyan against amber light, sophisticated dark palette. Keep main subject readable at 384x256. Completely replace the royal-report illustration with a scene being described in the report: NO palace, throne or king. Nearly water-level camera looking through enormous corroded iron sluice bars in a forgotten underground aqueduct. Black water rushes away from the viewer beneath immense worn gothic masonry arches toward an almost invisible distant conduit. Foreground water carries subtle reflected warm amber glints from the apprentice's lantern outside frame, distant water lit in desaturated cold blue. Focus on the mysterious one-directional current and countless layers of underwater depth, NOT a picturesque inhabited waterworks. Empty place, no people, no dolls or limbs, no bones, no installed lit lamps, no buildings with lit windows, no moon or sky. Very low off-center composition with strong diagonal black-water flow. Do not reproduce reference 2's rescue scene.",
+    "path": "/workspace/generated_images/exec-40109410-df6b-4952-9dcf-8ce6a77c2c3e.png",
+    "master": "art/story-review/chapter1/report_w04.png",
+    "review": "原寸目視済み。王宮なし、主題明瞭、読める文字なし。",
+    "subject": "格子を抜けて遠くへ流れる黒い水",
+    "sha256": "70326c60e56182ebd8af4655057d72ec3c98a60a2487ad8dff95a3567c546fea",
+    "dimensions": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "report_w05",
+    "chapter": 1,
+    "refs": [
+      "/workspace/DOS/docs/art/palace-replacement/batch01/before/report_w05.png",
+      "/workspace/DOS/art/story-review/chapter1/mem_w05.png"
+    ],
+    "scene": "Intimate near-ground view of human BOOTPRINTS imprinted in damp ash-grey mine mud. Foreground one deep irregular leather-boot print, further prints cross a narrow rough rock passage and vanish behind a bend. A worn fabric fiber and disturbed grit suggest a living human travelled here, no blood. A tiny warm amber hand-lantern just outside lower edge lights the tracks while dark cyan cave depth draws the eye beyond. Ancient abandoned mine, spare decayed timber supports, rough stone and a single rusted rail, NO lit settlement or installed lights. No human figure or humanoid wooden footprints, no diary, no royal room. Theme: the missing master entered the underground physically in his living body. Do not copy reference's apprentice reading a diary.",
+    "prompt": "Create ONE standalone 1536x1024 landscape dark fantasy illustration, aspect 3:2, edge-to-edge, no panels borders typography or readable writing. Match attached Dungeon of Souls style: lavish fine-grained pixel-textured art, crisp intricate gothic stone and wood, natural adult proportions, controlled cool cyan against amber light, sophisticated dark palette. Keep main subject readable at 384x256. Completely replace the royal-report illustration with a scene being described in the report: NO palace, throne or king. Intimate near-ground view of human BOOTPRINTS imprinted in damp ash-grey mine mud. Foreground one deep irregular leather-boot print, further prints cross a narrow rough rock passage and vanish behind a bend. A worn fabric fiber and disturbed grit suggest a living human travelled here, no blood. A tiny warm amber hand-lantern just outside lower edge lights the tracks while dark cyan cave depth draws the eye beyond. Ancient abandoned mine, spare decayed timber supports, rough stone and a single rusted rail, NO lit settlement or installed lights. No human figure or humanoid wooden footprints, no diary, no royal room. Theme: the missing master entered the underground physically in his living body. Do not copy reference's apprentice reading a diary.",
+    "path": "/workspace/generated_images/exec-bcd1a205-8946-4801-a2d5-735b9a6738a9.png",
+    "master": "art/story-review/chapter1/report_w05.png",
+    "review": "原寸目視済み。王宮なし、主題明瞭、読める文字なし。",
+    "subject": "生身で旅を続けた師の足跡",
+    "sha256": "e12fca905861f2ac721b3f13a91c0586ed1a2a073d0771dde3d2ebfac9293555",
+    "dimensions": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "report_w06",
+    "chapter": 2,
+    "refs": [
+      "/workspace/DOS/docs/art/palace-replacement/batch01/before/report_w06.png",
+      "/workspace/DOS/art/story-review/chapter2/w06_roll.png"
+    ],
+    "scene": "The abandoned border fortress after a hundred years. Wide spare composition, huge oppressive storm-dark sky above ruined battlements. In right foreground one spectral dead sentry in rusted medieval helmet and damaged plate armor holds his spear upright, seen from behind looking out toward an utterly EMPTY distant road across cold desolate valley. Two much smaller ghost sentries keep their posts further along the broken parapet. Translucent pale cyan ghostly edges, exhausted stillness, no battle, no charging enemy army, no king, no apprentice. The empty road occupies most of the central image; reinforcements have never arrived. Rain slants across the image. No artificial fires or inhabited buildings in the ruined fortress. Distant lightning may barely rim the cloud. Do not repeat ref 2's indoor diary and marching line of soldiers.",
+    "prompt": "Create ONE standalone 1536x1024 landscape dark fantasy illustration, aspect 3:2, edge-to-edge, no panels borders typography or readable writing. Match attached Dungeon of Souls style: lavish fine-grained pixel-textured art, crisp intricate gothic stone and wood, natural adult proportions, controlled cool cyan against amber light, sophisticated dark palette. Keep main subject readable at 384x256. Completely replace the royal-report illustration with a scene being described in the report: NO palace, throne or king. The abandoned border fortress after a hundred years. Wide spare composition, huge oppressive storm-dark sky above ruined battlements. In right foreground one spectral dead sentry in rusted medieval helmet and damaged plate armor holds his spear upright, seen from behind looking out toward an utterly EMPTY distant road across cold desolate valley. Two much smaller ghost sentries keep their posts further along the broken parapet. Translucent pale cyan ghostly edges, exhausted stillness, no battle, no charging enemy army, no king, no apprentice. The empty road occupies most of the central image; reinforcements have never arrived. Rain slants across the image. No artificial fires or inhabited buildings in the ruined fortress. Distant lightning may barely rim the cloud. Do not repeat ref 2's indoor diary and marching line of soldiers.",
+    "path": "/workspace/generated_images/exec-939c0823-1cb7-4149-8fb0-a66bf2362ebd.png",
+    "master": "art/story-review/chapter2/report_w06.png",
+    "review": "原寸目視済み。王宮なし、主題明瞭、読める文字なし。",
+    "subject": "援軍の来ない谷を見つめる亡兵",
+    "sha256": "efa567eed9ff2a68742de8121fc84f7842a2d4c2926bc26c5a58027cdde75bbc",
+    "dimensions": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "report_w07",
+    "chapter": 2,
+    "refs": [
+      "/workspace/DOS/docs/art/palace-replacement/batch01/before/report_w07.png",
+      "/workspace/DOS/art/story-review/chapter2/w07_names.png"
+    ],
+    "scene": "A deserted underground prison cell seen from INSIDE the cell looking past enormous black iron bars that occupy the near left edge. Deep diagonal bars cast shadows across a damp stone wall at center right. Close to the floor are clusters of tiny illegible scratched name-like marks, almost worn away; no recognizable alphabet, no readable words and no occult glowing symbols. An empty pair of wrist shackles hangs over the worn wall, a rough empty stone sleeping ledge lower right. Cool distant shaft-light, a very restrained amber light outside cell gives the scratches a quiet readable grazing highlight. Empty prison, no people or skeletons or dolls, no installed lit lamps or sky. Theme is people erased for asking questions, not an action escape scene. Different from the reference apprentice inspecting the names.",
+    "prompt": "Create ONE standalone 1536x1024 landscape dark fantasy illustration, aspect 3:2, edge-to-edge, no panels borders typography or readable writing. Match attached Dungeon of Souls style: lavish fine-grained pixel-textured art, crisp intricate gothic stone and wood, natural adult proportions, controlled cool cyan against amber light, sophisticated dark palette. Keep main subject readable at 384x256. Completely replace the royal-report illustration with a scene being described in the report: NO palace, throne or king. A deserted underground prison cell seen from INSIDE the cell looking past enormous black iron bars that occupy the near left edge. Deep diagonal bars cast shadows across a damp stone wall at center right. Close to the floor are clusters of tiny illegible scratched name-like marks, almost worn away; no recognizable alphabet, no readable words and no occult glowing symbols. An empty pair of wrist shackles hangs over the worn wall, a rough empty stone sleeping ledge lower right. Cool distant shaft-light, a very restrained amber light outside cell gives the scratches a quiet readable grazing highlight. Empty prison, no people or skeletons or dolls, no installed lit lamps or sky. Theme is people erased for asking questions, not an action escape scene. Different from the reference apprentice inspecting the names.",
+    "path": "/workspace/generated_images/exec-77e79912-1b15-4f24-8514-3866af0e7b35.png",
+    "master": "art/story-review/chapter2/report_w07.png",
+    "review": "原寸目視済み。王宮なし、主題明瞭、読める文字なし。",
+    "subject": "消えかけた刻みと無人の牢",
+    "sha256": "2e591d9e127b42344e36997275f05ae83a07ef443d98dc7d09cdbebe4f98544d",
+    "dimensions": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "report_w08",
+    "chapter": 2,
+    "refs": [
+      "/workspace/DOS/docs/art/palace-replacement/batch01/before/report_w08.png",
+      "/workspace/DOS/art/story-review/chapter2/w08_banner.png",
+      "/workspace/DOS/docs/art/story-refs/apprentice.png"
+    ],
+    "scene": "Dramatic monumental abandoned fortress gate viewed from far BELOW through blinding rain, shut portcullis and two massive ruined towers occupy upper center, lightning fork silhouettes the battlements. At bottom left a very small apprentice with tousled brown hair, black gold-embroidered cloak and brown crossbody satchel turns his back toward viewer and raises a tiny warm orange hand lantern against the rain. Vast puddles reflect the lantern as a narrow orange trail toward the gate. Huge dark empty scale and storm tension, no lit windows, no installed lamps, no village or living guards, no red banner or sheet of writing, no party dolls. The tiny carried fire is the only warm light. Distinct from reference 2's banner discovery and side ramparts.",
+    "prompt": "Create ONE standalone 1536x1024 landscape dark fantasy illustration, aspect 3:2, edge-to-edge, no panels borders typography or readable writing. Match attached Dungeon of Souls style: lavish fine-grained pixel-textured art, crisp intricate gothic stone and wood, natural adult proportions, controlled cool cyan against amber light, sophisticated dark palette. Keep main subject readable at 384x256. Completely replace the royal-report illustration with a scene being described in the report: NO palace, throne or king. Dramatic monumental abandoned fortress gate viewed from far BELOW through blinding rain, shut portcullis and two massive ruined towers occupy upper center, lightning fork silhouettes the battlements. At bottom left a very small apprentice with tousled brown hair, black gold-embroidered cloak and brown crossbody satchel turns his back toward viewer and raises a tiny warm orange hand lantern against the rain. Vast puddles reflect the lantern as a narrow orange trail toward the gate. Huge dark empty scale and storm tension, no lit windows, no installed lamps, no village or living guards, no red banner or sheet of writing, no party dolls. The tiny carried fire is the only warm light. Distinct from reference 2's banner discovery and side ramparts.",
+    "path": "/workspace/generated_images/exec-50fdd346-368f-4c03-a597-1a03f3094138.png",
+    "master": "art/story-review/chapter2/report_w08.png",
+    "review": "原寸目視済み。王宮なし、主題明瞭、読める文字なし。",
+    "subject": "雷雨の大手門と小さな火",
+    "sha256": "5dbd6e1d619da4a64522dd1bb991fa6bdef3863a57881066c4da4e18ad6da42a",
+    "dimensions": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "report_w10",
+    "chapter": 3,
+    "refs": [
+      "/workspace/DOS/docs/art/palace-replacement/batch01/before/report_w10.png",
+      "/workspace/DOS/art/story-review/chapter3/w10_rope.png"
+    ],
+    "scene": "DIZZYING near-vertical overhead view from the jagged rim of an immense root-filled sinkhole looking straight DOWN into a far subterranean forest. A SINGLE thin worn rope descends from foreground rock into the central abyss, disappearing into cyan mist; huge dark roots cross the walls far beneath us. Barely visible small tree crowns at the bottom, no buildings or scaffold settlement, no installed lights or bridges, no sky. A soft warm grazing light from outside frame touches only the upper ledge and frayed rope fibers, vast depth remains dark teal. No characters, no diary, no dolls; the slender rope and the downward perspective are the story. Do not repeat ref 2's busy side-view expedition.",
+    "prompt": "Create ONE standalone 1536x1024 landscape dark fantasy illustration, aspect 3:2, edge-to-edge, no panels borders typography or readable writing. Match attached Dungeon of Souls style: lavish fine-grained pixel-textured art, crisp intricate gothic stone and wood, controlled cool cyan against subtle warm amber, sophisticated dark palette. Keep main subject readable at 384x256. Completely replace the royal-report illustration with a scene being described in the report: NO palace, throne or king. DIZZYING near-vertical overhead view from the jagged rim of an immense root-filled sinkhole looking straight DOWN into a far subterranean forest. A SINGLE thin worn rope descends from foreground rock into the central abyss, disappearing into cyan mist; huge dark roots cross the walls far beneath us. Barely visible small tree crowns at the bottom, no buildings or scaffold settlement, no installed lights or bridges, no sky. A soft warm grazing light from outside frame touches only the upper ledge and frayed rope fibers, vast depth remains dark teal. No characters, no diary, no dolls; the slender rope and the downward perspective are the story. Do not repeat ref 2's busy side-view expedition.",
+    "path": "/workspace/generated_images/exec-3091067e-837c-436f-9b0f-4a0068913ee8.png",
+    "master": "art/story-review/chapter3/report_w10.png",
+    "review": "原寸目視済み。王宮なし、主題明瞭、読める文字なし。",
+    "subject": "根の縦穴を真下に見下ろす",
+    "sha256": "0cde86f58e53bf63180d571258c3db767e2940d753c06260b8e69161f6be2319",
+    "dimensions": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "report_w11",
+    "chapter": 3,
+    "refs": [
+      "/workspace/DOS/docs/art/palace-replacement/batch01/before/report_w11.png",
+      "/workspace/DOS/art/story-review/chapter3/w11_hut.png"
+    ],
+    "scene": "未取得の小屋を示さず、自然の根のアーチ越しに望む魂の森。暗い近景と幾重もの青い魂火で長い歳月を描く。",
+    "prompt": "Create ONE standalone 1536x1024 landscape dark fantasy illustration, aspect 3:2, edge-to-edge, no panels borders typography or readable writing. Match attached Dungeon of Souls style: lavish fine-grained pixel-textured art, crisp detailed wood and damp roots, controlled cyan soul light, sophisticated dark palette. Keep main subject readable at 384x256. Completely replace the royal-report illustration with the place described in every branch of the report: a forest at the bottom of a chasm where souls become trees. Camera is low under a colossal ARCH OF NATURAL ROOTS: tangled roots form a dark organic frame at top and sides. Beyond them a tiny root-path crosses a vast subterranean grove of immense trunks, branches and ROOTS, thousands of tiny cyan soul-lights embedded naturally in the bark illuminate the cavern in soft fog. One especially intricate old root in foreground suggests immeasurable passage of time. Natural dark amber and warm brown bark in foreground versus teal in far distance, NO actual warm lamps. IMPORTANT remove all hut interiors, human workspaces, desks, books, paper, pottery, chairs, skeletons, built structures, buildings, scaffolds, bridges, windows, lit fixtures, moon or open sky. No person, no monarch or palace. Narrative: the king learns that a whole soul-tree forest exists beneath his world, before the hut clue is necessarily found. Do not reveal any hidden diary or identity. This is a NEW DISTINCT forest composition, not the apprentice discovering Werner's hut. Fine grain painterly pixel texture, not blocky pixel art.",
+    "path": "/workspace/generated_images/exec-beb021e1-333f-4f51-bbf5-34366abb02ab.png",
+    "master": "art/story-review/chapter3/report_w11.png",
+    "review": "原寸目視済み。小屋・机・紙・骸を除き、取得状況を問わず語られる魂の森へ再生成。",
+    "subject": "自然の根のアーチ越しに望む魂の森",
+    "sha256": "50b91f42cd7d83f7063c8c0a0912836094e6971c7b17db1867cfe566e79d4907",
+    "dimensions": [
+      1536,
+      1024
+    ]
+  },
+  {
+    "id": "report_w12",
+    "chapter": 3,
+    "refs": [
+      "/workspace/DOS/docs/art/palace-replacement/batch01/before/report_w12.png",
+      "/workspace/DOS/art/story-review/chapter3/w12_torso.png"
+    ],
+    "scene": "Macro-like intimate cut through a living supernatural root in a subterranean soul-tree nursery. Thick black-brown twisted roots fill the sides; within a shallow natural translucent amber resin pocket at center, several tiny pale cyan soul-light motes dissolve softly into flowing golden sap. One large viscous amber droplet descends from the root into a dark pool below, carrying a faint cyan core. Beautiful but quietly horrifying process, never cute or cartoon faces. Crisp wet bark and viscous surface texture, luminous amber as physical tree resin rather than lava, cold dark cave in distant background. No palace, king, golden cup, doll torso, people, human faces, skeletons, flames, buildings, pipes, waterwheels or lit lamps. Main luminous droplet and root readable at small size. Depicts the reported process of souls becoming sap, not the prior discovery of Sera's torso.",
+    "prompt": "Create ONE standalone 1536x1024 landscape dark fantasy illustration, aspect 3:2, edge-to-edge, no panels borders typography or readable writing. Match attached Dungeon of Souls style: lavish fine-grained pixel-textured art, crisp intricate gothic stone and wood, controlled cool cyan against subtle warm amber, sophisticated dark palette. Keep main subject readable at 384x256. Completely replace the royal-report illustration with a scene being described in the report: NO palace, throne or king. Macro-like intimate cut through a living supernatural root in a subterranean soul-tree nursery. Thick black-brown twisted roots fill the sides; within a shallow natural translucent amber resin pocket at center, several tiny pale cyan soul-light motes dissolve softly into flowing golden sap. One large viscous amber droplet descends from the root into a dark pool below, carrying a faint cyan core. Beautiful but quietly horrifying process, never cute or cartoon faces. Crisp wet bark and viscous surface texture, luminous amber as physical tree resin rather than lava, cold dark cave in distant background. No palace, king, golden cup, doll torso, people, human faces, skeletons, flames, buildings, pipes, waterwheels or lit lamps. Main luminous droplet and root readable at small size. Depicts the reported process of souls becoming sap, not the prior discovery of Sera's torso.",
+    "path": "/workspace/generated_images/exec-eef2377c-8d73-4ea4-af4b-03aee6c3c8c0.png",
+    "master": "art/story-review/chapter3/report_w12.png",
+    "review": "原寸目視済み。王宮なし、主題明瞭、読める文字なし。",
+    "subject": "魂が樹液へ溶ける一滴",
+    "sha256": "e5afcab1e6dd4f89e21ffed76a4eff32baf9e322df022d6314ff7e75a1c29f09",
+    "dimensions": [
+      1536,
+      1024
+    ]
+  }
+]
