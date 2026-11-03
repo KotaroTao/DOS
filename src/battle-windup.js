@@ -32,15 +32,6 @@ export function beginBattleWindup({ party, index, view, label = "攻撃の構え
     if(tones[skillFamily])root.style.setProperty("--windup-rgb",tones[skillFamily]);
   }
   root.setAttribute("aria-hidden", "true");
-  const add = name => { const node = document.createElement("span"); node.className = name; root.appendChild(node); return node; };
-  if(!skillFamily){
-  add("windup-sweep"); add("windup-ring");
-  for (let i = 0; i < 6; i++) { const p = add("windup-spark"); p.style.setProperty("--i", i); }
-  if (aim) {
-    const marker = add("windup-aim"); marker.style.left = `${Math.max(5, Math.min(95, aim.x * 100))}%`; marker.style.top = `${Math.max(10, Math.min(85, aim.y * 100))}%`;
-    for (let i = 0; i < 4; i++) marker.appendChild(document.createElement("i"));
-  }
-  }
   // 名前は敵のCanvasに重ねず、敵表示直下の固定枠へ置く。
   const name = document.createElement("div"); name.className = "battle-action-name";
   name.textContent = label; name.setAttribute("role", "status");

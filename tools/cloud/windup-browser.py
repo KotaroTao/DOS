@@ -22,16 +22,9 @@ async def main():
                 elapsed=await page.evaluate('kind=>{const now=performance.now();window.handle=show(kind);return performance.now()-now;}',kind)
                 assert elapsed<100,('構えの開始処理が長い',elapsed)
                 assert await page.locator('.battle-windup').count()==1
-                assert await page.locator('.windup-spark').count()==6
-                assert await page.evaluate('prepared.at(-1).buffer.duration')>2
+                assert await page.locator('.windup-spark,.windup-ring,.windup-aim,.windup-sweep').count()==0
+                assert abs(await page.evaluate('prepared.at(-1).buffer.duration')-.45)<.001
                 assert await page.evaluate('''()=>{const a=prepared.at(-1).buffer.getChannelData(0);let sum=0;for(let i=0;i<1920;i++)sum+=a[i]*a[i];return Math.sqrt(sum/1920)>.025 && a.every(Number.isFinite);}'''),'押した直後の準備音が無音'
-                if motion=='reduce':
-                    assert await page.locator('.windup-ring').evaluate('n=>getComputedStyle(n).animationName')=='none'
-                    assert await page.locator('.windup-spark').first.evaluate('n=>getComputedStyle(n).display')=='none'
-                else:
-                    ring=await page.locator('.windup-ring').evaluate('n=>getComputedStyle(n).transform')
-                    await page.wait_for_timeout(100)
-                    assert await page.locator('.windup-ring').evaluate('n=>getComputedStyle(n).transform')!=ring
                 # 利用者の実測に近い60msでも、通知後に構えの完了を待つことはない。
                 result=await page.evaluate('''async()=>{handle.stop();await new Promise(r=>setTimeout(r,60));handle=show('strike');await new Promise(r=>setTimeout(r,60));const start=performance.now();handle.stop();return {elapsed:performance.now()-start,remaining:document.querySelectorAll('.battle-windup').length};}''')
                 assert result['remaining']==0 and result['elapsed']<50,result

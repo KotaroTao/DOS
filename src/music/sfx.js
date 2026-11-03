@@ -537,15 +537,15 @@ for(const [name,def] of Object.entries({...SFX_DEFS}))if(/^(skill|normal(Slash|B
 // 技は空気・摩擦・破砕・水・炎の非周期な音だけで作る。音階や発振器は使わない。
 export function naturalSkillName(kind='magic',rank=1,duration=400){
  const key=kind.replace(/[0-9]/g,'').toLowerCase();
- const group=/slash|cut|cleave|flurry|pierce|projectile|strike/.test(key)?'slash':/impact|stone|quake|blast/.test(key)?'impact':/ice|crystal|purify/.test(key)?'crystal':/water|wave|mana|heal|restore|revive/.test(key)?'water':/fire/.test(key)?'fire':/lightning|spark|paralyze/.test(key)?'thunder':'air';
+ const group=/pierce|projectile/.test(key)?'pierce':/slash|cut|cleave|flurry|strike/.test(key)?'slash':/impact|stone|quake|blast/.test(key)?'impact':/ice|crystal|purify/.test(key)?'crystal':/water|wave|mana|heal|restore|revive/.test(key)?'water':/fire/.test(key)?'fire':/lightning|spark|paralyze/.test(key)?'thunder':'air';
  const ms=Math.max(40,Math.min(1200,Math.round(duration))),level=Math.min(3,Math.max(1,rank));
  const name='natural_'+group+'_'+level+'_'+ms;
  if(SFX_DEFS[name])return name;
  SFX_DEFS[name]={vars:2,vol:group==='air'?.42:.6,rev:0,gen(r){
   const seconds=ms/1000,x=new Float32Array(len(seconds));
   const body=group==='impact'||group==='fire'||group==='thunder'?brown(x.length,r):pink(x.length,r);
-  lp1(body,{slash:4400,impact:700,crystal:7000,water:1800,fire:1400,thunder:550,air:2300}[group],SR);
-  if(group==='slash'||group==='crystal')hp1(body,group==='slash'?420:1600,SR);
+  lp1(body,{pierce:6200,slash:4400,impact:700,crystal:7000,water:1800,fire:1400,thunder:550,air:2300}[group],SR);
+  if(['slash','pierce','crystal'].includes(group))hp1(body,group==='slash'?420:group==='pierce'?900:1600,SR);
   for(let i=0;i<body.length;i++){
    const t=i/SR,p=t/seconds,attack=Math.min(1,t/(group==='air'?.055:.004));
    const fade=Math.max(0,1-p)**(group==='slash'?3:group==='impact'?2:.9);
