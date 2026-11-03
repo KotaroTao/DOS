@@ -46,11 +46,17 @@ function selectedBuyer() {
   const dolls = allDolls().filter(d => d && !d.isEmpty);
   return dolls.find(d => d.uid === getPref("shopDollUid")) || dolls.find(d => d.alive && d.primary != null) || dolls[0] || null;
 }
+// 一回の描画内だけ共有する。操作後や次の描画へ古い装備比較を持ち越さない。
+let buyMemo = null;
 function buyerPlan(it) {
+  if (buyMemo?.plans.has(it)) return buyMemo.plans.get(it);
+
   const d = selectedBuyer();
   const plan = wearPlan(it, { pool: d && d.alive ? [d] : [] });
   const sw = plan.target && UI.equipSwapInfo?.(d, it);
   if (sw) { plan.delta = sw.delta; plan.score = gearScore(d, sw.delta); }
+  plan.swap = sw;
+  buyMemo?.plans.set(it, plan);
   return plan;
 }
 function buyerStrip({ bukon = false } = {}) {
@@ -77,7 +83,7 @@ function buyerStrip({ bukon = false } = {}) {
 function buyerComparison(it, plan) {
   const box = el("span", "wpc-comparison");
   const d = selectedBuyer();
-  const sw = d?.alive ? UI.equipSwapInfo?.(d, it) : null;
+  const sw = plan.swap;
   if (plan.delta) box.appendChild(deltaEl(plan.delta));
   if (sw) {
     box.appendChild(el("span", "wpc-current", `いま：${sw.cur.length ? sw.cur.map(itemName).join("・") : "未装備"}`));
@@ -474,14 +480,17 @@ function stockIds() {
 }
 // 通常品と追加つきは実際の在庫ごとに扱い、追加つきだけが条件に合う場合も残す。
 function stockVariants(id) {
+  if (buyMemo?.variants.has(id)) return buyMemo.variants.get(id);
   const out = [];
   const ax = game.shopAfxItem?.(id);
   if (ax) out.push({ id, item: ax, affixed: true });
   if (game.shopPlainStock(id) > 0) out.push({ id, item: ITEMS[id], affixed: false });
+  buyMemo?.variants.set(id, out);
   return out;
 }
 // おすすめ: 選択した人業に役立つ品だけ。通常品と追加つきの在庫を別々に見立てる。
 function recList() {
+  if (buyMemo?.recommendations) return buyMemo.recommendations;
   const out = [];
   for (const id of stockIds()) {
     const variants = stockVariants(id).map(x => x.item);
@@ -490,6 +499,7 @@ function recList() {
     if (plans.length) out.push({ id, plan: plans[0] });
   }
   out.sort((a, b) => b.plan.score - a.plan.score);
+  if (buyMemo) buyMemo.recommendations = out;
   return out;
 }
 function stockEntries(cat, wcat) {
@@ -674,6 +684,28 @@ function fillList(box, items, renderRow, key) {
   box.onscroll = () => { view[key] = box.scrollTop; };
 }
 
+// 商品は画面の近くまで順に足す。比較・絵・DOMを全在庫分まとめて作らない。
+function fillBuyList(box, entries) {
+  let index = 0;
+  const append = () => {
+    const fragment = document.createDocumentFragment();
+    const end = Math.min(index + 24, entries.length);
+    for (; index < end; index++) {
+      const x = entries[index];
+      fragment.appendChild(x.affixed ? afxStockRow(x.id, x.item) : stockRow(x.id));
+    }
+    box.appendChild(fragment);
+  };
+  const target = view.buyPage || 0;
+  append();
+  while (index < entries.length && box.scrollHeight < target + box.clientHeight + 300) append();
+  box.scrollTop = target;
+  box.onscroll = () => {
+    view.buyPage = box.scrollTop;
+    if (index < entries.length && box.scrollHeight - box.scrollTop - box.clientHeight < 300) append();
+  };
+}
+
 // 人業ごとの持ち物の行 (高さ一定): 見出し (名・控え・数・売値) + 品の札の帯 (はみ出せば横に流れる)
 function dollRow(d) {
   const sec = el("section", "wpc-drow" + (isReserve(d) ? " reserve" : "") + (d.alive ? "" : " dead"));
@@ -804,7 +836,7 @@ function renderBuy(wrap) {
           pane.appendChild(el("p","pc-muted","商品を選んだだけでは購入しません。能力と特殊効果の変化を確かめて、購入方法を選んでください。"));
         },
       }));
-    } else fillList(box, shown, x => x.affixed ? afxStockRow(x.id, x.item) : stockRow(x.id), "buyPage");
+    } else fillBuyList(box, shown);
   };
 }
 // 追加つきの品の行: 名・追加の印と短い説明・値段 (追加の分だけ高い)。買うと、その品の組は消える
@@ -867,6 +899,8 @@ function openWeaponKind() {
 }
 
 function render(root) {
+  const memo = buyMemo = { plans: new Map(), variants: new Map(), recommendations: null };
+  queueMicrotask(() => { if (buyMemo === memo) buyMemo = null; });
   upCache.clear(); // 描くたびに見立て直す (装備の付け替え直後でも正しく)
   const seg = segOf();
   const wrap = el("div", "wpc-shop seg-" + seg);
