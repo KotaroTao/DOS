@@ -64,7 +64,7 @@ function stockRow(b, done, { it = null, installed = null, onAttach = null, onDet
   const name=bukonName(b);
   main.querySelector(".ui-btn-l").replaceChildren(el("span","bk-name-label",def.name),el("span","bk-name-value",name.slice(def.name.length)));
   const gem=el("i","bk-gem");gem.setAttribute("aria-hidden","true");main.prepend(gem);main.style.color=BUKON_RARITIES[def.rarity].color;row.append(main);
-  if(installed!==null){row.append(button({label:"外す",kind:"ghost",disabled:!!(it.locked||it.cursed),onTap:()=>onDetach?onDetach():action("detach",it,installed,done)}));return row;}
+  if(installed!==null){row.append(button({label:"外す",kind:"ghost",disabled:!!it.cursed,onTap:()=>onDetach?onDetach():action("detach",it,installed,done)}));return row;}
   if(it)row.append(button({label:"宿す",kind:"primary",onTap:()=>onAttach?onAttach():action("attach",it,b,done)}));
   if(!management)return row;
   if(def.max!==1 && game.featureUnlocked("bukonFusion")){const fuse=button({label:"合成",kind:"primary",disabled:!snapshotFusionPlan(G(),game.bukonTargets(),b),onTap:()=>openFusion(b,done)});fuse.classList.add("bukon-tutorial-fuse");row.append(fuse);}
@@ -105,14 +105,14 @@ function openGear(it, done) {
   const refresh = () => { const top=h.body.scrollTop; h.update({}); h.body.scrollTop=top; done(); };
   const fill = body => {
     body.append(el("p","bk-meta",`${locationOf(it)} · ${PARTS[it.slot]}`));
-    if(it.locked || it.cursed)body.append(el("p","rf-note","保護中・呪いの装備は変更できない。装備の保護を解除してから操作しよう。"));
+    if(it.cursed)body.append(el("p","rf-note","呪いの装備の武魂は変更できない。"));
     body.append(el("p","rf-note",`${(it.bukon || []).length}/${bukonSlots(it)}枠。装備固有の効果とも重複する。取り外し・装着は無料。`));
     for (const [i,b] of (it.bukon || []).entries())body.append(stockRow(b,refresh,{it,installed:i}));
     const choices=sortSouls(game.bukonRows().filter(b=>!attachBlock(it,b)&&matchesSoul(b)));
     const head=el("div","wpc-lhead");head.append(el("h3","",`宿すことができる武魂 ${soulCount(choices).toLocaleString()}点`),button({label:"絞り込み・並び替え",size:"sm",kind:"ghost",onTap:()=>openFilters(refresh)}));body.append(head);
     const candidates=el("div","bk-copy-rows");body.append(candidates);appendSoulCopies(candidates,choices,b=>stockRow(b,refresh,{it}));
-    const sources=game.bukonTargets().filter(x=>x!==it && x.bukon?.length && !x.locked && !x.cursed);
-    if(sources.length && !it.locked && !it.cursed) {
+    const sources=game.bukonTargets().filter(x=>x!==it && x.bukon?.length && !x.cursed);
+    if(sources.length && !it.cursed) {
       const transfer=el("select","rf-select");transfer.setAttribute("aria-label","武魂の移植元");
       for(const [i,source] of sources.entries()){const option=el("option","",`${itemName(source)} ${(source.bukon || []).map(bukonText).join("／")}`);option.value=i;transfer.append(option);}
       body.append(el("h3","","別の装備から一括移植"),transfer,button({label:"武魂を一括移植",kind:"ghost",onTap:()=>{
@@ -120,7 +120,7 @@ function openGear(it, done) {
         confirm({title:"武魂を移植する？",lines:[`${itemName(source)} → ${itemName(it)}`,"元の装備の武魂をすべて外し、入るものを宿す。同効果や枠不足で入らない分は商会に保管する。装備本体は残る。無料。"],okLabel:"移植する",onOk:()=>action("transfer",it,{source},refresh)});
       }}));
     }
-    if(!choices.length)body.append(el("p","rf-note","宿せる武魂がない。枠・同効果・装備の保護状態を確認しよう。"));
+    if(!choices.length)body.append(el("p","rf-note","宿せる武魂がない。枠・同効果・装備の状態を確認しよう。"));
   };
   h=sheet.open({title:itemName(it),className:"ec-sheet bk-sheet",body:fill,footer:[{label:"閉じる",kind:"ghost",onTap:()=>h.close()}]});
 }
@@ -169,7 +169,7 @@ export function renderEnchantList(parent, { doll = null } = {}) {
       });
       if(selected)for(const k of keys){
         const it=selected.equip?.[k];if(it&&!matches(it)||!it&&filtered())continue;
-        const cell=slotCell(selected,k,{onPick:it=>{if(it)openGear(it,draw);}});
+        const cell=slotCell(selected,k,{bukonOnly:true,onPick:it=>{if(it)openGear(it,draw);}});
         cell.disabled=!it;
         list.append(cell);
       }

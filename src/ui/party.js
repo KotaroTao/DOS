@@ -1,6 +1,6 @@
 import { ELEMENT_KEYS, elementValues, elementDefenseReduction } from "../combatrules.js";
 import { magicAttackPower } from "../combat.js";
-import { withBukonSockets } from "./bukonview.js";
+import { withBukonSockets, bukonNameLines } from "./bukonview.js";
 import { isDesktopLayout } from "../desktop.js";
 import { pcPanel } from "./pc.js";
 import { storyText } from "../protagonist.js";
@@ -2318,7 +2318,7 @@ function slotLabelOf(d, k) {
   if (k === "shield" && d && (d.dualWield > 0 || (d.equip && d.equip.shield && d.equip.shield.slot === "weapon"))) return "左手";
   return SLOT_LABEL[k];
 }
-export function slotCell(d, k, { onPick = null } = {}) {
+export function slotCell(d, k, { onPick = null, bukonOnly = false } = {}) {
   const it = d.equip[k];
   const info = !onPick && d.primary != null ? slotInfo(d, k) : { count: 0, better: false };
   const r = el("button", "pt-slot" + (it ? "" : " empty") + (it && it.cursed ? " cursed" : "") + (it && it.locked ? " locked" : "") + (info.better ? " better" : ""));
@@ -2342,10 +2342,13 @@ export function slotCell(d, k, { onPick = null } = {}) {
   tx.appendChild(top);
   if (it) {
     tx.appendChild(game.itemNameEl ? game.itemNameEl("span", "pt-slot-n", it, it.cursed ? " (呪)" : "") : el("span", "pt-slot-n", itemName(it)));
-    if (k === "weapon" && !it.unidentified) tx.appendChild(el("span", "pt-slot-power", `攻撃力 ${attackPower(d)}`));
-    if (k === "shield" && it.slot === "weapon" && !it.unidentified) tx.appendChild(el("span", "pt-slot-power", d.offPower ? `左手の攻撃力 ${d.offPower}` : "二刀流が無く、左手では振るえない"));
-    const s = statLines(it);
-    if (s) tx.appendChild(el("span", "pt-slot-s", s));
+    if (!bukonOnly && k === "weapon" && !it.unidentified) tx.appendChild(el("span", "pt-slot-power", `攻撃力 ${attackPower(d)}`));
+    if (!bukonOnly && k === "shield" && it.slot === "weapon" && !it.unidentified) tx.appendChild(el("span", "pt-slot-power", d.offPower ? `左手の攻撃力 ${d.offPower}` : "二刀流が無く、左手では振るえない"));
+    if (bukonOnly) tx.append(...bukonNameLines(it));
+    else {
+      const s = statLines(it);
+      if (s) tx.appendChild(el("span", "pt-slot-s", s));
+    }
   } else {
     tx.appendChild(el("span", "pt-slot-n dim", "― 空き ―"));
   }
