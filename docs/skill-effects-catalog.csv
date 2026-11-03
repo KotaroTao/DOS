@@ -717,7 +717,7 @@ key,name,kind,target,element,family,tier,signature
 "INQUISITOR_KASEUCHI","枷打ち","phys","enemy","","impact","1",""
 "INQUISITOR_YAKIIN","罪の焼き印","phys","enemy","fire","cut","1",""
 "INQUISITOR_IHANHAGI","異端剥ぎの光","atk","all-enemy","light","radiance","2",""
-"INQUISITOR_MANAZASHI","審問の眼差し","debuff","all-enemy","","weaken","2",""
+"INQUISITOR_MANAZASHI","審問の眼差し","debuff","all-enemy","","weaken","3",""
 "INQUISITOR_SABAKIYARI","裁きの光槍","atk","enemy","light","radiance","2",""
 "INQUISITOR_GOUMON","拷問の鉄鎚","phys","enemy","","impact","3",""
 "INQUISITOR_JOUKATSUCHI","浄火の大槌","phys","enemy","fire","impact","3",""

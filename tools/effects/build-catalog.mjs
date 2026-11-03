@@ -46,6 +46,7 @@ function family(key,s){
 // 火柱は基本を最多にし、最上位の火系統の技だけを炎の渦へ割り当てる。
 const fireRanks={GOKUEN:2,ARCHMAGE_YOUGAN:2,GOKUENRAN:3,BATTLEMAGE_SHAKUNETSU:3,ARCANIST_GOUKASHO:3,INQUISITOR_JOUZAI:3,SAGE_HOMURA:3,ARCHMAGE_SHUUEN:3};
 function effectTier(key,s){
+ if(key==='INQUISITOR_MANAZASHI')return 3; // 弱体の最高習得Lv75: 上位の視線。
  if(family(key,s)==='firePillar')return fireRanks[key]||1;
  return signatures.has(key)?3:(level.get(key)??1)>=100?3:(level.get(key)??1)>=30?2:1;
 }

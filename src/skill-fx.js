@@ -5,7 +5,7 @@ import { SKILL_FX_SIGNATURES } from './skill-fx-signatures.js';
 import { FX_LIMITS, fxLite } from './skill-fx-budget.js';
 const { r01, clamp01, easeOut, rgba, line, star4 } = FX, TAU = Math.PI*2;
 export const SKILL_FAMILIES = Object.freeze({cut:'斬撃',cleave:'なぎ払い',flurry:'連撃',impact:'重い打撃',pierce:'貫通',projectile:'射撃',fireball:'火球',firePillar:'火柱',blast:'爆発',ice:'氷の破片',wave:'水の波',gale:'風の流れ',lightning:'雷光',stone:'岩の隆起',quake:'地の衝撃',radiance:'聖光',void:'闇の収束',arcane:'魔力の波',heal:'回復',revive:'蘇生',purify:'治療',ward:'守り',mana:'魔力の譲渡',empower:'強化',charge:'力を溜める',weaken:'弱体',dispel:'解除',seal:'封印',paralyze:'麻痺',poison:'毒',illusion:'幻惑',sleep:'眠り',gravity:'重力',doom:'死の印',drain:'吸収',steal:'奪取',escape:'退避',survey:'探索'});
-const COLORS = {cut:'#daeaf4',cleave:'#daeaf4',flurry:'#daeaf4',impact:'#deb37a',pierce:'#e1eaff',projectile:'#c6e2ed',fireball:'#ff9b53',firePillar:'#ff9b53',blast:'#ffc786',ice:'#bceaff',wave:'#69c8ff',gale:'#91e5c1',lightning:'#f4e8ff',stone:'#d2b18a',quake:'#c6aa8b',radiance:'#ffe9aa',void:'#b999e5',heal:'#9be7bd',revive:'#f6e6b0',purify:'#b4edee',ward:'#b7d8f0',empower:'#f5d597',charge:'#e7c39b',poison:'#a8bd7a',drain:'#cf93bd',mana:'#92c9f8'};
+const COLORS = {cut:'#daeaf4',cleave:'#daeaf4',flurry:'#daeaf4',impact:'#deb37a',pierce:'#e1eaff',projectile:'#c6e2ed',fireball:'#ff9b53',firePillar:'#ff9b53',blast:'#ffc786',ice:'#bceaff',wave:'#69c8ff',gale:'#91e5c1',lightning:'#f4e8ff',stone:'#d2b18a',quake:'#c6aa8b',radiance:'#ffe9aa',void:'#b999e5',heal:'#9be7bd',revive:'#f6e6b0',purify:'#b4edee',ward:'#b7d8f0',empower:'#f5d597',charge:'#e7c39b',poison:'#a8bd7a',drain:'#cf93bd',mana:'#92c9f8',weaken:'#b49ad5',dispel:'#d6dff9',seal:'#cba5f1',illusion:'#d3a8df',sleep:'#aebcf1'};
 export function skillFxSound(family, tier = 1) {
   if (['cut','cleave','flurry'].includes(family)) return 'slash';
   if (['impact','stone','quake','blast'].includes(family)) return 'impact';
@@ -139,13 +139,90 @@ function fireVortex(c,e,t,w,h,lite,reduced){
   line(c,xx,yy,xx+Math.sin(a)*7,yy-Math.cos(a)*7,1.5,'#ffdb8e',fade);
  }
 }
+// 補助の術は格ごとに紋と流れを変える。画面の対象・乱数・行動の尺には触れない。
+const SUPPORT_FAMILIES = new Set(['mana','empower','charge','weaken','dispel','seal','poison','illusion','sleep']);
+function supportScene(c,f,x,y,r,t,color,lite,reduced,e){
+ const rank=e.design.tier, fade=Math.pow(1-t,1.1), q=reduced?.55:easeOut(t), motion=reduced?0:t;
+ const layers=rank, count=lite?3:6;
+ c.globalCompositeOperation='lighter';c.lineCap='round';c.lineJoin='round';
+ if(f==='mana'){
+  // 譲渡先に開く杯状の光。術者からの流れは共通の作用点描画でつなぐ。
+  for(let k=0;k<layers;k++){
+   const rr=r*(.22+k*.17), yy=y+r*.16-k*r*.12;
+   c.globalAlpha=fade;c.strokeStyle=color;c.lineWidth=2;c.beginPath();c.ellipse(x,yy,rr,rr*.38,0,0,Math.PI);c.stroke();
+   star4(c,x,yy-r*(.12+q*.25),4+k*2,'#ddf4ff',fade);
+  }
+ }else if(f==='empower'){
+  for(let k=0;k<layers;k++){
+   const yy=y+r*.45-k*r*.3-motion*r*.25, rr=r*(.22+k*.1);
+   line(c,x-rr,yy,x,yy-rr*.65,2.5,color,fade);line(c,x,yy-rr*.65,x+rr,yy,2.5,color,fade);
+  }
+  if(rank>=2)ring(c,x,y+r*.45,r*(.35+q*.2),color,fade*.6,1.5);
+  if(rank===3)for(let i=0;i<count;i++){const a=i*TAU/count;star4(c,x+Math.cos(a)*r*.7,y+Math.sin(a)*r*.7,4,'#fff2c8',fade);}
+ }else if(f==='charge'){
+  const rr=r*(.85-q*.55);
+  for(let i=0;i<count;i++)ray(c,x,y,rr,i*TAU/count,color,fade,2);
+  star4(c,x,y,r*(.08+q*.14),'#fff0ce',fade);
+  if(rank>=2)for(let k=0;k<layers-1;k++)ring(c,x,y,rr+r*(.14+k*.14),color,fade*.7,2);
+ }else if(f==='weaken'){
+  for(let k=0;k<layers;k++){
+   const yy=y-r*.35+k*r*.27+motion*r*.2, rr=r*(.2+k*.08);
+   line(c,x-rr,yy,x,yy+rr*.6,2.5,color,fade);line(c,x,yy+rr*.6,x+rr,yy,2.5,color,fade);
+  }
+  if(rank>=2)for(let i=0;i<count;i++){const a=i*TAU/count;ray(c,x,y,r*(.5-q*.15),a,color,fade*.5,1);}
+  if(rank===3)ring(c,x,y,r*(.7-q*.2),color,fade*.6,2);
+ }else if(f==='dispel'){
+  // 切れた環が外へほどける。上位では複数の環を同時に砕く。
+  for(let k=0;k<layers;k++)for(let i=0;i<count;i++){
+   const a=i*TAU/count+k*.3, rr=r*(.22+k*.15+q*.45);
+   c.globalAlpha=fade;c.strokeStyle=color;c.lineWidth=2;c.beginPath();c.arc(x,y,rr,a+.1,a+TAU/count*.65);c.stroke();
+   if(rank>=2)ray(c,x,y,rr+r*.12,a,color,fade*.5,1);
+  }
+ }else if(f==='seal'){
+  for(let k=0;k<layers;k++){
+   const rr=r*(.3+k*.17)*(reduced?1:1.2-q*.2), angle=k*Math.PI/4;
+   c.globalAlpha=fade;c.strokeStyle=color;c.lineWidth=2;c.beginPath();
+   for(let i=0;i<=4;i++){const a=angle+i*TAU/4; i?c.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr):c.moveTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr);}c.stroke();
+  }
+  line(c,x-r*.15,y-r*.15,x+r*.15,y+r*.15,2,'#ede2ff',fade);
+  line(c,x+r*.15,y-r*.15,x-r*.15,y+r*.15,2,'#ede2ff',fade);
+ }else if(f==='poison'){
+  c.globalCompositeOperation='source-over';
+  for(let i=0;i<(lite?3:6)+rank-1;i++){
+   const xx=x+(r01(i,e.seed)-.5)*r*1.3, yy=y+r*.3-motion*r*(.3+r01(i+9,e.seed)*.5);
+   const rr=r*(.1+(i%3)*.035);c.globalAlpha=fade*.24;c.fillStyle=color;c.beginPath();c.ellipse(xx,yy,rr*1.7,rr,0,0,TAU);c.fill();
+   ring(c,xx,yy-r*.1,rr*.45,color,fade*.7,1);
+  }
+  if(rank>=2)ring(c,x,y+r*.3,r*(.35+q*.25),color,fade*.5,2);
+  if(rank===3)for(let i=0;i<3;i++)line(c,x+(i-1)*r*.3,y+r*.2,x+(i-1)*r*.3,y-r*q*.6,1,color,fade*.5);
+ }else if(f==='illusion'){
+  for(let k=0;k<layers;k++){
+   const xx=x+Math.sin(motion*5+k*2)*r*.2, yy=y+(k-(layers-1)/2)*r*.23;
+   c.globalAlpha=fade*.8;c.strokeStyle=color;c.lineWidth=2;c.beginPath();c.ellipse(xx,yy,r*(.4+k*.1),r*.16,k%2?.4:-.4,0,TAU);c.stroke();
+   star4(c,xx+Math.cos(motion*5+k)*r*.3,yy,4,color,fade);
+  }
+  if(rank===3)ring(c,x,y,r*(.6+q*.15),color,fade*.4,1);
+ }else if(f==='sleep'){
+  for(let k=0;k<layers;k++){
+   const xx=x+(k-(layers-1)/2)*r*.38, yy=y-k*r*.15-motion*r*.25, rr=r*(.19+k*.03);
+   // 月の細い弧と、静かに昇る小さな星。
+   c.globalAlpha=fade;c.strokeStyle=color;c.lineWidth=3;c.beginPath();c.arc(xx,yy,rr,.3,Math.PI*1.65);c.stroke();
+   star4(c,xx+rr*.6,yy-rr*.9,3,'#e5e3ff',fade);
+  }
+  if(rank>=2)for(let k=0;k<layers-1;k++){
+   c.globalAlpha=fade*.35;c.strokeStyle=color;c.lineWidth=1;c.beginPath();c.ellipse(x,y+r*(.3+k*.14),r*(.5+k*.15),r*.1,0,0,TAU);c.stroke();
+  }
+ }
+}
 function drawCore(c,f,x,y,r,t,color,lite,reduced,e){
  const p=reduced?1:easeOut(clamp01(t/.32)), fade=Math.pow(1-t,1.3), drift=reduced?0:t;
  c.globalCompositeOperation='lighter';c.lineCap='round';c.lineJoin='round';
  if(['fireball','blast','arcane','radiance','heal','revive','mana'].includes(f)&&!lite){
   const glow=c.createRadialGradient(x,y,0,x,y,r*.62);glow.addColorStop(0,rgba(color,fade*.35));glow.addColorStop(1,rgba(color,0));c.fillStyle=glow;c.fillRect(x-r*.62,y-r*.62,r*1.24,r*1.24);
  }
- if(['cut','cleave','flurry'].includes(f)){
+ if(SUPPORT_FAMILIES.has(f)){
+  supportScene(c,f,x,y,r,t,color,lite,reduced,e);
+ }else if(['cut','cleave','flurry'].includes(f)){
   const n=f==='flurry'?Math.min(lite?2:6,Math.max(1,e.hitCount)):f==='cleave'?2:1;
   for(let i=0;i<n;i++) {const q=clamp01((t-i*.065)/(1-i*.065));if(!q)continue;trace(c,x+(i%2?4:-4),y+(i-n/2)*4,r*(f==='cleave'?1.3:1),q,color,i%2?.65:-.65,f==='cleave'?4:3);}
  }else if(f==='impact'){
