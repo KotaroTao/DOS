@@ -10,16 +10,24 @@ async def main():
   for mode in ['manual','auto']:
    ctx=await browser.new_context(service_workers='block',viewport={'width':390,'height':844})
    await ctx.route('**/src/cloud-config.js',lambda r:r.fulfill(content_type='text/javascript',body='export const CLOUD_CONFIG={enabled:false};'))
+   if os.environ.get('DOS_FX_SPARSE'):
+    async def sparse_art(route):
+     from urllib.parse import urlparse
+     path=urlparse(route.request.url).path
+     if path.startswith('/art/effects/') or path in ['/art/battle/w01.webp','/art/monsters/bs_bonepile.webp']:await route.continue_()
+     else:await route.fulfill(status=404,body='CIの取得対象外')
+    await ctx.route('**/art/**',sparse_art)
    page=await ctx.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
    await page.goto('http://localhost:8000/?testDungeon=w01&testPlace=town',wait_until='domcontentloaded')
    await page.wait_for_function('window.__game?.G.state==="town"&&!document.body.classList.contains("booting")')
    await page.evaluate('''async()=>{
     const {G}=__game;G.autoCombat=false;G.fastAnim=false;for(const a of G.party){a.agi=1000;a.hp=a.maxhp=100000;}
     const enemies=__game.spawnCardEnemies('bs_bonepile',1,1);for(const e of enemies){e.hp=e.maxhp=1000000;e.agi=1;e.ability=null;}
-    const {prepareSprite}=await import('/src/sprites.js');await Promise.all(enemies.map(e=>prepareSprite(e.mon)));await document.fonts.ready;
+    const {prepareSprite}=await import('/src/sprites.js');const ready=await Promise.all(enemies.map(e=>prepareSprite(e.mon)));if(!ready.every(Boolean))throw Error('戦闘の検査画像が不足');await document.fonts.ready;
     __game.startBattle(enemies,null);document.getElementById('town-shell').classList.add('hidden');
    }''')
    await page.wait_for_function('__game.G.battle?.phase==="input"&&!__game.G.animating')
+   await page.locator('#combat-menu[data-mode="input"] .cmd-attack').wait_for(state='visible')
    await page.evaluate('''async mode=>{
     const {Battle}=await import('/src/combat.js');const {SFX}=await import('/src/audio.js');
     const actor=__game.G.battle.current;actor.mp=actor.maxmp=999;actor.spells=['ZANKOU'];actor.hitBonus=1;actor.atk=100;

@@ -46,6 +46,8 @@ jobs:
             /tools/
             /docs/skill-effects-catalog.csv
             /art/effects/
+            /art/battle/w01.webp
+            /art/monsters/bs_bonepile.webp
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
