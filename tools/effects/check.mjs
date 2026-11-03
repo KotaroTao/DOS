@@ -107,3 +107,11 @@ for(const family of ['radiance','void','arcane','heal','revive','purify','ward']
  const name='skill'+kind[0].toUpperCase()+kind.slice(1),data=SFX_DEFS[name].gen(rng(123));
  assert.ok(data.ch.every(ch=>ch.every(Number.isFinite)&&ch.some(x=>Math.abs(x)>.01)),name);
 }
+
+// 少数の系統は実在する習得段階だけを使い、弱体の最上位を明示する。
+assert.equal(SKILL_FX_CATALOG.MANAGIFT.tier,2);
+assert.equal(SKILL_FX_CATALOG.INQUISITOR_MANAZASHI.tier,3);
+assert.deepEqual([...new Set(Object.values(SKILL_FX_CATALOG).filter(d=>d.family==='charge').map(d=>d.tier))].sort(),[1,2]);
+for(const f of ['empower','weaken','dispel','seal','poison','illusion','sleep']){
+ assert.deepEqual([...new Set(Object.values(SKILL_FX_CATALOG).filter(d=>d.family===f).map(d=>d.tier))].sort(),[1,2,3],f);
+}
