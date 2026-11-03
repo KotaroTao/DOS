@@ -606,7 +606,7 @@ function openRevealSheet(items) {
       const sub = el("span", "wpc-prow-sub");
       const plan = isEquippable(it) ? wearPlan(it, { owner: o.doll }) : null;
       const up = plan && plan.target && plan.delta && plan.score > 0;
-      if (up) { sub.appendChild(deltaEl(plan.delta)); sub.appendChild(el("span", "wpc-srow-who", plan.target.name)); }
+      if (up) { sub.appendChild(deltaEl(plan.delta, { bukonRows: true })); sub.appendChild(el("span", "wpc-srow-who", plan.target.name)); }
       else if (o.where !== "bag" || !shopOpen()) sub.appendChild(document.createTextNode(`売値 ${game.sellPrice(it)}`)); // 売値は「売る」に載る
       tx.appendChild(sub);
       main.appendChild(tx);
