@@ -796,13 +796,7 @@ export function gearWeights(doll) {
   W.mp = (st.mp || 0) >= 1.5 ? 0.15 : 0.03;
   return (GEAR_W_CACHE[key] = W);
 }
-// STR の代わりに攻撃力 (参照能力 × 武器の係数) の増減を数える。武器の付け替えは攻撃力の高い順が最優先
-// (攻撃力1 = WEAPON_POWER_W 点。ほかの能力は攻撃力が同じ時の決め手になる)。
-// ただし盾が付け外しされる持ち替え (片手+盾 ⇄ 両手武器、handSwap) は、攻撃力と盾の能力を同じ物差しで比べる:
-// 全体を「攻撃力1 = WEAPON_POWER_W 点」に引き伸ばす (盾の VIT などはその職の重み ÷ STR の重み で攻撃力に換算)
-// 攻撃力を最優先にするのは、打撃で戦う職だけ (weaponShare)。術者 (INT・PIE が STR より伸びる職) は
-// 技の大半が INT・PIE で伸びるので、武器も能力の重みどおりに比べる (短剣の攻撃力 +12 で INT −22 を勧めない)
-const WEAPON_POWER_W = 50;
+// 全部位で攻撃力・能力・特殊効果を同じ重みで比べる。武器交換だけの追加倍率は付けない。
 // 武器の攻撃力を最優先する度合い 0〜1: STR・AGIの重みとINT・PIEを比較（弓・短剣も物理職として扱う）
 // (聖騎士・審問官のような打撃と祈りの両刀は半ばほど)
 export function weaponShare(W) {
@@ -836,9 +830,9 @@ export function effScore(doll, delta, W = gearWeights(doll)) {
   const share = Math.max(0.15, weaponShare(W));
   const abs = delta.abs || {};
   const powTo = abs.power || 0, powFrom = powTo - (delta.power || 0);
-  const hp = abs.maxhp || 0;
+  const hpTo = abs.maxhp || 0, hpFrom = hpTo - (delta.hp || 0);
   const off = (e, pw) => (e ? pw * ((effStrikes(e) - 1) * EFF_K.strike + (e.counter || 0) * EFF_K.counter + (e.actFirst ? EFF_K.first : 0)) * share : 0);
-  const hpEq = (e, pw) => {
+  const hpEq = (e, pw, hp) => {
     if (!e) return 0;
     const g = delta.combat?.from && delta.combat?.to ? 0 : Math.min(0.9, e.guard || 0);
     return (e.lifesteal || 0) * pw * EFF_K.steal * share
@@ -858,7 +852,7 @@ export function effScore(doll, delta, W = gearWeights(doll)) {
   const hpW = W.hp || 0.25;
   return {
     offense: off(ch.to, powTo) - off(ch.from, powFrom),
-    points: (hpEq(ch.to, powTo) - hpEq(ch.from, powFrom)) * hpW + flat(ch.to) - flat(ch.from),
+    points: (hpEq(ch.to, powTo, hpTo) - hpEq(ch.from, powFrom, hpFrom)) * hpW + flat(ch.to) - flat(ch.from),
   };
 }
 export function gearScore(doll, delta) {
@@ -882,11 +876,6 @@ export function gearScore(doll, delta) {
   for (const k in W) s += (k === "atk" && power != null ? power * Math.max(0.15, weaponShare(W)) : (delta[k] || 0)) * W[k];
   if (power == null) s += (fx.offense+px.offense) * (W.atk || 1);
   s += fx.points + px.points;
-  if (delta.weapon) {
-    const f = weaponShare(W);
-    if (delta.handSwap) s = s * (1 + f * (WEAPON_POWER_W / Math.max(0.35, W.atk || 1) - 1));
-    else s += (power || 0) * WEAPON_POWER_W * f;
-  }
   if (!delta.combat?.from || !delta.combat?.to) {
     s += ((delta.crit || 0) + (delta.spellCrit || 0)) * 0.5;
     s += ((delta.critDamage || 0) + (delta.spellCritDamage || 0)) * 0.1;
