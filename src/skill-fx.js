@@ -509,7 +509,7 @@ export function drawSkillScene(c,e,t,w,h,reduced){
  c.save();
  const anchors=e.primaryPts||pts;
  if(f==='projectile'){
-  c.save();if(e.all){c.translate(x,y);c.scale(Math.min(2.6,Math.max(1,e.w/(radius*2))),1);drawProjectile(c,e,t,0,0,radius,lite,reduced);}else drawProjectile(c,e,t,x,y,radius,lite,reduced);c.restore();
+  c.save();if(e.all&&!e.strikes?.length){c.translate(x,y);c.scale(Math.min(2.6,Math.max(1,e.w/(radius*2))),1);drawProjectile(c,e,t,0,0,radius,lite,reduced);}else drawProjectile(c,e,t,x,y,radius,lite,reduced);c.restore();
  }else if(MYSTIC_FAMILIES.includes(f)){
   drawMysticFx(c,e,t,w,h,lite,reduced);
  }else if(f==='fireball'||f==='blast'){
