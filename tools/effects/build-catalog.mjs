@@ -8,8 +8,14 @@ const level=new Map();
 for(const rows of Object.values(JOB_SKILLS))for(const r of rows)if(r.skill)level.set(r.skill,Math.min(level.get(r.skill)??Infinity,r.lvl));
 const signatures=new Set(Object.keys(SKILL_FX_SIGNATURES).filter(k=>!['DIAL','REVIVE','MADIOS'].includes(k)));
 // 名前だけでは形を誤る代表技を明示する。追加・変更は生成結果の一覧も確認する。
-const overrides={ZETTAIREIDO:'ice',ARCHMAGE_GOKKAN:'ice',HERMIT_KAMINARI:'lightning',HERO_HEKIREKI:'lightning',ARCHMAGE_TENMEI:'lightning',ASCETIC_TSUBUTE:'stone',ROCKBLAST:'stone',SEISAI:'blast',MARYOKUBOUSOU:'blast',ARCANIST_KINSEI:'blast',ARCTHIEF_TOUSEI:'blast',ARCHMAGE_TENKYUU:'blast',TENPENCHII:'blast',ARCHMAGE_SOUSEI:'blast',KYOKUDAI:'blast',BATTLEMAGE_TENPOU:'blast',ARCHMAGE_BANSHOU:'blast',NERAIUCHI:'pierce',KYOUGEKI:'impact',HAISUI:'impact',SHINGANGEKI:'pierce',JOUMON:'impact',TEPPEKIJIN:'ward',FURAKUJOU:'ward',KISHIOU:'empower',TILTOWAIT:'blast',KIKOKU:'cut',KUBIKARI:'cut',KIJINKUDAKI:'impact',KONGOURENDA:'flurry',DANZAINOTSUCHI:'impact',TSUBAMEGAESHI:'flurry',ASHURAZAN:'flurry',SHASHINNOGYOU:'impact',SEIKEN:'radiance',SHINENNOHADOU:'void',HOUSHOUHEKI:'ward',CARDINAL_SEIYU:'heal',DIALALL:'heal',MADIOS:'heal',DIOS:'heal',DIAL:'heal'};
+const overrides={ZETTAIREIDO:'ice',ARCHMAGE_GOKKAN:'ice',HERMIT_KAMINARI:'lightning',HERO_HEKIREKI:'lightning',ARCHMAGE_TENMEI:'lightning',ASCETIC_TSUBUTE:'stone',ROCKBLAST:'stone',HUNTER_SAMIDARE:'projectile',KONGOUMUSOU:'impact',KONGOURENDA:'impact',GUARDIAN_JIBANSHIZUME:'impact',SEISAI:'blast',MARYOKUBOUSOU:'blast',ARCANIST_KINSEI:'blast',ARCTHIEF_TOUSEI:'blast',ARCHMAGE_TENKYUU:'blast',TENPENCHII:'blast',ARCHMAGE_SOUSEI:'blast',KYOKUDAI:'blast',BATTLEMAGE_TENPOU:'blast',ARCHMAGE_BANSHOU:'blast',NERAIUCHI:'pierce',KYOUGEKI:'impact',HAISUI:'impact',SHINGANGEKI:'pierce',JOUMON:'impact',TEPPEKIJIN:'ward',FURAKUJOU:'ward',KISHIOU:'empower',TILTOWAIT:'blast',KIKOKU:'cut',KUBIKARI:'cut',KIJINKUDAKI:'impact',DANZAINOTSUCHI:'impact',TSUBAMEGAESHI:'flurry',ASHURAZAN:'flurry',SHASHINNOGYOU:'impact',SEIKEN:'radiance',SHINENNOHADOU:'void',HOUSHOUHEKI:'ward',CARDINAL_SEIYU:'heal',DIALALL:'heal',MADIOS:'heal',DIOS:'heal',DIAL:'heal'};
+
 function family(key,s){
+ if(CLEAVE_TOP[key])return 'cleave';
+ if(s.kind==='phys'){
+  if(JOB_SKILLS.hunter.some(r=>r.skill===key))return 'projectile';
+  if(['monk','guardian'].some(job=>JOB_SKILLS[job].some(r=>r.skill===key)))return 'impact';
+ }
  if(overrides[key])return overrides[key];
  const n=s.name;
  if(s.kind==='escape')return 'escape';if(s.kind==='field')return 'survey';if(s.kind==='mana')return 'mana';
@@ -25,7 +31,8 @@ function family(key,s){
  if(s.steal||s.plunder)return 'steal';
  if(s.kind==='atk'&&(s.drain||s.mpDrain))return 'drain';
  if(s.kind==='phys'){
-  if(/射|矢|狙撃|弓/.test(n))return 'projectile';
+  if(/射|矢|狙撃|弓/.test(n)||/連射|射掛|放つ矢/.test(s.desc||''))return 'projectile';
+  if(/拳|掌|脚|蹴|盾|打|槌|鎚|崩|砕|衝|頭突/.test(n)||s.vitScale||s.shield)return 'impact';
   if((s.hits||s.scatter||1)>1)return 'flurry';
   if(/拳|掌|脚|蹴|打|槌|鎚|崩|砕|衝|頭突/.test(n)||s.vitScale||s.shield)return 'impact';
   if(/刺|突|槍|穿/.test(n))return 'pierce';
@@ -71,6 +78,18 @@ function effectTier(key,s){
  if(['gravity','doom','drain','steal','escape','survey'].includes(family(key,s)))return (level.get(key)??1)>=100?3:(level.get(key)??1)>=30?2:1;
  return signatures.has(key)?3:(level.get(key)??1)>=100?3:(level.get(key)??1)>=30?2:1;
 }
+// 職業ごとの最終斬撃を制作時に確定する（拳・射撃は含めない）。
+const slashUltimates={};
+for(const [job,rows] of Object.entries(JOB_SKILLS)){
+ const candidates=rows.filter(r=>r.skill&&['cut'].includes(family(r.skill,SPELLS[r.skill])));
+ const last=candidates.sort((a,b)=>b.lvl-a.lvl)[0];
+ if(last)slashUltimates[last.skill]=job;
+}
+const slashDesigns={};
+for(const [key,s] of Object.entries(SPELLS))if(['cut'].includes(family(key,s))){
+ const lv=level.get(key)||1;
+ slashDesigns[key]={slashRank:lv>=150?5:lv>=100?4:lv>=60?3:lv>=25?2:1,slashUltimate:slashUltimates[key]||null};
+}
 const groups=new Map();
 for(const [key,s]of Object.entries(SPELLS)){
  const tier=effectTier(key,s);
@@ -80,9 +99,10 @@ let source='// tools/effects/build-catalog.mjsで生成。全技を系統と格�
 for(const [group,keys]of [...groups].sort(([a],[b])=>a.localeCompare(b)))source+='  '+JSON.stringify(group)+': '+JSON.stringify(keys.join(' '))+',\n';
 source+='};\nfor (const [group, keys] of Object.entries(groups)) {\n  const [family, rank] = group.split(":");\n  const tier = Number(rank), design = Object.freeze({ family, tier, scale: [0, .9, 1.08, 1.24, 1.38, 1.52][tier] });\n  for (const key of keys.split(" ")) SKILL_FX_CATALOG[key] = design;\n}\n';
 for(const [key,variant] of Object.entries(CLEAVE_TOP))source+='SKILL_FX_CATALOG['+JSON.stringify(key)+'] = Object.freeze({...SKILL_FX_CATALOG['+JSON.stringify(key)+'], variant: '+JSON.stringify(variant)+'});\n';
-source+='Object.freeze(SKILL_FX_CATALOG);\n';
+source+='for(const [key,extra] of Object.entries('+JSON.stringify(slashDesigns)+')) SKILL_FX_CATALOG[key]=Object.freeze({...SKILL_FX_CATALOG[key],...extra});\nObject.freeze(SKILL_FX_CATALOG);\n';
+
 const quote=value=>'"'+String(value??'').replaceAll('"','""')+'"';
-const csv='key,name,kind,target,element,family,tier,signature\n'+Object.entries(SPELLS).map(([key,s])=>[key,s.name,s.kind,s.target,s.element||'',family(key,s),effectTier(key,s),SKILL_FX_SIGNATURES[key]?.accent||''].map(quote).join(',')).join('\n')+'\n';
+const csv='key,name,kind,target,element,family,tier,signature,slashRank,slashUltimate\n'+Object.entries(SPELLS).map(([key,s])=>[key,s.name,s.kind,s.target,s.element||'',family(key,s),effectTier(key,s),SKILL_FX_SIGNATURES[key]?.accent||'',slashDesigns[key]?.slashRank||'',slashDesigns[key]?.slashUltimate||''].map(quote).join(',')).join('\n')+'\n';
 const auditPath=new URL('../../docs/skill-effects-catalog.csv',import.meta.url);
 const path=new URL('../../src/skill-fx-catalog.js',import.meta.url);
 if(process.argv.includes('--check')){if(await readFile(path,'utf8')!==source||await readFile(auditPath,'utf8')!==csv)throw Error('技の演出割当を更新してください: node tools/effects/build-catalog.mjs');}
