@@ -960,11 +960,11 @@ function rung(m, total) {
   const r = el("div", "pl-rung" + (reached && !wait ? " ready" : "") + (wait ? " wait" : ""));
   r.appendChild(el("span", "pl-rung-n", `${m.n}種`));
   const lab = el("span", "pl-rung-l");
-  lab.appendChild(setText(el("span", "pl-rung-t"), game.milestoneLabel ? game.milestoneLabel(m) : ""));
+  lab.appendChild(setText(el("span", "pl-rung-t"), reached ? "褒賞を拝受できます" : "中身は拝受してからのお楽しみ"));
   if (wait) lab.appendChild(setText(el("span", "pl-rung-w"), wait));
   r.appendChild(lab);
   if (reached && !wait) r.appendChild(button({ label: "受け取る", kind: "primary", size: "sm", onTap: () => game.claimTreasury(m.n) }));
-  else if (!reached) r.appendChild(el("span", "pl-rung-s", `あと ${m.n - total}`));
+  else if (!reached) r.appendChild(el("span", "pl-rung-s", `あと ${m.n - total} 種`));
   return r;
 }
 // 「収集品を奉納」: 奉納する品の詳細を並べたシート → 「奉納する」で奉納 (節目に届けばそのまま褒賞へ)
