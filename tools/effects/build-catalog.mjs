@@ -1,5 +1,6 @@
 // 全技の演出割当を制作時に確定する。実行時には名前・MP・技IDのハッシュで推測しない。
 import {readFile,writeFile} from 'node:fs/promises';
+import {CLEAVE_TOP} from '../../src/cleave-fx.js';
 import {SPELLS} from '../../src/skilldefs.js';
 import {SKILL_FX_SIGNATURES} from '../../src/skill-fx-signatures.js';
 import {JOB_SKILLS} from '../../src/souls.js';
@@ -52,11 +53,14 @@ const projectileRanks={RENSHA:2,SENNYA:3,HUNTER_HAYATEYA:2,HUNTER_KABURAYA:2,RYU
 const projectileForms={YANOAME:'rain',SENNYA:'rain',HUNTER_HIYA:'rain',HUNTER_BAKUFU:'cascade',RYUUSEISHA:'meteor',HUNTER_HOSHIOTOSHI:'starfall',HUNTER_KARIGAMI:'six',HUNTER_ARASHIYUZURU:'storm',HUNTER_AMIUCHI:'net',HUNTER_KABURAYA:'echo',HUNTER_SHINZOU:'focus',HUNTER_TOMEYA:'focus',HUNTER_SAMIDARE:'rain',HUNTER_TAKAOTOSHI:'dive',HUNTER_KAZEKIRI:'fan'};
 function effectTier(key,s){
  if(family(key,s)==='projectile')return projectileRanks[key]||1;
+ if(CLEAVE_TOP[key])return 3;
  if(key==='INQUISITOR_MANAZASHI')return 3; // 弱体の最高習得Lv75: 上位の視線。
  const f=family(key,s);
  if(f==='firePillar')return fireRanks[key]||1;
  if(f==='fireball')return fireballRanks[key]||1;
  if(f==='blast')return blastRanks[key]||1;
+ // 魔力の波は基本・中位・最上位を明示し、全ランクを実際の技へ割り当てる。
+ if(f==='arcane')return ['SHINRANOSABAKI','WARDEN_BANSHOU','ARCANIST_SHUUENSHO','SAGE_SHUUKYOKU'].includes(key)?3:['KYOMU','BISHOP_SHINPAN','SPELLBLADE_KENKAI','SAGE_SHINRA'].includes(key)?2:1;
  // 補助の六系統は看板技の指定で昇格させず、実際の習得段階に合わせる。
  if(['gravity','doom','drain','steal','escape','survey'].includes(family(key,s)))return (level.get(key)??1)>=100?3:(level.get(key)??1)>=30?2:1;
  return signatures.has(key)?3:(level.get(key)??1)>=100?3:(level.get(key)??1)>=30?2:1;
@@ -73,6 +77,7 @@ for(const [key,s] of Object.entries(SPELLS))if(family(key,s)==='projectile'){
  const data={form:projectileForms[key]||((s.hits||1)>1?'burst':'shot'),count:s.hits||s.scatter||1,color:({fire:'#ff4938',water:'#328cff',wind:'#66e5ad',earth:'#c7a06b',light:'#ffe18a',dark:'#af7aeb'})[s.element]||(s.poison?'#91c95b':s.para?'#ead45a':'#c6e2ed')};
  source+='SKILL_FX_CATALOG['+JSON.stringify(key)+'] = Object.freeze({...SKILL_FX_CATALOG['+JSON.stringify(key)+'], projectile: Object.freeze('+JSON.stringify(data)+')});\n';
 }
+for(const [key,variant] of Object.entries(CLEAVE_TOP))source+='SKILL_FX_CATALOG['+JSON.stringify(key)+'] = Object.freeze({...SKILL_FX_CATALOG['+JSON.stringify(key)+'], variant: '+JSON.stringify(variant)+'});\n';
 source+='Object.freeze(SKILL_FX_CATALOG);\n';
 const quote=value=>'"'+String(value??'').replaceAll('"','""')+'"';
 const csv='key,name,kind,target,element,family,tier,signature\n'+Object.entries(SPELLS).map(([key,s])=>[key,s.name,s.kind,s.target,s.element||'',family(key,s),effectTier(key,s),SKILL_FX_SIGNATURES[key]?.accent||''].map(quote).join(',')).join('\n')+'\n';
