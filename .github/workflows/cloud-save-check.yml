@@ -8,6 +8,7 @@ on:
       - 'tools/save-protection/**'
       - 'tools/effects/**'
       - 'effects-lab.*'
+      - 'art/effects/**'
       - '.github/workflows/cloud-save-check.yml'
   workflow_dispatch:
     inputs:
@@ -44,6 +45,7 @@ jobs:
             /supabase/
             /tools/
             /docs/skill-effects-catalog.csv
+            /art/effects/
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
