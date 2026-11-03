@@ -1,0 +1,324 @@
+{
+  "baseline": "94f9b203",
+  "keep": [
+    "arrival",
+    "report_w09",
+    "report_w20",
+    "report_w33",
+    "report_w41",
+    "report_w52"
+  ],
+  "batches": {
+    "batch01": [
+      "report_w02",
+      "report_w03",
+      "report_w04",
+      "report_w05",
+      "report_w06",
+      "report_w07",
+      "report_w08",
+      "report_w10",
+      "report_w11",
+      "report_w12"
+    ],
+    "batch02": [
+      "report_w13",
+      "report_w14",
+      "report_w15",
+      "report_w16",
+      "report_w17",
+      "report_w18",
+      "report_w19",
+      "report_w21",
+      "report_w22",
+      "report_w23"
+    ],
+    "batch03": [
+      "report_w24",
+      "report_w26",
+      "report_w27",
+      "report_w28",
+      "report_w29",
+      "report_w30",
+      "report_w31",
+      "report_w32",
+      "report_w34",
+      "report_w35"
+    ],
+    "batch04": [
+      "report_w36",
+      "report_w37",
+      "report_w38",
+      "report_w39",
+      "report_w40",
+      "report_w42",
+      "report_w43",
+      "report_w44",
+      "report_w45",
+      "report_w46"
+    ],
+    "batch05": [
+      "report_w47",
+      "report_w48",
+      "report_w49",
+      "report_w50",
+      "report_w51",
+      "report_w53",
+      "report_w54",
+      "report_w55",
+      "report_w56",
+      "report_w57"
+    ],
+    "batch06": [
+      "report_w01",
+      "report_w25",
+      "minePass"
+    ]
+  },
+  "paths": {
+    "report_w02": {
+      "master": "art/story-review/chapter1/report_w02.png",
+      "shipped": "art/story/chapter1/report_w02.webp"
+    },
+    "report_w03": {
+      "master": "art/story-review/chapter1/report_w03.png",
+      "shipped": "art/story/chapter1/report_w03.webp"
+    },
+    "report_w04": {
+      "master": "art/story-review/chapter1/report_w04.png",
+      "shipped": "art/story/chapter1/report_w04.webp"
+    },
+    "report_w05": {
+      "master": "art/story-review/chapter1/report_w05.png",
+      "shipped": "art/story/chapter1/report_w05.webp"
+    },
+    "report_w06": {
+      "master": "art/story-review/chapter2/report_w06.png",
+      "shipped": "art/story/chapter2/report_w06.webp"
+    },
+    "report_w07": {
+      "master": "art/story-review/chapter2/report_w07.png",
+      "shipped": "art/story/chapter2/report_w07.webp"
+    },
+    "report_w08": {
+      "master": "art/story-review/chapter2/report_w08.png",
+      "shipped": "art/story/chapter2/report_w08.webp"
+    },
+    "report_w10": {
+      "master": "art/story-review/chapter3/report_w10.png",
+      "shipped": "art/story/chapter3/report_w10.webp"
+    },
+    "report_w11": {
+      "master": "art/story-review/chapter3/report_w11.png",
+      "shipped": "art/story/chapter3/report_w11.webp"
+    },
+    "report_w12": {
+      "master": "art/story-review/chapter3/report_w12.png",
+      "shipped": "art/story/chapter3/report_w12.webp"
+    },
+    "report_w13": {
+      "master": "art/story-review/chapter3/report_w13.png",
+      "shipped": "art/story/chapter3/report_w13.webp"
+    },
+    "report_w14": {
+      "master": "art/story-review/chapter4/report_w14.png",
+      "shipped": "art/story/chapter4/report_w14.webp"
+    },
+    "report_w15": {
+      "master": "art/story-review/chapter4/report_w15.png",
+      "shipped": "art/story/chapter4/report_w15.webp"
+    },
+    "report_w16": {
+      "master": "art/story-review/chapter4/report_w16.png",
+      "shipped": "art/story/chapter4/report_w16.webp"
+    },
+    "report_w17": {
+      "master": "art/story-review/chapter4/report_w17.png",
+      "shipped": "art/story/chapter4/report_w17.webp"
+    },
+    "report_w18": {
+      "master": "art/story-review/chapter5/report_w18.png",
+      "shipped": "art/story/chapter5/report_w18.webp"
+    },
+    "report_w19": {
+      "master": "art/story-review/chapter5/report_w19.png",
+      "shipped": "art/story/chapter5/report_w19.webp"
+    },
+    "report_w21": {
+      "master": "art/story-review/chapter5/report_w21.png",
+      "shipped": "art/story/chapter5/report_w21.webp"
+    },
+    "report_w22": {
+      "master": "art/story-review/chapter6/report_w22.png",
+      "shipped": "art/story/chapter6/report_w22.webp"
+    },
+    "report_w23": {
+      "master": "art/story-review/chapter6/report_w23.png",
+      "shipped": "art/story/chapter6/report_w23.webp"
+    },
+    "report_w24": {
+      "master": "art/story-review/chapter6/report_w24.png",
+      "shipped": "art/story/chapter6/report_w24.webp"
+    },
+    "report_w26": {
+      "master": "art/story-review/chapter7/report_w26.png",
+      "shipped": "art/story/chapter7/report_w26.webp"
+    },
+    "report_w27": {
+      "master": "art/story-review/chapter7/report_w27.png",
+      "shipped": "art/story/chapter7/report_w27.webp"
+    },
+    "report_w28": {
+      "master": "art/story-review/chapter7/report_w28.png",
+      "shipped": "art/story/chapter7/report_w28.webp"
+    },
+    "report_w29": {
+      "master": "art/story-review/chapter7/report_w29.png",
+      "shipped": "art/story/chapter7/report_w29.webp"
+    },
+    "report_w30": {
+      "master": "art/story-review/chapter8/report_w30.png",
+      "shipped": "art/story/chapter8/report_w30.webp"
+    },
+    "report_w31": {
+      "master": "art/story-review/chapter8/report_w31.png",
+      "shipped": "art/story/chapter8/report_w31.webp"
+    },
+    "report_w32": {
+      "master": "art/story-review/chapter8/report_w32.png",
+      "shipped": "art/story/chapter8/report_w32.webp"
+    },
+    "report_w34": {
+      "master": "art/story-review/chapter9/report_w34.png",
+      "shipped": "art/story/chapter9/report_w34.webp"
+    },
+    "report_w35": {
+      "master": "art/story-review/chapter9/report_w35.png",
+      "shipped": "art/story/chapter9/report_w35.webp"
+    },
+    "report_w36": {
+      "master": "art/story-review/chapter9/report_w36.png",
+      "shipped": "art/story/chapter9/report_w36.webp"
+    },
+    "report_w37": {
+      "master": "art/story-review/chapter9/report_w37.png",
+      "shipped": "art/story/chapter9/report_w37.webp"
+    },
+    "report_w38": {
+      "master": "art/story-review/chapter10/report_w38.png",
+      "shipped": "art/story/chapter10/report_w38.webp"
+    },
+    "report_w39": {
+      "master": "art/story-review/chapter10/report_w39.png",
+      "shipped": "art/story/chapter10/report_w39.webp"
+    },
+    "report_w40": {
+      "master": "art/story-review/chapter10/report_w40.png",
+      "shipped": "art/story/chapter10/report_w40.webp"
+    },
+    "report_w42": {
+      "master": "art/story-review/chapter11/report_w42.png",
+      "shipped": "art/story/chapter11/report_w42.webp"
+    },
+    "report_w43": {
+      "master": "art/story-review/chapter11/report_w43.png",
+      "shipped": "art/story/chapter11/report_w43.webp"
+    },
+    "report_w44": {
+      "master": "art/story-review/chapter11/report_w44.png",
+      "shipped": "art/story/chapter11/report_w44.webp"
+    },
+    "report_w45": {
+      "master": "art/story-review/chapter11/report_w45.png",
+      "shipped": "art/story/chapter11/report_w45.webp"
+    },
+    "report_w46": {
+      "master": "art/story-review/chapter12/report_w46.png",
+      "shipped": "art/story/chapter12/report_w46.webp"
+    },
+    "report_w47": {
+      "master": "art/story-review/chapter12/report_w47.png",
+      "shipped": "art/story/chapter12/report_w47.webp"
+    },
+    "report_w48": {
+      "master": "art/story-review/chapter12/report_w48.png",
+      "shipped": "art/story/chapter12/report_w48.webp"
+    },
+    "report_w49": {
+      "master": "art/story-review/chapter12/report_w49.png",
+      "shipped": "art/story/chapter12/report_w49.webp"
+    },
+    "report_w50": {
+      "master": "art/story-review/chapter13/report_w50.png",
+      "shipped": "art/story/chapter13/report_w50.webp"
+    },
+    "report_w51": {
+      "master": "art/story-review/chapter13/report_w51.png",
+      "shipped": "art/story/chapter13/report_w51.webp"
+    },
+    "report_w53": {
+      "master": "art/story-review/chapter13/report_w53.png",
+      "shipped": "art/story/chapter13/report_w53.webp"
+    },
+    "report_w54": {
+      "master": "art/story-review/chapter14/report_w54.png",
+      "shipped": "art/story/chapter14/report_w54.webp"
+    },
+    "report_w55": {
+      "master": "art/story-review/chapter14/report_w55.png",
+      "shipped": "art/story/chapter14/report_w55.webp"
+    },
+    "report_w56": {
+      "master": "art/story-review/chapter14/report_w56.png",
+      "shipped": "art/story/chapter14/report_w56.webp"
+    },
+    "report_w57": {
+      "master": "art/story-review/chapter14/report_w57.png",
+      "shipped": "art/story/chapter14/report_w57.webp"
+    },
+    "report_w01": {
+      "master": "art/story-review/chapter1/report_w01.png",
+      "shipped": "art/story/chapter1/report_w01.webp"
+    },
+    "report_w25": {
+      "master": "art/story-review/chapter6/report_w25.png",
+      "shipped": "art/story/chapter6/report_w25.webp"
+    },
+    "minePass": {
+      "master": "art/story-review/chapter1/minePass.png",
+      "shipped": "art/story/chapter1/minePass.webp"
+    },
+    "arrival": {
+      "master": "art/story-review/prologue/royal-audience.png",
+      "shipped": "art/story/royal-audience.webp"
+    },
+    "report_w09": {
+      "master": "art/story-review/chapter2/report_w09.png",
+      "shipped": "art/story/chapter2/report_w09.webp"
+    },
+    "report_w20": {
+      "master": "art/story-review/chapter5/report_w20.png",
+      "shipped": "art/story/chapter5/report_w20.webp"
+    },
+    "report_w33": {
+      "master": "art/story-review/chapter8/report_w33.png",
+      "shipped": "art/story/chapter8/report_w33.webp"
+    },
+    "report_w41": {
+      "master": "art/story-review/chapter10/report_w41.png",
+      "shipped": "art/story/chapter10/report_w41.webp"
+    },
+    "report_w52": {
+      "master": "art/story-review/chapter13/report_w52.png",
+      "shipped": "art/story/chapter13/report_w52.webp"
+    }
+  },
+  "keep_sha256": {
+    "arrival": "94a3292b9b681bf3830dd8bede376046afd41788d74e0fbe7859fa26cc9337fc",
+    "report_w09": "9d0dd52517569a0b3dfbc28b4d2bbbeb1843da260960ab639230e2c12abc2d6d",
+    "report_w20": "0f4f9a4f9e58ea5edd465932e30e1e77736bd0113327e0e4b4d4dbc36ef43f0e",
+    "report_w33": "96313a92f11462f886061b2cff083363b223d9e1753b67ba8a7c010927de4365",
+    "report_w41": "b2e63e8fffa7431f5b8731ba24d811b10da526aa0cb060fb0302e1fc4879dd7d",
+    "report_w52": "98e24be6603d8d28e602f21f11487f8832e8789ef3319c5c18e1fca330f82c34"
+  }
+}

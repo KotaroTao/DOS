@@ -1,0 +1,32 @@
+[
+  {
+    "id": "report_w01",
+    "master": "art/story-review/chapter1/report_w01.png",
+    "subject": "休眠人業を抱えて受け取る弟子の手",
+    "prompt": "Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge, no panels, no borders, no labels, no typography, no readable text anywhere. Match attached Dungeon of Souls artwork exactly: lavish high-quality fine-grained pixel-textured dark fantasy illustration, sophisticated natural adult proportions, meticulously detailed embroidered cloth, black iron, carved wood, crisp tiny highlights, rich controlled cool cyan light against warm amber candlelight. Preserve identities and costume details. Completely replace composition: the young brown-haired apprentice in charcoal black gold-embroidered travel cloak is carrying the dormant adult-sized articulated wooden doll away from its storage table, viewed in an intimate overhead diagonal close-up of his two arms cradling its smooth featureless rounded wooden head and inert wooden forearm across worn cream cloth. Main subject is the contrast of living hands gently supporting sleeping wooden hands, clearly readable at 384x256. The dormant doll has a totally blank smooth wooden face without eyes or nose or mouth and black iron joint bands, no glowing soul or active movement. Only a partial profile and cloak of apprentice enter upper left; one arm supports head and neck, the other supports torso through the cloth. The head, shoulder and inert hand are visible; remainder of doll continues naturally out of frame, do not shrink it to baby size. No royal architecture, no shelves, no king, no old attendant, no throne or ornate palace scenery. Background mostly worn worktable wood and shadow, secondary light reflected from a single lantern edge at bottom corner. Anatomically natural hands, five digits each, no extra limbs. This scene depicts receiving a dormant companion and gently carrying it home, not surgery or death.",
+    "refs": [
+      "art/story-review/chapter1/report_w01.png"
+    ],
+    "generated": "/workspace/generated_images/exec-05d9f35f-a7ec-4aa5-b559-caede1ee9eb4.png"
+  },
+  {
+    "id": "report_w25",
+    "master": "art/story-review/chapter6/report_w25.png",
+    "subject": "解けた氷の堤からほどける魂と奈落へ流れる水",
+    "prompt": "Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge, no panels, no borders, no labels, no typography, no readable text anywhere. Match attached Dungeon of Souls artwork exactly: lavish high-quality fine-grained pixel-textured dark fantasy illustration, crisp tiny highlights, rich controlled cool cyan against warm amber soul light. Completely NEW narrative aftermath illustration: the ancient subterranean ice dam has finally thawed, allowing the souls it held for three hundred years to rest. Very low water-level viewpoint beside a broken translucent blue ice ledge, rivulets of meltwater flowing past us and over the foreground lip into an immense bottomless black shaft on the right. Dozens of softly amber and pearl glowing small soul flames lift gently out of thawing ice, spread into spacious darkness, no distinct human figures or faces. Central focal point is one warm soul-light leaving a clear droplet on a broken ice ridge, the water carries its reflection toward the abyss. Remaining stepped ice walls on the left establish the vast dam, delicate luminous refractions, deep dark cavern roof, no outdoor sky. Make it quiet release after a long vigil, not combat, explosion or disaster. No apprentice, no frozen king, no throne, no palace, no painting, no royal architecture, no candles or inhabited settlement. Do not repeat attached composition; use only its crystalline materials, subterranean light and painterly fine-grained texture. Subject must remain legible at 384x256.",
+    "refs": [
+      "art/story-review/chapter6/mem_w25.png"
+    ],
+    "generated": "/workspace/generated_images/exec-547f4aee-a87d-4108-91f4-91240c38a349.png"
+  },
+  {
+    "id": "minePass",
+    "master": "art/story-review/chapter1/minePass.png",
+    "subject": "王宮造作を除き、通行証を受け取る三つの手と旅鞄を描く",
+    "prompt": "Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge, no panels, no borders, no labels, no typography, no readable text anywhere (all writing illegible irregular marks). Match attached Dungeon of Souls artwork exactly: lavish high-quality fine-grained pixel-textured dark fantasy illustration, sophisticated natural adult proportions, meticulously detailed embroidered cloth, black iron, worn parchment, crisp tiny highlights, rich controlled cool cyan light against warm amber candlelight. Completely replace composition with an extreme top-down still-life-like close-up of the moment the old king grants the apprentice a mine passage permit. Frame ONLY three natural hands: one old wrinkled royal hand enters upper left and releases the corner of the folded parchment, two young hands enter from lower right and receive the permit. Old royal sleeve is red embroidered cloth with white black-spotted ermine cuff, young sleeves are charcoal black with restrained geometric gold embroidery and dark leather bracers. Preserve precisely the parchment permit's shape and red wax seal from reference, no legible words, no invented crest or symbols. The old thumb rests on TOP surface of paper, four fingers beneath; apprentice's two palms support it underneath, five fingers each naturally aligned and partly occluded. Permit occupies central half of illustration on a diagonal; nearby only a dark brown leather travel satchel being opened to put the permit away, its plain coarse lining. The background is an almost abstract softly shadowed dark cloth or wooden surface, no royal architecture, no treasury, no visible furniture design, no palace columns, no throne, no gold treasure, no faces, no crowns. Theme: permission is granted, but departure requires preparation. Keep restrained intimate stillness, no literal mine gate or future adventure. Small 384x256 readability is essential.",
+    "refs": [
+      "docs/art/palace-replacement/batch06/before/minePass.png"
+    ],
+    "generated": "/workspace/generated_images/exec-17ed9cfc-4127-4074-bc21-5e69c433d7c5.png"
+  }
+]
