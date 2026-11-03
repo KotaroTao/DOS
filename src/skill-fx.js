@@ -1,3 +1,4 @@
+import { drawMaterialSkill } from './skill-fx-materials.js';
 import { ELEMENT_FAMILIES, drawElementFx } from './element-fx.js';
 import { SKILL_FX_ULTIMATES } from './skill-fx-ultimates.js';
 import { drawCleave, CLEAVE_COLORS } from './cleave-fx.js';
@@ -514,12 +515,18 @@ export function drawSkillScene(c,e,t,w,h,reduced){
    const q=position-point.slot;if(!reduced&&(q<0||q>=1))continue;
    c.save();
    const local={...e,x:point.x,y:point.y,all:false,w:80,pts:[point],primaryPts:[point],strikes:[],hitCount:1,design:{...e.design,tier:Math.min(3,e.design.tier)}};
-   if(ELEMENT_FAMILIES.includes(f))drawElementFx(c,local,reduced?.36:q,w,h,lite,reduced);
+   if(drawMaterialSkill(c,local,reduced?.36:q,w,h,lite,reduced)){if(['fireball','blast'].includes(f))drawThermalFx(c,local,reduced?.36:q,w,h,lite,reduced);}
+   else if(ELEMENT_FAMILIES.includes(f))drawElementFx(c,local,reduced?.36:q,w,h,lite,reduced);
    else if(MYSTIC_FAMILIES.includes(f))drawMysticFx(c,local,reduced?.36:q,w,h,lite,reduced);
    else if(f==='fireball'||f==='blast')drawThermalFx(c,local,reduced?.36:q,w,h,lite,reduced);
    else drawCore(c,f,point.x,point.y,radius*.8,reduced?.36:q,color,lite,reduced,local);
    c.restore();
   }
+ }else if(f!=='firePillar'&&drawMaterialSkill(c,e,t,w,h,lite,reduced)){
+  // 全系統の主演出を材質と固有の動きで構成する。
+  if(['fireball','blast'].includes(f))drawThermalFx(c,e,t,w,h,lite,reduced);
+  if(e.design.slashUltimate)slashScene(c,e,x,y,radius,t,color,lite,reduced);
+  if(f==='cleave'&&e.design.variant){c.save();c.translate(x,y);drawCleave(c,e,t,radius,color,lite,reduced);c.restore();}
  }else if(f==='cut'){
   c.save();if(e.all){c.translate(x,y);c.scale(Math.min(2.6,Math.max(1,e.w/(radius*2))),1);slashScene(c,e,0,0,radius,t,color,lite,reduced);}else slashScene(c,e,x,y,radius,t,color,lite,reduced);c.restore();
  }else if(ELEMENT_FAMILIES.includes(f)){
@@ -542,19 +549,6 @@ export function drawSkillScene(c,e,t,w,h,reduced){
   c.save();
   if(e.all){c.translate(x,y);c.scale(Math.min(2.6,Math.max(1,e.w/(radius*2))),1);drawCore(c,f,0,0,radius,t,color,lite,reduced,e);}
   else drawCore(c,f,x,y,radius,t,color,lite,reduced,e);
-  c.restore();
- }
- if(e.design.tier>=2 && f!=='firePillar'){
-  const rank=Math.min(3,e.design.tier),fade=(1-t)**.8;
-  c.save();c.globalCompositeOperation='lighter';
-  for(let i=0;i<rank-1;i++){
-   const q=clamp01((t-i*.12)/(.8-i*.12));
-   ring(c,x,y,radius*(.45+easeOut(q)*(.45+i*.2)),color,fade*(.32+i*.08),1.5+i);
-  }
-  if(rank===3)for(let i=0;i<(lite?4:8);i++){
-   const angle=i*TAU/(lite?4:8),reach=radius*(1.2-.35*easeOut(t));
-   ray(c,x,y,reach,angle,color,fade*.4,1.4);
-  }
   c.restore();
  }
  if(!e.design.slashUltimate){

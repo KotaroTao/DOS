@@ -18,6 +18,8 @@ const ASSETS = [
   "./art/effects/fireball.webp",
   "./art/effects/blast.webp",
   "./art/effects/fire-pillar.webp",
+  "./art/effects/skill-materials.webp",
+  "./src/skill-fx-materials.js",
   "./src/battle-windup.js",
   "./effects-lab.html",
   "./effects-lab.css",
