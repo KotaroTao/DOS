@@ -8,7 +8,7 @@ stub_art=runpy.run_path(str(ROOT/'tools/cloud/choice-bench/trial-browser.py'))['
 async def main():
     async with async_playwright() as p:
         browser=await p.chromium.launch(executable_path=os.environ.get('CHROME_BIN','/usr/bin/chromium'),args=['--no-sandbox'])
-        cases=[(k,f,l,'manual') for k,f,l in [('TATEWARI','cut',60),('KYOUGEKI','impact',60),('YAMAKUZUSHI','impact',60),('HALITO','fireball',60),('MAHALITO','firePillar',60),('GOKUEN','firePillar',60),('GOKUENRAN','firePillar',60),('DIOS','heal',60),('CHOUHATSU','ward',60),('HALITO','fireball',900)]]+[(k,'firePillar',60,'auto') for k in ['MAHALITO','GOKUEN','GOKUENRAN']]+[('GOKUENRAN','firePillar',60,'fast')]
+        cases=[(k,f,l,'manual') for k,f,l in [('TATEWARI','cut',60),('KYOUGEKI','impact',60),('YAMAKUZUSHI','impact',60),('HALITO','fireball',60),('BATTLEMAGE_GURENMASHOU','fireball',60),('SPELLBLADE_ENTEI','fireball',60),('TILTOWAIT','blast',60),('TENPENCHII','blast',60),('KYOKUDAI','blast',60),('MAHALITO','firePillar',60),('GOKUEN','firePillar',60),('GOKUENRAN','firePillar',60),('DIOS','heal',60),('CHOUHATSU','ward',60),('HALITO','fireball',900)]]+[(k,'firePillar',60,'auto') for k in ['MAHALITO','GOKUEN','GOKUENRAN']]+[('GOKUENRAN','firePillar',60,'fast'),('SPELLBLADE_ENTEI','fireball',60,'auto'),('KYOKUDAI','blast',60,'auto')]
         for key,expected,latency,mode in cases:
             ctx=await browser.new_context(service_workers='block',viewport={'width':390,'height':844})
             await ctx.route('**/art/**',stub_art)
@@ -42,8 +42,8 @@ async def main():
               window.snapshot=()=>JSON.stringify([__game.G.rng,__game.G.party.map(e=>[e.hp,e.mp]),__game.G.battle.enemies.map(e=>e.hp)]);
               window.before=snapshot();window.atAck=null;window.fxSeen=null;
               // 短い演出を同じ時点で記録し、検査側の通信中に消えても判定を保つ。
-              const probe=setInterval(()=>{const fx=__game.G.fx;if(fx?.skill.some(e=>e.type==='skillScene')){fxSeen={count:fx.skill.length,type:fx.skill[0].type,family:fx.skill[0].design?.family,slashes:fx.slashes.length,changed:snapshot()!==before,hitSounds,hitKind:window.hitKind,dur:fx.skill[0].dur,t0:fx.skill[0].t0};if(testMode==='auto')__game.G.autoCombat=false;clearInterval(probe);}},1);
-              new MutationObserver(()=>{if(!atAck&&document.querySelector('.choice-trial-status').textContent.startsWith('確定通知'))atAck={same:snapshot()===before,impact,hitSounds};}).observe(document.querySelector('.choice-trial-status'),{childList:true,subtree:true});
+              const probe=setInterval(()=>{const fx=__game.G.fx;if(fx?.skill.some(e=>e.type==='skillScene')){fxSeen={count:fx.skill.filter(e=>e.type==='skillScene').length,type:fx.skill[0].type,family:fx.skill[0].design?.family,slashes:fx.slashes.length,changed:snapshot()!==before,hitSounds,hitKind:window.hitKind,dur:fx.skill[0].dur,t0:fx.skill[0].t0};if(testMode==='auto')__game.G.autoCombat=false;clearInterval(probe);}},1);
+              new MutationObserver(()=>{if(!atAck&&document.querySelector('.choice-trial-status').textContent.startsWith('確定通知'))atAck={at:performance.now(),same:snapshot()===before,impact,hitSounds};}).observe(document.querySelector('.choice-trial-status'),{childList:true,subtree:true});
             }''')
             await page.locator('#combat-menu .cmd-attack').click()
             targets=page.locator('#combat-menu .target-list button')
@@ -57,17 +57,18 @@ async def main():
             assert await page.evaluate('atAck.same && atAck.impact===null && atAck.hitSounds===0'),'確定通知前に結果や被弾音を出した'
             elapsed=await page.evaluate('impact-pressed')
             assert elapsed>=latency-10,(latency,elapsed)
-            assert elapsed<latency+350,(latency,elapsed)
+            assert await page.evaluate('impact-atAck.at<350'),'確定通知後に不要な待ちがある'
             assert await page.locator('.battle-windup').count()==0
             await page.wait_for_function('fxSeen!==null',timeout=5000)
             assert await page.evaluate('fxSeen.changed'),'確定後も戦況が更新されていない'
             assert await page.evaluate('(family)=>fxSeen.count===1 && fxSeen.type==="skillScene" && fxSeen.family===family',expected),(key,expected)
             assert await page.evaluate('fxSeen.hitSounds===1'),'対象数ぶん主音を重ねている'
-            if expected=='firePillar':
-                assert await page.evaluate('fxSeen.hitKind')=={'MAHALITO':'firePillar','GOKUEN':'firePillar2','GOKUENRAN':'firePillar3'}[key]
+            if expected in ['firePillar','fireball','blast']:
+                rank={'MAHALITO':1,'GOKUEN':2,'GOKUENRAN':3,'HALITO':1,'BATTLEMAGE_GURENMASHOU':2,'SPELLBLADE_ENTEI':3,'TILTOWAIT':1,'TENPENCHII':2,'KYOKUDAI':3}[key]
+                assert await page.evaluate('fxSeen.hitKind')==expected+('' if rank==1 else str(rank))
             assert await page.evaluate('fxSeen.slashes===0'),'技に旧三日月が重なっている'
-            if expected in ['firePillar','impact']:
-                base={'MAHALITO':400,'GOKUEN':700,'GOKUENRAN':1200,'KYOUGEKI':400,'YAMAKUZUSHI':950}[key]
+            if expected in ['impact','firePillar','fireball','blast']:
+                base={'KYOUGEKI':400,'YAMAKUZUSHI':950}[key] if expected=='impact' else [0,400,700,1200][rank]
                 duration=round(base*({'auto':.6,'fast':.8}.get(mode,1)))
                 assert await page.evaluate('fxSeen.dur')==duration
                 # 表示の途中で古い430msの片付けや次の行動に切り替わらない。
@@ -76,15 +77,15 @@ async def main():
                 if await page.evaluate('performance.now()<fxSeen.t0+fxSeen.dur-20'):
                     assert await page.evaluate('__game.G.animating && __game.G.fx?.skill.some(e=>e.type==="skillScene")')
             await page.wait_for_function('!__game.G.animating && __game.G.battle.phase==="input"')
-            if expected in ['firePillar','impact']:
+            if expected in ['impact','firePillar','fireball','blast']:
                 assert await page.evaluate('performance.now()-fxSeen.t0>=fxSeen.dur-20'),'火柱の終了前に次の手番へ進んだ'
             assert len(sent)==1
             assert await page.evaluate("localStorage.getItem('dos-save-v7')==='unchanged'")
-            await page.get_by_role('button',name='終了してホームへ').click();await page.wait_for_url('**/choice-trial.html')
+            await page.get_by_role('button',name='終了してホームへ').evaluate('button=>button.click()');await page.wait_for_url('**/choice-trial.html')
             await ctx.unroute_all(behavior='wait');await ctx.close()
             assert not errors,errors
             print(f'技 {key} {mode} 通信{latency}ms: 着弾{round(elapsed)}ms・確定前不変・主演出1個/主音1回・追加通信なし OK',flush=True)
-        # 通信試遊以外の通常の戦闘ループでも、渦を途中で片付けない。
+        # 通信試遊以外の通常の戦闘ループでも、爆発を途中で片付けない。
         ctx=await browser.new_context(service_workers='block',viewport={'width':390,'height':844})
         await ctx.route('**/art/**',stub_art)
         await ctx.route('**/src/cloud-config.js',lambda r:r.fulfill(content_type='text/javascript',body='export const CLOUD_CONFIG={enabled:false};'))
@@ -101,10 +102,10 @@ async def main():
         await page.wait_for_function('__game.G.battle?.phase==="input"&&!__game.G.animating')
         await page.locator('#combat-menu[data-mode="input"] .cmd-attack').wait_for(state='visible')
         await page.evaluate("""async()=>{
-          const {Battle}=await import('/src/combat.js');const actor=__game.G.battle.current;actor.mp=actor.maxmp=999;actor.spells=['GOKUENRAN'];
-          const choose=Battle.prototype.chooseAction;Battle.prototype.chooseAction=function(action,...args){return action==='attack'?choose.call(this,'spell','GOKUENRAN'):choose.call(this,action,...args);};
+          const {Battle}=await import('/src/combat.js');const actor=__game.G.battle.current;actor.mp=actor.maxmp=999;actor.spells=['KYOKUDAI'];
+          const choose=Battle.prototype.chooseAction;Battle.prototype.chooseAction=function(action,...args){return action==='attack'?choose.call(this,'spell','KYOKUDAI'):choose.call(this,action,...args);};
           window.fireSeen=null;
-          const probe=setInterval(()=>{const e=__game.G.fx?.skill.find(e=>e.design?.family==='firePillar');if(e){fireSeen={dur:e.dur,t0:e.t0};clearInterval(probe);}},1);
+          const probe=setInterval(()=>{const e=__game.G.fx?.skill.find(e=>e.design?.family==='blast');if(e){fireSeen={dur:e.dur,t0:e.t0};clearInterval(probe);}},1);
         }""")
         await page.locator('#combat-menu .cmd-attack').click()
         targets=page.locator('#combat-menu .target-list button')
@@ -112,7 +113,7 @@ async def main():
         await page.wait_for_function('fireSeen!==null')
         assert await page.evaluate('fireSeen.dur===1200')
         await page.wait_for_timeout(750)
-        assert await page.evaluate('__game.G.animating&&__game.G.fx?.skill.some(e=>e.design?.family==="firePillar")'),'通常戦闘の渦が途中で消えた'
+        assert await page.evaluate('__game.G.animating&&__game.G.fx?.skill.some(e=>e.design?.family==="blast")'),'通常戦闘の爆発が途中で消えた'
         await page.wait_for_function('!__game.G.animating&&__game.G.battle.phase==="input"')
         assert await page.evaluate('performance.now()-fireSeen.t0>=1200')
         await ctx.close();assert not errors,errors

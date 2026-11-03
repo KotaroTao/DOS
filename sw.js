@@ -11,6 +11,9 @@
 const CACHE = "dos-dev";
 const DEV = CACHE === "dos-dev";
 const ASSETS = [
+  "./src/thermal-fx.js",
+  "./art/effects/fireball.webp",
+  "./art/effects/blast.webp",
   "./art/effects/fire-pillar.webp",
   "./src/battle-windup.js",
   "./effects-lab.html",
@@ -18,8 +21,8 @@ const ASSETS = [
   "./src/effects-lab.js",
   "./src/skill-fx-preview.js",
   "./src/skill-fx-field.js",
-  "./src/skill-fx.js",
-  "./src/skill-fx-ultimates.js",
+  "./src/skill-fx.js", "./src/skill-fx-ultimates.js", "./src/cleave-fx.js",
+  "./src/mystic-fx.js",
   "./src/skill-fx-catalog.js",
   "./src/skill-fx-signatures.js",
   "./src/skill-fx-budget.js",

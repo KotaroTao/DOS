@@ -1,10 +1,11 @@
 import { SKILL_FX_ULTIMATES } from '../../src/skill-fx-ultimates.js';
+import { CLEAVE_TOP, CLEAVE_COLORS } from '../../src/cleave-fx.js';
 import assert from 'node:assert/strict';
 import { SPELLS } from '../../src/skilldefs.js';
 import { JOB_SIGNATURE, JOB_SKILLS } from '../../src/souls.js';
 import { SKILL_FX_CATALOG } from '../../src/skill-fx-catalog.js';
 import { SKILL_FX_SIGNATURES } from '../../src/skill-fx-signatures.js';
-import { SKILL_FAMILIES, emitSkillFx, skillFxSound, skillFxDuration } from '../../src/skill-fx.js';
+import { SKILL_FAMILIES, emitSkillFx, skillFxSound, skillFxDuration, extendedSkillFx } from '../../src/skill-fx.js';
 import { skillProfile, spawnFx, SIG_FX } from '../../src/battlefx.js';
 import '../../src/battlefx-sig.js';
 import { previewSkillFx } from '../../src/skill-fx-preview.js';
@@ -40,9 +41,9 @@ for(const name of ['skillRestore','skillWard','skillShade','skillFire','skillSpa
  const data=SFX_DEFS[name].gen(rng(123));assert.ok(data.ch[0].length<32000*.4);assert.ok(data.ch.every(ch=>ch.every(Number.isFinite)&&ch.some(x=>Math.abs(x)>.1)),name);
 }
 assert.equal(skillFxSound('firePillar'),'firePillar');
-assert.equal(skillFxSound('fireball'),'fire');
+assert.equal(skillFxSound('fireball'),'fireball');
 for(const [key,tier]of [['MAHALITO',1],['GOKUEN',2],['GOKUENRAN',3]])assert.equal(SKILL_FX_CATALOG[key].tier,tier);
-for(const [key,dur]of [['MAHALITO',400],['GOKUEN',700],['GOKUENRAN',1200]]){
+for(const [key,dur]of [['MAHALITO',400],['GOKUEN',700],['GOKUENRAN',1200],['HALITO',400],['BATTLEMAGE_GURENMASHOU',700],['SPELLBLADE_ENTEI',1200],['TILTOWAIT',400],['TENPENCHII',700],['KYOKUDAI',1200]]){
  const d=SKILL_FX_CATALOG[key];assert.equal(skillFxDuration(d),dur);
  assert.equal(skillFxDuration(d,2,{auto:true}),dur*.6);
  assert.equal(skillFxDuration(d,.1,{fast:true}),dur*.8);
@@ -56,7 +57,7 @@ for(const [key,dur]of [['MAHALITO',400],['GOKUEN',700],['GOKUENRAN',1200]]){
   assert.equal(effects.length,0,'不発の火柱には表示待ちを付けない');
  }
 }
-assert.equal(skillFxDuration({family:'fireball',tier:3},.1),220);
+assert.equal(skillFxDuration({family:'ice',tier:3},.1),220);
 const fireCounts=[0,0,0,0];
 for(const design of Object.values(SKILL_FX_CATALOG))if(design.family==='firePillar')fireCounts[design.tier]++;
 assert.deepEqual(fireCounts,[0,8,2,6]);
@@ -81,7 +82,59 @@ for(const [name,duration]of [['skillFirePillar',.68],['skillFirePillar2',.9],['s
   assert.ok(energy>.004 && tail<energy*.05,'噴出と余韻の音量');
  }
 }
+for(const [family,counts,top]of [['fireball',[9,4,3],['SPELLBLADE_ENTEI','ARCTHIEF_NUSUMIBI','ASCETIC_KASHOUZANMAI']],['blast',[6,2,3],['KYOKUDAI','BATTLEMAGE_TENPOU','ARCHMAGE_BANSHOU']]]){
+ const actual=[0,0,0];for(const d of Object.values(SKILL_FX_CATALOG))if(d.family===family)actual[d.tier-1]++;
+ assert.deepEqual(actual,counts);assert.ok(actual[0]>actual[1]&&actual[0]>actual[2]);
+ assert.deepEqual(new Set(Object.entries(SKILL_FX_CATALOG).filter(([k,d])=>d.family===family&&d.tier===3).map(([k])=>k)),new Set(top));
+ for(const key of top)for(const rows of Object.values(JOB_SKILLS).filter(rows=>rows.some(r=>r.skill===key))){
+  const lvl=rows.find(r=>r.skill===key).lvl,max=Math.max(...rows.filter(r=>SKILL_FX_CATALOG[r.skill]?.family===family).map(r=>r.lvl));
+  assert.equal(lvl,max,key);assert.ok(lvl>=(family==='blast'?200:160),key);
+ }
+ for(let rank=1;rank<=3;rank++){
+  const kind=family+(rank===1?'':rank),name=(family==='fireball'?'skillFireball':'skillBlast')+(rank===1?'':rank);
+  assert.equal(skillFxSound(family,rank),kind);
+  for(let seed=1;seed<=3;seed++)for(const ch of SFX_DEFS[name].gen(rng(seed)).ch){assert.ok(ch.every(Number.isFinite));assert.ok(ch.every(v=>Math.abs(v)<=.91));assert.ok(ch.some(v=>Math.abs(v)>.1));}
+ }
+}
 console.log(`${Object.keys(SPELLS).length}技 / ${new Set(Object.values(SKILL_FX_CATALOG).map(d=>d.family)).size}系統 / ${Object.keys(SKILL_FX_SIGNATURES).length}看板: 割当・全体/単体・不発・複合作用点・上限・軽量化・乱数不変・音声を確認`);
+// 新しい7系統は各ランクを実際の技へ適用し、専用音と表示尺を持つ。
+for(const family of ['radiance','void','arcane','heal','revive','purify','ward'])for(let rank=1;rank<=3;rank++){
+ const entry=Object.entries(SKILL_FX_CATALOG).find(([,d])=>d.family===family&&d.tier===rank);
+ assert.ok(entry,`${family}:${rank} の技がない`);
+ const [key,d]=entry,kind=family+(rank===1?'':rank);
+ assert.equal(skillFxSound(family,rank),kind);
+ assert.equal(skillFxDuration(d),[0,400,700,1200][rank]);
+ assert.equal(previewSkillFx(key)[0].dur,skillFxDuration(d));
+ assert.equal(skillFxDuration(d,1,{auto:true}),skillFxDuration(d)*.6);
+ const name='skill'+kind[0].toUpperCase()+kind.slice(1),data=SFX_DEFS[name].gen(rng(123));
+ assert.ok(data.ch.every(ch=>ch.every(Number.isFinite)&&ch.some(x=>Math.abs(x)>.01)),name);
+}
+
+// 少数の系統は実在する習得段階だけを使い、弱体の最上位を明示する。
+assert.equal(SKILL_FX_CATALOG.MANAGIFT.tier,2);
+assert.equal(SKILL_FX_CATALOG.INQUISITOR_MANAZASHI.tier,3);
+assert.deepEqual([...new Set(Object.values(SKILL_FX_CATALOG).filter(d=>d.family==='charge').map(d=>d.tier))].sort(),[1,2]);
+for(const f of ['empower','weaken','dispel','seal','poison','illusion','sleep']){
+ assert.deepEqual([...new Set(Object.values(SKILL_FX_CATALOG).filter(d=>d.family===f).map(d=>d.tier))].sort(),[1,2,3],f);
+}
+
+for(const rows of Object.values(JOB_SKILLS)){
+ const top=rows.filter(r=>SKILL_FX_CATALOG[r.skill]?.family==='cleave').sort((a,b)=>b.lvl-a.lvl)[0];
+ if(top)assert.ok(CLEAVE_TOP[top.skill],top.skill+' 最上位の専用軌跡なし');
+}
+assert.equal(new Set(Object.values(CLEAVE_TOP)).size,Object.keys(CLEAVE_TOP).length);
+for(const [key,variant] of Object.entries(CLEAVE_TOP)){
+ assert.equal(SKILL_FX_CATALOG[key].family,'cleave');assert.equal(SKILL_FX_CATALOG[key].tier,3);assert.equal(SKILL_FX_CATALOG[key].variant,variant);
+}
+for(const [key,sp] of Object.entries(SPELLS))if(SKILL_FX_CATALOG[key].family==='cleave'&&sp.element)assert.equal(previewSkillFx(key)[0].col,CLEAVE_COLORS[sp.element],key);
+
+// 六系統は看板指定に左右されず、実際の習得段階の描画を選ぶ。
+const utilityFamilies=new Set(['gravity','doom','drain','steal','escape','survey']);
+for(const [key,design]of Object.entries(SKILL_FX_CATALOG))if(utilityFamilies.has(design.family)){
+ const levels=Object.values(JOB_SKILLS).flat().filter(row=>row.skill===key).map(row=>row.lvl);
+ const level=levels.length?Math.min(...levels):1;
+ assert.equal(design.tier,level>=100?3:level>=30?2:1,key);
+}
 
 const shapes=new Set();
 for(const [job,rows] of Object.entries(JOB_SKILLS)){

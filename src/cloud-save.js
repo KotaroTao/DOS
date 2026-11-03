@@ -433,7 +433,7 @@ function failure(e) {
     const chosen = !!getJSON(choiceKey(client.auth.user.id));
     if (e.status === 409 && (e.message === "cloud_replay_mismatch" || chosen && e.message === "cloud_revision_conflict")) {
       client.choiceConflict = true;
-      showGate(e.message === "cloud_replay_mismatch" ? "端末と保管先の計算が一致しません。保管先で確定した最新の記録から再開してください。" : "別の画面で記録が先に更新されています。この選択を新しい戦況へ適用せず、退避して最新の確定済み記録から再開できます。過去の記録へは戻りません。");
+      showGate(e.message === "cloud_replay_mismatch" ? "冒険の記録を読み直します。保存済みの戦闘の続きから再開できます。" : "別の画面で冒険が進んでいます。最新の記録を読み直して再開できます。");
       button("最新の記録から再開", resumeSavedRecord);
       return;
     }
