@@ -9,7 +9,7 @@ const jobs=new Set();
 for(const [key,d]of slashes){
  assert.ok(['cut','cleave','flurry'].includes(d.family));
  assert.equal(previewSkillFx(key)[0].element,SPELLS[key].element||null);
- if(d.ultimate){assert.ok(SLASH_FORMS[d.ultimate],key);assert.ok(!jobs.has(d.ultimate));jobs.add(d.ultimate);}
+ if(d.slashUltimate){assert.ok(SLASH_FORMS[d.slashUltimate],key);assert.ok(!jobs.has(d.slashUltimate));jobs.add(d.slashUltimate);}
 }
 for(const key of ['KONGOUMUSOU','GUARDIAN_JIBANSHIZUME','HUNTER_SAMIDARE'])assert.ok(!catalog[key].slashRank);
 console.log(`${slashes.length}斬撃 / 5ランク / ${jobs.size}職の専用斬撃、属性・拳/盾/射撃の分離を確認`);

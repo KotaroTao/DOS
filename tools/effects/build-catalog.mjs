@@ -71,14 +71,14 @@ function effectTier(key,s){
 // 職業ごとの最終斬撃を制作時に確定する（拳・射撃は含めない）。
 const slashUltimates={};
 for(const [job,rows] of Object.entries(JOB_SKILLS)){
- const candidates=rows.filter(r=>r.skill&&['cut','flurry'].includes(family(r.skill,SPELLS[r.skill])));
+ const candidates=rows.filter(r=>r.skill&&['cut'].includes(family(r.skill,SPELLS[r.skill])));
  const last=candidates.sort((a,b)=>b.lvl-a.lvl)[0];
  if(last)slashUltimates[last.skill]=job;
 }
 const slashDesigns={};
-for(const [key,s] of Object.entries(SPELLS))if(['cut','flurry'].includes(family(key,s))){
+for(const [key,s] of Object.entries(SPELLS))if(['cut'].includes(family(key,s))){
  const lv=level.get(key)||1;
- slashDesigns[key]={slashRank:lv>=150?5:lv>=100?4:lv>=60?3:lv>=25?2:1,ultimate:slashUltimates[key]||null};
+ slashDesigns[key]={slashRank:lv>=150?5:lv>=100?4:lv>=60?3:lv>=25?2:1,slashUltimate:slashUltimates[key]||null};
 }
 const groups=new Map();
 for(const [key,s]of Object.entries(SPELLS)){
@@ -92,7 +92,7 @@ for(const [key,variant] of Object.entries(CLEAVE_TOP))source+='SKILL_FX_CATALOG[
 source+='for(const [key,extra] of Object.entries('+JSON.stringify(slashDesigns)+')) SKILL_FX_CATALOG[key]=Object.freeze({...SKILL_FX_CATALOG[key],...extra});\nObject.freeze(SKILL_FX_CATALOG);\n';
 
 const quote=value=>'"'+String(value??'').replaceAll('"','""')+'"';
-const csv='key,name,kind,target,element,family,tier,signature,slashRank,ultimate\n'+Object.entries(SPELLS).map(([key,s])=>[key,s.name,s.kind,s.target,s.element||'',family(key,s),effectTier(key,s),SKILL_FX_SIGNATURES[key]?.accent||'',slashDesigns[key]?.slashRank||'',slashDesigns[key]?.ultimate||''].map(quote).join(',')).join('\n')+'\n';
+const csv='key,name,kind,target,element,family,tier,signature,slashRank,slashUltimate\n'+Object.entries(SPELLS).map(([key,s])=>[key,s.name,s.kind,s.target,s.element||'',family(key,s),effectTier(key,s),SKILL_FX_SIGNATURES[key]?.accent||'',slashDesigns[key]?.slashRank||'',slashDesigns[key]?.slashUltimate||''].map(quote).join(',')).join('\n')+'\n';
 const auditPath=new URL('../../docs/skill-effects-catalog.csv',import.meta.url);
 const path=new URL('../../src/skill-fx-catalog.js',import.meta.url);
 if(process.argv.includes('--check')){if(await readFile(path,'utf8')!==source||await readFile(auditPath,'utf8')!==csv)throw Error('技の演出割当を更新してください: node tools/effects/build-catalog.mjs');}
