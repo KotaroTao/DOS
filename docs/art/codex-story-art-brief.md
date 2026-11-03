@@ -2,6 +2,8 @@
 
 2026-10-09、ストーリーの挿絵と本文を全章で照らし合わせた結果をもとにした指示書。Codex はこのファイルだけ読めば作業できるように書いてある。仕様の正本は `CLAUDE.md`。
 
+**2026-11-03 王宮を約一割へ減らすユーザー指示**: 王宮を残すのは `arrival` / `report_w09` / `report_w20` / `report_w33` / `report_w41` / `report_w52` の6枚。ほかの報告は語られる情景・記憶・暮らしへ変更する。会話の場所・本文・ID・解放条件は変えない。本変更の対象では下記の旧王宮構図維持・固定合成の指示より本指示と [最新制作記録](palace-replacement/README.md) を優先し、旧合成を再適用しない。未取得の手がかりを前提にしない主題を優先し、既存の手がかり・記憶絵と同じ構図を繰り返さない。原画を実際に変更した場面は各組の記録と新しい修正項目に記す。
+
 - **絵の修正と制作は Codex が行う** (この指示書)。
 - **本文・絵の割り当て・記録の修正は Claude が済ませた** (このファイルと同じ PR)。Codex は本文を変えない。本文と絵が食い違ったら、絵を本文に合わせる。
 - **この指示書は道具が読む** (`tools/storyart/prompt.mjs` が場面ごとの依頼を組み立てる)。見出しの書式 (`**<場面ID>「題」** (種類)`・`**A-n. …**`・表・```text の英語) を崩さない。作業の流れは 1-3。
@@ -219,6 +221,9 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 | palace-high.png | High oblique architectural view from the southwest entrance gallery, looking down northeast into the SAME room, wide enough to understand the rectangular floor plan, central red carpet, north dais with throne and smaller chair on its east side, both colonnades, and clear circulation. This is a believable interior balcony camera, not a cutaway, not an isometric diagram. Preserve every furniture position and the room proportions. | `docs/art/story-refs/palace-front.png` |
 
 ### 2-5. 王宮内部の共通指示
+
+
+
 
 **追加のユーザー指示（11〜20枚目）**: `report_w11`〜`report_w20` も独立した一枚絵に描き直す。本文に沿って手記・杯・王の衰え・指先・汗・焼けた木片へ構図を分散する。固定合成A-66より今回の指示を優先。`report_w09` は書状の裏面を見せているため、旧A-38の封蝋を横並びにする指示より、封蝋・紋章・組紐を描かない今回の指示を優先する。制作記録: `docs/art/palace-story-eleven-twenty.md`。
 
@@ -839,6 +844,24 @@ Redraw the ENTIRE first reference as a NEW standalone finished narrative illustr
 **A-87. report_w20「床に置く杯と震える手」** `art/story-review/chapter5/report_w20.png` (済)
 - 独自性改善の追加依頼により固定合成から一枚絵へ描き直す。主題は「床に置く杯と震える手」。本文・人物正典を守る。杯の位置と人物の在不在は場面別に合わせる。詳細: `docs/art/palace-story-eleven-twenty.md`。
 
+**A-88. report_w01「休眠人業を抱えて受け取る弟子の手」** `art/story-review/chapter1/report_w01.png` (済)
+- 2026-11-03のユーザー指示により王宮背景を外し、語られた情景へ変更。本文・人物正典・場面ID・解放条件は維持。旧王宮構図の維持指示を再適用しない。制作・変更前・原寸/縮小確認は `docs/art/palace-replacement/batch06/`。
+```text
+Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge, no panels, no borders, no labels, no typography, no readable text anywhere. Match attached Dungeon of Souls artwork exactly: lavish high-quality fine-grained pixel-textured dark fantasy illustration, sophisticated natural adult proportions, meticulously detailed embroidered cloth, black iron, carved wood, crisp tiny highlights, rich controlled cool cyan light against warm amber candlelight. Preserve identities and costume details. Completely replace composition: the young brown-haired apprentice in charcoal black gold-embroidered travel cloak is carrying the dormant adult-sized articulated wooden doll away from its storage table, viewed in an intimate overhead diagonal close-up of his two arms cradling its smooth featureless rounded wooden head and inert wooden forearm across worn cream cloth. Main subject is the contrast of living hands gently supporting sleeping wooden hands, clearly readable at 384x256. The dormant doll has a totally blank smooth wooden face without eyes or nose or mouth and black iron joint bands, no glowing soul or active movement. Only a partial profile and cloak of apprentice enter upper left; one arm supports head and neck, the other supports torso through the cloth. The head, shoulder and inert hand are visible; remainder of doll continues naturally out of frame, do not shrink it to baby size. No royal architecture, no shelves, no king, no old attendant, no throne or ornate palace scenery. Background mostly worn worktable wood and shadow, secondary light reflected from a single lantern edge at bottom corner. Anatomically natural hands, five digits each, no extra limbs. This scene depicts receiving a dormant companion and gently carrying it home, not surgery or death.
+```
+
+**A-89. report_w25「解けた氷の堤からほどける魂と奈落へ流れる水」** `art/story-review/chapter6/report_w25.png` (済)
+- 2026-11-03のユーザー指示により王宮背景を外し、語られた情景へ変更。本文・人物正典・場面ID・解放条件は維持。旧王宮構図の維持指示を再適用しない。制作・変更前・原寸/縮小確認は `docs/art/palace-replacement/batch06/`。
+```text
+Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge, no panels, no borders, no labels, no typography, no readable text anywhere. Match attached Dungeon of Souls artwork exactly: lavish high-quality fine-grained pixel-textured dark fantasy illustration, crisp tiny highlights, rich controlled cool cyan against warm amber soul light. Completely NEW narrative aftermath illustration: the ancient subterranean ice dam has finally thawed, allowing the souls it held for three hundred years to rest. Very low water-level viewpoint beside a broken translucent blue ice ledge, rivulets of meltwater flowing past us and over the foreground lip into an immense bottomless black shaft on the right. Dozens of softly amber and pearl glowing small soul flames lift gently out of thawing ice, spread into spacious darkness, no distinct human figures or faces. Central focal point is one warm soul-light leaving a clear droplet on a broken ice ridge, the water carries its reflection toward the abyss. Remaining stepped ice walls on the left establish the vast dam, delicate luminous refractions, deep dark cavern roof, no outdoor sky. Make it quiet release after a long vigil, not combat, explosion or disaster. No apprentice, no frozen king, no throne, no palace, no painting, no royal architecture, no candles or inhabited settlement. Do not repeat attached composition; use only its crystalline materials, subterranean light and painterly fine-grained texture. Subject must remain legible at 384x256.
+```
+
+**A-90. minePass「王宮造作を除き、通行証を受け取る三つの手と旅鞄を描く」** `art/story-review/chapter1/minePass.png` (済)
+- 2026-11-03のユーザー指示により王宮背景を外し、語られた情景へ変更。本文・人物正典・場面ID・解放条件は維持。旧王宮構図の維持指示を再適用しない。制作・変更前・原寸/縮小確認は `docs/art/palace-replacement/batch06/`。
+```text
+Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge, no panels, no borders, no labels, no typography, no readable text anywhere (all writing illegible irregular marks). Match attached Dungeon of Souls artwork exactly: lavish high-quality fine-grained pixel-textured dark fantasy illustration, sophisticated natural adult proportions, meticulously detailed embroidered cloth, black iron, worn parchment, crisp tiny highlights, rich controlled cool cyan light against warm amber candlelight. Completely replace composition with an extreme top-down still-life-like close-up of the moment the old king grants the apprentice a mine passage permit. Frame ONLY three natural hands: one old wrinkled royal hand enters upper left and releases the corner of the folded parchment, two young hands enter from lower right and receive the permit. Old royal sleeve is red embroidered cloth with white black-spotted ermine cuff, young sleeves are charcoal black with restrained geometric gold embroidery and dark leather bracers. Preserve precisely the parchment permit's shape and red wax seal from reference, no legible words, no invented crest or symbols. The old thumb rests on TOP surface of paper, four fingers beneath; apprentice's two palms support it underneath, five fingers each naturally aligned and partly occluded. Permit occupies central half of illustration on a diagonal; nearby only a dark brown leather travel satchel being opened to put the permit away, its plain coarse lining. The background is an almost abstract softly shadowed dark cloth or wooden surface, no royal architecture, no treasury, no visible furniture design, no palace columns, no throne, no gold treasure, no faces, no crowns. Theme: permission is granted, but departure requires preparation. Keep restrained intimate stillness, no literal mine gate or future adventure. Small 384x256 readability is essential.
+```
+
 ## 4. 便2・便3 ― 第5〜8章の新規 42場面
 
 **irene_boons「手がかりの恵み」** (第1章 / 館の語り)
@@ -1049,12 +1072,9 @@ A memory scene with frosted, softly blurred edges. At the end of a great ice cor
 ```
 
 **report_w25「回廊の肖像」** (報告)
-- 要点: イザークの名を聞いて王が思い出す、王宮の回廊に一枚だけ掛かる古い肖像。報告を聞く玉座の間ではなく、肖像のある別の場所を描く。
-- 描くもの: 人のいない王宮の石造りの回廊 / 壁に掛かる古い額入りの肖像 (凍る前の若いイザーク、暗い衣、厳しくも優しい目) / 奥へ続くアーチと窓 / 冷たい光と暖かなろうそくの光。
-- 描かないもの: 玉座・玉座の間・王・弟子・宰相・空の椅子・ほかの肖像・読める文字。
-- 修正 (2026-10-17、済): 玉座で報告を聞く構図をやめ、王宮の回廊に掛かる肖像を主題に描き直した。
+- 王宮ではなく、報告で語られた情景を描く。主題: 解けた氷の堤からほどける魂と奈落へ流れる水。最新制作記録: `docs/art/palace-replacement/batch06/`。
 ```text
-An unoccupied stone corridor in the royal palace, a separate place from the audience chamber, visualizing the remembered portrait. The main subject is a single old framed painted portrait hanging directly on the corridor's carved stone wall, large and clearly readable in the central band: young Isaak before he froze, a royal soul-mage in dark robes, with a lean face, dark hair, and stern yet kind eyes. Use the ancient-character reference for his facial identity, but show his younger living appearance inside an aged painting, without ice. An oblique view shows the wall and frame beside a long corridor receding under gothic arches, narrow windows with cold cloudy light, worn polished stone flooring, restrained red drapery and warm amber wall candles. Keep the richly detailed dark fantasy style of the palace reference, using it only for materials, carving and lighting; replace its throne-room composition completely. No throne, dais, audience chamber, chairs, king, apprentice, chancellor, living figures, other portraits, royal crown, ice crown, readable plaque or text. The single hanging portrait and the corridor itself must dominate the illustration, with quiet age and remembrance.
+Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge, no panels, no borders, no labels, no typography, no readable text anywhere. Match attached Dungeon of Souls artwork exactly: lavish high-quality fine-grained pixel-textured dark fantasy illustration, crisp tiny highlights, rich controlled cool cyan against warm amber soul light. Completely NEW narrative aftermath illustration: the ancient subterranean ice dam has finally thawed, allowing the souls it held for three hundred years to rest. Very low water-level viewpoint beside a broken translucent blue ice ledge, rivulets of meltwater flowing past us and over the foreground lip into an immense bottomless black shaft on the right. Dozens of softly amber and pearl glowing small soul flames lift gently out of thawing ice, spread into spacious darkness, no distinct human figures or faces. Central focal point is one warm soul-light leaving a clear droplet on a broken ice ridge, the water carries its reflection toward the abyss. Remaining stepped ice walls on the left establish the vast dam, delicate luminous refractions, deep dark cavern roof, no outdoor sky. Make it quiet release after a long vigil, not combat, explosion or disaster. No apprentice, no frozen king, no throne, no palace, no painting, no royal architecture, no candles or inhabited settlement. Do not repeat attached composition; use only its crystalline materials, subterranean light and painterly fine-grained texture. Subject must remain legible at 384x256.
 ```
 
 **irene_lineage「同じ作り方の灯」** (館の語り)

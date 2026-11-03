@@ -1,0 +1,35 @@
+[
+  {
+    "id": "report_w01",
+    "master": "art/story-review/chapter1/report_w01.png",
+    "size": [
+      1536,
+      1024
+    ],
+    "sha256": "552b2bfbfe041be9d9f83944a0e1ec1469e86244d9188ef8d19eafd712c75e06",
+    "beforeSha256": "8ed5cd32f16653a9a16e9e2a1f93d742f3066973c5a0212a2d81f8e2ce8bb35b",
+    "review": "原寸を目視し本文との整合・王宮背景不在・文字なし・手の接続を確認。縮小はoverview.jpgで確認。"
+  },
+  {
+    "id": "report_w25",
+    "master": "art/story-review/chapter6/report_w25.png",
+    "size": [
+      1536,
+      1024
+    ],
+    "sha256": "b908f14e69f8b1945c22fefdb3a820fb92dc601c002f5e05ac2bf9f0426b5766",
+    "beforeSha256": "8565dea787c8628b1db2051ca4df44db627b9b63c38dd6f3c321898a747259b0",
+    "review": "原寸を目視し本文との整合・王宮背景不在・文字なし・手の接続を確認。縮小はoverview.jpgで確認。"
+  },
+  {
+    "id": "minePass",
+    "master": "art/story-review/chapter1/minePass.png",
+    "size": [
+      1536,
+      1024
+    ],
+    "sha256": "fa2c57d28e8c4fee4e4ed70c7978a3e8794a739e306062abc869b79ffdeca042",
+    "beforeSha256": "3174c170e3bb58a3ae526c823bdee06b0bc964b87d670224a01cea6b1da0064e",
+    "review": "原寸を目視し本文との整合・王宮背景不在・文字なし・手の接続を確認。縮小はoverview.jpgで確認。"
+  }
+]

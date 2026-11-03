@@ -1,0 +1,43 @@
+{
+  "batch": "batch06",
+  "scenes": [
+    {
+      "id": "report_w01",
+      "master": "art/story-review/chapter1/report_w01.png",
+      "beforeSha256": "8ed5cd32f16653a9a16e9e2a1f93d742f3066973c5a0212a2d81f8e2ce8bb35b",
+      "afterSha256": "552b2bfbfe041be9d9f83944a0e1ec1469e86244d9188ef8d19eafd712c75e06",
+      "size": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "id": "report_w25",
+      "master": "art/story-review/chapter6/report_w25.png",
+      "beforeSha256": "8565dea787c8628b1db2051ca4df44db627b9b63c38dd6f3c321898a747259b0",
+      "afterSha256": "b908f14e69f8b1945c22fefdb3a820fb92dc601c002f5e05ac2bf9f0426b5766",
+      "size": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "id": "minePass",
+      "master": "art/story-review/chapter1/minePass.png",
+      "beforeSha256": "3174c170e3bb58a3ae526c823bdee06b0bc964b87d670224a01cea6b1da0064e",
+      "afterSha256": "fa2c57d28e8c4fee4e4ed70c7978a3e8794a739e306062abc869b79ffdeca042",
+      "size": [
+        1536,
+        1024
+      ]
+    }
+  ],
+  "keptOriginalsUnchanged": {
+    "arrival": "94a3292b9b681bf3830dd8bede376046afd41788d74e0fbe7859fa26cc9337fc",
+    "report_w09": "9d0dd52517569a0b3dfbc28b4d2bbbeb1843da260960ab639230e2c12abc2d6d",
+    "report_w20": "0f4f9a4f9e58ea5edd465932e30e1e77736bd0113327e0e4b4d4dbc36ef43f0e",
+    "report_w33": "96313a92f11462f886061b2cff083363b223d9e1753b67ba8a7c010927de4365",
+    "report_w41": "b2e63e8fffa7431f5b8731ba24d811b10da526aa0cb060fb0302e1fc4879dd7d",
+    "report_w52": "98e24be6603d8d28e602f21f11487f8832e8789ef3319c5c18e1fca330f82c34"
+  }
+}
