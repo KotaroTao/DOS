@@ -511,6 +511,29 @@ for(const [family,base] of Object.entries({Radiance:740,Void:110,Arcane:330,Heal
   }};
  }
 }
+// 系統本来の音色を保ち、上位ほど低音・倍音・遅れた波を重ねる。
+// バッファは表示尺と一致。高速時は再生速度を合わせ、次の手へ音を持ち越さない。
+for(const [name,def] of Object.entries({...SFX_DEFS}))if(/^(skill|normal(Slash|Blunt|Pierce))/.test(name)){
+ for(let rank=1;rank<=3;rank++){
+  const duration=[0,.4,.7,1.2][rank];
+  SFX_DEFS['ranked'+name+rank]={vars:2,vol:Math.min(.72,def.vol*(1+rank*.08)),rev:0,gen(r){
+   const original=def.gen(r),channels=[];
+   for(const input of original.ch){
+    const x=new Float32Array(len(duration));
+    // 元の立ち上がりは保ち、長い音だけ最後まで収める。
+    const ratio=Math.max(1,input.length/x.length);
+    for(let i=0;i<x.length;i++)x[i]=input[Math.floor(i*ratio)]||0;
+    for(let wave=1;wave<rank;wave++){
+     mixInto(x,sweep(duration*(1-wave*.18),t=>65+rank*24+30*Math.exp(-t/.05),duration*.25,.008),len(duration*wave*.18),.22);
+     const shine=modal(SR,duration*(1-wave*.18),[[330+rank*110,.22,duration*.35],[990+wave*220,.1,duration*.2]]);
+     mixInto(x,shine,len(duration*wave*.18),.32);
+    }
+    dcBlock(x);softClip(x,1.1);peakNorm(x,.88);fadeEdges(x,SR,.001,.04);channels.push(x);
+   }
+   return {sr:SR,ch:channels};
+  }};
+ }
+}
 const CACHE = new Map();
 // 効果音のバッファ (揺らぎのうち1つをランダムに)。ctx は AudioBuffer 作成用
 export function sfxBuffer(name, ctx) {

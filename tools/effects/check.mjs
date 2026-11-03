@@ -17,7 +17,7 @@ assert.deepEqual(Object.keys(SKILL_FX_CATALOG).sort(),Object.keys(SPELLS).sort()
 reseedRng(42);const before=[...rngState()];
 for(const [key,sp]of Object.entries(SPELLS)){
  const d=SKILL_FX_CATALOG[key],p=skillProfile(key,sp),scene=previewSkillFx(key);
- assert.ok(SKILL_FAMILIES[d.family],key);assert.ok(Object.isFrozen(d));assert.ok(d.tier>=1&&d.tier<=(d.family==='impact'?5:3));
+ assert.ok(SKILL_FAMILIES[d.family],key);assert.ok(Object.isFrozen(d));assert.ok(Number.isInteger(d.tier)&&d.tier>=1);
  assert.equal(p.family,d.family);assert.equal(p.all,['all-enemy','all-ally'].includes(sp.target));
  assert.equal(scene.length,1,key);assert.equal(scene[0].type,'skillScene');assert.ok(scene[0].pts.length>=1&&scene[0].pts.length<=6);
  assert.ok(Number.isFinite(scene[0].x)&&Number.isFinite(scene[0].y)&&scene[0].dur===skillFxDuration(scene[0].design),key);
@@ -59,7 +59,7 @@ for(const [key,dur]of [['MAHALITO',400],['GOKUEN',700],['GOKUENRAN',1200],['HALI
   assert.equal(effects.length,0,'不発の火柱には表示待ちを付けない');
  }
 }
-assert.equal(skillFxDuration({family:'cut',tier:3},.1),220);
+assert.equal(skillFxDuration({family:'cut',tier:3},.1),1200);
 const fireCounts=[0,0,0,0];
 for(const design of Object.values(SKILL_FX_CATALOG))if(design.family==='firePillar')fireCounts[design.tier]++;
 assert.deepEqual(fireCounts,[0,8,2,6]);
@@ -156,7 +156,7 @@ for(const [key,sp] of Object.entries(SPELLS))if(SKILL_FX_CATALOG[key].family==='
 
 // 六系統は看板指定に左右されず、実際の習得段階の描画を選ぶ。
 const utilityFamilies=new Set(['gravity','doom','drain','steal','escape','survey']);
-for(const [key,design]of Object.entries(SKILL_FX_CATALOG))if(utilityFamilies.has(design.family)){
+for(const [key,design]of Object.entries(SKILL_FX_CATALOG))if(utilityFamilies.has(design.family)&&Math.max(SPELLS[key].hits||1,SPELLS[key].scatter||1)===1){
  const levels=Object.values(JOB_SKILLS).flat().filter(row=>row.skill===key).map(row=>row.lvl);
  const level=levels.length?Math.min(...levels):1;
  assert.equal(design.tier,level>=100?3:level>=30?2:1,key);
@@ -165,7 +165,8 @@ for(const [key,design]of Object.entries(SKILL_FX_CATALOG))if(utilityFamilies.has
 for(const [key,sp] of Object.entries(SPELLS))if(Math.max(sp.hits||1,sp.scatter||1)>1){
  const e=previewSkillFx(key)[0];
  assert.equal(e.strikes.length,sp.scatter||(sp.hits*(['all-enemy','all-ally'].includes(sp.target)?6:1)),key);
- assert.ok(e.dur>=e.strikes.length*96,key);
+ assert.equal(e.design.tier,Math.max(sp.hits||1,sp.scatter||1),key);
+ assert.equal(e.dur,e.design.tier===2?700:1200,key);
 }
 for(const rows of Object.values(JOB_SKILLS)){
  const skills=rows.filter(r=>r.skill),top=Math.max(...skills.map(r=>r.lvl));
@@ -174,9 +175,9 @@ for(const rows of Object.values(JOB_SKILLS)){
 const ultimates=Object.values(SKILL_FX_SIGNATURES).filter(s=>s.ultimate);
 assert.equal(new Set(ultimates.map(s=>JSON.stringify([s.ultimate,s.tone]))).size,ultimates.length);
 list=[];emitSkillFx(list,'RINNE',SPELLS.RINNE,[{target:enemy,dmg:10},{target:enemy,miss:true},{target:ally,dmg:12},{target:enemy,immune:true}],locate,0);
-assert.deepEqual(list[0].strikes,[locate(enemy),locate(ally)]);
+assert.deepEqual(list[0].strikes,[{...locate(enemy),slot:0},{...locate(ally),slot:0}]);
 
-assert.deepEqual(new Set(Object.values(SKILL_FX_CATALOG).filter(d=>d.family==='pierce').map(d=>d.tier)),new Set([1,2,3]));
+assert.ok(Object.values(SKILL_FX_CATALOG).filter(d=>d.family==='pierce').every(d=>d.tier>=1));
 for(const [key,s]of Object.entries(SPELLS))if(s.element==='fire'&&SKILL_FX_CATALOG[key].family!=='cleave'&&['atk','phys'].includes(s.kind))assert.equal(previewSkillFx(key)[0].col,'#ff4938',key);
 const shapes=new Set();
 for(const [job,rows] of Object.entries(JOB_SKILLS)){
@@ -192,6 +193,35 @@ for(const [key,d] of Object.entries(SKILL_FX_CATALOG))if(d.family==='impact'){
   const fx=[];emitSkillFx(fx,key,SPELLS[key],[hit],locate,0);assert.equal(fx.length,0);
  }
 }
-assert.equal(ranks.size,5);
+assert.ok(ranks.has(1)&&ranks.has(5));
 console.log(`${shapes.size}職業の最終技専用構図 / 重い打撃5ランクを確認`);
 
+
+// すべての系統・高ランク・速度設定で尺は400/700/1200msに限定する。
+for(const family of Object.keys(SKILL_FAMILIES))for(const tier of [1,2,3,4,5,10,100]){
+ for(const options of [{},{auto:true},{fast:true},{auto:true,fast:true}]){
+  const expected=(tier===1?400:tier===2?700:1200)*(options.auto?.6:options.fast?.8:1);
+  assert.equal(skillFxDuration({family,tier},.1,options),expected);
+ }
+}
+for(const [name,def]of Object.entries(SFX_DEFS))if(name.startsWith('ranked')){
+ const rank=Number(name.at(-1)),data=def.gen(rng(123));
+ for(const ch of data.ch){
+  assert.equal(ch.length,32000*[0,.4,.7,1.2][rank],name);
+  assert.ok(ch.every(v=>Number.isFinite(v)&&Math.abs(v)<=.9),name);
+  assert.ok(ch.some(v=>Math.abs(v)>.01),name);
+ }
+}
+// 実際の戦闘結果を演出へ通し、成功・無効と受取人を確認する。
+const {Battle}=await import('../../src/combat.js');
+const {makeDoll}=await import('../../src/souls.js');
+for(const [key,metal]of [['ICELANCE',false],['ICELANCE',true],['MARYOKUGOUDATSU',false],['MARYOKUGOUDATSU',true]]){
+ const actor=Object.assign(makeDoll('検証'),{int:100,atk:100,mp:500,maxmp:1000});
+ const foe={uid:999,key:'balance',name:'検証の敵',side:'enemy',alive:true,hp:100000,maxhp:100000,atk:1,vit:10,agi:1,int:10,pie:10,luk:8,lv:1,element:'none',metal};
+ const b=new Battle([actor],[foe],()=>{}),res={hits:[]};b._cast(actor,{spellKey:key,target:foe},res);
+ const effects=[];emitSkillFx(effects,key,SPELLS[key],res.hits,locate,0,1,{source:locate(actor)});
+ if(metal){assert.ok(!effects.length||!effects[0].hasDrain);assert.ok(!effects.length||!effects[0].pts.some(p=>p.weak));}
+ else if(key==='ICELANCE')assert.equal(effects[0].pts[0].weak,true);
+ else {assert.equal(effects[0].hasMpDrain,true);assert.ok(effects[0].pts.some(p=>p.side==='party'&&p.mark==='mana'));}
+}
+console.log('全系統の尺・連撃ランク・上限・合成音の有限性と尺・実戦の弱体/MP吸収を確認');

@@ -269,7 +269,7 @@ function sfx(name, o = {}) {
   const buf = sfxBuffer(name, actx);
   return engine.playBuffer(buf, {
     vol: def.vol * (o.vol ?? 1), rev: def.rev, pan: o.pan,
-    rate: 1 + (Math.random() - 0.5) * (o.jit ?? 0.06),
+    rate: o.rate ?? 1 + (Math.random() - 0.5) * (o.jit ?? 0.06),
     at: actx.currentTime + 0.005 + (o.delay || 0),
   });
 }
@@ -299,12 +299,16 @@ export const SFX = {
   flip() { sfx("flip"); },
   step() { sfx("step", { jit: 0.1 }); },
   swing() { sfx("swing", { jit: 0.1 }); },
-  skill(kind = "magic") {
+  skill(kind = "magic", presentation = null) {
     if (document.hidden) return;
     const names = {ice:"skillIce",ice2:"skillIce2",ice3:"skillIce3",wave:"skillWave",wave2:"skillWave2",wave3:"skillWave3",gale:"skillGale",gale2:"skillGale2",gale3:"skillGale3",lightning:"skillLightning",lightning2:"skillLightning2",lightning3:"skillLightning3",stone:"skillStone",stone2:"skillStone2",stone3:"skillStone3",quake:"skillQuake",quake2:"skillQuake2",quake3:"skillQuake3",slash:"normalSlash",impact:"normalBlunt",pierce:"normalPierce",restore:"skillRestore",ward:"skillWard",shade:"skillShade",fire:"skillFire",fireball:"skillFireball",fireball2:"skillFireball2",fireball3:"skillFireball3",blast:"skillBlast",blast2:"skillBlast2",blast3:"skillBlast3",firePillar:"skillFirePillar",firePillar2:"skillFirePillar2",firePillar3:"skillFirePillar3",spark:"skillSpark",magic:"skillMagic"};
     // 新しい専用音も通常・軽量・確認画面で同じ経路を使う。
     const mystic=/^(radiance|void|arcane|heal|revive|purify|ward)[23]?$/.test(kind);
-    sfx(mystic ? 'skill'+kind[0].toUpperCase()+kind.slice(1) : names[kind] || "skillMagic",{jit:.035});
+    const base=mystic ? 'skill'+kind[0].toUpperCase()+kind.slice(1) : names[kind] || "skillMagic";
+    if(presentation){
+      const rank=Math.min(3,Math.max(1,presentation.rank||1)),duration=[0,400,700,1200][rank];
+      sfx('ranked'+base+rank,{jit:0,rate:duration/Math.max(1,presentation.duration||duration)});
+    }else sfx(base,{jit:.035});
   },
   hit(style = null) {
     const name = ["slash", "cross", "iai"].includes(style) ? "normalSlash" : ["blunt", "smash"].includes(style) ? "normalBlunt" : ["thrust", "arrow"].includes(style) ? "normalPierce" : "hit";

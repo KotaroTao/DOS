@@ -38,8 +38,8 @@ function play(){
  const key=$('skill').value;if(!key){list=[];background();$('caption').textContent='該当する技がありません';return;}
  lastKey=key;setFxQuality($('low').checked?'low':'auto');list=previewSkillFx(key,$('group').checked);
  const design=SKILL_FX_CATALOG[key],spell=SPELLS[key];
- $('caption').textContent=spell.name+' ／ '+SKILL_FAMILIES[design.family]+' ／ '+['','基本','上位','大技'][design.tier]+(SKILL_FX_SIGNATURES[key]?' ／ 看板の余韻':'');
- if($('sound').checked){initAudio();setVolumes(0,.7);SFX.skill(skillFxSound(design.family,design.tier));}
+ $('caption').textContent=spell.name+' ／ '+SKILL_FAMILIES[design.family]+' ／ '+('ランク'+design.tier)+(SKILL_FX_SIGNATURES[key]?' ／ 看板の余韻':'');
+ if($('sound').checked){initAudio();setVolumes(0,.7);SFX.skill(skillFxSound(design.family,design.tier),{rank:design.tier,duration:list[0].dur});}
  started=performance.now();lastDraw=0;paint(0);frame=requestAnimationFrame(tick);
 }
 async function audit(){
@@ -49,13 +49,16 @@ async function audit(){
  try{
   for(let index=0;index<entries.length;index++){
    if(cancelled||document.hidden)break;
-   const [key]=entries[index],scene=previewSkillFx(key,true);let maximum=0,visible=false;
+   const [key]=entries[index],scene=previewSkillFx(key,true);let maximum=0,visible=true;
    if(scene.length!==1||!scene[0].pts.length)throw Error('演出を生成できません: '+key);
    for(const quality of ['high','low'])for(const reduced of [false,true]){
     setFxQuality(quality);
-    for(const t of [20,90,170,250]){
+    for(const fraction of [.05,.3,.65,.92,1.05]){
+     const t=scene[0].dur*fraction;
      ctx.clearRect(0,0,640,360);const start=performance.now();drawBattleFx(ctx,scene,t,640,360,reduced);maximum=Math.max(maximum,performance.now()-start);
-     if(t===90&&quality==="high"&&!reduced){const pixels=ctx.getImageData(0,0,640,360).data;for(let i=3;i<pixels.length;i+=4)if(pixels[i]){visible=true;break;}}
+     const pixels=ctx.getImageData(0,0,640,360).data;
+     let drawn=false;for(let i=3;i<pixels.length;i+=4)if(pixels[i]){drawn=true;break;}
+     if(fraction>1?drawn:!drawn)throw Error('描画の時点が不正: '+key+' / '+quality+' / '+reduced+' / '+fraction);
     }
    }
    if(!visible)throw Error("技が描画されていません: "+key);

@@ -148,5 +148,29 @@ with sync_playwright() as p:
   for(const family of ['ice','wave','gale','lightning','stone','quake'])for(const rank of ['',2,3])audio.SFX.skill(family+rank);Engine.prototype.playBuffer=play;return heard;
  }""")
  assert len(element_sound)==18 and all(abs(row[0]-[.52,.84,1.2][i%3])<.001 and row[1]==2 for i,row in enumerate(element_sound)),element_sound
+ # 動き低減は全系統で位置・形・濃さが時間によって変わらない。
+ assert page.evaluate("""async()=>{
+  const {SPELLS}=await import('/src/skilldefs.js'),{SKILL_FX_CATALOG}=await import('/src/skill-fx-catalog.js');
+  const {previewSkillFx}=await import('/src/skill-fx-preview.js'),{drawBattleFx}=await import('/src/battlefx.js');
+  const canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;const ctx=canvas.getContext('2d'),seen=new Set();
+  for(const key of Object.keys(SPELLS)){
+   const family=SKILL_FX_CATALOG[key].family;if(seen.has(family))continue;seen.add(family);
+   const scene=previewSkillFx(key),frames=[];
+   for(const t of [.15,.8]){ctx.clearRect(0,0,640,360);drawBattleFx(ctx,scene,scene[0].dur*t,640,360,true);frames.push(ctx.getImageData(0,0,640,360).data);}
+   if(!frames[0].every((v,i)=>v===frames[1][i]))throw Error('動き低減中に形が変わった: '+key);
+  }return seen.size===37;
+ }""")
+ # 全ランクの主音を表示尺に合わせ、オートでも同じ尺で再生する。
+ ranked=page.evaluate("""async()=>{
+  const {Engine}=await import('/src/music/engine.js'),audio=await import('/src/audio.js');audio.initAudio();audio.setVolumes(0,1);
+  const play=Engine.prototype.playBuffer,heard=[];Engine.prototype.playBuffer=function(buffer,options){heard.push({duration:buffer.duration,rate:options.rate});return play.call(this,buffer,options);};
+  for(const kind of ['slash','impact','pierce','restore','ward','shade','firePillar3','ice3'])for(const rank of [1,2,3,5])for(const speed of [1,.6,.8]){
+   const base=rank===1?400:rank===2?700:1200;audio.SFX.skill(kind,{rank,duration:base*speed});
+  }Engine.prototype.playBuffer=play;return heard;
+ }""")
+ assert len(ranked)==96
+ for i,row in enumerate(ranked):
+  rank=[1,2,3,5][(i//3)%4];speed=[1,.6,.8][i%3]
+  assert abs(row['duration']/row['rate']-(.4 if rank==1 else .7 if rank==2 else 1.2)*speed)<.001,row
  c.close();b.close()
  print('検索・全技再生・描画検証・計測書出し・保存/認証不変・通信なしを確認。',out)
