@@ -18,6 +18,14 @@ async def main():
               window.prepared=[];Engine.prototype.playBuffer=function(...args){const voice=play.apply(this,args);prepared.push(voice);return voice;};
               window.show=kind=>windup.beginBattleWindup({party:document.querySelector('#party'),index:0,view:document.querySelector('#view'),label:kind==='cast'?'炎の詠唱':'攻撃の構え',kind,aim:{x:.6,y:.35}});
             }''')
+            await page.evaluate("""async()=>{
+              const {SFX}=await import('/src/audio.js');const original=SFX.prepare,calls=[];
+              SFX.prepare=kind=>{calls.push(kind);return ()=>{};};
+              try{for(const family of ['heal','revive','purify','mana']){
+                const h=windup.beginBattleWindup({party:document.querySelector('#party'),index:0,view:document.querySelector('#view'),kind:'cast',skillFamily:family});h.stop();
+              }}finally{SFX.prepare=original;}
+              if(calls.join(',')!=='heal,revive,purify,mana')throw Error('救命技の準備音が攻撃音へ流れた');
+            }""")
             for kind in ['strike','cast']:
                 elapsed=await page.evaluate('kind=>{const now=performance.now();window.handle=show(kind);return performance.now()-now;}',kind)
                 assert elapsed<100,('構えの開始処理が長い',elapsed)

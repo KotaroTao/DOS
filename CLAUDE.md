@@ -716,3 +716,5 @@ The UI was rebuilt into packages under `src/ui/` (plain ES modules; **they never
 
 ### 重い打撃・最終技の演出（2026-11-03）
 重い打撃は5ランクの圧縮打・地割れ・挟撃・連続震動・大崩落へ更新。習得Lvの境界は30/70/120/170、尺は400/500/650/800/950ms（オート60%、高速80%）。火柱と同じく実際に生成した演出の終了を待つ。従来の「火柱だけ延長」の制約は重い打撃にも拡張する。37職業の最終習得技は `skill-fx-ultimates.js` で専用構図を明示し、従来の看板装飾を置き換える。属性色を看板色より優先。詳細 `docs/skill-effects.md`。心得 `t_skill_fx_read` 更新。
+
+回復系の準備音（2026-11-03）: `battle-windup.js` は回復・蘇生・治療・MP回復の `skillFamily` を準備音にも渡す。主音だけでなく、確定待ちの音にも衝突音を混ぜない。検査 `tools/cloud/windup-browser.py`、心得 `t_skill_fx_organic` 更新。
