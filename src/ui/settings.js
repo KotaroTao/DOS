@@ -15,7 +15,7 @@ import { playerNameCard } from "./playername.js";
 import { UI, game, registerUI } from "./ctx.js";
 import { isDesktopLayout } from "../desktop.js";
 import { el, button, setText, sheet, segmented, toast } from "./kit.js";
-import { getPref, setPref, remember, autoMoveAvoid, setAutoMoveAvoid } from "./prefs.js";
+import { getPref, setPref, battleActionGap, remember, autoMoveAvoid, setAutoMoveAvoid } from "./prefs.js";
 import { SFX, audioDebug } from "../audio.js";
 import { normalizeLook, WALKER_CLOAKS, WALKER_TRIMS } from "../walkerart.js";
 import { cryptWalkerBitmap, prewarmCryptActors } from "../cryptactors.js";
@@ -159,6 +159,25 @@ function fillSound(box) {
   box.appendChild(toggleRow({ name: "強化・弱体の演出", desc: "技・パッシブ・迷宮の掟で強化・弱体が掛かった時に光と文字を出し、その時に札を出す (切ると戦闘のテンポが上がる)", on: P.buffFx !== false, onChange: (v) => {
     P.buffFx = v; if (game.savePrefs) game.savePrefs(); sfx("select");
   } }));
+  const gapRow = el("div", "stg-row stg-vol");
+  const gapHead = el("div", "stg-vol-h");
+  gapHead.appendChild(setText(el("span", "stg-row-n"), "戦闘の行動間隔"));
+  const gapValue = el("span", "stg-vol-v");
+  gapHead.appendChild(gapValue); gapRow.appendChild(gapHead);
+  gapRow.appendChild(setText(el("span", "stg-row-d"), "一手の演出後に追加する待ち時間。技や連撃の速さは変えず、通常・倍速ともに適用。まずは0.2秒で比較できます"));
+  const gapInput = el("input", "stg-range");
+  gapInput.type = "range"; gapInput.min = "0"; gapInput.max = "1000"; gapInput.step = "100";
+  gapInput.setAttribute("aria-label", "戦闘の行動間隔");
+  gapInput.value = String(battleActionGap());
+  const showGap = () => {
+    const v = Number(gapInput.value);
+    gapValue.textContent = v === 0 ? "追加なし" : (v / 1000).toFixed(1) + "秒";
+    gapInput.setAttribute("aria-valuetext", gapValue.textContent);
+    gapInput.style.setProperty("--v", v / 10 + "%");
+  };
+  gapInput.addEventListener("input", showGap);
+  gapInput.addEventListener("change", () => { setPref("battleActionGap", Number(gapInput.value)); showGap(); });
+  showGap(); gapRow.appendChild(gapInput); box.appendChild(gapRow);
   box.appendChild(toggleRow({ name: "戦闘演出 倍速", desc: "戦闘のアニメーションを速める", on: !!G.fastAnim, onChange: (v) => {
     G.fastAnim = v; sfx("select"); if (game.autosave) game.autosave();
   } }));
