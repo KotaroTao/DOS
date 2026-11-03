@@ -5,7 +5,7 @@ import { SPELLS } from '../../src/skilldefs.js';
 import { JOB_SIGNATURE, JOB_SKILLS } from '../../src/souls.js';
 import { SKILL_FX_CATALOG } from '../../src/skill-fx-catalog.js';
 import { SKILL_FX_SIGNATURES } from '../../src/skill-fx-signatures.js';
-import { SKILL_FAMILIES, emitSkillFx, skillFxSound, skillFxDuration, extendedSkillFx } from '../../src/skill-fx.js';
+import { SKILL_FAMILIES, emitSkillFx, skillFxSound, skillFxDuration, physicalSkillFx, extendedSkillFx } from '../../src/skill-fx.js';
 import { skillProfile, spawnFx, SIG_FX } from '../../src/battlefx.js';
 import '../../src/battlefx-sig.js';
 import { previewSkillFx } from '../../src/skill-fx-preview.js';
@@ -59,7 +59,7 @@ for(const [key,dur]of [['MAHALITO',400],['GOKUEN',700],['GOKUENRAN',1200],['HALI
   assert.equal(effects.length,0,'不発の火柱には表示待ちを付けない');
  }
 }
-assert.equal(skillFxDuration({family:'cut',tier:3},.1),1200);
+assert.equal(skillFxDuration({family:'cut',tier:3},.1),145);
 const fireCounts=[0,0,0,0];
 for(const design of Object.values(SKILL_FX_CATALOG))if(design.family==='firePillar')fireCounts[design.tier]++;
 assert.deepEqual(fireCounts,[0,8,2,6]);
@@ -166,7 +166,7 @@ for(const [key,sp] of Object.entries(SPELLS))if(Math.max(sp.hits||1,sp.scatter||
  const e=previewSkillFx(key)[0];
  assert.equal(e.strikes.length,sp.scatter||(sp.hits*(['all-enemy','all-ally'].includes(sp.target)?6:1)),key);
  assert.equal(e.design.tier,Math.max(sp.hits||1,sp.scatter||1),key);
- assert.equal(e.dur,e.design.tier===2?700:1200,key);
+ assert.equal(e.dur,sp.kind==='phys'?Math.max(sp.hits||1,sp.scatter||1)*85+60:e.design.tier===2?700:1200,key);
 }
 for(const rows of Object.values(JOB_SKILLS)){
  const skills=rows.filter(r=>r.skill),top=Math.max(...skills.map(r=>r.lvl));
@@ -200,7 +200,7 @@ console.log(`${shapes.size}職業の最終技専用構図 / 重い打撃5ラン�
 // すべての系統・高ランク・速度設定で尺は400/700/1200msに限定する。
 for(const family of Object.keys(SKILL_FAMILIES))for(const tier of [1,2,3,4,5,10,100]){
  for(const options of [{},{auto:true},{fast:true},{auto:true,fast:true}]){
-  const expected=(tier===1?400:tier===2?700:1200)*(options.auto?.6:options.fast?.8:1);
+  const expected=Math.round((physicalSkillFx({family,tier})?145:tier===1?400:tier===2?700:1200)*(options.auto?.6:options.fast?.8:1));
   assert.equal(skillFxDuration({family,tier},.1,options),expected);
  }
 }

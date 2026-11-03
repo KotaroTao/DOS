@@ -58,6 +58,7 @@ jobs:
         run: |
           node tools/effects/build-catalog.mjs --check
           node tools/effects/check.mjs
+          node tools/effects/organic-check.mjs
           node tools/balance/effect-scope-check.mjs
       - name: Check choice log prototype
         run: |

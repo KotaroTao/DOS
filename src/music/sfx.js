@@ -534,6 +534,36 @@ for(const [name,def] of Object.entries({...SFX_DEFS}))if(/^(skill|normal(Slash|B
   }};
  }
 }
+// 技は空気・摩擦・破砕・水・炎の非周期な音だけで作る。音階や発振器は使わない。
+export function naturalSkillName(kind='magic',rank=1,duration=400){
+ const key=kind.replace(/[0-9]/g,'').toLowerCase();
+ const group=/slash|cut|cleave|flurry|pierce|projectile|strike/.test(key)?'slash':/impact|stone|quake|blast/.test(key)?'impact':/ice|crystal|purify/.test(key)?'crystal':/water|wave|mana|heal|restore|revive/.test(key)?'water':/fire/.test(key)?'fire':/lightning|spark|paralyze/.test(key)?'thunder':'air';
+ const ms=Math.max(40,Math.min(1200,Math.round(duration))),level=Math.min(3,Math.max(1,rank));
+ const name='natural_'+group+'_'+level+'_'+ms;
+ if(SFX_DEFS[name])return name;
+ SFX_DEFS[name]={vars:2,vol:group==='air'?.42:.6,rev:0,gen(r){
+  const seconds=ms/1000,x=new Float32Array(len(seconds));
+  const body=group==='impact'||group==='fire'||group==='thunder'?brown(x.length,r):pink(x.length,r);
+  lp1(body,{slash:4400,impact:700,crystal:7000,water:1800,fire:1400,thunder:550,air:2300}[group],SR);
+  if(group==='slash'||group==='crystal')hp1(body,group==='slash'?420:1600,SR);
+  for(let i=0;i<body.length;i++){
+   const t=i/SR,p=t/seconds,attack=Math.min(1,t/(group==='air'?.055:.004));
+   const fade=Math.max(0,1-p)**(group==='slash'?3:group==='impact'?2:.9);
+   body[i]*=attack*fade*(.7+.3*r());
+  }
+  mixInto(x,body,0,2);
+  // 不規則な衝突・火のはぜ・飛沫。一定間隔のビープや金属的な音程を作らない。
+  const count=group==='air'?2:group==='crystal'?level*8:group==='fire'?level*10:level*4;
+  for(let j=0;j<count;j++){
+   const at=r()*seconds*.72,dur=Math.min(.012+r()*.045,seconds-at),crack=white(Math.max(1,len(dur)),r);
+   if(group==='impact'||group==='thunder')lp1(crack,500+r()*1100,SR);else hp1(crack,900+r()*2100,SR);
+   envExp(crack,SR,dur*.4,.0005);mixInto(x,crack,len(at),(.12+r()*.3)*(1-at/seconds));
+  }
+  dcBlock(x);softClip(x,1.2);return mono(x);
+ }};
+ return name;
+}
+
 const CACHE = new Map();
 // 効果音のバッファ (揺らぎのうち1つをランダムに)。ctx は AudioBuffer 作成用
 export function sfxBuffer(name, ctx) {

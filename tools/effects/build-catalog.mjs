@@ -102,8 +102,15 @@ let source='// tools/effects/build-catalog.mjsで生成。全技を系統と格�
 for(const [group,keys]of [...groups].sort(([a],[b])=>a.localeCompare(b)))source+='  '+JSON.stringify(group)+': '+JSON.stringify(keys.join(' '))+',\n';
 source+='};\nfor (const [group, keys] of Object.entries(groups)) {\n  const [family, rank] = group.split(":");\n  const tier = Number(rank), design = Object.freeze({ family, tier, scale: [0, .9, 1.08, 1.24, 1.38, 1.52][Math.min(5,tier)] });\n  for (const key of keys.split(" ")) SKILL_FX_CATALOG[key] = design;\n}\n';
 for(const [key,variant] of Object.entries(CLEAVE_TOP))source+='SKILL_FX_CATALOG['+JSON.stringify(key)+'] = Object.freeze({...SKILL_FX_CATALOG['+JSON.stringify(key)+'], variant: '+JSON.stringify(variant)+'});\n';
-source+='for(const [key,extra] of Object.entries('+JSON.stringify(slashDesigns)+')) SKILL_FX_CATALOG[key]=Object.freeze({...SKILL_FX_CATALOG[key],...extra});\nObject.freeze(SKILL_FX_CATALOG);\n';
+source+='for(const [key,extra] of Object.entries('+JSON.stringify(slashDesigns)+')) SKILL_FX_CATALOG[key]=Object.freeze({...SKILL_FX_CATALOG[key],...extra});\n';
 
+const timingGroups=new Map();
+for(const [key,s]of Object.entries(SPELLS)){
+ const timing=s.kind+':'+Math.max(s.hits||1,s.scatter||1);
+ if(!timingGroups.has(timing))timingGroups.set(timing,[]);timingGroups.get(timing).push(key);
+}
+source+='for(const [timing,keys]of Object.entries('+JSON.stringify(Object.fromEntries([...timingGroups].map(([k,v])=>[k,v.join(' ')])))+')){\n const [kind,hits]=timing.split(":");\n for(const key of keys.split(" "))SKILL_FX_CATALOG[key]=Object.freeze({...SKILL_FX_CATALOG[key],kind,hits:Number(hits)});\n}\n';
+source+='Object.freeze(SKILL_FX_CATALOG);\n';
 const quote=value=>'"'+String(value??'').replaceAll('"','""')+'"';
 const csv='key,name,kind,target,element,family,tier,signature,slashRank,slashUltimate\n'+Object.entries(SPELLS).map(([key,s])=>[key,s.name,s.kind,s.target,s.element||'',family(key,s),effectTier(key,s),SKILL_FX_SIGNATURES[key]?.accent||'',slashDesigns[key]?.slashRank||'',slashDesigns[key]?.slashUltimate||''].map(quote).join(',')).join('\n')+'\n';
 const auditPath=new URL('../../docs/skill-effects-catalog.csv',import.meta.url);

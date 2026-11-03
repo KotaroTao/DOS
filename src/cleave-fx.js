@@ -10,7 +10,7 @@ export const CLEAVE_TOP = Object.freeze({
 export const CLEAVE_COLORS=Object.freeze({fire:'#ff4834',water:'#328dff',wind:'#72dfb0',earth:'#c49a58',light:'#ffe191',dark:'#9963dc'});
 const TAU=Math.PI*2;
 // 色だけに頼らず、弧の向き・開き・重なり・付随する紋を変える。
-const SHAPES={
+export const CLEAVE_MOTION={
  flameDance:[4,.5,.9,.35],fault:[3,0,.55,.18],flash:[1,-.3,.32,.1],tidal:[4,0,.75,.32],
  eclipse:[2,0,1,.8],illWind:[5,-.4,.7,.7],halo:[3,0,1,.42],rift:[2,.6,.45,.22],
  sixPaths:[6,0,.65,.65],petals:[5,.2,.4,.75],lightDance:[4,.7,.8,.45],tremor:[3,0,.5,.12],
@@ -20,7 +20,7 @@ const SHAPES={
 };
 export function drawCleave(c,e,t,r,color,lite,reduced){
  const variant=e.design.variant, rank=e.design.tier;
- const [count,tilt,span,spread]=SHAPES[variant]||[rank,rank===2?-.2:0,rank===3?.95:.62,rank===3?.6:.18];
+ const [count,tilt,span,spread]=CLEAVE_MOTION[variant]||[rank,rank===2?-.2:0,rank===3?.95:.62,rank===3?.6:.18];
  const motion=reduced?.65:Math.min(1,t*1.6),fade=Math.pow(1-t,1.1);
  c.save();c.globalCompositeOperation='lighter';c.lineCap='round';
  for(let i=0;i<count;i++){
