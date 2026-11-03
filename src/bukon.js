@@ -175,10 +175,10 @@ export function fuseBukon(g, k, target, keep = 0) {
 function payFusion(g,cost){if(cost==null||!Number.isSafeInteger(g.gold)||g.gold<0||cost>BigInt(g.gold))return false;g.gold-=Number(cost);return true;}
 export function bulkFuseBukon(g,k,keep=1){const plan=bulkFusionPlan(g,k,keep);if(!plan||!payFusion(g,plan.cost))return false;g.bukonStock=plan.stock;return true;}
 export function rollBukon(it,recommendedLv=1,rnd=random){
- const gear={r:0,sr:1,lr:2}[rarityKey(it)];if(gear==null)return null;
+ if(!Object.hasOwn(BUKON_SLOTS,rarityKey(it)))return null;
  let x=rnd()*100,rarity=0;for(let i=0;i<BUKON_RARITIES.length;i++){if((x-=BUKON_RARITIES[i].weight)<0){rarity=i;break;}}
  // 先に格を抽選するため、装備部位で格の確率は変わらない。装着可能な種類だけ選ぶ。
- const pool=BUKON.filter(d=>!d.retired&&d.rarity===rarity),fits=pool.filter(d=>d.slots.includes(it.slot));
+ const pool=BUKON.filter(d=>!d.retired&&d.rarity===rarity&&!(it.bukon||[]).some(b=>b.k===d.id)),fits=pool.filter(d=>d.slots.includes(it.slot));
  const choices=fits.length?fits:pool;
  if(!choices.length)return null;
  const d=choices[Math.min(choices.length-1,Math.floor(rnd()*choices.length))];

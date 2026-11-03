@@ -90,8 +90,8 @@ with sync_playwright() as p:
       G.dungeonIdx=DUNGEONS.findIndex(d=>d.id==='w01');
       const early=game.cloneItem(it.id,50);game.markDungeonLoot(early);if(early.bukon)throw Error('過去迷宮に付与');
       G.dungeonIdx=DUNGEONS.findIndex(d=>d.id===six.dungeons[0]);
-      const late=game.cloneItem(it.id,50);game.markDungeonLoot(late);if(late.bukon?.length!==1)throw Error('4章ドロップ');
-      game.markDungeonLoot(late);if(late.bukon.length!==1)throw Error('二重抽選');
+      const late=game.cloneItem(it.id,50);game.markDungeonLoot(late);if(late.bukon?.length!==b.bukonSlots(late))throw Error('4章ドロップ');
+      game.markDungeonLoot(late);if(late.bukon.length!==b.bukonSlots(late))throw Error('二重抽選');
       const soul={...late.bukon[0]},old=BigInt(G.bukonStock[b.bukonKey(soul)] || 0);
       delete late.unidentified;game.shopReceive(late);
       if(late.bukon || BigInt(G.bukonStock[b.bukonKey(soul)])!==old+1n)throw Error('売却で回収しない');

@@ -18433,8 +18433,14 @@ function markDungeonLoot(it) {
     it.depth = Math.max(1, Math.floor(G.floor || 1)); resyncItem(it);
   }
   if (it && (abyssActive() || laterDungeon) && !it.bukon && hasQuality(it)) {
-    const soul = bukon.rollBukon(it, levelHere().lv);
-    if (soul) { if(bukon.bukonFits(it,soul))it.bukon=[soul];else {bukon.stockAdd(G,soul);it.bukon=[];log(`${bukon.bukonText(soul)}を商会に保管した。`,"win");} if (abyssActive()) infAfxTrack(it); }
+    it.bukon = [];
+    for (let i = 0; i < bukon.bukonSlots(it); i++) {
+      const soul = bukon.rollBukon(it, levelHere().lv);
+      if (!soul) continue;
+      if (bukon.bukonFits(it, soul)) it.bukon.push(soul);
+      else { bukon.stockAdd(G, soul); log(`${bukon.bukonText(soul)}を商会に保管した。`, "win"); }
+    }
+    if (abyssActive()) infAfxTrack(it);
   }
   return it;
 }
