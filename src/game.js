@@ -11537,7 +11537,7 @@ function animateResult(res, done) {
   callPartyAction(res); // 札の肖像に使った技の名 (手番の初めから)
   if (setPlateCall(res) && !quickBattlePresentation()) { if (G.autoCombat) renderAutoBanner(); else renderActingPlate(res.actor); } // 命令板にも「誰の何の技か」
   if (quickBattlePresentation()) {
-    // 通常の技は命令板を先に示す。火柱・火球・爆発は最後まで見せてから次の行動へ進む。
+    // 通常の技は命令板を先に示す。ランク付きの攻撃演出は最後まで見せてから次の行動へ進む。
     const fx = G.fx = { lunge: null, slashes: [], skill: [], floats: [], screen: null, flash: {}, deaths: [] };
     G.partyFx = new Map(); G.partyFxV = new Map();
     if ((res.action !== "sleep" && res.action !== "stunned") || (res.hits || []).length) applyImpact(res);
@@ -11545,7 +11545,7 @@ function animateResult(res, done) {
     drainPartyProcs();
     partyEl.style.setProperty("--fxd", G.fastAnim ? "0.32s" : "0.4s");
     const effectDuration=fx.skill.find(e=>e.type==='skillScene'&&extendedSkillFx(e.design))?.dur||0;
-    // 通常攻撃の反応は従来どおり。火柱・火球・爆発は描画の終了と進行を同じ時計で扱う。
+    // 通常攻撃の反応は従来どおり。ランク付きの攻撃演出は描画の終了と進行を同じ時計で扱う。
     const normalAttack = res.action === "attack" && res.actor?.side === "party" && (serverBattle() || choiceTrial?.overlap);
     if (normalAttack) setTimeout(finish, normalAttackTiming(G.fastAnim).reaction); else if(!effectDuration) finish();
     const started = performance.now();

@@ -301,7 +301,7 @@ export const SFX = {
   swing() { sfx("swing", { jit: 0.1 }); },
   skill(kind = "magic") {
     if (document.hidden) return;
-    const names = {slash:"normalSlash",impact:"normalBlunt",pierce:"normalPierce",restore:"skillRestore",ward:"skillWard",shade:"skillShade",fire:"skillFire",fireball:"skillFireball",fireball2:"skillFireball2",fireball3:"skillFireball3",blast:"skillBlast",blast2:"skillBlast2",blast3:"skillBlast3",firePillar:"skillFirePillar",firePillar2:"skillFirePillar2",firePillar3:"skillFirePillar3",spark:"skillSpark",magic:"skillMagic"};
+    const names = {ice:"skillIce",ice2:"skillIce2",ice3:"skillIce3",wave:"skillWave",wave2:"skillWave2",wave3:"skillWave3",gale:"skillGale",gale2:"skillGale2",gale3:"skillGale3",lightning:"skillLightning",lightning2:"skillLightning2",lightning3:"skillLightning3",stone:"skillStone",stone2:"skillStone2",stone3:"skillStone3",quake:"skillQuake",quake2:"skillQuake2",quake3:"skillQuake3",slash:"normalSlash",impact:"normalBlunt",pierce:"normalPierce",restore:"skillRestore",ward:"skillWard",shade:"skillShade",fire:"skillFire",fireball:"skillFireball",fireball2:"skillFireball2",fireball3:"skillFireball3",blast:"skillBlast",blast2:"skillBlast2",blast3:"skillBlast3",firePillar:"skillFirePillar",firePillar2:"skillFirePillar2",firePillar3:"skillFirePillar3",spark:"skillSpark",magic:"skillMagic"};
     // 新しい専用音も通常・軽量・確認画面で同じ経路を使う。
     const mystic=/^(radiance|void|arcane|heal|revive|purify|ward)[23]?$/.test(kind);
     sfx(mystic ? 'skill'+kind[0].toUpperCase()+kind.slice(1) : names[kind] || "skillMagic",{jit:.035});
