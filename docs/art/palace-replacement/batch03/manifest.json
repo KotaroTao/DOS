@@ -1,0 +1,209 @@
+[
+  {
+    "id": "report_w24",
+    "master": "art/story-review/chapter6/report_w24.png",
+    "subject": "氷の堤に受け止められた地底の極光",
+    "prompt": "Create ONE standalone landscape illustration 1536x1024, 3:2, edge-to-edge, no panels, no borders, no text or typography. Match the attached Dungeon of Souls artwork: lavish fine-grained pixel-textured dark fantasy illustration with crisp tiny highlights, controlled cyan, emerald and violet light. This is a NEW replacement illustration for report_w24: show ONLY the vast subterranean aurora held in an ice dam, no palace and no king. The report describes souls caught in the ice before falling to the abyss. Use a radically different composition from the reference discovery scene: looking nearly straight upward from inside a dark crevasse at a gigantic translucent curved wall of ice, thousands of tiny suspended soul lights flowing in broad emerald-violet ribbons behind the ice. In the bottom foreground a jagged ice edge forms a dark crescent; the immense light and layered ice dominate. NO people, no apprentice, no map, no coins, no candles, no buildings. Not an outdoor sky: visible dark rock and icicle frame proves underground cave. This depicts a place described during a report, not a fantasy vision projected into the palace. Preserve world and painting texture; do not copy the reference composition. Central aurora band remains legible at 384x256.",
+    "refs": [
+      "art/story-review/chapter6/w24_aurora.png"
+    ],
+    "generated": "/workspace/generated_images/exec-813860d2-6ff4-4e6f-9ba2-330cb70e1d3e.png",
+    "verification": {
+      "dimensions": "1536x1024",
+      "fullSizeVisualReview": true,
+      "thumbnailVisualReview": true,
+      "noReadableText": true,
+      "noPalace": true
+    },
+    "sha256": "8dc3afbcf9c201bdb593b1beda09feadaff1baa31986a01829dee2376a95d678",
+    "beforeSha256": "f8218acd697215bbcceecbdbc5d8c9ac92607ec4c4c486132e41cd469ab18c0f"
+  },
+  {
+    "id": "report_w26",
+    "master": "art/story-review/chapter7/report_w26.png",
+    "subject": "腐れ水へ踏み出す一歩",
+    "prompt": "Create ONE standalone landscape illustration 1536x1024 pixels, 3:2, edge-to-edge. No panels, borders, labels, typography or readable text. Match the attached Dungeon of Souls artwork: lavish sophisticated dark fantasy illustration, fine-grained pixel texture, meticulously detailed carved stone, black iron, carved wood and embroidered cloth, crisp tiny highlights, controlled cold cyan light against warm amber. Adult natural proportions and believable hands with exactly five fingers. This is a NEW illustration depicting the place or memory being described in the report; it replaces the palace conversation image, so no palace or king. Preserve reference identity and material language but change composition completely. Central subject readable at 384x256. At the very bottom of the abyss, show the young apprentice taking one careful step from a muddy bank toward a shallow black toxic swamp. Composition at ankle height: foreground leather boot and embroidered black cloak edge at LEFT, vast corrupt dark water and ragged reeds opening across the center and right into green poisonous mist, wet cave rock above, no open sky. A small warm lantern partly visible. Not the discovery of a splint or note, no kneeling or map. The swamp water itself is the main subject, oppressive and still. Exactly one apprentice, only natural body parts.",
+    "refs": [
+      "docs/art/story-refs/apprentice.png"
+    ],
+    "generated": "/workspace/generated_images/exec-49abea34-b819-491e-a3c5-c121bd944fbf.png",
+    "verification": {
+      "dimensions": "1536x1024",
+      "fullSizeVisualReview": true,
+      "thumbnailVisualReview": true,
+      "noReadableText": true,
+      "noPalace": true
+    },
+    "sha256": "7e6733afedef351153ecb40e68128bb293046b411d61a02b96030e823ab66c10",
+    "beforeSha256": "4af26c86023b82162bd8687694a228bd164ad7b67b76f858a7994506e7f91451"
+  },
+  {
+    "id": "report_w27",
+    "master": "art/story-review/chapter7/report_w27.png",
+    "subject": "捨てられた器の内側から見る兄弟たち",
+    "prompt": "Create ONE standalone landscape illustration 1536x1024 pixels, 3:2, edge-to-edge. No panels, borders, labels, typography or readable text. Match the attached Dungeon of Souls artwork: lavish sophisticated dark fantasy illustration, fine-grained pixel texture, meticulously detailed carved stone, black iron, carved wood and embroidered cloth, crisp tiny highlights, controlled cold cyan light against warm amber. Adult natural proportions and believable hands with exactly five fingers. This is a NEW illustration depicting the place or memory being described in the report; it replaces the palace conversation image, so no palace or king. Preserve reference identity and material language but change composition completely. Central subject readable at 384x256. The discarded unfinished wooden vessels, Morden's failed brothers, in the subterranean swamp. New composition from INSIDE the heap, looking through the hollow ribs of one abandoned wooden torso at row upon row of unfinished wooden human-shaped faces and torsos half submerged in mud. Strong foreground framing, every body visibly carved wood, black iron joints, abandoned empty sockets rather than human corpses. A diagonal cold shaft of light shows the huge number beyond. NO living characters, no apprentice, no Morden, no palace, no giant hero atop the heap. No visible crest required. Somber compassion rather than horror spectacle.",
+    "refs": [
+      "art/story-review/chapter7/w27_crest.png"
+    ],
+    "generated": "/workspace/generated_images/exec-14c16cb3-1472-4697-b4f5-800c67c64eb9.png",
+    "verification": {
+      "dimensions": "1536x1024",
+      "fullSizeVisualReview": true,
+      "thumbnailVisualReview": true,
+      "noReadableText": true,
+      "noPalace": true
+    },
+    "sha256": "7e76f9938bbe0a3fd800a52cdccaa73962d9931adad1d79e0db00dbde0234089",
+    "beforeSha256": "f3617bd6edb6279bfc3021c88e24a94d8f6c5aece6203e7808e917c0421c5b93"
+  },
+  {
+    "id": "report_w28",
+    "master": "art/story-review/chapter7/report_w28.png",
+    "subject": "毒霧の葦原の先の小さな灯",
+    "prompt": "Create ONE standalone landscape illustration 1536x1024 pixels, 3:2, edge-to-edge. No panels, borders, labels, typography or readable text. Match the attached Dungeon of Souls artwork: lavish sophisticated dark fantasy illustration, fine-grained pixel texture, meticulously detailed carved stone, black iron, carved wood and embroidered cloth, crisp tiny highlights, controlled cold cyan light against warm amber. Adult natural proportions and believable hands with exactly five fingers. This is a NEW illustration depicting the place or memory being described in the report; it replaces the palace conversation image, so no palace or king. Preserve reference identity and material language but change composition completely. Central subject readable at 384x256. View from WITHIN dense tall black reeds at water level, looking far across the poisonous underground swamp to one very small warm amber light on a low island in thick green-grey mist. Reeds almost conceal the island; their layered silhouettes lead the eye to the lamp, which is the only warm point. A dark cavern roof barely visible high above. No characters, no notes, no map, no palace. A mysterious surviving light at the bottom of poison, not a comfortable populated village.",
+    "refs": [
+      "art/story-review/chapter7/w28_note.png"
+    ],
+    "generated": "/workspace/generated_images/exec-0c44e12b-ddef-4cc6-a32c-6a9ffaeb4138.png",
+    "verification": {
+      "dimensions": "1536x1024",
+      "fullSizeVisualReview": true,
+      "thumbnailVisualReview": true,
+      "noReadableText": true,
+      "noPalace": true
+    },
+    "sha256": "b86356754ad54f5c8223359d8340bd4cf22672347ba60c02f2bad1f7defef322",
+    "beforeSha256": "23374afa5a8b37dbb9419443e68a64b244319f4d445071cdb1dd6f54a169269f"
+  },
+  {
+    "id": "report_w29",
+    "master": "art/story-review/chapter7/report_w29.png",
+    "subject": "死なない命令を託す弱った手",
+    "prompt": "Create ONE standalone landscape illustration 1536x1024 pixels, 3:2, edge-to-edge. No panels, borders, labels, typography or readable text. Match the attached Dungeon of Souls artwork: lavish sophisticated dark fantasy illustration, fine-grained pixel texture, meticulously detailed carved stone, black iron, carved wood and embroidered cloth, crisp tiny highlights, controlled cold cyan light against warm amber. Adult natural proportions and believable hands with exactly five fingers. This is a NEW illustration depicting the place or memory being described in the report; it replaces the palace conversation image, so no palace or king. Preserve reference identity and material language but change composition completely. Central subject readable at 384x256. Historical memory of the very frail old first soul-binder's last instruction to the one finished wooden vessel, Morden, inside the swamp island workshop. New intimate composition: close view of the founder's weak, wrinkled hand extended from a dark embroidered sleeve on the LEFT, resting on the receptive wooden hand of Morden on the RIGHT. The edge of the founder's long white hair and downward face is softly visible at extreme left; Morden's pale gaunt unaging face is partly cropped at upper right, attentive and sorrowful, wearing the plain workshop clothes from the reference memory, no ceremonial hat. The hands are the center; exact natural five fingers per hand, clearly wooden grain on Morden. Muted blue-green swamp light outside and one dim warm work candle. NO text, no elaborate crest, no king, no palace, no present-day apprentice. Not evil villain origin: a desperate request passed to someone who wants to protect souls.",
+    "refs": [
+      "art/story-review/chapter7/mem_w29.png"
+    ],
+    "generated": "/workspace/generated_images/exec-2f790e95-49d1-4a42-82e1-046a74ee612f.png",
+    "verification": {
+      "dimensions": "1536x1024",
+      "fullSizeVisualReview": true,
+      "thumbnailVisualReview": true,
+      "noReadableText": true,
+      "noPalace": true
+    },
+    "sha256": "81bb7aa2b9ccae451f506189c08556a5ecee0404b2b7c6d0efb6b0c1137998d8",
+    "beforeSha256": "85daf56037e04b23bbae11215776b5d13680b86884a7705e7b86e13403154daa"
+  },
+  {
+    "id": "report_w30",
+    "master": "art/story-review/chapter8/report_w30.png",
+    "subject": "奈落から上へ伸びる螺旋の塔",
+    "prompt": "Create ONE standalone landscape illustration 1536x1024 pixels, 3:2, edge-to-edge. No panels, borders, labels, typography or readable text. Match the attached Dungeon of Souls artwork: lavish sophisticated dark fantasy illustration, fine-grained pixel texture, meticulously detailed carved stone, black iron, carved wood and embroidered cloth, crisp tiny highlights, controlled cold cyan light against warm amber. Adult natural proportions and believable hands with exactly five fingers. This is a NEW illustration depicting the place or memory being described in the report; it replaces the palace conversation image, so no palace or king. Preserve reference identity and material language but change composition completely. Central subject readable at 384x256. A monumental storm tower rising UP from the abyss. View almost vertically upward from its dark wet base in the subterranean swamp: spiral stone stairs wrap around the tower, enormous hanging chains sweep from lower foreground to disappearing heights, storm light white-blue at the far upper opening. A tiny distant black-and-gold apprentice climbing one stair gives scale but is not foreground. Strong spiraling ascent, no broken staff discovery, no kneeling, no maps, no palace, no king. Distinct from ordinary ruined castle exterior; tower is impossibly tall inside the abyss.",
+    "refs": [
+      "art/story-review/chapter8/w30_stick.png"
+    ],
+    "generated": "/workspace/generated_images/exec-b55bbc69-7669-4c80-8a7c-6573bec03e32.png",
+    "repair": {
+      "prompt": "Edit ONLY the attached image report_w30. Keep its 1536x1024 size, composition, gigantic tower, hanging chains, architecture, storm lightning, wet black stone, reflections and tiny black-and-gold apprentice on the stair exactly. This is an UNINHABITED dungeon, so remove EVERY warm lantern attached to the tower and ALL warm glowing windows, glowing doors and other warm light sources in the distant buildings and staircases. Replace those lit windows with pitch-dark empty openings and unlit wet stone. The only warm light permitted is the tiny hand lantern held by the apprentice near the middle-right stair. Keep small gold decorative metal highlights, but make their illumination primarily cold blue lightning, not glowing from inside. No new characters, readable text or symbols. Preserve crisp fine texture and all architecture details; this is a focused illumination correction.",
+      "path": "/workspace/generated_images/exec-cf20583e-4433-4fc0-81db-3db1209125f9.png"
+    },
+    "verification": {
+      "dimensions": "1536x1024",
+      "fullSizeVisualReview": true,
+      "thumbnailVisualReview": true,
+      "noReadableText": true,
+      "noPalace": true
+    },
+    "sha256": "b497f2831cbd67de53d0a7164e5026ec4a2e5c02fb3b4ae5eee3e4ab6c4881e7",
+    "beforeSha256": "7cc6aa3b7fa9631ff5ff4714531d40dd38223b32492ac538d86dd78d0c33fcf8"
+  },
+  {
+    "id": "report_w31",
+    "master": "art/story-review/chapter8/report_w31.png",
+    "subject": "鐘の内側から見る空へ還る魂",
+    "prompt": "Create ONE standalone landscape illustration 1536x1024 pixels, 3:2, edge-to-edge. No panels, borders, labels, typography or readable text. Match the attached Dungeon of Souls artwork: lavish sophisticated dark fantasy illustration, fine-grained pixel texture, meticulously detailed carved stone, black iron, carved wood and embroidered cloth, crisp tiny highlights, controlled cold cyan light against warm amber. Adult natural proportions and believable hands with exactly five fingers. This is a NEW illustration depicting the place or memory being described in the report; it replaces the palace conversation image, so no palace or king. Preserve reference identity and material language but change composition completely. Central subject readable at 384x256. Inside the mouth of one enormous bronze bell in the storm tower, looking OUT through its dark curved rim into a narrow slit of turbulent storm clouds. The massive bell clapper looms at the left, one tiny pale-cyan soul flame rises toward the cloud gap at the center-right. Dynamic diagonal bell rim suggests the bell has just sounded. Intricate worn bronze and small unrecognizable ornament, no readable letters or invented crest, no human characters, no maps, no palace. Main contrast is dark metal against a single fragile escaping light; not a close-up discovery of an inscription.",
+    "refs": [
+      "art/story-review/chapter8/w31_bell.png"
+    ],
+    "generated": "/workspace/generated_images/exec-82147060-8795-4d7b-bef1-aa448faf2213.png",
+    "verification": {
+      "dimensions": "1536x1024",
+      "fullSizeVisualReview": true,
+      "thumbnailVisualReview": true,
+      "noReadableText": true,
+      "noPalace": true
+    },
+    "sha256": "3da2b20e0db7d01ed62182e49cb6c027d2a5da5f139b3f119a5444c8a9e4a1f9",
+    "beforeSha256": "f29ef15edaa67b6eb5c89ec953c4792f571ed3783bbda5ae75c23b6d3f77bc8a"
+  },
+  {
+    "id": "report_w32",
+    "master": "art/story-review/chapter8/report_w32.png",
+    "subject": "魂を引き止める鎖と雷の無人回廊",
+    "prompt": "Create ONE standalone landscape illustration 1536x1024 pixels, 3:2, edge-to-edge. No panels, borders, labels, typography or readable text. Match the attached Dungeon of Souls artwork: lavish sophisticated dark fantasy illustration, fine-grained pixel texture, meticulously detailed carved stone, black iron, carved wood and embroidered cloth, crisp tiny highlights, controlled cold cyan light against warm amber. Adult natural proportions and believable hands with exactly five fingers. This is a NEW illustration depicting the place or memory being described in the report; it replaces the palace conversation image, so no palace or king. Preserve reference identity and material language but change composition completely. Central subject readable at 384x256. The exterior stone walkway of the storm tower viewed across a deep vertical chasm from the opposite wall. Tiny cyan soul lights and violent white-blue lightning are drawn along huge taut chains toward the upper tower structures, the circulation visibly constrained, without diagram arrows. Jagged wet stone walkway cuts diagonally through the center; storm darkness and rain stream around it. No apprentice taking notes, no rod closeup, no maps, no palace or king, no legible text, no friendly living settlement. The chains and trapped current are the focal point, huge architecture oppressive.",
+    "refs": [
+      "art/story-review/chapter8/w32_rod.png"
+    ],
+    "generated": "/workspace/generated_images/exec-5677848c-d91f-47f2-ab20-53c643e652b5.png",
+    "repair": {
+      "id": "report_w32",
+      "ch": 8,
+      "prompt": "Edit the attached image with these focused corrections. Keep 1536x1024, the dramatic diagonal bridge, immense storm tower, giant chains full of tiny cyan soul lights, rain and lightning, all stone carving and fine dark fantasy texture. REMOVE ALL FIVE wooden dolls/people on the bridge completely, replace their silhouettes with the naturally continuing EMPTY wet bridge and rail. There should be NO people in the final image. This is an uninhabited dungeon: EXTINGUISH ALL warm wall braziers and attached torches and all warm glowing windows, including lower left and distant tower. Leave empty dark unlit iron fixtures or remove them. Illuminate everything with cold blue-white lightning and tiny cyan soul lights in chains only, retaining gold metal highlights but no fire glow. No new readable text. Final scene is a spectacular empty walkway with souls bound in the chains, no palace, no king.",
+      "path": "/workspace/generated_images/exec-0191c246-03bb-47fb-8bc0-cbaf97922899.png"
+    },
+    "verification": {
+      "dimensions": "1536x1024",
+      "fullSizeVisualReview": true,
+      "thumbnailVisualReview": true,
+      "noReadableText": true,
+      "noPalace": true
+    },
+    "sha256": "1b8d161985008a799614bf06387b07885ab2eac2404888866fe36248cd8bc9d9",
+    "beforeSha256": "345668a4b84a39dc0cb307aea229fef07ced56e4bc770d24ed73f7c05414a45a"
+  },
+  {
+    "id": "report_w34",
+    "master": "art/story-review/chapter9/report_w34.png",
+    "subject": "晴天の雲海を横切る囚人橋",
+    "prompt": "Create ONE standalone landscape illustration 1536x1024 pixels, 3:2, edge-to-edge. No panels, borders, labels, typography or readable text. Match the attached Dungeon of Souls artwork: lavish sophisticated dark fantasy illustration, fine-grained pixel texture, meticulously detailed carved stone, black iron, carved wood and embroidered cloth, crisp tiny highlights, controlled cold cyan light against warm amber. Adult natural proportions and believable hands with exactly five fingers. This is a NEW illustration depicting the place or memory being described in the report; it replaces the palace conversation image, so no palace or king. Preserve reference identity and material language but change composition completely. Central subject readable at 384x256. A vast ancient prison transport bridge above a brilliant WHITE CLOUD SEA in clear bright BLUE DAYLIGHT. New panoramic long shot from the SIDE, not from along the walkway: the narrow stone bridge stretches nearly horizontally across the middle, connecting a storm tower edge at left to the immense empty ruined arena city at right. One tiny brown-haired black-and-gold cloaked apprentice with a brown satchel walks at center to establish scale. Iron restraints/rings on the bridge hint at its cruel past. Bright open sky, no storm clouds, no heavy dark sky. No closeup glove, no kneeling, no palace, no king. The exhilarating openness and harsh bridge are the subject.",
+    "refs": [
+      "art/story-review/chapter9/w34_glove.png",
+      "docs/art/story-refs/apprentice.png"
+    ],
+    "generated": "/workspace/generated_images/exec-1ca04dd0-3e8d-46e6-b3bf-182a8469de41.png",
+    "repair": {
+      "id": "report_w34",
+      "ch": 9,
+      "prompt": "Edit ONLY the attached 1536x1024 bright blue daylight bridge illustration. Preserve the exact composition, bright blue sky, white cloud sea, bridge and tiny black-and-gold apprentice and ruined arena at right. This is an uninhabited ruin. Extinguish EVERY attached hanging wall lantern on the tower at left: keep their black iron/brass fixtures but their interiors must be dark and unlit, no orange fire, no glowing windows or interior flames anywhere. Keep daylight illumination warm stone highlights naturally, do not make the scene dark or stormy. No other changes, no readable text.",
+      "path": "/workspace/generated_images/exec-42ac0d02-f356-4d7c-b756-79e0e42dd66b.png"
+    },
+    "verification": {
+      "dimensions": "1536x1024",
+      "fullSizeVisualReview": true,
+      "thumbnailVisualReview": true,
+      "noReadableText": true,
+      "noPalace": true
+    },
+    "sha256": "6584586b4ebb80156a4919bec32c45434dfcd0de465af43730ff19d51168a822",
+    "beforeSha256": "b0341973de1f1b1c771675b6008bbbab6ace05fd86adda3abd558bce4166ae5f"
+  },
+  {
+    "id": "report_w35",
+    "master": "art/story-review/chapter9/report_w35.png",
+    "subject": "次の器へ使い回される闘士の魂",
+    "prompt": "Create ONE standalone landscape illustration 1536x1024 pixels, 3:2, edge-to-edge. No panels, borders, labels, typography or readable text. Match the attached Dungeon of Souls artwork: lavish sophisticated dark fantasy illustration, fine-grained pixel texture, meticulously detailed carved stone, black iron, carved wood and embroidered cloth, crisp tiny highlights, controlled cold cyan light against warm amber. Adult natural proportions and believable hands with exactly five fingers. This is a NEW illustration depicting the place or memory being described in the report; it replaces the palace conversation image, so no palace or king. Preserve reference identity and material language but change composition completely. Central subject readable at 384x256. Historical memory of the arena's soul reuse, viewed from INSIDE an empty battered fighter's cage through heavy iron bars. Foreground shows a broken empty wooden articulated gladiator body slumped near the bars; beyond, on a plain workbench, a single cyan soul-light in a brass lantern stands beside another empty wooden fighter body awaiting use, its chest access panel open. Rows of similar unlit lanterns recede dimly. No gore, no human corpses, clearly carved wooden bodies with iron joints. No living technician needs to be depicted; this quiet arrangement explains the repeated use without diagrams or text. Amber arena firelight far beyond, cold cyan soul flame focal. No apprentice examining shelves, no palace or king.",
+    "refs": [
+      "art/story-review/chapter9/w35_lamps.png"
+    ],
+    "generated": "/workspace/generated_images/exec-f318eb4c-67cf-4b76-90bb-7ac2c2562df7.png",
+    "verification": {
+      "dimensions": "1536x1024",
+      "fullSizeVisualReview": true,
+      "thumbnailVisualReview": true,
+      "noReadableText": true,
+      "noPalace": true
+    },
+    "sha256": "0711d26e55b81e2f57abbbb05b46d0b69a06450080703808b97e9d6ce7bbc98f",
+    "beforeSha256": "31e7955e63b65f7f5a5dc2ba8a1493c4fef944a1e0d88d4b067217cf8677d554"
+  }
+]
