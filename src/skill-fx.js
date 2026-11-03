@@ -29,6 +29,55 @@ function trace(c,x,y,r,t,color,angle=-.64,width=4){
  line(c,x+dx,y+dy,x+dx*(1-2*q),y+dy*(1-2*q),width+3,color,(1-t)*.4);
  line(c,x+dx,y+dy,x+dx*(1-2*q),y+dy*(1-2*q),Math.max(1.5,width*.85),'#fff9ef',1-t);
 }
+// 火柱は地際の熱から噴き上がる。種は演出専用で、時間から滑らかに揺らす。
+function firePillar(c,x,y,r,t,lite,reduced,e) {
+ const rise=reduced?1:easeOut(clamp01(t/.24));
+ const fade=Math.pow(1-t, .85), motion=reduced?0:t;
+ const base=y+r*.43, height=r*(.4+rise*1.22), count=lite?3:11;
+ // 炎の奥に薄い煤。大きなぼかしや画面全体の閃光は使わない。
+ if(!lite){
+  c.globalCompositeOperation='source-over';
+  for(let i=0;i<3;i++){
+   const xx=x+(i-1)*r*.32+Math.sin(motion*5+i)*r*.08;
+   const yy=base-height*.65-motion*r*.45;
+   const smoke=c.createRadialGradient(xx,yy,0,xx,yy,r*.35);
+   smoke.addColorStop(0,rgba('#372b26',fade*.28));smoke.addColorStop(1,rgba('#372b26',0));
+   c.globalAlpha=1;c.fillStyle=smoke;c.fillRect(xx-r*.35,yy-r*.35,r*.7,r*.7);
+  }
+ }
+ c.globalCompositeOperation='lighter';
+ // 根元の照り返しは横長に絞り、敵の輪郭を隠さない。
+ c.save();c.translate(x,base);c.scale(1,.24);
+ const heat=c.createRadialGradient(0,0,0,0,0,r*.95);
+ heat.addColorStop(0,rgba('#ffb34d',fade*.55));heat.addColorStop(1,rgba('#d43c12',0));
+ c.globalAlpha=1;c.fillStyle=heat;c.fillRect(-r,-r,r*2,r*2);c.restore();
+ const widths=[1,.67,.28], colors=[['#a82a0b','#ed5314'],['#f87518','#ffbd4d'],['#ffca62','#fff1bd']];
+ for(let layer=0;layer<3;layer++){
+  const gradient=c.createLinearGradient(0,base,0,base-height);
+  gradient.addColorStop(0,rgba(colors[layer][1],0));gradient.addColorStop(.13,colors[layer][1]);gradient.addColorStop(.45,rgba(colors[layer][0],.7));gradient.addColorStop(1,rgba(colors[layer][0],0));
+  c.fillStyle=gradient;c.globalAlpha=fade*(layer===0?.42:layer===1?.65:.72);
+  for(let i=0;i<count;i++){
+   const u=(i-(count-1)/2)/Math.max(1,(count-1)/2);
+   const xx=x+u*r*.77+(r01(i+31,e.seed)-.5)*r*.09, w=r*(lite?.25:.15)*widths[layer];
+   const h=height*(.68+r01(i,e.seed)*.32)*(1-layer*.16);
+   const sway=reduced?0:Math.sin(motion*12+i*2.3)*r*.055;
+   const foot=base+(r01(i+41,e.seed)-.5)*r*.12, tip=xx+sway, top=foot-h;
+   c.beginPath();c.moveTo(xx-w,foot);
+   c.bezierCurveTo(xx-w*1.3,foot-h*.25,tip-w*.75,top+h*.3,tip,top);
+   c.bezierCurveTo(tip-w*.12,top+h*.23,xx+w*.7,foot-h*.6,xx+w*.45,foot-h*.4);
+   c.bezierCurveTo(xx+w*.2,foot-h*.25,xx+w*1.1,foot-h*.18,xx+w,foot);
+   c.closePath();c.fill();
+  }
+ }
+ // 火の粉は上向きの短い尾。低減表示では移動も粒子も省く。
+ const particles=reduced?0:lite?3:12;
+ for(let i=0;i<particles;i++){
+  const q=clamp01((t-r01(i+10,e.seed)*.15)/.85);
+  const xx=x+(r01(i,e.seed)-.5)*r*1.65+Math.sin(q*4+i)*r*.06;
+  const yy=base-q*r*(1.1+r01(i+20,e.seed)*.8);
+  line(c,xx,yy,xx-r*.015,yy+r*.06,1.3,i%3?'#ffb64a':'#ffe9ad',fade*Math.sin(Math.PI*q));
+ }
+}
 function drawCore(c,f,x,y,r,t,color,lite,reduced,e){
  const p=reduced?1:easeOut(clamp01(t/.32)), fade=Math.pow(1-t,1.3), drift=reduced?0:t;
  c.globalCompositeOperation='lighter';c.lineCap='round';c.lineJoin='round';
@@ -49,10 +98,7 @@ function drawCore(c,f,x,y,r,t,color,lite,reduced,e){
   const cy=y+r*(1-p);c.globalAlpha=fade;c.fillStyle=color;c.beginPath();c.arc(x,cy,r*.22,0,TAU);c.fill();
   star4(c,x,cy,r*.16,'#fff2d3',fade);ring(c,x,y,r*(.15+p*.35),color,fade*.6);sparks(c,e.seed,10,x,y,r*.8,drift,color,lite);
  }else if(f==='firePillar'){
-  for(let i=0;i<(lite?3:5);i++){
-   const dx=(i-(lite?1:2))*r*(e.all?.32:.2),cy=y+r*.4,top=cy-r*(.8+p*.9)*(i%2?.8:1),width=r*.16;
-   c.globalAlpha=fade*(i%2?.5:.85);c.fillStyle=i%2?color:'#ffd59a';c.beginPath();c.moveTo(x+dx-width,cy);c.quadraticCurveTo(x+dx-width*.6,top+r*.4,x+dx,top);c.quadraticCurveTo(x+dx+width,top+r*.5,x+dx+width,cy);c.closePath();c.fill();
-  }
+  firePillar(c,x,y,r,t,lite,reduced,e);
  }else if(f==='blast'){
   ring(c,x,y,r*(.2+p*.8),color,fade,5);star4(c,x,y,r*.6*(1-drift*.7),'#fff5d2',fade);
   sparks(c,e.seed,16,x,y,r,drift,color,lite);

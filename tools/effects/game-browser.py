@@ -38,7 +38,9 @@ async def main():
               const hit=SFX.skill;SFX.skill=function(...args){hitSounds++;return hit.apply(this,args);};
               const commit=Battle.prototype.commit;Battle.prototype.commit=function(...args){impact=performance.now();return commit.apply(this,args);};
               window.snapshot=()=>JSON.stringify([__game.G.rng,__game.G.party.map(e=>[e.hp,e.mp]),__game.G.battle.enemies.map(e=>e.hp)]);
-              window.before=snapshot();window.atAck=null;
+              window.before=snapshot();window.atAck=null;window.fxSeen=null;
+              // 短い演出を同じ時点で記録し、検査側の通信中に消えても判定を保つ。
+              const probe=setInterval(()=>{const fx=__game.G.fx;if(fx?.skill.some(e=>e.type==='skillScene')){fxSeen={count:fx.skill.length,type:fx.skill[0].type,family:fx.skill[0].design?.family,slashes:fx.slashes.length,changed:snapshot()!==before,hitSounds};clearInterval(probe);}},1);
               new MutationObserver(()=>{if(!atAck&&document.querySelector('.choice-trial-status').textContent.startsWith('確定通知'))atAck={same:snapshot()===before,impact,hitSounds};}).observe(document.querySelector('.choice-trial-status'),{childList:true,subtree:true});
             }''')
             await page.locator('#combat-menu .cmd-attack').click()
@@ -55,11 +57,11 @@ async def main():
             assert elapsed>=latency-10,(latency,elapsed)
             assert elapsed<latency+350,(latency,elapsed)
             assert await page.locator('.battle-windup').count()==0
-            await page.wait_for_function('__game.G.fx?.skill.some(e=>e.type==="skillScene")',timeout=5000)
-            assert await page.evaluate('snapshot()!==before'),'確定後も戦況が更新されていない'
-            assert await page.evaluate('(family)=>__game.G.fx.skill.length===1 && __game.G.fx.skill[0].type==="skillScene" && __game.G.fx.skill[0].design.family===family',expected),(key,expected)
-            assert await page.evaluate('hitSounds===1'),'対象数ぶん主音を重ねている'
-            assert await page.evaluate('__game.G.fx.slashes.length===0'),'技に旧三日月が重なっている'
+            await page.wait_for_function('fxSeen!==null',timeout=5000)
+            assert await page.evaluate('fxSeen.changed'),'確定後も戦況が更新されていない'
+            assert await page.evaluate('(family)=>fxSeen.count===1 && fxSeen.type==="skillScene" && fxSeen.family===family',expected),(key,expected)
+            assert await page.evaluate('fxSeen.hitSounds===1'),'対象数ぶん主音を重ねている'
+            assert await page.evaluate('fxSeen.slashes===0'),'技に旧三日月が重なっている'
             await page.wait_for_function('!__game.G.animating && __game.G.battle.phase==="input"')
             assert len(sent)==1
             assert await page.evaluate("localStorage.getItem('dos-save-v7')==='unchanged'")
