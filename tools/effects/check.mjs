@@ -152,6 +152,8 @@ assert.equal(new Set(ultimates.map(s=>JSON.stringify([s.ultimate,s.tone]))).size
 list=[];emitSkillFx(list,'RINNE',SPELLS.RINNE,[{target:enemy,dmg:10},{target:enemy,miss:true},{target:ally,dmg:12},{target:enemy,immune:true}],locate,0);
 assert.deepEqual(list[0].strikes,[locate(enemy),locate(ally)]);
 
+assert.deepEqual(new Set(Object.values(SKILL_FX_CATALOG).filter(d=>d.family==='pierce').map(d=>d.tier)),new Set([1,2,3]));
+for(const [key,s]of Object.entries(SPELLS))if(s.element==='fire'&&SKILL_FX_CATALOG[key].family!=='cleave'&&['atk','phys'].includes(s.kind))assert.equal(previewSkillFx(key)[0].col,'#ff4938',key);
 const shapes=new Set();
 for(const [job,rows] of Object.entries(JOB_SKILLS)){
  const top=rows.filter(r=>r.skill).at(-1).skill;
