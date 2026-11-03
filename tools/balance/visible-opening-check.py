@@ -117,6 +117,26 @@ with sync_playwright() as p:
         page.evaluate('openingText.length=0')
     page.screenshot(path='/tmp/dos-preempt-turn.png')
 
+    # 必ず奇襲の迷宮でも、実際の遭遇から開幕演出を終えて手番まで進む。
+    forced = page.evaluate("""async () => {
+      const {DUNGEONS}=await import('/src/dungeons/index.js');
+      return DUNGEONS.flatMap((d,i)=>d.trait?.alwaysAmbush?[i]:[]);
+    }""")
+    assert forced
+    for idx in forced:
+        page.evaluate("""idx => {
+          const {reset,foe}=openingCheck,G=__game.G;reset();
+          G.dungeonIdx=idx;G.fastAnim=true;
+          const x=G.px<__game.COLS-1?G.px+1:G.px-1,y=G.py;
+          Object.assign(G.board.cells[y][x],{type:'monster',monsterKey:foe,
+            cleared:false,elite:false,metal:false,revealed:true});
+          __game.autoMove.moveStep(x,y);
+        }""", idx)
+        page.wait_for_function('__game.G.battle?.opening === "ambush" && !!__game.G.battleIntro')
+        page.wait_for_function('__game.G.battleIntro === null && __game.G.battle.phase === "input" && !__game.G.animating')
+    print(f'必ず奇襲の迷宮{len(forced)}件: 遭遇・開幕演出・手番への移行 OK')
+
+
     # 動きを減らす場合は帯を省略し、初ターンの札で先制を伝える。
     page.emulate_media(reduced_motion='reduce')
     page.evaluate('''()=>{
