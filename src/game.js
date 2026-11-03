@@ -18439,7 +18439,7 @@ function markDungeonLoot(it) {
   }
   if (it && (abyssActive() || laterDungeon) && !it.bukon && hasQuality(it)) {
     it.bukon = [];
-    for (let i = 0; i < bukon.bukonSlots(it); i++) {
+    for (let i = 0; i < bukon.bukonDropCount(it); i++) {
       const soul = bukon.rollBukon(it, levelHere().lv);
       if (!soul) continue;
       if (bukon.bukonFits(it, soul)) it.bukon.push(soul);
