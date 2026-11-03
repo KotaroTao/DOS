@@ -137,40 +137,31 @@ function elemTrace(ctx, e, t, VW, VH, reduced) {
 }
 
 // 通常攻撃専用。光・衝撃だけを描き、武器・手・腕の形は出さない。
-// 斬撃は必ず右上→左下。最初の約45msで走り、細い残光だけを短く残す。
+// 斬撃は必ず右上→左下。最初の約55msで走り、鋼の反射と火花を短く残す。
 function normalAttackFx(kind, ctx, e, t, reduced) {
   const scale = e.s * (e.crit ? 1.15 : 1), fade = Math.pow(1 - t, 1.6);
   const col = e.el && e.el !== "none" ? elCol(e.el)[1] : kind === "blunt" ? "#d9ae70" : kind === "arcane" ? "#a9bcff" : "#b9e5f5";
   ctx.translate(e.x, e.y); ctx.globalCompositeOperation = "lighter";
   if (kind === "slash") {
-    const reach = 64 * scale, sweep = reduced ? 1 : Math.min(1, t / .18);
-    const tipX = reach - reach * 2 * sweep, tipY = -reach * .75 + reach * 1.5 * sweep;
-    // 平たい三角の帯に白い芯を重ねる。円弧や左右反転は使わない。
-    ctx.globalAlpha = fade * .65; ctx.fillStyle = col;
-    ctx.beginPath();ctx.moveTo(reach, -reach * .75);ctx.lineTo(tipX - 5 * scale, tipY - 6 * scale);
-    ctx.lineTo(tipX + 3 * scale, tipY + 4 * scale);ctx.closePath();ctx.fill();
-    line(ctx, reach, -reach * .75, tipX, tipY, (4 * (1 - t) + 1) * scale, "#fffdf4", fade);
-    if (!reduced) for (let i = 0; i < 7; i++) {
-      const p = r01(i, e.seed), spread = t * (10 + r01(i + 9, e.seed) * 18) * scale;
-      line(ctx, reach * (1 - 2 * p), reach * .75 * (2 * p - 1), reach * (1 - 2 * p) - spread, reach * .75 * (2 * p - 1) - spread * .3, 1.2, col, fade * .75);
-    }
+    // 右上から左下へ走る鋼の反射。幅のある霞と細い芯を別々に消す。
+    const reach = 78 * scale, sweep = reduced ? 1 : easeOut(Math.min(1, t / .22));
+    const x = reach * (1 - 2 * sweep), y = -x * .75;
+    line(ctx, reach, -reach * .75, x, y, (18 * (1 - t) + 2) * scale, col, fade * .22);
+    line(ctx, reach, -reach * .75, x, y, (7 * (1 - t) + 1) * scale, "#dbe4df", fade * .75);
+    line(ctx, reach, -reach * .75, x, y, 2 * scale, "#fffdf4", fade);
+    glow(ctx, 0, 0, 34 * scale, "#e4ceb0", Math.max(0, 1 - t * 4) * .6);
   } else if (kind === "blunt") {
-    // 中心の白い圧縮光→角張った衝撃→短い破片。地面の環にはしない。
-    const pop = reduced ? 1 : 1 - Math.pow(1 - Math.min(1, t / .12), 3);
-    ctx.globalAlpha = fade;ctx.fillStyle = "#fff8e6";
-    ctx.beginPath();ctx.ellipse(0, 0, (15 - (reduced ? 0 : t) * 8) * scale, (10 - (reduced ? 0 : t) * 4) * scale, 0, 0, Math.PI * 2);ctx.fill();
-    ctx.strokeStyle = col;ctx.lineWidth = (4 * (1 - t) + .5) * scale;
-    ctx.globalAlpha = fade * .9;ctx.beginPath();
-    for (let i = 0; i < 16; i++) {
-      const a = i * Math.PI / 8, radius = (i % 2 ? 12 : 25 + r01(i, e.seed) * 8) * scale * (.7 + pop * .5 + (reduced ? 0 : t) * .25);
-      const x = Math.cos(a) * radius, y = Math.sin(a) * radius * .8;
-      i ? ctx.lineTo(x,y) : ctx.moveTo(x,y);
-    }
-    ctx.closePath();ctx.stroke();
-    if (!reduced) for (let i = 0; i < 9; i++) {
-      const a = i * Math.PI * 2 / 9 + r01(i, e.seed) * .4, r = (14 + t * 42) * scale;
-      line(ctx, Math.cos(a)*r, Math.sin(a)*r*.8, Math.cos(a)*(r+7*scale), Math.sin(a)*(r+7*scale)*.8, 2 * scale, i % 2 ? col : "#fff3d0", fade);
-    }
+    // 星形の輪郭ではなく、圧縮された光と不規則に広がる粉じん。
+    glow(ctx, 0, 0, (38 + t * 16) * scale, col, Math.max(0, 1 - t * 3.5));
+    ctx.globalAlpha = fade; ctx.fillStyle = "#fff3d6";
+    ctx.beginPath(); ctx.ellipse(0, 0, (17 - t * 13) * scale, (11 - t * 8) * scale, -.2, 0, Math.PI * 2); ctx.fill();
+  } else if (kind === "thrust") {
+    // 奥へ抜ける細い軌跡。命中点だけを強く光らせ、斬撃と区別する。
+    const push = reduced ? 1 : easeOut(Math.min(1, t / .2));
+    line(ctx, 0, 82 * scale, 0, (18 - push * 42) * scale, 12 * scale * (1 - t), col, fade * .25);
+    line(ctx, 0, 82 * scale, 0, (18 - push * 42) * scale, 3 * scale, "#fff9e9", fade);
+    glow(ctx, 0, 0, 25 * scale, "#e8d7b6", Math.max(0, 1 - t * 3));
+    line(ctx, -13 * scale, 0, 13 * scale, 0, 2 * scale, "#fff5d9", fade);
   } else if (kind === "arcane") {
     glow(ctx, 0, 0, (27 + (reduced ? 0 : t) * 10) * scale, col, fade * .8);
     star4(ctx, 0, 0, 18 * scale * (1 - t * .6), "#f6faff", fade);
@@ -182,6 +173,24 @@ function normalAttackFx(kind, ctx, e, t, reduced) {
     line(ctx, x, y, 0, 0, 7 * scale * (1 - t), col, fade * .5);
     line(ctx, x, y, 0, 0, 1.8 * scale, "#ffffff", fade);
     star4(ctx, 0, 0, 15 * scale * (1 - t * .6), "#fffaf0", fade);
+  }
+  if (!["slash", "blunt", "thrust"].includes(kind)) return;
+  // 種は描画専用。火花は短い尾、粉じんは重力で落ちる小片にする。
+  const travel = reduced ? .22 : t;
+  const count = reduced ? 4 : kind === "blunt" ? 18 : 12;
+  for (let i = 0; i < count; i++) {
+    const a = r01(i, e.seed) * Math.PI * 2;
+    const speed = (20 + r01(i + 21, e.seed) * (kind === "blunt" ? 90 : 68)) * scale;
+    const vx = Math.cos(a) * speed, vy = Math.sin(a) * speed * .7;
+    const x = vx * travel, y = vy * travel + travel * travel * 35 * scale;
+    if (i % 3 === 0) {
+      ctx.globalCompositeOperation = "lighter";
+      line(ctx, x, y, x - vx * .10, y - vy * .10, 1.4 * scale, "#f4d2a1", fade);
+    } else {
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = fade * .8; ctx.fillStyle = i % 2 ? "#9c8970" : "#564c42";
+      ctx.fillRect(x, y, (2 + r01(i + 7, e.seed) * 2) * scale, 2 * scale);
+    }
   }
 }
 

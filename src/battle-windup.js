@@ -39,7 +39,11 @@ export function beginBattleWindup({ party, index, view, label = "攻撃の構え
     const marker = add("windup-aim"); marker.style.left = `${Math.max(5, Math.min(95, aim.x * 100))}%`; marker.style.top = `${Math.max(10, Math.min(85, aim.y * 100))}%`;
     for (let i = 0; i < 4; i++) marker.appendChild(document.createElement("i"));
   }
-  add("windup-name").textContent = label;
+  // 名前は敵のCanvasに重ねず、操作欄の独立した行へ置く。
+  const name = document.createElement("div"); name.className = "battle-action-name";
+  name.textContent = label; name.setAttribute("role", "status");
+  const dock = document.getElementById("controls") || view.parentElement;
+  dock.prepend(name);
   const attack = attackStyle !== null, timing = normalAttackTiming(fast), started = performance.now();
   if (attack) {
     attackMotion(root, attackStyle, aim);
@@ -90,7 +94,7 @@ export function beginBattleWindup({ party, index, view, label = "攻撃の構え
       cancelAnimationFrame(frame); resize.disconnect(); gateWatch?.disconnect();
       window.removeEventListener("resize", layout); window.removeEventListener("scroll", layout, true);
       document.removeEventListener("visibilitychange", hide); window.removeEventListener("pagehide", leave);
-      root.remove(); card.classList.remove("battle-windup-actor"); party.classList.remove("choice-windup");
+      name.remove(); root.remove(); card.classList.remove("battle-windup-actor"); party.classList.remove("choice-windup");
       try { sound?.({ immediate }); } catch {}
       sound = null; if (active === handle) active = null;
     },
