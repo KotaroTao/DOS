@@ -8,7 +8,7 @@ const level=new Map();
 for(const rows of Object.values(JOB_SKILLS))for(const r of rows)if(r.skill)level.set(r.skill,Math.min(level.get(r.skill)??Infinity,r.lvl));
 const signatures=new Set(Object.keys(SKILL_FX_SIGNATURES).filter(k=>!['DIAL','REVIVE','MADIOS'].includes(k)));
 // 名前だけでは形を誤る代表技を明示する。追加・変更は生成結果の一覧も確認する。
-const overrides={HUNTER_SAMIDARE:'projectile',HUNTER_AMIUCHI:'projectile',HUNTER_TAKAOTOSHI:'projectile',HUNTER_KAZEKIRI:'projectile',SEISAI:'blast',MARYOKUBOUSOU:'blast',ARCANIST_KINSEI:'blast',ARCTHIEF_TOUSEI:'blast',ARCHMAGE_TENKYUU:'blast',TENPENCHII:'blast',ARCHMAGE_SOUSEI:'blast',KYOKUDAI:'blast',BATTLEMAGE_TENPOU:'blast',ARCHMAGE_BANSHOU:'blast',NERAIUCHI:'pierce',KYOUGEKI:'impact',HAISUI:'impact',SHINGANGEKI:'pierce',JOUMON:'impact',TEPPEKIJIN:'ward',FURAKUJOU:'ward',KISHIOU:'empower',TILTOWAIT:'blast',KIKOKU:'cut',KUBIKARI:'cut',KIJINKUDAKI:'impact',KONGOURENDA:'flurry',DANZAINOTSUCHI:'impact',TSUBAMEGAESHI:'flurry',ASHURAZAN:'flurry',SHASHINNOGYOU:'impact',SEIKEN:'radiance',SHINENNOHADOU:'void',HOUSHOUHEKI:'ward',CARDINAL_SEIYU:'heal',DIALALL:'heal',MADIOS:'heal',DIOS:'heal',DIAL:'heal'};
+const overrides={HUNTER_SAMIDARE:'projectile',HUNTER_AMIUCHI:'projectile',HUNTER_TAKAOTOSHI:'projectile',HUNTER_KAZEKIRI:'projectile',ZETTAIREIDO:'ice',ARCHMAGE_GOKKAN:'ice',HERMIT_KAMINARI:'lightning',HERO_HEKIREKI:'lightning',ARCHMAGE_TENMEI:'lightning',ASCETIC_TSUBUTE:'stone',ROCKBLAST:'stone',SEISAI:'blast',MARYOKUBOUSOU:'blast',ARCANIST_KINSEI:'blast',ARCTHIEF_TOUSEI:'blast',ARCHMAGE_TENKYUU:'blast',TENPENCHII:'blast',ARCHMAGE_SOUSEI:'blast',KYOKUDAI:'blast',BATTLEMAGE_TENPOU:'blast',ARCHMAGE_BANSHOU:'blast',NERAIUCHI:'pierce',KYOUGEKI:'impact',HAISUI:'impact',SHINGANGEKI:'pierce',JOUMON:'impact',TEPPEKIJIN:'ward',FURAKUJOU:'ward',KISHIOU:'empower',TILTOWAIT:'blast',KIKOKU:'cut',KUBIKARI:'cut',KIJINKUDAKI:'impact',KONGOURENDA:'flurry',DANZAINOTSUCHI:'impact',TSUBAMEGAESHI:'flurry',ASHURAZAN:'flurry',SHASHINNOGYOU:'impact',SEIKEN:'radiance',SHINENNOHADOU:'void',HOUSHOUHEKI:'ward',CARDINAL_SEIYU:'heal',DIALALL:'heal',MADIOS:'heal',DIOS:'heal',DIAL:'heal'};
 function family(key,s){
  if(overrides[key])return overrides[key];
  const n=s.name;
@@ -51,12 +51,21 @@ const blastRanks={TENPENCHII:2,ARCHMAGE_SOUSEI:2,KYOKUDAI:3,BATTLEMAGE_TENPOU:3,
 // 射撃の格と固有軌道は習得Lvから推測せず、制作時に指定する。
 const projectileRanks={RENSHA:2,SENNYA:3,HUNTER_HAYATEYA:2,HUNTER_KABURAYA:2,RYUUSEISHA:3,HUNTER_ITEYA:2,HUNTER_HIYA:3,HUNTER_SHINZOU:2,HUNTER_ARASHIYUZURU:3,HUNTER_TOMEYA:3,HUNTER_KARIGAMI:3,HUNTER_BAKUFU:3,HUNTER_HOSHIOTOSHI:3,HUNTER_SAMIDARE:2,HUNTER_AMIUCHI:2,HUNTER_TAKAOTOSHI:2,HUNTER_KAZEKIRI:2};
 const projectileForms={YANOAME:'rain',SENNYA:'rain',HUNTER_HIYA:'rain',HUNTER_BAKUFU:'cascade',RYUUSEISHA:'meteor',HUNTER_HOSHIOTOSHI:'starfall',HUNTER_KARIGAMI:'six',HUNTER_ARASHIYUZURU:'storm',HUNTER_AMIUCHI:'net',HUNTER_KABURAYA:'echo',HUNTER_SHINZOU:'focus',HUNTER_TOMEYA:'focus',HUNTER_SAMIDARE:'rain',HUNTER_TAKAOTOSHI:'dive',HUNTER_KAZEKIRI:'fan'};
+const elementRanks={
+ ice:{HYOUGA:2,ARCANIST_KINIKI:2,ARCHMAGE_GOKKAN:2,SPELLBLADE_HYOUGOKU:3,WARDEN_HYOUFUU:3,ARCANIST_TOUKON:3,SAGE_REIHYOU:3,ARCHMAGE_EIKYUU:3,ZETTAIREIDO:3},
+ wave:{BISHOP_SEIRYUU:2,HEXER_KUROSHIO:2,SPELLBLADE_SOURYUU:2,WARDEN_BAKUFU:3,NECROMANCER_MEIGA:3},
+ gale:{TORNADO:2,SAGE_HAYATE:2,HERMIT_KOGARASHI:2,HERMIT_TENGUKAZE:3,ARCTHIEF_NUSUMIARASHI:3},
+ lightning:{RAIJIN:2,SAGE_TENRAI:2,HERMIT_KAMINARI:2,ARCHMAGE_TENMEI:2,RAIMEIRAN:3,ARCHMAGE_RAIGOU:3,HERO_HEKIREKI:3},
+ stone:{ARCHMAGE_DOSEKIRYUU:2,WARDEN_GANKAI:2,GANSAI:3,ARCTHIEF_TOUTENSEKI:3,WARDEN_KANAME:3},
+ quake:{DAICHIWARI:2,SAGE_DAICHI:2,ARCHMAGE_AGITO:2,METEOR:3,BATTLEMAGE_INTETSU:3},
+};
 function effectTier(key,s){
  if(family(key,s)==='projectile')return projectileRanks[key]||1;
  if(family(key,s)==='impact')return (level.get(key)??1)>=170?5:(level.get(key)??1)>=120?4:(level.get(key)??1)>=70?3:(level.get(key)??1)>=30?2:1;
  if(CLEAVE_TOP[key])return 3;
  if(key==='INQUISITOR_MANAZASHI')return 3; // 弱体の最高習得Lv75: 上位の視線。
  const f=family(key,s);
+ if(elementRanks[f])return elementRanks[f][key]||1;
  if(f==='firePillar')return fireRanks[key]||1;
  if(f==='fireball')return fireballRanks[key]||1;
  if(f==='blast')return blastRanks[key]||1;

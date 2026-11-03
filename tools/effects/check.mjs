@@ -59,7 +59,7 @@ for(const [key,dur]of [['MAHALITO',400],['GOKUEN',700],['GOKUENRAN',1200],['HALI
   assert.equal(effects.length,0,'不発の火柱には表示待ちを付けない');
  }
 }
-assert.equal(skillFxDuration({family:'ice',tier:3},.1),220);
+assert.equal(skillFxDuration({family:'cut',tier:3},.1),220);
 const fireCounts=[0,0,0,0];
 for(const design of Object.values(SKILL_FX_CATALOG))if(design.family==='firePillar')fireCounts[design.tier]++;
 assert.deepEqual(fireCounts,[0,8,2,6]);
@@ -98,6 +98,30 @@ for(const [family,counts,top]of [['fireball',[9,4,3],['SPELLBLADE_ENTEI','ARCTHI
   for(let seed=1;seed<=3;seed++)for(const ch of SFX_DEFS[name].gen(rng(seed)).ch){assert.ok(ch.every(Number.isFinite));assert.ok(ch.every(v=>Math.abs(v)<=.91));assert.ok(ch.some(v=>Math.abs(v)>.1));}
  }
 }
+const elementPolicy={
+ ice:{counts:[8,3,6],top:['SPELLBLADE_HYOUGOKU','WARDEN_HYOUFUU','ARCANIST_TOUKON','SAGE_REIHYOU','ARCHMAGE_EIKYUU','ZETTAIREIDO'],min:160},
+ wave:{counts:[8,3,2],top:['WARDEN_BAKUFU','NECROMANCER_MEIGA'],min:160},
+ gale:{counts:[7,3,2],top:['HERMIT_TENGUKAZE','ARCTHIEF_NUSUMIARASHI'],min:150},
+ lightning:{counts:[7,4,3],top:['RAIMEIRAN','ARCHMAGE_RAIGOU','HERO_HEKIREKI'],min:140},
+ stone:{counts:[6,2,3],top:['GANSAI','ARCTHIEF_TOUTENSEKI','WARDEN_KANAME'],min:170},
+ quake:{counts:[8,3,2],top:['METEOR','BATTLEMAGE_INTETSU'],min:160},
+};
+for(const [family,policy]of Object.entries(elementPolicy)){
+ const rows=Object.entries(SKILL_FX_CATALOG).filter(([k,d])=>d.family===family),counts=[0,0,0];for(const [k,d]of rows)counts[d.tier-1]++;
+ assert.deepEqual(counts,policy.counts);assert.ok(counts[0]>counts[1]&&counts[0]>counts[2]);
+ assert.deepEqual(new Set(rows.filter(([k,d])=>d.tier===3).map(([k])=>k)),new Set(policy.top));
+ for(const key of policy.top)for(const job of Object.values(JOB_SKILLS).filter(rows=>rows.some(r=>r.skill===key))){
+  const lvl=job.find(r=>r.skill===key).lvl,top=Math.max(...job.filter(r=>SKILL_FX_CATALOG[r.skill]?.family===family).map(r=>r.lvl));
+  assert.equal(lvl,top,key);assert.ok(lvl>=policy.min,key);
+ }
+ for(let rank=1;rank<=3;rank++){
+  assert.equal(skillFxSound(family,rank),family+(rank===1?'':rank));
+  for(const options of [{},{auto:true},{fast:true}])assert.equal(skillFxDuration({family,tier:rank},.1,options),[0,400,700,1200][rank]*(options.auto?.6:options.fast?.8:1));
+  const name='skill'+family[0].toUpperCase()+family.slice(1)+(rank===1?'':rank);
+  for(let seed=1;seed<=3;seed++)for(const ch of SFX_DEFS[name].gen(rng(seed)).ch){assert.ok(ch.every(Number.isFinite));assert.ok(ch.every(v=>Math.abs(v)<=.91));assert.ok(ch.some(v=>Math.abs(v)>.1));}
+ }
+}
+for(const [key,family]of [['ZETTAIREIDO','ice'],['ARCHMAGE_GOKKAN','ice'],['HERMIT_KAMINARI','lightning'],['HERO_HEKIREKI','lightning'],['ARCHMAGE_TENMEI','lightning'],['ASCETIC_TSUBUTE','stone'],['ROCKBLAST','stone']])assert.equal(SKILL_FX_CATALOG[key].family,family);
 console.log(`${Object.keys(SPELLS).length}技 / ${new Set(Object.values(SKILL_FX_CATALOG).map(d=>d.family)).size}系統 / ${Object.keys(SKILL_FX_SIGNATURES).length}看板: 割当・全体/単体・不発・複合作用点・上限・軽量化・乱数不変・音声を確認`);
 // 新しい7系統は各ランクを実際の技へ適用し、専用音と表示尺を持つ。
 for(const family of ['radiance','void','arcane','heal','revive','purify','ward'])for(let rank=1;rank<=3;rank++){
