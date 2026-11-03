@@ -6,7 +6,7 @@ import { SKILL_FX_SIGNATURES } from './skill-fx-signatures.js';
 import { FX_LIMITS, fxLite } from './skill-fx-budget.js';
 const { r01, clamp01, easeOut, rgba, line, star4 } = FX, TAU = Math.PI*2;
 export const SKILL_FAMILIES = Object.freeze({cut:'斬撃',cleave:'なぎ払い',flurry:'連撃',impact:'重い打撃',pierce:'貫通',projectile:'射撃',fireball:'火球',firePillar:'火柱',blast:'爆発',ice:'氷の破片',wave:'水の波',gale:'風の流れ',lightning:'雷光',stone:'岩の隆起',quake:'地の衝撃',radiance:'聖光',void:'闇の収束',arcane:'魔力の波',heal:'回復',revive:'蘇生',purify:'治療',ward:'守り',mana:'魔力の譲渡',empower:'強化',charge:'力を溜める',weaken:'弱体',dispel:'解除',seal:'封印',paralyze:'麻痺',poison:'毒',illusion:'幻惑',sleep:'眠り',gravity:'重力',doom:'死の印',drain:'吸収',steal:'奪取',escape:'退避',survey:'探索'});
-const COLORS = {cut:'#daeaf4',cleave:'#daeaf4',flurry:'#daeaf4',impact:'#deb37a',pierce:'#e1eaff',projectile:'#c6e2ed',fireball:'#ff9b53',firePillar:'#ff9b53',blast:'#ffc786',ice:'#bceaff',wave:'#69c8ff',gale:'#91e5c1',lightning:'#f4e8ff',stone:'#d2b18a',quake:'#c6aa8b',radiance:'#ffe9aa',void:'#b999e5',heal:'#9be7bd',revive:'#f6e6b0',purify:'#b4edee',ward:'#b7d8f0',empower:'#f5d597',charge:'#e7c39b',poison:'#a8bd7a',drain:'#cf93bd',mana:'#92c9f8',weaken:'#b49ad5',dispel:'#d6dff9',seal:'#cba5f1',illusion:'#d3a8df',sleep:'#aebcf1'};
+const COLORS = {cut:'#daeaf4',cleave:'#daeaf4',flurry:'#daeaf4',impact:'#deb37a',pierce:'#e1eaff',projectile:'#c6e2ed',fireball:'#ff9b53',firePillar:'#ff9b53',blast:'#ffc786',ice:'#bceaff',wave:'#69c8ff',gale:'#91e5c1',lightning:'#f4e8ff',stone:'#d2b18a',quake:'#c6aa8b',radiance:'#ffe9aa',void:'#b999e5',heal:'#9be7bd',revive:'#f6e6b0',purify:'#b4edee',ward:'#b7d8f0',empower:'#f5d597',charge:'#e7c39b',poison:'#a8bd7a',drain:'#cf93bd',mana:'#92c9f8',gravity:'#ae92e8',doom:'#d68bae',steal:'#edce83',escape:'#9eaecb',survey:'#8cdae3',weaken:'#b49ad5',dispel:'#d6dff9',seal:'#cba5f1',illusion:'#d3a8df',sleep:'#aebcf1'};
 export function skillFxSound(family, tier = 1) {
   if (['cut','cleave','flurry'].includes(family)) return 'slash';
   if (family==='fireball'||family==='blast')return family+(tier>=3?'3':tier>=2?'2':'');
@@ -217,6 +217,62 @@ function supportScene(c,f,x,y,r,t,color,lite,reduced,e){
   }
  }
 }
+// 六系統は格ごとに紋と流れを変える。低減時は作用を示す固定形にする。
+function utilityCore(c,f,x,y,r,t,color,lite,reduced,e){
+ const rank=e.design.tier, q=reduced?.55:easeOut(clamp01(t/.75)), fade=Math.pow(1-t,.8);
+ const n=lite?3:6, phase=reduced?0:t*2;
+ if(f==='gravity'){
+  // 重い水平環が落ち、上位では縦の檻、最上位では中心へ潰れる軌道。
+  for(let i=0;i<rank+1;i++){
+   c.save();c.translate(x,y+r*(.5-q)+(i-rank/2)*r*.25);c.scale(1,.23);
+   ring(c,0,0,r*(.8-q*.35),color,fade,2+rank);c.restore();
+  }
+  if(rank>=2)for(let i=0;i<4;i++){const dx=(i-1.5)*r*.32;line(c,x+dx,y-r*.8,x+dx*(1-q*.6),y+r*.45,1.5,color,fade*.65);}
+  if(rank===3){ring(c,x,y,r*(1-q*.8),'#ede1ff',fade,3);star4(c,x,y,r*.18,'#e4d1ff',fade);}
+ }else if(f==='doom'){
+  ring(c,x,y,r*.58,color,fade,2);
+  // 割れた刻印から、六角の封、二重の処刑紋へ。
+  const count=rank===1?4:6;
+  for(let i=0;i<count;i++){
+   const a=i*TAU/count-Math.PI/2+phase*(rank===3?.4:0);
+   ray(c,x,y,r*.62,a,color,fade,2);
+   if(rank>=2){const b=a+TAU/count;line(c,x+Math.cos(a)*r*.75,y+Math.sin(a)*r*.75,x+Math.cos(b)*r*.75,y+Math.sin(b)*r*.75,1.5,color,fade);}
+  }
+  line(c,x-r*.22,y-r*.3,x+r*.22,y+r*.3,3,'#f0c5de',fade);
+  line(c,x+r*.22,y-r*.3,x-r*.22,y+r*.3,3,'#f0c5de',fade);
+  if(rank===3)ring(c,x,y,r*(.95-q*.12),'#da92bc',fade,3);
+ }else if(f==='drain'){
+  ring(c,x,y,r*(.65-q*.35),color,fade,2);
+  for(let i=0;i<n;i++){
+   const a=i*TAU/n+phase, d=r*(.9-q*.6);
+   const xx=x+Math.cos(a)*d, yy=y+Math.sin(a)*d;
+   line(c,xx,yy,x+Math.cos(a-.3)*d*.55,y+Math.sin(a-.3)*d*.55,rank,color,fade);
+   if(rank>=2)star4(c,xx,yy,3+rank,color,fade);
+  }
+  if(rank===3){ring(c,x,y,r*.55,'#f6b8da',fade,3);ring(c,x,y,r*.8,color,fade*.6,1);}
+ }else if(f==='steal'){
+  // 引き抜かれる光片。上位では鉤形の軌跡、最上位では三重の引き抜き。
+  for(let i=0;i<rank;i++){
+   const yy=y+(i-(rank-1)/2)*r*.32, xx=x-r*.85*q;
+   star4(c,xx,yy,6+rank,'#ffe4a0',fade);
+   line(c,x+r*.4,yy-r*.15,xx,yy,2,color,fade*.7);
+   if(rank>=2){line(c,x+r*.4,yy-r*.15,x+r*.55,yy-r*.35,2,color,fade);line(c,x+r*.55,yy-r*.35,x+r*.15,yy-r*.45,2,color,fade);}
+  }
+  if(rank===3)ring(c,x,y,r*(.4+q*.4),color,fade*.5,1.5);
+ }else if(f==='escape'){
+  for(let i=0;i<n;i++){
+   const xx=x+(i-(n-1)/2)*r*.25-q*r*.4, yy=y+Math.sin(i*2)*r*.3;
+   c.globalAlpha=fade*.3;c.fillStyle=color;c.beginPath();c.ellipse(xx,yy,r*(.18+q*.15),r*.13,0,0,TAU);c.fill();
+  }
+  if(rank>=2)for(let i=0;i<rank;i++)line(c,x+r*.4,y+(i-1)*r*.3,x-r*q,y+(i-1)*r*.3,2,color,fade);
+  if(rank===3)ring(c,x,y,r*(.3+q*.7),color,fade*.5,2);
+ }else if(f==='survey'){
+  for(let i=0;i<rank;i++)ring(c,x,y,r*(.2+q*.65+i*.16),color,fade/(1+i*.4),1.5);
+  star4(c,x,y,r*.2,'#dbffff',fade);
+  if(rank>=2)for(let i=0;i<4;i++)ray(c,x,y,r*.65,i*TAU/4,color,fade,2);
+  if(rank===3)for(let i=0;i<4;i++)star4(c,x+Math.cos(i*TAU/4)*r*.8,y+Math.sin(i*TAU/4)*r*.8,4,'#fff0b6',fade);
+ }
+}
 function drawCore(c,f,x,y,r,t,color,lite,reduced,e){
  const p=reduced?1:easeOut(clamp01(t/.32)), fade=Math.pow(1-t,1.3), drift=reduced?0:t;
  c.globalCompositeOperation='lighter';c.lineCap='round';c.lineJoin='round';
@@ -225,6 +281,8 @@ function drawCore(c,f,x,y,r,t,color,lite,reduced,e){
  }
  if(SUPPORT_FAMILIES.has(f)){
   supportScene(c,f,x,y,r,t,color,lite,reduced,e);
+ }else if(['gravity','doom','drain','steal','escape','survey'].includes(f)){
+  utilityCore(c,f,x,y,r,t,color,lite,reduced,e);
  }else if(['cut','cleave','flurry'].includes(f)){
   const n=f==='flurry'?Math.min(lite?2:6,Math.max(1,e.hitCount)):f==='cleave'?2:1;
   for(let i=0;i<n;i++) {const q=clamp01((t-i*.065)/(1-i*.065));if(!q)continue;trace(c,x+(i%2?4:-4),y+(i-n/2)*4,r*(f==='cleave'?1.3:1),q,color,i%2?.65:-.65,f==='cleave'?4:3);}
