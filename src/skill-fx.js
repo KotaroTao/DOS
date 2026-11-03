@@ -1,3 +1,4 @@
+import { drawMysticFx, MYSTIC_FAMILIES } from './mystic-fx.js';
 import { drawThermalFx } from './thermal-fx.js';
 // 技の意味から組み立てる軽量Canvas演出。武器・人物は描かず、火柱だけ透過アトラスを使う。
 import { registerFx, FX, statusFxKind } from './battlefx.js';
@@ -8,6 +9,7 @@ const { r01, clamp01, easeOut, rgba, line, star4 } = FX, TAU = Math.PI*2;
 export const SKILL_FAMILIES = Object.freeze({cut:'斬撃',cleave:'なぎ払い',flurry:'連撃',impact:'重い打撃',pierce:'貫通',projectile:'射撃',fireball:'火球',firePillar:'火柱',blast:'爆発',ice:'氷の破片',wave:'水の波',gale:'風の流れ',lightning:'雷光',stone:'岩の隆起',quake:'地の衝撃',radiance:'聖光',void:'闇の収束',arcane:'魔力の波',heal:'回復',revive:'蘇生',purify:'治療',ward:'守り',mana:'魔力の譲渡',empower:'強化',charge:'力を溜める',weaken:'弱体',dispel:'解除',seal:'封印',paralyze:'麻痺',poison:'毒',illusion:'幻惑',sleep:'眠り',gravity:'重力',doom:'死の印',drain:'吸収',steal:'奪取',escape:'退避',survey:'探索'});
 const COLORS = {cut:'#daeaf4',cleave:'#daeaf4',flurry:'#daeaf4',impact:'#deb37a',pierce:'#e1eaff',projectile:'#c6e2ed',fireball:'#ff9b53',firePillar:'#ff9b53',blast:'#ffc786',ice:'#bceaff',wave:'#69c8ff',gale:'#91e5c1',lightning:'#f4e8ff',stone:'#d2b18a',quake:'#c6aa8b',radiance:'#ffe9aa',void:'#b999e5',heal:'#9be7bd',revive:'#f6e6b0',purify:'#b4edee',ward:'#b7d8f0',empower:'#f5d597',charge:'#e7c39b',poison:'#a8bd7a',drain:'#cf93bd',mana:'#92c9f8',gravity:'#ae92e8',doom:'#d68bae',steal:'#edce83',escape:'#9eaecb',survey:'#8cdae3',weaken:'#b49ad5',dispel:'#d6dff9',seal:'#cba5f1',illusion:'#d3a8df',sleep:'#aebcf1'};
 export function skillFxSound(family, tier = 1) {
+  if (MYSTIC_FAMILIES.includes(family)) return family+(tier>=3?'3':tier>=2?'2':'');
   if (['cut','cleave','flurry'].includes(family)) return 'slash';
   if (family==='fireball'||family==='blast')return family+(tier>=3?'3':tier>=2?'2':'');
   if (['impact','stone','quake'].includes(family)) return 'impact';
@@ -18,7 +20,7 @@ export function skillFxSound(family, tier = 1) {
   return family === 'firePillar' ? tier >= 3 ? 'firePillar3' : tier >= 2 ? 'firePillar2' : 'firePillar' : family === 'fireball' ? 'fire' : family === 'lightning' ? 'spark' : 'magic';
 }
 // 火柱・火球・爆発は格ごとの見せる時間を持つ。画質・動き低減では尺を変えない。
-export const extendedSkillFx=design=>['firePillar','fireball','blast'].includes(design?.family);
+export const extendedSkillFx=design=>['firePillar','fireball','blast',...MYSTIC_FAMILIES].includes(design?.family);
 export function skillFxDuration(design, spd=1, options={}){
  if(extendedSkillFx(design)){
   const base=[0,400,700,1200][design.tier]||400;
@@ -379,7 +381,9 @@ export function drawSkillScene(c,e,t,w,h,reduced){
  const x=e.x,y=e.y;
  c.save();
  const anchors=e.primaryPts||pts;
- if(f==='fireball'||f==='blast'){
+ if(MYSTIC_FAMILIES.includes(f)){
+  drawMysticFx(c,e,t,w,h,lite,reduced);
+ }else if(f==='fireball'||f==='blast'){
   drawThermalFx(c,e,t,w,h,lite,reduced);
  }else if(f==='firePillar' && e.design.tier===3){
   fireVortex(c,e,t,w,h,lite,reduced);
