@@ -34,3 +34,19 @@ node tools/performance/auto-frame-check.mjs
 Workerと同期版の作戦・対象の一致、乱数/入力不変を30条件で確認。Worker不可時の復帰、HPだけの更新時のDOM維持、実戦の手動/オート5連撃も検査する。既存の `auto-intelligence.mjs`・`auto-resistance.mjs` は通過。`auto-three-turn.mjs` の `PLAN_VULN` 期待値は変更前のmain（825b1f0c）でも失敗し、今回の差分による退行ではない。
 
 心得 `t_auto_smooth` を追加。
+
+## 描画側のCPUを4倍遅延させた比較
+
+同じ乱数種、同じ戦闘設定でChromiumのページ側CPUを4倍遅延させた試験。Workerを含む端末全体の性能を再現するものではなく、描画側が重い場合の比較。
+
+| 項目 | 変更前 | 変更後 |
+|---|---:|---:|
+| 34ms超のフレーム間隔 | 37回 | 6回 |
+| 50ms以上の長い処理 | 30回 | 2回 |
+| フレーム間隔・95百分位 | 33.4ms | 16.8ms |
+| フレーム間隔・最大 | 283.3ms | 166.6ms |
+| 主スレッドの行動選択・最大 | 173.8ms | Workerで30回・同期復帰0回 |
+| カード更新・95百分位 | 4.5ms | 2.2ms |
+| 戦闘中の音準備・最大 | 30.7ms | 0.6ms |
+
+測定JSONは `docs/performance/auto-stress-before.json`・`auto-stress-after.json`。重い場面の停止は大きく減ったが、ゼロではない。
