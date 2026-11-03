@@ -47,7 +47,7 @@ async def main():
                 assert await page.evaluate('snapshot()===before && impact===null && hitSounds===0'),'通信完了前に戦況や被弾音が進んだ'
                 assert await page.locator('.normal-attack:not(.attack-releasing)').count()==1
                 assert (await page.locator('.battle-action-name').inner_text()).replace('\u200b','').endswith(' - 攻撃')
-                assert await page.locator('#controls > .battle-action-name').count()==1
+                assert await page.locator('#combat-message > .battle-action-name').count()==1
                 bounds=await page.evaluate("""()=>{const a=document.querySelector('.battle-action-name').getBoundingClientRect(),v=document.querySelector('#view').getBoundingClientRect();return {separate:a.top>=v.bottom||a.left>=v.right,visible:a.top>=0&&a.bottom<=innerHeight&&a.right<=innerWidth};}""")
                 assert bounds['separate'] and bounds['visible'],bounds
 
