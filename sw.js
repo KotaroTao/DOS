@@ -11,6 +11,8 @@
 const CACHE = "dos-dev";
 const DEV = CACHE === "dos-dev";
 const ASSETS = [
+  "./src/auto-planner.js",
+  "./src/auto-worker.js",
   "./src/element-fx.js",
   "./art/effects/element-flow.webp",
   "./art/effects/element-minerals.webp",

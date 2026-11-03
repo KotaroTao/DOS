@@ -718,3 +718,5 @@ The UI was rebuilt into packages under `src/ui/` (plain ES modules; **they never
 重い打撃は5ランクの圧縮打・地割れ・挟撃・連続震動・大崩落へ更新。習得Lvの境界は30/70/120/170、尺は400/500/650/800/950ms（オート60%、高速80%）。火柱と同じく実際に生成した演出の終了を待つ。従来の「火柱だけ延長」の制約は重い打撃にも拡張する。37職業の最終習得技は `skill-fx-ultimates.js` で専用構図を明示し、従来の看板装飾を置き換える。属性色を看板色より優先。詳細 `docs/skill-effects.md`。心得 `t_skill_fx_read` 更新。
 
 回復系の準備音（2026-11-03）: `battle-windup.js` は回復・蘇生・治療・MP回復の `skillFamily` を準備音にも渡す。主音だけでなく、確定待ちの音にも衝突音を混ぜない。検査 `tools/cloud/windup-browser.py`、心得 `t_skill_fx_organic` 更新。
+
+オートの描画分離（2026-11-03）: `auto-planner.js` → `auto-worker.js` で作戦を計算し、主スレッドは応答後に同じ戦闘・手番・オート状態と作戦設定を確認して行動する。解放済み技・属性/抵抗の開示・手がかり補正・共有参照を複製へ渡し、対象は本体へ戻す。Worker不可/失敗時は従来経路へ戻る。味方カードは変化したカードだけ更新し、HP/MPだけならDOMを維持する。色変換は小分け、音は開幕に分散準備。オートの待機描画は60fpsを目指し、フレーム間隔が続けて悪化した時は演出を軽量化、安定後に戻す。打数・斬撃の速さ・数値・結果の尺は維持。検査 `tools/performance/auto-*-browser.py`、仕様/計測 `docs/auto-combat-performance.md`、心得 `t_auto_smooth` 追加。

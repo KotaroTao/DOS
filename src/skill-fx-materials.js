@@ -14,16 +14,21 @@ function sourceFor(kind){
  if(kind==='ribbon'&&physicalImage?.complete&&physicalImage.naturalWidth)return {texture:physicalImage,sw:192,sh:96,row:0};
  return {texture:image,sw:96,sh:96,row:rows[kind]*3};
 }
-function cacheTone(kind,tone){
+async function cacheTone(kind,tone){
  const source=sourceFor(kind);if(!source.texture?.naturalWidth)return;
  const width=source.sw*6,height=source.sh*3,canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
  const ctx=canvas.getContext('2d');ctx.drawImage(source.texture,0,source.row*source.sh,width,height,0,0,width,height);
  const pixels=ctx.getImageData(0,0,width,height),rgb=[1,3,5].map(i=>parseInt(tone.slice(i,i+2),16)/255);
- for(let i=0;i<pixels.data.length;i+=4)for(let k=0;k<3;k++){
+ for(let start=0;start<pixels.data.length;start+=32768){
+ for(let i=start;i<Math.min(start+32768,pixels.data.length);i+=4)for(let k=0;k<3;k++){
   // 暗い属性色でも明るい摩擦の面を失わない。
   const highlight=Math.max(0,(pixels.data[i+k]-195)/60)*.35;
   pixels.data[i+k]*=Math.min(1,.3+rgb[k]*.7+highlight);
  }
+ await new Promise(resolve=>setTimeout(resolve,0));
+ }
+ // 変換の途中で高解像度素材が届いた場合、古い素材の結果は保持しない。
+ if(source.texture!==sourceFor(kind).texture)return;
  ctx.putImageData(pixels,0,0);
  const key=kind+tone;if(tinted.size>=6)tinted.delete(tinted.keys().next().value);
  tinted.set(key,{texture:canvas,sw:source.sw,sh:source.sh,row:0});
@@ -31,7 +36,7 @@ function cacheTone(kind,tone){
 function queueTone(kind,tone){
  if(kind!=='ribbon'||!tone||pending.has(kind+tone)||tinted.has(kind+tone))return;
  const key=kind+tone;pending.add(key);
- const build=()=>{pending.delete(key);cacheTone(kind,tone);};
+ const build=()=>{cacheTone(kind,tone).finally(()=>pending.delete(key));};
  if(globalThis.requestIdleCallback)requestIdleCallback(build,{timeout:500});else setTimeout(build,0);
 }
 function colored(kind,tone){queueTone(kind,tone);return tinted.get(kind+tone)||sourceFor(kind);}

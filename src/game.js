@@ -1,3 +1,5 @@
+import { recordBattleFrame } from './skill-fx-budget.js';
+import { planAuto, warmAutoPlanner } from './auto-planner.js';
 import { showFieldSkillFx } from "./skill-fx-field.js";
 import { emitSkillFx, skillFxSound, skillFxDuration, extendedSkillFx, enemySkillFxProfile, beginSkillFxPresentation } from "./skill-fx.js";
 import { beginBattleWindup, normalAttackTiming } from "./battle-windup.js";
@@ -8962,6 +8964,16 @@ function randomElement() {
   const els = Object.keys(ELEMENTS).filter((k) => k !== "none");
   return els[Math.floor(random() * els.length)];
 }
+function warmBattleSkillAudio(){
+ const battle=G.battle,queue=[],seen=new Set();
+ for(const actor of G.party)for(const key of autoSkills(actor)){
+  const d=skillProfile(key,SPELLS[key]);if(!d)continue;
+  const sound=skillFxSound(d.family,d.tier),presentation={physical:d.kind==='phys',rank:d.tier,duration:skillFxDuration(d,1,{auto:true,fast:!!G.fastAnim})};
+  const id=sound+JSON.stringify(presentation);if(seen.has(id))continue;seen.add(id);queue.push(()=>SFX.warmSkill(sound,presentation));
+  if(d.hits>1)queue.push(()=>SFX.warmSkill(d.kind==='phys'?(d.family==='impact'?'impact':'slash'):sound,{rank:1,duration:65}));
+ }
+ const next=()=>{if(G.state!=="combat"||G.battle!==battle||!queue.length)return;queue.shift()();setTimeout(next,0);};setTimeout(next,0);
+}
 function startBattle(...args) { return startBattleMeasured(...args); }
 function startBattleMeasured(enemies, cell, { alarm = false, alarmRewards = null, visibleEnemy = cell?.type === "monster" && !!cell.revealed && !cell.cleared } = {}) {
   // 飢えた狩場はすべての遭遇で3体以上。単体の主・強敵・銀業・ミミックにも、この階の魔物を添える。
@@ -10212,6 +10224,7 @@ function drawOpeningTag(now, preempt = false) {
 
 // 戦闘開始の演出を流してから done (手番処理) へ。演出中は入力を受けない
 function playBattleIntro(done, prepared = false) {
+  if(!prepared){warmAutoPlanner();warmBattleSkillAudio();}
   const battle = G.battle;
   if (!prepared && battle) {
     const tasks = battle.enemies.map(e => _monBmp.has(e.mon) ? Promise.resolve(true) : prepareSprite(e.mon));
@@ -10443,11 +10456,12 @@ function battleLayer() {
 let _combatAnimLast = 0;
 function combatAnimLoop(ts) {
   requestAnimationFrame(combatAnimLoop);
+  recordBattleFrame(ts,G.state==="combat"&&!document.hidden&&!uiBlocked()&&(G.animating||G.autoCombat));
   if (G.state !== "combat" || !G.battle || G.animating || G.fx) return;
   if (uiBlocked()) return;
   // 戦闘中に手帳・設定を開いていたら、閉じた時に命令板を描き直す (倍速などの表示を合わせる)
   if (G._cmdStale) { G._cmdStale = false; renderCombatMenu(); }
-  if (ts - _combatAnimLast < 50) return;
+  if (ts - _combatAnimLast < (G.autoCombat?15:50)) return;
   _combatAnimLast = ts;
   renderCombatCanvas();
 }
@@ -10914,6 +10928,7 @@ function skillLocked(actor, key) {
 }
 
 function renderCombatMenu() {
+  warmAutoPlanner();
   const b = G.battle;
   // 演出の合間 (一手の演出が終わり、次の手番の札が出るまで) は、いまの手番の札をそのまま残す。
   // 消すと、奇襲で敵が一巡する間の「オート」が敵の攻撃の演出中にしか押せなくなる
@@ -10931,7 +10946,7 @@ function renderCombatMenu() {
     if (G.autoCombat) {
       renderAutoBanner(actor);
       if (!G._autoTimer) {
-        G._autoTimer = setTimeout(function autoTick() {
+        G._autoTimer = setTimeout(async function autoTick() {
           if (combatHeld()) { G._autoTimer = setTimeout(autoTick, 150); return; } // 手帳などを開いている間は待つ
           G._autoTimer = null;
           const b2 = G.battle;
@@ -10944,7 +10959,11 @@ function renderCombatMenu() {
             showToast("敵をほとんど削れないため、オートを止めた。技や装備を見直そう", { tone: "info" });
             return;
           }
-          const plan = decideAuto(b2, cur);
+          const preferences=JSON.stringify(b2.party.map(a=>[a.uid,a.tactic,autoSkills(a)]));
+          const plan = await planAuto(b2, cur, e=>!!e&&enemyReveal(e).lore, ()=>decideAuto(b2,cur));
+          if(G.battle!==b2||G.state!=='combat'||!G.autoCombat||G.animating||b2.phase!=='input'||b2.current!==cur)return;
+          if(!plan)return;
+          if(combatHeld()||preferences!==JSON.stringify(b2.party.map(a=>[a.uid,a.tactic,autoSkills(a)]))){G._autoTimer=setTimeout(autoTick,150);return;}
           b2._autoIdle = plan.idle ? (b2._autoIdle || 0) + 1 : 0;
           if (plan.idle && b2._autoIdle >= b2.livingParty().length) {
             b2._autoIdle = 0;
@@ -12781,6 +12800,7 @@ function partyVitalText(value) {
   return String(value);
 }
 let _partyKey = "";
+const partyCards=new Map();
 function partyCallKey(p, st) {
   const c = st === "combat" && G.partyCall && G.partyCall.get(p);
   return c ? Math.round(c.at) + ":" + c.lines.map((l) => l.text).join("/") : "";
@@ -12791,17 +12811,31 @@ function renderParty() {
   const upgrades = new Set(G.party.filter((d) => UI.hasBetterGear && UI.hasBetterGear(d)));
   // 迷宮の掟の開幕の演出を待つ間は、効く前の HP/MP/状態を札に見せる (playTraitOpening)
   const shown = (p) => (st === "combat" && G.partyShow && G.partyShow.get(p)) || p;
-  const key = st + "|" + G.party.map((p) => [
+  const rows = G.party.map((p) => [
     p.uid, p.name, p.cls, p.isDoll ? (p.jobLv || 1) : p.level, shown(p).hp, p.maxhp, shown(p).mp, p.maxmp, p.alive ? 1 : 0,
     shown(p).ailment || "", p.asleep && st === "combat" ? 1 : 0, st === "combat" ? (p.mind || "") : "", fx && fx.has(p) ? fx.get(p) : "", (G.partyFxV && G.partyFxV.get(p)) || "", buffBadges(p),
     partyCallKey(p, st), upgrades.has(p) ? 1 : 0,
     `${p.jobKey || ""}:${p.jobRank || 1}:${p.clsKey || ""}`,
-  ].join(",")).join(";");
+  ]);
+  const key=st+"|"+rows.map(r=>r.join(",")).join(";");
   if (key === _partyKey && partyEl.childElementCount === G.party.length) return;
+  const reuse=st==="combat"&&_partyKey.startsWith("combat|");
   _partyKey = key;
-  partyEl.innerHTML = "";
+  if(!reuse){partyEl.innerHTML="";partyCards.clear();}
   partyEl.classList.toggle("n4", G.party.length >= 4);
   G.party.forEach((p, idx) => {
+    const row=rows[idx],rowKey=row.join(','),baseKey=row.filter((_,i)=>i!==4&&i!==6).join(','),old=partyCards.get(p);
+    if(reuse&&old&&old.idx===idx&&old.card.parentElement===partyEl){
+      if(old.key===rowKey)return;
+      if(old.baseKey===baseKey){
+        const sv=shown(p);old.card.classList.toggle('low',p.alive&&sv.hp/p.maxhp<=.25);
+        for(const kind of ['hp','mp']){const vial=old.card.querySelector('.pc-vial.'+kind),v=sv[kind],m=p['max'+kind];
+          vial.querySelector('i').style.width=(m>0?Math.max(0,Math.min(100,v/m*100)):0)+'%';
+          vial.querySelector('.pc-num').textContent=m>0?partyVitalText(v):'—';
+          vial.title=kind.toUpperCase()+' '+v+'/'+m;vial.setAttribute('aria-label',vial.title);
+        }old.key=rowKey;return;
+      }
+    }
     const card = document.createElement("div");
     const sv = shown(p);
     let cls = "pc" + (p.alive ? "" : " dead");
@@ -12907,8 +12941,11 @@ function renderParty() {
       for (const l of call.lines) box.appendChild(el("span", "pc-cl k-" + l.kind, l.text));
       card.appendChild(box);
     }
-    partyEl.appendChild(card);
+    if(reuse&&old?.card.parentElement===partyEl&&old.idx===idx)old.card.replaceWith(card);
+    else {if(reuse)old?.card.remove();partyEl.insertBefore(card,partyEl.children[idx]||null);}
+    partyCards.set(p,{card,idx,key:rowKey,baseKey});
   });
+  for(const [p,old]of partyCards)if(!G.party.includes(p)){old.card.remove();partyCards.delete(p);}
   if (st === "board" && window.innerWidth <= 600) requestAnimationFrame(refitAndRedraw);
 }
 
