@@ -49,6 +49,7 @@ const fireRanks={GOKUEN:2,ARCHMAGE_YOUGAN:2,GOKUENRAN:3,BATTLEMAGE_SHAKUNETSU:3,
 const fireballRanks={BATTLEMAGE_GURENMASHOU:2,ARCANIST_KENKA:2,INQUISITOR_MAJOGARI:2,SAGE_EICHIEN:2,SPELLBLADE_ENTEI:3,ARCTHIEF_NUSUMIBI:3,ASCETIC_KASHOUZANMAI:3};
 const blastRanks={TENPENCHII:2,ARCHMAGE_SOUSEI:2,KYOKUDAI:3,BATTLEMAGE_TENPOU:3,ARCHMAGE_BANSHOU:3};
 function effectTier(key,s){
+ if(family(key,s)==='impact')return (level.get(key)??1)>=170?5:(level.get(key)??1)>=120?4:(level.get(key)??1)>=70?3:(level.get(key)??1)>=30?2:1;
  if(CLEAVE_TOP[key])return 3;
  if(key==='INQUISITOR_MANAZASHI')return 3; // 弱体の最高習得Lv75: 上位の視線。
  const f=family(key,s);
@@ -61,24 +62,6 @@ function effectTier(key,s){
  if(['gravity','doom','drain','steal','escape','survey'].includes(family(key,s)))return (level.get(key)??1)>=100?3:(level.get(key)??1)>=30?2:1;
  return signatures.has(key)?3:(level.get(key)??1)>=100?3:(level.get(key)??1)>=30?2:1;
 }
-// 各職業の最終習得技。形・本数・向き・回転を制作時に固定する。
-const apexStyles={
- fighter:['blade',3,-.6,0],knight:['wall',4,0,0],priest:['star',7,0,.2],mage:['book',8,.2,-.4],
- thief:['blade',5,.4,-.6],bishop:['star',6,.5,-.2],samurai:['blade',2,-.8,0],berserker:['blade',8,.1,.3],
- hunter:['star',5,-.6,.4],shadow:['soul',3,.3,-.8],paladin:['blade',4,-.3,.2],guardian:['wall',8,.2,0],
- spellblade:['blade',6,.5,.5],monk:['wall',6,.1,.2],hexer:['book',7,.4,-.3],hermit:['soul',5,.2,.3],
- brigand:['arc',3,.5,.4],arcthief:['arc',8,.3,-.7],crusader:['blade',4,0,0],battlemage:['wall',3,.4,.5],
- darkknight:['soul',8,.4,-.4],templar:['wall',5,.3,0],exorcist:['star',4,.2,.3],warden:['book',6,.1,-.2],
- arcanist:['book',3,.5,-.5],inquisitor:['star',3,.3,-.3],archbishop:['book',4,.3,.2],ascetic:['wall',7,.4,.3],
- hero:['blade',7,-.4,.2],asura:['arc',6,.4,.6],dragonknight:['blade',3,.2,.7],necromancer:['soul',7,.1,-.6],
- sage:['book',5,.2,.4],cardinal:['star',8,.1,.3],archmage:['arc',7,.2,-.4],chaplain:['wall',4,.5,.2],sera:['soul',4,0,.1],
-};
-const apex={};
-for(const [job,rows]of Object.entries(JOB_SKILLS)){
- const top=rows.filter(r=>r.skill).sort((a,b)=>b.lvl-a.lvl)[0];
- if(!top||!apexStyles[job])throw Error('最上位技の紋が未設定: '+job);
- const [motif,count,angle,spin]=apexStyles[job];apex[top.skill]={motif,count,angle,spin};
-}
 const groups=new Map();
 for(const [key,s]of Object.entries(SPELLS)){
  const tier=effectTier(key,s);
@@ -86,10 +69,9 @@ for(const [key,s]of Object.entries(SPELLS)){
 }
 let source='// tools/effects/build-catalog.mjsで生成。全技を系統と格へ明示的に割り当てる。\nexport const SKILL_FX_CATALOG = Object.create(null);\nconst groups = {\n';
 for(const [group,keys]of [...groups].sort(([a],[b])=>a.localeCompare(b)))source+='  '+JSON.stringify(group)+': '+JSON.stringify(keys.join(' '))+',\n';
-source+='};\nfor (const [group, keys] of Object.entries(groups)) {\n  const [family, rank] = group.split(":");\n  const tier = Number(rank), design = Object.freeze({ family, tier, scale: [0, .9, 1.08, 1.24][tier] });\n  for (const key of keys.split(" ")) SKILL_FX_CATALOG[key] = design;\n}\n';
+source+='};\nfor (const [group, keys] of Object.entries(groups)) {\n  const [family, rank] = group.split(":");\n  const tier = Number(rank), design = Object.freeze({ family, tier, scale: [0, .9, 1.08, 1.24, 1.38, 1.52][tier] });\n  for (const key of keys.split(" ")) SKILL_FX_CATALOG[key] = design;\n}\n';
 for(const [key,variant] of Object.entries(CLEAVE_TOP))source+='SKILL_FX_CATALOG['+JSON.stringify(key)+'] = Object.freeze({...SKILL_FX_CATALOG['+JSON.stringify(key)+'], variant: '+JSON.stringify(variant)+'});\n';
-
-source+='const apex = '+JSON.stringify(apex)+';\nfor(const [key,style] of Object.entries(apex)) SKILL_FX_CATALOG[key]=Object.freeze({...SKILL_FX_CATALOG[key],apex:Object.freeze(style)});\nObject.freeze(SKILL_FX_CATALOG);\n';
+source+='Object.freeze(SKILL_FX_CATALOG);\n';
 const quote=value=>'"'+String(value??'').replaceAll('"','""')+'"';
 const csv='key,name,kind,target,element,family,tier,signature\n'+Object.entries(SPELLS).map(([key,s])=>[key,s.name,s.kind,s.target,s.element||'',family(key,s),effectTier(key,s),SKILL_FX_SIGNATURES[key]?.accent||''].map(quote).join(',')).join('\n')+'\n';
 const auditPath=new URL('../../docs/skill-effects-catalog.csv',import.meta.url);
