@@ -1,5 +1,6 @@
 // 全技の演出割当を制作時に確定する。実行時には名前・MP・技IDのハッシュで推測しない。
 import {readFile,writeFile} from 'node:fs/promises';
+import {CLEAVE_TOP} from '../../src/cleave-fx.js';
 import {SPELLS} from '../../src/skilldefs.js';
 import {SKILL_FX_SIGNATURES} from '../../src/skill-fx-signatures.js';
 import {JOB_SKILLS} from '../../src/souls.js';
@@ -9,6 +10,7 @@ const signatures=new Set(Object.keys(SKILL_FX_SIGNATURES).filter(k=>!['DIAL','RE
 // 名前だけでは形を誤る代表技を明示する。追加・変更は生成結果の一覧も確認する。
 const overrides={HUNTER_SAMIDARE:'projectile',KONGOUMUSOU:'impact',KONGOURENDA:'impact',GUARDIAN_JIBANSHIZUME:'impact',SEISAI:'blast',MARYOKUBOUSOU:'blast',ARCANIST_KINSEI:'blast',ARCTHIEF_TOUSEI:'blast',ARCHMAGE_TENKYUU:'blast',TENPENCHII:'blast',ARCHMAGE_SOUSEI:'blast',KYOKUDAI:'blast',BATTLEMAGE_TENPOU:'blast',ARCHMAGE_BANSHOU:'blast',NERAIUCHI:'pierce',KYOUGEKI:'impact',HAISUI:'impact',SHINGANGEKI:'pierce',JOUMON:'impact',TEPPEKIJIN:'ward',FURAKUJOU:'ward',KISHIOU:'empower',TILTOWAIT:'blast',KIKOKU:'cut',KUBIKARI:'cut',KIJINKUDAKI:'impact',DANZAINOTSUCHI:'impact',TSUBAMEGAESHI:'flurry',ASHURAZAN:'flurry',SHASHINNOGYOU:'impact',SEIKEN:'radiance',SHINENNOHADOU:'void',HOUSHOUHEKI:'ward',CARDINAL_SEIYU:'heal',DIALALL:'heal',MADIOS:'heal',DIOS:'heal',DIAL:'heal'};
 function family(key,s){
+ if(CLEAVE_TOP[key])return 'cleave';
  if(s.kind==='phys'){
   if(JOB_SKILLS.hunter.some(r=>r.skill===key))return 'projectile';
   if(['monk','guardian'].some(job=>JOB_SKILLS[job].some(r=>r.skill===key)))return 'impact';
@@ -53,6 +55,7 @@ const fireRanks={GOKUEN:2,ARCHMAGE_YOUGAN:2,GOKUENRAN:3,BATTLEMAGE_SHAKUNETSU:3,
 const fireballRanks={BATTLEMAGE_GURENMASHOU:2,ARCANIST_KENKA:2,INQUISITOR_MAJOGARI:2,SAGE_EICHIEN:2,SPELLBLADE_ENTEI:3,ARCTHIEF_NUSUMIBI:3,ASCETIC_KASHOUZANMAI:3};
 const blastRanks={TENPENCHII:2,ARCHMAGE_SOUSEI:2,KYOKUDAI:3,BATTLEMAGE_TENPOU:3,ARCHMAGE_BANSHOU:3};
 function effectTier(key,s){
+ if(CLEAVE_TOP[key])return 3;
  if(key==='INQUISITOR_MANAZASHI')return 3; // 弱体の最高習得Lv75: 上位の視線。
  const f=family(key,s);
  if(f==='firePillar')return fireRanks[key]||1;
@@ -67,12 +70,12 @@ function effectTier(key,s){
 // 職業ごとの最終斬撃を制作時に確定する（拳・射撃は含めない）。
 const slashUltimates={};
 for(const [job,rows] of Object.entries(JOB_SKILLS)){
- const candidates=rows.filter(r=>r.skill&&['cut','cleave','flurry'].includes(family(r.skill,SPELLS[r.skill])));
+ const candidates=rows.filter(r=>r.skill&&['cut','flurry'].includes(family(r.skill,SPELLS[r.skill])));
  const last=candidates.sort((a,b)=>b.lvl-a.lvl)[0];
  if(last)slashUltimates[last.skill]=job;
 }
 const slashDesigns={};
-for(const [key,s] of Object.entries(SPELLS))if(['cut','cleave','flurry'].includes(family(key,s))){
+for(const [key,s] of Object.entries(SPELLS))if(['cut','flurry'].includes(family(key,s))){
  const lv=level.get(key)||1;
  slashDesigns[key]={slashRank:lv>=150?5:lv>=100?4:lv>=60?3:lv>=25?2:1,ultimate:slashUltimates[key]||null};
 }
@@ -84,7 +87,9 @@ for(const [key,s]of Object.entries(SPELLS)){
 let source='// tools/effects/build-catalog.mjsで生成。全技を系統と格へ明示的に割り当てる。\nexport const SKILL_FX_CATALOG = Object.create(null);\nconst groups = {\n';
 for(const [group,keys]of [...groups].sort(([a],[b])=>a.localeCompare(b)))source+='  '+JSON.stringify(group)+': '+JSON.stringify(keys.join(' '))+',\n';
 source+='};\nfor (const [group, keys] of Object.entries(groups)) {\n  const [family, rank] = group.split(":");\n  const tier = Number(rank), design = Object.freeze({ family, tier, scale: [0, .9, 1.08, 1.24][tier] });\n  for (const key of keys.split(" ")) SKILL_FX_CATALOG[key] = design;\n}\n';
+for(const [key,variant] of Object.entries(CLEAVE_TOP))source+='SKILL_FX_CATALOG['+JSON.stringify(key)+'] = Object.freeze({...SKILL_FX_CATALOG['+JSON.stringify(key)+'], variant: '+JSON.stringify(variant)+'});\n';
 source+='for(const [key,extra] of Object.entries('+JSON.stringify(slashDesigns)+')) SKILL_FX_CATALOG[key]=Object.freeze({...SKILL_FX_CATALOG[key],...extra});\nObject.freeze(SKILL_FX_CATALOG);\n';
+
 const quote=value=>'"'+String(value??'').replaceAll('"','""')+'"';
 const csv='key,name,kind,target,element,family,tier,signature,slashRank,ultimate\n'+Object.entries(SPELLS).map(([key,s])=>[key,s.name,s.kind,s.target,s.element||'',family(key,s),effectTier(key,s),SKILL_FX_SIGNATURES[key]?.accent||'',slashDesigns[key]?.slashRank||'',slashDesigns[key]?.ultimate||''].map(quote).join(',')).join('\n')+'\n';
 const auditPath=new URL('../../docs/skill-effects-catalog.csv',import.meta.url);

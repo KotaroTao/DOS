@@ -1,3 +1,4 @@
+import { CLEAVE_TOP, CLEAVE_COLORS } from '../../src/cleave-fx.js';
 import assert from 'node:assert/strict';
 import { SPELLS } from '../../src/skilldefs.js';
 import { JOB_SIGNATURE, JOB_SKILLS } from '../../src/souls.js';
@@ -115,6 +116,17 @@ assert.deepEqual([...new Set(Object.values(SKILL_FX_CATALOG).filter(d=>d.family=
 for(const f of ['empower','weaken','dispel','seal','poison','illusion','sleep']){
  assert.deepEqual([...new Set(Object.values(SKILL_FX_CATALOG).filter(d=>d.family===f).map(d=>d.tier))].sort(),[1,2,3],f);
 }
+
+for(const rows of Object.values(JOB_SKILLS)){
+ const top=rows.filter(r=>SKILL_FX_CATALOG[r.skill]?.family==='cleave').sort((a,b)=>b.lvl-a.lvl)[0];
+ if(top)assert.ok(CLEAVE_TOP[top.skill],top.skill+' 最上位の専用軌跡なし');
+}
+assert.equal(new Set(Object.values(CLEAVE_TOP)).size,Object.keys(CLEAVE_TOP).length);
+for(const [key,variant] of Object.entries(CLEAVE_TOP)){
+ assert.equal(SKILL_FX_CATALOG[key].family,'cleave');assert.equal(SKILL_FX_CATALOG[key].tier,3);assert.equal(SKILL_FX_CATALOG[key].variant,variant);
+}
+for(const [key,sp] of Object.entries(SPELLS))if(SKILL_FX_CATALOG[key].family==='cleave'&&sp.element)assert.equal(previewSkillFx(key)[0].col,CLEAVE_COLORS[sp.element],key);
+
 // 六系統は看板指定に左右されず、実際の習得段階の描画を選ぶ。
 const utilityFamilies=new Set(['gravity','doom','drain','steal','escape','survey']);
 for(const [key,design]of Object.entries(SKILL_FX_CATALOG))if(utilityFamilies.has(design.family)){
