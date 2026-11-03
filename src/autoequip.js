@@ -66,6 +66,7 @@ export function previewStats(doll, equip, recalcFn = recalcDefault) {
     offPower: offhandPower(fake), fight: fightPower(fake), // 二刀流: 左手の攻撃力 / 比べる物差しの攻撃力 (右手 + 左手の DUAL_VALUE_SHARE)
     physResist: fake.physResist || 0, magResist: fake.magResist || 0,
     traits: equipmentTraitTexts(equip),
+    bukon: [...new Set(Object.values(equip || {}))].filter(it => it && !it.unidentified).flatMap(it => it.bukon || []),
     eff: fake.eff || null, // 戦闘効果 (連撃・吸血・守り…。比較表示用)
   };
 }
@@ -77,6 +78,7 @@ export function statsDelta(from, to) {
     combat: {from:from.combat,to:to.combat},
     eff: { from: from.eff || null, to: to.eff || null },
     traits: { from: from.traits || [], to: to.traits || [] },
+    bukon: { from: from.bukon || [], to: to.bukon || [] },
     weaponMode: { from: from.weapon || null, to: to.weapon || null },
     offhandMode: { from: offW(from), to: offW(to) },
     abs: { power: fp(to), maxhp: to.maxhp || 0, maxmp: to.maxmp || 0 },
