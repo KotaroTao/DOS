@@ -1,0 +1,9 @@
+{
+  "id": "report_w16",
+  "chapter": 4,
+  "refs": [
+    "art/story-review/chapter4/report_w16.png"
+  ],
+  "prompt": "Edit this 1536x1024 illustration with a SINGLE localized correction. It depicts an UNINHABITED ancient underground baptismal cistern. At the exact top center a hanging lantern is visibly lit and casts an orange/gold reflection along the water and stair treads. REMOVE that lantern entirely, including its hanging chain, and REMOVE every orange/gold lit reflection across the staircase and pool water. Fill that top archway with old unlit blue-black stone. The entire EMPTY cistern must now be illuminated ONLY by the existing faint cool blue cyan ambient subterranean light and reflections, with NO lit candles, lanterns, sconces, torches, flames or inhabited lights anywhere. Preserve ALL architecture, pool geometry, submerged steps, broken foreground stone handrail, original viewpoint, stone details and fine-grained pixel dark fantasy style. No people, no readable text.",
+  "generated": "/workspace/generated_images/exec-f14ecda5-66f3-4ddf-b894-d165fdec0824.png"
+}
