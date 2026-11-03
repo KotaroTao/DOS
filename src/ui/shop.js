@@ -1,5 +1,4 @@
-import { bukonDef, bukonName, BUKON_RARITIES } from "../bukon.js";
-import { withBukonSockets } from "./bukonview.js";
+import { withBukonSockets, bukonNameLines } from "./bukonview.js";
 import { bagItems, bagSortControl } from "./bagsort.js";
 import { gearFilter, gearFilterCount, matchesGearFilter, gearFilterButton, gearFilterSummary } from "./gearfilter.js";
 import { bagCount, isFormationItem, bagOwners } from "../items.js";
@@ -254,13 +253,7 @@ function sellRows(list, onBack) {
     main.appendChild(withBukonSockets(ic,it));
     const tx = el("span", "wpc-prow-t");
     tx.appendChild(nameSpan(it, "wpc-prow-title"));
-    if (!it.unidentified && game.featureUnlocked?.("enchant")) {
-      for (const b of it.bukon || []) {
-        const line = el("span", "wpc-prow-sub", bukonName(b));
-        line.style.color = BUKON_RARITIES[bukonDef(b.k)?.rarity || 0].color;
-        tx.appendChild(line);
-      }
-    }
+    tx.append(...bukonNameLines(it));
     if (isUp(it)) tx.appendChild(el("span", "wpc-prow-sub", "▲装備の候補"));
     main.appendChild(tx);
     const pr = el("span", "wpc-prow-r");
@@ -609,11 +602,12 @@ function openRevealSheet(items) {
         nm.appendChild(firstBadge());
         tx.appendChild(nm);
       } else tx.appendChild(nameSpan(it, "wpc-prow-title"));
+      tx.append(...bukonNameLines(it));
       const sub = el("span", "wpc-prow-sub");
       const plan = isEquippable(it) ? wearPlan(it, { owner: o.doll }) : null;
       const up = plan && plan.target && plan.delta && plan.score > 0;
       if (up) { sub.appendChild(deltaEl(plan.delta)); sub.appendChild(el("span", "wpc-srow-who", plan.target.name)); }
-      else sub.appendChild(document.createTextNode(`${o.doll.name} の持ち物${o.where === "bag" && shopOpen() ? "" : ` ・ 売値 ${game.sellPrice(it)}`}`)); // 売値は「売る」に載る
+      else if (o.where !== "bag" || !shopOpen()) sub.appendChild(document.createTextNode(`売値 ${game.sellPrice(it)}`)); // 売値は「売る」に載る
       tx.appendChild(sub);
       main.appendChild(tx);
       main.addEventListener("click", () => refreshOnClose(itemSheet(it, { owner: o.doll, context: "sell" })));
