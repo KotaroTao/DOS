@@ -273,6 +273,56 @@ function utilityCore(c,f,x,y,r,t,color,lite,reduced,e){
   if(rank===3)for(let i=0;i<4;i++)star4(c,x+Math.cos(i*TAU/4)*r*.8,y+Math.sin(i*TAU/4)*r*.8,4,'#fff0b6',fade);
  }
 }
+// 貫通は射撃と分け、一点突破・連続波・螺旋の三段階で描く。
+function pierce(c,x,y,r,t,color,lite,reduced,e){
+ const tier=e.design.tier, q=reduced?.65:easeOut(clamp01(t/.45)), fade=Math.pow(1-t,1.2);
+ const angle=-.42;
+ c.save();c.translate(x,y);c.rotate(angle);
+ const reach=r*(tier===3?1.6:1.15), head=-reach+reach*2*q;
+ line(c,-reach,0,head,0,tier+5,color,fade*.4);
+ line(c,-reach,0,head,0,2,'#fff5e7',fade);
+ // 穂先は実物の槍ではなく、収束する光。
+ line(c,head-14,-7,head,0,2,color,fade);line(c,head-14,7,head,0,2,color,fade);
+ if(tier===2){
+  for(let i=0;i<3;i++){
+   const xx=-reach*.6+i*reach*.6, rr=10+q*18;
+   c.save();c.translate(xx,0);c.scale(.35,1);ring(c,0,0,rr,color,fade*(1-i*.15),2);c.restore();
+  }
+ }else if(tier===3){
+  for(let side=0;side<2;side++){
+   c.beginPath();c.strokeStyle=color;c.lineWidth=lite?2:3;c.globalAlpha=fade*.8;
+   for(let i=0;i<=32;i++){
+    const u=i/32,xx=(u*2-1)*reach,yy=Math.sin(u*Math.PI*4+(reduced?0:t*8)+side*Math.PI)*r*.28*Math.sin(u*Math.PI);
+    i?c.lineTo(xx,yy):c.moveTo(xx,yy);
+   }c.stroke();
+  }
+  ring(c,0,0,r*(.2+q*.5),color,fade*.5,2);
+ }
+ star4(c,head,0,8+tier*2,'#fff5e7',fade);c.restore();
+ if(!reduced)sparks(c,e.seed,lite?0:5+tier*3,x,y,r*.5,t,color,lite);
+}
+// 最終習得技の専用紋。職業ごとに意味を定め、乱数やIDから形を推測しない。
+function apexAccent(c,e,t,x,y,r,color,lite,reduced){
+ const a=e.design.apex;if(!a)return;
+ const fade=Math.pow(1-t,1.2),q=reduced?.7:easeOut(clamp01(t/.4));
+ c.save();c.translate(x,y);c.rotate(a.angle+(reduced?0:t*a.spin));
+ c.strokeStyle=color;c.lineWidth=2;c.globalAlpha=fade*.8;
+ const n=a.count;
+ for(let i=0;i<n;i++){
+  c.save();c.rotate(i*TAU/n);
+  const rr=r*(.5+q*.35);
+  c.beginPath();
+  if(a.motif==='blade'){c.moveTo(rr*.25,-3);c.lineTo(rr,0);c.lineTo(rr*.35,7);}
+  else if(a.motif==='wall'){c.moveTo(rr*.55,-rr*.25);c.lineTo(rr,-rr*.25);c.lineTo(rr,rr*.25);c.lineTo(rr*.55,rr*.25);}
+  else if(a.motif==='star'){c.moveTo(rr*.45,0);c.lineTo(rr*.7,-9);c.lineTo(rr,0);c.lineTo(rr*.7,9);c.closePath();}
+  else if(a.motif==='book'){c.moveTo(rr*.35,-12);c.lineTo(rr*.85,-5);c.lineTo(rr*.85,12);c.lineTo(rr*.35,5);c.closePath();}
+  else if(a.motif==='soul'){c.moveTo(rr*.3,0);c.bezierCurveTo(rr,-25,rr,20,rr*.3,0);}
+  else {c.arc(rr*.65,0,rr*.22,-Math.PI*.7,Math.PI*.7);}
+  c.stroke();c.restore();
+ }
+ if(!lite)ring(c,0,0,r*(.35+q*.6),color,fade*.35,1);
+ c.restore();
+}
 function drawCore(c,f,x,y,r,t,color,lite,reduced,e){
  const p=reduced?1:easeOut(clamp01(t/.32)), fade=Math.pow(1-t,1.3), drift=reduced?0:t;
  c.globalCompositeOperation='lighter';c.lineCap='round';c.lineJoin='round';
@@ -289,7 +339,9 @@ function drawCore(c,f,x,y,r,t,color,lite,reduced,e){
  }else if(f==='impact'){
   star4(c,x,y,r*.45*(1-drift*.45),'#fff0d2',fade);ring(c,x,y,r*(.22+p*.5),color,fade,4*(1-t)+.5);
   for(let i=0;i<(lite?4:8);i++)ray(c,x,y,r*(.6+drift*.3),i*TAU/8,color,fade,2);
- }else if(['pierce','projectile'].includes(f)){
+ }else if(f==='pierce'){
+  pierce(c,x,y,r,t,color,lite,reduced,e);
+ }else if(f==='projectile'){
   const n=f==='projectile'&&e.all?3:1;
   for(let i=0;i<n;i++){const dx=(i-(n-1)/2)*12;line(c,x+dx+(f==='projectile'?r:0),y+r,x+dx*(1-p),y+r*(1-p),5,color,fade*.6);}
   star4(c,x,y,r*.23,'#fffdf4',fade);
@@ -375,7 +427,7 @@ function accent(c,e,t,x,y,r,color,lite,reduced){
 }
 export function drawSkillScene(c,e,t,w,h,reduced){
  const lite=fxLite(reduced), pts=e.pts||[], f=e.design.family;
- const color=e.signature?.tone||e.col||COLORS[f]||'#c9b6ec', scale=e.design.scale||1, radius=(e.all?Math.min(100,Math.max(36,e.w*.34)):70)*scale;
+ const color=e.col||e.signature?.tone||COLORS[f]||'#c9b6ec', scale=e.design.scale||1, radius=(e.all?Math.min(100,Math.max(36,e.w*.34)):70)*scale;
  const x=e.x,y=e.y;
  c.save();
  const anchors=e.primaryPts||pts;
@@ -397,6 +449,7 @@ export function drawSkillScene(c,e,t,w,h,reduced){
   c.restore();
  }
  accent(c,e,t,x,y,radius,color,lite,reduced);
+ apexAccent(c,e,t,x,y,radius,color,lite,reduced);
  if(e.source && (['drain','steal','mana'].includes(f)||e.hasDrain)){
   const from=f==='mana'?e.source:{x,y},to=f==='mana'?{x,y}:e.source;
   for(let i=0;i<(lite?2:5);i++){
@@ -436,7 +489,7 @@ export function emitSkillFx(list,key,spell,hits,locate,now,spd=1,options={}){
  const all=['all-enemy','all-ally'].includes(spell.target),enemy=['enemy','all-enemy'].includes(spell.target);
  const primary=points.filter(p=>(p.side==='enemy')===enemy), anchors=primary.length?primary:[points[0]],xs=anchors.map(p=>p.x),ys=anchors.map(p=>p.y);
  const x=all?(Math.min(...xs)+Math.max(...xs))/2:anchors[0].x,y=all?ys.reduce((a,b)=>a+b,0)/anchors.length:anchors[0].y;
- list.unshift({type:'skillScene',design,source:options.source||null,hasDrain:!!(spell.drain||spell.mpDrain)&&(hits||[]).some(h=>h.lifesteal>0||h.mpHeal>0||h.heal>0),signature:SKILL_FX_SIGNATURES[key]||null,pts:points,primaryPts:anchors,col:['phys','atk'].includes(spell.kind)&&spell.element?FX.elCol(spell.element)[1]:null,all,marks:true,x,y,w:Math.max(...xs)-Math.min(...xs)+80,t0:now,dur:skillFxDuration(design,spd,options),seed:17,hitCount});
+ list.unshift({type:'skillScene',design,source:options.source||null,hasDrain:!!(spell.drain||spell.mpDrain)&&(hits||[]).some(h=>h.lifesteal>0||h.mpHeal>0||h.heal>0),signature:SKILL_FX_SIGNATURES[key]||null,pts:points,primaryPts:anchors,col:['phys','atk'].includes(spell.kind)&&spell.element?({fire:'#ff4938',water:'#369dff',wind:'#79e4b2',earth:'#cfaa70',light:'#ffe6a0',dark:'#b68aeb'}[spell.element]||FX.elCol(spell.element)[1]):null,all,marks:true,x,y,w:Math.max(...xs)-Math.min(...xs)+80,t0:now,dur:skillFxDuration(design,spd,options),seed:17,hitCount});
  if(list.length>FX_LIMITS.effects)list.length=FX_LIMITS.effects;
  return true;
 }

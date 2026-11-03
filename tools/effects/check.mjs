@@ -110,3 +110,14 @@ for(const [key,design]of Object.entries(SKILL_FX_CATALOG))if(utilityFamilies.has
  const level=levels.length?Math.min(...levels):1;
  assert.equal(design.tier,level>=100?3:level>=30?2:1,key);
 }
+
+// 全職の最終習得技が固有の紋を持ち、属性色が上書きされないこと。
+const apexKeys=new Set(),apexStyles=new Set();
+for(const rows of Object.values(JOB_SKILLS)){
+ const top=rows.filter(r=>r.skill).sort((a,b)=>b.lvl-a.lvl)[0];
+ const a=SKILL_FX_CATALOG[top.skill].apex;assert.ok(a,top.skill);
+ assert.ok(!apexStyles.has(JSON.stringify(a)),top.skill);apexStyles.add(JSON.stringify(a));apexKeys.add(top.skill);
+}
+assert.equal(apexKeys.size,37);
+assert.deepEqual(new Set(Object.values(SKILL_FX_CATALOG).filter(d=>d.family==='pierce').map(d=>d.tier)),new Set([1,2,3]));
+for(const [key,s]of Object.entries(SPELLS))if(s.element==='fire'&&['atk','phys'].includes(s.kind))assert.equal(previewSkillFx(key)[0].col,'#ff4938',key);
