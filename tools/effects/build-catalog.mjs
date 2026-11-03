@@ -8,7 +8,7 @@ const level=new Map();
 for(const rows of Object.values(JOB_SKILLS))for(const r of rows)if(r.skill)level.set(r.skill,Math.min(level.get(r.skill)??Infinity,r.lvl));
 const signatures=new Set(Object.keys(SKILL_FX_SIGNATURES).filter(k=>!['DIAL','REVIVE','MADIOS'].includes(k)));
 // 名前だけでは形を誤る代表技を明示する。追加・変更は生成結果の一覧も確認する。
-const overrides={ZETTAIREIDO:'ice',ARCHMAGE_GOKKAN:'ice',HERMIT_KAMINARI:'lightning',HERO_HEKIREKI:'lightning',ARCHMAGE_TENMEI:'lightning',ASCETIC_TSUBUTE:'stone',ROCKBLAST:'stone',SEISAI:'blast',MARYOKUBOUSOU:'blast',ARCANIST_KINSEI:'blast',ARCTHIEF_TOUSEI:'blast',ARCHMAGE_TENKYUU:'blast',TENPENCHII:'blast',ARCHMAGE_SOUSEI:'blast',KYOKUDAI:'blast',BATTLEMAGE_TENPOU:'blast',ARCHMAGE_BANSHOU:'blast',NERAIUCHI:'pierce',KYOUGEKI:'impact',HAISUI:'impact',SHINGANGEKI:'pierce',JOUMON:'impact',TEPPEKIJIN:'ward',FURAKUJOU:'ward',KISHIOU:'empower',TILTOWAIT:'blast',KIKOKU:'cut',KUBIKARI:'cut',KIJINKUDAKI:'impact',KONGOURENDA:'flurry',DANZAINOTSUCHI:'impact',TSUBAMEGAESHI:'flurry',ASHURAZAN:'flurry',SHASHINNOGYOU:'impact',SEIKEN:'radiance',SHINENNOHADOU:'void',HOUSHOUHEKI:'ward',CARDINAL_SEIYU:'heal',DIALALL:'heal',MADIOS:'heal',DIOS:'heal',DIAL:'heal'};
+const overrides={HUNTER_SAMIDARE:'projectile',HUNTER_AMIUCHI:'projectile',HUNTER_TAKAOTOSHI:'projectile',HUNTER_KAZEKIRI:'projectile',ZETTAIREIDO:'ice',ARCHMAGE_GOKKAN:'ice',HERMIT_KAMINARI:'lightning',HERO_HEKIREKI:'lightning',ARCHMAGE_TENMEI:'lightning',ASCETIC_TSUBUTE:'stone',ROCKBLAST:'stone',SEISAI:'blast',MARYOKUBOUSOU:'blast',ARCANIST_KINSEI:'blast',ARCTHIEF_TOUSEI:'blast',ARCHMAGE_TENKYUU:'blast',TENPENCHII:'blast',ARCHMAGE_SOUSEI:'blast',KYOKUDAI:'blast',BATTLEMAGE_TENPOU:'blast',ARCHMAGE_BANSHOU:'blast',NERAIUCHI:'pierce',KYOUGEKI:'impact',HAISUI:'impact',SHINGANGEKI:'pierce',JOUMON:'impact',TEPPEKIJIN:'ward',FURAKUJOU:'ward',KISHIOU:'empower',TILTOWAIT:'blast',KIKOKU:'cut',KUBIKARI:'cut',KIJINKUDAKI:'impact',KONGOURENDA:'flurry',DANZAINOTSUCHI:'impact',TSUBAMEGAESHI:'flurry',ASHURAZAN:'flurry',SHASHINNOGYOU:'impact',SEIKEN:'radiance',SHINENNOHADOU:'void',HOUSHOUHEKI:'ward',CARDINAL_SEIYU:'heal',DIALALL:'heal',MADIOS:'heal',DIOS:'heal',DIAL:'heal'};
 function family(key,s){
  if(overrides[key])return overrides[key];
  const n=s.name;
@@ -48,6 +48,9 @@ function family(key,s){
 const fireRanks={GOKUEN:2,ARCHMAGE_YOUGAN:2,GOKUENRAN:3,BATTLEMAGE_SHAKUNETSU:3,ARCANIST_GOUKASHO:3,INQUISITOR_JOUZAI:3,SAGE_HOMURA:3,ARCHMAGE_SHUUEN:3};
 const fireballRanks={BATTLEMAGE_GURENMASHOU:2,ARCANIST_KENKA:2,INQUISITOR_MAJOGARI:2,SAGE_EICHIEN:2,SPELLBLADE_ENTEI:3,ARCTHIEF_NUSUMIBI:3,ASCETIC_KASHOUZANMAI:3};
 const blastRanks={TENPENCHII:2,ARCHMAGE_SOUSEI:2,KYOKUDAI:3,BATTLEMAGE_TENPOU:3,ARCHMAGE_BANSHOU:3};
+// 射撃の格と固有軌道は習得Lvから推測せず、制作時に指定する。
+const projectileRanks={RENSHA:2,SENNYA:3,HUNTER_HAYATEYA:2,HUNTER_KABURAYA:2,RYUUSEISHA:3,HUNTER_ITEYA:2,HUNTER_HIYA:3,HUNTER_SHINZOU:2,HUNTER_ARASHIYUZURU:3,HUNTER_TOMEYA:3,HUNTER_KARIGAMI:3,HUNTER_BAKUFU:3,HUNTER_HOSHIOTOSHI:3,HUNTER_SAMIDARE:2,HUNTER_AMIUCHI:2,HUNTER_TAKAOTOSHI:2,HUNTER_KAZEKIRI:2};
+const projectileForms={YANOAME:'rain',SENNYA:'rain',HUNTER_HIYA:'rain',HUNTER_BAKUFU:'cascade',RYUUSEISHA:'meteor',HUNTER_HOSHIOTOSHI:'starfall',HUNTER_KARIGAMI:'six',HUNTER_ARASHIYUZURU:'storm',HUNTER_AMIUCHI:'net',HUNTER_KABURAYA:'echo',HUNTER_SHINZOU:'focus',HUNTER_TOMEYA:'focus',HUNTER_SAMIDARE:'rain',HUNTER_TAKAOTOSHI:'dive',HUNTER_KAZEKIRI:'fan'};
 const elementRanks={
  ice:{HYOUGA:2,ARCANIST_KINIKI:2,ARCHMAGE_GOKKAN:2,SPELLBLADE_HYOUGOKU:3,WARDEN_HYOUFUU:3,ARCANIST_TOUKON:3,SAGE_REIHYOU:3,ARCHMAGE_EIKYUU:3,ZETTAIREIDO:3},
  wave:{BISHOP_SEIRYUU:2,HEXER_KUROSHIO:2,SPELLBLADE_SOURYUU:2,WARDEN_BAKUFU:3,NECROMANCER_MEIGA:3},
@@ -57,6 +60,7 @@ const elementRanks={
  quake:{DAICHIWARI:2,SAGE_DAICHI:2,ARCHMAGE_AGITO:2,METEOR:3,BATTLEMAGE_INTETSU:3},
 };
 function effectTier(key,s){
+ if(family(key,s)==='projectile')return projectileRanks[key]||1;
  if(family(key,s)==='impact')return (level.get(key)??1)>=170?5:(level.get(key)??1)>=120?4:(level.get(key)??1)>=70?3:(level.get(key)??1)>=30?2:1;
  if(CLEAVE_TOP[key])return 3;
  if(key==='INQUISITOR_MANAZASHI')return 3; // 弱体の最高習得Lv75: 上位の視線。
@@ -79,6 +83,10 @@ for(const [key,s]of Object.entries(SPELLS)){
 let source='// tools/effects/build-catalog.mjsで生成。全技を系統と格へ明示的に割り当てる。\nexport const SKILL_FX_CATALOG = Object.create(null);\nconst groups = {\n';
 for(const [group,keys]of [...groups].sort(([a],[b])=>a.localeCompare(b)))source+='  '+JSON.stringify(group)+': '+JSON.stringify(keys.join(' '))+',\n';
 source+='};\nfor (const [group, keys] of Object.entries(groups)) {\n  const [family, rank] = group.split(":");\n  const tier = Number(rank), design = Object.freeze({ family, tier, scale: [0, .9, 1.08, 1.24, 1.38, 1.52][tier] });\n  for (const key of keys.split(" ")) SKILL_FX_CATALOG[key] = design;\n}\n';
+for(const [key,s] of Object.entries(SPELLS))if(family(key,s)==='projectile'){
+ const data={form:projectileForms[key]||((s.hits||1)>1?'burst':'shot'),count:s.hits||s.scatter||1,color:({fire:'#ff4938',water:'#328cff',wind:'#66e5ad',earth:'#c7a06b',light:'#ffe18a',dark:'#af7aeb'})[s.element]||(s.poison?'#91c95b':s.para?'#ead45a':'#c6e2ed')};
+ source+='SKILL_FX_CATALOG['+JSON.stringify(key)+'] = Object.freeze({...SKILL_FX_CATALOG['+JSON.stringify(key)+'], projectile: Object.freeze('+JSON.stringify(data)+')});\n';
+}
 for(const [key,variant] of Object.entries(CLEAVE_TOP))source+='SKILL_FX_CATALOG['+JSON.stringify(key)+'] = Object.freeze({...SKILL_FX_CATALOG['+JSON.stringify(key)+'], variant: '+JSON.stringify(variant)+'});\n';
 source+='Object.freeze(SKILL_FX_CATALOG);\n';
 const quote=value=>'"'+String(value??'').replaceAll('"','""')+'"';

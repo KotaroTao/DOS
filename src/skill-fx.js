@@ -280,6 +280,43 @@ function utilityCore(c,f,x,y,r,t,color,lite,reduced,e){
   if(rank===3)for(let i=0;i<4;i++)star4(c,x+Math.cos(i*TAU/4)*r*.8,y+Math.sin(i*TAU/4)*r*.8,4,'#fff0b6',fade);
  }
 }
+// 光の射線だけで単発・連射・斉射と狩人の奥義を描き分ける。
+function drawProjectile(c,e,t,x,y,r,lite,reduced){
+ // 連撃は実際に命中した相手と順序を共用し、軽量表示でも打数を減らさない。
+ if(e.strikes?.length){const position=t*e.strikes.length,index=Math.min(e.strikes.length-1,Math.floor(position)),point=e.strikes[index];x=point.x;y=point.y;t=position-index;e={...e,strikeIndex:index};}
+ const d=e.design.projectile,rank=e.design.tier,color=d.color;
+ const q=reduced?.68:t,fade=Math.pow(1-t,.8),form=d.form;
+ const rain=['rain','cascade','meteor','starfall'].includes(form);
+ const n=e.strikeIndex!==undefined?1:form==='starfall'?1:form==='six'?6:Math.min(lite?6:12,Math.max(d.count,rank===3?9:rank===2?3:1));
+ c.globalCompositeOperation='lighter';c.lineCap='round';
+ for(let i=0;i<n;i++){
+  const u=n===1?0:i/(n-1)-.5;
+  const phase=reduced?.7:clamp01((q-i*.018)/.55),a=fade*(.5+.5*Math.sin(Math.PI*phase));
+  let sx=x-r*1.5,sy=y+r*(.65+u),tx=x,ty=y+u*r*.55;
+  if(rain){sx=x+u*r*1.8+r*.45;sy=y-r*1.8;tx=x+u*r*1.6;ty=y+r*.35;}
+  if(form==='cascade'){sx=tx;sy=y-r*1.9;}
+  if(form==='six'){const ang=(e.strikeIndex??i)*TAU/6;sx=x+Math.cos(ang)*r*1.4;sy=y+Math.sin(ang)*r*1.4;tx=x;ty=y;}
+  if(form==='storm'||form==='fan'){sy=y+u*r*2;ty=y-u*r*.7;}
+  if(form==='dive'){sx=x-r*.6;sy=y-r*1.8;}
+  const hx=sx+(tx-sx)*phase,hy=sy+(ty-sy)*phase;
+  const tail=form==='starfall'?.7:.32;
+  line(c,hx-(tx-sx)*tail,hy-(ty-sy)*tail,hx,hy,form==='starfall'?12:rank+2,color,a*.45);
+  line(c,hx-(tx-sx)*tail,hy-(ty-sy)*tail,hx,hy,form==='starfall'?3:1.2,'#f5fcff',a);
+  if(phase>.65)star4(c,tx,ty,form==='starfall'?r*.22:3+rank,color,a);
+  if(form==='echo')ring(c,hx,hy,r*.12,color,a*.7,1);
+ }
+ if(form==='net')for(let i=-2;i<=2;i++){
+  line(c,x-r*.7,y+i*r*.2,x+r*.7,y-i*r*.2,1,color,fade*.65);
+  line(c,x+i*r*.2,y-r*.65,x-i*r*.2,y+r*.65,1,color,fade*.65);
+ }
+ if(form==='focus')for(const sign of [-1,1])line(c,x+sign*r*.6,y-r*.2,x+sign*r*.2,y,2,color,fade);
+ if(form==='storm')for(let i=0;i<2;i++){c.globalAlpha=fade*.55;c.strokeStyle=color;c.lineWidth=2;c.beginPath();c.ellipse(x,y,r*(.7+i*.2),r*.25,-.3,0,TAU);c.stroke();}
+ if(form==='starfall'){
+  // 星から落ちる一本の太い光と、六方向に割れる星の残光。
+  for(let i=0;i<6;i++)ray(c,x,y,r*(.25+q*.7),i*TAU/6-.3,color,fade,2);
+  ring(c,x,y,r*(.15+q*.65),color,fade*.6,2);
+ }
+}
 // 貫通は射撃と分け、一点突破・連続波・螺旋の三段階で描く。
 function pierce(c,x,y,r,t,color,lite,reduced,e){
  const tier=e.design.tier, q=reduced?.65:easeOut(clamp01(t/.45)), fade=Math.pow(1-t,1.2);
@@ -387,11 +424,10 @@ function drawCore(c,f,x,y,r,t,color,lite,reduced,e){
   for(let i=0;i<n;i++) {const q=clamp01((t-i*.065)/(1-i*.065));if(!q)continue;trace(c,x+(i%2?4:-4),y+(i-n/2)*4,r,q,color,i%2?.65:-.65,3);}
  }else if(f==='impact'){
   heavyImpact(c,e,x,y,r,t,color,lite,reduced);
+ }else if(f==='projectile'){
+  drawProjectile(c,e,t,x,y,r,lite,reduced);
  }else if(f==='pierce'){
   pierce(c,x,y,r,t,color,lite,reduced,e);
- }else if(f==='projectile'){
-  const n=f==='projectile'&&e.all?3:1;
-  for(let i=0;i<n;i++){const dx=(i-(n-1)/2)*12;line(c,x+dx+(f==='projectile'?r:0),y+r,x+dx*(1-p),y+r*(1-p),5,color,fade*.6);}
   star4(c,x,y,r*.23,'#fffdf4',fade);
  }else if(f==='firePillar'){
   firePillar(c,x,y,r,t,lite,reduced,e);
@@ -475,7 +511,9 @@ export function drawSkillScene(c,e,t,w,h,reduced){
  const x=e.x,y=e.y;
  c.save();
  const anchors=e.primaryPts||pts;
- if(ELEMENT_FAMILIES.includes(f)){
+ if(f==='projectile'){
+  c.save();if(e.all&&!e.strikes?.length){c.translate(x,y);c.scale(Math.min(2.6,Math.max(1,e.w/(radius*2))),1);drawProjectile(c,e,t,0,0,radius,lite,reduced);}else drawProjectile(c,e,t,x,y,radius,lite,reduced);c.restore();
+ }else if(ELEMENT_FAMILIES.includes(f)){
   drawElementFx(c,e,t,w,h,lite,reduced);
  }else if(MYSTIC_FAMILIES.includes(f)){
   drawMysticFx(c,e,t,w,h,lite,reduced);
