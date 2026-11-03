@@ -44,7 +44,10 @@ export function equipmentBukonPanel(it) {
 export function bukonNameLines(it) {
   if (!visible(it) || it.unidentified) return [];
   return (it.bukon || []).map(b => {
-    const line = el("span", "wpc-prow-sub bk-name-line", bukonName(b));
+    const line = el("span", "wpc-prow-sub bk-name-line");
+    const icon = el("i", "bk-gem");
+    icon.setAttribute("aria-hidden", "true");
+    line.append(icon, el("span", "", bukonName(b)));
     line.style.color = BUKON_RARITIES[bukonDef(b.k)?.rarity || 0].color;
     return line;
   });
