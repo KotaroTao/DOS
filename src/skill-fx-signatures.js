@@ -49,4 +49,48 @@ const rows = [
   ['SERA_SHINOTOMOSHIBI','sig_tomoshibi','party','bloom'],
 ];
 const tones={KIKOKU:'#ffb09a',METSUKYAKU:'#e2eff6',JOUMON:'#dbc6a1',OBORO:'#b3bccd',TSUBAMEGAESHI:'#e6f2f5',BERSERKER_SENKETSU:'#dd8d98',KUBIKARI:'#bad5ac',SHINOKOKUIN:'#c7a6d5',MAGUINOTACHI:'#bba7db',MEIKONGURAI:'#b0c9cf',SHASHINNOGYOU:'#e5c69a',RYUZETSU:'#c9e2df',OIHAGI:'#dbca8d',ARCTHIEF_BANSHOU:'#a6cce0',KASUMINOTOBARI:'#b7dcd6',SERA_SHINOTOMOSHIBI:'#f0d5a0',SHINENNOHADOU:'#b8a8db'};
-export const SKILL_FX_SIGNATURES = Object.freeze(Object.fromEntries(rows.map(([key,type,mode,accent])=>[key,Object.freeze({type,mode,accent,tone:tones[key]||null})])));
+const ultimates = [
+  ['METSUKYAKU', 'fall', 3, 0, '#e2eff6'],
+  ['FURAKUJOU', 'fort', 4, 0, '#8ebde5'],
+  ['KAMIWAZA', 'halo', 8, 0, '#fff0ae'],
+  ['KYOKUDAI', 'collapse', 9, 0.1, '#c3a6ef'],
+  ['ZANSEI', 'star', 5, 0.2, '#94d9fa'],
+  ['BISHOP_SHINPAN', 'rays', 7, 0.3, '#ffe0a0'],
+  ['SAMURAI_MUKYUU', 'horizon', 2, 0, '#e9f5ff'],
+  ['BERSERKER_SENKETSU', 'collapse', 5, 0.5, '#db3955'],
+  ['HUNTER_HOSHIOTOSHI', 'star', 8, 0.5, '#8dbaf5'],
+  ['SHADOW_MUEI', 'eclipse', 3, 0.4, '#967bbf'],
+  ['PALADIN_SEIKENKOURIN', 'rays', 3, 0, '#fff29c'],
+  ['GUARDIAN_EIGOUJOUSAI', 'fort', 6, 0.1, '#7cb6ca'],
+  ['SPELLBLADE_KENKAI', 'rays', 11, 0.5, '#b396f4'],
+  ['KONGOUMUSOU', 'halo', 4, 0.4, '#efcb87'],
+  ['HEXER_BANJU', 'seal', 9, 0.2, '#bb78d2'],
+  ['HERMIT_FUKUIN', 'halo', 5, 0.2, '#a5edc5'],
+  ['BRIGAND_HONKAI', 'star', 4, 0.7, '#e9c367'],
+  ['ARCTHIEF_BANSHOU', 'eclipse', 7, 0.2, '#81d1e7'],
+  ['CRUSADER_SEIJUUJI', 'halo', 4, 0, '#ffe6a1'],
+  ['BATTLEMAGE_TENPOU', 'fracture', 8, 0.1, '#bd98ed'],
+  ['DARKKNIGHT_KOKUTEN', 'eclipse', 6, 0, '#8757bc'],
+  ['TEMPLAR_ZETTAIKEKKAI', 'fort', 3, 0.5, '#a3d9ff'],
+  ['EXORCIST_KENSHOU', 'star', 6, 0.3, '#f7e1a7'],
+  ['WARDEN_BANSHOU', 'seal', 8, 0, '#a38cdd'],
+  ['ARCANIST_SHUUENSHO', 'seal', 12, 0.3, '#d389b5'],
+  ['INQUISITOR_SHAMEN', 'halo', 7, 0.5, '#f9dfbe'],
+  ['ARCHBISHOP_SHUUSHOU', 'fort', 5, 0.4, '#e8d4a4'],
+  ['GONGENOROSHI', 'halo', 6, 0.2, '#dfbb6c'],
+  ['TENMEINOKEN', 'rays', 1, 0, '#ffe777'],
+  ['RINNE', 'halo', 6, 0, '#eb9d84'],
+  ['RYUUTEIGEKI', 'fracture', 5, 0.4, '#fa4934'],
+  ['NECROMANCER_SOUSOU', 'eclipse', 9, 0.5, '#9d6ac2'],
+  ['SAGE_SHUUKYOKU', 'halo', 9, 0.3, '#adcce9'],
+  ['CARDINAL_SEIZA', 'rays', 6, 0.1, '#ffe6bb'],
+  ['ARCHMAGE_BANSHOU', 'fracture', 12, 0.3, '#b9a4e7'],
+  ['CHAPLAIN_SEIGOJOU', 'fort', 7, 0.2, '#b2dec8'],
+  ['SERA_SHINOTOMOSHIBI', 'halo', 3, 0, '#f0b965'],
+];
+for(const [key,motif,count,phase,tone] of ultimates){
+ const row=rows.find(r=>r[0]===key);if(row)rows.splice(rows.indexOf(row),1);
+ rows.push([key,"sig_ultimate_"+key.toLowerCase(),"field",null]);tones[key]=tone;
+}
+const ultimateDesigns=Object.fromEntries(ultimates.map(([key,motif,count,phase])=>[key,{motif,count,phase}]));
+export const SKILL_FX_SIGNATURES = Object.freeze(Object.fromEntries(rows.map(([key,type,mode,accent])=>[key,Object.freeze({type,mode,accent,tone:tones[key]||null,ultimate:ultimateDesigns[key]||null})])));
