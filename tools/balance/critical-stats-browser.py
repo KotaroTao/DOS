@@ -15,7 +15,7 @@ with sync_playwright() as p:
    result=page.evaluate('''async bonus=>{
     const {game,UI}=await import('/src/ui/ctx.js');
     game.G.tut.cur=null;const d=game.G.party[0];
-    d.critDamageBonus=bonus;d.spellCritDamageBonus=bonus;d.elemAtk=null;d.elemDef=null;
+    d.critDamageBonus=bonus;d.spellCritDamageBonus=bonus;d.elemAtk=bonus?{values:{fire:50}}:null;d.elemDef=bonus?{values:{fire:100},reductions:{water:.2}}:null;
     UI.openParty(0,{inPlace:true,seg:'stats'});
     const rows=[...document.querySelectorAll('.pt-info .pt-fact')];
     return rows.map(r=>[r.querySelector('.pt-fact-k').textContent,r.querySelector('.pt-fact-v').textContent,r.querySelector('.pt-fact-v').children.length]);
@@ -24,10 +24,15 @@ with sync_playwright() as p:
    facts={r[0]:r[1] for r in result}
    assert [r[0] for r in result][:3]==['HP','MP','状態'],result
    assert '参照' not in facts and '会心補正' not in facts and '魔法会心補正' not in facts
-   assert facts['会心ダメージ']==('1.5倍' if bonus==0 else '3倍'),facts
+   assert facts['会心ダメージ']==('150%' if bonus==0 else '300%'),facts
    assert facts['魔法会心ダメージ']==facts['会心ダメージ']
-   for key in ['属攻','属防']:
-    assert next(r[2] for r in result if r[0]==key)==6,result
+   for element in ['火','水','風','土','光','闇']:
+    assert facts[element+'属攻']==('150%' if bonus and element=='火' else '100%'),facts
+    expected=('50%軽減' if element=='火' else '20%軽減' if element=='水' else '0%軽減') if bonus else '0%軽減'
+    assert facts[element+'属防']==expected,facts
+   sections=page.locator('.pt-stat-section').all_text_contents()
+   assert sections==['属性攻撃','属性防御','状態異常耐性'],sections
+   assert page.evaluate("()=>[...document.querySelectorAll('.pt-stat-section')].every(e=>parseFloat(getComputedStyle(e).marginTop)>=8)")
    assert not page.evaluate('document.scrollingElement.scrollWidth > innerWidth+1')
    assert not page.evaluate('''()=>[...document.querySelectorAll('.pt-fact')].some(e=>e.scrollWidth>e.clientWidth+1)''')
    assert not errors,errors
