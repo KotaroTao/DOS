@@ -9088,7 +9088,7 @@ function startBattleMeasured(enemies, cell, { alarm = false, alarmRewards = null
     else if (rv && rv.preempt > 0) { rv.preempt--; opening = "preempt"; log(inf ? "出来事の備え：先制確定" : "祈りの蝋燭：先制確定", "win"); } // 「次の戦闘は必ず先制」— 強敵の戦いにも効く
   }
   G._evOpening = null;
-  if (forceAmb) { opening = "ambush"; openSrc = "trait"; }
+  if (forceAmb) opening = "ambush";
   evBattleStart(enemies, isBoss);
   if (opening === "preempt") {
     log("先制した！", "win"); showToast("⚡ 先制した！ 隊が先に動く", { noLog: true, tone: "good" });
