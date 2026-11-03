@@ -11537,23 +11537,26 @@ function animateResult(res, done) {
   callPartyAction(res); // 札の肖像に使った技の名 (手番の初めから)
   if (setPlateCall(res) && !quickBattlePresentation()) { if (G.autoCombat) renderAutoBanner(); else renderActingPlate(res.actor); } // 命令板にも「誰の何の技か」
   if (quickBattlePresentation()) {
-    // 結果と次の命令板を先に示す。短い視覚効果は入力を封じず描く。
+    // 通常の技は命令板を先に示す。火柱は最後まで見せてから次の行動へ進む。
     const fx = G.fx = { lunge: null, slashes: [], skill: [], floats: [], screen: null, flash: {}, deaths: [] };
     G.partyFx = new Map(); G.partyFxV = new Map();
     if ((res.action !== "sleep" && res.action !== "stunned") || (res.hits || []).length) applyImpact(res);
     if (res._modFeed !== undefined) releaseActionEffects(res, res._modFeed);
     drainPartyProcs();
     partyEl.style.setProperty("--fxd", G.fastAnim ? "0.32s" : "0.4s");
-    // 通常攻撃は短い被弾の反応を見せてから次の動作へ。技の進行条件は変えない。
+    const fireDuration=fx.skill.find(e=>e.type==='skillScene'&&e.design?.family==='firePillar')?.dur||0;
+    // 通常攻撃の反応は従来どおり。火柱は描画の終了と進行を同じ時計で扱う。
     const normalAttack = res.action === "attack" && res.actor?.side === "party" && (serverBattle() || choiceTrial?.overlap);
-    if (normalAttack) setTimeout(finish, normalAttackTiming(G.fastAnim).reaction); else finish();
+    if (normalAttack) setTimeout(finish, normalAttackTiming(G.fastAnim).reaction); else if(!fireDuration) finish();
     const started = performance.now();
     let firstFrame = true;
     const tick = () => {
       if (G.fx !== fx || G.battle !== battle || G.state !== "combat") return;
       if (firstFrame) { firstFrame = false; renderParty(); }
-      if (performance.now() - started >= (G.fastAnim ? 360 : 430)) {
-        G.fx = null; G.partyFx.clear(); G.partyFxV.clear(); renderParty(); return;
+      if (performance.now() - started >= (fireDuration || (G.fastAnim ? 360 : 430))) {
+        G.fx = null; G.partyFx.clear(); G.partyFxV.clear(); renderParty();
+        if(fireDuration) finish();
+        return;
       }
       renderCombatCanvas(); requestAnimationFrame(tick);
     };
@@ -11584,7 +11587,7 @@ function animateResult(res, done) {
   const staggerSteps = Math.max(maxStack - 1, partyHealN - 1);
   // 死の宣告 (開幕): 大鎌が振り下ろされ魂が抜けるまでを見せきる (戦闘に一度だけなので一手より長く取る)
   const hold = res.opening === "senkoku" ? 560 : 0;
-  const TOTAL = WIND + (360 + hold + staggerSteps * HIT_STAGGER) * spdMul();
+  let TOTAL = WIND + (360 + hold + staggerSteps * HIT_STAGGER) * spdMul();
   G.fx = { lunge: res.side === "enemy" && res.action !== "eflee" ? { uid: res.actor.uid, p: 0 } : null,
            slashes: [], skill: [], floats: [], screen: null, flash: {}, deaths: [] };
   G.partyFx = G.partyFx || new Map();
@@ -11605,6 +11608,8 @@ function animateResult(res, done) {
     if (!impacted && t >= WIND) {
       impacted = true;
       applyImpact(res);
+      const fireDuration=G.fx.skill.find(e=>e.type==='skillScene'&&e.design?.family==='firePillar')?.dur||0;
+      if(fireDuration) TOTAL=Math.max(TOTAL,performance.now()-t0+fireDuration);
       if (res._modFeed !== undefined) releaseActionEffects(res, res._modFeed); // 強化・弱体の札は着弾と同時に
       drainPartyProcs(); // 発動した効果の名は着弾と同時に
       renderParty(); // HP反映 + 被弾フラッシュ
@@ -11784,7 +11789,7 @@ function applyImpact(res) {
   if (prof?.family) emitSkillFx(fx.skill,res.spellKey,SPELLS[res.spellKey],prof.family === "escape" && res.fled ? [{target:res.actor}] : res.hits,target=>{
     const pos=target.side==="enemy"?G.enemyPos[target.uid]:{cx:partyFxX(target),cy:VH-30};
     return pos?{x:pos.cx,y:pos.cy}:null;
-  },now,spd,{source:res.actor?{x:partyFxX(res.actor),y:VH-30}:null});
+  },now,spd,{auto:!!G.autoCombat,fast:!!G.fastAnim,source:res.actor?{x:partyFxX(res.actor),y:VH-30}:null});
   let partyHealIdx = 0;
   // 味方への強化/弱体フロートも複数人ぶん横に散らす
   let partyModIdx = 0;

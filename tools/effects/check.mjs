@@ -3,7 +3,7 @@ import { SPELLS } from '../../src/skilldefs.js';
 import { JOB_SIGNATURE, JOB_SKILLS } from '../../src/souls.js';
 import { SKILL_FX_CATALOG } from '../../src/skill-fx-catalog.js';
 import { SKILL_FX_SIGNATURES } from '../../src/skill-fx-signatures.js';
-import { SKILL_FAMILIES, emitSkillFx, skillFxSound } from '../../src/skill-fx.js';
+import { SKILL_FAMILIES, emitSkillFx, skillFxSound, skillFxDuration } from '../../src/skill-fx.js';
 import { skillProfile, spawnFx, SIG_FX } from '../../src/battlefx.js';
 import '../../src/battlefx-sig.js';
 import { previewSkillFx } from '../../src/skill-fx-preview.js';
@@ -18,7 +18,7 @@ for(const [key,sp]of Object.entries(SPELLS)){
  assert.ok(SKILL_FAMILIES[d.family],key);assert.ok(Object.isFrozen(d));assert.ok(d.tier>=1&&d.tier<=3);
  assert.equal(p.family,d.family);assert.equal(p.all,['all-enemy','all-ally'].includes(sp.target));
  assert.equal(scene.length,1,key);assert.equal(scene[0].type,'skillScene');assert.ok(scene[0].pts.length>=1&&scene[0].pts.length<=6);
- assert.ok(Number.isFinite(scene[0].x)&&Number.isFinite(scene[0].y)&&scene[0].dur<=350,key);
+ assert.ok(Number.isFinite(scene[0].x)&&Number.isFinite(scene[0].y)&&scene[0].dur===(d.family==='firePillar'?[0,400,700,1200][d.tier]:300),key);
  assert.equal(scene[0].all,p.all,key);
 }
 assert.deepEqual([...rngState()],before,'演出生成でゲーム用乱数を消費');
@@ -41,6 +41,21 @@ for(const name of ['skillRestore','skillWard','skillShade','skillFire','skillSpa
 assert.equal(skillFxSound('firePillar'),'firePillar');
 assert.equal(skillFxSound('fireball'),'fire');
 for(const [key,tier]of [['MAHALITO',1],['GOKUEN',2],['GOKUENRAN',3]])assert.equal(SKILL_FX_CATALOG[key].tier,tier);
+for(const [key,dur]of [['MAHALITO',400],['GOKUEN',700],['GOKUENRAN',1200]]){
+ const d=SKILL_FX_CATALOG[key];assert.equal(skillFxDuration(d),dur);
+ assert.equal(skillFxDuration(d,2,{auto:true}),dur*.6);
+ assert.equal(skillFxDuration(d,.1,{fast:true}),dur*.8);
+ assert.equal(skillFxDuration(d,.1,{auto:true,fast:true}),dur*.6);
+ for(const options of [{},{auto:true},{fast:true}]){
+  const effects=[];emitSkillFx(effects,key,SPELLS[key],[{target:enemy,dmg:10}],locate,0,.1,options);
+  assert.equal(effects[0].dur,skillFxDuration(d,.1,options));
+ }
+ for(const hit of [{target:enemy,miss:true},{target:enemy,immune:true}]){
+  const effects=[];emitSkillFx(effects,key,SPELLS[key],[hit],locate,0);
+  assert.equal(effects.length,0,'不発の火柱には表示待ちを付けない');
+ }
+}
+assert.equal(skillFxDuration({family:'fireball',tier:3},.1),220);
 const fireCounts=[0,0,0,0];
 for(const design of Object.values(SKILL_FX_CATALOG))if(design.family==='firePillar')fireCounts[design.tier]++;
 assert.deepEqual(fireCounts,[0,8,2,6]);

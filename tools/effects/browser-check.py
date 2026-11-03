@@ -42,6 +42,14 @@ with sync_playwright() as p:
  }""")
  assert all(row['areas'][1]>row['areas'][0] and row['areas'][2]>=row['w']*row['h']*.9 for row in ranks),ranks
  (out/'fire-ranks.json').write_text(json.dumps(ranks,ensure_ascii=False,indent=2))
+ # 確認画面も650msで再生を止めず、ランク3の余韻を動かす。
+ page.locator('#auto').uncheck();page.locator('#sound').uncheck()
+ page.locator('#skill').select_option('GOKUENRAN');page.locator('#play').click()
+ page.wait_for_timeout(720)
+ before=page.locator('#stage').evaluate("c=>c.getContext('2d').getImageData(0,0,c.width,c.height).data.reduce((sum,v)=>sum+v,0)")
+ page.wait_for_timeout(200)
+ after=page.locator('#stage').evaluate("c=>c.getContext('2d').getImageData(0,0,c.width,c.height).data.reduce((sum,v)=>sum+v,0)")
+ assert before!=after,'確認画面の火柱が650msで静止している'
  page.locator('#search').fill('ヒール');assert page.locator('#skill option').count()>1
  page.locator('#search').fill('');page.locator('#family').select_option('firePillar');assert page.locator('#skill option').count()>0
  page.locator('#skill').select_option(index=0);page.locator('#play').click();page.screenshot(path=str(out/'mobile.png'),full_page=True)
