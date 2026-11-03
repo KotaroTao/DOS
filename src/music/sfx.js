@@ -126,6 +126,33 @@ function thermalSound(r,rank,explosion){
  dcBlock(x);softClip(x,1.2);return haas(x,explosion?11:7,.9);
 }
 
+// 材質ごとの破砕・飛沫・風圧・雷鳴。格で密度と余韻を変え、音量だけに頼らない。
+function elementSound(r,kind,rank){
+ const dur=[0,.52,.84,1.2][rank],x=new Float32Array(len(dur));
+ if(kind==='ice'){
+  for(let k=0;k<3+rank*2;k++){
+   const f=1400+r()*4200;mixInto(x,modal(SR,dur*.8,[[f,1,.1+rank*.05],[f*1.53,.3,.06]]),len(k*.018),.14);
+  }
+  const crack=burst(r,.08,.025);hp1(crack,1600,SR);mixInto(x,crack,0,.5);
+ }else if(kind==='lightning'){
+  const crack=burst(r,.045,.012);hp1(crack,1700,SR);mixInto(x,crack,0,.8);
+  const rumble=brown(len(dur),r);lp1(rumble,800,SR);
+  for(let i=0;i<rumble.length;i++)rumble[i]*=Math.exp(-(i/SR)/(dur*.27));mixInto(x,rumble,0,2+rank*.4);
+  mixInto(x,sweep(dur,t=>42+90*Math.exp(-t/.025),dur*.7),0,.45);
+ }else if(kind==='wave'||kind==='gale'){
+  mixInto(x,whoosh(r,dur,kind==='wave'?250:450,kind==='wave'?2400:4400,500,1.1,dur*.9),0,1);
+  if(kind==='wave')for(let k=0;k<rank*2;k++){const splash=burst(r,.1,.06);hp1(splash,1500,SR);mixInto(x,splash,len(.035+k*.04),.25);}
+  else mixInto(x,sweep(dur,t=>65+30*Math.sin(t*12),dur*.7,.015),0,.2);
+ }else{
+  const grind=pink(len(dur),r);lp1(grind,kind==='stone'?2400:900,SR);
+  for(let i=0;i<grind.length;i++)grind[i]*=Math.exp(-(i/SR)/(dur*.25));mixInto(x,grind,0,2);
+  mixInto(x,sweep(dur,t=>38+110*Math.exp(-t/.018),dur*.7),0,kind==='quake'?.65:.4);
+  for(let k=0;k<rank*3;k++){const chip=burst(r,.04,.018);applyBq(chip,'bp',700+r()*2300,.7,SR);mixInto(x,chip,len(k*.025),.25);}
+ }
+ if(rank>1){const pressure=burst(r,.2,.1);lp1(pressure,350,SR);mixInto(x,pressure,len(.07),rank*.3);}
+ dcBlock(x);softClip(x,1.2);return haas(x,kind==='ice'?6:11,.9);
+}
+
 export const SFX_DEFS = {
   // 構え: 引き抜く金属音と衣擦れ。静かな余韻は通知時に短く消せる。
   windupStrike: { vars: 1, vol: 0.36, rev: 0.14, gen(r) {
@@ -191,6 +218,24 @@ export const SFX_DEFS = {
   skillBlast: {vars:3,vol:0.60,rev:0.18,gen(r){return thermalSound(r,1,true);}},
   skillBlast2: {vars:3,vol:0.68,rev:0.22,gen(r){return thermalSound(r,2,true);}},
   skillBlast3: {vars:3,vol:0.76,rev:0.26,gen(r){return thermalSound(r,3,true);}},
+  skillIce: {vars:3,vol:0.58,rev:0.16,gen(r){return elementSound(r,'ice',1);}},
+  skillIce2: {vars:3,vol:0.64,rev:0.20,gen(r){return elementSound(r,'ice',2);}},
+  skillIce3: {vars:3,vol:0.70,rev:0.24,gen(r){return elementSound(r,'ice',3);}},
+  skillWave: {vars:3,vol:0.58,rev:0.16,gen(r){return elementSound(r,'wave',1);}},
+  skillWave2: {vars:3,vol:0.64,rev:0.20,gen(r){return elementSound(r,'wave',2);}},
+  skillWave3: {vars:3,vol:0.70,rev:0.24,gen(r){return elementSound(r,'wave',3);}},
+  skillGale: {vars:3,vol:0.58,rev:0.16,gen(r){return elementSound(r,'gale',1);}},
+  skillGale2: {vars:3,vol:0.64,rev:0.20,gen(r){return elementSound(r,'gale',2);}},
+  skillGale3: {vars:3,vol:0.70,rev:0.24,gen(r){return elementSound(r,'gale',3);}},
+  skillLightning: {vars:3,vol:0.58,rev:0.16,gen(r){return elementSound(r,'lightning',1);}},
+  skillLightning2: {vars:3,vol:0.64,rev:0.20,gen(r){return elementSound(r,'lightning',2);}},
+  skillLightning3: {vars:3,vol:0.70,rev:0.24,gen(r){return elementSound(r,'lightning',3);}},
+  skillStone: {vars:3,vol:0.58,rev:0.16,gen(r){return elementSound(r,'stone',1);}},
+  skillStone2: {vars:3,vol:0.64,rev:0.20,gen(r){return elementSound(r,'stone',2);}},
+  skillStone3: {vars:3,vol:0.70,rev:0.24,gen(r){return elementSound(r,'stone',3);}},
+  skillQuake: {vars:3,vol:0.58,rev:0.16,gen(r){return elementSound(r,'quake',1);}},
+  skillQuake2: {vars:3,vol:0.64,rev:0.20,gen(r){return elementSound(r,'quake',2);}},
+  skillQuake3: {vars:3,vol:0.70,rev:0.24,gen(r){return elementSound(r,'quake',3);}},
   skillSpark: {vars:2,vol:.45,rev:.08,gen(r){
     const x=new Float32Array(len(.18));mixInto(x,hp1(burst(r,.055,.022),2700,SR),0,.8);mixInto(x,modal(SR,.15,[[1100,1,.05],[2300,.3,.025]]),0,.35);return mono(x);
   }},

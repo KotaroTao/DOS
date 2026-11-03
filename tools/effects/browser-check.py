@@ -65,6 +65,27 @@ with sync_playwright() as p:
   }setFxQuality('high');return results;
  }""")
  (out/'thermal-ranks.json').write_text(json.dumps(thermal,ensure_ascii=False,indent=2))
+ # 六系統の全18演出を、端末比率・画質・動き低減ごとに確認する。
+ elemental=page.evaluate("""async()=>{
+  for(const [name,w,h]of [['element-flow',768,1152],['element-minerals',256,128]]){const image=new Image();image.src='/art/effects/'+name+'.webp';await image.decode();if(image.naturalWidth!==w||image.naturalHeight!==h)throw Error('材質の寸法');}
+  const {previewSkillFx}=await import('/src/skill-fx-preview.js'),{drawBattleFx}=await import('/src/battlefx.js'),{setFxQuality}=await import('/src/skill-fx-budget.js');
+  const cases={ice:['ICENEEDLE','HYOUGA','ZETTAIREIDO'],wave:['AQUAWAVE','SPELLBLADE_SOURYUU','NECROMANCER_MEIGA'],gale:['KAMAITACHI','TORNADO','HERMIT_TENGUKAZE'],lightning:['HERO_JINRAI','RAIJIN','RAIMEIRAN'],stone:['ISHITSUBUTE','WARDEN_GANKAI','WARDEN_KANAME'],quake:['EARTHQUAKE','DAICHIWARI','METEOR']},result=[];
+  for(const [w,h]of [[320,220],[640,360],[1024,600]])for(const quality of ['high','low'])for(const reduced of [false,true])for(const [family,keys]of Object.entries(cases)){
+   setFxQuality(quality);const areas=[];
+   for(const [index,key]of keys.entries()){
+    const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;const ctx=canvas.getContext('2d'),draw=ctx.drawImage.bind(ctx);let calls=0;
+    ctx.drawImage=(...args)=>{calls++;draw(...args);};const scene=previewSkillFx(key,false);
+    for(const e of scene){e.x=w/2;e.y=h*.45;e.w=80;for(const p of e.pts){p.x=e.x;p.y=e.y;}}
+    const dur=scene[0].dur;if(dur!==[400,700,1200][index])throw Error('表示時間');
+    drawBattleFx(ctx,scene,dur*.45,w,h,reduced);const pixels=ctx.getImageData(0,0,w,h).data;let area=0;for(let i=3;i<pixels.length;i+=4)if(pixels[i]>5)area++;
+    if((family!=='lightning'&&!calls)||!area)throw Error(key+'の描画がない');
+    if(index===2&&[3,(w-1)*4+3,((h-1)*w)*4+3,(w*h-1)*4+3].some(i=>pixels[i]===0))throw Error('最上位が画面端へ届かない: '+family);
+    ctx.clearRect(0,0,w,h);drawBattleFx(ctx,scene,dur+1,w,h,reduced);if(ctx.getImageData(0,0,w,h).data.some(v=>v))throw Error('表示時間外');areas.push(area);
+   }result.push({family,w,h,quality,reduced,areas});
+  }setFxQuality('high');return result;
+ }""")
+ assert all(row['areas'][1]>row['areas'][0] for row in elemental),elemental
+ (out/'element-ranks.json').write_text(json.dumps(elemental,ensure_ascii=False,indent=2))
  page.locator('#search').fill('ヒール');assert page.locator('#skill option').count()>1
  page.locator('#search').fill('');page.locator('#family').select_option('firePillar');assert page.locator('#skill option').count()>0
  page.locator('#skill').select_option(index=0);page.locator('#play').click();page.screenshot(path=str(out/'mobile.png'),full_page=True)
@@ -111,7 +132,7 @@ with sync_playwright() as p:
  assert failpage.evaluate("""async()=>{
   const {previewSkillFx}=await import('/src/skill-fx-preview.js'),{drawBattleFx}=await import('/src/battlefx.js');
   const canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;const ctx=canvas.getContext('2d');
-  for(const key of ['MAHALITO','HALITO','TILTOWAIT','SPELLBLADE_ENTEI','KYOKUDAI']){ctx.clearRect(0,0,640,360);drawBattleFx(ctx,previewSkillFx(key),200,640,360,false);if(!ctx.getImageData(0,0,640,360).data.some((v,i)=>i%4===3&&v>0))return false;}return true;
+  for(const key of ['MAHALITO','HALITO','TILTOWAIT','SPELLBLADE_ENTEI','KYOKUDAI','ZETTAIREIDO','NECROMANCER_MEIGA','HERMIT_TENGUKAZE','RAIMEIRAN','WARDEN_KANAME','METEOR']){ctx.clearRect(0,0,640,360);drawBattleFx(ctx,previewSkillFx(key),200,640,360,false);if(!ctx.getImageData(0,0,640,360).data.some((v,i)=>i%4===3&&v>0))return false;}return true;
  }""")
  fallback.close()
  # ブラウザの音声経路でも、火柱だけ新しいステレオ音を一度だけ鳴らす。
@@ -121,5 +142,11 @@ with sync_playwright() as p:
   audio.SFX.skill('firePillar');audio.SFX.skill('firePillar2');audio.SFX.skill('firePillar3');audio.SFX.skill('fire');for(const family of ['fireball','blast'])for(const rank of ['',2,3])audio.SFX.skill(family+rank);Engine.prototype.playBuffer=play;return played;
  }""")
  assert len(sound)==10 and all(abs(row[0]-dur)<.001 for row,dur in zip(sound,[.68,.9,1.15,.26,.52,.82,1.2,.62,.94,1.3])) and all(row[1]==2 for row in sound[:3]),sound
+ element_sound=page.evaluate("""async()=>{
+  const {Engine}=await import('/src/music/engine.js'),audio=await import('/src/audio.js');audio.initAudio();audio.setVolumes(0,1);
+  const play=Engine.prototype.playBuffer,heard=[];Engine.prototype.playBuffer=function(buffer,...args){heard.push([buffer.duration,buffer.numberOfChannels]);return play.call(this,buffer,...args);};
+  for(const family of ['ice','wave','gale','lightning','stone','quake'])for(const rank of ['',2,3])audio.SFX.skill(family+rank);Engine.prototype.playBuffer=play;return heard;
+ }""")
+ assert len(element_sound)==18 and all(abs(row[0]-[.52,.84,1.2][i%3])<.001 and row[1]==2 for i,row in enumerate(element_sound)),element_sound
  c.close();b.close()
  print('検索・全技再生・描画検証・計測書出し・保存/認証不変・通信なしを確認。',out)
