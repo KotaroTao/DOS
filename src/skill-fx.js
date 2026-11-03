@@ -6,14 +6,14 @@ import { FX_LIMITS, fxLite } from './skill-fx-budget.js';
 const { r01, clamp01, easeOut, rgba, line, star4 } = FX, TAU = Math.PI*2;
 export const SKILL_FAMILIES = Object.freeze({cut:'斬撃',cleave:'なぎ払い',flurry:'連撃',impact:'重い打撃',pierce:'貫通',projectile:'射撃',fireball:'火球',firePillar:'火柱',blast:'爆発',ice:'氷の破片',wave:'水の波',gale:'風の流れ',lightning:'雷光',stone:'岩の隆起',quake:'地の衝撃',radiance:'聖光',void:'闇の収束',arcane:'魔力の波',heal:'回復',revive:'蘇生',purify:'治療',ward:'守り',mana:'魔力の譲渡',empower:'強化',charge:'力を溜める',weaken:'弱体',dispel:'解除',seal:'封印',paralyze:'麻痺',poison:'毒',illusion:'幻惑',sleep:'眠り',gravity:'重力',doom:'死の印',drain:'吸収',steal:'奪取',escape:'退避',survey:'探索'});
 const COLORS = {cut:'#daeaf4',cleave:'#daeaf4',flurry:'#daeaf4',impact:'#deb37a',pierce:'#e1eaff',projectile:'#c6e2ed',fireball:'#ff9b53',firePillar:'#ff9b53',blast:'#ffc786',ice:'#bceaff',wave:'#69c8ff',gale:'#91e5c1',lightning:'#f4e8ff',stone:'#d2b18a',quake:'#c6aa8b',radiance:'#ffe9aa',void:'#b999e5',heal:'#9be7bd',revive:'#f6e6b0',purify:'#b4edee',ward:'#b7d8f0',empower:'#f5d597',charge:'#e7c39b',poison:'#a8bd7a',drain:'#cf93bd',mana:'#92c9f8'};
-export function skillFxSound(family) {
+export function skillFxSound(family, tier = 1) {
   if (['cut','cleave','flurry'].includes(family)) return 'slash';
   if (['impact','stone','quake','blast'].includes(family)) return 'impact';
   if (['pierce','projectile'].includes(family)) return 'pierce';
   if (['heal','revive','purify','mana'].includes(family)) return 'restore';
   if (['ward','empower','charge','survey'].includes(family)) return 'ward';
   if (['paralyze','poison','illusion','sleep','seal','weaken','dispel','gravity','doom','drain','steal','escape','void'].includes(family)) return 'shade';
-  return family === 'firePillar' ? 'firePillar' : family === 'fireball' ? 'fire' : family === 'lightning' ? 'spark' : 'magic';
+  return family === 'firePillar' ? tier >= 3 ? 'firePillar3' : tier >= 2 ? 'firePillar2' : 'firePillar' : family === 'fireball' ? 'fire' : family === 'lightning' ? 'spark' : 'magic';
 }
 const ring = (c,x,y,r,color,a,width=2) => { c.globalAlpha=clamp01(a);c.strokeStyle=color;c.lineWidth=width;c.beginPath();c.arc(x,y,Math.max(.1,r),0,TAU);c.stroke(); };
 function sparks(c,seed,n,x,y,r,t,color,lite) {
@@ -31,12 +31,29 @@ function trace(c,x,y,r,t,color,angle=-.64,width=4){
 }
 // 小さな透過アトラスを起動時から読み、描画中の画像生成や全画面待ちは行わない。
 const fireTexture = typeof Image === 'undefined' ? null : new Image();
-if (fireTexture) fireTexture.src = new URL('../art/effects/fire-pillar.webp', import.meta.url).href;
+let vortexTexture=null;
+if(fireTexture){
+ fireTexture.onload=()=>{
+  // 渦で横向きに使う素材だけ、四辺を十分に透かす。基本の火柱の絵は変えない。
+  const canvas=document.createElement('canvas');canvas.width=768;canvas.height=576;
+  const ctx=canvas.getContext('2d');ctx.drawImage(fireTexture,0,0);ctx.globalCompositeOperation='destination-out';
+  for(let frame=0;frame<18;frame++){
+   const x=frame%6*128,y=Math.floor(frame/6)*192;
+   for(const [x0,y0,x1,y1,rx,ry,rw,rh] of [[x,y,x,y+48,x,y,128,48],[x,y+192,x,y+144,x,y+144,128,48],[x,y,x+20,y,x,y,20,192],[x+128,y,x+108,y,x+108,y,20,192]]){
+    const fade=ctx.createLinearGradient(x0,y0,x1,y1);fade.addColorStop(0,'#000');fade.addColorStop(1,'#0000');ctx.fillStyle=fade;ctx.fillRect(rx,ry,rw,rh);
+   }
+  }
+  vortexTexture=canvas;
+ };
+ fireTexture.src=new URL('../art/effects/fire-pillar.webp',import.meta.url).href;
+}
 // 火柱は地際の熱から噴き上がる。種は演出専用で、時間から滑らかに揺らす。
 function firePillar(c,x,y,r,t,lite,reduced,e) {
  const rise=reduced?1:easeOut(clamp01(t/.24));
  const fade=Math.pow(1-t, .85), motion=reduced?0:t;
- const base=y+r*.43, height=r*(.4+rise*1.22);
+ const rank=e.design?.tier||1;
+ const base=y+r*.43, height=r*(.4+rise*1.22)*(rank===2?1.4:1);
+ const spread=r*.67*(rank===2?1.12:1);
  // 炎の奥に薄い煤。大きなぼかしや画面全体の閃光は使わない。
  if(!lite){
   c.globalCompositeOperation='source-over';
@@ -55,13 +72,14 @@ function firePillar(c,x,y,r,t,lite,reduced,e) {
  heat.addColorStop(0,rgba('#ffb34d',fade*.55));heat.addColorStop(1,rgba('#d43c12',0));
  c.globalAlpha=1;c.fillStyle=heat;c.fillRect(-r,-r,r*2,r*2);c.restore();
  // 濃淡のある乱流テクスチャを少しずつずらして重ねる。輪郭の線や炎形の図形は描かない。
- const ready=fireTexture?.complete && fireTexture.naturalWidth>0, plumes=lite?3:5;
+ const ready=fireTexture?.complete && fireTexture.naturalWidth>0, plumes=rank===2?(lite?4:7):(lite?3:5);
  c.imageSmoothingEnabled=true;
  for(let i=0;i<plumes;i++){
-  const u=(i-(plumes-1)/2)/Math.max(1,(plumes-1)/2), xx=x+u*r*.67;
-  const hh=height*(.82+r01(i,e.seed)*.24), ww=r*(lite?.8:.68);
+  const u=(i-(plumes-1)/2)/Math.max(1,(plumes-1)/2), xx=x+u*spread;
+  const surge=rank===2&&!reduced?easeOut(clamp01((t-Math.abs(u)*.13)/.2)):1;
+  const hh=height*(.82+r01(i,e.seed)*.24)*(rank===2?.45+surge*.55:1), ww=r*(lite?.8:.68)*(rank===2?1.15:1);
   if(ready){
-   const frame=reduced?8:(t*17+i*3)%18, first=Math.floor(frame), blend=frame-first;
+   const frame=reduced?8:((rank===2?Math.max(0,t-Math.abs(u)*.13):t)*(rank===1?17:23)+i*3)%18, first=Math.floor(frame), blend=frame-first;
    for(let k=0;k<(lite?1:2);k++){
     const index=(first+k)%18;
     c.globalAlpha=fade*(lite?.9:.82)*(lite?1:k?blend:1-blend);
@@ -75,12 +93,42 @@ function firePillar(c,x,y,r,t,lite,reduced,e) {
   }
  }
  // 火の粉は上向きの短い尾。低減表示では移動も粒子も省く。
- const particles=reduced?0:lite?3:12;
+ const particles=reduced?0:lite?(rank===1?3:5):rank===1?12:15;
  for(let i=0;i<particles;i++){
   const q=clamp01((t-r01(i+10,e.seed)*.15)/.85);
-  const xx=x+(r01(i,e.seed)-.5)*r*1.65+Math.sin(q*4+i)*r*.06;
-  const yy=base-q*r*(1.1+r01(i+20,e.seed)*.8);
+  const xx=x+(r01(i,e.seed)-.5)*(r*1.65)+Math.sin(q*4+i)*r*.06;
+  const yy=base-q*(r*(1.1+r01(i+20,e.seed)*.8));
   line(c,xx,yy,xx-r*.015,yy+r*.06,1.3,i%3?'#ffb64a':'#ffe9ad',fade*Math.sin(Math.PI*q));
+ }
+}
+// 最上位だけは柱ではなく、内側から外周まで炎が巻く二重の渦にする。
+function fireVortex(c,e,t,w,h,lite,reduced){
+ const fade=Math.pow(1-t,.85), phase=reduced?0:t*4.8;
+ c.globalCompositeOperation='source-over';c.globalAlpha=1;
+ const veil=c.createRadialGradient(w*.5,h*.48,0,w*.5,h*.48,Math.max(w,h)*.75);
+ veil.addColorStop(0,rgba('#ffb44b',fade*.24));veil.addColorStop(.55,rgba('#ac300c',fade*.32));veil.addColorStop(1,rgba('#651407',fade*.22));
+ c.fillStyle=veil;c.fillRect(0,0,w,h);
+ const texture=vortexTexture||fireTexture, ready=fireTexture?.complete&&fireTexture.naturalWidth>0, count=lite?8:16;
+ c.save();c.translate(w*.5,h*.48);c.scale(w*.5,h*.54);c.imageSmoothingEnabled=true;
+ c.globalCompositeOperation='lighter';
+ for(let i=0;i<count;i++){
+  const u=i/(count-1), a=u*TAU*2+phase, radius=.18+u*1.05;
+  c.save();c.translate(Math.cos(a)*radius,Math.sin(a)*radius);c.rotate(a+Math.PI*.92);
+  c.globalAlpha=fade*(.7+u*.2);
+  if(ready){
+   const index=reduced?8:Math.floor((t*23+i*2)%18);
+   c.drawImage(texture,index%6*128,Math.floor(index/6)*192,128,192,-.30,-.80,.60,1.25);
+  }else{
+   const heat=c.createRadialGradient(0,0,0,0,0,.65);heat.addColorStop(0,rgba('#ffad45',.55));heat.addColorStop(1,rgba('#d4350b',0));
+   c.fillStyle=heat;c.fillRect(-.65,-.65,1.3,1.3);
+  }
+  c.restore();
+ }
+ c.restore();
+ if(!reduced)for(let i=0;i<(lite?5:15);i++){
+  const u=i/15, a=u*TAU*2+phase, radius=.15+u;
+  const xx=w*.5+Math.cos(a)*w*.5*radius,yy=h*.48+Math.sin(a)*h*.54*radius;
+  line(c,xx,yy,xx+Math.sin(a)*7,yy-Math.cos(a)*7,1.5,'#ffdb8e',fade);
  }
 }
 function drawCore(c,f,x,y,r,t,color,lite,reduced,e){
@@ -191,7 +239,9 @@ export function drawSkillScene(c,e,t,w,h,reduced){
  const x=e.x,y=e.y;
  c.save();
  const anchors=e.primaryPts||pts;
- if((e.all&&f==='radiance')||(!e.all&&anchors.length>1&&['flurry','projectile'].includes(f))){
+ if(f==='firePillar' && e.design.tier===3){
+  fireVortex(c,e,t,w,h,lite,reduced);
+ }else if((e.all&&f==='radiance')||(!e.all&&anchors.length>1&&['flurry','projectile'].includes(f))){
   for(let i=0;i<Math.min(anchors.length,lite?4:8);i++){
    const p=anchors[i];
    if(f==='flurry')trace(c,p.x,p.y,radius*.65,clamp01((t-i*.035)*1.2),color,i%2?.65:-.65,2.5);

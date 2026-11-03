@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { SPELLS } from '../../src/skilldefs.js';
-import { JOB_SIGNATURE } from '../../src/souls.js';
+import { JOB_SIGNATURE, JOB_SKILLS } from '../../src/souls.js';
 import { SKILL_FX_CATALOG } from '../../src/skill-fx-catalog.js';
 import { SKILL_FX_SIGNATURES } from '../../src/skill-fx-signatures.js';
 import { SKILL_FAMILIES, emitSkillFx, skillFxSound } from '../../src/skill-fx.js';
@@ -40,9 +40,24 @@ for(const name of ['skillRestore','skillWard','skillShade','skillFire','skillSpa
 }
 assert.equal(skillFxSound('firePillar'),'firePillar');
 assert.equal(skillFxSound('fireball'),'fire');
-for(let seed=1;seed<=3;seed++){
- const data=SFX_DEFS.skillFirePillar.gen(rng(seed));
- assert.equal(data.ch.length,2);assert.equal(data.ch[0].length,32000*.68);
+for(const [key,tier]of [['MAHALITO',1],['GOKUEN',2],['GOKUENRAN',3]])assert.equal(SKILL_FX_CATALOG[key].tier,tier);
+const fireCounts=[0,0,0,0];
+for(const design of Object.values(SKILL_FX_CATALOG))if(design.family==='firePillar')fireCounts[design.tier]++;
+assert.deepEqual(fireCounts,[0,8,2,6]);
+const fireTop=new Set(['GOKUENRAN','BATTLEMAGE_SHAKUNETSU','ARCANIST_GOUKASHO','INQUISITOR_JOUZAI','SAGE_HOMURA','ARCHMAGE_SHUUEN']);
+assert.deepEqual(new Set(Object.entries(SKILL_FX_CATALOG).filter(([k,d])=>d.family==='firePillar'&&d.tier===3).map(([k])=>k)),fireTop);
+for(const key of fireTop){
+ const paths=Object.values(JOB_SKILLS).filter(rows=>rows.some(r=>r.skill===key));
+ assert.ok(paths.length>0,key);
+ for(const rows of paths){
+  const entry=rows.find(r=>r.skill===key),top=Math.max(...rows.filter(r=>SKILL_FX_CATALOG[r.skill]?.family==='firePillar').map(r=>r.lvl));
+  assert.ok(entry.lvl>=180 && entry.lvl===top,'最上位の火系統の技だけをランク3にする: '+key);
+ }
+}
+assert.equal(skillFxSound('firePillar',2),'firePillar2');assert.equal(skillFxSound('firePillar',3),'firePillar3');
+for(const [name,duration]of [['skillFirePillar',.68],['skillFirePillar2',.9],['skillFirePillar3',1.15]])for(let seed=1;seed<=3;seed++){
+ const data=SFX_DEFS[name].gen(rng(seed));
+ assert.equal(data.ch.length,2);assert.equal(data.ch[0].length,Math.round(32000*duration));
  for(const ch of data.ch){
   assert.ok(ch.every(Number.isFinite));assert.ok(ch.every(v=>Math.abs(v)<=.91),'火柱音のピーク');
   const energy=ch.slice(0,9600).reduce((n,v)=>n+v*v,0)/9600;

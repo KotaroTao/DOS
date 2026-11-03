@@ -24,6 +24,24 @@ with sync_playwright() as p:
   }setFxQuality('high');return {width:image.naturalWidth,height:image.naturalHeight,calls:results};
  }""")
  assert texture=={'width':768,'height':576,'calls':[10,3,3]},texture
+ # 格の違いが面積に表れ、ランク3は端末比率にかかわらず戦場全体へ届く。
+ ranks=page.evaluate("""async()=>{
+  const {previewSkillFx}=await import('/src/skill-fx-preview.js'),{drawBattleFx}=await import('/src/battlefx.js'),{setFxQuality}=await import('/src/skill-fx-budget.js');
+  const result=[];
+  for(const [w,h]of [[320,220],[640,360],[1024,600]])for(const [quality,reduced]of [['high',false],['low',false],['high',true]]){
+   setFxQuality(quality);const areas=[];
+   for(const [key,tier] of [['MAHALITO',1],['MAHALITO',2],['GOKUENRAN',3]]){
+    const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;const ctx=canvas.getContext('2d');
+    const scene=previewSkillFx(key);for(const e of scene){e.design={...e.design,tier,scale:[0,.9,1.08,1.24][tier]};e.x*=w/640;e.y*=h/360;e.w*=w/640;for(const p of e.pts){p.x*=w/640;p.y*=h/360;}}
+    drawBattleFx(ctx,scene,125,w,h,reduced);const pixels=ctx.getImageData(0,0,w,h).data;
+    let area=0;for(let i=3;i<pixels.length;i+=4)if(pixels[i]>20)area++;
+    const corners=[3,(w-1)*4+3,((h-1)*w)*4+3,(w*h-1)*4+3].map(i=>pixels[i]);
+    if(key==='GOKUENRAN'&&corners.some(v=>v===0))throw Error('ランク3が画面端へ届いていない');areas.push(area);
+   }result.push({w,h,quality,reduced,areas});
+  }setFxQuality('high');return result;
+ }""")
+ assert all(row['areas'][1]>row['areas'][0] and row['areas'][2]>=row['w']*row['h']*.9 for row in ranks),ranks
+ (out/'fire-ranks.json').write_text(json.dumps(ranks,ensure_ascii=False,indent=2))
  page.locator('#search').fill('ヒール');assert page.locator('#skill option').count()>1
  page.locator('#search').fill('');page.locator('#family').select_option('firePillar');assert page.locator('#skill option').count()>0
  page.locator('#skill').select_option(index=0);page.locator('#play').click();page.screenshot(path=str(out/'mobile.png'),full_page=True)
@@ -78,8 +96,8 @@ with sync_playwright() as p:
  sound=page.evaluate("""async()=>{
   const {Engine}=await import('/src/music/engine.js'),audio=await import('/src/audio.js');audio.initAudio();audio.setVolumes(0,1);
   const play=Engine.prototype.playBuffer,played=[];Engine.prototype.playBuffer=function(buffer,...args){played.push([buffer.duration,buffer.numberOfChannels]);return play.call(this,buffer,...args);};
-  audio.SFX.skill('firePillar');audio.SFX.skill('fire');Engine.prototype.playBuffer=play;return played;
+  audio.SFX.skill('firePillar');audio.SFX.skill('firePillar2');audio.SFX.skill('firePillar3');audio.SFX.skill('fire');Engine.prototype.playBuffer=play;return played;
  }""")
- assert len(sound)==2 and abs(sound[0][0]-.68)<.001 and sound[0][1]==2 and abs(sound[1][0]-.26)<.001,sound
+ assert len(sound)==4 and all(abs(row[0]-dur)<.001 for row,dur in zip(sound,[.68,.9,1.15,.26])) and all(row[1]==2 for row in sound[:3]),sound
  c.close();b.close()
  print('検索・全技再生・描画検証・計測書出し・保存/認証不変・通信なしを確認。',out)

@@ -8,7 +8,7 @@ stub_art=runpy.run_path(str(ROOT/'tools/cloud/choice-bench/trial-browser.py'))['
 async def main():
     async with async_playwright() as p:
         browser=await p.chromium.launch(executable_path=os.environ.get('CHROME_BIN','/usr/bin/chromium'),args=['--no-sandbox'])
-        for key,expected,latency in [('TATEWARI','cut',60),('HALITO','fireball',60),('MAHALITO','firePillar',60),('DIOS','heal',60),('CHOUHATSU','ward',60),('HALITO','fireball',900)]:
+        for key,expected,latency in [('TATEWARI','cut',60),('HALITO','fireball',60),('MAHALITO','firePillar',60),('GOKUEN','firePillar',60),('GOKUENRAN','firePillar',60),('DIOS','heal',60),('CHOUHATSU','ward',60),('HALITO','fireball',900)]:
             ctx=await browser.new_context(service_workers='block',viewport={'width':390,'height':844})
             await ctx.route('**/art/**',stub_art)
             await ctx.route('**/src/cloud-config.js',lambda r:r.fulfill(content_type='text/javascript',body='export const CLOUD_CONFIG={enabled:true,url:"https://cloud.test",anonKey:"test",protocol:1};'))
@@ -27,7 +27,7 @@ async def main():
             await page.evaluate("""async key=>{
               const {Battle}=await import('/src/combat.js');
               const {reseedRng}=await import('/src/rng.js');reseedRng(42);
-              const actor=__game.G.battle.current;actor.mp=actor.maxmp=999;actor.spells=[key];actor.hitBonus=1;actor.atk=100;actor.hp=Math.max(1,Math.floor(actor.maxhp/2));
+              const actor=__game.G.battle.current;for(const enemy of __game.G.battle.enemies)enemy.hp=enemy.maxhp=100000;actor.mp=actor.maxmp=999;actor.spells=[key];actor.hitBonus=1;actor.atk=100;actor.hp=Math.max(1,Math.floor(actor.maxhp/2));
               // 既存の攻撃ボタンを入口にし、選択以降は実際の技の対象選択・確定・描画を通す。
               const choose=Battle.prototype.chooseAction;Battle.prototype.chooseAction=function(action,...args){return action==='attack'?choose.call(this,'spell',key):choose.call(this,action,...args);};
             }""",key)
@@ -35,12 +35,12 @@ async def main():
               const {Battle}=await import('/src/combat.js'),{SFX}=await import('/src/audio.js');
               window.pressed=null;window.impact=null;window.hitSounds=0;
               const prepare=SFX.prepare;SFX.prepare=function(...args){pressed=performance.now();return prepare.apply(this,args);};
-              const hit=SFX.skill;SFX.skill=function(...args){hitSounds++;return hit.apply(this,args);};
+              const hit=SFX.skill;SFX.skill=function(...args){hitSounds++;window.hitKind=args[0];return hit.apply(this,args);};
               const commit=Battle.prototype.commit;Battle.prototype.commit=function(...args){impact=performance.now();return commit.apply(this,args);};
               window.snapshot=()=>JSON.stringify([__game.G.rng,__game.G.party.map(e=>[e.hp,e.mp]),__game.G.battle.enemies.map(e=>e.hp)]);
               window.before=snapshot();window.atAck=null;window.fxSeen=null;
               // 短い演出を同じ時点で記録し、検査側の通信中に消えても判定を保つ。
-              const probe=setInterval(()=>{const fx=__game.G.fx;if(fx?.skill.some(e=>e.type==='skillScene')){fxSeen={count:fx.skill.length,type:fx.skill[0].type,family:fx.skill[0].design?.family,slashes:fx.slashes.length,changed:snapshot()!==before,hitSounds};clearInterval(probe);}},1);
+              const probe=setInterval(()=>{const fx=__game.G.fx;if(fx?.skill.some(e=>e.type==='skillScene')){fxSeen={count:fx.skill.length,type:fx.skill[0].type,family:fx.skill[0].design?.family,slashes:fx.slashes.length,changed:snapshot()!==before,hitSounds,hitKind:window.hitKind};clearInterval(probe);}},1);
               new MutationObserver(()=>{if(!atAck&&document.querySelector('.choice-trial-status').textContent.startsWith('確定通知'))atAck={same:snapshot()===before,impact,hitSounds};}).observe(document.querySelector('.choice-trial-status'),{childList:true,subtree:true});
             }''')
             await page.locator('#combat-menu .cmd-attack').click()
@@ -61,6 +61,8 @@ async def main():
             assert await page.evaluate('fxSeen.changed'),'確定後も戦況が更新されていない'
             assert await page.evaluate('(family)=>fxSeen.count===1 && fxSeen.type==="skillScene" && fxSeen.family===family',expected),(key,expected)
             assert await page.evaluate('fxSeen.hitSounds===1'),'対象数ぶん主音を重ねている'
+            if expected=='firePillar':
+                assert await page.evaluate('fxSeen.hitKind')=={'MAHALITO':'firePillar','GOKUEN':'firePillar2','GOKUENRAN':'firePillar3'}[key]
             assert await page.evaluate('fxSeen.slashes===0'),'技に旧三日月が重なっている'
             await page.wait_for_function('!__game.G.animating && __game.G.battle.phase==="input"')
             assert len(sent)==1
