@@ -115,3 +115,10 @@ assert.deepEqual([...new Set(Object.values(SKILL_FX_CATALOG).filter(d=>d.family=
 for(const f of ['empower','weaken','dispel','seal','poison','illusion','sleep']){
  assert.deepEqual([...new Set(Object.values(SKILL_FX_CATALOG).filter(d=>d.family===f).map(d=>d.tier))].sort(),[1,2,3],f);
 }
+// 六系統は看板指定に左右されず、実際の習得段階の描画を選ぶ。
+const utilityFamilies=new Set(['gravity','doom','drain','steal','escape','survey']);
+for(const [key,design]of Object.entries(SKILL_FX_CATALOG))if(utilityFamilies.has(design.family)){
+ const levels=Object.values(JOB_SKILLS).flat().filter(row=>row.skill===key).map(row=>row.lvl);
+ const level=levels.length?Math.min(...levels):1;
+ assert.equal(design.tier,level>=100?3:level>=30?2:1,key);
+}
