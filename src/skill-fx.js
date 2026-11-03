@@ -14,7 +14,7 @@ export function skillFxSound(family, tier = 1) {
   if (ELEMENT_FAMILIES.includes(family)||family==='fireball'||family==='blast')return family+(tier>=3?'3':tier>=2?'2':'');
   if (['impact','stone','quake'].includes(family)) return 'impact';
   if (['pierce','projectile'].includes(family)) return 'pierce';
-  if (['heal','revive','purify','mana'].includes(family)) return 'restore';
+  if (family==='mana') return 'mana';
   if (['ward','empower','charge','survey'].includes(family)) return 'ward';
   if (['paralyze','poison','illusion','sleep','seal','weaken','dispel','gravity','doom','drain','steal','escape','void'].includes(family)) return 'shade';
   return family === 'firePillar' ? tier >= 3 ? 'firePillar3' : tier >= 2 ? 'firePillar2' : 'firePillar' : family === 'fireball' ? 'fire' : family === 'lightning' ? 'spark' : 'magic';
@@ -24,8 +24,8 @@ export const physicalSkillFx=design=>design?.kind==='phys'||!design?.kind&&['cut
 // 物理は一撃65msの動きを保ち、85msごとの打撃枠と60msの余韻へ収める。
 export function skillFxDuration(design, spd=1, options={}){
  const count=Math.max(1,design?.combo||design?.hits||1),rank=Math.min(3,Math.max(1,design?.tier||1));
- const base=physicalSkillFx(design)?count*85+60:[0,400,700,1200][rank];
- return Math.round(base*(options.auto?.6:options.fast?.8:1));
+ if(physicalSkillFx(design))return count*85+(options.auto?20:options.fast?35:60);
+ return Math.round([0,400,700,1200][rank]*(options.auto?.6:options.fast?.8:1));
 }
 export { SLASH_FORMS } from './skill-fx-materials.js';
 // 敵の術・ブレスも同じ画像描画へ通す。通常攻撃の描画は従来のまま。
@@ -39,10 +39,10 @@ export function enemySkillFxProfile(res){
 export function drawSkillScene(c,e,t,w,h,reduced){
  const lite=fxLite(reduced),physical=physicalSkillFx(e.design),fixed=reduced?.36:t;
  if(e.strikes?.length){
-  const slots=Math.max(1,e.comboCount),position=physical?fixed*(slots+60/85):fixed*slots;
+  const slots=Math.max(1,e.comboCount),position=physical?fixed*e.dur/85:fixed*slots;
   for(const point of e.strikes){
    const q=position-point.slot;if(!reduced&&(q<0||q>=1))continue;
-   drawMaterialSkill(c,{...e,x:point.x,y:point.y,all:false,strikes:[],physical,primaryPts:[point],design:{...e.design,tier:Math.min(3,e.design.tier)}},reduced?.36:q,w,h,lite,reduced);
+   drawMaterialSkill(c,{...e,x:point.x,y:point.y,all:false,strikes:[],physical,strikeIndex:point.slot,strikeMs:physical?85:e.dur/slots,primaryPts:[point],design:{...e.design,tier:Math.min(3,e.design.tier)}},reduced?.36:q,w,h,lite,reduced);
   }
  }else drawMaterialSkill(c,{...e,physical},fixed,w,h,lite,reduced);
  // 対象の印も小さな材質の濃淡だけを使う。図形の記号は描かない。
@@ -54,6 +54,16 @@ export function drawSkillScene(c,e,t,w,h,reduced){
    drawSkillMark(c,{x:from.x+(to.x-from.x)*q,y:from.y+(to.y-from.y)*q,mark:e.hasMpDrain||e.design.family==='mana'?'mana':'heal'},fixed,lite,false);
   }
  }
+}
+// 最初の描画を起点に揃え、音の準備やDOM更新で短い演出の序盤を失わない。
+export function beginSkillFxPresentation(fx,now){
+ const scene=fx?.skill?.find(e=>e.type==='skillScene');if(!scene||fx.presentationAt!=null)return;
+ const shift=Math.max(0,now-scene.t0);fx.presentationAt=now;
+ for(const list of [fx.skill,fx.floats,fx.slashes,fx.deaths])for(const e of list||[])if(Number.isFinite(e.t0))e.t0+=shift;
+ for(const e of Object.values(fx.flash||{}))if(Number.isFinite(e.t0))e.t0+=shift;
+ if(Number.isFinite(fx.screen?.t0))fx.screen.t0+=shift;
+ for(const event of fx.skillSounds||[])if(event.delay<=0)event.play();else setTimeout(event.play,event.delay);
+ fx.skillSounds=[];
 }
 export function emitSkillFx(list,key,spell,hits,locate,now,spd=1,options={}){
  const baseDesign=options.design||SKILL_FX_CATALOG[key];if(!baseDesign)return false;

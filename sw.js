@@ -19,6 +19,7 @@ const ASSETS = [
   "./art/effects/blast.webp",
   "./art/effects/fire-pillar.webp",
   "./art/effects/skill-materials.webp",
+  "./art/effects/physical-materials.webp",
   "./src/skill-fx-materials.js",
   "./src/battle-windup.js",
   "./effects-lab.html",

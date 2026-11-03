@@ -10,6 +10,15 @@ with sync_playwright() as p:
  result=page.evaluate('''async()=>{
  const img=new Image();img.src='/art/effects/skill-materials.webp';await img.decode();
  if(img.naturalWidth!==576||img.naturalHeight!==2880)throw Error('アトラス寸法');
+ const blade=new Image();blade.src='/art/effects/physical-materials.webp';await blade.decode();
+ if(blade.naturalWidth!==1152||blade.naturalHeight!==288)throw Error('斬撃アトラス寸法');
+ const sample=document.createElement('canvas');sample.width=192;sample.height=96;const sc=sample.getContext('2d');
+ for(let frame=0;frame<18;frame++){
+  sc.clearRect(0,0,192,96);sc.drawImage(blade,frame%6*192,Math.floor(frame/6)*96,192,96,0,0,192,96);
+  const pixels=sc.getImageData(0,0,192,96).data;
+  const thickness=x=>{let n=0;for(let y=0;y<96;y++)if(pixels[(y*192+x)*4+3]>80)n++;return n;};
+  const middle=thickness(96);if(middle<16||thickness(12)>=middle*.65||thickness(179)>=middle*.65)throw Error('斬撃の両端がすぼまっていない: '+frame);
+ }
  const {SPELLS}=await import('/src/skilldefs.js'),{SKILL_FX_CATALOG}=await import('/src/skill-fx-catalog.js');
  const {previewSkillFx}=await import('/src/skill-fx-preview.js'),{drawBattleFx}=await import('/src/battlefx.js');
  const {MATERIAL_FAMILIES}=await import('/src/skill-fx-materials.js'),{setFxQuality}=await import('/src/skill-fx-budget.js');

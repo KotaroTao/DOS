@@ -46,6 +46,8 @@ jobs:
             /tools/
             /docs/skill-effects-catalog.csv
             /art/effects/
+            /art/battle/w01.webp
+            /art/monsters/bs_bonepile.webp
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -88,6 +90,7 @@ jobs:
           python3 tools/effects/combo-browser.py
           python3 tools/effects/browser-check.py
           python3 tools/effects/game-browser.py
+          python3 tools/effects/combat-readability.py
       - name: 本番B方式の実ゲーム・復旧・終了検証
         env:
           CHROME_BIN: /usr/bin/google-chrome
@@ -112,6 +115,7 @@ jobs:
             /tmp/dos-choice-trial-browser
             /tmp/dos-skill-fx-check
             /tmp/dos-material-fx
+            /tmp/dos-combat-readability
 
   choice-benchmark:
     needs: ledger-benchmark

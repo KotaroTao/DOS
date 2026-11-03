@@ -287,6 +287,11 @@ function jingle(name, fallback, duck, depth = 0.3) {
   }
 }
 
+function skillSoundName(kind,presentation){
+ if(presentation?.physical)kind=/impact/.test(kind)?'impact':/pierce/.test(kind)?'pierce':'slash';
+ const rank=presentation?.rank||Number(kind.match(/[23]$/)?.[0])||1;
+ return naturalSkillName(kind,rank,presentation?.duration||[0,400,700,1200][Math.min(3,rank)]);
+}
 export const SFX = {
   // 打撃・命中とは別の準備音。音量設定・ミュートは通常の効果音と共通。
   prepare(kind = "strike") {
@@ -301,10 +306,11 @@ export const SFX = {
   swing() { sfx("swing", { jit: 0.1 }); },
   skill(kind = "magic", presentation = null) {
     if (document.hidden) return;
-    if(presentation?.physical)kind=/impact/.test(kind)?'impact':/pierce/.test(kind)?'pierce':'slash';
-    const rank=presentation?.rank||Number(kind.match(/[23]$/)?.[0])||1;
-    const duration=presentation?.duration||[0,400,700,1200][Math.min(3,rank)];
-    sfx(naturalSkillName(kind,rank,duration),{jit:0});
+    sfx(skillSoundName(kind,presentation),{jit:0});
+  },
+  warmSkill(kind='magic',presentation=null){
+    if(!engine||!actx||muted||sfxVol<=0)return;
+    sfxBuffer(skillSoundName(kind,presentation),actx);
   },
   skillImpact(kind='impact') { if(!document.hidden)sfx(naturalSkillName(kind,1,65),{jit:0}); },
   hit(style = null) {
@@ -316,7 +322,7 @@ export const SFX = {
   evade() { sfx(naturalSkillName('air',1,90),{jit:0}); },
   spell() { sfx(naturalSkillName('air',1,400),{jit:0}); },
   fire() { sfx(naturalSkillName('fire',1,400),{jit:0}); },
-  heal() { sfx(naturalSkillName('water',1,350),{jit:0}); },
+  heal() { sfx(naturalSkillName('restore',1,350),{jit:0}); },
   chest() { sfx("chest", { jit: 0.03 }); },
   trap() { sfx("trap", { jit: 0.04 }); },
   stairs() { sfx("stairs", { jit: 0.03 }); },

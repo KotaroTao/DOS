@@ -7,18 +7,39 @@ const families='cut cleave flurry impact pierce projectile firePillar fireball b
 export const MATERIAL_FAMILIES=Object.freeze(families);
 const rows={ribbon:0,pressure:1,crystal:2,water:3,wind:4,shadow:5,light:6,life:7,venom:8,stone:9};
 const image=typeof Image==='undefined'?null:new Image();
-const tinted=new Map(); // 色付きの帯だけを最大12枚（約8MB）保持する。
-function colored(kind,tone){
- if(!tone||!image?.complete||!image.naturalWidth)return null;
- const key=kind+tone;if(tinted.has(key))return tinted.get(key);
- const canvas=document.createElement('canvas');canvas.width=576;canvas.height=288;const ctx=canvas.getContext('2d');
- ctx.drawImage(image,0,rows[kind]*288,576,288,0,0,576,288);
- const pixels=ctx.getImageData(0,0,576,288),rgb=[1,3,5].map(i=>parseInt(tone.slice(i,i+2),16)/255);
- for(let i=0;i<pixels.data.length;i+=4)for(let k=0;k<3;k++)pixels.data[i+k]*=rgb[k];
- ctx.putImageData(pixels,0,0);
- if(tinted.size>=12)tinted.delete(tinted.keys().next().value);tinted.set(key,canvas);return canvas;
+const physicalImage=typeof Image==='undefined'?null:new Image();
+const tinted=new Map(),pending=new Set(); // 最大6面。着弾の描画中には画像処理しない。
+const warmTones=['#ff4938','#439fff','#89dfae','#ca9a65','#ffe297','#a47bdd'];
+function sourceFor(kind){
+ if(kind==='ribbon'&&physicalImage?.complete&&physicalImage.naturalWidth)return {texture:physicalImage,sw:192,sh:96,row:0};
+ return {texture:image,sw:96,sh:96,row:rows[kind]*3};
 }
+function cacheTone(kind,tone){
+ const source=sourceFor(kind);if(!source.texture?.naturalWidth)return;
+ const width=source.sw*6,height=source.sh*3,canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
+ const ctx=canvas.getContext('2d');ctx.drawImage(source.texture,0,source.row*source.sh,width,height,0,0,width,height);
+ const pixels=ctx.getImageData(0,0,width,height),rgb=[1,3,5].map(i=>parseInt(tone.slice(i,i+2),16)/255);
+ for(let i=0;i<pixels.data.length;i+=4)for(let k=0;k<3;k++){
+  // 暗い属性色でも明るい摩擦の面を失わない。
+  const highlight=Math.max(0,(pixels.data[i+k]-195)/60)*.35;
+  pixels.data[i+k]*=Math.min(1,.3+rgb[k]*.7+highlight);
+ }
+ ctx.putImageData(pixels,0,0);
+ const key=kind+tone;if(tinted.size>=6)tinted.delete(tinted.keys().next().value);
+ tinted.set(key,{texture:canvas,sw:source.sw,sh:source.sh,row:0});
+}
+function queueTone(kind,tone){
+ if(kind!=='ribbon'||!tone||pending.has(kind+tone)||tinted.has(kind+tone))return;
+ const key=kind+tone;pending.add(key);
+ const build=()=>{pending.delete(key);cacheTone(kind,tone);};
+ if(globalThis.requestIdleCallback)requestIdleCallback(build,{timeout:500});else setTimeout(build,0);
+}
+function colored(kind,tone){queueTone(kind,tone);return tinted.get(kind+tone)||sourceFor(kind);}
 if(image)image.src=new URL('../art/effects/skill-materials.webp',import.meta.url).href;
+if(physicalImage){
+ physicalImage.onload=()=>{tinted.clear();for(const tone of warmTones)queueTone('ribbon',tone);};
+ physicalImage.src=new URL('../art/effects/physical-materials.webp',import.meta.url).href;
+}
 function noise(i,seed=17){let x=Math.imul(i+seed,374761393);x=Math.imul(x^(x>>>13),1274126177);return((x^(x>>>16))>>>0)/4294967296;}
 // 代替表示も不規則な濃淡を持つ画像とし、図形の輪郭を描かない。
 let fallback=null;
@@ -37,11 +58,11 @@ function material(c,kind,x,y,w,h,angle,t,alpha,lite,tone=null){
  if(w<=0||h<=0||alpha<=0)return;
  c.save();c.translate(x,y);c.rotate(angle);
  if(image?.complete&&image.naturalWidth){
-  const texture=colored(kind,tone)||image,row=texture===image?rows[kind]*3:0;
+  const {texture,sw,sh,row}=colored(kind,tone);
   const frame=((t*17)%18+18)%18,first=Math.floor(frame),blend=frame-first;
   for(let k=0;k<(lite?1:2);k++){
    const index=(first+k)%18;c.globalAlpha=clamp(alpha)*(lite?1:k?blend:1-blend);
-   c.drawImage(texture,index%6*96,(row+Math.floor(index/6))*96,96,96,-w/2,-h/2,w,h);
+   c.drawImage(texture,index%6*sw,(row+Math.floor(index/6))*sh,sw,sh,-w/2,-h/2,w,h);
   }
  }else{const texture=fallbackImage();if(texture){c.globalAlpha=clamp(alpha);c.drawImage(texture,-w/2,-h/2,w,h);}}
  c.restore();
@@ -61,7 +82,7 @@ export function drawMaterialSkill(c,e,t,w,h,lite,reduced){
  const f=e.design.family;if(!families.includes(f))return false;
  const rank=Math.min(3,Math.max(1,e.design.tier)),detail=Math.min(5,e.design.tier),x=e.x;
  const physical=e.physical||e.design.kind==='phys',combo=!!e.design.combo;
- const q=reduced?.4:clamp(t),motion=physical?clamp(q*(combo?85:145)/65):clamp(q/.6),grow=ease(motion),tail=(1-clamp(t))**.7;
+ const q=reduced?.4:clamp(t),motion=physical?clamp(q*(e.strikeMs||e.dur||145)/65):clamp(q/.6),grow=ease(motion),tail=(1-clamp(t))**.7;
  const full=rank===3&&!physical&&['ice','wave','gale','lightning','stone','quake','firePillar','blast'].includes(f);
  const r=(full?Math.max(w,h)*.52:Math.max(e.all?Math.min(w*.44,Math.max(100,(e.w||80)*.55)):62,rank===3?100:rank===2?78:62))*(e.design.scale||1);
  const y=e.primaryPts?.some(p=>p.side==='party')?Math.min(e.y,h-r*.55):e.y;
@@ -71,9 +92,9 @@ export function drawMaterialSkill(c,e,t,w,h,lite,reduced){
   const form=f==='cleave'?CLEAVE_MOTION[e.design.variant]:null,slash=SLASH_FORMS[e.design.slashUltimate];
   const count=combo?1:form?form[0]:slash?slash[1]:f==='cut'?detail:f==='cleave'?rank+1:f==='flurry'?rank+2:rank;
   for(let i=0;i<count;i++){
-   const u=(i-(count-1)/2),angle=form?form[1]+(i%2?1:-1)*(i+1)*form[2]*.17:slash?slash[2]+(i%2?1:-1)*(i+1)*.13:['pierce','projectile'].includes(f)?-Math.PI/2:f==='cleave'?(i%2?-.15:Math.PI+.15):(i%2?.65:-.65);
+   const u=(i-(count-1)/2),angle=combo&&['cut','cleave','flurry'].includes(f)?[-.65,.65,-1.15,1.15,0,Math.PI/2,-.3,.3][(e.strikeIndex||0)%8]:form?form[1]+(i%2?1:-1)*(i+1)*form[2]*.17:slash?slash[2]+(i%2?1:-1)*(i+1)*.13:['pierce','projectile'].includes(f)?-Math.PI/2:f==='cleave'?(i%2?-.15:Math.PI+.15):(i%2?.65:-.65);
    const offset=r*(-.8+grow*1.6);
-   material(c,'ribbon',x+Math.cos(angle)*offset,y+Math.sin(angle)*offset+u*r*(form?form[3]:.12),r*1.9,r*(f==='cleave'?.75:.65),angle,q+i*.11,tail,lite,tone);
+   material(c,'ribbon',x+Math.cos(angle)*offset,y+Math.sin(angle)*offset+u*r*(form?form[3]:.12),r*1.9,r*(f==='cleave'?.75:.65),angle,(physical?q*(e.strikeMs||e.dur||145)/145:q)+i*.11+(e.strikeIndex||0)*.19,Math.min(1,tail*1.25),lite,tone);
    material(c,'pressure',x,y,r*.55,r*.25,angle,q,tail*.5,lite,tone);
   }
  }else if(f==='impact'){
