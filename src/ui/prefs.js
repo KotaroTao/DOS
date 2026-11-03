@@ -19,6 +19,7 @@ export const UI_PREF_DEFAULTS = {
   shopCat: "weapon",     // 商会の分類
   codexDungeon: 0,       // 図鑑で開いていた迷宮
   lastSkill: {},         // 人業uid → 最後に使ったスキル
+  battleActionGap: 0,   // 演出後から次の手番までの追加待機 (ms、端末ごと)
   fxLite: false,         // 光の粒・余韻を少なくする。戦闘の時間・結果は変えない
   autoKeep: false,       // オートを次の戦闘も続ける
   chestAuto: false,      // 宝箱は最良の解除役で開ける (確認なし)
@@ -98,4 +99,10 @@ export function resetAutomationPrefs() {
     uiPrefs[k] = structuredCloneSafe({ value: UI_PREF_DEFAULTS[k] }).value;
   }
   persist();
+}
+
+// 壊れた端末設定でも無限待機にしない。
+export function battleActionGap() {
+  const v = Number(getPref("battleActionGap"));
+  return Number.isFinite(v) ? Math.round(Math.max(0, Math.min(1000, v)) / 100) * 100 : 0;
 }

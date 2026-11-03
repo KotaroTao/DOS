@@ -8,7 +8,7 @@ import { battleCommand } from "./cloud-battle.js";
 import { cloudLedgerActive, cloudFinishBattle, cloudCommandMode, cloudActionCommand } from "./cloud-save.js";
 import { saveMetrics } from "./save-metrics.js";
 import { refreshPlayTime } from "./ui/playername.js";
-import { resetAutomationPrefs } from "./ui/prefs.js";
+import { resetAutomationPrefs, battleActionGap } from "./ui/prefs.js";
 import { encodeCloudSave, acknowledgeCloudSave } from "./save-codec.js";
 import { depthLimit, mutatorEligible, challengeEntryBlock, applyChallengeEnemies } from "./progression.js";
 import { warmOpening } from "./openingillustrations.js";
@@ -11514,6 +11514,14 @@ function postResolve() {
   }
   if (b.result && choiceTrial) { G.animating = true; choiceTrial.finish(); return; }
   if (b.result) { G.animating = false; setTimeout(() => whenCombatFree(endBattle, b), quickBattlePresentation() ? 0 : G.autoCombat ? 100 : 300); return; }
+  const gap = battleActionGap();
+  if (gap > 0) setTimeout(() => advanceAfterPresentation(b), gap);
+  else advanceAfterPresentation(b);
+}
+
+// 演出そのものを伸ばさず、一手の終了後だけ間を置く。古い戦闘の予約は破棄する。
+function advanceAfterPresentation(b) {
+  if (G.battle !== b || G.state !== "combat") return;
   if (!serverBattle()) b._acted = false;
   // ターンの初めのパッシブ・激昂などで掛かった強化・弱体は、1拍ずつ見せてから次の手番へ
   const watch = beginModWatch(true);

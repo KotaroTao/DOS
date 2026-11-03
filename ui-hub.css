@@ -925,3 +925,9 @@
   line-break: strict;
 }
 .sc-line { min-width: 0; max-width: 100%; text-wrap: pretty; }
+
+/* 行動間隔は長い項目名と説明をスマートフォンでも横幅いっぱいに使う。 */
+.stg-battle-gap { grid-template-columns: minmax(0, 1fr) auto; padding-top: 10px; padding-bottom: 10px; }
+.stg-battle-gap .stg-vol-v { grid-column: 2; white-space: nowrap; }
+.stg-battle-gap .stg-range { grid-column: 1 / -1; grid-row: 2; }
+.stg-battle-gap > .stg-row-d { grid-column: 1 / -1; grid-row: 3; }
