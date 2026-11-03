@@ -1,0 +1,113 @@
+{
+  "batch": "batch04",
+  "scenes": [
+    {
+      "id": "report_w36",
+      "master": "art/story-review/chapter9/report_w36.png",
+      "beforeSha256": "b42c681572823bb429c1ebcb6d1806af13fc5c23bca1048c3ef7165dbc82fb60",
+      "afterSha256": "d1a0a2285222c96a6f490ca440bb6b4e21757d73d8cfeeb120eea69aede3db05",
+      "size": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "id": "report_w37",
+      "master": "art/story-review/chapter9/report_w37.png",
+      "beforeSha256": "87b9202d29499b95c55b0391ec56cc56d028b373df45baf98845d0857c48c8da",
+      "afterSha256": "a696109e5bbbb3f528397b546eb23f8d99062a04335f8ed8bac4459d5bd2c4c4",
+      "size": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "id": "report_w38",
+      "master": "art/story-review/chapter10/report_w38.png",
+      "beforeSha256": "fafb72445908e38e7283c8a0880d8dd6f972e2b7ba3e292738b05ff1af0668f2",
+      "afterSha256": "aaf03e0a85088d537c4d2f586cdfd992abce96ae481e7397d3f8197f9d8164e8",
+      "size": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "id": "report_w39",
+      "master": "art/story-review/chapter10/report_w39.png",
+      "beforeSha256": "a16df0b66e88d31047e4520598e9a92a2c693b135758f35ff5649ad7070183d3",
+      "afterSha256": "3b168d3b8c7ffccc10c52b6febd9b34b5e4dfb7bff9b344a6f85c33fd8065e71",
+      "size": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "id": "report_w40",
+      "master": "art/story-review/chapter10/report_w40.png",
+      "beforeSha256": "5c708c660848ac594c9dd865df4ae1af942116c90cd88ca9f6da55617c10ea5e",
+      "afterSha256": "820665f95a5a82cc09c60e5995ca6fb460bd672f0a644d1955ca3b7ae4e7ea7e",
+      "size": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "id": "report_w42",
+      "master": "art/story-review/chapter11/report_w42.png",
+      "beforeSha256": "96c695cbff663558d3194529579ea41d6eb690c4748c119be7c3a25a392a3157",
+      "afterSha256": "023cf5dfca6ecbc74dce595f46e15bc398372b0b055edf19a4e5a99823e38683",
+      "size": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "id": "report_w43",
+      "master": "art/story-review/chapter11/report_w43.png",
+      "beforeSha256": "850698f54351553fb371138b58ea243f3d2dec1be6c1e1e89626fdf3b9c098cd",
+      "afterSha256": "925f6d5562c99bd06497ec0e5b32a384a479581c5002586e3beae3006028eaa9",
+      "size": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "id": "report_w44",
+      "master": "art/story-review/chapter11/report_w44.png",
+      "beforeSha256": "d38b6dcedd730ea3d318f9dba375d6da624d0a0888d40b64c3c877041944e4fc",
+      "afterSha256": "5af30e4db8f14e4d5ec5dbd04bbff562888538a5a596ed4533fb358362494758",
+      "size": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "id": "report_w45",
+      "master": "art/story-review/chapter11/report_w45.png",
+      "beforeSha256": "43973f5690e0e0721f4f8ebc5564229092d526151c46b3eafad0f67fced3064c",
+      "afterSha256": "06f9bbde7c12c04257cf495f6f88e6909ff479c18eba9f17620b9de49c9cb011",
+      "size": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "id": "report_w46",
+      "master": "art/story-review/chapter12/report_w46.png",
+      "beforeSha256": "196f76550a8947ea983aeee44df00a5aef8d2945647c3578be6d08474da82242",
+      "afterSha256": "aa523fa1da025d5e62b7919d41bf403fabfa1dbe7b2ebe2107f4878414f0de0f",
+      "size": [
+        1536,
+        1024
+      ]
+    }
+  ],
+  "keptOriginalsUnchanged": {
+    "arrival": "94a3292b9b681bf3830dd8bede376046afd41788d74e0fbe7859fa26cc9337fc",
+    "report_w09": "9d0dd52517569a0b3dfbc28b4d2bbbeb1843da260960ab639230e2c12abc2d6d",
+    "report_w20": "0f4f9a4f9e58ea5edd465932e30e1e77736bd0113327e0e4b4d4dbc36ef43f0e",
+    "report_w33": "96313a92f11462f886061b2cff083363b223d9e1753b67ba8a7c010927de4365",
+    "report_w41": "b2e63e8fffa7431f5b8731ba24d811b10da526aa0cb060fb0302e1fc4879dd7d",
+    "report_w52": "98e24be6603d8d28e602f21f11487f8832e8789ef3319c5c18e1fca330f82c34"
+  }
+}

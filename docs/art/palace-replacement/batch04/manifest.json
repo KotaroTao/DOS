@@ -1,0 +1,99 @@
+[
+  {
+    "id": "report_w36",
+    "master": "art/story-review/chapter9/report_w36.png",
+    "subject": "巨大な階段席を見上げる空の狭い空間",
+    "prompt": "Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge, no panels, no borders, no labels, no typography, no readable text. Match the attached Dungeon of Souls artwork exactly: lavish high-quality fine-grained pixel-textured dark fantasy illustration, sophisticated natural proportions, meticulous gothic carved stone, black iron, rich controlled cool cyan shadows against warm amber light. NEW COMPOSITION for report_w36: camera lies almost on the floor INSIDE a tiny abandoned child's sleeping nook underneath an immense ancient arena's stone stepped spectator stands, looking outward. In the foreground a threadbare child's blanket and small worn wooden toy lie untouched on rough stone. Above, immense tiers of stone climb diagonally like a mountain; distant unmoving ghostly spectators are only faint silhouettes far above, not near the nook. Bright blue daylight through distant openings after the storm has ended. No apprentice, no king, no palace, no foreground human. Tender traces of exploited child's life beneath the indifferent gigantic architecture. Do not copy the attached reference composition (it shows the apprentice discovering the nook); this is a separate reflective scene concentrating on the tiny bed versus crushing scale. No readable writing or prominent crest. Save the final PNG in the execution workspace if supported.",
+    "refs": [
+      "art/story-review/chapter9/w36_nook.png"
+    ],
+    "revisionPrompts": [
+      "Remove the hanging lit lantern, hanging chain and wall bracket completely from the upper-right wall. Replace with bare ancient dark stone wall seamlessly. This is an abandoned ruin with no lit hanging lights and no inhabitants, so use natural reflected warm late afternoon daylight to illuminate the blanket and toys. Preserve everything else exactly including the small bed, toy, architecture, detailed style, blue sky and 1536x1024 landscape. No new objects.",
+      "Edit this image to prevent revealing an optional undiscovered clue. Completely REMOVE the child's blanket/bed, ALL toys including the wooden horse and ball, the wooden chest, rope and any domestic possessions from the lower right and foreground. Replace that entire area with bare abandoned rough stone floor, dust and small fallen stone fragments ONLY. Preserve the monumental stone stepped spectator stands seen from the very low cramped space underneath them, the immense scale, bright blue daylight and natural warm reflected afternoon light, intricate gothic stone texture and 1536x1024 landscape composition. No person, no bedding, no possessions, no lamp, no lit hanging light, no writing or symbol. The subject is now the enormous EMPTY arena seating viewed from its narrow anonymous underside, suggesting the separation between people above and unseen space below without revealing a child's hidden bed."
+    ],
+    "revisionPrompt": "Edit this image to prevent revealing an optional undiscovered clue. Completely REMOVE the child's blanket/bed, ALL toys including the wooden horse and ball, the wooden chest, rope and any domestic possessions from the lower right and foreground. Replace that entire area with bare abandoned rough stone floor, dust and small fallen stone fragments ONLY. Preserve the monumental stone stepped spectator stands seen from the very low cramped space underneath them, the immense scale, bright blue daylight and natural warm reflected afternoon light, intricate gothic stone texture and 1536x1024 landscape composition. No person, no bedding, no possessions, no lamp, no lit hanging light, no writing or symbol. The subject is now the enormous EMPTY arena seating viewed from its narrow anonymous underside, suggesting the separation between people above and unseen space below without revealing a child's hidden bed."
+  },
+  {
+    "id": "report_w37",
+    "master": "art/story-review/chapter9/report_w37.png",
+    "subject": "終わった試合の砂と夕空",
+    "prompt": "Create ONE standalone landscape illustration exactly 1536x1024 PNG, 3:2 edge-to-edge, no panels, border, typography or readable text. Match the supplied Dungeon of Souls reference's lavish fine-grained pixel-textured dark fantasy illustration, intricately carved gothic stone, black iron and old brass, sophisticated believable proportions, tiny crisp highlights, controlled cyan shadows and warm amber light. Keep the focal subject readable at 384x256. This is a new illustration of a scene narrated in a report, not a king's audience or palace. Do not copy the attached composition. report_w37: The match is finally over after centuries. Ground-level wide-angle view across an utterly EMPTY ancient arena's pale sand. A broken rusted weapon half buried at lower left, long undisturbed footprint trails fading into the sand, immense vacant ruined spectator stands curving away on both sides, and a large peaceful bright amber sunset sky through the open top. No spectators, no king, no flames, no torches, no hanging lamps, no fighters, no fresh blood, no corpses. A distant arch leads toward the dark hole below, but the centre is quiet open sand, vast restful negative space. The silence after endless violence. The reference depicts the historical fire and fleeing child: do NOT reproduce that past event; depict the peaceful present ruin long after its destruction.",
+    "refs": [
+      "art/story-review/chapter9/mem_w37.png"
+    ]
+  },
+  {
+    "id": "report_w38",
+    "master": "art/story-review/chapter10/report_w38.png",
+    "subject": "灯籠の山の一つの磨き跡",
+    "prompt": "Create ONE standalone landscape illustration exactly 1536x1024 PNG, 3:2 edge-to-edge, no panels, border, typography or readable text. Match the supplied Dungeon of Souls reference's lavish fine-grained pixel-textured dark fantasy illustration, intricately carved gothic stone, black iron and old brass, sophisticated believable proportions, tiny crisp highlights, controlled cyan shadows and warm amber light. Keep the focal subject readable at 384x256. This is a new illustration of a scene narrated in a report, not a king's audience or palace. Do not copy the attached composition. report_w38: In a vast buried cavern are mountains of ancient discarded blackened brass-and-iron soul lanterns. Camera is extremely close among them, a near-macro still-life at lantern height. In the central foreground ONE lantern has a small carefully polished patch on the glass and frame, catching a delicate pale blue soul-light; around it countless neglected blackened lanterns recede out of focus into deep darkness. No human, no apprentice, no hand, no readable note, no sunlight hole from surface, no palace, no decorative burning torch. The small polished patch, not a fully restored brilliant lantern, carries the tenderness of somebody trying even though the soul cannot remember its name. Different composition from the attached discovery scene which shows apprentice holding the lantern.",
+    "refs": [
+      "art/story-review/chapter10/w38_lamp.png"
+    ]
+  },
+  {
+    "id": "report_w39",
+    "master": "art/story-review/chapter10/report_w39.png",
+    "subject": "黒い湖にだけ映る灯",
+    "prompt": "Create ONE standalone landscape illustration exactly 1536x1024 PNG, 3:2 edge-to-edge, no panels, border, typography or readable text. Match the supplied Dungeon of Souls reference's lavish fine-grained pixel-textured dark fantasy illustration, intricately carved gothic stone, black iron and old brass, sophisticated believable proportions, tiny crisp highlights, controlled cyan shadows and warm amber light. Keep the focal subject readable at 384x256. This is a new illustration of a scene narrated in a report, not a king's audience or palace. Do not copy the attached composition. report_w39: An uncanny black underground lake fills almost the whole composition, viewed at water-surface level. On its mirror-still surface are dozens of tiny warm golden soul-light reflections, scattered like a drowned constellation, yet the cave wall above them is entirely dark and there are NO corresponding lights, lanterns or flames on the bank. Closest black water holds one delicate wavering golden reflection, a wet dark rock frames the lower edge, distant stalactites barely visible in cool cyan darkness. No people, no palace, no tags, no lettering, no broad daylight beams. The impossible mismatched reflections are the narrative subject. Preserve dark cavern material and soul-light colour from reference, but omit all people and physical lamps.",
+    "refs": [
+      "art/story-review/chapter10/w39_tags.png"
+    ]
+  },
+  {
+    "id": "report_w40",
+    "master": "art/story-review/chapter10/report_w40.png",
+    "subject": "誰とも特定できない墓守の仕事の跡",
+    "prompt": "Create ONE standalone landscape illustration exactly 1536x1024 PNG, 3:2 edge-to-edge, no panels, border, typography or readable text. Match the supplied Dungeon of Souls reference's lavish fine-grained pixel-textured dark fantasy illustration, intricately carved gothic stone, black iron and old brass, sophisticated believable proportions, tiny crisp highlights, controlled cyan shadows and warm amber light. Keep the focal subject readable at 384x256. This is a new illustration of a scene narrated in a report, not a king's audience or palace. Do not copy the attached composition. report_w40: Vast subterranean cemetery carved into natural cavern walls, thousands of small arched burial niches with antique dark iron lanterns holding quiet pale gold soul-fires, names present only as illegible weathered scratches, never readable. Monumental wide shot looking steeply upward from across a stone walkway so the endless wall dwarfs one tiny distant figure: Morden, EXACTLY the tall black-purple ceremonial hat with gold band, long black-purple gold-embroidered robe over red inner robe from second reference, the same ageless gaunt pale man. He is a SMALL figure low right, shown in profile gently placing one lantern into a low niche, a gravekeeper doing humble daily work. No throne, king, apprentice, no visiting party. No portrait close-up; the scale of three hundred years of work is central. All light comes from resting souls in burial lanterns, no lit wall torches. Compassionate and quiet, not villainous.",
+    "refs": [
+      "art/story-review/chapter10/w40_eyes.png",
+      "docs/art/story-refs/morden.png"
+    ],
+    "revisionPrompt": "Edit this image for a story branch where the gravekeeper's identity is NOT YET KNOWN. Remove the purple-hatted Morden figure entirely and seamlessly restore the uninterrupted stone niche wall and walkway behind him. Keep the small wooden cart with a folded cleaning cloth and lanterns parked on the walkway as anonymous traces of the gravekeeper's patient daily work. Do not add any person, silhouette, identifiable hand, clothing, face or readable text. Preserve all of the monumental scale, thousands of niche soul-lanterns, subtle cyan and amber light, original style and 1536x1024 composition."
+  },
+  {
+    "id": "report_w42",
+    "master": "art/story-review/chapter11/report_w42.png",
+    "subject": "自分で働き休む人業たちの街角",
+    "prompt": "Create ONE standalone landscape illustration exactly 1536x1024 PNG, 3:2 edge-to-edge, no panels, border, typography or readable text. Match the supplied Dungeon of Souls reference's lavish fine-grained pixel-textured dark fantasy illustration, intricately carved gothic stone, black iron and old brass, sophisticated believable proportions, tiny crisp highlights, controlled cyan shadows and warm amber light. Keep the focal subject readable at 384x256. This is a new illustration of a scene narrated in a report, not a king's audience or palace. Do not copy the attached composition. report_w42: A close intimate street corner of the underground town where adult-sized articulated wooden dolls freely choose their own lives. Same natural wood blank smooth round faceless heads, black iron joint bands and simple clothing as reference, NO painted eyes or mouths. At the foreground table one doll in a blue work apron repairs a small wooden stool; another in simple ochre clothes sits back on a bench RESTING and listening to a third neighbour in a plain red shawl. Farther behind, an inhabitant carries a basket toward a workshop while another waters a small pot. Friendly relaxed natural gestures, no master, no humans, no apprentice, no king, no royal symbols, no armed guards. Stone and wooden homes beneath high cavern ceiling hung with warm golden lanterns, genuine welcoming everyday happiness, no sinister undertone. Camera at table height within the neighbourhood, NOT panoramic arrival shot from stairs, no enormous floor emblem. Sophisticated adult proportions.",
+    "refs": [
+      "art/story-review/chapter11/w42_dawn.png"
+    ]
+  },
+  {
+    "id": "report_w43",
+    "master": "art/story-review/chapter11/report_w43.png",
+    "subject": "今日の瓶を満たす一滴",
+    "prompt": "Create ONE standalone landscape illustration exactly 1536x1024 PNG, 3:2 edge-to-edge, no panels, border, typography or readable text. Match the supplied Dungeon of Souls reference's lavish fine-grained pixel-textured dark fantasy illustration, intricately carved gothic stone, black iron and old brass, sophisticated believable proportions, tiny crisp highlights, controlled cyan shadows and warm amber light. Keep the focal subject readable at 384x256. This is a new illustration of a scene narrated in a report, not a king's audience or palace. Do not copy the attached composition. report_w43: A single luminous droplet of soul-rain is suspended just above the open mouth of a plain thick glass collecting jar, the delicate impact ripple visible in water already inside. Extreme low macro viewpoint at jar-rim height. Behind it, a line of empty and partly filled glass jars beneath dripping Gothic library stone arches recedes softly into cool darkness. Tiny pale blue souls swirl gently inside the rainwater, not sinister. A few well-worn books visible high in soft background but no readable text or note, no tally board. The droplet and glass rim occupy the central focal band, rendering humble daily care for the souls. No apprentice, no king, no hands, no palace. Match jars and library material from reference, radically new close-up instead of discovery scene.",
+    "refs": [
+      "art/story-review/chapter11/w43_jars.png"
+    ]
+  },
+  {
+    "id": "report_w44",
+    "master": "art/story-review/chapter11/report_w44.png",
+    "subject": "冷えた工房のただ一つの火",
+    "prompt": "Create ONE standalone landscape illustration exactly 1536x1024 PNG, 3:2 edge-to-edge, no panels, border, typography or readable text. Match the supplied Dungeon of Souls reference's lavish fine-grained pixel-textured dark fantasy illustration, intricately carved gothic stone, black iron and old brass, sophisticated believable proportions, tiny crisp highlights, controlled cyan shadows and warm amber light. Keep the focal subject readable at 384x256. This is a new illustration of a scene narrated in a report, not a king's audience or palace. Do not copy the attached composition. report_w44: In the sleeping-lantern glassblowing workshop, a long row of massive stone furnaces is cold, dark and unused; only ONE small furnace contains a modest orange fire. View from INSIDE a neighbouring cold black furnace outward across its rough iron grate, so a dark curved foreground frames the tiny living heat across the workshop. On a simple workbench next to the one active furnace stands a single freshly made clear glass soul vessel, its edge catching orange light, no soul yet inside. Long glassblowing pipe and tongs laid neatly nearby, shelving of empty vessels in cool darkness. No humans, no apprentice, no king, no crowd, no multiple burning fires, no books or readable writing. Quiet hope and uncertainty. This illustrates the one flame and one vessel rather than the apprentice reading instructions in reference.",
+    "refs": [
+      "art/story-review/chapter11/w44_glass.png"
+    ]
+  },
+  {
+    "id": "report_w45",
+    "master": "art/story-review/chapter11/report_w45.png",
+    "subject": "終わりの頁を持たず読み続ける司書",
+    "prompt": "Create ONE standalone landscape illustration exactly 1536x1024 PNG, 3:2 edge-to-edge, no panels, border, typography or readable text. Match the supplied Dungeon of Souls reference's lavish fine-grained pixel-textured dark fantasy illustration, intricately carved gothic stone, black iron and old brass, sophisticated believable proportions, tiny crisp highlights, controlled cyan shadows and warm amber light. Keep the focal subject readable at 384x256. This is a new illustration of a scene narrated in a report, not a king's audience or palace. Do not copy the attached composition. report_w45: The ancient librarian from the attached reference (the frail bald grey-haired elderly male on the LEFT, not Ordo on the right) sits ALONE at a desk amid towering dense walls of books in the underground great library, still longing to read after countless returns. New intimate composition from behind his shoulder looking down toward his stooped bowed head and thin hand lovingly turning a worn page. His old brown-black robe and pallid weathered face partly hidden in shadow, face indistinct, never monstrous or villainous. At the near corner of the desk a cloudy glass soul lantern gives a subdued pale golden glow through opaque soot, modest warm illumination onto page, cyan depth behind. Books stack irregularly around him like a lifetime, no readable text, no visible Ordo, no apprentice, no battle, no palace, no throne. Quiet desire to keep reading and deep fatigue coexist. No grand magical explosion or ghost double.",
+    "refs": [
+      "art/story-review/chapter11/mem_w45.png"
+    ]
+  },
+  {
+    "id": "report_w46",
+    "master": "art/story-review/chapter12/report_w46.png",
+    "subject": "町の眠りを守る廟の閂",
+    "prompt": "Create ONE standalone landscape illustration exactly 1536x1024 PNG, 3:2 edge-to-edge, no panels, border, typography or readable text. Match the supplied Dungeon of Souls reference's lavish fine-grained pixel-textured dark fantasy illustration, intricately carved gothic stone, black iron and old brass, sophisticated believable proportions, tiny crisp highlights, controlled cyan shadows and warm amber light. Keep the focal subject readable at 384x256. This is a new illustration of a scene narrated in a report, not a king's audience or palace. Do not copy the attached composition. report_w46: The barred gate of the underground royal tomb, seen from the TOWN SIDE as a protective boundary. Very low symmetrical viewpoint near the threshold with massive black iron-and-carved-wood double doors filling most of the picture, an unmistakable heavy horizontal wooden BAR seated firmly across both doors in iron brackets, weathered carved funerary stone surrounds; all ornament abstract or unreadable, absolutely no legible inscription. A very small glimpse at far left foreground of warm lived-in town light behind the camera contrasts with the cool black sealed threshold. No apprentice, no ghosts crossing, no king, no throne, no palace hall, no gratuitous skulls, no hanging burning lights in the tomb. The subject is the closed bar protecting the town's peaceful rest from what lies beyond, not the discovery note from reference. Quiet solemn gothic craftsmanship, a boundary deserving respect.",
+    "refs": [
+      "art/story-review/chapter12/w46_bar.png"
+    ]
+  }
+]
