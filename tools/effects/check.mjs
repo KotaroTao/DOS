@@ -95,3 +95,11 @@ for(const [family,counts,top]of [['fireball',[9,4,3],['SPELLBLADE_ENTEI','ARCTHI
  }
 }
 console.log(`${Object.keys(SPELLS).length}技 / ${new Set(Object.values(SKILL_FX_CATALOG).map(d=>d.family)).size}系統 / ${Object.keys(SKILL_FX_SIGNATURES).length}看板: 割当・全体/単体・不発・複合作用点・上限・軽量化・乱数不変・音声を確認`);
+
+// 少数の系統は実在する習得段階だけを使い、弱体の最上位を明示する。
+assert.equal(SKILL_FX_CATALOG.MANAGIFT.tier,2);
+assert.equal(SKILL_FX_CATALOG.INQUISITOR_MANAZASHI.tier,3);
+assert.deepEqual([...new Set(Object.values(SKILL_FX_CATALOG).filter(d=>d.family==='charge').map(d=>d.tier))].sort(),[1,2]);
+for(const f of ['empower','weaken','dispel','seal','poison','illusion','sleep']){
+ assert.deepEqual([...new Set(Object.values(SKILL_FX_CATALOG).filter(d=>d.family===f).map(d=>d.tier))].sort(),[1,2,3],f);
+}
