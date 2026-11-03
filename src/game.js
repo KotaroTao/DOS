@@ -11799,7 +11799,7 @@ function applyImpact(res) {
   if (prof?.family) emitSkillFx(fx.skill,res.spellKey,effectSpell,prof.family === "escape" && res.fled ? [{target:res.actor}] : res.hits,target=>{
     const pos=target.side==="enemy"?G.enemyPos[target.uid]:{cx:partyFxX(target),cy:VH-30};
     return pos?{x:pos.cx,y:pos.cy}:null;
-  },now,spd,{design:prof,auto:!!G.autoCombat,fast:!!G.fastAnim,source:res.actor?{x:partyFxX(res.actor),y:VH-30}:null});
+  },now,spd,{design:prof,auto:!!G.autoCombat,fast:!!G.fastAnim,source:res.actor?.side==="enemy"?(G.enemyPos[res.actor.uid]?{x:G.enemyPos[res.actor.uid].cx,y:G.enemyPos[res.actor.uid].cy}:null):res.actor?{x:partyFxX(res.actor),y:VH-30}:null});
   const skillSlots=new Map(),targetSlots=new Map();let scatterSlot=0;
   if(prof?.family&&comboCount>1)for(const hit of res.hits){
     if(!hit.target||!(hit.dmg!=null||hit.miss||hit.immune))continue;
