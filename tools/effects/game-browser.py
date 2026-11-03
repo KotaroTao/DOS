@@ -73,8 +73,8 @@ async def main():
             # 表示の途中で古い430msの片付けや次の行動に切り替わらない。
             remaining=await page.evaluate('(d)=>Math.max(0,fxSeen.t0+d*.7-performance.now())',duration)
             await page.wait_for_timeout(remaining)
-            if await page.evaluate('performance.now()<fxSeen.t0+fxSeen.dur-20'):
-                assert await page.evaluate('__game.G.animating && __game.G.fx?.skill.some(e=>e.type==="skillScene")')
+            # 残り時間と状態を同じJS評価で読む。別の通信の間に短い演出が終わる競合を避ける。
+            assert await page.evaluate('performance.now()>=fxSeen.t0+fxSeen.dur-20 || (__game.G.animating && __game.G.fx?.skill.some(e=>e.type==="skillScene"))')
             await page.wait_for_function('!__game.G.animating && __game.G.battle.phase==="input"')
             assert await page.evaluate('performance.now()-fxSeen.t0>=fxSeen.dur-20'),'火柱の終了前に次の手番へ進んだ'
             assert len(sent)==1
