@@ -114,3 +114,11 @@ for(const [key,variant] of Object.entries(CLEAVE_TOP)){
  assert.equal(SKILL_FX_CATALOG[key].family,'cleave');assert.equal(SKILL_FX_CATALOG[key].tier,3);assert.equal(SKILL_FX_CATALOG[key].variant,variant);
 }
 for(const [key,sp] of Object.entries(SPELLS))if(SKILL_FX_CATALOG[key].family==='cleave'&&sp.element)assert.equal(previewSkillFx(key)[0].col,CLEAVE_COLORS[sp.element],key);
+
+// 六系統は看板指定に左右されず、実際の習得段階の描画を選ぶ。
+const utilityFamilies=new Set(['gravity','doom','drain','steal','escape','survey']);
+for(const [key,design]of Object.entries(SKILL_FX_CATALOG))if(utilityFamilies.has(design.family)){
+ const levels=Object.values(JOB_SKILLS).flat().filter(row=>row.skill===key).map(row=>row.lvl);
+ const level=levels.length?Math.min(...levels):1;
+ assert.equal(design.tier,level>=100?3:level>=30?2:1,key);
+}

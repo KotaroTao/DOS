@@ -55,6 +55,8 @@ function effectTier(key,s){
  if(f==='firePillar')return fireRanks[key]||1;
  if(f==='fireball')return fireballRanks[key]||1;
  if(f==='blast')return blastRanks[key]||1;
+ // 補助の六系統は看板技の指定で昇格させず、実際の習得段階に合わせる。
+ if(['gravity','doom','drain','steal','escape','survey'].includes(family(key,s)))return (level.get(key)??1)>=100?3:(level.get(key)??1)>=30?2:1;
  return signatures.has(key)?3:(level.get(key)??1)>=100?3:(level.get(key)??1)>=30?2:1;
 }
 const groups=new Map();
