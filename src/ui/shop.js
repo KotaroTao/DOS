@@ -463,10 +463,14 @@ export function shopBuy(id, who, { equip = false } = {}) {
 // 先に買い物を済ませた記録でも、手ほどきで操作不能にしない。
 function tutorialPurchaseBlock() {
   if (!defaultBuyer()) return "袋がいっぱいだ。品を整理してから、また見に来てくれ。";
-  const rec = recList();
-  if (!rec.length) return "今の装備に勝る品は、もう棚にないようだ。次の装備は迷宮で探してくれ。";
-  if (!rec.some(({ id }) => game.buyPrice(ITEMS[id]) <= (G().gold || 0))) return "今の金貨で買えるおすすめはないようだ。金貨を持ち帰ったら、また見に来てくれ。";
-  return null;
+  let found = false;
+  for (const id of stockIds()) for (const { item } of stockVariants(id)) {
+    if (!isEquippable(item) || buyerPlan(item).score <= 0) continue;
+    found = true;
+    if (game.buyPrice(ITEMS[id]) <= (G().gold || 0)) return null;
+  }
+  if (!found) return "今の装備に勝る品は、もう棚にないようだ。次の装備は迷宮で探してくれ。";
+  return "今の金貨で買えるおすすめはないようだ。金貨を持ち帰ったら、また見に来てくれ。";
 }
 
 // 棚の並び順: 武器は種別順、ほかは分類順 → 安い順 → 名前
@@ -488,25 +492,48 @@ function stockVariants(id) {
   buyMemo?.variants.set(id, out);
   return out;
 }
-// おすすめ: 選択した人業に役立つ品だけ。通常品と追加つきの在庫を別々に見立てる。
-function recList() {
-  if (buyMemo?.recommendations) return buyMemo.recommendations;
-  const out = [];
-  for (const id of stockIds()) {
-    const variants = stockVariants(id).map(x => x.item);
-    const plans = variants.filter(isEquippable).map(buyerPlan).filter(p => p.target && p.delta && p.score > 0);
-    plans.sort((a, b) => b.score - a.score);
-    if (plans.length) out.push({ id, plan: plans[0] });
-  }
-  out.sort((a, b) => b.plan.score - a.plan.score);
-  if (buyMemo) buyMemo.recommendations = out;
-  return out;
-}
+// おすすめ以外の分類では全在庫の装備比較を行わない。
 function stockEntries(cat, wcat) {
-  return listFor(cat, wcat).flatMap(stockVariants).filter(x => cat !== "rec" || buyerPlan(x.item).score > 0);
+  return listFor(cat, wcat).flatMap(stockVariants);
+}
+// おすすめは短い処理に分けて入力・描画へ制御を返す。閉じた画面の仕事は打ち切る。
+function loadRecommendations(wrap) {
+  const epoch = renderEpoch, ids = stockIds(), results = [];
+  const memo = { plans: new Map(), variants: new Map() };
+  let index = 0;
+  const status = el("div", "wpc-empty wpc-recommendations-loading", "おすすめを確認中…");
+  status.setAttribute("role", "status");
+  wrap.appendChild(status);
+  const step = () => {
+    if (epoch !== renderEpoch || !wrap.closest("#town-screen") || G().state !== "town") return;
+    const previous = buyMemo;
+    buyMemo = memo;
+    try {
+      const start = performance.now();
+      do {
+        const id = ids[index++];
+        if (id) {
+          const variants = stockVariants(id);
+          let best = -Infinity;
+          const entries = variants.filter(x => {
+            if (!isEquippable(x.item)) return false;
+            const plan = buyerPlan(x.item);
+            if (!plan.target || !plan.delta || plan.score <= 0) return false;
+            best = Math.max(best, plan.score);
+            return true;
+          });
+          if (entries.length) results.push({ entries, score: best });
+        }
+      } while (index < ids.length && performance.now() - start < 4);
+      if (index < ids.length) { setTimeout(step, 0); return; }
+      results.sort((a, b) => b.score - a.score);
+      status.remove();
+      renderBuy(wrap, results.flatMap(x => x.entries))();
+    } finally { buyMemo = previous; }
+  };
+  setTimeout(step, 0);
 }
 function listFor(cat, wcat) {
-  if (cat === "rec") return recList().map((x) => x.id);
   const def = ITEM_CATS.find((c) => c.key === cat) || ITEM_CATS[0];
   return stockIds().filter((id) => {
     const it = ITEMS[id];
@@ -701,6 +728,7 @@ function fillBuyList(box, entries) {
   while (index < entries.length && box.scrollHeight < target + box.clientHeight + 300) append();
   box.scrollTop = target;
   box.onscroll = () => {
+    if (!box.isConnected) return;
     view.buyPage = box.scrollTop;
     if (index < entries.length && box.scrollHeight - box.scrollTop - box.clientHeight < 300) append();
   };
@@ -788,10 +816,11 @@ function renderSell(wrap) {
   };
 }
 
-function renderBuy(wrap) {
+function renderBuy(wrap, recommendations = null) {
   const cat = catOf();
+  if (cat === "rec" && recommendations === null) return () => loadRecommendations(wrap);
   const wcat = wcatOf();
-  const entries = stockEntries(cat, wcat);
+  const entries = recommendations || stockEntries(cat, wcat);
   const items = entries.map(x => x.item);
   const f = shopFilter();
   const shown = entries.filter(x => matchesGearFilter(x.item, f));
@@ -823,7 +852,7 @@ function renderBuy(wrap) {
     if (isDesktopLayout()) {
       box.classList.add("pc-shop-browser");
       box.appendChild(pcMasterDetail({
-        key: `shop:${cat}:${wcat}`, items: shown, label: "商品", getKey: x => `${x.id}:${!!x.affixed}`,
+        batchSize: 32, key: `shop:${cat}:${wcat}`, items: shown, label: "商品", getKey: x => `${x.id}:${!!x.affixed}`,
         searchText: x => itemName(x.item),
         summary: x => {
           const text = el("span", "pc-stock-summary");
@@ -898,8 +927,10 @@ function openWeaponKind() {
   return h;
 }
 
+let renderEpoch = 0;
 function render(root) {
-  const memo = buyMemo = { plans: new Map(), variants: new Map(), recommendations: null };
+  renderEpoch++;
+  const memo = buyMemo = { plans: new Map(), variants: new Map() };
   queueMicrotask(() => { if (buyMemo === memo) buyMemo = null; });
   upCache.clear(); // 描くたびに見立て直す (装備の付け替え直後でも正しく)
   const seg = segOf();
@@ -913,9 +944,8 @@ function render(root) {
     seg, (k) => { setPref("shopSeg", k); sfx("select"); rerender({ top: true }); },
   ));
   if (seg === "buy") {
-    const rec = stockEntries("rec", wcatOf()).filter(x => matchesGearFilter(x.item, shopFilter())).length;
     const cat = catOf();
-    const items = [{ key: "rec", label: "おすすめ", badge: rec || null }, ...ITEM_CATS.map((c) => ({ key: c.key, label: c.label }))];
+    const items = [{ key: "rec", label: "おすすめ" }, ...ITEM_CATS.map((c) => ({ key: c.key, label: c.label }))];
     const cc = chips(items, cat, (k) => { setPref("shopBuyCat", k); view.buyPage = 0; sfx("select"); rerender({ top: true }); });
     cc.classList.add("wpc-cats");
     bar.appendChild(cc);
