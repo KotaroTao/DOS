@@ -296,7 +296,7 @@ export const SFX = {
   // 打撃・命中とは別の準備音。音量設定・ミュートは通常の効果音と共通。
   prepare(kind = "strike") {
     if (document.hidden) return () => {};
-    const voice = sfx(naturalSkillName(kind,1,450), { jit: 0 });
+    const voice = sfx(naturalSkillName(kind,1,450,true), { jit: 0 });
     return ({ immediate = false } = {}) => { if (immediate || voice?.context?.state !== "running") voice?.stopImmediately?.(); else voice?.fadeOut?.(); };
   },
   select() { sfx("select"); },

@@ -534,16 +534,39 @@ for(const [name,def] of Object.entries({...SFX_DEFS}))if(/^(skill|normal(Slash|B
   }};
  }
 }
-// 技は空気・摩擦・破砕・水・炎の非周期な音だけで作る。音階や発振器は使わない。
-export function naturalSkillName(kind='magic',rank=1,duration=400){
+// 攻撃は空気・摩擦・破砕、救命は小さなガラスの共鳴を模す。電子的な発振音は使わない。
+export function naturalSkillName(kind='magic',rank=1,duration=400,preparation=false){
  const key=kind.replace(/[0-9]/g,'').toLowerCase();
  const group=/revive/.test(key)?'revive':/purify|cure|cleanse/.test(key)?'cleanse':/heal|restore/.test(key)?'restore':/mana|supply/.test(key)?'supply':/pierce|projectile/.test(key)?'pierce':/slash|cut|cleave|flurry|strike/.test(key)?'slash':/impact|stone|quake|blast/.test(key)?'impact':/ice|crystal/.test(key)?'crystal':/water|wave/.test(key)?'water':/fire/.test(key)?'fire':/lightning|spark|paralyze/.test(key)?'thunder':'air';
  const ms=Math.max(40,Math.min(1200,Math.round(duration))),level=Math.min(3,Math.max(1,rank));
- const name='natural_'+group+'_'+level+'_'+ms;
- if(SFX_DEFS[name])return name;
  const restorative=['restore','revive','cleanse','supply'].includes(group);
+ const name='natural_'+group+'_'+level+'_'+ms+(restorative&&preparation?'_prepare':'');
+ if(SFX_DEFS[name])return name;
  SFX_DEFS[name]={category:group,vars:2,vol:restorative?.32:group==='air'?.42:.6,rev:0,gen(r){
   const seconds=ms/1000,x=new Float32Array(len(seconds));
+  if(restorative&&!preparation){
+   // 一段に一つのきらめき。短い摩擦を不調和なガラスの共鳴へ通し、自然に減衰させる。
+   // 波形の引き伸ばしや電子音の音階ではなく、同じ音色のまとまりを1/2/3回置く。
+   const slot=seconds/level,base={restore:1850,revive:1480,cleanse:2350,supply:1680}[group];
+   for(let pulse=0;pulse<level;pulse++){
+    const at=pulse*slot,span=Math.min(seconds-at,slot*1.18),n=len(span),shine=new Float32Array(n);
+    for(const [ratio,gain] of [[1,1],[1.437,.6],[2.173,.3]]){
+     const grain=white(n,r),excite=Math.min(.045,slot*.22);
+     for(let i=0;i<n;i++){
+      const t=i/SR,p=t/excite;
+      grain[i]*=p<1?p*(1-p)*4:0;
+     }
+     applyBq(grain,'bp',base*ratio*(1+pulse*.065+(r()-.5)*.018),500+ratio*90,SR);
+     peakNorm(grain,.45*gain);mixInto(shine,grain,0);
+    }
+    for(let i=0;i<n;i++){
+     const t=i/SR,attack=Math.min(1,t/Math.min(.035,slot*.2));
+     shine[i]*=attack*attack*Math.exp(-t/(slot*.65))*Math.min(1,(n-i)/Math.max(1,len(slot*.16)));
+    }
+    mixInto(x,shine,len(at));
+   }
+   dcBlock(x);return mono(x);
+  }
   if(restorative){
    // 回復は柔らかい流れ、蘇生は立ち上がる息、治療は細かな洗い流し。衝突音を混ぜない。
    const bed=pink(x.length,r),detail=white(x.length,r);
