@@ -1,3 +1,5 @@
+import { drawCleave, CLEAVE_COLORS } from './cleave-fx.js';
+import { drawMysticFx, MYSTIC_FAMILIES } from './mystic-fx.js';
 import { drawThermalFx } from './thermal-fx.js';
 // 技の意味から組み立てる軽量Canvas演出。武器・人物は描かず、火柱だけ透過アトラスを使う。
 import { registerFx, FX, statusFxKind } from './battlefx.js';
@@ -8,6 +10,7 @@ const { r01, clamp01, easeOut, rgba, line, star4 } = FX, TAU = Math.PI*2;
 export const SKILL_FAMILIES = Object.freeze({cut:'斬撃',cleave:'なぎ払い',flurry:'連撃',impact:'重い打撃',pierce:'貫通',projectile:'射撃',fireball:'火球',firePillar:'火柱',blast:'爆発',ice:'氷の破片',wave:'水の波',gale:'風の流れ',lightning:'雷光',stone:'岩の隆起',quake:'地の衝撃',radiance:'聖光',void:'闇の収束',arcane:'魔力の波',heal:'回復',revive:'蘇生',purify:'治療',ward:'守り',mana:'魔力の譲渡',empower:'強化',charge:'力を溜める',weaken:'弱体',dispel:'解除',seal:'封印',paralyze:'麻痺',poison:'毒',illusion:'幻惑',sleep:'眠り',gravity:'重力',doom:'死の印',drain:'吸収',steal:'奪取',escape:'退避',survey:'探索'});
 const COLORS = {cut:'#daeaf4',cleave:'#daeaf4',flurry:'#daeaf4',impact:'#deb37a',pierce:'#e1eaff',projectile:'#c6e2ed',fireball:'#ff9b53',firePillar:'#ff9b53',blast:'#ffc786',ice:'#bceaff',wave:'#69c8ff',gale:'#91e5c1',lightning:'#f4e8ff',stone:'#d2b18a',quake:'#c6aa8b',radiance:'#ffe9aa',void:'#b999e5',heal:'#9be7bd',revive:'#f6e6b0',purify:'#b4edee',ward:'#b7d8f0',empower:'#f5d597',charge:'#e7c39b',poison:'#a8bd7a',drain:'#cf93bd',mana:'#92c9f8',gravity:'#ae92e8',doom:'#d68bae',steal:'#edce83',escape:'#9eaecb',survey:'#8cdae3',weaken:'#b49ad5',dispel:'#d6dff9',seal:'#cba5f1',illusion:'#d3a8df',sleep:'#aebcf1'};
 export function skillFxSound(family, tier = 1) {
+  if (MYSTIC_FAMILIES.includes(family)) return family+(tier>=3?'3':tier>=2?'2':'');
   if (['cut','cleave','flurry'].includes(family)) return 'slash';
   if (family==='fireball'||family==='blast')return family+(tier>=3?'3':tier>=2?'2':'');
   if (['impact','stone','quake'].includes(family)) return 'impact';
@@ -18,7 +21,7 @@ export function skillFxSound(family, tier = 1) {
   return family === 'firePillar' ? tier >= 3 ? 'firePillar3' : tier >= 2 ? 'firePillar2' : 'firePillar' : family === 'fireball' ? 'fire' : family === 'lightning' ? 'spark' : 'magic';
 }
 // 火柱・火球・爆発は格ごとの見せる時間を持つ。画質・動き低減では尺を変えない。
-export const extendedSkillFx=design=>['firePillar','fireball','blast'].includes(design?.family);
+export const extendedSkillFx=design=>['firePillar','fireball','blast',...MYSTIC_FAMILIES].includes(design?.family);
 export function skillFxDuration(design, spd=1, options={}){
  if(extendedSkillFx(design)){
   const base=[0,400,700,1200][design.tier]||400;
@@ -333,9 +336,11 @@ function drawCore(c,f,x,y,r,t,color,lite,reduced,e){
   supportScene(c,f,x,y,r,t,color,lite,reduced,e);
  }else if(['gravity','doom','drain','steal','escape','survey'].includes(f)){
   utilityCore(c,f,x,y,r,t,color,lite,reduced,e);
- }else if(['cut','cleave','flurry'].includes(f)){
-  const n=f==='flurry'?Math.min(lite?2:6,Math.max(1,e.hitCount)):f==='cleave'?2:1;
-  for(let i=0;i<n;i++) {const q=clamp01((t-i*.065)/(1-i*.065));if(!q)continue;trace(c,x+(i%2?4:-4),y+(i-n/2)*4,r*(f==='cleave'?1.3:1),q,color,i%2?.65:-.65,f==='cleave'?4:3);}
+ }else if(f==='cleave'){
+  c.save();c.translate(x,y);drawCleave(c,e,t,r,color,lite,reduced);c.restore();
+ }else if(['cut','flurry'].includes(f)){
+  const n=f==='flurry'?Math.min(lite?2:6,Math.max(1,e.hitCount)):1;
+  for(let i=0;i<n;i++) {const q=clamp01((t-i*.065)/(1-i*.065));if(!q)continue;trace(c,x+(i%2?4:-4),y+(i-n/2)*4,r,q,color,i%2?.65:-.65,3);}
  }else if(f==='impact'){
   star4(c,x,y,r*.45*(1-drift*.45),'#fff0d2',fade);ring(c,x,y,r*(.22+p*.5),color,fade,4*(1-t)+.5);
   for(let i=0;i<(lite?4:8);i++)ray(c,x,y,r*(.6+drift*.3),i*TAU/8,color,fade,2);
@@ -431,7 +436,9 @@ export function drawSkillScene(c,e,t,w,h,reduced){
  const x=e.x,y=e.y;
  c.save();
  const anchors=e.primaryPts||pts;
- if(f==='fireball'||f==='blast'){
+ if(MYSTIC_FAMILIES.includes(f)){
+  drawMysticFx(c,e,t,w,h,lite,reduced);
+ }else if(f==='fireball'||f==='blast'){
   drawThermalFx(c,e,t,w,h,lite,reduced);
  }else if(f==='firePillar' && e.design.tier===3){
   fireVortex(c,e,t,w,h,lite,reduced);
@@ -489,7 +496,7 @@ export function emitSkillFx(list,key,spell,hits,locate,now,spd=1,options={}){
  const all=['all-enemy','all-ally'].includes(spell.target),enemy=['enemy','all-enemy'].includes(spell.target);
  const primary=points.filter(p=>(p.side==='enemy')===enemy), anchors=primary.length?primary:[points[0]],xs=anchors.map(p=>p.x),ys=anchors.map(p=>p.y);
  const x=all?(Math.min(...xs)+Math.max(...xs))/2:anchors[0].x,y=all?ys.reduce((a,b)=>a+b,0)/anchors.length:anchors[0].y;
- list.unshift({type:'skillScene',design,source:options.source||null,hasDrain:!!(spell.drain||spell.mpDrain)&&(hits||[]).some(h=>h.lifesteal>0||h.mpHeal>0||h.heal>0),signature:SKILL_FX_SIGNATURES[key]||null,pts:points,primaryPts:anchors,col:['phys','atk'].includes(spell.kind)&&spell.element?({fire:'#ff4938',water:'#369dff',wind:'#79e4b2',earth:'#cfaa70',light:'#ffe6a0',dark:'#b68aeb'}[spell.element]||FX.elCol(spell.element)[1]):null,all,marks:true,x,y,w:Math.max(...xs)-Math.min(...xs)+80,t0:now,dur:skillFxDuration(design,spd,options),seed:17,hitCount});
+ list.unshift({type:'skillScene',design,source:options.source||null,hasDrain:!!(spell.drain||spell.mpDrain)&&(hits||[]).some(h=>h.lifesteal>0||h.mpHeal>0||h.heal>0),signature:SKILL_FX_SIGNATURES[key]||null,pts:points,primaryPts:anchors,col:['phys','atk'].includes(spell.kind)&&spell.element?(design.family==='cleave'?CLEAVE_COLORS[spell.element]:({fire:'#ff4938',water:'#369dff',wind:'#79e4b2',earth:'#cfaa70',light:'#ffe6a0',dark:'#b68aeb'}[spell.element]||FX.elCol(spell.element)[1])):null,all,marks:true,x,y,w:Math.max(...xs)-Math.min(...xs)+80,t0:now,dur:skillFxDuration(design,spd,options),seed:17,hitCount});
  if(list.length>FX_LIMITS.effects)list.length=FX_LIMITS.effects;
  return true;
 }
