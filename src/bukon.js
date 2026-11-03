@@ -63,8 +63,8 @@ export const LEGENDARY_MISC_KEYS=new Set([...special.map(d=>d[4]),...special.map
 export const bukonDef=id=>BUKON.find(d=>d.id===id);
 export const validBukon=b=>!!(b&&bukonDef(b.k)&&Number.isSafeInteger(b.lv)&&b.lv>=1&&(!bukonDef(b.k).max||b.lv<=bukonDef(b.k).max));
 export const bukonSlots=it=>BUKON_SLOTS[rarityKey(it)]||1;
-// ドロップ時はレアも一つ。装着できる枠数とは別に扱う。
-export const bukonDropCount=it=>({c:1,uc:1,r:1,sr:2,lr:3}[rarityKey(it)]||1);
+// ドロップ時はC/UCなし・R一つ・SR二つ・LR三つ。装着枠数とは別に扱う。
+export const bukonDropCount=it=>({c:0,uc:0,r:1,sr:2,lr:3}[rarityKey(it)]??1);
 export function bukonExact(b){const d=bukonDef(b?.k);return validBukon(b)?BigInt(Math.round(d.base*100))*BigInt(b.lv)/100n:0n;}
 const amount=b=>bukonDef(b.k).base*b.lv;
 // 一覧の名前と、詳細の効果説明は同じ値から作る。加算値は大きなLvでも丸めない。
