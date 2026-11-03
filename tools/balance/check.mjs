@@ -147,7 +147,7 @@ const samples=12000;
   try{return b._physical(a,t,{power:2,sureHit:true,skill:!magic,...opt}).dmg||0;}finally{Math.random=oldRandom;}
  };
  const base=fixedHit(0),critical=fixedHit(0,{critBonus:1});
- assert.equal(critical,Math.floor(base*1.85));
+ assert.equal(critical,Math.floor(base*1.5));
  assert.equal(fixedHit(75),Math.round(base*.25));
  assert.equal(fixedHit(75,{critBonus:1}),Math.round(critical*.25),'会心も75%軽減');
  assert.equal(fixedHit(75,{pierce:.5}),Math.round(base*.625),'物理貫通50%');

@@ -2598,21 +2598,21 @@ function statsSeg(root, d, { showStability = true } = {}) {
     const fact = (k, v, cls) => { const f = el("div", "pt-fact" + (cls ? " " + cls : "")); f.appendChild(el("span", "pt-fact-k", k)); f.appendChild(el("span", "pt-fact-v", v)); info.appendChild(f); };
     fact("HP", `${d.alive ? d.hp : 0}/${d.maxhp}`);
     fact("MP", `${d.mp}/${d.maxmp}`);
+    fact("状態", ail, ail === "正常" ? "" : "bad");
     fact("攻撃力", String(attackPower(d)));
     fact("魔力", String(magicAttackPower(d, "int")));
     fact("信仰", String(magicAttackPower(d, "pie")));
     if (d.dualWield > 0) fact("左手", d.offPower ? `攻撃力 ${d.offPower}（${Math.round(d.dualWield * 100)}%）` : `空き（二刀流 ${Math.round(d.dualWield * 100)}%）`);
-    fact("参照", d.wScale ? Object.keys(d.wScale).map(k => ATTR_LABEL[k]).join("＋") : "STR（素手）");
-    fact("状態", ail, ail === "正常" ? "" : "bad");
-    fact("会心補正", `+${Math.round((d.critPower ?? d.critBonus ?? 0) * 1000) / 10}%`, (d.critPower ?? d.critBonus ?? 0) >= 0.8 ? "cap" : "");
-    fact("会心ダメージ", `+${Math.round((d.critDamageBonus || 0) * 1000) / 10}%`);
-    fact("魔法会心補正", `+${Math.round((d.spellCritPower ?? d.spellCritBonus ?? 0) * 1000) / 10}%`, (d.spellCritPower ?? d.spellCritBonus ?? 0) >= 0.8 ? "cap" : "");
-    fact("魔法会心ダメージ", `+${Math.round((d.spellCritDamageBonus || 0) * 1000) / 10}%`);
-    fact("属攻", elemStatShort(d.elemAtk));
-    fact("属防", "", "pt-fact-elements");
-    const defenseValue = info.lastElementChild.querySelector(".pt-fact-v");
-    for (const text of elemStatShort(d.elemDef, { reductionOnly: true }).split(" / ")) {
-      defenseValue.appendChild(el("span", "pt-element-reduction", text));
+    fact("会心率", `+${Math.round((d.critPower ?? d.critBonus ?? 0) * 1000) / 10}%`, (d.critPower ?? d.critBonus ?? 0) >= 0.8 ? "cap" : "");
+    fact("会心ダメージ", `${Math.round(1.5 * (1 + (d.critDamageBonus || 0)) * 1000) / 1000}倍`);
+    fact("魔法会心率", `+${Math.round((d.spellCritPower ?? d.spellCritBonus ?? 0) * 1000) / 10}%`, (d.spellCritPower ?? d.spellCritBonus ?? 0) >= 0.8 ? "cap" : "");
+    fact("魔法会心ダメージ", `${Math.round(1.5 * (1 + (d.spellCritDamageBonus || 0)) * 1000) / 1000}倍`);
+    for (const [label, values, reductionOnly] of [["属攻", d.elemAtk, false], ["属防", d.elemDef, true]]) {
+      fact(label, "", "pt-fact-elements");
+      const value = info.lastElementChild.querySelector(".pt-fact-v");
+      for (const text of elemStatShort(values, { reductionOnly, allElements: true }).split(" / ")) {
+        value.appendChild(el("span", "pt-element-reduction", text));
+      }
     }
     // 装備の状態異常耐性 / 武器の追加効果 (持っている時だけ)
     const AIL_SHORT = { poison: "毒", paralyze: "痺", sleep: "眠", charm: "魅", confuse: "乱", stone: "石" };

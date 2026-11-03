@@ -53,7 +53,7 @@ export function equipmentCombatState(m, source=m) {
     guard:m.eff?.guard || 0,breath:m.breathRes || 0,physicalCrit,
     spellCrit:cap(spellCrit+arc+(m.spellCritBonus || 0)+(m.gearMisc?.sae ? .15 : 0),.8),
     critDamage:m.critDamageBonus || 0,spellCritDamage:m.spellCritDamageBonus || 0,
-    physicalCritMul:1.85*(1+(m.critDamageBonus || 0))*(1+([0,.2,.3,.4,.5][Math.min(4,passive.shadowHissatsu || 0)] || 0))*([1,1.25,1.45][Math.min(2,passive.vitalEye || 0)] || 1),
+    physicalCritMul:1.5*(1+(m.critDamageBonus || 0))*(1+([0,.2,.3,.4,.5][Math.min(4,passive.shadowHissatsu || 0)] || 0))*([1,1.25,1.45][Math.min(2,passive.vitalEye || 0)] || 1),
     spellCritMul:1.5*(1+(m.spellCritDamageBonus || 0))*(m.gearMisc?.sae?1.3:1),
     take:{phys:effect(m,'take','phys'),magic:effect(m,'take','spell'),breath:effect(m,'take','breath')},
     deal:{phys:effect(m,'deal','phys'),magic:effect(m,'deal','spell')},

@@ -20,7 +20,7 @@ for(const [key,values] of [['samuraiIchibun',[.1,.2,.3]],['samuraiNukimi',[.15,.
  near(b._physicalCritMul(a,{tgt:t,on:['spell']}),1+gear);
  if(key==='samuraiNukimi'){b._roundNo=2;near(b._physicalCritMul(a,{tgt:t,on:['phys']}),1+gear);}
  if(key==='shadowIchishi'){t.hp=t.maxhp*.89;near(b._physicalCritMul(a,{tgt:t,on:['phys']}),1+gear);t.hp=t.maxhp*.9;near(b._physicalCritMul(a,{tgt:t,on:['phys']}),1+gear+bonus);}
- if(key==='samuraiIchibun')near(b.peekStats(a).critMul,1.85*(1+gear+bonus));
+ if(key==='samuraiIchibun')near(b.peekStats(a).critMul,1.5*(1+gear+bonus));
 }
 for(const [key,values] of [['spellCrit',[.1,.2,.3]],['arcanistShinen',[.3,.6,1,1.5]]])for(let lv=1;lv<=values.length;lv++)for(const gear of [0,.5,2]){
  const {a,t,b}=fixture({[key]:lv},gear),base=fixture({},gear),bonus=values[lv-1],sp=SPELLS.SHADOWBOLT;
