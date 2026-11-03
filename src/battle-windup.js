@@ -39,11 +39,12 @@ export function beginBattleWindup({ party, index, view, label = "攻撃の構え
     const marker = add("windup-aim"); marker.style.left = `${Math.max(5, Math.min(95, aim.x * 100))}%`; marker.style.top = `${Math.max(10, Math.min(85, aim.y * 100))}%`;
     for (let i = 0; i < 4; i++) marker.appendChild(document.createElement("i"));
   }
-  // 名前は敵のCanvasに重ねず、操作欄の独立した行へ置く。
+  // 名前は敵のCanvasに重ねず、敵表示直下の固定枠へ置く。
   const name = document.createElement("div"); name.className = "battle-action-name";
   name.textContent = label; name.setAttribute("role", "status");
-  const dock = document.getElementById("controls") || view.parentElement;
-  dock.prepend(name);
+  const dock = document.getElementById("combat-message");
+  if (dock) dock.replaceChildren(name);
+  else view.parentElement.appendChild(name);
   const attack = attackStyle !== null, timing = normalAttackTiming(fast), started = performance.now();
   if (attack) {
     attackMotion(root, attackStyle, aim);
