@@ -641,6 +641,8 @@ export function setPartyHitBonus(v) { _partyHitBonus = Math.max(0, +v || 0); }
 let _partyAilBonus = {};
 export function setPartyAilBonus(m) { _partyAilBonus = { ...(m || {}) }; }
 export function setPartyBreathBonus(v) { _partyBreathBonus = Math.max(0, +v || 0); }
+// 作戦Workerに渡す、端末が既に開示した属性と手がかりの補正。
+export function autoEstimateContext(enemies){return {element:enemies.filter(e=>!_elemKnown||_elemKnown(e)).map(e=>e.uid),hit:_partyHitBonus,evade:_partyEvadeBonus,breath:_partyBreathBonus,ail:{..._partyAilBonus}};}
 export function partyBreathRes(t) { return Math.min(BREATH_RES_CAP, (t.breathRes || 0) + (t.side === "party" ? _partyBreathBonus : 0)); }
 // 極「慧眼の」の持ち主 (a) は、図鑑で明かしていない敵の属性も見積もりに使う
 const elemSeen = (t, a) => !(t && t.side === "enemy" && _elemKnown && !_elemKnown(t)) || bkInsight(a);

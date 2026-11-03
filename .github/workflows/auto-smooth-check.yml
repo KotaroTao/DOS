@@ -1,0 +1,49 @@
+name: オート戦闘の描画と作戦
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'tools/performance/auto-*'
+      - '.github/workflows/auto-smooth-check.yml'
+permissions:
+  contents: read
+jobs:
+  auto-smooth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/*/
+            /src/
+            /tools/
+            /art/effects/
+            /art/battle/w01.webp
+            /art/monsters/bs_bonepile.webp
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python3 -m pip install playwright
+      - name: 作戦と乱数・対象・表示の検査
+        env:
+          CHROME_BIN: /usr/bin/google-chrome
+        run: |
+          node tools/balance/auto-intelligence.mjs
+          node tools/balance/auto-resistance.mjs
+          node tools/performance/auto-frame-check.mjs
+          python3 -m http.server 8000 > /tmp/auto-http.log 2>&1 &
+          server=$!
+          trap 'kill "$server"' EXIT
+          python3 tools/performance/auto-worker-browser.py
+          AUTO_REPORT=/tmp/dos-auto-combat.json python3 tools/performance/auto-combat-browser.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: auto-combat-performance
+          path: /tmp/dos-auto-combat.json
