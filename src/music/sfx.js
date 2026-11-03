@@ -109,6 +109,23 @@ function firePillarSound(r,rank){
     dcBlock(x);softClip(x,1.25);return haas(x,8,.9);
 }
 
+// 火球は飛来から燃焼、爆発は破裂から低い圧力波へつなぐ。一手の主音は一つ。
+function thermalSound(r,rank,explosion){
+ const dur=(explosion?[0,.62,.94,1.3]:[0,.52,.82,1.2])[rank],x=new Float32Array(len(dur));
+ const at=explosion?.01:dur*.28;
+ if(!explosion)mixInto(x,whoosh(r,at+.08,650,3200,1200,1.1,at+.04),0,.45);
+ const noise=pink(len(dur-at),r);lp1(noise,explosion?1800:2400,SR);
+ for(let i=0;i<noise.length;i++)noise[i]*=Math.exp(-(i/SR)/(dur*.23))*Math.min(1,i/(SR*.006));
+ mixInto(x,noise,len(at),explosion?2.7:1.9);
+ mixInto(x,sweep(dur-at,t=>45+150*Math.exp(-t/.022),dur*.65),len(at),explosion?.72:.4);
+ const crack=burst(r,.045,.016);hp1(crack,1700,SR);mixInto(x,crack,len(at),explosion?.48:.23);
+ for(let k=1;k<rank;k++){
+  const offset=at+.065*k;mixInto(x,sweep(.32,t=>38+100*Math.exp(-t/.02),.28),len(offset),.42);
+  const pressure=burst(r,.16,.08);lp1(pressure,850,SR);mixInto(x,pressure,len(offset),.7);
+ }
+ dcBlock(x);softClip(x,1.2);return haas(x,explosion?11:7,.9);
+}
+
 export const SFX_DEFS = {
   // 構え: 引き抜く金属音と衣擦れ。静かな余韻は通知時に短く消せる。
   windupStrike: { vars: 1, vol: 0.36, rev: 0.14, gen(r) {
@@ -168,6 +185,12 @@ export const SFX_DEFS = {
   skillFirePillar: {vars:3,vol:.64,rev:.2,gen(r){return firePillarSound(r,1);}},
   skillFirePillar2: {vars:3,vol:.70,rev:.24,gen(r){return firePillarSound(r,2);}},
   skillFirePillar3: {vars:3,vol:.76,rev:.28,gen(r){return firePillarSound(r,3);}},
+  skillFireball: {vars:3,vol:0.54,rev:0.18,gen(r){return thermalSound(r,1,false);}},
+  skillFireball2: {vars:3,vol:0.62,rev:0.22,gen(r){return thermalSound(r,2,false);}},
+  skillFireball3: {vars:3,vol:0.70,rev:0.26,gen(r){return thermalSound(r,3,false);}},
+  skillBlast: {vars:3,vol:0.60,rev:0.18,gen(r){return thermalSound(r,1,true);}},
+  skillBlast2: {vars:3,vol:0.68,rev:0.22,gen(r){return thermalSound(r,2,true);}},
+  skillBlast3: {vars:3,vol:0.76,rev:0.26,gen(r){return thermalSound(r,3,true);}},
   skillSpark: {vars:2,vol:.45,rev:.08,gen(r){
     const x=new Float32Array(len(.18));mixInto(x,hp1(burst(r,.055,.022),2700,SR),0,.8);mixInto(x,modal(SR,.15,[[1100,1,.05],[2300,.3,.025]]),0,.35);return mono(x);
   }},

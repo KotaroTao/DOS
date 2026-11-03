@@ -18,7 +18,7 @@ for(const [key,sp]of Object.entries(SPELLS)){
  assert.ok(SKILL_FAMILIES[d.family],key);assert.ok(Object.isFrozen(d));assert.ok(d.tier>=1&&d.tier<=3);
  assert.equal(p.family,d.family);assert.equal(p.all,['all-enemy','all-ally'].includes(sp.target));
  assert.equal(scene.length,1,key);assert.equal(scene[0].type,'skillScene');assert.ok(scene[0].pts.length>=1&&scene[0].pts.length<=6);
- assert.ok(Number.isFinite(scene[0].x)&&Number.isFinite(scene[0].y)&&scene[0].dur===(d.family==='firePillar'?[0,400,700,1200][d.tier]:300),key);
+ assert.ok(Number.isFinite(scene[0].x)&&Number.isFinite(scene[0].y)&&scene[0].dur===(['firePillar','fireball','blast'].includes(d.family)?[0,400,700,1200][d.tier]:300),key);
  assert.equal(scene[0].all,p.all,key);
 }
 assert.deepEqual([...rngState()],before,'演出生成でゲーム用乱数を消費');
@@ -39,9 +39,9 @@ for(const name of ['skillRestore','skillWard','skillShade','skillFire','skillSpa
  const data=SFX_DEFS[name].gen(rng(123));assert.ok(data.ch[0].length<32000*.4);assert.ok(data.ch.every(ch=>ch.every(Number.isFinite)&&ch.some(x=>Math.abs(x)>.1)),name);
 }
 assert.equal(skillFxSound('firePillar'),'firePillar');
-assert.equal(skillFxSound('fireball'),'fire');
+assert.equal(skillFxSound('fireball'),'fireball');
 for(const [key,tier]of [['MAHALITO',1],['GOKUEN',2],['GOKUENRAN',3]])assert.equal(SKILL_FX_CATALOG[key].tier,tier);
-for(const [key,dur]of [['MAHALITO',400],['GOKUEN',700],['GOKUENRAN',1200]]){
+for(const [key,dur]of [['MAHALITO',400],['GOKUEN',700],['GOKUENRAN',1200],['HALITO',400],['BATTLEMAGE_GURENMASHOU',700],['SPELLBLADE_ENTEI',1200],['TILTOWAIT',400],['TENPENCHII',700],['KYOKUDAI',1200]]){
  const d=SKILL_FX_CATALOG[key];assert.equal(skillFxDuration(d),dur);
  assert.equal(skillFxDuration(d,2,{auto:true}),dur*.6);
  assert.equal(skillFxDuration(d,.1,{fast:true}),dur*.8);
@@ -55,7 +55,7 @@ for(const [key,dur]of [['MAHALITO',400],['GOKUEN',700],['GOKUENRAN',1200]]){
   assert.equal(effects.length,0,'不発の火柱には表示待ちを付けない');
  }
 }
-assert.equal(skillFxDuration({family:'fireball',tier:3},.1),220);
+assert.equal(skillFxDuration({family:'ice',tier:3},.1),220);
 const fireCounts=[0,0,0,0];
 for(const design of Object.values(SKILL_FX_CATALOG))if(design.family==='firePillar')fireCounts[design.tier]++;
 assert.deepEqual(fireCounts,[0,8,2,6]);
@@ -78,6 +78,20 @@ for(const [name,duration]of [['skillFirePillar',.68],['skillFirePillar2',.9],['s
   const energy=ch.slice(0,9600).reduce((n,v)=>n+v*v,0)/9600;
   const tail=ch.slice(-1600).reduce((n,v)=>n+v*v,0)/1600;
   assert.ok(energy>.004 && tail<energy*.05,'噴出と余韻の音量');
+ }
+}
+for(const [family,counts,top]of [['fireball',[9,4,3],['SPELLBLADE_ENTEI','ARCTHIEF_NUSUMIBI','ASCETIC_KASHOUZANMAI']],['blast',[6,2,3],['KYOKUDAI','BATTLEMAGE_TENPOU','ARCHMAGE_BANSHOU']]]){
+ const actual=[0,0,0];for(const d of Object.values(SKILL_FX_CATALOG))if(d.family===family)actual[d.tier-1]++;
+ assert.deepEqual(actual,counts);assert.ok(actual[0]>actual[1]&&actual[0]>actual[2]);
+ assert.deepEqual(new Set(Object.entries(SKILL_FX_CATALOG).filter(([k,d])=>d.family===family&&d.tier===3).map(([k])=>k)),new Set(top));
+ for(const key of top)for(const rows of Object.values(JOB_SKILLS).filter(rows=>rows.some(r=>r.skill===key))){
+  const lvl=rows.find(r=>r.skill===key).lvl,max=Math.max(...rows.filter(r=>SKILL_FX_CATALOG[r.skill]?.family===family).map(r=>r.lvl));
+  assert.equal(lvl,max,key);assert.ok(lvl>=(family==='blast'?200:160),key);
+ }
+ for(let rank=1;rank<=3;rank++){
+  const kind=family+(rank===1?'':rank),name=(family==='fireball'?'skillFireball':'skillBlast')+(rank===1?'':rank);
+  assert.equal(skillFxSound(family,rank),kind);
+  for(let seed=1;seed<=3;seed++)for(const ch of SFX_DEFS[name].gen(rng(seed)).ch){assert.ok(ch.every(Number.isFinite));assert.ok(ch.every(v=>Math.abs(v)<=.91));assert.ok(ch.some(v=>Math.abs(v)>.1));}
  }
 }
 console.log(`${Object.keys(SPELLS).length}技 / ${new Set(Object.values(SKILL_FX_CATALOG).map(d=>d.family)).size}系統 / ${Object.keys(SKILL_FX_SIGNATURES).length}看板: 割当・全体/単体・不発・複合作用点・上限・軽量化・乱数不変・音声を確認`);

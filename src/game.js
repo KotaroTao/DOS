@@ -1,5 +1,5 @@
 import { showFieldSkillFx } from "./skill-fx-field.js";
-import { emitSkillFx, skillFxSound } from "./skill-fx.js";
+import { emitSkillFx, skillFxSound, extendedSkillFx } from "./skill-fx.js";
 import { beginBattleWindup, normalAttackTiming } from "./battle-windup.js";
 import { createTrial } from "./choice-trial.js";
 import { battleCommand } from "./cloud-battle.js";
@@ -1867,7 +1867,7 @@ const SPECIAL_FLOORS = [
   { id: "healing", name: "癒しの霊気", icon: "fountain", accent: "#8af0c0", sym: "✚", minFloor: 2, rate: 0.02, victoryHeal: 0.10,
     lines: ["澄んだ霊気が満ち、傷を癒してくれる。", "戦闘に勝利するたび、味方全員のHPとMPが10%回復する。"] },
   { id: "legend", name: "伝説の眠る階", icon: "chest", accent: "#ffe080", sym: "★", minFloor: 4, rate: 0.01,
-    lines: ["遥か昔の英雄の遺品が、この階のどこかに眠っている。", "ひとつの宝箱にだけ、格別の装備が入っている。"],
+    lines: ["遥か昔の英雄の遺品が、この階のどこかに眠っている。", "ひとつの宝箱にだけ、必ず赤い名の装備が入っている。"],
     board: (b) => {
       // 既存の宝箱から1つ選んで「伝説の宝箱」(+40レベル) にする。なければ1つ追加する
       const chests = [];
@@ -8683,7 +8683,7 @@ function presentTrap(res, fin, sink = boardSink()) {
 
 // 宝箱の中身 (ゴールド/装備品/収集品)。cRank: 宝箱ランク (1-5、高いほど豪華)
 // lvBonus: ミミック撃破後の宝箱などのアイテムレベル底上げ。
-// cell.lootBonus: 特別階 (伝説の眠る階) の「伝説の宝箱」— 中身は必ず装備品で +40レベル
+// cell.lootBonus: 特別階 (伝説の眠る階) の「伝説の宝箱」— 中身は必ずLR装備
 // 宝箱の金貨 (runGainGold へ渡す半減前の値): 推奨Lv の普通の1戦の金貨 (refGold) × CHEST_GOLD_BATTLES × 宝箱ランク × 揺らぎ。
 // 以前の式 (階 × 迷宮の格) は推奨Lv に付いていかず、第6層では1戦の2割ほどしかなかった。第一章 (第1層) は旧式の方が多いので下限に残す
 const CHEST_GOLD_BATTLES = 1.2;
@@ -8711,7 +8711,7 @@ function chestContents(cell, done, cRank = 1, lvBonus = 0, noGold = false, sink 
     return;
   }
   // 宝: 装備/アイテム (迷宮のアイテムレベル帯から抽選。高ランクの宝箱は一段上の帯)
-  const id = pickLoot({ chestRank: cRank, lvBonus: lootUp });
+  const id = legendary ? pickLR() : pickLoot({ chestRank: cRank, lvBonus: lootUp });
   const it = cloneItem(id);
   if (it) {
     markDungeonLoot(it);
@@ -11537,25 +11537,25 @@ function animateResult(res, done) {
   callPartyAction(res); // 札の肖像に使った技の名 (手番の初めから)
   if (setPlateCall(res) && !quickBattlePresentation()) { if (G.autoCombat) renderAutoBanner(); else renderActingPlate(res.actor); } // 命令板にも「誰の何の技か」
   if (quickBattlePresentation()) {
-    // 通常の技は命令板を先に示す。火柱は最後まで見せてから次の行動へ進む。
+    // 通常の技は命令板を先に示す。火柱・火球・爆発は最後まで見せてから次の行動へ進む。
     const fx = G.fx = { lunge: null, slashes: [], skill: [], floats: [], screen: null, flash: {}, deaths: [] };
     G.partyFx = new Map(); G.partyFxV = new Map();
     if ((res.action !== "sleep" && res.action !== "stunned") || (res.hits || []).length) applyImpact(res);
     if (res._modFeed !== undefined) releaseActionEffects(res, res._modFeed);
     drainPartyProcs();
     partyEl.style.setProperty("--fxd", G.fastAnim ? "0.32s" : "0.4s");
-    const fireDuration=fx.skill.find(e=>e.type==='skillScene'&&e.design?.family==='firePillar')?.dur||0;
-    // 通常攻撃の反応は従来どおり。火柱は描画の終了と進行を同じ時計で扱う。
+    const effectDuration=fx.skill.find(e=>e.type==='skillScene'&&extendedSkillFx(e.design))?.dur||0;
+    // 通常攻撃の反応は従来どおり。火柱・火球・爆発は描画の終了と進行を同じ時計で扱う。
     const normalAttack = res.action === "attack" && res.actor?.side === "party" && (serverBattle() || choiceTrial?.overlap);
-    if (normalAttack) setTimeout(finish, normalAttackTiming(G.fastAnim).reaction); else if(!fireDuration) finish();
+    if (normalAttack) setTimeout(finish, normalAttackTiming(G.fastAnim).reaction); else if(!effectDuration) finish();
     const started = performance.now();
     let firstFrame = true;
     const tick = () => {
       if (G.fx !== fx || G.battle !== battle || G.state !== "combat") return;
       if (firstFrame) { firstFrame = false; renderParty(); }
-      if (performance.now() - started >= (fireDuration || (G.fastAnim ? 360 : 430))) {
+      if (performance.now() - started >= (effectDuration || (G.fastAnim ? 360 : 430))) {
         G.fx = null; G.partyFx.clear(); G.partyFxV.clear(); renderParty();
-        if(fireDuration) finish();
+        if(effectDuration) finish();
         return;
       }
       renderCombatCanvas(); requestAnimationFrame(tick);
@@ -11608,8 +11608,8 @@ function animateResult(res, done) {
     if (!impacted && t >= WIND) {
       impacted = true;
       applyImpact(res);
-      const fireDuration=G.fx.skill.find(e=>e.type==='skillScene'&&e.design?.family==='firePillar')?.dur||0;
-      if(fireDuration) TOTAL=Math.max(TOTAL,performance.now()-t0+fireDuration);
+      const effectDuration=G.fx.skill.find(e=>e.type==='skillScene'&&extendedSkillFx(e.design))?.dur||0;
+      if(effectDuration) TOTAL=Math.max(TOTAL,performance.now()-t0+effectDuration);
       if (res._modFeed !== undefined) releaseActionEffects(res, res._modFeed); // 強化・弱体の札は着弾と同時に
       drainPartyProcs(); // 発動した効果の名は着弾と同時に
       renderParty(); // HP反映 + 被弾フラッシュ
@@ -18439,7 +18439,7 @@ function markDungeonLoot(it) {
   }
   if (it && (abyssActive() || laterDungeon) && !it.bukon && hasQuality(it)) {
     it.bukon = [];
-    for (let i = 0; i < bukon.bukonSlots(it); i++) {
+    for (let i = 0; i < bukon.bukonDropCount(it); i++) {
       const soul = bukon.rollBukon(it, levelHere().lv);
       if (!soul) continue;
       if (bukon.bukonFits(it, soul)) it.bukon.push(soul);
