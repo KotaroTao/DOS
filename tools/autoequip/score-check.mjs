@@ -15,9 +15,12 @@ const delta=statsDelta(previewStats(p,a),previewStats(p,b));
 assert.equal(gearScore(p,{...delta,weapon:true}),gearScore(p,delta),'同じ増減を武器交換だけで過大評価しない');
 assert(Math.abs(score(a,b)+score(b,a))<=.1,'往復の評価が逆符号になる');
 const c={...b,body:{slot:'body',hp:500}};
-assert(Math.abs(score(a,b)+score(b,c)-score(a,c))<=.2,'HPが変わっても再生の評価が一貫する');
+assert(Math.abs(score(a,b)+score(b,c)-score(a,c))<=.2,'能力値の加点が分割しても一貫する');
 p.equip=a;p.items=[ring];recalc(p);
 const plan=planBestEquip([p],{canEquip:()=>true,score:gearScore});
 assert(plan.moves.length<16,'同じ装備を往復しない');
 if(plan.moves.length){applyPlan(plan);assert.equal(planBestEquip([p],{canEquip:()=>true,score:gearScore}).moves.length,0,'適用後に逆の変更を勧めない');}
 console.log('装備評価: 部位共通・往復・分割・再計算の一貫性 OK');
+
+const bare={...delta,combat:null,eff:null};
+assert.equal(gearScore(p,delta),gearScore(p,bare),'戦闘効果情報の有無で採点が変わらない');

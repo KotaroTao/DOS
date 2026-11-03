@@ -61,12 +61,12 @@ export function previewStats(doll, equip, recalcFn = recalcDefault) {
     maxhp: fake.maxhp, maxmp: fake.maxmp, critBonus: fake.critBonus || 0,
     critDamageBonus: fake.critDamageBonus || 0, spellCritBonus: fake.spellCritBonus || 0, spellCritDamageBonus: fake.spellCritDamageBonus || 0,
     elemAtk: fake.elemAtk || null, elemDef: fake.elemDef || null, breathRes: fake.breathRes || 0,
-    ailRes: fake.ailRes || null, onHit: fake.onHit || null, // 状態異常耐性・追加効果 (itemview の gearScore が数える)
+    ailRes: fake.ailRes || null, onHit: fake.onHit || null, // 状態異常耐性・追加効果 (比較表示用)
     power: attackPower(fake), weapon: equip.weapon || null, shield: equip.shield || null, // 攻撃力 (参照能力 × 武器の係数) と武器・盾
     offPower: offhandPower(fake), fight: fightPower(fake), // 二刀流: 左手の攻撃力 / 比べる物差しの攻撃力 (右手 + 左手の DUAL_VALUE_SHARE)
     physResist: fake.physResist || 0, magResist: fake.magResist || 0,
     traits: equipmentTraitTexts(equip),
-    eff: fake.eff || null, // 戦闘効果 (連撃・吸血・守り…。itemview の gearScore が effScore で数える)
+    eff: fake.eff || null, // 戦闘効果 (連撃・吸血・守り…。比較表示用)
   };
 }
 
@@ -417,12 +417,7 @@ function defaultScore(doll, delta) {
   const W = { atk: 1, vit: 1, agi: 0.8, int: 0.6, pie: 0.6, luk: 0.4, hp: 0.2, mp: 0.15 };
   let s = 0;
   for (const k in W) s += (k === "atk" && delta.power != null ? delta.power : (delta[k] || 0)) * W[k];
-  if (delta.weapon) {
-    if (delta.handSwap) s = s * 50 / W.atk; // 片手+盾 ⇄ 両手: 盾の能力も攻撃力に換算して比べる
-    else s += (delta.power || 0) * 50; // 武器は攻撃力の高い順
-  }
-  return s + ((delta.crit || 0) + (delta.spellCrit || 0)) * 0.5
-    + ((delta.critDamage || 0) + (delta.spellCritDamage || 0)) * 0.1;
+  return s;
 }
 
 export function install() {}
