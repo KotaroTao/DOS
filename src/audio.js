@@ -302,7 +302,9 @@ export const SFX = {
   skill(kind = "magic") {
     if (document.hidden) return;
     const names = {slash:"normalSlash",impact:"normalBlunt",pierce:"normalPierce",restore:"skillRestore",ward:"skillWard",shade:"skillShade",fire:"skillFire",fireball:"skillFireball",fireball2:"skillFireball2",fireball3:"skillFireball3",blast:"skillBlast",blast2:"skillBlast2",blast3:"skillBlast3",firePillar:"skillFirePillar",firePillar2:"skillFirePillar2",firePillar3:"skillFirePillar3",spark:"skillSpark",magic:"skillMagic"};
-    sfx(names[kind] || "skillMagic",{jit:.035});
+    // 新しい専用音も通常・軽量・確認画面で同じ経路を使う。
+    const mystic=/^(radiance|void|arcane|heal|revive|purify|ward)[23]?$/.test(kind);
+    sfx(mystic ? 'skill'+kind[0].toUpperCase()+kind.slice(1) : names[kind] || "skillMagic",{jit:.035});
   },
   hit(style = null) {
     const name = ["slash", "cross", "iai"].includes(style) ? "normalSlash" : ["blunt", "smash"].includes(style) ? "normalBlunt" : ["thrust", "arrow"].includes(style) ? "normalPierce" : "hit";

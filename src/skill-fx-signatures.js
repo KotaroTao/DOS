@@ -90,7 +90,7 @@ const ultimates = [
 ];
 for(const [key,motif,count,phase,tone] of ultimates){
  const row=rows.find(r=>r[0]===key);if(row)rows.splice(rows.indexOf(row),1);
- rows.push([key,"sig_ultimate_"+key.toLowerCase(),"field",null]);tones[key]=tone;
+ rows.push([key,row?.[1]||"sig_ultimate_"+key.toLowerCase(),row?.[2]||"field",null]);tones[key]=tone;
 }
 const ultimateDesigns=Object.fromEntries(ultimates.map(([key,motif,count,phase])=>[key,{motif,count,phase}]));
 export const SKILL_FX_SIGNATURES = Object.freeze(Object.fromEntries(rows.map(([key,type,mode,accent])=>[key,Object.freeze({type,mode,accent,tone:tones[key]||null,ultimate:ultimateDesigns[key]||null})])));

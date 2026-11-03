@@ -3,7 +3,7 @@ import { SPELLS } from '../../src/skilldefs.js';
 import { JOB_SIGNATURE, JOB_SKILLS } from '../../src/souls.js';
 import { SKILL_FX_CATALOG } from '../../src/skill-fx-catalog.js';
 import { SKILL_FX_SIGNATURES } from '../../src/skill-fx-signatures.js';
-import { SKILL_FAMILIES, emitSkillFx, skillFxSound, skillFxDuration } from '../../src/skill-fx.js';
+import { SKILL_FAMILIES, emitSkillFx, skillFxSound, skillFxDuration, extendedSkillFx } from '../../src/skill-fx.js';
 import { skillProfile, spawnFx, SIG_FX } from '../../src/battlefx.js';
 import '../../src/battlefx-sig.js';
 import { previewSkillFx } from '../../src/skill-fx-preview.js';
@@ -19,6 +19,7 @@ for(const [key,sp]of Object.entries(SPELLS)){
  assert.equal(p.family,d.family);assert.equal(p.all,['all-enemy','all-ally'].includes(sp.target));
  assert.equal(scene.length,1,key);assert.equal(scene[0].type,'skillScene');assert.ok(scene[0].pts.length>=1&&scene[0].pts.length<=6);
  assert.ok(Number.isFinite(scene[0].x)&&Number.isFinite(scene[0].y)&&scene[0].dur===skillFxDuration(scene[0].design),key);
+
  assert.equal(scene[0].all,p.all,key);
 }
 assert.deepEqual([...rngState()],before,'演出生成でゲーム用乱数を消費');
@@ -95,6 +96,18 @@ for(const [family,counts,top]of [['fireball',[9,4,3],['SPELLBLADE_ENTEI','ARCTHI
  }
 }
 console.log(`${Object.keys(SPELLS).length}技 / ${new Set(Object.values(SKILL_FX_CATALOG).map(d=>d.family)).size}系統 / ${Object.keys(SKILL_FX_SIGNATURES).length}看板: 割当・全体/単体・不発・複合作用点・上限・軽量化・乱数不変・音声を確認`);
+// 新しい7系統は各ランクを実際の技へ適用し、専用音と表示尺を持つ。
+for(const family of ['radiance','void','arcane','heal','revive','purify','ward'])for(let rank=1;rank<=3;rank++){
+ const entry=Object.entries(SKILL_FX_CATALOG).find(([,d])=>d.family===family&&d.tier===rank);
+ assert.ok(entry,`${family}:${rank} の技がない`);
+ const [key,d]=entry,kind=family+(rank===1?'':rank);
+ assert.equal(skillFxSound(family,rank),kind);
+ assert.equal(skillFxDuration(d),[0,400,700,1200][rank]);
+ assert.equal(previewSkillFx(key)[0].dur,skillFxDuration(d));
+ assert.equal(skillFxDuration(d,1,{auto:true}),skillFxDuration(d)*.6);
+ const name='skill'+kind[0].toUpperCase()+kind.slice(1),data=SFX_DEFS[name].gen(rng(123));
+ assert.ok(data.ch.every(ch=>ch.every(Number.isFinite)&&ch.some(x=>Math.abs(x)>.01)),name);
+}
 
 // 少数の系統は実在する習得段階だけを使い、弱体の最上位を明示する。
 assert.equal(SKILL_FX_CATALOG.MANAGIFT.tier,2);
