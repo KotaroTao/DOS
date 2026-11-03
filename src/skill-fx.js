@@ -1,3 +1,4 @@
+import { drawCleave, CLEAVE_COLORS } from './cleave-fx.js';
 import { drawMysticFx, MYSTIC_FAMILIES } from './mystic-fx.js';
 import { drawThermalFx } from './thermal-fx.js';
 // 技の意味から組み立てる軽量Canvas演出。武器・人物は描かず、火柱だけ透過アトラスを使う。
@@ -285,9 +286,11 @@ function drawCore(c,f,x,y,r,t,color,lite,reduced,e){
   supportScene(c,f,x,y,r,t,color,lite,reduced,e);
  }else if(['gravity','doom','drain','steal','escape','survey'].includes(f)){
   utilityCore(c,f,x,y,r,t,color,lite,reduced,e);
- }else if(['cut','cleave','flurry'].includes(f)){
-  const n=f==='flurry'?Math.min(lite?2:6,Math.max(1,e.hitCount)):f==='cleave'?2:1;
-  for(let i=0;i<n;i++) {const q=clamp01((t-i*.065)/(1-i*.065));if(!q)continue;trace(c,x+(i%2?4:-4),y+(i-n/2)*4,r*(f==='cleave'?1.3:1),q,color,i%2?.65:-.65,f==='cleave'?4:3);}
+ }else if(f==='cleave'){
+  c.save();c.translate(x,y);drawCleave(c,e,t,r,color,lite,reduced);c.restore();
+ }else if(['cut','flurry'].includes(f)){
+  const n=f==='flurry'?Math.min(lite?2:6,Math.max(1,e.hitCount)):1;
+  for(let i=0;i<n;i++) {const q=clamp01((t-i*.065)/(1-i*.065));if(!q)continue;trace(c,x+(i%2?4:-4),y+(i-n/2)*4,r,q,color,i%2?.65:-.65,3);}
  }else if(f==='impact'){
   star4(c,x,y,r*.45*(1-drift*.45),'#fff0d2',fade);ring(c,x,y,r*(.22+p*.5),color,fade,4*(1-t)+.5);
   for(let i=0;i<(lite?4:8);i++)ray(c,x,y,r*(.6+drift*.3),i*TAU/8,color,fade,2);
@@ -398,6 +401,7 @@ function accent(c,e,t,x,y,r,color,lite,reduced){
 export function drawSkillScene(c,e,t,w,h,reduced){
  const lite=fxLite(reduced), pts=e.pts||[], f=e.design.family;
  const color=e.col||e.signature?.tone||COLORS[f]||'#c9b6ec', scale=e.design.scale||1, radius=(e.all?Math.min(100,Math.max(36,e.w*.34)):70)*scale;
+
  const x=e.x,y=e.y;
  c.save();
  const anchors=e.primaryPts||pts;
@@ -471,7 +475,8 @@ export function emitSkillFx(list,key,spell,hits,locate,now,spd=1,options={}){
  const primary=points.filter(p=>(p.side==='enemy')===enemy), anchors=primary.length?primary:[points[0]],xs=anchors.map(p=>p.x),ys=anchors.map(p=>p.y);
  const x=all?(Math.min(...xs)+Math.max(...xs))/2:anchors[0].x,y=all?ys.reduce((a,b)=>a+b,0)/anchors.length:anchors[0].y;
  const design={...baseDesign,combo:strikes.length,ultimate:!!SKILL_FX_SIGNATURES[key]?.ultimate};
- list.unshift({type:'skillScene',strikes,design,source:options.source||null,hasDrain:!!(spell.drain||spell.mpDrain)&&(hits||[]).some(h=>h.lifesteal>0||h.mpHeal>0||h.heal>0),signature:SKILL_FX_SIGNATURES[key]||null,pts:points,primaryPts:anchors,col:spell.element?({fire:'#ff4938',water:'#439fff',wind:'#89dfae',earth:'#ca9a65',light:'#ffe297',dark:'#a47bdd'}[spell.element]||FX.elCol(spell.element)[1]):null,all,marks:true,x,y,w:Math.max(...xs)-Math.min(...xs)+80,t0:now,dur:skillFxDuration(design,spd,options),seed:17,hitCount});
+ list.unshift({type:'skillScene',strikes,design,source:options.source||null,hasDrain:!!(spell.drain||spell.mpDrain)&&(hits||[]).some(h=>h.lifesteal>0||h.mpHeal>0||h.heal>0),signature:SKILL_FX_SIGNATURES[key]||null,pts:points,primaryPts:anchors,col:spell.element?(baseDesign.family==='cleave'?CLEAVE_COLORS[spell.element]:{fire:'#ff4938',water:'#439fff',wind:'#89dfae',earth:'#ca9a65',light:'#ffe297',dark:'#a47bdd'}[spell.element]||FX.elCol(spell.element)[1]):null,all,marks:true,x,y,w:Math.max(...xs)-Math.min(...xs)+80,t0:now,dur:skillFxDuration(design,spd,options),seed:17,hitCount});
+
  if(list.length>FX_LIMITS.effects)list.length=FX_LIMITS.effects;
  return true;
 }
