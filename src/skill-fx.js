@@ -504,9 +504,11 @@ export function drawSkillScene(c,e,t,w,h,reduced){
   else drawCore(c,f,x,y,radius,t,color,lite,reduced,e);
   c.restore();
  }
- if(e.design.ultimate){}
- else if(e.ultimate)ultimate(c,e,t,x,y,radius,color,lite,reduced);
- else accent(c,e,t,x,y,radius,color,lite,reduced);
+ // 専用斬撃は本体に構図を含むので、最終技の装飾を二重に重ねない。
+ if(!e.design.ultimate){
+  if(e.ultimate)ultimate(c,e,t,x,y,radius,color,lite,reduced);
+  else accent(c,e,t,x,y,radius,color,lite,reduced);
+ }
  if(e.source && (['drain','steal','mana'].includes(f)||e.hasDrain)){
   const from=f==='mana'?e.source:{x,y},to=f==='mana'?{x,y}:e.source;
   for(let i=0;i<(lite?2:5);i++){
