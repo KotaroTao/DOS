@@ -66,6 +66,6 @@ const spell=()=>b._exec({actor:a,action:'spell',spellKey:key,target:t}).hits.red
 const plain=physical(),plainSpell=spell();
 a.critDamageBonus=3;a.spellCritDamageBonus=4;
 near(physical()/plain,4,.02);near(spell()/plainSpell,5,.02);
-const ps=b.peekStats(a);near(ps.critMul,1.85*4);near(ps.spellCritMul,1.5*5);
+const ps=b.peekStats(a);near(ps.critMul,1.5*4);near(ps.spellCritMul,1.5*5);
 near(b.estSpell(a,sp,t)/b.estSpell({...a,spellCritDamageBonus:0},sp,t),(1+.8*(1.5*5-1))/(1+.8*(1.5-1)));
 console.log(`全${equipment}装備、会心つき${affected}品 ${JSON.stringify(totals)}：レア度別の両端・品質・上限・価格・付呪・8品の加算・80%上限と確定会心・無制限の倍率 OK`);

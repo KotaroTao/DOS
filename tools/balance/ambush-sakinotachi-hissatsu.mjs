@@ -70,9 +70,9 @@ for(let lv=0;lv<=4;lv++) {
   };
   const normal=sample(),critical=sample(true),geared=sample(true,false,.3,2);
   near(physicalCritMul(critical.a),mul);
-  assert.equal(critical.dmg,Math.floor(normal.dmg*1.85*mul));
-  assert.equal(geared.dmg,Math.floor(normal.dmg*1.85*1.3*mul*1.45));
-  near(geared.b.peekStats(geared.a).critMul,1.85*1.3*mul*1.45);
+  assert.equal(critical.dmg,Math.floor(normal.dmg*1.5*mul));
+  assert.equal(geared.dmg,Math.floor(normal.dmg*1.5*1.3*mul*1.45));
+  near(geared.b.peekStats(geared.a).critMul,1.5*1.3*mul*1.45);
   near(gearCritMul(critical.a,true),1);
   // 実ダメージとオート予測を、同じ通常/会心の比率で比較。
   assert(critical.estimate>normal.estimate);

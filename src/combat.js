@@ -1956,7 +1956,7 @@ export class Battle {
     const qi = this.queue.indexOf(a);
     const order = this.current === a ? "now" : qi >= 0 ? this.queue.slice(0, qi).filter((x) => x.alive).length : null;
     return { stats, power: this._eatk(a), hit, crit, spellCrit: this._spellCritChance(a, {}),
-      critMul: 1.85 * this._physicalCritMul(a) * [1, 1.25, 1.45][Math.min(pv(a, "vitalEye"), 2)],
+      critMul: 1.5 * this._physicalCritMul(a) * [1, 1.25, 1.45][Math.min(pv(a, "vitalEye"), 2)],
       spellCritMul: this._spellCritMul(a), evade, flee: this.fleeChance(a), order, back: this.isBackRow(a), reach: reach.length, foes: foes.length, range: this.attackRange(a) };
   }
 
@@ -3115,7 +3115,7 @@ export class Battle {
       // 反撃も物理なので隊列補正を受ける
       let dmg = Math.max(1, Math.round((variance(Math.round(this._eatk(defender) * mul)) - Math.floor(this._evit(attacker, defender) * 0.5)) * this._rowMul(defender, attacker)));
       let crit = false;
-      if (cLv >= 3 && random() < Math.min(.8, Math.max(0, 0.06 + (defender.critBonus || 0)))) { crit = true; dmg = Math.floor(dmg * 1.85 * this._physicalCritMul(defender, { tgt: attacker, on: ["phys"] })); }
+      if (cLv >= 3 && random() < Math.min(.8, Math.max(0, 0.06 + (defender.critBonus || 0)))) { crit = true; dmg = Math.floor(dmg * 1.5 * this._physicalCritMul(defender, { tgt: attacker, on: ["phys"] })); }
       // 反撃の会心も通常の物理と同じ耐性軽減を使う。
       const pr = this._resistCut(attacker, dmg, "physResist", this._physPierce(defender));
       if (pr.immune) this.log(`${defender.name}の反撃！ ${attacker.name}：物理無効`, "hit");
@@ -3430,7 +3430,7 @@ export class Battle {
     critChance = (opt.critBonus || 0) >= 1 ? 1 : Math.min(.8, Math.max(0, critChance));
     const crit = sureCrit || random() < critChance;
     if (crit && actor.side === "party" && tgt.side === "enemy" && this.show) this.show.cr++; // 観客の注文 (会心を見せろ)
-    if (crit) dmg = Math.floor(dmg * 1.85 * this._physicalCritMul(actor, { tgt, el: aE, on: pOn }) * [1, 1.25, 1.45][Math.min(pv(actor, "vitalEye"), 2)]); // 急所読み: 会心強化
+    if (crit) dmg = Math.floor(dmg * 1.5 * this._physicalCritMul(actor, { tgt, el: aE, on: pOn }) * [1, 1.25, 1.45][Math.min(pv(actor, "vitalEye"), 2)]); // 急所読み: 会心強化
     // 隊列補正: 後衛は物理の与ダメ・被ダメが半減
     const rm = this._rowMul(actor, tgt);
     if (rm !== 1) dmg = Math.round(dmg * rm);
@@ -3620,7 +3620,7 @@ export class Battle {
     critP = sureCrit ? 1 : Math.min(.8, Math.max(0, critP));
     dmg *= this._rowMul(actor, tgt);
     if (magHit && !metal && tgt.magWeak > 1 && opt.resistKnown !== false) dmg *= tgt.magWeak;
-    let crit = dmg * 1.85 * this._physicalCritMul(actor, { tgt: tv, el: aE, on: pOn }) * [1, 1.25, 1.45][Math.min(pv(actor, "vitalEye"), 2)];
+    let crit = dmg * 1.5 * this._physicalCritMul(actor, { tgt: tv, el: aE, on: pOn }) * [1, 1.25, 1.45][Math.min(pv(actor, "vitalEye"), 2)];
     let plain = dmg;
     if (metal) plain = 1;
     else if (r > 0) {

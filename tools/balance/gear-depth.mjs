@@ -85,7 +85,7 @@ const actor=()=>Object.assign(makeDoll('術者'),{level:50,atk:200,int:200,pie:1
 const foe=()=>({uid:9999,name:'敵',key:'bs_ghoul',mon:MONSTERS.bs_ghoul,side:'enemy',alive:true,hp:1e12,maxhp:1e12,atk:80,vit:60,agi:30,int:40,pie:40,luk:8,lv:40,element:'none',spells:[]});
 {
  const a=actor(),t=foe(),b=new Battle([a],[t],()=>{}),r=Math.random;Math.random=()=>.5;
- const ps=b.peekStats(a);assert.equal(ps.spellCrit,0);assert.equal(ps.critMul,1.85);assert.equal(ps.spellCritMul,1.5);
+ const ps=b.peekStats(a);assert.equal(ps.spellCrit,0);assert.equal(ps.critMul,1.5);assert.equal(ps.spellCritMul,1.5);
  const plain=b._physical(a,t,{acc:1,critBonus:1}).dmg;
  a.critDamageBonus=.3;const boosted=b._physical(a,t,{acc:1,critBonus:1}).dmg;near(boosted/plain,1.3,.02);
  a.critDamageBonus=0;a.spellCritDamageBonus=.3;assert.equal(b._physical(a,t,{acc:1,critBonus:1}).dmg,plain);
