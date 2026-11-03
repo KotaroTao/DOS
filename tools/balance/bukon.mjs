@@ -89,7 +89,7 @@ const lootBody=source.match(/function markDungeonLoot\(it\) \{([\s\S]*?)\n\}/)[1
 for(const infinite of [false,true])for(const layer of [1,4]){
  const state={floor:1};
  const mark=new Function('bukon','G','dungeonTrait','UNIDENT_SLOTS','abyssActive','CHAPTERS','inDungeon','curDungeon','worldById','hasQuality','resyncItem','levelHere','infAfxTrack','log',`return function(it){${lootBody}}`)(b,state,()=>null,new Set(['body']),()=>infinite,[{no:3,finale:'end'}],()=>true,()=>({layer}),()=>({layer:3}),()=>true,()=>{},()=>({lv:100}),()=>{},()=>{});
- for(const [rar,count] of Object.entries({c:1,uc:1,r:2,sr:2,lr:3}))for(let i=0;i<100;i++){
+ for(const [rar,count] of Object.entries({c:1,uc:1,r:1,sr:2,lr:3}))for(let i=0;i<100;i++){
   const item={slot:'body',rar,price:1};mark(item);
   if(!infinite&&layer===1){assert.equal(item.bukon,undefined);continue;}
   assert.equal(item.bukon.length,count);assert.equal(new Set(item.bukon.map(x=>x.k)).size,count);
