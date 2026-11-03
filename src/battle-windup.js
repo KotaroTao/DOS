@@ -58,7 +58,7 @@ export function beginBattleWindup({ party, index, view, label = "攻撃の構え
     waits.set(timer, resolve);
   });
   // 音声の準備に失敗しても、選択の通信や結果処理を止めない。
-  try { sound = SFX.prepare(kind); } catch {}
+  try { sound = SFX.prepare(["heal", "revive", "purify", "mana"].includes(skillFamily) ? skillFamily : kind); } catch {}
   const resize = new ResizeObserver(layout); resize.observe(view);
   const hide = () => { if (document.hidden) handle.stop(true); };
   const leave = () => handle.stop(true);
