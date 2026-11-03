@@ -1,0 +1,113 @@
+[
+  {
+    "id": "report_w47",
+    "master": "art/story-review/chapter12/report_w47.png",
+    "subject": "匿名の亡骸の白布を整える防腐師の手（未取得の秘密を伏せる）",
+    "prompt": "Edit this image into a restrained, anonymous burial-workshop illustration, 1536x1024, retain the exact dark fantasy pixel-textured art style and warm/cool lighting. CRITICAL: remove ALL visible faces, remove ALL crowns and royal regalia, remove the glowing soul light entirely, remove the mother's hand at bottom-right. The specific identity of the deceased and the origin of resurrection must not be revealed. Reframe as a close horizontal view of elderly embalmer hands gently straightening a plain white linen shroud on an anonymous human-shaped body resting on a carved stone preparation slab; the ENTIRE body including face is covered by opaque white cloth. Two elderly embalmer forearms enter from upper frame, no faces or full figures. A small ceramic jar, a soft brush, folded extra cloth to either side. No gold/red royal sleeves, no coat of arms, no writing, no magical glow. A compassionate act of preparing a deceased person, not gore or horror. Background shadowed stone burial workshop. Keep central white fabric and working hands clear at 384x256. This picture must work even when the player has not found the ledger about the first king.",
+    "refs": [
+      "docs/art/palace-replacement/batch05/report_w47-first-draft.png"
+    ],
+    "generated": "/workspace/generated_images/exec-f0bf56c1-572d-4ec1-9ff1-a75ed66ea7c3.png",
+    "sha256": "cdcffcbeb9de3ebb06b1f16beb4309f136751abbfabd38cdf1a30aa64947f175",
+    "validation": "w47_ledger未取得時にも表示されるため、顔・冠・魂・母を外した一般の防腐作業。初稿を修正。"
+  },
+  {
+    "id": "report_w48",
+    "master": "art/story-review/chapter12/report_w48.png",
+    "subject": "同じ顔の三枚の死面",
+    "prompt": "Create ONE standalone landscape illustration 1536x1024, 3:2, edge-to-edge, no panels, borders, labels, typography or readable text. Match attached Dungeon of Souls art: lavish high-quality fine-grained pixel-textured dark fantasy illustration, sophisticated natural adult proportions, meticulous carved stone, embroidered cloth, black iron, carved wood, crisp tiny highlights, rich controlled cool cyan and warm amber light. Keep the narrative subject readable at 384x256. New intimate composition for the report of THREE identical death masks representing the same king's three false funerals. Exactly THREE gold death masks of the SAME very old long gaunt male face, no crown on masks, laid on dark velvet in a diagonal line at different distances on a burial stone ledge. Each face identical, yet surface age and tarnish differ. First mask close foreground at lower left, second central, third upper right, all complete visible. Behind the ledge, three closed anonymous plain coffins vanish into blue-black crypt shadow. No full wall covered in masks, no living characters, no open book, no palace throne, no readable words. Raking warm candle glow brings out moulded closed eyelids and the emptiness behind the masks. Show the human cost of unnamed stand-ins, quiet and unsettling.",
+    "refs": [
+      "art/story-review/chapter12/w48_masks.png"
+    ],
+    "generated": "/workspace/generated_images/exec-77f2216f-46d0-44a2-af5d-acce5d3b68de.png",
+    "sha256": "8ae59624512ad8f6ddc6a54139176ed173da10419d504b61b181ee1457a647be"
+  },
+  {
+    "id": "report_w49",
+    "master": "art/story-review/chapter12/report_w49.png",
+    "subject": "問いかけを待つ灯",
+    "prompt": "Create ONE standalone landscape illustration 1536x1024, 3:2, edge-to-edge, no panels, borders, labels, typography or readable text. Match attached Dungeon of Souls art: lavish high-quality fine-grained pixel-textured dark fantasy illustration, sophisticated natural adult proportions, meticulous carved stone, embroidered cloth, black iron, carved wood, crisp tiny highlights, rich controlled cool cyan and warm amber light. Keep the narrative subject readable at 384x256. NEW unified present-day aftermath of the first king's release, NOT a montage and no Ordo, king, throne or palace visible. In a dark underground royal tomb, a single small pale cyan soul flame floats free just above the open palms of the adventuring party, offered space rather than held. Only two hands at the bottom edge: one young human hand and one clearly wooden articulated hand with black iron joints, relaxed and open, not clutching the light. Massive old candle stubs with hardened wax, unlit ceremonial brushes and a folded plain white burial cloth recede softly into darkness. Tall negative dark space above the tiny free light, a subtle shaft of blue illumination from a distant upper recess. The image expresses asking a soul what it wishes and waiting for its answer, release after a thousand years, no explosive magical effects. Warm exhausted wax highlights and clear gentle cyan light.",
+    "refs": [
+      "art/story-review/chapter12/mem_w49.png"
+    ],
+    "generated": "/workspace/generated_images/exec-91358053-4b6f-4d84-9610-c9e6f067003a.png",
+    "sha256": "3b2535424042a7ee327e9dff7f047673e3653da96100ffe07258880db30e1fd5"
+  },
+  {
+    "id": "report_w50",
+    "master": "art/story-review/chapter13/report_w50.png",
+    "subject": "仕事の札の裏の願い",
+    "prompt": "Create ONE standalone landscape illustration 1536x1024, 3:2, edge-to-edge, no panels, borders, labels, typography or readable text. Match attached Dungeon of Souls art: lavish high-quality fine-grained pixel-textured dark fantasy illustration, sophisticated natural adult proportions, meticulous carved stone, embroidered cloth, black iron, carved wood, crisp tiny highlights, rich controlled cool cyan and warm amber light. Keep the narrative subject readable at 384x256. New composition inside the underground iron-vessel factory, no king, throne or palace. Close still life of a thick dark iron order tag lying BACK SIDE UP on a worn workbench, showing only tiny illegible scratched marks. Beside it, a delicate sewing needle with thread partially pulled through a small piece of cloth, a thimble, and a heavy battered iron load-carrying hook. The large industrial hook and tiny needle contrast strongly. Above, blurred rows of old order tags hang like a cage. Amber furnace reflection lights the thread and scratches while everything else cool shadow. The story: a worker ordered to carry loads wished to do needlework, and the reverse side of an order retained that wish. No invented hand holding tools, no written labels, no magic text. Show a wish as a small possible craft inside a giant factory.",
+    "refs": [
+      "art/story-review/chapter13/w51_mould.png"
+    ],
+    "generated": "/workspace/generated_images/exec-9b67c61b-5cda-41d9-8ad5-32fa15408c7a.png",
+    "sha256": "e7572a4e6eb9147a8f7114326c371a23354de9dc418263dd6c3bcf155d894dfc"
+  },
+  {
+    "id": "report_w51",
+    "master": "art/story-review/chapter13/report_w51.png",
+    "subject": "一人のために作られた手",
+    "prompt": "Create ONE standalone landscape illustration 1536x1024, 3:2, no borders, no panels, no typography or readable text. Match attached Dungeon of Souls dark fantasy art: lavish fine-grained pixel-textured illustration, sophisticated natural proportions, carved wood, black iron and gothic stone, crisp tiny highlights, cool cyan light and warm amber fire. This is a NEW composition illustrating report_w51: a hand made for one individual, the possibility of holding one's own cup. Do NOT draw the king or any palace. Close intimate still life in the same underground foundry as the reference: on a small workbench, a small carefully customized black iron articulated left hand with five distinct fingers, fitted to support a plain cup by itself. Beside it an open irregular hand mould with differently sized finger recesses, a few adjustment tools. The hand is detached, a crafted mechanical object, not a severed living hand. Framing: low table-level three-quarter view, the curved fingers and cup the strong central silhouette; far behind, the regimented standard moulds recede in soft darkness, orange furnace glow as a thin horizon. No living figures, no labels or notes. Compassion and skilled craft, not horror. Distinct from the attached wide foundry view. Save the generated PNG at /workspace/DOS/art/story-review/chapter13/report_w51.png if filesystem output is supported.",
+    "refs": [
+      "art/story-review/chapter13/w51_mould.png"
+    ],
+    "generated": "/workspace/generated_images/exec-fbeb856e-9f74-452a-a58f-d769aea293a8.png",
+    "sha256": "4a3385163ce4c20f156e2e98d9b03c61e58e93119dbc558e0663bcea047c2819"
+  },
+  {
+    "id": "report_w53",
+    "master": "art/story-review/chapter13/report_w53.png",
+    "subject": "低い火と置かれた鎚",
+    "prompt": "Create ONE standalone landscape illustration 1536x1024, 3:2, edge-to-edge, no panels, borders, labels, typography or readable text. Match attached Dungeon of Souls art: lavish high-quality fine-grained pixel-textured dark fantasy illustration, sophisticated natural adult proportions, meticulous carved stone, embroidered cloth, black iron, carved wood, crisp tiny highlights, rich controlled cool cyan and warm amber light. Keep the narrative subject readable at 384x256. NEW still-life composition of tomorrow's hammer after the factory workers finally rest. Camera extremely low at floor height beside a great battered iron hammer now laid horizontally at rest, its shaft pointing toward the deep background of the same forge. The hammer occupies central diagonal with soft orange edge reflection; a tiny clear living soul flame rests securely in an iron lantern beside its handle, NOT extinguished. A removed length of order-chain lies loose, not restraining anyone. Background softly blurred: water continues running through cooling channels, furnace banked to a small low ember fire. NO giant seated factory master in this image, no combat, no king or palace, no collapsed destroyed forge, no readable orders. A quiet interval of work finished for today and tools ready for tomorrow. Contrast warm small ember light with blue reflections in running water.",
+    "refs": [
+      "art/story-review/chapter13/mem_w53.png"
+    ],
+    "generated": "/workspace/generated_images/exec-8bd98489-94a6-48bb-a189-9a3d8307a0d3.png",
+    "sha256": "568461108b85e96ed78c54085d07dfe6c373087f66629ef858ebbf43750d00dd"
+  },
+  {
+    "id": "report_w54",
+    "master": "art/story-review/chapter14/report_w54.png",
+    "subject": "娘の靴を作る手",
+    "prompt": "Create ONE standalone landscape illustration 1536x1024, 3:2, edge-to-edge, no panels, borders, labels, typography or readable text. Match attached Dungeon of Souls art: lavish high-quality fine-grained pixel-textured dark fantasy illustration, sophisticated natural adult proportions, meticulous carved stone, embroidered cloth, black iron, carved wood, crisp tiny highlights, rich controlled cool cyan and warm amber light. Keep the narrative subject readable at 384x256. New very close affectionate composition of the SAME wooden articulated shoemaker as reference, at the small market in the underground chapel district. Frame only the craftsman's large wooden hands, black iron wrist joints, lap in worn canvas apron, and ONE small daughter's wooden clog being carefully hollowed with a short carving knife. A second larger wooden clog rests partly visible near the edge. Wood curls catching warm lamplight fill the foreground. Suggest the craftsman's wooden chin near upper edge but keep main focus small shoe cradled gently in large hands; NO real daughter present, no human hands, no readable notes or map. Background abstract soft pale awning and warm amber lantern bokeh, no sky visible. A father's happiness at being able to make his daughter's shoes again, intimate skilled ordinary work, distinct from reference's wide market portrait.",
+    "refs": [
+      "art/story-review/chapter14/w54_shoes.png"
+    ],
+    "generated": "/workspace/generated_images/exec-94004401-ec7b-4258-99f7-4a5d251a2897.png",
+    "sha256": "fb4c47da755ff99db56229dce28fb19b4e322bad17a3af73a6951e56e4dd9c04"
+  },
+  {
+    "id": "report_w55",
+    "master": "art/story-review/chapter14/report_w55.png",
+    "subject": "生者の家から鏡へ伝える花の話",
+    "prompt": "Create ONE standalone landscape illustration 1536x1024, 3:2, edge-to-edge, no panels, borders, labels, typography or readable text. Match attached Dungeon of Souls art: lavish high-quality fine-grained pixel-textured dark fantasy illustration, sophisticated natural adult proportions, meticulous carved stone, embroidered cloth, black iron, carved wood, crisp tiny highlights, rich controlled cool cyan and warm amber light. Keep the narrative subject readable at 384x256. NEW REVERSE VIEW from the LIVING WOMAN'S ground-level home, not from underground corridor. The same elderly white-haired woman as reference sits at a plain wooden table seen from behind and a little to the side, holding frayed embroidered wedding cloth in her lap. An old prayer mirror before her shows her distant wooden articulated companion from reference, with carved wood grain face and black iron joints, peacefully listening from the chapel corridor. A tiny flame in a shallow prayer dish below mirror. Beside an open window, a flowering garden tree and BLUE clear daytime sky softly visible. The woman lifts one hand in an ordinary conversational gesture about this year's flowers, warm domestic continuity across death. The wooden companion appears ONLY inside mirror. No people sharing one physical room, no ghost, no horror, no readable paper. Strong composition of woman foreground right, small mirror and cup flame central left, flowers diagonally behind.",
+    "refs": [
+      "art/story-review/chapter14/w55_reply.png"
+    ],
+    "generated": "/workspace/generated_images/exec-6f922b3a-07dc-4ea1-96a5-2dce00fc1746.png",
+    "sha256": "ff6099f126fb016424f21302091d75be5154a2f5f8506038c9397b287f9333da"
+  },
+  {
+    "id": "report_w56",
+    "master": "art/story-review/chapter14/report_w56.png",
+    "subject": "止まった鐘の下で眠る人業",
+    "prompt": "Create ONE standalone landscape illustration 1536x1024, 3:2, edge-to-edge, no panels, borders, labels, typography or readable text. Match attached Dungeon of Souls art: lavish high-quality fine-grained pixel-textured dark fantasy illustration, sophisticated natural adult proportions, meticulous carved stone, embroidered cloth, black iron, carved wood, crisp tiny highlights, rich controlled cool cyan and warm amber light. Keep the narrative subject readable at 384x256. NEW aftermath composition of the SAME small wooden articulated bell-tower doll from reference, in same blue hooded lace cloak. The doll now sleeps peacefully lying curled on a folded cloth on the broad stone stair, arms relaxed, eyes closed, wooden joints visible. In sharp foreground a thin chain between prayer-burning furnace and summoning bell has been unhooked, its two open ends visibly separated, not wrapped around the doll. The furnace embers are almost out, old paper ash on stone; do not depict readable letters or an invented emblem. Above, a large bronze bell now still, its mouth a dark arc framing the sleeping figure. Other bells far away blur into blue darkness. No companions, no palace, no destroyed building. The subject is relief from being repeatedly called against one's wishes, sleep without disappearance, extremely peaceful and still. Distinct low side view rather than reference's front sitting pose.",
+    "refs": [
+      "art/story-review/chapter14/w56_prayer.png"
+    ],
+    "generated": "/workspace/generated_images/exec-ad07ff91-8b1a-4569-9f40-babb05302bd3.png",
+    "sha256": "31901e8163568672c29ece9e05f5b4cc96c8c4394adb32616f8bfce400305cb3"
+  },
+  {
+    "id": "report_w57",
+    "master": "art/story-review/chapter14/report_w57.png",
+    "subject": "返事を急かさない鈴",
+    "prompt": "Create ONE standalone landscape illustration 1536x1024, 3:2, edge-to-edge, no panels, borders, labels, typography or readable text. Match attached Dungeon of Souls art: lavish high-quality fine-grained pixel-textured dark fantasy illustration, sophisticated natural adult proportions, meticulous carved stone, embroidered cloth, black iron, carved wood, crisp tiny highlights, rich controlled cool cyan and warm amber light. Keep the narrative subject readable at 384x256. NEW present-day AFTERMATH, not the old historical memory in reference. No father, child, bishop figure, king, Ordo or palace. In the same underground gothic cathedral, a very small bronze HAND BELL sits quietly on an altar at centre-left beside a plain fold of white-and-gold cloth sheltering a tiny pale cyan soul flame: the archbishop's soul rests here without being compelled to answer. Wide intimate still life, low viewpoint level with altar stone. The tiny bell and flame remain visually clear at small size; two-thirds of scene beyond altar fall into soft empty quiet nave, an unobtrusive broken connection chain tucked away behind altar. Warm modest candles, soft blue subterranean ambient light. The hand bell's plain round body and upright short handle make it distinct from enormous hanging tower bells. No readable papers, no crosses added as focal symbol, no dramatic magic. Patient waiting, prayer preserved and answer allowed in its own time.",
+    "refs": [
+      "art/story-review/chapter14/mem_w57.png"
+    ],
+    "generated": "/workspace/generated_images/exec-0db5014b-65a1-4d9f-86ae-9d279ea0382b.png",
+    "sha256": "fee6eb29e90d5971db003874732565a61f69413d97d34aa3275e5609986a3732"
+  }
+]

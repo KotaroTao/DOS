@@ -16,3 +16,16 @@
 | batch04 | report_w36–40 / 42–46 | 10 |
 | batch05 | report_w47–51 / 53–57 | 10 |
 | batch06 | report_w01 / report_w25 / minePass | 3 |
+
+## 完成した53枚
+
+全53枚を画像生成で制作し、原寸と縮小で確認。各10枚組を並行制作後、WebP変換・登録・指示書整合・読み物の検査を実施した。残す6枚は制作開始時mainのSHA-256と一致。本文・ID・条件・画像の読込先は変更していない。
+
+[53枚の一覧](overview-all.jpg) / [全体の検証](final-verification.json)
+
+- [batch01の制作記録](batch01/README.md) / [縮小一覧](batch01/overview.jpg)
+- [batch02の制作記録](batch02/README.md) / [縮小一覧](batch02/overview.jpg)
+- [batch03の制作記録](batch03/README.md) / [縮小一覧](batch03/overview.jpg)
+- [batch04の制作記録](batch04/README.md) / [縮小一覧](batch04/overview.jpg)
+- [batch05の制作記録](batch05/README.md) / [縮小一覧](batch05/overview.jpg)
+- [batch06の制作記録](batch06/README.md) / [縮小一覧](batch06/overview.jpg)
