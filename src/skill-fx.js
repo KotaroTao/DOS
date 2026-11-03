@@ -22,16 +22,11 @@ export function skillFxSound(family, tier = 1) {
   if (['paralyze','poison','illusion','sleep','seal','weaken','dispel','gravity','doom','drain','steal','escape','void'].includes(family)) return 'shade';
   return family === 'firePillar' ? tier >= 3 ? 'firePillar3' : tier >= 2 ? 'firePillar2' : 'firePillar' : family === 'fireball' ? 'fire' : family === 'lightning' ? 'spark' : 'magic';
 }
-// ランク付きの演出は格ごとの見せる時間を持つ。画質・動き低減では尺を変えない。
-export const extendedSkillFx=design=>(['impact','firePillar','fireball','blast',...ELEMENT_FAMILIES,...MYSTIC_FAMILIES].includes(design?.family)||design?.combo||design?.ultimate);
-
+// 全系統で同じ尺。連撃の格は定義上の回数とし、不発や対象人数では変えない。
+export const extendedSkillFx=design=>!!design?.family;
 export function skillFxDuration(design, spd=1, options={}){
- if(design?.family==='impact'&&!design.combo)return Math.round(([0,400,500,650,800,950][design.tier]||400)*(options.auto?.6:options.fast?.8:1));
- if(extendedSkillFx(design)){
-  const base=design.combo?Math.max(400,design.combo*160):design.ultimate&&!['firePillar','fireball','blast'].includes(design.family)?1000:[0,400,700,1200][design.tier]||400;
-  return Math.round(base*(options.auto?.6:options.fast?.8:1));
- }
- return Math.min(350,Math.max(220,300*spd));
+ const rank=Math.min(3,Math.max(1,design?.tier||1));
+ return Math.round([0,400,700,1200][rank]*(options.auto?.6:options.fast?.8:1));
 }
 const ring = (c,x,y,r,color,a,width=2) => { c.globalAlpha=clamp01(a);c.strokeStyle=color;c.lineWidth=width;c.beginPath();c.arc(x,y,Math.max(.1,r),0,TAU);c.stroke(); };
 function sparks(c,seed,n,x,y,r,t,color,lite) {
@@ -503,6 +498,7 @@ function accent(c,e,t,x,y,r,color,lite,reduced){
  else for(let i=0;i<(lite?1:3);i++)ring(c,x,y,r*(a==='collapse'?.8-p*.5+i*.12:.35+p*.4+i*.12),color,fade*.6,1.2);
 }
 export function drawSkillScene(c,e,t,w,h,reduced){
+ if(reduced)t=.36;
  const lite=fxLite(reduced), pts=e.pts||[], f=e.design.family;
  const color=(f==='cleave'?e.col:null)||(e.design.slashRank&&e.element?({fire:'#ff493b',water:'#368cff',wind:'#73e8b2',earth:'#d4a15c',light:'#ffe797',dark:'#ac72ee'}[e.element]):null)||e.col||e.signature?.tone||COLORS[f]||'#c9b6ec', scale=e.design.scale||1, radius=(e.all?Math.min(100,Math.max(36,e.w*.34)):70)*scale;
 
@@ -510,8 +506,21 @@ export function drawSkillScene(c,e,t,w,h,reduced){
 
  const x=e.x,y=e.y;
  c.save();
+ // 動き低減では全系統を同じ固定時点で表示する。
  const anchors=e.primaryPts||pts;
- if(f==='cut'&&!e.strikes?.length){
+ if(e.strikes?.length){
+  const slots=Math.max(1,e.comboCount), position=t*slots;
+  for(const point of e.strikes){
+   const q=position-point.slot;if(!reduced&&(q<0||q>=1))continue;
+   c.save();
+   const local={...e,x:point.x,y:point.y,all:false,w:80,pts:[point],primaryPts:[point],strikes:[],hitCount:1,design:{...e.design,tier:Math.min(3,e.design.tier)}};
+   if(ELEMENT_FAMILIES.includes(f))drawElementFx(c,local,reduced?.36:q,w,h,lite,reduced);
+   else if(MYSTIC_FAMILIES.includes(f))drawMysticFx(c,local,reduced?.36:q,w,h,lite,reduced);
+   else if(f==='fireball'||f==='blast')drawThermalFx(c,local,reduced?.36:q,w,h,lite,reduced);
+   else drawCore(c,f,point.x,point.y,radius*.8,reduced?.36:q,color,lite,reduced,local);
+   c.restore();
+  }
+ }else if(f==='cut'){
   c.save();if(e.all){c.translate(x,y);c.scale(Math.min(2.6,Math.max(1,e.w/(radius*2))),1);slashScene(c,e,0,0,radius,t,color,lite,reduced);}else slashScene(c,e,x,y,radius,t,color,lite,reduced);c.restore();
  }else if(ELEMENT_FAMILIES.includes(f)){
   drawElementFx(c,e,t,w,h,lite,reduced);
@@ -520,12 +529,6 @@ export function drawSkillScene(c,e,t,w,h,reduced){
   drawMysticFx(c,e,t,w,h,lite,reduced);
  }else if(f==='fireball'||f==='blast'){
   drawThermalFx(c,e,t,w,h,lite,reduced);
- }else if(e.strikes?.length){
-  // 各命中を独立した時間枠にする。軽量・動き低減でも打数を間引かない。
-  const position=t*e.strikes.length,index=Math.min(e.strikes.length-1,Math.floor(position)),q=position-index;
-  const point=e.strikes[index];
-  if(f==='projectile')line(c,point.x+radius*(reduced?.25:1-q),point.y+radius*(reduced?.25:1-q),point.x,point.y,3,color,1-q);
-  else trace(c,point.x,point.y,radius,reduced?.15:q,color,index%2?.65:-.65,3);
  }else if(f==='firePillar' && e.design.tier===3){
   fireVortex(c,e,t,w,h,lite,reduced);
  }else if((e.all&&f==='radiance')||(!e.all&&anchors.length>1&&['flurry','projectile'].includes(f))){
@@ -541,23 +544,37 @@ export function drawSkillScene(c,e,t,w,h,reduced){
   else drawCore(c,f,x,y,radius,t,color,lite,reduced,e);
   c.restore();
  }
+ if(e.design.tier>=2 && f!=='firePillar'){
+  const rank=Math.min(3,e.design.tier),fade=(1-t)**.8;
+  c.save();c.globalCompositeOperation='lighter';
+  for(let i=0;i<rank-1;i++){
+   const q=clamp01((t-i*.12)/(.8-i*.12));
+   ring(c,x,y,radius*(.45+easeOut(q)*(.45+i*.2)),color,fade*(.32+i*.08),1.5+i);
+  }
+  if(rank===3)for(let i=0;i<(lite?4:8);i++){
+   const angle=i*TAU/(lite?4:8),reach=radius*(1.2-.35*easeOut(t));
+   ray(c,x,y,reach,angle,color,fade*.4,1.4);
+  }
+  c.restore();
+ }
  if(!e.design.slashUltimate){
  if(e.ultimate&&!e.strikes?.length)ultimate(c,e,t,x,y,radius,color,lite,reduced);
  else if(!e.strikes?.length||e.signature?.ultimate)accent(c,e,t,x,y,radius,color,lite,reduced);
 
  }
 
- if(e.source && (['drain','steal','mana'].includes(f)||e.hasDrain)){
+ if(e.source && (['steal','mana'].includes(f)||e.hasDrain)){
   const from=f==='mana'?e.source:{x,y},to=f==='mana'?{x,y}:e.source;
   for(let i=0;i<(lite?2:5);i++){
    const q=reduced?(i+1)/6:clamp01(t*1.5-i*.08),px=from.x+(to.x-from.x)*q,py=from.y+(to.y-from.y)*q;
-   star4(c,px,py,3,e.hasDrain?'#dc9fbb':color,(1-t)*.8);
+   star4(c,px,py,3,e.hasMpDrain?'#92c9f8':e.hasDrain?'#dc9fbb':color,(1-t)*.8);
   }
  }
  // 全体技は大演出を一枚。対象ごとは小さな命中光・作用の印に抑える。
  if(e.all||e.marks)for(let i=0;i<Math.min(pts.length,FX_LIMITS.targets);i++){
   const p=pts[i],fade=1-t, rr=(e.all?6:4)*scale;
-  if(p.mark==='heal'||p.mark==='revive'){line(c,p.x-rr,p.y,p.x+rr,p.y,2,'#a3edbf',fade);line(c,p.x,p.y-rr,p.x,p.y+rr,2,'#a3edbf',fade);}
+  if(p.mark==='mana')star4(c,p.x,p.y,rr+2,'#92c9f8',fade);
+  else if(p.mark==='heal'||p.mark==='revive'){line(c,p.x-rr,p.y,p.x+rr,p.y,2,'#a3edbf',fade);line(c,p.x,p.y-rr,p.x,p.y+rr,2,'#a3edbf',fade);}
   else if(p.mark==='ward')ring(c,p.x,p.y,rr+3,'#c6e7ff',fade,1.5);
   else if(p.mark==='purify')star4(c,p.x,p.y,rr+2,'#c6f4f6',fade);
   else star4(c,p.x,p.y,rr,color,fade*.8);
@@ -572,17 +589,25 @@ export function drawSkillScene(c,e,t,w,h,reduced){
 }
 export function emitSkillFx(list,key,spell,hits,locate,now,spd=1,options={}){
  const baseDesign=SKILL_FX_CATALOG[key];if(!baseDesign)return false;
- const combo=Math.max(spell.hits||1,spell.scatter||1)>1;
+ const comboCount=Math.max(spell.hits||1,spell.scatter||1),combo=comboCount>1;
+ const slotCounts=new Map();let scatterSlot=0;
  const strikes=[];
  const points=[],seen=new Map();let hitCount=0;
  for(const hit of hits||[]){
-  if(!hit?.target||hit.miss||hit.immune)continue;
+  if(!hit?.target)continue;
+  const uidKey=hit.target.side+':'+hit.target.uid;
+  let slot=0;
+  if(combo&&(hit.dmg!=null||hit.miss||hit.immune)){
+   slot=spell.scatter?scatterSlot++:(slotCounts.get(uidKey)||0);
+   slotCounts.set(uidKey,slot+1);
+  }
+  if(hit.miss||hit.immune||hit.mpHeal===0&&hit.dmg==null&&!hit.buff&&hit.heal==null)continue;
   const impact=locate(hit.target);
-  if(combo&&hit.dmg!=null&&impact)strikes.push({x:impact.x,y:impact.y});
+  if(combo&&hit.dmg!=null&&impact&&slot<comboCount)strikes.push({x:impact.x,y:impact.y,slot});
   hitCount++;const uid=hit.target.side+':'+hit.target.uid;
-  if(seen.has(uid)){const point=seen.get(uid);point.status ||= statusFxKind(hit.status);point.weak ||= !!hit.debuff;continue;}
+  if(seen.has(uid)){const point=seen.get(uid);point.status ||= statusFxKind(hit.status);point.weak ||= !!hit.debuff;point.mark ||= hit.mpHeal>0?'mana':hit.heal>0?'heal':hit.cured?'purify':hit.buff?'ward':null;continue;}
   const p=locate(hit.target);if(!p||!Number.isFinite(p.x)||!Number.isFinite(p.y))continue;
-  const point={x:p.x,y:p.y,side:hit.target.side,status:statusFxKind(hit.status),weak:!!hit.debuff,mark:hit.heal!=null?(spell.revive?'revive':'heal'):hit.cured?'purify':hit.buff?'ward':null};
+  const point={x:p.x,y:p.y,side:hit.target.side,status:statusFxKind(hit.status),weak:!!hit.debuff,mark:hit.mpHeal>0?'mana':hit.heal!=null?(hit.revived?'revive':'heal'):hit.cured?'purify':hit.buff?'ward':null};
   seen.set(uid,point);points.push(point);
   if(points.length>=FX_LIMITS.targets)break;
  }
@@ -590,8 +615,8 @@ export function emitSkillFx(list,key,spell,hits,locate,now,spd=1,options={}){
  const all=['all-enemy','all-ally'].includes(spell.target),enemy=['enemy','all-enemy'].includes(spell.target);
  const primary=points.filter(p=>(p.side==='enemy')===enemy), anchors=primary.length?primary:[points[0]],xs=anchors.map(p=>p.x),ys=anchors.map(p=>p.y);
  const x=all?(Math.min(...xs)+Math.max(...xs))/2:anchors[0].x,y=all?ys.reduce((a,b)=>a+b,0)/anchors.length:anchors[0].y;
- const design={...baseDesign,combo:strikes.length,ultimate:!!SKILL_FX_SIGNATURES[key]?.ultimate};
- list.unshift({type:'skillScene',strikes,design,element:spell.element||null,ultimate:SKILL_FX_ULTIMATES[key]||null,source:options.source||null,hasDrain:!!(spell.drain||spell.mpDrain)&&(hits||[]).some(h=>h.lifesteal>0||h.mpHeal>0||h.heal>0),signature:SKILL_FX_SIGNATURES[key]||null,pts:points,primaryPts:anchors,col:spell.element?(baseDesign.family==='cleave'?CLEAVE_COLORS[spell.element]:{fire:'#ff4938',water:'#439fff',wind:'#89dfae',earth:'#ca9a65',light:'#ffe297',dark:'#a47bdd'}[spell.element]||FX.elCol(spell.element)[1]):null,all,marks:true,x,y,w:Math.max(...xs)-Math.min(...xs)+80,t0:now,dur:skillFxDuration(design,spd,options),seed:17,hitCount});
+ const design={...baseDesign,combo:comboCount>1?comboCount:0,ultimate:!!SKILL_FX_SIGNATURES[key]?.ultimate};
+ list.unshift({type:'skillScene',strikes,comboCount,design,hasMpDrain:!!spell.mpDrain&&(hits||[]).some(h=>h.mpHeal>0),element:spell.element||null,ultimate:SKILL_FX_ULTIMATES[key]||null,source:options.source||null,hasDrain:!!(spell.drain||spell.mpDrain)&&(hits||[]).some(h=>h.lifesteal>0||h.mpHeal>0||h.heal>0),signature:SKILL_FX_SIGNATURES[key]||null,pts:points,primaryPts:anchors,col:spell.element?(baseDesign.family==='cleave'?CLEAVE_COLORS[spell.element]:{fire:'#ff4938',water:'#439fff',wind:'#89dfae',earth:'#ca9a65',light:'#ffe297',dark:'#a47bdd'}[spell.element]||FX.elCol(spell.element)[1]):null,all,marks:true,x,y,w:Math.max(...xs)-Math.min(...xs)+80,t0:now,dur:skillFxDuration(design,spd,options),seed:17,hitCount});
 
 
 

@@ -64,6 +64,9 @@ const elementRanks={
  quake:{DAICHIWARI:2,SAGE_DAICHI:2,ARCHMAGE_AGITO:2,METEOR:3,BATTLEMAGE_INTETSU:3},
 };
 function effectTier(key,s){
+ const count=Math.max(s.hits||1,s.scatter||1);
+ if(count>1)return count;
+ if(family(key,s)==='cut')return (level.get(key)??1)>=150?5:(level.get(key)??1)>=100?4:(level.get(key)??1)>=60?3:(level.get(key)??1)>=25?2:1;
  if(family(key,s)==='impact')return (level.get(key)??1)>=170?5:(level.get(key)??1)>=120?4:(level.get(key)??1)>=70?3:(level.get(key)??1)>=30?2:1;
  if(CLEAVE_TOP[key])return 3;
  if(key==='INQUISITOR_MANAZASHI')return 3; // 弱体の最高習得Lv75: 上位の視線。
@@ -97,7 +100,7 @@ for(const [key,s]of Object.entries(SPELLS)){
 }
 let source='// tools/effects/build-catalog.mjsで生成。全技を系統と格へ明示的に割り当てる。\nexport const SKILL_FX_CATALOG = Object.create(null);\nconst groups = {\n';
 for(const [group,keys]of [...groups].sort(([a],[b])=>a.localeCompare(b)))source+='  '+JSON.stringify(group)+': '+JSON.stringify(keys.join(' '))+',\n';
-source+='};\nfor (const [group, keys] of Object.entries(groups)) {\n  const [family, rank] = group.split(":");\n  const tier = Number(rank), design = Object.freeze({ family, tier, scale: [0, .9, 1.08, 1.24, 1.38, 1.52][tier] });\n  for (const key of keys.split(" ")) SKILL_FX_CATALOG[key] = design;\n}\n';
+source+='};\nfor (const [group, keys] of Object.entries(groups)) {\n  const [family, rank] = group.split(":");\n  const tier = Number(rank), design = Object.freeze({ family, tier, scale: [0, .9, 1.08, 1.24, 1.38, 1.52][Math.min(5,tier)] });\n  for (const key of keys.split(" ")) SKILL_FX_CATALOG[key] = design;\n}\n';
 for(const [key,variant] of Object.entries(CLEAVE_TOP))source+='SKILL_FX_CATALOG['+JSON.stringify(key)+'] = Object.freeze({...SKILL_FX_CATALOG['+JSON.stringify(key)+'], variant: '+JSON.stringify(variant)+'});\n';
 source+='for(const [key,extra] of Object.entries('+JSON.stringify(slashDesigns)+')) SKILL_FX_CATALOG[key]=Object.freeze({...SKILL_FX_CATALOG[key],...extra});\nObject.freeze(SKILL_FX_CATALOG);\n';
 

@@ -1,5 +1,5 @@
 import { showFieldSkillFx } from "./skill-fx-field.js";
-import { emitSkillFx, skillFxSound, extendedSkillFx } from "./skill-fx.js";
+import { emitSkillFx, skillFxSound, skillFxDuration, extendedSkillFx } from "./skill-fx.js";
 import { beginBattleWindup, normalAttackTiming } from "./battle-windup.js";
 import { createTrial } from "./choice-trial.js";
 import { battleCommand } from "./cloud-battle.js";
@@ -11611,7 +11611,7 @@ function animateResult(res, done) {
       impacted = true;
       applyImpact(res);
       const effectDuration=G.fx.skill.find(e=>e.type==='skillScene'&&extendedSkillFx(e.design))?.dur||0;
-      if(effectDuration) TOTAL=Math.max(TOTAL,performance.now()-t0+effectDuration);
+      if(effectDuration) TOTAL=performance.now()-t0+effectDuration;
       if (res._modFeed !== undefined) releaseActionEffects(res, res._modFeed); // 強化・弱体の札は着弾と同時に
       drainPartyProcs(); // 発動した効果の名は着弾と同時に
       renderParty(); // HP反映 + 被弾フラッシュ
@@ -11734,7 +11734,7 @@ function applyImpact(res) {
   const skillDesign = fxProfile(res);
   // 効果音 + 振動
   if (skillDesign && (res.hits.some(h => !h.miss && !h.immune) || skillDesign.family === "escape" && res.fled)) {
-    SFX.skill(skillFxSound(skillDesign.family, skillDesign.tier)); buzz(20);
+    SFX.skill(skillFxSound(skillDesign.family, skillDesign.tier),{rank:skillDesign.tier,duration:skillFxDuration(skillDesign,1,{auto:!!G.autoCombat,fast:!!G.fastAnim})}); buzz(20);
   } else if (res.windup) {
     // 大技の予兆: 不穏な音と小さな揺れ (この手番は攻撃しない)
     SFX.ambush(); buzz([0, 30, 30, 30]);
@@ -11778,7 +11778,10 @@ function applyImpact(res) {
   // 多段ヒット (二段斬り等) は同じ対象・同座標に重なって1回に見えてしまうため、
   // 対象ごとにヒット順で時間差(stagger)と位置差(横ずらし)を付けて、回数分はっきり見せる
   const spd = effectSpeed();
-  const stag = quickBattlePresentation() ? Math.min(HIT_STAGGER * spd, 90 / Math.max(1, res.hits.length)) : HIT_STAGGER * spd;
+  const presentationDuration=skillDesign?skillFxDuration(skillDesign,spd,{auto:!!G.autoCombat,fast:!!G.fastAnim}):0;
+  const steps=Math.max(1,...Object.values((res.hits||[]).reduce((counts,h)=>{if(h.target&&h.dmg!=null){const key=h.target.side+':'+h.target.uid;counts[key]=(counts[key]||0)+1;}return counts;},{})),(res.hits||[]).filter(h=>h.heal!=null||h.buff||h.debuff).length);
+  const comboCount=skillDesign?Math.max(SPELLS[res.spellKey]?.hits||1,SPELLS[res.spellKey]?.scatter||1):1;
+  const stag = presentationDuration ? presentationDuration/Math.max(comboCount,steps) : quickBattlePresentation() ? Math.min(HIT_STAGGER * spd, 90 / Math.max(1, res.hits.length)) : HIT_STAGGER * spd;
   const stackIdx = {};
   // 技ごとの組み立て: 描き分け (v)・角度 (rot)・回る向き (spin)・格 (scale)・付く効果の印 (riders)
   const prof = fxProfile(res);
@@ -11792,6 +11795,13 @@ function applyImpact(res) {
     const pos=target.side==="enemy"?G.enemyPos[target.uid]:{cx:partyFxX(target),cy:VH-30};
     return pos?{x:pos.cx,y:pos.cy}:null;
   },now,spd,{auto:!!G.autoCombat,fast:!!G.fastAnim,source:res.actor?{x:partyFxX(res.actor),y:VH-30}:null});
+  const skillSlots=new Map(),targetSlots=new Map();let scatterSlot=0;
+  if(prof?.family&&comboCount>1)for(const hit of res.hits){
+    if(!hit.target||!(hit.dmg!=null||hit.miss||hit.immune))continue;
+    const id=hit.target.side+':'+hit.target.uid;
+    const slot=SPELLS[res.spellKey].scatter?scatterSlot++:(targetSlots.get(id)||0);
+    targetSlots.set(id,slot+1);skillSlots.set(hit,slot);
+  }
   let partyHealIdx = 0;
   // 味方への強化/弱体フロートも複数人ぶん横に散らす
   let partyModIdx = 0;
@@ -11814,9 +11824,10 @@ function applyImpact(res) {
       const pos = G.enemyPos[h.target.uid];
       if (!pos || h.miss) continue;
       const idx = (stackIdx[h.target.uid] = (stackIdx[h.target.uid] || 0) + 1) - 1; // 0,1,2…
-      const ht0 = now + idx * stag;
+      const offset=skillSlots.get(h)??idx;
+      const ht0 = now + offset * stag;
       const dx = idx === 0 ? 0 : (idx % 2 ? 1 : -1) * (14 + 4 * idx); // 左右に振って重なり回避
-      if (idx > 0) setTimeout(() => SFX.hit(normalStyle(h)), idx * stag); // 2撃目以降にも手応えの効果音
+      if (offset > 0 && (!prof?.family || h.dmg!=null&&!h.immune)) setTimeout(() => { if(!prof?.family||G.fx===fx) SFX.hit(normalStyle(h)); }, offset * stag); // 2撃目以降にも手応えの効果音
       const seed = (h.target.uid || 1) * 31 + idx;
       if (res.opening === "senkoku") {
         // 死の宣告: 敵ごとに少しずつ遅れて、大鎌が魂を刈り取る (崩れ落ちは鎌が抜けた後)

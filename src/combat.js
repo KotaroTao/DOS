@@ -3519,7 +3519,10 @@ export class Battle {
     this._wake(tgt);
     if (perkFoe) this._rankOnHit(actor, tgt, dmg, metalHit);
     // 命中時の弱体 (毒刃など)
-    if (opt.debuff && tgt.alive) { for (const k in opt.debuff) this._applyMod(tgt, k, opt.debuff[k], opt.debuffDur, opt.name); }
+    const appliedDebuffs = {};
+    if (opt.debuff && tgt.alive) for (const k in opt.debuff) {
+      if (this._applyMod(tgt, k, opt.debuff[k], opt.debuffDur, opt.name) < 0) appliedDebuffs[k] = opt.debuff[k];
+    }
     // 仕込み毒 (venomBlade): 敵を毒に侵す
     const vb = pv(actor, "venomBlade");
     if (vb && tgt.alive && tgt.side === "enemy" && !metalHit) this._inflict(actor, tgt, { name: "仕込み毒", poison: { chance: vb >= 2 ? .3 : .15, pct: .05 } });
@@ -3562,6 +3565,7 @@ export class Battle {
     const out = status ? { target: tgt, dmg, crit, died, status } : { target: tgt, dmg, crit, died };
     // 描画用。右手/左手の実際のダメージ種別を渡し、物理技を魔法に見せない。
     out.magic = magHit; out.offhand = !!opt.offhand;
+    if (Object.keys(appliedDebuffs).length) { out.debuff = true; out.mods = appliedDebuffs; }
     if (overflowHit) out.overflowHit = overflowHit;
     if (stolen) { out.lifesteal = stolen; out.stealer = actor; }
     return out;
@@ -3901,7 +3905,9 @@ export class Battle {
         res.hits.push(hit);
         if (!died && t.alive) {
           // 呪文に付く弱体 (氷の槍の鈍足など) と、命中後の効果 (毒・麻痺・封印・耐性ダウン…)
-          if (sp.debuff) for (const k in sp.debuff) this._applyMod(t, k, sp.debuff[k], sp.dur, sp.name);
+          if (sp.debuff) for (const k in sp.debuff) {
+            if (this._applyMod(t, k, sp.debuff[k], sp.dur, sp.name) < 0) { hit.debuff = true; (hit.mods ||= {})[k] = sp.debuff[k]; }
+          }
           const tags = [];
           if (this._inflict(actor, t, sp, tags)) hit.died = true;
           const st = statusText(tags);
@@ -4070,7 +4076,9 @@ export class Battle {
       // 吸収は「その技の消費MP × mpDrainCap (既定 MP_DRAIN_CAP 1.1)」まで (2026-10: 与ダメ比例のままだと撃つほど MP が増えた)。
       // どの吸収技も 1.1倍まで (ユーザーの指示、2026-10。魔力強奪だけだった) — 撃つたびに少しずつ MP が増える。重詠で払わなかった時も同じ上限
       const gain = Math.max(1, Math.min(Math.floor(spellCost(actor, sp) * (sp.mpDrainCap || MP_DRAIN_CAP)), Math.round(dealt * sp.mpDrain)));
+      const before = actor.mp;
       actor.mp = Math.min(actor.maxmp, actor.mp + gain);
+      res.hits.push({ target: actor, mpHeal: actor.mp - before });
       this.log(`${actor.name}のMP吸収：MP+${gain}`, "heal");
     }
     // 本効果に付随する敵全体への弱体 (攻守の法陣・霞の帳)
