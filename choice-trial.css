@@ -26,7 +26,19 @@ body:has(.choice-trial-page) { background: #171719; }
 .windup-ring::after { inset: 19px; border: 1px solid rgba(var(--windup-rgb), .5); border-radius: 0; transform: rotate(45deg); }
 .windup-sweep { position: absolute; inset: 14% 12% 0; background: linear-gradient(115deg, transparent 30%, rgba(var(--windup-rgb), .34) 48%, transparent 58%); animation: windup-draw 260ms ease-out both; }
 .windup-spark { position: absolute; bottom: 8%; left: calc(25% + var(--i) * 10%); width: 3px; height: 17px; border-radius: 50%; background: rgb(var(--windup-rgb)); animation: windup-rise 950ms linear infinite; animation-delay: calc(var(--i) * -157ms); }
-.windup-name { position: absolute; bottom: 17px; left: 8px; right: 8px; text-align: center; font-size: 13px; line-height: 1.5; font-weight: bold; letter-spacing: .06em; text-shadow: 0 2px 3px #000, 0 0 8px #000; }
+/* 操作欄の先頭: スマホは横幅を使い、タブレットは中央、PCは右の操作欄に収まる。 */
+.battle-action-name {
+  box-sizing: border-box; flex: 0 0 auto; width: 100%; min-width: 0;
+  padding: 7px 10px; margin: 0 0 5px; border: 1px solid #685337;
+  background: linear-gradient(180deg, #2c241c, #141114); color: #f3d58b;
+  font: bold 13px/1.5 var(--font); text-align: center; overflow-wrap: anywhere;
+}
+@media (min-width: 600px) {
+  .battle-action-name { padding: 9px 14px; font-size: 15px; }
+}
+@media (min-width: 1100px) and (min-height: 600px) and (hover: hover) and (pointer: fine) {
+  .battle-action-name { text-align: left; border-left: 3px solid #c9a24a; }
+}
 .windup-aim { position: absolute; width: 64px; height: 64px; transform: translate(-50%, -50%); animation: windup-focus 850ms ease-in-out infinite alternate; }
 .windup-aim i { position: absolute; width: 12px; height: 12px; border: 2px solid rgba(var(--windup-rgb), .85); }
 .windup-aim i:nth-child(1) { top: 0; left: 0; border-right: 0; border-bottom: 0; }

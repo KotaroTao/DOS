@@ -524,6 +524,8 @@ EdgeはES256/RS256の署名・iss/aud/role/sub/exp/nbfをJWKSで検証し、公�
 - Save key: `dos-save-v7` in `localStorage` (v7 = the dungeon map / master story; earlier history below) (v1-v3 saves are intentionally orphaned — v4 made souls a party-shared pool with vessel dolls, primary+sub-soul slots, and the Order). Only the fields in `SAVE_FIELDS` are persisted (transient animation state is excluded).
 - Saving uses **`refSerialize`/ref-hydrate**: a custom serializer that encodes shared/circular object references as `{$r: index}` so object **identity is preserved** on load (a single soul object referenced from multiple places stays the same instance). When adding state that relies on shared references, keep it inside this graph rather than re-cloning.
 
+通常攻撃の演出と構えの表示 (2026-11-03): 斬撃は右上から左下への鋼の閃き、打撃は圧縮光と粉じん、刺突は奥へ抜ける細い光と命中光。小片は描画専用の種で配置し、戦闘の時間配分・結果は変えない。構えの行動名は `キャラ名 - 攻撃／技名` とし、敵名に重ねず `#controls` の先頭の独立した行に表示する。スマホは全幅中央、タブレットは余白を広げた中央、PCは右の操作欄で左揃え。心得 `t_battle_windup`。
+
 ### UI 構造 (`src/ui/`) — 縦スクロール無し・少ないタップ
 
 能力欄の会心補正・魔法会心補正は数値のみを表示し、補正が80%以上なら黄色にする（最終会心率ではなく表示中の補正の上限判定）。耐性は100%で黄色。会心ダメージの上乗せには上限色を付けない。心得 `t_affix_critical`。能力の詳細は欄幅に応じて最大3列から2列・1列へ減らし、狭いスマホ・PCのシートでも数値を枠内に折り返す。魔攻の説明文は置かず、属防は欄全幅で軽減率だけを表示し、各属性の表示途中では折り返さない。

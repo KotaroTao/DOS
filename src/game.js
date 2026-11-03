@@ -11314,7 +11314,7 @@ function prepareBattleAction(battle, onFrame = null) {
   const label = pending.action === "attack" ? "攻撃" : pending.action === "spell" ? `${spell?.name || "技"}`
     : pending.action === "defend" ? "防御の構え" : pending.action === "run" ? "退路を探る" : pending.action === "item" ? `${pending.item?.name || "道具"}を準備` : "攻撃の構え";
   const target = pending.target?.side === "enemy" && G.enemyPos[pending.target.uid];
-  return beginBattleWindup({ party: partyEl, index: G.party.indexOf(actor), view, label: ["attack", "spell"].includes(pending.action) ? label : `${actor.name} — ${label}`, kind: cast ? "cast" : "strike",
+  return beginBattleWindup({ party: partyEl, index: G.party.indexOf(actor), view, label: `${actor.name} - ${label}`, kind: cast ? "cast" : "strike",
     aim: target ? { x: target.cx / VW, y: target.cy / VH } : null, onFrame,
     skillFamily: pending.action === "spell" ? skillProfile(pending.spellKey,spell)?.family : null,
     attackStyle: pending.action === "attack" ? actor.wMagic ? "arcane" : weaponFxStyle(actor.equip?.weapon) : null, fast: G.fastAnim });
