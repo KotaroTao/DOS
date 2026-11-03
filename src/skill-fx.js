@@ -281,10 +281,12 @@ function utilityCore(c,f,x,y,r,t,color,lite,reduced,e){
 }
 // 光の射線だけで単発・連射・斉射と狩人の奥義を描き分ける。
 function drawProjectile(c,e,t,x,y,r,lite,reduced){
+ // 連撃は実際に命中した相手と順序を共用し、軽量表示でも打数を減らさない。
+ if(e.strikes?.length){const position=t*e.strikes.length,index=Math.min(e.strikes.length-1,Math.floor(position)),point=e.strikes[index];x=point.x;y=point.y;t=position-index;e={...e,strikeIndex:index};}
  const d=e.design.projectile,rank=e.design.tier,color=d.color;
  const q=reduced?.68:t,fade=Math.pow(1-t,.8),form=d.form;
  const rain=['rain','cascade','meteor','starfall'].includes(form);
- const n=form==='starfall'?1:form==='six'?6:Math.min(lite?6:12,Math.max(d.count,rank===3?9:rank===2?3:1));
+ const n=e.strikeIndex!==undefined?1:form==='starfall'?1:form==='six'?6:Math.min(lite?6:12,Math.max(d.count,rank===3?9:rank===2?3:1));
  c.globalCompositeOperation='lighter';c.lineCap='round';
  for(let i=0;i<n;i++){
   const u=n===1?0:i/(n-1)-.5;
@@ -292,7 +294,7 @@ function drawProjectile(c,e,t,x,y,r,lite,reduced){
   let sx=x-r*1.5,sy=y+r*(.65+u),tx=x,ty=y+u*r*.55;
   if(rain){sx=x+u*r*1.8+r*.45;sy=y-r*1.8;tx=x+u*r*1.6;ty=y+r*.35;}
   if(form==='cascade'){sx=tx;sy=y-r*1.9;}
-  if(form==='six'){const ang=i*TAU/6;sx=x+Math.cos(ang)*r*1.4;sy=y+Math.sin(ang)*r*1.4;tx=x;ty=y;}
+  if(form==='six'){const ang=(e.strikeIndex??i)*TAU/6;sx=x+Math.cos(ang)*r*1.4;sy=y+Math.sin(ang)*r*1.4;tx=x;ty=y;}
   if(form==='storm'||form==='fan'){sy=y+u*r*2;ty=y-u*r*.7;}
   if(form==='dive'){sx=x-r*.6;sy=y-r*1.8;}
   const hx=sx+(tx-sx)*phase,hy=sy+(ty-sy)*phase;
