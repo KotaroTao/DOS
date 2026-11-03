@@ -110,3 +110,11 @@ for(const [key,design]of Object.entries(SKILL_FX_CATALOG))if(utilityFamilies.has
  const level=levels.length?Math.min(...levels):1;
  assert.equal(design.tier,level>=100?3:level>=30?2:1,key);
 }
+// 射撃の明示割当・属性色・最上位専用の形を確認する。
+for(const [key,tier]of [['SOGEKI',1],['RENSHA',2],['SENNYA',3],['HUNTER_HOSHIOTOSHI',3]])assert.equal(SKILL_FX_CATALOG[key].tier,tier);
+for(const [key,color]of [['HUNTER_HIYA','#ff4938'],['HUNTER_BAKUFU','#328cff'],['HUNTER_KEHAIYOMI','#66e5ad']])assert.equal(SKILL_FX_CATALOG[key].projectile.color,color);
+for(const key of ['HUNTER_SAMIDARE','HUNTER_AMIUCHI','HUNTER_TAKAOTOSHI','HUNTER_KAZEKIRI'])assert.equal(SKILL_FX_CATALOG[key].family,'projectile');
+assert.equal(SKILL_FX_CATALOG.HUNTER_KARIGAMI.projectile.count,6);
+assert.equal(SKILL_FX_CATALOG.HUNTER_HOSHIOTOSHI.projectile.form,'starfall');
+assert.equal(Object.values(SKILL_FX_CATALOG).filter(d=>d.projectile?.form==='starfall').length,1);
+for(const d of Object.values(SKILL_FX_CATALOG))if(d.family==='projectile')assert.ok(Object.isFrozen(d.projectile));
