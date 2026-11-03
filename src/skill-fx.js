@@ -1,4 +1,4 @@
-// 技の意味から組み立てる軽量Canvas演出。武器・人物・画像・動画は使わない。
+// 技の意味から組み立てる軽量Canvas演出。武器・人物は描かず、火柱だけ透過アトラスを使う。
 import { registerFx, FX, statusFxKind } from './battlefx.js';
 import { SKILL_FX_CATALOG } from './skill-fx-catalog.js';
 import { SKILL_FX_SIGNATURES } from './skill-fx-signatures.js';
@@ -13,7 +13,7 @@ export function skillFxSound(family) {
   if (['heal','revive','purify','mana'].includes(family)) return 'restore';
   if (['ward','empower','charge','survey'].includes(family)) return 'ward';
   if (['paralyze','poison','illusion','sleep','seal','weaken','dispel','gravity','doom','drain','steal','escape','void'].includes(family)) return 'shade';
-  return family === 'fireball' || family === 'firePillar' ? 'fire' : family === 'lightning' ? 'spark' : 'magic';
+  return family === 'firePillar' ? 'firePillar' : family === 'fireball' ? 'fire' : family === 'lightning' ? 'spark' : 'magic';
 }
 const ring = (c,x,y,r,color,a,width=2) => { c.globalAlpha=clamp01(a);c.strokeStyle=color;c.lineWidth=width;c.beginPath();c.arc(x,y,Math.max(.1,r),0,TAU);c.stroke(); };
 function sparks(c,seed,n,x,y,r,t,color,lite) {
@@ -29,11 +29,14 @@ function trace(c,x,y,r,t,color,angle=-.64,width=4){
  line(c,x+dx,y+dy,x+dx*(1-2*q),y+dy*(1-2*q),width+3,color,(1-t)*.4);
  line(c,x+dx,y+dy,x+dx*(1-2*q),y+dy*(1-2*q),Math.max(1.5,width*.85),'#fff9ef',1-t);
 }
+// 小さな透過アトラスを起動時から読み、描画中の画像生成や全画面待ちは行わない。
+const fireTexture = typeof Image === 'undefined' ? null : new Image();
+if (fireTexture) fireTexture.src = new URL('../art/effects/fire-pillar.webp', import.meta.url).href;
 // 火柱は地際の熱から噴き上がる。種は演出専用で、時間から滑らかに揺らす。
 function firePillar(c,x,y,r,t,lite,reduced,e) {
  const rise=reduced?1:easeOut(clamp01(t/.24));
  const fade=Math.pow(1-t, .85), motion=reduced?0:t;
- const base=y+r*.43, height=r*(.4+rise*1.22), count=lite?3:11;
+ const base=y+r*.43, height=r*(.4+rise*1.22);
  // 炎の奥に薄い煤。大きなぼかしや画面全体の閃光は使わない。
  if(!lite){
   c.globalCompositeOperation='source-over';
@@ -51,22 +54,24 @@ function firePillar(c,x,y,r,t,lite,reduced,e) {
  const heat=c.createRadialGradient(0,0,0,0,0,r*.95);
  heat.addColorStop(0,rgba('#ffb34d',fade*.55));heat.addColorStop(1,rgba('#d43c12',0));
  c.globalAlpha=1;c.fillStyle=heat;c.fillRect(-r,-r,r*2,r*2);c.restore();
- const widths=[1,.67,.28], colors=[['#a82a0b','#ed5314'],['#f87518','#ffbd4d'],['#ffca62','#fff1bd']];
- for(let layer=0;layer<3;layer++){
-  const gradient=c.createLinearGradient(0,base,0,base-height);
-  gradient.addColorStop(0,rgba(colors[layer][1],0));gradient.addColorStop(.13,colors[layer][1]);gradient.addColorStop(.45,rgba(colors[layer][0],.7));gradient.addColorStop(1,rgba(colors[layer][0],0));
-  c.fillStyle=gradient;c.globalAlpha=fade*(layer===0?.42:layer===1?.65:.72);
-  for(let i=0;i<count;i++){
-   const u=(i-(count-1)/2)/Math.max(1,(count-1)/2);
-   const xx=x+u*r*.77+(r01(i+31,e.seed)-.5)*r*.09, w=r*(lite?.25:.15)*widths[layer];
-   const h=height*(.68+r01(i,e.seed)*.32)*(1-layer*.16);
-   const sway=reduced?0:Math.sin(motion*12+i*2.3)*r*.055;
-   const foot=base+(r01(i+41,e.seed)-.5)*r*.12, tip=xx+sway, top=foot-h;
-   c.beginPath();c.moveTo(xx-w,foot);
-   c.bezierCurveTo(xx-w*1.3,foot-h*.25,tip-w*.75,top+h*.3,tip,top);
-   c.bezierCurveTo(tip-w*.12,top+h*.23,xx+w*.7,foot-h*.6,xx+w*.45,foot-h*.4);
-   c.bezierCurveTo(xx+w*.2,foot-h*.25,xx+w*1.1,foot-h*.18,xx+w,foot);
-   c.closePath();c.fill();
+ // 濃淡のある乱流テクスチャを少しずつずらして重ねる。輪郭の線や炎形の図形は描かない。
+ const ready=fireTexture?.complete && fireTexture.naturalWidth>0, plumes=lite?3:5;
+ c.imageSmoothingEnabled=true;
+ for(let i=0;i<plumes;i++){
+  const u=(i-(plumes-1)/2)/Math.max(1,(plumes-1)/2), xx=x+u*r*.67;
+  const hh=height*(.82+r01(i,e.seed)*.24), ww=r*(lite?.8:.68);
+  if(ready){
+   const frame=reduced?8:(t*17+i*3)%18, first=Math.floor(frame), blend=frame-first;
+   for(let k=0;k<(lite?1:2);k++){
+    const index=(first+k)%18;
+    c.globalAlpha=fade*(lite?.9:.82)*(lite?1:k?blend:1-blend);
+    c.drawImage(fireTexture,index%6*128,Math.floor(index/6)*192,128,192,xx-ww/2,base-hh,ww,hh);
+   }
+  }else{
+   // 読込失敗時も、柔らかな縦の熱だけで作用を伝える。
+   const glow=c.createRadialGradient(xx,base-hh*.3,0,xx,base-hh*.3,hh*.6);
+   glow.addColorStop(0,rgba('#ffb64a',fade*.65));glow.addColorStop(1,rgba('#d43c12',0));
+   c.globalAlpha=1;c.fillStyle=glow;c.fillRect(xx-hh*.6,base-hh*.9,hh*1.2,hh*1.2);
   }
  }
  // 火の粉は上向きの短い尾。低減表示では移動も粒子も省く。

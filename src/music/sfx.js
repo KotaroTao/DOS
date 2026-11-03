@@ -136,6 +136,23 @@ export const SFX_DEFS = {
   skillFire: {vars:2,vol:.5,rev:.1,gen(r){
     const x=sweep(.26,t=>60+80*Math.exp(-t/.02),.13),n=burst(r,.19,.1);applyBq(n,"lp",1300,.7,SR);mixInto(x,n,0,1.3);return mono(x);
   }},
+  // 火柱専用: 低い噴出・中低域の轟音・細かな破裂を一つのバッファにまとめる。
+  skillFirePillar: {vars:3,vol:.64,rev:.2,gen(r){
+    const dur=.68, n=len(dur), x=new Float32Array(n);
+    const roar=pink(n,r), air=white(n,r);lp1(roar,1600,SR);hp1(air,900,SR);lp1(air,5500,SR);
+    for(let i=0;i<n;i++){
+      const t=i/SR, env=Math.min(1,t/.012)*Math.pow(Math.max(0,1-t/dur),1.7);
+      const pulse=.78+.14*Math.sin(t*43)+.08*Math.sin(t*91);
+      x[i]=(roar[i]*2.8+air[i]*.19)*env*pulse;
+    }
+    mixInto(x,sweep(.42,t=>48+115*Math.exp(-t/.025),.32),0,.55);
+    mixInto(x,sweep(.3,t=>115+95*Math.exp(-t/.018),.21),0,.24);
+    for(let k=0;k<9;k++){
+      const pop=burst(r,.018+r()*.025,.012);applyBq(pop,'bp',950+r()*2600,.8,SR);
+      mixInto(x,pop,len(.025+r()*.38),.12+r()*.15);
+    }
+    dcBlock(x);softClip(x,1.25);return haas(x,8,.9);
+  }},
   skillSpark: {vars:2,vol:.45,rev:.08,gen(r){
     const x=new Float32Array(len(.18));mixInto(x,hp1(burst(r,.055,.022),2700,SR),0,.8);mixInto(x,modal(SR,.15,[[1100,1,.05],[2300,.3,.025]]),0,.35);return mono(x);
   }},

@@ -3,7 +3,7 @@ import { SPELLS } from '../../src/skilldefs.js';
 import { JOB_SIGNATURE } from '../../src/souls.js';
 import { SKILL_FX_CATALOG } from '../../src/skill-fx-catalog.js';
 import { SKILL_FX_SIGNATURES } from '../../src/skill-fx-signatures.js';
-import { SKILL_FAMILIES, emitSkillFx } from '../../src/skill-fx.js';
+import { SKILL_FAMILIES, emitSkillFx, skillFxSound } from '../../src/skill-fx.js';
 import { skillProfile, spawnFx, SIG_FX } from '../../src/battlefx.js';
 import '../../src/battlefx-sig.js';
 import { previewSkillFx } from '../../src/skill-fx-preview.js';
@@ -37,5 +37,17 @@ for(let i=0;i<1000;i++)recordFxFrame(1,1);assert.equal(fxPerformance().retainedS
 setFxQuality('high');assert.equal(fxLite(),false);assert.equal(fxLite(true),true);setFxQuality('low');assert.equal(fxLite(),true);
 for(const name of ['skillRestore','skillWard','skillShade','skillFire','skillSpark','skillMagic']){
  const data=SFX_DEFS[name].gen(rng(123));assert.ok(data.ch[0].length<32000*.4);assert.ok(data.ch.every(ch=>ch.every(Number.isFinite)&&ch.some(x=>Math.abs(x)>.1)),name);
+}
+assert.equal(skillFxSound('firePillar'),'firePillar');
+assert.equal(skillFxSound('fireball'),'fire');
+for(let seed=1;seed<=3;seed++){
+ const data=SFX_DEFS.skillFirePillar.gen(rng(seed));
+ assert.equal(data.ch.length,2);assert.equal(data.ch[0].length,32000*.68);
+ for(const ch of data.ch){
+  assert.ok(ch.every(Number.isFinite));assert.ok(ch.every(v=>Math.abs(v)<=.91),'火柱音のピーク');
+  const energy=ch.slice(0,9600).reduce((n,v)=>n+v*v,0)/9600;
+  const tail=ch.slice(-1600).reduce((n,v)=>n+v*v,0)/1600;
+  assert.ok(energy>.004 && tail<energy*.05,'噴出と余韻の音量');
+ }
 }
 console.log(`${Object.keys(SPELLS).length}技 / ${new Set(Object.values(SKILL_FX_CATALOG).map(d=>d.family)).size}系統 / ${Object.keys(SKILL_FX_SIGNATURES).length}看板: 割当・全体/単体・不発・複合作用点・上限・軽量化・乱数不変・音声を確認`);
