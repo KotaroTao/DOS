@@ -1,5 +1,5 @@
 import { equipmentBukonPanel } from "./bukonview.js";
-import { equipmentCombatState, equipmentPercentScore } from "../equipmentscore.js";
+import { equipmentCombatState } from "../equipmentscore.js";
 import { ELEMENT_KEYS, elementValues, elementalReduction, elementDefenseReduction } from "../combatrules.js";
 import { bukonText } from "../bukon.js";
 import { revealSteps } from "../monsterreveal.js";
@@ -804,92 +804,16 @@ export function weaponShare(W) {
   if (!mag) return 1;
   return Math.max(0, Math.min(1, (Math.max(W.atk || 0, W.agi || 0) / mag - 0.85) / 0.15));
 }
-// 戦闘効果 (eff) の値打ち。数字の能力には出ない効果を、この人業の攻撃力・最大HP/MP で測る (2026-10 ユーザーの指示:
-// 最適装備が連撃・吸血などの特殊効果を見ずに、能力値だけで付け替えていた)。
-//   offense = 攻撃力に換算した増減 (連撃・報復・先手。打撃で戦う度合い share を掛ける) → 攻撃力と同じ物差しで数える
-//   points  = それ以外 (守り・再生・蘇生・障壁・吸血 = 最大HPの換算 × HPの重み / 状態異常無効・節約・金運・魂導)
-// 効果の式は combat.js (連撃 = 通常攻撃の回数 最大4・2未満は効かない) と itemview の EFF_INFO に合わせる
-const EFF_K = {
-  strike: 0.6,   // 連撃: 1回増えるごとに攻撃力 ×0.6 ぶん (技を使う手番もあるので1回分よりは低く)
-  counter: 0.25, // 報復: 攻撃力 × 率 × 0.25 (殴られた時だけ)
-  first: 0.08,   // 先手: 攻撃力 ×0.08
-  steal: 1.5,    // 吸血: 攻撃力 × 率 × 1.5 HP (1戦で吸える量の目安)
-  guard: 2,      // 守り: 最大HP × g/(1−g) × 2 HP (物理・呪文・ブレスのすべて)
-  regen: 3,      // 再生: 最大HP × 率 × 3 HP (2ターン目から毎ターン)
-  revive: 0.2,   // 蘇生: 最大HP × (0.2 + 率) HP (倒れても1度立つ)
-  barrier: 0.2,  // 障壁: 1回ごとに最大HP × 0.2 HP
-  immune: 50,    // 状態異常無効: 50点 (状態異常耐性 全6種100% = 60点に即死も加わる物差し)
-  thrift: 120,   // 節約: (1/倍率 − 1) × 120 点 × 術を使う度合い
-  fortune: 40,   // 金運・魂導: 率 × 40 点 (隊で一番高いものだけ効くので控えめ)
-  disarm: 40,    // 罠外し: 率 × 40 点 (罠を外す役の1人にしか要らないので控えめ)
-};
-const effStrikes = (e) => (e && e.multistrike > 1 ? Math.min(4, e.multistrike) : 1);
-export function effScore(doll, delta, W = gearWeights(doll)) {
-  const ch = delta && delta.eff;
-  if (!ch || (!ch.from && !ch.to)) return { offense: 0, points: 0 };
-  const share = Math.max(0.15, weaponShare(W));
-  const abs = delta.abs || {};
-  const powTo = abs.power || 0, powFrom = powTo - (delta.power || 0);
-  const hpTo = abs.maxhp || 0, hpFrom = hpTo - (delta.hp || 0);
-  const off = (e, pw) => (e ? pw * ((effStrikes(e) - 1) * EFF_K.strike + (e.counter || 0) * EFF_K.counter + (e.actFirst ? EFF_K.first : 0)) * share : 0);
-  const hpEq = (e, pw, hp) => {
-    if (!e) return 0;
-    const g = delta.combat?.from && delta.combat?.to ? 0 : Math.min(0.9, e.guard || 0);
-    return (e.lifesteal || 0) * pw * EFF_K.steal * share
-      + hp * (g / (1 - g)) * EFF_K.guard
-      + hp * (e.regen || 0) * EFF_K.regen
-      + (e.autoRevive ? hp * (EFF_K.revive + e.autoRevive) : 0)
-      + hp * EFF_K.barrier * (e.barrier || 0);
-  };
-  const flat = (e) => {
-    if (!e) return 0;
-    const m = e.spellCostMul > 0 && e.spellCostMul < 1 ? e.spellCostMul : 1;
-    return (e.ailmentImmune && !delta.combat?.from ? EFF_K.immune : 0)
-      + (1 / m - 1) * EFF_K.thrift * Math.max(0.3, 1 - weaponShare(W))
-      + ((e.goldUp || 0) + (e.soulUp || 0)) * EFF_K.fortune
-      + (e.disarmUp || 0) * EFF_K.disarm;
-  };
-  const hpW = W.hp || 0.25;
-  return {
-    offense: off(ch.to, powTo) - off(ch.from, powFrom),
-    points: (hpEq(ch.to, powTo, hpTo) - hpEq(ch.from, powFrom, hpFrom)) * hpW + flat(ch.to) - flat(ch.from),
-  };
-}
+// 最適装備は職業別の能力値だけで選ぶ。属性・会心・耐性・特殊効果は採点しない。
+// 魔力・信仰はINT・PIEと重なる表示用の値なので、二重には加点しない。
 export function gearScore(doll, delta) {
   if (!delta) return 0;
   const W = gearWeights(doll);
-  // 表示用の攻撃力差は保ち、採点だけ後衛の実効威力で比較する。
-  // 控えには隊列を仮定しない。前衛が全滅している場合も実戦同様に繰り上げる。
-  const party = game.G?.party || [];
-  const back = party.indexOf(doll) >= 3 && party.slice(0, 3).some(d => d?.alive);
-  if (back && delta.combat?.from && delta.combat?.to) {
-    const adjust = s => ({ ...s, power: s.power * (s.backRowMul ?? 1), primaryPower: s.primaryPower * (s.backRowMul ?? 1) });
-    const from = adjust(delta.combat.from), to = adjust(delta.combat.to);
-    delta = { ...delta, combat: { from, to }, power: to.power - from.power,
-      abs: { ...delta.abs, power: to.power } };
-  }
-  const fx = effScore(doll, delta, W);
-  const px = equipmentPercentScore(delta.combat?.from,delta.combat?.to,{weaponShare:weaponShare(W),hpWeight:W.hp || .25,magicWeight:Math.max(W.int || 0,W.pie || 0)});
-  // 攻撃に効く戦闘効果は攻撃力の増減に足して、武器の付け替えでも同じ物差しで比べる
-  const power = delta.power != null ? delta.power + fx.offense + px.offense : null;
   let s = 0;
-  for (const k in W) s += (k === "atk" && power != null ? power * Math.max(0.15, weaponShare(W)) : (delta[k] || 0)) * W[k];
-  if (power == null) s += (fx.offense+px.offense) * (W.atk || 1);
-  s += fx.points + px.points;
-  if (!delta.combat?.from || !delta.combat?.to) {
-    s += ((delta.crit || 0) + (delta.spellCrit || 0)) * 0.5;
-    s += ((delta.critDamage || 0) + (delta.spellCritDamage || 0)) * 0.1;
-    const lv = (e) => Object.values(elementValues(e, e?.kind)).reduce((n, v) => n + v / (e?.kind === "defense" ? 100 : 50), 0);
-    for (const ch of [delta.elemAtk, delta.elemDef]) if (ch) s += (lv(ch.to) - lv(ch.from)) * 4;
-    // 状態異常耐性 (合計10%ごとに1点) / 追加効果 (確率10%ごとに1.5点)
-    const resSum = (r) => (r ? Object.values(r).reduce((a, v) => a + v, 0) : 0);
-    const ohSum = (o) => (o ? o.reduce((a, x) => a + (x.chance || 0), 0) : 0);
-    if (delta.ailRes) s += (resSum(delta.ailRes.to) - resSum(delta.ailRes.from)) * 10;
-    s += ((delta.physResist || 0) + (delta.magResist || 0)) * 0.1;
-    if (delta.onHit) s += (ohSum(delta.onHit.to) - ohSum(delta.onHit.from)) * 15;
-    // ブレス耐性 (10%ごとに1点 = 状態異常耐性と同じ)。以前は10%ごとに8点で、ブレス耐性つきの小盾が
-    // AGI −4 の付け替えでも「伸び」と見なされ、最適装備が弱い品を選んでいた
-    if (delta.breathRes) s += delta.breathRes * 0.1;
+  for (const k in W) {
+    const v = k === "atk" && delta.power != null
+      ? delta.power * Math.max(0.15, weaponShare(W)) : (delta[k] || 0);
+    s += v * W[k];
   }
   return Math.round(s * 10) / 10;
 }

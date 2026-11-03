@@ -336,7 +336,7 @@ function bestWearer(item) {
 function deltaKeys(delta) {
   return Object.keys(DLABEL).filter((k) => delta[k] && typeof delta[k] === "number" && !(k === "atk" && delta.power === delta.atk));
 }
-// 攻撃力 → 魔攻（INT）→ 魔攻（PIE）→ その他の能力の順
+// 攻撃力 → 魔力→ 信仰→ その他の能力の順
 function sortedDeltaKeys(delta) {
   return deltaKeys(delta);
 }
@@ -2599,8 +2599,8 @@ function statsSeg(root, d, { showStability = true } = {}) {
     fact("HP", `${d.alive ? d.hp : 0}/${d.maxhp}`);
     fact("MP", `${d.mp}/${d.maxmp}`);
     fact("攻撃力", String(attackPower(d)));
-    fact("魔攻（INT）", String(magicAttackPower(d, "int")));
-    fact("魔攻（PIE）", String(magicAttackPower(d, "pie")));
+    fact("魔力", String(magicAttackPower(d, "int")));
+    fact("信仰", String(magicAttackPower(d, "pie")));
     if (d.dualWield > 0) fact("左手", d.offPower ? `攻撃力 ${d.offPower}（${Math.round(d.dualWield * 100)}%）` : `空き（二刀流 ${Math.round(d.dualWield * 100)}%）`);
     fact("参照", d.wScale ? Object.keys(d.wScale).map(k => ATTR_LABEL[k]).join("＋") : "STR（素手）");
     fact("状態", ail, ail === "正常" ? "" : "bad");

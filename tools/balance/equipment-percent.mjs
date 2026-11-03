@@ -46,9 +46,9 @@ const score=(p,from,to)=>gearScore(p,statsDelta(previewStats(p,from),previewStat
 {
  const p=make(),plain={slot:'weapon',element:'none'},fire={slot:'weapon',element:'fire'},amp={slot:'acc',eAtk:{el:'fire',pct:50}};
  near(score(p,{weapon:plain},{weapon:plain,acc1:amp}),0,'無属性の剣に属攻を加点しない');
- assert(score(p,{weapon:fire},{weapon:fire,acc1:amp})>0,'属性が乗る刃に加点');
+ near(score(p,{weapon:fire},{weapon:fire,acc1:amp}),0,'属性・特殊効果は採点しない');
  const fireSpell=Object.keys(SPELLS).find(k=>SPELLS[k].kind==='atk'&&SPELLS[k].element==='fire');p.spells=[fireSpell];p.clsKey="mage";
- assert(score(p,{weapon:plain},{weapon:plain,acc1:amp})>0,'習得した火の呪文に加点');
+ near(score(p,{weapon:plain},{weapon:plain,acc1:amp}),0,'属性・特殊効果は採点しない');
  p.spells=[Object.keys(SPELLS).find(k=>SPELLS[k].kind==='atk'&&SPELLS[k].element==='water')];
  near(score(p,{weapon:plain},{weapon:plain,acc1:amp}),0,'使わない属性は加点しない');
  const strong={slot:'body',eDef:{el:'fire',pct:400}},excess={slot:'body',eDef:{el:'fire',pct:800}};
@@ -57,17 +57,17 @@ const score=(p,from,to)=>gearScore(p,statsDelta(previewStats(p,from),previewStat
  near(score(p,{body:immune},{body:immune,acc1:poison}),0,'万能耐性と専門耐性を二重加点しない');
  const lucky=make();lucky.base.luk=500;recalc(lucky);
  near(score(lucky,{body:{crit:.6}},{body:{crit:.65}}),0,'LUK込み会心80%を超える分は加点しない');
- assert(score(p,{weapon:plain},{weapon:{...plain,eff:{multistrike:2}}})>0,'二連撃の固有効果を評価');
+ near(score(p,{weapon:plain},{weapon:{...plain,eff:{multistrike:2}}}),0,'属性・特殊効果は採点しない');
  p.clsKey='fighter';
  const proc=p=>({slot:'weapon',onHit:{k:'paralyze',chance:p}});
- assert(score(p,{weapon:proc(3)},{weapon:proc(4)})>0,'付与力300%超も高耐性の敵には価値がある');
+ near(score(p,{weapon:proc(3)},{weapon:proc(4)}),0,'属性・特殊効果は採点しない');
  near(score(p,{weapon:proc(30)},{weapon:proc(31)}),0,'想定する全耐性で飽和した付与力は加点しない');
  // 館の比較と最適装備が同じ値を返す。
  p.equip.weapon=plain;recalc(p);const item={id:'compare_amp',slot:'acc',eAtk:{el:'water',pct:30}};
  near(gearScore(p,equipPreviewDelta(p,'acc1',item)),score(p,p.equip,{...p.equip,acc1:item}),'比較の一致');
  const plainFire={slot:'weapon',element:'fire',name:'火の剣'},wrong={id:'wrong',slot:'acc',eAtk:{el:'earth',pct:80}},right={id:'right',slot:'acc',eAtk:{el:'fire',pct:30}};
  p.clsKey="fighter";p.spells=[];p.equip.weapon=plainFire;recalc(p);p.items=[wrong,right];
- const plan=planBestEquip([p],{canEquip:()=>true,score:gearScore});assert(plan.moves.some(m=>m.item===right));assert(!plan.moves.some(m=>m.item===wrong),'数字だけ大きい未使用属性を選ばない');
+ const plan=planBestEquip([p],{canEquip:()=>true,score:gearScore});assert.equal(plan.moves.length,0,'属攻だけの装備は選ばない');assert(!plan.moves.some(m=>m.item===wrong),'数字だけ大きい未使用属性を選ばない');
 }
 {
  const p=make();for(const slot of SLOTS)p.equip[slot]={slot:slot.startsWith('acc')?'acc':slot,rar:'lr',resists:{physResist:40,magResist:40},eDef:{values:Object.fromEntries(['fire','water','wind','earth','light','dark'].map(k=>[k,400]))},bukon:[{k:'res_physResist',lv:4},{k:'res_poison',lv:7},{k:'crit',lv:10}]};
@@ -83,12 +83,12 @@ const score=(p,from,to)=>gearScore(p,statsDelta(previewStats(p,from),previewStat
  const state=eq=>{const f={base:p.base,equip:eq};recalc(f);return equipmentCombatState(f,p);};
  const fire=state({body:soul});near(fire.reductions.fire,.7,'固有20%と武魂50%を加算');
  const f={base:p.base,equip:{body:soul}};recalc(f);near(elementMultiplier('fire',100,f.elemDef),.3,'実戦の軽減と一致');
- assert(score(p,{body:base},{body:soul})>0,'直接軽減の武魂を評価');
- assert(score(p,{body:soul},{body:all})>0,'全属性の守りを評価');
+ near(score(p,{body:base},{body:soul}),0,'属性・特殊効果は採点しない');
+ near(score(p,{body:soul},{body:all}),0,'属性・特殊効果は採点しない');
  const capped={...base,eDef:{kind:'defense',reductions:{fire:.8}}};near(score(p,{body:capped},{body:{...capped,bukon:[{k:'elem_def_fire',lv:10}]}}),0,'直接軽減80%の超過を加点しない');
  const old={...base,eDef:{el:'fire',pct:100}};const mixed={base:p.base,equip:{body:old,head:{slot:'head',bukon:[{k:'elem_def_fire',lv:10}]}}};recalc(mixed);
  near(elementMultiplier('fire',100,mixed.elemDef),.2,'旧耐性力と新武魂も80%');
- const boots={slot:'feet',rar:'lr',bukon:[{k:'evade',lv:10}]};assert(score(p,{}, {feet:boots})>0,'靴だけの回避武魂を評価');
+ const boots={slot:'feet',rar:'lr',bukon:[{k:'evade',lv:10}]};near(score(p,{}, {feet:boots}),0,'属性・特殊効果は採点しない');
  const cappedBoots={slot:'feet',evade:.8};near(score(p,{feet:cappedBoots},{feet:{...cappedBoots,bukon:[{k:'evade',lv:10}]}}),0,'回避80%超を加点しない');
  const buffSoul=slot=>({slot,rar:'lr',bukon:[{k:'I17',lv:10}]});
  const cappedDeal={weapon:buffSoul('weapon'),acc1:buffSoul('acc')};
@@ -97,39 +97,16 @@ const score=(p,from,to)=>gearScore(p,statsDelta(previewStats(p,from),previewStat
 }
 assert(ailDetailLines({onHit:{k:'poison',chance:3,pct:.05}}).some(t=>t.includes('300%')&&t.includes('一回')),'付与力として表示');
 assert(specialLines(ITEMS.a_sr1_wardenmail).some(t=>t.includes('闇ダメージ')));
-console.log(`OK 全${equipment.length}装備・属攻${attack}/属防${defense}点の来歴別調整・武魂に合わせた数値帯・既存品/品質/武魂・最適装備の属性選択と実上限・比較一致`);
+console.log(`OK 全${equipment.length}装備・属攻${attack}/属防${defense}点の来歴別調整・武魂に合わせた数値帯・既存品/品質/武魂・最適装備の属性・特殊効果除外・比較一致`);
 
-// 後衛の射程と術者の能力優先。表示用の差分は採点で書き換えない。
+// 死霊術師は属性強化だけを理由にINTを失う武器へ替えない。
 {
- const {game}=await import('../../src/ui/ctx.js');
- const saved=game.G;
- try {
-  const p=make();p.jobKey='warrior';
-  const bow={slot:'weapon',cat:'bw',scale:{atk:1}},dagger={slot:'weapon',cat:'dg',scale:{atk:1.01}};
-  const front=[{alive:true},{alive:true},{alive:true}];game.G={party:[...front,p]};
-  const delta=statsDelta(previewStats(p,{weapon:bow}),previewStats(p,{weapon:dagger}));
-  assert.equal(delta.power,1);
-  assert(gearScore(p,delta)<0,'後衛では攻撃力+1の短剣に替えない');
-  assert.equal(delta.power,1,'表示用の攻撃力差を保つ');
-  assert(score(p,{weapon:dagger},{weapon:bow})>0,'後衛は弓への交換を評価');
-  const spear={...bow,cat:'sp'};
-  near(score(p,{weapon:bow},{weapon:spear}),0,'槍も後衛の威力を保つ');
-  const boots={slot:'feet',afxMisc:{stepIn:true}};
-  assert(score(p,{weapon:bow,feet:boots},{weapon:dagger,feet:boots})>0,'踏み込みで半減を解消');
-  assert(score(p,{weapon:dagger},{weapon:dagger,feet:boots})>0,'踏み込みの取得を評価');
-  game.G={party:[p,...front]};assert(gearScore(p,delta)>0,'前衛は短剣の攻撃力増を評価');
-  game.G={party:front};assert(gearScore(p,delta)>0,'控えには後衛を仮定しない');
-  game.G={party:[{alive:false},{alive:false},{alive:false},p]};assert(gearScore(p,delta)>0,'前衛全滅時は繰り上がる');
-  p.jobKey='mage';game.G={party:[...front,p]};
-  const staff={slot:'weapon',cat:'st',scale:{atk:.5},int:20};
-  assert(score(p,{weapon:bow},{weapon:staff})>0,'術者はINT増を優先して近距離の杖を選べる');
-  assert(score(p,{weapon:staff},{weapon:dagger})<0,'術者にINTを失う短剣を勧めない');
-  p.jobKey='priest';const holy={...staff,int:0,pie:20};
-  assert(score(p,{weapon:bow},{weapon:holy})>0,'祈りの職はPIE増を優先');
-  p.jobKey='warrior';p.equip={weapon:bow};p.items=[dagger];recalc(p);
-  assert.equal(planBestEquip([p],{canEquip:()=>true,score:gearScore}).moves.length,0,'最適装備も後衛の短剣を避ける');
- } finally {game.G=saved;}
- console.log('OK 隊列・弓/槍/短剣・踏み込み・前衛繰り上がり・控え・術者のINT優先');
+ const p=make();p.jobKey='necromancer';
+ const staff={slot:'weapon',cat:'st',scale:{int:1},int:83,mp:55};
+ const blade={slot:'weapon',cat:'dg',scale:{agi:1},agi:8,eAtk:{el:'dark',pct:50}};
+ assert(score(p,{weapon:staff},{weapon:blade})<0,'INT低下を闇属攻で相殺しない');
+ const plain={slot:'acc'},special={...plain,eff:{guard:.8,multistrike:4,regen:.5},crit:.5,aRes:{poison:.8},eAtk:{el:'dark',pct:100}};
+ near(score(p,{acc1:plain},{acc1:special}),0,'属性・会心・耐性・特殊効果だけでは加点しない');
 }
 assert.equal(resistDeltaParts([], [{resists:{charm:12,physResist:6}}]).map(x=>x.text).join('／'),'魅了耐性+12%／物理耐性+6%');
 assert(equipEffectDeltaParts({ailRes:{from:{charm:.12},to:{charm:.25}}}).some(x=>x.text==='魅了耐性+13%'));
