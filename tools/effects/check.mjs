@@ -20,7 +20,9 @@ for(const [key,sp]of Object.entries(SPELLS)){
  assert.ok(SKILL_FAMILIES[d.family],key);assert.ok(Object.isFrozen(d));assert.ok(d.tier>=1&&d.tier<=(d.family==='impact'?5:3));
  assert.equal(p.family,d.family);assert.equal(p.all,['all-enemy','all-ally'].includes(sp.target));
  assert.equal(scene.length,1,key);assert.equal(scene[0].type,'skillScene');assert.ok(scene[0].pts.length>=1&&scene[0].pts.length<=6);
- assert.ok(Number.isFinite(scene[0].x)&&Number.isFinite(scene[0].y)&&scene[0].dur===skillFxDuration(d),key);
+ assert.ok(Number.isFinite(scene[0].x)&&Number.isFinite(scene[0].y)&&scene[0].dur===skillFxDuration(scene[0].design),key);
+
+
  assert.equal(scene[0].all,p.all,key);
 }
 assert.deepEqual([...rngState()],before,'演出生成でゲーム用乱数を消費');
@@ -159,6 +161,20 @@ for(const [key,design]of Object.entries(SKILL_FX_CATALOG))if(utilityFamilies.has
  const level=levels.length?Math.min(...levels):1;
  assert.equal(design.tier,level>=100?3:level>=30?2:1,key);
 }
+// 命中ごとの時間枠・対象・打数は画質によらず保持する。
+for(const [key,sp] of Object.entries(SPELLS))if(Math.max(sp.hits||1,sp.scatter||1)>1){
+ const e=previewSkillFx(key)[0];
+ assert.equal(e.strikes.length,sp.scatter||(sp.hits*(['all-enemy','all-ally'].includes(sp.target)?6:1)),key);
+ assert.ok(e.dur>=e.strikes.length*96,key);
+}
+for(const rows of Object.values(JOB_SKILLS)){
+ const skills=rows.filter(r=>r.skill),top=Math.max(...skills.map(r=>r.lvl));
+ for(const r of skills.filter(r=>r.lvl===top))assert.ok(SKILL_FX_SIGNATURES[r.skill]?.ultimate,r.skill);
+}
+const ultimates=Object.values(SKILL_FX_SIGNATURES).filter(s=>s.ultimate);
+assert.equal(new Set(ultimates.map(s=>JSON.stringify([s.ultimate,s.tone]))).size,ultimates.length);
+list=[];emitSkillFx(list,'RINNE',SPELLS.RINNE,[{target:enemy,dmg:10},{target:enemy,miss:true},{target:ally,dmg:12},{target:enemy,immune:true}],locate,0);
+assert.deepEqual(list[0].strikes,[locate(enemy),locate(ally)]);
 
 const shapes=new Set();
 for(const [job,rows] of Object.entries(JOB_SKILLS)){
@@ -176,3 +192,4 @@ for(const [key,d] of Object.entries(SKILL_FX_CATALOG))if(d.family==='impact'){
 }
 assert.equal(ranks.size,5);
 console.log(`${shapes.size}職業の最終技専用構図 / 重い打撃5ランクを確認`);
+
