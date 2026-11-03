@@ -83,6 +83,8 @@ jobs:
           python3 tools/cloud/windup-browser.py
           python3 tools/cloud/normal-attack-browser.py
           python3 tools/cloud/normal-impact-browser.py
+          python3 tools/effects/materials-browser.py
+          python3 tools/effects/combo-browser.py
           python3 tools/effects/browser-check.py
           python3 tools/effects/game-browser.py
       - name: 本番B方式の実ゲーム・復旧・終了検証
@@ -108,6 +110,7 @@ jobs:
             /tmp/dos-cloud-audit
             /tmp/dos-choice-trial-browser
             /tmp/dos-skill-fx-check
+            /tmp/dos-material-fx
 
   choice-benchmark:
     needs: ledger-benchmark
