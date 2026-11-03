@@ -1,5 +1,5 @@
 import { showFieldSkillFx } from "./skill-fx-field.js";
-import { emitSkillFx, skillFxSound, skillFxDuration, extendedSkillFx } from "./skill-fx.js";
+import { emitSkillFx, skillFxSound, skillFxDuration, extendedSkillFx, enemySkillFxProfile } from "./skill-fx.js";
 import { beginBattleWindup, normalAttackTiming } from "./battle-windup.js";
 import { createTrial } from "./choice-trial.js";
 import { battleCommand } from "./cloud-battle.js";
@@ -11630,8 +11630,9 @@ function animateResult(res, done) {
   requestAnimationFrame(tick);
 }
 
-// 技の演出の設計図 (battlefx.skillProfile)。味方の技だけ (敵の特殊行動・道具・通常攻撃は持たない)
+// 味方の技と敵の術・ブレスを、画像だけの描画口へ通す。
 function fxProfile(res) {
+  const enemy=enemySkillFxProfile(res);if(enemy)return enemy;
   if (!res || res.side !== "party" || res.action !== "spell" || !res.spellKey) return null;
   return skillProfile(res.spellKey, SPELLS[res.spellKey]);
 }
@@ -11734,7 +11735,9 @@ function applyImpact(res) {
   const skillDesign = fxProfile(res);
   // 効果音 + 振動
   if (skillDesign && (res.hits.some(h => !h.miss && !h.immune) || skillDesign.family === "escape" && res.fled)) {
-    SFX.skill(skillFxSound(skillDesign.family, skillDesign.tier),{rank:skillDesign.tier,duration:skillFxDuration(skillDesign,1,{auto:!!G.autoCombat,fast:!!G.fastAnim})}); buzz(20);
+    SFX.skill(skillFxSound(skillDesign.family, skillDesign.tier),{physical:skillDesign.kind==="phys",rank:skillDesign.tier,duration:skillFxDuration(skillDesign,1,{auto:!!G.autoCombat,fast:!!G.fastAnim})}); buzz(20);
+  } else if (skillDesign) {
+    SFX.skillImpact("air");
   } else if (res.windup) {
     // 大技の予兆: 不穏な音と小さな揺れ (この手番は攻撃しない)
     SFX.ambush(); buzz([0, 30, 30, 30]);
@@ -11781,20 +11784,22 @@ function applyImpact(res) {
   const presentationDuration=skillDesign?skillFxDuration(skillDesign,spd,{auto:!!G.autoCombat,fast:!!G.fastAnim}):0;
   const steps=Math.max(1,...Object.values((res.hits||[]).reduce((counts,h)=>{if(h.target&&h.dmg!=null){const key=h.target.side+':'+h.target.uid;counts[key]=(counts[key]||0)+1;}return counts;},{})),(res.hits||[]).filter(h=>h.heal!=null||h.buff||h.debuff).length);
   const comboCount=skillDesign?Math.max(SPELLS[res.spellKey]?.hits||1,SPELLS[res.spellKey]?.scatter||1):1;
-  const stag = presentationDuration ? presentationDuration/Math.max(comboCount,steps) : quickBattlePresentation() ? Math.min(HIT_STAGGER * spd, 90 / Math.max(1, res.hits.length)) : HIT_STAGGER * spd;
+  const stag = presentationDuration ? (SPELLS[res.spellKey]?.kind==='phys'?85*presentationDuration/(comboCount*85+60):presentationDuration/Math.max(comboCount,steps)) : quickBattlePresentation() ? Math.min(HIT_STAGGER * spd, 90 / Math.max(1, res.hits.length)) : HIT_STAGGER * spd;
   const stackIdx = {};
   // 技ごとの組み立て: 描き分け (v)・角度 (rot)・回る向き (spin)・格 (scale)・付く効果の印 (riders)
   const prof = fxProfile(res);
+  const setImpactFxV=(target,value)=>{if(!prof?.family)setPartyFxV(target,value);};
   const pv0 = prof ? { v: prof.v, rot: prof.rot, spin: prof.spin, s: prof.scale * (prof.all ? 0.8 : 1) } : {};
   // 旧方式の看板技は専用の演出に差し替える (battlefx-sig.js)
   const configuredSig = prof && !prof.family ? SIG_FX[res.spellKey] || null : null;
   const sig = configuredSig && (prof.all || !["field", "party"].includes(configuredSig.mode)) ? configuredSig : null;
   // 全体回復は対象全員が同じ中央下に重なって1人分にしか見えないため、
   // 回復対象ごとに横位置をずらし、わずかな時間差を付けて全員ぶんはっきり見せる
-  if (prof?.family) emitSkillFx(fx.skill,res.spellKey,SPELLS[res.spellKey],prof.family === "escape" && res.fled ? [{target:res.actor}] : res.hits,target=>{
+  const effectSpell=(res.side==='party'?SPELLS[res.spellKey]:null)||{...SPELLS[res.spellKey],kind:prof?.kind,element:res.spellElement||res.actor?.element,target:res.hits.some(h=>h.target?.side==='party')?(res.hits.length>1?'all-ally':'ally'):(res.hits.length>1?'all-enemy':'enemy')};
+  if (prof?.family) emitSkillFx(fx.skill,res.spellKey,effectSpell,prof.family === "escape" && res.fled ? [{target:res.actor}] : res.hits,target=>{
     const pos=target.side==="enemy"?G.enemyPos[target.uid]:{cx:partyFxX(target),cy:VH-30};
     return pos?{x:pos.cx,y:pos.cy}:null;
-  },now,spd,{auto:!!G.autoCombat,fast:!!G.fastAnim,source:res.actor?{x:partyFxX(res.actor),y:VH-30}:null});
+  },now,spd,{design:prof,auto:!!G.autoCombat,fast:!!G.fastAnim,source:res.actor?.side==="enemy"?(G.enemyPos[res.actor.uid]?{x:G.enemyPos[res.actor.uid].cx,y:G.enemyPos[res.actor.uid].cy}:null):res.actor?{x:partyFxX(res.actor),y:VH-30}:null});
   const skillSlots=new Map(),targetSlots=new Map();let scatterSlot=0;
   if(prof?.family&&comboCount>1)for(const hit of res.hits){
     if(!hit.target||!(hit.dmg!=null||hit.miss||hit.immune))continue;
@@ -11827,7 +11832,7 @@ function applyImpact(res) {
       const offset=skillSlots.get(h)??idx;
       const ht0 = now + offset * stag;
       const dx = idx === 0 ? 0 : (idx % 2 ? 1 : -1) * (14 + 4 * idx); // 左右に振って重なり回避
-      if (offset > 0 && (!prof?.family || h.dmg!=null&&!h.immune)) setTimeout(() => { if(!prof?.family||G.fx===fx) SFX.hit(normalStyle(h)); }, offset * stag); // 2撃目以降にも手応えの効果音
+      if (offset > 0 && (!prof?.family || h.dmg!=null&&!h.immune)) setTimeout(() => { if(!prof?.family) SFX.hit(normalStyle(h)); else if(G.fx===fx) SFX.skillImpact(prof.kind==='phys'?(prof.family==='impact'?'impact':'slash'):skillFxSound(prof.family,prof.tier)); }, offset * stag); // 2撃目以降にも手応えの効果音
       const seed = (h.target.uid || 1) * 31 + idx;
       if (res.opening === "senkoku") {
         // 死の宣告: 敵ごとに少しずつ遅れて、大鎌が魂を刈り取る (崩れ落ちは鎌が抜けた後)
@@ -11919,7 +11924,7 @@ function applyImpact(res) {
         // 強化/弱体が味方にかかった: 緑(▲)/赤(▼)のフロートで発動を知らせる (敵のピル表示と同様に可視化)
         const mt = buffFloatText(h);
         G.partyFx.set(h.target, h.buff ? "heal" : "hit");
-        setPartyFxV(h.target, h.buff ? "buff" : "debuff");
+        setImpactFxV(h.target, h.buff ? "buff" : "debuff");
         const mi = partyModIdx++;
         const fx0 = partyFxX(h.target);
         const fy0 = VH - 26 - (mi % 2) * 16;
@@ -11928,13 +11933,13 @@ function applyImpact(res) {
         // 状態異常・弱体の治癒も知らせる
         if (h.cured) {
           G.partyFx.set(h.target, "heal");
-          setPartyFxV(h.target, "cure");
-          fx.floats.push({ x: partyFxX(h.target), y: VH - 26, text: "治癒✚", color: "#9be8ff", t0: now });
+          setImpactFxV(h.target, "cure");
+          fx.floats.push({ x: partyFxX(h.target), y: VH - 26, text: "治療", color: "#9be8ff", t0: now });
         }
       } else if (h.mpHeal != null) {
         // 魔力の譲渡
         G.partyFx.set(h.target, "heal");
-        setPartyFxV(h.target, "mana");
+        setImpactFxV(h.target, "mana");
         fx.floats.push({ x: partyFxX(h.target), y: VH - 26, text: "MP+" + h.mpHeal, color: "#7fb8ff", t0: now, kind: "heal" });
       } else if (h.heal != null) {
         G.partyFx.set(h.target, "heal");
@@ -11943,13 +11948,13 @@ function applyImpact(res) {
         const fx0 = partyFxX(h.target);
         const fy0 = VH - 26 - (i % 2) * 16; // 重なり回避に上下も少しずらす
         fx.floats.push({ x: fx0, y: fy0, text: "+" + h.heal, color: "#7CFC7C", t0: now + i * stag, kind: "heal" });
-        setPartyFxV(h.target, "heal");
+        setImpactFxV(h.target, "heal");
         if (!prof?.family) spawnFx(fx.skill, "rise", partyFxX(h.target), VH - 8, now + i * stag, spd, { seed: i + 3, s: 0.8 * (prof ? prof.scale : 1), col: "#7CFC7C" });
       } else if (h.steal) {
         // 窃盗: ゴールド/Soul の控除はここで行う (combat.js は G を知らない)
         partyHit = true;
         G.partyFx.set(h.target, "hit");
-        setPartyFxV(h.target, "claw");
+        setImpactFxV(h.target, "claw");
         if (h.steal === "goldSteal") {
           const s = res._persistedConsequences ? h.persistedSteal : Math.min(G.gold, h.stealAmt || 0);
           if (!res._persistedConsequences) {
@@ -11971,22 +11976,23 @@ function applyImpact(res) {
       } else if (h.stoned) {
         partyHit = true;
         G.partyFx.set(h.target, "hit");
-        setPartyFxV(h.target, "stone");
+        setImpactFxV(h.target, "stone");
         fx.floats.push({ x: VW / 2, y: VH - 26, text: "石化!", color: "#c9c4b8", t0: now });
       } else if (h.status && h.dmg == null) {
         // 眠り・魅了・混乱をかけられた (ダメージなし)
         partyHit = true;
         G.partyFx.set(h.target, "hit");
-        setPartyFxV(h.target, "status");
+        setImpactFxV(h.target, "status");
         const n = res.hits.filter((x) => x.status && x.dmg == null).length, i = res.hits.filter((x) => x.status && x.dmg == null).indexOf(h);
         fx.floats.push({ x: n > 1 ? VW * (i + 1) / (n + 1) : VW / 2, y: VH - 26 - (i % 2) * 16, text: h.status, color: "#ff9ad0", t0: now + i * stag });
       } else if (!h.miss) {
         partyHit = true;
         G.partyFx.set(h.target, "hit");
         // 札の上の演出: ブレス・全体呪文は属性の色、打撃は爪痕 (会心は金)。打撃は戦場の下端にも爪痕を走らせる
-        if (res.action === "breath") setPartyFxV(h.target, "el-" + (ELEM_FX_COL[res.actor.element] ? res.actor.element : "none"));
+        if (prof?.family) setImpactFxV(h.target,"hit");
+        else if (res.action === "breath") setImpactFxV(h.target, "el-" + (ELEM_FX_COL[res.actor.element] ? res.actor.element : "none"));
         else {
-          setPartyFxV(h.target, h.crit ? "claw crit" : "claw");
+          setImpactFxV(h.target, h.crit ? "claw crit" : "claw");
           spawnFx(fx.skill, "pclaw", partyFxX(h.target), VH - 6, now, spd, { crit: !!h.crit });
         }
         fx.floats.push({ x: partyFxX(h.target), y: VH - 26, text: String(h.dmg) + (h.fatal ? " 即死!" : ""), color: h.fatal ? "#ff2a2a" : "#ff6b6b", t0: now, kind: "pdmg" });
@@ -12028,7 +12034,7 @@ function applyImpact(res) {
     } else for (const p of mates) spawnFx(fx.skill, sig.type, partyFxX(p), VH, now, spd, { seed: prof.seed });
   }
   // ブレス: 敵から隊へ属性の奔流が押し寄せる / 全体呪文: 隊の札の上で属性の呪文が弾ける
-  if (res.action === "breath") {
+  if (res.action === "breath" && !prof?.family) {
     const el0 = res.fxEl || res.actor.element; // 写し身の呪文は呪文の属性で
     const el = ELEM_FX_COL[el0] ? el0 : "none";
     const sp0 = G.enemyPos[res.actor.uid];
@@ -12049,7 +12055,7 @@ function applyImpact(res) {
     }
     buzz([0, 50, 50, 50]);
   }
-  if (anyDeath) setTimeout(() => SFX.die(), 200);
+  if (anyDeath) setTimeout(() => {if(prof?.family){if(G.fx===fx)SFX.skillImpact('impact');}else SFX.die();}, prof?.family?Math.min(200,Math.max(0,presentationDuration-65)):200);
 }
 
 // 戦闘勝利時: 入手Soulの1/3を、生存している隊メンバーが宿す魂 (メイン魂・サブ魂はその1/3) に

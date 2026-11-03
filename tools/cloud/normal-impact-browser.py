@@ -29,9 +29,10 @@ with sync_playwright() as p:
   const audio=await import('/src/audio.js'),{Engine}=await import('/src/music/engine.js');audio.initAudio();audio.setVolumes(0,1);
   const played=[],old=Engine.prototype.playBuffer;Engine.prototype.playBuffer=function(buffer,...args){played.push(buffer.duration);return old.call(this,buffer,...args);};
   for(const style of ['slash','smash','thrust','arrow',null])audio.SFX.hit(style);
-  const expected=[.22,.27,.18,.18,.3];if(played.length!==5||played.some((v,i)=>Math.abs(v-expected[i])>.001))throw Error('命中音の振り分けが異なる');
-  const {SFX_DEFS}=await import('/src/music/sfx.js'),{rng}=await import('/src/music/dsp.js');
-  for(const name of ['normalSlash','normalBlunt','normalPierce'])for(let i=0;i<3;i++){
+  const expected=[.11,.11,.11,.11,.11];if(played.length!==5||played.some((v,i)=>Math.abs(v-expected[i])>.001))throw Error('命中音の振り分けが異なる');
+  const {SFX_DEFS,naturalSkillName}=await import('/src/music/sfx.js'),{rng}=await import('/src/music/dsp.js');
+  for(const kind of ['slash','impact','pierce'])for(let i=0;i<3;i++){
+   const name=naturalSkillName(kind,1,110);
    const sound=SFX_DEFS[name].gen(rng(42+i));
    if(!sound.ch.every(ch=>ch.every(Number.isFinite)&&ch.some(v=>Math.abs(v)>.1)))throw Error('命中音が無音または不正');
   }

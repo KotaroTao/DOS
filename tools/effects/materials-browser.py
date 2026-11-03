@@ -13,10 +13,11 @@ with sync_playwright() as p:
  const {SPELLS}=await import('/src/skilldefs.js'),{SKILL_FX_CATALOG}=await import('/src/skill-fx-catalog.js');
  const {previewSkillFx}=await import('/src/skill-fx-preview.js'),{drawBattleFx}=await import('/src/battlefx.js');
  const {MATERIAL_FAMILIES}=await import('/src/skill-fx-materials.js'),{setFxQuality}=await import('/src/skill-fx-budget.js');
+ const forbidden=['stroke','fill','arc','ellipse','lineTo','moveTo','rect','fillRect','strokeRect','bezierCurveTo','quadraticCurveTo'];
  const used=new Map();for(const key of Object.keys(SPELLS)){const f=SKILL_FX_CATALOG[key].family;if(!used.has(f))used.set(f,key);}
  if([...used.keys()].some(f=>f!=='firePillar'&&!MATERIAL_FAMILIES.includes(f)))throw Error('未対応系統');
  const board=document.createElement('canvas');board.width=720;board.height=used.size*180;const bc=board.getContext('2d');bc.fillStyle='#1b1922';bc.fillRect(0,0,board.width,board.height);
- const canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;const c=canvas.getContext('2d');let draws=0;const real=c.drawImage.bind(c);c.drawImage=(...args)=>{draws++;real(...args);};
+ const canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;const c=canvas.getContext('2d');for(const method of forbidden)c[method]=()=>{throw Error('技で図形APIを使用: '+method);};let draws=0;const real=c.drawImage.bind(c);c.drawImage=(...args)=>{draws++;real(...args);};
  let checked=0;for(const key of Object.keys(SPELLS)){
   const scene=previewSkillFx(key);draws=0;c.clearRect(0,0,640,360);drawBattleFx(c,scene,scene[0].dur*.4,640,360,false);
   if(!draws)throw Error(key+' が材質を使用していない');checked++;

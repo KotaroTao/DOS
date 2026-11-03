@@ -74,7 +74,7 @@ with sync_playwright() as p:
  page.wait_for_timeout(1500)
  assert hold['held'],'命令が送信されない'
  assert page.locator('.battle-windup').count()==1,'本編の通信待ちで構えを表示していない'
- assert page.locator('.windup-spark').count()==6
+ assert page.locator('.windup-spark,.windup-ring,.windup-aim,.windup-sweep').count()==0
  assert page.evaluate('__game.G.battle.enemies[0].hp')==after,'確定応答前に結果を表示した'
  held_body=hold['held'][0][1]
  assert page.evaluate("""async()=>{const m=await import('/src/cloud-save.js');window.unexpectedSave=false;const ok=await m.cloudPrepareReload(()=>{unexpectedSave=true;return Promise.resolve(true)});return ok===false&&!unexpectedSave;}""")

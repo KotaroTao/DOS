@@ -18,22 +18,22 @@ for row,kind in enumerate(MATERIALS):
  for frame in range(FRAMES):
   t=frame/FRAMES;flow=fbm(x*3+17+t*1.8,y*3+23-t*2.4);fine=fbm(x*9+31-t*3,y*9+44+t*2)
   if kind=='ribbon':
-   spine=y+.32*np.sin(x*2.1+t*2.8)+(flow-.5)*.15
-   field=np.exp(-(spine/(.08+.07*(1-x*x)))**2)*(1-x*x)*(.5+fine);hot=np.exp(-(spine/.025)**2)
+   # 一本の線状の芯を作らず、ちぎれる空気と摩擦の濃淡を横長にする。
+   field=np.exp(-(y/.52)**4)*np.exp(-(x/.85)**6)*np.clip((flow-.3)*2.7,0,1)*(.3+fine);hot=np.clip((fine-.66)*3,0,1)*field
   elif kind=='pressure':
-   ring=rad+.13*(flow-.5)-(.37+.16*t);field=np.exp(-(ring/.12)**2)*(.4+fine)+np.exp(-(rad/.2)**2)*.8;hot=np.exp(-(ring/.025)**2)
+   cloud=rad+(flow-.5)*.45;field=np.exp(-(cloud/.68)**3)*np.clip((fine-.22)*2,0,1);hot=np.clip((fine-.65)*3,0,1)*field
   elif kind=='crystal':
-   facets=np.abs(np.sin(angle*5+rad*9+t*.7));field=np.exp(-((abs(x)*.7+abs(y)-.6)/.27)**2)*(.25+facets*.7)*(1-rad*.6);hot=np.exp(-((facets-.92)/.045)**2)*field
+   facets=np.abs(np.sin(x*7+y*3+flow*5));field=np.exp(-((x*.7+y*.2)/.6)**4)*np.exp(-(y/.85)**4)*(.25+facets*.7);hot=np.clip((fine-.6)*3,0,1)*field
   elif kind=='water':
    crest=y+.38*np.sin(x*2.6-t*3)+.18;field=np.exp(-(crest/.19)**2)*(.35+flow)+np.exp(-((crest+.28)/.32)**2)*.2;hot=np.exp(-(crest/.035)**2)*(.4+fine)
   elif kind=='wind':
-   curl=rad+.12*np.sin(angle*3+t*4)+.12*(flow-.5);field=np.exp(-((curl-.55)/.12)**2)*(.3+fine)*(.65+.35*np.sin(angle-t*5));hot=np.exp(-((curl-.55)/.025)**2)*.6
+   plume=y+.3*np.sin(x*2-t*3)+(flow-.5)*.4;field=np.exp(-(plume/.25)**2)*np.exp(-(x/.8)**4)*(.2+fine);hot=np.clip((fine-.65)*3,0,1)*field
   elif kind=='shadow':
-   spiral=np.sin(angle*4+rad*12-t*5);field=np.exp(-((rad-.48)/.3)**2)*np.clip((spiral+.3)*.8,0,1)*(.4+flow);hot=np.exp(-((spiral-.92)/.07)**2)*field
+   field=np.exp(-(rad/.78)**3)*np.clip((flow-.25)*2,0,1)*(.2+fine);hot=np.clip((fine-.62)*3,0,1)*field
   elif kind=='light':
-   rays=np.maximum(0,np.cos(angle*8+t*.6))**14;field=np.exp(-(rad/.4)**2)+rays*np.exp(-rad*2.5)*.7;hot=np.exp(-(rad/.12)**2)+rays*.3
+   plume=x+(flow-.5)*.5+.13*np.sin(y*4+t*3);field=np.exp(-(plume/.26)**2)*np.exp(-(y/.8)**4)*(.25+fine);hot=np.clip((fine-.6)*3,0,1)*field
   elif kind=='life':
-   petals=.48+.18*np.cos(angle*5-t*2);field=np.exp(-((rad-petals)/.16)**2)*(.4+fine)+np.exp(-(rad/.3)**2)*.3;hot=np.exp(-((rad-petals)/.035)**2)*.6
+   plume=x+(flow-.5)*.7;field=np.exp(-(plume/.45)**2)*np.exp(-(y/.75)**4)*(.35+fine);hot=np.clip((flow-.58)*3,0,1)*field
   elif kind=='venom':
    field=np.exp(-(rad/.68)**3)*np.clip((flow-.28)*2,0,1)*(.25+fine);hot=np.exp(-((flow-.58)/.045)**2)*field
   else:

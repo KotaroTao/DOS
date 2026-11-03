@@ -75,8 +75,8 @@ async def main():
             if overlap:
                 assert await page.locator('.normal-attack').count()==1
                 assert (await page.locator('.battle-action-name').inner_text()).endswith(' - 攻撃')
-                assert await page.locator('.windup-spark').count()==6
-                assert await page.locator('.windup-aim').count()==1
+                assert await page.locator('.windup-spark,.windup-ring,.windup-sweep').count()==0
+                assert await page.locator('.windup-aim').count()==0
                 first_light=await page.locator('.attack-trail').evaluate('n=>getComputedStyle(n).opacity')
                 await page.wait_for_timeout(100)
                 assert await page.locator('.attack-trail').evaluate('n=>getComputedStyle(n).opacity')!=first_light,'待機中の光の変化が止まった'

@@ -15,7 +15,7 @@ import { Engine, songKeys } from "./music/engine.js";
 import { Bank } from "./music/bank.js";
 import { newSong, NEW_SONGS } from "./music/songs.js";
 import { legacySong } from "./music/legacy.js";
-import { sfxBuffer, sfxDef } from "./music/sfx.js";
+import { sfxBuffer, sfxDef, naturalSkillName } from "./music/sfx.js";
 
 let actx = null;
 let engine = null;
@@ -291,7 +291,7 @@ export const SFX = {
   // 打撃・命中とは別の準備音。音量設定・ミュートは通常の効果音と共通。
   prepare(kind = "strike") {
     if (document.hidden) return () => {};
-    const voice = sfx(kind === "cast" ? "windupCast" : "windupStrike", { jit: 0 });
+    const voice = sfx(naturalSkillName(kind,1,450), { jit: 0 });
     return ({ immediate = false } = {}) => { if (immediate || voice?.context?.state !== "running") voice?.stopImmediately?.(); else voice?.fadeOut?.(); };
   },
   select() { sfx("select"); },
@@ -301,32 +301,29 @@ export const SFX = {
   swing() { sfx("swing", { jit: 0.1 }); },
   skill(kind = "magic", presentation = null) {
     if (document.hidden) return;
-    const names = {ice:"skillIce",ice2:"skillIce2",ice3:"skillIce3",wave:"skillWave",wave2:"skillWave2",wave3:"skillWave3",gale:"skillGale",gale2:"skillGale2",gale3:"skillGale3",lightning:"skillLightning",lightning2:"skillLightning2",lightning3:"skillLightning3",stone:"skillStone",stone2:"skillStone2",stone3:"skillStone3",quake:"skillQuake",quake2:"skillQuake2",quake3:"skillQuake3",slash:"normalSlash",impact:"normalBlunt",pierce:"normalPierce",restore:"skillRestore",ward:"skillWard",shade:"skillShade",fire:"skillFire",fireball:"skillFireball",fireball2:"skillFireball2",fireball3:"skillFireball3",blast:"skillBlast",blast2:"skillBlast2",blast3:"skillBlast3",firePillar:"skillFirePillar",firePillar2:"skillFirePillar2",firePillar3:"skillFirePillar3",spark:"skillSpark",magic:"skillMagic"};
-    // 新しい専用音も通常・軽量・確認画面で同じ経路を使う。
-    const mystic=/^(radiance|void|arcane|heal|revive|purify|ward)[23]?$/.test(kind);
-    const base=mystic ? 'skill'+kind[0].toUpperCase()+kind.slice(1) : names[kind] || "skillMagic";
-    if(presentation){
-      const rank=Math.min(3,Math.max(1,presentation.rank||1)),duration=[0,400,700,1200][rank];
-      sfx('ranked'+base+rank,{jit:0,rate:duration/Math.max(1,presentation.duration||duration)});
-    }else sfx(base,{jit:.035});
+    if(presentation?.physical)kind=/impact/.test(kind)?'impact':/pierce/.test(kind)?'pierce':'slash';
+    const rank=presentation?.rank||Number(kind.match(/[23]$/)?.[0])||1;
+    const duration=presentation?.duration||[0,400,700,1200][Math.min(3,rank)];
+    sfx(naturalSkillName(kind,rank,duration),{jit:0});
   },
+  skillImpact(kind='impact') { if(!document.hidden)sfx(naturalSkillName(kind,1,65),{jit:0}); },
   hit(style = null) {
-    const name = ["slash", "cross", "iai"].includes(style) ? "normalSlash" : ["blunt", "smash"].includes(style) ? "normalBlunt" : ["thrust", "arrow"].includes(style) ? "normalPierce" : "hit";
-    sfx(name, { jit: name === "hit" ? 0.08 : 0.04 });
+    const kind=['blunt','smash'].includes(style)?'impact':['thrust','arrow'].includes(style)?'pierce':'slash';
+    sfx(naturalSkillName(kind,1,110),{jit:0});
   },
-  crit() { sfx("crit"); },
-  miss() { sfx("miss", { jit: 0.1 }); },
-  evade() { sfx("evade", { jit: 0.1 }); },
-  spell() { sfx("spell"); },
-  fire() { sfx("fire"); },
-  heal() { sfx("heal", { jit: 0.02 }); },
+  crit() { sfx(naturalSkillName('impact',2,180),{jit:0}); },
+  miss() { sfx(naturalSkillName('air',1,65),{jit:0}); },
+  evade() { sfx(naturalSkillName('air',1,90),{jit:0}); },
+  spell() { sfx(naturalSkillName('air',1,400),{jit:0}); },
+  fire() { sfx(naturalSkillName('fire',1,400),{jit:0}); },
+  heal() { sfx(naturalSkillName('water',1,350),{jit:0}); },
   chest() { sfx("chest", { jit: 0.03 }); },
   trap() { sfx("trap", { jit: 0.04 }); },
   stairs() { sfx("stairs", { jit: 0.03 }); },
-  die() { sfx("die", { jit: 0.04 }); },
+  die() { sfx(naturalSkillName('impact',1,180), { jit:0 }); },
   ng() { sfx("ng", { jit: 0.02 }); },
-  flee() { sfx("flee", { jit: 0.05 }); },
-  ambush() { sfx("ambush", { jit: 0.02 }); },
+  flee() { sfx(naturalSkillName('air',1,180), { jit:0 }); },
+  ambush() { sfx(naturalSkillName('air',1,450), { jit:0 }); },
   // 鑑定: 「．」の段 (1-3) ごとに高まる鼓動と水晶の響き → 成功 (解ける) / 失敗 (曇る)
   appraise(step = 1) { sfx("appraise" + Math.max(1, Math.min(3, step | 0)), { jit: 0 }); },
   appraiseOk() { sfx("appraiseOk", { jit: 0 }); },
