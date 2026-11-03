@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { refSerialize,refDeserialize } from '../../src/savegraph.js';
-import { Battle } from '../../src/combat.js';
+import { Battle, spawnCardEnemies } from '../../src/combat.js';
 import { makeDoll } from '../../src/souls.js';
 import { reseedRng,rngState } from '../../src/rng.js';
 import { replayCloudCommand } from '../../src/cloud-command-replay.js';
@@ -116,3 +116,30 @@ const wideReplay=await replayBattleLedger(wideStart,{rules:'battle-1',choices:wi
 assert.ok(wideReplay.terminal);assert.equal(wideReplay.hash,await battleStateHash(wideGraph));
 const loaded=refDeserialize(wideReplay.snapshot);assert.equal(loaded.inventory.length,6561);assert.equal(loaded.party[0].items,loaded.inventory);
 await db.close();console.log('本番B: 不変履歴・権限・再送・キャッシュなし復旧・一括再生・改ざん拒否・終了再送・退会削除を確認');
+
+// 毎手の復元と一括再生で、召喚した魔物の台帳参照が違っても照合する。
+{
+reseedRng(123);
+const p=Object.assign(makeDoll('検証の人業'),{hp:10000,maxhp:10000,atk:25,vit:10,agi:1000});
+const e=spawnCardEnemies('bs_goblin',1)[0];Object.assign(e,{hp:1000,maxhp:1000,role:'summoner',summonKey:'bs_goblin',agi:10});
+const state={state:'combat',party:[p],reserve:[],souls:[],rng:rngState(),codex:{mon:{},fresh:{mon:{}}},events:{},world:{},order:{picks:[]},gold:100,soulPts:100,floor:1,dungeonIdx:0};
+state.battle=new Battle([p],[e],()=>{});state.rng=rngState();
+const initial=refSerialize(state,{compact:true});
+let graph=initial; const choices=[];
+for(let n=0;n<100;n++){
+ const s=refDeserialize(graph);if(s.battle.result)break;
+ if(s.battle.phase==='input')s.battle.pending={actor:s.battle.current,action:'attack',target:s.battle.enemies.find(x=>x.alive)};
+ const cmd=battleCommand(s.battle,s.battle.phase==='input'?'commit':s.battle.phase,s.rng), id=crypto.randomUUID();
+ const local=await replayCloudCommand(graph,cmd,id,true,true);
+ choices.push({commandId:id,command:{...cmd,forcedCount:local.forcedPackets.length}});graph=local.snapshot;
+ const replay=await replayBattleLedger(initial,{rules:'battle-1',choices});
+ assert.equal(replay.hash,await battleStateHash(graph), `召喚を含む${n+1}手目の照合`);
+}
+assert.ok(refDeserialize(graph).battle.result);
+assert.ok(refDeserialize(graph).battle.enemies.length>1);
+// 値の改変や戦闘対象の共有の破損まで無視しない。
+const changed=refDeserialize(graph);changed.battle.enemies[0].hp++;
+assert.notEqual(await battleStateHash(refSerialize(changed,{compact:true})),await battleStateHash(graph));
+const broken=refDeserialize(graph);broken.battle.party=structuredClone(broken.party);
+assert.notEqual(await battleStateHash(refSerialize(broken,{compact:true})),await battleStateHash(graph));
+}

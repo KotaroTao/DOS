@@ -13,7 +13,15 @@ export function canonicalBattleGraph(graph) {
     for (const key of Object.keys(value).sort((a,b) => Array.isArray(value) ? Number(a)-Number(b) : a < b ? -1 : a > b ? 1 : 0)) Object.defineProperty(copy,key,{value:stable(value[key]),enumerable:true,writable:true,configurable:true});
     return copy;
   };
-  return refSerialize(stable(refDeserialize(graph)), { compact: true });
+  const state = refDeserialize(graph);
+  // 毎手の復元では既存の魔物の定義が写しになり、召喚した魔物だけが
+  // 台帳の定義を共有する。読み取り専用の定義は個体ごとの写しにそろえる。
+  for (const enemy of state.battle?.enemies || []) {
+    for (const key of ["mon", "affinity", "elemAtk", "elemDef"]) {
+      if (enemy[key] && typeof enemy[key] === "object") enemy[key] = structuredClone(enemy[key]);
+    }
+  }
+  return refSerialize(stable(state), { compact: true });
 }
 export async function battleStateHash(graph) {
   const canonical = canonicalBattleGraph(graph);
