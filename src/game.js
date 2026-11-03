@@ -1867,7 +1867,7 @@ const SPECIAL_FLOORS = [
   { id: "healing", name: "癒しの霊気", icon: "fountain", accent: "#8af0c0", sym: "✚", minFloor: 2, rate: 0.02, victoryHeal: 0.10,
     lines: ["澄んだ霊気が満ち、傷を癒してくれる。", "戦闘に勝利するたび、味方全員のHPとMPが10%回復する。"] },
   { id: "legend", name: "伝説の眠る階", icon: "chest", accent: "#ffe080", sym: "★", minFloor: 4, rate: 0.01,
-    lines: ["遥か昔の英雄の遺品が、この階のどこかに眠っている。", "ひとつの宝箱にだけ、格別の装備が入っている。"],
+    lines: ["遥か昔の英雄の遺品が、この階のどこかに眠っている。", "ひとつの宝箱にだけ、必ず赤い名の装備が入っている。"],
     board: (b) => {
       // 既存の宝箱から1つ選んで「伝説の宝箱」(+40レベル) にする。なければ1つ追加する
       const chests = [];
@@ -8683,7 +8683,7 @@ function presentTrap(res, fin, sink = boardSink()) {
 
 // 宝箱の中身 (ゴールド/装備品/収集品)。cRank: 宝箱ランク (1-5、高いほど豪華)
 // lvBonus: ミミック撃破後の宝箱などのアイテムレベル底上げ。
-// cell.lootBonus: 特別階 (伝説の眠る階) の「伝説の宝箱」— 中身は必ず装備品で +40レベル
+// cell.lootBonus: 特別階 (伝説の眠る階) の「伝説の宝箱」— 中身は必ずLR装備
 // 宝箱の金貨 (runGainGold へ渡す半減前の値): 推奨Lv の普通の1戦の金貨 (refGold) × CHEST_GOLD_BATTLES × 宝箱ランク × 揺らぎ。
 // 以前の式 (階 × 迷宮の格) は推奨Lv に付いていかず、第6層では1戦の2割ほどしかなかった。第一章 (第1層) は旧式の方が多いので下限に残す
 const CHEST_GOLD_BATTLES = 1.2;
@@ -8711,7 +8711,7 @@ function chestContents(cell, done, cRank = 1, lvBonus = 0, noGold = false, sink 
     return;
   }
   // 宝: 装備/アイテム (迷宮のアイテムレベル帯から抽選。高ランクの宝箱は一段上の帯)
-  const id = pickLoot({ chestRank: cRank, lvBonus: lootUp });
+  const id = legendary ? pickLR() : pickLoot({ chestRank: cRank, lvBonus: lootUp });
   const it = cloneItem(id);
   if (it) {
     markDungeonLoot(it);
