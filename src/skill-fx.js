@@ -1,3 +1,4 @@
+import { SKILL_FX_ULTIMATES } from './skill-fx-ultimates.js';
 import { drawCleave, CLEAVE_COLORS } from './cleave-fx.js';
 import { drawMysticFx, MYSTIC_FAMILIES } from './mystic-fx.js';
 import { drawThermalFx } from './thermal-fx.js';
@@ -21,8 +22,9 @@ export function skillFxSound(family, tier = 1) {
   return family === 'firePillar' ? tier >= 3 ? 'firePillar3' : tier >= 2 ? 'firePillar2' : 'firePillar' : family === 'fireball' ? 'fire' : family === 'lightning' ? 'spark' : 'magic';
 }
 // 火柱・火球・爆発は格ごとの見せる時間を持つ。画質・動き低減では尺を変えない。
-export const extendedSkillFx=design=>['firePillar','fireball','blast',...MYSTIC_FAMILIES].includes(design?.family);
+export const extendedSkillFx=design=>['impact','firePillar','fireball','blast',...MYSTIC_FAMILIES].includes(design?.family);
 export function skillFxDuration(design, spd=1, options={}){
+ if(design?.family==='impact')return Math.round(([0,400,500,650,800,950][design.tier]||400)*(options.auto?.6:options.fast?.8:1));
  if(extendedSkillFx(design)){
   const base=[0,400,700,1200][design.tier]||400;
   return Math.round(base*(options.auto?.6:options.fast?.8:1));
@@ -276,6 +278,68 @@ function utilityCore(c,f,x,y,r,t,color,lite,reduced,e){
   if(rank===3)for(let i=0;i<4;i++)star4(c,x+Math.cos(i*TAU/4)*r*.8,y+Math.sin(i*TAU/4)*r*.8,4,'#fff0b6',fade);
  }
 }
+// 重い打撃は圧縮から解放へ。五段階を大きさだけでなく衝撃の向きと回数で分ける。
+function heavyImpact(c,e,x,y,r,t,color,lite,reduced){
+ const rank=e.design.tier, q=reduced?.38:t, fade=(1-t)**1.2;
+ const p=easeOut(clamp01(q/.35));
+ c.globalCompositeOperation='lighter';
+ star4(c,x,y,r*(.16+.18*(1-p)),'#fff4df',fade);
+ if(rank===1){
+  c.save();c.translate(x,y);c.scale(1,.48);ring(c,0,0,r*(.12+p*.65),color,fade,5*(1-t)+1);c.restore();
+ }else if(rank===2){
+  for(let i=0;i<(lite?3:6);i++){
+   const a=i*TAU/6+.25, d=r*(.2+p*.7);
+   line(c,x,y,x+Math.cos(a)*d*.45,y+Math.sin(a)*d*.45,3,color,fade);
+   line(c,x+Math.cos(a)*d*.45,y+Math.sin(a)*d*.45,x+Math.cos(a+.2)*d,y+Math.sin(a+.2)*d,2,color,fade);
+  }
+ }else if(rank===3){
+  for(const side of [-1,1]){
+   const xx=x+side*r*(1-p)*.8;
+   trace(c,xx,y,r*.55,q,color,side*.65,6);
+  }
+  ring(c,x,y,r*(.15+p*.65),color,fade,3);
+ }else if(rank===4){
+  for(let i=0;i<3;i++){
+   const u=reduced?.4:clamp01((q-i*.15)/.5);
+   if(u>0)ring(c,x,y,r*(.12+easeOut(u)*(.5+i*.2)),color,fade*(1-u),6-i);
+  }
+ }else{
+  c.save();c.translate(x,y);c.scale(1,.4);
+  for(let i=0;i<(lite?2:4);i++)ring(c,0,0,r*(.2+p*(.55+i*.22)),color,fade/(1+i*.3),4-i*.7);
+  c.restore();
+  for(let i=0;i<(lite?4:8);i++){
+   const a=i*TAU/8, d=r*(.2+p*.75);
+   line(c,x+Math.cos(a)*d*.5,y+Math.sin(a)*d*.5,x+Math.cos(a)*d,y+Math.sin(a)*d-r*.2*p,3,color,fade);
+  }
+ }
+ if(!reduced)sparks(c,e.seed,rank*3,x,y,r*.65,q,color,lite);
+}
+// 最終技はその作用に沿う専用構図を重ねる。本数・角度の組は全職業で異なる。
+function ultimate(c,e,t,x,y,r,color,lite,reduced){
+ const u=e.ultimate;if(!u)return;
+ const q=reduced?.4:t, p=easeOut(clamp01(q/.45)), fade=(1-t)**1.1;
+ const n=lite?Math.min(4,u.count):u.count;
+ c.globalCompositeOperation='lighter';
+ for(let i=0;i<n;i++){
+  const a=u.angle+i*TAU/n, rr=r*(.55+p*.45);
+  if(u.motif==='cut')trace(c,x,y+(i-(n-1)/2)*7,r*1.2,clamp01(q*2-i*.08),color,u.angle+i*.12,2);
+  else if(u.motif==='fall')line(c,x+(i-(n-1)/2)*r*.18,y-r*1.3,x+(i-(n-1)/2)*r*.18,y-r*1.3+p*r*2.3,2,color,fade);
+  else if(u.motif==='cross'){
+   const xx=x+Math.cos(a)*r*.5, yy=y+Math.sin(a)*r*.5;
+   line(c,xx-r*.14,yy,xx+r*.14,yy,2,color,fade);line(c,xx,yy-r*.28,xx,yy+r*.28,3,color,fade);
+  }else if(u.motif==='bloom')star4(c,x+Math.cos(a)*rr,y+Math.sin(a)*rr,r*.09,color,fade);
+  else if(u.motif==='fracture')ray(c,x,y,rr,a,color,fade,3);
+  else if(u.motif==='collapse')ray(c,x,y,r*(1.3-p*.9),a,color,fade,2);
+  else if(u.motif==='pulse'){
+   c.save();c.translate(x,y);c.scale(1,.55);ring(c,0,0,r*(.2+p*.7+i*.07),color,fade/n*2,2);c.restore();
+  }else{
+   const b=a+TAU/n;
+   line(c,x+Math.cos(a)*rr,y+Math.sin(a)*rr,x+Math.cos(b)*rr,y+Math.sin(b)*rr, u.motif==='ward'?3:1.5,color,fade);
+   if(u.motif==='seal')ray(c,x,y,rr,a,color,fade*.5,1);
+  }
+ }
+}
+
 function drawCore(c,f,x,y,r,t,color,lite,reduced,e){
  const p=reduced?1:easeOut(clamp01(t/.32)), fade=Math.pow(1-t,1.3), drift=reduced?0:t;
  c.globalCompositeOperation='lighter';c.lineCap='round';c.lineJoin='round';
@@ -292,8 +356,7 @@ function drawCore(c,f,x,y,r,t,color,lite,reduced,e){
   const n=f==='flurry'?Math.min(lite?2:6,Math.max(1,e.hitCount)):1;
   for(let i=0;i<n;i++) {const q=clamp01((t-i*.065)/(1-i*.065));if(!q)continue;trace(c,x+(i%2?4:-4),y+(i-n/2)*4,r,q,color,i%2?.65:-.65,3);}
  }else if(f==='impact'){
-  star4(c,x,y,r*.45*(1-drift*.45),'#fff0d2',fade);ring(c,x,y,r*(.22+p*.5),color,fade,4*(1-t)+.5);
-  for(let i=0;i<(lite?4:8);i++)ray(c,x,y,r*(.6+drift*.3),i*TAU/8,color,fade,2);
+  heavyImpact(c,e,x,y,r,t,color,lite,reduced);
  }else if(['pierce','projectile'].includes(f)){
   const n=f==='projectile'&&e.all?3:1;
   for(let i=0;i<n;i++){const dx=(i-(n-1)/2)*12;line(c,x+dx+(f==='projectile'?r:0),y+r,x+dx*(1-p),y+r*(1-p),5,color,fade*.6);}
@@ -380,7 +443,7 @@ function accent(c,e,t,x,y,r,color,lite,reduced){
 }
 export function drawSkillScene(c,e,t,w,h,reduced){
  const lite=fxLite(reduced), pts=e.pts||[], f=e.design.family;
- const color=(f==='cleave'?e.col:null)||e.signature?.tone||e.col||COLORS[f]||'#c9b6ec', scale=e.design.scale||1, radius=(e.all?Math.min(100,Math.max(36,e.w*.34)):70)*scale;
+ const color=e.col||e.signature?.tone||COLORS[f]||'#c9b6ec', scale=e.design.scale||1, radius=(e.all?Math.min(100,Math.max(36,e.w*.34)):70)*scale;
  const x=e.x,y=e.y;
  c.save();
  const anchors=e.primaryPts||pts;
@@ -403,7 +466,8 @@ export function drawSkillScene(c,e,t,w,h,reduced){
   else drawCore(c,f,x,y,radius,t,color,lite,reduced,e);
   c.restore();
  }
- accent(c,e,t,x,y,radius,color,lite,reduced);
+ if(e.ultimate)ultimate(c,e,t,x,y,radius,color,lite,reduced);
+ else accent(c,e,t,x,y,radius,color,lite,reduced);
  if(e.source && (['drain','steal','mana'].includes(f)||e.hasDrain)){
   const from=f==='mana'?e.source:{x,y},to=f==='mana'?{x,y}:e.source;
   for(let i=0;i<(lite?2:5);i++){
@@ -443,7 +507,7 @@ export function emitSkillFx(list,key,spell,hits,locate,now,spd=1,options={}){
  const all=['all-enemy','all-ally'].includes(spell.target),enemy=['enemy','all-enemy'].includes(spell.target);
  const primary=points.filter(p=>(p.side==='enemy')===enemy), anchors=primary.length?primary:[points[0]],xs=anchors.map(p=>p.x),ys=anchors.map(p=>p.y);
  const x=all?(Math.min(...xs)+Math.max(...xs))/2:anchors[0].x,y=all?ys.reduce((a,b)=>a+b,0)/anchors.length:anchors[0].y;
- list.unshift({type:'skillScene',design,source:options.source||null,hasDrain:!!(spell.drain||spell.mpDrain)&&(hits||[]).some(h=>h.lifesteal>0||h.mpHeal>0||h.heal>0),signature:SKILL_FX_SIGNATURES[key]||null,pts:points,primaryPts:anchors,col:['phys','atk'].includes(spell.kind)&&spell.element?(design.family==='cleave'?CLEAVE_COLORS[spell.element]:FX.elCol(spell.element)[1]):null,all,marks:true,x,y,w:Math.max(...xs)-Math.min(...xs)+80,t0:now,dur:skillFxDuration(design,spd,options),seed:17,hitCount});
+ list.unshift({type:'skillScene',design,ultimate:SKILL_FX_ULTIMATES[key]||null,source:options.source||null,hasDrain:!!(spell.drain||spell.mpDrain)&&(hits||[]).some(h=>h.lifesteal>0||h.mpHeal>0||h.heal>0),signature:SKILL_FX_SIGNATURES[key]||null,pts:points,primaryPts:anchors,col:['phys','atk'].includes(spell.kind)&&spell.element?(design.family==='cleave'?CLEAVE_COLORS[spell.element]:({fire:'#ff4938',water:'#398dff',wind:'#65dbab',earth:'#c59b64',light:'#ffe49b',dark:'#ad7de3'}[spell.element]||FX.elCol(spell.element)[1])):null,all,marks:true,x,y,w:Math.max(...xs)-Math.min(...xs)+80,t0:now,dur:skillFxDuration(design,spd,options),seed:17,hitCount});
  if(list.length>FX_LIMITS.effects)list.length=FX_LIMITS.effects;
  return true;
 }
