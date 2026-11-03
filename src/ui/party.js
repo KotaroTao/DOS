@@ -849,7 +849,7 @@ function openAutoEquipResult(plan, before, { apply, groups }) {
         const delta = deltaText(statsDelta(r.b, previewStats(r.d, partial, recalc)), Infinity);
         list.appendChild(el("div", "pt-note", `この承認での変化: ${delta || "能力の変化なし"}`));
       }
-      const oldFx = specialLines(c.from), newFx = specialLines(c.to);
+      const oldFx = specialLines(c.from, { bukon: false }), newFx = specialLines(c.to, { bukon: false });
       if (oldFx.length || newFx.length) {
         const fx = el("div", "pt-ae-fx");
         fx.appendChild(el("div", "pt-ae-fxh", "特殊効果"));
@@ -892,7 +892,7 @@ function openAutoEquipResult(plan, before, { apply, groups }) {
       chip.appendChild(el("span", "pt-ae-sd", `${v1 > v0 ? "▲" : "▼"}${Math.round(Math.abs(v1 - v0) * 1000) / 1000}`));
       st.appendChild(chip);
     }
-    st.appendChild(equipEffectDeltaEl({ ...statsDelta(r.b, r.a), ailRes: null }));
+    st.appendChild(equipEffectDeltaEl({ ...statsDelta(r.b, r.a), ailRes: null }, { bukonRows: true }));
     if (!st.textContent) st.appendChild(el("span", "pt-ae-s eq", "能力の変化なし"));
     card.appendChild(st);
     body.appendChild(card);

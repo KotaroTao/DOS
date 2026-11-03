@@ -1410,3 +1410,9 @@ button.sp-lu-next { cursor: pointer; }
 .gf-options .gf-effect-option { flex: 1 1 240px; justify-content: flex-start; text-align: left; padding: 8px 10px; }
 .gf-effect-option .ui-btn-t { align-items: flex-start; width: 100%; gap: 4px; }
 .gf-effect-option .ui-btn-s { white-space: normal; overflow-wrap: anywhere; line-height: 1.6; color: var(--ink-dim); }
+
+/* 最適装備の武魂は、得るものを先に一つずつ表示する。 */
+.pt-ae-st > .ui-delta { width:100%; }
+.eq-bukon-change { display:flex; align-items:center; gap:6px; flex-basis:100%; min-width:0; }
+.eq-bukon-change > .bk-gem { margin:0; }
+.eq-bukon-change > span:last-child { min-width:0; overflow-wrap:anywhere; }
