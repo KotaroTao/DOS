@@ -122,7 +122,7 @@ export function attachBlock(it, b) {
   if (!validBukon(b)) return "武魂を選んでください";
   if (!it || !["weapon","shield","body","head","hands","feet","acc"].includes(it.slot)) return "装備品にだけ宿せる";
   if (!bukonFits(it,b)) return "この部位には宿せない武魂";
-  if (it.unidentified || it.soulMemory || it.cursed || it.locked) return "未鑑定・記憶・呪い・保護中の装備には宿せない";
+  if (it.unidentified || it.soulMemory || it.cursed) return "未鑑定・記憶・呪いの装備には宿せない";
   if (it.bukon?.some(x => x.k === b.k)) return "同じ効果の武魂は一つの装備に一つまで";
   if ((it.bukon?.length || 0) >= bukonSlots(it)) return "武魂の枠がいっぱい";
   return null;
@@ -132,7 +132,7 @@ export function attachBukon(g, it, b) {
   (it.bukon ||= []).push({ k:b.k, lv:b.lv }); return true;
 }
 export function detachBukon(g, it, index) {
-  if (!it || it.soulMemory || it.cursed || it.locked || !it.bukon?.[index]) return false;
+  if (!it || it.soulMemory || it.cursed || !it.bukon?.[index]) return false;
   stockAdd(g,it.bukon[index]); it.bukon.splice(index,1); return true;
 }
 // 目標より低いレベルだけを、高レベルから必要数だけ選ぶ。3進のため端数や価値の喪失がない。

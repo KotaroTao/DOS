@@ -16771,7 +16771,7 @@ function bukonAction(action, it, b) {
     if (!bukonTargets().includes(it)) return false;
     if (action === "transfer") {
       const source=b?.source;
-      if (!bukonTargets().includes(source) || source===it || source.locked || source.cursed || it.locked || it.cursed) return false;
+      if (!bukonTargets().includes(source) || source===it || source.cursed || it.cursed) return false;
       const souls=(source.bukon || []).map(x=>({...x}));
       bukon.recoverBukon(G,source);
       for(const soul of souls)bukon.attachBukon(G,it,soul);
