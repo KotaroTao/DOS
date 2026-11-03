@@ -1,5 +1,6 @@
+import { ELEMENT_FAMILIES, drawElementFx } from './element-fx.js';
 import { drawThermalFx } from './thermal-fx.js';
-// 技の意味から組み立てる軽量Canvas演出。武器・人物は描かず、火柱だけ透過アトラスを使う。
+// 技の意味から組み立てる軽量Canvas演出。武器・人物は描かず、炎・霧・材質には小さな透過素材を使う。
 import { registerFx, FX, statusFxKind } from './battlefx.js';
 import { SKILL_FX_CATALOG } from './skill-fx-catalog.js';
 import { SKILL_FX_SIGNATURES } from './skill-fx-signatures.js';
@@ -9,7 +10,7 @@ export const SKILL_FAMILIES = Object.freeze({cut:'斬撃',cleave:'なぎ払い',
 const COLORS = {cut:'#daeaf4',cleave:'#daeaf4',flurry:'#daeaf4',impact:'#deb37a',pierce:'#e1eaff',projectile:'#c6e2ed',fireball:'#ff9b53',firePillar:'#ff9b53',blast:'#ffc786',ice:'#bceaff',wave:'#69c8ff',gale:'#91e5c1',lightning:'#f4e8ff',stone:'#d2b18a',quake:'#c6aa8b',radiance:'#ffe9aa',void:'#b999e5',heal:'#9be7bd',revive:'#f6e6b0',purify:'#b4edee',ward:'#b7d8f0',empower:'#f5d597',charge:'#e7c39b',poison:'#a8bd7a',drain:'#cf93bd',mana:'#92c9f8'};
 export function skillFxSound(family, tier = 1) {
   if (['cut','cleave','flurry'].includes(family)) return 'slash';
-  if (family==='fireball'||family==='blast')return family+(tier>=3?'3':tier>=2?'2':'');
+  if (ELEMENT_FAMILIES.includes(family)||family==='fireball'||family==='blast')return family+(tier>=3?'3':tier>=2?'2':'');
   if (['impact','stone','quake'].includes(family)) return 'impact';
   if (['pierce','projectile'].includes(family)) return 'pierce';
   if (['heal','revive','purify','mana'].includes(family)) return 'restore';
@@ -17,8 +18,8 @@ export function skillFxSound(family, tier = 1) {
   if (['paralyze','poison','illusion','sleep','seal','weaken','dispel','gravity','doom','drain','steal','escape','void'].includes(family)) return 'shade';
   return family === 'firePillar' ? tier >= 3 ? 'firePillar3' : tier >= 2 ? 'firePillar2' : 'firePillar' : family === 'fireball' ? 'fire' : family === 'lightning' ? 'spark' : 'magic';
 }
-// 火柱・火球・爆発は格ごとの見せる時間を持つ。画質・動き低減では尺を変えない。
-export const extendedSkillFx=design=>['firePillar','fireball','blast'].includes(design?.family);
+// ランク付きの攻撃演出は格ごとの見せる時間を持つ。画質・動き低減では尺を変えない。
+export const extendedSkillFx=design=>['firePillar','fireball','blast',...ELEMENT_FAMILIES].includes(design?.family);
 export function skillFxDuration(design, spd=1, options={}){
  if(extendedSkillFx(design)){
   const base=[0,400,700,1200][design.tier]||400;
@@ -160,32 +161,6 @@ function drawCore(c,f,x,y,r,t,color,lite,reduced,e){
   star4(c,x,y,r*.23,'#fffdf4',fade);
  }else if(f==='firePillar'){
   firePillar(c,x,y,r,t,lite,reduced,e);
- }else if(f==='ice'){
-  for(let i=0;i<(lite?3:7);i++){
-   const a=-Math.PI/2+(i-3)*.31,dx=Math.cos(a)*r,dy=Math.sin(a)*r,xx=x+dx*(1-p),yy=y+dy*(1-p);
-   line(c,x+dx,y+dy,xx,yy,2,color,fade*.6);
-   c.globalAlpha=fade;c.fillStyle=i%2?color:'#edfaff';c.beginPath();c.moveTo(xx,yy-12);c.lineTo(xx+5,yy);c.lineTo(xx,yy+8);c.lineTo(xx-4,yy);c.closePath();c.fill();
-  }
-  star4(c,x,y,r*.3,'#f1fdff',fade);
- }else if(f==='wave'){
-  for(let i=0;i<(lite?2:4);i++){
-   c.globalAlpha=fade*(1-i*.16);c.strokeStyle=color;c.lineWidth=4-i*.6;c.beginPath();
-   for(let j=0;j<=12;j++){const px=x-r+j*r/6,py=y+(i-1.5)*9+Math.sin(j*.7-drift*7)*r*.16*p;j?c.lineTo(px,py):c.moveTo(px,py);}c.stroke();
-  }
- }else if(f==='gale'){
-  for(let i=0;i<(lite?3:6);i++){
-   const dy=(i-2.5)*r*.16,front=x-r+2*r*p;c.globalAlpha=fade;c.strokeStyle=i%2?color:'#e2fff0';c.lineWidth=i%3?2:4;c.beginPath();c.moveTo(front-r*.8,y+dy+r*.2);c.bezierCurveTo(front-r*.25,y+dy-r*.5,front+r*.15,y+dy+r*.3,front+r*.5,y+dy-r*.1);c.stroke();
-  }
- }else if(f==='lightning'){
-  const n=lite?1:3;
-  for(let k=0;k<n;k++){c.globalAlpha=fade;c.strokeStyle=k?'#fff9ff':color;c.lineWidth=k?1.5:5;c.beginPath();
-   for(let i=0;i<7;i++){const xx=x+(i%2?1:-1)*r*.13+(k-1)*5,yy=y-r+i*r/5;i?c.lineTo(xx,yy):c.moveTo(xx,yy);}c.stroke();}
- }else if(['stone','quake'].includes(f)){
-  c.globalCompositeOperation='source-over';
-  for(let i=0;i<(lite?3:6);i++){
-   const xx=x+(i-2.5)*r*.28,h=r*(.3+r01(i,e.seed)*.5)*p;c.globalAlpha=fade;c.fillStyle=i%2?color:'#6b6058';c.beginPath();c.moveTo(xx-9,y+r*.3);c.lineTo(xx-5,y+r*.3-h);c.lineTo(xx+5,y+r*.3-h-8);c.lineTo(xx+11,y+r*.3);c.closePath();c.fill();
-  }
-  if(f==='quake')for(let i=0;i<4;i++)ray(c,x,y+r*.3,r,Math.PI*i/2+.2,'#e6cc9e',fade,2);
  }else if(f==='radiance'){
   for(let i=0;i<(lite?2:5);i++){const xx=x+(i-2)*r*.24;line(c,xx,y-r,xx,y+r*.4,3+i%2*3,color,fade*.65);}
   star4(c,x,y,r*.34,'#fffdf0',fade);
@@ -244,7 +219,9 @@ export function drawSkillScene(c,e,t,w,h,reduced){
  const x=e.x,y=e.y;
  c.save();
  const anchors=e.primaryPts||pts;
- if(f==='fireball'||f==='blast'){
+ if(ELEMENT_FAMILIES.includes(f)){
+  drawElementFx(c,e,t,w,h,lite,reduced);
+ }else if(f==='fireball'||f==='blast'){
   drawThermalFx(c,e,t,w,h,lite,reduced);
  }else if(f==='firePillar' && e.design.tier===3){
   fireVortex(c,e,t,w,h,lite,reduced);

@@ -11,6 +11,9 @@
 const CACHE = "dos-dev";
 const DEV = CACHE === "dos-dev";
 const ASSETS = [
+  "./src/element-fx.js",
+  "./art/effects/element-flow.webp",
+  "./art/effects/element-minerals.webp",
   "./src/thermal-fx.js",
   "./art/effects/fireball.webp",
   "./art/effects/blast.webp",

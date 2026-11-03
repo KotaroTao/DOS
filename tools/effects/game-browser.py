@@ -8,7 +8,8 @@ stub_art=runpy.run_path(str(ROOT/'tools/cloud/choice-bench/trial-browser.py'))['
 async def main():
     async with async_playwright() as p:
         browser=await p.chromium.launch(executable_path=os.environ.get('CHROME_BIN','/usr/bin/chromium'),args=['--no-sandbox'])
-        cases=[(k,f,l,'manual') for k,f,l in [('TATEWARI','cut',60),('HALITO','fireball',60),('BATTLEMAGE_GURENMASHOU','fireball',60),('SPELLBLADE_ENTEI','fireball',60),('TILTOWAIT','blast',60),('TENPENCHII','blast',60),('KYOKUDAI','blast',60),('MAHALITO','firePillar',60),('GOKUEN','firePillar',60),('GOKUENRAN','firePillar',60),('DIOS','heal',60),('CHOUHATSU','ward',60),('HALITO','fireball',900)]]+[(k,'firePillar',60,'auto') for k in ['MAHALITO','GOKUEN','GOKUENRAN']]+[('GOKUENRAN','firePillar',60,'fast'),('SPELLBLADE_ENTEI','fireball',60,'auto'),('KYOKUDAI','blast',60,'auto')]
+        cases=[(k,f,l,'manual') for k,f,l in [('TATEWARI','cut',60),('HALITO','fireball',60),('BATTLEMAGE_GURENMASHOU','fireball',60),('SPELLBLADE_ENTEI','fireball',60),('TILTOWAIT','blast',60),('TENPENCHII','blast',60),('KYOKUDAI','blast',60),('MAHALITO','firePillar',60),('GOKUEN','firePillar',60),('GOKUENRAN','firePillar',60),('DIOS','heal',60),('CHOUHATSU','ward',60),('HALITO','fireball',2500)]]+[(k,'firePillar',60,'auto') for k in ['MAHALITO','GOKUEN','GOKUENRAN']]+[('GOKUENRAN','firePillar',60,'fast'),('SPELLBLADE_ENTEI','fireball',60,'auto'),('KYOKUDAI','blast',60,'auto')]
+        cases+=[('HYOUGA', 'ice', 60, 'manual'), ('ZETTAIREIDO', 'ice', 60, 'manual'), ('SPELLBLADE_SOURYUU', 'wave', 60, 'manual'), ('NECROMANCER_MEIGA', 'wave', 60, 'manual'), ('TORNADO', 'gale', 60, 'manual'), ('HERMIT_TENGUKAZE', 'gale', 60, 'manual'), ('RAIJIN', 'lightning', 60, 'manual'), ('RAIMEIRAN', 'lightning', 60, 'manual'), ('WARDEN_GANKAI', 'stone', 60, 'manual'), ('WARDEN_KANAME', 'stone', 60, 'manual'), ('DAICHIWARI', 'quake', 60, 'manual'), ('METEOR', 'quake', 60, 'manual'), ('HERMIT_TENGUKAZE', 'gale', 60, 'auto'), ('RAIMEIRAN', 'lightning', 60, 'auto')]
         for key,expected,latency,mode in cases:
             ctx=await browser.new_context(service_workers='block',viewport={'width':390,'height':844})
             await ctx.route('**/art/**',stub_art)
@@ -49,7 +50,7 @@ async def main():
             targets=page.locator('#combat-menu .target-list button')
             if await targets.count():await targets.first.click()
             await page.wait_for_function('pressed!==null')
-            if latency==900:
+            if latency==2500:
                 await page.wait_for_timeout(600)
                 assert await page.evaluate('snapshot()===before && impact===null && hitSounds===0'),'通信完了前に戦況や被弾音が進んだ'
                 assert await page.locator('.battle-windup').count()==1
@@ -63,11 +64,11 @@ async def main():
             assert await page.evaluate('fxSeen.changed'),'確定後も戦況が更新されていない'
             assert await page.evaluate('(family)=>fxSeen.count===1 && fxSeen.type==="skillScene" && fxSeen.family===family',expected),(key,expected)
             assert await page.evaluate('fxSeen.hitSounds===1'),'対象数ぶん主音を重ねている'
-            if expected in ['firePillar','fireball','blast']:
-                rank={'MAHALITO':1,'GOKUEN':2,'GOKUENRAN':3,'HALITO':1,'BATTLEMAGE_GURENMASHOU':2,'SPELLBLADE_ENTEI':3,'TILTOWAIT':1,'TENPENCHII':2,'KYOKUDAI':3}[key]
+            if expected in ['firePillar','fireball','blast','ice','wave','gale','lightning','stone','quake']:
+                rank={'MAHALITO':1,'GOKUEN':2,'GOKUENRAN':3,'HALITO':1,'BATTLEMAGE_GURENMASHOU':2,'SPELLBLADE_ENTEI':3,'TILTOWAIT':1,'TENPENCHII':2,'KYOKUDAI':3,'ICENEEDLE':1,'HYOUGA':2,'ZETTAIREIDO':3,'AQUAWAVE':1,'SPELLBLADE_SOURYUU':2,'NECROMANCER_MEIGA':3,'KAMAITACHI':1,'TORNADO':2,'HERMIT_TENGUKAZE':3,'HERO_JINRAI':1,'RAIJIN':2,'RAIMEIRAN':3,'ISHITSUBUTE':1,'WARDEN_GANKAI':2,'WARDEN_KANAME':3,'EARTHQUAKE':1,'DAICHIWARI':2,'METEOR':3}[key]
                 assert await page.evaluate('fxSeen.hitKind')==expected+('' if rank==1 else str(rank))
             assert await page.evaluate('fxSeen.slashes===0'),'技に旧三日月が重なっている'
-            if expected in ['firePillar','fireball','blast']:
+            if expected in ['firePillar','fireball','blast','ice','wave','gale','lightning','stone','quake']:
                 base=[0,400,700,1200][rank]
                 duration=round(base*({'auto':.6,'fast':.8}.get(mode,1)))
                 assert await page.evaluate('fxSeen.dur')==duration
@@ -77,7 +78,7 @@ async def main():
                 if await page.evaluate('performance.now()<fxSeen.t0+fxSeen.dur-20'):
                     assert await page.evaluate('__game.G.animating && __game.G.fx?.skill.some(e=>e.type==="skillScene")')
             await page.wait_for_function('!__game.G.animating && __game.G.battle.phase==="input"')
-            if expected in ['firePillar','fireball','blast']:
+            if expected in ['firePillar','fireball','blast','ice','wave','gale','lightning','stone','quake']:
                 assert await page.evaluate('performance.now()-fxSeen.t0>=fxSeen.dur-20'),'火柱の終了前に次の手番へ進んだ'
             assert len(sent)==1
             assert await page.evaluate("localStorage.getItem('dos-save-v7')==='unchanged'")
