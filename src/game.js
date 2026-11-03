@@ -520,6 +520,7 @@ logEl.addEventListener("click", () => {
   uiDungeonHud.openLog();
 });
 const partyEl = document.getElementById("party");
+const combatMessage = document.getElementById("combat-message");
 const combatMenu = document.getElementById("combat-menu");
 const floorInfo = document.getElementById("floor-info");
 const topbarCur = document.getElementById("topbar-cur");
@@ -2672,7 +2673,7 @@ function fitView(force = false) {
     else if (G.state === "board") { updatePartyLogSpace(); updateExploreButtonLogSpace(); }
   }
   let used = (parseFloat(csS.paddingTop) || 0) + (parseFloat(csS.paddingBottom) || 0)
-    + outerH(topbarEl) + outerH(partyEl) + outerH(hintEl)
+    + outerH(topbarEl) + outerH(partyEl) + outerH(hintEl) + outerH(combatMessage)
     + (csH ? (parseFloat(csH.paddingTop) || 0) + (parseFloat(csH.paddingBottom) || 0) : 0);
   const logH = mobile ? parseFloat(getComputedStyle(document.getElementById("log")).height) : 0;
   // スマホは札と命令板を詰めた分の記録を確保し、枠と敵名の帯も引いた残りを絵に使う。
@@ -2683,7 +2684,7 @@ function fitView(force = false) {
   else used += outerH(runbarEl) + outerH(ctrlEl) + (mobile ? logH : LOG_MIN_BOARD);
   // 盤面の幅から最低高を決めると、スマホのブラウザバー表示時に記録がつぶれる。
   // 探索は低い盤面も許し、拡大表示とドラッグでマスの操作性を保つ。
-  const minVH = combat ? 180 : 96;
+  const minVH = combat ? 120 : 96;
   // PC の左右配置では隊・記録・命令板は右側。左の戦場からその高さを引かない。
   const desktop = csA.display === "grid";
   const available = desktop ? screenEl.clientHeight
@@ -10235,6 +10236,7 @@ function playBattleIntro(done, prepared = false) {
   // オンラインの開幕は保存と並行して短く見せる。奇襲の帯を読むためだけに初撃を止めない。
   if (cloudCommandMode() && !boss) dur = (ambush ? 180 : preempt ? 240 : 320) * (G.fastAnim || G.autoCombat ? 1 : 1.4);
   else if (ambush || preempt) dur = Math.max(dur, 1000 * introMul);
+  combatMessage.replaceChildren();
   G.battleIntro = { battle: b, t0: performance.now(), dur, ambush, preempt, boss: boss ? (enemyReveal(boss).name ? (boss.mon && boss.mon.name) || boss.name : unknownLabel(boss.mon)) : null };
   G.animating = true;
   combatMenu.innerHTML = "";
@@ -10244,7 +10246,7 @@ function playBattleIntro(done, prepared = false) {
     combatMenu.dataset.mode = "acting";
     const w = turnPlate(preempt ? "先制" : "奇襲", preempt ? "隊が先に動く" : "敵が先に動く", []);
     if (ambush) w.classList.add("who-foe");
-    combatMenu.appendChild(w);
+    combatMessage.replaceChildren(w);
     appendAutoStart();
   }
   renderParty();
@@ -10770,7 +10772,7 @@ function turnPlate(name, tail, chips = [], skill = "") {
   w.appendChild(el("b", "who-n", name));
   if (tail) w.appendChild(el("span", "who-t", tail));
   if (skill) { w.appendChild(el("b", "who-sk", skill)); w.classList.add("who-call"); }
-  for (const c of chips) w.appendChild(el("span", "who-c", c));
+  // 補足の状態表示を足さず、行動の札は常に一行に収める。
   return w;
 }
 // 命令板の「使った技」の札 (ユーザーの指示、2026-10: オート戦闘でどの技を使ったか分からない)。
@@ -10804,13 +10806,13 @@ function renderActingPlate(actor) {
   if (!actor) return;
   const foe = actor.side === "enemy";
   const call = !foe && freshPlateCall();
-  if (call && call.actor === actor) { combatMenu.appendChild(callPlate(call, [])); return; }
+  if (call && call.actor === actor) { combatMessage.replaceChildren(callPlate(call, [])); return; }
   const b = G.battle;
   const ambushTurn = foe && b && b.opening === "ambush" && b._roundNo <= 1; // 奇襲で敵だけが動く1ターン目
   const w = turnPlate(foe ? enemyLabel(actor) : actor.name, foe ? "の攻勢" : "の行動", ambushTurn ? ["奇襲"] : []);
   if (foe) w.classList.add("who-foe");
   if (foe && enemyUnknown(actor)) w.classList.add("who-unk");
-  combatMenu.appendChild(w);
+  combatMessage.replaceChildren(w);
   // 敵の手番の間もオートを始められる (奇襲で敵が先に一巡する間も、押した次の手番からオートの速さになる)
   if (foe) appendAutoStart();
 }
@@ -10830,13 +10832,13 @@ function appendAutoStart() {
 // 「次の戦闘も続ける」(§7 M2) もここで切り替えられる (主・強敵・深手の時は自動で止まる)
 function renderAutoBanner(actor) {
   const call = freshPlateCall();
-  const plate = call ? callPlate(call, ["オート"])
-    : actor ? turnPlate(actor.name, "の手番", ["オート", tacticOf(actor).short]) : turnPlate("オート戦闘中", "", []);
+  const plate = call ? callPlate(call, [])
+    : actor ? turnPlate(actor.name, "の手番") : turnPlate("", "");
   const keep = !!uiDungeonHud.getPref("autoKeep");
   // 既にバナーが出ていれば手番の札だけ差し替える (ボタンを作り直すと押している最中のタップが消える)
   const cur = combatMenu.dataset.mode === "auto" ? combatMenu.querySelector(":scope > .cmd-autorow") : null;
-  if (cur && combatMenu.firstElementChild && combatMenu.firstElementChild !== cur) {
-    if (!(call && combatMenu.firstElementChild.dataset.call === plate.dataset.call)) combatMenu.firstElementChild.replaceWith(plate);
+  if (!(call && combatMessage.firstElementChild?.dataset.call === plate.dataset.call)) combatMessage.replaceChildren(plate);
+  if (cur) {
     const kb = cur.querySelector(".cmd-keep");
     if (kb) {
       kb.classList.toggle("on", keep);
@@ -10848,7 +10850,7 @@ function renderAutoBanner(actor) {
   }
   combatMenu.innerHTML = "";
   combatMenu.dataset.mode = "auto";
-  combatMenu.appendChild(plate);
+  combatMessage.replaceChildren(plate);
   const row = el("div", "cmd-autorow");
   row.appendChild(cmdBtn("stop", "オート解除", "", stopAutoCombat, "cmd-wide"));
   row.appendChild(cmdBtn("keep", "次も続ける", keep ? "ON" : "OFF", () => {
@@ -10965,7 +10967,7 @@ function renderCombatMenu() {
     }
     combatMenu.dataset.mode = "input";
     const rowTag = b.isBackRow(actor) ? "後衛" : "前衛";
-    combatMenu.appendChild(turnPlate(actor.name, "の手番", [rowTag, "射程 " + RANGE_LABEL[b.attackRange(actor)]]));
+    combatMessage.replaceChildren(turnPlate(actor.name, "の手番", [rowTag, "射程 " + RANGE_LABEL[b.attackRange(actor)]]));
     // 主の段: 攻撃 (長押しで防御) ・ 最後に使った技 (未使用なら先頭の技) ・ 技の一覧
     const quick = quickSkillOf(actor);
     const main = el("div", "cmd-main" + (quick ? " has-quick" : ""));
@@ -11023,7 +11025,7 @@ function renderCombatMenu() {
     const sp = p && p.spellKey ? SPELLS[p.spellKey] : null;
     const pit = p && p.action === "item" ? p.item : null;
     const allyPick = (sp && sp.target === "ally") || (pit && useTarget(pit) !== "enemy");
-    combatMenu.appendChild(turnPlate(sp ? sp.name : pit ? pit.name : "対象を選択", sp || pit ? "の対象" : "", [allyPick ? "味方を直接タップでも可" : "敵を直接タップでも可"]));
+    combatMessage.replaceChildren(turnPlate(sp ? sp.name : pit ? pit.name : "対象を選択", sp || pit ? "の対象" : "", [allyPick ? "味方を直接タップでも可" : "敵を直接タップでも可"]));
     const opts = b.targetOptions();
     // 対象が多い時 (敵の群れなど) は2列に並べて縦に伸びすぎないようにする
     const list = el("div", "target-list" + (opts.length > 3 ? " cols2" : ""));
@@ -11099,7 +11101,7 @@ function showSpells(actor) {
   if (!mobile) {
     combatMenu.innerHTML = "";
     combatMenu.dataset.mode = "spells";
-    combatMenu.appendChild(turnPlate(actor.name, "の技", [`MP ${actor.mp}`, "長押しで詳細"]));
+    combatMessage.replaceChildren(turnPlate(actor.name, "の技", [`MP ${actor.mp}`, "長押しで詳細"]));
   }
   // 並べた順に、オフにした技を除いて出す (隊の「能力」画面で整理)。
   // スマホは大きな選択パネルの1列一覧。広い画面のフッターは従来どおり2列も使う。
@@ -11212,7 +11214,7 @@ const SWAP_STAT_L = [["vit", "VIT"], ["agi", "AGI"], ["int", "INT"], ["pie", "PI
 function showBattleSwap(actor) {
   combatMenu.innerHTML = "";
   combatMenu.dataset.mode = "spells";
-  combatMenu.appendChild(turnPlate(actor.name, "の持ち替え", ["1ターン使う", "長押しで詳細"]));
+  combatMessage.replaceChildren(turnPlate(actor.name, "の持ち替え", ["1ターン使う", "長押しで詳細"]));
   const now = autoEquip.previewStats(actor, actor.equip);
   const items = swapWeapons(actor);
   const list = el("div", "target-list" + (items.length > 4 ? " cols2" : ""));
@@ -11259,7 +11261,7 @@ function showBattleSwap(actor) {
 function showBattleItems(actor) {
   combatMenu.innerHTML = "";
   combatMenu.dataset.mode = "spells";
-  combatMenu.appendChild(turnPlate(actor.name, "の道具", ["隊の袋から使う", "長押しで詳細"]));
+  combatMessage.replaceChildren(turnPlate(actor.name, "の道具", ["隊の袋から使う", "長押しで詳細"]));
   const stacks = battleItemStacks();
   const list = el("div", "target-list" + (stacks.length > 4 ? " cols2" : ""));
   for (const x of stacks) {
@@ -11314,7 +11316,7 @@ function prepareBattleAction(battle, onFrame = null) {
   const label = pending.action === "attack" ? "攻撃" : pending.action === "spell" ? `${spell?.name || "技"}`
     : pending.action === "defend" ? "防御の構え" : pending.action === "run" ? "退路を探る" : pending.action === "item" ? `${pending.item?.name || "道具"}を準備` : "攻撃の構え";
   const target = pending.target?.side === "enemy" && G.enemyPos[pending.target.uid];
-  return beginBattleWindup({ party: partyEl, index: G.party.indexOf(actor), view, label: `${actor.name} - ${label}`, kind: cast ? "cast" : "strike",
+  return beginBattleWindup({ party: partyEl, index: G.party.indexOf(actor), view, label: `${actor.name}の${label}`, kind: cast ? "cast" : "strike",
     aim: target ? { x: target.cx / VW, y: target.cy / VH } : null, onFrame,
     skillFamily: pending.action === "spell" ? skillProfile(pending.spellKey,spell)?.family : null,
     attackStyle: pending.action === "attack" ? actor.wMagic ? "arcane" : weaponFxStyle(actor.equip?.weapon) : null, fast: G.fastAnim });
