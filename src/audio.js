@@ -301,7 +301,7 @@ export const SFX = {
   swing() { sfx("swing", { jit: 0.1 }); },
   skill(kind = "magic") {
     if (document.hidden) return;
-    const names = {slash:"normalSlash",impact:"normalBlunt",pierce:"normalPierce",restore:"skillRestore",ward:"skillWard",shade:"skillShade",fire:"skillFire",spark:"skillSpark",magic:"skillMagic"};
+    const names = {slash:"normalSlash",impact:"normalBlunt",pierce:"normalPierce",restore:"skillRestore",ward:"skillWard",shade:"skillShade",fire:"skillFire",firePillar:"skillFirePillar",spark:"skillSpark",magic:"skillMagic"};
     sfx(names[kind] || "skillMagic",{jit:.035});
   },
   hit(style = null) {

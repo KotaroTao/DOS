@@ -11,6 +11,19 @@ with sync_playwright() as p:
  page.on('pageerror',lambda e:errors.append(str(e)));page.on('request',lambda r:requests.append(r.url))
  page.goto('http://localhost:8000/effects-lab.html')
  page.wait_for_function('window.__effectsLab && document.querySelectorAll("#skill option").length===960')
+ # 火柱の素材が読めた場合、通常・軽量・動き低減のすべてで実画像を使う。
+ texture=page.evaluate("""async()=>{
+  const image=new Image();image.src='/art/effects/fire-pillar.webp';await image.decode();
+  const {previewSkillFx}=await import('/src/skill-fx-preview.js'),{drawBattleFx}=await import('/src/battlefx.js'),{setFxQuality}=await import('/src/skill-fx-budget.js');
+  const results=[];
+  for(const [quality,reduced]of [['high',false],['low',false],['high',true]]){
+   setFxQuality(quality);const canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;
+   const ctx=canvas.getContext('2d'),draw=ctx.drawImage.bind(ctx);let calls=0;
+   ctx.drawImage=(...args)=>{calls++;draw(...args);};drawBattleFx(ctx,previewSkillFx('MAHALITO'),125,640,360,reduced);
+   results.push(calls);
+  }setFxQuality('high');return {width:image.naturalWidth,height:image.naturalHeight,calls:results};
+ }""")
+ assert texture=={'width':768,'height':576,'calls':[10,3,3]},texture
  page.locator('#search').fill('ヒール');assert page.locator('#skill option').count()>1
  page.locator('#search').fill('');page.locator('#family').select_option('firePillar');assert page.locator('#skill option').count()>0
  page.locator('#skill').select_option(index=0);page.locator('#play').click();page.screenshot(path=str(out/'mobile.png'),full_page=True)
@@ -50,5 +63,23 @@ with sync_playwright() as p:
   }
  }''')
  page.screenshot(path=str(out/'families.png'),full_page=True)
+ # 素材取得が失敗しても描画と進行を止めない。
+ fallback=b.new_context(service_workers='block')
+ fallback.route('**/art/effects/fire-pillar.webp',lambda route:route.abort())
+ failpage=fallback.new_page();failpage.goto('http://localhost:8000/effects-lab.html');failpage.wait_for_function('window.__effectsLab')
+ assert failpage.evaluate("""async()=>{
+  const {previewSkillFx}=await import('/src/skill-fx-preview.js'),{drawBattleFx}=await import('/src/battlefx.js');
+  const canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;const ctx=canvas.getContext('2d');
+  drawBattleFx(ctx,previewSkillFx('MAHALITO'),125,640,360,false);
+  return ctx.getImageData(0,0,640,360).data.some((v,i)=>i%4===3&&v>0);
+ }""")
+ fallback.close()
+ # ブラウザの音声経路でも、火柱だけ新しいステレオ音を一度だけ鳴らす。
+ sound=page.evaluate("""async()=>{
+  const {Engine}=await import('/src/music/engine.js'),audio=await import('/src/audio.js');audio.initAudio();audio.setVolumes(0,1);
+  const play=Engine.prototype.playBuffer,played=[];Engine.prototype.playBuffer=function(buffer,...args){played.push([buffer.duration,buffer.numberOfChannels]);return play.call(this,buffer,...args);};
+  audio.SFX.skill('firePillar');audio.SFX.skill('fire');Engine.prototype.playBuffer=play;return played;
+ }""")
+ assert len(sound)==2 and abs(sound[0][0]-.68)<.001 and sound[0][1]==2 and abs(sound[1][0]-.26)<.001,sound
  c.close();b.close()
  print('検索・全技再生・描画検証・計測書出し・保存/認証不変・通信なしを確認。',out)
