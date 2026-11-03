@@ -1,5 +1,5 @@
 import { showFieldSkillFx } from "./skill-fx-field.js";
-import { emitSkillFx, skillFxSound, skillFxDuration, extendedSkillFx, enemySkillFxProfile } from "./skill-fx.js";
+import { emitSkillFx, skillFxSound, skillFxDuration, extendedSkillFx, enemySkillFxProfile, beginSkillFxPresentation } from "./skill-fx.js";
 import { beginBattleWindup, normalAttackTiming } from "./battle-windup.js";
 import { createTrial } from "./choice-trial.js";
 import { battleCommand } from "./cloud-battle.js";
@@ -10622,7 +10622,7 @@ function drawEffects(fx, now, stageH) {
   }
   // ダメージ数値 (弾んで現れ、少し留まって昇りながら消える)
   for (const f of fx.floats) {
-    const t = (now - f.t0) / 760;
+    const t = (now - f.t0) / (f.dur || 760);
     if (t < 0 || t > 1) continue; // t0 が未来 (多段の2撃目以降) のものはまだ描かない
     // 味方の被ダメージは、敵名の帯を除いた戦場の下端から浮かべる。
     drawFloatText(f.kind === "pdmg" ? { ...f, y: f.y - (VH - stageH) } : f, t, stageH);
@@ -11536,6 +11536,8 @@ function animateResult(res, done) {
   if (!battle || G.state !== "combat") return;
   const finish = () => { if (G.battle === battle && G.state === "combat") done(); };
 
+  const presentation=fxProfile(res);
+  if(presentation)SFX.warmSkill?.(skillFxSound(presentation.family,presentation.tier),{physical:presentation.kind==='phys',rank:presentation.tier,duration:skillFxDuration(presentation,1,{auto:!!G.autoCombat,fast:!!G.fastAnim})});
   callPartyAction(res); // 札の肖像に使った技の名 (手番の初めから)
   if (setPlateCall(res) && !quickBattlePresentation()) { if (G.autoCombat) renderAutoBanner(); else renderActingPlate(res.actor); } // 命令板にも「誰の何の技か」
   if (quickBattlePresentation()) {
@@ -11550,11 +11552,11 @@ function animateResult(res, done) {
     // 通常攻撃の反応は従来どおり。ランク付きの攻撃演出は描画の終了と進行を同じ時計で扱う。
     const normalAttack = res.action === "attack" && res.actor?.side === "party" && (serverBattle() || choiceTrial?.overlap);
     if (normalAttack) setTimeout(finish, normalAttackTiming(G.fastAnim).reaction); else if(!effectDuration) finish();
-    const started = performance.now();
+    let started = null;
     let firstFrame = true;
     const tick = () => {
       if (G.fx !== fx || G.battle !== battle || G.state !== "combat") return;
-      if (firstFrame) { firstFrame = false; renderParty(); }
+      if (firstFrame) { firstFrame = false; renderParty(); started=performance.now(); beginSkillFxPresentation(fx,started); }
       if (performance.now() - started >= (effectDuration || (G.fastAnim ? 360 : 430))) {
         G.fx = null; G.partyFx.clear(); G.partyFxV.clear(); renderParty();
         if(effectDuration) finish();
@@ -11610,11 +11612,12 @@ function animateResult(res, done) {
     if (!impacted && t >= WIND) {
       impacted = true;
       applyImpact(res);
-      const effectDuration=G.fx.skill.find(e=>e.type==='skillScene'&&extendedSkillFx(e.design))?.dur||0;
-      if(effectDuration) TOTAL=performance.now()-t0+effectDuration;
       if (res._modFeed !== undefined) releaseActionEffects(res, res._modFeed); // 強化・弱体の札は着弾と同時に
       drainPartyProcs(); // 発動した効果の名は着弾と同時に
       renderParty(); // HP反映 + 被弾フラッシュ
+      beginSkillFxPresentation(G.fx,performance.now());
+      const effectDuration=G.fx.skill.find(e=>e.type==='skillScene'&&extendedSkillFx(e.design))?.dur||0;
+      if(effectDuration) TOTAL=performance.now()-t0+effectDuration;
     }
     renderCombatCanvas();
     if (t >= TOTAL) {
@@ -11735,7 +11738,8 @@ function applyImpact(res) {
   const skillDesign = fxProfile(res);
   // 効果音 + 振動
   if (skillDesign && (res.hits.some(h => !h.miss && !h.immune) || skillDesign.family === "escape" && res.fled)) {
-    SFX.skill(skillFxSound(skillDesign.family, skillDesign.tier),{physical:skillDesign.kind==="phys",rank:skillDesign.tier,duration:skillFxDuration(skillDesign,1,{auto:!!G.autoCombat,fast:!!G.fastAnim})}); buzz(20);
+    const sound=skillFxSound(skillDesign.family,skillDesign.tier),presentation={physical:skillDesign.kind==='phys',rank:skillDesign.tier,duration:skillFxDuration(skillDesign,1,{auto:!!G.autoCombat,fast:!!G.fastAnim})};
+    (fx.skillSounds||=[]).push({delay:0,play:()=>{if(G.fx===fx)SFX.skill(sound,presentation);}});buzz(20);
   } else if (skillDesign) {
     SFX.skillImpact("air");
   } else if (res.windup) {
@@ -11784,7 +11788,7 @@ function applyImpact(res) {
   const presentationDuration=skillDesign?skillFxDuration(skillDesign,spd,{auto:!!G.autoCombat,fast:!!G.fastAnim}):0;
   const steps=Math.max(1,...Object.values((res.hits||[]).reduce((counts,h)=>{if(h.target&&h.dmg!=null){const key=h.target.side+':'+h.target.uid;counts[key]=(counts[key]||0)+1;}return counts;},{})),(res.hits||[]).filter(h=>h.heal!=null||h.buff||h.debuff).length);
   const comboCount=skillDesign?Math.max(SPELLS[res.spellKey]?.hits||1,SPELLS[res.spellKey]?.scatter||1):1;
-  const stag = presentationDuration ? (SPELLS[res.spellKey]?.kind==='phys'?85*presentationDuration/(comboCount*85+60):presentationDuration/Math.max(comboCount,steps)) : quickBattlePresentation() ? Math.min(HIT_STAGGER * spd, 90 / Math.max(1, res.hits.length)) : HIT_STAGGER * spd;
+  const stag = presentationDuration ? (SPELLS[res.spellKey]?.kind==='phys'?85:presentationDuration/Math.max(comboCount,steps)) : quickBattlePresentation() ? Math.min(HIT_STAGGER * spd, 90 / Math.max(1, res.hits.length)) : HIT_STAGGER * spd;
   const stackIdx = {};
   // 技ごとの組み立て: 描き分け (v)・角度 (rot)・回る向き (spin)・格 (scale)・付く効果の印 (riders)
   const prof = fxProfile(res);
@@ -11831,8 +11835,13 @@ function applyImpact(res) {
       const idx = (stackIdx[h.target.uid] = (stackIdx[h.target.uid] || 0) + 1) - 1; // 0,1,2…
       const offset=skillSlots.get(h)??idx;
       const ht0 = now + offset * stag;
-      const dx = idx === 0 ? 0 : (idx % 2 ? 1 : -1) * (14 + 4 * idx); // 左右に振って重なり回避
-      if (offset > 0 && (!prof?.family || h.dmg!=null&&!h.immune)) setTimeout(() => { if(!prof?.family) SFX.hit(normalStyle(h)); else if(G.fx===fx) SFX.skillImpact(prof.kind==='phys'?(prof.family==='impact'?'impact':'slash'):skillFxSound(prof.family,prof.tier)); }, offset * stag); // 2撃目以降にも手応えの効果音
+      const sequential=prof?.kind==='phys'&&comboCount>1;
+      const floatDuration=sequential?(offset===comboCount-1?presentationDuration-offset*stag:stag):undefined;
+      const dx = sequential?0:idx === 0 ? 0 : (idx % 2 ? 1 : -1) * (14 + 4 * idx); // 連撃の数値は一撃ごとに切り替え、重ねない
+      if (offset > 0 && (!prof?.family || h.dmg!=null&&!h.immune)) {
+        const play=()=>{if(!prof?.family)SFX.hit(normalStyle(h));else if(G.fx===fx)SFX.skillImpact(prof.kind==='phys'?(prof.family==='impact'?'impact':'slash'):skillFxSound(prof.family,prof.tier));};
+        if(prof?.family)(fx.skillSounds||=[]).push({delay:offset*stag,play});else setTimeout(play,offset*stag);
+      } // 2撃目以降にも手応えの効果音
       const seed = (h.target.uid || 1) * 31 + idx;
       if (res.opening === "senkoku") {
         // 死の宣告: 敵ごとに少しずつ遅れて、大鎌が魂を刈り取る (崩れ落ちは鎌が抜けた後)
@@ -11901,8 +11910,8 @@ function applyImpact(res) {
         // 耐性3 (物理無効/魔法無効) に弾かれた: 数字の代わりに「無効」と浮かべる
         fx.floats.push({ x: pos.cx + dx, y: pos.cy - 10, text: "無効", color: "#9aa3b5", t0: ht0, kind: "dmg" });
       } else if (h.dmg != null) {
-        fx.floats.push({ x: pos.cx + dx, y: pos.cy - 10, text: String(h.dmg), color: h.crit ? "#ffd84a" : "#fff", t0: ht0, big: !!h.crit, kind: h.crit ? "crit" : "dmg" });
-        if (h.crit) fx.floats.push({ x: pos.cx + dx, y: pos.cy - 40, text: "会心の一撃", color: "#ffb02e", t0: ht0, small: true, kind: "label" });
+        fx.floats.push({ x: pos.cx + dx, y: pos.cy - 10, text: String(h.dmg), color: h.crit ? "#ffd84a" : "#fff", t0: ht0, big: !!h.crit, dur: floatDuration, kind: h.crit ? "crit" : "dmg" });
+        if (h.crit) fx.floats.push({ x: pos.cx + dx, y: pos.cy - 40, text: "会心の一撃", color: "#ffb02e", t0: ht0, dur: floatDuration, small: true, kind: "label" });
       }
       else if (h.heal != null) { // 敵の回復役による回復
         fx.floats.push({ x: pos.cx + dx, y: pos.cy - 10, text: "+" + h.heal, color: "#7CFC7C", t0: ht0, kind: "heal" });

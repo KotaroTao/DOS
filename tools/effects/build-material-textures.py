@@ -44,3 +44,21 @@ for row,kind in enumerate(MATERIALS):
   atlas.paste(Image.fromarray(np.dstack((rgb,alpha)).astype(np.uint8)),((frame%6)*SIZE,(row*3+frame//6)*SIZE))
 p=ROOT/'art/effects/skill-materials.webp';atlas.save(p,quality=88,method=6)
 print(f'{p.relative_to(ROOT)}: {p.stat().st_size:,} bytes; {len(MATERIALS)}材質×18コマ')
+
+# 物理の短い振り抜きは専用の横長・高解像度素材にする。輪郭は不規則な摩擦の濃淡。
+PW,PH=192,96
+py,px=np.mgrid[0:PH,0:PW].astype(float);px=px/(PW-1)*2-1;py=py/(PH-1)*2-1
+physical=Image.new('RGBA',(PW*COLS,PH*3))
+for frame in range(FRAMES):
+ t=frame/FRAMES
+ rough=fbm(px*3+17-t*.9,py*6+31+t*1.7)
+ grain=fbm(px*12+37+t,py*17+11-t*2)
+ taper=np.clip(1-px**2,0,1)**.75
+ body=.5*taper-abs(py+(rough-.5)*.2*taper)
+ alpha=np.clip((body+(rough-.5)*.16*taper)*12,0,1)*np.clip((1-abs(px))*13,0,1)
+ alpha*=np.clip(.7+grain*.5,0,1)
+ glint=np.clip((grain-.35)*2.1,0,1)
+ rgb=np.stack((165+glint*90,197+glint*58,218+glint*37),axis=-1)
+ physical.paste(Image.fromarray(np.dstack((rgb,alpha*250)).astype(np.uint8)),(frame%COLS*PW,frame//COLS*PH))
+path=ROOT/'art/effects/physical-materials.webp';physical.save(path,quality=94,method=6)
+print(f'{path.relative_to(ROOT)}: {path.stat().st_size:,} bytes / {PW}x{PH}x{FRAMES}')

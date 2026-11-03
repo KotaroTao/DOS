@@ -15,7 +15,7 @@ with sync_playwright() as p:
   e.pts=[];e.primaryPts=[];e.signature=null;e.ultimate=null;e.source=null;e.marks=false;
   e.strikes.forEach((p,i)=>{p.x=250+i*500;p.y=200;});
   for(let i=0;i<expected;i++){
-   c.clearRect(0,0,canvas.width,400);drawSkillScene(c,e,(i+.3)/expected,canvas.width,400,reduced);
+   c.clearRect(0,0,canvas.width,400);drawSkillScene(c,e,(i+.3)*85/e.dur,canvas.width,400,reduced);
    for(let j=0;j<expected;j++){
     const pixels=c.getImageData(250+j*500-50,150,100,100).data,visible=pixels.some((v,k)=>k%4===3&&v>0);
     if(visible!==(reduced||i===j))throw Error(key+' '+quality+' '+reduced+' 枠'+i+' 対象'+j);

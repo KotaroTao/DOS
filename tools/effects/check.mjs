@@ -188,7 +188,7 @@ for(const [job,rows] of Object.entries(JOB_SKILLS)){
 }
 const ranks=new Set();
 for(const [key,d] of Object.entries(SKILL_FX_CATALOG))if(d.family==='impact'){
- ranks.add(d.tier);assert.equal(skillFxDuration(d,1,{auto:true}),Math.round(skillFxDuration(d)*.6));
+ ranks.add(d.tier);assert.equal(skillFxDuration(d,1,{auto:true}),d.hits*85+20);
  for(const hit of [{target:enemy,miss:true},{target:enemy,immune:true}]){
   const fx=[];emitSkillFx(fx,key,SPELLS[key],[hit],locate,0);assert.equal(fx.length,0);
  }
@@ -200,7 +200,7 @@ console.log(`${shapes.size}職業の最終技専用構図 / 重い打撃5ラン�
 // すべての系統・高ランク・速度設定で尺は400/700/1200msに限定する。
 for(const family of Object.keys(SKILL_FAMILIES))for(const tier of [1,2,3,4,5,10,100]){
  for(const options of [{},{auto:true},{fast:true},{auto:true,fast:true}]){
-  const expected=Math.round((physicalSkillFx({family,tier})?145:tier===1?400:tier===2?700:1200)*(options.auto?.6:options.fast?.8:1));
+  const expected=physicalSkillFx({family,tier})?85+(options.auto?20:options.fast?35:60):Math.round((tier===1?400:tier===2?700:1200)*(options.auto?.6:options.fast?.8:1));
   assert.equal(skillFxDuration({family,tier},.1,options),expected);
  }
 }

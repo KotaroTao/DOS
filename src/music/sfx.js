@@ -537,12 +537,29 @@ for(const [name,def] of Object.entries({...SFX_DEFS}))if(/^(skill|normal(Slash|B
 // 技は空気・摩擦・破砕・水・炎の非周期な音だけで作る。音階や発振器は使わない。
 export function naturalSkillName(kind='magic',rank=1,duration=400){
  const key=kind.replace(/[0-9]/g,'').toLowerCase();
- const group=/pierce|projectile/.test(key)?'pierce':/slash|cut|cleave|flurry|strike/.test(key)?'slash':/impact|stone|quake|blast/.test(key)?'impact':/ice|crystal|purify/.test(key)?'crystal':/water|wave|mana|heal|restore|revive/.test(key)?'water':/fire/.test(key)?'fire':/lightning|spark|paralyze/.test(key)?'thunder':'air';
+ const group=/revive/.test(key)?'revive':/purify|cure|cleanse/.test(key)?'cleanse':/heal|restore/.test(key)?'restore':/mana|supply/.test(key)?'supply':/pierce|projectile/.test(key)?'pierce':/slash|cut|cleave|flurry|strike/.test(key)?'slash':/impact|stone|quake|blast/.test(key)?'impact':/ice|crystal/.test(key)?'crystal':/water|wave/.test(key)?'water':/fire/.test(key)?'fire':/lightning|spark|paralyze/.test(key)?'thunder':'air';
  const ms=Math.max(40,Math.min(1200,Math.round(duration))),level=Math.min(3,Math.max(1,rank));
  const name='natural_'+group+'_'+level+'_'+ms;
  if(SFX_DEFS[name])return name;
- SFX_DEFS[name]={vars:2,vol:group==='air'?.42:.6,rev:0,gen(r){
+ const restorative=['restore','revive','cleanse','supply'].includes(group);
+ SFX_DEFS[name]={category:group,vars:2,vol:restorative?.32:group==='air'?.42:.6,rev:0,gen(r){
   const seconds=ms/1000,x=new Float32Array(len(seconds));
+  if(restorative){
+   // 回復は柔らかい流れ、蘇生は立ち上がる息、治療は細かな洗い流し。衝突音を混ぜない。
+   const bed=pink(x.length,r),detail=white(x.length,r);
+   lp1(bed,{restore:2600,revive:1200,cleanse:4600,supply:1900}[group],SR);
+   hp1(bed,group==='cleanse'?700:160,SR);lp1(detail,group==='cleanse'?6200:3600,SR);
+   let flutter=0;
+   for(let i=0;i<x.length;i++){
+    const p=i/Math.max(1,x.length-1),t=i/SR;
+    flutter+=(r()-.5-flutter)*.0015;
+    const rise=group==='revive'?Math.min(1,p/.65):group==='restore'?Math.min(1,t/.075):Math.min(1,t/.04);
+    const fall=Math.min(1,(1-p)/(group==='revive'?.3:.4));
+    const flow=group==='restore'?.65+.35*(1-p):group==='revive'?.3+p*.7:group==='cleanse'?1-p*.35:.5+p*.35;
+    x[i]=(bed[i]+detail[i]*(group==='cleanse'?.24:.07))*rise*rise*fall*flow*(.85+flutter);
+   }
+   dcBlock(x);return mono(x);
+  }
   const body=group==='impact'||group==='fire'||group==='thunder'?brown(x.length,r):pink(x.length,r);
   lp1(body,{pierce:6200,slash:4400,impact:700,crystal:7000,water:1800,fire:1400,thunder:550,air:2300}[group],SR);
   if(['slash','pierce','crystal'].includes(group))hp1(body,group==='slash'?420:group==='pierce'?900:1600,SR);
