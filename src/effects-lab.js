@@ -30,7 +30,7 @@ function paint(ms){background();drawBattleFx(ctx,list,ms,640,360,$('reduce').che
 function tick(now){
  frame=0;if(document.hidden||auditing)return;
  if(now-lastDraw>=16){paint(now-started);lastDraw=now;}
- if(now-started<650)frame=requestAnimationFrame(tick);
+ if(now-started<Math.max(650,...list.map(e=>e.t0+e.dur+120)))frame=requestAnimationFrame(tick);
  else if($('auto').checked){const select=$('skill');select.selectedIndex=(select.selectedIndex+1)%Math.max(1,select.options.length);play();}
 }
 function play(){
