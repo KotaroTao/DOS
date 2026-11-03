@@ -312,6 +312,35 @@ function slashScene(c,e,x,y,r,t,color,lite,reduced){
  else for(let i=0;i<(lite?3:5);i++)arc(i*TAU/5,0,1.05,i*.04);
  if(!reduced)sparks(c,e.seed,lite?0:Math.min(18,rank*3),x,y,r,t,color,lite);
 }
+// 貫通は射撃と分け、一点突破・連続波・螺旋の三段階で描く。
+function pierce(c,x,y,r,t,color,lite,reduced,e){
+ const tier=e.design.tier, q=reduced?.65:easeOut(clamp01(t/.45)), fade=Math.pow(1-t,1.2);
+ const angle=-.42;
+ c.save();c.translate(x,y);c.rotate(angle);
+ const reach=r*(tier===3?1.6:1.15), head=-reach+reach*2*q;
+ line(c,-reach,0,head,0,tier+5,color,fade*.4);
+ line(c,-reach,0,head,0,2,'#fff5e7',fade);
+ // 穂先は実物の槍ではなく、収束する光。
+ line(c,head-14,-7,head,0,2,color,fade);line(c,head-14,7,head,0,2,color,fade);
+ if(tier===2){
+  for(let i=0;i<3;i++){
+   const xx=-reach*.6+i*reach*.6, rr=10+q*18;
+   c.save();c.translate(xx,0);c.scale(.35,1);ring(c,0,0,rr,color,fade*(1-i*.15),2);c.restore();
+  }
+ }else if(tier===3){
+  for(let side=0;side<2;side++){
+   c.beginPath();c.strokeStyle=color;c.lineWidth=lite?2:3;c.globalAlpha=fade*.8;
+   for(let i=0;i<=32;i++){
+    const u=i/32,xx=(u*2-1)*reach,yy=Math.sin(u*Math.PI*4+(reduced?0:t*8)+side*Math.PI)*r*.28*Math.sin(u*Math.PI);
+    i?c.lineTo(xx,yy):c.moveTo(xx,yy);
+   }c.stroke();
+  }
+  ring(c,0,0,r*(.2+q*.5),color,fade*.5,2);
+ }
+ star4(c,head,0,8+tier*2,'#fff5e7',fade);c.restore();
+ if(!reduced)sparks(c,e.seed,lite?0:5+tier*3,x,y,r*.5,t,color,lite);
+
+}
 // 重い打撃は圧縮から解放へ。五段階を大きさだけでなく衝撃の向きと回数で分ける。
 function heavyImpact(c,e,x,y,r,t,color,lite,reduced){
  const rank=e.design.tier, q=reduced?.38:t, fade=(1-t)**1.2;
@@ -392,7 +421,9 @@ function drawCore(c,f,x,y,r,t,color,lite,reduced,e){
 
  }else if(f==='impact'){
   heavyImpact(c,e,x,y,r,t,color,lite,reduced);
- }else if(['pierce','projectile'].includes(f)){
+ }else if(f==='pierce'){
+  pierce(c,x,y,r,t,color,lite,reduced,e);
+ }else if(f==='projectile'){
   const n=f==='projectile'&&e.all?3:1;
   for(let i=0;i<n;i++){const dx=(i-(n-1)/2)*12;line(c,x+dx+(f==='projectile'?r:0),y+r,x+dx*(1-p),y+r*(1-p),5,color,fade*.6);}
   star4(c,x,y,r*.23,'#fffdf4',fade);
