@@ -1,4 +1,4 @@
-import { withBukonSockets } from "./bukonview.js";
+import { withBukonSockets, bukonNameLines } from "./bukonview.js";
 import { bagOwners } from "../items.js";
 // ===== 鑑定を試みる — 隊の鑑定の心得で、未鑑定の品を一つずつ確かめる =====
 // 「まとめて鑑定」(商会・有料・確実) より先に出す、隊の技による一括鑑定。
@@ -303,11 +303,12 @@ export function openTryIdentifyAll({ onDone } = {}) {
         nm.appendChild(firstBadge());
         tx.appendChild(nm);
       } else tx.appendChild(nameSpan(it, "wpc-prow-title"));
+      tx.append(...bukonNameLines(it));
       const sub = el("span", "wpc-prow-sub");
       const plan = isEquippable(it) ? wearPlan(it, { owner: o.doll }) : null;
       const up = plan && plan.target && plan.delta && plan.score > 0;
       if (up) { sub.appendChild(deltaEl(plan.delta)); sub.appendChild(el("span", "wpc-srow-who", plan.target.name)); }
-      else sub.appendChild(document.createTextNode(`${statLines(it) || itemCatText(it)} ・ ${o.doll.name}`));
+      else sub.appendChild(document.createTextNode(`${statLines(it) || itemCatText(it)}`));
       tx.appendChild(sub);
       main.appendChild(tx);
       main.addEventListener("click", () => refreshOnClose(itemSheet(it, { owner: o.doll, context: "bag" })));

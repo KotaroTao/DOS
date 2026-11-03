@@ -39,3 +39,13 @@ export function equipmentBukonPanel(it) {
   if(!visible(it)||it.unidentified)return null;
   const panel=el("section","wpc-is-bukon");panel.append(el("div","wpc-is-fxh","武魂"),bukonSockets(it,{interactive:true}));return panel;
 }
+
+// 一覧の装備名の下に、宿った武魂を一つずつ縦に並べる。
+export function bukonNameLines(it) {
+  if (!visible(it) || it.unidentified) return [];
+  return (it.bukon || []).map(b => {
+    const line = el("span", "wpc-prow-sub bk-name-line", bukonName(b));
+    line.style.color = BUKON_RARITIES[bukonDef(b.k)?.rarity || 0].color;
+    return line;
+  });
+}
