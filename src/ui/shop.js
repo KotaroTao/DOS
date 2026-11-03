@@ -1,3 +1,4 @@
+import { bukonDef, bukonName, BUKON_RARITIES } from "../bukon.js";
 import { withBukonSockets } from "./bukonview.js";
 import { bagItems, bagSortControl } from "./bagsort.js";
 import { gearFilter, gearFilterCount, matchesGearFilter, gearFilterButton, gearFilterSummary } from "./gearfilter.js";
@@ -237,7 +238,7 @@ function tileStrip(list, { max = 24, onBack } = {}) {
   return w;
 }
 
-// 売る品の一覧 (まとめて売るの確認): 1行に 品の絵・名・持ち主・売値。押せば品シート
+// 売る品の一覧 (まとめて売るの確認): 1行に 品の絵・名・武魂・売値。押せば品シート
 // onBack: 品シートを閉じた後 (そこで売る・装備した品を一覧から外すため)
 function sellRows(list, onBack) {
   const w = el("div", "wpc-picklist wpc-selllist");
@@ -253,7 +254,14 @@ function sellRows(list, onBack) {
     main.appendChild(withBukonSockets(ic,it));
     const tx = el("span", "wpc-prow-t");
     tx.appendChild(nameSpan(it, "wpc-prow-title"));
-    tx.appendChild(setText(el("span", "wpc-prow-sub"), `${x.doll.name} の持ち物${isUp(it) ? " ・ ▲装備の候補" : ""}`));
+    if (!it.unidentified && game.featureUnlocked?.("enchant")) {
+      for (const b of it.bukon || []) {
+        const line = el("span", "wpc-prow-sub", bukonName(b));
+        line.style.color = BUKON_RARITIES[bukonDef(b.k)?.rarity || 0].color;
+        tx.appendChild(line);
+      }
+    }
+    if (isUp(it)) tx.appendChild(el("span", "wpc-prow-sub", "▲装備の候補"));
     main.appendChild(tx);
     const pr = el("span", "wpc-prow-r");
     pr.appendChild(glyph("gold"));
