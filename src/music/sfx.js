@@ -499,6 +499,18 @@ export const SFX_DEFS = {
   } },
 };
 
+// 系統ごとの音色に、格で増える倍音と余韻を付ける。一手につき一音だけ再生。
+for(const [family,base] of Object.entries({Radiance:740,Void:110,Arcane:330,Heal:660,Revive:440,Purify:990,Ward:220})){
+ for(let rank=1;rank<=3;rank++){
+  const duration=[0,.38,.65,1.05][rank];
+  SFX_DEFS['skill'+family+(rank===1?'':rank)]={vars:3,vol:.48,rev:.16+rank*.03,gen(r){
+   const x=new Float32Array(len(duration)),frequency=base*(.97+r()*.06);
+   if(family==='Void')mixInto(x,whoosh(r,duration,1800,120,160,.9,.16),0,.8);
+   for(let i=0;i<rank+1;i++)mixInto(x,modal(SR,duration-.04*i,[[frequency*(1+i*.5),.55/(i+1),duration*.5],[frequency*2,.12,duration*.2]]),len(i*.035),.45);
+   return mono(x);
+  }};
+ }
+}
 const CACHE = new Map();
 // 効果音のバッファ (揺らぎのうち1つをランダムに)。ctx は AudioBuffer 作成用
 export function sfxBuffer(name, ctx) {

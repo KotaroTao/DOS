@@ -3,7 +3,7 @@ import { SPELLS } from '../../src/skilldefs.js';
 import { JOB_SIGNATURE, JOB_SKILLS } from '../../src/souls.js';
 import { SKILL_FX_CATALOG } from '../../src/skill-fx-catalog.js';
 import { SKILL_FX_SIGNATURES } from '../../src/skill-fx-signatures.js';
-import { SKILL_FAMILIES, emitSkillFx, skillFxSound, skillFxDuration } from '../../src/skill-fx.js';
+import { SKILL_FAMILIES, emitSkillFx, skillFxSound, skillFxDuration, extendedSkillFx } from '../../src/skill-fx.js';
 import { skillProfile, spawnFx, SIG_FX } from '../../src/battlefx.js';
 import '../../src/battlefx-sig.js';
 import { previewSkillFx } from '../../src/skill-fx-preview.js';
@@ -18,7 +18,7 @@ for(const [key,sp]of Object.entries(SPELLS)){
  assert.ok(SKILL_FAMILIES[d.family],key);assert.ok(Object.isFrozen(d));assert.ok(d.tier>=1&&d.tier<=3);
  assert.equal(p.family,d.family);assert.equal(p.all,['all-enemy','all-ally'].includes(sp.target));
  assert.equal(scene.length,1,key);assert.equal(scene[0].type,'skillScene');assert.ok(scene[0].pts.length>=1&&scene[0].pts.length<=6);
- assert.ok(Number.isFinite(scene[0].x)&&Number.isFinite(scene[0].y)&&scene[0].dur===(['firePillar','fireball','blast','ice','wave','gale','lightning','stone','quake'].includes(d.family)?[0,400,700,1200][d.tier]:300),key);
+ assert.ok(Number.isFinite(scene[0].x)&&Number.isFinite(scene[0].y)&&scene[0].dur===(extendedSkillFx(d)?[0,400,700,1200][d.tier]:300),key);
  assert.equal(scene[0].all,p.all,key);
 }
 assert.deepEqual([...rngState()],before,'演出生成でゲーム用乱数を消費');
@@ -55,7 +55,7 @@ for(const [key,dur]of [['MAHALITO',400],['GOKUEN',700],['GOKUENRAN',1200],['HALI
   assert.equal(effects.length,0,'不発の火柱には表示待ちを付けない');
  }
 }
-assert.equal(skillFxDuration({family:'arcane',tier:3},.1),220);
+assert.equal(skillFxDuration({family:'cut',tier:3},.1),220);
 const fireCounts=[0,0,0,0];
 for(const design of Object.values(SKILL_FX_CATALOG))if(design.family==='firePillar')fireCounts[design.tier]++;
 assert.deepEqual(fireCounts,[0,8,2,6]);
@@ -119,3 +119,30 @@ for(const [family,policy]of Object.entries(elementPolicy)){
 }
 for(const [key,family]of [['ZETTAIREIDO','ice'],['ARCHMAGE_GOKKAN','ice'],['HERMIT_KAMINARI','lightning'],['HERO_HEKIREKI','lightning'],['ARCHMAGE_TENMEI','lightning'],['ASCETIC_TSUBUTE','stone'],['ROCKBLAST','stone']])assert.equal(SKILL_FX_CATALOG[key].family,family);
 console.log(`${Object.keys(SPELLS).length}技 / ${new Set(Object.values(SKILL_FX_CATALOG).map(d=>d.family)).size}系統 / ${Object.keys(SKILL_FX_SIGNATURES).length}看板: 割当・全体/単体・不発・複合作用点・上限・軽量化・乱数不変・音声を確認`);
+// 新しい7系統は各ランクを実際の技へ適用し、専用音と表示尺を持つ。
+for(const family of ['radiance','void','arcane','heal','revive','purify','ward'])for(let rank=1;rank<=3;rank++){
+ const entry=Object.entries(SKILL_FX_CATALOG).find(([,d])=>d.family===family&&d.tier===rank);
+ assert.ok(entry,`${family}:${rank} の技がない`);
+ const [key,d]=entry,kind=family+(rank===1?'':rank);
+ assert.equal(skillFxSound(family,rank),kind);
+ assert.equal(skillFxDuration(d),[0,400,700,1200][rank]);
+ assert.equal(previewSkillFx(key)[0].dur,skillFxDuration(d));
+ assert.equal(skillFxDuration(d,1,{auto:true}),skillFxDuration(d)*.6);
+ const name='skill'+kind[0].toUpperCase()+kind.slice(1),data=SFX_DEFS[name].gen(rng(123));
+ assert.ok(data.ch.every(ch=>ch.every(Number.isFinite)&&ch.some(x=>Math.abs(x)>.01)),name);
+}
+
+// 少数の系統は実在する習得段階だけを使い、弱体の最上位を明示する。
+assert.equal(SKILL_FX_CATALOG.MANAGIFT.tier,2);
+assert.equal(SKILL_FX_CATALOG.INQUISITOR_MANAZASHI.tier,3);
+assert.deepEqual([...new Set(Object.values(SKILL_FX_CATALOG).filter(d=>d.family==='charge').map(d=>d.tier))].sort(),[1,2]);
+for(const f of ['empower','weaken','dispel','seal','poison','illusion','sleep']){
+ assert.deepEqual([...new Set(Object.values(SKILL_FX_CATALOG).filter(d=>d.family===f).map(d=>d.tier))].sort(),[1,2,3],f);
+}
+// 六系統は看板指定に左右されず、実際の習得段階の描画を選ぶ。
+const utilityFamilies=new Set(['gravity','doom','drain','steal','escape','survey']);
+for(const [key,design]of Object.entries(SKILL_FX_CATALOG))if(utilityFamilies.has(design.family)){
+ const levels=Object.values(JOB_SKILLS).flat().filter(row=>row.skill===key).map(row=>row.lvl);
+ const level=levels.length?Math.min(...levels):1;
+ assert.equal(design.tier,level>=100?3:level>=30?2:1,key);
+}

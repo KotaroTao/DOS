@@ -56,11 +56,16 @@ const elementRanks={
  quake:{DAICHIWARI:2,SAGE_DAICHI:2,ARCHMAGE_AGITO:2,METEOR:3,BATTLEMAGE_INTETSU:3},
 };
 function effectTier(key,s){
+ if(key==='INQUISITOR_MANAZASHI')return 3; // 弱体の最高習得Lv75: 上位の視線。
  const f=family(key,s);
  if(elementRanks[f])return elementRanks[f][key]||1;
  if(f==='firePillar')return fireRanks[key]||1;
  if(f==='fireball')return fireballRanks[key]||1;
  if(f==='blast')return blastRanks[key]||1;
+ // 魔力の波は基本・中位・最上位を明示し、全ランクを実際の技へ割り当てる。
+ if(f==='arcane')return ['SHINRANOSABAKI','WARDEN_BANSHOU','ARCANIST_SHUUENSHO','SAGE_SHUUKYOKU'].includes(key)?3:['KYOMU','BISHOP_SHINPAN','SPELLBLADE_KENKAI','SAGE_SHINRA'].includes(key)?2:1;
+ // 補助の六系統は看板技の指定で昇格させず、実際の習得段階に合わせる。
+ if(['gravity','doom','drain','steal','escape','survey'].includes(family(key,s)))return (level.get(key)??1)>=100?3:(level.get(key)??1)>=30?2:1;
  return signatures.has(key)?3:(level.get(key)??1)>=100?3:(level.get(key)??1)>=30?2:1;
 }
 const groups=new Map();
