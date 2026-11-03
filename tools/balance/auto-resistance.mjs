@@ -64,12 +64,12 @@ try {
  game.G.codex.mon.test_b.kills=9;
  assert(!has(choose([foe('test_a',{sleep:100}),foe('test_b',{sleep:100})]),'TEST_ALL'));
  // 図鑑の開示条件は維持するが、完全無効だけは開示前から避ける。
- // 主は1体で全開示。強敵・名のある強敵は1体で能力、10体で抵抗値まで開く。
+ // 主・強敵・名のある強敵は1体で抵抗値まで全開示。
  for (const type of ['boss','elite','named']) {
   for (const kills of [0,1,5,9,10]) {
    const t=foe('test_b',{paralyze:100});t.mon[type]=true;
    game.G.codex.mon.test_b.kills=kills;
-   const rv=enemyReveal(t), known=kills >= (type==='boss'?1:10);
+   const rv=enemyReveal(t), known=kills >= 1;
    assert.equal(rv.name, type!=='elite'||kills>=1, `${type}/${kills}: 名前`);
    assert.equal(rv.stats, kills>=1, `${type}/${kills}: 能力`);
    assert.equal(rv.lore, known, `${type}/${kills}: 抵抗値・特徴`);
@@ -85,7 +85,7 @@ try {
  // 開示前でも完全無効を避け、実際の付与も抵抗100を守る。
  game.G.codex.mon.test_a.kills=0;
  const r=choose([foe('test_a',{paralyze:100})]);assert.equal(r.b.estRate(r.a,r.b.enemies[0],.5,'paralyze'),0);
- console.log('図鑑0/5/9/10体・主1体/強敵と名のある強敵10体、抵抗0/49/50/80/100、複合技・全体技・未開放の部分耐性は伏せ、完全無効の回避を確認');
+ console.log('図鑑0/5/9/10体・主・強敵・名のある強敵1体、抵抗0/49/50/80/100、複合技・全体技・未開放の部分耐性は伏せ、完全無効の回避を確認');
 } finally {
  for(const key of Object.keys(specs))delete SPELLS[key];
  setResistKnown(null);delete game.G;

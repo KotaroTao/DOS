@@ -32,8 +32,8 @@ try {
 for (const m of Object.values(DUNGEON_MONSTERS)) {
   for (const k in RESIST_LABEL) assert(Number.isInteger(m.resists[k]) && m.resists[k]>=0 && m.resists[k]<=100, `${m.id} ${k}`);
   const expected = m.boss ? {name:0,stats:1,lore:1}
-    : m.named ? {name:0,stats:1,lore:10}
-    : m.elite ? {name:1,stats:1,lore:10} : {name:1,stats:5,lore:10};
+    : m.named ? {name:0,stats:1,lore:1}
+    : m.elite ? {name:1,stats:1,lore:1} : {name:1,stats:5,lore:10};
   assert.deepEqual(revealSteps(m), expected, `${m.id}: 図鑑の名前・能力・伝承の開示`);
 }
 // 推測・明示した体質・数値の上書きの優先順を独立した例で確かめる。

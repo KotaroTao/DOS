@@ -19,6 +19,14 @@ assert.equal(insightTotals({codex:{mon:{[boss]:{kills:1}}}},catalog).mon,6);
 assert.equal(insightTotals({codex:{mon:{[normal]:true}}},catalog).mon,1);
 assert.equal(insightTotals({codex:{job:{fighter:{rank:5},sera:{rank:5}}}},catalog).job,150);
 assert.equal(insightTotals({named:{seen:{named_test:{floor:1}}}}, {...catalog,monsters:{named_test:{named:true}}}).mon,1,'名のある強敵は目撃でも名前を評価');
+// 既存の1体討伐記録も、強敵の全開示ぶんを遡及して評価する。
+for (const type of ['elite', 'named']) {
+ const key='reveal_test';
+ const testCatalog={...catalog,monsters:{[key]:{[type]:true}}};
+ for (const rec of [true, {kills:1,main:1}]) {
+  assert.equal(insightTotals({codex:{mon:{[key]:rec}}},testCatalog).mon,6,`${type}: 1体討伐で全開示`);
+ }
+}
 const lr=Object.keys(catalog.items).find(k=>rarityKey(catalog.items[k])==='lr');
 assert.equal(insightTotals({codex:{item:{[lr]:true}}},catalog).item,5);
 const s={codex:{mon:{},item:{},job:{}},events:{seen:{}}};
