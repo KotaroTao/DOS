@@ -8,8 +8,8 @@ with sync_playwright() as p:
  const {Battle,SPELLS,setElemKnown,setPartyHitBonus,setPartyEvadeBonus,setPartyBreathBonus,setPartyAilBonus}=await import('/src/combat.js');
  const {makeDoll,setSkillGate}=await import('/src/souls.js');
  const {decideAuto,setResistKnown,TACTICS}=await import('/src/autotactics.js');
- const {planAuto,autoPlannerStats}=await import('/src/auto-planner.js');
- const {refSerialize}=await import('/src/savegraph.js');const {rngState}=await import('/src/rng.js');
+ const {planAuto,autoPlannerStats,prefetchAuto,discardAutoPlan,previewAutoBattle}=await import('/src/auto-planner.js');
+ const {refSerialize,refDeserialize,applySavePatch}=await import('/src/savegraph.js');const {rngState}=await import('/src/rng.js');
  let cases=0;
  const compact=p=>JSON.stringify({...p,target:p.target?[p.target.side,p.target.uid]:null,targetUid:undefined,targetSide:undefined});
  for(const tac of TACTICS)for(const known of [false,true])for(const injured of [false,true,'revive']){
@@ -26,10 +26,47 @@ with sync_playwright() as p:
   if(JSON.stringify(refSerialize(battle))!==before||JSON.stringify(rngState())!==random)throw Error('入力か乱数が変化');
   if(actual.target&&![...party,...enemies].includes(actual.target))throw Error('対象が本体参照へ戻っていない');cases++;
  }
+ // 確定済み手番の先読みと、本体へ反映後の参照復元。
+ let preparations=0;
+ const party=Array.from({length:3},(_,i)=>Object.assign(makeDoll('先読み'+i),{uid:500+i,hp:1000,maxhp:1000,mp:100,maxmp:100,atk:80,agi:1000-i,tactic:'blade'}));
+ const enemy={uid:900,side:'enemy',alive:true,key:'test',mon:{race:'undead'},hp:10000,maxhp:10000,atk:1,agi:1,vit:10,lv:1};
+ const b=new Battle(party,[enemy],()=>{});b.current=party[0];b.phase='input';b.queue=[party[1],party[2],enemy];
+ const initial=JSON.stringify(refSerialize(b)),random=JSON.stringify(rngState());
+ const next=previewAutoBattle(b);
+ if(!next||next.current.uid!==party[1].uid||JSON.stringify(refSerialize(b))!==initial||JSON.stringify(rngState())!==random)throw Error('先読みが戦闘や乱数を進めた');
+ const packet=refSerialize({snapshot:{battle:next,party:next.party},result:null});
+ prefetchAuto(next,next.current,()=>true,b);
+ applySavePatch({battle:b,party},refDeserialize(packet));
+ let used=autoPlannerStats.reused;
+ const plan=await planAuto(b,b.current,()=>true,()=>{throw Error('先読みの同期復帰');});
+ if(autoPlannerStats.reused!==used+1||compact(plan)!==compact(decideAuto(b,b.current))||!b.enemies.includes(plan.target))throw Error('確定済み手番の先読み再利用');
+ preparations++;
+ // 中断・別戦闘・作戦/MP/HP/対象死亡/公開情報の変更は古い結果を採用しない。
+ for(const change of [()=>discardAutoPlan(),()=>{b.current.tactic='life';},()=>{b.current.mp--;},()=>{party[0].hp--;},()=>{enemy.alive=false;},()=>{b.queue.reverse();}]){
+  prefetchAuto(b,b.current,()=>true);used=autoPlannerStats.reused;change();
+  const actual=await planAuto(b,b.current,()=>true,()=>decideAuto(b,b.current));
+  if(autoPlannerStats.reused!==used||compact(actual)!==compact(decideAuto(b,b.current)))throw Error('変更後に古い作戦を採用');
+  enemy.alive=true;preparations++;
+ }
+ prefetchAuto(b,b.current,()=>true);used=autoPlannerStats.reused;
+ await planAuto(b,b.current,()=>false,()=>decideAuto(b,b.current));
+ if(autoPlannerStats.reused!==used)throw Error('抵抗開示変更を無視');preparations++;
+ prefetchAuto(b,b.current,()=>true,{});used=autoPlannerStats.reused;
+ await planAuto(b,b.current,()=>true,()=>decideAuto(b,b.current));
+ if(autoPlannerStats.reused!==used)throw Error('別戦闘の作戦を採用');preparations++;
+ // ラウンド更新や自然回復の抽選が必要なら予測せず、通常経路に任せる。
+ for(const condition of ['round','enemy','sleep','mind','paralyze','stone']){
+  b.queue=condition==='round'?[]:condition==='enemy'?[enemy]:[party[1]];
+  party[1].asleep=condition==='sleep';party[1].mind=condition==='mind'?'confuse':null;
+  party[1].ailment=['paralyze','stone'].includes(condition)?condition:null;
+  const before=JSON.stringify(refSerialize(b)),rng=JSON.stringify(rngState());
+  if(previewAutoBattle(b)!==null||before!==JSON.stringify(refSerialize(b))||rng!==JSON.stringify(rngState()))throw Error('不確定な次の手番を実行した:'+condition);
+  preparations++;
+ }
  const original=window.Worker;window.Worker=class{constructor(){throw Error('検査用のWorker不可');}};
  try{const fallback=await import('/src/auto-planner.js?fallback-test');let calls=0;
   const plan=await fallback.planAuto(null,null,null,()=>{calls++;return {action:'defend'};});
   if(calls!==1||plan.action!=='defend')throw Error('Worker不可時の復帰');
  }finally{window.Worker=original;}
- return {cases,...autoPlannerStats};
+ return {cases,preparations,...autoPlannerStats};
  }'''));b.close()

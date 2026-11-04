@@ -42,6 +42,7 @@ jobs:
           server=$!
           trap 'kill "$server"' EXIT
           python3 tools/performance/auto-worker-browser.py
+          python3 tools/performance/auto-preparation-browser.py
           python3 tools/performance/battle-gap-browser.py
           AUTO_REPORT=/tmp/dos-auto-combat.json python3 tools/performance/auto-combat-browser.py
       - uses: actions/upload-artifact@v4
