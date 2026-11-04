@@ -91,6 +91,7 @@ jobs:
           python3 tools/effects/browser-check.py
           python3 tools/effects/game-browser.py
           python3 tools/effects/combat-readability.py
+          python3 tools/effects/result-finish-browser.py
       - name: 本番B方式の実ゲーム・復旧・終了検証
         env:
           CHROME_BIN: /usr/bin/google-chrome

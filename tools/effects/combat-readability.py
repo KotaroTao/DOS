@@ -64,7 +64,7 @@ async def main():
    result=await page.evaluate('({firstFx,frames,hitTimes})');result['mode']=mode
    assert result['firstFx']['dur']==(2035 if 'fast' in mode else 2060),result
    assert len(result['firstFx']['floats'])==5,result
-   assert [f['dur'] for f in result['firstFx']['floats']]==[400]*4+[435 if 'fast' in mode else 460],result
+   assert [f['dur'] for f in result['firstFx']['floats']]==[400]*5,result
    assert len(result['hitTimes'])==5,result
    assert all(abs(result['hitTimes'][i]-result['hitTimes'][0]-i*400)<80 for i in range(5)),result['hitTimes']
    times=[f['t0'] for f in result['firstFx']['floats']]
