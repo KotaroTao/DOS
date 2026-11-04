@@ -69,7 +69,7 @@ async def main():
                 rank={'MAHALITO':1,'GOKUEN':2,'GOKUENRAN':3,'HALITO':1,'BATTLEMAGE_GURENMASHOU':2,'SPELLBLADE_ENTEI':3,'TILTOWAIT':1,'TENPENCHII':2,'KYOKUDAI':3,'ICENEEDLE':1,'HYOUGA':2,'ZETTAIREIDO':3,'AQUAWAVE':1,'SPELLBLADE_SOURYUU':2,'NECROMANCER_MEIGA':3,'KAMAITACHI':1,'TORNADO':2,'HERMIT_TENGUKAZE':3,'HERO_JINRAI':1,'RAIJIN':2,'RAIMEIRAN':3,'ISHITSUBUTE':1,'WARDEN_GANKAI':2,'WARDEN_KANAME':3,'EARTHQUAKE':1,'DAICHIWARI':2,'METEOR':3}[key]
                 assert await page.evaluate('fxSeen.hitKind')==expected+('' if rank==1 else str(rank))
             assert await page.evaluate('fxSeen.slashes===0'),'技に旧三日月が重なっている'
-            duration=await page.evaluate("async key=>{const {SKILL_FX_CATALOG}=await import('/src/skill-fx-catalog.js');const d=SKILL_FX_CATALOG[key],tier=d.tier;return d.kind==='phys'?d.hits*85+(testMode.includes('fast')?35:60):Math.round((tier===1?400:tier===2?700:1200)*(testMode.includes('fast')?.8:1));}",key)
+            duration=await page.evaluate("async key=>{const {SKILL_FX_CATALOG}=await import('/src/skill-fx-catalog.js');const d=SKILL_FX_CATALOG[key],tier=d.tier;return d.kind==='phys'?d.hits*400+(testMode.includes('fast')?35:60):Math.round((tier===1?400:tier===2?700:1200)*(testMode.includes('fast')?.8:1));}",key)
             assert await page.evaluate('fxSeen.dur')==duration
             # 表示の途中で古い430msの片付けや次の行動に切り替わらない。
             remaining=await page.evaluate('(d)=>Math.max(0,fxSeen.t0+d*.7-performance.now())',duration)

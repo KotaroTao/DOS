@@ -4,7 +4,7 @@ import {skillFxDuration} from '../../src/skill-fx.js';
 resetFxPerformance();setFxQuality('auto');let t=0;recordBattleFrame(t,true);
 for(let i=0;i<4;i++)recordBattleFrame(t+=40,true);
 assert.equal(fxLite(),true);
-assert.equal(skillFxDuration({kind:'phys',hits:5,tier:5},1,{auto:true}),485);
+assert.equal(skillFxDuration({kind:'phys',hits:5,tier:5},1,{auto:true}),2060);
 for(let i=0;i<361;i++)recordBattleFrame(t+=16.7,true);
 assert.equal(fxLite(),false);
 recordBattleFrame(t,false);recordBattleFrame(t+5000,true);assert.equal(fxLite(),false);

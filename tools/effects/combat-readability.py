@@ -31,6 +31,9 @@ async def main():
    await page.evaluate('''async mode=>{
     __game.G.fastAnim=mode.includes('fast');
     const {Battle}=await import('/src/combat.js');const {SFX}=await import('/src/audio.js');
+    window.hitTimes=[];const sound=SFX.skill,impactSound=SFX.skillImpact;
+    SFX.skill=(...args)=>{hitTimes.push(performance.now());return sound(...args);};
+    SFX.skillImpact=(...args)=>{if(args[0]==='slash')hitTimes.push(performance.now());return impactSound(...args);};
     const actor=__game.G.battle.current;actor.mp=actor.maxmp=999;actor.spells=['ZANKOU'];actor.hitBonus=1;actor.atk=100;
     // 見た目の検査では5撃を確実に当て、命中率の検査とは分ける。
     const physical=Battle.prototype._physical;Battle.prototype._physical=function(a,t,opt){return physical.call(this,a,t,{...opt,sureHit:true});};
@@ -57,13 +60,15 @@ async def main():
     targets=page.locator('#combat-menu .target-list button')
     if await targets.count():await targets.first.click()
    await page.wait_for_function('firstFx!==null',timeout=10000)
-   await page.wait_for_timeout(550)
-   result=await page.evaluate('({firstFx,frames})');result['mode']=mode
-   assert result['firstFx']['dur']==(460 if 'fast' in mode else 485),result
+   await page.wait_for_timeout(2150)
+   result=await page.evaluate('({firstFx,frames,hitTimes})');result['mode']=mode
+   assert result['firstFx']['dur']==(2035 if 'fast' in mode else 2060),result
    assert len(result['firstFx']['floats'])==5,result
-   assert [f['dur'] for f in result['firstFx']['floats']]==[85]*4+[120 if 'fast' in mode else 145],result
+   assert [f['dur'] for f in result['firstFx']['floats']]==[400]*4+[435 if 'fast' in mode else 460],result
+   assert len(result['hitTimes'])==5,result
+   assert all(abs(result['hitTimes'][i]-result['hitTimes'][0]-i*400)<80 for i in range(5)),result['hitTimes']
    times=[f['t0'] for f in result['firstFx']['floats']]
-   assert all(abs(times[i]-times[0]-i*85)<.1 for i in range(5)),times
+   assert all(abs(times[i]-times[0]-i*400)<.1 for i in range(5)),times
    assert result['frames'][0]['progress']<35,result
    assert len(result['frames'])>=12,result
    angles={round(f['angle'],1) for f in result['frames']}

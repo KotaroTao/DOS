@@ -99,7 +99,7 @@ export function drawMaterialSkill(c,e,t,w,h,lite,reduced){
   for(let i=0;i<count;i++){
    const u=(i-(count-1)/2),angle=combo&&['cut','cleave','flurry'].includes(f)?[-.65,.65,-1.15,1.15,0,Math.PI/2,-.3,.3][(e.strikeIndex||0)%8]:form?form[1]+(i%2?1:-1)*(i+1)*form[2]*.17:slash?slash[2]+(i%2?1:-1)*(i+1)*.13:['pierce','projectile'].includes(f)?-Math.PI/2:f==='cleave'?(i%2?-.15:Math.PI+.15):(i%2?.65:-.65);
    const offset=r*(-.8+grow*1.6);
-   material(c,'ribbon',x+Math.cos(angle)*offset,y+Math.sin(angle)*offset+u*r*(form?form[3]:.12),r*1.9,r*(f==='cleave'?.75:.65),angle,(physical?q*(e.strikeMs||e.dur||145)/145:q)+i*.11+(e.strikeIndex||0)*.19,Math.min(1,tail*1.25),lite,tone);
+   material(c,'ribbon',x+Math.cos(angle)*offset,y+Math.sin(angle)*offset+u*r*(form?form[3]:.12),r*1.9,r*(f==='cleave'?.75:.65),angle,(physical?clamp(q*(e.strikeMs||e.dur||145)/145):q)+i*.11+(e.strikeIndex||0)*.19,Math.min(1,tail*1.25),lite,tone);
    material(c,'pressure',x,y,r*.55,r*.25,angle,q,tail*.5,lite,tone);
   }
  }else if(f==='impact'){

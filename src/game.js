@@ -1,7 +1,7 @@
 import { recordBattleFrame } from './skill-fx-budget.js';
 import { planAuto, warmAutoPlanner } from './auto-planner.js';
 import { showFieldSkillFx } from "./skill-fx-field.js";
-import { emitSkillFx, skillFxSound, skillFxDuration, extendedSkillFx, enemySkillFxProfile, beginSkillFxPresentation } from "./skill-fx.js";
+import { PHYSICAL_HIT_MS, emitSkillFx, skillFxSound, skillFxDuration, extendedSkillFx, enemySkillFxProfile, beginSkillFxPresentation } from "./skill-fx.js";
 import { beginBattleWindup, normalAttackTiming } from "./battle-windup.js";
 import { createTrial } from "./choice-trial.js";
 import { battleCommand } from "./cloud-battle.js";
@@ -11815,7 +11815,7 @@ function applyImpact(res) {
   const presentationDuration=skillDesign?skillFxDuration(skillDesign,spd,{auto:!!G.autoCombat,fast:!!G.fastAnim}):0;
   const steps=Math.max(1,...Object.values((res.hits||[]).reduce((counts,h)=>{if(h.target&&h.dmg!=null){const key=h.target.side+':'+h.target.uid;counts[key]=(counts[key]||0)+1;}return counts;},{})),(res.hits||[]).filter(h=>h.heal!=null||h.buff||h.debuff).length);
   const comboCount=skillDesign?Math.max(SPELLS[res.spellKey]?.hits||1,SPELLS[res.spellKey]?.scatter||1):1;
-  const stag = presentationDuration ? (SPELLS[res.spellKey]?.kind==='phys'?85:presentationDuration/Math.max(comboCount,steps)) : quickBattlePresentation() ? Math.min(HIT_STAGGER * spd, 90 / Math.max(1, res.hits.length)) : HIT_STAGGER * spd;
+  const stag = presentationDuration ? (SPELLS[res.spellKey]?.kind==='phys'?PHYSICAL_HIT_MS:presentationDuration/Math.max(comboCount,steps)) : quickBattlePresentation() ? Math.min(HIT_STAGGER * spd, 90 / Math.max(1, res.hits.length)) : HIT_STAGGER * spd;
   const stackIdx = {};
   // 技ごとの組み立て: 描き分け (v)・角度 (rot)・回る向き (spin)・格 (scale)・付く効果の印 (riders)
   const prof = fxProfile(res);
