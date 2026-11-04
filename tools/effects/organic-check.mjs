@@ -12,7 +12,7 @@ for(const [key,sp]of Object.entries(SPELLS)){
  assert.equal(d.kind,sp.kind);assert.equal(d.hits,n);
  for(const options of [{},{auto:true},{fast:true},{auto:true,fast:true}]){
   const speed=options.fast?.8:1,rank=Math.min(3,d.tier);
-  assert.equal(skillFxDuration(d,1,options),sp.kind==='phys'?n*85+(options.fast?35:60):Math.round([0,400,700,1200][rank]*speed),key);
+  assert.equal(skillFxDuration(d,1,options),sp.kind==='phys'?n*400+(options.fast?35:60):Math.round([0,400,700,1200][rank]*speed),key);
  }
  if(sp.kind==='phys')physical++;
 }
@@ -29,7 +29,7 @@ for(const file of ['skill-fx.js','skill-fx-materials.js']){
  const text=await readFile(new URL('../../src/'+file,import.meta.url),'utf8');
  assert.ok(!/\.(stroke|fill|arc|ellipse|lineTo|moveTo|rect|fillRect|strokeRect|bezierCurveTo|quadraticCurveTo)\s*\(/.test(text),file+'で図形を生成しない');
 }
-console.log(`全960技（物理${physical}）の尺・85msの打撃枠・自然音105条件・図形/発振器の禁止を確認`);
+console.log(`全960技（物理${physical}）の尺・400msの打撃枠・自然音105条件・図形/発振器の禁止を確認`);
 
 for(const element of ['fire','water','wind','earth','light','dark']){
  const profile=enemySkillFxProfile({side:'enemy',action:'breath',actor:{element}});assert.ok(profile);

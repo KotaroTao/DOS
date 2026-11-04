@@ -25,10 +25,11 @@ export function skillFxSound(family, tier = 1, spell = null) {
 }
 export const extendedSkillFx=design=>!!design?.family;
 export const physicalSkillFx=design=>design?.kind==='phys'||!design?.kind&&['cut','cleave','flurry','impact','pierce','projectile'].includes(design?.family);
-// 物理は一撃65msの動きを保ち、85msごとの打撃枠と60msの余韻へ収める。
+// 物理は一撃65msの動きを保ち、400msごとの打撃枠と60msの余韻へ収める。
+export const PHYSICAL_HIT_MS = 400;
 export function skillFxDuration(design, spd=1, options={}){
  const count=Math.max(1,design?.combo||design?.hits||1),rank=Math.min(3,Math.max(1,design?.tier||1));
- if(physicalSkillFx(design))return count*85+(options.fast?35:60);
+ if(physicalSkillFx(design))return count*PHYSICAL_HIT_MS+(options.fast?35:60);
  return Math.round([0,400,700,1200][rank]*(options.fast?.8:1));
 }
 export { SLASH_FORMS } from './skill-fx-materials.js';
@@ -43,10 +44,10 @@ export function enemySkillFxProfile(res){
 export function drawSkillScene(c,e,t,w,h,reduced){
  const lite=fxLite(reduced),physical=physicalSkillFx(e.design),fixed=reduced?.36:t;
  if(e.strikes?.length){
-  const slots=Math.max(1,e.comboCount),position=physical?fixed*e.dur/85:fixed*slots;
+  const slots=Math.max(1,e.comboCount),position=physical?fixed*e.dur/PHYSICAL_HIT_MS:fixed*slots;
   for(const point of e.strikes){
    const q=position-point.slot;if(!reduced&&(q<0||q>=1))continue;
-   drawMaterialSkill(c,{...e,x:point.x,y:point.y,all:false,strikes:[],physical,strikeIndex:point.slot,strikeMs:physical?85:e.dur/slots,primaryPts:[point],design:{...e.design,tier:Math.min(3,e.design.tier)}},reduced?.36:q,w,h,lite,reduced);
+   drawMaterialSkill(c,{...e,x:point.x,y:point.y,all:false,strikes:[],physical,strikeIndex:point.slot,strikeMs:physical?PHYSICAL_HIT_MS:e.dur/slots,primaryPts:[point],design:{...e.design,tier:Math.min(3,e.design.tier)}},reduced?.36:q,w,h,lite,reduced);
   }
  }else drawMaterialSkill(c,{...e,physical},fixed,w,h,lite,reduced);
  // 対象の印も小さな材質の濃淡だけを使う。図形の記号は描かない。
