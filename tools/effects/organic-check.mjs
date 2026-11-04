@@ -24,7 +24,7 @@ for(const family of ['slash','impact','pierce','ice','wave','firePillar','lightn
 }
 const source=await readFile(new URL('../../src/music/sfx.js',import.meta.url),'utf8');
 const natural=source.slice(source.indexOf('export function naturalSkillName'),source.indexOf('const CACHE ='));
-assert.ok(!/\b(modal|sweep)\s*\(|Math\.(sin|cos)\s*\(/.test(natural),'技の自然音に発振器を戻さない');
+assert.ok(!/\b(modal|sweep)\s*\(|Math\.(sin|cos)\s*\(/.test(natural),'攻撃の自然音に発振器を戻さない（回復は別の和音合成）');
 for(const file of ['skill-fx.js','skill-fx-materials.js']){
  const text=await readFile(new URL('../../src/'+file,import.meta.url),'utf8');
  assert.ok(!/\.(stroke|fill|arc|ellipse|lineTo|moveTo|rect|fillRect|strokeRect|bezierCurveTo|quadraticCurveTo)\s*\(/.test(text),file+'で図形を生成しない');
@@ -49,20 +49,27 @@ for(const [family,category]of [['heal','restore'],['revive','revive'],['purify',
  assert.ok(energy(0,.02)<energy(.2,.6),'救命音の立ち上がりに衝突音を出さない');
 }
 assert.equal(healing.size,4);
-// 回復のきらめきは高速時も1/2/3回。各まとまりの後半が減衰し、準備音と混ざらない。
+// 採用された和音は左右に広がり、全速度で尺内に消え、準備音と混ざらない。
 for(const family of ['heal','revive','purify','mana'])for(const rank of [1,2,3,5])for(const speed of [1,.8,.6]){
  const count=Math.min(3,rank),ms=Math.round([0,400,700,1200][count]*speed);
- const name=naturalSkillName(family,rank,ms),data=SFX_DEFS[name].gen(rng(321)).ch[0];
+ const name=naturalSkillName(family,rank,ms),audio=SFX_DEFS[name].gen(rng(321)),data=audio.ch[0];
  assert.equal(data.length,Math.round(32000*ms/1000));
  assert.equal(name,naturalSkillName(family,count,ms),'ランク3より増やさない');
+ assert.equal(audio.ch.length,2);assert.notDeepEqual(audio.ch[0],audio.ch[1]);
  const rms=(a,b)=>{const part=data.slice(Math.floor(a*data.length),Math.floor(b*data.length));return Math.sqrt(part.reduce((s,v)=>s+v*v,0)/part.length);};
- for(let i=0;i<count;i++){
-  const peak=rms((i+.08)/count,(i+.35)/count),tail=rms((i+.8)/count,(i+.98)/count);
-  assert.ok(peak>.025 && peak>tail*3,`${family}/${rank}/${speed}の${i+1}回目が聞き分けられる`);
- }
+ assert.ok(rms(.05,.4)>.025 && rms(.8,1)<rms(.05,.4)*.3,'きらめきの後に減衰する');
+ assert.ok(Math.abs(data[0])<.0001 && Math.abs(data.at(-1))<.0001,'両端のクリックを防ぐ');
  assert.notEqual(name,naturalSkillName(family,rank,ms,true),'準備音を別に保持');
 }
-console.log('救命4系統・ランク1/2/3/5・通常/高速/オートのきらめき48条件を確認');
+let recoverySkills=0;
+for(const [key,spell]of Object.entries(SPELLS)){
+ if(!['heal','cure'].includes(spell.kind)&&!(spell.kind==='buff'&&spell.regen)&&SKILL_FX_CATALOG[key].family!=='mana')continue;
+ const design=SKILL_FX_CATALOG[key],sound=skillFxSound(design.family,design.tier,spell);
+ const name=naturalSkillName(sound,design.tier,400);
+ assert.equal(SFX_DEFS[name].category,spell.revive?'revive':spell.kind==='cure'?'cleanse':design.family==='mana'?'supply':'restore',key);
+ recoverySkills++;
+}
+console.log(`救命4系統×通常/高速/オート48条件・回復関連${recoverySkills}技の音割り当てを確認`);
 const fx={skill:[{type:'skillScene',t0:10}],floats:[{t0:10},{t0:95},{t0:180}]};
 beginSkillFxPresentation(fx,100);assert.deepEqual(fx.floats.map(e=>e.t0),[100,185,270]);
 beginSkillFxPresentation(fx,200);assert.equal(fx.skill[0].t0,100,'開始時刻を二重にずらさない');

@@ -39,7 +39,7 @@ function play(){
  lastKey=key;setFxQuality($('low').checked?'low':'auto');list=previewSkillFx(key,$('group').checked);
  const design=SKILL_FX_CATALOG[key],spell=SPELLS[key];
  $('caption').textContent=spell.name+' ／ '+SKILL_FAMILIES[design.family]+' ／ '+('ランク'+design.tier)+(SKILL_FX_SIGNATURES[key]?' ／ 看板の余韻':'');
- if($('sound').checked){initAudio();setVolumes(0,.7);SFX.skill(skillFxSound(design.family,design.tier),{physical:design.kind==='phys',rank:design.tier,duration:list[0].dur});}
+ if($('sound').checked){initAudio();setVolumes(0,.7);SFX.skill(skillFxSound(design.family,design.tier,spell),{physical:design.kind==='phys',rank:design.tier,duration:list[0].dur});}
  started=performance.now();lastDraw=0;paint(0);frame=requestAnimationFrame(tick);
 }
 async function audit(){

@@ -8,7 +8,11 @@ import { FX_LIMITS, fxLite } from './skill-fx-budget.js';
 const ELEMENT_FAMILIES=['ice','wave','gale','lightning','stone','quake'];
 const MYSTIC_FAMILIES=['radiance','void','arcane','heal','revive','purify','ward'];
 export const SKILL_FAMILIES = Object.freeze({cut:'斬撃',cleave:'なぎ払い',flurry:'連撃',impact:'重い打撃',pierce:'貫通',projectile:'射撃',fireball:'火球',firePillar:'火柱',blast:'爆発',ice:'氷の破片',wave:'水の波',gale:'風の流れ',lightning:'雷光',stone:'岩の隆起',quake:'地の衝撃',radiance:'聖光',void:'闇の収束',arcane:'魔力の波',heal:'回復',revive:'蘇生',purify:'治療',ward:'守り',mana:'魔力の譲渡',empower:'強化',charge:'力を溜める',weaken:'弱体',dispel:'解除',seal:'封印',paralyze:'麻痺',poison:'毒',illusion:'幻惑',sleep:'眠り',gravity:'重力',doom:'死の印',drain:'吸収',steal:'奪取',escape:'退避',survey:'探索'});
-export function skillFxSound(family, tier = 1) {
+export function skillFxSound(family, tier = 1, spell = null) {
+  // 守りや強化の絵を持つ回復技も、音は実際の救命効果に合わせる。
+  if (spell?.kind==='heal') family=spell.revive?'revive':'heal';
+  else if (spell?.kind==='cure') family='purify';
+  else if (spell?.kind==='buff' && spell.regen) family='heal';
   if (MYSTIC_FAMILIES.includes(family)) return family+(tier>=3?'3':tier>=2?'2':'');
   if (['cut','cleave','flurry'].includes(family)) return 'slash';
   if (ELEMENT_FAMILIES.includes(family)||family==='fireball'||family==='blast')return family+(tier>=3?'3':tier>=2?'2':'');
