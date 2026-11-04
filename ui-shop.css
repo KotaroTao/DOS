@@ -784,11 +784,20 @@ html.pc-input .ui-sheet.ec-source-sheet { max-width: 720px; }
 
 .bk-panel .wpc-lhead-t { max-width:100%; min-width:0; overflow-wrap:anywhere; white-space:normal; }
 
-/* 宿し先は操作の下へ置き、小さな画面でもボタンを押せる幅を保つ。 */
-.bk-installed-row { flex-wrap:wrap; }
-.bk-installed-note { order:4; flex-basis:100%; min-width:0; font-size:11px; color:var(--ink-faint); overflow-wrap:anywhere; padding-bottom:6px; }
+/* 武魂と操作を一行に保ち、持ち主は名前の枠の右端に置く。 */
+.bk-stock-row { flex-wrap:nowrap; gap:4px; }
+.bk-stock-row > .ui-btn { font-size:11px; padding-inline:5px; }
+.bk-stock-main { gap:4px; }
+.bk-stock-main .bk-gem { width:10px; height:10px; margin-right:0; }
+.bk-installed-note { flex:0 1 auto; min-width:0; max-width:35%; margin-left:auto; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--ink); font-size:11px; }
+.bk-other-owner { background:rgba(80,150,200,.16); box-shadow:inset 3px 0 #79b9df; }
+.bk-stock-row > .bk-lock { width:48px; padding-inline:3px; }
+.bk-lock[aria-pressed="true"] { color:#ffe0a0; background:#654819; border-color:#d4ac63; }
 
 /* 一覧の武魂は宝石と効果量付きの名前を一組にする。 */
 .bk-name-line { flex-wrap:nowrap; gap:6px; }
 .bk-name-line > .bk-gem { margin:0; }
 .bk-name-line > span { min-width:0; overflow-wrap:anywhere; }
+
+/* 小画面の既存指定より優先して一覧の文字を一回り小さくする。 */
+.bk-sheet .bk-stock-row > .ui-btn { font-size:11px; }
