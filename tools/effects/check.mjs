@@ -47,10 +47,10 @@ assert.equal(skillFxSound('fireball'),'fireball');
 for(const [key,tier]of [['MAHALITO',1],['GOKUEN',2],['GOKUENRAN',3]])assert.equal(SKILL_FX_CATALOG[key].tier,tier);
 for(const [key,dur]of [['MAHALITO',400],['GOKUEN',700],['GOKUENRAN',1200],['HALITO',400],['BATTLEMAGE_GURENMASHOU',700],['SPELLBLADE_ENTEI',1200],['TILTOWAIT',400],['TENPENCHII',700],['KYOKUDAI',1200]]){
  const d=SKILL_FX_CATALOG[key];assert.equal(skillFxDuration(d),dur);
- assert.equal(skillFxDuration(d,2,{auto:true}),dur*.6);
+ assert.equal(skillFxDuration(d,2,{auto:true}),dur);
  assert.equal(skillFxDuration(d,.1,{fast:true}),dur*.8);
- assert.equal(skillFxDuration(d,.1,{auto:true,fast:true}),dur*.6);
- for(const options of [{},{auto:true},{fast:true}]){
+ assert.equal(skillFxDuration(d,.1,{auto:true,fast:true}),dur*.8);
+ for(const options of [{},{auto:true},{fast:true},{auto:true,fast:true}]){
   const effects=[];emitSkillFx(effects,key,SPELLS[key],[{target:enemy,dmg:10}],locate,0,.1,options);
   assert.equal(effects[0].dur,skillFxDuration(d,.1,options));
  }
@@ -116,7 +116,7 @@ for(const [family,policy]of Object.entries(elementPolicy)){
  }
  for(let rank=1;rank<=3;rank++){
   assert.equal(skillFxSound(family,rank),family+(rank===1?'':rank));
-  for(const options of [{},{auto:true},{fast:true}])assert.equal(skillFxDuration({family,tier:rank},.1,options),[0,400,700,1200][rank]*(options.auto?.6:options.fast?.8:1));
+  for(const options of [{},{auto:true},{fast:true},{auto:true,fast:true}])assert.equal(skillFxDuration({family,tier:rank},.1,options),[0,400,700,1200][rank]*(options.fast?.8:1));
   const name='skill'+family[0].toUpperCase()+family.slice(1)+(rank===1?'':rank);
   for(let seed=1;seed<=3;seed++)for(const ch of SFX_DEFS[name].gen(rng(seed)).ch){assert.ok(ch.every(Number.isFinite));assert.ok(ch.every(v=>Math.abs(v)<=.91));assert.ok(ch.some(v=>Math.abs(v)>.1));}
  }
@@ -131,7 +131,7 @@ for(const family of ['radiance','void','arcane','heal','revive','purify','ward']
  assert.equal(skillFxSound(family,rank),kind);
  assert.equal(skillFxDuration(d),[0,400,700,1200][rank]);
  assert.equal(previewSkillFx(key)[0].dur,skillFxDuration(d));
- assert.equal(skillFxDuration(d,1,{auto:true}),skillFxDuration(d)*.6);
+ assert.equal(skillFxDuration(d,1,{auto:true}),skillFxDuration(d));
  const name='skill'+kind[0].toUpperCase()+kind.slice(1),data=SFX_DEFS[name].gen(rng(123));
  assert.ok(data.ch.every(ch=>ch.every(Number.isFinite)&&ch.some(x=>Math.abs(x)>.01)),name);
 }
@@ -188,7 +188,7 @@ for(const [job,rows] of Object.entries(JOB_SKILLS)){
 }
 const ranks=new Set();
 for(const [key,d] of Object.entries(SKILL_FX_CATALOG))if(d.family==='impact'){
- ranks.add(d.tier);assert.equal(skillFxDuration(d,1,{auto:true}),d.hits*85+20);
+ ranks.add(d.tier);assert.equal(skillFxDuration(d,1,{auto:true}),d.hits*85+60);
  for(const hit of [{target:enemy,miss:true},{target:enemy,immune:true}]){
   const fx=[];emitSkillFx(fx,key,SPELLS[key],[hit],locate,0);assert.equal(fx.length,0);
  }
@@ -200,7 +200,7 @@ console.log(`${shapes.size}職業の最終技専用構図 / 重い打撃5ラン�
 // すべての系統・高ランク・速度設定で尺は400/700/1200msに限定する。
 for(const family of Object.keys(SKILL_FAMILIES))for(const tier of [1,2,3,4,5,10,100]){
  for(const options of [{},{auto:true},{fast:true},{auto:true,fast:true}]){
-  const expected=physicalSkillFx({family,tier})?85+(options.auto?20:options.fast?35:60):Math.round((tier===1?400:tier===2?700:1200)*(options.auto?.6:options.fast?.8:1));
+  const expected=physicalSkillFx({family,tier})?85+(options.fast?35:60):Math.round((tier===1?400:tier===2?700:1200)*(options.fast?.8:1));
   assert.equal(skillFxDuration({family,tier},.1,options),expected);
  }
 }

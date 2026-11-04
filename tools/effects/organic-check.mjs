@@ -10,9 +10,9 @@ let physical=0;
 for(const [key,sp]of Object.entries(SPELLS)){
  const d=SKILL_FX_CATALOG[key],n=Math.max(sp.hits||1,sp.scatter||1);
  assert.equal(d.kind,sp.kind);assert.equal(d.hits,n);
- for(const options of [{},{auto:true},{fast:true}]){
-  const speed=options.auto?.6:options.fast?.8:1,rank=Math.min(3,d.tier);
-  assert.equal(skillFxDuration(d,1,options),sp.kind==='phys'?n*85+(options.auto?20:options.fast?35:60):Math.round([0,400,700,1200][rank]*speed),key);
+ for(const options of [{},{auto:true},{fast:true},{auto:true,fast:true}]){
+  const speed=options.fast?.8:1,rank=Math.min(3,d.tier);
+  assert.equal(skillFxDuration(d,1,options),sp.kind==='phys'?n*85+(options.fast?35:60):Math.round([0,400,700,1200][rank]*speed),key);
  }
  if(sp.kind==='phys')physical++;
 }
