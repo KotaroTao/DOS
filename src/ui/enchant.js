@@ -62,11 +62,16 @@ function stockRow(b, done, { it = null, installed = null, onAttach = null, onDet
   main.querySelector(".ui-btn-l").replaceChildren(el("span","bk-name-label",def.name),el("span","bk-name-value",name.slice(def.name.length)));
   const gem=el("i","bk-gem");gem.setAttribute("aria-hidden","true");main.prepend(gem);main.style.color=BUKON_RARITIES[def.rarity].color;row.append(main);
   if(installed!==null){row.append(button({label:"外す",kind:"ghost",disabled:!!it.cursed,onTap:()=>onDetach?onDetach():action("detach",it,installed,done)}));if(!management)return row;}
-  if(it&&installed===null)row.append(button({label:b.it?"付け替える":"宿す",kind:"primary",onTap:()=>onAttach?onAttach():action(b.it?"move":"attach",it,b,done)}));
+  if(it&&installed===null)row.append(button({label:"宿す",kind:"primary",onTap:()=>onAttach?onAttach():action(b.it?"move":"attach",it,b,done)}));
   if(!management)return row;
   if(def.max!==1 && game.featureUnlocked("bukonFusion")){const fuse=button({label:"合成",kind:"primary",disabled:!snapshotFusionPlan(G(),game.bukonTargets(),b),onTap:()=>openFusion(b,done)});fuse.classList.add("bukon-tutorial-fuse");row.append(fuse);}
-  if(b.it){row.classList.add("bk-installed-row");row.append(el("span","bk-installed-note",`宿し先：${locationOf(b.it)} · ${itemName(b.it)}`));}
-  const protect=button({label:b.protected?"保護中":"保護",kind:"ghost",onTap:()=>action(b.it?"fusionLock":"protect",b.it||null,b,done)});
+  if(b.it){
+    const owner=ownerOf(b.it);
+    if(owner){const note=el("span","bk-installed-note",owner.name);note.setAttribute("aria-hidden","true");main.append(note);}
+    if(owner&&it&&owner!==ownerOf(it))row.classList.add("bk-other-owner");
+  }
+  const protect=button({label:"ロック",kind:"ghost",onTap:()=>action(b.it?"fusionLock":"protect",b.it||null,b,done)});
+  protect.classList.add("bk-lock");
   protect.title=b.it?"ロックを解除すると合成素材になり、素材として使うと装備から外れる":"同じ効果・強さの武魂をまとめて保護する・解除する";
   protect.setAttribute("aria-pressed",String(!!b.protected));row.append(protect);return row;
 }
