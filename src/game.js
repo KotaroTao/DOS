@@ -2,7 +2,7 @@ import { recordBattleFrame } from './skill-fx-budget.js';
 import { planAuto, warmAutoPlanner } from './auto-planner.js';
 import { showFieldSkillFx } from "./skill-fx-field.js";
 import { PHYSICAL_HIT_MS, emitSkillFx, skillFxSound, skillFxDuration, extendedSkillFx, enemySkillFxProfile, beginSkillFxPresentation } from "./skill-fx.js";
-import { beginBattleWindup, normalAttackTiming } from "./battle-windup.js";
+import { beginBattleWindup } from "./battle-windup.js";
 import { createTrial } from "./choice-trial.js";
 import { battleCommand } from "./cloud-battle.js";
 import { cloudLedgerActive, cloudFinishBattle, cloudCommandMode, cloudActionCommand } from "./cloud-save.js";
@@ -9700,7 +9700,9 @@ function renderCombatCanvas() {
         const d = fx && fx.deaths ? fx.deaths.find((x) => x.uid === e.uid) : null;
         // 開幕 (死の宣告・居合・開幕呪撃) に倒れた敵は、開幕の演出で崩れ落ちるまで姿を残す
         const pending = e._openDeath && !d && !_deadShown.has(e);
-        if (!pending && (!fx || _deadShown.has(e) || (d && now >= d.t0))) { if (!fx || d) _deadShown.add(e); return; }
+        const waitingHit = fx?.pendingDeaths?.has(e.uid) && !d;
+        // 通信で敵のオブジェクトが入れ替わっても、以前に倒した敵を再表示しない。
+        if (!pending && (!fx || _deadShown.has(e) || (!d && !waitingHit) || (d && now >= d.t0))) { _deadShown.add(e); return; }
       }
       let ox = 0, oy = 0, alpha = 1;
       if (fleeFx) {
@@ -10549,7 +10551,7 @@ function drawEffects(fx, now, stageH) {
   const spd = effectSpeed();
   // 撃破: 白く焼け、上へ崩れながら灰となって消える
   for (const d of fx.deaths || []) {
-    const dur = 360 * spd;
+    const dur = d.dur || 360 * spd;
     const t = (now - d.t0) / dur;
     if (t < 0 || t > 1) continue;
     const bm = monsterBitmap(d.mon);
@@ -10581,7 +10583,7 @@ function drawEffects(fx, now, stageH) {
   }
   // 斬撃: 三日月の閃光が走り、紅い飛沫が散る
   for (const s of fx.slashes) {
-    const t = (now - s.t0) / (240 * Math.max(0.6, spd));
+    const t = (now - s.t0) / (s.dur || 240 * Math.max(0.6, spd));
     if (t < 0 || t > 1) continue; // t0 が未来 (多段の2撃目以降) のものはまだ描かない
     const sweep = Math.min(1, t / 0.45);
     const fade = t < 0.45 ? 1 : 1 - (t - 0.45) / 0.55;
@@ -11557,11 +11559,36 @@ async function advanceSavedBattle(watch) {
 // 多段ヒットの時間差 (ms。spdMul で速度モードに追従)。applyImpact と共有
 const HIT_STAGGER = 165;
 
+const BATTLE_RESULT_MS = 400;
+// 次の行動や戦果を待たず、各打撃から一定時間で数値と撃破の表示を消す。
+function battleResultEnd(fx, now) {
+  beginSkillFxPresentation(fx, now);
+  const spd = effectSpeed();
+  for (const f of fx.floats) f.dur = BATTLE_RESULT_MS;
+  for (const d of fx.deaths) d.dur = BATTLE_RESULT_MS;
+  for (const s of fx.slashes) s.dur = s.dur || 240 * Math.max(0.6, spd);
+  let end = now;
+  for (const e of [...fx.skill, ...fx.floats, ...fx.deaths, ...fx.slashes, fx.screen, fx.fleeAway]) {
+    if (e && Number.isFinite(e.t0) && Number.isFinite(e.dur)) end = Math.max(end, e.t0 + e.dur);
+  }
+  return end;
+}
+
+// 消えた状態の盤面を描き、次の描画機会を挟んでから次の手番へ進む。
+function finishBattleResult(fx, finish) {
+  if (G.fx !== fx) return;
+  G.fx = null;
+  G.partyFx?.clear(); G.partyFxV?.clear();
+  renderCombat();
+  requestAnimationFrame(finish);
+}
+
 // 結果オブジェクトを演出 (踏み込み → 着弾 → 余韻)
 function animateResult(res, done) {
   const battle = G.battle;
   if (!battle || G.state !== "combat") return;
-  const finish = () => { if (G.battle === battle && G.state === "combat") done(); };
+  let finished = false;
+  const finish = () => { if (!finished && G.battle === battle && G.state === "combat") { finished = true; done(); } };
 
   const presentation=fxProfile(res);
   if(presentation)SFX.warmSkill?.(skillFxSound(presentation.family,presentation.tier,SPELLS[res.spellKey]),{physical:presentation.kind==='phys',rank:presentation.tier,duration:skillFxDuration(presentation,1,{auto:!!G.autoCombat,fast:!!G.fastAnim})});
@@ -11569,27 +11596,19 @@ function animateResult(res, done) {
   if (setPlateCall(res) && !quickBattlePresentation()) { if (G.autoCombat) renderAutoBanner(); else renderActingPlate(res.actor); } // 命令板にも「誰の何の技か」
   if (quickBattlePresentation()) {
     // 通常の技は命令板を先に示す。ランク付きの攻撃演出は最後まで見せてから次の行動へ進む。
-    const fx = G.fx = { lunge: null, slashes: [], skill: [], floats: [], screen: null, flash: {}, deaths: [] };
+    const fx = G.fx = { lunge: null, slashes: [], skill: [], floats: [], screen: null, flash: {}, deaths: [], pendingDeaths: new Set((res.hits || []).filter(h => h.died && h.target?.side === 'enemy').map(h => h.target.uid)) };
     G.partyFx = new Map(); G.partyFxV = new Map();
     if ((res.action !== "sleep" && res.action !== "stunned") || (res.hits || []).length) applyImpact(res);
     if (res._modFeed !== undefined) releaseActionEffects(res, res._modFeed);
     drainPartyProcs();
     partyEl.style.setProperty("--fxd", G.fastAnim ? "0.32s" : "0.4s");
-    const effectDuration=fx.skill.find(e=>e.type==='skillScene'&&extendedSkillFx(e.design))?.dur||0;
-    // 通常攻撃の反応は従来どおり。ランク付きの攻撃演出は描画の終了と進行を同じ時計で扱う。
-    const normalAttack = res.action === "attack" && res.actor?.side === "party" && (serverBattle() || choiceTrial?.overlap);
-    if (normalAttack) setTimeout(finish, normalAttackTiming(G.fastAnim).reaction); else if(!effectDuration) finish();
-    let started = null;
-    let firstFrame = true;
+    let end = null;
     const tick = () => {
       if (G.fx !== fx || G.battle !== battle || G.state !== "combat") return;
-      if (firstFrame) { firstFrame = false; renderParty(); started=performance.now(); beginSkillFxPresentation(fx,started); }
-      if (performance.now() - started >= (effectDuration || (G.fastAnim ? 360 : 430))) {
-        G.fx = null; G.partyFx.clear(); G.partyFxV.clear(); renderParty();
-        if(effectDuration) finish();
-        return;
-      }
-      renderCombatCanvas(); requestAnimationFrame(tick);
+      if (end === null) { renderParty(); end = battleResultEnd(fx, performance.now()); }
+      renderCombatCanvas();
+      if (performance.now() >= end) { finishBattleResult(fx, finish); return; }
+      requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
     return;
@@ -11620,7 +11639,7 @@ function animateResult(res, done) {
   const hold = res.opening === "senkoku" ? 560 : 0;
   let TOTAL = WIND + (360 + hold + staggerSteps * HIT_STAGGER) * spdMul();
   G.fx = { lunge: res.side === "enemy" && res.action !== "eflee" ? { uid: res.actor.uid, p: 0 } : null,
-           slashes: [], skill: [], floats: [], screen: null, flash: {}, deaths: [] };
+           slashes: [], skill: [], floats: [], screen: null, flash: {}, deaths: [], pendingDeaths: new Set((res.hits || []).filter(h => h.died && h.target?.side === 'enemy').map(h => h.target.uid)) };
   G.partyFx = G.partyFx || new Map();
   G.partyFxV = new Map();
   // 隊の札の演出の長さも一手の余韻に合わせる (テンポを落とさない)
@@ -11631,9 +11650,10 @@ function animateResult(res, done) {
     const at = fxAnchor(res, prof);
     if (at) spawnFx(G.fx.skill, "circle", at.x, at.y, t0, spdMul(), { el: prof.el, spin: prof.spin, w: at.w, dur: WIND + 150 * spdMul() });
   }
+  const fx = G.fx;
   let impacted = false;
   const tick = () => {
-    if (G.battle !== battle || G.state !== "combat" || !G.fx) return;
+    if (G.battle !== battle || G.state !== "combat" || G.fx !== fx) return;
     const t = performance.now() - t0;
     if (G.fx.lunge) G.fx.lunge.p = Math.sin(Math.min(1, t / WIND) * Math.PI);
     if (!impacted && t >= WIND) {
@@ -11642,17 +11662,13 @@ function animateResult(res, done) {
       if (res._modFeed !== undefined) releaseActionEffects(res, res._modFeed); // 強化・弱体の札は着弾と同時に
       drainPartyProcs(); // 発動した効果の名は着弾と同時に
       renderParty(); // HP反映 + 被弾フラッシュ
-      beginSkillFxPresentation(G.fx,performance.now());
-      const effectDuration=G.fx.skill.find(e=>e.type==='skillScene'&&extendedSkillFx(e.design))?.dur||0;
-      if(effectDuration) TOTAL=performance.now()-t0+effectDuration;
+      const end = battleResultEnd(fx, performance.now());
+      const hasScene = fx.skill.some(e => e.type === 'skillScene' && extendedSkillFx(e.design));
+      TOTAL = hasScene ? end - t0 : Math.max(TOTAL, end - t0);
     }
     renderCombatCanvas();
     if (t >= TOTAL) {
-      G.fx = null;
-      G.partyFx.clear();
-      if (G.partyFxV) G.partyFxV.clear();
-      renderCombat();
-      finish();
+      finishBattleResult(fx, finish);
     } else {
       requestAnimationFrame(tick);
     }

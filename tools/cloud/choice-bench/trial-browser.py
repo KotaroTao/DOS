@@ -99,12 +99,13 @@ async def main():
                 assert held
                 assert [r[1] for r in requests if r[0]=='append'][0]==[r[1] for r in requests if r[0]=='append'][1]
                 route,value=held.pop(0)
+            await page.evaluate('''()=>{window.sawImpact=false;const probe=setInterval(()=>{if(__game.G.fx&&__game.G.animating)window.sawImpact=true;if(window.sawImpact&&!__game.G.fx)clearInterval(probe);},1);}''')
             await route.fulfill(json=value,headers={'access-control-allow-origin':'*'})
             await page.wait_for_function("!__game.G.animating && __game.G.battle.phase==='input'",timeout=10000)
             assert await page.evaluate('JSON.stringify([__game.G.rng,__game.G.battle.enemies.map(e=>e.hp),__game.G.party.map(e=>[e.hp,e.mp])])')!=before
             assert await page.locator('.battle-windup').count()==0
             assert await page.evaluate('windupProbe.starts===windupProbe.stops')
-            assert await page.evaluate('!!__game.G.fx'),'既存の着弾演出がない'
+            assert await page.evaluate('window.sawImpact && __game.G.fx===null'),'着弾を見せて消去する前に次の入力へ進んだ'
             assert not await page.locator('#party').evaluate("n=>n.classList.contains('choice-windup')")
             assert await page.evaluate("localStorage.getItem('dos-save-v7')")=='original-game-save'
             assert json.loads(await page.evaluate("localStorage.getItem('dos-cloud-auth')"))==auth
