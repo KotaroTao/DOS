@@ -936,7 +936,7 @@ function render(root) {
   const seg = segOf();
   const wrap = el("div", "wpc-shop seg-" + seg);
   wrap.appendChild(keeperLine(seg));
-  if (seg === "buy" || seg === "enchant") wrap.appendChild(buyerStrip({bukon:seg==="enchant"}));
+  if (["buy", "forge", "enchant"].includes(seg)) wrap.appendChild(buyerStrip({bukon:seg!=="buy"}));
   const bar = el("div", "wpc-bar");
   const unid = unidCount();
   bar.appendChild(segmented(
@@ -951,7 +951,7 @@ function render(root) {
     bar.appendChild(cc);
   }
   wrap.appendChild(bar);
-  const fill = seg === "buy" ? renderBuy(wrap) : seg === "forge" && UI.renderForgeList ? UI.renderForgeList(wrap) : seg === "enchant" && UI.renderEnchantList ? UI.renderEnchantList(wrap, { doll:selectedBuyer() }) : renderSell(wrap);
+  const fill = seg === "buy" ? renderBuy(wrap) : seg === "forge" && UI.renderForgeList ? UI.renderForgeList(wrap, { doll:selectedBuyer() }) : seg === "enchant" && UI.renderEnchantList ? UI.renderEnchantList(wrap, { doll:selectedBuyer() }) : renderSell(wrap);
   root.appendChild(wrap);
   // 置いてから高さを測ってページを切る
   try { fill(); } catch (e) { setTimeout(() => { throw e; }); }

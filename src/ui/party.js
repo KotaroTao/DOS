@@ -2318,7 +2318,7 @@ function slotLabelOf(d, k) {
   if (k === "shield" && d && (d.dualWield > 0 || (d.equip && d.equip.shield && d.equip.shield.slot === "weapon"))) return "左手";
   return SLOT_LABEL[k];
 }
-export function slotCell(d, k, { onPick = null, bukonOnly = false } = {}) {
+export function slotCell(d, k, { onPick = null, bukonOnly = false, qualityOnly = false } = {}) {
   const it = d.equip[k];
   const info = !onPick && d.primary != null ? slotInfo(d, k) : { count: 0, better: false };
   const r = el("button", "pt-slot" + (it ? "" : " empty") + (it && it.cursed ? " cursed" : "") + (it && it.locked ? " locked" : "") + (info.better ? " better" : ""));
@@ -2342,9 +2342,10 @@ export function slotCell(d, k, { onPick = null, bukonOnly = false } = {}) {
   tx.appendChild(top);
   if (it) {
     tx.appendChild(game.itemNameEl ? game.itemNameEl("span", "pt-slot-n", it, it.cursed ? " (呪)" : "") : el("span", "pt-slot-n", itemName(it)));
-    if (!bukonOnly && k === "weapon" && !it.unidentified) tx.appendChild(el("span", "pt-slot-power", `攻撃力 ${attackPower(d)}`));
-    if (!bukonOnly && k === "shield" && it.slot === "weapon" && !it.unidentified) tx.appendChild(el("span", "pt-slot-power", d.offPower ? `左手の攻撃力 ${d.offPower}` : "二刀流が無く、左手では振るえない"));
-    if (bukonOnly) tx.append(...bukonNameLines(it));
+    if (!bukonOnly && !qualityOnly && k === "weapon" && !it.unidentified) tx.appendChild(el("span", "pt-slot-power", `攻撃力 ${attackPower(d)}`));
+    if (!bukonOnly && !qualityOnly && k === "shield" && it.slot === "weapon" && !it.unidentified) tx.appendChild(el("span", "pt-slot-power", d.offPower ? `左手の攻撃力 ${d.offPower}` : "二刀流が無く、左手では振るえない"));
+    if (qualityOnly) tx.appendChild(el("span", "pt-slot-s", it.unidentified ? "未鑑定" : hasQuality(it) ? `品質 ${qualityOf(it)}` : "品質の影響なし"));
+    else if (bukonOnly) tx.append(...bukonNameLines(it));
     else {
       const s = statLines(it);
       if (s) tx.appendChild(el("span", "pt-slot-s", s));

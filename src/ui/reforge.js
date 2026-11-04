@@ -1,6 +1,6 @@
 // ===== 鍛え直し — 商会で金貨を払い、装備の品質 (0〜100) を引き直す (第五章の結びで開く。2026-10 ユーザーの指示) =====
 // 品質のしくみは items.js の「品質」、費用と判定は game.js の reforge* を見る。
-//   商会の区分「鍛え直し」: 隊と控えの装備中の品と共有の袋 を並べ、押すと鍛え直しのシート
+//   商会の区分「鍛え直し」: 選んだ人業の装備を並べ、押すと鍛え直しのシート
 //   品のシート (loot.js) の「鍛え直し」からも同じシートを開く
 // 提供する契約: UI.openReforge(item, owner, { onDone }) / UI.renderForgeList(wrap) → 描く関数
 // game.js は import しない (ctx.js の UI / game を通す)。
@@ -9,11 +9,12 @@ import { UI, game, registerUI } from "./ctx.js";
 import { el, sheet, toast, setText, DELTA_LABEL } from "./kit.js";
 import { statLines, qualityTone } from "./itemview.js";
 import { nameSpan, deltaEl, goldEl, dollIcon } from "./loot.js";
-import { SLOTS, SLOT_LABEL, AIL_LABEL, hasQuality, qualityOf, qualityMatters, itemAtQuality, QUALITY_SPREAD, itemName } from "../items.js";
+import { SLOTS, SLOT_LABEL, AIL_LABEL, hasQuality, qualityOf, itemAtQuality, QUALITY_SPREAD, itemName } from "../items.js";
 import { previewStats, statsDelta } from "../autoequip.js";
 import { ATTR_LABEL } from "../souls.js";
 import { RESIST_LABEL } from "../resistance.js";
 import { RARITIES, rarityKey } from "../rarity.js";
+import { slotCell } from "./party.js";
 import { spriteCanvas } from "../sprites.js";
 
 const G = () => game.G || {};
@@ -21,8 +22,6 @@ const sfx = (k, ...a) => { try { if (game.SFX && game.SFX[k]) game.SFX[k](...a);
 const allDolls = () => (game.allDolls ? game.allDolls() : [...(G().party || []), ...(G().reserve || [])]);
 const isReserve = (d) => (G().reserve || []).includes(d);
 const goldNumber = (n) => Number(n).toLocaleString("ja-JP");
-// 商会の再描画でも選択を保つ。セーブや抽選には触れない。
-const forgeView = { scope: "all", sort: "low" };
 // 「鍛え直し中…」の演出: 鎚を打つ回数と間 (ms)。押せば飛ばして結果へ
 const FORGE_STRIKES = 3;
 const FORGE_BEAT = 520;
@@ -282,121 +281,25 @@ export function openReforge(item, owner = null, o = {}) {
 }
 
 // ---------------------------------------------------------------- 商会の区分「鍛え直し」
-// 共有の袋は全人業が同じ配列を参照するため、一度だけ集める。
-function forgeGroups() {
-  const seen = new Set();
-  const collect = (it, key) => {
-    if (!it || seen.has(it) || !hasQuality(it) || it.unidentified) return null;
-    seen.add(it);
-    return { it, key };
+// 武魂タブと同じ装備欄で、名前の下には品質だけを示す。
+export function renderForgeList(parent, { doll = null } = {}) {
+  const wrap = el("div", "bk-panel");
+  parent.append(wrap);
+  const draw = () => {
+    wrap.replaceChildren();
+    const selected = doll || allDolls().find(d => !d.isEmpty);
+    const list = el("div", "pt-slots bk-equipment");
+    if (selected) for (const k of SLOTS) {
+      const it = selected.equip?.[k];
+      const cell = slotCell(selected, k, { qualityOnly: true, onPick: item => {
+        if (item) openReforge(item, selected, { onDone: draw, onChange: draw });
+      } });
+      cell.disabled = !it;
+      list.append(cell);
+    }
+    wrap.append(list);
   };
-  const groups = allDolls().filter(d => d && !d.isEmpty).map(d => ({
-    d, list: SLOTS.map(k => collect(d.equip && d.equip[k], k)).filter(Boolean),
-  }));
-  groups.push({ d: null, list: (G().inventory || []).map(it => collect(it, null)).filter(Boolean) });
-  return groups;
-}
-function forgeRow(x, d, refresh) {
-  const it = x.it;
-  const rk = rarityKey(it);
-  const row = el("div", "wpc-srow rf-row" + (rk ? " rar-" + rk : ""));
-  if (rk) row.style.setProperty("--edge", RARITIES[rk].color);
-  const info = el("button", "wpc-srow-info");
-  info.type = "button";
-  const ic = el("span", "wpc-srow-ic");
-  ic.appendChild(spriteCanvas(it, 3));
-  info.appendChild(ic);
-  const tx = el("span", "wpc-srow-t");
-  const l1 = el("span", "wpc-srow-l1");
-  l1.appendChild(nameSpan(it, "wpc-srow-nm"));
-  tx.appendChild(l1);
-  const l3 = el("span", "wpc-srow-l3");
-  const matters = qualityMatters(it);
-  l3.appendChild(matters ? qualityChip(it) : el("span", "rf-q none", "品質の影響なし"));
-  l3.appendChild(el("span", "wpc-srow-kind", x.key ? `装備中 ・ ${SLOT_LABEL[x.key] || ""}` : "共有の袋"));
-  tx.appendChild(l3);
-  info.appendChild(tx);
-  const why = game.reforgeBlock ? game.reforgeBlock(d, it) : "鍛え直せない";
-  if (why) tx.appendChild(el("span", "rf-row-block", why));
-  const open = () => openReforge(it, d, { onDone: refresh, onChange: refresh });
-  info.setAttribute("aria-label", `${itemName(it)}の品質と性能を確認`);
-  info.addEventListener("click", open);
-  row.appendChild(info);
-  const act = el("div", "wpc-buy");
-  const cost = game.reforgeCost ? game.reforgeCost(it) : 0;
-  const short = (G().gold || 0) < cost;
-  const main = el("button", "wpc-buy-main" + (short ? " short" : ""));
-  main.type = "button";
-  main.appendChild(goldEl(goldNumber(cost), "wpc-buy-p"));
-  main.appendChild(el("span", "wpc-buy-l", "確認する"));
-  // 一覧ではまだ支払わない。制限がある品も詳細で理由を読める。
-  main.disabled = !matters;
-  main.setAttribute("aria-label", `${itemName(it)}を確認、1回の費用は金貨${goldNumber(cost)}`);
-  main.addEventListener("click", open);
-  act.appendChild(main);
-  row.appendChild(act);
-  return row;
-}
-// 区分の中身を wrap に描き、一覧を詰める関数を返す (shop.js の render と同じ流儀)
-export function renderForgeList(wrap) {
-  const intro = el("details", "rf-intro rf-guide");
-  intro.appendChild(el("summary", "", "鍛え直しの手引き"));
-  intro.appendChild(setText(el("div", "rf-intro-t"), REFORGE_NOTE));
-  intro.appendChild(setText(el("div", "rf-intro-s"), "品を選び、費用と性能を確認してから鍛える。結果を見て、新しい品質か元のままかを選べる。費用は品の買値（最低100）。引くたびにかかり、元のままでも戻らない。"));
-  wrap.appendChild(intro);
-  const controls = el("div", "rf-controls");
-  const select = (label, key, options) => {
-    const field = el("label", "rf-field");
-    field.appendChild(el("span", "", label));
-    const input = el("select", "rf-select");
-    input.setAttribute("aria-label", label);
-    for (const [value, name] of options) {
-      const op = el("option", "", name); op.value = value; input.appendChild(op);
-    }
-    if (!options.some(([v]) => v === forgeView[key])) forgeView[key] = options[0][0];
-    input.value = forgeView[key];
-    input.addEventListener("change", () => { forgeView[key] = input.value; fill(); box.scrollTop = 0; });
-    field.appendChild(input); controls.appendChild(field);
-  };
-  select("対象", "scope", [["all", "すべて"], ["equipped", "装備中"], ["bag", "共有の袋"],
-    ...allDolls().filter(d => d && !d.isEmpty).map(d => [`doll:${d.uid}`, `${d.name}${isReserve(d) ? "（控え）" : ""}の装備`])]);
-  select("並び順", "sort", [["low", "品質が低い順"], ["high", "品質が高い順"], ["name", "名前順"]]);
-  wrap.appendChild(controls);
-  const head = el("div", "wpc-lhead");
-  const count = el("span", "wpc-lhead-t");
-  const gold = el("span", "wpc-lhead-s");
-  head.append(count, gold); wrap.appendChild(head);
-  const box = el("div", "wpc-list rf-list");
-  wrap.appendChild(box);
-  function fill() {
-    box.textContent = "";
-    const groups = forgeGroups();
-    const total = groups.reduce((n, g) => n + g.list.length, 0);
-    const visible = groups.filter(g => forgeView.scope === "all" ||
-      (forgeView.scope === "bag" ? !g.d : forgeView.scope === "equipped" ? !!g.d : `doll:${g.d?.uid}` === forgeView.scope));
-    const n = visible.reduce((a, g) => a + g.list.length, 0);
-    setText(count, `装備品 ${n} / ${total}点`);
-    setText(gold, `所持金貨 ${goldNumber(G().gold || 0)}`);
-    if (!n) {
-      box.appendChild(el("div", "wpc-empty big", total ? "この対象に鑑定済みの装備品は無い。「対象」を変えると、ほかの品を確認できる。" : "鍛え直せる装備品が無い。未鑑定の品は、先に鑑定する。"));
-      return;
-    }
-    for (const g of visible) {
-      if (!g.list.length) continue;
-      const sec = el("section", "rf-grp" + (g.d && isReserve(g.d) ? " reserve" : ""));
-      const hd = el("div", "wpc-drow-h");
-      if (g.d) hd.appendChild(dollIcon(g.d));
-      hd.appendChild(el("span", "wpc-doll-nm", g.d ? g.d.name : "共有の袋"));
-      if (g.d && isReserve(g.d)) hd.appendChild(el("span", "wpc-tag", "控え"));
-      hd.appendChild(el("span", "wpc-doll-cnt", `${g.list.length}点`));
-      sec.appendChild(hd);
-      g.list.sort((a, b) => forgeView.sort === "name" ? itemName(a.it).localeCompare(itemName(b.it), "ja") :
-        (qualityOf(a.it) - qualityOf(b.it)) * (forgeView.sort === "high" ? -1 : 1));
-      for (const x of g.list) sec.appendChild(forgeRow(x, g.d, fill));
-      box.appendChild(sec);
-    }
-  }
-  return fill;
+  return draw;
 }
 
 export function install() {
