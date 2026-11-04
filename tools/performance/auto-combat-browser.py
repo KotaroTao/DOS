@@ -46,5 +46,6 @@ async def main():
   report=await page.evaluate('''async()=>{measuring=false;__game.G.autoCombat=false;const stats=a=>{a=[...a].sort((a,b)=>a-b);return {count:a.length,p95:a[Math.floor(a.length*.95)]||0,max:a.at(-1)||0,total:a.reduce((a,b)=>a+b,0)};};return {planner:await import('/src/auto-planner.js').then(m=>m.autoPlannerStats).catch(()=>null),frames:stats(gaps),over34:gaps.filter(x=>x>34).length,longTasks:stats(longTasks),stages:Object.fromEntries(Object.entries(timings).map(([k,a])=>[k,stats(a)]))};}''')
   if not os.environ.get('AUTO_SOURCE_ROOT'):
    assert report['planner']['worker']>=10 and report['planner']['fallback']==0,report
+   assert report['planner']['reused']>=3,report
   out=Path(os.environ.get('AUTO_REPORT','/tmp/dos-auto-baseline.json'));out.write_text(json.dumps(report,indent=2));print(json.dumps(report,ensure_ascii=False));await browser.close()
 asyncio.run(main())
