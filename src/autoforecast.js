@@ -75,10 +75,10 @@ function damage(b, a, cmd, est) {
   });
 }
 
-function attacks(b, a, skills) {
+function attacks(b, a) {
   const out = b.attackableEnemies(a).map(target => ({ action: "attack", target }));
   if (a.tactic === "blade") return out;
-  for (const key of skills) {
+  for (const key of autoSkills(a)) {
     const sp = SPELLS[key];
     if (!sp || !(sp.kind === "phys" || sp.kind === "atk" || sp.instakill) || a.mp < b.costOf(a, sp, key)) continue;
     if (sp.target !== "enemy" && sp.target !== "all-enemy") continue;
@@ -119,9 +119,8 @@ function apply(b, a, cmd, est, support = true) {
   return total;
 }
 
-function rollout(b, actor, first, est, skills, support = true) {
+function rollout(b, actor, first, est, support = true) {
   const { sim, map } = copyBattle(b), a = map.get(actor);
-  const skillMap = new Map(b.party.map((p, i) => [map.get(p), skills[i]]));
   const command = { ...first, target: map.get(first.target) || null };
   let total = first.action === "defend" ? 0 : apply(sim, a, command, est, support);
   // 既に動いた味方へ、今のターンの行動をもう一度与えない。
@@ -138,7 +137,7 @@ function rollout(b, actor, first, est, skills, support = true) {
       if (!p?.alive || p.asleep || p.ailment === "stone" || p.ailment === "paralyze" || p.mind === "charm") continue;
       if (!sim.livingEnemies().length) return total;
       let best = null, value = 0;
-      for (const cmd of attacks(sim, p, skillMap.get(p))) {
+      for (const cmd of attacks(sim, p)) {
         const hits = damage(sim, p, cmd, est), raw = hits.reduce((s, h) => s + h.d, 0);
         // MPを使ってもほぼ削れない手は、続きの予測でも使わない。
         if (cmd.spellKey && hits.every(h => est.low(h.d, h.t))) continue;
@@ -156,18 +155,13 @@ function rollout(b, actor, first, est, skills, support = true) {
 // 支援のある手だけ、同じ攻撃・MP消費で支援を外した場合と比較する。
 // 通常攻撃や単純な攻撃技に重い3ターン予測を繰り返さず、今の価値を必ず残す。
 export function forecastCandidates(b, actor, candidates, est) {
-  let baseline, skills;
+  let baseline;
   for (const c of candidates) {
     c.supportGain3 = 0;
     const sp = c.spellKey ? SPELLS[c.spellKey] : null;
     if (!sp || !(sp.buff || sp.debuff || sp.debuffAll || sp.vuln || sp.charge || sp.strip)) continue;
-    // 技の解放・使用設定は一回の予測では変わらない。攻撃にならない技もここで除く。
-    skills ||= b.party.map(p => autoSkills(p).filter(key => {
-      const s = SPELLS[key];
-      return s && (s.kind === "phys" || s.kind === "atk" || s.instakill) && (s.target === "enemy" || s.target === "all-enemy");
-    }));
-    if (baseline === undefined) baseline = rollout(b, actor, { action: "defend" }, est, skills);
-    const without = c.raw > 0 || sp.instakill ? rollout(b, actor, c, est, skills, false) : baseline;
-    c.supportGain3 = Math.max(0, rollout(b, actor, c, est, skills) - without);
+    if (baseline === undefined) baseline = rollout(b, actor, { action: "defend" }, est);
+    const without = c.raw > 0 || sp.instakill ? rollout(b, actor, c, est, false) : baseline;
+    c.supportGain3 = Math.max(0, rollout(b, actor, c, est) - without);
   }
 }
