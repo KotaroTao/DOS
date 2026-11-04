@@ -1,5 +1,5 @@
 import { recordBattleFrame } from './skill-fx-budget.js';
-import { planAuto, warmAutoPlanner, prefetchAuto, previewAutoBattle, discardAutoPlan } from './auto-planner.js';
+import { planAuto, warmAutoPlanner } from './auto-planner.js';
 import { showFieldSkillFx } from "./skill-fx-field.js";
 import { PHYSICAL_HIT_MS, emitSkillFx, skillFxSound, skillFxDuration, extendedSkillFx, enemySkillFxProfile, beginSkillFxPresentation } from "./skill-fx.js";
 import { beginBattleWindup } from "./battle-windup.js";
@@ -10734,12 +10734,9 @@ combatMenu.addEventListener("pointerdown", (e) => {
 });
 
 // オート戦闘の解除 (解除ボタン / 戦闘画面タップの共通処理)
-let autoPlanEpoch = 0;
 function stopAutoCombat() {
   if (!G.autoCombat) return;
   G.autoCombat = false;
-  autoPlanEpoch++;
-  discardAutoPlan();
   resetAutoProgress(G.battle);
   if (G.battle) G.battle._autoIdle = 0;
   if (G._autoTimer) { clearTimeout(G._autoTimer); G._autoTimer = null; }
@@ -10964,10 +10961,9 @@ function renderCombatMenu() {
             showToast("敵をほとんど削れないため、オートを止めた。技や装備を見直そう", { tone: "info" });
             return;
           }
-          const epoch=autoPlanEpoch;
           const preferences=JSON.stringify(b2.party.map(a=>[a.uid,a.tactic,autoSkills(a)]));
           const plan = await planAuto(b2, cur, e=>!!e&&enemyReveal(e).lore, ()=>decideAuto(b2,cur));
-          if(epoch!==autoPlanEpoch||G.battle!==b2||G.state!=='combat'||!G.autoCombat||G.animating||b2.phase!=='input'||b2.current!==cur)return;
+          if(G.battle!==b2||G.state!=='combat'||!G.autoCombat||G.animating||b2.phase!=='input'||b2.current!==cur)return;
           if(!plan)return;
           if(combatHeld()||preferences!==JSON.stringify(b2.party.map(a=>[a.uid,a.tactic,autoSkills(a)]))){G._autoTimer=setTimeout(autoTick,150);return;}
           b2._autoIdle = plan.idle ? (b2._autoIdle || 0) + 1 : 0;
@@ -11353,7 +11349,7 @@ async function resolveLocalBattle(action, battle = G.battle) {
     if (G.battle !== battle || G.state !== "combat") return;
     // 端末記録の準備時間は間隔に含める。結果の計算前に待ち、HPやログも先走らせない。
     const normalTrial = choiceTrial?.overlap && action === "commit" && battle.pending?.action === "attack";
-    const wait = !normalTrial && !G.autoCombat && action !== "commit" ? battleTempoWait(battle) : 0;
+    const wait = !normalTrial && (G.autoCombat || action !== "commit") ? battleTempoWait(battle) : 0;
     if (wait > 0) await new Promise(resolve => setTimeout(resolve, wait));
     if (G.battle !== battle || G.state !== "combat") return;
     let trialImpact = null;
@@ -11412,7 +11408,7 @@ function combatStep() {
       holdActionEffects();
       if (serverBattle()) { resolveSavedBattle("enemy"); return; }
       resolveLocalBattle("enemy", b);
-    }, b), G.autoCombat || (cloudEnabled() && !testPlayActive) ? 0 : 260 * spdMul());
+    }, b), cloudEnabled() && !testPlayActive ? 0 : 260 * spdMul());
   }
 }
 
@@ -11483,12 +11479,10 @@ async function resolveSavedBattle(action) {
       savedForcedTurns = (response.forcedPackets || []).map(turn => ({ ...turn, battle: G.battle }));
     }
     if (cloudCommandMode()) {
-      const wait = !normalAttack && !G.autoCombat && action !== "commit" ? battleTempoWait(G.battle) : 0;
+      const wait = !normalAttack && (G.autoCombat || action !== "commit") ? battleTempoWait(G.battle) : 0;
       if (wait > 0) await new Promise(resolve => setTimeout(resolve, wait));
       battleActionTimes.set(G.battle, performance.now());
     }
-    const autoPrepared = G.autoCombat;
-    const acknowledged = autoPrepared ? await acknowledgeCloudSave(raw, response.packet) : null;
     if (normalAttack) await windup?.complete();
     savedBattleAdvance = response.nextPacket ? { battle: G.battle, packet: response.nextPacket } : null;
     const packet = applySavePatch(G, refDeserialize(response.packet));
@@ -11496,7 +11490,7 @@ async function resolveSavedBattle(action) {
     G.rng = bindRngState(G.rng); setSharedSouls(G.souls);
     syncEnemyUids(G.battle.enemies);
     G.battle.log = log;
-    _lastCloudSave = autoPrepared ? acknowledged : await acknowledgeCloudSave(raw, response.packet);
+    _lastCloudSave = await acknowledgeCloudSave(raw, response.packet);
     _cloudResolving = !!savedBattleAdvance;
     refreshStability();
     for (const l of packet.logs) log(l.msg, l.cls);
@@ -11507,25 +11501,6 @@ async function resolveSavedBattle(action) {
     animateResult(packet.result, postResolve);
   } catch (e) { cloudFatal(); }
   finally { windup?.stop(); }
-}
-
-// 演出中に次の一手だけ準備する。未確定の攻撃や通信は先に実行しない。
-function prepareNextAutoAction(battle) {
- if (!G.autoCombat) return;
- const epoch = autoPlanEpoch;
- requestAnimationFrame(() => setTimeout(() => {
-  if (epoch !== autoPlanEpoch || !G.autoCombat || G.battle !== battle || G.state !== "combat" || !G.animating || combatHeld() || battle.result) return;
-  const confirmed = savedBattleAdvance?.battle === battle ? savedBattleAdvance : null;
-  if (confirmed && !confirmed.ack) {
-    confirmed.ackBase = _lastCloudSave;
-    confirmed.ack = acknowledgeCloudSave(_lastCloudSave, confirmed.packet);
-    confirmed.ack.catch(() => {}); // 実際の手番で通常の保存エラー処理に戻す。
-  }
-  const next = confirmed ? refDeserialize(confirmed.packet).snapshot.battle : !serverBattle() ? previewAutoBattle(battle) : null;
-  if (!next || next.phase !== "input" || next.result) return;
-  if (confirmed) restoreMonsterPhotos(next.enemies, MONSTERS);
-  prefetchAuto(next, next.current, e => !!e && enemyReveal(e).lore, battle);
- }, 0));
 }
 
 // 行動の結果を演出し、終わったら次へ
@@ -11557,7 +11532,7 @@ function advanceAfterPresentation(b) {
   const mw = watch ? endModWatch() : null;
   playModReveal(mw, () => {
     autosave(true);
-    setTimeout(combatStep, G.autoCombat || quickBattlePresentation() ? 0 : 150 * spdMul());
+    setTimeout(combatStep, quickBattlePresentation() ? 0 : 150 * spdMul());
   });
 }
 
@@ -11570,14 +11545,14 @@ async function advanceSavedBattle(watch) {
     const packet = applySavePatch(G, refDeserialize(response.packet));
     restoreMonsterPhotos(G.battle.enemies, MONSTERS);
     G.rng = bindRngState(G.rng); setSharedSouls(G.souls); G.battle.log = log;
-    _lastCloudSave = cached?.ackBase === _lastCloudSave && cached.ack ? await cached.ack : await acknowledgeCloudSave(_lastCloudSave, response.packet);
+    _lastCloudSave = await acknowledgeCloudSave(_lastCloudSave, response.packet);
     _cloudResolving = false;
     refreshStability();
     for (const l of packet.logs) log(l.msg, l.cls);
     if (watch) G.modFeed = packet.modFeed;
     const mw = watch ? endModWatch() : null;
     // 次の手番もサーバーに確定済み。演出の片付けだけで全記録を送り直さない。
-    playModReveal(mw, () => { setTimeout(combatStep, G.autoCombat || quickBattlePresentation() ? 0 : 150 * spdMul()); });
+    playModReveal(mw, () => { setTimeout(combatStep, quickBattlePresentation() ? 0 : 150 * spdMul()); });
   } catch (e) { cloudFatal(); }
 }
 
@@ -11612,7 +11587,6 @@ function finishBattleResult(fx, finish) {
 function animateResult(res, done) {
   const battle = G.battle;
   if (!battle || G.state !== "combat") return;
-  prepareNextAutoAction(battle);
   let finished = false;
   const finish = () => { if (!finished && G.battle === battle && G.state === "combat") { finished = true; done(); } };
 

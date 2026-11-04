@@ -1,5 +1,6 @@
 // セーブの共有参照を保つ。戦闘の対象と隊・魂は同じオブジェクトへ復元する。
-export function refSerialize(root, { compact = false } = {}) {
+// omitは作戦用の写しなどで指定する。通常の保存では何も省かない。
+export function refSerialize(root, { compact = false, omit = null } = {}) {
   const heap = [], map = new Map(), templates = [], shapes = new Map();
   function enc(v) {
     if (v == null) return null;
@@ -12,7 +13,7 @@ export function refSerialize(root, { compact = false } = {}) {
       for (const x of v) a.push(enc(x));
     } else {
       const o = {}, node = { o }; heap.push(node);
-      for (const k of Object.keys(v)) if (typeof v[k] !== "function") o[k] = enc(v[k]);
+      for (const k of Object.keys(v)) if (!(omit && omit(v, k)) && typeof v[k] !== "function") o[k] = enc(v[k]);
       if (compact) {
         // 同じ品も別の個体のまま。共有するのは保存上の不変な値の型だけ。
         const base = {}, keys = [], refs = [];
