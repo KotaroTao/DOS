@@ -10,6 +10,7 @@ async def main():
         browser=await p.chromium.launch(executable_path=os.environ.get('CHROME_BIN','/usr/bin/chromium'),args=['--no-sandbox'])
         cases=[(k,f,l,'manual') for k,f,l in [('DOUBLE','flurry',60),('ZANKOU','flurry',60),('BERSERKER_METTAUCHI','impact',60),('HUNTER_SAMIDARE','projectile',60),('TATEWARI','cut',60),('KYOUGEKI','impact',60),('YAMAKUZUSHI','impact',60),('HALITO','fireball',60),('BATTLEMAGE_GURENMASHOU','fireball',60),('SPELLBLADE_ENTEI','fireball',60),('TILTOWAIT','blast',60),('TENPENCHII','blast',60),('KYOKUDAI','blast',60),('MAHALITO','firePillar',60),('GOKUEN','firePillar',60),('GOKUENRAN','firePillar',60),('DIOS','heal',60),('CHOUHATSU','ward',60),('HALITO','fireball',2500)]]+[(k,'firePillar',60,'auto') for k in ['MAHALITO','GOKUEN','GOKUENRAN']]+[('GOKUENRAN','firePillar',60,'fast'),('SPELLBLADE_ENTEI','fireball',60,'auto'),('KYOKUDAI','blast',60,'auto')]
         cases+=[('HYOUGA', 'ice', 60, 'manual'), ('ZETTAIREIDO', 'ice', 60, 'manual'), ('SPELLBLADE_SOURYUU', 'wave', 60, 'manual'), ('NECROMANCER_MEIGA', 'wave', 60, 'manual'), ('TORNADO', 'gale', 60, 'manual'), ('HERMIT_TENGUKAZE', 'gale', 60, 'manual'), ('RAIJIN', 'lightning', 60, 'manual'), ('RAIMEIRAN', 'lightning', 60, 'manual'), ('WARDEN_GANKAI', 'stone', 60, 'manual'), ('WARDEN_KANAME', 'stone', 60, 'manual'), ('DAICHIWARI', 'quake', 60, 'manual'), ('METEOR', 'quake', 60, 'manual'), ('HERMIT_TENGUKAZE', 'gale', 60, 'auto'), ('RAIMEIRAN', 'lightning', 60, 'auto')]
+        cases += [('MAHALITO','firePillar',60,'auto-fast'),('GOKUEN','firePillar',60,'auto-fast'),('GOKUENRAN','firePillar',60,'auto-fast')]
         for key,expected,latency,mode in cases:
             ctx=await browser.new_context(service_workers='block',viewport={'width':390,'height':844})
             await ctx.route('**/art/**',stub_art)
@@ -37,13 +38,13 @@ async def main():
             await page.evaluate('''async()=>{
               const {Battle}=await import('/src/combat.js'),{SFX}=await import('/src/audio.js');
               window.pressed=null;window.impact=null;window.hitSounds=0;
-              const prepare=SFX.prepare;SFX.prepare=function(...args){pressed=performance.now();if(testMode==='auto')__game.G.autoCombat=true;if(testMode==='fast')__game.G.fastAnim=true;return prepare.apply(this,args);};
+              const prepare=SFX.prepare;SFX.prepare=function(...args){pressed=performance.now();if(testMode.startsWith('auto'))__game.G.autoCombat=true;if(testMode.includes('fast'))__game.G.fastAnim=true;return prepare.apply(this,args);};
               const hit=SFX.skill;SFX.skill=function(...args){hitSounds++;window.hitKind=args[0];return hit.apply(this,args);};
               const commit=Battle.prototype.commit;Battle.prototype.commit=function(...args){impact=performance.now();return commit.apply(this,args);};
               window.snapshot=()=>JSON.stringify([__game.G.rng,__game.G.party.map(e=>[e.hp,e.mp]),__game.G.battle.enemies.map(e=>e.hp)]);
               window.before=snapshot();window.atAck=null;window.fxSeen=null;
               // 短い演出を同じ時点で記録し、検査側の通信中に消えても判定を保つ。
-              const probe=setInterval(()=>{const fx=__game.G.fx;if(fx?.presentationAt!=null&&fx.skill.some(e=>e.type==='skillScene')){fxSeen={count:fx.skill.filter(e=>e.type==='skillScene').length,type:fx.skill[0].type,family:fx.skill[0].design?.family,slashes:fx.slashes.length,changed:snapshot()!==before,hitSounds,hitKind:window.hitKind,dur:fx.skill[0].dur,t0:fx.skill[0].t0};if(testMode==='auto')__game.G.autoCombat=false;clearInterval(probe);}},1);
+              const probe=setInterval(()=>{const fx=__game.G.fx;if(fx?.presentationAt!=null&&fx.skill.some(e=>e.type==='skillScene')){fxSeen={count:fx.skill.filter(e=>e.type==='skillScene').length,type:fx.skill[0].type,family:fx.skill[0].design?.family,slashes:fx.slashes.length,changed:snapshot()!==before,hitSounds,hitKind:window.hitKind,dur:fx.skill[0].dur,t0:fx.skill[0].t0};if(testMode.startsWith('auto'))__game.G.autoCombat=false;clearInterval(probe);}},1);
               new MutationObserver(()=>{if(!atAck&&document.querySelector('.choice-trial-status').textContent.startsWith('確定通知'))atAck={at:performance.now(),same:snapshot()===before,impact,hitSounds};}).observe(document.querySelector('.choice-trial-status'),{childList:true,subtree:true});
             }''')
             await page.locator('#combat-menu .cmd-attack').click()
@@ -68,7 +69,7 @@ async def main():
                 rank={'MAHALITO':1,'GOKUEN':2,'GOKUENRAN':3,'HALITO':1,'BATTLEMAGE_GURENMASHOU':2,'SPELLBLADE_ENTEI':3,'TILTOWAIT':1,'TENPENCHII':2,'KYOKUDAI':3,'ICENEEDLE':1,'HYOUGA':2,'ZETTAIREIDO':3,'AQUAWAVE':1,'SPELLBLADE_SOURYUU':2,'NECROMANCER_MEIGA':3,'KAMAITACHI':1,'TORNADO':2,'HERMIT_TENGUKAZE':3,'HERO_JINRAI':1,'RAIJIN':2,'RAIMEIRAN':3,'ISHITSUBUTE':1,'WARDEN_GANKAI':2,'WARDEN_KANAME':3,'EARTHQUAKE':1,'DAICHIWARI':2,'METEOR':3}[key]
                 assert await page.evaluate('fxSeen.hitKind')==expected+('' if rank==1 else str(rank))
             assert await page.evaluate('fxSeen.slashes===0'),'技に旧三日月が重なっている'
-            duration=await page.evaluate("async key=>{const {SKILL_FX_CATALOG}=await import('/src/skill-fx-catalog.js');const d=SKILL_FX_CATALOG[key],tier=d.tier;return d.kind==='phys'?d.hits*85+(testMode==='auto'?20:testMode==='fast'?35:60):Math.round((tier===1?400:tier===2?700:1200)*({auto:.6,fast:.8}[testMode]||1));}",key)
+            duration=await page.evaluate("async key=>{const {SKILL_FX_CATALOG}=await import('/src/skill-fx-catalog.js');const d=SKILL_FX_CATALOG[key],tier=d.tier;return d.kind==='phys'?d.hits*85+(testMode.includes('fast')?35:60):Math.round((tier===1?400:tier===2?700:1200)*(testMode.includes('fast')?.8:1));}",key)
             assert await page.evaluate('fxSeen.dur')==duration
             # 表示の途中で古い430msの片付けや次の行動に切り替わらない。
             remaining=await page.evaluate('(d)=>Math.max(0,fxSeen.t0+d*.7-performance.now())',duration)

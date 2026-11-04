@@ -10242,12 +10242,12 @@ function playBattleIntro(done, prepared = false) {
   renderParty();
   fitView();
   if (REDUCED_MOTION) { done(); return; }
-  // 開幕の演出: オート中は短く、倍速 ON は標準、OFF はその 1/2 の速さ
-  const introMul = G.autoCombat ? 0.6 : G.fastAnim ? 1 : 2;
+  // 開幕の演出: 手動・オート共通で、倍速 ON は標準、OFF はその 1/2 の速さ
+  const introMul = G.fastAnim ? 1 : 2;
   const ambush = b.opening === "ambush", preempt = b.opening === "preempt";
   let dur = (boss ? 1900 : 640 + b.enemies.length * 90) * introMul;
   // オンラインの開幕は保存と並行して短く見せる。奇襲の帯を読むためだけに初撃を止めない。
-  if (cloudCommandMode() && !boss) dur = (ambush ? 180 : preempt ? 240 : 320) * (G.fastAnim || G.autoCombat ? 1 : 1.4);
+  if (cloudCommandMode() && !boss) dur = (ambush ? 180 : preempt ? 240 : 320) * (G.fastAnim ? 1 : 1.4);
   else if (ambush || preempt) dur = Math.max(dur, 1000 * introMul);
   combatMessage.replaceChildren();
   G.battleIntro = { battle: b, t0: performance.now(), dur, ambush, preempt, boss: boss ? (enemyReveal(boss).name ? (boss.mon && boss.mon.name) || boss.name : unknownLabel(boss.mon)) : null };
@@ -10266,7 +10266,7 @@ function playBattleIntro(done, prepared = false) {
   const tick = () => {
     if (!G.battleIntro || G.battle !== b) return;
     renderCombatCanvas();
-    if (performance.now() - G.battleIntro.t0 >= (G.autoCombat ? Math.min(dur, 320) : dur)) {
+    if (performance.now() - G.battleIntro.t0 >= dur) {
       G.battleIntro = null;
       G.animating = false;
       done();
@@ -11312,11 +11312,11 @@ function showBattleItems(actor) {
   combatMenu.appendChild(cmdBtn("back", "戻る", "", () => renderCombatMenu(), "cmd-wide cmd-backb"));
 }
 // ---- 戦闘ループ駆動 (1手ずつ・演出付き) ----
-// 戦闘テンポ (演出時間の倍率): 倍速 ON = 標準 (1) / OFF = その 1/2 の速さ (2)。オート中は倍速の設定によらず短縮する
+// 戦闘テンポ (演出時間の倍率): 倍速 ON = 標準 (1) / OFF = その 1/2 の速さ (2)。オートも手動も同じ設定に従う
 function quickBattlePresentation() { return !!choiceTrial || cloudBackgroundBattle() || cloudCommandMode(); }
 function spdMul() {
-  if (quickBattlePresentation()) return G.autoCombat || G.fastAnim ? 0.1 : 0.2;
-  return G.autoCombat ? 0.45 : G.fastAnim ? 1 : 2;
+  if (quickBattlePresentation()) return G.fastAnim ? 0.1 : 0.2;
+  return G.fastAnim ? 1 : 2;
 }
 // 自動行動の結果を示す間隔。通信は待たず、一手を見分ける間だけ置く。
 const battleActionTimes = new WeakMap();
@@ -11513,7 +11513,7 @@ function postResolve() {
     showToast("⚠ 敵が怒り狂っている！");
   }
   if (b.result && choiceTrial) { G.animating = true; choiceTrial.finish(); return; }
-  if (b.result) { G.animating = false; setTimeout(() => whenCombatFree(endBattle, b), quickBattlePresentation() ? 0 : G.autoCombat ? 100 : 300); return; }
+  if (b.result) { G.animating = false; setTimeout(() => whenCombatFree(endBattle, b), quickBattlePresentation() ? 0 : 300); return; }
   const gap = battleActionGap();
   if (gap > 0) setTimeout(() => advanceAfterPresentation(b), gap);
   else advanceAfterPresentation(b);
@@ -11530,7 +11530,7 @@ function advanceAfterPresentation(b) {
   const mw = watch ? endModWatch() : null;
   playModReveal(mw, () => {
     autosave(true);
-    setTimeout(combatStep, quickBattlePresentation() || G.autoCombat ? 0 : 150 * spdMul());
+    setTimeout(combatStep, quickBattlePresentation() ? 0 : 150 * spdMul());
   });
 }
 
@@ -11550,7 +11550,7 @@ async function advanceSavedBattle(watch) {
     if (watch) G.modFeed = packet.modFeed;
     const mw = watch ? endModWatch() : null;
     // 次の手番もサーバーに確定済み。演出の片付けだけで全記録を送り直さない。
-    playModReveal(mw, () => { setTimeout(combatStep, quickBattlePresentation() || G.autoCombat ? 0 : 150 * spdMul()); });
+    playModReveal(mw, () => { setTimeout(combatStep, quickBattlePresentation() ? 0 : 150 * spdMul()); });
   } catch (e) { cloudFatal(); }
 }
 

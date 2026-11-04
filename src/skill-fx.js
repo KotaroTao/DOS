@@ -24,8 +24,8 @@ export const physicalSkillFx=design=>design?.kind==='phys'||!design?.kind&&['cut
 // 物理は一撃65msの動きを保ち、85msごとの打撃枠と60msの余韻へ収める。
 export function skillFxDuration(design, spd=1, options={}){
  const count=Math.max(1,design?.combo||design?.hits||1),rank=Math.min(3,Math.max(1,design?.tier||1));
- if(physicalSkillFx(design))return count*85+(options.auto?20:options.fast?35:60);
- return Math.round([0,400,700,1200][rank]*(options.auto?.6:options.fast?.8:1));
+ if(physicalSkillFx(design))return count*85+(options.fast?35:60);
+ return Math.round([0,400,700,1200][rank]*(options.fast?.8:1));
 }
 export { SLASH_FORMS } from './skill-fx-materials.js';
 // 敵の術・ブレスも同じ画像描画へ通す。通常攻撃の描画は従来のまま。
