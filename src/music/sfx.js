@@ -534,7 +534,52 @@ for(const [name,def] of Object.entries({...SFX_DEFS}))if(/^(skill|normal(Slash|B
   }};
  }
 }
-// 攻撃は空気・摩擦・破砕、救命は小さなガラスの共鳴を模す。電子的な発振音は使わない。
+// 採用案「妖精の祝福」。澄んだ倍音の粒と低い和音を、演出尺の中で合成する。
+// 音程は固定し、高速時は発音間隔・減衰だけを縮める（再生速度を変えない）。
+function fairyRecovery(group, level, seconds, r) {
+ const patterns={
+  restore:[79,84,86,88,91,96,91,88],
+  revive:[67,72,76,79,84,88,91,96],
+  cleanse:[88,91,96,91,88,84,86,88],
+  supply:[76,83,88,83,79,86,91,88],
+ };
+ const notes=patterns[group],n=len(seconds),left=new Float32Array(n),right=new Float32Array(n);
+ const count=[0,4,6,8][level],scale=seconds/1.85;
+ const note=(at,midi,amp,decay,pan,pad=false)=>{
+  const frequency=440*2**((midi-69)/12),start=len(at),attack=Math.min(pad ? .035 : .008,seconds*.025);
+  for(let i=start;i<n;i++){
+   const t=(i-start)/SR,ph=2*Math.PI*frequency*t;
+   const envelope=(1-Math.exp(-t/attack))*Math.exp(-t/decay);
+   const wave=pad ? .65*Math.sin(ph)+.24*Math.sin(ph*1.003)+.11*Math.sin(ph*2)
+    :Math.sin(ph)+.32*Math.sin(ph*2.001)*Math.exp(-t/(.2*scale))+.12*Math.sin(ph*4.003)*Math.exp(-t/(.08*scale));
+   const value=wave*envelope*amp;
+   left[i]+=value*Math.sqrt((1-pan)/2);right[i]+=value*Math.sqrt((1+pan)/2);
+  }
+ };
+ for(let i=0;i<count;i++){
+  const index=Math.round(i*7/(count-1)),pan=Math.sin(i*1.7)*.65;
+  note((.025+i*.065)*scale,notes[index],(.19-i*.009)*(.97+r()*.06),.21*scale,pan);
+ }
+ const chord=group==='supply'?[59,71,78]:group==='revive'?[55,67,72]:[60,72,76];
+ for(const midi of chord)note(.04*scale,midi,.055,.32*scale,0,true);
+ // 小さな左右の反射。外部残響へ送らず、次の手番までに必ず消える。
+ const dryL=left.slice(),dryR=right.slice();
+ for(let tap=0;tap<18;tap++){
+  const delay=len((.037+tap*.0197)*scale),gain=.105*Math.exp(-tap/5.5);
+  for(let i=delay;i<n;i++){
+   left[i]+=(tap%2?dryR[i-delay]:dryL[i-delay])*gain;
+   right[i]+=(tap%2?dryL[i-delay]:dryR[i-delay])*gain;
+  }
+ }
+ let peak=0;
+ for(let i=0;i<n;i++)peak=Math.max(peak,Math.abs(left[i]),Math.abs(right[i]));
+ for(const ch of [left,right]){
+  for(let i=0;i<n;i++)ch[i]*=.88/Math.max(peak,.001);
+  fadeEdges(ch,SR,Math.min(.003,seconds*.025),Math.min(.06,seconds*.18));
+ }
+ return {sr:SR,ch:[left,right]};
+}
+// 攻撃は従来の自然音、救命は採用された調和的なチャイムで鳴らす。
 export function naturalSkillName(kind='magic',rank=1,duration=400,preparation=false){
  const key=kind.replace(/[0-9]/g,'').toLowerCase();
  const group=/revive/.test(key)?'revive':/purify|cure|cleanse/.test(key)?'cleanse':/heal|restore/.test(key)?'restore':/mana|supply/.test(key)?'supply':/pierce|projectile/.test(key)?'pierce':/slash|cut|cleave|flurry|strike/.test(key)?'slash':/impact|stone|quake|blast/.test(key)?'impact':/ice|crystal/.test(key)?'crystal':/water|wave/.test(key)?'water':/fire/.test(key)?'fire':/lightning|spark|paralyze/.test(key)?'thunder':'air';
@@ -544,29 +589,7 @@ export function naturalSkillName(kind='magic',rank=1,duration=400,preparation=fa
  if(SFX_DEFS[name])return name;
  SFX_DEFS[name]={category:group,vars:2,vol:restorative?.32:group==='air'?.42:.6,rev:0,gen(r){
   const seconds=ms/1000,x=new Float32Array(len(seconds));
-  if(restorative&&!preparation){
-   // 一段に一つのきらめき。短い摩擦を不調和なガラスの共鳴へ通し、自然に減衰させる。
-   // 波形の引き伸ばしや電子音の音階ではなく、同じ音色のまとまりを1/2/3回置く。
-   const slot=seconds/level,base={restore:1850,revive:1480,cleanse:2350,supply:1680}[group];
-   for(let pulse=0;pulse<level;pulse++){
-    const at=pulse*slot,span=Math.min(seconds-at,slot*1.18),n=len(span),shine=new Float32Array(n);
-    for(const [ratio,gain] of [[1,1],[1.437,.6],[2.173,.3]]){
-     const grain=white(n,r),excite=Math.min(.045,slot*.22);
-     for(let i=0;i<n;i++){
-      const t=i/SR,p=t/excite;
-      grain[i]*=p<1?p*(1-p)*4:0;
-     }
-     applyBq(grain,'bp',base*ratio*(1+pulse*.065+(r()-.5)*.018),500+ratio*90,SR);
-     peakNorm(grain,.45*gain);mixInto(shine,grain,0);
-    }
-    for(let i=0;i<n;i++){
-     const t=i/SR,attack=Math.min(1,t/Math.min(.035,slot*.2));
-     shine[i]*=attack*attack*Math.exp(-t/(slot*.65))*Math.min(1,(n-i)/Math.max(1,len(slot*.16)));
-    }
-    mixInto(x,shine,len(at));
-   }
-   dcBlock(x);return mono(x);
-  }
+  if(restorative&&!preparation)return fairyRecovery(group,level,seconds,r);
   if(restorative){
    // 回復は柔らかい流れ、蘇生は立ち上がる息、治療は細かな洗い流し。衝突音を混ぜない。
    const bed=pink(x.length,r),detail=white(x.length,r);

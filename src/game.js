@@ -8968,7 +8968,7 @@ function warmBattleSkillAudio(){
  const battle=G.battle,queue=[],seen=new Set();
  for(const actor of G.party)for(const key of autoSkills(actor)){
   const d=skillProfile(key,SPELLS[key]);if(!d)continue;
-  const sound=skillFxSound(d.family,d.tier),presentation={physical:d.kind==='phys',rank:d.tier,duration:skillFxDuration(d,1,{auto:true,fast:!!G.fastAnim})};
+  const sound=skillFxSound(d.family,d.tier,SPELLS[key]),presentation={physical:d.kind==='phys',rank:d.tier,duration:skillFxDuration(d,1,{auto:true,fast:!!G.fastAnim})};
   const id=sound+JSON.stringify(presentation);if(seen.has(id))continue;seen.add(id);queue.push(()=>SFX.warmSkill(sound,presentation));
   if(d.hits>1)queue.push(()=>SFX.warmSkill(d.kind==='phys'?(d.family==='impact'?'impact':'slash'):sound,{rank:1,duration:65}));
  }
@@ -11564,7 +11564,7 @@ function animateResult(res, done) {
   const finish = () => { if (G.battle === battle && G.state === "combat") done(); };
 
   const presentation=fxProfile(res);
-  if(presentation)SFX.warmSkill?.(skillFxSound(presentation.family,presentation.tier),{physical:presentation.kind==='phys',rank:presentation.tier,duration:skillFxDuration(presentation,1,{auto:!!G.autoCombat,fast:!!G.fastAnim})});
+  if(presentation)SFX.warmSkill?.(skillFxSound(presentation.family,presentation.tier,SPELLS[res.spellKey]),{physical:presentation.kind==='phys',rank:presentation.tier,duration:skillFxDuration(presentation,1,{auto:!!G.autoCombat,fast:!!G.fastAnim})});
   callPartyAction(res); // 札の肖像に使った技の名 (手番の初めから)
   if (setPlateCall(res) && !quickBattlePresentation()) { if (G.autoCombat) renderAutoBanner(); else renderActingPlate(res.actor); } // 命令板にも「誰の何の技か」
   if (quickBattlePresentation()) {
@@ -11765,7 +11765,7 @@ function applyImpact(res) {
   const skillDesign = fxProfile(res);
   // 効果音 + 振動
   if (skillDesign && (res.hits.some(h => !h.miss && !h.immune) || skillDesign.family === "escape" && res.fled)) {
-    const sound=skillFxSound(skillDesign.family,skillDesign.tier),presentation={physical:skillDesign.kind==='phys',rank:skillDesign.tier,duration:skillFxDuration(skillDesign,1,{auto:!!G.autoCombat,fast:!!G.fastAnim})};
+    const sound=skillFxSound(skillDesign.family,skillDesign.tier,SPELLS[res.spellKey]),presentation={physical:skillDesign.kind==='phys',rank:skillDesign.tier,duration:skillFxDuration(skillDesign,1,{auto:!!G.autoCombat,fast:!!G.fastAnim})};
     (fx.skillSounds||=[]).push({delay:0,play:()=>{if(G.fx===fx)SFX.skill(sound,presentation);}});buzz(20);
   } else if (skillDesign) {
     SFX.skillImpact("air");
@@ -11866,7 +11866,7 @@ function applyImpact(res) {
       const floatDuration=sequential?(offset===comboCount-1?presentationDuration-offset*stag:stag):undefined;
       const dx = sequential?0:idx === 0 ? 0 : (idx % 2 ? 1 : -1) * (14 + 4 * idx); // 連撃の数値は一撃ごとに切り替え、重ねない
       if (offset > 0 && (!prof?.family || h.dmg!=null&&!h.immune)) {
-        const play=()=>{if(!prof?.family)SFX.hit(normalStyle(h));else if(G.fx===fx)SFX.skillImpact(prof.kind==='phys'?(prof.family==='impact'?'impact':'slash'):skillFxSound(prof.family,prof.tier));};
+        const play=()=>{if(!prof?.family)SFX.hit(normalStyle(h));else if(G.fx===fx)SFX.skillImpact(prof.kind==='phys'?(prof.family==='impact'?'impact':'slash'):skillFxSound(prof.family,prof.tier,SPELLS[res.spellKey]));};
         if(prof?.family)(fx.skillSounds||=[]).push({delay:offset*stag,play});else setTimeout(play,offset*stag);
       } // 2撃目以降にも手応えの効果音
       const seed = (h.target.uid || 1) * 31 + idx;
