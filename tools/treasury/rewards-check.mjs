@@ -1,0 +1,20 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+import * as bukon from '../../src/bukon.js';
+import { SOUL_CLASSES } from '../../src/souls.js';
+const source=fs.readFileSync('src/game.js','utf8');
+const section=(a,b)=>source.slice(source.indexOf(a),source.indexOf(b,source.indexOf(a)));
+const G={};const souls=[],gear=[];
+const ctx=vm.createContext({G,bukon,SOUL_CLASSES,log(){},queuePickup(){},updateTopbar(){},grantSoulQuiet(c){souls.push(c)},rollClassOfRarity:()=> 'legend',grantTreasuryLR:m=>gear.push(m),LR_ARMOR_SLOTS:[]});
+vm.runInContext(section('const TREASURY_MILESTONES = [','// 防具とみなす')+section('function milestoneLabel(', '// 宝物庫の褒賞の物差し')+section('function treasuryRewardRows(', '// 語りの前')+section('function grantTreasuryReward(', '// 受領できる最初'),ctx);
+const rows=JSON.parse(vm.runInContext('JSON.stringify(TREASURY_MILESTONES)',ctx));
+assert.deepEqual(rows.map(m=>m.n),[3,...Array.from({length:20},(_,i)=>(i+1)*5)]);
+assert.deepEqual(rows.filter(m=>m.cls).map(m=>[m.n,m.cls]),[[5,'samurai'],[10,'crusader'],[35,'arcanist']]);
+assert.deepEqual(rows.filter(m=>m.lr).map(m=>[m.n,m.lr,m.tier]),[[15,'weapon',5],[25,'gear',5],[30,'weapon',10],[40,'armor',10],[60,'weapon',15],[70,'armor',15],[80,'weapon',15],[90,'armor',20],[100,'weapon',20]]);
+for(const m of rows){ctx.m=m;const label=vm.runInContext('milestoneLabel(m)',ctx),detail=vm.runInContext('treasuryRewardRows(m)',ctx);assert(!/LR\d|L\d/.test(label+JSON.stringify(detail)));vm.runInContext('grantTreasuryReward(m,"検証")',ctx);}
+assert.deepEqual(G.bukonStock,{'crit:1':'1','turn_mp_regen:1':'1','X30:1':'2','X26:1':'1','res_allElements:1':'1'});
+assert.equal(G.embers,undefined);
+assert.deepEqual(souls,['samurai','crusader','legend','arcanist','legend']);
+assert.equal(gear.length,9);
+console.log('褒賞21段階・魂・装備の段階・武魂の種類と数量・残火廃止・段階番号非表示 OK');
