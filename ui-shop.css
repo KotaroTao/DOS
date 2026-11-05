@@ -549,7 +549,7 @@
 .wpc-characters { flex: 0 0 auto; min-width: 0; }
 .wpc-character-strip { display: flex; gap: 5px; overflow-x: auto; padding: 3px; scrollbar-width: thin; touch-action: pan-x; }
 .wpc-character { flex: 0 0 55px; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 66px; padding: 3px; border: 1px solid #594a38; border-radius: 3px; background: var(--plate); color: var(--ink-dim); font: inherit; cursor: pointer; }
-.wpc-character > canvas { width: 44px; height: 44px; image-rendering: pixelated; }
+.wpc-character > :is(canvas,img) { width: 44px; height: 44px; image-rendering: pixelated; }
 .wpc-character > span { max-width: 55px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 10px; }
 .wpc-character.selected { border-color: var(--accent-hi); color: var(--accent-hi); background: #362a19; box-shadow: inset 0 0 0 1px var(--accent-hi); }
 .wpc-character:focus-visible { outline: 2px solid var(--accent-hi); outline-offset: 1px; }
@@ -560,7 +560,7 @@
 .wpc-effect.got { color: #a4d9b0; }
 @media (max-height: 600px) {
   .wpc-character { min-height: 48px; flex-basis: 48px; }
-  .wpc-character > canvas { width: 30px; height: 30px; }
+  .wpc-character > :is(canvas,img) { width: 30px; height: 30px; }
 }
 /* 横向きなど背の低い画面では商会の箱を流し、棚の高さを潰さない。 */
 @media (max-height: 500px) {
@@ -580,7 +580,7 @@
   .seg-buy .wpc-character {
     flex: 0 0 auto; flex-direction: row; min-height: 44px; gap: 4px; padding: 3px 6px;
   }
-  .seg-buy .wpc-character > canvas { width: 28px; height: 28px; }
+  .seg-buy .wpc-character > :is(canvas,img) { width: 28px; height: 28px; }
   .seg-buy .wpc-comparison-label { display: none; }
   .seg-buy .wpc-bar { gap: 4px; }
   .wpc-shop.seg-buy > .gf-summary { max-height: 52px; }
@@ -807,3 +807,7 @@ html.pc-input .ui-sheet.ec-source-sheet { max-width: 720px; }
 .bk-list-sheet .bk-stock-row > .ui-btn:not(.bk-stock-main) { width:48px; min-width:44px; padding-inline:3px; white-space:nowrap; }
 .bk-panel > .ui-btn { flex:none; min-height:44px; margin-bottom:8px; }
 .bk-equip-sheet .bk-equipment { overflow-y:visible; }
+
+/* 宿せない装備は操作も見た目も無効にする。 */
+.bk-equip-sheet .pt-slot:disabled { filter:grayscale(1) brightness(.4); opacity:.55; cursor:default; }
+.bk-equip-sheet .wpc-character > img { display:block; flex-shrink:0; object-fit:contain; }
