@@ -1,3 +1,4 @@
+import { traceSync } from '../battle-trace.js';
 import { ELEMENT_KEYS, elementValues, elementDefenseReduction } from "../combatrules.js";
 import { magicAttackPower } from "../combat.js";
 import { withBukonSockets, bukonNameLines } from "./bukonview.js";
@@ -681,15 +682,15 @@ function betterGearCount() {
 const gearHintMemo = new WeakMap();
 export function hasBetterGear(d) {
   if (!d || !d.alive || d.primary == null) return false;
-  const pool = itemsPool();
-  const key = equipHintSignature(pool) + JSON.stringify([
+  const pool = traceSync("party.gear.pool",()=>itemsPool());
+  const key = traceSync("party.gear.signature",()=>equipHintSignature(pool) + JSON.stringify([
     d.base, d.equip, d.jobLv, d.jobKey, d.clsKey, d.align, d.dualWield,
     d.atk, d.vit, d.agi, d.int, d.pie, d.luk, d.maxhp, d.maxmp,
-  ]);
+  ]));
   const old = gearHintMemo.get(d);
   if (old && old.key === key) return old.value;
   // 最適装備と同じ計画で判定する。ロック・呪い・袋の上限・両手の組み合わせも一致させる。
-  const value = planBestEquip([d], { pool, canEquip, score: gearScore, recalc, maxMoves: 1 }).moves.length > 0;
+  const value = traceSync("party.gear.plan",()=>planBestEquip([d], { pool, canEquip, score: gearScore, recalc, maxMoves: 1 }).moves.length > 0);
   gearHintMemo.set(d, { key, value });
   return value;
 }

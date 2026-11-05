@@ -7,6 +7,7 @@ on:
       - 'tools/performance/update-auto-check.mjs'
       - 'tools/performance/battle-diagnostics-browser.py'
       - 'tools/performance/battle-trace-check.mjs'
+      - 'tools/performance/party-render-browser.py'
       - 'tools/effects/tone-cache-browser.py'
       - 'tools/performance/battle-gap-browser.py'
       - '.github/workflows/auto-smooth-check.yml'
@@ -50,6 +51,7 @@ jobs:
           python3 tools/performance/auto-worker-browser.py
           python3 tools/effects/tone-cache-browser.py
           python3 tools/performance/battle-diagnostics-browser.py
+          python3 tools/performance/party-render-browser.py
           python3 tools/performance/battle-gap-browser.py
           AUTO_REPORT=/tmp/dos-auto-combat.json python3 tools/performance/auto-combat-browser.py
       - uses: actions/upload-artifact@v4
