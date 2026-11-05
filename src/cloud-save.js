@@ -435,7 +435,8 @@ async function resumeSavedRecord() {
 function failure(e) {
   return new Promise((resolve) => {
     const chosen = !!getJSON(choiceKey(client.auth.user.id));
-    const staleChoice = chosen && e.replayPreparation && [400,409].includes(e.status);
+    const staleChoice = chosen && e.replayPreparation && [400,409].includes(e.status)
+      && ["cloud_invalid_choice","cloud_version_mismatch","cloud_battle_missing"].includes(e.message);
     if (staleChoice || e.status === 409 && (e.message === "cloud_replay_mismatch" || chosen && e.message === "cloud_revision_conflict")) {
       client.choiceConflict = true;
       showGate(e.message === "cloud_replay_mismatch" ? "冒険の記録を読み直します。保存済みの戦闘の続きから再開できます。" : "別の画面で冒険が進んでいます。最新の記録を読み直して再開できます。");
