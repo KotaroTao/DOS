@@ -107,3 +107,13 @@ AUTO_TABLET=1 AUTO_UNCAPPED=1 AUTO_REPORT=/tmp/auto-tablet.json python3 tools/pe
 - `mark`: タブ表示/非表示。非表示中と復帰直後のフレーム/監視タイマー間隔は除外する。
 
 Safariでも専用のLong Tasks APIなしで動作。ブラウザの描画合成・GPU完了・GCの内訳や、スピーカーの音切れそのものは未計測。処理区間と遅延が重なっても、単独原因と断定しない。記録には認証情報・セーブ・所持品・戦闘本文を含めず、効果音の識別名のみ付ける。
+
+## 味方カードの内訳
+
+診断JSONの`partyRender`に直近4回・遅い8回を保持（両方に同じ呼出しが含まれる）。`call`は呼出し番号、`slot`は1始まりの隊列位置、`state`は画面状態。名前・個体ID・所持品は保存しない。`summary`は項目/位置別の回数・合計・最大。再読み込みで消える。
+
+`stages`の`gearCheck`は装備更新の印の判定、`data`は表示データ、`compare`/`unchanged`は更新判定、`container`は容器の消去、`card`は各カード処理全体、`portrait`は肖像準備、`gearWatch`は装備印の監視登録、`badges`は強化印、`domAttach`はDOM挿入/交換、`cleanup`は不要カード削除。`paths`は`unchanged`（変更なし）、`vitals`（HP/MPのみ更新）、`rebuild`（作り直し）。全体が変更なしでも装備判定は先に実行される。
+
+`card`には肖像・装備印・強化印・DOM挿入の時間が含まれ、親子の時間を足さない。各区間は同期呼出しの経過時間であり、純粋なCPU使用時間ではない。8ms以上の区間は既存`timeline`にも`party.*`として呼出し番号/位置付きで記録。装備判定の内部は`party.gear.pool`（所持品準備）、`party.gear.signature`（照合キー）、`party.gear.plan`（装備計画）を時刻で対応させる。
+
+カード処理内に新しいサイズ読み取りを加えない。既存の別呼出しで行う配置処理`party.fitView`と、その再描画まで含む`party.refitAndRedraw`を時系列で測る。ブラウザ内部の非同期配置・画像復号・GPU完了は測定しない。

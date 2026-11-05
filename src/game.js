@@ -1,3 +1,4 @@
+import { beginPartyRender } from './party-render-trace.js';
 import { traceContext, traceFrame, traceSync, traceWait, traceDuration, startBattleTrace } from './battle-trace.js';
 import { recordBattleFrame, battlePaintDue } from './skill-fx-budget.js';
 import { planAuto, warmAutoPlanner } from './auto-planner.js';
@@ -2659,7 +2660,8 @@ function outerH(e) {
   if (cs.display === "none") return 0;
   return e.offsetHeight + (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0);
 }
-function fitView(force = false) {
+function fitView(force = false) { return traceSync("party.fitView",()=>fitViewTraced(force)); }
+function fitViewTraced(force = false) {
   if (!appEl || !screenEl) return false;
   const combat = G.state === "combat" || (G.state === "over" && !!G.battle);
   appEl.classList.toggle("in-combat", combat);
@@ -2712,7 +2714,8 @@ function fitView(force = false) {
   return true;
 }
 // 画面の回転・窓の伸縮に追従 (盤面/戦場を描き直す)
-function refitAndRedraw() {
+function refitAndRedraw() { return traceSync("party.refitAndRedraw",()=>refitAndRedrawTraced()); }
+function refitAndRedrawTraced() {
   if (!fitView()) return;
   if (G.state === "board" && G.board) drawBoardFrame();
   else if (G.state === "combat" && G.battle) renderCombatCanvas();
@@ -12844,30 +12847,31 @@ function partyCallKey(p, st) {
   const c = st === "combat" && G.partyCall && G.partyCall.get(p);
   return c ? Math.round(c.at) + ":" + c.lines.map((l) => l.text).join("/") : "";
 }
-function renderParty() { return traceSync("renderParty", () => renderPartyTraced()); }
-function renderPartyTraced() {
+function renderParty() { return traceSync("renderParty", () => { const probe=beginPartyRender(G.state); try { return renderPartyTraced(probe); } finally { probe.finish(); } }); }
+function renderPartyTraced(probe) {
   const fx = G.partyFx;
   const st = G.state;
-  const upgrades = new Set(G.party.filter((d) => UI.hasBetterGear && UI.hasBetterGear(d)));
+  const upgrades = new Set(G.party.filter((d,idx) => probe.measure("gearCheck",idx+1,()=>UI.hasBetterGear && UI.hasBetterGear(d))));
   // 迷宮の掟の開幕の演出を待つ間は、効く前の HP/MP/状態を札に見せる (playTraitOpening)
   const shown = (p) => (st === "combat" && G.partyShow && G.partyShow.get(p)) || p;
-  const rows = G.party.map((p) => [
+  const rows = G.party.map((p,idx) => probe.measure("data",idx+1,()=>[
     p.uid, p.name, p.cls, p.isDoll ? (p.jobLv || 1) : p.level, shown(p).hp, p.maxhp, shown(p).mp, p.maxmp, p.alive ? 1 : 0,
     shown(p).ailment || "", p.asleep && st === "combat" ? 1 : 0, st === "combat" ? (p.mind || "") : "", fx && fx.has(p) ? fx.get(p) : "", (G.partyFxV && G.partyFxV.get(p)) || "", buffBadges(p),
     partyCallKey(p, st), upgrades.has(p) ? 1 : 0,
     `${p.jobKey || ""}:${p.jobRank || 1}:${p.clsKey || ""}`,
-  ]);
-  const key=st+"|"+rows.map(r=>r.join(",")).join(";");
-  if (key === _partyKey && partyEl.childElementCount === G.party.length) return;
+  ]));
+  const key=probe.measure("compare",null,()=>st+"|"+rows.map(r=>r.join(",")).join(";"));
+  if (probe.measure("unchanged",null,()=>key === _partyKey && partyEl.childElementCount === G.party.length)) { probe.path(null,"unchanged"); return; }
   const reuse=st==="combat"&&_partyKey.startsWith("combat|");
   _partyKey = key;
-  if(!reuse){partyEl.innerHTML="";partyCards.clear();}
+  probe.measure("container",null,()=>{if(!reuse){partyEl.innerHTML="";partyCards.clear();}});
   partyEl.classList.toggle("n4", G.party.length >= 4);
-  G.party.forEach((p, idx) => {
+  G.party.forEach((p, idx) => probe.measure("card",idx+1,() => {
     const row=rows[idx],rowKey=row.join(','),baseKey=row.filter((_,i)=>i!==4&&i!==6).join(','),old=partyCards.get(p);
     if(reuse&&old&&old.idx===idx&&old.card.parentElement===partyEl){
-      if(old.key===rowKey)return;
+      if(old.key===rowKey){probe.path(idx+1,"unchanged");return;}
       if(old.baseKey===baseKey){
+        probe.path(idx+1,"vitals");
         const sv=shown(p);old.card.classList.toggle('low',p.alive&&sv.hp/p.maxhp<=.25);
         for(const kind of ['hp','mp']){const vial=old.card.querySelector('.pc-vial.'+kind),v=sv[kind],m=p['max'+kind];
           vial.querySelector('i').style.width=(m>0?Math.max(0,Math.min(100,v/m*100)):0)+'%';
@@ -12876,6 +12880,7 @@ function renderPartyTraced() {
         }old.key=rowKey;return;
       }
     }
+    probe.path(idx+1,"rebuild");
     const card = document.createElement("div");
     const sv = shown(p);
     let cls = "pc" + (p.alive ? "" : " dead");
@@ -12916,9 +12921,9 @@ function renderPartyTraced() {
     });
     // 肖像の額 (隊列の印・状態の印を重ねる)
     const por = el("div", "pc-por");
-    const pic = partyPortrait(p);
+    const pic = probe.measure("portrait",idx+1,()=>partyPortrait(p));
     if (pic) por.appendChild(pic);
-    UI.watchGearPortrait?.(por, p);
+    probe.measure("gearWatch",idx+1,()=>UI.watchGearPortrait?.(por, p));
     por.appendChild(el("span", "pc-row " + (idx < 3 ? "front" : "back"), idx < 3 ? "前" : "後"));
     card.appendChild(por);
     // 肖像と同じ枠へ重ね、肖像を省くスマホ表示でも状態の印は残す。
@@ -12967,7 +12972,7 @@ function renderPartyTraced() {
     };
     card.appendChild(vial("hp", sv.hp, p.maxhp));
     card.appendChild(vial("mp", sv.mp, p.maxmp));
-    const bb = buffBadges(p);
+    const bb = probe.measure("badges",idx+1,()=>buffBadges(p));
     if (bb) card.insertAdjacentHTML("beforeend", bb);
     // 戦闘の演出 (爪痕・属性の奔流・回復の光…): 札の上に一度だけ走る薄い膜
     const fv = G.partyFxV && G.partyFxV.get(p);
@@ -12981,11 +12986,13 @@ function renderPartyTraced() {
       for (const l of call.lines) box.appendChild(el("span", "pc-cl k-" + l.kind, l.text));
       card.appendChild(box);
     }
+    probe.measure("domAttach",idx+1,()=>{
     if(reuse&&old?.card.parentElement===partyEl&&old.idx===idx)old.card.replaceWith(card);
     else {if(reuse)old?.card.remove();partyEl.insertBefore(card,partyEl.children[idx]||null);}
     partyCards.set(p,{card,idx,key:rowKey,baseKey});
-  });
-  for(const [p,old]of partyCards)if(!G.party.includes(p)){old.card.remove();partyCards.delete(p);}
+    });
+  }));
+  probe.measure("cleanup",null,()=>{for(const [p,old]of partyCards)if(!G.party.includes(p)){old.card.remove();partyCards.delete(p);}});
   if (st === "board" && window.innerWidth <= 600) requestAnimationFrame(refitAndRedraw);
 }
 
