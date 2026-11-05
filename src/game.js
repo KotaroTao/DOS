@@ -19962,7 +19962,8 @@ const OPS = {
   identifyAll() {
     if (G.state !== "town" || !opsFacilityOpen("shop")) return { ok: false, reason: "closed", n: 0, spent: 0 };
     const list = [];
-    for (const d of bagOwners(allDolls())) for (const it of (d.items || [])) if (it && it.unidentified) list.push(it);
+    const dolls = allDolls(), worn = new Set(dolls.flatMap(d => Object.values(d.equip || {}).filter(Boolean)));
+    for (const d of bagOwners(dolls)) for (const it of (d.items || [])) if (it && it.unidentified && !isFormationItem(it) && !worn.has(it)) list.push(it);
     list.sort((a, b) => appraiseCost(a) - appraiseCost(b));
     let n = 0, spent = 0;
     for (const it of list) {
