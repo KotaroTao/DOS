@@ -48,6 +48,9 @@
 @media (min-width: 1100px) and (min-height: 600px) and (hover: hover) and (pointer: fine) {
   /* 画面全体と常設の施設メニュー。画面を替えても同じ場所から移動する。 */
   html.pc-input { --game-width: min(1440px, calc(100vw - 32px)); }
+  html.pc-input #app, html.pc-input #town-shell {
+    width: min(1440px, calc(100vw - 32px)); max-width: 1440px;
+  }
   html.pc-input #town-shell {
     display: grid; grid-template-columns: 152px minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr); gap: 0;
