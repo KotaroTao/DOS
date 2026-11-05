@@ -144,12 +144,16 @@ export class CloudSaveClient {
         return {...opening.local, revision:this.revision};
       }
       const replayStarted = performance.now();
-      const preview = () => this.request({protocol:this.config.protocol,op:"ledger-preview",sessionId:this.sessionId,revision:this.revision,battleId:this.ledger.id,seq:this.ledger.seq,command:requestData.command,commandId:requestData.commandId,acceptEncoding:"gzip"});
+      const preview = () => this.request({protocol:this.config.protocol,op:"ledger-preview",sessionId:this.sessionId,revision:this.revision,battleId:this.ledger.id,seq:this.ledger.seq,command:requestData.command,commandId:requestData.commandId,acceptEncoding:"gzip"}).catch(error=>{error.replayPreparation=true;throw error;});
       const replay = op === "command" && this.commandReplay && (cloudWorkerReady() || this.ledger)
-        ? (cloudWorkerReady() ? replayCloudCommandPrepared(this.confirmed, requestData.command, requestData.commandId, this.forcedTurns, !!this.ledger).catch(() => this.ledger ? preview() : null) : preview())
-          .then(value => { saveMetrics.timing("commandCalculation", performance.now() - replayStarted); return value; }).catch(() => null) : null;
+        ? replayCloudCommandPrepared(this.confirmed, requestData.command, requestData.commandId, this.forcedTurns, !!this.ledger)
+          .catch(() => null)
+          .then(value => value || (this.ledger ? this.retry(preview) : null))
+          .then(value => { saveMetrics.timing("commandCalculation", performance.now() - replayStarted); return value; }) : null;
       const ledgerLocal = this.ledger && op === "command" ? await replay : null;
-      if (this.ledger && op === "command" && !ledgerLocal) throw Object.assign(new Error("cloud_replay_mismatch"), {status:409});
+      if (this.ledger && op === "command" && !ledgerLocal) {
+        await this.retry(() => { throw Object.assign(new Error("cloud_replay_mismatch"), {status:409}); }, {automatic:false});
+      }
       const body = { protocol: this.config.protocol, sessionId: this.sessionId,
         commandId: crypto.randomUUID(), revision: this.revision, op, ...payload,
         ...(this.battleLedger ? { battleLedger: true } : {}),
@@ -431,7 +435,9 @@ async function resumeSavedRecord() {
 function failure(e) {
   return new Promise((resolve) => {
     const chosen = !!getJSON(choiceKey(client.auth.user.id));
-    if (e.status === 409 && (e.message === "cloud_replay_mismatch" || chosen && e.message === "cloud_revision_conflict")) {
+    const staleChoice = chosen && e.replayPreparation && [400,409].includes(e.status)
+      && ["cloud_invalid_choice","cloud_version_mismatch","cloud_battle_missing"].includes(e.message);
+    if (staleChoice || e.status === 409 && (e.message === "cloud_replay_mismatch" || chosen && e.message === "cloud_revision_conflict")) {
       client.choiceConflict = true;
       showGate(e.message === "cloud_replay_mismatch" ? "冒険の記録を読み直します。保存済みの戦闘の続きから再開できます。" : "別の画面で冒険が進んでいます。最新の記録を読み直して再開できます。");
       button("最新の記録から再開", resumeSavedRecord);
