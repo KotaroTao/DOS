@@ -128,11 +128,15 @@ function openSoulEquipment(b, doll, done) {
   const draw=()=>h.update({});
   h=sheet.open({title:"武魂を宿す・外す",className:"ec-sheet bk-sheet bk-equip-sheet",body:body=>{
     body.append(el("p","rf-note",`${bukonName(b)} — 装備を選ぶと、武魂を宿す・外す操作ができる。`));
-    body.append(UI.shopBuyerStrip({bukon:true,doll:selected,onSelect:d=>{selected=d;draw();}}));
+    body.append(UI.shopBuyerStrip({bukon:true,portraitImages:true,doll:selected,onSelect:d=>{selected=d;draw();}}));
     const slots=el("div","pt-slots bk-equipment");
     if(selected)for(const k of SLOTS){
       const cell=slotCell(selected,k,{bukonOnly:true,onPick:it=>{if(it)openGear(it,()=>{draw();done();},b);}});
-      cell.disabled=!selected.equip?.[k];slots.append(cell);
+      const equipped=selected.equip?.[k];
+      const blocked=equipped===b.it?"この装備にはすでに宿っている":attachBlock(equipped,b);
+      cell.disabled=!!blocked;
+      if(blocked)cell.title=blocked;
+      slots.append(cell);
     }
     body.append(slots);
   },footer:[{label:"閉じる",kind:"ghost",onTap:()=>h.close()}]});

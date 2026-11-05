@@ -24,7 +24,8 @@ import {
 } from "./loot.js";
 import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, MAX_ITEMS, canEquip, itemName, compareUse } from "../items.js";
 import { RARITIES, rarityKey } from "../rarity.js";
-import { spriteCanvas } from "../sprites.js";
+import { spriteCanvas, prepareSprite } from "../sprites.js";
+import { dollBust } from "../souls.js";
 
 const G = () => game.G || {};
 const sfx = (k) => { try { if (game.SFX && game.SFX[k]) game.SFX[k](); } catch (e) { /* 音は演出のみ */ } };
@@ -59,7 +60,7 @@ function buyerPlan(it) {
   buyMemo?.plans.set(it, plan);
   return plan;
 }
-function buyerStrip({ bukon = false, doll = selectedBuyer(), onSelect = null } = {}) {
+function buyerStrip({ bukon = false, doll = selectedBuyer(), onSelect = null, portraitImages = false } = {}) {
   const selected = doll;
   const box = el("section", "wpc-characters");
   box.setAttribute("aria-label", "比較する人業");
@@ -70,7 +71,13 @@ function buyerStrip({ bukon = false, doll = selectedBuyer(), onSelect = null } =
     b.dataset.dollUid = d.uid;
     b.setAttribute("aria-pressed", String(d === selected));
     b.setAttribute("aria-label", `${d.name}${isReserve(d) ? "（控え）" : ""}の装備と比較`);
-    b.append(UI.partyPortraitCanvas ? UI.partyPortraitCanvas(d, 44) : dollIcon(d), el("span", null, d.name));
+    if(portraitImages && UI.partyPortraitCanvas){
+      // 重ねた選択画面でも画像として保持し、原画の読み込み後に肖像を写す。
+      const portrait=el("img");portrait.alt="";portrait.width=44;portrait.height=44;
+      prepareSprite(dollBust(d)).then(()=>{portrait.src=UI.partyPortraitCanvas(d,44).toDataURL();});
+      b.append(portrait);
+    }else b.append(UI.partyPortraitCanvas ? UI.partyPortraitCanvas(d, 44) : dollIcon(d));
+    b.append(el("span", null, d.name));
     b.addEventListener("click", () => { sfx("select"); if(onSelect)onSelect(d);else{setPref("shopDollUid", d.uid);rerender();} });
     strip.appendChild(b);
   }
