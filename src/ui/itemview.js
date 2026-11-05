@@ -485,6 +485,7 @@ export const EFF_INFO = {
   guard: { short: (v) => `被ダメ−${pct(v)}`, line: (v) => `守り: 受けるダメージを常に${pct(v)}減らす（物理・呪文・ブレス。ほかの恒常軽減と合わせて90%まで）` },
   autoRevive: { short: (v) => `自動蘇生${pct(v)}`, line: (v) => `蘇生: 戦闘不能になった時、1戦闘に1回だけ最大HPの${pct(v)}で立ち上がる` },
   regen: { short: (v) => `再生${pct(v)}`, line: (v) => `再生: 2ターン目から毎ターン、最大HPの${pct(v)}だけHPを回復する` },
+  mpRegen: { short: (v) => `MP再生${pct(v)}`, line: (v) => `MP再生: 2ターン目から毎ターン、最大MPの${pct(v)}だけMPを回復する` },
   counter: { short: (v) => `報復×${Math.round(v * 100) / 100}`, line: (v) => `報復: 敵の物理攻撃を受けるたび、攻撃力×${Math.round(v * 100) / 100}のダメージでやり返す (物理耐性で軽減)` },
   spellCostMul: { short: (v) => `消費MP−${pct(1 - v)}`, line: (v) => `節約: 技・呪文の消費MPが${pct(1 - v)}減る` },
   ailmentImmune: { short: () => "状態異常耐性95%", line: () => "状態異常耐性95%: 戦闘中の状態異常の付与率を95%軽減する（罠は無効）" },
