@@ -108,7 +108,7 @@ function pixelCanvas(spr, size) {
   return c;
 }
 // 肖像の札 (枠・HPの細線・砕けた印)
-function portraitEl(d, { size = 44, sel = false, tag = "button", cls = "", minimal = false } = {}) {
+function portraitEl(d, { size = 44, sel = false, tag = "button", cls = "", minimal = false, passive = true } = {}) {
   const p = el(tag, `pt-port s${size}${sel ? " sel" : ""}${d && !d.alive ? " dead" : ""}${cls ? " " + cls : ""}`);
   if (tag === "button") p.type = "button";
   if (!d) { p.classList.add("empty"); p.appendChild(el("span", "pt-port-plus", "＋")); return p; }
@@ -125,8 +125,8 @@ function portraitEl(d, { size = 44, sel = false, tag = "button", cls = "", minim
     const f = el("i"); f.style.width = (d.alive ? r * 100 : 0).toFixed(1) + "%"; hp.appendChild(f);
     p.appendChild(hp);
   }
-  const upgrade = !minimal && hasBetterGear(d);
-  if (!minimal) watchGearPortrait(p, d);
+  const upgrade = !minimal && (passive ? cachedGearHint(d) : hasBetterGear(d));
+  if (!minimal) watchGearPortrait(p, d, passive);
   p.setAttribute("aria-label", `${upgrade ? "より強い装備あり・" : ""}${d.name}${d.alive ? "" : " (砕けた)"} ${d.cls || ""}`);
   return p;
 }
@@ -673,8 +673,12 @@ function betterGearCount() {
 const passiveGearHints=createGearHints(()=>{
  const G=G_();if(!G)return null;
  const paused=G.state==='combat'||!!G.animating||!!document.hidden;
- return paused?{paused:true}:{pool:itemsPool(),targets:G.party||[],paused:false};
-},()=>{bgcMemo.key='';refreshCachedGearPortraits();});
+ if(paused)return {paused:true};
+ const pool=itemsPool(),uids=new Set((G.party||[]).map(d=>d.uid)),slotTargets=new Set();
+ for(const node of document.querySelectorAll('[data-gear-watch]')){const e=gearPortraits.get(node);if(e?.passive)uids.add(e.d.uid);}
+ for(const node of document.querySelectorAll('[data-gear-slot]')){const e=gearSlotNodes.get(node);if(e){uids.add(e.d.uid);slotTargets.add(e.d.uid);}}
+ return {pool,targets:pool.filter(d=>uids.has(d.uid)),slotTargets:[...slotTargets].sort((a,b)=>a-b),paused:false};
+},()=>{bgcMemo.key='';refreshCachedGearPortraits();refreshGearSlots();UI.refreshGearSuggestions?.();});
 export function cachedGearHint(d){
  if(G_()?.state==='combat')passiveGearHints.pause();
  return passiveGearHints.read(d);
@@ -718,10 +722,10 @@ function updateGearPortrait(node, d, passive=false) {
 }
 function refreshGearPortraits() {
   if (!hasDOM()) return;
-  for (const node of document.querySelectorAll("[data-gear-watch]")) {
-    const entry = gearPortraits.get(node);
-    if (entry) updateGearPortrait(node, entry.d);
-  }
+  const nodes=[...document.querySelectorAll('[data-gear-watch]')];
+  for(const node of nodes){const e=gearPortraits.get(node);if(e&&!e.passive)hasBetterGear(e.d);}
+  for(const node of nodes){const e=gearPortraits.get(node);if(e)updateGearPortrait(node,e.d,e.passive);}
+  UI.refreshGearSuggestions?.();
 }
 
 function refreshCachedGearPortraits(){
@@ -762,6 +766,7 @@ function autoEquip(target = "all") {
   if (!plan.moves.length) {
     sfx("select");
     toast(targets.length > 1 ? "隊の装備は、いまが最良だ" : `${targets[0].name}の装備は、いまが最良だ`, { tone: "info", top: true });
+    for(const d of targets)passiveGearHints.seed(d,false);
     refreshGearPortraits();
     return { ok: false, moves: 0 };
   }
@@ -778,6 +783,7 @@ function autoEquip(target = "all") {
       sfx("ng"); toast("持ち物があふれるため、その組み合わせにはできない", { tone: "bad" }); return false;
     }
     sig = equipSignature(involved); bgcMemo.key = "";
+    for(const d of G.party)passiveGearHints.seed(d,hasBetterGear(d));
     game.autosave?.(true); rerender();
     return true;
   };
@@ -828,7 +834,7 @@ function openAutoEquipResult(plan, before, { apply, groups }) {
   for (const r of rows) {
     const card = el("div", "pt-ae-card");
     const top = el("div", "pt-ae-top");
-    top.appendChild(portraitEl(r.d, { size: 36, tag: "span" }));
+    top.appendChild(portraitEl(r.d, { size: 36, tag: "span", passive: false }));
     top.appendChild(el("span", "pt-ae-n", r.d.name));
     const own = groups.filter(g => g.some(c => c.doll === r.d));
     // 個別承認と同じ対象なら、人業単位のボタンは重ねない。
@@ -2327,12 +2333,21 @@ function slotLabelOf(d, k) {
   if (k === "shield" && d && (d.dualWield > 0 || (d.equip && d.equip.shield && d.equip.shield.slot === "weapon"))) return "左手";
   return SLOT_LABEL[k];
 }
+const gearSlotNodes=new WeakMap();
+function refreshGearSlots(){
+ for(const node of document.querySelectorAll('[data-gear-slot]')){
+  const e=gearSlotNodes.get(node);if(!e)continue;
+  const d=allDolls().find(d=>d.uid===e.d.uid);if(!d)continue;
+  const focused=node===document.activeElement,next=slotCell(d,e.k,e.options);node.replaceWith(next);if(focused)next.focus({preventScroll:true});
+ }
+}
 export function slotCell(d, k, { onPick = null, bukonOnly = false, qualityOnly = false } = {}) {
   const it = d.equip[k];
-  const info = !onPick && d.primary != null ? slotInfo(d, k) : { count: 0, better: false };
+  const info = !onPick && d.primary != null ? passiveGearHints.slot(d, k) : { count: 0, better: false };
   const r = el("button", "pt-slot" + (it ? "" : " empty") + (it && it.cursed ? " cursed" : "") + (it && it.locked ? " locked" : "") + (info.better ? " better" : ""));
   r.type = "button";
   r.dataset.slot = k;
+  if(!onPick&&d.primary!=null){r.dataset.gearSlot="";gearSlotNodes.set(r,{d,k,options:{bukonOnly,qualityOnly}});}
   const ic = el("span", "pt-slot-ic");
   if (it) {
     const rk = rarityKey(it);

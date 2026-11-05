@@ -17,11 +17,12 @@ export function gearHintKey(pool,targets){
 }
 export function createGearHints(source,changed){
  let worker=null,timer=null,job=null,sequence=0,lastKey='',disabled=false;
- let values=new Map();
+ let values=new Map(),slots=new Map();
+ const keyOf=s=>gearHintKey(s.pool,s.targets)+JSON.stringify([s.slotTargets||[],s.slotTargets?.length?s.pool.map(d=>d.items):null]);
  function cancel(){if(job){gearHintStats.cancelled++;worker?.terminate();worker=null;job=null;}}
  function run(){
   timer=null;const s=source();if(!s||s.paused){cancel();return;}if(disabled||job)return;
-  const key=traceSync('gearHints.key',()=>gearHintKey(s.pool,s.targets));if(key===lastKey)return;
+  const key=traceSync('gearHints.key',()=>keyOf(s));if(key===lastKey)return;
   try{
    if(!worker){
     worker=new Worker(new URL('./gear-hint-worker.js',import.meta.url),{type:'module'});
@@ -29,20 +30,21 @@ export function createGearHints(source,changed){
      if(!job||data.id!==job.id)return;
      const done=job;job=null;const now=source();
      if(data.error){fail();return;}
-     if(!now||now.paused||gearHintKey(now.pool,now.targets)!==done.key){gearHintStats.cancelled++;schedule();return;}
-     values=new Map(data.values);lastKey=done.key;gearHintStats.completed++;changed();
+     if(!now||now.paused||keyOf(now)!==done.key){gearHintStats.cancelled++;schedule();return;}
+     values=new Map(data.values);slots=new Map(data.values.map(([uid,,detail])=>[uid,detail]));lastKey=done.key;gearHintStats.completed++;changed();
     };
     worker.onerror=fail;
    }
    job={id:++sequence,key};gearHintStats.requests++;
-   traceSync('gearHints.snapshot',()=>worker.postMessage({id:job.id,snapshot:refSerialize({pool:s.pool,targets:s.targets},{omit:(o,k)=>k==='photo'})}));
+   traceSync('gearHints.snapshot',()=>worker.postMessage({id:job.id,snapshot:refSerialize({pool:s.pool,targets:s.targets,slotTargets:s.slotTargets||[]},{omit:(o,k)=>k==='photo'})}));
   }catch{fail();}
  }
  function fail(){gearHintStats.failed++;disabled=true;worker?.terminate();worker=null;job=null;}
  function schedule(){if(timer===null&&!disabled)timer=setTimeout(run,250);}
  return {
   read(d){schedule();return !!d?.alive&&!!values.get(d.uid);},
+  slot(d,k){schedule();return slots.get(d.uid)?.[k]||{count:0,better:false,bestGain:0};},
   pause(){cancel();},
-  seed(d,value){values.set(d.uid,!!value);lastKey='';},
+  seed(d,value){values.set(d.uid,!!value);slots.delete(d.uid);lastKey='';},
  };
 }

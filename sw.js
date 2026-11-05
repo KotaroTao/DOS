@@ -66,6 +66,7 @@ const ASSETS = [
   "./src/party-render-trace.js",
   "./src/gear-hints.js",
   "./src/gear-hint-worker.js",
+  "./src/gear-slot-hints.js",
   "./src/gear-score.js",
   "./choice-trial.html",
   "./choice-trial.css",
