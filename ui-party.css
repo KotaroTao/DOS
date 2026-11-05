@@ -1416,3 +1416,8 @@ button.sp-lu-next { cursor: pointer; }
 .eq-bukon-change { display:flex; align-items:center; gap:6px; flex-basis:100%; min-width:0; }
 .eq-bukon-change > .bk-gem { margin:0; }
 .eq-bukon-change > span:last-child { min-width:0; overflow-wrap:anywhere; }
+
+/* 武魂の引き継ぎは通常の装備操作の下に置く。 */
+.pt-cand.has-inherit { flex-wrap: wrap; }
+.pt-cand.has-inherit > .pt-cand-main { flex-basis: calc(100% - 60px); }
+.pt-cand.has-inherit > .ui-btn { flex: 1 1 100%; margin: 0 7px 7px; }
