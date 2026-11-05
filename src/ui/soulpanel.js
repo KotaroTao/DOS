@@ -1384,7 +1384,9 @@ function fuseStats(info, noneText = "能力の変化はわずか (端数のみ)"
     if (!d) continue;
     const c = el("div", "sp-fz-st");
     c.appendChild(el("span", "sp-fz-k", label));
-    c.appendChild(el("span", "sp-fz-v", `${fmtStat(a[k])}→${fmtStat(b[k])}`));
+    const values = el("span", "sp-fz-v");
+    for (const text of [fmtStat(a[k]), "→", fmtStat(b[k])]) values.appendChild(el("span", null, text));
+    c.appendChild(values);
     c.appendChild(el("span", d > 0 ? "sp-fz-d up" : "sp-fz-d dn", `${d > 0 ? "+" : ""}${fmtStat(d)}`));
     grid.appendChild(c);
   }
