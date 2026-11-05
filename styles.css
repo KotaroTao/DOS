@@ -18,6 +18,10 @@
 /* マウスで遊ぶ広い画面だけ横幅を広げ、タブレットは従来の幅を保つ。 */
 @media (min-width: 1000px) and (hover: hover) and (pointer: fine) {
   html.pc-input { --game-width: 640px; }
+  html.pc-input #app, html.pc-input #town-screen, html.pc-input #town-shell,
+  html.pc-input .ui-sheet:not(.k-celebrate) {
+    width: min(100%, 640px); max-width: 640px;
+  }
 }
 
 * { box-sizing: border-box; }
@@ -59,8 +63,8 @@ body.game-starting #app { opacity: 0; pointer-events: none; }
 
 #app {
   position: relative;
-  width: min(100%, var(--game-width));
-  max-width: var(--game-width);
+  width: min(100%, 520px);
+  max-width: 520px;
   margin: 0 auto;
   height: 100vh;
   height: 100dvh;
@@ -428,8 +432,8 @@ canvas.spr { image-rendering: pixelated; display: block; width: var(--spr-size, 
     linear-gradient(170deg, #14101a, #07060b 65%);
   display: flex;
   flex-direction: column;
-  width: min(100%, var(--game-width));
-  max-width: var(--game-width);
+  width: min(100%, 520px);
+  max-width: 520px;
   margin: 0 auto;
   padding: calc(var(--safe-top) + 8px) 12px calc(var(--safe-bottom) + 14px);
   overflow-y: auto;

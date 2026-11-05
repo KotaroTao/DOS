@@ -78,8 +78,8 @@
    ===================================================================== */
 #town-shell {
   position: fixed; inset: 0; z-index: 70;
-  width: min(100%, var(--game-width));
-  max-width: var(--game-width); margin: 0 auto;
+  width: min(100%, 520px);
+  max-width: 520px; margin: 0 auto;
   display: flex; flex-direction: column;
   background: #070508;
   overflow: hidden;
@@ -259,7 +259,7 @@
   background: radial-gradient(ellipse at 50% 35%, rgba(30,18,26,0.62), rgba(3,2,4,0.84) 72%);
 }
 .ui-sheet {
-  position: relative; width: min(100%, var(--game-width)); max-width: var(--game-width);
+  position: relative; width: min(100%, 520px); max-width: 520px;
   max-height: 88vh; max-height: 88dvh;
   display: flex; flex-direction: column;
   outline: none;
