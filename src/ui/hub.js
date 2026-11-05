@@ -151,6 +151,24 @@ export function suggestions(max = 3, { exclude = null } = {}) {
     .sort((a, b) => (a.prio || 99) - (b.prio || 99)).slice(0, max);
 }
 
+function fillGearSuggestions(box){
+ const desktop=box.dataset.gearSuggestions==='desktop',sg=suggestions(desktop?8:3);
+ const focused=box.contains(document.activeElement)?document.activeElement?.dataset?.suggestion:null;
+ if(desktop){for(const child of [...box.children])if(child.matches('.hb-sug,.pc-muted'))child.remove();}
+ else {box.replaceChildren();box.hidden=!sg.length;}
+ if(desktop){
+  if(!sg.length)box.appendChild(el('p','pc-muted','支度は整っている。いまの目標から次の行動を選べる。'));
+  for(const task of sg)box.appendChild(sugChip(task,false));
+ }else if(sg.length){
+  box.appendChild(sectionHead('次にすべきこと'));
+  const list=el('div','hb-sug-list n'+sg.length);for(const task of sg)list.appendChild(sugChip(task,sg.length>=3));box.appendChild(list);
+ }
+ if(focused)box.querySelector(`[data-suggestion="${focused}"]`)?.focus({preventScroll:true});
+}
+function refreshGearSuggestions(){
+ for(const box of document.querySelectorAll('[data-gear-suggestions]'))fillGearSuggestions(box);
+}
+
 // 提案の札の印 (SVG の線画 or 通貨の印)
 const SUG_SVG = {
   rest: '<path d="M4 18V8"/><path d="M4 14h16v4"/><path d="M20 14v-2a3 3 0 0 0-3-3h-6v5"/><circle cx="7.5" cy="11" r="1.6"/>',
@@ -177,6 +195,7 @@ function sugIcon(k) {
 function sugChip(s, narrow) {
   const b = el("button", "hb-sug" + (s.tone ? " t-" + s.tone : ""));
   b.type = "button";
+  b.dataset.suggestion=s.key;
   const top = el("span", "hb-sug-top");
   const ic = sugIcon(s.icon || (s.cost && s.cost.kind));
   if (ic) { const w = el("span", "hb-sug-icw"); w.appendChild(ic); top.appendChild(w); }
@@ -520,15 +539,8 @@ export function renderHub(root, api) {
   if (o) actions.appendChild(objectiveCard(o));
   // 次の行動は目標のすぐ下へ置く
   const mid = el("div", "hb-mid");
-  const sg = suggestions(3);
-  if (sg.length) {
-    const box = el("div", "hb-sugs");
-    box.appendChild(sectionHead("次にすべきこと"));
-    const list = el("div", "hb-sug-list n" + sg.length);
-    for (const s of sg) list.appendChild(sugChip(s, sg.length >= 3));
-    box.appendChild(list);
-    actions.appendChild(box);
-  }
+  const box=el('div','hb-sugs');box.dataset.gearSuggestions='mobile';
+  actions.appendChild(box);fillGearSuggestions(box);
   wrap.appendChild(actions);
   // 施設は依頼より先に並べ、最初の画面から入れるようにする。
   const fac = el("section", "hb-fac hb-fac-first");
@@ -550,7 +562,7 @@ export function renderHub(root, api) {
 export function install() {
   // Phase 0 のスタブに積まれていた提案の源を引き継ぐ
   for (const fn of (UI._suggestions || [])) registerSuggestion(fn);
-  registerUI({ registerSuggestion, renderHub: (root) => renderHub(root), suggestions });
+  registerUI({ refreshGearSuggestions, registerSuggestion, renderHub: (root) => renderHub(root), suggestions });
   if (UI.shell) UI.shell.registerTab("hub", { title: "街", header: false, render: (root, api) => renderHub(root, api) });
 }
 
@@ -574,9 +586,7 @@ function renderDesktopHub(root, api) {
   }
   goal.appendChild(services);wrap.appendChild(goal);
   const tasks = pcPanel("次にすべきこと", "pc-dashboard-tasks");
-  const sg = suggestions(8);
-  if (!sg.length) tasks.appendChild(el("p", "pc-muted", "支度は整っている。いまの目標から次の行動を選べる。"));
-  for (const task of sg) tasks.appendChild(sugChip(task, false));
+  tasks.dataset.gearSuggestions='desktop';fillGearSuggestions(tasks);
   wrap.appendChild(tasks);
   const party = pcPanel("隊の状況", "pc-dashboard-party");
   for (const d of g.party) {

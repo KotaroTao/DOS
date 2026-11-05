@@ -9,6 +9,7 @@ on:
       - 'tools/performance/battle-trace-check.mjs'
       - 'tools/performance/party-render-browser.py'
       - 'tools/performance/gear-hints-browser.py'
+      - 'tools/performance/town-gear-browser.py'
       - 'tools/performance/gear-hints-check.mjs'
       - 'tools/effects/tone-cache-browser.py'
       - 'tools/performance/battle-gap-browser.py'
@@ -56,6 +57,7 @@ jobs:
           python3 tools/performance/battle-diagnostics-browser.py
           python3 tools/performance/party-render-browser.py
           python3 tools/performance/gear-hints-browser.py
+          python3 tools/performance/town-gear-browser.py
           python3 tools/performance/battle-gap-browser.py
           AUTO_REPORT=/tmp/dos-auto-combat.json python3 tools/performance/auto-combat-browser.py
       - uses: actions/upload-artifact@v4
