@@ -1,5 +1,5 @@
 import { withBukonSockets, bukonNameLines } from "./bukonview.js";
-import { bagOwners } from "../items.js";
+import { bagOwners, isFormationItem } from "../items.js";
 // ===== 鑑定を試みる — 隊の鑑定の心得で、未鑑定の品を一つずつ確かめる =====
 // 「まとめて鑑定」(商会・有料・確実) より先に出す、隊の技による一括鑑定。
 // 鑑定は街でのみ。品ごとに、隊と控えの全員から、その品を最も見抜ける者 (成功率の高い者) が鑑定する。判定は1点ずつ:
@@ -38,8 +38,9 @@ export function appraisers() { return townAppraisers(); }
 // 技で試せる未鑑定の品 (隊と控えの所持品。失敗済みは商会でのみ)
 export function skillTargets() {
   const out = [];
-  for (const d of bagOwners(allDolls())) for (const it of (d.items || [])) {
-    if (it && it.unidentified && !it.idHardFail) out.push({ item: it, doll: d });
+  const dolls = allDolls(), worn = new Set(dolls.flatMap(d => Object.values(d.equip || {}).filter(Boolean)));
+  for (const d of bagOwners(dolls)) for (const it of (d.items || [])) {
+    if (it && it.unidentified && !it.idHardFail && !isFormationItem(it) && !worn.has(it)) out.push({ item: it, doll: d });
   }
   return out;
 }
