@@ -78,6 +78,7 @@
    ===================================================================== */
 #town-shell {
   position: fixed; inset: 0; z-index: 70;
+  width: min(100%, var(--game-width));
   max-width: var(--game-width); margin: 0 auto;
   display: flex; flex-direction: column;
   background: #070508;
@@ -86,7 +87,7 @@
 #town-shell > #town-screen {
   position: relative; inset: auto; z-index: auto;
   flex: 1 1 auto; min-height: 0;
-  max-width: none; margin: 0;
+  width: auto; max-width: none; margin: 0;
   padding-bottom: 28px; /* 浮いた門 (16px) の下に隠れないように */
   overflow-x: hidden;
   overscroll-behavior: contain;
@@ -258,7 +259,7 @@
   background: radial-gradient(ellipse at 50% 35%, rgba(30,18,26,0.62), rgba(3,2,4,0.84) 72%);
 }
 .ui-sheet {
-  position: relative; width: 100%; max-width: var(--game-width);
+  position: relative; width: min(100%, var(--game-width)); max-width: var(--game-width);
   max-height: 88vh; max-height: 88dvh;
   display: flex; flex-direction: column;
   outline: none;
