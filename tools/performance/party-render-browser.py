@@ -22,9 +22,9 @@ with sync_playwright() as p:
  G.party[0].name+='検査';testPartyRender();const rebuild=last();
  if(rebuild.paths[0].kind!=='rebuild'||cards[0]===document.querySelector('#party .pc'))throw Error('再生成');
  if(!rebuild.stages.some(s=>s.name==='portrait')||!rebuild.stages.some(s=>s.name==='domAttach'))throw Error('再生成の内訳');
- const original=UI.hasBetterGear;
- UI.hasBetterGear=d=>{if(d===G.party[0]){const until=performance.now()+90;while(performance.now()<until){}}return original(d);};
- testPartyRender();const delayed=last();UI.hasBetterGear=original;
+ const original=UI.cachedGearHint;
+ UI.cachedGearHint=d=>{if(d===G.party[0]){const until=performance.now()+90;while(performance.now()<until){}}return original(d);};
+ testPartyRender();const delayed=last();UI.cachedGearHint=original;
  if(!delayed.stages.some(s=>s.name==='gearCheck'&&s.slot===1&&s.durationMs>=85))throw Error('停止の内訳');
  if(delayed.paths[0].kind!=='unchanged')throw Error('更新なしでも計測');
  for(let i=0;i<20;i++)testPartyRender();

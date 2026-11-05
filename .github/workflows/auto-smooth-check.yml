@@ -8,6 +8,8 @@ on:
       - 'tools/performance/battle-diagnostics-browser.py'
       - 'tools/performance/battle-trace-check.mjs'
       - 'tools/performance/party-render-browser.py'
+      - 'tools/performance/gear-hints-browser.py'
+      - 'tools/performance/gear-hints-check.mjs'
       - 'tools/effects/tone-cache-browser.py'
       - 'tools/performance/battle-gap-browser.py'
       - '.github/workflows/auto-smooth-check.yml'
@@ -43,6 +45,7 @@ jobs:
           node tools/balance/auto-intelligence.mjs
           node tools/balance/auto-resistance.mjs
           node tools/performance/battle-trace-check.mjs
+          node tools/performance/gear-hints-check.mjs
           node tools/performance/auto-frame-check.mjs
           node tools/performance/update-auto-check.mjs
           python3 -m http.server 8000 > /tmp/auto-http.log 2>&1 &
@@ -52,6 +55,7 @@ jobs:
           python3 tools/effects/tone-cache-browser.py
           python3 tools/performance/battle-diagnostics-browser.py
           python3 tools/performance/party-render-browser.py
+          python3 tools/performance/gear-hints-browser.py
           python3 tools/performance/battle-gap-browser.py
           AUTO_REPORT=/tmp/dos-auto-combat.json python3 tools/performance/auto-combat-browser.py
       - uses: actions/upload-artifact@v4
