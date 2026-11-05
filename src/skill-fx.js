@@ -1,4 +1,4 @@
-import { drawMaterialSkill, drawSkillMark } from './skill-fx-materials.js';
+import { drawMaterialSkill, drawSkillMark, warmMaterialTone } from './skill-fx-materials.js';
 import { registerFx, FX, statusFxKind } from './battlefx.js';
 import { SKILL_FX_CATALOG } from './skill-fx-catalog.js';
 import { SKILL_FX_SIGNATURES } from './skill-fx-signatures.js';
@@ -8,6 +8,13 @@ import { FX_LIMITS, fxLite } from './skill-fx-budget.js';
 const ELEMENT_FAMILIES=['ice','wave','gale','lightning','stone','quake'];
 const MYSTIC_FAMILIES=['radiance','void','arcane','heal','revive','purify','ward'];
 export const SKILL_FAMILIES = Object.freeze({cut:'斬撃',cleave:'なぎ払い',flurry:'連撃',impact:'重い打撃',pierce:'貫通',projectile:'射撃',fireball:'火球',firePillar:'火柱',blast:'爆発',ice:'氷の破片',wave:'水の波',gale:'風の流れ',lightning:'雷光',stone:'岩の隆起',quake:'地の衝撃',radiance:'聖光',void:'闇の収束',arcane:'魔力の波',heal:'回復',revive:'蘇生',purify:'治療',ward:'守り',mana:'魔力の譲渡',empower:'強化',charge:'力を溜める',weaken:'弱体',dispel:'解除',seal:'封印',paralyze:'麻痺',poison:'毒',illusion:'幻惑',sleep:'眠り',gravity:'重力',doom:'死の印',drain:'吸収',steal:'奪取',escape:'退避',survey:'探索'});
+function skillTone(key,spell,design){
+ return spell?.element?(design?.family==='cleave'?CLEAVE_COLORS[spell.element]:{fire:'#ff4938',water:'#439fff',wind:'#89dfae',earth:'#ca9a65',light:'#ffe297',dark:'#a47bdd'}[spell.element]||FX.elCol(spell.element)[1]):null;
+}
+export function warmSkillFx(key,spell){
+ const design=SKILL_FX_CATALOG[key];
+ if(design&&['cut','cleave','flurry','pierce','projectile'].includes(design.family))warmMaterialTone(skillTone(key,spell,design)||SKILL_FX_SIGNATURES[key]?.tone);
+}
 export function skillFxSound(family, tier = 1, spell = null) {
   // 守りや強化の絵を持つ回復技も、音は実際の救命効果に合わせる。
   if (spell?.kind==='heal') family=spell.revive?'revive':'heal';
@@ -99,7 +106,7 @@ export function emitSkillFx(list,key,spell,hits,locate,now,spd=1,options={}){
  const primary=points.filter(p=>(p.side==='enemy')===enemy), anchors=primary.length?primary:[points[0]],xs=anchors.map(p=>p.x),ys=anchors.map(p=>p.y);
  const x=all?(Math.min(...xs)+Math.max(...xs))/2:anchors[0].x,y=all?ys.reduce((a,b)=>a+b,0)/anchors.length:anchors[0].y;
  const design={...baseDesign,combo:comboCount>1?comboCount:0,ultimate:!!SKILL_FX_SIGNATURES[key]?.ultimate};
- list.unshift({type:'skillScene',strikes,comboCount,design,hasMpDrain:!!spell.mpDrain&&(hits||[]).some(h=>h.mpHeal>0),element:spell.element||null,ultimate:SKILL_FX_ULTIMATES[key]||null,source:options.source||null,hasDrain:!!(spell.drain||spell.mpDrain)&&(hits||[]).some(h=>h.lifesteal>0||h.mpHeal>0||h.heal>0),signature:SKILL_FX_SIGNATURES[key]||null,pts:points,primaryPts:anchors,col:spell.element?(baseDesign.family==='cleave'?CLEAVE_COLORS[spell.element]:{fire:'#ff4938',water:'#439fff',wind:'#89dfae',earth:'#ca9a65',light:'#ffe297',dark:'#a47bdd'}[spell.element]||FX.elCol(spell.element)[1]):null,all,marks:true,x,y,w:Math.max(...xs)-Math.min(...xs)+80,t0:now,dur:skillFxDuration(design,spd,options),seed:17,hitCount});
+ list.unshift({type:'skillScene',strikes,comboCount,design,hasMpDrain:!!spell.mpDrain&&(hits||[]).some(h=>h.mpHeal>0),element:spell.element||null,ultimate:SKILL_FX_ULTIMATES[key]||null,source:options.source||null,hasDrain:!!(spell.drain||spell.mpDrain)&&(hits||[]).some(h=>h.lifesteal>0||h.mpHeal>0||h.heal>0),signature:SKILL_FX_SIGNATURES[key]||null,pts:points,primaryPts:anchors,col:skillTone(key,spell,baseDesign),all,marks:true,x,y,w:Math.max(...xs)-Math.min(...xs)+80,t0:now,dur:skillFxDuration(design,spd,options),seed:17,hitCount});
 
 
 

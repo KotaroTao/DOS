@@ -1,4 +1,6 @@
 import { inheritBukonPlan, bukonName } from "../bukon.js";
+import { createGearHints } from "../gear-hints.js";
+import { traceSync } from '../battle-trace.js';
 import { ELEMENT_KEYS, elementValues, elementDefenseReduction } from "../combatrules.js";
 import { magicAttackPower } from "../combat.js";
 import { withBukonSockets, bukonNameLines } from "./bukonview.js";
@@ -662,36 +664,35 @@ export function openEquipChooser(item, { owner = null, actions = null, onClose =
 // 所持品の「最良」と同じ評価で選ぶ。後衛も職業・能力・特殊効果で比較する。
 let bgcMemo = { key: "", n: 0, hints: [] };
 function betterGearCount() {
-  const G = G_();
-  if (!G || !G.party) return 0;
-  // 魂の付け替え・融合・サブ魂・結社でも能力が変わるので、能力そのものも鍵に入れる (古い見積りで印を点けない)
-  const key = equipHintSignature(itemsPool()) + JSON.stringify([G.party.map(d => d && [d.base, d.equip, d.jobLv, d.dualWield])]) + "|" + G.party.map((d) => d ? `${d.jobKey}:${d.level}:${d.maxhp},${d.maxmp},${d.atk},${d.vit},${d.agi},${d.int},${d.pie},${d.luk}:${G.party.indexOf(d)}` : "-").join(",");
-  if (bgcMemo.key === key) return bgcMemo.n;
-  memoClear();
-  let n = 0;
-  const hints = [];
-  for (const d of G.party) {
-    if (!d) continue;
-    if (hasBetterGear(d)) { n++; hints.push(`b${d.uid}`); }
-  }
-  bgcMemo = { key, n, hints };
-  return n;
+ const G=G_();if(!G?.party)return 0;
+ const hints=G.party.filter(d=>cachedGearHint(d)).map(d=>`b${d.uid}`);
+ bgcMemo={key:'',n:hints.length,hints};return hints.length;
 }
 
 // 肖像の赤丸は既読にせず、実際に付け替えられる良い品がある間だけ出す。
+const passiveGearHints=createGearHints(()=>{
+ const G=G_();if(!G)return null;
+ const paused=G.state==='combat'||!!G.animating||!!document.hidden;
+ return paused?{paused:true}:{pool:itemsPool(),targets:G.party||[],paused:false};
+},()=>{bgcMemo.key='';refreshCachedGearPortraits();});
+export function cachedGearHint(d){
+ if(G_()?.state==='combat')passiveGearHints.pause();
+ return passiveGearHints.read(d);
+}
 const gearHintMemo = new WeakMap();
 export function hasBetterGear(d) {
   if (!d || !d.alive || d.primary == null) return false;
-  const pool = itemsPool();
-  const key = equipHintSignature(pool) + JSON.stringify([
+  const pool = traceSync("party.gear.pool",()=>itemsPool());
+  const key = traceSync("party.gear.signature",()=>equipHintSignature(pool) + JSON.stringify([
     d.base, d.equip, d.jobLv, d.jobKey, d.clsKey, d.align, d.dualWield,
     d.atk, d.vit, d.agi, d.int, d.pie, d.luk, d.maxhp, d.maxmp,
-  ]);
+  ]));
   const old = gearHintMemo.get(d);
   if (old && old.key === key) return old.value;
   // 最適装備と同じ計画で判定する。ロック・呪い・袋の上限・両手の組み合わせも一致させる。
-  const value = planBestEquip([d], { pool, canEquip, score: gearScore, recalc, maxMoves: 1 }).moves.length > 0;
+  const value = traceSync("party.gear.plan",()=>planBestEquip([d], { pool, canEquip, score: gearScore, recalc, maxMoves: 1 }).moves.length > 0);
   gearHintMemo.set(d, { key, value });
+  passiveGearHints.seed(d,value);
   return value;
 }
 export function gearUpgradeDot() {
@@ -704,13 +705,13 @@ export function gearUpgradeDot() {
 
 // 開いたままの承認画面や背後の街の肖像も、実際の装備状態へ即座に合わせる。
 const gearPortraits = new WeakMap();
-function watchGearPortrait(node, d) {
-  gearPortraits.set(node, d);
+function watchGearPortrait(node, d, passive=false) {
+  gearPortraits.set(node, {d,passive});
   node.dataset.gearWatch = "";
-  updateGearPortrait(node, d);
+  updateGearPortrait(node, d, passive);
 }
-function updateGearPortrait(node, d) {
-  const better = hasBetterGear(d), dot = node.querySelector(":scope > .gear-upgrade-dot");
+function updateGearPortrait(node, d, passive=false) {
+  const better = passive ? cachedGearHint(d) : hasBetterGear(d), dot = node.querySelector(":scope > .gear-upgrade-dot");
   if (better && !dot) node.appendChild(gearUpgradeDot());
   else if (!better && dot) dot.remove();
   if (node.classList.contains("pt-port")) node.setAttribute("aria-label", `${better ? "より強い装備あり・" : ""}${d.name}${d.alive ? "" : " (砕けた)"} ${d.cls || ""}`);
@@ -718,9 +719,16 @@ function updateGearPortrait(node, d) {
 function refreshGearPortraits() {
   if (!hasDOM()) return;
   for (const node of document.querySelectorAll("[data-gear-watch]")) {
-    const d = gearPortraits.get(node);
-    if (d) updateGearPortrait(node, d);
+    const entry = gearPortraits.get(node);
+    if (entry) updateGearPortrait(node, entry.d);
   }
+}
+
+function refreshCachedGearPortraits(){
+ if(!hasDOM())return;
+ for(const node of document.querySelectorAll('[data-gear-watch]')){
+  const entry=gearPortraits.get(node);if(entry?.passive)updateGearPortrait(node,entry.d,true);
+ }
 }
 
 // ================= タブの印 (赤い点) =================
@@ -3079,7 +3087,7 @@ export function install() {
     openCreateDoll,
     openCreateName,
     autoEquip,
-    betterGearCount, hasBetterGear, gearUpgradeDot, watchGearPortrait,
+    betterGearCount, hasBetterGear, cachedGearHint, gearUpgradeDot, watchGearPortrait,
     equipItemTo,
     equipSwapInfo: (d, it) => {
       if (canEquipReason(d, it)) return null;

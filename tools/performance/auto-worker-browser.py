@@ -9,7 +9,7 @@ with sync_playwright() as p:
  const {makeDoll,setSkillGate}=await import('/src/souls.js');
  const {decideAuto,setResistKnown,TACTICS}=await import('/src/autotactics.js');
  const {planAuto,autoPlannerStats}=await import('/src/auto-planner.js');
- const {refSerialize}=await import('/src/savegraph.js');const {rngState}=await import('/src/rng.js');
+ const {refSerialize,refDeserialize}=await import('/src/savegraph.js');const {rngState}=await import('/src/rng.js');
  let cases=0;
  const compact=p=>JSON.stringify({...p,target:p.target?[p.target.side,p.target.uid]:null,targetUid:undefined,targetSide:undefined});
  for(const tac of TACTICS)for(const known of [false,true])for(const injured of [false,true,'revive']){
@@ -26,10 +26,29 @@ with sync_playwright() as p:
   if(JSON.stringify(refSerialize(battle))!==before||JSON.stringify(rngState())!==random)throw Error('入力か乱数が変化');
   if(actual.target&&![...party,...enemies].includes(actual.target))throw Error('対象が本体参照へ戻っていない');cases++;
  }
+ // 袋と読込中の絵を増やしても、作戦の入力が膨らまず、元の保存は欠けない。
+ const party=Array.from({length:3},(_,i)=>Object.assign(makeDoll('袋の検査'),{uid:600+i,hp:1000,maxhp:1000,mp:100,maxmp:100,atk:100,agi:100,tactic:'blade'}));
+ const enemy={uid:900,side:'enemy',alive:true,key:'test',mon:{race:'undead'},hp:10000,maxhp:10000,atk:1,agi:1,vit:10,lv:1};
+ const b=new Battle(party,[enemy],()=>{}),a=party[0];
+ const weapon={...(Object.values((await import('/src/items.js')).ITEMS).find(i=>i.slot==='weapon'))};a.equip.weapon=weapon;
+ const expected=await planAuto(b,a,()=>true,()=>{throw Error('同期復帰');}),nodes=autoPlannerStats.nodes;
+ const bag=Array.from({length:6000},(_,i)=>({uid:i,key:'保存検査',name:'袋の品'+i,mods:{atk:i%4},description:'作戦には不要な説明'.repeat(8)}));
+ bag[0]=weapon;
+ for(const p of party)p.items=bag;
+ // 除外は値を読む前に行い、素材の読込状態にも触れない。
+ Object.defineProperty(enemy.mon,'photo',{enumerable:true,configurable:true,get(){throw Error('作戦が絵を読み込んだ');}});
+ const actual=await planAuto(b,a,()=>true,()=>{throw Error('大きな袋で同期復帰');});
+ if(compact(actual)!==compact(expected)||autoPlannerStats.nodes!==nodes||party.some(p=>p.items!==bag))throw Error('袋の除外で作戦か本体が変化');
+ delete enemy.mon.photo;
+ for(const compact of [false,true]){
+  const restored=refDeserialize(refSerialize({battle:b,party,bag},{compact}));
+  if(restored.bag.length!==6000||restored.party.some(p=>p.items!==restored.bag)||restored.battle.party!==restored.party||restored.party[0].equip.weapon!==restored.bag[0])throw Error('通常の保存から所持品や共有参照が欠けた');
+ }
+ const payload={nodes,withBag:autoPlannerStats.nodes,bagItems:bag.length,fullNodes:refSerialize({battle:b,actor:a}).heap.length};
  const original=window.Worker;window.Worker=class{constructor(){throw Error('検査用のWorker不可');}};
  try{const fallback=await import('/src/auto-planner.js?fallback-test');let calls=0;
   const plan=await fallback.planAuto(null,null,null,()=>{calls++;return {action:'defend'};});
   if(calls!==1||plan.action!=='defend')throw Error('Worker不可時の復帰');
  }finally{window.Worker=original;}
- return {cases,...autoPlannerStats};
+ return {cases,payload,...autoPlannerStats};
  }'''));b.close()

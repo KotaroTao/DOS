@@ -1,3 +1,4 @@
+import { PHYSICAL_TONES } from './skill-fx-tones.js';
 import { CLEAVE_MOTION } from './cleave-fx.js';
 export const SLASH_FORMS={fighter:[0,3,.2],knight:[1,4,.7],thief:[2,5,-.5],samurai:[0,2,0],berserker:[3,3,1.1],shadow:[0,6,-1.2],paladin:[1,8,1.57],spellblade:[2,7,.4],brigand:[3,5,-.8],arcthief:[2,4,2.1],crusader:[1,4,0],battlemage:[3,6,.8],darkknight:[3,8,-.4],templar:[1,3,1.2],exorcist:[0,7,.6],inquisitor:[0,4,1.57],ascetic:[2,8,.1],hero:[1,5,1.57],asura:[2,6,0],dragonknight:[3,7,-.9],chaplain:[1,6,-.6],sera:[2,3,-.3]};
 // 材質のある主演出。18コマの濃淡と系統ごとの軌道で、発生・作用・余韻を描く。
@@ -8,41 +9,32 @@ export const MATERIAL_FAMILIES=Object.freeze(families);
 const rows={ribbon:0,pressure:1,crystal:2,water:3,wind:4,shadow:5,light:6,life:7,venom:8,stone:9};
 const image=typeof Image==='undefined'?null:new Image();
 const physicalImage=typeof Image==='undefined'?null:new Image();
-const tinted=new Map(),pending=new Set(); // 最大6面。着弾の描画中には画像処理しない。
-const warmTones=['#ff4938','#439fff','#89dfae','#ca9a65','#ffe297','#a47bdd'];
+// 色付きの18コマは出荷前に作る。描画中に画素を読み出したり変換したりしない。
+const tinted=new Map(),MAX_TONES=16;
+let toneRequests=0;
 function sourceFor(kind){
  if(kind==='ribbon'&&physicalImage?.complete&&physicalImage.naturalWidth)return {texture:physicalImage,sw:192,sh:96,row:0};
  return {texture:image,sw:96,sh:96,row:rows[kind]*3};
 }
-async function cacheTone(kind,tone){
- const source=sourceFor(kind);if(!source.texture?.naturalWidth)return;
- const width=source.sw*6,height=source.sh*3,canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
- const ctx=canvas.getContext('2d');ctx.drawImage(source.texture,0,source.row*source.sh,width,height,0,0,width,height);
- const pixels=ctx.getImageData(0,0,width,height),rgb=[1,3,5].map(i=>parseInt(tone.slice(i,i+2),16)/255);
- for(let start=0;start<pixels.data.length;start+=32768){
- for(let i=start;i<Math.min(start+32768,pixels.data.length);i+=4)for(let k=0;k<3;k++){
-  // 暗い属性色でも明るい摩擦の面を失わない。
-  const highlight=Math.max(0,(pixels.data[i+k]-195)/60)*.35;
-  pixels.data[i+k]*=Math.min(1,.3+rgb[k]*.7+highlight);
- }
- await new Promise(resolve=>setTimeout(resolve,0));
- }
- // 変換の途中で高解像度素材が届いた場合、古い素材の結果は保持しない。
- if(source.texture!==sourceFor(kind).texture)return;
- ctx.putImageData(pixels,0,0);
- const key=kind+tone;if(tinted.size>=6)tinted.delete(tinted.keys().next().value);
- tinted.set(key,{texture:canvas,sw:source.sw,sh:source.sh,row:0});
+function toneImage(tone){
+ if(!PHYSICAL_TONES[tone]||typeof Image==='undefined')return null;
+ let entry=tinted.get(tone);
+ if(entry){tinted.delete(tone);tinted.set(tone,entry);return entry;}
+ const texture=new Image();entry={texture,ready:false};
+ if(tinted.size>=MAX_TONES)tinted.delete(tinted.keys().next().value);
+ tinted.set(tone,entry);toneRequests++;
+ texture.onload=()=>{Promise.resolve(texture.decode?.()).then(()=>{entry.ready=true;},()=>{});};
+ texture.src=new URL(PHYSICAL_TONES[tone],import.meta.url).href;
+ return entry;
 }
-function queueTone(kind,tone){
- if(kind!=='ribbon'||!tone||pending.has(kind+tone)||tinted.has(kind+tone))return;
- const key=kind+tone;pending.add(key);
- const build=()=>{cacheTone(kind,tone).finally(()=>pending.delete(key));};
- if(globalThis.requestIdleCallback)requestIdleCallback(build,{timeout:500});else setTimeout(build,0);
+function colored(kind,tone){
+ const entry=kind==='ribbon'&&tone?toneImage(tone):null;
+ return entry?.ready?{texture:entry.texture,sw:192,sh:96,row:0}:sourceFor(kind);
 }
-function colored(kind,tone){queueTone(kind,tone);return tinted.get(kind+tone)||sourceFor(kind);}
+export function warmMaterialTone(tone){toneImage(tone);}
+export function materialPerformance(){return {toneRequests,residentTones:tinted.size,maxTones:MAX_TONES,decodedBytes:[...tinted.values()].filter(e=>e.ready).length*1152*288*4,runtimePixelConversions:0};}
 if(image)image.src=new URL('../art/effects/skill-materials.webp',import.meta.url).href;
 if(physicalImage){
- physicalImage.onload=()=>{tinted.clear();for(const tone of warmTones)queueTone('ribbon',tone);};
  physicalImage.src=new URL('../art/effects/physical-materials.webp',import.meta.url).href;
 }
 function noise(i,seed=17){let x=Math.imul(i+seed,374761393);x=Math.imul(x^(x>>>13),1274126177);return((x^(x>>>16))>>>0)/4294967296;}

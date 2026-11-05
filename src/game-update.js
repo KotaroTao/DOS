@@ -33,7 +33,7 @@ export function watchGameUpdates({ serviceWorker, testPlay = false, applyUpdate 
       finally { applying = false; button.disabled = false; }
     };
     button.addEventListener("click", apply);
-    // 操作を冒険側のショートカットへ渡さない。自動進行は止めない。
+    // 操作を冒険側のショートカットへ渡さない。更新処理側が安全な区切りを待つ。
     for (const type of ["click", "keydown", "keyup", "pointerdown", "pointerup", "touchstart", "touchend"]) {
       notice.addEventListener(type, e => e.stopPropagation());
     }

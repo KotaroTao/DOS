@@ -73,3 +73,16 @@ console.log(`救命4系統×通常/高速/オート48条件・回復関連${reco
 const fx={skill:[{type:'skillScene',t0:10}],floats:[{t0:10},{t0:95},{t0:180}]};
 beginSkillFxPresentation(fx,100);assert.deepEqual(fx.floats.map(e=>e.t0),[100,185,270]);
 beginSkillFxPresentation(fx,200);assert.equal(fx.skill[0].t0,100,'開始時刻を二重にずらさない');
+
+// 斬撃の色を追加した時は、実行中に作らず出荷済み素材を必ず用意する。
+const {PHYSICAL_TONES}=await import('../../src/skill-fx-tones.js');
+const {existsSync}=await import('node:fs');
+for(const path of Object.values(PHYSICAL_TONES))assert(existsSync(new URL(path,new URL('../../src/skill-fx-tones.js',import.meta.url))),path);
+let toneUses=0;
+for(const [key,spell]of Object.entries(SPELLS)){
+ if(!['cut','cleave','flurry','pierce','projectile'].includes(SKILL_FX_CATALOG[key].family))continue;
+ const effects=[];emitSkillFx(effects,key,spell,[{target:{uid:1,side:'enemy'},dmg:1}],()=>({x:100,y:100}),0,1);
+ const tone=effects[0]?.col||effects[0]?.signature?.tone;
+ if(tone){assert(PHYSICAL_TONES[tone],key+': '+tone+' の事前生成が必要');toneUses++;}
+}
+console.log(`物理の色${toneUses}件の事前生成素材と出荷ファイルを確認`);

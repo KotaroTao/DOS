@@ -1,7 +1,9 @@
-import { recordBattleFrame } from './skill-fx-budget.js';
+import { beginPartyRender } from './party-render-trace.js';
+import { traceContext, traceFrame, traceSync, traceWait, traceDuration, startBattleTrace } from './battle-trace.js';
+import { recordBattleFrame, battlePaintDue } from './skill-fx-budget.js';
 import { planAuto, warmAutoPlanner } from './auto-planner.js';
 import { showFieldSkillFx } from "./skill-fx-field.js";
-import { PHYSICAL_HIT_MS, emitSkillFx, skillFxSound, skillFxDuration, extendedSkillFx, enemySkillFxProfile, beginSkillFxPresentation } from "./skill-fx.js";
+import { PHYSICAL_HIT_MS, warmSkillFx, emitSkillFx, skillFxSound, skillFxDuration, extendedSkillFx, enemySkillFxProfile, beginSkillFxPresentation } from "./skill-fx.js";
 import { beginBattleWindup } from "./battle-windup.js";
 import { createTrial } from "./choice-trial.js";
 import { battleCommand } from "./cloud-battle.js";
@@ -2658,7 +2660,8 @@ function outerH(e) {
   if (cs.display === "none") return 0;
   return e.offsetHeight + (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0);
 }
-function fitView(force = false) {
+function fitView(force = false) { return traceSync("party.fitView",()=>fitViewTraced(force)); }
+function fitViewTraced(force = false) {
   if (!appEl || !screenEl) return false;
   const combat = G.state === "combat" || (G.state === "over" && !!G.battle);
   appEl.classList.toggle("in-combat", combat);
@@ -2711,7 +2714,8 @@ function fitView(force = false) {
   return true;
 }
 // 画面の回転・窓の伸縮に追従 (盤面/戦場を描き直す)
-function refitAndRedraw() {
+function refitAndRedraw() { return traceSync("party.refitAndRedraw",()=>refitAndRedrawTraced()); }
+function refitAndRedrawTraced() {
   if (!fitView()) return;
   if (G.state === "board" && G.board) drawBoardFrame();
   else if (G.state === "combat" && G.battle) renderCombatCanvas();
@@ -9572,7 +9576,8 @@ function focusEnemy(e) {
 }
 
 // キャンバスのみ (アニメーション毎フレーム用)
-function renderCombatCanvas() {
+function renderCombatCanvas() { return traceSync("renderCombatCanvas", () => renderCombatCanvasTraced()); }
+function renderCombatCanvasTraced() {
   const b = G.battle;
   viewTransform();
   vctx.globalCompositeOperation = "source-over";
@@ -10458,6 +10463,8 @@ function battleLayer() {
 let _combatAnimLast = 0;
 function combatAnimLoop(ts) {
   requestAnimationFrame(combatAnimLoop);
+  traceContext(G.state==="combat",G.autoCombat,G.animating,document.hidden);
+  traceFrame(ts);
   recordBattleFrame(ts,G.state==="combat"&&!document.hidden&&!uiBlocked()&&(G.animating||G.autoCombat));
   if (G.state !== "combat" || !G.battle || G.animating || G.fx) return;
   if (uiBlocked()) return;
@@ -10467,6 +10474,7 @@ function combatAnimLoop(ts) {
   _combatAnimLast = ts;
   renderCombatCanvas();
 }
+startBattleTrace();
 requestAnimationFrame(combatAnimLoop);
 
 // 敵にかかっている強化(▲)/弱体(▼)を名前プレート付近に小さなピルで描く。
@@ -11333,6 +11341,7 @@ function prepareBattleAction(battle, onFrame = null) {
   const pending = battle.pending, actor = pending?.actor;
   if (!actor || actor.side !== "party") return { stop() {} };
   const spell = pending.spellKey && SPELLS[pending.spellKey];
+  if (spell) warmSkillFx(pending.spellKey,spell);
   const cast = !!spell && spell.kind !== "phys" && !spell.tech;
   const label = pending.action === "attack" ? "攻撃" : pending.action === "spell" ? `${spell?.name || "技"}`
     : pending.action === "defend" ? "防御の構え" : pending.action === "run" ? "退路を探る" : pending.action === "item" ? `${pending.item?.name || "道具"}を準備` : "攻撃の構え";
@@ -11342,7 +11351,8 @@ function prepareBattleAction(battle, onFrame = null) {
     skillFamily: pending.action === "spell" ? skillProfile(pending.spellKey,spell)?.family : null,
     attackStyle: pending.action === "attack" ? actor.wMagic ? "arcane" : weaponFxStyle(actor.equip?.weapon) : null, fast: G.fastAnim });
 }
-async function resolveLocalBattle(action, battle = G.battle) {
+function resolveLocalBattle(...args) { return traceWait("resolveLocalBattle", () => resolveLocalBattleTraced(...args)); }
+async function resolveLocalBattleTraced(action, battle = G.battle) {
   try {
     if (cloudBackgroundBattle()) _cloudResolving = true;
     if (cloudEnabled() && !testPlayActive) await cloudCheckpoint();
@@ -11360,7 +11370,7 @@ async function resolveLocalBattle(action, battle = G.battle) {
       _cloudResolving = false;
     }
     if (cloudBackgroundBattle() || choiceTrial) battleActionTimes.set(battle, performance.now());
-    const res = action === "commit" ? battle.commit() : action === "enemy" ? battle.enemyAct() : battle.stunnedAct();
+    const res = traceSync("battle.resolve", () => action === "commit" ? battle.commit() : action === "enemy" ? battle.enemyAct() : battle.stunnedAct());
     res._modFeed = takeModFeed(); battle._acted = true;
     trialImpact?.();
     animateResult(res, postResolve);
@@ -11379,7 +11389,8 @@ function whenCombatFree(fn, battle = G.battle) {
   fn();
 }
 
-function combatStep() {
+function combatStep() { return traceSync("combatStep", () => combatStepTraced()); }
+function combatStepTraced() {
   const b = G.battle;
   if (!b) return;
   if (combatHeld()) { setTimeout(combatStep, 150); return; }
@@ -11451,7 +11462,8 @@ function runCommitted() {
 let savedBattleAdvance = null;
 let savedForcedTurns = [];
 function showingConfirmedTurns() { return savedForcedTurns.some(turn => turn.battle === G.battle); }
-async function resolveSavedBattle(action) {
+function resolveSavedBattle(...args) { return traceWait("resolveSavedBattle", () => resolveSavedBattleTraced(...args)); }
+async function resolveSavedBattleTraced(action) {
   if (_cloudResolving) return;
   _cloudResolving = true;
   const resultStarted = performance.now();
@@ -11485,7 +11497,7 @@ async function resolveSavedBattle(action) {
     }
     if (normalAttack) await windup?.complete();
     savedBattleAdvance = response.nextPacket ? { battle: G.battle, packet: response.nextPacket } : null;
-    const packet = applySavePatch(G, refDeserialize(response.packet));
+    const packet = traceSync("battle.applyPacket", () => applySavePatch(G, refDeserialize(response.packet)));
     restoreMonsterPhotos(G.battle.enemies, MONSTERS);
     G.rng = bindRngState(G.rng); setSharedSouls(G.souls);
     syncEnemyUids(G.battle.enemies);
@@ -11528,7 +11540,7 @@ function advanceAfterPresentation(b) {
   // ターンの初めのパッシブ・激昂などで掛かった強化・弱体は、1拍ずつ見せてから次の手番へ
   const watch = beginModWatch(true);
   if (serverBattle()) { advanceSavedBattle(watch); return; }
-  b.advance();
+  traceSync("battle.advance", () => b.advance());
   const mw = watch ? endModWatch() : null;
   playModReveal(mw, () => {
     autosave(true);
@@ -11536,13 +11548,14 @@ function advanceAfterPresentation(b) {
   });
 }
 
-async function advanceSavedBattle(watch) {
+function advanceSavedBattle(...args) { return traceWait("advanceSavedBattle", () => advanceSavedBattleTraced(...args)); }
+async function advanceSavedBattleTraced(watch) {
   _cloudResolving = true;
   try {
     const cached = savedBattleAdvance?.battle === G.battle ? savedBattleAdvance : null;
     savedBattleAdvance = null;
     const response = cached || await cloudBattle("advance");
-    const packet = applySavePatch(G, refDeserialize(response.packet));
+    const packet = traceSync("battle.applyPacket", () => applySavePatch(G, refDeserialize(response.packet)));
     restoreMonsterPhotos(G.battle.enemies, MONSTERS);
     G.rng = bindRngState(G.rng); setSharedSouls(G.souls); G.battle.log = log;
     _lastCloudSave = await acknowledgeCloudSave(_lastCloudSave, response.packet);
@@ -11576,6 +11589,7 @@ function battleResultEnd(fx, now) {
 
 // 消えた状態の盤面を描き、次の描画機会を挟んでから次の手番へ進む。
 function finishBattleResult(fx, finish) {
+  traceDuration("battle.presentationEnd",performance.now(),"mark");
   if (G.fx !== fx) return;
   G.fx = null;
   G.partyFx?.clear(); G.partyFxV?.clear();
@@ -11584,12 +11598,15 @@ function finishBattleResult(fx, finish) {
 }
 
 // 結果オブジェクトを演出 (踏み込み → 着弾 → 余韻)
-function animateResult(res, done) {
+function animateResult(res, done) { return traceSync("animateResult", () => animateResultTraced(res, done)); }
+function animateResultTraced(res, done) {
+  traceDuration("battle.presentationStart",performance.now(),"mark");
   const battle = G.battle;
   if (!battle || G.state !== "combat") return;
   let finished = false;
   const finish = () => { if (!finished && G.battle === battle && G.state === "combat") { finished = true; done(); } };
 
+  if (res.spellKey) warmSkillFx(res.spellKey,SPELLS[res.spellKey]);
   const presentation=fxProfile(res);
   if(presentation)SFX.warmSkill?.(skillFxSound(presentation.family,presentation.tier,SPELLS[res.spellKey]),{physical:presentation.kind==='phys',rank:presentation.tier,duration:skillFxDuration(presentation,1,{auto:!!G.autoCombat,fast:!!G.fastAnim})});
   callPartyAction(res); // 札の肖像に使った技の名 (手番の初めから)
@@ -11606,7 +11623,7 @@ function animateResult(res, done) {
     const tick = () => {
       if (G.fx !== fx || G.battle !== battle || G.state !== "combat") return;
       if (end === null) { renderParty(); end = battleResultEnd(fx, performance.now()); }
-      renderCombatCanvas();
+      if (battlePaintDue(performance.now(), fx)) renderCombatCanvas();
       if (performance.now() >= end) { finishBattleResult(fx, finish); return; }
       requestAnimationFrame(tick);
     };
@@ -11666,7 +11683,7 @@ function animateResult(res, done) {
       const hasScene = fx.skill.some(e => e.type === 'skillScene' && extendedSkillFx(e.design));
       TOTAL = hasScene ? end - t0 : Math.max(TOTAL, end - t0);
     }
-    renderCombatCanvas();
+    if (battlePaintDue(performance.now(), fx)) renderCombatCanvas();
     if (t >= TOTAL) {
       finishBattleResult(fx, finish);
     } else {
@@ -11758,7 +11775,8 @@ function drainPartyProcs() {
 }
 
 // 着弾の瞬間: 効果音・エフェクト生成・ダメージ表示
-function applyImpact(res) {
+function applyImpact(res) { return traceSync("applyImpact", () => applyImpactTraced(res)); }
+function applyImpactTraced(res) {
   const fx = G.fx;
   const now = performance.now();
   if (G.battle?.result === "win" && !battleVictoryAt.has(G.battle)) battleVictoryAt.set(G.battle, now);
@@ -12829,29 +12847,31 @@ function partyCallKey(p, st) {
   const c = st === "combat" && G.partyCall && G.partyCall.get(p);
   return c ? Math.round(c.at) + ":" + c.lines.map((l) => l.text).join("/") : "";
 }
-function renderParty() {
+function renderParty() { return traceSync("renderParty", () => { const probe=beginPartyRender(G.state); try { return renderPartyTraced(probe); } finally { probe.finish(); } }); }
+function renderPartyTraced(probe) {
   const fx = G.partyFx;
   const st = G.state;
-  const upgrades = new Set(G.party.filter((d) => UI.hasBetterGear && UI.hasBetterGear(d)));
+  const upgrades = new Set(G.party.filter((d,idx) => probe.measure("gearCheck",idx+1,()=>UI.cachedGearHint && UI.cachedGearHint(d))));
   // 迷宮の掟の開幕の演出を待つ間は、効く前の HP/MP/状態を札に見せる (playTraitOpening)
   const shown = (p) => (st === "combat" && G.partyShow && G.partyShow.get(p)) || p;
-  const rows = G.party.map((p) => [
+  const rows = G.party.map((p,idx) => probe.measure("data",idx+1,()=>[
     p.uid, p.name, p.cls, p.isDoll ? (p.jobLv || 1) : p.level, shown(p).hp, p.maxhp, shown(p).mp, p.maxmp, p.alive ? 1 : 0,
     shown(p).ailment || "", p.asleep && st === "combat" ? 1 : 0, st === "combat" ? (p.mind || "") : "", fx && fx.has(p) ? fx.get(p) : "", (G.partyFxV && G.partyFxV.get(p)) || "", buffBadges(p),
     partyCallKey(p, st), upgrades.has(p) ? 1 : 0,
     `${p.jobKey || ""}:${p.jobRank || 1}:${p.clsKey || ""}`,
-  ]);
-  const key=st+"|"+rows.map(r=>r.join(",")).join(";");
-  if (key === _partyKey && partyEl.childElementCount === G.party.length) return;
+  ]));
+  const key=probe.measure("compare",null,()=>st+"|"+rows.map(r=>r.join(",")).join(";"));
+  if (probe.measure("unchanged",null,()=>key === _partyKey && partyEl.childElementCount === G.party.length)) { probe.path(null,"unchanged"); return; }
   const reuse=st==="combat"&&_partyKey.startsWith("combat|");
   _partyKey = key;
-  if(!reuse){partyEl.innerHTML="";partyCards.clear();}
+  probe.measure("container",null,()=>{if(!reuse){partyEl.innerHTML="";partyCards.clear();}});
   partyEl.classList.toggle("n4", G.party.length >= 4);
-  G.party.forEach((p, idx) => {
+  G.party.forEach((p, idx) => probe.measure("card",idx+1,() => {
     const row=rows[idx],rowKey=row.join(','),baseKey=row.filter((_,i)=>i!==4&&i!==6).join(','),old=partyCards.get(p);
     if(reuse&&old&&old.idx===idx&&old.card.parentElement===partyEl){
-      if(old.key===rowKey)return;
+      if(old.key===rowKey){probe.path(idx+1,"unchanged");return;}
       if(old.baseKey===baseKey){
+        probe.path(idx+1,"vitals");
         const sv=shown(p);old.card.classList.toggle('low',p.alive&&sv.hp/p.maxhp<=.25);
         for(const kind of ['hp','mp']){const vial=old.card.querySelector('.pc-vial.'+kind),v=sv[kind],m=p['max'+kind];
           vial.querySelector('i').style.width=(m>0?Math.max(0,Math.min(100,v/m*100)):0)+'%';
@@ -12860,6 +12880,7 @@ function renderParty() {
         }old.key=rowKey;return;
       }
     }
+    probe.path(idx+1,"rebuild");
     const card = document.createElement("div");
     const sv = shown(p);
     let cls = "pc" + (p.alive ? "" : " dead");
@@ -12900,9 +12921,9 @@ function renderParty() {
     });
     // 肖像の額 (隊列の印・状態の印を重ねる)
     const por = el("div", "pc-por");
-    const pic = partyPortrait(p);
+    const pic = probe.measure("portrait",idx+1,()=>partyPortrait(p));
     if (pic) por.appendChild(pic);
-    UI.watchGearPortrait?.(por, p);
+    probe.measure("gearWatch",idx+1,()=>UI.watchGearPortrait?.(por, p, true));
     por.appendChild(el("span", "pc-row " + (idx < 3 ? "front" : "back"), idx < 3 ? "前" : "後"));
     card.appendChild(por);
     // 肖像と同じ枠へ重ね、肖像を省くスマホ表示でも状態の印は残す。
@@ -12951,7 +12972,7 @@ function renderParty() {
     };
     card.appendChild(vial("hp", sv.hp, p.maxhp));
     card.appendChild(vial("mp", sv.mp, p.maxmp));
-    const bb = buffBadges(p);
+    const bb = probe.measure("badges",idx+1,()=>buffBadges(p));
     if (bb) card.insertAdjacentHTML("beforeend", bb);
     // 戦闘の演出 (爪痕・属性の奔流・回復の光…): 札の上に一度だけ走る薄い膜
     const fv = G.partyFxV && G.partyFxV.get(p);
@@ -12965,11 +12986,13 @@ function renderParty() {
       for (const l of call.lines) box.appendChild(el("span", "pc-cl k-" + l.kind, l.text));
       card.appendChild(box);
     }
+    probe.measure("domAttach",idx+1,()=>{
     if(reuse&&old?.card.parentElement===partyEl&&old.idx===idx)old.card.replaceWith(card);
     else {if(reuse)old?.card.remove();partyEl.insertBefore(card,partyEl.children[idx]||null);}
     partyCards.set(p,{card,idx,key:rowKey,baseKey});
-  });
-  for(const [p,old]of partyCards)if(!G.party.includes(p)){old.card.remove();partyCards.delete(p);}
+    });
+  }));
+  probe.measure("cleanup",null,()=>{for(const [p,old]of partyCards)if(!G.party.includes(p)){old.card.remove();partyCards.delete(p);}});
   if (st === "board" && window.innerWidth <= 600) requestAnimationFrame(refitAndRedraw);
 }
 
@@ -19600,7 +19623,7 @@ function resumeCombat() {
   if (b._acted || (b.phase === "resolve" && !b.pending)) {
     if (serverBattle()) { advanceSavedBattle(false); return; }
     b._acted = false;
-    b.advance();
+    traceSync("battle.advance", () => b.advance());
     autosave(true);
     combatStep();
     return;
@@ -20253,6 +20276,8 @@ function wireUI() {
 // 街タブ・王宮タブ・酒場/祠のページ・宿のシート・設定のシート・物語の場面 (src/ui/hub.js ほか) が使う game.js の内部。
 // 読み込み時に一度 bindGame で結ぶ (wireUI の bindGame と同じ窓口に足し込む。名前は重ねない)
 async function returnToTitle() {
+  // 更新待ちの間にオートが次の命令を送り続けない。現在の確定処理は終える。
+  if (G.autoCombat) stopAutoCombat();
   if (!testPlayActive) {
     // 接続前・サーバーの結果反映中には、現在の画面を捨てない。
     if (cloudEnabled() && (!cloudReady() || _cloudResolving)) return false;
