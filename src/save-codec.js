@@ -2,7 +2,7 @@ import { traceSync, traceWait } from './battle-trace.js';
 import { decodeCommandResponse } from "./cloud-command-codec.js";
 import { createCloudChange } from "./cloud-change.js";
 import { refSerialize, acknowledgedSave } from "./savegraph.js";
-let worker, sequence = 0;
+let worker, sequence = 0, workerUnavailable = false;
 const pending = new Map();
 function localWork(op, value, packet, compact) { return traceSync("save.fallback."+op,()=>localWorkTraced(op,value,packet,compact)); }
 function localWorkTraced(op, value, packet, compact) {
@@ -15,7 +15,7 @@ function localWorkTraced(op, value, packet, compact) {
 }
 function work(op, value, packet, compact) { return traceWait("save.roundtrip."+op,()=>workTraced(op,value,packet,compact)); }
 function workTraced(op, value, packet, compact) {
-  if (typeof Worker === "undefined") return Promise.resolve(localWork(op, value, packet, compact));
+  if (typeof Worker === "undefined" || workerUnavailable) return Promise.resolve(localWork(op, value, packet, compact));
   if (!worker) {
     try { worker = new Worker(new URL("./save-codec-worker.js", import.meta.url), { type: "module" }); }
     catch {
@@ -27,13 +27,16 @@ function workTraced(op, value, packet, compact) {
       pending.delete(data.id);
       if (data.error) job.reject(new Error(data.error)); else job.resolve(data.result);
     };
-    worker.onerror = () => {
-      for (const job of pending.values()) job.reject(new Error("記録の準備に失敗しました"));
-      pending.clear(); worker.terminate(); worker = null;
+    worker.onerror = worker.onmessageerror = event => {
+      event?.preventDefault?.();
+      const jobs=[...pending.values()];pending.clear();
+      worker?.terminate();worker=null;workerUnavailable=true;
+      // モジュールの非同期読込が失敗する端末でも、生成時の失敗と同じ処理で記録を保つ。
+      for(const job of jobs)Promise.resolve().then(()=>localWork(job.op,job.value,job.packet,job.compact)).then(job.resolve,job.reject);
     };
   }
   return new Promise((resolve, reject) => {
-    const id = ++sequence; pending.set(id, { resolve, reject });
+    const id = ++sequence; pending.set(id, { resolve, reject, op, value, packet, compact });
     try { traceSync("save.postMessage."+op,()=>worker.postMessage({ id, op, value, packet, compact })); }
     catch (e) {
       // 戦果の宝箱などは画面を開く際に操作関数を付ける。従来の保存同様に
