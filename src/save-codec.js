@@ -1,9 +1,11 @@
+import { traceSync, traceWait } from './battle-trace.js';
 import { decodeCommandResponse } from "./cloud-command-codec.js";
 import { createCloudChange } from "./cloud-change.js";
 import { refSerialize, acknowledgedSave } from "./savegraph.js";
 let worker, sequence = 0;
 const pending = new Map();
-function localWork(op, value, packet, compact) {
+function localWork(op, value, packet, compact) { return traceSync("save.fallback."+op,()=>localWorkTraced(op,value,packet,compact)); }
+function localWorkTraced(op, value, packet, compact) {
   // 画面の戦闘フックを上書きしない。Workerを使えない端末は従来のサーバー返答を使う。
   if (op === "replayCommand") return null;
   if (op === "commandReply") return decodeCommandResponse(value, packet);
@@ -11,7 +13,8 @@ function localWork(op, value, packet, compact) {
   if (op === "encode") return JSON.stringify(refSerialize(value, { compact }));
   return acknowledgedSave(value, packet);
 }
-function work(op, value, packet, compact) {
+function work(op, value, packet, compact) { return traceWait("save.roundtrip."+op,()=>workTraced(op,value,packet,compact)); }
+function workTraced(op, value, packet, compact) {
   if (typeof Worker === "undefined") return Promise.resolve(localWork(op, value, packet, compact));
   if (!worker) {
     try { worker = new Worker(new URL("./save-codec-worker.js", import.meta.url), { type: "module" }); }
@@ -31,12 +34,12 @@ function work(op, value, packet, compact) {
   }
   return new Promise((resolve, reject) => {
     const id = ++sequence; pending.set(id, { resolve, reject });
-    try { worker.postMessage({ id, op, value, packet, compact }); }
+    try { traceSync("save.postMessage."+op,()=>worker.postMessage({ id, op, value, packet, compact })); }
     catch (e) {
       // 戦果の宝箱などは画面を開く際に操作関数を付ける。従来の保存同様に
       // 関数だけを除外し、個体・共有参照・循環を保った写しで再送する。
       if (op === "encode" && e.name === "DataCloneError") {
-        try { worker.postMessage({ id, op, value: cloneSaveData(value), packet, compact }); return; }
+        try { traceSync("save.cloneRetry."+op,()=>worker.postMessage({ id, op, value: cloneSaveData(value), packet, compact })); return; }
         catch (retryError) { e = retryError; }
       }
       pending.delete(id); reject(e);

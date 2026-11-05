@@ -94,3 +94,16 @@ node tools/performance/update-auto-check.mjs
 python3 tools/performance/battle-diagnostics-browser.py
 AUTO_TABLET=1 AUTO_UNCAPPED=1 AUTO_REPORT=/tmp/auto-tablet.json python3 tools/performance/auto-combat-browser.py
 ```
+
+## 実機の時系列（2026-11-05）
+
+再読み込み後、通常どおり戦闘し、症状が出た直後に設定→「音声の診断情報を表示」を開く。計測の開始操作は不要。再読込・ページ終了で記録は消える。JSONの`timeline`は端末内だけで保持し、自動送信・保存はしない。
+
+- `recent`: 8ms以上の処理を直近256件まで記録。`dropped`は上限で消えた件数。`slowest`は遅い32件を別に残す。`summary`は全呼出しの回数・合計・最大。
+- 全時刻はページ読み込み基準の`performance.now()`ミリ秒。`startMs`から`durationMs`までを比較して、同じ時間帯の停止と処理を照合する。
+- `sync`: 主スレッドの同期区間。Canvas全体、味方カード、行動開始、効果適用、戦闘計算/結果反映、作戦複製/転送、保存転送/代替処理、効果音生成、BGM予約。入れ子は重複するため合計してCPU時間としない。
+- `wait`: 作戦Worker・保存Worker・戦闘確定全体の経過時間。通信・待機・構えなどを含み、CPU占有時間ではない。
+- `gap`: 34ms超の戦闘rAF間隔、150ms超の100msタイマー/70ms音声予約の間隔。タイマー自体の周期も含む。画面状態のフラグは採録時の直近状態。
+- `mark`: タブ表示/非表示。非表示中と復帰直後のフレーム/監視タイマー間隔は除外する。
+
+Safariでも専用のLong Tasks APIなしで動作。ブラウザの描画合成・GPU完了・GCの内訳や、スピーカーの音切れそのものは未計測。処理区間と遅延が重なっても、単独原因と断定しない。記録には認証情報・セーブ・所持品・戦闘本文を含めず、効果音の識別名のみ付ける。

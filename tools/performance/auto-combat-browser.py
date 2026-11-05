@@ -48,5 +48,9 @@ async def main():
   if not os.environ.get('AUTO_SOURCE_ROOT'):
    assert report['planner']['worker']>=10 and report['planner']['fallback']==0,report
    assert report['plannerDuringFx']==0,report
+   trace=await page.evaluate("async()=>(await import('/src/battle-trace.js')).battleTrace()")
+   for name in ['sync:renderCombatCanvas','sync:renderParty','sync:applyImpact','sync:auto.snapshot','wait:auto.workerRoundtrip']:
+    assert trace['summary'][name]['count']>0,(name,trace)
+   report['timeline']=trace
   out=Path(os.environ.get('AUTO_REPORT','/tmp/dos-auto-baseline.json'));out.write_text(json.dumps(report,indent=2));print(json.dumps(report,ensure_ascii=False));await browser.close()
 asyncio.run(main())

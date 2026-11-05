@@ -2,7 +2,7 @@
 import os,json
 from playwright.sync_api import sync_playwright
 with sync_playwright() as p:
- b=p.chromium.launch(executable_path=os.environ.get('CHROME_BIN','/usr/bin/chromium'),args=['--no-sandbox','--autoplay-policy=no-user-gesture-required'])
+ b=p.webkit.launch() if os.environ.get('TRACE_WEBKIT') else p.chromium.launch(executable_path=os.environ.get('CHROME_BIN','/usr/bin/chromium'),args=['--no-sandbox','--autoplay-policy=no-user-gesture-required'])
  page=b.new_page(service_workers='block',viewport={'width':1024,'height':1366},device_scale_factor=2)
  page.route('**/src/cloud-config.js',lambda r:r.fulfill(content_type='text/javascript',body='export const CLOUD_CONFIG={enabled:false};'))
  page.goto('http://localhost:8000/?testDungeon=w01&testPlace=town',wait_until='domcontentloaded')
@@ -11,7 +11,8 @@ with sync_playwright() as p:
  const audio=await import('/src/audio.js');audio.initAudio();audio.setVolumes(0,1);
  audio.SFX.warmSkill('heal',{rank:1,duration:400});
  await new Promise(r=>setTimeout(r,200));
- const until=performance.now()+450;while(performance.now()<until){} // 診断に遅延が残るか検査する。
+ const trace=await import("/src/battle-trace.js");
+ trace.traceSync("test.injected-block",()=>{const until=performance.now()+450;while(performance.now()<until){}}); // 診断に遅延が残るか検査する。
  await new Promise(r=>setTimeout(r,100));
  const fx=await import('/src/skill-fx-budget.js');fx.resetFxPerformance();const token={};for(let i=0;i<120;i++)fx.battlePaintDue(i*1000/120,token);
  fx.recordBattleFrame(0,false);fx.recordBattleFrame(0,true);fx.recordBattleFrame(55,true);
@@ -24,5 +25,13 @@ with sync_playwright() as p:
  assert info['combat']['displayFrames']['maxGapMs']>=55,info
  assert info['scheduler']['lateTicks']>=1 and info['scheduler']['maxGapMs']>=360,info
  assert info['sfx']['builds']>0 and info['materials']['runtimePixelConversions']==0,info
+ timeline=info['timeline']
+ block=next(e for e in timeline['recent'] if e['name']=='test.injected-block')
+ assert block['durationMs']>=440,block
+ for name in ['event-loop-gap','audio-scheduler-gap']:
+  assert any(e['name']==name and e['startMs']<=block['startMs']+1 and e['startMs']+e['durationMs']>=block['startMs']+block['durationMs']-1 for e in timeline['recent']),timeline
+ assert timeline['summary']['sync:audio.tick']['count']>0,timeline
+ assert timeline['summary']['sync:sfx.build']['count']>0,timeline
+ print({'timelineEvents':len(timeline['recent']),'block':block})
  print({'version':info['version'],'viewport':info['viewport'],'combat':info['combat']['displayFrames'],'scheduler':info['scheduler'],'sfxBuilds':info['sfx']['builds']})
  b.close()

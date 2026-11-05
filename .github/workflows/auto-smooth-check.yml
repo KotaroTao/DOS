@@ -6,6 +6,7 @@ on:
       - 'tools/performance/auto-*'
       - 'tools/performance/update-auto-check.mjs'
       - 'tools/performance/battle-diagnostics-browser.py'
+      - 'tools/performance/battle-trace-check.mjs'
       - 'tools/effects/tone-cache-browser.py'
       - 'tools/performance/battle-gap-browser.py'
       - '.github/workflows/auto-smooth-check.yml'
@@ -40,6 +41,7 @@ jobs:
         run: |
           node tools/balance/auto-intelligence.mjs
           node tools/balance/auto-resistance.mjs
+          node tools/performance/battle-trace-check.mjs
           node tools/performance/auto-frame-check.mjs
           node tools/performance/update-auto-check.mjs
           python3 -m http.server 8000 > /tmp/auto-http.log 2>&1 &
