@@ -12851,7 +12851,7 @@ function renderParty() { return traceSync("renderParty", () => { const probe=beg
 function renderPartyTraced(probe) {
   const fx = G.partyFx;
   const st = G.state;
-  const upgrades = new Set(G.party.filter((d,idx) => probe.measure("gearCheck",idx+1,()=>UI.hasBetterGear && UI.hasBetterGear(d))));
+  const upgrades = new Set(G.party.filter((d,idx) => probe.measure("gearCheck",idx+1,()=>UI.cachedGearHint && UI.cachedGearHint(d))));
   // 迷宮の掟の開幕の演出を待つ間は、効く前の HP/MP/状態を札に見せる (playTraitOpening)
   const shown = (p) => (st === "combat" && G.partyShow && G.partyShow.get(p)) || p;
   const rows = G.party.map((p,idx) => probe.measure("data",idx+1,()=>[
@@ -12923,7 +12923,7 @@ function renderPartyTraced(probe) {
     const por = el("div", "pc-por");
     const pic = probe.measure("portrait",idx+1,()=>partyPortrait(p));
     if (pic) por.appendChild(pic);
-    probe.measure("gearWatch",idx+1,()=>UI.watchGearPortrait?.(por, p));
+    probe.measure("gearWatch",idx+1,()=>UI.watchGearPortrait?.(por, p, true));
     por.appendChild(el("span", "pc-row " + (idx < 3 ? "front" : "back"), idx < 3 ? "前" : "後"));
     card.appendChild(por);
     // 肖像と同じ枠へ重ね、肖像を省くスマホ表示でも状態の印は残す。
