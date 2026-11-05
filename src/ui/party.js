@@ -1,4 +1,4 @@
-import { inheritBukonPlan, bukonName } from "../bukon.js";
+import { inheritedEquipment, inheritedEquipmentChanges } from "../bukon.js";
 import { createGearHints } from "../gear-hints.js";
 import { traceSync } from '../battle-trace.js';
 import { ELEMENT_KEYS, elementValues, elementDefenseReduction } from "../combatrules.js";
@@ -140,7 +140,7 @@ function itemsPool() {
 function slotDelta(d, it, key, base = null) {
   const tr = trialEquip(d.equip, it, key);
   if (!tr) return null;
-  return { tr, delta: statsDelta(base || previewStats(d, d.equip, recalc), previewStats(d, tr.equip, recalc)) };
+  return { tr, delta: statsDelta(base || previewStats(d, d.equip, recalc), previewStats(d, inheritedEquipment(d.equip,tr.equip), recalc)) };
 }
 // 1回の描画のあいだだけ覚えておく (部位ごとの候補の計算は重いので、枠・印・ボタンで使い回す)
 const memo = new Map();
@@ -360,6 +360,8 @@ function equipWithUndo(doll, item, key = null, { stashTo = null, quiet = false }
   if (!key) return { ok: false, msg: "装備できない" };
   const involved = uniq([doll, owner, stashTo]);
   const snap = snapshotEquip(involved);
+  const state=G_(),stock={...state.bukonStock},protectedSouls={...state.bukonProtected};
+  const signature=()=>equipSignature(involved)+JSON.stringify([state.bukonStock,state.bukonProtected]);
   const before = previewStats(doll, doll.equip, recalc);
   const r = game.equipAt(doll, item, key, owner, stashTo);
   if (!r || !r.ok) {
@@ -371,7 +373,7 @@ function equipWithUndo(doll, item, key = null, { stashTo = null, quiet = false }
   if (stashTo && r.displaced && r.displaced.length) game.log(`外した ${r.displaced.map((x) => x.name).join("・")} は ${stashTo.name} の袋へ。`, "sys");
   sfx("select"); buzz(10);
   const delta = statsDelta(before, previewStats(doll, doll.equip, recalc));
-  const sig = equipSignature(involved);
+  const sig = signature();
   if (game.autosave) game.autosave(true);
   rerender();
   if (doll === selDoll) floatDelta(`[data-slot="${key}"]`, delta);
@@ -379,7 +381,8 @@ function equipWithUndo(doll, item, key = null, { stashTo = null, quiet = false }
     toast(`${doll.name} ← ${item.name}　${deltaText(delta)}`, {
       tone: "good", icon: item,
       action: { label: "元に戻す", fn: () => {
-        if (equipSignature(involved) !== sig) { sfx("ng"); toast("装備が変わったため、元に戻せない", { tone: "bad" }); return; }
+        if (signature() !== sig) { sfx("ng"); toast("装備が変わったため、元に戻せない", { tone: "bad" }); return; }
+        state.bukonStock={...stock};state.bukonProtected={...protectedSouls};
         restoreEquip(snap, recalc);
         game.log(`${item.name} の装備を元に戻した。`, "sys");
         sfx("select");
@@ -774,15 +777,16 @@ function autoEquip(target = "all") {
   const before = new Map(plan.undoSnapshot.map((s) => [s.doll, previewStats(s.doll, s.equip, recalc)]));
   // 計算済みの写しから表示する。確認画面を開くだけではHP/MP・装備・保存に触れない。
   const groups = equipApprovalGroups(plan);
-  let sig = equipSignature(involved);
+  const signature=()=>equipSignature(involved)+JSON.stringify([G.bukonStock,G.bukonProtected]);
+  let sig = signature();
   const apply = (keep) => {
-    if (equipSignature(involved) !== sig) {
+    if (signature() !== sig) {
       sfx("ng"); toast("装備が変わったため、最適装備を開き直してください", { tone: "bad" }); return false;
     }
-    if (!applyEquipApprovals(plan, keep, { recalc })) {
+    if (!applyEquipApprovals(plan, keep, { recalc, state:G })) {
       sfx("ng"); toast("持ち物があふれるため、その組み合わせにはできない", { tone: "bad" }); return false;
     }
-    sig = equipSignature(involved); bgcMemo.key = "";
+    sig = signature(); bgcMemo.key = "";
     for(const d of G.party)passiveGearHints.seed(d,hasBetterGear(d));
     game.autosave?.(true); rerender();
     return true;
@@ -802,7 +806,7 @@ function openAutoEquipResult(plan, before, { apply, groups }) {
       return { k, from: s.equip[k] || null, to: it, giver: source?.doll || null };
     });
     if (!changes.length) continue;
-    const b = before.get(d), a = previewStats(d, plan.final.get(d).equip, recalc);
+    const b = before.get(d), a = previewStats(d, inheritedEquipmentChanges(groups.flat(),plan.final.get(d).equip), recalc);
     rows.push({ d, changes, b, a });
   }
   if (!rows.length) return null;
@@ -861,7 +865,7 @@ function openAutoEquipResult(plan, before, { apply, groups }) {
         list.appendChild(action);
         const partial = { ...plan.undoSnapshot.find(s => s.doll === r.d).equip };
         for (const x of group) if (x.doll === r.d) partial[x.k] = x.to;
-        const delta = deltaText(statsDelta(r.b, previewStats(r.d, partial, recalc)), Infinity);
+        const delta = deltaText(statsDelta(r.b, previewStats(r.d, inheritedEquipmentChanges(group,partial), recalc)), Infinity);
         list.appendChild(el("div", "pt-note", `この承認での変化: ${delta || "能力の変化なし"}`));
       }
       const oldFx = specialLines(c.from, { bukon: false }), newFx = specialLines(c.to, { bukon: false });
@@ -2597,28 +2601,7 @@ function candRow(d, k, c, h) {
   });
   longPress(main, () => openItemDetail(c.it));
   wrap.appendChild(main);
-  if (!c.worn && c.room && (d.equip[k]?.bukon || []).length && !isPinned(d.equip[k])) {
-    wrap.classList.add("has-inherit");
-    wrap.appendChild(button({ label: "武魂を引き継いで装備", size: "sm", onTap: async () => {
-      const old = d.equip[k], plan = inheritBukonPlan(old, c.it);
-      const ok = await confirm({ title: "武魂を引き継いで装備", lines: [
-        `${itemName(old)} → ${itemName(c.it)}`,
-        `引き継ぐ武魂：${plan.moved.map(bukonName).join("、") || "なし"}`,
-        `商会へ戻す武魂：${plan.returned.map(bukonName).join("、") || "なし"}`,
-        "更新先に宿る武魂と、部位・枠数の制限で引き継げない武魂は商会へ戻る。保護も引き継ぐ。",
-        ...(c.it.cursed ? ["呪われた品は、一度装備すると外せない。"] : []),
-      ], okLabel: "引き継いで装備" });
-      if (!ok) return;
-      if (d.equip[k] !== old) { toast("装備が変わったため、候補を開き直してください", { tone: "bad" }); return; }
-      const r = game.equipAt(d, c.it, k, c.owner || ownerOf(c.it), null, true);
-      if (!r?.ok) { toast(r?.msg || "装備できない", { tone: "bad" }); return; }
-      game.log(r.msg + "。武魂を引き継いだ。", "win");
-      sfx("select");
-      game.autosave?.(true);
-      h.close(); rerender();
-      toast("武魂を引き継いで装備した", { tone: "good" });
-    }}));
-  }
+  if(!c.worn&&c.room){wrap.classList.add("has-inherit");wrap.appendChild(button({label:"装備",size:"sm",onTap:()=>main.click()}));}
   return wrap;
 }
 

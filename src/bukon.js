@@ -116,13 +116,35 @@ export function stockAdd(g, b, n = 1n) {
 }
 // 装備更新の確認と実行で同じ移植先を使う。元の順序を優先する。
 export function inheritBukonPlan(from, to) {
- const moved=[], returned=[...(to?.bukon||[])], seen=new Set();
+ const moved=[], returned=[], seen=new Set();
  if(!from || !to || from===to)return {moved,returned:[]};
- for(const b of from.bukon||[]){
+ for(const b of [...(from.bukon||[]),...(to.bukon||[])]){
   if(validBukon(b)&&bukonFits(to,b)&&moved.length<bukonSlots(to)&&!seen.has(b.k)){moved.push(b);seen.add(b.k);}
   else returned.push(b);
  }
  return {moved,returned};
+}
+// 複数部位の承認・取消でも、元の武魂から同時に移し先を計算する。
+export function equipmentBukonPlan(changes) {
+ const transfers=changes.filter(c=>c.from&&c.to&&c.from!==c.to);
+ const sources=new Set(transfers.map(c=>c.from)),updates=new Map(),returned=[];
+ for(const c of transfers)updates.set(c.from,[]);
+ for(const c of transfers){
+  const plan=inheritBukonPlan(c.from,{...c.to,bukon:sources.has(c.to)?[]:c.to.bukon});
+  updates.set(c.to,plan.moved);returned.push(...plan.returned);
+ }
+ return {updates,returned};
+}
+export function inheritedEquipment(before,after) {
+ const changes=Object.keys(after).map(k=>({from:before[k],to:after[k]}));
+ return inheritedEquipmentChanges(changes,after);
+}
+export function inheritedEquipmentChanges(changes,after) {
+ const {updates}=equipmentBukonPlan(changes);
+ return Object.fromEntries(Object.entries(after).map(([k,it])=>[k,it&&updates.has(it)?{...it,bukon:updates.get(it)}:it]));
+}
+export function returnInheritedBukon(g,returned) {
+ for(const b of returned){stockAdd(g,b);if(b.fusionUnlocked!==true)(g.bukonProtected ||= {})[bukonKey(b)]=true;}
 }
 export function inheritBukon(g, from, to) {
  if(!from || !to || from===to)return;

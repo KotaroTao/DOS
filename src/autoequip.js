@@ -1,6 +1,6 @@
 import { magicAttackPower } from "./combat.js";
 import { equipmentCombatState } from "./equipmentscore.js";
-import { bukonText } from "./bukon.js";
+import { bukonText, inheritedEquipment, equipmentBukonPlan, returnInheritedBukon } from "./bukon.js";
 // ===== 最適装備の計画 (純粋な計算・DOM なし) =====
 // 担当: WP-B。
 // planBestEquip(dolls, { pool, canEquip, slotKeyFor, recalcPreview, score })
@@ -158,12 +158,13 @@ export function snapshotEquip(dolls) {
   for (const d of (dolls || [])) {
     if (!d || seen.has(d)) continue;
     seen.add(d);
-    out.push({ doll: d, equip: { ...(d.equip || {}) }, items: [...(d.items || [])] });
+    out.push({ doll: d, equip: { ...(d.equip || {}) }, items: [...(d.items || [])], bukon: new Map([...Object.values(d.equip || {}), ...(d.items || [])].filter(Boolean).map(it=>[it,it.bukon ? [...it.bukon] : undefined])) });
   }
   return out;
 }
 // 写しへ戻す (装備の器・所持品の配列はそのまま使い、中身だけ戻す = 参照の同一性を保つ)
 export function restoreEquip(snap, recalcFn = recalcDefault) {
+  for(const s of snap || [])for(const [it,b] of s.bukon || []){if(b)it.bukon=[...b];else delete it.bukon;}
   for (const s of (snap || [])) {
     const d = s.doll;
     if (!d.equip) d.equip = {};
@@ -190,7 +191,7 @@ export function equipSignature(dolls) {
   return (dolls || []).map((d) => {
     const eq = SLOTS.map((k) => oid(d.equip && d.equip[k])).join(",");
     const it = (d.items || []).map(oid).join(",");
-    return `${oid(d)}[${eq}|${it}]`;
+    return `${oid(d)}[${eq}|${it}|${JSON.stringify([...Object.values(d.equip||{}),...(d.items||[])].map(it=>it?.bukon))}]`;
   }).join(";");
 }
 
@@ -219,7 +220,7 @@ export function planBestEquip(dolls, opts = {}) {
   const poolDolls = [...new Set([...(opts.pool || targets), ...targets])].filter(Boolean);
   const canEquip = opts.canEquip || canEquipDefault;
   const recalcFn = opts.recalc || recalcDefault;
-  const recalcPreview = opts.recalcPreview || ((doll, equip) => previewStats(doll, equip, recalcFn));
+  const recalcPreview = opts.recalcPreview || ((doll, equip) => previewStats(doll, inheritedEquipment(doll.equip, equip), recalcFn));
   const score = opts.score || defaultScore;
   const allow = opts.allow || (() => true);
   const maxItems = opts.maxItems || MAX_ITEMS;
@@ -388,7 +389,7 @@ export function equipApprovalGroups(plan) {
 }
 
 // 承認した部位だけの完成形を写しで検証し、成功した時だけ実体へ反映する。
-export function applyEquipApprovals(plan, keep, { recalc: recalcFn = recalcDefault, maxItems = MAX_ITEMS } = {}) {
+export function applyEquipApprovals(plan, keep, { recalc: recalcFn = recalcDefault, maxItems = MAX_ITEMS, state = null } = {}) {
   const bags = new Map(), equips = new Map();
   for (const s of plan.undoSnapshot) {
     if (!bags.has(s.doll.items)) bags.set(s.doll.items, [...s.items]);
@@ -406,6 +407,15 @@ export function applyEquipApprovals(plan, keep, { recalc: recalcFn = recalcDefau
   }
   if ([...bags.values()].some(b => bagCount(b) > maxItems)) return false;
   for (const eq of equips.values()) if (eq.weapon?.twoHanded && eq.shield) return false;
+  if(state){
+    plan.bukonStockBefore ||= {stock:{...state.bukonStock},protected:{...state.bukonProtected}};
+    // 検証が通ってから武魂と保管分を元へ戻し、承認中の部位だけ移す。
+    for(const s of plan.undoSnapshot)for(const [it,b] of s.bukon || []){if(b)it.bukon=[...b];else delete it.bukon;}
+    const inheritance=equipmentBukonPlan(changes);
+    state.bukonStock={...plan.bukonStockBefore.stock};state.bukonProtected={...plan.bukonStockBefore.protected};
+    for(const [it,b] of inheritance.updates)it.bukon=b;
+    returnInheritedBukon(state,inheritance.returned);
+  }
   for (const [bag, items] of bags) bag.splice(0, bag.length, ...items);
   for (const [d, eq] of equips) {
     for (const k of SLOTS) d.equip[k] = eq[k] || null;

@@ -2,7 +2,7 @@ import { gearWeights, weaponShare, gearScore } from "../gear-score.js";
 import { equipmentBukonPanel } from "./bukonview.js";
 import { equipmentCombatState } from "../equipmentscore.js";
 import { ELEMENT_KEYS, elementValues, elementalReduction, elementDefenseReduction } from "../combatrules.js";
-import { bukonText, bukonName, bukonDef, BUKON_RARITIES } from "../bukon.js";
+import { inheritedEquipment, bukonText, bukonName, bukonDef, BUKON_RARITIES } from "../bukon.js";
 import { revealSteps } from "../monsterreveal.js";
 import { MONSTER_LORE, monsterLoreReady } from "../dungeons/monlore.js";
 import { previewStats, trialEquip, equipmentTraitTexts } from "../autoequip.js";
@@ -601,7 +601,7 @@ export function weaponPowerPreview(it, doll) {
   if (!equipped && !canEquip(doll, it, { anyLv: true })) return null; // Lv が足りなくても、届いた時の攻撃力は見せる
   const trial = equipped ? { equip: doll.equip } : trialEquip(doll.equip, it, "weapon");
   if (!trial) return null;
-  const stats = previewStats(doll, trial.equip);
+  const stats = previewStats(doll, inheritedEquipment(doll.equip,trial.equip));
   const before = attackPower(doll);
   return { stats, power: stats.power, before, delta: stats.power - before, equipped };
 }
@@ -678,7 +678,7 @@ export function equipPreviewDelta(p, cand, slotKey = null) {
   if (cand.slot === "weapon" && cand.twoHanded) eq.shield = null;
   if (key === "shield" && eq.weapon && eq.weapon.twoHanded) eq.weapon = null;
   eq[key] = cand;
-  const fake = { base: p.base, equip: eq, hp: p.hp, mp: p.mp, dualWield: p.dualWield || 0 };
+  const fake = { base: p.base, equip: inheritedEquipment(p.equip,eq), hp: p.hp, mp: p.mp, dualWield: p.dualWield || 0 };
   recalc(fake);
   const offW = (e) => (e.shield && e.shield.slot === "weapon" ? e.shield : null);
   const wChanged = (eq.weapon || null) !== (p.equip.weapon || null) || offW(eq) !== offW(p.equip);
@@ -710,10 +710,10 @@ export function equipPreviewDelta(p, cand, slotKey = null) {
     breathRes: Math.round(((fake.breathRes || 0) - (p.breathRes || 0)) * 10000) / 100,
     onHit: { from: p.onHit || null, to: fake.onHit || null },
     eff: { from: p.eff || null, to: fake.eff || null },
-    traits: { from: equipmentTraitTexts(p.equip), to: equipmentTraitTexts(eq) },
+    traits: { from: equipmentTraitTexts(p.equip), to: equipmentTraitTexts(fake.equip) },
     bukon: {
       from: [...new Set(Object.values(p.equip))].filter(it => it && !it.unidentified).flatMap(it => it.bukon || []),
-      to: [...new Set(Object.values(eq))].filter(it => it && !it.unidentified).flatMap(it => it.bukon || []),
+      to: [...new Set(Object.values(fake.equip))].filter(it => it && !it.unidentified).flatMap(it => it.bukon || []),
     },
     weaponMode: { from: p.equip.weapon || null, to: eq.weapon || null },
     offhandMode: { from: offW(p.equip), to: offW(eq) },
@@ -757,7 +757,7 @@ export function equipEffectDeltaParts(delta) {
   }
   return out;
 }
-export function equipEffectDeltaEl(delta, { bukonRows = false } = {}) {
+export function equipEffectDeltaEl(delta, { bukonRows = true } = {}) {
   const row = el("span", "ui-delta");
   const structured = bukonRows && delta?.bukon;
   const partsDelta = structured ? { ...delta, traits: { from: (delta.traits?.from || []).filter(t => !t.startsWith("武魂 ")), to: (delta.traits?.to || []).filter(t => !t.startsWith("武魂 ")) } } : delta;
@@ -772,7 +772,7 @@ export function equipEffectDeltaEl(delta, { bukonRows = false } = {}) {
         return false;
       });
     };
-    for (const [label, list, other, cls] of [["得る", structured.to, structured.from, "up"], ["失う", structured.from, structured.to, "dn"]]) {
+    for (const [label, list, other, cls] of [["失う", structured.from, structured.to, "dn"]]) {
       for (const b of unmatched(list, other)) {
         const line = el("span", `eq-bukon-change ${cls}`);
         const icon = el("i", "bk-gem");
