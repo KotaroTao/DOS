@@ -1,3 +1,4 @@
+import { battleTrace } from '../battle-trace.js';
 import { APP_VERSION } from "../game-update.js";
 import { materialPerformance } from "../skill-fx-materials.js";
 import { setFxQuality, fxPerformance } from "../skill-fx-budget.js";
@@ -130,9 +131,9 @@ function fillSound(box) {
     setTimeout(() => { if (status.isConnected) { sfx("select"); describe(); } }, 500);
   } }));
   box.appendChild(button({ label: "音声の診断情報を表示", kind: "ghost", onTap: () => {
-    const info = { version:APP_VERSION,viewport:{width:innerWidth,height:innerHeight,dpr:devicePixelRatio},combat:fxPerformance(),materials:materialPerformance(),...audioDebug(), browser: navigator.userAgent,
+    const info = { timeline:battleTrace(),version:APP_VERSION,viewport:{width:innerWidth,height:innerHeight,dpr:devicePixelRatio},combat:fxPerformance(),materials:materialPerformance(),...audioDebug(), browser: navigator.userAgent,
       standalone: !!navigator.standalone || !!window.matchMedia?.("(display-mode: standalone)").matches };
-    sheet.open({ title: "音声の診断情報", lines: ["戦闘中のかくつきや音切れが起きた後に、この情報をお知らせください。"], body: body => {
+    sheet.open({ title: "音声の診断情報", lines: ["戦闘中のかくつきや音切れが起きた直後、再読み込みせずにこの情報をお知らせください。直近の処理と遅延の時刻も含みます。"], body: body => {
       const text = el("textarea", "stg-audio-info");
       text.readOnly = true; text.rows = 12; text.style.width = "100%";
       text.setAttribute("aria-label", "音声の診断情報");

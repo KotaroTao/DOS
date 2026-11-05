@@ -1,3 +1,4 @@
+import { traceDuration, traceSync } from './battle-trace.js';
 // 音楽と効果音 — Web Audio だけで鳴らす (外部の音素材は一切使わない)
 //
 // 楽器はすべてコードで合成したサンプル (合唱・弦・金管・パイプオルガン・竪琴・鐘・太鼓…) を
@@ -150,9 +151,9 @@ function startTimer() {
   timer = setInterval(() => {
     if (!engine || actx.state !== "running") {schedulerLast=null;return;}
     const now=performance.now();
-    if(schedulerLast!==null){const gap=now-schedulerLast;schedulerMaxGapMs=Math.max(schedulerMaxGapMs,gap);if(gap>360)schedulerLate++;}
+    if(schedulerLast!==null){const gap=now-schedulerLast;if(gap>150&&!document.hidden)traceDuration("audio-scheduler-gap",schedulerLast,"gap",null,now);schedulerMaxGapMs=Math.max(schedulerMaxGapMs,gap);if(gap>360)schedulerLate++;}
     schedulerLast=now;
-    engine.tick(0.36, bgmVol > 0);
+    traceSync("audio.tick",()=>engine.tick(0.36, bgmVol > 0));
   }, 70);
 }
 function stopTimer() { schedulerLast=null; if (timer) clearInterval(timer); timer = null; }

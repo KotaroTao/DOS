@@ -1,3 +1,4 @@
+import { traceContext, traceFrame, traceSync, traceWait, traceDuration, startBattleTrace } from './battle-trace.js';
 import { recordBattleFrame, battlePaintDue } from './skill-fx-budget.js';
 import { planAuto, warmAutoPlanner } from './auto-planner.js';
 import { showFieldSkillFx } from "./skill-fx-field.js";
@@ -9572,7 +9573,8 @@ function focusEnemy(e) {
 }
 
 // キャンバスのみ (アニメーション毎フレーム用)
-function renderCombatCanvas() {
+function renderCombatCanvas() { return traceSync("renderCombatCanvas", () => renderCombatCanvasTraced()); }
+function renderCombatCanvasTraced() {
   const b = G.battle;
   viewTransform();
   vctx.globalCompositeOperation = "source-over";
@@ -10458,6 +10460,8 @@ function battleLayer() {
 let _combatAnimLast = 0;
 function combatAnimLoop(ts) {
   requestAnimationFrame(combatAnimLoop);
+  traceContext(G.state==="combat",G.autoCombat,G.animating,document.hidden);
+  traceFrame(ts);
   recordBattleFrame(ts,G.state==="combat"&&!document.hidden&&!uiBlocked()&&(G.animating||G.autoCombat));
   if (G.state !== "combat" || !G.battle || G.animating || G.fx) return;
   if (uiBlocked()) return;
@@ -10467,6 +10471,7 @@ function combatAnimLoop(ts) {
   _combatAnimLast = ts;
   renderCombatCanvas();
 }
+startBattleTrace();
 requestAnimationFrame(combatAnimLoop);
 
 // 敵にかかっている強化(▲)/弱体(▼)を名前プレート付近に小さなピルで描く。
@@ -11343,7 +11348,8 @@ function prepareBattleAction(battle, onFrame = null) {
     skillFamily: pending.action === "spell" ? skillProfile(pending.spellKey,spell)?.family : null,
     attackStyle: pending.action === "attack" ? actor.wMagic ? "arcane" : weaponFxStyle(actor.equip?.weapon) : null, fast: G.fastAnim });
 }
-async function resolveLocalBattle(action, battle = G.battle) {
+function resolveLocalBattle(...args) { return traceWait("resolveLocalBattle", () => resolveLocalBattleTraced(...args)); }
+async function resolveLocalBattleTraced(action, battle = G.battle) {
   try {
     if (cloudBackgroundBattle()) _cloudResolving = true;
     if (cloudEnabled() && !testPlayActive) await cloudCheckpoint();
@@ -11361,7 +11367,7 @@ async function resolveLocalBattle(action, battle = G.battle) {
       _cloudResolving = false;
     }
     if (cloudBackgroundBattle() || choiceTrial) battleActionTimes.set(battle, performance.now());
-    const res = action === "commit" ? battle.commit() : action === "enemy" ? battle.enemyAct() : battle.stunnedAct();
+    const res = traceSync("battle.resolve", () => action === "commit" ? battle.commit() : action === "enemy" ? battle.enemyAct() : battle.stunnedAct());
     res._modFeed = takeModFeed(); battle._acted = true;
     trialImpact?.();
     animateResult(res, postResolve);
@@ -11380,7 +11386,8 @@ function whenCombatFree(fn, battle = G.battle) {
   fn();
 }
 
-function combatStep() {
+function combatStep() { return traceSync("combatStep", () => combatStepTraced()); }
+function combatStepTraced() {
   const b = G.battle;
   if (!b) return;
   if (combatHeld()) { setTimeout(combatStep, 150); return; }
@@ -11452,7 +11459,8 @@ function runCommitted() {
 let savedBattleAdvance = null;
 let savedForcedTurns = [];
 function showingConfirmedTurns() { return savedForcedTurns.some(turn => turn.battle === G.battle); }
-async function resolveSavedBattle(action) {
+function resolveSavedBattle(...args) { return traceWait("resolveSavedBattle", () => resolveSavedBattleTraced(...args)); }
+async function resolveSavedBattleTraced(action) {
   if (_cloudResolving) return;
   _cloudResolving = true;
   const resultStarted = performance.now();
@@ -11486,7 +11494,7 @@ async function resolveSavedBattle(action) {
     }
     if (normalAttack) await windup?.complete();
     savedBattleAdvance = response.nextPacket ? { battle: G.battle, packet: response.nextPacket } : null;
-    const packet = applySavePatch(G, refDeserialize(response.packet));
+    const packet = traceSync("battle.applyPacket", () => applySavePatch(G, refDeserialize(response.packet)));
     restoreMonsterPhotos(G.battle.enemies, MONSTERS);
     G.rng = bindRngState(G.rng); setSharedSouls(G.souls);
     syncEnemyUids(G.battle.enemies);
@@ -11529,7 +11537,7 @@ function advanceAfterPresentation(b) {
   // ターンの初めのパッシブ・激昂などで掛かった強化・弱体は、1拍ずつ見せてから次の手番へ
   const watch = beginModWatch(true);
   if (serverBattle()) { advanceSavedBattle(watch); return; }
-  b.advance();
+  traceSync("battle.advance", () => b.advance());
   const mw = watch ? endModWatch() : null;
   playModReveal(mw, () => {
     autosave(true);
@@ -11537,13 +11545,14 @@ function advanceAfterPresentation(b) {
   });
 }
 
-async function advanceSavedBattle(watch) {
+function advanceSavedBattle(...args) { return traceWait("advanceSavedBattle", () => advanceSavedBattleTraced(...args)); }
+async function advanceSavedBattleTraced(watch) {
   _cloudResolving = true;
   try {
     const cached = savedBattleAdvance?.battle === G.battle ? savedBattleAdvance : null;
     savedBattleAdvance = null;
     const response = cached || await cloudBattle("advance");
-    const packet = applySavePatch(G, refDeserialize(response.packet));
+    const packet = traceSync("battle.applyPacket", () => applySavePatch(G, refDeserialize(response.packet)));
     restoreMonsterPhotos(G.battle.enemies, MONSTERS);
     G.rng = bindRngState(G.rng); setSharedSouls(G.souls); G.battle.log = log;
     _lastCloudSave = await acknowledgeCloudSave(_lastCloudSave, response.packet);
@@ -11577,6 +11586,7 @@ function battleResultEnd(fx, now) {
 
 // 消えた状態の盤面を描き、次の描画機会を挟んでから次の手番へ進む。
 function finishBattleResult(fx, finish) {
+  traceDuration("battle.presentationEnd",performance.now(),"mark");
   if (G.fx !== fx) return;
   G.fx = null;
   G.partyFx?.clear(); G.partyFxV?.clear();
@@ -11585,7 +11595,9 @@ function finishBattleResult(fx, finish) {
 }
 
 // 結果オブジェクトを演出 (踏み込み → 着弾 → 余韻)
-function animateResult(res, done) {
+function animateResult(res, done) { return traceSync("animateResult", () => animateResultTraced(res, done)); }
+function animateResultTraced(res, done) {
+  traceDuration("battle.presentationStart",performance.now(),"mark");
   const battle = G.battle;
   if (!battle || G.state !== "combat") return;
   let finished = false;
@@ -11760,7 +11772,8 @@ function drainPartyProcs() {
 }
 
 // 着弾の瞬間: 効果音・エフェクト生成・ダメージ表示
-function applyImpact(res) {
+function applyImpact(res) { return traceSync("applyImpact", () => applyImpactTraced(res)); }
+function applyImpactTraced(res) {
   const fx = G.fx;
   const now = performance.now();
   if (G.battle?.result === "win" && !battleVictoryAt.has(G.battle)) battleVictoryAt.set(G.battle, now);
@@ -12831,7 +12844,8 @@ function partyCallKey(p, st) {
   const c = st === "combat" && G.partyCall && G.partyCall.get(p);
   return c ? Math.round(c.at) + ":" + c.lines.map((l) => l.text).join("/") : "";
 }
-function renderParty() {
+function renderParty() { return traceSync("renderParty", () => renderPartyTraced()); }
+function renderPartyTraced() {
   const fx = G.partyFx;
   const st = G.state;
   const upgrades = new Set(G.party.filter((d) => UI.hasBetterGear && UI.hasBetterGear(d)));
@@ -19601,7 +19615,7 @@ function resumeCombat() {
   if (b._acted || (b.phase === "resolve" && !b.pending)) {
     if (serverBattle()) { advanceSavedBattle(false); return; }
     b._acted = false;
-    b.advance();
+    traceSync("battle.advance", () => b.advance());
     autosave(true);
     combatStep();
     return;

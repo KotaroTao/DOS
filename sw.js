@@ -62,6 +62,7 @@ const ASSETS = [
   "./src/skill-fx-catalog.js",
   "./src/skill-fx-signatures.js",
   "./src/skill-fx-budget.js",
+  "./src/battle-trace.js",
   "./choice-trial.html",
   "./choice-trial.css",
   "./src/choice-trial-client.js",

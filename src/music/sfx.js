@@ -1,3 +1,4 @@
+import { traceDuration } from '../battle-trace.js';
 // 効果音 — すべてコードで合成し、短いバッファに焼いてから鳴らす (打撃は複数の揺らぎを持つ)
 // 層を重ねた立ち上がり (破裂音+胴鳴り+金属の響き) と残響への送りで、短く重く響かせる。
 import {
@@ -645,6 +646,7 @@ export function sfxBuffer(name, ctx) {
       g.ch.forEach((c, i) => b.getChannelData(i).set(c));
       arr.push(b);bufferBytes+=g.ch.length*g.ch[0].length*4;
     }
+    traceDuration("sfx.build",started,"sync",name);
     CACHE.set(name, arr);builds++;buildMaxMs=Math.max(buildMaxMs,performance.now()-started);
   }
   return arr[Math.floor(Math.random() * arr.length)];
