@@ -1,0 +1,28 @@
+// tools/effects/build-physical-tones.pyで生成。手で編集しない。
+export const PHYSICAL_TONES = Object.freeze({
+  "#328dff": "../art/effects/physical-tones/328dff.webp",
+  "#439fff": "../art/effects/physical-tones/439fff.webp",
+  "#72dfb0": "../art/effects/physical-tones/72dfb0.webp",
+  "#89dfae": "../art/effects/physical-tones/89dfae.webp",
+  "#8dbaf5": "../art/effects/physical-tones/8dbaf5.webp",
+  "#94d9fa": "../art/effects/physical-tones/94d9fa.webp",
+  "#967bbf": "../art/effects/physical-tones/967bbf.webp",
+  "#9963dc": "../art/effects/physical-tones/9963dc.webp",
+  "#a47bdd": "../art/effects/physical-tones/a47bdd.webp",
+  "#b3bccd": "../art/effects/physical-tones/b3bccd.webp",
+  "#bad5ac": "../art/effects/physical-tones/bad5ac.webp",
+  "#bba7db": "../art/effects/physical-tones/bba7db.webp",
+  "#c49a58": "../art/effects/physical-tones/c49a58.webp",
+  "#c9e2df": "../art/effects/physical-tones/c9e2df.webp",
+  "#ca9a65": "../art/effects/physical-tones/ca9a65.webp",
+  "#db3955": "../art/effects/physical-tones/db3955.webp",
+  "#e2eff6": "../art/effects/physical-tones/e2eff6.webp",
+  "#e6f2f5": "../art/effects/physical-tones/e6f2f5.webp",
+  "#e9f5ff": "../art/effects/physical-tones/e9f5ff.webp",
+  "#eb9d84": "../art/effects/physical-tones/eb9d84.webp",
+  "#ff4834": "../art/effects/physical-tones/ff4834.webp",
+  "#ff4938": "../art/effects/physical-tones/ff4938.webp",
+  "#ffb09a": "../art/effects/physical-tones/ffb09a.webp",
+  "#ffe191": "../art/effects/physical-tones/ffe191.webp",
+  "#ffe297": "../art/effects/physical-tones/ffe297.webp"
+});

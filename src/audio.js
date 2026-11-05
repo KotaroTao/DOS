@@ -15,7 +15,7 @@ import { Engine, songKeys } from "./music/engine.js";
 import { Bank } from "./music/bank.js";
 import { newSong, NEW_SONGS } from "./music/songs.js";
 import { legacySong } from "./music/legacy.js";
-import { sfxBuffer, sfxDef, naturalSkillName } from "./music/sfx.js";
+import { sfxBuffer, sfxDef, naturalSkillName, sfxPerformance } from "./music/sfx.js";
 
 let actx = null;
 let engine = null;
@@ -29,6 +29,7 @@ let token = 0;
 let timer = null;
 let hooked = false;
 let audioError = null;
+let schedulerLast=null,schedulerMaxGapMs=0,schedulerLate=0,interruptions=0;
 
 function playbackSession() {
   // iOSではWeb Audio用の出力が動画の出力とは別になる。音楽再生用を明示する。
@@ -147,16 +148,19 @@ export function toggleMute() {
 function startTimer() {
   if (timer) return;
   timer = setInterval(() => {
-    if (!engine || actx.state !== "running") return;
+    if (!engine || actx.state !== "running") {schedulerLast=null;return;}
+    const now=performance.now();
+    if(schedulerLast!==null){const gap=now-schedulerLast;schedulerMaxGapMs=Math.max(schedulerMaxGapMs,gap);if(gap>360)schedulerLate++;}
+    schedulerLast=now;
     engine.tick(0.36, bgmVol > 0);
   }, 70);
 }
-function stopTimer() { if (timer) clearInterval(timer); timer = null; }
+function stopTimer() { schedulerLast=null; if (timer) clearInterval(timer); timer = null; }
 
 // タブが隠れたら止め、戻ったら再開する (電池とCPUの節約)
 function hookLifecycle() {
   const context = actx;
-  context.addEventListener("statechange", () => { if (actx === context && context.state === "interrupted") kickPending = true; });
+  context.addEventListener("statechange", () => { if (actx === context && context.state === "interrupted") { kickPending = true;interruptions++; } });
   if (hooked) return;
   hooked = true;
   document.addEventListener("visibilitychange", () => {
@@ -385,6 +389,6 @@ export function audioDebug() {
     state: actx && actx.state, worker: bank.workerOk, bytes: bank.bytes, samples: bank.bufs.size,
     playing: current && current._name, want, voices: engine ? engine.allVoices.length : 0, players: engine ? engine.players.length : 0,
     ready: !!engine, muted, bgmVol, sfxVol, time: actx && actx.currentTime, sampleRate: actx && actx.sampleRate,
-    session, error: audioError,
+    session, error: audioError, scheduler:{maxGapMs:schedulerMaxGapMs,lateTicks:schedulerLate,lookaheadMs:360,interruptions},sfx:sfxPerformance(),
   };
 }

@@ -6,8 +6,8 @@ ROOT=Path(os.environ.get('AUTO_SOURCE_ROOT',Path(__file__).resolve().parents[2])
 BASE=os.environ.get('AUTO_BASE','http://localhost:8000')
 async def main():
  async with async_playwright() as p:
-  browser=await p.chromium.launch(executable_path=os.environ.get('CHROME_BIN','/usr/bin/chromium'),args=['--no-sandbox','--autoplay-policy=no-user-gesture-required'])
-  page=await browser.new_page(viewport={'width':390,'height':844},service_workers='block')
+  browser=await p.chromium.launch(executable_path=os.environ.get('CHROME_BIN','/usr/bin/chromium'),args=['--no-sandbox','--autoplay-policy=no-user-gesture-required']+(['--disable-frame-rate-limit'] if os.environ.get('AUTO_UNCAPPED') else []))
+  page=await browser.new_page(viewport={'width':1024,'height':1366} if os.environ.get('AUTO_TABLET') else {'width':390,'height':844},device_scale_factor=2 if os.environ.get('AUTO_TABLET') else 1,service_workers='block')
   await page.route('**/src/cloud-config.js',lambda r:r.fulfill(content_type='text/javascript',body='export const CLOUD_CONFIG={enabled:false};'))
   await page.add_init_script('''window.plannerDuringFx=0;window.timings={};window.measure=(name,fn)=>{const t=performance.now();try{return fn();}finally{(timings[name]||=[]).push(performance.now()-t);}};''')
   async def instrument(route):
@@ -44,7 +44,7 @@ async def main():
   }''')
   await page.locator('#combat-menu .cmd-auto').click();await page.wait_for_timeout(40000)
   await page.evaluate('measuring=false')
-  report=await page.evaluate('''async()=>{measuring=false;__game.G.autoCombat=false;const stats=a=>{a=[...a].sort((a,b)=>a-b);return {count:a.length,p95:a[Math.floor(a.length*.95)]||0,max:a.at(-1)||0,total:a.reduce((a,b)=>a+b,0)};};return {plannerDuringFx,planner:await import('/src/auto-planner.js').then(m=>m.autoPlannerStats).catch(()=>null),frames:stats(gaps),over34:gaps.filter(x=>x>34).length,longTasks:stats(longTasks),stages:Object.fromEntries(Object.entries(timings).map(([k,a])=>[k,stats(a)]))};}''')
+  report=await page.evaluate('''async()=>{measuring=false;__game.G.autoCombat=false;const stats=a=>{a=[...a].sort((a,b)=>a-b);return {count:a.length,p95:a[Math.floor(a.length*.95)]||0,max:a.at(-1)||0,total:a.reduce((a,b)=>a+b,0)};};return {viewport:{width:innerWidth,height:innerHeight,dpr:devicePixelRatio},plannerDuringFx,planner:await import('/src/auto-planner.js').then(m=>m.autoPlannerStats).catch(()=>null),frames:stats(gaps),over34:gaps.filter(x=>x>34).length,longTasks:stats(longTasks),stages:Object.fromEntries(Object.entries(timings).map(([k,a])=>[k,stats(a)]))};}''')
   if not os.environ.get('AUTO_SOURCE_ROOT'):
    assert report['planner']['worker']>=10 and report['planner']['fallback']==0,report
    assert report['plannerDuringFx']==0,report
