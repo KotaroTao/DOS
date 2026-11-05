@@ -30,6 +30,11 @@ with sync_playwright() as p:
         if(body.scrollWidth>body.clientWidth+1) throw Error('横スクロール');
         for(const n of card.querySelectorAll('.bp-number,.bp-name,.bp-metric')) {
           if(n.scrollWidth>n.clientWidth+1) throw Error('文字の欠け '+n.textContent);
+          if(n.matches('.bp-number')) {
+            const range=document.createRange(); range.selectNodeContents(n);
+            const lines=new Set([...range.getClientRects()].map(r=>Math.round(r.top)));
+            if(lines.size!==1) throw Error('数値の途中で改行 '+n.textContent);
+          }
         }
         if(card.querySelectorAll('.bp-member').length!==6) throw Error('人数');
         if(card.querySelectorAll('.bp-number').length!==18) throw Error('項目数');
