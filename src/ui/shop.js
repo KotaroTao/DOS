@@ -59,8 +59,8 @@ function buyerPlan(it) {
   buyMemo?.plans.set(it, plan);
   return plan;
 }
-function buyerStrip({ bukon = false } = {}) {
-  const selected = selectedBuyer();
+function buyerStrip({ bukon = false, doll = selectedBuyer(), onSelect = null } = {}) {
+  const selected = doll;
   const box = el("section", "wpc-characters");
   box.setAttribute("aria-label", "比較する人業");
   const strip = el("div", "wpc-character-strip");
@@ -71,7 +71,7 @@ function buyerStrip({ bukon = false } = {}) {
     b.setAttribute("aria-pressed", String(d === selected));
     b.setAttribute("aria-label", `${d.name}${isReserve(d) ? "（控え）" : ""}の装備と比較`);
     b.append(UI.partyPortraitCanvas ? UI.partyPortraitCanvas(d, 44) : dollIcon(d), el("span", null, d.name));
-    b.addEventListener("click", () => { setPref("shopDollUid", d.uid); sfx("select"); rerender(); });
+    b.addEventListener("click", () => { sfx("select"); if(onSelect)onSelect(d);else{setPref("shopDollUid", d.uid);rerender();} });
     strip.appendChild(b);
   }
   box.append(strip, el("div", "wpc-comparison-label", selected ? `${selected.name}の現在の装備${bukon ? "" : "と比較"}${isReserve(selected) ? "（控え）" : ""}` : "比較する人業がいない"));
@@ -985,6 +985,7 @@ export function install() {
     identifyAllAndReveal,
     shopExclusions: exclusions,
     renderShopInto: (root) => render(root),
+    shopBuyerStrip: buyerStrip,
   });
   if (UI.shell && UI.shell.registerTab) {
     UI.shell.registerTab("shop", { render: (root) => { render(root); UI.tutorialShopVisited?.(); }, title: "黒鉄商会", onLeave: () => {
