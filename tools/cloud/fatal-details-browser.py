@@ -2,7 +2,7 @@
 import os
 from playwright.sync_api import sync_playwright
 with sync_playwright() as p:
-    browser=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox'])
+    browser=p.webkit.launch() if os.environ.get('DOS_TEST_BROWSER')=='webkit' else p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox'])
     page=browser.new_page(service_workers='block')
     page.route('**/fatal-harness',lambda r:r.fulfill(content_type='text/html',body='<body></body>'))
     page.goto(os.environ.get('DOS_TEST_URL','http://127.0.0.1:8001')+'/fatal-harness')
