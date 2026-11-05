@@ -15930,18 +15930,25 @@ function sharePalaceRecord() {
 // 節目の ID ("m" + n) はセーブに残る。n を変えない・消さない (足すのは可)
 const TREASURY_MILESTONES = [
   { n: 3, reward: "minePass" },
-  { n: 5, cls: "bishop" },          // 司教の魂 (鑑定の技)
-  { n: 10, cls: "samurai" },        // 侍の魂
-  { n: 15, lr: "gear", tier: 5 },
+  { n: 5, cls: "samurai" },
+  { n: 10, cls: "crusader" },
+  { n: 15, lr: "weapon", tier: 5 },
   { n: 20, soul: "legend" },
-  { n: 25, lr: "gear", tier: 5, embers: 3 },
-  { n: 30, lr: "weapon", tier: 5 },
-  { n: 40, lr: "armor", tier: 5 },
-  { n: 50, soul: "legend", embers: 5 },
-  { n: 60, lr: "weapon", tier: 10 },
-  { n: 70, lr: "armor", tier: 10 },
+  { n: 25, lr: "gear", tier: 5 },
+  { n: 30, lr: "weapon", tier: 10 },
+  { n: 35, cls: "arcanist" },
+  { n: 40, lr: "armor", tier: 10 },
+  { n: 45, bukon: { k: "crit", lv: 1 } },
+  { n: 50, soul: "legend" },
+  { n: 55, bukon: { k: "turn_mp_regen", lv: 1 } },
+  { n: 60, lr: "weapon", tier: 15 },
+  { n: 65, bukon: { k: "X30", lv: 1 } },
+  { n: 70, lr: "armor", tier: 15 },
+  { n: 75, bukon: { k: "X26", lv: 1 } },
   { n: 80, lr: "weapon", tier: 15 },
-  { n: 90, lr: "armor", tier: 15 },
+  { n: 85, bukon: { k: "res_allElements", lv: 1 } },
+  { n: 90, lr: "armor", tier: 20 },
+  { n: 95, bukon: { k: "X30", lv: 1 } },
   { n: 100, lr: "weapon", tier: 20 },
 ];
 // 防具とみなすスロット (LR防具褒賞の抽選対象。acc=装飾品は含めない)
@@ -15952,7 +15959,8 @@ function milestoneLabel(m) {
   if (m.cls) return ((SOUL_CLASSES[m.cls] || {}).label || m.cls) + "の魂";
   const parts = [];
   if (m.soul) parts.push(m.soul === "legend" ? "レジェンドの魂" : "魂");
-  if (m.lr) parts.push(`LR${m.tier} ${m.lr === "weapon" ? "専用武器" : m.lr === "armor" ? "防具" : "装備"}`);
+  if (m.lr) parts.push(`LR ${m.lr === "weapon" ? "専用武器" : m.lr === "armor" ? "防具" : "装備"}`);
+  if (m.bukon) parts.push(`武魂「${bukon.bukonName(m.bukon)}」×1`);
   if (m.embers) parts.push(`魂の残火×${m.embers}`);
   return parts.join("＋") || "装備";
 }
@@ -16097,6 +16105,8 @@ function treasuryRewardLines(m, n) {
     `「収集品を ${n} 種も納めてくれたか。迷宮の底から持ち帰られた品々は、どれも闇に呑まれたこの国の記憶だ。」`];
   if (m.lr) {
     lines.push("「これは王家の宝物庫の奥に、長く封じられてきた品だ。いまのそなたにこそ相応しかろう。」");
+  } else if (m.bukon) {
+    lines.push("「長く使われた品に宿る武魂だ。商会に預けておこう。そなたの装備に宿すがよい。」");
   } else if (m.cls || m.soul) {
     lines.push("「奉納の品に宿っていた魂が、ひとつ形を成した。そなたの隊に加えるがよい。」");
   } else {
@@ -16111,7 +16121,8 @@ function treasuryRewardRows(m) {
   if (m.cls) return [{ job: m.cls }];
   const parts = [];
   if (m.soul) parts.push(`${m.soul === "legend" ? "レジェンドの魂" : "魂"} 1つ`);
-  if (m.lr) parts.push(`LR${m.tier} の${m.lr === "weapon" ? "専用武器" : m.lr === "armor" ? "防具" : "装備"} 1点 (未鑑定)`);
+  if (m.lr) parts.push(`LRの${m.lr === "weapon" ? "専用武器" : m.lr === "armor" ? "防具" : "装備"} 1点 (未鑑定)`);
+  if (m.bukon) parts.push(`武魂「${bukon.bukonName(m.bukon)}」×1`);
   if (m.embers) parts.push(`魂の残火 ×${m.embers}`);
   return parts.join(" ・ ") || "装備 1点";
 }
@@ -16124,6 +16135,10 @@ function grantTreasuryReward(m, reason) {
   if (m.cls || m.soul) {
     const cls = m.cls || (m.soul === "legend" ? rollClassOfRarity("legend") : rollJobClass());
     queuePickup({ kind: "soul", soul: grantSoulQuiet(cls, reason) });
+  }
+  if (m.bukon) {
+    bukon.stockAdd(G, m.bukon);
+    log(`宝物庫の褒賞として 武魂「${bukon.bukonName(m.bukon)}」を商会に保管した。`, "win");
   }
   if (m.lr) grantTreasuryLR(m);
   updateTopbar();
