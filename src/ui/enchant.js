@@ -14,7 +14,7 @@ export function openAffixExtract() { return false; }
 export function openShelfAffixExtract() { return false; }
 const confirm = async ({onOk, ...options}) => { if (await askConfirm(options)) onOk?.(); };
 let part = "all", effect = "all", group = "all", rarity = "all", protection = "all", order = "original";
-const GROUPS = {flat:"能力の加算",pct:"能力の割合上昇",rate:"会心・回避",res:"耐性",elementAttack:"属性攻撃",elementDefense:"属性軽減",status:"状態異常付与",race:"種族への効果",condition:"条件つきの効果",special:"特殊効果"};
+const GROUPS = {flat:"能力の加算",pct:"能力の割合上昇",regen:"毎ターン回復",rate:"会心・回避",res:"耐性",elementAttack:"属性攻撃",elementDefense:"属性軽減",status:"状態異常付与",race:"種族への効果",condition:"条件つきの効果",special:"特殊効果"};
 const groupOf = d => d.kind!=="legacy"?d.kind:d.id.startsWith("F")?"status":/^[GH]/.test(d.id)?"race":"condition";
 const SORTS = [["original","合成向けの順"],["name","名前順"],["power-desc","効果量が高い順"],["power-asc","効果量が低い順"],["rarity","格が高い順"],["part","部位順"]];
 const resetFilters = () => { part=effect=group=rarity=protection="all";order="original"; };
@@ -22,7 +22,7 @@ const matchesSoul = b => {
   const d=bukonDef(b.k);
   return (part==="all"||d.slots.includes(part))&&(group==="all"||groupOf(d)===group)&&(effect==="all"||b.k===effect)&&(rarity==="all"||d.rarity===Number(rarity))&&(protection==="all"||!!b.protected===(protection==="protected"));
 };
-const power = b => BigInt(Math.round(bukonDef(b.k).base*100))*BigInt(b.lv);
+const power = b => {const d=bukonDef(b.k);return d.values?BigInt(Math.round(d.values[b.lv-1]*100)):BigInt(Math.round(d.base*100))*BigInt(b.lv);};
 const comparePower = (a,b) => power(a)>power(b)?1:power(a)<power(b)?-1:0;
 function sortSouls(rows) {
   if(order==="original")return sortFusionRows(rows);

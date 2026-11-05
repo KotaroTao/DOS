@@ -960,7 +960,8 @@ export class Battle {
     p.guard = (ef && ef.guard) || 0;
     p.spellCostMul = (ef && ef.spellCostMul) || 0;
     p.autoRevive = (ef && ef.autoRevive) || 0;
-    p.regen = (ef && ef.regen) || 0;             // 再生の宝珠
+    p.regen = (ef && ef.regen) || 0;             // 再生の宝珠・毎ターンHP回復の武魂
+    p.mpRegen = (ef && ef.mpRegen) || 0;
     p.counter = (ef && ef.counter) || 0;          // 報復の籠手
     p.ailmentImmune = !!(ef && ef.ailmentImmune); // 解呪の宝珠
   }
@@ -1804,13 +1805,22 @@ export class Battle {
         this._enemyHealed(e, before);
       }
     }
-    // 再生の宝珠 (party regen): 2ターン目以降、傷ついた味方が最大HPの割合だけ回復する (LR装飾品)
+    // 再生の宝珠・HP回復の武魂: 2ターン目以降、傷ついた味方が最大HPの割合だけ回復する
     if (this._roundNo > 1) {
       for (const p of this.livingParty()) {
         if (!p.regen || p.hp >= p.maxhp) continue;
         const h = Math.max(1, Math.round(p.maxhp * p.regen));
         p.hp = this._reportHp(p, p, Math.min(p.maxhp, p.hp + h));
         this.log(`${p.name}の再生：HP+${h}`, "heal");
+      }
+    }
+    // MP回復の武魂も2ターン目から。戦闘不能者には発動せず、最大MPを超えない。
+    if (this._roundNo > 1) {
+      for (const p of this.livingParty()) {
+        if (!p.mpRegen || !p.maxmp || p.mp >= p.maxmp) continue;
+        const gain = Math.min(p.maxmp - p.mp, Math.max(1, Math.round(p.maxmp * p.mpRegen)));
+        p.mp += gain;
+        this.log(`${p.name}の再生：MP+${gain}`, "heal");
       }
     }
     // リジェネ (技の効果): 2ターン目以降、最大HPの割合だけ回復する

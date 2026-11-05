@@ -1,4 +1,4 @@
-// 武魂の正本。素材の合成価値は3進、効果はLvに比例する。
+// 武魂の正本。素材の合成価値は3進、効果はLv比例か種類ごとの指定表で決める。
 import { AFX } from "./infaffix.js";
 import { rarityKey } from "./rarity.js";
 import { random } from "./rng.js";
@@ -12,6 +12,8 @@ const ALL=["weapon","shield","body","head","hands","feet","acc"], DEF=["shield",
 export const BUKON=[];
 const add=d=>BUKON.push({max:10,slots:ALL,...d});
 const stats={hp:"HP",mp:"MP",atk:"STR",vit:"VIT",agi:"AGI",int:"INT",pie:"PIE",luk:"LUK"};
+add({id:"turn_mp_regen",name:"毎ターンMP回復",kind:"regen",stat:"mpRegen",base:1,rarity:3,values:[1,1.5,2,2.5,3,3.5,4,4.5,5,6]});
+add({id:"turn_hp_regen",name:"毎ターンHP回復",kind:"regen",stat:"regen",base:5,rarity:3,values:[5,7.5,10,12.5,15,17.5,20,22.5,25,30]});
 for(const [stat,name] of Object.entries(stats)) {
  add({id:`flat_${stat}`,name:`${name}加算`,kind:"flat",stat,base:stat==="hp"?10:stat==="mp"?5:1,max:null,rarity:0});
  add({id:`pct_${stat}`,name:`${name}上昇`,kind:"pct",stat,base:5,rarity:1});
@@ -66,7 +68,7 @@ export const bukonSlots=it=>BUKON_SLOTS[rarityKey(it)]||1;
 // ドロップ時はC/UCなし・R一つ・SR二つ・LR三つ。装着枠数とは別に扱う。
 export const bukonDropCount=it=>({c:0,uc:0,r:1,sr:2,lr:3}[rarityKey(it)]??1);
 export function bukonExact(b){const d=bukonDef(b?.k);return validBukon(b)?BigInt(Math.round(d.base*100))*BigInt(b.lv)/100n:0n;}
-const amount=b=>bukonDef(b.k).base*b.lv;
+const amount=b=>{const d=bukonDef(b.k);return d.values?d.values[b.lv-1]:d.base*b.lv;};
 // 一覧の名前と、詳細の効果説明は同じ値から作る。加算値は大きなLvでも丸めない。
 export function bukonName(b) {
  if(!validBukon(b))return "不明な武魂";
@@ -80,6 +82,7 @@ export function bukonDescription(b) {
  if(!validBukon(b))return "不明な武魂";
  const d=bukonDef(b.k),v=amount(b),n=v.toLocaleString("ja-JP");
  if(d.kind==="flat")return `${d.name.replace(/加算$/, "")}が${bukonExact(b).toLocaleString("ja-JP")}上昇`;
+ if(d.kind==="regen")return `2ターン目から毎ターンの開始時に、最大${d.stat==="regen"?"HP":"MP"}の${n}%を回復する（四捨五入、最低1）。装備の同じ回復効果は最も強いものだけが有効`;
  if(d.kind==="legacy")return d.legacy.text(v/100,25);
  if(d.kind==="elementAttack")return `${d.name.replace(/上昇$/, "")}が${n}%上昇`;
  if(d.kind==="elementDefense")return `${d.stat==="all"?"全属性ダメージ":d.name.replace(/軽減$/, "")}を${n}%軽減`;
@@ -218,6 +221,7 @@ export function bukonItem(it,{legendarySeen=new Set(),specialLevels=null}={}){
   const d=bukonDef(b.k);if(!bukonFits(it,b))continue;const v=amount(b);
   if(d.kind==="flat")out[d.stat]=(out[d.stat]||0)+Number(bukonExact(b));
   if(d.kind==="pct")out.mult[d.stat]=(out.mult[d.stat]||0)+v/100;
+  if(d.kind==="regen")out.eff[d.stat]=Math.max(out.eff[d.stat]||0,v/100);
   if(d.kind==="rate")out[d.stat]=(out[d.stat]||0)+v/100;
   if(d.kind==="res")out.resists[d.stat]=(out.resists[d.stat]||0)+v;
   if(d.kind==="elementAttack"){const values={...elementValues(out.eAtk)};values[d.stat]=(values[d.stat]||0)+v;out.eAtk={values};}
