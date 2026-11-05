@@ -614,9 +614,9 @@ export async function cloudPrepareReload(save) {
     await saved;
     await cloudFlush();
     return true;
-  } catch {
+  } catch (e) {
     leaving = false;
-    cloudFatal();
+    cloudFatal(e, "再読込前の記録の準備");
     return false;
   }
 }
@@ -624,10 +624,19 @@ export async function cloudSignOut() {
   if (cloudGuest()) { await cloudManageAccount(); return; }
   await cloudFlush(); localStorage.removeItem(AUTH_KEY); location.reload();
 }
-export function cloudFatal() {
+export function cloudFatal(error = null, phase = "") {
   terminal = true;
   showGate("冒険の記録を処理できませんでした。最新の記録から再開してください。");
   button("再接続", () => location.reload());
+  if(error){
+    console.error("冒険の記録の処理に失敗",phase,error);
+    // 記録本文を収集せず、例外とコード上の場所を示す。
+    const detail=make("details"),summary=make("summary","エラー詳細"),pre=make("pre");
+    const frames=String(error.stack || "").split("\n").slice(1,5).map(line=>line.replace(/https?:\/\/[^/\s]+/g,"").replace(/\?[^\s):]+/g,""));
+    pre.textContent=[phase,error.name || "Error",String(error.message || error),...frames].filter(Boolean).join("\n");
+    pre.style.cssText="white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;text-align:left";
+    detail.append(summary,pre);controls.append(detail);
+  }
 }
 
 // 通常の短い待機は無表示。長引く接続は段階を示し、空の幕から復旧できるようにする。
