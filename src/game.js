@@ -40,7 +40,7 @@ import { spriteCanvas, crispCanvas, drawPhoto, photoReady, whenPhoto, prepareSpr
 import { makeItemSpriteResolver } from "./itemart/index.js";
 import { registerMonsterPhotos, restoreMonsterPhotos } from "./monsterphotos.js";
 import { bagCount, isFormationItem,
-  ITEMS, SLOTS, SLOT_LABEL, MAX_ITEMS, shareInventory, setBagSource, bagOwners, equip as equipItem, unequip as unequipItem, canEquip, canOffhand, slotKeyFor, lvToRank, RANGE_LABEL, HAND_LABEL, weaponRange, SHIELD_KIND_LABEL, shieldKind,
+  ITEMS, SLOTS, SLOT_LABEL, MAX_ITEMS, shareInventory, setBagSource, bagOwners, unequip as unequipItem, canEquip, canOffhand, slotKeyFor, lvToRank, RANGE_LABEL, HAND_LABEL, weaponRange, SHIELD_KIND_LABEL, shieldKind,
   registerEquipLevel, equipLevelOf, equipLvShort, equipFailMsg, registerAffixes,
   UNIDENT_SLOTS, itemName, applyForge, hasQuality, applyQuality, rollQuality, qualityMatters, itemAtQuality, QUALITY_MID, useWhere, useTarget, useHelps, useLines, useCureKinds, compareUse,
 } from "./items.js";
@@ -18297,7 +18297,7 @@ function doIdentifySkill(m, it, { quiet = false } = {}) {
 // equipClassText / equipPartyChips は src/ui/itemview.js へ移設 (import 済み)
 
 function doEquip(p, it) {
-  const r = equipItem(p, it);
+  const r = equipAt(p, it, slotKeyFor(it,p));
   if (r.msg) log(r.msg, r.ok ? "win" : "sys");
   if (r.ok) SFX.select();
   else { SFX.ng(); if (r.msg) showToast(r.msg, { noLog: true, tone: "bad" }); }
@@ -18317,7 +18317,7 @@ function itemFitsSlot(it, slotKey, p = null) {
 // 規則は items.js の equip() と同じ (職・未鑑定・両手武器⇄盾・呪いは外れない・共有の所持枠50) だが、
 // 装飾品は「指定した枠」に付ける。stashTo を渡すと、外れた装備は p ではなくその人業の袋へ入る
 // (p の袋が満杯の時の「持ち主と取り替える」)。成否 { ok, msg, displaced, full }
-function equipAt(p, it, slotKey, owner = p, stashTo = null, keepBukon = false) {
+function equipAt(p, it, slotKey, owner = p, stashTo = null, keepBukon = true) {
   if (!it || !itemFitsSlot(it, slotKey, p)) return { ok: false, msg: "その部位には装備できない" };
   if (!canEquip(p, it)) return { ok: false, msg: equipFailMsg(p, it) };
   const tr = autoEquip.trialEquip(p.equip, it, slotKey);

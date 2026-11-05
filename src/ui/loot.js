@@ -193,7 +193,7 @@ export function nameSpan(it, cls = "wpc-nm") {
 export function deltaEl(delta, { empty = "変化なし", bukonRows = false } = {}) {
   const w = el("span", "ui-delta wpc-delta");
   if (!delta) { w.appendChild(el("span", "eq", empty)); return w; }
-  const stats = statDelta(delta, { compact: false }), effects = equipEffectDeltaEl(delta, { bukonRows });
+  const stats = statDelta(delta, { compact: false }), effects = equipEffectDeltaEl(delta, { bukonRows: true });
   const same = stats.querySelector(".eq");
   if (same) { if (effects.childElementCount) same.remove(); else same.textContent = empty; }
   w.append(stats, effects);

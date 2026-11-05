@@ -19,3 +19,20 @@ const p={undoSnapshot:snapshotEquip([d]),final:new Map([[d,{equip:{weapon:two}}]
 const gs=equipApprovalGroups(p);assert.equal(gs.length,1);assert.equal(gs[0].length,2);
 assert.equal(applyEquipApprovals(p,new Set(gs),opt),false);assert.equal(full.length,50);assert.equal(d.equip.weapon,old);assert.equal(d.equip.shield,shield);
 console.log('装備単位の承認・取消・共通袋の同一性・受け渡し・両手の連動・満杯時の無変更: OK');
+// 武魂も承認・取消の対象。空き枠には更新先の武魂を残し、超過分だけ保管へ戻す。
+const soulA={k:'flat_atk',lv:50},soulB={k:'flat_hp',lv:20,fusionUnlocked:true},soulC={k:'flat_mp',lv:10};
+const source={slot:'weapon',rar:'lr',bukon:[soulA,soulB]},dest={slot:'weapon',rar:'c',bukon:[soulC]};
+const actor={equip:{weapon:source},items:[dest]},state={bukonStock:{'flat_mp:1':'3'},bukonProtected:{}};
+const soulPlan={undoSnapshot:snapshotEquip([actor]),final:new Map([[actor,{equip:{weapon:dest}}]])};
+const soulGroups=equipApprovalGroups(soulPlan);
+assert(applyEquipApprovals(soulPlan,new Set(soulGroups),{...opt,state}));
+assert.deepEqual(dest.bukon,[soulA]);assert.deepEqual(source.bukon,[]);
+assert.equal(state.bukonStock['flat_hp:20'],'1');assert.equal(state.bukonProtected['flat_atk:50'],undefined);
+assert.equal(state.bukonStock['flat_mp:10'],'1');
+assert(applyEquipApprovals(soulPlan,new Set(),{...opt,state}));
+assert.equal(actor.equip.weapon,source);assert.deepEqual(source.bukon,[soulA,soulB]);assert.deepEqual(dest.bukon,[soulC]);
+assert.deepEqual(state.bukonStock,{'flat_mp:1':'3'});
+dest.rar='lr';
+assert(applyEquipApprovals(soulPlan,new Set(soulGroups),{...opt,state}));
+assert.deepEqual(dest.bukon,[soulA,soulB,soulC]);assert.deepEqual(state.bukonStock,{'flat_mp:1':'3'});
+console.log('武魂の自動引き継ぎ・空き枠の既存武魂・枠超過回収・承認取消の保全: OK');
