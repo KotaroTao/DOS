@@ -111,6 +111,7 @@ function openGear(it, done, preferred = null) {
     body.append(el("p","bk-meta",`${locationOf(it)} · ${PARTS[it.slot]}`));
     if(it.cursed)body.append(el("p","rf-note","呪いの装備の武魂は変更できない。"));
     body.append(el("p","rf-note",`${(it.bukon || []).length}/${bukonSlots(it)}枠。装備固有の効果とも重複する。取り外し・装着は無料。`));
+    if(preferred&&attachBlock(it,preferred)&&!attachBlock({...it,bukon:[]},preferred))body.append(el("p","rf-note","付け替える武魂の「外す」を押してから、選んだ武魂を宿そう。外した武魂は保管に戻る。"));
     for (const [i,b] of (it.bukon || []).entries())body.append(stockRow({...b,it,soul:b,protected:b.fusionUnlocked!==true},refresh,{it,installed:i}));
     game.bukonRows();
     const choices=sortSouls(fusionRows(G(),game.bukonTargets()).filter(b=>b.it!==it&&!b.it?.cursed&&!attachBlock(it,b)&&matchesSoul(b)));
@@ -133,7 +134,8 @@ function openSoulEquipment(b, doll, done) {
     if(selected)for(const k of SLOTS){
       const cell=slotCell(selected,k,{bukonOnly:true,onPick:it=>{if(it)openGear(it,()=>{draw();done();},b);}});
       const equipped=selected.equip?.[k];
-      const blocked=equipped===b.it?"この装備にはすでに宿っている":attachBlock(equipped,b);
+      // 空き枠と同効果の重複は詳細内で外して解消できる。ここでは装備自体の条件だけを見る。
+      const blocked=attachBlock(equipped?{...equipped,bukon:[]}:null,b);
       cell.disabled=!!blocked;
       if(blocked)cell.title=blocked;
       slots.append(cell);
