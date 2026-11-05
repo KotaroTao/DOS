@@ -801,3 +801,9 @@ html.pc-input .ui-sheet.ec-source-sheet { max-width: 720px; }
 
 /* 小画面の既存指定より優先して一覧の文字を一回り小さくする。 */
 .bk-sheet .bk-stock-row > .ui-btn { font-size:11px; }
+
+/* 武魂一覧は名前の右に三つの操作を固定し、本文だけ縦にスクロールする。 */
+.bk-list-tools { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px; }
+.bk-list-sheet .bk-stock-row > .ui-btn:not(.bk-stock-main) { width:48px; min-width:44px; padding-inline:3px; white-space:nowrap; }
+.bk-panel > .ui-btn { flex:none; min-height:44px; margin-bottom:8px; }
+.bk-equip-sheet .bk-equipment { overflow-y:visible; }
