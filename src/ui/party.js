@@ -1,3 +1,4 @@
+import { inheritBukonPlan, bukonName } from "../bukon.js";
 import { createGearHints } from "../gear-hints.js";
 import { traceSync } from '../battle-trace.js';
 import { ELEMENT_KEYS, elementValues, elementDefenseReduction } from "../combatrules.js";
@@ -36,7 +37,7 @@ import {
 import { mansionControlUnlocked, lockedControl, renderSoulSummary, renderSoulSeg, openSoulPicker, openSoulList, openOrderSheet } from "./soulpanel.js";
 import { IRENE_WHO, IRENE_ART, ireneState, isGreeted, nextLine, lineOpen, noteVisit, greetingPages, playIreneScene, sceneActive } from "./irene.js";
 import {
-  planBestEquip, equipApprovalGroups, applyEquipApprovals, restoreEquip, equipSignature, equipHintSignature, trialEquip, slotKeysFor, previewStats, statsDelta, snapshotEquip, isAutoCandidate, swapBackFor,
+  planBestEquip, equipApprovalGroups, applyEquipApprovals, restoreEquip, equipSignature, equipHintSignature, trialEquip, slotKeysFor, previewStats, statsDelta, snapshotEquip, isAutoCandidate, isPinned, swapBackFor,
 } from "../autoequip.js";
 import { SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, canEquip, equipLevelOf, equipLvShort, recalc, weaponRange, RANGE_LABEL, itemName, attackPower, useWhere, compareUse, AIL_LABEL, hasQuality, qualityOf, qualityMatters } from "../items.js";
 import {
@@ -2581,6 +2582,28 @@ function candRow(d, k, c, h) {
   });
   longPress(main, () => openItemDetail(c.it));
   wrap.appendChild(main);
+  if (!c.worn && c.room && (d.equip[k]?.bukon || []).length && !isPinned(d.equip[k])) {
+    wrap.classList.add("has-inherit");
+    wrap.appendChild(button({ label: "武魂を引き継いで装備", size: "sm", onTap: async () => {
+      const old = d.equip[k], plan = inheritBukonPlan(old, c.it);
+      const ok = await confirm({ title: "武魂を引き継いで装備", lines: [
+        `${itemName(old)} → ${itemName(c.it)}`,
+        `引き継ぐ武魂：${plan.moved.map(bukonName).join("、") || "なし"}`,
+        `商会へ戻す武魂：${plan.returned.map(bukonName).join("、") || "なし"}`,
+        "更新先に宿る武魂と、部位・枠数の制限で引き継げない武魂は商会へ戻る。保護も引き継ぐ。",
+        ...(c.it.cursed ? ["呪われた品は、一度装備すると外せない。"] : []),
+      ], okLabel: "引き継いで装備" });
+      if (!ok) return;
+      if (d.equip[k] !== old) { toast("装備が変わったため、候補を開き直してください", { tone: "bad" }); return; }
+      const r = game.equipAt(d, c.it, k, c.owner || ownerOf(c.it), null, true);
+      if (!r?.ok) { toast(r?.msg || "装備できない", { tone: "bad" }); return; }
+      game.log(r.msg + "。武魂を引き継いだ。", "win");
+      sfx("select");
+      game.autosave?.(true);
+      h.close(); rerender();
+      toast("武魂を引き継いで装備した", { tone: "good" });
+    }}));
+  }
   return wrap;
 }
 

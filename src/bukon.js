@@ -111,6 +111,26 @@ export function stockAdd(g, b, n = 1n) {
   if (next) s[key] = next.toString(); else delete s[key];
   return true;
 }
+// 装備更新の確認と実行で同じ移植先を使う。元の順序を優先する。
+export function inheritBukonPlan(from, to) {
+ const moved=[], returned=[...(to?.bukon||[])], seen=new Set();
+ if(!from || !to || from===to)return {moved,returned:[]};
+ for(const b of from.bukon||[]){
+  if(validBukon(b)&&bukonFits(to,b)&&moved.length<bukonSlots(to)&&!seen.has(b.k)){moved.push(b);seen.add(b.k);}
+  else returned.push(b);
+ }
+ return {moved,returned};
+}
+export function inheritBukon(g, from, to) {
+ if(!from || !to || from===to)return;
+ const {moved,returned}=inheritBukonPlan(from,to);
+ for(const b of returned){
+  stockAdd(g,b);
+  if(b.fusionUnlocked!==true)(g.bukonProtected ||= {})[bukonKey(b)]=true;
+ }
+ from.bukon=[];
+ to.bukon=moved;
+}
 export function recoverBukon(g, it) {
   if (!it || it.soulMemory) return 0;
   const list = it.bukon || [];

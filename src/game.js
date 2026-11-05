@@ -18301,7 +18301,7 @@ function itemFitsSlot(it, slotKey, p = null) {
 // 規則は items.js の equip() と同じ (職・未鑑定・両手武器⇄盾・呪いは外れない・共有の所持枠50) だが、
 // 装飾品は「指定した枠」に付ける。stashTo を渡すと、外れた装備は p ではなくその人業の袋へ入る
 // (p の袋が満杯の時の「持ち主と取り替える」)。成否 { ok, msg, displaced, full }
-function equipAt(p, it, slotKey, owner = p, stashTo = null) {
+function equipAt(p, it, slotKey, owner = p, stashTo = null, keepBukon = false) {
   if (!it || !itemFitsSlot(it, slotKey, p)) return { ok: false, msg: "その部位には装備できない" };
   if (!canEquip(p, it)) return { ok: false, msg: equipFailMsg(p, it) };
   const tr = autoEquip.trialEquip(p.equip, it, slotKey);
@@ -18315,6 +18315,7 @@ function equipAt(p, it, slotKey, owner = p, stashTo = null) {
   if (bagAfter > MAX_ITEMS) return { ok: false, full: true, msg: "隊の持ち物がいっぱいで、外した装備を入れられない" };
   const i = owner.items.indexOf(it);
   if (i < 0) return { ok: false, msg: "" };
+  if (keepBukon) bukon.inheritBukon(G, p.equip[slotKey], it);
   owner.items.splice(i, 1);
   for (const k of SLOTS) p.equip[k] = tr.equip[k] || null;
   for (const x of tr.displaced) bag.items.push(x);
