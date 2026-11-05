@@ -11376,7 +11376,7 @@ async function resolveLocalBattleTraced(action, battle = G.battle) {
     animateResult(res, postResolve);
   } catch (e) {
     if (choiceTrial) { _cloudResolving = false; choiceTrial.output.textContent = e.message; G.animating = true; return; }
-    cloudFatal();
+    cloudFatal(e, "戦闘の再開・進行");
   }
 }
 // 戦闘の一時停止: 戦闘中にシート (手帳・設定・覗き見など) が開いている間は次の一手へ進まない。
@@ -11511,7 +11511,7 @@ async function resolveSavedBattleTraced(action) {
     windup?.stop();
     if (normalAttack) battleActionTimes.set(G.battle, performance.now());
     animateResult(packet.result, postResolve);
-  } catch (e) { cloudFatal(); }
+  } catch (e) { cloudFatal(e, "戦闘の再開・進行"); }
   finally { windup?.stop(); }
 }
 
@@ -11566,7 +11566,7 @@ async function advanceSavedBattleTraced(watch) {
     const mw = watch ? endModWatch() : null;
     // 次の手番もサーバーに確定済み。演出の片付けだけで全記録を送り直さない。
     playModReveal(mw, () => { setTimeout(combatStep, quickBattlePresentation() ? 0 : 150 * spdMul()); });
-  } catch (e) { cloudFatal(); }
+  } catch (e) { cloudFatal(e, "戦闘の再開・進行"); }
 }
 
 // 多段ヒットの時間差 (ms。spdMul で速度モードに追従)。applyImpact と共有
@@ -12291,7 +12291,7 @@ function endBattle(...args) {
       cloudFinishBattle().then(() => {
         battleVerified.add(b);
         if (G.battle === b && G.state === "combat") endBattle(...args);
-      }).catch(() => cloudFatal());
+      }).catch(e => cloudFatal(e, "戦闘の再開・進行"));
     }
     return;
   }
@@ -19657,7 +19657,7 @@ function saveBeforeLeaving() {
       const snap = {};
       for (const k of SAVE_FIELDS) snap[k] = G[k];
       cloudCheckpointNow(JSON.stringify(refSerialize(snap, { compact: cloudCompactGraph() })));
-    } catch { cloudFatal(); }
+    } catch (e) { cloudFatal(e, "終了時の記録の準備"); }
   }
   autosave(true);
 }
@@ -20644,7 +20644,7 @@ function startAfterTitle(loaded) {
   try {
     resumeFromState();
   } catch (e) {
-    if (cloudEnabled() && !testPlayActive) { cloudFatal(); return; }
+    if (cloudEnabled() && !testPlayActive) { cloudFatal(e, "保存した画面の再開"); return false; }
     try {
       G.state = "town"; G.town = { facility: null, sub: null, tab: "hub", page: null };
       G.statusOpen = false; G.settingsOpen = false; G.prompt = false; G.anim = null; G.walking = false;
@@ -20687,7 +20687,7 @@ function startAfterTitle(loaded) {
 }
 init().catch((e) => {
   console.error("ゲームの起動に失敗しました", e);
-  if (cloudEnabled()) { revealBootScreen(); cloudFatal(); }
+  if (cloudEnabled()) { revealBootScreen(); cloudFatal(e, "記録の読込・起動"); }
   else window.dosBoot?.fail("ゲームを起動できませんでした。冒険の記録は消さずに、再読み込みしてください。");
 });
 
