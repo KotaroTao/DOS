@@ -1,4 +1,6 @@
-import { setFxQuality } from "../skill-fx-budget.js";
+import { APP_VERSION } from "../game-update.js";
+import { materialPerformance } from "../skill-fx-materials.js";
+import { setFxQuality, fxPerformance } from "../skill-fx-budget.js";
 import { showSaveMetrics } from "../save-metrics.js";
 // ===== 設定 — キットのシート (音量の目盛り・切り替え・自動化の好み・データ削除) =====
 // 担当: WP-A。⚙ (タブの見出し・盤面のトップバー) から開く。戻る操作 / 背景タップ / 下へ引く で閉じる。
@@ -128,9 +130,9 @@ function fillSound(box) {
     setTimeout(() => { if (status.isConnected) { sfx("select"); describe(); } }, 500);
   } }));
   box.appendChild(button({ label: "音声の診断情報を表示", kind: "ghost", onTap: () => {
-    const info = { ...audioDebug(), browser: navigator.userAgent,
+    const info = { version:APP_VERSION,viewport:{width:innerWidth,height:innerHeight,dpr:devicePixelRatio},combat:fxPerformance(),materials:materialPerformance(),...audioDebug(), browser: navigator.userAgent,
       standalone: !!navigator.standalone || !!window.matchMedia?.("(display-mode: standalone)").matches };
-    sheet.open({ title: "音声の診断情報", lines: ["音が出ない時は、この情報をお知らせください。"], body: body => {
+    sheet.open({ title: "音声の診断情報", lines: ["戦闘中のかくつきや音切れが起きた後に、この情報をお知らせください。"], body: body => {
       const text = el("textarea", "stg-audio-info");
       text.readOnly = true; text.rows = 12; text.style.width = "100%";
       text.setAttribute("aria-label", "音声の診断情報");

@@ -628,21 +628,24 @@ export function naturalSkillName(kind='magic',rank=1,duration=400,preparation=fa
 }
 
 const CACHE = new Map();
+let builds=0,buildMaxMs=0,bufferBytes=0;
+export function sfxPerformance(){return {cachedSounds:CACHE.size,builds,buildMaxMs,bufferBytes};}
 // 効果音のバッファ (揺らぎのうち1つをランダムに)。ctx は AudioBuffer 作成用
 export function sfxBuffer(name, ctx) {
   const def = SFX_DEFS[name];
   if (!def) return null;
   let arr = CACHE.get(name);
   if (!arr) {
+    const started=performance.now();
     arr = [];
     for (let v = 0; v < (def.vars || 1); v++) {
       const r = rng(0x5f0 + v * 977 + name.length * 31 + name.charCodeAt(0));
       const g = def.gen(r);
       const b = ctx.createBuffer(g.ch.length, g.ch[0].length, g.sr);
       g.ch.forEach((c, i) => b.getChannelData(i).set(c));
-      arr.push(b);
+      arr.push(b);bufferBytes+=g.ch.length*g.ch[0].length*4;
     }
-    CACHE.set(name, arr);
+    CACHE.set(name, arr);builds++;buildMaxMs=Math.max(buildMaxMs,performance.now()-started);
   }
   return arr[Math.floor(Math.random() * arr.length)];
 }

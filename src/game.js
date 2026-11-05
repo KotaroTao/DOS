@@ -1,7 +1,7 @@
-import { recordBattleFrame } from './skill-fx-budget.js';
+import { recordBattleFrame, battlePaintDue } from './skill-fx-budget.js';
 import { planAuto, warmAutoPlanner } from './auto-planner.js';
 import { showFieldSkillFx } from "./skill-fx-field.js";
-import { PHYSICAL_HIT_MS, emitSkillFx, skillFxSound, skillFxDuration, extendedSkillFx, enemySkillFxProfile, beginSkillFxPresentation } from "./skill-fx.js";
+import { PHYSICAL_HIT_MS, warmSkillFx, emitSkillFx, skillFxSound, skillFxDuration, extendedSkillFx, enemySkillFxProfile, beginSkillFxPresentation } from "./skill-fx.js";
 import { beginBattleWindup } from "./battle-windup.js";
 import { createTrial } from "./choice-trial.js";
 import { battleCommand } from "./cloud-battle.js";
@@ -11333,6 +11333,7 @@ function prepareBattleAction(battle, onFrame = null) {
   const pending = battle.pending, actor = pending?.actor;
   if (!actor || actor.side !== "party") return { stop() {} };
   const spell = pending.spellKey && SPELLS[pending.spellKey];
+  if (spell) warmSkillFx(pending.spellKey,spell);
   const cast = !!spell && spell.kind !== "phys" && !spell.tech;
   const label = pending.action === "attack" ? "攻撃" : pending.action === "spell" ? `${spell?.name || "技"}`
     : pending.action === "defend" ? "防御の構え" : pending.action === "run" ? "退路を探る" : pending.action === "item" ? `${pending.item?.name || "道具"}を準備` : "攻撃の構え";
@@ -11590,6 +11591,7 @@ function animateResult(res, done) {
   let finished = false;
   const finish = () => { if (!finished && G.battle === battle && G.state === "combat") { finished = true; done(); } };
 
+  if (res.spellKey) warmSkillFx(res.spellKey,SPELLS[res.spellKey]);
   const presentation=fxProfile(res);
   if(presentation)SFX.warmSkill?.(skillFxSound(presentation.family,presentation.tier,SPELLS[res.spellKey]),{physical:presentation.kind==='phys',rank:presentation.tier,duration:skillFxDuration(presentation,1,{auto:!!G.autoCombat,fast:!!G.fastAnim})});
   callPartyAction(res); // 札の肖像に使った技の名 (手番の初めから)
@@ -11606,7 +11608,7 @@ function animateResult(res, done) {
     const tick = () => {
       if (G.fx !== fx || G.battle !== battle || G.state !== "combat") return;
       if (end === null) { renderParty(); end = battleResultEnd(fx, performance.now()); }
-      renderCombatCanvas();
+      if (battlePaintDue(performance.now(), fx)) renderCombatCanvas();
       if (performance.now() >= end) { finishBattleResult(fx, finish); return; }
       requestAnimationFrame(tick);
     };
@@ -11666,7 +11668,7 @@ function animateResult(res, done) {
       const hasScene = fx.skill.some(e => e.type === 'skillScene' && extendedSkillFx(e.design));
       TOTAL = hasScene ? end - t0 : Math.max(TOTAL, end - t0);
     }
-    renderCombatCanvas();
+    if (battlePaintDue(performance.now(), fx)) renderCombatCanvas();
     if (t >= TOTAL) {
       finishBattleResult(fx, finish);
     } else {
@@ -20252,6 +20254,8 @@ function wireUI() {
 // 街タブ・王宮タブ・酒場/祠のページ・宿のシート・設定のシート・物語の場面 (src/ui/hub.js ほか) が使う game.js の内部。
 // 読み込み時に一度 bindGame で結ぶ (wireUI の bindGame と同じ窓口に足し込む。名前は重ねない)
 async function returnToTitle() {
+  // 更新待ちの間にオートが次の命令を送り続けない。現在の確定処理は終える。
+  if (G.autoCombat) stopAutoCombat();
   if (!testPlayActive) {
     // 接続前・サーバーの結果反映中には、現在の画面を捨てない。
     if (cloudEnabled() && (!cloudReady() || _cloudResolving)) return false;
