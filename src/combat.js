@@ -612,8 +612,8 @@ function evDealMul(actor, tgt) {
 }
 // 属性耐性力: 出来事の加護も同属性へ加算する。
 // 旧台帳の100は固有無効。部分耐性は上限を適用してから、くさびで下げる。
-function modeResistance(t, key) {
-  const raw = Math.max(0, t?.[key] || 0);
+function modeResistance(t, key, value = t?.[key]) {
+  const raw = Math.max(0, value || 0);
   if (raw >= 100 && t?.side !== "party") return 100;
   return Math.max(0, Math.min(80, raw) - (key === "physResist" ? Math.max(t?._wedge||0,t?._bkPhysDown||0) : (t?._bkMagDown||0)));
 }
@@ -1560,8 +1560,8 @@ export class Battle {
     return null;
   }
   // 恒常軽減の積が10%を割る分だけ戻す。防御・回数制の壁・かばうはこの上限の外。
-  _passiveCorrection(t, actor, el, kind, ignore = 0, elementFloor = false) {
-    const r = modeResistance(t, kind === "phys" ? "physResist" : "magResist");
+  _passiveCorrection(t, actor, el, kind, ignore = 0, elementFloor = false, resistance = null) {
+    const r = resistance ?? modeResistance(t, kind === "phys" ? "physResist" : "magResist");
     const mode = r >= 100 && t.side !== "party" ? 0 : 1 - Math.min(.8, Math.max(0, r) / 100) * (1 - ignore);
     if (!mode) return 1; // 固有の完全無効は別
     const scale = this._bm(t, "r_" + el) * this._bm(t, "r_all");
@@ -3649,7 +3649,10 @@ export class Battle {
     let m = 1;
     if (tgt._barrierLeft > 0) m *= 0.5;
     if (tgt.guard) m *= 1 - tgt.guard;
-    return hitP * (critP * Math.max(1, crit * m) + (1 - critP) * Math.max(1, plain * m)) * this._passiveCorrection(Object.create(opt.actual ? tgt : elemMask(tgt, actor), {[resistKey]:{value:r},_wedge:{value:0},_bkPhysDown:{value:0},_bkMagDown:{value:0}}), actor, aE, resistKey === "magResist" ? "magic" : "phys", resistIgnore);
+    // 敵の予測では、計算済みの抵抗値を引数で渡す。値を差し替えるだけの
+    // 一時オブジェクトを毎回作らず、未開示の属性の見かけもこの一発の中で共用する。
+    const correctionTarget = tgt.side === "enemy" ? tv : Object.create(tv, {[resistKey]:{value:r},_wedge:{value:0},_bkPhysDown:{value:0},_bkMagDown:{value:0}});
+    return hitP * (critP * Math.max(1, crit * m) + (1 - critP) * Math.max(1, plain * m)) * this._passiveCorrection(correctionTarget, actor, aE, resistKey === "magResist" ? "magic" : "phys", resistIgnore, false, tgt.side === "enemy" ? r : null);
   }
   // 通常攻撃 1 手の期待ダメージ (連撃の回数 + 二刀流の左手の一撃。左手の射程で届かなければ左手は数えない)
   estBasic(actor, tgt, opt = {}) {
@@ -3696,12 +3699,14 @@ export class Battle {
     if (r >= 100) return 0;
     if (r > 0) dmg *= 1 - Math.min(.8, resistRate(r)) * (1 - this._rk(actor, "archmageShinen", [0.25, 0.50, 0.75, 1]));
     if (pv(actor, "gokudoku") && t.ailment === "poison") dmg *= 1.3;
-    dmg *= evDealMul(actor, t) * (1 + this._perkSum(actor, "deal", { tgt: opt.actual ? t : elemMask(t, actor), el: sp.element || "none", on: ["spell"] }));
+    const tv = opt.actual ? t : elemMask(t, actor);
+    dmg *= evDealMul(actor, t) * (1 + this._perkSum(actor, "deal", { tgt: tv, el: sp.element || "none", on: ["spell"] }));
     const critP = this._spellCritChance(actor, sp);
     const critMul = this._spellCritMul(actor);
     dmg *= 1 + critP * (critMul - 1);
     if (t.guard) dmg *= 1 - t.guard;
-    dmg *= this._passiveCorrection(Object.create(opt.actual ? t : elemMask(t, actor), {magResist:{value:r}}), actor, sp.gravity ? "none" : sp.element, "magic", this._rk(actor, "archmageShinen", [.25, .5, .75, 1]), !!pv(actor, "elemFloor"));
+    const correctionTarget = t.side === "enemy" ? tv : Object.create(tv, {magResist:{value:r}});
+    dmg *= this._passiveCorrection(correctionTarget, actor, sp.gravity ? "none" : sp.element, "magic", this._rk(actor, "archmageShinen", [.25, .5, .75, 1]), !!pv(actor, "elemFloor"), t.side === "enemy" ? modeResistance(t, "magResist", r) : null);
     return Math.max(1, dmg);
   }
   // 回復呪文の1人あたりの期待回復量 (揺らぎの平均込み)
