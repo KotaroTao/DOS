@@ -235,6 +235,11 @@ export function planBestEquip(dolls, opts = {}) {
     sim.set(d, { equip: { ...(d.equip || {}) }, items: bags.get(d.items) });
   }
 
+  // 共有袋は最初の持ち主から一度だけ調べる。受け渡し元の選び順も保つ。
+  const owners = [...bags.values()].map(items => poolDolls.find(d => sim.get(d).items === items));
+  // 他の人業の付け替えでは、この人業の能力差と評価は変わらない。
+  // 袋の空き・候補の在庫は毎回確認し、装備が変わった人業だけ評価を捨てる。
+  const evaluations = new Map();
   const moves = [];
   let total = 0;
   for (let n = 0; n < maxMoves; n++) {
@@ -242,8 +247,19 @@ export function planBestEquip(dolls, opts = {}) {
     for (const t of targets) {
       const st = sim.get(t);
       if (!st) continue;
-      const baseStats = recalcPreview(t, st.equip);
-      for (const owner of poolDolls) {
+      let cached = evaluations.get(t);
+      if (!cached || cached.equip !== st.equip) {
+        cached = { equip: st.equip, base: recalcPreview(t, st.equip), scores: new Map() };
+        evaluations.set(t, cached);
+      }
+      const evaluate = (key, equip) => {
+        if (!cached.scores.has(key)) {
+          const delta = statsDelta(cached.base, recalcPreview(t, equip));
+          cached.scores.set(key, { delta, gain: score(t, delta) });
+        }
+        return cached.scores.get(key);
+      };
+      for (const owner of owners) {
         const os = sim.get(owner);
         for (const item of os.items) {
           if (!isAutoCandidate(item)) continue;
@@ -255,14 +271,13 @@ export function planBestEquip(dolls, opts = {}) {
             if (!tr) continue;
             const bagAfter = bagCount(st.items) - (os.items === st.items && !isFormationItem(item) ? 1 : 0) + bagCount(tr.displaced);
             if (bagAfter > maxItems) continue;
-            const delta = statsDelta(baseStats, recalcPreview(t, tr.equip));
-            const g = score(t, delta);
+            const { delta, gain: g } = evaluate(`${oid(item)}:${key}`, tr.equip);
             if (g > EPS && (!best || g > best.gain + 1e-9)) {
               best = { doll: t, item, from: owner, slotKey: key, displaced: tr.displaced, gain: g, equip: tr.equip, delta };
             }
             // 両手武器から「片手武器 + 盾 (二刀流なら左手の武器)」への持ち替えは2手を1組で比べる (片手武器だけでは攻撃力が下がり、選ばれないため)
             if (key === "weapon" && item.slot === "weapon" && !item.twoHanded && st.equip.weapon && st.equip.weapon.twoHanded && !st.equip.shield) {
-              for (const owner2 of poolDolls) {
+              for (const owner2 of owners) {
                 for (const sh of sim.get(owner2).items) {
                   // 盾の代わりに左手の片手武器も組める (二刀流)
                   if (sh === item || !isAutoCandidate(sh) || !(sh.slot === "shield" || slotKeysFor(sh, t).includes("shield"))) continue;
@@ -273,8 +288,7 @@ export function planBestEquip(dolls, opts = {}) {
                   if (!tr2) continue;
                   const bag2 = bagAfter - (sim.get(owner2).items === st.items && !isFormationItem(sh) ? 1 : 0) + bagCount(tr2.displaced);
                   if (bag2 > maxItems) continue;
-                  const d2 = statsDelta(baseStats, recalcPreview(t, tr2.equip));
-                  const g2 = score(t, d2);
+                  const { delta: d2, gain: g2 } = evaluate(`${oid(item)}:${key}:${oid(sh)}`, tr2.equip);
                   if (g2 > EPS && (!best || g2 > best.gain + 1e-9)) {
                     best = { doll: t, item, from: owner, slotKey: key, displaced: tr.displaced, gain: g2, equip: tr.equip, delta: d2,
                       pair: { item: sh, from: owner2, displaced: tr2.displaced, equip: tr2.equip } };
