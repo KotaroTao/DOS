@@ -343,6 +343,8 @@ const visionHitBonus = (actor, tgt) => actor && actor.side === "party" && tgt &&
 // passiveMap は recalcDoll が作り直すたびに別の器になるので、器ごとに覚えておく
 const _perkCache = new WeakMap(), _gearCache = new WeakMap(), _perkTypeCache = new WeakMap();
 const NO_PERKS = [];
+// 武魂の合計上限は固定。補正を求めるたびに同じ表を作らない。
+const BUKON_SUM_CAP = { deal: 1, take: .8, crit: .8, heal: 1 };
 // 無限迷宮の追加の特性 (装備の fx。items.js recalc が a.gearPerks に集める) も固有パッシブと同じ形で足す
 function perksOf(a) {
   const own = perksOfPassives(a);
@@ -1341,7 +1343,7 @@ export class Battle {
         else sum += lvv(c.v, lv) || 0;
       }
     }
-    sum += best + bukonUncapped + Math.min(({deal:1,take:.8,crit:.8,heal:1})[type]??Infinity,bukonSum);
+    sum += best + bukonUncapped + Math.min(BUKON_SUM_CAP[type]??Infinity,bukonSum);
     // 破魔の祝詞: 生存者の最高ランクだけ。灯守の「闇を照らす灯」などとは加算する。
     if (type === "deal" && ctx.tgt && ctx.tgt.side === "enemy" && UNHOLY.includes(enemyRace(ctx.tgt))) {
       sum += this._rkParty("exorcistJouka", [0.10, 0.15, 0.20, 0.25]);
