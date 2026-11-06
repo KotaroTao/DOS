@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import {replaceBukon} from '../../src/bukon.js';
+const old={k:'flat_hp',lv:3},other={k:'flat_mp',lv:2};
+const it={slot:'weapon',rar:'r',locked:true,bukon:[old,other]};
+const g={bukonStock:{'flat_atk:1':'1'}};
+assert.equal(replaceBukon(g,it,{k:'flat_atk',lv:1},old),true);
+assert.equal(g.bukonStock['flat_hp:3'],'1');assert.equal(g.bukonProtected['flat_hp:3'],true);
+assert.equal(it.bukon[1],other);
+let before=JSON.stringify([g,it]);
+assert.equal(replaceBukon(g,it,{k:'flat_atk',lv:1},other),false);
+assert.equal(JSON.stringify([g,it]),before);
+assert.equal(replaceBukon(g,it,{k:'flat_hp',lv:3},old),false); // 古い画面の参照
+assert.equal(JSON.stringify([g,it]),before);
+const soul={k:'flat_hp',lv:9,fusionUnlocked:true},source={slot:'body',bukon:[soul]};
+assert.equal(replaceBukon(g,it,{it:source,soul},other),true);
+assert.equal(it.bukon[1],soul);assert.equal(source.bukon.length,0);
+assert.equal(soul.fusionUnlocked,true);
+const missing={k:'flat_mp',lv:99};before=JSON.stringify([g,it]);
+assert.equal(replaceBukon(g,it,missing,soul),false);assert.equal(JSON.stringify([g,it]),before);
+it.cursed=true;assert.equal(replaceBukon(g,it,{k:'flat_hp',lv:3},soul),false);
+console.log('武魂交換: 在庫・保護・実物の移動・重複・古い選択・不足・呪い・失敗時不変 OK');

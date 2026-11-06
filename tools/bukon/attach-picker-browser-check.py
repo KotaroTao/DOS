@@ -27,7 +27,7 @@ with sync_playwright() as p:
     active='.ui-sheet-wrap:not(.closing) '
     def sheet(cls): return page.locator(active+cls)
     def listed():return sheet('.bk-list-sheet')
-    def hp():return listed().locator('.bk-stock-row').filter(has=page.get_by_role('button',name='HP加算 +10',exact=True)).first
+    def hp():return listed().locator('.bk-stock-row').filter(has=page.get_by_role('button',name='HP加算 +10',exact=True)).filter(has_not=page.locator('.bk-installed-note')).first
     page.locator('.bk-panel').get_by_role('button',name='武魂一覧',exact=True).click()
 
     listed().locator('.bk-stock-row').filter(has=page.get_by_role('button',name='火属性攻撃力上昇 20%',exact=True)).get_by_role('button',name='宿す',exact=True).click()
@@ -44,20 +44,16 @@ with sync_playwright() as p:
             assert picker.locator('.pt-slot:disabled').first.evaluate("c=>getComputedStyle(c).filter.includes('brightness(0.4)')")
         page.screenshot(path=f'/tmp/dos-bukon-picker-{width}.png')
         print(width,'OK 肖像画像・人業切替・対応部位の装備を有効・対象外を暗転')
-    # 枠が埋まり、同じ効果が宿るロック装備も選び、外してから付け替えられる。
+    # 枠が埋まり、同じ効果が宿るロック装備でも、選んだ武魂を直接入れ替えられる。
     picker.locator('.wpc-character').first.click()
     weapon=picker.locator('[data-slot="weapon"]')
     assert weapon.is_enabled()
     before=page.evaluate('JSON.stringify([t.game.G.bukonStock,t.game.G.party[0].equip.weapon.bukon])')
     weapon.click()
-    gear=sheet('.bk-sheet:not(.bk-list-sheet):not(.bk-equip-sheet)')
+    gear=sheet('.bk-replace-sheet')
     assert page.evaluate('JSON.stringify([t.game.G.bukonStock,t.game.G.party[0].equip.weapon.bukon])')==before
-    assert gear.locator('.bk-copy-rows .bk-stock-row').count()==0
-    gear.get_by_role('button',name='外す',exact=True).first.click()
-    gear.locator('.bk-copy-rows .bk-stock-row').filter(has=page.get_by_role('button',name='火属性攻撃力上昇 20%',exact=True)).get_by_role('button',name='宿す',exact=True).click()
+    gear.get_by_role('button',name='火属性攻撃力上昇 40%と入れ替える',exact=True).click()
     assert page.evaluate("t.game.G.party[0].equip.weapon.bukon.some(b=>b.k==='elem_atk_fire'&&b.lv===1)&&t.game.G.party[0].equip.weapon.bukon.length===3&&t.game.G.party[0].equip.weapon.locked&&t.game.G.bukonStock['elem_atk_fire:2']==='1'")
-    gear.get_by_role('button',name='閉じる',exact=True).first.click()
-    picker.get_by_role('button',name='閉じる',exact=True).first.click()
     # 全部位向けの武魂でも、呪い・未鑑定・記憶品は選べない。
     hp().get_by_role('button',name='宿す',exact=True).click()
     picker=sheet('.bk-equip-sheet')
@@ -66,14 +62,13 @@ with sync_playwright() as p:
         assert picker.locator(f'[data-slot="{slot}"]').is_disabled()
     assert picker.locator('[data-slot="weapon"]').is_enabled()
     picker.get_by_role('button',name='閉じる',exact=True).first.click()
-    # 一覧で選んだ武魂自身の宿し先も開き、外す操作ができる。
-    listed().locator('.bk-stock-row').filter(has=page.get_by_role('button',name='火属性攻撃力上昇 20%',exact=True)).filter(has=page.locator('.bk-installed-note')).first.get_by_role('button',name='宿す',exact=True).click()
+    # 保管中の武魂を空の装備へ一度のクリックで宿す。
+    hp().get_by_role('button',name='宿す',exact=True).click()
     picker=sheet('.bk-equip-sheet')
     picker.locator('.wpc-character').first.click()
-    picker.locator('[data-slot="weapon"]').click()
-    gear=sheet('.bk-sheet:not(.bk-list-sheet):not(.bk-equip-sheet)')
-    gear.get_by_role('button',name='外す',exact=True).last.click()
-    assert page.evaluate("!t.game.G.party[0].equip.weapon.bukon.some(b=>b.k==='elem_atk_fire')&&t.game.G.bukonStock['elem_atk_fire:1']==='1'")
-    print(engine,'OK 満杯・同効果・装着先自身を選択、取り外し後の付け替え・保管回収、呪い/未鑑定/記憶の制限')
+    picker.locator('[data-slot="hands"]').click()
+    assert page.evaluate("t.game.G.party[0].equip.hands.bukon.some(b=>b.k==='flat_hp')")
+    assert sheet('.bk-replace-sheet').count()==0
+    print(engine,'OK 装備選択で即座に宿す・満杯の入れ替え・保管回収・制限')
     assert not errors,errors
     browser.close()

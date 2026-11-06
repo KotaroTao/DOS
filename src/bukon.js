@@ -176,6 +176,21 @@ export function attachBukon(g, it, b) {
   if (attachBlock(it,b) || !stockAdd(g,b,-1n)) return false;
   (it.bukon ||= []).push({ k:b.k, lv:b.lv }); return true;
 }
+// 入れ替え先と供給元をすべて検証してから、一度に移す。
+export function replaceBukon(g, it, incoming, replaced) {
+  const source=incoming?.it, soul=source?incoming.soul:incoming;
+  const index=it?.bukon?.indexOf(replaced) ?? -1;
+  if(index<0 || attachBlock({...it,bukon:it.bukon.filter((_,i)=>i!==index)},soul))return false;
+  if(source){
+    if(source===it||source.cursed||!source.bukon?.includes(soul))return false;
+  }else if(!validBukon(soul)||BigInt(bukonStock(g)[bukonKey(soul)]||0)<1n)return false;
+  if(source)source.bukon.splice(source.bukon.indexOf(soul),1);
+  else stockAdd(g,soul,-1n);
+  stockAdd(g,replaced);
+  if(replaced.fusionUnlocked!==true)(g.bukonProtected ||= {})[bukonKey(replaced)]=true;
+  it.bukon[index]=source?soul:{k:soul.k,lv:soul.lv};
+  return true;
+}
 export function detachBukon(g, it, index) {
   if (!it || it.soulMemory || it.cursed || !it.bukon?.[index]) return false;
   stockAdd(g,it.bukon[index]); it.bukon.splice(index,1); return true;

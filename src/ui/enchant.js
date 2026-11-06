@@ -123,19 +123,32 @@ function openGear(it, done, preferred = null) {
   h=sheet.open({title:itemName(it),className:"ec-sheet bk-sheet",body:fill,footer:[{label:"閉じる",kind:"ghost",onTap:()=>h.close()}]});
 }
 const isPreferred = (b,p) => p.soul ? b.soul===p.soul : !b.it&&b.k===p.k&&b.lv===p.lv;
-// 武魂タブと同じ人業選択・装備欄から、既存の着脱画面へ進む。
+// 空き装備は即座に宿し、既存の武魂があれば入れ替え先を選ぶ。
+function attachFromList(it,b,done) {
+  if (!(it.bukon || []).length) { action(b.it?"move":"attach",it,b,done); return; }
+  let h;
+  const complete=()=>{h.close();done();};
+  h=sheet.open({title:"入れ替える武魂を選ぶ",className:"bk-sheet bk-replace-sheet",body:body=>{
+    body.append(el("p","rf-note",`${itemName(it)}に「${bukonName(b)}」を宿す。入れ替えた武魂は商会の保管に戻る。`));
+    if(!attachBlock(it,b))body.append(button({label:"空き枠に宿す",kind:"primary",onTap:()=>action(b.it?"move":"attach",it,b,complete)}));
+    for(const old of it.bukon || []) {
+      const blocked=attachBlock({...it,bukon:it.bukon.filter(x=>x!==old)},b);
+      body.append(button({label:`${bukonName(old)}と入れ替える`,disabled:!!blocked,title:blocked||"",onTap:()=>action("replace",it,{incoming:b,replaced:old},complete)}));
+    }
+  },footer:[{label:"やめる",kind:"ghost",onTap:()=>h.close()}]});
+}
 function openSoulEquipment(b, doll, done) {
   let h, selected=doll || game.allDolls().find(d=>!d.isEmpty);
   const draw=()=>h.update({});
   h=sheet.open({title:"武魂を宿す・外す",className:"ec-sheet bk-sheet bk-equip-sheet",body:body=>{
-    body.append(el("p","rf-note",`${bukonName(b)} — 装備を選ぶと、武魂を宿す・外す操作ができる。`));
+    body.append(el("p","rf-note",`${bukonName(b)} — 装備を選ぶと宿す。武魂がある装備は、入れ替える武魂を選べる。`));
     body.append(UI.shopBuyerStrip({bukon:true,portraitImages:true,doll:selected,onSelect:d=>{selected=d;draw();}}));
     const slots=el("div","pt-slots bk-equipment");
     if(selected)for(const k of SLOTS){
-      const cell=slotCell(selected,k,{bukonOnly:true,onPick:it=>{if(it)openGear(it,()=>{draw();done();},b);}});
+      const cell=slotCell(selected,k,{bukonOnly:true,onPick:it=>{if(it)attachFromList(it,b,()=>{h.close();done();});}});
       const equipped=selected.equip?.[k];
-      // 空き枠と同効果の重複は詳細内で外して解消できる。ここでは装備自体の条件だけを見る。
-      const blocked=attachBlock(equipped?{...equipped,bukon:[]}:null,b);
+      // 枠や同効果の重複は入れ替えで解消できる。同じ供給元は選べない。
+      const blocked=equipped===b.it?"すでにこの装備に宿っている":attachBlock(equipped?{...equipped,bukon:[]}:null,b);
       cell.disabled=!!blocked;
       if(blocked)cell.title=blocked;
       slots.append(cell);
