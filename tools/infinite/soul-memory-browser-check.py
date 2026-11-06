@@ -16,6 +16,8 @@ with sync_playwright() as p:
       const {refSerialize,refDeserialize}=await import('/src/savegraph.js');
       const {sheet}=await import('/src/ui/kit.js');
       const G=__game.G, inf=__game.inf, out=[];
+      const {CHAPTERS}=await import('/src/story.js');
+      for(const no of [5,10])__game.worldState().reported[CHAPTERS.find(c=>c.no===no).finale]=true; // 読み込み後も無限迷宮・101階を開く。
       const check=(ok,msg)=>{if(!ok)throw Error(msg);out.push(msg);};
       const picks=[];for(let i=0;i<6;i++)picks.push(rollStartSouls(picks)[0]);
       const home={party:G.party,souls:G.souls,bag:G.inventory,gold:G.gold,soulCount:G.souls.length};
@@ -125,7 +127,7 @@ with sync_playwright() as p:
       check((G.shopStock[fresh.id]||0)===stock+1,'通常帰還で新規入手品だけ商会へ');
       check(G.souls.length===e.home.soulCount+1&&G.souls.at(-1).clsKey===e.key,'新規入手した魂だけ本編に加わる');
       for(const d of G.party){d.stability=100;d.stabilityAt=Date.now();}
-      await new Promise(r=>setTimeout(r,600));sheet.closeAll();check(inf.enterAbyss(null,false,false,50),'同じ記憶から再挑戦');
+      await new Promise(r=>setTimeout(r,600));sheet.closeAll();check(inf.enterAbyss(null,false,50),'同じ記憶から再挑戦');
       check(G.party[0].equip.weapon.q===73,'売却後も次の挑戦で元の装備を復元');
       G.floor=100;G.abyss.depth=100;G.abyss.guardFloor=100;
       check(game.infSaveMemory(),'100階の記憶を独立して保存');
@@ -163,7 +165,7 @@ with sync_playwright() as p:
       sheet.closeAll();inf.returnToTown({outcome:'wipe'});
       const homeSouls=G.souls.length,homeEmbers=G.embers;
       for(const d of G.party){d.stability=100;d.stabilityAt=Date.now();}
-      check(inf.enterAbyss(null,false,false,100)&&G.floor===101,'読み込んだ100階の記憶から101階へ');
+      check(inf.enterAbyss(null,false,100)&&G.floor===101,'読み込んだ100階の記憶から101階へ');
       const id=G.party[0].equip.weapon.id,stock=G.shopStock[id]||0;
       G.inventory.push(inf.cloneItem(id,80));
       inf.grantSoulQuiet(G.souls[0].clsKey);G.run.embers=2;
@@ -174,7 +176,7 @@ with sync_playwright() as p:
       check(game.infMemoryAt(100)===memory&&memory.party[0].equip.weapon.q===73,'全滅保護後も記憶を保持');
       await new Promise(r=>setTimeout(r,600));sheet.closeAll();
       for(const d of G.party){d.stability=100;d.stabilityAt=Date.now();}
-      check(inf.enterAbyss(null,false,false,100),'全滅後も同じ記憶から何度でも再開');
+      check(inf.enterAbyss(null,false,100),'全滅後も同じ記憶から何度でも再開');
       const before=G.shopStock[id]||0;inf.returnToTown({outcome:'return'});
       check((G.shopStock[id]||0)===before,'記憶した装備だけの帰還では商会の在庫が増えない');
       return out;
