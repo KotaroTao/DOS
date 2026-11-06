@@ -17,7 +17,7 @@ with sync_playwright() as p:
       const {sheet}=await import('/src/ui/kit.js');
       const G=__game.G, inf=__game.inf, out=[];
       const {CHAPTERS}=await import('/src/story.js');
-      __game.worldState().reported[CHAPTERS.find(c=>c.no===10).finale]=true; // 読み込み後も101階へ入れる進行状態。
+      for(const no of [5,10])__game.worldState().reported[CHAPTERS.find(c=>c.no===no).finale]=true; // 読み込み後も無限迷宮・101階を開く。
       const check=(ok,msg)=>{if(!ok)throw Error(msg);out.push(msg);};
       const picks=[];for(let i=0;i<6;i++)picks.push(rollStartSouls(picks)[0]);
       const home={party:G.party,souls:G.souls,bag:G.inventory,gold:G.gold,soulCount:G.souls.length};
