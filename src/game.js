@@ -938,11 +938,23 @@ function writeLog(msg, cls) {
   setLogText(div, msg);
   logEl.appendChild(div);
   while (logEl.children.length > 80) logEl.removeChild(logEl.firstChild);
-  // 新しいメッセージが来たら最下部へ貼り付け直す。iOS Safari 等では appendChild 直後の
-  // 再レイアウトが間に合わず最新メッセージまでスクロールしきれないことがあるため、次フレームでも実行する。
+  // 一手で増える記録をまとめてからスクロールする。行ごとの scrollHeight は
+  // DOM の追加のたびに同期レイアウトを起こすため、連撃・全体技ほど重くなる。
   _logPinned = true;
-  scrollLogBottom();
-  requestAnimationFrame(scrollLogBottom);
+  scheduleLogBottom();
+}
+let _logScrollPending = false;
+function scheduleLogBottom() {
+  if (_logScrollPending) return;
+  _logScrollPending = true;
+  requestAnimationFrame(() => {
+    if (_logPinned) scrollLogBottom();
+    // iOS Safari のレイアウト確定後にも末尾を合わせる。
+    requestAnimationFrame(() => {
+      _logScrollPending = false;
+      if (_logPinned) scrollLogBottom();
+    });
+  });
 }
 // 札 (題 + 行) を記録へ。題は【】で囲んで区切りにする
 function logSheet(title, lines = [], cls = "sys") {
@@ -2445,6 +2457,13 @@ function preloadDungeon(cfg, floor = 1, priority = 0) {
   // 取り巻き・罠の群れ・強敵・主も出会う前に取得する。
   for (const key of [...(cfg.elites || LAYER_ELITES[cfg.layer || 1] || []), cfg.boss]) if (key) keys.add(key);
   if (cfg.id === activeCfg().id && floor === G.floor && G.board) for (const row of G.board.cells) for (const cell of row) if (cell.monsterKey) keys.add(cell.monsterKey);
+  // 出現表に直接載らない取り巻き・召喚先も先読みする。
+  // Set の反復中の追加は順に処理されるので、連鎖も循環も重複なくたどれる。
+  for (const key of keys) {
+    const mon = MONSTERS[key];
+    if (mon?.escort) keys.add(mon.escort);
+    if (mon?.summonKey) keys.add(mon.summonKey);
+  }
   const tasks = [...keys].map(key => MONSTERS[key]?.photo?.load(priority)).filter(Boolean);
   if (!PREFS.classicBattle) tasks.push(preloadBattleBackground(cfg.id, priority));
   return Promise.all(tasks).then(values => values.every(ok => ok !== false));

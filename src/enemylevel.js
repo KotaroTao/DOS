@@ -80,14 +80,27 @@ function collectAt(key, at, list) {
   }
 }
 
-function worldSpots() {
+const _world = new Map();
+function worldSpots(key) {
   const out = [];
-  for (const cfg of WORLD) for (let f = 1; f <= (cfg.floors || 1); f++) {
-    out.push({
-      cfg, floor: f, base: strengthAt(cfg, f), statWall: statWallOf(cfg), fleeK: fleeScaleOf(cfg, dungeonLevelRaw(cfg, f)), pool: poolAt(cfg, f), tune: cfg.tune, deep: f > (cfg.floors || 3) / 2,
-      bottom: f === cfg.floors, elites: cfg.elites, boss: cfg.boss, bossRank: cfg.bossRank, bossScale: (cfg.bossScale || 1) * ((cfg.tune && cfg.tune.bossMul) || 1),
-      layer: cfg.layer || 1,
-    });
+  const m = MONSTERS[key];
+  for (const cfg of WORLD) {
+    // 普通の魔物は、出現表・取り巻き・召喚元のある迷宮だけを調べる。
+    // ミミック・出来事・金属はどの迷宮にも出うるので従来どおり全階を調べる。
+    const sources = [...(cfg.pool || ["cm_slime"]), ...(cfg.deepPool || []), ...(cfg.bands || []).flat(), ...(cfg.elites || []), cfg.boss];
+    if (!(key === "mimic" || key === "master_mimic" || m?.evOnly || m?.metal) &&
+        !sources.some(k => k === key || MONSTERS[k]?.escort === key || MONSTERS[k]?.summonKey === key)) continue;
+    let spots = _world.get(cfg);
+    if (!spots) {
+      spots = [];
+      for (let f = 1; f <= (cfg.floors || 1); f++) spots.push({
+        cfg, floor: f, base: strengthAt(cfg, f), statWall: statWallOf(cfg), fleeK: fleeScaleOf(cfg, dungeonLevelRaw(cfg, f)), pool: poolAt(cfg, f), tune: cfg.tune, deep: f > (cfg.floors || 3) / 2,
+        bottom: f === cfg.floors, elites: cfg.elites, boss: cfg.boss, bossRank: cfg.bossRank, bossScale: (cfg.bossScale || 1) * ((cfg.tune && cfg.tune.bossMul) || 1),
+        layer: cfg.layer || 1,
+      });
+      _world.set(cfg, spots);
+    }
+    out.push(...spots);
   }
   return out;
 }
@@ -110,13 +123,13 @@ function abyssSpots() {
   return out;
 }
 
-let _world = null, _abyss = null;
+let _abyss = null;
 const _ref = new Map();
 // その魔物の基準 (一番弱く出る所の個体)。{ s: 強さ, e: 組み立てた個体 (AGI は味方の規模) }。どこにも出ない魔物は null
 function baseOf(key) {
   if (_ref.has(key)) return _ref.get(key);
   const list = [];
-  for (const at of (_world ||= worldSpots())) collectAt(key, at, list);
+  for (const at of worldSpots(key)) collectAt(key, at, list);
   if (!list.length) for (const at of (_abyss ||= abyssSpots())) collectAt(key, at, list);
   let best = null;
   for (const c of list) if (!best || c.s < best.s) best = c;
