@@ -21,6 +21,20 @@ Object.assign(ITEMS, CATALOG_ITEMS);
 registerEquipLevel(equipLevelFor);
 registerAffixes(applyAffixes, gearPerks);
 
+// 戦闘中の断念・再戦中断を確定する。戦闘履歴を閉じる前にサーバーで適用する。
+export function cancelCloudBattle(state,mode) {
+  if(state.state!=="combat"||!state.battle)throw Object.assign(new Error("cloud_revision_conflict"),{status:409});
+  if(mode==="rematch"&&state.rematch){
+    const rm=state.rematch;
+    for(const saved of rm.snap||[]){const p=saved.p;if(!p)continue;p.hp=Math.min(saved.hp,p.maxhp||saved.hp);p.mp=Math.min(saved.mp,p.maxmp||saved.mp);p.alive=saved.alive;p.ailment=saved.ailment;p._poisonPct=saved.pct;p._dead=!saved.alive;}
+    state.dungeonIdx=rm.savedIdx;state.floor=rm.savedFloor||1;state.rematch=null;state.run=null;state.state="town";
+  }else if(mode==="abandon"&&!state.rematch){
+    state.run ||= {};state.run.abandoned=true;state.state="over";
+    for(const p of state.party){p.alive=false;p.hp=0;p.asleep=false;p.mind=null;}
+  }else throw Object.assign(new Error("cloud_invalid_choice"),{status:400});
+  state.autoCombat=false;state.battle=null;state.battleCell=null;state.battleIntro=null;
+}
+
 export function resolveCloudBattle(s, operation, choice = null) {
   shareInventory(s);
   const b = s.battle;
