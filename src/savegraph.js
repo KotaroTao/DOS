@@ -88,8 +88,12 @@ export function refDeserialize(data) {
 }
 
 // 演出・開いている画面が握っている人業の参照を、サーバーの返答でも保つ。
-export function applySavePatch(game, packet) {
+export function applySavePatch(game, packet, { preserveTactics = false } = {}) {
   const map = new Map(), done = new Set();
+  // 作戦は端末で選ぶ設定。戦闘結果や先に確定した手番に含まれる古い命令で戻さない。
+  // サーバー確定記録の再構築では保存内容をそのまま使うため、画面への反映時だけ有効にする。
+  const tactics = preserveTactics ? new Map([...(game.party || []), ...(game.reserve || [])]
+    .map(d => [d, d.tactic])) : new Map();
   // 戦闘サーバーは安定度を変更しない。通信待ち中に進んだ自然回復を古い値で戻さない。
   const recovery = new Map([...(game.party || []), ...(game.reserve || [])]
     .filter(d => Number.isFinite(d.stability) && Number.isFinite(d.stabilityAt))
@@ -124,6 +128,10 @@ export function applySavePatch(game, packet) {
   }
   for (const k of Object.keys(snap)) game[k] = copy(snap[k]);
   for (const [d, value] of recovery) Object.assign(d, value);
+  for (const [d, tactic] of tactics) {
+    if (tactic === undefined) delete d.tactic;
+    else d.tactic = tactic;
+  }
   return { result: copy(packet.result), logs: packet.logs || [], modFeed: copy(packet.modFeed || []) };
 }
 

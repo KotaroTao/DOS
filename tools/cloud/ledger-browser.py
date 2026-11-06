@@ -85,11 +85,24 @@ with sync_playwright() as p:
   const response=await fetch('https://cloud.test/functions/v1/game-save',{method:'POST',headers:{Authorization:'Bearer test-token','Content-Type':'application/json'},body:JSON.stringify({protocol:1,op:'save',sessionId:localStorage.getItem('dos-cloud-session:11111111-1111-4111-8111-111111111111'),revision:1,commandId:crypto.randomUUID(),snapshot:snap})});return response.status;
  }''',snap)
  assert rejection==409,rejection
+ # 作戦シートで変えた命令は確定済みの古い応答でも戻らず、戦闘後も保存する。
+ page.evaluate("async()=>{const {openPartyTactics}=await import('/src/ui/party.js');openPartyTactics(__game.G.party)}")
+ page.locator('.pt-tac-who').first.click()
+ page.locator('.pt-tac-b').filter(has_text='刃のみ振るえ').click()
+ page.get_by_role('button',name='閉じる',exact=True).last.click()
+ page.get_by_role('button',name='閉じる',exact=True).last.click()
+ assert page.evaluate('__game.G.party[0].tactic')=='blade'
  page.get_by_role('button',name='オート',exact=True).first.click()
  page.wait_for_function("__game.G.state!=='combat'",timeout=90000)
  page.evaluate("async()=>{await (await import('/src/cloud-save.js')).cloudFlush()}")
  finishes=[x for x in calls if x['body'] and x['body'].get('op')=='ledger-finish']
  assert len(finishes)==1 and finishes[0]['status']==200,finishes
+ assert page.evaluate('__game.G.party[0].tactic')=='blade','戦闘応答で作戦が戻った'
+ # 端末を読み直し、サーバーに保存された作戦も確認する。
+ page.reload()
+ page.locator('.ttl-overlay:not(.ttl-out) .ttl-menu .ttl-btn.primary').click()
+ page.wait_for_function("window.__game?.G.party?.length && document.querySelector('.cloud-gate')?.hidden",timeout=60000)
+ assert page.evaluate('__game.G.party[0].tactic')=='blade','戦闘後の保存で作戦が消えた'
  assert not errors,errors
  appends=[x for x in calls if x['path'].endswith('/cloud_battle_append')]
  assert all(x['bytes']<100 for x in appends),appends
