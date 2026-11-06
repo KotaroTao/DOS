@@ -330,6 +330,7 @@ export class CloudSaveClient {
         // 閉じた戦闘より古い途中保存・選択を後から再適用しない。
         this.storage.removeItem(checkpointKey(this.auth.user.id,this.slot));
         this.storage.removeItem(choiceKey(this.auth.user.id));
+        this.latestCheckpointId=null;
       }
       this.storage.removeItem(pendingKey(this.auth.user.id, this.slot));
     }
@@ -361,6 +362,7 @@ export class CloudSaveClient {
       this.storage.removeItem(pendingKey(this.auth.user.id,this.slot));
       this.storage.removeItem(checkpointKey(this.auth.user.id,this.slot));
       this.storage.removeItem(choiceKey(this.auth.user.id));
+      this.latestCheckpointId=null;
       return {snapshot};
     });
     this.tail=task;
@@ -381,6 +383,7 @@ export class CloudSaveClient {
       this.revision = result.revision; this.ledger = null;
       this.storage.removeItem(pendingKey(this.auth.user.id,this.slot));
       this.storage.removeItem(checkpointKey(this.auth.user.id,this.slot));
+      this.latestCheckpointId=null;
     } finally { this.count--; this.blocking--; this.setBusy(); }
   }
   actionCommand(command) {

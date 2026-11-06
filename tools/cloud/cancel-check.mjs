@@ -24,3 +24,15 @@ for(const op of ['ledger-cancel','ledger-finish']){
  for(const name of ['pending','choice','checkpoint'])assert.equal(storage.getItem('dos-cloud-'+name+':closing'),null);
 }
 console.log('断念/再戦中断: サーバー確定状態・費用未請求・入力制限・閉鎖応答喪失後の旧記録再適用防止: OK');
+
+// 保存集約で残った古い準備済みデータを、断念後の重複保存で復活させない。
+{
+ const disk=new Map(),storage={getItem:k=>disk.get(k)||null,setItem:(k,v)=>disk.set(k,v),removeItem:k=>disk.delete(k)};
+ const c=new CloudSaveClient({protocol:1},{storage});c.auth={user:{id:'closing'}};c.sessionId='session';c.ledger={id:'battle',seq:1};
+ c.latestCheckpointId='old';c.checkpointTail=Promise.resolve({snapshot:refSerialize({state:'combat'}),checkpointId:'old'});
+ let calls=0;c.request=async body=>{calls++;assert.equal(body.op,'ledger-cancel');return {revision:2};};
+ c.claim=async()=>c.confirmed=refSerialize({state:'over'});
+ await c.cancelBattle('abandon');assert.equal(c.latestCheckpointId,null);
+ await c.savePrepared(()=>null);assert.equal(calls,1);assert.equal(refDeserialize(c.confirmed).state,'over');
+}
+console.log('中断後の重複保存で準備済みの旧戦闘を復活させない: OK');
