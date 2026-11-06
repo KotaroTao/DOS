@@ -122,7 +122,12 @@ export function applySavePatch(game, packet) {
     for (const k of Object.keys(x)) y[k] = copy(x[k]);
     return y;
   }
-  for (const k of Object.keys(snap)) game[k] = copy(snap[k]);
+  for (const k of Object.keys(snap)) {
+    // 無限迷宮の保存編成は本編の装備を参照する。旧サーバーの複製で置き換えると、
+    // 街へ退けた実物との参照が切れ、編成の復元がその複製を袋へ追加してしまう。
+    if (k === "formations" && game.abyss?.started) continue;
+    game[k] = copy(snap[k]);
+  }
   for (const [d, value] of recovery) Object.assign(d, value);
   return { result: copy(packet.result), logs: packet.logs || [], modFeed: copy(packet.modFeed || []) };
 }

@@ -471,3 +471,46 @@ console.log('背景保存: 同じ地点の保存依頼で送信待ちを消さ�
   await failure;assert.equal(safe,false,'端末記録の失敗時は行動を始めない');full=false;allow();await ready;await saving;assert.equal(safe,true);
 }
 console.log('背景保存: 古い確定による最新地点の削除防止・端末保管失敗中の行動停止 OK');
+
+// 無限迷宮の戦闘応答で、本編の保存編成・装備を複製しない。
+{
+  const { syncFormationItems } = await import('../../src/formations.js');
+  for (const legacy of [false, true]) {
+    const game = battleState();
+    game.party[0].hp = game.party[0].maxhp = 1000000;
+    game.battle.enemies[0].hp = game.battle.enemies[0].maxhp = 1000000;
+    const worn = {id:'dagger',slot:'weapon'}, stored = {id:'dagger',slot:'weapon',q:73};
+    const home = {inventory:[stored],party:[{equip:{weapon:worn},items:null}],reserve:[]};
+    home.party[0].items = home.inventory;
+    game.abyss = {started:true,home};
+    game.formations = [{members:[{equip:{weapon:worn,shield:stored}}]}];
+    const preset = game.formations[0];
+    syncFormationItems(game);
+    let raw = JSON.stringify(refSerialize(game));
+    for (let n=0;n<24;n++) {
+      if(game.battle.phase==='input') game.battle.chooseAction('defend');
+      const server = clone(game);
+      const response = resolveCloudTurn(server,server.battle.phase==='enemy'?'enemy':'commit');
+      for (const key of ['packet','nextPacket']) {
+        const packet = refDeserialize(response[key]);
+        assert('formations' in packet.snapshot);
+        // inventoryを含まない旧応答でも、本編の保存編成との参照を保つ。
+        if (legacy) delete packet.snapshot.inventory;
+        const wire = refSerialize(packet);
+        applySavePatch(game,refDeserialize(wire));
+        raw = acknowledgedSave(raw,wire);
+        syncFormationItems(game);
+        assert.equal(game.formations[0],preset);
+        assert.deepEqual(home.inventory,[stored]);
+        assert.equal(game.formations[0].members[0].equip.weapon,worn);
+        assert.equal(game.formations[0].members[0].equip.shield,stored);
+        const saved = refDeserialize(JSON.parse(raw));
+        syncFormationItems(saved);
+        assert.equal(saved.abyss.home.inventory.length,1);
+        assert.equal(saved.formations[0].members[0].equip.weapon,saved.abyss.home.party[0].equip.weapon);
+        assert.equal(saved.formations[0].members[0].equip.shield,saved.abyss.home.inventory[0]);
+      }
+    }
+  }
+}
+console.log('無限迷宮: 24行動×新旧応答で本編の袋・保存編成・確定記録の共有参照を維持 OK');
