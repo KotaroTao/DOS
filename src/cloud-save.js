@@ -325,7 +325,13 @@ export class CloudSaveClient {
       this.revision = result.revision;
       if (["command","ledger-command"].includes(body.op)) this.storage.removeItem(choiceKey(this.auth.user.id));
       if (body.op === "ledger-command") this.ledger.seq = result.seq;
-      if (body.op === "ledger-finish") this.ledger = null;
+      if (["ledger-finish","ledger-cancel"].includes(body.op)) {
+        this.ledger=null;this.opening=null;
+        // 閉じた戦闘より古い途中保存・選択を後から再適用しない。
+        this.storage.removeItem(checkpointKey(this.auth.user.id,this.slot));
+        this.storage.removeItem(choiceKey(this.auth.user.id));
+        this.latestCheckpointId=null;
+      }
       this.storage.removeItem(pendingKey(this.auth.user.id, this.slot));
     }
     // 通信中に進めた最新地点は、以前の要求を確定してから同じ列に保存する。
@@ -345,6 +351,23 @@ export class CloudSaveClient {
       await this.enqueue("command", { command: choice.command, commandId: choice.commandId });
     }
   }
+  cancelBattle(mode) {
+    this.count++;this.blocking++;this.setBusy();
+    const task=this.tail.then(async()=>{
+      if(!this.ledger)return null;
+      const body={protocol:this.config.protocol,op:"ledger-cancel",mode,sessionId:this.sessionId,commandId:crypto.randomUUID(),revision:this.revision,battleId:this.ledger.id,seq:this.ledger.seq};
+      const result=await this.retry(()=>{this.storage.setItem(pendingKey(this.auth.user.id,this.slot),requestJSON(body));return this.request(body);});
+      this.revision=result.revision;this.ledger=null;this.opening=null;
+      const snapshot=await this.retry(()=>this.claim());
+      this.storage.removeItem(pendingKey(this.auth.user.id,this.slot));
+      this.storage.removeItem(checkpointKey(this.auth.user.id,this.slot));
+      this.storage.removeItem(choiceKey(this.auth.user.id));
+      this.latestCheckpointId=null;
+      return {snapshot};
+    });
+    this.tail=task;
+    return task.finally(()=>{this.count--;this.blocking--;this.setBusy();});
+  }
   async finishBattle() {
     await this.tail;
     if (!this.ledger) return;
@@ -360,6 +383,7 @@ export class CloudSaveClient {
       this.revision = result.revision; this.ledger = null;
       this.storage.removeItem(pendingKey(this.auth.user.id,this.slot));
       this.storage.removeItem(checkpointKey(this.auth.user.id,this.slot));
+      this.latestCheckpointId=null;
     } finally { this.count--; this.blocking--; this.setBusy(); }
   }
   actionCommand(command) {
@@ -866,3 +890,5 @@ export const cloudActionCommand = command => client.actionCommand(command);
 
 export const cloudFinishBattle = () => client?.finishBattle() || Promise.resolve();
 export const cloudLedgerActive = () => !!client?.ledger;
+
+export const cloudCancelBattle = mode => client?.cancelBattle(mode) || Promise.resolve(null);

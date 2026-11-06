@@ -102,7 +102,10 @@ jobs:
           api=$!
           trap 'kill "$http" "$api"' EXIT
           for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8002/test/state > /dev/null && break; sleep 1; done
+          node tools/cloud/cancel-check.mjs
           python3 tools/cloud/ledger-opening-browser.py
+          python3 tools/cloud/ledger-cancel-browser.py
+          python3 tools/cloud/abandon-browser.py
           python3 tools/cloud/ledger-browser.py
           DOS_LEDGER_NO_WORKER=1 python3 tools/cloud/ledger-browser.py
       - name: Check save, retry, recovery and database contracts

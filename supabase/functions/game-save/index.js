@@ -1,4 +1,4 @@
-import { replayBattleLedger, BATTLE_RULES } from "../../../src/cloud-ledger-replay.js";
+import { replayBattleLedger, canonicalBattleGraph, battleStateHash, BATTLE_RULES } from "../../../src/cloud-ledger-replay.js";
 import { createAuthenticator } from "./auth.js";
 import { replayCloudCommand } from "../../../src/cloud-command-replay.js";
 import { encodeCloudReply } from "../../../src/cloud-wire.js";
@@ -6,7 +6,7 @@ import { commandPacketBase } from "../../../src/cloud-command-codec.js";
 import { createCloudChange, applyCloudChange } from "../../../src/cloud-change.js";
 import { LEGAL_VERSION } from "../../../src/legal.js";
 import { refSerialize, refDeserialize } from "../../../src/savegraph.js";
-import { resolveCloudBattle, resolveCloudTurn, resolveCloudCommand } from "../../../src/cloud-battle.js";
+import { cancelCloudBattle, resolveCloudBattle, resolveCloudTurn, resolveCloudCommand } from "../../../src/cloud-battle.js";
 
 const url = Deno.env.get("SUPABASE_URL");
 const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -71,22 +71,26 @@ async function command(user, body, measure) {
     if (!r.ok) throw Object.assign(new Error("アカウントを削除できません"), { status: 503 });
     return { deleted: true };
   }
-  const ledger = body.battleLedger === true || ["ledger-finish","ledger-preview"].includes(body.op) ? await rpc("cloud_battle_read", { p_user: user.id }) : null;
-  const startGraph = ["claim","ledger-finish","ledger-preview"].includes(body.op) && ledger?.startChange ? ledger.startChange.snapshot || applyCloudChange(s.snapshot,ledger.startChange.change) : s.snapshot;
+  const ledger = body.battleLedger === true || ["ledger-finish","ledger-preview","ledger-cancel"].includes(body.op) ? await rpc("cloud_battle_read", { p_user: user.id }) : null;
+  const startGraph = ["claim","ledger-finish","ledger-preview","ledger-cancel"].includes(body.op) && ledger?.startChange ? ledger.startChange.snapshot || applyCloudChange(s.snapshot,ledger.startChange.change) : s.snapshot;
   if (body.op === "ledger-preview") {
     if (!ledger || ledger.id !== body.battleId || ledger.seq !== body.seq || s.revision !== body.revision || !uuid.test(body.commandId)) throw Object.assign(new Error("cloud_revision_conflict"),{status:409});
     const base = await measure("replay", () => replayBattleLedger(startGraph,ledger,{measure}));
     return measure("replay", () => replayCloudCommand(base.snapshot,body.command,body.commandId,true,true));
   }
-  if (body.op === "ledger-finish") {
+  if (["ledger-finish","ledger-cancel"].includes(body.op)) {
     if (!uuid.test(body.commandId)) throw Object.assign(new Error("通信の形式が不正です"), {status:400});
     if (!ledger) {
-      if (s.last_command === body.commandId && s.last_request?.op === "ledger-finish") return rpc("cloud_commit_slot",{p_user:user.id,p_session:body.sessionId,p_slot:slot,p_revision:body.revision,p_command:body.commandId,p_request:body,p_snapshot:s.snapshot,p_response:s.last_response});
+      if (s.last_command === body.commandId && s.last_request?.op === body.op) return rpc("cloud_commit_slot",{p_user:user.id,p_session:body.sessionId,p_slot:slot,p_revision:body.revision,p_command:body.commandId,p_request:body,p_snapshot:s.snapshot,p_response:s.last_response});
       throw Object.assign(new Error("cloud_battle_missing"),{status:409});
     }
     if (ledger.id !== body.battleId || ledger.seq !== body.seq || ledger.rules !== BATTLE_RULES || s.revision !== body.revision) throw Object.assign(new Error("cloud_revision_conflict"),{status:409});
     const replay = await measure("replay", () => replayBattleLedger(startGraph,ledger,{measure}));
-    if (!replay.terminal) throw Object.assign(new Error("cloud_battle_unfinished"),{status:409});
+    if(body.op==="ledger-cancel"){
+      const state=refDeserialize(replay.snapshot);cancelCloudBattle(state,body.mode);
+      replay.snapshot=canonicalBattleGraph(refSerialize(state,{compact:true}));
+      replay.hash=await battleStateHash(replay.snapshot);
+    }else if (!replay.terminal) throw Object.assign(new Error("cloud_battle_unfinished"),{status:409});
     return rpc("cloud_battle_finish_text",{p_payload:JSON.stringify({p_user:user.id,p_session:body.sessionId,p_battle:ledger.id,p_seq:ledger.seq,p_command:body.commandId,p_request:body,p_snapshot:replay.snapshot,p_response:{battleHash:replay.hash}})});
   }
   if (body.op === "claim") {

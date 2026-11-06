@@ -7,7 +7,7 @@ import { PHYSICAL_HIT_MS, warmSkillFx, emitSkillFx, skillFxSound, skillFxDuratio
 import { beginBattleWindup } from "./battle-windup.js";
 import { createTrial } from "./choice-trial.js";
 import { battleCommand } from "./cloud-battle.js";
-import { cloudLedgerActive, cloudFinishBattle, cloudCommandMode, cloudActionCommand } from "./cloud-save.js";
+import { cloudLedgerActive, cloudFinishBattle, cloudCancelBattle, cloudCommandMode, cloudActionCommand } from "./cloud-save.js";
 import { saveMetrics } from "./save-metrics.js";
 import { refreshPlayTime } from "./ui/playername.js";
 import { resetAutomationPrefs, battleActionGap } from "./ui/prefs.js";
@@ -12686,12 +12686,27 @@ function confirmAbandonDungeon() {
     onOk: abandonDungeon,
   });
 }
-function abandonDungeon() {
-  if ((G.state !== "board" && G.state !== "combat") || G.rematch) return;
+async function cancelSavedBattle(mode) {
+  _cloudResolving=true;
+  try{
+    const sync=await cloudCancelBattle(mode);
+    if(sync?.snapshot){
+      applySavePatch(G,{snapshot:refDeserialize(sync.snapshot)});
+      G.rng=bindRngState(G.rng);setSharedSouls(G.souls);
+      _lastCloudSave=JSON.stringify(sync.snapshot);
+    }
+    return true;
+  }catch(e){cloudFatal(e,"戦闘の断念・中断の保存");return false;}
+  finally{_cloudResolving=false;}
+}
+async function abandonDungeon() {
+  if ((G.state !== "board" && G.state !== "combat") || G.rematch || _cloudResolving) return;
+  const wasCombat=G.state==="combat",oldBattle=G.battle;
+  if(wasCombat && serverBattle() && !await cancelSavedBattle("abandon"))return;
   setAutoMove(false);
   // 古い戦闘への参照を切り、予約済みの行動・演出が全滅後に続かないようにする。
-  if (G.state === "combat") {
-    resetAutoProgress(G.battle);
+  if (wasCombat) {
+    resetAutoProgress(oldBattle);
     G.battle = null; G.battleCell = null; G.battleIntro = null;
     G.animating = false; G.fx = null; G.partyShow = null;
     G.effShow = null; G.modFeed = null;
@@ -17635,7 +17650,8 @@ function finishRematch() {
   autosave(true);
 }
 // 読み込んだセーブが再戦の途中だった: 試合は無かったことにして、隊を挑む前に戻して街へ
-function abortRematch() {
+async function abortRematch() {
+  if(serverBattle() && cloudLedgerActive() && !await cancelSavedBattle("rematch"))return;
   const rm = G.rematch;
   if (rm) for (const s of rm.snap || []) { const p = s.p; if (!p) continue; p.hp = Math.min(s.hp, p.maxhp || s.hp); p.mp = Math.min(s.mp, p.maxmp || s.mp); p.alive = s.alive; p.ailment = s.ailment; p._poisonPct = s.pct; p._dead = !s.alive; }
   finishRematch();
