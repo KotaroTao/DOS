@@ -79,3 +79,5 @@ AUTO_CPU=4 AUTO_PROFILE=/tmp/dos-render-cpu.json python3 tools/performance/auto-
 ```
 
 `battle-render-browser.py` は、別のソース一式を `BATTLE_RENDER_SOURCE_ROOT` に指定して変更前も測れる。`auto-combat-browser.py` も `AUTO_SOURCE_ROOT` の `townart.js` を使うようにし、街の裏処理を含めて比較できるようにした。新規ブラウザ検査を既存のオート戦闘CIへ追加。酒場の心得の追加はなし（内部の描画処理の変更のみ）。
+
+CIで省略された画像の待機処理も非表示Canvasの寸法を読んでいたため、`imageloading.js` も非表示判定を寸法取得より先に行う。画面切替準備中の `.scene-next` は従来どおり対象に含める。`BATTLE_MISSING_ART=1` でCI相当の欠けた画像を再現し、同じ検査を実行できる。

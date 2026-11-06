@@ -8,6 +8,14 @@ with sync_playwright() as p:
     browser = p.chromium.launch(executable_path=os.environ.get('CHROME_BIN', '/usr/bin/chromium'), args=['--no-sandbox'])
     for width, height in [(390, 844), (1024, 1366)]:
         page = browser.new_page(service_workers='block', viewport={'width':width, 'height':height})
+        if os.environ.get('BATTLE_MISSING_ART'):
+            def missing_art(route):
+                url=route.request.url
+                if '/art/effects/' in url or url.endswith(('/art/battle/w01.webp','/art/monsters/bs_bonepile.webp')):
+                    route.continue_()
+                else:
+                    route.fulfill(status=404, body='')
+            page.route('**/art/**', missing_art)
         page.route('**/src/cloud-config.js', lambda r: r.fulfill(content_type='text/javascript', body='export const CLOUD_CONFIG={enabled:false};'))
         page.route('**/src/game.js', lambda r: r.fulfill(content_type='text/javascript', body=(SOURCE/'src/game.js').read_text()+'\nwindow.renderBattleTest=renderCombatCanvas;'))
         page.route('**/src/townart.js', lambda r: r.fulfill(content_type='text/javascript', body=(SOURCE/'src/townart.js').read_text()+'\nwindow.townIdleProbe=idle;'))
