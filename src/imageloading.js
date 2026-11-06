@@ -19,11 +19,14 @@ const scenes = new WeakMap();
 let redrawn = false, blockingNow = false, screenSince = null;
 const SCREEN_DELAY = 200;
 function visible(node) {
-  if (!node?.isConnected || !node.getClientRects?.().length) return false;
+  if (!node?.isConnected) return false;
+  const preparing = node.closest(".scene-next");
+  if (!preparing && node.closest('[hidden], .hidden')) return false;
+  if (!node.getClientRects?.().length) return false;
   const rect = node.getBoundingClientRect();
   if (rect.bottom <= 0 || rect.right <= 0 || rect.top >= innerHeight || rect.left >= innerWidth) return false;
-  if (node.closest(".scene-next")) return true;
-  return !node.closest('[hidden], .hidden') && getComputedStyle(node).visibility !== "hidden";
+  if (preparing) return true;
+  return getComputedStyle(node).visibility !== "hidden";
 }
 function ensureLamp() {
   if (lamp || !document.body) return;

@@ -20,7 +20,7 @@ async def main():
    if name=='auto-planner.js':s=s.replace('export async function planAuto(b,actor,resistKnown,fallback){', 'export async function planAuto(b,actor,resistKnown,fallback){if(window.__game?.G.fx)window.plannerDuringFx++;')
    if name=='game.js':s+='\nwindow.testRenderParty=renderParty;\n'
    await route.fulfill(content_type='text/javascript',body=s)
-  await page.route('**/src/game.js',instrument);await page.route('**/src/autotactics.js',instrument);await page.route('**/src/auto-planner.js',instrument)
+  await page.route('**/src/game.js',instrument);await page.route('**/src/autotactics.js',instrument);await page.route('**/src/auto-planner.js',instrument);await page.route('**/src/townart.js',instrument)
   await page.goto(BASE+'/?testDungeon=w01&testPlace=town')
   await page.wait_for_function('__game?.G.state==="town"&&!document.body.classList.contains("booting")')
   await page.evaluate('''async()=>{
@@ -42,6 +42,8 @@ async def main():
    new PerformanceObserver(list=>longTasks.push(...list.getEntries().map(e=>e.duration))).observe({entryTypes:['longtask']});
    function frame(t){if(!measuring)return;if(last!==null)gaps.push(t-last);last=t;requestAnimationFrame(frame);}requestAnimationFrame(frame);
   }''')
+  if os.environ.get('AUTO_PROFILE'):
+   profiler=await page.context.new_cdp_session(page);await profiler.send('Profiler.enable');await profiler.send('Profiler.start')
   await page.locator('#combat-menu .cmd-auto').click();await page.wait_for_timeout(40000)
   await page.evaluate('measuring=false')
   report=await page.evaluate('''async()=>{measuring=false;__game.G.autoCombat=false;const stats=a=>{a=[...a].sort((a,b)=>a-b);return {count:a.length,p95:a[Math.floor(a.length*.95)]||0,max:a.at(-1)||0,total:a.reduce((a,b)=>a+b,0)};};return {viewport:{width:innerWidth,height:innerHeight,dpr:devicePixelRatio},plannerDuringFx,planner:await import('/src/auto-planner.js').then(m=>m.autoPlannerStats).catch(()=>null),frames:stats(gaps),over34:gaps.filter(x=>x>34).length,longTasks:stats(longTasks),stages:Object.fromEntries(Object.entries(timings).map(([k,a])=>[k,stats(a)]))};}''')
@@ -52,5 +54,8 @@ async def main():
    for name in ['sync:renderCombatCanvas','sync:renderParty','sync:applyImpact','sync:auto.snapshot','wait:auto.workerRoundtrip']:
     assert trace['summary'][name]['count']>0,(name,trace)
    report['timeline']=trace
-  out=Path(os.environ.get('AUTO_REPORT','/tmp/dos-auto-baseline.json'));out.write_text(json.dumps(report,indent=2));print(json.dumps(report,ensure_ascii=False));await browser.close()
+  out=Path(os.environ.get('AUTO_REPORT','/tmp/dos-auto-baseline.json'));out.write_text(json.dumps(report,indent=2));print(json.dumps(report,ensure_ascii=False))
+  if os.environ.get('AUTO_PROFILE'):
+   profile=await profiler.send('Profiler.stop');Path(os.environ['AUTO_PROFILE']).write_text(json.dumps(profile))
+  await browser.close()
 asyncio.run(main())
