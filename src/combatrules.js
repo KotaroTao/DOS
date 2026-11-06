@@ -12,17 +12,27 @@ export function elementValues(value, kind = 'attack') {
   if (value.el && value.el !== 'none') return { [value.el]: Number(value.pct ?? ((value.lv || 1) * (kind === 'attack' ? 50 : 100))) };
   return Object.fromEntries(ELEMENT_KEYS.filter(k => Number.isFinite(value[k])).map(k => [k, value[k]]));
 }
+// 一つの属性だけ読む時は、6属性の表を作り直さない。旧形式も同じ優先順で読む。
+export function elementValue(value, element, kind = 'attack') {
+  if (!value) return undefined;
+  const key = typeof element === 'string' || typeof element === 'symbol' ? element : String(element);
+  if (value.values) return ELEMENT_KEYS.includes(key) && Number.isFinite(value.values[key]) ? value.values[key] : undefined;
+  if (value.el && value.el !== 'none') {
+    const el = typeof value.el === 'symbol' ? value.el : String(value.el);
+    return el === key ? Number(value.pct ?? ((value.lv || 1) * (kind === 'attack' ? 50 : 100))) : undefined;
+  }
+  return ELEMENT_KEYS.includes(key) && Number.isFinite(value[key]) ? value[key] : undefined;
+}
 export function elementStat(values, kind = 'attack') {
   const keys = ELEMENT_KEYS.filter(k => values[k] > 0);
   if (!keys.length) return null;
   const el = keys.reduce((a, b) => values[a] >= values[b] ? a : b);
   return { el, pct: values[el], values: Object.fromEntries(keys.map(k => [k, values[k]])), kind };
 }
-export const elementAttack = (actor, element) => Math.max(0, 100 + (elementValues(actor?.elemAtk)[element] || 0));
+export const elementAttack = (actor, element) => Math.max(0, 100 + (elementValue(actor?.elemAtk, element) || 0));
 export function elementResistance(element, defense, affinity, scale = 1) {
-  const values = elementValues(defense, 'defense');
   const intrinsic = affinity?.resistance?.[element] ?? ((affinity?.resist || []).includes(element) ? 100 : 0);
-  return Math.max(0, (values[element] || 0) + intrinsic) * Math.max(0, scale);
+  return Math.max(0, (elementValue(defense, element, 'defense') || 0) + intrinsic) * Math.max(0, scale);
 }
 export const elementWeakness = (element, affinity) => affinity?.weakness?.[element] ?? ((affinity?.weak || []).includes(element) ? 1.5 : 1);
 // 装備の直接軽減と旧耐性力は、戦闘・表示・最適装備で同じ合計上限を使う。

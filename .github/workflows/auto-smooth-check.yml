@@ -46,6 +46,7 @@ jobs:
         env:
           CHROME_BIN: /usr/bin/google-chrome
         run: |
+          node tools/performance/auto-element-check.mjs
           node tools/performance/auto-allocation-check.mjs
           node tools/performance/auto-estimate-check.mjs
           node tools/balance/auto-intelligence.mjs
