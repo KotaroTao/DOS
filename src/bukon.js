@@ -100,7 +100,16 @@ function specialText(d,v,lv){
  return text[d.stat]||`${n}%で発動${["chain","quick","cover"].includes(d.stat)?"（追加攻撃は1ターン1回、道具・肩代わりは1戦闘1回）":""}`;
 }
 export function bukonFits(it,b){const d=bukonDef(b?.k);return !!d&&!d.retired&&d.slots.includes(it?.slot);}
-export function bukonStock(g) { return g.bukonStock ||= {}; }
+export function bukonStock(g) {
+  const home = g.abyss?.v === 2 && g.abyss.home;
+  if (home && !Object.hasOwn(home, "bukonStock")) {
+    // 旧記録の共通在庫は出所を区別できないため、街へ保全してから今回分を分ける。
+    home.bukonStock = g.bukonStock || {};
+    home.bukonProtected = g.bukonProtected || {};
+    g.bukonStock = {}; g.bukonProtected = {};
+  }
+  return g.bukonStock ||= {};
+}
 export const bukonKey = b => `${b.k}:${b.lv}`;
 export function stockRows(g) {
   return Object.entries(bukonStock(g)).filter(([, n]) => BigInt(n) > 0n).map(([key, n]) => {

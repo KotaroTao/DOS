@@ -54,6 +54,7 @@ function itemRule() {
   };
   line("keep", "残る", "回収人に売った品", " ― 売ったその場で本編の商会の棚に並ぶ。この先で全滅しても消えない。");
   line("lose", "失う", "装備している品・持ち物", " ― 全滅すると失われる。赤い魂20または広告視聴で持ち帰るか、主を討って帰れば、商会の棚に並ぶ。");
+  line("lose", "失う", "今回入手した武魂", " ― 無事帰還すれば、装備に宿した分も保管中の分も商会へ自動で保管される。街の武魂は持ち込まない。");
   line("lose", "記憶", "魂の記憶から持ち込んだ装備", " ― 売値0・鍛え直し不可。売っても帰っても商会には並ばない。");
   return w;
 }
@@ -375,6 +376,7 @@ function openTrader(onChange) {
       if (!any) b.appendChild(el("div", "inf-note", "持ち物に売れる品が無い。"));
     } else {
       const crafting = el("div", "wpc-shop seg-" + seg);
+      if (seg === "enchant") crafting.appendChild(el("div", "inf-note dim", "今回の無限迷宮で入手した武魂だけを扱う。無事帰還すると、装備は商会の棚へ、武魂は商会の保管在庫へ自動で移る。"));
       crafting.appendChild(UI.shopBuyerStrip({ bukon: true, doll: selected,
         onSelect: d => { selected = d; refresh(); } }));
       const render = seg === "forge" ? UI.renderForgeList : UI.renderEnchantList;
@@ -651,7 +653,8 @@ export function openInfWipe(spec = {}) {
   loss.appendChild(cell(spec.items || 0, "装備・持ち物"));
   loss.appendChild(cell(spec.embers || 0, "魂の残火"));
   body.appendChild(loss);
-  body.appendChild(el("div", "rs-keep", `赤い魂 ${spec.cost} または広告視聴で、拾った魂 (＋1 の素材)・装備と持ち物 (商会の棚へ)・残火を持ち帰れる。費用は深さによらず同じ。本編の人業は街で無事に待っている。`));
+  body.appendChild(el("div", "rs-note", `武魂 ${spec.bukon || "0"}個も対象 (装備に宿した分と保管中の分)。`));
+  body.appendChild(el("div", "rs-keep", `赤い魂 ${spec.cost} または広告視聴で、拾った魂 (＋1 の素材)・装備と持ち物 (商会の棚へ)・武魂 (商会で保管)・残火を持ち帰れる。装備と武魂は帰還時に商会へ自動で移る。費用は深さによらず同じ。本編の人業は街で無事に待っている。`));
   body.appendChild(el("div", "rs-note dim", "開始時の魂と記憶した装備は持ち帰れない。保存済みの魂の記憶は、あきらめても消えず、次の挑戦でも使える。"));
   // 回収人に売った品は、売った時にもう商会の棚に並んでいる (全滅しても消えない)
   body.appendChild(el("div", spec.sold ? "rs-note gold" : "rs-note dim", spec.sold
@@ -660,7 +663,7 @@ export function openInfWipe(spec = {}) {
   if (!spec.canSave) body.appendChild(el("div", "rs-note dim", `赤い魂が足りない (所持 ${spec.red || 0} ／ 要る ${spec.cost})。`));
   const foot = [];
   if (spec.canSave) foot.push({ label: `赤い魂 ${spec.cost} で持ち帰る`, kind: "primary", size: "lg", cost: { kind: "red", n: spec.cost }, onTap: pick(spec.onSave || (() => {})) });
-  if (spec.onAd) foot.push({ label: "広告視聴で持ち帰る", sub: "赤い魂を使わず、魂・品・残火を守る", kind: "primary", size: "lg", onTap: pick(spec.onAd) });
+  if (spec.onAd) foot.push({ label: "広告視聴で持ち帰る", sub: "赤い魂を使わず、魂・品・武魂・残火を守る", kind: "primary", size: "lg", onTap: pick(spec.onAd) });
   foot.push({ label: "あきらめて街へ", kind: spec.canSave || spec.onAd ? "danger" : "primary", size: spec.canSave || spec.onAd ? "md" : "lg", onTap: pick(spec.onGiveUp || (() => {})) });
   h = sheet.open({
     kind: "choice", banner: "全滅", accent: "#d4504e", className: "rs-sheet rs-wipe-sheet",
@@ -687,7 +690,7 @@ export function openInfSummary(r = {}) {
       if (r.newDepth) b.appendChild(el("div", "inf-note gold", "★ 最深到達を更新した！"));
       if (!r.keep) {
         const l = r.lost || {};
-        b.appendChild(el("div", "inf-note", `拾った魂 ${l.souls || 0}・装備と持ち物 ${l.items || 0}・残火 ${l.embers || 0} は、迷宮の底に残された。`));
+        b.appendChild(el("div", "inf-note", `拾った魂 ${l.souls || 0}・装備と持ち物 ${l.items || 0}・武魂 ${l.bukon || "0"}・残火 ${l.embers || 0} は、迷宮の底に残された。`));
         if (r.sold) b.appendChild(el("div", "inf-note gold", `回収人に売った品 ${r.sold}点は、本編の商会の棚に並んでいる。`));
         return;
       }
@@ -702,6 +705,7 @@ export function openInfSummary(r = {}) {
         b.appendChild(el("div", "inf-note dim", "人業の館の「魂融合」で、同じ職の魂に融合できる。"));
       } else b.appendChild(el("div", "inf-note dim", "拾った魂は無かった。"));
       if (got.embers) b.appendChild(el("div", "inf-note", `魂の残火 ×${got.embers} を持ち帰った。`));
+      b.appendChild(el("div", "inf-note", `武魂 ${got.bukon || "0"}個を商会へ自動で保管した (装備から回収した分を含む)。`));
       if (r.sold) b.appendChild(el("div", "inf-note", `回収人に売った品 ${r.sold}点も、商会の棚に並んでいる。`));
       b.appendChild(el("div", "inf-h", `商会の棚に並んだ品 ${got.items.length}`));
       if (got.items.length) {
