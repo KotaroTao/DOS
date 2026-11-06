@@ -282,7 +282,7 @@ export function openReforge(item, owner = null, o = {}) {
 
 // ---------------------------------------------------------------- 商会の区分「鍛え直し」
 // 武魂タブと同じ装備欄で、名前の下には品質だけを示す。
-export function renderForgeList(parent, { doll = null } = {}) {
+export function renderForgeList(parent, { doll = null, onChange = null } = {}) {
   const wrap = el("div", "bk-panel");
   parent.append(wrap);
   const draw = () => {
@@ -292,7 +292,10 @@ export function renderForgeList(parent, { doll = null } = {}) {
     if (selected) for (const k of SLOTS) {
       const it = selected.equip?.[k];
       const cell = slotCell(selected, k, { qualityOnly: true, onPick: item => {
-        if (item) openReforge(item, selected, { onDone: draw, onChange: draw });
+        if (item) {
+          const refresh = () => { draw(); onChange?.(); };
+          openReforge(item, selected, { onDone: refresh, onChange: refresh });
+        }
       } });
       cell.disabled = !it;
       list.append(cell);
