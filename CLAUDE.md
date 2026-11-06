@@ -448,6 +448,8 @@ The goal (per design direction): **every enemy is individually distinctive**, bo
 装備の耐性表示は一覧・詳細・比較・最適装備・鍛え直し・追加特性で百分率へ統一。旧「抵抗値」の単位なし表示を使わず、異常耐性95%・物理/魔法80%の上限を案内する。心得 `t_equipment_percent_role` を更新。
 
 ### Element / affinity system
+攻撃の見積もりでは、種族特効の加護がない時は空の一覧を作らない。呪文の会心率と装備の会心倍率補正がともにない時は、使わない会心倍率を求めない。補正がある場合の計算・非有限値の扱いは従来どおり。検証 `node tools/performance/auto-empty-bonus-check.mjs`。
+
 単一属性の参照は `combatrules.js` の `elementValue` で旧形式・values形式・直接指定を同じ優先順で読む。攻撃・軽減の一発の計算では必要な属性だけを読み、装備と出来事の耐性力もその属性だけ合算する。 合算の一時データは既存の`{el,pct,reductions}`形式に揃え、属性名ごとに形の違う表を作らない。非有限値は従来どおり除外する（有限値どうしの合算による桁あふれも含む）。全属性の表示・合成は従来の `elementValues` / `elementStat` を使う。式・上限は維持し、可変データの長期キャッシュはしない。検証 `node tools/performance/auto-element-check.mjs`。
 
 敵味方共通の割合計算 (`combatrules.js` / `combat.js`)。属攻は基準100%に同属性の装備補正を加算、合計上限なし。旧属性耐性力Rは `R/(100+R)` を軽減し、装備と武魂の直接軽減率を加算する (同属性合計最大80%)。耐性力200%なら66.7%軽減。装備の `eAtk/eDef` は `{el,pct}` または各属性の値を保持する `{values}`、旧 `{el,lv}` は属攻+50%×Lv／同属性の耐性力+100%×Lvとして読む。recalc は複数属性を同時に加算保持。武器・技の属性付与と属攻補正は独立 (旧属性武器は攻撃属性を引き継ぐ)。属性だけから弱点・耐性を推測しない。個体の `affinity.weak/resist` は被ダメ×1.5／耐性力100%、任意値は `weakness/resistance` で明示。弱体は耐性力に掛け、上限を超える耐性力も弱体への備えとして保存する。
