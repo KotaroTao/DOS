@@ -639,7 +639,9 @@ function edefOf(t, el) {
   const own = elementValue(t?.elemDef, el, "defense") || 0;
   const extra = elementValue(t?._evEDef, el, "defense");
   const value = extra === undefined ? own : own + extra;
-  return { [el]: ELEMENT_KEYS.includes(el) && value > 0 ? value : 0, reductions: t?.elemDef?.reductions };
+  // 属性名をキーにする一時の表を避け、既存の単属性形式で渡す。
+  // 非有限値は従来の表の読み取りでも除外される（合算の桁あふれも同じ）。
+  return { el, pct: ELEMENT_KEYS.includes(el) && Number.isFinite(value) && value > 0 ? value : 0, reductions: t?.elemDef?.reductions };
 }
 function eaffOf(t) {
   return t && (t.affinity || (t.mon && t.mon.affinity)) || null;
