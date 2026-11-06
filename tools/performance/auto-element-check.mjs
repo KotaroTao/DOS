@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import * as combat from '../../src/combat.js';
 import {makeDoll} from '../../src/souls.js';
 import {decideAuto,setResistKnown} from '../../src/autotactics.js';
-import {refSerialize} from '../../src/savegraph.js';
+import {refSerialize,refDeserialize} from '../../src/savegraph.js';
 import {reseedRng,rngState} from '../../src/rng.js';
 const root=new URL('../../src/',import.meta.url).href;
 import * as rules from '../../src/combatrules.js';
@@ -32,7 +32,7 @@ const reference=await import('data:text/javascript;base64,'+Buffer.from(source.r
 const forms=[null,undefined,{}, {fire:0,water:50,wind:-20,light:Infinity}, {values:{fire:200,water:50,earth:NaN},el:'water',pct:500},
  {el:'fire',lv:1},{el:'fire',lv:2},{el:'fire',lv:0},{el:'fire',lv:-1},{el:'none',fire:60},{el:'fire',pct:0},{el:'water',pct:'25'},
  {el:'fire',pct:NaN},{el:'fire',pct:Infinity},{values:{},fire:100},{el:'fire',pct:false},{el:'wind',pct:-100},{el:'unknown',pct:100},{el:'light',pct:null,lv:2},{el:1,pct:40},
- {values:{fire:100,water:20},reductions:{fire:.1,water:.2}},{reductions:{fire:.6}},{values:{fire:-40,earth:50},reductions:{fire:.2}},Object.create({fire:50})];
+ {values:{fire:100,water:20},reductions:{fire:.1,water:.2}},{reductions:{fire:.6}},{values:{fire:-40,earth:50},reductions:{fire:.2}},Object.create({fire:50}),{fire:Number.MAX_VALUE},{el:'fire',pct:Number.MAX_VALUE}];
 const elements=[...rules.ELEMENT_KEYS,'none','unknown','1'];
 let scalarCases=0,mergedCases=0;
 const tables={before:0,after:0};
@@ -43,7 +43,7 @@ for(const form of forms)for(const el of elements)for(const kind of ['attack','de
  const calculate=m=>[m.elementAttack({elemAtk:form},el),m.elementResistance(el,form,affinity,.7),m.elementDefenseReduction(el,form,affinity,1.3),m.elementMultiplier(el,150,form,affinity,.8)];
  assert.deepEqual(countTables('after',()=>calculate(rules)),countTables('before',()=>calculate(oldRules)));scalarCases++;
 }
-assert.equal(tables.after,0);assert(tables.before>0);
+assert.equal(tables.after,0);if(!process.argv.includes('--rules-reference'))assert(tables.before>0);
 reseedRng(42);setResistKnown(()=>true);
 const {Battle,SPELLS}=combat;
 let uid=100,cases=0,plans=0,bench;
@@ -77,22 +77,39 @@ for(const own of forms)for(const extra of forms)for(const el of elements){
  Object.setPrototypeOf(b,Battle.prototype);assert.deepEqual(calculate(),expected,'属性の合算 '+el);
  assert.equal(JSON.stringify(refSerialize(b)),before);assert.deepEqual(rngState(),rng);mergedCases++;
 }
-const timing={before:[],after:[]},planTiming={before:[],after:[]};
+const timing={before:[],after:[]},planTiming={};
 if(process.argv.includes('--bench')){
  combat.setElemKnown(()=>true);reference.setElemKnown(()=>true);
- for(let i=0;i<10;i++)for(const [label,proto] of i%2?[['after',Battle.prototype],['before',reference.Battle.prototype]]:[['before',reference.Battle.prototype],['after',Battle.prototype]]){
-  Object.setPrototypeOf(bench.b,proto);const start=performance.now();for(let k=0;k<1000;k++){bench.b.estBasic(bench.actor,bench.target);bench.b.estSpell(bench.actor,SPELLS.MAHALITO,bench.target);}
-  if(i>=4)timing[label].push(performance.now()-start);
+ const states=()=>{
+  const pair={before:refDeserialize(refSerialize(bench.b)),after:refDeserialize(refSerialize(bench.b))};
+  Object.setPrototypeOf(pair.before,reference.Battle.prototype);Object.setPrototypeOf(pair.after,Battle.prototype);
+  return pair;
+ };
+ const estimates=states();
+ // 別の戦闘を使い、計測中にprototypeを付け替えない。
+ for(let i=0;i<16;i++)for(const label of i%2?['after','before']:['before','after']){
+  const state=estimates[label],actor=state.party[0],target=state.enemies[0],start=performance.now();
+  for(let k=0;k<1000;k++){state.estBasic(actor,target);state.estSpell(actor,SPELLS.MAHALITO,target);}
+  if(i>=8)timing[label].push(performance.now()-start);
  }
  const spells=['ZANKOU','DIOS','MAHALITO','GOKUENRAN','HYOUGA','TORNADO','RAIJIN','CHOUHATSU',...Object.entries(SPELLS).filter(([k,s])=>['buff','debuff','revive','cure','mana'].includes(s.kind)).slice(0,24).map(([k])=>k)];
  const party=Array.from({length:6},(_,i)=>Object.assign(makeDoll('計測'+i),{uid:100+i,level:100,jobLv:100,atk:100,int:200,pie:180,agi:100,vit:100,hp:10000,maxhp:10000,mp:10000,maxmp:10000,spells,tactic:'all'}));
  const enemies=Array.from({length:3},(_,i)=>({...bench.target,uid:300+i,effects:[],buffs:{}}));
- const battle=new Battle(party,enemies,()=>{}),expected=[],actual=[];
- Object.setPrototypeOf(battle,reference.Battle.prototype);decideAuto(battle,party[0],expected);
- Object.setPrototypeOf(battle,Battle.prototype);decideAuto(battle,party[0],actual);assert.deepEqual(actual,expected);
- for(let i=0;i<10;i++)for(const [label,proto] of i%2?[['after',Battle.prototype],['before',reference.Battle.prototype]]:[['before',reference.Battle.prototype],['after',Battle.prototype]]){
-  Object.setPrototypeOf(battle,proto);const start=performance.now();decideAuto(battle,party[0]);if(i>=4)planTiming[label].push(performance.now()-start);
+ const battle=new Battle(party,enemies,()=>{});
+ for(const equipment of [false,true]){
+  const table={before:[],after:[]},pair={before:refDeserialize(refSerialize(battle)),after:refDeserialize(refSerialize(battle))};
+  Object.setPrototypeOf(pair.before,reference.Battle.prototype);Object.setPrototypeOf(pair.after,Battle.prototype);
+  if(equipment)for(const state of Object.values(pair))state.party.forEach(p=>{p.gearPerks=Array.from({length:40},(_,i)=>({c:{t:['cost','deal','take','crit','heal','evade'][i%6],v:.01,on:i%4===0?'spell':null},lv:1}));});
+  const expected=[],actual=[];
+  decideAuto(pair.before,pair.before.party[0],expected);decideAuto(pair.after,pair.after.party[0],actual);
+  assert.deepEqual(refSerialize(actual),refSerialize(expected));
+  for(let i=0;i<24;i++)for(const label of i%2?['after','before']:['before','after']){
+   const state=pair[label],start=performance.now();decideAuto(state,state.party[0]);if(i>=8)table[label].push(performance.now()-start);
+  }
+  planTiming[equipment?'withEffects':'withoutEffects']=table;
  }
- for(const table of [timing,planTiming])for(const label of ['before','after']){const a=table[label].sort((x,y)=>x-y);table[label]={medianMs:(a[2]+a[3])/2,totalMs:a.reduce((x,y)=>x+y,0)};}
+ for(const table of [timing,...Object.values(planTiming)])for(const label of ['before','after']){
+  const a=table[label].sort((x,y)=>x-y),mid=a.length/2;table[label]={medianMs:(a[mid-1]+a[mid])/2,totalMs:a.reduce((x,y)=>x+y,0)};
+ }
 }
 console.log(JSON.stringify({cases,plans,exactEstimates:true,exactCandidates:true,inputUnchanged:true,rngUnchanged:true,scalarCases,mergedCases,tables,...(process.argv.includes('--bench')?{timing,planTiming}:{})}));
