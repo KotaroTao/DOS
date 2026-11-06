@@ -173,7 +173,7 @@ export function openBukonList({ doll = null, onChange = null } = {}) {
   let h;
   const refresh=()=>{const top=h.body.scrollTop;h.update({});h.body.scrollTop=top;onChange?.();};
   h=sheet.open({title:"武魂一覧",className:"ec-sheet bk-sheet bk-list-sheet",body:body=>{
-    const why=game.enchantClosed?.();if(why){body.append(el("p","rf-note",why));return;}
+    const why=game.bukonClosed?.();if(why){body.append(el("p","rf-note",why));return;}
     game.bukonRows();
     const items=game.bukonTargets(),rows=sortSouls(fusionRows(G(),items).filter(matchesSoul));
     const tools=el("div","bk-list-tools");
@@ -192,14 +192,15 @@ function openFusion(b,done) {
   const plan=snapshotFusionPlan(G(),game.bukonTargets(),b);if(!plan)return;
   confirm({title:"武魂を合成する？",lines:[`${bukonName(b)} → ${bukonName(plan.upgrades[0])}`,...plan.rows.filter(r=>r.left<BigInt(r.count)).map(r=>`使用：${bukonName(r)} ×${BigInt(r.count)-r.left}${r.it?`（${itemName(r.it)}）`:""}`),`金貨${plan.cost.toLocaleString()}`,"同じ効果の武魂を素材に使う。保護中は素材にしない。解除済みの装備中の素材は自動で外れる。",...(b.it?["合成する武魂は装備に宿したまま強くなる。"]:[])],okLabel:"合成する",onOk:()=>action("upgrade",null,b,done)});
 }
-export function renderEnchantList(parent, { doll = null } = {}) {
+export function renderEnchantList(parent, { doll = null, onChange = null } = {}) {
   const wrap=el("div","bk-panel");parent.append(wrap);
   const draw=()=>{
     wrap.replaceChildren();
-    const why=game.enchantClosed?.();if(why){wrap.append(el("p","rf-note",why));return;}
+    const why=game.bukonClosed?.();if(why){wrap.append(el("p","rf-note",why));return;}
     game.bukonRows();
     const selected=doll || game.allDolls().find(d=>!d.isEmpty);
-    wrap.append(button({label:"武魂一覧",kind:"secondary",onTap:()=>openBukonList({doll:selected,onChange:draw})}));
+    const refresh = () => { draw(); onChange?.(); };
+    wrap.append(button({label:"武魂一覧",kind:"secondary",onTap:()=>openBukonList({doll:selected,onChange:refresh})}));
     const tutorial=G().tut?.cur;
     if(["enchant","bukonFusion"].includes(tutorial)&&!G().tut.done?.[tutorial]){
       const resume=button({label:"武魂の練習を再開",kind:"primary",onTap:()=>openBukonPractice(tutorial)});resume.classList.add("bk-practice-start");wrap.append(resume);
@@ -207,7 +208,7 @@ export function renderEnchantList(parent, { doll = null } = {}) {
     const list=el("div","pt-slots bk-equipment");
     if(selected)for(const k of SLOTS){
       const it=selected.equip?.[k];
-      const cell=slotCell(selected,k,{bukonOnly:true,onPick:it=>{if(it)openGear(it,draw);}});
+      const cell=slotCell(selected,k,{bukonOnly:true,onPick:it=>{if(it)openGear(it,refresh);}});
       cell.disabled=!it;
       list.append(cell);
     }

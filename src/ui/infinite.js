@@ -227,7 +227,7 @@ export function openInfRest(spec = {}) {
     b.appendChild(el("div", "inf-cur", `所持 💰${g.gold || 0} ・ ✦${g.soulPts || 0} ・ 残火 ${g.embers || 0} ・ 推奨Lv ${lv}`));
     const supply = game.infSupplyStatus();
     b.appendChild(el("div", "inf-note", `この階の回復・蘇生の補給 残り${supply.left}/${supply.limit}個`));
-    b.appendChild(row({ icon: ICONS.chest, title: "回収人 (商会の者)", sub: "品の買い取り (売った品はすぐ商会の棚へ ― 全滅しても残る)・回復の道具・反魂香・風切りの羽・鍛え直し", chevron: true, onTap: () => { sfx("select"); openTrader(refresh); } }));
+    b.appendChild(row({ icon: ICONS.chest, title: "回収人 (商会の者)", sub: "品の買い取り (売った品はすぐ商会の棚へ ― 全滅しても残る)・回復の道具・反魂香・風切りの羽・鍛え直し・武魂", chevron: true, onTap: () => { sfx("select"); openTrader(refresh); } }));
     b.appendChild(row({ icon: ICONS.portal, title: "灯番 (名もない人業)", sub: "メイン魂・サブ魂の付け替え・✦Soul で魂の強化・残火で Lv上限 +1", chevron: true, onTap: () => { sfx("select"); openKeeper(refresh); } }));
     if ((spec.floor || g.floor) % 50 === 0) {
       const why = game.infMemoryBlock(), previous = game.infMemoryAt(floor);
@@ -305,7 +305,7 @@ function tradeRow(o) {
 }
 function openTrader(onChange) {
   const g = G();
-  let seg = "buy", h = null;
+  let seg = "buy", h = null, selected = g.party.find(d => !d.isEmpty) || null;
   // 描き直しても、見ていた所 (縦のスクロール) はそのまま
   const refresh = () => {
     if (h && !h.closed) { const y = h.body ? h.body.scrollTop : 0; h.update({ body: fill }); if (h.body) h.body.scrollTop = y; }
@@ -314,12 +314,16 @@ function openTrader(onChange) {
   // 隊の持ち物にその品がいくつあるか (装備中は数えない)
   const held = (id) => bagOwners(g.party).reduce((n, d) => n + (d.items || []).filter((x) => x && x.id === id).length, 0);
   const fill = (b) => {
+    const crafting = seg === "forge" || seg === "enchant";
+    h?.el.classList.toggle("inf-trader-crafting", crafting);
     b.appendChild(el("div", "inf-cur", `所持 💰${g.gold || 0}`));
-    b.appendChild(el("div", "inf-cur", `隊の持ち物 ${bagCount(g.inventory)}/${MAX_ITEMS}`));
-    const supply = game.infSupplyStatus();
-    b.appendChild(el("div", "inf-cur", `回復・蘇生の補給 残り${supply.left}/${supply.limit}個`));
+    if (!crafting) {
+      b.appendChild(el("div", "inf-cur", `隊の持ち物 ${bagCount(g.inventory)}/${MAX_ITEMS}`));
+      const supply = game.infSupplyStatus();
+      b.appendChild(el("div", "inf-cur", `回復・蘇生の補給 残り${supply.left}/${supply.limit}個`));
+    }
     const segs = el("div", "ui-seg");
-    for (const [k, l] of [["buy", "買う"], ["sell", "売る"], ["forge", "鍛え直し"]]) {
+    for (const [k, l] of [["buy", "買う"], ["sell", "売る"], ["forge", "鍛え直し"], ...(game.featureUnlocked("enchant") ? [["enchant", "武魂"]] : [])]) {
       const x = el("button", "ui-seg-b" + (k === seg ? " on" : ""), l);
       x.type = "button";
       x.addEventListener("click", () => { seg = k; sfx("select"); h.update({ body: fill }); });
@@ -370,21 +374,13 @@ function openTrader(onChange) {
       }
       if (!any) b.appendChild(el("div", "inf-note", "持ち物に売れる品が無い。"));
     } else {
-      b.appendChild(el("div", "inf-note dim", "金貨を払って装備の品質 (0〜100) を引き直す。本編の商会の鍛え直しと同じ。魂の記憶から持ち込んだ装備は鍛え直せない。"));
-      let any = false;
-      const seen = new Set();
-      for (const d of g.party || []) {
-        const list = [...Object.values(d.equip || {}), ...(d.items || [])].filter((it) => it && it.id && !seen.has(it) && (seen.add(it), true));
-        for (const it of list) {
-          const why = game.reforgeBlock ? game.reforgeBlock(d, it, { gold: false }) : "—";
-          if (why) continue;
-          any = true;
-          const cost = game.reforgeCost ? game.reforgeCost(it) : 0;
-          b.appendChild(row({ icon: itemTile(it, { size: 44 }), title: itemName(it), sub: `${d.name} ・ 品質 ${it.q == null ? 50 : it.q}`, right: `💰${cost}`,
-            onTap: () => { if (UI.openReforge) UI.openReforge(it, d, { onDone: refresh, onClose: refresh }); } })); // 品質を選んだらすぐ一覧と所持金を描き直す
-        }
-      }
-      if (!any) b.appendChild(el("div", "inf-note", "鍛え直せる装備が無い。"));
+      const crafting = el("div", "wpc-shop seg-" + seg);
+      crafting.appendChild(UI.shopBuyerStrip({ bukon: true, doll: selected,
+        onSelect: d => { selected = d; refresh(); } }));
+      const render = seg === "forge" ? UI.renderForgeList : UI.renderEnchantList;
+      const draw = render(crafting, { doll: selected, onChange: refresh });
+      b.appendChild(crafting);
+      draw();
     }
   };
   h = sheet.open({ kind: "info", banner: "回収人", title: "商会の回収人", accent: "#c9a227", className: "inf-sheet", body: fill,

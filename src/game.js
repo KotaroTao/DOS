@@ -16901,7 +16901,11 @@ function recordAffixHome(it) {
   if (it.afx.some(a => afxDef(a.k)?.tier === "x")) G.tut.extremeReturned = true;
 }
 
-// 武魂は街の商会のみ。対象は実物への参照を毎回照合する。
+// 武魂は街の商会か無限迷宮の風だまりの回収人で扱う。対象は現在の実物だけ。
+function bukonClosed() {
+  if (infAtRest()) return featureUnlocked("enchant") ? null : featureNote("enchant");
+  return enchantClosed();
+}
 function bukonTargets() {
   return [...new Set([...(G.inventory || []), ...allDolls().flatMap(d => Object.values(d.equip || {}).filter(Boolean))])].filter(it => hasQuality(it) && !it.unidentified && !it.soulMemory);
 }
@@ -16916,7 +16920,7 @@ function bukonRows() {
   return bukon.stockRows(G);
 }
 function bukonAction(action, it, b) {
-  if (enchantClosed()) return false;
+  if (bukonClosed()) return false;
   if (action === "upgrade" || action === "batch") {
     if (!featureUnlocked("bukonFusion") || !bukon.applySnapshotFusion(G,bukonTargets(),action === "upgrade" ? b : null)) return false;
     for (const d of allDolls()) recalcDoll(d);
@@ -20307,7 +20311,7 @@ function wireUI() {
     claimAchievement, claimTreasury, treasuryRewardReady, deliveryHolder, deliveryStatus, deliverQuest,
     repairDoll, repairAllDolls, repairCostOf, awaitingRepairRescue, tryHastenRescue, reviveTimerEl, fmtRemain, awaitingRescue, hastenCostOf, canHastenRescue,
     doEquip, doUnequip, toggleItemLock, equipFromAnywhere, reforgeCost, reforgeBlock, rollReforge, setItemQuality,
-    prepareBukonFusionTutorial, bukonTargets, bukonRows, bukonAction, afxPagesState, enchantClosed, enchantSources, extractBlock, extractAffix, enchantTargets, enchantInfo, writeAffix, eraseAffix, itemHolder, openEquipChooser, useItem, dropItem, dropFromBag, askRoomFor, transferItem,
+    prepareBukonFusionTutorial, bukonTargets, bukonRows, bukonAction, bukonClosed, afxPagesState, enchantClosed, enchantSources, extractBlock, extractAffix, enchantTargets, enchantInfo, writeAffix, eraseAffix, itemHolder, openEquipChooser, useItem, dropItem, dropFromBag, askRoomFor, transferItem,
     stopAutoCombat, sceneBgm, playBgm, SFX,
     ACH_SERIES, FACILITIES, FAC_SHELL, CONTENT_LIMIT, DUNGEONS, LAYER_VISUALS,
     isTitleActive: () => titleActive,
