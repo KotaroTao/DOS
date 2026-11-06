@@ -436,6 +436,8 @@ function _tick(ts) {
     else if (e.seen || ts - e.born > 15000) { _live.delete(e); continue; }
     if (hidden || !e.seen || ts - e.last < e.iv - 2) continue;
     e.last = ts;
+    // 街を離れても接続されたままの絵は、レイアウトを問い合わせる前に除く。
+    if (e.c.closest?.('[hidden], .hidden')) continue;
     if (!e.c.getClientRects || e.c.getClientRects().length) e.draw(ts);
   }
   if (_live.size) requestAnimationFrame(_tick);
@@ -450,6 +452,11 @@ function idle(fn) {
   _idleOn = true;
   const sched = (f) => (typeof requestIdleCallback === "function" ? requestIdleCallback(f, { timeout: 500 }) : setTimeout(f, 40));
   const run = (dl) => {
+    // 期限付きのアイドル仕事も戦闘中には割り込ませない。街へ戻ったら続きから作る。
+    if (typeof document !== "undefined" && (document.hidden || document.getElementById("app")?.classList.contains("in-combat"))) {
+      setTimeout(() => sched(run), 200);
+      return;
+    }
     const t0 = nowMs();
     do { try { _idleQ.shift()(); } catch (e) { /* 演出のみ */ } }
     while (_idleQ.length && (dl && typeof dl.timeRemaining === "function" && !dl.didTimeout ? dl.timeRemaining() > 6 : nowMs() - t0 < 10));

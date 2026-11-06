@@ -14,6 +14,7 @@ on:
       - 'tools/effects/tone-cache-browser.py'
       - 'tools/performance/battle-gap-browser.py'
       - 'tools/performance/battle-loading-browser.py'
+      - 'tools/performance/battle-render-browser.py'
       - 'tools/performance/enemy-level-check.mjs'
       - '.github/workflows/auto-smooth-check.yml'
 permissions:
@@ -56,6 +57,7 @@ jobs:
           server=$!
           trap 'kill "$server"' EXIT
           python3 tools/performance/battle-loading-browser.py
+          python3 tools/performance/battle-render-browser.py
           python3 tools/performance/auto-worker-browser.py
           python3 tools/effects/tone-cache-browser.py
           python3 tools/performance/battle-diagnostics-browser.py

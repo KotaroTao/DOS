@@ -9627,10 +9627,12 @@ function renderCombatCanvasTraced() {
   const rows = [{ list: backRow, back: true }, { list: frontRow, back: false }].filter((row) => row.list.length);
   rows.forEach((row) => { row.distant = twoRows && row.back !== enemyView.back; });
   rows.sort((a, z) => Number(z.distant) - Number(a.distant));
-  enemyRowBtn.hidden = !twoRows || wideBattle;
+  const rowHidden = !twoRows || wideBattle;
+  if (enemyRowBtn.hidden !== rowHidden) enemyRowBtn.hidden = rowHidden;
   const rowLabel = enemyView.back ? "前列を手前に" : "後列を手前に";
   if (enemyRowBtn.textContent.replaceAll(ZWSP, "") !== rowLabel) enemyRowBtn.textContent = rowLabel;
-  enemyRowBtn.disabled = !!(G.animating || b.result);
+  const rowDisabled = !!(G.animating || b.result);
+  if (enemyRowBtn.disabled !== rowDisabled) enemyRowBtn.disabled = rowDisabled;
   if (b.phase !== "target") enemyView.focus = null;
   const focused = b.phase === "target" && !G.animating && b.targetOptions().find((e) => e.side === "enemy" && e.uid === enemyView.focus);
   enemyFocusEl.classList.toggle("has-target", !!focused);
