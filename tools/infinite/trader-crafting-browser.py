@@ -74,6 +74,9 @@ with sync_playwright() as p:
       g.floor=5;g.testUnlock=['infinite','forge'];g.world.reported={};
       check(!!t.game.bukonClosed(),'解放前の武魂操作を拒否');
     }''')
+    page.evaluate("t.game.G.testUnlock=['infinite','forge','enchant'];t.game.G.floor=5;t.sheet.closeAll();window.bagGear=t.game.cloneItem('dagger');t.game.G.inventory.push(bagGear);t.UI.itemSheet(bagGear,{owner:t.game.G.party[0],context:'dungeon'});")
+    page.locator(active+'.wpc-isheet').get_by_role('button',name='鍛え直し',exact=False).click()
+    assert page.locator(active+'.rf-sheet').count()==1
     assert not errors,errors
     print('回収人: 共通人業選択・2列装備・5画面幅・鍛え直し・武魂着脱/合成・金貨更新・対象/場所/解放制限 OK')
     browser.close()
