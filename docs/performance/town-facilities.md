@@ -1,6 +1,6 @@
 # 街の施設の表示待ちを短くする（2026-11-06）
 
-基準: PR #1496のマージ `ce3999ae`。mainへのマージ・Pages公開・公開サイトの版の一致を確認済み。
+PR #1496（`ce3999ae`）はmainへのマージ・Pages公開・公開サイトの版の一致を確認済み。後続のmain更新 #1497も取り込み、以下の比較基準は `095c1c07`。
 
 ## 調査と実装
 
@@ -22,15 +22,15 @@
 
 | 場所 | 変更前 | 変更後 |
 |---|---:|---:|
-| 街 | 286.5ms | 198.9ms |
-| 人業の館 | 176.0ms | 171.0ms |
-| 商会 | 92.8ms | 104.3ms |
-| 王宮 | 127.5ms | 57.1ms |
-| 酒場 | 596.4ms | 512.5ms |
-| 赤い魂の祠 | 135.0ms | 87.4ms |
-| 宿屋 | 92.8ms | 72.7ms |
+| 街 | 251.0ms | 188.0ms |
+| 人業の館 | 168.8ms | 156.6ms |
+| 商会 | 105.6ms | 86.6ms |
+| 王宮 | 133.4ms | 78.3ms |
+| 酒場 | 572.5ms | 454.4ms |
+| 赤い魂の祠 | 180.5ms | 80.4ms |
+| 宿屋 | 83.7ms | 62.7ms |
 
-王宮・祠・街では、再表示3回とも発生していた前画面保持が0回になった。館は差が小さく、商会はこの回では遅くなり、両施設の短縮は確認できていない。酒場は依頼人のimg等の準備が残るため、すべての待機を除いてはいない。初回は画像の通信・復号等の待ちを維持しており、全施設の初回短縮も確認できていない。PC幅は表示/状態の比較に使い、他の回帰検査と並行したため時間の比較値には使わない。
+王宮・祠・街では、再表示3回とも発生していた前画面保持が0回になった。館は差が小さく、商会は前の比較では遅くなる回もあったため、両施設の安定した短縮は確認できていない。酒場は依頼人のimg等の準備が残るため、すべての待機を除いてはいない。初回は画像の通信・復号等の待ちを維持しており、全施設の初回短縮も確認できていない。PC幅は表示/状態の比較に使い、他の回帰検査と並行したため時間の比較値には使わない。
 
 この1つの隊と進行、少ない回数での比較を全端末・全進行の改善率とは扱わない。実機Safariと公開サイトの回線条件での時間短縮は未計測。
 
@@ -51,12 +51,12 @@
 python3 -m http.server 8000
 node tools/performance/town-quest-cache-check.mjs
 # 実際の変更前の関数でも比較する:
-git show ce3999ae:src/game.js > /tmp/dos-town-game-before.js
+git show 095c1c07:src/game.js > /tmp/dos-town-game-before.js
 node tools/performance/town-quest-cache-check.mjs --reference /tmp/dos-town-game-before.js
 python3 tools/performance/town-image-cache-browser.py
 # 前後の施設別計測は他の重い検査と並行せずに行う:
-python3 tools/performance/town-facility-browser.py --baseline ce3999ae --report /tmp/dos-town-mobile.json
-python3 tools/performance/town-facility-browser.py --baseline ce3999ae --width 1100 --report /tmp/dos-town-desktop.json
+python3 tools/performance/town-facility-browser.py --baseline 095c1c07 --report /tmp/dos-town-mobile.json
+python3 tools/performance/town-facility-browser.py --baseline 095c1c07 --width 1100 --report /tmp/dos-town-desktop.json
 python3 tools/performance/scene-ready-browser.py
 python3 tools/performance/candle-loading-browser.py
 python3 tools/performance/no-legacy-scenes-browser.py
