@@ -11,7 +11,7 @@
 // 攻めと攻めの支援は、今のターンの残り＋次の2ターンの隊の期待ダメージで比べる。
 // (このファイルは game.js を import しない)
 
-import { SPELLS, spellCost, skillPowerMul, healsHp, isMetal, spellCureKinds, breathHpK, manaGiftAmount, tauntGuard, stanceMulOf } from "./combat.js";
+import { SPELLS, spellCost, skillPowerMul, healsHp, isMetal, spellCureKinds, breathHpK, manaGiftAmount, tauntGuard, stanceMulOf, estimateElementKnown } from "./combat.js";
 import { autoSkills } from "./souls.js";
 import { STAGED, STAGE_MAX, STRONG_MIN, stageMul, stageOf } from "./buffstage.js";
 import { forecastCandidates, AUTO_FORECAST_TURNS, scatterDamage } from "./autoforecast.js";
@@ -49,7 +49,10 @@ export function setResistKnown(fn) { _resistKnown = typeof fn === "function" ? f
 let _seer = false;
 const resistKnown = t => _seer || !!(_resistKnown && _resistKnown(t));
 // 無効だけは未開示でも避ける。部分的な抵抗値・有利属性を先読みすることはしない。
-const autoRate = (b, actor, t, base, kind) => b.estRate(actor, t, base, kind) <= 0 ? 0 : b.estRate(actor, t, base, kind, resistKnown(t));
+function autoRate(b, actor, t, base, kind) {
+  const actual = b.estRate(actor, t, base, kind);
+  return actual <= 0 ? 0 : resistKnown(t) ? actual : b.estRate(actor, t, base, kind, false);
+}
 function autoStatusChances(b, actor, sp, t) {
   const actual = b.spellStatusChances(actor, sp, t);
   if (resistKnown(t)) return actual;
@@ -59,12 +62,16 @@ export const AUTO_LOW_DAMAGE = 2;
 export const AUTO_STALL_ROUNDS = 3;
 // 1手の合計期待値で見る。とどめ・金属への打撃・連撃/会心で削れる手は残す。
 const lowDamage = (d, t) => d <= 0 || (!isMetal(t) && d <= AUTO_LOW_DAMAGE && d < t.hp * 0.1);
-function autoDamage(known, actual, t) {
-  return actual <= 0 || lowDamage(actual, t) ? actual : known;
+function autoEstimate(t, actor, run) {
+  const actual = run({ actual: true });
+  // 無効・低威力は従来どおり実値を使う。属性と耐性の両方が既知なら、
+  // 既知情報の見積もりも同じ値なので重ねて計算しない。未開示の情報は混ぜない。
+  if (lowDamage(actual, t) || resistKnown(t) && estimateElementKnown(t, actor)) return actual;
+  return run({ resistKnown: resistKnown(t) });
 }
-const autoBasic = (b, a, t) => autoDamage(b.estBasic(a, t, { resistKnown: resistKnown(t) }), b.estBasic(a, t, { actual: true }), t);
-const autoPhys = (b, a, t, opt) => autoDamage(b.estPhys(a, t, { ...opt, resistKnown: resistKnown(t) }), b.estPhys(a, t, { ...opt, actual: true }), t);
-const autoSpell = (b, a, sp, t) => autoDamage(b.estSpell(a, sp, t, { resistKnown: resistKnown(t) }), b.estSpell(a, sp, t, { actual: true }), t);
+const autoBasic = (b, a, t) => autoEstimate(t, a, opt => b.estBasic(a, t, opt));
+const autoPhys = (b, a, t, options) => autoEstimate(t, a, opt => b.estPhys(a, t, { ...options, ...opt }));
+const autoSpell = (b, a, sp, t) => autoEstimate(t, a, opt => b.estSpell(a, sp, t, opt));
 
 // オート中だけの観測。セーブやクラウドの戦闘結果には混ぜない。
 const autoProgress = new WeakMap();
