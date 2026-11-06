@@ -62,6 +62,35 @@ for (let seed = 1; seed <= 30; seed++) {
   assert.equal(game.party[0].hp, server.party[0].hp); assert.deepEqual(game.rng, server.rng);
 }
 
+// 戦闘の画面では作戦変更を保ち、サーバー確定記録には端末の変更を混ぜない。
+{
+  const { TACTICS, setTactic, decideAuto } = await import("../../src/autotactics.js");
+  for (const { key } of TACTICS) {
+    const game = battleState(), doll = game.party[0];
+    doll.tactic = "bal"; doll.spells = ["HALITO"]; doll.mp = doll.maxmp = 100;
+    game.battle.chooseAction("defend");
+    const server = clone(game), raw = JSON.stringify(refSerialize(server));
+    const commit = resolveCloudBattle(server, "commit");
+    // 送信後、応答を待っている間に別の作戦を選ぶ。
+    setTactic(doll, key);
+    applySavePatch(game, clone(commit), { preserveTactics: true });
+    assert.equal(doll.tactic, key);
+    const advance = resolveCloudBattle(server, "advance");
+    applySavePatch(game, clone(advance), { preserveTactics: true });
+    assert.equal(game.battle.party[0], doll);
+    assert.equal(doll.tactic, key);
+    assert.equal(refDeserialize(JSON.parse(acknowledgedSave(raw, refSerialize(commit)))).party[0].tactic, "bal");
+    assert.equal(server.party[0].tactic, "bal");
+    if (key === "blade") assert.equal(decideAuto(game.battle, doll).action, "attack");
+    // 勝利・逃走・全滅・断念など、戦闘を閉じる応答でも命令を保つ。
+    for (const state of ["board", "over", "town"]) {
+      applySavePatch(game, { snapshot: { state, party: clone(server.party), battle: null } }, { preserveTactics: true });
+      assert.equal(doll.tactic, key);
+      assert.equal(clone(game).party[0].tactic, key);
+    }
+  }
+}
+
 // 応答待ち中の自然回復は、行動結果と次の手番のどちらでも巻き戻さない。
 {
   const game = battleState(), p = game.party[0], base = 1000000;

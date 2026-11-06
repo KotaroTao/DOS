@@ -11516,7 +11516,7 @@ async function resolveSavedBattleTraced(action) {
     }
     if (normalAttack) await windup?.complete();
     savedBattleAdvance = response.nextPacket ? { battle: G.battle, packet: response.nextPacket } : null;
-    const packet = traceSync("battle.applyPacket", () => applySavePatch(G, refDeserialize(response.packet)));
+    const packet = traceSync("battle.applyPacket", () => applySavePatch(G, refDeserialize(response.packet), { preserveTactics: true }));
     restoreMonsterPhotos(G.battle.enemies, MONSTERS);
     G.rng = bindRngState(G.rng); setSharedSouls(G.souls);
     syncEnemyUids(G.battle.enemies);
@@ -11574,7 +11574,7 @@ async function advanceSavedBattleTraced(watch) {
     const cached = savedBattleAdvance?.battle === G.battle ? savedBattleAdvance : null;
     savedBattleAdvance = null;
     const response = cached || await cloudBattle("advance");
-    const packet = traceSync("battle.applyPacket", () => applySavePatch(G, refDeserialize(response.packet)));
+    const packet = traceSync("battle.applyPacket", () => applySavePatch(G, refDeserialize(response.packet), { preserveTactics: true }));
     restoreMonsterPhotos(G.battle.enemies, MONSTERS);
     G.rng = bindRngState(G.rng); setSharedSouls(G.souls); G.battle.log = log;
     _lastCloudSave = await acknowledgeCloudSave(_lastCloudSave, response.packet);
@@ -12713,7 +12713,7 @@ async function cancelSavedBattle(mode) {
   try{
     const sync=await cloudCancelBattle(mode);
     if(sync?.snapshot){
-      applySavePatch(G,{snapshot:refDeserialize(sync.snapshot)});
+      applySavePatch(G,{snapshot:refDeserialize(sync.snapshot)}, { preserveTactics: true });
       G.rng=bindRngState(G.rng);setSharedSouls(G.souls);
       _lastCloudSave=JSON.stringify(sync.snapshot);
     }
