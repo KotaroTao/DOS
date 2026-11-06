@@ -341,7 +341,7 @@ const visionHitBonus = (actor, tgt) => actor && actor.side === "party" && tgt &&
   ? DYNAMIC_VISION[Math.min(3, pv(actor, "dynamicVision"))] || 0 : 0;
 // 職ごとの固有パッシブ (jobkit の perks)。passiveMap のうち fx を持つものを {c: 成分, lv, label} の列で返す。
 // passiveMap は recalcDoll が作り直すたびに別の器になるので、器ごとに覚えておく
-const _perkCache = new WeakMap(), _gearCache = new WeakMap();
+const _perkCache = new WeakMap(), _gearCache = new WeakMap(), _perkTypeCache = new WeakMap();
 const NO_PERKS = [];
 // 無限迷宮の追加の特性 (装備の fx。items.js recalc が a.gearPerks に集める) も固有パッシブと同じ形で足す
 function perksOf(a) {
@@ -351,6 +351,23 @@ function perksOf(a) {
   let c = _gearCache.get(gp);
   if (!c || c.own !== own) { c = { own, list: [...own, ...gp] }; _gearCache.set(gp, c); }
   return c.list;
+}
+// 成分の並び順を保って種類ごとに分ける。条件・生死・効果量は呼ぶたびに調べ、
+// 再計算でpassiveMapやgearPerksが替われば、既存の成分列ごと新しく作る。
+function perksByType(all, type) {
+  let types = _perkTypeCache.get(all);
+  if (!types) {
+    types = new Map();
+    for (const entry of all) {
+      const key = entry.c.t;
+      if (key !== key) continue; // NaNは従来の厳密比較でもどの種類にも一致しない。
+      let list = types.get(key);
+      if (!list) types.set(key, list = []);
+      list.push(entry);
+    }
+    _perkTypeCache.set(all, types);
+  }
+  return types.get(type) || NO_PERKS;
 }
 function perksOfPassives(a) {
   const pm = a && a.passiveMap;
@@ -1307,8 +1324,10 @@ export class Battle {
     let sum = 0, best = 0, bukonSum=0, bukonUncapped=0;
     for (const p of this.party) {
       if (p !== a && !p.alive) continue;
-      for (const { c, lv } of perksOf(p)) {
-        if (c.t !== type || (p !== a && !c.aura)) continue;
+      const all = perksOf(p);
+      if (!all.length) continue;
+      for (const { c, lv } of perksByType(all, type)) {
+        if (p !== a && !c.aura) continue;
         if (c.on && !(ctx.on || []).includes(c.on)) continue;
         if (c.when && !this._perkWhen(a, c.when, ctx)) continue;
         if (c.holder && !this._perkWhen(p, c.holder, ctx)) continue; // 持ち主の側の条件 (盾役が引き付けている間だけ、など)
@@ -1327,7 +1346,11 @@ export class Battle {
   }
   // 個人の固有発動値。隊への効果は呼び出し側で最高Lvの持ち主を選ぶ。
   _perkValue(a, type) {
-    return Math.max(0, ...perksOf(a).filter(({ c }) => c.t === type).map(({ c, lv }) => lvv(c.v, lv) || 0));
+    const all = perksOf(a);
+    if (!all.length) return 0;
+    let best = 0;
+    for (const { c, lv } of perksByType(all, type)) best = Math.max(best, lvv(c.v, lv) || 0);
+    return best;
   }
   _bestPerk(type) {
     return this.livingParty().reduce((best, p) => this._perkValue(p, type) > this._perkValue(best, type) ? p : best, null);
