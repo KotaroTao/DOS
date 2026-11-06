@@ -1,5 +1,5 @@
 import { applyChallengeEnemies } from "./progression.js";
-import { luckCritBonus, procChance, hitChance, elementValues, elementStat, elementAttack, elementMultiplier, elementWeakness, elementDefenseReduction, permanentMultiplier } from "./combatrules.js";
+import { luckCritBonus, procChance, hitChance, elementValue, elementAttack, elementMultiplier, elementWeakness, elementDefenseReduction, permanentMultiplier, ELEMENT_KEYS } from "./combatrules.js";
 import { canonicalPassiveKey, UNHOLY } from "./jobkit/common.js";
 import { random } from "./rng.js";
 import { lvPow } from "./levelcurve.js";
@@ -617,10 +617,12 @@ function modeResistance(t, key, value = t?.[key]) {
   if (raw >= 100 && t?.side !== "party") return 100;
   return Math.max(0, Math.min(80, raw) - (key === "physResist" ? Math.max(t?._wedge||0,t?._bkPhysDown||0) : (t?._bkMagDown||0)));
 }
-function edefOf(t) {
-  const values = elementValues(t?.elemDef, "defense");
-  for (const [k, v] of Object.entries(elementValues(t?._evEDef, "defense"))) values[k] = (values[k] || 0) + v;
-  return {...(elementStat(values, "defense")||{}),reductions:t?.elemDef?.reductions};
+function edefOf(t, el) {
+  // この一撃の属性だけ合算する。従来のelementStatと同じく、負の合計は残さない。
+  const own = elementValue(t?.elemDef, el, "defense") || 0;
+  const extra = elementValue(t?._evEDef, el, "defense");
+  const value = extra === undefined ? own : own + extra;
+  return { [el]: ELEMENT_KEYS.includes(el) && value > 0 ? value : 0, reductions: t?.elemDef?.reductions };
 }
 function eaffOf(t) {
   return t && (t.affinity || (t.mon && t.mon.affinity)) || null;
@@ -1542,7 +1544,7 @@ export class Battle {
   }
   // 属性耐性ダウンは耐性力に適用する。r_allは全属性に効く。
   _elementMul(actor, t, el) {
-    return elementMultiplier(el, elementAttack(actor, el), edefOf(t), eaffOf(t), this._bm(t, "r_" + el) * this._bm(t, "r_all"));
+    return elementMultiplier(el, elementAttack(actor, el), edefOf(t, el), eaffOf(t), this._bm(t, "r_" + el) * this._bm(t, "r_all"));
   }
   _elementSpecial(actor, t, el, raw) {
     if (!el || el === "none") return null;
@@ -1565,7 +1567,7 @@ export class Battle {
     const mode = r >= 100 && t.side !== "party" ? 0 : 1 - Math.min(.8, Math.max(0, r) / 100) * (1 - ignore);
     if (!mode) return 1; // 固有の完全無効は別
     const scale = this._bm(t, "r_" + el) * this._bm(t, "r_all");
-    let elem = !el || el === "none" ? 1 : 1-elementDefenseReduction(el,edefOf(t),eaffOf(t),scale);
+    let elem = !el || el === "none" ? 1 : 1-elementDefenseReduction(el,edefOf(t, el),eaffOf(t),scale);
     if (elementFloor && el && el !== "none") elem = Math.max(elem, Math.min(1, 100 / elementAttack(actor, el) / elementWeakness(el, eaffOf(t))));
     const factors = [elem, mode, 1 - (t.guard || 0)];
     if (actor?.side === "enemy" && t.side === "party") {
