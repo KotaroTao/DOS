@@ -16895,7 +16895,10 @@ function bukonAction(action, it, b) {
     G.bukonProtected ||= {}; const key=bukon.bukonKey(b); G.bukonProtected[key]=!G.bukonProtected[key];
   } else {
     if (!bukonTargets().includes(it)) return false;
-    if (action === "move") {
+    if (action === "replace") {
+      if (b?.incoming?.it && !bukonTargets().includes(b.incoming.it)) return false;
+      if (!bukon.replaceBukon(G,it,b?.incoming,b?.replaced)) return false;
+    } else if (action === "move") {
       const source=b?.it, soul=b?.soul;
       if (!bukonTargets().includes(source) || source===it || source.cursed || !source.bukon?.includes(soul) || bukon.attachBlock(it,soul)) return false;
       // 実物を一つだけ移し、合成素材の保護状態も引き継ぐ。
