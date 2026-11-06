@@ -1579,18 +1579,19 @@ function paintedStill(src, width, height, className, contain = false) {
   c.style.imageRendering = "auto";
   const g = c.getContext && c.getContext("2d");
   if (!g) return c;
-  if (!_paintedImages.has(src)) {
-    _paintedImages.set(src, new Promise((resolve) => {
+  let entry = _paintedImages.get(src);
+  if (!entry) {
+    entry = { image: null, ready: null };
+    entry.ready = new Promise((resolve) => {
       const im = new Image();
       im.decoding = "async";
-      im.onload = () => resolve(im);
+      im.onload = () => { entry.image = im; resolve(im); };
       im.onerror = () => resolve(false);
       im.src = src;
-    }));
+    });
+    _paintedImages.set(src, entry);
   }
-  const ready = _paintedImages.get(src);
-  watchIllustration(ready, ready, c);
-  ready.then((im) => {
+  const draw = (im) => {
     if (!im) return;
     const fit = contain ? Math.min : Math.max;
     const s = fit(c.width / im.naturalWidth, c.height / im.naturalHeight);
@@ -1598,7 +1599,10 @@ function paintedStill(src, width, height, className, contain = false) {
     g.imageSmoothingEnabled = true;
     g.imageSmoothingQuality = "high";
     g.drawImage(im, (c.width - w) / 2, (c.height - h) / 2, w, h);
-  });
+  };
+  // 読み込み済みの胸像・紋章は、その場で描いて不要な場面待ちを作らない。
+  if (entry.image) draw(entry.image);
+  else { watchIllustration(entry.ready, entry.ready, c); entry.ready.then(draw); }
   return c;
 }
 export function keeperCanvas(key) {
@@ -1614,8 +1618,11 @@ export function kingCanvas() {
 // 街の絵の下ごしらえ: 夜景と施設の情景を、アイドル時間に少しずつ描いておく (初めて街を開く時の引っかかりを消す)
 export function prewarmTown(keys = []) {
   if (!hasDOM()) return;
-  for (let i = 0; i < SCENE_STAGES.length; i++) idle(() => { if (!_scene) sceneStep(); });
-  for (const k of keys) idle(() => vignetteFrames(k));
+  // 原画を使う場面では、表示しない旧ドット絵を裏で生成しない。
+  if (!hasPaintedTownScene(false) || !hasPaintedTownScene(true)) {
+    for (let i = 0; i < SCENE_STAGES.length; i++) idle(() => { if (!_scene) sceneStep(); });
+  }
+  for (const k of keys) if (!hasPaintedVignette(k)) idle(() => vignetteFrames(k));
 }
 
 // ───────────────────────────────────────────────────────────────────────────

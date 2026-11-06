@@ -93,7 +93,7 @@ export function paintedVignette(key, living) {
   c.className = "tw-vig tw-vig-hd";
   const g = c.getContext && c.getContext("2d");
   if (!g) return c;
-  let box = null;
+  let box = _base.get(key) || null;
   const lights = (a.lights || []).map((L, i) => ({ ...L, T: TONES[L.tone] || TONES.lamp, seed: i * 3.7 + key.length }));
   const draw = (ts) => {
     if (!box) return;
@@ -115,14 +115,16 @@ export function paintedVignette(key, living) {
     g.globalCompositeOperation = "source-over";
     g.globalAlpha = 1;
   };
-  const ready = loadArt(key);
-  watchIllustration(ready, ready, c);
-  sceneReady(c, ready);
-  ready.then((im) => {
-    if (!im) return;
-    box = baseOf(key, im);
-    draw(typeof performance !== "undefined" ? performance.now() : 0);
-  });
+  if (!box) {
+    const ready = loadArt(key);
+    watchIllustration(ready, ready, c);
+    sceneReady(c, ready);
+    ready.then((im) => {
+      if (!im) return;
+      box = baseOf(key, im);
+      draw(typeof performance !== "undefined" ? performance.now() : 0);
+    });
+  }
   return living(c, draw, 15);
 }
 
