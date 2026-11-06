@@ -23,13 +23,14 @@ async def main():
   await page.route('**/src/game.js',instrument);await page.route('**/src/autotactics.js',instrument);await page.route('**/src/auto-planner.js',instrument);await page.route('**/src/townart.js',instrument)
   await page.goto(BASE+'/?testDungeon=w01&testPlace=town')
   await page.wait_for_function('__game?.G.state==="town"&&!document.body.classList.contains("booting")')
-  await page.evaluate('''async()=>{
+  await page.evaluate('''async(known)=>{
    const audio=await import('/src/audio.js');audio.initAudio();
    const {reseedRng}=await import('/src/rng.js');reseedRng(42);
    const {G}=__game;for(const a of G.party){a.hp=a.maxhp=100000;a.mp=a.maxmp=99999;a.agi=1000;a.atk=100;a.tactic='all';a.spells=['ZANKOU','DIOS','MAHALITO','GOKUENRAN','HYOUGA','TORNADO','RAIJIN','TATEWARI','KYOUGEKI','CHOUHATSU'];}
    const enemies=__game.spawnCardEnemies('bs_bonepile',1,1);for(const e of enemies){e.hp=e.maxhp=10000000;e.agi=1;e.ability=null;}
+   if(known)for(const e of enemies)G.codex.mon[e.key]={kills:10,main:10};
    __game.startBattle(enemies,null);document.getElementById('town-shell').classList.add('hidden');
-  }''')
+  }''',bool(os.environ.get('AUTO_KNOWN')))
   await page.locator('#combat-menu[data-mode="input"] .cmd-auto').wait_for()
   if os.environ.get('AUTO_CPU'):
    cdp=await page.context.new_cdp_session(page);await cdp.send('Emulation.setCPUThrottlingRate',{'rate':float(os.environ['AUTO_CPU'])})

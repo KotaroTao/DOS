@@ -646,6 +646,8 @@ export function autoEstimateContext(enemies){return {element:enemies.filter(e=>!
 export function partyBreathRes(t) { return Math.min(BREATH_RES_CAP, (t.breathRes || 0) + (t.side === "party" ? _partyBreathBonus : 0)); }
 // 極「慧眼の」の持ち主 (a) は、図鑑で明かしていない敵の属性も見積もりに使う
 const elemSeen = (t, a) => !(t && t.side === "enemy" && _elemKnown && !_elemKnown(t)) || bkInsight(a);
+// オートが既知の見積もりと実値の確認を共用できるか、同じ開示条件で判定する。
+export { elemSeen as estimateElementKnown };
 // 属性を知らない敵の見かけ (固有属性だけ「なし」に見せ、ほかは本体を読む)。固有パッシブの「弱点を突いた時」の判定用
 const elemMask = (t, a) => (elemSeen(t, a) ? t : Object.create(t, { element: { value: "none" }, affinity: {value:{weak:[],resist:[]}}, elemDef:{value:null}, _evEDef:{value:null} }));
 
