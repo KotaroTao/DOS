@@ -624,7 +624,9 @@ const metalEvade = (t) => (METAL_TIERS[t.metal] || METAL_TIERS[1]).evade;
 // 迷宮のイベント (events.js) の加護: 与ダメ倍率 (_evDmg) と種族特効 (_evPrey)。game.js が戦闘開始時に人業へ付ける
 function evDealMul(actor, tgt) {
   let m = actor._evDmg || 1;
-  for (const pr of [].concat(actor._evPrey || [])) if (pr && pr.races && pr.races.includes(enemyRace(tgt))) m *= pr.mul || 1;
+  const prey = actor._evPrey;
+  if (!prey) return m;
+  for (const pr of [].concat(prey)) if (pr && pr.races && pr.races.includes(enemyRace(tgt))) m *= pr.mul || 1;
   return m;
 }
 // 属性耐性力: 出来事の加護も同属性へ加算する。
@@ -3729,8 +3731,9 @@ export class Battle {
     const tv = opt.actual ? t : elemMask(t, actor);
     dmg *= evDealMul(actor, t) * (1 + this._perkSum(actor, "deal", { tgt: tv, el: sp.element || "none", on: ["spell"] }));
     const critP = this._spellCritChance(actor, sp);
-    const critMul = this._spellCritMul(actor);
-    dmg *= 1 + critP * (critMul - 1);
+    // 会心率も装備の倍率補正もない時は、使わない会心倍率を求めない。
+    // 補正がある記録は、非有限値の伝わり方も含め従来の計算を通す。
+    if (critP !== 0 || actor.spellCritDamageBonus) dmg *= 1 + critP * (this._spellCritMul(actor) - 1);
     if (t.guard) dmg *= 1 - t.guard;
     const correctionTarget = t.side === "enemy" ? tv : Object.create(tv, {magResist:{value:r}});
     dmg *= this._passiveCorrection(correctionTarget, actor, sp.gravity ? "none" : sp.element, "magic", this._rk(actor, "archmageShinen", [.25, .5, .75, 1]), !!pv(actor, "elemFloor"), t.side === "enemy" ? modeResistance(t, "magResist", r) : null);
