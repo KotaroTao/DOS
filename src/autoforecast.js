@@ -80,17 +80,20 @@ function attacks(b, a) {
   if (a.tactic === "blade") return out;
   for (const key of autoSkills(a)) {
     const sp = SPELLS[key];
-    if (!sp || !(sp.kind === "phys" || sp.kind === "atk" || sp.instakill) || a.mp < b.costOf(a, sp, key)) continue;
+    if (!sp || !(sp.kind === "phys" || sp.kind === "atk" || sp.instakill)) continue;
+    // この手番の候補を比べ、選んだ手を適用するまでだけ共用する。
+    const cost = b.costOf(a, sp, key);
+    if (a.mp < cost) continue;
     if (sp.target !== "enemy" && sp.target !== "all-enemy") continue;
     const targets = sp.target === "all-enemy" || sp.scatter ? [null] : sp.kind === "phys" ? b.attackableEnemies(a) : b.livingEnemies();
-    for (const target of targets) out.push({ action: "spell", spellKey: key, target });
+    for (const target of targets) out.push({ action: "spell", spellKey: key, target, mpCost: cost });
   }
   return out;
 }
 
-function apply(b, a, cmd, est, support = true) {
+function apply(b, a, cmd, est, support = true, mpCost = null) {
   const sp = cmd.spellKey ? SPELLS[cmd.spellKey] : null;
-  if (sp) a.mp -= b.costOf(a, sp, cmd.spellKey);
+  if (sp) a.mp -= mpCost ?? b.costOf(a, sp, cmd.spellKey);
   let total = 0;
   if (!sp || sp.target === "enemy" || sp.target === "all-enemy") {
     for (const { t, d } of damage(b, a, cmd, est)) {
@@ -137,16 +140,19 @@ function rollout(b, actor, first, est, support = true) {
       if (!p?.alive || p.asleep || p.ailment === "stone" || p.ailment === "paralyze" || p.mind === "charm") continue;
       if (!sim.livingEnemies().length) return total;
       let best = null, value = 0;
+      // 同じ手番の候補を比べる間はMPも状態も変わらない。MPの値打ちは一度だけ読む。
+      let price;
       for (const cmd of attacks(sim, p)) {
         const hits = damage(sim, p, cmd, est), raw = hits.reduce((s, h) => s + h.d, 0);
         // MPを使ってもほぼ削れない手は、続きの予測でも使わない。
         if (cmd.spellKey && hits.every(h => est.low(h.d, h.t))) continue;
-        const cost = cmd.spellKey ? sim.costOf(p, SPELLS[cmd.spellKey], cmd.spellKey) : 0;
-        const v = raw - cost * est.price(p);
+        const cost = cmd.spellKey ? cmd.mpCost : 0;
+        if (price === undefined) price = est.price(p);
+        const v = raw - cost * price;
         if (v > value + 1e-8) { best = cmd; value = v; }
       }
       // 早く通る傷を重く見る。同じ3ターン内で倒せても、前倒しする支援には意味がある。
-      if (best) total += apply(sim, p, best, est) * (0.8 ** round);
+      if (best) total += apply(sim, p, best, est, true, best.mpCost) * (0.8 ** round);
     }
   }
   return total;
