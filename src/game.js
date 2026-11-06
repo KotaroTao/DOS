@@ -1553,6 +1553,9 @@ function infReturnItems() {
   return [...new Set([...(G.inventory || []), ...(G.party || []).flatMap(d => [...(d.items || []), ...Object.values(d.equip || {})])])]
     .filter(it => it && it.id && !it.soulMemory);
 }
+function infReturnBukonCount(items = infReturnItems(), stock = bukon.stockRows(G)) {
+  return (stock.reduce((n, b) => n + BigInt(b.count), 0n) + BigInt(items.reduce((n, it) => n + (it.bukon?.length || 0), 0))).toString();
+}
 
 // ===== 無限迷宮の称号と勲章の数え (docs/infinite-affixes.md 4・5章) =====
 // G.stats.inf = 通しの数え (勲章 ACH_SERIES の inf* と称号)。G.abyss.trk = この出撃だけの数え (称号の「1回の出撃で」)
@@ -1636,9 +1639,10 @@ function infAfxTrack(it) {
 
 // ===== 本編を退ける / 戻す =====
 // 潜っている間は、本編の隊・控え・魂・通貨を G.abyss.home に退ける (控えも退けるのは、
-// 魂の付け替え・再計算で本編の人業が仮の器の魂を読まないため)。赤い魂・図鑑・在庫は本編のまま
-const INF_HOME_KEYS = ["inventory", "party", "reserve", "souls", "gold", "soulPts", "embers"];
+// 魂の付け替え・再計算で本編の人業が仮の器の魂を読まないため)。赤い魂・図鑑・商会の品の棚は本編のまま (武魂の在庫は挑戦ごとに分ける)
+const INF_HOME_KEYS = ["inventory", "party", "reserve", "souls", "gold", "soulPts", "embers", "bukonStock", "bukonProtected"];
 function infStashHome() {
+  bukon.bukonStock(G); G.bukonProtected ||= {};
   const h = {};
   for (const k of INF_HOME_KEYS) h[k] = G[k];
   return h;
@@ -1701,15 +1705,22 @@ function infCloseRun(outcome) {
   const depth = ab.depth || G.floor || 1;
   // 持ち帰る品: 仮の器の装備と袋の品すべて (手元には届かず商会の棚へ)
   const items = infReturnItems();
+  const stock = bukon.stockRows(G);
+  const bukonCount = infReturnBukonCount(items, stock);
   const souls = (run.souls || []).map((x) => x && x.clsKey).filter((k) => k && SOUL_CLASSES[k]);
   const embers = Math.max(0, run.embers || 0);
   const vLv = infPartyLv(), vDead = (G.party || []).some((d) => !d.alive); // 仮の器の様子 (本編を戻す前に)
 
   infRestoreHome(ab.home);
   if (ab.savedIdx != null) G.dungeonIdx = Math.min(DUNGEONS.length - 1, Math.max(0, ab.savedIdx));
-  const got = { items: [], souls: [], embers: 0 };
+  const got = { items: [], souls: [], embers: 0, bukon: "0" };
   const enchantBefore = featureUnlocked("enchant");
   if (keep) {
+    for (const b of stock) {
+      bukon.stockAdd(G, b, b.count);
+      if (b.protected) (G.bukonProtected ||= {})[bukon.bukonKey(b)] = true;
+    }
+    got.bukon = bukonCount;
     for (const it of items) { recordAffixHome(it); shopReceive(it); codexSeeItem(it.id, it); got.items.push({ id: it.id, name: itemName(it), rar: rarityKey(it), afx: !!(it.afx && it.afx.length) }); }
     for (const k of souls) { addSoulInstance(k); codexJobSee(k, 1, 1); noteSoulFound(k); got.souls.push(k); }
     if (embers) { G.embers = (G.embers || 0) + embers; got.embers = embers; }
@@ -1732,12 +1743,13 @@ function infCloseRun(outcome) {
   rec.recent = rec.recent.slice(0, 8);
   G.stats.abyssBest = Math.max(G.stats.abyssBest || 0, depth);
   G.abyss = null;
-  return { depth, outcome, keep, newDepth, got, enchantUnlocked: !enchantBefore && featureUnlocked("enchant"), sold: trk.sold || 0, title: infTitleName(), lost: keep ? null : { items: items.length, souls: souls.length, embers } };
+  return { depth, outcome, keep, newDepth, got, enchantUnlocked: !enchantBefore && featureUnlocked("enchant"), sold: trk.sold || 0, title: infTitleName(), lost: keep ? null : { items: items.length, souls: souls.length, embers, bukon: bukonCount } };
 }
 // 読み込み: 無限迷宮の途中なら、いったん本編の隊・魂・通貨を G へ戻して読み込みの手当てを掛け、済んだら仮の器へ戻す
 function infSwapForLoad() {
   const ab = G.abyss;
   if (!ab || ab.v !== 2 || !ab.home) return null;
+  bukon.bukonStock(G);
   const run = {};
   for (const k of INF_HOME_KEYS) { run[k] = G[k]; if (ab.home[k] !== undefined) G[k] = ab.home[k]; }
   return run;
@@ -12644,7 +12656,7 @@ function gameOver() {
     };
     UI.openInfWipe({
       abandoned: !!r.abandoned, floor: G.floor, cost, red: G.redSoul, canSave: G.redSoul >= cost,
-      souls: (r.souls || []).length, items, embers: r.embers || 0, sold: (infTrk().sold || 0),
+      souls: (r.souls || []).length, items, bukon: infReturnBukonCount(), embers: r.embers || 0, sold: (infTrk().sold || 0),
       onSave: () => saveLoot(),
       // 本番の広告連携までは即時成功。回数・待ち時間の制限は設けない。
       onAd: () => saveLoot(true),
@@ -16921,17 +16933,19 @@ function bukonTargets() {
   return [...new Set([...(G.inventory || []), ...allDolls().flatMap(d => Object.values(d.equip || {}).filter(Boolean))])].filter(it => hasQuality(it) && !it.unidentified && !it.soulMemory);
 }
 function prepareBukonFusionTutorial() {
+  if (abyssActive()) return;
   if (!featureUnlocked("bukonFusion") || G.tut?.done?.bukonFusion) return;
   G.tut ||= { done: {} };
   if (!G.tut.bukonFusionGift) { bukon.stockAdd(G, { k: "flat_hp", lv: 1 }, 3); G.tut.bukonFusionGift = true; autosave(true); }
 }
 function bukonRows() {
   if(bukon.migrateBukon(G,bukonTargets())){for(const d of allDolls())recalcDoll(d);autosave(true);}
-  if (featureUnlocked("enchant") && !G.bukonGift) { bukon.stockAdd(G,{k:"flat_hp",lv:1}); G.bukonGift=true; autosave(true); }
+  if (!abyssActive() && featureUnlocked("enchant") && !G.bukonGift) { bukon.stockAdd(G,{k:"flat_hp",lv:1}); G.bukonGift=true; autosave(true); }
   return bukon.stockRows(G);
 }
 function bukonAction(action, it, b) {
   if (bukonClosed()) return false;
+  bukon.bukonStock(G);
   if (action === "upgrade" || action === "batch") {
     if (!featureUnlocked("bukonFusion") || !bukon.applySnapshotFusion(G,bukonTargets(),action === "upgrade" ? b : null)) return false;
     for (const d of allDolls()) recalcDoll(d);
@@ -17405,6 +17419,7 @@ function enterAbyss(picks, testRun = false, memoryFloor = null) {
   // 本編を退け、仮の器と無限迷宮の魂・通貨に差し替える
   G.inventory = [];
   G.reserve = [];
+  G.bukonStock = {}; G.bukonProtected = {};
   G.souls = []; setSharedSouls(G.souls);
   G.gold = 0; G.soulPts = 0; G.embers = 0;
   if (memory) infRestoreMemory(memory, names);
