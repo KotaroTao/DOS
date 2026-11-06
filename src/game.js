@@ -11577,7 +11577,7 @@ const BATTLE_RESULT_MS = 400;
 function battleResultEnd(fx, now) {
   beginSkillFxPresentation(fx, now);
   const spd = effectSpeed();
-  for (const f of fx.floats) f.dur = BATTLE_RESULT_MS;
+  for (const f of fx.floats) f.dur = f.bladeHeal ? BATTLE_RESULT_MS / 2 : BATTLE_RESULT_MS;
   for (const d of fx.deaths) d.dur = BATTLE_RESULT_MS;
   for (const s of fx.slashes) s.dur = s.dur || 240 * Math.max(0.6, spd);
   let end = now;
@@ -11873,6 +11873,9 @@ function applyImpactTraced(res) {
     targetSlots.set(id,slot+1);skillSlots.set(hit,slot);
   }
   let partyHealIdx = 0;
+  // 「刃の光」の隊回復だけは、打撃と分けて半分の間隔・表示時間にする。
+  const bladeHeal = !!SPELLS[res.spellKey]?.bladeHeal;
+  const healStag = bladeHeal ? stag / 2 : stag;
   // 味方への強化/弱体フロートも複数人ぶん横に散らす
   let partyModIdx = 0;
   for (const h of res.hits) {
@@ -12017,9 +12020,9 @@ function applyImpactTraced(res) {
         const i = partyHealIdx++;
         const fx0 = partyFxX(h.target);
         const fy0 = VH - 26 - (i % 2) * 16; // 重なり回避に上下も少しずらす
-        fx.floats.push({ x: fx0, y: fy0, text: "+" + h.heal, color: "#7CFC7C", t0: now + i * stag, kind: "heal" });
+        fx.floats.push({ x: fx0, y: fy0, text: "+" + h.heal, color: "#7CFC7C", t0: now + i * healStag, kind: "heal", bladeHeal });
         setImpactFxV(h.target, "heal");
-        if (!prof?.family) spawnFx(fx.skill, "rise", partyFxX(h.target), VH - 8, now + i * stag, spd, { seed: i + 3, s: 0.8 * (prof ? prof.scale : 1), col: "#7CFC7C" });
+        if (!prof?.family) spawnFx(fx.skill, "rise", partyFxX(h.target), VH - 8, now + i * healStag, spd, { seed: i + 3, s: 0.8 * (prof ? prof.scale : 1), col: "#7CFC7C", ...(bladeHeal ? { dur: 340 * Math.max(0.45, spd) / 2 } : {}) });
       } else if (h.steal) {
         // 窃盗: ゴールド/Soul の控除はここで行う (combat.js は G を知らない)
         partyHit = true;
