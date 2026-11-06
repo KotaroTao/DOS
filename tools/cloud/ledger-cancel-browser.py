@@ -3,7 +3,7 @@ import os
 from urllib.parse import urlparse
 from playwright.sync_api import sync_playwright
 with sync_playwright() as p:
-    browser=p.webkit.launch() if os.environ.get('DOS_TEST_BROWSER')=='webkit' else p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox'])
+    browser=p.webkit.launch() if os.environ.get('DOS_TEST_BROWSER')=='webkit' else p.chromium.launch(executable_path=os.environ.get('CHROME_BIN','/usr/bin/chromium'),args=['--no-sandbox'])
     for mode in ['abandon','rematch']:
         for worker in [True,False]:
             c=browser.new_context(service_workers='block')
