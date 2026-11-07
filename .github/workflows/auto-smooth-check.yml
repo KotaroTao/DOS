@@ -13,6 +13,7 @@ on:
       - 'tools/performance/town-image-cache-browser.py'
       - 'tools/performance/town-facility-browser.py'
       - 'tools/performance/town-quest-cache-check.mjs'
+      - 'tools/performance/town-progress-check.mjs'
       - 'tools/performance/gear-hints-check.mjs'
       - 'tools/effects/tone-cache-browser.py'
       - 'tools/performance/battle-gap-browser.py'
@@ -51,6 +52,7 @@ jobs:
           CHROME_BIN: /usr/bin/google-chrome
         run: |
           node tools/performance/town-quest-cache-check.mjs
+          node tools/performance/town-progress-check.mjs
           node tools/performance/auto-perk-cap-check.mjs
           node tools/performance/auto-empty-bonus-check.mjs
           node tools/performance/auto-forecast-cost-check.mjs

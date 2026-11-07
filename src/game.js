@@ -14070,7 +14070,8 @@ function namedInfo(id) {
   const st = namedState();
   const f = questState().fixed[bountyId(id)];
   const seen = st.seen[id] || null;
-  const homes = DUNGEONS.filter((d, i) => worldOpenIdx(i) && (d.elites || []).includes(id));
+  const open = worldState().open;
+  const homes = DUNGEONS.filter((d) => open[d.id] && (d.elites || []).includes(id));
   return {
     id, name: MONSTERS[id] ? MONSTERS[id].name : id, layer: (NAMED_FOES[id] || {}).layer || 0,
     seen, seenAt: seen && seen.dungeon ? (seen.dungeon === "abyss" ? "無限迷宮" : (worldById(seen.dungeon) || {}).name || "") : "",
@@ -14082,7 +14083,10 @@ function namedInfo(id) {
 // その迷宮を縄張りにする名のある強敵 (出撃シートの迷宮の顔)
 function namedHere(cfg) { return ((cfg && cfg.elites) || []).filter((id) => MONSTERS[id] && MONSTERS[id].named).map(namedInfo); }
 // 図鑑に並べる名のある強敵 (地図に縄張りが現れた者だけ)
-function namedList() { return NAMED_IDS.filter((id) => MONSTERS[id] && DUNGEONS.some((d, i) => worldOpenIdx(i) && (d.elites || []).includes(id))).map(namedInfo); }
+function namedList() {
+  const open = worldState().open;
+  return NAMED_IDS.filter((id) => MONSTERS[id] && DUNGEONS.some((d) => open[d.id] && (d.elites || []).includes(id))).map(namedInfo);
+}
 
 function questState() {
   if (!G.quest || typeof G.quest !== "object") G.quest = {};
@@ -14209,7 +14213,7 @@ function fixedQuestAppears(def) {
   if (a.claimed) { const f = questState().fixed[a.claimed]; if (!f || f.state !== "claimed") return false; } // 前の依頼を報告し終えた
   const home = fixedQuestHome(def);
   // 受注して道を開く頼みだけは、迷宮の発見そのものなので別枠で案内する。
-  if (home && !worldOpenId(home) && !(def.opens || []).includes(home)) return false;
+  if (home && !w.open[home] && !(def.opens || []).includes(home)) return false;
   return true;
 }
 // 酒場で受けられる固定クエスト (現れていて、まだ受けていないもの)
@@ -14231,7 +14235,9 @@ function fixedQuestView(def) {
 // 迷宮の深部 (8割の階) の戦果 / 地図でいちばん深い迷宮のそれ
 const questDeepUnit = (cfg) => questUnit(cfg, Math.max(1, Math.ceil((cfg.floors || 1) * 0.8)));
 function questFrontUnit() {
-  const open = DUNGEONS.filter((d) => worldOpenId(d.id));
+  // 報酬ごとに、迷宮の数だけ旧セーブの補完・未報告の探索を繰り返さない。
+  const opened = worldState().open;
+  const open = DUNGEONS.filter((d) => opened[d.id]);
   return questDeepUnit(open.length ? open.reduce((a, d) => ((d.lvTo || 0) > (a.lvTo || 0) ? d : a)) : DUNGEONS[0]);
 }
 // 固定クエストの報酬 (戦果の倍数を、物差しの迷宮の深部で金貨/✦Soul に直す)
@@ -14689,21 +14695,21 @@ function tavernHintAllowed(req) {
   if (req.startsWith("rep:")) return !!w.reported[req.slice(4)];       // その迷宮を王に報告した後
   if (req.startsWith("beat:")) return !!w.beats[req.slice(5)];         // その館の語りを聞いた後
   if (req.startsWith("found:")) return !!w.found[req.slice(6)];         // その手がかりを見つけた後
-  if (req.startsWith("open:")) return worldOpenId(req.slice(5));        // その迷宮が地図に現れた後 (依頼の迷宮)
+  if (req.startsWith("open:")) return !!w.open[req.slice(5)];           // その迷宮が地図に現れた後 (依頼の迷宮)
   if (req.startsWith("ch:")) return chaptersDone(w) >= Number(req.slice(3)); // 第n章を結んだ後
   if (req === "extremeAffix") return !!G.tut?.extremeReturned;
   if (req === "sub") return unlockedSubSlots() > 0;     // サブ魂
-  if (req === "metal") return DUNGEONS.some((d) => d.layer >= 3 && worldOpenId(d.id)); // 金属の魔物 (第3層の景色の迷宮から出る)
-  if (req === "metal2") return DUNGEONS.some((d) => d.layer >= 4 && worldOpenId(d.id)); // 金属の上位種 (金業・銀業の王は第4層から)
-  if (req === "fort") return DUNGEONS.some((d) => d.layer >= 4 && worldOpenId(d.id));  // 捨て砦 (第4層の迷宮が地図に現れた後)
-  if (req === "roots") return worldOpenId("w10");                                   // 魂脈の根 (大穴の下の縦穴が地図に現れた後)
-  if (req === "undercity") return worldOpenId("w14");                               // 王都の地下 (水底の参道が地図に現れた後)
-  if (req === "furnace") return worldOpenId("w18");                                 // 灼熱の洞 (火を噴く地割れが地図に現れた後)
-  if (req === "frost") return worldOpenId("w22");                                   // 氷結回廊 (奈落の氷棚が地図に現れた後)
-  if (req === "swamp") return worldOpenId("w26");                                   // 毒沼 (腐れ水の岸が地図に現れた後)
-  if (req === "storm") return worldOpenId("w30");                                   // 嵐の尖塔 (風鳴りの螺旋が地図に現れた後)
-  if (req === "arena") return worldOpenId("w34");                                   // 闘技場跡 (雲を渡る石橋が地図に現れた後)
-  if (req === "cavern") return worldOpenId("w38");                                  // 地底大空洞 (灯籠の吹き溜まりが地図に現れた後)
+  if (req === "metal") return DUNGEONS.some((d) => d.layer >= 3 && w.open[d.id]); // 金属の魔物 (第3層の景色の迷宮から出る)
+  if (req === "metal2") return DUNGEONS.some((d) => d.layer >= 4 && w.open[d.id]); // 金属の上位種 (金業・銀業の王は第4層から)
+  if (req === "fort") return DUNGEONS.some((d) => d.layer >= 4 && w.open[d.id]);  // 捨て砦 (第4層の迷宮が地図に現れた後)
+  if (req === "roots") return !!w.open.w10;                                   // 魂脈の根 (大穴の下の縦穴が地図に現れた後)
+  if (req === "undercity") return !!w.open.w14;                               // 王都の地下 (水底の参道が地図に現れた後)
+  if (req === "furnace") return !!w.open.w18;                                 // 灼熱の洞 (火を噴く地割れが地図に現れた後)
+  if (req === "frost") return !!w.open.w22;                                   // 氷結回廊 (奈落の氷棚が地図に現れた後)
+  if (req === "swamp") return !!w.open.w26;                                   // 毒沼 (腐れ水の岸が地図に現れた後)
+  if (req === "storm") return !!w.open.w30;                                   // 嵐の尖塔 (風鳴りの螺旋が地図に現れた後)
+  if (req === "arena") return !!w.open.w34;                                   // 闘技場跡 (雲を渡る石橋が地図に現れた後)
+  if (req === "cavern") return !!w.open.w38;                                  // 地底大空洞 (灯籠の吹き溜まりが地図に現れた後)
   return featureUnlocked(req);                           // fusion / rumor / order / rusui
 }
 // 酒場の顔ぶれを選び直す (ダンジョン帰還時・初回入店時に呼ぶ)
@@ -14885,7 +14891,8 @@ function rollClassOfRarity(rarity) {
 // 最初から商会の棚に並ぶ品 (SHOP_INIT_STOCK) は買うだけで済むので求めない
 function eligibleDeliveryItemIds() {
   // 地図にある迷宮のうち、いちばん深い落とし物の帯の上限 lv
-  const open = DUNGEONS.filter((d) => worldOpenId(d.id));
+  const opened = worldState().open;
+  const open = DUNGEONS.filter((d) => opened[d.id]);
   const cap = Math.max(1, ...(open.length ? open : [DUNGEONS[0]]).map((d) => (d.lootLv || [1, 1])[1]));
   return LOOT_IDS.filter((id) => (ITEMS[id].lv || 1) <= cap && !(id in SHOP_INIT_STOCK));
 }
