@@ -1,3 +1,4 @@
+import { actionWaitProgress, actionWaitSpan, actionWaitEvent, watchActionWait } from './action-wait.js';
 import { recordBattleFrame, battlePaintDue } from './skill-fx-budget.js';
 import { planAuto, warmAutoPlanner } from './auto-planner.js';
 import { showFieldSkillFx } from "./skill-fx-field.js";
@@ -9571,7 +9572,15 @@ function playOpeningStrikes(list, i, done) {
 }
 
 // 全体描画 (キャンバス + 隊 + メニュー)
+function monitorActionWait() {
+  watchActionWait(() => ({combat:G.state === "combat",expected:G.state === "combat" && !!(G.autoCombat || G.animating || _cloudResolving || ["enemy","stunned"].includes(G.battle?.phase)),
+    paused:sheetDepth()>0 || !!G.settingsOpen || !!G.statusOpen,auto:!!G.autoCombat,animating:!!G.animating,
+    cloudBusy:cloudBusy(),resolving:!!_cloudResolving,mediaBusy:mediaBusy(),phase:G.battle?.phase || "none",
+    round:G.battle?._roundNo || 0,actorSide:G.battle?.current?.side || "none",action:G.battle?.pending?.action || "none",spell:G.battle?.pending?.spellKey || null,acted:!!G.battle?._acted,autoTimer:!!G._autoTimer,party:G.battle?.party.length || 0,enemies:G.battle?.enemies.length || 0,
+    forced:savedForcedTurns.length,advanceCached:!!savedBattleAdvance,fast:!!G.fastAnim,gap:battleActionGap()}));
+}
 function renderCombat() {
+  monitorActionWait();
   if (!G.animating) drainPartyProcs(); // 戦闘の始まり・ターンの初めに発動した効果 (手番の外)
   renderDock(); // 戦闘中は行動ドックを隠し、命令板に場所を譲る
   renderRunbar();
@@ -10986,6 +10995,7 @@ function renderCombatMenu() {
         G._autoTimer = setTimeout(async function autoTick() {
           if (combatHeld()) { G._autoTimer = setTimeout(autoTick, 150); return; } // 手帳などを開いている間は待つ
           G._autoTimer = null;
+          actionWaitEvent("auto.tick");
           const b2 = G.battle;
           if (!b2 || b2.phase !== "input" || !G.autoCombat || G.animating) return;
           // 人業ごとの作戦 (autotactics.js) で一手を決める。誰も何も通せない (物理無効の敵ばかりで、役に立つ技も無い)
@@ -11406,6 +11416,7 @@ function whenCombatFree(fn, battle = G.battle) {
 }
 
 function combatStep() {
+  monitorActionWait();
   const b = G.battle;
   if (!b) return;
   if (combatHeld()) { setTimeout(combatStep, 150); return; }
@@ -11479,6 +11490,7 @@ let savedForcedTurns = [];
 function showingConfirmedTurns() { return savedForcedTurns.some(turn => turn.battle === G.battle); }
 async function resolveSavedBattle(action) {
   if (_cloudResolving) return;
+  const waitFinished = actionWaitSpan("battle.resolve");
   _cloudResolving = true;
   let windup = null;
   const normalAttack = action === "commit" && G.battle?.pending?.action === "attack";
@@ -11524,7 +11536,7 @@ async function resolveSavedBattle(action) {
     if (normalAttack) battleActionTimes.set(G.battle, performance.now());
     animateResult(packet.result, postResolve);
   } catch (e) { cloudFatal(e, "戦闘の再開・進行"); }
-  finally { windup?.stop(); }
+  finally { windup?.stop(); waitFinished(); }
 }
 
 // 行動の結果を演出し、終わったら次へ
@@ -11612,8 +11624,9 @@ function animateResult(res, done) {
 
   const battle = G.battle;
   if (!battle || G.state !== "combat") return;
+  actionWaitProgress();actionWaitEvent("presentation", "start");
   let finished = false;
-  const finish = () => { if (!finished && G.battle === battle && G.state === "combat") { finished = true; done(); } };
+  const finish = () => { if (!finished && G.battle === battle && G.state === "combat") { finished = true; actionWaitEvent("presentation", "end");actionWaitProgress();done(); } };
 
   if (res.spellKey) warmSkillFx(res.spellKey,SPELLS[res.spellKey]);
   const presentation=fxProfile(res);

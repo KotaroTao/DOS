@@ -1,4 +1,5 @@
 import { setFxQuality } from "../skill-fx-budget.js";
+import { actionWaitReport, clearActionWait } from "../action-wait.js";
 // ===== 設定 — キットのシート (音量の目盛り・切り替え・自動化の好み・データ削除) =====
 // 担当: WP-A。⚙ (タブの見出し・盤面のトップバー) から開く。戻る操作 / 背景タップ / 下へ引く で閉じる。
 //   音      … サウンド ON/OFF・BGM と効果音の目盛り (指で引ける 0〜100)。端末の好み (dos-prefs)
@@ -115,6 +116,7 @@ function fillSound(box) {
   } }));
 
   box.appendChild(sec("戦闘・移動"));
+  box.appendChild(button({label:"行動待ちの診断",kind:"secondary",onTap:showActionWait}));
   box.appendChild(toggleRow({ name: "振動", desc: "被弾・宝箱などで端末を震わせる (対応端末のみ)", on: !!P.vibrate, onChange: (v) => {
     P.vibrate = v; if (game.savePrefs) game.savePrefs(); sfx("select"); if (v && game.buzz) game.buzz([0, 30]);
   } }));
@@ -206,6 +208,32 @@ function fillLook(box) {
   pickRow("縁取り", "外套の刺繍と、頭巾の奥の目の光", WALKER_TRIMS, "trim");
   draw();
   prewarmCryptActors().then(() => { if (prev.isConnected) draw(); });
+}
+function showActionWait() {
+  sheet.open({kind:"info",banner:"行動待ちの診断",body:root=>{
+    root.appendChild(el("p","","5秒以上の行動待ちを自動記録します。直近8件をこの端末に残し、リロード後も確認できます。診断情報をコピーして、不具合の報告に添えてください。"));
+    const report=actionWaitReport();
+    const count=el("p","",`記録: ${report.records.length}件`);root.appendChild(count);
+    const details=el("div");root.appendChild(details);
+    const last=report.records.at(-1);
+    if(last){
+      const labels={"auto.plan":"作戦計算","auto.snapshot":"作戦の準備","codec.encode":"保存の準備","codec.replayCommand":"戦闘結果の計算","codec.ack":"保存結果の反映","battle.resolve":"一手の確定","request.ledger-preview":"サーバーで戦闘を再計算"};
+      details.appendChild(el("p","",`最後の記録: ${(last.waitMs/1000).toFixed(1)}秒待機 / 画面処理の遅れ ${(last.maxTimerLagMs/1000).toFixed(1)}秒`));
+      for(const task of last.detected?.active||last.active||[])details.appendChild(el("p","",`${labels[task.stage]||task.stage}: ${(task.elapsedMs/1000).toFixed(1)}秒`));
+    }
+    const text=el("textarea");text.readOnly=true;text.setAttribute("aria-label","行動待ちの診断情報");
+    text.style.cssText="width:100%;height:16rem;box-sizing:border-box;font-size:12px";
+    text.value=JSON.stringify(report,null,2);root.appendChild(text);
+    root.appendChild(button({label:"診断情報をコピー",kind:"primary",onTap:async()=>{
+      try { await navigator.clipboard.writeText(text.value);toast("診断情報をコピーしました"); }
+      catch { text.focus();text.select();text.setSelectionRange(0,text.value.length);toast("診断情報を選択しました。コピーしてください"); }
+    }}));
+    root.appendChild(button({label:"診断情報を保存",kind:"secondary",onTap:()=>{
+      const url=URL.createObjectURL(new Blob([text.value],{type:"application/json"}));
+      const a=el("a");a.href=url;a.download="dos-action-wait.json";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    }}));
+    root.appendChild(button({label:"診断記録だけを消去",kind:"secondary",onTap:()=>{clearActionWait();count.textContent="記録: 0件";details.replaceChildren();text.value=JSON.stringify(actionWaitReport(),null,2);toast("診断記録を消去しました");}}));
+  },footer:[{label:"閉じる",kind:"secondary",onTap:s=>s.close()}]});
 }
 function fillAuto(box) {
   box.appendChild(sec("自動化"));

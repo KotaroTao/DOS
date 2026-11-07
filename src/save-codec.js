@@ -1,11 +1,13 @@
+import { actionWaitSpan, actionWaitEvent } from './action-wait.js';
 import { decodeCommandResponse } from "./cloud-command-codec.js";
 import { createCloudChange } from "./cloud-change.js";
 import { refSerialize, acknowledgedSave } from "./savegraph.js";
 let worker, sequence = 0, retryWorkerAt = 0;
 const WORKER_TIMEOUT_MS = 10000, WORKER_RETRY_MS = 30000;
 const pending = new Map();
-function releaseWorker(instance) {
+function releaseWorker(instance, reason = "error") {
   if (worker !== instance) return;
+  actionWaitEvent("save.worker", reason, pending.size);
   const jobs = [...pending.values()]; pending.clear();
   worker = null; retryWorkerAt = Date.now() + WORKER_RETRY_MS; instance.terminate();
   // 未完了の要求だけを従来の代替処理へ渡す。保存内容や戦闘の選択は捨てない。
@@ -15,6 +17,7 @@ function releaseWorker(instance) {
   }
 }
 function localWork(op, value, packet, compact) {
+  actionWaitEvent(`codec.${op}`, "fallback");
   // 画面の戦闘フックを上書きしない。Workerを使えない端末は従来のサーバー返答を使う。
   if (op === "replayCommand") return null;
   if (op === "commandReply") return decodeCommandResponse(value, packet);
@@ -23,14 +26,21 @@ function localWork(op, value, packet, compact) {
   return acknowledgedSave(value, packet);
 }
 async function work(op, value, packet, compact) {
+  const finish = actionWaitSpan(`codec.${op}`);
+  try { return await workerWork(op, value, packet, compact); }
+  catch (error) { finish("error"); throw error; } finally { finish(); }
+}
+async function workerWork(op, value, packet, compact) {
   if (typeof Worker === "undefined" || Date.now() < retryWorkerAt) return Promise.resolve(localWork(op, value, packet, compact));
   if (!worker) {
     try { worker = new Worker(new URL("./save-codec-worker.js", import.meta.url), { type: "module" }); }
     catch {
       // Workerの生成が制限された端末でも、従来の同期処理で記録を保つ。
+      actionWaitEvent("save.worker", "creation-error");
       retryWorkerAt = Date.now() + WORKER_RETRY_MS;
       return Promise.resolve(localWork(op, value, packet, compact));
     }
+    actionWaitEvent("save.worker", "created");
     const instance = worker;
     instance.onmessage = ({ data }) => {
       if (worker !== instance) return;
@@ -45,7 +55,7 @@ async function work(op, value, packet, compact) {
     };
   }
   return new Promise((resolve, reject) => {
-    const instance = worker, id = ++sequence, timer = setTimeout(() => releaseWorker(instance), WORKER_TIMEOUT_MS);
+    const instance = worker, id = ++sequence, timer = setTimeout(() => releaseWorker(instance, "timeout"), WORKER_TIMEOUT_MS);
     pending.set(id, { resolve, reject, op, value, packet, compact, timer });
     try { (worker.postMessage({ id, op, value, packet, compact })); }
     catch (e) {

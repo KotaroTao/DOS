@@ -67,7 +67,9 @@ with sync_playwright() as p:
  before=page.evaluate('__game.G.battle.enemies[0].hp')
  hold['on']=True
  page.locator('#combat-menu .cmd-main button.primary').first.click()
- page.wait_for_timeout(1200)
+ page.wait_for_timeout(6200)
+ diagnostic=page.evaluate("async()=>(await import('/src/action-wait.js')).actionWaitReport()")
+ assert any(v['waitMs']>=5000 and any(t['stage']=='http.ledger-command' for t in v['active']) for v in diagnostic['records']),diagnostic
  assert hold['routes'],calls[-5:]
  assert page.evaluate('__game.G.battle.enemies[0].hp')==before,'ACK前に結果を表示した'
  assert any(x['path'].endswith('/cloud_battle_append') and x['status']==200 for x in calls)
@@ -77,6 +79,8 @@ with sync_playwright() as p:
  # 送信待ち・選択・途中セーブをすべて消す。サーバーに追記済みの選択は消えない。
  page.evaluate("""()=>{for(const key of Object.keys(localStorage))if(/dos-cloud-(pending|choice|checkpoint):/.test(key))localStorage.removeItem(key)}""")
  reopen()
+ persisted=page.evaluate("async()=>(await import('/src/action-wait.js')).actionWaitReport().records")
+ assert persisted and persisted[-1]['waitMs']>=5000,'再読込で診断が消えた'
  after=page.evaluate('__game.G.battle.enemies[0].hp')
  assert after<before,(before,after)
  assert not any(x['body'] and x['body'].get('op')=='command' for x in calls),'毎手の重いEdge経路を使った'
