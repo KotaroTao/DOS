@@ -997,7 +997,7 @@ export function donateSheet() {
         const m = el("div", "pl-dn-m");
         if (h.dup) { m.appendChild(document.createTextNode("奉納済み ・ ")); m.appendChild(glyph("gold")); m.appendChild(document.createTextNode(String(h.gold))); }
         else m.appendChild(document.createTextNode("台帳に記される"));
-        m.appendChild(document.createTextNode(` ・ ${h.doll ? h.doll.name + " の荷" : "手持ち"}`));
+        m.appendChild(document.createTextNode(` ・ ${h.doll ? h.doll.name + " の荷" : "商会の棚"}`));
         tx.appendChild(m);
         if (!h.dup && def.desc) tx.appendChild(setText(el("div", "pl-dn-d"), def.desc));
         it.appendChild(tx);
@@ -1030,7 +1030,7 @@ function renderTreasury(body) {
     const strip = el("div", "pl-tr-strip");
     for (const h of list) {
       const t = itemTile(h.item, { size: 44, isNew: !h.dup, onTap: () => openItem(h.item.id, { instance: h.item, owner: h.doll, context: "donate" }) });
-      t.setAttribute("aria-label", `${h.item.name} (${h.doll.name})${h.dup ? " 奉納済み" : ""}`);
+      t.setAttribute("aria-label", `${h.item.name} (${h.doll ? h.doll.name : "商会の棚"})${h.dup ? " 奉納済み" : ""}`);
       strip.appendChild(t);
     }
     row.appendChild(strip);

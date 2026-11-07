@@ -16098,9 +16098,16 @@ function treasuryRewardReady() {
 // すでに奉納済みの種類は売却と同じ金貨を宝物庫から受け取る。戻り値 = {kind:"new"|"dup", gold} / 失敗は null
 function donateCollectible(doll, it) {
   const ts = treasuryState();
-  const idx = doll.items.indexOf(it);
-  if (idx < 0) return null;
-  doll.items.splice(idx, 1);
+  if (!it || it.slot !== "misc") return null;
+  if (doll) {
+    const idx = (doll.items || []).indexOf(it);
+    if (idx < 0) return null;
+    doll.items.splice(idx, 1);
+  } else {
+    // 商会の棚からは未奉納の種類だけを1点納める。金貨の受け取りは無い。
+    if (G.state !== "town" || ITEMS[it.id]?.slot !== "misc" || ts.donated[it.id] || !(G.shopStock?.[it.id] > 0)) return null;
+    G.shopStock[it.id]--;
+  }
   if (it.id && !ts.donated[it.id]) { ts.donated[it.id] = true; ts.fresh[it.id] = true; codexSeeItem(it.id); return { kind: "new", gold: 0 }; }
   const gold = sellPrice(it);
   G.gold += gold;
@@ -16822,7 +16829,7 @@ function shopIdentify(owner, it) {
 function sellWarnings(it) {
   const out = [];
   if (it.slot === "misc" && it.id && !treasuryState().donated[it.id]) {
-    out.push("⚠ まだ宝物庫に奉納していない収集品です。売ると奉納できなくなり、図鑑の褒賞を取り逃します。");
+    out.push("⚠ まだ宝物庫に奉納していない収集品です。売った後も、商会の棚にある間は宝物庫から奉納できます。");
   }
   if (rarityKey(it) === "lr") {
     out.push("⚠ レジェンドレアです。めったに手に入らない至高の逸品です。本当に売りますか？");
@@ -19963,7 +19970,7 @@ function opsClaimableAchievements() {
   }
   return out;
 }
-// 奉納できる収集品 = 手持ちの収集品すべて [{doll, item, dup, gold}]。
+// 奉納できる収集品 = 手持ちすべて + 商会の未奉納の種類を1点ずつ [{doll, item, dup, gold}]。
 // 初めての種類 (同じ種類は最初の1点) が dup:false で台帳に記され、奉納済みの種類と2点目以降は dup:true (売却額の金貨に換わる)。
 // 並びは初めての種類が先
 function opsDonatableList() {
@@ -19974,6 +19981,12 @@ function opsDonatableList() {
     const dup = !!ts.donated[h.item.id] || seen.has(h.item.id);
     seen.add(h.item.id);
     (dup ? dups : fresh).push({ ...h, dup, gold: dup ? sellPrice(h.item) : 0 });
+  }
+  // 手持ちに同じ種類があればそちらを優先し、棚の余分な品は残す。
+  for (const [id, n] of Object.entries(G.shopStock || {})) {
+    if (n <= 0 || ITEMS[id]?.slot !== "misc" || ts.donated[id] || seen.has(id)) continue;
+    seen.add(id);
+    fresh.push({ doll: null, item: cloneItem(id), dup: false, gold: 0 });
   }
   return fresh.concat(dups);
 }
@@ -20151,7 +20164,7 @@ const OPS = {
   // 収集品を1点奉納 (宝物庫から開いた品シートの「奉納」)
   // 奉納済みの種類なら売却と同じ金貨を受け取る
   donateOne(doll, it) {
-    if (!doll || !it || it.slot !== "misc") return { ok: false };
+    if (!it || it.slot !== "misc") return { ok: false };
     const r = donateCollectible(doll, it);
     if (!r) return { ok: false };
     SFX.itemget();
