@@ -396,7 +396,6 @@
 }
 
 /* テスト開始の選択と、試遊中の常設表示 */
-.ttl-test { max-height: calc(100dvh - 40px); overflow-y: auto; }
 .ttl-test-field { display: flex; flex-direction: column; gap: 6px; text-align: left; margin: 14px 0; font-size: 13px; color: #f1e4c8; }
 .ttl-test-field select, .ttl-test-field input { width: 100%; box-sizing: border-box; min-height: 44px; padding: 8px; color: #f1e4c8; background: #151019; border: 1px solid #746044; font: inherit; }
 .test-play-banner { position: fixed; top: 0; left: 0; right: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 3px; background: #332113; color: #fff0c4; font-size: 11px; }
@@ -407,51 +406,6 @@ body:has(.test-play-banner) #town-shell { top: var(--test-banner-height, 38px); 
 body:has(.test-play-banner) .ui-sheet { max-height: calc(100vh - var(--test-banner-height, 38px) - 28px); max-height: calc(100dvh - var(--test-banner-height, 38px) - 28px); }
 
 .ttl-test-field[hidden] { display: none; }
-.ttl-test-art[hidden] { display: none; }
-
-/* テストプレイ: 全職業 × 全ランクのキャラの絵と顔アイコンの一覧 (ui/jobgallery.js) */
-.jg-overlay {
-  position: fixed; inset: 0; z-index: 230; display: flex; flex-direction: column;
-  background: #0b090d; color: #f1e4c8; font-size: 12px;
-}
-.jg-bar { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-bottom: 1px solid #4a3d2a; background: #17111a; }
-.jg-title { flex: 1; font-size: 15px; letter-spacing: 0.08em; color: #f3d58b; }
-.jg-close, .jg-chip { min-height: 36px; padding: 4px 12px; color: #f1e4c8; background: #151019; border: 1px solid #746044; font: inherit; cursor: pointer; }
-.jg-close { min-width: 72px; }
-.jg-tools { display: flex; flex-wrap: wrap; gap: 6px 12px; padding: 8px 16px 0; }
-.jg-seg { display: flex; flex-wrap: wrap; gap: 4px; }
-.jg-chip.on { color: #1a1206; background: #d9b25c; border-color: #f3d58b; }
-.jg-note { padding: 6px 16px; color: #a8987a; font-size: 11px; }
-.jg-body { flex: 1; min-height: 0; overflow-y: auto; padding: 0 16px 24px; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
-.jg-job { margin: 10px 0 14px; padding: 8px; border: 1px solid #3a3024; border-left: 3px solid var(--glow); background: #120e15; }
-.jg-job-h { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
-.jg-job-n { font-size: 15px; color: var(--glow); }
-.jg-job-k { color: #8a7a5e; font-size: 11px; }
-.jg-ranks { display: grid; grid-template-columns: repeat(auto-fill, minmax(136px, 1fr)); gap: 8px; }
-.jg-rank { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 4px; background: #0d0a10; border: 1px solid #2a2230; min-width: 0; }
-.jg-rank-h { font-size: 11px; text-align: center; color: #d8c9a8; }
-.jg-full {
-  width: 104px; height: 104px; display: grid; place-items: center;
-  background: radial-gradient(circle at 50% 70%, rgba(255,255,255,0.06), rgba(0,0,0,0.5) 72%);
-  border: 1px dashed #2f2836;
-}
-.jg-faces { display: flex; align-items: flex-end; justify-content: center; gap: 4px; }
-.jg-face {
-  width: var(--jg-size); height: var(--jg-size); box-sizing: border-box; display: grid; place-items: center; overflow: hidden;
-  background: radial-gradient(circle at 50% 75%, color-mix(in srgb, var(--glow) 18%, transparent), rgba(0,0,0,0.6) 70%);
-  border: 1px solid #4a3d2a; box-shadow: inset 0 0 0 1px #000;
-}
-.jg-face canvas, .jg-full canvas { display: block; }
-.jg-src { font-size: 10px; padding: 1px 6px; border-radius: 2px; background: #241c2a; color: #c8bba2; text-align: center; }
-.jg-src.dot { background: #1c2b22; color: #9be8b0; }
-.jg-src.photo { background: #1c2433; color: #a9c0ff; }
-.jg-src.borrow { background: #33281a; color: #f3c47a; }
-.jg-src.none { background: #3a1c1c; color: #ff9b8a; }
-.jg-table { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
-.jg-tr { display: grid; grid-template-columns: minmax(44px, 1fr) repeat(5, 50px); gap: 4px; align-items: center; padding: 2px 0; border-bottom: 1px solid #1d1820; }
-.jg-th { position: sticky; top: 0; z-index: 1; background: #0b090d; color: #a8987a; padding: 4px 0; }
-.jg-tn { color: var(--glow, #a8987a); font-size: 12px; min-width: 0; }
-.jg-tc { display: grid; place-items: center; }
 
 /* 名前入力は小さな画面とソフトキーボードでも内側をスクロールできる。 */
 .ttl-name { box-sizing: border-box; max-height: calc(100dvh - 24px); overflow-y: auto; }
@@ -459,15 +413,6 @@ body:has(.test-play-banner) .ui-sheet { max-height: calc(100vh - var(--test-bann
 
 .ttl-name .ttl-note { color: #c3b49b; line-height: 1.7; }
 
-/* 試遊メモは物語や手ほどきの上からも開ける。 */
-.playtest-records { box-sizing: border-box; width: min(720px, calc(100vw - 20px)); max-height: calc(100dvh - 24px); overflow: auto; background: #211c25; color: #fff0d1; border: 1px solid #a98b4c; padding: 16px; }
-.playtest-records::backdrop { background: #000b; }
-.playtest-records h2 { margin: 0 0 12px; }
-.playtest-records select, .playtest-records textarea { box-sizing: border-box; display: block; width: 100%; margin: 8px 0; background: #141018; color: inherit; border: 1px solid #796b7d; padding: 8px; font: inherit; }
-.playtest-records textarea { min-height: 80px; }
-.playtest-records textarea[readonly] { height: 220px; font-size: 12px; }
-.playtest-records button { min-height: 40px; color: inherit; background: #382d3c; border: 1px solid #a98b4c; padding: 6px 10px; }
-.playtest-controls { display: flex; flex-wrap: wrap; gap: 8px; }
 .test-play-banner { gap: 4px; font-size: 10px; }
 .test-play-banner button { font-size: 10px; padding: 2px 4px; white-space: nowrap; }
 

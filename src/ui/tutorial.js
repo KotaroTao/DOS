@@ -1,4 +1,3 @@
-import { playtestEvent } from "../playtest.js";
 // ===== 手ほどき — 層の踏破で解放された要素を、その場で1度ずつ実際に触って覚える =====
 // 王への踏破報告で新しい要素 (魂融合 / サブ魂 / 情報屋の噂 / 控えの結社 ― 開く時期は game.js FEATURES) が解放されると、
 // 語りを閉じた直後に、その要素の手ほどきが始まる。手ほどきを終えるまで迷宮の門は開かない
@@ -553,7 +552,6 @@ function mansionGreeting(done) {
 function start(d, { prefix = [], onIntroEnd } = {}) {
   const st = tutState();
   st.cur = d.key; st.step = 0; st.ev = {}; st.base = {};
-  playtestEvent("手ほどき開始", { id: d.key, name: d.name });
   const gift = safe(() => d.prepare(), null);
   if (game.autosave) game.autosave(true);
   busy = true;
@@ -625,7 +623,6 @@ function finish(d) {
   if (resumeTimer) { clearTimeout(resumeTimer); resumeTimer = null; }
   const st = tutState();
   st.done[d.key] = true;
-  playtestEvent("手ほどき完了", { id: d.key, name: d.name });
   game.completePrologueTutorial?.(d.key);
   st.cur = null; st.step = 0; st.ev = {}; st.base = {};
   if (d.key === "repairSoul" && st.repairResume) {

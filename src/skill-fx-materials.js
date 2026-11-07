@@ -11,7 +11,6 @@ const image=typeof Image==='undefined'?null:new Image();
 const physicalImage=typeof Image==='undefined'?null:new Image();
 // 色付きの18コマは出荷前に作る。描画中に画素を読み出したり変換したりしない。
 const tinted=new Map(),MAX_TONES=16;
-let toneRequests=0;
 function sourceFor(kind){
  if(kind==='ribbon'&&physicalImage?.complete&&physicalImage.naturalWidth)return {texture:physicalImage,sw:192,sh:96,row:0};
  return {texture:image,sw:96,sh:96,row:rows[kind]*3};
@@ -22,7 +21,7 @@ function toneImage(tone){
  if(entry){tinted.delete(tone);tinted.set(tone,entry);return entry;}
  const texture=new Image();entry={texture,ready:false};
  if(tinted.size>=MAX_TONES)tinted.delete(tinted.keys().next().value);
- tinted.set(tone,entry);toneRequests++;
+ tinted.set(tone,entry);
  texture.onload=()=>{Promise.resolve(texture.decode?.()).then(()=>{entry.ready=true;},()=>{});};
  texture.src=new URL(PHYSICAL_TONES[tone],import.meta.url).href;
  return entry;
@@ -32,7 +31,6 @@ function colored(kind,tone){
  return entry?.ready?{texture:entry.texture,sw:192,sh:96,row:0}:sourceFor(kind);
 }
 export function warmMaterialTone(tone){toneImage(tone);}
-export function materialPerformance(){return {toneRequests,residentTones:tinted.size,maxTones:MAX_TONES,decodedBytes:[...tinted.values()].filter(e=>e.ready).length*1152*288*4,runtimePixelConversions:0};}
 if(image)image.src=new URL('../art/effects/skill-materials.webp',import.meta.url).href;
 if(physicalImage){
  physicalImage.src=new URL('../art/effects/physical-materials.webp',import.meta.url).href;

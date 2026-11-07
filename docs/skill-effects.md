@@ -31,7 +31,6 @@
 
 ## 確認と検査
 
-設定「技の演出を試す」または [effects-lab.html](../effects-lab.html) で検索・系統・連続再生・音・軽量・動き低減・6体への作用点を確認する。未習得技の名前を含む注意を表示する。本編の保存・認証・進行・クラウドは呼ばない。[全技の割当表](skill-effects-catalog.csv) は生成元 `tools/effects/build-catalog.mjs` から更新する。
 
 ```sh
 node tools/effects/build-catalog.mjs --check

@@ -1,4 +1,3 @@
-import { traceSync } from './battle-trace.js';
 import { SKILL_FX_CATALOG } from "./skill-fx-catalog.js";
 import { FX_LIMITS, recordFxFrame } from "./skill-fx-budget.js";
 // 戦闘の演出 (武器・属性・状態異常ごとのエフェクト)。描画だけを受け持ち、戦闘の進行・時間配分には関わらない。
@@ -64,8 +63,7 @@ const BASE_DUR = {
 const ROTATABLE = new Set(["cross", "iai", "blunt", "crit", "none", "wind", "pierce", "stun", "strip"]);
 
 // 毎フレームの描画。VW/VH は戦場の大きさ
-export function drawBattleFx(ctx, list, now, VW, VH, reduced) { return traceSync("drawBattleFx",()=>drawBattleFxTraced(ctx,list,now,VW,VH,reduced)); }
-function drawBattleFxTraced(ctx, list, now, VW, VH, reduced) {
+export function drawBattleFx(ctx, list, now, VW, VH, reduced) {
   if (!list || !list.length) return;
   const started = performance.now();
   let drawn = 0;

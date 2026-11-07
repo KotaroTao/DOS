@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright
 
 ROOT=Path(__file__).resolve().parents[2]
 BASE=os.environ.get('DOS_TEST_BASE','http://localhost:8000/')
-fixture=runpy.run_path(str(ROOT/'tools/cloud/choice-bench/trial-browser.py'))
+fixture=runpy.run_path(str(ROOT/'tools/cloud/browser-fixtures.py'))
 def stub_art(route):
     key=route.request.url.rsplit('/',1)[-1].split('.')[0]
     size=fixture['MONSTER_SIZES'].get(key,(2,2)) if '/monsters/' in route.request.url else (2,2)

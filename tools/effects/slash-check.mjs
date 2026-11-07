@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {SPELLS} from '../../src/skilldefs.js';
 import {SKILL_FX_CATALOG as catalog} from '../../src/skill-fx-catalog.js';
 import {SLASH_FORMS} from '../../src/skill-fx.js';
-import {previewSkillFx} from '../../src/skill-fx-preview.js';
+import {previewSkillFx} from './preview.mjs';
 const slashes=Object.entries(catalog).filter(([,d])=>d.slashRank);
 assert.deepEqual([...new Set(slashes.map(([,d])=>d.slashRank))].sort(),[1,2,3,4,5]);
 const jobs=new Set();

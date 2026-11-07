@@ -1,10 +1,4 @@
-import { gearHintStats } from "../gear-hints.js";
-import { partyRenderTrace } from '../party-render-trace.js';
-import { battleTrace } from '../battle-trace.js';
-import { APP_VERSION } from "../game-update.js";
-import { materialPerformance } from "../skill-fx-materials.js";
-import { setFxQuality, fxPerformance } from "../skill-fx-budget.js";
-import { showSaveMetrics } from "../save-metrics.js";
+import { setFxQuality } from "../skill-fx-budget.js";
 // ===== 設定 — キットのシート (音量の目盛り・切り替え・自動化の好み・データ削除) =====
 // 担当: WP-A。⚙ (タブの見出し・盤面のトップバー) から開く。戻る操作 / 背景タップ / 下へ引く で閉じる。
 //   音      … サウンド ON/OFF・BGM と効果音の目盛り (指で引ける 0〜100)。端末の好み (dos-prefs)
@@ -21,7 +15,7 @@ import { UI, game, registerUI } from "./ctx.js";
 import { isDesktopLayout } from "../desktop.js";
 import { el, button, setText, sheet, segmented, toast } from "./kit.js";
 import { getPref, setPref, battleActionGap, remember, autoMoveAvoid, setAutoMoveAvoid } from "./prefs.js";
-import { SFX, audioDebug } from "../audio.js";
+import { SFX } from "../audio.js";
 import { normalizeLook, WALKER_CLOAKS, WALKER_TRIMS } from "../walkerart.js";
 import { cryptWalkerBitmap, prewarmCryptActors } from "../cryptactors.js";
 import { cloudEnabled, cloudAccount, cloudGuest, cloudManageAccount } from "../cloud-save.js";
@@ -115,33 +109,9 @@ function fillSound(box) {
   } }));
   box.appendChild(volumeRow("BGM", "bgm"));
   box.appendChild(volumeRow("効果音", "sfx"));
-  const status = el("p", "stg-row-d");
-  status.setAttribute("role", "status");
-  const describe = () => {
-    const d = audioDebug();
-    setText(status, d.error ? "音声を起動できませんでした。再起動を試してください。"
-      : d.muted ? "サウンドは切になっています。"
-      : !d.ready ? "音声はまだ起動していません。"
-      : d.state !== "running" ? "音声が停止しています。再起動を試してください。"
-      : "音声の再生処理は動作中です。聞こえない場合は再起動を試してください。");
-  };
-  describe();
-  box.appendChild(status);
   box.appendChild(button({ label: "音声を再起動", kind: "secondary", onTap: () => {
     game.restartGameAudio?.();
-    describe();
-    setTimeout(() => { if (status.isConnected) { sfx("select"); describe(); } }, 500);
-  } }));
-  box.appendChild(button({ label: "音声の診断情報を表示", kind: "ghost", onTap: () => {
-    const info = { gearHints:{...gearHintStats},partyRender:partyRenderTrace(),timeline:battleTrace(),version:APP_VERSION,viewport:{width:innerWidth,height:innerHeight,dpr:devicePixelRatio},combat:fxPerformance(),materials:materialPerformance(),...audioDebug(), browser: navigator.userAgent,
-      standalone: !!navigator.standalone || !!window.matchMedia?.("(display-mode: standalone)").matches };
-    sheet.open({ title: "音声の診断情報", lines: ["戦闘中のかくつきや音切れが起きた直後、再読み込みせずにこの情報をお知らせください。直近の処理と遅延の時刻も含みます。"], body: body => {
-      const text = el("textarea", "stg-audio-info");
-      text.readOnly = true; text.rows = 12; text.style.width = "100%";
-      text.setAttribute("aria-label", "音声の診断情報");
-      text.value = JSON.stringify(info, null, 2);
-      body.appendChild(text);
-    }, footer: [{ label: "閉じる", onTap: h => h.close() }] });
+    setTimeout(() => sfx("select"), 500);
   } }));
 
   box.appendChild(sec("戦闘・移動"));
@@ -149,9 +119,6 @@ function fillSound(box) {
     P.vibrate = v; if (game.savePrefs) game.savePrefs(); sfx("select"); if (v && game.buzz) game.buzz([0, 30]);
   } }));
   box.appendChild(toggleRow({name:"演出を軽くする",desc:"光の粒や余韻を減らす。技の速さと結果はそのまま",on:!!getPref("fxLite"),onChange:value=>{setPref("fxLite",value);setFxQuality(value?"low":"auto");}}));
-  const preview=el("a","stg-row");preview.href="effects-lab.html";preview.target="_blank";preview.rel="noopener";
-  preview.appendChild(setText(el("span","stg-row-n"),"技の演出を試す"));
-  preview.appendChild(setText(el("span","stg-row-d"),"未習得の技も含む・本編の進行には影響なし"));box.appendChild(preview);
   const bgRow = el("div", "stg-row stg-segrow");
   const bgt = el("span", "stg-row-t");
   bgt.appendChild(setText(el("span", "stg-row-n"), "戦闘の背景"));
@@ -284,16 +251,7 @@ function fillAuto(box) {
     account.addEventListener("click", () => cloudManageAccount());
     box.appendChild(account);
   } else box.appendChild(reset);
-  const metrics = el("button", "stg-row"); metrics.type = "button";
-  metrics.appendChild(setText(el("span", "stg-row-n"), "保存と通信の計測"));
-  metrics.appendChild(setText(el("span", "stg-row-d"), "この端末の計測結果を確認・書き出す"));
-  metrics.addEventListener("click", showSaveMetrics); box.appendChild(metrics);
-  if (cloudEnabled()) {
-    const trial = el("a", "stg-row"); trial.href = "choice-trial.html"; trial.target = "_blank"; trial.rel = "noopener";
-    trial.appendChild(setText(el("span", "stg-row-n"), "B方式の通信・戦闘試遊"));
-    trial.appendChild(setText(el("span", "stg-row-d"), "別画面で計測する・本編の進行に影響なし"));
-    box.appendChild(trial);
-  }
+
 }
 function fill(root) {
   if (isDesktopLayout()) return fillDesktop(root);

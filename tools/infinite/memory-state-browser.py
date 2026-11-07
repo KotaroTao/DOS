@@ -4,7 +4,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 ROOT=Path(__file__).resolve().parents[2]
 BASE=os.environ.get('DOS_TEST_BASE','http://localhost:8000/')
-art=runpy.run_path(str(ROOT/'tools/cloud/choice-bench/trial-browser.py'))
+art=runpy.run_path(str(ROOT/'tools/cloud/browser-fixtures.py'))
 monster_sizes={key:(int(w),int(h)) for key,w,h in re.findall(r'\b(\w+):\s*\[\s*(\d+)\s*,\s*(\d+)\s*\]',(ROOT/'src/monsterphotos.js').read_text())}
 def stub_image(r):
     key=r.request.url.rsplit('/',1)[-1].split('.')[0]

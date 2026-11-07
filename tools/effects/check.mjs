@@ -8,8 +8,8 @@ import { SKILL_FX_SIGNATURES } from '../../src/skill-fx-signatures.js';
 import { SKILL_FAMILIES, emitSkillFx, skillFxSound, skillFxDuration, physicalSkillFx, extendedSkillFx } from '../../src/skill-fx.js';
 import { skillProfile, spawnFx, SIG_FX } from '../../src/battlefx.js';
 import '../../src/battlefx-sig.js';
-import { previewSkillFx } from '../../src/skill-fx-preview.js';
-import { setFxQuality, fxLite, recordFxFrame, fxPerformance, resetFxPerformance, FX_LIMITS } from '../../src/skill-fx-budget.js';
+import { previewSkillFx } from './preview.mjs';
+import { setFxQuality, fxLite, recordFxFrame, FX_LIMITS } from '../../src/skill-fx-budget.js';
 import { rngState, reseedRng } from '../../src/rng.js';
 import { SFX_DEFS } from '../../src/music/sfx.js';
 import { rng } from '../../src/music/dsp.js';
@@ -36,8 +36,7 @@ assert.equal(list[0].pts.length,1);assert.equal(list[0].pts[0].status,'poison');
 for(const hits of [[{target:enemy,miss:true}],[{target:enemy,immune:true}],[]]){list=[];emitSkillFx(list,'DIOS',SPELLS.DIOS,hits,locate,0);assert.equal(list.length,0);}
 list=[];for(let i=0;i<100;i++)spawnFx(list,'fire',10,10,0,1);assert.equal(list.length,FX_LIMITS.effects);
 emitSkillFx(list,'DIOS',SPELLS.DIOS,[{target:ally,heal:1}],locate,0);assert.equal(list.length,FX_LIMITS.effects);assert.equal(list[0].type,'skillScene');
-setFxQuality('auto');resetFxPerformance();for(let i=0;i<6;i++)recordFxFrame(6,1);assert.equal(fxLite(),true);
-for(let i=0;i<1000;i++)recordFxFrame(1,1);assert.equal(fxPerformance().retainedSamples,240);
+setFxQuality('auto');for(let i=0;i<6;i++)recordFxFrame(6,1);assert.equal(fxLite(),true);
 setFxQuality('high');assert.equal(fxLite(),false);assert.equal(fxLite(true),true);setFxQuality('low');assert.equal(fxLite(),true);
 for(const name of ['skillRestore','skillWard','skillShade','skillFire','skillSpark','skillMagic']){
  const data=SFX_DEFS[name].gen(rng(123));assert.ok(data.ch[0].length<32000*.4);assert.ok(data.ch.every(ch=>ch.every(Number.isFinite)&&ch.some(x=>Math.abs(x)>.1)),name);

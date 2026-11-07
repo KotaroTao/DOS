@@ -1,14 +1,10 @@
-import { beginPartyRender } from './party-render-trace.js';
-import { traceContext, traceFrame, traceSync, traceWait, traceDuration, startBattleTrace } from './battle-trace.js';
 import { recordBattleFrame, battlePaintDue } from './skill-fx-budget.js';
 import { planAuto, warmAutoPlanner } from './auto-planner.js';
 import { showFieldSkillFx } from "./skill-fx-field.js";
 import { PHYSICAL_HIT_MS, warmSkillFx, emitSkillFx, skillFxSound, skillFxDuration, extendedSkillFx, enemySkillFxProfile, beginSkillFxPresentation } from "./skill-fx.js";
 import { beginBattleWindup } from "./battle-windup.js";
-import { createTrial } from "./choice-trial.js";
 import { battleCommand } from "./cloud-battle.js";
 import { cloudLedgerActive, cloudFinishBattle, cloudCancelBattle, cloudCommandMode, cloudActionCommand } from "./cloud-save.js";
-import { saveMetrics } from "./save-metrics.js";
 import { refreshPlayTime } from "./ui/playername.js";
 import { resetAutomationPrefs, battleActionGap } from "./ui/prefs.js";
 import { encodeCloudSave, acknowledgeCloudSave } from "./save-codec.js";
@@ -126,7 +122,6 @@ const REDUCED_MOTION = (() => { try { return matchMedia("(prefers-reduced-motion
 import { pickTrap, CHEST_RANKS, rollChestRank } from "./traps.js";
 import { refSoul, refGold, trainCost, lvPow, emberMul, partyAgi, LOCK_K, TRAP_K, lockPow } from "./levelcurve.js";
 import { STABILITY_MAX, STABILITY_ENTRY_COST, STABILITY_FLOOR_COST, STABILITY_AD_RECOVERY, STABILITY_RECOVERY_MS, recoverStability, stabilityWaitMs, stabilityRecoveryMs } from "./stability.js";
-import { startPlaytest, playtestEvent, finishPlaytest, showPlaytestRecords } from "./playtest.js";
 
 import { equipScore, equipPrice, repriceEquipment } from "./pricing.js";
 import { spawnFx, drawBattleFx, weaponFxStyle, statusFxKind, skillProfile, ELEM_FX_COL, SIG_FX } from "./battlefx.js";
@@ -735,24 +730,7 @@ function runGainItem(owner, item) {
 // 魂の吸収を記録 (全滅没収で巻き戻すため {doll, clsKey} で覚える)
 // 魂の入手を記録 (全滅没収で巻き戻すため)。kind: "awaken"(共有countへ) | "bag"(未覚醒)
 function runTrackSoul(clsKey, kind) { if (G.run && inDungeon()) G.run.souls.push({ clsKey, kind }); }
-// 試遊記録は名前を含めず、その時点の編成・装備・進行を写す。
-function playtestContext() {
-  return { state: G.state, phase: G.msq?.prologue?.phase || null,
-    dungeon: curDungeon()?.id, floor: G.floor, gold: G.gold, soulPts: G.soulPts,
-    subUnlocked: featureUnlocked("sub1"), tutorial: G.tut?.cur || null, tutorialStep: G.tut?.step, tutorialDone: Object.keys(G.tut?.done || {}).filter(k => G.tut.done[k]),
-    automatic: !!((G.autoCombat || G.autoMove) && !G.prompt),
-    party: G.party.map(d => ({ uid: d.uid, hp: d.hp, maxhp: d.maxhp,
-      primary: soulByUid(d.primary)?.clsKey, level: soulByUid(d.primary)?.level,
-      subs: (d.subs || []).filter(Boolean).map(x => ({ clsKey: soulByUid(x.uid)?.clsKey, picks: x.picks })),
-      equip: Object.fromEntries(Object.entries(d.equip || {}).map(([k, v]) => [k, v?.id || null])) })) };
-}
 
-
-// 今回の出撃の記録 (D1): 戦利品に加え、倒した数・魂の成長・持ちきれず置いてきた品・到達階を数える。
-// 旧セーブの G.run はこれらを持たないので、読む側は必ず || の既定値で受ける
-function noteSoulFound(clsKey) {
-  if (SOUL_CLASSES[clsKey]?.rarity === "rare") playtestEvent("到達", { clsKey }, "rareFound");
-}
 function newRun() {
   return { earlyLayout: 1, gold: 0, soulPts: 0, items: [], souls: [], kills: 0, levels: [], lost: [], floors: 1, embers: 0, at: Date.now() };
 }
@@ -1741,7 +1719,7 @@ function infCloseRun(outcome) {
     }
     got.bukon = bukonCount;
     for (const it of items) { if (it.bukon) it.bukon = it.bukon.filter(b => !b.soulMemory); recordAffixHome(it); shopReceive(it); codexSeeItem(it.id, it); got.items.push({ id: it.id, name: itemName(it), rar: rarityKey(it), afx: !!(it.afx && it.afx.length) }); }
-    for (const k of souls) { addSoulInstance(k); codexJobSee(k, 1, 1); noteSoulFound(k); got.souls.push(k); }
+    for (const k of souls) { addSoulInstance(k); codexJobSee(k, 1, 1); got.souls.push(k); }
     if (embers) { G.embers = (G.embers || 0) + embers; got.embers = embers; }
     if (souls.length) recalcAllDolls();
   }
@@ -2710,8 +2688,7 @@ function outerH(e) {
   if (cs.display === "none") return 0;
   return e.offsetHeight + (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0);
 }
-function fitView(force = false) { return traceSync("party.fitView",()=>fitViewTraced(force)); }
-function fitViewTraced(force = false) {
+function fitView(force = false) {
   if (!appEl || !screenEl) return false;
   const combat = G.state === "combat" || (G.state === "over" && !!G.battle);
   appEl.classList.toggle("in-combat", combat);
@@ -2764,8 +2741,7 @@ function fitViewTraced(force = false) {
   return true;
 }
 // 画面の回転・窓の伸縮に追従 (盤面/戦場を描き直す)
-function refitAndRedraw() { return traceSync("party.refitAndRedraw",()=>refitAndRedrawTraced()); }
-function refitAndRedrawTraced() {
+function refitAndRedraw() {
   if (!fitView()) return;
   if (G.state === "board" && G.board) drawBoardFrame();
   else if (G.state === "combat" && G.battle) renderCombatCanvas();
@@ -3005,10 +2981,10 @@ function revealAroundStairs() {
     }
   }
 }
-function castField(...args) { return castFieldMeasured(...args); }
+
 // 押し間違えやすい探りの術 (道しるべ・宝探し) は唱える前に確かめる (MP 30% を使うため。ユーザーの指示 2026-10)
 const FIELD_CONFIRM = new Set(["stairs", "chest"]);
-function castFieldMeasured(key, confirmed = false, caster = null) {
+function castField(key, confirmed = false, caster = null) {
   if (G.state !== "board" || !inDungeon()) return;
   const sp = SPELLS[key];
   if (!sp) return;
@@ -3689,8 +3665,8 @@ function drawSenseGlow(r, rgb, now, x, y, k = 1) {
 
 // 敵感知 (魔物 = ぼんやりした赤い光) / 宝探し (宝箱 = ぼんやりした青い光)。種類・強さは分からない。歩いている間も灯したまま
 // 清めの歩み (聖騎士): まだめくっていないカードをめくるたび、全員の HP を 2/4/6 回復 (隊で一番高いLv)
-function cleanseStepHeal(...args) { return cleanseStepHealMeasured(...args); }
-function cleanseStepHealMeasured() {
+
+function cleanseStepHeal() {
   const lv = Math.min(3, partyPassiveLv("cleanseStep"));
   if (!lv) return;
   const hp = [0, 2, 4, 6][lv];
@@ -6662,8 +6638,8 @@ function dirName(d) { return d[0] === 1 ? "e" : d[0] === -1 ? "w" : d[1] === 1 ?
 // 決断 (宝箱・あたたかい死体・泉・黒い泉・階段・帰還陣) だけをシートで問い、
 // 褒美・罠の解除・軽い痛手・風化した死体はトースト (札の明滅) で知らせて歩みを止めない。
 // 札 (カード) で止めるのは、倒れた者が出た時・飛ばされた時・呼び寄せた時・戦闘が始まる時だけ。
-function resolveCell(...args) { return resolveCellMeasured(...args); }
-function resolveCellMeasured(cell, { visibleEnemy = cell.type === "monster" && !!cell.revealed } = {}) {
+
+function resolveCell(cell, { visibleEnemy = cell.type === "monster" && !!cell.revealed } = {}) {
   switch (cell.type) {
     case "monster":
       if (!cell.cleared) {
@@ -7868,8 +7844,8 @@ function flashPartyCards(list, kind = "hit") {
 }
 
 // 泉を利用: HP/MP回復・毒浄化。利用したら消える。
-function useFountain(...args) { return useFountainMeasured(...args); }
-function useFountainMeasured(cell) {
+
+function useFountain(cell) {
   cell.cleared = true;
   SFX.heal();
   let cured = false;
@@ -7889,8 +7865,8 @@ function useFountainMeasured(cell) {
 }
 
 // 黒い泉: 50% で全回復+Soulの恵み、50% で呪い (HP半減+毒)。一度きりの賭け
-function useDarkFountain(...args) { return useDarkFountainMeasured(...args); }
-function useDarkFountainMeasured(cell) {
+
+function useDarkFountain(cell) {
   cell.cleared = true;
   if (random() < 0.5) {
     SFX.heal(); buzz([0, 30, 40, 30]); flashScreen("#5fb8d6");
@@ -7921,10 +7897,10 @@ function fountainCurse(line, title) {
 }
 // 雲間の泉 (雲上の庭の掟): 見た目は癒しの泉。VEILED_CURSE (3つに1つ) で呪い、それ以外は癒しの泉と同じ
 const VEILED_CURSE = 1 / 3;
-function useVeiledFountain(...args) { return useVeiledFountainMeasured(...args); }
-function useVeiledFountainMeasured(cell) {
+
+function useVeiledFountain(cell) {
   if (random() < VEILED_CURSE) { cell.cleared = true; fountainCurse("泉の水は雷雲の澱みで濁っていた…！ 全員の生気が吸われた。", "澱んだ泉"); return; }
-  useFountainMeasured(cell);
+  useFountain(cell);
 }
 
 // 死体: 「まだあたたかい死体」からのみ魂を回収できる (死体の職業に応じた魂)
@@ -8136,7 +8112,7 @@ function grantSoulQuiet(clsKey, sourceLine = "", emberCount = 0) {
   if (abyssActive() && inDungeon()) {
     G.stats.soulsFound++;
     const r = infGainSoul(clsKey);
-    runTrackSoul(clsKey, "bag"); noteSoulFound(clsKey);
+    runTrackSoul(clsKey, "bag");
 
     codexJobSee(clsKey, 1, 1);
     if (emberCount > 0) { G.embers = (G.embers || 0) + emberCount; runCount("embers", emberCount); }
@@ -8150,7 +8126,7 @@ function grantSoulQuiet(clsKey, sourceLine = "", emberCount = 0) {
   questProgress("soul", null, 1);
   const receivedSoul = addSoulInstance(clsKey);
   if (firstAbbeySoul && G.run) G.run.abbeyRareSoul = receivedSoul.uid;
-  runTrackSoul(clsKey, "bag"); noteSoulFound(clsKey);
+  runTrackSoul(clsKey, "bag");
 
   codexJobSee(clsKey, 1, 1);
   if (emberCount > 0) { G.embers = (G.embers || 0) + emberCount; runCount("embers", emberCount); }
@@ -8160,7 +8136,7 @@ function grantSoulQuiet(clsKey, sourceLine = "", emberCount = 0) {
     G.stats.soulsFound++;
     questProgress("soul", null, 1);
     addSoulInstance(clsKey);
-    runTrackSoul(clsKey, "bag"); noteSoulFound(clsKey);
+    runTrackSoul(clsKey, "bag");
 
   }
   updateTopbar();
@@ -8554,8 +8530,8 @@ function trapLoss(ref, n) {
 // 罠の効果を適用し、何が起きたかを返す (知らせ方は presentTrap が決める)。
 // opener: 開けた者/先頭の解除役 (opener型の罠が狙う)。
 // 返り値 kind: "teleport" (飛ばされる・中身を失う) | "alarm" (戦闘・中身を失う) | "harm" (痛手/吸収。fallen/wiped を伴う)
-function applyTrap(...args) { return applyTrapMeasured(...args); }
-function applyTrapMeasured(trap, opener) {
+
+function applyTrap(trap, opener) {
   SFX.trap(); buzz([0, 60, 40, 60]);
   G.stats.trapsSprung++; // 戦績: 発動させてしまった罠 (勲章用)
   log(`罠だ！ 「${trap.name}」が発動した！`, "dmg");
@@ -8864,8 +8840,8 @@ function giveDropsFromChest(drops, i, done, sink = boardSink()) {
 // 階段を降りる: 墨の帳 (約1.3秒・400ms 後はタップで飛ばせる) の暗転のうちに次の階へ。
 // 強敵階・特別な階・奈落の変異の知らせは帳の中に2〜3行で添える (後から別の札は出さない)。
 // 見落としても、見出しの迷宮名を押す「階の情報」でいつでも読み返せる
-function descend(...args) { return descendMeasured(...args); }
-function descendMeasured({ fall = false, skip = 0, teleport = false } = {}) {
+
+function descend({ fall = false, skip = 0, teleport = false } = {}) {
   if (abyssActive() && G.floor + skip + 1 > infDepthLimit()) { showToast("この先の道は、まだ開いていない", { tone: "info" }); return; }
   // 出来事で2階進む場合も、5階の区切りを越える前に支払う。
   if (!teleport && stabilityApplies(activeCfg()) && Math.floor((G.floor + skip) / 5) > Math.floor((G.floor - 1) / 5)) {
@@ -9028,8 +9004,8 @@ function warmBattleSkillAudio(){
  }
  const next=()=>{if(G.state!=="combat"||G.battle!==battle||!queue.length)return;queue.shift()();setTimeout(next,0);};setTimeout(next,0);
 }
-function startBattle(...args) { return startBattleMeasured(...args); }
-function startBattleMeasured(enemies, cell, { alarm = false, alarmRewards = null, visibleEnemy = cell?.type === "monster" && !!cell.revealed && !cell.cleared } = {}) {
+
+function startBattle(enemies, cell, { alarm = false, alarmRewards = null, visibleEnemy = cell?.type === "monster" && !!cell.revealed && !cell.cleared } = {}) {
   // 飢えた狩場はすべての遭遇で3体以上。単体の主・強敵・銀業・ミミックにも、この階の魔物を添える。
   // 掟の packMin は従来どおり通常の群れだけに効かせ、記憶への再戦には異変を持ち込まない。
   const packMin = inDungeon() && !G.rematch ? mutDef()?.packMin || 0 : 0;
@@ -9272,11 +9248,6 @@ function startBattleMeasured(enemies, cell, { alarm = false, alarmRewards = null
   if (foeLv - partyLevel() >= 4) log(`格上の迷宮（推奨Lv${foeLv}）：味方の異常・即死は効きにくく、敵の術は効きやすい`, "sys");
 
   // 金属の魔物は素早さに依らない回避を持つので、精鋭等の命中に混ぜない
-  if (!G.rematch) {
-    playtestEvent("到達", { boss: isBoss }, "firstBattle");
-    playtestEvent("戦闘開始", { boss: isBoss, enemies: enemies.map(e => e.key) });
-    if (G.party.some(d => d.subs?.some(Boolean))) playtestEvent("到達", {}, "subBattle");
-  }
 
   _maskEnemies = null;
   G.fx = null;
@@ -9294,13 +9265,13 @@ function startBattleMeasured(enemies, cell, { alarm = false, alarmRewards = null
   })));
 }
 
-// 出来事で掛かる、戦闘の中だけの異常 (evApi.ail → 次の戦闘の開幕に startBattleMeasured が掛ける)
+// 出来事で掛かる、戦闘の中だけの異常 (evApi.ail → 次の戦闘の開幕に startBattle が掛ける)
 const EV_BATTLE_AIL = {
   sleep: { text: "眠り", hit: "は眠りに落ちている", put: (b, p) => { p.asleep = true; b._holdAil(p, "sleep"); } },
   charm: { text: "魅了", hit: "は魅了されている", put: (b, p) => { p.mind = "charm"; b._holdAil(p, "mind"); } },
   confuse: { text: "混乱", hit: "は混乱している", put: (b, p) => { p.mind = "confuse"; b._holdAil(p, "mind"); } },
 };
-// 迷宮の掟の開幕に隊の一人へ掛かる異常 (startBattleMeasured)。free = まだ掛かっていない者 / put = 掛ける
+// 迷宮の掟の開幕に隊の一人へ掛かる異常 (startBattle)。free = まだ掛かっていない者 / put = 掛ける
 const RULE_ONE_AIL = [
   { key: "whisper", res: "confuse", text: "混乱", color: "#c8a0ff", hit: "は惑わされ、混乱した", miss: "は耳をふさいで、惑わされなかった",
     free: (p) => !p.mind && !p.asleep, put: (b, p) => { p.mind = "confuse"; b._holdAil(p, "mind"); } },
@@ -9630,8 +9601,7 @@ function focusEnemy(e) {
 }
 
 // キャンバスのみ (アニメーション毎フレーム用)
-function renderCombatCanvas() { return traceSync("renderCombatCanvas", () => renderCombatCanvasTraced()); }
-function renderCombatCanvasTraced() {
+function renderCombatCanvas() {
   const b = G.battle;
   viewTransform();
   vctx.globalCompositeOperation = "source-over";
@@ -10521,8 +10491,7 @@ function battleLayer() {
 let _combatAnimLast = 0;
 function combatAnimLoop(ts) {
   requestAnimationFrame(combatAnimLoop);
-  traceContext(G.state==="combat",G.autoCombat,G.animating,document.hidden);
-  traceFrame(ts);
+
   recordBattleFrame(ts,G.state==="combat"&&!document.hidden&&!uiBlocked()&&(G.animating||G.autoCombat));
   if (G.state !== "combat" || !G.battle || G.animating || G.fx) return;
   if (uiBlocked()) return;
@@ -10532,7 +10501,7 @@ function combatAnimLoop(ts) {
   _combatAnimLast = ts;
   renderCombatCanvas();
 }
-startBattleTrace();
+
 requestAnimationFrame(combatAnimLoop);
 
 // 敵にかかっている強化(▲)/弱体(▼)を名前プレート付近に小さなピルで描く。
@@ -11381,7 +11350,7 @@ function showBattleItems(actor) {
 }
 // ---- 戦闘ループ駆動 (1手ずつ・演出付き) ----
 // 戦闘テンポ (演出時間の倍率): 倍速 ON = 標準 (1) / OFF = その 1/2 の速さ (2)。オートも手動も同じ設定に従う
-function quickBattlePresentation() { return !!choiceTrial || cloudBackgroundBattle() || cloudCommandMode(); }
+function quickBattlePresentation() { return cloudBackgroundBattle() || cloudCommandMode(); }
 function spdMul() {
   if (quickBattlePresentation()) return G.fastAnim ? 0.1 : 0.2;
   return G.fastAnim ? 1 : 2;
@@ -11409,31 +11378,20 @@ function prepareBattleAction(battle, onFrame = null) {
     skillFamily: pending.action === "spell" ? skillProfile(pending.spellKey,spell)?.family : null,
     attackStyle: pending.action === "attack" ? actor.wMagic ? "arcane" : weaponFxStyle(actor.equip?.weapon) : null, fast: G.fastAnim });
 }
-function resolveLocalBattle(...args) { return traceWait("resolveLocalBattle", () => resolveLocalBattleTraced(...args)); }
-async function resolveLocalBattleTraced(action, battle = G.battle) {
+async function resolveLocalBattle(action, battle = G.battle) {
   try {
     if (cloudBackgroundBattle()) _cloudResolving = true;
     if (cloudEnabled() && !testPlayActive) await cloudCheckpoint();
     if (G.battle !== battle || G.state !== "combat") return;
     // 端末記録の準備時間は間隔に含める。結果の計算前に待ち、HPやログも先走らせない。
-    const normalTrial = choiceTrial?.overlap && action === "commit" && battle.pending?.action === "attack";
-    const wait = !normalTrial && (G.autoCombat || action !== "commit") ? battleTempoWait(battle) : 0;
+    const wait = (G.autoCombat || action !== "commit") ? battleTempoWait(battle) : 0;
     if (wait > 0) await new Promise(resolve => setTimeout(resolve, wait));
     if (G.battle !== battle || G.state !== "combat") return;
-    let trialImpact = null;
-    if (choiceTrial && action === "commit") {
-      _cloudResolving = true;
-      trialImpact = await choiceTrial.choose(battleCommand(battle, action), onFrame => prepareBattleAction(battle, onFrame));
-      if (G.battle !== battle || G.state !== "combat") { _cloudResolving = false; return; }
-      _cloudResolving = false;
-    }
-    if (cloudBackgroundBattle() || choiceTrial) battleActionTimes.set(battle, performance.now());
-    const res = traceSync("battle.resolve", () => action === "commit" ? battle.commit() : action === "enemy" ? battle.enemyAct() : battle.stunnedAct());
+    if (cloudBackgroundBattle()) battleActionTimes.set(battle, performance.now());
+    const res = (action === "commit" ? battle.commit() : action === "enemy" ? battle.enemyAct() : battle.stunnedAct());
     res._modFeed = takeModFeed(); battle._acted = true;
-    trialImpact?.();
     animateResult(res, postResolve);
   } catch (e) {
-    if (choiceTrial) { _cloudResolving = false; choiceTrial.output.textContent = e.message; G.animating = true; return; }
     cloudFatal(e, "戦闘の再開・進行");
   }
 }
@@ -11447,8 +11405,7 @@ function whenCombatFree(fn, battle = G.battle) {
   fn();
 }
 
-function combatStep() { return traceSync("combatStep", () => combatStepTraced()); }
-function combatStepTraced() {
+function combatStep() {
   const b = G.battle;
   if (!b) return;
   if (combatHeld()) { setTimeout(combatStep, 150); return; }
@@ -11520,11 +11477,9 @@ function runCommitted() {
 let savedBattleAdvance = null;
 let savedForcedTurns = [];
 function showingConfirmedTurns() { return savedForcedTurns.some(turn => turn.battle === G.battle); }
-function resolveSavedBattle(...args) { return traceWait("resolveSavedBattle", () => resolveSavedBattleTraced(...args)); }
-async function resolveSavedBattleTraced(action) {
+async function resolveSavedBattle(action) {
   if (_cloudResolving) return;
   _cloudResolving = true;
-  const resultStarted = performance.now();
   let windup = null;
   const normalAttack = action === "commit" && G.battle?.pending?.action === "attack";
   try {
@@ -11555,7 +11510,7 @@ async function resolveSavedBattleTraced(action) {
     }
     if (normalAttack) await windup?.complete();
     savedBattleAdvance = response.nextPacket ? { battle: G.battle, packet: response.nextPacket } : null;
-    const packet = traceSync("battle.applyPacket", () => applySavePatch(G, refDeserialize(response.packet), { preserveTactics: true }));
+    const packet = (applySavePatch(G, refDeserialize(response.packet), { preserveTactics: true }));
     restoreMonsterPhotos(G.battle.enemies, MONSTERS);
     G.rng = bindRngState(G.rng); setSharedSouls(G.souls);
     syncEnemyUids(G.battle.enemies);
@@ -11565,7 +11520,6 @@ async function resolveSavedBattleTraced(action) {
     refreshStability();
     for (const l of packet.logs) log(l.msg, l.cls);
     packet.result._modFeed = packet.modFeed;
-    saveMetrics.timing(cached?.battle === G.battle ? "confirmedPlayback" : "commandResult", performance.now() - resultStarted, cached?.battle === G.battle ? 0 : 1 + (response.forcedPackets?.length || 0));
     windup?.stop();
     if (normalAttack) battleActionTimes.set(G.battle, performance.now());
     animateResult(packet.result, postResolve);
@@ -11584,7 +11538,6 @@ function postResolve() {
     shakeScreen(true); buzz([0, 60, 50, 60]);
     showToast("⚠ 敵が怒り狂っている！");
   }
-  if (b.result && choiceTrial) { G.animating = true; choiceTrial.finish(); return; }
   if (b.result) { G.animating = false; setTimeout(() => whenCombatFree(endBattle, b), quickBattlePresentation() ? 0 : 300); return; }
   const gap = battleActionGap();
   if (gap > 0) setTimeout(() => advanceAfterPresentation(b), gap);
@@ -11598,7 +11551,7 @@ function advanceAfterPresentation(b) {
   // ターンの初めのパッシブ・激昂などで掛かった強化・弱体は、1拍ずつ見せてから次の手番へ
   const watch = beginModWatch(true);
   if (serverBattle()) { advanceSavedBattle(watch); return; }
-  traceSync("battle.advance", () => b.advance());
+  (b.advance());
   const mw = watch ? endModWatch() : null;
   playModReveal(mw, () => {
     autosave(true);
@@ -11606,14 +11559,13 @@ function advanceAfterPresentation(b) {
   });
 }
 
-function advanceSavedBattle(...args) { return traceWait("advanceSavedBattle", () => advanceSavedBattleTraced(...args)); }
-async function advanceSavedBattleTraced(watch) {
+async function advanceSavedBattle(watch) {
   _cloudResolving = true;
   try {
     const cached = savedBattleAdvance?.battle === G.battle ? savedBattleAdvance : null;
     savedBattleAdvance = null;
     const response = cached || await cloudBattle("advance");
-    const packet = traceSync("battle.applyPacket", () => applySavePatch(G, refDeserialize(response.packet), { preserveTactics: true }));
+    const packet = (applySavePatch(G, refDeserialize(response.packet), { preserveTactics: true }));
     restoreMonsterPhotos(G.battle.enemies, MONSTERS);
     G.rng = bindRngState(G.rng); setSharedSouls(G.souls); G.battle.log = log;
     _lastCloudSave = await acknowledgeCloudSave(_lastCloudSave, response.packet);
@@ -11647,7 +11599,7 @@ function battleResultEnd(fx, now) {
 
 // 消えた状態の盤面を描き、次の描画機会を挟んでから次の手番へ進む。
 function finishBattleResult(fx, finish) {
-  traceDuration("battle.presentationEnd",performance.now(),"mark");
+
   if (G.fx !== fx) return;
   G.fx = null;
   G.partyFx?.clear(); G.partyFxV?.clear();
@@ -11656,9 +11608,8 @@ function finishBattleResult(fx, finish) {
 }
 
 // 結果オブジェクトを演出 (踏み込み → 着弾 → 余韻)
-function animateResult(res, done) { return traceSync("animateResult", () => animateResultTraced(res, done)); }
-function animateResultTraced(res, done) {
-  traceDuration("battle.presentationStart",performance.now(),"mark");
+function animateResult(res, done) {
+
   const battle = G.battle;
   if (!battle || G.state !== "combat") return;
   let finished = false;
@@ -11833,8 +11784,7 @@ function drainPartyProcs() {
 }
 
 // 着弾の瞬間: 効果音・エフェクト生成・ダメージ表示
-function applyImpact(res) { return traceSync("applyImpact", () => applyImpactTraced(res)); }
-function applyImpactTraced(res) {
+function applyImpact(res) {
   const fx = G.fx;
   const now = performance.now();
   if (G.battle?.result === "win" && !battleVictoryAt.has(G.battle)) battleVictoryAt.set(G.battle, now);
@@ -12227,8 +12177,8 @@ function distributeOrderLearning(soulGot) {
   if (!abyssActive()) recalcAllDolls({ levelUp: true });
   return entries;
 }
-function distributeBattleSoulExp(...args) { return distributeBattleSoulExpMeasured(...args); }
-function distributeBattleSoulExpMeasured(soulGot) {
+
+function distributeBattleSoulExp(soulGot) {
   const queue = [];
   const share = Math.floor((soulGot || 0) / 3);
   if (share <= 0) return queue;
@@ -12367,10 +12317,10 @@ function endBattle(...args) {
       return;
     }
   }
-  return endBattleMeasured(...args);
+  return endBattleAfterPresentation(...args);
 }
 const battleSummaryOpen = new WeakSet();
-function endBattleMeasured() {
+function endBattleAfterPresentation() {
   const b = G.battle;
   if (!b || G.state !== "combat") return;
   // 勝利・再戦勝利は戦果に同居。逃走・全滅は状態を片付ける前に確認する。
@@ -12386,7 +12336,6 @@ function endBattleMeasured() {
     } });
     return;
   }
-  if (!G.rematch) playtestEvent("戦闘終了", { result: b.result, rounds: b._roundNo });
   G.effShow = null; G.modFeed = null; flushModLines(null, Infinity);
 
   if (G.rematch) return endRematch(b); // 宿敵の再戦: 終われば隊を戻して街へ (迷宮の戦果・踏破・全滅の扱いには入らない)
@@ -12494,7 +12443,6 @@ function endBattleMeasured() {
     }
     // 迷宮踏破は本物の主戦のみ。死体から湧いた個体 (corpse)・無限迷宮の主は踏破扱いにしない
     const wasBoss = !corpse && !abyssActive() && b.enemies.some((e) => e.boss);
-    if (wasBoss) playtestEvent("到達", {}, "firstBoss");
     if (wasBoss) { flashScreen("#ffd84a"); buzz([0, 60, 50, 60, 50, 250]); } // 主討伐は特別な瞬間
     else if (wasElite) { flashScreen("#d4504e"); buzz([0, 80, 50, 80, 50, 300]); }
     // 出来事の戦闘: マスはイベント側が片付ける (連戦・報酬の続きがある)。勝った印だけ先に残す
@@ -12555,8 +12503,8 @@ function endBattleMeasured() {
 }
 // 戦闘勝利後の常時効果: 戦闘後回復/魔力回路/法力の灯 (隊の全員の状態異常をすべて治す)/浄化/慈悲の祈り。MP回復は魂1つあたり5%まで。
 // Lv付きは最高Lvのみ。教皇の祈り (popePrayer) は持ち主の戦闘後回復を隊の全員へ広げる
-function applyVictoryPassives(...args) { return applyVictoryPassivesMeasured(...args); }
-function applyVictoryPassivesMeasured() {
+
+function applyVictoryPassives() {
   let pope = 0;
   for (const p of G.party) if (p.alive && pLv(p, "popePrayer")) pope = Math.max(pope, pLv(p, "afterHeal"));
   const HEAL_PCT = [0, 0.05, 0.10, 0.20, 0.30];
@@ -12642,7 +12590,6 @@ const GUARDIAN_COST = 20; // 全滅時、戦利品を守って帰還するため
 // 全滅: 決断のシート (赤い魂で全てを守る / あきらめる)。戻る操作では閉じない。
 // 選んだら闇に溶けて街へ戻り、帰還の報告 (全滅版) に失ったもの・連れ帰りの時を残す
 function gameOver() {
-  playtestEvent("全滅・断念", { abandoned: !!G.run?.abandoned });
   G.state = "over";
   playBgm(null);
   SFX.gameover();
@@ -12923,31 +12870,30 @@ function partyCallKey(p, st) {
   const c = st === "combat" && G.partyCall && G.partyCall.get(p);
   return c ? Math.round(c.at) + ":" + c.lines.map((l) => l.text).join("/") : "";
 }
-function renderParty() { return traceSync("renderParty", () => { const probe=beginPartyRender(G.state); try { return renderPartyTraced(probe); } finally { probe.finish(); } }); }
-function renderPartyTraced(probe) {
+function renderParty() {
   const fx = G.partyFx;
   const st = G.state;
-  const upgrades = new Set(G.party.filter((d,idx) => probe.measure("gearCheck",idx+1,()=>UI.cachedGearHint && UI.cachedGearHint(d))));
+  const upgrades = new Set(G.party.filter((d,idx) => (UI.cachedGearHint && UI.cachedGearHint(d))));
   // 迷宮の掟の開幕の演出を待つ間は、効く前の HP/MP/状態を札に見せる (playTraitOpening)
   const shown = (p) => (st === "combat" && G.partyShow && G.partyShow.get(p)) || p;
-  const rows = G.party.map((p,idx) => probe.measure("data",idx+1,()=>[
+  const rows = G.party.map((p,idx) => ([
     p.uid, p.name, p.cls, p.isDoll ? (p.jobLv || 1) : p.level, shown(p).hp, p.maxhp, shown(p).mp, p.maxmp, p.alive ? 1 : 0,
     shown(p).ailment || "", p.asleep && st === "combat" ? 1 : 0, st === "combat" ? (p.mind || "") : "", fx && fx.has(p) ? fx.get(p) : "", (G.partyFxV && G.partyFxV.get(p)) || "", buffBadges(p),
     partyCallKey(p, st), upgrades.has(p) ? 1 : 0,
     `${p.jobKey || ""}:${p.jobRank || 1}:${p.clsKey || ""}`,
   ]));
-  const key=probe.measure("compare",null,()=>st+"|"+rows.map(r=>r.join(",")).join(";"));
-  if (probe.measure("unchanged",null,()=>key === _partyKey && partyEl.childElementCount === G.party.length)) { probe.path(null,"unchanged"); return; }
+  const key=(st+"|"+rows.map(r=>r.join(",")).join(";"));
+  if ((key === _partyKey && partyEl.childElementCount === G.party.length)) {  return; }
   const reuse=st==="combat"&&_partyKey.startsWith("combat|");
   _partyKey = key;
-  probe.measure("container",null,()=>{if(!reuse){partyEl.innerHTML="";partyCards.clear();}});
+  (()=>{if(!reuse){partyEl.innerHTML="";partyCards.clear();}})();
   partyEl.classList.toggle("n4", G.party.length >= 4);
-  G.party.forEach((p, idx) => probe.measure("card",idx+1,() => {
+  G.party.forEach((p, idx) => (() => {
     const row=rows[idx],rowKey=row.join(','),baseKey=row.filter((_,i)=>i!==4&&i!==6).join(','),old=partyCards.get(p);
     if(reuse&&old&&old.idx===idx&&old.card.parentElement===partyEl){
-      if(old.key===rowKey){probe.path(idx+1,"unchanged");return;}
+      if(old.key===rowKey){return;}
       if(old.baseKey===baseKey){
-        probe.path(idx+1,"vitals");
+
         const sv=shown(p);old.card.classList.toggle('low',p.alive&&sv.hp/p.maxhp<=.25);
         for(const kind of ['hp','mp']){const vial=old.card.querySelector('.pc-vial.'+kind),v=sv[kind],m=p['max'+kind];
           vial.querySelector('i').style.width=(m>0?Math.max(0,Math.min(100,v/m*100)):0)+'%';
@@ -12956,7 +12902,7 @@ function renderPartyTraced(probe) {
         }old.key=rowKey;return;
       }
     }
-    probe.path(idx+1,"rebuild");
+
     const card = document.createElement("div");
     const sv = shown(p);
     let cls = "pc" + (p.alive ? "" : " dead");
@@ -12997,9 +12943,9 @@ function renderPartyTraced(probe) {
     });
     // 肖像の額 (隊列の印・状態の印を重ねる)
     const por = el("div", "pc-por");
-    const pic = probe.measure("portrait",idx+1,()=>partyPortrait(p));
+    const pic = (partyPortrait(p));
     if (pic) por.appendChild(pic);
-    probe.measure("gearWatch",idx+1,()=>UI.watchGearPortrait?.(por, p, true));
+    (UI.watchGearPortrait?.(por, p, true));
     por.appendChild(el("span", "pc-row " + (idx < 3 ? "front" : "back"), idx < 3 ? "前" : "後"));
     card.appendChild(por);
     // 肖像と同じ枠へ重ね、肖像を省くスマホ表示でも状態の印は残す。
@@ -13048,7 +12994,7 @@ function renderPartyTraced(probe) {
     };
     card.appendChild(vial("hp", sv.hp, p.maxhp));
     card.appendChild(vial("mp", sv.mp, p.maxmp));
-    const bb = probe.measure("badges",idx+1,()=>buffBadges(p));
+    const bb = (buffBadges(p));
     if (bb) card.insertAdjacentHTML("beforeend", bb);
     // 戦闘の演出 (爪痕・属性の奔流・回復の光…): 札の上に一度だけ走る薄い膜
     const fv = G.partyFxV && G.partyFxV.get(p);
@@ -13062,13 +13008,13 @@ function renderPartyTraced(probe) {
       for (const l of call.lines) box.appendChild(el("span", "pc-cl k-" + l.kind, l.text));
       card.appendChild(box);
     }
-    probe.measure("domAttach",idx+1,()=>{
+    (()=>{
     if(reuse&&old?.card.parentElement===partyEl&&old.idx===idx)old.card.replaceWith(card);
     else {if(reuse)old?.card.remove();partyEl.insertBefore(card,partyEl.children[idx]||null);}
     partyCards.set(p,{card,idx,key:rowKey,baseKey});
-    });
-  }));
-  probe.measure("cleanup",null,()=>{for(const [p,old]of partyCards)if(!G.party.includes(p)){old.card.remove();partyCards.delete(p);}});
+    })();
+  })());
+  (()=>{for(const [p,old]of partyCards)if(!G.party.includes(p)){old.card.remove();partyCards.delete(p);}})();
   if (st === "board" && window.innerWidth <= 600) requestAnimationFrame(refitAndRedraw);
 }
 
@@ -13650,7 +13596,6 @@ function finalizeBuyDoll(uid, name) {
   SFX.itemget(); buzz([0, 30, 60, 30]);
   log(`人業「${d.name}」が生まれた！（${SOUL_CLASSES[s.clsKey].label}）`, "win");
   showToast(`人業「${d.name}」が目覚めた`, { tone: "good" });
-  if (G.party.length >= 6) playtestEvent("到達", {}, "sixDolls");
   if (UI.tutorialEvent) UI.tutorialEvent("dollCreated");
   autosave(true);
   renderTown();
@@ -13730,8 +13675,6 @@ function applyEquipSoul(d, uid, s, slotId = "primary") {
   }
   recalcDoll(d);
   keepHpMpRatio(d, vit);
-  playtestEvent("魂の付け替え", { doll: d.uid, slot: slotId, clsKey: s.clsKey });
-  if (G.party.some(p => p.subs?.some(Boolean))) playtestEvent("到達", {}, "subEquipped");
   SFX.select(); buzz(15);
   autosave(true);
   renderTown();
@@ -14574,7 +14517,7 @@ function questProgress(type, key, n = 1) {
 // 報酬の魂を抽選して受け取る: [[魂のレア度, 体数]] → 職の鍵の配列
 function grantRewardSouls(list) {
   const got = [];
-  for (const [rar, cnt] of (list || [])) for (let k = 0; k < cnt; k++) { const ck = rollClassOfRarity(rar); addSoulInstance(ck); noteSoulFound(ck); got.push(ck); }
+  for (const [rar, cnt] of (list || [])) for (let k = 0; k < cnt; k++) { const ck = rollClassOfRarity(rar); addSoulInstance(ck);  got.push(ck); }
   if (got.length) recalcAllDolls();
   return got;
 }
@@ -17385,7 +17328,6 @@ function enterDungeon(mutatorId, startFloor = 1) {
   G.stats.runs++;
   // 今回の戦利品トラッキングを初期化 (帰還の報告は次の帰還で書き直す)
   G.run = newRun();
-  playtestEvent("出撃");
   G.run.startFloor = G.floor; // 潜り始めの階 (そこから降りずに何もせず戻ったら、帰還で酒場を貼り替えない)
 
   G.lastRun = null;
@@ -17791,8 +17733,6 @@ function returnToTown(opts = {}) {
   if (!G.party.some((p) => p.alive)) startRescueTimers(G.party);
   if (summary) summary.dead = G.party.filter((d) => d && d.isDoll && !d.alive).map((d) => ({ uid: d.uid, name: d.name }));
   G.lastRun = summary;
-  playtestEvent("帰還", { outcome, souls: summary?.souls, forfeited: !!summary?.forfeited });
-  if (outcome !== "wipe" && !summary?.forfeited && summary?.souls?.some(s => s.rarity === "rare")) playtestEvent("到達", {}, "rareHome");
   if (summary?.abbeyRare && outcome !== "wipe" && !summary.forfeited) {
     G.tut ||= {}; G.tut.abbeyRareReturned = true;
   }
@@ -17960,8 +17900,8 @@ function campHealPower(caster, sp, t = null) {
 // 生きている1体へ回復呪文の効果 (状態異常の治療・HP回復) を与える。何か起きたら true
 // 戦闘外の回復で、最後に唱えた回復量 (満タンで上限に切られた分も含む素の値)。結果の表示に使う
 const CAMP_HEAL = new WeakMap();
-function campApplyAlive(...args) { return campApplyAliveMeasured(...args); }
-function campApplyAliveMeasured(caster, sp, t) {
+
+function campApplyAlive(caster, sp, t) {
   let did = false;
   if (canSpellCure(sp, t) && cureBySpell(sp, t)) { log(`${sp.name}！ ${t.name}の状態異常が治った`, "heal"); did = true; }
   if (spellHeals(sp)) {
@@ -18005,8 +17945,8 @@ function healAllRevivers() {
   return out;
 }
 // 倒れた1体を呪文で起こす (campCast と同じ蘇生量)
-function campRevive(...args) { return campReviveMeasured(...args); }
-function campReviveMeasured(caster, sp, t) {
+
+function campRevive(caster, sp, t) {
   const heal = (sp.revivePct ? Math.round(t.maxhp * sp.revivePct) : Math.max(1, campHealPower(caster, sp, t)))
     + Math.round(t.maxhp * rankVal(caster, "priestInochi", [0.10, 0.20, 0.30, 0.50])); // 生命の灯 (僧侶のランク)
   t.alive = true; t.ailment = null; t.reviveAt = null; t._dead = false;
@@ -18152,8 +18092,8 @@ function planHealAllGreedy(def0, ail0, casters) {
   }
   return done() ? out : null;
 }
-function healAll(...args) { return healAllMeasured(...args); }
-function healAllMeasured() {
+
+function healAll() {
   const fail = (msg, tone = "info") => { log(msg, "sys"); showToast(msg, { noLog: true, tone }); SFX.miss(); };
   if (!healAllNeed()) {
     if (G.party.some((t) => !t.alive)) return fail("倒れた仲間を蘇らせる呪文を使える者がいない");
@@ -18529,8 +18469,8 @@ function doUnequip(p, key) {
 }
 // 道具を戦闘の外で使う (隊の画面・戦利品のシート)。p = 袋の持ち主。target = 使う相手 (省略時: 効く相手が1人ならその人、
 // 複数なら選ばせる)。効き目は品で決まる (combat.js _useItem と同じ量)。戦闘でしか使えない品は使えない
-function useItem(...args) { return useItemMeasured(...args); }
-function useItemMeasured(p, index, target) {
+
+function useItem(p, index, target) {
   const it = p.items[index];
   if (!it || it.slot !== "use" || !it.use) return;
   const u = it.use;
@@ -18842,8 +18782,8 @@ function rankUnlockHint(rank, clsKey) {
 }
 
 // 毒のダメージ (盤面を1歩進むごと)
-function tickPoison(...args) { return tickPoisonMeasured(...args); }
-function tickPoisonMeasured() {
+
+function tickPoison() {
   let any = false;
   for (const p of G.party) {
     if (!p.alive || p.ailment !== "poison") continue;
@@ -19226,6 +19166,11 @@ const SAVE_FIELDS = [
 // 参照保持シリアライズ: 共有オブジェクト/循環参照を {$r:index} で表現し、
 // ロード時に同一性 (魂が複数箇所から参照される等) を完全に復元する。関数は無視。
 // テストモードはURLで明示し、通常セーブの読み書きを止める。
+// 廃止した検証記録だけを片付ける。保管が禁止された端末でも起動は続ける。
+try {
+  for (const key of ["dos-playtests-v1", "dos-save-metrics-v1"]) localStorage.removeItem(key);
+  for (const key of Object.keys(localStorage)) if (key.startsWith("dos-choice-trial-pending:")) localStorage.removeItem(key);
+} catch { /* 冒険の記録には触れない */ }
 const testParams = new URLSearchParams(location.search);
 const testDungeonIdx = DUNGEONS.findIndex((d) => d.id === testParams.get("testDungeon"));
 const testScenes = [
@@ -19265,11 +19210,7 @@ testScenes.push(...ARCHIVE_STORIES.map(s => ({ id: "archive:" + s.id, kind: "arc
 const testScene = testScenes.find((s) => s.id === testParams.get("testScene"));
 // 無限迷宮の試遊 (docs/infinite-labyrinth.md 16-4): URL の testInf=階 (testInfLv=隊Lv、無ければその階の推奨Lv)
 const testInfFloor = Math.max(0, Math.min(999, Math.floor(Number(testParams.get("testInf"))) || 0));
-let choiceTrial = null;
-const choiceTrialRequested = testParams.get("choiceTrial") === "1" && testDungeonIdx === worldIndexOf("w01") && !testScene && !testInfFloor;
 const testPlayActive = testDungeonIdx >= 0 || !!testScene || testInfFloor > 0;
-let _lastTrialSample = -Infinity;
-let _trialSampling = false;
 let _lastSave = 0;
 let _saveWarned = false;
 let _resetting = false; // データ削除→リロードの間に autosave が書き戻すのを防ぐ
@@ -19281,12 +19222,6 @@ function autosave(force = false) {
   if (_resetting) return;
   if (testPlayActive) {
     codexSweepJobs(); notifyInsight();
-    saveMetrics.trialTrigger();
-    if (!_trialSampling && performance.now() - _lastTrialSample >= 5000) {
-      _lastTrialSample = performance.now(); _trialSampling = true;
-      const snap = {}; for (const k of SAVE_FIELDS) snap[k] = G[k];
-      Promise.resolve().then(() => encodeCloudSave(snap, true)).then(raw => saveMetrics.trialSample(raw)).catch(() => {}).finally(() => { _trialSampling = false; });
-    }
     return;
   }
   if (!cloudEnabled() && (!localSaveReady || !localSaveSession?.owned)) return;
@@ -19752,7 +19687,7 @@ function resumeCombat() {
   if (b._acted || (b.phase === "resolve" && !b.pending)) {
     if (serverBattle()) { advanceSavedBattle(false); return; }
     b._acted = false;
-    traceSync("battle.advance", () => b.advance());
+    (b.advance());
     autosave(true);
     combatStep();
     return;
@@ -20563,11 +20498,9 @@ async function init() {
     const floor = setupTestPlay();
     watchGameUpdates({ serviceWorker: navigator.serviceWorker, testPlay: true, applyUpdate: returnToTitle });
     titleActive = false; G.prompt = false;
-    const recording = G.testStoryFlow && !testScene?.phase;
-    if (recording) startPlaytest(playtestContext, { skippedDungeon: !!G.testSkipDungeon });
     const banner = document.createElement("div");
     banner.className = "test-play-banner";
-    banner.appendChild(document.createTextNode(recording ? (G.testSkipDungeon ? "試遊・探索省略 " : "試遊・記録中 ") : (G.testSkipDungeon ? "試遊・探索省略・保存なし " : "試遊・保存なし ")));
+    banner.appendChild(document.createTextNode(G.testSkipDungeon ? "試遊・探索省略・保存なし " : "試遊・保存なし "));
     const codex = document.createElement("button");
     codex.type = "button"; codex.textContent = "図鑑・全データ";
     codex.addEventListener("click", () => UI.openCodexSheet?.({ all: true }));
@@ -20576,41 +20509,15 @@ async function init() {
     updateCodexButton();
     setInterval(updateCodexButton, 1000);
     banner.appendChild(codex);
-    const record = document.createElement("button");
-    record.type = "button"; record.textContent = recording ? "記録・メモ" : "試遊の記録";
-    record.onclick = showPlaytestRecords; banner.appendChild(record);
     const exit = document.createElement("button");
     exit.type = "button"; exit.textContent = "終了してホームへ";
     exit.addEventListener("click", () => {
-      finishPlaytest();
-      if (choiceTrialRequested) { choiceTrial?.close({ keepalive: true }).catch(() => {}); location.replace("choice-trial.html"); return; }
       const url = new URL(location.href);
       for (const key of ["testDungeon", "testFloor", "testPlace", "testScene", "testUnlock", "testInf", "testInfLv", "testSkipDungeon"]) url.searchParams.delete(key);
       location.replace(url.href);
     });
     banner.appendChild(exit); document.body.appendChild(banner);
     new ResizeObserver(() => document.body.style.setProperty("--test-banner-height", `${banner.getBoundingClientRect().height}px`)).observe(banner);
-    if (choiceTrialRequested) {
-      choiceTrial = createTrial(testParams.get("trialOverlap") === "1" ? "battle-overlap" : "battle-after");
-      banner.classList.add("choice-trial-banner");
-      const modeLabel = document.createElement("span");
-      modeLabel.textContent = testParams.get("trialOverlap") === "1" ? "試遊・構え先行" : "試遊・通知待ち";
-      banner.replaceChildren(modeLabel, exit, choiceTrial.button, choiceTrial.output);
-      try { await choiceTrial.open(); }
-      catch (error) { choiceTrial.output.textContent = error.message; revealBootScreen(); return; }
-      G.rng = bindRngState([123456789, 362436069, 521288629, 88675123]);
-      G.party = [G.party[0], G.party[1], G.party[3], G.party[4]]; G.reserve = []; G.autoCombat = false;
-      for (const doll of G.party) {
-        const soul = soulByUid(doll.primary); soul.level = 20; soul.capBonus = Math.max(0, 20 - soulLevelCap(soul.clsKey, soul.count));
-        recalcDoll(doll); doll.hp = doll.maxhp = Math.max(1000, doll.maxhp); doll.mp = doll.maxmp; doll.agi = 1000;
-      }
-      const enemies = Array.from({ length: 3 }, () => spawnCardEnemies("bs_bonepile", 1, 1)[0]);
-      for (const enemy of enemies) { Object.assign(enemy, { hp: 500, maxhp: 500, atk: 3, vit: 5, agi: 1, lv: 20, ability: null, regen: 0 }); }
-      G.run = newRun(); G.state = "combat";
-      G.battle = new Battle(G.party, enemies, log, { noFlee: true });
-      watchBattleSupply(G.battle);
-      resumeFromState(); revealBootScreen(); playBgm(battleBgm(false)); return;
-    }
     resumeFromState();
     revealBootScreen();
     if (testScene?.kind === "tutorial") uiTutorial.startTestTutorial(G.testTutorial);
@@ -20718,22 +20625,7 @@ async function init() {
   try { freshStart = sessionStorage.getItem("dos-newgame") === "1"; sessionStorage.removeItem("dos-newgame"); freshName = normalizeName(sessionStorage.getItem("dos-newgame-name")); sessionStorage.removeItem("dos-newgame-name"); } catch (e) {}
   try {
     showTitle({ autoStart: cloudEnabled(), hasSave: loaded, startName: freshStart ? freshName : "", summary: loaded ? titleSummary() : null, onStart: start, onNewGame: loaded && !cloudEnabled() ? newGameFromTitle : null,
-      testDungeons: DUNGEONS, testScenes, onTestPlay: cloudEnabled() ? null : ({ id, floor, place, scene, inf, infLv, skipDungeon }) => {
-        _resetting = true;
-        const url = new URL(location.href);
-        if (skipDungeon) url.searchParams.set("testSkipDungeon", "1"); else url.searchParams.delete("testSkipDungeon");
-        if (inf) { // 無限迷宮の試遊: ○階から、隊Lv○で
-          for (const key of ["testDungeon", "testFloor", "testPlace", "testScene"]) url.searchParams.delete(key);
-          url.searchParams.set("testInf", inf);
-          if (infLv) url.searchParams.set("testInfLv", infLv); else url.searchParams.delete("testInfLv");
-          location.assign(url.href);
-          return;
-        }
-        url.searchParams.delete("testInf"); url.searchParams.delete("testInfLv");
-        if (scene) url.searchParams.set("testScene", scene); else url.searchParams.delete("testScene");
-        url.searchParams.set("testDungeon", id); url.searchParams.set("testFloor", floor); url.searchParams.set("testPlace", place);
-        location.assign(url.href);
-      } });
+    });
     if (!loaded) warmOpening();
     revealBootScreen();
   } catch (e) { start(); }

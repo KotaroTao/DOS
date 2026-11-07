@@ -9,7 +9,7 @@ async def main():
         for motion in ['no-preference','reduce']:
             ctx=await browser.new_context(service_workers='block',reduced_motion=motion,viewport={'width':744,'height':1001})
             page=await ctx.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
-            await page.route('**/windup-check.html',lambda r:r.fulfill(content_type='text/html',body='''<link rel="stylesheet" href="/choice-trial.css"><body style="background:#171719;margin:20px;color:white"><canvas id="view" width="480" height="320" style="width:100%;height:320px;border:1px solid gold"></canvas><div id="party"><div class="pc" data-idx="0" style="margin:40px;width:100px;height:120px;border:1px solid gray"><canvas class="pc-pic" width="80" height="80"></canvas></div></div><div class="cloud-gate" hidden><div class="cloud-panel" hidden></div></div>'''))
+            await page.route('**/windup-check.html',lambda r:r.fulfill(content_type='text/html',body='''<link rel="stylesheet" href="/ui.css"><body style="background:#171719;margin:20px;color:white"><canvas id="view" width="480" height="320" style="width:100%;height:320px;border:1px solid gold"></canvas><div id="party"><div class="pc" data-idx="0" style="margin:40px;width:100px;height:120px;border:1px solid gray"><canvas class="pc-pic" width="80" height="80"></canvas></div></div><div class="cloud-gate" hidden><div class="cloud-panel" hidden></div></div>'''))
             await page.goto('http://localhost:8000/windup-check.html')
             await page.evaluate('''async()=>{
               window.audio=await import('/src/audio.js');window.windup=await import('/src/battle-windup.js');
