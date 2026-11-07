@@ -1,5 +1,5 @@
 // ===== 手ほどき — 層の踏破で解放された要素を、その場で1度ずつ実際に触って覚える =====
-// 王への踏破報告で新しい要素 (魂融合 / サブ魂 / 情報屋の噂 / 控えの結社 ― 開く時期は game.js FEATURES) が解放されると、
+// 踏破・見識・帰還で新しい要素 (魂融合 / サブ魂 / 情報屋の噂 / 控えの結社 ― 開く時期は game.js FEATURES) が解放されると、
 // 語りを閉じた直後に、その要素の手ほどきが始まる。手ほどきを終えるまで迷宮の門は開かない
 // (game.js blockForTutorial ← 出撃シート・departNow・奈落)。
 //   流れ: 導入 (館の主イレーヌ / 酒場の情報屋の語り) → 手順 (実際に操作する。イレーヌの台詞で今の手順を案内し、
@@ -147,6 +147,12 @@ function facilityVisited(key) {
     const p = pending();
     if (p?.facility === key && (!p.started || !tutorialControls()?.target)) resume();
   }, 300));
+}
+function orderBrief() { return game.currentOrderProgress?.() || { seats: 0, rate: 0 }; }
+function rememberOrderBrief(rate = true) {
+  const p = tutState().base.orderBrief || orderBrief();
+  const old = tutState().orderBrief || { seats: 0, rate: 0 };
+  tutState().orderBrief = { seats: Math.max(old.seats, p.seats), rate: Math.max(old.rate, rate ? p.rate : 0) };
 }
 function mansionVisited() {
   const st = tutState();
@@ -404,26 +410,39 @@ const TUTS = [
   {
     key: "order", name: "控えの結社", who: "irene",
     open: () => !!(game.featureUnlocked && game.featureUnlocked("order")),
-    used: () => { const o = G_().order; return !!(o && Array.isArray(o.picks) && o.picks.length); },
-    prepare: () => null,
+    used: () => false,
+    prepare() {
+      tutState().base.orderBrief = orderBrief();
+      // 一覧は職業ごとの代表を出す。同職の予備だけでは候補に出ないため、
+      // 候補のない時だけ隊に宿していない職業の魂を一つ預ける。
+      const worn = wornSet();
+      if (!(game.soulRepresentatives?.() || []).some(s => !worn.has(s.uid))) {
+        const jobs = new Set([...worn].map(uid => soulByUid(uid)?.clsKey));
+        const key = Object.keys(SOUL_CLASSES).find(k => !SOUL_CLASSES[k].unique && !jobs.has(k));
+        if (key) { grantSoul(key); return `${jobLabel(key)}の魂を一つ`; }
+      }
+    },
+    complete: () => rememberOrderBrief(false),
     intro: () => [
-      ["控えの結社が開かれたそうですね。"],
+      ["多くの魂や魔物を知り、見識を深められましたね。", `今のあなたなら、控えの結社に${game.orderSeats()}席を設けられます。`],
       ["隊に出していない魂も、ただ眠っているわけではありません。", "席に着けた魂は、その力の一部を人業のみなに分けてくれます。"],
       ["名前の右の『結社』を開いてみてください。"],
     ],
     steps: [{
-      text: "控えの結社を開く", hint: "人業の館 → 名前の右の『結社』",
+      text: "結社を開き、控えの魂を一つ着席させる", hint: "人業の館 →『結社』→『着席』",
       go: () => goSoulSeg(null), target: [".pt-order"],
-      on: "order",
+      done: () => (G_().order?.picks || []).some(uid => !wornSet().has(uid) && soulByUid(uid)),
     }],
     outro: ["席に着いた魂の能力の一部が、隊の皆さまに加わります。", "ランクの高い魂ほど、分けられる力も大きくなります。館に残る子たちの力も、旅のお供にしてくださいね。"],
   },
   {
     key: "orderLearning", name: "結社の伝習", who: "irene",
+    prepare() { tutState().base.orderBrief = orderBrief(); },
+    complete: () => rememberOrderBrief(),
     open: () => !!game.featureUnlocked?.("orderLearning"),
     used: () => false,
     intro: () => [
-      ["毒沼の奥まで、道を開いてくださったのですね。", "館に残る魂にも、皆さまの戦いの学びを届けられるようになりました。『結社の伝習』と呼びましょう。"],
+      ["また一つ、見識を深められましたね。", "館に残る魂にも、皆さまの戦いの学びを届けられるようになりました。『結社の伝習』と呼びましょう。"],
       [`迷宮の戦闘で得た✦Soulの${Math.round(game.orderLearningRate() * 100)}%が、結社の席に着いている魂の経験値にも入ります。`, `たとえば✦100を得た戦いなら、各席の魂がそれぞれ${Math.round(game.orderLearningRate() * 100)}を得ます。皆さまの取り分は減りません。`],
       ["Lv上限に届いた魂も、経験値を蓄えておけます。上限を上げれば、その学びが成長につながります。", "依頼の報酬や、戦闘以外で拾った✦Soulは対象になりません。端数は切り捨てです。"],
       ["いつもの結社の席を使って、学びを届けます。", "『結社』を開いて、これから育てたい魂が席に着いているか、確かめてみてください。"],
@@ -432,6 +451,24 @@ const TUTS = [
       go: () => goSoulSeg(null), target: [".pt-order"], on: "order" }],
     outro: ["結社の各席の魂には、迷宮の戦闘で得た✦Soulの一定の割合が、経験値として届きます。", "空席には学びが届きません。育てたい魂を席に着けてから、次の迷宮へお向かいください。"],
   },
+  {
+    key: "orderProgress", name: "結社の深まる学び", who: "irene", repeat: true, optional: true, silent: true,
+    open: () => {
+      const st = tutState(), p = orderBrief(), old = st.orderBrief || { seats: 0, rate: 0 };
+      return st.done.order && (!p.rate || st.done.orderLearning) && (p.seats > old.seats || p.rate > old.rate);
+    },
+    used: () => false,
+    prepare() { tutState().base.orderBrief = orderBrief(); },
+    complete: () => rememberOrderBrief(),
+    intro: () => {
+      const p = tutState().base.orderBrief;
+      return [[`積み重ねた見識で、結社は${p.seats}席になりました。`, ...(p.rate ? [`伝習では、戦闘で得た✦Soulの${Math.round(p.rate * 100)}%が各席の魂へ届きます。`] : [])],
+        ["新しい席には、隊に宿していない魂を迎えてあげてください。"]];
+    },
+    steps: [{ text: "イレーヌから結社の成長について話を聞く", hint: "人業の館で会話", done: () => !!tutState().ev.orderBriefRead }],
+    outro: [],
+  },
+
   {
     key: "enchant", name: "武魂 — 装備に魂を宿す", who: "shop",
     open: () => !!game.featureUnlocked?.("enchant"),
@@ -480,7 +517,7 @@ function dueKeys() {
   if (!st) return [];
   const out = [];
   for (const t of TUTS) {
-    if (st.done[t.key] || !safe(t.open, false)) continue;
+    if ((!t.repeat && st.done[t.key]) || !safe(t.open, false)) continue;
     if (st.cur !== t.key && safe(t.used, false)) { st.done[t.key] = true; continue; }
     out.push(t.key);
   }
@@ -490,7 +527,7 @@ function curDef() {
   const st = tutState();
   if (!st || !st.cur) return null;
   const d = TUT_MAP[st.cur];
-  if (!d || st.done[st.cur]) { st.cur = null; st.step = 0; return null; }
+  if (!d || (!d.repeat && st.done[st.cur])) { st.cur = null; st.step = 0; return null; }
   return d;
 }
 function curStep() {
@@ -514,7 +551,7 @@ function pending() {
   const step = st.cur === key ? d.steps[st.step] || d.steps[0] : d.steps[0];
   const facility = facilityOf(d), place = FACILITIES[facility];
   const arrival = !atFacility(facility);
-  return { key, name: d.name, who: d.who, facility, arrival,
+  return { key, name: d.name, who: d.who, facility, arrival, optional: !!d.optional,
     text: arrival ? (key === "repairSoul" ? "人業の館で砕けた魂の修復を教わる" : `${place.name}を選択してください`) : step.text,
     hint: arrival ? place.hint : step.hint,
     started: st.cur === key };
@@ -540,7 +577,7 @@ function resume() {
   if (!st.cur && p.facility === "party" && game.pendingIreneBeat?.()) return false;
   if (p.arrival) { updateGuidance(); schedule(); return true; }
   if (p.facility === "party" && !isGreeted()) { if (UI.enterMansion) UI.enterMansion(); return true; }
-  if (st.cur !== p.key) return start(d);
+  if (st.cur !== p.key || (d.key === "orderProgress" && !st.ev.orderBriefRead)) return start(d);
   goStep(true);
   return true;
 }
@@ -558,6 +595,7 @@ function start(d, { prefix = [], onIntroEnd } = {}) {
   clearGlow(); updateGuidance();
   const after = () => {
     onIntroEnd?.();
+    if (d.key === "orderProgress") st.ev.orderBriefRead = true;
     busy = false;
     if (gift) toast(`${gift}預かった (手ほどき用)`, { tone: "good" });
     setTimeout(() => { safe(() => d.afterIntro?.(), null); goStep(true); }, 200); // 語りを閉じたタップが、開いた先の画面に届かないように
@@ -622,6 +660,7 @@ function advance(quiet = false) {
 function finish(d) {
   if (resumeTimer) { clearTimeout(resumeTimer); resumeTimer = null; }
   const st = tutState();
+  d.complete?.();
   st.done[d.key] = true;
   game.completePrologueTutorial?.(d.key);
   st.cur = null; st.step = 0; st.ev = {}; st.base = {};
@@ -790,7 +829,7 @@ function ireneGuidance() {
   if (p.key === "sub1") return tutState().step >= 2 ?
     ["サブ魂の札の『技』を開いてください。", "借りる技を選んだら、閉じてください。"] :
     ["サブ魂の枠を開き、魂をお選びください。", "隊に出していない魂を、宿してみてください。"];
-  if (p.key === "order") return ["名前の右の『結社』で、控えの結社を開いてみてください。", "席に着けた魂は、みなに力を分けてくれます。"];
+  if (p.key === "order") return ["『結社』を開き、控えの魂の『着席』を押してください。", "席に着けた魂は、みなに力を分けてくれます。"];
   if (p.key === "repairSoul") return ["砕けた人業を選び、状態を確かめてください。", "人業が届いたら、わたしが金貨で魂をつなぎ直します。"];
   return null;
 }
@@ -811,7 +850,7 @@ function updateGuidance() {
 function tutorialControls() {
   if (!hasDOM() || !inTown() || game.isTitleActive?.() || game.isOpeningActive?.()) return null;
   const p = pending(), d = curDef();
-  if (!p && !d && !busy) return null;
+  if ((!p && !d && !busy) || (p?.optional && !d && !busy)) return null;
   // 商会での支度は自由。迷宮を自分で選ぶまで、次の手ほどきで操作を制限しない。
   if (!d && !busy && TUT_MAP[p?.key]?.manual) return null;
   const choose = (nodes, allow = []) => {
@@ -871,6 +910,10 @@ function tutorialControls() {
       const jobs = d.key === "createThree" ? ["fighter", "priest", "thief"] : [game.prologueJob()];
       const rows = jobs.flatMap((job) => first(card, `.pt-soulrow[data-job="${job}"]`));
       return choose(rows);
+    }
+    if (d.key === "order" && h.opts.banner === "控えの結社") {
+      const seats = first(card, ".sp-orow:not(.seated) button:not(:disabled)");
+      return choose(seats, [h.body, ...seats]);
     }
     if (h.opts.banner === "魂融合") return choose(first(card, ".sp-fuse-material"), first(card, ".sp-fuse-all"));
     if (d.key === "insight") return forward(true);

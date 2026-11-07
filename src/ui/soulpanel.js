@@ -477,6 +477,7 @@ function orderBody(root, town, again) {
   const info = el("div", "sp-order-info");
   info.appendChild(el("span", "sp-order-seats", `席 ${seated.length} / ${seats}`));
   root.appendChild(info);
+  root.appendChild(el("div", "pt-note", game.orderNextNote?.() || ""));
   if (game.featureUnlocked?.("orderLearning")) root.appendChild(el("div", "sp-order-learning pt-note", `結社の伝習: 迷宮の戦闘で獲得した✦Soulの${Math.round(game.orderLearningRate() * 100)}%が、各席の魂の経験値にも入る（端数切り捨て）。隊の取り分は減らない。Lv上限でも蓄積する。${game.featureUnlocked?.("infinite") ? "無限迷宮の成長倍率は含まない。" : ""}`));
   if (seated.length) root.appendChild(el("div", "sp-order-on", `全員に: ${bonusText(orderStatBonus(seated)) || "なし"}`));
   if (!benched.length) {

@@ -1636,6 +1636,7 @@ const ASSETS = [
   "./art/quest-clients/client-53.webp",
   // <</QUEST_PORTRAITS>>
   "./src/insight.js",
+  "./src/order.js",
   "./src/monsterreveal.js",
   "./cloud.css",
   "./src/savegraph.js",

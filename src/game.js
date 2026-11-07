@@ -18,6 +18,7 @@ import "./desktop.js";
 import * as formations from "./formations.js";
 import { soulAcquisitionArt } from "./ui/soulart.js";
 import { insightTotals } from "./insight.js";
+import { ORDER_FEATURES, orderProgress, nextOrderMilestone, migrateOrder } from "./order.js";
 import { INF_BUY_CAP, infRecovery, infUseCount, infSupplyLeft, infSpendSupply } from "./infsupplies.js";
 import { random, fxRandom, bindRngState, rngState } from "./rng.js";
 import { refSerialize, refDeserialize, applySavePatch } from "./savegraph.js";
@@ -572,7 +573,7 @@ const G = {
   named: { seen: {}, trophy: {} }, // 名のある強敵: seen={id:{dungeon, floor}} 目撃 / trophy={id:true} 首級を手にした (全滅で失えば消す)
   insightNotified: null, // 見識の増加通知済みの合計。評価自体は図鑑から毎回計算する
   rusui: { picks: [] }, // 廃止済みの留守居の修練。旧セーブの席データだけ保持する
-  order: { picks: [] }, // 控えの結社: 席に着けた魂のuid配列 (席数=orderSeats()。編成外の魂のみ有効。能力の一部を全員に足す)
+  order: { picks: [], insightVersion: 1 }, // 控えの結社: 席に着けた魂のuid配列 (席数=orderSeats()。編成外の魂のみ有効。能力の一部を全員に足す)
   events: { seen: {}, picks: {}, once: {}, flags: {}, fresh: {} }, // 迷宮のイベント (src/events.js): 見聞録・一度きり・恒久の恵み
   irene: { greeted: false, visits: 0, seen: {}, last: null }, // 人業の館の主イレーヌ: 初訪問の挨拶済み・来館数・聞いた話 (src/ui/irene.js)
   journal: { read: {}, known: {} }, // ストーリー一覧: 読んだ物語・「物語が記された」を知らせた物語 (src/journal.js)
@@ -12162,11 +12163,8 @@ const SUB_EXP_RATE = 1 / 3;
 // 無限迷宮で得た分は入れない (rusuiSeated が無限迷宮の間は空)。
 // 控えの魂それぞれの Lv で減らす (soulLvMul)。砕けた人業・魂の宿らない器は除く。レベルアップの画面は出さず、帰還の報告に載せる
 const RUSUI_EXP_RATE = 0.10;
-// 結社の伝習: 第五章本筋2報告で10%、第八章で15%、第九章で20%。
-function orderLearningRate() {
-  if (!featureUnlocked("orderLearning")) return 0;
-  return featureUnlocked("orderLearning3") ? 0.20 : featureUnlocked("orderLearning2") ? 0.15 : 0.10;
-}
+// 結社の伝習。見識による割合と旧記録の保護を共通取得する。
+function orderLearningRate() { return currentOrderProgress().rate; }
 function distributeOrderLearning(soulGot) {
   if (!featureUnlocked("orderLearning") || G.rematch) return [];
   const gain = Math.floor(Math.max(0, soulGot || 0) * orderLearningRate());
@@ -15641,11 +15639,8 @@ function reportTutorialQuest() { return prologueAudience(); }
 //   通常は報告後に開く。cleared 指定の機能だけは、その迷宮を踏破した時点で開く。
 //   まだ無い章の分 (第四章のサブ魂2枠・第五章の奈落) は、その章が台帳に載るまで開かない
 const FEATURES = {
+  ...Object.fromEntries(Object.entries(ORDER_FEATURES).map(([key, insight]) => [key, { insight }])),
   mutators: { chapter: 6, report: "finale" },
-  orderLearning3: { chapter: 9, report: 2 },
-  order6: { chapter: 13, report: "finale" },
-  order7: { chapter: 15, report: "finale" },
-  order8: { chapter: 17, report: "finale" },
   infinite100: { chapter: 7, report: "finale" },
   infinite150: { chapter: 10, report: "finale" },
   infinite200: { chapter: 12, report: "finale" },
@@ -15657,9 +15652,6 @@ const FEATURES = {
   fusion: { chapter: 1, soulTutorial: true }, // 魂融合の手ほどきの案内と同時に解放
   sub1: { chapter: 1, cleared: "w03" },       // 修道院の主を討ち、踏破したら1枠
   rumor: { chapter: 1, report: 2 },           // 情報屋の噂 (酒場の掲示板)
-  order: { chapter: 1, report: "finale" },    // 控えの結社 (席1)
-  order2: { chapter: 2, report: "finale" },          // 結社の席2
-  order3: { chapter: 7, report: 2 },          // 結社の席3
   sub2: { chapter: 3, report: 2 },     // サブ魂 2枠
   forge: { chapter: 4, report: "finale" },    // 鍛え直し (商会で金貨を払い、装備の品質を引き直す — 2026-10 ユーザーの指示)
   insight: { chapter: 1, cleared: "w02" }, // 操霊師の見識: 亡骸の囁く回廊を踏破した直後
@@ -15667,21 +15659,17 @@ const FEATURES = {
   rusui: { retired: true, chapter: 6, report: "finale" },      // 留守居の修練 (席1。席の控えのメイン魂にも、戦闘で魂に入る経験値の一部が入る — 遠征の差し替え)
   rusui2: { retired: true, chapter: 7, report: "finale" },     // 留守居の修練の席2
   rusui3: { retired: true, chapter: 10, report: "finale" },    // 留守居の修練の席3
-  order4: { chapter: 8, report: "finale" },     // 結社の席4
-  orderLearning: { chapter: 5, report: 2 }, // 結社の伝習: 各席の魂へ戦闘の✦Soulの10%
-  orderLearning2: { chapter: 8, report: 2 }, // 結社の伝習を15%へ強化
   // 無限迷宮は第五章の結びで開き、先の章の報告で深部への道が開く。
   infinite: { chapter: 5, report: "finale" },
   rematch: { chapter: 9, report: "finale" },    // 宿敵の再戦 (名のある強敵・主の強化版)
   enchant: { chapter: 3, report: "finale" },
   bukonFusion: { chapter: 4, report: 2 }, // 武魂合成
-  order5: { chapter: 11, report: "finale" },    // 結社の席5
   rebirth: { retired: true, chapter: 14, report: "finale" },   // 魂の転生
   mutPick: { chapter: 15, report: "finale" },   // 異変を選ぶ
   vow: { retired: true, chapter: 16, report: "finale" },       // 誓約
   sub3: { retired: true, chapter: 17, report: "finale" },      // サブ魂 3枠
 };
-const FEATURE_KEYS = Object.keys(FEATURES).filter((key) => key !== "rumor" && key !== "soulChange" && key !== "sub1" && !FEATURES[key].retired); // 噂は酒場に統合、魂の付け替えは館で案内 (旧キーは互換用に残す)
+const FEATURE_KEYS = Object.keys(FEATURES).filter((key) => key !== "rumor" && key !== "soulChange" && key !== "sub1" && !FEATURES[key].retired && !FEATURES[key].insight); // 噂は酒場に統合、魂の付け替えは館で案内 (旧キーは互換用に残す)
 const chapterLabel = (no) => `第${kanjiNum(no)}章`;
 // その章で王に報告した本筋の迷宮の数
 function chapterReports(ch, w = worldState()) { return ch.dungeons.filter((id) => w.reported[id]).length; }
@@ -15690,6 +15678,11 @@ function chaptersDone(w = worldState()) { return CHAPTERS.filter((c) => w.report
 // w (worldState の形) の報告の状態で、その機能が開いているか (報告の前後を比べるために w を渡せる)
 function featureMet(key, w = worldState()) {
   const f = FEATURES[key === "rumor" ? "tavern" : key];
+  if (f?.insight) {
+    const p = currentOrderProgress();
+    if (key.startsWith("orderLearning")) return p.rate >= ({ orderLearning: .05, orderLearning10: .10, orderLearning2: .15, orderLearning3: .20 }[key]);
+    return p.seats >= (key === "order" ? 1 : Number(key.slice(5)));
+  }
   const ch = f && CHAPTERS.find((c) => c.no === f.chapter);
   if (!ch || f.retired || f.pending) return false; // 廃止済み、その章がまだ無い、または仕組みがまだ無い
   if (f.firstAffixReturn) return !!(G.tut?.affixReturned || G.tut?.done?.enchant || G.stats?.enchant?.pages > 0 || G.stats?.enchant?.written > 0);
@@ -15709,6 +15702,7 @@ function featureUnlocked(key) {
 }
 // まだ開いていない機能の条件の説明 (錠の札・案内文)
 function featureNote(key) {
+  if (ORDER_FEATURES[key]) return `見識${ORDER_FEATURES[key].toLocaleString("ja-JP")}で開く。人業の館でイレーヌに教わろう`;
   if (key === "enchant") return "第三章の結びを王に報告すると武魂が開く";
   if (key === "fusion") return "サブ魂を教わった後、次に職業の魂を持ち帰ると館で手ほどきを受けられる";
   if (key === "soulChange") return "新しい職業の魂を持ち帰り、人業の館で手ほどきを受けると開く";
@@ -15729,9 +15723,17 @@ function featureNote(key) {
 function unlockedSubSlots() {
   return Math.min(MAX_SUBS, featureUnlocked("sub2") ? 2 : featureUnlocked("sub1") ? 1 : 0);
 }
-// 控えの結社の席数 (0〜8)
-function orderSeats() {
-  return ["order8", "order7", "order6", "order5", "order4", "order3", "order2", "order"].reduce((n, k, i) => n || (featureUnlocked(k) ? 8 - i : 0), 0);
+// 控えの結社の席数 (0〜16)。図鑑を正本とし、通知済みの見識は条件に使わない。
+function currentOrderProgress() {
+  let insight = insightSummary().total;
+  // 手ほどきの試遊URLでも、明示した機能の席と割合を再現する。
+  if (G.testPlay) for (const key of G.testUnlock || []) insight = Math.max(insight, ORDER_FEATURES[key] || 0);
+  return orderProgress(insight, G.order);
+}
+function orderSeats() { return currentOrderProgress().seats; }
+function orderNextNote() {
+  const m = nextOrderMilestone(insightSummary().total, G.order);
+  return m ? `次は見識${m.insight.toLocaleString("ja-JP")}で${m.seats ? `結社${m.seats}席` : `伝習${Math.round(m.rate * 100)}%`}。現在の見識 ${insightSummary().total.toLocaleString("ja-JP")}` : "結社の見識による解禁はすべて達成した。";
 }
 // 結社の席に実際に着いている魂uid (編成外・席数上限でクリーン)。
 // G.order.picks の順を尊重しつつ、無効になった指定 (編成入り/消失) は除外する。
@@ -16362,6 +16364,8 @@ function queueInsightAlert() {
       kind: "celebrate", banner: "✦ 操霊師の見識 ✦", title: `見識 ＋${gain}`,
       lines: [
         `操霊師の見識が ${G.insightNotified.toLocaleString("ja-JP")} になった。`,
+        ...(Object.values(ORDER_FEATURES).some(n => n > G.insightNotified - gain && n <= G.insightNotified)
+          ? ["結社の新しい学びに届いた。人業の館でイレーヌから話を聞こう。"] : []),
       ],
       footer: [{ label: "確認", kind: "primary", size: "lg", onTap: (s) => s.close() }],
     });
@@ -17189,7 +17193,7 @@ function tutorialPending() { return UI.tutorialPending ? UI.tutorialPending() : 
 // 迷宮へ向かおうとした時、手ほどきが先なら引き止める (手ほどきへ案内するシート)。引き止めたら true
 function blockForTutorial() {
   const t = tutorialPending();
-  if (!t || (t.key === "firstDive" && t.started)) return false;
+  if (!t || t.optional || (t.key === "firstDive" && t.started)) return false;
   // 初回の出撃案内は、プレイヤーが迷宮を選んだ時だけ始める。
   if (t.key === "firstDive") { UI.tutorialGateVisited?.(); return true; }
   SFX.ng(); buzz([0, 30, 40, 30]);
@@ -19440,7 +19444,8 @@ function loadGame(cloudSnapshot = null) {
   // 街UIの現在地 (後付け: tab/page)。旧 {facility, sub} はそれが属するタブへ写す
   G.town = townshell.migrateTown(G.town);
   if (G.lastRun === undefined) G.lastRun = null; // 帰還の報告 (後付け)
-  if (!G.order || !Array.isArray(G.order.picks)) G.order = { picks: [] }; // 控えの結社の着席指定
+  G.order = snap.order || { picks: [] }; // 旧記録も移行時に解禁を保護する
+  if (!Array.isArray(G.order.picks)) G.order.picks = [];
   if (!G.rusui || !Array.isArray(G.rusui.picks)) G.rusui = { picks: [] }; // 留守居の修練の席 (後付け)
   if (!G.irene || typeof G.irene !== "object") G.irene = { greeted: false, visits: 0, seen: {}, last: null }; // 館の主イレーヌ (後付け: 既存の記録では次の来館で挨拶する)
   if (!G.irene.seen || typeof G.irene.seen !== "object") G.irene.seen = {};
@@ -19452,6 +19457,7 @@ function loadGame(cloudSnapshot = null) {
     G.tut.midUnlockLegacy = { order2: reports(2) >= 2, order3: reports(3) >= 2 };
     G.tut.midUnlockVersion = 1;
   }
+  migrateOrder(G, CHAPTERS);
   // 旧条件で手ほどきを始めた/装着済みの枠を、更新で使えなくしない。
   if (G.tut.cur === "sub1" || (!G.abyss && [...G.party, ...(G.reserve || [])].some(d => d.subs?.some(Boolean)))) G.tut.sub1Legacy = true;
   if (!G.tut.earlySoulVersion) {
@@ -20326,7 +20332,7 @@ function wireUI() {
     showChoice, closePrompt, showEvent, showConfirm, showToast, showItemGet, closeItemGet, showItemDetailPopup, showStoryScene,
     openStatus, closeStatus, openSettings, closeSettings, tryEnterDungeon, enterDungeon, preloadDungeon, returnToTown, confirmReturnToTown,
     tutorialAllowed, palaceCallReady, currentObjective, featureUnlocked, RUSUI_EXP_RATE, rusuiSeats, rusuiSeated, toggleRusuiSeat, contentSealed, reportMainQuest, acceptMainQuest, reportPending, blockForReport, tutorialPending, blockForTutorial,
-    prepareCodexTutorial, insightSummary, worldState, worldOpenIdx, pendingIreneBeat, playIreneBeat, dungeonLevel, FEATURES, featureNote, chaptersDone, storyGoal, currentChapter, dungeonTrait, dungeonFloorHaz,
+    currentOrderProgress, orderNextNote, prepareCodexTutorial, insightSummary, worldState, worldOpenIdx, pendingIreneBeat, playIreneBeat, dungeonLevel, FEATURES, featureNote, chaptersDone, storyGoal, currentChapter, dungeonTrait, dungeonFloorHaz,
     trainSoul, raiseSoulCap, raiseCapSoulCost, capBySoulOk, soulTrainCost, soulByUid, codexSeeItem, treasuryState, heldCollectibles, donateCollectible,
     claimAchievement, claimTreasury, treasuryRewardReady, deliveryHolder, deliveryStatus, deliverQuest,
     repairDoll, repairAllDolls, repairCostOf, awaitingRepairRescue, tryHastenRescue, reviveTimerEl, fmtRemain, awaitingRescue, hastenCostOf, canHastenRescue,
