@@ -32,7 +32,7 @@ jobs:
   check:
     if: inputs.choice_benchmark != true
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -107,8 +107,10 @@ jobs:
           python3 tools/cloud/ledger-cancel-browser.py
           python3 tools/cloud/abandon-browser.py
           node tools/infinite/check.mjs
+          node tools/infinite/phantom-check.mjs
           DOS_TEST_BASE=http://127.0.0.1:8001/ python3 tools/infinite/bukon-return-browser.py
           DOS_TEST_BASE=http://127.0.0.1:8001/ python3 tools/infinite/enemy-size-browser.py
+          DOS_TEST_BASE=http://127.0.0.1:8001/ python3 tools/infinite/memory-state-browser.py
           python3 tools/cloud/ledger-browser.py
           DOS_LEDGER_NO_WORKER=1 python3 tools/cloud/ledger-browser.py
       - name: Check save, retry, recovery and database contracts

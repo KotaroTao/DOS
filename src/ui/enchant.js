@@ -4,7 +4,7 @@ import { openBukonDetail } from "./bukonview.js";
 import { UI, game, registerUI } from "./ctx.js";
 import { el, button, sheet, confirm as askConfirm, toast } from "./kit.js";
 import { itemName, SLOTS, ITEMS } from "../items.js";
-import { bukonName, bukonSlots, bukonDef, attachBlock, fusionPlan, BUKON_RARITIES, BUKON, stockAdd, stockRows, attachBukon, detachBukon, fuseBukon } from "../bukon.js";
+import { bukonName, bukonKey, bukonSlots, bukonDef, attachBlock, fusionPlan, BUKON_RARITIES, BUKON, stockAdd, stockRows, attachBukon, detachBukon, fuseBukon } from "../bukon.js";
 import { slotCell } from "./party.js";
 export const ENCHANT_NOTE = "武魂は装備を使った者の魂が宿ったもの。対応部位だけに無料で宿し、外せる。珍しい装備ほど多くの武魂を宿せる。同効果は1装備に1つ。売却・廃棄・素材化で商会へ戻る。加算系はLv上限なし、他はLv10まで。借用枠追加・持続延長・能力低下反転はレベルなし。特殊効果は人業ごとに同種の最高Lvだけが働く。";
 export const enchantPracticeState = () => null;
@@ -85,7 +85,7 @@ function appendSoulCopies(list, rows, makeRow) {
   let observer;
   const more=()=>{
     for(let n=0;n<64&&groupIndex<rows.length;n++){
-      const b=rows[groupIndex],node=makeRow({...b,count:"1"});node.dataset.copy=`${b.k}:${b.lv}:${copy}`;
+      const b=rows[groupIndex],node=makeRow({...b,count:"1"});node.dataset.copy=`${bukonKey(b)}:${copy}`;
       list.insertBefore(node,sentinel);copy++;
       if(copy>=BigInt(b.count)){groupIndex++;copy=0n;}
     }
@@ -122,7 +122,7 @@ function openGear(it, done, preferred = null) {
   };
   h=sheet.open({title:itemName(it),className:"ec-sheet bk-sheet",body:fill,footer:[{label:"閉じる",kind:"ghost",onTap:()=>h.close()}]});
 }
-const isPreferred = (b,p) => p.soul ? b.soul===p.soul : !b.it&&b.k===p.k&&b.lv===p.lv;
+const isPreferred = (b,p) => p.soul ? b.soul===p.soul : !b.it&&bukonKey(b)===bukonKey(p);
 // 空き装備は即座に宿し、既存の武魂があれば入れ替え先を選ぶ。
 function attachFromList(it,b,done) {
   if (!(it.bukon || []).length) { action(b.it?"move":"attach",it,b,done); return; }
@@ -159,7 +159,7 @@ function openSoulEquipment(b, doll, done) {
 function openBatchFusion(done) {
   const plan=snapshotFusionPlan(G(),game.bukonTargets());if(!plan)return;
   const samePlan = next => next&&next.cost===plan.cost&&next.rows.length===plan.rows.length&&next.rows.every((r,i)=>{
-    const old=plan.rows[i];return r.k===old.k&&r.lv===old.lv&&r.count===old.count&&r.left===old.left&&r.it===old.it&&r.soul===old.soul&&r.protected===old.protected;
+    const old=plan.rows[i];return bukonKey(r)===bukonKey(old)&&r.count===old.count&&r.left===old.left&&r.it===old.it&&r.soul===old.soul&&r.protected===old.protected;
   });
   confirm({title:"武魂を一括合成する？",lines:["所持金の範囲で一段ずつ強くする。ここで生まれる武魂は、今回の合成の素材には使わない。",
     ...plan.rows.filter(r=>r.left<BigInt(r.count)).map(r=>`使用：${bukonName(r)} ×${(BigInt(r.count)-r.left).toLocaleString()}${r.it?`（${locationOf(r.it)}・${itemName(r.it)}）`:""}`),
@@ -182,7 +182,7 @@ export function openBukonList({ doll = null, onChange = null } = {}) {
     body.append(tools,el("p","rf-note",`保管中・装備中の武魂 ${soulCount(rows).toLocaleString()}点。一括合成は絞り込みに関係なく、所持する武魂全体が対象。`));
     const list=el("div","bk-copy-rows");body.append(list);
     const plans=new Map();
-    const canFuse=b=>{const key=b.soul||`${b.k}:${b.lv}`;if(!plans.has(key))plans.set(key,!!snapshotFusionPlan(G(),items,b));return plans.get(key);};
+    const canFuse=b=>{const key=b.soul||bukonKey(b);if(!plans.has(key))plans.set(key,!!snapshotFusionPlan(G(),items,b));return plans.get(key);};
     appendSoulCopies(list,rows,b=>stockRow(b,refresh,{list:true,canFuse,onAttach:()=>openSoulEquipment(b,doll,refresh)}));
     if(!rows.length)body.append(el("p","rf-note","表示できる武魂がない。絞り込みの条件か、所持する武魂を確認しよう。"));
   },footer:[{label:"閉じる",kind:"ghost",onTap:()=>h.close()}]});

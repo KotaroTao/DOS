@@ -232,7 +232,7 @@ export function unidentName(it) {
 }
 // 表示名: 未鑑定なら伏せ名、鑑定済みなら本来の名前
 // 無限迷宮の追加の能力・特性を持つ品は、一番格の高い追加の名を前に、格の印 (◇◆★) を後ろに付ける (src/infaffix.js)
-export function itemName(it) { return it && it.unidentified ? unidentName(it) : (it ? (it.afxPre || "") + it.name + (it.forge ? "＋" + it.forge : "") + (it.afxMark || "") : ""); }
+export function itemName(it) { return (it && it.unidentified ? unidentName(it) : (it ? (it.afxPre || "") + it.name + (it.forge ? "＋" + it.forge : "") + (it.afxMark || "") : "")) + (it?.soulMemory ? "（幻）" : ""); }
 // 無限迷宮の追加の能力・特性 (src/infaffix.js)。items.js は infaffix.js を import しないので game.js が渡す
 let _afxApply = (it) => it, _gearPerks = () => [];
 export function registerAffixes(apply, perks) { if (typeof apply === "function") _afxApply = apply; if (typeof perks === "function") _gearPerks = perks; }

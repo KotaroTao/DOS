@@ -1504,7 +1504,7 @@ function abyssRecords() {
 function infMemories() {
   const rec = abyssRecords();
   if (!rec.memories || typeof rec.memories !== "object" || Array.isArray(rec.memories)) rec.memories = {};
-  return Object.values(rec.memories).filter(m => m && m.v === 1 && Number.isInteger(m.floor) && m.floor > 0 && m.floor % 50 === 0)
+  return Object.values(rec.memories).filter(m => m && [1, 2].includes(m.v) && Number.isInteger(m.floor) && m.floor > 0 && m.floor % 50 === 0)
     .sort((a, b) => a.floor - b.floor);
 }
 function infMemoryAt(floor) { return infMemories().find(m => m.floor === floor) || null; }
@@ -1517,10 +1517,11 @@ function infMemoryBlock() {
 function infMemoryPreview() {
   if (infMemoryBlock()) return null;
   const uids = new Set(G.party.flatMap(d => [d.primary, ...(d.subs || []).map(s => s.uid)]));
-  // 装着中の装備と宿している魂だけを保存。戦闘中の一時効果や袋、通貨は持ち越さない。
-  const fields = ["name", "homeUid", "primary", "subs", "equip", "tactic", "skillOrder", "skillOff", "autoOff", "face"];
+  // 隊の傷・異常、出撃中の出来事、袋と武魂も独立した写しにする。通貨や戦利品実績は持ち越さない。
+  const fields = ["name", "homeUid", "primary", "subs", "equip", "tactic", "skillOrder", "skillOff", "autoOff", "face", "hp", "mp", "maxhp", "maxmp", "alive", "ailment", "_poisonPct", "asleep", "mind", "_dead", "_ailN"];
   const party = G.party.map(d => Object.fromEntries(fields.filter(k => d[k] !== undefined).map(k => [k, d[k]])));
-  return refDeserialize(refSerialize({ v: 1, floor: G.floor, at: Date.now(), party, souls: G.souls.filter(s => uids.has(s.uid)) }));
+  return refDeserialize(refSerialize({ v: 2, floor: G.floor, at: Date.now(), party, souls: G.souls.filter(s => uids.has(s.uid)),
+    inventory: G.inventory, bukonStock: bukon.bukonStock(G), bukonProtected: G.bukonProtected || {}, runEv: G.run?.ev || null, memberUids: G.party.map(d => d.uid) }));
 }
 function infSaveMemory() {
   const why = infMemoryBlock();
@@ -1545,12 +1546,26 @@ function infRestoreMemory(memory, names) {
     const d = makeDoll(saved.name);
     Object.assign(d, saved, { vessel: "inf", homeUid: names[i].from, primary: uids.get(saved.primary),
       subs: (saved.subs || []).map(s => ({ ...s, uid: uids.get(s.uid) })) });
-    for (const it of Object.values(d.equip)) if (it) it.soulMemory = true;
+    for (const it of Object.values(d.equip)) if (it) { it.soulMemory = true; for (const b of it.bukon || []) b.soulMemory = true; }
     recalcDoll(d);
-    d.hp = d.maxhp; d.mp = d.maxmp;
+    d.hp = saved.hp == null ? d.maxhp : Math.min(saved.hp, d.maxhp);
+    d.mp = saved.mp == null ? d.maxmp : Math.min(saved.mp, d.maxmp);
     return d;
   });
+  G.inventory = copy.inventory || [];
+  for (const it of G.inventory) { it.soulMemory = true; for (const b of it.bukon || []) b.soulMemory = true; }
+  for (const b of bukon.stockRows(copy)) {
+    const phantom = {...b, soulMemory:true};bukon.stockAdd(G, phantom, b.count);
+    if (b.protected) G.bukonProtected[bukon.bukonKey(phantom)] = true;
+  }
   shareInventory(G);
+  const ev = copy.runEv;
+  if (ev) {
+    const ids = new Map((copy.memberUids || []).map((uid, i) => [String(uid), G.party[i]?.uid]));
+    for (const key of ["saves", "nextAil"]) if (ev[key]) ev[key] = Object.fromEntries(Object.entries(ev[key]).filter(([uid]) => ids.has(uid)).map(([uid, v]) => [ids.get(uid), v]));
+    if (ev.ruby) ev.ruby = ids.get(String(ev.ruby)) || null;
+  }
+  return ev;
 }
 // 帰還・全滅の表示も同じ対象を数える。袋と装備の共有参照は1点として扱う。
 function infReturnItems() {
@@ -1558,7 +1573,7 @@ function infReturnItems() {
     .filter(it => it && it.id && !it.soulMemory);
 }
 function infReturnBukonCount(items = infReturnItems(), stock = bukon.stockRows(G)) {
-  return (stock.reduce((n, b) => n + BigInt(b.count), 0n) + BigInt(items.reduce((n, it) => n + (it.bukon?.length || 0), 0))).toString();
+  return (stock.filter(b => !b.soulMemory).reduce((n, b) => n + BigInt(b.count), 0n) + BigInt(items.reduce((n, it) => n + (it.bukon || []).filter(b => !b.soulMemory).length, 0))).toString();
 }
 
 // ===== 無限迷宮の称号と勲章の数え (docs/infinite-affixes.md 4・5章) =====
@@ -1709,7 +1724,7 @@ function infCloseRun(outcome) {
   const depth = ab.depth || G.floor || 1;
   // 持ち帰る品: 仮の器の装備と袋の品すべて (手元には届かず商会の棚へ)
   const items = infReturnItems();
-  const stock = bukon.stockRows(G);
+  const stock = bukon.stockRows(G).filter(b => !b.soulMemory);
   const bukonCount = infReturnBukonCount(items, stock);
   const souls = (run.souls || []).map((x) => x && x.clsKey).filter((k) => k && SOUL_CLASSES[k]);
   const embers = Math.max(0, run.embers || 0);
@@ -1725,7 +1740,7 @@ function infCloseRun(outcome) {
       if (b.protected) (G.bukonProtected ||= {})[bukon.bukonKey(b)] = true;
     }
     got.bukon = bukonCount;
-    for (const it of items) { recordAffixHome(it); shopReceive(it); codexSeeItem(it.id, it); got.items.push({ id: it.id, name: itemName(it), rar: rarityKey(it), afx: !!(it.afx && it.afx.length) }); }
+    for (const it of items) { if (it.bukon) it.bukon = it.bukon.filter(b => !b.soulMemory); recordAffixHome(it); shopReceive(it); codexSeeItem(it.id, it); got.items.push({ id: it.id, name: itemName(it), rar: rarityKey(it), afx: !!(it.afx && it.afx.length) }); }
     for (const k of souls) { addSoulInstance(k); codexJobSee(k, 1, 1); noteSoulFound(k); got.souls.push(k); }
     if (embers) { G.embers = (G.embers || 0) + embers; got.embers = embers; }
     if (souls.length) recalcAllDolls();
@@ -17439,8 +17454,8 @@ function enterAbyss(picks, testRun = false, memoryFloor = null) {
   G.bukonStock = {}; G.bukonProtected = {};
   G.souls = []; setSharedSouls(G.souls);
   G.gold = 0; G.soulPts = 0; G.embers = 0;
-  if (memory) infRestoreMemory(memory, names);
-  else G.party = picks.map((k, i) => makeVessel(i, k, names[i]));
+  const memoryEv = memory ? infRestoreMemory(memory, names) : null;
+  if (!memory) G.party = picks.map((k, i) => makeVessel(i, k, names[i]));
   refreshStability();
   syncClueBoons(); // 手がかりの恵みは乗せない (clueBoon が無限迷宮では効かない)
   G.mutator = null;
@@ -17456,6 +17471,7 @@ function enterAbyss(picks, testRun = false, memoryFloor = null) {
   G.stats.runs++;
   G.run = newRun();
   G.run.startFloor = G.floor;
+  if (memoryEv) G.run.ev = memoryEv;
 
   G.lastRun = null;
   G._townMutator = null; G._departPre = false;
