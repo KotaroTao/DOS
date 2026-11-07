@@ -50,7 +50,7 @@ import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, permanentEventSta
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { pickTavernCrowd, TALK_MAP } from "./tavern.js";
 import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, QUEST_LV_NEAR, rollBoard, deliveryRewardRows, NPCS, npcOf, composeReport, bondGiftAt, npcBondLabel, TIP_RATE, hasBell, BELL_EVERY_MS, QUEST_REWARD_K, QUEST_RK, questRewardK, commonQuestTextFits, COMMON_KEY as QUEST_COMMON_KEY } from "./quests.js";
-import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_THREE_REPORT, TUT_FINALE, TUT_CORRIDOR, STORY_CELLS, BOSS_MEMORIES, BOSS_PRELUDES, REPORTS, LATE_CLUES, IRENE_BEATS, MINE_PASS, msqReward, EPILOGUE, UNLOCKS, unlockSceneFor, REMATCH_MEMORIES } from "./story.js";
+import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_THREE_REPORT, TUT_FINALE, TUT_CORRIDOR, STORY_CELLS, BOSS_MEMORIES, BOSS_PRELUDES, REPORTS, LATE_CLUES, IRENE_BEATS, MINE_PASS, msqReward, EPILOGUE, UNLOCKS, unlockSceneFor } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { poolAt, powerAt, agiWallOf, strongHpWallOf, statWallOf } from "./dungeons/world.js";
 import { NAMED_FOES, NAMED_IDS, TROPHY_OF, HUNT_ELITE_RATE, bountyId } from "./dungeons/named.js";
@@ -12349,7 +12349,7 @@ function endBattleAfterPresentation() {
   }
   G.effShow = null; G.modFeed = null; flushModLines(null, Infinity);
 
-  if (G.rematch) return endRematch(b); // 宿敵の再戦: 終われば隊を戻して街へ (迷宮の戦果・踏破・全滅の扱いには入らない)
+  if (G.rematch) return abortRematch(); // 旧版の再戦は戦果を付けず終了する
   // オートは戦闘ごとに解除。ただし設定「オートを次の戦闘も続ける」(§7 M2) なら勝利の後も持ち越す
   if (!(b.result === "win" && G.autoCombat && uiDungeonHud.getPref("autoKeep"))) G.autoCombat = false;
   if (G._autoTimer) { clearTimeout(G._autoTimer); G._autoTimer = null; }
@@ -15357,7 +15357,7 @@ function claimAchievement(a) {
 // 勲章の札: 系統ごとに受領していない次の段だけを1枠に出す。全段を受領し終えた有限の系統は
 // 最後の段を「受領済」として残す。並びは「拝受できる → 未達成 → 受領済」(同順位は定義順)
 function achievementCards() {
-  const cards = ACH_SERIES.map((s) => {
+  const cards = ACH_SERIES.filter(s => s.key !== "rematch" || s.value() >= achNext(s).tier.v).map((s) => {
     const n = achNext(s);
     const a = n.tier;
     const ready = !n.done && a.cond();
@@ -15661,7 +15661,7 @@ const FEATURES = {
   rusui3: { retired: true, chapter: 10, report: "finale" },    // 留守居の修練の席3
   // 無限迷宮は第五章の結びで開き、先の章の報告で深部への道が開く。
   infinite: { chapter: 5, report: "finale" },
-  rematch: { chapter: 9, report: "finale" },    // 宿敵の再戦 (名のある強敵・主の強化版)
+  rematch: { retired: true, chapter: 9, report: "finale" },    // 宿敵の再戦 (名のある強敵・主の強化版)
   enchant: { chapter: 3, report: "finale" },
   bukonFusion: { chapter: 4, report: 2 }, // 武魂合成
   rebirth: { retired: true, chapter: 14, report: "finale" },   // 魂の転生
@@ -17482,209 +17482,7 @@ function departAbyss(picks, memoryFloor = null) {
   uiDungeonHud.sceneTransition(() => { G.prompt = false; if (!enterAbyss(picks, false, memoryFloor)) return; return readyDungeonEntry(); }, { immediate: true, embers: false });
 }
 
-// ===== 宿敵の再戦 (第九章の結び = FEATURES.rematch、docs/unlocks.md) =====
-// 一度倒した名のある強敵と迷宮の主の「記憶」に、闘技場跡の砂の上で挑み直す。出撃画面の「闘技場跡 ― 宿敵の再戦」から。
-//  ・相手の Lv = max(その強敵・主の縄張りの最下階の推奨Lv, 隊のLv)。強さは縄張りの最下階の出方 (強敵の soloScale / 主の bossMul) を
-//    その Lv の伸び (lvPow) に写して REMATCH_MUL 倍し、生前に無かった特色を1つ足す (REMATCH_TRAITS から、魔物ごとに決まる)
-//  ・記憶との手合わせなので、終われば隊の HP・MP・状態は挑む前に戻る (倒れても砕けない。負け・逃走でも失うものは無い)。
-//    入る時に迷宮と同じだけ魂の安定度を使う
-//  ・勝てば ✦Soul・金貨 (その Lv の普通の1戦 × REMATCH_SPOILS、✦Soul はさらに強敵2倍・主3倍)。名のある強敵は首級を ＋1 (最大 ＋REMATCH_FORGE_MAX) に鍛え、
-//    主は初めて勝った時に記憶のかけら (story.js REMATCH_MEMORIES) を語る。土地・迷宮の掟と異変は効かない
-//  ・戦いの間だけ G.dungeonIdx / G.floor を縄張りの迷宮の最下階に付け替え (背景・属性・状態異常の Lv がそれを読む)、終われば戻す
-const REMATCH_MUL = 1.15;
-const REMATCH_SPOILS = { named: 4, boss: 6 };
-const REMATCH_FORGE_MAX = 5;
-const REMATCH_TRAITS = [
-  { key: "haste", label: "神速", has: (m) => !!m.haste, apply: (e) => { e.haste = true; e.agi += 8; } },
-  { key: "regen", label: "再生", has: (m) => (m.regen || 0) >= 0.05, apply: (e) => { e.regen = Math.max(e.regen || 0, 0.05); } },
-  { key: "endure", label: "不屈", has: (m) => !!m.endure, apply: (e) => { e.endure = true; } },
-  { key: "barrier", label: "障壁", has: (m) => (m.barrier || 0) >= 2, apply: (e) => { e._barrierLeft = Math.max(e._barrierLeft || 0, 2); } },
-  { key: "multi", label: "連撃", has: (m) => (m.multistrike || 0) >= 2, apply: (e) => { e.multistrike = 2; } },
-  { key: "lifesteal", label: "吸血", has: (m) => (m.lifesteal || 0) >= 0.3, apply: (e) => { e.lifesteal = Math.max(e.lifesteal || 0, 0.3); } },
-];
-// 魔物ごとに決まった1つ (id の hash で選び、もう持っている特色は飛ばす)
-function rematchTrait(key) {
-  const m = MONSTERS[key] || {};
-  let h = 2166136261;
-  for (const c of String(key)) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0; // FNV-1a (毎回同じ1つに決まる)
-  const cand = REMATCH_TRAITS.filter((t) => !t.has(m));
-  return cand.length ? cand[h % cand.length] : null;
-}
-// 挑める相手: 倒したことのある名のある強敵 (縄張りが地図にあるもの) と、討った迷宮の主
-function rematchList() {
-  if (!featureUnlocked("rematch")) return [];
-  const out = [];
-  const bossIds = G.stats.bossIds || {};
-  const wins = G.stats.rematch || {};
-  for (const id of NAMED_IDS) {
-    if (!MONSTERS[id] || codexKills(id) <= 0) continue;
-    const homeIdx = DUNGEONS.findIndex((d, i) => worldOpenIdx(i) && (d.elites || []).includes(id));
-    if (homeIdx < 0) continue;
-    const nf = NAMED_FOES[id], tr = nf && ITEMS[nf.trophy];
-    const held = tr ? heldTrophy(nf.trophy) : null;
-    out.push({ key: id, kind: "named", name: MONSTERS[id].name, homeIdx, home: DUNGEONS[homeIdx].name, layer: DUNGEONS[homeIdx].layer || 1, lv: rematchLevel(DUNGEONS[homeIdx]),
-      trait: (rematchTrait(id) || {}).label || null, wins: wins[id] || 0, trophy: tr ? { name: tr.name, held: !!held, forge: held ? held.forge || 0 : 0 } : null });
-  }
-  const seen = new Set();
-  DUNGEONS.forEach((d, i) => {
-    if (!d.boss || seen.has(d.boss) || !bossIds[d.boss] || !worldOpenIdx(i)) return;
-    seen.add(d.boss);
-    out.push({ key: d.boss, kind: "boss", name: MONSTERS[d.boss].name, homeIdx: i, home: d.name, layer: d.layer || 1, lv: rematchLevel(d),
-      trait: (rematchTrait(d.boss) || {}).label || null, wins: wins[d.boss] || 0, memory: !!REMATCH_MEMORIES[d.boss], heard: !!worldState().beats["rm_" + d.boss] });
-  });
-  return out.sort((a, b) => (b.lv - a.lv) || (a.kind === b.kind ? 0 : a.kind === "boss" ? -1 : 1));
-}
-// 手本の迷宮: 挑む Lv を最下階で越える最初の本筋の迷宮 (主なら主のいる迷宮)。どれも越えなければ最後の本筋の迷宮
-function rematchRef(kind, lv) {
-  const main = DUNGEONS.filter((d) => !d.side && !d.challenge && (kind !== "boss" || d.boss) && (kind === "boss" || (d.elites || []).length));
-  return main.find((d) => dungeonLevel(d, d.floors || 1) >= lv) || main[main.length - 1];
-}
-function rematchLevel(home) { return Math.max(dungeonLevel(home, home.floors || 1), partyLevel()); }
-// 手元 (隊・控えの装備と袋) にある首級 (同じ品が複数あれば ＋N の高い方)
-function heldTrophy(id) {
-  let best = null;
-  for (const d of allDolls()) for (const it of [...Object.values(d.equip || {}), ...(d.items || [])]) {
-    if (it && it.id === id && (!best || (it.forge || 0) > (best.forge || 0))) best = it;
-  }
-  return best;
-}
-// 出撃画面から: 確かめて、闇に溶けて闘技場跡へ
-function departRematch(key) {
-  if (G.state !== "town" || G.prompt) return;
-  if (!featureUnlocked("rematch")) { SFX.ng(); return; }
-  if (blockForReport() || blockForTutorial()) return;
-  const t = rematchList().find((x) => x.key === key);
-  if (!t) { SFX.ng(); return; }
-  if (!G.party.some((p) => p.alive)) { log("動ける人業がいない。", "sys"); SFX.ng(); return; }
-  if (!stabilityReady(() => departRematch(key))) return;
-  G.prompt = true;
-  uiDungeonHud.sceneTransition(() => { G.prompt = false; beginRematch(t); });
-}
-function beginRematch(t) {
-  if (G.state !== "town" || !consumeEntryStability("rematch", "entry", false)) return false;
-  G.stabilityBriefed = true;
-  const home = DUNGEONS[t.homeIdx];
-  const snap = G.party.map((p) => ({ p, hp: p.hp, mp: p.mp, alive: p.alive, ailment: p.ailment || null, pct: p._poisonPct || null }));
-  G.rematch = { key: t.key, kind: t.kind, lv: t.lv, homeIdx: t.homeIdx, savedIdx: G.dungeonIdx, savedFloor: G.floor, snap };
-  sheet.closeAll();
-  townEl.classList.add("hidden");
-  G.town.facility = null; G.town.sub = null;
-  G.dungeonIdx = t.homeIdx;
-  G.floor = home.floors || 1;
-  G.eliteFloor = false; G.specialFloor = null; G.mutator = null;
-  G.run = newRun(); G.run.rematch = true;
-  G.state = "board"; // startBattle が戦闘へ切り替える (inDungeon で迷宮の中として戦果・Lv を読む)
-  if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; }
-  // 強さ: 挑む Lv に近い本筋の迷宮 (手本の迷宮) の最下階の主・強敵の出方を、挑む Lv の伸びに写す。
-  // (縄張りの迷宮の出方のままだと、序盤の主・強敵はランクが低く、Lv を上げても体が小さすぎる)
-  const ref = rematchRef(t.kind, t.lv);
-  const refLv = dungeonLevelRaw(ref, ref.floors || 1);
-  const atRef = strengthAt(ref, ref.floors || 1);
-  const k = lvPow(t.lv) / lvPow(refLv) * REMATCH_MUL;
-  const tn = ref.tune || {};
-  let foes;
-  if (t.kind === "boss") {
-    foes = spawnBossEnemies(t.key, (ref.bossScale || 1) * (tn.bossMul || 1) * atRef * k, ref.bossRank);
-    if ((tn.bossHpMul || 1) !== 1) for (const e of foes) e.maxhp = e.hp = Math.max(1, Math.round(e.maxhp * tn.bossHpMul));
-  } else {
-    // 名のある強敵: 体 (HP・攻撃・防御・素早さ) と抵抗の格は手本の迷宮の強敵から。特色と見た目はその強敵のまま
-    const tpl = spawnEliteEnemies((ref.elites || [])[0] || t.key, atRef * (tn.soloMul || 1) * k)[0];
-    foes = spawnEliteEnemies(t.key, 1);
-    for (const e of foes) {
-      e.maxhp = e.hp = Math.max(1, Math.round(tpl.maxhp * resistHpMul(e.mon, true) / Math.max(0.01, resistHpMul(tpl.mon, true))));
-      e.atk = tpl.atk; e.vit = tpl.vit; e.agi = Math.max(e.agi, tpl.agi);
-      e.resists = monsterResists({ ...e.mon, rank: Math.max(e.mon.rank || 1, tpl.mon.rank || 1), elite: true, resists: e.mon.resistOverrides || {} });
-      e._tuneK = tn.soloMul || 1;
-    }
-  }
-  const tr = rematchTrait(t.key);
-  for (const e of foes) { scaleFoeStats(e, statWallOf(ref)); e._rematch = true; if (tr) tr.apply(e); } // 能力ごとの段は強さを写した手本の迷宮のもの
-  log(`闘技場跡の砂の上に、${foes[0].name}の記憶が立ち上がる (Lv${t.lv}${tr ? `・${tr.label}` : ""})。`, "dmg");
-  if (tr) setTimeout(() => showToast(`記憶の${foes[0].name}は「${tr.label}」を身につけている`, { tone: "bad", noLog: true }), 400);
-  startBattle(foes, null);
-  return true;
-}
-// 戦いの終わり (勝ち・負け・逃走のどれでも): 隊を挑む前に戻し、勝っていれば戦果を渡して街へ
-function endRematch(b) {
-  const performance = b.performanceReport();
-  const rm = G.rematch;
-  G.autoCombat = false;
-  resetAutoProgress(G.battle);
-  if (G.battle) G.battle._autoIdle = 0;
-  if (G._autoTimer) { clearTimeout(G._autoTimer); G._autoTimer = null; }
-  renderCombat();
-  const win = b.result === "win";
-  const restore = () => {
-    for (const s of rm.snap || []) {
-      const p = s.p;
-      p.hp = Math.min(s.hp, p.maxhp); p.mp = Math.min(s.mp, p.maxmp); p.alive = s.alive; p.ailment = s.ailment; p._poisonPct = s.pct;
-      p._dead = !s.alive; p.asleep = false; p.mind = null; p._defending = false;
-    }
-  };
-  const finish = () => {
-    G.prompt = true;
-    uiDungeonHud.sceneTransition(() => { G.prompt = false; finishRematch(); });
-  };
-  if (!win) {
-    restore();
-    SFX.flee();
-    const msg = b.result === "lose" ? `${rm ? MONSTERS[rm.key].name : "記憶"}に敗れた。記憶との手合わせなので、隊は何も失わない。` : "砂の上から退いた。記憶は、また呼べば立ち上がる。";
-    log(msg, "sys");
-    G.battle = null; G.state = "board";
-    combatMenu.classList.add("hidden");
-    showEvent({ banner: "⚔ 宿敵の再戦 ⚔", title: b.result === "lose" ? "記憶に敗れた" : "試合を降りた", accent: "#c9a24a", lines: [msg], btnLabel: "街へ戻る", noLog: true, onClose: finish });
-    return;
-  }
-  const lv = rm.lv;
-  const mult = REMATCH_SPOILS[rm.kind] || 4;
-  const soulOut = {};
-  const goldGot = runGainGold(Math.round(refGold(lv) * mult) * 2, "rm");
-  const soulGot = runGainSoulPts(Math.round(refSoul(lv) * mult * enemySoulRewardMul({ boss: rm.kind === "boss", mon: { named: rm.kind === "named" } })), "rm", null, 1, soulOut);
-  applyVictoryPassives();
-  const progress = distributeBattleSoulExp(soulOut.raw ?? soulGot);
-  restore();
-  G.stats.rematch = G.stats.rematch || {};
-  G.stats.rematch[rm.key] = (G.stats.rematch[rm.key] || 0) + 1;
-  G.stats.rematchWins = (G.stats.rematchWins || 0) + 1;
-  const name = MONSTERS[rm.key].name;
-  log(`${name}の記憶を打ち破った！ 💰${goldGot} と ✦${soulGot} Soul を得た。`, "win");
-  SFX.victory(); flashScreen("#ffd84a");
-  // 名のある強敵: 首級を ＋1 に鍛える
-  const notes = [];
-  if (rm.kind === "named") {
-    const nf = NAMED_FOES[rm.key], it = nf ? heldTrophy(nf.trophy) : null;
-    if (!it) notes.push(`首級「${nf && ITEMS[nf.trophy] ? ITEMS[nf.trophy].name : "首級"}」が手元に無いので、鍛えられなかった。`);
-    else if ((it.forge || 0) >= REMATCH_FORGE_MAX) notes.push(`首級「${ITEMS[it.id].name}」は、もう ＋${REMATCH_FORGE_MAX} まで鍛え上がっている。`);
-    else {
-      it.forge = (it.forge || 0) + 1;
-      resyncItem(it);
-      const d = allDolls().find((x) => (x.items || []).includes(it) || Object.values(x.equip || {}).includes(it));
-      if (d) { recalcDoll(d); d.hp = Math.min(d.hp, d.maxhp); d.mp = Math.min(d.mp, d.maxmp); }
-      notes.push(`記憶の打ち合いで、首級「${itemName(it)}」が鍛え上がった (＋${it.forge})。`);
-      G.stats.trophyForged = (G.stats.trophyForged || 0) + 1;
-    }
-    for (const n of notes) log(n, "win");
-  }
-  const levels = progress.filter((q) => q.kind === "level").map((q) => ({ name: q.member.name, uid: q.member.uid, from: q.fromLv, to: q.toLv, deltas: q.deltas || [], sub: !!q.sub, soulLabel: q.soulLabel || "" }));
-  const skills = progress.filter((q) => q.kind === "skill").map((q) => ({ name: q.member.name, key: q.skill, skill: SPELLS[q.skill] ? SPELLS[q.skill].name : q.skill, desc: SPELLS[q.skill] ? SPELLS[q.skill].desc : "" }));
-  for (const l of levels) log(`${l.name}${l.sub && l.soulLabel ? `のサブ魂「${l.soulLabel}の魂」` : ""}：Lv${l.from}→${l.to}`, "win");
-  for (const k of skills) log(`${k.name}が「${k.skill}」習得`, "win");
-  G.battle = null; G.state = "board";
-  combatMenu.classList.add("hidden");
-  const mem = rm.kind === "boss" && REMATCH_MEMORIES[rm.key] && !worldState().beats["rm_" + rm.key] ? REMATCH_MEMORIES[rm.key] : null;
-  uiResults.openResults({
-    kind: "rematch", gold: goldGot, soul: soulGot, kills: 1, fled: 0, performance,
-    levels, skills, souls: [], levelUps: levelUpEntries(progress), chest: null,
-    onDone: () => {
-      const after = () => finish();
-      if (notes.length) showToast(notes[notes.length - 1], { tone: "good", noLog: true });
-      if (mem) {
-        worldState().beats["rm_" + rm.key] = 1;
-        UI.playStoryChain([{ title: mem.title, lines: storyLines(mem.lines), art: mem.art, who: "none", kicker: "記憶のかけら", btnLabel: "胸に刻む" }], after);
-      } else after();
-    },
-  });
-}
+// 廃止した宿敵の再戦の途中セーブだけ、安全に街へ戻す。
 function finishRematch() {
   const rm = G.rematch;
   G.rematch = null;
@@ -19214,8 +19012,8 @@ const testScenes = [
     id: "story:" + id, kind: "story", name: ({ intro: "着任の謁見", three: "三体の支度", finale: "地下墓地の調査依頼", corridor: "亡骸の囁く回廊への依頼", epilogue: "結末" })[id], lines,
     photo: storyImage(({ intro: "arrival", three: "three", finale: "departure" })[id]),
   })),
-  ...[["cell", "師の手がかり", STORY_CELLS], ["memory", "主の記憶", BOSS_MEMORIES], ["report", "踏破の報告", REPORTS], ["chapter", "章の結び", CHAPTER_END], ["unlock", "機能の解放", UNLOCKS], ["late", "手がかりの追加報告", LATE_CLUES], ["rematch", "再戦の記憶", REMATCH_MEMORIES]].flatMap(([group, label, defs]) =>
-    Object.entries(defs).map(([id, def]) => ({ ...def, id: group + ":" + id, kind: "story", tutorialPreview: group === "unlock" && !!def.lines?.length, group: label, name: label + "・" + def.title, who: ["cell", "memory", "rematch"].includes(group) ? "none" : "king",
+  ...[["cell", "師の手がかり", STORY_CELLS], ["memory", "主の記憶", BOSS_MEMORIES], ["report", "踏破の報告", REPORTS], ["chapter", "章の結び", CHAPTER_END], ["unlock", "機能の解放", UNLOCKS], ["late", "手がかりの追加報告", LATE_CLUES]].flatMap(([group, label, defs]) =>
+    Object.entries(defs).filter(([, def]) => !def.retired).map(([id, def]) => ({ ...def, id: group + ":" + id, kind: "story", tutorialPreview: group === "unlock" && !!def.lines?.length, group: label, name: label + "・" + def.title, who: ["cell", "memory"].includes(group) ? "none" : "king",
       photo: storyImage(({ cell: id, late: id, memory: "mem_" + id, report: "report_" + id, chapter: "ch" + id + "_end" })[group]) }))),
   ...Object.entries(BOSS_PRELUDES).flatMap(([id, pre]) => ["first", "retry"].filter((k) => pre[k]).map((k) => ({ ...pre[k], id: `prelude:${id}_${k}`, kind: "story", group: "主との対面",
     name: `主との対面・${pre[k].title}`, who: "none", photo: storyImage("pre_" + id + (k === "retry" ? "_retry" : "")) }))),
@@ -19653,12 +19451,12 @@ function loadGame(cloudSnapshot = null) {
 // 復元した状態に応じて画面を再構築 (やり直し不可の再開)
 function resumeFromState() {
   refreshStability();
+  if (G.rematch) { abortRematch(); return; } // 廃止済みの再戦の途中記録
   if (G.pendingDanger) { presentPendingDanger(); return; }
   if (G.pendingTreasury) { showPendingTreasury(); return; }
   if (G.pendingPickups?.length) { processPickups(resumeFromState); return; }
   if (G.state === "board" && G.pendingResults) { renderBoard(); showPendingResults(); return; }
   if (G.pendingCursedChest) { askCursedChest(() => { renderBoard(); autosave(true); }); return; }
-  if (G.rematch) { abortRematch(); return; } // 宿敵の再戦の途中で閉じた: 試合は無かったことにする
   if (!G.state || G.state === "town") {
     G.state = "town";
     if (townBtn) townBtn.classList.add("hidden");
@@ -20433,7 +20231,7 @@ bindGame({
 // モジュールの評価時 (init より前) に結ぶ。init の wireUI が同じ game へ残りを足す
 bindGame({
   // 出撃
-  departNow, corpseFadeShare, departAbyss, infVesselNames, rematchList, departRematch, REMATCH_FORGE_MAX, townMutatorFor, preDiveIssues, departWoes, DUNGEON_BRIEFING, STORY_CELLS, startFloorsOf, worldOpenIdx, worldOpenId, worldUnlockMet, levelBand, wallOf, wallStepOf, statWallOf, partyLevel, storyCellPending, dungeonFacts, dungeonQuests, namedHere, namedList, namedInfo,
+  departNow, corpseFadeShare, departAbyss, infVesselNames, townMutatorFor, preDiveIssues, departWoes, DUNGEON_BRIEFING, STORY_CELLS, startFloorsOf, worldOpenIdx, worldOpenId, worldUnlockMet, levelBand, wallOf, wallStepOf, statWallOf, partyLevel, storyCellPending, dungeonFacts, dungeonQuests, namedHere, namedList, namedInfo,
   infDepthLimit, abyssRecords, infMemories, infMemoryAt, infMemoryBlock, infMemoryPreview, infSaveMemory, infReturnItems, infStats, infTitleList, infTitleName, setInfTitle, emptyDollCost, infRule, infAtRest, soulWorkOk, infTraderWares, infSupplyStatus, infBuyBlock, infBuy, infSell, infSellPlan, infSellAll, shopAfxClash, infSwapSoul, infSoulChangeBlock, infSoulChangePreview, infSubBlock, infSubPreview, infSetSub, infLevel, infGrowthMul,
   // 迷宮の HUD
   specialDef, mutDef, eliteKey, dungeonObjective, abyssActive, abyssBossPending, findRevealedStairs, canReturnNow, confirmAbandonDungeon,
@@ -20494,8 +20292,6 @@ async function init() {
     orderLearning: { distributeOrderLearning, orderSeatedUids, orderLearningRate, orderSeats, featureUnlocked, featureMet, settleSoulExp },
     // オート移動の検証用
     autoMove: { setAutoMove, toggleAutoMove, autoMovePlan, moveStep, cellRect, viewSize: () => ({ VW, VH }) },
-    // 宿敵の再戦の検証用
-    rematch: { rematchList, departRematch, endBattle },
     // 無限迷宮の検証用
     inf: { infStats, infTitleList, infTitleGrant, infCheckRun, doUnequip, giveItemAsk, giveItem, pickLoot, cloneItem, markDungeonLoot, shopAfxItem, buyAffixed, afxConflicts, resolveAfxConflicts, shopReceive, saveJSON: () => { const snap = {}; for (const k of SAVE_FIELDS) snap[k] = G[k]; return JSON.stringify(refSerialize(snap)); }, DUNGEONS, spawnBossEnemies, baseEnemyScale, soloScale, infBossFoes, infEliteFoes, infFoeKey, infSpotInfo, spawnCardEnemies, enemyScale, mimicRef, addSoulInstance, recalcAllDolls, enterAbyss, departAbyss, descend, openInfRest, fightAbyssGuard, abyssCfg, grantSoulQuiet, infSwapSoul, infSetSub, infSubBlock, infSubPreview, infBuy, infSell, infTraderWares, infSupplyStatus, infBuyBlock, returnToTown, gameOver, leaveDungeon, abyssRecords, newFloor, renderBoard, finishToBoard },
     // 迷宮の掟の代償 (雲間の泉・開幕の眠り/麻痺・宝箱の罠) の検証用
@@ -20696,7 +20492,7 @@ function startAfterTitle(loaded) {
       }
     } else if (G.state === "town") {
       const w = worldState();
-      const id = Object.keys(BOSS_MEMORIES).find((id) => w.cleared[id] && !w.beats["mem_" + id]);
+      const id = Object.keys(BOSS_MEMORIES).find((id) => w.report === id && w.cleared[id] && !w.beats["mem_" + id]);
       if (id) playBossMemory(id, renderTown);
     }
     setTimeout(() => { try { showToast("💾 冒険を再開しました"); } catch {} }, 400);

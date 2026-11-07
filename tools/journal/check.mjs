@@ -123,7 +123,31 @@ for (let i = 1; i < stories.length; i++) assert(stories[i].chapter >= stories[i-
 assert.equal(JSON.stringify(g), before, "読むための一覧生成で進行や報酬を変えない");
 const oldLines = [...Object.values(STORY_CELLS), ...Object.values(REPORTS), ...Object.values(BOSS_MEMORIES),
   ...IRENE_BEATS, ...Object.values(CHAPTER_END)].flatMap(s => Array.isArray(s.lines) ? s.lines : []);
-assert(!ARCHIVE_STORIES.flatMap(s => s.lines).some(line => oldLines.includes(line)), "既存の会話本文を流用しない");
+// 主の記憶は初回討伐後の内容をストーリーにも統合する。ほかの読み物は従来どおり独立した本文。
+assert(!ARCHIVE_STORIES.filter(s => !s.id.startsWith("mem_")).flatMap(s => s.lines).some(line => oldLines.includes(line)), "記憶以外は既存の会話本文を流用しない");
+const memories = WORLD.filter(d => d.boss);
+assert.equal(Object.keys(BOSS_MEMORIES).length, memories.length, "全主に初回討伐後の記憶");
+const memoryImages = new Set();
+for (const d of memories) {
+  const entry = byId.get("mem_" + d.id);
+  assert(BOSS_MEMORIES[d.id]?.lines.length >= 4, `${d.boss} の記憶本文`);
+  assert(entry?.image, `${d.boss} のストーリーと専用挿絵`);
+  assert(!memoryImages.has(entry.image), `${d.boss} の絵をほかの主と共用しない`);
+  memoryImages.add(entry.image);
+  assert(!entry.available({}), `${d.boss} は未討伐なら伏せる`);
+  for (const old of [
+    { world: { cleared: { [d.id]: 1 } } },
+    { stats: { bossIds: { [d.boss]: true } } },
+    { world: { beats: { ["mem_" + d.id]: true } } },
+    { world: { beats: { ["rm_" + d.boss]: true } } },
+  ]) {
+    const saved = JSON.stringify(old);
+    assert(entry.available(old), `${d.boss} は旧記録からも読める`);
+    assert(storyEntries(old).some(s => s.id === entry.id), `${d.boss} の一覧掲載`);
+    assert.equal(JSON.stringify(old), saved, `${d.boss} の閲覧で進行や報酬を変えない`);
+  }
+}
+
 
 // 既読と知らせ: 旧セーブはいま読める物語を既読に、新しく記された物語だけを知らせる
 {

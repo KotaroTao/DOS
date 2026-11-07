@@ -19,7 +19,7 @@ with sync_playwright() as p:
     window.al=()=>[...document.querySelectorAll('.ui-sheet')].filter(e=>e.textContent.replaceAll('\\u200b','').includes('✦ 操霊師の見識 ✦'));
     G.codex.mon.bs_drainrat={kills:5,main:5};G.battle.enemies.forEach(e=>{e.hp=0;e.alive=false;e._codexKill=true});
     g.autosave(true);await new Promise(r=>setTimeout(r,50));if(al().length)throw Error('戦闘中に通知');
-    G.battle.result='win';G.battle.rewards=()=>({soul:0,gold:0});g.rematch.endBattle();
+    G.battle.result='win';G.battle.rewards=()=>({soul:0,gold:0});g.ev.endBattle();
     await new Promise(r=>setTimeout(r,50));if(al().length)throw Error('宝箱確認前に通知');
     const item=Object.keys(g.equipLv.ITEMS).find(k=>!G.codex.item[k]);game.codexSeeItem(item);g.autosave(true);
     await new Promise(r=>setTimeout(r,50));if(al().length)throw Error('品の発見で別通知');
