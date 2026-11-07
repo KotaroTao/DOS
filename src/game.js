@@ -9594,6 +9594,10 @@ function renderCombat() {
   renderCombatMenu();
 }
 
+// 結果・保存の復元でmonが通常の台帳定義へ戻っても、個体の表示上の格を保つ。
+function enemyDisplayRank(e) {
+  return e.boss || e._infStrong === "boss" ? 2 : e.mon?.elite || e._infStrong === "elite" ? 1 : 0;
+}
 const enemyView = { battle: null, back: false, focus: null };
 const enemyRowBtn = document.getElementById("enemy-row-toggle");
 const enemyFocusEl = document.getElementById("enemy-focus");
@@ -9624,8 +9628,8 @@ function renderCombatCanvasTraced() {
   if (PREFS.classicBattle) drawClassicWindow(vctx, VW, VH);
   else drawBattleBackdrop(vctx, VW, VH, battleLayer(), now, {
     dungeonId: activeCfg().id,
-    boss: b.enemies.some((e) => e.boss),
-    elite: b.enemies.some((e) => e.mon && e.mon.elite),
+    boss: b.enemies.some((e) => enemyDisplayRank(e) === 2),
+    elite: b.enemies.some((e) => enemyDisplayRank(e) === 1),
   });
 
   // 戦場の縦の伸び (縦長の戦場ほど魔物を大きく)
@@ -9690,14 +9694,15 @@ function renderCombatCanvasTraced() {
   G.enemyPos = {};
   // 絵の下は同種の呼び分け記号と属性・HP・効果だけを残す。
   const sizeOf = (e, distant, n) => {
-    let sz = (e.boss ? 14 : (e.mon && e.mon.elite ? 1.15 : 1) * 9) * k;
+    const rank = enemyDisplayRank(e);
+    let sz = (rank === 2 ? 14 : (rank === 1 ? 1.15 : 1) * 9) * k;
     const edgeReserve = wideBattle ? 0 : 6; // 浮遊する敵の上下動が枠で切れない余白
     const maxHalfH = Math.max(8, Math.min((stageH - plateReserve - edgeReserve * 2) * (twoRows ? 0.32 : 0.5), (stageH - plateReserve - toolsBottom) / 2));
     const rowW = distant ? distantW : VW;
     if (e.mon && (e.mon.art || e.mon.photo)) {
       const bm = monsterBitmap(e.mon);
       const unit = Math.max(12, bm.w, bm.h) / 12;
-      const strong = e.boss || e.mon?.elite;
+      const strong = rank > 0;
       // 通常の敵は1〜2体でも三体分の幅を基準にし、強敵と主だけ実際の空き幅まで広げる。
       const slots = strong ? n : Math.max(3, n);
       const widthSize = ((rowW / slots - 24) / (bm.w + bm.pad * 2)) * unit;
@@ -10027,8 +10032,9 @@ function drawEnemyPlate(e, x, y, hot, plate) {
     g.addColorStop(0, "rgba(34,22,24,0.94)"); g.addColorStop(1, "rgba(8,5,7,0.94)");
     vctx.fillStyle = g;
     vctx.fill();
-    const edge = e.boss ? "#d9b25a" : e.mon && e.mon.elite ? "#ff5a40" : hot ? "#f3c86a" : "rgba(170,60,44,0.95)";
-    if (e.boss || (e.mon && e.mon.elite)) { vctx.shadowColor = e.boss ? "rgba(255,200,100,0.6)" : "rgba(255,50,30,0.7)"; vctx.shadowBlur = 6; }
+    const rank = enemyDisplayRank(e);
+    const edge = rank === 2 ? "#d9b25a" : rank === 1 ? "#ff5a40" : hot ? "#f3c86a" : "rgba(170,60,44,0.95)";
+    if (rank > 0) { vctx.shadowColor = rank === 2 ? "rgba(255,200,100,0.6)" : "rgba(255,50,30,0.7)"; vctx.shadowBlur = 6; }
     vctx.strokeStyle = edge; vctx.lineWidth = 1;
     vctx.stroke();
     vctx.shadowBlur = 0;
