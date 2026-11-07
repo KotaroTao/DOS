@@ -27,7 +27,7 @@ with sync_playwright() as p:
         page.evaluate('''async()=>{
           const g=__game,G=g.G;
           G.battle.enemies.forEach(e=>{e.hp=0;e.alive=false;});
-          G.battle.result='win';G.battle.rewards=()=>({soul:1000,gold:0});g.rematch.endBattle();
+          G.battle.result='win';G.battle.rewards=()=>({soul:1000,gold:0});g.ev.endBattle();
         }''')
         page.wait_for_function('__game.G.soulPts > purse')
         result=page.evaluate('''async()=>{

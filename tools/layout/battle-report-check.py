@@ -105,18 +105,6 @@ with sync_playwright() as p:
         }''',outcome)
         page.get_by_role('button',name='次へ',exact=True).last.click()
         page.wait_for_function("__game.G.state!=='combat'")
-    page.evaluate('''()=>{reportKit.sheet.closeAll();const g=__game.G;g.prompt=false;g.state='board';__game.startBattle(__game.spawnCardEnemies('bs_drainrat',1),null);}''')
-    page.wait_for_function("__game.G.state==='combat' && __game.G.battle && !__game.G.anim")
-    page.evaluate('''()=>{
-      const g=__game.G,b=g.battle;
-      g.rematch={kind:'elite',key:'bs_drainrat',lv:5,snap:[],savedIdx:g.dungeonIdx,savedFloor:1};
-      b.result='win';__game.reportTest.endBattle();
-    }''')
-    page.wait_for_selector('.ui-sheet.k-rematch')
-    page.evaluate('''()=>{
-      const cards=[...document.querySelectorAll('.ui-sheet.has-performance')].filter(n=>!n.closest('.closing'));
-      if(cards.length!==1 || !cards[0].classList.contains('k-rematch')) throw Error('再戦は戦果と一枚にする');
-    }''')
     assert not errors, errors
-    print('6画面幅×通常/長い名前/大きな数値/ゼロ: 横はみ出しなし・18項目・スクロール・操作欄、実戦勝利・保存復帰・手帳・逃走/全滅/敵全逃走の重複防止・再戦勝利の同居: OK',flush=True)
+    print('6画面幅×通常/長い名前/大きな数値/ゼロ: 横はみ出しなし・18項目・スクロール・操作欄、実戦勝利・保存復帰・手帳・逃走/全滅/敵全逃走の重複防止: OK',flush=True)
     browser.close()

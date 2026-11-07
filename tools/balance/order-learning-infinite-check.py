@@ -45,7 +45,7 @@ with sync_playwright() as p:
               G.battle.enemies.forEach(e=>{e.hp=0;e.alive=false;});
               G.battle.result='win';G.battle.rewards=()=>({soul:reward,gold:0});
               const gm=G.abyss?.started?infGrowthMul(G.floor):1;
-              g.rematch.endBattle();
+              g.ev.endBattle();
               await new Promise(resolve=>setTimeout(resolve,1200));
               let exp=seated.exp;for(let lv=1;lv<seated.level;lv++)exp+=trainCost(lv);
               return {got:G.soulPts-purse,gm,exp,rate:g.orderLearning.orderLearningRate()};

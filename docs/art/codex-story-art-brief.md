@@ -2117,6 +2117,82 @@ Create ONE standalone landscape illustration 1536x1024, 3:2, edge-to-edge, no pa
 Deep underground in the prayer-laden cathedral, before battle. Gothic stone pillars and an ancient altar disappear upward into darkness; no exterior sky or inhabited city. Behind the altar stands the ghost of an elderly archbishop, his translucent calm sorrow-worn face above many layered white ceremonial robes. Numerous small aged prayer papers are sewn onto the robe hems, all marks illegible. He raises the next prayer sheet with a serene, unwavering sense of duty, looking toward the party's soul-light instead of listening to a newly awakened vessel. At his feet, one plain adult-sized articulated wooden vessel with a smooth blank round head and black iron joints struggles to rise from a seated position, one palm raised weakly in refusal. In the near foreground the apprentice, tousled brown hair, black gold-embroidered cloak and leather satchel, is seen from behind beside two adult-sized party dolls from the reference: red-cloaked warrior and white-robed priest, blank smooth wooden heads and black iron joint bands. The warrior turns partly sideways and cups a protective wooden hand over the small blue-white soul-fire inside its open CHEST door, so the chest light and guarding hand are visible, never on its back. Unbroken bell chains descend in the distant upper darkness. Faint pale soul-fire and restrained warm votive candlelight illuminate white cloth, paper, wood and ancient stone. The archbishop, rising vessel and protected chest-light must remain readable at 384x256. Tragic earnestness, no sinister grin or demonic corruption. No battle flashes, no defeated archbishop, no cut chains, no little altar bell yet, no Ordo, no readable text.
 ```
 
+### 主の記憶の統合（2026-11-07 ユーザー指示）
+
+闘技場の再戦は廃止。既存15場面の専用原画を保持し、寄り道9場面を初回討伐後とストーリー一覧の両方へ追加する。本文の新規作成と既存短編の移設を含むユーザー依頼。今回の9枚は同じ変更として制作する。
+
+**mem_ws1「待ち続けた指輪」** (第1章 / 主の記憶)
+- 要点: 記憶がほどけると、濁った水の上に小さな輪が残った。隊はそれを拾い、礼拝堂の石の縁へ置いた。水の届かない所に。
+- 描くもの: 下記の過去の一場面。主題を中央の帯に置く。
+- 描かないもの: 戦闘、読める文字、後の章の秘密、複数場面の合成。
+```text
+A historical memory beneath an old city drain opening into a submerged gothic chapel. In the central band a large gentle amphibian creature with wet mottled skin carefully cups a tiny plain gold ring on a broad webbed forefoot, gazing at its glint. Above and far beyond a broken drain grating, only a young human girl's small hand reaches down toward the lost ring. Cool cyan water, a single warm sunbeam from the street. The creature is alive, not a skeleton, no crown, no readable writing, no battle, no extra characters.
+```
+
+**mem_ws7「最後の鍵」** (第2章 / 主の記憶)
+- 要点: 記憶がほどける。落ちた鍵を拾い、隊は鉄房の戸を開いた。細い腕の影が、初めて外へ伸びた。
+- 描くもの: 下記の過去の一場面。主題を中央の帯に置く。
+- 描かないもの: 戦闘、読める文字、後の章の秘密、複数場面の合成。
+```text
+A single historical memory inside a medieval underground prison guardroom before its warden became a monster. A weary middle-aged HUMAN head jailer in plain dark iron armor sits at a scarred wooden table, counting a heavy ring of iron keys with both hands. Behind him one pale prisoner’s open hand reaches through closed iron bars, separated from the keys by a dark gap. The jailer looks toward the hand with unresolved hesitation. Cold cyan underground light and one modest amber table candle. No fused cage body, no gore, no royalty, no readable writing.
+```
+
+**mem_ws13「薬を待つ手」** (第7章 / 主の記憶)
+- 要点: 記憶がほどけた。欠けた小瓶には、もう何も残っていなかった。隊はそれを、名のない死者のそばへ横たえた。
+- 描くもの: 下記の過去の一場面。主題を中央の帯に置く。
+- 描かないもの: 戦闘、読める文字、後の章の秘密、複数場面の合成。
+```text
+A single historical memory during an old city’s plague, before the healer became an undead lich. Inside a poor stone hut outside a distant city wall, a living exhausted human herbalist in a faded brown robe grinds green medicinal herbs with mortar and pestle. In the central band the healer offers a nearly empty simple medicine bowl toward two waiting human hands through an open wooden doorway. Small empty glass bottles on the table. Muted rainy blue light against a modest amber candle. Compassion and scarcity, no corpses, no sores, no green evil orb, no modern medicine, no text.
+```
+
+**mem_ws20「灯籠を拾う足音」** (第10章 / 主の記憶)
+- 要点: 記憶がほどけると、寝床の砂に、小さな足跡が残っていた。隊は足跡を踏まないように、静かにその脇を歩いた。
+- 描くもの: 下記の過去の一場面。主題を中央の帯に置く。
+- 描かないもの: 戦闘、読める文字、後の章の秘密、複数場面の合成。
+```text
+A single historical memory in a vast dark underground cavern. A colossal ancient beast lies peacefully asleep, only its heavy head and one half-open eye emerging from shadow. Along the central band a tiny slender articulated wooden doll with a smooth round head and black iron joint bands bends to pick up one discarded brass soul-lantern, several empty old lanterns lying along its footprints. The beast quietly watches without aggression, dwarfing the doll. Restrained pale cyan soul-light, deep blue rock, tiny warm brass highlights. No master or apprentice, no city, no readable text, no battle.
+```
+
+**mem_ws21「岩になる前の空」** (第10章 / 主の記憶)
+- 要点: 記憶がほどける。目のくぼみの小さな灯を、隊は覆わずに残した。
+- 描くもの: 下記の過去の一場面。主題を中央の帯に置く。
+- 描かないもの: 戦闘、読める文字、後の章の秘密、複数場面の合成。
+```text
+A single ancient memory BEFORE a fossil dragon became stone. A magnificent living ancient dragon with weathered earth-brown scales and immense folded wings rests on a broad high valley ledge beneath a luminous pale blue open sky. Its great claw is deliberately lifted, letting a tiny group of small harmless animals pass safely beneath it across the central band. Vast distant ridges and wind, warm low sunlight against cool blue rock. Quiet scale contrast and patience. No skeleton, no fossil body, no humans, no buildings, no battle, no writing.
+```
+
+**mem_ws24「閉じなかった本」** (第11章 / 主の記憶)
+- 要点: 記憶がほどける。隊は開いた頁を踏まずに拾い、しおりを元の所へ戻した。
+- 描くもの: 下記の過去の一場面。主題を中央の帯に置く。
+- 描かないもの: 戦闘、読める文字、後の章の秘密、複数場面の合成。
+```text
+A single historical memory in a locked gothic library before its guardian became a giant of books. A young HUMAN librarian in a plain dark blue robe sits at an oak reading desk, holding one open heavy book close to the chest while placing a simple cloth bookmark at a needed page. Tall stacks of worn closed books nearly hide the lower body, empty doorway in the distance. The open book and careful hand in the central band. Cool cyan library light and one small amber reading lamp. Every page contains only indistinct illegible marks. No readable letters, no book monster yet, no extra characters.
+```
+
+**mem_ws26「追われなかった朝」** (第12章 / 主の記憶)
+- 要点: 記憶がほどけた。隊は壁に掛かった角笛を下ろし、獣の届かない棚へ置いた。もう、鳴らさないように。
+- 描くもの: 下記の過去の一場面。主題を中央の帯に置く。
+- 描かないもの: 戦闘、読める文字、後の章の秘密、複数場面の合成。
+```text
+A single distant memory in a young vast underground cavern BEFORE royal hunting. An enormous living primordial beast with thick dark fur, broad natural horns and long ivory tusks lowers its head to drink from a clear shallow pool. Beside it a tiny harmless young animal drinks fearlessly from the same water. Both heads and their reflections form the central band. Delicate green moss, immense natural rock, a shaft of pale daylight from far above. Peaceful dawn, no hunters, no trophies, no mounted animals, no buildings, no lantern rain, no text.
+```
+
+**mem_ws29「ひと息の長さ」** (第13章 / 主の記憶)
+- 要点: 記憶がほどける。隊は冷たい湯飲みを二つ、食堂の机へ並べた。ふいごの風が、ようやく静まった。
+- 描くもの: 下記の過去の一場面。主題を中央の帯に置く。
+- 描かないもの: 戦闘、読める文字、後の章の秘密、複数場面の合成。
+```text
+A single historical memory in an old underground foundry workers' rest room when the rest bell still existed. A very large soot-stained articulated wooden worker doll in a worn leather apron gently supports a plain steaming clay cup while a much smaller wooden worker doll wraps both hands around it. Both have simple carved wooden faces and black iron joint bands, no human skin. Their hands and the shared cup dominate the central band. A small bronze rest bell hangs on the wall, simple benches and empty cups, warm furnace glow through a distant doorway against cool waterway light. No demon, no active battle, no text.
+```
+
+**mem_ws31「二通の手紙」** (第14章 / 主の記憶)
+- 要点: 記憶がほどける。隊は二通を並べ、風に飛ばないよう、小さな石をひとつ置いた。どちらかだけを、送り返さずに。
+- 描くもの: 下記の過去の一場面。主題を中央の帯に置く。
+- 描かないもの: 戦闘、読める文字、後の章の秘密、複数場面の合成。
+```text
+A single historical memory in a quiet gothic ossuary side room. A HUMAN priest in modest pale robes sits at a small wooden desk, carefully laying TWO folded letters side by side beneath a single small smooth stone. One envelope is aged and worn, the other fresh but unfinished. The priest's natural hands pause above them with quiet tenderness and uncertainty. Shelves of sealed funerary niches behind, cool blue stone against one amber candle. The two letters dominate the central band, all writing illegible scribbles. No ghosts returning, no battle, no corpses, no readable text.
+```
+
 ## 5. 便4 (任意) ― 踏破後の由来の絵
 
 迷宮を踏破すると、ストーリー一覧の「踏破した迷宮」に、その迷宮の由来と秘密 (`src/journal.js` の `DUNGEON_LORE`) が出る。専用の原画があるのは w01〜w13・w15・w17・ws1・ws2 だけ。ほかは次のとおり (Claude が今回直した)。

@@ -121,16 +121,10 @@ with sync_playwright() as p:
     page.get_by_role('button', name='回復を待つ', exact=True).last.evaluate('b=>b.click()')
     print('無限迷宮: 元の人業・名のない器を20回復後に入場20・階移動10を消費')
 
-    # 宿敵の再戦にも同じ回復と通常消費を適用する。
+    # 廃止済みの再戦は、開発用の解放指定があっても開始できない。
     setup()
-    page.evaluate('''()=>{
-      const d=__game.world.DUNGEONS.find(d=>d.id==='w03');__game.G.stats.bossIds[d.boss]=true;
-      const target=ctx.game.rematchList().find(t=>t.key===d.boss);check(!!target,'再戦相手');ctx.game.departRematch(target.key);
-    }''')
-    advertisement()
-    page.wait_for_function('!!__game.G.rematch')
-    assert page.evaluate('__game.G.party.map(d=>d.stability)') == ENTRY
-    assert page.evaluate('__game.G.party.slice(0,4).every((d,i)=>d.stabilityAt===before[i].stabilityAt)')
-    print('宿敵の再戦: 広告で全員20回復後に入場20消費・上限100・満タン未満の時計を保持')
+    assert not page.evaluate('ctx.game.featureUnlocked("rematch")')
+    assert page.evaluate('!ctx.game.rematchList && !ctx.game.departRematch')
+    print('廃止済みの再戦は解放されず、入場の窓口もない')
     assert not errors, errors
     browser.close()
