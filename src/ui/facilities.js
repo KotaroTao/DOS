@@ -297,8 +297,7 @@ function questGroup(group) {
   for (const q of [...group.quests].sort((a, b) => questOrder(a) - questOrder(b))) box.appendChild(questCard(q, { mark: true }));
   return box;
 }
-function tavernSegments() {
-  const L = qbLists();
+function tavernSegments(L) {
   const ready = L.active.filter(qbReady).length;
   const fresh = L.offers.filter((q) => q.fresh).length;
   return [
@@ -317,14 +316,15 @@ function renderTavern(root, api = null) {
   const kr = keeperRow("tavern");
   if (kr) wrap.appendChild(kr);
   if (tavernSeg !== "talk") tavernSeg = "board"; // 旧来の "active" (受注) も掲示板へ
-  const segs = tavernSegments();
+  const initialLists = qbLists();
+  const segs = tavernSegments(initialLists);
   const body = el("div", "fc-tav-body");
   wrap.appendChild(segmented(segs, tavernSeg, (k) => { tavernSeg = k; drawSeg(); }));
   wrap.appendChild(body);
-  const drawSeg = () => {
+  const drawSeg = (list) => {
     body.textContent = "";
     if (tavernSeg === "talk") return renderTalk(body);
-    const L = qbLists();
+    const L = list || qbLists();
     const area = el("div", "fc-qarea");
     body.appendChild(sectionHead("掲示板", { note: `受注 ${L.freeCount}/${L.cap} ・ 貼り紙は帰還のたびに貼り替わる` }));
     body.appendChild(area);
@@ -345,7 +345,7 @@ function renderTavern(root, api = null) {
       return questGroup(it);
     }, { cols: 1, cellH: null, gap: 14, key: "tav-board" });
   };
-  drawSeg();
+  drawSeg(initialLists);
   if (tavernSeg === "board") setTimeout(() => UI.tutorialEvent?.("tavernBoard"), 0);
   UI.tutorialFacilityVisited?.("tavern");
 }

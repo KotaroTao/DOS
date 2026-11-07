@@ -38,6 +38,8 @@ There is no external test framework. Regression checks live under `tools/` (Node
 
 街の依頼報酬・懸賞の縄張り・納品候補の一括参照は、1回読んだ地図をループ内で共用する。固定依頼・酒場の話の解放判定も、その呼び出しで取得した進行表を使う。進行表の正規化や旧セーブ補完は残し、呼び出しをまたいで進行や報酬をキャッシュしない。検証 `node tools/performance/town-progress-check.mjs`。
 
+街と酒場の1回の描画では、見出し・札に同じ依頼一覧を使う。受注枠だけの確認は `questCapacity` を使い、対象・報酬を組み直さない（掲示板の初回生成・古い貼り紙の整理は維持）。枠は操作時も読み直し、一覧は描画をまたいで保持しない。検証 `python3 tools/performance/town-quest-render-browser.py`。
+
 原画のCanvasコピー (2026-10-17): `src/sprites.js` は画素数×4バイトで容量を数え、通常32MiB・`navigator.deviceMemory` が2GB以下なら16MiBまで保持する。描画・通知で使った順を更新し、古いコピーを外してCanvasの寸法を0に戻す。コピー完了の通知で描く間だけ保護し、その直後に上限へ戻す。単独で上限を超える原画はその1枚だけ保持する。描画済みの肖像・元の画像要素・SWの保存画像は消さず、再表示時は画像の解読とコピーをやり直す。iOS向けの空白検査と再試行は維持。表示サイズの肖像・品の写しは別に通常8MiB・小メモリ端末4MiBの上限で保持し、原寸の写しが解放されても同じ絵の再描画を待たせない（元画像が変われば再利用しない）。これらはCanvasコピーの上限で、ブラウザ全体の使用量を制限するものではない。検証: `python3 tools/performance/photo-cache-browser.py` (localhost:8000が必要。200種表示後の保持量・使用中の絵の優先・肖像保持・オフライン復元・120種同時描画)。心得 `t_photo_wait`。
 
 戦闘の記録追記は行ごとに寸法を読まず、次の描画機会にまとめて末尾へスクロールする。Safari向けの次フレームの再調整も維持。検証 `python3 tools/performance/battle-loading-browser.py`（60行の内容・末尾・レイアウト回数、全89迷宮の取り巻き/召喚先・循環・乱数不変）。 戦場の前後列ボタンは値が変わる時だけhidden/disabledを更新する。街の非表示Canvasは寸法を読まず、街の残りコマの生成も戦闘・背面タブでは保留して復帰後に再開する。検証 `python3 tools/performance/battle-render-browser.py`。

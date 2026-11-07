@@ -14,6 +14,7 @@ on:
       - 'tools/performance/town-facility-browser.py'
       - 'tools/performance/town-quest-cache-check.mjs'
       - 'tools/performance/town-progress-check.mjs'
+      - 'tools/performance/town-quest-render-browser.py'
       - 'tools/performance/gear-hints-check.mjs'
       - 'tools/effects/tone-cache-browser.py'
       - 'tools/performance/battle-gap-browser.py'
@@ -38,6 +39,7 @@ jobs:
             /tools/
             /art/effects/
             /art/town/
+            /art/quest-clients/
             /art/battle/w01.webp
             /art/monsters/bs_bonepile.webp
       - uses: actions/setup-node@v4
@@ -79,6 +81,7 @@ jobs:
           python3 tools/performance/gear-hints-browser.py
           python3 tools/performance/town-gear-browser.py
           python3 tools/performance/town-image-cache-browser.py
+          python3 tools/performance/town-quest-render-browser.py
           python3 tools/performance/battle-gap-browser.py
           AUTO_REPORT=/tmp/dos-auto-combat.json python3 tools/performance/auto-combat-browser.py
       - uses: actions/upload-artifact@v4

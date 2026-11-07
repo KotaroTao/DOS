@@ -37,7 +37,9 @@ export function dungeonGroups(quests, dungeons = game.DUNGEONS || []) {
   const groups = new Map();
   const opening = [];
   const all = game.DUNGEONS || dungeons;
-  const isOpen = (d) => { try { return game.worldOpenIdx ? game.worldOpenIdx(all.indexOf(d)) : true; } catch (e) { return true; } };
+  let opened = null;
+  try { opened = game.worldState?.().open || null; } catch (e) { /* 古い窓口だけの環境では下の判定を使う */ }
+  const isOpen = (d) => { try { return opened ? !!opened[d.id] : game.worldOpenIdx ? game.worldOpenIdx(all.indexOf(d)) : true; } catch (e) { return true; } };
   const known = new Set(dungeons.map((d) => d.id));
   const open = new Set(dungeons.filter(isOpen).map((d) => d.id));
   for (const q of quests) {
@@ -57,7 +59,8 @@ export function dungeonGroups(quests, dungeons = game.DUNGEONS || []) {
   ];
 }
 const cap = () => (game.FREE_CAP || 6);
-const full = () => lists().freeCount >= cap();
+const slotCount = () => game.questCapacity ? game.questCapacity().freeCount : lists().freeCount;
+const full = () => slotCount() >= cap();
 const deliverSt = (q) => (q.type === "deliver" && game.deliveryStatus ? game.deliveryStatus(q) : null);
 // 納品の品の在りか: 手持ち / 商会の棚 / どちらにも無い (掲示板の依頼も受注中の依頼も同じ言い方)
 const haveLabel = (st) => (st.holder ? "（持っている）" : st.inShop ? "（商会に売っている）" : "（持っていない）");
@@ -337,7 +340,7 @@ export function openQuestSheet(uid, { onClose = null } = {}) {
     else if (q.type === "deliver" && q.state === "offer") { const st = deliverSt(q); if (st) fact("品", haveLabel(st) + (st.holder && st.holder.name ? ` ${st.holder.name}` : ""), st.holder ? "ok" : ""); }
     fact("報酬", rewardText(q));
     if (q.fixed && q.def.opens && q.state === "offer") fact("道", "受けると、地図に新たな迷宮が記される");
-    if (q.state === "offer") fact("受注", `${lists().freeCount} / ${cap()} 件` + (full() ? " ・ 枠が空いていない" : ""), full() ? "bad" : "");
+    if (q.state === "offer") fact("受注", `${slotCount()} / ${cap()} 件` + (full() ? " ・ 枠が空いていない" : ""), full() ? "bad" : "");
     box.appendChild(facts);
     root.appendChild(box);
   };
@@ -403,8 +406,7 @@ export function questChip(q) {
   return b;
 }
 // 街に並べる依頼 (報告できるもの → 納品できるもの → 依頼人 → 掲示板の受注中)
-export function hubQuests() {
-  const L = lists();
+export function hubQuests(L = lists()) {
   const score = (q) => (q.state === "done" ? 0 : isReady(q) ? 1 : q.fixed ? 2 : 3);
   return [...L.active].sort((a, b) => score(a) - score(b));
 }
