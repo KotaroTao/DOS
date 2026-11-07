@@ -51,8 +51,8 @@ async function callRPC(name, body) {
   return textRPC ? JSON.parse(value) : value;
 }
 
-async function command(user, body, measure) {
-  const rpc = (name, data) => measure(name.includes("claim") ? "read" : "write", () => callRPC(name, data));
+async function command(user, body) {
+  const rpc = (name, data) => (callRPC(name, data));
   if (body.protocol !== 1) throw Object.assign(new Error("cloud_version_mismatch"), { status: 409 });
   if (body.op === "consent") {
     if (body.version !== LEGAL_VERSION) throw Object.assign(new Error("cloud_version_mismatch"), { status: 409 });
@@ -75,8 +75,8 @@ async function command(user, body, measure) {
   const startGraph = ["claim","ledger-finish","ledger-preview","ledger-cancel"].includes(body.op) && ledger?.startChange ? ledger.startChange.snapshot || applyCloudChange(s.snapshot,ledger.startChange.change) : s.snapshot;
   if (body.op === "ledger-preview") {
     if (!ledger || ledger.id !== body.battleId || ledger.seq !== body.seq || s.revision !== body.revision || !uuid.test(body.commandId)) throw Object.assign(new Error("cloud_revision_conflict"),{status:409});
-    const base = await measure("replay", () => replayBattleLedger(startGraph,ledger,{measure}));
-    return measure("replay", () => replayCloudCommand(base.snapshot,body.command,body.commandId,true,true));
+    const base = await (replayBattleLedger(startGraph,ledger));
+    return (replayCloudCommand(base.snapshot,body.command,body.commandId,true,true));
   }
   if (["ledger-finish","ledger-cancel"].includes(body.op)) {
     if (!uuid.test(body.commandId)) throw Object.assign(new Error("通信の形式が不正です"), {status:400});
@@ -85,7 +85,7 @@ async function command(user, body, measure) {
       throw Object.assign(new Error("cloud_battle_missing"),{status:409});
     }
     if (ledger.id !== body.battleId || ledger.seq !== body.seq || ledger.rules !== BATTLE_RULES || s.revision !== body.revision) throw Object.assign(new Error("cloud_revision_conflict"),{status:409});
-    const replay = await measure("replay", () => replayBattleLedger(startGraph,ledger,{measure}));
+    const replay = await (replayBattleLedger(startGraph,ledger));
     if(body.op==="ledger-cancel"){
       const state=refDeserialize(replay.snapshot);cancelCloudBattle(state,body.mode);
       replay.snapshot=canonicalBattleGraph(refSerialize(state,{compact:true}));
@@ -95,7 +95,7 @@ async function command(user, body, measure) {
   }
   if (body.op === "claim") {
     if (ledger) {
-      const replay = await measure("replay", () => replayBattleLedger(startGraph,ledger,{measure}));
+      const replay = await (replayBattleLedger(startGraph,ledger));
       return {revision:s.revision,snapshot:replay.snapshot,battleTurn:true,compactGraph:true,backgroundBattle:false,actionCommands:true,commandReplay:true,forcedTurns:true,battleLedger:true,ledgerDirectBegin:true,ledger:{id:ledger.id,seq:ledger.seq,rules:ledger.rules}};
     }
     const snapshot = s.snapshot?.format === 2 && !body.compactGraph ? refSerialize(refDeserialize(s.snapshot)) : s.snapshot;
@@ -137,7 +137,7 @@ async function command(user, body, measure) {
     if (!s.snapshot) throw Object.assign(new Error("cloud_revision_conflict"), { status: 409 });
     if (body.replay === true) {
       // 状態の写しは返さず、同じ計算結果のSHA-256とDB更新番号だけを確定後に返す。
-      const replay = await measure("replay", () => replayCloudCommand(s.snapshot, body.command, body.commandId, body.forcedTurns === true));
+      const replay = await (replayCloudCommand(s.snapshot, body.command, body.commandId, body.forcedTurns === true));
       snapshot = replay.snapshot;
       refDeserialize(snapshot);
       if (new TextEncoder().encode(JSON.stringify(snapshot)).length > MAX_REQUEST_BYTES) throw Object.assign(new Error("記録が送信できる大きさを超えています"), { status: 413 });
@@ -179,37 +179,23 @@ Deno.serve(async (req) => {
     headers["Access-Control-Allow-Origin"] = origin;
     headers["Access-Control-Allow-Headers"] = "authorization, apikey, content-type, x-region";
     headers["Access-Control-Allow-Methods"] = "POST, OPTIONS";
-    headers["Access-Control-Expose-Headers"] = "Server-Timing, x-sb-edge-region";
   } else if (origin) return new Response(JSON.stringify({ error: "接続元が許可されていません" }), { status: 403, headers });
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers });
   if (req.method !== "POST") return new Response(null, { status: 405, headers });
   const requestId = crypto.randomUUID();
-  const started = performance.now(), durations = {};
-  const measure = async (name, fn) => {
-    const begin = performance.now();
-    try { return await fn(); } finally { durations[name] = (durations[name] || 0) + performance.now() - begin; }
-  };
-  const timing = () => {
-    durations.total = performance.now() - started;
-    headers["Server-Timing"] = Object.entries(durations).map(([name, ms]) => `${name};dur=${ms.toFixed(1)}`).join(", ");
-    const region = Deno.env.get("SB_REGION");
-    if (region) headers["x-sb-edge-region"] = region;
-  };
   try {
     const authorization = req.headers.get("Authorization") || "";
     const raw = await readSaveRequest(req);
     let body;
     try { body = JSON.parse(raw); } catch { throw Object.assign(new Error("通信の形式が不正です"),{status:400}); }
     if (!body || typeof body !== "object" || Array.isArray(body)) throw Object.assign(new Error("通信の形式が不正です"),{status:400});
-    const user = await measure("auth", () => authenticate(authorization, { online: ["claim", "delete-account", "reset", "consent"].includes(body.op) }));
-    const result = await command(user, body, measure);
-    const response = await measure("encode", async () => JSON.stringify(body.acceptEncoding === "gzip" ? await encodeCloudReply(result) : result));
-    timing();
+    const user = await (authenticate(authorization, { online: ["claim", "delete-account", "reset", "consent"].includes(body.op) }));
+    const result = await command(user, body);
+    const response = await (async () => JSON.stringify(body.acceptEncoding === "gzip" ? await encodeCloudReply(result) : result))();
     return new Response(response, { headers });
   } catch (e) {
     // 認証情報・冒険の中身は記録しない。利用者の問い合わせ番号と結び付ける。
     console.error(JSON.stringify({ requestId, status: e.status || 503, name: e.name, message: e.message, bytes: e.bytes, databaseCode: e.databaseCode }));
-    timing();
     return new Response(JSON.stringify({ error: e.status ? e.message : "記録の処理に失敗しました", requestId }), { status: e.status || 503, headers });
   }
 });

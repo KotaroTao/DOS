@@ -1,4 +1,3 @@
-import { traceDuration, traceSync } from './battle-trace.js';
 // 音楽と効果音 — Web Audio だけで鳴らす (外部の音素材は一切使わない)
 //
 // 楽器はすべてコードで合成したサンプル (合唱・弦・金管・パイプオルガン・竪琴・鐘・太鼓…) を
@@ -16,7 +15,7 @@ import { Engine, songKeys } from "./music/engine.js";
 import { Bank } from "./music/bank.js";
 import { newSong, NEW_SONGS } from "./music/songs.js";
 import { legacySong } from "./music/legacy.js";
-import { sfxBuffer, sfxDef, naturalSkillName, sfxPerformance } from "./music/sfx.js";
+import { sfxBuffer, sfxDef, naturalSkillName } from "./music/sfx.js";
 
 let actx = null;
 let engine = null;
@@ -29,8 +28,6 @@ let current = null;        // 再生中の Player
 let token = 0;
 let timer = null;
 let hooked = false;
-let audioError = null;
-let schedulerLast=null,schedulerMaxGapMs=0,schedulerLate=0,interruptions=0;
 
 function playbackSession() {
   // iOSではWeb Audio用の出力が動画の出力とは別になる。音楽再生用を明示する。
@@ -52,7 +49,7 @@ function getSong(name) {
 export function initAudio() {
   if (!actx) {
     const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) { audioError = "このブラウザは音声再生に対応していません"; return false; }
+    if (!AC) return false;
     playbackSession();
     try {
       try { actx = new AC({ latencyHint: "balanced" }); } catch { actx = new AC(); }
@@ -69,9 +66,7 @@ export function initAudio() {
       startTimer();
       // ジングルの楽器を早めに用意
       for (const j of JINGLES) { const s = newSong(j); if (s) bank.ensure(songKeys(s), "high"); }
-      audioError = null;
     } catch (e) {
-      audioError = String(e && e.message || e);
       console.warn("[audio] 音声の起動に失敗", e);
       stopTimer();
       try { actx?.close().catch(() => {}); } catch {}
@@ -112,12 +107,9 @@ export function restartAudio() {
 function resumeAudio() {
   if (!actx || muted || document.hidden) return;
   playbackSession();
-  const context = actx;
   try {
-    actx.resume().then(() => {
-      if (actx === context && context.state === "running") audioError = null;
-    }, (e) => { if (actx === context) audioError = String(e && e.message || e); });
-  } catch (e) { audioError = String(e && e.message || e); }
+    actx.resume().catch(() => {});
+  } catch { /* 次の操作で再開する */ }
   try {
     const src = actx.createBufferSource();
     src.buffer = actx.createBuffer(1, 1, actx.sampleRate);
@@ -149,19 +141,17 @@ export function toggleMute() {
 function startTimer() {
   if (timer) return;
   timer = setInterval(() => {
-    if (!engine || actx.state !== "running") {schedulerLast=null;return;}
-    const now=performance.now();
-    if(schedulerLast!==null){const gap=now-schedulerLast;if(gap>150&&!document.hidden)traceDuration("audio-scheduler-gap",schedulerLast,"gap",null,now);schedulerMaxGapMs=Math.max(schedulerMaxGapMs,gap);if(gap>360)schedulerLate++;}
-    schedulerLast=now;
-    traceSync("audio.tick",()=>engine.tick(0.36, bgmVol > 0));
+    if (!engine || actx.state !== "running") return;
+    (engine.tick(0.36, bgmVol > 0));
   }, 70);
 }
-function stopTimer() { schedulerLast=null; if (timer) clearInterval(timer); timer = null; }
+
+function stopTimer() { if (timer) clearInterval(timer); timer = null; }
 
 // タブが隠れたら止め、戻ったら再開する (電池とCPUの節約)
 function hookLifecycle() {
   const context = actx;
-  context.addEventListener("statechange", () => { if (actx === context && context.state === "interrupted") { kickPending = true;interruptions++; } });
+  context.addEventListener("statechange", () => { if (actx === context && context.state === "interrupted") { kickPending = true; } });
   if (hooked) return;
   hooked = true;
   document.addEventListener("visibilitychange", () => {
@@ -348,48 +338,3 @@ export const SFX = {
   rankup() { jingle("j_rankup", "_rankup", 7.2, 0.15); },
   gameover() { jingle("j_gameover", "_gameover", 6, 0.2); },
 };
-
-// ---- 試聴用の書き出し (OfflineAudioContext) ----
-// renderOffline({ track: "title", seconds: 40 }) → { sampleRate, ch: [L, R] }
-// events: [{ at: 秒, sfx: "hit" } | { at, jingle: "j_victory" }] で効果音・ジングルの試聴列も作れる
-export async function renderOffline(o = {}) {
-  const sr = o.sampleRate || 32000, sec = o.seconds || 40;
-  const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-  const oc = new OAC(2, Math.round(sec * sr), sr);
-  const eng = new Engine(oc, bank, { realtime: false, maxVoices: o.maxVoices || 64 });
-  eng.setVolumes(o.bgm ?? 1, o.sfx ?? 1);
-  const keys = [];
-  let song = null;
-  if (o.track) {
-    song = getSong(o.track);
-    if (!song) throw new Error("unknown track " + o.track);
-    // solo: 指定チャンネルだけを鳴らす (楽器ごとの音量確認用)
-    if (o.solo) { const ids = new Set(o.solo); song = { ...song, ev: song.ev.filter((e) => ids.has(song.chans[e.c].id)) }; song.loopIdx = song.ev.findIndex((e) => e.b >= song.loopStart); if (song.loopIdx < 0) song.loopIdx = song.ev.length; }
-    keys.push(...songKeys(song));
-  }
-  for (const e of o.events || []) if (e.jingle) keys.push(...songKeys(newSong(e.jingle)));
-  bank.ensureSync([...new Set(keys)]);
-  if (song) eng.start(song, { at: 0.02, fadeIn: o.fadeIn ?? 0, startBeat: o.startBeat || 0 });
-  for (const e of o.events || []) {
-    if (e.jingle) eng.start(newSong(e.jingle), { bus: "sfx", at: e.at, fadeIn: 0 });
-    else if (e.sfx) {
-      const def = sfxDef(e.sfx);
-      eng.playBuffer(sfxBuffer(e.sfx, oc), { at: e.at, vol: def.vol, rev: def.rev });
-    }
-  }
-  eng.scheduleAll(sec);
-  const buf = await oc.startRendering();
-  return { sampleRate: sr, ch: [buf.getChannelData(0), buf.getChannelData(1)], song: song && { loopStart: song.loopStart * song.spb, loopEnd: song.loopEnd * song.spb } };
-}
-export const TRACKS = NEW_SONGS;
-// 診断用 (開発時の確認): 現在の状態
-export function audioDebug() {
-  let session = null;
-  try { session = navigator.audioSession && { type: navigator.audioSession.type, state: navigator.audioSession.state }; } catch {}
-  return {
-    state: actx && actx.state, worker: bank.workerOk, bytes: bank.bytes, samples: bank.bufs.size,
-    playing: current && current._name, want, voices: engine ? engine.allVoices.length : 0, players: engine ? engine.players.length : 0,
-    ready: !!engine, muted, bgmVol, sfxVol, time: actx && actx.currentTime, sampleRate: actx && actx.sampleRate,
-    session, error: audioError, scheduler:{maxGapMs:schedulerMaxGapMs,lateTicks:schedulerLate,lookaheadMs:360,interruptions},sfx:sfxPerformance(),
-  };
-}

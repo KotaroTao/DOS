@@ -4,7 +4,6 @@ import { BATTLE_RULES, battleStateHash, canonicalBattleGraph } from "./cloud-led
 import { decodeCloudReply } from "./cloud-wire.js";
 import { encodeCloudChange, decodeCloudCommand, replayCloudCommandPrepared, cloudWorkerReady } from "./save-codec.js";
 import { applyCloudChange } from "./cloud-change.js";
-import { saveMetrics, utf8Bytes } from "./save-metrics.js";
 import { LEGAL_VERSION, showLegal } from "./legal.js";
 import { localSaveKey } from "./local-save.js";
 import { CLOUD_CONFIG } from "./cloud-config.js";
@@ -40,12 +39,9 @@ export class CloudSaveClient {
     this.blocking = 0; this.queuedSave = null; this.battleTurn = false; this.compactGraph = false; this.backgroundBattle = false;
     this.checkpointGeneration = 0; this.checkpointPersistedGeneration = 0; this.latestCheckpointId = null; this.checkpointTail = Promise.resolve();
   }
-  async fetchJSON(path, options = {}, metricOp = null) {
-    const started = performance.now();
-    let received = 0, status = 0, ok = false;
-    const sent = metricOp ? utf8Bytes(options.body) : 0;
+  async fetchJSON(path, options = {}, requestOp = null) {
     // 大きな記録の戦闘応答は15秒を超える。認証と保存APIの期限を分ける。
-    const timeoutMs = path.startsWith("/functions/") || metricOp === "ledger-begin" ? 60000 : 15000;
+    const timeoutMs = path.startsWith("/functions/") || requestOp === "ledger-begin" ? 60000 : 15000;
     const ctrl = new AbortController();
     let timer;
     const timeout = new Promise((_, reject) => { timer = setTimeout(() => {
@@ -53,25 +49,15 @@ export class CloudSaveClient {
     }, timeoutMs); });
     const work = async () => {
       const r = await this.fetcher(this.config.url.replace(/\/$/, "") + path, { ...options, signal: ctrl.signal });
-      status = r.status;
-      if (metricOp) for (const part of (r.headers.get("Server-Timing") || "").split(",")) {
-        const match = /^\s*([a-z]+);dur=([\d.]+)\s*$/.exec(part);
-        if (match && ["auth", "read", "write", "replay", "hash", "encode", "total"].includes(match[1])) saveMetrics.timing("server_" + match[1], Number(match[2]));
-      }
-      let data = null;
-      if (metricOp) {
-        const raw = await r.text(); received = utf8Bytes(raw);
-        try { data = JSON.parse(raw); } catch { /* 既存と同じ失敗処理へ */ }
-      } else data = await r.json().catch(() => null);
+      let data = await r.json().catch(() => null);
       if (r.ok) data = await decodeCloudReply(data);
       if (!r.ok) throw Object.assign(new Error(data?.error_description || data?.msg || data?.error || data?.message || "通信に失敗しました"), { status: /^cloud_(revision|session|command|version|battle)/.test(data?.message || "") ? 409 : r.status, requestId: data?.requestId });
       if (!data) throw Object.assign(new Error("返答を読み取れません"), { status: 502 });
       return data;
     };
-    try { const result = await Promise.race([work(), timeout]); ok = true; return result; }
+    try { return await Promise.race([work(), timeout]); }
     finally {
       clearTimeout(timer);
-      if (metricOp) { try { saveMetrics.record(metricOp, { sent, received, status, ok, ms: performance.now() - started }); } catch { /* 計測は保存の成否に影響させない */ } }
     }
   }
 
@@ -110,13 +96,12 @@ export class CloudSaveClient {
       saved.urgent = true;
       saved.wake?.();
     }
-    const entry = { data, promise: null, queuedAt: performance.now(), urgent };
+    const entry = { data, promise: null, urgent };
     if (op === "save") this.saveWaiters.add(entry);
     this.queuedSave = op === "save" ? entry : null;
     if (op === "battle" || op === "turn" || op === "command") this.blocking++;
     this.count++; this.setBusy();
     const task = this.tail.then(async () => {
-      if (op === "command") saveMetrics.timing("commandQueue", performance.now() - entry.queuedAt);
       // 端末の復旧記録は既に別経路で保管する。連続する操作は半秒単位で束ねる。
       if (op === "save" && (this.backgroundBattle || this.commandMode)) {
         await new Promise(resolve => { entry.wake = resolve; entry.timer = setTimeout(resolve, 500); if (entry.urgent) resolve(); });
@@ -143,13 +128,11 @@ export class CloudSaveClient {
         this.storage.removeItem(choiceKey(this.auth.user.id));
         return {...opening.local, revision:this.revision};
       }
-      const replayStarted = performance.now();
       const preview = () => this.request({protocol:this.config.protocol,op:"ledger-preview",sessionId:this.sessionId,revision:this.revision,battleId:this.ledger.id,seq:this.ledger.seq,command:requestData.command,commandId:requestData.commandId,acceptEncoding:"gzip"}).catch(error=>{error.replayPreparation=true;throw error;});
       const replay = op === "command" && this.commandReplay && (cloudWorkerReady() || this.ledger)
         ? replayCloudCommandPrepared(this.confirmed, requestData.command, requestData.commandId, this.forcedTurns, !!this.ledger)
           .catch(() => null)
-          .then(value => value || (this.ledger ? this.retry(preview) : null))
-          .then(value => { saveMetrics.timing("commandCalculation", performance.now() - replayStarted); return value; }) : null;
+          .then(value => value || (this.ledger ? this.retry(preview) : null)) : null;
       const ledgerLocal = this.ledger && op === "command" ? await replay : null;
       if (this.ledger && op === "command" && !ledgerLocal) {
         await this.retry(() => { throw Object.assign(new Error("cloud_replay_mismatch"), {status:409}); }, {automatic:false});

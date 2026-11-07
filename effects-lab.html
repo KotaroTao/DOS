@@ -1,7 +1,0 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>技の演出を試す — 魂の迷宮</title><link rel="stylesheet" href="effects-lab.css"></head><body>
-<main><header><a href="index.html">ゲームへ戻る</a><h1>技の演出を試す</h1><p>未習得の技を含みます。本編の進行や保存には影響しません。</p></header>
-<section class="controls" aria-label="技を選ぶ"><label>名前で探す<input id="search" type="search" placeholder="技の名前"></label><label>系統<select id="family"><option value="">すべて</option></select></label><label>技<select id="skill" size="6"></select></label></section>
-<div class="stage"><canvas id="stage" width="640" height="360" aria-label="技の演出"></canvas><p id="caption" aria-live="polite"></p></div>
-<section class="options"><button id="play">再生</button><label><input id="auto" type="checkbox">順番に再生</label><label><input id="sound" type="checkbox">音を出す</label><label><input id="low" type="checkbox">軽くする</label><label><input id="reduce" type="checkbox">動きを減らす</label><label><input id="group" type="checkbox" checked>全体技は6体で試す</label></section>
-<details><summary>全技の確認と描画時間</summary><p>この端末で全技を再生して、表示と負荷を確認します。描画処理だけの時間で、実戦全体のFPSではありません。</p><button id="audit">全技を検査</button><button id="cancel" disabled>検査を止める</button><button id="export" disabled>結果をJSON保存</button><output id="report" aria-live="polite"></output></details>
-</main><script type="module" src="src/effects-lab.js"></script></body></html>

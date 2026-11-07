@@ -3,7 +3,7 @@ import json,re
 import os
 import runpy
 from pathlib import Path
-art=runpy.run_path(str(Path(__file__).resolve().parent/"choice-bench/trial-browser.py"))
+art=runpy.run_path(str(Path(__file__).resolve().parent/"browser-fixtures.py"))
 from urllib.parse import urlparse
 from playwright.sync_api import sync_playwright
 CONFIG='export const CLOUD_CONFIG={enabled:true,url:"https://cloud.test",anonKey:"test",protocol:1};'

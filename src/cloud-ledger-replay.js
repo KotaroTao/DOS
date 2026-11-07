@@ -28,7 +28,7 @@ export async function battleStateHash(graph) {
   const bytes = new TextEncoder().encode(JSON.stringify(orderedCloudValue(canonical)));
   return [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))].map(b => b.toString(16).padStart(2,"0")).join("");
 }
-export async function replayBattleLedger(graph, ledger, {measure = async (_,fn) => fn()} = {}) {
+export async function replayBattleLedger(graph, ledger) {
   if (ledger.rules !== BATTLE_RULES) throw Object.assign(new Error("cloud_version_mismatch"), { status: 409 });
   const state = refDeserialize(orderedCloudValue(graph));
   for (const { commandId, command } of ledger.choices) {
@@ -41,5 +41,5 @@ export async function replayBattleLedger(graph, ledger, {measure = async (_,fn) 
     }
   }
   const snapshot = canonicalBattleGraph(refSerialize(state,{compact:true}));
-  return { snapshot, terminal: !!state.battle?.result, hash: await measure("hash",()=>battleStateHash(snapshot)) };
+  return { snapshot, terminal: !!state.battle?.result, hash: await (battleStateHash(snapshot)) };
 }

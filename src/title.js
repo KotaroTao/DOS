@@ -1,5 +1,4 @@
 import { watchIllustration } from "./imageloading.js";
-import { showPlaytestRecords } from "./playtest.js";
 // タイトル画面 — 起動のたびに最初に出る「顔」
 //
 // 一枚絵「百の迷宮の門」を全面に敷く。描き下ろしの原画 (titlekeyart.js の台帳) があれば titlepaint.js が
@@ -19,7 +18,6 @@ import { pickRes } from "./pxpaint.js";
 import { TitleScene } from "./titleart.js";
 import { PaintedTitle, hasPaintedTitle } from "./titlepaint.js";
 import { glyphText } from "./ui/kit.js";
-import { showJobGallery } from "./ui/jobgallery.js";
 import { showLegal } from "./legal.js";
 import { cloudEnabled } from "./cloud-save.js";
 
@@ -35,7 +33,7 @@ function div(cls, text) {
 }
 const sfx = (k) => { try { SFX[k] && SFX[k](); } catch {} };
 
-export function showTitle({ hasSave = false, summary = null, onStart, entry = false, autoStart = false, onLogin = null, onNewGame = null, startName = "", testDungeons = [], testScenes = [], onTestPlay = null } = {}) {
+export function showTitle({ hasSave = false, summary = null, onStart, entry = false, autoStart = false, onLogin = null, onNewGame = null, startName = "" } = {}) {
   const readyName = hasSave ? "" : normalizeName(startName);
   const wrap = div("ttl-overlay");
   if (REDUCED) wrap.classList.add("ttl-still");
@@ -116,11 +114,6 @@ export function showTitle({ hasSave = false, summary = null, onStart, entry = fa
     login.onclick = e => { e.stopPropagation(); close(onLogin); };
     btns.appendChild(login);
   }
-  let testBtn = null;
-  if (typeof onTestPlay === "function") {
-    testBtn = mkBtn("テストプレイ", "序章・迷宮・手ほどき・物語を選ぶ", "");
-    btns.appendChild(testBtn);
-  }
   menu.appendChild(btns);
   menu.appendChild(div("ttl-note", cloudEnabled() ? (entry ? "メール登録なしでも遊べます。オンライン接続が必要です" : "冒険の記録に接続済み") : hasSave ? "進行は自動で保存されています" : "ホーム画面に追加すると、オフラインでも遊べます"));
   const legalLinks = div("ttl-legal");
@@ -130,9 +123,6 @@ export function showTitle({ hasSave = false, summary = null, onStart, entry = fa
     legalLinks.appendChild(legal);
   }
   menu.appendChild(legalLinks);
-  const records = mkBtn("試遊の記録", null, "");
-  records.addEventListener("click", e => { e.stopPropagation(); showPlaytestRecords(); });
-  if (onTestPlay) menu.appendChild(records);
   low.appendChild(menu);
   ui.appendChild(low);
   wrap.appendChild(ui);
@@ -199,129 +189,6 @@ export function showTitle({ hasSave = false, summary = null, onStart, entry = fa
       nameBox.classList.add("hidden"); confirmBox.classList.remove("hidden"); cNo.focus();
     } else { sfx("stairs"); close(() => onStart(pendingName), true); }
   });
-
-  // 通常の記録を読み替えず、選んだ迷宮と階から検証する。
-  const testBox = div("ttl-confirm ttl-test hidden");
-  testBox.setAttribute("role", "dialog");
-  testBox.setAttribute("aria-label", "テストプレイの進行度");
-  testBox.append(div("ttl-confirm-t", "テストプレイ"), div("ttl-note", "通常の記録は変更されません。テストの進行は保存されません。"));
-  const field = (label, input) => {
-    const row = document.createElement("label");
-    row.className = "ttl-test-field";
-    input.setAttribute("aria-label", label);
-    row.append(div("", label), input);
-    testBox.appendChild(row);
-    return row;
-  };
-  const mode = document.createElement("select");
-  for (const [value, label] of [["prologue", "序章を通して遊ぶ"], ["flow", "迷宮探索を省略して通して遊ぶ"], ["dungeon", "迷宮・街"], ["inf", "無限迷宮"], ["tutorial", "チュートリアル"], ["story", "ストーリー（会話）"], ["archive", "ストーリー（読み物・追加場面）"], ["art", "キャラ画像（全職業・全ランク）"]]) {
-    const o = document.createElement("option"); o.value = value; o.textContent = label; mode.appendChild(o);
-  }
-  field("テストする内容", mode);
-  const sceneGroup = document.createElement("select");
-  const sceneGroupRow = field("場面の種類・章", sceneGroup);
-  const sceneSearch = document.createElement("input");
-  sceneSearch.type = "search"; sceneSearch.placeholder = "場面名・IDで検索";
-  const sceneSearchRow = field("場面を探す", sceneSearch);
-  const sceneSelect = document.createElement("select");
-  const sceneSelectRow = field("場面", sceneSelect);
-  const dungeon = document.createElement("select");
-  // 台帳への追加位置に依らず、森の古屋と同じ層の迷宮を探しやすくする。
-  const dungeonGroups = new Map();
-  for (const d of [...testDungeons].sort((a, b) => Number(!!b.tutorial) - Number(!!a.tutorial) || a.layer - b.layer || a.lv - b.lv)) {
-    const o = document.createElement("option");
-    o.value = d.id; o.textContent = `${d.name}（Lv${d.lv}〜${d.lvTo}）`;
-    const label = d.tutorial ? "序章" : `第${d.layer}層`;
-    if (!dungeonGroups.has(label)) {
-      const group = document.createElement("optgroup"); group.label = label;
-      dungeonGroups.set(label, group); dungeon.appendChild(group);
-    }
-    dungeonGroups.get(label).appendChild(o);
-  }
-  const floor = document.createElement("input");
-  floor.type = "number"; floor.min = "1"; floor.value = "1";
-  const clampFloor = () => {
-    const d = testDungeons.find((d) => d.id === dungeon.value);
-    floor.max = String(d?.floors || 1);
-    floor.value = String(Math.max(1, Math.min(Number(floor.max), Math.floor(Number(floor.value)) || 1)));
-  };
-  dungeon.addEventListener("change", clampFloor);
-  floor.addEventListener("change", clampFloor);
-  clampFloor();
-  const place = document.createElement("select");
-  for (const [value, label] of [["board", "迷宮内から"], ["town", "街から（編成・施設の確認）"]]) {
-    const o = document.createElement("option"); o.value = value; o.textContent = label; place.appendChild(o);
-  }
-  const dungeonRows = [field("進行度（迷宮）", dungeon), field("開始する階", floor), field("開始場所", place)];
-  // 無限迷宮: ○階から、隊Lv○で始める (docs/infinite-labyrinth.md 16-4。Lv を空けると、その階の推奨Lv)
-  const infFloor = document.createElement("input");
-  infFloor.type = "number"; infFloor.min = "1"; infFloor.max = "999"; infFloor.value = "1";
-  const infLv = document.createElement("input");
-  infLv.type = "number"; infLv.min = "1"; infLv.max = "300"; infLv.placeholder = "その階の推奨Lv";
-  const infRows = [field("開始する階", infFloor), field("隊のLv", infLv)];
-  // 解放時の説明もチュートリアルから探せる。場面の種類・URLは保ち、会話として再生する。
-  const scenesForMode = () => testScenes.filter(d => d.kind === (mode.value === "flow" ? "prologue" : mode.value) || (mode.value === "tutorial" && d.tutorialPreview));
-  const updateMode = () => {
-    const isDungeon = mode.value === "dungeon", isArt = mode.value === "art", isInf = mode.value === "inf";
-    for (const row of dungeonRows) row.hidden = !isDungeon;
-    for (const row of infRows) row.hidden = !isInf;
-    sceneSelectRow.hidden = isDungeon || isArt || isInf;
-    artNote.hidden = !isArt;
-    flowNote.hidden = mode.value !== "flow";
-    testStart.querySelector(".ttl-btn-t").textContent = isArt ? "一覧を開く" : "テスト開始";
-    sceneGroupRow.hidden = sceneSearchRow.hidden = sceneSelectRow.hidden;
-    sceneGroup.replaceChildren();
-    for (const label of ["", ...new Set(scenesForMode().map(d => d.group || "その他"))]) {
-      const o = document.createElement("option"); o.value = label; o.textContent = label || "すべて"; sceneGroup.appendChild(o);
-    }
-    sceneSearch.value = "";
-    updateScenes();
-  };
-  const updateScenes = () => {
-    const previous = sceneSelect.value;
-    const query = sceneSearch.value.trim().toLocaleLowerCase();
-    sceneSelect.replaceChildren();
-    for (const d of scenesForMode().filter(d => (!sceneGroup.value || (d.group || "その他") === sceneGroup.value) && `${d.name} ${d.id}`.toLocaleLowerCase().includes(query))) {
-      const o = document.createElement("option"); o.value = d.id; o.textContent = `${d.name}（${d.id}）`; sceneSelect.appendChild(o);
-    }
-    if ([...sceneSelect.options].some(o => o.value === previous)) sceneSelect.value = previous;
-    testStart.disabled = !["dungeon", "art", "inf"].includes(mode.value) && !sceneSelect.options.length;
-  };
-  sceneGroup.addEventListener("change", updateScenes);
-  sceneSearch.addEventListener("input", updateScenes);
-  // キャラ画像はゲームを始めずに、タイトルの上へ一覧を重ねる
-  const artNote = div("ttl-note ttl-test-art", "全職業のキャラの絵 (R1〜R5) と顔アイコンを並べて表示します。");
-  const flowNote = div("ttl-note", "出撃すると、迷宮内の未発見の手がかりと主の記憶を読み、踏破して帰還します。街の支度・手ほどき・報告は通常通り進めます。");
-  testBox.append(artNote, flowNote);
-  mode.addEventListener("change", updateMode);
-  const testRow = div("ttl-confirm-row");
-  const testCancel = mkBtn("戻る", null, "");
-  const testStart = mkBtn("テスト開始", null, "primary");
-  testRow.append(testCancel, testStart); testBox.appendChild(testRow); wrap.appendChild(testBox);
-  updateMode();
-  if (testBtn) testBtn.addEventListener("click", (e) => {
-    e.stopPropagation(); testBox.classList.remove("hidden"); wrap.classList.add("ttl-confirming"); mode.focus();
-  });
-  const hideTest = () => { testBox.classList.add("hidden"); wrap.classList.remove("ttl-confirming"); testBtn?.focus(); };
-  testCancel.addEventListener("click", (e) => { e.stopPropagation(); hideTest(); });
-  let gallery = null;
-  testStart.addEventListener("click", (e) => {
-    e.stopPropagation();
-    if (mode.value === "art") {
-      sfx("select");
-      gallery = showJobGallery({ onClose: () => { gallery = null; try { testStart.focus({ preventScroll: true }); } catch {} } });
-      return;
-    }
-    if (mode.value === "inf") {
-      const f = Math.max(1, Math.min(999, Math.floor(Number(infFloor.value)) || 1));
-      const lv = Math.floor(Number(infLv.value)) || 0;
-      close(() => onTestPlay({ inf: f, infLv: lv > 0 ? Math.min(300, lv) : 0 }));
-      return;
-    }
-    clampFloor();
-    close(() => onTestPlay({ id: dungeon.value, floor: Number(floor.value), place: place.value, skipDungeon: mode.value === "flow", scene: mode.value === "dungeon" ? "" : sceneSelect.value }));
-  });
-  testBox.addEventListener("click", (e) => e.stopPropagation());
 
   // ---- 一枚絵 ----
   // 描き下ろしの原画があれば画面の解像度のまま滑らかに (titlepaint.js)、無ければドット絵 (titleart.js)
@@ -469,16 +336,6 @@ export function showTitle({ hasSave = false, summary = null, onStart, entry = fa
       }
       if (e.key === "Escape") { e.preventDefault(); hideName(); }
       if (e.key === "Enter" && e.target === nameInput) { e.preventDefault(); nameBox.requestSubmit(); }
-      return;
-    }
-    if (gallery) {
-      e.stopPropagation();
-      if (e.key === "Escape") { e.preventDefault(); gallery.close(); }
-      return;
-    }
-    if (!testBox.classList.contains("hidden")) {
-      e.stopPropagation();
-      if (e.key === "Escape") { e.preventDefault(); hideTest(); }
       return;
     }
     if (!confirmBox.classList.contains("hidden")) {

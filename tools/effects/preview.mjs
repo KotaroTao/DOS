@@ -1,6 +1,6 @@
 // 本編と同じ生成口へ模擬の作用点を渡す。ゲーム状態・保存・ゲーム用乱数には触れない。
-import { SPELLS } from './skilldefs.js';
-import { emitSkillFx } from './skill-fx.js';
+import { SPELLS } from '../../src/skilldefs.js';
+import { emitSkillFx } from '../../src/skill-fx.js';
 export function previewSkillFx(key, group = true) {
   const spell=SPELLS[key];if(!spell)return [];
   const ally=['ally','all-ally','self'].includes(spell.target),count=group&&['all-enemy','all-ally'].includes(spell.target)?6:1;

@@ -179,9 +179,7 @@ with sync_playwright() as p:
           if(t.right>innerWidth||t.bottom>innerHeight||b.width<44)throw Error('序幕が画面外');
         }""")
         page.keyboard.press('Escape');page.wait_for_timeout(1000)
-    page.evaluate("async()=>{(await import('/src/ui/jobgallery.js')).showJobGallery({})}")
-    assert page.locator('.jg-overlay').is_visible()
-    page.locator('.jg-close').click()
+
 
     page.close()
     title=new_page(1280,720,title=True)

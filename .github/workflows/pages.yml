@@ -71,9 +71,7 @@ jobs:
           v="dos-${GITHUB_SHA::12}"
           if [ "$CLOUD_SAVE_ENABLED" = true ]; then v="${v}-cloud-${GITHUB_RUN_ID}"; fi
           sed -i "s/^const CACHE = \"dos-dev\";/const CACHE = \"$v\";/" sw.js
-          sed -i "s/^export const TEST_BUILD = \"dos-dev\";/export const TEST_BUILD = \"$v\";/" src/playtest.js
           grep -q "^const CACHE = \"$v\";" sw.js || { echo "sw.js の CACHE を書き換えられませんでした"; exit 1; }
-          grep -q "^export const TEST_BUILD = \"$v\";" src/playtest.js || { echo "試遊の版を書き換えられませんでした"; exit 1; }
           sed -i "s/^export const APP_VERSION = \"dos-dev\";/export const APP_VERSION = \"$v\";/" src/game-update.js
           grep -q "^export const APP_VERSION = \"$v\";" src/game-update.js || { echo "更新確認の版を書き換えられませんでした"; exit 1; }
           grep -n "^const CACHE" sw.js

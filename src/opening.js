@@ -1,5 +1,4 @@
 import { mediaBusy } from "./imageloading.js";
-import { playtestEvent } from "./playtest.js";
 // オープニング — 新規ゲーム開始時に一度だけ流れる導入
 //
 // 六幕の物語画風のWebPを、上下を闇で切った映画の画角で映す。
@@ -287,7 +286,6 @@ export function showOpening(onDone) {
   let closed = false;
   const close = (reason = null) => {
     if (closed) return;
-    if (reason) playtestEvent("説明のスキップ操作", { source: "序幕", reason, page: idx, phase });
     closed = true;
     phase = "closed";
     sequenceActive = false;

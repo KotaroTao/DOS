@@ -1,8 +1,7 @@
 import { isAutoCandidate } from './autoequip.js';
 import { isFormationItem } from './items.js';
 import { refSerialize } from './savegraph.js';
-import { traceSync } from './battle-trace.js';
-export const gearHintStats={requests:0,completed:0,cancelled:0,failed:0};
+
 // 参照の置き換えやHP/MPの変化で無効化しない。袋の共有と空き枠は保持する。
 export function gearHintKey(pool,targets){
  const bags=new Map();
@@ -19,10 +18,10 @@ export function createGearHints(source,changed){
  let worker=null,timer=null,job=null,sequence=0,lastKey='',disabled=false;
  let values=new Map(),slots=new Map();
  const keyOf=s=>gearHintKey(s.pool,s.targets)+JSON.stringify([s.slotTargets||[],s.slotTargets?.length?s.pool.map(d=>d.items):null]);
- function cancel(){if(job){gearHintStats.cancelled++;worker?.terminate();worker=null;job=null;}}
+ function cancel(){if(job){worker?.terminate();worker=null;job=null;}}
  function run(){
   timer=null;const s=source();if(!s||s.paused){cancel();return;}if(disabled||job)return;
-  const key=traceSync('gearHints.key',()=>keyOf(s));if(key===lastKey)return;
+  const key=(keyOf(s));if(key===lastKey)return;
   try{
    if(!worker){
     worker=new Worker(new URL('./gear-hint-worker.js',import.meta.url),{type:'module'});
@@ -30,16 +29,16 @@ export function createGearHints(source,changed){
      if(!job||data.id!==job.id)return;
      const done=job;job=null;const now=source();
      if(data.error){fail();return;}
-     if(!now||now.paused||keyOf(now)!==done.key){gearHintStats.cancelled++;schedule();return;}
-     values=new Map(data.values);slots=new Map(data.values.map(([uid,,detail])=>[uid,detail]));lastKey=done.key;gearHintStats.completed++;changed();
+     if(!now||now.paused||keyOf(now)!==done.key){schedule();return;}
+     values=new Map(data.values);slots=new Map(data.values.map(([uid,,detail])=>[uid,detail]));lastKey=done.key;changed();
     };
     worker.onerror=fail;
    }
-   job={id:++sequence,key};gearHintStats.requests++;
-   traceSync('gearHints.snapshot',()=>worker.postMessage({id:job.id,snapshot:refSerialize({pool:s.pool,targets:s.targets,slotTargets:s.slotTargets||[]},{omit:(o,k)=>k==='photo'})}));
+   job={id:++sequence,key};
+   (worker.postMessage({id:job.id,snapshot:refSerialize({pool:s.pool,targets:s.targets,slotTargets:s.slotTargets||[]},{omit:(o,k)=>k==='photo'})}));
   }catch{fail();}
  }
- function fail(){gearHintStats.failed++;disabled=true;worker?.terminate();worker=null;job=null;}
+ function fail(){disabled=true;worker?.terminate();worker=null;job=null;}
  function schedule(){if(timer===null&&!disabled)timer=setTimeout(run,250);}
  return {
   read(d){schedule();return !!d?.alive&&!!values.get(d.uid);},
