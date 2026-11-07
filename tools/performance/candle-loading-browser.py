@@ -194,6 +194,9 @@ async def main():
         await ctx.close()
         # 実際の迷宮画面でも、中央の待機印を出さずに左下へまとめる。
         ctx = await browser.new_context(viewport={'width':390,'height':844}, service_workers='block')
+        # 制作ロゴは読み込みが終わるまで燭台を隠すため、この画像待機の検査から分離する。
+        await ctx.route('**/src/branding.js', lambda r: r.fulfill(content_type='text/javascript',
+            body="document.getElementById('studio-splash')?.remove();document.body.classList.remove('studio-branding');"))
         page = await ctx.new_page()
         release_board = asyncio.Event()
         errors = []
@@ -216,6 +219,8 @@ async def main():
         await ctx.close()
         # 起動用モジュール・タイトル原画を別々に止めても、途中の画面は出さない。
         ctx = await browser.new_context(viewport={'width':390,'height':844}, service_workers='block')
+        await ctx.route('**/src/branding.js', lambda r: r.fulfill(content_type='text/javascript',
+            body="document.getElementById('studio-splash')?.remove();document.body.classList.remove('studio-branding');"))
         page = await ctx.new_page()
         release_module, release_title = asyncio.Event(), asyncio.Event()
         async def module(route):

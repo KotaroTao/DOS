@@ -1036,7 +1036,7 @@ function worldState() {
 const worldStarted = () => !!G.msq && G.msq.n >= 1;
 function worldOpenId(id) { return !!worldState().open[id]; }
 function worldOpenIdx(idx) { const d = DUNGEONS[idx]; return !!d && worldOpenId(d.id); }
-function worldOpenCount() { return DUNGEONS.filter((d) => worldOpenId(d.id)).length; }
+function worldOpenCount() { const open = worldState().open; return DUNGEONS.filter((d) => open[d.id]).length; }
 // 台帳の解放条件を満たしたか (world.js の unlock)
 function worldUnlockMet(cfg) {
   const u = cfg.unlock || {}, w = worldState();
@@ -14132,9 +14132,9 @@ function questLvGap(cfg, pl = partyLevel()) {
   return pl < lo ? lo - pl : pl > hi ? pl - hi : 0;
 }
 function questDungeons() {
-  const order = Object.keys(worldState().open);
+  const open = worldState().open, order = Object.keys(open);
   const pl = partyLevel();
-  return DUNGEONS.filter((d) => !d.tutorial && worldOpenId(d.id) && questLvGap(d, pl) <= QUEST_LV_NEAR && !dungeonFullyCleared(d))
+  return DUNGEONS.filter((d) => !d.tutorial && open[d.id] && questLvGap(d, pl) <= QUEST_LV_NEAR && !dungeonFullyCleared(d))
     .sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
 }
 // 完全踏破 = 踏破した上で、その迷宮の魔物をすべて発見し、固有クエスト (極めて稀なる出来事を含む) をすべて果たした
@@ -14327,17 +14327,28 @@ function questHereNote(cfg) {
 // 固定クエストの「家」= 到達・踏破の迷宮 → 地図に開く迷宮 → 狙う魔物が最初に出る迷宮 (地図の並び)。魂・宝箱は家なし。
 // 懸賞・討伐の家は、候補のうち地図に現れている迷宮を先に選ぶ (縄張りの一部だけが開いている時に、
 // まだ地図にない迷宮の名で酒場に並ばないように)。どれも開いていなければ最初の候補
+const fixedQuestHomeCandidates = new WeakMap();
 function fixedQuestHome(def) {
   const g = def.goal || {};
-  const firstOpen = (ids) => ids.find((id) => worldOpenId(id)) || ids[0] || null;
+  const firstOpen = (ids) => {
+    if (!ids.length) return null;
+    const open = worldState().open;
+    return ids.find((id) => open[id]) || ids[0] || null;
+  };
   if (def.bounty) return firstOpen([...((def.appear && def.appear.openAny) || []), def.ref].filter(Boolean)); // 懸賞の家は縄張りの迷宮
   if (g.dungeon) return g.dungeon;
   if (def.opens && def.opens.length) return def.opens[0];
   if (g.type !== "kill" || !g.keys) return null;
-  return firstOpen(DUNGEONS.filter((d) => {
-    const roster = new Set(dungeonRoster(d));
-    return g.keys.some((k) => roster.has(k) || metalInLayer(k, d.layer));
-  }).map((d) => d.id));
+  // 候補の土地は定義だけで決まる。開いている土地の選択は毎回行い、進行は覚え込まない。
+  let homes = fixedQuestHomeCandidates.get(def);
+  if (!homes) {
+    homes = DUNGEONS.filter((d) => {
+      const roster = new Set(dungeonRoster(d));
+      return g.keys.some((k) => roster.has(k) || metalInLayer(k, d.layer));
+    }).map((d) => d.id);
+    fixedQuestHomeCandidates.set(def, homes);
+  }
+  return firstOpen(homes);
 }
 // その迷宮専用の「極めて稀なる出来事」(events.js DUNGEON_GIFTS。w01・奈落には無い)。固有クエストに数える
 function dungeonMythic(cfg) {

@@ -60,6 +60,8 @@ function update() {
   let pending = false, failed = false, blocking = false, screenPending = false, screenFailed = false;
   const now = Date.now();
   for (const [key, entry] of entries) {
+    // 到着済みの画像は表示位置を調べる必要もない。
+    if (entry.state === "ready") { entries.delete(key); continue; }
     let shown = now - entry.used < 300;
     for (const [node, used] of entry.liveOwners) {
       if (now - used < 300 && visible(node)) shown = true;
@@ -70,7 +72,7 @@ function update() {
       else if (!node.isConnected && (seen || now - entry.created > 1000)) entry.owners.delete(node);
     }
     // 到着済みの画像のために待ち時間を足さない。
-    if (entry.state === "ready" || !entry.owners.size && !entry.liveOwners.size && now - entry.used >= 1000) {
+    if (!entry.owners.size && !entry.liveOwners.size && now - entry.used >= 1000) {
       entries.delete(key); continue;
     }
     if (shown) {
@@ -146,7 +148,7 @@ export function sceneReady(owner, ready) {
 // タイトルを消す前に、復元先の表示範囲の画像と描画を待つ。
 export async function waitForScene(root) {
   for (const image of root.querySelectorAll("img[src]")) watchImage(image, image);
-  const waits = [...root.querySelectorAll("canvas, img")].filter(visible)
+  const waits = [...root.querySelectorAll("canvas, img")].filter(node => scenes.get(node)?.pending && visible(node))
     .map(node => scenes.get(node)).filter(state => state?.pending);
   const results = await Promise.all(waits.map(state => state.ready));
   if (results.some(ok => ok === false)) return false;
@@ -163,7 +165,7 @@ export function preserveScene(root) {
   const oldScroll = previous.scrollTop;
   return () => {
     for (const image of root.querySelectorAll("img[src]")) watchImage(image, image);
-    const waits = [...root.querySelectorAll("canvas, img")].filter(visible).map(node => scenes.get(node)).filter(state => state?.pending);
+    const waits = [...root.querySelectorAll("canvas, img")].filter(node => scenes.get(node)?.pending && visible(node)).map(node => scenes.get(node));
     if (!waits.length || !root.isConnected) return;
     // 画素のコピーは背景を待つ時だけ行う。
     originals.forEach((canvas, i) => {
