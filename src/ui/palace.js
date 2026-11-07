@@ -873,6 +873,7 @@ function jobSheetView(key, rank, top, heading, onRank) {
       : pairRow(`ランク${r} ？？？`, null, { dim: true }));
   }
   body.appendChild(infoBlock("ランクのパッシブ", rkRows.length ? rkRows : [pairRow("—", null, { dim: true })]));
+  body.appendChild(pairRow("技とレベル習得のパッシブは、ランクに関係なく魂Lvで覚える", null, { dim: true }));
   // スキル表: このランクのLv上限まで。到達したLvのものだけ開示
   const reached = allData() ? Math.max(1, ...jobSkillTable(key).map((e) => e.lvl)) : (rec && typeof rec === "object" && rec.lv) || 0;
   const capCount = (rankThresholds(SOUL_CLASSES[key].rarity)[rank - 1]) || 1;
