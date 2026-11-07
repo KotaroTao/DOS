@@ -26,7 +26,7 @@ with sync_playwright() as p:
       G.world.reported={w21:1};check(a.infDepthLimit()===50,'50階');
       for(const [id,n]of [['w29',100],['w41',150]]){G.world.reported[id]=1;check(a.infDepthLimit()===n,'深さ'+n);}
       // 第十一章の結びで深部へ (値は検査に書かない)。旧来の第十二章以降の段は廃止
-      G.world.reported.w45=1;check(Number.isFinite(a.infDepthLimit())&&a.infDepthLimit()>150,'深部');
+      G.world.reported.w45=1;check(a.infDepthLimit()===Infinity,'深部 (端末に上限なし)');
       check(!a.featureUnlocked('infinite200')&&!a.featureUnlocked('infinite250')&&!a.featureUnlocked('infinite300'),'旧段は廃止');
       check(!a.featureUnlocked('rebirth')&&!a.featureUnlocked('vow')&&!a.featureUnlocked('sub3'),'廃止');
       check(!a.featureUnlocked('order7')&&!a.featureUnlocked('order8'),'未実装章');

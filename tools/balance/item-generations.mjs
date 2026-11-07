@@ -106,19 +106,20 @@ for (const id of ids.filter((_, i) => i % 13 === 0)) {
 assert(afxBase({ lv: 200, gen: 2 }) > afxBase({ lv: 200 }));
 assert.equal(afxBase({ lv: 120, gen: 1 }), afxBase({ lv: 120 }));
 
-// 8. 数値の桁: 解禁後の一番深い階でも安全な範囲 (値は出さない)
-const deepest = depthLimit(() => true);
-const before = depthLimit((k) => k !== "infiniteDeep");
-assert(Number.isFinite(deepest) && deepest > before, "深部の上限は有限で、解禁前より深い");
-const L = infLevel(deepest), top = lootBand(L)[1];
-const gMax = Math.max(2, Math.ceil(top / 200) + 1);
-for (const id of ids.filter((_, i) => i % 41 === 0)) {
-  const it = at(id, gMax);
-  for (const k of [...GEN_STAT_KEYS, "price", "equipPts"]) if (typeof it[k] === "number") assert(Number.isFinite(it[k]) && Math.abs(it[k]) < Number.MAX_SAFE_INTEGER, `${id} ${k}`);
-  assert(Number.isSafeInteger(Math.round(it.price * 4 * 2)), `${id} 買値の桁`);
-  assert(Number.isSafeInteger(equipLevelOf(it, gMax)), `${id} 装備Lv`);
+// 8. 数値の桁: 深部の解禁後は端末に上限なし。終点と無関係に決めた複数の桁の深さで式が壊れない (docs/infinite-terminus.md §3)
+assert.equal(depthLimit(() => true), Infinity);
+assert(depthLimit((k) => k !== "infiniteDeep") >= 50);
+for (const floor of [1e4, 1e5, 1e6, 1e7]) {
+  const L = infLevel(floor), top = lootBand(L)[1];
+  const gMax = Math.max(2, Math.ceil(top / 200) + 1);
+  for (const id of ids.filter((_, i) => i % 97 === 0)) {
+    const it = at(id, gMax);
+    for (const k of [...GEN_STAT_KEYS, "price", "equipPts"]) if (typeof it[k] === "number") assert(Number.isFinite(it[k]) && Math.abs(it[k]) < Number.MAX_SAFE_INTEGER, `${id} ${k} (${floor})`);
+    assert(Number.isSafeInteger(Math.round(it.price * 4 * 2)), `${id} 買値の桁 (${floor})`);
+    assert(Number.isSafeInteger(equipLevelOf(it, gMax)), `${id} 装備Lv (${floor})`);
+  }
+  for (const v of [refGold(L), refSoul(L), trainCost(L), lvPow(L)]) assert(Number.isFinite(v) && v < Number.MAX_SAFE_INTEGER);
 }
-for (const v of [refGold(L), refSoul(L), trainCost(L), lvPow(L)]) assert(Number.isFinite(v) && v < Number.MAX_SAFE_INTEGER);
 
 // 9. 本編: 第1世代の帯の迷宮の上限は今まで通り。第2世代は台帳の深い迷宮から
 const caps = WORLD.filter((d) => d.lootLv).map((d) => ({ id: d.id, cap: Math.ceil(d.lootLv[1] / 10) + 2 }));
