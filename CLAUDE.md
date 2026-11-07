@@ -12,7 +12,7 @@ The game has a town hub, a **map of hand-built dungeons you choose between** (`s
 
 音声診断・時系列ログ・保存/通信計測・試遊記録・通信試遊・演出確認画面・タイトルの確認用メニューは撤去済み。廃止した端末キー `dos-playtests-v1`・`dos-save-metrics-v1`・`dos-choice-trial-pending:*` は起動時に削除する。本編のセーブ・認証・再送待ちは維持する。`202611070001_remove_verification.sql` は通信試遊専用の関数と `choice_trial` スキーマだけを削除し、Pagesの公開時に適用する。
 
-開発用の回帰テストと、そのテストが使う隔離されたURL起動口は残す。通常プレイでは診断用のログや計測値を収集しない。負荷に応じた画質調整・音声の復帰・保存の期限や再送は本番機能として維持する。酒場の話はIDを保って現行の操作へ更新する (`t_battle_diagnostics`・`t_choice_trial`・`t_save_metrics`・`t_test_scene`・`t_sound_recovery`)。
+開発用の回帰テストと、そのテストが使う隔離されたURL起動口は残す。旧検証機能のログや計測値は収集しない。追加のユーザー指示（2026-11-07）により、5秒以上の戦闘の行動待ちに限る端末内診断を `action-wait.js` に実装。通常はメモリ内の直近60件・進行中64件までの処理名/時間/状態だけを保持し、5秒超の待機を直近8件まで端末キー `dos-action-wait-v1` に記録する。同じ待機中は5秒ごとに更新。作戦/複製、保存Worker、送信列、要求/HTTP応答、再試行、結果表示の時系列と主スレッドのタイマー遅延、戦闘の数値/フラグ、公開版を記録。認証・セーブ本文・キャラ名・要求本文は入れず送信もしない。手動入力・手帳等の明示的一時停止・背面時間は検出から除き、同期計算の5秒超も終了時に捕捉。設定「音・戦闘」→「行動待ちの診断」でコピー・JSON保存・診断だけの消去ができ、再読込後にも残る。検査 `tools/performance/auto-action-wait-check.mjs`・`auto-action-wait-browser.py`。負荷に応じた画質調整・音声の復帰・保存の期限や再送は本番機能として維持する。酒場の話はIDを保って現行の操作へ更新する (`t_battle_diagnostics`・`t_choice_trial`・`t_save_metrics`・`t_test_scene`・`t_sound_recovery`)。
 
 ## Running & "building"
 

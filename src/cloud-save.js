@@ -1,3 +1,4 @@
+import { actionWaitSpan, actionWaitEvent } from './action-wait.js';
 import { refDeserialize } from "./savegraph.js";
 import { battleCommand } from "./cloud-battle.js";
 import { BATTLE_RULES, battleStateHash, canonicalBattleGraph } from "./cloud-ledger-replay.js";
@@ -41,6 +42,7 @@ export class CloudSaveClient {
   }
   async fetchJSON(path, options = {}, requestOp = null) {
     // 大きな記録の戦闘応答は15秒を超える。認証と保存APIの期限を分ける。
+    const measured = actionWaitSpan(`http.${requestOp || "auth"}`);
     const timeoutMs = path.startsWith("/functions/") || requestOp === "ledger-begin" ? 60000 : 15000;
     const ctrl = new AbortController();
     let timer;
@@ -49,6 +51,7 @@ export class CloudSaveClient {
     }, timeoutMs); });
     const work = async () => {
       const r = await this.fetcher(this.config.url.replace(/\/$/, "") + path, { ...options, signal: ctrl.signal });
+      actionWaitEvent(`http.${requestOp || "auth"}.headers`, "received", r.status);
       let data = await r.json().catch(() => null);
       if (r.ok) data = await decodeCloudReply(data);
       if (!r.ok) throw Object.assign(new Error(data?.error_description || data?.msg || data?.error || data?.message || "通信に失敗しました"), { status: /^cloud_(revision|session|command|version|battle)/.test(data?.message || "") ? 409 : r.status, requestId: data?.requestId });
@@ -56,7 +59,9 @@ export class CloudSaveClient {
       return data;
     };
     try { return await Promise.race([work(), timeout]); }
+    catch (error) { measured("error"); throw error; }
     finally {
+      measured();
       clearTimeout(timer);
     }
   }
@@ -80,8 +85,10 @@ export class CloudSaveClient {
     const send = async (token) => this.fetchJSON(direct ? beginning ? "/rest/v1/rpc/cloud_battle_begin" : "/rest/v1/rpc/cloud_battle_append" : "/functions/v1/game-save", { method: "POST",
       headers: { apikey: this.config.anonKey, Authorization: `Bearer ${token}`, "Content-Type": "application/json", ...(this.config.region && !direct ? { "x-region": this.config.region } : {}) },
       body: raw }, body.op);
+    const finish = actionWaitSpan(`request.${body.op}`);
     try { return await send(await this.token()); }
-    catch (e) { if (e.status === 401) return send(await this.token(true)); throw e; }
+    catch (e) { finish("error"); if (e.status === 401) return await send(await this.token(true)); throw e; }
+    finally { finish(); }
   }
   setBusy() { this.busy = this.count > 0; this.onBusy(this.busy); }
   enqueue(op, data = {}, { urgent = false } = {}) {
@@ -101,7 +108,9 @@ export class CloudSaveClient {
     this.queuedSave = op === "save" ? entry : null;
     if (op === "battle" || op === "turn" || op === "command") this.blocking++;
     this.count++; this.setBusy();
+    const queued = actionWaitSpan(`queue.${op}`);
     const task = this.tail.then(async () => {
+      queued();
       // 端末の復旧記録は既に別経路で保管する。連続する操作は半秒単位で束ねる。
       if (op === "save" && (this.backgroundBattle || this.commandMode)) {
         await new Promise(resolve => { entry.wake = resolve; entry.timer = setTimeout(resolve, 500); if (entry.urgent) resolve(); });
@@ -188,6 +197,7 @@ export class CloudSaveClient {
     });
     this.tail = task;
     entry.promise = task.finally(() => {
+      queued();
       this.saveWaiters.delete(entry);
       if (op === "battle" || op === "turn" || op === "command") this.blocking--;
       this.count--; this.setBusy();
@@ -202,7 +212,10 @@ export class CloudSaveClient {
         if (!this.onFailure) throw e;
         const temporary = e.name !== "AbortError" && (e instanceof TypeError || [408, 429, 500, 502, 503, 504].includes(e.status));
         if (automatic && temporary && attempts < this.retryDelays.length) {
-          await new Promise(resolve => setTimeout(resolve, this.retryDelays[attempts++]));
+          actionWaitEvent("request.retry", "temporary", e.status || 0);
+          const waited = actionWaitSpan("request.retry-wait");
+          try { await new Promise(resolve => setTimeout(resolve, this.retryDelays[attempts++])); }
+          finally { waited(); }
           continue;
         }
         attempts = 0;

@@ -1,3 +1,4 @@
+import { actionWaitSpan, actionWaitEvent } from './action-wait.js';
 import { refSerialize } from './savegraph.js';
 import { autoSkills } from './souls.js';
 import { autoEstimateContext } from './combat.js';
@@ -6,6 +7,7 @@ const WORKER_RETRY_MS=30000;
 const pending=new Map();
 function disableWorker(instance,error){
  if(worker!==instance)return;
+ actionWaitEvent('auto.worker',error?.message==='作戦の計算待ち'?'timeout':'error');
  retryWorkerAt=Date.now()+WORKER_RETRY_MS;instance.terminate();worker=null;
  for(const task of pending.values()){clearTimeout(task.timer);task.reject(error);}pending.clear();
 }
@@ -13,12 +15,18 @@ export function warmAutoPlanner(){
  if(worker||Date.now()<retryWorkerAt||typeof Worker==='undefined')return;
  try{
   worker=new Worker(new URL('./auto-worker.js',import.meta.url),{type:'module'});
+  actionWaitEvent('auto.worker','created');
   const instance=worker;
   instance.onmessage=({data})=>{if(worker!==instance)return;const task=pending.get(data.id);if(!task)return;pending.delete(data.id);clearTimeout(task.timer);data.error?task.reject(Error(data.error)):task.resolve(data.plan);};
   instance.onerror=instance.onmessageerror=event=>{event?.preventDefault?.();disableWorker(instance,Error('作戦の計算を再開'));};
- }catch{retryWorkerAt=Date.now()+WORKER_RETRY_MS;}
+ }catch{actionWaitEvent('auto.worker','creation-error');retryWorkerAt=Date.now()+WORKER_RETRY_MS;}
 }
 export async function planAuto(b,actor,resistKnown,fallback){
+ const finish=actionWaitSpan('auto.plan');
+ try{return await computePlan(b,actor,resistKnown,()=>{actionWaitEvent('auto.worker','fallback');return fallback();});}
+ catch(error){finish('error');throw error;}finally{finish();}
+}
+async function computePlan(b,actor,resistKnown,fallback){
  warmAutoPlanner();if(!worker){return (fallback)();}
  const instance=worker;
  try{
@@ -27,8 +35,10 @@ export async function planAuto(b,actor,resistKnown,fallback){
  // 作戦は所持品の使用・装備変更を選ばず、絵も参照しない。複製前に除外し、
  // 袋が大きくても、その中身の走査・Workerへの転送・復元を発生させない。
  const actors=new Set(b.party);
- const snapshot=refSerialize({battle:b,actor,allowed,context:{...autoEstimateContext(b.enemies),resist:b.enemies.filter(resistKnown).map(e=>e.uid)}},
-  {omit:(object,key)=>key==='photo'||(key==='items'&&actors.has(object))});
+ const prepared=actionWaitSpan('auto.snapshot');
+ let snapshot;
+ try{snapshot=refSerialize({battle:b,actor,allowed,context:{...autoEstimateContext(b.enemies),resist:b.enemies.filter(resistKnown).map(e=>e.uid)}},
+  {omit:(object,key)=>key==='photo'||(key==='items'&&actors.has(object))});}finally{prepared();}
 
 
  const id=++serial;
