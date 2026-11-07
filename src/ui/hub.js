@@ -472,7 +472,7 @@ function questStrip() {
   if (questRotTimer) { clearInterval(questRotTimer); questRotTimer = 0; }
   if (!facilityOpen("tavern")) return null;
   const L = questLists();
-  const qs = hubQuests();
+  const qs = hubQuests(L);
   const box = el("div", "hb-dlv");
   const pages = qs.length > 3 ? Math.ceil(qs.length / 3) : 1;
   if (questPage >= pages) questPage = 0;

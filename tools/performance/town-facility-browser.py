@@ -13,7 +13,8 @@ parser.add_argument('--baseline', help='比較する変更前のコミット')
 parser.add_argument('--report', default='/tmp/dos-town-facility.json')
 parser.add_argument('--width', type=int, default=390)
 args = parser.parse_args()
-PATHS = ['src/game.js', 'src/townpaint.js', 'src/townart.js', 'src/imageloading.js']
+PATHS = ['src/game.js', 'src/townpaint.js', 'src/townart.js', 'src/imageloading.js',
+         'src/ui/questboard.js', 'src/ui/hub.js', 'src/ui/facilities.js']
 original = {path: subprocess.check_output(['git', 'show', f'{args.baseline}:{path}'], cwd=ROOT).decode()
             for path in PATHS} if args.baseline else {}
 ACTIONS = [('hub', "UI.shell.setTab('hub')"), ('party', 'UI.enterMansion()'),

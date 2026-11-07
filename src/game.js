@@ -14269,6 +14269,12 @@ function questSlotCount() {
   const s = questState();
   return s.active.length + Object.values(s.fixed).filter((f) => f && f.state !== "claimed").length;
 }
+// 受注枠だけの確認では、全依頼の対象・報酬を組み立てない。
+function questCapacity() {
+  // 初回の掲示板生成と旧セーブの貼り紙の整理は、従来の一覧参照と同じく行う。
+  ensureQuestBoard();
+  return { freeCount: questSlotCount(), cap: FREE_CAP };
+}
 // 受注中・報告待ちの依頼 (フリー + 固定) と、掲示板・依頼人の依頼
 function questLists() {
   const s = questState();
@@ -20406,7 +20412,7 @@ bindGame({
   codexMonEntry, dungeonRoster, CODEX_OTHER,
   // 酒場・祠・宿
   ensureRumor, rumorFor, rollTavernCrowd, tavernCurrentCrowd, markTavernHeard, tavernNotes,
-  questState, questLists, questByUid, questsHere, ensureQuestBoard, rollQuestBoard, acceptQuest, abandonQuest, claimQuest, questReadyCount, FREE_CAP, questHereNote, questHereCount, questsTargeting,
+  questState, questLists, questCapacity, questByUid, questsHere, ensureQuestBoard, rollQuestBoard, acceptQuest, abandonQuest, claimQuest, questReadyCount, FREE_CAP, questHereNote, questHereCount, questsTargeting,
   adCooldownLeft, watchShrineAd, RED_PACKS, buyRedPack, GUARDIAN_COST, guardianCost, RESCUE_SHORTEN_MS,
   // 設定 (端末の好み)
   PREFS, savePrefs, setWalkerLook, setVolumes, isMuted, toggleMute, ensureAudio, restartGameAudio, updateMuteBtn, resetAllData, confirmReset, returnToTitle, saveSlot: SAVE_SLOT,
