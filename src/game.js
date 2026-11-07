@@ -679,15 +679,19 @@ function runGainGold(g, src, pre, modifier = null) {
 setPermanentStatSource(() => permanentEventStats(G.events?.once)); // 極の永続強化は無限迷宮の仮の器にも乗せる (2026-10-11 ユーザーの指示)
 
 function evBoon(k, field, dflt) { return G.events && G.events.flags && G.events.flags[k] ? EV_BOONS[k][field] : dflt; } // 旧仕様の極の恵み。無限迷宮でも効く (2026-10-11 ユーザーの指示)
-// out を渡すと out.raw に「Lv差で減らす前の額」を入れる (戦闘の魂の経験値は魂ごとの Lv差で減らすため)
+// out.raw はLv差で減らす前の額、out.orderLearning は無限迷宮の成長倍率を除いた結社の伝習用の額。
 function runGainSoulPts(s, src, pre, modifier = null, out = null) {
   const sf = sfNum("soulMul", 1), mu = modifier ?? mutNum("soulMul", 1), eq = 1 + partyEffMax("soulUp") + evBoon("will", "soulMul", 0);
   const lm = inDungeon() ? partySoulLvMul() : 1;
   // 無限迷宮: 推奨Lv の表の傾きに合わせて育つ速さを上げる (abyss.js infGrowthMul — 戦闘で魂に入る経験値もここから)
   const gm = inDungeon() && abyssActive() ? infGrowthMul(G.floor) : 1;
-  const raw = s * sf * mu * eq * gm;
+  const base = s * sf * mu * eq;
+  const raw = base * gm;
   s = Math.round(raw * lm); G.soulPts += s; if (G.run && inDungeon()) G.run.soulPts += s;
-  if (out) out.raw = Math.round(raw);
+  if (out) {
+    out.raw = Math.round(raw);
+    out.orderLearning = Math.round(base * lm); // 結社には仮の器を早く育てる倍率を含めない
+  }
 
   return s;
 }
@@ -12395,7 +12399,7 @@ function endBattleMeasured() {
     // 入手Soulの1/3を生存メンバーの魂 (サブ魂はその1/3) に加算 → レベルアップ/スキル習得を集計
     // (Lv差の減りは魂それぞれの Lv で掛け直すので、隊のLv で減らす前の額を渡す)
     const progress = distributeBattleSoulExp(soulOut.raw ?? soulGot);
-    const orderLevels = distributeOrderLearning(soulGot);
+    const orderLevels = distributeOrderLearning(soulOut.orderLearning);
     updateTopbar();
     log(`勝利！ 💰${goldGot}・✦${soulGot}`, "win");
     const fled = b.enemies.filter((e) => e._fled).length; // 逃げ去った金属の魔物 (戦果は倒した分だけ)
