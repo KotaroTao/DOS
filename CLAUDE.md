@@ -574,6 +574,8 @@ EdgeはES256/RS256の署名・iss/aud/role/sub/exp/nbfをJWKSで検証し、公�
 
 ### UI 構造 (`src/ui/`) — 縦スクロール無し・少ないタップ
 
+iPad/Safariの連続タップ拡大は、全要素の`touch-action: manipulation`と、起動直後から読む`src/touch-zoom.js`で防ぐ。近い位置への短い連続タップだけ`touchend`の既定動作を止め、失われるクリックを1回補う。スクロール・長押し・複数指・入力欄の操作は奪わない。検証: `python3 tools/layout/touch-zoom-check.py`。
+
 商会の武魂一覧から宿し先を選ぶと、武魂のない装備には即座に宿す。既存武魂があれば入れ替える武魂（または使用可能な空き枠）を選ぶ。交換は供給元・在庫・入れ替え対象・部位と重複制限を検証して一括適用し、外した武魂は保護を保って商会へ戻す。心得 `t_enchant2`。
 
 魂融合・ランクアップ・Lvアップの結果は、魂Lv1000超・HP10万超でも全桁を表示する。上限・魂レベル・能力の項目は幅に応じて列を減らし、長い値は変更前・矢印・変更後の区切りで折り返す（省略しない）。検証: `python3 tools/layout/soul-result-numbers-check.py`。

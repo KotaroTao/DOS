@@ -24,7 +24,8 @@
   }
 }
 
-* { box-sizing: border-box; }
+/* 内側のスクロール領域でもダブルタップ拡大を許さず、通常の操作は保つ。 */
+* { box-sizing: border-box; touch-action: manipulation; }
 
 /* 全画面でスクロール操作を保ち、縦横のスクロールバーだけを隠す */
 * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
