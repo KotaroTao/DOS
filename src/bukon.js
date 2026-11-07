@@ -70,7 +70,7 @@ export const bukonDropCount=it=>({c:0,uc:0,r:1,sr:2,lr:3}[rarityKey(it)]??1);
 export function bukonExact(b){const d=bukonDef(b?.k);return validBukon(b)?BigInt(Math.round(d.base*100))*BigInt(b.lv)/100n:0n;}
 const amount=b=>{const d=bukonDef(b.k);return d.values?d.values[b.lv-1]:d.base*b.lv;};
 // 一覧の名前と、詳細の効果説明は同じ値から作る。加算値は大きなLvでも丸めない。
-export function bukonName(b) {
+function baseBukonName(b) {
  if(!validBukon(b))return "不明な武魂";
  const d=bukonDef(b.k);
  if(d.kind==="flat")return `${d.name} +${bukonExact(b).toLocaleString("ja-JP")}`;
@@ -78,6 +78,7 @@ export function bukonName(b) {
  const v=amount(b),shown=d.stat==="fortress"?100-v:d.stat==="throw"?100+v:d.stat==="stepIn"?50+v:v;
  return `${d.name} ${shown.toLocaleString("ja-JP")}%`;
 }
+export const bukonName = b => baseBukonName(b) + (b?.soulMemory ? "（幻）" : "");
 export function bukonDescription(b) {
  if(!validBukon(b))return "不明な武魂";
  const d=bukonDef(b.k),v=amount(b),n=v.toLocaleString("ja-JP");
@@ -110,10 +111,10 @@ export function bukonStock(g) {
   }
   return g.bukonStock ||= {};
 }
-export const bukonKey = b => `${b.k}:${b.lv}`;
+export const bukonKey = b => `${b.k}:${b.lv}${b.soulMemory ? ":phantom" : ""}`;
 export function stockRows(g) {
   return Object.entries(bukonStock(g)).filter(([, n]) => BigInt(n) > 0n).map(([key, n]) => {
-    const [k, lv] = key.split(":"); return { k, lv: Number(lv), count: n, protected: !!g.bukonProtected?.[key] };
+    const [k, lv, origin] = key.split(":"); return { k, lv: Number(lv), count: n, protected: !!g.bukonProtected?.[key], ...(origin === "phantom" ? {soulMemory:true} : {}) };
   }).filter(validBukon).sort((a,b) => a.k.localeCompare(b.k) || b.lv-a.lv);
 }
 export function stockAdd(g, b, n = 1n) {
@@ -127,7 +128,9 @@ export function stockAdd(g, b, n = 1n) {
 export function inheritBukonPlan(from, to) {
  const moved=[], returned=[], seen=new Set();
  if(!from || !to || from===to)return {moved,returned:[]};
- for(const b of [...(from.bukon||[]),...(to.bukon||[])]){
+ const fromSouls=(from.bukon||[]).map(b=>from.soulMemory?{...b,soulMemory:true}:b);
+ if(to.soulMemory)return {moved:(to.bukon||[]).map(b=>({...b,soulMemory:true})),returned:fromSouls};
+ for(const b of [...fromSouls,...(to.bukon||[])]){
   if(validBukon(b)&&bukonFits(to,b)&&moved.length<bukonSlots(to)&&!seen.has(b.k)){moved.push(b);seen.add(b.k);}
   else returned.push(b);
  }
@@ -183,7 +186,7 @@ export function attachBlock(it, b) {
 }
 export function attachBukon(g, it, b) {
   if (attachBlock(it,b) || !stockAdd(g,b,-1n)) return false;
-  (it.bukon ||= []).push({ k:b.k, lv:b.lv }); return true;
+  (it.bukon ||= []).push({ k:b.k, lv:b.lv, ...(b.soulMemory ? {soulMemory:true} : {}) }); return true;
 }
 // 入れ替え先と供給元をすべて検証してから、一度に移す。
 export function replaceBukon(g, it, incoming, replaced) {
@@ -197,7 +200,7 @@ export function replaceBukon(g, it, incoming, replaced) {
   else stockAdd(g,soul,-1n);
   stockAdd(g,replaced);
   if(replaced.fusionUnlocked!==true)(g.bukonProtected ||= {})[bukonKey(replaced)]=true;
-  it.bukon[index]=source?soul:{k:soul.k,lv:soul.lv};
+  it.bukon[index]=source?soul:{k:soul.k,lv:soul.lv,...(soul.soulMemory?{soulMemory:true}:{})};
   return true;
 }
 export function detachBukon(g, it, index) {
@@ -206,7 +209,7 @@ export function detachBukon(g, it, index) {
 }
 // 目標より低いレベルだけを、高レベルから必要数だけ選ぶ。3進のため端数や価値の喪失がない。
 export function maxFusionLevel(g,k){
- let value=0n;for(const b of stockRows(g).filter(b=>b.k===k))value+=BigInt(b.count)*3n**BigInt(b.lv-1);
+ let value=0n;for(const b of stockRows(g).filter(b=>b.k===k&&!b.soulMemory))value+=BigInt(b.count)*3n**BigInt(b.lv-1);
  let lv=1;while(value>=3n){value/=3n;lv++;}return Math.min(bukonDef(k)?.max||Infinity,lv);
 }
 export function fusionGold(k,target){
@@ -231,7 +234,7 @@ export function fusionPlan(g, k, target, keep = 0) {
   if (!d || d.retired || d.max===1 || !Number.isSafeInteger(target) || target < 2 || d.max && target > d.max) return null;
   let need = 3n ** BigInt(target - 1);
   const consume = [];
-  for (const b of stockRows(g).filter(b => b.k === k && b.lv < target && !b.protected).sort((a,b) => b.lv-a.lv)) {
+  for (const b of stockRows(g).filter(b => b.k === k && !b.soulMemory && b.lv < target && !b.protected).sort((a,b) => b.lv-a.lv)) {
     const unit = 3n ** BigInt(b.lv-1), available = BigInt(b.count) > BigInt(keep) ? BigInt(b.count)-BigInt(keep) : 0n;
     const count = available < need/unit ? available : need/unit;
     if (count) { consume.push({k,lv:b.lv,count:count.toString()}); need -= count*unit; }
@@ -297,7 +300,7 @@ export function bukonItem(it,{legendarySeen=new Set(),specialLevels=null}={}){
 export function migrateBukon(g,items){
  let changed=false;
  const normalize=b=>{const d=bukonDef(b?.k);if(!d)return b;const k=d.replacement||b.k,lv=Math.min(b.lv,bukonDef(k).max||b.lv);return k===b.k&&lv===b.lv?b:{...b,k,lv};};
- for(const [key,n] of Object.entries(g.bukonStock||{})){const [k,l]=key.split(":"),b=normalize({k,lv:Number(l)});if(b.k!==k||b.lv!==Number(l)){delete g.bukonStock[key];stockAdd(g,b,BigInt(n));if(g.bukonProtected?.[key]){delete g.bukonProtected[key];g.bukonProtected[bukonKey(b)]=true;}changed=true;}}
+ for(const [key,n] of Object.entries(g.bukonStock||{})){const [k,l,origin]=key.split(":"),b=normalize({k,lv:Number(l),...(origin==="phantom"?{soulMemory:true}:{})});if(b.k!==k||b.lv!==Number(l)){delete g.bukonStock[key];stockAdd(g,b,BigInt(n));if(g.bukonProtected?.[key]){delete g.bukonProtected[key];g.bukonProtected[bukonKey(b)]=true;}changed=true;}}
  for(const it of new Set(items.filter(Boolean))){if(it.soulMemory||!it.bukon)continue;const keep=[];for(const old of it.bukon){const b=normalize(old);if(b.k!==old.k||b.lv!==old.lv)changed=true;if(bukonFits(it,b)&&keep.length<bukonSlots(it))keep.push(b);else{stockAdd(g,b);changed=true;}}it.bukon=keep;}
  return changed;
 }
@@ -317,10 +320,10 @@ export function snapshotFusionPlan(g, items = [], target = null) {
   let budget=Number.isSafeInteger(g.gold)&&g.gold>=0?BigInt(g.gold):0n, cost=0n;
   const upgrades=[];
   for(const base of rows){
-    if(target && (base.k!==target.k || base.lv!==target.lv || base.it!==target.it || base.it&&base.soul!==target.soul))continue;
+    if(target && (base.k!==target.k || base.lv!==target.lv || !!base.soulMemory!==!!target.soulMemory || base.it!==target.it || base.it&&base.soul!==target.soul))continue;
     const price=fusionGold(base.k,base.lv+1);if(price===null||price>budget||!base.left)continue;
     const unit=3n**BigInt(base.lv-1);
-    const candidates=rows.filter(b=>b!==base&&b.k===base.k&&b.lv<=base.lv&&!b.protected).sort((a,b)=>b.lv-a.lv);
+    const candidates=rows.filter(b=>b!==base&&b.k===base.k&&!!b.soulMemory===!!base.soulMemory&&b.lv<=base.lv&&!b.protected).sort((a,b)=>b.lv-a.lv);
     // 同じ保管行の残りも素材に使える。ロック中の基点は消費しない。
     const available=candidates.reduce((n,b)=>n+b.left*3n**BigInt(b.lv-1),0n);
     let count=base.left;
@@ -333,7 +336,7 @@ export function snapshotFusionPlan(g, items = [], target = null) {
       const value=3n**BigInt(material.lv-1),n=material.left<need/value?material.left:need/value;
       material.left-=n;need-=n*value;
     }
-    upgrades.push({base,count:count.toString(),k:base.k,lv:base.lv+1});cost+=price*count;budget-=price*count;
+    upgrades.push({base,count:count.toString(),k:base.k,lv:base.lv+1,...(base.soulMemory?{soulMemory:true}:{})});cost+=price*count;budget-=price*count;
     if(target)break;
   }
   return upgrades.length?{rows,upgrades,cost}:null;

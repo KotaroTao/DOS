@@ -797,7 +797,7 @@ button.dp-rule:active, .dp-rule-b:active { filter: brightness(1.25); }
 .inf-memory-equipment { margin: 10px 0; border-top: 1px solid #413348; }
 .inf-memory-equipment summary { min-height: 44px; align-content: center; cursor: pointer; font-size: 12px; color: #dbc582; }
 .inf-memory-equipment summary:focus-visible { outline: 2px solid #c9a24a; outline-offset: 2px; }
-.inf-memory-summary { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; margin: 12px 0 8px; }
+.inf-memory-summary { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 6px; margin: 12px 0 8px; }
 .inf-memory-summary > div { display: flex; flex-direction: column; gap: 2px; align-items: center; padding: 9px 4px; border: 1px solid #554263; background: #251b2c; border-radius: 5px; }
 .inf-memory-summary strong { font-size: 24px; color: #ddcbfa; line-height: 1.2; font-variant-numeric: tabular-nums; }
 .inf-memory-summary span { font-size: 11px; color: #d5c6de; text-align: center; }

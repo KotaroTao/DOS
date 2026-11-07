@@ -47,7 +47,7 @@ with sync_playwright() as p:
       const main=soulByUid(G.party[0].primary);main.count=100;main.level=70;main.exp=123;main.capBonus=3;inf.recalcAllDolls();
       const preview=game.infMemoryPreview();
       check(preview.souls.length===7&&!preview.souls.some(s=>s.clsKey===unused),'宿しているメイン魂とサブ魂だけ保存');
-      check(!preview.party[0].items&&preview.party[0].equip.weapon.q===73,'袋は保存せず装備の品質を保存');
+      check(!preview.party[0].items&&preview.inventory.length===2&&preview.party[0].equip.weapon.q===73,'袋を共通の持ち物として保存し装備の品質を保存');
       window.memoryExpected={weaponId,key,unused,home,preview,out};
       inf.openInfRest();
       return out;
@@ -98,9 +98,9 @@ with sync_playwright() as p:
       const G=__game.G,inf=__game.inf,e=memoryExpected,out=[];
       const check=(ok,msg)=>{if(!ok)throw Error(msg);out.push(msg);};
       check(G.floor===51&&G.run.startFloor===51,'実ボタンで51階から開始');
-      check(G.gold===0&&G.soulPts===0&&G.embers===0&&G.inventory.length===0,'資金・残火・袋の品は持ち込まない');
+      check(G.gold===0&&G.soulPts===0&&G.embers===0&&G.inventory.length===e.preview.inventory.length&&G.inventory.every(it=>it.soulMemory),'資金・残火は持ち込まず袋の品を幻として復元');
       check(G.run.souls.length===0&&G.run.embers===0,'新しい戦利品記録で開始');
-      check(G.party.every(d=>d.hp===d.maxhp&&d.mp===d.maxmp&&!d.ailment),'HP・MP全回復・状態異常なし');
+      check(G.party.every((d,i)=>d.hp===e.preview.party[i].hp&&d.mp===e.preview.party[i].mp&&d.ailment===e.preview.party[i].ailment),'HP・MP・状態異常を記録どおり復元');
       check(G.souls.length===7&&G.souls.every(s=>s.first),'開始時のメイン魂とサブ魂は持ち帰り対象外');
       const main=soulByUid(G.party[0].primary);check(main.level===70&&main.exp===123&&main.count===100&&main.capBonus===3,'メイン魂のLv・経験値・融合数・Lv上限を復元');
       check(G.party[0].tactic==='life'&&G.party[0].autoOff.includes('heal')&&G.party[0].subs[0].picked,'作戦と借用設定を復元');

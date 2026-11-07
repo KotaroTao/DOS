@@ -62,7 +62,7 @@ function itemRule() {
 export function openInfMemories(onStart) {
   return sheet.open({ kind: "info", banner: "魂の記憶", title: "記憶した階から挑む", accent: "#8e6fd0", className: "inf-sheet inf-memory-sheet",
     body: b => {
-      b.appendChild(el("div", "inf-note", "記憶した職業・Lv・魂・装備で、次の階から何度でも挑める。HP・MPは全回復。全滅しても記憶は残る。"));
+      b.appendChild(el("div", "inf-note", "記憶した隊・HP・MP・状態異常・イベント効果・武魂・持ち物で、次の階から何度でも挑める。全滅しても記憶は残る。"));
       b.appendChild(memoryRules());
       const memories = game.infMemories();
       if (!memories.length) b.appendChild(el("div", "inf-note dim", "まだ魂の記憶はない。50階ごとの主を討った風だまりで記憶できる。"));
@@ -79,8 +79,8 @@ export function openInfMemories(onStart) {
 function memoryRules() {
   const detail = el("details", "inf-memory-help");
   detail.appendChild(el("summary", null, "記憶するもの・持ち帰りの決まり"));
-  detail.appendChild(el("div", "inf-note dim", "職業・Lv・装着中の装備・メイン魂とサブ魂・借りる技・作戦を記憶する。再開時はHP・MP全回復、状態異常なし。袋の品・宿していない魂・消費アイテム・金貨・✦Soul・残火・一時効果は記憶しない。魂の安定度は通常の入場分を消費する。"));
-  detail.appendChild(el("div", "inf-note dim", "開始時の魂と装備は持ち帰れない。記憶した装備は売値0・鍛え直し不可で、商会にも並ばない。記憶を保存するだけなら、今回の戦利品と現在の傷は変わらない。"));
+  detail.appendChild(el("div", "inf-note dim", "職業・Lv・装備・メイン魂とサブ魂・借りる技・作戦に加え、HP・MP・状態異常、出撃中のイベント効果と残り回数、武魂と保護設定、袋の品もそのまま記憶する。宿していない職業の魂・金貨・✦Soul・残火・安定度・戦闘中だけの効果は記憶しない。魂の安定度は通常の入場分を消費する。"));
+  detail.appendChild(el("div", "inf-note dim", "開始時の職業の魂と「（幻）」の装備・武魂・アイテムは持ち帰れない。幻の装備と品は売値0・鍛え直し不可で、商会にも並ばない。幻の武魂は付け替えても合成しても幻のまま。実物とは合成しない。記憶を保存するだけなら、今回の戦利品と現在の傷は変わらない。"));
   return detail;
 }
 function openInfRecord(onDone) {
@@ -237,7 +237,7 @@ export function openInfRest(spec = {}) {
         kind: "secondary", disabled: !!why, onTap: () => openInfRecord(() => h && !h.closed && h.update({ body: fill })) }));
     }
     if (spec.guardDown) {
-      b.appendChild(el("div", "inf-note dim", "帰れば: 今回拾った魂は ＋1 の素材として本編の魂に加わる (Lv は残らない)。品は商会の棚に並ぶ。残火は拾った数だけ本編へ。金貨・✦Soul・開始時の魂・記憶した装備は残らない。"));
+      b.appendChild(el("div", "inf-note dim", "帰れば: 今回拾った魂は ＋1 の素材として本編の魂に加わる (Lv は残らない)。品は商会の棚に並ぶ。残火は拾った数だけ本編へ。金貨・✦Soul・開始時の職業の魂・幻の装備と武魂とアイテムは残らない。"));
       const next = INF_RULES.filter((r) => r.from > (spec.floor || g.floor) && r.from <= (spec.floor || g.floor) + 5);
       if (next.length) b.appendChild(el("div", "inf-note warn", `この先、風の掟がさらに強まる (「${next.map((r) => r.name).join("」「")}」…)。`));
     }
@@ -248,7 +248,7 @@ export function openInfRest(spec = {}) {
         const run = g.run || {};
         const souls = (run.souls || []).length, embers = Math.max(0, run.embers || 0);
         const ok = await kitConfirm({ banner: "地上へ帰る", title: `B${spec.floor || g.floor}F から地上へ帰る？`,
-          lines: [`この出撃はここで終わる。保存済みの魂の記憶からは、何度でも挑み直せる。`, `持ち帰る: 今回拾った魂 ${souls}つ (＋1 の素材)・品 ${game.infReturnItems().length}点 (商会の棚へ)・残火 ${embers}。`, "金貨・✦Soul・開始時の魂・記憶した装備は残らない。"],
+          lines: [`この出撃はここで終わる。保存済みの魂の記憶からは、何度でも挑み直せる。`, `持ち帰る: 今回拾った魂 ${souls}つ (＋1 の素材)・品 ${game.infReturnItems().length}点 (商会の棚へ)・残火 ${embers}。`, "金貨・✦Soul・開始時の職業の魂・幻の装備と武魂とアイテムは残らない。"],
           okLabel: "帰る", cancelLabel: "まだ帰らない", danger: false });
         if (!ok || x.closed) return;
         closing = true; x.close("ok", { silent: true }); spec.onReturn && spec.onReturn(); } },
@@ -655,7 +655,7 @@ export function openInfWipe(spec = {}) {
   body.appendChild(loss);
   body.appendChild(el("div", "rs-note", `武魂 ${spec.bukon || "0"}個も対象 (装備に宿した分と保管中の分)。`));
   body.appendChild(el("div", "rs-keep", `赤い魂 ${spec.cost} または広告視聴で、拾った魂 (＋1 の素材)・装備と持ち物 (商会の棚へ)・武魂 (商会で保管)・残火を持ち帰れる。装備と武魂は帰還時に商会へ自動で移る。費用は深さによらず同じ。本編の人業は街で無事に待っている。`));
-  body.appendChild(el("div", "rs-note dim", "開始時の魂と記憶した装備は持ち帰れない。保存済みの魂の記憶は、あきらめても消えず、次の挑戦でも使える。"));
+  body.appendChild(el("div", "rs-note dim", "開始時の職業の魂と「（幻）」の装備・武魂・アイテムは持ち帰れない。保存済みの魂の記憶は、あきらめても消えず、次の挑戦でも使える。"));
   // 回収人に売った品は、売った時にもう商会の棚に並んでいる (全滅しても消えない)
   body.appendChild(el("div", spec.sold ? "rs-note gold" : "rs-note dim", spec.sold
     ? `回収人に売った品 ${spec.sold}点は、もう本編の商会の棚に並んでいる。持ち帰らなくても消えない。`
@@ -714,7 +714,7 @@ export function openInfSummary(r = {}) {
         b.appendChild(list);
         b.appendChild(el("div", "inf-note dim", "持ち帰った品は手元には届かず、商会の棚に並ぶ。金貨で買える。"));
       }
-      b.appendChild(el("div", "inf-note dim", "金貨・✦Soul・開始時の魂・記憶した装備は、迷宮へ還った。保存済みの魂の記憶は、次の挑戦でも使える。"));
+      b.appendChild(el("div", "inf-note dim", "金貨・✦Soul・開始時の職業の魂・幻の装備と武魂とアイテムは、迷宮へ還った。保存済みの魂の記憶は、次の挑戦でも使える。"));
     },
     footer: [{ label: "閉じる", kind: "primary", size: "lg", onTap: (h) => { h.close("ok"); if (game.renderTown) game.renderTown(); } }],
   });

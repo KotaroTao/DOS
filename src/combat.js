@@ -4161,7 +4161,7 @@ export class Battle {
     const saved = save > 0 && random() < save;
     if (!saved) owner.items.splice(idx, 1);
     else { this.log(`${actor.name}の空荷の手口！ ${it.name}を消費しなかった`, "heal"); this._proc(actor, "空荷の手口"); }
-    res.action = "spell"; res.item = it; res.spellName = it.name; res.spellElement = null;
+    res.action = "spell"; res.item = it; res.spellName = it.name + (it.soulMemory ? "（幻）" : ""); res.spellElement = null;
     this.log(`${actor.name}は${it.name}を使用${owner !== actor ? `（${owner.name}の袋）` : ""}`, "hit");
     if (u.escape) {
       res.spellKind = "escape";

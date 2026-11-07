@@ -7,6 +7,7 @@ import { SPELLS } from "../combat.js";
 import { tacticOf } from "../autotactics.js";
 import { affixLines } from "../infaffix.js";
 import { crispCanvas } from "../sprites.js";
+import { stockRows, bukonName } from "../bukon.js";
 
 const soulOf = (m, uid) => m?.souls?.find(s => s.uid === uid) || null;
 const skillName = k => SPELLS[k]?.name || k;
@@ -17,7 +18,45 @@ const picksOf = sub => sub?.picks || (sub?.passive ? [{ passive: sub.passive }] 
 const picksState = sub => picksOf(sub).map(p => p.passive ? `p:${p.passive}` : `s:${p.skill}`);
 const subState = (m, sub) => sub ? [soulState(soulOf(m, sub.uid)), picksState(sub), !!sub.picked] : null;
 const gearState = it => it ? [it.id, it.q ?? null, it.forge || 0, !!it.locked,
+  it.depth || 0, !!it.unidentified, !!it.cursed, (it.bukon || []).map(b => [b.k,b.lv,!!b.fusionUnlocked]),
   (it.afx || []).map(a => [a.k, a.v]).sort((a, b) => a[0].localeCompare(b[0]))] : null;
+const healthState = d => [d.hp,d.mp,d.alive,d.ailment,d._poisonPct,d.asleep,d.mind,d._ailN];
+const healthText = d => d.hp == null ? "全回復（旧記憶）" : `HP ${d.hp}/${d.maxhp ?? "?"} ・ MP ${d.mp}/${d.maxmp ?? "?"} ・ ${[{poison:"毒",paralyze:"麻痺",stone:"石化"}[d.ailment] || d.ailment,d.asleep&&"眠り",d.mind&&({charm:"魅了",confuse:"混乱"}[d.mind]||d.mind)].filter(Boolean).join("・") || "状態異常なし"}`;
+function rememberedStock(m) {
+  const by=new Map();
+  for(const b of stockRows({bukonStock:m.bukonStock||{},bukonProtected:m.bukonProtected||{}})){
+    const key=`${b.k}:${b.lv}`,old=by.get(key);
+    by.set(key,{k:b.k,lv:b.lv,count:(BigInt(old?.count||0)+BigInt(b.count)).toString(),protected:!!(old?.protected||b.protected)});
+  }
+  return [...by.values()];
+}
+function cargoContent(m) {
+  const body=el("div");
+  for(const it of m.inventory||[])body.appendChild(gearContent(it));
+  if(!m.inventory?.length)body.appendChild(el("span","inf-memory-muted","なし"));
+  return body;
+}
+function stockContent(m) {
+  const body=el("div"),rows=rememberedStock(m);
+  for(const b of rows)body.appendChild(el("div","inf-memory-small",`${bukonName(b)} ×${BigInt(b.count).toLocaleString()}${b.protected?" ・ ロック中":""}`));
+  if(!rows.length)body.appendChild(el("span","inf-memory-muted","なし"));
+  return body;
+}
+function eventsText(m) {
+  const ev=m.runEv||{},lines=(ev.mods||[]).map(v=>`${v.name}：${v.desc}`);
+  for(const [k,label] of [["crit","会心率"],["preempt","先制の残り回数"],["startHeal","開戦時回復の残り戦闘数"],["bomb","発破の残り回数"],["ambushNext","待ち伏せの残り回数"]])if(ev[k])lines.push(`${label} ${k==="crit"?Math.round(ev[k]*100)+"%":ev[k]}`);
+  if(ev.edef)lines.push(`属性の守り Lv${ev.edef.lv}`);
+  if(ev.ruby)lines.push("呪われた紅玉");
+  if(ev.saves)lines.push(`一度だけ死を免れる加護 ${Object.keys(ev.saves).length}人`);
+  return lines.join(" ・ ")||"なし";
+}
+function eventState(m) {
+  const ev=JSON.parse(JSON.stringify(m.runEv||{mods:[]}));
+  const ids=new Map((m.memberUids||[]).map((uid,i)=>[String(uid),i]));
+  for(const key of ["saves","nextAil"])if(ev[key])ev[key]=Object.entries(ev[key]).map(([uid,v])=>[ids.get(uid)??uid,v]).sort((a,b)=>String(a[0]).localeCompare(String(b[0])));
+  if(ev.ruby)ev.ruby=ids.get(String(ev.ruby))??ev.ruby;
+  return ev;
+}
 const settingState = d => [tacticOf(d).key, d?.skillOrder || [], sorted(d?.skillOff), sorted(d?.autoOff), d?.face ? [d.face.job, d.face.rank] : null];
 
 export function memoryChanges(before, after) {
@@ -27,10 +66,15 @@ export function memoryChanges(before, after) {
     const subs = [0, 1].map(si => !equal(subState(before, old.subs?.[si]), subState(after, d.subs?.[si])));
     const gear = SLOTS.filter(k => !equal(gearState(old.equip?.[k]), gearState(d.equip?.[k])));
     const settings = !equal(settingState(old), settingState(d));
-    return { old, current: d, mainBefore, mainAfter, main, subs, gear, settings,
-      changed: main || subs.some(Boolean) || gear.length > 0 || settings || old.name !== d.name };
+    const health = !equal(healthState(old),healthState(d));
+    return { old, current: d, mainBefore, mainAfter, main, subs, gear, settings, health,
+      changed: main || subs.some(Boolean) || gear.length > 0 || settings || health || old.name !== d.name };
   });
-  return { members, count: members.filter(m => m.changed).length,
+  const inventory=!equal((before.inventory||[]).map(gearState),(after.inventory||[]).map(gearState));
+  const stock=!equal(rememberedStock(before),rememberedStock(after));
+  const events=!equal(eventState(before),eventState(after));
+  const memberCount=members.filter(m=>m.changed).length,extraCount=Number(inventory)+Number(stock)+Number(events);
+  return { members, memberCount, extraCount, inventory, stock, events, count: memberCount+extraCount,
     gear: members.reduce((n, m) => n + m.gear.length, 0),
     souls: members.reduce((n, m) => n + Number(m.main) + m.subs.filter(Boolean).length, 0),
     settings: members.filter(m => m.settings).length };
@@ -87,6 +131,7 @@ export function memoryParty(b, memory) {
     text.appendChild(el("h3", "inf-memory-name", `${i + 1}. ${d.name}`));
     text.appendChild(el("div", "inf-memory-small", `${soulText(soul)} ・ Lv${soul?.level || 1} / 上限${soul ? soulLevelCapOf(soul) : 0}`));
     head.appendChild(text);card.appendChild(head);
+    card.appendChild(el("div","inf-memory-small",healthText(d)));
     for (const [si, sub] of (d.subs || []).entries()) {
       card.appendChild(el("div", "inf-memory-label", `サブ魂${si + 1}`));card.appendChild(subContent(memory, sub));
     }
@@ -101,6 +146,9 @@ export function memoryParty(b, memory) {
     list.appendChild(card);
   }
   b.appendChild(list);
+  b.appendChild(group("持ち物",[cargoContent(memory)]));
+  b.appendChild(group("保管中の武魂",[stockContent(memory)]));
+  b.appendChild(el("div","inf-note",`出撃中のイベント効果：${eventsText(memory)}`));
 }
 
 function comparisonRow(label, before, after, changed, delta = null) {
@@ -125,7 +173,7 @@ function group(title, rows) {
 export function memoryComparison(b, previous, candidate) {
   const diff = memoryChanges(previous, candidate), root = el("div", "inf-memory-comparison");
   const summary = el("div", "inf-memory-summary");
-  for (const [n, label] of [[diff.count, "人に変更"], [diff.souls, "魂の変更"], [diff.gear, "部位の装備変更"]]) {
+  for (const [n, label] of [[diff.memberCount, "人に変更"], [diff.souls, "魂の変更"], [diff.gear, "部位の装備変更"], [diff.extraCount,"所持品・出来事の変更"]]) {
     const chip = el("div");chip.appendChild(el("strong", null, n));chip.appendChild(el("span", null, label));summary.appendChild(chip);
   }
   root.appendChild(summary);
@@ -162,6 +210,7 @@ export function memoryComparison(b, previous, candidate) {
     }
     rows.unshift(comparisonRow("器の名", old.name, current.name, old.name !== current.name));
     card.appendChild(group("メイン魂", rows));
+    card.appendChild(group("HP・MP・状態異常",[comparisonRow("現在の状態",healthText(old),healthText(current),member.health)]));
     card.appendChild(group("サブ魂と借りる技", [0, 1].map(si => comparisonRow(`サブ魂${si + 1}`,
       subContent(previous, old.subs?.[si]), subContent(candidate, current.subs?.[si]), member.subs[si]))));
     card.appendChild(group("装備", SLOTS.map(k => {
@@ -182,6 +231,10 @@ export function memoryComparison(b, previous, candidate) {
     settings.push(comparisonRow("面影", faceText(old.face), faceText(current.face), !equal(old.face || null, current.face || null)));
     card.appendChild(group("作戦と技の設定", settings));root.appendChild(card);
   }
+  root.appendChild(group("隊の持ち物・武魂・イベント効果",[
+    comparisonRow("持ち物",cargoContent(previous),cargoContent(candidate),diff.inventory),
+    comparisonRow("保管中の武魂",stockContent(previous),stockContent(candidate),diff.stock),
+    comparisonRow("イベント効果",eventsText(previous),eventsText(candidate),diff.events)]));
   b.appendChild(root);
   return diff;
 }
