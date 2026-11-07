@@ -67,6 +67,7 @@ const ASSETS = [
   "./src/cloud-command-replay.js",
   "./src/cloud-change.js",
   "./src/branding.js",
+  "./src/touch-zoom.js",
   "./art/branding/dead-sea-games.webp",
   "./src/photoload.js",
   "./src/local-save.js",
