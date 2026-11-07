@@ -10,10 +10,11 @@ import { ELEMENT_KEYS, elementValues, elementDefenseReduction, procChance } from
 //   ・性能が全く同じ品は同じ値段
 //   ・同じ部位で、どの能力も同等以上 (かつどこかが上) の品は必ず高い
 // が成り立つ。値段はレア度では上乗せしない (レアは性能が高いぶん高くなる)。
-// % 補正・戦闘効果は固定の基準点に深度倍率を掛ける。効果の割合自体は伸ばさない。
+// % 補正・戦闘効果は固定の基準点に世代の伸びを掛ける。効果の割合自体は伸ばさない。
+// 世代 (src/itemgen.js) の品は、通しLv200 より先を1戦の金貨に比例する曲線で値付けする (docs/item-generations.md 9-2)。
 
 // 能力値 1 あたりの性能点。部位をまたいで共通 (どの部位でも ATK+1 と VIT+1 は同じ重み)
-import { itemDepthMul } from "./itemdepth.js";
+import { STANDARD_PERF, genOf, genScale, genPriceRatio } from "./itemgen.js";
 import { onHitEffects } from "./resistance.js";
 
 const STAT_W = { atk: 1, vit: 1, agi: 1, int: 0.7, pie: 0.7, luk: 0.6, hp: 0.15, mp: 0.25 };
@@ -21,16 +22,8 @@ const STAT_W = { atk: 1, vit: 1, agi: 1, int: 0.7, pie: 0.7, luk: 0.6, hp: 0.15,
 // 従来の価格曲線 (catalog/defs.js の priceOf と同じ)
 const priceOfLv = (lv) => 10 + lv * lv * 0.30 + lv * 5;
 
-// 部位ごとの標準品 (ビルダー既定値) の性能点。lv の単調増加関数
-const REF = {
-  weapon: (lv) => 2 + lv * 0.82 + lv * lv * 0.0026,                                  // 長剣 (片手) の ATK
-  shield: (lv) => 2 + lv * 0.16 + lv * lv * 0.0014,                                  // 盾の VIT
-  body: (lv) => 3 + lv * 0.22 + lv * lv * 0.0014,                                    // 重鎧の VIT
-  head: (lv) => 1 + lv * 0.10 + lv * lv * 0.0012,                                    // 兜の VIT
-  feet: (lv) => (1 + lv * 0.09 + lv * lv * 0.0010) + (0.6 + lv * 0.085),             // 革靴の VIT + AGI
-  hands: (lv) => (0.8 + lv * 0.16 + lv * lv * 0.0006) + lv * 0.05,                   // 籠手の ATK + VIT
-  acc: (lv) => 0.17 * (2 + lv * 0.82 + lv * lv * 0.0026),                            // 標準の腕輪・護符
-};
+// 部位ごとの標準品 (ビルダー既定値) の性能点。lv の単調増加関数 (src/itemgen.js と共通)
+const REF = STANDARD_PERF;
 
 // % 補正・戦闘効果の点 (装飾品の物差し)。部位ごとの標準品の大きさに合わせて SLOT_SCALE 倍する
 const EFF_PTS = {
@@ -89,13 +82,15 @@ export function equipScore(it) {
   const rank = Math.max(1, Math.min(20, Math.ceil((it.lv || 1) / 10)));
   const critical = 100 * ((it.crit || 0) + (it.spellCrit || 0)) + 20 * ((it.critDamage || 0) + (it.spellCritDamage || 0));
   const criticalBase = Math.max(3, 1.2 * rank + 0.13 * rank * rank) / 25;
-  return (s > 0 ? s * featureMul(it) : s) + (effScore(it) + critical * criticalBase) * itemDepthMul(it);
+  return (s > 0 ? s * featureMul(it) : s) + (effScore(it) + critical * criticalBase) * genScale(it.lv, genOf(it));
 }
 
-// 性能点 → 値段。標準品の二次式を逆算し、深度の上限を設けず priceOf(lv) を返す
-export function priceForScore(slot, score) {
+// 性能点 → 値段。標準品の二次式を逆算し priceOf(lv) を返す。
+// 第2世代以上 (gen ≥ 2) で標準品の Lv200 を越える性能は、1戦の金貨に比例する曲線 (200 でつながる)
+export function priceForScore(slot, score, gen = 1) {
   const ref = REF[slot];
   if (!ref) return null;
+  if (gen > 1 && score > ref(200)) return Math.max(1, Math.round(priceOfLv(200) * genPriceRatio(slot, score)));
   const r0 = ref(0);
   if (score <= r0) return Math.max(1, Math.round(priceOfLv(0) * Math.max(0, score) / r0));
   const c = ref(0), a = (ref(2) - 2 * ref(1) + c) / 2, b = ref(1) - c - a;
@@ -107,7 +102,7 @@ export function priceForScore(slot, score) {
 // 装備の値段。装備でない品・値段 0 の品 (呪いの品など) は null (= 変更しない)
 export function equipPrice(it) {
   if (!it || !REF[it.slot] || it.price === 0) return null;
-  const p = priceForScore(it.slot, it.equipPts ?? equipScore(it));
+  const p = priceForScore(it.slot, it.equipPts ?? equipScore(it), genOf(it));
   return p == null ? null : Math.max(1, p);
 }
 

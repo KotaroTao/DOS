@@ -43,9 +43,9 @@ import { bagCount, isFormationItem,
   UNIDENT_SLOTS, itemName, applyForge, hasQuality, applyQuality, rollQuality, qualityMatters, itemAtQuality, QUALITY_MID, useWhere, useTarget, useHelps, useLines, useCureKinds, compareUse,
 } from "./items.js";
 import { equipLevelFor, LR_UNLOCK, LOOT_R_HEADROOM } from "./equiplevel.js";
-import { applyItemDepth } from "./itemdepth.js";
+import { applyGen, genOf, genForCap, genForLegacyDepth, innerOfTotalR, genOfTotalR, GEN_R_SPAN } from "./itemgen.js";
 import * as bukon from "./bukon.js";
-import { applyAffixes, gearPerks, affixPower, affixLines, AFX_TIERS, afxDef, pageFromAffix, pageValue, pageText, enchantAffixes, enchantChange, enchantRoom, enchantBlock, ENCHANT_TIER_COST } from "./infaffix.js";
+import { applyAffixes, gearPerks, affixPower, affixLines, AFX_TIERS, afxDef, pageFromAffix, pageValue, pageText, enchantAffixes, enchantChange, enchantRoom, enchantBlock, ENCHANT_TIER_COST, pageGen } from "./infaffix.js";
 import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, permanentEventStats, eligibleEvents, pickEvent, onceKey, runEvent, eventFightWon } from "./events.js";
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { pickTavernCrowd, TALK_MAP } from "./tavern.js";
@@ -236,14 +236,18 @@ function pickItemByLv(center) {
 // 補正で中心を押し上げる: ミミック +1 / マスターミミック +2 / 特別階 +1 / 強敵 +2 /
 // レア枠 +2 / 宝箱ランク(1-5) +0〜2 / 迷宮の異変。補正は重複加算するが、中心も窓も出現上限 (lootCapR) で頭打ち。
 // 追加迷宮・無限迷宮 (奈落) も cfg.lootLv を持たせるだけで同じ基準に乗る。
+// 装備の世代 (docs/item-generations.md 5-2): 帯・基準R・出現上限は「通しLv / 通しR」(世代 × 200 + 隠しLv) で数え、
+// 20 で頭打ちにしない。品の顔ぶれは世代の中のランク (innerOfTotalR) で引き、世代は拾った時に出現上限から決める (lootGenFor)
 function lootBaseR() {
   const band = activeCfg().lootLv || [1, 10];
-  return Math.max(1, Math.min(20, Math.ceil(band[1] / 10)));
+  return Math.max(1, Math.ceil(band[1] / 10));
 }
 // 出現上限: どんな補正を重ねても、装備は「基準R + LOOT_R_HEADROOM」を超えない。
 // 補正 (強敵・宝箱ランク・ミミック・特別階…) は上限の内側で上位の品を出やすくするだけで、
 // 層の敵を一足飛びに追い越す装備は出さない (第1層なら最大 R3 = 隠しLv30)
-function lootCapR() { return Math.min(20, lootBaseR() + LOOT_R_HEADROOM); }
+function lootCapR() { return lootBaseR() + LOOT_R_HEADROOM; }
+// 拾った装備の世代: 出現上限を越えない一番上の世代 (第1世代の帯の迷宮ではいつも 1)
+function lootGenFor(it) { return genForCap(Math.max(1, Math.min(GEN_R_SPAN, it.r20 || Math.ceil((it.lv || 1) / 10))), lootCapR()); }
 
 let _itemsByR = null;
 let _miscLootIds = null;
@@ -265,13 +269,17 @@ const MISC_LOOT_WEIGHT = 0.5; // 装備のランク窓に対する収集品1点�
 // 中心ランク centerR の ±2 から1つ抽選 (中心ほど出やすい)。窓内が空なら最寄りへ広げる
 function pickItemByR(centerR, capR = 20) {
   const idx = itemsByR();
-  centerR = Math.max(1, Math.min(20, Math.round(centerR)));
-  capR = Math.max(centerR, Math.min(20, capR));
+  centerR = Math.max(1, Math.round(centerR));
+  capR = Math.max(centerR, capR);
   let total = 0; const acc = [];
+  const seen = new Set();
   const gather = (lo, hi, weighted) => {
     for (let r = lo; r <= hi; r++) {
       const w = weighted ? Math.max(1, 3 - Math.abs(r - centerR)) : 1;
-      for (const id of idx[r]) { total += w; acc.push([id, total]); }
+      const inner = innerOfTotalR(r);
+      if (!weighted && seen.has(inner)) continue;
+      seen.add(inner);
+      for (const id of idx[inner]) { total += w; acc.push([id, total]); }
     }
   };
   gather(Math.max(1, centerR - 2), Math.min(capR, centerR + 2), true);
@@ -342,7 +350,7 @@ function pickOfRarity(rar, centerR, capR = 20) {
     let total = 0; const acc = [];
     for (let r = Math.max(1, centerR - span); r <= Math.min(capR, centerR + span); r++) {
       const w = Math.max(1, 3 - Math.abs(r - centerR));
-      for (const id of idx[r]) {
+      for (const id of idx[innerOfTotalR(r)]) {
         if ((ITEMS[id].layer || 0) > L) continue;
         const fj = ITEMS[id].forJob; // 職業専用装備は編成にいる職を強く優先
         // 編成の誰かが装備できる品を出やすくする (使えない新品ばかり拾わないように)
@@ -369,6 +377,8 @@ function useLootIds() {
   return _useLootIds;
 }
 function pickUseItem(centerR, capR = lootCapR()) {
+  // 道具に世代は無いので、ランクは 20 までで数える
+  centerR = Math.min(20, centerR); capR = Math.min(20, capR);
   let total = 0; const acc = [];
   for (const id of useLootIds()) {
     const it = ITEMS[id];
@@ -436,7 +446,7 @@ function lrPool() {
   return Object.keys(ITEMS).filter((id) => {
     const it = ITEMS[id];
     if (it.rar !== "lr") return false;
-    if (it.layer || it.lr < 5) return (it.layer || it.lr) <= L && (it.lv || 1) <= capLv;
+    if (it.layer || it.lr < 5) return (it.layer || it.lr) <= L && ((it.lv || 1) <= capLv || capLv > 200);
     return lv >= (LR_UNLOCK[it.lr] || 40);
   });
 }
@@ -465,7 +475,7 @@ function lootLvAt() {
   let c = band[0] + (band[1] - band[0]) * t;
   if (random() < 0.05) c += 12; // まれな大当たり: ワンランク上の帯から出る
   c += mutNum("lootBonusLv", 0); // 迷宮の異変 (深淵の脈動): 装備の質が上がる
-  return Math.min(200, c);
+  return c; // 通しLv (200 で頭打ちにしない)
 }
 
 // ===== モンスターの戦利品 =====
@@ -550,7 +560,7 @@ const G = {
   reserve: [],        // 酒場で待機中の人業
   // 魂は1体ごとに固有のインスタンス (本体は魂、人業は器)。同職でも個別に Lv/ランクを持つ。
   souls: [],          // 所持魂 一覧: [{ uid, clsKey, count(吸収数→ランク), level, exp }]
-  shopAfxDepth: null, // 商会に残す深度品の入手階 (追加の組は shopAfx)
+  shopGen: null, // 商会の棚の世代 (品の種類ごとに1つ。docs/item-generations.md 10)
   shopStock: null,    // 商会の在庫 { itemId: 個数 } (初回 setupNewGame で初期化)
   run: null,          // 今回の出撃で得た戦利品 { gold, soulPts, items:[{owner,item}], souls:[] }
   town: { facility: null, sub: null, tab: "hub", page: null }, // 街UIの現在地 (tab: 下のタブ / page: タブの1段下 / facility・sub: 旧画面アダプタ用)
@@ -1287,10 +1297,15 @@ function infSellPlan() {
     list.push({ doll, item, price: sellPrice(item) });
   }
   const by = new Map(), shelf = shopAfxState();
+  // 棚にそろう世代 = 棚と売る品の一番上の世代。それより下の世代の品は棚に並ばないので比べない (docs/item-generations.md 10)
+  const topGen = new Map();
+  for (const { item } of list) if (ITEMS[item.id] && hasQuality(item)) topGen.set(item.id, Math.max(topGen.get(item.id) || shopGenOf(item.id), genOf(item)));
   for (const { item } of list) {
-    if ((!item.afx?.length && !(item.depth > 200)) || !ITEMS[item.id]) continue;
-    if (!by.has(item.id)) by.set(item.id, shelf[item.id] ? [{ afx: shelf[item.id], depth: G.shopAfxDepth[item.id] || 0, current: true }] : []);
-    by.get(item.id).push({ afx: item.afx || [], depth: item.depth || 0, item, current: false });
+    if (!item.afx?.length || !ITEMS[item.id]) continue;
+    const g = topGen.get(item.id) || 1;
+    if (genOf(item) < g) continue;
+    if (!by.has(item.id)) by.set(item.id, shelf[item.id] ? [{ afx: shelf[item.id], gen: g, current: true }] : []);
+    by.get(item.id).push({ afx: item.afx || [], gen: g, item, current: false });
   }
   const conflicts = [...by].filter(([, sets]) => sets.length > 1).map(([id, sets]) => {
     const powers = sets.map((s) => shelfPower(ITEMS[id], s));
@@ -1300,7 +1315,7 @@ function infSellPlan() {
   // 比較相手がない品も含め、確認した時点の品質・追加の能力・棚を値として残す。
   // item は実体への参照なので、conflicts の比較だけでは後からの変更を見逃す。
   const snapshot = JSON.stringify(list.map(({ item }) => ({ id: item.id, q: item.q,
-    depth: item.depth || 0, shelfDepth: G.shopAfxDepth[item.id] || 0, afx: item.afx || [], shelf: shelf[item.id] || [] })));
+    gen: genOf(item), shelfGen: shopGenOf(item.id), afx: item.afx || [], shelf: shelf[item.id] || [] })));
   return { list, conflicts, snapshot, gold: list.reduce((n, x) => n + x.price, 0) };
 }
 function infSellAll(plan, choice = {}) {
@@ -13717,7 +13732,7 @@ function equipSoulToSlot(d, uid, slotId = "primary", done = null) {
     if (bad.length) {
       const free = MAX_ITEMS - bagCount(d.items);
       const names = bad.map((b) => {
-        const need = equipLevelOf(b.item);
+        const need = equipLevelOf(b.item, 1);
         return `・${b.item.name}（${SLOT_LABEL[b.key] || b.key}${(newMain.level || 1) < need ? `・Lv${need}から` : ""}）`;
       });
       if (bagCount(bad.map(b => b.item)) > free) {
@@ -15643,10 +15658,11 @@ const FEATURES = {
   mutators: { chapter: 6, report: "finale" },
   infinite100: { chapter: 7, report: "finale" },
   infinite150: { chapter: 10, report: "finale" },
-  infinite200: { chapter: 12, report: "finale" },
-  infinite250: { chapter: 14, report: "finale" },
-  infinite300: { chapter: 16, report: "finale" },
-  infiniteDeep: { chapter: 18, report: "finale" },
+  // 旧来の 200/250/300 階の段は廃止 (保存 ID の互換のためキーは残す)。深部への道は第十一章の結び (docs/item-generations.md 3-1)
+  infinite200: { retired: true, chapter: 12, report: "finale" },
+  infinite250: { retired: true, chapter: 14, report: "finale" },
+  infinite300: { retired: true, chapter: 16, report: "finale" },
+  infiniteDeep: { chapter: 11, report: "finale" },
   tavern: { chapter: 1, report: 2 },        // 第一章の本筋2か所の報告で、依頼と情報屋の噂が一緒に開く
   soulChange: { chapter: 1, dungeon: "w02" }, // 旧解放条件の記録。現在は新職業の魂を持ち帰り、館の手ほどきで解放
   fusion: { chapter: 1, soulTutorial: true }, // 魂融合の手ほどきの案内と同時に解放
@@ -16671,9 +16687,30 @@ const SHOP_INIT_STOCK = {
   woodShield: 1, leatherArmor: 1, robe: 1, cap: 2, leatherBoots: 2, leatherGloves: 2,
 };
 // 売られた品を棚に積む (上限 SHOP_STOCK_MAX。上限に達した品は引き取るが棚には増えない)
-function shopStockAdd(id) {
-  if (!id) return;
-  G.shopStock[id] = Math.min(SHOP_STOCK_MAX, (G.shopStock[id] || 0) + 1);
+// 装備の世代 (docs/item-generations.md 10-2): 棚の行は品の種類ごとに1行のまま、種類ごとに世代を1つ持つ。
+// 棚より上の世代の品が来ると、その種類の在庫はすべてその世代にそろう (数は合算)。
+// 棚より下の世代の品は金貨だけを払い、棚には加えない (false を返す)
+function shopGenState() { if (!G.shopGen || typeof G.shopGen !== "object") G.shopGen = {}; return G.shopGen; }
+function shopGenOf(id) { return (G.shopStock[id] || 0) > 0 ? Math.max(1, Math.floor(shopGenState()[id] || 1)) : 1; }
+function shopStockAdd(id, gen = 1) {
+  if (!id) return false;
+  const cur = G.shopStock[id] || 0, g = Math.max(1, Math.floor(gen) || 1), st = shopGenState();
+  if (cur > 0 && g < shopGenOf(id)) return false;
+  if (cur <= 0 || g > shopGenOf(id)) { if (g > 1) st[id] = g; else delete st[id]; }
+  G.shopStock[id] = Math.min(SHOP_STOCK_MAX, cur + 1);
+  return true;
+}
+// 棚に並ぶ通常品の見本 (並品・棚の世代)。第1世代は目録の品そのもの
+const _shelfItems = new Map();
+function shopShelfItem(id) {
+  const tmpl = ITEMS[id];
+  if (!tmpl) return null;
+  const g = hasQuality(tmpl) ? shopGenOf(id) : 1;
+  if (g <= 1) return tmpl;
+  const key = `${id}|${g}`;
+  let it = _shelfItems.get(key);
+  if (!it) { it = cloneItem(id, QUALITY_MID); it.gen = g; resyncItem(it); _shelfItems.set(key, it); }
+  return it;
 }
 // ---- 追加つきの品と商会の棚 (docs/infinite-labyrinth.md 17-1) ----
 // 商会は1つの品 (id) につき、追加の能力・特性の組を1つだけ覚えておける (G.shopAfx[id])。棚では「追加つき1点 + 通常品 N 点」。
@@ -16681,7 +16718,7 @@ function shopStockAdd(id) {
 // 残さなかった組の品は通常品として在庫に入る (在庫の数は売った時点で数えてある)
 function shopAfxState() {
   if (!G.shopAfx || typeof G.shopAfx !== "object") G.shopAfx = {};
-  if (!G.shopAfxDepth || typeof G.shopAfxDepth !== "object") G.shopAfxDepth = {};
+  shopGenState();
   if (!Array.isArray(G.shopAfxPending)) G.shopAfxPending = [];
   return G.shopAfx;
 }
@@ -16691,27 +16728,30 @@ function shopAfxState() {
 function shopReceive(it, keep = null) {
   if (it && !it.soulMemory) bukon.recoverBukon(G, it);
   if (!it || !it.id || it.unidentified || it.soulMemory) return;
-  shopStockAdd(it.id);
-  if (!it.afx?.length && !(it.depth > 200)) return;
-  const st = shopAfxState(), depth = it.depth || 0;
+  if (!shopStockAdd(it.id, hasQuality(it) ? genOf(it) : 1)) return; // 棚より下の世代は棚に加えない
+  if (!it.afx?.length) return;
+  const st = shopAfxState();
   const afx = (it.afx || []).map((a) => ({ ...a }));
-  if (!st[it.id] || keep === "new") { st[it.id] = afx; G.shopAfxDepth[it.id] = depth; }
-  else if (keep !== "shelf") G.shopAfxPending.push({ id: it.id, afx, depth });
+  if (!st[it.id] || keep === "new") st[it.id] = afx;
+  else if (keep !== "shelf") G.shopAfxPending.push({ id: it.id, afx });
 }
 // 売ろうとしている品と、商会の棚の追加つきの1点がぶつかるか (同じ品に別の組)。ぶつかれば両方の組を返す (afxConflicts と同じ形)
+// 追加の組の強さ・説明は、棚にそろう世代 (gen) で比べる (docs/item-generations.md 10-3)
 function shelfPower(tmpl, set) {
-  const it = itemAtQuality({ ...tmpl, depth: set.depth || 0, q: QUALITY_MID, afx: [] }, QUALITY_MID);
+  const it = itemAtQuality({ ...tmpl, q: QUALITY_MID, afx: [] }, QUALITY_MID, set.gen || 1);
   return Math.round((equipScore(it) + affixPower(it, set.afx)) * 10) / 10;
 }
 function shelfLines(tmpl, set) {
-  return [...(set.depth ? [`無限迷宮 B${set.depth}Fの品`] : []), ...affixLines({ ...tmpl, depth: set.depth || 0 }, set.afx)];
+  return [...((set.gen || 1) > 1 ? [`第${set.gen}世代の品`] : []), ...affixLines({ ...tmpl, gen: set.gen || 1 }, set.afx)];
 }
 function shopAfxClash(it) {
-  if (!it || !it.id || it.unidentified || it.soulMemory || (!it.afx?.length && !(it.depth > 200)) || !ITEMS[it.id]) return null;
+  if (!it || !it.id || it.unidentified || it.soulMemory || !it.afx?.length || !ITEMS[it.id]) return null;
   const cur = shopAfxState()[it.id];
   if (!cur) return null;
+  const ig = genOf(it), sg = shopGenOf(it.id);
+  if (ig < sg) return null; // 棚より下の世代は棚に並ばないので、ぶつからない
   const tmpl = ITEMS[it.id];
-  const sets = [{ afx: cur, depth: G.shopAfxDepth[it.id] || 0 }, { afx: it.afx || [], depth: it.depth || 0 }].map((s, i) => ({ ...s,
+  const sets = [{ afx: cur, gen: ig }, { afx: it.afx || [], gen: ig }].map((s, i) => ({ ...s,
     lines: shelfLines(tmpl, s), power: shelfPower(tmpl, s), current: i === 0 }));
   return { id: it.id, name: tmpl.name, sets, best: sets[1].power > sets[0].power ? 1 : 0 };
 }
@@ -16722,7 +16762,7 @@ function shopAfxItem(id) {
   const it = cloneItem(id, QUALITY_MID);
   if (!it) return null;
   it.afx = afx.map((a) => ({ ...a }));
-  it.depth = G.shopAfxDepth[id] || 0;
+  if (shopGenOf(id) > 1) it.gen = shopGenOf(id);
   resyncItem(it);
   return it;
 }
@@ -16739,7 +16779,6 @@ function buyAffixed(id, who) {
   G.gold -= price;
   G.shopStock[id]--;
   delete G.shopAfx[id];
-  delete G.shopAfxDepth[id];
   who.items.push(it);
   codexSeeItem(id, it);
   SFX.itemget(); buzz(10);
@@ -16753,8 +16792,8 @@ function afxConflicts() {
   const by = new Map();
   for (const p of G.shopAfxPending) {
     if (!ITEMS[p.id]) continue;
-    if (!by.has(p.id)) by.set(p.id, [{ afx: G.shopAfx[p.id] || [], depth: G.shopAfxDepth[p.id] || 0 }]);
-    by.get(p.id).push({ afx: p.afx, depth: p.depth || 0 });
+    if (!by.has(p.id)) by.set(p.id, [{ afx: G.shopAfx[p.id] || [], gen: shopGenOf(p.id) }]);
+    by.get(p.id).push({ afx: p.afx, gen: shopGenOf(p.id) });
   }
   return [...by.entries()].map(([id, sets]) => {
     const tmpl = ITEMS[id];
@@ -16768,7 +16807,7 @@ function resolveAfxConflicts(choice = {}) {
   for (const c of afxConflicts()) {
     const i = choice[c.id] != null ? choice[c.id] : c.best;
     const pick = c.sets[i];
-    if (pick?.afx) { G.shopAfx[c.id] = pick.afx.map((a) => ({ ...a })); G.shopAfxDepth[c.id] = pick.depth || 0; }
+    if (pick?.afx) G.shopAfx[c.id] = pick.afx.map((a) => ({ ...a }));
   }
   G.shopAfxPending = [];
   autosave(true);
@@ -16851,7 +16890,7 @@ function sellItem(owner, it, price, afxKeep = null, quiet = false) {
 // 棚の品を買う。who = 買った品を持たせる人業 (省略時は袋に空きのある最初の生きている隊員)。
 // 値段・在庫・所持枠の判定は従来と同じ。買った品 (の写し) を返す。買えなければ null
 function buyItem(id, price, who) {
-  price = buyPrice(ITEMS[id]);
+  price = buyPrice(shopShelfItem(id) || ITEMS[id]);
   if (G.gold < price) { log("お金が足りない。", "sys"); SFX.ng(); return null; }
   if (shopPlainStock(id) <= 0) { log("在庫切れだ。", "sys"); SFX.ng(); return null; } // 追加つきの1点は buyAffixed で
   if (!who) who = G.party.find((m) => m.alive && bagCount(m.items) < MAX_ITEMS) || null;
@@ -16859,6 +16898,7 @@ function buyItem(id, price, who) {
   if (bagCount(who.items) >= MAX_ITEMS) { log(`${who.name} の所持品がいっぱいだ。`, "sys"); SFX.ng(); return null; }
   const it = cloneItem(id, QUALITY_MID); // 商会の棚の品は並品 (品質50)。売った品も並品として棚に戻る
   if (!it) return null;
+  if (hasQuality(it) && shopGenOf(id) > 1) { it.gen = shopGenOf(id); resyncItem(it); } // 棚の世代の品が届く
   G.gold -= price;
   G.shopStock[id]--;
   who.items.push(it);
@@ -16875,7 +16915,11 @@ function buyItem(id, price, who) {
 // 結果を見て「新しい品質にする / 元のまま」を選べる。金貨は引くたびにかかり、元のままを選んでも戻らない。
 // 費用 = その品の買値 (売値の2倍。レア度の倍率込み — 深い品・LR ほど高い)。品質に依らず品の種類で決まる
 const REFORGE_MIN_COST = 100;
-function reforgeCost(it) { return Math.max(REFORGE_MIN_COST, buyPrice(it && it.afx ? it : (ITEMS[it && it.id] || it))); } // 追加つきの品は追加の分だけ高い
+// 追加つきの品は追加の分だけ高い。世代の品は本来の世代の値段 (docs/item-generations.md 9-1)
+function reforgeCost(it) {
+  const base = it && it.afx ? it : it && genOf(it) > 1 && ITEMS[it.id] ? itemAtQuality({ ...it, afx: [], forge: 0 }, QUALITY_MID) : (ITEMS[it && it.id] || it);
+  return Math.max(REFORGE_MIN_COST, buyPrice(base));
+}
 // 鍛え直せない理由 (無ければ null)。{ gold: false } で所持金を見ない (ボタンを出すかどうかの判定)
 function reforgeBlock(owner, it, { gold = true } = {}) {
   if (it?.soulMemory) return "魂の記憶から持ち込んだ装備は鍛え直せない";
@@ -17016,7 +17060,7 @@ function extractBlock(src, { gold = true } = {}) {
   if (src.shelf) {
     const live = shopAfxItem(src.it.id);
     if (!live) return "その追加つきの品は売り切れた";
-    if (JSON.stringify(live.afx) !== JSON.stringify(src.it.afx) || (live.depth || 0) !== (src.it.depth || 0)) return "棚の品が変わった。選び直してください";
+    if (JSON.stringify(live.afx) !== JSON.stringify(src.it.afx) || genOf(live) !== genOf(src.it)) return "棚の品が変わった。選び直してください";
     return gold && G.gold < buyPrice(live) ? "金貨が足りない" : null;
   }
   const holder = itemHolder(src.it);
@@ -17039,7 +17083,7 @@ function extractAffix(src, idx) {
     G.gold -= price;
     G.shopStock[it.id] = Math.max(0, (G.shopStock[it.id] || 0) - 1);
     delete shopAfxState()[it.id];
-    delete G.shopAfxDepth[it.id];
+
     log(`商会の棚の ${itemName(it)} を買い取り (−💰${price})、特性を写し取った。`, "sys");
   } else {
     const bag = G.inventory || [];
@@ -18633,8 +18677,10 @@ function markDungeonLoot(it) {
   if (it && UNIDENT_SLOTS.has(it.slot) && !(tr && tr.appraised) && !abyssActive()) it.unidentified = true; // 無限迷宮の品は鑑定済みで落ちる
   const chapter5 = CHAPTERS.find(c => c.no === 3);
   const laterDungeon = inDungeon() && curDungeon().layer > worldById(chapter5.finale).layer;
-  if (it && abyssActive() && hasQuality(it) && !it.depth && !it.cursed && it.price > 0) {
-    it.depth = Math.max(1, Math.floor(G.floor || 1)); resyncItem(it);
+  // 装備の世代 (docs/item-generations.md 5-2): 本編・無限迷宮とも、迷宮の推奨Lv の出現上限に見合う世代で拾う
+  if (it && inDungeon() && hasQuality(it) && it.gen == null && !it.cursed && it.price > 0 && !it.soulMemory) {
+    const g = lootGenFor(it);
+    if (g > 1) { it.gen = g; resyncItem(it); }
   }
   if (it && (abyssActive() || laterDungeon) && !it.bukon && hasQuality(it)) {
     it.bukon = [];
@@ -19171,7 +19217,7 @@ const SAVE_KEY = localSaveKey(SAVE_SLOT); // v7 = 迷宮の台帳 (選んで潜�
 const SAVE_FIELDS = [
   "apprenticeName",
   "rng", "_townMutator", "pendingPickups", "pendingDanger", "pendingResults", "pendingTreasury", "pendingCursedChest",
-  "shopAfx", "shopAfxDepth", "shopAfxPending", "afxPages", "bukonStock", "bukonProtected", "bukonGift",
+  "shopAfx", "shopGen", "shopAfxPending", "afxPages", "bukonStock", "bukonProtected", "bukonGift",
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound", "abyss", "abyssRec",
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "stabilityBriefed", "pendingDoll",
   "formations", "inventory", "party", "reserve", "souls", "shopStock", "run", "town",
@@ -19290,18 +19336,42 @@ const ITEM_TMPL_KEYS = ["name", "desc", "slot", "lv", "rank", "r20", "rar", "lr"
 function resyncItem(it) {
   const tmpl = it && ITEMS[it.id];
   if (!tmpl) return;
+  migrateItemGen(it);
   delete it.pct;
   delete it.equipPts;
   delete it.afxCritBase;
   for (const k of ITEM_STAT_KEYS) { if (tmpl[k] != null) it[k] = tmpl[k]; else delete it[k]; }
   for (const k of ITEM_TMPL_KEYS) { if (tmpl[k] !== undefined) it[k] = tmpl[k]; else delete it[k]; }
   if (hasQuality(it)) { if (it.q == null) it.q = QUALITY_MID; applyQuality(it); } else delete it.q; // 品質を入れる前の品は並品 (50)
-  applyItemDepth(it);
+  if (!hasQuality(it) || genOf(it) <= 1) delete it.gen;
+  applyGen(it); // 世代は品質の後・追加特性の前 (docs/item-generations.md 6-4)
   const price = equipPrice(it);
   if (price != null) it.price = price;
   it.equipPts = equipScore(it);
   if (it.afx) applyAffixes(it); // 無限迷宮の追加の能力・特性は品質の後 (src/infaffix.js)
   if (it.forge) applyForge(it); // ＋N の段は品質の後に掛け直す
+}
+// 旧セーブの深度品 (無限迷宮の B201F 以深で拾った品) を、旧来の深度補正の性能を下回らない世代へ一度だけ移す。
+// it.gen が入れば移し替え済み。入手階 it.depth は記録として残し、性能には使わない (docs/item-generations.md 4-2)
+function migrateItemGen(it) {
+  if (!it || it.gen != null || !(it.depth > 200) || !hasQuality(it)) return;
+  const g = genForLegacyDepth(it.slot, it.lv || ITEMS[it.id]?.lv || 1, it.depth);
+  if (g > 1) it.gen = g;
+}
+// 旧記録の商会の深度の棚: 追加つきの1点の入手階を、その品の世代へ置き換えてから捨てる
+function migrateShopGen(snap) {
+  if (!G.shopGen || typeof G.shopGen !== "object") G.shopGen = {};
+  const old = snap && snap.shopAfxDepth;
+  if (old && typeof old === "object") {
+    for (const [id, d] of Object.entries(old)) {
+      if (!ITEMS[id] || !((G.shopStock || {})[id] > 0)) continue;
+      const g = genForLegacyDepth(ITEMS[id].slot, ITEMS[id].lv || 1, d);
+      if (g > (G.shopGen[id] || 1)) G.shopGen[id] = g;
+    }
+  }
+  delete G.shopAfxDepth;
+  // 特性の巻物の出所の深度も世代へ
+  for (const page of Array.isArray(G.afxPages) ? G.afxPages : []) if (page && page.gen == null) { page.gen = pageGen(page); delete page.depth; }
 }
 function reflattenItemStats(extra = null) {
   const visited = new Set();
@@ -19371,7 +19441,7 @@ function refreshEquipLevels() {
   _equipLvMoved = [];
   if (!moved.length) return;
   for (const d of new Set(moved.map((m) => m.d))) { try { recalcDoll(d); } catch {} }
-  const names = moved.map((m) => `${m.d.name}の${m.it.name}（Lv${equipLevelOf(m.it)}から）`).join("・");
+  const names = moved.map((m) => `${m.d.name}の${m.it.name}（Lv${equipLevelOf(m.it, 1)}から）`).join("・");
   showToast(`メイン魂の Lv が装備できるLv に届かない装備を袋へ戻した ― ${names}`, { tone: "info", ms: 4200 });
 }
 
@@ -19418,7 +19488,7 @@ function loadGame(cloudSnapshot = null) {
   try { snap = refDeserialize(JSON.parse(raw)); } catch (e) { return false; }
   if (!snap || !Array.isArray(snap.party) || (!cloudEnabled() && !snap.party.length && !snap.msq?.granted && !normalizeName(snap.apprenticeName))) return false;
   for (const k of SAVE_FIELDS) if (k in snap) G[k] = snap[k];
-  if (!("shopAfxDepth" in snap)) G.shopAfxDepth = {}; // 深度のない旧記録は補正なし
+  migrateShopGen(snap); // 旧記録の深度の棚 (shopAfxDepth) を世代の棚へ (docs/item-generations.md 4-2)
   // 旧序盤の探索中の記録は、その出撃だけ元の階数で続ける。
   const loadedDungeon = DUNGEONS[G.dungeonIdx];
   if (inDungeon() && !G.abyss && !G.rematch && EARLY_LEGACY[loadedDungeon?.id] && !G.run?.earlyLayout) {
@@ -19768,7 +19838,7 @@ function setupNewGame() {
   G.unlockedDungeons = 0; // 第0章を果たすまで、迷宮の場所は明かされない
   G.world = {}; worldState();
   G.shopStock = { ...SHOP_INIT_STOCK };
-  G.shopAfxDepth = {};
+  G.shopGen = {};
   G.quest = null; questState();
   // 序章: 王から三職の魂 → イレーヌの依頼から三体ずつ段階的に仲間を迎える
   G.msq = { n: 0, state: "active", granted: false };
@@ -20327,7 +20397,7 @@ function wireUI() {
     saveFormation, renameFormation, checkFormation, applyFormation,
     renderTown, renderBoard, renderParty, renderRunbar, updateTopbar, renderStatus,
     allDolls, recalcAllDolls, inDungeon, curDungeon, activeCfg, clearedDungeonCount, reportedDungeonCount,
-    sellPrice, buyPrice, appraiseCost, innCost, sellWarnings, bulkSellBlocked, bargainMul, shopStockAdd, shopReceive, shopAfxItem, shopPlainStock, buyAffixed, afxConflicts, resolveAfxConflicts,
+    sellPrice, buyPrice, appraiseCost, innCost, sellWarnings, bulkSellBlocked, bargainMul, shopStockAdd, shopReceive, shopAfxItem, shopShelfItem, shopGenOf, shopPlainStock, buyAffixed, afxConflicts, resolveAfxConflicts,
     itemRankName, itemRankColor, itemGradeText, itemNameEl, logClassForItem,
     showChoice, closePrompt, showEvent, showConfirm, showToast, showItemGet, closeItemGet, showItemDetailPopup, showStoryScene,
     openStatus, closeStatus, openSettings, closeSettings, tryEnterDungeon, enterDungeon, preloadDungeon, returnToTown, confirmReturnToTown,
@@ -20497,6 +20567,7 @@ async function init() {
     // 宿敵の再戦の検証用
     rematch: { rematchList, departRematch, endBattle },
     // 無限迷宮の検証用
+    gen: { resyncItem, reflattenItemStats, shopStockAdd, shopGenOf, shopShelfItem, lootGenFor, lootCapR, migrateShopGen, sellItem, buyItem, reforgeCost, sellPrice, buyPrice }, // 装備の世代の検証 (tools/inventory/item-generations-browser.py)
     inf: { infStats, infTitleList, infTitleGrant, infCheckRun, doUnequip, giveItemAsk, giveItem, pickLoot, cloneItem, markDungeonLoot, shopAfxItem, buyAffixed, afxConflicts, resolveAfxConflicts, shopReceive, saveJSON: () => { const snap = {}; for (const k of SAVE_FIELDS) snap[k] = G[k]; return JSON.stringify(refSerialize(snap)); }, DUNGEONS, spawnBossEnemies, baseEnemyScale, soloScale, infBossFoes, infEliteFoes, infFoeKey, infSpotInfo, spawnCardEnemies, enemyScale, mimicRef, addSoulInstance, recalcAllDolls, enterAbyss, departAbyss, descend, openInfRest, fightAbyssGuard, abyssCfg, grantSoulQuiet, infSwapSoul, infSetSub, infSubBlock, infSubPreview, infBuy, infSell, infTraderWares, infSupplyStatus, infBuyBlock, returnToTown, gameOver, leaveDungeon, abyssRecords, newFloor, renderBoard, finishToBoard },
     // 迷宮の掟の代償 (雲間の泉・開幕の眠り/麻痺・宝箱の罠) の検証用
     ruleCost: { TRAIT_BOARD, mutNum, useVeiledFountain, VEILED_CURSE, RULE_ONE_AIL, disarmNeed, dungeonTrait },

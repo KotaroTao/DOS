@@ -1421,3 +1421,5 @@ button.sp-lu-next { cursor: pointer; }
 .pt-cand.has-inherit { flex-wrap: wrap; }
 .pt-cand.has-inherit > .pt-cand-main { flex-basis: calc(100% - 60px); }
 .pt-cand.has-inherit > .ui-btn { flex: 1 1 100%; margin: 0 7px 7px; }
+.pt-own.gen-weak { color: #ff9ae2; border-color: currentColor; }
+.pt-slot-s.gen-weak { color: #ff9ae2; }

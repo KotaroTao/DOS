@@ -21,7 +21,7 @@ with sync_playwright() as p:
           // 作った品の図鑑登録による見識通知は、売却の検査から外す。
           g.insightNotified = 1e9;
           g.shopStock = {dagger: 1}; g.shopAfx = {dagger: [{k:'A03', v:30}]};
-          g.shopAfxDepth = {}; g.shopAfxPending = []; g.inventory.length = 0;
+          g.shopGen = {}; g.shopAfxPending = []; g.inventory.length = 0;
           for (let i = 0; i < 2; i++) {
             const it = game.cloneItem('dagger');
             it.afx = [{k:'A03', v:40+i}]; it.unidentified = false;

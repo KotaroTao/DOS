@@ -17,8 +17,9 @@ import { ELEMENTS, RACE_LABEL, unknownLabel, UNK_OPEN, UNK_CLOSE } from "../dung
 import { magicAttackPower, SPELLS, spellMpLabel, spellCureKinds, soulTierRate, healsHp, MP_DRAIN_CAP, stanceMulOf, spellAilments } from "../combat.js";
 import { STAGED, stageOf, stageMul, stageLabel, ENEMY_STAT_LABEL, effectStage, isBattleLong } from "../buffstage.js";
 import { ATTR_LABEL, SOUL_CLASSES, dollBust, PASSIVES, passiveName, passiveByName } from "../souls.js";
-import { WEAPON_CAT_LABEL, SHIELD_KIND_LABEL, HAND_LABEL, handOf, shieldKind, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip, equipLevelOf, AIL_LABEL, attackPower, fightPower, useLines, itemName, hasQuality, qualityOf, QUALITY_MID, QUALITY_SPREAD } from "../items.js";
+import { WEAPON_CAT_LABEL, SHIELD_KIND_LABEL, HAND_LABEL, handOf, shieldKind, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip, equipLevelOf, wearerGen, AIL_LABEL, attackPower, fightPower, useLines, itemName, hasQuality, qualityOf, QUALITY_MID, QUALITY_SPREAD } from "../items.js";
 import { RARITIES, rarityKey } from "../rarity.js";
+import { genOf } from "../itemgen.js";
 import { HERO, spriteCanvas, crispCanvas } from "../sprites.js";
 
 // 魂のステータス寄与を「HP+7 STR+2.4 …」形式で列挙 (0は省略)
@@ -646,7 +647,6 @@ export function statLines(it) {
   if (it.critDamage) parts.push(`会心ダメージ +${pct(it.critDamage)}`);
   if (it.spellCrit) parts.push(`魔法会心 +${pct(it.spellCrit)}`);
   if (it.spellCritDamage) parts.push(`魔法会心ダメージ +${pct(it.spellCritDamage)}`);
-  if (it.depth) parts.push(`無限迷宮 B${it.depth}F`);
   if (it.scale) parts.push(`参照 ${Object.keys(it.scale).map(k => ATTR_LABEL[k]).join("・")}`);
   if (it.magic) parts.push("魔法属性");
   const ea = elemStatText("攻撃", it.eAtk);
@@ -678,7 +678,7 @@ export function equipPreviewDelta(p, cand, slotKey = null) {
   if (cand.slot === "weapon" && cand.twoHanded) eq.shield = null;
   if (key === "shield" && eq.weapon && eq.weapon.twoHanded) eq.weapon = null;
   eq[key] = cand;
-  const fake = { base: p.base, equip: inheritedEquipment(p.equip,eq), hp: p.hp, mp: p.mp, dualWield: p.dualWield || 0 };
+  const fake = { base: p.base, equip: inheritedEquipment(p.equip,eq), hp: p.hp, mp: p.mp, dualWield: p.dualWield || 0, jobLv: p.jobLv };
   recalc(fake);
   const offW = (e) => (e.shield && e.shield.slot === "weapon" ? e.shield : null);
   const wChanged = (eq.weapon || null) !== (p.equip.weapon || null) || offW(eq) !== offW(p.equip);
@@ -833,6 +833,7 @@ export function itemDetailEl(it, { target = null, catalog = false, stock = false
       const q = stock || catalog ? QUALITY_MID : qualityOf(it);
       grade.appendChild(el("span", "rf-q " + qualityTone(q), stock || catalog ? `並品 ・ 品質${q}` : `品質 ${q}`));
     }
+    if (genOf(it) > 1) grade.appendChild(el("span", "it-gen-chip", `第${genOf(it)}世代`));
   }
   hd.appendChild(grade);
   if (!it.unidentified) {
@@ -849,6 +850,8 @@ export function itemDetailEl(it, { target = null, catalog = false, stock = false
   }
   const det = [];
   if (isEquippable(it)) det.push(equipClassText(it), equipLvText(it));
+  const weak = !catalog && !stock && isEquippable(it) ? wearerGenText(target, it) : null;
+  if (weak) det.push(weak);
   if (it.slot === "weapon") det.push(`射程: ${RANGE_LABEL[weaponRange(it)]}`, handLine(it));
   if (it.align) det.push(`${it.align}属性`);
   if (it.slot === "misc") det.push("王宮の宝物庫に奉納できる。商会では売れる。");
@@ -905,7 +908,7 @@ export function detailLines(it) {
     if (it.critDamage) mod.push(`会心ダメージ+${pct(it.critDamage)}`);
     if (it.spellCrit) mod.push(`魔法会心+${pct(it.spellCrit)}`);
     if (it.spellCritDamage) mod.push(`魔法会心ダメージ+${pct(it.spellCritDamage)}`);
-    if (it.depth) L.push(`無限迷宮 B${it.depth}Fで得た品`);
+    if (genOf(it) > 1) L.push(`第${genOf(it)}世代の品`);
     if (mod.length) L.push(mod.join(" / "));
     for (const ln of effDetailLines(it)) L.push(ln);
     for (const ln of weaponTraitLines(it)) L.push(ln);
@@ -954,8 +957,19 @@ export function equipClassText(it) {
 }
 
 // 装備できるLv (メイン魂の Lv がこれに届けば付けられる。src/equiplevel.js)
+// 世代の品は第1世代の装備できるLv から付けられ、本来の世代の性能は届いた Lv から (docs/item-generations.md 7)
 export function equipLvText(it) {
+  const g = genOf(it);
+  if (g > 1) return `装備条件：メイン魂Lv${equipLevelOf(it, 1)}以上（第${g}世代の性能はLv${equipLevelOf(it, g)}から）`;
   return `装備条件：メイン魂Lv${equipLevelOf(it)}以上`;
+}
+// 装備する人の Lv が足りず、本来の世代の性能を出せない時の説明 (出せるなら null)
+export function wearerGenText(member, it) {
+  const g = genOf(it);
+  if (g <= 1 || !member || typeof member.jobLv !== "number") return null;
+  const w = wearerGen(member, it);
+  if (w <= 0 || w >= g) return null;
+  return `Lv不足のため第${w}世代の性能（第${g}世代の性能はLv${equipLevelOf(it, g)}から）`;
 }
 
 // 隊メンバーの装備可否チップ (○/×)。party を省くと現在の編成 (G.party)

@@ -18,7 +18,7 @@ const picksOf = sub => sub?.picks || (sub?.passive ? [{ passive: sub.passive }] 
 const picksState = sub => picksOf(sub).map(p => p.passive ? `p:${p.passive}` : `s:${p.skill}`);
 const subState = (m, sub) => sub ? [soulState(soulOf(m, sub.uid)), picksState(sub), !!sub.picked] : null;
 const gearState = it => it ? [it.id, it.q ?? null, it.forge || 0, !!it.locked,
-  it.depth || 0, !!it.unidentified, !!it.cursed, (it.bukon || []).map(b => [b.k,b.lv,!!b.fusionUnlocked]),
+  it.gen || 1, !!it.unidentified, !!it.cursed, (it.bukon || []).map(b => [b.k,b.lv,!!b.fusionUnlocked]),
   (it.afx || []).map(a => [a.k, a.v]).sort((a, b) => a[0].localeCompare(b[0]))] : null;
 const healthState = d => [d.hp,d.mp,d.alive,d.ailment,d._poisonPct,d.asleep,d.mind,d._ailN];
 const healthText = d => d.hp == null ? "全回復（旧記憶）" : `HP ${d.hp}/${d.maxhp ?? "?"} ・ MP ${d.mp}/${d.maxmp ?? "?"} ・ ${[{poison:"毒",paralyze:"麻痺",stone:"石化"}[d.ailment] || d.ailment,d.asleep&&"眠り",d.mind&&({charm:"魅了",confuse:"混乱"}[d.mind]||d.mind)].filter(Boolean).join("・") || "状態異常なし"}`;

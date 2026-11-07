@@ -9,7 +9,8 @@ import { pcPanel } from "./pc.js";
 import { storyText } from "../protagonist.js";
 import { bagItems, bagSortControl } from "./bagsort.js";
 import { gearFilterCount, matchesGearFilter, gearFilterButton, gearFilterSummary } from "./gearfilter.js";
-import { bagCount, isFormationItem, bagOwners } from "../items.js";
+import { bagCount, isFormationItem, bagOwners, wearerGen, wearerItem } from "../items.js";
+import { genOf } from "../itemgen.js";
 import { RESIST_LABEL, AIL_RESIST_KINDS } from "../resistance.js";
 // ===== 隊 (統合された人業の画面) — 隊列ストリップ・控え/仕立て・装備/魂/能力・迷宮内のシート =====
 // 担当: WP-B。
@@ -2375,8 +2376,11 @@ export function slotCell(d, k, { onPick = null, bukonOnly = false, qualityOnly =
     if (qualityOnly) tx.appendChild(el("span", "pt-slot-s", it.unidentified ? "未鑑定" : hasQuality(it) ? `品質 ${qualityOf(it)}` : "品質の影響なし"));
     else if (bukonOnly) tx.append(...bukonNameLines(it));
     else {
-      const s = statLines(it);
+      // 装備する人の Lv で出せる世代の性能を見せ、落ちていれば印 (docs/item-generations.md 7-3)
+      const wg = it.unidentified ? 0 : wearerGen(d, it);
+      const s = statLines(wg > 0 && wg < genOf(it) ? wearerItem(d, it) : it);
       if (s) tx.appendChild(el("span", "pt-slot-s", s));
+      if (wg > 0 && wg < genOf(it)) tx.appendChild(el("span", "pt-slot-s gen-weak", `Lv不足・第${wg}世代の性能`));
     }
   } else {
     tx.appendChild(el("span", "pt-slot-n dim", "― 空き ―"));
@@ -2463,12 +2467,12 @@ function candBody(root, d, k, h, town) {
     }
   }
   if (lvShort.length) {
-    lvShort.sort((a, b) => equipLevelOf(a.it) - equipLevelOf(b.it));
+    lvShort.sort((a, b) => equipLevelOf(a.it, 1) - equipLevelOf(b.it, 1));
     root.appendChild(el("div", "pt-h sm", `Lv が足りない品 ${lvShort.length}点 ― メイン魂がその Lv になると付けられる`));
     const ll = el("div", "pt-list");
     for (const c of lvShort) {
       const ic = el("span", "pt-cand-ic"); ic.appendChild(spriteCanvas(c.it, 2));
-      ll.appendChild(row({ icon: ic, title: itemName(c.it), sub: `Lv${equipLevelOf(c.it)}から（いまLv${d.jobLv || 1}） ・ 隊の袋`, chevron: true, tone: "dim",
+      ll.appendChild(row({ icon: ic, title: itemName(c.it), sub: `Lv${equipLevelOf(c.it, 1)}から（いまLv${d.jobLv || 1}） ・ 隊の袋`, chevron: true, tone: "dim",
         onTap: () => { h.close(); openItem(c.it, c.owner, { from: "bag" }); } }));
     }
     root.appendChild(ll);
@@ -2571,6 +2575,9 @@ function candRow(d, k, c, h) {
   top.appendChild(game.itemNameEl ? game.itemNameEl("span", "pt-cand-n", c.it, nmSuffix) : el("span", "pt-cand-n", itemName(c.it) + nmSuffix));
   top.appendChild(el("span", "pt-own" + (c.owner === d ? " me" : isReserve(c.owner) ? " res" : "") + (c.worn ? " worn" : ""),
     !c.worn ? "隊の袋" : c.owner === d ? "自分が装備中" : `${c.owner.name}${isReserve(c.owner) ? "・控え" : ""}が装備中`));
+  // 装備の世代: Lv が足りず本来の世代の性能を出せない品に印 (docs/item-generations.md 7-3)
+  const wg = wearerGen(d, c.it);
+  if (wg > 0 && wg < genOf(c.it)) top.appendChild(el("span", "pt-own gen-weak", `Lv不足・第${wg}世代の性能`));
   tx.appendChild(top);
   if (c.it.slot === "weapon" && k === "shield") {
     // 左手 (二刀流): 左手の攻撃力の変化
