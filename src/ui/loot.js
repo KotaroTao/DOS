@@ -694,6 +694,18 @@ function defaultActions(st) {
       menu: !isEquippable(it) && !off ? () => openDollChooser(it, { mode: "bag", buyId: id, title: "買う" }) : null });
     return acts;
   }
+  // 宝物庫から選んだ商会の収集品。買い戻さず棚から直接納める。
+  if (context === "donate" && !owner && it.slot === "misc") {
+    if (town && ops.donateOne) acts.push({ key: "donate", label: "奉納", primary: true,
+      sub: "商会の棚から1点納める", disabled: !(g.shopStock?.[it.id] > 0) || !!g.treasury?.donated?.[it.id],
+      onTap: (close) => {
+        const res = ops.donateOne(null, it);
+        if (!res || !res.ok) return;
+        close();
+        if (res.rewardReady && game.claimNextTreasury) game.claimNextTreasury();
+      } });
+    return acts;
+  }
   if (context === "view" || !owner) return acts;
 
   // ---- 未鑑定 ----
@@ -855,6 +867,8 @@ export function itemSheet(item, o = {}) {
       meta = el("div", "wpc-is-meta");
       meta.appendChild(document.createTextNode(`在庫 ${(G().shopStock || {})[st.stockId || it.id] || 0} ・ 買値 `));
       meta.appendChild(goldEl(st.price != null ? st.price : game.buyPrice(it)));
+    } else if (st.context === "donate" && !st.owner) {
+      meta = el("div", "wpc-is-meta", "商会の棚から奉納する");
     } else if (st.owner) {
       meta = el("div", "wpc-is-meta", equippedOwner?.where === "equip" ? `${st.owner.name} が装備中` : `${st.owner.name} の持ち物`);
     }

@@ -85,6 +85,7 @@ export function findOwned(itemId) {
 }
 export function openItem(itemId, { instance = null, owner = null, context = "bag" } = {}) {
   sfx("select");
+  if (instance && !owner && context === "donate" && UI.itemSheet) return UI.itemSheet(instance, { context });
   const own = instance && owner ? { doll: owner, item: instance, index: (owner.items || []).indexOf(instance), context } : findOwned(itemId);
   if (own && UI.itemSheet) return UI.itemSheet(own.item, { owner: own.doll, context: own.context, index: own.index, slot: own.slot });
   if (UI.codexItemSheet) return UI.codexItemSheet(itemId);
