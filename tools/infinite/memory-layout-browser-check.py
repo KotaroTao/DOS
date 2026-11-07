@@ -73,9 +73,10 @@ with sync_playwright() as p:
         page.wait_for_timeout(350)
 
     def fit(name, size):
-        page.wait_for_timeout(350)
+        page.evaluate("""async()=>{const wrap=[...document.querySelectorAll('.ui-sheet-wrap:not(.closing)')].at(-1);if(wrap)await Promise.all(wrap.getAnimations({subtree:true}).filter(a=>Number.isFinite(a.effect.getComputedTiming().iterations)).map(a=>a.finished.catch(()=>{})));}""")
+        page.wait_for_timeout(100)
         result = page.evaluate('''() => {
-          const card=[...document.querySelectorAll('.ui-sheet-wrap')].at(-1).querySelector('.ui-sheet');
+          const card=[...document.querySelectorAll('.ui-sheet-wrap:not(.closing)')].at(-1).querySelector('.ui-sheet');
           const body=card.querySelector('.ui-sheet-body'),r=card.getBoundingClientRect();
           const foot=card.querySelector('.ui-sheet-foot').getBoundingClientRect();
           const bad=[...card.querySelectorAll('button')].filter(b=>b.getBoundingClientRect().height>0&&b.getBoundingClientRect().height<43.5).map(b=>b.textContent);
