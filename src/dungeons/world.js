@@ -103,7 +103,7 @@
 //           第13層 (第十一章) も第十章の 0.9倍。第14層 (第十二章) も第十一章の 0.9倍 (層の入口の壁は wallOf が持つ)。テスト記録で測り直す
 import { LAYER_ELEMENT } from "./generator.js";
 import { LAYER_BOSS, LAYER_ELITES, LAYER_POOLS, BESTIARY } from "./bestiary.js";
-import { baselineLv } from "../baseline.js";
+import { baselineLv, LV_EST } from "../baseline.js";
 import { lvPow } from "../levelcurve.js";
 import { FLOOR_HAZ } from "./floorhaz.js";
 
@@ -2558,13 +2558,14 @@ export function poolAt(cfg, floor) {
 // 推奨Lv (= 敵のLv) は台帳の lv / lvTo が決める (src/levelcurve.js の目標の曲線から付けた値)。
 // 下の nAtLevel / lootBand だけは、旧来の物差し (基準の隊 baseline.js の Lv を ×LV_EST で縮めた曲線) で
 // 「推奨Lv L の落とし物の帯」を引く (品の隠しLv の尺度は旧来の迷宮番号のまま)
-export const LV_EST = 0.78;
+export { LV_EST };
 const estLv = (v) => 1 + (v - 1) * LV_EST;
 // n の物差しの Lv がちょうど L になる素体の難度 n (小数・逆引き)。落とし物の帯を推奨Lv から決めるのに使う
 export function nAtLevel(L) {
+  // 無限迷宮の深い階でも帯が頭打ちにならないよう、上限を広げながら探す (装備の世代 — docs/item-generations.md 5-2)
   let lo = 0, hi = 400;
-  if (estLv(baselineLv(hi)) < L) return 1 + hi;
-  for (let i = 0; i < 40; i++) {
+  while (estLv(baselineLv(hi)) < L && hi < 1e12) { lo = hi; hi *= 2; }
+  for (let i = 0; i < 60; i++) {
     const mid = (lo + hi) / 2;
     if (estLv(baselineLv(mid)) < L) lo = mid; else hi = mid;
   }
@@ -2576,7 +2577,8 @@ export function lootBand(lv, lvTo = lv) {
   const key = lv + "|" + lvTo;
   let b = _lootBands.get(key);
   if (!b) {
-    b = [Math.max(1, Math.round(nAtLevel(lv) * 1.5)), Math.max(1, Math.min(200, Math.round(nAtLevel(lvTo) * 2)))];
+    // 上限は通しLv (世代 × 200 + 隠しLv) なので 200 で頭打ちにしない (docs/item-generations.md 5-2)
+    b = [Math.max(1, Math.round(nAtLevel(lv) * 1.5)), Math.max(1, Math.round(nAtLevel(lvTo) * 2))];
     _lootBands.set(key, b);
   }
   return b.slice();

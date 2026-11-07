@@ -20,11 +20,11 @@ with sync_playwright() as p:
           const G=__game.G; G.tut.cur=null; G.tut.done.enchant=true; G.gold=1e8;
           G.shopStock={shortSword:2};
           G.shopAfx={shortSword:[{k:'A03',v:5},{k:'I01',v:.12}]};
-          G.shopAfxDepth={shortSword:250};
+          G.shopGen={shortSword:2};
           G.afxPages=[];
           window.shelfSrc=game.shopAfxItem('shortSword');
           window.scrollPrice=game.buyPrice(shelfSrc);
-          window.shopBefore=()=>JSON.stringify({gold:G.gold,stock:G.shopStock,afx:G.shopAfx,depth:G.shopAfxDepth,pages:G.afxPages,bag:G.inventory});
+          window.shopBefore=()=>JSON.stringify({gold:G.gold,stock:G.shopStock,afx:G.shopAfx,gen:G.shopGen,pages:G.afxPages,bag:G.inventory});
           window.redrawShop=()=>UI.openShop('buy',{cat:'weapon'});
           redrawShop();
         }''')
@@ -67,8 +67,8 @@ with sync_playwright() as p:
       const {game}=await import('/src/ui/ctx.js');
       const {refDeserialize}=await import('/src/savegraph.js');
       const G=__game.G, saved=refDeserialize(JSON.parse(__game.inf.saveJSON()));
-      if(G.gold!==1e8-scrollPrice || G.shopStock.shortSword!==1 || G.shopAfx.shortSword || G.shopAfxDepth.shortSword) return false;
-      if(G.inventory.length!==50 || G.afxPages[0].k!=='I01' || G.afxPages[0].depth!==250 || saved.afxPages[0].k!=='I01') return false;
+      if(G.gold!==1e8-scrollPrice || G.shopStock.shortSword!==1 || G.shopAfx.shortSword || G.shopGen.shortSword!==2) return false;
+      if(G.inventory.length!==50 || G.afxPages[0].k!=='I01' || G.afxPages[0].gen!==2 || saved.afxPages[0].k!=='I01') return false;
       const before=shopBefore();
       return !game.extractAffix({it:shelfSrc,shelf:true},0) && shopBefore()===before;
     }''')

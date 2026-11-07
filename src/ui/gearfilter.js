@@ -4,6 +4,7 @@ import { getPref, setPref } from "./prefs.js";
 import { EFF_INFO, isEquippable, elemName } from "./itemview.js";
 import { ATTR_LABEL } from "../souls.js";
 import { RESIST_LABEL, onHitEffects } from "../resistance.js";
+import { genOf } from "../itemgen.js";
 
 const ELEMENT_KEYS = ["fire", "water", "wind", "earth", "light", "dark"];
 const GROUPS = [["all", "すべて"], ["attack", "攻撃"], ["defense", "防御・抵抗"], ["heal", "回復"], ["ability", "能力"], ["other", "探索・その他"]];
@@ -41,6 +42,8 @@ export function gearEffectOptions(it) {
   if (it.bRes > 0) add("breath", "ブレス耐性", "defense");
   if (it.magic) add("magic", "魔法属性（通常攻撃）", "attack", "通常攻撃で魔法ダメージを与える。魔法攻撃として敵の魔法耐性・魔法弱点で判定する。物理技は物理のまま。");
   if (it.crit > 0) add("crit", "会心率", "attack", "会心率（クリティカル）を上げる");
+  // 装備の世代 (docs/item-generations.md 12-4)。第2世代以上の品は世代ごとに一つの候補
+  if (genOf(it) > 1) add(`gen:${genOf(it)}`, `第${genOf(it)}世代`, "other", `第${genOf(it)}世代の装備（同じ品の上の世代ほど性能が高い）`);
   // 追加特性は表示台帳と同じIDで選ぶ。値の違う同じ特性は一つの候補。
   for (const a of it.afxText || []) add(`afx:${a.k || a.name}`, `追加：${a.name.replace(/の$/, "")}`, textGroup(a.text), `${a.name} ${a.text}`, a.text);
   return out;

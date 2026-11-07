@@ -1436,7 +1436,31 @@ export function crispCanvas(spr, size) {
   return c;
 }
 
+// 装備の世代 (docs/item-generations.md 12-2): 第2世代以上の品は、絵に焼き込まず縁取りの層と左上の世代の数字を重ねる。
+// 縁取りの色は10世代ごとの格 (レア度・属性の色と紛らわしくない色)。小さな絵 (26px 以下) は縁取りだけ
+const GEN_TIER_COLORS = ["#ff7ad9", "#6ff0c8", "#c9a6ff", "#ffc98f", "#9fd8ff"];
+export function genTierColor(gen) { return GEN_TIER_COLORS[Math.floor(Math.max(0, gen - 2) / 10) % GEN_TIER_COLORS.length]; }
+function genLayer(c, gen, css) {
+  if (typeof document === "undefined") return c;
+  const w = document.createElement("span");
+  w.className = "spr-gen";
+  w.style.setProperty("--gen-c", genTierColor(gen));
+  w.appendChild(c);
+  if (css > 26) {
+    const n = document.createElement("span");
+    n.className = "spr-gen-n";
+    n.textContent = String(gen);
+    w.appendChild(n);
+  }
+  w.setAttribute("aria-label", `第${gen}世代`);
+  return w;
+}
 export function spriteCanvas(spr, scale = 4, box = 12) {
+  const gen = spr && spr.slot && !spr.unidentified ? Math.floor(Number(spr.gen) || 1) : 1;
+  const c = spriteCanvasBase(spr, scale, box);
+  return gen > 1 ? genLayer(c, gen, box * scale) : c;
+}
+function spriteCanvasBase(spr, scale, box) {
   spr = resolveSprite(spr);
   const c = document.createElement("canvas");
   c.className = "spr";

@@ -14,8 +14,10 @@ for (const id of ids) {
  assert(q, id); assert(q.reward.souls.every(([rar])=>rar==='legend'), id);
 }
 assert.equal(depthLimit(()=>false),50);
-for(const n of [100,150,200,250,300])assert.equal(depthLimit(k=>k===`infinite${n}`),n);
-assert(depthLimit(k=>k==='infiniteDeep')>300);
+for(const n of [100,150])assert.equal(depthLimit(k=>k===`infinite${n}`),n);
+// 旧来の 200/250/300 階の段は廃止 (docs/item-generations.md 3-1)。深部の上限の値は検査に書かない
+for(const n of [200,250,300])assert.equal(depthLimit(k=>k===`infinite${n}`),50);
+assert(Number.isFinite(depthLimit(k=>k==='infiniteDeep'))&&depthLimit(k=>k==='infiniteDeep')>150);
 for(const d of WORLD)assert.equal(mutatorEligible(d,true),!d.noSpecial && d.layer>=9);
 assert(!mutatorEligible(WORLD.find(d=>d.id==='w26'),false));
 assert(challengeEntryBlock(WORLD.find(d=>d.id==='ws7'),[{name:'検査',primary:1}],[{uid:1,clsKey:'paladin'}]));

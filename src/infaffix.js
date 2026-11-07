@@ -11,7 +11,7 @@
 import { rarityKey } from "./rarity.js";
 import { random } from "./rng.js";
 import { CRITICAL_KEYS, ITEM_CRITICAL_CAP, clampItemCritical } from "./equipmentcrit.js";
-import { itemDepthMul } from "./itemdepth.js";
+import { genOf, genScale, genForLegacyDepth } from "./itemgen.js";
 import { equipScore, priceForScore } from "./pricing.js";
 import { MON_RACES } from "./dungeons/schema.js";
 import { onHitEffects } from "./resistance.js";
@@ -19,10 +19,16 @@ import { onHitEffects } from "./resistance.js";
 // 格: c 常 / u 稀 (◇) / r 秘 (◆) / x 極 (★)
 export const AFX_TIERS = { c: { name: "常", mark: "", rank: 0 }, u: { name: "稀", mark: "◇", rank: 1 }, r: { name: "秘", mark: "◆", rank: 2 }, x: { name: "極", mark: "★", rank: 3 } };
 
-// 同じランクの標準品の性能点 B(R) (R10 = 25 / R20 = 76)。深度で実数追加の大きさも成長する。
+// 同じランクの標準品の性能点 B(R) (R10 = 25 / R20 = 76)。世代 (通しLv) で実数追加の大きさも成長する (docs/item-generations.md 11)
 export function afxBase(it) {
   const R = Math.max(1, Math.min(20, Math.ceil((it && it.lv || 1) / 10)));
-  return Math.max(3, 1.2 * R + 0.13 * R * R) * itemDepthMul(it);
+  return Math.max(3, 1.2 * R + 0.13 * R * R) * genScale(it && it.lv, genOf(it));
+}
+// 巻物の世代 (旧セーブの巻物は出所の深度から、性能を下げない世代へ読み替える)
+export function pageGen(page) {
+  if (!page) return 1;
+  if (page.gen != null) return genOf(page);
+  return page.depth > 200 ? genForLegacyDepth("weapon", page.lv || 1, page.depth) : 1;
 }
 
 // 部位: all = すべて / w = 武器 / a = 防具 (体・頭・足・小手・盾) / acc = 装飾 / 個別の部位 (shield / body / head / feet / hands)
@@ -373,7 +379,7 @@ export function applyAffixes(it) {
   it.equipPts = Math.max(0, basePts + pts);
   // 値段: 性能点に追加の点を足す (元の値段 0 の品は付け直さない)
   if (it.price > 0) {
-    const p = priceForScore(it.slot, it.equipPts);
+    const p = priceForScore(it.slot, it.equipPts, genOf(it));
     if (p != null) it.price = p;
   }
   it.afxPts = Math.round(pts * 10) / 10;
@@ -450,7 +456,7 @@ export const ENCHANT_TIER_COST = { c: 0.5, u: 1, r: 2, x: 4 };
 export function pageFromAffix(it, a) {
   const d = AFX_MAP[a && a.k];
   if (!d) return null;
-  const src = { from: it.name, lv: it.lv || 1, depth: it.depth || 0, rar: rarityKey(it) || "c" };
+  const src = { from: it.name, lv: it.lv || 1, gen: genOf(it), rar: rarityKey(it) || "c" };
   if (d.kind === "B") return { k: d.id, r: Math.round((a.v / afxBase(it)) * 10000) / 10000, ...src };
   return { k: d.id, v: a.v, ...src };
 }
@@ -460,7 +466,8 @@ export function pageValue(page, it) {
   if (!d) return 0;
   const hi = affixRange(d, it)[1];
   if (d.kind === "B") {
-    const B = afxBase({ ...it, depth: Math.min(page.depth || 0, it.depth || 0) });
+    // 素材の世代と品の世代の低い方 (docs/item-generations.md 11)
+    const B = afxBase({ ...it, gen: Math.min(pageGen(page), genOf(it)) });
     return Math.min(Math.round(Math.min(page.r != null ? page.r : 0, hi) * B * 100) / 100, hi * B);
   }
   // 巻物は出所のレア度で実効値を求め、書く先の保存単位へ戻す。移植で底上げしない。
@@ -492,8 +499,8 @@ export function pageText(page, it = null) {
   if (it) {
     return enchantChange(it, page).text;
   }
-  if (d.kind === "B") { const ref = { lv: page.lv || 1, depth: page.depth || 0, rar: page.rar || "lr" }; const B = afxBase(ref); return d.text(Math.round((page.r || 0) * B * 100) / 100, B); }
-  return d.text((page.v != null ? page.v : d.r[0]) * affixRateScale(d, { rar: page.rar || "lr" }), afxBase({ lv: page.lv || 1, depth: page.depth || 0 }));
+  if (d.kind === "B") { const ref = { lv: page.lv || 1, gen: pageGen(page), rar: page.rar || "lr" }; const B = afxBase(ref); return d.text(Math.round((page.r || 0) * B * 100) / 100, B); }
+  return d.text((page.v != null ? page.v : d.r[0]) * affixRateScale(d, { rar: page.rar || "lr" }), afxBase({ lv: page.lv || 1, gen: pageGen(page) }));
 }
 // 品の書き込みの枠: { slots, used }。rk = レア度 (c/uc/r/sr/lr)
 export function enchantRoom(it, rk) {
@@ -505,7 +512,7 @@ export function enchantBlock(it, page, rk, tmpl = null) {
   if (!d) return "読めない巻物";
   if (!it || !AFX_SLOTS.has(it.slot)) return "装備品にだけ書ける";
   if (!fitsSlot(d, it)) return "この部位には書けない特性";
-  if (/^K0[1-6]$/.test(d.id) && itemDepthMul(page) < itemDepthMul(it)) return "この深度の品には、同じ深度以上の巻物が必要";
+  if (/^K0[1-6]$/.test(d.id) && pageGen(page) < genOf(it)) return "この世代の品には、同じ世代以上の巻物が必要";
   const afx = it.afx || [];
   // 既存の特性の置き換えは枠を増やさない。拾った複数の極もそのまま保つ。
   if (afx.some((a) => a.k === d.id)) return null;

@@ -1,5 +1,6 @@
 import { equipmentBukonPanel } from "./bukonview.js";
 import { bagCount, isFormationItem, bagOwners } from "../items.js";
+import { genOf } from "../itemgen.js";
 // ===== 品 — 入手の割り込み方針 (トースト/祝祭)・品シート (ItemSheet)・NEW 印 =====
 // 担当: WP-C。
 // 提供する契約:
@@ -988,6 +989,7 @@ function lootToast(item, who, opts) {
     l1.appendChild(nameSpan(item, "wpc-lt-nm"));
     if (item.unidentified) l1.appendChild(el("span", "wpc-lt-unid", "未鑑定"));
     else if (hasQuality(item)) l1.appendChild(el("span", "rf-q " + qualityTone(qualityOf(item)), `品質 ${qualityOf(item)}`));
+    if (!item.unidentified && genOf(item) > 1) l1.appendChild(el("span", "it-gen-chip", `第${genOf(item)}世代`));
     if (who) l1.appendChild(el("span", "wpc-lt-who", `→ ${who.name}`));
     tx.appendChild(l1);
     tx.appendChild(upgradeIcons(item));
@@ -1029,6 +1031,7 @@ function lootCelebrate(item, who, opts, next) {
     if (rk) scroll.appendChild(el("div", "ig-rarity rar-" + rk, RARITIES[rk].label + (unid ? " ・ 未鑑定" : "")));
     else if (misc) scroll.appendChild(el("div", "ig-rarity", "収集品"));
     if (!unid && hasQuality(item)) scroll.appendChild(el("div", "rf-q " + qualityTone(qualityOf(item)), `品質 ${qualityOf(item)}`));
+    if (!unid && genOf(item) > 1) scroll.appendChild(el("div", "it-gen-chip", `第${genOf(item)}世代`));
     const sl = statLines(item);
     if (sl && !unid) scroll.appendChild(setText(el("div", "ig-stat"), sl));
     if (!unid && isEquippable(item)) {

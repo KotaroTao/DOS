@@ -816,3 +816,9 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 .cloud-controls .cloud-consent input { width: 22px; min-width: 22px; height: 22px; margin: 3px 0; }
 .cloud-controls form { display: grid; gap: 12px; }
 .cloud-panel { max-height: 90dvh; overflow-y: auto; }
+
+/* 装備の世代 (docs/item-generations.md 12-2): 絵に縁取りの層と左上の世代の数字を重ねる (src/sprites.js spriteCanvas) */
+.spr-gen { position: relative; display: inline-block; line-height: 0; vertical-align: middle; }
+.spr-gen::after { content: ""; position: absolute; inset: 0; border-radius: 3px; box-shadow: inset 0 0 0 1px var(--gen-c), inset 0 0 5px var(--gen-c); pointer-events: none; opacity: 0.9; }
+.spr-gen-n { position: absolute; left: 0; top: 0; max-width: 100%; overflow: hidden; padding: 1px 3px; font: 800 9px/1 var(--font, serif); letter-spacing: 0; color: #120d14; background: var(--gen-c); border-radius: 0 0 3px 0; white-space: nowrap; pointer-events: none; }
+.it-gen-chip { display: inline-block; padding: 0 6px; font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; color: #ff9ae2; border: 1px solid currentColor; border-radius: 2px; background: rgba(0,0,0,0.35); white-space: nowrap; }

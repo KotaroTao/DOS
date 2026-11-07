@@ -4,7 +4,7 @@ import { bukonItem, bukonDef, bukonFits, activeBukon, LEGENDARY_MISC_KEYS } from
 import { itemNumber } from "./itemnumbers.js";
 import { rarityOrder } from "./rarity.js";
 import { random } from "./rng.js";
-import { applyItemDepth } from "./itemdepth.js";
+import { applyGen, genOf } from "./itemgen.js";
 import { equipPrice, equipScore, priceForScore } from "./pricing.js";
 import { applyNativeCritical, CRITICAL_KEYS, clampItemCritical } from "./equipmentcrit.js";
 import { prepareWeapon } from "./weaponpower.js";
@@ -86,6 +86,7 @@ export const BAG_SORTS = [
   { key: "rarity", label: "レア度が高い順" },
   { key: "level", label: "装備Lvが高い順" },
   { key: "quality", label: "品質が高い順" },
+  { key: "gen", label: "世代が高い順" },
   { key: "name", label: "名前順" },
 ];
 export function sortedBag(items, key = "bag") {
@@ -103,8 +104,9 @@ export function sortedBag(items, key = "bag") {
     let diff = 0;
     if (key === "type") diff = type(a) - type(b);
     else if (key === "rarity") diff = rarityOrder(b) - rarityOrder(a);
-    else if (key === "level") diff = (b.slot === "use" || b.slot === "misc" ? 0 : equipLevelOf(b)) - (a.slot === "use" || a.slot === "misc" ? 0 : equipLevelOf(a));
+    else if (key === "level") diff = (b.slot === "use" || b.slot === "misc" ? 0 : equipLevelOf(b, 1)) - (a.slot === "use" || a.slot === "misc" ? 0 : equipLevelOf(a, 1));
     else if (key === "quality") diff = (hasQuality(b) ? qualityOf(b) : -1) - (hasQuality(a) ? qualityOf(a) : -1);
+    else if (key === "gen") diff = (hasQuality(b) ? genOf(b) : 0) - (hasQuality(a) ? genOf(a) : 0);
     return diff || type(a) - type(b) || name(a, b);
   });
 }
@@ -232,7 +234,8 @@ export function unidentName(it) {
 }
 // 表示名: 未鑑定なら伏せ名、鑑定済みなら本来の名前
 // 無限迷宮の追加の能力・特性を持つ品は、一番格の高い追加の名を前に、格の印 (◇◆★) を後ろに付ける (src/infaffix.js)
-export function itemName(it) { return (it && it.unidentified ? unidentName(it) : (it ? (it.afxPre || "") + it.name + (it.forge ? "＋" + it.forge : "") + (it.afxMark || "") : "")) + (it?.soulMemory ? "（幻）" : ""); }
+// 第2世代以上の品は名前の外に「（第N世代）」を添える (名前そのものは変えない — docs/item-generations.md 12)
+export function itemName(it) { return (it && it.unidentified ? unidentName(it) : (it ? (it.afxPre || "") + it.name + (it.forge ? "＋" + it.forge : "") + (it.afxMark || "") + (genOf(it) > 1 ? `（第${genOf(it)}世代）` : "") : "")) + (it?.soulMemory ? "（幻）" : ""); }
 // 無限迷宮の追加の能力・特性 (src/infaffix.js)。items.js は infaffix.js を import しないので game.js が渡す
 let _afxApply = (it) => it, _gearPerks = () => [];
 export function registerAffixes(apply, perks) { if (typeof apply === "function") _afxApply = apply; if (typeof perks === "function") _gearPerks = perks; }
@@ -249,7 +252,7 @@ export function applyForge(it) {
   if (it.weaponRating) it.weaponRating *= 1 + 0.1 * it.forge;
   if (it.scale) it.scale = Object.fromEntries(Object.entries(it.scale).map(([k, v]) => [k, Math.round(v * (1 + 0.1 * it.forge) * 10000) / 10000]));
   it.equipPts = score + equipScore(it) - before;
-  if (it.price > 0) it.price = priceForScore(it.slot, it.equipPts) ?? it.price;
+  if (it.price > 0) it.price = priceForScore(it.slot, it.equipPts, genOf(it)) ?? it.price;
   return it;
 }
 
@@ -302,8 +305,9 @@ export function applyQuality(it) {
   if (it.resists) it.resists = Object.fromEntries(Object.entries(it.resists).map(([k, v]) => [k, typeof v === "number" && v > 0 ? Math.max(1, Math.min(100, Math.round(v * m))) : v]));
   return it;
 }
-// 品 it を目録から写し直し、品質 q (省略時 it.q) と＋N の段を掛けた新しい品 (it は変えない)。鍛え直しの見比べに使う
-export function itemAtQuality(it, q = it && it.q) {
+// 品 it を目録から写し直し、品質 q (省略時 it.q)・世代 gen (省略時 it.gen)・＋N の段を掛けた新しい品 (it は変えない)。
+// 鍛え直しの見比べと、装備する人の Lv で出せる世代の性能 (wearerItem) に使う
+export function itemAtQuality(it, q = it && it.q, gen = genOf(it)) {
   const tmpl = it && ITEMS[it.id];
   if (!tmpl) return it ? { ...it } : null;
   const out = { ...it };
@@ -313,8 +317,9 @@ export function itemAtQuality(it, q = it && it.q) {
   delete out.equipPts;
   delete out.afxCritBase;
   out.q = q;
+  if (gen > 1) out.gen = gen; else delete out.gen;
   applyQuality(out);
-  applyItemDepth(out);
+  applyGen(out);
   const price = equipPrice(out);
   if (price != null) out.price = price;
   out.equipPts = equipScore(out);
@@ -1538,7 +1543,7 @@ export function recalc(member) {
   for(const it of new Set(Object.values(member.equip)))for(const b of activeBukon(it))if(bukonDef(b.k)?.kind==="special"&&bukonFits(it,b))specialLevels.set(b.k,Math.max(specialLevels.get(b.k)||0,b.lv));
   for (const slot of SLOTS) {
     const original = member.equip[slot];
-    const it = bukonItem(original, { legendarySeen, specialLevels });
+    const it = bukonItem(wearerItem(member, original), { legendarySeen, specialLevels });
     if (!it || counted.has(original)) continue;
     counted.add(original);
     flatAtk += it.atk || 0;
@@ -1643,15 +1648,38 @@ export function recalc(member) {
 // 渡されていない (道具の単体テストなど) 間はどの品も Lv1
 let _equipLv = () => 1;
 export function registerEquipLevel(fn) { if (typeof fn === "function") _equipLv = fn; }
-export function equipLevelOf(item) {
+// 品の世代 gen (省略時は品の本来の世代) の装備できるLv
+export function equipLevelOf(item, gen = genOf(item)) {
   if (!item || !item.slot || item.slot === "use" || item.slot === "misc" || item.slot === "mat") return 1;
-  return Math.max(1, _equipLv(item) || 1);
+  return Math.max(1, _equipLv(item, gen) || 1);
 }
-// メイン魂の Lv が足りなければ必要な Lv、足りていれば 0。jobLv を持たない物 (見立て用の仮の人業) は Lv を問わない
+// メイン魂の Lv が足りなければ必要な Lv、足りていれば 0。jobLv を持たない物 (見立て用の仮の人業) は Lv を問わない。
+// 世代の品は第1世代の装備できるLv に届けば付けられる (届く範囲で一番上の世代の性能になる — wearerGen)
 export function equipLvShort(member, item) {
   if (!member || typeof member.jobLv !== "number") return 0;
-  const need = equipLevelOf(item);
+  const need = equipLevelOf(item, 1);
   return member.jobLv < need ? need : 0;
+}
+// ===== 装備する人の Lv による世代の性能 (docs/item-generations.md 7) =====
+// メイン魂の Lv が品の世代の装備できるLv に届かなければ、届く範囲で一番上の世代の性能になる。
+// 第1世代にも届かなければ 0 (装備できない)。jobLv を持たない見立て用の人業は品の本来の世代
+export function wearerGen(member, item) {
+  const g = genOf(item);
+  if (g <= 1 || !member || typeof member.jobLv !== "number") return g;
+  for (let k = g; k >= 1; k--) if (member.jobLv >= equipLevelOf(item, k)) return k;
+  return 0;
+}
+// 本来の世代の性能を出せない人が装備した時の品 (出せる世代で作り直した写し)。出せるならそのままの品を返す
+const _wearerCache = new WeakMap();
+export function wearerItem(member, item) {
+  if (!item || genOf(item) <= 1) return item;
+  const g = Math.max(1, wearerGen(member, item));
+  if (g >= genOf(item)) return item;
+  const sig = `${g}|${item.id}|${item.q}|${item.forge || 0}|${JSON.stringify(item.afx || null)}`;
+  let c = _wearerCache.get(item);
+  if (!c || c.sig !== sig) { c = { sig, out: itemAtQuality(item, item.q, g) }; _wearerCache.set(item, c); }
+  c.out.bukon = item.bukon; c.out.unidentified = item.unidentified;
+  return c.out;
 }
 // 付けられない時の知らせの文 (Lv が足りない時は必要な Lv を言う)
 export function equipFailMsg(member, item) {

@@ -51,7 +51,7 @@ export function isMeleeWeapon(item) {
 
 // 仮の装備で能力を計算する (実体は書き換えない)
 export function previewStats(doll, equip, recalcFn = recalcDefault) {
-  const fake = { base: doll.base, equip, hp: doll.hp, mp: doll.mp, dualWield: doll.dualWield || 0 };
+  const fake = { base: doll.base, equip, hp: doll.hp, mp: doll.mp, dualWield: doll.dualWield || 0, jobLv: doll.jobLv }; // jobLv: 装備する人の Lv で出せる世代の性能で比べる
   recalcFn(fake);
   return {
     combat: equipmentCombatState({...fake,primaryPower:attackPower(fake),power:fightPower(fake)},doll),

@@ -3,7 +3,7 @@ import { SOUL_CLASSES } from "./souls.js";
 // 章の未実装分はfeatureUnlockedが閉じる。深部の終端は画面・案内に出さない。
 export function depthLimit(unlocked) {
   if (unlocked("infiniteDeep")) return 99999;
-  for (const n of [300, 250, 200, 150, 100]) if (unlocked(`infinite${n}`)) return n;
+  for (const n of [150, 100]) if (unlocked(`infinite${n}`)) return n;
   return 50;
 }
 export function mutatorEligible(cfg, unlocked) {

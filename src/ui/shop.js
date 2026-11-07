@@ -446,7 +446,8 @@ function defaultBuyer() {
 // 棚の品を買う。equip なら買ったその場で装備させる。成功で true
 export function shopBuy(id, who, { equip = false } = {}) {
   const g = G();
-  const tmpl = ITEMS[id];
+  // 棚の品は棚の世代 (docs/item-generations.md 10)。第1世代は目録の品そのもの
+  const tmpl = game.shopShelfItem ? game.shopShelfItem(id) : ITEMS[id];
   if (!tmpl) return false;
   if (!shopOpen()) { toast("商会は閉ざされている", { tone: "info" }); return false; }
   who = who || defaultBuyer();
@@ -475,7 +476,7 @@ function tutorialPurchaseBlock() {
   for (const id of stockIds()) for (const { item } of stockVariants(id)) {
     if (!isEquippable(item) || buyerPlan(item).score <= 0) continue;
     found = true;
-    if (game.buyPrice(ITEMS[id]) <= (G().gold || 0)) return null;
+    if (game.buyPrice(item) <= (G().gold || 0)) return null;
   }
   if (!found) return "今の装備に勝る品は、もう棚にないようだ。次の装備は迷宮で探してくれ。";
   return "今の金貨で買えるおすすめはないようだ。金貨を持ち帰ったら、また見に来てくれ。";
@@ -496,7 +497,7 @@ function stockVariants(id) {
   const out = [];
   const ax = game.shopAfxItem?.(id);
   if (ax) out.push({ id, item: ax, affixed: true });
-  if (game.shopPlainStock(id) > 0) out.push({ id, item: ITEMS[id], affixed: false });
+  if (game.shopPlainStock(id) > 0) out.push({ id, item: game.shopShelfItem ? game.shopShelfItem(id) : ITEMS[id], affixed: false });
   buyMemo?.variants.set(id, out);
   return out;
 }
@@ -559,7 +560,7 @@ function listFor(cat, wcat) {
 // 棚の札: 名前は購入ボタンの左だけで折り返し、在庫は絵に重ねる。装備先は独立した行。
 function stockRow(id) {
   const g = G();
-  const it = ITEMS[id];
+  const it = game.shopShelfItem ? game.shopShelfItem(id) : ITEMS[id];
   const price = game.buyPrice(it);
   const n = game.shopPlainStock(id);
   const rk = rarityKey(it);
@@ -584,7 +585,7 @@ function stockRow(id) {
   const kind = it.slot === "weapon" ? (WEAPON_CAT_LABEL[it.cat] || "武器") : ((ITEM_CATS.find((c) => c.slots.includes(it.slot)) || {}).label || "");
   l3.appendChild(el("span", "wpc-srow-kind", kind));
   // 装備できるLv (選択した人業が届いていなければ赤く)
-  const needLv = isEquippable(it) ? equipLevelOf(it) : 1;
+  const needLv = isEquippable(it) ? equipLevelOf(it, 1) : 1;
   if (needLv > 1) {
     const d = selectedBuyer();
     const reach = d && d.primary != null && (d.jobLv || 1) >= needLv;
