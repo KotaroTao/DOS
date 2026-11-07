@@ -1,22 +1,26 @@
 import { refSerialize } from './savegraph.js';
 import { autoSkills } from './souls.js';
 import { autoEstimateContext } from './combat.js';
-let worker=null,serial=0,failed=false;
+let worker=null,serial=0,retryWorkerAt=0;
+const WORKER_RETRY_MS=30000;
 const pending=new Map();
-function disableWorker(error){
- failed=true;worker?.terminate();worker=null;
+function disableWorker(instance,error){
+ if(worker!==instance)return;
+ retryWorkerAt=Date.now()+WORKER_RETRY_MS;instance.terminate();worker=null;
  for(const task of pending.values()){clearTimeout(task.timer);task.reject(error);}pending.clear();
 }
 export function warmAutoPlanner(){
- if(worker||failed||typeof Worker==='undefined')return;
+ if(worker||Date.now()<retryWorkerAt||typeof Worker==='undefined')return;
  try{
   worker=new Worker(new URL('./auto-worker.js',import.meta.url),{type:'module'});
-  worker.onmessage=({data})=>{const task=pending.get(data.id);if(!task)return;pending.delete(data.id);clearTimeout(task.timer);data.error?task.reject(Error(data.error)):task.resolve(data.plan);};
-  worker.onerror=()=>disableWorker(Error('作戦の計算を再開'));
- }catch{failed=true;}
+  const instance=worker;
+  instance.onmessage=({data})=>{if(worker!==instance)return;const task=pending.get(data.id);if(!task)return;pending.delete(data.id);clearTimeout(task.timer);data.error?task.reject(Error(data.error)):task.resolve(data.plan);};
+  instance.onerror=instance.onmessageerror=event=>{event?.preventDefault?.();disableWorker(instance,Error('作戦の計算を再開'));};
+ }catch{retryWorkerAt=Date.now()+WORKER_RETRY_MS;}
 }
 export async function planAuto(b,actor,resistKnown,fallback){
  warmAutoPlanner();if(!worker){return (fallback)();}
+ const instance=worker;
  try{
  // 技の解放条件は端末側で評価してから、共有参照を保って複製する。
  const allowed=b.party.map(a=>autoSkills(a));
@@ -32,5 +36,5 @@ export async function planAuto(b,actor,resistKnown,fallback){
 
   if(plan?.targetUid!=null)plan.target=[...b.party,...b.enemies].find(e=>e.uid===plan.targetUid&&e.side===plan.targetSide);
   return plan;
- }catch(error){disableWorker(error);return (fallback)();}
+ }catch(error){disableWorker(instance,error);return (fallback)();}
 }

@@ -53,6 +53,7 @@ jobs:
           node tools/performance/auto-element-check.mjs
           node tools/performance/auto-allocation-check.mjs
           node tools/performance/auto-estimate-check.mjs
+          node tools/performance/auto-worker-recovery-check.mjs
           node tools/balance/auto-intelligence.mjs
           node tools/balance/auto-resistance.mjs
           node tools/performance/enemy-level-check.mjs
@@ -61,6 +62,7 @@ jobs:
           python3 -m http.server 8000 > /tmp/auto-http.log 2>&1 &
           server=$!
           trap 'kill "$server"' EXIT
+          python3 tools/performance/auto-worker-recovery-browser.py
           python3 tools/performance/battle-loading-browser.py
           python3 tools/performance/battle-render-browser.py
           python3 tools/performance/town-image-cache-browser.py
